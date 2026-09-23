@@ -7,8 +7,8 @@
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/
 > PHASE2_UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
 > （docs/algorithms/UPM_SOLVER.md，公式与容差零改动）。
-> 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，实测）；
+> 模块: lib/algorithms/coverage/src/upm.cpp（2793 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: astrocs.p2.upm
 > （TRACEABILITY_MATRIX.csv :21/:22 两行）；TEST: TEST-P2-UPM-001/002
@@ -66,37 +66,37 @@
 control_ivar=ADU⁻²、quality/support 无量纲、frame_id 无量纲 uint64
 （SCI-UPM-001 §3 冻结面，实测复核）。
 
-## 3 逐符号锚（upm.cpp 1565 行 / upm.h 184 行，实测）
+## 3 逐符号锚（upm.cpp 2793 行 / upm.h 384 行，实测）
 
 **导出符号（upm.h 声明 / upm.cpp 实现）**：
 
 | 符号 | 声明（upm.h） | 实现（upm.cpp） | 语义 |
 |---|---|---|---|
-| p2_upm_build | :95-97 | :929-932 | 构建（obs 驱动拓扑）入口 |
-| p2_upm_build_geo | :103-106 | :934-938 | 全几何节点构建（含单帧区 continuation） |
-| p2_upm_save | :108 | :940-1006 | 稀疏 json 原子写（aio_upm_write_sparse） |
-| p2_upm_open | :109 | :1008-1231 | 强校验重开（format/frames/controls/C） |
-| p2_upm_info | :110 | :1233-1238 | P2ModelInfo 快照（hash/control_count） |
-| p2_upm_convergence | :118-127 | :1257-1267 | 迭代/目标/收敛**只读**访问器（M7-H-101；不改 P2ModelInfo 冻结布局） |
-| p2_upm_calibrate_block | :113-119 | :1240-1269 | 逐块校准（唯一运行时 apply 面） |
-| p2_upm_evaluate_c | :121-123 | :1271-1289 | 直接求值 C(frame,leaf) |
-| p2_upm_raw_weight | :134-136 | :1292-1323 | raw 权重单一实现（production/ablation） |
-| p2_upm_normalized_weights | :139-142 | :1325-1344 | per-control 归一化（API 面） |
-| p2_upm_geometry_hash | :146 | :1346-1367 | 几何/拓扑 hash（不含观测可信度） |
-| p2_upm_component_gauges | :150-152 | :1369-1381 | 每分量 gauge frame id 查询 |
-| p2_upm_materialize_dense_n | :177-178 | :1390-1515 | 稠密缓存物化（worker 数显式） |
-| p2_upm_materialize_dense | :154-156/:173-175 | :1517-1521 | 稠密物化 wrap（workers=0 auto；声明重复见 DISP-P2UPM-001） |
-| p2_upm_dense_info | :159-162 | :1523-1540 | dense 信息（等价门用） |
-| p2_upm_dense_read_block | :166-172 | :1542-1557 | dense 块读（stale 拒绝） |
-| p2_upm_close | :180 | :1559-1563 | 释放 |
+| p2_upm_build | :121-123 | :1205-1208 | 构建（obs 驱动拓扑）入口 |
+| p2_upm_build_geo | :129-132 | :1210-1214 | 全几何节点构建（含单帧区 continuation） |
+| p2_upm_save | :134 | :1216-1282 | 稀疏 json 原子写（aio_upm_write_sparse） |
+| p2_upm_open | :135 | :1304-1527 | 强校验重开（format/frames/controls/C） |
+| p2_upm_info | :136 | :1569-1574 | P2ModelInfo 快照（hash/control_count） |
+| p2_upm_convergence | :151-160 | :1577-1587 | 迭代/目标/收敛**只读**访问器（M7-H-101；不改 P2ModelInfo 冻结布局） |
+| p2_upm_calibrate_block | :155-161 | :1591-1620 | 逐块校准（唯一运行时 apply 面） |
+| p2_upm_evaluate_c | :164-166 | :1627-1645 | 直接求值 C(frame,leaf) |
+| p2_upm_raw_weight | :176-178 | :1650-1681 | raw 权重单一实现（production/ablation） |
+| p2_upm_normalized_weights | :181-184 | :1683-1702 | per-control 归一化（API 面） |
+| p2_upm_geometry_hash | :188 | :1712-1733 | 几何/拓扑 hash（不含观测可信度） |
+| p2_upm_component_gauges | :192-194 | :1735-1747 | 每分量 gauge frame id 查询 |
+| p2_upm_materialize_dense_n | :219-220 | :1756-1881 | 稠密缓存物化（worker 数显式） |
+| p2_upm_materialize_dense | :197-199/:216-218 | :1888-1892 | 稠密物化 wrap（workers=0 auto；声明重复见 DISP-P2UPM-001） |
+| p2_upm_dense_info | :201-204 | :1893-1910 | dense 信息（等价门用） |
+| p2_upm_dense_read_block | :208-214 | :1912-1927 | dense 块读（stale 拒绝） |
+| p2_upm_close | :222 | :1929-1933 | 释放 |
 
 **内部符号（匿名 namespace）**：
 
 | 符号/段 | 锚（upm.cpp） | 语义 |
 |---|---|---|
 | build_impl | :212-927 | 构建/求解/哈希本体（两入口共用） |
-| evaluate_c_field | :112-175 | centered 双线性求值（sparse/dense 共用语义） |
-| quality_factor | :177-186 | quality_flags 映射（16→0 / 2→0.1 / 1→1.0 / 未知→0.5） |
+| evaluate_c_field | :202-265 | centered 双线性求值（sparse/dense 共用语义） |
+| quality_factor | :207-216 | quality_flags 映射（16→0 / 2→0.1 / 1→1.0 / 未知→0.5） |
 | huber_rho / huber_w | :196-206 | Huber loss / 权重核（无量纲 z） |
 | compute_raw（lambda） | :509-561 | raw 计算 + per-control 归一化 + 并行归并 |
 | cg_solve_frame（lambda） | :563-599 | 逐帧 CG（(W+λsL+λ0I)x=rhs） |
@@ -377,16 +377,16 @@ p2_session.cpp:187-195 与 module_adapters.cpp:3152-3176 均显式赋 zero_ancho
 
 | 参数 | 默认 | 锚（upm.cpp） |
 |---|---|---|
-| huber_delta | 1.345（无量纲，单位=sigma_eff） | :224/:237 |
-| max_iterations | 100 | :227/:238 |
-| tolerance | 1e-6（收敛门 max_dM/max_dC） | :228、收敛判据 ：872 |
-| sigma_floor | 1e-3 | :230/:239 |
+| huber_delta | 1.345（无量纲，单位=sigma_eff） | :254/:273 |
+| max_iterations | 100 | :257/:274 |
+| tolerance | 1e-6（收敛门 max_dM/max_dC） | :258、收敛判据 ：872 |
+| sigma_floor | 1e-3 | :260/:279 |
 | zero_anchor_weight（λ0） | 1e-3 | :226/:244 |
 | smoothing_lambda（λs） | 0.0（默认关闭平滑） | :225/:245 |
-| use_ivar_weight | 1（production；仅显式 0 进 ablation） | :233 |
-| control_reliability | 1.0 | :234/:243 |
-| cpu_workers | 1（串行 reference；生产=Runtime lease） | :235 |
-| support_power | 1.0（仅 ablation 路径消费） | :231/:240 |
+| use_ivar_weight | 1（production；仅显式 0 进 ablation） | :263 |
+| control_reliability | 1.0 | :264/:283 |
+| cpu_workers | 1（串行 reference；生产=Runtime lease） | :265 |
+| support_power | 1.0（仅 ablation 路径消费） | :261/:280 |
 
 **数值常数**：CG max_cg=200（:567）、CG 早停 pAp≤1e-30（:586）/
 rs_new<1e-24（:594）、归一化门 s>1e-12（:555/:1341）、per-control

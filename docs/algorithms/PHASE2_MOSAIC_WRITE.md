@@ -8,7 +8,7 @@
 > SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md）。共享 SCI 引用不改动；
 > 本文件登记实现级语义（SCI 公式语义不在本文重复定义，两处冲突以
 > docs/science/ 为准并回改本文档，禁止反向）。
-> 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（1762 行实测；入口 main :112）。
+> 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（1965 行实测；入口 main :112）。
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
 > no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
 > 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS）、
@@ -432,7 +432,7 @@ main(stage2.json, CLI overrides):
   可执行测试显式 MISSING 归 P2-HIPS-TEST）；既有基线
   Phase2IvarWiring/Phase2Routing/test_p2004_reject_integrate.py（§8）。
 
-## 11 冻结附录（stage2.cpp 1762 行源码实测）
+## 11 冻结附录（stage2.cpp 1965 行源码实测）
 
 ### 11.1 ALG-P2-HIPS-001..004 逐符号/逐段锚
 

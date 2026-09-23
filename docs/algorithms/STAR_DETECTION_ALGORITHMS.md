@@ -6,8 +6,8 @@
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2555 行实测；源文件唯一在役副本）；合同头
-> lib/algorithms/star_detection/include/star_detector.h（73 行）；禁止手抄他版。
+> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2973 行实测；源文件唯一在役副本）；合同头
+> lib/algorithms/star_detection/include/star_detector.h（110 行）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
 > 迁移目标 astrocs_p1_star_detection.dll）。

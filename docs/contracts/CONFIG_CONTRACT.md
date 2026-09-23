@@ -58,13 +58,13 @@
 
 | key | unit | 归属任务 | 依据 |
 |---|---|---|---|
-| `sparse_snr.density` | `点/度²` | SCI-RES-01/R-001 + 负责人批准 | ASTROCS_DESIGN §3.3 点名；`docs/science/**`、`docs/algorithms/**` 全库无数值（GAP-024）；单位见 `docs/plugins/algorithms_phase1/07_noise_snr.md:112` |
+| `sparse_snr.density` | `点/度²` | SCI-RES-01/R-001 + 负责人批准 | ASTROCS_DESIGN §3.3 点名；`docs/science/**`、`docs/algorithms/**` 全库无数值（GAP-024）；单位见 `docs/plugins/algorithms_phase1/07_noise_snr.md:185` |
 | `scalar_gate.rd` | unspecified | SCI-RES-01/R-002 + 负责人批准 | GAP-024；`07_noise_snr.md:61` 字段名，默认/单位列均为 —— |
 | `scalar_gate.trend` | unspecified | SCI-RES-01/R-002 + 负责人批准 | 同上（`07_noise_snr.md:62`） |
 
 - `calibration.dark_light_exposure_tolerance = 5 s`：负责人已裁决值，按裁决**不标** pending；文档侧仅有 `K=t_light/t_dark` 语义（`docs/science/CALIBRATION.md:19,21,90`），数值待 SCI-RES-01/R-004 落 `docs/science/CALIBRATION.md`。
 - 负空间（口径保留，去向已定）：`docs/plugins/**` 的 plugin 级默认**不进** `fields[]`——本文件 source 规则限定 docs/science|docs/algorithms；它们改由 `eng/packaging/config/config_registry.json#plugin_knobs` 逐行登记（95 行：归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → eng/packaging/config/config_registry.json
-- **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）↔ ~~`phase_config_mosaic.algorithm_weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量） 的 token `point_information`（同一口径的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:57` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
+- **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）↔ ~~`phase_config_mosaic.algorithm_weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量） 的 token `point_information`（同一口径的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:56` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
 - **登记册指针**：`registry_ref` 指向 `eng/packaging/config/config_registry.json`（plugin 级默认 / 旋钮归属 / 滤镜名语义 / os_abi / 索引归属的登记面）；本文件与登记册**不得互相复制数值**（数值唯一源 = defaults.json 与 phase_config schema）。
 
 ## 3 三命令 phase_config 与模板

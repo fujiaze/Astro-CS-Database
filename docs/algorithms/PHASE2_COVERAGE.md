@@ -8,8 +8,8 @@
 > 本域零 SCI 层改动（§11.5）。
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
 > MOD-astrocs-phase2-coverage（registry）
-> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（454 行，复测）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/coverage.h（168 行，同上）；禁止手抄他版。
+> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。
@@ -252,7 +252,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 | 符号 | 锚（coverage.cpp） | 角色 |
 |---|---|---|
 | p2_coverage_build | :144-231 | 唯一生产入口（C ABI，coverage.h:57-59 声明） |
-| p2_coverage_free | :233-237 | POD 清零释放语义（null :234，memset :235） |
+| p2_coverage_free | :274-278 | POD 清零释放语义（null :234，memset :235） |
 | inspect_frame | :59-140 | 匿名 namespace（:55-142）内部链接，每帧校验+tile 收集 |
 | parse_props | :20-45 | 文件作用域 static（:20），properties KV 解析 |
 

@@ -176,6 +176,7 @@
         "UT-QUALITY",
         "UT-GAIA-ZLIB",
         "PY-TEST-INDEX-VERDICTS",
+        "TEST-INDEX-LIVE",
         "TESTKIT-LIST",
         "CTEST-LINUX-FULL",
         "CTEST-AIO-CHECKSUM",
@@ -530,6 +531,12 @@
       "steps": [
         "E2E-WCS-CLOSURE-REPRO-SELFTEST"
       ]
+    },
+    "ALG-LINE-ANCHORS": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "ALG 文档行数锚与逐符号行号范围",
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-ALGO-WIRING": {
       "kind": "ci",
@@ -3123,6 +3130,24 @@
       "note": "RELEASE-02（2026-09-18）新增；非本波 146 项基线，absorbed。"
     },
     {
+      "old_id": "TEST-INDEX-LIVE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "checker": "eng/tools/doccheck/check_test_index_live.py",
+      "owner": "DOC-DRIFT-FIX-01",
+      "reason": "test_index.csv 是手工维护、无生成器；既有门只判「标注自洽」不判与实测一致，这正是陈旧登记能长期存活的根因。新判据把 verdict / cases-failed-errored-skipped / 耗时量级与实测对齐。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "ALG-LINE-ANCHORS",
+      "decision": "KEPT",
+      "target": "ALG-LINE-ANCHORS",
+      "checker": "eng/tools/doccheck/check_alg_line_anchors.py",
+      "owner": "DOC-DRIFT-FIX-01",
+      "reason": "它守的两类（文档自述行数锚、逐符号表行号范围）没有其他门——既有行锚门只判「能解析 + 界内」，不判与源文件实测一致。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
       "old_id": "RECONCILE-STATE",
       "decision": "MERGED-INTO",
       "target": "CHK-ENV-ADOPTION",
@@ -3836,6 +3861,8 @@
       "PSFSW-RETIRED-STATIC",
       "PSFSW-RETIRED-STATIC-SELFTEST",
       "PY-TEST-INDEX-VERDICTS",
+      "TEST-INDEX-LIVE",
+      "ALG-LINE-ANCHORS",
       "REGISTRY-DOC-SYNC",
       "REGISTRY-DOC-SYNC-SELFTEST",
       "RESOURCE-GATE-REAL",

@@ -12,7 +12,7 @@
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
 - 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
-- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 111 个目标，其中 92 个的 `doc` 字段指向该表（含带登记批注的变体），19 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 43 / extension 44 / ci 24。
+- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 112 个目标，其中 93 个的 `doc` 字段指向该表（含带登记批注的变体），19 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 44 / extension 44 / ci 24。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
 ## 2. 覆盖计数（`coverage` 块逐字引用，本文件不重算该块）
@@ -29,9 +29,9 @@
 | silent_drops | 0 |
 | result_entry_count | 112 |
 
-- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 301 条 —— KEPT 149 / KEPT-PENDING-MERGE 3 / MERGED-INTO 149；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 143 条。
-- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 158 == 301 − 143）；本文件**逐字引用**该块，不用逐条计数覆盖它。
-- `absorbed_entries`：143 条登记（唯一 143 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
+- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 303 条 —— KEPT 150 / KEPT-PENDING-MERGE 3 / MERGED-INTO 150；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 145 条。
+- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 158 == 303 − 145）；本文件**逐字引用**该块，不用逐条计数覆盖它。
+- `absorbed_entries`：145 条登记（唯一 145 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
 - `retired` = 0：本波无退役项；基线前退役 1 项单列于 §2.1，**不得**计为本波丢失的注册项。
 - 覆盖口径注（`coverage.note` 逐字）：覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。
 
@@ -58,7 +58,7 @@
 | `CHK-DANGLING` | doc | P1 | 删除/重命名无悬空引用 | `CON-DOC-SYMBOLS` |
 | `CHK-STALE-DOC` | doc | P1 | 活动文档无陈旧版本号/历史状态冒充 | `CON-COMMENTS` |
 | `API-DOCS` | doc | P0 | doc↔code 命令树/签名/退出码/schema 一致 | `API-DOCS`、`CLI-COMMAND-LAYER`、`CLI-RUN-PRESET`、`CON-API-CONTRACTS` |
-| `CHK-UNIT` | doc | P0 | 每模块单测 | `UT-API`、`UT-ARCH`、`UT-BACKEND`、`UT-CLI`、`UT-CONFIG`、`UT-VERSION`、`UT-GLOSSARY`、`UT-MONITORING`、`UT-PIPELINE`、`UT-RUNTIME`、`UT-RUNTIME-INTEGRATION`、`UT-SCIENCELINT`、`UT-ARTIFACT`、`UT-IO`、`UT-QUALITY`、`UT-GAIA-ZLIB`、`PY-TEST-INDEX-VERDICTS`、`TESTKIT-LIST`、`CTEST-LINUX-FULL`、`CTEST-AIO-CHECKSUM`、`CTEST-AIO-TILE_MODEL`、`CTEST-AIO-TRANSFORM`、`CTEST-AIO-QUERY_PIXEL`、`CTEST-AIO-PRECISION_DUAL`、`WIN-TEST-UNIT`、`V6-CTEST-UNIT`、`CTEST-AIO-HIPS-ATOMIC-PUBLISH`、`CTEST-FIX402-PHASE3-SEMANTIC-GUARD` |
+| `CHK-UNIT` | doc | P0 | 每模块单测 | `UT-API`、`UT-ARCH`、`UT-BACKEND`、`UT-CLI`、`UT-CONFIG`、`UT-VERSION`、`UT-GLOSSARY`、`UT-MONITORING`、`UT-PIPELINE`、`UT-RUNTIME`、`UT-RUNTIME-INTEGRATION`、`UT-SCIENCELINT`、`UT-ARTIFACT`、`UT-IO`、`UT-QUALITY`、`UT-GAIA-ZLIB`、`PY-TEST-INDEX-VERDICTS`、`TEST-INDEX-LIVE`、`TESTKIT-LIST`、`CTEST-LINUX-FULL`、`CTEST-AIO-CHECKSUM`、`CTEST-AIO-TILE_MODEL`、`CTEST-AIO-TRANSFORM`、`CTEST-AIO-QUERY_PIXEL`、`CTEST-AIO-PRECISION_DUAL`、`WIN-TEST-UNIT`、`V6-CTEST-UNIT`、`CTEST-AIO-HIPS-ATOMIC-PUBLISH`、`CTEST-FIX402-PHASE3-SEMANTIC-GUARD` |
 | `CHK-ORACLE` | doc | P0 | SCI/ALG Oracle 测试 | `UT-CPU-BASELINE`、`V6-RUNTIME-CLOSURE`、`CTEST-P1WCS-APBP`、`CTEST-P1WCS-ASTROPY-CROSS`、`CTEST-P1WCS-STD-F1-BRIDGE`、`CTEST-P1PHOT-FIXGATES`、`CTEST-P1SNR-SCIENCE-ALL`、`CTEST-IPV-MAG-ITER`、`CTEST-IPV-MAG-ITER-DELIVERY`、`CTEST-IPV-SELECT-DOMAIN`、`CTEST-P1NOISE-NUMPY-ORACLE`、`CTEST-P1WCS-CLOSURE-METRIC-GATE` |
 | `CHK-INVARIANT` | doc | P0 | 科学不变量/性质测试 | `CTEST-DRIZZLE-PRECISION-DEFAULT`、`CTEST-P1STAR-MAD`、`CTEST-P1PSF-PRODPATH-CENTROID`、`CTEST-P1STAR-ANGLE-GUARD`、`CTEST-P1STAR-GUIDED`、`CTEST-P1STARDET-NODE-GATE`、`CTEST-P1SNR-FRAME-PARITY`、`CTEST-P2HIPS-UNITS`、`CTEST-P2HIPS-DETERMINISM`、`CTEST-P2HIPS-NEGATIVE`、`CTEST-P2HIPS-SELFCHECK`、`CTEST-GAIA-MANIFEST-BOUNDS`、`CTEST-XPSD-SPECTRUM-COUNT-BOUNDS`、`CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS`、`CTEST-GAIA-SHARD-COVERAGE`、`CTEST-GAIA-SHARD-COVERAGE-SELF-TEST`、`CTEST-IPV-EXTRACT-WCS-SIP-FAILCLOSED`、`CTEST-IPV-TRIANGLE-BUDGET`、`CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS`、`CTEST-AIO-HIPS-PUBLISH-ATOMIC`、`IPV-PLATFORM-BINDING`、`CTEST-P1PSF-CENTROID-GATE`、`CTEST-P1PSF-CENTROID-GATE-NEG`、`CTEST-P1PSF-CENTER-CONTRACT`、`CTEST-P1PSF-CENTER-CONTRACT-NEG`、`CTEST-P1PSF-CENTER-CONTRACT-ASTROPY`、`CTEST-P1CAL-BIAS-INFLUENCE-GATE`、`CTEST-P1NOISE-MASK`、`CTEST-P1NOISE-SATURATION`、`CTEST-P1NOISE-SATURATION-SELFCHECK`、`CTEST-P1NOISE-SATURATION-WIRING` |
 | `CHK-ABI` | doc | P0 | C ABI 兼容性 | `ABI-BOUNDARY`、`AST-API`、`UT-ABI`、`CTEST-AIO-ABI-UNITS`、`CTEST-AIO-ABI-NEGATIVE`、`CTEST-AIO-ABI-SELFCHECK`、`CTEST-IPV-ABI-LAYOUT-LOCK`、`CTEST-IPV-ABI-LAYOUT-LOCK-SELFCHECK`、`CTEST-IPV-PARAMS-ABI-FAILCLOSED`、`CTEST-AIO-ABI-LAYOUT-LOCK`、`CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK`、`CTEST-IPV-DEAD-PARAMS-LOCK`、`CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK`、`CTEST-IPV-ERROR-UTF8`、`CTEST-P1NOISE-ABI-LAYOUT` |
@@ -129,7 +129,7 @@
 | `CHK-DUAL-TOL` | P1 | 双平台允许误差 | 现注册表零双平台数值对比命令；Windows 复验面（REAL-001/负责人触发） | REAL-001 / 负责人触发复验 |
 | `CHK-AGENT-HARD-RULES` | P0 | AGENTS.md 硬禁令存在 | 唯一实现者 eng/tools/check_agents_gov.py 本波按裁决冻结（RETIRE-PENDING-GOV-001，W2 GOV-001 执行迁移） | GOV-001（W2） |
 
-## 5. 逐条映射明细（`mappings`，301 条）
+## 5. 逐条映射明细（`mappings`，303 条）
 
 | 旧 ID | 决策 | 目标/预留位 | 类型 | 级 | 备注（JSON note 逐字） |
 |---|---|---|---|---|---|
@@ -139,6 +139,7 @@
 | `AHPX-WEIGHT-RETIRED` | KEPT | `AHPX-WEIGHT-RETIRED` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `AIO-IO-BOUNDARY-SELFTEST` | KEPT | `AIO-IO-BOUNDARY-SELFTEST` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `AIO-OWNERSHIP` | MERGED-INTO | `CHK-RESOURCE` | doc | P0 | 内存/线程/利用率门禁 |
+| `ALG-LINE-ANCHORS` | KEPT | `ALG-LINE-ANCHORS` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `API-DOCS` | MERGED-INTO | `API-DOCS` | doc | P0 | doc↔code 命令树/签名/退出码/schema 一致 |
 | `AST-API` | MERGED-INTO | `CHK-ABI` | doc | P0 | C ABI 兼容性 |
 | `BUILD-GCC-RELEASE` | MERGED-INTO | `CHK-BUILD-LINUX` | doc | P0 | Linux Release 构建 |
@@ -386,6 +387,7 @@
 | `STD-REG-FI-DANGLING` | KEPT | `STD-REG` | extension | P0 | CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed） |
 | `STD-REG-FI-VERSION-DRIFT` | KEPT | `STD-REG` | extension | P0 | CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed） |
 | `TASK-RESULT-SCHEMA` | MERGED-INTO | `CHK-SCHEMA` | doc | P0 | schema 校验 |
+| `TEST-INDEX-LIVE` | MERGED-INTO | `CHK-UNIT` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `TESTKIT-LIST` | MERGED-INTO | `CHK-UNIT` | doc | P0 | 每模块单测 |
 | `THREAD-BUDGET` | MERGED-INTO | `CHK-RESOURCE` | doc | P0 | 内存/线程/利用率门禁 |
 | `TOOLCHAIN-VERIFY` | MERGED-INTO | `CHK-ENV-ADOPTION` | extension | P1 | CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账） |
@@ -435,7 +437,7 @@
 | `WORKFLOW-REGISTRY-BINDING` | MERGED-INTO | `CHK-MODULE-MANIFEST` | doc | P0 | 模块 manifest/注册表/构建 target/产品清单一致 |
 | `WORKSPACE-ADOPTION` | MERGED-INTO | `CHK-ENV-ADOPTION` | extension | P1 | CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账） |
 
-### 5.1 判据实现者 / 归属 / 原始 reason（18 条）
+### 5.1 判据实现者 / 归属 / 原始 reason（20 条）
 
 | 旧 ID | 判据实现者（checker） | 归属（owner） | reason（JSON 逐字） |
 |---|---|---|---|
@@ -454,6 +456,8 @@
 | `LINUX-MAIN-BUILD-TREE` | `（JSON 未登记）` | QA-001 / 后续 CI 治理任务（改 eng/ci/run.py 绑定同批） | 本波保持顶层：eng/ci/workflow_binding.json 的 wf_step 绑定以该 ID 声明 check 体，并入聚合需同步适配 eng/ci/validate_workflow_binding.py（超出 GO 的注册项-only 边界）；QA-001 改绑定后由后续任务并入目标 |
 | `LINUX-MAIN-FIXTURES` | `（JSON 未登记）` | QA-001 / 后续 CI 治理任务（改 eng/ci/run.py 绑定同批） | 本波保持顶层：eng/ci/workflow_binding.json 的 wf_step 绑定以该 ID 声明 check 体，并入聚合需同步适配 eng/ci/validate_workflow_binding.py（超出 GO 的注册项-only 边界）；QA-001 改绑定后由后续任务并入目标 |
 | `PY-TEST-INDEX-VERDICTS` | `eng/ci/check_test_index.py` | RELEASE-02 CI-HYGIENE | DESIGN-CONFORMANCE SUB-D-35：test_index.csv 无机器 verdict，含 errors/failures/skip 的套件被当作通过。本门把聚合判据机器化（PASS ⇔ failed==0∧errored==0；全 skip 不得记 PASS），并入 CHK-UNIT 聚合面。 |
+| `TEST-INDEX-LIVE` | `eng/tools/doccheck/check_test_index_live.py` | DOC-DRIFT-FIX-01 | test_index.csv 是手工维护、无生成器；既有门只判「标注自洽」不判与实测一致，这正是陈旧登记能长期存活的根因。新判据把 verdict / cases-failed-errored-skipped / 耗时量级与实测对齐。 |
+| `ALG-LINE-ANCHORS` | `eng/tools/doccheck/check_alg_line_anchors.py` | DOC-DRIFT-FIX-01 | 它守的两类（文档自述行数锚、逐符号表行号范围）没有其他门——既有行锚门只判「能解析 + 界内」，不判与源文件实测一致。 |
 | `VERSION-CONSISTENCY` | `eng/ci/check_version.py` | GOV-001 (W2) | 硬绑定 --expected 0.11.0-alpha.2 旧版本号；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移） |
 | `VERSION-NAMESPACES` | `eng/tools/doccheck/check_version_namespaces.py` | GOV-001 (W2) | 五版本命名空间与最高设计 §12「版本信息下线」冲突；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移） |
 | `WIN-CANDIDATE-VALIDATE` | `（JSON 未登记）` | QA-001 / 后续 CI 治理任务（改 eng/ci/run.py 绑定同批） | 本波保持顶层：eng/ci/workflow_binding.json 的 wf_step 绑定以该 ID 声明 check 体，并入聚合需同步适配 eng/ci/validate_workflow_binding.py（超出 GO 的注册项-only 边界）；QA-001 改绑定后由后续任务并入目标 |

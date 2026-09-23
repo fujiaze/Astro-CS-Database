@@ -626,10 +626,10 @@
       "unit": "1",
       "constraint": "枚举 id {fp32, fp64}；FP32 仅显式等价路径（SparseEqualsDense 1e-12 门）",
       "authority_status": "sourced",
-      "source": "docs/science/SCIENCE_SCOPE.md:55（默认 FP64 科学计算）",
+      "source": "docs/science/SCIENCE_SCOPE.md:56（默认 FP64 科学计算）",
       "source_ref": {
         "path": "docs/science/SCIENCE_SCOPE.md",
-        "line": 55
+        "line": 56
       },
       "pending_task": null,
       "note": "ASTROCS_DESIGN.md §3.3 的 JSON 示例写 fp32，属示例取值；默认值以本条为准（SCIENCE_SCOPE 为科学权威）。"
