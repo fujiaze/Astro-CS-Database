@@ -232,6 +232,102 @@ inline FixStarF fix_star_f_f6_anchor() {
     return fx;
 }
 
+// ============================================================================
+// FIX-STAR-H (F1-TB) — 过渡带真星召回场
+// ----------------------------------------------------------------------------
+// 合同锚: docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4 F1「判据式 + 判据
+// 非退化要求」; docs/science/STAR_DETECTION.md §1 completeness 条。
+//
+// 存在理由: FIX-STAR-A 的真星 SNR_peak 只落在 [6.7,9.2) ∪ [32.5,45) ∪
+// [683,1333), 区间 [10,32.5) 为空档 ⇒ 旧的平坦门「SNR≥10 召回≥99%」恒绿,
+// 从未行使其声明域。本场按 §11.4 冻结的六个 σ_psf 档 × SNR 阶梯铺满
+// [10, 32.5) 全宽, 峰值对齐像素中心 (冻结判据表的声明域)。
+//
+// 逐星分区 (逐档实测 99% 召回阈表 F1TB_THR99, 见下; σ_smooth = 2.0 px):
+//   POS   : SNR_peak ≥ thr99(σ)       判据声明在域内 ⇒ 必须召回 (≥99%)
+//   TB    : 10 ≤ SNR_peak < thr99(σ)  过渡带负例 ⇒ 必须存在且必须判红
+//   BELOW : SNR_peak < 10             声明域之外 (本场不布点)
+// ============================================================================
+
+inline constexpr double F1TB_SIGMA_SMOOTH = 2.0;   // sdet_api.cpp:1772 实参
+inline constexpr double F1TB_SNR_FLOOR = 10.0;     // 旧冻结声明的召回域下限
+
+// §11.4 F1 判据表: σ_psf 六档 + 逐档实测阈 (生产 sdet_detect_ex_f64, 默认参数
+// sdet_create(nullptr), 256² 单星居中, 峰值对齐像素中心, 64 次/档)。
+//   THR50 : 检出概率 0.5 的信噪比 (50% 过渡点)
+//   THR99 : 使实测召回达到 1.00 的最小信噪比 —— n=64 下 ≥0.99 与 =1.00 等价
+inline constexpr double F1TB_SIGMA_BANDS[6] = {1.0, 1.27, 1.5, 2.0, 2.5, 3.0};
+inline constexpr double F1TB_THR50[6] = {31.1, 21.4, 17.7, 14.2, 9.4, 8.3};
+inline constexpr double F1TB_THR99[6] = {46.0, 24.0, 19.0, 16.0, 10.0, 10.0};
+inline constexpr double F1TB_KAPPA50 = 6.23;       // 50% 点单参数拟合 (趋势模型)
+inline constexpr double F1TB_KAPPA99 = 7.33;       // 99% 阈单参数拟合 (趋势模型)
+
+// 档值本身取该档实测值; 档间 (严格位于两档之间) 取相邻两档较严者 (较大阈);
+// σ_psf 超出 [1.0, 3.0] px 取端点档值 (声明域外, 见 §11.4 适用域)
+inline double f1tb_thr50(double sigma) {
+    if (sigma <= F1TB_SIGMA_BANDS[0]) return F1TB_THR50[0];
+    for (int b = 0; b + 1 < 6; ++b) {
+        if (std::fabs(sigma - F1TB_SIGMA_BANDS[b + 1]) < 1e-12) return F1TB_THR50[b + 1];
+        if (sigma < F1TB_SIGMA_BANDS[b + 1])
+            return std::max(F1TB_THR50[b], F1TB_THR50[b + 1]);
+    }
+    return F1TB_THR50[5];
+}
+inline double f1tb_thr99(double sigma) {
+    if (sigma <= F1TB_SIGMA_BANDS[0]) return F1TB_THR99[0];
+    for (int b = 0; b + 1 < 6; ++b) {
+        if (std::fabs(sigma - F1TB_SIGMA_BANDS[b + 1]) < 1e-12) return F1TB_THR99[b + 1];
+        if (sigma < F1TB_SIGMA_BANDS[b + 1])
+            return std::max(F1TB_THR99[b], F1TB_THR99[b + 1]);
+    }
+    return F1TB_THR99[5];
+}
+// 趋势模型 (不作验收判据; §11.4 判据表说明其残差)
+inline double f1tb_thr_model(double sigma) {
+    return F1TB_KAPPA99 * (1.0 + F1TB_SIGMA_SMOOTH * F1TB_SIGMA_SMOOTH / (sigma * sigma));
+}
+
+enum class F1TbZone { Pos, Transition, Below };
+
+inline F1TbZone f1tb_zone(double sigma, double snr_peak) {
+    if (snr_peak >= f1tb_thr99(sigma)) return F1TbZone::Pos;
+    if (snr_peak >= F1TB_SNR_FLOOR) return F1TbZone::Transition;
+    return F1TbZone::Below;
+}
+
+struct FixStarH {
+    int w = 384, h = 384;
+    double bg = 300.0;
+    double noise = 6.0;
+    std::vector<double> img;
+    std::vector<SynthStar> truth;
+};
+
+// σ 档 = §11.4 冻结判据表的六档; SNR 阶梯覆盖原空档 [10, 32.5) 全宽
+// (14 级, 上端 32.4 < 32.5 严格落在空档内)。峰值对齐像素中心。
+inline FixStarH fix_star_h_f1_transition_band() {
+    static const double kSigmas[6] = {1.0, 1.27, 1.5, 2.0, 2.5, 3.0};
+    static const double kSnrs[14] = {10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
+                                     17.5, 19.0, 21.0, 23.0, 26.0, 29.0, 32.4};
+    FixStarH fx;
+    std::mt19937_64 rng(20260923ull);
+    std::normal_distribution<double> ndist(fx.bg, fx.noise);
+    fx.img.assign((std::size_t)fx.w * fx.h, 0.0);
+    for (auto& v : fx.img) v = ndist(rng);
+    fx.truth.reserve(84);
+    for (int r = 0; r < 6; ++r) {
+        for (int c = 0; c < 14; ++c) {
+            // +0.5 使星心落在像素几何中心 (峰值对齐像素中心, 冻结表声明域)
+            SynthStar s{30.5 + 24.0 * c, 30.5 + 60.0 * r, kSigmas[r],
+                        kSnrs[c] * fx.noise};
+            fx.truth.push_back(s);
+        }
+    }
+    for (const auto& s : fx.truth)
+        add_gaussian_to(fx.img, fx.w, fx.h, s.cx, s.cy, s.amp, s.sigma);
+    return fx;
+}
+
 // FIX-STAR-G: 纯噪声空场 256×256 (F1 虚警面) — seed 固定, bg=300 σ=5。
 struct FixStarG {
     int w = 256, h = 256;

@@ -50,10 +50,15 @@ FITS index = (511 - x) * 512 + y
     本式与 §12.2 的 `variance = var_num_sum / covered_area²`（`var_num_sum = Σ_j v_j·w_jp²`，
     量纲 `ADU^2`）是**同一式的两种写法**，不得当作两套公式。
   - `variance_p` 量纲 `ADU^2/sr^2`（§31.1 `sb_variance_out`，标度类别 `surface_brightness`）。
-  - **符号唯一性（强制）**：`D_p` 只表示 covered_area[sr]。其它聚合算子（帧间逆方差加权集成的
-    分母 `W_p = Σ_i w_i`，量纲 = 权重单位）**必须另用符号**，不得复用 `D_p` —— 二者量纲不同，
+  - **符号唯一性（强制）**：`D_p` 只表示 covered_area[sr]。其它聚合算子的**分母是权重和**，
+    记 `W_p = Σ_{合格} w`（下标取该分支的样本索引：Phase 2 为帧 `i`、Phase 3 为邻域样本 `j`），
+    **量纲 = `w` 的量纲**（Phase 3 双线性几何权重无量纲 ⇒ `W_p` 无量纲；Phase 2 逆方差权重
+    取 `1/(signal 量纲)²`）—— **必须另用符号**，不得复用 `D_p` —— 二者量纲不同，
     代入错误相差 `A_cell²`（`nside = 2^18` 时 4.306e21，即 21.63 dex，见
-    `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律）。
+    `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律）。**本仓适用点（逐分支）**：
+    Phase 1 drizzle 全链（含 §11 累加、§12.2 `covered_area`）用 `D_p`（`sr`）；
+    Phase 2 帧间集成与 Phase 3 投影重采样的分母用 `W_p`（§29.2 / §30.2 的 `W_p=0` 覆盖级 NaN
+    判据、`DATA-002` §2a）。**同一式内 `D_p` 与 `W_p` 不得互换、不得同名复用。**
   编码三态见 §4a 表（无覆盖 ⇒ NaN）。
 - `ivar`：逆方差 `1/variance`（**有限域严格互倒**）；variance=0/缺失 → ivar=0（显式不可用，
   禁止伪装）；NaN/负 variance 视为产品损坏。**标度随 variance 同承载面**：面亮度域
@@ -2342,7 +2347,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| value（采样出参） | float32 标量 | 面亮度采样值（BUNIT 承载单位，canonical `ADU/sr`，缺省同，绝不 Jy/beam——open_ex cpp:130-159 + SCI §9a-11）；**tile 内 NaN = 样本级不合格**：从分子/分母/方差三项剔除并重归一（正本 = DATA-002 §2a 规则 1；实现 = `p3_sample_bilinear_nanmask_ex`，`p3_resample.h:176-179`）；**仅零合格样本**（或 `D_p=0`）⇒ `S=NaN`（覆盖级 NaN）+ 强制计数 `n_rejected_nonfinite`（承载面 §30.7）；tile 缺失 ⇒ 无候选样本 ⇒ `NaN` 且 `coverage=0` |
+| value（采样出参） | float32 标量 | 面亮度采样值（BUNIT 承载单位，canonical `ADU/sr`，缺省同，绝不 Jy/beam——open_ex cpp:130-159 + SCI §9a-11）；**tile 内 NaN = 样本级不合格**：从分子/分母/方差三项剔除并重归一（正本 = DATA-002 §2a 规则 1；实现 = `p3_sample_bilinear_nanmask_ex`，`p3_resample.h:176-179`）；**仅零合格样本**（或 `W_p=0`；本分支分母 = 权重和 `W_p = Σ_{合格} w_j`，**无量纲**，**不是** Phase 1 的面积 `D_p`[`sr`]）⇒ `S=NaN`（覆盖级 NaN）+ 强制计数 `n_rejected_nonfinite`（承载面 §30.7）；tile 缺失 ⇒ 无候选样本 ⇒ `NaN` 且 `coverage=0` |
 | coverage（采样出参） | float32 标量 | **二值语义**（0/1，float 承载）；C=1 ⇔ 采样足迹内存在有限 tile 像素（SCI §5）；tile 缺失/未打开 → 0 |
 | out_order（open_ex 出参） | int 标量 | 输入 survey 实际 order（properties 读出，非请求猜测） |
 | out_bunit（open_ex 出参） | char* | tile BUNIT，canonical **`ADU/sr`**，缺省同（§31.1a；绝不 Jy/beam） |
@@ -2773,7 +2778,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   逐字同口径三处 = `docs/standards/NUMERIC_STANDARD.md` §MUST「NaN/Inf 契约」、
   `lib/algorithms/resample/p3_resample.h:150-159`）与实现（`p3_resample.h:93-96`、
   `p3_sample_bilinear_nanmask_ex` :176-179），该行现取「样本级掩膜」：不合格样本从**分子、分母、
-  方差三项**一并剔除并重归一，**仅零合格样本**（或 `D_p=0`）才是覆盖级 NaN（`signal=NaN`），
+  方差三项**一并剔除并重归一，**仅零合格样本**（或 `W_p=0`；本分支分母 = 权重和 `W_p = Σ_{合格} w_j`，**无量纲**，**不是** Phase 1 的面积 `D_p`[`sr`]）才是覆盖级 NaN（`signal=NaN`），
   且每个输出像素**必须**暴露 `n_rejected_nonfinite`（承载面 = §30.7 DATA-P3-REJ-001）。
 
   **「u 无效」与「u 缺失」必须分列（2026-09-23）**：原「覆盖不一致」行把两者合并为 `variance=NaN`，
@@ -2974,9 +2979,20 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
 
 **二次律（`FZ-P3-BUNIT-QUADRATIC`）**：**`BUNIT(variance) = BUNIT(signal)^2`**、**`BUNIT(ivar) = 1/BUNIT(signal)^2`**；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
+**契约冻结串（逐字引用，登记表与 schema `const` 同值；不得改写）**：
+`"variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"`（`freeze_id = FZ-P3-BUNIT-QUADRATIC`）。
 **本条只约束单位串，不约束数值——两件事必须分开（正向约束）**：
 - **单位层（恒真式，无需附加条件）**：标准差不变量 `s` 的单位为 `U` ⇒ 其平方（方差）的单位为 `U^2`、`ivar` 为 `U^-2`。证据（一手，逐字）：JCGM 100:2008（GUM）§4.2.3 NOTE 2 —— *"Although the variance s²(q̄) is the more fundamental quantity, the standard deviation s(q̄) is more convenient in practice because **it has the same dimension as q**"*；§4.3.3/§4.3.4/§4.3.5 逐字给出 `g^2` / `Ω^2` / `mm^2` 的单位串实例；FITS 4.0 §4.3.1 + Table 6 规定幂次记法（`**` 或 `ˆ` 或并置）。该层**仅用于构造与校验 `BUNIT` 字符串**。
 - **数值层（一般不成立，必须独立给出）**：数值等式 `variance = signal^2` 只在**纯泊松散粒噪声主导、且 signal 以同一标度的期望计数（电子数）表述**时成立。证据（一手，逐字）：EMVA Standard 1288 Release 4.0 Linear（2021-06-16）§2.4 "Noise Model" Eq.(13) —— *"Therefore the variance of the fluctuations is equal to the mean number of accumulated electrons"*，即 `σ_e^2 = μ_e`；**同一节** Eq.(14)(15) 给出完整式 `σ_y^2 = K^2·σ_d^2 + σ_q^2 + K·(μ_y − μ_{y,dark})`，其中 offset 项 `K^2 σ_d^2 + σ_q^2` **与信号无关**（读噪被原文明确称为 *"signal independent"*；`σ_q^2 = 1/12 DN^2`）⇒ **signal → 0 时 variance 不趋于 0**，`variance = signal^2` 在低信号端必然失效。仓内对应的数值式 = `docs/science/NOISE_MODEL.md` 的 gain 模型 `var_ADU = max(signal,0)/gain + (rn/gain)^2`（**仅诊断、不入生产**）。产品面的 `variance` 是**独立估计量**（§4a / §12.2 的 `var_num_sum/covered_area^2`）；**禁止**用 `signal^2` 反算、顶替或校验产品方差。
+- **冻结串读法消歧（`FZ-P3-BUNIT-QUADRATIC`，必须按此读）**：本仓多处登记的同一条冻结串
+  `"variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"`
+  （`freeze_id = FZ-P3-BUNIT-QUADRATIC`）**是契约值，逐字冻结、不得改写**；其**首分句 `variance = signal^2` 必须按单位读**——
+  它等价于 `BUNIT(variance) = BUNIT(signal)^2`，**不是**数值物理律。判据：该串的**第三分句**
+  `Phase3 variance BUNIT = (main HDU signal BUNIT)^2` 就是同一件事的**显式单位写法**，三分句并列即自证首分句读的是单位。
+  **反例（数值层，禁止按首分句的字面读法使用）**：数值上方差**不等于**信号的平方——探测器偏置项
+  （读噪方差 + 量化方差 `1/12 DN^2`）与信号无关 ⇒ **信号趋零时方差不趋零**，而 `signal^2` 趋零
+  （EMVA Standard 1288 Release 4.0 Linear §2.4 Eq.(14)(15) 逐字）。数值方差是**独立估计量**（见下条），
+  **禁止**用 `signal^2` 反算、顶替或校验产品方差。
 - **EMVA 1288 的引用口径（版本敏感）**：方差法 / photon transfer 只在 **Release 3.0（2010-11-29）/ 3.1a** 中定义（§2.1 增益 `K` 单位为 **DN/e⁻**，注意不是 e⁻/ADU；§2.2 Eq.(9) 含 offset；§6.6 回归程序）；**Release 4.0 General（2021-06-16）已声明不再使用 photon transfer curve**（Preface 逐字 *"The photon transfer curve is no longer used."*）。引「EMVA 1288 方差法」**必须**写明 Release 3.0/3.1a；引「EMVA 1288」（=4.0）只支持散粒噪声式与完整方差式。
 
 ### 31.1a 面亮度单位口径的推导（`FZ-UNIT-SIGNAL-SB`）

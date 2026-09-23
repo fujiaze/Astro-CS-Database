@@ -96,6 +96,21 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 **注意与 §13.4 I5 的区别**：I5 只扫线程数、每个线程跑**完全相同的样本序**，因此**抓不到**顺序依赖；
 两者互补，不可互相替代。
 
+### 5.2 模型通带的装配契约（正向约束）
+
+拟合的参考通量 `F_syn` 由 `T(λ)·Q(λ)·λ` 在参考星谱上合成（`docs/science/PHOTOMETRY.md` §2a.1）。`T(λ)` 的身份是**装配输入**，不是拟合内部的自由量，故本算法层的契约是：
+
+| 项 | 约束 | 判据 |
+|---|---|---|
+| 曲线身份 | 装载到的曲线对象必须自证为请求的库键（对象 `name` 字段逐字节相等；点数与 `provenance` 声明的包络 + 逐元素指纹一致） | 不一致 ⇒ `curve_identity_mismatch`，装配期具名拒绝，不产出标度 |
+| 声明一致性 | 配置声明的通带名与 `FILTER` 关键字解析出的库键必须相等 | 不等 ⇒ `passband identity mismatch`，环境作用域拒绝 |
+| 组内唯一 | 同一次运行内各组帧只能有一条模型通带 | 某帧与组内首帧不一致 ⇒ 该帧 `PHOT_PASSBAND_IDENTITY_INCONSISTENT` |
+| 身份自述 | 拟合结果必须带回实际使用的曲线身份（库键 / 自述名 / 点数 / 波长域 / 透过率域），由调用方落进产物 provenance | 缺自述 ⇒ 该产物不得被引用为「某通带下的结果」（§2a.4 写作约束） |
+
+**为什么是装配契约而不是新的科学判据**：通带形状**不被零点吸收**（`docs/science/PHOTOMETRY.md` §2a.5），故「用了哪条曲线」决定 `sigma_residual` 的可比性；本节只核对「用的是不是声明的那条」，**不改**任何公式、阈值、容差与权重。
+
+**可执行判据**：`lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1phot_passband_identity.cpp`（ctest `p1phot_passband_identity_gate`，装配入口层）与同目录 `test_photometry_curve_resolve.cpp` 的 `[I0..I9]`（解析层），两者都含恒真自检（正例与错误输入的判定必须互不相同）。
+
 ## 6 复杂度
 
 - O(n_ref log n_ref) 排序 + O(n_ref·iter) IRLS
