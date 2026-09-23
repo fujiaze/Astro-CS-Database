@@ -1,0 +1,82 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "registration-anchors",
+  "purpose": "CHK-REGISTRATION-ANCHORS 的**显式登记面**（不是豁免）：承载「登记项已无对象」的已确证存量违规。条目按 (rule|file|class) 分组、只减不增；当前违规数 > count 判 REGISTRATION_ANCHOR_GROWN，条目不再匹配任何违规判 LEDGER_STALE（修好即须删条目）。不得用本台账把新违规改绿。",
+  "authority": {
+    "spec": "ENGINEERING_SPEC.md §8 规则 4（悬空即缺陷）/ §10（锚存活）",
+    "ci": "docs/ci/01_CHECKS.md §1（锚存活 / fail-closed）",
+    "temp_face": "AGENTS.md §7（run/ 为临时产物面，不入库）",
+    "ratchet_sample": "eng/ci/check_mutation_gates.py（gone_artifacts 棘轮样板）",
+    "checker": "eng/ci/check_registration_anchors.py（CHK-REGISTRATION-ANCHORS）"
+  },
+  "scope_note": [
+    "键名白名单口径：只扫 LIVE_KEYS（path/doc_ref/implementations/entries/evidence/anchor/...）；新增键名需同步登记，否则本门不覆盖。",
+    "历史/迁移面豁免：键路径含 migration/history/retired/from/to/proposal 等标记的引用按历史坐标处理。",
+    "另有主面豁免：已登记于 eng/tools/doccheck/dangling_ledger.json 的 (file, token) 不重复计数（DOC-INDEX 主）。",
+    "专属门面排除：checks.json / mutation_gates.json / ctest_baseline.json / id_migration_map.json / impact_map.json。"
+  ],
+  "entries": [
+    {
+      "id": "R1|eng/contracts/data/aio_abi_contract_v1.json|source_ref",
+      "values": [
+        "lib/astro_image_io/src/aio_abi.cpp"
+      ],
+      "kind": "contract_live_ref_stale",
+      "reason": "implementations[0].path 仍指向 ARCH-001 迁移前的模块路径；该目录已不存在，现址为 lib/infrastructure/aio/src/aio_abi.cpp（实测存在）。",
+      "owner": "CONTRACT 域（AIO ABI 合同）/ 迁模块路径同步",
+      "exit_condition": "把 implementations[0].path 改绑 lib/infrastructure/aio/src/aio_abi.cpp（或删除该实现登记）后，删除本条目。"
+    },
+    {
+      "id": "R1|eng/contracts/data/unified_object_compatibility_map_v1.json|source_ref",
+      "values": [
+        "eng/contracts/data/v6_data_dictionary_v1.json",
+        "eng/contracts/data/v6_migration_map_v1.json"
+      ],
+      "kind": "contract_live_ref_stale",
+      "reason": "entries[].path 指向 eng/contracts/data/v6_data_dictionary_v1.json 与 v6_migration_map_v1.json；两文件均不存在，登记项已无对象。",
+      "owner": "CONTRACT 域（统一对象兼容映射）",
+      "exit_condition": "补回两个被引用对象，或删除/改绑这两条 entries 后，删除本条目。"
+    },
+    {
+      "id": "R2|eng/ci/known_failures.json|run_local_ref",
+      "values": [
+        "run/release-rescue/fd-utcli/REPORT.md"
+      ],
+      "kind": "registry_run_local_ref",
+      "reason": "removals[].evidence 指向 run/release-rescue/**；run/ 是 gitignore 的临时面，该证据已随轮次回收 ⇒ 登记项无对象（AGENTS.md §7）。",
+      "owner": "CI 域（已知失败基线登记册）",
+      "exit_condition": "把 evidence 改指持久面（artifacts/evidence/**）或改记 commit sha 后，删除本条目。"
+    },
+    {
+      "id": "R2|eng/ci/ledgers/log_system_ledger.json|run_local_ref",
+      "values": [
+        "run/logs/orchestrator"
+      ],
+      "kind": "registry_run_local_ref",
+      "reason": "log_landing.entries[].anchor = run/logs/orchestrator 是「硬编码日志落点 run/」这一违规本身的记录（CHK-LOG-SYS R3 登记面）；其对象按定义不该存在 ⇒ 本门按「登记到临时面」计数但不要求存在。",
+      "owner": "LOG-SYS 域（eng/tools/quality/check_log_system.py 台账）",
+      "exit_condition": "该硬编码落点被修掉、CHK-LOG-SYS 台账对应条目删除后，一并删除本条目。"
+    },
+    {
+      "id": "R2|eng/ci/polarity_evidence.json|run_local_ref",
+      "values": [
+        "run/PROJECT-GOVERNANCE-01/CI-001/evidence/",
+        "run/PROJECT-GOVERNANCE-01/CI-003/logs/",
+        "run/PROJECT-GOVERNANCE-01/CI-003/logs/B3_check_version_after2.log",
+        "run/PROJECT-GOVERNANCE-01/CI-003/logs/CI-003-B34_final",
+        "run/PROJECT-GOVERNANCE-01/CI-003/logs/CI-003-E-acceptance.txt",
+        "run/PROJECT-GOVERNANCE-01/CI-003/logs/C_sync_before.log",
+        "run/PROJECT-GOVERNANCE-01/CI-003/logs/G_resource_gate_real_selftest.log",
+        "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+        "run/PROJECT-GOVERNANCE-01/W4-A3/logs/PKG/",
+        "run/PROJECT-GOVERNANCE-01/W4-A3/logs/after_EXIT-CONSISTENCY.log",
+        "run/PROJECT-GOVERNANCE-01/W4-A3/logs/impact_map_selftest.log"
+      ],
+      "kind": "registry_run_local_ref",
+      "reason": "gates.*.evidence 整体指向已回收的 run/PROJECT-GOVERNANCE-01/** 命名空间（R-6 / CI-001 / CI-003 / W4-A3 轮次产物），登记项全部无对象。",
+      "owner": "CI 域（polarity_probe 登记册，eng/ci/polarity_probe.py 生成）",
+      "exit_condition": "polarity_probe 落点改到持久面（artifacts/evidence/**）并重建登记册，或整表清空重生成后，删除本条目。"
+    }
+  ],
+  "seeded_at": "CHK-REGISTRATION-ANCHORS 落地（本门首次登记：31 条存量违规 / 5 组）"
+}
