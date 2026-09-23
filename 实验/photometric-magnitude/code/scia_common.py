@@ -193,7 +193,26 @@ def simpson_integrate(x, y):
 
 
 def f_syn(spectrum, wl_nm, T=None, T_wl=None, Q=None, Q_wl=None, mag_g=None):
-    """F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4·magG)   [冻结约定]"""
+    """参考合成通量（生产口径）。
+
+        F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ          # 单位 W·m⁻²·nm；**不含** 10^(-0.4·G)
+        F_λ   = 外部定标 XP 采样谱（W·m⁻²·nm⁻¹）
+
+    权威: docs/science/PHOTOMETRY.md §2a (claim PHOT-FSYN-CANON-001)。
+
+    mag_g 参数是**星等指派重标度**，不是参考通量定义的一部分：
+    传 mag_g=m 时返回 F_λ·10^(-0.4·(m − G_source)) 的积分，即把源谱的**绝对**通量
+    重标到指定星等 m（与 Gaia 官方 Montegriffo et al. 2023 A&A 674 A33 §8.1.1 Fig. 27
+    的作图重标度同性质）。作用域：
+      - step1_analytic.py   : m = 指派星等, G_source = cat.magG  => 显式星等指派；
+      - step2_hst_sim.py    : 注入与模型用同一个 mag_eff-16 因子 => 在 r_i 中**精确相消**；
+      - scia_calib.py / step7_negatives.py / step8_real_frame.py : 不传该参数。
+
+    **不得**把带 mag_g 的写法当作通用参考通量公式搬到别处：它会给逐星
+    r_i = log10(F_instr/F_syn) 注入 +0.4·G_i (dex) 的加性项，单标量 location 吸收不掉
+    （真实 M42 匹配样本实测 MAD-σ = 0.459 dex = 1.147 mag）。
+    订正记录: 实验/photometric-magnitude/RESOLUTION_fsyn_formula.md
+    """
     wl = np.asarray(wl_nm, float)
     S = np.asarray(spectrum, float)
     tr = np.ones_like(wl) if T is None else akima_interp(*_prepare_curve(T_wl, T), wl, 0.0)

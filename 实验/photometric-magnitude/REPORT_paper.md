@@ -50,13 +50,26 @@ I_cal = (g · t · A_eff · η · …) · ∫ F_λ(λ) · T(λ) · Q(λ) · λ d
 
 ### 2.1 观测链与待估量（推导主线）
 
-合成期望通量（冻结约定，`spectrum_integrator`）：
+合成期望通量（**生产口径**，`spectrum_integrator`；权威 `docs/science/PHOTOMETRY.md` §2a，claim `PHOT-FSYN-CANON-001`）：
 
 ```text
-F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(−0.4·G_Gaia)
-        S：Gaia DR3 XP 谱（343 点 @2 nm，336–1020 nm）；Akima 子样条插值（区间外填 0）；
+F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ                 # 单位 W·m⁻²·nm；不含 10^(−0.4·G)
+F_λ   = byte·flux_mul + flux_min                # 绝对谱辐照度 W·m⁻²·nm⁻¹（XPSD 逐星量化解码）
+        λ 网格 343 点 @2 nm，336–1020 nm；Akima 子样条插值（区间外填 0）；
         复合 Simpson 1/3 求积（末尾奇数区间 3/8，n==1 退梯形）
 ```
+
+> **本单元使用的 `mag_g` 参数是"星等指派重标度"，不是参考通量定义的一部分。**
+> `scia_common.f_syn(..., mag_g=m)` 的作用是把源谱的**绝对**通量重标到指定星等：
+> `F_λ → F_λ·10^(−0.4·(m − G_source))`（与 Gaia 官方 Montegriffo et al. 2023 A&A 674 A33
+> §8.1.1 Fig. 27 的作图重标度同性质）。它在本单元的用法是：
+> - `step1_analytic.py`：`m = mag_assigned`、`G_source = cat.magG` ⇒ 显式星等指派；
+> - `step2_hst_sim.py`：注入与模型**使用同一个** `mag_eff − 16.0` 因子 ⇒ 该因子在
+>   `r_i = log10(F_instr/F_syn)` 中**精确相消**，前向仿真的结论不受影响；
+> - `scia_calib.py`/`step7_negatives.py`/`step8_real_frame.py`：**不传** `mag_g`。
+> **该因子不得作为通用参考通量公式搬用到别处**（会给逐星 `r_i` 注入 `+0.4·G_i` dex，
+> 单标量零点吸收不掉；真实 M42 匹配样本实测 MAD-σ = 0.459 dex = 1.147 mag）。
+> 完整订正见 `RESOLUTION_fsyn_formula.md`。
 
 逐星残差与稳健零点（`PHOTOMETRY.md` §5，实现 `star_matcher.cpp`）：
 
