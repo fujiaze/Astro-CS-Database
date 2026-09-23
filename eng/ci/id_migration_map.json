@@ -208,6 +208,11 @@
         "CTEST-P1WCS-ASTROPY-CROSS",
         "CTEST-P1WCS-STD-F1-BRIDGE",
         "CTEST-P1PHOT-FIXGATES",
+        "CTEST-P1PHOT-DETERMINISM",
+        "CTEST-P1PHOT-PASSBAND-IDENTITY",
+        "CTEST-ORCH-CURVE-RESOLVE",
+        "CTEST-ORCH-CURVE-RESOLVE-FAULT-INJECT",
+        "CTEST-P1NOISE-VARIANCE-FLOOR",
         "CTEST-P1SNR-SCIENCE-ALL",
         "CTEST-IPV-MAG-ITER",
         "CTEST-IPV-MAG-ITER-DELIVERY",
@@ -1143,6 +1148,34 @@
       "grade": "P0",
       "name": "上项的可执行正/负例面（8 例：2 绿 + 4 红 + 缺指纹 rc=2）",
       "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CON-SYMBOL-DIM-UNIQUE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "CON-SYMBOL-DIM-UNIQUE",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CON-SYMBOL-DIM-UNIQUE-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-FROZEN-STRING-DISAMBIG": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "CHK-FROZEN-STRING-DISAMBIG",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-FROZEN-STRING-DISAMBIG-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
     }
   },
   "reserved_targets": {
@@ -3963,13 +3996,99 @@
       "grade": "P0",
       "checker": "eng/ci/check_build_provenance.py",
       "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
+    },
+    {
+      "old_id": "CTEST-P1PHOT-DETERMINISM",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/deep_ci_driver.py",
+      "note": "新增执行单元（非本波基线，absorbed）：测光装配的到达顺序不变性判据（星表与点扩散表置换后逐位一致）。判据依据 docs/algorithms/PHOTOMETRIC_FIT.md 的到达顺序不变性条款。",
+      "order_in_target": 6
+    },
+    {
+      "old_id": "CTEST-P1PHOT-PASSBAND-IDENTITY",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/deep_ci_driver.py",
+      "note": "新增执行单元（非本波基线，absorbed）：通带身份核对判据（声明名、点数、包络与逐元素指纹四项）。判据依据 docs/science/PHOTOMETRY.md 的通带身份核对条款与 docs/contracts/CONFIG_CONTRACT.md 的曲线身份核对条款。",
+      "order_in_target": 7
+    },
+    {
+      "old_id": "CTEST-ORCH-CURVE-RESOLVE",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/deep_ci_driver.py",
+      "note": "新增执行单元（非本波基线，absorbed）：曲线解析唯一实现的身份判据正例面。判据依据 eng/packaging/config/filters.json 的解析规则与 docs/science/PHOTOMETRY.md 通带身份条款。",
+      "order_in_target": 8
+    },
+    {
+      "old_id": "CTEST-ORCH-CURVE-RESOLVE-FAULT-INJECT",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/deep_ci_driver.py",
+      "note": "新增执行单元（非本波基线，absorbed）：曲线解析身份判据的故障注入负例面（错误变体必须判红）。",
+      "order_in_target": 9
+    },
+    {
+      "old_id": "CTEST-P1NOISE-VARIANCE-FLOOR",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/deep_ci_driver.py",
+      "note": "新增执行单元（非本波基线，absorbed）：方差地板按产品数据类型导出的可表示性判据。判据依据 docs/algorithms/NOISE_ESTIMATION.md 与 docs/science/NOISE_MODEL.md 的地板口径。",
+      "order_in_target": 10
+    },
+    {
+      "old_id": "CON-SYMBOL-DIM-UNIQUE",
+      "decision": "KEPT",
+      "target": "CON-SYMBOL-DIM-UNIQUE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",
+      "note": "新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据——同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值、显式量纲断言、禁止共现短语（带否定式豁免）。判据依据 docs/contracts/DATA_SEMANTICS.md 的逐符号量纲表与符号唯一性强制条款。"
+    },
+    {
+      "old_id": "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",
+      "note": "新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据的可执行正负例面（含恒真守卫、判别力守卫与恒假守卫）。"
+    },
+    {
+      "old_id": "CHK-FROZEN-STRING-DISAMBIG",
+      "decision": "KEPT",
+      "target": "CHK-FROZEN-STRING-DISAMBIG",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/doccheck/check_frozen_string_disambiguation.py",
+      "note": "新增执行单元（非本波基线，absorbed）：冻结串不得被改写，且其单位读法消歧必须在位。判据依据 docs/contracts/DATA_SEMANTICS.md 的二次律条款与 eng/contracts 的冻结串常量。"
+    },
+    {
+      "old_id": "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/tools/doccheck/check_frozen_string_disambiguation.py",
+      "note": "新增执行单元（非本波基线，absorbed）：冻结串判据的可执行正负例面（含判别力自检）。"
     }
   ],
   "coverage": {
     "source_entry_count": 158,
     "mapped_entry_count": 147,
     "merged_into": 149,
-    "kept": 146,
+    "kept": 155,
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
@@ -4136,7 +4255,16 @@
       "WORKER-BALANCE-METRIC-REPLAY",
       "WORKER-BALANCE-METRIC-SELFTEST",
       "CHK-BUILD-PROVENANCE",
-      "CHK-BUILD-PROVENANCE-SELFTEST"
+      "CHK-BUILD-PROVENANCE-SELFTEST",
+      "CTEST-P1PHOT-DETERMINISM",
+      "CTEST-P1PHOT-PASSBAND-IDENTITY",
+      "CTEST-ORCH-CURVE-RESOLVE",
+      "CTEST-ORCH-CURVE-RESOLVE-FAULT-INJECT",
+      "CTEST-P1NOISE-VARIANCE-FLOOR",
+      "CON-SYMBOL-DIM-UNIQUE",
+      "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
+      "CHK-FROZEN-STRING-DISAMBIG",
+      "CHK-FROZEN-STRING-DISAMBIG-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,
