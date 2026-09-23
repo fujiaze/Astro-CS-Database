@@ -48,9 +48,16 @@ G4 (ALG-P3-003) leaf 采样:
             （**覆盖级 NaN**），且每个输出像素**必须暴露**被剔除样本计数
             （**强制计数**，禁止静默剔除）；C 只判足迹内有无 tile 像素，值 NaN 不改 C
             （4 个 tile 均可读则 C=1）。
-            实现锚: lib/algorithms/resample/p3_resample.cpp 的 p3_sample_bilinear_ex
-            （现状 any_nan → *value=NaN, *coverage=1：尚未重归一化、未暴露剔除计数，
-            待实现侧对齐本口径）
+            实现锚: lib/algorithms/resample/p3_resample.cpp 的 p3_sample_bilinear_nanmask_ex
+            （唯一实现；p3_sample_bilinear_ex 为其薄封装，同一数学路径）。
+            已对齐项: ①样本级掩膜 + 剩余有效邻域重归一（FP64，固定 k 序）；
+            ②weights[4] 暴露**生效（重归一）权重** c_k = w_k / Σ(合格 w_j)，被剔除样本
+            恰为 0 —— 方差项必须消费该权重（DATA-002 §2a 规则 1「从分子、分母、方差
+            三项一并剔除并重新归一」）；③强制计数经 P3SampleRejection 暴露，字段名取
+            权威冻结名 n_rejected_nonfinite（按原因分类，互斥可加）；
+            ④C 不变（只判足迹内有无 tile 像素）。
+            未冻结项: 该计数的**产品承载面**（逐像素平面 / JSON / provenance）未见权威
+            规定 → 不自行发明，登记 ALG-P3-RSMP-IMPL-001 §11 DISP-P3RSMP-006。
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0, BUNIT=properties(缺省 'ADU')
@@ -79,7 +86,16 @@ function phase3_resample(hips_dir, params):
         (RA,Dec) = G2(cd, x, y)
         ipix = G4.map(RA,Dec, leaf_order)
         vals = tiles.gather(ipix, sampler)             # nearest 1 tile / bilinear ≤4 tiles
-        S[y][x] = sample(vals, sampler); C[y][x] = all_finite_path(vals)
+        S[y][x], C[y][x], n_rej[y][x] = sample(vals, sampler)
+        # sample 必须是什么（§2 G4 冻结口径, rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）:
+        #   bilinear: 邻域中 ¬isfinite（含 ±Inf）的样本必须按样本级掩膜从分子、分母、
+        #     方差三项一并剔除，剩余有效邻域必须重归一；仅零合格样本时 S=NaN
+        #     （覆盖级 NaN）。nearest（单样本）零合格样本同样 S=NaN。
+        #   **禁**「零填」替代语义，**禁**静默剔除。
+        # C 必须是什么: 只判足迹内有无 tile 像素（存在判定）—— 4 个 tile 均可读则
+        #   C=1，值非有限**不改** C；任一角 tile 缺失则 C=0 且 S=NaN。
+        # n_rej 必须是什么: 被剔除样本计数 n_rejected_nonfinite（强制计数；计数 0 与
+        #   「字段缺失」必须可区分）。承载面见 §2 G4 实现锚注记。
   write_fits_atomic(S, C, cd, provenance)              # ALG-P3-004
 ```
 
@@ -89,7 +105,7 @@ function phase3_resample(hips_dir, params):
 |---|---|
 | 缺 tile 文件 | 该足迹 C=0, S=NaN, provenance 记 missing, 不中断 |
 | tile 内 NaN（nearest，单样本） | 零合格样本 ⇒ S=NaN（覆盖级 NaN）, C=1(mask 语义=coverage+NaN 判定) |
-| bilinear 四邻域**部分**非有限 | 不合格邻域样本按**样本级掩膜**剔除、剩余有效邻域**重归一**后求加权和，并暴露被剔除样本计数（**强制计数**）；C=1（4 tile 均可读）——禁「零填」替代语义 |
+| bilinear 四邻域**部分**非有限 | 不合格邻域样本按**样本级掩膜**剔除、剩余有效邻域**重归一**后求加权和，并暴露被剔除样本计数 `n_rejected_nonfinite`（**强制计数**，按原因分类、互斥可加）；C=1（4 tile 均可读）——禁「零填」替代语义。方差项随重归一权重传播（Σc'_k²u_k，c'=生效权重） |
 | bilinear 四邻域 tile 全缺失 | 该足迹 C=0, S=NaN, provenance 记 missing |
 | bilinear 邻域含 ±Inf | ±Inf 与 NaN 同属不合格样本，按样本级掩膜剔除并重归一；coverage 规则同上 |
 | RA wrap 0/360 | 球面角差归一, 无接缝 |
@@ -104,7 +120,7 @@ function phase3_resample(hips_dir, params):
 
 ## 5c SIMD 安全与取消点
 
-- `G2` 内为逐像素标量三角算术(自动向量化安全: 无跨像素依赖)；`S/C` 写入行连续无别名；bilinear 权重和 = 1 ± k·ULP（4 权重显式归一，FP64 累加；**不作逐位/精确断言**——IEEE-754 下不可满足，M7-F-201）。
+- `G2` 内为逐像素标量三角算术(自动向量化安全: 无跨像素依赖)；`S/C` 写入行连续无别名；bilinear 权重和 = 1 ± k·ULP（4 权重显式归一，FP64 累加；**不作逐位/精确断言**——IEEE-754 下不可满足，M7-F-201）；样本级掩膜后该不变量在**合格集**上成立（Σc'_k=1），零合格样本时四权重全 0（此时 S=NaN，Σ=1 不适用）。
 - 取消点: 输出行带粒度(ALG-P3-003 循环)；取消时**输出文件不落盘**(tmp 删除, rename 不发生)——FITS 原子性以整文件为单元(ALG-P3-004)。
 
 ## 6 时间/空间复杂度
@@ -120,11 +136,19 @@ function phase3_resample(hips_dir, params):
 
 - reference 实现即生产实现(首版)；Oracle=SCI-P3 §11 全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-8 px（生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））；常数场（nearest）逐值相等；常数场（bilinear）|S−B0| ≤ k·ULP·B0（**不作 max_abs=0 逐位断言**，M7-F-201：Σw=1±k·ULP 经 S=Σw·B0 传递）；解析场容差由 SYN-007 预冻结。
 
+- 掩膜口径 Oracle（非生产自证）：lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp ——
+  在四角 leaf 逐像素注入 NaN/±Inf，期望值 = 剩余合格邻域**重归一**加权和（本文件独立复算，
+  不调用生产聚合路径），并断言被剔除样本生效权重恰为 0、`n_rejected_nonfinite` 分类计数正确、
+  零合格样本 S=NaN 且 C=1、方差按重归一权重传播（Σc'_k²u_k）。
+
 ## 9 容差来源
 
 - WCS roundtrip 1e-8 px：SCI-P3 §7 不变量(FP64 反向映射+Paper I/II 语义)；
 - 常数场（bilinear）：|S−B0| ≤ k·ULP·B0——由 Σw = 1 ± k·ULP 传递（不是逐位 0；M7-F-201）；
-- 解析球面场容差：h≤s_out 约束下 bilinear O(h²) 误差界 → SYN-007 表冻结(任务 SYN-007 落实具体数值)。
+- 解析球面场容差：h≤s_out 约束下 bilinear O(h²) 误差界 → SYN-007 表冻结(任务 SYN-007 落实具体数值)；
+- 样本级掩膜后的重归一为恒等 ± 舍入（全部样本合格时 c'_k = w_k/(1±k·ULP)）⇒ 不引入
+  新容差项，仍落在既有 k·ULP·B0 包络内（Oracle 锚: lib/algorithms/resample/tests/p3rsmp/
+  p3_nan_mask_test.cpp 以剩余合格邻域重归一加权和作解析真值，相对容差 4·eps_f32）。
 
 ## 10 关联 ARC/API/TST
 

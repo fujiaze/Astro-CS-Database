@@ -79,12 +79,20 @@ void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out);
 void p3_sampler_set_absent_cache(P3Sampler* s, int enabled);
 
 /* nearest: 返回含样本方向的叶级像素值; coverage: 1=有值, 0=tile 缺失。
- * tile 内 NaN → *value=NaN, coverage=1(§4 非错误语义)。 */
+ * tile 内 NaN → *value=NaN, coverage=1(§4 非错误语义)。
+ * 单样本口径 (§4 第 91 行冻结): 零合格样本(该 tile 像素 ¬isfinite) ⇒ S=NaN 且 C=1
+ * (覆盖级 NaN); tile 缺失 ⇒ S=NaN 且 C=0。**强制计数在单样本下由 (value, coverage)
+ * 唯一确定**(C=0 ⇒ 无候选样本 ⇒ n_rejected_nonfinite=0; C=1 且值非有限 ⇒ 1;
+ * C=1 且值有限 ⇒ 0) ⇒ 本路径无需额外出参即可满足「计数 0 与字段缺失可区分」。 */
 P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,
                                          float* value, int* coverage);
 
 /* bilinear(跨 tile): 切平面四象限最近像素中心的双线性合成;
- * 任一角 tile 缺失 → coverage=0 且 *value=NaN; NaN 参与时 → S=NaN, C=1。 */
+ * 任一角 tile 缺失 → coverage=0 且 *value=NaN;
+ * 邻域样本 ¬isfinite（NaN 与 ±Inf 同类）→ **样本级掩膜 + 剩余有效邻域重归一**
+ * （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN, ALG-P3-003 §2 G4 / §4）;
+ * 仅零合格样本（或有效权重和 D_p=0）→ S=NaN（覆盖级 NaN）; C 只判足迹内有无
+ * tile 像素（值 NaN 不改 C, 4 个 tile 均可读则 C=1）。 */
 P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
                                           float* value, int* coverage);
 
@@ -125,17 +133,60 @@ P3ResampleStatus p3_sample_nearest_ex(P3Sampler* s, double ra_deg, double dec_de
                                       float* value, int* coverage,
                                       uint64_t* leaf_ipix);
 
-/* bilinear 权重暴露版: 输出 G4 冻结权重 weights[4] 与四角 leaf ipix[4]
+/* bilinear 权重暴露版: 输出**实际生效权重** weights[4] 与四角 leaf ipix[4]
  * (角序: [0][0],[1][0],[0][1],[1][1], 即 Σc_k 权重序); 退化角(重复填充)
- * 权重如实输出(重复 leaf 计入多次, Σc_k=1 不变量保持)。 */
+ * 权重如实输出(重复 leaf 计入多次, Σc_k=1 不变量保持)。
+ * weights 语义 = 样本级掩膜后的重归一权重
+ *   c'_k = w_k / Σ_{合格 j} w_j   （合格样本; 被剔除样本恰为 0.0）;
+ * 全部合格时与几何权重逐值同量级（重归一为恒等, 差异 ≤ k·ULP, ALG-P3-003 §9）。
+ * 依据: DATA-002 §2a 规则 1 要求不合格样本从**分子、分母、方差三项**一并剔除并
+ * 重新归一 ⇒ 方差传播 Σc'_k²u_k 必须消费本权重（不得沿用未重归一的几何权重）。
+ * 零合格样本（或 D_p=0）时四权重全 0（此时 S=NaN, C=1; Σc'_k=1 不适用）。 */
 P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_deg,
                                        float* value, int* coverage,
                                        double weights[4], uint64_t leaf_ipix[4]);
 
+/* ── 样本级掩膜强制计数 (rule_id NAN-SAMPLE-MASK-COVERAGE-NAN) ───────────────
+ * 权威 (逐字同口径三处; 分歧以 DATA-002 §2a 为准):
+ *   · docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
+ *     `invalid_handling` 块 —— **唯一正本**: rule_id / aggregation=
+ *     sample_level_mask_with_renormalisation / zero_eligible_samples=
+ *     nan_signal_support_le_0 / zero_substitution=forbidden /
+ *     rejection_counting=mandatory / **count_field=n_rejected_nonfinite**;
+ *   · docs/standards/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
+ *   · ALG-P3-003 §2 G4 + §4 (docs/algorithms/PHASE3_RESAMPLE.md) —— 本核冻结口径
+ *     (样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数; 禁「零填」替代语义)。
+ * 分类为**互斥、可加**三项 (DATA-002 §2a 规则 3): 值非有限 / 方差非有限 / 权重非正。
+ * 信号核只消费 signal 平面 ⇒ variance 项恒 0; 权重由邻域几何唯一确定 ⇒ 权重非正项恒 0
+ * (几何权重 ∈[0,1], 非有限权重不可达)。计数为 0 与「字段缺失」必须可区分 ⇒ 本结构
+ * 由调用方零初始化后逐像素填入, 生产路径不得省略该出参。 */
+struct P3SampleRejection {
+    int n_rejected_nonfinite = 0;            // 合计 = 下列三项之和
+    int n_rejected_nonfinite_value = 0;      // 值非有限 (NaN/±Inf)
+    int n_rejected_nonfinite_variance = 0;   // 方差面非有限 (信号核不消费方差面 ⇒ 恒 0)
+    int n_rejected_nonpositive_weight = 0;   // 权重非有限或 ≤0 (几何权重 ⇒ 恒 0)
+    int n_eligible = 0;                      // 合格(isfinite)邻域样本数; 0 ⇒ 覆盖级 NaN
+};
+
+/* bilinear 样本级掩膜版: 与 p3_sample_bilinear_ex **同一数学路径**, 额外输出
+ * 强制计数 rejection (可为 NULL = 与 _ex 等价)。
+ * 语义与 _ex 逐字一致 (掩膜 + 重归一 + 覆盖级 NaN + weights=生效权重),
+ * 差别仅在暴露被剔除样本计数。C 语义不变 (值 NaN 不改 C)。 */
+P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, double dec_deg,
+                                               float* value, int* coverage,
+                                               double weights[4], uint64_t leaf_ipix[4],
+                                               P3SampleRejection* rejection);
+
 /* 传播 (科学权威 = docs/science/UNCERTAINTY_AND_COVARIANCE.md Phase3 节):
  *   npts=1 (nearest): var_out = u_in
- *   npts=4 (bilinear): var_out = Σ_k c_k²·u_k  (c_k=G4 冻结权重, Σc_k=1;
+ *   npts=4 (bilinear): var_out = Σ_k c_k²·u_k  (Σc_k=1;
  *     Σc_k²≠1 是正确物理——bilinear 平均去相关, 禁止 Σc_k=1 归一 variance)
+ *   c_k = **p3_sample_bilinear_ex 暴露的生效权重**（样本级掩膜后重归一; 被剔除
+ *   样本恰为 0）—— 依据 DATA-002 §2a 规则 1「不合格样本从分子、分母、方差三项
+ *   一并剔除并重新归一」: 剔除后权重变了, 方差项必须用重归一后的权重算, 不得
+ *   沿用原几何权重。生效权重为 0 的样本从方差项一并剔除 (c²u 恰为 0), 不参与
+ *   NaN/missing 合成; 四样本全为 0 (= 零合格样本 / D_p=0) ⇒ 覆盖级 NaN
+ *   (禁静默 0 冒充无效)。u 仍逐样本读入 ⇒ 负/Inf 产品损坏仍 fail-closed 拒绝。
  * u 值读取: variance→u 原值; ivar→u=1/ivar (ivar==0→NaN 传播态)。
  * 返回: P3_RS_OK + *u_out + *st (P3_U_OK/NAN/MISSING);
  * u<0 或 Inf (产品损坏, 含负 ivar/负 variance/Inf variance) → P3_RS_PARAM
