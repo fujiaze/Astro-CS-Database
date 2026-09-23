@@ -55,6 +55,13 @@ python3 eng/ci/run_checks.py            # 具体以 docs/ci/CI_SPEC.md 为准
 
 - 构建/测试/检查先于任何"完成"声明；
 - 所有外部命令带 `timeout` 并保存日志（`run/<task>/logs/`）；
+- **重计算必须套内存看门狗**：本机 swap 永久禁用、物理内存约 23 GiB，而单个计算进程可能涨到
+  10 GB 以上匿名内存 ⇒ 触发**全局 OOM killer**，连带杀掉同处 `dsh-web.service` 单元内的 DSH 本体、中断会话。
+  凡 ctest / 探针 / 基准 / 端到端这类重计算，一律经
+  `python3 eng/tools/monitoring/mem_guard.py --max-rss-gb <N> -- <command>` 执行：
+  它按**进程树** RSS 采样，超限只杀该命令的进程组（退出码 137），不触及 DSH。
+  上限取值按用例实测峰值的 2–3 倍，默认不超过物理内存的 1/3。
+  该工具可用性自检：`--max-rss-gb 2` 下正常命令 exit 0、分配 3 GiB 的命令必须 exit 137。
 - 在仓库内工作，不写死服务器绝对路径。
 
 ---
