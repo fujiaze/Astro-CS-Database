@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -204,11 +205,13 @@ void WcsSip::tanWorldToIntermediate(double ra, double dec,
     // cos(c) = 点到切点的角距离余弦
     const double cosc = sdec0 * sdec + cdec0 * cdec * cdra;
 
-    // 保护: cos(c) 接近 0 (距切点 ~90°, 投影背面) → 投影发散
-    if (std::fabs(cosc) < 1e-12) {
-        WCS_LOG("警告: TAN 正投影发散 (cos(c)=%.3e), 点可能在投影背面", cosc);
-        xi  = 1e6;
-        eta = 1e6;
+    // TAN 的数学奇点在距切点 90° 的大圆 (cos c = 0)，投影背面 (cos c < 0) 无定义。
+    // 必须显式拒绝：返回 NaN 让下游 isfinite 拦住。不得返回有限哨兵值 ——
+    // 哨兵值会被 isfinite 放行而静默映射到错误像素；且精确对跖点的公式值恰为 (0,0)。
+    if (!(cosc > 0.0)) {
+        WCS_LOG("错误: TAN 正投影无定义 (cos(c)=%.6e, 点距切点 >= 90°)", cosc);
+        xi  = std::numeric_limits<double>::quiet_NaN();
+        eta = std::numeric_limits<double>::quiet_NaN();
         return;
     }
 
