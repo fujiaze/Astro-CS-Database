@@ -574,6 +574,40 @@ static void test_nodes_real_operation() {
   CHECK(fs::exists(fs::path(frame_root(fx) + "/signal/properties")));
   CHECK(fs::exists(fs::path(man_wr.value("final_artifact", ""))));
 
+  // ── B1 守卫（UNIT-DERIVE-01 收口）：同一份像素的两个 BUNIT 声明面必须同串 ──
+  // 规范: docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 FITS/HiPS 写盘 BUNIT
+  // 一律取 canonical 面亮度串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由
+  // PHOTAPPL/PHOTSCAL 承载）。Phase1 末端由 AstroSphereSink 直写标准 HiPS 树，**不经**
+  // HissWriter::open 的元数据校验 ⇒ 守卫落在 declare_hips_surface_brightness_units
+  // （p1_op_writer 调用）。此处注入「ASTROCS_RELATIVE_FLUX 与 ADU/sr 并存」必须判红。
+  {
+    const std::string stack_p = frame_root(fx) + "/p1_stack.json";
+    const std::string saved = read_file(stack_p);
+    CHECK_MSG(!saved.empty(), "B1: p1_stack.json must exist after drizzle");
+    json sj;
+    try { sj = json::parse(saved); } catch (...) { CHECK_MSG(false, "B1: p1_stack.json not JSON"); }
+    CHECK_MSG(sj.value("bunit", std::string()) == "ADU/sr",
+              "B1: p1_stack.json bunit must be canonical ADU/sr (not ASTROCS_RELATIVE_FLUX)");
+    sj["bunit"] = "ASTROCS_RELATIVE_FLUX";
+    { std::ofstream o(stack_p, std::ios::binary); o << sj.dump(2); }
+    Result<void> bad_rc;
+    json man_bad = run_node(reg, "astrocs.phase1.writer", drz_cfg, ctx, &bad_rc);
+    (void)man_bad;
+    CHECK_MSG(bad_rc.failed(), "B1: conflicting BUNIT strings must fail-closed");
+    if (bad_rc.failed()) {
+      const std::string msg = bad_rc.error().message();
+      CHECK_MSG(msg.find("BUNIT") != std::string::npos &&
+                    msg.find("ADU/sr") != std::string::npos,
+                ("B1: failure must name both conflicting BUNIT strings: " + msg).c_str());
+    }
+    // 恢复 canonical 声明面后重跑 ⇒ 判绿（同一份像素同串）
+    { std::ofstream o(stack_p, std::ios::binary); o << saved; }
+    Result<void> ok_rc;
+    json man_ok = run_node(reg, "astrocs.phase1.writer", drz_cfg, ctx, &ok_rc);
+    CHECK_MSG(ok_rc.ok(), "B1: restored canonical face must pass again (green)");
+    CHECK_MSG(man_ok.value("status", std::string()) == "ok", "B1: restored writer status ok");
+  }
+
   cleanup_fixture(fx);
 }
 
@@ -1310,8 +1344,11 @@ static void test_b2a14_photappl_provenance() {
     if (ok) {
       CHECK_MSG(meta.value("photappl", -1) == 0,
                 "B2-A14: PHOTAPPL must be 0 when no photometry provenance (forged 1 removed)");
-      CHECK_MSG(meta.value("bunit", std::string()) == "ADU",
-                "B2-A14: BUNIT must degrade to ADU, not RELATIVE_FLUX");
+      // 单位口径（DATA_SEMANTICS §31.1a:2808-2810/2827-2830）：产品 BUNIT 恒为
+      // canonical 面亮度串，与测光是否施加无关；未施加只意味着标度未变（photscal=1）。
+      CHECK_MSG(meta.value("bunit", std::string()) == "ADU/sr",
+                "B2-A14: BUNIT must be canonical surface-brightness string ADU/sr "
+                "(measurement scale does not change the unit kind)");
     }
     cleanup_fixture(fx);
   }
@@ -1340,8 +1377,9 @@ static void test_b2a14_photappl_provenance() {
                 "B2-A14: PHOTAPPL=1 must be driven by real photometry provenance");
       CHECK_MSG(std::fabs(meta.value("photscal", -1.0) - 0.5) < 1e-12,
                 "B2-A14: PHOTSCAL must come from provenance, not hardcoded/config");
-      CHECK_MSG(meta.value("bunit", std::string()) == "ASTROCS_RELATIVE_FLUX",
-                "B2-A14: BUNIT=RELATIVE_FLUX only when provenance says applied");
+      CHECK_MSG(meta.value("bunit", std::string()) == "ADU/sr",
+                "B2-A14: BUNIT stays ADU/sr when provenance says applied "
+                "(scale lives in PHOTSCAL, not in BUNIT)");
     }
     cleanup_fixture(fx);
   }
@@ -1396,8 +1434,14 @@ bool write_sparse_hips(const std::string& root,
   const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", err);
   if (!ok) std::fprintf(stderr, "B2-A15 write_hips_phase1 failed: %s\n", err.c_str());
   // 上游 provenance (writer 节点据此定位叶片 Norder)
+  // p1_stack.json 的 bunit 键 = 产品的单位声明面之一（DATA-P1-STACK）；与
+  // signal/properties 的 BUNIT 必须同串（docs/contracts/DATA_SEMANTICS.md §31.1a:
+  // 2808-2810），故夹具如实写 canonical 面亮度串，不得省略（省略即声明面不完整，
+  // declare_hips_surface_brightness_units 的 B1 守卫会判红）。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
-  if (sf) sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside << "}";
+  if (sf)
+    sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside
+       << ",\"bunit\":\"ADU/sr\"}";
   return ok;
 }
 
@@ -2664,9 +2708,13 @@ bool write_p21_scatter_hips(const std::string& root) {
     std::fprintf(stderr, "P21 write_hips_phase1 failed: %s\n", err.c_str());
     return false;
   }
-  // 上游 provenance (writer 节点据此计算 parent span 复杂度不变量)。
+  // 上游 provenance (writer 节点据此计算 parent span 复杂度不变量)。bunit 键 = 产品单位
+  // 声明面之一（DATA-P1-STACK），必须与 signal/properties 的 BUNIT 同串
+  // （docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810）⇒ 不得省略。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
-  if (sf) sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << kP21Nside << "}";
+  if (sf)
+    sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << kP21Nside
+       << ",\"bunit\":\"ADU/sr\"}";
   return true;
 }
 
@@ -2867,8 +2915,14 @@ static bool write_sparse_hips_var(const std::string& root,
   std::string err;
   const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", err);
   if (!ok) std::fprintf(stderr, "IVAR-001 write_hips_phase1 failed: %s\n", err.c_str());
+  // p1_stack.json 的 bunit 键 = 产品的单位声明面之一（DATA-P1-STACK）；与
+  // signal/properties 的 BUNIT 必须同串（docs/contracts/DATA_SEMANTICS.md §31.1a:
+  // 2808-2810），故夹具如实写 canonical 面亮度串，不得省略（省略即声明面不完整，
+  // declare_hips_surface_brightness_units 的 B1 守卫会判红）。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
-  if (sf) sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside << "}";
+  if (sf)
+    sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside
+       << ",\"bunit\":\"ADU/sr\"}";
   return ok;
 }
 
@@ -2990,7 +3044,7 @@ static void test_ivar001_phase1_variance_products() {
   }
 }
 
-// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / ASTROCS_DESIGN §7.1a）──
+// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / ASTROCS_DESIGN §8.2）──
 // 登记面 = DATA-P1-DRZ §11.1:295「variance 面（可选，帧内块）| float32 | ADU²」；
 // 生产侧 = drizzle 节点（module_adapters.cpp p1_op_drizzle）用 A
 // （snr_noise_model_v1/_fill）对**即将被积分的同一数组**产块并 add_block；
@@ -4367,7 +4421,7 @@ int main() {
   test_b2a15_ghost_discontinuous_multiparent();
   // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面
   test_ivar001_phase1_variance_products();
-  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / ASTROCS_DESIGN §7.1a）
+  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / ASTROCS_DESIGN §8.2）
   test_ivar002_frame_variance_block_wiring();
   test_b2a17_sip_bridge();
   // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性

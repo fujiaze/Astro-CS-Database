@@ -202,7 +202,11 @@
       "manifest_input_hashes",
       "manifest_output_hashes",
       "run_id"
-    ]
+    ],
+    "documented_same_name": {
+      "precision": "phase_config 的 precision 与 cpu_profile legacy_v1/kernel_v1 的 precision 同名；历史登记（本文件为登记面唯一事实源，门 = eng/tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 与 eng/tests/config/gate_assertions.py 门 G4）。",
+      "mode": "phase_config 的 star_detection.mode（星表引导检测模式 auto|catalog_guided|blind_diagnostic；ASTROCS_DESIGN.md §4.2）与 cpu_profile legacy_v1/kernel_v1 的 mode 同名。登记理由：star_detection 段纳入合法输入面时（合同声明 = eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config）出现该同名；两者语义无关（检测模式 vs CPU profile 模式），且 mode **不在** cross_class_forbidden.cpu_profile_keys_in_phase_config 硬件禁止名列表内。"
+    }
   },
   "machine_assertions": [
     "eng/tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_field_name_sets_are_pairwise_disjoint",

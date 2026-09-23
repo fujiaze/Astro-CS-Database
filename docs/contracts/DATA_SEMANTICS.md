@@ -478,7 +478,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | NoiseWeightModelV1（snr_estimator.h:127-144） | ctrl_* double `[n_control_points]`（patch 中心 0-based 像素坐标/σ/variance/ivar） | σ: ADU；variance: ADU²；ivar: ADU⁻² | 合格 patch 的 max(patch_var, floor) 与 1/var；n_qualified_patches+n_rejected_patches==64（8×8） |
 | sigma_bg_global / variance_bg_global / ivar_bg_global | double 标量 | ADU / ADU² / ADU⁻² | 全局兜底=合格 patch variance 稳健中位数（非退化）；完全退化 rc=1 时 ivar_bg_global==0.0（显式不可用，禁止伪装——§4a） |
 | source / has_spatial_field / degenerate | uint8 标志 | — | source=0（empirical blank-sky 唯一生产基线）；has_spatial_field=1 须 enable_spatial_field==1、n_control_points>=4 且控制点几何张成二维（点云相对条件数 λlo/λhi≥1/16，即 κ=√(λhi/λlo)≤4；DISP-NOISE-010 已整改）；degenerate=1=无合格 patch 且全帧兜底退化 |
-| fill 输出 out_variance / out_ivar | float32 `[h·w]` 行主序 | ADU² / ADU⁻² | 任一可 NULL（可空输出，双 NULL 拒绝 rc=3 :467）；平面预测 max(a+b·x+c·y, floor)，负预测 clamp 至 floor；无合格 patch 时 ivar=0 拒绝加权（SCI §7） |
+| fill 输出 out_variance / out_ivar | float32 `[h·w]` 行主序 | ADU² / ADU⁻² | 任一可 NULL（可空输出，双 NULL 拒绝 rc=3 :467）；平面预测**为正**时取 max(a+b·x+c·y, floor)（floor 为**按 dtype 导出**的数值保护，见 SCI §9）；**预测 ≤ 0 ⇒ 该像素方差不可用：variance=0 ∧ ivar=0（显式不可用，不得由 clamp 产生、不得写 NaN）**；无合格 patch 时 ivar=0 拒绝加权（SCI §7） |
 
 ### 13.3 坐标与精度规则（汇总）
 
@@ -2287,6 +2287,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | order_sel（会话 provenance） | int 标量 | p3_order_select 结果；provenance.order_sel_used 填实际值（p3_session.cpp:265-277） |
 | mask（会话 coverage_output） | float32 W×H 平面 | coverage_output 仅 `mask` 合法（p3_session.cpp:128-129）；由 coverage 平面生成 |
 | S / C 输出平面（会话缓冲） | float32 | W×H 各一（S 初值 NaN、C 初值 0，p3_session.cpp:204-205）；逐像素独立填充 |
+| n_rejected_nonfinite（**诊断统计平面**，§30.7 DATA-P3-REJ-001） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`；**不进** `planes` science 枚举）—— 逐像素被剔除样本计数（DATA-002 §2a 规则 3 强制计数）；0 即「无」、禁 −1 哨兵 |
 
 ### 29.3 单位/dtype/确定性
 
@@ -2330,7 +2331,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   §12 + registry 手写页 §9 双重陈述；可执行面升级归 P3-RSMP-TEST）。
 - 同文档: §3（FITS tile local-pixel 映射，读路径权威）、§4
   （signal/support/invalid 通用语义）、§27（FITS 写出域，本域为其
-  上游）、§28（WCS 域，输出平面几何上游）。
+  上游）、§28（WCS 域，输出平面几何上游）、§30.7（DATA-P3-REJ-001，
+  本域输出面的**强制剔除计数**诊断平面承载面冻结）。
 - 端口词汇注记: registry descriptor p3_resample2_descriptor
   （module_adapters.cpp:425-439，module_id=astrocs.phase3.resample2
   占位）端口表 wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+
@@ -2773,6 +2775,90 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
     schema + runtime validator `_PLANE_ID_SET`）与诊断统计平面（nused/
     nrej）的联动扩展约束——任何扩展必须 schema 与 validator 同一提交，
     当前无扩展需求。
+
+### 30.7 Phase3 rejection 计数诊断平面（DATA-P3-REJ-001）
+
+> 上游：`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a
+> （`invalid_handling` 块，**唯一正本**：`rejection_counting=mandatory`、
+> `count_field=n_rejected_nonfinite`、规则 3「计数为 0 与「字段缺失」必须可区分」）；
+> 本节只冻结 **Phase3 的承载面**（正本已冻结字段名/逐像素/强制语义，未冻结落点）。
+> 形态先例 = 本节 §30.2（阶段二 `nused`/`nrej` 诊断统计平面），**不新增机制**。
+
+- **定位（沿用 §30.2 口径）**: `n_rejected_nonfinite` 是**诊断统计平面**
+  （diagnostic plane），**不进** `phase_product_exchange` 的 science planes 枚举
+  （`{signal, support, variance, ivar, mask, sparse_snr}`，validator
+  `_PLANE_ID_SET` 同步不变，零断链），也不进 `p3_resampled.json#planes`
+  （该键是 science 平面表）。诊断平面由 artifact manifest 显式声明描述 ——
+  与 §30.2「诊断平面由 artifact manifest content_role 与 diagnostics.json
+  描述」同口径；§30.4 findings F-UNC-003 登记的联动扩展约束（science 枚举
+  扩展必须 schema 与 validator 同一提交）**不被本节触发**。
+
+- **承载面（冻结）**: 独立子产品文件
+  `<p3 out_dir>/p3_rejection.bin` —— **int32、W×H、行主序**、
+  逐像素 1 平面（§30.2 同款：int32 tile「BITPIX=32」、dtype 固定 int32 无精度开关）。
+  与 science 平面**同目录不同文件**：`p3_resampled.bin` 是 f32 平面连续拼接
+  （signal, coverage[, variance, ivar]），把 int32 计数字节混进去会破坏
+  `plane_off = plane × nelem × sizeof(float)` 的读侧不变量（p3_op_writer 的
+  `read_plane` / 子块流式读都按 f32 步长定位），故**不复用**该载体。
+  形态对应 §30.2 的「独立子产品目录 `<out_hips>/nrej/`」。
+
+- **manifest 声明（冻结字段名）**: `p3_resampled.json` 顶层
+  `diagnostic_planes.<count_field>`：
+
+```jsonc
+"diagnostic_planes": {
+  "n_rejected_nonfinite": {
+    "carrier": "p3_rejection.bin",
+    "dtype": "int32",
+    "units": "count",
+    "shape": [<height_px>, <width_px>],
+    "row_major": true,
+    "per_pixel": true,
+    "invalid_policy": "none_zero_no_sentinel",
+    "count_field": "n_rejected_nonfinite"
+  }
+},
+"n_rejected_nonfinite_total": <int>          // Σ 逐像素计数
+```
+
+- **invalid**: 无覆盖像素（coverage=0）→ 计数 **0**；**0 即「无」**，
+  **禁 −1 哨兵**（§30.2 逐字同款：int 无 NaN，0 即"无"，禁 −1 哨兵）。
+  **字段缺失 ≠ 全 0**：缺 `diagnostic_planes.n_rejected_nonfinite` 的产品
+  **不得**声称满足 §2a 规则 3（判据具名 `COUNT_FIELD_MISSING`）。
+
+- **逐像素四行可分（判据唯一口径 = §2a「与两类输入的对应」表）**：
+  设 n_cand = 采样核候选样本数（`bilinear` = 4，`nearest` = 1，
+  由 `p3_resampled.json#sampler` 判定）：
+
+| coverage | signal | 行 | 计数约束 |
+|---|---|---|---|
+| 0 | NaN | 无覆盖 | `n_rejected_nonfinite == 0` |
+| 1 | 非有限（NaN/±Inf） | 无信息（有候选、零合格） | `== n_cand` |
+| 1 | 有限 | 部分坏（0 < 计数 < n_cand）或全合格（== 0） | `0 <= 计数 <= n_cand − 1` |
+
+  任一行不符 ⇒ 判据具名 `COUNT_MISMATCH`（「计数与真实剔除数不符」）。
+
+- **内核面（已冻结，字段名逐字一致）**: `lib/algorithms/resample/p3_resample.h`
+  `P3SampleRejection{n_rejected_nonfinite, n_rejected_nonfinite_value,
+  n_rejected_nonfinite_variance, n_rejected_nonpositive_weight, n_eligible}`
+  （h:163-169）；产出接口 `p3_sample_bilinear_nanmask_ex`（h:175-178）。
+  三项按原因**互斥、可加**（合计 == 三项之和）；信号核只消费 signal 平面 ⇒
+  variance 项恒 0、几何权重 ⇒ 权重非正项恒 0（h:159-162 已冻结）。
+  `nearest` 路径的计数由 `(value, coverage)` **唯一确定**
+  （C=0 ⇒ 0；C=1 且值非有限 ⇒ 1；C=1 且值有限 ⇒ 0，h:84-86）⇒ 无需额外出参。
+
+- **消费者面（fail-closed）**: `p3_op_writer` 与 `p3_op_verify` 必须
+  ①校验 `diagnostic_planes.n_rejected_nonfinite` 存在且 `count_field` 逐字
+  等于 `n_rejected_nonfinite`；②校验载体存在且长度 == `height_px × width_px × 4`；
+  ③校验 `n_rejected_nonfinite_total` == Σ 逐像素计数。任一不符 ⇒ **非零失败**
+  （禁静默缺省、禁按 0 补齐）。判据实现 =
+  `eng/tools/quality/check_p3_rejection_count.py`（六条 G1–G6 + `--self-test`
+  1 正例 7 负例），CI 可见载体 =
+  `eng/tests/quality/test_p3_rejection_count.py`（UT-QUALITY 自动 discover）。
+
+- **未冻结面（如实登记）**: Phase3 产物是否另落 FITS 诊断 HDU、以及
+  `output_phase3.fits` 侧的计数通道，本节**不冻结**（科学平面的 FITS HDU 序
+  由 DATA-P3-FITS §27 承载；诊断通道若需上 FITS 须单独冻结，禁实现自行扩展）。
 
 ## 31. V6 合同层数据合同（DATA-V6-SCHEMA；SCHEMA-INTEGRATE-001/W6 集成，语义已自解释合并进现行合同链）
 
