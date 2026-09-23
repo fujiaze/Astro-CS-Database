@@ -7,7 +7,14 @@
 ## 1 目的与非目标
 
 - **目的**：估计校准后空背景随机分量的逐像素方差 `variance` 及其倒数 `ivar=1/variance`，作为 Phase2 逐像素科学权重入 `var(x,y)=a+b·x+c·y` 空间场 + 全局兜底，用于 UPM 控制光度拟合与加权积分。
-- **非目标**：不估计测光零点残差散度（SCI-PHOT `sigma_residual` QA）；不输出 PSF 拟合质量 `q_psf`（SCI-PSF）；不生产完整协方差矩阵（Drizzle 后相邻像素相关见 `UNCERTAINTY_AND_COVARIANCE.md`）；生产权重不融合 gain/readnoise 诊断模型（见 §5/§10）。
+- **非目标**：不估计测光零点残差散度（SCI-PHOT `sigma_residual` QA）；不输出 PSF 拟合质量 `q_psf`（SCI-PSF）；不生产完整协方差矩阵（Drizzle 后相邻像素相关见 `UNCERTAINTY_AND_COVARIANCE.md`）。
+- **两个方差面（正向约束）**：本链承载**两个用途不同、量纲相同**的方差面，**不得互相替代**：
+  1. **背景方差面**（本文件 §5 的 `variance`）：**空背景随机分量**，供天光建模、诊断与误差报告；
+  2. **加权方差面**（§5c）：**该像素的总方差**，含源光子散粒项，供叠加与拟合的最优加权。
+  `variance_floor`、三态（可用/不可用/损坏）、产品 dtype 成对不变量对**两个面**同等生效。
+- **增益与读出噪声必须进入加权方差面（正向约束）**：`gain`（e⁻/ADU）与 `read_noise_e` 是加权方差面
+  的**输入量**，其来源、缺省行为与不可得时的显式降级声明按 §5c；**禁止**把"配置里有这个键、
+  但数值路径不读它"当作可用状态。
 
 ## 2 符号表
 
@@ -22,7 +29,7 @@
 | `a,b,c` | 最小二乘平面 `var(x,y)=a+b·x+c·y` | `snr_noise_model_v1` |
 | `variance_floor` | **可用方差**的下界（配置默认 `1e-12`，单位 ADU²；`max(var,floor)`）。**只作用于平面预测 > 0 的像素**；预测 ≤ 0 的像素方差不可用，产品面写 `variance=0 ∧ ivar=0`（§5/§7/§9）。非有限或 ≤0 一律显式拒绝，不产出模型（§4） | `default_config` |
 | `g_model_floor` | 以 `model*` 为 key 的 floor 注册表 | `noise_model.cpp:33,48,55,86,903` |
-| `gain, read_noise_e` | 诊断模型参数 e-/ADU, e- | `snr_noise_gain_variance` |
+| `gain, read_noise_e` | 增益 e-/ADU 与读出噪声 e-：**加权方差面**（§5c）的输入量；其解析式 `snr_noise_gain_variance` 与背景方差面交叉验证 | §5c / `snr_noise_gain_variance` |
 | `r_inliers` | Tukey 权重>0 的内点集（SCI-PHOT 复用符号，不混） | QA |
 | `degenerate, has_spatial_field` | 退化/空间场标志 | `NoiseWeightModelV1` |
 | `r_local(F,FWHM,σ_bg)` | 由「掩膜边缘残余面亮度 = k·σ_bg」导出的无偏所需半径（§5a） | 掩膜 |
@@ -46,7 +53,7 @@
 
 - 平面场仅 `enable_spatial_field==1 && n_control_points>=4` **且控制点几何张成二维**时启用，否则退化为全局常量场（`has_spatial_field=0`）；几何判据 = 中心化控制点点云 Gram 矩阵特征值比 `λlo/λhi ≥ 1/16`（等价点云条件数 `κ=√(λhi/λlo) ≤ 4`，无量纲；绝对阈值 `|det|>1e-24` 已废除，DISP-NOISE-010）。
 - `variance_floor` **必须有限且 > 0**（单位 ADU²）：非有限或 ≤0 时 build 与 fill **都**显式拒绝（`SNR_FLOOR_UNBOUND(-10)`），不产出模型、不静默回退到任何常数（`noise_model.cpp:369-371` build 侧、`:818` fill 侧）。`max(var,floor)` 只作用于**可用**方差（§5/§7）。
-- `gain<=0` 时 `snr_noise_gain_variance` 返回 0（诊断路径，不入生产）。
+- `gain<=0` 时 `snr_noise_gain_variance` 返回 0；**加权方差面**（§5c）在 `gain` 不可用时必须显式降级并具名登记，**禁止**按 0 代入。
 
 ## 5 连续定义
 
@@ -71,7 +78,7 @@ ivar = 1 / max(variance, floor)   # 仅对**可用**方差（预测 > 0）：fil
 ```text
 Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
   var_ADU = max(signal,0)/gain + (read_noise_e / gain)²   # signal: ADU, gain: e-/ADU（冻结换算）, rn: e-
-  用途仅 SNR-005 诊断交叉验证 (noise_model_science_test.cpp:238-272)，生产 source==0 empirical 不融合
+  **加权方差面**（§5c）的源项与常数项来源；与背景方差面（§5，`source==0` empirical）交叉验证 (noise_model_science_test.cpp:238-272)，两面的基线口径不得互相替代
 ```
 
 与 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1-938` 一致（`fill_impl` :776-866；`snr_noise_model_v1_fill` :868-883）。
@@ -109,12 +116,12 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
 **首要分类轴是时间**：每一项都必须是**固定图案**（time-invariant，帧间相关）或**时变**（time-variant，逐帧独立）。
 下表的"帧间相关性"列是该轴，不得省略。
 
-| 项 | 物理来源 | 方差（ADU²） | 帧内空间尺度 | 帧间相关性 | 随信号 | 在本 `variance` 面 |
+| 项 | 物理来源 | 方差（ADU²） | 帧内空间尺度 | 帧间相关性 | 随信号 | 在背景方差面（§5） |
 |---|---|---|---|---|---|---|
-| 源光子散粒 | 源光子到达的 Poisson 统计 | `F·P(x,y)/g` | 逐像素（PSF 尺度） | 逐帧独立 | ∝ S | **不含**（§9a；但 σ_F 式含，§4.2a） |
+| 源光子散粒 | 源光子到达的 Poisson 统计 | `F·P(x,y)/g` | 逐像素（PSF 尺度） | 逐帧独立 | ∝ S | **不含**；加权方差面**必须含**（§5c） |
 | 天光光子散粒 | 夜天光（气辉/黄道光/月光散射/光污染）+ 光学散射 | `S_sky(x,y)/g` | **方差图**大尺度；**实现**逐像素（ρ₁ ≈ 0） | **逐帧变**（月相/太阳角/气辉）；**帧内梯度方向亦可变** | ∝ S_sky | 是（经验 MAD 稳健方差） |
 | 暗电流散粒 | 硅晶格热激发载流子 | `I_d(T)·t/g` | **方差图**近常数；**实现**逐像素 | 逐帧变（温度、曝光） | 常数 | 隐含（被经验总 rms 吸收） |
-| 读出噪声 | 输出放大器复位/源跟随器热噪声 + 1/f；多放大器 ⇒ 分区 | `(RN/g)²`（1/f 分量**无解析方差式**，只可定性） | **方差图**常数（多通道为分区常数） | 1/f 分量**帧间相关**；白噪分量逐帧独立 | 常数 | 已含（σ_sky 声明 `EMPIRICAL_TOTAL_RMS`；诊断式禁融合，§10） |
+| 读出噪声 | 输出放大器复位/源跟随器热噪声 + 1/f；多放大器 ⇒ 分区 | `(RN/g)²`（1/f 分量**无解析方差式**，只可定性） | **方差图**常数（多通道为分区常数） | 1/f 分量**帧间相关**；白噪分量逐帧独立 | 常数 | 已含（σ_sky 声明 `EMPIRICAL_TOTAL_RMS`）；背景方差面禁融合解析式（§10），加权方差面按 §5c 显式承载 |
 | 量化噪声 | ADC 均匀量化 | 见下方"文献口径"（**原文未核验**） | **方差图**常数 | 逐帧独立 | 常数 | 隐含（被经验总 rms 吸收） |
 | 偏置/本底残差 | master bias 平均后残余、overscan 校正残余 | `σ_bias,res²` | 常数 + **确定性**低频结构（ρ₁ = 0.9995） | **帧间相关**（同一母版） | 常数 | 隐含（被经验总 rms 吸收） |
 | 暗电流 FPN（DSNU） | 暗流非均匀 | `(D·D_N)²`，`D_N` = 0.1…0.4 | 固定图案 | **帧间相关**（固定图案） | ∝ 暗流 | 不含 |
@@ -174,11 +181,59 @@ DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜
 有源输入下稀疏 SNR 控制点**必须**出现随位置的可测变化（否则稀疏层退化，
 见 `docs/science/CONTROL_WEIGHT_SNR.md` §2a/§4）。
 
+### 5c 加权方差面（含源项）
+
+本节定义**加权方差面**——供叠加与拟合的最优加权使用的**总方差**。它与 §5 的**背景方差面**是两个对象：
+量纲相同（ADU²）、用途不同、**不得互相替代**。
+
+**参考分解与归因**：像素测量值的参考分解为
+
+~~~text
+I = O + g·(N_src + N_sky + N_dark) + N_read
+~~~
+
+`I` 像素测量值（ADU）、`O` 偏置（ADU）、`g` 增益（e⁻/ADU）、`N_src` 目标天体光电子、
+`N_sky` 天空背景光电子、`N_dark` 暗电流电子、`N_read` 读出噪声（ADU）。单帧只提供均值与方差
+两个可观测量，待分离量多于两个 ⇒ **禁止**声称从单帧"分解"出信号与噪声；本链只做**归因**
+（把可观测量按物理来源指派到各项）。秩与零空间的代数依据见 §5b。
+
+**加权方差的构成（正向约束）**：
+
+~~~text
+sigma_w^2(x,y) = sigma_bg^2(x,y) + S_src(x,y)/g
+~~~
+
+- `sigma_bg^2(x,y)` = §5 的**背景方差面**（空背景随机分量：天光散粒、暗流散粒、读出、量化、偏置残差）；
+- `S_src(x,y)` = 该像素上**源贡献的信号电平**（ADU 标度，**不含天光**）；`S_src/g` 的单位是 ADU²
+  （Poisson 方差在 ADU 标度下的形式，与 §5b 的 `F·P(x,y)/g` 同式）。**这是本面与背景方差面的唯一区别**；
+- `S_src` 由**星点测光**给出的源通量与 PSF 轮廓导出，**禁止**由"从信号里减去噪声"得到。
+
+**逐项口径**：§5b 表中标"在背景方差面：不含"的项里，**源光子散粒在本面必须含**；
+DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在本面同样不含**（系统性/乘性项，
+不属本层的随机加权方差）。
+
+**量纲与标度**：`sigma_w^2` 与 `variance` 同为 ADU²；`g` 必须与 `sigma_w^2` 处于**同一标度**
+（帧像素被线性缩放时 `g` 与 `sigma_w^2` 一并按同一因子换算，见 §3 与 §7 的产品 dtype 成对不变量）。
+
+**增益与读出噪声的来源（正向约束）**：`g` 与 `read_noise_e` 的取值来源按优先级显式声明
+（帧头关键字 > 显式配置覆盖）；**任一项不可得时本面必须显式降级并具名登记**，
+按 §5b 的适用域退化为背景受限口径，**禁止**静默按 0 代入（`g=0` 使源项无定义）。
+本面的降级状态随帧产品落 provenance，与背景方差面的三态（可用/不可用/损坏）**正交**登记。
+
+**文献锚（正向约束）**：本节的每一项与 `g` 的获取方式必须逐项标注**一手文献**出处与**适用域**
+（教材/标准给 ISBN 或 DOI + 章节页码；经典论文给 DOI 或 arXiv 号）。未建立文献锚的项
+**不得**进入生产数值路径。
+
+**禁止**：
+- 把背景方差面当作加权方差面——那会系统**低估**源受限像素的噪声、把权重抬高；
+- 用 `signal^2` 反算或校验本面（`docs/contracts/DATA_SEMANTICS.md` §31.1 数值层）；
+- 在未登记 `g` 来源与降级状态的帧上，声称本面为"绝对"口径。
+
 ## 6 假设
 
 - 空背景在 patch 尺度局部平稳；源星点可被**逐星半径掩膜**（§5a）与 5σ 裁剪分离；
 - 掩膜半径**随源通量与 PSF 尺度变化**（§5a）：`r_i = r_local(F_i, FWHM_i, k=0.1·σ_bg)` 经天空预算收缩。模块 C ABI 只收坐标属**接口现状**，不是物理约束——生产调用点（orchestrator psf 块 9 列行：`row[2]=flux`、`row[5]=fwhm`、`row[6]=amplitude`，字段语义锚 `orchestrator.cpp:4558-4562`）本已持有该信息，ABI 已扩展为可选逐星数组（`star_flux`/`star_fwhm`）；缺省时按 §5a 回调规则降级并置 `MASK_LEGACY`；
-- 增益/读出噪声诊断公式仅在 `signal≈μ` 的 Poisson+读出噪声假设下有意义，不替代经验 `variance`。
+- 增益/读出噪声的解析式仅在 `signal≈μ` 的 Poisson+读出噪声假设下有意义：它**不替代**背景方差面（§5）的经验方差，**只**作为加权方差面（§5c）的源项与常数项来源。
 
 ## 7 独立不变量
 
@@ -198,7 +253,7 @@ DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜
 | 无合格 patch（收缩后仍无） | `degenerate=1`；若**全部未掩膜** sky 样本 < `max(min_samples, 9216)` ⇒ `ivar=0,r=1` 拒（**收紧**：现行 `min_samples/2=32` 像素可为整帧定权重，现按 `SE(σ̂)/σ ≈ 1.144/√N_sky ≤ 1.5%` 要求 `N_sky ≥ 9216`，与 §5a 同一预算常数，）；否则 `degenerate=1` 全局常量场 `has_spatial_field=0, r=0` fallback 并置 `MASK_DEGRADED` 诊断标 | `noise_model.cpp:530-585` |
 | 全帧 NaN/饱和 | 饱和像素按 §4「饱和域」剔除；**全帧无任何合法 sky 样本**（NaN+饱和全剔，或样本 < §5a 预算）⇒ `degenerate=1, ivar_bg_global=0, r=1`；**电平未提供（unset）时本行的饱和支不可达**——这正是 §4 强制显式降级声明的理由 | noise_model.cpp:122-126,530-585（valid_pixel/collect_patch_sky）；SAT-001 |
 | `variance_floor` 非有限或 ≤0 | build 与 fill **都**显式拒绝：`SNR_FLOOR_UNBOUND(-10)`，不产出模型、不静默回退常数 | `noise_model.cpp:369-371,818,889` |
-| `gain<=0` | `snr_noise_gain_variance` 返回 0 | `noise_model.cpp:928-937`（判据 :929） |
+| `gain<=0` | `snr_noise_gain_variance` 返回 0 | `noise_model.cpp:928-936`（判据 :931） |
 | `star_x/y` 非有限 | 掩膜跳过该星，不污染统计 | 参数校验 |
 | `MAD=0` | `σ_bg=0` ⇒ 退化路径（见上） | `robust_sigma` |
 
@@ -219,12 +274,12 @@ DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜
 - **σ_sky 入参口径与 c_est 单位（SCI-B 定案，防双计）**：① 逐像素噪声组合 `σ_i² = σ_sky,i² + (RN/g)² + F·P_i/g`，读噪只出现一次；`sigma_sky_adu` 的语义必须显式声明为 `shot_noise_only`（天光+暗流散粒）或 `empirical_total_rms`（经验总 rms，含读噪）——前者才叠加 `(RN/g)²`，后者不得叠加；声明与实际来源不一致 ⇒ fail-closed。实测双计使 σ_F 高估 +12.8%~+34.0%（`实验/absolute-snr/results/b2_noise_terms.json`），插件侧口径落点 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a。② 本文件 §5a 的 `1.44/√N` 是**相对**标准误（无量纲），dex 口径为 `1.44/ln10/√N ≈ 0.625/√N`；把它当 dex 阈值用会高估噪声项 2.3026 倍（EXP-205 的 τ_A/τ_B 即此误，见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D2）。
 - **SNR**：本合同不产出 SNR 图。消费侧可以构成**逐像素探测显著性** `signal/√variance`，但该量**不含源泊松项**（`variance` 仅空背景），不是源的通量信噪比；源通量 SNR 必须另行定义（逐源 `σ_F`，见 CONTROL_WEIGHT_SNR.md §1）。本层唯一产出为 `variance/ivar`（GLOSSARY `variance/ivar`）。
 - **variance/ivar**：`variance`=ADU²（平面场或全局兜底），**可用**像素 `ivar=1/max(variance,floor)` 精确倒数（§7 量纲不变量）。两态穷尽：**平面预测 ≤ 0 或产品 dtype 不可表示 ⇒ `variance=0 ∧ ivar=0`（不可用态）**；`variance_floor` 非有限或 ≤0 ⇒ build/fill 显式拒绝 `SNR_FLOOR_UNBOUND(-10)`（§4/§8）；非有限输入在参数域拒绝（§8）。
-- **Poisson+read noise**：`var_ADU=max(signal,0)/gain+(read_noise_e/gain)²` **仅诊断路径**（SNR-005 交叉验证），生产唯一基线为 empirical MAD（`source==0`，NO-01 P0，§10）。
+- **Poisson+read noise**：`var_ADU=max(signal,0)/gain+(read_noise_e/gain)²` 是**加权方差面**（§5c）的源项与常数项来源；**背景方差面**（§5）的唯一基线为 empirical MAD（`source==0`），两者不得互相替代。
 - **权重归一与适用域**：`ivar` 作为 Phase2 逐像素科学权重直接入加权（归一在消费侧 `Σw/Σ`），适用域=空背景随机分量；不含源泊松项/系统项/协方差（Drizzle 后相关见 UNCERTAINTY_AND_COVARIANCE.md）；`ivar=0` 显式表示不可用，禁止伪装（§7 空 support 不传播）。
 
 ## 10 不可接受变化
 
-- 将 `snr_noise_gain_variance` 结果融合至生产 `variance/ivar`（`source==0 empirical` 为唯一生产基线，即使 header 有 gain 亦不融合，`NO-01 P0`）；
+- 把 `snr_noise_gain_variance` 一类解析式融合进**背景方差面**（§5）：该面的唯一基线是 empirical MAD（`source==0`），即使帧头有 gain 也不融合；加权方差面（§5c）按该节口径**必须**含源项与常数项；
 - 在**未按 §5a 扩展 ABI 提供逐星通量/FWHM 且未重冻结**的前提下，擅自把半径改为按亮度自适应（**正确做法是 §5a**——禁止的是无依据的自适应，不是自适应本身）；
 - 取消或绕过天空预算判据（`n_qualified ≥ 8`、`N_sky ≥ 9216`）而直接产出权重场；
 - 改变 `variance_floor` 默认值 `1e-12` 或 `g_model_floor` 的指针 key 隔离语义；
@@ -234,7 +289,7 @@ DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜
 ## 11 验证 Oracle
 
 - **Gaussian 合成**：`N(0,σ²)` 空背景合成帧（`σ=5 ADU`），经验 `σ_bg` 在 `5%` 内复现（`SNR-004`）。
-- **Poisson 诊断交叉**：`μ/gain + rn²/gain²` 的 `var_th` 与经验 `variance_bg_global` 在 5% 内一致（`SNR-005, 238-272`），仅诊断通过，不入生产。
+- **Poisson 交叉**：`μ/gain + rn²/gain²` 的 `var_th` 与经验 `variance_bg_global` 在 5% 内一致（`SNR-005, 238-272`），用于**背景方差面**的独立交叉验证，不改变该面的基线口径。
 - **平面场恢复**：注入线性梯度 `var(x,y)=a+b·x+c·y` 场，拟合 `a,b,c` 在 10% 内复现（`SNR-006`）。**逐像素真值口径**：`max|v̂/v_true−1|` 的**解析真值必须显式含 patch 内天光梯度项** `((dμ/dx)²+(dμ/dy)²)·P²/12`（`P` = patch 边长），否则对强梯度帧**过严**——E12 实测**漏项时判 +49.9%（假红）**、含项（本实验解析项 = 26.04 ADU²）后 **+3.56%/+3.67%/+4.05%**（≤10% 门）；等价可接受口径 = 「**同几何独立参考**」。系数恢复门（`|b̂/b−1|`、`|ĉ/c−1|` ≤10%）不受影响。
 - **不变性门**：常量场、空 patch 拒绝、`floor` 夹逼、量纲 `ivar=1/var` 四门（`TST-NOISE-INV-*`）。**平面不可用态门（能红能绿）**：① 正例——预测 ≤ 0 的像素 `variance==0 ∧ ivar==0`，预测 > 0 的像素与独立 LS oracle 逐位一致；② 负例——把不可用像素 clamp 成 floor（`variance==floor ∧ ivar==1/floor`）必须判红，且生效 floor 在输出 dtype 中下溢时必须判红 `(0, +inf)` 这类对（`p1noise_negative` 的 n7/n7b；故障注入 `p1noise_selfcheck` 验证判据非恒真）。
 - **源污染 oracle（MASK-001）**：合成帧 = `N(0,5²)` 空背景 + `N_s` 颗 Moffat(β=2.5) 星（幂律亮度 `dN/dF ∝ F⁻²`，`F∈[2×10²,10⁵]` ADU，FWHM=3 px，星位随机）；默认掩膜下 `|σ̂_bg/σ_bg − 1| ≤ 2%`（12 seeds）且 `n_qualified ≥ 8`、`N_sky ≥ 9216`。**负例（门必须能红）**：① 半径固定 60 px 且 256²/50 星 ⇒ 必须 `rc=1`（整帧退化）；② 半径固定 2 px 且 `F_max=10⁶` ADU ⇒ 必须检出 `|σ 偏差| > 2%`。③ 半径与 `F_i`/`FWHM_i` 不单调 ⇒ 必须红（`o2_mask_radius_monotone`）。生产门见 ALG §13.4 TEST-NOISE-DESIGN-001 的 FIX-NOISE-D/H。
@@ -245,7 +300,7 @@ DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜
 
 - `ALG-NOISE-001` `snr_noise_model_v1` 空背景方差估计（8×8 patch + MAD + 平面场）
 - `ALG-NOISE-002` `snr_noise_model_v1_fill` 平面场填充：可用像素 `max(预测,floor)` + `ivar=1/var`；预测 ≤ 0 或产品 dtype 不可表示 ⇒ `0/0`
-- `ALG-NOISE-003` `snr_noise_gain_variance` 诊断模型（仅 SNR-005）
+- `ALG-NOISE-003` `snr_noise_gain_variance`：**加权方差面**（§5c）的源项/常数项解析式，兼作背景方差面的交叉验证（SNR-005）
 
 ## 13 追溯与测试
 
