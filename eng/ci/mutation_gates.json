@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "purpose": "RELEASE-02 CI-HYGIENE｜§11.1 变异测试覆盖面实况登记（不虚报）。ASTROCS_DESIGN §11.1:565 声称『每个近似有 mutation 证明门能红』；本文件登记 2026-09-18 实测的实际覆盖面：默认 ctest 仅 1 条 mutation 类用例，其余为 Python CI 门 / Python unittest / 默认关闭的 ctest 选项 / run/ 一次性脚本。",
+  "purpose": "RELEASE-02 CI-HYGIENE｜变异测试覆盖面实况登记（不虚报）。原引 ASTROCS_DESIGN §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中不存在（见 design_claim_history）；本文件登记 2026-09-18 实测的实际覆盖面：默认 ctest 仅 1 条 mutation 类用例，其余为 Python CI 门 / Python unittest / 默认关闭的 ctest 选项 / run/ 一次性脚本。",
   "measured_utc": "2026-09-18",
   "measured_by": "RELEASE-02 CI-HYGIENE",
-  "design_claim": "ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门能红」",
+  "design_claim": "ENGINEERING_SPEC.md §10「每项检查有正例与负例（能红能绿）」",
   "actual_summary": {
     "ctest_mutation_tests_default_on": 1,
     "ctest_mutation_tests_optional_off": 1,
@@ -32,7 +32,10 @@
       "driver": "eng/tests/unit/v6_p3_rsmp/run_mutations.py",
       "registration": "eng/tests/unit/v6_p3_rsmp/CMakeLists.txt:43-50（option(V6_P3RSMP_ENABLE_MUTATION_DRIVER ... OFF)）",
       "reason": "默认 OFF，不进 ctest 默认面；20 条注入只在手动 ON 或 run/ 脚本下执行。",
-      "evidence": "run/v6/p3-rsmp/mutation_summary.json（历史运行）"
+      "evidence": "run/v6/p3-rsmp/mutation_summary.json（历史运行）",
+      "gone_artifacts": {
+        "run/v6/p3-rsmp/mutation_summary.json": "run/ 是 §7 登记的 gitignore 一次性产物区，本产物已被 eng/tools/run_gc.py 回收（run_keep.txt 未保留 v6 轮次）；登记保留的是「该近似曾由 run/ 一次性脚本做过 mutation 注入」这一历史事实，证据在 git 历史与控制包报告，不在工作树。"
+      }
     },
     {
       "id": "V6-NEGATIVE-MUTATION",
@@ -52,7 +55,10 @@
       "driver": "eng/tests/contracts/product_family/test_field_constraints_mutations.py",
       "registration": "CHK-CONTRACT-TEST → UT-CONTRACTS（unittest discover eng/tests/contracts）",
       "result": "total=34 detected=34 missed=0 wrong_gate=0",
-      "evidence": "eng/tests/contracts/product_family/evidence/mutations.json"
+      "evidence": "eng/tests/contracts/product_family/evidence/mutations.json",
+      "gone_artifacts": {
+        "eng/tests/contracts/product_family/evidence/mutations.json": "该路径在 git 全历史中从未存在（git log -- eng/tests/contracts/product_family/evidence 零提交），是建立登记时的悬空指针；driver 自身的 mutation 判据仍在 eng/tests/contracts/product_family/test_field_constraints_mutations.py 内，结果口径见本 gate 的 result 字段。"
+      }
     },
     {
       "id": "docchk002_mutation",
@@ -70,7 +76,10 @@
       "default_on": false,
       "driver": "run/v6/p2-samp/oracle/run_mutations.py",
       "registration": null,
-      "reason": "run/ 一次性脚本，未注册进 ctest/CI；M01..M08 证据在 run/v6/p2-samp/logs/。"
+      "reason": "run/ 一次性脚本，未注册进 ctest/CI；M01..M08 证据在 run/v6/p2-samp/logs/。",
+      "gone_artifacts": {
+        "run/v6/p2-samp/oracle/run_mutations.py": "run/ 是 §7 登记的 gitignore 一次性产物区，本产物已被 eng/tools/run_gc.py 回收（run_keep.txt 未保留 v6 轮次）；登记保留的是「该近似曾由 run/ 一次性脚本做过 mutation 注入」这一历史事实，证据在 git 历史与控制包报告，不在工作树。"
+      }
     },
     {
       "id": "IMPL-P2-REJ-001_mutations",
@@ -79,7 +88,10 @@
       "default_on": false,
       "driver": "run/v6/IMPL-P2-REJ-001/run_mutations.py",
       "registration": null,
-      "reason": "run/ 一次性脚本，未注册进 ctest/CI。"
+      "reason": "run/ 一次性脚本，未注册进 ctest/CI。",
+      "gone_artifacts": {
+        "run/v6/IMPL-P2-REJ-001/run_mutations.py": "run/ 是 §7 登记的 gitignore 一次性产物区，本产物已被 eng/tools/run_gc.py 回收（run_keep.txt 未保留 v6 轮次）；登记保留的是「该近似曾由 run/ 一次性脚本做过 mutation 注入」这一历史事实，证据在 git 历史与控制包报告，不在工作树。"
+      }
     },
     {
       "id": "IMPL-P1-DRZ-001_mutations",
@@ -88,7 +100,10 @@
       "default_on": false,
       "driver": "run/v6/IMPL-P1-DRZ-001/mutation_driver.py",
       "registration": null,
-      "reason": "run/ 一次性脚本，未注册进 ctest/CI；证据 run/v6/IMPL-P1-DRZ-001/mutation_driver.log。"
+      "reason": "run/ 一次性脚本，未注册进 ctest/CI；证据 run/v6/IMPL-P1-DRZ-001/mutation_driver.log。",
+      "gone_artifacts": {
+        "run/v6/IMPL-P1-DRZ-001/mutation_driver.py": "run/ 是 §7 登记的 gitignore 一次性产物区，本产物已被 eng/tools/run_gc.py 回收（run_keep.txt 未保留 v6 轮次）；登记保留的是「该近似曾由 run/ 一次性脚本做过 mutation 注入」这一历史事实，证据在 git 历史与控制包报告，不在工作树。"
+      }
     },
     {
       "id": "IMPL-P2-UPM-001_mutations",
@@ -97,7 +112,10 @@
       "default_on": false,
       "driver": "run/v6/IMPL-P2-UPM-001/mutations/",
       "registration": null,
-      "reason": "run/ 一次性证据目录（summary.json + mutations/），未注册进 ctest/CI。"
+      "reason": "run/ 一次性证据目录（summary.json + mutations/），未注册进 ctest/CI。",
+      "gone_artifacts": {
+        "run/v6/IMPL-P2-UPM-001/mutations/": "run/ 是 §7 登记的 gitignore 一次性产物区，本产物已被 eng/tools/run_gc.py 回收（run_keep.txt 未保留 v6 轮次）；登记保留的是「该近似曾由 run/ 一次性脚本做过 mutation 注入」这一历史事实，证据在 git 历史与控制包报告，不在工作树。"
+      }
     },
     {
       "id": "IMPL-P1-PSFW-001_mutations",
@@ -110,7 +128,8 @@
     }
   ],
   "open_items": [
-    "把关键 mutation driver（v6_p3_rsmp / p2-samp / REJ / DRZ）纳入 ctest 或 CI 检查（§11.1 DIVERGENT 未闭合）；",
-    "建立『近似 ↔ mutation 门』双向登记并由机器门校验（本文件是人工登记，尚无 checker）。"
-  ]
+    "把关键 mutation driver（v6_p3_rsmp / p2-samp / REJ / DRZ）纳入 ctest 或 CI 检查（§11.1 DIVERGENT 未闭合）—— 注：原引的 ASTROCS_DESIGN §11.1 已不存在，该 DIVERGENT 归属需重新落锚。",
+    "「近似 ↔ mutation 门」双向登记已由 eng/ci/check_mutation_gates.py 机器校验（A1 结构 / A2 design_claim 锚存活 / A3 登记项仍有对象 + gone_artifacts 棘轮）；该 checker 需在 eng/ci/checks.json 注册后才进入 CI 面。"
+  ],
+  "design_claim_history": "原引用 ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中整条不存在（ASTROCS_DESIGN.md 770 行、§11 = 双平台发行与安装:651、全文零 mutation）⇒ 该锚已死，由 eng/ci/check_mutation_gates.py 的 A2 判据点名。本文件登记的实况口径不变，改引 ENGINEERING_SPEC §10 的「能红能绿」要求作为现行规范依据。"
 }

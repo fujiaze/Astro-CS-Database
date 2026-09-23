@@ -8,7 +8,7 @@
   聚合结论只能人工转述 ⇒ "Python 测试绿灯"不可信 (多套件含 errors/failures/skip
   仍被当作通过)。
 
-本门把"聚合判据"机器化 (fail-closed, 逐行判据见 R1~R7):
+本门把"聚合判据"机器化 (fail-closed, 逐行判据见 R1~R8):
   R1 列齐全: path,type,runner_command,requires_compiler,local_runnable,
      hosted_only,verdict,cases,failed,errored,skipped,notes;
   R2 path 唯一, 且 eng/tests/config 必须登记 (与 CFG002-07 同口径);
@@ -18,7 +18,13 @@
   R5 全 skip 不得记 PASS: cases>0 ∧ skipped==cases ∧ failed==0 ∧ errored==0
      ⇒ 必须记 SKIP_ONLY (判红), 不得以 PASS 充数;
   R6 任何 errors/failures/skip 必须落 notes (不得静默);
-  R7 SKIP_ONLY 行存在 ⇒ 判红 (未验证不得当通过)。
+  R7 SKIP_ONLY 行存在 ⇒ 判红 (未验证不得当通过);
+  R8 缺口登记册棘轮 (只减不增): eng/packaging/config/config_registry.json 的
+     index_ownership.test_index_known_unregistered 每条必须**仍有对象**
+     —— 目录存在, 且仍未登记进 test_index.csv; 失效项 ⇒ 判红并要求删除登记。
+     依据 ENGINEERING_SPEC §10 / docs/ci/01_CHECKS.md §1「锚存活」「fail-closed」;
+     与 run_manifest_schema_deviations.json、traceability_warn_baseline.json 同款。
+     登记册缺失/不可解析/为空 ⇒ 判红 (fail-closed, 不得把"解析不到"当"无违规")。
 
 退出码:
   0 = 所有行 verdict 与计数自洽且无 SKIP_ONLY (聚合 verdict 仍会打印);
@@ -45,6 +51,8 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_CSV = "eng/tests/test_index.csv"
+# 缺口登记册（test_index_known_unregistered 的宿主）
+DEFAULT_REGISTRY = "eng/packaging/config/config_registry.json"
 REQUIRED_COLUMNS = ("path", "type", "runner_command", "requires_compiler",
                     "local_runnable", "hosted_only", "verdict", "cases",
                     "failed", "errored", "skipped", "notes")
@@ -150,7 +158,55 @@ def validate(csv_text: str) -> tuple:
     return problems, rows, worst
 
 
-def run(csv_path: str) -> int:
+def check_known_unregistered(repo: str, rows, registry_path: str = None) -> list[str]:
+    """R8（棘轮，只减不增）：缺口登记册的每个登记项必须**仍有对象**。
+
+    规范依据：ENGINEERING_SPEC §10「检查器在输入缺失、路径不存在…时判红」、
+    docs/ci/01_CHECKS.md §1「锚存活」「fail-closed」。
+
+    为什么需要：eng/packaging/config/config_registry.json 的
+    index_ownership.test_index_known_unregistered 是"已知未登记缺口"的台账。
+    其消费方 eng/tests/config/check_cfg002_registry.py 只闭合
+    「实际缺口 ⊆ 清单」一个方向；另一个方向（清单里的条目是否还是缺口）它只
+    计算 stale 并打印，明写"已登记项残留只提示，不判红" ⇒ 死登记项可以永久
+    静默累积（实测：eng/tests/gaia_zlib 目录在真仓库根本不存在）。
+    本判据补上「清单 ⊆ 实际缺口」方向，两侧闭合；与
+    run_manifest_schema_deviations.json / traceability_warn_baseline.json 的
+    棘轮同款：条目失效 ⇒ 判红并要求删除登记，不得当只增不减的豁免表。
+
+    只判"登记项是否仍有对象"（目录存在 + 仍未登记），**不**重复枚举实际缺口集合
+    —— 那一侧的口径唯一源是 CFG-002，避免第二套枚举语义（ENGINEERING_SPEC §10）。
+    """
+    problems: list[str] = []
+    reg_file = registry_path or os.path.join(repo, DEFAULT_REGISTRY)
+    if not os.path.isfile(reg_file):
+        return ["R8 缺口登记册缺失（fail-closed）: %s" % reg_file]
+    try:
+        with open(reg_file, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        known = doc["index_ownership"]["test_index_known_unregistered"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return ["R8 缺口登记册不可解析（fail-closed）: %s: %s" % (reg_file, exc)]
+    if not isinstance(known, list) or not known:
+        return ["R8 缺口登记册为空或非数组（fail-closed，不得把「解析不到」当「无违规」）"]
+    registered = {(r.get("path") or "").strip() for r in rows}
+    for entry in known:
+        rel = str(entry).strip()
+        if not rel:
+            problems.append("R8 登记项为空串（无效登记）")
+            continue
+        if not os.path.isdir(os.path.join(repo, rel)):
+            problems.append(
+                "R8 登记项已无对象（目录不存在，须删除登记）: %s" % rel)
+            continue
+        if any(p == rel or p.startswith(rel.rstrip("/") + "/") for p in registered):
+            problems.append(
+                "R8 登记项已失效（该目录已登记进 test_index.csv，缺口已闭合，"
+                "须删除登记）: %s" % rel)
+    return problems
+
+
+def run(csv_path: str, registry_path: str = None, repo: str = None) -> int:
     if not os.path.isfile(csv_path):
         print(json.dumps({"tool": "eng/ci/check_test_index.py", "csv": csv_path,
                           "verdict": "INPUT_MISSING", "exit_code": 2},
@@ -159,6 +215,9 @@ def run(csv_path: str) -> int:
     with open(csv_path, encoding="utf-8") as fh:
         text = fh.read()
     problems, rows, aggregate = validate(text)
+    # R8 的对象是"仓库里的目录"，故 root 用 REPO（不随 --csv 漂移）；
+    # --registry 只是给夹具/自测用的登记册路径覆盖。
+    problems = problems + check_known_unregistered(repo or REPO, rows, registry_path)
     skip_only = [r.get("path") for r in rows
                  if (r.get("verdict") or "").strip().upper() == "SKIP_ONLY"]
     red = bool(problems) or bool(skip_only)
@@ -243,6 +302,38 @@ def self_test() -> int:
         _row("eng/tests/api", "unittest", "PASS", 5, 0, 0, 0), drop_config=True),
         1, "未登记 eng/tests/config")
 
+    # ---- R8 缺口登记册棘轮（登记项必须仍有对象）------------------------------
+    import shutil
+    import tempfile
+
+    def add_r8(name, known, make_dirs, want_rc, want_token=None, registry="auto"):
+        tmp = tempfile.mkdtemp(prefix="astrocs_ti_r8_")
+        try:
+            for d in make_dirs:
+                os.makedirs(os.path.join(tmp, d), exist_ok=True)
+            if registry == "auto":
+                os.makedirs(os.path.join(tmp, "eng", "packaging", "config"), exist_ok=True)
+                reg = os.path.join(tmp, "eng", "packaging", "config", "config_registry.json")
+                with open(reg, "w", encoding="utf-8") as fh:
+                    json.dump({"index_ownership":
+                               {"test_index_known_unregistered": known}}, fh)
+            else:
+                reg = os.path.join(tmp, registry)
+            problems, rows, _agg = validate(_fixture())
+            problems = problems + check_known_unregistered(tmp, rows, reg)
+            rc = 1 if problems else 0
+            blob = " ".join(problems)
+            ok = (rc == want_rc) and (want_token is None or want_token in blob)
+            cases.append((name, rc, want_rc, ok, blob[:160]))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    add_r8("pos_known_unregistered_live", ["eng/tests/oracle"], ["eng/tests/oracle"], 0)
+    add_r8("neg_known_dir_missing", ["eng/tests/gaia_zlib"], [], 1, "已无对象")
+    add_r8("neg_known_already_registered", ["eng/tests/config"], ["eng/tests/config"], 1, "已失效")
+    add_r8("neg_known_registry_missing", ["eng/tests/oracle"], ["eng/tests/oracle"], 1,
+           "登记册缺失", registry="eng/packaging/config/NO_SUCH.json")
+
     ok = True
     for name, rc, want, good, blob in cases:
         ok = ok and good
@@ -257,12 +348,14 @@ def self_test() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Python 测试聚合判据门")
     ap.add_argument("--csv", default=DEFAULT_CSV)
+    ap.add_argument("--registry", default=None,
+                    help="缺口登记册路径覆盖（默认 eng/packaging/config/config_registry.json）")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
     path = args.csv if os.path.isabs(args.csv) else os.path.join(REPO, args.csv)
-    return run(path)
+    return run(path, args.registry)
 
 
 if __name__ == "__main__":
