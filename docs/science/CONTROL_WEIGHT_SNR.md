@@ -2,12 +2,12 @@
 
 > 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§5.3（SNR 重建与逆方差叠加）
 
-> ID: SCI-CW-001..008  状态: FROZEN (2026-08-27, G3 SCI-002 补冻)  上游: SCI-SCOPE-001,
+> ID: SCI-CW-001..008  状态: FROZEN  上游: SCI-SCOPE-001,
 > SCI-NOISE (逐像素 σ/variance/ivar)  下游 ALG: ALG-CW-001..  模块: `phase2` sampler/
 > stage2 相对质量权重场 (frame_snr_medians, quality；无量纲、不产生权重)
 
-> 补齐 SCI-002 要求的 `local_snr` 与 `frame quality` 权威定义（此前仅散落在
-> code + `docs/architecture/execution_inventory.csv`，无 science authority）。
+> `local_snr` 与 `frame quality` 的权威定义 = 本文件；code 与
+> `docs/architecture/execution_inventory.csv` 中的表述不构成 science authority。
 
 > **重定义注记**：
 > **本文件（Phase2 stage2 内部）**所称 `local_snr` / `frame_snr` 实为**相对质量权重场**（`quality_weight =
@@ -15,7 +15,7 @@
 > 逐源 `σ_F` 定义，帧级科学基准为 5σ 点源深度 `m_5`（§2a）。字段名 `snr` 仅为兼容保留，
 > 其语义为 "SNR-equivalent relative quality, not a calibrated signal-to-noise ratio"。
 >
-> **同名两义分离（claim `FIX-SCI-SNR-CANON-001`；关闭 §9 的 UNRESOLVED）**：
+> **同名两义分离（claim `FIX-SCI-SNR-CANON-001`）**：
 > **Phase1 HiPS 文件头的 `frame_snr` 是科学量**——帧级未加权原始信噪比（**点源（PSF）信号 SNR，纯信号/噪声**：
 > `SNR = F_signal/σ_F`，`F_signal` 已扣局部背景、天光**只作噪声项**进 `σ_F`；固定源通量下天光增大 ⇒ SNR 单调下降），
 > 定义与红线见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与 `docs/design/UNIFIED_MODEL.md` §2。
@@ -105,8 +105,8 @@ for 每个控制星 s（半径内）:
 - **唯一权重口径**：Phase2 集成权重 = 逐样本 `ivar` 逆方差，**无 fallback**（`ivar` 缺失 =
   显式科学错误 `rc=2/7`），见 SCI-UPM §5:54、DATA-UNC-001 §51、DESIGN §4.3/§4.4。
   本文件不定义该权重语义；`quality_weight` 只作采样与诊断。
-  实现侧整数权重模式域**不存在**（原 `{auto,ivar,equal,support_x_snr2} → {2,2,1,0}` 映射已删除，
-  `lib/algorithms/coverage/src/stage2_common.cpp:431-440`；ACR 侧固定 ivar 语义 `stage2.cpp:67,1125-1130`）。
+  实现侧整数权重模式域**不存在**：`{auto,ivar,equal,support_x_snr2} → {2,2,1,0}` 映射
+  **禁用**（`lib/algorithms/coverage/src/stage2_common.cpp:431-440`；ACR 侧固定 ivar 语义 `stage2.cpp:67,1125-1130`）。
 
 ## 6 独立不变量
 
@@ -131,7 +131,7 @@ for 每个控制星 s（半径内）:
   （UPMW-* 权重相关）。
 - 权威文件：本文件 `docs/science/CONTROL_WEIGHT_SNR.md`（SCI-CW-001..008）。
 
-## 8a. SCI-B 定案结论（帧级 SNR 定义与跨帧可比性，实验闭环）
+## 8a. SCI-B 结论（帧级 SNR 定义与跨帧可比性）
 
 > 依据：`实验/absolute-snr/`（`results/b1_sky_scan.json`、`b2_noise_terms.json`、`b4_integration.json`，复跑 `code/run_all.sh`）。本节确认 §2a 的帧级定义并给出实验边界，不改任何定义与权重语义。
 
@@ -139,9 +139,9 @@ for 每个控制星 s（半径内）:
 2. **"信号含天光"的传统口径失真可量化**：同一天光范围内传统口径上升 3 个数量级（B=10⁶ 时相对真值 ×3419 亮源 / ×1.0e5 暗源）；不扣局部背景的帧级臂 ×8040 ⇒ **必须独立估计并扣除局部背景**（1% SNR 偏差对应背景偏差 δB*=2.78 e⁻ ≈ 0.28% 天光；实测 1% 交叉 3.44 e⁻）。
 3. **跨帧可比性硬约束**：逐帧 `F_ref,k`、同帧配对、`m_ref=6.0`；`SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
-5. **生产调用点读噪双计：已修复**。原缺陷：`module_adapters.cpp` 把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu`，而 gain>0 时 `snr_science.cpp` 再加一次 `(RN/g)²` ⇒ σ_F 高估（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失）。**修复**：`SnrSourceParams.sigma_sky_source` 显式声明语义（`SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS`），生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.4826×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）⇒ 不再叠加 `(RN/g)²`；`sigma_sky_source_effective` 落 provenance。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
+5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.4826×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
 6. **误差预算常数单位**：`NOISE_MODEL.md:86` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
-7. **稀疏层表示与载体（负责人裁决）**：`sparse_snr_layer` 的控制点直接存**绝对**通量型 SNR `SNR_c = F_ref/σ_F,c`（与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`，无量纲）；Phase2 由控制点**直接重建**为稠密 `SNR(x,y)`，逐像素权重同式 `w(x,y)=SNR(x,y)²/F_ref²`。帧级 SNR 与稀疏层是**相互独立**的两个对象——帧级 SNR **不作**稀疏层的尺度基准，也不参与其还原；帧级 SNR 自身的定义、红线与独立用途（帧级参考电平、`frame_reconstruct` 口径、缺逐像素 ivar 时的帧级逆方差权重链）见 §2a 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1。**方向性约束（若未来要求两者一致）**：只允许 `frame_snr := median_p(SNR_c)`（由**绝对控制点导出帧级摘要**，或按足迹加权的摘要），**禁止**反向（`SNR_c := frame_snr × 相对场`）——反向把帧级估计量的偏差乘进每一个控制点，且在 `median_p(SNR_c) ≠ frame_snr` 时**不可逆**。本节 §2a 的帧级科学基准与 §4 的 `quality_weight` 语义均不因此改变。
+7. **稀疏层表示与载体**：`sparse_snr_layer` 的控制点直接存**绝对**通量型 SNR `SNR_c = F_ref/σ_F,c`（与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`，无量纲）；Phase2 由控制点**直接重建**为稠密 `SNR(x,y)`，逐像素权重同式 `w(x,y)=SNR(x,y)²/F_ref²`。帧级 SNR 与稀疏层是**相互独立**的两个对象——帧级 SNR **不作**稀疏层的尺度基准，也不参与其还原；帧级 SNR 自身的定义、红线与独立用途（帧级参考电平、`frame_reconstruct` 口径、缺逐像素 ivar 时的帧级逆方差权重链）见 §2a 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1。**方向性约束（若未来要求两者一致）**：只允许 `frame_snr := median_p(SNR_c)`（由**绝对控制点导出帧级摘要**，或按足迹加权的摘要），**禁止**反向（`SNR_c := frame_snr × 相对场`）——反向把帧级估计量的偏差乘进每一个控制点，且在 `median_p(SNR_c) ≠ frame_snr` 时**不可逆**。本节 §2a 的帧级科学基准与 §4 的 `quality_weight` 语义均不因此改变。
 
 ## 8b. 三口径适用域图谱（SCI-B 定案；选型依据）
 
@@ -186,7 +186,7 @@ w(x,y) = SNR(x,y)^2 / F_ref^2   ≡   1 / sigma_F(x,y)^2
 - **逐源最优提取 SNR_F=F/σ_F**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
 - **PixInsight PSFSNR/PSFSW 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）。**核验状态**：方法学文档，未逐式核验常数。
 - **稳健噪声 MRS/N***：Starck & Murtagh 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）。
-- **已定案（原 UNRESOLVED，两篇权威打架）**：冲突根因是**同名两义**——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，而 `docs/design/UNIFIED_MODEL.md` §2 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。定案（claim `FIX-SCI-SNR-CANON-001`）确认：**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，须改名 `quality_weight` 以消除同名互指。**UNRESOLVED 关闭**。
+- **同名两义分离（claim `FIX-SCI-SNR-CANON-001`）**：`frame_snr` 有两义，**必须**分别命名——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，`docs/design/UNIFIED_MODEL.md` §2 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，**必须**命名 `quality_weight`，**禁用** `frame_snr` 指代它。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。

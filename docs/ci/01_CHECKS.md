@@ -33,6 +33,10 @@
 | ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚（扫描面 `docs/**/*.md`，与上项同面）+ `docs/algorithms/*.md` 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；空行判据归上项 C6，本项不重复；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
 | CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 不得出现负责人裁决逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1 编号表双向一致、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py --json-out run/ci/doc-hygiene/doc_hygiene.json` | P0 |
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
+| CON-SYMBOL-DIM-UNIQUE | 合同一致性 | 符号量纲唯一性门：同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值 / 显式量纲断言 / 禁止共现短语（带否定式豁免，避免把正确的消歧写法判红）。 |
+| CON-SYMBOL-DIM-UNIQUE-SELFTEST | 合同一致性 | 上项的可执行正/负例面（含恒真守卫、判别力守卫与恒假守卫三类）。 |
+| CHK-FROZEN-STRING-DISAMBIG | 文档一致性 | 冻结串一致性门：冻结串在 schema 常量、登记表与示例三处必须逐字相同且不得被改写；其单位读法消歧说明必须在位并逐字含冻结串、单位读法、数值反例与不得改写条款。 |
+| CHK-FROZEN-STRING-DISAMBIG-SELFTEST | 文档一致性 | 上项的可执行正/负例面（含判别力自检：删去消歧段后必须精确判红，其余子判据保持绿）。 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | `python3 eng/ci/run_checks.py --check CHK-STALE-DOC --quiet` | P1 |
 | API-DOCS | 文档一致性 | doc↔code 命令树/签名/退出码/schema 一致（命令树：CLI 产物候选缺失即 fail-closed） | `eng/tools/check_api_docs.py` | P0 |
 | CHK-ROOT-CLEAN | 目录规范 | 仓库根目录整洁（§7 白名单 / 运行产物落根 / 必需条目缺失） | `python3 eng/tools/quality/check_root_cleanliness.py --json-out run/ci/root-cleanliness/root_cleanliness.json` | P0 |

@@ -6,8 +6,7 @@
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
 > CMakeLists.txt:356-366；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
-> hp_drizzle_api.h:43,62,70,130,139,140`）；迁移目标目录 `lib/algorithms/drizzle/`
-> （落码由 P1-DRZ-IMPL 执行，尚未存在生产符号）。科学定义见
+> hp_drizzle_api.h:43,62,70,130,139,140`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
 > `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
 > 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
 > **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
@@ -19,7 +18,7 @@
 本文档以单一 **ALG-DRZ-001**（drizzle 几何与累加合同）覆盖现行唯一
 生产 tiled 实现全链路
 （`drizzleTiled[_f64]` → `processPixelSharedTiled/processPixelTiled` →
-球面几何 → tile 累加器），P1-DRZ-IMPL/TEST 均以本文档为准：
+球面几何 → tile 累加器），实现与测试均以本文档为准：
 
 - 候选缓冲/几何合同一律引用 ALG-DRZ-001 与 TEST-DRZ-DESIGN-001；
   源码注释中出现的 `ALG-DRZ-GEOM-CACHE-001`、`ALG-DRZ-VAR`、`TEST-ALG-DRZ-*`
@@ -54,7 +53,8 @@
     （θ = 源像素角尺度 [rad]，(ξ_c,η_c) = 像素中心的 gnomonic 平面坐标 [rad]；
     推导与实测见 §10 DISP-DRZ-009 段）。θ=2″/px、pixfrac=0.8、r_c=0 时 δ=8.46e-12；
     θ=300″/px 时 δ=1.90e-7（与 DISP-009 注入产物实测 1.48e-7 同阶）。故该替换**不得**采用。
-    权重分母误取 `A_drop,j` 时 `S_p` 偏 `1/pixfrac²`（DISP-DRZ-009，已闭环）。
+    **禁用**按 `A_drop,j` 归一（`w_jp=a_jp/A_drop,j`）：会使 `S_p` 偏 `1/pixfrac²`
+    （pf=0.8 → +56.25%），负例判据 `1/pf²−1`。
   - 通量: `F_p = Σ_j x_j · w_jp`，**单位 = ADU**（x_j 为帧平面线性计数 [ADU]，
     w 无量纲；`acc.sumFlux += Scalar(pixelValue * weight)`，:1628）。
   - 支撑面积: `D_p = Σ_j a_jp`，**单位 = sr**（`acc.sumArea += Scalar(overlap_area)`，
@@ -83,7 +83,7 @@
   逐 tile 传出（astro_sphere_sink.cpp:99-104 dense 化），归一在
   aio_hips_writer finalize_tile（variance = var_num_sum/area²，
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:566-631）——与
-  drizzle_engine.cpp:2-3 锚注释一致（DISP-DRZ-007 登记旧锚失效）。
+  drizzle_engine.cpp:2-3 锚注释一致。
 - 单位/dtype: 累加器 Scalar = float（precision_mode=0）或 double（=1）
   显式模板双实例（drizzle_engine.cpp:2177-2184）；a_jp/面积几何全程
   double，FP32 仅发生在累加存储层（逐项舍入，容差门见 §9）。
@@ -115,12 +115,13 @@
      queryDisc（:1667-1702）。
 - 交叠面积: 球面多边形裁剪（clip_normals_d，内部 double）——逐边裁剪的球面推广（Sutherland–Hodgman 1974 原文只处理平面多边形，球面形式为本模块推广）
   + **Van Oosterom & Strackee 扇形三角剖分**有向面积 + 半球包含检查
-  （max_ang ≥ π/2−1e-12 → NAN，:186-239）。SCI 文本称 "Girard 定理"
-  与实际实现命名不符（DISP-DRZ-002）。
+  （max_ang ≥ π/2−1e-12 → NAN，:186-239）。本模块面积算法的唯一命名 =
+  Sutherland–Hodgman 球面逐边裁剪 + **Van Oosterom & Strackee 扇形三角剖分**；
+  **禁用** "Girard 定理"（内角和式）这一命名——本模块无该实现。
 - 目标几何缓存: per-thread LRU 8192（TargetGeomCache），hit 复用
   center+boundary4；per-run generation 原子递增清空
-  （drizzle_engine.cpp:1662-1663 `s_target_cache_gen.fetch_add`，
-  B4-22 修复裸 static data race）。
+  （drizzle_engine.cpp:1662-1663 `s_target_cache_gen.fetch_add`；
+  **禁用**裸 static 可变状态——会引入 data race）。
 - HEALPix 地址: 仅 NESTED；`parent = ipix >> 2·d`、
   `local = ipix & (4^d − 1)` 位分解（:1515-1516）；候选枚举 Morton
   spread 位交织（spherical_overlap.cpp:1639-1653）；shim
@@ -180,7 +181,7 @@
 | channels≠1 多通道 | 拒绝 | :1583-1591 |
 | 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | api.cpp:541-545 |
 | 尺寸/空指针非法 | 拒绝 | drizzle_engine.cpp:1597-1606 |
-| **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`（按原因分类、互斥可加）。**实现锚**：`!std::isfinite(pixelValue) → ++tc.rejected_nonfinite_value; continue`（`DrizzleEngine::drizzleTiledImpl` 主循环，:2000-2005）；分类计数聚合为 `DrizzleStats::n_rejected_nonfinite{,_value,_variance,_nonpositive_weight}`（:2203-2208）。**DISP-DRZ-004 已闭环** | :2000-2005 / :2203-2208 |
+| **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`（按原因分类、互斥可加）。**实现锚**：`!std::isfinite(pixelValue) → ++tc.rejected_nonfinite_value; continue`（`DrizzleEngine::drizzleTiledImpl` 主循环，:2000-2005）；分类计数聚合为 `DrizzleStats::n_rejected_nonfinite{,_value,_variance,_nonpositive_weight}`（:2203-2208）。 | :2000-2005 / :2203-2208 |
 | SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，禁止静默跳过） | :2000-2005 |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | :2013-2018 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | :2022-2027 |
@@ -218,11 +219,10 @@
   回归锁（sha256 逐位比对）: `p1drz_taskset_invariance`（P15a，正方形 256²，
   taskset 1/2/4/8/16）与 `p1drz_merge_pipeline_lock`（P22，高瘦 256×1024
   = 64 stripe，强制池耗尽/归还与跨线程归约归属，FP32/FP64 × 两轮重复）。
-  P12 旧口径（per-thread map + 按线程序 t=1..N−1 合并）仅在
-  `drizzle_engine.cpp` 的 P15a 段注释中作为**缺陷史**保留，不再是现行行为。
+  **禁用** per-thread map + 按线程序 `t=1..N−1` 合并的归约：其结合树依赖
+  worker 预算，跨线程数不再 bitwise 一致（负例判据）。
 - ThreadLease: 模块内零命中；omp 为模块内部通道，生产调度走 Runtime
-  lease（CMakeLists.txt:379-382 注释）——ThreadLease 迁移整改点
-  （P1-DRZ-IMPL），迁移必须保持本节合并序。
+  lease（CMakeLists.txt:379-382 注释）；ThreadLease 迁移必须保持本节合并序。
 
 ## 7 复杂度与内存
 
@@ -305,31 +305,32 @@
 - 负面矩阵: §5 表逐行断言（pixfrac 0/负/>1、RING、多通道、缺 WCS、
   NaN 面、reverse 二选一/越界/重复 ipix）。
 
-## 10 DISP-DRZ-001..009（SCI/文档 vs 源码差异清单，P1-DRZ-IMPL/INT 消化；修复不得反向改 SCI）
+## 10 DISP-DRZ-001..009（SCI/文档 vs 源码口径清单；修复不得反向改 SCI）
 
 | # | 文档声称 | 源码实际 | 双方锚 |
 |---|---|---|---|
 | DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
-| DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
+| DISP-DRZ-002 | 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写 "Girard 定理" | 面积实现 = S-H 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现；文档侧命名已与实现一致，**禁用** "Girard 定理" 命名 | spherical_overlap.h:15,77; spherical_overlap.cpp:11 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1570 |
-| DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **已闭环**：主循环按原因分类计数（值/方差/权重三分类，:2000-2027）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（:2203-2208）；掩膜与重归一方向一致 | DRIZZLE.md:116 vs drizzle_engine.cpp:2000-2027 / :2203-2208 |
+| DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类，:2000-2027）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（:2203-2208）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | DRIZZLE.md:116 vs drizzle_engine.cpp:2000-2027 / :2203-2208 |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079）；θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:132 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **已闭环**：`processPixelSharedTiled` 的 `weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）；修复前为 `w_jp=a_jp/A_drop,j` 后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pf=0.8→+56.25%，实测与 `1/pf²−1` 逐位吻合） | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束**：`processPixelSharedTiled` 的 `weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）；**禁用** `w_jp=a_jp/A_drop,j` 配 `S_p=sumFlux/sumArea`——`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合，负例判据） | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
 
-**DISP-DRZ-009 现行实现**：
-`drizzle_engine.cpp` 的 `processPixelSharedTiled` 内 `weight = overlap_area / drop_area`
-改为 `weight = overlap_area / pixel_area`，其中 `pixel_area` = **未收缩**源像素球面面积
+**面亮度保持权重的实现口径**：
+`drizzle_engine.cpp` 的 `processPixelSharedTiled` 内权重恒为
+`weight = overlap_area / pixel_area`，其中 `pixel_area` = **未收缩**源像素球面面积
 （新增 `spherical::polygon_area_consistent`，与 `build_drop_geometry_into` 的
 `drop_area` 同一分支同一例程）；`pixfrac<1` 时由调用方
 （`processPixelTiled` 的 Step 2b）补 4 次未收缩四角 `pixelToSky`；
 `pixfrac==1` 时传 nullptr ⇒ 分母直接取 `drop_area`，产物**逐字节不变**
-（sha256 实证：`.norm.hiss`/`.canon` 改前=改后）。`sumArea`（D_p=Σa_jp，
+（sha256 实证：`pixfrac==1` 默认路径的 `.norm.hiss`/`.canon` 与分母取 `drop_area` 时逐字节相同
+⇒ 默认路径零回归）。`sumArea`（D_p=Σa_jp，
 support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
 **注意**：近似写法 `overlap_area·pixfrac²/drop_area` **不得采用** ——
 恒等式 `A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确。**残差标度律**
@@ -353,7 +354,7 @@ exp_a_geometry.json` A2 段；两条数值路径与解析式在 |δ|>1e-13 域�
 B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B0` 实测
 1.562500231（pixfrac=0.8）/2.777777366（0.6）/3.999998942（0.5），与解析
 `1/pixfrac²` 的相对差 +1.48e-7/−1.4e-7/−2.6e-7（与 δ(θ=300″)=1.90e-7 同阶，
-差异来自本仓 fixture 的独立几何口径）；修复态同四档 `max|S_p/B0−1|` ≤ 4.8e-12。
+差异来自本仓 fixture 的独立几何口径）；分母取 `A_pixel,j` 时同四档 `max|S_p/B0−1|` ≤ 4.8e-12。
 验证：回归门 `p1drz_disp009`（pixfrac∈{1.0,0.8,0.6,0.5} 常量面亮度
 `|S_p/B0−1|<1e-3` + "分母取 A_drop 必判红"的负例控制）与 1/N 逐位锁
 `p1drz_taskset_invariance` / `p1drz_merge_pipeline_lock`。
