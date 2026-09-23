@@ -228,12 +228,42 @@ inline PlaneOracle plane_ls_oracle(const double* cx, const double* cy,
     return p;
 }
 
-// fill 预测值 oracle (合同: var=max(a+b·x+c·y, floor); floor 由模型注册
-// 表或回退 1e-12 — 手工/未注册模型回退 kVarFloor, DISP-NOISE-002 现状)
+// fill 预测值 oracle (合同正本: SCI-NOISE-001 §5:58-60 / §7:112-113 / §9:136
+// + DATA_SEMANTICS §4a 逐像素三态表:53-58)。判据与 floor 取值无关地成立:
+//   预测 > 0 ⇒ 该处方差**可用**: variance = max(预测, floor)
+//               (floor 是数值保护, **只作用于可用方差**, 保证 ivar 有限);
+//   预测 ≤ 0 ⇒ 该处方差**不可用**: variance = 0
+//               (显式不可用; **禁** clamp 成 floor —— 那会把「模型在此处失效」
+//                伪造成 ivar=1/floor 的极大权重; 也**禁**写 NaN, NaN 保留给产品损坏)。
 inline double fill_variance_oracle(const PlaneOracle& p, double x, double y,
                                    double floor_v) {
     const double pred = p.a + p.b * x + p.c * y;
+    if (!(pred > 0.0)) return 0.0;
     return std::max(pred, floor_v);
+}
+
+// 与 fill_variance_oracle 同判据的 ivar oracle: 可用 ⇒ 精确倒数;
+// 不可用 ⇒ 0 (禁 1/0 → +inf, 禁 NaN)。
+inline double fill_ivar_oracle(const PlaneOracle& p, double x, double y,
+                               double floor_v) {
+    const double v = fill_variance_oracle(p, x, y, floor_v);
+    return (v > 0.0) ? (1.0 / v) : 0.0;
+}
+
+// 产品 float32 面成对 oracle（SCI-NOISE-001 §7 互倒不变量 + §9 产品 dtype
+// 可表示性 + DATA_SEMANTICS §4a 三态表在**输出 dtype**上的形式）:
+//   可用态 = variance>0 ∧ isfinite(variance) ∧ ivar>0 ∧ isfinite(ivar);
+//   否则取不可用态 (0, 0)。
+// 触发后者的一种可构造场景: 生效 floor 在 float32 中下溢为 0
+//   （如按 α² 换算后的 1e-46）而预测落在 (0, floor) ⇒ 1/floor 上溢为 +inf。
+//   产品面**禁止**发布 (0, +inf) 这种自相矛盾的对。
+inline void fill_pair_oracle_f32(const PlaneOracle& p, double x, double y,
+                                 double floor_v, float* out_v, float* out_i) {
+    const float v = static_cast<float>(fill_variance_oracle(p, x, y, floor_v));
+    const float i = static_cast<float>(fill_ivar_oracle(p, x, y, floor_v));
+    const bool ok = std::isfinite(v) && v > 0.0f && std::isfinite(i) && i > 0.0f;
+    if (out_v) *out_v = ok ? v : 0.0f;
+    if (out_i) *out_i = ok ? i : 0.0f;
 }
 
 // ---------------------------------------------------------------------------

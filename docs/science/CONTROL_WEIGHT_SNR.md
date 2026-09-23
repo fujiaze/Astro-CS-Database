@@ -4,7 +4,7 @@
 
 > ID: SCI-CW-001..008  状态: FROZEN (2026-08-27, G3 SCI-002 补冻)  上游: SCI-SCOPE-001,
 > SCI-NOISE (逐像素 σ/variance/ivar)  下游 ALG: ALG-CW-001..  模块: `phase2` sampler/
-> stage2 控制权重 (local_snr_map, frame_snr_medians, quality)
+> stage2 相对质量权重场 (frame_snr_medians, quality；无量纲、不产生权重)
 
 > 补齐 SCI-002 要求的 `local_snr` 与 `frame quality` 权威定义（此前仅散落在
 > code + `docs/architecture/execution_inventory.csv`，无 science authority）。
@@ -24,9 +24,9 @@
 
 ## 1 目的与非目标
 
-- **目的**：定义 phase2 控制采样/加权积分所用的**相对质量权重场**（`quality_weight =
-  frame_quality_scalar × local_quality_proxy/median`）与**帧/星点质量**，作为
-  `support × snr²` 控制权重中的质量权重因子；该权重场**不是科学信噪比**——其数值来源为
+- **目的**：定义 phase2 控制采样与诊断所用的**相对质量权重场**（`quality_weight =
+  frame_quality_scalar × local_quality_proxy/median`）与**帧/星点质量**。该量**无量纲、
+  不产生权重**：Phase2 集成的权重恒为逐样本 `ivar` 逆方差（§5）；该权重场**不是科学信噪比**——其数值来源为
   帧级定标散度与逐星拟合质量代理，科学 SNR 由逐源 `σ_F`（PSF 拟合协方差或 CCD 方程）
   定义，帧级科学基准为 5σ 点源深度 `m_5`（§2a）。与 SCI-NOISE 的逐像素 `variance/ivar`
   （随机噪声倒数权重）**区隔**，二者量纲语义不同、不混用。
@@ -37,15 +37,15 @@
 
 | 符号 | 含义 | 出现位置 |
 |---|---|---|
-| `local_snr` | 区域级局部**相对质量权重**（有局部星点可得时；**不是**科学信噪比） | `stage2.cpp:383-396`（`local_snr_map`） |
-| `frame_snr`（stage2 内部，建议改名 `quality_weight`） | 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**（**不是**科学信噪比；Phase1 HiPS 文件头的同名 `frame_snr` 是科学量，见 §0 注记与 §2a） | `stage2.cpp:74,250,402`（`frame_snr_medians`） |
+| `local_snr` | 区域级局部**相对质量权重**（有局部星点可得时；**不是**科学信噪比） | `stage2.cpp:394-403`（`snr_available` 回退与 `frame_snr_by_id` 消费点；该量**不承载任何权重**） |
+| `frame_snr`（stage2 内部，建议改名 `quality_weight`） | 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**（**不是**科学信噪比；Phase1 HiPS 文件头的同名 `frame_snr` 是科学量，见 §0 注记与 §2a） | `stage2.cpp:82,258-261,402-403`（`frame_snr_medians`） |
 | `quality_weight` | `frame_quality_scalar × local_quality_proxy/median`，无量纲相对质量权重（S4 重定义的规范名；`snr_v` 为其别名） | 本文件 §4 |
 | `m_5` | 5σ 点源深度 `ZP − 2.5·log10(5·sigma_F(ref))`（唯一帧级科学基准，单位 mag） | 本文件 §2a |
 | `sigma_F` | 逐源通量不确定度（科学 SNR 定义量；PSF 拟合协方差或 CCD 方程，当前实现不产出） | 消费侧定义；本文件 §2a 登记边界 |
-| snr_available | 该控制观测是否含真实可用的局部质量权重（字段名沿用 `snr`） | `stage2.cpp:387` |
-| `frame quality` | 每星点 Phase1 SNR 目录质量位（uint32 位掩码） | `sampler.cpp:152,266`（`quality`, `out_qual`） |
-| `kSnrCatalogMax` | SNR 目录质量槽上限 | `sampler.cpp:585` |
-| `w_snr` | 质量权重因子 `= snr_v²` | 积分/排异权重 |
+| snr_available | 该控制观测是否含真实可用的局部质量权重（字段名沿用 `snr`） | `stage2.cpp:396` |
+| `frame quality` | 每星点 Phase1 SNR 目录质量位（uint32 位掩码） | `sampler.cpp:244-265`（`quality`, `out_qual`） |
+| `kSnrCatalogMax` | SNR 目录质量槽上限 | `sampler.cpp:78` |
+| `w_snr` | 相对质量权重的平方 `= snr_v²`（**诊断/采样域**；不进积分权重面） | 采样/诊断 |
 
 ## 2a 帧级科学基准与 SNR 定义
 
@@ -55,7 +55,7 @@
   `m_5 = ZP − 2.5·log10(5·σ_F(ref))`（单位 **mag**）。`σ_F(ref)` 必须**显式绑定**参考轮廓/
   孔径/背景（PSF 或孔径、背景估计域、像素标度）；空间变化时应给**深度图**而非单标量。
 - **质量权重场定位**：本文件 §4 的 `quality_weight`（`local_snr`/`frame_snr`）为**相对质量
-  权重场**，**无量纲**，仅供采样/加权（`support × snr_v²`），不得解释为 `m_5` 或 `SNR_F`。
+  权重场**，**无量纲**，仅供采样与诊断（不构成积分权重），不得解释为 `m_5` 或 `SNR_F`。
 - **Phase1 产品面帧级 SNR（同名不同物）**：Phase1 HiPS 文件头的 `frame_snr` 是**科学量**（点源 PSF 信号 SNR，纯信号/噪声，§0 注记），不属于本文件的相对质量权重场；本文件「帧级科学基准 = `m_5`」不改变其定义，二者不得互指。
 - 推导与文献锚见 `run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md` §C.3.1
   （Horne 1986 最优提取；5σ 深度 Tonry et al. 2012 / Huang et al. 2017 / Ivezić et al. 2019）。
@@ -70,29 +70,25 @@
 ## 4 连续定义
 
 ```text
-# 像素级相对质量权重（stage2 排异/积分，历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）：生产禁用）
-#   历史权重分支号 （已按 §9.73 A44 作废：键不存在；权重是派生量） = 实现事实（stage2_common.cpp:377-385 / stage2.cpp:1106-1141）：
-#     0 = support × snr_v²（本文件，legacy/ablation/诊断）
-#     1 = 等权 1.0
-#     2 = 逐样本 ivar 逆方差权重（生产默认，无 fallback；见 SCI-UPM §5:54 /
-#         DATA-UNC-001 §51 / DESIGN §4.3「SNR → 逆方差权重，不是直接用 SNR 加权」）
+# 相对质量权重场（唯一语义：无量纲、非科学 SNR、**不产生权重**）
+#   Phase2 集成的权重恒为逐样本 ivar 逆方差（SCI-UPM §5:54 / DATA-UNC-001 §51 /
+#   DESIGN §4.3「SNR → 逆方差权重，不是直接用 SNR 加权」）；本文件的量只作采样与诊断，
+#   不存在权重枚举、不存在 support×snr² 通道。
 for 每个候选 s:
-  snr_v = local_snr_map[key(frame_id,tile,gx,gy)]        # 有局部星点 → 局部相对质量权重
-          else frame_snr_by_id[frame_id]                # 缺失 → 整帧质量权重中位数
-  quality_weight[s] = snr_v                              # 相对质量权重，非科学 SNR
-  weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown
-  # ↑ 仅历史 legacy 分支（ablation）；生产用逐样本 ivar （已按 §9.73 A44 作废：键不存在；权重是派生量）。
+  quality_weight[s] = snr_v[s]                           # 相对质量权重，非科学 SNR
+  # 缺失回退：snr_v[s] = frame_snr_by_id[frame_id]（整帧质量权重中位数）
+  # 禁止 snr=1.0 伪装 unknown：缺失必须走回退并计数 local_snr_unavailable
 
-# local_snr_map 构造（stage2.cpp:383-396）
+# 局部质量权重的取值与回退（stage2.cpp:394-403）
 for 每个控制观测 o:
-  if !o.snr_available: continue                          # 不入局部 map，像素级回退整帧 median
-  key = (o.frame_id, tile, x/64, y/64)                   # x,y 由 HEALPix level-9 leaf → local xy
-  local_snr_map[key] = o.snr
+  if !o.snr_available: ++local_snr_unavailable           # 显式计数，不伪装 1.0
+  else: snr_v[o] = o.snr                                 # 该观测自带的相对质量权重
+  # 局部不可得 ⇒ 该帧取值 = frame_snr_by_id[o.frame_id]（整帧质量权重中位数）
 
-# frame_snr_medians（stage2.cpp:74,250）
+# frame_snr_medians（stage2.cpp:82,258-261）
 frame_snr[i] = median(帧 i 相对质量权重目录值)   # 分布摘要，非科学信噪比
 
-# frame quality（sampler.cpp:152,242,266）
+# frame quality（sampler.cpp:78,244-265）
 for 每个控制星 s（半径内）:
   out_qual |= quality[s]                                 # 质量位 OR 累积
 ```
@@ -101,16 +97,16 @@ for 每个控制星 s（半径内）:
 
 - **局部优先，整帧回退**：有局部星点的 cell 用 `local_snr`（局部相对质量权重）；无局部星点回退整帧质量权重中位数；
 - **snr=1.0 不允许作为 unknown 伪装**：缺失走整帧 median 回退并计数
-  `local_snr_unavailable`（stage2.cpp:380-389,400-405）；
+  `local_snr_unavailable`（stage2.cpp:394-420）；
 - **snr_available 位保留**：即使回退为整帧 median，snr_available 仍记录；
 - **质量控制位为 OR 累积**（非均值/加权），表达"半径内任一惊星目录质量满足"的覆盖性语义；
 - **与 SCI-NOISE 区隔**：`variance/ivar` 为逐像素随机噪声权重；`local_snr/frame_snr` 为
   区域/帧级**相对质量权重倍率**（`quality_weight`，非科学信噪比）；二者**不混用**。
-- **分支号与生产面**：本文件的 `support × snr_v²` 是历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）（legacy/
-  ablation/诊断，实现锚 `stage2_common.cpp:377-385`、`stage2.cpp:1123-1141`）；
-  **生产默认 = 逐样本 `ivar` 逆方差权重** （已按 §9.73 A44 作废：键不存在；权重是派生量）、无 fallback（ivar 缺失 =
+- **唯一权重口径**：Phase2 集成权重 = 逐样本 `ivar` 逆方差，**无 fallback**（`ivar` 缺失 =
   显式科学错误 `rc=2/7`），见 SCI-UPM §5:54、DATA-UNC-001 §51、DESIGN §4.3/§4.4。
-  本文件不定义 mode 2 的权重语义。
+  本文件不定义该权重语义；`quality_weight` 只作采样与诊断。
+  实现侧整数权重模式域**不存在**（原 `{auto,ivar,equal,support_x_snr2} → {2,2,1,0}` 映射已删除，
+  `lib/algorithms/coverage/src/stage2_common.cpp:431-440`；ACR 侧固定 ivar 语义 `stage2.cpp:67,1125-1130`）。
 
 ## 6 独立不变量
 
@@ -128,9 +124,9 @@ for 每个控制星 s（半径内）:
 
 ## 8 关联与追溯
 
-- 实现：`lib/algorithms/coverage/tools/stage2.cpp`（`local_snr_map`, `frame_snr_medians`,
-  `frame_snr_by_id`, `local_snr_unavailable`, `local_snr_used`, `frame_snr_fallback`）、
-  `lib/algorithms/coverage/src/sampler.cpp`（`quality`, `out_qual`, `kSnrCatalogMax`）。
+- 实现：`lib/algorithms/coverage/tools/stage2.cpp`（`frame_snr_medians` :82、`frame_snr_by_id` :259-261、
+  `local_snr_unavailable` :394-420）、`lib/algorithms/coverage/src/sampler.cpp`（`kSnrCatalogMax` :78、
+  `out_qual` :244-265）。
 - 公开 API：见 `docs/TRACEABILITY.csv`；测试：见 `lib/algorithms/coverage/tests/synthetic_gate.cpp`
   （UPMW-* 权重相关）。
 - 权威文件：本文件 `docs/science/CONTROL_WEIGHT_SNR.md`（SCI-CW-001..008）。
@@ -180,7 +176,7 @@ w(x,y) = SNR(x,y)^2 / F_ref^2   ≡   1 / sigma_F(x,y)^2
   其中 `F_ref` 为**逐帧**参考通量（配对性只要求同一帧内 `SNR` 与 `F_ref` 同源）。逆方差叠加给出最优检测/测光功率；**不是**直接用 SNR 加权。
 
 - **生产默认组合**：阶段一产**稀疏** SNR 控制点（控制点存**绝对** SNR，不乘/除帧级标量）→ 阶段二用**每帧的稀疏控制点重建稠密 SNR 面** → 取逆方差定权 → 叠加。`frame_reconstruct` 是"输入无稀疏层"时的显式回退（必须记录 `snr_path_effective` + 计数，不得静默）；它同样产出稠密 SNR 场，因此**不改变**定权式。
-- **禁止项**：把重建路径当成可选的权重来源；由"检测到多少颗星"一类偶然因素自动切换定权式；把 `support × snr²`（legacy 诊断分支）或 PSF 拟合质量代理当作科学权重（§7 不可接受变化）。
+- **禁止项**：把重建路径当成可选的权重来源；由"检测到多少颗星"一类偶然因素自动切换定权式；把 `quality_weight`（无量纲相对质量）或 PSF 拟合质量代理当作科学权重（§7 不可接受变化）。
 
 ## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

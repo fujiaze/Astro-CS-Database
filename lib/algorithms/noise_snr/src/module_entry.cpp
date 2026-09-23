@@ -15,7 +15,7 @@
  *       调用时序 build → fill → free; g_model_floor 注册表在事务内全程
  *       有效, 内联 fill 使用真实 build floor —— 与 direct 通道 bitwise 一致);
  *     fill_noise_field     = fill 独立通道 (模型 round-trip 重建影子实例,
- *       注册表 miss → floor 回退 1e-12, DISP-NOISE-002 现状忠实跨 ABI);
+ *       注册表 miss → 显式拒绝 SNR_FLOOR_UNBOUND(-10), 不静默回退常数);
  *     noise_diagnostic     = scale_law / gain_variance 标量诊断 (tiny 串行)。
  *
  * 科学纪律: scientific_change=false —— 本文件只做 eng/packaging/config/manifest 解析、

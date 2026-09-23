@@ -293,7 +293,10 @@ int test_properties() {
         }
     }
 
-    // I1/I2 (fill 面): 逐像素 ivar=1/variance 互倒 + variance≥floor。
+    // I1/I2 (fill 面): 逐像素两态穷尽 —— **可用**档 ivar=1/variance 且 variance≥floor；
+    // **不可用**档（平面预测 ≤ 0，SCI-NOISE-001 §5/§9 + DATA_SEMANTICS §4a 三态表）
+    // variance==0 ∧ ivar==0。两档互斥且必须穷尽，故本判据对任意 fixture 成立，
+    // 不依赖「本 fixture 恰好没有非正预测」这一偶然性质。
     // fill 输出为 float32 ABI (double 域互倒后各自 cast float), 故 float
     // 输出面的最强可执行互倒形式 = 相对误差 ≤ 1e-6 (float32 表示精度
     // 3 倍余量); double 域逐位互倒已在 ctrl 面上方断言。
@@ -305,6 +308,10 @@ int test_properties() {
         P1NOISE_CHECK_EQ(cs, rc, 0);
         const float floor_f = static_cast<float>(kVarFloor);
         for (std::size_t i = 0; i < var_f.size(); ++i) {
+            if (var_f[i] == 0.0f) {
+                P1NOISE_CHECK(cs, ivar_f[i] == 0.0f, "i3_unavailable_zero_pair");
+                continue;
+            }
             P1NOISE_CHECK(cs, !(var_f[i] < floor_f), "i2_var_ge_floor");
             P1NOISE_CHECK(cs, rel_diff(static_cast<double>(ivar_f[i]),
                                        1.0 / static_cast<double>(var_f[i])) <= 1e-6,
@@ -655,17 +662,22 @@ int test_negative() {
     }
     P1NOISE_CHECK(cs, true, "n6_fill_null_rc3");
 
-    // n7: FIX-NOISE-B 负梯度 — 帧内右上区 LS 预测 <0 → variance==floor
-    // (1e-12) 且 ivar==1e12 逐位 (clamp 行为, 合同 FIX-NOISE-B 逐位断言)
+    // n7 (FIX-NOISE-B 负梯度): 平面是**外推**模型 —— 控制点方差恒正，但 LS 平面
+    // 可在帧内取非正值。合同正本 SCI-NOISE-001 §5:58-60 / §7:112-113 / §9:136
+    // + DATA_SEMANTICS §4a 逐像素三态表:53-58：
+    //   预测 ≤ 0 的像素 = **该处方差不可用** ⇒ 产品面 variance==0 ∧ ivar==0
+    //   （显式不可用；**禁** clamp 成 floor、**禁** 1/0→inf、**禁** NaN）。
+    // 判据非退化（本条是本组的关键）：「哪些像素预测 ≤ 0」由**独立 LS oracle**
+    //   （plane_ls_oracle，只消费 build 导出的 ctrl_* 数组，不调用被测 fill）
+    //   判定，**不是**「产品面里恰好等于 0 的像素」——后者是恒真门（用产品面
+    //   自己的输出定义自己的期望）。两档各自必须非空，否则该 fixture 上判据
+    //   恒真/恒假，无证据资格。
     {
-        // 参数设计 (触发 clamp 的几何约束): 全部 8×8 patch 中心平面值
-        // 必须 >0 (控制点不被生成下限污染), 而 fill 在图像角落外推 <0:
+        // 参数设计（触发非正预测的几何约束）：全部 8×8 patch 中心平面值
+        // 必须 >0（控制点不被生成下限污染），而 fill 在图像角落外推 <0：
         //   plane(x,y) = 1 - 0.0024x - 0.0060y
-        //   plane(112,112) = 0.0592 > 0 (128 帧 patch 中心最大, 8×8 → 16px)
-        //   plane(127,127) = -0.0668 < 0 (fill 角落预测为负 → clamp)
-        // 前任参数 (256 帧, b+c=-0.005) 使 (x+y)/2 > 1/0.005 的右上大半
-        // patch 生成侧即被 1e-6 下限钉零, LS 平面被零簇拉平 → fill 预测
-        // 全场 ≥0, n_clamped==0 (已修正)。
+        //   plane(112,112) = 0.0592 > 0（128 帧 patch 中心最大，8×8 → 16px）
+        //   plane(127,127) = -0.0668 < 0（fill 角落预测为负）
         const FixNoiseB fneg = fix_noise_b_plane(20260922ull, 128, 128,
                                                  1.0, -0.0024, -0.0060, 1.0e-6);
         BuildResult r;
@@ -673,31 +685,96 @@ int test_negative() {
                                       nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         P1NOISE_CHECK_EQ(cs, r.model.degenerate, 0);
+        const PlaneOracle pn = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
+                                               r.model.ctrl_variance,
+                                               r.model.n_control_points);
+        P1NOISE_CHECK(cs, pn.solvable, "n7_plane_pred_unavailable");
         std::vector<float> vf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
         std::vector<float> ivf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
         const int rc = snr_noise_model_v1_fill(&r.model, fneg.h, fneg.w,
                                                vf.data(), ivf.data());
         P1NOISE_CHECK_EQ(cs, rc, 0);
-        const float floor_f = static_cast<float>(kVarFloor);
-        const float ifloor_f = static_cast<float>(1.0 / kVarFloor);
-        std::size_t n_clamped = 0;
-        for (std::size_t i = 0; i < vf.size(); ++i) {
-            P1NOISE_CHECK(cs, !(vf[i] < floor_f), "i2_var_ge_floor");
-            if (vf[i] == floor_f) ++n_clamped;
+        std::size_t n_unavail = 0, n_avail = 0, n_avail_positive = 0;
+        for (int y = 0; y < fneg.h; ++y) {
+            for (int x = 0; x < fneg.w; ++x) {
+                const std::size_t i = static_cast<std::size_t>(y) * fneg.w + x;
+                float var_o = 0.0f, ivar_o = 0.0f;
+                fill_pair_oracle_f32(pn, static_cast<double>(x), static_cast<double>(y),
+                                     kVarFloor, &var_o, &ivar_o);
+                if (var_o == 0.0f) {
+                    ++n_unavail;
+                    // 不可用像素：variance 与 ivar 都必须**精确 0**
+                    P1NOISE_CHECK(cs, vf[i] == 0.0f, "n7_plane_pred_unavailable");
+                    P1NOISE_CHECK(cs, ivf[i] == 0.0f, "n7_plane_pred_unavailable");
+                } else {
+                    ++n_avail;
+                    if (vf[i] > 0.0f) ++n_avail_positive;
+                    // 可用像素：产品面与独立 oracle 逐位一致（float32 输出面最强形式）
+                    P1NOISE_CHECK(cs, vf[i] == var_o, "n7_plane_pred_available_bitwise");
+                    P1NOISE_CHECK(cs, ivf[i] == ivar_o, "n7_plane_pred_available_bitwise");
+                    // I1/I2（可用档）：variance ≥ floor 且 float32 面互倒（相对 1e-6，
+                    // 与既有 fill 面 I1 判据同形式；double 域逐位互倒见 ctrl 面断言）
+                    P1NOISE_CHECK(cs, !(vf[i] < static_cast<float>(kVarFloor)),
+                                  "i2_var_ge_floor");
+                    P1NOISE_CHECK(cs, rel_diff(static_cast<double>(ivf[i]),
+                                               1.0 / static_cast<double>(vf[i])) <= 1e-6,
+                                  "i1_ivar_reciprocal");
+                }
+                if (cs.failures != 0) break;
+            }
             if (cs.failures != 0) break;
         }
-        // 存在负预测像素 → clamp 逐位断言 (variance==floor, ivar==1e12)
-        P1NOISE_CHECK(cs, n_clamped > 0, "n7_floor_clamp_bitwise");
-        std::fprintf(stdout, "[p1noise][B-] clamped pixels: %zu / %zu\n",
-                     n_clamped, vf.size());
-        if (n_clamped > 0) {
-            for (std::size_t i = 0; i < vf.size(); ++i) {
-                if (vf[i] == floor_f) {
-                    P1NOISE_CHECK(cs, ivf[i] == ifloor_f, "n7_floor_clamp_bitwise");
-                    break;
-                }
+        // 判据非退化：两档都必须非空（全 0 或全非 0 ⇒ 判据在本 fixture 上恒真/恒假）
+        P1NOISE_CHECK(cs, n_unavail > 0, "n7_plane_pred_unavailable");
+        P1NOISE_CHECK(cs, n_avail > 0, "n7_plane_pred_available_bitwise");
+        // 「不可用」不是靠整场归零通过：可用像素里必须有严格正值
+        P1NOISE_CHECK(cs, n_avail_positive > 0, "n7_plane_pred_available_bitwise");
+        std::fprintf(stdout,
+                     "[p1noise][B-] 平面预测不可用像素: %zu / %zu (可用 %zu, 其中严格正 %zu)\n",
+                     n_unavail, vf.size(), n_avail, n_avail_positive);
+        free_model(&r.model);
+    }
+
+    // n7b (产品 dtype 可表示性): 生效 floor 在**输出 dtype** 中不可表示时，
+    // 产品面必须取不可用态 (0,0)，**禁止**发布 (0, +inf)。
+    // 可构造场景: 方差量级 ~1e-50 ADU²、floor=1e-46（double 域合法且 >0），
+    //   则 max(pred, floor)=1e-46 在 float32 中下溢为 0，而 1/1e-46 上溢为 +inf。
+    //   —— 这正是「绝对常数地板跨标度」缺陷在产品 dtype 上的形态
+    //   （float32 最小次正规 ≈ 1.4e-45，1e-46 < 该值 ⇒ 舍入到 0）。
+    // 判据非退化: 断言 (i) 平面分支确实生效; (ii) 确实存在落入该态的像素;
+    //   (iii) 全帧无任何 (variance==0 ∧ !isfinite(ivar)) 或 (variance==0 ∧ ivar!=0)。
+    {
+        const FixNoiseB ftiny = fix_noise_b_plane(20260925ull, 64, 64,
+                                                  1.0e-50, 0.0, 0.0, 1.0e-50);
+        SnrNoiseModelConfig ct = default_cfg();
+        ct.variance_floor = 1.0e-46;   // double 域合法且 > 0; float32 域下溢为 0
+        BuildResult r;
+        r.rc = snr_noise_model_v1_f64(ftiny.data.data(), ftiny.h, ftiny.w,
+                                      nullptr, nullptr, nullptr, nullptr, nullptr, 0,
+                                      &ct, &r.model);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        P1NOISE_CHECK_EQ(cs, r.model.has_spatial_field, 1);   // 平面分支必须生效
+        std::vector<float> vf(static_cast<std::size_t>(ftiny.w) * ftiny.h, -1.0f);
+        std::vector<float> ivf(static_cast<std::size_t>(ftiny.w) * ftiny.h, -1.0f);
+        const int rc = snr_noise_model_v1_fill(&r.model, ftiny.h, ftiny.w,
+                                               vf.data(), ivf.data());
+        P1NOISE_CHECK_EQ(cs, rc, 0);
+        std::size_t n_unavail = 0, n_bad_pair = 0;
+        for (std::size_t i = 0; i < vf.size(); ++i) {
+            if (vf[i] == 0.0f) {
+                ++n_unavail;
+                if (ivf[i] != 0.0f) ++n_bad_pair;   // (0, +inf) / (0, 非零) 一律判红
+            } else if (!(std::isfinite(vf[i]) && vf[i] > 0.0f &&
+                         std::isfinite(ivf[i]) && ivf[i] > 0.0f)) {
+                ++n_bad_pair;                        // 可用态必须成对有限正
             }
+            if (cs.failures != 0) break;
         }
+        P1NOISE_CHECK_EQ(cs, n_bad_pair, 0);
+        P1NOISE_CHECK(cs, n_unavail > 0, "n7b_dtype_underflow_pair");
+        std::fprintf(stdout,
+                     "[p1noise][B-] floor 在 float32 下不可表示: 不可用像素 %zu / %zu,"
+                     " 自相矛盾对 %zu\n", n_unavail, vf.size(), n_bad_pair);
         free_model(&r.model);
     }
 
@@ -968,12 +1045,11 @@ int test_fill() {
         for (int y = 0; y < fx.h; ++y) {
             for (int x = 0; x < fx.w; ++x) {
                 const std::size_t i = static_cast<std::size_t>(y) * fx.w + x;
-                const double var_o = fill_variance_oracle(p, static_cast<double>(x),
-                                                          static_cast<double>(y), kVarFloor);
-                P1NOISE_CHECK(cs, vf[i] == static_cast<float>(var_o),
-                              "g2_plane_fill_refbitwise");
-                P1NOISE_CHECK(cs, ivf[i] == static_cast<float>(1.0 / var_o),
-                              "g2_plane_fill_refbitwise");
+                float var_o = 0.0f, ivar_o = 0.0f;
+                fill_pair_oracle_f32(p, static_cast<double>(x), static_cast<double>(y),
+                                     kVarFloor, &var_o, &ivar_o);
+                P1NOISE_CHECK(cs, vf[i] == var_o, "g2_plane_fill_refbitwise");
+                P1NOISE_CHECK(cs, ivf[i] == ivar_o, "g2_plane_fill_refbitwise");
                 if (cs.failures != 0) {
                     std::fprintf(stderr,
                                  "[p1noise][G] plane fill break at (%d,%d): got %.9g want %.9g\n",

@@ -57,8 +57,8 @@ extern "C" {
  *     事务收尾 snr_noise_model_v1_free (DISP-NOISE-009 注册表泄漏防线)。
  *   fill_noise_field     = snr_noise_model_v1_fill 独立通道 (模型自
  *     estimate_noise_model 输出 manifest round-trip 重建; 影子实例不在
- *     g_model_floor 注册表 → floor 回退 1e-12, DISP-NOISE-002 build/fill
- *     floor 语义不一致的跨 ABI 忠实现状, 如实登记不消化)。
+ *     g_model_floor 注册表 → fill 显式拒绝 SNR_FLOOR_UNBOUND(-10),
+ *     不静默回退常数; 该通道须先经 build 或 bind_variance_floor 绑定 floor)。
  *   noise_diagnostic     = snr_noise_scale_law + snr_noise_gain_variance
  *     标量诊断 (ALG-NOISE-002/003; SNR-002 传播法则 / SNR-005 Poisson+read
  *     诊断; tiny 串行, plan 标 serial, 不入 heavy 并行轴)。
@@ -153,8 +153,8 @@ extern "C" {
 #define NOISE_O_KEY_HAS_SPATIAL     "has_spatial_field"
 #define NOISE_O_KEY_DEGENERATE      "degenerate"
 #define NOISE_O_KEY_VARIANCE_FLOOR  "variance_floor"      /* 回显 (config); DISP-NOISE-002
-                                                           登记: 独立 fill 通道 DLL 内
-                                                           注册表不可达 → 回退 1e-12 */
+                                                           独立 fill 通道 DLL 内注册表
+                                                           不可达 → SNR_FLOOR_UNBOUND */
 #define NOISE_O_KEY_CTRL_X_B64      "ctrl_x_base64"
 #define NOISE_O_KEY_CTRL_Y_B64      "ctrl_y_base64"
 #define NOISE_O_KEY_CTRL_SIG_B64    "ctrl_sigma_base64"

@@ -51,9 +51,9 @@
   (1.482602218505602·MAD) :55-62/collect_patch_sky(5σ≤2 轮) :73-107。
 - default_config :333-345：patch 8×8/r0=10/scale=6/clip 5.0/min 64/rounds
   2/spatial 1/floor 1e-12；C ABI 门面 try/catch（v1 :348-356、f64
-  :357-365）；fill_impl LS 平面+clamp :371-419（floor<=0 回退 1e-12
-  :400-404）；fill 门面 :422-429（双 NULL 拒绝 :425-426）；free :431-444；
-  scale_law :447-454；gain_variance :456-464。返回码 0=成功（含
+  :758-767）；fill_impl LS 平面 :776-866（逐像素两态 :836-854；floor 查询/拒绝
+  :818）；fill 门面 :868-883（双 NULL 拒绝）；free :903-917；
+  scale_law :919-926；gain_variance :928-937。返回码 0=成功（含
   degenerate 兜底 :238/:266）/1=完全退化（ivar=0，:225-232）/3=参数非法
   或内部异常（malloc 失败 :249-253）。
 - 现状单线程顺序（无 omp pragma）；g_model_floor=进程级无锁
