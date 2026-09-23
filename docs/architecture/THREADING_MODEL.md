@@ -51,6 +51,35 @@ inner_omp = max(1, thread_budget / in_flight)     // thread_budget = __workers�
 `eng/tools/monitoring/node_waterfall.py` 合成为节点级瀑布 + 逐节点并行宽度表。
 标定值（`kP1FrameBytesPerPixel` 等）与实测依据见 `docs/architecture/PERFORMANCE_MODEL.md`。
 
+### 并发度 A/B 对照的可复现性（P1-CONCURRENCY-CALIB-01 冻结口径）
+
+`frame_workers` **不是配置项**：它由 `min(lease, p1_memory_cap)` 派生，而 `p1_memory_cap`
+随**运行时刻的 `MemAvailable`** 浮动 ⇒ 同一份配置文件在不同时刻跑，生效并发度可能不同。
+故任何「并发度 A vs B」的对照必须同时满足下列四条，缺一即不成立：
+
+1. **钉住**：`taskset -c <掩码>` 钉 CPU 掩码（Runtime 线程预算 = 掩码内的 CPU 数 ⇒ `lease` 确定）；
+   需要更高的 `p1_memory_cap` 时下调标定值 `kP1FrameBytesPerPixel`（它只是**闸门旋钮**，
+   不进任何数值路径），但改标定值 = 改源码 ⇒ 必须**重新记录构建指纹**。
+2. **判同一二进制**：以 `build_source_digest` 相等为前提（`docs/VERSIONING.md` §2.1）；
+   `run_context.json.source_sha` 相等**不构成**前提。
+3. **记生效值、且按 `in_flight` 判档**：从 `[p1cap] frame_workers … memory_cap=… n_units=…`
+   取实际值，档位判据是 **`in_flight = min(n_units, frame_workers)`**，**不是** `frame_workers`。
+   ⚠ 只比 `frame_workers` 会把「两档其实同 `in_flight`」误当成并发对照：PERF-501 的
+   `w02_2f`/`w04_2f` 是 `frame_workers` 2 vs 4 而 `n_units=2` ⇒ 两档 `in_flight` **都是 2**，
+   实际只差了 `inner_omp`（1 vs 2）。**帧轴**与**帧内轴**必须分开立论。
+4. **负对照**：同并发、同二进制的重复运行必须逐字节 0 差异；否则该对照无判别力。
+   扫描与逐字节比对口径见 `eng/tools/monitoring/concurrency_sweep.py`（`--self-test` 自证）。
+
+**按上述四条执行的结果**（`run/P1-CONCURRENCY-CALIB-01/REPORT.md`）：同一二进制
+（`build_source_digest=f86d60e2…`）、同一帧集 8 帧、只变 `in_flight`(2/4/8) 与
+`inner_omp`(1/2) ⇒ **FITS 差异 0/5916、必同 JSON 差异 0**；组级星表聚合也逐字节相同
+（仅 10 个含 `output_dir` 路径串的 JSON 在**路径掩码后**逐键相同）。
+⇒ **帧级并发与帧内并发都不改变科学产品**；据此把 `kP1FrameBytesPerPixel` 由 358 重标定为
+**116.0**（实测边际 99.68 B/px、base 0.143 GB），本机 `W_eff` 由 4 抬到 **16**，
+同帧集墙钟 **783.5 s → 421.0 s（1.86×）**。
+⚠ 残留风险：`p1_memory_cap` 是**瞬时快照**而非预留，无 swap 机器上目标配置峰值 **13.94 GB**
+（= 0.75·A 的 89.5%），安全垫不厚。
+
 ## 确定性锚点（ARC-004）
 
 - Phase2 UPM 权重归一：`lib/algorithms/coverage/src/upm.cpp:495` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/modules/phase2.md`（SCI-UPM-WEIGHT-001）。
