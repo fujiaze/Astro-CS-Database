@@ -92,6 +92,87 @@ int read_omp_env_threads() {
     return std::atoi(t);
 }
 
+// ---- F1-TB 过渡带判据 (docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4 F1) --
+// 分区逐星按逐档实测 99% 召回阈表 (p1star_fixtures.hpp F1TB_THR99):
+//   POS   SNR_peak ≥ thr99(σ)         判据声明在域内 ⇒ 必须召回 ≥99%
+//   TB    10 ≤ SNR_peak < thr99(σ)    过渡带负例 ⇒ 必须存在且必须判红
+//   BELOW SNR_peak < 10               旧冻结声明的域外
+// 判据 = 四个合取子句; 变体只改判据输入侧 (真值表或检出表), 单变量隔离。
+
+struct F1TbField {
+    const std::vector<SynthStar>* truth = nullptr;
+    double noise = 1.0;
+    const double* dx = nullptr;
+    const double* dy = nullptr;
+    int count = 0;
+};
+
+enum class F1TbVariant {
+    Honest,               // 诚实场 + 诚实检出
+    PosAbsent,            // 过渡带真星全部缺失 (真值表侧)
+    PosUndetected,        // 过渡带真星全部未检出 (检出表侧)
+    TransitionBandAbsent  // 过渡带负例全部缺失 (真值表侧)
+};
+
+struct F1TbTally {
+    int n_pos = 0, n_pos_det = 0;
+    int n_tb = 0, n_tb_det = 0;
+    int n_below = 0, n_below_det = 0;
+    int n_ge10 = 0, n_ge20 = 0;
+    int band_hit = 0;
+    bool band_seen[6] = {false, false, false, false, false, false};
+
+    // C1: 召回场必须含过渡带真星, 且过渡带负例须覆盖 ≥4 个 σ 档
+    bool c1_band_present() const { return n_tb >= 8 && band_hit >= 4; }
+    // C2: 判据声明在域内的真星召回 ≥99%
+    bool c2_in_domain_recall() const {
+        return n_pos > 0 && (double)n_pos_det >= 0.99 * (double)n_pos;
+    }
+    // C3: 过渡带负例必须存在且必须判红 (度量非恒真)
+    bool c3_negative_red() const {
+        return n_tb > 0 && (double)n_tb_det < 0.99 * (double)n_tb;
+    }
+    // C4: §11.4 非退化指标 — snr10 档真星数必须与 snr20 档不同
+    bool c4_doc_indicator() const { return n_ge10 != n_ge20; }
+    bool ok() const {
+        return c1_band_present() && c2_in_domain_recall() && c3_negative_red() &&
+               c4_doc_indicator();
+    }
+};
+
+F1TbTally f1tb_tally(const std::vector<F1TbField>& fields, F1TbVariant v) {
+    F1TbTally t;
+    for (const auto& f : fields) {
+        const auto m = oracle::match_nearest(*f.truth, f.dx, f.dy, f.count);
+        for (std::size_t i = 0; i < f.truth->size(); ++i) {
+            const SynthStar& s = (*f.truth)[i];
+            const double snr = s.amp / f.noise;
+            if (snr >= 10.0) t.n_ge10++;
+            if (snr >= 20.0) t.n_ge20++;
+            const double thr = f1tb_thr99(s.sigma);
+            const int det = (m[i] >= 0) ? 1 : 0;
+            if (snr >= thr) {
+                if (v == F1TbVariant::PosAbsent) continue;
+                t.n_pos++;
+                if (v != F1TbVariant::PosUndetected) t.n_pos_det += det;
+            } else if (snr >= F1TB_SNR_FLOOR) {
+                if (v == F1TbVariant::TransitionBandAbsent) continue;
+                t.n_tb++;
+                t.n_tb_det += det;
+                for (int b = 0; b < 6; ++b)
+                    if (std::fabs(s.sigma - F1TB_SIGMA_BANDS[b]) < 1e-9 && !t.band_seen[b]) {
+                        t.band_seen[b] = true;
+                        t.band_hit++;
+                    }
+            } else {
+                t.n_below++;
+                t.n_below_det += det;
+            }
+        }
+    }
+    return t;
+}
+
 }  // namespace
 
 // ============================================================================
@@ -147,7 +228,9 @@ int test_units() {
                     fx.truth.size(), rec20, snr20, rec10, snr10, d.count, falsepos, fp_per_kpx,
                     sum_dc / std::max(1, rec10), max_dc);
         P1STAR_CHECK(cs, recall20 >= 0.99, "f1_recall_snr20_ge99");
-        P1STAR_CHECK(cs, recall10 >= 0.99, "f1_recall_snr10_ge99");
+        // 「SNR≥10 召回≥99%」平坦门由 §11.4 F1 分档判据取代: 该门在其声明域内不成立
+        // (σ_psf=1.0 档 99% 阈实测 46.0), 且本场 snr10==snr20==32 使其恒绿。
+        // recall10 保留为实测打印值, 断言移至下方 F1-TB 分档块。
         P1STAR_CHECK(cs, fp_per_kpx <= 0.1, "f1_falsepos_le0p1_per_kpx");
 
         // extras 复取: fwhm_x / amplitude (F1 FWHM≤10% 相对误差)
@@ -177,6 +260,83 @@ int test_units() {
         sdet_free_detect_ex(x2, y2, fl2, sa2, mg2, hs2, extras, 2);
         sdet_destroy(h);
         d.free_all();
+    }
+
+    // ---- FIX-STAR-H (F1-TB): 过渡带真星 + 过渡带负例 + 判据判别力自检 -------
+    // 合同锚: §11.4 F1「判据式 + 判据非退化要求」。补夹具前 F1 召回场只有
+    // FIX-STAR-A, 其真星 SNR 空档 [10,32.5) ⇒ 分档判据的过渡带部分行使不到。
+    {
+        const FixStarA fa = fix_star_a_f1();
+        StarDetectorHandle ha = sdet_create(nullptr);
+        Det da;
+        const int rca = run_f64(ha, fa.img, fa.w, fa.h, &da);
+        P1STAR_CHECK_EQ(cs, rca, 0, "f1tb_a_rc");
+
+        const FixStarH fh = fix_star_h_f1_transition_band();
+        StarDetectorHandle hh = sdet_create(nullptr);
+        Det dh;
+        const int rch = run_f64(hh, fh.img, fh.w, fh.h, &dh);
+        P1STAR_CHECK_EQ(cs, rch, 0, "f1tb_h_rc");
+
+        const auto mh = oracle::match_nearest(fh.truth, dh.x, dh.y, dh.count);
+        std::printf("[f1tb] H field %dx%d truth=%zu count=%d\n", fh.w, fh.h,
+                    fh.truth.size(), dh.count);
+        // 逐档实测 (判据域内 POS / 过渡带 TB)
+        for (int b = 0; b < 6; ++b) {
+            int np = 0, npd = 0, nt = 0, ntd = 0;
+            for (std::size_t i = 0; i < fh.truth.size(); ++i) {
+                if (std::fabs(fh.truth[i].sigma - F1TB_SIGMA_BANDS[b]) > 1e-9) continue;
+                const double snr = fh.truth[i].amp / fh.noise;
+                const int det = (mh[i] >= 0) ? 1 : 0;
+                if (snr >= F1TB_THR99[b]) { np++; npd += det; }
+                else if (snr >= F1TB_SNR_FLOOR) { nt++; ntd += det; }
+            }
+            std::printf("[f1tb] sigma=%.2f thr99=%.1f | POS %d/%d (%.4f) | TB %d/%d (%.4f)\n",
+                        F1TB_SIGMA_BANDS[b], F1TB_THR99[b], npd, np,
+                        np ? (double)npd / np : 0.0, ntd, nt, nt ? (double)ntd / nt : 0.0);
+        }
+
+        const std::vector<F1TbField> pre = {{&fa.truth, fa.noise, da.x, da.y, da.count}};
+        const std::vector<F1TbField> post = {{&fa.truth, fa.noise, da.x, da.y, da.count},
+                                             {&fh.truth, fh.noise, dh.x, dh.y, dh.count}};
+        const F1TbTally t_pre = f1tb_tally(pre, F1TbVariant::Honest);
+        const F1TbTally t_post = f1tb_tally(post, F1TbVariant::Honest);
+        const F1TbTally t_pos_absent = f1tb_tally(post, F1TbVariant::PosAbsent);
+        const F1TbTally t_pos_undet = f1tb_tally(post, F1TbVariant::PosUndetected);
+        const F1TbTally t_tb_absent = f1tb_tally(post, F1TbVariant::TransitionBandAbsent);
+
+        const F1TbTally* tally[5] = {&t_pre, &t_post, &t_pos_absent, &t_pos_undet, &t_tb_absent};
+        const char* vname[5] = {"pre_gap(A only)", "post_gap(honest)", "pos_absent",
+                                "pos_undetected", "tb_absent"};
+        for (int k = 0; k < 5; ++k) {
+            const F1TbTally& t = *tally[k];
+            std::printf("[f1tb] %-16s pos=%d/%d tb=%d/%d below=%d/%d ge10=%d ge20=%d "
+                        "bands=%d | C1=%d C2=%d C3=%d C4=%d => %s\n",
+                        vname[k], t.n_pos_det, t.n_pos, t.n_tb_det, t.n_tb,
+                        t.n_below_det, t.n_below, t.n_ge10, t.n_ge20, t.band_hit,
+                        (int)t.c1_band_present(), (int)t.c2_in_domain_recall(),
+                        (int)t.c3_negative_red(), (int)t.c4_doc_indicator(),
+                        t.ok() ? "GREEN" : "RED");
+        }
+
+        // 补夹具后的诚实场: 四个子句全绿
+        P1STAR_CHECK(cs, t_post.c1_band_present(), "f1tb_band_present");
+        P1STAR_CHECK(cs, t_post.c2_in_domain_recall(), "f1tb_in_domain_recall_ge99");
+        P1STAR_CHECK(cs, t_post.c3_negative_red(), "f1tb_negative_red");
+        P1STAR_CHECK(cs, t_post.c4_doc_indicator(), "f1tb_doc_indicator_snr10_ne_snr20");
+
+        // 判别力自检 (能红能绿, AGENTS.md §5): 变体结论必须与诚实场不同
+        P1STAR_CHECK(cs, !t_pre.ok(), "f1tb_pregap_field_red");
+        P1STAR_CHECK(cs, !t_pos_absent.ok(), "f1tb_pos_absent_red");
+        P1STAR_CHECK(cs, !t_pos_undet.ok(), "f1tb_pos_undetected_red");
+        P1STAR_CHECK(cs, !t_tb_absent.ok(), "f1tb_tb_absent_red");
+        P1STAR_CHECK(cs, t_post.ok() && !t_pos_absent.ok() && !t_pre.ok(),
+                     "f1tb_verdicts_differ");
+
+        sdet_destroy(ha);
+        sdet_destroy(hh);
+        da.free_all();
+        dh.free_all();
     }
 
     // ---- FIX-STAR-G (F1): 纯噪声空场虚警 ---------------------------------
