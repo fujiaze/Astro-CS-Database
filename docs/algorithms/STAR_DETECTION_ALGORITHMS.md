@@ -33,12 +33,37 @@
 
 - 背景噪声（FnNoise1 行差分族，:462-518；sdet_compute_bgnoise 定义 :462）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
   3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.7071
-  （1/√2）。
-- 全局检测阈值（:1782-1792）: `threshold = median(img) + 5.0·bgnoise`。
-- 动态范围与饱和水平（:1835-1836）: `bg=median(img)`，`maxi=max(img)`，
+  （1/√2）。**量纲 ADU；输出量 = 单像素噪声 RMS `σ_n`。**
+  **适用域（必须随引用同写）**：`Var(d) = 2σ_n²(1−ρ_adj)`，`ρ_adj` = 相邻像素
+  噪声相关系数 ⇒ 估计量 `σ̂_n = σ_n·√(1−ρ_adj)`。**仅在 `ρ_adj = 0`（相邻像素噪声
+  独立）时无偏**。实测（合成 AR(1) 场，4096 px/行，3 帧/档）：
+  `ρ_adj` = 0 / 0.25 / 0.50 / 0.75 ⇒ `σ̂_n/σ_n` = 0.9999 / 0.8632 / 0.7031 / 0.4991，
+  与解析 `√(1−ρ_adj)` = 1 / 0.8660 / 0.7071 / 0.5000 一致到 ≤0.6%
+  （证据 `run/SCI-FIX-STARPSF-01/results/e2_noise_summary.txt`）。
+  ⇒ 对 drizzle/重采样/插值后的帧，**必须**先用独立方法标定 `ρ_adj` 并除以 `√(1−ρ_adj)`；
+  `ρ_adj` 未标定时该估计量**不得**用作检测阈的 σ 基准。
+  纯独立高斯噪声下实测无偏：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
+  散布 0.42%）。
+- 全局检测阈值（:1783 估 `bgnoise` 于**未平滑原图**；:1790 组装；:1856-1857 判 `smooth > threshold`）:
+  `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**。
+  **量纲声明**：阈值**作用图像**是 `σ_smooth = 2.0 px` 的 YvV 平滑图（:1772-1774），
+  而 `bgnoise` 取自未平滑原图 ⇒ 阈在平滑图噪声单位下 = `5.0/‖k‖₂ = 35.45 σ_smooth`
+  （连续 2D 高斯核 `‖k‖₂ = 1/(2σ_smooth√π) = 0.14105`）。
+  **`threshold_sigma` 是未平滑原图噪声的倍数，不是阈值实际作用图像上的显著性**；
+  引用「5σ」时**必须**声明 σ 属于哪幅图。等价地，检出条件在
+  `SNR_peak = A_fit/σ_bg` 单位下是 `SNR_peak ≥ 5·(1 + σ_smooth²/σ_psf²)`（连续极限），
+  实测系数为 `6.24 ± 0.60`（§11.4 F1）。
+- 动态范围与饱和水平（:1834-1838）: `bg=median(img)`，`maxi=max(img)`，
   `dynrange=min(maxi,65535)−bg`，`minsatlevel=0.7·dynrange`，
-  `satrange=0.1·dynrange`，`locthreshold=5·bgnoise`；norm 硬编码 65535
-  （:1689，DISP-STAR-006）。
+  `satrange=0.1·dynrange`，`locthreshold=5·bgnoise`；`norm = 65535.0f` 字面量
+  （:1834，DISP-STAR-006）。**量纲 ADU；适用域 = 以 uint16 整数 ADU 读出、
+  满阱=65535 ADU 的帧**。对已定标 float 帧，`dynrange` 的物理含义退化为
+  「帧自身 max 与 65535 的较小者减帧中位」，**不等于探测器饱和电平**；
+  该域外 `saturated` 列**必须**按 Project-defined 判据
+  `A_fit > min(max(img),65535) − median(img)` 消费，**不得**读作探测器饱和真值。
+  实测（M42_M1_T2 Red 20251212@012404 校准帧，4096²，float32，max=80789.7 ADU）：
+  `dynrange=65339.0 ADU`，`saturated=1` 的检出星 94/2474，其中 53 颗 3×3 峰值
+  ≤ 65535 ADU（`run/SCI-FIX-STARPSF-01/results/e3_real_summary.txt`）。
 - 候选饱和判定（:1768-1773）: 3×3 邻域超阈值像素 `meanhigh`、`minhigh`；
   饱和 ⇔ `meanhigh−bg ≥ minsatlevel` 且 `pixel0−minhigh ≤ satrange`（双条件）。
 - 非饱和亚像素质心（一阶导数，:1774-1783）: `r0 = −0.5 − d1rl/(d1rr−d1rl)`、
@@ -241,7 +266,15 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   通道（sdet_detect_ex_f64）不降级。
 - DISP-STAR-002 全局单阈值无局部背景自适应: median+5·bgnoise 全局阈值
   （:1790）对渐变背景/星云场漏检低对比星；旧结构图局部背景路径已退出生产
-  impl（仅 :992/:1281 旧入口保留）。
+  impl（仅 :992/:1281 旧入口保留）。**实测量化（M42_M1_T2 Red 20251212@012404
+  校准帧，4096²，生产盲检测 `sdet_detect_ex_f64`）**：阈值 = 265.06 ADU，
+  2474 颗检出星的局部 3×3 背景 `p1/p50/p95` = 318.96 / 803.04 / 17983.63 ADU
+  ⇒ **100% 的检出星所在像素在原图上本已高于全局阈**，该阈在该帧上不构成检出下限；
+  同时 `bg3` 落在帧中位 ±2σ_n 内的检出星 **0 颗**（背景受限子样本为空）。
+  ⇒ 全局阈的**适用域 = 背景在检出尺度上空间平坦的帧**；星云/银道面场中检出集由
+  11×11 局部极大 + 3×3 邻域 + 对称性门（`dA/dSr/dSc ≤ 2` 且
+  `max(|Ar|,|Ac|) ≥ 5·bgnoise`，:2089-2094）决定，判据**必须**按此域分开声明。
+  证据 `run/SCI-FIX-STARPSF-01/results/e3b_summary.txt`。
 - DISP-STAR-003 SDetParams 9 字段生产消费面缺口（§11.1 表后注）: 编排
   platesolve.* 传参（orchestrator.cpp:1591-1607）部分字段无效；fwhmClipSigma
   生产路径半失效。
@@ -264,8 +297,26 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 ### 11.4 TEST-STAR-DESIGN-001 冻结测试设计（可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 落地）
 
 - F1 合成高斯星场（已知中心/流量/FWHM/SNR）: 亚像素质心 |Δc|≤0.3 px
-  （SNR≥20）；FWHM 相对误差 ≤10%；完整性: SNR≥10 星召回 ≥99%；纯噪声场
-  虚警 ≤0.1/千像素（专项=completeness/false positive synthetic fields）。
+  （SNR≥20）；FWHM 相对误差 ≤10%；纯噪声场虚警 ≤0.1/千像素
+  （专项=completeness/false positive synthetic fields）。
+  **完整性（召回）门必须按 PSF 宽度分档冻结**，判据式
+  `SNR_peak ≥ κ·(1 + σ_smooth²/σ_psf²)`，`σ_smooth = 2.0 px`（:1772-1774 常量），
+  `κ = 6.24 ± 0.60`（生产实现实测，见下）。逐档 99% 召回阈（本仓实测，
+  `sdet_detect_ex_f64`，峰值对齐像素中心，单星场 24 次/档）：
+
+  | `σ_psf` (px) | 1.0 | 1.27 | 1.5 | 2.0 | 2.5 | 3.0 |
+  |---|---|---|---|---|---|---|
+  | FWHM (px) | 2.35 | 2.99 | 3.53 | 4.71 | 5.89 | 7.06 |
+  | 99% 召回阈 `SNR_peak` | 31.3 | 21.2 | 17.6 | 14.6 | 9.0 | 8.6 |
+
+  **适用域**：该式对 `σ_psf ≥ 0.8 px` 成立；`σ_psf < 0.8 px` 时离散采样使过渡区
+  显著展宽（实测 50% 点 90 vs 式给 36.3），**不适用**，须逐档实测。
+  **判据非退化要求（AGENTS.md §5）**：F1 的召回场**必须**包含落在过渡带内的真星，
+  且**必须**同时报告过渡带负例——在 `σ_psf = 1.0 px`、`SNR_peak = 10` 处召回
+  **必须**判红（实测 0%）。仅当 `snr10` 档真星数与 `snr20` 档不同（即场中存在
+  `10 ≤ SNR_peak < 20` 的真星）时，该门才算行使了其声明域。
+  证据：`run/SCI-FIX-STARPSF-01/results/e2b_summary.txt`、
+  `e2_recall_summary.txt`、`e2_noise_summary.txt`。
 - F2 饱和/混合/边缘专项: 平台≥3px 饱和星检出且 saturated=1；饱和+正常星
   d<2px 重叠 → 保留饱和星（dedup 语义）；边界 2px 内允许丢弃（§4 边界语义）。
 - F3 确定性: 同输入线程数 1/2/4 输出 bitwise 一致（§5）；mag 升序+NaN 末尾
@@ -319,7 +370,8 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节禁止被编排层词汇�
 ## 背景 σ 估计器的现行口径与实测增益
 
 - **两级 σ 估计并存，均在役**：主路径用冻结式稳健尺度 `1.482602218505602 · MAD`；另有**第三 σ 估计器**（`star_detector.cpp` 的稳健估计路径）作为生产可达路径保留。二者不互相替代，选用由现行配置决定。
-- **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化；C++ 探针直调生产实现，270/270 帧与冻结式**逐位一致**）实测相对冻结式 `1.4826·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。
+- **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化）实测相对冻结式 `1.482602218505602·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。**忠实性交叉验证（与增益是两件事，禁止混写）**：C++ 探针直调生产实现 `StarDetector::estimate_background`（`wrapper_phase1/star_detector.cpp:30-70`）读同一批 `.f32` 帧，Python 复刻与生产实现 **270/270 帧 σ 相对偏差 = 0.0（逐位一致）**——该 270/270 描述的是「复刻↔生产」一致性，**不是**第三估计器与冻结式的一致性。证据：`run/CLEAN-401/third_sigma/README.md` §85/§201、`results/metrics.json`。
+- **第三 σ 估计器的定义与消费面（量纲 ADU）**：`estimate_background` 的返回值 = 2 轮 `median±3σ` 裁剪后、关于裁剪中位数的 **RMS**（`star_detector.cpp:67`），写入 `p1_sources.json:frames[].noise_sigma`，并被 noise-snr 节点读作 `cfg.sigma_sky_adu`。**它与 `bgnoise`（行差分 FnNoise1）不是同一个估计量**：同帧实测 20.7384 vs 13.8148 ADU（比值 1.5012，M42_M1_T2 Red 20251212@012404；证据 `run/SCI-FIX-STARPSF-01/results/e4_sigma_summary.txt`）。凡写「σ_bg」的判据**必须**点名估计器。
 - **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备为引用前提；缺任一项的增益数字不得引用。
 - **NaN fail-open 已闭合**：估计器入口逐像素 `isfinite` 归约 + 返回值检查，NaN 输入不再静默通过；负例（全 NaN patch）必须判红。
 

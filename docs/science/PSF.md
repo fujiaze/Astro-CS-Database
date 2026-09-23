@@ -27,7 +27,20 @@
 
 ## 3 物理量和单位
 
-- `I,A,B,residual_scale`: ADU；`r,dx,dy,σ,sx,sy,fwhm`: px；`θ`: rad；`Q,e,q_psf`: 无量纲；`flux`: **ADU**（由 `I=B+A/(1+Q)^4`，`I` 与 `B` 单位为 ADU/pixel，对探测器平面二维积分后单位为 ADU；各向同性解析值 `2πAσ²/3`）。
+- `I,B`: **ADU/pixel**（探测器平面上的面亮度，逐像素求值）；`A`: **ADU/pixel**
+  （模型在中心处的面亮度振幅，与 `B` 同域，故 `I` 无量纲比 `A/residual_scale` 成立）；
+  `residual_scale`: **ADU/pixel**（逐像素 |残差| 的 10–90% 截尾均值，与 `I` 同域）；
+  `r,dx,dy,σ,sx,sy,fwhm`: px；`Q,e,q_psf`: 无量纲；
+  `flux`: **ADU**（对探测器平面二维积分：`∫∫ I dA`，面积元单位 pixel²，故
+  ADU/pixel × pixel² = ADU；各向同性解析值 `2πAσ²/3`）。
+- **`θ` 的单位与值域**：单位 **rad**；**规范值域 = `[0, π)`**（或等价地
+  `(−π/2, π/2]`）。`p1/p2/p3` 只含 `cos²θ, sin²θ, sin2θ`，周期为 π，故值域外取值
+  **不改变模型值**，但**使 θ 列失去位置角语义**。实测（真实产物
+  `run/RELEASE-05/vis/out/m42_p1_t2/p1_sources.json` 的 `psf_params`，n=12451）：
+  θ ∈ [−100625, +118664] rad，`|θ| > π` 占 63.1%，`|θ| > 100 rad` 占 16.6%。
+  ⇒ **消费方必须先把 θ 归约到 `[0, π)`** 再作位置角解释；
+  直接 `θ·180/π` 得到的角度无物理意义。证据
+  `run/SCI-FIX-STARPSF-01/results/e3_real_summary.txt` §C。
 
 ## 3a 坐标 frame
 
@@ -35,7 +48,7 @@ PSF 拟合在**像素域小窗口**内进行：相对坐标 `dx,dy=x−(cx+x0),y
 
 ## 4 输入有效域
 
-- 图像 `uint16_t`/`float32`，维度 `w>0,h>0`，拟合窗口 `fitRadius` 使 `rect` 在图像内且面积 `rw*rh > 0`，否则返回 `DPSF_ERR_PARAM`（`dpsf_fit:433 empty rect`）。
+- 图像 `uint16_t`/`float32`，维度 `w>0,h>0`，拟合窗口 `fitRadius` 使 `rect` 在图像内且面积 `rw*rh > 0`，否则返回 `DPSF_FIT_INVALID_PARAMS`（= 2，`dpsf_psf.cpp:499-504`；非有限像素在采样阶段被跳过，全部非有限时同码返回，`:284-311`）。
 - 初始幅度 `A0 = max_val − bkg0 > 0`，否则 `LOG_WARN Amplitude<=0` 并拒。
 - `sx>0, sy>0`，否则 `Invalid fit params` 拒；`B` 受 `bkg0` 约束（`Background constraint violated`）。
 
@@ -50,11 +63,37 @@ p3 = sin²θ/(2sx²)+cos²θ/(2sy²)
 dx = x−(cx+x0), dy = y−(cy+y0)
 
 各向同性 sx=sy=σ ⇒ Q=0.5·r²/σ²
-α=√2·σ, FWHM=2α√(2^{1/4}−1)=2√2·σ·√(2^{1/4}−1)≈1.230310·σ
-flux = 2πA·sxsy/3   (整平面延伸假设)
+α=√2·σ, FWHM=2α√(2^{1/4}−1)=2√2·σ·√(2^{1/4}−1)=1.230307652590102·σ
+flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见下)
 ```
 
-与 `lib/algorithms/psf/src/dpsf_psf.cpp:13-18,66-95,351-368` 一致。
+与 `lib/algorithms/psf/src/dpsf_psf.cpp:24-25,84-118,222-254,425-432` 一致。
+
+**FWHM 因子的精确值与适用域**
+
+- 精确值 `2√2·√(2^{1/4}−1) = 1.230307652590102`（FP64 闭式，可复算；
+  独立数值反解 `(1+r²/α²)^4=2` 得 1.2303072，一致到 4e-7）。
+- 实现常量 `MOFFAT4_FWHM_FACTOR = 1.230310`（`dpsf_psf.cpp:25`）与精确值
+  相对差 **+1.91e-6**（FWHM 相对误差 1.9e-6，远小于 §9 的 1% 容差）。
+- **适用域**：仅对 **β = 4 且各向同性**成立；β≠4 时
+  `FWHM = 2α√(2^{1/β}−1)`，各向异性时按轴分别 `FWHM_x = 1.230310·sx`、
+  `FWHM_y = 1.230310·sy`（`dpsf_psf.cpp:393-394`）。
+- 证据：`run/SCI-FIX-STARPSF-01/results/e1_constants.txt` §A。
+
+**`flux` 的适用域与窗口截断修正**
+
+- `flux = 2πA·sx·sy/3` 对**任意 `sx, sy, θ`** 成立（不只是圆对称）：
+  令 `M = [[p1,p2],[p2,p3]]`，`Q = dᵀMd`，则 `det M = 1/(4 sx² sy²)`（与 θ 无关），
+  换元 `u = Ld`（`M = LᵀL`）后
+  `∫∫ A/(1+Q)^4 dA = (πA/3)/√(det M) = 2πA·sx·sy/3`。
+  推导与复算见 `run/SCI-FIX-STARPSF-01/results/e1_constants.txt`。
+- **截断适用域**：上式是**整平面**（r→∞）积分；发布值对应拟合窗口半径 `r_win`
+  时，窗口外通量占比有闭式
+  `f_out(r_win) = (1 + r_win²/α²)^{−3}`（β=4；各向同性 `α=√2σ`）。
+  典型拟合窗 `r_win = 3.7172·σ`（`sdet_api.cpp:2071-2074` 的 `s_factor`）
+  ⇒ `r_win/α = 2.629`、`f_out = 2.02e-3`，即发布 flux 相对窗内积分通量
+  **偏高 0.20%**。**当 `r_win/α < 1`（`r_win < 1.41σ`）时 `f_out > 3.1%`**，
+  该域下 flux **不得**当作全通量使用。
 
 ## 6 假设
 
@@ -80,7 +119,26 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 ## 9 精度策略
 
-- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-181`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
+- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:120-208`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`。
+- **`kTrimMeanToSigma` 的闭式推导（可独立复算）**：设残差 `r ~ N(0, σ²)`，
+  `|r|` 服从半正态。10% / 90% 分位点
+  `a = Φ⁻¹(0.55) = 0.125661346855·σ`、`b = Φ⁻¹(0.95) = 1.644853626951·σ`；
+  截尾均值 `E[mean(|r|), a<|r|<b] = 2(φ(a)−φ(b))/0.8 = 0.7316730952806134·σ`。
+  实现常量 `0.7316727929211932` 与该闭式相对差 **4.13e-7**（σ 换算偏差
+  +0.00004%，可忽略）。复算：`run/SCI-FIX-STARPSF-01/results/e1_constants.txt` §B。
+- **`kTrimMeanToSigma` 的适用域（必须随换算同写）**：该常数是**高斯专属**标准化因子。
+  实测（4e6 样本/分布）：残差分布为 Gaussian / Uniform / Laplace / Student-t(5) 时
+  `σ̂ = residual_scale/0.7316727929211932` 相对真值之比 = 1.0004 / 1.1837 / 0.8024 /
+  0.8648 ⇒ **非高斯残差下偏差可达 ±18%**。残差含未建模源/宇宙线/邻星时
+  `robust_residual_sigma` **不得**当作噪声 σ 的绝对标度。证据同上 §C。
+- **实现截尾边界的有限-m 效应**：`compute_trimmed_mad` 取
+  `lo = int(0.1·m)`、`hi = int(0.9·m)`（`dpsf_psf.cpp:248-249`），两端裁剪
+  **不对称**（`m` 非 10 的整数倍时上端多裁）。实测 `E[该统计量]/σ`：
+  `m`=121 → 0.72448（**−0.98%**）、`m`=169 → 0.72822（−0.47%）、
+  `m`=441 → 0.72959（−0.28%）、`m`=1024 → 0.73090（−0.11%）、
+  `m`=9 → 0.66800（−8.70%）。**适用域 = `m ≥ 441`（|偏差| < 0.3%）**；
+  `m < 441` 时 `robust_residual_sigma` 相对常数隐含的标度**偏低**，
+  偏差量级见上表。证据 `run/SCI-FIX-STARPSF-01/results/e1_constants.txt` §D。
 
 ## 9a 专属问题回答（SCI-002 指定问题逐项）
 
@@ -118,7 +176,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 1. Moffat, A. F. J. 1969, A&A 3, 455（"A Theoretical Investigation of Focal Stellar Images"）：Moffat 轮廓 I(r)∝(1+r²/α²)^{−β} 来源——文章级定位（bibcode 1969A&A.....3..455M，未逐页核验）。
 2. β=4 解析通量 `flux=2πA·sxsy/3` 与 `FWHM/σ=1.230310`：**Project-defined derivation**（§5 对 (1+Q)^{−4} 解析积分，各向同性极限 πα²/3·A=2πAσ²/3 自洽），不引用外部公式号。
-3. trimmed-mean→σ 换算系数 `0.7316727929211932`：高斯假设下 10–90% trimmed mean 的标准化常数（Project-defined 采纳，数值由高斯分位积分确定）。
+3. trimmed-mean→σ 换算系数 `0.7316727929211932`：高斯假设下 10–90% trimmed mean 的标准化常数。**闭式**：`2(φ(Φ⁻¹(0.55))−φ(Φ⁻¹(0.95)))/0.8 = 0.7316730952806134`（本仓复算 `run/SCI-FIX-STARPSF-01/results/e1_constants.txt` §B，与实现常量相对差 4.13e-7）。适用域见 §9。
 
 ## 14a 参考文献与参考代码库（含许可证）
 

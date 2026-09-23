@@ -15,13 +15,49 @@
   |Δc|≤0.3 px（SNR≥20）见 ALG-STARDET-001 §11.4 F1；SNR 定义（SNR_peak）
   见 `docs/algorithms/GATES_AND_TOLERANCES.md`（G-P1-CENTROID-SCI 行）。
 - completeness / false positive (synthetic fields): 完备性与虚警由合成星场
-  验收（召回 ≥99% @SNR≥10；虚警 ≤0.1/千像素，纯噪声场）——检测是经验性
-  图像处理流程，不宣称解析保证。
+  验收。**召回域必须按 PSF 宽度分档写成
+  `SNR_peak ≥ κ·(1 + σ_smooth²/σ_psf²)`**，其中 `σ_smooth = 2.0 px` 是检测所用
+  高斯平滑核宽度（`sdet_api.cpp:1772-1774` 常量实参），`σ_psf` 为星点高斯宽度、
+  `SNR_peak = A_fit/σ_bg`（定义见 `GATES_AND_TOLERANCES.md` §2）。
+  本仓实测（生产 `sdet_detect_ex_f64`，峰值对齐像素中心，24 次/档，
+  单星场）：`κ = 6.24 ± 0.60`（由 σ_psf ∈ {1.0, 1.27, 1.5, 2.0, 2.5, 3.0} px
+  六档 50% 过渡点反解）；逐档 99% 召回阈 `SNR_peak` = 31.3 / 21.2 / 17.6 /
+  14.6 / 9.0 / 8.6。**据此，`SNR_peak ≥ 10` 单独不构成召回域**：σ_psf = 1.0 px
+  （FWHM 2.35 px）时 `SNR_peak = 10` 的召回为 **0%**。
+  证据：`run/SCI-FIX-STARPSF-01/results/e2b_summary.txt`、`e2_recall_summary.txt`。
+  **适用域**：该式对 `σ_psf ≥ 0.8 px`（FWHM ≥ 1.9 px）成立；`σ_psf < 0.8 px` 时
+  离散采样使过渡区显著展宽（实测 50% 点 `SNR_peak` = 90，式给 36.3），该式
+  **不适用**，须逐档实测。虚警以纯噪声场（无注入星）计数，单位 1/千像素；
+  实测 0.000/千像素（8 帧 256×256，`results/e2_noise_summary.txt`）——该 0 值
+  是判据下界，判据的鉴别力由负例注入（§4 状态码负例 + 本页 §3 F2）承担。
+  检测是经验性图像处理流程，不宣称解析保证。
 - 全局检测阈值（`detection.threshold_sigma`）：
-  `threshold = median(img) + 5.0·bgnoise`（5σ 语义）。
+  `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**；`bgnoise` 为
+  **未平滑原图**的行差分背景噪声 RMS，单位 ADU（`sdet_api.cpp:1783`，
+  估计器见 ALG-STARDET-001 §2）。**量纲声明（必须随阈值同读）**：该阈作用在
+  `σ_smooth = 2.0` 的平滑图上（`sdet_api.cpp:1856-1857` 判 `smooth > threshold`），
+  故它在**平滑图噪声单位**下的取值是 `5.0/‖k‖₂ = 5.0·2σ_smooth·√π = 35.45 σ_smooth`
+  （连续 2D 高斯核 `‖k‖₂ = 1/(2σ_smooth√π) = 0.14105`）。
+  **`threshold_sigma` 是「未平滑原图噪声」的倍数，不是阈值实际作用图像上的显著性**；
+  两者相差 `1/‖k‖₂ = 7.09×`。凡引用「5σ 语义」的判据**必须**声明所用 σ 属于哪幅图。
+  **适用域**：`bgnoise` 的行差分估计以「相邻像素噪声独立」为前提（见 §6 与
+  ALG-STARDET-001 §2）；重采样/相关噪声输入下该前提不成立。
 - saturation / blend / edge: 饱和判定=3×3 邻域双条件
   （meanhigh−bg ≥ 0.7·dynrange 且 pixel0−minhigh ≤ 0.1·dynrange）；饱和平台
   中心=edge-walking 几何中心；饱和与正常星重叠（d²<4.0）丢正常星保饱和星；距边界 <2px 允许丢弃。
+  **`dynrange` 的定义域与量纲（ADU）**：`dynrange = min(max(img), 65535) − median(img)`
+  （`sdet_api.cpp:1834-1837`，`norm = 65535.0f` 为字面量）。**适用域 = 以 uint16
+  整数 ADU 读出、满阱=65535 ADU 的帧**；对已定标的 float 帧（本项目 Phase1 生产
+  输入），该式给出的是「帧自身 max 与 65535 的较小者」，**不等于探测器饱和电平**。
+  实测（M42_M1_T2 Red 20251212@012404 校准帧，4096²，float32，数据域
+  [−16975.6, 80789.7] ADU）：`norm=65535`、`dynrange=65339.0 ADU`、
+  被标 `saturated` 的检出星 94/2474，其中 53 颗的 3×3 峰值 ≤ 65535 ADU。
+  真饱和平台电平独立测量（7×7 窗内 ≥6 像元落在峰值 0.5% 内者，n=36）：
+  `min/median/max = 62150 / 64987 / 80790 ADU`，与 65535 之比 0.948–1.233，
+  **44.4% 高于 65535** ⇒ 校准后平台电平是空间变化量，**不是常数 65535**。
+  证据：`run/SCI-FIX-STARPSF-01/results/e3_real_summary.txt`、`e3c_plateau.txt`。
+  ⇒ `saturated` 列在 float 定标帧上**必须**按「`A_fit > min(max(img),65535) − median(img)`」
+  这一 Project-defined 判据消费，**不得**读作探测器饱和真值。
 - deterministic ordering: 输出按 mag 升序全序确定（NaN 恒排末尾），
   dedup/sort/maxStars 截断串行，输出与线程数 bitwise 无关
   （ALG-STARDET-001 §5）。
@@ -67,9 +103,19 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 - FWHM/孔径尺寸: 单位 px；σ 派生量 σ=FWHM/(2√(2ln2)) 同为 px。
 - 亮度/流量: 原始读出量单位 ADU（模拟数字单元）；粗测光
   mag=−2.5·log10(Σ_box(pixel−B_fit)) 中 pixel 与 B_fit 均为 ADU，
-  mag 无量纲（星等）；dynrange=饱和平台量纲同 ADU。
+  mag 无量纲（星等）；dynrange 单位 ADU（定义域见 §1 saturation 条）。
+- 背景噪声: `bgnoise` 单位 **ADU**（未平滑原图行差分 RMS，`sdet_api.cpp:1783`）；
+  检测阈值 `threshold` 单位 **ADU**；`threshold_sigma` 无量纲，
+  其 σ 基准 = 未平滑原图噪声（不是平滑图噪声，§1）。
+- **两套 `sigma_bg` 不可互换**：盲检测阈值用 `bgnoise`（行差分族）；
+  `p1_sources.json` 的 `noise_sigma`（= `SNR_det` 的分母）由 wrapper 侧
+  `StarDetector::estimate_background` 的 2 轮 median±3σ 裁剪后 RMS 给出
+  （`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:30-70`；
+  审计 `run/CLEAN-401/third_sigma/README.md`）。同帧实测：13.8148 vs 20.7384 ADU，
+  比值 1.5012（`run/SCI-FIX-STARPSF-01/results/e4_sigma_summary.txt`）。
+  凡写「σ_bg」的判据**必须**点名用哪一套。
 - 角度量: PA/位置角单位 deg；虚警密度单位 1/千像素（0.1/千像素，§1）；
-  SNR 无量纲（5σ 阈值中 σ 为背景噪声 ADU RMS）。
+  SNR 无量纲（σ 为背景噪声 ADU RMS，须点名估计器，见上条）。
 - 时间量: 无本域时间物理量（检测为单帧快照流程，无曝光时间归一化项）。
 
 单位约定与 docs/science/PHOTOMETRY.md（ADU/mag）、ASTROMETRY.md（px/deg）
