@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     HissMetadata meta;
     meta.nside = nside; meta.tile_nside = tile_nside;
     meta.ordering = 1; meta.radesys = 0; meta.pixfrac = 0.8;
-    meta.photappl = 1;   // 模拟测光已应用 (BUNIT=ASTROCS_RELATIVE_FLUX)
+    meta.photappl = 1;   // 模拟测光已应用 (BUNIT 仍为 canonical 面亮度串 ADU/sr)
     snprintf(meta.filter, sizeof(meta.filter), "R");
     meta.exptime = 180.0;
 

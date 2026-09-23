@@ -278,6 +278,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const DrizzleConfig& config,
                        const std::string& hips_dir,
                        const std::string& filter_passband,
+                       int has_variance,
                        std::string& err) {
     const uint32_t nside = (uint32_t)config.nside;
     const uint32_t depth = config.tile_depth ? config.tile_depth
@@ -302,27 +303,22 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
     // DATA-P1-HIPS §12.1/§12.2 产品集: variance/ivar Image HiPS 由累加器
     // var_num_sum (= Σ v_j·w_jp², SCI-DRZ-014 §5) 经同一 writer 通道落盘。
-    // 方差面**不再硬编码为「不请求」**: 累加器携带有限正方差累加量时请求
-    // VARIANCE|IVAR 并把 var_num_sum 交给 writer —— 与 write_hips_direct 的
-    // has_variance 分支同一冻结通道, 禁止第二套方差语义。方差面全零/全无效
-    // (无方差输入) 时保持既有 signal+support 两产品面逐字节不变。
-    bool has_variance = false;
-    for (const auto& t : tiles) {
-        if (t.touched.empty()) continue;
-        for (uint32_t local : t.touched) {
-            if (local >= n_leaf || local >= t.pixels.size()) continue;
-            const double vn = (double)t.pixels[local].sumVarNum;
-            if (std::isfinite(vn) && vn > 0.0) { has_variance = true; break; }
-        }
-        if (has_variance) break;
-    }
+    // **产品集判据 = 本帧是否携带方差输入 (has_variance 形参)**，与
+    // write_hips_direct 的同一形参同口径（禁止第二套方差语义）：
+    //   1 ⇒ 请求 VARIANCE|IVAR 并把 var_num_sum 交给 writer；逐像素三态由
+    //       writer 判定（有覆盖∧方差可用 → vnum/area²；有覆盖∧方差不可用 →
+    //       0/0 显式不可用，§4a:49；无覆盖 → NaN）。
+    //       **「整帧方差不可用」也必须产出 variance/ivar 子产品**（全 0/0）：
+    //       不产会让阶段二 ivar_product_missing>0 ⇒ rc=7（A44 已删除 legacy
+    //       fallback），把「像素级不可用」升级为「产品级拒绝」。
+    //   0 ⇒ 无方差输入，只写 signal+support（与旧 writer 逐字节等价）。
     // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ASTROCS_IVAR_FAULT=
-    // no_variance_flags 模拟「累加器已含方差却不请求 variance/ivar 产品位」
-    // 缺陷 → IVAR-001 新增门必然判红（见 run/PROJECT-GOVERNANCE-01/IVAR-001）。
+    // no_variance_flags 模拟「帧已带方差却不请求 variance/ivar 产品位」
+    // 缺陷 → IVAR-001 门必然判红（见 run/PROJECT-GOVERNANCE-01/IVAR-001）。
     {
         const char* sink_fault = std::getenv("ASTROCS_IVAR_FAULT");
         if (sink_fault && std::string(sink_fault) == "no_variance_flags")
-            has_variance = false;
+            has_variance = 0;
     }
     const int prod_flags =
         has_variance ? (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
@@ -583,9 +579,9 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
 template bool write_hips_phase1<float>(
     const std::vector<TileAccumulatorT<float>>&, const DrizzleConfig&,
-    const std::string&, const std::string&, std::string&);
+    const std::string&, const std::string&, int, std::string&);
 template bool write_hips_phase1<double>(
     const std::vector<TileAccumulatorT<double>>&, const DrizzleConfig&,
-    const std::string&, const std::string&, std::string&);
+    const std::string&, const std::string&, int, std::string&);
 
 } // namespace drizzle

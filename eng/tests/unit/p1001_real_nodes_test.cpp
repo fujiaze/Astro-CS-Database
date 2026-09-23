@@ -1431,7 +1431,9 @@ bool write_sparse_hips(const std::string& root,
   cfg.nside = static_cast<int>(nside);
   cfg.tile_depth = 9;
   std::string err;
-  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", err);
+  // has_variance=0: 本夹具不构造方差累加量（= 帧不带方差输入）⇒ 产品集
+  // 保持 signal+support 两面（逐字节等价面）。
+  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", 0, err);
   if (!ok) std::fprintf(stderr, "B2-A15 write_hips_phase1 failed: %s\n", err.c_str());
   // 上游 provenance (writer 节点据此定位叶片 Norder)
   // p1_stack.json 的 bunit 键 = 产品的单位声明面之一（DATA-P1-STACK）；与
@@ -2704,7 +2706,7 @@ bool write_p21_scatter_hips(const std::string& root) {
   cfg.nside = static_cast<int>(kP21Nside);
   cfg.tile_depth = 9;
   std::string err;
-  if (!drizzle::write_hips_phase1<float>(accs, cfg, root, "R", err)) {
+  if (!drizzle::write_hips_phase1<float>(accs, cfg, root, "R", 0, err)) {
     std::fprintf(stderr, "P21 write_hips_phase1 failed: %s\n", err.c_str());
     return false;
   }
@@ -2913,7 +2915,9 @@ static bool write_sparse_hips_var(const std::string& root,
   cfg.nside = static_cast<int>(nside);
   cfg.tile_depth = 9;
   std::string err;
-  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", err);
+  // has_variance=1: 本夹具构造了方差累加量（= 帧带方差输入）⇒ 必须请求
+  // VARIANCE|IVAR 并经同一 writer 通道成对落盘。
+  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", 1, err);
   if (!ok) std::fprintf(stderr, "IVAR-001 write_hips_phase1 failed: %s\n", err.c_str());
   // p1_stack.json 的 bunit 键 = 产品的单位声明面之一（DATA-P1-STACK）；与
   // signal/properties 的 BUNIT 必须同串（docs/contracts/DATA_SEMANTICS.md §31.1a:

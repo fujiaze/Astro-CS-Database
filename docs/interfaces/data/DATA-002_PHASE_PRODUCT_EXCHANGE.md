@@ -123,7 +123,10 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
 
     | 术语 | 定义 |
     |---|---|
-    | **合格样本** | 参与聚合的源样本 `(x_j, V_j)` 满足 `isfinite(x_j) ∧ isfinite(V_j) ∧ V_j > 0` |
+    | **合格样本** | 参与聚合的源样本满足：值有限（`isfinite(x_j)`）且几何上覆盖该输出像素（`w_jp > 0`）。**方差是否可用不参与合格性判定**（上游授权 = `ASTROCS_DESIGN.md` §5.5「NaN 采用样本级掩膜」，该条只对 NaN 授权；§0.1「每一层只由它的上一层推出」） |
+    | **方差可用样本** | 合格样本中 `V_j` 有限且 `V_j > 0` 者：其 `V_j` 计入 `Var_p` |
+    | **方差不可用样本** | 合格样本中 `V_j` **有限且 `V_j ≤ 0`** 者（"有覆盖但无方差信息"）：**信号与几何权重照常计入 `F_p`、`D_p`**（保信号、保覆盖），方差项**不计入** `Var_p`；**禁止**用任何常数、地板或哨兵值顶替 `V_j` |
+    | **方差面损坏** | `V_j` 非有限（NaN/±Inf）：按 §4a「NaN/负只表示产品损坏」处置 —— 该样本按不合格样本剔除并计入 `n_rejected_nonfinite_variance`，**禁止**当作「方差不可用」静默放行 |
     | **零合格样本** | 某输出像素的全部候选样本都不合格（或根本没有候选样本） |
     | **无覆盖** | 该输出像素没有任何候选样本（几何无覆盖） |
     | **无效输出** | `signal = NaN` **且** `support ≤ 0`；两者**必须同时**成立（互推） |
@@ -132,15 +135,28 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     **处置规则（样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数）** —— 对**每一个聚合算子**
     （Phase 1 的 drizzle drop、Phase 2 的帧间集成、Phase 3 的投影重采样）：
 
-    1. **样本级掩膜**：不合格样本**从该输出像素的分子、分母、方差三项中一并剔除**
-       （`F_p = Σ_合格 x_j w_jp`、`D_p = Σ_合格 w_jp`、`Var_p = Σ_合格 V_j w_jp² / D_p²`），
-       并**重新归一**。**禁止**让单个不合格样本使整个输出像素变为 NaN；
+    1. **样本级掩膜（只作用于不合格样本）**：不合格样本（值非有限）**从该输出像素的
+       分子、分母、方差三项中一并剔除**（`F_p = Σ_合格 x_j w_jp`、`D_p = Σ_合格 w_jp`），
+       并**重新归一**。**方差不可用样本不属此列**：它计入 `F_p` 与 `D_p`（保信号、保覆盖），
+       只是不计入 `Var_p`。**禁止**让单个不合格样本使整个输出像素变为 NaN；
        **禁止**保留被剔除样本的权重在分母里（会引入系统性偏低）。
+    1a. **方差项的乘积表达**：`Var_p = Σ_{方差可用} V_j w_jp² / D_p²`，其中 `D_p` **含方差不可用
+       样本的 `w_jp`**（**分母不缩小**，避免方差系统性偏高）。输出像素的 `variance/ivar` 按
+       `DATA_SEMANTICS` §4a 表达为 **`variance=0 ∧ ivar=0`（显式不可用）**；**禁止**写 NaN
+       —— NaN 保留给「无覆盖」（§11.2 / §30.4）。
     2. **覆盖级 NaN**：仅当 `D_p = 0`（零合格样本）时，输出 `signal = NaN`、`variance = NaN`、
        `support = 0`。NaN 是**无效的唯一表示**；**禁止**用 `0`、`±Inf` 或任意哨兵值冒充无效。
     3. **强制计数（禁止静默剔除）**：每个输出像素**必须**同时暴露被剔除样本的计数
        `n_rejected_nonfinite`（按原因分类：值非有限 / 方差非有限 / 权重非正）。
        计数为 0 与「字段缺失」**必须可区分**；缺失该计数的产品**不得**声称满足本规则。
+       **Phase3 承载面（已冻结，2026-09-23）**：`docs/contracts/DATA_SEMANTICS.md`
+       §30.7（DATA-P3-REJ-001）—— 诊断统计平面 `<p3 out_dir>/p3_rejection.bin`
+       （int32、W×H、行主序，0 即「无」、禁 −1 哨兵）+ `p3_resampled.json`
+       顶层 `diagnostic_planes.n_rejected_nonfinite`（`count_field` 逐字等于
+       `n_rejected_nonfinite`、`per_pixel=true`）+ `n_rejected_nonfinite_total`。
+       **不进** science planes 枚举（沿用 §30.2 阶段二 `nused`/`nrej` 诊断平面
+       先例：诊断平面由 artifact manifest 声明描述，science 枚举零改动）。
+       判据 = `eng/tools/quality/check_p3_rejection_count.py`。
     4. **帧间集成**：某帧在该像素的输出非有限时，该帧作为**候选被剔除并计数**；
        **不得**因单帧非有限而把该像素整体判为 `INVALID_INPUT`（`integrate.cpp` 合同：仅
        「全部候选非有限」才报无效）。零合格候选 ⇒ 规则 2。
@@ -152,16 +168,26 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     | 无覆盖（帧足迹外、drop 未触及） | 无候选样本 | `NaN / support=0`，`n_rejected=0` |
     | 无信息（该源像素在**全部**帧都非有限） | 有候选、零合格 | `NaN / support=0`，`n_rejected>0` |
     | 坏点 / 坏列 / 饱和 / 宇宙线（部分帧或部分样本坏） | 掩膜 + 重归一 | **有限值** + `support>0` + `n_rejected>0` |
-    | 全部样本合格 | 无剔除 | 有限值 + `support>0` + `n_rejected=0` |
+    | 有覆盖但该源像素方差不可用（`V_j` 有限且 `V_j ≤ 0`） | 计入 `F_p`/`D_p`，不计入 `Var_p` | **有限值** + `support>0` + `variance=0 ∧ ivar=0`（方差面显式不可用） |
+    | 方差面损坏（`V_j` 非有限） | 该样本按不合格样本剔除并计数 | `n_rejected_nonfinite_variance>0`（§4a：非有限 = 产品损坏） |
+    | 全部样本合格 | 无剔除 | 有限值 + `support>0` + `n_rejected=0` + `variance>0` |
 
-    **下游可判定性**：下游可仅凭 `(isnan(signal), support, n_rejected)` 三元组把上表四行
-    **完全分开**（实验判据 C3c 实测 100% 可分）。因此「无覆盖」与「有覆盖但全坏」在**诊断层**
-    可区分，在**科学语义层**同为「无效」。
+    **下游可判定性**：下游可仅凭 `(isnan(signal), support, n_rejected, variance==0 ∧ ivar==0)`
+    四元组把上表六行**完全分开**（实验判据 C3c 实测 100% 可分；「有覆盖但方差不可用」行由
+    `signal` 有限 ∧ `support>0` ∧ `variance=0 ∧ ivar=0` 与「全部样本合格」行的
+    `variance>0` 区分，与「无覆盖」行的 `signal=NaN` 区分，与「坏样本」行的
+    `n_rejected>0` 区分）。因此「无覆盖」与「有覆盖但全坏」在**诊断层**可区分，在
+    **科学语义层**同为「无效」；「有覆盖但方差不可用」在**科学语义层**为**有效**
+    （`signal` 有限、`support>0`），只在**方差面**显式不可用 —— 这与 §4a
+    「无覆盖/无方差信息像素写 `variance=0` 且 `ivar=0`」及 §20.1「`ivar==0` = 合法零权重、
+    `variance==0` = 无信息」逐字一致。
 
     **一句话版本**：**NaN 在重采样与集成中按「样本级掩膜、重归一、覆盖级 NaN、强制计数」处置**：
     不合格样本从聚合的分子/分母/方差中一并剔除并重新归一（**不得**传播为使整像素无效的 NaN，
     **不得**以 0 替代，**不得**静默剔除）；仅当零合格样本时输出 `signal=NaN ∧ support≤0`，
     且每个输出像素必须暴露被剔除样本计数。
+    **方差可用性是独立通道**：`V_j` 有限且 `≤ 0` 的合格样本照常贡献 `F_p`/`D_p` 与覆盖，
+    方差面写 `variance=0 ∧ ivar=0`（显式不可用，**不得**由 clamp/常数/地板产生）。
 
     **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ASTROCS_DESIGN.md` §5.5）；
     `docs/standards/NUMERIC_STANDARD.md`（§MUST）与 `docs/standards/STANDARDS_REGISTRY.md`

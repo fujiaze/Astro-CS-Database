@@ -11,11 +11,11 @@
 //      trace_violations 为空（无隐藏 session 重复调用）。
 //   4. complete 门 fail-closed: p2_session manifest status="partial"（链不完整,
 //      availability 7 域如实报告, 不冒充完成）。
-//   5. DATA-UNC-001 §30: weight_mode=2 逆方差合成（ivar_mosaic=Σivar_i,
+//   5. DATA-UNC-001 §30: 逐样本 ivar 逆方差合成（ivar_mosaic=Σivar_i,
 //      variance=1/W, 经 AIO variance 通道 §12.3/§12.4 归约）; ivar 产品缺失
 //      fail-closed（禁静默）—— 由 HiPS 头帧级 SNR 现场换算权重
 //      （w = SNR²/F_ref², weight-chain-report §6），键缺失同样 fail-closed;
-//      RELEASE-02 SD-15 起 legacy_allow_weight_fallback=true 不再产生成功
+//      §9.73 A44 起 legacy_allow_weight_fallback **已删除**（出现即拒绝），不再产生成功
 //      等权降级（只登记 provenance），故 4e/(c) 断言 fail-closed。
 //   6. 负向/确定性/1-N worker parity/fail-fast 下游 call_count=0。
 //
@@ -280,6 +280,26 @@ std::string read_file(const std::string& p) {
   std::string s((std::istreambuf_iterator<char>(f)),
                 std::istreambuf_iterator<char>());
   return s;
+}
+
+// §9.73 裁决 A44：已删除键的**出现面**必须直接判 validate_config（配置准入面）。
+// 不能经 run_node 断言 —— run_node 在 validate 失败时提前 return 且**不回填** rc，
+// 会把「被拒绝」误报成 ok（恒真判据）。本助手同时要求拒绝理由点名该键并引用裁决条款。
+void expect_config_rejected(ModuleRegistry& reg, const std::string& module_id,
+                            const std::string& config_json, const std::string& key) {
+  auto m = reg.create(module_id);
+  CHECK_MSG(m.ok(), (module_id + ": create failed").c_str());
+  if (!m.ok()) return;
+  const Result<void> v = m.value()->validate_config(config_json);
+  CHECK_MSG(v.failed(), (module_id + ": " + key + " must be rejected").c_str());
+  if (v.failed()) {
+    const std::string msg = v.error().message();
+    CHECK_MSG(msg.find(key) != std::string::npos,
+              ("reject must name the deleted key '" + key + "': " + msg).c_str());
+    CHECK_MSG(msg.find("§9.73") != std::string::npos &&
+                  msg.find("A44") != std::string::npos,
+              ("reject must cite §9.73 裁决 A44: " + msg).c_str());
+  }
 }
 
 json run_node(ModuleRegistry& reg, const std::string& module_id,
@@ -820,15 +840,23 @@ static void test_negative_and_fallback() {
     CHECK_MSG(rc.failed(), "missing upstream artifact must fail closed");
     CHECK(!fs::exists(fs::path(fx.out + "/p2_samples.json")));
   }
-  // 4c. weight_mode=0（legacy SNR）→ 非科学方差面, DATA 拒（§30.1 规则 1）
+  // 4c. §9.73 裁决 A44：weight_mode **已删除** ⇒ 任何取值在配置准入面即被拒绝
+  //     （含原「合法值」2 与字符串形态）。判据较原实现收紧：原来只拒域外整数。
+  for (const char* v : {"0", "2", "99", "-3", "\"2\"", "\"equal\"", "\"auto\""}) {
+    expect_config_rejected(reg, "astrocs.phase2.integrate",
+                           ivar_cfg(fx, std::string(",\"weight_mode\":") + v),
+                           "weight_mode");
+  }
+  // 非退化对照：键缺席时同一配置必须放行（否则上面的拒绝不构成判据）。
   {
-    Result<void> rc;
-    run_node(reg, "astrocs.phase2.integrate",
-             ivar_cfg(fx, R"(,"weight_mode":0)"), ctx, &rc);
-    CHECK_MSG(rc.failed(), "weight_mode=0 must be rejected in node chain");
+    auto m = reg.create("astrocs.phase2.integrate");
+    CHECK(m.ok());
+    if (m.ok())
+      CHECK_MSG(m.value()->validate_config(ivar_cfg(fx)).ok(),
+                "weight_mode absent must be admitted (non-degenerate control)");
   }
   // 4d. 输入无 ivar 子产品（ivar fixture 副本删除 ivar/ 目录, 保留 signal/
-  //     support —— 模拟 Phase1 真实产物面）+ weight_mode=2 默认 → integrate
+  //     support —— 模拟 Phase1 真实产物面）+ 单一口径（逐样本 ivar）→ integrate
   //     fail-closed（§30.1 unavailable 规则 2 前置: 无 fallback 禁静默）
   {
     const fs::path root2 = fx.root.parent_path() /
@@ -851,39 +879,63 @@ static void test_negative_and_fallback() {
     })";
     Result<void> ff;
     json last = run_p2_chain(reg, cfg, ctx, 6, &ff);   // 到 integrate
-    CHECK_MSG(ff.failed(), "ivar product missing + weight_mode=2 must fail closed");
+    CHECK_MSG(ff.failed(), "ivar product missing under the single weight path must fail closed");
     CHECK(!fs::exists(fs::path(out + "/p2_integrated.json")));   // 无伪产物
     // 仅在确实失败时取 error()（故障注入面下 ff 可能为 ok —— error() 会 abort
     // 而非判红; 判据本身不放松, 只是把 abort 变成可读的断言失败）。
     if (ff.failed())
       CHECK(ff.error().message().find("ivar") != std::string::npos);
-    // 4e. legacy_allow_weight_fallback=true **不再产生成功降级路径**
-    //     （RELEASE-02 SD-15 / weight-chain-report §5/§6.3: 该键只登记 provenance,
-    //     模块恒不返回成功等权结果）。缺 ivar 且无 HiPS 帧级 SNR 键
-    //     （ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX）⇒ 权重链 fail-closed。
-    //     旧断言 "等权降级成功 + weight_basis=unit_weight_degraded" 编码的正是
-    //     被删除的 L3 假绿路径; 正确行为 = 失败且不留任何伪产物。
-    const std::string cfg_fb = R"({
-      "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
-                    (root2 / "F2.hips").string() + R"("],
-      "output_dir": ")" + out + R"(",
-      "legacy_allow_weight_fallback": true
-    })";
-    Result<void> ff2;
-    run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
-    CHECK_MSG(ff2.failed(),
-              "legacy_allow_weight_fallback=true must NOT succeed when ivar and"
-              " frame-SNR keys are absent (fail-closed, no equal-weight degradation)");
-    CHECK_MSG(!fs::exists(fs::path(out + "/p2_integrated.json")),
-              "fail-closed weight chain must not leave a pseudo integrated artifact");
-    CHECK_MSG(!fs::exists(fs::path(out + "/p2_final.json")),
-              "fail-closed weight chain must not leave p2_final.json");
-    if (ff2.failed()) {
-      const std::string msg = ff2.error().message();
-      CHECK_MSG(msg.find("NOT closed") != std::string::npos,
-                ("weight chain must report closure failure: " + msg).c_str());
-      CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
-                ("diagnostic must name the removed degradation exit: " + msg).c_str());
+    // 4e. legacy_allow_weight_fallback **已按 §9.73 裁决 A44 删除**（同批清理）。
+    //     两面都必须失败且不留任何伪产物；旧断言 "等权降级成功 +
+    //     weight_basis=unit_weight_degraded" 编码的正是被删除的 L3 假绿路径。
+    //  (i) 该键**出现** ⇒ 配置准入面即具名 fail-closed 拒绝（既不能被设、也不能被读）。
+    //      判据落在 validate_config 上：该键在**每个**节点都被拒绝（阶段内一致）。
+    {
+      const std::string cfg_revive = R"({
+        "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
+                      (root2 / "F2.hips").string() + R"("],
+        "output_dir": ")" + out + R"(",
+        "legacy_allow_weight_fallback": true
+      })";
+      for (const char* mid : {"astrocs.phase2.coverage", "astrocs.phase2.integrate",
+                              "astrocs.phase2.write"})
+        expect_config_rejected(reg, mid, cfg_revive, "legacy_allow_weight_fallback");
+      // 非退化对照：去掉该键后同一配置必须放行。
+      const std::string cfg_clean = R"({
+        "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
+                      (root2 / "F2.hips").string() + R"("],
+        "output_dir": ")" + out + R"("
+      })";
+      auto mc = reg.create("astrocs.phase2.integrate");
+      CHECK(mc.ok());
+      if (mc.ok())
+        CHECK_MSG(mc.value()->validate_config(cfg_clean).ok(),
+                  "legacy key absent must be admitted (non-degenerate control)");
+    }
+    //  (ii) 该键**缺席**且缺 ivar、无 HiPS 帧级 SNR 键（ASTROCS_FRAME_SNR/
+    //       ASTROCS_REFERENCE_FLUX）⇒ 权重链未闭合，同样 fail-closed。
+    {
+      const std::string cfg_fb = R"({
+        "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
+                      (root2 / "F2.hips").string() + R"("],
+        "output_dir": ")" + out + R"("
+      })";
+      Result<void> ff2;
+      run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
+      CHECK_MSG(ff2.failed(),
+                "no legacy key + ivar missing + no frame-SNR keys must fail closed"
+                " (no equal-weight degradation)");
+      CHECK_MSG(!fs::exists(fs::path(out + "/p2_integrated.json")),
+                "fail-closed weight chain must not leave a pseudo integrated artifact");
+      CHECK_MSG(!fs::exists(fs::path(out + "/p2_final.json")),
+                "fail-closed weight chain must not leave p2_final.json");
+      if (ff2.failed()) {
+        const std::string msg = ff2.error().message();
+        CHECK_MSG(msg.find("NOT closed") != std::string::npos,
+                  ("weight chain must report closure failure: " + msg).c_str());
+        CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
+                  ("diagnostic must name the removed degradation exit: " + msg).c_str());
+      }
     }
     fs::remove_all(root2, ec);
   }
@@ -1021,10 +1073,11 @@ static void test_worker_parity() {
   }
 }
 
-// ── IVAR-001: weight_mode 域/审计面 + 缺 ivar 的 fail-closed 与显式降级门 ───
-// 依据: DATA-UNC-001 §30.1 规则 1/2（mode 2 = 逐样本 ivar; 缺 → fail-closed;
-// 唯一显式出口 = legacy_allow_weight_fallback=true 的等权降级 +
-// uncertainty_available=false）+ SCI-CW-001 §5（生产默认无 fallback）+
+// ── IVAR-001: 单一路径/审计面 + 缺 ivar 的 fail-closed 门 ───────────────────
+// 依据: §9.73 裁决 A44（weight_mode 与 legacy_allow_weight_fallback 均已删除；
+// 唯一权重口径 = 逐样本 ivar 逆方差，无可选择项）+ DATA-UNC-001 §30.1 规则 2
+// （ivar 缺失 ⇒ fail-closed；唯一自动降级面 = 帧级 SNR 链，且由数据可用性决定，
+// 不是用户开关；该面下 uncertainty_available=false）+ SCI-CW-001 §5（生产无 fallback）+
 // DATA-P2-HIPS §20.1（读端 AIO_HIPS_RD_IVAR 强制打开）。
 // 故障注入面: ASTROCS_IVAR_FAULT=silent_fallback（等价缺陷: 缺 ivar 静默等权
 // 降级且不标降级）⇒ 本门必然判红。
@@ -1052,26 +1105,27 @@ static void test_ivar001_weight_mode_domain_and_audit() {
   })";
   RunContext ctx;
 
-  // (a) weight_mode 域门（ivar 齐备夹具 → 失败只可能归因于 mode 域）
+  // (a) weight_mode 域门（ivar 齐备夹具 → 失败只可能归因于该键本身）
+  //     §9.73 裁决 A44：该键**已删除** ⇒ 任何取值都必须 fail-closed 具名拒绝。
+  //     判据较原实现**收紧**：原来只拒绝域外整数（0/99/-3），把 2 当合法；
+  //     现在键不存在，原「合法值 2」与字符串形态同样拒绝。
   {
     IvarFixture fx = make_ivar_fixture("domain");
-    auto mode_fail = [&](const std::string& extra, const std::string& want) {
-      Result<void> rc;
-      run_p2_chain(reg, ivar_cfg(fx, extra), ctx, 6, &rc);
-      CHECK_MSG(rc.failed(), ("weight_mode" + extra + " must fail closed").c_str());
-      if (rc.failed())
-        CHECK_MSG(rc.error().message().find(want) != std::string::npos,
-                  ("illegal weight_mode diagnostic must echo the actual value ('" +
-                   want + "'): " + rc.error().message()).c_str());
+    auto mode_fail = [&](const std::string& extra) {
+      expect_config_rejected(reg, "astrocs.phase2.integrate", ivar_cfg(fx, extra),
+                             "weight_mode");
     };
-    mode_fail(R"(,"weight_mode":0)", "weight_mode 0");      // §30.1 规则 1
-    mode_fail(R"(,"weight_mode":99)", "weight_mode 99");    // SMOKE-001 D10 回归锚
-    mode_fail(R"(,"weight_mode":-3)", "weight_mode -3");
-    // 非整数形态由 validate_config 拒绝（禁隐式字符串转换）
+    mode_fail(R"(,"weight_mode":0)");       // 原域外值
+    mode_fail(R"(,"weight_mode":2)");       // 原「合法值」：A44 后同样拒绝
+    mode_fail(R"(,"weight_mode":99)");      // SMOKE-001 D10 回归锚
+    mode_fail(R"(,"weight_mode":-3)");
+    mode_fail(R"(,"weight_mode":"2")");     // 字符串形态（禁隐式转换）
+    mode_fail(R"(,"weight_mode":"equal")"); // legacy 口径 token
+    // 非整数形态同样由 validate_config 拒绝（禁隐式字符串转换）
     {
       auto m = reg.create("astrocs.phase2.integrate");
       CHECK(m.ok());
-      const Result<void> v = m.value()->validate_config(ivar_cfg(fx, R"(,"weight_mode":"2")"));
+      const Result<void> v = m.value()->validate_config(ivar_cfg(fx, R"(,"weight_mode":"auto")"));
       CHECK_MSG(v.failed(), "weight_mode string must be rejected by validate_config");
     }
     // 默认路径: ivar 齐备 → 成功 + 审计面 weight_basis=per_sample_ivar
@@ -1091,17 +1145,17 @@ static void test_ivar001_weight_mode_domain_and_audit() {
     fs::remove_all(fx.root);
   }
 
-  // (b) 缺 ivar（默认 mode 2）→ fail-closed; 无伪产物
+  // (b) 缺 ivar（单一口径 = 逐样本 ivar）→ fail-closed; 无伪产物
   {
     Result<void> ff;
     run_p2_chain(reg, cfg_noivar, ctx, 6, &ff);
     if (fault_silent) {
       // 等价缺陷注入: 静默等权降级（不 fail-closed）⇒ 门必红。
       CHECK_MSG(false,
-                "FAULT-INJECT: missing ivar under weight_mode=2 must fail closed"
+                "FAULT-INJECT: missing ivar under the single weight path must fail closed"
                 " (ASTROCS_IVAR_FAULT=silent_fallback proves this gate is live)");
     } else {
-      CHECK_MSG(ff.failed(), "missing ivar + default weight_mode=2 must fail closed");
+      CHECK_MSG(ff.failed(), "missing ivar under the single weight path must fail closed");
       CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
                 "fail-closed path must not leave a pseudo integrated artifact");
       if (ff.failed()) {
@@ -1110,25 +1164,39 @@ static void test_ivar001_weight_mode_domain_and_audit() {
         CHECK_MSG(msg.find("2/2") != std::string::npos,
                   ("diagnostic must report the missing-frame count: " + msg).c_str());
         CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
-                  ("diagnostic must name the only explicit degradation exit: " + msg).c_str());
+                  ("diagnostic must name the deleted degradation exit: " + msg).c_str());
       }
     }
   }
 
-  // (c) legacy_allow_weight_fallback=true 不再有成功降级路径（禁静默/禁假绿）
-  //     —— 与 4e 同口径: 缺 ivar 且无 HiPS 帧级 SNR 键 ⇒ 权重链 fail-closed,
-  //     不写 p2_integrated.json / p2_final.json, 不存在 unit_weight_degraded 面。
+  // (c) legacy_allow_weight_fallback **已按 §9.73 裁决 A44 删除**（禁静默/禁假绿）
+  //     两面: (i) 键复活 ⇒ 具名拒绝; (ii) 键缺席 + 缺 ivar + 无帧级 SNR 键 ⇒
+  //     权重链 fail-closed。均不写 p2_integrated.json / p2_final.json,
+  //     不存在 unit_weight_degraded 面。
   {
-    const std::string cfg_fb = R"({
+    const std::string cfg_revive = R"({
       "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
         (root2 / "F2.hips").string() + R"("],
       "output_dir": ")" + out2 + R"(",
       "legacy_allow_weight_fallback": true
     })";
+    expect_config_rejected(reg, "astrocs.phase2.integrate", cfg_revive,
+                           "legacy_allow_weight_fallback");
+    CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
+              "rejected config must not leave a pseudo integrated artifact");
+    CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_final.json")),
+              "rejected config must not leave p2_final.json");
+  }
+  {
+    const std::string cfg_fb = R"({
+      "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
+        (root2 / "F2.hips").string() + R"("],
+      "output_dir": ")" + out2 + R"("
+    })";
     Result<void> ff2;
     run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
     CHECK_MSG(ff2.failed(),
-              "legacy_allow_weight_fallback=true must fail closed"
+              "no legacy key + ivar missing + no frame-SNR keys must fail closed"
               " (equal-weight degradation success path removed)");
     CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
               "fail-closed path must not leave a pseudo integrated artifact");

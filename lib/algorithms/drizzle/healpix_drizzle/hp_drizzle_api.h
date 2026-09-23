@@ -30,9 +30,14 @@ typedef struct {
     // ── G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
     // 样本级掩膜强制计数（禁静默剔除）。**只增不改**：新字段一律追加在尾部，
     // 既有字段偏移不变（已编译的 DLL/ctypes 消费者不受影响）。
-    // 语义: 不合格样本 = ¬isfinite(x_j) ∨ ¬isfinite(V_j) ∨ V_j ≤ 0；
+    // 语义: 不合格样本 = ¬isfinite(x_j)（值非有限即不合格）；
     //       被剔除样本从 F_p（分子）、D_p（分母）、Var_p（方差）三项一并剔除
     //       并重新归一；仅 D_p=0 时输出 signal=NaN ∧ support≤0。
+    // 方差可用性 = 独立通道，**不参与**合格性判定：V_j 有限且 V_j ≤ 0 属
+    //       「有覆盖但无方差信息」⇒ 信号与几何权重照常计入 F_p/D_p（保信号、
+    //       保覆盖），仅不计入 Var_p；产品面按 DATA_SEMANTICS §4a 表达为
+    //       variance=0 ∧ ivar=0（显式不可用），**禁止**用常数/地板/哨兵值顶替。
+    //       V_j 非有限 = 方差面损坏（§4a）⇒ 按不合格样本剔除并计入下方方差计数。
     // n_rejected_nonfinite = value + variance + nonpositive_weight（可加、互斥）。
     int64_t n_rejected_nonfinite;            // 合计（按原因分类见下三字段）
     int64_t n_rejected_nonfinite_value;      // 值非有限 (NaN/Inf)

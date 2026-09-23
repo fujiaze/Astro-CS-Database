@@ -136,8 +136,12 @@ inline float base_signal(uint32_t x, uint32_t y) {
   return 100.0f + 0.1f * static_cast<float>((x * 7u + y * 13u) % 5u);
 }
 
+// frame_snr/ref_flux > 0 ⇒ 写 RELEASE-02 SD-15 帧级 SNR 键（ASTROCS_FRAME_SNR /
+// ASTROCS_REFERENCE_FLUX）。§9.73 裁决 A44 后，这是「ivar 缺失 ⇒ 方差面不可用」
+// 的**唯一合法出口**（帧级 SNR 逆方差链; §30.1 规则 2），不再是 legacy 等权降级。
 bool write_ivar3_frame(const std::string& path, double ivar, float offset,
-                       bool with_outliers) {
+                       bool with_outliers, double frame_snr = 0.0,
+                       double ref_flux = 0.0) {
   AioHipsProductSet* ps = aio_hips_product_begin(
       path.c_str(), kNside, kTw, AIO_HIPS_FLOAT32,
       AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
@@ -179,6 +183,14 @@ bool write_ivar3_frame(const std::string& path, double ivar, float offset,
     aio_hips_abort(ps);
     return false;
   }
+  // §9.73 A44: 帧级 SNR 键是「ivar 缺失 ⇒ 方差面不可用」的唯一合法出口。
+  if (frame_snr > 0.0 || ref_flux > 0.0) {
+    if (aio_hips_set_frame_snr(ps, frame_snr, ref_flux) != 0) {
+      std::fprintf(stderr, "fixture frame-snr set failed: %s\n", aio_hips_last_error());
+      aio_hips_abort(ps);
+      return false;
+    }
+  }
   if (aio_hips_finalize(ps) != 0) {
     std::fprintf(stderr, "fixture finalize failed: %s\n", aio_hips_last_error());
     return false;
@@ -192,7 +204,8 @@ struct Fixture3 {
   std::string out;
 };
 
-Fixture3 make_fixture3(const char* tag) {
+Fixture3 make_fixture3(const char* tag, double frame_snr = 0.0,
+                       double ref_flux = 0.0) {
   Fixture3 fx;
   fx.root = fs::temp_directory_path() /
             ("p2002_f3_" + std::string(tag) + "_" + std::to_string(P2002_GETPID));
@@ -201,12 +214,12 @@ Fixture3 make_fixture3(const char* tag) {
   fx.hips1 = (fx.root / "F1.hips").string();
   fx.hips2 = (fx.root / "F2.hips").string();
   fx.hips3 = (fx.root / "F3.hips").string();
-  CHECK(write_ivar3_frame(fx.hips1, kIvar1, 0.0f, false));
+  CHECK(write_ivar3_frame(fx.hips1, kIvar1, 0.0f, false, frame_snr, ref_flux));
   // F2 offset 1（原域）→ corrected 域 ~100: UPM 校正残差 ≪ percentile 高阈
   // phigh·|median|≈1002（corrected 域信号 median≈10020）→ 正常像素远离
   // kernel 边界（拒绝面只由 F3 离群点驱动, 非临界混沌）
-  CHECK(write_ivar3_frame(fx.hips2, kIvar2, 1.0f, false));
-  CHECK(write_ivar3_frame(fx.hips3, kIvar3, 0.0f, true));     // kernel 拒绝面
+  CHECK(write_ivar3_frame(fx.hips2, kIvar2, 1.0f, false, frame_snr, ref_flux));
+  CHECK(write_ivar3_frame(fx.hips3, kIvar3, 0.0f, true, frame_snr, ref_flux));  // kernel 拒绝面
   fx.out = (fx.root / "p2out").string();
   fs::create_directories(fx.out, ec);
   return fx;
@@ -314,6 +327,26 @@ json run_p2_chain(ModuleRegistry& reg, const std::string& cfg, RunContext& ctx,
     }
   }
   return last;
+}
+
+// §9.73 裁决 A44：已删除键的**出现面**必须直接判 validate_config（配置准入面）。
+// 不能经 run_node 断言 —— run_node 在 validate 失败时提前 return 且**不回填** rc，
+// 会把「被拒绝」误报成 ok（恒真判据）。
+void expect_config_rejected(ModuleRegistry& reg, const std::string& module_id,
+                            const std::string& config_json, const std::string& key) {
+  auto m = reg.create(module_id);
+  CHECK_MSG(m.ok(), (module_id + ": create failed").c_str());
+  if (!m.ok()) return;
+  const Result<void> v = m.value()->validate_config(config_json);
+  CHECK_MSG(v.failed(), (module_id + ": " + key + " must be rejected").c_str());
+  if (v.failed()) {
+    const std::string msg = v.error().message();
+    CHECK_MSG(msg.find(key) != std::string::npos,
+              ("reject must name the deleted key '" + key + "': " + msg).c_str());
+    CHECK_MSG(msg.find("§9.73") != std::string::npos &&
+                  msg.find("A44") != std::string::npos,
+              ("reject must cite §9.73 裁决 A44: " + msg).c_str());
+  }
 }
 
 template <typename T>
@@ -1533,10 +1566,19 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
       flux_buf[local] = static_cast<float>(s * c);
       cov_buf[local] = static_cast<float>(c);
       if (unc) {
+        // 与生产生产者（module_adapters.cpp p2_op_write）同口径三态
+        // （DATA_SEMANTICS §4a:49 / §12.4:423 / §30.4:2698）：无覆盖 → **有限 0**
+        // （writer 按 covered_area<=0 输出 NaN）；有覆盖 ∧ w>0 → c²/w；
+        // 有覆盖 ∧ w<=0 → NaN = 真损坏 ⇒ writer rc=-6。
+        // 不得用 NaN 当「无覆盖」哨兵（§4a:49「NaN/负只表示产品损坏」）。
         const double w = wsum_v[(size_t)i];
-        varnum_buf[local] = static_cast<float>(
-            (std::isfinite(w) && w > 0.0) ? (c * c) / w
-                                          : std::numeric_limits<double>::quiet_NaN());
+        if (!(c > 0.0)) {
+          varnum_buf[local] = 0.0f;
+        } else if (std::isfinite(w) && w > 0.0) {
+          varnum_buf[local] = static_cast<float>((c * c) / w);
+        } else {
+          varnum_buf[local] = std::numeric_limits<float>::quiet_NaN();
+        }
       }
       nused_local[local] = nused_v[(size_t)i];
       nrej_local[local] = nrej_feed[(size_t)i];
@@ -1635,17 +1677,42 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
 }
 
 // ── 4. §30.3 unavailable 面 ────────────────────────────────────────────────
-// RELEASE-02 SD-15: legacy_allow_weight_fallback=true 的**成功等权降级路径已删除**
-// （weight-chain-report §5/§6.3）。缺 ivar 且无 HiPS 帧级 SNR 键 ⇒ 权重链
-// fail-closed。旧断言 "fallback 后成功 + unavailable 面" 编码的正是被删除的假绿
-// 路径; 现分两步:
-//   4a) 断言该键 fail-closed（无伪产物）—— 新行为, 不放宽;
-//   4b) 用**唯一合法的 unavailable 出口** weight_mode=1（§30.1 规则 1: mode 1 =
-//       等权, 非科学方差面）重建 §30.3 unavailable 面, 保留五键/磁盘一致性覆盖。
+// §9.73 裁决 A44 后本面重建（判据强度不降）：
+//   legacy_allow_weight_fallback **已删除**（出现即拒绝）；weight_mode=1 亦然。
+//   故 unavailable 面的**唯一合法出口** = 帧级 SNR 逆方差链（§30.1 规则 2：
+//   ivar 缺失 + ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX 齐备 ⇒ 积分仍有权重、
+//   方差面 unavailable）。旧断言 "fallback 后成功 + unavailable 面" 编码的正是被
+//   删除的假绿路径; 现分三步:
+//   4a) 两个已删除键**出现** ⇒ 配置准入面即具名拒绝（无伪产物）；
+//   4a') 键缺席 + 缺 ivar + 无帧级 SNR 键 ⇒ 权重链 fail-closed（无伪产物）；
+//   4b) 帧级 SNR 链闭合 ⇒ §30.3 unavailable 面五键全写 + 磁盘一致。
 static void test_s303_unavailable_explicit() {
-  // 4a) legacy_allow_weight_fallback=true → fail-closed
+  // 4a) 已删除键出现 ⇒ 配置准入面拒绝（§9.73 A44）
   {
     Fixture3 fx = make_fixture3("unav_fb");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    expect_config_rejected(reg, "astrocs.phase2.integrate",
+                           chain_cfg(fx, R"(,"legacy_allow_weight_fallback":true)"),
+                           "legacy_allow_weight_fallback");
+    expect_config_rejected(reg, "astrocs.phase2.integrate",
+                           chain_cfg(fx, R"(,"weight_mode":1)"), "weight_mode");
+    // 非退化对照：键缺席时同一配置必须放行。
+    auto mc = reg.create("astrocs.phase2.integrate");
+    CHECK(mc.ok());
+    if (mc.ok())
+      CHECK_MSG(mc.value()->validate_config(chain_cfg(fx)).ok(),
+                "keys absent must be admitted (non-degenerate control)");
+    CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_integrated.json")),
+              "rejected config must not leave a pseudo integrated artifact");
+    CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_final.json")),
+              "rejected config must not leave p2_final.json");
+    fs::remove_all(fx.root);
+  }
+
+  // 4a') 键缺席 + 缺 ivar + 无 HiPS 帧级 SNR 键 ⇒ 权重链 fail-closed（无伪产物）
+  {
+    Fixture3 fx = make_fixture3("unav_noclose");
     ModuleRegistry reg;
     CHECK(register_phase_modules(reg).ok());
     std::error_code ec;
@@ -1654,10 +1721,8 @@ static void test_s303_unavailable_explicit() {
     fs::remove_all(fx.root / "F3.hips" / "ivar", ec);
     RunContext ctx;
     Result<void> ff;
-    run_p2_chain(reg, chain_cfg(fx, R"(,"legacy_allow_weight_fallback":true)"), ctx, &ff);
-    CHECK_MSG(ff.failed(),
-              "legacy_allow_weight_fallback=true must fail closed (successful"
-              " equal-weight degradation path removed)");
+    run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    CHECK_MSG(ff.failed(), "ivar missing + no frame-SNR keys must fail closed");
     CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_integrated.json")),
               "fail-closed weight chain must not leave a pseudo integrated artifact");
     CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_final.json")),
@@ -1666,25 +1731,25 @@ static void test_s303_unavailable_explicit() {
       const std::string msg = ff.error().message();
       CHECK_MSG(msg.find("NOT closed") != std::string::npos, msg.c_str());
       CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
-                ("diagnostic must name the removed degradation exit: " + msg).c_str());
+                ("diagnostic must name the deleted degradation exit: " + msg).c_str());
     }
     fs::remove_all(fx.root);
   }
 
-  // 4b) 显式 weight_mode=1 → unavailable 面五键全写 + 磁盘一致
+  // 4b) 帧级 SNR 链闭合（ivar 缺失 + 两键齐备）→ unavailable 面五键全写 + 磁盘一致
   {
-    Fixture3 fx = make_fixture3("unav");
+    Fixture3 fx = make_fixture3("unav", /*frame_snr=*/42.5, /*ref_flux=*/1000.0);
     ModuleRegistry reg;
     CHECK(register_phase_modules(reg).ok());
-    // 删 ivar/ 子产品（模拟 Phase1 真实产物面; mode 1 不消费 ivar）
+    // 删 ivar/ 子产品（模拟 Phase1 真实产物面; 帧级 SNR 链不消费 ivar）
     std::error_code ec;
     fs::remove_all(fx.root / "F1.hips" / "ivar", ec);
     fs::remove_all(fx.root / "F2.hips" / "ivar", ec);
     fs::remove_all(fx.root / "F3.hips" / "ivar", ec);
     RunContext ctx;
     Result<void> ff;
-    json wrman = run_p2_chain(reg, chain_cfg(fx, R"(,"weight_mode":1)"), ctx, &ff);
-    CHECK_MSG(ff.ok(), ff.ok() ? "mode=1 chain ok" : ff.error().message().c_str());
+    json wrman = run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+    CHECK_MSG(ff.ok(), ff.ok() ? "frame-SNR chain ok" : ff.error().message().c_str());
     if (ff.failed()) { fs::remove_all(fx.root); return; }
     json fin;
     try { fin = json::parse(read_file(wrman.value("final_artifact", ""))); }
@@ -1707,8 +1772,20 @@ static void test_s303_unavailable_explicit() {
       catch (...) { CHECK(false); }
       std::vector<int32_t> nused;
       CHECK(read_bin<int32_t>(intj["files"].value("nused", ""), 0, kTileSpan, &nused));
-      CHECK(nused[fitseq(100u, 100u)] == 3);   // 等权: 3 样本参与
+      CHECK(nused[fitseq(100u, 100u)] == 3);   // 3 帧帧级 SNR 权重均 >0 → 3 样本参与
       CHECK(nused[fitseq(480u, 480u)] == 0);
+      // §30.1 规则 2 的降级面必须**具名**（禁静默不可用）+ 权重口径如实登记。
+      CHECK_MSG(intj.value("uncertainty_available", true) == false,
+                "integrated must declare uncertainty_available=false");
+      CHECK_MSG(intj.value("uncertainty_unavailable_reason", std::string()) ==
+                    "ivar_product_missing_frame_snr_fallback",
+                ("unavailable reason must name the frame-SNR chain: " +
+                 intj.value("uncertainty_unavailable_reason", std::string())).c_str());
+      CHECK_MSG(intj.value("weight_basis", std::string()) == "frame_snr_ivar",
+                ("weight_basis must be frame_snr_ivar: " +
+                 intj.value("weight_basis", std::string())).c_str());
+      CHECK_MSG(intj.value("ivar_product_missing_frames", 0) == 3,
+                "all three frames must be reported as ivar-missing");
     }
     fs::remove_all(fx.root);
   }
