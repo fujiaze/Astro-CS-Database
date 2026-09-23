@@ -38,8 +38,8 @@
   （历史列名，权威语义=10–90% 截尾均值 |残差|，即 residual_scale）、
   [8]=eccentricity；dtype 全列 double/FLOAT64，单位 B/A/flux/mad=ADU、
   cx/cy/fwhm/eccentricity 如上。
-- 消费者：PHOTOMETRIC（必需块，缺失退出码 3，orchestrator.cpp:2563-2570）、
-  snr_psf_fit_quality（`snr_estimator.h:57-75` PsfFitQualityRow 同序映射）；
+- 消费者：PHOTOMETRIC（必需块，缺失退出码 3，orchestrator.cpp:2564-2570）、
+  snr_psf_fit_quality（`snr_estimator.h:57-74` PsfFitQualityRow 同序映射）；
   逐列 dtype/invalid 权威表见 **DATA_SEMANTICS §15.2 生产表布局 A**
   （该文件在飞，本文件只作消歧引用，不复制其表）。
 
@@ -60,7 +60,7 @@ F4: residual_scale=10–90% trimmed mean |residual|, robust_residual_sigma=resid
 F5: q_psf=A/residual_scale, q_psf为QA代理不进science weight
 ```
 
-来源: `dpsf_psf.cpp:13-18,66-95,351-368` `noise_model.cpp:35-37`
+来源: `dpsf_psf.cpp:13-18,66-95,351-368` `noise_model.cpp:35-36`
 
 ## 3 伪代码
 
@@ -75,7 +75,7 @@ function fit_psf_moffat4(image, cx,cy, fitRadius):
   LM 7参 Levenberg-Marquardt (dpsf_psf.cpp:lm_solve) iter≤50 tol=1e-6
     J via finite diff, Δ=(JᵀJ+λI)⁻¹ Jᵀr, λ adaptive
   post: FWHM=1.230310·sx/sy, flux=2πA·sxsy/3
-  θ消歧 4候选 {θ,π/2−θ,π/2+θ,π−θ} 取 trimmed-mad 最小 (dpsf_psf.cpp:351-363)
+  θ消歧 4候选 {θ,π/2−θ,π/2+θ,π−θ} 取 trimmed-mad 最小 (dpsf_psf.cpp:352-363)
   residual_scale = trimmed mean |image−model| (10–90%)
   q_psf = A / residual_scale
   guards: sx/sy>0 else reject (333-344), MAD==0 skip scale, 平坦星 reject
@@ -185,7 +185,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 | DISP-PSF-002 | 前向差分雅可比（:120 相对 1e-6/绝对 1e-8）+ 步后硬钳位（:175-177）破坏二阶收敛路径 | :120,175-177 |
 | DISP-PSF-003 | `DPSFFitParams.maxIter/tolerance` 死参数（LM 硬编码 1e-8/200）；§3 伪代码参数为旧稿 | :320-321,716-719 |
 | DISP-PSF-004 | 无取消检查点（OpenMP dynamic 4 处批拟合不可中断） | :528,635,738,866 |
-| DISP-PSF-005 | 无参数协方差/不确定性输出（科学专项 covariance 缺口，P1-PSF-IMPL 落地） | DPSFFitResult 12 字段 dynamic_psf.h:16-31 |
+| DISP-PSF-005 | 无参数协方差/不确定性输出（科学专项 covariance 缺口，P1-PSF-IMPL 落地） | DPSFFitResult 12 字段 dynamic_psf.h:17-31 |
 | DISP-PSF-006 | 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批）——**B2-A2（RESCUE-P0-05）已关闭**：批 f32/f64 新增可选逐星 `out_status`（`psf_status:INT32[N]`），成功行 compact，星 ID↔行映射可由状态真值唯一判定 | dynamic_psf.h:129-136,146,188 |
 
 ### 11.4 TEST-PSF-DESIGN-001（测试设计，P1-PSF-TEST 执行）

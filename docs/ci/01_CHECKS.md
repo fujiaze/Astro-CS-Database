@@ -30,7 +30,8 @@
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | ci 检查器 | P1 |
 | DOC-INDEX | 文档一致性 | 双向层级索引闭合（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed；跨域未修项台账 `eng/tools/doccheck/dangling_ledger.json` 只减不增） | `python3 eng/tools/doccheck/check_doc_index.py --strict` | P0 |
 | DOC-INDEX-SELFTEST | 文档一致性 | 上项的可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失各自判红） | `python3 eng/tools/doccheck/check_doc_index.py --self-test` | P0 |
-| ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚 + 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
+| DOC-LINE-ANCHORS | 文档一致性 | 全库文档行号锚 vs 源文件实测（扫描面 `docs/**/*.md`；C1 目标 tracked / C2 锚可解析且未解析须逐条登记 / C3 区间在界内 / C4 逐符号绑定 / C5 豁免项仍是活锚 / C6 锚的起止行**不得落在空行** / C7 `ANCHOR_CONTRACT.md` §1 规模声明与实测逐字相等 / C8 未解析登记台账只减不增；9 豁免 + 26 未解析逐条点名；fail-closed） | `python3 docs/algorithms/anchors/check_doc_line_anchors.py` | P0 |
+| ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚（扫描面 `docs/**/*.md`，与上项同面）+ `docs/algorithms/*.md` 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；空行判据归上项 C6，本项不重复；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
 | CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 不得出现负责人裁决逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1 编号表双向一致、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py` | P0 |
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | ci 检查器 | P1 |
@@ -148,6 +149,51 @@
 | `CHK-FMT`（格式门） | clang-format 纳入 `eng/ci/toolchain.policy.json` + checker 带 `--self-test` |
 | `CHK-DUAL-TOL`（双平台误差） | Windows 侧可比候选产物 + checker 带可执行负例 |
 | `CHK-AGENT-HARD-RULES` | 语义由 `AGENTS-GOV` 承接；重新注册须有非重复判据 |
+
+#### 未注册检查器处置台账（§2.1.1）
+
+对 `eng/**/check_*.py` 与 `eng/ci/checks.json` 做**精确路径**交叉比对（脚本路径必须作为注册表
+某条 command 的实参出现才算在册；仅出现在 `changed_paths` 不算）：在册 88 个、未注册 24 个。
+未注册的 24 个里 4 个位于 `eng/tests/**`（夹具与示例，不属检查器面），余 20 个按下述三类定案；
+每条的实跑结论与规范依据见对应任务的回执，不在此复述。
+
+- **应注册（7）**——判据面无在册门承接，且能红能绿：
+  `eng/tools/check_baseline_opcodes.py`、`eng/tools/check_gates_and_tolerances.py`、
+  `eng/tools/check_link_scan.py`、`eng/tools/check_version_consistency.py`
+  （`docs/VERSIONING.md` §4 点名的 VER-001 机器检查）、
+  `eng/tools/quality/check_cmake_usebeforedef.py`、
+  `eng/tools/quality/check_master_unit_guard.py`、
+  `eng/tools/quality/check_module_id_normalization.py`
+  （烧毁式基线 `docs/modules/registry/module_id_migration_baseline.json` 已写明注册交接）。
+  `check_link_scan.py` 注册前须先补 fail-closed（默认二进制路径缺失时不得判绿）与可执行负例入口。
+- **应退役（10）**——判据面已被在册门承接，或判据对象已随控制包收口删除：
+  `eng/tools/quality/check_task_result_schema.py`（本节已列退役，尚未按退役契约改造）、
+  `eng/tools/check_release_layout.py`、`eng/tools/check_release_consistency.py`、
+  `eng/tools/check_reproducible_build.py`、`eng/tools/check_final_traceability.py`、
+  `eng/tools/quality/check_commits_csv.py`、`eng/tools/check_p2_symbol_map.py`、
+  `eng/tools/check_traceability_matrix.py`（与在册 `TRACEABILITY-MATRIX` 同对象；其 RULE-A/RULE-B
+  不在 `docs/traceability/TRACEABILITY_SPEC.md` §4/§7 的合同判据内）。
+  已按退役契约改造完成的样板：`eng/tools/check_traceability.py`、`eng/tools/quality/check_comment_hygiene.py`。
+- **应删除（3）**——非检查器（无判据、无退出码语义）或旧副本，且无权威文档点名：
+  `eng/tools/quality/check_source_inventory.py`（枚举生成器，`main` 只有 `return 0`，产物落 `reports/**`）、
+  `eng/tools/quality/check_source_index_v61.py`、`eng/tools/check_p1_symbol_map.py`。
+
+**「登记项必须仍有对象」的判据落点**（按登记面分工，避免一个门管全部）：
+
+| 登记面 | 落点 | 状态 |
+|---|---|---|
+| 文档索引 / 文档内路径引用 | `DOC-INDEX` + 跨域台账 `eng/tools/doccheck/dangling_ledger.json` | 在册 |
+| `eng/ci/checks.json` 的 `changed_paths` glob | `CHK-PATH-DOMAIN-ANCHORS` | 在册 |
+| `eng/ci/checks.json` 的结构与命令路径锚 | `CHK-REGISTRY-VALIDATE`（R1–R15） | 在册 |
+| `eng/ci/mutation_gates.json` 的 driver/registration/evidence | `CHK-MUTATION-GATES`（`gone_artifacts` 棘轮） | 在册 |
+| `eng/ci/ctest_baseline.json` 的冻结目标 | `CHK-CTEST-REGISTRATION` C5（维护面 `--write-baseline`） | 在册 |
+| `eng/contracts/**` 与 `eng/ci/**` 登记 JSON 的**活引用路径** | `CHK-REGISTRATION-ANCHORS` | **实现已落地，注册项待写入** |
+
+`CHK-REGISTRATION-ANCHORS` = `eng/ci/check_registration_anchors.py`：R1 合同登记 JSON 的活引用
+（`path`/`doc_ref`/`implementations`/`entries` 等白名单键）必须存在；R2 登记册不得把对象登记到
+临时面 `run/`（`AGENTS.md` §7）；棘轮台账 `eng/ci/ledgers/registration_anchor_ledger.json`
+按 `(rule|file|class)` 逐值登记、只减不增；输入缺失或扫描面为空判红；含 `--self-test`（13 例正负例）。
+
 
 ---
 

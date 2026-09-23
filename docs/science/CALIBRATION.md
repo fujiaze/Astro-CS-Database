@@ -47,7 +47,7 @@
 
 ## 3a 坐标 frame
 
-校准为逐像素独立算术，**无坐标变换、无 WCS 处理**：输入帧与输出 `cal` 为同一 frame identity（`frame_id` 定义见 `docs/contracts/DATA_SEMANTICS.md#5`，payload 变化才变）；像素坐标语义沿用词典 `pixel_coordinate`（内部 0-based）。
+校准为逐像素独立算术，**无坐标变换、无 WCS 处理**：输入帧与输出 `cal` 为同一 frame identity（`frame_id` 定义见 `docs/contracts/DATA_SEMANTICS.md §5`，payload 变化才变）；像素坐标语义沿用词典 `pixel_coordinate`（内部 0-based）。
 
 ## 4 输入有效域
 

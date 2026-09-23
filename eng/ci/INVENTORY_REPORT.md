@@ -10,6 +10,10 @@
   按负责人裁决（GAP-032）**退役**，其唯一默认输入 `artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv` 已随
   `artifacts/` 整体删除（commit `b1290525`）。现行注册表以 `eng/ci/checks.json` 与
   `docs/ci/01_CHECKS.md §2.1 退役记录` 为准；本条为陈旧状态冒充活动状态的订正（ENGINEERING_SPEC §8）。
+- **订正记录（2026-09-23, DOC-DRIFT-FIX-01）**：§4 的 test_index.csv 行数**快照读数为 22**，
+  现行实测 **24 数据行**（表头不计），§4 标题已按现行读数订正；历史读数不回改，以本条为准。
+  判据由 `eng/tools/doccheck/check_test_index_live.py` 的 W4 逐字复测（口径 = 该门自己的
+  CSV 装载器；句式缺失即判红，禁止删句躲门）。
 - 负向样例：6 类缺陷（重复 id / 不存在命令 / heavy 无 monitor / mutates 入 fast / 非法 profile / 缺字段）全部 exit 1 拦截，证据在 `evidence/v8_1_ci_control/tasks/V8-CI-001/logs/`（validate_positive.log、/tmp 样例结果复制于 logs/validate_negative_*.log）
 
 ## 1. 盘点方法
@@ -45,7 +49,7 @@ profile 覆盖：fast=57、linux-main=70、windows-main=58、linux-deep/fatduck=
 | pytest | 无注册项依赖（全部 unittest 跑法）；hosted CI 可用 |
 | numpy（python 库） | UT-IO（3 errors） |
 
-## 4. eng/tests/ 单测盘点（eng/tests/test_index.csv 全目录覆盖，22 行）
+## 4. eng/tests/ 单测盘点（eng/tests/test_index.csv 全目录覆盖，24 行）
 
 - 实测总计 **554 个 unittest 用例**（根级可导入 11 目录 387 + 缺 `__init__.py` 目录式补测 4 目录 167；u05=eng/tests/quality 超时无计数）；
 - 纯 PASS 目录：glossary(5)、monitoring(60)、pipeline(6)、runtime(70,skip9)、sciencelint(6)、traceability(9)、artifact(137)、contracts(9)；

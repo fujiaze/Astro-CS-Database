@@ -59,5 +59,5 @@ P1-WCS-TEST 落地。
 
 ## Source files
 
-lib/algorithms/platesolve/cpp/ipv/（ipv_entry.cpp 649 行 12 导出 + 内核 13821 行；
+lib/algorithms/platesolve/cpp/ipv/（ipv_entry.cpp 809 行 12 导出 + 内核 13821 行；
 签名头正本 lib/include/ipv_api.h）。

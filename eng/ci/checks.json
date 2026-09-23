@@ -1025,10 +1025,11 @@
       ],
       "waivable": false,
       "changed_paths": [
-        "docs/algorithms/**",
+        "docs/**",
         "lib/**",
         "eng/tests/**",
-        "CMakeLists.txt"
+        "CMakeLists.txt",
+        "eng/tools/doccheck/check_alg_line_anchors.py"
       ],
       "requires_monitor": false
     },
@@ -2674,7 +2675,8 @@
           "changed_paths": [
             "eng/tests/test_index.csv",
             "eng/tests/**",
-            "eng/tools/doccheck/check_test_index_live.py"
+            "eng/tools/doccheck/check_test_index_live.py",
+            "eng/ci/INVENTORY_REPORT.md"
           ],
           "requires_monitor": true
         },

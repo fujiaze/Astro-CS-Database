@@ -129,7 +129,7 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（384 行；
   P2ControlObservation :31-57、P2ModelInfo :60-68、P2UpmBuildConfig
   :71-92、build :95-98、build_geo :103-107、save/open/info
   :108-110、calibrate_block :113-、evaluate_c :122、
@@ -209,7 +209,7 @@ p2_session.cpp:200-206）。
 - 错误面=rc 三态 + 调用方语义承载: rc=0 ok；rc=1 参数/绑定/open/
   parse/IO（:941/:945/:1009-1028/:1234 等）；rc=2 production 缺
   control ivar（:609→build 传播，upm.h:132-139 冻结）与 dense stale
-  cache（upm.h:166-167 注释 0=ok,1=io/parse,2=stale）。evaluate_c
+  cache（upm.h:167 注释 0=ok,1=io/parse,2=stale）。evaluate_c
   未知 frame_id=NaN（:1277-1280）。无 ACS_ERR_* 词汇（本页修订旧
   registry 派生内容）。
 - 取消: 会话消费面整模型不写半成品——upm_build 入口检查

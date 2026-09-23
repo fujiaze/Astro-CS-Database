@@ -68,7 +68,7 @@ p2_ir_facade_test.cpp:31-38 断言（{"coverage","sample","upm_build",
 
 | # | 段 | 输入端口（DATA-P2-SESSION §24） | 输出端口 | 被调用符号（path::symbol 实测锚） | 取消点 | 段内并行 |
 |---|---|---|---|---|---|---|
-| 1 | coverage | `hips_paths`: 非空 string[]（N 个 Phase1 单帧 HiPS 根） | P2CoverageResult（n_union_cells/union_cells/target_order，coverage.h:45-53） | p2_session.cpp:125/:138 p2_coverage_build（两遍 probe/fill，首查 :124 inputs=nullptr 查 union 容量）；:143-144 RAII guard p2_coverage_free | :120 段边界 | 无（串行 properties/MOC 读取） |
+| 1 | coverage | `hips_paths`: 非空 string[]（N 个 Phase1 单帧 HiPS 根） | P2CoverageResult（n_union_cells/union_cells/target_order，coverage.h:46-53） | p2_session.cpp:125/:138 p2_coverage_build（两遍 probe/fill，首查 :124 inputs=nullptr 查 union 容量）；:143-144 RAII guard p2_coverage_free | :120 段边界 | 无（串行 properties/MOC 读取） |
 | 2 | sample | 段 1 cov + `hips_paths` | P2ControlObservation[n_obs]（upm.h:31-57）+ P2ControlNode[n_controls] + P2SampleStats | :154 p2_sampler_default_config；:158/:167 p2_sample_controls（两遍 probe/fill，err 512B :166） | :152 段边界 | 域内 worker 池（sc.cpu_workers=host->budget.max_workers :155；池在 sampler.cpp 域内，本层不开线程） |
 | 3 | upm_build | 段 2 obs + uc 配置（§5 常量面） | opaque model（void*）+ P2ModelInfo（upm.h:60-68） | :204 p2_upm_build；:210 p2_upm_info | :181 段边界（段内无检查点——**整模型不写半成品**，p2_session.h:22） | 域内 blocks 并行（uc.cpu_workers=budget :195） |
 | 4 | persist（可选） | model + `upm_save_path` + `persist_upm` | .upm 文件 + manifest artifacts[] | :230 p2_upm_save；:224/:231/:241 p2_upm_close（所有权合同 p2_session.h:3——session 持有，恰一次释放） | :223-226（取消先 close model :224） | 无（串行 IO） |
@@ -154,7 +154,7 @@ passthrough 交会话拒——两道防线，语义一致。
 - **结构化日志**：host->logger 通道（log() :28-31）——run 起预算行
   （:115-117）、coverage ok cells=（:148）、sample ok obs=/overlap_
   controls=（:177-178）。
-- **域内 provenance 衔接**：逐帧 P2HipsInputInfo（coverage.h:31-43）
+- **域内 provenance 衔接**：逐帧 P2HipsInputInfo（coverage.h:32-43）
   由 coverage 域填充（session 仅预填 hips_path :130-134），frame_id/
   provenance/拒绝统计等域内 trace **不上浮**会话 manifest（manifest
   仅计数汇总）；sampler 域 stderr 诊断（DISP-P2SMP-003）不经本层。
@@ -169,7 +169,7 @@ passthrough 交会话拒——两道防线，语义一致。
 | 符号（声明锚） | coverage | sample | upm_build | persist | 合计/执行路径 |
 |---|---|---|---|---|---|
 | p2_coverage_build（coverage.h:57-59） | :125/:138 | — | — | — | 恰 2（probe/fill） |
-| p2_coverage_free（coverage.h:61） | :143-144 RAII | — | — | — | 恰 1（含失败路径） |
+| p2_coverage_free（coverage.h:62） | :143-144 RAII | — | — | — | 恰 1（含失败路径） |
 | p2_sampler_default_config（sampler.h:60） | — | :154 | — | — | 恰 1 |
 | p2_sample_controls（sampler.h:103-114） | — | :158/:167 | — | — | 恰 2（probe/fill） |
 | p2_upm_build（upm.h:95-97） | — | — | :204 | — | 恰 1 |
@@ -294,7 +294,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 锚定台账三条任务关键词（V7_1_STATIC_TASK_LEDGER.csv:186-188），
 对拍先例 eng/tests/unit/p1_ir_facade_test.cpp / p2_ir_facade_test.cpp
-（同址 add_test 注册 eng/tests/unit/CMakeLists.txt:354-358/:407-409）：
+（同址 add_test 注册 eng/tests/unit/CMakeLists.txt:354-357/:407-409）：
 
 - **T1 call-count 唯一性**（:186 "add node call-count tests …
   coverage through hips writer each once"）：§7 矩阵逐符号断言——

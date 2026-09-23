@@ -154,7 +154,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1240-1269
 
 ## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md §2 一致，逐条实现锚）
 
-**F1 raw weight**（p2_upm_raw_weight 单一实现 :1292-1323；upm.h:137-145）：
+**F1 raw weight**（p2_upm_raw_weight 单一实现 :1292-1323；upm.h:138-145）：
 
 ```text
 production（use_ivar_weight=1，默认）: raw_w = quality_factor × control_ivar
@@ -308,7 +308,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 | p2_upm_build / build_geo | 0 | 成功 | :926/:931/:937 |
 | 同上 | 1 | 参数错：null out_model/obs、**n_obs=0**、target_order<0（无有效 leaf 层级）；save/open 参数错与 IO/format/字段损坏同码 | :215、:246-249、:941、:1009-1028、:1064-1134、:1177-1227 |
 | 同上 | 2 | production 缺 control_ivar（raw_weight rc=2 传播；显式科学错误禁静默降级） | :1311→:602-610 |
-| p2_upm_raw_weight | 0/1/2 | ok / 参数错 / production 缺 control_ivar | :1294/:1311；语义注释 upm.h:137-145 |
+| p2_upm_raw_weight | 0/1/2 | ok / 参数错 / production 缺 control_ivar | :1294/:1311；语义注释 upm.h:138-145 |
 | p2_upm_calibrate_block | 0/1 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1244-1247、:1249-1252 |
 | p2_upm_evaluate_c | NaN | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵——M7-H-103） | :1301-1307 |
 | p2_upm_convergence | 0/1 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1257-1267 |
@@ -363,7 +363,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 | T3 | 并行等价：workers∈{1,2,4} 重复 build hash；1T/2T control_count | hash bit-exact（consistent=1）；count 精确相等 | eng/tests/api/test_upm_parallel.py test_01 :82-89（reps=4）、test_02 :91-101 |
 | T4 | 资源：20 次 build/close 循环 RSS | 增长 < 1024 KB | 同文件 test_03 :103-110（rss_kb :26；driver :32-50） |
 | T5 | dense/sparse 等价 | 1e-12（dense source hash 强校验） | UPM_SOLVER.md §8/§9 冻结面；dense_read_block :1542-1557 |
-| T6 | 权重公式 UPMW-001..007 + raw_weight rc=2 门 | UPMW 判据 exact/double_eq（测试源冻结）；rc=2 exact | synthetic_gate.cpp:3915 起；upm.h:137-145/:1311 |
+| T6 | 权重公式 UPMW-001..007 + raw_weight rc=2 门 | UPMW 判据 exact/double_eq（测试源冻结）；rc=2 exact | synthetic_gate.cpp:3915 起；upm.h:138-145/:1311 |
 | T7 | 退化链：单帧区 continuation / 断开分量 gauge / 空 obs rc=1 / 未知帧 rc=1 | rc exact；gauge frame id exact | upm.h:99-101；:415-491；:215；:1252 |
 
 负面矩阵：null 参数 rc=1、坏路径 open rc=1、format 不符 rc=1、
@@ -407,7 +407,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 | ID | 锚 | 内容 | 整改去向 |
 |---|---|---|---|
-| DISP-P2UPM-001 | upm.h:166-168 与 :173-175 | p2_upm_materialize_dense **重复声明**（同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | P2-UPM-IMPL |
+| DISP-P2UPM-001 | upm.h:167-168 与 :173-175 | p2_upm_materialize_dense **重复声明**（同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | P2-UPM-IMPL |
 | DISP-P2UPM-002 | upm.h:89-91 | cpu_workers 注释漂移：前半句"CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合"与实现不符（现无 OpenMP、std::thread 五段池，§8）；:91 后半句 Runtime lease 语义正确 | P2-UPM-IMPL（随 001 一并清） |
 | DISP-P2UPM-003 | p2_session.cpp:196-202 | upm 配置覆盖键仅 {max_iterations,huber_delta,smoothing_lambda}；zero_anchor_weight/tolerance 无 config 键（build 缺省修补面 ：244-245 只拦非法值，session 面不可配） | P2-SESSION-IMPL |
 | DISP-P2UPM-004 | lib/infrastructure/scheduler/src/module_adapters.cpp:665-698 | descriptor 端口语义占位：fit 行 upm_model=可选输出（:608 required=false）、apply 行 upm_model=必选输入（:626 required=true），与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件+p2_upm_open）不符 | P2-XX-INT |

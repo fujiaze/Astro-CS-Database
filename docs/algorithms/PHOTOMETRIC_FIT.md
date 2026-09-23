@@ -173,7 +173,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   descriptor 占位 ID（module_adapters.cpp:535-552）双轨并存，统一归
   P1-PHOT-INT。
 - **DISP-PHOT-008**: Photometer 孔径/天空环全图 O(h·w) 扫描 + 背景中值
-  整段排序（photometer.cpp:24-62），未优化且未接管线。
+  整段排序（photometer.cpp:25-62），未优化且未接管线。
 - **DISP-PHOT-009**: 帧级 QA 换算（sigma_mag/sigma_cal_rel）落位
   snr_estimator（snr_phot_cal_quality，noise_model.cpp:305），本模块仅
   登记边界。

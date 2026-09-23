@@ -46,7 +46,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
   p2_coverage_build（:144，唯一生产入口）/ p2_coverage_free（:233，
   POD memset 清零，不释放堆）/ parse_props（:20）/ inspect_frame
   （:59）；P2MocCell/P2HipsInputInfo/P2CoverageResult
-  （coverage.h:26-48）。
+  （coverage.h:27-48）。
 - 端口：入 calibrated（HiPS 树路径数组，`const char* const*
   [n_inputs]`）；出 coverage（union MOC，P2MocCell [K] 无量纲整数，
   **HEALPix NESTED equatorial/ICRS**——旧 descriptor 登记端口坐标

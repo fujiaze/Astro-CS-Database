@@ -86,8 +86,8 @@ lib/algorithms/coverage/{src,lib/include/astro/phase2,tools,tests}/。
 ## Coverage 子模块合同
 
 - coverage 环节=astrocs.p2.coverage（matrix P2-COV 行）：生产源
-  lib/algorithms/coverage/src/coverage.cpp（239 行）+ lib/include/astro/phase2/
-  coverage.h（59 行），2 个 C ABI 导出 p2_coverage_build/p2_coverage_free；
+  lib/algorithms/coverage/src/coverage.cpp（455 行）+ lib/include/astro/phase2/
+  coverage.h（172 行），2 个 C ABI 导出 p2_coverage_build/p2_coverage_free；
   合同=ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md）/
   DATA-COV-001（DATA_SEMANTICS §19）/ API-COV-001（PUBLIC_API）/
   模块合同页 docs/modules/registry/astrocs.phase2.coverage.md + 

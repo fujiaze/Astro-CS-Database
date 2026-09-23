@@ -102,7 +102,7 @@ control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 
 ## 4 算法结构：三阶段 background-clean 采样管线
 
-sampler.cpp:613-620 冻结注释将管线映射为
+sampler.cpp:614-620 冻结注释将管线映射为
 BACKGROUND_SAMPLER_SPEC.md Stage A-E；实现按三遍组织：
 
 | 阶段 | 遍 | 锚（sampler.cpp） | 语义 |
@@ -384,7 +384,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
   ACS_ERR 映射归 API-P2-001 编排面，不在本模块域）；
 - out_obs/out_controls 容量不足**不报错**：按 capacity 截断拷贝、
   out_n_* 返回真实需求量（:1101-1117；probe/fill 协议
-  sampler.h:106-107 冻结）；
+  sampler.h:107 冻结）；
 - 并发安全：无共享可变全局态（g_aio_mu 锁仅覆盖 read_tile_pair :166；并行路径 per-worker 独立句柄），reentrant
   yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL 整改点，与
   DISP-COV-005 同构）。

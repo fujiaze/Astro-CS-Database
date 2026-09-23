@@ -21,7 +21,7 @@ F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
     control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 ≤ k_corr
 F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，
     Σ_cell w_cell = control_reliability；求解器实际消费的就是它，upm.cpp:565）
-F3: Huber IRLS (标准无量纲残差, 对齐 upm.cpp:207-217,629-639):
+F3: Huber IRLS (标准无量纲残差, 对齐 upm.cpp:207-216,629-639):
     z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
     loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
     δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑

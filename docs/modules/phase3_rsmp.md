@@ -51,8 +51,8 @@
 
 ## 4 生产源
 
-- lib/algorithms/resample/p3_resample.h（58 行，签名头正本）+
-  lib/algorithms/resample/p3_resample.cpp（239 行）——十符号:
+- lib/algorithms/resample/p3_resample.h（201 行，签名头正本）+
+  lib/algorithms/resample/p3_resample.cpp（586 行）——十符号:
   P3ResampleStatus/p3_order_select/p3_resample_check_mode/
   P3SamplerImpl/P3Sampler/p3_sampler_open/p3_sampler_open_ex/
   p3_sampler_set_max_tiles/p3_sample_nearest/p3_sample_bilinear/
@@ -64,9 +64,9 @@
   lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/
   nested_local_to_fits_index/ang2pix/pix2ang 权威函数）。
 - 执行面: eng/tests/backend/p3_resample_probe_main.cpp（探针六模式）+
-  eng/tests/backend/test_p3_resample.py（156 行，seam/NaN/无静默默认）+
-  eng/tests/backend/test_p3003_parallel_resampler.py（104 行）+
-  eng/tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
+  eng/tests/backend/test_p3_resample.py（164 行，seam/NaN/无静默默认）+
+  eng/tests/backend/test_p3003_parallel_resampler.py（141 行）+
+  eng/tests/unit/p3_interp_test.cpp（137 行）/p3_coverage_test.cpp
   （106 行，独立参考实现）。
 
 ## 5 端口与 DATA

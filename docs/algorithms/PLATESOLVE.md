@@ -34,7 +34,7 @@ function solve_wcs(detections, gaia):
   matches = kd_match(triangles, gaia_triangles) tol=5.0"
   for each hypothesis:
     trans = iterative_reproject(matches) conv 0.01" max5 (ipv_solver.cpp)
-    sip = build_sip(trans) order 2-3, IRLS 15× ε1e-6 Huber 1.345 (ipv_sip.cpp:238-262)
+    sip = build_sip(trans) order 2-3, IRLS 15× ε1e-6 Huber 1.345 (ipv_sip.cpp:238-261)
     wcs = compose(CRPIX,CRVAL,CD, sip, Y-down)
     rms = residual(wcs, matches)
   best = min rms, rank by n_matches + rms
@@ -214,7 +214,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:767（ipv_api.h:211） | 回调变体 FP64 |
 | do_solve_from_detections_v1_impl | ipv_entry.cpp:581 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:188，:251-262/:288-299） |
 | IPVSolver::solve_from_memory | ipv_solver.cpp:781 | 主求解流程（入口日志 :794） |
-| 选星 + U 构建 | ipv_select.cpp:787-838（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1）、:840-852（样本不足报错，点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:57,:282） |
+| 选星 + U 构建 | ipv_select.cpp:787-837（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1）、:840-852（样本不足报错，点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:57,:282） |
 | 密度/目标星数 | ipv_select.cpp:260-330（`compute_fov_density`，rho_img 分子 = 实际样本基数，§4a.2） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
 | 极限星等迭代与交付 | ipv_select.cpp:374-556（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance）、:600-664（`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本不得作参考星表 |
 | 错误串编码归一 | ipv_entry.cpp:320-370（`utf8_safe_copy`，§4b）、:186-193（`set_error_msg`）、:179-185（`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
@@ -227,11 +227,11 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | ctype 选择 | ipv_wcs.cpp:283-290 | order≤1 → RA---TAN/DEC--TAN；否则 -SIP 后缀 |
 | SIP A/B 解析 | ipv_wcs.cpp:322-365 | cd_inv=inv(trans 线性项)（det<1e-15 warn :322-325）；A[i*6+j]=cd_inv·trans.x_ij（F3） |
 | SIP AP/BP 网格反变换 | ipv_wcs.cpp:395-527 | 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）最小二乘；AP[6]−=1、BP[1]−=1（:505-509，F4）；奇异仅 warn（:521-523） |
-| RMS 统计 | ipv_wcs.cpp:483-517 | rms_arcsec=√(Σr²/n)；rms_px=rms_arcsec/s0 |
+| RMS 统计 | ipv_wcs.cpp:484-516 | rms_arcsec=√(Σr²/n)；rms_px=rms_arcsec/s0 |
 | Y-down 输出转换 | ipv_wcs.cpp:528-576 | cd12/cd22 取反（:542-544）；A/B/AP/BP 符号规则（:546-571，F5） |
 | inlier 缓存 | ipv_solver.cpp:756-764 | cache_last_inliers_（WCS Gate v2 双层闭环） |
 | orchestrator 过滤+坐标契约 | orchestrator.cpp:1855-1876 | star_measurements [N,≥15] FLOAT64；status∈{0,3}、sat r[13]、fwhm r[7]∈[0.5,20]、边缘 5px；**+0.5 转换 :1867**（统一契约 index-is-center → IPV 接口契约 center=index+0.5）；sdet fallback 坐标已是 +0.5 契约（:1878） |
-| orchestrator 调用与写回 | orchestrator.cpp:1967-2050 | 求解调用 :1967；失败 → PLATESOLVE_FAILED :1980；CTYPE/CRVAL/CRPIX/CD + RADESYS=ICRS/EQUINOX=2000 写回 :2003-2010；SIP A/B/AP/BP 写回 :2017-2049 |
+| orchestrator 调用与写回 | orchestrator.cpp:1967-2049 | 求解调用 :1967；失败 → PLATESOLVE_FAILED :1980；CTYPE/CRVAL/CRPIX/CD + RADESYS=ICRS/EQUINOX=2000 写回 :2003-2010；SIP A/B/AP/BP 写回 :2017-2049 |
 
 ### 11.2 返回码/失败语义（含像素中心契约）
 
@@ -277,7 +277,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   日志文件），IpvWcsResult 无拟合失败标志位——ap_order=0 无法区分"线性
   解"与"网格拟合失败"；cd_inv det<1e-15 跳过 SIP（:322-325）同理。
 - DISP-WCS-005 取消检查点缺失 + OpenMP 未接 ThreadBudget：ipv_triangle
-  .cpp:302/:347、ipv_select.cpp:838/:1123/:1412/:1756 等 #pragma omp 无
+  .cpp:302/:347、ipv_select.cpp:839/:1123/:1412/:1756 等 #pragma omp 无
   num_threads 注入；长帧求解不可中断。threading_model=host_executor_lease
   为合同值，接线归 P1-WCS-IMPL。
 - DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/algorithms/platesolve/wrapper_phase1，
@@ -311,7 +311,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - F4 失败语义负例：0 星/<3 星 → ret=0 或 success=0 且 error_msg 非空，进程
   不崩溃；指向偏差 >FOV → 显式失败；**CD det 退化注入（DISP-WCS-001）→
   success=0 禁止坍缩值冒充解**；DLL 缺失 → orchestrator 非零退出码
-  （orchestrator.cpp:1763）。
+  （orchestrator.cpp:1764）。
 - F5 确定性：同输入同线程数 3 次运行 IpvWcsResult bitwise 一致；线程
   1/2/4 下 bitwise 一致（投票归并为整数求和 ipv_triangle.cpp:347-357、
   拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
@@ -337,7 +337,7 @@ ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy o
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节禁止被编排层词汇反向改写（descriptor
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
-API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:516-530，由 P1-WCS-INT
+API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

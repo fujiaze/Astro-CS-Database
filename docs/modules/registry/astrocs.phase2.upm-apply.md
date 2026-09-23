@@ -20,8 +20,8 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 > FROZEN）/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM（§25）/
 > DATA-P2-COR（§26）/API-P2-UPM-001/API-P2-001；合同落位
 > lib/algorithms/upm/ 三件套（README r1 + module.yaml CONTRACT_READY
-> entrypoint=MISSING）；生产源 lib/algorithms/coverage/src/upm.cpp 1565 行 +
-> upm.h 184 行；旧 descriptor 派生词汇（module_id=
+> entrypoint=MISSING）；生产源 lib/algorithms/coverage/src/upm.cpp 2793 行 +
+> upm.h 384 行；旧 descriptor 派生词汇（module_id=
 > astrocs.phase2.upm-fit/upm-apply、SCI-P2-UPM-001/002、
 > ALG-P2-UPM-001/002）由 P2-XX-INT 对齐修订。本页为 apply 职能；
 > fit 职能见 astrocs.phase2.upm-fit.md，模块总页=
@@ -38,9 +38,9 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
   CONTRACT_READY entrypoint=MISSING + memory.md），按
   lib/algorithms/sampling/→lib/algorithms/integration/→lib/algorithms/rejection/ 先例新建；
   lib/algorithms/coverage/ 一套已被 P2-COV 占用。
-- 生产源：lib/algorithms/coverage/src/upm.cpp（1565 行，根 CMakeLists.txt
+- 生产源：lib/algorithms/coverage/src/upm.cpp（2793 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
-  签名头 lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）。
+  签名头 lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）。
 - owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005；
   legacy_paths="lib/algorithms/coverage upm sources"。
 
@@ -78,11 +78,11 @@ DATA-P2-COR（§26）校准输出：**默认 `calibrated_k(x) = raw_k(x) − δ_
 （最高设计 §5.4）。sparse/dense 同一科学语义。invalid: null 参数 → rc=1；未知
 frame_id → p2_upm_evaluate_c 返回 NaN（显式不可用，禁 frame 0 参数
 伪装，upm.cpp:1277-1280）；dense_read_block source hash 不匹配 →
-rc=2 stale 拒绝（upm.h:166-167）。
+rc=2 stale 拒绝（upm.h:167）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（384 行；
   P2ModelInfo :60-68、calibrate_block :113-、dense_read_block
   :166-。
 - 核心 symbol（upm.cpp 16 导出）: p2_upm_build（:929）、

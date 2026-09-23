@@ -130,7 +130,7 @@ downstream: [TEST-P3-WCS-001]
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
 
 - execution_class=cpu_heavy；内核纯函数无内部并行轴（0 处
-  thread/mutex/omp/全局可变量，p3_wcs.cpp:12-28）——const-only
+  thread/mutex/omp/全局可变量，p3_wcs.cpp:12-27）——const-only
   入口多线程并发安全；RT-006 线程泄漏守卫结构性满足。
 - 并行仅上游 worker 池（p3_session.cpp:247-253，worker=
   ThreadBudget.max_workers，禁 hardware_concurrency）；本域逐像素
@@ -162,7 +162,7 @@ downstream: [TEST-P3-WCS-001]
 - 双重陈述（C7 锚）: 本节承载 TEST-P3-WCS-001 登记面；可执行面
   升级归 P3-PROJ-TEST（验收级 oracle=WCSLIB，矩阵 notes）。
 - 现状执行测试（相邻证据，引用不冒认）:
-  eng/tests/unit/p3_wcs_test.cpp（90 行，WCS 完整性/溢出检查）+
+  eng/tests/unit/p3_wcs_test.cpp（474 行，WCS 完整性/溢出检查）+
   eng/tests/backend/test_p1002_gaps.py（独立解析解回归 :115-138）+
   eng/tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
 - EVIDENCE: EVID-MISSING（归 P3-PROJ-INT/验收补）。

@@ -133,7 +133,7 @@ F2.3  步骤3（最终归一）[255-288]:
 > §4/§8 无显式条文，作为 **OWNER-04 关联**登记，处置选项同上。
 >
 > **消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
-> （`module_adapters.cpp:1153-1179,1230-1240`）在进入 `ac_calibrate_frame`
+> （`module_adapters.cpp:1154-1179,1230-1240`）在进入 `ac_calibrate_frame`
 > 前对 master flat 做**整帧退化判定**：全零 / median<=0 / 任一非有限像素 →
 > DATA 拒绝（CLI rc=2）、不写 `calibrated_*`、不写 complete manifest。
 > 校准公式、单位、暗场缩放与逐像素 floor 0.1 均不变。
@@ -185,7 +185,7 @@ F3.4  契约边界:
   med<=0 原样返回）：**当前无任何生产调用方**（ac_api 不转发，模块内无
   调用）。median→1.0 归一由 ALG-CAL-002 在 master 生成期承担；登记为
   未接线辅助符号（DISP-CAL-007）。
-- `compute_mad`（`calibrator.cpp:71-82`）：与 cosmetic 的
+- `compute_mad`（`calibrator.cpp:71-81`）：与 cosmetic 的
   `compute_global_mad` 同义，供 C++ 内部使用，公共头无声明。
 
 ### 3.4 ALG-CAL-004 坏点检测/修复 `ac::detect_hot_pixels` / `ac::detect_cold_pixels` / `ac::filter_by_structure_size` / `ac::interpolate_pixels` / `ac::correct_frame`
@@ -272,14 +272,14 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 
 | 事实 | 内容 | 锚 |
 |---|---|---|
-| 公共符号 | 14 个 `AC_API`：`ac_generate_master_{bias,dark,flat}`、`ac_calibrate_frame`、`ac_correct_frame` 及 5 个 `_f64` 变体、`ac_set_num_threads`、`ac_version` | astro_calibration.h:33-156 |
+| 公共符号 | 14 个 `AC_API`：`ac_generate_master_{bias,dark,flat}`、`ac_calibrate_frame`、`ac_correct_frame` 及 5 个 `_f64` 变体、`ac_set_num_threads`、`ac_version` | astro_calibration.h:33-155 |
 | C++ 接口 | `ac::optimize_dark_k`（头文件声明但无 AC_API 导出宏，dark_optimizer.cpp 未编译） | astro_calibration.h:168-179 |
 | 错误码 | AC_OK=0、AC_ERR_PARAM=−1、AC_ERR_MEMORY=−2、AC_ERR_INTERNAL=−3；**−2/−3 从未返回**（见 DISP-CAL-001） | astro_calibration.h:21-24 |
 | FP64 ABI | 仅 `ac_calibrate_frame_f64` 真双精度（calibrate_d）；`ac_generate_master_*_f64`、`ac_correct_frame_f64` 将 double 输入 `static_cast<float>` 走 f32 实现后转回 double（统计/mask 路径降级，头文件 105-115 声明） | ac_api.cpp:147-263 |
 | 输出 dtype/shape | f32 ABI: float32 `[h][w]` 行主序（idx=y·w+x，0-based）；f64 ABI: double 同 shape；stack: `[n_frames][h][w]` 连续 | 各 C API 注释 |
 | 单位 | 全部 ADU；flat_norm/σ 参数/K 无量纲；曝光秒仅在调用方算 K 时出现；坐标 0-based 像素、无 WCS | SCI-CAL-001 §3/§3a |
 | 掩码极性 | bad/hot/cold 掩码 1=坏点（char/uint8） | cosmetic_corrector.cpp:130,151 |
-| NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:45-54 |
+| NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:46-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
 | 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:503-523；lib/algorithms/calibration/Makefile |
@@ -341,7 +341,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 | flat 帧全 NaN / 全 NaN 输出（master flat） | 剔 NaN 后无有效中位数 → 返回 AC_ERR_PARAM，out 不写（DISP-CAL-010 fail-closed；OWNER-04 关联：全 NaN 帧退化语义 SCI-CAL-001 §4/§8 无显式条文） | master_generator.cpp:219-221,263-265 |
 | frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out | master_generator.cpp:234-238,276-280 |
 | flat 帧含部分 NaN（master flat 步骤1/3 median） | 与 generate_master 逐像素路径同一策略：先剔 NaN 再取中位数（DISP-CAL-010） | master_generator.cpp:214-223,258-267,49-60 |
-| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（fail-closed） | module_adapters.cpp:1153-1179,1230-1240 |
+| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（fail-closed） | module_adapters.cpp:1154-1179,1230-1240 |
 | flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:129,139 |
 | dark==NULL（calibrate 标准分支） | out=(light−bias)/flat（bias 在位时） | calibrator.cpp:137-138 |
 | dark_opt=1 但 bias/dark 缺一 | 回退标准式且**沿用调用方给的 k**（不再强制 k=1.0） | calibrator.cpp:124,133-142 |

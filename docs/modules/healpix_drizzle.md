@@ -24,7 +24,7 @@ lease，CMakeLists.txt:379-382；ThreadLease 由 P1-DRZ-IMPL 接线）。
 
 ## Public API
 
-hp_drizzle_api 六导出（extern "C"，hp_drizzle_api.h:42,62,70,130,
+hp_drizzle_api 六导出（extern "C"，hp_drizzle_api.h:43,62,70,130,
 139,140；合同 API-DRZ-001，docs/contracts/PUBLIC_API.md）；球面
 几何接口（spherical_overlap.h: compute_overlap_area_g_ctx_cached、
 radec_to_vec、HP_CIRCUMRADIUS_FACTOR=1.25）。
@@ -46,7 +46,7 @@ hp_drizzle_api.cpp（依据 `ENGINEERING_SPEC.md:129`）；行号待随实现复
 ## Thread safety
 
 单 run 内 OpenMP 行条带并行（schedule(static) + per-thread tile
-累加器，drizzle_engine.cpp:1670-1671）+ 按线程序合并（:1762-1785）
+累加器，drizzle_engine.cpp:1671）+ 按线程序合并（:1762-1785）
 → 1/N 确定性（同输入同线程数 bitwise；跨线程数不保证 bitwise）。
 geometry cache：per-thread LRU 8192 + per-run generation 原子清空
 （:1659-1660，B4-22）；同进程多 run 并发安全。ThreadLease 零命中。
@@ -55,7 +55,7 @@ geometry cache：per-thread LRU 8192 + per-run generation 原子清空
 
 几何退化/无 WCS/非法参数 → 拒绝（文件通道正值 1..12（+12=C 边界内部异常）；帧通道正负
 混用 -1..-8/-9/-12/-13，无集中枚举——登记缺陷）；**值像素 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**
-（实现 `drizzle_engine.cpp:1898-1902` 对值像素直接传播；
+（实现 `drizzle_engine.cpp:1899-1902` 对值像素直接传播；
 科学锚 `docs/science/DRIZZLE.md:116`，回归
 finalize 层，covered_area≤0 → variance NaN）。
 

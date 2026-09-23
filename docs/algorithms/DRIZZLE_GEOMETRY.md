@@ -6,7 +6,7 @@
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
 > CMakeLists.txt:356-366；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
-> hp_drizzle_api.h:42,62,70,130,139,140`）；迁移目标目录 `lib/algorithms/drizzle/`
+> hp_drizzle_api.h:43,62,70,130,139,140`）；迁移目标目录 `lib/algorithms/drizzle/`
 > （落码由 P1-DRZ-IMPL 执行，尚未存在生产符号）。科学定义见
 > `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
 > 本文档只登记离散算法与实现事实，
@@ -206,7 +206,7 @@
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
   `PHOTDEGRADE=1`，引擎在显式声明时降级写 BUNIT=ADU（photappl=0），
   未显式声明仍按 02_FROZEN §7 拒绝（drizzle_engine.cpp:1950-1956；
-  hp_drizzle_api.cpp:935-938；module_adapters.cpp:2054-2083）。
+  hp_drizzle_api.cpp:935-937；module_adapters.cpp:2054-2083）。
 - 输入通道: PipelineFrame "data"（f32/f64 二选一，bzero=0/bscale=1
   固定，api.cpp:486-503）+ header WCS/SIP KV + 可选 "snr_model" 块
   （KD-tree IDW 重建逐像素 SNR，snr_evaluator.h）。
@@ -259,7 +259,7 @@
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | 主循环 `!isfinite→continue`（不进累加器），**无计数暴露** ⇒ 掩膜方向一致但**缺强制计数**，属未闭合偏差（P1-DRZ-IMPL） | DRIZZLE.md:116 vs drizzle_engine.cpp:1715 |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079）；θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
-| DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
+| DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:132 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
 | DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **已闭环**：`processPixelSharedTiled` 的 `weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）；修复前为 `w_jp=a_jp/A_drop,j` 后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pf=0.8→+56.25%，实测与 `1/pf²−1` 逐位吻合） | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1）；回归门 `p1drz_disp009` |
 

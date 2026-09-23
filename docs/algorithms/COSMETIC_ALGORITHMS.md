@@ -39,17 +39,17 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   ADU，`[h][w]` 行主序 0-based），sigma 倍数 `threshold_sigma`
   （无量纲），结构尺寸上限 `max_size`（像素个数）。
 - 统计量（对整帧逐像素，不过滤 NaN/Inf——见 DISP-COS-002）:
-  - `med = median(src)`（`compute_global_median`，cosmetic_corrector.cpp:45-48，
+  - `med = median(src)`（`compute_global_median`，cosmetic_corrector.cpp:46-48，
     复制后 `std::nth_element`，O(n)，偶数长度取双中位均值——见 ALG-COS-005）；
-  - `mad = median(|src − med|)`（`compute_global_mad`，cosmetic_corrector.cpp:50-54）；
+  - `mad = median(|src − med|)`（`compute_global_mad`，cosmetic_corrector.cpp:51-54）；
   - `sigma = 1.482602218505602 · mad`（高斯假设换算系数，单精度域：代码写作 `1.482602218505602f`，即该全精度字面量的 float 舍入，与双精度相对差 **+1.36e-08**；SCI-CAL-001 §9、与 SCI-NOISE-001 §14.2 同值）。
 - 判定（离散公式，逐像素 i）:
   - 热: `hot_mask[i] = (dark[i] > med_d + hot_sigma · σ_d) ? 1 : 0`
-    （cosmetic_corrector.cpp:126-128；严格大于）。
+    （cosmetic_corrector.cpp:126-127；严格大于）。
   - 冷: `cold_mask[i] = (bias[i] < med_b − cold_sigma · σ_b) ? 1 : 0`
-    （cosmetic_corrector.cpp:147-149；严格小于）。
+    （cosmetic_corrector.cpp:147-148；严格小于）。
 - 边界/前置: `dark==NULL` 或 `n=w·h<=0` → 直接返回，mask **保持调用方
-  原值不清零**（cosmetic_corrector.cpp:121-123）；`mad=0`（无离散度）时
+  原值不清零**（cosmetic_corrector.cpp:121-122）；`mad=0`（无离散度）时
   `sigma=0`，阈值退化为 `±med`（检测不禁止）。
 - 并行: 判定循环 `#pragma omp parallel for schedule(static)`
   （cosmetic_corrector.cpp:126,147），逐像素独立、bitwise 确定性；统计
@@ -76,7 +76,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - 复杂度: O(n)（每像素至多入队一次）+ O(n) 额外内存
   （labels + sizes 向量，int×n）。
 - 并行: 判定/清理阶段 `#pragma omp parallel for schedule(static)`
-  （cosmetic_corrector.cpp:107-110，清零循环）；**BFS 标记主线程串行**
+  （cosmetic_corrector.cpp:108-110，清零循环）；**BFS 标记主线程串行**
   （有共享可变 labels/queue）。并行轴=像素域（清零段）。
 - 确定性: 标号顺序与遍历顺序固定（行主序 i 升序），过滤结果与线程数无关。
 - 缺陷引用: 全帧坏点时 O(n) 整型额外内存 ×2（labels+sizes）无上限防护
@@ -84,22 +84,22 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 3 ALG-COS-003 插值修复（method=0 中值 / method=1 名义 bilinear）
 
-- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:160-227`（interpolate_pixels）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:160-226`（interpolate_pixels）。
 - 输入: 数据帧 `data`（float32 ADU）、掩码 `bad_mask`（1=坏点，SCI-CAL-001
   §9a）、`method`（0=AC_METHOD_MEDIAN, 1=AC_METHOD_BILINEAR，
-  astro_calibration.h:18-19）；输出 `out`（调用方分配）。
+  astro_calibration.h:19）；输出 `out`（调用方分配）。
 - 通用规则（逐像素 i，`#pragma omp parallel for schedule(static)`，
   cosmetic_corrector.cpp:166）:
   - 非坏点: `out[i] = data[i]`（逐像素拷贝）；
   - 空邻域回退: `out[i] = data[i]`（原值保留，不置 NaN）。
-- method=0（median，5×5 窗口，cosmetic_corrector.cpp:174-199）:
+- method=0（median，5×5 窗口，cosmetic_corrector.cpp:175-199）:
   - 邻域: 5×5（dy,dx∈[-2,2]），**镜像反射边界**
     （`nx<0→-nx`、`nx>=w→2w-nx-2`，再 clamp 到 [0,w-1]；
     cosmetic_corrector.cpp:180-190）——小帧（w<3 或 h<3）镜像可能自映射，
     邻域重复计数由中值天然免疫（中值不因重复计数偏移，仅样本数变化）；
   - 仅收集 `bad_mask[nidx]==0` 的邻居（掩码内好像素）；
   - `out[i] = median(vals)`（`median_inplace`，`std::nth_element`，
-    cosmetic_corrector.cpp:34-43；**偶数个样本取双中位均值**
+    cosmetic_corrector.cpp:35-43；**偶数个样本取双中位均值**
     `(hi+lo)*0.5f`，其中 hi=v[n/2]、lo=下半区 max_element——见
     ALG-COS-005）；
   - `vals` 为空（5×5 全坏/邻域全坏）→ 原值保留（cosmetic_corrector.cpp:196-198）。
@@ -170,7 +170,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 5 ALG-COS-005 统计基元（median / MAD 换算）
 
-- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:34-54`（匿名命名空间）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:35-54`（匿名命名空间）。
 - `median_inplace(std::vector<float>&)`（:34-43）: `std::nth_element`
   就位中位数，O(n) 期望；**奇数 n** = `v[n/2]`；**偶数 n** =
   `(hi + lo) * 0.5f`，其中 `hi = v[n/2]`（nth_element 后上中位）、
@@ -262,7 +262,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   ⑥空邻域回退原值。
 - **负面/参数矩阵**: NULL data/out、w<=0/h<=0 → AC_ERR_PARAM（C ABI 层）；
   out_hot/out_cold NULL 不崩溃；method 非法值（2）→ 按 §3 else 分支
-  走 IDW（**现状：非 0 即 IDW**，cosmetic_corrector.cpp:174 `if
+  走 IDW（**现状：非 0 即 IDW**，cosmetic_corrector.cpp:175 `if
   (method == AC_METHOD_MEDIAN)`，负面断言现状）；max_size<=0 → 全部
   连通域 size>=max_size 清零（全域清除语义，负面断言现状）。
 - **串并行/资源**: 1/2/4 线程 bitwise 一致；heavy run CPU/RSS 监控、
@@ -278,11 +278,11 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 | ID | 缺陷（现状事实） | 锚 |
 |---|---|---|
 | DISP-COS-001 | 无 extern "C" 异常屏障：std::bad_alloc/omp 异常可穿越 C ABI；AC_ERR_MEMORY(-2)/AC_ERR_INTERNAL(-3) 定义但从未返回（死值错误码） | ac_api.cpp:108-122,228-263；astro_calibration.h:23-24 |
-| DISP-COS-002 | 检测统计不过滤 NaN/Inf：NaN 源帧 → 中位数/阈值非数值 → 判定静默全 false；NaN 数据像素不判坏直接透传 | cosmetic_corrector.cpp:45-54,126-128,147-149 |
-| DISP-COS-003 | method=1（AC_METHOD_BILINEAR）名义 bilinear 实为 4 方向 1/dist IDW；非 0 method 一律走 IDW（无参数校验） | cosmetic_corrector.cpp:174,201-224；astro_calibration.h:19 |
+| DISP-COS-002 | 检测统计不过滤 NaN/Inf：NaN 源帧 → 中位数/阈值非数值 → 判定静默全 false；NaN 数据像素不判坏直接透传 | cosmetic_corrector.cpp:46-54,126-128,147-149 |
+| DISP-COS-003 | method=1（AC_METHOD_BILINEAR）名义 bilinear 实为 4 方向 1/dist IDW；非 0 method 一律走 IDW（无参数校验） | cosmetic_corrector.cpp:175,201-224；astro_calibration.h:19 |
 | DISP-COS-004 | ac_correct_frame_f64 非真双精度：double→float 降级执行（统计/mask/插值全程 f32），仅 I/O 层 double | ac_api.cpp:228-263；astro_calibration.h:105-115 |
 | DISP-COS-005 | `n = w·h` int 乘法无溢出防护（int31 域）；w·h>2^31 行为未定义 | cosmetic_corrector.cpp:231；ac_api.cpp:108-122 |
-| DISP-COS-006 | 检测/过滤 O(n) 额外内存（统计复制 + labels/sizes 向量）无上限防护（上限=帧大小，登记为常数界） | cosmetic_corrector.cpp:45-48,64-111 |
+| DISP-COS-006 | 检测/过滤 O(n) 额外内存（统计复制 + labels/sizes 向量）无上限防护（上限=帧大小，登记为常数界） | cosmetic_corrector.cpp:46-48,64-111 |
 | DISP-COS-007 | 无取消检查点（PHASE1_API_V1 §2 cosmetic 取消点=无；session 帧粒度取消为替代粒度） | cosmetic_corrector.cpp:229-265；PHASE1_API_V1 §2 |
 | DISP-COS-008 | 并行=OpenMP 进程级默认 team（ICV 可被 ac_set_num_threads 全局改写），不满足 ThreadLease 约束 D.3/D.4——迁移整改点 | cosmetic_corrector.cpp:126,147,166,254,258 |
 | DISP-COS-009 | 生产调用链现状未接线母版：p1_session.cpp:296-297 传 nullptr dark/bias → 检测全禁用、模块空转（检测从未在生产生效） | p1_session.cpp:294-307 |

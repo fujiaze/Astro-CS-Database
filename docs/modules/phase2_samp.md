@@ -112,7 +112,7 @@ downstream: [TEST-P2-SMP-001]
 
 module_id=`astrocs.phase2.sample`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True。配置=P2SamplerConfig 15 字段
-（sampler.h:32-57；control_k_corr 默认 1.4 h:47-53 冻结）+ sccfg
+（sampler.h:33-57；control_k_corr 默认 1.4 h:47-53 冻结）+ sccfg
 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，零
 初始化经 impl :497-498 修补回退默认）。
 

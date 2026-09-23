@@ -21,7 +21,7 @@
 | `rmax` | 掩膜半径**硬上界** `max(1,r0)·max(1,scale)`（默认 60 px）；实际逐星半径 `r_i` 见 §5a | 掩膜 |
 | `a,b,c` | 最小二乘平面 `var(x,y)=a+b·x+c·y` | `snr_noise_model_v1` |
 | `variance_floor` | 方差下界 `1e-12`（`max(var,floor)` clamp） | `default_config` |
-| `g_model_floor` | 以 `model*` 为 key 的 floor 注册表 | `noise_model.cpp:32,306,764` |
+| `g_model_floor` | 以 `model*` 为 key 的 floor 注册表 | `noise_model.cpp:33,306,764` |
 | `gain, read_noise_e` | 诊断模型参数 e-/ADU, e- | `snr_noise_gain_variance` |
 | `r_inliers` | Tukey 权重>0 的内点集（SCI-PHOT 复用符号，不混） | QA |
 | `degenerate, has_spatial_field` | 退化/空间场标志 | `NoiseWeightModelV1` |
@@ -70,7 +70,7 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
   用途仅 SNR-005 诊断交叉验证 (noise_model_science_test.cpp:238-272)，生产 source==0 empirical 不融合
 ```
 
-与 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:32-546,553-796` 一致。
+与 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:33-546,553-796` 一致。
 
 ### 5a 掩膜半径的物理导出（MASK-002）
 
@@ -118,7 +118,7 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
 | 掩膜覆盖过大（收缩后仍 `n_qualified < 8` 或 `N_sky` 不足） | 先按 §5a 天空预算收缩逐星半径；收缩到 `r_min` 仍不可行 ⇒ `degenerate=1, ivar=0, r=1` 拒（不产生伪权重）；收缩生效但 `n_qualified < 8` ⇒ 置 `MASK_DEGRADED` | EXP-A/EXP-C/EXP-D（MASK-001 §3.2/§3.4/§5.3） |
 | 无合格 patch（收缩后仍无） | `degenerate=1`；若**全部未掩膜** sky 样本 < `max(min_samples, 9216)` ⇒ `ivar=0,r=1` 拒（**收紧**：现行 `min_samples/2=32` 像素可为整帧定权重，现按 `SE(σ̂)/σ ≈ 1.144/√N_sky ≤ 1.5%` 要求 `N_sky ≥ 9216`，与 §5a 同一预算常数，）；否则 `degenerate=1` 全局常量场 `has_spatial_field=0, r=0` fallback 并置 `MASK_DEGRADED` 诊断标 | `noise_model.cpp:471-511` |
 | 全帧 NaN/饱和 | 饱和像素按 §4「饱和域」剔除；**全帧无任何合法 sky 样本**（NaN+饱和全剔，或样本 < §5a 预算）⇒ `degenerate=1, ivar_bg_global=0, r=1`；**电平未提供（unset）时本行的饱和支不可达**——这正是 §4 强制显式降级声明的理由 | noise_model.cpp:64-68,471-511（valid_pixel/collect_patch_sky）；SAT-001 |
-| `variance_floor<=0` | `fill` 回退 `1e-12` clamp | `noise_model.cpp:731-733` |
+| `variance_floor<=0` | `fill` 回退 `1e-12` clamp | `noise_model.cpp:732-733` |
 | `gain<=0` | `snr_noise_gain_variance` 返回 0 | `noise_model.cpp:790` |
 | `star_x/y` 非有限 | 掩膜跳过该星，不污染统计 | 参数校验 |
 | `MAD=0` | `σ_bg=0` ⇒ 退化路径（见上） | `robust_sigma` |
@@ -176,7 +176,7 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
 1. Newberry, M. V. 1991, PASP, 103, 122（DOI 10.1086/132801，SCI-001 已核验原文存在性）：Poisson+读出噪声分解的 S/N 建模上下文——文章级定位，本合同 §5 诊断公式为 Project-defined，不引用其具体公式号。
 2. MAD→σ 换算 `1.482602218505602 = 1/Φ⁻¹(3/4)`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`），教科书级，Project-defined 采纳。SCI-PHOT 侧的 4 位写法 `0.6745` 与全精度值相对差 **+1.5196e-05**（等价地 `1/0.6745` 相对差 **−1.5196e-05**），属该侧容许截断，**不得与本节冻结值互换**（V12-N-03，）。
 3. Tukey biweight 内点权重（`r_inliers` 复用）：SCI-PHOT §14/PMS 文献链，本层仅消费 QA 集合不重复估计。
-5. 掩膜半径默认值的导出依据（MASK-002）：以 §11 源污染 oracle 为判据，`k=0.1`、`r_min=max(1.5 px, 0.75·FWHM)`、硬上界 `rmax=max(1,r0)·max(1,scale)=60 px`、`N_sky ≥ 9216`、`n_qualified ≥ 8`。`k=0.1` 下 `r_local(F=10⁵ ADU, FWHM=3 px, β=2.5) = 17.6 px`（Gaussian 极限同阶）；实测 `r=10 px` 偏差 +0.13%（RMSE 0.17%），统一 60 px 在 1024²/320 星上 RMSE 0.76%（**4.6×**）、在 256²/50 星上整帧退化（rc=1）。**导出链**：`10`/`6`/`60 px` 由 `noise_model.cpp:626-627` → `NOISE_ESTIMATION.md:134` → `eng/packaging/config/defaults.json` 的 `source_ref` 三段登记，推导依据 = 本文件 §11 源污染 oracle。
+5. 掩膜半径默认值的导出依据（MASK-002）：以 §11 源污染 oracle 为判据，`k=0.1`、`r_min=max(1.5 px, 0.75·FWHM)`、硬上界 `rmax=max(1,r0)·max(1,scale)=60 px`、`N_sky ≥ 9216`、`n_qualified ≥ 8`。`k=0.1` 下 `r_local(F=10⁵ ADU, FWHM=3 px, β=2.5) = 17.6 px`（Gaussian 极限同阶）；实测 `r=10 px` 偏差 +0.13%（RMSE 0.17%），统一 60 px 在 1024²/320 星上 RMSE 0.76%（**4.6×**）、在 256²/50 星上整帧退化（rc=1）。**导出链**：`10`/`6`/`60 px` 由 `noise_model.cpp:627` → `NOISE_ESTIMATION.md:134` → `eng/packaging/config/defaults.json` 的 `source_ref` 三段登记，推导依据 = 本文件 §11 源污染 oracle。
 4. 默认值 `min_samples=64` 的导出依据：8×8 patch（P=64）下以本文件 §11 冻结的 5% oracle 为判据，`min_samples=5` 时单 patch 偏差 −19.2%、全局 `sigma_bg_global` 偏差 −25.1%、5% 门通过率 **0.6%**；`min_samples=64` 为 −1.25%/−1.7%、通过率 **92.8%**（纯高斯蒙特卡洛；常规无掩膜帧上 5 与 64 逐位同输出，差异只在 patch 残余样本 5~63 的掩膜 regime）。判据 = 本文件 §11 冻结的 5% oracle。
 
 ## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

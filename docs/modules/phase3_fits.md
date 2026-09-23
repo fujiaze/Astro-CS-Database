@@ -75,7 +75,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 内核消费面=API-P3-FITS-001（p3_output.h 64 行签名头正本）：
+- 内核消费面=API-P3-FITS-001（p3_output.h 166 行签名头正本）：
   p3_output_write_atomic（h:45-53，实现 :117-321）/p3_output_verify
   （h:57-60，:296-368）+ P3Provenance/P3OutputResult/P3OutputStatus
   + p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/

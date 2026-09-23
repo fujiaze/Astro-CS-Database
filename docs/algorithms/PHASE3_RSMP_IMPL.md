@@ -11,7 +11,7 @@
 > docs/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/algorithms/resample/p3_resample.h（197 行，唯一权威签名头）+
+> 生产源: lib/algorithms/resample/p3_resample.h（201 行，唯一权威签名头）+
 > lib/algorithms/resample/p3_resample.cpp（586 行）。
 > （2026-09-23 复测; NAN-SAMPLE-MASK 对齐任务新增 P3SampleRejection +
 > p3_sample_bilinear_nanmask_ex，见 §4/§6.5/§6.6。）
@@ -54,7 +54,7 @@
 ## 3 生产源图（实测）
 
 ```text
-lib/algorithms/resample/p3_resample.h        197 行  唯一权威签名头（ALG-P3-003 施工面 11 个
+lib/algorithms/resample/p3_resample.h        201 行  唯一权威签名头（ALG-P3-003 施工面 11 个
                                                      公共符号，§4；另有 P30 缓存观测面与
                                                      DATA-P3-UNC-001 不确定度面符号，§4 表不重复列）
 lib/algorithms/resample/p3_resample.cpp     586 行  全部实现（§6 逐符号）
@@ -65,7 +65,7 @@ eng/tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nea
 eng/tests/backend/test_p3_resample.py      164 行  最近邻邻接测试（编译探针+seam/NaN/无静默默认）
 eng/tests/backend/test_p3003_parallel_resampler.py 141 行  并行域邻接测试
 eng/tests/unit/p3_interp_test.cpp          137 行  单元参考实现（独立参考，非生产自证）
-eng/tests/unit/p3_coverage_test.cpp        106 行  同上（coverage 语义）
+eng/tests/unit/p3_coverage_test.cpp        224 行  同上（coverage 语义）
 ```
 
 - p3_resample.cpp 内部结构: :18 `kTileWidth=512`（编译期常量，SCI

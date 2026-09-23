@@ -30,8 +30,8 @@ downstream: [TEST-P3-WR-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例
   新建；lib/phase3_session/ 为会话编排域共享源，不整目录归属）。
-- 生产源: lib/algorithms/fits_output/p3_output.cpp（370 行）+ 签名头正本
-  p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h（50 行）。
+- 生产源: lib/algorithms/fits_output/p3_output.cpp（1082 行）+ 签名头正本
+  p3_output.h（166 行）+ WCS 关键字源 p3_wcs.h（166 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007）→ ALG-P3-FITS-IMPL-001
   （docs/algorithms/PHASE3_FITS_IMPL.md，兼承接 ALG-P3-002/004 本域
@@ -67,7 +67,7 @@ downstream: [TEST-P3-WR-001]
 - invalid 权威源=DATA-P3-FITS §27：signal 无覆盖=NaN（禁 ±Inf
   伪装；NaN==NaN 回环一致 p3_output.cpp:341-344）；coverage 二值门
   >0.5f（:346）；bitpix∉{-32,-64}→PARAM（:140-145）；WCS 守卫
-  abs(dec)≤85°+四角同半球（p3_wcs.h:24-26）。
+  abs(dec)≤85°+四角同半球（p3_wcs.h:25-26）。
 - 端口词汇（resampled/fits、DATA-P3-RES、UnitId/CoordinateFrame）
   为 descriptor 派生（module_adapters.cpp:445-460），由 P3-FITS-INT
   对齐 DATA-P3-FITS，不作冻结依据。
@@ -130,7 +130,7 @@ downstream: [TEST-P3-WR-001]
 ## 8 错误、日志、指标、取消和 checkpoint
 
 - 错误: rc 语义 P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/
-  P3_OUT_CANCELLED=3（p3_output.h:34-39，逐触发锚=ALG-P3-FITS-
+  P3_OUT_CANCELLED=3（p3_output.h:35-39，逐触发锚=ALG-P3-FITS-
   IMPL-001 §10 表）；会话层映射 ACS_OK/ACS_ERR_PARAM/ACS_ERR_IO/
   ACS_ERR_CANCELLED；g_last_err→last_error 脱敏出口（p3_session.h
   :33-37）。
@@ -148,7 +148,7 @@ downstream: [TEST-P3-WR-001]
   登记面=**TEST-P3-WR-DESIGN-001** 设计冻结 VERIFIED（承载
   ALG-P3-FITS-IMPL-001 §12 T1-T7；本节即锚）；可执行
   TEST-P3-WR-001 **MISSING** 归 P3-FITS-TEST 落地+EVIDENCE，
-  不冒认。现状执行测试 eng/tests/unit/p3_output_test.cpp（116 行
+  不冒认。现状执行测试 eng/tests/unit/p3_output_test.cpp（244 行
   4 段，eng/tests/unit/CMakeLists.txt:442-447）=相邻证据引用不冒认。
 - T1 原子写+mask: 64×48 渐变场+分段 mask、BITPIX=-32、prov 全
   字段 → rc=0、coverage_ok=1、reopen_ok=1、sha256 64hex。

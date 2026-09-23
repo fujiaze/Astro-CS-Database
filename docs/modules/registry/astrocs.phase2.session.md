@@ -47,7 +47,7 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
   （persist 段单文件直写，§24.4(4)）。
 - 并发与取消：threadsafe:no（handle 级）+ reentrant:yes
   （p2_session.h:16 注释锚）；取消点=阶段边界 4 检查点
-  （p2_session.h:22 注释锚；p2_session.cpp:120/:152/:181/:223-227；
+  （p2_session.h:22 注释锚；p2_session.cpp:121/:152/:181/:223-227；
   upm 整模型不写半成品）；内部并行仅 UPM blocks
   （cpu_workers=budget.max_workers :155/:195，预算驱动禁硬编码）。
 - 错误：ACS_ERR_*（PARAM/ABI_MISMATCH/NOMEM/STATE/IO/INTERNAL/
