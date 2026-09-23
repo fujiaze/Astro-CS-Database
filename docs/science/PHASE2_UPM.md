@@ -20,8 +20,8 @@
 | `control_variance` | `k_corr·(π/2)·σ_bg²/N_retained` | `ALG-UPM-CONTROL-IVAR-001` |
 | `control_ivar` | `1/control_variance` | `p2_upm_raw_weight` |
 | `quality_factor` | 质量因子（cosmic/geom 质量） | `SCI-UPM-WEIGHT-001` |
-| `control_reliability`（旧名 `geometric_reliability`） | per-control 相对可靠度。**实现事实 = 配置常量**（`P2UpmBuildConfig.control_reliability`，默认 1.0，`upm.cpp:289-290`），**不是**按单 control 覆盖度算出的几何量；原「几何可靠性（单 control 覆盖度）」承诺**未实现**（缺陷登记 SC-005） | `p2_upm_normalized_weights` |
-| `k_corr` | Drizzle 相关校正；定义域 **1 ≤ k_corr**，冻结默认 1.4（标定表 1.2112–2.8971 全在该域内） | `sampler.cpp:83,840` |
+| `control_reliability`（旧名 `geometric_reliability`） | per-control 相对可靠度。**实现事实 = 配置常量**（`P2UpmBuildConfig.control_reliability`，默认 1.0，`upm.cpp:289-290`），**不是**按单 control 覆盖度算出的几何量 | `upm.cpp:264`（默认 1.0）/ `:283`（越域回退 1.0） |
+| `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒），冻结默认 1.4 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） |
 | `w_cell` | 求解器内 per-control 份额权重（无量纲，`Σ_cell w_cell = control_reliability`） | `upm.cpp:565` |
 | `N_retained` | clipping 后保留样本数 | `P2ControlObservation` |
 | `parameter_rows[index]` | 第 index 帧的 θ 行 | `upm.cpp:parameter_rows` |
@@ -40,22 +40,25 @@
 - 帧数 `n_frames ≥2` 且至少一 control cell 有 `≥2` 帧 clean 覆盖，否则 harmonic continuation 填单帧区；`n_control_points` 可为 0（→ NO_DATA）。
 - `control_ivar` 有效要求 `use_ivar_weight=1` 时 `control_ivar>0` 且有限，否则 `p2_upm_raw_weight rc=2 → build rc=2`（`DATA-UPM-CONTROL-UNC-001`）。
 - `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:874`）；
-  **定义域 1 < k_corr**：`p2_upm_control_variance`（`upm.cpp:2772-2783`）与
-  `p2_upm_ma_build`（`upm.cpp:2265-2275`）对 k_corr<1 返回 rc=1、对 k_corr=1 返回 rc=2
-  ——k_corr<1 ⇔ N_eff>N_retained，正相关样本的有效样本量不可能大于样本数；
-  k_corr=1 表示忽略相关，二者都显式拒（SC-005 / R-2 D-10）。
+  **定义域 1 < k_corr**：`p2_upm_control_variance`（`upm.cpp:2766-2790`）对 k_corr<1 返回 rc=1、
+  对 k_corr=1 返回 rc=2、对非冻结值缺 `calibration_run_id` 返回 rc=3、缺 `applicability_domain` 返回 rc=4；
+  `p2_upm_ma_build`（`upm.cpp:2265-2276`）对上述四类越域一律返回 rc=7。
+  物理依据：k_corr 表征 Drizzle 输出像素协方差使 `N_eff ≤ N_retained`；k_corr<1 ⇔ N_eff>N_retained，
+  正相关样本的有效样本量不可能大于样本数；k_corr=1 ⇔ 忽略相关。**两者都显式拒，不静默饱和**。
+  边界已有判别力测试：`eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp`（0.999999→rc=1、1.0000001→rc=0）。
   **适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。生产取值 1.4 的来源是
   项目自产 MC（pixfrac=0.8、2000 次、实证 1.3883），该证据源 `control_median_mc_test`
   **未注册（构建孤儿）⇒ 不可复跑**；逐帧标定表的适用域为源像素角尺度 [300,600]″/px，
-  而全部已知生产帧的源像素尺度 ≈1″/px（M42 实测 0.9890″/px，
-  `run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2a_unit`）⇒ **逐帧标定在生产尺度上
-  不生效，生产实际使用未在本尺度标定的冻结常数 1.4**。写盘门（FZ-PROV-KCORR，
+  而全部已知生产帧的源像素角尺度 ≈1″/px（M42 真帧 0.98902″/px，由 FITS 头
+  FOCALLEN/XPIXSZ 换算）⇒ **逐帧标定在生产尺度上不生效，生产实际使用未在本尺度标定的
+  冻结常数 1.4**。写盘门（FZ-PROV-KCORR，
   `upm.cpp:2265-2275`）要求 `k_corr_applicability_domain` 非空，且 k_corr ≠ 1.4 时
   另给 `k_corr_calibration_run_id`；任何引用 `control_variance` 的陈述必须与所用 k_corr、
   其标定域、以及「该域是否覆盖当前数据尺度」一同给出。
-- 标定表 scale 维（300–600″/px）**已退役**：生产真帧源像素角尺度 0.9586″/px 在域外，
-  域外一律显式回退冻结默认 1.4（禁 clamp 静默饱和）；域外帧保留 `kcorr=0` 并打
-  `[sampler] k_corr 域外回退` 标（`sampler.cpp:560-574`）。
+- 标定表 scale 维（300–600″/px）**不适用于源像素角尺度 <300″/px 的帧**：
+  生产真帧源像素角尺度 ≈0.99″/px 在域外，域外一律显式回退冻结默认 1.4
+  （禁 clamp 静默饱和）；域外帧保留 `kcorr=0` 并打 `[sampler] k_corr 域外回退` 标
+  （`sampler.cpp:93-104` 查表域界 / `:560-583` 回退与打标）。
 - `parameter_rows` 与 `frame_id_by_index` 同长、无重复，绑定仅由稳定 `frame_id` 决定，禁止容器遍历重建。
 
 ## 5 连续定义
@@ -66,7 +69,7 @@
   C_f(p) = 双线性(8×8 control cell, θ_f)
 
 科学权重 (V19R3 冻结 SCI-UPM-WEIGHT-001)：两级两个量，禁止混名——
-  (1) 绝对式 w_UPM（科学定义，ADU⁻²，任何需要绝对精度的消费面：API/门/报告）
+  (1) 绝对式 w_UPM（科学定义，**(ADU·sr⁻¹)⁻²**，任何需要绝对精度的消费面：API/门/报告）
       w_UPM = quality_factor × control_reliability × control_ivar
   (2) 份额式 w_cell（求解器内归一约定，无量纲，per-control；实现消费的就是它）
       w_cell = w_UPM / Σ_cell w_UPM × control_reliability,  Σ_cell w_cell = control_reliability
@@ -82,7 +85,7 @@
   #   禁止以数值保护量生成有限方差发布（ALG-P2-SMP-001 §5.4）。
   # control estimator = patch median (非单 leaf)
   # N_retained = clipping 后保留数 (非 n_total)；域 [min_samples, (2r+1)²] = [5, 289]
-  # k_corr = 1.4 保守冻结；1 ≤ k_corr（域外显式拒）；实证 1.3883 来自
+  # k_corr = 1.4 保守冻结；**1 < k_corr**（k_corr=1 与 k_corr<1 一律显式拒，§4）；实证 1.3883 来自
   #   control_median_mc_test（**未注册：构建孤儿，见 §11/§13/§15 的 MISSING 登记**）
   # N_eff = N_retained / k_corr
   # 禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅 eligibility/coverage
@@ -92,14 +95,22 @@
   Huber IRLS + control-ivar 感知权重 + 弱零锚 (zero_anchor_weight=0.001) + 连通分量独立 gauge
   每分量参考帧 = 最小 frame_id
 
-收敛与容差 (SCI-UPM-CONV-001；无量纲，禁绝对容差):
-  tol_step = tolerance_step（默认 1e-6，相对量）
-  tol_obj  = tolerance_obj（默认 1e-6，相对量）
-  停止判据: max_dM / max(scale_obs, eps) < tol_step  且  |Δobj| / max(|obj_old|, eps) < tol_obj
-  scale_obs = 观测量的尺度（control 观测值的稳健尺度），**不得**用 max|M|
+收敛与容差 (SCI-UPM-CONV-001；容差随观测尺度归一，禁绝对容差):
+  配置面（唯一事实源 = P2UpmBuildConfig，upm.h:77-81/:110-113）:
+    tolerance（默认 1e-6，标量，同时作步长判据的容差）
+    tolerance_relative（默认 0；1 = tolerance 解释为相对量）
+  步长判据（converged=1 的唯一判据，upm.cpp:1021-1040）:
+    tolerance_relative=0: max_dM < tolerance ∧ max_dC < tolerance
+    tolerance_relative=1: max_dM < tolerance·max(scale_obs,1) ∧ max_dC < tolerance·max(scale_obs,1)
+  目标判据（converged=2 的唯一判据，upm.cpp:1028-1050）:
+    |Δobj| / max(|obj_old|, 1e-300) < 1e-12 连续 5 次 ⇒ stalled
+  scale_obs = 观测量（control 观测值）的稳健尺度，upm.cpp:706-716；**不得**用 max|M|
   converged 状态枚举: 0 = max_iter / 1 = converged / 2 = stalled / 3 = invalid
-  stalled 判据: 残差改善量低于数值地板连续 N_stall 次（可证伪，须有红/绿双向测试）
-  ⚠ 绝对容差在 ~300 e⁻ 尺度永不收敛（300 次迭代 converged=0，SCI-C FIX-1）⇒ 生产必须走相对/尺度归一判据
+    （只读访问器 p2_upm_convergence，upm.cpp:1577-1589；旧模型文件未记录一律读作 0）
+  **适用域（正向约束）**：绝对容差只在观测尺度 ≈1 时与相对判据等价。生产观测为面亮度
+  ADU·sr⁻¹（M42 真帧天空 1210 ADU/px ÷ Ω_px 2.2991e-11 sr ⇒ ≈5.26e13 ADU·sr⁻¹），
+  绝对 1e-6 比该尺度上的 ULP 严若干数量级、原理上不可达 ⇒ **生产必须 tolerance_relative=1**。
+  近零尺度侧由 max(scale_obs,1) 保留绝对保护（小尺度合成数据与绝对判据逐位等价）。
 
 持久化绑定 (SCI-UPM-PERSIST-001 / ALG-UPM-FRAME-BIND-001):
   parameter_rows[index] ↔ frame_id_by_index[index]   # 同长、无重复
@@ -107,11 +118,11 @@
   payload = truncated-64 canonical SHA-256 of science payload (DATA-FRAME-ID-001)
 ```
 
-与 `lib/algorithms/coverage/src/upm.cpp:6-500,1123-1139`、`sampler.cpp:257-371,689`、`aio_upm.cpp:4` 一致。
+与 `lib/algorithms/coverage/src/upm.cpp:1-27`（冻结头注释）、`:242-1203`（build 主体）、`:1155-1175`（model_hash 序列化）、`lib/algorithms/coverage/src/sampler.cpp:257-371`（配置默认与校验）、`:689-900`（control 采样与 cvar 发布）、`lib/algorithms/coverage/src/aio_upm.cpp`（稀疏/稠密落盘）一致。
 
 ## 6 假设
 
-- 帧间无乘性尺度差（**本期决议：纯加性模型**，`g_k ≡ 1`；乘性残留属低阶空间增益、归 Phase1，见 §14a）；控制点 SNR 与几何解耦（`snr_available` 语义 V4 R6）；控制采样 patch 足域近似高斯；Drizzle 相关可用 `k_corr≥1` 表征。
+- 帧间无乘性尺度差（**本期决议：纯加性模型**，`g_k ≡ 1`；乘性残留属低阶空间增益、归 Phase1，见 §14a）；控制点 SNR 与几何解耦（`snr_available` 语义 V4 R6）；控制采样 patch 足域近似高斯；Drizzle 相关可用 `k_corr>1` 表征（`k_corr=1` 表示忽略相关，§4 显式拒）。
 
 ## 7 独立不变量
 
@@ -132,7 +143,7 @@
   `r/sigma_floor` 的固定阈值判据，此时 95% 效率的结论**不成立**。
   `sigma_floor` 的数值与量纲见 §5 常量面与 ALG-P2-SMP-001 §5.3。
 - **frame_id 绑定幂等**：`save→open` 后 `parameter_rows[index]` 重开值 `max_abs==0`（`dense/sparse 1e-12` 等价门）。
-- **k_corr 缩放**：`control_variance` 随 `k_corr` 线性缩放，`N_eff` 反比缩放；定义域 1 ≤ k_corr。
+- **k_corr 缩放**：`control_variance` 随 `k_corr` 线性缩放，`N_eff = N_retained / k_corr` 反比缩放；定义域 **1 < k_corr**（§4）。
 - **两级权重三条性质（w_UPM 绝对式 vs w_cell 份额式）**：
   (i) 同一 control 内两观测的权比 = `w_UPM` 之比（两式在单元内一致）；
   (ii) 任何**公共**精度因子（含 `k_corr`）在份额式内严格消去（实测 model_hash 位相同）；
@@ -144,13 +155,13 @@
   `C_scale` = 该次构建 C 场量级），不是位精确 —— `compute_raw` 的 per-control 求和按 worker
   连续切片分块后按 worker 序合并，与串行索引序的结合顺序不同（FP 加法非结合），
   误差量级由 FP 加法非结合性决定，**与绝对标度成正比**；
-  实测 ΔC_max = 2.22e-15（该算例 C 量级 ≈10，即 ≈1 ulp；
-  `run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/logs/probe_1t2t.log`）；
+  实测 ΔC_max = 2.22e-15（该算例 C 量级 ≈10，即 ≈1 ulp）；
   (c) 跨后端等价 = **不允许**（无此合同）。
   **适用域（正向约束）**：判据必须随标度归一。绝对量 1e-12 只在 `|C| ≈ 1` 时与 rtol 1e-12
-  等价；生产 C 场为面亮度 ADU·sr⁻¹，量级由 Ω_px 决定（M42 实测 raw 天空
-  1210 ADU/px、Ω_px = 2.2991e-11 sr ⇒ 5.26e13 ADU·sr⁻¹，
-  `run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2a_unit`），此时 ulp 量级为 1e-2，
+  等价；生产 C 场为面亮度 ADU·sr⁻¹，量级由 Ω_px 决定（M42 真帧实测天空 ≈1.2e3 ADU/px，
+  `实验/additive-sky-seamless/results/c7_realdata.json` 的 `pair_mismatch[*].level_i`；
+  像素角尺度 0.98902″/px、Ω_px = 2.2991e-11 sr 由 FITS 头 FOCALLEN/XPIXSZ 换算 ⇒ 5.3e13 ADU·sr⁻¹），
+  此时 ulp 量级为 1e-2，
   绝对 1e-12 比 ulp 严 10 个数量级、不可达；反之在 α² 标度（≈1e-29）上绝对 1e-12
   又比 ulp 松 14 个数量级、恒真。**禁止**在未声明 C 场标度的情况下引用绝对 1e-12。
 
@@ -159,14 +170,14 @@
 **表示能力边界（无接缝 ⟺ 公共面可表示）**：
 
 - 参考面 `B_ref`（8×8 control cell 双线性）只能表示尺度 ≳ 2× **节点间距**的分量；节点间距
-  实测 `h = 0.0355°`（= 2× cell；见 `实验/additive-sky-seamless/code/c3_public_plane.py:26-28`
-  与 `run/SCI-403/sky_c1_amp_0.json:cfg.node_spacing_deg`）——**不是** tile_width/8；
-  **量纲与适用域（正向约束）**：`h` 的**定义域量是角尺度（度）**；它与像素数的换算
-  `h ≈ 127.8 px` 只在源像素角尺度 = 0.9586″/px 时成立（0.0355°×3600/0.9586 = 133.3；
-  实验单元自身使用 0.0355°/127.8 px 的对应值）。**换仪器/换像素尺度后 `h` 的度数不变、
-  像素数按比例变**，故一切「尺度 ≲ 256 px」类的像素域判据必须随像素尺度重算；
-  本仓 M42 真帧实测源像素尺度 0.9890″/px（`run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2a_unit`），
-  在该尺度下 2×h = 0.0710° ≈ 258.5 px。
+  标定值 `h = 0.0355°`（= 2× cell；见 `实验/additive-sky-seamless/code/c3_public_plane.py:26-28`
+  的 `NODE_SPACING_DEG`）——**不是** tile_width/8；
+  **量纲与适用域（正向约束）**：`h` 的**定义域量是角尺度（度）**。换算 `h_px = h_deg × 3600 / 源像素角尺度(″/px)`：
+  实验单元自身用 1″/px 网格 ⇒ `h = 127.8 px`；本仓 M42 真帧实测源像素角尺度
+  0.98902″/px（FITS 头 FOCALLEN 1877 mm、XPIXSZ 9.0 µm ⇒ 206264.806×0.009/1877 = 0.98902″/px，
+  复算脚本见 `实验/additive-sky-seamless/code/c7_realdata.py`）⇒ `h = 129.2 px`、`2h = 0.0710° = 258.5 px`。
+  **换仪器/换像素尺度后 `h` 的度数不变、像素数按比例变**，故一切「尺度 ≲ 256 px」类的
+  像素域判据必须随像素尺度重算。
 - 当帧间天光差含「`B_ref` **不可表示**且沿向**相干**」的分量时，残余接缝 ≈ **0.80 × 该分量 RMS**（Pearson 0.896，`实验/additive-sky-seamless/results/c2_multiplicative.json`）；
 - 空间尺度 ≲ 2× 节点间距（≈256 px）时显著：尺度 1600→50 px 扫描使残余接缝 **×5.07**；
 - **工程要求**：节点间距须 ≤ 目标可表示尺度的 1/2；`roughness_penalty` 只在「面确实光滑」的前提下使用，不得用强平滑掩盖不可表示分量；
@@ -175,8 +186,19 @@
 **近奇异（条件数）处置**：
 
 - 天光面正规方程条件数 `κ = cond_2(D⁻¹AᵀWA D⁻¹)` 必须**可观测**并写入 provenance（真实 M42 样本实测 κ = **3.16e7**，`实验/additive-sky-seamless/results/c7_realdata.json`；χ²_red 1.004 但 κ 逼近默认上限）；
-- **κ 上限有两个口径，必须区分**：① **天光面求解器** `sky_plane.cpp:414/441` 默认 `kappa_max = 1e8`；② **UPM/GLS** `upm.h:281` 默认 `1e6`（冻结值 `FZ-AP2S-KAPPA-MAX = 1e6`）。真实 M42 样本 κ = 3.16e7 ⇒ 在 1e8 下**不触发**自适应、在 1e6 下**超限**；**统一两个口径属未决项**（登记 OPEN_QUESTIONS）；统一前任何「自适应已触发」的陈述必须写明所用上限；
-- `κ > kappa_max` ⇒ 必须走**粗糙度正则化**（`roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、所用参数与 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿；
+- **κ 上限是两个不同求解器的两个不同口径，必须逐求解器写明**：
+  ① **天光面样条求解器**（`p2_sky_plane_build`）：`sky_plane.cpp:414`（默认配置）/ `:441`（零/非法值回退）
+  取 `kappa_max = 1e8`；`sky_plane.h:154` 注释同值；超限返回 `P2_SKY_PLANE_KAPPA_EXCEEDED`（fail-closed，
+  `sky_plane.cpp:1016-1022`），**求解器自身不自适应**——有界的粗糙度自适应重试在编排面
+  （`module_adapters.cpp:7976-8001`：`roughness_penalty` 逐级 ×10、总尝试上限 6，并把
+  `sky_plane_kappa_adaptive_attempts|used` 与生效惩罚写入 provenance）。
+  ② **UPM/GLS 正规矩阵**（`p2_upm_ma_build`）：`upm.h:285` / `upm.cpp:2243` 取 `kappa_max = 1e6`，
+  即冻结值 `FZ-AP2S-KAPPA-MAX = 1e6`（登记于 `eng/contracts/data/v6_clause_registry_v1.json`，
+  scope 明写「Phase2 UPM/GLS 可辨识性」），超限 `rc=4` fail-closed（`upm.cpp:2571`）。
+  **真实 M42 样本 κ = 3.16e7（`实验/additive-sky-seamless/results/c7_realdata.json` 的
+  `sky_build_real.kappa`）⇒ 在 ① 的 1e8 下通过且不触发自适应；在 ② 的 1e6 下超限。**
+  统一两个口径属未决项；**统一前任何「自适应已触发」的陈述必须写明所用上限与求解器**。
+- `κ > kappa_max` 的处置（正向约束）：**必须**走**粗糙度正则化**（提高 `roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、尝试次数、生效参数与最终 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿。天光面求解器只做 fail-closed 返回，重试由编排面实施且**必须有界**（见上条 ①）；
 - **门控 κ 的口径（实证口径）**：门控值必须取**实际求解矩阵** `H_solve = H_red + λ·DᵀD` 的条件数，**不得**取未惩罚数据矩阵 `H_red` 的条件数。理由（实测，`eng/tests/unit/v6_p2_sky_kappa`）：`H_red` 的 κ 与 λ 无关（λ 从 1e-3 提到 1e6 恒为 2.497e9），在它上面设门会让「κ 超限 ⇒ 走粗糙度正则化」**永远无法成功**，条款形同虚设；改用 `H_solve` 后同一算例 λ=0 时 κ=2.497e9（超限拒绝）、λ=1e-3（生产默认）时 κ=8.311e3（通过），正则化成为**有效**手段。未惩罚 κ 保留为独立诊断量（`P2SkyPlaneInfo.kappa_data` / JSON `kappa_data` / provenance `sky_plane_kappa_data`）。λ=0 时两者逐位相等（回归锁 A5）。注意 λ 过大反而抬高 `H_solve` 的 κ（惩罚算子自身的谱展布），故自适应重试必须**有界**并以实测 κ 为准；
 - provenance 最小集：`gauge_mode`、每分量 `ref_frame_id`、`rank`、`rank_rtol`、`kappa`、`kappa_max`、`k_corr`、`model_hash`、`any_fail_closed_reason`。
 
@@ -184,11 +206,11 @@
 
 | 条件 | 行为 | 证据 |
 |---|---|---|
-| 无重叠/无 control | `NO_DATA` | `upm.cpp:6` 域检查 |
-| `use_ivar_weight=1` 且 `control_ivar≤0/非有限` | `p2_upm_raw_weight rc=2 → build rc=2` | `DATA-UPM-CONTROL-UNC-001` |
-| `S=0` (MAD=0) | 该 patch 方差为 0，不计 control | `noise_model` |
-| 单帧区 | harmonic continuation 填 | `phase2` 域 |
-| 畸形模型文件 | `ERR-P2-UPM-001` | `aio_upm.cpp` |
+| 无重叠/无 control（`n_obs=0` / 无观测几何节点） | `rc=1`（`n_obs=0`）；无观测几何节点以 sentinel 不入数据图 | `upm.cpp:215`/`:246-249`；ALG-P2-UPM-IMPL-001 §10 |
+| `use_ivar_weight=1` 且 `control_ivar≤0/非有限` | `p2_upm_raw_weight rc=2 → build rc=2` | `DATA-UPM-CONTROL-UNC-001`；`upm.cpp:1665-1670` |
+| `S=0`（patch 内 ≥ 半数像素同值 ⇒ 稳健尺度 0） | **无尺度信息**：`control_ivar` 必须为 0 且 `control_variance` 标为无尺度信息（非有限），**禁止**把数值保护量平方后当方差发布 | ALG-P2-SMP-001 §5.4（发布口径权威）；`sampler.cpp:864-877` 为待整改点 |
+| 单帧区 | harmonic continuation 填 | `upm.cpp:1054-1090`；`upm.h:99-101` |
+| 畸形模型文件 | `ERR-P2-UPM-001`（open 强校验，任何损坏 rc=1 稳定错误） | `aio_upm.cpp`；`upm.cpp:1304-1567` |
 | 跨 endian payload | 理论 id 不同，当前仅 Linux x86_64 路径 | `sampler.cpp:257` |
 
 ## 9 精度策略
@@ -196,6 +218,8 @@
 - FP64 求解；`dense cache` 与 `sparse` 求值 `1e-12` 等价门（`SparseEqualsDense`）；
   `k_corr` 冻结默认 `1.4`（保守取整）；其 MC 校准来源 `control_median_mc_test` **未注册
   （构建孤儿 / MISSING，见 §11/§13/§15）**——常数本身由 §5 定义冻结，但不可复跑该 MC 证据。
+  **适用域（正向约束）**：该 1e-12 是**同标度下**的求值等价门；跨标度引用绝对 1e-12 的
+  禁令见 §7 (b) 的适用域段。
 - 并行确定性容差见 §7 三档（同配置重复位精确 + hash exact；跨 worker 数 1e-12；跨后端不允许）。
 
 ## 10 不可接受变化
@@ -235,7 +259,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 ## 9a 专属问题回答（SCI-005 指定问题逐项）
 
-- **观测方程**：`calibrated_f(p) = raw_f(p) − C_f(p)`，`C_f(p)`=帧 f 的加性校正场（8×8 control cell 双线性插值，§5）；**纯加性模型**（乘性尺度差已撤销，§1 非目标）；`raw`=校准前样本 patch median。
+- **观测方程**：`calibrated_f(p) = raw_f(p) − C_f(p)`，`C_f(p)`=帧 f 的加性校正场（8×8 control cell 双线性插值，§5）；**纯加性模型**（`g_k ≡ 1`；乘性尺度差不属本层，§1 非目标）；`raw`=校准前样本 patch median。
 - **控制点**：8×8 control cell；control estimator=patch median（非单 leaf）；`N_retained`=clipping 后保留样本数（非总数）。
 - **光度面 basis**：分块常数加性背景面——每帧每 control cell 一个自由度 `θ_f`，经双线性插值成连续场；自由度 = n_frames × n_control_points。
 - **正则化**：Huber IRLS 鲁棒求解 + control-ivar 感知权重 + **弱零锚** `zero_anchor_weight=0.001`（弱 Tikhonov/岭型锚定向全局零）。
@@ -259,8 +283,8 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - **Huber IRLS**：Huber, P. J. 1964, Ann. Math. Statist. 35, 73（DOI 10.1214/aoms/1177703732）；Holland, P. W. & Welsch, R. E. 1977, Communications in Statistics A6, 813（DOI 10.1080/03610927708827533，δ=1.345 的 IRLS 出处）；Huber & Ronchetti 2009, Robust Statistics, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
 - **弱零锚（弱 Tikhonov/岭正则）**：Tikhonov, A. N. 1963, Soviet Math. Dokl. 4, 1035（**核验状态**：文章级，卷页需网络核验）。
 - **var(median)≈πσ²/(2N)**：正态样本中位数渐近方差的教科书结论（Hoaglin et al. 1983；Kendall & Stuart, The Advanced Theory of Statistics Vol.1）；UPMW-004 实证 ratio 0.997。
-- **稀疏天光面样条（加性天光面的表示候选）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。§5 冻结的加性场当前实现为 8×8 control cell 双线性；稀疏样条是**同一加性场**的另一种表示候选（`OPEN-P2S-02` 数据面/schema 待合同流程），**不改变** §1/§5 的纯加性模型。
-- **本期决议：纯加性（claim `FIX-SCI-SNR-CANON-001`）**：本文件 §1/§5 的**纯加性**冻结模型 `calibrated_f(p)=raw_f(p)−C_f(p)` 为最终模型；**取代** `FIX-A-UPM-001` 提议的 `y_k(x)=g_k·s(x)+b_k(x)` 乘性方向。`g_k ≡ 1` **本期不启用**；`÷g²` 保持**恒等式**（`Var(corrected)=[σ_raw²+J_out C_θ J_outᵀ]/g²`，`g≡1` 时退化等价，公式不删）。**理论依据（负责人给出，须进论文）**：Phase1 正确归一化后，帧本身已是**同一测光体系的真信号**加**可等效为加性的天光**；残留天光**无论是加性还是乘性，都可以用加法移除**；乘性残留属**低阶空间增益**，已归 Phase1 处理（`I_photo = k_photo·m(x,y)·I_cal`），Phase2 只做加性扣除 `raw − C_k`。原「设计-实现模型冲突」UNRESOLVED **关闭**：`10_sampling.md`/`11_upm.md`/`UNIFIED_MODEL.md` 的目标态表述同步订正为纯加性；`OPEN-P2S-02` 仅剩数据面/schema 表示待合同流程。
+- **稀疏天光面样条（加性天光面的表示候选）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。§5 冻结的加性场当前实现为 8×8 control cell 双线性；稀疏样条是**同一加性场**的另一种表示候选（数据面/schema 待合同流程），**不改变** §1/§5 的纯加性模型。
+- **模型形式：纯加性（正向约束）**：本文件 §1/§5 的加性模型 `calibrated_f(p)=raw_f(p)−C_f(p)` 是 Phase2 的唯一模型形式，`g_k ≡ 1` **不启用**；乘性方向 `y_k(x)=g_k·s(x)+b_k(x)` **不在本层**。`÷g²` 保持**恒等式**（`Var(corrected)=[σ_raw²+J_out C_θ J_outᵀ]/g²`，`g≡1` 时退化等价，公式保留）。**依据**：Phase1 正确归一化后，帧本身已是同一测光体系的真信号加可等效为加性的天光；残留天光无论是加性还是乘性都可用加法移除；乘性残留属低阶空间增益，归 Phase1 处理（`I_photo = k_photo·m(x,y)·I_cal`），Phase2 只做加性扣除。`10_sampling.md`/`11_upm.md`/`UNIFIED_MODEL.md` 的目标态表述与本节一致。
 - **k_corr=1.4 的 MC 证据**：control_median_mc_test 未注册（MISSING，构建孤儿），常数本身按 §5/§10 冻结但当前不可复跑（§9/§11/§13/§15）。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
@@ -314,15 +338,14 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
    每 cell 的规范选择 ⇒「拟合/堆叠权重同源」与「末端残差场扣除」在该域内**不可检验**；
    `final_gauge` 在 `m_full_frame=1` 时近似 no-op（3.7e-3 e⁻），且**不能**修复子集依赖。
 
-### 16.3 生产缺陷登记（FIX，本单元未改任何生产代码）
+### 16.3 生产实现现状与待满足项（逐条可核验）
 
-| ID | 位置 | 现象 | 实测 |
+| 项 | 规范要求（§5/§7a） | 实现现状（实测锚） | 状态 |
 |---|---|---|---|
-| FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5989-5994`（FIX-1 赋值点） | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
-| FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3） | 两例均返回 0 |
-| FIX-3 | 天光面正规方程 | 真实 M42 样本 κ = 3.16e7（近奇异） | χ²_red 1.004 但条件数逼近默认 `kappa_max` |
+| 收敛判据的尺度归一 | 生产必须走相对/尺度归一判据（绝对 1e-6 在生产尺度不可达） | `module_adapters.cpp:7808-7813` 取 `tolerance=1e-6` ∧ `tolerance_relative=1`（相对判据，分母 `max(scale_obs,1)`）；`p2_session.cpp:204` 取 `tolerance=1e-6` 而**未设** `tolerance_relative`（零初始化 ⇒ 0 ⇒ 绝对判据） | **两入口口径不一致**（待统一） |
+| `converged` 状态枚举 0/1/2/3 | 只读访问器暴露 `0=max_iter/1=converged/2=stalled/3=invalid`，并写入数据面 | `upm.cpp:1028-1050`（stalled 连续 5 次低改善）、`:1577-1589`（访问器）；`module_adapters.cpp:7928-7935/:7963/:7997` 读入并落 manifest | **已满足** |
+| 近奇异门控 κ | 门控值取 `H_solve = H_red + λ·DᵀD` 的条件数；κ 超限走有界正则化/节点自适应并写 provenance | `sky_plane.cpp:1006-1022`（门控 κ 与 fail-closed）；`module_adapters.cpp:7976-8001`（有界自适应重试 + provenance） | **已满足** |
+| κ 上限口径 | 逐求解器写明上限（§7a ①/②） | 天光面 1e8（`sky_plane.cpp:414/441`）vs UPM/GLS 1e6（`upm.h:285`）；真实 M42 κ=3.16e7 在两者下结论相反 | **未统一**（§7a 已逐求解器写明） |
+| 自适应重试的授权边界 | 放宽 `kappa_max` 求绿为禁止项 | `module_adapters.cpp:7797-7808` 注释要求收敛容差回退冻结值并称相对判据待裁决，而同段 `:7809-7813` 以「定案」名义启用相对判据——**同一函数内两段注释对同一变更的授权状态表述互斥** | **待裁决**（不掩盖） |
 
-**处置状态**：FIX-1/2/3 的规范已冻结进 §5（相对容差 + `converged` 0/1/2/3 + stalled 判据）与 §7a（表示能力边界 + κ provenance）；生产实现修复与复跑为独立承接项。
-
-建议（供前台裁决）：FIX-1 启用 `tolerance_relative=1` 或按观测尺度归一；
-FIX-2 按 §7 语义补 `stalled` 分支；FIX-3 提高粗糙度惩罚或节点数自适应。
+**正向约束**：上表「待统一/待裁决」项在收敛前，任何引用 `converged`、`tolerance_relative` 或 κ 上限的陈述必须写明**所用入口与所用上限**。

@@ -44,27 +44,30 @@
 
 | 符号 | 含义 | 单位/域 | 实现锚 |
 |---|---|---|---|
-| y_ik（value） | 控制观测（patch 位置估计，可负） | ADU | upm.h:37 |
-| uncertainty | control estimator 标准误 = sqrt(control_variance) | ADU | upm.h:38 |
-| control_variance | k_corr·(π/2)·σ_bg²/N_retained（sampler 域产出） | ADU² | upm.h:43-50 |
-| control_ivar | 1/control_variance | ADU⁻² | upm.h:50 |
-| ivar（弃用字段） | 单像素 Phase1 ivar，仅诊断，禁入科学权重 | — | upm.h:40-42 |
-| M_k | latent unified reference | ADU | upm.cpp:57/:875 |
-| C_i(p) | 每帧空间校正场（centered 双线性 8×8） | ADU | upm.cpp:115-182 |
-| raw / calibrated | 校准前/后信号 | ADU | upm.cpp:1295 |
-| θ（每帧系数） | C 稀疏矩阵行 = frame 系数 | ADU | upm.cpp:1007-1016 |
-| grid=G | 每 tile cell 网格边长 | 无量纲（=8） | upm.cpp:266/:1062 |
-| cell_side | tile 边长/G=512/8=64 | leaf px | upm.cpp:267/:1063 |
-| tile_shift | leaf order = target_order+9 → tile 移位 | 无量纲（=9） | upm.cpp:268/:1254/:1281/:1405 |
-| leaf_ipix | NESTED leaf 像素号（cell 中心） | 无量纲 u64 | upm.h:34 |
-| frame_id | 内容稳定帧身份（sampler 域 p2_frame_id 产出） | 无量纲 u64 | upm.h:32 |
-| w_UPM | IRLS 最终权重 = raw_norm × huber_w | ADU⁻² | upm.cpp:639/:647 |
-| quality/support | 观测质量因子 / 覆盖支持度 | 无量纲 [0,1] | upm.cpp:184-193 |
-| dtype | 全链 FP64（P2ModelInfo.precision=1 fp64 reference） | — | upm.h:62、upm.cpp:263/:1402 |
+| y_ik（value） | 控制观测（patch 位置估计，可负） | 面亮度 ADU·sr⁻¹ | upm.h:277（字段 `value`） |
+| uncertainty | control estimator 标准误 = sqrt(control_variance) | 面亮度 ADU·sr⁻¹ | 由 `control_ivar` 反演（`upm.cpp:1665-1681`） |
+| control_variance | k_corr·(π/2)·σ_bg²/N_retained（sampler 域产出） | (ADU·sr⁻¹)² | `upm.cpp:2785`（唯一发布点 `p2_upm_control_variance`） |
+| control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | upm.h:278（字段 `control_ivar`） |
+| ivar（弃用字段） | 单像素 Phase1 ivar，仅诊断，禁入科学权重 | — | upm.h 冻结注释（禁入科学权重） |
+| M_k | latent unified reference | 面亮度 ADU·sr⁻¹ | upm.cpp:56（`ControlNode::M`） |
+| C_i(p) | 每帧空间校正场（centered 双线性 8×8） | 面亮度 ADU·sr⁻¹ | upm.cpp:131-200（`evaluate_field_row`）/ `:202-205`（`evaluate_c_field`） |
+| raw / calibrated | 校准前/后信号 | 面亮度 ADU·sr⁻¹ | upm.cpp:1591-1625 |
+| θ（每帧系数） | C 稀疏矩阵行 = frame 系数 | 面亮度 ADU·sr⁻¹ | upm.cpp:73（`Model::C` [frame][control]） |
+| grid=G | 每 tile cell 网格边长 | 无量纲（=8） | upm.cpp:91 |
+| cell_side | tile 边长/G=512/8=64 | leaf px | upm.cpp:92 |
+| tile_shift | leaf order = target_order+9 → tile 移位 | 无量纲（=9） | upm.cpp:218-220（`leaf_to_tile`）/ `:222-224`（`leaf_local`） |
+| leaf_ipix | NESTED leaf 像素号（cell 中心） | 无量纲 u64 | upm.cpp:57（`ControlNode::leaf_ipix`） |
+| frame_id | 内容稳定帧身份（sampler 域 p2_frame_id 产出） | 无量纲 u64 | upm.h:275（`P2UpmMaObservation::frame_id`）/ upm.cpp:72 |
+| w_UPM | IRLS 最终权重 = raw_norm × huber_w | (ADU·sr⁻¹)⁻² | upm.cpp:1650-1681（`p2_upm_raw_weight`）/ `:1683-1710`（`p2_upm_normalized_weights`） |
+| quality/support | 观测质量因子 / 覆盖支持度 | 无量纲 [0,1] | upm.cpp:207-216（`quality_factor`：16→0.0 / 2→0.1 / 1→1.0 / 0→0.5 / 其余 0.5） |
+| dtype | 全链 FP64（P2ModelInfo.precision=1 fp64 reference） | — | upm.h:62 |
 
-禁止单位漂移：C/M/raw/calibrated/σ_bg=ADU、control_variance=ADU²、
-control_ivar=ADU⁻²、quality/support 无量纲、frame_id 无量纲 uint64
-（SCI-UPM-001 §3 冻结面，实测复核）。
+禁止单位漂移（**逐项与 SCI-UPM-001 §3 同标度**）：`C/M/raw/calibrated/σ_bg` = **面亮度 ADU·sr⁻¹**、
+`control_variance` = **(ADU·sr⁻¹)²**、`control_ivar` = **(ADU·sr⁻¹)⁻²**、`w_UPM` = **(ADU·sr⁻¹)⁻²**、
+`quality/support` 无量纲、`frame_id` 无量纲 uint64。
+**标度来源（正向约束）**：上游 Phase1 HiPS signal 层写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，
+裸 ADU 判红（`lib/infrastructure/aio/src/hiss_writer.cpp:335-365`）；本层一切绝对量随该标度，
+**不是**与仪器无关的常数——跨标度（如与 ADU 域孔径测光量）混用前必须先声明 Ω_px 换算。
 
 ## 3 逐符号锚（upm.cpp 2793 行 / upm.h 384 行，实测）
 
@@ -77,7 +80,7 @@ control_ivar=ADU⁻²、quality/support 无量纲、frame_id 无量纲 uint64
 | p2_upm_save | :134 | :1216-1282 | 稀疏 json 原子写（aio_upm_write_sparse） |
 | p2_upm_open | :135 | :1304-1527 | 强校验重开（format/frames/controls/C） |
 | p2_upm_info | :136 | :1569-1574 | P2ModelInfo 快照（hash/control_count） |
-| p2_upm_convergence | :151-160 | :1577-1587 | 迭代/目标/收敛**只读**访问器（M7-H-101；不改 P2ModelInfo 冻结布局） |
+| p2_upm_convergence | :151-160 | :1577-1587 | 迭代/目标/收敛**只读**访问器（不改 P2ModelInfo 冻结布局） |
 | p2_upm_calibrate_block | :155-161 | :1591-1620 | 逐块校准（唯一运行时 apply 面） |
 | p2_upm_evaluate_c | :164-166 | :1627-1645 | 直接求值 C(frame,leaf) |
 | p2_upm_raw_weight | :176-178 | :1650-1681 | raw 权重单一实现（production/ablation） |
@@ -181,63 +184,65 @@ API 面: p2_upm_normalized_weights 同公式（sums map :1330-1335；
 reliability 来源: cfg.control_reliability（默认 1.0，upm.cpp:288-289）
 ```
 
-**F3 Huber IRLS 坐标下降**（:493-876；公式注释 :493-504）：
+**F3 Huber IRLS 坐标下降**（`build_impl` :242-1203 的迭代主体；观测加权 :700-770、M 更新 :771-900、C 更新 :900-1000、收敛 :1005-1052）：
 
 ```text
 z = r/σeff;  r = y − M − C;  σeff = max(|uncertainty|, sigma_floor)
-                                                     # :625-628（并行）/:643-646（串行）
-loss(z) = 0.5z² (|z|≤δ) else δ(|z|−0.5δ)             # huber_rho :196-200
-w(z)    = 1 (|z|≤δ) else δ/|z|                       # huber_w :202-206
-w[i]    = raw_norm[i] × huber_w(z_i)                 # :629/:647
+                                                     # :1008-1009
+loss(z) = 0.5z² (|z|≤δ) else δ(|z|−0.5δ)             # huber_rho :226-231
+w(z)    = 1 (|z|≤δ) else δ/|z|                       # huber_w :232-236
+w[i]    = raw_w[i] × huber_w(z_i)                    # :750（并行）/:767（串行）
+raw_w = p2_upm_raw_weight 输出（production: quality_factor×control_ivar）  # :545/:1650-1681
 M 更新（固定 C）: M_k = Σ_i w·(y−C)/Σ_i w；参考帧观测优先，
-  未覆盖延拓全部帧                                    # :656-764（sentinel 分支 :671-687）
-C 更新（固定 M，逐帧 CG）: cg_solve_frame (:563-599, max_cg=200 :567)
-  (W + λs·L + λ0·I) x = rhs                          # Ap 组装 :573-579
-  图平滑 λs·Σ_{k~l}(C_ik−C_il)² + 弱零锚 λ0·Σ C_ik²   # 公式 :501；系数 :503-504
-objective += raw_w·huber_rho(z)                      # :861-871
-收敛: max_dM < tolerance && max_dC < tolerance → break  # :872
+  未覆盖延拓全部帧                                    # :771-900（sentinel 分支随分量 gauge）
+C 更新（固定 M，逐帧 CG）: cg_solve_frame (:663-720, max_cg=200 :667)
+  (W + λs·L + λ0·I) x = rhs                          # Ap 组装 :672-700
+  图平滑 λs·Σ_{k~l}(C_ik−C_il)² + 弱零锚 λ0·Σ C_ik²
+objective += raw_w·huber_rho(z)                      # :1010-1011
+收敛: tol_M/tol_C 由 tolerance × (tolerance_relative ? max(scale_obs,1) : 1) 决定
+      max_dM < tol_M && max_dC < tol_C → converged=1  # :1021-1040（详见 §13）
 ```
 
 **F4 calibrated = raw − C(frame, leaf)**（C 场 = centered 双线性 8×8）：
 
 ```text
-calibrate_block: out[i] = in[i] − evaluate_c_field(...)   # :1263-1266
-evaluate_c_field: cell 中心节点（gx*64+32）；内区夹取两相邻中心；
+calibrate_block: out[i] = in[i] − evaluate_c_field(...)   # :1591-1625
+evaluate_c_field: cell 中心节点（gx*cell_side+cell_side/2）；内区夹取两相邻中心；
   tile 最外缘线性外推（前两/后两 covered nodes）；外推锚点限于本
   tile 真实覆盖 cell 范围（tile_gx/gy_bounds）；缺失 cell 不引用为 0
-  而按 0 值参与（at :158-165）                          # :112-175
-grid=8, cell_side=64, tile_shift=9                      # :259-261/:1254/:1281/:1405
-dense tile sheet 与 sparse 共用同一求值语义              # compute_tile :1410-1476
+  而按 0 值参与                                          # :131-200（evaluate_field_row）
+grid=8, cell_side=64, tile_shift=9                      # :91-92/:218-224
+dense tile sheet 与 sparse 共用同一求值语义              # p2_upm_materialize_dense_n :1756-1885
 ```
 
 **F5 gauge 与连通分量**（断开分量独立、内容稳定 frame_id 排序）：
 
 ```text
-连通分量 = frame-control 二分图（仅带 obs 节点参与数据图）  # :415-491
-每分量 ref_frame = 分量内最小 frame_id                    # :464-469
-gauge: ref 帧 C=0（该分量独立，非全局最小帧）              # :786-793/:827-832
-M 参考帧语义: 分量内 ref 帧观测定义 M；ref 未覆盖延拓全帧    # :651-652/:688-705
-无观测几何节点: component=sentinel(SIZE_MAX,:217) 不参与
-  数据图/gauge；M 由全部帧加权（无 ref 语义）             # :417-418/:671-672
+连通分量 = frame-control 二分图（仅带 obs 节点参与数据图）  # :462-515
+每分量 ref_frame = 分量内最小 frame_id                    # :511-515
+gauge: ref 帧 C=0（该分量独立，非全局最小帧）              # :914-915/:962-963
+M 参考帧语义: 分量内 ref 帧观测定义 M；ref 未覆盖延拓全帧    # :771-880（ref 选择 :568/:812/:865）
+无观测几何节点: component=sentinel(SIZE_MAX) 不参与
+  数据图/gauge；M 由全部帧加权（无 ref 语义）             # :246/:465
 单帧区节点: build_geo 提供 nodes 全几何，obs 只含 ≥2 clean 帧；
-  单帧区由平滑/Laplacian 延拓（harmonic continuation）     # upm.h:99-101
-gauge/分量固定顺序: frame_ids 升序 set(:265)、DFS 起点 f 升序(:433-456)
+  单帧区由平滑/Laplacian 延拓（harmonic continuation）     # :1054-1090；upm.h:99-101
+gauge/分量固定顺序: frame_ids 升序 set、DFS 起点 f 升序
 ```
 
 **F6 持久化**（SHA-256 模型 hash + sparse json + dense cache）：
 
 ```text
-model_hash = SHA-256(payload)                          # :879-921
+model_hash = SHA-256(payload)                          # :1148-1200
   payload = version|target_order|cfg(smoothing/anchor/sigma_floor/
   support_power/use_ivar)|input_manifest_hash | frames(升序) |
-  controls(tile,gx,gy,M) | cell_index | C 全量（max_digits10 序列化 :882-887）
-sparse json: format="astrocs-upm-v2"，frames[]+C[] 行序显式持久化，
-  原子写 aio_upm_write_sparse                          # :940-1006（:947/:1003-1005）
-open 强校验: format(:1027-1028)、frames 存在/数组/无重复/类型
-  (:1064-1084)、controls/C 字段类型与行数（:1104-1134/:1177-1206）、
-  任何损坏 → rc=1 稳定错误禁止异常越界（:1224-1228）
-dense cache: format="astrocs-upm-dense-v2"（aio_upm.cpp:223/:407-408），
-  source_hash=model_hash 校验（:1401-1403/:1530-1532）
+  controls(tile,gx,gy,M) | cell_index | C 全量（max_digits10 序列化 :1153）
+sparse json: format="astrocs-upm-v2"（:1223），frames[]+C[] 行序显式持久化，
+  唯一 AIO 出口 aio_upm_write_sparse（原子写）           # :1299-1301
+open 强校验: format(:1323)、frames 存在/数组/无重复/类型、
+  controls/C 字段类型与行数、
+  任何损坏 → rc=1 稳定错误禁止异常越界（p2_upm_open :1304-1567）
+dense cache: format="astrocs-upm-dense-v2"（aio_upm.cpp），
+  source_hash=model_hash 校验（p2_upm_dense_read_block :1912-1927）
 dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 ```
 
@@ -277,27 +282,25 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
      池 ：1484-1496（段 ：1479-1502）。
 - **worker 数唯一来源 = cfg.cpu_workers**（Runtime lease：
   p2_session.cpp:155 sampler / :195 upm 传 budget.max_workers；
-  upm.cpp:242 注释"默认 1(串行 reference); 生产由 p2_session 传
-  lease"；:511-514 注释禁 hardware_concurrency——**无硬件探测**，
-  实测 grep hardware_concurrency 仅命中该注释行 :512）；
-- **SIMD 安全**：残差/Huber 权重逐观测独立（w[i] 写不相交 ：613 注释；
-  raw_w[i] 同构 ：524-531）；加权 M/C 聚合为观测/控制索引固定序累加
-  （FP64，禁止重结合；归并顺序 §7 冻结）；dense 每 (f,tile) 输出
-  buf 独立无别名（:1482/:1491-1492）；upm.h:89-91 注释残留
-  OpenMP/CON-005 旧表述为历史漂移（DISP-P2UPM-002），实现以本节为
-  唯一权威；
-- **取消点**：迭代边界检查（:770-772 注释），取消不写半成品
-  （persist 段整模型单元，p2_session.cpp:221-233）。
+  upm.cpp:265 注释「默认 1(串行 reference); 生产由 p2_session 传
+  lease」；:595 注释明确 **无 hardware_concurrency**——实测 grep 仅命中该注释行）；
+- **SIMD 安全**：残差/Huber 权重逐观测独立（w[i] 写不相交）；加权 M/C
+  聚合为观测/控制索引固定序累加（FP64，禁止重结合；归并顺序 §7 冻结）；
+  dense 每 (f,tile) 输出 buf 独立无别名（:1756-1885 分块循环）；
+  `upm.h:92-94` 注释残留 OpenMP 旧表述为漂移（§14 DISP-P2UPM-002），
+  实现以本节为唯一权威；
+- **取消点**：迭代边界检查，取消不写半成品
+  （persist 段整模型单元，`p2_session.cpp:219-233`）。
 
 ## 9 复杂度
 
 - build 主体 O(iter × (n_obs + Σ_k deg(k) + F×CG))；单帧 CG 每次
-  max_cg=200 迭代 × O(K + Σdeg)（:563-599）；rhs/obs_w 每 frame 每
-  control 聚合该帧 obs（:795-811）；
-- 连通分量/邻接建图 O(n_obs + K + 边界对粗筛)（:351-491）；
-- model_hash O(n_obs 序列化 + F×K)（:879-921）；
-- persist O(F×K)（C 稀疏行 :993-1002）；materialize
-  O(F × n_tiles × 512²) 双线性求值（:1410-1476）；
+  max_cg=200 迭代 × O(K + Σdeg)（`cg_solve_frame` :663-720）；rhs/obs_w
+  每 frame 每 control 聚合该帧 obs；
+- 连通分量/邻接建图 O(n_obs + K + 边界对粗筛)（:462-515）；
+- model_hash O(n_obs 序列化 + F×K)（:1148-1200）；
+- persist O(F×K)；materialize
+  O(F × n_tiles × 512²) 双线性求值（`p2_upm_materialize_dense_n` :1756-1885）；
 - 内存 O(n_ctrl + F×K)（C/obs_w 稠密矩阵，Model :74/:76；
   dense 求值缓冲上界 kChunk×512²×8 字节 = 16×512²×8（:1386/:1482））。
 
@@ -307,14 +310,14 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 |---|---|---|---|
 | p2_upm_build / build_geo | 0 | 成功 | :926/:931/:937 |
 | 同上 | 1 | 参数错：null out_model/obs、**n_obs=0**、target_order<0（无有效 leaf 层级）；save/open 参数错与 IO/format/字段损坏同码 | :215、:246-249、:941、:1009-1028、:1064-1134、:1177-1227 |
-| 同上 | 2 | production 缺 control_ivar（raw_weight rc=2 传播；显式科学错误禁静默降级） | :1311→:602-610 |
-| p2_upm_raw_weight | 0/1/2 | ok / 参数错 / production 缺 control_ivar | :1294/:1311；语义注释 upm.h:138-145 |
-| p2_upm_calibrate_block | 0/1 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1244-1247、:1249-1252 |
-| p2_upm_evaluate_c | NaN | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵——M7-H-103） | :1301-1307 |
-| p2_upm_convergence | 0/1 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1257-1267 |
-| p2_upm_dense_read_block | 0/1/2 | ok / 参数 null·未知 frame_id·io/parse / **stale-cache（source hash 不匹配）** | :1547-1553、:1554-1556；语义注释 upm.h:176-177 |
-| p2_upm_materialize_dense_n | 0/1 | ok / null、tile_set 空、aio 失败 | :1392-1404、:1508-1514 |
-| p2_upm_component_gauges | 0/1/2 | ok / null model / ref_frame 容量不足 | :1372-1376 |
+| 同上 | 2 | production 缺 control_ivar（`p2_upm_raw_weight` rc=2 传播；显式科学错误禁静默降级） | :1650-1681 → :2256 |
+| p2_upm_raw_weight | 0/1/2 | ok / 参数错 / production 缺 control_ivar | :1650-1681；语义注释 upm.h:138-145 |
+| p2_upm_calibrate_block | 0/1 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1591-1625 |
+| p2_upm_evaluate_c | NaN | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵） | :1627-1647 |
+| p2_upm_convergence | 0/1 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1577-1589 |
+| p2_upm_dense_read_block | 0/1/2 | ok / 参数 null·未知 frame_id·io/parse / **stale-cache（source hash 不匹配）** | :1912-1927；语义注释 upm.h:176-177 |
+| p2_upm_materialize_dense_n | 0/1 | ok / null、tile_set 空、aio 失败 | :1756-1885 |
+| p2_upm_component_gauges | 0/1/2 | ok / null model / ref_frame 容量不足 | :1735-1747 |
 
 - 空输入链：n_obs=0 → rc=1（:215）；无 target_order（cfg.target_order<0
   且未显式给出）→ rc=1（:246-249，注释"空间 UPM 必须知道 control
@@ -324,11 +327,11 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 - 退化几何：无观测几何节点 sentinel 不入数据图（:217/:417-418）；
   断开分量各自 gauge（:22 注释/:415-491）；单帧区 continuation
   （upm.h:99-101）；
-- 哨兵条款（M7-H-103）：**不可用一律 NaN**，禁止用与合法值冲突的 0.0
+- 哨兵条款：**不可用一律 NaN**，禁止用与合法值冲突的 0.0
   （gauge 参考帧合法 C=0）；`p2_upm_evaluate_c(nullptr,…)` 与未知 frame_id 同码。
   开放项：缺失 cell（tile 不在模型 control 图内）仍返回 0.0=无校正（调用契约要求
-  frame+leaf 在覆盖域内；升级为显式错误需另行变更，SC-005 登记）。
-- 收敛可观测（M7-H-101）：`p2_upm_build` 的 rc=0 **只**表示构建成功；"迭代耗尽"
+  frame+leaf 在覆盖域内；升级为显式错误需另行变更）。
+- 收敛可观测：`p2_upm_build` 的 rc=0 **只**表示构建成功；"迭代耗尽"
   由 `p2_upm_convergence` 的 `converged=0` 报告，禁止以 rc=0 冒充已收敛。
 - 错误粒度 = rc 二值/三值 + AIO 层 aio_upm_last_error 文本；编排层
   ACS_ERR 映射归 API-P2-001 编排面，不在本模块域。
@@ -372,32 +375,55 @@ frames 重复 rc=1、C 行数≠frame 数 rc=1、dense stale rc=2。fixture
 
 ## 13 容差与冻结清单（默认值实测）
 
-**P2UpmBuildConfig 默认值**（cfg_in=null 缺省面 ：218-245；两处生产组装
-p2_session.cpp:187-195 与 module_adapters.cpp:3152-3176 均显式赋 zero_anchor_weight=1e-3）：
+**P2UpmBuildConfig 默认值**（`cfg_in` 缺省面 = upm.cpp:254-292 的整块零值回填；
+两处生产组装 `p2_session.cpp:199-211` 与 `module_adapters.cpp:7795-7813` 均显式赋
+`zero_anchor_weight=1e-3`、`sigma_floor=1e-3`）：
 
-| 参数 | 默认 | 锚（upm.cpp） |
+| 参数 | 默认 | 锚（upm.cpp / upm.h） |
 |---|---|---|
-| huber_delta | 1.345（无量纲，单位=sigma_eff） | :254/:273 |
-| max_iterations | 100 | :257/:274 |
-| tolerance | 1e-6（收敛门 max_dM/max_dC） | :258、收敛判据 ：872 |
-| sigma_floor | 1e-3 | :260/:279 |
-| zero_anchor_weight（λ0） | 1e-3 | :226/:244 |
-| smoothing_lambda（λs） | 0.0（默认关闭平滑） | :225/:245 |
-| use_ivar_weight | 1（production；仅显式 0 进 ablation） | :263 |
-| control_reliability | 1.0 | :264/:283 |
-| cpu_workers | 1（串行 reference；生产=Runtime lease） | :265 |
-| support_power | 1.0（仅 ablation 路径消费） | :261/:280 |
+| huber_delta | 1.345（无量纲，单位=sigma_eff） | upm.h:74；upm.cpp:254/:273 |
+| max_iterations | 100 | upm.h:77；upm.cpp:257/:274 |
+| tolerance | 1e-6 | upm.h:81；upm.cpp:258/:278 |
+| tolerance_relative | 0（=tolerance 作绝对量）；**生产两入口不一致，见 §14** | upm.h:113；upm.cpp:271/:292 |
+| sigma_floor | 1e-3 | upm.h:83；upm.cpp:260/:279 |
+| zero_anchor_weight（λ0） | 1e-3 | upm.h:76；upm.cpp:256/:284 |
+| smoothing_lambda（λs） | 0.0（默认关闭平滑） | upm.h:75；upm.cpp:255/:286 |
+| use_ivar_weight | 1（production；仅显式 0 进 ablation） | upm.h:89；upm.cpp:263 |
+| control_reliability | 1.0 | upm.h:90；upm.cpp:264/:283 |
+| cpu_workers | 1（串行 reference；生产=Runtime lease） | upm.h:94；upm.cpp:265 |
+| support_power | 1.0（仅 ablation 路径消费） | upm.h:84；upm.cpp:261/:280 |
+| gs_damping | 1.0（legacy）；生产 0.5 | upm.h:102；upm.cpp:268/:289 |
+| m_full_frame | 0（legacy）；生产 1 | upm.h:105；upm.cpp:269/:290 |
+| final_gauge | 0（legacy）；生产 1 | upm.h:109；upm.cpp:270/:291 |
 
-**数值常数**：CG max_cg=200（:567）、CG 早停 pAp≤1e-30（:586）/
-rs_new<1e-24（:594）、归一化门 s>1e-12（:555/:1341）、per-control
-sums 门 den>1e-12（:681/:697/:706/:731/:748/:757，:697/:748 为
-den≤1e-12 反向分支）、kChunk=16（:1407）、
-kLeafPx=512²（:1406）、跨 tile 邻接 link_rad=1.6×cell_dist（:384）、
-dense/sparse 等价 1e-12。
+**数值常数**：CG max_cg=200、CG 早停 pAp≤1e-30 / rs_new<1e-24、
+归一化门 s>1e-12、per-control sums 门 den>1e-12、`kChunk=16`、
+`kLeafPx=512²`、跨 tile 邻接 link_rad=1.6×cell_dist、dense/sparse 等价 1e-12、
+`kStallPatience=5`（upm.cpp:719）、`kObjImproveFloor=1e-12`（upm.cpp:720）。
 
-**k_corr=1.4 冻结（MC 实测 1.3883）**：sampler.cpp:81 注释
+**收敛判据的精确形式（唯一权威=代码，逐位核验）**：
+
+```text
+scale_obs = median(|value|)  （全部观测；非有限或 ≤0 → 0）      # upm.cpp:707-718
+tol_M = tol_C = tolerance                                       # :1021-1022（legacy 绝对）
+tolerance_relative=1 时: tol_M = tol_C = tolerance × max(scale_obs, 1.0)   # :1023-1027
+converged = 1  ⇔ max_dM < tol_M ∧ max_dC < tol_C                # :1037-1040
+converged = 3  ⇔ objective 非有限                                # :1033-1036
+rel_improve = |obj − obj_prev| / max(|obj_prev|, 1e-300)         # :1029-1032
+converged = 2  ⇔ rel_improve < 1e-12 连续 5 轮（kStallPatience）  # :1041-1050
+converged = 0  ⇔ 迭代耗尽（max_iterations）                       # :1052
+```
+
+**分母口径（正向约束）**：分母**必须**取观测量尺度 `scale_obs`（|value| 的中位数），
+**不得**取 `max|M|`/`max|C|`。`max(scale_obs,1.0)` 保证近零尺度输入退回绝对判据
+（小尺度合成数据与 legacy 逐位等价）。**头文件注释漂移（登记项）**：`upm.h:80` 仍写
+`scale = max|M| 或 max|C|`、`upm.h:147` 仍写 `tol_step`/`tol_obj`、`upm.h:111-112` 仍写
+「生产显式 1 + 1e-3」——三处均与实现（`:1019-1027`）及生产装配（`tolerance=1e-6`）
+不一致，**以代码与本节为准**。
+
+**k_corr=1.4 冻结（MC 实测 1.3883）**：`sampler.cpp:82` 注释
 "k_corr_empirical = 1.3883，N_eff ≈ 181 < N_retained=251. 冻结保守值
-1.4"；常量 kControlCorrDefault=1.4（sampler.cpp:82）。**k_corr 属
+1.4"；常量 `kControlCorrDefault=1.4`（`sampler.cpp:83`）。**k_corr 属
 sampler 域合同**（ALG-P2-SMP-001 §5.4 / ALG-UPM-CONTROL-IVAR-001，
 PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不重复
 标定。**本表数值与公式为冻结面：任何修改必须走 SCI/合同变更，禁止
@@ -407,13 +433,16 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 | ID | 锚 | 内容 | 整改去向 |
 |---|---|---|---|
-| DISP-P2UPM-001 | upm.h:167-168 与 :173-175 | p2_upm_materialize_dense **重复声明**（同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | P2-UPM-IMPL |
-| DISP-P2UPM-002 | upm.h:89-91 | cpu_workers 注释漂移：前半句"CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合"与实现不符（现无 OpenMP、std::thread 五段池，§8）；:91 后半句 Runtime lease 语义正确 | P2-UPM-IMPL（随 001 一并清） |
-| DISP-P2UPM-003 | p2_session.cpp:196-202 | upm 配置覆盖键仅 {max_iterations,huber_delta,smoothing_lambda}；zero_anchor_weight/tolerance 无 config 键（build 缺省修补面 ：244-245 只拦非法值，session 面不可配） | P2-SESSION-IMPL |
-| DISP-P2UPM-004 | lib/infrastructure/scheduler/src/module_adapters.cpp:665-698 | descriptor 端口语义占位：fit 行 upm_model=可选输出（:608 required=false）、apply 行 upm_model=必选输入（:626 required=true），与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件+p2_upm_open）不符 | P2-XX-INT |
+| DISP-P2UPM-001 | upm.h:167-168 与 :173-175 | `p2_upm_materialize_dense` **重复声明**（同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | 头文件注释清理面 |
+| DISP-P2UPM-002 | upm.h:92-94 | `cpu_workers` 注释漂移：前半句「CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合」与实现不符（现无 OpenMP、std::thread 五段池，§8）；后半句 Runtime lease 语义正确 | 头文件注释清理面 |
+| DISP-P2UPM-003 | p2_session.cpp:199-218 | upm 配置覆盖键仅 {max_iterations, huber_delta, smoothing_lambda}；`zero_anchor_weight` / `tolerance` / `tolerance_relative` 无 config 键（`upm.cpp:273-286` 只拦非法值，session 面不可配） | P2-SESSION-IMPL |
+| DISP-P2UPM-004 | `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 段 | descriptor 端口语义占位：fit 行 upm_model=可选输出、apply 行 upm_model=必选输入，与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件 + `p2_upm_open`）不符 | P2-XX-INT |
+| DISP-P2UPM-005 | upm.h:78-80、:110-112、:143-149 | 收敛面**头文件注释三处漂移**：①`:80` 分母写 `max|M| 或 max|C|`，实现与生产均为 `scale_obs=median(|value|)`（`upm.cpp:707-718/:1024`）；②`:111-112` 写「生产显式 1 + 1e-3」，生产装配实为 `tolerance=1e-6`（`module_adapters.cpp:7808`）；③`:147` 写 `tol_step`/`tol_obj`，实现无此二字段（只有 `tolerance` + `tolerance_relative`） | 头文件注释清理面 |
+| DISP-P2UPM-006 | `module_adapters.cpp:7808-7813` vs `lib/phase2_session/p2_session.cpp:204` | **两个生产入口的收敛判据口径不一致**：适配器 `tolerance=1e-6` ∧ `tolerance_relative=1`（相对）；session `tolerance=1e-6` 且未设 `tolerance_relative`（零初始化 ⇒ 0 ⇒ 绝对）。同段注释（`:7797-7808` 要求回退冻结绝对容差、相对判据待裁决）与 `:7809-7813`（以「定案」名义启用相对判据）**对同一变更的授权状态表述互斥** | 待裁决（§16.3 同项） |
+| DISP-P2UPM-007 | upm.h:277-278 | 观测结构体字段单位注释写 `单位 ADU` / `单位 ADU^-2`，与 SCI §3 冻结面（面亮度 **ADU·sr⁻¹** / **(ADU·sr⁻¹)⁻²**）及上游写盘 BUNIT 冻结集不一致 | 头文件注释清理面 |
 
-登记原则：本域只登记不改码；001/002 整改编入 P2-UPM-IMPL 面，
-003 归 P2-SESSION-IMPL，004 归 P2-XX-INT 对齐。
+登记原则：本域只登记不改码；头文件注释类漂移（001/002/005/007）整改编入头文件注释清理面，
+003 归 P2-SESSION-IMPL，004 归 P2-XX-INT 对齐，006 上呈裁决。
 
 ## 15 消费链（生产编排与 apply/reload 面）
 
@@ -493,7 +522,9 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 ## 收敛容差与报告字段（现行登记）
 
-- **尺度无关收敛判据**：`max_dM/max(scale_obs,eps) < tol_step` ∧ `|Δobj|/max(|obj_old|,eps) < tol_obj`；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。原单标量 `tolerance` 已由 `tol_step`/`tol_obj` 取代，不再作为收敛门。
-- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`。
-- **参考通量报告字段**：`reference_flux_spread_rel` / `reference_flux_spread_gate` / `reference_flux_spread_noncommon`。逐帧 `F_ref,k` 的配对性只在**同一帧内**成立；**组间一致不是门**（组内一致容差 1e-9 一类的闸门已撤销）。
+- **收敛配置面只有两个字段**：`tolerance`（默认 1e-6）与 `tolerance_relative`（默认 0）。**不存在** `tol_step`/`tol_obj`/`tolerance_obj` 字段（`upm.h:77-81/:113`、`upm.cpp:1013-1027`）。
+- **判据（逐位）**：`tolerance_relative=0` ⇒ `max_dM < tolerance ∧ max_dC < tolerance`；`tolerance_relative=1` ⇒ `max_dM < tolerance·max(scale_obs,1) ∧ max_dC < tolerance·max(scale_obs,1)`，`scale_obs = median(|value|)`。目标相对改善 `|Δobj|/max(|obj_old|,1e-300) < 1e-12` 连续 5 轮 ⇒ `converged=2`（stalled）；目标非有限 ⇒ `converged=3`。
+- **`converged` 状态枚举**：`0=max_iter / 1=converged / 2=stalled / 3=invalid`（`upm.cpp:1028-1052`，只读访问器 `p2_upm_convergence` `:1577-1589`；模型文件未记录读作 0 = 未证明收敛）。
+- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`（缺省取 legacy 值，生产装配显式启用；`upm.cpp:266-271/:287-292`）。
+- **参考通量报告字段**：`reference_flux_spread_rel` / `reference_flux_spread_gate` / `reference_flux_spread_noncommon`。逐帧 `F_ref,k` 的配对性只在**同一帧内**成立；**组间一致不是门**。
 
