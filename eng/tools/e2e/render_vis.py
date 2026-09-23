@@ -6,7 +6,10 @@
       AGENTS §9（视觉层提交前自行逐块检查，分辨率不足时裁剪放大再读；分段计时找热点）。
 
 判据（fail-closed，都能红）：
-  V1 finite_fraction     有限像素占比 == 1.0（NaN/Inf 即红）；
+  V1 覆盖域自洽          产品带 COVERAGE 平面时按两条互斥判据判：
+                         V1a 覆盖==0 ⇒ 必须非有限（未覆盖不得有值）；
+                         V1b 覆盖 >0 ⇒ 必须有限（覆盖不得是 NaN）；
+                         无覆盖平面时退化为 finite_fraction == 1.0；
   V2 nonzero_fraction    非零像素占比 > 0（全零产品 = 空图，判红）；
   V3 dynamic_range       有限像素的 p99.9/p0.1 > 1（常数图判红）；
   V4 seam_metric         相邻分块边界处的一阶差分中位数与块内同向差分中位数之比
@@ -96,16 +99,36 @@ def main():
     args = ap.parse_args()
 
     os.makedirs(os.path.join(args.out_dir, "tiles"), exist_ok=True)
+    cov = None
     with fits.open(args.fits) as hdul:
         hdr = hdul[0].header
         data = np.asarray(hdul[0].data, dtype=np.float64)
+        for h in hdul[1:]:
+            if str(h.name).upper() == "COVERAGE" and h.data is not None:
+                cov = np.asarray(h.data, dtype=np.float64)
+                break
 
     fin = np.isfinite(data)
     n = data.size
     findings = []
     finite_fraction = float(fin.sum()) / n
-    if finite_fraction != 1.0:
-        findings.append("V1 finite_fraction=%.6f != 1.0" % finite_fraction)
+    # V1 判据：产品必须"值域与覆盖域自洽"。请求画幅可以大于数据足迹 ⇒ 合法未覆盖区必然是
+    # 非有限值，因此"全图必须全有限"既会误杀正确产品、又会把"覆盖平面说有数据而信号是 NaN"
+    # 这个真缺陷混在一起看不出来。有覆盖平面时按两条互斥判据分别判。
+    cov_stats = {}
+    if cov is not None and cov.shape == data.shape:
+        covered = cov > 0
+        phantom = int((fin & ~covered).sum())       # 未覆盖却带着有限值
+        overreport = int((~fin & covered).sum())    # 覆盖却无有限值（NaN/Inf）
+        cov_stats = {"covered_fraction": float(covered.mean()),
+                     "phantom_data_px": phantom, "covered_but_nonfinite_px": overreport}
+        if phantom:
+            findings.append("V1a 未覆盖却有值 phantom_data_px=%d" % phantom)
+        if overreport:
+            findings.append("V1b 覆盖却非有限 covered_but_nonfinite_px=%d（%.4f%%）"
+                            % (overreport, 100.0 * overreport / n))
+    elif finite_fraction != 1.0:
+        findings.append("V1 finite_fraction=%.6f != 1.0（无覆盖平面可交叉核对）" % finite_fraction)
     nz = int(np.count_nonzero(data[fin]))
     nonzero_fraction = nz / n
     if not nonzero_fraction > 0:
@@ -150,7 +173,7 @@ def main():
            "max": float(vals.max()) if vals.size else 0.0,
            "median": float(np.median(vals)) if vals.size else 0.0,
            "stretch": {"mode": "asinh", "a": 0.05, "lo": lo, "hi": hi},
-           "bbox_fraction": bbox_frac,
+           "bbox_fraction": bbox_frac, "coverage_crosscheck": cov_stats,
            "seam_ratio": ratio, "seam_detail": detail, "max_seam_ratio": args.max_seam_ratio,
            "findings": findings, "verdict": "PASS" if not findings else "FAIL"}
     io.open(os.path.join(args.out_dir, "vis_report.json"), "w", encoding="utf-8").write(
