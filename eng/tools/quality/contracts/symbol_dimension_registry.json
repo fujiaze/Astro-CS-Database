@@ -1,0 +1,207 @@
+{
+  "schema": "symbol_dimension_registry/v1",
+  "purpose": "同一符号不得在同仓指两个量纲不同的量（SYM-DIM-UNIQUE）。注册表是判据的唯一扩展点：新增符号即扩展判定面。",
+  "base_dims": [
+    "sr",
+    "ADU"
+  ],
+  "notes": [
+    "量纲以 base_dims 上的指数向量表示；空向量 {} = 无量纲。",
+    "parametric 量纲类：{'parametric':'w'} 表示「量纲 = 被求和权重的量纲」，接受 weight_leaves 中任一叶符号的量纲。",
+    "定义站点 = `SYM = <expr>`（`==` 比较不算定义）；<expr> 为纯数字常量时视为守卫站点（如 `D_p = 0`），不作量纲判定。",
+    "声明证据面（诚实边界）：本注册表只对「定义站点」与「显式量纲断言」有判定力；仅使用符号而不定义、不断言量纲的站点不作判定。"
+  ],
+  "leaf_symbols": {
+    "a_jp": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "drop∩目标像素的球面交叠面积"
+    },
+    "a": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "球面交叠面积（简写）"
+    },
+    "A_pixel": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "源像素球面面积"
+    },
+    "A_cell": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "HEALPix 像素立体角"
+    },
+    "A_drop": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "drop 面积"
+    },
+    "A_leaf": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "HEALPix leaf 像素球面面积"
+    },
+    "covered_area": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "覆盖球面面积"
+    },
+    "sumArea": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "drizzle 面积累加器"
+    },
+    "area": {
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "覆盖面积"
+    },
+    "w_jp": {
+      "dim": {},
+      "meaning": "面亮度保持权重（无量纲）"
+    },
+    "w_j": {
+      "dim": {},
+      "meaning": "Phase3 邻域几何权重（无量纲）"
+    },
+    "w_i": {
+      "dim": {},
+      "meaning": "Phase2 帧权重"
+    },
+    "w": {
+      "dim": {},
+      "meaning": "权重（简写）"
+    },
+    "wg": {
+      "dim": {},
+      "meaning": "双线性几何权重（无量纲）"
+    },
+    "ivar_i": {
+      "dim": {
+        "ADU": -2
+      },
+      "meaning": "Phase2 逆方差权重"
+    },
+    "v_j": {
+      "dim": {
+        "ADU": 2
+      },
+      "meaning": "源像素逐像素方差"
+    },
+    "V_j": {
+      "dim": {
+        "ADU": 2
+      },
+      "meaning": "输入方差"
+    },
+    "u_j": {
+      "dim": {
+        "ADU": 2
+      },
+      "meaning": "Phase3 样本输入方差"
+    },
+    "sumVarNum": {
+      "dim": {
+        "ADU": 2
+      },
+      "meaning": "drizzle 方差分子累加器"
+    },
+    "var_num_sum": {
+      "dim": {
+        "ADU": 2
+      },
+      "meaning": "方差分子"
+    }
+  },
+  "weight_leaves": [
+    "w_jp",
+    "w_j",
+    "w_i",
+    "w",
+    "wg",
+    "ivar_i"
+  ],
+  "symbols": [
+    {
+      "symbol": "D_p",
+      "dim": {
+        "sr": 1
+      },
+      "meaning": "Phase 1 drizzle 覆盖球面面积 covered_area（分母）",
+      "evidence": "docs/contracts/DATA_SEMANTICS.md:48",
+      "forbidden_context_phrases": [
+        "权重和",
+        "weight sum",
+        "wsum",
+        "Σ_{合格} w",
+        "Σ_合格 w",
+        "Σ_j w_jp"
+      ],
+      "forbidden_context_reason": "§4a 符号唯一性：D_p 只表示 covered_area[sr]，权重和必须用 W_p；二者量纲不同，代入错误相差 A_cell^2。"
+    },
+    {
+      "symbol": "W_p",
+      "dim": {
+        "parametric": "w"
+      },
+      "meaning": "聚合算子分母 = 权重和（量纲 = 被求和权重的量纲）",
+      "evidence": "docs/contracts/DATA_SEMANTICS.md:54",
+      "forbidden_context_phrases": [
+        "球面面积",
+        "covered_area",
+        "Σ_j a_jp",
+        "Σ a_jp"
+      ],
+      "forbidden_context_reason": "§4a 符号唯一性：W_p 只表示权重和，覆盖球面面积必须用 D_p[sr]。"
+    }
+  ],
+  "negation_markers": [
+    "不是",
+    "不得",
+    "禁止",
+    "不成立",
+    "绝不",
+    "不属于",
+    "而非",
+    "≠",
+    "非 "
+  ],
+  "scan": {
+    "globs": [
+      "docs/**/*.md",
+      "lib/**/*.h",
+      "lib/**/*.hpp",
+      "lib/**/*.cpp",
+      "lib/**/*.md",
+      "eng/**/*.py",
+      "eng/**/*.md",
+      "eng/**/*.json",
+      "实验/**/*.md"
+    ],
+    "exclude_path_substrings": [
+      "/archive/",
+      "/third_party/",
+      "/build/",
+      "/run/",
+      "/artifacts/",
+      ".dsh-code-index",
+      "/问题扫描/",
+      "/node_modules/",
+      "/__pycache__/",
+      "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",
+      "eng/tools/quality/contracts/symbol_dimension_registry.json"
+    ],
+    "exclude_reason": "末两项 = 本门自身的判据实现与注册表：其中的符号串是**判据夹具与禁止短语声明**，不是被规范的合同文本；把它们纳入扫描面会让判据对自己判红（自指），并使禁止短语声明无法书写。排除面逐字列明、可复核。",
+    "max_file_bytes": 4194304
+  }
+}

@@ -334,7 +334,7 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
 //   ①不合格样本 = ¬isfinite(值) (NaN 与 ±Inf 同类);
 //   ②从分子、分母、方差三项一并剔除 (被剔除样本的生效权重恰为 0 ⇒ 不留在分母);
 //   ③对剩余合格邻域重归一 c_k = w_k / Σ(合格 w_j) (FP64, 固定 k 序 ⇒ 确定性);
-//   ④仅零合格样本 (n_eligible==0) 或有效权重和 D_p==0 时 S=NaN (覆盖级 NaN);
+//   ④仅零合格样本 (n_eligible==0) 或有效权重和 W_p==0 时 S=NaN (覆盖级 NaN);
 //   ⑤C 只判足迹内有无 tile 像素: 4 个 tile 均可读则 C=1, 值 NaN 不改 C (§4);
 //   ⑥强制计数: 被剔除样本数按原因分类暴露 (禁静默剔除; 禁零填替代)。
 P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, double dec_deg,
@@ -422,7 +422,7 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
     // 一并剔除; 被剔除样本的生效权重恰为 0 ⇒ 其权重不进分母、其值不进分子、
     // 其方差项 (c²u) 恰为 0 ⇒ 方差传播必须消费下面暴露的**生效权重**。
     bool ok[4];
-    double wsum = 0.0;                 // D_p = Σ_{合格} w_j
+    double wsum = 0.0;                 // W_p = Σ_{合格} w_j (无量纲; 非 Phase1 面积 D_p[sr])
     int n_rej = 0;
     for (int k = 0; k < 4; ++k) {
         ok[k] = std::isfinite(vv[k]);
@@ -437,7 +437,7 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
     }
     const bool zero_eligible = (n_rej == 4) || !(wsum > 0.0);
     if (zero_eligible) {
-        // 覆盖级 NaN (DATA-002 §2a 规则 2: 零合格样本 / D_p=0):
+        // 覆盖级 NaN (DATA-002 §2a 规则 2: 零合格样本 / W_p=0):
         // S=NaN; C 不变 (§4: C 只判足迹内有无 tile 像素 ⇒ 4 tile 可读则 C=1);
         // 禁零填替代; 生效权重全 0 (此时 Σc_k=1 不变量不适用)。
         *value = std::nanf("");
@@ -570,7 +570,7 @@ P3ResampleStatus p3_uncertainty_propagate(P3Sampler* u, const double* weights,
         acc += w * w * u_k;               // var_out = Σ c_k²·u_k (nearest: c=1)
     }
     if (npts == 4 && n_masked == npts) {
-        // 零合格样本 (与 signal 路径同一判定, D_p=0) ⇒ 覆盖级 NaN;
+        // 零合格样本 (与 signal 路径同一判定, W_p=0) ⇒ 覆盖级 NaN;
         // 禁静默 0 冒充无效 (DATA-002 §2a 规则 2)。
         *st = P3_U_NAN; *u_out = std::nanf(""); return P3_RS_OK;
     }

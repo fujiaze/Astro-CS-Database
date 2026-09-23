@@ -61,7 +61,7 @@
   （唯一正本）+ `docs/standards/NUMERIC_STANDARD.md` §MUST + ALG-P3-003 §2 G4/§4。
   实现: ¬isfinite（含 ±Inf）邻域样本从分子、分母、**方差**三项一并剔除，剩余合格
   邻域重归一（FP64 固定 k 序）；`weights[4]` 暴露**生效（重归一）权重**（被剔除样本
-  恰为 0）⇒ 方差传播 `Σc_k²u_k` 消费该权重；仅零合格样本（或 D_p=0）⇒ S=NaN
+  恰为 0）⇒ 方差传播 `Σc_k²u_k` 消费该权重；仅零合格样本（或 W_p=0，无量纲权重和）⇒ S=NaN
   （覆盖级 NaN）；C 只判足迹内有无 tile 像素（值非有限不改 C）；强制计数经
   `P3SampleRejection::n_rejected_nonfinite` 暴露（计数 0 与「字段缺失」可区分）。
   **产品承载面未冻结**（DISP-P3RSMP-006，上呈）；C 语义跨文档冲突见 DISP-P3RSMP-007。
