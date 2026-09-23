@@ -126,10 +126,33 @@ int main() {
     P2PixelResult out{};
     CHECK(p2_integrate_pixel(&in, &out) == 0);
     CHECK(out.status == P2_INTEGRATE_ZERO_VALID_WEIGHT);
-    // B2-A7 只把 canonical reducer 移到资格门之后，不改「无正权 → 不发布
-    // signal/support」的既有零权门语义（integrate.cpp:71 全零权分支保持）。
-    // 故此处只断言状态与计数，support 发布面由 4b 正权用例覆盖。
     CHECK(out.n_positive_weight == 0);
+    // 覆盖并集下界与 signal 可用性**解耦**：全零权只表示"没有可用的统计贡献"，
+    // 不表示"没有覆盖"。故 support 必须仍是 max(accepted support)。
+    // 原实现只在 OK 分支发布 support，全零权提前返回时 support 停在 memset 的 0
+    // ⇒「有覆盖但方差不可用」被静默降级成「无覆盖」，下游据此 fail-closed 判 tile 缺失。
+    CHECK(std::fabs(out.support - 0.8) < 1e-9);
+    CHECK(out.n_accepted == 2);
+    CHECK(out.n_finite == 2);
+  }
+
+  // 4d) 判别力对照（4c 修正的负例）：全 rejected（无任何 accepted 样本）
+  // ⇒ ALL_REJECTED，support 必须保持 0——真"无覆盖"不得被 4c 的修正误抬成有覆盖。
+  {
+    P2PixelStack in{};
+    double vals[2] = {1.0, 2.0};
+    double wts[2] = {0.5, 0.5};
+    double sup[2] = {0.3, 0.8};
+    std::uint8_t acc[2] = {0, 0};
+    in.values = vals;
+    in.count = 2;
+    in.weights = wts;
+    in.support = sup;
+    in.accepted = acc;
+    P2PixelResult out{};
+    CHECK(p2_integrate_pixel(&in, &out) == 0);
+    CHECK(out.status == P2_INTEGRATE_ALL_REJECTED);
+    CHECK(out.support == 0.0);
   }
 
   // 5) UPM surface + rejection diagnostics 语义: 输出 artifact 含明确名
