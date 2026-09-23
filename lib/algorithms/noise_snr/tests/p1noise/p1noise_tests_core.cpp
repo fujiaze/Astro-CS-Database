@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "p1noise_fixtures.hpp"
+#include "astrocs/noise/variance_plane_policy.h"   // n12: §4a 三态表的方差面可用性判据
 #include "p1noise_oracle.hpp"
 #include "p1noise_test_main.hpp"
 #include "snr_estimator.h"
@@ -934,6 +935,121 @@ int test_negative() {
                          "[p1noise][n11] floor fail-closed: clamp=%lld at_floor=%zu/%zu\n",
                          (long long)n_clamped, n_at_floor, vf.size());
         }
+    }
+
+    // n12 (消费侧方差面可用性策略; 正本 astrocs/noise/variance_plane_policy.h):
+    // §4a 三态表把「有覆盖但方差不可用 ⇒ variance=0 ∧ ivar=0」定为**合法产品态**，
+    // 投影侧对 variance<=0 只跳过方差累加、不丢 signal/support ⇒ 消费侧**不得**
+    // 因平面含 0 而整张丢弃（那会丢掉可用像素的空间方差结构、退化成常数场）。
+    // 判据非退化: 三档必须给出**互不相同**的结论，且任一档与「旧判据」不同。
+    {
+        // 档 1: 负梯度帧（平面预测含非正）⇒ 生产者写 0∧0 ⇒ 必须**接受**
+        const FixNoiseB fneg = fix_noise_b_plane(20260922ull, 128, 128,
+                                                 1.0, -0.0024, -0.0060, 1.0e-6);
+        BuildResult r;
+        r.rc = snr_noise_model_v1_f64(fneg.data.data(), fneg.h, fneg.w,
+                                      nullptr, nullptr, nullptr, nullptr, nullptr, 0,
+                                      nullptr, &r.model);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        std::vector<float> vf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
+        std::vector<float> ivf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r.model, fneg.h, fneg.w,
+                                                     vf.data(), ivf.data()), 0);
+        const astrocs::noise::VariancePlaneVerdict neg =
+            astrocs::noise::classify_variance_plane(vf.data(), vf.size());
+        P1NOISE_CHECK(cs, neg.accepted, "n12_zero_variance_plane_accepted");
+        P1NOISE_CHECK(cs, neg.n_unavailable > 0, "n12_zero_variance_plane_accepted");
+        P1NOISE_CHECK_EQ(cs, (long long)neg.n_corrupt, 0);
+        // 能红: 旧判据（任一像素非正 ⇒ 整面拒绝）在同一输入上必须判**拒绝**
+        P1NOISE_CHECK(cs, !astrocs::noise::legacy_plane_all_strictly_positive(
+                              vf.data(), vf.size()),
+                      "n12_legacy_criterion_would_discard");
+        free_model(&r.model);
+
+        // 档 2: 全正平面 ⇒ 接受且 n_unavailable==0（与档 1 结论必须不同 = 判据可区分）
+        const FixNoiseB fpos = fix_noise_b_plane(20260923ull, 128, 128,
+                                                 25.0, 0.0, 0.0, 0.0);
+        BuildResult rp;
+        rp.rc = snr_noise_model_v1_f64(fpos.data.data(), fpos.h, fpos.w,
+                                       nullptr, nullptr, nullptr, nullptr, nullptr, 0,
+                                       nullptr, &rp.model);
+        P1NOISE_CHECK_EQ(cs, rp.rc, 0);
+        std::vector<float> vp(static_cast<std::size_t>(fpos.w) * fpos.h, 0.0f);
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&rp.model, fpos.h, fpos.w,
+                                                     vp.data(), nullptr), 0);
+        // 逐位中性: 判据只读不写
+        const std::vector<float> vp_before = vp;
+        const astrocs::noise::VariancePlaneVerdict pos =
+            astrocs::noise::classify_variance_plane(vp.data(), vp.size());
+        P1NOISE_CHECK(cs, pos.accepted, "n12_positive_plane_accepted");
+        P1NOISE_CHECK_EQ(cs, (long long)pos.n_unavailable, 0);
+        P1NOISE_CHECK(cs, vp == vp_before, "n12_classify_is_read_only");
+        P1NOISE_CHECK(cs, astrocs::noise::legacy_plane_all_strictly_positive(
+                              vp.data(), vp.size()),
+                      "n12_positive_plane_legacy_agrees");
+        // 判据非退化: 档 1 与档 2 的 n_unavailable 必须不同
+        P1NOISE_CHECK(cs, neg.n_unavailable != pos.n_unavailable,
+                      "n12_criterion_discriminates");
+        free_model(&rp.model);
+
+        // 档 3: 损坏面（负值 / NaN / +inf）⇒ 必须**拒绝**（§4a 损坏 ⇒ 硬失败）
+        {
+            std::vector<float> vbad(64, 1.0f);
+            vbad[7] = -1.0f;
+            const astrocs::noise::VariancePlaneVerdict a =
+                astrocs::noise::classify_variance_plane(vbad.data(), vbad.size());
+            P1NOISE_CHECK(cs, !a.accepted && a.n_corrupt == 1,
+                          "n12_corrupt_plane_rejected");
+            vbad[7] = std::numeric_limits<float>::quiet_NaN();
+            const astrocs::noise::VariancePlaneVerdict b =
+                astrocs::noise::classify_variance_plane(vbad.data(), vbad.size());
+            P1NOISE_CHECK(cs, !b.accepted && b.n_corrupt == 1,
+                          "n12_corrupt_plane_rejected");
+            vbad[7] = std::numeric_limits<float>::infinity();
+            const astrocs::noise::VariancePlaneVerdict c =
+                astrocs::noise::classify_variance_plane(vbad.data(), vbad.size());
+            P1NOISE_CHECK(cs, !c.accepted && c.n_corrupt == 1,
+                          "n12_corrupt_plane_rejected");
+            // 「0 不算损坏」与「全 0 面可挂」是**两个不同命题**，必须分开断言：
+            //   (a) 0 是 §4a 合法产品态 ⇒ n_corrupt 必须为 0（否则会把合法零方差
+            //       态误判成损坏 = 错误变体"把 0 也当损坏"，须判红）；
+            //   (b) 整幅全 0 ⇒ **必须拒绝**：没有任何可用像素，接受它等于把"无事可做"
+            //       伪装成"全部合法"（恒真门）；且投影侧对 variance<=0 不累加 vnum
+            //       ⇒ 阶段二 variance tile 写入硬失败（rc=-5）⇒ 整个 mosaic exit 7。
+            std::vector<float> vzero(64, 0.0f);
+            const astrocs::noise::VariancePlaneVerdict z =
+                astrocs::noise::classify_variance_plane(vzero.data(), vzero.size());
+            P1NOISE_CHECK_EQ(cs, (long long)z.n_corrupt, 0);   // (a) 0 不是损坏
+            P1NOISE_CHECK_EQ(cs, (long long)z.n_usable, 0);
+            P1NOISE_CHECK_EQ(cs, (long long)z.n_unavailable, 64);
+            P1NOISE_CHECK(cs, !z.accepted,
+                          "n12_all_zero_plane_rejected_not_vacuous");   // (b) 全 0 面拒绝
+            // 错误变体（"接受整幅全 0 面"）必须判红 = 判据有判别力：
+            // 单像素非 0 即转为可接受（与全 0 面结论不同）
+            std::vector<float> vone(vzero);
+            vone[63] = 1.0f;
+            const astrocs::noise::VariancePlaneVerdict o =
+                astrocs::noise::classify_variance_plane(vone.data(), vone.size());
+            P1NOISE_CHECK(cs, o.accepted && o.n_usable == 1 && o.n_unavailable == 63,
+                          "n12_criterion_discriminates_all_zero_vs_one_usable");
+            // 空面/空指针**不得恒真**: n==0 或 nullptr ⇒ 必须拒绝
+            // （否则「对任意空输入都给同一结论」= 无证据资格的恒真门）
+            P1NOISE_CHECK(cs, !astrocs::noise::classify_variance_plane(nullptr, 64).accepted,
+                          "n12_empty_plane_not_vacuous");
+            P1NOISE_CHECK(cs, !astrocs::noise::classify_variance_plane(vzero.data(), 0).accepted,
+                          "n12_empty_plane_not_vacuous");
+            P1NOISE_CHECK(cs,
+                          !astrocs::noise::legacy_plane_all_strictly_positive(nullptr, 64) &&
+                              !astrocs::noise::legacy_plane_all_strictly_positive(vzero.data(), 0),
+                          "n12_empty_plane_not_vacuous");
+        }
+        std::fprintf(stdout,
+                     "[p1noise][n12] 方差面策略: 负梯度档 accepted=%d unavail=%zu / "
+                     "全正档 accepted=%d unavail=%zu / 旧判据在负梯度档=%d\n",
+                     (int)neg.accepted, neg.n_unavailable, (int)pos.accepted,
+                     pos.n_unavailable,
+                     (int)astrocs::noise::legacy_plane_all_strictly_positive(
+                         vf.data(), vf.size()));
     }
 
     // n9: M3-A-005 平面几何退化 (DISP-NOISE-010) —— 控制点共线/近共线时

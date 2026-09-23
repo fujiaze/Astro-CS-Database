@@ -75,6 +75,9 @@ set_target_properties(p1noise_under_test PROPERTIES
 add_executable(p1noise_tests
   ${P1NOISE_DIR}/p1noise_tests_main.cpp
   ${P1NOISE_DIR}/p1noise_tests_core.cpp)
+# n12: 消费侧方差面可用性策略头 astrocs/noise/variance_plane_policy.h
+target_include_directories(p1noise_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_link_libraries(p1noise_tests PRIVATE p1noise_under_test)
 if(UNIX)
   target_link_libraries(p1noise_tests PRIVATE m)
@@ -108,6 +111,8 @@ add_test(NAME p1noise_performance COMMAND p1noise_perf_test)
 add_executable(p1noise_selfcheck_test
   ${P1NOISE_DIR}/p1noise_tests_selfcheck.cpp
   ${P1NOISE_DIR}/p1noise_tests_core.cpp)
+target_include_directories(p1noise_selfcheck_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_link_libraries(p1noise_selfcheck_test PRIVATE p1noise_under_test)
 if(UNIX)
   target_link_libraries(p1noise_selfcheck_test PRIVATE m)

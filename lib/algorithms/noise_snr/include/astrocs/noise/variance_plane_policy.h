@@ -10,11 +10,20 @@
 //   * 非法态（产品损坏）: variance < 0 或非有限 ⇒ **整面拒绝**（§4a「损坏 ⇒ rc=−6
 //     硬失败，禁 clamp/禁静默跳过」）
 //
-// 为什么「含 0 的平面」必须被接受而不是整张丢弃:
+// 为什么「**部分**含 0 的平面」必须被接受而不是整张丢弃:
 //   0 是 §4a 明文规定的**合法产品态**（有覆盖、方差不可用 ⇒ 零权重），投影侧
 //   （drizzle_engine 的 varianceValue<=0 分支）按「只跳过方差累加、不丢
 //   signal/support」消费它。整张丢弃会把**可用像素的空间方差结构**一并丢掉，
 //   退化成帧级常数场——那是纯损失，不是保护。
+//
+// 为什么「**整幅全 0** 的平面」必须被拒绝（与上一条不矛盾）:
+//   上一条的理由是「保住可用像素的结构」；整幅全 0 时**不存在可用像素**，
+//   该理由不适用，而代价是实在的：投影侧对 varianceValue<=0 不累加 vnum
+//   （drizzle_engine.cpp 的 `if (varianceValue > 0.0f)`）⇒ 阶段二写 variance tile 时
+//   covered_area 全 0 ⇒ aio_hips_write_variance_tile 硬失败（rc=-5）⇒ **整个 mosaic
+//   阶段 exit 7**。不挂块则消费侧走 variancePtr==nullptr 路径、不写 variance 子产品，
+//   阶段二正常完成。故全 0 面与「空面」同类：接受它等于把「无事可做」伪装成
+//   「全部合法」，是恒真门。
 //
 // 逐位中性: 全正平面下本策略只读不写，输出面逐字节不变。
 #ifndef ASTROCS_NOISE_VARIANCE_PLANE_POLICY_H
@@ -28,28 +37,35 @@ namespace noise {
 
 struct VariancePlaneVerdict {
     bool accepted = false;      // 整面是否可挂
+    std::size_t n_usable = 0;       // variance > 0 ∧ 有限的像素数（§4a 合法可用态）
     std::size_t n_unavailable = 0;  // variance == 0 的像素数（§4a 合法不可用态）
     std::size_t n_corrupt = 0;      // variance < 0 或非有限的像素数（产品损坏）
 };
 
-// 逐像素扫描一张 variance 面。accepted 当且仅当 n_corrupt == 0。
+// 逐像素扫描一张 variance 面。
+// accepted 当且仅当 **v != nullptr ∧ n > 0 ∧ n_corrupt == 0 ∧ n_usable > 0**。
+// 「n == 0」（空面）与「n_usable == 0」（整幅全 0）都显式判**拒绝**：两者都没有
+//   任何像素可用，接受它们等于把「无事可做」伪装成「全部合法」——那是恒真门
+//   （对任意无可用像素的输入都给同一结论，无证据资格）；且整幅全 0 面会直接
+//   导致阶段二 variance tile 写入硬失败（见文件头）。
 inline VariancePlaneVerdict classify_variance_plane(const float* v, std::size_t n) {
     VariancePlaneVerdict r;
-    if (v == nullptr) return r;   // 空指针 ⇒ 拒绝（accepted 保持 false）
+    if (v == nullptr || n == 0) return r;   // 空指针/空面 ⇒ 拒绝（accepted 保持 false）
     for (std::size_t i = 0; i < n; ++i) {
         const float x = v[i];
         if (std::isnan(x) || x < 0.0f) { ++r.n_corrupt; continue; }
         if (x == 0.0f) { ++r.n_unavailable; continue; }
         if (!std::isfinite(x)) { ++r.n_corrupt; continue; }   // +inf
+        ++r.n_usable;
     }
-    r.accepted = (r.n_corrupt == 0);
+    r.accepted = (r.n_corrupt == 0) && (r.n_usable > 0);
     return r;
 }
 
 // 旧判据（「任一像素非正 ⇒ 整面拒绝」）只作对照臂保留，**不得**用于生产判定:
 //   它把 §4a 的合法零方差态误判成损坏，从而丢掉可用像素的空间结构。
 inline bool legacy_plane_all_strictly_positive(const float* v, std::size_t n) {
-    if (v == nullptr) return false;
+    if (v == nullptr || n == 0) return false;   // 空面不得恒真
     for (std::size_t i = 0; i < n; ++i) {
         const float x = v[i];
         if (!(std::isfinite(x) && x > 0.0f)) return false;
