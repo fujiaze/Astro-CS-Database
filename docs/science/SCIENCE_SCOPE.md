@@ -22,14 +22,38 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 
 ## 变量/单位
 
-- 信号：ADU（校准前）/ e⁻ 或归一化 ADU（校准后）；
+- **标度类别封闭词表**（唯一权威 = `docs/standards/NUMERIC_STANDARD.md`「量纲与标度」节）：
+  `raw_adu` / `calibrated_adu` / `photo_scaled_adu` / `surface_brightness` / `synthetic_flux`。
+- 信号链：`raw_adu`（输入亮场）→ `calibrated_adu`（校准后，ADU）→
+  **`photo_scaled_adu`（施加逐帧测光标度后，`x′ = α·x`，`α = frame photscal`，逐帧取值）** →
+  `surface_brightness`（HiPS 产品，`ADU/sr`）。e⁻ 只在调用方另行给出 gain 换算后才成立（本链不建模 gain）。
+  - **可判定条件**（产品处于哪一档由产品自身声明，不靠推断）：Phase1 帧面由
+    `p1_phot.json#photometry_applied` 与 `#photscales`（`DATA-P1-PHOTPROV-001`）判定；
+    HiPS 产品由 `BUNIT` 与 `provenance` 判定。缺声明 ⇒ 显式拒绝，不得按同标度消费。
+  - **α 是逐帧量，不是全仓常数**（实测：M42 生产 33 帧 `α ∈ [1.1387e-17, 6.0083e-17]`，跨 5.28×；
+    `run/RELEASE-05/vis/out/m42_p1_t3/p1_phot.json`）。
+- **标度律（强制）**：`x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`；`S = F/A_cell ⇒ Var(S) = Var(F)/A_cell²`。
+  一手证据（JCGM 100:2008 §5.1.2 式(10)）、合成实验与真实数据推导见 `docs/standards/NUMERIC_STANDARD.md`。
 - 位置：RA/Dec 度（J2000）、HEALPix NESTED、tile+local xy；
-- 光度：dex log10 比值、mag；variance：信号单位²。
+- 光度：dex log10 比值、mag；variance：**面亮度域 `ADU^2/sr^2`，像素域 `ADU^2`**（量纲随承载面，见上）。
+- 帧级 SNR / `source_snr` / `sparse_snr_layer`：无量纲比值（同一线性标度下 α 相消，故与标度类别无关）。
 
 ## 假设
 
 - 每帧为同一 target 的多次曝光（dither/不同滤镜需正确分组）；
 - 背景为局部平稳随机场（patch 尺度）；源星点稀疏可掩膜。
+  - **适用域**：本条是 `NoiseWeightModelV1` 的 8×8 patch 稳健尺度估计（`docs/science/NOISE_MODEL.md` §5）
+    的**唯一**适用域声明。前提成立时随机方差随信号线性增长（泊松口径）。
+  - **失效判据（可执行、非退化）**：以 patch 尺度上的对数斜率
+    `γ = dlog(patch 方差)/dlog(patch 中位信号)` 为判据——纯随机分量应给出 `γ ≈ 1`；
+    `γ` 显著偏离 1 ⇒ 该 patch 估计器量的是**空间结构**而非随机分量，噪声场必须显式降级
+    （退回已规定的全局常量场并登记 `degraded_reason`），**不得**按随机噪声消费。
+  - **实测（本仓独立复算）**：M42 真实帧 8×8 patch MAD 稳健方差对 patch 中位信号的对数斜率
+    `γ = 1.983`（corr 0.593，262 144 个 patch）⇒ **该真实域不满足 `γ ≈ 1`**，前提在本帧上不成立。
+    证据：`run/SCI-FIX-SEMANTICS-01/evidence/m42_structure_contamination.json`。
+    **诚实边界**：作为参照的「跨帧配对差」口径在同一批文件上给出 `γ = 2.766`（corr 0.362），
+    因两帧的标度/天光不同（中位 4.674e-15 vs 2.879e-15）而**本身含确定性标度失配项**，
+    故**污染幅度未被本次独立复算定量确认**；本节只冻结判据形式与「前提可被违反」这一事实。
 
 ## 有效域
 
@@ -43,7 +67,11 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 ## 失效条件
 
 - 无合格控制点/无重叠 → NO_DATA / UNDERDETERMINED 显式状态；
-- 输入损坏 → INPUT_CORRUPT 显式错误（禁止猜测）。
+- 输入损坏 → INPUT_CORRUPT 显式错误（禁止猜测）；
+- **标度不可判定**（无法从产品自身声明判定其标度类别）→ 显式拒绝（`rc=2`），
+  不得按同标度消费（`docs/standards/NUMERIC_STANDARD.md`）；
+- **局部平稳前提被违反**（patch 尺度结构污染，见 §假设的 `γ` 判据）→ 噪声场显式降级并登记，
+  不得静默按随机噪声消费。
 
 ## 系统/随机误差
 

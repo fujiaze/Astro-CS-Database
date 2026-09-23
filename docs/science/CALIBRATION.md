@@ -28,6 +28,21 @@
 ## 3 物理量和单位
 
 - `raw/bias/dark/flat/cal`: ADU（同滤镜/增益下标度）；`t_expo`: s；`K`: 无量纲；`flat_norm`: 无量纲（median=1.0, floor 0.1）；`sigma`: 无量纲倍数（以 MAD 转 sigma）；像素坐标无量纲。
+  - **ADU 域定义（冻结）**：ADU 域 = FITS 物理值域，即 `物理值 = BSCALE·样本 + BZERO`。
+    权威（一手）：**FITS Standard 4.0 §4.3 `BUNIT`** —— 「The value field shall contain a character string
+    describing the physical units in which the quantities in the array, **after application of BSCALE and BZERO**,
+    are expressed.」（原文经 `fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf` 逐字核验；
+    16 位相机 `BZERO=32768` 伪无符号约定见 §14 第 8 条）。
+    ⇒ **「同标度」的可判定含义 = `BSCALE`/`BZERO` 应用后的物理值处于同一 ADU 域**；
+    未经该换算的原始样本（含 XISF 浮点 `[0,1]` 表示）**不**处于 ADU 域（§3 下条）。
+  - **实测锚（本仓真实亮场）**：`testdata/Victory_Nebula_T4_Flying_Dutchman/lights/`
+    的 `…-20250204@035646-180S-Lum.fts` 实测 `BITPIX=16`、`BSCALE=1.0`、`BZERO=32768.0`、`EXPTIME=180 s`；
+    读入后观测中位数 **1907 ADU**、blank-sky 稳健尺度 **57.82 ADU**（证据：
+    `run/SCI-FIX-SEMANTICS-01/evidence/dark_tolerance_criterion.json` 的 `real_light` 段）。
+  - **量纲与标度类别**：本层输出 `cal` 的标度类别 = **`calibrated_adu`**（ADU，像素域，量纲无 sr 幂）；
+    逐帧测光标度 `x′ = α·x`（标度类别 `photo_scaled_adu`）由下游 photometry 节点施加，**本层不施加**；
+    HiPS 产品面为 `surface_brightness`（`ADU/sr`）。标度词表、线性标度律与面亮度标度律见
+    `docs/standards/NUMERIC_STANDARD.md`「量纲与标度」节。
 - **标度/域声明**：本层（calibration C ABI）是**单位盲**的逐像素算术
   层——入参按 §5 输入合同已经同标度；**把磁盘文件解释成该合同是调用方（io_read/编排）的义务**。
   两类母版文件的解释规则：
@@ -90,7 +105,26 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 
 ## 6 假设
 
-- `bias` 与曝光无关；`dark` 与曝光线性（**两分支**均经 `K=t_light/t_dark` 线性缩放）；
+- `bias` 与曝光无关；`dark` 与曝光线性（**两分支**均经 `K=t_light/t_dark` 线性缩放）。
+  - **可检验形式（冻结）**：`median(master_dark, t) = b0 + I_d·t`，其中 `I_d > 0` 且拟合残差 ≤ 该组自身噪声量级；
+    `b0` 是**与曝光无关的截距**——已减 bias 的母版应给出 `b0 ≈ 0`，含 bias 的 `dark_total` 应给出 `b0 ≈ median(master_bias)`。
+  - **非退化要求（冻结）**：线性前提的检验**至少需要 3 个不同曝光档**。2 点拟合必然过两点、残差恒为 0
+    ⇒ **2 档时该判据退化、无证据资格**，不得据此声称线性成立。
+  - **真实数据实测**（本仓 `testdata/{T2,T3,T4} calibration files/masterDark_*.xisf` 与 `masterBias_*.xisf`；
+    XISF Float32 `bounds="0:1"`，×65535 换到 ADU；逐帧稳健统计与拟合见
+    `run/SCI-FIX-SEMANTICS-01/evidence/calibration_dark_linearity.json`）：
+
+    | 组 | 曝光档 [s] | `median(master_dark)` [ADU] | 拟合 `I_d` [ADU/s] | 截距 `b0` [ADU] | 最大残差 [ADU] | `b0 − median(master_bias)` [ADU] |
+    |---|---|---|---|---|---|---|
+    | T4（4500×3600） | 180 / 300 / 600 | 1097.517 / 1148.033 / 1274.133 | **+0.42048** | 1021.855 | **0.034** | **+105.70**（bias 916.156） |
+    | T2（4096×4096） | 600 / 1200 / 1800 | 1008.633 / 1017.300 / **962.750** | **−0.03824** | 1042.111 | 21.072 | +40.24（bias 1001.867） |
+    | T3（4096×4096） | 600 / 1200 | 1008.367 / 1015.833 | +0.01244 | 1000.901 | 1.1e-13（2 点，**退化**） | +8.40（bias 992.500） |
+
+    - **T4 组线性成立**（残差 0.034 ADU ≤ 该组噪声量级），但**截距比 `master_bias` 高 105.70 ADU**
+      ⇒ T4 的 `master_dark` **不满足 §5 默认约定「已减 bias」**（否则 `b0 ≈ 0`），须走 `dark_opt=1` 且显式声明 `dark_optimization`（§8 表）。
+    - **T2 组线性前提被违反**：`median` 非单调（1800 s 档低于 600 s 档），拟合斜率**为负**
+      （−0.03824 ADU/s，暗电流物理上不可能为负）⇒ 该组母版**不得**按 `dark ∝ 曝光` 消费，必须 fail-closed 或更换母版。
+    - **T3 组不可判定**：仅 2 个曝光档 ⇒ 判据退化（见上「非退化要求」）。
 - `flat` 光谱形状与 Light 滤镜匹配；
 - **单位一致（机器门）**：`raw/bias/dark/flat` 与 `cal` 同标度、同增益（ADU；§3）。
   母版与亮场标度不一致（如 XISF [0,1] 归一化浮点母版配 ADU 亮场）属**输入合同违背**：
@@ -104,6 +138,51 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   显式声明 `master_flat_normalize="median"`（等价于 §5 `flat_norm` 的 `flat/median(flat)`，
   对已归一平场幂等，§7）才允许消费；既不归一又不落区间的整帧**拒绝**（禁止整帧被 `1/median` 静默缩放）；
 - 坏点稀疏且与天体源不混淆（连通域大小过滤可分离）。
+
+## 6a 暗场-亮场曝光容差的科学判据（冻结）
+
+> 上游：`ASTROCS_DESIGN.md` §4.3:254（母版标度红线与暗场-亮场曝光容差判定）、§4.5:300（暗场与亮场曝光差超出容差 = 🟠 warn，不阻塞）。
+> 数值唯一登记面 = `eng/packaging/config/defaults.json` 的 `calibration.dark_light_exposure_tolerance`；本节**只定义判据口径**，不复制数值。
+
+**误差来源（推导）**：由 §6 的 `master_dark(t_d) = b0 + I_d·t_d` 与 `K = t_light/t_d`，
+
+```text
+cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb ≡ b0 − b_light
+```
+
+- 暗电流项 `I_d·t` 经 `K` 缩放**精确线性**（T4 实测残差 0.034 ADU）⇒ **曝光比 `K` 本身不是暗电流项的误差来源**；
+- 唯一误差项是**与曝光无关的截距失配 `Δb` 被乘以 `K`**。`Δb ≡ 0` 时残留恒为 0，**与曝光差无关**。
+
+**判据（冻结）**：
+
+```text
+|K·Δb| ≤ ε·σ_frame          ⇒  容差 Δt_max = t_d·(ε·σ_frame/|Δb| − 1)   (t_light > t_d)
+```
+
+- `Δb` 由**母版自身**实测：`median(master_dark)` 对曝光档线性拟合的截距 − `median(master_bias)`；
+- `σ_frame` 由**亮场自身**实测：blank-sky 稳健尺度；
+- `ε` = 容许分数（冻结默认值见 `defaults.json`，本节只定义口径）。
+
+**为什么不能只用「曝光差阈值」**：阈值的判定变量是 `|t_light − t_d|`，而误差的判定变量是 `K·Δb`——**二者不相关**。
+实测（T4 真实母版 + T4 真实 180 s Lum 亮场，`Δb = +105.70 ADU`、`σ_frame = 57.82 ADU`）：
+
+| 情形 | `Δb` [ADU] | `Δt` [s] | `K` | 残留 [ADU] | 残留/σ_frame | 纯曝光差阈值判定 |
+|---|---|---|---|---|---|---|
+| 实测 T4 口径 | +105.70 | 0 | 1.000 | −105.70 | 1.83 | PASS |
+| 恰在 5 s 边界 | +105.70 | +5 | 1.028 | −108.64 | 1.88 | PASS |
+| 负例（`Δb ≡ 0`） | 0 | +100 | 1.556 | **0（逐位）** | **0** | WARN |
+
+⇒ **阈值判 PASS 的两例残留不为零；判 WARN 的一例残留恰为零** ⇒ 该阈值单独使用**不具备判别力**。
+
+**负例（真值无效应）**：`Δb ≡ 0`（母版暗场截距等于亮场侧 bias 电平）⇒ 残留对**任意** `Δt`、任意 `K`
+**逐位为 0**（实测 `(−0.0, −0.0, −0.0)`）⇒ 该情形下任何容差阈值都无科学效应（度量归零）。
+
+**适用域**：本条只适用于「`master_dark` 与亮场经 §5 双分支之一校准」的情形。`Δb` 不可测
+（无 `master_bias`，或母版曝光档 < 3 而无法分离截距）时，曝光容差判定**必须**显式降级为「不可判定」并登记，
+不得按阈值静默通过。
+
+**证据**：判据推导链、真实数据表与负例 = `run/SCI-FIX-SEMANTICS-01/evidence/dark_tolerance_criterion.json`；
+母版线性与截距 = `…/calibration_dark_linearity.json`；亮场 `σ_frame` 与 ADU 域 = 同文件 `real_light` 段。
 
 ## 7 独立不变量
 
@@ -198,6 +277,18 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   四条负例（a/b/c/e）必须能同时判红，两条正例（f①②）必须同时判绿（红→绿对照由
   `eng/tools/quality/check_master_unit_guard.py --self-test` 给出）。
 
+- **暗场线性门（非退化，可执行）**：`median(master_dark)` 对曝光档的线性拟合必须同时满足
+  (i) **至少 3 个不同曝光档**（2 档判据退化，不得判绿）；
+  (ii) 斜率 `I_d > 0` 且拟合残差 ≤ 该组自身噪声量级；
+  (iii) 截距 `b0` 与 `median(master_bias)` 的一致性决定 `dark_optimization` 分支（§5/§8）。
+  任一条不满足 ⇒ 判红或显式降级。**真实数据实证**（§6 表）：T2 组斜率 −0.03824 ADU/s ⇒ 判红；
+  T3 组仅 2 档 ⇒ 不可判定（判据退化，实测残差 1.1e-13 = float64 舍入级，**不构成证据**）。
+- **曝光容差门（非退化，可执行）**：必须按 §6a 的 `|K·Δb| ≤ ε·σ_frame` 判定，判据输入 = 母版实测 `Δb` + 亮场实测 `σ_frame`。
+  **仅按 `|t_light − t_dark|` 判定的门不具备判别力**（§6a 表：判 PASS 的两例残留为 1.83σ / 1.88σ 非零，
+  判 WARN 的一例残留逐位为零），**不得**作为科学判据使用。
+- **标度类别门（可执行）**：`cal` 面与所消费母版的标度类别必须同属 `calibrated_adu`（`docs/standards/NUMERIC_STANDARD.md`
+  标度词表）；标度不可判定 ⇒ 显式拒绝（`rc=2`）。
+
 ## 12 关联 ALG ID
 
 - `ALG-CAL-001` MasterBias/Dark 生成（sigma-clip+合并）
@@ -255,6 +346,9 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 - §11 **标度/归一化门**四条负例（单位混用 / 平场未归一 / dark bias 约定未声明 / 声明自洽）与
   两条正例（显式声明组合 / 本就合规组合=防过度拒绝）全过，
   且负例为**真实二进制端到端**判红（`eng/tools/quality/check_master_unit_guard.py --self-test`）；
+- §11 **暗场线性门**（≥3 曝光档 + 斜率正 + 残差 ≤ 噪声量级）与 **曝光容差门**（`|K·Δb| ≤ ε·σ_frame`）
+  在真实母版上可判：T4 组判绿（残差 0.034 ADU）、T2 组判红（斜率 −0.03824 ADU/s）、T3 组判「不可判定」；
+  判据的负例（`Δb ≡ 0`）残留逐位为 0，非退化性由 §6a 表给出；
 - 单位经 `eng/tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
 - §9a 专属问题逐项有锚点回答，无 TBD/二选一（`eng/tools/science_contract_lint.py` PASS）；
 - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。

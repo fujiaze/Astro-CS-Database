@@ -38,17 +38,17 @@ FITS index = (511 - x) * 512 + y
 ## 4a. variance / ivar 产品（DATA-HIPS-VAR-001 / DATA-HIPS-IVAR-001）
 
 - `variance`：逐像素随机方差（信号单位²），Drizzle 方差传播
-  `variance_p = Σ v_j·w_jp² / D_p²`（SCI-DRZ-014）；无覆盖像素=0。
+  `variance_p = Σ v_j·w_jp² / D_p²`（SCI-DRZ-014）；编码三态见 §4a 表（无覆盖 ⇒ NaN）。
 - `ivar`：逆方差 `1/variance`；variance=0/缺失 → ivar=0（显式不可用，
   禁止伪装）；NaN/负 variance 视为产品损坏。
 - 相邻像素非严格独立（协方差已文档化，见
   docs/science/UNCERTAINTY_AND_COVARIANCE.md），pixel variance ≠
   aperture variance。
 - HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
-- **Phase1 逐帧 variance/ivar 产品的逐像素三态（F-UNC-001 消解，2026-09-23）**：
-  按权威链（§0.1「科学公式与算法推导的唯一权威是 `docs/science/`」；
-  `docs/science/NOISE_MODEL.md` §7:110-111「不可用一律 `ivar=0`、**不得由 clamp
-  产生**」+「NaN 保留给产品损坏」）与「与 signal 同态」原则，取下列**唯一口径**：
+- **Phase1 逐帧 variance/ivar 产品的逐像素三态**：
+  依据 = `docs/science/NOISE_MODEL.md` §7（「不可用一律 `ivar=0`、**不得由 clamp
+  产生**」+「NaN 保留给产品损坏」）与「与 signal 同态」原则（`ASTROCS_DESIGN.md` §0.1：
+  科学公式与算法推导的唯一权威是 `docs/science/`）。下表是**唯一口径**：
 
   | 态 | 判据（writer 输入） | `variance` | `ivar` |
   |---|---|---|---|
@@ -58,18 +58,11 @@ FITS index = (511 - x) * 512 + y
   | **损坏** | `vnum` 非有限 或 `vnum<0`（或 `area` 非有限） | — | — ⇒ **rc=−6 硬失败**（禁 clamp/禁静默跳过） |
 
   全无覆盖 tile ⇒ `rc=−5` 不落盘（显式失败而非空产品）。
-  **消解注记（三处旧文互斥的处置）**：§4a 旧文「无覆盖/无方差信息**都**写 0」与
-  §11.2「`covered_area≤0` → NaN」、§12.4「不可用 → variance=0.0」互斥。
-  本节按 §11.2 与 §30.4:2698/2703（「无覆盖 variance 用 NaN，与 signal NaN 同态」）
-  取「**无覆盖 = NaN**」；§4a 旧文的「无覆盖」一项**由本注记取代**，「无方差信息
-  = 0/0」一项保留并强化为「有覆盖但方差不可用」。**残留上呈项**：§4a 旧文带
-  「F-UNC-001 已裁决」字样，若负责人裁定「无覆盖亦写 0/0」（可得的文本支持 =
-  §4a 旧文与 §12.4:423），则改动面 = writer 两处 `area<=0` 分支由 NaN 改 0，
-  且**全部现存 Phase1 variance/ivar 子产品需重新基线**（当前实现下无覆盖像素为
-  NaN）。该取舍与「全正输入逐位不变」的回归约束直接冲突，故本节不单方面变更。
-  Phase2/Phase3 **输出产品**的无覆盖语义仍以 §30 为唯一权威（NaN 同态）；
-  `ivar=0` 在 Phase2/Phase3 读侧为合法零权重（§20.1/§21/§30.4；读侧须先过
-  support>0 ∧ finite signal 资格门）。
+  **本表是 variance/ivar 编码的唯一权威**，三个态互斥且穷尽：无覆盖 ⇒ `NaN`
+  （与 `signal=NaN ∧ support=0` 同态）；有覆盖但方差不可用 ⇒ `variance=0 ∧ ivar=0`
+  （显式不可用，禁写 NaN）；损坏 ⇒ `rc=−6` 硬失败。凡与本表不一致的表述一律以本表为准。
+  Phase2/Phase3 **输出产品**的无覆盖语义与 §30 同此口径。`ivar=0` 在 Phase2/Phase3
+  读侧为合法零权重（§20.1/§21/§30.4；读侧须先过 `support>0 ∧ finite signal` 资格门）。
 
 ## 5. frame identity / manifest（DATA-FRAME-ID-001，V19R4 冻结）
 

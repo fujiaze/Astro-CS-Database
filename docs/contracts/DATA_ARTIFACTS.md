@@ -11,19 +11,19 @@
 |---|---|---|---|---|---|---|---|---|
 | DATA-IMG-RAW-001 | raw 亮场 | f32/f64/u16 | [H,W], y,x | ADU | pixel(0-based) | NaN=invalid | unique→borrowed | FITS/XISF |
 | DATA-IMG-CAL-001 | calibrated 亮场 | f32/f64 | [H,W], y,x | ADU(e⁻ 可选) | pixel | NaN=invalid; 负值保留 | unique | FITS |
-| DATA-IMG-VAR-001 | variance | f32/f64 | [H,W] | ADU² | pixel | 0=无覆盖; NaN/负=损坏 | unique | FITS |
-| DATA-IMG-IVAR-001 | inverse variance | f32/f64 | [H,W] | ADU⁻² | pixel | ivar=0 显式不可用 | unique | FITS |
+| DATA-IMG-VAR-001 | variance（逐帧/逐帧内平面，**帧内块**） | f32/f64 | [H,W] | **量纲 `ADU^2`（像素域，无 sr 幂）；标度 = 与同帧 `data` 面同一标度**：`calibrated_adu` ⇒ ADU²；`photo_scaled_adu` ⇒ α²·ADU²（α = frame photscal，**逐帧量**，见 `docs/standards/NUMERIC_STANDARD.md` 标度词表） | pixel | **无方差信息 = 0（显式不可用，§4a）**；NaN/负 = 损坏（写侧 rc=−6 硬失败） | unique | FITS |
+| DATA-IMG-IVAR-001 | inverse variance（帧内块） | f32/f64 | [H,W] | **量纲 `ADU^-2`（像素域）；标度与同帧 variance 严格互倒**（`ivar = 1/variance`，有限域） | pixel | **ivar=0 = 显式不可用**（禁 `1/0→Inf`）；NaN/负 = 损坏 | unique | FITS |
 | DATA-IMG-WEIGHT-001 | quality weight | f32 | [H,W] | 无量纲[0,1] | pixel | 0=不合格 | unique | FITS |
 | DATA-IMG-SUPPORT-001 | support | f32/u8 | [H,W] | [0,1] | pixel | 0=无覆盖 | unique | FITS/HiPS |
 | DATA-IMG-MASK-001 | bad-pixel mask | u8 | [H,W] | 位掩码 | pixel | 1=坏点 | unique | FITS |
 | DATA-WCS-001 | WCS 描述 | struct | n/a | deg/px | ICRS | 无解=显式错误 | shared | header/JSON |
 | DATA-CAT-PSF-001 | PSF catalog | struct[] | [N] | px,deg,ADU | ICRS+pixel | 失败不输出伪有效 | unique | FITS/CSV |
-| DATA-CAT-PHOT-001 | photometry catalog | struct[] | [N] | e⁻,mag | ICRS | 饱和拒=rejected_quality | unique | FITS/CSV |
+| DATA-CAT-PHOT-001 | photometry catalog | struct[] | [N] | **通量标度 = `calibrated_adu`（ADU）；`e⁻` 只在调用方另行给出 gain 换算后才成立，换算责任方 = 消费方**（本层不建模 gain：`docs/science/CALIBRATION.md` §1 非目标、§9a「gain 不在本层建模」）；星等无量纲 | ICRS | 饱和拒=rejected_quality | unique | FITS/CSV |
 | DATA-HIPS-SIGNAL-001 | HiPS signal 数据集 | f32/f64 | HEALPix NESTED | 面亮度 | ICRS | NaN/support=0 | shared/persisted | HiPS |
-| DATA-HIPS-VAR-001 | HiPS variance | f32/f64 | HEALPix | ADU² | ICRS | 0=无覆盖 | persisted | HiPS |
-| DATA-HIPS-IVAR-001 | HiPS ivar | f32/f64 | HEALPix | ADU⁻² | ICRS | ivar=0 | persisted | HiPS |
+| DATA-HIPS-VAR-001 | HiPS variance 子产品 | f32/f64 | HEALPix NESTED tile | **`ADU^2/sr^2`（面亮度方差 = `var_num_sum/covered_area²`；立体角幂不可省，见 `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律）** | ICRS | **无覆盖（covered_area≤0）= NaN（与 signal 同态）**；有覆盖但无方差信息（covered_area>0 ∧ var_num_sum≤0）= **0**（显式不可用）；负 = 损坏。编码权威 = `DATA_SEMANTICS` §11.2/§12.2/§4a | persisted | HiPS |
+| DATA-HIPS-IVAR-001 | HiPS ivar 子产品 | f32/f64 | HEALPix NESTED tile | **`sr^2/ADU^2`（= 1/variance，有限域互为倒数）** | ICRS | **无覆盖 = NaN（同 signal）**；有覆盖但无方差信息 = **0**（禁 `1/0→Inf`）；负 = 损坏。编码权威 = `DATA_SEMANTICS` §11.2/§12.2/§4a | persisted | HiPS |
 | DATA-UPM-MODEL-001 | UPM 加性模型 | double[] | [n_frame×n_cell] | ADU | control cell | NO_DATA 显式 | persisted | UPM file |
-| DATA-UPM-CONTROL-UNC-001 | control variance/ivar | f64 | [n_control] | ADU²/ADU⁻² | control cell | ivar≤0→rc=2 | unique | JSON |
+| DATA-UPM-CONTROL-UNC-001 | control variance/ivar | f64 | [n_control] | **`ADU^2` / `ADU^-2`（像素域，无 sr 幂）；标度 = 与所消费的 Phase1 帧面同一标度**（帧已施加测光时随 `photo_scaled_adu` 一并缩放，`Var ∝ α²`） | control cell | ivar≤0→rc=2 | unique | JSON |
 | DATA-REJ-MAP-001 | rejection map | u8 | [H,W] | 位掩码 | pixel | reason code 每样本 | persisted | FITS |
 | DATA-FRAME-ID-001 | frame identity | uint64 | scalar | 无量纲 | 科学 payload 派生 | 重复拒绝 | shared | JSON/manifest |
 | DATA-P3-FITS-001 | 平面 FITS | f32/f64 | [W_out,H_out] | 面亮度(禁默认 Jy/beam) | TAN/ICRS | NaN+coverage | persisted | FITS |
@@ -31,10 +31,11 @@
 | DATA-GAIA-001 | Gaia XPSD 星表行(C ABI 输出) | f64/i32/u8[] | [out_count]; 光谱 [out_count×spec_n] | deg,mag,W·m⁻²·nm⁻¹,nm | ICRS J2000 | out_match_idx=−1 未匹配; out_count=0 空结果合法; DR3 下 BP/RP=0 sentinel; 无光谱 flux_min/mul=0 | caller free(顶层 malloc) | in-memory(不落盘, §8.3) |
 | DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h:27-48) | in-memory(不落盘) |
 | DATA-UNC-001 | Phase2/Phase3 不确定度产品合同容器(DATA_SEMANTICS §30, 目标态) | 容器(无标量) | n/a | n/a | 跨域(见各子 schema) | 实现不得先行; unavailable 显式登记模式 | owner(DATA-001 冻结) | DATA_SEMANTICS.md §30 |
-| DATA-P2-VAR-001 | Phase2 马赛克 variance/ivar 子产品(目标态) | f32/f64 | HEALPix NESTED 512 tile | ADU²/ADU⁻² | ICRS | 无有效样本=NaN(signal=NaN 同态); 非有限合成=NaN; 禁 0/±Inf 伪装 | persisted(variance/,ivar/ 目录) | HiPS(AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16) |
+| DATA-P2-VAR-001 | Phase2 马赛克 variance/ivar 子产品(目标态) | f32/f64 | HEALPix NESTED 512 tile | **`ADU^2/sr^2` / `sr^2/ADU^2`**（面亮度方差/逆方差；立体角幂不可省，见 `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律） | ICRS | 无有效样本=NaN(signal=NaN 同态); 非有限合成=NaN; 禁 0/±Inf 伪装 | persisted(variance/,ivar/ 目录) | HiPS(AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16) |
 | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
 | DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
-| DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | ADU²/ADU⁻²(BUNIT 派生) | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
+| DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | **`ADU^2/sr^2` / `sr^2/ADU^2`**（BUNIT 派生；立体角幂不可省） | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
+| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（§30.7；正本 = DATA-002 §2a 规则 3 `count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，禁 −1 哨兵）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品不得声称满足 §2a 规则 3，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 `eng/tools/quality/check_p3_rejection_count.py`） |
 | DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径; 正文=SCI-P3-001 §9a-1 + DATA_SEMANTICS §29.1, tile 读路径=§3 冻结) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS; tile 内 FITS local 映射=§3) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
 | DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile; 正文=SCI-P3-001 §9a-1/-8 + DATA_SEMANTICS §3) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 fits_index=(511−x)·512+y(§3 CDS oracle 冻结) | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
 
