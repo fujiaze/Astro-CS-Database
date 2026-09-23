@@ -10,8 +10,9 @@
 
   * mosaic 权重口径 token **全部拒绝**（FZ-WEIGHT-SINGLE-PATH：不存在可选择口径）：
     {point_information, surface_gls, psfsw_robust, psf_snr_power, auto, support_x_snr2,
-     0, 1, 2, bogus} → rc=2 + 明确拒绝；
-  * mosaic baseline {equal, pixel_ivar} → 放行 + 非生产告警（legacy 整数映射的目标）；
+     equal, pixel_ivar, 0, 1, 2, bogus} → rc=2 + 明确拒绝；**接受集为空**；
+  * （§9.73 裁决 A44 订正）原 mosaic baseline {equal, pixel_ivar} → 放行 + 非生产告警
+    一面已删除：其唯一理由是「legacy 整数路由的映射目标登记」，整数路由删除后理由消失。
   * 未显式给出 --mode：门不介入（既有缺省路径不变）；
   * export 生产输出 {surface_brightness, point_source_flux, visualization} → 门放行；
   * export 非法 token → rc=2 + 拒绝（FZ-P3-MODES）；
@@ -45,6 +46,9 @@ FZ-P3-MODES）的拒绝理由。正例无法在无真实输入时 rc=0（会话�
     C1「模式选择机制不存在」+ C2「退役对象的**拒绝面**必须存活（收紧不是删除）」，
     并逐字点名 route_phase2_weight_token 是合法名字（只做 fail-closed 判定与 baseline
     登记）。本矩阵是该代码门在**真实二进制**上的运行面佐证。
+    注（§9.73 裁决 A44）：该注释里的「baseline 登记」指函数**存在且只做 fail-closed
+    判定**；实现里对 equal / pixel_ivar 开 kBaseline(rc=0) 例外的部分已删除 —— 例外与
+    v6_runtime_contract.h 自身冻结说明「全部 token 一律 fail-closed 拒绝（rc=2）」不一致。
   * docs/algorithms/PLATESOLVE.md（相邻口径复核）：全文无 mode / 权重模式条款
     ⇒ 不构成第二权威，不改变上述判定。
 
@@ -82,11 +86,17 @@ import sys
 FORCE = ["-force"]
 
 # ── 冻结路由表副本（与 v6_runtime_contract.h 对齐；此处只刻画「期望」，判定由真实二进制给出）──
-REJECT_P2 = ["point_information", "surface_gls", "psfsw_robust", "psf_snr_power",
-             "auto", "support_x_snr2", "0", "1", "2", "bogus"]
 # FZ-WEIGHT-SINGLE-PATH：phase2 没有可放行的权重口径 token ⇒ 接受集为空。
+# §9.73 裁决 A44 后 equal / pixel_ivar 也并入拒绝面：原「documented baseline」放行面的
+# 唯一理由是「它们是 route_legacy_weight_mode_int 的映射目标登记」；整数路由删除后该
+# 理由消失，且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归
+# fail-closed（ASTROCS_DESIGN.md §3.1:175「没有可选择项」；
+# docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、口径配置项或
+# 口径产物」）。本清单与 v6_runtime_contract.h 自身冻结说明「全部 token 一律
+# fail-closed 拒绝（rc=2）」逐字同面（原实现给这两个 token 开例外，与该说明不一致）。
+REJECT_P2 = ["point_information", "surface_gls", "psfsw_robust", "psf_snr_power",
+             "auto", "support_x_snr2", "equal", "pixel_ivar", "0", "1", "2", "bogus"]
 ACCEPT_P2 = []
-BASE_P2 = ["equal", "pixel_ivar"]
 REJECT_P3 = ["psf_snr_power", "auto", "support_x_snr2", "bogus"]
 ACCEPT_P3 = ["surface_brightness", "point_source_flux", "visualization"]
 
@@ -98,6 +108,8 @@ REJECT_REASON_P2 = {
     "psf_snr_power": "FZ-MODE-DEFERRED",
     "auto": "FZ-FIELD-WEIGHTMODE",
     "support_x_snr2": "FZ-FIELD-WEIGHTMODE",
+    "equal": "FZ-WEIGHT-SINGLE-PATH",
+    "pixel_ivar": "FZ-WEIGHT-SINGLE-PATH",
     "0": "legacy integer weight_mode",
     "1": "legacy integer weight_mode",
     "2": "legacy integer weight_mode",
@@ -128,12 +140,17 @@ RETIRED_CASES = [
     {
         "id": "config-weight-mode-2-baseline",
         "old": "phase2 validate --config <cfg_wm2.json>  (config weight_mode=2)",
-        "replacement": "mosaic --json <cfg> --mode pixel_ivar -force -y  → 放行 + baseline 告警",
-        "reason": "同上：config 整数 weight_mode 路由在 CLI 面上不可达；baseline 语义由 "
-                  "显式 --mode equal/pixel_ivar 用例覆盖。",
-        "authority": "ASTROCS_DESIGN §3.1/§4.5/§7.1；docs/science/PSF_SIGNAL_WEIGHT.md §4；"
-                     "lib/infrastructure/cli/parser.cpp:31-33,39-43；"
-                     "docs/ci/01_CHECKS.md §2.1",
+        "replacement": "mosaic --json <cfg> --mode pixel_ivar -force -y  → rc=2 + FZ-WEIGHT-SINGLE-PATH",
+        "reason": "config 整数 weight_mode 路由在 CLI 面上不可达（--config 旗标随 CLI-001 删除）；"
+                  "且 §9.73 裁决 A44 已删除 legacy 整数权重模式域 ⇒ 原「1|2 → baseline 放行」"
+                  "面随之删除：equal / pixel_ivar 的 baseline 放行面其唯一理由是「整数路由的"
+                  "映射目标登记」，整数路由删除后理由消失 ⇒ 二者与其余 token 同归 fail-closed"
+                  "（本矩阵 REJECT_P2 已并入）。",
+        "authority": "ASTROCS_DESIGN §3.1:171/175、§4.5、§7.1；"
+                     "docs/science/PSF_SIGNAL_WEIGHT.md §4:72；"
+                     "lib/infrastructure/cli/parser.cpp:31-33,39-43（CLI-001）；"
+                     "lib/infrastructure/cli/v6_runtime_contract.h（FZ-WEIGHT-SINGLE-PATH）；"
+                     "docs/ci/01_CHECKS.md §2.1（部分退役须改注册绑定）",
     },
 ]
 
@@ -209,19 +226,15 @@ def run_matrix(binary, work, json_out=""):
           ("session run: budget" in err or "phase2 failed:" in err or "phase2 complete" in err),
           rc, err)
 
-    # 3) phase2 生产/baseline 放行面：门未拒绝 + 已进会话运行面；baseline 另须告警
+    # 3) phase2 放行面：**空集**（FZ-WEIGHT-SINGLE-PATH 无合法 token）。
+    #    原 baseline 放行面（equal / pixel_ivar → 放行 + 非生产告警）已按 §9.73 裁决 A44
+    #    删除，二者并入上面的 REJECT_P2 拒绝面（判据收紧，不是放宽）。
+    assert ACCEPT_P2 == [], "phase2 接受集必须为空（FZ-WEIGHT-SINGLE-PATH）"
     for tok in ACCEPT_P2:
         rc, err = run(binary, p2_base + ["--mode", tok, "-y"], ".")
         check("phase2-accept-" + tok, "phase2-mode-token", "admit",
               "--mode rejected:" not in err and
               ("session run: budget" in err or "phase2 failed:" in err or "phase2 complete" in err),
-              rc, err)
-    for tok in BASE_P2:
-        rc, err = run(binary, p2_base + ["--mode", tok, "-y"], ".")
-        check("phase2-baseline-" + tok, "phase2-mode-token", "admit",
-              "--mode rejected:" not in err and
-              ("WARNING --mode=%s is a baseline" % tok) in err and
-              ("session run: budget" in err or "phase2 failed:" in err),
               rc, err)
 
     # 4) phase3 拒绝面：rc=2 + FZ-P3-MODES

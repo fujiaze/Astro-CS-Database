@@ -2,8 +2,10 @@
 //
 // 单一事实源 = lib/infrastructure/cli/v6_runtime_contract.h。语义（宪章 §3.2 / 冻结 FZ-MODE-*）：
 //   * 显式 --mode <token>（phase2）/ --export-mode <token>（phase3）必须经冻结路由表判定：
-//     production 放行；baseline 放行但标非生产；reject → ARGS(2)（fail-closed）。
-//   * phase2 config 的 legacy 整数 weight_mode：0 → 拒绝（不得进生产）；1|2 → baseline。
+//     production 放行；reject → ARGS(2)（fail-closed）。
+//     **phase2 的 --mode 无任何合法 token**（FZ-WEIGHT-SINGLE-PATH）⇒ 一律拒绝；
+//     baseline 面（原 equal / pixel_ivar 非生产放行）已按 §9.73 裁决 A44 删除。
+//   * phase2 config 的 legacy 整数 weight_mode：**该键不存在**，任何形态出现即拒绝。
 //   * 未显式给出模式时不介入（既有缺省路径不变）。
 //   * 只对本 phase 生效，只读本 phase 配置；不把三个 Phase 串接（§3.2）。
 #pragma once
@@ -68,10 +70,17 @@ inline int mode_gate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
         }
     };
 
-    // 1) phase2 config 的 legacy 整数 weight_mode（0 必拒）
-    if (phase == 2 && have_doc && doc.contains("weight_mode") &&
-        doc["weight_mode"].is_number_integer()) {
-        const ModeRoute mr = route_legacy_weight_mode_int(doc["weight_mode"].get<int>());
+    // 1) phase2 config 的 legacy 整数 weight_mode —— §9.73 裁决 A44 后**该键不存在**，
+    //    任何形态（整数 / 字符串 / 其它）出现即 fail-closed 具名拒绝（rc=ARGS）。
+    //    原实现只对整数形态路由，且 1|2 → baseline 放行；两处一并删除。
+    //    依据：ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
+    //    「不存在口径选择键、口径枚举、口径配置项或口径产物」。
+    if (phase == 2 && have_doc && doc.contains("weight_mode")) {
+        const ModeRoute mr = doc["weight_mode"].is_number_integer()
+            ? route_legacy_weight_mode_int(doc["weight_mode"].get<int>())
+            : route_phase2_weight_token(doc["weight_mode"].is_string()
+                                        ? doc["weight_mode"].get<std::string>()
+                                        : std::string("<non-scalar>"));
         emit_route(mr, "config.weight_mode", "config.weight_mode");
         if (mr.kind == RouteKind::kReject) return astrocs::ARGS;
     }

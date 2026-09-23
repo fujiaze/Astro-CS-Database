@@ -32,7 +32,8 @@ namespace {
 nlohmann::json phase_config(const nlohmann::json& doc, int phase,
                             const std::string& out_dir, std::string* err) {
   // B1-A4: 不再"重建 pdoc"（旧实现只搬 hips_paths/input_lights, 静默丢弃
-  // cosmetic/weight_mode/reject_profile 等会话键 → 节点消费不到）。改为以完整
+  // cosmetic/reject_profile 等会话键 → 节点消费不到；weight_mode 已按 §9.73 A44
+  // 删除、出现即拒绝）。改为以完整
   // doc 为基, 只在 V1 `inputs.lights` 形态做必要映射; 直通形态零改动。
   nlohmann::json pdoc = doc;
   if (phase == 3) {

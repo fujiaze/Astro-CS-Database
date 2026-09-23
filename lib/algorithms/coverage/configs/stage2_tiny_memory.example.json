@@ -29,8 +29,7 @@
         "upper_sigma": 3.0,
         "max_iterations": 8
       }
-    },
-    "weight_mode": "auto"
+    }
   },
   "output": {
     "hips": "run/phase2/t4_overlap_tiny.mosaic.hips"

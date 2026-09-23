@@ -2161,7 +2161,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://astrocs.local/schemas/v6/weight-mode.v1.schema.json",
       "title": "AstroCS V6 weight_mode / weight provenance 数据对象（生产，W6 集成）",
-      "description": "[生产 schema | SCHEMA-INTEGRATE-001/W6] 由 eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode 机械迁移；语义权威 = eng/contracts/data/v6_clause_registry_v1.json（条款 id 见 x-astrocs-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/v6_clause_registry_v1.json 的 weight_vocabulary / migration_map 节。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：Phase2 权重模式显式枚举与权重来源证据。生产科学模式={point_information, surface_gls, psfsw_robust}；文档基线模式={equal, pixel_ivar}(仅基线比较)；psf_snr_power=DEFERRED 不进生产路由。legacy 整数 {0=support x snr^2, 1=equal, 2=ivar} 被取代且 0 不得进科学权重面。字段词表由 SCHEMA-INTEGRATE-001(W6) 归一为单一 schema；本文件保留两套既有词表的双向映射，不发明第三套。",
+      "description": "[生产 schema | SCHEMA-INTEGRATE-001/W6] 由 eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode 机械迁移；语义权威 = eng/contracts/data/v6_clause_registry_v1.json（条款 id 见 x-astrocs-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/v6_clause_registry_v1.json 的 weight_vocabulary / migration_map 节。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：Phase2 权重模式显式枚举与权重来源证据。生产科学模式={point_information, surface_gls, psfsw_robust}；文档基线模式={equal, pixel_ivar}(仅基线比较)；psf_snr_power=DEFERRED 不进生产路由。legacy 整数 {0=support x snr^2, 1=equal, 2=ivar} 被取代且 0 不得进科学权重面。字段词表由 SCHEMA-INTEGRATE-001(W6) 归一为单一 schema；本文件保留两套既有词表的双向映射，不发明第三套。  §9.73 裁决 A44 口径（登记面 vs 输入路径；本 schema 属**登记面**）：\n  「登记面」= 描述**历史/既有数据对象**的形态，是名词；「输入路径」= 决定生产**接受什么**，是动词。冻结（FZ-WEIGHT-SINGLE-PATH / A44）禁止的是**后者**，不禁止前者 —— 本 schema 与 eng/contracts/data/v6_clause_registry_v1.json 的 weight_modes 节是「历史数据对象的形态登记」，因此**保留**，且必须**正面写清**它与生产输入面的区别。判据形态（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（auto / ivar / equal / support_x_snr2 / 整数 0|1|2 / weight_mode / legacy_allow_weight_fallback 键）一律 fail-closed 具名拒绝**；反之，仅用于描述既有对象形态的枚举/映射（本文件）不构成输入面，不得据此声称生产可用。生产输入面的事实源 = lib/algorithms/coverage/src/stage2_common.cpp 与 lib/infrastructure/scheduler/src/module_adapters.cpp（键出现即拒绝）与 lib/infrastructure/cli/v6_runtime_contract.h（无任何合法 --mode token）。",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2203,7 +2203,10 @@
             "domain": "Phase2 配置/路由",
             "fail_closed": "未知模式、legacy 0、或 psf_snr_power 进入生产枚举 -> REJECT",
             "gate": "G-WEIGHTMODE-ENUM",
-            "retired_values": "PSFSW-RETIRE-03（A44 式留痕）：psfsw_robust 已从本枚举**移出**——它是退役对象 psfsw_robust_weight 的声明 token，不再是合法模式值（生产接受集 = point_information | surface_gls）。声明该 token 属可判定的**退役/迁移情形**：必须显式拒绝 + 迁移提示（FZ-MODE-RETIRED；迁移到 point_information / surface_gls），不得静默接受。"
+            "retired_values": "PSFSW-RETIRE-03（A44 式留痕）：psfsw_robust 已从本枚举**移出**——它是退役对象 psfsw_robust_weight 的声明 token，不再是合法模式值（生产接受集 = point_information | surface_gls）。声明该 token 属可判定的**退役/迁移情形**：必须显式拒绝 + 迁移提示（FZ-MODE-RETIRED；迁移到 point_information / surface_gls），不得静默接受。",
+            "surface_class": "**数据对象登记面（名词）**：本枚举描述**既有数据对象**（历史配置文档 / 归档产品 / 合同登记）的形态与词表，不是生产输入面。生产输入面**没有**任何合法 token（FZ-WEIGHT-SINGLE-PATH）。",
+            "not_an_input_path": "本枚举**不得**被任何配置读取 / 路由 / 解析代码用作接受集（§9.73 裁决 A44）。判据：legacy 权重域 token 出现在输入路径上 ⇒ fail-closed 具名拒绝。",
+            "documented_baseline_is_a_label": "equal / pixel_ivar 的 documented_baseline 是**登记标签**（说明该对象曾是基线比较口径），**不是**可放行的 CLI/config 取值；CLI --mode 面对 phase2 无任何合法 token。"
           }
         },
         "mode_class": {
@@ -2215,7 +2218,8 @@
             "anchor": "FZ-MODE-PRODUCTION; FZ-MODE-BASELINE",
             "domain": "Phase2",
             "fail_closed": "baseline 模式声明科学最优 -> REJECT",
-            "gate": "G-WEIGHTMODE-CLASS"
+            "gate": "G-WEIGHTMODE-CLASS",
+            "surface_class": "**数据对象登记面（名词）**：documented_baseline 是对象形态标签（该口径曾是基线比较基准），**不是**生产可选项；生产接受集 = {point_information, surface_gls}（见 weight_modes.production）。"
           }
         },
         "science_objective": {
@@ -2236,7 +2240,8 @@
             "anchor": "FZ-MODE-DEFERRED; ADJ-C004-01",
             "domain": "文档登记",
             "fail_closed": "psf_snr_power 进入生产权重枚举 -> REJECT",
-            "gate": "G-DEFERRED-NOT-PRODUCTION"
+            "gate": "G-DEFERRED-NOT-PRODUCTION",
+            "surface_class": "**文档登记面（名词）**：psf_snr_power 只作文档化登记（DEFERRED 状态留痕），不构成输入面；出现于任何配置/路由/解析路径 ⇒ fail-closed。"
           }
         },
         "legacy_superseded": {
@@ -2249,7 +2254,8 @@
             "anchor": "ADJ-S1; ADJ-AR-01",
             "domain": "迁移",
             "fail_closed": "legacy 0(support x snr^2) 进入科学权重面 -> REJECT",
-            "gate": "G-LEGACY-MIGRATION"
+            "gate": "G-LEGACY-MIGRATION",
+            "surface_class": "**迁移登记面（名词）**：本映射只登记「历史整数值 → 既有 token」的对应关系，用于归档数据的**事后**解释与迁移提示，不构成任何接受面（legacy_integer_allowed=false 恒成立）。"
           }
         },
         "legacy_integer_allowed": {

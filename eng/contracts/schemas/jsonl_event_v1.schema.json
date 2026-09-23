@@ -384,7 +384,10 @@
           "enforced",
           "work_core_seconds",
           "workload_floor_core_seconds",
-          "workload_floor_reached"
+          "workload_floor_reached",
+          "so05_signoff_id",
+          "so05_signoff_status",
+          "auto_adjudication_allowed"
         ]
       }
     },
@@ -466,7 +469,10 @@
         "enforced",
         "work_core_seconds",
         "workload_floor_core_seconds",
-        "workload_floor_reached"
+        "workload_floor_reached",
+        "so05_signoff_id",
+        "so05_signoff_status",
+        "auto_adjudication_allowed"
       ],
       "v6_mode_route": [
         "route_kind",

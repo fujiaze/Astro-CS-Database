@@ -1,5 +1,15 @@
 # lib/algorithms/coverage 模块记忆
 
+> **§9.73 裁决 A44 订正（2026-09-23，WEIGHTMODE-CLEANUP-01）**：本文件下方若干**带日期**的
+> 历史条目里出现的 `weight_mode` / `weight_mode=2` / `mode0`/`mode1` 等写法，描述的是**当时**
+> 的实现。现状（权威）：**不存在「权重模式」**（`ASTROCS_DESIGN.md` §3.1:171/175；
+> `docs/science/PSF_SIGNAL_WEIGHT.md` §4:62/72）。`P2Stage2Config::weight_mode` 与
+> `legacy_allow_weight_fallback` 两个键**已删除**（`stage2_common.h` / `stage2_common.cpp` /
+> `stage2.cpp` / `module_adapters.cpp`：出现即具名 fail-closed 拒绝）；唯一权重口径 =
+> 逐样本 ivar 逆方差 w = SNR²/F_ref² = 1/σ_F²，ivar 缺失时走**帧级 SNR 逆方差链**
+> （由数据可用性自动决定，不是用户开关）。ACR 生产不可达且 `p2_acr_block_eligible` 恒 false
+> （ACR-IVAR-001）。历史条目保留为留痕，**不得**据其恢复任何可选择口径。
+
 ## 模块目标
 
 Phase2（控制包 `AstroCS_Phase2_Implementation_Control_Package_V1`，

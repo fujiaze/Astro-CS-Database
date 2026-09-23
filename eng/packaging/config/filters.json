@@ -42,7 +42,10 @@
           "wl_min": 420.0,
           "wl_max": 524.0,
           "val_min": 0.002,
-          "val_max": 0.978
+          "val_max": 0.978,
+          "wl_sum": 25016.0,
+          "val_sum": 37.243,
+          "val_sumsq": 34.158384999999996
         }
       },
       "Antlia V Pro Series G": {
@@ -57,7 +60,10 @@
           "wl_min": 480.0,
           "wl_max": 584.0,
           "val_min": 0.001,
-          "val_max": 0.982
+          "val_max": 0.982,
+          "wl_sum": 28196.0,
+          "val_sum": 34.699,
+          "val_sumsq": 31.963722999999998
         }
       },
       "Antlia V Pro Series R": {
@@ -72,7 +78,10 @@
           "wl_min": 594.0,
           "wl_max": 720.0,
           "val_min": 0.0,
-          "val_max": 0.988
+          "val_max": 0.988,
+          "wl_sum": 42048.0,
+          "val_sum": 35.592,
+          "val_sumsq": 33.05661
         }
       },
       "Astrodon E-series B": {
@@ -87,7 +96,10 @@
           "wl_min": 386.0,
           "wl_max": 518.0,
           "val_min": 0.01,
-          "val_max": 0.99
+          "val_max": 0.99,
+          "wl_sum": 30284.0,
+          "val_sum": 54.652,
+          "val_sumsq": 51.01658
         }
       },
       "Astrodon E-series G": {
@@ -102,7 +114,10 @@
           "wl_min": 492.0,
           "wl_max": 600.0,
           "val_min": 0.01,
-          "val_max": 0.98
+          "val_max": 0.98,
+          "wl_sum": 30030.0,
+          "val_sum": 31.226,
+          "val_sumsq": 25.401206
         }
       },
       "Astrodon E-series R": {
@@ -117,7 +132,10 @@
           "wl_min": 576.0,
           "wl_max": 750.0,
           "val_min": 0.007,
-          "val_max": 0.98
+          "val_max": 0.98,
+          "wl_sum": 58344.0,
+          "val_sum": 31.867,
+          "val_sumsq": 24.060075
         }
       },
       "Astrodon I-series B": {
@@ -132,7 +150,10 @@
           "wl_min": 386.0,
           "wl_max": 518.0,
           "val_min": 0.01,
-          "val_max": 0.99
+          "val_max": 0.99,
+          "wl_sum": 30284.0,
+          "val_sum": 54.652,
+          "val_sumsq": 51.01658
         }
       },
       "Astrodon I-series G": {
@@ -147,7 +168,10 @@
           "wl_min": 482.0,
           "wl_max": 604.0,
           "val_min": 0.007,
-          "val_max": 0.99
+          "val_max": 0.99,
+          "wl_sum": 33666.0,
+          "val_sum": 40.115,
+          "val_sumsq": 35.740536999999996
         }
       },
       "Astrodon I-series R": {
@@ -162,7 +186,10 @@
           "wl_min": 582.0,
           "wl_max": 708.0,
           "val_min": 0.01,
-          "val_max": 0.99
+          "val_max": 0.99,
+          "wl_sum": 41280.0,
+          "val_sum": 52.878,
+          "val_sumsq": 50.71978
         }
       },
       "Astronomik Deep Sky B": {
@@ -177,7 +204,10 @@
           "wl_min": 416.0,
           "wl_max": 522.0,
           "val_min": 0.0,
-          "val_max": 0.969
+          "val_max": 0.969,
+          "wl_sum": 25326.0,
+          "val_sum": 41.728,
+          "val_sumsq": 38.904618
         }
       },
       "Astronomik Deep Sky G": {
@@ -192,7 +222,10 @@
           "wl_min": 484.0,
           "wl_max": 582.0,
           "val_min": 0.0,
-          "val_max": 0.98
+          "val_max": 0.98,
+          "wl_sum": 26650.0,
+          "val_sum": 33.094,
+          "val_sumsq": 30.148274
         }
       },
       "Astronomik Deep Sky R": {
@@ -207,7 +240,10 @@
           "wl_min": 586.0,
           "wl_max": 704.0,
           "val_min": 0.003,
-          "val_max": 0.972
+          "val_max": 0.972,
+          "wl_sum": 38700.0,
+          "val_sum": 40.558,
+          "val_sumsq": 36.653596
         }
       },
       "Astronomik Typ 2c B": {
@@ -222,7 +258,10 @@
           "wl_min": 402.0,
           "wl_max": 530.0,
           "val_min": 0.0,
-          "val_max": 0.963
+          "val_max": 0.963,
+          "wl_sum": 30290.0,
+          "val_sum": 40.16,
+          "val_sumsq": 33.037666
         }
       },
       "Astronomik Typ 2c G": {
@@ -237,7 +276,10 @@
           "wl_min": 456.0,
           "wl_max": 634.0,
           "val_min": 0.002,
-          "val_max": 0.984
+          "val_max": 0.984,
+          "wl_sum": 49050.0,
+          "val_sum": 44.327,
+          "val_sumsq": 33.841772999999996
         }
       },
       "Astronomik Typ 2c R": {
@@ -252,7 +294,10 @@
           "wl_min": 542.0,
           "wl_max": 678.0,
           "val_min": 0.001,
-          "val_max": 0.991
+          "val_max": 0.991,
+          "wl_sum": 42090.0,
+          "val_sum": 41.81,
+          "val_sumsq": 35.368719999999996
         }
       },
       "Astronomik UV-IR Block L-1": {
@@ -267,7 +312,10 @@
           "wl_min": 300.0,
           "wl_max": 800.0,
           "val_min": 0.0,
-          "val_max": 1.0
+          "val_max": 1.0,
+          "wl_sum": 3764.0,
+          "val_sum": 3.0,
+          "val_sumsq": 3.0
         }
       },
       "Astronomik UV-IR Block L-2": {
@@ -282,7 +330,10 @@
           "wl_min": 300.0,
           "wl_max": 800.0,
           "val_min": 0.0,
-          "val_max": 1.0
+          "val_max": 1.0,
+          "wl_sum": 3765.0,
+          "val_sum": 3.0,
+          "val_sumsq": 3.0
         }
       },
       "Astronomik UV-IR Block L-3": {
@@ -297,7 +348,10 @@
           "wl_min": 300.0,
           "wl_max": 800.0,
           "val_min": 0.0,
-          "val_max": 1.0
+          "val_max": 1.0,
+          "wl_sum": 3800.0,
+          "val_sum": 3.0,
+          "val_sumsq": 3.0
         }
       },
       "Baader B": {
@@ -312,7 +366,10 @@
           "wl_min": 388.0,
           "wl_max": 522.0,
           "val_min": 0.013,
-          "val_max": 0.982
+          "val_max": 0.982,
+          "wl_sum": 30940.0,
+          "val_sum": 56.288,
+          "val_sumsq": 52.429122
         }
       },
       "Baader G": {
@@ -327,7 +384,10 @@
           "wl_min": 484.0,
           "wl_max": 592.0,
           "val_min": 0.007,
-          "val_max": 0.986
+          "val_max": 0.986,
+          "wl_sum": 29590.0,
+          "val_sum": 43.008,
+          "val_sumsq": 40.326792
         }
       },
       "Baader R": {
@@ -342,7 +402,10 @@
           "wl_min": 572.0,
           "wl_max": 716.0,
           "val_min": 0.008,
-          "val_max": 0.988
+          "val_max": 0.988,
+          "wl_sum": 47012.0,
+          "val_sum": 54.852,
+          "val_sumsq": 51.686136
         }
       },
       "Baader UV/IR Cut / L CMOS Optimized": {
@@ -357,7 +420,10 @@
           "wl_min": 300.0,
           "wl_max": 800.0,
           "val_min": 0.0,
-          "val_max": 1.0
+          "val_max": 1.0,
+          "wl_sum": 3805.0,
+          "val_sum": 3.0,
+          "val_sumsq": 3.0
         }
       },
       "Baader 7nm H-alpha": {
@@ -372,7 +438,10 @@
           "wl_min": 640.0,
           "wl_max": 672.0,
           "val_min": 0.001,
-          "val_max": 0.97
+          "val_max": 0.97,
+          "wl_sum": 13776.3,
+          "val_sum": 4.728,
+          "val_sumsq": 3.313544
         }
       },
       "Baader 8.5nm OIII": {
@@ -387,7 +456,10 @@
           "wl_min": 484.0,
           "wl_max": 518.0,
           "val_min": 0.001,
-          "val_max": 0.98
+          "val_max": 0.98,
+          "wl_sum": 12518.7,
+          "val_sum": 7.8260000000000005,
+          "val_sumsq": 6.09811
         }
       },
       "Chroma B": {
@@ -402,7 +474,10 @@
           "wl_min": 414.0,
           "wl_max": 510.0,
           "val_min": 0.002,
-          "val_max": 0.988
+          "val_max": 0.988,
+          "wl_sum": 22638.0,
+          "val_sum": 43.319,
+          "val_sumsq": 41.852229
         }
       },
       "Chroma G": {
@@ -417,7 +492,10 @@
           "wl_min": 486.0,
           "wl_max": 598.0,
           "val_min": 0.009,
-          "val_max": 0.996
+          "val_max": 0.996,
+          "wl_sum": 30894.0,
+          "val_sum": 43.505,
+          "val_sumsq": 41.134237
         }
       },
       "Chroma R": {
@@ -432,7 +510,10 @@
           "wl_min": 578.0,
           "wl_max": 714.0,
           "val_min": 0.011,
-          "val_max": 0.985
+          "val_max": 0.985,
+          "wl_sum": 44574.0,
+          "val_sum": 49.992,
+          "val_sumsq": 46.424597999999996
         }
       },
       "IDAS LPS P3 Light Pollution": {
@@ -447,7 +528,10 @@
           "wl_min": 299.0,
           "wl_max": 802.0,
           "val_min": 0.003,
-          "val_max": 0.984
+          "val_max": 0.984,
+          "wl_sum": 277452.0,
+          "val_sum": 185.257,
+          "val_sumsq": 164.203235
         }
       },
       "Johnson B": {
@@ -462,7 +546,10 @@
           "wl_min": 359.5,
           "wl_max": 569.0,
           "val_min": 0.001,
-          "val_max": 0.994
+          "val_max": 0.994,
+          "wl_sum": 194985.0,
+          "val_sum": 201.512,
+          "val_sumsq": 156.459712
         }
       },
       "Johnson I": {
@@ -477,7 +564,10 @@
           "wl_min": 697.5,
           "wl_max": 929.0,
           "val_min": 0.001,
-          "val_max": 0.999
+          "val_max": 0.999,
+          "wl_sum": 377348.0,
+          "val_sum": 298.691,
+          "val_sumsq": 260.32561499999997
         }
       },
       "Johnson R": {
@@ -492,7 +582,10 @@
           "wl_min": 546.0,
           "wl_max": 931.5,
           "val_min": 0.001,
-          "val_max": 0.995
+          "val_max": 0.995,
+          "wl_sum": 570315.0,
+          "val_sum": 317.811,
+          "val_sumsq": 231.141389
         }
       },
       "Johnson U": {
@@ -507,7 +600,10 @@
           "wl_min": 308.5,
           "wl_max": 419.0,
           "val_min": 0.001,
-          "val_max": 0.994
+          "val_max": 0.994,
+          "wl_sum": 80752.5,
+          "val_sum": 107.977,
+          "val_sumsq": 80.367371
         }
       },
       "Johnson V": {
@@ -522,7 +618,10 @@
           "wl_min": 473.0,
           "wl_max": 731.0,
           "val_min": 0.001,
-          "val_max": 0.998
+          "val_max": 0.998,
+          "wl_sum": 311234.0,
+          "val_sum": 173.94,
+          "val_sumsq": 123.45833
         }
       },
       "Optolong B": {
@@ -537,7 +636,10 @@
           "wl_min": 374.0,
           "wl_max": 524.0,
           "val_min": 0.0,
-          "val_max": 0.973
+          "val_max": 0.973,
+          "wl_sum": 34124.0,
+          "val_sum": 60.829,
+          "val_sumsq": 55.802979
         }
       },
       "Optolong G": {
@@ -552,7 +654,10 @@
           "wl_min": 464.0,
           "wl_max": 578.0,
           "val_min": 0.0,
-          "val_max": 0.977
+          "val_max": 0.977,
+          "wl_sum": 30218.0,
+          "val_sum": 38.383,
+          "val_sumsq": 35.105935
         }
       },
       "OPTOLONG L-PRO Light Pollution": {
@@ -567,7 +672,10 @@
           "wl_min": 350.0,
           "wl_max": 749.0,
           "val_min": 0.003,
-          "val_max": 0.986
+          "val_max": 0.986,
+          "wl_sum": 219800.0,
+          "val_sum": 174.001,
+          "val_sumsq": 148.389615
         }
       },
       "Optolong R": {
@@ -582,7 +690,10 @@
           "wl_min": 566.0,
           "wl_max": 744.0,
           "val_min": 0.0,
-          "val_max": 0.99
+          "val_max": 0.99,
+          "wl_sum": 58950.0,
+          "val_sum": 52.052,
+          "val_sumsq": 49.094884
         }
       },
       "SDSS g": {
@@ -597,7 +708,10 @@
           "wl_min": 389.0,
           "wl_max": 545.0,
           "val_min": 0.001,
-          "val_max": 0.993
+          "val_max": 0.993,
+          "wl_sum": 146171.0,
+          "val_sum": 261.259,
+          "val_sumsq": 253.050895
         }
       },
       "SDSS i": {
@@ -612,7 +726,10 @@
           "wl_min": 678.5,
           "wl_max": 835.5,
           "val_min": 0.001,
-          "val_max": 0.998
+          "val_max": 0.998,
+          "wl_sum": 238455.0,
+          "val_sum": 244.32,
+          "val_sumsq": 236.127346
         }
       },
       "SDSS r": {
@@ -627,7 +744,10 @@
           "wl_min": 539.0,
           "wl_max": 688.0,
           "val_min": 0.001,
-          "val_max": 0.994
+          "val_max": 0.994,
+          "wl_sum": 183436.5,
+          "val_sum": 247.35399999999998,
+          "val_sumsq": 240.634322
         }
       },
       "SDSS u": {
@@ -642,7 +762,10 @@
           "wl_min": 304.0,
           "wl_max": 395.0,
           "val_min": 0.001,
-          "val_max": 0.99
+          "val_max": 0.99,
+          "wl_sum": 63958.5,
+          "val_sum": 154.952,
+          "val_sumsq": 145.50108
         }
       },
       "SDSS z": {
@@ -657,7 +780,10 @@
           "wl_min": 800.0,
           "wl_max": 1100.0,
           "val_min": 0.001,
-          "val_max": 0.999
+          "val_max": 0.999,
+          "wl_sum": 570950.0,
+          "val_sum": 550.163,
+          "val_sumsq": 543.765129
         }
       },
       "ZWO B": {
@@ -672,7 +798,10 @@
           "wl_min": 418.0,
           "wl_max": 542.0,
           "val_min": 0.002,
-          "val_max": 0.961
+          "val_max": 0.961,
+          "wl_sum": 30240.0,
+          "val_sum": 44.907,
+          "val_sumsq": 40.476012999999995
         }
       },
       "ZWO G": {
@@ -687,7 +816,10 @@
           "wl_min": 502.0,
           "wl_max": 614.0,
           "val_min": 0.002,
-          "val_max": 0.982
+          "val_max": 0.982,
+          "wl_sum": 31806.0,
+          "val_sum": 36.481,
+          "val_sumsq": 33.653788999999996
         }
       },
       "ZWO R": {
@@ -702,7 +834,10 @@
           "wl_min": 592.0,
           "wl_max": 742.0,
           "val_min": 0.0,
-          "val_max": 0.989
+          "val_max": 0.989,
+          "wl_sum": 50692.0,
+          "val_sum": 49.431,
+          "val_sumsq": 45.905059
         }
       }
     }

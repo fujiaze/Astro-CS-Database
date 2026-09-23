@@ -1,4 +1,4 @@
 {
   "inputs": {"hips": ["a.hips"]},
-  "integration": {"weight_mode": "auto", "acr_route": "auto"}
+  "integration": {"acr_route": "auto"}
 }

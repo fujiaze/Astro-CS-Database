@@ -117,10 +117,22 @@ TEST(PsfswRetire, RuntimeRouteRejectsRetiredMode) {
         EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;
         EXPECT_EQ(r.rc, 2) << "token=" << m;
     }
-    /* documented baseline（非科学方差面）：可识别但不作生产口径。 */
+    /* §9.73 裁决 A44：原 documented baseline 面（equal / pixel_ivar → kBaseline，rc=0）
+       已删除。其唯一理由是「legacy 整数路由的映射目标登记」；整数路由删除后理由消失，
+       且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
+       （ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */
     for (const char* m : {"equal", "pixel_ivar"}) {
         const astrocs::v6runtime::ModeRoute r = astrocs::v6runtime::route_phase2_weight_token(m);
-        EXPECT_EQ(r.kind, RouteKind::kBaseline) << "token=" << m;
+        EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;
+        EXPECT_EQ(r.rc, 2) << "token=" << m;
+    }
+    /* legacy 整数 weight_mode：纯拒绝面，全值域拒绝。 */
+    for (const int v : {0, 1, 2, 7}) {
+        const astrocs::v6runtime::ModeRoute r =
+            astrocs::v6runtime::route_legacy_weight_mode_int(v);
+        EXPECT_EQ(r.kind, RouteKind::kReject) << "legacy int=" << v;
+        EXPECT_EQ(r.rc, 2) << "legacy int=" << v;
+        EXPECT_TRUE(contains(r.reason, "FZ-FIELD-WEIGHTMODE")) << r.reason;
     }
     const astrocs::v6runtime::ModeRoute deferred =
         astrocs::v6runtime::route_phase2_weight_token("psf_snr_power");

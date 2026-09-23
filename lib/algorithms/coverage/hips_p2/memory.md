@@ -36,9 +36,10 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   input_manifest_hash=sha256(sorted frame_id|filter=;order=;frame=;)
   :233-245 → p2_stage2_make_upm_cfg :427-430 → model_hash :437-444 →
   UPM 持久层 + diagnostics :1746。
-- ivar 门（weight_mode=2 默认）：AIO_HIPS_RD_IVAR :557；缺 ivar 且
-  legacy_allow_weight_fallback=false（默认）→ rc=7 显式科学错误
-  :565-578（rc=7 :574）；true 才降级 support 标红 :575-578。
+- ivar 门（**§9.73 裁决 A44 后订正**）：AIO_HIPS_RD_IVAR 为唯一权重来源；
+  `weight_mode` / `legacy_allow_weight_fallback` 两键**已删除**（出现即拒绝）⇒
+  缺 ivar **恒** rc=7 显式科学错误（原「true 才降级 support 标红」的降级分支已删除）；
+  唯一自动降级面 = 帧级 SNR 逆方差链。
 - product_begin :592-597：flags 仅 SIGNAL|SUPPORT（:594）、creator
   ivo://astrocs/phase2、title "AstroCS Phase2 Mosaic"、filter=infos[0] :531。
 - tile 循环 :659-1655：覆盖帧 probe :663-671；rejection 解析

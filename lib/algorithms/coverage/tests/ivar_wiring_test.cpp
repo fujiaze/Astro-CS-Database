@@ -112,9 +112,10 @@ void write_hips(const std::string& dir, const FrameSpec& spec,
     }
 }
 
+// §9.73 裁决 A44：配置里**不得**再出现 legacy_allow_weight_fallback（出现即拒绝）。
 std::string write_config(const std::vector<std::string>& dirs,
                          const std::string& out_dir,
-                         bool legacy_fallback = false) {
+                         bool revive_legacy_fallback = false) {
     std::string cfg = tmp_dir() + "/stage2_wire.json";
     std::ofstream f(cfg);
     f << "{\"version\":1,\"inputs\":{\"hips\":[";
@@ -125,9 +126,10 @@ std::string write_config(const std::vector<std::string>& dirs,
     f << "],\"target_order\":\"auto\"},\"model\":{\"robust_loss\":\"huber\","
          "\"snr_weight_mode\":\"snr2_normalized\",\"smoothing\":0.0},"
          "\"integration\":{\"precision\":\"fp32\",\"rejection\":{\"method\":"
-         "\"none\"},\"weight_mode\":\"ivar\",\"legacy_allow_weight_fallback\":"
-      << (legacy_fallback ? "true" : "false")
-      << "},\"output\":{\"hips\":\"" << out_dir
+         "\"none\"}";
+    // 负例面：显式复活已删除的 legacy 键（必须被解析器拒绝）。
+    if (revive_legacy_fallback) f << ",\"legacy_allow_weight_fallback\":true";
+    f << "},\"output\":{\"hips\":\"" << out_dir
       << "\"},\"diagnostics\":{\"enabled\":true}}";
     f.close();
     return cfg;
@@ -470,23 +472,22 @@ TEST(Phase2IvarWiring, IvarTileMissingFailClosed) {
             }
         }
     }
-    // 默认：fail-closed（rc=7）。
+    // §9.73 裁决 A44：ivar 缺失**恒** fail-closed（rc=7）——原 legacy 降级开关已删除，
+    // support（无量纲几何量）不得冒充 ADU^-2 ivar。
     const std::string out_fc = tmp_dir() + "/out_missing_fc.hips";
     fs::remove_all(out_fc);
     const int rc_fc = run_stage2(write_config(dirs, out_fc), 1);
     EXPECT_EQ(exit_code(rc_fc), 7)
-        << "默认必须 fail-closed rc=7（support 不得冒充 ivar）";
-    // 显式 legacy 开关：放行 + diagnostics 逐像素计数。
+        << "ivar 缺失必须 fail-closed rc=7（support 不得冒充 ivar）";
+    // 负例（能红）：显式复活已删除的 legacy_allow_weight_fallback ⇒ 解析即拒绝，
+    // 且不得留下任何产物（不再存在任何降级放行路径）。
     const std::string out_leg = tmp_dir() + "/out_missing_legacy.hips";
     fs::remove_all(out_leg);
     const int rc_leg = run_stage2(write_config(dirs, out_leg, true), 1);
-    EXPECT_EQ(exit_code(rc_leg), 0)
-        << "legacy_allow_weight_fallback=true 应放行";
-    std::ifstream df(out_leg + "/diagnostics.json");
-    ASSERT_TRUE(df.good()) << "legacy 诊断落盘缺失";
-    const std::string dj((std::istreambuf_iterator<char>(df)),
-                         std::istreambuf_iterator<char>());
-    EXPECT_NE(dj.find("\"ivar_tile_read_fallback_pixels\""), std::string::npos);
-    EXPECT_NE(dj.find("\"legacy_allow_weight_fallback\": true"),
-              std::string::npos);
+    EXPECT_NE(exit_code(rc_leg), 0)
+        << "legacy_allow_weight_fallback 复活必须被拒绝（§9.73 A44）";
+    EXPECT_FALSE(fs::exists(out_leg + "/diagnostics.json"))
+        << "被拒配置不得产出 diagnostics.json";
+    EXPECT_FALSE(fs::exists(out_leg + "/properties"))
+        << "被拒配置不得产出 HiPS 产物";
 }

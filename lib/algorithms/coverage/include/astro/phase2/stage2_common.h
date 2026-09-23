@@ -124,13 +124,19 @@ struct P2Stage2Config {
     int minmax_high_count = 1;
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
-    // legacy 别名已删除（旧 config 必须经 migration tool 迁移）
-    // 2=ivar (默认, 逆方差); 1=equal; 0=support_x_snr2 (legacy/诊断)
-    int weight_mode = 2;
-    // weight_policy=ivar 时整个 ivar
-    // 产品缺失默认 → 显式 science/degraded 错误；仅当此标志显式为 true 时
-    // 才允许降级 support/equal 并在 diagnostics 标红。
-    bool legacy_allow_weight_fallback = false;
+    // §9.73 裁决 A44（ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、
+    // **没有可选择项**」；docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的
+    // 口径：不存在口径选择键、口径枚举、口径配置项或口径产物」）：
+    // 原 legacy 整数权重模式域 int weight_mode{0,1,2} 与其字符串 token
+    // （auto/ivar/equal/support_x_snr2）**已删除** —— 单一权重口径 =
+    // 阶段二按天球像素对应的输入帧集合现场算出的逆方差
+    // w = SNR^2 / F_ref^2 = 1/sigma_F^2，无模式选择。
+    // §9.73 裁决 A44（同批清理）：原 legacy_allow_weight_fallback 开关**已删除** ——
+    // 它允许「ivar 产品缺失时降级 support/equal」，而 support 是无量纲几何量、
+    // equal 是等权，二者都不是信号/噪声之比 ⇒ 与 ASTROCS_DESIGN.md §3.1:173
+    // 「权重只能来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。
+    // 唯一降级面 = 帧级 SNR 逆方差链（w = SNR^2/F_ref^2），且**由数据可用性自动决定**，
+    // 不是用户可选的开关；权重链未闭合 ⇒ 显式 science 错误（fail-closed）。
     std::string acr_route = "auto";
     // output
     std::string out_hips;
@@ -146,9 +152,13 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
                                         int target_order,
                                         const char* input_manifest_hash);
 
-// CON-007: ACR 块路由资格。acr_route=cpu/auto/cuda 只要满足科学/ivar 条件
-// 都必须进入 ACR 注册的 CPU/GPU launcher，不得因 route=cpu 直接绕到 legacy
-// 串行参考路径。weight_mode=2(ivar) 与 large_scale 仍必须走 CPU canonical path。
+// CON-007 + TRACEABILITY ACR-IVAR-001: ACR 块路由资格。
+// §9.73 裁决 A44 删除了 legacy 整数权重模式域后，生产**只剩**一条权重口径
+// （逐样本逆方差，等价于原 weight_mode=2）⇒ ACR-IVAR-001「ivar science 模式
+// 必须走 CPU canonical path」对本仓**恒成立** ⇒ 本函数恒 false（ACR 块生产不可达；
+// ASTROCS_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。
+// 保留函数与 ACR 接线（不删 kernel）：将来若重开 ACR，必须先按变更流程取得
+// 与逐像素 ivar 等价的证明，不得以本函数返回 true 的方式绕过。
 bool p2_acr_block_eligible(const P2Stage2Config& cfg,
                            bool acr_registered,
                            int reject_method,

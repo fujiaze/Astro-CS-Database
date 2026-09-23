@@ -93,6 +93,15 @@
       "2": "pixel_ivar"
     },
     "legacy_integer_allowed": false,
+    "surface_class": "**数据对象登记面（名词）**：本节（production / retired / documented_baseline / deferred / legacy_superseded / mode_details）描述**既有数据对象**（历史配置文档、归档产品、合同登记）的形态与词表，**不是生产输入面**。「登记面」= 描述历史数据对象的形态，是名词；「输入路径」= 决定生产接受什么，是动词。冻结 FZ-WEIGHT-SINGLE-PATH / §9.73 裁决 A44 禁止的是**后者**，不禁止前者 —— 故本节**保留**，且必须正面写清这一区别。",
+    "not_an_input_path": "本节**不得**被任何配置读取 / 路由 / 解析代码用作接受集。判据形态（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（auto / ivar / equal / support_x_snr2 / 整数 0|1|2 / weight_mode 键 / legacy_allow_weight_fallback 键）一律 fail-closed 具名拒绝**；反之，仅用于描述既有对象形态的枚举与映射（本节）不构成输入面，不得据此声称生产可用。",
+    "production_input_surface_facts": {
+      "_note": "生产输入面的**事实源**（本节只是登记，不得与之矛盾）。",
+      "phase2_config_admission": "lib/algorithms/coverage/src/stage2_common.cpp + lib/infrastructure/scheduler/src/module_adapters.cpp：integration.weight_mode / legacy_allow_weight_fallback **出现即拒绝**（键已删除）。",
+      "phase2_cli_mode": "lib/infrastructure/cli/v6_runtime_contract.h：phase2 --mode **无任何合法 token**（含原 documented_baseline 的 equal / pixel_ivar —— 其唯一理由是 legacy 整数路由的映射目标登记，整数路由删除后理由消失）。",
+      "single_weight_path": "唯一权重口径 = Phase2 集成时按天球像素对应的输入帧集合现场算出的逆方差 w = SNR^2/F_ref^2 = 1/sigma_F^2（逐样本 ivar；ivar 缺失时走帧级 SNR 逆方差链，且由数据可用性自动决定，不是用户开关）。",
+      "gates": ["CHK-NO-WEIGHT-MODE", "CHK-NO-WEIGHT-MODE-CODE", "CHK-CONFIG-CONTRACTS", "V6-CLI-MODE-MATRIX"]
+    },
     "mode_details": [
       {
         "mode": "point_information",
@@ -3945,7 +3954,7 @@
         "id": "MIG-WEIGHTMODE-LEGACY",
         "from": "ASTROCS_WEIGHT_MODE 整数 {0,1,2}（DATA_SEMANTICS §30.3:2421；PUBLIC_API:1165；ACR {auto,ivar,equal,support_x_snr2}）",
         "to": "显式字符串 weight_mode ∈ {point_information, surface_gls, psfsw_robust}（生产）/ {equal, pixel_ivar}（文档基线）",
-        "reader_rule": "0 → REJECT（support×snr² 不得进任何科学权重面）；1 → equal；2 → pixel_ivar；auto/support_x_snr2/psf_snr_power/未知 → REJECT。迁移结果必须带 weight_mode_version。",
+        "reader_rule": "**全值域一律 REJECT**（§9.73 裁决 A44 后订正）：0=support×snr²、1=equal、2=pixel_ivar **三者同等拒绝**；auto/support_x_snr2/psf_snr_power/未知 → REJECT。订正依据：A44 删除 legacy 整数权重模式域后该字段不存在任何合法取值（ASTROCS_DESIGN.md §3.1:175「没有可选择项」；docs/science/PSF_SIGNAL_WEIGHT.md §4:72），原「1 → equal；2 → pixel_ivar」的映射处置**已作废**。实现事实源：lib/algorithms/coverage/src/stage2_common.cpp 与 lib/infrastructure/scheduler/src/module_adapters.cpp（键出现即拒绝）；lib/infrastructure/cli/v6_runtime_contract.h 的 route_legacy_weight_mode_int 为纯拒绝面（0/1/2/任意整数 → kReject）。",
         "writer_rule": "只写显式字符串模式 + 版本；不得写 legacy 整数。",
         "anchor": "ADJ-S1; ADJ-AR-01; FZ-FIELD-WEIGHTMODE; FZ-MODE-PRODUCTION; FZ-MODE-BASELINE",
         "legacy_status": "SUPERSEDED",

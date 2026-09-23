@@ -32,7 +32,6 @@
         "max_iterations": 8
       }
     },
-    "weight_mode": "auto",
     "acr_route": "cpu"
   },
   "output": {

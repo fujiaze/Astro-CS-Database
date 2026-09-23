@@ -141,7 +141,8 @@ def run_stage2(cfg_name, method, frames, out_name):
                                          "normalization":
                                              "astrocs_median_center_v1",
                                          "underdetermined_n": 2},
-                           "weight_mode": "auto", "acr_route": "cpu"},
+                           # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）⇒ 不再生成。
+                           "acr_route": "cpu"},
            "output": {"hips": f"run/temp/v17_control_truth/{out_name}"},
            "diagnostics": {"enabled": True}}
     cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
