@@ -1560,3 +1560,11 @@ foreach(_acs_rg_tgt mon002_gate_test mon002_alloc_test mon001_gate_test
     target_sources(${_acs_rg_tgt} PRIVATE ${ASTROCS_RG_GENERATED_HEADER})
   endif()
 endforeach()
+
+# ── 方差地板（按 dtype 导出）验收面 ──────────────────────────────────────────
+# 权威: docs/science/NOISE_MODEL.md §7（floor 只作用于可用方差；不可用一律 ivar=0，
+# 不得由 clamp 产生；每帧生效 floor 及来源随帧登记）、§9（floor 是纯数值保护）。
+# 纯头文件实现（lib/include/astrocs/core/variance_floor.h），无库依赖。
+add_executable(variance_floor_test variance_floor_test.cpp)
+target_include_directories(variance_floor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
+add_test(NAME variance_floor COMMAND variance_floor_test)

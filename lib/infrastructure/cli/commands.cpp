@@ -73,6 +73,8 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 
 #include "version_generated.h"
+// RUN-PROVENANCE-01: 构建期指纹（run manifest provenance 的"同一代码"判据）。
+#include "astrocs/core/build_stamp.h"
 
 #include "astrocs/core/module_adapters.h"  // B2-A10: write_run_context 唯一路径
 
@@ -228,7 +230,11 @@ int write_run_context(const std::string& out_dir, const std::string& run_id) {
 
 // B2-A10（宪章 §4.3）: run manifest provenance 子对象。
 // 字段来源（不造占位）:
-//   source_sha/source_version  = 构建期版本单源（version_generated.h）;
+//   source_sha/source_version  = version_generated.h（**configure 期**采样；只表示
+//                                configure 时刻的 HEAD，不是构建指纹）;
+//   build_head_sha/build_dirty/build_source_digest/configure_head_sha
+//                              = 构建期指纹（RUN-PROVENANCE-01，build_stamp.h）;
+//                                **判"同一代码/同一二进制"只看 build_source_digest**;
 //   algorithm_ids/module_build_ids/provider = 各真实节点 manifest（节点自报）;
 //   units/coordinate_frame     = 节点 manifest 实际 BUNIT/frame（缺则省略）;
 //   input_product_hashes       = 节点自报的 input_manifest_hash（如 P3 writer）;
@@ -239,6 +245,14 @@ nlohmann::json build_run_provenance(
     nlohmann::json p = nlohmann::json::object();
     p["source_sha"] = ASTROCS_COMMIT_SHA;
     p["source_version"] = ASTROCS_VERSION_STRING;
+    // RUN-PROVENANCE-01: 构建期指纹（additive；CLI-003 §2.1 的 provenance 是加性
+    // 扩展，v1 校验器忽略未知子键）。没有它，两份 provenance 的 source_sha 相等
+    // **不蕴含**同一二进制 —— 见 run/RUN-PROVENANCE-01/REPORT.md §A。
+    const astrocs::core::BuildStamp& bstamp = astrocs::core::build_stamp();
+    p["build_head_sha"] = bstamp.head_sha;
+    p["build_dirty"] = bstamp.dirty;
+    p["build_source_digest"] = bstamp.source_digest;
+    p["configure_head_sha"] = bstamp.configure_head_sha;
     std::set<std::string> algs, builds, providers, units, frames;
     nlohmann::json in_hashes = nlohmann::json::array();
     for (const auto& [nid, mtext] : mans) {

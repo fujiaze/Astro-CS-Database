@@ -47,6 +47,10 @@
 // B2-A10: 构建期版本单源（与 CLI 共用同一生成头）——节点 manifest 自报
 // module build ID 需要 ASTROCS_VERSION_STRING。
 #include "version_generated.h"
+// RUN-PROVENANCE-01: 构建期指纹（head/dirty/源集内容摘要）。run_context.json 必须
+// 同时给出它，否则消费方只能拿 configure 期的 source_sha 当"同一二进制"判据 —— 那
+// 正是 w02_2f/w04_2f 那次被污染的 A/B 比较的成因（run/RUN-PROVENANCE-01/REPORT.md §A）。
+#include "astrocs/core/build_stamp.h"
 
 #include "astrocs/common_abi_v1.h"
 #include "astrocs/core/context.h"
@@ -12952,11 +12956,28 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
   if (run_id.empty() || software_version.empty())
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "run_context requires non-empty run_id/software_version (§4.3)"));
+  // RUN-PROVENANCE-01: 构建期指纹 fail-closed。缺它 ⇒ 运行溯源退化为"只有
+  // configure 期 HEAD"，消费方无法判"两次运行是不是同一二进制"；宁可显式失败，
+  // 也不产出一份看起来有溯源、实际不可锚的上下文（§4.3 禁占位串同款纪律）。
+  const BuildStamp& stamp = build_stamp();
+  if (stamp.source_digest.empty() || stamp.head_sha.empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "build stamp unavailable (source_digest/head_sha empty): rebuild so that "
+        "build_stamp_generated.h is regenerated (RUN-PROVENANCE-01)"));
+  // 字段语义（docs/VERSIONING.md「构建指纹合同」）:
+  //   source_sha          = CMake configure 期 HEAD（历史字段，保持兼容）
+  //   build_source_digest = **构建期**源集内容摘要 ⇒ 判"同一代码/同一二进制"只看它
+  //   build_head_sha/build_dirty = 构建期 HEAD / 工作树 dirty（人读补充）
+  //   configure_head_sha  = configure 期 HEAD（对照 source_sha 的来历）
   Json ctx = {{"schema_version", "1"},
               {"kind", "astrocs_run_context"},
               {"run_id", run_id},
               {"software_version", software_version},
-              {"source_sha", source_sha}};
+              {"source_sha", source_sha},
+              {"build_head_sha", stamp.head_sha},
+              {"build_dirty", stamp.dirty},
+              {"build_source_digest", stamp.source_digest},
+              {"configure_head_sha", stamp.configure_head_sha}};
   // CLEAN-403: 目录创建与原子落盘经 aio 唯一实现 (make_dirs /
   // write_file_atomic = 同目录临时文件 → fflush → fsync → 原子 rename)。
   (void)aio_fs::make_dirs(out_dir);

@@ -42,8 +42,13 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
 
 ```json
 "provenance": {
-  "source_sha": "<40hex>",          // 构建期 ASTROCS_COMMIT_SHA（version_generated.h）
+  "source_sha": "<40hex>",          // CMake **configure 期** HEAD（version_generated.h）——
+                                    // 不是构建指纹；相等不蕴含同一二进制（VERSIONING §2.1）
   "source_version": "<X.Y.Z-alpha.N+g<12hex>>",
+  "build_source_digest": "<64hex>", // **构建期**源集内容摘要 = 构建指纹（RUN-PROVENANCE-01）
+  "build_head_sha": "<40hex>",      // 构建期 HEAD（人读补充，不得单独当指纹）
+  "build_dirty": false,             // 构建期工作树是否有未提交改动
+  "configure_head_sha": "<40hex>",  // configure 期 HEAD（对照 source_sha 的来历）
   "algorithm_ids": ["<ALG-id>"],    // 各节点 manifest.algorithm_id 去重
   "module_build_ids": ["<module_id>@<version>"],
   "providers": ["baseline"],
@@ -55,7 +60,10 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
 ```
 
 - Phase3 writer 节点另落 `run_context.json`（`<out_dir>/run_context.json`，原子写：
-  `schema_version/kind/run_id/software_version/source_sha`）；`p3_op_writer` 在缺失或
+  `schema_version/kind/run_id/software_version/source_sha` + 构建指纹
+  `build_source_digest/build_head_sha/build_dirty/configure_head_sha`，语义见
+  `docs/VERSIONING.md` §2.1；构建指纹缺失时写入 fail-closed，不产出不可锚的上下文）；
+  `p3_op_writer` 在缺失或
   `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
   `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
 

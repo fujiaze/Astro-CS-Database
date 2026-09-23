@@ -2,8 +2,9 @@
 # 编排层共址测试 —— ORCH-001 批次 1（补测试）+ 批次 3（可执行级接线门）
 # ----------------------------------------------------------------------------
 # 改前事实：ctest -N | grep -ci orchestrator = 0（编排层零测试注册）。
-# 本文件注册 6 条 ctest：3 条既有共址单测（Makefile 时代从不进 ctest）、
-# 2 条 legacy CLI 入口冒烟、1 条可执行级饱和接线门（批次 3）。
+# 本文件注册 7 条 ctest：3 条既有共址单测（Makefile 时代从不进 ctest）、
+# 2 条 legacy CLI 入口冒烟、1 条可执行级饱和接线门（批次 3）、
+# 1 条曲线解析能红能绿门（PHOTOCURVE-ORCH-01）。
 # 测试工作目录固定在 <build>/orch_gate_work/ 下：既有 test_orchestrator_cli.cpp
 # 按 Makefile 布局从 ../../.. 推导项目根（= 仓库根），本布局保持该相对深度不变。
 # ============================================================================
@@ -94,3 +95,32 @@ add_test(NAME orchestrator_saturation_wiring_gate
           ${ORCH_TEST_WORK}/saturation_gate)
 set_tests_properties(orchestrator_saturation_wiring_gate PROPERTIES
   WORKING_DIRECTORY ${ORCH_TEST_WORK})
+
+# ── 4) PHOTOCURVE-ORCH-01：滤镜/QE 曲线解析「能红能绿」门 ────────────────────
+# 被测面 = 生产**唯一实现** lib/algorithms/photometry/cpp/src/filter_curve_json.h
+# （orchestrator 的 run_stage_photometric 与 frame_photometry_fit 都只做委托）。
+# 门内三类判据: 绿（两版 filters.json 都取到声明的 Baader R）、红（修复前的文本
+# 搜索口径在同一文件上取到 Antlia V Pro Series B）、负例（不存在名/非库键反例/
+# provenance 有名字而 filters 段没有 ⇒ 显式报错）。依据 ENGINEERING_SPEC.md:175
+# 「每项检查有正例与负例（能红能绿）」+ docs/standards/CODE_STANDARD.md §MUST
+# 「禁止重复 production science implementation（单一实现 + oracle）」。
+# 注: 本 TU 无文件系统原语（读文件经 aio_file::read_all）⇒ 不触发
+# AIO-IO-BOUNDARY 台账 N2「未登记文件出现命中」。
+add_executable(orchestrator_curve_resolve_gate test_photometry_curve_resolve.cpp)
+target_include_directories(orchestrator_curve_resolve_gate PRIVATE
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto)
+target_link_libraries(orchestrator_curve_resolve_gate PRIVATE astrocs_common)
+add_test(NAME orchestrator_curve_resolve_gate
+  COMMAND orchestrator_curve_resolve_gate ${CMAKE_SOURCE_DIR})
+set_tests_properties(orchestrator_curve_resolve_gate PROPERTIES
+  WORKING_DIRECTORY ${ORCH_TEST_WORK})
+# 故障注入负例入口（ENGINEERING_SPEC.md:176）: 把 [G1] 的装载口径换成修复前的
+# 文本搜索, 期望判红并输出 FAULT_INJECT(legacy) DETECTED（rc=0 = 注入被检出）。
+add_test(NAME orchestrator_curve_resolve_gate_fault_inject
+  COMMAND orchestrator_curve_resolve_gate ${CMAKE_SOURCE_DIR} --fault-inject=legacy)
+set_tests_properties(orchestrator_curve_resolve_gate_fault_inject PROPERTIES
+  WORKING_DIRECTORY ${ORCH_TEST_WORK}
+  PASS_REGULAR_EXPRESSION "FAULT_INJECT\\(legacy\\) DETECTED")

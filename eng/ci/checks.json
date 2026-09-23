@@ -11823,6 +11823,64 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-BUILD-PROVENANCE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_build_provenance.py",
+        "--build-dir",
+        "build",
+        "--json-out",
+        "run/ci/build-provenance/check.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/build-provenance/check.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "eng/tools/gen_build_stamp.py",
+        "eng/ci/check_build_provenance.py",
+        "lib/infrastructure/**",
+        "lib/include/astrocs/core/**",
+        "docs/VERSIONING.md",
+        "docs/api/MANIFEST_VERIFY_V1.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-BUILD-PROVENANCE-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_build_provenance.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_build_provenance.py",
+        "eng/tools/gen_build_stamp.py"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
