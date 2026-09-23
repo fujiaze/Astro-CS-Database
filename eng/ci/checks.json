@@ -2711,6 +2711,13 @@
           "platform": "linux",
           "command": [
             "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "3500",
+            "--output",
+            "run/ci/monitor/CTEST-LINUX-FULL.json",
+            "--",
+            "python3",
             "eng/tools/quality/deep_ci_driver.py",
             "ctest-full",
             "--build-dir",
@@ -2721,11 +2728,12 @@
             "run/ci/build-gcc-release/ctest-full.json"
           ],
           "timeout_seconds": 3600,
-          "heavy": false,
+          "heavy": true,
           "mutates_workspace": false,
           "outputs": [
             "run/ci/build-gcc-release/ctest-full.json",
-            "run/ci/build-gcc-release/ctest-full.junit.xml"
+            "run/ci/build-gcc-release/ctest-full.junit.xml",
+            "run/ci/monitor/CTEST-LINUX-FULL.json"
           ],
           "waivable": false,
           "changed_paths": [
@@ -2735,7 +2743,7 @@
             "CMakeLists.txt",
             "eng/cmake/**"
           ],
-          "requires_monitor": false
+          "requires_monitor": true
         },
         {
           "id": "CTEST-AIO-CHECKSUM",
