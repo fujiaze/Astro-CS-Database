@@ -386,7 +386,7 @@ static void test_07_lz4_roundtrip() {
     meta.exptime = 180.0;
     meta.photscal = 1.0;
     meta.photappl = 1;
-    std::strncpy(meta.bunit, "ASTROCS_RELATIVE_FLUX", sizeof(meta.bunit) - 1);
+    std::strncpy(meta.bunit, "ADU/sr", sizeof(meta.bunit) - 1);
 
     std::string err;
     int ret = writer.open(lz4_path, grid, meta);
@@ -488,7 +488,7 @@ static void test_08_zstd_roundtrip() {
     meta.exptime = 180.0;
     meta.photscal = 1.0;
     meta.photappl = 1;
-    std::strncpy(meta.bunit, "ASTROCS_RELATIVE_FLUX", sizeof(meta.bunit) - 1);
+    std::strncpy(meta.bunit, "ADU/sr", sizeof(meta.bunit) - 1);
 
     std::string err;
     int ret = writer.open(zstd_path, grid, meta);

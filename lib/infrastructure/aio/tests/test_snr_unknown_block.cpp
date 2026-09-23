@@ -184,7 +184,7 @@ static std::string write_test_hiss(const std::string& base_path,
     meta.tile_nside = grid.tile_nside;
     std::strncpy(meta.object, "SnrUnknownBlockTest", sizeof(meta.object) - 1);
     meta.exptime = 60.0;
-    // BUNIT=ASTROCS_RELATIVE_FLUX 要求 PHOTAPPL=TRUE (WP-C 校验)
+    // BUNIT=ADU/sr 要求 PHOTAPPL=TRUE (WP-C 校验)
     meta.photappl = 1;
     meta.photscal = 1.0;
 

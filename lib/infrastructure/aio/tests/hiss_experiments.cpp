@@ -689,7 +689,7 @@ static bool run_dq002() {
         meta.exptime = 1.0;
         meta.photscal = 1.0;
         meta.photappl = 1;
-        std::strncpy(meta.bunit, "ASTROCS_RELATIVE_FLUX", sizeof(meta.bunit) - 1);
+        std::strncpy(meta.bunit, "ADU/sr", sizeof(meta.bunit) - 1);
 
         int ret = writer.open(path, grid, meta);
         if (ret != 0) {
@@ -839,7 +839,7 @@ static bool run_dq003() {
         meta.exptime = 1.0;
         meta.photscal = 1.0;
         meta.photappl = 1;
-        std::strncpy(meta.bunit, "ASTROCS_RELATIVE_FLUX", sizeof(meta.bunit) - 1);
+        std::strncpy(meta.bunit, "ADU/sr", sizeof(meta.bunit) - 1);
 
         if (writer.open(path, grid, meta) != 0) {
             fprintf(stderr, "[DQ-003] Writer.open 失败 (%s)\n", cc.name);
@@ -1195,7 +1195,7 @@ static bool run_dq005() {
         meta.exptime = 1.0;
         meta.photscal = 1.0;
         meta.photappl = 1;
-        std::strncpy(meta.bunit, "ASTROCS_RELATIVE_FLUX", sizeof(meta.bunit) - 1);
+        std::strncpy(meta.bunit, "ADU/sr", sizeof(meta.bunit) - 1);
 
         if (writer.open(path, grid, meta) != 0) {
             fprintf(stderr, "[DQ-005] Writer.open 失败 n_tiles=%d\n", n_tiles);

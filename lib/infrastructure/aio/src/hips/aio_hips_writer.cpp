@@ -768,6 +768,13 @@ struct HierFaults {
     bool f32_accum = false;
     bool dense_blocks = false;
     bool drop_blk0 = false;
+    // HIPS-DETERMINISM-01 注入面: true = 把祖先累加退化为**真正的跨瓦片求和**
+    // (去掉 z 的叶槽偏移 s, 使同一祖先 cell 的多个叶 tile 写同一批 z 槽, 于是
+    // 每个 z 被多次 += 且次序 = 瓦片到达序)。这是 PERF-PROFILE-01 §9.3 预警形态
+    // (「AncestorAcc 按 tile 到达序 += 累加」)的等价复现 —— 生产实现的 z 映射按 s
+    // 互斥, 该形态**不存在**(见 write_signal_support_tile 的 z 推导注释); 本注入面
+    // 只用于证明 P8「到达序无关」判据对该类缺陷具备判别力(判据非退化, AGENTS §5)。
+    bool cross_tile_sum = false;
 };
 
 struct AncestorAcc {
@@ -784,6 +791,7 @@ struct AncestorAcc {
     bool f32_accum = false;       // 注入面: true = 复现修复前 f32 逐步舍入
     bool dense_forced = false;    // 注入面: true = 复现修复前稠密分配
     bool drop_blk0 = false;       // 注入面: true = 丢弃子块 0 的累加
+    bool cross_tile_sum = false;  // 注入面: true = 祖先累加退化为跨瓦片求和
     bool flushed = false;         // 已流式写出并释放
     // 热路径块指针缓存: z 关于 i 单调不减 ⇒ 连续 i 命中同一块 (命中率 ~1),
     // 每像素只多一次整数比较 (不改变任何浮点运算)。
@@ -797,6 +805,7 @@ struct AncestorAcc {
         f32_accum = f.f32_accum;
         drop_blk0 = f.drop_blk0;
         dense_forced = f.dense_blocks;
+        cross_tile_sum = f.cross_tile_sum;
         if (slots_total == 0) slots_total = slots_total_;
         if (dense_forced) {   // 注入面: 一次性分配全部块 (复现修复前稠密语义)
             for (size_t bi = 0; bi < hier_sparse::kCount; ++bi) {
@@ -866,6 +875,7 @@ HierFaults hier_faults() {
     f.f32_accum    = fault_injected("ASTROCS_HIPS_HIER_FAULT", "f32_accum");
     f.dense_blocks = fault_injected("ASTROCS_HIPS_HIER_FAULT", "dense_blocks");
     f.drop_blk0    = fault_injected("ASTROCS_HIPS_HIER_FAULT", "drop_blk0");
+    f.cross_tile_sum = fault_injected("ASTROCS_HIPS_HIER_FAULT", "cross_tile_sum");
     return f;
 }
 
@@ -1027,11 +1037,31 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
                 (uint64_t)i, 9u, 512u);
             const double area = acc.areaAt(i);
             const double vnum = acc.varAt(i);
+            // ── §12.4:423 损坏判定（先于一切映射；禁 clamp、禁静默跳过）────────
+            // 损坏 = vnum/area 非有限 或 vnum < 0（上游数值损坏），与"方差不可用"
+            // （vnum==0 且 area>0，合法产品态）严格区分。
+            if (!std::isfinite(vnum) || vnum < 0.0 || !std::isfinite(area)) {
+                set_error("hierarchy variance 损坏 (vnum/area 非有限或 vnum<0) Norder" +
+                          std::to_string(k) + " ipix=" + std::to_string(A) +
+                          " i=" + std::to_string(i) + " vnum=" + std::to_string(vnum) +
+                          " area=" + std::to_string(area) +
+                          " ⇒ 硬失败 (DATA_SEMANTICS §12.4:423)");
+                return false;
+            }
+            // variance/ivar 三态（§4a:49 / §11.2:323 / §30.4:2698）：
+            //   有覆盖 ∧ 方差可用 (area>0 ∧ vnum>0) → vnum/area², 1/var
+            //   有覆盖 ∧ 方差不可用 (area>0 ∧ vnum==0) → 0 / 0（显式不可用，禁 NaN）
+            //   无覆盖 (area<=0)                        → NaN / NaN（与 signal NaN 同态）
             double var = std::numeric_limits<double>::quiet_NaN();
             double iv = std::numeric_limits<double>::quiet_NaN();
-            if (area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
-                var = vnum / (area * area);
-                iv = 1.0 / var;
+            if (area > 0.0) {
+                if (vnum > 0.0) {
+                    var = vnum / (area * area);
+                    iv = 1.0 / var;
+                } else {
+                    var = 0.0;
+                    iv = 0.0;
+                }
             }
             if (bitpix == -32) { varF[fi] = (float)var; ivarF[fi] = (float)iv; }
             else               { varD[fi] = var;        ivarD[fi] = iv; }
@@ -1368,6 +1398,9 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 ++acc.slots_seen;
                 acc.pending_var_slot = s;     // 供 var 通道精确配对
             }
+            // 循环不变量: z 位移与注入开关提出像素热循环 (零逐像素分支开销)
+            const uint64_t zsh = 2ULL * (uint64_t)(ps->tile_order - (uint32_t)k);
+            const bool cts = acc.cross_tile_sum;
             for (size_t i = 0; i < n; ++i) {
                 // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
                 // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
@@ -1380,8 +1413,19 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 if (!v || !(area > 0.0) || !std::isfinite(flux)) continue;
                 // 叶 (P,l) -> A@k 内 order-(k+9) 单元 NESTED 索引
                 // full = (s<<18)|l (order K+9 within A), z = full >> 2*(K-k)
-                size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
-                                    (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
+                //
+                // HIPS-DETERMINISM-01: s 是 parent_ipix 的低 2*dk 位 (dk=K-k),
+                // 取值域恰为 [0, 4^dk), 而 i ∈ [0, 4^9); 故 (s<<18)|i 除以 2^(2*dk)
+                // 后, **不同 s 落到互不相交的 z 区间** [s·4^(9-dk), (s+1)·4^(9-dk))。
+                // ⇒ 每个祖先像素 z 在整个产品集生命周期内**恰好被一个叶 tile 写一次**,
+                //   累加只做一次加法 ⇒ 结果与瓦片到达顺序无关 (浮点加法不满足结合律
+                //   的前提在这里不成立: 没有第二个加数)。
+                //   这否证了 PERF-PROFILE-01 §9.3「hierarchy 按 tile 到达序累加 ⇒
+                //   低阶产品不可复现」的预警 (实测佐证见 run/HIPS-DETERMINISM-01)。
+                // 注入面 cross_tile_sum 故意去掉 s 偏移, 复现「跨瓦片求和」形态以证明
+                // P8 判据的判别力; 生产默认 false ⇒ 零行为差异。
+                size_t z = cts ? (size_t)((uint64_t)i >> zsh)
+                               : (size_t)(((s << 18ULL) | (uint64_t)i) >> zsh);
                 acc.add(z, flux, area);
             }
         }
@@ -1406,7 +1450,11 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
 // ============================================================================
 // variance/ivar 叶级 Tile 写
 // variance = var_num_sum / covered_area² ; ivar = 1/variance
-// covered_area<=0 -> NaN (与 signal NaN 语义一致)
+// 三态（DATA_SEMANTICS §4a:49 / §11.2:323 / §12.4:423 / §30.4:2698）:
+//   有覆盖 ∧ 方差可用 (area>0 ∧ vnum>0) -> variance=vnum/area², ivar=1/variance
+//   有覆盖 ∧ 方差不可用 (area>0 ∧ vnum==0) -> variance=0 ∧ ivar=0 (显式不可用, 禁 NaN)
+//   无覆盖 (covered_area<=0)               -> NaN (与 signal NaN 语义一致)
+// 损坏 (vnum/area 非有限 或 vnum<0)        -> rc=-6 硬失败 (禁 clamp/禁静默跳过)
 // hierarchy: 在 AncestorAcc 增加 var_num 通道, 归约公式与叶级一致
 // (variance_parent = Σvar_num / (Σarea)²)
 // ============================================================================
@@ -1444,7 +1492,11 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
             valid.assign((const uint8_t*)view->valid_mask,
                          (const uint8_t*)view->valid_mask + n);
 
-        bool any_valid = false;
+        // 有覆盖 = 该像素至少收到一个合格样本（valid ∧ covered_area>0 ∧ 有限）。
+        // **不是**"方差可用"：§4a:49 明确「无方差信息像素写 variance=0 且 ivar=0」
+        // 是合法产品态，故这类 tile 必须落盘（返回 0），不得按 −5 拒写
+        // —— 拒写会让 support>0 的像素在阶段二变成 ivar tile 缺失（fail-closed rc=7）。
+        bool any_covered = false;
         for (size_t i = 0; i < n; ++i) {
             const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
                 (uint64_t)i, 9u, 512u);
@@ -1457,23 +1509,43 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
                 if (view->var_num_sum) vnum = ((const double*)view->var_num_sum)[i];
                 if (view->covered_area) area = ((const double*)view->covered_area)[i];
             }
+            // ── §12.4:423 损坏判定（先于一切映射；禁 clamp、禁静默跳过）────────
+            // 损坏 = vnum/area 非有限 或 vnum < 0（上游数值损坏，禁止被静默写成
+            // NaN/0）。与"方差不可用"（vnum==0 且 area>0，合法产品态）严格区分。
+            if (!std::isfinite(vnum) || vnum < 0.0 || !std::isfinite(area)) {
+                set_error("var_num_sum/covered_area 损坏 (vnum/area 非有限或 vnum<0) i=" +
+                          std::to_string(i) + " vnum=" + std::to_string(vnum) +
+                          " area=" + std::to_string(area) +
+                          " ⇒ rc=-6 硬失败 (DATA_SEMANTICS §12.4:423，禁 clamp/禁静默跳过)");
+                return -6;
+            }
+            const bool covered = v && area > 0.0;
+            // variance/ivar 三态（§4a:49 / §11.2:323 / §30.4:2698）：
+            //   有覆盖 ∧ 方差可用 (vnum>0) → vnum/area², 1/var
+            //   有覆盖 ∧ 方差不可用        → 0 / 0（显式不可用，禁 NaN）
+            //   无覆盖 (area<=0)           → NaN / NaN（与 signal NaN 同态）
             double var = std::numeric_limits<double>::quiet_NaN();
             double iv = std::numeric_limits<double>::quiet_NaN();
-            if (v && area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
-                var = vnum / (area * area);
-                iv = 1.0 / var;
-                any_valid = true;
+            if (covered) {
+                any_covered = true;
+                if (vnum > 0.0) {
+                    var = vnum / (area * area);
+                    iv = 1.0 / var;
+                } else {
+                    var = 0.0;
+                    iv = 0.0;
+                }
             }
             if (f32) {
                 varF[fi] = (float)var;  ivarF[fi] = (float)iv;
-                var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
+                var_n[i] = (covered && vnum > 0.0) ? vnum : 0.0;
             } else {
                 varD[fi] = var;         ivarD[fi] = iv;
-                var_n[i] = (v && area > 0.0 && vnum > 0.0) ? vnum : 0.0;
+                var_n[i] = (covered && vnum > 0.0) ? vnum : 0.0;
             }
         }
-        if (!any_valid) {
-            set_error("该 tile 无有效方差数据 (var_num_sum 全 0)");
+        if (!any_covered) {
+            set_error("该 tile 无覆盖 (covered_area 全 0/无效) ⇒ 无有效方差数据");
             return -5;
         }
 
@@ -1537,10 +1609,14 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
                 ++acc.var_slots_seen;
                 acc.pending_var_slot = UINT64_MAX;
             }
+            // z 映射与 signal 通道逐字同式 ⇒ 同样按 s 互斥, 每槽只加一次
+            // (HIPS-DETERMINISM-01; 注入面语义见 write_signal_support_tile)。
+            const uint64_t zsh = 2ULL * (uint64_t)(ps->tile_order - (uint32_t)k);
+            const bool cts = acc.cross_tile_sum;
             for (size_t i = 0; i < n; ++i) {
                 if (var_n[i] <= 0.0) continue;
-                size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
-                                    (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
+                size_t z = cts ? (size_t)((uint64_t)i >> zsh)
+                               : (size_t)(((s << 18ULL) | (uint64_t)i) >> zsh);
                 acc.add_var(z, var_n[i]);
             }
         }

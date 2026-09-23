@@ -148,7 +148,7 @@ static void test_02_full_roundtrip(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     // 构造 FULL 模式累加器 (全部像素有效)
     // NSIDE=64: depth=2, tile_nside=16, n_leaf_per_tile = 4^2 = 16
@@ -216,7 +216,7 @@ static void test_03_bitmap_roundtrip(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 16;  // 4^2 = 16 for NSIDE=64
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);
@@ -312,7 +312,7 @@ static void test_04_sparse_roundtrip(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 4096;  // 4^6 = 4096 for NSIDE=1024
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 1024.0 * 1024.0);
@@ -395,7 +395,7 @@ static void test_05_auto_occupancy(int id) {
         HissMetadata meta;
         meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
         meta.photappl = 1; meta.photscal = 1.0;
-        std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+        std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
         double A_p = 0.001;
         DrizzleTileAccumulator acc;
@@ -427,7 +427,7 @@ static void test_05_auto_occupancy(int id) {
         HissMetadata meta;
         meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
         meta.photappl = 1; meta.photscal = 1.0;
-        std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+        std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
         uint32_t n_leaf = 100;
         double A_p = 0.001;
@@ -458,7 +458,7 @@ static void test_05_auto_occupancy(int id) {
         HissMetadata meta;
         meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
         meta.photappl = 1; meta.photscal = 1.0;
-        std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+        std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
         uint32_t n_leaf = 100;
         double A_p = 0.001;
@@ -497,7 +497,7 @@ static void test_06_streaming_write(int id) {
     HissMetadata meta;
     meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
     meta.photappl = 1; meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     double A_p = 0.001;
     // 写入 3 个 Tile (n_leaf_per_tile = 4^2 = 16 for NSIDE=64)
@@ -563,7 +563,7 @@ static void test_07_snr_roundtrip(int id) {
     HissMetadata meta;
     meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
     meta.photappl = 1; meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     double A_p = 0.001;
     DrizzleTileAccumulator acc;
@@ -719,7 +719,7 @@ static void test_10_no_wcs_metadata(int id) {
     HissMetadata meta;
     meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
     meta.photappl = 1; meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
     std::snprintf(meta.object, sizeof(meta.object), "TestObject");
     meta.exptime = 60.0;
 

@@ -186,7 +186,8 @@ int test_negative() {
     }
 
     // --- N3: write_variance_tile 域 (var_num NULL → −2; width/order/dtype →
-    //     −3; parent 越界 → −4; 全无效 → −5; NULL → −1)
+    //     −3; parent 越界 → −4; 真无覆盖(area 全 0) → −5; NULL → −1;
+    //     §12.4:423 损坏(vnum<0/非有限) → −6; 有覆盖但无方差信息 → 0 且写 0/0)
     {
         const std::string dir = make_tmp_dir("n3");
         AioHipsProductSet* ps = aio_hips_product_begin(
@@ -209,8 +210,22 @@ int test_negative() {
             FixViewF64 bad_parent = fix_hips_a_tile(12, 10.0, 0.5, 1.0, true, true);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &bad_parent.view), -4);
 
-            FixViewF64 all_inv = fix_hips_f_all_invalid_var_tile(0);
-            P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &all_inv.view), -5);
+            // 「有覆盖但无方差信息」(area>0 ∧ vnum==0) = DATA_SEMANTICS §4a:49
+            // 的**合法产品态** ⇒ 必须落盘为 variance=0 ∧ ivar=0（禁 NaN）。
+            // 拒写会让 support>0 的像素在阶段二变成 ivar tile 缺失 (rc=7)。
+            FixViewF64 no_var_info = fix_hips_f_covered_no_var_tile(0);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &no_var_info.view), 0);
+
+            // 真「无覆盖」(covered_area 全 0) ⇒ 全像素 NaN ⇒ −5 不落盘
+            FixViewF64 uncovered = fix_hips_f_uncovered_var_tile(1);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &uncovered.view), -5);
+
+            // §12.4:423 损坏 (vnum<0 或非有限) ⇒ rc=−6 硬失败（禁 clamp/禁静默跳过）
+            FixViewF64 neg_v = fix_hips_f_corrupt_var_tile(2, -1.0);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &neg_v.view), -6);
+            FixViewF64 nan_v = fix_hips_f_corrupt_var_tile(
+                3, std::numeric_limits<double>::quiet_NaN());
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps, &nan_v.view), -6);
 
             aio_hips_abort(ps);
         }

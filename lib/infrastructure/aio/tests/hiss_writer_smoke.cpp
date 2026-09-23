@@ -28,7 +28,7 @@ int main() {
     std::strncpy(meta.filter, "R", sizeof(meta.filter) - 1);
     meta.exptime = 60.0;
     meta.history = "smoke test\nline2";
-    // BUNIT=ASTROCS_RELATIVE_FLUX (默认) 要求 PHOTAPPL=TRUE (Writer 元数据一致性校验)
+    // BUNIT=ADU/sr (默认) 要求 PHOTAPPL=TRUE (Writer 元数据一致性校验)
     meta.photappl = 1;
     meta.photscal = 1.0;
 
