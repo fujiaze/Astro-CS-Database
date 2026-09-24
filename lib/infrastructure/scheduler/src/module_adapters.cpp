@@ -5494,11 +5494,39 @@ P1NoiseFrameModel p1_noise_model_for_frame(const void* data, bool data_is_f64,
       const double fw = s.value("fwhm_px", 0.0);
       if (!std::isfinite(x) || !std::isfinite(y)) continue;
       if (!(fl > 0.0) || !(fw > 0.0)) continue;
+      // ── CHAIN-WIRE-ADAPT-01 / W3: 掩膜标度必须与**本帧数组**同标度 ──────────
+      // §5a 的 Moffat 半径式 r_local = α_psf·sqrt((F(β−1)/(π α_psf² k σ_bg))^(1/β) − 1)
+      // **只在 F 与 σ_bg 处于同一标度时**才对整体线性缩放不变（比值 F/σ_bg 无量纲）。
+      // 本函数收到的数组可能是 photoapplied_<base> = α·ADU（α = data_scale =
+      // frame_photscal ≈ 5.9e-17），而 p1_sources.json 的 flux 由 star-psf 节点在
+      // cleaned_<base>（= ADU）上测得 ⇒ 直接传入会让 F/σ_bg 放大 1/α ≈ 1.7e16 倍，
+      // 半径一律顶到硬上界 rmax = 60 px（MASK-002 的「硬上界」退化成操作默认值）。
+      // 实测（run/SCI-VAR-ZERO-01/REPORT.md §3.1）: drizzle 路径四帧
+      // mask_radius_p50 **恒为 60.000000**、mask_frac 0.199–0.445，而同一帧的 SNR
+      // 节点（:5832-5834，cleaned 面、data_scale=1.0）给出 r_p50=4.84、
+      // mask_frac=0.018。§5a 的设计意图是「逐星半径由掩膜边缘残余面亮度 ≤ k·σ_bg
+      // 导出」⇒ 标度错则逐星半径从未生效，掩膜退化为统一 rmax（§5a 明确
+      // 「60 px 只能作硬上界」、固定 60 px 的 worst |σ 偏差| 6.93% vs 逐星 1.11%）。
+      // 处置: 把 flux 换算到数组标度（× data_scale；ADU 面 data_scale=1 时逐位不变）。
+      // 注意 data_scale 的语义链已由 :5401-5408 的 variance_floor 换算确立
+      // （x' = α·x ⇒ var' = α²·var），本处是同一 α 在通量上的对应换算。
+      const double fl_scaled = fl * data_scale;
+      if (!(fl_scaled > 0.0) || !std::isfinite(fl_scaled)) continue;
       nm_sx.push_back(x); nm_sy.push_back(y);
-      nm_sf.push_back(fl); nm_sw.push_back(fw);
+      nm_sf.push_back(fl_scaled); nm_sw.push_back(fw);
     }
   }
   const int n_stars = static_cast<int>(nm_sx.size());
+  // W3 审计量：掩膜通量是否真的做过标度换算（data_scale≠1 时逐星输入已乘 α）。
+  // 键只在换算生效时出现（ADU 面不出现，逐位不变）。
+  if (n_stars > 0 && std::isfinite(data_scale) && data_scale > 0.0 &&
+      data_scale != 1.0) {
+    out.diag["noise_mask_flux_scale"] =
+        Json{{"data_scale", data_scale},
+             {"n_stars_scaled", n_stars},
+             {"rule", "SCI-NOISE §5a: the per-star flux and sigma_bg must share the"
+                      " frame array scale (F/sigma_bg is dimensionless)"}};
+  }
   if (data_is_f64) {
     out.rc = snr_noise_model_v1_f64(
         static_cast<const double*>(data), h, w, nullptr,
@@ -6686,6 +6714,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           return;
         }
         var_degenerate = (nmc.rc == 1) || (nmc.model.degenerate != 0);
+        // ── SCI-NOISE-001 §5d「可观测量（必须写入 provenance）」逐项落盘 ──────────
+        // 规范：docs/science/NOISE_MODEL.md §5d:270-271 —— 控制点方差的动态范围、
+        // 平面系数、凸包内预测 ≤ 0 的占比、被剔除 patch 数与 R 的分布，
+        // **缺任一项即视为该帧的方差面不可审计**。
+        // 数据来源 = ABI v2 的 NoiseWeightModelV1 尾部字段（生产模型自身的输出，
+        // 不是调用侧重算；ABI 版本 SNR_NOISE_MODEL_ABI_VERSION=2）。逐项写入本帧
+        // var_diag ⇒ 同时落节点 manifest（:6976）与 variance_product_frames 条目。
         var_diag = Json{{"sigma_bg_global", nmc.model.sigma_bg_global},
                         {"variance_bg_global", nmc.model.variance_bg_global},
                         {"n_control_points", nmc.model.n_control_points},
@@ -6695,13 +6730,70 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                         {"mask_frac", nmc.model.mask_frac},
                         {"saturation_filter", nmc.saturation_filter},
                         {"saturation_level", nmc.saturation_level},
-                        {"saturation_source", nmc.saturation_source}};
+                        {"saturation_source", nmc.saturation_source},
+                        // §5d① 控制点有效性（自校准 R = σ_MAD/σ_white-equiv）
+                        {"n_structure_rejected_patches",
+                         nmc.model.n_structure_rejected_patches},
+                        {"n_r_unavailable_patches", nmc.model.n_r_unavailable_patches},
+                        {"r_min", nmc.model.r_min},
+                        {"r_median", nmc.model.r_median},
+                        {"r_max", nmc.model.r_max},
+                        {"r_fence", nmc.model.r_fence},
+                        // §5d② 拟合平面系数与可行域审计量
+                        {"plane_a", nmc.model.plane_a},
+                        {"plane_b", nmc.model.plane_b},
+                        {"plane_c", nmc.model.plane_c},
+                        {"ctrl_variance_range", nmc.model.ctrl_variance_range},
+                        {"hull_min_pred", nmc.model.hull_min_pred},
+                        {"hull_nonpositive_frac", nmc.model.hull_nonpositive_frac}};
+        // ── §5d + §8 新增退化行: 凸包内负区 ≠ 0 ⇒ 该帧方差面不可审计, fail-closed ──
+        // 判据正本 = astrocs/noise/variance_plane_policy.h:88 variance_plane_auditable():
+        // **严格等于 0**（0 是「平面在控制点凸包内恒 ≥ 0」这条约束的定义值，不是
+        // 「小到可以忽略」的阈值；任何 ≠ 0 的取值——正残差、负值、NaN——一律不可审计）。
+        // 与 classify_variance_plane 正交：后者判「这张已 fill 的面能不能挂」，
+        // 本判据判「这张面的**拟合**是否可信」，两者都过才发布（缺一即 fail-closed）。
+        // 处置口径与本节其余 fail-closed 分支一致（skipped_no_star_mask_input /
+        // skipped_degenerate_empty_support / skipped_fill_failed）：**不挂 variance 块**、
+        // 显式登记状态与原因、stderr 出声；signal/support 产品面不受影响
+        // （§5d:267-269「凸包内出现大面积预测 ≤ 0 属拟合缺陷，必须按 §8 登记并
+        //  fail-closed，不得静默出片」；§7「空 support 不传播」）。
+        // 故障注入面（ENGINEERING_SPEC §8「可执行负例」；与 ASTROCS_IVAR_FAULT 同款）:
+        // ASTROCS_VARPLANE_FAULT=force_not_auditable 把生效审计量置为非零，
+        // 使本 fail-closed 分支可被判红 —— 判据不是恒真门（生产默认不可达）。
+        double hull_nonpositive_frac_eff = nmc.model.hull_nonpositive_frac;
+        {
+          const char* vpf = std::getenv("ASTROCS_VARPLANE_FAULT");
+          if (vpf && std::string(vpf) == "force_not_auditable") {
+            hull_nonpositive_frac_eff = 1.0;
+            var_diag["variance_plane_fault_injected"] = true;
+            var_diag["hull_nonpositive_frac"] = hull_nonpositive_frac_eff;
+          }
+        }
+        const bool var_plane_auditable =
+            astrocs::noise::variance_plane_auditable(hull_nonpositive_frac_eff);
         if (var_degenerate) {
           var_status = "skipped_degenerate_empty_support";
           var_reason = "NoiseWeightModelV1 degenerate (rc=1): variance_bg_global=0;"
                        " attaching an all-zero plane would make drizzle_engine"
                        " skip every pixel (varianceValue<=0 => continue) and erase"
                        " signal/support (ASTROCS_DESIGN §8.2:547)";
+        } else if (!var_plane_auditable) {
+          // §5d/§8 fail-closed（与上一条分支同口径：显式降级、不静默、不出片）。
+          // 注意本分支**不**消费 classify_variance_plane 的 n_usable 判据：那张面
+          // 可能仍有大量正像素（可用），但它的**拟合**已被证明不可信（凸包内出现
+          // 预测 ≤ 0 的负区 ⇒ 平面不是 §5d 要求的那个估计量）⇒ 按 §5d:270-271
+          // 「缺任一项即视为该帧的方差面不可审计」不得作为科学方差面发布。
+          var_diag["variance_plane_audit_failed"] = true;
+          var_status = "skipped_variance_plane_not_auditable";
+          var_reason =
+              "SCI-NOISE-001 §5d audit failed: hull_nonpositive_frac=" +
+              std::to_string(nmc.model.hull_nonpositive_frac) +
+              " != 0 (plane predicts <= 0 inside the control-point convex hull =>"
+              " fitting defect, not edge extrapolation); the frame's variance plane"
+              " is NOT auditable => refusing to attach it (NOISE_MODEL.md §5d/§8:"
+              " must be registered and fail-closed, must not silently ship)."
+              " Per-pixel encoding of any published plane is unchanged"
+              " (§5/§9④ variance=0 & ivar=0, no clamp)";
         } else {
           std::vector<float> var_plane(static_cast<size_t>(n_px), 0.0f);
           // 平面可用性判据 = fill 成功 **且** 无**损坏**像素（variance<0 或非有限）。
@@ -7191,13 +7283,105 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           std::to_string(n_tiles_written) +
           " (DATA-P1-HIPS §12.1/§12.2 + §4a: variance/ivar 同通道成对落盘)"));
     }
-    const bool has_uncertainty = (n_variance_tiles > 0 && n_ivar_tiles > 0);
+    // ── CHAIN-WIRE-ADAPT-01 / W2: 方差面「真值」普查 = **实读落盘的 variance
+    //    叶 tile**，不是数文件个数 ─────────────────────────────────────────────
+    // 缺陷（证据 run/SCI-VAR-ZERO-01/REPORT.md §4(2)）: 上面两个 n_*_tiles 是
+    // **子产品 tile 文件数**；而每个 signal tile 必写一个 variance tile
+    // （aio_hips_writer.cpp:1515-1574 的三态表: 有覆盖 ∧ vnum==0 ⇒ 写 0∧0，
+    // 是 §4a 明文规定的**合法产品态**）⇒「n_variance_tiles == n_tiles」是
+    // 同义反复，对「方差面里到底有没有不确定度」零信息。实测反例:
+    // M2_T2_20251224_033141 帧 32/115 个 tile 的 variance 面**整块全零**
+    // （SCI-VAR-ZERO-01 §0/§3），而 p1_final.json 仍报
+    // uncertainty_available=true（恒真门，与磁盘事实相反）。
+    // 规范依据: NOISE_MODEL §7「对外产品面即 variance=0 ∧ ivar=0（禁 NaN）」
+    //   + §5d「可观测量必须写入 provenance；缺任一项即视为该帧的方差面不可审计」。
+    // 口径（与 DATA_SEMANTICS §4a 三态表逐项对齐；读的是**落盘后的产品值**）:
+    //   usable      : isfinite(v) ∧ v > 0   —— 合法「方差可用」
+    //   unavailable : v == 0                —— 合法「有覆盖但方差不可用」
+    //   uncovered   : isnan(v)              —— 无覆盖（与 signal NaN 同态）
+    //   corrupt     : v < 0 ∨ isinf(v)      —— 产品损坏（§12.4 本应已在写侧
+    //                 fail-closed；此处见到即判红，禁静默）
+    // 成本: 逐 tile 顺序读，单个 512² float32 缓冲（1 MiB）复用，不整帧驻留。
+    int64_t n_var_tiles_with_data = 0;         // 至少 1 个可用方差像素的 tile 数
+    int64_t n_var_tiles_all_unavailable = 0;   // 有覆盖但**整块**方差不可用（全零）
+    int64_t n_var_tiles_uncovered = 0;         // 无覆盖（全 NaN）
+    int64_t var_usable_px = 0, var_unavailable_px = 0, var_uncovered_px = 0,
+            var_corrupt_px = 0;
+    bool variance_census_available = false;
+    std::string variance_census_error;
+    if (n_variance_tiles > 0) {
+      auto hips_rd_err = []() -> std::string {
+        const char* e = aio_hips_reader_last_error();
+        return e ? std::string(e) : std::string("(no detail)");
+      };
+      AioHipsDataset* vds = aio_hips_open(fdir.c_str(), AIO_HIPS_RD_VARIANCE);
+      if (vds == nullptr) {
+        variance_census_error = "aio_hips_open(AIO_HIPS_RD_VARIANCE) failed: " + hips_rd_err();
+      } else {
+        const int nt = aio_hips_tile_count(vds);
+        std::vector<float> vbuf(512u * 512u);
+        bool census_ok = (nt > 0);
+        if (!census_ok) variance_census_error = "variance dataset reports no leaf tiles";
+        for (int t = 0; census_ok && t < nt; ++t) {
+          uint64_t ipix = 0;
+          if (aio_hips_tile_ipix(vds, t, &ipix) != 0) {
+            census_ok = false;
+            variance_census_error = "aio_hips_tile_ipix failed at index " + std::to_string(t);
+            break;
+          }
+          if (aio_hips_read_tile_f32(vds, ipix, vbuf.data()) != 0) {
+            census_ok = false;
+            variance_census_error = "aio_hips_read_tile_f32 failed at ipix " +
+                                    std::to_string(ipix) + ": " + hips_rd_err();
+            break;
+          }
+          int64_t usable = 0, unavail = 0, uncov = 0, corrupt = 0;
+          for (float v : vbuf) {
+            if (std::isnan(v)) { ++uncov; continue; }
+            if (v == 0.0f) { ++unavail; continue; }
+            if (v < 0.0f || !std::isfinite(v)) { ++corrupt; continue; }
+            ++usable;
+          }
+          var_usable_px += usable;
+          var_unavailable_px += unavail;
+          var_uncovered_px += uncov;
+          var_corrupt_px += corrupt;
+          if (usable > 0) ++n_var_tiles_with_data;
+          else if (unavail > 0) ++n_var_tiles_all_unavailable;
+          else ++n_var_tiles_uncovered;
+        }
+        aio_hips_close(vds);
+        variance_census_available = census_ok;
+      }
+    }
+    if (variance_census_available && var_corrupt_px > 0) {
+      (*man)["error_kind"] = "output";
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "phase1 variance product corrupt (frame " + lp + "): " +
+          std::to_string(var_corrupt_px) + " pixel(s) hold variance<0 or non-finite"
+          " (DATA_SEMANTICS §12.4/§4a: 损坏必须 fail-closed, 禁 clamp/禁静默跳过)"));
+    }
+    if (!variance_census_error.empty()) {
+      // 读不到就不许声称可用（fail-closed on the claim，不中止本帧其余产品面）。
+      std::fprintf(stderr,
+                   "[writer][variance] 方差面真值普查不可用 (frame %s): %s --"
+                   " uncertainty_available 按不可用登记（禁按文件数冒充）\n",
+                   lp.c_str(), variance_census_error.c_str());
+    }
+    // 产品面「存在」判据（成对子产品在位）与「信息可用」判据必须分开:
+    //   ① products / units 声明面按**产品集在位**（磁盘上确有 variance|ivar 子产品，
+    //      单位必须逐字声明，否则 Phase3 输入语义守卫按「单位不可判」拒绝）；
+    //   ② uncertainty_available 是**科学声明**，其真值 = 落盘方差面里确有可用像素
+    //      （§7 三态表 + §5d 可审计性）。二者由同一份磁盘事实导出，不再恒真。
+    const bool variance_products_present = (n_variance_tiles > 0 && n_ivar_tiles > 0);
+    const bool has_uncertainty =
+        variance_products_present && variance_census_available && (var_usable_px > 0);
     // 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
     // 面亮度 signal_sb = ADU/sr; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
     // ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
     {
       std::string uerr;
-      if (!declare_hips_surface_brightness_units(fdir, has_uncertainty, &uerr)) {
+      if (!declare_hips_surface_brightness_units(fdir, variance_products_present, &uerr)) {
         (*man)["error_kind"] = "output";
         return Result<void>::fail(Error(ErrorDomain::IO,
             "phase1 HiPS 单位/像素语义声明失败 (frame " + lp + "): " + uerr));
@@ -7205,7 +7389,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     }
     const std::string final_path = fdir + "/p1_final.json";
     Json products = Json::array({"signal", "support"});
-    if (has_uncertainty) { products.push_back("variance"); products.push_back("ivar"); }
+    if (variance_products_present) { products.push_back("variance"); products.push_back("ivar"); }
     Json final_out = Json{{"schema", "DATA-P1-HIPS"},
                           {"entry", "hp_drizzle_run_phase1_hips"},
                           {"hips_root", fdir},
@@ -7217,6 +7401,19 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                           {"n_variance_tiles", n_variance_tiles},
                           {"n_ivar_tiles", n_ivar_tiles},
                           {"uncertainty_available", has_uncertainty},
+                          // ── 方差面真值普查（实读落盘 variance 叶 tile；W2）──────
+                          // 「方差面存在」与「方差面里有信息」是两件事，分开登记。
+                          {"n_variance_tiles_with_data", n_var_tiles_with_data},
+                          {"n_variance_tiles_all_unavailable",
+                           n_var_tiles_all_unavailable},
+                          {"n_variance_tiles_uncovered", n_var_tiles_uncovered},
+                          {"variance_usable_pixels", var_usable_px},
+                          {"variance_unavailable_pixels", var_unavailable_px},
+                          {"variance_uncovered_pixels", var_uncovered_px},
+                          {"variance_corrupt_pixels", var_corrupt_px},
+                          {"variance_census_available", variance_census_available},
+                          {"variance_census_source",
+                           "on_disk_variance_leaf_tiles(aio_hips_reader)"},
                           {"products", products},
                           {"filter_passband", filter_passband},
                           {"covered_area_model", "support_ratio_x_A_cell"},
@@ -7226,9 +7423,9 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                               {"bunit", kP3BunitSurfaceBrightness},
                               {"pixel_semantics", "surface_brightness"},
                               {"pixel_area_power", -2},
-                              {"variance_bunit", has_uncertainty
+                              {"variance_bunit", variance_products_present
                                    ? std::string(kP3BunitSbVariance) : std::string()},
-                              {"ivar_bunit", has_uncertainty
+                              {"ivar_bunit", variance_products_present
                                    ? std::string(kP3BunitSbIvar) : std::string()}}},
                           {"properties", props},
                           // P0-21: 帧身份随逐帧产品落盘（可枚举/可核对）。
@@ -7249,7 +7446,16 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                                   {"n_support_tiles", n_support_tiles},
                                   {"n_variance_tiles", n_variance_tiles},
                                   {"n_ivar_tiles", n_ivar_tiles},
-                                  {"uncertainty_available", has_uncertainty}});
+                                  {"uncertainty_available", has_uncertainty},
+                                  {"n_variance_tiles_with_data", n_var_tiles_with_data},
+                                  {"n_variance_tiles_all_unavailable",
+                                   n_var_tiles_all_unavailable},
+                                  {"n_variance_tiles_uncovered", n_var_tiles_uncovered},
+                                  {"variance_usable_pixels", var_usable_px},
+                                  {"variance_unavailable_pixels", var_unavailable_px},
+                                  {"variance_uncovered_pixels", var_uncovered_px},
+                                  {"variance_corrupt_pixels", var_corrupt_px},
+                                  {"variance_census_available", variance_census_available}});
     if (!have_first) {
       have_first = true;
       (*man)["n_tiles"] = n_tiles_written;
@@ -7257,6 +7463,16 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
       (*man)["n_variance_tiles"] = n_variance_tiles;
       (*man)["n_ivar_tiles"] = n_ivar_tiles;
       (*man)["uncertainty_available"] = has_uncertainty;
+      // W2: 方差面真值（实读落盘 tile）；uncertainty_available 即由它导出。
+      (*man)["n_variance_tiles_with_data"] = n_var_tiles_with_data;
+      (*man)["n_variance_tiles_all_unavailable"] = n_var_tiles_all_unavailable;
+      (*man)["n_variance_tiles_uncovered"] = n_var_tiles_uncovered;
+      (*man)["variance_usable_pixels"] = var_usable_px;
+      (*man)["variance_unavailable_pixels"] = var_unavailable_px;
+      (*man)["variance_uncovered_pixels"] = var_uncovered_px;
+      (*man)["variance_corrupt_pixels"] = var_corrupt_px;
+      (*man)["variance_census_available"] = variance_census_available;
+      (*man)["variance_census_source"] = "on_disk_variance_leaf_tiles(aio_hips_reader)";
       (*man)["products"] = products;
       // P21 复杂度不变量: 聚合已由上游 sink 的 write_hips_phase1 单趟完成 (O(T)),
       // 本节点只做产物计数, 结构上不存在 parent-span 整表扫描。aggregation_* 字段
@@ -8176,7 +8392,108 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       }
       P2SkyPlaneConfig spc = p2_sky_plane_default_config();
       spc.spline_degree = sp_cfg.value("spline_degree", 3);
-      spc.node_spacing_deg = sp_cfg.value("node_spacing_deg", 1.0);
+      // CHAIN-WIRE-ADAPT-01 / W4: 节点间距由输入几何导出（PHASE2_UPM 7a）。
+      // 旧实现写死 sp_cfg.value("node_spacing_deg", 1.0)：默认值 1.0 是一个标定
+      // 常数，7a:185-189 明文「禁止在配置里留一个『默认节点间距』标定值」；且
+      // 1.0 度在 M42 上比规则 1 的上界（0.0752 度）粗 13.3 倍，B_ref 在整个视场上
+      // 几乎退化成常数，帧间天光差的空间结构表示不了（run/UPM-NODE-ADAPT-01 7.4
+      // 实测南行减中行电平差 +10.913%）。现改为：配置显式给出则逐字沿用；未给出
+      // 则由本产品的控制点观测几何导出，不回退任何常数。
+      if (sp_cfg.contains("node_spacing_deg"))
+        spc.node_spacing_deg = sp_cfg["node_spacing_deg"].get<double>();
+      P2SkyPlaneGeometry sp_geo{};
+      P2SkyPlaneGeometryProvenance sp_geo_prov{};
+      bool sp_geo_ok = false;
+      {
+        double px_scale = sp_cfg.value("pixel_scale_arcsec", 0.0);
+        if (!(std::isfinite(px_scale) && px_scale > 0.0)) {
+          if (doc.contains("hips_paths") && doc["hips_paths"].is_array() &&
+              !doc["hips_paths"].empty() && doc["hips_paths"][0].is_string()) {
+            const std::string st =
+                doc["hips_paths"][0].get<std::string>() + "/p1_stack.json";
+            std::string stext;
+            if (aio_fs::read_all(st, &stext)) {
+              try {
+                const Json sd = Json::parse(stext);
+                px_scale = sd.value("finest_input_arcsec", 0.0);
+              } catch (const std::exception&) { px_scale = 0.0; }
+            }
+          }
+        }
+        std::vector<double> o_ra(obs.size()), o_dec(obs.size());
+        std::vector<std::uint64_t> o_fid(obs.size()), o_cid(obs.size());
+        for (std::size_t i = 0; i < obs.size(); ++i) {
+          o_ra[i] = obs[i].ra_deg;
+          o_dec[i] = obs[i].dec_deg;
+          o_fid[i] = obs[i].frame_id;
+          o_cid[i] = obs[i].control_id;
+        }
+        std::vector<double> c_ra(nodes.size()), c_dec(nodes.size());
+        std::vector<std::uint64_t> c_tile(nodes.size());
+        for (std::size_t i = 0; i < nodes.size(); ++i) {
+          c_ra[i] = nodes[i].ra_deg;
+          c_dec[i] = nodes[i].dec_deg;
+          c_tile[i] = nodes[i].tile_ipix;
+        }
+        P2SkyPlaneGeometryInputs gi{};
+        gi.obs_ra_deg = o_ra.data();
+        gi.obs_dec_deg = o_dec.data();
+        gi.obs_frame_id = o_fid.data();
+        gi.obs_control_id = o_cid.data();
+        gi.n_obs = obs.size();
+        gi.ctrl_ra_deg = c_ra.data();
+        gi.ctrl_dec_deg = c_dec.data();
+        gi.ctrl_tile_ipix = c_tile.data();
+        gi.n_ctrl = nodes.size();
+        gi.pixel_scale_arcsec = px_scale;
+        char gerr[512] = {0};
+        sp_geo_ok = (::p2_sky_plane_geometry_from_controls(
+                         gi, &sp_geo, &sp_geo_prov, gerr, sizeof(gerr)) == 0);
+        spc.geometry = sp_geo;
+        (*man)["sky_plane_geometry_source"] =
+            sp_geo_ok ? "derived_from_control_observations" : "unavailable";
+        (*man)["sky_plane_geometry_error"] = std::string(gerr);
+        if (sp_geo_ok) {
+          (*man)["sky_plane_geometry"] = Json{
+              {"overlap_band_width_deg", sp_geo.overlap_band_width_deg},
+              {"pointing_spacing_deg", sp_geo.pointing_spacing_deg},
+              {"sample_pitch_deg", sp_geo.sample_pitch_deg},
+              {"pixel_scale_arcsec", sp_geo.pixel_scale_arcsec},
+              {"n_obs", sp_geo_prov.n_obs},
+              {"n_frames", sp_geo_prov.n_frames},
+              {"n_pointings", sp_geo_prov.n_pointings},
+              {"n_ctrl", sp_geo_prov.n_ctrl},
+              {"frame_separation_fence_deg", sp_geo_prov.frame_separation_fence_deg},
+              {"frame_extent_median_deg", sp_geo_prov.frame_extent_median_deg},
+              {"pointing_spacing_min_deg", sp_geo_prov.pointing_spacing_min_deg},
+              {"pointing_spacing_max_deg", sp_geo_prov.pointing_spacing_max_deg},
+              {"overlap_band_trimmed_deg", sp_geo_prov.overlap_band_trimmed_deg},
+              {"overlap_band_full_deg", sp_geo_prov.overlap_band_full_deg},
+              {"n_overlap_pairs", sp_geo_prov.n_overlap_pairs},
+              {"sample_pitch_median_deg", sp_geo_prov.sample_pitch_deg},
+              {"n_pitch_samples", sp_geo_prov.n_pitch_samples},
+              {"rule", "PHASE2_UPM 7a: h <= min(overlap_band, pointing_spacing)/2,"
+                       " derived from the product's own input geometry (no calibrated"
+                       " default)"}};
+          P2SkyPlaneNodeSpacing ns{};
+          char nserr[512] = {0};
+          if (p2_sky_plane_derive_node_spacing(&sp_geo, &ns, nserr, sizeof(nserr)) ==
+              P2_SKY_NODE_SPACING_OK) {
+            (*man)["sky_plane_node_spacing_upper_deg"] = ns.upper_deg;
+            (*man)["sky_plane_node_spacing_lower_deg"] = ns.lower_deg;
+            (*man)["sky_plane_node_spacing_px"] = ns.node_spacing_px;
+            (*man)["sky_plane_representable_scale_deg"] = ns.representable_scale_deg;
+          } else {
+            (*man)["sky_plane_node_spacing_derive_error"] = std::string(nserr);
+          }
+        } else {
+          std::fprintf(stderr,
+                       "[sky_plane] input geometry derivation FAILED: %s -> node"
+                       " spacing cannot be derived; build will fail-closed"
+                       " (PHASE2_UPM 7a forbids falling back to a calibrated constant)\n",
+                       gerr);
+        }
+      }
       spc.frame_gradient_order = sp_cfg.value("frame_gradient_order", 1);
       spc.gauge_mode = sp_cfg.value("gauge_mode", 0);
       spc.weight_mode = sp_cfg.value("weight_mode", 0);
@@ -8189,38 +8506,83 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       if (sp_cfg.contains("min_samples")) spc.min_samples = sp_cfg["min_samples"].get<int>();
       if (sp_cfg.contains("min_samples_per_frame"))
         spc.min_samples_per_frame = sp_cfg["min_samples_per_frame"].get<int>();
+      // CHAIN-WIRE-ADAPT-01 / W4: max_nodes 护栏。7a:199-200「自适应必须真的会被
+      // 触发：门控值若宽到让真实数据永远通过，则自适应等价于不存在」。算法侧默认
+      // 2048 个节点会把 M42 上科学上更优的 h = 0.0375948 度（n_nodes = 4814）挡在
+      // 门外，自适应 fail-closed 返回 rc=5（TOO_MANY_NODES），一个模型都不给
+      // （run/UPM-NODE-ADAPT-01 7.5）。取值依据（两条，均非「拍一个更大的数」）：
+      //   1) 必须容纳规则区间内实际可达的最细网格：M42 实测逐档节点数
+      //      1.0->36、0.15->391、0.0752->1333、0.05->2835、0.0376->4814、
+      //      0.0188->19256（run/UPM-NODE-ADAPT-01 7.2）。生产要能采纳 4814 这一档。
+      //   2) 内存：求解矩阵是 n_full x n_full 稠密 FP64（n_full = n_free + 帧数 x
+      //      delta 基函数数）；8192 节点档的峰值 RSS 实测见
+      //      run/CHAIN-WIRE-ADAPT-01/REPORT.md W4（远低于本节点既有预算）。
+      // 取 8192：容纳 4814（余量 1.70x），并与 sky_plane.h 声明的
+      // 「max_nodes 默认 8192」一致（算法侧实现里的 2048 与该声明漂移；编排面按
+      // 声明取值，不改算法侧）。配置显式给出时逐字沿用。
       if (sp_cfg.contains("max_nodes")) spc.max_nodes = sp_cfg["max_nodes"].get<int>();
+      else spc.max_nodes = 8192;
       char sperr[512] = {0};
       void* spm = nullptr;
-      // ── SCI-502 FIX-3 定案（DOC-502 / PHASE2_UPM 7a）: 近奇异自适应 ────────
-      // 天光面正规方程条件数 kappa 可观测；kappa > kappa_max 时**不直接放弃**，
-      // 而是按粗糙度正则化（roughness_penalty）逐级自适应重试（bounded），并把
-      // 所走分支、尝试次数、生效惩罚与最终 kappa 全部写 provenance。
-      // 真实 M42 样本实测 kappa=3.16e7（SCI-C C7 R2）⇒ 默认 1e-3 惩罚下即可能触顶。
-      // 放宽 kappa_max 求绿属禁止项（FZ-AP2S-KAPPA-MAX 负例）。
-      constexpr int kKappaAdaptiveMaxAttempts = 6;
+      // ── SCI-502 FIX-3 定案 + CHAIN-WIRE-ADAPT-01 / W4: 近奇异 + 节点间距自适应 ──
+      // 旧实现只做「粗糙度惩罚逐级 x10」这一条分支（kappa 分支），节点间距被
+      // 写死的 1.0 度钉死 ⇒ 7a:190-192「节点间距必须与 roughness_penalty **同级**
+      // 进入自适应重试回路；条件数或残差不达门时，除提高粗糙度惩罚外，必须允许
+      // 细化节点重解」在生产面上**不可达**（UPM-NODE-ADAPT-01 7.3 实测：生产数据
+      // 的权重尺度下 lambda 要到 1e3 量级才影响 kappa，默认 1e-3 差 6 个数量级
+      // ⇒ 惩罚分支事实上不具调节能力，真正干活的是节点细化分支）。
+      // 现改用 p2_sky_plane_build_adaptive：两条分支都在同一个有界回路里，
+      // 搜索区间由输入几何给（上界 = 规则 1 的值，下界 = 数据分辨率极限），
+      // 逐次尝试的 (h, lambda, rc, action, adopted) 全部入 provenance。
+      // 放宽 kappa_max 求绿仍属禁止项（FZ-AP2S-KAPPA-MAX 负例）。
       const double kappa_penalty0 = spc.roughness_penalty;
-      int kappa_attempts = 0;
-      int src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
-                                   &spc, &spm, sperr, sizeof(sperr));
-      while (src == P2_SKY_PLANE_KAPPA_EXCEEDED &&
-             kappa_attempts + 1 < kKappaAdaptiveMaxAttempts) {
-        if (spm) { p2_sky_plane_close(spm); spm = nullptr; }
-        spc.roughness_penalty =
-            (spc.roughness_penalty > 0.0) ? spc.roughness_penalty * 10.0 : 1e-3;
-        ++kappa_attempts;
-        sperr[0] = '\0';
-        std::fprintf(stderr,
-                     "[sky_plane] kappa exceeded -> adaptive roughness retry #%d (penalty=%.3g)\n",
-                     kappa_attempts, spc.roughness_penalty);
-        src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
-                                 &spc, &spm, sperr, sizeof(sperr));
+      P2SkyPlaneAdaptiveConfig spad = p2_sky_plane_default_adaptive_config();
+      P2SkyPlaneAdaptiveReport spread{};
+      int src = p2_sky_plane_build_adaptive(sky_samples.data(), sky_samples.size(),
+                                            &spc, &spad, &spm, &spread,
+                                            sperr, sizeof(sperr));
+      // 节点间距自适应是否真的被触发过（7a:199-200：无触发记录的路径视为未实现）。
+      (*man)["sky_plane_node_adaptive_used"] = (spread.node_adaptive_used != 0);
+      (*man)["sky_plane_penalty_adaptive_used"] = (spread.penalty_adaptive_used != 0);
+      (*man)["sky_plane_adaptive_attempts"] = spread.n_attempts;
+      (*man)["sky_plane_node_refinements"] = spread.n_node_refinements;
+      (*man)["sky_plane_node_coarsenings"] = spread.n_node_coarsenings;
+      (*man)["sky_plane_penalty_escalations"] = spread.n_penalty_escalations;
+      (*man)["sky_plane_representation_limited"] = (spread.representation_limited != 0);
+      (*man)["sky_plane_clamped_to_upper"] = (spread.clamped_to_upper != 0);
+      (*man)["sky_plane_adaptive_search"] = Json{
+          {"node_spacing_upper_deg", spread.node_spacing_upper_deg},
+          {"node_spacing_lower_deg", spread.node_spacing_lower_deg},
+          {"constraining_scale_deg", spread.constraining_scale_deg},
+          {"residual_improve_ratio", spread.residual_improve_ratio},
+          {"kappa_max_effective", spread.kappa_max_effective},
+          {"node_spacing_deg", spread.node_spacing_deg},
+          {"roughness_penalty", spread.roughness_penalty}};
+      {
+        Json att = Json::array();
+        for (int ai = 0; ai < spread.n_attempts && ai < P2_SKY_ADAPT_MAX_ATTEMPTS; ++ai) {
+          const P2SkyPlaneAttempt& a = spread.attempts[ai];
+          att.push_back(Json{{"node_spacing_deg", a.node_spacing_deg},
+                             {"roughness_penalty", a.roughness_penalty},
+                             {"rc", a.rc},
+                             {"action", a.action},
+                             {"adopted", a.adopted},
+                             {"kappa", a.kappa},
+                             {"kappa_data", a.kappa_data},
+                             {"rank", a.rank},
+                             {"rank_solve", a.rank_solve},
+                             {"n_nodes", a.n_nodes},
+                             {"chi2_red", a.chi2_red},
+                             {"rms_weighted", a.rms_weighted}});
+        }
+        (*man)["sky_plane_adaptive_trace"] = att;
       }
-      (*man)["sky_plane_kappa_adaptive_attempts"] = kappa_attempts;
-      (*man)["sky_plane_kappa_adaptive_used"] = (kappa_attempts > 0);
+      (*man)["sky_plane_kappa_adaptive_attempts"] = spread.n_penalty_escalations;
+      (*man)["sky_plane_kappa_adaptive_used"] = (spread.n_penalty_escalations > 0);
       (*man)["sky_plane_roughness_penalty_configured"] = kappa_penalty0;
-      (*man)["sky_plane_roughness_penalty_used"] = spc.roughness_penalty;
-      (*man)["sky_plane_kappa_max"] = spc.kappa_max;
+      (*man)["sky_plane_roughness_penalty_used"] = spread.roughness_penalty;
+      // 生效门 = H_solve 的谱自身口径（1/rank_rtol），显式覆盖时即配置值（7a:196-198）。
+      (*man)["sky_plane_kappa_max"] = spread.kappa_max_effective;
       if (src != P2_SKY_PLANE_OK) {
         std::fprintf(stderr,
                      "[sky_plane] build FAILED rc=%d %s -> explicit fallback to UPM C field\n",
