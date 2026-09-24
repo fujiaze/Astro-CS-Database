@@ -18,27 +18,65 @@
   ⇒ V4 只作「渲染分块伪影」粗筛，不得再被引用为帧间接缝的证据
     （run/M42-E2E-01/pending-rulings.md R-2、run/VIS-P0FIX-01/REPORT.md 发现 4）。
 
-判据（本工具）：
-  seam(e)   = 沿第 e 条帧足迹边界、法向 ±d 的一阶差分（d 默认 2 px）
-  ctrl(e)   = 同一条边界**法向平移 ctrl_shift 像素的平行线**上的同款差分（取有效样本多的一侧；
-              扣掉局部结构梯度与噪声，与 SCI-C c7 的 off-locus 对照同义）
-  excess(e) = median|seam(e)| − median|ctrl(e)|
-  rel(e)    = excess(e) / bg(e)，bg = 该平行线上 |电平| 的中位数（相对口径，无量纲，可跨产品比）
-  门：max_e |rel(e)| <= max_rel_excess（默认 1e-2）⇒ 绿（exit 0）；否则红（exit 1）。
-  fail-closed（「无法判定」不得当「无接缝」）：
-    · FITS / 帧清单 / 依赖不可用           ⇒ exit 2；
-    · 有效帧边界数 == 0，或 rel 全部不可算  ⇒ **红**（exit 1）。
+判据（本工具 v2 = **纯电平阶跃**；v1 的 excess 口径已降级为诊断量）：
+  seam(e)      = 沿第 e 条帧足迹边界、法向 ±d 的一阶差分（d 默认 2 px，**带符号**）
+  ctrl(e)      = 同一条边界**法向平移 ctrl_shift 像素的平行线**上的同款差分（取有效样本多的一侧；
+                 与 SCI-C c7 的 off-locus 对照同义）—— v2 里只用于**诊断**与适用域判定
+  step(e)      = median(seam(e))                 **有符号**台阶（ADU）—— 判据分子
+  bg(e)        = 边界自身 ±d 采样上 |电平| 的中位数（**局部**背景电平）
+  rel_step(e)  = step(e) / bg(e)                 判据量（相对口径，无量纲，可跨产品比）
+  ctrl_step(e) = median(ctrl(e))                 200 px 平行对照线上的同款有符号台阶
+  step_net(e)  = step(e) − ctrl_step(e)          扣掉对照线后的"净台阶"——**诊断量**，不判红
+  门：max_e |rel_step(e)| <= max_rel_excess（默认 1e-2）⇒ 绿（exit 0）；否则红（exit 1）。
+
+为什么判据落在**边界自身的**有符号台阶上，而不是「台阶 − 200 px 外对照线」的净量：
+  净量把「200 px 之外的结构」混进了判据。实测 M42 产品判据量最大的那条边
+  （M2_T3_043524/bottom）：本边有符号台阶 = +7.69e-6（= 背景的 0.69%，**在门内**），
+  而 200 px 外对照线自己的有符号台阶 = −1.13e-5（= 背景的 1.0%）⇒ 相减把它抬到 1.71e-2 判红。
+  沿法向的中位电平剖面证明该处是**背景斜坡**而不是台阶：「台阶」随采样半距 d 近似线性增长
+  （d = 2/4/8/16/32 px ⇒ 52/73/119/165/243 ×1e-6），而真正的电平跃变在 d 扫描下应当守恒。
+  ⇒ 净量会把星云梯度/曲率误判成接缝，故降级为诊断量（run/SEAM-GATE-FIX-01/REPORT.md §2）。
+  诚实边界：本判据仍含 2d·∂L/∂n 的梯度项（d 是采样半距）——背景梯度越陡，判据量越大；
+  M42 产品实测最陡处已达门的 78%，更陡的星云/银道面场里需与 step_net、d 扫描一起判读。
+
+为什么判据必须落在**有符号**台阶上（v1 假阳性模式的成因；实测证据见 run/VIS-E2E02-01/REPORT.md）：
+  v1 判据 excess = median|seam| − median|ctrl| 对**噪声差**同样敏感（中位数绝对值随噪声尺度线性
+  增长），所以它根本不是纯电平判据。实测 M42 整幅产品最差那条边（M6_T2_043619/top）：
+  excess = 1.13e-5，而**有符号**台阶只有 +5.388e-6（占 48%）；同一条边 seam 侧 MAD = 2.273e-5，
+  是对照线 8.193e-6 的 **2.77 倍** ⇒ excess 里一大半是噪声对比。全幅 196 条边的有符号台阶最大
+  只有 0.219 个 8 位灰阶（交付 PNG 的量化步长 = 1 灰阶）⇒ v1 报的是图上**原理性看不见**的"缺陷"。
+  v2 因此把判据落在**有符号**的 step 上（v1 的 excess、对照线净量、噪声差全部降级为
+  **诊断量**：只报告、不判红），并逐边落盘供复核。
+
+判据的适用域（前置约束；与既有 min_samples 同类的工程处理，**不是**放松阈值）：
+  只有「**两侧都在数据内部**」的帧边界才计入判据 —— 要求法向 ±ctrl_shift 处的平行线**两侧都能
+  放置**、且各有 >= min_samples 个有效样本。两条理由：
+    ① 物理定义：帧间电平接缝要求边界两侧都有数据；一侧没有数据 = 画幅/足迹**外缘**，那里的
+       "台阶"是数据边缘本身，不是帧间接缝（实测 20 条超门边里 **15 条**贴着数据边界）；
+    ② 对照线可放置域：一侧无数据时对照线只能放在另一侧，等于拿「边缘余量的高噪声」减「内部
+       噪声」（实测最差那条距最近非有限像素仅 **1 px**、2181 px 只采到 65 个有效样本）。
+  约束量 N = ctrl_shift（对照平行线的法向平移量，本工具**既有**的输入参数，默认 200 px）——
+  **从输入导出**，不是另拍的整数常数；等价的逐边报告量是 margin_px（两面都放得下对照线的最大
+  法向余量，阶梯扫描给出；margin_px >= ctrl_shift ⟺ 计入判据）。被排除的边界仍逐条落盘
+  （exclude 字段 + 全部度量），只是不进判据 —— 不静默丢弃。
+
+fail-closed（「无法判定」不得当「无接缝」）：
+    · FITS / 帧清单 / 依赖不可用                ⇒ exit 2；
+    · 有效帧边界数 == 0，或 rel_step 全部不可算 ⇒ **红**（exit 1）。
 
 正/负例（--inject-frame k:amp，判别力自检；不依赖真值，靠已知注入）：
   把 amp 加进第 k 帧足迹多边形内部 = 沿该帧真实边界造一条**已知**电平阶跃，然后：
     · amp == 0 ⇒ 全部逐边度量必须与基线**一致**（真值无效应 ⇒ 必须回落到基线）；
-    · amp != 0 ⇒ 该帧边界 max|excess| 必须 >= inject_detect_frac × |amp|（判据必须看得见），
+    · amp != 0 ⇒ 该帧边界 max|有符号台阶| 必须 >= inject_detect_frac × |amp|（判据必须看得见），
                  同时打印旧 V4 方差比作对照（旧门对同一输入必须**不动** = 盲区复现）。
   任一不满足 ⇒ 该注入用例判红并计入 exit code。
 
---self-test（机器门常驻入口，不依赖 run/ 大产品）：合成夹具跑**同一代码路径**五组用例——
+--self-test（机器门常驻入口，不依赖 run/ 大产品）：合成夹具跑**同一代码路径**七组用例——
   S1 无台阶 ⇒ 绿；S2 注入已知台阶 ⇒ 红；S3 旧 V4 在 S2 输入上 ⇒ 绿（盲区复现）；
-  S4 帧足迹落在画幅外 ⇒ 红（fail-closed）；S5 注入 0 ⇒ 与基线逐条一致且判绿（负例）。
+  S4 帧足迹落在画幅外 ⇒ 红（fail-closed）；S5 注入 0 ⇒ 与基线逐条一致且判绿（负例）；
+  S6 **两侧噪声差 57× 但无电平台阶**的合成边 ⇒ 绿（v1 假阳性模式的负例；同一夹具上 v1 判据必须红）；
+  S7 贴着数据边界（边缘余量高噪声）的边 ⇒ 被适用域排除、门判绿（同一夹具上 v1 判据必须红）。
+  REQUIRED_SELFTEST_CASES 硬校验用例名单：**缺任一条即自检失败**。
 
 用法：
   python3 eng/tools/e2e/seam_footprint.py --fits <整幅 FITS> --p1-dirs <dir...> \
@@ -67,6 +105,27 @@ DEFAULT_WORK_DIR = os.path.join(REPO, "run/ci/seam-footprint")
 EDGE_NAMES = ("bottom", "top", "left", "right")
 FIXTURE_NPIX = 1200      # 自检夹具画幅边长（px）
 FIXTURE_FRAME_N = 360    # 自检夹具帧像素边长
+# 「对照线可放置域」阶梯（px，仅用于报告 margin_px；顶阶 = ctrl_shift，见 edge_metric）
+MARGIN_LADDER = (0.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0)
+# S6/S7 负例夹具（噪声差 / 边界余量）：画幅与帧边长翻倍 ⇒ 边上独立样本数翻倍，
+# 中位数统计噪声减半，使「噪声差大但无台阶」的判绿有 >=2x 余量（确定性 seed，不靠运气）
+FIXTURE_NPIX_BIG = 2400
+FIXTURE_FRAME_N_BIG = 960
+# S6/S7 负例夹具的噪声尺度（同一均值面、无电平台阶）：高/低噪声侧 σ。
+# 取值使「v1 假阳性」系统性超出 1e-2 门（≈1.4e-2）而 v2 的判据量只剩采样噪声（≈1e-3 量级），
+# 两边都有 >=2x 余量；夹具固定 seed ⇒ 逐位可复现，不靠运气。
+SELF_SIGMA_HI = 4.0e-2
+SELF_SIGMA_LO = 5e-4
+# 自检必需用例名单（硬校验：缺任一条即自检失败，防止静默删用例）
+REQUIRED_SELFTEST_CASES = (
+    "S1-synthetic-no-step-green",
+    "S2-injected-step-red",
+    "S3-legacy-v4-blind-on-injected",
+    "S4-degenerate-footprint-red",
+    "S5-zero-injection-identity",
+    "S6-noise-difference-no-step-green",
+    "S7-boundary-margin-edge-excluded",
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -167,8 +226,41 @@ def mad(x):
     return float(1.4826 * np.median(np.abs(x - m)))
 
 
-def edge_metric(img, e, d=2.0, ctrl_shift=200.0):
-    """单条帧边界的 seam / ctrl / excess / rel_excess（法向平移平行线对照）。"""
+def _ctrl_at(img, ex, ey, nxv, nyv, s, off, d):
+    """法向 s·off 处、半距 ±d 的差分（= 该偏移上的一条平行对照线）。"""
+    cp = bilinear(img, ex + nxv * (s * off + d), ey + nyv * (s * off + d))
+    cm = bilinear(img, ex + nxv * (s * off - d), ey + nyv * (s * off - d))
+    return cp - cm
+
+
+def _placeable(seam_ok, c):
+    """该偏移上「差分可算」的样本数（seam 与对照线都要有限）。"""
+    return int((seam_ok & np.isfinite(c)).sum())
+
+
+def _side_margin(img, ex, ey, nxv, nyv, seam_ok, s, ctrl_shift, d, min_samples):
+    """一侧的「对照线可放置域」：满足 >= min_samples 个有效样本的最大法向偏移（px）。
+
+    阶梯扫描（MARGIN_LADDER + 顶阶 ctrl_shift）；顶阶恰好是判据要求的偏移，因此
+    margin_px >= ctrl_shift ⟺ 该侧计入判据（与 edge_metric 的 interior 同源同量）。
+    """
+    ladder = tuple(v for v in MARGIN_LADDER if v < ctrl_shift) + (float(ctrl_shift),)
+    best = None
+    for off in ladder:
+        if _placeable(seam_ok, _ctrl_at(img, ex, ey, nxv, nyv, s, off, d)) >= min_samples:
+            best = float(off)
+    return best
+
+
+def edge_metric(img, e, d=2.0, ctrl_shift=200.0, min_samples=20):
+    """单条帧边界的电平阶跃判据量 + 噪声诊断 + 适用域判定（法向平移平行线对照）。
+
+    判据量 = rel_step = median(seam) / bg（**有符号**电平台阶 / 边界处局部背景电平）；
+    诊断量（**只报告，不判红**）= noise_ratio = MAD(seam)/MAD(ctrl)、noise_diff、
+      ctrl_step / step_net（200 px 平行对照线口径）、step_d4x（d 扫描）、
+      v1 的 excess / rel_excess（median|·| 之差，历史对照）；
+    适用域 = interior（法向 ±ctrl_shift 两侧都能放对照线）—— 只有 interior 的边界进判据。
+    """
     ex, ey = e[:, 0], e[:, 1]
     tx = np.gradient(ex)
     ty = np.gradient(ey)
@@ -177,33 +269,67 @@ def edge_metric(img, e, d=2.0, ctrl_shift=200.0):
     tx, ty = tx / tn, ty / tn
     nxv, nyv = -ty, tx
     seam = bilinear(img, ex + nxv * d, ey + nyv * d) - bilinear(img, ex - nxv * d, ey - nyv * d)
+    seam_ok = np.isfinite(seam)
     # 对照：法向 ±ctrl_shift 的平行线；选「有效样本多」的一侧（两侧同效时取 + 侧，确定性）
-    cand, n_ok = [], []
+    ctrl_by_side, n_ok = {}, {}
     for s in (+1.0, -1.0):
-        cxp = ex + nxv * (s * ctrl_shift + d)
-        cyp = ey + nyv * (s * ctrl_shift + d)
-        cxm = ex + nxv * (s * ctrl_shift - d)
-        cym = ey + nyv * (s * ctrl_shift - d)
-        c = bilinear(img, cxp, cyp) - bilinear(img, cxm, cym)
-        cand.append(c)
-        n_ok.append(int(np.isfinite(c).sum()))
-    k = 0 if n_ok[0] >= n_ok[1] else 1
-    ctrl = cand[k]
-    sgn = 1.0 if k == 0 else -1.0
-    m = np.isfinite(seam) & np.isfinite(ctrl)
-    # 相对口径（SCI-C R5 同款）：阶跃 / 局部背景电平
-    bg_vals = np.abs(bilinear(img, ex + nxv * (sgn * ctrl_shift),
-                              ey + nyv * (sgn * ctrl_shift)))
+        ctrl_by_side[s] = _ctrl_at(img, ex, ey, nxv, nyv, s, ctrl_shift, d)
+        n_ok[s] = _placeable(seam_ok, ctrl_by_side[s])
+    k = +1.0 if n_ok[+1.0] >= n_ok[-1.0] else -1.0
+    ctrl = ctrl_by_side[k]
+    m = seam_ok & np.isfinite(ctrl)
+    n = int(m.sum())
+    # 适用域（前置约束）：**两侧都在数据内部**才计入判据；被排除的边仍逐条落盘全部度量
+    interior = (n_ok[+1.0] >= min_samples) and (n_ok[-1.0] >= min_samples)
+    mg = [_side_margin(img, ex, ey, nxv, nyv, seam_ok, s, ctrl_shift, d, min_samples)
+          for s in (+1.0, -1.0)]
+    margin = None if any(v is None for v in mg) else float(min(mg))
+    sv, cv = seam[m], ctrl[m]
+    step = float(np.median(sv)) if sv.size else None              # 判据分子：有符号台阶
+    ctrl_step = float(np.median(cv)) if cv.size else None         # 对照线上的同款量（诊断）
+    step_net = (step - ctrl_step) if (step is not None and ctrl_step is not None) else None
+    # 相对口径（SCI-C R5 同款）：台阶 / **局部背景电平**。
+    # bg 取边界自身 ±d 采样的 |电平| 中位数（判据是纯局部量，不依赖 200 px 外的对照线）；
+    # bg_ctrl 是 v1 的口径（对照线上的 |电平| 中位数），保留作诊断与历史对照。
+    lvl = np.concatenate([np.abs(bilinear(img, ex + nxv * d, ey + nyv * d))[m],
+                          np.abs(bilinear(img, ex - nxv * d, ey - nyv * d))[m]]) \
+        if n else np.array([])
+    lvl = lvl[np.isfinite(lvl)]
+    bg = float(np.median(lvl)) if lvl.size else None
+    bg_vals = np.abs(bilinear(img, ex + nxv * (k * ctrl_shift), ey + nyv * (k * ctrl_shift)))
     bg_vals = bg_vals[np.isfinite(bg_vals)]
-    bg = float(np.median(bg_vals)) if bg_vals.size else None
-    ex_ = (med_abs(seam[m]) - med_abs(ctrl[m])) if m.sum() else None
-    return dict(n=int(m.sum()), ctrl_side=("+" if k == 0 else "-"),
-                seam_med=med_abs(seam[m]), ctrl_med=med_abs(ctrl[m]),
-                seam_mad=mad(seam[m]), ctrl_mad=mad(ctrl[m]),
-                seam_p90=float(np.percentile(np.abs(seam[m]), 90)) if m.sum() else None,
-                ctrl_p90=float(np.percentile(np.abs(ctrl[m]), 90)) if m.sum() else None,
-                excess=ex_, bg=bg,
-                rel_excess=(ex_ / bg) if (ex_ is not None and bg) else None)
+    bg_ctrl = float(np.median(bg_vals)) if bg_vals.size else None
+    # 诊断：d 扫描（真正的电平跃变在 d 扫描下守恒；背景梯度项 2d·∂L/∂n 随 d 线性增长）
+    seam4 = (bilinear(img, ex + nxv * (4.0 * d), ey + nyv * (4.0 * d)) -
+             bilinear(img, ex - nxv * (4.0 * d), ey - nyv * (4.0 * d)))
+    m4 = m & np.isfinite(seam4)
+    step_d4x = float(np.median(seam4[m4])) if m4.sum() else None
+    seam_mad, ctrl_mad = mad(sv), mad(cv)
+    ex_ = (med_abs(sv) - med_abs(cv)) if sv.size else None       # v1 口径（诊断，非判据）
+    return dict(n=n, ctrl_side=("+" if k > 0 else "-"),
+                n_ctrl_plus=n_ok[+1.0], n_ctrl_minus=n_ok[-1.0],
+                interior=bool(interior), margin_px=margin,
+                # exclude 语义：few_samples = 这条边自身就测不了（退化/出画幅）；
+                #               not_interior = 能测，但有一侧在数据外（足迹外缘，不是帧间接缝）
+                exclude=(None if interior
+                         else ("few_samples" if n < min_samples else "not_interior")),
+                # 判据量：**有符号电平台阶** / 局部背景电平
+                step=step, bg=bg,
+                rel_step=(step / bg) if (step is not None and bg) else None,
+                # 诊断量（都不判红）：对照线口径、噪声差、v1 口径
+                ctrl_step=ctrl_step, step_net=step_net, bg_ctrl=bg_ctrl,
+                rel_step_net=(step_net / bg) if (step_net is not None and bg) else None,
+                rel_ctrl_step=(ctrl_step / bg) if (ctrl_step is not None and bg) else None,
+                step_d4x=step_d4x,
+                rel_step_d4x=(step_d4x / bg) if (step_d4x is not None and bg) else None,
+                seam_mad=seam_mad, ctrl_mad=ctrl_mad,
+                noise_ratio=(seam_mad / ctrl_mad) if (seam_mad is not None and ctrl_mad) else None,
+                noise_diff=(seam_mad - ctrl_mad) if (seam_mad is not None and ctrl_mad is not None)
+                else None,
+                seam_p90=float(np.percentile(np.abs(sv), 90)) if sv.size else None,
+                ctrl_p90=float(np.percentile(np.abs(cv), 90)) if cv.size else None,
+                seam_med=med_abs(sv), ctrl_med=med_abs(cv), excess=ex_,
+                rel_excess=((ex_ / bg_ctrl) if (ex_ is not None and bg_ctrl) else None))
 
 
 def v4_tile_ratio(img, tile=512):
@@ -251,49 +377,99 @@ def polygon_mask(edges, shape):
 # 判据（可单独调用：门判定与正负例断言都走这里，自检与生产同一代码路径）
 # --------------------------------------------------------------------------- #
 def summarize(per_edge, min_samples=20):
-    """逐边度量 → 门统计量。只取「有效样本足够」的边界，避免退化边污染判据。"""
-    sel = [p for p in per_edge
-           if p.get("excess") is not None and int(p.get("n") or 0) >= min_samples]
-    ex = np.array([p["excess"] for p in sel], dtype=float)
-    rel = np.array([abs(p["rel_excess"]) for p in sel if p.get("rel_excess") is not None],
-                   dtype=float)
+    """逐边度量 → 门统计量。
+
+    判据集 = **适用域内**（exclude is None）的边界（rel_* / step_* 是新判据的统计量）；
+    同时给出 v1 口径（无符号 excess）在**旧选择规则**（n >= min_samples，不设适用域）下的
+    统计量（legacy_* / ex_*），供「修前 ↔ 修后」逐项对照 —— 它们**不参与判红**。
+    噪声统计量（noise_ratio_* / noise_diff_*）同样是诊断量，**不参与判红**。
+    """
+    sel = [p for p in per_edge if p.get("exclude") is None]
+    legacy = [p for p in per_edge
+              if p.get("excess") is not None and int(p.get("n") or 0) >= min_samples]
     out = {"n_edges_total": len(per_edge), "n_edges_valid": len(sel),
-           "n_edges_rel": int(rel.size)}
-    if ex.size:
-        out.update(ex_med=float(np.median(np.abs(ex))),
-                   ex_p90=float(np.percentile(np.abs(ex), 90)),
-                   ex_max=float(np.abs(ex).max()))
+           "n_edges_rel": int(sum(1 for p in sel if p.get("rel_step") is not None)),
+           "n_edges_excluded_not_interior":
+               int(sum(1 for p in per_edge if p.get("exclude") == "not_interior")),
+           "n_edges_excluded_few_samples":
+               int(sum(1 for p in per_edge if p.get("exclude") == "few_samples")),
+           "n_edges_legacy_valid": len(legacy)}
+    rel = np.array([abs(p["rel_step"]) for p in sel if p.get("rel_step") is not None], dtype=float)
+    stp = np.array([abs(p["step"]) for p in sel if p.get("step") is not None], dtype=float)
+    net = np.array([abs(p["rel_step_net"]) for p in sel if p.get("rel_step_net") is not None],
+                   dtype=float)
+    nr = np.array([p["noise_ratio"] for p in sel if p.get("noise_ratio") is not None], dtype=float)
+    nd = np.array([p["noise_diff"] for p in sel if p.get("noise_diff") is not None], dtype=float)
     if rel.size:
         out.update(rel_med=float(np.median(rel)),
                    rel_p90=float(np.percentile(rel, 90)),
                    rel_max=float(rel.max()))
+    if stp.size:
+        out.update(step_med_abs=float(np.median(stp)),
+                   step_p90_abs=float(np.percentile(stp, 90)),
+                   step_max_abs=float(stp.max()))
+    if net.size:
+        out.update(rel_step_net_max=float(net.max()))
+    d4 = np.array([abs(p["rel_step_d4x"]) for p in sel if p.get("rel_step_d4x") is not None],
+                  dtype=float)
+    if d4.size:
+        out.update(rel_step_d4x_max=float(d4.max()))
+    if nr.size:
+        out.update(noise_ratio_med=float(np.median(nr)), noise_ratio_max=float(nr.max()))
+    if nd.size:
+        out.update(noise_diff_med=float(np.median(nd)))
+    lex = np.array([p["excess"] for p in legacy], dtype=float)
+    lrel = np.array([abs(p["rel_excess"]) for p in legacy if p.get("rel_excess") is not None],
+                    dtype=float)
+    if lex.size:
+        out.update(ex_med=float(np.median(np.abs(lex))),
+                   ex_p90=float(np.percentile(np.abs(lex), 90)),
+                   ex_max=float(np.abs(lex).max()))
+    if lrel.size:
+        out.update(legacy_rel_med=float(np.median(lrel)),
+                   legacy_rel_p90=float(np.percentile(lrel, 90)),
+                   legacy_rel_max=float(lrel.max()))
     return out
 
 
 def gate_decision(per_edge, max_rel_excess, min_samples=20):
-    """门判定（fail-closed）：返回 dict(verdict, reason, max_abs_rel, n_exceed, stats)。"""
+    """门判定（fail-closed）：返回 dict(verdict, reason, max_abs_rel, n_exceed, stats)。
+
+    判据 = max_e |rel_step(e)|（**有符号电平台阶** / 局部背景电平）在适用域内的边界上取最大；
+    噪声差、v1 的 excess 口径只作为诊断量随 stats 落盘（n_exceed_legacy 供修前/修后对照）。
+    """
     stats = summarize(per_edge, min_samples)
+    cov = ("（判据覆盖 %d/%d 条边界；未计入 %d 条两侧并非都在数据内部、%d 条样本不足）"
+           % (stats["n_edges_valid"], stats["n_edges_total"],
+              stats["n_edges_excluded_not_interior"], stats["n_edges_excluded_few_samples"]))
     if not stats.get("n_edges_valid"):
-        return dict(verdict="FAIL", max_abs_rel=None, n_exceed=None, stats=stats,
-                    reason="有效帧边界数为 0（无法判定 ≠ 无接缝；fail-closed 判红）")
+        return dict(verdict="FAIL", max_abs_rel=None, n_exceed=None, n_exceed_legacy=None,
+                    stats=stats,
+                    reason=("适用域内有效帧边界数为 0（无法判定 ≠ 无接缝；fail-closed 判红）" + cov))
     if not stats.get("n_edges_rel"):
-        return dict(verdict="FAIL", max_abs_rel=None, n_exceed=None, stats=stats,
-                    reason="全部有效边界的 rel_excess 不可计算（背景电平为 0？fail-closed 判红）")
-    sel = [p for p in per_edge
-           if p.get("rel_excess") is not None and int(p.get("n") or 0) >= min_samples]
-    rel = np.array([abs(p["rel_excess"]) for p in sel], dtype=float)
+        return dict(verdict="FAIL", max_abs_rel=None, n_exceed=None, n_exceed_legacy=None,
+                    stats=stats,
+                    reason="全部有效边界的 rel_step 不可计算（背景电平为 0？fail-closed 判红）" + cov)
+    sel = [p for p in per_edge if p.get("exclude") is None and p.get("rel_step") is not None]
+    rel = np.array([abs(p["rel_step"]) for p in sel], dtype=float)
     n_exceed = int((rel > max_rel_excess).sum())
     mx = float(rel.max())
+    lsel = [p for p in per_edge
+            if p.get("rel_excess") is not None and int(p.get("n") or 0) >= min_samples]
+    lrel = np.array([abs(p["rel_excess"]) for p in lsel], dtype=float)
+    n_exc_legacy = int((lrel > max_rel_excess).sum()) if lrel.size else None
     if n_exceed:
-        worst = max(sel, key=lambda p: abs(p["rel_excess"]))
-        return dict(verdict="FAIL", max_abs_rel=mx, n_exceed=n_exceed, stats=stats,
-                    reason=("max|rel_excess| = %.6g > %.6g（超门边界 %d/%d 条；最差 %s/%s；"
-                            "SCI-C R5 相对接缝门）"
+        worst = max(sel, key=lambda p: abs(p["rel_step"]))
+        return dict(verdict="FAIL", max_abs_rel=mx, n_exceed=n_exceed,
+                    n_exceed_legacy=n_exc_legacy, stats=stats,
+                    reason=("max|rel_step| = %.6g > %.6g（超门边界 %d/%d 条；最差 %s/%s；"
+                            "SCI-C R5 相对接缝门）%s"
                             % (mx, max_rel_excess, n_exceed, rel.size,
-                               worst.get("frame"), worst.get("edge"))))
-    return dict(verdict="PASS", max_abs_rel=mx, n_exceed=0, stats=stats,
-                reason="max|rel_excess| = %.6g <= %.6g（门 %d 条有效边界全过）"
-                       % (mx, max_rel_excess, rel.size))
+                               worst.get("frame"), worst.get("edge"), cov)))
+    return dict(verdict="PASS", max_abs_rel=mx, n_exceed=0, n_exceed_legacy=n_exc_legacy,
+                stats=stats,
+                reason="max|rel_step| = %.6g <= %.6g（门 %d 条有效边界全过）%s"
+                       % (mx, max_rel_excess, rel.size, cov))
 
 
 def _close(a, b, tol=1e-12):
@@ -305,6 +481,8 @@ def _close(a, b, tol=1e-12):
 def injection_assert(base_per, inj_per, frame, amp, detect_frac=0.5, min_samples=20):
     """正/负例断言：amp==0 ⇒ 与基线逐条一致；amp!=0 ⇒ 该帧边界必须看得见 |amp|。
 
+    判据量是**有符号台阶** step_net，且只认「适用域内（exclude is None）」的边界 ——
+    若注入的已知台阶落在适用域外，等于判据看不见它，本断言必须判失败（fail-closed）。
     返回 (ok, note, detail)。
     """
     if len(base_per) != len(inj_per):
@@ -312,27 +490,32 @@ def injection_assert(base_per, inj_per, frame, amp, detect_frac=0.5, min_samples
     if amp == 0.0:
         bad = []
         for a, b in zip(base_per, inj_per):
-            for k in ("n", "seam_med", "ctrl_med", "excess", "rel_excess"):
+            for k in ("n", "step", "ctrl_step", "step_net", "rel_step",
+                      "seam_med", "ctrl_med", "excess", "rel_excess"):
                 if not _close(a.get(k), b.get(k)):
                     bad.append("%s/%s.%s: %r -> %r" % (a.get("frame"), a.get("edge"), k,
                                                        a.get(k), b.get(k)))
+            if a.get("exclude") != b.get("exclude"):
+                bad.append("%s/%s.exclude: %r -> %r" % (a.get("frame"), a.get("edge"),
+                                                        a.get("exclude"), b.get("exclude")))
         if bad:
             return (False, "注入 0 后度量未回落基线（真值无效应却有差异）：" + "; ".join(bad[:4]),
                     {"n_diff": len(bad)})
         return True, "注入 0 ⇒ %d 条边界度量与基线逐条一致（真值无效应 ⇒ 回落基线）" % len(base_per), \
             {"n_identical": len(base_per)}
     sel = [p for p in inj_per
-           if p.get("frame") == frame and p.get("excess") is not None
-           and int(p.get("n") or 0) >= min_samples]
+           if p.get("frame") == frame and p.get("exclude") is None
+           and p.get("step") is not None]
     if not sel:
-        return False, "注入 %s += %g 后该帧没有任何有效边界（判据看不见）" % (frame, amp), {}
-    mx = max(abs(p["excess"]) for p in sel)
+        return False, ("注入 %s += %g 后该帧没有任何**计入判据**的边界"
+                       "（判据看不见：适用域排除或有效样本不足）" % (frame, amp)), {}
+    mx = max(abs(p["step"]) for p in sel)
     ok = mx >= detect_frac * abs(amp)
-    note = ("注入 %s += %g ⇒ 该帧 %d 条边界 max|excess| = %.6g，"
+    note = ("注入 %s += %g ⇒ 该帧 %d 条边界（适用域内）max|有符号台阶| = %.6g，"
             "需 >= %.6g（= %.2f×|amp|）⇒ %s"
             % (frame, amp, len(sel), mx, detect_frac * abs(amp), detect_frac,
                "可见" if ok else "**不可见**（判据对该已知阶跃失明）"))
-    return ok, note, {"frame": frame, "amp": amp, "max_abs_excess": mx,
+    return ok, note, {"frame": frame, "amp": amp, "max_abs_step": mx,
                       "required": detect_frac * abs(amp), "n_edges": len(sel)}
 
 
@@ -341,7 +524,7 @@ def injection_assert(base_per, inj_per, frame, amp, detect_frac=0.5, min_samples
 # --------------------------------------------------------------------------- #
 def evaluate_product(fits_path, p1_dirs, frame_naxis=(4096, 4096), tile=512, d=2.0,
                      ctrl_shift=200.0, min_samples=20, max_rel_excess=1e-2,
-                     injections=(), detect_frac=0.5, img=None, wp3=None):
+                     injections=(), detect_frac=0.5, img=None, wp3=None, n_pts=256):
     """跑一次完整判定。img/wp3 可预置（调用方已把产品读进内存时避免二次 I/O）。"""
     frames = collect_frames(p1_dirs)
     if not frames:
@@ -354,13 +537,13 @@ def evaluate_product(fits_path, p1_dirs, frame_naxis=(4096, 4096), tile=512, d=2
     for wj in frames:
         wf, _ = load_wcs_from_p1(wj)
         edges_by_frame.append((os.path.basename(os.path.dirname(wj)),
-                               frame_edges_p3(wf, wp3, frame_naxis)))
+                               frame_edges_p3(wf, wp3, frame_naxis, n_pts=n_pts)))
 
     def run(im):
         per = []
         for name, edges in edges_by_frame:
             for nm, e in edges:
-                r = edge_metric(im, e, d=d, ctrl_shift=ctrl_shift)
+                r = edge_metric(im, e, d=d, ctrl_shift=ctrl_shift, min_samples=min_samples)
                 r["frame"] = name
                 r["edge"] = nm
                 per.append(r)
@@ -373,7 +556,22 @@ def evaluate_product(fits_path, p1_dirs, frame_naxis=(4096, 4096), tile=512, d=2
            "shape": [int(img.shape[0]), int(img.shape[1])],
            "n_frames": len(frames), "frame_naxis": list(frame_naxis), "tile": tile,
            "norm_d": d, "ctrl_shift": ctrl_shift, "min_samples": min_samples,
+           "n_pts": n_pts,
            "max_rel_excess": max_rel_excess,
+           "criterion": {
+               "name": "signed_level_step",
+               "statistic": ("rel_step = median(img[+d] − img[−d]) / bg "
+                             "（有符号电平台阶 / 边界处的局部背景电平）"),
+               "gate": "max_e |rel_step(e)| <= max_rel_excess",
+               "domain": ("只对两侧都在数据内部的边界计入：法向 ±ctrl_shift 两侧都能放对照线"
+                          "且各有 >= min_samples 个有效样本（N = ctrl_shift，从输入导出）"),
+               "diagnostics": ["step_d4x / rel_step_d4x（4d 采样半距的 d 扫描；判据的梯度敏感度）",
+                               "step_net / rel_step_net（扣 200 px 平行对照线后的净台阶；不判红）",
+                               "noise_ratio = MAD(seam)/MAD(ctrl)（噪声差；不判红）",
+                               "noise_diff = MAD(seam) − MAD(ctrl)（不判红）",
+                               "excess / rel_excess（v1 无符号口径，历史对照；不判红）"],
+               "v1_note": ("v1 的 excess = median|seam| − median|ctrl| 对噪声差敏感，"
+                           "已降级为诊断量（run/VIS-E2E02-01/REPORT.md §1.1/§9）")},
            "v4": {"ratio": base_v4, "detail": base_v4d, "note": "方差比粗筛（对电平阶跃原理性失明）"},
            "baseline": {"gate": base_gate, "per_edge": base_per},
            "inject": []}
@@ -463,8 +661,48 @@ def make_fixture(work_dir, seed=20260924, npix=FIXTURE_NPIX, frame_n=FIXTURE_FRA
     return fits_path, [p1_dir], (frame_n, frame_n)
 
 
+def _edge_row(fits_path, p1_dirs, frame_naxis, frame_index=0, edge="top"):
+    """夹具里某条帧边在产品网格上的行（theta=0 时该边严格水平 ⇒ 行是常数）。
+
+    用于把「噪声台阶 / 数据边界」对齐到那条边 —— 负例夹具（S6/S7）靠它构造，
+    不靠手算常数。
+    """
+    _, wp3 = product_wcs(fits_path)
+    frames = collect_frames(p1_dirs)
+    wf, _ = load_wcs_from_p1(frames[frame_index])
+    ed = dict(frame_edges_p3(wf, wp3, frame_naxis))
+    return float(np.median(ed[edge][:, 1]))
+
+
+def rewrite_fixture_noise(src_fits, dst_fits, sigma_fn, nan_fn=None, bg=1.0, grad=0.02, seed=7):
+    """在**同一均值面**上重造噪声（空间变化 σ / NaN 掩模）——判据适用域的负例夹具。
+
+    均值面与原夹具逐像素相同（bg + grad·x/npix）⇒ 合成边**没有电平台阶**，变的只有噪声
+    尺度与有限性（正是 v1 假阳性模式的成因）。WCS 头与帧清单沿用原夹具。
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(dst_fits)), exist_ok=True)
+    with fits.open(src_fits, memmap=True) as h:
+        hdr = h[0].header.copy()
+        shape = tuple(int(v) for v in h[0].data.shape)
+    yy, xx = np.mgrid[0:shape[0], 0:shape[1]]
+    mean = bg + grad * xx / float(shape[1])
+    sig = np.asarray(sigma_fn(xx, yy), dtype=np.float64)
+    data = mean + sig * np.random.default_rng(seed).standard_normal(shape)
+    if nan_fn is not None:
+        data = np.where(np.asarray(nan_fn(xx, yy), dtype=bool), np.nan, data)
+    fits.PrimaryHDU(data=data.astype(np.float32), header=hdr).writeto(dst_fits, overwrite=True)
+    return dst_fits
+
+
+def _f(x):
+    return "%.4e" % x if isinstance(x, float) else repr(x)
+
+
 def self_test(work_dir, max_rel_excess=1e-2):
-    """五组用例，全部走 evaluate_product / gate_decision 同一代码路径。"""
+    """七组用例，全部走 evaluate_product / gate_decision 同一代码路径。
+
+    REQUIRED_SELFTEST_CASES 硬校验用例名单：**缺任一条即自检失败**（不允许静默删用例）。
+    """
     cases = []
 
     def add(name, ok, note):
@@ -514,9 +752,76 @@ def self_test(work_dir, max_rel_excess=1e-2):
         inj5["assert_ok"] and r5["baseline"]["gate"]["verdict"] == "PASS",
         "注入 0：%s；门 %s" % (inj5["assert_note"], r5["baseline"]["gate"]["verdict"]))
 
+    # ---- S6/S7：判据适用域的负例夹具（**同一均值面**，只改噪声尺度与有限性）----
+    # theta=0 ⇒ 帧边在产品网格上严格水平/竖直，噪声台阶与数据边界可与该边逐像素对齐。
+    f_big, p_big, fn_big = make_fixture(
+        os.path.join(work_dir, "fixture_big"), npix=FIXTURE_NPIX_BIG,
+        frame_n=FIXTURE_FRAME_N_BIG, theta_deg=0.0,
+        centers=[(700, 700), (1700, 700), (700, 1700), (1700, 1700)])
+    kw_big = dict(frame_naxis=fn_big, tile=512, min_samples=20,
+                  max_rel_excess=max_rel_excess, n_pts=512)
+    row_top = _edge_row(f_big, p_big, fn_big, 0, "top")
+    fr0 = os.path.basename(os.path.dirname(collect_frames(p_big)[0]))
+
+    def _st(rec):
+        return rec["baseline"]["gate"]["stats"]
+
+    def _legacy_red(rec):
+        v = _st(rec).get("legacy_rel_max")
+        return (v is not None and v > max_rel_excess), v
+
+    # S6：噪声台阶正好落在帧 0/1 的 top 边上（边之上 σ_hi、之下 σ_lo）——**无电平台阶**。
+    # 对照线只能落在低噪声一侧 ⇒ v1 口径（median|seam| − median|ctrl|）必然假阳；v2 必须判绿。
+    s6 = rewrite_fixture_noise(
+        f_big, os.path.join(work_dir, "fixture_noisestep", "product.fits"),
+        lambda xx, yy: np.where(yy < row_top, SELF_SIGMA_HI, SELF_SIGMA_LO), seed=7)
+    r6 = evaluate_product(s6, p_big, **kw_big)
+    g6 = r6["baseline"]["gate"]
+    red6, lg6 = _legacy_red(r6)
+    nr6 = _st(r6).get("noise_ratio_max")
+    add("S6-noise-difference-no-step-green",
+        g6["verdict"] == "PASS" and red6 and (nr6 or 0.0) > 2.0,
+        "帧 0/1 的 top 边两侧 σ = %.1e / %.1e（无电平台阶；噪声比 max = %.1f×）："
+        "v2 判据 %s（max|rel_step| = %s，门 %.1e）；v1 口径 max|rel_excess| = %s ⇒ %s"
+        % (SELF_SIGMA_HI, SELF_SIGMA_LO, nr6 if nr6 is not None else float("nan"),
+           g6["verdict"], _f(g6["max_abs_rel"]), max_rel_excess, _f(lg6),
+           "同一夹具上 v1 判红（假阳性模式复现）" if red6 else "**v1 未判红 ⇒ 夹具没复现假阳性模式**"))
+
+    # S7：贴数据边界的边（外侧 30 px 就是 NaN）+ 边缘余量高噪声 ⇒ 适用域必须排除它、门判绿；
+    # 同一夹具上 v1 口径仍判红（它拿「边缘余量的高噪声」减「内部噪声」）。
+    nan_from = row_top + 30.0
+    band_from = row_top - 10.0
+    s7 = rewrite_fixture_noise(
+        f_big, os.path.join(work_dir, "fixture_margin", "product.fits"),
+        lambda xx, yy: np.where((yy >= band_from) & (yy < nan_from), SELF_SIGMA_HI, SELF_SIGMA_LO),
+        nan_fn=lambda xx, yy: yy >= nan_from, seed=11)
+    r7 = evaluate_product(s7, p_big, **kw_big)
+    g7 = r7["baseline"]["gate"]
+    e7 = [p for p in r7["baseline"]["per_edge"]
+          if p.get("frame") == fr0 and p.get("edge") == "top"]
+    ex7 = e7[0] if e7 else {}
+    red7, lg7 = _legacy_red(r7)
+    add("S7-boundary-margin-edge-excluded",
+        g7["verdict"] == "PASS" and ex7.get("exclude") == "not_interior" and red7,
+        "帧 0 的 top 边距 NaN 仅 %.0f px（外侧对照线落在 NaN 上）⇒ 该边 exclude=%r、"
+        "margin_px=%s、n_ctrl_plus=%s；门 %s（max|rel_step| = %s；适用域排除 %s 条）；"
+        "同一夹具 v1 口径 max|rel_excess| = %s ⇒ %s"
+        % (nan_from - row_top, ex7.get("exclude"), _f(ex7.get("margin_px")),
+           ex7.get("n_ctrl_plus"), g7["verdict"], _f(g7["max_abs_rel"]),
+           _st(r7).get("n_edges_excluded_not_interior"), _f(lg7),
+           "v1 判红（边缘余量假阳性复现）" if red7 else "**v1 未判红**"))
+
     bad = [c["name"] for c in cases if not c["ok"]]
+    have = {c["name"] for c in cases}
+    missing = [n for n in REQUIRED_SELFTEST_CASES if n not in have]
+    if missing:
+        cases.append({"name": "S0-required-cases-present", "ok": False,
+                      "note": "缺少必需用例（缺任一条即自检失败）：%s" % ", ".join(missing)})
+        bad = [c["name"] for c in cases if not c["ok"]]
     return {"cases": cases, "n_pass": len(cases) - len(bad), "n_total": len(cases),
-            "failed": bad, "verdict": "PASS" if not bad else "FAIL"}
+            "failed": bad, "verdict": "PASS" if not bad else "FAIL",
+            "required_cases": list(REQUIRED_SELFTEST_CASES),
+            "n_required_missing": len(missing)}
 
 
 # --------------------------------------------------------------------------- #
@@ -549,7 +854,8 @@ def main(argv=None):
     ap.add_argument("--inject-detect-frac", type=float, default=0.5,
                     help="注入 amp 后该帧边界 |excess| 至少需达 |amp| 的该比例（默认 0.5）")
     ap.add_argument("--self-test", action="store_true", dest="self_test",
-                    help="跑合成夹具五组用例（机器门常驻入口，不需要 --fits/--p1-dirs）")
+                    help="跑合成夹具七组用例（机器门常驻入口，不需要 --fits/--p1-dirs；"
+                         "缺任一条必需用例即失败）")
     ap.add_argument("--work-dir", default=DEFAULT_WORK_DIR,
                     help="自检夹具与默认证据落盘根（默认 run/ci/seam-footprint）")
     ap.add_argument("--quiet", action="store_true")
@@ -570,8 +876,12 @@ def main(argv=None):
         _write_json(out, rec)
         for c in st["cases"]:
             print("SELFTEST %s %s  %s" % ("PASS" if c["ok"] else "FAIL", c["name"], c["note"]))
-        print("SEAM_FOOTPRINT_SELFTEST_%s: %d/%d -> %s"
-              % (st["verdict"], st["n_pass"], st["n_total"], out))
+        if st.get("n_required_missing"):
+            print("SEAM_FOOTPRINT_SELFTEST_REQUIRED_MISSING: %d 条必需用例缺失"
+                  % st["n_required_missing"])
+        print("SEAM_FOOTPRINT_SELFTEST_%s: %d/%d（必需用例 %d 条齐备）-> %s"
+              % (st["verdict"], st["n_pass"], st["n_total"],
+                 len(st.get("required_cases", ())), out))
         return 0 if st["verdict"] == "PASS" else 1
 
     if not args.fits or not args.p1_dirs:
@@ -618,10 +928,25 @@ def main(argv=None):
               % (rec["n_frames"], rec["baseline"]["gate"]["stats"]["n_edges_total"],
                  ("%.6f" % rec["v4"]["ratio"]) if rec["v4"]["ratio"] is not None else "n/a"))
         st = rec["baseline"]["gate"]["stats"]
-        print("baseline : %s | |rel| med=%.4e p90=%.4e max=%.4e | 门 %.1e"
+        print("baseline : %s | 判据 max|rel_step| med=%.4e p90=%.4e max=%.4e | 门 %.1e"
               % (gate["verdict"], st.get("rel_med", float("nan")),
                  st.get("rel_p90", float("nan")), st.get("rel_max", float("nan")),
                  args.max_rel_excess))
+        print("  domain : 计入 %d/%d 条边界（两侧并非都在数据内部 %d / 样本不足 %d）| "
+              "|有符号台阶| med=%.4e max=%.4e（ADU）| 噪声比 med=%.3g max=%.3g"
+              % (st.get("n_edges_valid", 0), st.get("n_edges_total", 0),
+                 st.get("n_edges_excluded_not_interior", 0),
+                 st.get("n_edges_excluded_few_samples", 0),
+                 st.get("step_med_abs", float("nan")), st.get("step_max_abs", float("nan")),
+                 st.get("noise_ratio_med", float("nan")),
+                 st.get("noise_ratio_max", float("nan"))))
+        print("  legacy : v1 口径（无符号 excess）max|rel_excess| = %.4e，超门 %s/%s 条"
+              "（只作历史对照，**不判红**）"
+              % (st.get("legacy_rel_max", float("nan")), gate.get("n_exceed_legacy"),
+                 st.get("n_edges_legacy_valid")))
+        print("  diag   : 扣对照线的净台阶 max|rel_step_net| = %.4e；d 扫描 max|rel_step_d4x| = %.4e"
+              "（**都不判红**，仅供判读：真台阶在 d 扫描下守恒，背景梯度按 d 增长）"
+              % (st.get("rel_step_net_max", float("nan")), st.get("rel_step_d4x_max", float("nan"))))
         for inj in rec["inject"]:
             print("%-28s V4=%-10s 门=%-4s %s"
                   % ("inject " + inj["spec"],

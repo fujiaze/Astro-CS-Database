@@ -32,10 +32,13 @@
                          帧间接缝由 V6 判定。
   V5 coverage            非零像素的包围盒面积 / 全图面积 >= 0.5（导出中心必须落在覆盖内）；
   V6 seam_level_step     **电平阶跃**判据（ACCEPTANCE_SPEC §6.2「帧间…无亮度/灰度阶跃」）：
-                         沿**真实帧足迹边界**取法向 ±d 差分（seam），同一边界法向平移
-                         ctrl_shift 的平行线取同款差分（ctrl，off-locus 对照），
-                         excess = median|seam| − median|ctrl|，rel = excess / 局部背景电平；
-                         判据 max|rel| <= --max-rel-step（默认 1e-2 = SCI-C R5「相对接缝度量 < 1%」）。
+                         沿**真实帧足迹边界**取法向 ±d 差分，判据 = **有符号台阶** / 边界处局部
+                         背景电平：rel_step = median(img[+d] − img[−d]) / bg；
+                         判据 max|rel_step| <= --max-rel-step（默认 1e-2 = SCI-C R5「相对接缝度量 < 1%」）。
+                         只对**两侧都在数据内部**的边界计入（法向 ±ctrl_shift 两侧都能放对照线）；
+                         噪声差、扣 200px 对照线的净台阶、d 扫描、v1 的 excess 口径都只作**诊断量**
+                         （v1 的 excess = median|seam| − median|ctrl| 对噪声差敏感，会把边缘余量的
+                         高噪声判成接缝：run/VIS-E2E02-01/REPORT.md §1.1、run/SEAM-GATE-FIX-01/REPORT.md）。
                          判据实现唯一事实源：eng/tools/e2e/seam_footprint.py（同一模块被 L4 机器门
                          CHK-L4-SEAM-FOOTPRINT 使用；本脚本只做入口，不复制判据）。
                          fail-closed：缺 --p1-dirs（帧足迹）⇒ **判红**（V4 不得代替帧间接缝判据；
@@ -198,13 +201,21 @@ def seam_metric(img, tile):
 
 
 def _worst_edges(per_edge, max_rel_step, n=5, min_samples=20):
-    """V6 最差边界（供报告定位；只记定位与量值，不参与判定）。"""
+    """V6 最差边界（供报告定位；只记定位与量值，不参与判定）。
+
+    与判据同域：只取**适用域内**（exclude is None）的边界，按新的**有符号台阶**判据排序。
+    扣对照线的净台阶 / d 扫描 / 噪声比随行落盘 —— 真台阶在 d 扫描下守恒、背景梯度按 d 增长，
+    据此可区分「真接缝」与「星云梯度」（run/SEAM-GATE-FIX-01/REPORT.md §2）。
+    """
     sel = [p for p in per_edge
-           if p.get("rel_excess") is not None and int(p.get("n") or 0) >= min_samples]
-    sel.sort(key=lambda p: -abs(p["rel_excess"]))
+           if p.get("exclude") is None and p.get("rel_step") is not None
+           and int(p.get("n") or 0) >= min_samples]
+    sel.sort(key=lambda p: -abs(p["rel_step"]))
     return [{"frame": p.get("frame"), "edge": p.get("edge"), "n": p.get("n"),
-             "excess": p.get("excess"), "rel_excess": p.get("rel_excess"),
-             "bg": p.get("bg"), "over": bool(abs(p["rel_excess"]) > max_rel_step)}
+             "step": p.get("step"), "rel_step": p.get("rel_step"),
+             "step_net": p.get("step_net"), "rel_step_net": p.get("rel_step_net"),
+             "rel_step_d4x": p.get("rel_step_d4x"), "noise_ratio": p.get("noise_ratio"),
+             "bg": p.get("bg"), "over": bool(abs(p["rel_step"]) > max_rel_step)}
             for p in sel[:n]]
 
 
@@ -237,8 +248,9 @@ def seam_level_step(data, hdr, p1_dirs, max_rel_step=1e-2, min_samples=20, frame
     """V6：按**真实帧足迹**的电平阶跃判据（判据实现见 eng/tools/e2e/seam_footprint.py）。
 
     与 V4 的本质差别在判据量本身：V4 比的是方差（局部尺度量），**电平阶跃不改变方差**
-    ⇒ 对帧间接缝原理性失明；V6 直接量沿真实帧边界法向的电平阶跃，并用同一边界法向平移
-    的平行线（off-locus）扣掉局部结构梯度。阈值 1e-2 = SCI-C R5「相对接缝度量 < 1%」。
+    ⇒ 对帧间接缝原理性失明；V6 直接量沿真实帧边界法向的**有符号**电平台阶（相对边界处的
+    局部背景电平），只对两侧都在数据内部的边界计入；噪声差与对照线口径只作诊断量。
+    阈值 1e-2 = SCI-C R5「相对接缝度量 < 1%」。
     fail-closed：判据模块不可用 / 帧足迹不可用 / 有效边界为 0 / 背景电平为 0 ⇒ 判红。
     """
     try:
