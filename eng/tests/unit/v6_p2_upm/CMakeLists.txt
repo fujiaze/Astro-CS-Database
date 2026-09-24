@@ -31,3 +31,24 @@ set_tests_properties(
   v6_p2_upm_ma_units v6_p2_upm_ma_structure v6_p2_upm_ma_additive
   v6_p2_upm_ma_negative v6_p2_upm_ma_control_variance
   PROPERTIES LABELS "v6_p2_upm")
+
+# =============================================================================
+# UPM-KAPPA-UNIFY-01 — 生产链 geo 侧的**唯一**可辨识性判据 + 拟合诊断 +
+# 「不收敛只报警告、不阻塞」（负责人裁决）
+#   v6_p2_upm_geo_identifiability  — 判据读数 + 块内 gauge 记账 + dof 口径
+#   v6_p2_upm_geo_warning          — 不收敛 ⇒ 警告落盘且 rc 不变
+#   v6_p2_upm_geo_persistence      — 诊断随模型持久化（算法侧产品 artifact）
+# =============================================================================
+add_executable(v6_p2_upm_geo_diag_test v6_p2_upm_geo_diag_test.cpp)
+target_link_libraries(v6_p2_upm_geo_diag_test PRIVATE astrocs_phase2)
+if(UNIX)
+  target_link_libraries(v6_p2_upm_geo_diag_test PRIVATE m)
+endif()
+add_test(NAME v6_p2_upm_geo_identifiability COMMAND v6_p2_upm_geo_diag_test identifiability)
+add_test(NAME v6_p2_upm_geo_warning COMMAND v6_p2_upm_geo_diag_test warning)
+add_test(NAME v6_p2_upm_geo_warning_consistency COMMAND v6_p2_upm_geo_diag_test warning_consistency)
+add_test(NAME v6_p2_upm_geo_persistence COMMAND v6_p2_upm_geo_diag_test persistence)
+set_tests_properties(
+  v6_p2_upm_geo_identifiability v6_p2_upm_geo_warning
+  v6_p2_upm_geo_warning_consistency v6_p2_upm_geo_persistence
+  PROPERTIES LABELS "v6_p2_upm;identifiability")

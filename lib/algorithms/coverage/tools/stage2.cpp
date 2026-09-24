@@ -479,7 +479,8 @@ int main(int argc, char** argv) {
             spc.frame_gradient_order = cfg.sky_plane_gradient_order;
             spc.gauge_mode = cfg.sky_plane_gauge_mode;
             spc.weight_mode = cfg.sky_plane_weight_mode;
-            spc.roughness_penalty = cfg.sky_plane_roughness_penalty;
+            // 唯一判据阈值 τ（FZ-AP2S-RANK-RTOL）。已退休：roughness_penalty。
+            spc.rank_rtol = cfg.sky_plane_rank_rtol;
             // W4 同源：内存护栏必须容纳规则区间内实际可达的最细网格
             // （M42 实测 h=0.0376 度 ⇒ 4814 个节点）。
             spc.max_nodes = cfg.sky_plane_max_nodes;
@@ -559,9 +560,9 @@ int main(int argc, char** argv) {
             }
             char sperr[512] = {0};
             void* spm = nullptr;
-            // 与生产编排同一自适应入口（7a:190-192：节点间距必须与
-            // roughness_penalty 同级进入自适应重试回路；7a:199-200：必须有
-            // 「触发过」的记录）。
+            // 与生产编排同一自适应入口（§7a:199-200：每条自适应路径必须有
+            // 「触发过」的记录）。回路只有**一个旋钮**（节点间距）与**一条判据**
+            // （相对有效秩）；λ 不再是分支，而是由判据阈值派生的数值岭。
             P2SkyPlaneAdaptiveConfig spad = p2_sky_plane_default_adaptive_config();
             P2SkyPlaneAdaptiveReport spread{};
             const int src = p2_sky_plane_build_adaptive(
@@ -570,10 +571,14 @@ int main(int argc, char** argv) {
             log("[sky_plane] adaptive attempts=" + std::to_string(spread.n_attempts) +
                 " node_refinements=" + std::to_string(spread.n_node_refinements) +
                 " node_coarsenings=" + std::to_string(spread.n_node_coarsenings) +
-                " penalty_escalations=" + std::to_string(spread.n_penalty_escalations) +
                 " node_adaptive_used=" + std::to_string(spread.node_adaptive_used) +
                 " h_eff=" + std::to_string(spread.node_spacing_deg) +
-                " lambda_eff=" + std::to_string(spread.roughness_penalty));
+                " lambda_eff=" + std::to_string(spread.lambda_numerical) +
+                " rank_eff=" + std::to_string(spread.rank) +
+                " n_params=" + std::to_string(spread.n_params) +
+                " n_unidentified=" + std::to_string(spread.n_unidentified) +
+                " identifiable=" + std::to_string(spread.identifiable) +
+                " kappa=" + std::to_string(spread.kappa));
             if (src != P2_SKY_PLANE_OK) {
                 log("[sky_plane] build FAILED rc=" + std::to_string(src) + " " +
                     std::string(sperr) + " -> fallback to UPM C field");

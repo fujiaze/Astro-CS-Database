@@ -28,7 +28,9 @@
 // 记入 gauge_shift）。
 //
 // fail-closed（11_upm.md §4.5）：无采样点 / 全被掩膜 / 点不足 / 帧欠定 /
-// 节点数超上限 / 秩亏 / κ 超门 / 非有限解 一律显式失败；求值越域不外插。
+// 节点数超上限 / **未通过唯一可辨识性判据** / 非有限解 一律显式失败；求值越域不外插。
+// 可辨识性判据 = astro/phase2/identifiability.h 的 p2_identifiability_assess
+// （与 UPM/GLS 侧**同一个函数**）：r_eff(H_red) == n_free ⟺ κ(H_red) < 1/rank_rtol。
 #pragma once
 
 #include <cstddef>
@@ -207,17 +209,21 @@ typedef struct {
     //        （**显式失败**，禁止回退常数）。
     double node_spacing_deg;      // 默认 0.0 = 未给出（由输入导出）
     int    frame_gradient_order;  // δ_k 阶数：0=偏移 1=平面 2=二次；默认 1
-    double roughness_penalty;     // B_ref 二阶差分粗糙度惩罚 λ；默认 1e-3
     double huber_delta;           // 稳健 Huber δ；默认 1.345
     int    max_iterations;        // 稳健 IRLS 外层迭代上限；默认 30
     double tolerance;             // 收敛门（max|ΔB| 相对量）；默认 1e-10
     int    gauge_mode;            // 0=reference_frame；1=sum_zero；默认 0
     int    weight_mode;           // 0=inverse_variance；1=snr2；默认 0
-    // κ 门控上限。**默认 0.0 = 由矩阵谱自身派生**（= 1/rank_rtol，见下），
-    // 不再是标定常数（§7a「κ 上限不得是两个不同的标定值」）。>0 时表示调用方
-    // 显式覆盖，门控来源会记入 info.kappa_max_source 与 provenance。
-    double kappa_max;             // 默认 0.0 = 由 rank_rtol 派生（=1/rank_rtol）
-    double rank_rtol;             // 奇异值相对门；默认 1e-10（κ 门与秩判据**同一口径**）
+    // **唯一**判据阈值 τ（相对量）：可辨识性判据 r_eff == n_free ⟺ κ(H_red) < 1/τ。
+    // 默认 1e-10 = FZ-AP2S-RANK-RTOL（与 UPM/GLS 侧**同一个符号、同一个值、
+    // 同一个实现**）。它由浮点精度给出（地板 = max(m,n)·eps），不是按数据集
+    // 标定的物理常数——见 astro/phase2/identifiability.h 的论证。
+    // 已退休：原 kappa_max 绝对常数（1e8）与 κ(H_solve) 门控口径（§7a 规则 4）。
+    double rank_rtol;             // 默认 1e-10（FZ-AP2S-RANK-RTOL）
+    // 诊断（审计用，默认 0 = 不保留，零内存代价）：置 1 时模型保留本次构建的
+    // 列均衡**数据信息矩阵** H_red 与粗糙度算子 P = DᵀD，供
+    // p2_sky_plane_normal_matrices 导出做离线谱分析（λ 是否影响 κ 的实证）。
+    int retain_normal_matrices;
     std::int32_t min_samples;     // 拟合最少有效采样点；默认 8
     std::int32_t min_samples_per_frame;  // 每帧 δ_k 可辨识最少点；默认 4
     std::int32_t max_nodes;       // B_ref 系数上限（内存门）；默认 8192
@@ -239,33 +245,44 @@ typedef struct {
 // 2b. 节点间距自适应重试（§7a「节点间距必须进入自适应重试回路」）
 // ---------------------------------------------------------------------------
 //
-// 分工（§7a 正向约束）：**节点间距负责表示能力，粗糙度惩罚负责条件数**。
-// 故本回路的两条分支互不代偿：
-//   · 残差仍受表示能力限制（细化节点能实质降低 chi2_red）⇒ 细化节点间距；
-//   · κ 超门（求解矩阵病态）⇒ 提高 roughness_penalty，**不动**节点间距。
-// 禁止用强平滑掩盖不可表示分量（§7a：那会把可见台阶变成被抹平的错误电平）。
+// **唯一旋钮 = 节点间距 h；唯一判据 = 相对有效秩**（负责人原则①：不得多路径）。
+// 两条**方向**（不是两条路径）由同一条判据决定：
+//   · 判红（r_eff < n_free，网格细过数据能约束的极限）⇒ **放粗** h（区间内）；
+//   · 判绿且残差仍受表示能力限制（细化到 h/2 后 chi2_red 至少降到 r 倍）⇒ **细化** h。
+// 已退休：原「提高 roughness_penalty」分支。理由（实测，见
+// run/UPM-KAPPA-UNIFY-01/REPORT.md）：
+//   ① λ 在生产权重尺度（Σw≈2.8e16）下与 H_red 差 6 个数量级 ⇒ 惰性，是装饰性路径；
+//   ② 一旦把 λ 归一到求解系统自身尺度，它就**真的**能压 κ——正因为如此它不能进判决：
+//      κ(H_red + λP) 随 λ→∞ 有上界 →1，在 H_solve 上设门等于恒真门
+//      （Hansen《Regularization Tools》v4.1 手册 §1 第 2 条、§2.7.3）；
+//   ③ §7a:193-195 禁止用强平滑掩盖不可表示分量，而 λ 提升正是这件事。
+// λ 只剩一个**派生**的数值角色：λ_eff = τ·mean(diag(H_red))，即「判据自己的分辨率
+// 下限」——低于 τ 的方向按定义不可分辨，故把谱底垫到 τ·λ_max 是无损的数值正则化，
+// 由判据派生、无自由参数（task 选项 (a)）。它**不参与**判决（判决只看 H_red）。
 enum {
     P2_SKY_ADAPT_ACCEPTED             = 0,  // 本次尝试被采纳
     P2_SKY_ADAPT_REFINE_NODES         = 1,  // 残差仍受表示能力限制 ⇒ 细化节点间距
-    P2_SKY_ADAPT_COARSEN_NODES        = 2,  // 网格不可行（节点数/秩）⇒ 放粗节点间距
-    P2_SKY_ADAPT_RAISE_PENALTY        = 3,  // κ 超门 ⇒ 提高粗糙度惩罚（表示能力不动）
+    P2_SKY_ADAPT_COARSEN_NODES        = 2,  // 判红或网格不可行 ⇒ 放粗节点间距（同一旋钮）
     P2_SKY_ADAPT_REPRESENTATION_LIMIT = 4,  // 已到分辨率极限下界而残差仍在下降（诚实边界）
-    P2_SKY_ADAPT_BUILD_FAILED         = 5   // 无可行分支，fail-closed
+    P2_SKY_ADAPT_BUILD_FAILED         = 5   // 无可行方向，fail-closed
 };
 
 // 单次尝试的完整记录（写入 provenance）。
 typedef struct {
     double node_spacing_deg;     // 本次尝试的节点间距（度）
-    double roughness_penalty;    // 本次尝试的 λ
-    double kappa;                // 求解矩阵 H_solve 的条件数（门控量）
-    double kappa_data;           // 未惩罚数据矩阵 H_red 的条件数（诊断）
+    double lambda_numerical;     // 本次尝试的**派生**数值岭 λ_eff = τ·mean(diag(H_red))
+    double kappa;                // 判据读数：κ(H_red)（秩亏 ⇒ +inf，不发布伪值）
+    double kappa_solve;          // 诊断：κ(H_solve)（求解稳定性，**不参与判决**）
     double chi2_red;
     double rms_weighted;
-    std::uint64_t rank;          // H_red 在 rank_rtol 口径下的有效秩
-    std::uint64_t rank_solve;    // H_solve 在 rank_rtol 口径下的有效秩（κ 门的等价表述）
+    std::uint64_t rank;          // r_eff(H_red)：τ 口径下高于阈值的特征值**计数**
+    std::uint64_t rank_solve;    // r_eff(H_solve)：同口径（诊断）
+    std::uint64_t n_params;      // n_free
+    std::uint64_t n_unidentified;// n_free − rank：未被数据约束的方向数
+    std::int32_t identifiable;   // 判据的唯一判决位：1=绿，0=红
     std::uint64_t n_nodes;
     std::int32_t rc;             // P2_SKY_PLANE_*
-    std::int32_t action;         // P2_SKY_ADAPT_*（本次尝试后所走分支）
+    std::int32_t action;         // P2_SKY_ADAPT_*（本次尝试后所走方向）
     std::int32_t adopted;        // 1 = 本尝试的解即最终生效解；0 = 被后续尝试取代/被拒
 } P2SkyPlaneAttempt;
 
@@ -277,21 +294,23 @@ typedef struct {
     std::int32_t n_attempts;
     std::int32_t n_node_refinements;      // 细化次数
     std::int32_t n_node_coarsenings;      // 放粗次数
-    std::int32_t n_penalty_escalations;   // 粗糙度提升次数
     std::int32_t node_adaptive_used;      // 节点间距是否**真的被调整过**
-    std::int32_t penalty_adaptive_used;   // 粗糙度是否**真的被提高过**
     std::int32_t representation_limited;  // 在下界上残差仍未收敛 ⇒ 表示能力到顶（如实登记）
     std::int32_t clamped_to_upper;        // 显式初值被规则 1 上界夹紧过
     double constraining_scale_deg;
     double node_spacing_upper_deg;        // 搜索上界（规则 1 的值）
     double node_spacing_lower_deg;        // 搜索下界（数据自身分辨率极限）
     double node_spacing_deg;              // 最终生效
-    double roughness_penalty;             // 最终生效
-    double kappa;                         // 最终 κ
-    double kappa_data;
+    double lambda_numerical;              // 最终生效的派生数值岭
+    double rank_rtol;                     // 唯一阈值 τ
+    double kappa;                         // 最终 κ(H_red)
+    double kappa_solve;                   // 最终 κ(H_solve)（诊断）
     double chi2_red;
     double residual_improve_ratio;        // 实际使用的表示收敛判据
-    double kappa_max_effective;           // 实际生效的 κ 门
+    std::uint64_t rank;                   // 最终 r_eff(H_red)
+    std::uint64_t n_params;               // 最终 n_free
+    std::uint64_t n_unidentified;         // 最终未被约束方向数
+    std::int32_t identifiable;            // 最终判决位
     P2SkyPlaneAttempt attempts[P2_SKY_ADAPT_MAX_ATTEMPTS];
 } P2SkyPlaneAdaptiveReport;
 
@@ -302,14 +321,10 @@ typedef struct {
     int    max_attempts;              // 总尝试上限（含首次）；<=0 → 默认 6
     int    max_node_refinements;      // 细化次数上限；<0 → 默认 4
     int    max_node_coarsenings;      // 放粗次数上限；<0 → 默认 4
-    // κ 触顶时先走「提高粗糙度惩罚」分支的次数上限；用完仍超门才转「细化节点重解」
-    // （§7a 规则 2：条件数不达门时，除提高粗糙度惩罚外**必须允许细化节点重解**）。
-    int    max_penalty_escalations;   // <0 → 默认 2
     // 表示收敛判据 r∈(0,1)：细化到 h/2 后 chi2_red 至少降到 r 倍，才认为残差仍受
-    // 表示能力限制、继续细化；否则认为已收敛、采纳较粗的网格（条件数更好）。
+    // 表示能力限制、继续细化；否则认为已收敛、采纳较粗的网格（判据更稳）。
     // 该判据是**相对量**（同一数据两次求解之比），不含任何绝对标定值。
     double residual_improve_ratio;    // <=0 → 默认 0.5
-    double penalty_growth;            // κ 触顶时 λ 的倍率；<=1 → 默认 10
 } P2SkyPlaneAdaptiveConfig;
 
 typedef struct {
@@ -318,12 +333,23 @@ typedef struct {
     std::uint64_t n_used;         // 参与拟合（未被掩膜/拒绝）
     std::uint64_t n_frames;       // 出现的帧数
     std::uint64_t n_nodes;        // B_ref 系数（nx*ny）
-    std::uint64_t n_params;       // 自由度 = n_nodes + n_frames*m - gauge
-    std::uint64_t rank;
-    double kappa;
+    // **判据矩阵的阶** = Schur 消元后 B_ref 的自由节点数 n_free。语义变更：
+    // 旧值含被精确消去的 δ_k（n_free + (n_frames−1)·m），该值现在叫 n_params_full。
+    std::uint64_t n_params;
+    std::uint64_t n_params_full;  // 求解器全部未知量 = n_free + (n_frames−1)·m
+    std::uint64_t rank;           // r_eff(H_red)：τ 口径下高于阈值的特征值**计数**
+    std::uint64_t rank_full;      // 完整设计矩阵的秩 = r_eff + (n_frames−1)·m
+    double kappa;                 // 判据读数：κ(H_red)；秩亏 ⇒ +inf（不发布伪值）
+    // **兼容别名**（= kappa，逐位相等）：旧产品/审计块按 kappa_data 读「未惩罚数据
+    // 矩阵的条件数」，新口径下判据矩阵就是 H_red，故两键同值；保留以免下游断键。
+    double kappa_data;
     double rms_weighted;          // Σw r²/Σw 的平方根
     double rms_unweighted;        // 未加权残差 RMS
-    double chi2_red;              // Σw r²/(n_used-n_params)
+    // Σw r²/(n_used − r_eff)：**有效自由度**口径（Andrae et al. 2010 式 (9)）。
+    // 已退休口径：分母曾用 n_used − n_params（秩亏时系统性低估 χ²_red 并掩盖
+    // 未被约束的方向数）。判绿时两者相等。
+    double chi2_red;
+    double dof_eff;               // n_used − rank_full（χ²_red 的实际分母；≤0 ⇒ χ²_red=0）
     int iterations;
     int gauge_mode;
     int weight_mode;
@@ -337,16 +363,17 @@ typedef struct {
     std::uint64_t n_masked;       // 被掩膜/低支持剔除的点
     std::uint64_t n_rejected;     // 稳健迭代剔除的点
     char model_hash[65];
-    // SCI-502 FIX-3：门控 kappa 取**求解矩阵**（H_red + λ·DᵀD）的条件数——只有它
-    // 随 roughness_penalty 下降，自适应重试才可能成功；本字段保留**未惩罚**数据
-    // 矩阵的条件数作为独立诊断量（λ=0 时两者逐位相等）。
-    double kappa_data;
-    // 实际生效的 κ 门与来源（§7a 规则 4：门控口径必须按矩阵谱自身定，不得保留
-    // 互相矛盾的绝对常数）。kappa_max_source: 0 = 由 rank_rtol 派生（1/rank_rtol，
-    // 与「H_solve 在 rank_rtol 口径下的有效秩 == n_free」等价）；1 = 调用方显式覆盖。
-    double kappa_max_effective;
-    int    kappa_max_source;
-    // H_solve 在 rank_rtol 口径下的有效秩（κ 门的等价表述；rank 字段是 H_red 的）。
+    // 诊断：κ(H_solve)（求解稳定性）。**不参与判决**——正则化后 κ 有上界，
+    // 在它上面设门是恒真门（见 identifiability.h）。
+    double kappa_solve;
+    // 判据的其余读数（唯一阈值 τ = rank_rtol；判决位 = identifiable）。
+    double rank_rtol_effective;   // 实际生效的 τ = max(rank_rtol, max(m,n)·eps)
+    double lambda_numerical;      // 派生数值岭 λ_eff = τ·mean(diag(H_red))（非自由参数）
+    double lambda_max;            // λ_1(H_eq)
+    double lambda_min;            // λ_n(H_eq)；秩亏 ⇒ 0
+    std::uint64_t n_unidentified; // n_free − r_eff：未被数据约束的方向数
+    int    identifiable;          // 判据的唯一判决位：1=绿，0=红
+    // H_solve 在同口径下的有效秩（诊断；rank 字段是 H_red 的）。
     std::uint64_t rank_solve;
     // 节点间距来源：0 = 由输入几何导出；1 = 调用方显式给出。
     int    node_spacing_source;
@@ -361,8 +388,12 @@ enum {
     P2_SKY_PLANE_TOO_FEW_SAMPLES     = 3,
     P2_SKY_PLANE_FRAME_UNDERDETERMINED = 4,
     P2_SKY_PLANE_TOO_MANY_NODES      = 5,
+    // 求解矩阵在浮点下不正定（数值失败，不是判决）。
     P2_SKY_PLANE_RANK_DEFICIENT      = 6,
-    P2_SKY_PLANE_KAPPA_EXCEEDED      = 7,
+    // **唯一判据判红**：r_eff(H_red) < n_free ⟺ κ(H_red) > 1/rank_rtol ⟺
+    // H_red 在 τ 口径下秩亏（欠定与病态是同一条不等式的两种读法）。
+    // 已退休名：P2_SKY_PLANE_KAPPA_EXCEEDED（绝对常数 1e8 门控，同一数值位）。
+    P2_SKY_PLANE_NOT_IDENTIFIABLE    = 7,
     P2_SKY_PLANE_NONFINITE_SOLUTION  = 8,
     P2_SKY_PLANE_IO_ERROR            = 9,
     // 未给出 node_spacing_deg 且无法由输入几何导出（几何量缺失/不受支持）。
@@ -409,6 +440,19 @@ P2_API int p2_sky_plane_adaptive_report(const void* model,
                                         P2SkyPlaneAdaptiveReport* out);
 
 P2_API int p2_sky_plane_info(const void* model, P2SkyPlaneInfo* out);
+
+// 诊断（审计用，不参与求解）：导出本次构建的**列均衡数据信息矩阵** H_red 与
+// 粗糙度算子 P = DᵀD（均 n_free×n_free，row-major，ld ≥ n_free）。
+// 仅当 cfg.retain_normal_matrices != 0 时可用（默认 0 ⇒ 返回 1，且模型不保留
+// 任何额外内存）。用途：离线复核「λ 是否真的能影响 κ」「r_eff 随 τ 如何变」
+// 这类只能在谱上回答的问题（run/UPM-KAPPA-UNIFY-01 的实证即由此取得）。
+// 返回 0=ok；1=参数错误或未保留；2=该模型来自 open()（矩阵不随产品持久化）。
+P2_API int p2_sky_plane_normal_matrices(const void* model, double* out_h_red,
+                                        double* out_penalty, std::uint64_t ld);
+
+// 取回模型上记录的自适应 provenance（见上）后，n_free 与 τ 也在 P2SkyPlaneInfo 里。
+P2_API int p2_sky_plane_normal_matrix_size(const void* model,
+                                           std::uint64_t* out_n_free);
 
 // 现场求值 b_k(ra,dec) = B_ref + δ_k + gauge_shift。frame_id 未知 → 2。
 // 越域（含 max_extrapolation_deg 余量）→ out_status=P2_SKY_EVAL_OUT_OF_DOMAIN，

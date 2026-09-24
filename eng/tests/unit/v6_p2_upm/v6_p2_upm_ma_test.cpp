@@ -248,7 +248,16 @@ int run_units() {
     check(info.rank == 7, "units: rank==n_params (Oracle A)");
     check(info.min_frames == 2, "units: min_frames==2 (FZ-AP2S-UPM-MINFRAMES)");
     check(info.gauge_mode == 0, "units: gauge_mode==min_frame_id");
-    check(info.kappa <= info.kappa_max, "units: kappa<=kappa_max");
+    // UPM-KAPPA-UNIFY-01：判决位只有一个 —— identifiable ⟺ r_eff == n ⟺ κ < 1/τ。
+    // 已退休：kappa_max 绝对常数（FZ-AP2S-KAPPA-MAX=1e6）与「rank 用 σ(J)、κ 用 λ(H)」
+    // 的同函数内两把尺（相差 10 个数量级）。
+    check(info.identifiable == 1, "units: identifiable==1 (the single verdict bit)");
+    check(info.rank == info.n_params && info.n_unidentified == 0,
+          "units: r_eff==n_params, 0 unidentified directions");
+    check(info.kappa < 1.0 / info.rank_rtol_effective,
+          "units: verdict == (kappa < 1/tau), tau=" + std::to_string(info.rank_rtol_effective));
+    check(info.rank_rtol_effective >= info.rank_rtol,
+          "units: tau_eff >= requested tau (precision floor may tighten it)");
 
     // Oracle A: g/b/s 精确恢复（ALS+scipy 交叉复核，maxdiff 3.4e-14）
     double g = 0, b = 0, s = 0;
@@ -422,7 +431,8 @@ int run_structure() {
               "structure: provenance rc==0");
         const std::string j(buf.data());
         for (const char* key : {"gauge_mode", "component_ref_frame_ids", "rank", "rank_rtol",
-                                "kappa", "kappa_max", "C_theta", "model_hash", "min_frames",
+                                "rank_rtol_effective", "kappa", "n_unidentified", "identifiable",
+                                "C_theta", "model_hash", "min_frames",
                                 "any_fail_closed_reason", "covariance_method",
                                 "variance_from", "variance_from_weight",
                                 "uses_relative_weight_as_ivar", "J_C_theta_JT_present"}) {
@@ -500,15 +510,35 @@ int run_negative() {
               "negative: constant s (g/b degenerate) -> rc=3 rank-deficient");
         check(model == nullptr, "negative: rc=3 yields no model");
     }
-    // rc=4: kappa > 1e6（Oracle F: eps=5e-4 -> kappa 1.1701e8；位于 1e6 与 1e9 之间，
-    // 故冻结负向 mutation "kappa_max 放宽到 1e9" 必红）
+    // 病态（同一判据的红侧）：s 场近简并到 κ(H_eq) > 1/τ = 1e10 ⇒ rc=3（欠定/病态同一 rc）。
+    // **已退休**：原 rc=4「kappa > 1e6」绝对常数门（Oracle F 的 eps=5e-4 ⇒ κ=1.1701e8）。
+    {
+        const std::vector<Obs> obs = ds_illcond(1e-7);
+        const std::vector<P2UpmMaObservation> api = to_api(obs);
+        void* model = nullptr;
+        const int rc = p2_upm_ma_build(api.data(), api.size(), nullptr, &model);
+        check(rc == 3, std::string("negative: kappa>1/tau -> rc=3 (ill-conditioned, got rc=") +
+                           std::to_string(rc) + ")");
+        check(model == nullptr, "negative: red verdict yields no model (fail-closed)");
+    }
+    // **口径订正的实证**：eps=5e-4 ⇒ κ=1.1701e8。旧绝对常数门 1e6 判红，
+    // 新判据（κ < 1/τ = 1e10）判绿——同一份数据、两个相反结论，正是本次统一的对象。
     {
         const std::vector<Obs> obs = ds_illcond(5e-4);
         const std::vector<P2UpmMaObservation> api = to_api(obs);
         void* model = nullptr;
-        check(p2_upm_ma_build(api.data(), api.size(), nullptr, &model) == 4,
-              "negative: kappa>1e6 -> rc=4 (FZ-AP2S-KAPPA-MAX)");
-        check(model == nullptr, "negative: rc=4 yields no model");
+        const int rc = p2_upm_ma_build(api.data(), api.size(), nullptr, &model);
+        check(rc == 0, std::string("retired-gate witness: eps=5e-4 now builds, rc=") +
+                           std::to_string(rc));
+        if (rc == 0 && model) {
+            P2UpmMaInfo i{};
+            p2_upm_ma_info(model, &i);
+            check(i.identifiable == 1 && i.n_unidentified == 0,
+                  "retired-gate witness: identifiable==1 at kappa=" + std::to_string(i.kappa));
+            check(i.kappa > 1e6 && i.kappa < 1.0 / i.rank_rtol_effective,
+                  "retired-gate witness: 1e6 < kappa < 1/tau (the old constant was the defect)");
+            p2_upm_ma_close(model);
+        }
     }
     // rc=6: 共享系统项按独立处理
     {

@@ -42,6 +42,7 @@ endif()
 add_library(phase2 STATIC
     src/upm.cpp
     src/sky_plane.cpp
+    src/identifiability.cpp
     src/stage2_common.cpp
     src/rejection.cpp
     src/coverage.cpp

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <limits>
 #include <random>
 #include <string>
@@ -157,8 +158,12 @@ void test_default_config_has_no_calibrated_default() {
     const P2SkyPlaneConfig c = p2_sky_plane_default_config();
     check(c.node_spacing_deg == 0.0,
           "default node_spacing_deg == 0.0 (sentinel 'derive from input', not a constant)");
-    check(c.kappa_max == 0.0,
-          "default kappa_max == 0.0 (derived from rank_rtol, not a calibrated constant)");
+    // UPM-KAPPA-UNIFY-01：kappa_max / roughness_penalty 已从配置面**删除**
+    // （编译期事实：写它们不再能编译）。判据阈值只剩 rank_rtol 一个符号。
+    check(c.rank_rtol == 1e-10,
+          "default rank_rtol == 1e-10 (FZ-AP2S-RANK-RTOL: the single criterion threshold)");
+    check(c.retain_normal_matrices == 0,
+          "default retain_normal_matrices == 0 (audit-only retention, off by default)");
     check(c.geometry.overlap_band_width_deg == 0.0 && c.geometry.pointing_spacing_deg == 0.0 &&
               c.geometry.sample_pitch_deg == 0.0 && c.geometry.pixel_scale_arcsec == 0.0,
           "default geometry is empty (caller must supply it)");
@@ -227,7 +232,9 @@ void test_build_derives_from_geometry() {
 }
 
 void test_kappa_gate_unified() {
-    std::printf("[kappa_gate_unified]\n");
+    std::printf("[criterion_unified]\n");
+    // 唯一判据：identifiable ⟺ r_eff(H_red) == n_params ⟺ κ(H_red) < 1/τ。
+    // 「欠定」与「病态」是同一条不等式的两种读法 ⇒ 只有一个判决位。
     const std::vector<P2SkySample> s = smooth_samples(3, 0.02, 31337);
     P2SkyPlaneConfig cfg = p2_sky_plane_default_config();
     cfg.geometry = m42_geometry();
@@ -238,30 +245,37 @@ void test_kappa_gate_unified() {
     if (rc != 0) return;
     P2SkyPlaneInfo info{};
     p2_sky_plane_info(m, &info);
-    check(info.kappa_max_source == 0, "kappa gate source = derived (rank_rtol), not a constant");
-    check(near(info.kappa_max_effective, 1.0 / cfg.rank_rtol, 1e-6 * (1.0 / cfg.rank_rtol)),
-          "kappa_max_effective == 1/rank_rtol (spectrum-relative criterion)");
-    check(info.rank_solve == info.n_nodes - (info.n_nodes - info.rank_solve),
-          "rank_solve reported");
-    // 等价性：κ <= 1/rank_rtol  ⟺  H_solve 在 rank_rtol 口径下有效秩 == n_free
-    check((info.kappa <= info.kappa_max_effective) == (info.rank_solve > 0),
-          "kappa gate == effective-rank criterion on H_solve (two expressions, one ruler)");
-    std::printf("  INFO kappa=%.6g kappa_data=%.6g gate=%.6g rank=%llu rank_solve=%llu\n",
-                info.kappa, info.kappa_data, info.kappa_max_effective,
-                (unsigned long long)info.rank, (unsigned long long)info.rank_solve);
+    check(info.identifiable == 1, "green side: identifiable == 1 on well-posed input");
+    check(info.rank == info.n_params && info.n_unidentified == 0,
+          "green side: r_eff == n_params (count), 0 unidentified directions");
+    check(info.kappa_data == info.kappa, "kappa_data kept as a bit-exact alias of kappa");
+    check(info.rank_rtol_effective >= cfg.rank_rtol,
+          "tau_eff >= requested tau (precision floor may tighten it)");
+    check(info.lambda_numerical > 0.0, "derived numerical ridge is reported");
+    // 等价性（同一件事的两种读数）：identifiable ⟺ κ < 1/τ
+    check((info.identifiable == 1) ==
+              (info.kappa < 1.0 / info.rank_rtol_effective),
+          "verdict == (kappa(H_red) < 1/tau): one inequality, one verdict bit");
+    std::printf("  INFO kappa=%.6g kappa_data=%.6g tau=%.3g rank=%llu/%llu rank_solve=%llu "
+                "kappa_solve=%.6g\n",
+                info.kappa, info.kappa_data, info.rank_rtol_effective,
+                (unsigned long long)info.rank, (unsigned long long)info.n_params,
+                (unsigned long long)info.rank_solve, info.kappa_solve);
     p2_sky_plane_close(m);
-    // 显式覆盖必须被记录来源
+
+    // 红侧（同一条判据，同一份数据，只把 τ 收紧到 κ(H_red) 之下）：
+    // 门必须能被触发，否则它是恒真门。阈值由**实测 κ** 反推，不写死。
     P2SkyPlaneConfig cfg2 = cfg;
-    cfg2.kappa_max = 1e300;
+    cfg2.rank_rtol = 2.0 / info.kappa;   // ⇒ 1/τ = κ/2 < κ ⇒ 必红
     void* m2 = nullptr;
-    check(p2_sky_plane_build(s.data(), s.size(), &cfg2, &m2, err, sizeof(err)) == P2_SKY_PLANE_OK,
-          "explicit kappa_max build ok");
-    if (m2) {
-        P2SkyPlaneInfo i2{};
-        p2_sky_plane_info(m2, &i2);
-        check(i2.kappa_max_source == 1, "explicit kappa_max -> source == 1 (auditable override)");
-        p2_sky_plane_close(m2);
-    }
+    err[0] = '\0';
+    const int rc2 = p2_sky_plane_build(s.data(), s.size(), &cfg2, &m2, err, sizeof(err));
+    check(rc2 == P2_SKY_PLANE_NOT_IDENTIFIABLE,
+          std::string("red side: tau tightened below the measured gap => NOT_IDENTIFIABLE (rc=") +
+              std::to_string(rc2) + ") " + err);
+    check(m2 == nullptr, "red side is fail-closed: no model produced");
+    check(std::strstr(err, "rank_eff") != nullptr && std::strstr(err, "kappa(H_red)") != nullptr,
+          "red-side error names the criterion readings, not an absolute constant");
 }
 
 // ------------------------------------------------------------ 自适应重试回路
@@ -316,17 +330,19 @@ void test_adaptive_triggers_node_refinement() {
     const int rc = p2_sky_plane_build_adaptive(s.data(), s.size(), &cfg, &ad, &m, &rep, err, sizeof(err));
     check(rc == P2_SKY_PLANE_OK, std::string("adaptive build ok rc=") + std::to_string(rc) + " " + err);
     if (rc != 0) return;
-    std::printf("  INFO attempts=%d refinements=%d coarsenings=%d penalty=%d final_h=%.6f "
+    std::printf("  INFO attempts=%d refinements=%d coarsenings=%d final_h=%.6f "
                 "upper=%.6f lower=%.6f kappa=%.4g chi2_red=%.4g\n",
                 rep.n_attempts, rep.n_node_refinements, rep.n_node_coarsenings,
-                rep.n_penalty_escalations, rep.node_spacing_deg, rep.node_spacing_upper_deg,
+                rep.node_spacing_deg, rep.node_spacing_upper_deg,
                 rep.node_spacing_lower_deg, rep.kappa, rep.chi2_red);
     for (int i = 0; i < rep.n_attempts; ++i) {
         const P2SkyPlaneAttempt& a = rep.attempts[i];
         std::printf("    #%d h=%.6f lambda=%.4g rc=%d action=%d adopted=%d kappa=%.4g "
-                    "chi2_red=%.4g rank_solve=%llu\n",
-                    i, a.node_spacing_deg, a.roughness_penalty, a.rc, a.action, a.adopted,
-                    a.kappa, a.chi2_red, (unsigned long long)a.rank_solve);
+                    "chi2_red=%.4g rank=%llu/%llu rank_solve=%llu identifiable=%d\n",
+                    i, a.node_spacing_deg, a.lambda_numerical, a.rc, a.action, a.adopted,
+                    a.kappa, a.chi2_red, (unsigned long long)a.rank,
+                    (unsigned long long)a.n_params, (unsigned long long)a.rank_solve,
+                    a.identifiable);
     }
     check(rep.n_node_refinements >= 1,
           "rule 5: node-spacing adaptive path was ACTUALLY triggered (n_node_refinements>=1)");
@@ -336,11 +352,22 @@ void test_adaptive_triggers_node_refinement() {
     check(rep.node_spacing_deg >= rep.node_spacing_lower_deg,
           "final node spacing not below the data resolution limit");
     check(rep.n_attempts >= 2, "every attempt recorded (>=2)");
-    // 逐次尝试都带 κ（provenance 要求）
-    bool all_have_kappa = true;
-    for (int i = 0; i < rep.n_attempts; ++i)
-        if (!(rep.attempts[i].kappa > 0.0)) all_have_kappa = false;
-    check(all_have_kappa, "every attempt records kappa (provenance)");
+    // 逐次尝试都带判据读数（provenance 要求）：求解成功的尝试必须给出 κ/r_eff/n_params；
+    // 求解失败的尝试没有 κ 可报（record() 只在 rc==OK 时取 Info），但必须带 rc 与判决位。
+    bool ok_have_kappa = true, bad_have_rc = true, any_red = false;
+    for (int i = 0; i < rep.n_attempts; ++i) {
+        const P2SkyPlaneAttempt& a = rep.attempts[i];
+        if (a.rc == P2_SKY_PLANE_OK) {
+            if (!(a.kappa > 0.0) || a.n_params == 0) ok_have_kappa = false;
+        } else {
+            if (a.rc == 0) bad_have_rc = false;
+            if (a.identifiable == 0) any_red = true;
+        }
+    }
+    check(ok_have_kappa, "every SOLVED attempt records kappa + n_params (provenance)");
+    check(bad_have_rc, "every FAILED attempt records its rc");
+    // 判据在细化探针上真的判过红（细到数据支撑不住 ⇒ 秩亏）——非退化证据
+    check(any_red, "the criterion actually went RED on the over-refined probe (non-degenerate)");
     // 细化确实降低了残差（判据非退化）
     double first_ok_chi2 = -1.0;
     for (int i = 0; i < rep.n_attempts; ++i)
@@ -374,64 +401,52 @@ void test_adaptive_no_trigger_on_benign_input() {
     p2_sky_plane_close(m);
 }
 
-void test_adaptive_triggers_penalty_escalation() {
-    std::printf("[adaptive_triggers_penalty_escalation]\n");
-    // 先实测同一数据在 λ1/λ2 下的 κ，再把门设在几何中点 ⇒ 必然先红后绿（红/绿双向）。
+void test_adaptive_red_side_is_fail_closed() {
+    std::printf("[adaptive_red_side_fail_closed]\n");
+    // UPM-KAPPA-UNIFY-01：**已退休**「提高 roughness_penalty 救红」分支——λ 不再是
+    // 自由参数（λ_eff = τ·mean(diag(H_red))），故自适应回路里不存在这条路径。
+    // 判红时的唯一动作是在规则区间内**放粗节点间距**；起点已是规则上界（最粗）
+    // ⇒ 无路可走时必须诚实 fail-closed，而不是靠调 λ 把红买成绿。
     const std::vector<P2SkySample> s = smooth_samples(2, 0.02, 90210);
     P2SkyPlaneConfig base = p2_sky_plane_default_config();
     base.geometry = coarse_geometry(0.60, 0.02);   // upper = 0.30
     base.max_nodes = 20000;
     base.frame_gradient_order = 0;
-    auto kappa_at = [&](double lam, int* rc_out) -> double {
-        P2SkyPlaneConfig c = base;
-        c.roughness_penalty = lam;
-        void* mm = nullptr; char e[512] = {0};
-        const int r = p2_sky_plane_build(s.data(), s.size(), &c, &mm, e, sizeof(e));
-        if (rc_out) *rc_out = r;
-        if (r != P2_SKY_PLANE_OK || !mm) return 0.0;
-        P2SkyPlaneInfo i{}; p2_sky_plane_info(mm, &i); p2_sky_plane_close(mm);
-        return i.kappa;
-    };
-    int rc1 = 0, rc2 = 0;
-    const double k1 = kappa_at(1e-3, &rc1);
-    const double k2 = kappa_at(1e-2, &rc2);
-    std::printf("  INFO kappa(lambda=1e-3)=%.6g rc=%d ; kappa(lambda=1e-2)=%.6g rc=%d\n",
-                k1, rc1, k2, rc2);
-    check(rc1 == P2_SKY_PLANE_OK && rc2 == P2_SKY_PLANE_OK, "both probe builds ok");
-    if (rc1 != 0 || rc2 != 0 || !(k1 > 0.0) || !(k2 > 0.0)) return;
-    check(k2 < k1, "raising roughness_penalty reduces the gated kappa (regularization works)");
-    const double gate = std::sqrt(k1 * k2);   // 夹在两者之间
+    char e0[512] = {0};
+    void* m0 = nullptr;
+    const int rc0 = p2_sky_plane_build(s.data(), s.size(), &base, &m0, e0, sizeof(e0));
+    check(rc0 == P2_SKY_PLANE_OK, "baseline build ok (green at the frozen tau)");
+    if (rc0 != P2_SKY_PLANE_OK || !m0) return;
+    P2SkyPlaneInfo i0{};
+    p2_sky_plane_info(m0, &i0);
+    p2_sky_plane_close(m0);
+    check(i0.identifiable == 1, "baseline verdict green at tau = 1e-10");
+
     P2SkyPlaneConfig cfg = base;
-    cfg.roughness_penalty = 1e-3;
-    cfg.kappa_max = gate;                     // 显式门：审计来源必须记为 1
+    cfg.rank_rtol = 2.0 / i0.kappa;   // ⇒ 1/τ = κ/2 < κ ⇒ 判红（阈值由实测 κ 反推）
     P2SkyPlaneAdaptiveConfig ad = p2_sky_plane_default_adaptive_config();
-    ad.max_node_refinements = 0;              // 隔离 κ 分支（本用例只考察条件数路径）
     P2SkyPlaneAdaptiveReport rep{};
     char err[1024] = {0};
     void* m = nullptr;
-    const int rc = p2_sky_plane_build_adaptive(s.data(), s.size(), &cfg, &ad, &m, &rep, err, sizeof(err));
-    std::printf("  INFO rc=%d attempts=%d escalations=%d final_lambda=%.6g final_kappa=%.6g gate=%.6g\n",
-                rc, rep.n_attempts, rep.n_penalty_escalations, rep.roughness_penalty,
-                rep.kappa, rep.kappa_max_effective);
+    const int rc = p2_sky_plane_build_adaptive(s.data(), s.size(), &cfg, &ad, &m, &rep, err,
+                                               sizeof(err));
+    std::printf("  INFO rc=%d attempts=%d coarsenings=%d final_lambda=%.6g final_kappa=%s\n",
+                rc, rep.n_attempts, rep.n_node_coarsenings, rep.lambda_numerical,
+                std::isfinite(rep.kappa) ? std::to_string(rep.kappa).c_str() : "+inf");
     for (int i = 0; i < rep.n_attempts; ++i) {
         const P2SkyPlaneAttempt& a = rep.attempts[i];
-        std::printf("    #%d h=%.6f lambda=%.4g rc=%d action=%d adopted=%d kappa=%.4g\n",
-                    i, a.node_spacing_deg, a.roughness_penalty, a.rc, a.action, a.adopted, a.kappa);
+        std::printf("    #%d h=%.6f lambda=%.4g rc=%d action=%d adopted=%d kappa=%.4g "
+                    "identifiable=%d\n",
+                    i, a.node_spacing_deg, a.lambda_numerical, a.rc, a.action, a.adopted,
+                    a.kappa, a.identifiable);
     }
-    check(rep.n_penalty_escalations >= 1,
-          "rule 5: penalty-escalation path was ACTUALLY triggered");
-    check(rep.penalty_adaptive_used == 1, "penalty_adaptive_used flag set");
-    check(rep.attempts[0].rc == P2_SKY_PLANE_KAPPA_EXCEEDED,
-          "first attempt rejected by the kappa gate (red side)");
-    check(rep.attempts[0].action == P2_SKY_ADAPT_RAISE_PENALTY, "branch taken = raise penalty");
-    check(rc == P2_SKY_PLANE_OK, "green side: escalation produced an accepted solution");
-    if (rc == P2_SKY_PLANE_OK && m) {
-        check(rep.kappa <= rep.kappa_max_effective, "final kappa within the explicit gate");
-        check(rep.roughness_penalty > 1e-3, "effective lambda actually increased");
-        check(rep.node_spacing_deg == rep.node_spacing_upper_deg,
-              "rule 3: node spacing NOT changed on the conditioning branch (no cross-compensation)");
-        p2_sky_plane_close(m);
-    }
+    check(rep.n_attempts >= 1 && rep.attempts[0].rc == P2_SKY_PLANE_NOT_IDENTIFIABLE,
+          "first attempt rejected by the single criterion (red side)");
+    check(rep.attempts[0].identifiable == 0, "attempt log records the red verdict");
+    check(rep.attempts[0].action == P2_SKY_ADAPT_BUILD_FAILED,
+          "at the rule upper bound there is nowhere to coarsen => BUILD_FAILED (honest)");
+    check(rc == P2_SKY_PLANE_NOT_IDENTIFIABLE && m == nullptr,
+          "fail-closed: no product from a red verdict, and no lambda trick to buy green");
 }
 
 void test_adaptive_requires_geometry() {
@@ -479,15 +494,18 @@ void test_adaptive_provenance_roundtrip() {
         bool same = true;
         for (int i = 0; i < rep.n_attempts; ++i)
             if (g2.attempts[i].node_spacing_deg != rep.attempts[i].node_spacing_deg ||
-                g2.attempts[i].roughness_penalty != rep.attempts[i].roughness_penalty ||
+                g2.attempts[i].lambda_numerical != rep.attempts[i].lambda_numerical ||
                 g2.attempts[i].rc != rep.attempts[i].rc ||
                 g2.attempts[i].action != rep.attempts[i].action)
                 same = false;
-        check(same, "roundtrip preserves per-attempt (h, lambda, rc, action)");
+        check(same, "roundtrip preserves per-attempt (h, lambda_numerical, rc, action)");
         P2SkyPlaneInfo i2{};
         p2_sky_plane_info(m2, &i2);
-        check(i2.kappa_max_source == 0 && i2.node_spacing_source == 0,
-              "roundtrip preserves gate/source provenance");
+        check(i2.node_spacing_source == 0 && i2.identifiable == 1 &&
+                  i2.rank == i2.n_params && i2.n_unidentified == 0,
+              "roundtrip preserves the criterion verdict + node-spacing source");
+        check(i2.lambda_numerical > 0.0 && i2.rank_rtol_effective > 0.0,
+              "roundtrip preserves lambda_numerical + tau");
         p2_sky_plane_close(m2);
     }
     p2_sky_plane_close(m);
@@ -496,6 +514,10 @@ void test_adaptive_provenance_roundtrip() {
 }  // namespace
 
 int main(int argc, char** argv) {
+    // 输出目录由 CMake 指到 run/ 下（gitignore + 会被 round 回收）⇒ 测试自己建，
+    // 否则目录被回收后测试会以"save ok"失败伪装成代码故障。
+    std::error_code ec;
+    std::filesystem::create_directories(SKY_TEST_OUTDIR, ec);
     const std::string t = argc > 1 ? argv[1] : "all";
     if (t == "derive_positive" || t == "all") test_derive_positive();
     if (t == "derive_pixel_scale" || t == "all") test_derive_pixel_scale_invariance();
@@ -507,7 +529,7 @@ int main(int argc, char** argv) {
     if (t == "kappa_gate" || t == "all") test_kappa_gate_unified();
     if (t == "adaptive_refine" || t == "all") test_adaptive_triggers_node_refinement();
     if (t == "adaptive_benign" || t == "all") test_adaptive_no_trigger_on_benign_input();
-    if (t == "adaptive_penalty" || t == "all") test_adaptive_triggers_penalty_escalation();
+    if (t == "adaptive_red" || t == "all") test_adaptive_red_side_is_fail_closed();
     if (t == "adaptive_geometry" || t == "all") test_adaptive_requires_geometry();
     if (t == "adaptive_roundtrip" || t == "all") test_adaptive_provenance_roundtrip();
     if (g_fail) { std::printf("RESULT: FAIL (%d/%d checks)\n", g_fail, g_total); return 1; }

@@ -191,8 +191,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 sp.value("frame_gradient_order", cfg->sky_plane_gradient_order);
             cfg->sky_plane_gauge_mode = sp.value("gauge_mode", cfg->sky_plane_gauge_mode);
             cfg->sky_plane_weight_mode = sp.value("weight_mode", cfg->sky_plane_weight_mode);
-            cfg->sky_plane_roughness_penalty =
-                sp.value("roughness_penalty", cfg->sky_plane_roughness_penalty);
+            cfg->sky_plane_rank_rtol = sp.value("rank_rtol", cfg->sky_plane_rank_rtol);
             cfg->frame_gain_enabled = sp.value("frame_gain", cfg->frame_gain_enabled);
         }
 

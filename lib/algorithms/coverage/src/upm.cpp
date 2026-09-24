@@ -26,6 +26,9 @@
 // open 强校验 frames 存在/数组/无重复/类型非法一律拒绝，save→open 后
 // frame_id→theta 绑定不变，禁止从有序容器遍历重建。
 #include "astro/phase2/upm.h"
+
+// 唯一「可辨识性/病态」判据（与天光面样条求解器**同一个函数**）。
+#include "astro/phase2/identifiability.h"
 #include "astro/phase2/sampler.h"
 
 #include "crypto/sha256.h"
@@ -50,6 +53,12 @@ extern "C" {
 #include <thread>
 
 namespace {
+
+// **唯一**判据阈值 τ（FZ-AP2S-RANK-RTOL）。全链只有一个符号、一个值：
+// UPM/GLS 侧（本文件）与天光面样条求解器（sky_plane.cpp）共用同一个
+// astro/phase2/identifiability.h::p2_identifiability_assess。
+// 它由浮点精度给出（地板 = max(m,n)·eps），不是按数据集标定的物理常数。
+constexpr double kRankRtolFrozen = 1e-10;
 
 struct ControlNode {
     std::vector<std::uint64_t> obs_idx;  // 参与该节点的观测
@@ -110,6 +119,10 @@ struct Model {
     // 几何/无观测节点独立统计（不混入数据分量）
     std::size_t geometry_component_count{1};
     std::uint64_t unobserved_geometry_nodes{0};
+    // 唯一判据的诊断（生产链 p2_upm_build_geo 计算；MA 求解器填 id_* 字段）。
+    P2UpmIdentifiability ident{};
+    int ident_valid{0};
+    P2Identifiability id_ma{};      // MA 求解器的判据原始读数
 };
 
 // evaluate_C —— centered bilinear basis（同一科学求值
@@ -1198,6 +1211,160 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
 
     m->info.component_count = (std::uint32_t)m->component_count;
 
+    // ===== 唯一可辨识性判据 + 拟合诊断（只报告，不 gate；见 upm.h 访问器）=====
+    // 生产默认 λs = smoothing_lambda = 0 ⇒ 联合法方程在 (M_k, C_{f,k}) 参数化下
+    // **按 control 分块对角**，故全系统可辨识 ⟺ 每个 control 块可辨识，且
+    // κ(全系统) = max_k κ(块 k)、r_eff(全系统) = Σ_k r_eff(块 k)。
+    // 每块参数 = (M_k, C_{f,k} for f ∈ F_k  {ref})，H_k = Σ_f w_{fk} a_f a_fᵀ。
+    // 无观测几何节点（harmonic continuation 填）不参与判据，单独登记。
+    {
+        P2UpmIdentifiability out{};
+        // τ = FZ-AP2S-RANK-RTOL（与 MA 求解器、天光面样条求解器**同一个值**）。
+        out.rank_rtol = kRankRtolFrozen;
+        out.rank_rtol_effective = out.rank_rtol;
+        out.coupling_assembled = (lambda_s > 0.0) ? 0 : 1;
+        out.objective = m->objective;
+        out.iterations = m->iterations;
+        out.converged = m->converged;
+        out.rel_improve = m->rel_improve;
+        out.kappa = 0.0;
+        // 每个 control 的每帧权重（生产权重面 = 最后一轮 per-control 归一化权重）
+        std::vector<std::pair<std::size_t, double>> wfk;   // (frame index, weight)
+        std::vector<double> block;
+        double chi2 = 0.0;
+        for (std::size_t k = 0; k < K; ++k) {
+            wfk.clear();
+            for (std::size_t ii : m->controls[k].obs_idx) {
+                const auto& o = obs[ii];
+                const double wi = w[ii];
+                if (!(wi > 0.0) || !std::isfinite(wi)) continue;
+                // χ²（标准化残差平方和）：r = y − M_k − C_{f,k}
+                const std::size_t f = m->frame_index[o.frame_id];
+                const double r = o.value - M[k] - m->C[f][k];
+                const double sig = std::max(std::fabs(o.uncertainty), cfg.sigma_floor);
+                if (sig > 0.0 && std::isfinite(r)) chi2 += (r / sig) * (r / sig);
+                const bool seen = std::any_of(
+                    wfk.begin(), wfk.end(),
+                    [&](const std::pair<std::size_t, double>& e) { return e.first == f; });
+                if (seen) {
+                    for (auto& e : wfk)
+                        if (e.first == f) { e.second += wi; break; }
+                } else {
+                    wfk.push_back({f, wi});
+                }
+            }
+            if (wfk.empty()) continue;   // 无观测几何节点：不参与判据
+            ++out.n_blocks;
+            if (wfk.size() == 1) ++out.n_blocks_single_frame;
+            // ---- 块内 gauge（与天光面侧「δ_ref ≡ 0」同一操作）----
+            // 全局 gauge 把**分量参考帧**的 C 固定为 0。若某 control 不被分量参考帧
+            // 观测，则 (M_k, {C_{f,k}}) 上还残留**一个**精确零方向：
+            //     M_k → M_k + c,  C_{f,k} → C_{f,k} − c  (∀f 观测 k)
+            // 它不改变任何预测 M_k + C_{f,k}，是**纯 gauge**，不是数据缺陷。
+            // 判据必须先定 gauge 再判（天光面对 δ_ref 就是这么做的），否则会把
+            // gauge 自由度误报成"未约束方向"（实测：M42 上 23665/29351 个块会因此假红）。
+            // 故每块选一个**块参考帧**：优先分量参考帧（若它观测本 control），
+            // 否则取观测帧中 frame_id 最小者；该帧的 C 列不进入块（等价于把它固定为 0）。
+            auto is_ref_frame = [&](std::size_t f) {
+                if (f >= m->frame_component.size() ||
+                    f >= m->frame_id_by_index.size() ||
+                    m->frame_component[f] >= m->component_ref_frame.size())
+                    return false;
+                return m->frame_id_by_index[f] ==
+                       m->component_ref_frame[m->frame_component[f]];
+            };
+            std::size_t blk_ref = 0;   // wfk 下标
+            bool ref_is_component_ref = false;
+            for (std::size_t j = 0; j < wfk.size(); ++j) {
+                if (is_ref_frame(wfk[j].first)) {
+                    blk_ref = j;
+                    ref_is_component_ref = true;
+                    break;
+                }
+            }
+            if (!ref_is_component_ref) {
+                for (std::size_t j = 1; j < wfk.size(); ++j)
+                    if (m->frame_id_by_index[wfk[j].first] <
+                        m->frame_id_by_index[wfk[blk_ref].first])
+                        blk_ref = j;
+                ++out.n_blocks_gauge_pinned;   // 本块需要一次块内 gauge 选择
+            }
+            std::vector<int> col_of(wfk.size(), -1);   // wfk 下标 → 块列号（-1 = 块参考帧）
+            std::size_t nb = 1;                        // M_k 占第 0 列
+            for (std::size_t j = 0; j < wfk.size(); ++j) {
+                if (j == blk_ref) continue;
+                col_of[j] = static_cast<int>(nb);
+                ++nb;
+            }
+            out.n_params += nb;
+            block.assign(nb * nb, 0.0);
+            std::vector<double> a(nb, 0.0);
+            for (std::size_t j = 0; j < wfk.size(); ++j) {
+                std::fill(a.begin(), a.end(), 0.0);
+                a[0] = 1.0;                                   // M_k
+                if (col_of[j] >= 0) a[static_cast<std::size_t>(col_of[j])] = 1.0;  // C_{f,k}
+                for (std::size_t p = 0; p < nb; ++p)
+                    for (std::size_t q = 0; q < nb; ++q)
+                        block[p * nb + q] += wfk[j].second * a[p] * a[q];
+            }
+            P2Identifiability bid{};
+            if (p2_identifiability_assess(block.data(), (std::uint64_t)nb,
+                                          static_cast<std::uint64_t>(m->controls[k].obs_idx.size()),
+                                          out.rank_rtol, &bid) != 0) {
+                ++out.n_blocks_rank_deficient;
+                out.rank_eff += 0;
+                out.kappa = std::numeric_limits<double>::infinity();
+                continue;
+            }
+            out.rank_rtol_effective = std::max(out.rank_rtol_effective, bid.rank_rtol_effective);
+            out.rank_eff += bid.rank_eff;
+            if (!bid.identifiable) ++out.n_blocks_rank_deficient;
+            out.kappa = std::max(out.kappa, bid.kappa);
+        }
+        out.n_unidentified = out.n_params - out.rank_eff;
+        // 未定 gauge 时的读数（= 定 gauge 后的未约束方向 + 每块 1 个 gauge 自由度）。
+        // 单独记账，供读者核对旧口径下的"秩亏"里有多少是 gauge。
+        out.n_unidentified_raw = out.n_unidentified + out.n_blocks_gauge_pinned;
+        out.identifiable = (out.n_blocks_rank_deficient == 0) ? 1 : 0;
+        out.chi2 = chi2;
+        out.dof_eff = static_cast<double>(n_obs) - static_cast<double>(out.rank_eff);
+        // dof <= 0 ⇒ χ²_red **无定义**：置 NaN 并置 chi2_red_defined=0，由持久化层写
+        // null。**不得**写 0——那会把"无自由度"伪装成"完美拟合"（静默降级）。
+        if (out.dof_eff > 0.0) {
+            out.chi2_red = chi2 / out.dof_eff;
+            out.chi2_red_defined = 1;
+        } else {
+            out.chi2_red = std::numeric_limits<double>::quiet_NaN();
+            out.chi2_red_defined = 0;
+        }
+        out.n_unobserved_geometry_nodes = m->unobserved_geometry_nodes;
+        m->ident = out;
+        m->ident_valid = 1;
+
+        // ---- 不收敛/不可辨识 ⇒ **stderr 警告**（负责人裁决：报警告，不阻塞）----
+        // 构建 rc 不变（产品照出）；警告同时写进产品（p2_upm_save / p2_upm_warnings_json），
+        // 这里只是让跑批的人**立刻**在终端看到，不用等产品解析。
+        if (m->converged != 1) {
+            std::fprintf(stderr,
+                         "[p2_upm_build_geo] WARNING P2-UPM-NOT-CONVERGED:"
+                         " converged=%d (0=max_iter 1=converged 2=stalled 3=invalid)"
+                         " iterations=%d objective=%.6g rel_improve=%.6g;"
+                         " product is still emitted (warn, do not block)\n",
+                         m->converged, m->iterations, m->objective, m->rel_improve);
+        }
+        if (!out.identifiable) {
+            std::fprintf(stderr,
+                         "[p2_upm_build_geo] WARNING P2-UPM-NOT-IDENTIFIABLE:"
+                         " rank_eff=%llu/%llu n_unidentified=%llu"
+                         " (n_blocks_gauge_pinned=%llu n_blocks_rank_deficient=%llu);"
+                         " product is still emitted (warn, do not block)\n",
+                         (unsigned long long)out.rank_eff, (unsigned long long)out.n_params,
+                         (unsigned long long)out.n_unidentified,
+                         (unsigned long long)out.n_blocks_gauge_pinned,
+                         (unsigned long long)out.n_blocks_rank_deficient);
+        }
+    }
+
     *out_model = static_cast<void*>(m);
     return 0;
 }
@@ -1251,6 +1418,41 @@ int p2_upm_save(const void* model, const char* path) {
     j["component_count"] = m->component_count;
     j["geometry_component_count"] = m->geometry_component_count;
     j["unobserved_geometry_nodes"] = m->unobserved_geometry_nodes;
+    // 唯一可辨识性判据 + 拟合诊断 + 产品级警告（§7a；负责人裁决：报警告不阻塞）。
+    // 写进模型文件（= 产品 artifact，manifest 的 upm_model_bin）使下游/CI 可机检。
+    if (m->ident_valid) {
+        const P2UpmIdentifiability& d = m->ident;
+        j["identifiability"] = {
+            {"n_blocks", d.n_blocks},
+            {"n_params", d.n_params},
+            {"rank_eff", d.rank_eff},
+            {"n_unidentified", d.n_unidentified},
+            {"n_blocks_rank_deficient", d.n_blocks_rank_deficient},
+            {"n_blocks_gauge_pinned", d.n_blocks_gauge_pinned},
+            {"n_unidentified_raw", d.n_unidentified_raw},
+            {"n_blocks_single_frame", d.n_blocks_single_frame},
+            {"n_unobserved_geometry_nodes", d.n_unobserved_geometry_nodes},
+            {"rank_rtol", d.rank_rtol},
+            {"rank_rtol_effective", d.rank_rtol_effective},
+            {"kappa", std::isfinite(d.kappa) ? nlohmann::json(d.kappa) : nlohmann::json(nullptr)},
+            {"chi2", d.chi2},
+            {"dof_eff", d.dof_eff},
+            // χ²_red 无定义（dof<=0）时写 null + 具名原因，**不写 0**（那会把"无自由度"
+            // 伪装成"完美拟合"）。
+            {"chi2_red", d.chi2_red_defined ? nlohmann::json(d.chi2_red)
+                                            : nlohmann::json(nullptr)},
+            {"chi2_red_defined", d.chi2_red_defined},
+            {"chi2_red_note", d.chi2_red_defined
+                                  ? std::string()
+                                  : std::string("dof_eff = n_obs - rank_eff <= 0: the model has no "
+                                                "residual degrees of freedom, chi2_red is undefined")},
+            {"objective", d.objective},
+            {"iterations", d.iterations},
+            {"converged", d.converged},
+            {"rel_improve", d.rel_improve},
+            {"identifiable", d.identifiable},
+            {"coupling_assembled", d.coupling_assembled}};
+    }
     nlohmann::json refs = nlohmann::json::array();
     for (std::size_t c = 0; c < m->component_count; ++c)
         refs.push_back(m->component_ref_frame[c]);
@@ -1363,6 +1565,38 @@ int p2_upm_open(const char* path, void** out_model) {
         m->scale_obs = j.value("scale_obs", 0.0);
         m->rel_improve = j.value("rel_improve", 0.0);
         m->stall_count = j.value("stall_count", 0);
+        // 旧模型文件无该段 ⇒ ident_valid=0（下游按「诊断不可得」处理，不猜）。
+        if (j.contains("identifiability") && j["identifiability"].is_object()) {
+            const auto& d = j["identifiability"];
+            P2UpmIdentifiability& o = m->ident;
+            o.n_blocks = d.value("n_blocks", (std::uint64_t)0);
+            o.n_params = d.value("n_params", (std::uint64_t)0);
+            o.rank_eff = d.value("rank_eff", (std::uint64_t)0);
+            o.n_unidentified = d.value("n_unidentified", (std::uint64_t)0);
+            o.n_blocks_rank_deficient = d.value("n_blocks_rank_deficient", (std::uint64_t)0);
+            o.n_blocks_gauge_pinned = d.value("n_blocks_gauge_pinned", (std::uint64_t)0);
+            o.n_unidentified_raw = d.value("n_unidentified_raw", (std::uint64_t)0);
+            o.n_blocks_single_frame = d.value("n_blocks_single_frame", (std::uint64_t)0);
+            o.n_unobserved_geometry_nodes = d.value("n_unobserved_geometry_nodes", (std::uint64_t)0);
+            o.rank_rtol = d.value("rank_rtol", 1e-10);
+            o.rank_rtol_effective = d.value("rank_rtol_effective", o.rank_rtol);
+            o.kappa = (d.contains("kappa") && !d["kappa"].is_null())
+                          ? d["kappa"].get<double>()
+                          : std::numeric_limits<double>::infinity();
+            o.chi2 = d.value("chi2", 0.0);
+            o.dof_eff = d.value("dof_eff", 0.0);
+            o.chi2_red_defined = d.value("chi2_red_defined", 0);
+            o.chi2_red = (d.contains("chi2_red") && !d["chi2_red"].is_null())
+                             ? d["chi2_red"].get<double>()
+                             : std::numeric_limits<double>::quiet_NaN();
+            o.objective = d.value("objective", 0.0);
+            o.iterations = d.value("iterations", 0);
+            o.converged = d.value("converged", 0);
+            o.rel_improve = d.value("rel_improve", 0.0);
+            o.identifiable = d.value("identifiable", 0);
+            o.coupling_assembled = d.value("coupling_assembled", 0);
+            m->ident_valid = 1;
+        }
         m->component_count = j.value("component_count", (std::size_t)1);
         m->info.component_count = (std::uint32_t)m->component_count;
         m->grid = (int)j.value("grid", 8);
@@ -1570,6 +1804,88 @@ int p2_upm_info(const void* model, P2ModelInfo* out_info) {
     if (model == nullptr || out_info == nullptr) return 1;
     const Model* m = static_cast<const Model*>(model);
     *out_info = m->info;
+    return 0;
+}
+
+// 唯一可辨识性判据 + 拟合诊断的只读访问器（不改 P2ModelInfo 冻结布局）。
+int p2_upm_identifiability(const void* model, P2UpmIdentifiability* out) {
+    if (model == nullptr || out == nullptr) return 1;
+    const Model* m = static_cast<const Model*>(model);
+    if (!m->ident_valid) return 1;   // 旧模型文件未记录 ⇒ 具名不可得，不猜
+    *out = m->ident;
+    return 0;
+}
+
+// 产品级警告块（负责人裁决：报警告，不影响运行；不 fail-closed）。
+// 判据只描述状态：converged != 1 ⇒ P2-UPM-NOT-CONVERGED；
+// ident_valid && !identifiable ⇒ P2-UPM-NOT-IDENTIFIABLE。
+// 两个码都**不改变** p2_upm_build* 的 rc。
+int p2_upm_warnings_json(const void* model, char* out_json, std::size_t buf_size) {
+    if (model == nullptr || out_json == nullptr || buf_size == 0) return 1;
+    out_json[0] = '\0';
+    const Model* m = static_cast<const Model*>(model);
+    nlohmann::json j;
+    nlohmann::json warn = nlohmann::json::array();
+    nlohmann::json codes = nlohmann::json::array();
+    if (m->converged != 1) {
+        codes.push_back("P2-UPM-NOT-CONVERGED");
+        nlohmann::json w = {
+            {"code", "P2-UPM-NOT-CONVERGED"},
+            {"severity", "warning"},
+            {"meaning", "IRLS did not reach tolerance within max_iterations; "
+                        "product is still emitted (owner ruling: warn, do not block)"},
+            {"converged", m->converged},   // 0=max_iter 1=converged 2=stalled 3=invalid
+            {"iterations", m->iterations},
+            {"objective", m->objective},
+            {"rel_improve", m->rel_improve},
+            {"scale_obs", m->scale_obs},
+            {"stall_count", m->stall_count}};
+        if (m->ident_valid) {
+            w["rank_eff"] = m->ident.rank_eff;
+            w["n_params"] = m->ident.n_params;
+            w["n_unidentified"] = m->ident.n_unidentified;
+            w["kappa"] = std::isfinite(m->ident.kappa) ? nlohmann::json(m->ident.kappa)
+                                                       : nlohmann::json(nullptr);
+            w["chi2_red"] = m->ident.chi2_red_defined ? nlohmann::json(m->ident.chi2_red)
+                                                      : nlohmann::json(nullptr);
+            w["chi2_red_defined"] = m->ident.chi2_red_defined;
+            w["dof_eff"] = m->ident.dof_eff;
+            w["chi2"] = m->ident.chi2;
+        }
+        warn.push_back(w);
+    }
+    if (m->ident_valid && !m->ident.identifiable) {
+        codes.push_back("P2-UPM-NOT-IDENTIFIABLE");
+        warn.push_back({{"code", "P2-UPM-NOT-IDENTIFIABLE"},
+                        {"severity", "warning"},
+                        {"meaning", "r_eff < n_params at tau = rank_rtol: some parameter "
+                                    "directions are not constrained by the data; "
+                                    "product is still emitted (report-only on this path)"},
+                        {"rank_eff", m->ident.rank_eff},
+                        {"n_params", m->ident.n_params},
+                        {"n_unidentified", m->ident.n_unidentified},
+                        {"n_unidentified_raw", m->ident.n_unidentified_raw},
+                        {"n_blocks_rank_deficient", m->ident.n_blocks_rank_deficient},
+                        {"n_blocks_gauge_pinned", m->ident.n_blocks_gauge_pinned},
+                        {"n_blocks_single_frame", m->ident.n_blocks_single_frame},
+                        {"n_unobserved_geometry_nodes", m->ident.n_unobserved_geometry_nodes},
+                        {"rank_rtol_effective", m->ident.rank_rtol_effective},
+                        {"kappa", std::isfinite(m->ident.kappa)
+                                      ? nlohmann::json(m->ident.kappa)
+                                      : nlohmann::json(nullptr)},
+                        {"chi2", m->ident.chi2},
+                        {"chi2_red", m->ident.chi2_red_defined ? nlohmann::json(m->ident.chi2_red)
+                                                                : nlohmann::json(nullptr)},
+                        {"chi2_red_defined", m->ident.chi2_red_defined},
+                        {"dof_eff", m->ident.dof_eff}});
+    }
+    j["warnings"] = warn;
+    j["warning_codes"] = codes;
+    j["upm_converged_warning"] = (m->converged != 1);
+    j["upm_identifiable_warning"] = (m->ident_valid && !m->ident.identifiable);
+    const std::string s = j.dump();
+    if (s.size() + 1 > buf_size) return 2;
+    std::memcpy(out_json, s.c_str(), s.size() + 1);
     return 0;
 }
 
@@ -2099,9 +2415,9 @@ struct MaModel {
     std::size_t n_free{0};
     std::vector<double> theta_full;          // size n_full（gauge 固定项写入约定值）
     std::vector<double> C_theta;             // n_free × n_free row-major
-    std::vector<double> sigma;               // 奇异值降序
-    double kappa{0.0};
-    std::size_t rank{0};
+    double kappa{0.0};                       // 判据读数 κ(H_eq)；秩亏 ⇒ +inf
+    std::size_t rank{0};                     // r_eff（计数）
+    P2Identifiability id_ma{};               // 唯一判据的完整读数（upm.h 访问器）
     int iterations{0};
     std::string model_hash;
 };
@@ -2133,83 +2449,10 @@ void ma_normal_matrix(const MaModel& m, const std::vector<MaObsRec>& recs,
     }
 }
 
-// 加权 Jacobian J_w = W^{1/2} J（m×n row-major，W=C_in^-1=diag(control_ivar)）。
-void ma_weighted_jacobian(const MaModel& m, const std::vector<MaObsRec>& recs,
-                          std::vector<double>& Jw) {
-    const std::size_t np = m.control_ids.size();
-    const std::size_t nf = m.frame_ids.size();
-    const std::size_t n = m.n_free;
-    Jw.assign(recs.size() * n, 0.0);
-    for (std::size_t i = 0; i < recs.size(); ++i) {
-        const MaObsRec& o = recs[i];
-        const double gk = m.theta_full[np + (std::size_t)o.fi];
-        const double sp = m.theta_full[(std::size_t)o.ci];
-        const double sw = std::sqrt(o.ivar);
-        const long long a_s = m.free_of_full[(std::size_t)o.ci];
-        if (a_s >= 0) Jw[i * n + (std::size_t)a_s] = sw * gk;
-        const long long a_g = m.free_of_full[np + (std::size_t)o.fi];
-        if (a_g >= 0) Jw[i * n + (std::size_t)a_g] = sw * sp;
-        const long long a_b = m.free_of_full[np + nf + (std::size_t)o.fi];
-        if (a_b >= 0) Jw[i * n + (std::size_t)a_b] = sw;
-    }
-}
-
-// J_w 的奇异值（全精度）：一步 Jacobi（Hestenes one-sided）直接正交化 J_w 的列，
-// 收敛后列范数即奇异值。对 J_w 直接求 σ_i，避免经 (JᵀJ) 平方导致小奇异值精度
-// 损失（FZ-AP2S-RANK-RTOL=1e-10 需要 σ 自身精度）。mrows<n 时对 J_wᵀ 做（σ 不变）。
-bool ma_singular_values(const std::vector<double>& Jw, std::size_t mrows,
-                        std::size_t n, std::vector<double>& sigma) {
-    const bool transposed = mrows < n;
-    const std::size_t R = transposed ? n : mrows;
-    const std::size_t C = transposed ? mrows : n;
-    if (R == 0 || C == 0) { sigma.clear(); return true; }
-    std::vector<double> A(R * C, 0.0);
-    if (!transposed) {
-        A = Jw;
-    } else {
-        for (std::size_t i = 0; i < mrows; ++i)
-            for (std::size_t j = 0; j < n; ++j) A[j * C + i] = Jw[i * n + j];
-    }
-    for (int sweep = 0; sweep < 100; ++sweep) {
-        double maxoff = 0.0;
-        for (std::size_t p = 0; p < C; ++p) {
-            for (std::size_t q = p + 1; q < C; ++q) {
-                double alpha = 0.0, beta = 0.0, gamma = 0.0;
-                for (std::size_t i = 0; i < R; ++i) {
-                    const double ap = A[i * C + p];
-                    const double aq = A[i * C + q];
-                    alpha += ap * ap;
-                    beta += aq * aq;
-                    gamma += ap * aq;
-                }
-                if (!(alpha > 0.0) || !(beta > 0.0)) continue;
-                const double g = std::fabs(gamma) / std::sqrt(alpha * beta);
-                maxoff = std::max(maxoff, g);
-                if (!(g > 1e-15) || !std::isfinite(g)) continue;
-                const double zeta = (beta - alpha) / (2.0 * gamma);
-                const double sgn = (zeta >= 0.0) ? 1.0 : -1.0;
-                const double t = sgn / (std::fabs(zeta) + std::sqrt(1.0 + zeta * zeta));
-                const double c = 1.0 / std::sqrt(1.0 + t * t);
-                const double s = c * t;
-                for (std::size_t i = 0; i < R; ++i) {
-                    const double ap = A[i * C + p];
-                    const double aq = A[i * C + q];
-                    A[i * C + p] = c * ap - s * aq;
-                    A[i * C + q] = s * ap + c * aq;
-                }
-            }
-        }
-        if (maxoff <= 1e-15) break;
-    }
-    sigma.assign(C, 0.0);
-    for (std::size_t j = 0; j < C; ++j) {
-        double s = 0.0;
-        for (std::size_t i = 0; i < R; ++i) s += A[i * C + j] * A[i * C + j];
-        sigma[j] = std::sqrt(s);
-    }
-    std::sort(sigma.begin(), sigma.end(), std::greater<double>());
-    return true;
-}
+// 加权 Jacobian J_w 与 ma_singular_values 的本地实现已删除：判据统一由
+// astro/phase2/identifiability.h::p2_identifiability_assess 在**列均衡信息矩阵**
+// 上给出（同一函数供天光面侧共用）。旧实现的两把尺（σ(J) 与 λ(H) 各一个阈值，
+// 相差 10 个数量级）随之退休。
 
 double ma_objective(const MaModel& m, const std::vector<MaObsRec>& recs) {
     const std::size_t np = m.control_ids.size();
@@ -2239,8 +2482,7 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
     if (cfg_in != nullptr) m->cfg = *cfg_in;
     P2UpmMaConfig& cfg = m->cfg;
     if (cfg.min_frames <= 0) cfg.min_frames = 2;                       // FZ-AP2S-UPM-MINFRAMES
-    if (!(cfg.rank_rtol > 0.0) || !std::isfinite(cfg.rank_rtol)) cfg.rank_rtol = 1e-10;
-    if (!(cfg.kappa_max > 0.0) || !std::isfinite(cfg.kappa_max)) cfg.kappa_max = 1e6;
+    if (!(cfg.rank_rtol > 0.0) || !std::isfinite(cfg.rank_rtol)) cfg.rank_rtol = kRankRtolFrozen;
     if (!(cfg.huber_delta > 0.0)) cfg.huber_delta = 1.345;            // FZ-UPM-CONVERGENCE
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
     if (!(cfg.tolerance > 0.0)) cfg.tolerance = 1e-6;
@@ -2510,20 +2752,23 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
     ma_normal_matrix(*m, recs, H);
     const std::size_t n = m->n_free;
 
-    // 秩（FZ-AP2S-RANK-RTOL）：J_w 奇异值（对称嵌入，保留小奇异值精度）
-    std::vector<double> sigma;
-    {
-        std::vector<double> Jw;
-        ma_weighted_jacobian(*m, recs, Jw);
-        if (!ma_singular_values(Jw, recs.size(), n, sigma)) { delete m; return 8; }
+    // ---- 唯一可辨识性判据（本次统一口径）----
+    // 判据实现 = astro/phase2/identifiability.h::p2_identifiability_assess
+    // （与天光面样条求解器**同一个函数**、同一个阈值符号 rank_rtol）。
+    //   identifiable ⟺ r_eff == n ⟺ κ(H_eq) < 1/τ，H_eq = D⁻¹(JᵀWJ)D⁻¹。
+    // 「欠定」与「病态」是同一条不等式的两种读法 ⇒ 只有一个判决位。
+    // 已退休（同一函数内的两把尺）：rank 用 σ(J)/σ_max > rank_rtol（⇔ τ_H = 1e-20）
+    // 而 κ 用 λ(H) 比（⇔ τ_H = 1e-10），相差 10 个数量级；以及 kappa_max=1e6
+    // 绝对常数（FZ-AP2S-KAPPA-MAX）。
+    P2Identifiability id{};
+    if (p2_identifiability_assess(H.data(), (std::uint64_t)n,
+                                  static_cast<std::uint64_t>(recs.size()),
+                                  cfg.rank_rtol, &id) != 0) {
+        delete m; return 8;   // H 对角非正/非有限 ⇒ 均衡无定义（数值失败，不是判决）
     }
-    const double smax = sigma.empty() ? 0.0 : sigma[0];
-    std::size_t rank = 0;
-    if (smax > 0.0) {
-        for (std::size_t i = 0; i < sigma.size(); ++i)
-            if (sigma[i] / smax > cfg.rank_rtol) ++rank;
-    }
-    if (rank < n) { delete m; return 3; }   // 秩亏 / 恒常 s 导致 g-b 退化
+    const double kappa = id.kappa;
+    const std::size_t rank = static_cast<std::size_t>(id.rank_eff);
+    if (!id.identifiable) { delete m; return 3; }   // 欠定/病态统一 rc=3（fail-closed）
 
     // C_theta = (JᵀWJ)^-1（gauge 消除后可辨识子空间）
     std::vector<double> evals;
@@ -2544,35 +2789,9 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
     }
     if (!inv_ok) { delete m; return 8; }
 
-    // 条件数（ALG-P2S-UPM.4；FZ-AP2S-KAPPA-MAX）
-    // kappa = cond_2( D^-1 (JᵀWJ) D^-1 ), D=diag(列范数)（列均衡消除单位伪病态）
-    std::vector<double> M((std::size_t)n * n, 0.0);
-    bool col_ok = true;
-    for (std::size_t j = 0; j < n; ++j)
-        if (!(H[j * n + j] > 0.0) || !std::isfinite(H[j * n + j])) { col_ok = false; break; }
-    if (!col_ok) { delete m; return 3; }
-    for (std::size_t i = 0; i < n; ++i) {
-        const double di = std::sqrt(H[i * n + i]);
-        for (std::size_t j = 0; j < n; ++j) {
-            const double dj = std::sqrt(H[j * n + j]);
-            M[i * n + j] = H[i * n + j] / (di * dj);
-        }
-    }
-    std::vector<double> mevals;
-    if (!ma_eig(M, (int)n, mevals, nullptr)) { delete m; return 8; }
-    double lmin = std::numeric_limits<double>::infinity();
-    double lmax = 0.0;
-    for (std::size_t i = 0; i < n; ++i) {
-        lmin = std::min(lmin, mevals[i]);
-        lmax = std::max(lmax, mevals[i]);
-    }
-    const double kappa = (lmin > 0.0) ? (lmax / lmin)
-                                      : std::numeric_limits<double>::infinity();
-    if (!std::isfinite(kappa) || kappa > cfg.kappa_max) { delete m; return 4; }
-
-    m->sigma = sigma;
     m->rank = rank;
     m->kappa = kappa;
+    m->id_ma = id;
     m->C_theta = Cth;
 
     // ---- model hash（确定性）----
@@ -2581,7 +2800,7 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
         p << std::setprecision(17);
         p << "upm-ma-v1|F=" << nf << "|P=" << np << "|C=" << ncomp
           << "|gauge=min_frame_id|min_frames=" << cfg.min_frames
-          << "|rank_rtol=" << cfg.rank_rtol << "|kappa_max=" << cfg.kappa_max;
+          << "|rank_rtol=" << cfg.rank_rtol;
         for (std::size_t c = 0; c < ncomp; ++c)
             p << "|ref" << c << "=" << m->component_ref_frame[c]
               << "|addonly" << c << "=" << m->component_additive_only[c];
@@ -2604,8 +2823,10 @@ int p2_upm_ma_build(const P2UpmMaObservation* obs, std::uint64_t n_obs,
     m->info.n_params = (std::uint64_t)n;
     m->info.rank = (std::uint64_t)rank;
     m->info.rank_rtol = cfg.rank_rtol;
+    m->info.rank_rtol_effective = id.rank_rtol_effective;
     m->info.kappa = kappa;
-    m->info.kappa_max = cfg.kappa_max;
+    m->info.n_unidentified = id.n_unidentified;
+    m->info.identifiable = id.identifiable;
     m->info.min_frames = cfg.min_frames;
     m->info.gauge_mode = 0;
     m->info.iterations = iters;
@@ -2720,7 +2941,9 @@ int p2_upm_ma_provenance(const void* model, char* out_json, std::size_t buf_size
     j["rank"] = m->info.rank;
     j["rank_rtol"] = m->info.rank_rtol;
     j["kappa"] = m->info.kappa;
-    j["kappa_max"] = m->info.kappa_max;
+    j["n_unidentified"] = m->info.n_unidentified;
+    j["identifiable"] = m->info.identifiable;
+    j["rank_rtol_effective"] = m->info.rank_rtol_effective;
     j["additive_only_components"] = m->info.additive_only_components;
     j["iterations"] = m->info.iterations;
     nlohmann::json refs = nlohmann::json::array();

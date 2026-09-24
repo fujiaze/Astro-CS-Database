@@ -595,6 +595,8 @@ endif()
 add_library(astrocs_phase2 STATIC
   lib/algorithms/coverage/src/upm.cpp
   lib/algorithms/coverage/src/sky_plane.cpp
+  # 唯一「可辨识性/病态」判据（天光面与 UPM/GLS 共用同一实现；§7a:196-198）
+  lib/algorithms/coverage/src/identifiability.cpp
   lib/algorithms/coverage/src/stage2_common.cpp
   lib/algorithms/coverage/src/rejection.cpp
   lib/algorithms/coverage/src/coverage.cpp
@@ -1104,6 +1106,15 @@ if(ASTROCS_BUILD_TESTS)
   add_subdirectory(eng/tests/unit/v6_p2_sky v6_p2_sky)
   # SCI-502 FIX-3：天光面 κ 可观测 + 粗糙度自适应红/绿双向
   add_subdirectory(eng/tests/unit/v6_p2_sky_kappa v6_p2_sky_kappa)
+  # UPM-KAPPA-UNIFY-01：唯一可辨识性判据（正/负例 + 尺度不变 + Oracle）
+  add_subdirectory(eng/tests/unit/v6_p2_identifiability v6_p2_identifiability)
+  # UPM-KAPPA-UNIFY-01 证据探针：真实 M42 上天光面侧的判据读数 / λ 扫描 / 解差异
+  # （只链 astrocs_phase2，不碰编排面；按需构建，不进默认目标）。
+  add_executable(m42_criterion_probe
+    run/UPM-KAPPA-UNIFY-01/tools/m42_criterion_probe.cpp)
+  target_link_libraries(m42_criterion_probe PRIVATE astrocs_phase2)
+  set_property(TARGET m42_criterion_probe PROPERTY CXX_STANDARD 17)
+  set_target_properties(m42_criterion_probe PROPERTIES EXCLUDE_FROM_ALL TRUE)
   add_subdirectory(eng/tests/unit/v6_p3_proj v6_p3_proj)
   add_subdirectory(eng/tests/unit/v6_p3_rsmp v6_p3_rsmp)
   add_subdirectory(eng/tests/integration/v6_p1 v6_p1_integration)
