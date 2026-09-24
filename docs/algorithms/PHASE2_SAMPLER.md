@@ -460,7 +460,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 | patch robust median/MAD 保留负值 | :802-829（无符号过滤） | 一致 |
 | SNR 来自 Catalogue 查询路径 | :851-867 纯查询 | 一致 |
 | control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
-| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
+| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑** |
 | per-control `control_reliability`（`geometric_reliability` 为**禁用**旧名）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:85-87 注释锚定 | 一致 |
 

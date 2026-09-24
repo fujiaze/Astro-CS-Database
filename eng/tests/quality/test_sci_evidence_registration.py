@@ -54,13 +54,16 @@ WATCHED = {
         "ctest_names": ["phase2_synthetic_gate"],
         "must_be_registered": True,
     },
-    # tracked-but-unbuilt（M4-F-01）：文件在、构建/CI 都不在。
+    # 阳性对照：已注册进根图（lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt）
+    # 且被 eng/ci/checks.json CHK-INVARIANT 的 ctest_targets 采集。
     "control_median_mc_test.cpp": {
         "path": "lib/algorithms/drizzle/healpix_drizzle/tests/control_median_mc_test.cpp",
         "cmake_tokens": ["control_median_mc_test"],
-        "ctest_names": [],
-        "must_be_registered": False,
+        "ctest_names": ["drizzle_control_median_mc"],
+        "must_be_registered": True,
     },
+    # 未注册进根图：文件在、构建与 CI 都不在。
+
     "kcorr_matrix_test.cpp": {
         "path": "lib/algorithms/drizzle/healpix_drizzle/tests/kcorr_matrix_test.cpp",
         "cmake_tokens": ["kcorr_matrix_test"],

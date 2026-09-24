@@ -182,11 +182,27 @@ def main(argv=None) -> int:
                 break
             time.sleep(args.poll_interval)
     except KeyboardInterrupt:
+        # 收到外部取消信号（Ctrl-C / 会话中断 / 调用超时）：本工具无法区分
+        # 「子进程出事」与「自己被取消」，默认动作是终结子进程组，避免留孤儿。
+        # 明确打印一行，使这类「长计算被取消」在日志里可一眼归因，而不是只留栈。
+        print(f"[mem_guard] CANCELLED(SIGINT) label={label} pid={root_pid} pgid={pgid} "
+              f"子进程组已终结；本次运行作废，需重跑", file=sys.stderr, flush=True)
         try:
-            os.killpg(pgid, signal.SIGKILL)
+            os.killpg(pgid, signal.SIGTERM)
         except OSError:
             pass
-        raise
+        deadline = time.time() + args.grace
+        while time.time() < deadline and proc.poll() is None:
+            time.sleep(0.2)
+        if proc.poll() is None:
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except OSError:
+                pass
+        proc.wait()
+        print(f"[mem_guard] peak_rss_gb={peak_kb/1048576:.3f} limit_gb={args.max_rss_gb} "
+              f"label={label} exit=130", file=sys.stderr, flush=True)
+        return 130
 
     rc = proc.wait()
     print(f"[mem_guard] peak_rss_gb={peak_kb/1048576:.3f} limit_gb={args.max_rss_gb} "
