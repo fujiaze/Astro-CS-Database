@@ -95,7 +95,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 | `roughness_penalty` | —— | —— | 样条粗糙度惩罚系数（保平滑） |
 | `max_iter` | —— | —— | 稳健拟合迭代上限 |
 | `convergence_gate` | —— | —— | 收敛门（**无量纲**，见 §4.6）：`max_dM/max(scale_obs,eps) < tol_step` 且 `|Δobj|/max(|obj_old|,eps) < tol_obj`；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。**`tol=1e-6` 不是硬门** |
-| `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。⚠ **实现现状**：`module_adapters.cpp:6512-6526` 的 `additive_mode` **已默认 `delta`**（本条原写「仍默认 c」已过时）；无天光面产物时 `delta` 显式退化为 `c` 并登记（**不得**静默变成不校正，**不得**回退到双重扣除） |
+| `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。⚠ **实现现状**：`module_adapters.cpp` 的 `additive_mode` 读取处 `:8146`、施加处 `:8460`（**按符号定位，不按行号**——行号随编辑漂移）**已默认 `delta`**（本条原写「仍默认 c」已过时）；无天光面产物时 `delta` 显式退化为 `c` 并登记（**不得**静默变成不校正，**不得**回退到双重扣除） |
 | `sky_plane.enabled` | 随 `additive_mode ∈ {delta, both}` | —— | 是否构建/落盘公共天光面 `B_ref` 产品；缺省 = 「要施加 `δ_k` 才构建」，显式值优先（实现 `module_adapters.cpp` 的 `sp_cfg.value("enabled", delta_wanted)`） |
 | `smoothing_lambda` | 键缺省时编译期默认 **0.0**；`P2_SMOOTHING_LAMBDA_AUTO` = 0.1 仅在 auto 路径生效| —— | **UPM 图平滑权重**（`upm.h:75` 逐字「图平滑权重（默认 0=关闭）」）。仓库里有三个互不相同、并存不冲突的量——① **阻尼 `α≈0.5`** = 迭代阻尼（naive Gauss-Seidel `α=1` 在链式/二部覆盖图上特征值 −1 ⇒ 周期 2 振荡）；② **本键 `smoothing_lambda`** = 对天光/δ 面**拟合的正则项**（现行机制）；③ **堆叠平滑项** = 拟合目标里的新项，本期不加，做实验验证。实现常量 `P2_SMOOTHING_LAMBDA_AUTO = 0.1`（`lib/algorithms/coverage/include/astro/phase2/stage2_common.h:24`）。|
 
