@@ -89,6 +89,50 @@ inline bool variance_plane_auditable(double hull_nonpositive_frac) {
     return std::isfinite(hull_nonpositive_frac) && hull_nonpositive_frac == 0.0;
 }
 
+// ── SCI-NOISE-001 §5d: 「可观测量（必须写入 provenance）」的**机检清单** ────────
+// 规范原文（docs/science/NOISE_MODEL.md §5d:270-271）:
+//   「**可观测量（必须写入 provenance）**：控制点方差的动态范围、平面系数、
+//     凸包内预测 ≤ 0 的像素占比、被剔除 patch 数与 `R` 的分布。
+//     **缺任一项即视为该帧的方差面不可审计。**」
+// 逐条 → 键名（与生产者 NoiseWeightModelV1 的尾部字段一一对应，
+// snr_estimator.h:187-201；键名也是逐帧 provenance 的产品面键名）:
+//   控制点方差的动态范围        → ctrl_variance_range
+//   平面系数 var(x,y)=a+b·x+c·y → plane_a, plane_b, plane_c
+//   凸包内预测 ≤ 0 的像素占比   → hull_nonpositive_frac
+//   被剔除 patch 数             → n_structure_rejected_patches
+//   R 的分布                    → r_min, r_median, r_max, r_fence
+//
+// 为什么这条清单必须**可执行**：§5d 的最后一句是「缺任一项即视为该帧的方差面
+//   不可审计」——它把「字段齐全」直接定义为「可审计」的**必要条件**。若清单只
+//   活在文档里，任何一处落盘遗漏都只能靠人读 JSON 发现（本仓实测：这些字段曾
+//   只写进**内存里的节点 manifest**，产品里一个都没有）。故清单在此以代码形式
+//   给出，生产者（p1_op_drizzle）、消费/校验者（p1_op_writer、产品级检查器、
+//   测试）**必须**引用同一份，不得各写一份。
+//
+// 判据（与 variance_plane_auditable 正交，两者都过才可发布）:
+//   variance_plane_auditable(...)          判「这张面的**拟合**是否可信」；
+//   variance_audit_missing_fields(...)     判「这张面的**可审计信息**是否在产品里」。
+// 后者对**每一个**字段要求「存在 ∧ 是有限数」（整数字段按有限整数判）。
+inline const char* const* variance_audit_required_fields() {
+    static const char* const kFields[] = {
+        "ctrl_variance_range",
+        "plane_a",
+        "plane_b",
+        "plane_c",
+        "hull_nonpositive_frac",
+        "n_structure_rejected_patches",
+        "r_min",
+        "r_median",
+        "r_max",
+        "r_fence",
+    };
+    return kFields;
+}
+
+// 清单长度（与 variance_audit_required_fields() 同步；单独给函数是为了让调用方
+// 不必自己数，避免加字段时漏改一处）。
+inline std::size_t variance_audit_required_field_count() { return 10u; }
+
 }  // namespace noise
 }  // namespace astrocs
 

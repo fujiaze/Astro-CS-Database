@@ -608,6 +608,112 @@ static void test_ivar_chain_real_operation() {
     CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "true");
     // A44（GAP_AUDIT §9.73 / ASTROCS_DESIGN §2.1）：全程只有 SNR，不存在
     // 「权重模式」⇒ 原 ASTROCS_WEIGHT_MODE 契约断言已删（键已不存在）。
+    // ── AUDIT-PERSIST-01: §7a 审计块必须能从**产品**里读出来 ──────────────
+    // 依据 docs/science/PHASE2_UPM.md §7a:190-192（节点间距的逐次尝试与生效值必须
+    // 写入 provenance）、§7a:204（κ 与 χ²_red 必须可观测）、§7a:219（provenance
+    // 最小集含 rank/rank_rtol/kappa/kappa_max/model_hash）。
+    // 修法前这些量只写进**内存里的节点 manifest**（p2_op_upm_fit 的
+    // sky_plane_* 键），CLI 只从节点 manifest 抽 6 个键
+    // （lib/infrastructure/cli/commands.cpp:242-296）⇒ 产品里一个都读不到。
+    // 现在由 p2_op_write 从磁盘产品（p2_sky_plane.bin / p2_upm_model.json）读回，
+    // 组装成 p2_final.json#phase2_audit。本段**只读产品**，不读内存 manifest。
+    CHECK_MSG(fin.contains("phase2_audit") && fin["phase2_audit"].is_object(),
+              "AUDIT-PERSIST: p2_final.json must carry the §7a phase2_audit block"
+              " (before this task it lived only in the in-memory node manifest)");
+    if (fin.contains("phase2_audit") && fin["phase2_audit"].is_object()) {
+      const json& pa = fin["phase2_audit"];
+      CHECK_MSG(pa.value("schema", std::string()) == "DATA-P2-AUDIT",
+                "AUDIT-PERSIST: phase2_audit must declare its schema");
+      CHECK_MSG(pa.value("clause", std::string()).find("§7a") != std::string::npos,
+                "AUDIT-PERSIST: phase2_audit must cite the §7a clause");
+      CHECK_MSG(pa.contains("solvers") && pa["solvers"].is_object(),
+                "AUDIT-PERSIST: phase2_audit must separate the two solvers (§7a:205-216)");
+      const json upm = pa["solvers"].value("upm_gls", json::object());
+      // ② UPM/GLS：converged/iterations 必须来自落盘的 p2_upm_model.json；
+      // rank/kappa 生产链不计算 ⇒ 必须是**具名不可得登记**，不是静默缺键。
+      CHECK_MSG(upm.value("converged", -1) >= 0,
+                "AUDIT-PERSIST: upm_gls.converged must be read back from the product");
+      CHECK_MSG(upm.value("iterations", -1) >= 0,
+                "AUDIT-PERSIST: upm_gls.iterations must be read back from the product");
+      // 口径统一（UPM-KAPPA-UNIFY-01）后 p2_upm_build_geo 自己算 rank/kappa 并落在
+      // p2_upm_model.json 的 identifiability 段 ⇒ 审计块**必须读回真值**。判据由
+      // 产品自己决定：读审计块登记的 artifact，看它有没有 identifiability 段。
+      //   · 有该段 ⇒ rank/chi2_red/rank_rtol 必须是**数字**（真值，非具名不可得）；
+      //   · 无该段（旧产品）⇒ rank 显式 null + 具名 reason（禁静默缺键）。
+      bool upm_has_idn = false;
+      {
+        json umd;
+        try { umd = json::parse(read_file(upm.value("artifact", std::string()))); }
+        catch (...) { umd = json::object(); }
+        upm_has_idn = umd.contains("identifiability") && umd["identifiability"].is_object();
+      }
+      if (upm_has_idn) {
+        // rank / rank_rtol 任何情形下都有定义 ⇒ 必须是数字。
+        for (const char* k : {"rank", "rank_rtol"}) {
+          CHECK_MSG(upm.contains(k) && upm[k].is_number(),
+                    ("AUDIT-PERSIST: p2_upm_model.json carries an identifiability"
+                     " section, so upm_gls." + std::string(k) +
+                     " must be read back as a number from the product").c_str());
+        }
+        // χ²_red 是**另一种情形**：dof_eff ≤ 0 时它数学上无定义（加性模型在
+        // rank(X) = n_obs 时饱和；真实 M42 也是 277255 观测 / 秩 277255），产品写
+        // null + chi2_red_defined=false + chi2_red_note。判据因此是「键必须在 ∧
+        // null 必须带具名理由」，不是「必须是数字」——把诚实登记的无定义值判成
+        // 「字段丢了」是罚诚实。这与 κ=null + kappa_infinite 是同一条纪律。
+        CHECK_MSG(upm.contains("chi2_red"),
+                  "AUDIT-PERSIST: upm_gls.chi2_red key must be present (a missing key"
+                  " is a silent degradation; null with a reason is honest)");
+        if (upm["chi2_red"].is_number()) {
+          CHECK_MSG(upm.value("chi2_red_defined", false) == true,
+                    "AUDIT-PERSIST: a numeric chi2_red must declare chi2_red_defined=true");
+        } else {
+          CHECK_MSG(upm.value("chi2_red_defined", true) == false,
+                    "AUDIT-PERSIST: a null chi2_red must declare chi2_red_defined=false");
+          CHECK_MSG(upm.value("chi2_red_note", std::string()).size() > 0,
+                    "AUDIT-PERSIST: a null chi2_red must carry a named reason");
+          CHECK_MSG(upm.value("dof_eff", 1.0) <= 0.0,
+                    "AUDIT-PERSIST: chi2_red may only be undefined when dof_eff <= 0");
+        }
+        // 整段随行：identifiability 的每个键都必须能在审计块里找到（防拷贝漂移）。
+        CHECK_MSG(upm.contains("identifiability") && upm["identifiability"].is_object(),
+                  "AUDIT-PERSIST: the identifiability section must be carried verbatim"
+                  " so that new solver-side keys cannot drift out silently");
+        CHECK_MSG(!upm.contains("rank_unavailable_reason"),
+                  "AUDIT-PERSIST: with real rank available the named-unavailability"
+                  " key must be gone (otherwise the audit block contradicts the product)");
+      } else {
+        CHECK_MSG(upm.contains("rank") && upm["rank"].is_null() &&
+                      upm.contains("rank_unavailable_reason") &&
+                      upm["rank_unavailable_reason"].is_string() &&
+                      !upm["rank_unavailable_reason"].get<std::string>().empty(),
+                  "AUDIT-PERSIST: a legacy product without the identifiability section"
+                  " must register rank as an explicitly-named unavailability");
+      }
+      // 已退休的绝对常数尺不得再出现在 provenance 里（留键 = 把死条款伪装成现行）。
+      CHECK_MSG(!upm.contains("kappa_max_frozen"),
+                "AUDIT-PERSIST: kappa_max_frozen describes a retired absolute-constant"
+                " gate (FZ-AP2S-KAPPA-MAX) and must not be published");
+      CHECK_MSG(!upm.contains("rank_rtol_frozen"),
+                "AUDIT-PERSIST: rank_rtol is no longer a frozen 1e-10 constant"
+                " (floor = max(m,n)*eps, input-overridable) => no frozen key");
+      const json sp = pa["solvers"].value("sky_plane", json::object());
+      if (sp.value("present", false)) {
+        // ① 天光面求解器在位 ⇒ §7a 点名的可观测量必须齐全（R5 的同判据）。
+        for (const char* k : {"rank", "kappa", "chi2_red", "node_spacing_deg", "n_params"}) {
+          CHECK_MSG(sp.contains(k) && sp[k].is_number(),
+                    ("AUDIT-PERSIST: sky_plane §7a key missing in p2_final.json: " +
+                     std::string(k)).c_str());
+        }
+        CHECK_MSG(sp.value("missing_fields", json::array()).empty(),
+                  "AUDIT-PERSIST: a present sky-plane product must have no missing §7a key");
+      } else {
+        // 未建天光面（如 additive_mode=c）**不是**缺字段：必须给出具名原因。
+        CHECK_MSG(sp.value("reason", std::string()).size() > 0,
+                  "AUDIT-PERSIST: an absent sky-plane product must register a named reason");
+      }
+      std::printf("[AUDIT-PERSIST] p2_final.json#phase2_audit = %s\n",
+                  pa.dump().c_str());
+    }
   }
   // 读回 variance/ivar tile（AIO reader; f32 容差）
   {

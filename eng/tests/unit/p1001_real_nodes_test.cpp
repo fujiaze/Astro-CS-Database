@@ -2888,6 +2888,26 @@ constexpr uint8_t kIvarSupFull = 255;      // 满覆盖: area = A_cell
 constexpr uint64_t kIvarCover = 512;       // 覆盖叶数
 constexpr double kIvarVarAdu2 = 4.0e-4;    // 目标逐像素 variance (ADU²)
 
+// ── AUDIT-PERSIST-01: 手搭 HiPS 夹具的 §5d 审计块 ─────────────────────────────
+// 下面几个夹具**模拟生产 drizzle 节点的落盘**（它们直调生产末端
+// drizzle::write_hips_phase1 写标准 HiPS 树，再手写 p1_stack.json）。既然
+// variance/ivar 子产品已发布，逐帧 p1_stack.json 就必须带上 §5d 审计块 ——
+// 否则 writer 节点按 §5d:270-271「缺任一项即视为该帧的方差面不可审计」判红
+// （这正是本任务新增的负例形态；夹具作为上游产品的**模拟者**必须跟上新契约，
+// 判据本身不放松）。数值是合成的（夹具没有真实噪声模型），但字段集与生产同一清单。
+static std::string s5d_audit_block_json() {
+  return "\"variance_audit\":{\"schema\":\"DATA-P1-VARIANCE-AUDIT\","
+         "\"status\":\"attached\",\"reason\":\"ok\",\"degenerate\":false,"
+         "\"auditable\":true,\"plane_used\":\"fitted_spatial_plane\","
+         "\"ctrl_variance_range\":1.0,\"plane_a\":1.0,\"plane_b\":0.0,"
+         "\"plane_c\":0.0,\"hull_nonpositive_frac\":0.0,"
+         "\"n_structure_rejected_patches\":0,\"r_min\":1.0,\"r_median\":1.0,"
+         "\"r_max\":1.0,\"r_fence\":1.0,"
+         "\"required_fields\":[\"ctrl_variance_range\",\"plane_a\",\"plane_b\","
+         "\"plane_c\",\"hull_nonpositive_frac\",\"n_structure_rejected_patches\","
+         "\"r_min\",\"r_median\",\"r_max\",\"r_fence\"],\"missing_fields\":[]}";
+}
+
 static bool write_sparse_hips_var(const std::string& root,
                                   const std::vector<SparseTile>& tiles,
                                   double variance_adu2) {
@@ -2923,13 +2943,22 @@ static bool write_sparse_hips_var(const std::string& root,
   // signal/properties 的 BUNIT 必须同串（docs/contracts/DATA_SEMANTICS.md §31.1a:
   // 2808-2810），故夹具如实写 canonical 面亮度串，不得省略（省略即声明面不完整，
   // declare_hips_surface_brightness_units 的 B1 守卫会判红）。
+  // 本夹具 has_variance=1 ⇒ 已发布 variance/ivar 子产品 ⇒ §5d 审计块必须齐全
+  // （AUDIT-PERSIST-01：缺任一项即视为该帧的方差面不可审计）。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
   if (sf)
     sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside
-       << ",\"bunit\":\"ADU/sr\"}";
+       << ",\"bunit\":\"ADU/sr\"," << s5d_audit_block_json() << "}";
   return ok;
 }
 
+// ── AUDIT-PERSIST-01: 手搭 HiPS 夹具的 §5d 审计块 ─────────────────────────────
+// 下面几个夹具**模拟生产 drizzle 节点的落盘**（它们直调生产末端
+// drizzle::write_hips_phase1 写标准 HiPS 树，再手写 p1_stack.json）。既然
+// variance/ivar 子产品已发布，逐帧 p1_stack.json 就必须带上 §5d 审计块 ——
+// 否则 writer 节点按 §5d:270-271「缺任一项即视为该帧的方差面不可审计」判红
+// （这正是本任务新增的负例形态；夹具作为上游产品的**模拟者**必须跟上新契约，
+// 判据本身不放松）。数值是合成的（夹具没有真实噪声模型），但字段集与生产同一清单。
 static bool hips_tile_product(const std::string& root, const char* prod,
                               uint64_t tile, std::vector<float>* out) {
   return read_hips_tile(root + "/" + prod + "/Norder0/Dir" +
@@ -3400,10 +3429,11 @@ static bool write_sparse_hips_var_per_tile(const std::string& root,
   std::string err;
   const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", 1, err);
   if (!ok) std::fprintf(stderr, "W2 fixture write_hips_phase1 failed: %s\n", err.c_str());
+  // 本夹具发布 variance/ivar 子产品 ⇒ §5d 审计块必须齐全（AUDIT-PERSIST-01）。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
   if (sf)
     sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside
-       << ",\"bunit\":\"ADU/sr\"}";
+       << ",\"bunit\":\"ADU/sr\"," << s5d_audit_block_json() << "}";
   return ok;
 }
 
@@ -3790,6 +3820,200 @@ std::string tri_chain_cfg(const TriFixture& fx, bool with_missing_third) {
             "cd21": 0.0, "cd22": 0.0002777777777777778},
     "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
   })";
+}
+
+// ── AUDIT-PERSIST-01: §5d 可观测量必须落在**可读产品**里 ────────────────────
+// 缺陷（本任务实测）：var_diag（§5d 审计字段）只汇入 (*man) —— **内存里的节点
+//   manifest**；而 CLI 只从节点 manifest 抽取 algorithm_id / module_build_id /
+//   provider / bunit / coordinate_frame / input_manifest_hash
+//   （build_run_provenance，lib/infrastructure/cli/commands.cpp:242-296），
+//   其余键全部丢弃 ⇒ 在 run/M42-E2E-02 的产品树里搜 hull_nonpositive_frac /
+//   n_structure_rejected_patches / r_median / r_fence / mask_radius_p50 等**零命中**。
+// 修法（落点 = 既有逐帧产品，不引入新文件）:
+//   ① p1_op_drizzle 把审计块写进 <frame>/p1_stack.json#variance_audit（它本来就要
+//      写这个文件），并在落盘前自检「挂了 variance 块 ⇒ §5d 清单必须齐全」；
+//   ② p1_op_writer 从磁盘读回并写进 <frame>/p1_final.json#variance_audit。
+// 本测试**只从磁盘产品读**（不读内存 manifest）来判红绿，正是本任务的意义所在。
+static void test_audit_persist_01_s5d_in_products() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string wcs =
+      std::string("\"wcs\": {\"crpix1\": 16.0, \"crpix2\": 16.0, \"crval1\": 10.0,"
+                  " \"crval2\": 20.0, \"cd11\": -0.02, \"cd12\": 0.0,"
+                  " \"cd21\": 0.0, \"cd22\": 0.02}");
+  auto drz_cfg = [&](const Fixture& fx) {
+    return std::string("{\n  \"input_lights\": [\"") + fx.light1 +
+           "\"],\n  \"output_dir\": \"" + fx.out_dir + "\",\n  " + wcs +
+           ",\n  \"drizzle\": {\"nside\": 512, \"nested\": 1, \"pixfrac\": 1.0,"
+           " \"precision_mode\": 0}\n}";
+  };
+  // §5d 清单的**独立副本**（逐字抄 docs/science/NOISE_MODEL.md §5d:270-271 的
+  // 五类可观测量 → 键名映射）：它不由被测代码提供，故生产者无法通过自缩清单把
+  // 这条判据变绿。
+  const std::vector<std::string> s5d = {
+      "ctrl_variance_range", "plane_a", "plane_b", "plane_c",
+      "hull_nonpositive_frac", "n_structure_rejected_patches",
+      "r_min", "r_median", "r_max", "r_fence"};
+  auto read_json = [](const std::string& p, json* out) -> bool {
+    try { *out = json::parse(read_file(p)); return true; } catch (...) { return false; }
+  };
+
+  // (a) 绿：真实 drizzle + writer 之后，§5d 字段在**两个产品文件**里都可读，
+  //     且两处逐项相等（产品不是重算，是同一批可观测量）。
+  {
+    Fixture fx = make_fixture("auditp1ok");
+    write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    RunContext ctx;
+    Result<void> rc;
+    json man_drz = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    CHECK_MSG(rc.ok(), ("AUDIT-PERSIST(a): drizzle must succeed: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    const std::string froot = frame_root(fx);
+    const std::string stack_p = froot + "/p1_stack.json";
+    json sj;
+    CHECK_MSG(read_json(stack_p, &sj), "AUDIT-PERSIST(a): p1_stack.json must exist");
+    CHECK_MSG(sj.contains("variance_audit") && sj["variance_audit"].is_object(),
+              "AUDIT-PERSIST(a): p1_stack.json must carry the §5d variance_audit block"
+              " (before this task it lived only in the in-memory node manifest)");
+    json as = sj.value("variance_audit", json::object());
+    for (const std::string& k : s5d) {
+      CHECK_MSG(as.contains(k) && as[k].is_number(),
+                ("AUDIT-PERSIST(a): §5d key missing/non-numeric in p1_stack.json: " + k).c_str());
+    }
+    CHECK_MSG(as.value("missing_fields", json::array()).empty(),
+              "AUDIT-PERSIST(a): a published plane must have no missing §5d field");
+    CHECK_MSG(as.value("auditable", false) == true,
+              "AUDIT-PERSIST(a): green side must be auditable");
+    CHECK_MSG(as.value("status", std::string()) == "attached",
+              "AUDIT-PERSIST(a): green side must attach the variance block");
+    // 生产者自报的清单必须与 §5d 条款清单**逐项相等**（防自缩清单）。
+    {
+      const json req = as.value("required_fields", json::array());
+      bool same = (req.size() == s5d.size());
+      for (const std::string& k : s5d)
+        if (std::find(req.begin(), req.end(), json(k)) == req.end()) same = false;
+      CHECK_MSG(same, "AUDIT-PERSIST(a): required_fields must equal the §5d clause list");
+    }
+    // 上游节点 manifest 的逐帧条目（内存面）——用于与产品面逐项对照。
+    const json vf = man_drz.value("variance_product_frames", json::array());
+    CHECK_MSG(vf.size() == 1, "AUDIT-PERSIST(a): 1 per-frame variance entry expected");
+
+    Result<void> wrc;
+    json man_wr = run_writer_node(reg, fx, &wrc);
+    CHECK_MSG(wrc.ok(), ("AUDIT-PERSIST(a): writer must succeed: " +
+                         (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+    const std::string final_p = froot + "/p1_final.json";
+    json fin;
+    CHECK_MSG(read_json(final_p, &fin), "AUDIT-PERSIST(a): p1_final.json must exist");
+    CHECK_MSG(fin.value("variance_audit_present", false) == true,
+              "AUDIT-PERSIST(a): p1_final must report the audit block as present");
+    CHECK_MSG(fin.value("variance_audit_available", false) == true,
+              "AUDIT-PERSIST(a): p1_final must report the frame as auditable");
+    CHECK_MSG(fin.value("variance_audit_missing_fields", json::array()).empty(),
+              "AUDIT-PERSIST(a): p1_final must report no missing §5d field");
+    CHECK_MSG(fin.value("variance_audit_source", std::string()) ==
+                  "p1_stack.json#variance_audit",
+              "AUDIT-PERSIST(a): the audit block must be read back from disk");
+    json af = fin.value("variance_audit", json::object());
+    for (const std::string& k : s5d) {
+      CHECK_MSG(af.contains(k),
+                ("AUDIT-PERSIST(a): §5d key missing in p1_final.json: " + k).c_str());
+      CHECK_MSG(af.value(k, -1.0) == as.value(k, -2.0),
+                ("AUDIT-PERSIST(a): p1_final value must equal p1_stack value for " + k).c_str());
+      if (!vf.empty())
+        CHECK_MSG(af.value(k, -1.0) == vf[0].value(k, -2.0),
+                  ("AUDIT-PERSIST(a): product value must equal the node-manifest entry for " + k).c_str());
+    }
+    std::printf("[AUDIT-PERSIST] green frame %s: ctrl_variance_range=%.6g plane=(%.6g,%.6g,%.6g)"
+                " hull_nonpositive_frac=%.6g n_structure_rejected=%lld"
+                " r_min=%.6g r_median=%.6g r_max=%.6g r_fence=%.6g%s",
+                frame_root(fx).c_str(), af.value("ctrl_variance_range", 0.0),
+                af.value("plane_a", 0.0), af.value("plane_b", 0.0), af.value("plane_c", 0.0),
+                af.value("hull_nonpositive_frac", -1.0),
+                (long long)af.value("n_structure_rejected_patches", -1),
+                af.value("r_min", 0.0), af.value("r_median", 0.0), af.value("r_max", 0.0),
+                af.value("r_fence", 0.0), "\n");
+    cleanup_fixture(fx);
+  }
+
+  // (b) 红①（生产者自检）：ASTROCS_VARPLANE_FAULT=drop_audit_observables 把 §5d
+  //     可观测量从 provenance 里删掉 ⇒ 挂了 variance 块却给不出可观测量 ⇒ 节点
+  //     fail-closed，且 p1_stack.json **不落盘**（不得静默出片）。
+  {
+    Fixture fx = make_fixture("auditp1drop");
+    write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    ::setenv("ASTROCS_VARPLANE_FAULT", "drop_audit_observables", 1);
+    RunContext ctx;
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    ::unsetenv("ASTROCS_VARPLANE_FAULT");
+    CHECK_MSG(rc.failed(), "AUDIT-PERSIST(b): dropping §5d observables must fail-closed");
+    const std::string msg = rc.failed() ? rc.error().message() : std::string();
+    CHECK_MSG(msg.find("§5d") != std::string::npos && msg.find("r_fence") != std::string::npos,
+              ("AUDIT-PERSIST(b): the failure must name the §5d clause and the missing"
+               " fields, got: " + msg).c_str());
+    CHECK_MSG(!fs::exists(fs::path(frame_root(fx) + "/p1_stack.json")),
+              "AUDIT-PERSIST(b): an incomplete audit block must not reach the product");
+    cleanup_fixture(fx);
+  }
+
+  // (c) 红②（消费者/产品级自检）：产品树里的 p1_stack.json 被人为删掉整个
+  //     variance_audit 块 ⇒ writer 必须判红（「字段不在产品里就判红」），
+  //     且不得写出 p1_final.json。
+  {
+    Fixture fx = make_fixture("auditp1strip");
+    write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    RunContext ctx;
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    CHECK_MSG(rc.ok(), "AUDIT-PERSIST(c): drizzle must succeed before the strip");
+    const std::string froot = frame_root(fx);
+    json sj;
+    CHECK(read_json(froot + "/p1_stack.json", &sj));
+    sj.erase("variance_audit");
+    {
+      std::ofstream of(froot + "/p1_stack.json", std::ios::binary);
+      CHECK_MSG(static_cast<bool>(of), "AUDIT-PERSIST(c): must be able to rewrite p1_stack.json");
+      of << sj.dump(2);
+    }
+    Result<void> wrc;
+    json man_wr = run_writer_node(reg, fx, &wrc);
+    CHECK_MSG(wrc.failed(),
+              "AUDIT-PERSIST(c): a published variance plane without §5d provenance"
+              " must fail-closed (this is the negative form of the new landing)");
+    CHECK_MSG(!fs::exists(fs::path(froot + "/p1_final.json")),
+              "AUDIT-PERSIST(c): no p1_final.json may be written on the red path");
+    CHECK_MSG(!man_wr.value("variance_audit_missing_fields", json::array()).empty(),
+              "AUDIT-PERSIST(c): the failure must register which §5d fields are missing");
+    cleanup_fixture(fx);
+  }
+
+  // (d) 红③（逐字段，不是全有全无）：只删 r_fence 一个字段 ⇒ 仍判红，且点名
+  //     恰好是 r_fence —— 证明这条判据是逐字段的，不是一个「块在不在」的粗门。
+  {
+    Fixture fx = make_fixture("auditp1one");
+    write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    RunContext ctx;
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    CHECK(rc.ok());
+    const std::string froot = frame_root(fx);
+    json sj;
+    CHECK(read_json(froot + "/p1_stack.json", &sj));
+    sj["variance_audit"].erase("r_fence");
+    {
+      std::ofstream of(froot + "/p1_stack.json", std::ios::binary);
+      of << sj.dump(2);
+    }
+    Result<void> wrc;
+    json man_wr = run_writer_node(reg, fx, &wrc);
+    CHECK_MSG(wrc.failed(), "AUDIT-PERSIST(d): one missing §5d field must still fail-closed");
+    const json miss = man_wr.value("variance_audit_missing_fields", json::array());
+    CHECK_MSG(miss.size() == 1 && miss[0].get<std::string>() == "r_fence",
+              ("AUDIT-PERSIST(d): the failure must name exactly r_fence, got " +
+               miss.dump()).c_str());
+    cleanup_fixture(fx);
+  }
 }
 
 static void test_p0_21_multi_frame_one_hips_per_input() {
@@ -4794,6 +5018,8 @@ int main() {
   test_chain_wire_w1_varplane_audit_failclosed();
   test_chain_wire_w2_variance_census_from_disk();
   test_chain_wire_w3_mask_radius_scale_invariance();
+  // AUDIT-PERSIST-01: §5d 可观测量必须落在**可读产品**里（从产品 JSON 读回判红绿）
+  test_audit_persist_01_s5d_in_products();
   test_b2a17_sip_bridge();
   // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性
   test_p17_nside_sampling_compliance();
