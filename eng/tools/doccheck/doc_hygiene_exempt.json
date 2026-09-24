@@ -1,0 +1,13 @@
+{
+ "schema": "doc-hygiene-exempt/v1",
+ "note": "显式豁免台账（只减不增）。每条 = path + rule + fingerprint + reason + authority；条目不再命中 ⇒ 门判红 D3_exempt_stale（要求删除或收紧）。豁免不隐藏现状：--dump exempt / --audit 可逐条查看。",
+ "entries": [
+  {
+   "path": "ASTROCS_DESIGN.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "b17aae6bd0b5dfa7",
+   "reason": "该行逐字引述 docs/science/PHASE2_UPM.md §7 冻结的三档容差档名（跨后端不允许 = 无等价档），改词即改科学口径",
+   "authority": "docs/science/PHASE2_UPM.md §7（冻结容差三档）；ASTROCS_DESIGN.md §0.3（科学公式与数值在下级文档）"
+  }
+ ]
+}

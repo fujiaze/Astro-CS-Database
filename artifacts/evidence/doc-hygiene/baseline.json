@@ -1,0 +1,2969 @@
+{
+ "d3": {
+  "D3a_date": {
+   "docs/DOCUMENT_INDEX.yaml": [
+    "028cf3efcb239000",
+    "08ba683ddbd0baae",
+    "0b3bb6c7aa390a25",
+    "0bca9f3f6bf46d24",
+    "166e143bbd6b97dd",
+    "17ea28f27caf0202",
+    "19ee1bfb1db673fb",
+    "1c30ebb4f443e877",
+    "1d4cdc614a0eb070",
+    "1fb08428405257b6",
+    "295e83b4eb0078cb",
+    "2e2f1b17acba986b",
+    "367c4c0a8598a545",
+    "3eb622d266b5cedf",
+    "433852a23def1a38",
+    "4c67f710637171e1",
+    "55fb5bf30934ed31",
+    "5c83aefde1473969",
+    "5de96bb09c094b17",
+    "6c8278189ad48098",
+    "6cbe0ee40b013fc1",
+    "6f73e6c30dd7a04a",
+    "7c1114e31df6ff3f",
+    "7c3b53fe98d3338a",
+    "869b16bfaa65078f",
+    "87febe7bd3f040e9",
+    "a0ce8ce42cab619d",
+    "a9e96770be197451",
+    "ac4ff8e020ff40c5",
+    "b2811cb248d0e6f8",
+    "b2e00608ed0e40c6",
+    "b4e7f693b2f31c35",
+    "b80ebcf0969dca81",
+    "bfe13b0c27d7a09f",
+    "c5f0a280a6199f9f",
+    "c713b079a00a787f",
+    "d307569d6fdc9272",
+    "d8fbbf67b1e08588",
+    "da4b39a09e136571",
+    "e7323c6391507de9",
+    "e8c6fe34c123f1e0",
+    "e92027de1b643df0",
+    "ef2d02949c893cb8",
+    "f496e00d77a2d182",
+    "f577685e8fe91950",
+    "fa786f677b2da6ed"
+   ],
+   "docs/TRACEABILITY.csv": [
+    "6b71886645763fd7",
+    "b22c4e84196ecc85",
+    "ba95c20a5b50f6b9",
+    "bd9dcb69782f2194"
+   ],
+   "docs/algorithms/PHASE3_RSMP_IMPL.md": [
+    "0d27a562bf91d9e0"
+   ],
+   "docs/api/CLI_PROTOCOL_V1.md": [
+    "40603a4cae807099"
+   ],
+   "docs/architecture/PERFORMANCE_MODEL.md": [
+    "5e657b3a52f8d03d",
+    "99eff5ebbef2a7ed",
+    "a8d5b29d1288b538"
+   ],
+   "docs/contracts/ARCH-001.md": [
+    "4d4b24dcc0fbf435"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "15b5f68b06e229c8",
+    "27dfd3100a50ec38",
+    "548381e2805da0f4",
+    "62a1fd1fc43f8b83",
+    "7d3d66cb215bcf09",
+    "83c95ce803e35704",
+    "a6dbb25eeabf50ae",
+    "da809958fff15c93",
+    "fda85a37ed413a4b",
+    "fddd335486a84a66"
+   ],
+   "docs/contracts/DATA_ARTIFACTS.md": [
+    "b8cee22dc2126c64",
+    "f4e9bb47334beb20"
+   ],
+   "docs/contracts/DATA_SEMANTICS.md": [
+    "27607734645ac36d",
+    "37c24ba8562e01be"
+   ],
+   "docs/contracts/INDEX.yaml": [
+    "6ee55dbff9325d76",
+    "8be7a6c2a0965e2b",
+    "a131ab36580d48b5"
+   ],
+   "docs/contracts/PUBLIC_API.md": [
+    "176e759ee7e8b7fa",
+    "1ebdf08c9d19b766",
+    "23022220e8a03487",
+    "4e8e4ee86a3bce70",
+    "5325bbfb6d733ce2",
+    "5dd29de551fd3426",
+    "63d9d40321c37971",
+    "65ca7f9d5dbd09a7",
+    "65e964d77cace7e0",
+    "69f022b735630236",
+    "731db7bea39bb5aa",
+    "895eb3c12a454ea6",
+    "9918792001bdf869",
+    "9cfda3aed7c980ea",
+    "9cfda3aed7c980ea",
+    "9cfda3aed7c980ea",
+    "b1d48ab41fff937b",
+    "b5a3210fd970f39b",
+    "bb51f70ce4c5ccdb",
+    "bc3b2bdaa82212d8",
+    "c2b425c2cfb6f45b",
+    "c61710b3c598d900",
+    "cc97a001070290ed",
+    "d52e2de05a9b2f43",
+    "e5c6618b54353b66"
+   ],
+   "docs/contracts/UNIFIED_OBJECTS.md": [
+    "26836bc6085a57cc",
+    "2ee57259d2d739b2",
+    "3cfc8e6791f698f7",
+    "6cf6f0fa64ce1cd9",
+    "82187ed98ac9b2d4",
+    "b2a55c308781fe1c",
+    "e5a758a6a80e9fd8",
+    "e95573a0ec039048",
+    "f1b6b25e0c557bf1"
+   ],
+   "docs/contracts/unified_object_registry.json": [
+    "0faf4b1a2ebe4d7c",
+    "16fa8d45bf135b09",
+    "3939ea0a3065a524",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "55b318fe64555c34",
+    "bdf56d1f4003b359",
+    "d804bbf8f4f59cd0"
+   ],
+   "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md": [
+    "41492d6c59e6a76c"
+   ],
+   "docs/modules/MODULE_MAP.yaml": [
+    "6ef6452e606c6711",
+    "7e1129fee01046f2",
+    "b460ad8347f6baea",
+    "cc728652edc07f76"
+   ],
+   "docs/owner/PIPELINE_OVERVIEW.md": [
+    "3645dd5d72e540d6"
+   ],
+   "docs/owner/SCIENCE_OVERVIEW.md": [
+    "5f65d18cf2617cb6",
+    "87a79f6e00a09511"
+   ],
+   "docs/science/PHASE2_UPM.md": [
+    "225e0727eb796f65"
+   ],
+   "docs/science/PHOTOMETRY.md": [
+    "901fffe5cff132d3"
+   ],
+   "docs/science/PSF_SIGNAL_WEIGHT.md": [
+    "36c7866011a2ba3a"
+   ],
+   "docs/standards/STANDARDS_REGISTRY.md": [
+    "7f780c923753d993",
+    "d71d607cadb83a11"
+   ],
+   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": [
+    "cfdc5ee033ce024c"
+   ],
+   "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md": [
+    "cfdc5ee033ce024c"
+   ],
+   "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md": [
+    "ca0df050a83adafb"
+   ],
+   "docs/validation/v6/P0_GATE_FAMILY.md": [
+    "cfdc5ee033ce024c"
+   ],
+   "docs/validation/v6/QA_MATRIX.md": [
+    "ca0df050a83adafb"
+   ],
+   "docs/validation/v6/README.md": [
+    "cfdc5ee033ce024c"
+   ]
+  },
+  "D3b_proc_id": {
+   "docs/KNOWN_LIMITATIONS.md": [
+    "4ddaed394be75106"
+   ],
+   "docs/VERSIONING.md": [
+    "a5433b557799dfca"
+   ],
+   "docs/algorithms/DRIZZLE_GEOMETRY.md": [
+    "3f81e5edb17d57d2",
+    "b15e315a93ba0c4b"
+   ],
+   "docs/algorithms/PHASE2_UPM_IMPL.md": [
+    "48588b830754fef6"
+   ],
+   "docs/algorithms/anchors/ANCHOR_CONTRACT.md": [
+    "70513d260b6f33d6",
+    "7afe7255d6402391",
+    "9199b6f19c8dc91e",
+    "eab6d30783cd0f17"
+   ],
+   "docs/algorithms/anchors/unresolved_registry.json": [
+    "32dc1989dab66215",
+    "9434c0dd9a0a53fd",
+    "9434c0dd9a0a53fd",
+    "9434c0dd9a0a53fd"
+   ],
+   "docs/api/CLI_PROTOCOL_V1.md": [
+    "6e16841404a62a78"
+   ],
+   "docs/architecture/PERFORMANCE_MODEL.md": [
+    "0416a7bcb9d90993",
+    "2c951ba62304226c",
+    "2c951ba62304226c",
+    "4a83106ab244fdb5",
+    "5e657b3a52f8d03d",
+    "74b1fcca4abb3f45",
+    "89a67367f5c379c7",
+    "970c613204ba2442",
+    "a8d5b29d1288b538",
+    "a9f896de63e80e32",
+    "d0dd902ac38ac62c",
+    "d72460e6a54f0c42",
+    "dd9b8e3607403743",
+    "eec1f14515e73efd",
+    "f3c7672ad78d82dc",
+    "f8acc29952dec37e"
+   ],
+   "docs/architecture/THREADING_MODEL.md": [
+    "2678fc7473342236",
+    "af5327f477d22980",
+    "d8b578e3bbd6490c",
+    "f79cbaa6db194897"
+   ],
+   "docs/architecture/abi/ABI_003_SECURE_LOADER.md": [
+    "00c12e9d1066ea25"
+   ],
+   "docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md": [
+    "3a33b730ffaf7dfc"
+   ],
+   "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md": [
+    "eb8ea6306c142ff3"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "2b82d30eee988928",
+    "c914fbe739101148",
+    "fda85a37ed413a4b"
+   ],
+   "docs/contracts/DATA_ARTIFACTS.md": [
+    "f4e9bb47334beb20"
+   ],
+   "docs/contracts/unified_object_registry.json": [
+    "d2cef877ed3d59ea"
+   ],
+   "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md": [
+    "d481cc7a0e75bfaf"
+   ],
+   "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md": [
+    "37aad312aaea10f3",
+    "6bd639ef28aa2a3f"
+   ],
+   "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md": [
+    "052b8365baff3fa3",
+    "a9cf6d3f0c42ce6a",
+    "c383ed1baa987c86"
+   ],
+   "docs/modules/registry/astrocs.phase1.cosmetic.md": [
+    "d50efa83ad0ce105"
+   ],
+   "docs/modules/registry/astrocs.phase1.drizzle.md": [
+    "78fa4b946df87ac0"
+   ],
+   "docs/owner/ARCHITECTURE_OVERVIEW.md": [
+    "11785c21c784363d",
+    "20f35d64fba4406a"
+   ],
+   "docs/owner/PIPELINE_OVERVIEW.md": [
+    "11785c21c784363d",
+    "fee5b2c33754ad28"
+   ],
+   "docs/owner/RELEASE_STATUS.md": [
+    "11785c21c784363d",
+    "88a7d17d022e6951",
+    "f8d6f7a0b51ab03a"
+   ],
+   "docs/owner/SCIENCE_OVERVIEW.md": [
+    "11785c21c784363d",
+    "d252af5e6c4521ce"
+   ],
+   "docs/science/ASTROMETRY.md": [
+    "2adcada9058e01ef",
+    "491f9817f993a6c3"
+   ],
+   "docs/science/PHASE2_UPM.md": [
+    "5857dc797bd2c9c2",
+    "5857dc797bd2c9c2"
+   ],
+   "docs/science/PHOTOMETRY.md": [
+    "4d1e6194b343f2b5",
+    "929f9e5cdeb4de80",
+    "efa6b988e6ed5870"
+   ],
+   "docs/traceability/traceability_warn_baseline.json": [
+    "b8f16a326d85835b",
+    "b8f16a326d85835b",
+    "b8f16a326d85835b",
+    "b8f16a326d85835b",
+    "b8f16a326d85835b",
+    "b8f16a326d85835b"
+   ]
+  },
+  "D3c_run_path": {
+   "docs/algorithms/DRIZZLE_GEOMETRY.md": [
+    "3f81e5edb17d57d2",
+    "b15e315a93ba0c4b"
+   ],
+   "docs/algorithms/PHASE3_RSMP_IMPL.md": [
+    "602615ed2d61bc6c"
+   ],
+   "docs/algorithms/anchors/anchor_contract.json": [
+    "1f6e1e915014c6c2"
+   ],
+   "docs/audit/risk_verification_T012.csv": [
+    "75e6952fa087608d"
+   ],
+   "docs/ci/01_CHECKS.md": [
+    "6010f654c0774862",
+    "6845d8c714c324c4",
+    "ae257044e4d83b82",
+    "c40beb3f8b2ee7ac"
+   ],
+   "docs/ci/03_GATES.md": [
+    "0ba9eb786e752d86",
+    "144f4b6ab139b2a4",
+    "1f9bfdbdda773eb4",
+    "6d993edce765a950",
+    "76dd5f5ad9727c2c",
+    "7c091e6af83d8533",
+    "9a69fc5a5ca963bf",
+    "b0d4e382eb7c53b3",
+    "eafaa9c2061f67ca",
+    "efdca21eecc9f1ee",
+    "f274ed6d841446aa"
+   ],
+   "docs/design/LOG_AND_ERROR_SYSTEM.md": [
+    "f2fcf0169082cea9"
+   ],
+   "docs/diagnostics/TROUBLESHOOTING.md": [
+    "74cf7816f3dbc9c1"
+   ],
+   "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md": [
+    "6985981a9eaf6d8a"
+   ],
+   "docs/modules/astro_image_io.md": [
+    "636198e49fc316f8"
+   ],
+   "docs/modules/orchestrator.md": [
+    "fc0db16425fde436"
+   ],
+   "docs/modules/registry/astrocs.phase1.drizzle.md": [
+    "66d8117c895396ba"
+   ],
+   "docs/modules/registry/astrocs.phase2.write.md": [
+    "abcaad924c522913"
+   ],
+   "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md": [
+    "9fe325945bd309c4"
+   ]
+  },
+  "D3d_sha": {
+   "docs/DOCUMENT_INDEX.yaml": [
+    "237ab562fa01d902",
+    "5cf17b56e5aba225",
+    "7c3b53fe98d3338a",
+    "c713b079a00a787f"
+   ],
+   "docs/algorithms/CALIBRATION_ALGORITHMS.md": [
+    "ed39f15b2dadc149"
+   ],
+   "docs/algorithms/GAIA_QUERY.md": [
+    "bfa6fd01d11235ec"
+   ],
+   "docs/algorithms/STAR_PSF_ALGORITHMS.md": [
+    "659dc2466885e372"
+   ],
+   "docs/contracts/config_separation_anchors.json": [
+    "6bd6399762090c08"
+   ],
+   "docs/contracts/unified_object_registry.json": [
+    "6bd6399762090c08",
+    "9d7164efb985d8af",
+    "a8f773d113b6476d",
+    "eb903430c2eb58b2"
+   ],
+   "docs/modules/calibration.md": [
+    "d4a6147a32a9237a"
+   ],
+   "docs/modules/phase2_rej.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/phase2_samp.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/phase2_upm.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/phase3_fits.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.calibration.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.cosmetic.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.drizzle.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.hips-writer.md": [
+    "4842ebdd9573320c"
+   ],
+   "docs/modules/registry/astrocs.phase1.noise-snr.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.photometry.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.session.md": [
+    "fb505472c49b8182"
+   ],
+   "docs/modules/registry/astrocs.phase1.star-detection.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.star-psf.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.wcs-platesolve.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase1.writer.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.coverage.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.integrate.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.reject.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.resample.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.sample.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.session.md": [
+    "fc8cdc589567e25e"
+   ],
+   "docs/modules/registry/astrocs.phase2.upm-apply.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.upm-fit.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase2.write.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase3.properties.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase3.resample.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase3.resample2.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase3.verify.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase3.wcs.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/modules/registry/astrocs.phase3.writer.md": [
+    "6ec5038a89ec2aee"
+   ],
+   "docs/owner/ARCHITECTURE_OVERVIEW.md": [
+    "2a3da080d67b7515",
+    "891b96653f4b1326"
+   ],
+   "docs/owner/PIPELINE_OVERVIEW.md": [
+    "2a3da080d67b7515",
+    "891b96653f4b1326"
+   ],
+   "docs/owner/RELEASE_STATUS.md": [
+    "2a3da080d67b7515",
+    "891b96653f4b1326"
+   ],
+   "docs/owner/SCIENCE_OVERVIEW.md": [
+    "2a3da080d67b7515",
+    "891b96653f4b1326"
+   ],
+   "docs/quality/complexity_baseline_v1.md": [
+    "56f12c1e48d57f93"
+   ],
+   "docs/traceability/TRACEABILITY_MATRIX.json": [
+    "ebe1100f85c608d6"
+   ],
+   "docs/traceability/TRACEABILITY_SPEC.md": [
+    "29cfc461c98e4b68"
+   ]
+  },
+  "D3e_history": {
+   "docs/KNOWN_LIMITATIONS.md": [
+    "a0796c06d0efae0d",
+    "d49f56b8c6653b78"
+   ],
+   "docs/algorithms/COSMETIC_ALGORITHMS.md": [
+    "e73604faf0139034"
+   ],
+   "docs/algorithms/PHASE2_SESSION.md": [
+    "115c4ad9c9217f38",
+    "17ed8b334bce9da4",
+    "9be519231a0b98f3"
+   ],
+   "docs/algorithms/PHASE3_PROJ_IMPL.md": [
+    "500c9fd7f2cc4f6f"
+   ],
+   "docs/algorithms/PHOTOMETRIC_FIT.md": [
+    "c0cb92c2cfc3d1bc"
+   ],
+   "docs/algorithms/anchors/ANCHOR_CONTRACT.md": [
+    "9f994430ef4e29ab"
+   ],
+   "docs/algorithms/anchors/unresolved_registry.json": [
+    "1eb4647dae2cdf68",
+    "1eb4647dae2cdf68",
+    "1eb4647dae2cdf68",
+    "1eb4647dae2cdf68",
+    "1eb4647dae2cdf68",
+    "1eb4647dae2cdf68"
+   ],
+   "docs/architecture/IO_AND_ATOMICITY.md": [
+    "eb11e6edeba8cd43"
+   ],
+   "docs/architecture/PERFORMANCE_MODEL.md": [
+    "0f0c3a87e89120c6",
+    "f8acc29952dec37e"
+   ],
+   "docs/architecture/THREADING_MODEL.md": [
+    "4f261347de2c300d"
+   ],
+   "docs/ci/01_CHECKS.md": [
+    "4035e41d53d0b566",
+    "e600bd8200f1ee67"
+   ],
+   "docs/ci/CI_SPEC.md": [
+    "9b3d1f86b63dbbf8"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "62a1fd1fc43f8b83",
+    "b1d998c3cfb41d5d"
+   ],
+   "docs/contracts/DATA_SEMANTICS.md": [
+    "27607734645ac36d",
+    "a582692df465722f"
+   ],
+   "docs/contracts/INDEX.yaml": [
+    "19ba9ad25859c762"
+   ],
+   "docs/contracts/PERF_GATE_CONTRACT.md": [
+    "0c21204255a1a875",
+    "439adb405e0820a7"
+   ],
+   "docs/contracts/PIPELINE_BLOCK_CONTRACT.md": [
+    "850ed3d9308f1c19"
+   ],
+   "docs/contracts/PUBLIC_API.md": [
+    "7d5523604c6bb8ae"
+   ],
+   "docs/design/PRODUCT_STORAGE_FORM.md": [
+    "cfbd9c34109c78fa"
+   ],
+   "docs/modules/MODULE_MAP.yaml": [
+    "7e1129fee01046f2"
+   ],
+   "docs/modules/phase2.md": [
+    "db650b8994881faf"
+   ],
+   "docs/modules/phase2_upm.md": [
+    "10becd0462282f59"
+   ],
+   "docs/owner/ARCHITECTURE_OVERVIEW.md": [
+    "a6e26757ae9bae6b"
+   ],
+   "docs/owner/RELEASE_STATUS.md": [
+    "d1f9de11d106cb0a"
+   ],
+   "docs/owner/SCIENCE_OVERVIEW.md": [
+    "90c918711d58e4b5"
+   ],
+   "docs/plugins/algorithms_phase1/07_noise_snr.md": [
+    "8a1051fc44862fb0"
+   ],
+   "docs/science/ASTROMETRY.md": [
+    "d060b791101885c7"
+   ],
+   "docs/science/CALIBRATION.md": [
+    "b088337d8a63679e"
+   ],
+   "docs/science/INTEGRATION.md": [
+    "99a71a92e927f05a",
+    "b53a99612218cf13"
+   ],
+   "docs/science/NOISE_MODEL.md": [
+    "913840526dad424c"
+   ],
+   "docs/science/PHASE2_UPM.md": [
+    "1641c92bbcff9f78"
+   ],
+   "docs/science/REJECTION.md": [
+    "3eae782d9dad2db3",
+    "b0ed99b6d18c9e2c"
+   ],
+   "docs/standards/STANDARDS_REGISTRY.md": [
+    "3dfb445c8770b9ef",
+    "5826a54ca4d3811d"
+   ],
+   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": [
+    "cfdc5ee033ce024c"
+   ],
+   "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md": [
+    "cfdc5ee033ce024c"
+   ],
+   "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md": [
+    "ca0df050a83adafb"
+   ],
+   "docs/validation/v6/P0_GATE_FAMILY.md": [
+    "cfdc5ee033ce024c"
+   ],
+   "docs/validation/v6/QA_MATRIX.md": [
+    "ca0df050a83adafb"
+   ],
+   "docs/validation/v6/README.md": [
+    "cfdc5ee033ce024c"
+   ]
+  },
+  "D3f_owner_quote": {
+   "AGENTS.md": [
+    "1d3726a808fb4e20"
+   ],
+   "docs/KNOWN_LIMITATIONS.md": [
+    "acbffd059ff633cb"
+   ],
+   "docs/api/CLI_PROTOCOL_V1.md": [
+    "40603a4cae807099"
+   ],
+   "docs/architecture/PERFORMANCE_MODEL.md": [
+    "1b90a24e9b864f86",
+    "74b1fcca4abb3f45"
+   ],
+   "docs/ci/01_CHECKS.md": [
+    "418d8484951c9395"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "15b5f68b06e229c8",
+    "2ce86ee5bf6e4c7d"
+   ],
+   "docs/contracts/DATA_ARTIFACTS.md": [
+    "b8cee22dc2126c64"
+   ],
+   "docs/contracts/DATA_SEMANTICS.md": [
+    "2fa02a8d2b6c7eb3"
+   ],
+   "docs/contracts/UNIFIED_OBJECTS.md": [
+    "6da86199ad9f554a",
+    "8d36294d61d670f9"
+   ],
+   "docs/contracts/unified_object_registry.json": [
+    "7569bc7376c1879b",
+    "afb57f4055f5ad5b",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6"
+   ],
+   "docs/modules/MODULE_MAP.yaml": [
+    "d68d8605d0be8ba3",
+    "e98012ed509dd6c8"
+   ],
+   "docs/owner/RELEASE_STATUS.md": [
+    "7384879b8306ac9c"
+   ],
+   "docs/science/CALIBRATION.md": [
+    "d3e49cf9ea7a6170"
+   ],
+   "docs/standards/RELEASE_STANDARD.md": [
+    "50cd4551099798fa"
+   ],
+   "docs/traceability/TRACEABILITY_SPEC.md": [
+    "63d9626c0589285a"
+   ],
+   "docs/validation/v6/P0_GATE_FAMILY.md": [
+    "2c2f3f9336480633"
+   ],
+   "docs/validation/v6/QA_MATRIX.md": [
+    "8e5265cb800a2665",
+    "df8f12bacda41fae"
+   ]
+  },
+  "D3g_strikethrough": {
+   "docs/algorithms/PHASE2_COVERAGE.md": [
+    "2e8ac9344c9af0aa"
+   ],
+   "docs/architecture/BUILD_GRAPH.md": [
+    "1b34969e96a369d8",
+    "4079c2d18996c5bc",
+    "54a5565e2cb66f3d",
+    "a4fe61f74e6e9819"
+   ],
+   "docs/architecture/CACHE_POLICY.md": [
+    "18e1d82c9b9b65f9"
+   ],
+   "docs/architecture/EXECUTION_MODEL.md": [
+    "160bb88aba22e70d",
+    "1ae8552b77146c84",
+    "6f1a23d8466ea19a",
+    "8c6aecb741cf7256",
+    "91f68320452c717f",
+    "ac0d4eee48628071",
+    "f44c24aa356d3863"
+   ],
+   "docs/architecture/PERFORMANCE_MODEL.md": [
+    "256fb1118bcc8161",
+    "5156a258e2fc273a",
+    "970c613204ba2442",
+    "aaab01139c84fdd1"
+   ],
+   "docs/architecture/THREADING_MODEL.md": [
+    "6ccc0d00d819b55f",
+    "be8daddb5cbd790c"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "46845a5b7bce083b",
+    "83c51b252a6e887b",
+    "976876f35913adaf"
+   ],
+   "docs/contracts/DATA_SEMANTICS.md": [
+    "00876d589bdcad82",
+    "101e968e3bed6137",
+    "2a2c5e4597520989",
+    "636fe46dcd97792a",
+    "8800533c12c699fc",
+    "886a6a12df51059c",
+    "8fd2fda7b81840cf",
+    "ac5fec6349aafef7",
+    "ba1c20695da8cbfd",
+    "bde4f35d13e46d54",
+    "ef3b1b59695eec5a",
+    "f16be52d222b16be",
+    "f723f4b40cca59b4",
+    "fc4788a93b8247d8"
+   ],
+   "docs/contracts/PUBLIC_API.md": [
+    "05e77a65a31dcb36",
+    "177f4ab2c2225fa3",
+    "2b951f728b6ee09f",
+    "4e37134052beab2e",
+    "63d9d40321c37971",
+    "6cfc56d4951f43a2",
+    "b57e94eb539b0f51",
+    "cd3e7d6142ceb25b",
+    "ddf4541d714e85b3"
+   ],
+   "docs/contracts/UNIFIED_OBJECTS.md": [
+    "c81a03a1f844a880"
+   ],
+   "docs/owner/SCIENCE_OVERVIEW.md": [
+    "87a79f6e00a09511"
+   ],
+   "docs/plugins/algorithms_phase1/06_photometry.md": [
+    "e849ea9dd504bf41"
+   ]
+  },
+  "D3h_prohibition": {
+   "docs/DEVELOPER_GUIDE.md": [
+    "8398bb963f282526",
+    "af1584c012c1b4f9",
+    "d7f2b26057654298"
+   ],
+   "docs/DOCUMENT_INDEX.yaml": [
+    "1fb08428405257b6",
+    "61ed74164ad16c51"
+   ],
+   "docs/GLOSSARY.md": [
+    "0e3e02dfddecfd67",
+    "1e9cf6886bacfe04",
+    "493d200114f5430c",
+    "4f66acbeefbe4c92",
+    "94481cf1557056d3",
+    "b3e258327d659124"
+   ],
+   "docs/KNOWN_LIMITATIONS.md": [
+    "291e5c169c36ff6e",
+    "6afdbf5c9785ed75",
+    "e5d8ec22e5a29150",
+    "f4117ecda9bf13e1"
+   ],
+   "docs/TRACEABILITY.csv": [
+    "563493351632ffa6"
+   ],
+   "docs/TROUBLESHOOTING.md": [
+    "036c9f914364207f"
+   ],
+   "docs/VERSIONING.md": [
+    "3c19e965b2ec0632",
+    "92c5688f90ab2e3f"
+   ],
+   "docs/algorithms/CALIBRATION_ALGORITHMS.md": [
+    "00e6b852a81babd6",
+    "197de422bd7f8da9",
+    "960b5b27021f793f",
+    "97eb025d2ff31402",
+    "a69bedfc63c939b2",
+    "bf988e36f258f2ad",
+    "cae33b75d077dd2a",
+    "d49b0373bc635fe6",
+    "d9acedb2ce2afec8",
+    "dafa392aeea2f2e1",
+    "e77d010d2b1b587a",
+    "f9b5e0ad5b3dee95"
+   ],
+   "docs/algorithms/COSMETIC_ALGORITHMS.md": [
+    "01928f39ac75061c",
+    "0edceb355cafb280",
+    "172ce1eb8de3b7d0",
+    "206da5e6d273f7b7",
+    "21b71458c3e0457f",
+    "3216b469c493d7ba",
+    "41736e7aeaa109aa",
+    "44b2cb61b3880e00",
+    "4a462b638813cec9",
+    "56d9bc0060627299",
+    "7fba2dad25104f20",
+    "8c6e2a9e7dc1c6ef",
+    "95b3f884aae51a80",
+    "a76f1b6e150bcc6c",
+    "aab192fef8204adf",
+    "be912fbec3079cd2",
+    "ce7dcdccf67b0d7d",
+    "f7e773fcb74da3c9"
+   ],
+   "docs/algorithms/DRIZZLE_GEOMETRY.md": [
+    "03360ca8888450dc",
+    "04278aa8c7ecf4f4",
+    "0a0d063c75986ac0",
+    "2218c8a0f67ec72d",
+    "33f2640f8db4d7db",
+    "50f5c289d3539ece",
+    "77540140649c4f50",
+    "955a7acc0a2db0d7",
+    "9665746bb39ffe98",
+    "a02951fff7ff446b",
+    "b4c583f5081bd727",
+    "b81a27b4057ef6fd"
+   ],
+   "docs/algorithms/GAIA_QUERY.md": [
+    "4c61bcd059cce667",
+    "f603c2120ee3a8a5"
+   ],
+   "docs/algorithms/GATES_AND_TOLERANCES.md": [
+    "098e24e35d9046ba",
+    "131e107937748ccb",
+    "5348327b25b0de23",
+    "853713f0f5d86447",
+    "879e6468c947aa79",
+    "9142336503056fb5",
+    "9f32c343988e1ad3",
+    "c14f743a9d6636c0",
+    "fe777c8aef1c6ae7"
+   ],
+   "docs/algorithms/HIPS_WRITER.md": [
+    "067d43ec3e040f80",
+    "277d2faf52e297b6",
+    "39ed430a5723075f",
+    "736092a8df9f78ca",
+    "7feb4e67529e9dda"
+   ],
+   "docs/algorithms/INTEGRATION_ALGORITHMS.md": [
+    "c804e7a108038c6a"
+   ],
+   "docs/algorithms/NOISE_ESTIMATION.md": [
+    "15761741977ed4d9",
+    "391a7586e7e09a68",
+    "4975f188a7edd0a2",
+    "4cb8fb2b2b45d36e",
+    "59a000ca1574e7cd",
+    "5d59df109fa60720",
+    "6aa34a151365ded1",
+    "884a5142e05c87c6",
+    "98d191ee172442fa",
+    "9a445a393ceb36cd",
+    "a9ec47b6269e3e7c",
+    "ee36399bb7248953"
+   ],
+   "docs/algorithms/PHASE2_COVERAGE.md": [
+    "254e49b699a5d052",
+    "32a0c64062bb9945",
+    "38cc00d74c6f334e",
+    "419bc6ca4024bcd0",
+    "46d30cd3c7721176",
+    "54ffcb755dfccf24",
+    "6a267f0a42204dd5",
+    "8e781d846e2957cd",
+    "92c750d1335e00ae",
+    "97f600379decd4a8",
+    "ba06e4e77150509a",
+    "ed65fdc1977fb2bb",
+    "fe372853960969d2"
+   ],
+   "docs/algorithms/PHASE2_INTEGRATION.md": [
+    "1c6853ce1ea70c9a",
+    "1cda87eaa8bc7d86",
+    "5af623ca0b8070b2",
+    "6fc71c270ae4b2e0",
+    "894352e8c9e08f90",
+    "aaafa6d29a552b2d",
+    "b66a7ba8f387b33d",
+    "c908015714d2f691",
+    "d3b30b7dd012007a",
+    "d4614849f2f08a72",
+    "df2ddcd178128258",
+    "fc8ec224a6e5fc3e"
+   ],
+   "docs/algorithms/PHASE2_MOSAIC_WRITE.md": [
+    "179d87d3f84c1b1a",
+    "25e57fe2ae91d80e",
+    "2f9b0760f9bd52f9",
+    "345a083795b79206",
+    "4347051de8f8e8b5",
+    "6392d31db1a5ce23",
+    "a1a68b152cb3ea70",
+    "baae0a92d9cdd261",
+    "bf4a39fd7e99e563",
+    "c56c2ed68fa470da",
+    "eaf423f57e680a9b",
+    "fbf7f8e2e0674cf0"
+   ],
+   "docs/algorithms/PHASE2_REJECTION.md": [
+    "0345856656db79e1",
+    "16052619851742e5",
+    "1f0eee819dfb805e",
+    "22b3498cdedd8b1c",
+    "24483384144b6f91",
+    "38b08af8ccf3807e",
+    "40b3e4204425acf4",
+    "4345c54f03140260",
+    "4493114fc75cd780",
+    "4ae494d3920b19e4",
+    "573c55661a5206f8",
+    "67f2215287e605cf",
+    "756e5299fbdddc1c",
+    "758e7442d83974b3",
+    "7beade5e55cdfbd9",
+    "f09758897f5207e8",
+    "f7c7f7cb5d71a105",
+    "fc8ec224a6e5fc3e"
+   ],
+   "docs/algorithms/PHASE2_SAMPLER.md": [
+    "0be5937c4d879288",
+    "2406486aae12a994",
+    "2820a7522ffc41ea",
+    "2a761e3087c9bf69",
+    "432b20eca299f9b1",
+    "4608ccbbe7f2d18d",
+    "55e41d9728de46ea",
+    "57bc33c0b1c8ce84",
+    "5a3677f3cfe8b9b7",
+    "5a73891655eefba3",
+    "6f92a884f3794178",
+    "8ac1d23477ec20c5",
+    "906856fbec1dafab",
+    "93052480e8920c2a",
+    "9bbee4a4a4f6ceb2",
+    "a6e83997dcc4d31f",
+    "b288b7be9fe869a1",
+    "be7c552e4226594a",
+    "c68e469830cd9ace",
+    "cc07af02ee3e5722",
+    "eefdf14db18655a8",
+    "f40cf421d905e47b"
+   ],
+   "docs/algorithms/PHASE2_SESSION.md": [
+    "0631395a707593fb",
+    "39ee8c92c3ccf23f",
+    "64a24c4dd25cb7e3",
+    "6eaa1b3e46252bc0",
+    "ea746072082d57fc"
+   ],
+   "docs/algorithms/PHASE2_UPM_IMPL.md": [
+    "0d3f8bbc6ffe64a7",
+    "3c179622f6c62f87",
+    "9a0be873f6343999",
+    "a7d4327f0c3726e3",
+    "acc41c6b8eb02d2c",
+    "c5b085c68c622a32",
+    "c8404b38edcbd660",
+    "fd27e9f0705efd51",
+    "fe85cd7d9a34068e"
+   ],
+   "docs/algorithms/PHASE3_FITS_IMPL.md": [
+    "3c8597b6da06cc47",
+    "403e8b968aad324e",
+    "9a74b37e97035b04",
+    "bef42d6c8c515ae1",
+    "cc1fb8a999728dd8",
+    "e6642753f079fea2"
+   ],
+   "docs/algorithms/PHASE3_PROJ_IMPL.md": [
+    "2835d842262a7e1a",
+    "5268b1c9965042d0",
+    "594d7b3345491c43",
+    "62ba73d378150bb2",
+    "6e7c80d06edf75fe",
+    "7c553f75e74d6565",
+    "9a8930050f1e4067",
+    "ae5184ec270135d5",
+    "c377aa4570498af7",
+    "e9ccfbcecb20e955",
+    "ec4e433fe6ccda3b",
+    "f76948624bca2360"
+   ],
+   "docs/algorithms/PHASE3_RESAMPLE.md": [
+    "74502aeda3f3cceb",
+    "c1cd8f4b85965b10"
+   ],
+   "docs/algorithms/PHASE3_RSMP_IMPL.md": [
+    "10d2296cdf2ee307",
+    "31ec0e3f54341a3d",
+    "6352bd50f7f6424b",
+    "86a612c8101343e3",
+    "95cafa9a722498a1",
+    "a8b3ddd16e9b8906",
+    "af60537cf4c1c5a8",
+    "b906595815025f11",
+    "f0a6863e5756f986"
+   ],
+   "docs/algorithms/PHOTOMETRIC_FIT.md": [
+    "159f358a0ada4ce4",
+    "2d846dbaeeebc0eb",
+    "2f91b729d853d7fb",
+    "6850b4ae7cdd1023",
+    "6e242d2a7c7fbf3e",
+    "80942bc8a04a9ee2",
+    "88a7d0481a23bf50",
+    "9ff63c2d0d1bc3f6",
+    "ac19301dee849497",
+    "d2a6cefea9af44e5"
+   ],
+   "docs/algorithms/PLATESOLVE.md": [
+    "0853134eb98821d1",
+    "0920d4a85146862d",
+    "3f0313027c47162f",
+    "49134233ceabf0ac",
+    "5646012800fd492a",
+    "567d225fc0cbdf11",
+    "5929e3a8d8cf9474",
+    "6010539c44bba9aa",
+    "62f04ec6cde5c392",
+    "78f475243d339fbc",
+    "799abb40e1a9d064",
+    "79c058c782eacfbb",
+    "8577514ade65b657",
+    "8a31bce9bbc1edb4",
+    "928d24eaf7c972f4",
+    "963acb1ef93a02f1",
+    "969ffae4527694a3",
+    "9bbc410ee7e83a2c",
+    "a33cde4724b03458",
+    "a7b2f5ea960feb1d",
+    "a9cb7fd2019f1465",
+    "b8fc57b283112d87",
+    "c3fe56a93d9de2c2",
+    "d9158fadccd0f796",
+    "d91f002f8dd96fe3",
+    "ed2cb8fa1e0e202f",
+    "f111ab618ade6cb0"
+   ],
+   "docs/algorithms/REJECTION_ALGORITHMS.md": [
+    "6a166b59f34e76a3",
+    "8b6bca1bd667c30e",
+    "bfa0e4af2081199b"
+   ],
+   "docs/algorithms/STAR_DETECTION_ALGORITHMS.md": [
+    "099e39b62cefd8f1",
+    "3287357e6ff641eb",
+    "476f941ad8c67b39",
+    "59b567d9db9d61f5",
+    "63cea3ee9d92c256",
+    "7e6c9972b1632705",
+    "8217e59ad3dff267",
+    "92767349af4bc941",
+    "afa99ec0bb4a1835",
+    "bc49cb4fab56d93c",
+    "c65aa1fd83da5f4e",
+    "cd12e19aaa0bcf17",
+    "cff520ecd9da1a3c",
+    "dc69985ef2fad4b7",
+    "e3526a407f4ad60d",
+    "ebda34d258a95bec",
+    "f60e653278746103",
+    "fc02ad302dc8d49f"
+   ],
+   "docs/algorithms/STAR_PSF_ALGORITHMS.md": [
+    "659dc2466885e372",
+    "96fdc60bcdb9bddc",
+    "ef37eaa3b75e3f86"
+   ],
+   "docs/algorithms/UPM_SOLVER.md": [
+    "605db3c9bae81556",
+    "7977b0557c5d0114",
+    "cf9767105e3f30b3"
+   ],
+   "docs/algorithms/anchors/ANCHOR_CONTRACT.md": [
+    "0352078e268a8670",
+    "0f790a968e65f6dc",
+    "25f1586c619acbb5",
+    "31e951cb73905ad8",
+    "33b32ae5686c18c0",
+    "34fad432994d505c",
+    "7afe7255d6402391",
+    "8b52bb1d3066e6e5",
+    "a4a7bdb74b3ec044",
+    "c5273c49dc41cad4",
+    "ef552850cb54ca29",
+    "f57039915e4ad2dc"
+   ],
+   "docs/algorithms/anchors/anchor_contract.json": [
+    "ffccf7f492714c11"
+   ],
+   "docs/algorithms/anchors/unresolved_registry.json": [
+    "b4361cf332d4a71e",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "ebe5dd44b706063f",
+    "fc8b02027eadc143",
+    "fc8b02027eadc143"
+   ],
+   "docs/api/CLI_PROTOCOL_V1.md": [
+    "1bfa2f354d5d1846",
+    "3838a41feab467ad",
+    "40603a4cae807099",
+    "4fad603f65186209",
+    "50c655b107ab98df",
+    "5abdd5945ebc4c01",
+    "6383e768f6ad10b6",
+    "6abe35301a60c83e",
+    "af6ad7fcfd1fbf35",
+    "b274b7f5bee1530d",
+    "c530b61d9f39db12",
+    "d161a8bc79f0299b",
+    "e0d194175a3be731",
+    "ea5e67b678e8bc34"
+   ],
+   "docs/api/MANIFEST_VERIFY_V1.md": [
+    "f051aa4b8c68aab5"
+   ],
+   "docs/api/PHASE2_API_V1.md": [
+    "4be07ea004f23671",
+    "9e72f89d66ebbbb7"
+   ],
+   "docs/architecture/ASYNC_IO_CONTRACT.md": [
+    "07deadced80fd139",
+    "43980495ad89b1c0",
+    "581755112aeeb893",
+    "a1a2472371bb8c88",
+    "bb1534d0117f8b07",
+    "bd8e1857810291ee",
+    "f73286e39f164906",
+    "ff6b39752386aa8a"
+   ],
+   "docs/architecture/BUILD_GRAPH.md": [
+    "4079c2d18996c5bc",
+    "4d23190401630725",
+    "a4fe61f74e6e9819",
+    "f6dee41115a30bba"
+   ],
+   "docs/architecture/CACHE_POLICY.md": [
+    "1231c184207b8a83",
+    "788392557e962dba",
+    "b25239315438be3c"
+   ],
+   "docs/architecture/COMPATIBILITY_POLICY.md": [
+    "5196d934a838ce32",
+    "6284156d3fd4f268"
+   ],
+   "docs/architecture/CPU_BACKEND_ARCH.md": [
+    "15b027aa1980b6ee",
+    "36580ed244a2d153",
+    "3b960a149eb92cb4",
+    "be5140e68c4fa6c5",
+    "bf1b1b28bc3e2a2b"
+   ],
+   "docs/architecture/DEPENDENCY_RULES.md": [
+    "4c6337a20981fbaf",
+    "4f83bcfba8621221",
+    "60088b9516bfa487",
+    "6567da02d6b046c5",
+    "9a8ee139337c19db",
+    "fc137a48aadc0fca"
+   ],
+   "docs/architecture/ERROR_MODEL.md": [
+    "08fd71edac3bbf5c"
+   ],
+   "docs/architecture/EXECUTION_MODEL.md": [
+    "076e3d5f75c911fa",
+    "161cb1eff8ffbe75",
+    "364f5519fa1550ae",
+    "75bab38ea1069d0f",
+    "b064dd977529e703"
+   ],
+   "docs/architecture/IO_AND_ATOMICITY.md": [
+    "0aae5dfbee3822f2",
+    "418934cef290f189",
+    "488bfab6ec0d080a",
+    "9aa12bcb4e9498ab",
+    "bec6e14e4c299d22",
+    "c04bf95b2880dab1",
+    "f4446fa61cf81cd1"
+   ],
+   "docs/architecture/ISA_VARIANTS.md": [
+    "43d89a4846d425fe"
+   ],
+   "docs/architecture/MODULE_MAP.md": [
+    "7a5794e7d1aa169a",
+    "a14a17fea97d5cb6"
+   ],
+   "docs/architecture/PERFORMANCE_MODEL.md": [
+    "1c978b10caa0fabb"
+   ],
+   "docs/architecture/PIPELINE.md": [
+    "0c3e986a89913d8d",
+    "11c5e849c1a561c7",
+    "b033b7167636e414"
+   ],
+   "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv": [
+    "3a0cdc9f7a7e652d",
+    "3cfd00733c9a8541"
+   ],
+   "docs/architecture/THREADING_MODEL.md": [
+    "61092c4523f04793",
+    "8848fdba35328ba7",
+    "90da4a8c1e9228f4",
+    "f29c58a2f2147865"
+   ],
+   "docs/architecture/THREAD_BUDGET_ARCH.md": [
+    "7827e70093ad0452",
+    "aab7bb1a24b061b1"
+   ],
+   "docs/architecture/abi/ABI_003_SECURE_LOADER.md": [
+    "6b249ac5bde21b04"
+   ],
+   "docs/architecture/execution_options_contract.md": [
+    "1281627d3bc89e46",
+    "65122c3a2326ff9d",
+    "66cbca834acc5790",
+    "9453052d77e6e33d",
+    "9a2233e00c66e15e",
+    "e93e2940ba30a77c",
+    "ef0ae18634024267",
+    "fd8961b08022d092"
+   ],
+   "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md": [
+    "716f11e457925722",
+    "82b4e55a793fa942",
+    "87e28cbfaafc8ed2",
+    "917b920cf56d6011"
+   ],
+   "docs/architecture/observability/RUN_GRAPH_CONTRACT.md": [
+    "01c7f95945c99471",
+    "1ce41d346e9987b4",
+    "2222b1d8439fd8b6",
+    "22776d9131a38204",
+    "2976932a37e7d627",
+    "7ca55cbc967931a7",
+    "d51f0c5aaa880984"
+   ],
+   "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md": [
+    "057a7f8d61f87d50",
+    "2f6f33c4b7b1eed0",
+    "3687bb8719397d56",
+    "588a424a29adc79b",
+    "591144925be7e406",
+    "5ea16a086ac451e0",
+    "804ce0c34026ebe0",
+    "8f0bfe108a4c8e99",
+    "a89c5ea587438ea8",
+    "ef6ec4699ccfdcc2",
+    "fe2d3523b1796e8a"
+   ],
+   "docs/architecture/production_call_paths_stage2.csv": [
+    "3812bb4054318c58"
+   ],
+   "docs/ci/01_CHECKS.md": [
+    "238238efef59b128",
+    "3abf50fbb8158c23",
+    "418d8484951c9395",
+    "5295bef55fe8aa04",
+    "5f85b431b0ec306b",
+    "68d3498c540652c0",
+    "7e3a45cc0f79037b",
+    "80115d0c46013594",
+    "86d1250b26dc8315",
+    "955f1bb9d935ca96",
+    "9ea80cadc2d86b14",
+    "ad422bc257f1ca7c",
+    "bef671b1270d7f1c",
+    "c0f35c077fb6a06d",
+    "c40beb3f8b2ee7ac",
+    "f0d583e627161f71",
+    "f59bfc27adb4d4aa"
+   ],
+   "docs/ci/02_PIPELINE.md": [
+    "0df70a79d1c75649"
+   ],
+   "docs/ci/03_GATES.md": [
+    "0bc1b278957a2350",
+    "6025268d07f857be"
+   ],
+   "docs/ci/CI_SPEC.md": [
+    "0643e0cd621a3486",
+    "5f2b1e9d85b72f8b",
+    "9b7763d3fe0d7cdf",
+    "a31bbc4af34b4375",
+    "a8f638c734d4f212",
+    "bb77377b72c93683",
+    "c28d13bc79b47fc0",
+    "e18a66cdf4091c6d",
+    "e920a293b0786a96"
+   ],
+   "docs/contracts/API-001.md": [
+    "0c9c3367fb1e27dd",
+    "295fabfc95d5106a",
+    "41112a85d0c0d552",
+    "48bcd3638e775285",
+    "bff742019f65dc75",
+    "c8ff8ad2cfb2e895",
+    "ff301ef67c55f102",
+    "ff5a4936374cdc1a"
+   ],
+   "docs/contracts/ARCH-001.md": [
+    "0ad4b9efdb396f91",
+    "2262fc998100a3fa",
+    "38a5c598698f4519",
+    "58f8e9e9d6205b65",
+    "5bf6c5b7e2cf94e2",
+    "7799b82e71dd41cd",
+    "7b5a77c06de15aeb",
+    "81c5670bc8f5f8ff",
+    "82e91e6816528d82",
+    "9016e8d523d856a1",
+    "af82f38f22258700",
+    "befd58b48234b749"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "15b5f68b06e229c8",
+    "1e7bf68651cc5b18",
+    "1f75593d3673582e",
+    "20f4152732a645dc",
+    "21376ce60312d227",
+    "2c18a871f8f71cde",
+    "2ce86ee5bf6e4c7d",
+    "3f707f6b1ab91c1e",
+    "46845a5b7bce083b",
+    "475689f9fd580190",
+    "4da64ab3493a40ae",
+    "681ff3bf54c897e2",
+    "6b7700849b663faf",
+    "6ef0ca1c50b7d533",
+    "77f69ea68fba0cd5",
+    "7ba38c081a8e4e45",
+    "7fb19211bf51424f",
+    "94d22b5cb70d024d",
+    "a8d92e106bfb77e2",
+    "b60b8384a9b9e433",
+    "bf344f0988655817",
+    "c8ce9d022b1ae62a",
+    "d6e0375c615cc527",
+    "eed101296db81d08",
+    "efa260eab7c3451e",
+    "f41ce90b04843c90",
+    "fe6146a1d9673a3b"
+   ],
+   "docs/contracts/DATA_ARTIFACTS.md": [
+    "2e7612c4dd5e279a",
+    "340e1f9e8c4d24ea",
+    "434c86a89d34a62d",
+    "5174928c882a2aae",
+    "631774b5535bc287",
+    "bb97e3508d7e7d68",
+    "cfbcd43789478a07",
+    "ec4a108a3f87b3bb"
+   ],
+   "docs/contracts/DATA_SEMANTICS.md": [
+    "01882e66d5107971",
+    "02df875be16b3421",
+    "048ee3578356220c",
+    "0524d8c97c1690d3",
+    "056f9a607c1798c5",
+    "05befda3bc39e4b8",
+    "0858d657663b8bab",
+    "08a120b5d1ad754d",
+    "0972832d32a2c8db",
+    "09e03f2abae3137d",
+    "0b80cf5026c9f5a6",
+    "0c4a694979b979f7",
+    "0d9e304d3eb44312",
+    "0de84645c5e883af",
+    "0e9c09d86064f145",
+    "0f74d677dce710a4",
+    "15db2c261b464768",
+    "167d99d920628b18",
+    "1740536e78b6d1a3",
+    "177f21ae33d21a43",
+    "1934dda03d7fdfd4",
+    "1b3f327d02a215b1",
+    "1d37a1922f02da64",
+    "1f1dbdfa39d5af63",
+    "20db1e9912074b63",
+    "21c89928caef8513",
+    "2235beb4972dd29f",
+    "23905eff335d2805",
+    "27dbad9e277d627e",
+    "285c1fee06cfa812",
+    "2c553c0e9543ce2e",
+    "2d8debfc1ff79a4a",
+    "2e4ecd576b516466",
+    "2e7a4ae80c84c347",
+    "364da828784dbcc3",
+    "37c24ba8562e01be",
+    "38ab3d9906bbfd3e",
+    "3a8e05d6298fd343",
+    "3acb5138adf79eb0",
+    "3daa58f94194dd31",
+    "3ded5cd7f7fa1f85",
+    "3f36e87698ae56f9",
+    "40d08900f7ef7c08",
+    "40fd5c0301a33d08",
+    "4162e8354d6df7cb",
+    "427f6569f34dbf39",
+    "43ac3c791f32e532",
+    "443359373de9d387",
+    "44cd194d8163f7f5",
+    "45459bef130b0656",
+    "481ac4a41478c5f4",
+    "49edaf5dffff5ab1",
+    "4a740c97056b58c1",
+    "4c328941a6e25c09",
+    "4ed8175d16ef85ea",
+    "4f93b1a8f8fa8d32",
+    "51b0078423042416",
+    "53a6b0baa6c3240d",
+    "55d92654d2ea1393",
+    "56e2373cc80cff4e",
+    "588547be213c855e",
+    "58abda1bb3a05dc1",
+    "5b0ea32441b58bc0",
+    "5bd484a4f7d08a47",
+    "5ce517aa08a935ae",
+    "5e26ececf852e56d",
+    "5e7df3049e1bd595",
+    "5f1a348343a2aae3",
+    "60263659bf39fde0",
+    "604444e86c620e08",
+    "67c6623e1b7cc5fd",
+    "68410b3a75e6c645",
+    "6982b705c9d99adf",
+    "6ae0854d5704e81e",
+    "6b221252e223c3be",
+    "6b69ccb258da303a",
+    "6ba0bd1ed90fb2e1",
+    "6ef7bfddb9cf283a",
+    "6f05138f957df100",
+    "6fe2b74e08df67c0",
+    "732ce515bcf3c584",
+    "7844eedbbc44053e",
+    "790e57bff744344b",
+    "795f8222c2218a26",
+    "7a7f1336c4db770a",
+    "7da5dc71fb130d9a",
+    "7efbd065118e7857",
+    "8050d1d61cefb4a3",
+    "8221c41c8533dfd9",
+    "8393ed0ed7f66666",
+    "8514486d42c6ef67",
+    "86077ed50b83defb",
+    "865f4291dd11d774",
+    "88768df678876c9b",
+    "896a42292b7d9206",
+    "8c4eed8cfc63a988",
+    "8caf01297525f5c7",
+    "8e02886bacf9cafb",
+    "907bc18cddaf523e",
+    "922999f947e1d182",
+    "924aee5f33cac786",
+    "94934231da0141c4",
+    "972a168b6cc0646c",
+    "991b77f198e4fb73",
+    "99aec8ef55f33aab",
+    "9a67c91cd0e1d16b",
+    "9a7ae51b56514bf0",
+    "9a8e5b695a8ab9cf",
+    "9b9f0dfb352d0d36",
+    "9bc341bff6071d06",
+    "9cf93dea01b8a8eb",
+    "9e84127878451250",
+    "9eb7259e80ab2d7b",
+    "a006dc987dfb07d4",
+    "a14aa156d85d0a15",
+    "a2e0ad710f557e9f",
+    "a3be528b0c2708ac",
+    "a7c05c155ccaf7ce",
+    "a8c54b626f96e15e",
+    "a9de1c594acf7fac",
+    "ab0a59bf4258c5c0",
+    "abe8c00e40d55937",
+    "ac5fec6349aafef7",
+    "aee81c6393635fc4",
+    "b1c027f5f2710c9e",
+    "b1e54459a2b6de35",
+    "b287efd51cf07cd4",
+    "b318c4e88c83dd49",
+    "b4f81669675ac1d1",
+    "b73c8eb8855e5074",
+    "b8aad22c3394804f",
+    "ba252144a10789a0",
+    "bb169001f3ece01c",
+    "bd7bea332cb5d1cd",
+    "be1249f10aceaf88",
+    "c28df03740ed0f3b",
+    "c43db347d61e04bc",
+    "cc77c4d24ce979b7",
+    "cec7b8563dfdbe93",
+    "cf8987747df194e8",
+    "d07959cdc73427e4",
+    "d4bbcd1170c7c30d",
+    "d7540b8c71b9bdb2",
+    "d9659244ac33f3fb",
+    "daea7684ce42f9b8",
+    "dc8efc01e12f3d27",
+    "de429d6efe6884f4",
+    "e03bc882f5c6c058",
+    "e0e36a8661a354d2",
+    "e184856ef872454f",
+    "e415adcdffb81c77",
+    "e468d250ca52a818",
+    "ebef33c3074efaa2",
+    "ee9793b1afb0e38b",
+    "ef01f030cbe97df5",
+    "ef718c375a1558b9",
+    "f1194e14a25720db",
+    "f1ecffd32aef537f",
+    "f24ca7ba2827a5a7",
+    "f723f4b40cca59b4",
+    "f7309e86aede85f1",
+    "f7930dc0672524a9",
+    "f8b688db638cfbb0",
+    "fa1d8d31141de970",
+    "fa37953a27261d56",
+    "fabab07d59598081",
+    "fb1374adb28392de",
+    "ff83aa19f11f404e",
+    "ffe6b8471a519a09"
+   ],
+   "docs/contracts/DUAL_LINE_CONTRACT.md": [
+    "400e24be990319e9"
+   ],
+   "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md": [
+    "0a3a258e65ee192c",
+    "0d884489a0cdd1d9",
+    "15f424ce97596d7a",
+    "328355c97c263803",
+    "3b432b2c805ba4f4",
+    "4b99b7df39e1c13d",
+    "4ea55050c478f3de",
+    "505a0008404d656a",
+    "53f6780fe1fd7846",
+    "5b77500f45d0e127",
+    "6246934b77464c1f",
+    "624f86eef20736fb",
+    "642be946a870fa4d",
+    "6960fe97e40e8d10",
+    "7d43ef250cf22395",
+    "81c7fc37a7a55e78",
+    "824efe97ed31e93e",
+    "9019c96c39c3192f",
+    "92a2fde0f22e0d03",
+    "9a6566bfd7745933",
+    "a60de7e89ee1ee9d",
+    "aa945300e0db4eb3",
+    "b3fea7cf4f3a315f",
+    "c607cfb8d1c39c06",
+    "c85e1530ab315d0e",
+    "cb037693fb637d2e",
+    "de6f7c76db88c83d",
+    "f27e0ea081eab076",
+    "fec1bc4c1cded590"
+   ],
+   "docs/contracts/INDEX.yaml": [
+    "4379ba02fdd30591",
+    "bae0e083d6e8f778"
+   ],
+   "docs/contracts/LOG_AND_ERROR_CONTRACT.md": [
+    "0269cf6d67d7212d",
+    "a4de522fdef38e79",
+    "a6162111bf0e2504",
+    "b44bbb91a7ee7e49",
+    "c7b3bc8391b2d147",
+    "efd8b4c4a5b19d82"
+   ],
+   "docs/contracts/PERF_GATE_CONTRACT.md": [
+    "02fe7fcf0992ffb2",
+    "2c0386ae9f0e1527",
+    "439adb405e0820a7",
+    "879c6410e5ebb9ba",
+    "ec0d3e6000151496"
+   ],
+   "docs/contracts/PIPELINE_BLOCK_CONTRACT.md": [
+    "4b9d65b983202df5",
+    "516294d5c16b018f",
+    "522fac9fd6908374",
+    "5b6ab9d28f9102ad",
+    "5ec189c6cf0d3651",
+    "979e2e4def6a2b9f",
+    "abe4a3b14b5e1ee9",
+    "ccbda82fc4decf8e",
+    "cda354db5e81bee9",
+    "dbe222497c372dbc"
+   ],
+   "docs/contracts/PUBLIC_API.md": [
+    "031c8e3c4f58f468",
+    "0527b966754d00c9",
+    "05d9ea662e252030",
+    "0753d62d8b3ca708",
+    "0cacdfae9c1111fa",
+    "177f4ab2c2225fa3",
+    "1f17f95fe376b8af",
+    "30d60f72d08e4e5d",
+    "34c238e8e090ff54",
+    "356554a7ebc834c6",
+    "3bf7ed642885436f",
+    "3d1d17e263e3209c",
+    "3e4a6508c7c5deba",
+    "45bf3b4b4f586809",
+    "484fc5e8f7bb0cb4",
+    "4892787068d38ec7",
+    "4c37cef36b80a0d2",
+    "51317a6ffbe59072",
+    "520515ecd11085cd",
+    "53ff8da5807027b8",
+    "5b4008c50f096f89",
+    "5c8e3a64a5bb47c1",
+    "6062df995a3f1f07",
+    "63aed3d73f4ca214",
+    "65c66427f1c12ef2",
+    "6cfc56d4951f43a2",
+    "75584933a8eb6ec7",
+    "794bdb13ca850352",
+    "7a94e089877f16b3",
+    "7e287df86512b747",
+    "82937aac69fc71b5",
+    "957912fc832c4c8b",
+    "96283497955ee6f4",
+    "96b3f8359960b410",
+    "97ee4d28bf5bc134",
+    "9848a7500bdf890d",
+    "9ef3d35dbb0922f6",
+    "a2d11e19d4a57884",
+    "aa3cb217248b205a",
+    "ab0cfdf860246d9e",
+    "adcaeb793fcaadb0",
+    "b3b49c5c2a20657f",
+    "b497aa3392a410e7",
+    "b8613874419805db",
+    "bcbc343740342a12",
+    "bf9b7b99fc453410",
+    "c2441d508395deeb",
+    "cc4070210d5e1000",
+    "cd363102381995d2",
+    "cd513763360fa1cb",
+    "ceb3c334734fee68",
+    "cf206b804fc56990",
+    "d2479e21dfb0823b",
+    "d42d828774225238",
+    "d72ca1ad4e411214",
+    "d89e9044f2dcdb1a",
+    "e2a7de4cbe0f08bf",
+    "e7265c8a6ca45094",
+    "ea2ef3b8e9444b5f"
+   ],
+   "docs/contracts/RT-001.md": [
+    "1a581297f4fe5f7a",
+    "6fc97363366a6a86"
+   ],
+   "docs/contracts/SCHEDULER_CONTRACT.md": [
+    "123dae167e61a3bb",
+    "7776da884099d339",
+    "d97be6b5df1b49bb",
+    "e9e519baf993f413"
+   ],
+   "docs/contracts/TEST_MATRIX.md": [
+    "5e2a23b39d0f5956",
+    "624706dc22276c78",
+    "c68fc7fec623087c"
+   ],
+   "docs/contracts/UNIFIED_OBJECTS.md": [
+    "06fc8492ca9b2cee",
+    "0a4300fe4a23618e",
+    "105781e648cc8fa7",
+    "158ef0d1bef0c8a1",
+    "1c6908b643f1a782",
+    "287fd2173ad72d84",
+    "3079bb9fd0225fed",
+    "4cd2357b24b53ebf",
+    "6da86199ad9f554a",
+    "9ad204e6cf70e962",
+    "a1649f220e639e23",
+    "a5c561e854037972",
+    "b1ed126963d44c6e",
+    "b50104bc6cb9f266",
+    "b5fa9c0d48124bff",
+    "b84079ba776e8aa1",
+    "d1dd652775792320",
+    "e7dbad4310e8db1c",
+    "fa9d2560ed025c57",
+    "fd7df26784ef6e37"
+   ],
+   "docs/contracts/config_separation_anchors.json": [
+    "231e21373cdb0cd1",
+    "7067a122c984cc78",
+    "bfb774fa35c05468",
+    "e7cd03b51f11232a"
+   ],
+   "docs/contracts/unified_object_registry.json": [
+    "02d5c990e9c7b7cb",
+    "0ca2067a58b9c799",
+    "3039081a3dfbf331",
+    "30d9808e8252ad6e",
+    "3fc853f55fb3b8ab",
+    "667d543633c4bccb",
+    "7569bc7376c1879b",
+    "ad34af4105f9055b",
+    "afb57f4055f5ad5b",
+    "b36ff37d4fd77ca3",
+    "c3326018772dfe80",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6",
+    "eb98796d85d386b6"
+   ],
+   "docs/design/LOG_AND_ERROR_SYSTEM.md": [
+    "047d1d6b24754bbd",
+    "12834f6c5f9707f6",
+    "1be41c58081f49f4",
+    "3e1624dad5e39e49",
+    "403b330339875e79",
+    "42b8a83179a45587",
+    "45b247c1dcfa15e9",
+    "75ac326fda62490d",
+    "7e33c976afd01ed1",
+    "8db8430f42928d70",
+    "9aca55058c25a84b",
+    "c78f0bf80632aa72"
+   ],
+   "docs/design/PHASE1_DETAILED_DESIGN.md": [
+    "0b8aa14f33973a03",
+    "0df8f42580f9d9a3",
+    "29eaa1f54499e030",
+    "326ab739ac132712",
+    "673532b6d07e281c",
+    "6bc8dc706fa8310e",
+    "713939b1dc8f060c",
+    "8e8f7d5f5f6dc014",
+    "90488448890922d5",
+    "b6f5e6b1ac9809d0",
+    "c4a1e61723069044",
+    "d55a67bf1776aae5"
+   ],
+   "docs/design/PHASE2_DETAILED_DESIGN.md": [
+    "3947a95dab5a2efb",
+    "525736caa62c01ad",
+    "7c7e7f52260a8e99",
+    "8297d103b955a8bd",
+    "bfd061091b51da22",
+    "da17d325e1694c86",
+    "f96f921ccd706aee"
+   ],
+   "docs/design/PHASE3_DETAILED_DESIGN.md": [
+    "10bc3db03c24d35c",
+    "3b16df483b02c07f",
+    "72b1c17d5c48f7da",
+    "768c8c9ed69fa0ab",
+    "7e6f35634dd32ff4",
+    "9fb5c8ab2b87d400",
+    "c2684839293778c3",
+    "c5c38c55c8903ea4",
+    "c6bac90e17638132",
+    "d28cd414f29647d8",
+    "ed3f077997cb9aaf",
+    "f877cfceaa210991",
+    "f9fad47a5ee15b71"
+   ],
+   "docs/design/PRODUCT_STORAGE_FORM.md": [
+    "05e487b3649aff5f",
+    "15c6c378927953b5",
+    "165eeffb529fc017",
+    "2085cac9c7111139",
+    "274c1253c9e14f30",
+    "3b12a56250f512c5",
+    "3e09f5cb840f2800",
+    "5dcad65f6c44d724",
+    "5e307bb94483dbe1",
+    "7235bafe9f3f98c6",
+    "7a9bce1aa15d45a7",
+    "881e586aacdc26d8",
+    "9390ddb4355b8738",
+    "bdfc4b260f804e04"
+   ],
+   "docs/design/UNIFIED_MODEL.md": [
+    "0010ca289814ccff",
+    "4fd0db1b6e2afe42",
+    "600eba6596f23913",
+    "80ce732924756743",
+    "9194b3235b33b4e2",
+    "c47162551b036725",
+    "d81c16eb7da273ef",
+    "e6e14828a9bfc30a"
+   ],
+   "docs/development/CONFIG_SCHEMA.md": [
+    "9fd6a4ca932cd390",
+    "d1945cdb3a4fbae1",
+    "eb8d9a40bfcd0fbf"
+   ],
+   "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md": [
+    "086c31f40674c965",
+    "0e4dde796cb1d56c",
+    "20798ef49401d83f",
+    "4262f42cf9c8ab36",
+    "4c42c49883efd7c7",
+    "555b152da4d73e42",
+    "5827c6749d13bf1b",
+    "5df5718938cb4795",
+    "5e643f3687631f97",
+    "6985981a9eaf6d8a",
+    "777a6a18232d584a",
+    "7b7c6e6eea2a3ee7",
+    "7dfa5deacdb73190",
+    "7f9daf78f46e9a59",
+    "93e3294bd01a0523",
+    "bd3bc43cc212b7e7",
+    "ce4208572807d7b3",
+    "ce8575e8165c1294",
+    "da2068a37b09a19e",
+    "da6ac5fa90305d4d",
+    "ea16aa9abbce04a8",
+    "eb05acf54b56911b",
+    "f5b44e9aa5886f9d"
+   ],
+   "docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md": [
+    "2d86771b18ea28de",
+    "bb80aa7516286737"
+   ],
+   "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md": [
+    "161396451dc2a833"
+   ],
+   "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md": [
+    "40401be74ccfdf69",
+    "b3fc0d965905fcf0"
+   ],
+   "docs/modules/MODULE_MAP.yaml": [
+    "128db2811cc5679f",
+    "3e55d1ec33d86517",
+    "4e0bf96fb289fdd4",
+    "6729416c6ba2e51f",
+    "68898c73478a0d30",
+    "68c55fcb286c888d",
+    "7ddf4ea32cee0d8b",
+    "d68d8605d0be8ba3",
+    "d750b05c61e43a61",
+    "e98012ed509dd6c8"
+   ],
+   "docs/modules/astro_image_io.md": [
+    "38326840518de5ef",
+    "862698003a445969"
+   ],
+   "docs/modules/common.md": [
+    "68059e9ccc5a4f9b",
+    "a731fd9f671042ba",
+    "cd7b877e020adec0"
+   ],
+   "docs/modules/gaia_xpsd_client.md": [
+    "0b0205ef3a7776ce"
+   ],
+   "docs/modules/hips_p2.md": [
+    "d86f13a51237c4f9"
+   ],
+   "docs/modules/orchestrator.md": [
+    "089f07635a59ff87"
+   ],
+   "docs/modules/phase2_rej.md": [
+    "444a8e3ec0787f81",
+    "656d92b05f964ff2",
+    "810e53392905b32a"
+   ],
+   "docs/modules/phase2_samp.md": [
+    "6d3a2100300ea228"
+   ],
+   "docs/modules/phase2_upm.md": [
+    "9e250d1467c48a5f"
+   ],
+   "docs/modules/phase3_fits.md": [
+    "6cb12ae368c25171",
+    "be2e7b0b9339834c"
+   ],
+   "docs/modules/phase3_proj.md": [
+    "8185f53c96605a04",
+    "a8b1bd78de26db9b"
+   ],
+   "docs/modules/phase3_rsmp.md": [
+    "e2be9cdf4ae0dc1b"
+   ],
+   "docs/modules/plate_solve.md": [
+    "8df26f8701a3a771"
+   ],
+   "docs/modules/registry/astrocs.phase1.calibration.md": [
+    "7b3555b4005d2aa1"
+   ],
+   "docs/modules/registry/astrocs.phase1.cosmetic.md": [
+    "2aa956d8529f3105",
+    "b2b976ef86d90d5b"
+   ],
+   "docs/modules/registry/astrocs.phase1.hips-writer.md": [
+    "a37e5f38da96bc9f"
+   ],
+   "docs/modules/registry/astrocs.phase1.noise-snr.md": [
+    "1a91938d1270c7c1",
+    "7b3555b4005d2aa1"
+   ],
+   "docs/modules/registry/astrocs.phase1.photometry.md": [
+    "7b3555b4005d2aa1",
+    "a9c70bc027200e40"
+   ],
+   "docs/modules/registry/astrocs.phase1.star-psf.md": [
+    "7b3555b4005d2aa1"
+   ],
+   "docs/modules/registry/astrocs.phase1.wcs-platesolve.md": [
+    "7b3555b4005d2aa1",
+    "dbe9f4b5bcf36937"
+   ],
+   "docs/modules/registry/astrocs.phase1.writer.md": [
+    "4ff956a87b1dad9a"
+   ],
+   "docs/modules/registry/astrocs.phase2.coverage.md": [
+    "82f52e4bcc89b5bd",
+    "b014f1a217be83c4"
+   ],
+   "docs/modules/registry/astrocs.phase2.integrate.md": [
+    "43ac3c791f32e532",
+    "d4edb2d1bb69e85e"
+   ],
+   "docs/modules/registry/astrocs.phase2.reject.md": [
+    "e16975b57620faa1"
+   ],
+   "docs/modules/registry/astrocs.phase2.resample.md": [
+    "7b3555b4005d2aa1"
+   ],
+   "docs/modules/registry/astrocs.phase2.sample.md": [
+    "f71d22e4ecc0cc1d"
+   ],
+   "docs/modules/registry/astrocs.phase2.write.md": [
+    "7a837748ecce5654",
+    "82f52e4bcc89b5bd",
+    "94ec2ccbef4d5896",
+    "a17e84936cdad9c0"
+   ],
+   "docs/modules/registry/astrocs.phase3.properties.md": [
+    "7b3555b4005d2aa1"
+   ],
+   "docs/modules/registry/astrocs.phase3.resample.md": [
+    "7b3555b4005d2aa1"
+   ],
+   "docs/modules/registry/astrocs.phase3.resample2.md": [
+    "6627acb4f2655f8f",
+    "d5ff1c9238417540",
+    "f231004a4fd0fc7b",
+    "f2ca2b1f18e10ae5"
+   ],
+   "docs/modules/registry/astrocs.phase3.verify.md": [
+    "4ff956a87b1dad9a"
+   ],
+   "docs/modules/registry/astrocs.phase3.wcs.md": [
+    "9765b67d3325a0ee",
+    "d5ff1c9238417540",
+    "e50cb259c3f7e108"
+   ],
+   "docs/modules/registry/astrocs.phase3.writer.md": [
+    "d5ff1c9238417540",
+    "e50cb259c3f7e108"
+   ],
+   "docs/modules/registry/module_id_migration_baseline.json": [
+    "c5bc86e0126d7f53"
+   ],
+   "docs/modules/star_detector.md": [
+    "912bd327cde06895",
+    "c1b6b89266a2909f"
+   ],
+   "docs/owner/ARCHITECTURE_OVERVIEW.md": [
+    "a6e26757ae9bae6b",
+    "d7fd4e41127c5c4b",
+    "de8a996731c3a8f2",
+    "f231d6dd9d643a94"
+   ],
+   "docs/owner/PIPELINE_OVERVIEW.md": [
+    "287d4275d0c804d3",
+    "2b3fb9f163527770",
+    "7383fedf9bfdf50a",
+    "7db9585c77f214cd"
+   ],
+   "docs/owner/PROJECT_SPEC.md": [
+    "2e5e4d9fdc2fc520",
+    "486489c670170d2c",
+    "7249fb23616d86c1"
+   ],
+   "docs/owner/RELEASE_STATUS.md": [
+    "3305e6e04251c81a",
+    "3eb105210493cfe3",
+    "4cbf557efca4f57a",
+    "634e505662d5a4ac",
+    "a438073d91006ad4"
+   ],
+   "docs/owner/SCIENCE_OVERVIEW.md": [
+    "7f6953ead7895ae4",
+    "87a79f6e00a09511",
+    "90c918711d58e4b5",
+    "ebe1fe96c8b0f0fa"
+   ],
+   "docs/performance/OPTIMIZATION.md": [
+    "a873df1c2a0a9916"
+   ],
+   "docs/plugins/00_INDEX.md": [
+    "715258e47782bf60"
+   ],
+   "docs/plugins/algorithms_phase1/01_calibration.md": [
+    "9e636193a94537b5",
+    "a3e2f5532db672c0",
+    "fa95877a732f9d08"
+   ],
+   "docs/plugins/algorithms_phase1/02_cosmetic.md": [
+    "16f3149a16c04ab2",
+    "6eb82b509db5ccb4",
+    "7803274fac4aea80",
+    "ef53b804fb0b2445"
+   ],
+   "docs/plugins/algorithms_phase1/03_star_detection.md": [
+    "00211147271e61a7",
+    "32241813d3cf4a85"
+   ],
+   "docs/plugins/algorithms_phase1/04_psf.md": [
+    "6ccee6b2ad6a9b98"
+   ],
+   "docs/plugins/algorithms_phase1/05_platesolve.md": [
+    "1851a81e688067a0",
+    "38216519ac4be8e6"
+   ],
+   "docs/plugins/algorithms_phase1/06_photometry.md": [
+    "1e86ee1e52857969",
+    "38fad7c57829e1e2",
+    "6806fc4925c96f0d",
+    "6bffe81a49255306",
+    "7ca01e7d3a70e032",
+    "8549c4e23e5849cb",
+    "a8461699fcccb328",
+    "ce5e75bada34ed8f",
+    "daab0d1af524944a",
+    "e2e767caaf133d12",
+    "fb09b933c1723a63"
+   ],
+   "docs/plugins/algorithms_phase1/07_noise_snr.md": [
+    "061d2d1987a76179",
+    "07f728f9f68fb26b",
+    "170f1f72b921652a",
+    "2eb2cb69a066953a",
+    "371375a9228e91e3",
+    "3871fed6e6276fae",
+    "45bbd1b1ac3182a5",
+    "4dc05d9569760bd1",
+    "50c4348fffd71c12",
+    "53c988af53acda5e",
+    "61d352cdae32aa6c",
+    "61f7533fe3d5982c",
+    "655e8198409a9a11",
+    "8051e3606d384895",
+    "8f9eadda3b653539",
+    "920fa6fb02ff63b8",
+    "94e7e9e05d05dcfa",
+    "ab29ffb3d619c64a",
+    "bff51001e22550d4",
+    "c5e9fb3216e58930",
+    "c86de27759398dec",
+    "ca50e6e371aa47d0",
+    "cbde34eb20cd5ef8",
+    "cee8d85d39b36a33",
+    "e0abcc26e26a2152",
+    "e6ae00a80f70864c",
+    "ee0886a635b71a22"
+   ],
+   "docs/plugins/algorithms_phase1/08_drizzle.md": [
+    "3658c48c90508dbe",
+    "efe6c38329bff2c7"
+   ],
+   "docs/plugins/algorithms_phase2/09_coverage.md": [
+    "a59176261b5945df"
+   ],
+   "docs/plugins/algorithms_phase2/10_sampling.md": [
+    "0cd1adc5c18ce59b",
+    "7806a96de7ef4746",
+    "a5dd3fc866230faa"
+   ],
+   "docs/plugins/algorithms_phase2/11_upm.md": [
+    "09528288ddc7880c",
+    "1bf374f138356b0b",
+    "2d28cc8d0117baa6",
+    "33f8a8b4cab53c5e",
+    "35b28d4ed9c5fa08",
+    "42dbb57b9251035b",
+    "47903895e1e02ee9",
+    "5cdef3d98f88e5d0",
+    "6bc9c34d767916db",
+    "6eef9fc4a148b083",
+    "9aaadc11d540adea",
+    "9afd232ccb4bb4d8",
+    "9b368dd8007e14a7",
+    "a073b37eb23d6476",
+    "a24a8b6458e5945b",
+    "c19f1583b6e0f94e",
+    "c30190e625e768f3",
+    "c77c34eaf34fe8bf",
+    "ec4ed98d27384207"
+   ],
+   "docs/plugins/algorithms_phase2/12_rejection.md": [
+    "2bdea4038e1e206e",
+    "a8308f97fb31290a",
+    "ba46875da293159f",
+    "cff6088362279340"
+   ],
+   "docs/plugins/algorithms_phase2/13_integration.md": [
+    "0929eab9f5f5f21c",
+    "17b75e27c42a1656",
+    "751df2dc137f13e0",
+    "99b1b27f71e77b32",
+    "ccd652c07c57f64a",
+    "d4949ea9fb0f62f1",
+    "dcf4b3e9d36c5855",
+    "e64ec55b9ecc639e",
+    "f8da904d94026663"
+   ],
+   "docs/plugins/algorithms_phase3/14_projection.md": [
+    "0b8a26c4ea4895a8"
+   ],
+   "docs/plugins/algorithms_phase3/15_resample.md": [
+    "606c3a7aa6456308",
+    "7bb618b3ac50c0fe",
+    "84969b3e45b9169f",
+    "e1e35c46a5e35758"
+   ],
+   "docs/plugins/algorithms_phase3/16_fits_output.md": [
+    "7ad5a70ef42314b6",
+    "c881f879566394b8",
+    "e101c451db51236d"
+   ],
+   "docs/plugins/infrastructure/17_aio.md": [
+    "4f254079dc557a5a",
+    "7dda015cb1c633fb",
+    "ab13fdf5e71579de"
+   ],
+   "docs/plugins/infrastructure/18_cli.md": [
+    "28b2dc53f86a90f2",
+    "9b320bb40b6d8167"
+   ],
+   "docs/plugins/infrastructure/19_runtime.md": [
+    "2ca64ac4216bd290",
+    "443231b4b74389ef",
+    "4c6156369ecda7cd",
+    "544ab503fb598e09",
+    "b55694958a3f7fd4"
+   ],
+   "docs/plugins/infrastructure/20_benchmark.md": [
+    "92082b235df89a3c"
+   ],
+   "docs/plugins/infrastructure/21_observability.md": [
+    "02d7ec27ea564a8c",
+    "0b7fd9a9869bac67",
+    "1a182cb552acc4bf",
+    "48c21fde20de7f48",
+    "4b32373e1287d717",
+    "88d75b66690d2daa",
+    "dc598bddb935dbf7",
+    "dcd5677c675a80a0"
+   ],
+   "docs/plugins/infrastructure/23_hips_browser.md": [
+    "24c9d1359c5b9438"
+   ],
+   "docs/quality/coverage_baseline_v1.md": [
+    "502e718c4892eefa"
+   ],
+   "docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md": [
+    "11560d382a4c75df",
+    "b998cd10cc532210"
+   ],
+   "docs/references/SCIENTIFIC_REFERENCES.md": [
+    "71867a6ae1b08796",
+    "792a89b7661f5c8f",
+    "7b906e2f347b004a",
+    "e9655095aa6ae441"
+   ],
+   "docs/science/ACR_EQUIVALENCE.md": [
+    "120f557011125bfd",
+    "b63940d10a2323eb",
+    "fd957cce664fb84e"
+   ],
+   "docs/science/ASTROMETRY.md": [
+    "24afe88cb93dfb0c",
+    "3041336969cac3f2",
+    "3b6c73e7e0341cc0",
+    "5030a2a0f9c072ab",
+    "6a0c28703d1988cc",
+    "9ce593347c97f966",
+    "b6a7c24c31a9adad",
+    "c900f1176c024749",
+    "cbeb8d7f2f5ce856",
+    "d9590301e4742851"
+   ],
+   "docs/science/CALIBRATION.md": [
+    "17c845b1226ec32d",
+    "26d0a3df6bcd3032",
+    "28b5759de6d86251",
+    "29c2e8b415eabe54",
+    "33521cedc358a9a1",
+    "339b8a2a048ece2d",
+    "3f08fcdc2c8750d6",
+    "4f43ca951f153064",
+    "660d33861f134e76",
+    "70806af35f4ab4dc",
+    "7f69ae765f209463",
+    "8aa2962df31dd108",
+    "972e8542ff8286f7",
+    "98395301bfa5248a",
+    "98587d3e63423992",
+    "a553f4b1b88cf88d",
+    "bd158aa461feb9ac",
+    "be2c8a3f0177e13f",
+    "c2b8febeb5a1b258",
+    "d3e49cf9ea7a6170",
+    "dac42a1398ccd3db",
+    "dfeb8fbc741981e3",
+    "ef93c1eddc49b7ce",
+    "f428febdf03116bf",
+    "f8e5055ac3876c1f",
+    "f998191ba0b9e1fd",
+    "fab2be5eec1bb0dd"
+   ],
+   "docs/science/CONTROL_WEIGHT_SNR.md": [
+    "0bd966f0b3f6220b",
+    "1a3b3bd0c9c1aa7b",
+    "22da00f367e000dc",
+    "2c7e6e0995303773",
+    "2ca9e1020a846837",
+    "37731d4bd6754d7a",
+    "3a6acbcd8cf3b8a3",
+    "4171581e309e204e",
+    "4e684ae5c0b69382",
+    "58cdcc4cf13b4e60",
+    "5aba725318e164a6",
+    "5dba82787abaf651",
+    "7433490cff6c8aef",
+    "745252842fa969a8",
+    "77278bac697c7148",
+    "84c5a95f4ce55532",
+    "89bbebe82c9e2111",
+    "97c27a43bbecb32b",
+    "98f00c52fe5f9fe2",
+    "9b3168d899c3ac01",
+    "a29b1ca7d31bad23",
+    "b02cbb53fc54b858",
+    "bc8b522e4205069f",
+    "c77bb7253a29c740",
+    "df1413ac7a7ce2b0",
+    "df9eaf0d9b96e937",
+    "e7c99b22e4de85d4",
+    "e89dd7fc0e597c7b",
+    "eaf673d769b02031"
+   ],
+   "docs/science/DRIZZLE.md": [
+    "0e3349dd20b83e96",
+    "23db7b76bb2367e7"
+   ],
+   "docs/science/INTEGRATION.md": [
+    "0d3233171bc9cfe3",
+    "4ada0dfb2215d3ca",
+    "81fc1b3ad969454e",
+    "b812fd964a53ffb4",
+    "f35d08189f68ee94"
+   ],
+   "docs/science/NOISE_MODEL.md": [
+    "025562c320fae75d",
+    "0ad4a67358eb7701",
+    "1c25d9976f1cac8f",
+    "20301741af5ad6cc",
+    "2bb67c0f5530389a",
+    "2f635a7058ab2cf8",
+    "472c069b7844263f",
+    "4d01038dce49c728",
+    "53bf2850596c0d62",
+    "5c077459168c42a2",
+    "643b04205f90898c",
+    "64d1862626d08b97",
+    "665e0544bd175e10",
+    "6abe979065d694ef",
+    "6b4900cd0ebc9d99",
+    "768108cfe6e15725",
+    "7e625b81e394dfab",
+    "8c0e9bdd9fb5f94e",
+    "8c9d8c1a9bb2024a",
+    "913840526dad424c",
+    "a2122c3da3f95bf6",
+    "a7d35895d8474890",
+    "b7381da144958793",
+    "bc9088de7a04a594",
+    "c583603c8fd3d601",
+    "c66746ed2120829e",
+    "c8dc7cf8f30c9fba",
+    "cbbda25fdcf87dda",
+    "cc0c84c52ec1721f",
+    "cc423c16dd3bb13c",
+    "d28b31aba80e30fb",
+    "d38f6c40f724377a",
+    "d9c6834c8456a7a5",
+    "db2dff0705ba0a4c",
+    "db815623ac5301bb",
+    "dc6ece75a0ea8ff6",
+    "df88611517f23c64",
+    "e3cc5ca1b7dde351",
+    "ebf1d352833d94c0",
+    "f2239088fdc42155",
+    "f47da6f938ad55f1",
+    "f78356acdf3f923a",
+    "f880cfecee25c0ca",
+    "fa002fa4ea6b0923",
+    "fabfd35a2faf777e"
+   ],
+   "docs/science/PHASE2_UPM.md": [
+    "33821a3a7d2f191a",
+    "509767de9aecaa8c",
+    "527c48c37eef6c0b",
+    "531ea2ead0e3de66",
+    "6af6da0db278a25b",
+    "6bb4ad6ae65dc986",
+    "6c4b97cd22c40323",
+    "6d6c990afd2fc561",
+    "70ac922eb555a5c3",
+    "711a8d1f74316124",
+    "74b2029058c1ab18",
+    "7799c91407521584",
+    "795a72f74dca3e9c",
+    "79d893dec033949d",
+    "7ce0f44c986e0e5b",
+    "834e1f1bb168a7fe",
+    "836811d706bc99ea",
+    "84308e366a86c956",
+    "86729362c653dbb7",
+    "8dfb020b8d3a2a3c",
+    "a1cd474e0930a92f",
+    "ac9fc0a74e7fd411",
+    "b484798e1e479ece",
+    "b8ef5a427594f287",
+    "d997bc625305ce21",
+    "dfc002626b05c3f5",
+    "fcec0d4dd3378dd0"
+   ],
+   "docs/science/PHASE3_HIPS_TO_FITS.md": [
+    "3c16edc884c6031d",
+    "61e636fa55a10f86",
+    "63688a234fc902e2",
+    "64d161aaa10c031f",
+    "817b927771a14820",
+    "fda3d8ab346675db"
+   ],
+   "docs/science/PHOTOMETRY.md": [
+    "0f4cc82367b9836e",
+    "224eed6939a96814",
+    "32a9080862beaaf1",
+    "3d3512bbf667f5ed",
+    "5087e5ce13ac674b",
+    "60d887ab340c636b",
+    "6443df44fd9b4b46",
+    "8a4af2f5e9de9a50",
+    "a18d2de8a319f7b1",
+    "a3b8e42479b30ae5",
+    "c19435171e9860ba",
+    "c225ed19f17766bd",
+    "d9d919061d93f894",
+    "e206182e514da3a6",
+    "e6de6eae24b1eb89"
+   ],
+   "docs/science/PSF.md": [
+    "6c283a6a2042b2e9",
+    "e7f37695f430d844",
+    "f60e653278746103"
+   ],
+   "docs/science/PSF_SIGNAL_WEIGHT.md": [
+    "0a58422447f6eee1",
+    "37ed58ea7a3f8134",
+    "40774a739c541e47",
+    "70888fd1c517dc07",
+    "715fa18eb4ea0468",
+    "7acf2a73aeb6b04c",
+    "b4345dd03ab1e3e9",
+    "bfe7f4931e65960e",
+    "c1a567700414964e",
+    "d3da385a148bd683",
+    "f0488fc69f39e9af",
+    "f1ea2e2bf63016b0"
+   ],
+   "docs/science/REJECTION.md": [
+    "1b4e4d1cae8973ce",
+    "1bf090b7f6a91c75",
+    "61022cf74593c5b5",
+    "85adcb4f21d458fd",
+    "a1f9c3904d43afed",
+    "b1b5d01c28fc67b1",
+    "b9af245f2c32c84b",
+    "e802864ebb0e7a9a"
+   ],
+   "docs/science/SCIENCE_SCOPE.md": [
+    "12edcb3d087c32e3",
+    "3f8e6665bd4458be",
+    "754c453d400a7294",
+    "c0bf996b1a39db36",
+    "ca828060fd2f055a",
+    "d7df0fbe8119311c",
+    "d868dff46a0f5a63",
+    "eb5ee90c0ca5780d"
+   ],
+   "docs/science/STAR_DETECTION.md": [
+    "21d7d0e58d8b5162",
+    "2c1ccc0a71e00f08",
+    "7c802bde56078cb2",
+    "9ee5b2667984450b",
+    "ad77e3dd0ce903b4",
+    "d861ca51eea37fcd",
+    "f60e653278746103"
+   ],
+   "docs/science/UNCERTAINTY_AND_COVARIANCE.md": [
+    "4ab0082ffbd45a7d",
+    "6772c5fb645555a3",
+    "dcf59cd05ba4e0ec",
+    "e0d5e0e70a794467",
+    "f1611a72d8db4f28",
+    "f278f5618b09c7c8"
+   ],
+   "docs/science/UNIFIED_SCIENCE_MODEL.md": [
+    "218ae9fb1a0a20e0",
+    "4a255cefe1d7c4e8",
+    "5227ccd26d7c4162",
+    "5befe3b577080407",
+    "5d8b4049f3551e51",
+    "6ab5a9d098e4b9d8",
+    "74f0edb90bdc1eb6",
+    "8dea952494f578ff",
+    "963d2000606e7c7b",
+    "add1b13fb6f7e608",
+    "b4d65eaa83bde804"
+   ],
+   "docs/standards/API_STANDARD.md": [
+    "03bf582b0ce7ce48",
+    "fbafcbd8ed8559fd"
+   ],
+   "docs/standards/BENCHMARK_STANDARD.md": [
+    "861e11f1423ba165",
+    "c0b9f5782708a97f"
+   ],
+   "docs/standards/CODE_STANDARD.md": [
+    "22e432e2e730628f",
+    "2aff413749ff5675",
+    "46f73cc0427ca7b3",
+    "47f0f3396fdf7eac",
+    "6661bf2629792845",
+    "666e8748422b570a",
+    "a8bf62c3204a9897",
+    "d06554276cc19745",
+    "dbaa9f8d391214e5",
+    "ff856c0335142e88"
+   ],
+   "docs/standards/COMMENT_STANDARD.md": [
+    "503b1feef6e536e5",
+    "9b9975226a63d54a"
+   ],
+   "docs/standards/CONCURRENCY_STANDARD.md": [
+    "5a8139acf2d27808",
+    "c34462b65ef8f464"
+   ],
+   "docs/standards/C_ABI_STANDARD.md": [
+    "0408d2bf49ec7f6a",
+    "5c143b930e7222fe",
+    "bc298dadd3966a75",
+    "ed7881649fa40f23"
+   ],
+   "docs/standards/DOCUMENTATION_STANDARD.md": [
+    "017ddcdc796662ac"
+   ],
+   "docs/standards/ERROR_HANDLING_STANDARD.md": [
+    "c34462b65ef8f464"
+   ],
+   "docs/standards/IO_STANDARD.md": [
+    "3d4c9ea65dbea6d3"
+   ],
+   "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md": [
+    "65cdfd476925aa59",
+    "9fe325945bd309c4"
+   ],
+   "docs/standards/NUMERIC_STANDARD.md": [
+    "308a2742e0363985",
+    "4525edb3bed9d219",
+    "643b04205f90898c",
+    "68e28597efdea16f",
+    "8ba52cfb6850e559",
+    "94300512e688f5f7",
+    "945ac3bb0300807d",
+    "94cac410c2f9d234",
+    "99ee68972591fdbc"
+   ],
+   "docs/standards/RELEASE_STANDARD.md": [
+    "a71ef727ffa5bb42",
+    "d24f6e9ebe28fe5c",
+    "db347254f6a765d8"
+   ],
+   "docs/standards/STANDARDS_REGISTRY.md": [
+    "2398433406b05a0e",
+    "3dfb445c8770b9ef",
+    "3e0ed6eea8fd0f44",
+    "4684eb97ac0e3461",
+    "5d0dbf3f89d50083",
+    "79e7ae543b9f9349",
+    "7c768eb809f80aad",
+    "876257971903c366",
+    "a63af3abf7d4f52b",
+    "addada3b5ffd4213",
+    "b0643fbd0b8181b1",
+    "b2fbcad4ab225be7",
+    "d51ae691c5888483",
+    "e558c44b16ca9e88"
+   ],
+   "docs/standards/TEST_STANDARD.md": [
+    "58d0791a4566cc2e",
+    "782ddd9ed13c04cf"
+   ],
+   "docs/traceability/TRACEABILITY_LAYERS.csv": [
+    "1c7fd275161d2414",
+    "c7b553c9ebca8e4c"
+   ],
+   "docs/traceability/TRACEABILITY_MATRIX.csv": [
+    "1b1e226b0e0552a8",
+    "536060fea28f337d",
+    "6c5e612fefa4b0f4",
+    "fb3496c8cdcdc936"
+   ],
+   "docs/traceability/TRACEABILITY_MATRIX.json": [
+    "2d62a9dc626587c9",
+    "7f457800dce7205d",
+    "9a790e084260cf60",
+    "b4a82ef0bdd532e8"
+   ],
+   "docs/traceability/TRACEABILITY_SPEC.md": [
+    "74256d98035f3824",
+    "806ec9536cc4eb71",
+    "9571fd9ad96616ce",
+    "97f90c2307144bb2",
+    "989407f0a9fe734e",
+    "b67d0bd7f2b0ef7c",
+    "bc8964f4d68297b0",
+    "c13c5e0b5651b47b",
+    "d0e9caae354b8d3d",
+    "ddde32b092ad583d",
+    "e00d439cb11600e5",
+    "e8021fdc6b62f3f3"
+   ],
+   "docs/traceability/traceability_warn_baseline.json": [
+    "b82c76c81200f318",
+    "b82c76c81200f318",
+    "b82c76c81200f318",
+    "b82c76c81200f318",
+    "b82c76c81200f318",
+    "b82c76c81200f318"
+   ],
+   "docs/validation/SCIENCE_FREEZE.md": [
+    "87fa2d10ad7aae4f"
+   ],
+   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": [
+    "092cd664666ee006",
+    "3b7484cab89434c7",
+    "52d84e0f6b1f958f",
+    "62aa788c203eb7e5",
+    "7f693916f0456f12",
+    "8cc85394c509d913",
+    "9de36deb9fef6a75",
+    "a1c063c2be2771aa",
+    "a7799de804e27955",
+    "b24421a797694d1a",
+    "b7e698de196666f1",
+    "d8d8a6017e045365",
+    "e82c334900822166",
+    "f47ccd1dff87f67b",
+    "fe82f0356dd16544"
+   ],
+   "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md": [
+    "4e9f0a3b41647ca1",
+    "5741b1a407b627ac",
+    "804d6a91347296f5"
+   ],
+   "docs/validation/v6/P0_GATE_FAMILY.md": [
+    "a530f5c6cce61e40",
+    "a582cd764b3fc474",
+    "d08e3e5312345e60"
+   ],
+   "docs/validation/v6/QA_MATRIX.md": [
+    "027fbf884ff213e5",
+    "0991c80e34770a3f",
+    "0b1097d657b8b5e2",
+    "196e73af2c95e19f",
+    "1ddc1c907c9caea7",
+    "280714f3eb49ce7e",
+    "28be7da958391eaf",
+    "297e24014cbcf3bb",
+    "2a64b13acf2d3eb2",
+    "2f324c9f586ed087",
+    "3cacf852acda1245",
+    "410ed6a29173215f",
+    "4d6c7c244f059c6b",
+    "52cefce98cb52e42",
+    "5d76760e0fe27124",
+    "6a1cd2afcb7d89cd",
+    "6ae2ceecf06aa4b0",
+    "6df01adbb831064a",
+    "6e38929821e2ec64",
+    "7d3071f347f6d038",
+    "835985f601ed5f8c",
+    "8528f100426e2e11",
+    "8e584dc8875396f1",
+    "997c25288f52f355",
+    "9ea572b829433857",
+    "a39a4c58839587c0",
+    "a78481bf0a431685",
+    "aaf7ecc2641da2d4",
+    "adf1016f22b26cfc",
+    "bd5ed83b07cd54a5",
+    "c1fee729b870bed7",
+    "c60c7dab0dcfaae7",
+    "cdeacebbbbb41175",
+    "cfc8ddce09dd6c4d",
+    "d10b421e138be687",
+    "d56f11bd5673abff",
+    "dc9e36732a5fbe27",
+    "e345fcee49e2b37e",
+    "ed86beb74e95237f",
+    "ee1b924141d7c34f",
+    "f13a4430bc1bc777",
+    "f994ccc1275aff65",
+    "fbd75d6a6ba69ca6",
+    "ff985da5ec1f56fe"
+   ],
+   "docs/validation/v6/README.md": [
+    "cd7e40082384fbf7"
+   ]
+  }
+ },
+ "d3_rules": [
+  "D3a_date",
+  "D3b_proc_id",
+  "D3c_run_path",
+  "D3d_sha",
+  "D3e_history",
+  "D3f_owner_quote",
+  "D3g_strikethrough",
+  "D3h_prohibition"
+ ],
+ "d4": {
+  "D4a_process_paragraph": {
+   "docs/algorithms/anchors/unresolved_registry.json": 1,
+   "docs/architecture/PERFORMANCE_MODEL.md": 2,
+   "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md": 1,
+   "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md": 1,
+   "docs/science/PHASE2_UPM.md": 1,
+   "docs/traceability/traceability_warn_baseline.json": 1
+  },
+  "D4c_anchor_density": {
+   "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv": 0.9623,
+   "docs/architecture/execution_inventory.csv": 8.0667,
+   "docs/audit/risk_verification_T012.csv": 0.75,
+   "docs/traceability/TRACEABILITY_MATRIX.csv": 2.3548
+  },
+  "D4d_cell_wall": {
+   "ACCEPTANCE_SPEC.md": 7,
+   "docs/GLOSSARY.md": 1,
+   "docs/algorithms/CALIBRATION_ALGORITHMS.md": 10,
+   "docs/algorithms/COSMETIC_ALGORITHMS.md": 3,
+   "docs/algorithms/DRIZZLE_GEOMETRY.md": 6,
+   "docs/algorithms/GATES_AND_TOLERANCES.md": 18,
+   "docs/algorithms/HIPS_WRITER.md": 10,
+   "docs/algorithms/NOISE_ESTIMATION.md": 12,
+   "docs/algorithms/PHASE2_INTEGRATION.md": 1,
+   "docs/algorithms/PHASE2_MOSAIC_WRITE.md": 8,
+   "docs/algorithms/PHASE2_REJECTION.md": 3,
+   "docs/algorithms/PHASE2_SAMPLER.md": 9,
+   "docs/algorithms/PHASE2_SESSION.md": 8,
+   "docs/algorithms/PHASE2_UPM_IMPL.md": 4,
+   "docs/algorithms/PHASE3_FITS_IMPL.md": 2,
+   "docs/algorithms/PHASE3_PROJ_IMPL.md": 6,
+   "docs/algorithms/PHASE3_RSMP_IMPL.md": 3,
+   "docs/algorithms/PHOTOMETRIC_FIT.md": 1,
+   "docs/algorithms/PLATESOLVE.md": 2,
+   "docs/algorithms/STAR_PSF_ALGORITHMS.md": 1,
+   "docs/api/PHASE3_API_V1.md": 1,
+   "docs/architecture/BUILD_GRAPH.md": 4,
+   "docs/architecture/CACHE_POLICY.md": 1,
+   "docs/architecture/EXECUTION_MODEL.md": 2,
+   "docs/architecture/MODULE_MAP.md": 14,
+   "docs/architecture/PERFORMANCE_MODEL.md": 4,
+   "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md": 1,
+   "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md": 1,
+   "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md": 2,
+   "docs/ci/01_CHECKS.md": 55,
+   "docs/contracts/API-001.md": 1,
+   "docs/contracts/CONFIG_CONTRACT.md": 17,
+   "docs/contracts/DATA_ARTIFACTS.md": 32,
+   "docs/contracts/DATA_SEMANTICS.md": 67,
+   "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md": 2,
+   "docs/contracts/PUBLIC_API.md": 4,
+   "docs/contracts/UNIFIED_OBJECTS.md": 26,
+   "docs/design/LOG_AND_ERROR_SYSTEM.md": 2,
+   "docs/design/PRODUCT_STORAGE_FORM.md": 2,
+   "docs/design/UNIFIED_MODEL.md": 3,
+   "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md": 1,
+   "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md": 1,
+   "docs/modules/common.md": 1,
+   "docs/modules/registry/astrocs.phase1.wcs-platesolve.md": 1,
+   "docs/modules/registry/astrocs.phase2.write.md": 1,
+   "docs/operations/TOOLCHAIN_AGENT_HOST.md": 1,
+   "docs/owner/ARCHITECTURE_OVERVIEW.md": 6,
+   "docs/owner/PIPELINE_OVERVIEW.md": 1,
+   "docs/owner/RELEASE_STATUS.md": 10,
+   "docs/owner/SCIENCE_OVERVIEW.md": 9,
+   "docs/plugins/algorithms_phase1/03_star_detection.md": 3,
+   "docs/plugins/algorithms_phase1/07_noise_snr.md": 2,
+   "docs/plugins/algorithms_phase2/11_upm.md": 3,
+   "docs/science/ASTROMETRY.md": 3,
+   "docs/science/CONTROL_WEIGHT_SNR.md": 2,
+   "docs/science/DRIZZLE.md": 2,
+   "docs/science/NOISE_MODEL.md": 4,
+   "docs/science/PHASE2_UPM.md": 4,
+   "docs/science/PHASE3_HIPS_TO_FITS.md": 2,
+   "docs/science/PHOTOMETRY.md": 13,
+   "docs/standards/STANDARDS_REGISTRY.md": 33,
+   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": 4,
+   "docs/validation/v6/QA_MATRIX.md": 41
+  },
+  "D4e_paragraph_len": {
+   "ACCEPTANCE_SPEC.md": 1,
+   "AGENTS.md": 1,
+   "ASTROCS_DESIGN.md": 2,
+   "DEPENDENCIES.md": 1,
+   "ENGINEERING_SPEC.md": 1,
+   "README.md": 2,
+   "docs/DOCUMENT_INDEX.yaml": 2,
+   "docs/GLOSSARY.md": 1,
+   "docs/TRACEABILITY.csv": 1,
+   "docs/TROUBLESHOOTING.md": 1,
+   "docs/algorithms/CALIBRATION_ALGORITHMS.md": 9,
+   "docs/algorithms/COSMETIC_ALGORITHMS.md": 11,
+   "docs/algorithms/DRIZZLE_GEOMETRY.md": 10,
+   "docs/algorithms/GAIA_QUERY.md": 2,
+   "docs/algorithms/GATES_AND_TOLERANCES.md": 1,
+   "docs/algorithms/HIPS_WRITER.md": 10,
+   "docs/algorithms/NOISE_ESTIMATION.md": 2,
+   "docs/algorithms/PHASE2_COVERAGE.md": 10,
+   "docs/algorithms/PHASE2_INTEGRATION.md": 8,
+   "docs/algorithms/PHASE2_MOSAIC_WRITE.md": 11,
+   "docs/algorithms/PHASE2_REJECTION.md": 16,
+   "docs/algorithms/PHASE2_SAMPLER.md": 13,
+   "docs/algorithms/PHASE2_SESSION.md": 8,
+   "docs/algorithms/PHASE2_UPM_IMPL.md": 9,
+   "docs/algorithms/PHASE3_FITS_IMPL.md": 11,
+   "docs/algorithms/PHASE3_PROJ_IMPL.md": 14,
+   "docs/algorithms/PHASE3_RSMP_IMPL.md": 7,
+   "docs/algorithms/PHOTOMETRIC_FIT.md": 4,
+   "docs/algorithms/PLATESOLVE.md": 9,
+   "docs/algorithms/REJECTION_ALGORITHMS.md": 3,
+   "docs/algorithms/STAR_DETECTION_ALGORITHMS.md": 6,
+   "docs/algorithms/STAR_PSF_ALGORITHMS.md": 2,
+   "docs/algorithms/anchors/ANCHOR_CONTRACT.md": 2,
+   "docs/algorithms/anchors/anchor_contract.json": 1,
+   "docs/algorithms/anchors/unresolved_registry.json": 1,
+   "docs/api/CLI_PROTOCOL_V1.md": 2,
+   "docs/api/PHASE2_API_V1.md": 1,
+   "docs/architecture/ASYNC_IO_CONTRACT.md": 2,
+   "docs/architecture/IO_AND_ATOMICITY.md": 1,
+   "docs/architecture/MODULE_MAP.md": 1,
+   "docs/architecture/PERFORMANCE_MODEL.md": 1,
+   "docs/architecture/PHASE3_MODULE_ARCH.md": 1,
+   "docs/architecture/PIPELINE.md": 1,
+   "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv": 1,
+   "docs/architecture/abi/ABI_003_SECURE_LOADER.md": 1,
+   "docs/architecture/api_inventory.csv": 1,
+   "docs/architecture/doc_symbol_namespaces.json": 1,
+   "docs/architecture/execution_inventory.csv": 1,
+   "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md": 1,
+   "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md": 1,
+   "docs/audit/doc_classification.csv": 1,
+   "docs/audit/inventory.csv": 1,
+   "docs/ci/01_CHECKS.md": 2,
+   "docs/ci/03_GATES.md": 2,
+   "docs/contracts/API-001.md": 1,
+   "docs/contracts/API_CONTRACTS.csv": 1,
+   "docs/contracts/CONFIG_CONTRACT.md": 4,
+   "docs/contracts/DATA_ARTIFACTS.md": 3,
+   "docs/contracts/DATA_SEMANTICS.md": 60,
+   "docs/contracts/INDEX.yaml": 7,
+   "docs/contracts/PUBLIC_API.md": 45,
+   "docs/contracts/SCHEDULER_CONTRACT.md": 1,
+   "docs/contracts/TEST_MATRIX.md": 1,
+   "docs/contracts/UNIFIED_OBJECTS.md": 2,
+   "docs/contracts/config_separation_anchors.json": 1,
+   "docs/contracts/unified_object_registry.json": 1,
+   "docs/design/PHASE1_DETAILED_DESIGN.md": 2,
+   "docs/design/UNIFIED_MODEL.md": 1,
+   "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md": 2,
+   "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md": 1,
+   "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md": 3,
+   "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md": 1,
+   "docs/modules/MODULE_MAP.yaml": 4,
+   "docs/modules/calibration.md": 1,
+   "docs/modules/hips_p2.md": 1,
+   "docs/modules/orchestrator.md": 1,
+   "docs/modules/phase2.md": 1,
+   "docs/modules/phase2_int.md": 1,
+   "docs/modules/phase2_rej.md": 3,
+   "docs/modules/phase2_samp.md": 5,
+   "docs/modules/phase2_upm.md": 8,
+   "docs/modules/phase3_fits.md": 1,
+   "docs/modules/phase3_proj.md": 1,
+   "docs/modules/phase3_rsmp.md": 2,
+   "docs/modules/photometric_calib.md": 1,
+   "docs/modules/registry/astrocs.phase1.photometry.md": 1,
+   "docs/modules/registry/astrocs.phase1.session.md": 1,
+   "docs/modules/registry/astrocs.phase1.star-detection.md": 1,
+   "docs/modules/registry/astrocs.phase1.wcs-platesolve.md": 1,
+   "docs/modules/registry/astrocs.phase2.coverage.md": 1,
+   "docs/modules/registry/astrocs.phase2.reject.md": 1,
+   "docs/modules/registry/astrocs.phase2.sample.md": 1,
+   "docs/modules/registry/astrocs.phase2.session.md": 1,
+   "docs/modules/registry/astrocs.phase2.upm-apply.md": 4,
+   "docs/modules/registry/astrocs.phase2.upm-fit.md": 3,
+   "docs/modules/registry/astrocs.phase2.write.md": 1,
+   "docs/modules/registry/astrocs.phase3.resample2.md": 6,
+   "docs/modules/registry/astrocs.phase3.wcs.md": 3,
+   "docs/modules/registry/astrocs.phase3.writer.md": 3,
+   "docs/modules/registry/module_id_migration_baseline.json": 1,
+   "docs/operations/TOOLCHAIN_AGENT_HOST.md": 1,
+   "docs/owner/PIPELINE_OVERVIEW.md": 2,
+   "docs/owner/RELEASE_STATUS.md": 1,
+   "docs/owner/SCIENCE_OVERVIEW.md": 2,
+   "docs/plugins/algorithms_phase1/03_star_detection.md": 1,
+   "docs/plugins/algorithms_phase1/06_photometry.md": 2,
+   "docs/plugins/algorithms_phase1/07_noise_snr.md": 3,
+   "docs/plugins/algorithms_phase2/10_sampling.md": 1,
+   "docs/plugins/algorithms_phase2/11_upm.md": 2,
+   "docs/plugins/algorithms_phase2/13_integration.md": 1,
+   "docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md": 4,
+   "docs/references/SCIENTIFIC_REFERENCES.md": 2,
+   "docs/science/ASTROMETRY.md": 5,
+   "docs/science/CALIBRATION.md": 8,
+   "docs/science/CONTROL_WEIGHT_SNR.md": 2,
+   "docs/science/DRIZZLE.md": 2,
+   "docs/science/INTEGRATION.md": 1,
+   "docs/science/NOISE_MODEL.md": 4,
+   "docs/science/PHASE2_UPM.md": 5,
+   "docs/science/PHASE3_HIPS_TO_FITS.md": 1,
+   "docs/science/PHOTOMETRY.md": 3,
+   "docs/science/PSF.md": 3,
+   "docs/science/PSF_SIGNAL_WEIGHT.md": 1,
+   "docs/science/REJECTION.md": 5,
+   "docs/science/SCIENCE_SCOPE.md": 2,
+   "docs/science/STAR_DETECTION.md": 2,
+   "docs/science/UNCERTAINTY_AND_COVARIANCE.md": 1,
+   "docs/standards/CODE_STANDARD.md": 1,
+   "docs/standards/NUMERIC_STANDARD.md": 1,
+   "docs/standards/STANDARDS_REGISTRY.md": 3,
+   "docs/traceability/TRACEABILITY_MATRIX.csv": 1,
+   "docs/traceability/TRACEABILITY_MATRIX.json": 1,
+   "docs/traceability/TRACEABILITY_SPEC.md": 1,
+   "docs/traceability/traceability_warn_baseline.json": 1,
+   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": 1,
+   "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md": 2,
+   "docs/validation/v6/QA_MATRIX.md": 41
+  }
+ },
+ "d4_rules": [
+  "D4a_process_paragraph",
+  "D4c_anchor_density",
+  "D4d_cell_wall",
+  "D4e_paragraph_len"
+ ],
+ "note": "只减不增：新增违规判红；基线残留判红（要求收紧）；入口文档不参与基线。由 check_doc_hygiene.py --update-baseline 生成，收紧是唯一合法方向。",
+ "schema": "doc-hygiene-baseline/v1"
+}

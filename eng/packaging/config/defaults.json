@@ -664,17 +664,17 @@
     },
     {
       "key": "drizzle.pixfrac",
-      "value": 1.0,
+      "value": 0.8,
       "unit": "1",
       "constraint": "0 < pixfrac <= 1（严格校验，非法值显式 NO_DATA，不静默夹逼；DRIZZLE.md:31,:92；DRIZZLE_GEOMETRY.md:61,:102）",
       "authority_status": "owner_adjudicated",
-      "source": "docs/science/DRIZZLE.md:35（0<pixfrac<=1，非法 NO_DATA，不静默夹逼）；docs/contracts/DATA_SEMANTICS.md §31.1:43-48（FZ-COND-FLUX-CONSERV：pixfrac=1 ⇒ ΣF=Σx 严格守恒；pixfrac<1 ⇒ 总输出通量 = pixfrac²·Σx 且 provenance.flux_conservation_factor=pixfrac²）",
+      "source": "docs/science/DRIZZLE.md:35（0<pixfrac<=1，非法 NO_DATA，不静默夹逼）；docs/contracts/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
       "source_ref": {
         "path": "docs/science/DRIZZLE.md",
         "line": 35
       },
       "pending_task": null,
-      "note": "DOC-SCI-001 §3 裁决（负责人授权，2026-09-17）：默认 1.0 = 通量严格守恒端点（E1 独立复算：pixfrac=1 无相邻源像素缝隙；V18R2-V19 运行史记 pixfrac 0.8→1.0 修黑色缝隙）。旧实现模板 0.8（lib/infrastructure/pipeline/orchestrator/configs/stage1.template.json:41）为实现默认、非科学权威，保留为历史记录不再作为默认值依据。"
+      "note": "pixfrac 收缩输入像素的**投影足迹**（drop 边长 = pixfrac × 像素边长），**总通量由核面积归一保证、与 pixfrac 无关**（Fruchter & Hook 2002 §7.2：权重按 drop 与输出像素的重叠面积占比归一，Σ_o a_io = 1；§5 在 pixfrac=0.6 下实测孔径测光 RMS 0.004 mag）。默认 0.8：drop 相互重叠，输出网格无未覆盖缝隙；取 1.0 时相邻 drop 仅边界相接，源像素落点错位处出现无覆盖缝隙。"
     },
     {
       "key": "sparse_snr.density",

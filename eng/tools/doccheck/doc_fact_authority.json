@@ -1,0 +1,18 @@
+{
+ "schema": "doc-fact-authority/v1",
+ "note": "事实唯一性登记表（D4b）：每个事实键的取值只在一个位置定义（authority_value），其余位置写指针。value_res 的捕获组 1 = 取值声明；adjudication=enforced 时异值判红，=pending 时只上报 notes.d4b_pending。",
+ "facts": [
+  {
+   "key": "drizzle.pixfrac.default",
+   "authority_value": "eng/packaging/config/defaults.json#drizzle.pixfrac",
+   "authority_literal": "0.8",
+   "value_res": [
+    "pixfrac\\s*[=＝]\\s*([01](?:\\.\\d+)?)[`\\s]*生产默认",
+    "drizzle\\.pixfrac[`\\s]*[=＝]\\s*([01](?:\\.\\d+)?)",
+    "pixfrac[^\\n]{0,24}?默认[`*\\s]{0,4}([01](?:\\.\\d+)?)"
+   ],
+   "value_hint": "pixfrac 默认值声明（默认 1.0 / pixfrac = 0.8 生产默认）",
+   "adjudication": "enforced"
+  }
+ ]
+}

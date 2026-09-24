@@ -514,12 +514,12 @@ def selftest_manifest(allowed_files=None, allowed_dirs=None, retention=None,
 
 
 # 根下被重建的已删除旧治理对象本体（负例：写成绑定权威 / 正例：标明历史参照）
-SELFTEST_LEGACY_BINDING = """# AstroCS 工程约束
+SELFTEST_LEGACY_BINDING = """# ACSD 工程约束
 
-> 本文件为 AstroCS 工程约束权威，属上位必读的 FROZEN 依据。
+> 本文件为 ACSD 工程约束权威，属上位必读的 FROZEN 依据。
 """
 
-SELFTEST_LEGACY_ARCHIVED = """# AstroCS 工程约束（已删除，历史参照）
+SELFTEST_LEGACY_ARCHIVED = """# ACSD 工程约束（已删除，历史参照）
 
 > 本文件不再作为现行权威，已归档保留作历史参照。
 """
