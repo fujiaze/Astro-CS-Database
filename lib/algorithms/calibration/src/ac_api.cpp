@@ -28,6 +28,28 @@ namespace ac {
                              float sigma_low, float sigma_high, int max_iter);
 }
 
+// 从 cosmetic_corrector.cpp（坏列路径；与 correct_frame 完全独立）
+namespace ac {
+    void correct_columns(const float* data, int w, int h, float* out,
+                         float column_sigma, int neighbor_k, int max_seg_len,
+                         unsigned char* col_mask,
+                         int* out_n_cols, int* out_px_repaired,
+                         float* out_sigma_col, int* out_status);
+    void detect_bad_columns(const float* data, int w, int h,
+                            float column_sigma, int neighbor_k, int max_seg_len,
+                            unsigned char* col_mask,
+                            int* out_n_cols, float* out_sigma_col, int* out_status);
+    void correct_columns_ex(const float* data, const float* dark, const float* bias,
+                            int w, int h, float* out,
+                            float column_sigma, int neighbor_k, int max_seg_len,
+                            unsigned char* col_mask,
+                            unsigned char* source_mask, unsigned char* conf_mask,
+                            int* out_n_cols, int* out_n_sci,
+                            int* out_n_dark, int* out_n_bias,
+                            int* out_px_repaired, float* out_sigma_col,
+                            int* out_status);
+}
+
 // 从 calibrator.cpp
 namespace ac {
     void calibrate(const float* light, int w, int h,
@@ -263,6 +285,79 @@ AC_API int ac_correct_frame_f64(
                       method, max_structure_size,
                       out_hot, out_cold);
     for (int64_t i = 0; i < n_pix; ++i) out[i] = static_cast<double>(out_f32[i]);
+    return AC_OK;
+}
+
+// ======================== 坏列（linear defect）C ABI ========================
+// 独立于 ac_correct_frame 的新路径；对既有符号零影响。
+AC_API int ac_correct_columns(
+    const float* data, int width, int height,
+    float* out,
+    float column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    int* out_n_cols, int* out_px_repaired,
+    float* out_sigma_col, int* out_status) {
+    if (!data || !out || width <= 0 || height <= 0)
+        return AC_ERR_PARAM;
+    ac::correct_columns(data, width, height, out, column_sigma, neighbor_k,
+                        max_seg_len, col_mask, out_n_cols, out_px_repaired,
+                        out_sigma_col, out_status);
+    return AC_OK;
+}
+
+AC_API int ac_correct_columns_f64(
+    const double* data, int width, int height,
+    double* out,
+    double column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    int* out_n_cols, int* out_px_repaired,
+    double* out_sigma_col, int* out_status) {
+    if (!data || !out || width <= 0 || height <= 0)
+        return AC_ERR_PARAM;
+    // 与 ac_correct_frame_f64 同款降级：统计/mask/插值全程 f32，输出回转 double
+    const int64_t n_pix = static_cast<int64_t>(width) * height;
+    std::vector<float> data_f32(static_cast<size_t>(n_pix));
+    for (int64_t i = 0; i < n_pix; ++i) data_f32[i] = static_cast<float>(data[i]);
+    std::vector<float> out_f32(static_cast<size_t>(n_pix));
+    float sig_col_f32 = 0.0f;
+    ac::correct_columns(data_f32.data(), width, height, out_f32.data(),
+                        static_cast<float>(column_sigma), neighbor_k, max_seg_len,
+                        col_mask, out_n_cols, out_px_repaired,
+                        &sig_col_f32, out_status);
+    for (int64_t i = 0; i < n_pix; ++i) out[i] = static_cast<double>(out_f32[i]);
+    if (out_sigma_col) *out_sigma_col = static_cast<double>(sig_col_f32);
+    return AC_OK;
+}
+
+// ======================== 坏列：母版定位 + 三路径仲裁（C ABI）================
+AC_API int ac_detect_bad_columns_from_master(
+    const float* master, int width, int height,
+    float column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    int* out_n_cols, float* out_sigma_col, int* out_status) {
+    if (!master || !col_mask || width <= 0 || height <= 0)
+        return AC_ERR_PARAM;
+    ac::detect_bad_columns(master, width, height, column_sigma, neighbor_k,
+                           max_seg_len, col_mask, out_n_cols, out_sigma_col, out_status);
+    return AC_OK;
+}
+
+AC_API int ac_correct_columns_ex(
+    const float* data, const float* master_dark, const float* master_bias,
+    int width, int height, float* out,
+    float column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    unsigned char* out_source_mask,
+    unsigned char* out_conf_mask,
+    int* out_n_cols, int* out_n_science, int* out_n_dark, int* out_n_bias,
+    int* out_px_repaired, float* out_sigma_col, int* out_status) {
+    if (!data || !out || width <= 0 || height <= 0)
+        return AC_ERR_PARAM;
+    ac::correct_columns_ex(data, master_dark, master_bias, width, height, out,
+                           column_sigma, neighbor_k, max_seg_len, col_mask,
+                           out_source_mask, out_conf_mask,
+                           out_n_cols, out_n_science, out_n_dark, out_n_bias,
+                           out_px_repaired, out_sigma_col, out_status);
     return AC_OK;
 }
 

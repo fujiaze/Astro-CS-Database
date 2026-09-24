@@ -1,4 +1,4 @@
-// AstroCS Phase1 — 帧级 SNR 科学聚合 (P8-SNR-LINUX)
+// ACSD Phase1 — 帧级 SNR 科学聚合 (P8-SNR-LINUX)
 //
 // 职责: 把 Linux 生产路径 (LIBS 节点 astrocs.phase1.noise-snr → NoiseModel::estimate)
 //       的 SNR 输出从"整帧标量"改为**逐源科学 SNR** + 帧级 5sigma 深度。

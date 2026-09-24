@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_benchmark.cpp - AstroCS HISS 未决工程实验 (DQ-001 ~ DQ-007)
+// hiss_benchmark.cpp - ACSD HISS 未决工程实验 (DQ-001 ~ DQ-007)
 //
 // 实验内容:
 // DQ-001: signal (float32) 默认 codec/transform 候选对比
@@ -1205,7 +1205,7 @@ static void write_json(const std::string& path,
     if (!f) { fprintf(stderr, "[bench] 无法写入 %s\n", path.c_str()); return; }
 
     f << "{\n";
-    f << "  \"experiment\": \"AstroCS HISS DQ-001~007 benchmark\",\n";
+    f << "  \"experiment\": \"ACSD HISS DQ-001~007 benchmark\",\n";
     f << "  \"timestamp\": \"" << std::time(nullptr) << "\",\n";
     f << "  \"warmup_rounds\": " << WARMUP_ROUNDS << ",\n";
     f << "  \"measure_rounds\": " << MEASURE_ROUNDS << ",\n";
@@ -1249,7 +1249,7 @@ static void write_summary(const std::string& path,
     std::ofstream f(path);
     if (!f) { fprintf(stderr, "[bench] 无法写入 %s\n", path.c_str()); return; }
 
-    f << "# AstroCS HISS 未决工程实验报告\n\n";
+    f << "# ACSD HISS 未决工程实验报告\n\n";
     f << "> **声明**: 此结论仅为实验建议, 未写入冻结规范, 也未设为不可更改的正式默认值, 等待用户与主审助手确认。\n\n";
 
     f << "## 实验环境\n\n";
@@ -1463,7 +1463,7 @@ static void write_environment(const std::string& path,
 // ============================================================================
 
 int main(int argc, char* argv[]) {
-    fprintf(stderr, "=== AstroCS HISS Benchmark ===\n");
+    fprintf(stderr, "=== ACSD HISS Benchmark ===\n");
     fprintf(stderr, "预热轮数: %d, 测量轮数: %d\n\n", WARMUP_ROUNDS, MEASURE_ROUNDS);
 
     // 初始化 CRC32C 表

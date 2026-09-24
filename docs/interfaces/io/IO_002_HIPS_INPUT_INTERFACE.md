@@ -285,7 +285,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 ## 10. 已知限制（v1 骨架）
 
 1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + C 核心 +
-   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）
+   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（acsd_io.dll）
    用同一源码执行。
 2. 只支持 `hips_frame` ∈ {`equatorial`（写出值）, `icrs`（只读兼容别名）}、`ORDERING=NESTED`、
    `hips_tile_format=fits`；galactic/tsv/png/jpg 目录拒绝（科学平面 FITS-only）。

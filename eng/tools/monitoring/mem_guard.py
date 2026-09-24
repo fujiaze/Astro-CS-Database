@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mem_guard.py —— 重计算的内存看门狗（进程树 RSS 上限即杀）
 
-背景：本机 swap 永久禁用，物理内存约 23 GiB。AstroCS 的重计算（ctest / 探针 /
+背景：本机 swap 永久禁用，物理内存约 23 GiB。ACSD 的重计算（ctest / 探针 /
 基准）曾把单个进程涨到 >11 GB 匿名内存，触发**全局 OOM killer**，连带杀掉同处
 `dsh-web.service` 单元内的 DSH 本体，中断会话。
 

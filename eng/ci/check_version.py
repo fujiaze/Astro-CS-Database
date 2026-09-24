@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""eng/ci/check_version.py — AstroCS 产品版本一致性 CI 快速门 (V81-ADOPT-006)。
+"""eng/ci/check_version.py — ACSD 产品版本一致性 CI 快速门 (V81-ADOPT-006)。
 
 用法:
   python3 eng/ci/check_version.py --expected 0.1.0-alpha.1 [--root <repo_root>]
@@ -415,7 +415,7 @@ def report(checks: list, root: str, expected, expected_source: str,
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="AstroCS 产品版本一致性 CI 快速门")
+    ap = argparse.ArgumentParser(description="ACSD 产品版本一致性 CI 快速门")
     ap.add_argument("--expected", default=None,
                     help="期望产品版本, 如 0.1.0-alpha.1 (缺省: 取根 VERSION 的 strip 值)")
     ap.add_argument("--root", default=None,
@@ -640,7 +640,7 @@ def main() -> int:
 
 # ---- 可执行负例面: tempfile mini-repo ---------------------------------------
 ROOT_CMAKE_TMPL = """cmake_minimum_required(VERSION 3.24)
-project(astrocs VERSION %(base)s LANGUAGES C CXX)
+project(acsd VERSION %(base)s LANGUAGES C CXX)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)
 configure_file(lib/infrastructure/cli/version_generated.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version_generated.h @ONLY)
 """
@@ -652,7 +652,7 @@ TEMPLATE_TMPL = """#pragma once
 DOC_TMPL = "# %s\n\ndoc_version: 0.10.0-alpha.1\n"
 # §12 absence 夹具: 无 VERSION / 无 project VERSION / 无生成链 / 无 alpha 字面量。
 ROOT_CMAKE_NO_VERSION_TMPL = """cmake_minimum_required(VERSION 3.24)
-project(astrocs LANGUAGES C CXX)
+project(acsd LANGUAGES C CXX)
 """
 NO_VERSION_DOC_TMPL = "# %s\n\n版本信息面: 无 (Alpha 前, ASTROCS_DESIGN §12)\n"
 
@@ -774,7 +774,7 @@ def self_test() -> int:
         os.makedirs(root)
         _mini_repo(root, expected=expected, extra_files={
             ROOT_CMAKE_REL: ("cmake_minimum_required(VERSION 3.24)\n"
-                             "project(astrocs VERSION 0.11.0 LANGUAGES C CXX)\n"
+                             "project(acsd VERSION 0.11.0 LANGUAGES C CXX)\n"
                              "configure_file(lib/infrastructure/cli/version_generated.h.in "
                              + D + "{CMAKE_CURRENT_SOURCE_DIR}/version_generated.h @ONLY)\n")})
         code, err = _run_mini(root, expected)

@@ -113,7 +113,7 @@ int HipsBrowserBackend::open_product(const std::string& out_dir) {
     close();
     root_ = out_dir;
     if (root_.empty()) return -1;
-    // 布局自动检测。AstroCS 嵌套（signal/ support/）；否则标准扁平
+    // 布局自动检测。ACSD 嵌套（signal/ support/）；否则标准扁平
     // （root/properties + root/NorderK，如 Hipsgen 输出）。
     flat_ = !std::filesystem::exists(root_ + "/signal/properties");
     sig_ = aio_hips_open(root_.c_str(), AIO_HIPS_RD_SIGNAL);

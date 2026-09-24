@@ -12,7 +12,7 @@
 // extras 事务化 malloc 负例落地。子进程分类:
 //   rc==1 + "OOMCHILD rc=-1"          → 事务化检查点 (断言输出全 NULL)
 //   rc==0                              → 非必需分配间隙 (断言 count 正常)
-//   rc==134 (std::bad_alloc 终止)     → STL/GSL 内部定义性终止 (登记, 不算
+//   rc==134 (std::bad_alloc 终止)     → STL/运行库内部定义性终止 (登记, 不算
 //                                        被测缺陷: 无静默坏数据发布)
 // ============================================================================
 
@@ -826,7 +826,7 @@ int test_negative() {
     // 之后 — 仅尾部窗口可达事务化路径。
     std::vector<long> checkpoints;   // rc=-1 事务化检查点
     std::vector<long> gaps;          // rc=0 非必需分配
-    std::vector<long> aborts;        // 134 定义性终止 (STL/GSL 内部)
+    std::vector<long> aborts;        // 134 定义性终止 (STL/运行库内部)
     // OOM_TOTAL 落盘路径：不写死 "/tmp"（Windows 无此路径；宿主 /tmp 可能不可写 —— AGENTS §3）。
     // 用当前工作目录相对路径（ctest WORKING_DIRECTORY 保证可写），父子进程共享 cwd。
     char total_path[] = "astrocs_p1star_oom_total.txt";

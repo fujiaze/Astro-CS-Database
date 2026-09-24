@@ -9,7 +9,7 @@
 //   - 校准门（BINMIN=50 / ABS=0.10 / BSS_MIN=0.10）
 //
 // 独立 Oracle：oracle_expected.inc 由 eng/tests/unit/v6_p2_rej/oracle_rej.py
-// （纯标准库、不调用 astrocs）机械生成；本文件另有独立转写参考实现
+// （纯标准库、不调用 acsd）机械生成；本文件另有独立转写参考实现
 // （ref_decide，逐条按 ALG-P2S-REJ 公式重写，不调用被测函数）。
 //
 // 子命令（ctest 逐项注册）：units / oracle / reference / negative /

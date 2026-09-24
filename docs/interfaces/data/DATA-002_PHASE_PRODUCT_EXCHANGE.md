@@ -210,8 +210,8 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     （D.drizzle `DISP-DRZ-004`）引用同一份文字。
     **机器形态**：`invalid_handling` 键同步落在 `eng/contracts/data/phase_product_exchange.schema.json`；
     不一致时以本块为准。
-- **origin**：`astrocs`（本产品任一 AstroCS phase run 原子发布产物）或
-  `external_fixture`（AstroCS 之外生成、完整满足证据要求的合同兼容 HiPS/FITS 测试/审核对象）。
+- **origin**：`astrocs`（本产品任一 Astro Celestial Sphere Database（ACSD） phase run 原子发布产物）或
+  `external_fixture`（ACSD 之外生成、完整满足证据要求的合同兼容 HiPS/FITS 测试/审核对象）。
   origin 只描述来源，**不放松任何证据要求**。
 
 ### 2b. 最小平面集

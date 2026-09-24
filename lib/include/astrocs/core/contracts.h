@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-001 Result/Error/Cancel 语义 (API-001 §2.2)
+// ACSD Core Contracts — CORE-001 Result/Error/Cancel 语义 (API-001 §2.2)
 #pragma once
 
 #include <atomic>

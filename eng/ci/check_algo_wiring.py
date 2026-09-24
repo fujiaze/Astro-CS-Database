@@ -20,7 +20,7 @@ descriptor operation、也没链进生产二进制）⇒ 静默死代码、门�
   - lib/infrastructure/pipeline/module_ports.registry.json
   - lib/infrastructure/scheduler/src/module_adapters.cpp
   - lib/**/module.yaml（至少一份）
-  - 生产二进制（--binary 或自动发现 build/astrocs / run/ci/build-gcc-release/astrocs）
+  - 生产二进制（--binary 或自动发现 build/acsd / run/ci/build-gcc-release/astrocs）
 
 用法：
   python3 eng/ci/check_algo_wiring.py [--repo ROOT] [--binary PATH] [--json-out F] [--self-test]
@@ -147,7 +147,7 @@ def load_symbols_file(path: pathlib.Path) -> set:
 
 
 def find_binary(repo: pathlib.Path):
-    for rel in ("build/astrocs", "run/ci/build-gcc-release/astrocs"):
+    for rel in ("build/acsd", "run/ci/build-gcc-release/astrocs"):
         p = repo / rel
         if p.is_file():
             return p

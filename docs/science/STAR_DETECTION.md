@@ -161,7 +161,7 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 
 > 本节只补出处与参考实现；§1–§5 语义与 ALG-STARDET-001 公式锚不变。
 
-- **阈值检测与去混叠**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；源码 SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）detect.c/scan.c。**差异**：AstroCS 用 median+5σ 全局阈 + peaker 局部极大 + 去重，非 SExtractor 的阈值网格/去混叠，引用仅作方法学对照。
+- **阈值检测与去混叠**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；源码 SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）detect.c/scan.c。**差异**：Astro Celestial Sphere Database（ACSD） 用 median+5σ 全局阈 + peaker 局部极大 + 去重，非 SExtractor 的阈值网格/去混叠，引用仅作方法学对照。
 - **质心估计（一阶矩/导数零交叉）**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）centroid_sources 的 1D Gaussian / quadratic / com 估计器。
 - **椭圆高斯 LM 拟合**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105；实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - **IIR 递归高斯平滑**：Young, I. T. & van Vliet, L. J. 1995, Signal Processing 44, 139。**核验状态**：文章级。

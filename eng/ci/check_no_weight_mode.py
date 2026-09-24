@@ -204,7 +204,7 @@ def self_test():
         # （门自己的文件名 / 被登记文档路径 / path 条目 / duty 截断副本）
         green2 = os.path.join(tmp, "green-map")
         _write(os.path.join(green2, "docs", "DOCUMENT_INDEX.yaml"),
-               "# AstroCS 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图\n"
+               "# ACSD 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图\n"
                "doc_index:\n"
                "  active:\n"
                "    - path: \"README.md\"\n"

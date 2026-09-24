@@ -1,4 +1,4 @@
-# AstroCS CPU 能力探测公共层 (CPU-001)
+# Astro Celestial Sphere Database（ACSD） CPU 能力探测公共层 (CPU-001)
 
 > ID: MOD-CPU-CAPABILITY-001 · owner: SA-CPU-09 · 状态: FROZEN (CPU-001)
 > 上游: BLD-003 安装骨架 / 15_CPU_PROVIDER_AND_RESOURCE_STANDARD.md §2

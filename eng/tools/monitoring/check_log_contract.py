@@ -223,9 +223,9 @@ def check_error_payload(objs: List[Dict[str, Any]], errs: List[str]) -> None:
 def check_redact(objs: List[Dict[str, Any]], errs: List[str]) -> None:
     """脱敏生效样例：任意 diagnostic 中不得残留敏感模式原文。"""
     probes = [
-        "/home/alice/astrocs/run/out.fits",
+        "/home/alice/acsd/run/out.fits",
         "/Users/bob/Documents/catalog.fits",
-        "C:\\Users\\mallory\\astrocs\\data.fits",
+        "C:\\Users\\mallory\\acsd\\data.fits",
         "\\\\srv\\share\\hips\\tile.fits",
         "password=super-secret-1",
         "https://user:pass@example.com/token",

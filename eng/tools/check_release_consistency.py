@@ -90,7 +90,7 @@ def legacy_main(root: str) -> int:
     if os.path.isfile(sbom):
         with open(sbom, encoding="utf-8", errors="replace") as fh:
             doc = json.loads(fh.read())
-        if doc.get("product") != "AstroCS":
+        if doc.get("product") != "ACSD":
             errors.append("SBOM product 异常")
         if doc.get("version") != ver:
             errors.append("SBOM version %s != %s" % (doc.get("version"), ver))
@@ -135,7 +135,7 @@ def _mk_root(td: str, version="0.11.0-alpha.2", status_text="全部通过\n",
             fh.write("%s  payload.bin\n" % digest)
         if sbom_version is not None:
             with open(os.path.join(dist, "SBOM.json"), "w", encoding="utf-8") as fh:
-                json.dump({"product": "AstroCS", "version": sbom_version}, fh)
+                json.dump({"product": "ACSD", "version": sbom_version}, fh)
     return td
 
 

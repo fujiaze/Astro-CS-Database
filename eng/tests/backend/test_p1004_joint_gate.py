@@ -32,7 +32,7 @@ import fixture_common  # noqa: E402
 from fixture_common import two_cpu_preexec  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXE = os.path.join(REPO, "build", "astrocs")
+EXE = os.path.join(REPO, "build", "acsd")
 TMP = "/tmp/mon001_run_out"  # 复用 MON-001 配置的 output_dir
 FIELD_HIPS = os.path.join(REPO, "run", "temp", "FIELD.hips")
 MON001_CFG = os.path.join(REPO, "run", "temp", "mon001_cfg.json")

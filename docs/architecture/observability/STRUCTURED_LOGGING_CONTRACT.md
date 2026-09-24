@@ -1,4 +1,4 @@
-# AstroCS 结构化日志合同（LOG-001）
+# Astro Celestial Sphere Database（ACSD） 结构化日志合同（LOG-001）
 
 > 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
 
@@ -8,7 +8,7 @@
 
 ## 1. 目的与边界
 
-AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接口：
+ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接口：
 
 - 人可读（中文摘要）与机器可读（JSONL）双输出，来自同一事件；
 - 多线程并发事件有确定顺序键（sequence）；

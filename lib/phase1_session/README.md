@@ -16,12 +16,12 @@
   前 p1_session 函数族经 `P1Api` 被 8 个 Phase1 descriptor 工厂委托；
   现行 8 descriptor 各自委托唯一真实 operation（§2，ARCH-P0-001 整改），
   p1_session 保留为 CLI 兼容装配会话）。
-- owner：AstroCS（P1-SESSION-DOC, SA-P1-R19）；语言 c++17；ABI v1
+- owner：Astro Celestial Sphere Database（ACSD）（P1-SESSION-DOC, SA-P1-R19）；语言 c++17；ABI v1
   （`ACS_ABI_VERSION_V1`，p1_session.cpp:92 校验）。
 - 构建锚：根 `CMakeLists.txt:448` `add_library(astrocs_phase1_session STATIC
   lib/phase1_session/p1_session.cpp)`；`:449-452` include 目录与 PUBLIC 链接
   `astrocs_contracts astrocs_calibration astrocs_aio`；`:496/:514/:530` 编入
-  astrocs 主可执行链接列表。现状为**静态库**，无独立 DLL（迁移矩阵无
+  acsd 主可执行链接列表。现状为**静态库**，无独立 DLL（迁移矩阵无
   P1-SESSION 行，`dll_name=MISSING` 见 module.yaml）。
 - 生产调用方（登记）：`lib/infrastructure/scheduler/src/module_adapters.cpp`
   - **现行（P1-001 后）**：8 个 Phase1 descriptor 注册 + `P1NodeModule`

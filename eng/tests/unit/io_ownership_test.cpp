@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
   //    校验几何后用 canonical deleter 释放; 反复 create/free(结构含多指针字段)
   //    不应把堆状态弄坏(重复分配+释放后仍可再次成功解析)。
   const std::string fits_path =
-      (fs::temp_directory_path() / "astrocs_io002_ownership_b2.fits").string();
+      (fs::temp_directory_path() / "acsd_io002_ownership_b2.fits").string();
   CHECK(write_minimal_fits(fits_path, kW, kH));
   {
     bool all_ok = true;

@@ -2,7 +2,7 @@
 
 ## 1. 验收体系总览
 
-AstroCS 发布预览版前经过四层验收，由小到大、由合成到真实、由机器到视觉，逐层递进。前一层未通过，后一层不开始。三个核心科学创新点的实验单元（SCI-A/B/C，见 §2）是 L1 的核心组成，未全部证实前不进入后续层。
+Astro Celestial Sphere Database（ACSD） 发布预览版前经过四层验收，由小到大、由合成到真实、由机器到视觉，逐层递进。前一层未通过，后一层不开始。三个核心科学创新点的实验单元（SCI-A/B/C，见 §2）是 L1 的核心组成，未全部证实前不进入后续层。
 
 ```mermaid
 flowchart TB
@@ -117,8 +117,8 @@ flowchart TB
 | **形态键缺省留痕** | Phase1 输入 JSON 缺 `storage_form`（或留空/`null`）⇒ 必须取默认 `archive` **且**必须存在一条点名该键的 `level=warn` 事件；形态来源记入 `manifest.json#storage.form_source = "default"`。**负例红**：缺省却未报 warn（静默取默认）⇒ 判红；缺省却未走登记默认 ⇒ 判红；显式声明却报 warn ⇒ 判红 |
 | **产物自报索引** | `p1_products.json` 逐帧必须带齐 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`；`index_path` 的 basename = `<产品名>.hips.index.json`；`bare` ⇔ `archive_sha256 = null`。**负例红**：缺 `index_path` ⇒ 判红；`bare` 却带归档指纹 ⇒ 判红 |
 | **运行清单 storage 段** | `manifest.json#storage` 字段齐备（`storage_form` / `form_source` / `products[]` / `coverage_index`），运行级与逐产品形态一致，`coverage_index.path` basename = `coverage.index.json` 且 `n_blocks ≥ 1`。**负例红**：`form_source=default` 却无 warn ⇒ 判红 |
-| **Phase2/3 形态键 REJECT** | 输入合同不设 `storage_form`（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）；注入 `storage_form: "archive"` ⇒ 必须 REJECT（schema 面 + CLI 面双门）。对照：合法 mosaic 输入不得被拒（判据非恒真）；`coverage_index` 加性可选键必须被接受 |
-| **逐层口径一致（机器化）** | `CHK-HIPS-STORAGE-FORM --doc-consistency`：每层文档必须出现其登记词，且任何层不得出现禁用同义名。**负例红**：某层把 `storage_form` 写成同义名、或把取值 `archive` 写成别的 token ⇒ 判红 |
+| **Phase2/3 形态键 REJECT** | 输入合同不设 `storage_form`（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）；注入 `storage_form: "archive"` ⇒ 必须 REJECT（schema 面 + CLI 面双门）。对照：合法 mosaic 输入照常接受（判据非恒真）；`coverage_index` 加性可选键必须被接受 |
+| **逐层口径一致（机器化）** | `CHK-HIPS-STORAGE-FORM --doc-consistency`：每层文档必须出现其登记词，且层内用词限于其登记词表。**负例红**：某层把 `storage_form` 写成同义名、或把取值 `archive` 写成别的 token ⇒ 判红 |
 | 负例红 | 归档内 properties 声明非标准格式 / 读路径不支持某一形态 / 归档缺索引 / 索引与内容不一致 / 归档截断 / 流内混装不压缩区 / byte-shuffle 预变换 —— 逐一判红（`CHK-HIPS-STORAGE-FORM --self-test`） |
 | 既有判据不放松 | IO-002 / IO-003 既有检查项全部保留，形态验收是新增而非替代 |
 
@@ -132,18 +132,18 @@ flowchart TB
 |---|---|
 | **读回逐字节不变（硬证据）** | 打洞前后整文件 `sha256` **相同**、`st_size` 相同；cfitsio 与 astropy **两路独立读器**逐 HDU 的 header 卡片与数据区原始字节全等；`DATASUM`/`CHECKSUM` 打洞后自洽 |
 | 随机访问不变 | 跨越"洞/非洞边界"的 `pread` 探针（洞内 / 边界 / 洞外 / 跨越 / 伪随机）与打洞前逐字节全等；mmap 读同样为零填充 |
-| 洞真的打了 | `st_blocks` 必须下降；**未下降 ⇒ 判红**（不得以"打洞成功"静默通过） |
+| 洞真的打了 | `st_blocks` 必须下降；**未下降 ⇒ 判红**（"打洞成功"的判据 = `st_blocks` 下降） |
 | 只打全零块 | 只对 4 KiB 对齐的整块全零区域打洞；**负例**：对含非零字节的块打洞必须被判红（字节改变 + 校验和失效） |
 | 降级不 fail-closed | 卷不支持稀疏（`EOPNOTSUPP` 等）⇒ 跳过打洞、产品保持完整可读、provenance 记 `trim=skipped(reason)`，运行照常成功 |
 | 产品身份不受影响 | 打洞产物与未打洞同源产物的产品哈希（`tree_hash` / `canonical_sha256`）相同 |
-| 口径不混用 | 报告与 provenance 不得用 13.31%（包围盒 TRIM 的口径）描述打洞收益；打洞实测整产物 2.77%（Linux）/2.10%（Windows），signal/variance/ivar 三层 0.0000% |
+| 口径不混用 | 报告与 provenance 描述打洞收益时取打洞口径（13.31% 是包围盒 TRIM 的口径）；打洞实测整产物 2.77%（Linux）/2.10%（Windows），signal/variance/ivar 三层 0.0000% |
 
 **判据入口（机器）**：
 
 | 门 | 覆盖 |
 |---|---|
-| `CHK-SPARSE-PUNCH` | 静态不变量（零浮点 / 字节谓词 / 单一打洞系统调用 / Windows 等价实现在位 / 块粒度 / 能力探测先于打洞 / 读回复算 / 写端接线次序 / aio 之外零打洞原语）+ 谓词判据判别力（浮点等值变异体必须在 `-0.0` 语料上判错）+ **TRIM 默认不开**（全仓零 `TRIM1`/`TRIM2` 写入者）与**半开禁止**（出现写入者必须同带 `ONAXIS1`/`ONAXIS2`）+ 文档登记在位 |
-| `CHK-SPARSE-PUNCH-PROBE` | 把机制的生产头编译成探针跑真实系统调用：上表前五条 + NaN 红线（NaN 带不得被任何洞覆盖）+ 对 NaN 区/非零区强制打洞必须判红 + 卷不支持时的降级 |
+| `CHK-SPARSE-PUNCH` | 静态不变量（零浮点 / 字节谓词 / 单一打洞系统调用 / Windows 等价实现在位 / 块粒度 / 能力探测先于打洞 / 读回复算 / 写端接线次序 / aio 之外零打洞原语）+ 谓词判据判别力（浮点等值变异体必须在 `-0.0` 语料上判错）+ **TRIM 默认不开**（全仓零 `TRIM1`/`TRIM2` 写入者）与**半开闭合**（写入者同带 `ONAXIS1`/`ONAXIS2`）+ 文档登记在位 |
+| `CHK-SPARSE-PUNCH-PROBE` | 把机制的生产头编译成探针跑真实系统调用：上表前五条 + NaN 红线（NaN 带保持非零字节）+ 对 NaN 区/非零区强制打洞必须判红 + 卷不支持时的降级 |
 
 **通过标准**：上表全部满足；`python3 eng/ci/run_checks.py --check CHK-SPARSE-PUNCH CHK-SPARSE-PUNCH-PROBE` exit 0，且两者的正/负例全部符合预期（负例注入逐项判红）。
 
@@ -226,7 +226,7 @@ flowchart LR
 |---|---|
 | 无"黑洞" | 无异常零值/死区/未填充孔洞；稀疏区与重叠区过渡自然，无不自然暗斑 |
 | 无亮斑 | 无宇宙线/卫星线残留、校准伪影、饱和溢出形成的异常亮点；星云高亮区有层次而非死白 |
-| 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）**：沿**真实帧足迹**取法向 ±`d`（默认 2 px）差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+d] − img[−d]) / bg`，门 `max|rel_step| ≤ 1e-2`（相对口径，无量纲、可跨产品比）。**适用域**：只对**两侧都在数据内部**的帧边界计入（法向 ±`ctrl_shift` 两侧都能放对照线且各 ≥ `min_samples` 个有效样本；`N = ctrl_shift` 从输入导出），被排除的边界仍**逐条落盘**（`exclude` / `margin_px`），不静默丢弃。噪声比、扣对照线的净台阶、`d` 扫描与旧 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），**不得**引用为帧间无接缝证据 |
+| 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）**：沿**真实帧足迹**取法向 ±`d`（默认 2 px）差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+d] − img[−d]) / bg`，门 `max|rel_step| ≤ 1e-2`（相对口径，无量纲、可跨产品比）。**适用域**：只对**两侧都在数据内部**的帧边界计入（法向 ±`ctrl_shift` 两侧都能放对照线且各 ≥ `min_samples` 个有效样本；`N = ctrl_shift` 从输入导出），被排除的边界仍**逐条落盘**（`exclude` / `margin_px`），不静默丢弃。噪声比、扣对照线的净台阶、`d` 扫描与旧 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），只作诊断量（无接缝证据取有符号台阶 `rel_step`） |
 | 星点质量 | 星点圆锐、无拖尾/拉伸/双线，跨帧星点重合 |
 | 背景与几何 | 背景均匀、天光结构连续；无明显投影畸变，WCS 网格与星点位置吻合 |
 | 全局观感 | 整幅缩略图上天区结构正确（M42 星云形态、银心带与星场分布），灰度/动态范围自然 |
@@ -264,7 +264,7 @@ flowchart LR
 5. L4 M42 与 Galaxy Center 两组视觉验收由负责人逐项确认；
 6. 机器门（`docs/ci/03_GATES.md` 的 P0）全绿、零 waiver；
 7. 仓库整洁（历史代码与治理工件按 ENGINEERING_SPEC §2/§9 处置完毕）；
-8. 版本纪律满足（首次发布版本号 `0.0.1alpha`，此前程序与产物无版本信息）；
+8. 版本纪律满足（发布版本号取自根 `VERSION` 单源，见 `ASTROCS_DESIGN.md` §13；alpha 阶段前程序与产物中不出现版本信息）；
 9. 日志与错误系统验收全绿（§9）。
 
 发布决定只由负责人作出。

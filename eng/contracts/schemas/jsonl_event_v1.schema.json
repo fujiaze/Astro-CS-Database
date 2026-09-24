@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "astrocs:schemas/jsonl_event_v1.schema.json",
-  "title": "AstroCS JSONL event v1 (API-CLI-001 / 04 §4 frozen — CLI-004)",
+  "title": "ACSD JSONL event v1 (API-CLI-001 / 04 §4 frozen — CLI-004)",
   "description": "docs/api/CLI_PROTOCOL_V1.md §4 权威: --events-jsonl 每行一个事件; 10 必含字段 + kind 冻结扩展字段; sequence 从 0 单调递增。GUI/外部 harness 只消费本协议面。kind 面 = 10 类开放 kind 全登记（FIX-405 G3-10）：properties.kind.enum 是封闭注册表，enum 之外一律拒（发送侧 ValidateEventV1 同面硬闸）。实现正本 = lib/infrastructure/cli/protocol.h registered_event_kinds_v1()。",
   "type": "object",
   "required": [

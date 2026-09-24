@@ -21,7 +21,7 @@ def main():
             pass  # 源码保留 (LEG-002), 生产不链
     # 构建目录探测: build/root-cmake → build/ (适配当前 Ninja 单配置布局)
     bin_path = None
-    for rel in ("build/root-cmake/astrocs", "build/astrocs", "build/cli/astrocs"):
+    for rel in ("build/root-cmake/astrocs", "build/acsd", "build/cli/astrocs"):
         p = REPO / rel
         if p.exists():
             bin_path = p

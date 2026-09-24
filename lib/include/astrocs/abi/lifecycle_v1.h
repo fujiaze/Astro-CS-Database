@@ -1,4 +1,4 @@
-/* AstroCS 模块 C ABI v1 — 生命周期/错误/能力协商语义合同（ABI-002）
+/* ACSD 模块 C ABI v1 — 生命周期/错误/能力协商语义合同（ABI-002）
  *
  * 文件: lib/include/astrocs/abi/lifecycle_v1.h
  * 依赖: module_api_v1.h（族内单向: lifecycle → module → host → artifact → status）。

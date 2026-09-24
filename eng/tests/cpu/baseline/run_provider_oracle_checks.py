@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS CPU-002 baseline provider — 科学 oracle 比对运行器
+"""ACSD CPU-002 baseline provider — 科学 oracle 比对运行器
 eng/tests/cpu/baseline/run_provider_oracle_checks.py
 
 验收 (04_CPU_RESOURCE_TASKS.md CPU-002):

@@ -1,4 +1,4 @@
-# AstroCS 公共 C ABI 基础层 v1 (Common Foundation — API-001 冻结)
+# Astro Celestial Sphere Database（ACSD） 公共 C ABI 基础层 v1 (Common Foundation — API-001 冻结)
 
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
 

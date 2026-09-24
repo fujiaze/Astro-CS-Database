@@ -1,6 +1,6 @@
 // lib/infrastructure/benchmark/backend_host/profile_store.h — CPU-007 profile 存储生命周期
 // 规格(V7.1 FINAL3 04_CPU_RESOURCE_TASKS.md CPU-007; 验收关键词 profile schema):
-//   Windows 默认 %LOCALAPPDATA%/AstroCS/cpu_profile.json, Linux XDG data; 写临时→校验→
+//   Windows 默认 %LOCALAPPDATA%/ACSD/cpu_profile.json, Linux XDG data; 写临时→校验→
 //   原子 rename; 绑定 schema/product build/CPU/OS/provider hash。
 //   验收: 损坏、旧版本、机器变化、半写文件不被使用; 无 profile 运行清晰 warning;
 //   profile 不进入源码/审核包原始数据。
@@ -48,8 +48,8 @@
 namespace astrocs::backend_host {
 
 // ── 默认存储路径(V7.1 规格) ──
-// Windows: %LOCALAPPDATA%/AstroCS/cpu_profile.json(LOCALAPPDATA 缺失→回退 USERPROFILE
-// → 仍缺失→空串+ok=false); Linux/macOS: XDG_DATA_HOME(缺省 ~/.local/share)/AstroCS/
+// Windows: %LOCALAPPDATA%/ACSD/cpu_profile.json(LOCALAPPDATA 缺失→回退 USERPROFILE
+// → 仍缺失→空串+ok=false); Linux/macOS: XDG_DATA_HOME(缺省 ~/.local/share)/ACSD/
 // cpu_profile.json(HOME 缺失→空串+ok=false)。
 // 本函数只做路径合成, 不创建目录、不读盘。
 struct PathResult {

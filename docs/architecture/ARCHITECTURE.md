@@ -1,4 +1,4 @@
-# AstroCS Architecture (V5 单一 CLI 冻结版)
+# Astro Celestial Sphere Database（ACSD） Architecture (V5 单一 CLI 冻结版)
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
@@ -6,16 +6,16 @@
 
 ## 1 总览与单一入口
 
-AstroCS 是天文 CCD 图像校准-标准化-重投影系统，发布物为**每平台恰好一个用户入口**：`astrocs` CLI（Windows 交付名 `astrocs.exe`，Linux 为 `astrocs`；amd64）。该唯一入口按命令**拉起对应阶段的调度器**：一次 CLI 调用只驱动一个阶段，normalize / mosaic / export 三个阶段各自实例化自己的调度器与内存管线，互不共享内存、会话或运行时状态。
+ACSD 是天文 CCD 图像校准-标准化-重投影系统，发布物为**每平台恰好一个用户入口**：`acsd` CLI（Windows 交付名 `acsd.exe`，Linux 为 `acsd`；amd64）。该唯一入口按命令**拉起对应阶段的调度器**：一次 CLI 调用只驱动一个阶段，normalize / mosaic / export 三个阶段各自实例化自己的调度器与内存管线，互不共享内存、会话或运行时状态。
 
-- **唯一生产 exe**：`astrocs`（Windows 交付名 `astrocs.exe`；单一 target，安装策略见 CLI-001）。
+- **唯一生产 exe**：`acsd`（Windows 交付名 `acsd.exe`；单一 target，安装策略见 CLI-001）。
 - **被取代的旧入口（迁移冻结）**：`orchestrator.exe`（Phase1 编排 exe）、`astrocs-stage2`（Phase2 CLI）、`healpix_browser_qt`/`browser_cli`（浏览器工具）——**不再构建为发布目标**，其能力迁移如下：orchestrator 的 DllLoader/stage 编排→CLI 内嵌 pipeline driver（API-003/004 直接函数调用，无进程边界）；astrocs-stage2 的参数面→CLI 命令树（API-002 schema v1）；browser→保留源码为 tool 分类（不进发布安装规则，PRODUCTION_EXECUTION_INVENTORY exe_target=tool）。
 - ACR 不接入（V5）：生产为纯 CPU 自适应 backend；`acr_route` 仅存配置守卫（ARCH-001 清单 24 处，`!=cpu/auto` 显式拒）。
 
 ## 2 分层与组件图
 
 ```text
-astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
+acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
   └── 阶段调度器分发（一次 CLI 调用只驱动一个阶段；串行控制面）
         ├── Phase1: astro_image_io → calibration → star_detector → dynamic_psf
         │           → ipv(plate solve) → photometric_calib → snr_estimator → healpix_drizzle → HiPS
@@ -53,7 +53,7 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 
 ## 7 不变量（机器可验）
 
-1. 唯一生产入口=astrocs；文档内"正式运行入口"表述唯一（测试断言）。
+1. 唯一生产入口=acsd；文档内"正式运行入口"表述唯一（测试断言）。
 2. lib/ 唯一源码目录；**产品落块级 `output_dir`，`run/` 只放临时产物与日志**（最高设计 §9）；testdata/ 只读。
 3. I/O 唯一入口 astro_image_io；healpix_core/sha256 单源（B4-01）。
 4. 科学语义唯一实现，oracle/reference 并存不重复 active path。

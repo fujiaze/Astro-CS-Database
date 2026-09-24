@@ -38,7 +38,7 @@
   :120/:152/:181/:223（persist 先 close :224）。
 - 构建锚: 根 CMakeLists.txt astrocs_phase2_session STATIC :454
   （:455-457 include lib/algorithms/coverage/include、:458 link
-  astrocs_contracts+astrocs_phase2）；astrocs 可执行链接 :501-506/:504；
+  astrocs_contracts+astrocs_phase2）；acsd 可执行链接 :501-506/:504；
   QA-001 严格警告名单 :517-529/:522。
 - 消费链: lib/infrastructure/scheduler/src/module_adapters.cpp——P2Api :711-718（五静态
   委托）、phase2_descriptor() :283-300（module_id=astrocs.phase2.

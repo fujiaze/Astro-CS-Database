@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_transform.h - AstroCS HISS Transform 正式路径 (WP-G 步骤12)
+// hiss_transform.h - ACSD HISS Transform 正式路径 (WP-G 步骤12)
 //
 // 依据:
 // - docs/algorithms/HIPS_WRITER.md (transform 正式路径)

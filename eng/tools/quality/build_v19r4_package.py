@@ -370,7 +370,7 @@ clang analyze + 人工 review）。
             shutil.copy2(os.path.join(ROOT, p), dst)
 
     write("README.md",
-          "# AstroCS V19R4 Review — Production Wiring Closure\n\n"
+          "# ACSD V19R4 Review — Production Wiring Closure\n\n"
           "对应控制包 AstroCS_PreRelease_ProductionWiringClosure_V19R4.zip。"
           "最终状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS，"
           "FINAL_REAL_DATA_VALIDATION=PENDING_V20。\n")

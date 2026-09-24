@@ -1,6 +1,6 @@
 // lib/algorithms/resample/p3_rsmp.h
 //
-// AstroCS V6 Phase3 科学重采样传播（IMPL-P3-RSMP-001）
+// ACSD V6 Phase3 科学重采样传播（IMPL-P3-RSMP-001）
 //
 // 本模块实现 ALG-P3-001（SPEC §1–§9）的算法层生产代码：
 //   * 三输出模式（FZ-P3-MODES）：surface_brightness / point_source_flux / visualization

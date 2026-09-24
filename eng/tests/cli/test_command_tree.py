@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """CLI-001: 唯一命令树（ASTROCS_DESIGN §6.1/§6.2、§1.2）行为测试。
 
-被测对象 = 真实产品二进制（根 CMakeLists.txt 的 astrocs target）：
-优先 `build/astrocs`，可用 ASTROCS_CLI_BIN 覆盖；不存在则跳过（不伪绿）。
+被测对象 = 真实产品二进制（根 CMakeLists.txt 的 acsd target）：
+优先 `build/acsd`，可用 ASTROCS_CLI_BIN 覆盖；不存在则跳过（不伪绿）。
 
 断言：
   1. `help` / `--help` 文本与 §6.2 命令树逐行一致（不多不少）；
@@ -21,13 +21,13 @@ sys.path.insert(0, REPO)
 from cli_test_hygiene import run_cwd  # noqa: E402
 
 HELP_LINES = [
-    "astrocs --version [--json]",
-    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs help",
-    "astrocs doctor [--json]",
-    "astrocs benchmark",
+    "acsd --version [--json]",
+    "acsd normalize (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd mosaic (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd export (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd help",
+    "acsd doctor [--json]",
+    "acsd benchmark",
 ]
 
 # CLI-002/CLI-11: 子命令 --help 的字段表必须覆盖该命令的**关键必填键**
@@ -70,7 +70,7 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (os.path.join("build", "astrocs"), os.path.join("build", "cli", "astrocs")):
+    for rel in (os.path.join("build", "acsd"), os.path.join("build", "cli", "acsd")):
         cand = os.path.join(REPO, rel)
         if os.path.isfile(cand):
             return cand
@@ -80,7 +80,7 @@ def cli_binary():
 EXE = cli_binary()
 
 
-@unittest.skipUnless(EXE, "astrocs 未构建（先 cmake -S . -B build && ninja -C build astrocs）")
+@unittest.skipUnless(EXE, "acsd 未构建（先 cmake -S . -B build && ninja -C build acsd）")
 class TestCommandTree(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -113,7 +113,7 @@ class TestCommandTree(unittest.TestCase):
     def test_02_new_commands_rc0(self):
         for args in (["--version"], ["--version", "--json"], ["help"], ["doctor", "--json"]):
             r = self.cli(*args, timeout=180)
-            self.assertEqual(r.returncode, 0, f"astrocs {' '.join(args)} → rc={r.returncode}: {r.stderr[:200]}")
+            self.assertEqual(r.returncode, 0, f"acsd {' '.join(args)} → rc={r.returncode}: {r.stderr[:200]}")
         for cmd in ("normalize", "mosaic", "export"):
             r = self.cli(cmd, "--help")
             self.assertEqual(r.returncode, 0, f"{cmd} --help rc={r.returncode}")
@@ -122,7 +122,7 @@ class TestCommandTree(unittest.TestCase):
             # 其后为该命令的配置字段表（与 --template 同源生成, session_commands.h
             # config_fields）。旧断言要求 stdout 恰为 usage 行（早于字段说明要求）。
             self.assertEqual(lines[0],
-                             f"astrocs {cmd} (--json <config.json> | --template [-o <path>] | --help)")
+                             f"acsd {cmd} (--json <config.json> | --template [-o <path>] | --help)")
             self.assertEqual(lines[1].strip(), "fields:", "子命令帮助必须给字段说明")
             fields = [l.split(" — ")[0].strip() for l in lines[2:] if " — " in l]
             self.assertTrue(fields, f"{cmd} --help 字段表为空")
@@ -135,7 +135,7 @@ class TestCommandTree(unittest.TestCase):
         for args in LEGACY:
             r = self.cli(*args)
             self.assertEqual(r.returncode, 2,
-                             f"旧命令必须 rc=2: astrocs {' '.join(args)} → rc={r.returncode}")
+                             f"旧命令必须 rc=2: acsd {' '.join(args)} → rc={r.returncode}")
 
     def test_04_bare_and_bad_args_exit_2(self):
         for args in (["normalize"], ["mosaic"], ["export"], ["doctor"],
@@ -143,7 +143,7 @@ class TestCommandTree(unittest.TestCase):
                      ["normalize", "--json", "x.json", "--template"],
                      ["normalize", "--json", "x.json", "--bogus"]):
             r = self.cli(*args)
-            self.assertEqual(r.returncode, 2, f"astrocs {' '.join(args)} → rc={r.returncode}")
+            self.assertEqual(r.returncode, 2, f"acsd {' '.join(args)} → rc={r.returncode}")
 
     def test_05_missing_input_exit_3(self):
         for cmd in ("normalize", "mosaic", "export"):

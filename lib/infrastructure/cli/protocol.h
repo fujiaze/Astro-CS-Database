@@ -104,19 +104,19 @@ inline std::string missing_required_extension_v1(const std::string& kind,
 // stdout 保持纯 JSONL, 诊断只走 stderr — §3)。
 inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_seq) {
     if (!ev.is_object()) {
-        std::fprintf(stderr, "astrocs: protocol: event is not an object\n");
+        std::fprintf(stderr, "acsd: protocol: event is not an object\n");
         return false;
     }
     for (const char* f : kEventFieldsV1.names) {
         if (!ev.contains(f)) {
-            std::fprintf(stderr, "astrocs: protocol: event missing required field '%s'\n", f);
+            std::fprintf(stderr, "acsd: protocol: event missing required field '%s'\n", f);
             return false;
         }
     }
     if (!ev["sequence"].is_number_integer() ||
         static_cast<unsigned long long>(ev["sequence"].get<long long>()) != expect_seq) {
         std::fprintf(stderr,
-                     "astrocs: protocol: sequence must be %llu (monotonic from 0)\n",
+                     "acsd: protocol: sequence must be %llu (monotonic from 0)\n",
                      expect_seq);
         return false;
     }
@@ -126,7 +126,7 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
     // 的 kind enum + docs/api/CLI_PROTOCOL_V1.md §4 同面）。
     if (!is_registered_event_kind_v1(kind)) {
         std::fprintf(stderr,
-                     "astrocs: protocol: unregistered event kind '%s' rejected "
+                     "acsd: protocol: unregistered event kind '%s' rejected "
                      "(registered=%zu kinds; register in protocol.h + "
                      "eng/contracts/schemas/jsonl_event_v1.schema.json)\n",
                      kind.c_str(), registered_event_kinds_v1().size());
@@ -135,14 +135,14 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
     const std::string missing = missing_required_extension_v1(kind, ev);
     if (!missing.empty()) {
         std::fprintf(stderr,
-                     "astrocs: protocol: kind '%s' missing frozen extension field '%s'\n",
+                     "acsd: protocol: kind '%s' missing frozen extension field '%s'\n",
                      kind.c_str(), missing.c_str());
         return false;
     }
     if (kind == "final" && (!ev["exit_code"].is_number_integer() ||
                             !is_frozen_exit_code_v1(ev["exit_code"].get<int>()))) {
         std::fprintf(stderr,
-                     "astrocs: protocol: final.exit_code=%d outside frozen 04 §2 domain\n",
+                     "acsd: protocol: final.exit_code=%d outside frozen 04 §2 domain\n",
                      ev.value("exit_code", -1));
         return false;
     }

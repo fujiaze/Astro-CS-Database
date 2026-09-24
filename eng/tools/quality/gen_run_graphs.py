@@ -90,7 +90,7 @@ def build_dot(static: dict, observed: dict | None, l0: bool = False) -> str:
 
     l0=True 时输出 L0 简图（仅节点+artifact 边, 不含耗时/详情）。
     """
-    lines = ["digraph astrocs {"]
+    lines = ["digraph acsd {"]
     lines.append('  rankdir="LR";')
     lines.append(f'  bgcolor="{BG}";')
     lines.append('  node [shape=box, style="rounded,filled", fontname="sans-serif", '
@@ -211,7 +211,7 @@ def render(graph_dir: pathlib.Path) -> int:
     if static is None:
         print(f"RENDER_FAIL: missing {static_path}", file=sys.stderr)
         return 1
-    # observed_trace.json 可缺: 静态-only 模式（`astrocs graph` 预生成）仍渲染静态图+L0
+    # observed_trace.json 可缺: 静态-only 模式（`acsd graph` 预生成）仍渲染静态图+L0
 
     # 静态图
     (graph_dir / "static_graph.dot").write_text(

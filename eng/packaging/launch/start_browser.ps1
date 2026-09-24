@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 <#
-AstroCS HiPS Browser — 一键启动（V9）
+ACSD HiPS Browser — 一键启动（V9）
 
 用法:
   pwsh -File .\launch\start_browser.ps1                 # 默认 Galactic Center 3-panel Red

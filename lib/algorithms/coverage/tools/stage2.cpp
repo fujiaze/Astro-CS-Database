@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
         "run/logs/phase2/" + today_stamp();
     std::filesystem::create_directories(log_dir);
     g_log.open(log_dir + "/stage2.log", std::ios::app);
-    log("AstroCS Stage2 (UPM + block rejection mosaic) start");
+    log("ACSD Stage2 (UPM + block rejection mosaic) start");
     log("inputs: " + std::to_string(cfg.hips.size()) + " HiPS");
 
     const auto t_start = std::chrono::steady_clock::now();
@@ -819,7 +819,7 @@ int main(int argc, char** argv) {
     AioHipsProductSet* ps = aio_hips_product_begin(
         cfg.out_hips.c_str(), (std::uint32_t)nside, 512, dtype,
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
-        "ivo://astrocs/phase2", "AstroCS Phase2 Mosaic",
+        "ivo://astrocs/phase2", "ACSD Phase2 Mosaic",
         filter.empty() ? nullptr : filter.c_str(), 0.0, nullptr, 0);
     if (!ps) {
         const char* e = aio_hips_last_error();

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""sweep_test_tmp.py —— 清理 AstroCS 测试夹具的临时目录残留（fail-soft）。
+"""sweep_test_tmp.py —— 清理 ACSD 测试夹具的临时目录残留（fail-soft）。
 
 为什么需要它（实测根因，2026-09-20）：
   * 78 个测试用 tempfile.mkdtemp() 建夹具，其中 15 个**完全没有清理**；
@@ -27,7 +27,7 @@ import shutil
 import sys
 import time
 
-# AstroCS 测试夹具的前缀（与 eng/tests/** 中 mkdtemp(prefix=...) 实测一致）
+# ACSD 测试夹具的前缀（与 eng/tests/** 中 mkdtemp(prefix=...) 实测一致）
 PREFIXES = (
     "p1001_", "p1004_", "p2001_", "p2002_", "p2006_", "p2007_", "p3004_", "p3005_",
     "p3006_", "p3rs_", "p1hips_", "p1star_", "p1snr_", "cpu001_", "aio_abi_",

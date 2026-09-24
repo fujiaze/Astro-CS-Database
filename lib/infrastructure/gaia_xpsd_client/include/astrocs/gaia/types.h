@@ -1,4 +1,4 @@
-/* AstroCS catalog gaia service module — 公共类型 (CAT-GAIA-IMPL)
+/* ACSD catalog gaia service module — 公共类型 (CAT-GAIA-IMPL)
  *
  * 角色: 模块对外只经 module C ABI v1 (lib/include/astrocs/abi/module_api_v1.h)
  * 暴露; 本头仅保留跨边界可复用常量/键名, 不引入任何实现。

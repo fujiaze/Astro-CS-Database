@@ -1,4 +1,4 @@
-# AstroCS catalog gaia service module — 元数据 (CAT-GAIA-DOC 冻结)
+# ACSD catalog gaia service module — 元数据 (CAT-GAIA-DOC 冻结)
 # 状态: CONTRACT_READY —— 实现存在（lib/infrastructure/gaia_xpsd_client），模块化迁移
 #（C ABI adapter / astrocs_catalog_gaia.dll / plan-execute-cancel-inspect）
 # 由 CAT-GAIA-IMPL 执行；可执行测试由 CAT-GAIA-TEST 建立。

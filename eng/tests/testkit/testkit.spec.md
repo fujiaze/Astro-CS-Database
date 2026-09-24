@@ -1,4 +1,4 @@
-# AstroCS 测试元数据与 testkit 合同（TST-001）
+# Astro Celestial Sphere Database（ACSD） 测试元数据与 testkit 合同（TST-001）
 
 > 建立：TST-001（SA-QA-29，wave W1）
 > base_main_sha=2a8676bf7546a34af0468d5086e4edd54182a008

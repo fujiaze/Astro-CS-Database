@@ -1,4 +1,4 @@
-/* AstroCS CPU baseline provider — 公共 kernel 参数合同 v1
+/* ACSD CPU baseline provider — 公共 kernel 参数合同 v1
  * lib/infrastructure/benchmark/cpu/baseline/include/astrocs/cpu/baseline_provider_v1.h (CPU-002)
  *
  * 角色: CPU-002 冻结的 AMD64 baseline provider (仅 SSE2, 不带 /arch:AVX* /

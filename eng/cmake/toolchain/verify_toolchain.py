@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS BLD-001 toolchain verifier (machine check).
+"""ACSD BLD-001 toolchain verifier (machine check).
 
 Freezes the Windows x64 release toolchain per control-package
 09_WINDOWS_TOOLCHAIN_LOCK.md and validates the repository's frozen
@@ -330,7 +330,7 @@ class Verifier:
 
 
 def _main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="AstroCS BLD-001 toolchain verifier")
+    ap = argparse.ArgumentParser(description="ACSD BLD-001 toolchain verifier")
     ap.add_argument("--root", default=REPO_ROOT, help="repo root (default: derived)")
     ap.add_argument("--json", metavar="PATH", help="write machine-readable result JSON")
     args = ap.parse_args(argv)

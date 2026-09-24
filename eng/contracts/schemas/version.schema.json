@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "astrocs --version --json 输出合同 (schema v1)",
+  "title": "acsd --version --json 输出合同 (schema v1)",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "prerelease", "commit", "dirty", "build_id", "abi_version", "cli_schema_version"],

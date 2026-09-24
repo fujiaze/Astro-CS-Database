@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-501 阶段内命名块与块生命周期（内存管线）
+// ACSD Core — ARCH-501 阶段内命名块与块生命周期（内存管线）
 //
 // 依据：ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.2（阶段内命名块
 //       内存管线与块生命周期）；ENGINEERING_SPEC.md §4.1（管线纪律）；

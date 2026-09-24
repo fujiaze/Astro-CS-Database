@@ -41,7 +41,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   缺 ivar **恒** rc=7 显式科学错误（原「true 才降级 support 标红」的降级分支已删除）；
   唯一自动降级面 = 帧级 SNR 逆方差链。
 - product_begin :592-597：flags 仅 SIGNAL|SUPPORT（:594）、creator
-  ivo://astrocs/phase2、title "AstroCS Phase2 Mosaic"、filter=infos[0] :531。
+  ivo://astrocs/phase2、title "Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"、filter=infos[0] :531。
 - tile 循环 :659-1655：覆盖帧 probe :663-671；rejection 解析
   （wbpp group-level :641-659 / astrocs_adaptive tile 级 :674-696）；
   ACR 路由 :733-776（p2_acr_block_eligible 调用 :744-746，仅显式 sigma 且 !large_scale）；p2_block_plan micro-chunk :778-817（safety_factor :784）。

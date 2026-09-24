@@ -2,7 +2,7 @@
 #define ASTROCS_CALIBRATION_V6_CALIBRATION_COVARIANCE_H
 
 /* ============================================================================
- * AstroCS V6 Phase1 calibration covariance — ALG-P1-CAL-COV-001
+ * ACSD V6 Phase1 calibration covariance — ALG-P1-CAL-COV-001
  * ----------------------------------------------------------------------------
  * 实现面（目标态，未接线 Phase session）:
  *   信号:   dark_opt=0  y_p = (r_p - d_p) / max(f_p, 0.1)          [无 flat 不除法]

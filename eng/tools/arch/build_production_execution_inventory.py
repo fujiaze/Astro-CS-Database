@@ -42,7 +42,7 @@ rows, notes = [], []
 def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):
     rows.append(dict(zip(COLS, [cat, sym, loc, cls, reach, phase, tm, ev, risk])))
 
-# 1 exe 目标(生产=astrocs CLI 唯一; 其余标 test/tool)
+# 1 exe 目标(生产=acsd CLI 唯一; 其余标 test/tool)
 exe = rg("add_executable", ["lib", "eng/tools"], "*.txt") + rg("add_executable", ["lib"], "*.cmake")
 seen = set()
 for line in exe:
@@ -51,7 +51,7 @@ for line in exe:
     tgt, name = m.group(1), m.group(2)
     if name in seen: continue
     seen.add(name)
-    is_prod = name in ("astrocs", "astrocs_cli", "astrocsCLI")
+    is_prod = name in ("acsd", "astrocs_cli", "astrocsCLI")
     add("exe_target", name, tgt, "production" if is_prod else ("test" if name.startswith("test_") else "tool"),
         "yes" if is_prod else "no", "-", "n/a(单exe策略)" if is_prod else "非发布目标", line.split(":",2)[0]+":"+line.split(":",2)[1].split(":")[0])
 
@@ -102,7 +102,7 @@ io_files = sorted({l.split(":")[0] for l in rg(r"aio_frame_add_block|aio_write|f
 
 # 7b 非生产可达面登记（CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06）
 # 规则 7 是"符号命中 ⇒ production"的**模式级**声明；对只被测试目标编译的遗留实现
-# 会过度声明（清单与事实不符）。登记项 = 已由机器判据核实"不在生产入口 astrocs 的
+# 会过度声明（清单与事实不符）。登记项 = 已由机器判据核实"不在生产入口 acsd 的
 # 传递闭包内"的文件：按既有列语义改标 classification=test / production_reachable=no
 # （它仍被编译，但只在测试面），依据写进 risk_note。
 # 反向存活（fail-closed）：该事实由 eng/ci/ledgers/spec_named_impl_gaps.json 的
@@ -112,7 +112,7 @@ PRODUCTION_UNREACHABLE = {
     "lib/phase3_session/p3_v6_export.cpp":
         "CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06：v6 导出实现未接入生产命名块管线；"
         "仅由 eng/tests/integration/v6_p3 的 v6_p3_export_test 编译；"
-        "不在生产入口 astrocs 的传递闭包内（判据 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH E3）；"
+        "不在生产入口 acsd 的传递闭包内（判据 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH E3）；"
         "待 CLEAN-401 退役处置",
 }
 for f in io_files:

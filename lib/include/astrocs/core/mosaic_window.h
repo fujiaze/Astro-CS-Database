@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-503 mosaic 天球窗口并行调度器
+// ACSD Core — ARCH-503 mosaic 天球窗口并行调度器
 //
 // 依据：ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（mosaic = 空间窗口
 //       并行）、§5；ENGINEERING_SPEC.md §4.1；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md。

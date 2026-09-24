@@ -1,4 +1,4 @@
-// astrocs CLI — 单一用户入口 (V5, CLI-002)
+// acsd CLI — 单一用户入口 (V5, CLI-002)
 // 统一 parser + JSON/JSONL writer + 退出码映射 + 协作取消 + crash boundary。
 // 命令树唯一权威: ASTROCS_DESIGN §6.2（落在 lib/infrastructure/cli/command_tree.h）；
 // 协议/退出码唯一权威: 控制包 04 + docs/api/CLI_PROTOCOL_V1.md。
@@ -59,18 +59,18 @@ int real_main(int argc, char** argv_utf8) {
         }
         return dispatch(p);
     } catch (const ParseError& e) {
-        std::fprintf(stderr, "astrocs: %s\n", e.what());
+        std::fprintf(stderr, "acsd: %s\n", e.what());
         std::fputs(kHelp, stderr);
         return astrocs::ARGS;   // 04: CLI 参数错 → 2
     } catch (const std::exception& e) {
         // 04 §5: 未捕获异常 → 70 + run_id + 阶段 + 最小脱敏 crash report, 不泄露凭据
         std::fprintf(stderr,
-                     "astrocs: CRASH run_id=%s command='%s' detail='%s' (sanitized; no credentials)\n",
+                     "acsd: CRASH run_id=%s command='%s' detail='%s' (sanitized; no credentials)\n",
                      astrocs::make_run_id().c_str(),
                      sanitize(joined_for_report).c_str(), sanitize(e.what()).c_str());
         return astrocs::INTERNAL;
     } catch (...) {
-        std::fprintf(stderr, "astrocs: CRASH run_id=%s command='%s' detail='unknown exception'\n",
+        std::fprintf(stderr, "acsd: CRASH run_id=%s command='%s' detail='unknown exception'\n",
                      astrocs::make_run_id().c_str(), sanitize(joined_for_report).c_str());
         return astrocs::INTERNAL;
     }

@@ -108,7 +108,7 @@
       "platform": "Windows/Linux",
       "backends": ["cpu"],
       "local_patches": [],
-      "upgrade_risk": "Stable; does not modify existing AstroCS CLI"
+      "upgrade_risk": "Stable; does not modify existing ACSD CLI"
     },
     {
       "name": "nlohmann/json",

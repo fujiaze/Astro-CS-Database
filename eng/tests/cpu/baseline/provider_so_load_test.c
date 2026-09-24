@@ -1,4 +1,4 @@
-/* AstroCS CPU baseline provider — .so 加载冒烟 (dlopen 唯一入口 + ABI)
+/* ACSD CPU baseline provider — .so 加载冒烟 (dlopen 唯一入口 + ABI)
  * eng/tests/cpu/baseline/provider_so_load_test.c (CPU-002)
  *
  * 覆盖 (CPU-002 验收 "任意 AMD64 安装树可加载; provider query/self_test/

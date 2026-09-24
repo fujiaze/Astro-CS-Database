@@ -1,5 +1,5 @@
 // ============================================================================
-// AstroCS v6 Phase1 Drizzle 科学核心实现 — 见 v6_drizzle_science.h
+// ACSD v6 Phase1 Drizzle 科学核心实现 — 见 v6_drizzle_science.h
 // 任务 IMPL-P1-DRZ-001；冻结锚 FZ-FORMULA-DRIZZLE-SB/VAR、FZ-FORMULA-COV-PROP、
 // FZ-COND-FLUX-CONSERV、FZ-GATE-CONST-SB、FZ-GATE-PARENT-VAR、FZ-BUNIT-SEMANTICS、
 // FZ-PROV-MINIMAL-SET、FZ-PROV-KCORR、FZ-UNIT-*。

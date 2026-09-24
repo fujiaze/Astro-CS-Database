@@ -2,7 +2,7 @@
 #define ASTROCS_v6_SPHERICAL_OVERLAP_H
 
 // ============================================================================
-// AstroCS v6 Phase1 Drizzle 球面 overlap 适配层
+// ACSD v6 Phase1 Drizzle 球面 overlap 适配层
 //
 // 任务 IMPL-P1-DRZ-001。把既有球面几何（ALG-DRZ-001：三层候选缓冲、
 // 球面 Sutherland–Hodgman 裁剪、FP64 球面面积）产出的源像素 drop × 目标

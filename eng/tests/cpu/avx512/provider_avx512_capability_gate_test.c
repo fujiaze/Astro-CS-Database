@@ -1,4 +1,4 @@
-/* AstroCS CPU AVX-512 provider — capability 门负测 (stub 探测)
+/* ACSD CPU AVX-512 provider — capability 门负测 (stub 探测)
  * eng/tests/cpu/avx512/provider_avx512_capability_gate_test.c (CPU-004)
  *
  * 覆盖 (CPU-004 验收 "缺任何子集/OS ZMM state 拒绝; 不能只看 AVX512F"):

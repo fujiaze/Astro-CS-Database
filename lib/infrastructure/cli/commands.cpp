@@ -1,4 +1,4 @@
-// astrocs CLI — 命令实现 (RT-008 拆分自 main.cpp)
+// acsd CLI — 命令实现 (RT-008 拆分自 main.cpp)
 // 具体命令 + dispatch + 进程监控/资源事件桥接 + session/AIO/Drizzle 接线。
 // 本文件允许 include 科学内部头（CHK-001 只扫描 lib/infrastructure/cli/main.cpp）。
 // 头部 include 顺序与原 main.cpp 逐字节一致, 保证宏/类型可见性等价。
@@ -84,7 +84,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 // CLI-001: 三个平级用户命令（normalize/mosaic/export）的入口实现在
 // lib/infrastructure/cli/**；本文件是它们背后的会话层（执行/校验/计划/检视）。
-// 相对路径: 根 CMakeLists.txt 的 astrocs target include 目录尚未登记本模块
+// 相对路径: 根 CMakeLists.txt 的 acsd target include 目录尚未登记本模块
 // （登记属 INT-001 域），此处用工作区相对包含保证根图与 lib/infrastructure/cli/ 独立图都能编译。
 #include "command_tree.h"
 #include "session_commands.h"
@@ -221,7 +221,7 @@ int write_run_context(const std::string& out_dir, const std::string& run_id) {
     auto rc = astrocs::core::write_run_context(out_dir, run_id, ASTROCS_VERSION_STRING,
                                                ASTROCS_COMMIT_SHA);
     if (rc.failed()) {
-        std::fprintf(stderr, "astrocs: cannot write run context: %s\n",
+        std::fprintf(stderr, "acsd: cannot write run context: %s\n",
                      rc.error().message().c_str());
         return astrocs::IO;
     }
@@ -323,7 +323,7 @@ static int disk_write_failure_exit(astrocs::JsonlEmitter& ev, const std::string&
     if (!detail.empty()) payload["detail"] = detail;
     ev.emit("resource", "error", phase,
             "disk write failed (" + kind + "): " + what, payload);
-    std::fprintf(stderr, "astrocs: disk write failed (%s): %s\n", kind.c_str(),
+    std::fprintf(stderr, "acsd: disk write failed (%s): %s\n", kind.c_str(),
                  sanitize(what).c_str());
     return astrocs::write_failure_is_resource_exit(pr.kind) ? astrocs::RESOURCE : astrocs::IO;
 }
@@ -374,7 +374,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     {
         std::ofstream f(std::filesystem::u8path(tmp_path), std::ios::binary | std::ios::trunc);
         if (!f) {
-            std::fprintf(stderr, "astrocs: cannot write run manifest '%s'\n", tmp_path.c_str());
+            std::fprintf(stderr, "acsd: cannot write run manifest '%s'\n", tmp_path.c_str());
             // §9.74 裁决 10: 写盘失败/磁盘满 ⇒ fail-closed（磁盘满 → 10；其它 → 7）。
             return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
                                            astrocs::probe_writable(out_dir),
@@ -403,7 +403,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     }
     std::filesystem::rename(std::filesystem::u8path(tmp_path), std::filesystem::u8path(final_path), ec);
     if (ec) {
-        std::fprintf(stderr, "astrocs: cannot finalize run manifest: %s\n", ec.message().c_str());
+        std::fprintf(stderr, "acsd: cannot finalize run manifest: %s\n", ec.message().c_str());
         return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
                                        astrocs::probe_writable(out_dir),
                                        "run manifest finalize failed: " + ec.message());
@@ -566,13 +566,13 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
                 else if (cr.spawn_failed) why = "renderer spawn failed: " + cr.error;
                 else if (!cr.exited) why = "renderer abnormal termination: " + cr.error;
                 else why = "renderer exit code " + std::to_string(cr.exit_code);
-                std::fprintf(stderr, "astrocs: run graph rendering failed: %s (dir=%s)\n",
+                std::fprintf(stderr, "acsd: run graph rendering failed: %s (dir=%s)\n",
                              why.c_str(), gdir.c_str());
                 ev.emit("graph", "warning", "run_graphs",
                         "run graph rendering failed", {{"reason", why}, {"path", gdir}});
             }
         } else {
-            std::fprintf(stderr, "astrocs: run graph renderer missing: %s\n", renderer.c_str());
+            std::fprintf(stderr, "acsd: run graph renderer missing: %s\n", renderer.c_str());
             ev.emit("graph", "warning", "run_graphs", "run graph renderer missing",
                     {{"path", renderer}});
         }
@@ -846,7 +846,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             if (astrocs::write_failure_is_resource_exit(pr.kind))
                 return disk_write_failure_exit(ev, phase, res_out_dir, "resource_timeseries.csv",
                                                pr, "resource recorder write_all failed");
-            std::fprintf(stderr, "astrocs: warning: resource files not written to %s\n",
+            std::fprintf(stderr, "acsd: warning: resource files not written to %s\n",
                          sanitize(res_out_dir).c_str());
         }
         // MON-002(V7): 原始曲线 + 报告落盘(alloc_samples.csv/alloc_report.json;
@@ -857,7 +857,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             if (astrocs::write_failure_is_resource_exit(pr.kind))
                 return disk_write_failure_exit(ev, phase, res_out_dir, "alloc_report.json",
                                                pr, "allocation report write_all failed");
-            std::fprintf(stderr, "astrocs: warning: alloc report files not written to %s\n",
+            std::fprintf(stderr, "acsd: warning: alloc report files not written to %s\n",
                          sanitize(res_out_dir).c_str());
         }
     }
@@ -1116,7 +1116,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                  {"so05_signoff_id", astrocs::v6runtime::kSo05Id},
                  {"so05_signoff_status", astrocs::v6runtime::kSo05Status},
                  {"auto_adjudication_allowed", false}});
-        std::fprintf(stderr, "astrocs: WARNING (recorded, not enforced): %s\n", why.c_str());
+        std::fprintf(stderr, "acsd: WARNING (recorded, not enforced): %s\n", why.c_str());
     }
     // MON-002: 资源 summary 事件接线（曲线唯一载体 = resource_timeseries.csv）。
     // CLI-002 移除 cmd_run_pipeline 时漏接（定义保留未调用），MON-002 验收的
@@ -1187,7 +1187,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         catch (...) { return std::string("."); }
     }();
     if (multi)
-        std::fprintf(stderr, "astrocs: mosaic block %d/%d%s → %s\n", block_index + 1,
+        std::fprintf(stderr, "acsd: mosaic block %d/%d%s → %s\n", block_index + 1,
                      block_count, block_name.empty() ? "" : (" '" + block_name + "'").c_str(),
                      cfg_out_dir.c_str());
 
@@ -1202,7 +1202,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {2});
                 if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
-                std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+                std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
                 out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
                 return out;
             }
@@ -1313,7 +1313,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {2}, artifacts, extra);
         if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
-        std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+        std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
         out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
         return out;
     }
@@ -1323,7 +1323,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase2 failed: " + why,
                                            cfg, cfg_sha, {2}, artifacts, extra);
         if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
-        std::fprintf(stderr, "astrocs: phase2 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
+        std::fprintf(stderr, "acsd: phase2 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
         out.rc = rrc; out.kind = "phase2_failed"; out.why = why;
         return out;
     }
@@ -1362,7 +1362,7 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
         return astrocs::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
@@ -1386,7 +1386,7 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     int bcode = astrocs::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("mosaic", doc, &bcode);
     if (!berrs.empty()) {
-        for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+        for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
         ev.emit_final(bcode, "phase2_failed", nullptr, berrs.front());
         return bcode;
     }
@@ -1429,7 +1429,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         catch (...) { return std::string("."); }
     }();
     if (multi)
-        std::fprintf(stderr, "astrocs: export block %d/%d%s → %s\n", block_index + 1,
+        std::fprintf(stderr, "acsd: export block %d/%d%s → %s\n", block_index + 1,
                      block_count, block_name.empty() ? "" : (" '" + block_name + "'").c_str(),
                      cfg_out_dir.c_str());
 
@@ -1495,7 +1495,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
             const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "resume hash mismatch",
                                                cfg, cfg_sha, {3});
             if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
-            std::fprintf(stderr, "astrocs: resume hash mismatch%s\n", tag.c_str());
+            std::fprintf(stderr, "acsd: resume hash mismatch%s\n", tag.c_str());
             out.rc = astrocs::INTEGRITY;
             out.kind = "resume_hash_mismatch";
             out.why = "prior artifact hash mismatch";
@@ -1514,7 +1514,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {3});
                 if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
-                std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+                std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
                 out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
                 return out;
             }
@@ -1614,7 +1614,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {3}, artifacts, extra);
         if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
-        std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+        std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
         out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
         return out;
     }
@@ -1624,7 +1624,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase3 failed: " + why,
                                            cfg, cfg_sha, {3}, artifacts, extra);
         if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
-        std::fprintf(stderr, "astrocs: phase3 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
+        std::fprintf(stderr, "acsd: phase3 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
         out.rc = rrc; out.kind = "phase3_failed"; out.why = why;
         return out;
     }
@@ -1654,7 +1654,7 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
         return astrocs::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
@@ -1676,7 +1676,7 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     int bcode = astrocs::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("export", doc, &bcode);
     if (!berrs.empty()) {
-        for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+        for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
         ev.emit_final(bcode, "phase3_failed", nullptr, berrs.front());
         return bcode;
     }
@@ -1722,13 +1722,13 @@ int phase_ir_prereq(const Parsed& p, int phase, std::string* cfg_sha_out,
     bool ok = false;
     const std::string sha = file_sha256(cfg_path, &ok);
     if (!ok) {
-        std::fprintf(stderr, "astrocs: cannot hash config '%s'\n", cfg_path.c_str());
+        std::fprintf(stderr, "acsd: cannot hash config '%s'\n", cfg_path.c_str());
         return astrocs::INPUT;
     }
     std::string err;
     const std::string ir = astrocs::cli::build_pipeline_ir({phase}, doc.dump(), &err);
     if (ir.empty()) {
-        std::fprintf(stderr, "astrocs: phase%d rejected: %s\n", phase,
+        std::fprintf(stderr, "acsd: phase%d rejected: %s\n", phase,
                      sanitize(err).c_str());
         return astrocs::ARGS;   // 与 run 的 IR 构建失败映射一致(runtime_client → 2)
     }
@@ -1817,7 +1817,7 @@ int cmd_phase_plan(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
         {
             std::ofstream f(std::filesystem::u8path(op), std::ios::binary | std::ios::trunc);
             if (!f) {
-                std::fprintf(stderr, "astrocs: cannot write plan '%s'\n", op.c_str());
+                std::fprintf(stderr, "acsd: cannot write plan '%s'\n", op.c_str());
                 return astrocs::IO;
             }
             f << text << "\n";
@@ -1844,7 +1844,7 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     const std::string out_dir = doc.value("output_dir", std::string("."));
     std::error_code ec;
     if (!std::filesystem::exists(std::filesystem::u8path(out_dir), ec)) {
-        std::fprintf(stderr, "astrocs: output_dir not found '%s'\n", out_dir.c_str());
+        std::fprintf(stderr, "acsd: output_dir not found '%s'\n", out_dir.c_str());
         return astrocs::INPUT;
     }
     // 仅顶层 astrocs_run_*.json(文件名字典序, journal 语义即 run 顺序)
@@ -1972,7 +1972,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         catch (...) { return std::string("."); }
     }();
     if (multi)
-        std::fprintf(stderr, "astrocs: normalize block %d/%d%s → %s\n", block_index + 1,
+        std::fprintf(stderr, "acsd: normalize block %d/%d%s → %s\n", block_index + 1,
                      block_count, block_name.empty() ? "" : (" '" + block_name + "'").c_str(),
                      cfg_out_dir.c_str());
 
@@ -1989,7 +1989,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete",
                                                    "cancelled by user", cfg_path, cfg_sha, {1});
                 if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
-                std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+                std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
                 out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
                 return out;                            // 04: 取消 → 9
             }
@@ -2048,7 +2048,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg_path, cfg_sha, {1}, artifacts, p1_extra);
         if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
-        std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+        std::fprintf(stderr, "acsd: cancelled%s\n", tag.c_str());
         out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
         return out;                                  // 04: 取消 → 9, manifest=incomplete
     }
@@ -2058,7 +2058,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase1 failed: " + why,
                                            cfg_path, cfg_sha, {1}, artifacts, p1_extra);
         if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
-        std::fprintf(stderr, "astrocs: phase1 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
+        std::fprintf(stderr, "acsd: phase1 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
         out.rc = rrc; out.kind = "phase1_failed"; out.why = why;
         return out;  // RT-008: Runtime 退出码映射(Runtime 已按 04 合同映射)
     }
@@ -2087,7 +2087,7 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string cfg = need_value(p, "--json");
     std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
     if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
         return astrocs::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
@@ -2106,7 +2106,7 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     int bcode = astrocs::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("normalize", doc, &bcode);
     if (!berrs.empty()) {
-        for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+        for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
         ev.emit_final(bcode, "phase1_failed", nullptr, berrs.front());
         return bcode;
     }
@@ -2138,7 +2138,7 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
     const std::string mp = need_value(p, "--run-manifest");
     std::ifstream f(std::filesystem::u8path(mp), std::ios::binary);
     if (!f) {
-        std::fprintf(stderr, "astrocs: run manifest not found '%s'\n", mp.c_str());
+        std::fprintf(stderr, "acsd: run manifest not found '%s'\n", mp.c_str());
         return astrocs::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
@@ -2146,21 +2146,21 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
     try {
         m = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
-        std::fprintf(stderr, "astrocs: manifest malformed JSON: %s\n", sanitize(e.what()).c_str());
+        std::fprintf(stderr, "acsd: manifest malformed JSON: %s\n", sanitize(e.what()).c_str());
         return astrocs::INPUT;
     }
     if (!m.is_object() || m.value("kind", std::string()) != "astrocs_run_manifest" ||
         m.value("schema_version", std::string()) != "1") {
-        std::fprintf(stderr, "astrocs: not a v1 astrocs_run_manifest document\n");
+        std::fprintf(stderr, "acsd: not a v1 astrocs_run_manifest document\n");
         return astrocs::INPUT;
     }
     if (m.value("status", std::string()) != "complete") {
-        std::fprintf(stderr, "astrocs: run manifest status='%s' (incomplete run cannot be verified)\n",
+        std::fprintf(stderr, "acsd: run manifest status='%s' (incomplete run cannot be verified)\n",
                      m.value("status", std::string()).c_str());
         return astrocs::INTEGRITY;                        // 04: 输出完整性/验证失败 → 8
     }
     if (m.value("astrocs_version", std::string()) != ASTROCS_VERSION_STRING) {
-        std::fprintf(stderr, "astrocs: manifest was produced by version '%s', this is '%s'\n",
+        std::fprintf(stderr, "acsd: manifest was produced by version '%s', this is '%s'\n",
                      m.value("astrocs_version", std::string()).c_str(), ASTROCS_VERSION_STRING);
         return astrocs::BACKEND;                          // 04 §5(换版本不可 verify 旧 run)
     }
@@ -2178,12 +2178,12 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
                     if (a.is_object() && a.value("role", std::string()) == "phase3_output")
                         has_out = true;
                 if (!has_out) {
-                    std::fprintf(stderr, "astrocs: phase3 manifest declares no phase3_output artifact\n");
+                    std::fprintf(stderr, "acsd: phase3 manifest declares no phase3_output artifact\n");
                     return astrocs::INTEGRITY;   // 8
                 }
             } else if (phase == 1 || phase == 2) {
                 if (!arts.is_array() || arts.empty()) {
-                    std::fprintf(stderr, "astrocs: phase%d manifest declares no artifacts\n", phase);
+                    std::fprintf(stderr, "acsd: phase%d manifest declares no artifacts\n", phase);
                     return astrocs::INTEGRITY;   // 8
                 }
             }
@@ -2194,11 +2194,11 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
         bool ok = false;
         const std::string cur = file_sha256(m["config_path"].get<std::string>(), &ok);
         if (!ok) {
-            std::fprintf(stderr, "astrocs: config input no longer readable\n");
+            std::fprintf(stderr, "acsd: config input no longer readable\n");
             return astrocs::INPUT;
         }
         if (cur != m.value("config_sha256", std::string())) {
-            std::fprintf(stderr, "astrocs: config changed since the run (hash mismatch)\n");
+            std::fprintf(stderr, "acsd: config changed since the run (hash mismatch)\n");
             return astrocs::INPUT;
         }
         ++checked;
@@ -2207,18 +2207,18 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
         const std::string apath = a.value("path", std::string());
         std::error_code ec;
         if (!std::filesystem::exists(std::filesystem::u8path(apath), ec)) {
-            std::fprintf(stderr, "astrocs: artifact missing '%s'\n", apath.c_str());
+            std::fprintf(stderr, "acsd: artifact missing '%s'\n", apath.c_str());
             return astrocs::INPUT;
         }
         bool ok = false;
         const std::string sha = file_sha256(apath, &ok);
         if (!ok || sha != a.value("sha256", std::string())) {
-            std::fprintf(stderr, "astrocs: artifact sha256 mismatch '%s'\n", apath.c_str());
+            std::fprintf(stderr, "acsd: artifact sha256 mismatch '%s'\n", apath.c_str());
             return astrocs::INTEGRITY;
         }
         const auto size = std::filesystem::file_size(std::filesystem::u8path(apath), ec);
         if (ec || static_cast<unsigned long long>(size) != a.value("size_bytes", 0ULL)) {
-            std::fprintf(stderr, "astrocs: artifact size mismatch '%s'\n", apath.c_str());
+            std::fprintf(stderr, "acsd: artifact size mismatch '%s'\n", apath.c_str());
             return astrocs::INTEGRITY;
         }
         ++checked;
@@ -2261,10 +2261,10 @@ int dispatch(const Parsed& p) {
 
     if (joined == "--version" || joined == "version") {
         if (p.flags.count("--json")) {
-            std::printf("{\"schema_version\":\"1\",\"name\":\"astrocs\",\"version\":\"%s\"}\n",
+            std::printf("{\"schema_version\":\"1\",\"name\":\"acsd\",\"version\":\"%s\"}\n",
                         ASTROCS_VERSION_STRING);
         } else {
-            std::printf("astrocs %s\n", ASTROCS_VERSION_STRING);
+            std::printf("acsd %s\n", ASTROCS_VERSION_STRING);
         }
         return astrocs::OK;
     }
@@ -2386,7 +2386,7 @@ int dispatch(const Parsed& p) {
         {
             std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
             if (!f) {
-                std::fprintf(stderr, "astrocs: cannot write cpu_profile '%s'\n", out_path.c_str());
+                std::fprintf(stderr, "acsd: cannot write cpu_profile '%s'\n", out_path.c_str());
                 return astrocs::IO;
             }
             f << doc.dump(2) << "\n";

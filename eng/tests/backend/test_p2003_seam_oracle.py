@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """test_p2003_seam_oracle.py — P2-003 (G5) 生产接缝 Oracle。
 生成三块 mini HiPS(常量/线性梯度/低阶平滑背景 + 不同偏移 + 星 + 扩展 + mask),
-通过正式 `astrocs phase2 run` 跑 production sampler+UPM+persist,
+通过正式 `acsd phase2 run` 跑 production sampler+UPM+persist,
 解析 persist 的 UPM 校正场 C[f][k](生产产物, 非内部函数), 验证:
   A) before→after 下降(生产 apply 口径: P8-2 工具 calibrated_pair_diag 全走
      production p2_upm_open + p2_upm_calibrate_block, calibrated = raw - C;
@@ -22,7 +22,7 @@ import numpy as np
 from astropy.io import fits
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXE = os.path.join(REPO, "build", "astrocs")
+EXE = os.path.join(REPO, "build", "acsd")
 FIXTURE_SRC = os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp")
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 

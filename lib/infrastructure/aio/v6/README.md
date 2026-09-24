@@ -1,4 +1,4 @@
-# AstroCS V6 科学产品 I/O（IMPL-AIO-001）
+# Astro Celestial Sphere Database（ACSD） V6 科学产品 I/O（IMPL-AIO-001）
 
 > 任务: `IMPL-AIO-001`（Wave 5，depends_on = CONTRACT-FREEZE-001）
 > 写域: `lib/infrastructure/aio/v6/`、`eng/tests/unit/v6_aio/`

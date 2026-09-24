@@ -31,8 +31,8 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
 import atexit, hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# ROOT-008: 唯一产品二进制 build/astrocs（旧 build/cli/astrocs 已退役）
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+# ROOT-008: 唯一产品二进制 build/acsd（旧 build/cli/astrocs 已退役）
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 
 
 def _pick(*cands):
@@ -205,7 +205,7 @@ def sha256_file(path):
 class TestPhase123Pipeline(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="syn009_")
         objs = _cfitsio_objs(cls.tmp)
         incs = _common_incs()

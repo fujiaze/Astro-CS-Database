@@ -1,4 +1,4 @@
-# AstroCS phase3 projection (WCS) 模块 — 元数据 (P3-PROJ-DOC 冻结, 2026-09-11)
+# ACSD phase3 projection (WCS) 模块 — 元数据 (P3-PROJ-DOC 冻结, 2026-09-11)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/projection/p3_wcs.cpp
 # + 唯一权威签名头 lib/algorithms/projection/p3_wcs.h，同一目录;
 # W4-A9 批次 1（2026-09-17）由 lib/phase3_session/ 迁入本模块，

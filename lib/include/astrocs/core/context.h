@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-005 RunContext 服务接口
+// ACSD Core Contracts — CORE-005 RunContext 服务接口
 #pragma once
 
 #include "astrocs/core/artifact.h"

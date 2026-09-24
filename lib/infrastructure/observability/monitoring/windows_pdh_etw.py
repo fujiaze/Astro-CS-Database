@@ -1,7 +1,7 @@
 """Windows PDH/ETW 适配 —— 显式未实现隔离 stub（LOG-002）。
 
 Linux 控制节点当前只要求 Linux procfs 路径（真实实现见 linux_procfs.py）。
-Windows PDH（性能计数器）与 ETW（事件追踪）采集在 AstroCS 上**尚未实现**，
+Windows PDH（性能计数器）与 ETW（事件追踪）采集在 ACSD 上**尚未实现**，
 本模块把该适配路径与 Linux 路径**物理分离**，避免任何人误报"Windows 已支持"。
 
 本文件是**隔离的显式未实现接口**（owner 允许路径内的 known_limits），不是

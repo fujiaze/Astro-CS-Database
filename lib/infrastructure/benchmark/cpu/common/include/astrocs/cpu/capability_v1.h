@@ -1,4 +1,4 @@
-/* AstroCS CPU 能力探测 C ABI v1 — lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h
+/* ACSD CPU 能力探测 C ABI v1 — lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h
  *
  * 角色: CPU-001 冻结的 AMD64 CPU 能力探测合同。区分
  *   "硬件支持"(CPUID feature 位) 与 "OS 可安全执行"(OSXSAVE + XGETBV/XCR0

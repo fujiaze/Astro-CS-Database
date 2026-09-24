@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://astrocs/config/module-dll-contract/v1",
-  "title": "AstroCS Windows 产品拓扑与 DLL 边界合同（ARC-001）",
+  "title": "ACSD Windows 产品拓扑与 DLL 边界合同（ARC-001）",
   "description": "机器可校验的 DLL 产品边界合同：唯一责任、依赖方向、导出入口、host service、CMake target 计划与安装树一一对应。冻结现状权威 = ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7 控制包 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4/§4.1、12_DLL_ABI_AND_LOADER_STANDARD.md、tasks/MODULE_MIGRATION_MATRIX.csv。目标版本 0.1.0-alpha.1；入口统一 astrocs_module_query_v1。",
   "type": "object",
   "required": [
@@ -72,7 +72,7 @@
       "properties": {
         "root_layout": {
           "type": "string",
-          "pattern": "^AstroCS-0\\.11\\.0-alpha\\.1-win-x64/$"
+          "pattern": "^ACSD-0\\.11\\.0-alpha\\.1-win-x64/$"
         },
         "units": {
           "type": "array",
@@ -177,7 +177,7 @@
         "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
         "kind": { "$ref": "#/$defs/unit_kind" },
         "phase_scope": { "$ref": "#/$defs/phase_scope" },
-        "dll_name": { "type": "string", "pattern": "^astrocs_[a-z0-9_]+\\.dll$|^astrocs\\.exe$" },
+        "dll_name": { "type": "string", "pattern": "^astrocs_[a-z0-9_]+\\.dll$|^acsd\.exe$" },
         "cmake_target": { "type": "string", "minLength": 1 },
         "install_path": { "type": "string" },
         "module_id": { "type": ["string", "null"], "description": "module DLL 必须有 module_id；平台单元为 null" },

@@ -50,7 +50,7 @@
 
 ## CLI 覆盖
 
-**唯一 CLI 入口 = `astrocs`**（`normalize` / `mosaic` / `export` 三个子命令，最高设计 §6.2）。
+**唯一 CLI 入口 = `acsd`**（`normalize` / `mosaic` / `export` 三个子命令，最高设计 §6.2）。
 `mosaic` 子命令接受同名字段的 CLI 覆盖（**键名以命令行实际认的键为准**）：
 `--cpu-workers N` / `--io-workers N` / `--deterministic 0|1`。
 **不存在** `--gpu-route`。

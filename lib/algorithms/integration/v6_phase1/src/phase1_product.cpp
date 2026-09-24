@@ -565,7 +565,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     }
 
     /* FITS 层：PRIMARY=signal_sb, SUPPORT, VARIANCE, IVAR。 */
-    const FitsCard org = FitsCard::make_string("ORIGIN", "AstroCS", "");
+    const FitsCard org = FitsCard::make_string("ORIGIN", "ACSD", "");
     const FitsCard nside_card =
         FitsCard::make_integer("NSIDE", in.drizzle.nside, "HEALPix NESTED");
     std::vector<FitsLayer> layers;

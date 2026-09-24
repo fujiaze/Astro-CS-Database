@@ -7,7 +7,8 @@
 > 「P1-STAR-DOC 冻结（2026-09-07）」。
 
 ## 模块职责
-天文图像星点检测器，从16bit天文图像中检测星点，采用GSL trust-region LM Gaussian拟合 + halfA边界搜索初始化 + 半阈值饱和星检测，输出坐标/flux/饱和标记及可选拟合参数。
+天文图像星点检测器，从16bit天文图像中检测星点，采用仓内自研 trust-region LM Gaussian 拟合
+（src/nls_lm.cpp；GSL 已于 GSL-REPLACE-01 摘除，禁止重新引入）+ halfA边界搜索初始化 + 半阈值饱和星检测，输出坐标/flux/饱和标记及可选拟合参数。
 
 ## 当前版本
 - 版本号：V5.0（模块化重构 + 代码清理 + 编译优化，2026-07-07）
@@ -16,7 +17,7 @@
 - 性能指标（与V4.66一致）：16线程 4500×3600 银心 ~9s，前60匹配率中位 98.3%，IPv拟合率中位 100%
 
 ## 依赖列表
-- C++17, OpenMP, GSL (libgsl)
+- C++17, OpenMP, libm（无外部数值库依赖；拟合求解器为仓内自研）
 - MinGW-w64 g++编译器
 - astro_image_io（可选，FITS/XISF图像读取，Python端使用）
 
@@ -101,7 +102,7 @@ P1-STAR-DOC 任务完成模块冻结合同（状态 CONTRACT_READY，禁止宣�
 - **DATA 权威**：docs/contracts/DATA_SEMANTICS.md §17（DATA-P1-STAR）；
   **API 权威**：docs/contracts/PUBLIC_API.md API-STAR-001。
 - 生产事实要点（实测）：生产路径=sdet_detect_impl（:1599-2353）peaker 七步
-  候选 + Moffat4 GSL TR-LM；双入口 sdet_detect_ex（uint16→float）/…_f64
+  候选 + Moffat4 trust-region LM（自研）；双入口 sdet_detect_ex（uint16→float）/…_f64
   （全程 double）；输出十数组 mag 升序 NaN 末尾 + maxStars 截断；编排在
   PSF/STAR_MEASURE 一帧一次权威检测产 star_det FLOAT64[N,6]
   （orchestrator.cpp:2218-2246），PLATESOLVE 禁重检测（:1748-1755）。

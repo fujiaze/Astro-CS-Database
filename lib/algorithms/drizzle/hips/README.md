@@ -63,7 +63,7 @@ Python 侧发布器，不改本 C++ writer——边界引用不越权）；HISS 
 `data_type` AIO_HIPS_FLOAT32(0)/FLOAT64(1)；`flags` 子产品位或
 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16/ALL=7/ALL_V19=31（aio_hips.h:34-43）；
 properties 元数据入参 creator_did（缺省 ivo://astrocs/phase1）/
-obs_title（缺省 "AstroCS Phase1"，:414-415）/obs_filter(可 NULL)/exposure_s(s)/
+obs_title（缺省 "Astro Celestial Sphere Database（ACSD） Phase1"，:414-415）/obs_filter(可 NULL)/exposure_s(s)/
 obs_date(可 NULL)/moc_order(0=auto=tile_order，>0 取 min 与 tile_order，
 :419)。逐 tile 输入 AstroSphereTileView（aio_hips.h:59-71）：parent_ipix
 （Norder K=leaf_order−9 的 NESTED ipix，uint64）、leaf_order、width=512、

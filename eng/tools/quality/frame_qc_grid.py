@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""frame_qc_grid -- 星点质量九宫格视觉确认工具 (AstroCS 项目常备工具).
+"""frame_qc_grid -- 星点质量九宫格视觉确认工具 (ACSD 项目常备工具).
 
 用途
 ----

@@ -1,4 +1,4 @@
-# AstroCS Public / Internal API
+# Astro Celestial Sphere Database（ACSD） Public / Internal API
 
 > 上游：ASTROCS_DESIGN.md §7（CLI 合同）、§8.4（模块与 ABI）
 

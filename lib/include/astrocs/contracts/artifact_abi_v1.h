@@ -1,4 +1,4 @@
-/* AstroCS Artifact C ABI v1 (DATA-001 冻结) — lib/include/astrocs/contracts/artifact_abi_v1.h
+/* ACSD Artifact C ABI v1 (DATA-001 冻结) — lib/include/astrocs/contracts/artifact_abi_v1.h
  *
  * 角色: 跨 DLL/进程边界的 Artifact 句柄/manifest 查询 C ABI (13_DATA_PIPELINE_AND_ARTIFACT_STANDARD §1:
  * "Pipeline edge 传递 ArtifactHandle，不是路径字符串")。

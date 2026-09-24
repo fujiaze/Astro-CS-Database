@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_codec.cpp - AstroCS HISS Codec/Checksum 注册表与内置实现
+// hiss_codec.cpp - ACSD HISS Codec/Checksum 注册表与内置实现
 //
 // 内容:
 // 1. RAW codec (无压缩, 必须): compress/decompress 直接 memcpy, bound = input_size

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/support/v1",
-  "title": "AstroCS 统一对象 support —— 有效输入/面积贡献",
+  "title": "ACSD 统一对象 support —— 有效输入/面积贡献",
   "description": "UNIFIED_MODEL §2：support = 有效输入/面积贡献；可否作权重 = 否。DATA_SEMANTICS §4：support ∈ [0,1]，support=0 表示无覆盖；support 只作门，不作权重。",
   "x-astrocs-object": {
     "name": "support",

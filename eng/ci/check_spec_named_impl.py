@@ -26,7 +26,7 @@
   E2 named_file_alive（fail-closed rc=2）：登记的点名文件存在；
   E3 prod_path：kind=prod_path 的条目，点名文件必须出现在**根 CMake 构建图**
      （自根 CMakeLists.txt 沿未注释的 add_subdirectory 递归）中某个 target 的源列表，
-     且该 target 在生产入口（默认 astrocs）的 target_link_libraries 传递闭包内；
+     且该 target 在生产入口（默认 acsd）的 target_link_libraries 传递闭包内；
   E4 call_site：kind=call_site 的条目，点名的生产节点函数体必须真正引用权威符号，
      且该调用点文件本身在闭包内；
   E5 inventory_claim：登记文件若同时被
@@ -61,7 +61,7 @@ CHECK_ID = "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH"
 MANIFEST = "eng/ci/spec_named_impls.json"
 LEDGER = "eng/ci/ledgers/spec_named_impl_gaps.json"
 INVENTORY = "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv"
-DEFAULT_ENTRY_TARGET = "astrocs"
+DEFAULT_ENTRY_TARGET = "acsd"
 SOURCE_SUFFIXES = (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hxx")
 CMAKE_KEYWORDS = ("STATIC", "SHARED", "MODULE", "INTERFACE", "OBJECT", "ALIAS", "IMPORTED",
                   "WIN32", "MACOSX_BUNDLE", "EXCLUDE_FROM_ALL")
@@ -419,8 +419,8 @@ _FIXTURE_CMAKE = """cmake_minimum_required(VERSION 3.20)
 project(fixture)
 add_library(fx_algo STATIC lib/algo/impl.cpp)
 add_library(fx_dead STATIC lib/algo/dead.cpp)
-add_executable(astrocs app/main.cpp app/node.cpp)
-target_link_libraries(astrocs PRIVATE fx_algo)
+add_executable(acsd app/main.cpp app/node.cpp)
+target_link_libraries(acsd PRIVATE fx_algo)
 """
 _FIXTURE_APP = "#include <cstdio>\nint main(){return 0;}\n"
 _FIXTURE_ALGO = "int fx_authority(int x) { return x + 1; }\n"
@@ -441,7 +441,7 @@ def _write_fixture(root: pathlib.Path, *, linked=True, call_ok=True, doc_ok=True
     (root / "docs/architecture").mkdir(parents=True, exist_ok=True)
     cmake = _FIXTURE_CMAKE
     if not linked:
-        cmake = cmake.replace("target_link_libraries(astrocs PRIVATE fx_algo)\n", "")
+        cmake = cmake.replace("target_link_libraries(acsd PRIVATE fx_algo)\n", "")
     (root / "CMakeLists.txt").write_text(cmake, encoding="utf-8")
     (root / "lib/algo/impl.cpp").write_text(_FIXTURE_ALGO, encoding="utf-8")
     (root / "lib/algo/dead.cpp").write_text(_FIXTURE_DEAD, encoding="utf-8")
@@ -468,7 +468,7 @@ def _write_fixture(root: pathlib.Path, *, linked=True, call_ok=True, doc_ok=True
                            "must_reference": "fx_authority"},
              "owner": "fx", "exit_condition": "fx"},
         ]
-    (root / MANIFEST).write_text(json.dumps({"production_entry": "astrocs", "entries": entries},
+    (root / MANIFEST).write_text(json.dumps({"production_entry": "acsd", "entries": entries},
                                             ensure_ascii=False, indent=2), encoding="utf-8")
     (root / LEDGER).write_text(json.dumps(
         ledger if ledger is not None else {"ledger_schema": gc.LEDGER_SCHEMA,

@@ -55,7 +55,7 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   （aio_hips.h:34-43；begin :404 拒绝越位）；dtype∈{0=float32,1=float64}
   （:403）；违规 → 返回 NULL + last_error。
 - (1e) 缺省元数据：creator_did="ivo://astrocs/phase1"、
-  obs_title="AstroCS Phase1"（:414-415，可入参覆盖）。
+  obs_title="Astro Celestial Sphere Database（ACSD） Phase1"（:414-415，可入参覆盖）。
 - (1f) 状态句柄 ProductSet 持有：nside/tile_width/data_type/flags/out_dir/
   properties 元数据、moc_cells（叶级 cell 集 :359）、leaf_ipix_list（写序
   :360）、hier[k]（map<ipix,AncestorAcc> :361，:420 resize(tile_order)）、
@@ -202,13 +202,13 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 - (5b) properties（write_properties :285-293 裸 `key=value\n` 直写，fopen
   失败静默 return；键序 finalize_image_product :707-771）：IVOa 关键字
   creator_did（:707，缺省 ivo://astrocs/phase1）/ obs_title / obs_creator=
-  "AstroCS"（:710）/ **hips_version="1.4"** / hips_order=K /
+  "ACSD"（:710）/ **hips_version="1.4"** / hips_order=K /
   hips_tile_width="512" / hips_frame="equatorial"（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {equatorial, galactic, ecliptic}；
   M1a-B-005 前写非标准值 "equatorial"）/ dataproduct_type="image" /
   dataproduct_subtype（signal=surface brightness、support=coverage fraction、
   variance=variance、ivar=inverse variance，:716 由 finalize :1030-1052
   传入）/ hips_tile_format="fits" / **hips_status="private master"（恒值
-  :718，DISP-HIPS-003）** / hips_creator / hips_builder="AstroCS
+  :718，DISP-HIPS-003）** / hips_creator / hips_builder="ACSD
   aio_hips_writer (CFITSIO 4.6.4)"（:720） / **hips_estsize="1000000" 硬编码
   （:721，DISP-HIPS-002）** / hips_release_date+hips_creation_date=真实 UTC
   （utc_now_date/utc_now_iso :93-/:80-，gmtime_r 固定格式不依赖时区；

@@ -1,7 +1,7 @@
 # Star Detector 模块 Makefile
 # 编译 star_detector.dll, 提供 Python ctypes 调用的星点检测 API
 #
-# 依赖: GSL (gsl_multifit_nlinear) trust-region LM 求解器, OpenMP
+# 依赖: 仓内自研 trust-region LM 求解器 (src/nls_lm.cpp), OpenMP; 无外部库依赖
 #
 # 编译选项:
 #   make          默认编译 (O3, 无 LTO)
@@ -24,7 +24,7 @@ CXXFLAGS_COMMON = -Wall -std=c++17 -fopenmp -march=native \
 # 默认 Debug/Optimized 配置 (无 LTO, 编译快)
 CXXFLAGS = $(CXXFLAGS_COMMON) -O3
 LDFLAGS = -static-libgcc -static-libstdc++ -shared -fopenmp
-LDLIBS = -lgsl -lgslcblas -lm
+LDLIBS = -lm
 
 # LTO 配置 (运行时更快, 编译较慢)
 CXXFLAGS_LTO = $(CXXFLAGS_COMMON) -O3 -flto
@@ -38,7 +38,7 @@ SRCDIR = src
 INCDIR = include
 TARGET = star_detector.dll
 
-SOURCES = $(SRCDIR)/sdet_api.cpp $(SRCDIR)/sdet_detector.cpp $(SRCDIR)/sdet_image.cpp $(SRCDIR)/sdet_log.cpp $(SRCDIR)/sdet_background.cpp
+SOURCES = $(SRCDIR)/sdet_api.cpp $(SRCDIR)/sdet_detector.cpp $(SRCDIR)/sdet_image.cpp $(SRCDIR)/sdet_log.cpp $(SRCDIR)/sdet_background.cpp $(SRCDIR)/nls_lm.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 # 默认目标: 直接编译 (无 LTO, 无 PCH, 最简单)

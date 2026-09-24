@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""REAL-000 确定性校准匹配计划工具（AstroCS 真实数据验收前置）。
+"""REAL-000 确定性校准匹配计划工具（ACSD 真实数据验收前置）。
 
 职责（04_OWNER_DECISIONS_20260910.md 真实数据验收指令 / REAL-000 任务规格）：
   1. inventory —— 只读盘点 testdata/ 全部文件，按 数据集×望远镜×面板×滤镜×曝光

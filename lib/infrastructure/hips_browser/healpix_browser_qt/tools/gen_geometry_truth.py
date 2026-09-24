@@ -3,7 +3,7 @@
 """
 V9 P9-3: synthetic visual geometry truth HiPS 生成器（NON_PRODUCTION_TOOL_ONLY）
 
-生成标准 AstroCS HiPS 布局（signal/support，NESTED，Norder0..K），供真实
+生成标准 ACSD HiPS 布局（signal/support，NESTED，Norder0..K），供真实
 browser 显示与几何自动测试使用：
   - RA 大尺度递增梯度（0..360 → 值线性递增，0/360 wrap 连续）；
   - Dec 递增梯度（-90..90）；
@@ -172,7 +172,7 @@ def write_properties(root: Path, product: str, leaf_order: int, n_tiles: int):
         "dataproduct_subtype=surface brightness",
         "hips_tile_format=fits",
         "hips_status=public master",
-        "hips_creator=AstroCS geometry truth generator",
+        "hips_creator=ACSD geometry truth generator",
         "hips_initial_fov=60",
         "hips_pixel_scale=58.6",
         "astrocs_signal_dtype=float32",

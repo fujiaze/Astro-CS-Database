@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-008 统一日志 + 指标 (JSONL)
+// ACSD Core Contracts — CORE-008 统一日志 + 指标 (JSONL)
 #pragma once
 
 #include "astrocs/core/context.h"

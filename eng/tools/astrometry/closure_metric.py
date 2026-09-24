@@ -11,7 +11,7 @@
 大圆角距；在该样本上的 median（同时必须同报 n_matched / match_rate / p95 / max）。
 
 独立性（ENGINEERING_SPEC §5.1「不调用生产实现的独立 Oracle」）：本工具不导入
-AstroCS 任何代码，WCS 只用 astropy 从产物 JSON/FITS 头重建，星表取自外部
+ACSD 任何代码，WCS 只用 astropy 从产物 JSON/FITS 头重建，星表取自外部
 锥搜索产物；残差用真大圆角距，不用平面近似代替。
 
 子命令（rc: 0=绿/通过, 1=红/检出, 2=用法或输入错误）：

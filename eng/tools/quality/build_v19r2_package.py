@@ -162,7 +162,7 @@ def main() -> int:
 
     # README
     readme = [
-        "# AstroCS Review — TraceableFoundation V19R2",
+        "# ACSD Review — TraceableFoundation V19R2",
         "",
         "状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS；",
         "FINAL_REAL_DATA_VALIDATION=PENDING",

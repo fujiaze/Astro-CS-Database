@@ -1,4 +1,4 @@
-# AstroCS 术语与单位词典
+# Astro Celestial Sphere Database（ACSD） 术语与单位词典
 
 > 上游：ASTROCS_DESIGN.md 附录 A（术语）
 

@@ -36,7 +36,7 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -297,7 +297,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="fix208_disk_e2e_")
         cache = os.environ.get("ASTROCS_FIX208_FIXTURE_DIR")
         if cache and os.path.isfile(os.path.join(cache, "fixture")) and \
@@ -480,7 +480,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         rc, out_s, err_s = self._run_in_tiny_tmpfs(cfg, "warn")
         self.assertIn("[warn]", err_s, "余量不足必须报 warn（预检页）")
         self.assertIn("磁盘余量不足", err_s)
-        self.assertNotIn("[error]", err_s.split("astrocs: disk")[0],
+        self.assertNotIn("[error]", err_s.split("acsd: disk")[0],
                          "磁盘 warn 不得升级为预检 error")
         events = [json.loads(l) for l in out_s.splitlines() if l.strip()]
         kinds = [e.get("kind") for e in events]

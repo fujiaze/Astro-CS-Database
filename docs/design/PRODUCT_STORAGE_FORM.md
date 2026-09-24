@@ -64,7 +64,7 @@
 
 - 归档的 tar 根 = 产品根的内容（成员名形如 `signal/Norder9/Dir1370000/Npix1372036.fits`），解压即得 `<name>.hips/` 的等价树。
 - tar 成员按**确定性顺序**（路径字典序）写入，帧边界 = 成员边界（§7）。
-- 归档内**不含**产品级索引与数据集级索引：索引是 AstroCS 的查询面，不是 HiPS 内容。归档内只放"解压后构成合法 HiPS"的内容。
+- 归档内**不含**产品级索引与数据集级索引：索引是 Astro Celestial Sphere Database（ACSD） 的查询面，不是 HiPS 内容。归档内只放"解压后构成合法 HiPS"的内容。
 
 ## 4. Phase1 产物的完整形态
 
@@ -159,7 +159,7 @@ flowchart LR
 ### 8.1 properties 不许撒谎
 
 - 归档内的 `properties` **与裸形态逐字节一致**，声明的仍是标准 HiPS（`hips_tile_format=fits`、`hips_version`、`hips_order`、`hips_tile_width`、`hips_frame`）。
-- **归档形态不得让 properties 撒谎**：不得出现 `zstd` / `fits.zst` / 任何非标准 `hips_tile_format` token。形态事实只写在 AstroCS 自己的清单与索引（`storage_form`），不写进 HiPS properties。
+- **properties 与归档形态一致**：`hips_tile_format` 取标准 token 集；形态事实只写在 ACSD 自己的清单与索引（`storage_form`）。
 - 判据：同一产品两形态的 `properties` 字节相同；`hips_tile_format` 必须是既有读端接受的取值。
 
 ### 8.2 哈希口径

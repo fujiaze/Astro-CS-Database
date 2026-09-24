@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/artifact-manifest-v1.json",
-  "title": "AstroCS Artifact Manifest v1 (DATA-001 冻结)",
+  "title": "ACSD Artifact Manifest v1 (DATA-001 冻结)",
   "description": "类型化产物 manifest：artifact_id/type_id/schema_version/storage_uri/content_digest/size/producer/run/node/input_digests/config_digest/status。严格拒绝：缺字段、未知 type_id（对照 eng/contracts/data/artifact_types.registry.json）、type_id↔schema_version 不匹配、非字符串/非规范 URI、NaN（JSON 无 NaN，但经宽松解析来的 NaN 字符串/非有限数在此拒绝）、producer 重复、status 非法值。单位/坐标/dtype/shape/plane/invalid 策略/所有权语义见 docs/interfaces/data/DATA-001_ARTIFACT_CONTRACT.md。",
   "type": "object",
   "additionalProperties": false,

@@ -1,4 +1,4 @@
-# AstroCS phase1 photometry module — 元数据 (P1-PHOT-DOC 冻结, 2026-09-07)
+# ACSD phase1 photometry module — 元数据 (P1-PHOT-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/photometry/cpp/src/
 # pc_api.cpp（run_with_gaia_impl<T> :755 + v2/_f64_v2 导出 :1048/:1084）、
 # star_matcher.cpp（matchWithKdTree :185 / cleanAndScale :378）、

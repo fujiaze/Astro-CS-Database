@@ -186,7 +186,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 - **β=4 解析通量 flux=2πA·sxsy/3 与 FWHM/σ=1.230310**：**Project-defined 解析积分**（对 (1+Q)^(−4) 的整平面积分）；建议用独立符号/数值积分（SciPy quad 或 sympy，BSD-3-Clause）复算，不作文献引用。
 - **LM 阻尼最小二乘**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105。实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - **10–90% trimmed mean → σ 常数 0.7316727929211932**：**Project-defined 高斯分位积分**（可用 scipy.stats.truncnorm 复算）；**注意**该常数是 trimmed mean 的标准化因子，与 MAD 常数 1.482602218505602 **不可互换**（NOISE_MODEL §9）。
-- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>）；photutils（BSD-3-Clause）MoffatPSF/GaussianPSF。**差异**：AstroCS 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
+- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>）；photutils（BSD-3-Clause）MoffatPSF/GaussianPSF。**差异**：Astro Celestial Sphere Database（ACSD） 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
 - **拥挤场 PSF 拟合测光**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）。
 - **q_psf=A/residual_scale**：**Project-defined 质量代理**，非 SNR、非 Fisher information（UNIFIED_SCIENCE_MODEL §3/§11；SCI-PSF §1 非目标）。
 

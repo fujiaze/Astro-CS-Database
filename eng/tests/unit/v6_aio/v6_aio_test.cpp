@@ -173,7 +173,7 @@ Provenance make_positive_provenance() {
 HipsProperties make_positive_props() {
   HipsProperties hp;
   hp.creator_did = "ivo://astrocs/test";
-  hp.obs_collection = "AstroCS V6";
+  hp.obs_collection = "ACSD V6";
   hp.release_date = "2026-09-15T00:00:00Z";
   hp.frame = "equatorial";  // P0-19: HiPS 1.0 §4.4.1 标准值 (icrs 非法)
   hp.order = 6;

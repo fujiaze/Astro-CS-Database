@@ -11,7 +11,7 @@
 ## 1. 本包用途与边界
 
 - **用途**：为「把单帧图像校准到测光星等坐标系」这条链（Gaia DR3 XP 逆映射定位 → 星点测光 → 光谱×QE×透过率正向合成 → 拟合标定 → 落到像素 → 星等表达）提供**可核验的一手出处**与开源对照，使方法学不建立在对商业软件或二手转述的依赖上。
-- **不是**：不定义 AstroCS 的公式、容差与门限（那是 `docs/science/` 与 `docs/algorithms/` 的权威）；不复制任何 GPL 代码；不给出实验数值（数值属 SCI-401）。
+- **不是**：不定义 Astro Celestial Sphere Database（ACSD） 的公式、容差与门限（那是 `docs/science/` 与 `docs/algorithms/` 的权威）；不复制任何 GPL 代码；不给出实验数值（数值属 SCI-401）。
 
 ## 2. 核验口径与标记
 
@@ -33,7 +33,7 @@
 
 ### 3.1 官方文档（一手，ESA/DPAC）
 
-| # | 出处 | 核验 | 要点（与 AstroCS 相关的可核验原文/事实） |
+| # | 出处 | 核验 | 要点（与 ACSD 相关的可核验原文/事实） |
 |---|---|---|---|
 | G1 | Gaia DR3 文档 §20.12.3 `xp_continuous_mean_spectrum`：https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_continuous_mean_spectrum.html | `[URL]` HTTP 200（54 961 B） | 均值 BP/RP 谱以**基函数连续表示**（basis functions，指向 §5.3.4）；表字段含 `bp_n_parameters`（LSQ 参数个数）、`bp_coefficients`、`bp_coefficient_errors`、`bp_coefficient_correlations`（上三角相关阵，列主序）、`bp_n_relevant_bases`、`bp_chi_squared`；该表不经主 TAP 接口，经 Massive Data / VO Datalink 交付 |
 | G2 | Gaia DR3 文档 §20.12.4 `xp_sampled_mean_spectrum`：https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_sampled_mean_spectrum.html | `[URL]` HTTP 200（30 402 B） | **采样定标原文**：“All mean spectra are sampled to the same set of absolute wavelength positions, viz. **343 values from 336 to 1020 nm with a step of 2 nm**”；连续谱与采样谱不是一一都有，采样表示可由连续谱经 GaiaXPy 生成 |
@@ -55,7 +55,7 @@
 
 > **消歧记录（防误引）**：arXiv **2206.06207** 不是 Montegriffo XP 论文（arXiv API 实测标题为 “Gaia Data Release 3: Mapping the asymmetric disc of the Milky Way”）；XP 外定标论文的正确 arXiv 号是 **2206.06205**（G8）。凡引用 XP 定标必须用 G8 的 DOI/arXiv。
 
-### 3.3 对 AstroCS 的用法与边界（与最高设计 §2.1/§4.2 一致）
+### 3.3 对 ACSD 的用法与边界（与最高设计 §2.1/§4.2 一致）
 
 - 本项目消费的是 XP 谱的**外部定标（绝对）谱辐照度**，单位 **W·m⁻²·nm⁻¹**，用它做**模型通带内的正向合成** `F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`（单位 W·m⁻²·nm；公式权威在 `docs/science/PHOTOMETRY.md` §2a，claim `PHOT-FSYN-CANON-001`）。**`F_syn` 不含 `10^(−0.4·G)` 因子**：Gaia G 星等不进入参考通量（该写法会给逐星 `r_i` 注入 `+0.4·G_i` dex，单标量零点吸收不掉）。
   - **官方依据**：Gaia DR3 文档 §20.12.4 `xp_sampled_mean_spectrum`——"This is the BP/RP **externally calibrated** sampled mean spectrum."，字段 `flux` 声明 `(float[] array, Flux[W m-2 nm-1])`；合成通量的官方定义式见同文档 §5.4.1 式 (5.41) `⟨f_λ⟩ = ∫f_λ(λ)S(λ)λdλ / ∫S(λ)λdλ`（含 `λ`、**不含**任何星等因子）。
@@ -84,7 +84,7 @@
 | P8 | pysynphot 官方文档（STScI）：https://pysynphot.readthedocs.io/en/latest/ | `[URL]` HTTP 200 | HST 系合成测光的原始公开实现文档（与 P4 配套） |
 | P9 | SVO Filter Profile Service：http://svo2.cab.inta-csic.es/theory/fps/ | `[URL]` HTTP 200 | 滤镜/仪器响应曲线的公开权威库（T(λ) 的来源面） |
 
-### 4.2 对 AstroCS 的用法与边界
+### 4.2 对 ACSD 的用法与边界
 
 - 正向合成的**方法学**就是 P1–P9 的标准做法：恒星光谱 ×（QE × 滤镜透过率 × 光学响应）在波长上积分；
 - **`Q(λ)` 是通带的组成部分**（官方对 passband 的定义即「滤光片透过率 × 光子计数探测器灵敏度 × 光学元件透过率 × 大气贡献」，Gaia Collaboration, Montegriffo et al. 2023, A&A 674, A33, §1）；未配置时按 `Q(λ)≡1` 处理，物理含义是「假设探测器为**理想平坦 QE**器件」——这是一条**显式未建模项**，不是「QE 已折进 `T(λ)`」。其量级（真实 M42 视场，26211 颗 XPSD 星，n=10348）：`Q≡1` 与计入 KAF-16803 QE 的合成星等差中位 **+0.811 mag**（被零点吸收）、跨星散度 **0.0082 mag**（不被吸收，进入 `sigma_residual`）；颜色项误差单列（见 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1 的 `σ_color`）；
@@ -119,7 +119,7 @@ m_AB     = −2.5·log10(F_ν/[erg s⁻¹ cm⁻² Hz⁻¹]) − 48.60   # Oke & 
 F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 ```
 
-- **对 AstroCS 的约束**：本项目的标定因子把绝对归一吸收，产物只以**星等/相对星等**表达（最高设计 §2.1/§4.4），因此 M1–M12 的绝对零点只作**参考系语义**与误差预算来源，**不得**用于反解仪器参数（见 §8 与 `docs/science/PHOTOMETRY.md` §1/§10）。
+- **对 ACSD 的约束**：本项目的标定因子把绝对归一吸收，产物只以**星等/相对星等**表达（最高设计 §2.1/§4.4），因此 M1–M12 的绝对零点只作**参考系语义**与误差预算来源，用途边界见 §8 与 `docs/science/PHOTOMETRY.md` §1/§10）。
 
 ---
 
@@ -129,15 +129,15 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 | # | 项目（许可证） | 版本/tag | 入口 文件:行（`[OSS]`） | 对照什么 |
 |---|---|---|---|---|
-| O1 | **SCAMP**（GPL-3.0） | v2.15.0 | `src/photsolve.c:117`（`photsolve_fgroups`：全局**相对光度**解算入口）；`src/astrsolve.c:117`（`astrsolve_fgroups`：天体测量解算入口）；`src/fitswcs.c`（WCS 结构/投影）；官方页 https://www.astromatic.net/software/scamp/ `[URL]` 200 | 星表引导的**相对零点 + 天体测量**联合解算的工程结构；AstroCS 只对照“用星表做相对定标”的结构，**不引其为天光面/UPM 依据**（SCAMP 核心无像素背景归一） |
-| O2 | **astrometry.net**（BSD-3-Clause 系） | 0.98 | `solver/tweak2.c:195`（`tweak2()`：以星表参考做 WCS 精化）；`solver/tweak.c:47`（`tweak_just_do_it()`：tweak 流程入口）；官方文档 https://astrometry.net/doc/ `[URL]` 200 | **盲解 + 星表精化**的完整开源对照（本项目的星表匹配精化定位与它同构；AstroCS 不设独立盲解节点） |
-| O3 | **SExtractor**（GPL-3.0） | 2.28.2 | `src/analyse.c:64`（`analyse()` 主测光流程）；`src/analyse.c:568`（`computeaperflux` 调用点）；`src/back.c:51`（`makeback()` 背景网格）；`src/back.c:669`（`backguess()` 背景插值）；`src/fitswcs.c:1375`（`wcs_to_raw()` 天球→像素）；官方页 https://www.astromatic.net/software/sextractor/ `[URL]` 200 | 分块背景网格 + 检测 + 孔径测光 + FLUXERR 的工程实现；AstroCS 只把孔径测光当**诊断/交叉验证**，生产口径是 PSF 拟合域（`docs/plugins/algorithms_phase1/06_photometry.md` §1/§4） |
+| O1 | **SCAMP**（GPL-3.0） | v2.15.0 | `src/photsolve.c:117`（`photsolve_fgroups`：全局**相对光度**解算入口）；`src/astrsolve.c:117`（`astrsolve_fgroups`：天体测量解算入口）；`src/fitswcs.c`（WCS 结构/投影）；官方页 https://www.astromatic.net/software/scamp/ `[URL]` 200 | 星表引导的**相对零点 + 天体测量**联合解算的工程结构；ACSD 只对照“用星表做相对定标”的结构，**不引其为天光面/UPM 依据**（SCAMP 核心无像素背景归一） |
+| O2 | **astrometry.net**（BSD-3-Clause 系） | 0.98 | `solver/tweak2.c:195`（`tweak2()`：以星表参考做 WCS 精化）；`solver/tweak.c:47`（`tweak_just_do_it()`：tweak 流程入口）；官方文档 https://astrometry.net/doc/ `[URL]` 200 | **盲解 + 星表精化**的完整开源对照（本项目的星表匹配精化定位与它同构；ACSD 不设独立盲解节点） |
+| O3 | **SExtractor**（GPL-3.0） | 2.28.2 | `src/analyse.c:64`（`analyse()` 主测光流程）；`src/analyse.c:568`（`computeaperflux` 调用点）；`src/back.c:51`（`makeback()` 背景网格）；`src/back.c:669`（`backguess()` 背景插值）；`src/fitswcs.c:1375`（`wcs_to_raw()` 天球→像素）；官方页 https://www.astromatic.net/software/sextractor/ `[URL]` 200 | 分块背景网格 + 检测 + 孔径测光 + FLUXERR 的工程实现；ACSD 只把孔径测光当**诊断/交叉验证**，生产口径是 PSF 拟合域（`docs/plugins/algorithms_phase1/06_photometry.md` §1/§4） |
 | O4 | **SEP**（LGPL-3.0） | v1.4.1 | `src/extract.c:206`（`sep_extract()` 检测入口）；`src/aperture.c:190`（`sep_sum_circle` 宏实例化）；`src/aperture.c:263`（`sep_sum_circann` 宏实例化）；`src/aperture.c:604`（`sep_flux_radius()`）；论文 Barbary, K. 2016, JOSS 1, 58 `[DOI]` 10.21105/joss.00058 | SExtractor 算法的库化实现（背景/检测/孔径与误差传播的独立可对拍实现） |
 | O5 | **photutils**（BSD-3-Clause） | 3.0.0 | `photutils/detection/daofinder.py:26`（`DAOStarFinder`）；`photutils/aperture/photometry.py:30`（`aperture_photometry()`）；`photutils/psf/photometry.py:217`（`PSFPhotometry`）；`photutils/background/background_2d.py:33`（`Background2D`） | 星检测、孔径/PSF 测光、二维背景的参考实现与误差传播；SCI-401 的数值对拍对象 |
 | O6 | **astropy**（BSD-3-Clause） | v8.0.1 | `astropy/wcs/wcs.py:359`（`class WCS`）；`astropy/wcs/wcs.py:1669`（`all_pix2world()`：天球↔像素互转） | WCS 投影/逆投影的独立实现（星表逆映射定位的验证基准） |
 | O7 | **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields()`：逐像素组合主入口）；`src/back.c:413`（`backstat()`）；`src/back.c:642`（`backguess()`）；官方页 https://www.astromatic.net/software/swarp/ `[URL]` 200 | 逐像素加权组合与背景统计的开源对照（Phase2 侧；Phase1 只对照背景/重采样行为） |
-| O8 | **Siril**（GPL-3.0） | 1.4.4 | `src/stacking/median_and_mean.c:1091-1094`（帧权重 `1/(pscale²·bgnoise²)` 与其归一化）；仓库 https://gitlab.com/free-astro/siril `[URL]` 200 | 逆方差型帧权重 + 稳健背景噪声的工程实现；与 AstroCS「入库 SNR、Phase2 现场算权重」的区别见 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §8 |
-| O9 | **DAOPHOT / ALLSTAR**（历史实现，无源码对照） | — | 论文 Stetson 1987, PASP **99**, 191 `[DOI]` 10.1086/131977；Irwin 1985, MNRAS **214**, 575 `[DOI]` 10.1093/mnras/214.4.575；Anderson & King 2000, PASP **112**, 1360 `[DOI]` 10.1086/316632 | **星表引导/拥挤场 PSF 测光**的方法学源头：PSF 拟合测光、增长曲线、逐源不确定度；AstroCS 的“只对星表位置拟合、失败即丢弃”范式与其同族 |
+| O8 | **Siril**（GPL-3.0） | 1.4.4 | `src/stacking/median_and_mean.c:1091-1094`（帧权重 `1/(pscale²·bgnoise²)` 与其归一化）；仓库 https://gitlab.com/free-astro/siril `[URL]` 200 | 逆方差型帧权重 + 稳健背景噪声的工程实现；与 ACSD「入库 SNR、Phase2 现场算权重」的区别见 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §8 |
+| O9 | **DAOPHOT / ALLSTAR**（历史实现，无源码对照） | — | 论文 Stetson 1987, PASP **99**, 191 `[DOI]` 10.1086/131977；Irwin 1985, MNRAS **214**, 575 `[DOI]` 10.1093/mnras/214.4.575；Anderson & King 2000, PASP **112**, 1360 `[DOI]` 10.1086/316632 | **星表引导/拥挤场 PSF 测光**的方法学源头：PSF 拟合测光、增长曲线、逐源不确定度；ACSD 的“只对星表位置拟合、失败即丢弃”范式与其同族 |
 | O10 | SCAMP 论文（会议集，无 DOI/arXiv） | — | Bertin, E. 2006, *Automatic Astrometric and Photometric Calibration with SCAMP*, ASP Conf. Ser. **351**, 112（ADASS XV；bibcode 2006ASPC..351..112B） | 星表引导的**天体测量+相对光度联合解算**的方法学论文。`[NONE]`：未在 arXiv 检索到、Crossref 无 DOI（ADS 对脚本访问返回 405），故只作**会议集级定位**；一手可核验面 = O1 的官方页与 v2.15.0 源码锚 |
 
 ---
@@ -161,7 +161,7 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ---
 
-## 8. 对 AstroCS 的直接约束（与最高设计一致的要点）
+## 8. 对 ACSD 的直接约束（与最高设计一致的要点）
 
 1. **只对星点测光**，星点位置由 Gaia 星表逆映射获得；全图盲检测不产生权威星表（`ASTROCS_DESIGN.md` §2.1/§4.2）。
 2. **正向合成**用 XP 谱 × 系统响应在模型通带内积分；`Q(λ)≡1`、通带外无数据等未建模项必须显式声明，不得静默当作已建模（P4 的端到端预算写法、G2 的采样边界）。

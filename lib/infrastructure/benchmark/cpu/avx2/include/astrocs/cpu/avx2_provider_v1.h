@@ -1,4 +1,4 @@
-/* AstroCS CPU AVX2/FMA provider — 公共 kernel 参数合同 v1 (热点子集)
+/* ACSD CPU AVX2/FMA provider — 公共 kernel 参数合同 v1 (热点子集)
  * lib/infrastructure/benchmark/cpu/avx2/include/astrocs/cpu/avx2_provider_v1.h (CPU-003)
  *
  * 角色: CPU-003 冻结的 AMD64 AVX2/FMA provider (target 单独 -mavx2 -mfma;

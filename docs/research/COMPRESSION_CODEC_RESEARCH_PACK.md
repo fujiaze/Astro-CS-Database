@@ -370,7 +370,7 @@ https://www.ivoa.net/documents/HiPS/20260501/WD-HiPS-2.0-20260501.html —— �
 > **符合标准的替代（按推荐度）**：
 > 1. **传输层压缩**（HTTP Content-Encoding: zstd/gzip/br，由 Web 服务器协商）——REC-HIPS-1.0 §5.1 Note
 >    明确覆盖；文件仍是标准 .fits，hips_tile_format 不动，**零产品改动、完全合规**。
->    （AstroCS 当前不发布 HTTP 服务，此项属部署侧。）
+>    （Astro Celestial Sphere Database（ACSD） 当前不发布 HTTP 服务，此项属部署侧。）
 > 2. **归档/分发容器**（tar.zst / zip）——§5.1 明确允许「any other appropriate method for packaging it」。
 > 3. **产品文件内压缩（若确实必要）**：FITS 4.0 §10 tile-compression + quantize_level=0（无损），
 >    保持 .fits 扩展名（WD 脚注 1 认可 RICE 路径；Hipsgen 对 fpack 判定「符合 IVOA 1.0」）。
@@ -526,7 +526,7 @@ TRIM、标准兼容性、端到端临界带宽。
 ### 5.3 需负责人裁决的事项
 
 1. **TRIM 是否纳入产品格式**（省 13.3%、零成本，但属 HiPS 2.0 WD 草案特性，客户端支持面待确认）；
-2. **是否要提供传输层压缩的部署指引**（AstroCS 当前不发布 HTTP 服务，此项属交付文档/部署侧）；
+2. **是否要提供传输层压缩的部署指引**（ACSD 当前不发布 HTTP 服务，此项属交付文档/部署侧）；
 3. 本文**不宣布任何发布决定**（ASTROCS_DESIGN.md §13：发布决定只属负责人）。
 
 ---

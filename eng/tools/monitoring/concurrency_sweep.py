@@ -23,7 +23,7 @@
 
 用法：
   python3 eng/tools/monitoring/concurrency_sweep.py run --tag L8 --cpuset 0-7 \
-      --binary build/astrocs --cfg run/.../cfg.json --outdir run/.../out/L8 \
+      --binary build/acsd --cfg run/.../cfg.json --outdir run/.../out/L8 \
       --stderr run/.../logs/L8.stderr --summary run/.../summary_L8.json \
       --manifest run/.../manifest_L8.json [--rss-kill-gb 20] [--keep-products]
   python3 eng/tools/monitoring/concurrency_sweep.py compare \
@@ -214,7 +214,7 @@ def cmd_run(a) -> int:
     with open(a.stderr, "wb") as errf:
         proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=errf, env=env)
     pid = proc.pid
-    # 核对 pid 身份：taskset 用 execvp，pid 即 astrocs 本体
+    # 核对 pid 身份：taskset 用 execvp，pid 即 acsd 本体
     comm = ""
     try:
         comm = open("/proc/%d/comm" % pid).read().strip()
@@ -247,7 +247,7 @@ def cmd_run(a) -> int:
             killed = True
             break
         time.sleep(SAMPLE_INTERVAL_S)
-    # 身份复核：exec 完成后 comm 必须是 astrocs（证明采样对象就是被测进程本体）
+    # 身份复核：exec 完成后 comm 必须是 acsd（证明采样对象就是被测进程本体）
     comm_after = ""
     try:
         comm_after = open("/proc/%d/comm" % pid).read().strip()

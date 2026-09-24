@@ -18,7 +18,7 @@ variance 与 ivar 显式不混。公式权威: SCI-NOISE-001。
 
 ## P8-SNR-LINUX 接线（2026-09-14，SNR 生产接线批）
 
-**背景事实（改前）**：Linux 正式入口 astrocs 的 SNR 节点
+**背景事实（改前）**：Linux 正式入口 acsd 的 SNR 节点
 （lib/infrastructure/scheduler/src/module_adapters.cpp::p1_op_noise，module_adapters.cpp:2391）只把
 整帧像素喂给 NoiseModel::estimate，并落盘 p1_snr.json 的
 {variance, ivar, sigma, background, valid, reason} —— 即**整帧 sigma/MAD 噪声统计**，

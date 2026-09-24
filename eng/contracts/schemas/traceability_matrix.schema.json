@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://control/traceability-matrix/v1",
-  "title": "AstroCS 模块八层追溯矩阵 (DOC-001)",
+  "title": "ACSD 模块八层追溯矩阵 (DOC-001)",
   "description": "每模块一行的机器追溯合同：SCI→ALG→DATA/API/ARCH→MOD/SRC→TEST→EVIDENCE 八层全显式；空缺=显式 MISSING/NONE；禁止空字符串。",
   "type": "object",
   "additionalProperties": false,

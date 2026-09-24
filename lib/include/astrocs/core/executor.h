@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — RT-004 唯一共享执行器（CPU heavy + 有界 I/O）
+// ACSD Core Contracts — RT-004 唯一共享执行器（CPU heavy + 有界 I/O）
 //
 // 冻结语义（tasks/03_RUNTIME_DATA_IO_TASKS.md RT-004 + 约束 D.1-D.4 +
 // 14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md §2 线程模型）:

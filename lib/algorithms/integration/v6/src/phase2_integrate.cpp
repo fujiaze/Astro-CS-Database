@@ -158,7 +158,7 @@ FitsLayer make_layer(const std::string& extname, const std::string& bunit,
   l.spec.bitpix = -64;
   l.spec.naxis = {values.size()};
   l.spec.cards.push_back(FitsCard::make_string("BUNIT", bunit, ""));
-  l.spec.cards.push_back(FitsCard::make_string("ORIGIN", "AstroCS", ""));
+  l.spec.cards.push_back(FitsCard::make_string("ORIGIN", "ACSD", ""));
   l.data = encode_f64_be(values);
   return l;
 }

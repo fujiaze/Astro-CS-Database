@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_stream_writer.cpp - AstroCS HISS 流式写入器实现
+// hiss_stream_writer.cpp - ACSD HISS 流式写入器实现
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器)

@@ -1,4 +1,4 @@
-/* AstroCS Secure Loader — Linux 真实实现 (ABI-003)
+/* ACSD Secure Loader — Linux 真实实现 (ABI-003)
  *
  * 文件: lib/infrastructure/pipeline/module_loader/secure_loader.c
  * 实现: 12_DLL_ABI_AND_LOADER_STANDARD.md §6 + 合同头 secure_loader.h。

@@ -1,7 +1,7 @@
 // lib/infrastructure/benchmark/backend_host/bench_report.h — CPU-006 benchmark report (V7.1 §"benchmark cpu 命令")
 //
 // 规格(V7.1 FINAL3 04_CPU_RESOURCE_TASKS.md CPU-006; 验收关键词 benchmark report):
-//   实现 astrocs benchmark cpu --suite quick|release --output profile.json; 记录 CPU 指纹、
+//   实现 acsd benchmark cpu --suite quick|release --output profile.json; 记录 CPU 指纹、
 //   逻辑/物理核、cache/NUMA/affinity、内存带宽、kernel sizes、warmup、重复轮次、median/MAD、
 //   workers、provider、输入 hash、编译器。
 //   验收: 不会改变生产 profile 直到全部 self_test+阈值通过; 没有 benchmark 时 baseline;

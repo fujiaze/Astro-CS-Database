@@ -543,7 +543,7 @@
       "kind": "face-defined",
       "evidence": "-",
       "auto": false,
-      "not_run_reason": "需构建产物 astrocs + 夹具"
+      "not_run_reason": "需构建产物 acsd + 夹具"
     },
     "CHK-SYNTH-P3": {
       "status": "FACE-DEFINED-NOT-RUN",

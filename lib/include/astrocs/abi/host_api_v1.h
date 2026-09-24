@@ -1,9 +1,9 @@
-/* AstroCS 模块 C ABI v1 — Host API：runtime 注入的全部 host services（ABI-001）
+/* ACSD 模块 C ABI v1 — Host API：runtime 注入的全部 host services（ABI-001）
  *
  * 文件: lib/include/astrocs/abi/host_api_v1.h
  * 依赖: status_codes.h / artifact_api_v1.h（单向; 自身独立可编译）。
  *
- * 角色: 本文件定义 host（astrocs_runtime.dll / astrocs_io.dll, ARC-001 §1.3
+ * 角色: 本文件定义 host（acsd_runtime.dll / acsd_io.dll, ARC-001 §1.3
  * 入口 astrocs_host_api_v1）对 module/provider 暴露的全部服务表。module 在
  * query 期经 astrocs_module_query_v1 收到 host 指针（12 §1）; provider 同理。
  *

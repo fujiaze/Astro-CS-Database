@@ -1,4 +1,4 @@
-# AstroCS 模块化安装树布局 — eng/cmake/install_layout.cmake (BLD-003)
+# ACSD 模块化安装树布局 — eng/cmake/install_layout.cmake (BLD-003)
 #
 # 契约 (BLD-003 + 03_TARGET_PRODUCT_AND_ARCHITECTURE.md §4 / ARC-001):
 #   - 唯一 install 规则源: 根 CMakeLists.txt include 本文件 (BLD-002:
@@ -11,9 +11,9 @@
 #
 # 安装树 (prefix 可重定位; Linux 技术预览形态):
 #   <prefix>/
-#     astrocs                      # 主 CLI (exe; Windows: astrocs.exe)
-#     libastrocs_runtime.so        # runtime 平台 DLL (loader/registry/... 宿主)
-#     libastrocs_io.so             # io 平台 DLL (FITS/HiPS/流式 I/O 宿主)
+#     acsd                      # 主 CLI (exe; Windows: acsd.exe)
+#     libacsd_runtime.so        # runtime 平台 DLL (loader/registry/... 宿主)
+#     libacsd_io.so             # io 平台 DLL (FITS/HiPS/流式 I/O 宿主)
 #     modules/astrocs_noop.so      # conformance module (ABI-005 填充语义)
 #     modules/astrocs_catalog_gaia.so      # GAIA XPSD catalog service 模块
 #     modules/astrocs_p1_{drizzle,calibration,cosmetic,hips_writer}.so
@@ -25,7 +25,7 @@
 #     astrocs.product.json         # 产品 manifest (模块/DLL/hash 登记; ABI-004 完善)
 #
 # Windows 正式形态 (03 §4, 由本文件同步 install 规则; WIN-* 验证):
-#   astrocs.exe, astrocs_runtime.dll, astrocs_io.dll (根);
+#   acsd.exe, acsd_runtime.dll, acsd_io.dll (根);
 #   modules/astrocs_noop.dll; modules/astrocs_catalog_gaia.dll;
 #   modules/astrocs_p1_{drizzle,calibration,cosmetic,hips_writer}.dll;
 #   providers/astrocs_cpu_baseline.dll;
@@ -38,9 +38,9 @@
 # ── RPATH: install 后平台 SHARED 依赖 $ORIGIN 解析 (Linux; 12 §6) ──
 set(ASTROCS_INSTALL_RPATH "$ORIGIN")
 set_property(GLOBAL PROPERTY ASTROCS_PLATFORM_SHARED_TARGETS
-  astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline)
+  acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline)
 
-function(astrocs_apply_install_rpath tgt)
+function(acsd_apply_install_rpath tgt)
   if(UNIX AND NOT APPLE)
     set_target_properties(${tgt} PROPERTIES
       INSTALL_RPATH "${ASTROCS_INSTALL_RPATH}"
@@ -55,36 +55,36 @@ set(ASTROCS_INSTALL_SCHEMA_SUBDIR "schemas")
 set(ASTROCS_INSTALL_LICENSE_SUBDIR "licenses")
 
 # ── 安装主 CLI ──
-install(TARGETS astrocs
-  RUNTIME DESTINATION . COMPONENT astrocs_runtime)
+install(TARGETS acsd
+  RUNTIME DESTINATION . COMPONENT acsd_runtime)
 
 # ── 平台 SHARED 骨架 (BLD-003) ──
-# astrocs_runtime / astrocs_io / astrocs_noop 已定义于根 CMakeLists;
+# acsd_runtime / acsd_io / astrocs_noop 已定义于根 CMakeLists;
 # astrocs_cpu_baseline 为 Linux 技术预览 DSO (legacy backend ABI; 正式
 # provider ABI astrocs_provider_query_v1 与 Windows DLL 由 CPU-002 交付)。
-if(TARGET astrocs_runtime)
-  astrocs_apply_install_rpath(astrocs_runtime)
-  install(TARGETS astrocs_runtime
-    LIBRARY DESTINATION . COMPONENT astrocs_runtime
-    RUNTIME DESTINATION . COMPONENT astrocs_runtime)
+if(TARGET acsd_runtime)
+  acsd_apply_install_rpath(acsd_runtime)
+  install(TARGETS acsd_runtime
+    LIBRARY DESTINATION . COMPONENT acsd_runtime
+    RUNTIME DESTINATION . COMPONENT acsd_runtime)
 endif()
-if(TARGET astrocs_io)
-  astrocs_apply_install_rpath(astrocs_io)
-  install(TARGETS astrocs_io
-    LIBRARY DESTINATION . COMPONENT astrocs_runtime
-    RUNTIME DESTINATION . COMPONENT astrocs_runtime)
+if(TARGET acsd_io)
+  acsd_apply_install_rpath(acsd_io)
+  install(TARGETS acsd_io
+    LIBRARY DESTINATION . COMPONENT acsd_runtime
+    RUNTIME DESTINATION . COMPONENT acsd_runtime)
 endif()
 if(TARGET astrocs_noop)
-  astrocs_apply_install_rpath(astrocs_noop)
+  acsd_apply_install_rpath(astrocs_noop)
   install(TARGETS astrocs_noop
-    LIBRARY DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT astrocs_runtime
-    RUNTIME DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT astrocs_runtime)
+    LIBRARY DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT acsd_runtime
+    RUNTIME DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT acsd_runtime)
 endif()
 if(TARGET astrocs_cpu_baseline)
-  astrocs_apply_install_rpath(astrocs_cpu_baseline)
+  acsd_apply_install_rpath(astrocs_cpu_baseline)
   install(TARGETS astrocs_cpu_baseline
-    LIBRARY DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT astrocs_runtime
-    RUNTIME DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT astrocs_runtime)
+    LIBRARY DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime
+    RUNTIME DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime)
 endif()
 
 # ── 科学模块 DLL (MOD-001: 宪章 §8.4 科学模块独立 DLL/SO 安装面) ──
@@ -104,10 +104,10 @@ endif()
 foreach(tgt astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration
             astrocs_p1_cosmetic astrocs_p1_hips_writer)
   if(TARGET ${tgt})
-    astrocs_apply_install_rpath(${tgt})
+    acsd_apply_install_rpath(${tgt})
     install(TARGETS ${tgt}
-      LIBRARY DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT astrocs_runtime
-      RUNTIME DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT astrocs_runtime)
+      LIBRARY DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT acsd_runtime
+      RUNTIME DESTINATION ${ASTROCS_INSTALL_MODULE_SUBDIR} COMPONENT acsd_runtime)
   endif()
 endforeach()
 
@@ -124,19 +124,19 @@ foreach(_acs_schema
     preset-contract.json)
   install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/schemas/${_acs_schema}
     DESTINATION ${ASTROCS_INSTALL_SCHEMA_SUBDIR}
-    COMPONENT astrocs_runtime)
+    COMPONENT acsd_runtime)
 endforeach()
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/licenses/CFITSIO_LICENSE.txt
     ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/licenses/LICENSE-INDEX.txt
     ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/licenses/nlohmann_json.MIT.txt
   DESTINATION ${ASTROCS_INSTALL_LICENSE_SUBDIR}
-  COMPONENT astrocs_runtime)
+  COMPONENT acsd_runtime)
 if(WIN32)
   # WIN-PACKAGE 修复(R10 34179477866 实证): eng/packaging/astrocs.product.json 是
   # BLD-003 Linux 技术预览骨架(platform=linux-amd64, rel_path=astrocs/
-  # libastrocs_runtime.so/...)。Windows 安装树无条件装它后, candidate 根的
-  # astrocs.exe modules list/verify/selftest 读到 Linux rel_path →
+  # libacsd_runtime.so/...)。Windows 安装树无条件装它后, candidate 根的
+  # acsd.exe modules list/verify/selftest 读到 Linux rel_path →
   # missing_unit_file → 退出 5(ACR BACKEND)。MSVC configure 期生成 Windows
   # 正式形态 manifest(03 §4)并安装生成物; Linux 分支同样在 configure 期生成
   # 交付副本(注入 VERSION/commit), 只是单元 rel_path 取 Linux 形态。
@@ -145,7 +145,7 @@ if(WIN32)
     ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
     @ONLY)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
-    DESTINATION . COMPONENT astrocs_runtime)
+    DESTINATION . COMPONENT acsd_runtime)
 else()
   # Linux 技术预览: 单元列表唯一源 = eng/packaging/astrocs.product.json（仓库静态文件,
   # 供 eng/tools/quality/check_module_map.py 等消费）; 交付副本在 configure 期注入当前
@@ -159,7 +159,7 @@ else()
     "\"source_commit\": \"${ASTROCS_GIT_COMMIT}\"" _acs_product_manifest "${_acs_product_manifest}")
   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json "${_acs_product_manifest}")
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
-    DESTINATION . COMPONENT astrocs_runtime)
+    DESTINATION . COMPONENT acsd_runtime)
 endif()
 
 message(STATUS "BLD-003 install layout ready (module_dir=${ASTROCS_INSTALL_MODULE_SUBDIR} provider_dir=${ASTROCS_INSTALL_PROVIDER_SUBDIR})")

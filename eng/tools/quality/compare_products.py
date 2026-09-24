@@ -449,7 +449,7 @@ def summarize_md(report):
 
 
 def build_parser():
-    ap = argparse.ArgumentParser(description="AstroCS 产物确定性比对(P26 T3)")
+    ap = argparse.ArgumentParser(description="ACSD 产物确定性比对(P26 T3)")
     ap.add_argument("--a", required=False, help="产品树 A(如 signal/ 或整棵 run 输出)")
     ap.add_argument("--b", required=False, help="产品树 B")
     ap.add_argument("--out", default="run/resource/compare", help="报告输出目录")

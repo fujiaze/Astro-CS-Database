@@ -2,7 +2,7 @@
 #define HISS_STREAM_WRITER_H
 
 // ============================================================================
-// hiss_stream_writer.h - AstroCS HISS 流式写入器
+// hiss_stream_writer.h - ACSD HISS 流式写入器
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器: 流式生成临时子块池, 再生成

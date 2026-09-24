@@ -1,4 +1,4 @@
-# AstroCS 工程规范（Engineering Specification）
+# Astro Celestial Sphere Database（ACSD） 工程规范（Engineering Specification）
 
 ---
 
@@ -46,7 +46,7 @@
 2. `module.yaml` —— ID、版本、ABI、端口、schema 链接、entrypoint；
 3. 公开头文件 —— 版本化 C ABI，带 `struct_size`/`abi_version`；
 4. 实现 —— 单一 entrypoint，不隐藏整阶段 Session；
-5. CMake target —— 独立 DLL/SO（**自持符号闭包**：模块 .so/.dll 从源文件独立重编译其依赖闭包，不得依赖宿主进程导出的项目符号；其未定义符号必须能在自身 DT_NEEDED 闭包内解析，由 `CHK-PLUGIN-SYMBOL-CLOSURE` 机器保证）；
+5. CMake target —— 独立 DLL/SO（**自持符号闭包**：模块 .so/.dll 从源文件独立重编译其依赖闭包（依赖面限于自身 DT_NEEDED 闭包）；其未定义符号必须能在自身 DT_NEEDED 闭包内解析，由 `CHK-PLUGIN-SYMBOL-CLOSURE` 机器保证）；
 6. 共址可复用测试 —— 单测 + 合同 + 负例；
 7. 输入/输出端口引用有效 DATA 合同（`docs/contracts/` 唯一事实源）。
 
@@ -132,11 +132,11 @@ artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与证据
 run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
 ```
 
-- 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记并经负责人确认；
+- 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记、经负责人核准后生效；
 - **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
-- **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，**不得**写入任何非标准 `hips_tile_format`；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
-- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**，禁止静默取默认）；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
+- **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，`hips_tile_format` 取标准词表值（词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
+- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**（默认值来源 = `eng/packaging/config/defaults.json`））；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
 - **版本信息按阶段出现**（最高设计 §13）：alpha 阶段之前代码与产物中不含任何版本信息；进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/owner/RELEASE_STATUS.md` §2），CLI `--version` 输出该源派生的生成串。
 
@@ -188,19 +188,19 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
 `docs/contracts/LOG_AND_ERROR_CONTRACT.md`。
 
 - 统一状态码（最高设计 §7.2 退出码表），跨平台同失败同码；退出码唯一源 `lib/infrastructure/cli/exit_codes.h`，
-  域→码映射唯一源 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5，禁止第二套数值表；
+  域→码映射的唯一数值表 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5；
 - 结构化日志走 JSONL 事件（唯一 schema，见 eng/contracts/schemas）；运行日志行格式正本 =
-  `lib/infrastructure/observability/logging/log_event_v1.schema.json`（LOG-001），不得另立第二套；
+  `lib/infrastructure/observability/logging/log_event_v1.schema.json`（LOG-001）是日志事件 schema 的唯一来源；
 - **错误必须上行到 CLI**：模块不吞错（空 catch、忽略返回码）、不只写日志不返回错误、
   不把故障降级为"警告后继续"；错误通过统一状态码 + 结构化诊断传播；不跨 C ABI 抛异常；
 - **降级必须显式**：写 `degraded_reason` + manifest 记录 + 不改变科学语义，三者齐备才允许继续运行；
   改变科学语义的降级按故障处理（fail-closed）；
 - **运行日志落输出目录**：`<output_dir>/logs/run_<run_id>.jsonl` 与 `run_<run_id>.log`，成功/失败/取消三路都产出，
   收尾 fsync + 算哈希 + 原子发布并在 run manifest 的 `log_artifacts[]` 登记；
-  **禁止**落进程 CWD、源码树、`run/`、安装目录、家目录；日志写失败即运行失败（非 0 退出码），不静默；
+  日志落点的唯一来源 = 块级 `<output_dir>`；日志写失败即运行失败（非 0 退出码）；
 - 日志经 `aio` 唯一 I/O 边界写出；模块不自建文本 logger、不自持日志文件句柄、不自行决定落点；
 - 输出临时文件 + 原子提交；失败时不留可被误认成正式产品的半成品；
-- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且不得改变文件字节**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename）；读回不一致 ⇒ 不发布。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
+- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且文件字节逐字节不变**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename）；读回不一致 ⇒ 不发布。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
 - 未捕获异常 → exit 70 + 脱敏 crash report（不泄露凭据）；日志/诊断不含凭据与绝对用户路径；
 - 判据 `CHK-LOG-SYS`（`eng/ci/checks.json`）：R1 错误不吞 / R2 降级显式 / R3 日志落点 / R4 台账完整 / R5 合同锚，
   每项带可执行负例（`--self-test`）；登记台账 `eng/ci/ledgers/log_system_ledger.json` 只减不增。

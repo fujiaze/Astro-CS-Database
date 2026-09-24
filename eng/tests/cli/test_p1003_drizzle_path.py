@@ -12,7 +12,7 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）。
 CLI_DIR = os.path.join(REPO, "lib", "infrastructure", "cli")
@@ -94,7 +94,7 @@ class TestP1003DrizzlePath(unittest.TestCase):
                            cwd=run_cwd())
         self.assertEqual(r.returncode, 2, r.stderr)
         self.assertIn("unknown command 'drizzle'", r.stderr)
-        self.assertIn("astrocs normalize", r.stderr, "错误面必须给出 §6.2 命令树")
+        self.assertIn("acsd normalize", r.stderr, "错误面必须给出 §6.2 命令树")
 
     def test_04_prod_callgraph_no_hp_drizzle(self):
         """生产可达性检查: CLI 生产路径无 hp_drizzle 直连(REACH_PASS)。"""

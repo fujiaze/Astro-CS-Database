@@ -12,7 +12,7 @@ Windows preset 一起构成 `win-msvc-17.14.39-x64` 发布工具链的配置面�
 
 ## 为什么放 eng/packaging/windows/ 而不是仓库根
 
-AstroCS 05_FIXED_SUBAGENT_BINDINGS.yaml 给 SA-BLD-02 的 write 白名单为
+Astro Celestial Sphere Database（ACSD） 05_FIXED_SUBAGENT_BINDINGS.yaml 给 SA-BLD-02 的 write 白名单为
 `CMakeLists.txt / CMakePresets.json / eng/cmake/** / eng/packaging/** / DEPENDENCIES.md
 / vcpkg.json / vcpkg-configuration.json`，根目录 `.vsconfig` 不在白名单内。
 `eng/packaging/windows/` 是本 owner 可写且语义贴切的位置（Windows 发布包内容）。

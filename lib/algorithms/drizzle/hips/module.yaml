@@ -1,4 +1,4 @@
-# AstroCS phase1 HiPS writer 模块 — 元数据 (P1-HIPS-DOC 冻结, 2026-09-07)
+# ACSD phase1 HiPS writer 模块 — 元数据 (P1-HIPS-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/infrastructure/aio/src/hips/
 # aio_hips_writer.cpp，编译进根 CMakeLists.txt:298-309 静态库 astrocs_hips；
 # C ABI 导出 aio_hips.h 9 符号）。模块化迁移已交付（P1-HIPS-IMPL, 2026-09-09）：

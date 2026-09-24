@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-003 ModuleDescriptor + Registry
+// ACSD Core Contracts — CORE-003 ModuleDescriptor + Registry
 #pragma once
 
 #include "astrocs/core/artifact.h"

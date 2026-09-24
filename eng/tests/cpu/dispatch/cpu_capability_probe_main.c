@@ -1,4 +1,4 @@
-/* AstroCS CPU-001 probe — eng/tests/cpu/dispatch/cpu_capability_probe_main.c
+/* ACSD CPU-001 probe — eng/tests/cpu/dispatch/cpu_capability_probe_main.c
  *
  * 用途: 本机 AMD64 能力探测证据输出。stdout = 单行/单对象 JSON (稳定 schema,
  * lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json); 供机器校验与审计。

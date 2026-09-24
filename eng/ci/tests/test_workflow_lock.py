@@ -459,7 +459,7 @@ class TestSelectProfile(unittest.TestCase):
 
 def _good_zip_files() -> dict[str, bytes]:
     """最小合法 candidate：两产物 + 三清单（SHA256SUMS 覆盖含清单自身）。"""
-    readme = b"AstroCS candidate readme\n"
+    readme = b"ACSD candidate readme\n"
     dll = b"MZ" + b"\x00" * 32
     provenance = json.dumps({
         "schema_version": 1, "source_sha": "a" * 40,

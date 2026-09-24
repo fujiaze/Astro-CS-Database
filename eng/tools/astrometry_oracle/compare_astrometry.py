@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # NON_PRODUCTION_TOOL_ONLY
-"""比较 Astrometry.net 求解 WCS 与参考 WCS / AstroCS 像素→天球链。
+"""比较 Astrometry.net 求解 WCS 与参考 WCS / ACSD 像素→天球链。
 
 模式:
   synthetic: --solved <solved.fits> --ref <known_wcs.json>

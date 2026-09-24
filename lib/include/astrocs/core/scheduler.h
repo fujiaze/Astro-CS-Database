@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-006 统一 DAG 调度器 + 线程租约
+// ACSD Core Contracts — CORE-006 统一 DAG 调度器 + 线程租约
 // RT-006: NodePlan 先估计 work/memory 再取 lease；内存回压；状态输出带 node ID。
 #pragma once
 

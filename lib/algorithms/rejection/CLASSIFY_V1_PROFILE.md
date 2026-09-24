@@ -105,7 +105,7 @@ profile 版本字符串：`astrocs.rejection.classify.v1`。
 
 ## 8 证据（本任务）
 
-- 独立 Oracle（纯标准库，不调用 astrocs）：`eng/tests/unit/v6_p2_rej/oracle_rej.py`
+- 独立 Oracle（纯标准库，不调用 acsd）：`eng/tests/unit/v6_p2_rej/oracle_rej.py`
   生成 `oracle_expected.inc`（3 固定用例 + 6 校准用例期望值）。
 - 单元测试：`eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp`（units/oracle/reference/
   negative/calibration/determinism 六组，ctest 6/6）。

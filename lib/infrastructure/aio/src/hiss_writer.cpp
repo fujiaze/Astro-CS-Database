@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_writer.cpp - AstroCS HISS Writer (XISF 式 Header + attachments 单体容器)
+// hiss_writer.cpp - ACSD HISS Writer (XISF 式 Header + attachments 单体容器)
 //
 // 规范依据: 02_FROZEN §14/§15, 00_COMMON_CONTRACTS §2.4/§4.5
 // - 固定签名块 (20B) → Header (网格规格 + 元数据 JSON + Tile 目录) → Attachment 子块

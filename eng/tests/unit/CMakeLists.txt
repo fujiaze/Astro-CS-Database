@@ -203,7 +203,7 @@ add_test(NAME gaia_unshuffle COMMAND gaia_unshuffle_test)
 
 add_executable(io_adapter_test io_adapter_test.cpp)
 target_include_directories(io_adapter_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
-target_link_libraries(io_adapter_test PRIVATE astrocs_io_adapter)  # BLD-003: 原 astrocs_io STATIC 更名
+target_link_libraries(io_adapter_test PRIVATE acsd_io_adapter)  # BLD-003: 原 acsd_io STATIC 更名
 add_test(NAME io_adapter COMMAND io_adapter_test)
 
 add_executable(io_ownership_test io_ownership_test.cpp)
@@ -1527,7 +1527,7 @@ if(Python3_Interpreter_FOUND)
   set_tests_properties(sci_evidence_registration_quality PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
   # --------------------------------------------------------------------------
-  # FIX-402: Phase3 输入语义守卫 + 写端口单位（端到端真跑 build/astrocs export）。
+  # FIX-402: Phase3 输入语义守卫 + 写端口单位（端到端真跑 build/acsd export）。
   # 判据非退化: 负例矩阵（缺 BUNIT / 裸 ADU 无 provenance / 积分通量 / 方差面 /
   # ivar 面 / 冻结表外单位）必须 exit 3|4 且不留半成品; 正例必须真产出 canonical
   # BUNIT 产品; variance 传播 nearest 逐像素对拍 + bilinear Σc_k² 判别。

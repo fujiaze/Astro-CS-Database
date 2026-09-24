@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS CPU-004 AVX-512 provider — 非法指令保护静态检查
+"""ACSD CPU-004 AVX-512 provider — 非法指令保护静态检查
 eng/tests/cpu/avx512/check_avx512_illegal_instr.py
 
 覆盖 (CPU-004 验收 "非法指令保护; 非支持 CPU 上 dlopen+query 安全返回

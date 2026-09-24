@@ -1,6 +1,6 @@
-/* AstroCS HiPS 输入读取 C ABI v1 — lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h
+/* ACSD HiPS 输入读取 C ABI v1 — lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h
  *
- * 角色: astrocs_io.dll 对外的 HiPS 输入读取合同 (IO-002 冻结)。
+ * 角色: acsd_io.dll 对外的 HiPS 输入读取合同 (IO-002 冻结)。
  * 冻结合同见 docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md (DOC-IO-INTERFACE-002)。
  *
  * 关键约束 (v1 不可变; 扩展须升版本):

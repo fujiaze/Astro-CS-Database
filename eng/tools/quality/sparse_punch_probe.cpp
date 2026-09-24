@@ -10,7 +10,7 @@
 //   1) 用同一头文件里的谓词跑差分语料（供 Python 侧与独立模型逐块比对）；
 //   2) 调 punch_all_zero_blocks 做真实打洞，输出前后指标（字节 / 分配 / 洞图）；
 //   3) 调 punch_range_forced 做负例注入（对 NaN 区强制打洞 ⇒ 必须判红）。
-// 探针不链接 AstroCS 任何可执行体与库，只编译 aio_sparse_punch.h + aio_log.cpp
+// 探针不链接 ACSD 任何可执行体与库，只编译 aio_sparse_punch.h + aio_log.cpp
 // + crypto/sha256.cpp 三个翻译单元。
 //
 // 用法:

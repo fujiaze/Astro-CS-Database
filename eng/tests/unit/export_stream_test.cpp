@@ -77,7 +77,7 @@ ExportStreamConfig cfg_for(const std::string& tag, int sub_px, int qd, int worke
   c.manifest_path = std::string(ARCH504_EVIDENCE_DIR) + "/arch504_manifest.json";
   c.output_path = std::string(ARCH504_EVIDENCE_DIR) + "/arch504_" + tag + ".fits";
   c.wcs_header = "SIMPLE  =                    T / TAN (frozen)\nNAXIS   =                    2\n";
-  c.properties = "ASTROCS PROVENANCE\nPROJECT = AstroCS\n";
+  c.properties = "ASTROCS PROVENANCE\nPROJECT = ACSD\n";
   return c;
 }
 

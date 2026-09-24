@@ -1519,7 +1519,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   fs::create_directories(aio_dir);
   AioHipsProductSet* ps = aio_hips_product_begin(
       aio_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
-      "ivo://astrocs/phase2", "AstroCS Phase2 mosaic (SCI-F3-001)", nullptr,
+      "ivo://astrocs/phase2", "ACSD Phase2 mosaic (SCI-F3-001)", nullptr,
       0.0, nullptr, 0);
   CHECK_MSG(ps != nullptr, "aio product_begin failed");
   if (!ps) { fs::remove_all(fx.root); return; }

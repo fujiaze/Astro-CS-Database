@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_transform.cpp - AstroCS HISS Transform 正式路径实现 (WP-G 步骤12)
+// hiss_transform.cpp - ACSD HISS Transform 正式路径实现 (WP-G 步骤12)
 //
 // 实现:
 // 1. BYTE_SHUFFLE: 字节重排 (forward/inverse)

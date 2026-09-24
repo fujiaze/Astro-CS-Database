@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.invalid/schemas/hardware-inspect-v1.json",
-  "title": "AstroCS hardware inspect v1 (06 §2, BENCH-001)",
+  "title": "ACSD hardware inspect v1 (06 §2, BENCH-001)",
   "type": "object",
   "required": [
     "schema_version",

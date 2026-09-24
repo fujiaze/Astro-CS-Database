@@ -304,7 +304,7 @@ class TestRt003NoFakeAuthorization(unittest.TestCase):
     def test_threadlease_make_only_frozen_header_legacy(self):
         """make 仅允许保留在冻结公共头 context.h（RT-003 前兼容注释），
         生产实现一律经 acquire/acquire_lease 原子预留。"""
-        hdr = (INC / "astrocs" / "core" / "context.h").read_text(encoding="utf-8")
+        hdr = (INC / "acsd" / "core" / "context.h").read_text(encoding="utf-8")
         # context.h 内 make 只存在于 ThreadLease::make 定义处（RT-003 前兼容）
         defs = re.findall(r"static ThreadLease make\(uint32_t", hdr)
         self.assertEqual(len(defs), 1)

@@ -468,8 +468,8 @@ int main() {
 '''
 
 # ── 静态断言 ──
-_HDR_TRACE = INC / "astrocs" / "core" / "trace.h"
-_HDR_CTX = INC / "astrocs" / "core" / "context.h"
+_HDR_TRACE = INC / "acsd" / "core" / "trace.h"
+_HDR_CTX = INC / "acsd" / "core" / "context.h"
 _SRC_TRACE = CORE / "trace.cpp"
 _REPLAY_PY = REPO / "lib" / "infrastructure" / "pipeline" / "trace_replay.py"
 
@@ -731,7 +731,7 @@ def _link_failure_report(stderr: str, objs, driver_obj, tmp: pathlib.Path) -> st
 
 def _cpp_files():
     files = sorted(CORE.glob("*.cpp"))
-    files += sorted((INC / "astrocs" / "core").glob("*.h"))
+    files += sorted((INC / "acsd" / "core").glob("*.h"))
     return files
 
 
@@ -769,7 +769,7 @@ class TestRt006Static(unittest.TestCase):
     def test_worker_provider_reflects_in_trace(self):
         """executor 观测计数与 trace 字段必须真实：provider 由 ctx 收集、worker 计数
         由 fetch_add 观测；头文件暴露 tasks_executed/provider_sets。"""
-        hdr = (INC / "astrocs" / "core" / "executor.h").read_text(encoding="utf-8")
+        hdr = (INC / "acsd" / "core" / "executor.h").read_text(encoding="utf-8")
         self.assertIn("tasks_executed()", hdr)
         self.assertIn("provider_sets()", hdr)
         self.assertIn("observed_provider", hdr)

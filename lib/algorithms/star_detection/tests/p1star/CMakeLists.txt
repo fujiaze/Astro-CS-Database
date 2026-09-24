@@ -54,23 +54,12 @@ set(SDET_SRC
   ${SDET_SRC_DIR}/sdet_detector.cpp
   ${SDET_SRC_DIR}/sdet_image.cpp
   ${SDET_SRC_DIR}/sdet_log.cpp
-  ${SDET_SRC_DIR}/sdet_background.cpp)
+  ${SDET_SRC_DIR}/sdet_background.cpp
+  # GSL-REPLACE-01: 拟合后端 = 仓内自研信赖域 LM（无外部依赖; 禁止重新引入 GSL）
+  ${SDET_SRC_DIR}/nls_lm.cpp)
 
-# GSL (sdet_api.cpp 依赖 gsl_multifit_nlinear; 主树根 CMake 无 GSL target,
-# 本域自探 — 与生产 Makefile LDLIBS=-lgsl -lgslcblas 同源, 不改生产构建)。
-# name 带 gsl/ 相对子目录 (生产源 #include <gsl/...>, find_path 不递归子目录)。
-find_path(SDET_GSL_INCLUDE_DIR gsl/gsl_multifit_nlinear.h
-  HINTS /usr/include /usr/local/include)
-find_library(SDET_GSL_LIB NAMES gsl
-  HINTS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /usr/local/lib)
-find_library(SDET_GSLCBLAS_LIB NAMES gslcblas
-  HINTS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /usr/local/lib)
-if(NOT SDET_GSL_INCLUDE_DIR OR NOT SDET_GSL_LIB OR NOT SDET_GSLCBLAS_LIB)
-  message(FATAL_ERROR
-    "P1-STAR-TEST: GSL (gsl_multifit_nlinear + libgsl/libgslcblas) not found; "
-    "生产 sdet_api.cpp 依赖 GSL trust-region LM, 无法编译验证面")
-endif()
-set(SDET_GSL_LINK ${SDET_GSL_LIB} ${SDET_GSLCBLAS_LIB} m)
+# 拟合后端无外部库依赖, 仅需 libm。
+set(SDET_FIT_LINK m)
 
 # core 组可执行 (units/properties/oracle/negative 共享执行器框架;
 # main 与组注册表在 p1star_tests_main.cpp — selfcheck 目标共享 core TUs
@@ -80,10 +69,9 @@ add_executable(p1star_tests
   ${P1STAR_DIR}/p1star_tests_core.cpp
   ${SDET_SRC})
 target_include_directories(p1star_tests PRIVATE
-  ${SDET_GSL_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1STAR_DIR})
-target_link_libraries(p1star_tests PRIVATE ${SDET_GSL_LINK} ${CMAKE_DL_LIBS})
+target_link_libraries(p1star_tests PRIVATE ${SDET_FIT_LINK} ${CMAKE_DL_LIBS})
 # OpenMP (生产 sdet 内 #pragma omp; 根 OpenMP::OpenMP_CXX 若未找到则依赖编译器默认)
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_tests PRIVATE OpenMP::OpenMP_CXX)
@@ -139,10 +127,9 @@ add_executable(p1star_perf_test
   ${P1STAR_DIR}/p1star_tests_perf.cpp
   ${SDET_SRC})
 target_include_directories(p1star_perf_test PRIVATE
-  ${SDET_GSL_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1STAR_DIR})
-target_link_libraries(p1star_perf_test PRIVATE ${SDET_GSL_LINK})
+target_link_libraries(p1star_perf_test PRIVATE ${SDET_FIT_LINK})
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_perf_test PRIVATE OpenMP::OpenMP_CXX)
 endif()
@@ -160,10 +147,9 @@ add_executable(p1star_selfcheck_test
   ${P1STAR_DIR}/p1star_tests_core.cpp
   ${SDET_SRC})
 target_include_directories(p1star_selfcheck_test PRIVATE
-  ${SDET_GSL_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1STAR_DIR})
-target_link_libraries(p1star_selfcheck_test PRIVATE ${SDET_GSL_LINK})
+target_link_libraries(p1star_selfcheck_test PRIVATE ${SDET_FIT_LINK})
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_selfcheck_test PRIVATE OpenMP::OpenMP_CXX)
 endif()
@@ -186,11 +172,10 @@ add_executable(p1star_mad_check_test
   ${P1STAR_DIR}/p1star_mad_check.cpp
   ${SDET_SRC})
 target_include_directories(p1star_mad_check_test PRIVATE
-  ${SDET_GSL_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${SDET_SRC_DIR}
   ${P1STAR_DIR})
-target_link_libraries(p1star_mad_check_test PRIVATE ${SDET_GSL_LINK})
+target_link_libraries(p1star_mad_check_test PRIVATE ${SDET_FIT_LINK})
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_mad_check_test PRIVATE OpenMP::OpenMP_CXX)
 endif()
@@ -202,7 +187,7 @@ set_tests_properties(p1star_mad PROPERTIES
 # ----------------------------------------------------------------------------
 # SDET-ANGLE-001 (P11): 朝向角归一化有界 / fail-closed 回归锁。
 # 被测面 = sdet_angle_guard.h (header-only, 生产 sdet_api.cpp 同源 include);
-# 纯函数无 GSL/无 IO 依赖, 独立最小目标。修复前同一逻辑对 alpha=±inf 永不
+# 纯函数无外部求解器/无 IO 依赖, 独立最小目标。修复前同一逻辑对 alpha=±inf 永不
 # 返回 (见本批 E2E: 标定帧单核 >900s 挂死), 本测试在修复后锁定:
 # 非有限/超界 -> 有界时间 false; 有限值 -> 与冻结迭代式逐位一致。
 # TIMEOUT 10s 为防回归挂死的硬兜底 (修复前该目标会 timeout 红)。
@@ -216,6 +201,22 @@ set_tests_properties(p1star_angle_guard PROPERTIES
   PASS_REGULAR_EXPRESSION "SDET_ANGLE_GUARD: PASS")
 
 # ----------------------------------------------------------------------------
+# GSL-REPLACE-01：拟合求解器（仓内自研 trust-region LM, src/nls_lm.cpp）的
+# 五类解析验证 —— 良态/病态/初值远离解/残差非零/参数不可辨识。
+# 判据逐条见 p1star_nls_lm_test.cpp 抬头；每类都有可证伪断言（含"椭圆星对照"
+# 证明不可辨识判据非恒真）。被测源 = 生产 TU nls_lm.cpp（零改动）。
+# ----------------------------------------------------------------------------
+add_executable(p1star_nls_lm_test
+  ${P1STAR_DIR}/p1star_nls_lm_test.cpp
+  ${SDET_SRC_DIR}/nls_lm.cpp)
+target_include_directories(p1star_nls_lm_test PRIVATE ${SDET_SRC_DIR})
+add_test(NAME p1star_nls_lm COMMAND p1star_nls_lm_test)
+set_tests_properties(p1star_nls_lm PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  TIMEOUT 60
+  PASS_REGULAR_EXPRESSION "结果: PASS")
+
+# ----------------------------------------------------------------------------
 # STARDET-01：星表引导检测（权威路径）判据 —— sdet_detect_guided_ex_f64
 # 规范锚 ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
 # 03_star_detection.md §4：检测定义域 = 星表位置，只对该位置做质心/PSF 拟合，
@@ -227,11 +228,10 @@ add_executable(p1star_guided_test
   ${P1STAR_DIR}/p1star_guided_test.cpp
   ${SDET_SRC})
 target_include_directories(p1star_guided_test PRIVATE
-  ${SDET_GSL_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${SDET_SRC_DIR}
   ${P1STAR_DIR})
-target_link_libraries(p1star_guided_test PRIVATE ${SDET_GSL_LINK})
+target_link_libraries(p1star_guided_test PRIVATE ${SDET_FIT_LINK})
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_guided_test PRIVATE OpenMP::OpenMP_CXX)
 endif()
@@ -243,7 +243,7 @@ set_tests_properties(p1star_guided PROPERTIES
 # ----------------------------------------------------------------------------
 # STARDET-01 节点级门：star-psf 节点星表引导检测（权威路径）fail-closed 与
 # "不得静默降级"。被测面 = p1_op_star_psf_precise_json（进程内直调测试钩子,
-# 不启动 astrocs CLI）。判据 N1..N9b 见测试抬头。
+# 不启动 acsd CLI）。判据 N1..N9b 见测试抬头。
 # 需要 gaia 外部只读数据集（gaia/GaiaDR3）的用例在缺失时打印 SKIP 并汇总。
 # ----------------------------------------------------------------------------
 add_executable(p1stardet_node_gate_test

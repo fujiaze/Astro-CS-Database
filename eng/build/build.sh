@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AstroCS 根级 Linux configure/build/test 入口 (BLD-001)
+# ACSD 根级 Linux configure/build/test 入口 (BLD-001)
 # 用法: ./build.sh [Debug|Release]        (default Release)
 # 行为:
 #   1) 在 build/linux-<type> 内 cmake 配置 (相对仓库根, 可重复);

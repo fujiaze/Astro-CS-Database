@@ -1,4 +1,4 @@
-/* AstroCS 唯一 AIO C ABI v1 — lib/include/astrocs/io/aio_abi_v1.h (AIO-001)
+/* ACSD 唯一 AIO C ABI v1 — lib/include/astrocs/io/aio_abi_v1.h (AIO-001)
  *
  * 角色: AIO (Astro Image IO) 域唯一版本化 C ABI 合同头。AIO-001 冻结。
  * 任务: AIO-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) "建立唯一AIO C ABI与内容哈希复核"。

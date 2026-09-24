@@ -812,18 +812,18 @@ def write_curves(out, records):
     plot_png(out / "curve_cpu.png",
              [("cpu % of capacity", cpu, (200, 30, 30)),
               ("busy threads (scaled)", busy, (30, 90, 220))],
-             "AstroCS resource curve: CPU (capacity-relative)", "%")
+             "ACSD resource curve: CPU (capacity-relative)", "%")
     mem = [(r["t"], r["rss_bytes"] / (1024.0 * 1024.0)) for r in records]
     pss = [(r["t"], (r["pss_bytes"] or 0) / (1024.0 * 1024.0)) for r in records]
     plot_png(out / "curve_mem.png",
              [("RSS (MB)", mem, (30, 130, 60)), ("PSS (MB)", pss, (150, 90, 200))],
-             "AstroCS resource curve: memory", "MB")
+             "ACSD resource curve: memory", "MB")
     rb = [(r["t"], r["read_bytes"] / 1e6) for r in records]
     wb = [(r["t"], r["write_bytes"] / 1e6) for r in records]
     plot_png(out / "curve_io.png",
              [("read (MB cumulative)", rb, (200, 120, 20)),
               ("write (MB cumulative)", wb, (20, 120, 160))],
-             "AstroCS resource curve: IO", "MB")
+             "ACSD resource curve: IO", "MB")
 
 
 # ---------------------------------------------------------------------- CLI ----
@@ -864,7 +864,7 @@ def _load_records_from(out_dir):
 
 
 def build_parser():
-    ap = argparse.ArgumentParser(description="AstroCS 外挂资源监控 + 裁决建议(P26 T1)")
+    ap = argparse.ArgumentParser(description="ACSD 外挂资源监控 + 裁决建议(P26 T1)")
     ap.add_argument("--out", default="run/resource/mon", help="产物目录")
     ap.add_argument("--pid", type=int, default=None, help="挂到已在运行的进程(进程树根)")
     ap.add_argument("--interval", type=float, default=1.0, help="采样周期秒(默认 1Hz)")

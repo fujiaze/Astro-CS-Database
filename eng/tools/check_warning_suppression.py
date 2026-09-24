@@ -317,7 +317,7 @@ def static_scan(repo: pathlib.Path = None, excluded_dirs=None):
 # 统计语义与旧实现保持一致。
 BUILD_COUNT_SCRIPT = (
     'cd "$1" || exit 9\n'
-    'cmake --build "$2" --target astrocs 2>&1 '
+    'cmake --build "$2" --target acsd 2>&1 '
     "| grep -v 'WSL\\|适用于 Linux' | grep -c 'warning:' || true\n"
 )
 

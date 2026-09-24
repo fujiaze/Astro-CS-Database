@@ -1,7 +1,7 @@
 // ============================================================================
 // hips_sky_view.h - HiPS 2D 天空视图核心（无 Qt 依赖）
 //
-// 直接消费 AstroCS 标准 HiPS 产品集（signal/support，NESTED，Norder0..K）：
+// 直接消费 ACSD 标准 HiPS 产品集（signal/support，NESTED，Norder0..K）：
 // - 视口感知：gnomonic 逆投影逐像素求 (ra,dec) → 只触碰可见 tile；
 // - zoom-aware order：按 FOV 选 NorderK，父级缺失时逐级向上回退；
 // - 有界 LRU tile 缓存（默认 64 张，signal+support 双数组）；

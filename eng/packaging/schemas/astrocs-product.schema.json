@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://astrocs/packaging/astrocs-product/v1",
-  "title": "AstroCS 产品 manifest (BLD-003 骨架)",
+  "title": "ACSD 产品 manifest (BLD-003 骨架)",
   "description": "安装树顶层 astrocs.product.json: 登记 exe/DLL/模块/provider 与其相对路径、ABI、状态。BLD-003 建立骨架字段与模块行; ABI-004 动态 registry/manifest 三方校验 (module.yaml/DLL descriptor/product manifest) 将完善 hash/entry; 缺 DLL 时宿主必须报错而非静态 fallback (BLD-003 失败路径)。",
   "type": "object",
   "required": ["schema_version", "product_version", "source_commit", "platform", "units"],

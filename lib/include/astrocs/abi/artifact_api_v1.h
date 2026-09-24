@@ -1,4 +1,4 @@
-/* AstroCS 模块 C ABI v1 — 数据平面（Artifact/JSON/host data services）（ABI-001）
+/* ACSD 模块 C ABI v1 — 数据平面（Artifact/JSON/host data services）（ABI-001）
  *
  * 文件: lib/include/astrocs/abi/artifact_api_v1.h
  *

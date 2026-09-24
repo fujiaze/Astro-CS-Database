@@ -1184,27 +1184,7 @@
     "fc8b02027eadc143"
    ],
    "docs/api/CLI_PROTOCOL_V1.md": [
-    "1bfa2f354d5d1846",
-    "3838a41feab467ad",
-    "40603a4cae807099",
-    "4fad603f65186209",
-    "50c655b107ab98df",
-    "5abdd5945ebc4c01",
-    "6383e768f6ad10b6",
-    "6abe35301a60c83e",
-    "af6ad7fcfd1fbf35",
-    "b274b7f5bee1530d",
-    "c530b61d9f39db12",
-    "d161a8bc79f0299b",
-    "e0d194175a3be731",
-    "ea5e67b678e8bc34"
-   ],
-   "docs/api/MANIFEST_VERIFY_V1.md": [
-    "f051aa4b8c68aab5"
-   ],
-   "docs/api/PHASE2_API_V1.md": [
-    "4be07ea004f23671",
-    "9e72f89d66ebbbb7"
+    "40603a4cae807099"
    ],
    "docs/architecture/ASYNC_IO_CONTRACT.md": [
     "07deadced80fd139",

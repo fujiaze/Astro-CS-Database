@@ -245,7 +245,7 @@ def main():
                                    "median": float(np.median(errs)),
                                    "p95": float(np.percentile(errs, 95)),
                                    "pass": bool(g3a)}
-    print(f"G3 AstroCS 噪声场: n={len(errs)} median={np.median(errs):.4f} "
+    print(f"G3 ACSD 噪声场: n={len(errs)} median={np.median(errs):.4f} "
           f"p95={np.percentile(errs, 95):.4f} pass={g3a}")
     # Photutils Oracle
     bkg = MMMBackground()
@@ -264,7 +264,7 @@ def main():
             yy, xx = np.mgrid[0:25, 0:25]
             g = models.Moffat2D(amplitude=patch.max() - bg, x_0=12, y_0=12,
                                 gamma=1.3, alpha=4.0)
-            g.alpha.fixed = True  # 固定 beta=4, 与 AstroCS 模型一致
+            g.alpha.fixed = True  # 固定 beta=4, 与 ACSD 模型一致
             try:
                 gf = fitter(g, xx, yy, patch - bg, maxiter=200)
                 px = gf.x_0.value + xi - 12

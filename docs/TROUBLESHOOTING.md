@@ -1,4 +1,4 @@
-# AstroCS 排障手册
+# Astro Celestial Sphere Database（ACSD） 排障手册
 
 > 上游：ASTROCS_DESIGN.md §7.2（配置、事件与退出码）
 

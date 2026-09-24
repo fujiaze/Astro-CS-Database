@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""规范产品哈希（canonical product hash）—— AstroCS 可复现性判据的唯一实现。
+"""规范产品哈希（canonical product hash）—— ACSD 可复现性判据的唯一实现。
 
 问题（DET-001 / SMOKE-001 D6）
 ------------------------------
-AstroCS 产物里存在**合法但易变**的元数据：
+ACSD 产物里存在**合法但易变**的元数据：
 
 * FITS RUNID（每次运行的运行标识）与 CHECKSUM（覆盖整个 HDU 的 1 补码校验和
   的 ASCII 编码；只要头部任何一字节变化就必须重算），以及 DATASUM 卡注释里
@@ -126,7 +126,7 @@ EXCLUDED_FITS_CARDS: List[Dict[str, str]] = [
     {
         "key": "RUNID",
         "category": "invocation_id",
-        "reason": "AstroCS 每次运行的运行标识（8 字节短哈希）; 不携带科学信息, 属溯源面。",
+        "reason": "ACSD 每次运行的运行标识（8 字节短哈希）; 不携带科学信息, 属溯源面。",
         "evidence": "SLSA v1.2 把 invocationId 放在 runDetails.metadata、产物身份为 subject.digest; "
                     "reproducible-builds.org Commandments: 随机数/UUID 不得进产物",
     },
@@ -794,7 +794,7 @@ def self_test() -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="AstroCS canonical product hash (DET-001)")
+    p = argparse.ArgumentParser(description="ACSD canonical product hash (DET-001)")
     p.add_argument("--spec", action="store_true", help="print the versioned canonicalization spec")
     p.add_argument("--self-test", action="store_true", help="run the executable self-test")
     sub = p.add_subparsers(dest="cmd")

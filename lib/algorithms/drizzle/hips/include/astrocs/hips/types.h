@@ -66,7 +66,7 @@ extern "C" {
 #define HIPS_CFG_KEY_DATA_TYPE   "data_type"       /* 0=AIO_HIPS_FLOAT32 1=FLOAT64 */
 #define HIPS_CFG_KEY_FLAGS       "flags"           /* AioHipsProductFlag 位或 */
 #define HIPS_CFG_KEY_CREATOR_DID "creator_did"     /* 缺省 ivo://astrocs/phase1 */
-#define HIPS_CFG_KEY_OBS_TITLE   "obs_title"       /* 缺省 "AstroCS Phase1" */
+#define HIPS_CFG_KEY_OBS_TITLE   "obs_title"       /* 缺省 "ACSD Phase1" */
 #define HIPS_CFG_KEY_OBS_FILTER  "obs_filter"      /* 可空 */
 #define HIPS_CFG_KEY_EXPOSURE_S  "exposure_s"      /* f64 秒, >=0 */
 #define HIPS_CFG_KEY_OBS_DATE    "obs_date"        /* ISO 字符串, 可空 */

@@ -16,7 +16,7 @@
 import hashlib, json, os, re, shutil, subprocess, tempfile, textwrap, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 
 from cli_test_hygiene import run_cwd  # noqa: E402
 
@@ -76,7 +76,7 @@ def jsonl(text):
 class TestFix401HipsAtomic(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="fix401_cli_")
         cdir = os.path.join(AIO, "third_party", "cfitsio")
         objs = []

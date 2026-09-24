@@ -1,4 +1,4 @@
-"""AstroCS LOG-002 资源监控伴随器（lib/infrastructure/observability/monitoring 域，owner SA-LOG-08）。
+"""ACSD LOG-002 资源监控伴随器（lib/infrastructure/observability/monitoring 域，owner SA-LOG-08）。
 
 重任务（cpu_heavy / io / 长运行）自动创建 monitor；同一 run ID 每秒采集：
 进程/系统 CPU、active/granted workers、RSS/private/commit、read/write bytes、

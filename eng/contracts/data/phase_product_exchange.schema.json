@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase-product-exchange-v1.json",
-  "title": "AstroCS Phase Product Exchange v1 (DATA-002 冻结)",
+  "title": "ACSD Phase Product Exchange v1 (DATA-002 冻结)",
   "description": "三阶段产品交换合同：定义 phase1_product_v1 / phase2_mosaic_v1 / phase3_planar_fits_v1 的角色↔type 绑定、交换候选对象的强证据要求（manifest/hash/schema/units 缺一拒绝）、origin 语义（astrocs 产品 vs external_fixture）与输入/输出兼容矩阵。权威语义与阶段边界见 docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md；角色↔type 绑定不得与 eng/contracts/data/artifact_types.registry.json 冲突（本 schema 不重复登记 type_id，只绑定 DATA-001 已冻结 type）。跨 Phase 仅磁盘交换：任何阶段进程不得接受另一阶段进程内对象/句柄/run 上下文；本文件描述交换对象文档形态与资格规则，机器执行见 lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py（与本文档一一对应，须同步修改）。",
   "type": "object",
   "additionalProperties": false,
@@ -40,7 +40,7 @@
     },
     "origin": {
       "enum": ["astrocs", "external_fixture"],
-      "description": "来源：astrocs=本产品任一 AstroCS phase run 的原子发布产物；external_fixture=AstroCS 之外生成、但完整满足本交换合同（含 manifest/hash/schema/units）的合同兼容 HiPS/FITS 测试或审核对象。origin 只描述来源，不放松任何证据要求。"
+      "description": "来源：astrocs=本产品任一 ACSD phase run 的原子发布产物；external_fixture=ACSD 之外生成、但完整满足本交换合同（含 manifest/hash/schema/units）的合同兼容 HiPS/FITS 测试或审核对象。origin 只描述来源，不放松任何证据要求。"
     },
     "artifact_manifest": {
       "type": "object",

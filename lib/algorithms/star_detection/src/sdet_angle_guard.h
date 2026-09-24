@@ -5,7 +5,7 @@
 // sdet_angle_guard.h - 朝向角归一化的有界 / fail-closed 实现
 //
 // 背景 (SDET-ANGLE-001, P11 生产挂死级缺陷):
-//   原 sdet_api.cpp sdet_lm_fit 在 GSL trust-region LM 返回 alpha=±inf
+//   原 sdet_api.cpp sdet_lm_fit 在 LM 后端返回 alpha=±inf
 //   (或 |angle_deg| 极大) 时执行:
 //       while (fabs(angle_deg) > 90.0) { angle_deg ∓ 180.0; }
 //   该循环对 ±inf 永不终止 (inf ∓ 180 仍为 inf), 对 1e300 量级需 ~1e298 次

@@ -1,4 +1,4 @@
-# AstroCS 工程工具集（astro_toolkit）
+# Astro Celestial Sphere Database（ACSD） 工程工具集（astro_toolkit）
 
 Python 脚本 + JSON 配置驱动的批量操作工具，用于减少子 Agent 频繁触发沙箱确认。
 

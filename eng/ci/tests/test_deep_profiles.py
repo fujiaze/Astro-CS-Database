@@ -720,7 +720,7 @@ class TestDeepCoverageToolsInstall(unittest.TestCase):
         self.assertEqual(section["apt_packages"],
                          ["llvm-18", "python3-pytest", "python3-pytest-cov",
                           "python3-numpy", "python3-astropy", "python3-scipy",
-                          "python3-yaml", "libgsl-dev"])
+                          "python3-yaml"])
         self.assertEqual(section["path_tools"],
                          ["llvm-profdata", "llvm-cov", "pytest"])
         self.assertEqual(section["module_tools"], ["pytest-cov"])

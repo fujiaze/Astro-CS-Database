@@ -1,6 +1,6 @@
 # AstroCompute Runtime (ACR)
 
-独立底层计算运行时，为 AstroCS 未来密集计算模块提供 CPU 多线程、CPU ISA、GPU 和 CPU+GPU 混合执行。
+独立底层计算运行时，为 Astro Celestial Sphere Database（ACSD） 未来密集计算模块提供 CPU 多线程、CPU ISA、GPU 和 CPU+GPU 混合执行。
 
 **当前状态**: DORMANT（ACR-001 固化首发休眠边界；源码/接口/隔离测试保留，
 生产构建/加载/路由/benchmark/发布包不含 ACR/CUDA）。阶段历史：Phase A 完成
@@ -38,7 +38,7 @@ python3 lib/infrastructure/acr/ci/check_acr_dormant.py --repo . --selftest # 负
 
 ## 范围
 
-本支线 `feature/astrocompute-runtime` **只开发底层**，不修改任何现有 AstroCS 算法实现。详见 `工程控制/tasks/acr/spec.md`。
+本支线 `feature/astrocompute-runtime` **只开发底层**，不修改任何现有 ACSD 算法实现。详见 `工程控制/tasks/acr/spec.md`。
 
 ## 目录结构
 

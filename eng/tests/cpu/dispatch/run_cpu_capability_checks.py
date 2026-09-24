@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS CPU-001 能力探测检查编排 — eng/tests/cpu/dispatch/run_cpu_capability_checks.py
+"""ACSD CPU-001 能力探测检查编排 — eng/tests/cpu/dispatch/run_cpu_capability_checks.py
 
 验收 (04_CPU_RESOURCE_TASKS.md CPU-001):
   1. 模拟 feature matrix (合成 CPUID/XCR0 证据驱动生产判定) → 全 PASS;

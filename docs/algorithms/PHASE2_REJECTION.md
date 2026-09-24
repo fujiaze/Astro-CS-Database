@@ -215,7 +215,7 @@ AUTO 路由（N = 该输出像素的几何覆盖帧数，一次解析；两档�
   min/max 不用于生产（AUTO 禁止产出 min/max 与 NoRejection，生产路径守卫 fail-closed
   :1167-1179/:1272-1278）
   minimum_n = method_minimum_n(method)                        :1280
-profile 合法集 = {astrocs_adaptive_pixel(生产默认, AstroCS 自研),
+profile 合法集 = {astrocs_adaptive_pixel(生产默认, Astro Celestial Sphere Database（ACSD） 自研),
                   wbpp_2_9_1(对照档), wbpp_current(别名),
                   astrocs_adaptive(可调档)}                        :1196-1206
   （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 解析为 wbpp_2_9_1，
@@ -801,7 +801,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 对照档 `wbpp_2_9_1` 的过拒率证据（受控真值）
 
-- **true sample FPR = 1.88%（565 / 30000）**；与冻结的 Siril 1.4.3 harness 同源 case 上 **8000 decisions 逐样本 100% 一致**（Siril 自身 1.8375%）⇒ 该过拒率是 **frozen Siril reference 的行为**，不是 AstroCS 过拒。
+- **true sample FPR = 1.88%（565 / 30000）**；与冻结的 Siril 1.4.3 harness 同源 case 上 **8000 decisions 逐样本 100% 一致**（Siril 自身 1.8375%）⇒ 该过拒率是 **frozen Siril reference 的行为**，不是 ACSD 过拒。
 - **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
 - 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照）。

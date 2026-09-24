@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.invalid/schemas/cpu_profile-v1.json",
-  "title": "AstroCS CPU profile — legacy v1 (BENCH-004) + current v2 (CPU-003, schema=astrocs.cpu-profile/v2)",
+  "title": "ACSD CPU profile — legacy v1 (BENCH-004) + current v2 (CPU-003, schema=astrocs.cpu-profile/v2)",
   "description": "CFG-001 迁移（以原 eng/contracts/schemas/cpu_profile.schema.json 为迁移输入；单一文件、无第二份等价定义）：同一文件以 oneOf 定义两条分支——legacy_v1（BENCH-004 旧 JSON）与 profile_v2（当前实现 schema=astrocs.cpu-profile/v2）。v2 分支绑定 CPU/OS/软件版本/provider hash（host.*、build.source_commit/runtime_build_id/provider_build_ids、kernels.*.self_test_sha256）与 ISA/workers/block（kernels.*.provider/workers/block），并以 x-astrocs-writer 声明只有 benchmark 可写。",
   "x-astrocs-schema-family": "cpu_profile",
   "x-astrocs-config-class": "cpu_profile",

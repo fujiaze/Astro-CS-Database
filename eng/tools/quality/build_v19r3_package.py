@@ -259,7 +259,7 @@ def main() -> int:
             shutil.copy2(os.path.join(root, fn), dst)
 
     write("README.md",
-          "# AstroCS V19R3 Review — Traceable Foundation Correction\n\n"
+          "# ACSD V19R3 Review — Traceable Foundation Correction\n\n"
           "对应控制包 AstroCS_PreRelease_TraceableFoundation_Correction_V19R3.zip。"
           "最终状态：PRE_RELEASE_ENGINEERING_FOUNDATION=PASS，"
           "FINAL_REAL_DATA_VALIDATION=PENDING。结构见 RETURN_PACKAGE_SPEC："

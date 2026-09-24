@@ -83,7 +83,7 @@ F_λ(λ_i) = byte_i·fluxMul + fluxMin         # W·m⁻²·nm⁻¹ (XPSD 逐星
 且量化参数逐星不同, uint8 数组不可当相对谱形。**生产定标路径是 `compute_f_syn_cached_xpsd`。**
 
 Gate 4 对比结论 (详见 `gate4_result.json`):
-同一 XP 源上, AstroCS 积分约定 (passband.dat + 零点点 + 光子加权平均通量)
+同一 XP 源上, Astro Celestial Sphere Database（ACSD） 积分约定 (passband.dat + 零点点 + 光子加权平均通量)
 与 GaiaXPy 官方合成测光逐星等吻合:
 
 | 带 | median \|Δmag\| | p95 \|Δmag\| |

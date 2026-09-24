@@ -28,7 +28,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-HDR = os.path.join(REPO, "lib", "include", "astrocs", "abi", "lifecycle_v1.h")
+HDR = os.path.join(REPO, "lib", "include", "acsd", "abi", "lifecycle_v1.h")
 PROBE = os.path.join(REPO, "eng", "tests", "abi", "abi002_lifecycle_probe.c")
 SCHEMA = os.path.join(REPO, "eng", "contracts", "config", "module_lifecycle_contract.schema.json")
 
@@ -277,7 +277,7 @@ class TestAbi002SchemaConsistency(unittest.TestCase):
     @staticmethod
     def _status_codes_text():
         """status_codes.h 全文（状态码枚举冻结基础层; schema 引用的 ACS_ERR_* 均定义于此）。"""
-        p = os.path.join(REPO, "lib", "include", "astrocs", "abi", "status_codes.h")
+        p = os.path.join(REPO, "lib", "include", "acsd", "abi", "status_codes.h")
         return open(p, encoding="utf-8").read()
 
     def test_30_schema_states_operations_match_header_enums(self):

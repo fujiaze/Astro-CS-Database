@@ -155,7 +155,7 @@ def main():
         "auto_policy": "wbpp_2_9_1",
         "rejection_normalization": "astrocs_median_center_v1",
         "large_scale_policy": "astrocs.large_scale_rejection.v1 (default off; min_structure_pixels=8; low/high grow radius=2)",
-        "wbpp_large_scale_rejection": "SUPPORTED (AstroCS implementation; not PixInsight exact)",
+        "wbpp_large_scale_rejection": "SUPPORTED (ACSD implementation; not PixInsight exact)",
         "pixinsight_exact_compatibility": "NOT_CLAIMED",
     }
     (ev / "wbpp_policy.json").write_text(json.dumps(wbpp, indent=2),
@@ -242,7 +242,7 @@ def main():
                                    "trail_none": 23.4}}), encoding="utf-8")
 
     # ---- README ----
-    readme = f"""# AstroCS V17 True Final Freeze Review Package
+    readme = f"""# ACSD V17 True Final Freeze Review Package
 
 日期：2026-08-14 ｜ 分支：main ｜ HEAD：{subprocess.run(
     ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,

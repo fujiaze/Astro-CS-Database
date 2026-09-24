@@ -2,7 +2,7 @@
   "manifest_schema": "astrocs.spec-named-impls/v1",
   "purpose": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 的可维护登记表：规范文档点名的权威实现 → 期望的生产可达性。新增条目只增不改语义；规范侧不再点名时必须同步改本表（否则门禁 fail-closed 判 ANCHOR_STALE）。",
   "authority": "工程控制/RELEASE-02/GAP_AUDIT.md §9.44（负责人令「须新增门禁类 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH」）；reports/RELEASE-02/design-gap-synthesis.md DG-C-01",
-  "production_entry": "astrocs",
+  "production_entry": "acsd",
   "defect_classes": [
     "S1-002：规范点名 sdet_api.cpp，生产 star-psf 节点跑 wrapper_phase1::StarDetector",
     "S2-NS-01：规范点名 noise_model.cpp，模块子图因根 CMakeLists.txt:240 注释不在构建图",
@@ -23,7 +23,7 @@
         "symbol": "sdet_detect_impl"
       },
       "owner": "Phase1 star-detection 域主（前台裁决接线面）",
-      "exit_condition": "sdet_api.cpp 保持在生产闭包内（target astrocs_p1_sdet 经 astrocs_phase1_session → astrocs_module_adapters 链入 astrocs）；一旦该链被摘除即判红"
+      "exit_condition": "sdet_api.cpp 保持在生产闭包内（target astrocs_p1_sdet 经 astrocs_phase1_session → astrocs_module_adapters 链入 acsd）；一旦该链被摘除即判红"
     },
     {
       "id": "SNI-S1-002-CALL-SITE",
@@ -60,7 +60,7 @@
         "symbol": "snr_noise_model_v1"
       },
       "owner": "Phase1 noise-snr 域主（前台裁决接线面）",
-      "exit_condition": "根 CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 解注释收编（或把该 TU 编入 astrocs_phase1_noise），使点名文件进入 astrocs 生产闭包"
+      "exit_condition": "根 CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 解注释收编（或把该 TU 编入 astrocs_phase1_noise），使点名文件进入 acsd 生产闭包"
     },
     {
       "id": "SNI-S4-P3X-06",
@@ -76,7 +76,7 @@
         "symbol": "p3_v6_export"
       },
       "owner": "Phase3 export 域主（前台裁决接线面）",
-      "exit_condition": "把 p3_v6_export.cpp 编入生产 target（astrocs_phase3_session 或其新增库）并链入 astrocs，使 FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 在生产运行面有载体"
+      "exit_condition": "把 p3_v6_export.cpp 编入生产 target（astrocs_phase3_session 或其新增库）并链入 acsd，使 FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 在生产运行面有载体"
     },
     {
       "id": "SNI-S4-P3X-12",

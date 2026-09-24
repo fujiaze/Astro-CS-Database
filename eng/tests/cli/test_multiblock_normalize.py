@@ -33,11 +33,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -46,7 +46,7 @@ EXE = cli_binary()
 class TestMultiBlockNormalize(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="multiblock_")
         # 预检只核「路径存在/可读」，不解析 FITS 内容 ⇒ 空文件足以走到逐块派发面。
         cls.bias = cls._touch("bias.fits")
@@ -114,8 +114,8 @@ class TestMultiBlockNormalize(unittest.TestCase):
         self.assertNotIn("unknown key", r.stderr)
         self.assertNotIn("mutually exclusive", r.stderr)
         # 逐块派发（日志给出块归属）
-        self.assertIn("astrocs: normalize block 1/2 'red' → ", r.stderr)
-        self.assertIn("astrocs: normalize block 2/2 'ha' → ", r.stderr)
+        self.assertIn("acsd: normalize block 1/2 'red' → ", r.stderr)
+        self.assertIn("acsd: normalize block 2/2 'ha' → ", r.stderr)
         self.assertNotEqual(r.returncode, 70, "多块配置不得触发未分类错误")
 
     # ── ② 平铺单块简写仍通过（向后兼容） ──

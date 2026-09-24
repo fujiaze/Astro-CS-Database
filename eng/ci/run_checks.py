@@ -1226,7 +1226,7 @@ def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) ->
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="eng/ci/run_checks.py",
-        description="AstroCS 新规范机器检查入口（CI-001）：确定性执行 eng/ci/checks.json。"
+        description="ACSD 新规范机器检查入口（CI-001）：确定性执行 eng/ci/checks.json。"
                     "默认范围 = --changed（影响面增量，CI_SPEC.md §2.1）；全量必须显式 --all。")
     g = p.add_mutually_exclusive_group(required=False)
     g.add_argument("--changed", action="store_true",

@@ -23,7 +23,7 @@ CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 # （唯一数值源 eng/contracts/resource_gate_v1.json），是 resource_gate.h:26 /
 # memory_report.h:43 的必需包含面 —— 取法与 test_resource_gate.py:58-66 同源。
 BUILD_ROOT = os.path.dirname(os.path.abspath(
-    os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))))
+    os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))))
 RG_HEADER = os.path.join(BUILD_ROOT, "resource_gate_thresholds_generated.h")
 
 

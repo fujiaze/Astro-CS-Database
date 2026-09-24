@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # NON_PRODUCTION_TOOL_ONLY
-"""从 AstroCS drizzle lineage（像素四角 RA/Dec）推导参考 WCS 参数。
+"""从 ACSD drizzle lineage（像素四角 RA/Dec）推导参考 WCS 参数。
 
 输出 astrocs_wcs.json: center(plate solve CRVAL) / scale(角间距中位数) /
 rotation(中心像素局部轴方向) / pixfrac。

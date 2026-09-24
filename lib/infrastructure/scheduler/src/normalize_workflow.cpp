@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-502 normalize 异步工作流调度器实现
+// ACSD Core — ARCH-502 normalize 异步工作流调度器实现
 // 依据：ASTROCS_DESIGN.md §8.3；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md
 #include "astrocs/core/normalize_workflow.h"
 

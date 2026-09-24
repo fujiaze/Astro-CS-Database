@@ -1,4 +1,4 @@
-// AstroCS Phase1 — P1-004 Photometry aperture 积分 (SCI-PHOT-001)
+// ACSD Phase1 — P1-004 Photometry aperture 积分 (SCI-PHOT-001)
 // 已知 flux/背景/PSF; "解析成功但积分失败"必须回归(积分校验)。
 // 失败不留貌似有效的空 catalog。
 #pragma once

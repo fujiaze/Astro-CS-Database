@@ -1,4 +1,4 @@
-/* AstroCS noop module — 握手负/正测 (BLD-003 SKELETON)
+/* ACSD noop module — 握手负/正测 (BLD-003 SKELETON)
  *
  * 覆盖 (BLD-003 可加载性验收 + ABI-001 握手规则):
  *   - query 成功: host_abi 匹配 + host 带 allocator + out_api 非空 → ACS_OK,

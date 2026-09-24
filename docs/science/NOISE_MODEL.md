@@ -374,8 +374,8 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 
 - **MAD→σ 常数 1.482602218505602 = 1/Φ⁻¹(3/4)**：标准正态分位恒等式；稳健性/有限样本校正见 Rousseeuw & Croux 1993, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。
 - **稳健尺度与 σ-clipping**：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
-- **背景网格 + 稳健 σ 估计**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（**§2** 背景网格与稳健估计：k-σ 裁剪、`mode = 2.5·median − 1.5·mean`、中值滤波、双线性插值、32–128 像元网格；DOI 10.1051/aas:1996164。§3 讲的是**检测**（峰值/阈值、Lutz 单遍连通域、template frame 卷积），不是背景）；源码 SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）back.c/makeback。**差异**：SExtractor 用 mode/median 与迭代 σ，AstroCS 用 8×8 patch 的 MAD + 最小二乘平面场，二者**不等价**（网格尺寸、尺度估计器、场基不同），引用仅作方法学对照。**适用域（不得外推）**：该文**不讨论权重图、逆方差加权或逐像元方差通道**，不得引它支持本项目 `variance/ivar` 面。
-- **多尺度稳健噪声（MRS/N*）**：Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124，starlet 小波；PixInsight ImageWeighting §2.4 的 MRS 出处）；Starck, J.-L. & Murtagh, F. 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）Ch.2–3；Starck, Donoho & Candès 2003, A&A 398, 785（DOI 10.1051/0004-6361:20021569）。**核验状态**：文章级；AstroCS 现状**未采用**小波 MRS/N*，该条只作选型对照。
+- **背景网格 + 稳健 σ 估计**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（**§2** 背景网格与稳健估计：k-σ 裁剪、`mode = 2.5·median − 1.5·mean`、中值滤波、双线性插值、32–128 像元网格；DOI 10.1051/aas:1996164。§3 讲的是**检测**（峰值/阈值、Lutz 单遍连通域、template frame 卷积），不是背景）；源码 SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）back.c/makeback。**差异**：SExtractor 用 mode/median 与迭代 σ，Astro Celestial Sphere Database（ACSD） 用 8×8 patch 的 MAD + 最小二乘平面场，二者**不等价**（网格尺寸、尺度估计器、场基不同），引用仅作方法学对照。**适用域（不得外推）**：该文**不讨论权重图、逆方差加权或逐像元方差通道**，不得引它支持本项目 `variance/ivar` 面。
+- **多尺度稳健噪声（MRS/N*）**：Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124，starlet 小波；PixInsight ImageWeighting §2.4 的 MRS 出处）；Starck, J.-L. & Murtagh, F. 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）Ch.2–3；Starck, Donoho & Candès 2003, A&A 398, 785（DOI 10.1051/0004-6361:20021569）。**核验状态**：文章级；ACSD 现状**未采用**小波 MRS/N*，该条只作选型对照。
 - **Poisson+read noise 诊断式**：Janesick 2001 SPIE PM83 Ch.2；Howell 2006 Handbook of CCD Astronomy Ch.4。（Newberry 1991 的贡献是 processing noise 与平场项，**不属**本条，见 §14 item 1。）
 - **饱和过滤**：LSST ip_isr（GPL-3.0）IsrTaskConfig.doSaturation 与 SAT 面；FITS SATURATE/DATAMAX 关键字（FITS Standard）。
 - **掩膜半径的解析导出**：Gaussian/Moffat 轮廓尾翼积分属 Project-defined 推导（§5a）；Moffat 轮廓出处见 Moffat 1969, A&A 3, 455；PSF 尺度与 FWHM 换算见 docs/science/PSF.md §5。
@@ -393,7 +393,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 
 ### 14a.1 PixInsight N* 常数与本项目口径
 
-- PixInsight 官方 N* 稳健噪声（.pidoc 式[14][15]）：`N*_MAD=2.48308·MAD(R*)`、`N*_Sn=2.03636·S_n(R*)`（`S_n` 为 Rousseeuw & Croux 1993 尺度估计；常数用 10000 幅 4096² 高斯白噪声 bootstrap 标定）。**AstroCS 未采用这两个常数**：本项目用标准正态 MAD 一致化 `1.482602218505602`（§9），与 PI 的 2.48308 定义域不同，**不得互换**。
+- PixInsight 官方 N* 稳健噪声（.pidoc 式[14][15]）：`N*_MAD=2.48308·MAD(R*)`、`N*_Sn=2.03636·S_n(R*)`（`S_n` 为 Rousseeuw & Croux 1993 尺度估计；常数用 10000 幅 4096² 高斯白噪声 bootstrap 标定）。**ACSD 未采用这两个常数**：本项目用标准正态 MAD 一致化 `1.482602218505602`（§9），与 PI 的 2.48308 定义域不同，**不得互换**。
 - PCL 2.10.4 `PSFSignalEstimator.h` 的 `NStar()` 默认取 `NStar_Sn`（2.03636），而 `Estimates::NStar` 文档注释写 2.05435——PI 自身存在版本/注释冲突（登记 UNRESOLVED U3）；本分片在 4×10⁶ 高斯样本上复核标准 Sn 的 σ 一致化为 1.1926，未能复现 2.03636。
 - 逐像素 ivar 的开源对照（锚点均在固定 commit 上逐字核对，行号随版本漂移）：
   - **SWarp**（GPL-3.0，commit `2f7e8b6` = `2.41.5-35-g2f7e8b6`，`src/coadd.c:1279-1311`；tag `2.41.5` 上为 :1282-1314）：权重是**逐像素通道**（`WEIGHT_TYPE ∈ {BACKGROUND, MAP_RMS, MAP_VARIANCE, MAP_WEIGHT}`，后三者要求与科学图同尺寸的权重图；不存在帧级标量 σ 权重模式）。内存缓冲装**方差**：`outwpix = 1/Σ(1/var_k)`；默认输出权重场为 `WEIGHT_FIELD`，写盘时经 `var_to_weight()`（`src/weight.c:334-354`）转成 **ivar = Σ(1/var_k)**（`src/coadd.c:808`）。逐帧标量 `sigfac` 只是乘在整张逐像素图上的归一化因子。

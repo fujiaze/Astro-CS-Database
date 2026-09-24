@@ -1,4 +1,4 @@
-# AstroCS CI 规范（CI Specification）
+# Astro Celestial Sphere Database（ACSD） CI 规范（CI Specification）
 
 > 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
 

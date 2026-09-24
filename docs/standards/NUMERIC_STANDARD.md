@@ -1,4 +1,4 @@
-# AstroCS Numeric Standard
+# Astro Celestial Sphere Database（ACSD） Numeric Standard
 
 > 上游：ASTROCS_DESIGN.md §3.3（科学量与星表，:185「每个科学量写清五件事：单位、坐标系、归一化、精度要求、有效有限域」）、§8.5（模块与 ABI）
 

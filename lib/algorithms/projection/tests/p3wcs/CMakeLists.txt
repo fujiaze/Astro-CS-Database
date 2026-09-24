@@ -32,5 +32,5 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME p3_projection_unsupported_cli
     COMMAND ${PYTHON3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/p3_projection_unsupported_cli.py
-            $<TARGET_FILE:astrocs>)
+            $<TARGET_FILE:acsd>)
 endif()

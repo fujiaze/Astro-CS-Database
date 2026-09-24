@@ -20,7 +20,7 @@ class TestCliSingleInstall(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="cli008_")
         # BLD-002 冻结合同 (3e7f7581): 唯一产品事实源 = 根 CMakeLists, cli 子图
         # 禁止 install 规则。扫描对象改用根图构建树 (CI build 步产出; 漂移修复)。
-        # 断言语义不变: install 树恰一个用户 exe astrocs + 无 legacy exe 泄漏。
+        # 断言语义不变: install 树恰一个用户 exe acsd + 无 legacy exe 泄漏。
         # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
         _bin = os.environ.get("ASTROCS_CLI_BIN")
         cls.bdir = (os.path.dirname(os.path.abspath(_bin)) if _bin
@@ -31,9 +31,9 @@ class TestCliSingleInstall(unittest.TestCase):
         if not os.path.isfile(os.path.join(cls.cmake_dir, "CMakeCache.txt")):
             cls.cmake_dir = cls.bdir
         have_tree = all(os.path.isfile(os.path.join(
-            cls.bdir, p)) for p in ("astrocs", "libastrocs_runtime.so"))
+            cls.bdir, p)) for p in ("acsd", "libacsd_runtime.so"))
         if not have_tree:
-            msg = ("需根图构建树 build/{astrocs,libastrocs_runtime.so} "
+            msg = ("需根图构建树 build/{acsd,libacsd_runtime.so} "
                    "(BLD-002; eng/ci/steps/linux_build_root_graph.sh 产出)")
             # M8-F-003: CI 面缺前置产物是硬失败(门失效), 不得静默 SKIP;
             # 仅本地开发环境(无 CI 标记)允许跳过。
@@ -62,7 +62,7 @@ class TestCliSingleInstall(unittest.TestCase):
         self.assertEqual(self.install_rc, 0, self.install_err[-500:])
 
     def test_02_exactly_one_user_exe(self):
-        """install 树 bin/ 必须恰一个用户 exe, 即 astrocs。"""
+        """install 树 bin/ 必须恰一个用户 exe, 即 acsd。"""
         if self.install_rc != 0:
             self.fail(f"install 失败 rc={self.install_rc}: {self.install_err[-300:]}")
         exes = []
@@ -75,8 +75,8 @@ class TestCliSingleInstall(unittest.TestCase):
                 else:
                     if os.access(p, os.X_OK) and os.path.isfile(p):
                         exes.append(os.path.relpath(p, self.prefix))
-        users = [e for e in exes if os.path.basename(e).lower() in ("astrocs", "astrocs.exe")]
-        self.assertEqual(len(users), 1, f"必须恰一个用户 exe astrocs, 得 {users}")
+        users = [e for e in exes if os.path.basename(e).lower() in ("acsd", "acsd.exe")]
+        self.assertEqual(len(users), 1, f"必须恰一个用户 exe acsd, 得 {users}")
 
     def test_03_no_legacy_exe_leaked(self):
         """install 树不得含任何旧 phase/benchmark/tool/test 可执行目标。"""

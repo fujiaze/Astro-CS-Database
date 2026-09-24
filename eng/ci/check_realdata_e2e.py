@@ -17,7 +17,7 @@
   E5 零产品命中 ⇒ rc=2（不得空扫描判绿）。
 
 前置（缺失时：--execute/--verify-only 以 77 SKIP，slow/waivable；--plan 仍输出）：
-  真实数据 testdata/M42_T2T3_mosaic_Flying_dutchman、生产二进制 build/astrocs、
+  真实数据 testdata/M42_T2T3_mosaic_Flying_dutchman、生产二进制 build/acsd、
   normalize/mosaic 配置。
 
 用法：
@@ -45,7 +45,7 @@ SKIP_EXIT = 77
 DEFAULT_WORK_DIR = "run/RELEASE-02/fix-gates/e2e"
 DEFAULT_NORMALIZE_GLOB = "run/RELEASE-01/e2e/l4/configs/p1_m42_*_red.json"
 DEFAULT_MOSAIC_CONFIG = "run/RELEASE-02/L4-rebuild/mosaic_49.json"
-DEFAULT_BINARY = "build/astrocs"
+DEFAULT_BINARY = "build/acsd"
 CANONICAL_SB = "ADU/sr"   # §31.1 FZ-UNIT-SIGNAL-SB canonical 面亮度串
 
 

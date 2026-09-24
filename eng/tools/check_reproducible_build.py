@@ -39,9 +39,9 @@ VERSION_REL = "VERSION"
 DEPS_REL = "DEPENDENCIES.md"
 DIST_SBOM_REL = os.path.join("dist", "astrocs-alpha", "SBOM.json")
 SBOM_FALLBACK_REL = os.path.join("evidence", "v6_1_rework", "tasks", "QA-003", "SBOM.json")
-CLI_BIN_CANDIDATES = (os.path.join("build", "root-cmake", "astrocs"),
-                      os.path.join("build", "astrocs"),
-                      os.path.join("build", "cli", "astrocs"))
+CLI_BIN_CANDIDATES = (os.path.join("build", "root-cmake", "acsd"),
+                      os.path.join("build", "acsd"),
+                      os.path.join("build", "cli", "acsd"))
 SEMVER_ALPHA = re.compile(r"^\d+\.\d+\.\d+-alpha\.\d+$")
 
 RETIREMENT_MARKER = (
@@ -167,7 +167,7 @@ def _mk_root(td: str, version="0.11.0-alpha.2", bin_line=None, sbom="ok",
         fh.write(version + "\n")
     binp = os.path.join(td, CLI_BIN_CANDIDATES[1])
     os.makedirs(os.path.dirname(binp), exist_ok=True)
-    line = bin_line if bin_line is not None else ("astrocs %s+g1234567890ab\n" % version)
+    line = bin_line if bin_line is not None else ("acsd %s+g1234567890ab\n" % version)
     with open(binp, "w", encoding="utf-8") as fh:
         fh.write(_fake_version_bin(line))
     os.chmod(binp, 0o755)
@@ -221,7 +221,7 @@ def _self_test() -> int:
 
         shutil.rmtree(td)
         os.makedirs(td)
-        _mk_root(td, bin_line="astrocs 0.11.0-alpha.2\n")
+        _mk_root(td, bin_line="acsd 0.11.0-alpha.2\n")
         r = _run_cli(["--legacy-check", "--root", td])
         check("N1_build_id_untraceable_red", r.returncode, 1, r.stdout + r.stderr,
               "build id 不可追溯")

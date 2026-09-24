@@ -1,4 +1,4 @@
-/* AstroCS CPU AVX2/FMA provider — capability 门负测 (stub 探测)
+/* ACSD CPU AVX2/FMA provider — capability 门负测 (stub 探测)
  * eng/tests/cpu/avx2/provider_avx2_capability_gate_test.c (CPU-003)
  *
  * 覆盖 (CPU-003 验收 "非支持 CPU 不加载; CPUID/XGETBV negative"):

@@ -1,4 +1,4 @@
-# AstroCS 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）
+# ACSD 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）
 #
 # 用途：把 docs/plugins/ 23 篇插件规范与代码落位八元组建立一一机器映射：
 #   模块 ID → 目标目录 → README → module.yaml（ID/版本/ABI/端口/schema 链接/entrypoint）
@@ -37,7 +37,7 @@ conventions:
   target_dir_algorithms: lib/algorithms/<id>
   target_dir_infrastructure: lib/infrastructure/<id>
   target_algorithms: astrocs_<scope>_<id>
-  target_infrastructure: astrocs_infra_<id>（cli 为唯一入口 exe，target=astrocs）
+  target_infrastructure: astrocs_infra_<id>（cli 为唯一入口 exe，target=acsd）
   abi_entrypoint: astrocs_module_query_v1
   abi_entrypoint_authority: eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi const）
   public_header_glob: lib/include/**/*.h
@@ -553,7 +553,7 @@ modules:
     target_dir: lib/infrastructure/cli
     readme: lib/infrastructure/cli/README.md
     module_yaml: lib/infrastructure/cli/module.yaml
-    target: astrocs
+    target: acsd
     target_file: lib/infrastructure/cli/CMakeLists.txt
     co_located_tests: lib/infrastructure/cli/tests
     module_id: astrocs.infra.cli
@@ -574,7 +574,7 @@ modules:
       unit_kind: exe
       exemption_reason: null
     legacy_paths: [cli]
-    note: 唯一入口 exe（DESIGN §6.2 命令树唯一）；target=astrocs，非 DLL/SO，故 entrypoint=main。源面 lib/infrastructure/cli/ 与 target_dir 同名（不在 ARCH-001 迁移清单内）。
+    note: 唯一入口 exe（DESIGN §6.2 命令树唯一）；target=acsd，非 DLL/SO，故 entrypoint=main。源面 lib/infrastructure/cli/ 与 target_dir 同名（不在 ARCH-001 迁移清单内）。
   - id: scheduler
     scope: infra
     group: infrastructure

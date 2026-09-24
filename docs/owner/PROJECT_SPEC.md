@@ -1,8 +1,8 @@
-# AstroCS 最高设计细节规范
+# Astro Celestial Sphere Database（ACSD） 最高设计细节规范
 
 > 上游：ASTROCS_DESIGN.md §0.1（唯一权威链）、§0.2（详细文档层与双向索引）
 
-定位：`ASTROCS_DESIGN.md` 之下，项目目标态设计的细节总入口。本文描述 AstroCS 必须做到什么，不描述某次工程修复流水账。
+定位：`ASTROCS_DESIGN.md` 之下，项目目标态设计的细节总入口。本文描述 ACSD 必须做到什么，不描述某次工程修复流水账。
 
 ## 1. 权威体系
 
@@ -17,7 +17,7 @@
 
 ## 2. 项目使命
 
-AstroCS 将单帧 CCD/CMOS 观测转换为可独立消费的球面科学产品，将多帧球面产品按明确科学目标合成为统计可解释的马赛克，再把任意兼容 HiPS 导出为测量意义明确的 WCS FITS。
+ACSD 将单帧 CCD/CMOS 观测转换为可独立消费的球面科学产品，将多帧球面产品按明确科学目标合成为统计可解释的马赛克，再把任意兼容 HiPS 导出为测量意义明确的 WCS FITS。
 
 三个 Phase 独立启动、独立恢复、独立验收，只通过原子磁盘产品和 manifest 交换。系统必须同时服务：
 
@@ -75,7 +75,7 @@ Phase3 接收任意兼容 HiPS，按选定投影与采样导出标准 WCS 平面
 
 ## 9. 软件与运行目标
 
-单一 `astrocs` CLI；CPU-only 生产；ACR/GPU dormant。科学模块独立可验证，Runtime 统一线程/内存预算，AIO 统一 FITS/HiPS/manifest 和原子发布。执行块、worker、ISA 由 profile 选择，不进入 phase_config，不改变科学结果。
+单一 `acsd` CLI；CPU-only 生产；ACR/GPU dormant。科学模块独立可验证，Runtime 统一线程/内存预算，AIO 统一 FITS/HiPS/manifest 和原子发布。执行块、worker、ISA 由 profile 选择，不进入 phase_config，不改变科学结果。
 
 ## 10. 状态与发布
 

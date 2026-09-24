@@ -1,8 +1,8 @@
-/* AstroCS FITS 流核心实现 — lib/infrastructure/aio/io/fits_core.c (IO-001)
+/* ACSD FITS 流核心实现 — lib/infrastructure/aio/io/fits_core.c (IO-001)
  *
  * 职责: acs_fio_* C ABI (fits_stream_v1.h) 的实现。独立、无 CFITSIO 依赖的
  * FITS 基本图像 HDU (NAXIS 0..3, BITPIX 8/16/32/64/-32/-64) 流式读 / 原子写 /
- * DATASUM/CHECKSUM 校验。CFITSIO 等第三方库只允许存在于 astrocs_io.dll 内部
+ * DATASUM/CHECKSUM 校验。CFITSIO 等第三方库只允许存在于 acsd_io.dll 内部
  * 其它私有层; 本文件不 include 任何 CFITSIO 头, 也不暴露任何第三方类型。
  *
  * 关键设计:

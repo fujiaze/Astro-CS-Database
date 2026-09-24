@@ -33,7 +33,7 @@ ANCHORS = {
     "ROOT_CMAKE": "CMakeLists.txt",
     "PUBLIC_API_DOC": "docs/contracts/PUBLIC_API.md",
 }
-BINARY_CANDIDATES = ("build/root-cmake/astrocs", "build/astrocs", "build/cli/astrocs")
+BINARY_CANDIDATES = ("build/root-cmake/astrocs", "build/acsd", "build/cli/astrocs")
 PROD_SCAN_ROOTS = ("lib", "cli")
 # ACR 内核真源文件名：本文件定义 register_phase2_acr_(kernels)，其余生产文件不得调用它
 ACR_KERNEL_DEFINER = "acr_kernels.cpp"
@@ -43,17 +43,17 @@ NON_PROD_SEGMENTS = ("/tests/", "/tools/", "/testdata/", "/fixtures/", "/benchma
 # 事由：原第 2 臂是**纯词面子串**（`if "orchestrator" in cmake`），连注释都命中；
 # 而政策自述的四条实质规则是「无 canonical caller、链接符号、文档入口、**安装产物**」
 # —— 即判「是否进产品交付面」，不是判「是否被编译」。ORCH-001 为让 SAT-001/MASK-002
-# 的代码真被编译而接线 add_subdirectory（不进 astrocs 链接闭包、不进安装树、不进
+# 的代码真被编译而接线 add_subdirectory（不进 acsd 链接闭包、不进安装树、不进
 # 产品 manifest），词面臂把「编译」等同于「生产引用」⇒ 判红，但四条实质规则实测三条
 # PASS、第 2 条实质亦 PASS（见 run/PROJECT-GOVERNANCE-01/ORCH-001/LEG-002-裁决请求.md §3）。
 # 新判据（双向）：
-#   红 = orchestrator 目录出现在 ① astrocs 链接闭包 ② install 白名单/产品 manifest
+#   红 = orchestrator 目录出现在 ① acsd 链接闭包 ② install 白名单/产品 manifest
 #        ③ 生产符号面（原第 1 臂保留）
 #   绿 = 仅存在**非安装、非产品**的编译型 target，且以上三面 0 命中
 # 先补新臂、再删旧臂（同批过 --self-test）：只删不补会留下"可以偷偷链进生产二进制"的口子。
 ORCH_DIR = "lib/infrastructure/pipeline/orchestrator"
 ORCH_CPP_DIR = ORCH_DIR + "/cpp"
-LINK_ROOT_TARGET = "astrocs"
+LINK_ROOT_TARGET = "acsd"
 CMAKE_SCAN_EXCLUDE = ("/third_party/", "/build/", "/run/", "/.git/")
 # 产品交付面 manifest（**只收真产品 manifest / 安装树合同**；eng/packaging/dependency-lock.json
 # 这类依赖清单不是产品交付面，收进来会把"被列为依赖"误判成"进产品"）。
@@ -192,7 +192,7 @@ def _closure(links, root):
 
 
 def link_closure_hits(repo, units=None):
-    """① astrocs 链接闭包命中项（含"以源文件直接点名该目录"的写法）。"""
+    """① acsd 链接闭包命中项（含"以源文件直接点名该目录"的写法）。"""
     units = _cmake_units(repo) if units is None else units
     orch = orchestrator_targets(units)
     links, sources = link_edges(units)
@@ -232,7 +232,7 @@ def install_face_hits(repo, units=None):
 
 
 def build_ninja_hits(repo):
-    """③ 构建图佐证：astrocs 链接边输入含 orchestrator（只加红，不消红）。"""
+    """③ 构建图佐证：acsd 链接边输入含 orchestrator（只加红，不消红）。"""
     for rel in BUILD_NINJA_CANDIDATES:
         p = repo / rel
         if not p.is_file():
@@ -250,7 +250,7 @@ def build_ninja_hits(repo):
             if not any(o == LINK_ROOT_TARGET or o.endswith("/" + LINK_ROOT_TARGET) for o in outs):
                 continue
             if ORCH_DIR in tail or "orchestrator" in tail.lower():
-                return [rel + " 的 astrocs 链接边输入含 " + ORCH_DIR]
+                return [rel + " 的 acsd 链接边输入含 " + ORCH_DIR]
     return []
 
 def anchor_errors(repo):
@@ -300,7 +300,7 @@ def check(repo, symbols_fn=binary_symbols):
     stats["binary"] = str(bin_path.relative_to(repo)) if bin_path else None
     if bin_path is None:
         # GAP-027 fail-closed（CI-001）：原实现路径漂移后整段 nm 符号扫描静默跳过仍 PASS
-        errors.append("未找到生产二进制（候选 build/root-cmake/astrocs、build/astrocs、"
+        errors.append("未找到生产二进制（候选 build/root-cmake/astrocs、build/acsd、"
                       "build/cli/astrocs）→ 符号面无法验证，fail-closed 判 FAIL")
         syms = None
     else:
@@ -397,8 +397,8 @@ def check(repo, symbols_fn=binary_symbols):
 
 # ─────────────────────────── 可执行负例面（--self-test） ───────────────────────────
 _CMAKE_OK = ("option(ASTROCS_ENABLE_ACR \"Build dormant ACR tree\" OFF)\n"
-            "add_executable(astrocs lib/infrastructure/cli/main.cpp)\n"
-            "target_link_libraries(astrocs PRIVATE astrocs_core)\n")
+            "add_executable(acsd lib/infrastructure/cli/main.cpp)\n"
+            "target_link_libraries(acsd PRIVATE astrocs_core)\n")
 _ORCH_CMAKE_OK = ("add_library(astrocs_infra_orchestrator STATIC src/orchestrator.cpp)\n"
                   "add_executable(orchestrator_legacy_cli src/main.cpp)\n"
                   "target_link_libraries(orchestrator_legacy_cli PRIVATE astrocs_infra_orchestrator)\n")
@@ -427,11 +427,11 @@ def _build_mini_repo(root, *, with_caller=False, with_acr_reg=False, drop_cmake_
         (od / "CMakeLists.txt").write_text(_ORCH_CMAKE_OK, encoding="utf-8")
     cmake_txt = ("" if drop_cmake_token else _CMAKE_OK)
     if no_astrocs_target:
-        cmake_txt = cmake_txt.replace("add_executable(astrocs lib/infrastructure/cli/main.cpp)\n", "")
+        cmake_txt = cmake_txt.replace("add_executable(acsd lib/infrastructure/cli/main.cpp)\n", "")
     if with_orchestrator:
         cmake_txt += _ORCH_SUBDIR_LINE
     if cmake_orchestrator or orch_linked_into_astrocs:
-        cmake_txt += "target_link_libraries(astrocs PRIVATE astrocs_infra_orchestrator)\n"
+        cmake_txt += "target_link_libraries(acsd PRIVATE astrocs_infra_orchestrator)\n"
     if orch_install_rule:
         cmake_txt += ("install(TARGETS astrocs_infra_orchestrator DESTINATION lib)\n"
                       if with_orchestrator else
@@ -460,7 +460,7 @@ def _build_mini_repo(root, *, with_caller=False, with_acr_reg=False, drop_cmake_
         (root / drop_anchor).unlink()
     src = root / "_probe.c"
     src.write_text(f"int {binary_symbol}(void){{return 0;}}\n", encoding="utf-8")
-    subprocess.run(["gcc", "-shared", "-fPIC", "-o", str(root / "build" / "astrocs"), str(src)],
+    subprocess.run(["gcc", "-shared", "-fPIC", "-o", str(root / "build" / "acsd"), str(src)],
                    capture_output=True)
     src.unlink()
 
@@ -502,7 +502,7 @@ def _self_test():
             ("leg004-acr-option-missing", dict(drop_cmake_token=True), "ACR option 缺失"),
             ("leg004-acr-registration", dict(with_acr_reg=True), "ACR kernel 注册存在"),
             ("leg002-link-closure-injected", dict(orch_linked_into_astrocs=True),
-             "进入 astrocs 链接闭包"),
+             "进入 acsd 链接闭包"),
             ("leg002-install-rule-injected", dict(orch_install_rule=True),
              "进入安装/产品交付面"),
             ("leg002-product-manifest-injected", dict(orch_in_product_manifest=True),
@@ -540,7 +540,7 @@ def _self_test():
         return 1
     print("SELFTEST_PASS: 正例 2 组（仅编译 / 注释提及 ⇒ 绿）；负例 10 组（caller / ACR 符号 / "
           "ACR option / ACR 注册 / 链接闭包注入 / install 规则注入 / 产品 manifest 注入 / "
-          "PUBLIC_API / 空扫描面 / 缺 astrocs target 判据面漂移）+ 4 个锚失效，均按预期变红")
+          "PUBLIC_API / 空扫描面 / 缺 acsd target 判据面漂移）+ 4 个锚失效，均按预期变红")
     return 0
 
 

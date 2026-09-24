@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS SBOM 输入生成/校验器 (BLD-004)
+"""ACSD SBOM 输入生成/校验器 (BLD-004)
 
 机器验收 (BLD-004 + W5-PKG-001):
   1. dependency-lock.json 与 DEPENDENCIES.md 语义一致 (生产依赖/系统依赖/
@@ -334,7 +334,7 @@ def self_test() -> int:
 
 def main():
     ap = argparse.ArgumentParser(
-        description="AstroCS SBOM 输入生成/校验 (BLD-004/W5-PKG-001)")
+        description="ACSD SBOM 输入生成/校验 (BLD-004/W5-PKG-001)")
     ap.add_argument("--root", default="", help="仓库根目录 (默认由脚本位置推导)")
     ap.add_argument("--self-test", action="store_true",
                     help="负例注入自测（机器可执行负例面）")

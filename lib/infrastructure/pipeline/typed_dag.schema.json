@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/typed-dag-v1.json",
-  "title": "AstroCS Typed DAG v1 (RT-001)",
+  "title": "ACSD Typed DAG v1 (RT-001)",
   "description": "类型化运行图 node 定义合同: 每 node 声明 node_id/module_id/operation/input ports/output ports/config/resource_class; 顶层 phase 声明图所属 Phase。每个 node 只绑定一个真实 operation; 端口以 artifact: 引用显式连线(禁隐式文件路径绑定); 同一 phase 内可连, 跨 phase edge 由 compiler 拒绝(阶段间仅磁盘产品交换)。node 标识字段与既有 PipelineIR 一致采用 node_id(规格 'id' 的工程名)。",
   "type": "object",
   "additionalProperties": false,

@@ -1,4 +1,4 @@
-// astrocs 资源事件模块 (MON-002) — stage/resource/backend 事件 + summary + raw 指针。
+// acsd 资源事件模块 (MON-002) — stage/resource/backend 事件 + summary + raw 指针。
 // GATE-FIX-RES(R-4 D-14): 「summary|timeseries 分层档」已退役 —— 该档旗标
 // --resource-detail 不在命令树白名单（真 CLI rc=2 「unknown flag」）, 且 timeseries
 // 档只写恒空 curve_points, 唯一曲线构造器 build_curve() 生产零调用 ⇒ 删除, 避免

@@ -48,7 +48,7 @@ static std::string read_file(const std::string& p) {
 }
 
 static void test_transaction_commit() {
-  std::string target = tmp_dir() + "/astrocs_io_test_target.bin";
+  std::string target = tmp_dir() + "/acsd_io_test_target.bin";
   std::remove(target.c_str());
   ArtifactTransaction tx;
   auto b = tx.begin(target);
@@ -64,7 +64,7 @@ static void test_transaction_commit() {
 }
 
 static void test_transaction_abort_cleans() {
-  std::string target = tmp_dir() + "/astrocs_io_test_abort.bin";
+  std::string target = tmp_dir() + "/acsd_io_test_abort.bin";
   std::remove(target.c_str());
   ArtifactTransaction tx;
   auto b = tx.begin(target);
@@ -82,7 +82,7 @@ static void test_transaction_abort_cleans() {
 
 static void test_transaction_verify_rejects() {
   // 模拟 length mismatch: 直接篡改临时文件
-  std::string target = tmp_dir() + "/astrocs_io_test_verify.bin";
+  std::string target = tmp_dir() + "/acsd_io_test_verify.bin";
   std::remove(target.c_str());
   ArtifactTransaction tx;
   auto b = tx.begin(target);
@@ -110,7 +110,7 @@ static void test_commit_without_begin() {
 // B13-R13-1: commit 必须真校验内容 — 长度不变、内容损坏 (如 bitflip/静默截断
 // 后补齐) 时 commit 不得假成功 (verify 全量重算 FNV-1a 校验和)
 static void test_transaction_checksum_rejects_bitflip() {
-  std::string target = tmp_dir() + "/astrocs_io_test_bitflip.bin";
+  std::string target = tmp_dir() + "/acsd_io_test_bitflip.bin";
   std::remove(target.c_str());
   ArtifactTransaction tx;
   auto b = tx.begin(target);
@@ -136,7 +136,7 @@ static void test_transaction_checksum_rejects_bitflip() {
 // 后续 write 的 reopen 必然失败 (锁存 write_failed_), commit 必须失败且
 // target 不落盘 (假成功根除)
 static void test_transaction_write_failure_not_silent() {
-  std::string target = tmp_dir() + "/astrocs_io_test_writefail.bin";
+  std::string target = tmp_dir() + "/acsd_io_test_writefail.bin";
   std::remove(target.c_str());
   ArtifactTransaction tx;
   auto b = tx.begin(target);
@@ -168,7 +168,7 @@ static void test_concurrent_begin_unique_tmp() {
     pool.emplace_back([&got, t] {
       for (int i = 0; i < kPer; ++i) {
         ArtifactTransaction tx;
-        auto b = tx.begin(tmp_dir() + "/astrocs_io_test_seq.bin");
+        auto b = tx.begin(tmp_dir() + "/acsd_io_test_seq.bin");
         if (b.ok()) got[static_cast<size_t>(t) * kPer + i] = b.value();
       }
     });
@@ -181,7 +181,7 @@ static void test_concurrent_begin_unique_tmp() {
 
 static void test_file_adapter() {
   FileIoAdapter io;
-  std::string p = tmp_dir() + "/astrocs_io_test_adapter.txt";
+  std::string p = tmp_dir() + "/acsd_io_test_adapter.txt";
   std::remove(p.c_str());
   CHECK(!io.exists(p));
   CHECK(io.write_text(p, "line1\nline2").ok());
@@ -197,7 +197,7 @@ static void test_file_adapter() {
 
 static void test_atomic_write() {
   FileIoAdapter io;
-  std::string p = tmp_dir() + "/astrocs_io_test_atomic.json";
+  std::string p = tmp_dir() + "/acsd_io_test_atomic.json";
   std::remove(p.c_str());
   CHECK(io.atomic_write(p, "{\"ok\":1}").ok());
   CHECK(read_file(p) == "{\"ok\":1}");

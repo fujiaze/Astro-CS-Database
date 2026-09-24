@@ -59,7 +59,7 @@
 - 马赛克写出：`aio_hips_product_begin`（out_hips，nside=1<<(target_order+9)
   :525，tile 512，dtype=cfg.precision?FLOAT64:FLOAT32 :529，flags 仅
   SIGNAL|SUPPORT :594，creator "ivo://astrocs/phase2"、title
-  "AstroCS Phase2 Mosaic"、filter=infos[0].filter_passband :531/:597）→
+  "Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"、filter=infos[0].filter_passband :531/:597）→
   逐 union tile 覆盖帧探测（:663-671）→ rejection 计划解析（group-level
   wbpp_2_9_1 :641-659 / tile 级 astrocs_adaptive :674-696）→ ACR/CPU 路由
   （:733-776）→ micro-chunk 内存规划（`p2_block_plan` :778-817）→ 逐像素

@@ -52,7 +52,7 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 >   标定集为 1000 幅 4096² 合成图（背景高斯 σ=0.001、均值 0.015、平均 1500 颗可检测星、
 >   Moffat β=4 FWHM=5 px），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。**未独立核验**：PCL 头文件在 `gitlab.com/pixinsight/PCL` 的常见路径上 404，该行数值与下一条元数据断言均待补一手锚点。
 >
-> **AstroCS 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
+> **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
 > - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:42-64,137-138`。
 
 对象身份 `psfsw_robust_weight` **已退役**（权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定，最高设计 §3.1）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。上列特征描述的是**在役诊断量**必须保留的形态；为避免星表选择偏差，诊断量还必须满足以下约束：
@@ -145,7 +145,7 @@ C_out = R C_in Rᵀ
 - **点源信息权重 Q=aPᵀC⁻¹d、W=a²PᵀC⁻¹P、Var(F)=1/W**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339；Zackay & Ofek 2017, ApJ 836, 187（arXiv:1512.06872）。
 - **proper coadd / 信息保持组合**：Zackay & Ofek 2017, ApJ 836, 188（arXiv:1512.06879）。
 - **白噪声 W_info=a²/(σ_pix²·A_NEA)、A_NEA=1/ΣP²**：噪声等效面积定义见 Horne 1986/Naylor 1998；实现对照 photutils（BSD-3-Clause）的 effective PSF/等效面积与 MoffatPSF 归一。
-- **PSFSW/PSFSNR 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）；**AstroCS 不照抄其标定常数**（§3）。
+- **PSFSW/PSFSNR 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）；**ACSD 不照抄其标定常数**（§3）。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II。
 - **已定案（原 UNRESOLVED）**：与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` 语义冲突已按「同名两义分离」定案（claim `FIX-SCI-SNR-CANON-001`）：Phase1 HiPS 的 `frame_snr` = **点源（PSF）信号 SNR**（纯信号/噪声，`F_signal` 已扣局部背景、天光只进 `σ_F`）；stage2 的 `local_snr`/`frame_snr_medians` = 相对质量权重场（改名 `quality_weight`）。
 

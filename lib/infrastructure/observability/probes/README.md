@@ -17,7 +17,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DASTROCS_PROBES=ON
 ninja -C build
 
 # 2) 运行期打开输出（不设则不产出）
-ASTROCS_PROBE_LOG=run/RELEASE-02/probe/probe.jsonl build/astrocs normalize --json cfg.json -y
+ASTROCS_PROBE_LOG=run/RELEASE-02/probe/probe.jsonl build/acsd normalize --json cfg.json -y
 ```
 
 ## API

@@ -1,4 +1,4 @@
-# AstroCS 运行图渲染工具合同（LOG-003）
+# Astro Celestial Sphere Database（ACSD） 运行图渲染工具合同（LOG-003）
 
 > 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
 
@@ -9,7 +9,7 @@
 
 ## 1. 目的与边界
 
-AstroCS 需要一个**运行图渲染工具**：从 plan/trace 生成 DOT/SVG/JSON 运行图，
+ACSD 需要一个**运行图渲染工具**：从 plan/trace 生成 DOT/SVG/JSON 运行图，
 标出真实入口、数据边、并行轴、workers、provider、耗时、资源、DLL hash、
 artifact hash。旧手绘图/静态架构示意图不再作为规范来源——每次生成都从当前
 提交可复现，且机器可验证与 trace 一致。

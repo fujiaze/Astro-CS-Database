@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_common.cpp - AstroCS HISS 共享方法实现
+// hiss_common.cpp - ACSD HISS 共享方法实现
 //
 // 本文件集中实现 hiss_format.h 中声明、被 Writer 与 Reader 共同依赖的方法,
 // 避免在 hiss_writer.cpp 和 hiss_reader.cpp 中重复定义导致链接错误。

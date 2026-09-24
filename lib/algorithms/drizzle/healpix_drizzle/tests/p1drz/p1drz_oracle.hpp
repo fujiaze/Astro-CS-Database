@@ -41,8 +41,8 @@ namespace p1drz {
 // ---------------------------------------------------------------------------
 struct LeafRec {
     uint64_t ipix = 0;
-    double sumFlux = 0.0, sumArea = 0.0, sumVarNum = 0.0, signal = 0.0,
-           variance = 0.0;
+    double sumFlux = 0.0, sumArea = 0.0, sumNorm = 0.0, sumVarNum = 0.0,
+           signal = 0.0, variance = 0.0;
     uint32_t nContrib = 0;
 };
 
@@ -63,10 +63,14 @@ inline std::vector<LeafRec> extract_leafs(
                                  : tile.parent_ipix;
             r.sumFlux = (double)a.sumFlux;
             r.sumArea = (double)a.sumArea;
+            r.sumNorm = (double)a.sumNorm;
             r.sumVarNum = (double)a.sumVarNum;
-            r.signal = r.sumArea > 0.0 ? r.sumFlux / r.sumArea : 0.0;
-            r.variance = r.sumArea > 0.0
-                             ? r.sumVarNum / (r.sumArea * r.sumArea)
+            // DRZ-FLUX-FIX-01: 核按 drop 面积归一 (w_jp=a_jp/A_drop,j) ⇒
+            // sumFlux = Σ x_j·w_jp 是分配通量 (Σ_p = Σ_j x_j); 面亮度面用
+            // sumNorm = Σ_j w_jp·A_pixel,j 归一 ⇒ S_p = Σ_j B_j a_jp/Σ_j a_jp。
+            r.signal = r.sumNorm > 0.0 ? r.sumFlux / r.sumNorm : 0.0;
+            r.variance = r.sumNorm > 0.0
+                             ? r.sumVarNum / (r.sumNorm * r.sumNorm)
                              : 0.0;
             r.nContrib = a.nContrib;
             out.push_back(r);

@@ -1,6 +1,6 @@
-/* AstroCS FITS Stream C ABI v1 — lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h
+/* ACSD FITS Stream C ABI v1 — lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h
  *
- * 角色: astrocs_io.dll 对外的 FITS 流式读/写/校验 C ABI (IO-001 冻结)。
+ * 角色: acsd_io.dll 对外的 FITS 流式读/写/校验 C ABI (IO-001 冻结)。
  * 冻结合同见 docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md (DOC-IO-INTERFACE-001)。
  *
  * 关键约束 (v1 不可变; 扩展须升版本):

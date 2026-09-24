@@ -1,4 +1,4 @@
-// AstroCS CPU baseline provider — lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp (CPU-002)
+// ACSD CPU baseline provider — lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp (CPU-002)
 //
 // 职责: AMD64 baseline provider DLL (仅 SSE2, 编译不带 /arch:AVX* / -mavx* 旗标)。
 //   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;

@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-503 mosaic 天球窗口并行调度器实现
+// ACSD Core — ARCH-503 mosaic 天球窗口并行调度器实现
 // 依据：ASTROCS_DESIGN.md §8.3；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md
 #include "astrocs/core/mosaic_window.h"
 

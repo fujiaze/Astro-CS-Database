@@ -18,7 +18,7 @@
 
 ```bash
 cmake -S . -B build/linux-control -DCMAKE_BUILD_TYPE=Release   # 唯一根入口
-cmake --build build/linux-control --target astrocs_runtime astrocs_io \
+cmake --build build/linux-control --target acsd_runtime acsd_io \
       astrocs_noop astrocs_cpu_baseline astrocs_catalog_gaia \
       astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic \
       astrocs_p1_hips_writer -j1

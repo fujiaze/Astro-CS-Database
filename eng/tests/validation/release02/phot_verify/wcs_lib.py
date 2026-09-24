@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""PHOT-VERIFY: exact port of AstroCS pc::WcsTransform (wcs_transform.cpp) to numpy.
+"""PHOT-VERIFY: exact port of ACSD pc::WcsTransform (wcs_transform.cpp) to numpy.
 
 Used only for read-only measurement; production code is untouched.
 """

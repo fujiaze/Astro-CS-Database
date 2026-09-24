@@ -3,12 +3,12 @@
 """verify_photometry_apply.py — 测光归一化"是否真的乘到像素上"的独立复算门
 
 归属: run/RULING-DOC-01 (负责人裁决 B 的数值验证)
-目的: 验证 AstroCS Phase1 生产节点 astrocs.phase1.photometry 的施加步是否**真的**
+目的: 验证 ACSD Phase1 生产节点 astrocs.phase1.photometry 的施加步是否**真的**
       把标度 k_photo 乘到了像素上, 即磁盘产物满足
           photoapplied[i] == float32( double(calibrated[i]) * k_photo )   (有限像素)
       非有限像素按冻结语义透传: NaN->NaN, +Inf->+Inf, -Inf->-Inf (k_photo > 0)。
 
-独立性: 本脚本**不调用任何 AstroCS 代码或可执行文件**, 只用 numpy + astropy 从磁盘
+独立性: 本脚本**不调用任何 ACSD 代码或可执行文件**, 只用 numpy + astropy 从磁盘
         读像素独立复算。冻结语义来源 (代码锚, 非行号硬编码):
           - lib/algorithms/calibration/src/photometry_apply.cpp  (apply_photometry 实现)
           - lib/infrastructure/scheduler/src/module_adapters.cpp (生产调用点: 读 calibrated

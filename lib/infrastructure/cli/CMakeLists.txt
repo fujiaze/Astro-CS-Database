@@ -3,19 +3,19 @@
 # 唯一产品事实源 = 根 CMakeLists.txt。本文件不 add_subdirectory 自己，只把
 # 「接入根图所需的最小改动」写清，供 INT-001 在最终切换时登记（本任务不改根文件）：
 #
-#   1) 根 CMakeLists.txt 在 astrocs target 之前加一行：
+#   1) 根 CMakeLists.txt 在 acsd target 之前加一行：
 #        add_subdirectory(lib/infrastructure/cli)
-#   2) astrocs target 的 include 目录加：
+#   2) acsd target 的 include 目录加：
 #        ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
 #        ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/normalize
 #        ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/mosaic
 #        ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli/export
 #   3) 当前实现为 header-only（inline 命令入口），不新增 .cpp，故 add_executable
 #      源清单无需变化；若后续拆分 .cpp，把 astrocs_cli_subcommands 加入
-#      astrocs 的 target_link_libraries。
+#      acsd 的 target_link_libraries。
 #
 # 三个子命令模块各声明一个 INTERFACE target，便于模块化引用与共址测试引用；
-# 不 install、不产出独立二进制（CLI 只有唯一可执行 astrocs，ASTROCS_DESIGN §6.2）。
+# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，ASTROCS_DESIGN §6.2）。
 cmake_minimum_required(VERSION 3.16)
 
 add_library(astrocs_cli_subcommands INTERFACE)

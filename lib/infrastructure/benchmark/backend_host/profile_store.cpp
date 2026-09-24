@@ -173,7 +173,7 @@ PathResult default_profile_path_v1() {
         base = join_path(home, ".local/share");
     }
 #endif
-    r.path = join_path(join_path(base, "AstroCS"), "cpu_profile.json");
+    r.path = join_path(join_path(base, "ACSD"), "cpu_profile.json");
     r.ok = true;
     return r;
 }
@@ -297,7 +297,7 @@ LoadResult load_profile_checked_v1(const std::string& target_path,
         out.warning_text =
             "no CPU profile at '" + target_path +
             "': running with generic ISA (baseline provider); dynamic worker budget "
-            "still applies. Run 'astrocs benchmark cpu' to generate one.";
+            "still applies. Run 'acsd benchmark cpu' to generate one.";
         return out;
     }
     bool ok = false;

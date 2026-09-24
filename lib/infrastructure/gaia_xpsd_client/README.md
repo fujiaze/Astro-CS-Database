@@ -121,7 +121,7 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
 ## 7. provider 能力与 fallback
 
 纯 C99 + OpenMP + zlib/lz4，无 CPU provider/ISA 分层；不使用 AVX 编译选项
-（历史 Makefile `-march=native` 仅为上游本地构建，非 AstroCS 生产 target）。
+（历史 Makefile `-march=native` 仅为上游本地构建，非 Astro Celestial Sphere Database（ACSD） 生产 target）。
 fallback：无（baseline 单路径）；ISA 合同=迁移 bitwise 等价。
 
 ## 8. 验证（TEST-GAIA-DESIGN-001）
@@ -157,4 +157,4 @@ fallback：无（baseline 单路径）；ISA 合同=迁移 bitwise 等价。
 
 ## 10. 许可
 
-MIT（历史上游 Gaia-DR3-DR3SP-Client-C；本仓库内修改遵循 AstroCS 合同）。
+MIT（历史上游 Gaia-DR3-DR3SP-Client-C；本仓库内修改遵循 ACSD 合同）。

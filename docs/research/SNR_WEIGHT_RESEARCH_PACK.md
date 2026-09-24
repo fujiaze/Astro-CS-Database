@@ -20,7 +20,7 @@
 
 ### 2.2 三个量必须严格区分（本项目口径）
 
-| 量 | 性质 | AstroCS 立场 |
+| 量 | 性质 | Astro Celestial Sphere Database（ACSD） 立场 |
 |---|---|---|
 | **PSFSNR**（PixInsight 公开文档式[18]） | ratio-of-powers 的**未加权原始信噪比**：`c3·(Σ_j f_j)²/(c4·σ_n²)`，分子为和的平方（功率比口径，SNR² 量级） | `frame_snr` 对标其方法学（PSF/孔径混合测光取信号、稳健噪声、独立背景）；数学定义采用通量型 `F_ref/σ_F` 口径以保证 `w=SNR²/F_ref²` 严格成立，不逐字套用功率比式；常数独立标定 |
 | **PSF Signal Weight（PSFSW）** | 综合图像**质量权重**：信号总量×信号集中度（含 FWHM 惩罚）/（稳健噪声×稳健平均背景） | 是权重不是信噪比；仅显式 `weight_mode=psfsw_robust` 使用，四分量独立存储 |（已按 §9.73 A44 作废：该概念不存在）
@@ -56,7 +56,7 @@
 | **properimage** | BSD-3-Clause | https://pypi.org/project/properimage/ ；重点 `properimage/operations.py:457-577` | Zackay & Ofek Paper II 的频域参考实现（`R=IFFT(Ŝ/√P̂)`、有效 PSF P_r），核对 proper coaddition 与本项目信息层的等价性 |
 | **SCAMP** | GPL-3.0 | https://www.astromatic.net/software/scamp/ ；重点 `src/photsolve.c` | 只做**相对光度零点与天体测量**求解；核心源文件中无像素背景归一，**UPM 的天光面 g_k/b_k 不引 SCAMP 为依据** |
 
-研读要求：每个项目输出一节"实现了什么权重/噪声/背景量、公式或经验式、输入输出、与 AstroCS 设计的异同"。**GPL 代码只作理解与数值行为对照，不得复制源码进本仓库**（许可证不兼容时算法可独立重写并注明出处）。
+研读要求：每个项目输出一节"实现了什么权重/噪声/背景量、公式或经验式、输入输出、与 ACSD 设计的异同"。**GPL 代码只作理解与数值行为对照；算法按独立重写实现并注明出处**（许可证不兼容）。
 
 ## 5. 学术文献清单（按主题，卷期由 agent 核对后补全）
 
@@ -135,7 +135,7 @@
 
 **两个量的性质差异（本项目的口径立场）**：
 
-| 量 | 数学形态 | 性质 | AstroCS 立场 |
+| 量 | 数学形态 | 性质 | ACSD 立场 |
 |---|---|---|---|
 | PSFSNR | 功率比 `(Σf)²/σ_n²`（本身即 SNR² 量级） | **未加权的原始信噪比**；信号 = FWTM 孔径内减局部背景的像素和，噪声 = 稳健噪声 | `frame_snr` **对标其方法学**（恒星测光取信号、稳健噪声、独立背景），数学上采用**通量型** `F_ref/σ_F` 以保证 `w=SNR²/F_ref²` 严格成立；不照抄 c3/c4 |
 | PSFSW | 信号总量 × 集中度 /（稳健噪声 × 稳健背景） | **权重**（含分辨率/FWHM 与背景惩罚），不是信噪比 | 本项目**不产出该权重对象**；HiPS 只存 SNR，权重在 Phase2 现场算（A44 裁决） |
@@ -212,9 +212,9 @@
 
 ```bash
 # PixInsight 官方文档（HTML）与 pidoc 行锚
-curl -sL -A "Mozilla/5.0 AstroCS" -o run/DOC-404/evidence/pixinsight-weighting.html \
+curl -sL -A "Mozilla/5.0 ACSD" -o run/DOC-404/evidence/pixinsight-weighting.html \
   https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html
-curl -sL -A "Mozilla/5.0 AstroCS" -o run/DOC-404/evidence/pixinsight_02_pidoc.txt \
+curl -sL -A "Mozilla/5.0 ACSD" -o run/DOC-404/evidence/pixinsight_02_pidoc.txt \
   "https://gitlab.com/api/v4/projects/pixinsight%2FReference-Documentation/repository/files/docs%2FImageWeighting%2F02-PSF_Flux_Weighting_Algorithms.pidoc/raw?ref=master"
 grep -n 'subsection' run/DOC-404/evidence/pixinsight_02_pidoc.txt   # 236 = PSFSW；279 = PSF SNR
 # 开源行锚（Siril/SWarp/SCAMP/SExtractor/SEP/photutils/astrometry.net/astropy/DeepSkyStacker/properimage）

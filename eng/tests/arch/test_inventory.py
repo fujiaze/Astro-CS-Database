@@ -29,7 +29,7 @@ class TestInventory(unittest.TestCase):
 
     def test_04_single_exe_strategy(self):
         prod = [r for r in rows() if r["category"] == "exe_target" and r["classification"] == "production"]
-        self.assertEqual(len(prod), 0, "astrocs CLI 未建立前不得有 production exe(CLI-001 建立)")
+        self.assertEqual(len(prod), 0, "production exe 数量为 0 —— acsd CLI 建立前(CLI-001 建立)")
 
     def test_05_regeneration_idempotent(self):
         before = open(INV, "rb").read()

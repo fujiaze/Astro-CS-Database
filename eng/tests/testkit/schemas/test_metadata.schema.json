@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://control/test-metadata/v1",
-  "title": "AstroCS 测试元数据 (TST-001)",
+  "title": "ACSD 测试元数据 (TST-001)",
   "description": "每测试一对象的机器合同：module:<module_id> 选择、五类 label、seed、tolerance source、current commit、provider/workers；期望来源禁止生产函数；未知状态写 MISSING，禁止空字符串。",
   "type": "object",
   "additionalProperties": false,

@@ -32,7 +32,7 @@ static const char* STAGE1_SCHEMA_JSON = R"JSON(
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schema/stage1-1.1.json",
-  "title": "AstroCS Stage1 Job",
+  "title": "ACSD Stage1 Job",
   "type": "object",
   "additionalProperties": false,
   "required": [

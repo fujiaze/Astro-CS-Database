@@ -1,5 +1,5 @@
 /* ============================================================================
- * AstroCS V6 Phase1 calibration covariance 实现 — ALG-P1-CAL-COV-001
+ * ACSD V6 Phase1 calibration covariance 实现 — ALG-P1-CAL-COV-001
  * 头文件: lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h
  *
  * 纪律: 不接线 Phase session；不改 legacy ac_* 实现；不发明 DI-03（共享低秩/

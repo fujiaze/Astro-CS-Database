@@ -1224,7 +1224,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
                               ? req->underdetermined_n
                               : undet_default;
     p.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // 默认（WBPP Light:
-    // rejectionNormalization=Scale 映射；AstroCS 用 per-pixel robust 域）
+    // rejectionNormalization=Scale 映射；ACSD 用 per-pixel robust 域）
     p.normalization_floor = 1e-12;
     p.sigma.lower_sigma = 4.0; p.sigma.upper_sigma = 3.0; p.sigma.max_iterations = 8;
     p.winsorized.lower_sigma = 4.0; p.winsorized.upper_sigma = 3.0;
@@ -1255,7 +1255,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     if (method == P2_REJECT_AUTO) {
         const std::uint32_t n = req->nominal_contributors;
         if (pixel_profile) {
-            // AstroCS 自有「按逐输出像素几何 N」映射 = WBPP 实测表
+            // ACSD 自有「按逐输出像素几何 N」映射 = WBPP 实测表
             // （N<6 percentile / 6..15 winsorized / >15 linear fit），
             // 唯一决策点在 astrocs_n_map_method 上方（EXP-204）。
             method = astrocs_n_map_method(n);
@@ -1280,7 +1280,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     p.minimum_n = method_minimum_n(method);
     // extreme_prior 在原始 calibrated 值域直接比较绝对 prior_sky ⇒ 必须
     // NONE；其余方法保持 MEDIAN_CENTER（WBPP Light rejectionNormalization
-    // =Scale 映射到 AstroCS per-pixel robust 域）。
+    // =Scale 映射到 ACSD per-pixel robust 域）。
     if (method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA)
         p.normalization = P2_NORMALIZE_NONE;
     *plan = p;

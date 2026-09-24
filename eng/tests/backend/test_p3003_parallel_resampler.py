@@ -20,7 +20,7 @@ import unittest
 from fixture_common import ensure_f1f2_hips  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXE = os.path.join(REPO, "build", "astrocs")
+EXE = os.path.join(REPO, "build", "acsd")
 SESS = os.path.join(REPO, "lib", "phase3_session", "p3_session.cpp")
 
 

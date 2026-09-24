@@ -77,7 +77,7 @@
 
 - 每门 `oracle` 必须声明 `kind`（白名单见 `validate_spec.py`）、独立 `truth` 与 `must_not`（禁止调用的对象）。
 - 独立 Oracle `qa_oracle.py` 为纯 NumPy + 标准库，从第一性原理构造参考（显式矩阵、解析恒等、定种子 MC、testdata 索引），
-  **不 import / 不 link / 不执行任何 AstroCS 生产实现或生产测试二进制**。
+  **不 import / 不 link / 不执行任何 Astro Celestial Sphere Database（ACSD） 生产实现或生产测试二进制**。
 - 真实数据门禁止以生产输出作唯一 expected（PROJECT_SPEC §8；G-RD-04；对应 AR-043 根因）。
 
 ## 6. 负向 mutation 总则
@@ -170,7 +170,7 @@
 - **容差来源**：解析恒等（非测量阈值）：任意正定 C 下两式代数等价；1e-9 为浮点安全界，继承 SCI-P2-001 Oracle C1。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：C 非正定/不可求逆 -> 该配置整体 REJECT 并记 unavailable，不参与恒等判定。
-- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式 + 显式矩阵参考；must_not=astrocs, lib/, cli/, lib/include/
+- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式 + 显式矩阵参考；must_not=acsd, lib/, cli/, lib/include/
 - **门能红 mutation**：MUT-A01, MUT-A02, MUT-A12
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W3 / frozen_formula
 
@@ -186,7 +186,7 @@
 - **容差来源**：代数恒等（C 正确时）；OM1 以 c×1.10 证明该门能红（rc=1）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：variance_from 属于 {weight, psfsw_robust_weight, median_source_snr, support, coverage, fwhm, psf_residual} -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A02, MUT-SPEC-05
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W3 / frozen_formula
 
@@ -202,7 +202,7 @@
 - **容差来源**：构造性不变量（ratio>1 必须检出），非经验阈值；W1 双 Oracle 实测 1.575 / 3.48。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：无法表示联合 C -> variance 面 unavailable 或系统误差预算（FZ-PROV-SHARED-SYSTEMATIC）。
-- **独立 Oracle**：kind=independent_numpy；truth=构造已知共享幅度下的解析比；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=构造已知共享幅度下的解析比；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M01, MUT-I01
 - **owner / wave / status**：ALG-P2-POINT-001 / ALG-P2-SURF-001 / W3 / frozen_mechanism
 
@@ -218,7 +218,7 @@
 - **容差来源**：代数恒等；继承 SCI-P2-001 Oracle C5。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：A 秩亏 -> gauge/断图处理并 REJECT 该元件。
-- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A04
 - **owner / wave / status**：ALG-P2-SURF-001 / P2-INTEGRATE-001 / W3 / frozen_formula
 
@@ -234,7 +234,7 @@
 - **容差来源**：代数恒等；继承 SCI-PSFW-001 K1 与 SCI-OBS-001 C3。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：C 非对角或 sigma_pix 未声明时使用白噪式 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A05
 - **owner / wave / status**：ALG-P1-001 / IMPL-P1-PSFW-001 / W3 / frozen_formula
 
@@ -250,7 +250,7 @@
 - **容差来源**：量纲代数（精确整数指数）已冻结于 FREEZE_LIST §1/§3.2；本任务不改单位表。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：BUNIT 量纲不可判（无显式立体角幂次且 provenance 无 pixel_area_power=-2）-> unavailable/REJECT。
-- **独立 Oracle**：kind=independent_stdlib；truth=FREEZE_LIST §1 单位表；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_stdlib；truth=FREEZE_LIST §1 单位表；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A06, MUT-SPEC-11
 - **owner / wave / status**：DATA-DESIGN-001 / SCHEMA-INTEGRATE-001 / W3 / frozen
 
@@ -266,7 +266,7 @@
 - **容差来源**：组内归一是定义式（median 精确）；单调方向由解析偏导符号证明，对任意正指数成立。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：背景非正且变换未定义 / 无共同星集 / 有效星不足 / 选择偏差门失败 -> unavailable，禁回退 median SNR。
-- **独立 Oracle**：kind=independent_numpy；truth=定义式 + 解析单调性；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=定义式 + 解析单调性；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A07, MUT-A13
 - **owner / wave / status**：ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001 / W3 / frozen_formula
 
@@ -282,7 +282,7 @@
 - **容差来源**：构造性区分门：两条路径在退化（S=I 且 PSF 为 delta）外必须给出不同 W；不得以相等为通过。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：缺 PSF / PSF 未归一 / 缺 point_information 且不可重建 / 缺 a / 未出 effective PSF -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=C-P3-PROP-14 定义式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=C-P3-PROP-14 定义式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A08
 - **owner / wave / status**：ALG-P3-001 / IMPL-P3-RSMP-001 / W3 / frozen_formula
 
@@ -298,7 +298,7 @@
 - **容差来源**：代数恒等（diag 情形）；非退化 Σc^2 != 1 是重力物理而非容差。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：输入 C 已相关仍只出对角且无相关核 -> 拒绝（对角化过度乐观须被检出，M3-05）。
-- **独立 Oracle**：kind=independent_numpy；truth=线性传播恒等式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=线性传播恒等式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A09
 - **owner / wave / status**：ALG-P3-001 / IMPL-P3-RSMP-001 / W3 / frozen_formula
 
@@ -314,7 +314,7 @@
 - **容差来源**：代数恒等；继承 SCI-OBS-001 门 D1（rtol 1e-11）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：非对角协方差被当零用于 aperture/总量误差 -> 拒绝（须给相关核/误差）。
-- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A10, MUT-A14
 - **owner / wave / status**：ALG-P1-001 / IMPL-P1-DRZ-001 / W3 / frozen_formula
 
@@ -330,7 +330,7 @@
 - **容差来源**：沿用现行常量场门 |S_p/B0-1|<1e-3（ADJ-S3 明令不改数值）；负向三错法必红。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：缺 flux_conservation_factor -> 不可用于绝对通量；BUNIT 缺立体角幂次且无 provenance -> unavailable。
-- **独立 Oracle**：kind=independent_numpy；truth=ADJ-S3 真值构造（按 B0）；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=ADJ-S3 真值构造（按 B0）；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A11, MUT-A15, MUT-A16
 - **负责人签字（只登记）**：SO-02（面亮度归一 FROZEN 公式变更）/ SO-03（常量场判据取代）— 只登记不签署
 - **owner / wave / status**：ALG-P1-001 / IMPL-P1-DRZ-001 / W3 / frozen_mechanism_signoff_SO-02/SO-03
@@ -347,7 +347,7 @@
 - **容差来源**：统计收敛阈 3%，继承 SCI-P2-001 C4 / SCI-PSFW-001 K2 的 3%/2% 口径；N_mc 与 seed 必须登记以保证可复跑。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：N_mc < 1 或 seed 缺失 -> rc=2（零用例/不可复跑即红）；跨帧相关未用联合 C -> 该 case 拒绝。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=解析 1/W + 定种子 MC 散度；must_not=astrocs, lib/, eng/tests/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=解析 1/W + 定种子 MC 散度；must_not=acsd, lib/, eng/tests/
 - **门能红 mutation**：MUT-M02, MUT-I02
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen_tol_inherited
 
@@ -363,7 +363,7 @@
 - **容差来源**：继承 SCI-P2-001 Oracle C4 的 3% MC 口径；epsilon 上界本门冻结为存在性，数值归 ALG-P2-SURF-001（FZ-GATE-PIXIVAR-APPROX）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：无 Var_approx/Var_GLS <= 1+epsilon 误差门声明 -> REJECT；必须报告 R~ C_in R~^T。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=解析 (A^T C^-1 A)^-1 + MC；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=解析 (A^T C^-1 A)^-1 + MC；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M03
 - **owner / wave / status**：ALG-P2-SURF-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen_eps_pending
 
@@ -379,7 +379,7 @@
 - **容差来源**：构造性不变量；共享幅度 0.6 sigma 的构造已由 W1 双 Oracle 提供参考值。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：共享项无法表示 -> variance unavailable 或系统误差预算；禁止静默按独立项发布。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=构造已知共享项的解析比；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=构造已知共享项的解析比；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M01, MUT-I01
 - **owner / wave / status**：ALG-P2-SURF-001 / IMPL-P1-CAL-001 / W5 / mechanism_frozen
 
@@ -395,7 +395,7 @@
 - **容差来源**：继承 SCI-P2-001 C7 的 3% MC 口径；proxy 与 coeffs 必须显著不同（>=10%）以证明边界可测。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：variance_from_weight=true / uses_relative_weight_as_ivar=true -> REJECT（键集合命中即红）。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=C_out=R C_in R^T + MC；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=C_out=R C_in R^T + MC；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M04, MUT-A13
 - **owner / wave / status**：ALG-P2-PSFSW-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen
 
@@ -411,7 +411,7 @@
 - **容差来源**：构造性区分门（等式不得作为通过）；只给 FWHM 标量不构成 effective PSF（R7 REJECT）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：effective_psf_id 空 / 只有 fwhm 单标量 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=脉冲响应定义式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=脉冲响应定义式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M05
 - **owner / wave / status**：ALG-P2-PSFSW-001 / P2-INTEGRATE-001 / W5 / frozen_formula
 
@@ -427,7 +427,7 @@
 - **容差来源**：CRLB 是解析下界（精确恒等）；loss_ratio>1.5 为构造性区分门，继承 K4 的 A_NEA=29.05 参考。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：声明像素 ivar 对任意 PSF 点源最优 -> REJECT（UNIFIED §11）。
-- **独立 Oracle**：kind=independent_numpy；truth=CRLB 解析 + 显式矩阵；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=CRLB 解析 + 显式矩阵；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M06, MUT-B01
 - **owner / wave / status**：ALG-P2-POINT-001 / W3 / frozen_formula
 
@@ -443,7 +443,7 @@
 - **容差来源**：构造性不变量；SCI-P2-001 C9 的含项/不含项比 = 2.0。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：UPM 断图/欠定 -> 显式失败/分组件，不得静默发布。
-- **独立 Oracle**：kind=independent_numpy；truth=解析传播 C_out=C_stat+J C_theta J^T；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析传播 C_out=C_stat+J C_theta J^T；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M07
 - **owner / wave / status**：ALG-P2-UPM-001 / IMPL-P2-UPM-001 / W5 / mechanism_frozen
 
@@ -459,7 +459,7 @@
 - **容差来源**：方向不变量（k_corr>1）为门；冻结数值 1.4 仅域内可用（SO-07 数值阈值由负责人确认，本任务不发明）。（status=frozen，owner=ALG-P2-UPM-001）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：k_corr=1（忽略相关）或域外外推且未更新 provenance -> REJECT。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=定义式 + 定种子 MC；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=定义式 + 定种子 MC；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M08
 - **负责人签字（只登记）**：SO-07（k_corr 标定脚本与数值阈值）— 只登记不签署
 - **owner / wave / status**：ALG-P2-UPM-001 / IMPL-P2-UPM-001 / W5 / mechanism_frozen_value_pending_SO-07
@@ -476,7 +476,7 @@
 - **容差来源**：门度量（bias、sigma_F vs 1/sqrt(W)）冻结；数值 2% 属设计默认，最终由 ALG-P2-POINT-001 冻结，本任务不宣称冻结数值。（status=pending_freeze，owner=ALG-P2-POINT-001）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：注入源 sigma_F 与 1/sqrt(W) 偏差超门且无原因 -> REJECT；跨帧相关简单求和 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=注入已知真值 + 解析方差；must_not=astrocs, lib/, eng/tests/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=注入已知真值 + 解析方差；must_not=acsd, lib/, eng/tests/
 - **门能红 mutation**：MUT-I02, MUT-I03, MUT-SPEC-10
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen_tol_pending
 
@@ -492,7 +492,7 @@
 - **容差来源**：门度量冻结（三量一致性）；数值 3% 设计默认，最终由 ALG-P2-SURF-001 冻结。（status=pending_freeze，owner=ALG-P2-SURF-001）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：pf<1 时 flux_conservation_factor 缺失 -> 不得用于绝对通量。
-- **独立 Oracle**：kind=independent_numpy；truth=注入真值 + (A^T C^-1 A)^-1；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=注入真值 + (A^T C^-1 A)^-1；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A11, MUT-I03
 - **owner / wave / status**：ALG-P2-SURF-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen_tol_pending
 
@@ -508,7 +508,7 @@
 - **容差来源**：门度量冻结；数值 <5% 为 SCI-PSFW-001 建议口径，最终由 ALG-P2-PSFSW-001 冻结（本任务不擅自改冻结门）。（status=pending_freeze，owner=ALG-P2-PSFSW-001）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：selection function 缺失 / 样本派生共同星集 -> unavailable。
-- **独立 Oracle**：kind=independent_numpy；truth=构造已知：W_info 按构造逐位不变（PSFW K8）；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=构造已知：W_info 按构造逐位不变（PSFW K8）；must_not=acsd, lib/
 - **门能红 mutation**：MUT-I04, MUT-I05
 - **owner / wave / status**：ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001 / W5 / mechanism_frozen_tol_pending
 
@@ -524,7 +524,7 @@
 - **容差来源**：解析单调性（W=a^2 P^T C^-1 P 对 a 二次增、对 sigma 减）；方向而非幅度。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：任一方向违反 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=解析单调性；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析单调性；must_not=acsd, lib/
 - **门能红 mutation**：MUT-I06
 - **owner / wave / status**：ALG-P2-POINT-001 / ALG-P2-PSFSW-001 / W3 / frozen_mechanism
 
@@ -540,7 +540,7 @@
 - **容差来源**：解析组合定义式恒等。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：缺 effective PSF 或只给 FWHM 标量 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=脉冲响应定义式；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=脉冲响应定义式；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M05, MUT-SPEC-06
 - **owner / wave / status**：ALG-P2-PSFSW-001 / P2-INTEGRATE-001 / W5 / frozen_formula
 
@@ -556,7 +556,7 @@
 - **容差来源**：白名单为冻结语义（FZ-GATE-PSFSW-FAILCLOSED）；valid=false 时 weight_value=null。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：valid=false 但 weight_value 非 null / 回退 median SNR -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=FZ-GATE-PSFSW-FAILCLOSED 白名单；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=FZ-GATE-PSFSW-FAILCLOSED 白名单；must_not=acsd, lib/
 - **门能红 mutation**：MUT-I07, MUT-I08
 - **owner / wave / status**：ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001 / W5 / frozen
 
@@ -572,7 +572,7 @@
 - **容差来源**：门度量冻结（flux bias/astrometry/variance）；数值 2% 设计默认，最终由 ALG-P3-001 冻结。（status=pending_freeze，owner=ALG-P3-001）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：缺 PSF/PSF 未归一/缺 a/未出 effective PSF/对角无相关核 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=注入真值 + 外部 WCS 参考；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=注入真值 + 外部 WCS 参考；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A08, MUT-I09
 - **owner / wave / status**：ALG-P3-001 / IMPL-P3-RSMP-001 / IMPL-P3-PROJ-001 / W5 / mechanism_frozen_tol_pending
 
@@ -588,7 +588,7 @@
 - **容差来源**：构造性不变量（低估必须被检出）；D2 参考值 0.400/0.983。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：把逐像素方差和当 aperture 精确方差 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=解析 aperture 二次型；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析 aperture 二次型；must_not=acsd, lib/
 - **门能红 mutation**：MUT-A10
 - **owner / wave / status**：ALG-P1-001 / IMPL-P1-DRZ-001 / W5 / mechanism_frozen
 
@@ -635,7 +635,7 @@
 - **容差来源**：存在性（结构证据），非测量阈值；索引版本 1.2 已登记。（status=frozen）
 - **零用例即红**：min_cases=8；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：索引与实际目录不一致 -> 真实数据门不成立（不得以缺失数据集判 PASS）。
-- **独立 Oracle**：kind=structural；truth=testdata/index.json；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=testdata/index.json；must_not=acsd
 - **门能红 mutation**：MUT-R02
 - **owner / wave / status**：REAL-SCIENCE-001 (W10) / WIN-VERIFY-001 (W11) / W10 / defined_pending_execution
 
@@ -650,7 +650,7 @@
 - **容差来源**：结构性规则（冻结）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：唯一 expected 来自生产输出 -> REJECT（AR-043 根因）。
-- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §8 条款；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §8 条款；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-07
 - **owner / wave / status**：QA-MATRIX-001 / FINAL-AUDIT-001 / W3 / frozen
 
@@ -666,7 +666,7 @@
 - **容差来源**：键集合与量纲代数（冻结）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：缺键/单位不可判/unavailable 无原因 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=FZ-PROV-MINIMAL-SET；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=FZ-PROV-MINIMAL-SET；must_not=acsd
 - **门能红 mutation**：MUT-R02
 - **owner / wave / status**：IMPL-AIO-001 / SCHEMA-INTEGRATE-001 / W5 / frozen
 
@@ -681,7 +681,7 @@
 - **容差来源**：状态字面量规则（冻结）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：未复验却标 VERIFIED -> REJECT。
-- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §10；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §10；must_not=acsd
 - **门能红 mutation**：MUT-R03
 - **owner / wave / status**：WIN-VERIFY-001 (W11) / W11 / defined_pending_execution
 
@@ -697,7 +697,7 @@
 - **容差来源**：结构与枚举规则（冻结）；比较度量集合冻结，效应量阈值由预注册确定。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：遗漏基线/将 psfsw 当 ivar/宣称最优 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=FZ-MODE-*/ADJ-S1；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=FZ-MODE-*/ADJ-S1；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-04, MUT-B02, MUT-B03
 - **owner / wave / status**：ALG-P2-POINT-001 / ALG-P2-PSFSW-001 / P2-INTEGRATE-001 / W5 / frozen_mechanism
 
@@ -713,7 +713,7 @@
 - **容差来源**：构造性区分门，继承 SCI-PSFW-001 K4。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：宣称 pixel_ivar 等价 W_info 或对其任意 PSF 最优 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=解析方差比较；must_not=astrocs, lib/
+- **独立 Oracle**：kind=independent_numpy；truth=解析方差比较；must_not=acsd, lib/
 - **门能红 mutation**：MUT-M06, MUT-B01
 - **owner / wave / status**：ALG-P2-POINT-001 / ALG-P2-SURF-001 / W3 / frozen_formula
 
@@ -744,7 +744,7 @@
 - **容差来源**：结构性规则（FZ-MODE-BASELINE）。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：equal 声明最优 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy；truth=定义式；must_not=astrocs
+- **独立 Oracle**：kind=independent_numpy；truth=定义式；must_not=acsd
 - **门能红 mutation**：MUT-B04
 - **owner / wave / status**：P2-INTEGRATE-001 / W5 / frozen
 
@@ -760,7 +760,7 @@
 - **容差来源**：控制器裁决 C-004.1（不得推翻）与 FZ-MODE-DEFERRED。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：生产枚举含 psf_snr_power/legacy 0/auto/support_x_snr2 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=FZ-MODE-* + C-004.1；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=FZ-MODE-* + C-004.1；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-04
 - **owner / wave / status**：ALG-P2-PSFSW-001 / CONTRACT-FREEZE-001 / SCHEMA-INTEGRATE-001 / W3 / frozen
 
@@ -775,7 +775,7 @@
 - **容差来源**：结构性规则（冻结）；对应 785 合并层账本中 R1 根因（FD-F-001/M5a-G-005/M5b-G-03）。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：任何门零 mutation -> FAIL；mutation 未检出 -> FAIL。
-- **独立 Oracle**：kind=independent_driver；truth=PROJECT_SPEC §8；must_not=astrocs
+- **独立 Oracle**：kind=independent_driver；truth=PROJECT_SPEC §8；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-01, MUT-SPEC-15, MUT-SPEC-16
 - **账本层**：merged_785；refs=FD-F-001, M5a-G-005, M5b-G-03
 - **owner / wave / status**：QA-MATRIX-001 / RUNTIME-CI-001 / W3 / frozen
@@ -791,7 +791,7 @@
 - **容差来源**：结构性规则；对应 785 合并层 R2 根因（FD-F-002/M5a-G-002/M5a-C-004）。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：真值来源 = 生产输出 / must_not_call 缺失 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §8；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §8；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-07, MUT-SPEC-12
 - **账本层**：merged_785；refs=FD-F-002, M5a-G-002, M5a-C-004
 - **owner / wave / status**：QA-MATRIX-001 / W3 / frozen
@@ -807,7 +807,7 @@
 - **容差来源**：结构性规则；对应 785 合并层 R4 根因（M7-G-104/M2a-F-1/M2b-F-01）。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：无独立真值来源 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §8；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=PROJECT_SPEC §8；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-08
 - **账本层**：merged_785；refs=M7-G-104, M2a-F-1, M2b-F-01
 - **owner / wave / status**：QA-MATRIX-001 / W3 / frozen
@@ -823,7 +823,7 @@
 - **容差来源**：结构性规则；对应 785 合并层 R10 根因（M1a-F-005/M3b-A-02/M9-F-2）。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：退休 token 出现在合法规格/expected -> REJECT。
-- **独立 Oracle**：kind=structural；truth=UNIFIED §11 + ADJ-S1；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=UNIFIED §11 + ADJ-S1；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-06, MUT-SPEC-13
 - **账本层**：merged_785；refs=M1a-F-005, M3b-A-02, M9-F-2
 - **owner / wave / status**：QA-MATRIX-001 / CONTRACT-FREEZE-001 / W3 / frozen
@@ -839,7 +839,7 @@
 - **容差来源**：口径规则冻结：所有账本数字带 merged_785/leaf_523；覆盖 R1/R2/R4/R5/R10。（status=frozen）
 - **零用例即红**：min_cases=5；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：账本数字无层号 / P0 根因无承载门 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=reports/v6/review-audit/03 + DEFECT_LEDGER.json；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=reports/v6/review-audit/03 + DEFECT_LEDGER.json；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-09
 - **账本层**：merged_785；refs=AR-035, AR-051
 - **owner / wave / status**：QA-MATRIX-001 / FINAL-AUDIT-001 / W3 / frozen_registration_only
@@ -855,7 +855,7 @@
 - **容差来源**：规则：frozen 必须有 FZ-/ADJ-/W1 实测锚；pending_freeze 必须有 owner；否则 REJECT。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：自称冻结但无锚 / pending 无 owner -> REJECT。
-- **独立 Oracle**：kind=structural；truth=SCI-ADJ-001 FREEZE_LIST 19 required_freeze_ids + ADJ id 集合；must_not=astrocs
+- **独立 Oracle**：kind=structural；truth=SCI-ADJ-001 FREEZE_LIST 19 required_freeze_ids + ADJ id 集合；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-10, MUT-SPEC-14
 - **账本层**：merged_785；refs=AR-044
 - **owner / wave / status**：QA-MATRIX-001 / CONTRACT-FREEZE-001 / W3 / frozen

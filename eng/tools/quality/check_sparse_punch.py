@@ -37,7 +37,7 @@
      - 合成 FITS（NaN 边距 + 连续全零带 + DATASUM/CHECKSUM）：打洞后
        整文件 sha256 / st_size / st_blocks / astropy（memmap 与非 memmap）/
        cfitsio 交叉读器（header 卡片与数据区原始字节）/ 跨洞边界 pread 全等
-     - 真实 AstroCS 瓦片（signal 与 support）：同上；signal 的 NaN 边距不得被打洞
+     - 真实 ACSD 瓦片（signal 与 support）：同上；signal 的 NaN 边距在打洞前后逐字节保持
      - 负例红：对 NaN 区强制打洞 ⇒ 必须判红；对数据区强制打洞 ⇒ 必须判红
      - 降级：卷不支持（注入等价于 EOPNOTSUPP）⇒ 跳过、文件逐字节不变、不阻断
      - 幂等语义：对已打洞文件再打一次 ⇒ 无新释放（NO_RELEASE），字节仍不变
@@ -907,7 +907,7 @@ def probe_run(repo: Path, workdir: Path, cases: Cases, log):
               else "幂等语义不符：second rc=%s" % r2.get("rc"),
               {"first": r1, "second": r2})
 
-    # 真实 AstroCS 瓦片（存在才跑；不存在显式登记）
+    # 真实 ACSD 瓦片（存在才跑；不存在显式登记）
     tiles = [("signal", repo / "run/PERF-401/out/real16_w1/signal/Norder9/Dir1450000"),
              ("support", repo / "run/PERF-401/out/real16_w1/support/Norder9/Dir1450000")]
     for name, d in tiles:

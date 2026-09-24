@@ -71,7 +71,7 @@ static void print_help() {
 }
 
 static void print_version() {
-    printf("AstroCS Orchestrator 2.0 (Phase1 JSON entry)\n");
+    printf("ACSD Orchestrator 2.0 (Phase1 JSON entry)\n");
     printf("git commit: %s\n", ASTROCS_GIT_COMMIT);
 }
 
@@ -309,7 +309,7 @@ int main(int argc, char* argv[]) {
         std::string job_id = "stage1_";
         job_id += config.original_json_sha256.substr(0, 12);
 
-        LOG_INFO("main", "========== AstroCS Stage1 Orchestrator ==========");
+        LOG_INFO("main", "========== ACSD Stage1 Orchestrator ==========");
         LOG_INFO("main", "配置文件: " + config.original_json_path);
         LOG_INFO("main", "原始 JSON SHA256: " + config.original_json_sha256);
         LOG_INFO("main", "规范化配置 SHA256: " + config.config_sha256);

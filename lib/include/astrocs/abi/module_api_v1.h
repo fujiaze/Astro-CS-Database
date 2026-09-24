@@ -1,4 +1,4 @@
-/* AstroCS 模块 C ABI v1 — Module API：模块/提供商生命周期接口（ABI-001）
+/* ACSD 模块 C ABI v1 — Module API：模块/提供商生命周期接口（ABI-001）
  *
  * 文件: lib/include/astrocs/abi/module_api_v1.h
  * 依赖: host_api_v1.h（单向）; 本文件独立可编译（经 host_api_v1.h 连带

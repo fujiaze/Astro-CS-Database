@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — RT-005 plan 真实资源估算（独立纯函数库）
+// ACSD Core Contracts — RT-005 plan 真实资源估算（独立纯函数库）
 //
 // 角色（规格 tasks/03_RUNTIME_DATA_IO_TASKS.md RT-005 + 14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md §4
 //       + checklists/02_MODULE_ACCEPTANCE_CHECKLIST.md IMPL）：

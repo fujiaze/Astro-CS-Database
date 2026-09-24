@@ -626,7 +626,7 @@ static void test_abort_cleanup(void) {
 
 int main(void) {
   const char* base = getenv("TMPDIR");
-  snprintf(g_dir, sizeof(g_dir), "%s/astrocs_io_selftest_%ld", base ? base : "/tmp",
+  snprintf(g_dir, sizeof(g_dir), "%s/acsd_io_selftest_%ld", base ? base : "/tmp",
            (long)getpid());
 #if defined(_WIN32)
   _mkdir(g_dir);

@@ -61,3 +61,20 @@ target_include_directories(p1cos_selfcheck_test PRIVATE
   ${P1COS_DIR})
 target_link_libraries(p1cos_selfcheck_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
 add_test(NAME p1cos_selfcheck COMMAND p1cos_selfcheck_test)
+
+# ============================================================================
+# LINDEF-IMPL-01 — 坏列（linear defect, 单列）检测与修复的负例面
+# ----------------------------------------------------------------------------
+# 被测面: ac_correct_columns / ac_correct_columns_f64（独立于 ac_correct_frame
+# 的新路径）。四条任务书指定负例 + 退化守卫 + 与 frozen 坏点路径的独立性 +
+# f64 ABI 一致性；每条负例带非退化对照（真值无效应⇒归零，注入效应⇒判红）。
+#   p1cos_badcol           — 正例面：全部断言必须绿
+#   p1cos_badcol_selfcheck — 自检：逐条注入必须判红 + baseline 必须判绿
+#                            （双向排除恒真门；注入不红 = 该负例无判别力）
+# ============================================================================
+add_executable(p1cos_badcol_tests ${P1COS_DIR}/p1cos_tests_badcol.cpp)
+target_include_directories(p1cos_badcol_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/calibration/include)
+target_link_libraries(p1cos_badcol_tests PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET})
+add_test(NAME p1cos_badcol COMMAND p1cos_badcol_tests)
+add_test(NAME p1cos_badcol_selfcheck COMMAND p1cos_badcol_tests --self-test)

@@ -1,4 +1,4 @@
-// astrocs 协作取消令牌 (API-001 acs_cancel 的 CLI 侧宿主实现) — CLI-002
+// acsd 协作取消令牌 (API-001 acs_cancel 的 CLI 侧宿主实现) — CLI-002
 // POSIX: SIGINT/SIGTERM → 原子置位; Windows: SetConsoleCtrlHandler → 原子置位。
 // 语义: 单向置位, 内核在 ALG 5c 冻结的安全点轮询; 取消后不得产生"看似完整"的产物。
 #pragma once

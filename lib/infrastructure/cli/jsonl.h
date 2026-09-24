@@ -1,4 +1,4 @@
-// astrocs JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002/CLI-004
+// acsd JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002/CLI-004
 //
 // stdout 纪律（ASTROCS_DESIGN §6.3）：运行事件流是**默认输出**（GAP_AUDIT §9.74 裁决 7-a
 // 定案 1：事件流 = 默认输出，不需要旗标开启；GUI 用其它语言直接捕获 CLI 输出）。
@@ -178,7 +178,7 @@ public:
         }
         // protocol.h (CLI-004): 发送前 ValidateEventV1; 违规行禁入 stdout。
         if (!astrocs::ValidateEventV1(ev, seq_)) {
-            std::fprintf(stderr, "astrocs: protocol: event dropped (kind=%s seq=%llu)\n",
+            std::fprintf(stderr, "acsd: protocol: event dropped (kind=%s seq=%llu)\n",
                          kind.c_str(), static_cast<unsigned long long>(seq_));
             ++seq_;  // 保持 sequence 单调性不变(violation 仍占序)
             return;
