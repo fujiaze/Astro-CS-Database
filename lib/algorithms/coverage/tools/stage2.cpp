@@ -470,15 +470,110 @@ int main(int argc, char** argv) {
         if (cfg.sky_plane_enabled) {
             P2SkyPlaneConfig spc = p2_sky_plane_default_config();
             spc.spline_degree = cfg.sky_plane_spline_degree;
+            // CHAIN-WIRE-ADAPT-01 / W5: 不再有写死的节点间距标定常数。
+            // cfg 默认 0 = 未给出 ⇒ 由输入几何导出（PHASE2_UPM 7a:185-189）；
+            // 显式 >0 时逐字沿用。导出/自适应与生产编排**同一实现路径**
+            // （stage2_common.h 的 p2_sky_plane_geometry_from_controls +
+            //  sky_plane 的 p2_sky_plane_derive_node_spacing / _build_adaptive）。
             spc.node_spacing_deg = cfg.sky_plane_node_spacing_deg;
             spc.frame_gradient_order = cfg.sky_plane_gradient_order;
             spc.gauge_mode = cfg.sky_plane_gauge_mode;
             spc.weight_mode = cfg.sky_plane_weight_mode;
             spc.roughness_penalty = cfg.sky_plane_roughness_penalty;
+            // W4 同源：内存护栏必须容纳规则区间内实际可达的最细网格
+            // （M42 实测 h=0.0376 度 ⇒ 4814 个节点）。
+            spc.max_nodes = cfg.sky_plane_max_nodes;
+            // 输入几何：显式给出优先，否则由 control 观测集自行导出。
+            P2SkyPlaneGeometry geo = cfg.sky_plane_geometry;
+            P2SkyPlaneGeometryProvenance geoprov{};
+            bool geo_ok = (geo.overlap_band_width_deg > 0.0 &&
+                           geo.pointing_spacing_deg > 0.0 &&
+                           geo.sample_pitch_deg > 0.0 &&
+                           geo.pixel_scale_arcsec > 0.0);
+            if (!geo_ok) {
+                double px_scale = cfg.sky_plane_pixel_scale_arcsec;
+                if (!(std::isfinite(px_scale) && px_scale > 0.0) && !cfg.hips.empty()) {
+                    std::ifstream sf(cfg.hips[0] + "/p1_stack.json");
+                    if (sf.good()) {
+                        try {
+                            nlohmann::json sd;
+                            sf >> sd;
+                            px_scale = sd.value("finest_input_arcsec", 0.0);
+                        } catch (...) { px_scale = 0.0; }
+                    }
+                }
+                std::vector<double> o_ra(obs.size()), o_dec(obs.size());
+                std::vector<std::uint64_t> o_fid(obs.size()), o_cid(obs.size());
+                for (std::size_t i = 0; i < obs.size(); ++i) {
+                    o_ra[i] = obs[i].ra_deg;
+                    o_dec[i] = obs[i].dec_deg;
+                    o_fid[i] = obs[i].frame_id;
+                    o_cid[i] = obs[i].control_id;
+                }
+                std::vector<double> c_ra(ctrl_nodes.size()), c_dec(ctrl_nodes.size());
+                std::vector<std::uint64_t> c_tile(ctrl_nodes.size());
+                for (std::size_t i = 0; i < ctrl_nodes.size(); ++i) {
+                    c_ra[i] = ctrl_nodes[i].ra_deg;
+                    c_dec[i] = ctrl_nodes[i].dec_deg;
+                    c_tile[i] = ctrl_nodes[i].tile_ipix;
+                }
+                P2SkyPlaneGeometryInputs gi{};
+                gi.obs_ra_deg = o_ra.data();
+                gi.obs_dec_deg = o_dec.data();
+                gi.obs_frame_id = o_fid.data();
+                gi.obs_control_id = o_cid.data();
+                gi.n_obs = obs.size();
+                gi.ctrl_ra_deg = c_ra.data();
+                gi.ctrl_dec_deg = c_dec.data();
+                gi.ctrl_tile_ipix = c_tile.data();
+                gi.n_ctrl = ctrl_nodes.size();
+                gi.pixel_scale_arcsec = px_scale;
+                char gerr[512] = {0};
+                geo_ok = (p2_sky_plane_geometry_from_controls(gi, &geo, &geoprov,
+                                                              gerr, sizeof(gerr)) == 0);
+                if (!geo_ok) {
+                    log("[sky_plane] input geometry derivation FAILED: " +
+                        std::string(gerr) + " -> node spacing cannot be derived;"
+                        " build will fail-closed (PHASE2_UPM 7a forbids falling back"
+                        " to a calibrated constant)");
+                }
+            }
+            spc.geometry = geo;
+            if (geo_ok) {
+                P2SkyPlaneNodeSpacing ns{};
+                char nserr[512] = {0};
+                if (p2_sky_plane_derive_node_spacing(&geo, &ns, nserr, sizeof(nserr)) ==
+                    P2_SKY_NODE_SPACING_OK) {
+                    log("[sky_plane] geometry: overlap_band=" +
+                        std::to_string(ns.constraining_scale_deg) + " deg"
+                        " (pointing_spacing=" + std::to_string(geo.pointing_spacing_deg) +
+                        ") h_upper=" + std::to_string(ns.upper_deg) +
+                        " h_lower=" + std::to_string(ns.lower_deg) +
+                        " h_px=" + std::to_string(ns.node_spacing_px) +
+                        " px_scale=" + std::to_string(geo.pixel_scale_arcsec) + " as/px"
+                        " n_pointings=" + std::to_string(geoprov.n_pointings) +
+                        " fence=" + std::to_string(geoprov.frame_separation_fence_deg));
+                } else {
+                    log("[sky_plane] derive_node_spacing FAILED: " + std::string(nserr));
+                }
+            }
             char sperr[512] = {0};
             void* spm = nullptr;
-            const int src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
-                                               &spc, &spm, sperr, sizeof(sperr));
+            // 与生产编排同一自适应入口（7a:190-192：节点间距必须与
+            // roughness_penalty 同级进入自适应重试回路；7a:199-200：必须有
+            // 「触发过」的记录）。
+            P2SkyPlaneAdaptiveConfig spad = p2_sky_plane_default_adaptive_config();
+            P2SkyPlaneAdaptiveReport spread{};
+            const int src = p2_sky_plane_build_adaptive(
+                sky_samples.data(), sky_samples.size(), &spc, &spad, &spm, &spread,
+                sperr, sizeof(sperr));
+            log("[sky_plane] adaptive attempts=" + std::to_string(spread.n_attempts) +
+                " node_refinements=" + std::to_string(spread.n_node_refinements) +
+                " node_coarsenings=" + std::to_string(spread.n_node_coarsenings) +
+                " penalty_escalations=" + std::to_string(spread.n_penalty_escalations) +
+                " node_adaptive_used=" + std::to_string(spread.node_adaptive_used) +
+                " h_eff=" + std::to_string(spread.node_spacing_deg) +
+                " lambda_eff=" + std::to_string(spread.roughness_penalty));
             if (src != P2_SKY_PLANE_OK) {
                 log("[sky_plane] build FAILED rc=" + std::to_string(src) + " " +
                     std::string(sperr) + " -> fallback to UPM C field");
@@ -488,6 +583,9 @@ int main(int argc, char** argv) {
                 log("[sky_plane] ok n_used=" + std::to_string(spinfo.n_used) +
                     " n_nodes=" + std::to_string(spinfo.n_nodes) +
                     " n_frames=" + std::to_string(spinfo.n_frames) +
+                    " kappa=" + std::to_string(spinfo.kappa) +
+                    " rank_solve=" + std::to_string(spinfo.rank_solve) +
+                    " node_spacing_deg=" + std::to_string(spinfo.node_spacing_deg) +
                     " rms_w=" + std::to_string(spinfo.rms_weighted) +
                     " hash=" + std::string(spinfo.model_hash, 12));
                 sky_guard.reset(spm);

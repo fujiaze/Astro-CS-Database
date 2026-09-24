@@ -45,3 +45,25 @@ endforeach()
 add_test(NAME v6_p2_sky_node_adapt_all COMMAND v6_p2_sky_node_adapt_test all)
 set_tests_properties(v6_p2_sky_node_adapt_all PROPERTIES LABELS "v6_p2_sky;upm_node_adapt")
 
+# ---------------------------------------------------------------------------
+# CHAIN-WIRE-ADAPT-01（W4/W5）：节点间距所需的**输入几何**由产品自身导出。
+# 被测面 = stage2_common.h 的 p2_sky_plane_geometry_from_controls（生产编排
+# upm-fit 节点与 astrocs-stage2 的同一实现路径）。正例 + 单指向退化 + 负例。
+# ---------------------------------------------------------------------------
+add_executable(v6_p2_sky_geometry_test v6_p2_sky_geometry_test.cpp)
+target_include_directories(v6_p2_sky_geometry_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/coverage/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/third_party)
+target_link_libraries(v6_p2_sky_geometry_test PRIVATE astrocs_phase2)
+if(UNIX)
+  target_link_libraries(v6_p2_sky_geometry_test PRIVATE m)
+endif()
+
+foreach(case geometry_positive geometry_single_pointing geometry_negative)
+  add_test(NAME v6_p2_sky_${case} COMMAND v6_p2_sky_geometry_test ${case})
+  set_tests_properties(v6_p2_sky_${case} PROPERTIES LABELS "v6_p2_sky;upm_node_adapt")
+endforeach()
+add_test(NAME v6_p2_sky_geometry_all COMMAND v6_p2_sky_geometry_test all)
+set_tests_properties(v6_p2_sky_geometry_all PROPERTIES LABELS "v6_p2_sky;upm_node_adapt")
+

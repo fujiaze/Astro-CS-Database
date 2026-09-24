@@ -3359,6 +3359,369 @@ static void test_ivar002_frame_variance_block_wiring() {
   cleanup_fixture(fx2);
   cleanup_fixture(fx3);
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// CHAIN-WIRE-ADAPT-01（生产编排接线验收）
+//   W1: var_diag 段补写 §5d 审计字段 + hull_nonpositive_frac != 0 时 fail-closed
+//   W2: p1_final.json 的方差面真值来自**实读落盘 tile**（不再恒 true / 不再
+//       用「文件数 == signal 文件数」冒充「有不确定度」）
+//   W3: 逐星掩膜标度对齐到与 SNR 节点同一口径（§5a 半径式必须对标度不变）
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 逐 tile 指定方差的 HiPS 直写（W2 夹具；variance_adu2[k]==0 ⇒ 该 tile 是
+// §4a 的「有覆盖但方差不可用」合法产品态 = 全零 variance tile）。
+static bool write_sparse_hips_var_per_tile(const std::string& root,
+                                           const std::vector<SparseTile>& tiles,
+                                           const std::vector<double>& variance_adu2) {
+  const uint32_t nside = 512;
+  const double a_cell = 4.0 * 3.14159265358979323846 /
+                        (12.0 * static_cast<double>(nside) *
+                         static_cast<double>(nside));
+  std::vector<drizzle::TileAccumulatorT<float>> accs;
+  for (size_t ti = 0; ti < tiles.size(); ++ti) {
+    const SparseTile& t = tiles[ti];
+    const double v = (ti < variance_adu2.size()) ? variance_adu2[ti] : 0.0;
+    drizzle::TileAccumulatorT<float> acc;
+    acc.parent_ipix = t.parent;
+    acc.pixels.resize(512u * 512u);
+    for (uint64_t k = 0; k < t.cover; ++k) {
+      const uint64_t i = t.offset + k;
+      const double area = (static_cast<double>(t.support) / 255.0) * a_cell;
+      acc.pixels[i].sumFlux = static_cast<float>(kA15SignalV);
+      acc.pixels[i].sumArea = static_cast<float>(area);
+      acc.pixels[i].sumVarNum = static_cast<float>(v * area * area);
+      acc.pixels[i].nContrib = 1;
+      acc.touched.push_back(static_cast<uint32_t>(i));
+    }
+    accs.push_back(std::move(acc));
+  }
+  drizzle::DrizzleConfig cfg;
+  cfg.nside = static_cast<int>(nside);
+  cfg.tile_depth = 9;
+  std::string err;
+  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", 1, err);
+  if (!ok) std::fprintf(stderr, "W2 fixture write_hips_phase1 failed: %s\n", err.c_str());
+  std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
+  if (sf)
+    sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside
+       << ",\"bunit\":\"ADU/sr\"}";
+  return ok;
+}
+
+// 独立普查：直接读落盘的 variance 叶 tile 逐像素判三态（**不**消费被测节点的
+// 输出），用于给被测节点一个非同源的期望值（避免恒真门）。
+struct VarTileCensus {
+  int64_t tiles_with_data = 0;
+  int64_t tiles_all_unavailable = 0;
+  int64_t usable = 0, unavailable = 0, uncovered = 0, corrupt = 0;
+};
+static VarTileCensus census_variance_tiles(const std::string& root,
+                                           const std::vector<uint64_t>& tiles) {
+  VarTileCensus c;
+  for (uint64_t t : tiles) {
+    std::vector<float> v;
+    if (!hips_tile_product(root, "variance", t, &v)) continue;
+    int64_t usable = 0, unavail = 0, uncov = 0, corrupt = 0;
+    for (float x : v) {
+      if (std::isnan(x)) { ++uncov; continue; }
+      if (x == 0.0f) { ++unavail; continue; }
+      if (x < 0.0f || !std::isfinite(x)) { ++corrupt; continue; }
+      ++usable;
+    }
+    c.usable += usable; c.unavailable += unavail;
+    c.uncovered += uncov; c.corrupt += corrupt;
+    if (usable > 0) ++c.tiles_with_data;
+    else if (unavail > 0) ++c.tiles_all_unavailable;
+  }
+  return c;
+}
+
+static json run_writer_node(ModuleRegistry& reg, const Fixture& fx,
+                            Result<void>* rc_out) {
+  RunContext ctx;
+  const std::string cfg = std::string("{\n  \"input_lights\": [\"") + fx.light1 +
+                          "\"],\n  \"output_dir\": \"" + fx.out_dir +
+                          "\",\n  \"filter_passband\": \"R\"\n}";
+  return run_node(reg, "astrocs.phase1.writer", cfg, ctx, rc_out);
+}
+
+// ── W1: §5d 审计字段 + fail-closed（判据能红能绿）──────────────────────────
+static void test_chain_wire_w1_varplane_audit_failclosed() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string wcs =
+      std::string("\"wcs\": {\"crpix1\": 16.0, \"crpix2\": 16.0, \"crval1\": 10.0,"
+                  " \"crval2\": 20.0, \"cd11\": -0.02, \"cd12\": 0.0,"
+                  " \"cd21\": 0.0, \"cd22\": 0.02}");
+  auto drz_cfg = [&](const Fixture& fx) {
+    return std::string("{\n  \"input_lights\": [\"") + fx.light1 +
+           "\"],\n  \"output_dir\": \"" + fx.out_dir + "\",\n  " + wcs +
+           ",\n  \"drizzle\": {\"nside\": 512, \"nested\": 1, \"pixfrac\": 1.0,"
+           " \"precision_mode\": 0}\n}";
+  };
+  // (a) 绿：正常帧 ⇒ §5d 审计量逐项落 provenance，且凸包内负区为 0（判据不动作）
+  {
+    Fixture fx = make_fixture("chainw1ok");
+    write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    RunContext ctx;
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    CHECK_MSG(rc.ok(), ("W1(a): drizzle must succeed: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    const json vf = man.value("variance_product_frames", json::array());
+    CHECK_MSG(vf.size() == 1, "W1(a): per-frame variance audit must have 1 entry");
+    if (!vf.empty()) {
+      const json& e = vf[0];
+      // §5d「可观测量（必须写入 provenance）」逐项：缺任一项即不可审计
+      for (const char* k : {"n_structure_rejected_patches", "r_median", "r_fence",
+                            "ctrl_variance_range", "hull_nonpositive_frac",
+                            "plane_a", "plane_b", "plane_c", "r_min", "r_max",
+                            "hull_min_pred", "n_r_unavailable_patches"}) {
+        CHECK_MSG(e.contains(k), ("W1(a): §5d audit key missing: " + std::string(k)).c_str());
+      }
+      CHECK_MSG(e.value("status", std::string()) == "attached",
+                "W1(a): an auditable plane must be attached (green side)");
+      CHECK_MSG(e.value("hull_nonpositive_frac", -1.0) == 0.0,
+                "W1(a): §5d non-negative fit must give hull_nonpositive_frac == 0");
+      CHECK_MSG(e.value("ctrl_variance_range", 0.0) > 0.0,
+                "W1(a): control-point variance dynamic range must be positive");
+      CHECK(!e.contains("variance_plane_fault_injected"));
+    }
+    cleanup_fixture(fx);
+  }
+  // (b) 红：注入 hull_nonpositive_frac != 0 ⇒ 该帧方差面不可审计 ⇒ fail-closed
+  //     （不挂 variance 块、显式登记、signal/support 不受影响）。
+  //     注入面是必要的：§5d 的非负拟合使生产数据上该量恒为 0，没有注入就无法
+  //     证明这条判据是活的（否则它与恒真门不可区分）。
+  {
+    Fixture fx = make_fixture("chainw1red");
+    write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    ::setenv("ASTROCS_VARPLANE_FAULT", "force_not_auditable", 1);
+    RunContext ctx;
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    ::unsetenv("ASTROCS_VARPLANE_FAULT");
+    CHECK_MSG(rc.ok(), "W1(b): an unauditable variance plane must not abort the frame"
+                       " (signal/support product face is independent)");
+    const json vf = man.value("variance_product_frames", json::array());
+    CHECK(!vf.empty());
+    if (!vf.empty()) {
+      CHECK_MSG(vf[0].value("status", std::string()) ==
+                    "skipped_variance_plane_not_auditable",
+                ("W1(b): unauditable plane must fail closed, got " +
+                 vf[0].value("status", std::string())).c_str());
+      CHECK_MSG(vf[0].value("variance_plane_audit_failed", false) == true,
+                "W1(b): the fail-closed decision must be registered");
+      CHECK_MSG(vf[0].value("hull_nonpositive_frac", 0.0) != 0.0,
+                "W1(b): the effective (gated) audit value must be recorded");
+    }
+    CHECK_MSG(!fs::exists(fs::path(frame_root(fx) + "/variance/properties")),
+              "W1(b): an unauditable plane must not publish a variance product");
+    // signal/support 必须完好（与其余 fail-closed 分支同口径）
+    const std::vector<std::string> st = hips_leaf_tiles(frame_root(fx), "signal");
+    CHECK_MSG(!st.empty(), "W1(b): signal product must survive the fail-closed skip");
+    cleanup_fixture(fx);
+  }
+}
+
+// ── W2: 方差面真值 = 实读落盘 tile 的普查（红/绿两侧）──────────────────────
+static void test_chain_wire_w2_variance_census_from_disk() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  // (a) 混合帧：tile0 有可用方差、tile1 整块不可用 ⇒ 真值必须暴露两者
+  {
+    Fixture fx = make_fixture("chainw2mix");
+    const std::vector<SparseTile> tiles = {{0, 0, 512, 255}, {1, 0, 512, 255}};
+    const std::vector<double> vs = {kIvarVarAdu2, 0.0};
+    CHECK_MSG(write_sparse_hips_var_per_tile(frame_root(fx), tiles, vs),
+              "W2(a): mixed variance fixture must be written");
+    const VarTileCensus truth = census_variance_tiles(frame_root(fx), {0, 1});
+    CHECK_MSG(truth.tiles_with_data == 1 && truth.tiles_all_unavailable == 1,
+              "W2(a): independent census must see 1 informative + 1 all-zero tile");
+    Result<void> rc;
+    json wman = run_writer_node(reg, fx, &rc);
+    CHECK_MSG(rc.ok(), ("W2(a): writer must accept the mixed variance product: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    json fin = json::object();
+    try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) { CHECK(false); }
+    // 产品集在位（文件数语义不变）与「信息可用」判据分开
+    CHECK_MSG(fin.value("n_variance_tiles", -1) == 2 &&
+                  fin.value("n_tiles", -2) == 2,
+              "W2(a): n_variance_tiles keeps its on-disk file-count meaning");
+    CHECK_MSG(fin.value("n_variance_tiles_with_data", -1) == 1,
+              "W2(a): informative tile count must come from the on-disk plane");
+    CHECK_MSG(fin.value("n_variance_tiles_all_unavailable", -1) == 1,
+              "W2(a): all-zero tile count must come from the on-disk plane");
+    CHECK_MSG(fin.value("variance_usable_pixels", -1) == truth.usable,
+              "W2(a): usable pixel census must match the independent read");
+    CHECK_MSG(fin.value("variance_unavailable_pixels", -1) == truth.unavailable,
+              "W2(a): unavailable pixel census must match the independent read");
+    CHECK_MSG(fin.value("variance_census_available", false) == true,
+              "W2(a): the census itself must be marked as performed");
+    CHECK_MSG(fin.value("uncertainty_available", false) == true,
+              "W2(a): one informative tile is enough to claim uncertainty available");
+    CHECK_MSG(wman.value("n_variance_tiles_all_unavailable", -1) == 1,
+              "W2(a): the node manifest must carry the same truth");
+    cleanup_fixture(fx);
+  }
+  // (b) 红：variance/ivar 子产品在位但**整块**不可用 ⇒ 旧实现恒报 true，
+  //     现在必须报 false（§7 对外产品面 + §5d 可审计性）。
+  {
+    Fixture fx = make_fixture("chainw2zero");
+    const std::vector<SparseTile> tiles = {{0, 0, 512, 255}, {1, 0, 512, 255}};
+    const std::vector<double> vs = {0.0, 0.0};
+    CHECK_MSG(write_sparse_hips_var_per_tile(frame_root(fx), tiles, vs),
+              "W2(b): all-unavailable variance fixture must be written");
+    const VarTileCensus truth = census_variance_tiles(frame_root(fx), {0, 1});
+    CHECK_MSG(truth.tiles_all_unavailable == 2 && truth.usable == 0,
+              "W2(b): independent census must see 2 all-zero tiles");
+    CHECK_MSG(fs::exists(fs::path(frame_root(fx) + "/variance/properties")) &&
+                  fs::exists(fs::path(frame_root(fx) + "/ivar/properties")),
+              "W2(b): an all-zero variance product is a legal §4a product state"
+              " (must exist on disk)");
+    Result<void> rc;
+    json wman = run_writer_node(reg, fx, &rc);
+    CHECK_MSG(rc.ok(), "W2(b): writer must accept the legal all-unavailable product");
+    json fin = json::object();
+    try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) { CHECK(false); }
+    CHECK_MSG(fin.value("uncertainty_available", true) == false,
+              "W2(b): RED-SIDE — an all-unavailable variance plane must NOT be"
+              " reported as uncertainty_available=true (old code always said true)");
+    CHECK_MSG(fin.value("n_variance_tiles_with_data", -1) == 0,
+              "W2(b): zero informative tiles must be reported as zero");
+    CHECK_MSG(fin.value("n_variance_tiles_all_unavailable", -1) == 2,
+              "W2(b): both tiles must be reported as all-unavailable");
+    CHECK_MSG(fin.value("variance_usable_pixels", -1) == 0,
+              "W2(b): zero usable pixels");
+    // 产品集声明面仍按「子产品在位」给（单位必须声明，否则 Phase3 语义守卫拒收）
+    const json want = json::array({"signal", "support", "variance", "ivar"});
+    CHECK_MSG(fin.value("products", json::array()) == want,
+              "W2(b): the on-disk product set must still be reported in full");
+    CHECK_MSG(fin.value("units", json::object())
+                  .value("variance_bunit", std::string()) == "ADU^2/sr^2",
+              "W2(b): units must stay declared while the sub-products exist");
+    CHECK_MSG(wman.value("uncertainty_available", true) == false,
+              "W2(b): the node manifest must report the same truth");
+    cleanup_fixture(fx);
+  }
+}
+
+// ── W3: 逐星掩膜标度必须与 SNR 节点同口径（§5a 半径式对整体标度不变）──────
+// 夹具：256x256 单星帧。ADU 面（无测光 provenance）与 photoapplied 面
+// （α·ADU，α = photscal）必须给出**同一个** mask_radius_p50：§5a 的 Moffat
+// 半径式只依赖无量纲比值 F/σ_bg，故它对整体线性标度严格不变。
+// 改前：α 面把 ADU 标度的 flux 直接喂给 α·ADU 标度的 σ_bg ⇒ 比值放大 1/α
+// ⇒ 半径一律顶到硬上界 60 px（run/SCI-VAR-ZERO-01 §3.1 实测恒为 60.000000）。
+constexpr int kMaskW = 256, kMaskH = 256;
+struct MaskField { float bg; float amp; float x0; float y0; float alpha; float noise; };
+inline float mask_field_pixel(int i, void* user) {
+  auto* mf = static_cast<MaskField*>(user);
+  const int x = i % kMaskW, y = i / kMaskW;
+  const double dx = static_cast<double>(x) - mf->x0;
+  const double dy = static_cast<double>(y) - mf->y0;
+  const double g = mf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  // 必须有非零空背景散布：§5a 的半径式以 k·σ_bg 为分母，σ_bg=0 时半径无定义
+  // （会被 clip 到硬上界，那是「无信息」而不是「半径很大」）。
+  const double n = mf->noise * fixture_gauss(static_cast<uint32_t>(i) * 2u + 7u);
+  return static_cast<float>((mf->bg + g + n) * mf->alpha);
+}
+static void test_chain_wire_w3_mask_radius_scale_invariance() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const double alpha = 1.0e-17;   // 与生产 frame_photscal 同量级
+  auto make = [&](const char* tag) {
+    Fixture f;
+    f.dir = fs::temp_directory_path() /
+            ("p1001_chainw3_" + std::string(tag) + "_" + std::to_string(P1001_GETPID));
+    std::error_code ec;
+    fs::create_directories(f.dir, ec);
+    f.light1 = (f.dir / "light_1.fits").string();
+    f.out_dir = f.dir.string();
+    MaskField mf{100.0f, 5000.0f, 128.0f, 128.0f, 1.0f, 5.0f};
+    CHECK(p1sess::write_fits_file(f.light1, kMaskW, kMaskH, mask_field_pixel, &mf,
+                                  0, 60.0) == 0);
+    return f;
+  };
+  auto sources = [&](const Fixture& f) {
+    write_p1_sources(f, "cleaned_light_1.fits", {{128.0, 128.0, 5000.0, 3.0}});
+  };
+  const std::string wcs =
+      std::string("\"wcs\": {\"crpix1\": 128.0, \"crpix2\": 128.0,"
+                  " \"crval1\": 10.0, \"crval2\": 20.0,"
+                  " \"cd11\": -0.00025, \"cd12\": 0.0,"
+                  " \"cd21\": 0.0, \"cd22\": 0.00025}");
+  auto drz_cfg = [&](const Fixture& fx) {
+    return std::string("{\n  \"input_lights\": [\"") + fx.light1 +
+           "\"],\n  \"output_dir\": \"" + fx.out_dir + "\",\n  " + wcs +
+           ",\n  \"drizzle\": {\"nside\": 512, \"nested\": 1, \"pixfrac\": 1.0,"
+           " \"precision_mode\": 0}\n}";
+  };
+  double r_adu = -1.0, r_scaled = -1.0, frac_adu = -1.0, frac_scaled = -1.0;
+  // (a) ADU 面（data_scale = 1）
+  {
+    Fixture fx = make("adu");
+    sources(fx);
+    RunContext ctx;
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    CHECK_MSG(rc.ok(), ("W3(a): drizzle must succeed: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    const json vf = man.value("variance_product_frames", json::array());
+    if (!vf.empty()) {
+      r_adu = vf[0].value("mask_radius_p50", -1.0);
+      frac_adu = vf[0].value("mask_frac", -1.0);
+    }
+    CHECK_MSG(r_adu > 0.0 && r_adu < 60.0,
+              ("W3(a): the per-star §5a radius must actually take effect on the ADU"
+               " face (got " + std::to_string(r_adu) + ")").c_str());
+    cleanup_fixture(fx);
+  }
+  // (b) photoapplied 面（data_scale = alpha）⇒ 同一物理输入必须给同一半径
+  {
+    Fixture fx = make("scaled");
+    sources(fx);
+    MaskField mf{100.0f, 5000.0f, 128.0f, 128.0f, static_cast<float>(alpha), 5.0f};
+    CHECK(p1sess::write_fits_file(fx.out_dir + "/photoapplied_light_1.fits", kMaskW,
+                                  kMaskH, mask_field_pixel, &mf, 0, 60.0) == 0);
+    {
+      std::ofstream o(fx.out_dir + "/p1_phot.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"astrocs.phase1.photometry",)"
+           R"("operation":"measure_flux","photometry_applied":true,"photscal":)"
+        << alpha << R"(,"pixel_scaling":"applied"})";
+    }
+    RunContext ctx;
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+    CHECK_MSG(rc.ok(), ("W3(b): drizzle must succeed on the photoapplied face: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    const json vf = man.value("variance_product_frames", json::array());
+    if (!vf.empty()) {
+      r_scaled = vf[0].value("mask_radius_p50", -1.0);
+      frac_scaled = vf[0].value("mask_frac", -1.0);
+    }
+    CHECK_MSG(r_scaled < 60.0,
+              ("W3(b): RED-SIDE — the mask radius must no longer saturate the 60 px"
+               " hard cap on the scaled face (got " + std::to_string(r_scaled) +
+               ")").c_str());
+    // 容差 1e-5（相对）：被测缺陷的信号是 60 vs 9.42（相对差 5.4 倍），而两条
+    // 路径的数值差异只来自**数组自身的 float32 表示**（α·ADU 面的 7 位有效数字）
+    // 经 MAD-σ 与 σ^(1/β) 幂律的传播 ⇒ 实测相对差见日志；1e-5 比 float32 eps
+    // (1.2e-7) 高两个数量级、比缺陷信号低五个数量级，判别力不受影响。
+    const double rel = (r_adu > 0.0) ? std::fabs(r_scaled - r_adu) / r_adu : 1.0;
+    std::fprintf(stderr, "[CHAIN-WIRE-W3] r_adu=%.17g r_scaled=%.17g rel=%.3e\n",
+                 r_adu, r_scaled, rel);
+    CHECK_MSG(r_adu > 0.0 && r_scaled > 0.0 && rel <= 1e-5,
+              ("W3(b): §5a radius must be invariant under the frame's linear scale"
+               " (ADU r=" + std::to_string(r_adu) + " vs scaled r=" +
+               std::to_string(r_scaled) + ", rel=" + std::to_string(rel) + ")").c_str());
+    CHECK_MSG(frac_adu > 0.0 && frac_scaled > 0.0 &&
+                  std::fabs(frac_scaled - frac_adu) <= 1e-6 * frac_adu,
+              ("W3(b): mask_frac must be invariant too (ADU " +
+               std::to_string(frac_adu) + " vs scaled " +
+               std::to_string(frac_scaled) + ")").c_str());
+    cleanup_fixture(fx);
+  }
+}
+
 // ── P0-21: 一组进一组出（ASTROCS_DESIGN §3.4「输出基数」）────────────────
 // 缺陷: drizzle/wcs 只取 input_lights[0] ⇒ N 帧只产 1 个 HiPS, 静默丢弃 N-1 帧
 // （L4 实测 49 帧只产 12 个产品）。本用例锁定:
@@ -4427,6 +4790,10 @@ int main() {
   test_ivar001_phase1_variance_products();
   // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / ASTROCS_DESIGN §8.2）
   test_ivar002_frame_variance_block_wiring();
+  // CHAIN-WIRE-ADAPT-01: 生产编排接线（§5d 审计 + 方差面真值 + 掩膜标度）
+  test_chain_wire_w1_varplane_audit_failclosed();
+  test_chain_wire_w2_variance_census_from_disk();
+  test_chain_wire_w3_mask_radius_scale_invariance();
   test_b2a17_sip_bridge();
   // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性
   test_p17_nside_sampling_compliance();
