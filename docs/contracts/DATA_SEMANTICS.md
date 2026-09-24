@@ -571,6 +571,50 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 `snr.max_sources` 截断交付样本时 `truncated=true` 且上述数值**确实不同**
 （证明 parity 锁非恒真）。
 
+### 13.5 背景方差面的 §5d 审计 provenance（DATA-P1-VARIANCE-AUDIT）
+
+> 正本 = `docs/science/NOISE_MODEL.md` §5d。落点：生产者 `p1_op_drizzle` 写
+> `<帧>/p1_stack.json#variance_audit`，消费/校验者 `p1_op_writer` 从**磁盘**读回并写
+> `<帧>/p1_final.json#variance_audit`（节点 manifest 在本链上不落盘，故产品面是唯一载体）。
+> 键名与清单的**唯一权威** = `astrocs::noise::variance_audit_required_fields()`
+> （`lib/algorithms/noise_snr/include/astrocs/noise/variance_plane_policy.h`）：
+> 生产者、校验者、产品级检查器与测试**必须**引用同一份，**不得**各写一份。
+
+块内**必落字段**（缺任一即该帧方差面**不可审计**）：
+
+| 键 | dtype | 单位/值域 | 语义 |
+|---|---|---|---|
+| `ctrl_variance_range` | f64 | 无量纲（比值） | 控制点方差动态范围 `max/min`（拟合输入，剔除后） |
+| `plane_a` / `plane_b` / `plane_c` | f64 | ADU²（本模型数组标度） | 拟合平面 `var(x,y) = a + b·x + c·y` 的系数（与 fill 逐像素求值同一表达式） |
+| `hull_nonpositive_frac` | f64 | 面积占比 [0,1] | 控制点凸包内 `{预测 ≤ 0}` 的占比；非负约束下**恒为 0**（0 是约束的**定义值**，不是可调门限，故判据取严格等于 0） |
+| `n_structure_rejected_patches` | u32 | 个 | 自校准 `R` 判据剔除的 patch 数 |
+| `r_min` / `r_median` / `r_max` | f64 | 无量纲 | `R` 分布（剔除前的合格 patch）最小 / 稳健中位数 / 最大 |
+| `r_fence` | f64 | 无量纲 | 生效的自校准栅栏；判据未动作时 = 所考察的最紧栅栏（审计下界） |
+
+同层平铺的四个状态键（逐帧）：
+
+| 键 | dtype | 语义 |
+|---|---|---|
+| `variance_audit_present` | bool | 上游 `p1_stack.json` 是否携带该块 |
+| `variance_audit_available` | bool | 块在位**且**必落字段齐全（**逐字段**判，不由生产者自报的布尔值代替） |
+| `variance_audit_missing_fields` | string[] | 缺哪些必落字段。**逐字段查产品**：块整个不在 ⇒ 清单**全缺**（不是「无字段可缺」），使同一句话在两种缺法下都成立且可机检 |
+| `variance_audit_source` | string | 内容来源（= `p1_stack.json#variance_audit`） |
+
+- 判据的**零假设值恒为 1**（`R = σ_MAD / σ_white-equiv` 是恒等式，不是按数据集标定的值）
+  ⇒ **禁止**把 `R` 与任何写死的绝对倍数比较（如 `R > 3`）；**禁止**回退常数场；
+  拟合必须在控制点凸包内**结构非负**。
+- **失败语义（fail-closed）**：本帧**已发布** variance/ivar 子产品而 `variance_audit_present == false`，
+  或块在位但其 `status` 声称已挂方差面而 `variance_audit_missing_fields` 非空 ⇒ 判红
+  （DATA 类：节点失败，`p1_final.json` 不落盘）。本帧**未**发布方差面时如实登记，
+  **不得**把「本次没有这张面」读成「字段丢了」。
+- **额外诊断（不进必落清单）**：`n_r_unavailable_patches`（`R` 不可算的 patch 数，**不**被 R 判据剔除）、
+  `hull_min_pred`（凸包内最小平面预测）、`schema` / `clause` / `status` / `reason` /
+  `degenerate` / `auditable` / `plane_used` / `required_fields`。
+- **失败标记与注入键**：`variance_plane_audit_failed` = 凸包内占比非零 ⇒ 该帧**拟合不可审计**、
+  不挂 variance 块（`status = skipped_variance_plane_not_auditable`）；
+  `variance_plane_fault_injected` / `variance_audit_dropped_injected` 是**仅测试**的故障注入标记
+  （由环境变量触发，生产默认不可达），**不得**出现在正常产品里。
+
 ## 14. Phase1 photometry 模块输入/输出数据（DATA-P1-PHOT）
 
 > ID: DATA-P1-PHOT  状态: CONTRACT_READY
@@ -2139,6 +2183,62 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
   占位）端口表 samples→upm_model 为编排层词汇，由 P2-XX-INT 对齐
   astrocs.p2.upm-fit，不得反向作为冻结依据。
 
+### 25.7 p2_upm_model.json 的可辨识性段与产品级警告（DATA-P2-UPM）
+
+> 载体 = 编排产物 `<out_dir>/p2_upm_model.json`（`schema = "DATA-P2-UPM"`）——与 §25.5(1) 的
+> 求解器持久化文件 `p2_upm_model.bin`（`format = "astrocs-upm-v2"`）**是两个载体**：前者是产品面，
+> 后者是模型本体（`p2_upm_save` 同样携带本段）。访问器 = `p2_upm_identifiability` /
+> `p2_upm_warnings_json`（`lib/algorithms/coverage/include/astro/phase2/upm.h`）。
+> 判据口径 = `p2_identifiability_assess`：判在**未正则化**的列均衡数据信息矩阵上，唯一相对阈值
+> `rank_rtol`（地板 `max(m,n)·eps`），`identifiable ⟺ rank_eff == n_params ⟺ kappa < 1/rank_rtol`。
+
+**(1) `identifiability` 段**
+
+| 键 | dtype | 语义 |
+|---|---|---|
+| `n_blocks` | u64 | 参与判据的 control 块数（有观测的 control） |
+| `n_params` | u64 | Σ\|块参数数\| |
+| `rank_eff` | u64 | Σ 块 `r_eff`（有效秩**计数**） |
+| `n_unidentified` | u64 | `n_params − rank_eff`（未被数据约束的方向数） |
+| `n_blocks_rank_deficient` | u64 | 定 gauge 后 `r_eff(块) < \|块\|` 的块数 |
+| `n_blocks_single_frame` | u64 | 只被 1 帧观测的块数（具名，便于读者判断红是否由该文档化降级驱动） |
+| `n_unobserved_geometry_nodes` | u64 | 无观测几何节点（harmonic continuation 填充，**不参与**判据、**不混进** `n_unidentified`） |
+| `rank_rtol` / `rank_rtol_effective` | f64 | 请求的 τ / 实际生效的 τ |
+| `kappa` | f64 / **null** | `max_k κ(块 k)`；**秩亏块 ⇒ 发散 ⇒ 写 `null`**（见 (3)） |
+| `chi2` | f64 | `Σ (r/σ_eff)²`（标准化残差平方和） |
+| `dof_eff` | f64 | `n_obs − rank_eff`（Andrae et al. 2010 式 (9)） |
+| `chi2_red` | f64 / **null** | `chi2/dof_eff`；`dof_eff <= 0` ⇒ **无定义 ⇒ 写 `null`** |
+| `chi2_red_defined` | bool | `false` = `chi2_red` 无定义（**不得**写 0 冒充完美拟合） |
+| `objective` / `iterations` / `converged` / `rel_improve` | f64 / i32 | 末轮 Huber 目标（ADU²）/ IRLS 迭代数 / 状态枚举（`0=max_iter`、`1=converged`、`2=stalled`、`3=invalid`）/ 末轮目标相对改善量 |
+| `identifiable` | bool | **唯一判决位** |
+| `coupling_assembled` | bool | `false` = `smoothing_lambda > 0` 时块间耦合**未装配**（如实登记边界，不声称判据已含耦合项） |
+
+**(2) 产品级警告块**（`p2_upm_warnings_json` 的输出在顶层平铺）：`warnings[]`（对象数组）、
+`warning_codes[]`（字符串数组）、`upm_converged_warning`（bool）、
+`upm_identifiable_warning`（bool）。警告码 = `P2-UPM-NOT-CONVERGED`（`converged != 1`）与
+`P2-UPM-NOT-IDENTIFIABLE`（`identifiable == false`）。每条 `warnings[]` 条目带
+`code` / `severity` / `meaning` 与**全部解读读数**（`converged` / `iterations` / `objective` /
+`rel_improve` / `scale_obs` / `stall_count`；判红条目另带 `rank_eff` / `n_params` /
+`n_unidentified` / `n_unidentified_raw` / `n_blocks_rank_deficient` / `n_blocks_gauge_pinned` /
+`n_blocks_single_frame` / `n_unobserved_geometry_nodes` / `rank_rtol_effective` / `kappa` /
+`chi2` / `chi2_red` / `chi2_red_defined` / `dof_eff`）。
+**语义：只描述状态，不改变构建 rc**（构建仍成功）；**无警告时两个数组为空数组**，
+是可断言的成功态——不存在「没写就是没问题」的歧义。
+
+**(3) 「发散」与「缺失」必须分开读**
+
+| 形态 | 读法 |
+|---|---|
+| `kappa = null` 且 `identifiability` 段**在位** | 量**存在但发散**（秩亏块上 κ = +∞；JSON 不能表示非有限值）⇒ 如实写 `null`，**不是**字段缺失 |
+| `chi2_red = null` 且 `chi2_red_defined = false` | χ²_red **无定义**（`dof_eff <= 0`）⇒ **不得**读成 0、**不得**读成缺失 |
+| `identifiability` 段**不在位**（口径统一之前落盘的产品） | 该段**具名不可得**：消费侧落 `rank_unavailable_reason` / `kappa_unavailable_reason` / `unavailable_fields`，**不得**静默缺键、**不得**由权重标量反推 |
+| 键存在且为有限数 | 真值 |
+
+- **λ 不是自由参数**：粗糙度惩罚已退休，数值岭由判据阈值派生（`λ_eff = τ·mean(diag(H_red))`），
+  没有配置面；**不得**设绝对条件数上限（`kappa_max` 类），**不得**在加了正则化的求解矩阵上设门。
+- 产品级摘要 `p2_final.json#phase2_audit`（§30.3）从**磁盘产品**读回本段，不做节点间内存传递；
+  κ 为 `null` 时审计块另记 `kappa_infinite = true` 与具名说明，且**不**把 κ 计入 `missing_fields`。
+
 ## 26. Phase2 UPM apply（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-COR）
 
 > ID: DATA-P2-COR  状态: CONTRACT_READY
@@ -2711,6 +2811,37 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
   禁命令占位/静默缺键/空输出冒充）。
 - **原子发布边界不变**: 本键写入不改变 §20.3 原子发布归属（IO-003 编排层，
   DISP-P2HIPS-003 整改去向不变）。
+
+**阶段二审计块（`p2_final.json#phase2_audit`，`schema = "DATA-P2-AUDIT"`）**：产品级摘要
+（DATA-P2-RES，与 `p2_upm_model.json` / `p2_sky_plane.bin` 同目录同生命周期）承载的
+**可辨识性 / 表示能力 provenance**。内容**全部从磁盘产品读回**，不做节点间内存传递。
+结构 = `solvers.sky_plane` + `solvers.upm_gls` + `missing_fields` + `audit_complete`：
+
+| 子块键 | 语义 |
+|---|---|
+| `solvers.sky_plane.present` / `reason` | 本次是否建了天光面；`false` 时给具名原因（未启用 / 上游构建失败 / 产物不可用）。**「无此产品」≠「字段丢了」** |
+| `solvers.sky_plane.kappa` / `kappa_data` | 判据读数 `κ(H_red)`；`kappa_data` 是与 `kappa` **逐位相等**的兼容别名（新口径下判据矩阵就是 `H_red`，两键同值） |
+| `solvers.sky_plane.rank` / `n_params` / `rank_solve` | `r_eff(H_red)`（**计数**）/ 判据矩阵的阶（= `n_free`）/ `r_eff(H_solve)`（诊断） |
+| `solvers.sky_plane.rank_rtol` | 生效的唯一阈值 τ，取**产品里的实际值**（地板 = `max(m,n)·eps`，可被输入覆盖），不是冻结字面量 |
+| `solvers.sky_plane.chi2_red` / `rms_weighted` / `iterations` / `model_hash` / `gauge_mode` | 拟合质量与身份读数 |
+| `solvers.sky_plane.n_nodes` / `n_samples` / `n_used` / `n_masked` / `n_rejected` | 规模与掩膜/剔除计数 |
+| `solvers.sky_plane.node_spacing_deg` / `node_spacing_source` / `node_spacing_upper_deg` / `node_spacing_lower_deg` | 节点间距的**生效值**与导出依据（表示能力的唯一决定量） |
+| `solvers.sky_plane.adaptive.*` | 自适应回路记录：`n_attempts` / `node_adaptive_used` / `n_node_refinements` / `n_node_coarsenings` / `representation_limited` / `clamped_to_upper` / `constraining_scale_deg` / `residual_improve_ratio` / `lambda_numerical` / `kappa` / `kappa_solve` / `rank` / `n_params` / `n_unidentified` / `identifiable` / `attempts[]`（逐次尝试的节点间距 / λ / κ / `rank` / 残差 / `rc` / `action` / `adopted`） |
+| `solvers.upm_gls.rank` / `n_params` / `n_unidentified` / `identifiable` / `kappa` | 从 `p2_upm_model.json#identifiability` 读回（`rank` 是 `rank_eff` 的**映射键**：审计块统一叫 `rank`） |
+| `solvers.upm_gls.chi2` / `dof_eff` / `chi2_red` / `rank_rtol` / `rank_rtol_effective` | 同上（`chi2_red` 无定义时为 `null`） |
+| `solvers.upm_gls.n_blocks_rank_deficient` / `n_unobserved_geometry_nodes` | 归因读数 |
+| `solvers.upm_gls.kappa_infinite` / `kappa_note` | κ **发散**时置位并具名说明；该情形**不进** `missing_fields`（发散 ≠ 缺失，见 §25.7(3)） |
+| `solvers.upm_gls.rank_unavailable_reason` / `kappa_unavailable_reason` / `unavailable_fields` | 产品无 `identifiability` 段时的**具名不可得**（禁静默缺键） |
+| `missing_fields` / `audit_complete` | 必落字段缺失清单（子块前缀 + 字段名）/ 是否齐全 |
+
+- **必落字段**（`solvers.sky_plane` 子块）：`kappa`、`rank`、`n_params`、`chi2_red`、`node_spacing_deg`；
+  另加 `present` / `audit_available` / `required_fields` 三个自描述键。
+  `solvers.upm_gls` 子块：`converged`、`iterations`、`objective`、`model_hash`，产品带
+  `identifiability` 段时**必须**另读到 `rank`、`chi2_red`、`rank_rtol`（真值而非具名不可得）。
+- **发散 ≠ 缺失**：`kappa = null` 与「键不存在」必须分开读；缺失清单只针对**必落字段**，
+  不把「量存在但发散」计成缺失。
+- 缺任一必落字段 ⇒ 该产品的该求解器 §7a provenance **不完整**：必须登记在 `missing_fields`
+  且 `audit_complete = false`（天光面子块缺失时另在 stderr 出声）；消费方**不得**把它读成「已通过」。
 
 ### 30.4 Phase3 uncertainty 传播产品合同（DATA-P3-UNC-001）
 
