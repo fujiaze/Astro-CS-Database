@@ -26,7 +26,7 @@
 | `σ_bg` | `1.482602218505602·MAD(|x−median|)` | `noise_model.cpp:robust_sigma` |
 | `MAD` | `median(|x−median(x)|)` | 同上 |
 | `rmax` | 掩膜半径**硬上界** `max(1,r0)·max(1,scale)`（默认 60 px）；实际逐星半径 `r_i` 见 §5a | 掩膜 |
-| `a,b,c` | 最小二乘平面 `var(x,y)=a+b·x+c·y` | `snr_noise_model_v1` |
+| `a,b,c` | 稳健非负平面拟合 `var(x,y)=a+b·x+c·y`（§5d②：相对误差加权 + 凸包内恒 ≥ 0） | `snr_noise_model_v1` |
 | `variance_floor` | **可用方差**的下界（配置默认 `1e-12`，单位 ADU²；`max(var,floor)`）。**只作用于平面预测 > 0 的像素**；预测 ≤ 0 的像素方差不可用，产品面写 `variance=0 ∧ ivar=0`（§5/§7/§9）。非有限或 ≤0 一律显式拒绝，不产出模型（§4） | `default_config` |
 | `g_model_floor` | 以 `model*` 为 key 的 floor 注册表 | `noise_model.cpp:33,48,55,86,903` |
 | `gain, read_noise_e` | 增益 e-/ADU 与读出噪声 e-：**加权方差面**（§5c）的输入量；其解析式 `snr_noise_gain_variance` 与背景方差面交叉验证 | §5c / `snr_noise_gain_variance` |
@@ -51,7 +51,7 @@
 
 - 维度 `h>0,w>0`，`data` 非空且含有限值；`min_samples`（patch 样本数阈）默认 64；`rmax` 是**逐星掩膜半径的硬上界**（默认 60 px），实际半径 `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)` 由源通量、PSF 尺度与天空预算导出（§5/§5a）；调用方应提供逐星通量与 FWHM（生产调用点 psf 块 `row[2]=flux` / `row[5]=fwhm`，见 §6），未提供时按 §5a 回调规则降级并置 `MASK_LEGACY` 诊断标。**饱和域（SAT-001）**：`x ≥ saturation_level` 的像素为**饱和像素**，**不参与 blank-sky 统计**（输入有效域规则，**无条件生效**；§5 的 5σ 裁剪不是它的替代品——裁剪的崩溃点是样本中位数，饱和核+源翼一旦占 patch 多数即双双失效）。电平来源优先级 = 显式 `cfg.saturation_level>0` > 帧元数据 FITS `SATURATE` > `DATAMAX`。**`0`/负/非有限 = 「未提供电平」（unset），不等于「无饱和」**；未提供时调用方**必须**在帧产品写显式降级声明 `NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`（禁止静默），并由 §11 饱和域 oracle 的负例约束。<!-- 依据 DATA_SEMANTICS §13.1「data 行：饱和像素过滤不统计」、NOISE_ESTIMATION §13.4「饱和电平以上像素排除」；外部标准 LSST `ip_isr.IsrTaskConfig.doSaturation` 默认 `True` 且置 `SAT` 面（lsst/ip_isr isrTask.py L431-442）。 -->
 
-- 平面场仅 `enable_spatial_field==1 && n_control_points>=4` **且控制点几何张成二维**时启用，否则退化为全局常量场（`has_spatial_field=0`）；几何判据 = 中心化控制点点云 Gram 矩阵特征值比 `λlo/λhi ≥ 1/16`（等价点云条件数 `κ=√(λhi/λlo) ≤ 4`，无量纲；绝对阈值 `|det|>1e-24` 已废除，DISP-NOISE-010）。
+- 平面场仅 `enable_spatial_field==1 && n_control_points>=4`（`n_control_points` = 经 §5d① 保留的控制点数）**且控制点几何张成二维**时启用，否则退化为全局常量场（`has_spatial_field=0`）；几何判据 = 中心化控制点点云 Gram 矩阵特征值比 `λlo/λhi ≥ 1/16`（等价点云条件数 `κ=√(λhi/λlo) ≤ 4`，无量纲；绝对阈值 `|det|>1e-24` 已废除，DISP-NOISE-010）。
 - `variance_floor` **必须有限且 > 0**（单位 ADU²）：非有限或 ≤0 时 build 与 fill **都**显式拒绝（`SNR_FLOOR_UNBOUND(-10)`），不产出模型、不静默回退到任何常数（`noise_model.cpp:369-371` build 侧、`:818` fill 侧）。`max(var,floor)` 只作用于**可用**方差（§5/§7）。
 - `gain<=0` 时 `snr_noise_gain_variance` 返回 0；**加权方差面**（§5c）在 `gain` 不可用时必须显式降级并具名登记，**禁止**按 0 代入。
 
@@ -61,18 +61,18 @@
 patch grid 8×8；星点掩膜**逐星半径** r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)，再按天空预算收缩（§5a）
 σ_bg = 1.482602218505602 · median(|x − median(x)|)   # MAD→σ，Gaussian 假设
 稳健裁剪: cosmic/hot 5σ 阈，≤2 轮
-控制点: 合格 patch（样本数 ≥ min_samples）的 patch variance
-空间场: 最小二乘平面 var(x,y) = a + b·x + c·y；**预测 ≤ 0 的像素 = 该处方差不可用
+控制点: 合格 patch（样本数 ≥ min_samples **且**通过 §5d① 自校准有效性判据）的 patch variance
+空间场: 稳健非负平面拟合 var(x,y) = a + b·x + c·y（§5d②：相对误差加权 + 凸包内恒 ≥ 0）；**预测 ≤ 0 的像素 = 该处方差不可用
          ⇒ variance=0 ∧ ivar=0（§4a 显式不可用，**不得**由 clamp 产生、不得写 NaN）**；
          仅当预测为正且低于 variance_floor 时按 floor 夹逼（floor 是**数值保护**，见 §9）
-几何退化: 控制点近共线 (λlo/λhi < 1/16) ⇒ has_spatial_field=0，fill 走全局常量场
+几何退化/合格控制点不足: 近共线 (λlo/λhi < 1/16) 或样本不足 ⇒ has_spatial_field=0，fill 走全局常量场（**不得**用作平面缺陷的修复，§5d②）
 全局兜底: 合格 patch variance 的稳健中位数 vmed
 variance_bg_global = max(vmed, variance_floor)      # 合格 patch 支: vmed 已是方差 [ADU²]
 variance_bg_global = max(sig², variance_floor)      # 无合格 patch 的全帧退化支: sig 是 σ [ADU]
 g_model_floor: 以 model 指针为 key 注册 floor，snr_noise_model_v1_free 时按指针擦除，无全局共享
 ivar = 1 / max(variance, floor)   # 仅对**可用**方差（预测 > 0）：fill 阶段 max(a+b·x+c·y, floor)
                                   # 预测 ≤ 0 ⇒ variance=0 ∧ ivar=0（不可用态，§7/§9）
-                                  # control 点亦 max(patch_var, floor)（控制点方差恒 ≥ 0，属可用档）
+                                  # control 点亦 max(patch_var, floor)（仅 §5d① **保留**的控制点）
 ```
 
 ```text
@@ -255,20 +255,24 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 背景方差面的空间场（§5 的 `var(x,y) = a + b·x + c·y`）必须满足以下**正向约束**。
 其共同点是：**判据的零假设值由理论给定、拟合的可行域由数据给定，均不引入可调标定常数。**
 
-- **控制点有效性（自校准）**：patch 的 MAD-σ 必须量的是**噪声**而不是**空间结构**。判据用自校准统计量
-  `R = σ_MAD / σ_white-equiv`，其中 `σ_white-equiv` 是**白噪声等价估计**（由相邻像素一阶差分的稳健 σ 按 `1/√2` 折算，见 §5b 的噪声分类学）。
-  **纯噪声的 `R` 理论值为 1**——这是恒等式，不是标定值。
-  `R` 显著大于 1 ⇒ 该 patch 的「方差」被空间结构污染（如延展星云），**不得**进入平面拟合。
-  「显著」必须由**样本自身散布**决定（例如以同帧内 `R` 的稳健下分位为基准、按其稳健散布定倍数），
-  **禁止**写死形如 `R > 3` 的常数阈值。不变量：**纯噪声输入 ⇒ 不剔除任何 patch**。
-- **拟合可行域（结构非负）**：拟合必须使平面在**控制点凸包内恒 ≥ 0**。允许的实现形态是**稳健拟合**
-  （降低被污染控制点的杠杆）与**非负约束**（如对 `var` 的正参数化 / 非负最小二乘）的组合；
-  **禁止**用「平面不可用时退回某个常数场」充当修复——那只是把一个标定值换成另一个标定值。
+- **控制点有效性（自校准）**：patch 的 MAD-σ 必须量的是**噪声**而不是**空间结构**。判据用 `R = σ_MAD / σ_white-equiv`，
+  `σ_white-equiv` = 相邻像素一阶差分的稳健 σ 按 `1/√2` 折算（见 §5b）；**纯噪声的 `R` 理论值为 1**（恒等式，不是标定值）。
+  `R` 显著大于 1 ⇒ 该 patch 的「方差」被空间结构污染（如延展星云），**不得**进入平面拟合。判据取 `r = ln R` 的序统计量：
+  取**最大**的 `k ∈ [min_keep, n−1]` 使跳变 `r_(k+1) − r_(k)` 超过保留主体自身极差 `r_(k) − r_(1)`，剔除 `R` 最大的 `n−k` 个；
+  无此 `k` ⇒ **一个也不剔**；`min_keep = max(⌈n/2⌉, 天空预算 patch 数)`，`n < min_keep + 1` 时判据**不武装**（不剔除，只登记）；
+  `R` 不可算（差分样本 < `min_samples`）的 patch **不**参与剔除并计数。**禁止**写死形如 `R > 3` 的常数阈值。不变量：**纯噪声输入 ⇒ 不剔除任何 patch**。
+- **拟合可行域（结构非负）**：拟合**必须**使平面在**控制点凸包内恒 ≥ 0**（线性函数在凸包上的最小值在顶点取到，
+  凸包顶点是控制点子集 ⇒ 「对全部控制点 ≥ 0」⇔「凸包内恒 ≥ 0」）。实现口径 = **相对误差加权** `w_i = (v_med/v_i)²`
+  （§5a 的误差预算是**相对**标准误 ⇒ Aitken 最优权重）+ 凸包非负**硬约束**；**禁止**用「平面不可用时退回某个常数场」充当修复。
 - **凸包外才是不可用**：仅当像素落在控制点凸包**外**（真正的边缘外推）且预测 ≤ 0 时，才按 §5/§9④
   编码为不可用态（`variance=0 ∧ ivar=0`）。凸包**内**出现大面积预测 ≤ 0 属**拟合缺陷**，
   必须按 §8 登记并 fail-closed，**不得**静默出片。
 - **可观测量（必须写入 provenance）**：控制点方差的动态范围、平面系数、凸包内预测 ≤ 0 的像素占比、
   被剔除 patch 数与 `R` 的分布。**缺任一项即视为该帧的方差面不可审计。**
+- **判据与拟合的机器可检口径（正向约束）**：`R` 不可算与判据不武装都必须**计数登记**（不静默）；剔除后仍须满足 §5a 的天空预算；
+  平面求解**不得**建正规方程——权重跨度 = 控制点方差动态范围的**平方**，正规方程的条件数是设计矩阵的平方（实测动态范围 1.2e6 的算例上
+  正规方程解相对偏差达 40%），**必须**走正交化路径（Householder QR / 零空间参数化）；`hull_nonpositive_frac`（凸包内预测 ≤ 0 的面积占比）
+  **必须严格等于 0** 才可审计——`0` 是「结构非负」约束的**定义值**，不是可调阈值；任何 ≠ 0 的取值（含正残差、NaN）一律判**不可审计**并按 §8 fail-closed。
 
 ## 6 假设
 
@@ -285,6 +289,9 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 - **Floor 夹逼不变量**：`variance_floor` 单位为 **ADU²**、配置默认 `1e-12` 属冻结项（变更须走工程变更）。clamp **只作用于可用方差**：任意**可用** `variance` 经 `max(..., floor)` 后 `variance ≥ floor` 且 `ivar = 1/variance` 有限。**不可用一律 `ivar=0`（不得由 clamp 产生）**。每帧生效 floor 及其来源（配置默认/注册表 key）必须随帧产品登记。
 - **产品 dtype 成对不变量**：产品面 `(variance, ivar)` 必须落在两态之一——**可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`（输出 dtype 表示精度内）；**不可用** `variance=0 ∧ ivar=0`。生效 floor 在与产品相同的 dtype 中不可表示时（如按 α² 换算后 `1e-46` 在 float32 下溢为 0，而 `1/floor` 上溢为 `+inf`），该像素取不可用态——**禁止**发布 `(0, +inf)` 这类自相矛盾的对。消费侧按数组标度消费时，必须把 floor 一并按 α² 换算（§3 量纲；生产消费点 `module_adapters.cpp` 的 `nm_data_scale`）。
 - **量纲一致**：`variance` [ADU²] → `ivar` [ADU⁻²] 倒数关系精确，`gain` 模型量纲 `max(signal,0)/gain` [ADU²] 无量纲混。
+- **自适应判据不误伤不变量**：真值**纯噪声**输入 ⇒ `n_structure_rejected_patches == 0`（判据不动）；真值含**空间结构**（延展源/强梯度）⇒ 判据必须剔除且拟合改善——两个方向都必须可执行（**能红能绿**，负例见 §11）。
+- **凸包内非负不变量**：`hull_nonpositive_frac == 0`（「结构非负」约束的定义值，不是阈值）；凸包**外**才允许预测 ≤ 0 并按 §5/§9④ 编码为不可用态。
+- **常量场触发条件不变量**：全局常量场只由**几何退化**（控制点近共线）或**合格控制点不足**触发，**不得**作为平面缺陷（凸包内预测 ≤ 0）的修复（§5d②）。
 
 ## 8 极端/退化条件
 
@@ -297,8 +304,8 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 | `gain<=0` | `snr_noise_gain_variance` 返回 0 | `noise_model.cpp:928-936`（判据 :931） |
 | `star_x/y` 非有限 | 掩膜跳过该星，不污染统计 | 参数校验 |
 | `MAD=0` | `σ_bg=0` ⇒ 退化路径（见上） | `robust_sigma` |
-| **平面在控制点凸包内大面积预测 ≤ 0**（拟合缺陷，非边缘外推） | 该帧方差面**不可审计**：必须登记「凸包内预测 ≤ 0 占比」「平面系数」「控制点方差动态范围」「被剔除 patch 数」并 **fail-closed**，不得静默出片。产品编码仍按 §5/§9④ 逐像素取不可用态 | §5d |
-| **控制点方差动态范围极端**（结构污染使 `R` 远大于 1） | 污染 patch 必须按 §5d 的自校准判据剔除后再拟合；剔除后仍极端 ⇒ 同上行 | §5d |
+| **平面在控制点凸包内大面积预测 ≤ 0**（拟合缺陷，非边缘外推） | 该帧方差面**不可审计**：必须登记「凸包内预测 ≤ 0 占比」「平面系数」「控制点方差动态范围」「被剔除 patch 数」并 **fail-closed**，不得静默出片。产品编码仍按 §5/§9④ 逐像素取不可用态。实测缺陷形态（无权最小二乘）：帧内 **30.42%** 像素预测 ≤ 0、马赛克层面 **13.22%** 权重静默丢失 | §5d |
+| **控制点方差动态范围极端**（结构污染使 `R` 远大于 1） | 污染 patch 必须按 §5d 的自校准判据剔除后再拟合；剔除后仍极端 ⇒ 同上行。实测：生产 drizzle 路径（α·ADU 整帧）控制点方差动态范围 **60,756×**（σ 12.6→3104 ADU），星云 patch **R = 33.4**、暗天区 1.01–1.05 | §5d |
 
 ## 9 精度策略
 
@@ -337,7 +344,8 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 - **不变性门**：常量场、空 patch 拒绝、`floor` 夹逼、量纲 `ivar=1/var` 四门（`TST-NOISE-INV-*`）。**平面不可用态门（能红能绿）**：① 正例——预测 ≤ 0 的像素 `variance==0 ∧ ivar==0`，预测 > 0 的像素与独立 LS oracle 逐位一致；② 负例——把不可用像素 clamp 成 floor（`variance==floor ∧ ivar==1/floor`）必须判红，且生效 floor 在输出 dtype 中下溢时必须判红 `(0, +inf)` 这类对（`p1noise_negative` 的 n7/n7b；故障注入 `p1noise_selfcheck` 验证判据非恒真）。
 - **源污染 oracle（MASK-001）**：合成帧 = `N(0,5²)` 空背景 + `N_s` 颗 Moffat(β=2.5) 星（幂律亮度 `dN/dF ∝ F⁻²`，`F∈[2×10²,10⁵]` ADU，FWHM=3 px，星位随机）；默认掩膜下 `|σ̂_bg/σ_bg − 1| ≤ 2%`（12 seeds）且 `n_qualified ≥ 8`、`N_sky ≥ 9216`。**负例（门必须能红）**：① 半径固定 60 px 且 256²/50 星 ⇒ 必须 `rc=1`（整帧退化）；② 半径固定 2 px 且 `F_max=10⁶` ADU ⇒ 必须检出 `|σ 偏差| > 2%`。③ 半径与 `F_i`/`FWHM_i` 不单调 ⇒ 必须红（`o2_mask_radius_monotone`）。生产门见 ALG §13.4 TEST-NOISE-DESIGN-001 的 FIX-NOISE-D/H。
 - **饱和域 oracle（SAT-001）**：校准后饱和平台不是常数——平台电平 `SAT` 经平场除法带响应残差 `ε`（相对 1% ⇒ 平台散布 `0.01·SAT`，对 sky 仅 `0.01·μ`），故「平台像素」在值域上是**有噪声的整段总体**，不能指望 5σ 裁剪兜底。判据：**正例**（电平已提供）⇒ 污染控制点数不增加、权场中位数方差与平台 patch `ctrl_variance` **严格下降**、帧平均 `ivar` ≥ 3× 未过滤臂；**负例（门必须能红）** ① 电平未提供（`saturation_level=0`）且帧含亮星饱和核（512²，平台半径 44 px，掩膜 6 px，`F=5×10¹³ ADU`）⇒ 平台 patch `ctrl_variance` `6.87×10⁸ → 1.74×10⁸ ADU²`（提供电平后仍受源翼限制，故只判严格下降）、帧平均 `ivar` 比 `0.218`（丢失 4.6× 权重）、`sigma_bg_global` **两臂均 5.08 ADU（差 0%）**——缺陷只在逐像素权重场可见，这正是它的静默性；**域与限制**：现行实现以**校准后**值判饱和，平台经平场响应残差 `ε` 抹平后 `x ≥ 电平` 只能移除平台总体的一部分，全平台 patch 的干净恢复必须靠 §5a 掩膜半径（MASK-002），本过滤**不是**掩膜的替代品；② 帧无 `SATURATE`/`DATAMAX` 时必须存在显式降级声明且**不得**被读成「无饱和」。生产门 `ctest -R p1noise_saturation`（含 `p1noise_saturation_wiring`）。
-- **Python 参考**：NumPy 对同 `data` 的 `median/MAD/5σ裁剪/平面最小二乘` 复算 `variance/ivar`（`rtol 1e-9`）。
+- **平面场自适应约束 oracle（§5d，能红能绿）**：**正例（真值无效应）**——纯噪声帧上自校准判据**不得**剔除任何 patch（`n_structure_rejected_patches == 0`，`R` 的稳健中位数 ≈ 1）；**负例（门必须能红）** ① 少数 patch 被空间结构污染（延展源/强梯度）⇒ 判据必须剔除该尾部且拟合改善，否则判红；② 判据不武装域（patch 数不足以自校准）⇒ 必须**不剔除**并计数登记，不得静默剔除；③ 平面在控制点凸包内出现预测 ≤ 0（`hull_nonpositive_frac > 0`）或把不可用像素 clamp 成 floor ⇒ 必须判**不可审计**（`variance_plane_auditable`，判据取严格等于 0）。生产门见 §13 的平面场自适应约束组。
+- **Python 参考**：NumPy 对同 `data` 的 `median/MAD/5σ裁剪/稳健非负平面拟合` 复算 `variance/ivar`（`rtol 1e-9`）。
 
 ## 12 关联 ALG ID
 
@@ -350,7 +358,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 - 权威文件: `docs/science/NOISE_MODEL.md` (SCI-NOISE-001..015)
 - 实现: `lib/algorithms/noise_snr/cpp/src/noise_model.cpp` (`snr_noise_model_v1, _f64, _fill, _free, snr_noise_gain_variance, g_model_floor`), `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`
 - 公开 API: `snr_noise_model_v1, snr_noise_model_v1_f64, snr_noise_model_v1_fill, snr_noise_model_v1_free, snr_noise_gain_variance, snr_noise_model_v1_default_config`
-- 测试: `TST-NOISE-001..015` (`noise_model_science_test.cpp`), `TST-NOISE-INV-*` 四门、不变量，`TST-NOISE-FAIL-*` 空 patch/NaN 拒绝（新增/映射见 `docs/TRACEABILITY.csv`）
+- 测试: `TST-NOISE-001..015` (`noise_model_science_test.cpp`), `TST-NOISE-INV-*` 四门、不变量，`TST-NOISE-FAIL-*` 空 patch/NaN 拒绝；**平面场自适应约束组**（自校准 `R` 判据 + 凸包非负平面拟合，`p1noise_*`）（新增/映射见 `docs/TRACEABILITY.csv`）
 
 ## 14 Primary literature（引用定位声明）
 
