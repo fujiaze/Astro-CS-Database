@@ -86,7 +86,7 @@
   # control estimator = patch median (非单 leaf)
   # N_retained = clipping 后保留数 (非 n_total)；域 [min_samples, (2r+1)²] = [5, 289]
   # k_corr = 1.4 保守冻结；**1 < k_corr**（k_corr=1 与 k_corr<1 一律显式拒，§4）；实证 1.3883 来自
-  #   control_median_mc_test（**未注册：构建孤儿，见 §11/§13/§15 的 MISSING 登记**）
+  #   control_median_mc_test（**已注册：见 §11/§13/§15 的 EXECUTABLE 登记**）
   # N_eff = N_retained / k_corr
   # 禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅 eligibility/coverage
   # legacy snr²/(1+snr²)/unc² 仅 use_ivar_weight=0 ablation/诊断 (SNR-015)
@@ -243,8 +243,8 @@
 ## 9 精度策略
 
 - FP64 求解；`dense cache` 与 `sparse` 求值 `1e-12` 等价门（`SparseEqualsDense`）；
-  `k_corr` 冻结默认 `1.4`（保守取整）；其 MC 校准来源 `control_median_mc_test` **未注册
-  （构建孤儿 / MISSING，见 §11/§13/§15）**——常数本身由 §5 定义冻结，但不可复跑该 MC 证据。
+  `k_corr` 冻结默认 `1.4`（保守取整）；其 MC 校准来源 `control_median_mc_test` **已注册
+  （见 §11/§13/§15）**——常数本身由 §5 定义冻结，该 MC 证据可复跑。
   **适用域（正向约束）**：该 1e-12 是**同标度下**的求值等价门；跨标度引用绝对 1e-12 的
   禁令见 §7 (b) 的适用域段。
 - 并行确定性容差见 §7 三档（同配置重复位精确 + hash exact；跨 worker 数 1e-12；跨后端 = 无此合同）。
@@ -260,7 +260,7 @@
 
 ## 11 验证 Oracle
 
-- **UPMW 硬门 7 项**：001 snr 扰动不变、002 ivar 1:4→weight 1:4、003 星群不变、004 `Var(median)≈πσ²/2N`、005 MC `k_corr≈1.3883`（**未注册：`control_median_mc_test` 是构建孤儿 MISSING，不可复跑**）、006 无 legacy SNR consumer 且缺 ivar `rc=2`、007 patch 真值恢复（`synthetic_gate`）。
+- **UPMW 硬门 7 项**：001 snr 扰动不变、002 ivar 1:4→weight 1:4、003 星群不变、004 `Var(median)≈πσ²/2N`、005 MC `k_corr≈1.3883`（**`control_median_mc_test` 已注册，可复跑**）、006 无 legacy SNR consumer 且缺 ivar `rc=2`、007 patch 真值恢复（`synthetic_gate`）。
 - **持久化门**：`UpmPersistAllPermutations/RandomStableIds/SparseDenseBinding` 等 PR#1 全排列。
 - **不变量门**：常量场、空 control、Huber 对称、绑定幂等四门。
 - **Python 参考**：NumPy 对同 `raw` 的 Huber IRLS + `control_ivar` 权重复算 `θ`（`rtol 1e-9`）。
@@ -278,7 +278,7 @@
 - 实现: `lib/algorithms/coverage/src/upm.cpp` (1107-1123, 493-510), `lib/algorithms/coverage/src/sampler.cpp` (250-364, 672), `lib/infrastructure/aio/src/aio_upm.cpp` (持久化)
 - 公开 API: `p2_upm_build, p2_upm_calibrate_block, p2_upm_raw_weight, p2_upm_open/save`
 - 测试: `TEST-UPMW-001..007, UPMW-001..007, UpmPersist*` (`synthetic_gate.cpp`)；
-  `control_median_mc_test.cpp` **MISSING（未注册：不在任何 CMake/ctest/CI 面，构建孤儿）**
+  `control_median_mc_test.cpp` **EXECUTABLE（已注册：进 CMake/ctest/CI 面，可复跑）**
 
 ## 3a 坐标 frame
 
@@ -304,7 +304,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 1. **本合同为项目原创推导**（观测方程/光度面 basis/gauge/接缝语义均为 Project-defined，无外部公式依赖）。
 2. Huber IRLS：Huber, P. J. 1964, "Robust Estimation of a Location Parameter", Ann. Math. Statist. 35, 73——文章级定位（bibcode 1964AnMS...35...73H，未逐页核验），仅 robust 求解框架上下文。
 3. 弱零锚=弱 Tikhonov 正则：Tikhonov 解的正则化概念——教科书级，无公式引用。
-4. `k_corr=1.4`（MC 实测 1.3883，pixfrac=0.8，2000 次）：**项目自产 MC 证据**（`control_median_mc_test`，**未注册/MISSING：构建孤儿，本证据当前不可复跑**），非外部文献。
+4. `k_corr=1.4`（MC 实测 1.3883，pixfrac=0.8，2000 次）：**项目自产 MC 证据**（`control_median_mc_test`，**已注册，本证据可复跑**），非外部文献。
 5. Tukey/MAD 常数：复用 SCI-002/SCI-003 文献链（PMC6768164 实证；Φ⁻¹(3/4) 恒等式）。
 
 ## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
@@ -318,7 +318,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - **var(median)≈πσ²/(2N)**：正态样本中位数渐近方差的教科书结论（Hoaglin et al. 1983；Kendall & Stuart, The Advanced Theory of Statistics Vol.1）；UPMW-004 实证 ratio 0.997。
 - **稀疏天光面样条（加性天光面的表示候选）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。§5 冻结的加性场当前实现为 8×8 control cell 双线性；稀疏样条是**同一加性场**的另一种表示候选（数据面/schema 待合同流程），**不改变** §1/§5 的纯加性模型。
 - **模型形式：纯加性（正向约束）**：本文件 §1/§5 的加性模型 `calibrated_f(p)=raw_f(p)−C_f(p)` 是 Phase2 的唯一模型形式，`g_k ≡ 1` **不启用**；乘性方向 `y_k(x)=g_k·s(x)+b_k(x)` **不在本层**。`÷g²` 保持**恒等式**（`Var(corrected)=[σ_raw²+J_out C_θ J_outᵀ]/g²`，`g≡1` 时退化等价，公式保留）。**依据**：Phase1 正确归一化后，帧本身已是同一测光体系的真信号加可等效为加性的天光；残留天光无论是加性还是乘性都可用加法移除；乘性残留属低阶空间增益，归 Phase1 处理（`I_photo = k_photo·m(x,y)·I_cal`），Phase2 只做加性扣除。`10_sampling.md`/`11_upm.md`/`UNIFIED_MODEL.md` 的目标态表述与本节一致。
-- **k_corr=1.4 的 MC 证据**：control_median_mc_test 未注册（MISSING，构建孤儿），常数本身按 §5/§10 冻结但当前不可复跑（§9/§11/§13/§15）。
+- **k_corr=1.4 的 MC 证据**：control_median_mc_test 已注册（可复跑），常数本身按 §5/§10 冻结（§9/§11/§13/§15）。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
@@ -335,7 +335,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 ## 15 Acceptance
 
 - §11 Oracle 全过（含 MC 一致性、gauge 唯一性、harmonic continuation 边界）；**例外**：
-  UPMW-005 的 MC 证据源 `control_median_mc_test` **未注册（MISSING，构建孤儿）** ⇒ 该项
+  UPMW-005 的 MC 证据源 `control_median_mc_test` **已注册可复跑** ⇒ 该项
   只有常数冻结定义（§5/§10），没有可执行证据；"已过"的成立前提 = 该 MC 证据可执行；
 - §7 不变量门全过；
 - `eng/tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；

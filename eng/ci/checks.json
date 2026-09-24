@@ -3940,7 +3940,14 @@
       ],
       "requires_monitor": false,
       "ctest_targets": [
+        "drizzle_acceptance",
+        "drizzle_acceptance_negative_injection",
+        "drizzle_acceptance_py",
+        "drizzle_candidate_oracle",
+        "drizzle_control_median_mc",
+        "drizzle_freeze",
         "drizzle_precision_default",
+        "drizzle_spherical_overlap",
         "gaia_magnitude_range_bounds",
         "gaia_module_manifest_bounds",
         "gaia_shard_coverage",
@@ -4053,6 +4060,216 @@
           ]
         },
         {
+          "id": "CTEST-DRIZZLE-ACCEPTANCE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_acceptance",
+            "--output",
+            "run/ci/ctest/drizzle_acceptance.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_acceptance.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-DRIZZLE-ACCEPTANCE-NEGATIVE-INJECTION",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_acceptance_negative_injection",
+            "--output",
+            "run/ci/ctest/drizzle_acceptance_negative_injection.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_acceptance_negative_injection.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-DRIZZLE-ACCEPTANCE-PY",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_acceptance_py",
+            "--output",
+            "run/ci/ctest/drizzle_acceptance_py.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_acceptance_py.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-DRIZZLE-CANDIDATE-ORACLE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_candidate_oracle",
+            "--output",
+            "run/ci/ctest/drizzle_candidate_oracle.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_candidate_oracle.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-DRIZZLE-CONTROL-MEDIAN-MC",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_control_median_mc",
+            "--output",
+            "run/ci/ctest/drizzle_control_median_mc.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_control_median_mc.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-DRIZZLE-FREEZE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_freeze",
+            "--output",
+            "run/ci/ctest/drizzle_freeze.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_freeze.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
           "id": "CTEST-DRIZZLE-PRECISION-DEFAULT",
           "profiles": [
             "linux-main",
@@ -4075,6 +4292,41 @@
           "mutates_workspace": false,
           "outputs": [
             "run/ci/ctest/drizzle_precision_default.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-DRIZZLE-SPHERICAL-OVERLAP",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "drizzle_spherical_overlap",
+            "--output",
+            "run/ci/ctest/drizzle_spherical_overlap.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/drizzle_spherical_overlap.json"
           ],
           "waivable": false,
           "changed_paths": [

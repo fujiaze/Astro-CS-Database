@@ -107,7 +107,7 @@ function p2_upm_build(observations, cfg):
 - FP64 全链路；Huber IRLS 坐标下降稳态收敛（`upm.cpp:500-889`）。
 - 弱零锚 `0.001`：正则化偏移 <~0.1%；帧绑定幂等门：`save→open` 重开值 `max_abs==0`
   （dense/sparse `1e-12` 等价门）；`k_corr=1.4`（MC 实测 1.3883）保守冻结——该 MC 证据源
-  `control_median_mc_test` **未注册（MISSING，构建孤儿）**，常数本身按 SCI-UPM §5/§10 冻结但
+  `control_median_mc_test` **已注册（可复跑）**，常数本身按 SCI-UPM §5/§10 冻结但
   当前不可复跑。
 - `control_variance=k_corr·(π/2)·σ_bg²/N_retained`，`control_ivar=1/var`；污染观测经
   `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`upm.cpp:635-638,653-657`）。
@@ -125,7 +125,7 @@ function p2_upm_build(observations, cfg):
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
 - 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983；UPMW-004 实证 ratio 0.997（SCI-UPM §11）。
-- k_corr=1.4 的 MC 证据源 control_median_mc_test 未注册（MISSING），常数按 SCI-UPM §5/§10 冻结但不可复跑。
+- k_corr=1.4 的 MC 证据源 control_median_mc_test 已注册（可复跑），常数按 SCI-UPM §5/§10 冻结。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
