@@ -62,6 +62,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -84,6 +85,11 @@ ALLOWED_PLATFORM = ("any", "linux", "windows", "fatduck")
 EXIT_OK = 0
 EXIT_FAIL = 1
 EXIT_RUNNER_ERROR = 2
+# GATE-TRIAGE-01：**崩溃换独立退出码**。检查器抛未捕获异常（Traceback）时它
+# 没有给出 verdict —— 这与「检查器给出 FAIL 判词」是两件不同的事：前者说明
+# 门本身不可信（红绿都可能是噪声），后者说明被判对象不合规。
+# 旧行为把两者都记 rc=1 ⇒ 无法区分「门崩」与「判红」（人工直跑时尤其致命）。
+EXIT_CRASH = 3
 
 # ctest SKIP_RETURN_CODE 同语义（77）：宿主能力门（如 AVX-512 不可用）以 77
 # 表示"合同化跳过"，不是失败。与 eng/ci/run.py 的 SKIP_EXIT_CODE 同合同（W4-A3：
@@ -97,6 +103,8 @@ DEFAULT_RUN_ROOT = "run/ci/run-checks"
 V_PASS = "PASS"
 V_FAIL = "FAIL"
 V_TIMEOUT = "TIMEOUT"
+# 三态之三：检查器崩（未捕获异常 / 无 verdict）。与 V_FAIL 严格区分。
+V_CRASH = "CRASH"
 V_SKIP_PLATFORM = "SKIPPED(platform)"
 V_SKIP_WAIVABLE = "SKIPPED(waivable)"
 V_PREREQ = "FAIL(prerequisite)"
@@ -111,7 +119,7 @@ V_MISSING_OUTPUT = "FAIL(missing_output)"
 V_EMPTY_OUTPUT = "FAIL(empty_outputs)"
 V_GATE_MISSING = "FAIL(monitor_gate_missing)"
 FAIL_VERDICTS = (V_FAIL, V_TIMEOUT, V_PREREQ, V_SCOPE,
-                 V_MISSING_OUTPUT, V_EMPTY_OUTPUT, V_GATE_MISSING)
+                 V_MISSING_OUTPUT, V_EMPTY_OUTPUT, V_GATE_MISSING, V_CRASH)
 
 # outputs 为空且按设计静默成功的执行单元（显式登记，不设全局兜底）；
 # 新增检查不得进入本表（新防线要求留痕或登记 waivable）。
@@ -326,6 +334,44 @@ def evidence_verdict(step: dict, repo: Path, stdout_tail: str,
     return None
 
 
+# --------------------------------------------------------------- 门崩识别 ----
+# 判据（保守，避免误伤）：输出里出现 Python 未捕获异常的 Traceback 头，且**没有**
+# 任何结构化 verdict 标记 ⇒ 该执行单元**没有给出判定**，记 CRASH（独立退出码 3）。
+# 为什么不是「有 Traceback 就算崩」：unittest 的失败报告里也有 Traceback，
+# 那种情况检查器（测试驱动器）**确实**给出了 FAIL 判定，必须留在 FAIL 档。
+# 崩溃证据全文照录（不截断）：崩溃的第一现场就是栈帧，截断等于让读者无法定位。
+CRASH_TRACEBACK_RE = re.compile(r"Traceback \(most recent call last\)")
+VERDICT_TOKEN_RE = re.compile(
+    r"(?:verdict|VERDICT|FAIL|PASS|_FAIL|_PASS|_RED|_OK|_GREEN)\s*[:=]")
+CRASH_TAIL_LIMIT = 20000  # 崩溃证据留 20k 字符（远大于 TAIL_LIMIT，够放完整栈）
+
+
+def crash_site(blob: str) -> str:
+    """从 Traceback 文本里抽「最后一帧的文件:行 + 异常行」，供判词直接定位。"""
+    lines = [ln.rstrip() for ln in blob.splitlines()]
+    frames = [ln.strip() for ln in lines if ln.strip().startswith("File \"")]
+    exc = ""
+    for ln in reversed(lines):
+        s = ln.strip()
+        if not s or s.startswith(("File \"", "Traceback", "[")):
+            continue
+        if re.match(r"^[A-Za-z_][\w.]*(?:Error|Exception|Warning|Interrupt|Exit)\b", s) \
+                or re.match(r"^[A-Za-z_][\w.]*:\s", s):
+            exc = s
+            break
+    site = frames[-1] if frames else "(无栈帧)"
+    return "%s | %s" % (site[:400], exc[:400])
+
+
+def looks_like_crash(stdout_s: str, stderr_s: str) -> bool:
+    """True = 检查器抛了未捕获异常且没给 verdict（门崩，不是判红）。"""
+    blob = stdout_s + "\n" + stderr_s
+    if not CRASH_TRACEBACK_RE.search(blob):
+        return False
+    # 结构化 verdict 标记（JSON "verdict": "FAIL" / TOOL_FAIL: / ...）⇒ 门有判定
+    return not VERDICT_TOKEN_RE.search(blob)
+
+
 def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
     sid = step["id"]
     started = utc_now()
@@ -433,12 +479,19 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
 
     stdout_s = stdout_b.decode("utf-8", "replace")
     stderr_s = stderr_b.decode("utf-8", "replace")
-    result["stdout_tail"] = tail(stdout_s)
-    result["stderr_tail"] = tail(stderr_s)
+    crash = looks_like_crash(stdout_s, stderr_s)
+    # 崩溃证据**不按 TAIL_LIMIT 截断**（GATE-TRIAGE-01）：栈帧就是第一现场。
+    result["stdout_tail"] = tail(stdout_s, CRASH_TAIL_LIMIT if crash else TAIL_LIMIT)
+    result["stderr_tail"] = tail(stderr_s, CRASH_TAIL_LIMIT if crash else TAIL_LIMIT)
     result["stdout_lines"] = stdout_s.count("\n")
     result["stderr_lines"] = stderr_s.count("\n")
     result["exit_code"] = proc.returncode
     result["timed_out"] = timed_out
+    result["crash"] = crash
+    if crash and proc.returncode != 0:
+        # 门崩：检查器没有给出 verdict。判词直接给出可定位的栈尾（文件名:行号）。
+        return finish(V_CRASH, "检查器抛未捕获异常（无 verdict，门不可信）："
+                               + crash_site(stdout_s + "\n" + stderr_s))
     if timed_out:
         return finish(V_TIMEOUT, f"超过登记超时 {step['timeout_seconds']}s 被终止")
     if proc.returncode is not None and proc.returncode < 0:
@@ -968,6 +1021,78 @@ def explain_lines(selection: dict, selected: list) -> list:
     return out
 
 
+def crash_tristate_self_test() -> list:
+    """三态（PASS/FAIL/CRASH）+ 崩溃独立退出码的可执行正/负例面（GATE-TRIAGE-01）。
+
+    负例（必须命中）：检查器抛未捕获异常且不给 verdict ⇒ 该 step 记 V_CRASH、
+    条目记 V_CRASH、runner 退出码 EXIT_CRASH(3)，判词带「文件:行」。
+    正例（不得误伤）：① 检查器给出结构化 FAIL 判词（即使输出里有 Traceback，
+    例如 unittest 失败报告）⇒ 记 V_FAIL、退出码 EXIT_FAIL(1)；
+    ② 全绿 ⇒ V_PASS、退出码 EXIT_OK(0)。
+    """
+    import tempfile as _tempfile
+    cases: list = []
+    with _tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "eng" / "ci").mkdir(parents=True, exist_ok=True)
+
+        def reg(steps):
+            doc = {"schema_version": 1, "checks": [
+                {"id": "SELFTEST-TRISTATE", "profiles": ["fast"], "platform": "any",
+                 "command": steps[0]["command"], "timeout_seconds": 60,
+                 "heavy": False, "mutates_workspace": False, "outputs": [],
+                 "waivable": False, "requires_monitor": False, "steps": steps}]}
+            p = root / "eng" / "ci" / "checks.json"
+            p.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+            return p
+
+        def step(code):
+            return {"id": "SELFTEST-TRISTATE", "command": [sys.executable, "-c", code],
+                    "timeout_seconds": 60, "platform": "any", "profiles": ["fast"],
+                    "waivable": False, "heavy": False, "mutates_workspace": False,
+                    "requires_monitor": False, "outputs": []}
+
+        crash_code = ("import sys\n"
+                      "def boom():\n"
+                      "    raise ValueError('selftest injected crash')\n"
+                      "boom()\n")
+        fail_with_traceback = (
+            "import sys, traceback\n"
+            "try:\n"
+            "    raise AssertionError('assertion')\n"
+            "except AssertionError:\n"
+            "    traceback.print_exc()\n"
+            "print('SELFTEST_TOOL_FAIL: verdict=FAIL')\n"
+            "sys.exit(1)\n")
+        green_code = "print('SELFTEST_TOOL_PASS: verdict=PASS')\n"
+
+        for name, code, want_verdict, want_rc in (
+                ("crash_uncaught_exception", crash_code, V_CRASH, EXIT_CRASH),
+                ("fail_with_traceback_stays_fail", fail_with_traceback, V_FAIL, EXIT_FAIL),
+                ("green_stays_pass", green_code, V_PASS, EXIT_OK)):
+            reg([step(code)])
+            out_json = root / (name + ".json")
+            rc = main(["--check", "SELFTEST-TRISTATE", "--registry",
+                       str(root / "eng" / "ci" / "checks.json"),
+                       "--repo-root", str(root), "--run-root", str(root / "rr"),
+                       "--json-out", str(out_json), "--quiet"])
+            payload = json.loads(out_json.read_text(encoding="utf-8"))
+            entry = payload["checks"][0]
+            got_verdict = entry["verdict"]
+            ok = (got_verdict == want_verdict and rc == want_rc)
+            detail = ""
+            if want_verdict == V_CRASH:
+                # 判词必须带「文件:行」（崩溃第一现场可定位）且不截断
+                detail = entry["steps"][0].get("reason") or ""
+                ok = ok and (".py\", line " in detail or ":" in detail)
+                ok = ok and "selftest injected crash" in (
+                    entry["steps"][0].get("stderr_tail") or "")
+            cases.append({"case": "tristate_" + name, "ok": bool(ok),
+                          "verdict": got_verdict, "want": want_verdict,
+                          "rc": rc, "want_rc": want_rc, "reason": detail[:160]})
+    return cases
+
+
 def evidence_verdict_self_test() -> list:
     """证据面 fail-closed 自测（GATE-501）：缺失证据 / 坏证据 / 无输出三注入必红。
 
@@ -1084,6 +1209,7 @@ def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) ->
 
     cases.extend(scheduler_self_test())
     cases.extend(evidence_verdict_self_test())
+    cases.extend(crash_tristate_self_test())
     passed = sum(1 for c in cases if c["ok"])
     for c in cases:
         if 'scope' in c:
@@ -1294,8 +1420,11 @@ def main(argv: list | None = None) -> int:
             subs = by_entry[pid]
             bad = [s for s in subs if s["verdict"] in FAIL_VERDICTS]
             if bad:
-                verdict = V_TIMEOUT if any(s["verdict"] == V_TIMEOUT for s in subs) else \
-                    (V_SCOPE if any(s["verdict"] == V_SCOPE for s in subs) else V_FAIL)
+                # 三态传播：崩溃优先于判红/超时（门崩 ⇒ 该条目的红绿都不可信，
+                # 必须让消费者一眼看出「这不是内容不合规」）。
+                verdict = V_CRASH if any(s["verdict"] == V_CRASH for s in subs) else \
+                    (V_TIMEOUT if any(s["verdict"] == V_TIMEOUT for s in subs) else
+                     (V_SCOPE if any(s["verdict"] == V_SCOPE for s in subs) else V_FAIL))
             elif subs and all(s["verdict"] == V_SKIP_PLATFORM for s in subs):
                 verdict = V_SKIP_PLATFORM
             elif subs and all(s["verdict"] == V_SKIP_WAIVABLE for s in subs):
@@ -1311,7 +1440,7 @@ def main(argv: list | None = None) -> int:
                 "steps": subs,
             })
 
-        counts = {V_PASS: 0, V_FAIL: 0, V_TIMEOUT: 0, V_SKIP_PLATFORM: 0,
+        counts = {V_PASS: 0, V_FAIL: 0, V_TIMEOUT: 0, V_CRASH: 0, V_SKIP_PLATFORM: 0,
                   V_SKIP_WAIVABLE: 0, V_PREREQ: 0, V_SCOPE: 0, V_REUSED: 0}
         for s in step_results:
             counts[s["verdict"]] = counts.get(s["verdict"], 0) + 1
@@ -1350,6 +1479,8 @@ def main(argv: list | None = None) -> int:
 
         entry_results = scope_entries + entry_results
         verdict = "FAIL" if failures else "PASS"
+        if counts[V_CRASH]:
+            verdict = V_CRASH
         payload = {
             "schema_version": SCHEMA_VERSION,
             "runner": RUNNER,
@@ -1373,6 +1504,7 @@ def main(argv: list | None = None) -> int:
                 "passed": counts[V_PASS],
                 "failed": counts[V_FAIL],
                 "timeout": counts[V_TIMEOUT],
+                "crashed": counts[V_CRASH],
                 "prerequisite_failed": counts[V_PREREQ],
                 "skipped_platform": counts[V_SKIP_PLATFORM],
                 "skipped_waivable": counts[V_SKIP_WAIVABLE],
@@ -1413,6 +1545,7 @@ def main(argv: list | None = None) -> int:
         print(f"scope={scope} verdict={verdict} entries={len(entry_results)} "
               f"steps={len(step_results)} "
               f"pass={counts[V_PASS]} fail={counts[V_FAIL]} timeout={counts[V_TIMEOUT]} "
+              f"crash={counts[V_CRASH]} "
               f"prereq={counts[V_PREREQ]} skip_platform={counts[V_SKIP_PLATFORM]} "
               f"skip_waivable={counts[V_SKIP_WAIVABLE]} scope_failed={counts[V_SCOPE]}")
         if integration_not_run:
@@ -1422,6 +1555,9 @@ def main(argv: list | None = None) -> int:
         print(f"registry_sha256={registry_sha}")
         if json_out is not None:
             print(f"json_out={json_out}")
+        # 三态退出码（GATE-TRIAGE-01）：崩溃换独立退出码 3，与判红（1）区分。
+        if counts[V_CRASH]:
+            return EXIT_CRASH
         return EXIT_OK if verdict == "PASS" else EXIT_FAIL
     except RunnerError as exc:
         print(f"eng/ci/run_checks.py: {exc}", file=sys.stderr)

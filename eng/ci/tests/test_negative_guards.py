@@ -301,6 +301,9 @@ class TestN02NonZeroExit(unittest.TestCase):
         ci = _ci_result(proc)
         self.assertEqual(ci["checks"][0]["verdict"], "TIMEOUT")
 
+    @unittest.skipIf(sys.platform.startswith("win"),
+                     "POSIX 信号语义：Windows 上进程无负 returncode，SIGNAL 不可表达"
+                     "（GATE-TRIAGE-01；同 test_runner_execution.TestSignal）")
     def test_sigkill_verdict_signal(self):
         repo = _mk_repo()
         _write_registry(repo, [_check(

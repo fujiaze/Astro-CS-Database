@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
@@ -341,15 +342,80 @@ class TestFakeProcTree(unittest.TestCase):
             self.assertEqual(p["mem_available_bytes"], 1500000 * 1024)
             self.assertEqual(p["mem_source"], "procfs")
 
-        # meminfo 缺失 → None 不报错（独立 tempdir，避免残留文件串扰）
+        # meminfo 缺失 → 走平台回退（Linux 无 /proc ⇒ None；Windows ⇒ GlobalMemoryStatusEx），
+        # 都不报错（独立 tempdir，避免残留文件串扰）。
+        # GATE-TRIAGE-01：原断言写死 "unavailable"，Windows 上因 mem_total_bytes
+        # 恒 None 而让 CHK-CI-CONTRACT-SELFTESTS 的 CI-CONTRACT-RESOURCE-PROBE 步
+        # TypeError（NoneType > int）⇒ 门自检不绿。
         with tempfile.TemporaryDirectory() as td2:
             root = Path(td2)
             p = RP.probe(proc_root=root / "proc", sys_root=root / "sys",
                          affinity_fn=lambda: set(range(4)),
                          cpu_count_fn=lambda: 4)
+            if os.name == "nt":
+                self.assertGreater(p["mem_total_bytes"], 0)
+                self.assertEqual(p["mem_source"], "win32:GlobalMemoryStatusEx")
+            else:
+                self.assertIsNone(p["mem_total_bytes"])
+                self.assertIsNone(p["mem_available_bytes"])
+                self.assertEqual(p["mem_source"], "unavailable")
+
+    def test_windows_memory_fallback_dispatch(self) -> None:
+        """负例（GATE-TRIAGE-01）：win32 回退必须**真的被接进 probe()**，且不可用时
+
+        明确返回 None 而不是假装成功（判据的判别力自证）。
+        """
+        real = RP._win_memory
+        try:
+            RP._win_memory = lambda: {"mem_total_bytes": 4242, "mem_available_bytes": 2424}
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                p = RP.probe(proc_root=root / "proc", sys_root=root / "sys",
+                             affinity_fn=lambda: set(range(2)),
+                             cpu_count_fn=lambda: 2)
+            self.assertEqual(p["mem_total_bytes"], 4242)
+            self.assertEqual(p["mem_available_bytes"], 2424)
+            self.assertEqual(p["mem_source"], "win32:GlobalMemoryStatusEx")
+        finally:
+            RP._win_memory = real
+
+        # 不可用 ⇒ None/"unavailable"，不抛错（非 Windows 宿主上的真实行为）
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            p = RP.probe(proc_root=root / "proc", sys_root=root / "sys",
+                         affinity_fn=lambda: set(range(2)),
+                         cpu_count_fn=lambda: 2)
+        if os.name == "nt":
+            self.assertGreater(p["mem_total_bytes"], 0)
+        else:
             self.assertIsNone(p["mem_total_bytes"])
-            self.assertIsNone(p["mem_available_bytes"])
             self.assertEqual(p["mem_source"], "unavailable")
+
+    def test_windows_processor_count_fallback_dispatch(self) -> None:
+        """负例：GetActiveProcessorCount 回退被接进 cpu_logical（不可用 ⇒ 回落 affinity）。"""
+        real = RP._win_active_processor_count
+        try:
+            RP._win_active_processor_count = lambda: 12
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                p = RP.probe(proc_root=root / "proc", sys_root=root / "sys",
+                             affinity_fn=lambda: set(range(3)),
+                             cpu_count_fn=lambda: None)
+            self.assertEqual(p["cpu_logical"], 12)
+            self.assertEqual(p["cpu_logical_source"], "win32:GetActiveProcessorCount")
+        finally:
+            RP._win_active_processor_count = real
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            p = RP.probe(proc_root=root / "proc", sys_root=root / "sys",
+                         affinity_fn=lambda: set(range(3)),
+                         cpu_count_fn=lambda: None)
+        if os.name == "nt":
+            self.assertGreaterEqual(p["cpu_logical"], 1)
+        else:
+            self.assertEqual(p["cpu_logical"], 3)
+            self.assertEqual(p["cpu_logical_source"], "fallback:affinity")
 
 
 if __name__ == "__main__":

@@ -117,9 +117,14 @@ def formal_docs(root):
         if os.path.isfile(os.path.join(root, name)):
             out.append(name)
     for dirpath, dirnames, filenames in os.walk(os.path.join(root, FORMAL_DOCS_DIR)):
-        dirnames[:] = [d for d in dirnames if d != ".git"]
+        dirnames[:] = [d for d in dirnames
+                       if d != ".git" and not RESERVED_DEVICE_RE.match(d)]
         for fn in filenames:
-            rel = os.path.relpath(os.path.join(dirpath, fn), root).replace(os.sep, "/")
+            if RESERVED_DEVICE_RE.match(fn):
+                continue
+            rel = rel_path(root, os.path.join(dirpath, fn))
+            if rel is None:
+                continue
             if not rel.endswith(SCAN_EXTS):
                 continue
             if any(rel.startswith(e) for e in EXEMPT_DIRS):
@@ -184,18 +189,47 @@ def section_items(text):
     return out
 
 
+# Windows 保留设备名（NUL/CON/PRN/AUX/COM1-9/LPT1-9）。os.walk 在工作树里遇到这类
+# 条目时，ntpath.relpath 会把路径解析成设备名并抛
+#   ValueError: path is not on mount 'F:' / path is on mount '\\.\nul'
+# —— 检查器因此抛 Traceback 而不是给 verdict（门崩 ≠ 判红，两者必须分开）。
+RESERVED_DEVICE_RE = re.compile(
+    r"^(?:nul|con|prn|aux|com[1-9]|lpt[1-9])(?:\..*)?$", re.IGNORECASE)
+
+
+def rel_path(root, full):
+    """相对仓库根的 POSIX 风格路径；不可解析（设备名/跨卷/符号环）⇒ None。
+
+    判据：路径无法归到仓库根时**不静默丢弃** —— 返回 None 由调用方登记
+    ``D2_scan_unresolvable`` 判红（fail-closed），不得让门崩掉。
+    """
+    try:
+        return os.path.relpath(full, root).replace(os.sep, "/")
+    except (ValueError, OSError):
+        return None
+
+
 def ref_files(root):
     out = []
+    unresolvable = []
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames
-                       if d not in ("build", ".git", ".dsh-code-index", "gaia")]
+                       if d not in ("build", ".git", ".dsh-code-index", "gaia")
+                       and not RESERVED_DEVICE_RE.match(d)]
         for fn in filenames:
-            rel = os.path.relpath(os.path.join(dirpath, fn), root).replace(os.sep, "/")
+            if RESERVED_DEVICE_RE.match(fn):
+                unresolvable.append(os.path.join(dirpath, fn))
+                continue
+            rel = rel_path(root, os.path.join(dirpath, fn))
+            if rel is None:
+                unresolvable.append(os.path.join(dirpath, fn))
+                continue
             if any(rel.startswith(s) for s in REF_SCAN_SKIP):
                 continue
             if not rel.endswith(SCAN_EXTS):
                 continue
             out.append(rel)
+    ref_files.unresolvable = unresolvable
     return sorted(out)
 
 
@@ -247,10 +281,17 @@ def check_d2(root, v, notes):
                     if m.group(1) not in ledger_text:
                         v.append({"check": "D2c_discovery_id_unresolved", "file": rel, "line": i,
                                   "detail": "原发现编号 %s 不在台账对照表内" % m.group(1)})
+    unresolvable = getattr(ref_files, "unresolvable", [])
+    if unresolvable:
+        v.append({"check": "D2_scan_unresolvable",
+                  "detail": ("扫描面有 %d 条路径无法归到仓库根（Windows 保留设备名/跨卷/"
+                             "符号环）：%s —— 不静默丢弃，按 fail-closed 判红"
+                             % (len(unresolvable), unresolvable[:5]))})
     if scanned == 0:
         v.append({"check": "D2_scan_empty",
                   "detail": "扫描面读到 0 条 KNOWN_LIMITATIONS 引用（fail-closed）"})
     notes["refs_scanned"] = scanned
+    notes["refs_unresolvable"] = len(unresolvable)
 
 
 def run(root):
@@ -323,6 +364,73 @@ def self_test():
             print("%-24s expect=%-30s got=%s  %s"
                   % (name, expect or "(clean)", got or "[]", "OK" if good else "MISMATCH"))
             ok = ok and good
+
+        # N11（GATE-TRIAGE-01 负例）：Windows 保留设备名/跨卷路径不得让门崩。
+        # 复现原缺陷：os.walk 在工作树里遇到设备名条目时 ntpath.relpath 抛
+        #   ValueError: path is on mount '\\\\.\\nul', start on mount 'F:'
+        # 原实现直接 Traceback（rc=1 但**没有 verdict**，与"判红"不可区分）。
+        # 本负例在任意平台可跑：用 monkeypatch 让 relpath 对探针路径抛同样的异常，
+        # 并断言 ①run() 不抛 ②判词里出现 D2_scan_unresolvable（fail-closed 留痕）。
+        root = os.path.join(tmp, "c%02d" % len(cases))
+        build(root)
+        probe = os.path.join(root, "docs", "probe.md")
+        with open(probe, "w", encoding="utf-8") as fh:
+            fh.write("见 docs/KNOWN_LIMITATIONS.md 条目 30。\n")
+        real_relpath = os.path.relpath
+
+        def boom(path, start=None):
+            if os.path.abspath(str(path)) == os.path.abspath(probe):
+                raise ValueError("path is on mount '\\\\\\\\.\\\\nul', start on mount 'F:'")
+            return real_relpath(path, start) if start is not None else real_relpath(path)
+
+        os.path.relpath = boom
+        try:
+            v, notes = run(root)
+        except Exception as exc:  # noqa: BLE001 - 崩溃即负例失败
+            v, notes = [{"check": "CRASHED:" + exc.__class__.__name__}], {}
+        finally:
+            os.path.relpath = real_relpath
+        got = sorted({x["check"] for x in v})
+        good = "D2_scan_unresolvable" in got and notes.get("refs_unresolvable", 0) >= 1
+        print("%-24s expect=%-30s got=%s  %s"
+              % ("N11 设备名路径不崩", "D2_scan_unresolvable", got or "[]",
+                 "OK" if good else "MISMATCH"))
+        ok = ok and good
+
+        # N11b（判别力自证）：把 rel_path 换回**修复前**的裸 os.path.relpath，
+        # 同一输入必须让 run() 抛 ValueError —— 证明 N11 不是恒真门。
+        real_rel_path = globals()["rel_path"]
+
+        def raw_rel_path(root_, full):
+            return os.path.relpath(full, root_).replace(os.sep, "/")
+
+        globals()["rel_path"] = raw_rel_path
+        os.path.relpath = boom
+        try:
+            run(root)
+            pre_fix_raised = False
+        except ValueError:
+            pre_fix_raised = True
+        except Exception:  # noqa: BLE001
+            pre_fix_raised = False
+        finally:
+            os.path.relpath = real_relpath
+            globals()["rel_path"] = real_rel_path
+        print("%-24s expect=%-30s got=%s  %s"
+              % ("N11b 修复前必崩", "ValueError", pre_fix_raised,
+                 "OK" if pre_fix_raised else "MISMATCH"))
+        ok = ok and pre_fix_raised
+
+        # N12：RESERVED_DEVICE_RE 的正/负例（判据本身不得恒真/恒假）
+        dev_pos = all(RESERVED_DEVICE_RE.match(x) for x in
+                      ("nul", "NUL", "con", "aux", "prn", "com1", "lpt9", "nul.txt"))
+        dev_neg = not any(RESERVED_DEVICE_RE.match(x) for x in
+                          ("null", "console", "com0", "com10", "lpt", "nul_.md"))
+        good = dev_pos and dev_neg
+        print("%-24s expect=%-30s got=%s  %s"
+              % ("N12 设备名正则", "8 pos + 6 neg", "pos=%s neg=%s" % (dev_pos, dev_neg),
+                 "OK" if good else "MISMATCH"))
+        ok = ok and good
         return 0 if ok else 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

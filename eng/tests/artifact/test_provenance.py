@@ -188,7 +188,9 @@ class TestRevisionCategories(unittest.TestCase):
 
     def test_parse_version_semver(self):
         self.assertEqual(parse_version("1.2.3"), (1, 2, 3))
-        self.assertEqual(parse_version(_repo_version()), (0, 11, 0))
+        # 基础号单源 = 根 VERSION：写死三元组会让断言随唯一源推进而恒红（VER-001 同口径）
+        expected = tuple(int(p) for p in _repo_version().split("-")[0].split("."))
+        self.assertEqual(parse_version(_repo_version()), expected)
         self.assertEqual(parse_version("v1"), (1,))
 
     def test_version_comparison(self):

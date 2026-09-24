@@ -289,6 +289,51 @@ def detect_cpu_physical(proc_root="/proc", sys_root="/sys") -> tuple[Optional[in
 
 
 # ------------------------------------------------------------------ probe ----
+# ------------------------------------------------- Windows 宿主回退（GATE-TRIAGE-01）----
+# 判据：本模块是**宿主资源探测**库，必须在两个正式平台（Windows x64 / Linux amd64）
+# 上都给出真实读数。原实现只读 /proc 与 /sys：Windows 上 mem_total_bytes 恒 None
+# ⇒ 依赖它的门自检不绿（"mem_total_bytes > 0" 恒假），且它的绿是「无判别力的绿」。
+# 下面用 ctypes 补 Windows 真读数；API 不可用 ⇒ 仍返回 None/"unavailable"，
+# 不静默假装成功。
+def _win_memory() -> dict:
+    """GlobalMemoryStatusEx → {"mem_total_bytes", "mem_available_bytes"}；不可用 ⇒ None。"""
+    out = {"mem_total_bytes": None, "mem_available_bytes": None}
+    try:
+        import ctypes
+
+        class _MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong),
+                        ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+        st = _MEMORYSTATUSEX()
+        st.dwLength = ctypes.sizeof(st)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):
+            out["mem_total_bytes"] = int(st.ullTotalPhys)
+            out["mem_available_bytes"] = int(st.ullAvailPhys)
+    except (AttributeError, OSError, ValueError):
+        pass
+    return out
+
+
+def _win_active_processor_count():
+    """GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) → int；不可用 ⇒ None。"""
+    try:
+        import ctypes
+
+        ALL_PROCESSOR_GROUPS = 0xFFFF
+        n = int(ctypes.windll.kernel32.GetActiveProcessorCount(ALL_PROCESSOR_GROUPS))
+        return n if n >= 1 else None
+    except (AttributeError, OSError, ValueError, TypeError):
+        return None
+
+
 def probe(proc_root="/proc", sys_root="/sys",
           affinity_fn: Optional[Callable[[], object]] = None,
           cpu_count_fn: Optional[Callable[[], Optional[int]]] = None) -> dict:
@@ -296,6 +341,8 @@ def probe(proc_root="/proc", sys_root="/sys",
 
     任何来源缺失都有 fallback 且不抛错；推导不出的字段（cpu_physical/quota/
     mem_available）置 None。affinity_fn / cpu_count_fn 可注入用于单测。
+    Windows 无 /proc：memory 走 GlobalMemoryStatusEx，logical 走
+    GetActiveProcessorCount（见上节）。
     """
     proc_root = Path(proc_root)
     sys_root = Path(sys_root)
@@ -315,7 +362,7 @@ def probe(proc_root="/proc", sys_root="/sys",
             cpu_count_fn = os.cpu_count
         affinity = cpu_count_fn() or 1
 
-    # --- cpu_logical：os.cpu_count → /proc/cpuinfo → affinity ---
+    # --- cpu_logical：os.cpu_count → /proc/cpuinfo → win32 → affinity ---
     logical = None
     logical_source = "unavailable"
     if cpu_count_fn is None:
@@ -331,7 +378,11 @@ def probe(proc_root="/proc", sys_root="/sys",
         if logical >= 1:
             logical_source = "procfs"
         else:
-            logical, logical_source = affinity, "fallback:affinity"
+            win_logical = _win_active_processor_count()
+            if win_logical:
+                logical, logical_source = win_logical, "win32:GetActiveProcessorCount"
+            else:
+                logical, logical_source = affinity, "fallback:affinity"
 
     # --- cpu_physical：procfs → sysfs → None ---
     physical, physical_source = detect_cpu_physical(proc_root, sys_root)
@@ -339,9 +390,14 @@ def probe(proc_root="/proc", sys_root="/sys",
     # --- cgroup quota：v2 → v1 → None ---
     quota, quota_source = read_cgroup_quota(proc_root, sys_root)
 
-    # --- memory：/proc/meminfo ---
+    # --- memory：/proc/meminfo → win32 GlobalMemoryStatusEx ---
     meminfo = parse_meminfo(_read_text(proc_root / "meminfo"))
     mem_source = "procfs" if meminfo["mem_total_bytes"] is not None else "unavailable"
+    if meminfo["mem_total_bytes"] is None:
+        win_mem = _win_memory()
+        if win_mem["mem_total_bytes"] is not None:
+            meminfo = win_mem
+            mem_source = "win32:GlobalMemoryStatusEx"
 
     # --- 语义计算（非硬编码）---
     effective, effective_source = compute_effective(affinity, quota)

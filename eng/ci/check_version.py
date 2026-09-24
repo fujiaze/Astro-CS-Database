@@ -2,7 +2,7 @@
 """eng/ci/check_version.py — AstroCS 产品版本一致性 CI 快速门 (V81-ADOPT-006)。
 
 用法:
-  python3 eng/ci/check_version.py --expected 0.11.0-alpha.2 [--root <repo_root>]
+  python3 eng/ci/check_version.py --expected 0.1.0-alpha.1 [--root <repo_root>]
   python3 eng/ci/check_version.py [--root <repo_root>]   # 缺省: expected 取自根 VERSION
   python3 eng/ci/check_version.py --self-test            # 机器可执行负例面 (tempfile mini-repo)
 
@@ -417,7 +417,7 @@ def report(checks: list, root: str, expected, expected_source: str,
 def main() -> int:
     ap = argparse.ArgumentParser(description="AstroCS 产品版本一致性 CI 快速门")
     ap.add_argument("--expected", default=None,
-                    help="期望产品版本, 如 0.11.0-alpha.2 (缺省: 取根 VERSION 的 strip 值)")
+                    help="期望产品版本, 如 0.1.0-alpha.1 (缺省: 取根 VERSION 的 strip 值)")
     ap.add_argument("--root", default=None,
                     help="仓库根 (默认: 脚本位置上一级; 只读)")
     ap.add_argument("--self-test", action="store_true",

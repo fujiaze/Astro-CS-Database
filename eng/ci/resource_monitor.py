@@ -33,7 +33,9 @@ def _capability() -> dict:
         "script": "eng/ci/resource_monitor.py",
         "role": "bridge shim -> eng/tools/monitoring/run_monitored.py (V8-CI-003)",
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "wrapped_target": str(MONITORED.relative_to(REPO)),
+        # 仓库相对路径统一用 "/"（GATE-TRIAGE-01）：Windows 上 str(Path) 产出反斜杠
+        # 形态，与消费者/证据里的 POSIX 形态不一致（跨平台比较恒假）。
+        "wrapped_target": MONITORED.relative_to(REPO).as_posix(),
         "target_exists": MONITORED.is_file(),
         "usage": "python3 eng/ci/resource_monitor.py [--timeout S] [--output FILE] -- <cmd> [args...]",
     }

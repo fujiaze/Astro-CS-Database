@@ -106,10 +106,9 @@ class TestLinuxRelease(unittest.TestCase):
         m = re.search(r"AstroCS-Linux-amd64-(.+)\.tar\.", base)
         self.assertTrue(m)
         self.assertEqual(m.group(1), ver, "包名版本必须来自 VERSION 源")
-        # 版本号单源 = 根 VERSION（VERSION-CONSISTENCY，docs/ci/01_CHECKS.md:66 以
-        # --expected 0.11.0-alpha.2 锁定）⇒ 这里只锁「alpha 形态」，不得写死基础号。
-        # 原为 r"^0\.9\.0-alpha\.\d+$"：VERSION 推进到 0.11.0-alpha.2 后该断言恒假，
-        # 却被 @skipUnless 的恒 skip 掩盖（EMPTYASSERT-01 实测：门禁对象一就位即判红）。
+        # 版本号单源 = 根 VERSION（VERSION-CONSISTENCY 门，见 docs/ci/01_CHECKS.md）
+        # ⇒ 这里只锁「alpha 形态」，不得写死任何基础号（写死即随唯一源推进而恒假，
+        # 并被 @skipUnless 的恒 skip 掩盖 —— EMPTYASSERT-01 实测：门禁对象一就位即判红）。
         self.assertRegex(ver, r"^\d+\.\d+\.\d+-alpha\.\d+$", "包名必须 alpha")
         for bad in ("stable", "rc", "release"):
             self.assertNotIn(bad, base, f"禁止 {bad} 标记")

@@ -9,6 +9,16 @@ exit 0 = PASS; 任何伪造/漂移版本字面量 => 非 0 (mutation 必须失�
 识别口径按"标准条款号形态"收窄 (见 mask_standard_clause_numbers)。
 口径只准更精确、不准更宽松: 只挖条款号本身, 同行真实版本字面量仍须 FAIL。
 
+外部引用单元豁免 (R14): 引用块(`>` 开头)内**连续的引用子项**构成一个引用单元
+(段界 = 空引用行 / 非引用行 / `> ①` 式新编号子项)。单元内至少一行点名外部软件工具
+(EXTERNAL_CITATION_TOKENS)且全单元无本项目版本语境词时, 单元内**裸三元组**豁免 ——
+外部软件版本跨行书写(工具名在首行、版本号在续行)不因断行被误判为产品版本;
+alpha/prerelease 判定与"点名了工具但同单元出现本项目版本语境"的行照旧判红。
+
+运行期捕获产物豁免: astrocs_run_*.json 记录**产生它的那次构建**的版本串(含 commit 段),
+属 history 命名空间, 改写即伪造溯源 ⇒ 按路径登记豁免(CAPTURED_ARTIFACTS), 不放宽任何
+产品版本声明的判定。
+
 合同生命周期边界字段豁免 (W4-A3): 合同/对象注册表 JSON 里的
 `"retire_after": "X.Y.Z"` 是**前向生命周期边界**(该字段的语义就是"在此版本之后退出"),
 不是"产品当前版本 = X.Y.Z"的声明 ⇒ 与唯一版本源比较是错口径 —— 现行实测
@@ -46,6 +56,14 @@ TEST_FIXTURES = {  # 单元测试合成数据文件: 内含 semver 解析/比较
 TEST_FIXTURE_DIRS = (  # 目录级合成数据面 (同上口径)
     os.path.join("eng", "tests", "config", "fixtures"),
 )
+CAPTURED_ARTIFACTS = {  # 运行期捕获产物 (history 命名空间): 记录"产生它的那次构建"的版本串
+    # astrocs_run_*.json 由被测 CLI 运行期落盘, 其 astrocs_version 是**当时构建**的
+    # 事实记录 (含 commit 段), 不可能也不应随唯一源推进改写 —— 改写即伪造溯源
+    # (版本串与 commit 段互斥)。现状: eng/tests/cli/ 滞留一份 2026-09-12 被取消运行的
+    # manifest (游离产物, 全仓零消费者); 其正解是清理该游离产物, 本豁免只保证
+    # "清理前不误报", 不放宽任何产品版本声明的判定。
+    os.path.join("eng", "tests", "cli", "astrocs_run_3577873f85f6.json"),
+}
 # 行内豁免: 非产品版本的数字三元组(外部工具/格式版本/协议版本/示例占位)
 EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "driver",
           "X.Y.Z", "MAJOR.MINOR.PATCH", "healpix", "cfitsio", "fitsio", "opencl", "example",
@@ -184,7 +202,10 @@ def mask_external_tool_versions(line):
         gap = line[gap_start:m.start()]
         if len(gap) > EXTERNAL_TOOL_GAP_MAX:
             continue
-        if BASE_RE.search(gap):             # 中间还夹着别的版本字面量 ⇒ 不是"工具名+版本"
+        # R14: 中间夹着**别的**版本字面量 ⇒ 不是"工具名+版本"; 但同一工具版本的
+        # **重复书写**(如 "SWarp … 2.41.5-35-g2f7e8b6 … tag 2.41.5")不算别的版本,
+        # 否则同一句里的第二次引用被误判为产品版本(实测 docs/science/NOISE_MODEL.md:399)。
+        if any(mid != m.group(1) for mid in BASE_RE.findall(gap)):
             continue
         if PROJECT_VERSION_CONTEXT_RE.search(gap):
             continue
@@ -206,6 +227,56 @@ def mask_lifecycle_boundaries(line):
     def repl(m):
         return " " * (m.end(1) - m.start(1))
     return LIFECYCLE_BOUNDARY_RE.sub(repl, line)
+
+
+# ── 外部引用单元口径 (VER-001 R14) ─────────────────────────────────────────
+# 事由: docs/contracts/DATA_SEMANTICS.md 的 WBPP/PixInsight 引用段把外部软件版本
+#       (2.5.9 / 2.9.1) 写在**跨行的引用子项**里 —— 工具名在子项首行, 版本号落在
+#       续行 ⇒ 行级豁免词表按行匹配必然漏报 (与 R13 "…未修改 Siril\n1.4.3…"
+#       跨行断开 siril 同型)。旧口径下本仓恒红 2 条, 遮蔽真实漂移判定。
+# 依据: 与 R-08 / W4-A3 / BLD-401 R3 同款 —— 外部软件版本是**溯源证据**,
+#       严禁为过检查改写合同文档; 修口径。
+# 形态收窄 (只准更精确): 引用单元 = 连续的引用行(`>` 开头)构成的段, 段界为
+#       空引用行(`>` 独占一行)、非引用行、以及**新编号子项行**(`> ①` / `> ②` …)。
+#       仅当单元内**至少一行点名外部软件工具**(EXTERNAL_CITATION_TOKENS)且
+#       全单元**无本项目版本语境词**(PROJECT_VERSION_CONTEXT_RE)时, 单元内**裸三元组**
+#       豁免。alpha/prerelease 判定仍跑在原始行上, 不受本口径影响; 非引用行、
+#       未点名工具的单元、含本项目版本语境的单元一律照旧判红(负例见 --self-test)。
+EXTERNAL_CITATION_TOKENS = EXTERNAL_TOOL_NAMES + (
+    "wbpp", "weightedbatchpreprocessing", "pixinsight",
+)
+CIRCLED_ITEM_HEADS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
+
+
+def exempt_citation_lines(lines):
+    """外部引用单元内各行的 0 基下标集合(仅豁免**裸三元组**扫描)。"""
+    def _is_quote(ln):
+        return ln.lstrip().startswith(">")
+
+    def _is_blank_quote(ln):
+        return ln.strip() in (">", "")
+
+    def _is_item_head(ln):
+        body = ln.lstrip()[1:].lstrip()
+        return bool(body) and body[0] in CIRCLED_ITEM_HEADS
+
+    exempt = set()
+    i, n = 0, len(lines)
+    while i < n:
+        if not _is_quote(lines[i]) or _is_blank_quote(lines[i]):
+            i += 1
+            continue
+        j = i + 1
+        while (j < n and _is_quote(lines[j]) and not _is_blank_quote(lines[j])
+               and not _is_item_head(lines[j])):
+            j += 1
+        blob = "\n".join(lines[i:j])
+        low = blob.lower()
+        if (any(t in low for t in EXTERNAL_CITATION_TOKENS)
+                and not PROJECT_VERSION_CONTEXT_RE.search(blob)):
+            exempt.update(range(i, j))
+        i = j
+    return exempt
 
 
 def base_version():
@@ -261,13 +332,17 @@ def check_file(path, base_num, alpha_n, errors):
     for _d in TEST_FIXTURE_DIRS:
         if rel == _d or rel.startswith(_d + os.sep):
             return  # 目录级合成数据面(eng/tests/config/fixtures/**)
+    if rel in CAPTURED_ARTIFACTS:
+        return  # 运行期捕获产物(history 命名空间; 记录产生它的那次构建的版本串)
     alpha_full = re.compile(r"(\d+\.\d+\.\d+)-alpha\.(\d+)")
     # 生命周期列口径 (W4-A3): 合同文档里 "退役窗口 / retire_after" 表格列同样是
     # **前向边界**语义(该列的取值定义"何时退出", 天然 != 当前基础号)。表头命中
     # LIFECYCLE_KEYS 即对其后的连续表格数据行启用豁免; 表格结束(非 '|' 行)即复位。
     lifecycle_table = False
     with open(path, encoding="utf-8", errors="replace") as f:
-        for i, line in enumerate(f, 1):
+        lines = f.read().splitlines()
+    cite_exempt = exempt_citation_lines(lines)
+    for i, line in enumerate(lines, 1):
             if line.lstrip().startswith("|"):
                 if any(k in line for k in LIFECYCLE_KEYS):
                     lifecycle_table = True
@@ -286,6 +361,8 @@ def check_file(path, base_num, alpha_n, errors):
             low = line.lower()
             if any(k in low for k in EXEMPT):
                 continue
+            if (i - 1) in cite_exempt:
+                continue  # 外部引用单元(R14): 裸三元组属被引外部软件版本, 非产品版本
             # R-08 / W4-A3: 未知版本字面量扫描前先挖掉标准条款号与合同生命周期
             # 边界值。alpha/prerelease 判定仍跑在原始行上 —— 口径只收窄未知字面量
             # 误报面, 不放宽漂移判定。
@@ -320,6 +397,22 @@ def self_test():
             check_file(p, b or base_num, alpha_n if a is None else a, errs)
         return errs
 
+    def run_text(text, b=None, a=None):
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "PROBE.md")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write(chr(10).join(text) + chr(10))
+            errs = []
+            check_file(p, b or base_num, alpha_n if a is None else a, errs)
+        return errs
+
+    def case_text(name, text, want_hit, b=None, a=None):
+        errs = run_text(text, b, a)
+        ok = bool(errs) == want_hit
+        cases.append((name, ok, want_hit, errs[:1]))
+        if not ok:
+            problems.append(name)
+
     def case(name, line, want_hit, b=None, a=None):
         errs = run_line(line, b, a)
         ok = bool(errs) == want_hit
@@ -341,6 +434,30 @@ def self_test():
             problems.append("pre_fix_red_evidence_%d" % i)
         case("external_tool_version_not_flagged_%d" % i, line, False)
 
+    # R14 外部引用单元口径: 跨行引用子项里的外部软件版本不得被当产品版本
+    CITATION_UNIT = [
+        "> ① **外部依据（软件惯例，非学术共识）**：WBPP（PixInsight WeightedBatchPreprocessing）",
+        "> **2.5.9** 官方更新包 `src/scripts/WeightedBatchPreprocessing-engine.js` 的 :1349",
+        "> 不得表述为学术结论。**引用要求**：引外部依据时必须写明 WBPP 版本（**2.5.9** 为可公开核验版；",
+        "> 2.9.1 源码随商业安装分发、行号未独立验证），并写明行为是 **WARN** 而非 REJECT。",
+    ]
+    # 先红证据: 承载字面量的两行在 R14 之前(仅行级豁免)必被抓, 用例才有回归意义
+    for _i in (1, 3):
+        if not BASE_RE.findall(CITATION_UNIT[_i]):
+            problems.append("pre_fix_red_evidence_citation_%d" % (_i + 1))
+    case_text("citation_unit_external_versions_not_flagged", CITATION_UNIT, False)
+    case_text("citation_unit_with_project_context_still_flagged",
+              CITATION_UNIT + ["> 本项目版本 9.9.9 已冻结。"], True)
+    case_text("quote_unit_without_tool_name_still_flagged",
+              ["> ① 外部依据：", "> 9.9.9 为参考实现版本。"], True)
+    case_text("bare_literal_outside_citation_unit_still_flagged",
+              ["裸行 9.9.9 不在任何引用单元内"], True)
+    # R14 同一工具版本的重复书写(同句第二次引用)不得被当产品版本
+    case("repeated_external_tool_version_not_flagged",
+         "- **SWarp**（GPL-3.0，commit `2f7e8b6` = `2.41.5-35-g2f7e8b6`；"
+         "tag `2.41.5` 上为 :1282-1314）：权重是**逐像素通道**。", False)
+    case("repeated_tool_version_with_other_literal_still_flagged",
+         "- **SWarp** 2.41.5 与 9.9.9 并列对照。", True)
     case("product_version_typo_still_flagged", "发布版本: 1.2.3 正式版", True)
     case("project_context_gap_not_exempted", "SWarp 对照：本项目版本 9.9.9", True)
     case("product_version_after_tool_version_flagged",
