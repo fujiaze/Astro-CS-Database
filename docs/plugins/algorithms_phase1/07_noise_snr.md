@@ -145,6 +145,32 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **影响面（诚实）**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；**影响**逐像素**不确定度产品面**。凡「逐像素方差/不确定度已传播到产品」的主张，**只能引用 A 的插件路径证据**，**不得声称生产路径已产出**。
 - **行号说明**：本节的 `文件:行` 以符号名/文件名核对为准；工作树并发改动会使行号漂移。
 
+### 4.4a 背景方差面的自适应拟合与 §5d 审计面
+
+背景方差面 `var(x,y) = a + b·x + c·y` 的**控制点有效性**与**拟合可行域**都由数据自身给出，
+**不含按数据集标定的常数**（正本 = `docs/science/NOISE_MODEL.md` §5d；实现 = 噪声模型 A 的
+`snr_noise_model_v1` / `_f64` 构建路径）。
+
+- **控制点有效性判据是自校准统计量**：`R = σ_MAD / σ_white-equiv`——分子是该 patch 的稳健尺度，
+  分母是同一 patch 在**白噪声零假设**下的等价尺度。该判据的**零假设值恒为 1**，是恒等式而不是标定值
+  ⇒ **禁止**把 `R` 与任何写死的绝对倍数比较（如 `R > 3`）。
+- **判据实现 = `ln R` 的序统计量**：取最大的 `k` 使第 `k` 个跳变超过保留主体的极差；
+  `min_keep = max(⌈n/2⌉, 预算 patch 数)`；`n < min_keep + 1` 时判据**不武装**，
+  这些 patch 计入 `n_r_unavailable_patches`，**不得**当作被剔除。
+- **拟合可行域**：平面必须在**控制点凸包内结构非负**（凸包内预测 ≤ 0 是拟合缺陷，不是合法外推）；
+  **禁止**回退到常数场。
+- **拟合权重 = 相对误差加权**：`w_i = (v_med / v_i)²`（`v_med` = 控制点方差的中位数）。
+- **可观测量必须写入 provenance**，缺任一必落字段即该帧方差面**不可审计**：
+  `<帧>/p1_final.json#variance_audit`（内容逐字读回 `<帧>/p1_stack.json#variance_audit`）。
+  必落字段 = `ctrl_variance_range`、`plane_a` / `plane_b` / `plane_c`、
+  `hull_nonpositive_frac`、`n_structure_rejected_patches`、`r_min` / `r_median` / `r_max` / `r_fence`；
+  逐帧另有 `variance_audit_present` / `variance_audit_available` /
+  `variance_audit_missing_fields` / `variance_audit_source`。清单的机器唯一源 =
+  `astrocs::noise::variance_audit_required_fields()`（生产者、校验者与测试**必须**引用同一份）。
+- **失败语义**：本帧**已发布** variance/ivar 子产品而必落字段不齐 ⇒ **fail-closed**（DATA 类，
+  `p1_final.json` 不落盘）；`hull_nonpositive_frac != 0` ⇒ 该方差面不可审计。
+  未发布方差面时如实登记「本次没有这张面」，**不得**把「无此产品」读成「字段丢了」。
+
 ### 4.5 稀疏帧内层几何与重建算子
 
 - 稀疏控制点间隔 Δ 复用 Phase2 UPM 的 8×8/tile 控制网格，`Δ = hips.tile_width / 8`（`hips.tile_width = 512` ⇒ Δ = 64 px）；默认保持 Δ=64 px（HST 类高对比数据推荐 32 px，下限 16 px），取值依据、失效边界与完整适用域正本见 `实验/absolute-snr`（EXP-04 §5）；
@@ -209,6 +235,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - 指定 `sparse_reconstruct` 路径而输入无稀疏层 → 按帧级执行并**显式记录实际路径**（不静默）；稀疏层损坏/不可重建 → fail-closed；
 - **稀疏层值语义判红**：把控制点值按**相对因子**解释（含乘/除帧级标量做还原）⇒ 必须判红。控制点值是**绝对**通量型 SNR，由 schema 的 `sparse_snr_semantics` 冻结为 `absolute_flux_type_snr`；声明为相对语义或缺失该键 ⇒ schema 判红；
 - 任何信号项未扣局部背景、被天光/背景抬高的 SNR → 判红（红线 §4.1）；
+- **§5d 审计面判红（§4.4a）**：本帧**已发布** variance/ivar 子产品而 `variance_audit` 必落字段不齐 ⇒ 判红（DATA 类 fail-closed，`p1_final.json` 不落盘）；`hull_nonpositive_frac != 0` ⇒ 该方差面不可审计。本帧未发布方差面时如实登记「本次没有这张面」，**不得**把「无此产品」读成「字段丢了」；
 - **σ_sky 双计判红（§4.2a）**：`sigma_sky_source=empirical_total_rms` 时再加 `(RN/g)²` ⇒ 必须判红（保护负例）；
 - **声明义务**：**生产调用点**（`module_adapters` 的 `p1_op_noise`）必须显式声明 `sigma_sky_source`，缺失即评审判红；声明与实际来源不一致（声称散粒而来源为经验总 rms，或反之）⇒ fail-closed 拒绝。
 - **C ABI legacy 路径**：`SNR_SIGMA_SKY_UNSPECIFIED=0` 保留为直接 C API 调用方的兼容缺省（与 `SHOT_ONLY` 组合**逐位一致**，由 `p1snr_science_skysource` 的向后兼容锁固定）；该路径**禁止**在生产链使用——「缺失即 fail-closed」由调用点层（而非 C 函数层）保证，因为 C 函数层无法观测入参的**实际来源**。
@@ -225,4 +252,6 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **稀疏层绝对语义判据（能红能绿）**：① 绿——控制点自身复现：在节点坐标处重建值 == 落盘控制点值（残差 ~0），且与帧级标量**无关**（同层配不同帧级标量，重建结果逐位相同）；② 红——按相对值解释：取 `SNR(x,y) = frame_snr × v(x,y)/median(v)` 时，节点重建值 ≠ 落盘值（除非 `frame_snr == median(v)`），该差异必须被判红；③ 红——schema 层：`sparse_snr_semantics` 声明为相对语义或缺失 ⇒ 合同测试判红；
 - 点源/面亮度口径分离：把面亮度 SNR 当帧级 SNR 使用必须判红；
 - **逐帧 `F_ref,k` 独立性负例**：人为要求组内 `F_ref` 相等（组间硬闸门）⇒ 必须判红——不同指向/不同光学系统的帧合法地有不同 `F_ref,k`；`w_k = SNR_k²/F_ref,k²` 的配对性**只在同一帧内**成立；
+- **背景方差面判据（能红能绿，§4.4a）**：注入结构（未分辨源 / 强梯度）⇒ 被 `ln R` 序统计量判据剔除、`n_structure_rejected_patches > 0`；真值无结构 ⇒ 判据**不动作**（`n_structure_rejected_patches == 0`、`r_median ≈ 1`，证明判据非恒真）；`R` 不可算的 patch 计入 `n_r_unavailable_patches` 而**不**被剔除；
+- **§5d 审计面**：正常帧 `variance_audit` 必落字段齐全、`hull_nonpositive_frac == 0`、`ctrl_variance_range > 0`；删掉整块或只删单个字段后重跑 writer ⇒ 判红（负例）；
 - 1 worker vs N worker 一致。
