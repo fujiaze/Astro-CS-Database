@@ -135,6 +135,8 @@ def selftest() -> int:
     CMakeLists.txt ⇒ 绝不触碰真 run/ 与真仓库。
     负例：① 保留清单缺失 ② 保留清单存在但为空 ③ 仓库根推导错误 ④ 清单缺失时 dry-run。
     正例：清单可读非空 ⇒ 清单命中项 KEEP 不删、未命中项 WOULD-DELETE/DELETE。
+    正例：--prune-products ⇒ 命中轮次的 out/ 被回收，而 REPORT.md / results / logs 存活；
+    负例：不带 --prune-products ⇒ out/ 必须原样存活（默认不碰保留轮次的内容）。
     """
     import tempfile
 
@@ -149,6 +151,12 @@ def selftest() -> int:
         for name in ("RELEASE-04", "DOC-402", "scratch-01"):
             (run / name / "logs").mkdir(parents=True)
             (run / name / "logs" / "a.log").write_text("x", encoding="utf-8")
+        # 保留轮次内的"产品树 vs 证据"夹具：out/ 可再生，其余是证据
+        (run / "RELEASE-04" / "out" / "tile").mkdir(parents=True)
+        (run / "RELEASE-04" / "out" / "tile" / "big.bin").write_bytes(b"0" * 4096)
+        (run / "RELEASE-04" / "results").mkdir(parents=True)
+        (run / "RELEASE-04" / "results" / "keep.json").write_text("{}", encoding="utf-8")
+        (run / "RELEASE-04" / "REPORT.md").write_text("# r" + chr(10), encoding="utf-8")
         gc = tools / "run_gc.py"
         keep = tools / "run_keep.txt"
         shutil.copy2(Path(__file__).resolve(), gc)
@@ -209,6 +217,22 @@ def selftest() -> int:
         if (run / "scratch-01").exists():
             fails.append("正例 未命中项未被回收")
 
+        # ── 负例 ⑤：不带 --prune-products ⇒ 保留轮次内的 out/ 必须原样存活 ──
+        if not (run / "RELEASE-04" / "out" / "tile" / "big.bin").is_file():
+            fails.append("负例5 默认行为竟删除了保留轮次的产品树（应当只读不删）")
+
+        # ── 正例：--prune-products ⇒ out/ 回收，而 REPORT.md / results / logs 存活 ──
+        r = call(["--prune-products", "--apply"])
+        if r.returncode != 0:
+            fails.append("prune-products rc=%d" % r.returncode)
+        if (run / "RELEASE-04" / "out").exists():
+            fails.append("正例 --prune-products 未回收保留轮次的 out/")
+        for keeprel in ("REPORT.md", "results/keep.json", "logs/a.log"):
+            if not (run / "RELEASE-04" / keeprel).exists():
+                fails.append("正例 --prune-products 误删证据 %s" % keeprel)
+        if not (run / "DOC-402").is_dir():
+            fails.append("正例 --prune-products 误删了轮次目录本身")
+
     if fails:
         print("RUN_GC_SELFTEST_FAIL:")
         for x in fails:
@@ -228,6 +252,9 @@ def main() -> int:
     ap.add_argument("--protect", action="append", default=[], help="额外保护的路径（可重复）")
     ap.add_argument("--min-free-gib", type=float, default=None,
                     help="仅当可用空间低于该值时清理（按最旧优先，直到达标）")
+    ap.add_argument("--prune-products", action="store_true",
+                    help="对**保留清单命中**的轮次，回收其 run/<轮次>/out/ 产品树"
+                         "（只删名为 out 的直接子目录；报告/证据/结果/日志一律保留）")
     ap.add_argument("--self-test", action="store_true",
                     help="机器可执行正/负例面（临时目录夹具；不触碰真 run/）")
     args = ap.parse_args()
@@ -259,12 +286,15 @@ def main() -> int:
         need = target - free_before
 
     entries = []
+    kept_dirs = []
     for child in sorted(RUN.iterdir(), key=lambda p: p.stat().st_mtime if p.exists() else 0):
         name = child.name
         if name == ".gitkeep":
             continue
         if kept(name, pats):
             print(f"KEEP   {name}（保留清单命中）")
+            if child.is_dir() and not child.is_symlink():
+                kept_dirs.append(child)
             continue
         if child.is_symlink():
             print(f"SKIP   {name}（符号链接，拒绝）")
@@ -278,13 +308,16 @@ def main() -> int:
             continue
         entries.append((child, _dir_size(child) if child.is_dir() else child.stat().st_size))
 
-    if not entries:
+    # 注意：--prune-products 的目标在**保留轮次内部**，与 entries 无关；
+    # 若在此按 entries 为空提前返回，第二次运行（未命中项已删完）就会静默跳过产品树回收。
+    if not entries and not (args.prune_products and kept_dirs):
         print("无可回收条目。")
         return 0
 
-    total = sum(sz for _, sz in entries)
-    print(f"\n可回收 {len(entries)} 项，共 {_human(total)}（run/ 可用空间 {_human(free_before)}）")
     freed = 0
+    if entries:
+        total = sum(sz for _, sz in entries)
+        print(f"\n可回收 {len(entries)} 项，共 {_human(total)}（run/ 可用空间 {_human(free_before)}）")
     for child, sz in entries:
         if need and freed >= need:
             print(f"STOP   {child.name}（已达 --min-free-gib 目标）")
@@ -298,7 +331,34 @@ def main() -> int:
                 child.unlink()
         freed += sz
 
+    # ── --prune-products：保留清单命中的轮次里，只有 run/<轮次>/out/ 是**可再生
+    # 产品树**；报告（REPORT.md）、证据（evidence/）、结果（results/）、日志（logs/）、
+    # 分析（analysis/）、可视化（vis/）、代码（code/、tools/）一律保留。
+    # 保留清单用的是**族 glob**（如 PERF-* / E2E-*），命中面很宽 ⇒ 若不做这一步，
+    # 保留下来的轮次会各自带着几十 GB 的 out/ 长期占盘，回收器形同虚设。
+    # 硬护栏：只删「轮次目录下名字恰为 out 的直接子目录」，不跟随符号链接，
+    # 且绝不触碰 run/ 之外或 --protect 内的路径。
+    pruned = 0
+    if args.prune_products:
+        for rd in kept_dirs:
+            target = rd / "out"
+            if not target.is_dir() or target.is_symlink():
+                continue
+            if target.resolve() in protect or not str(target.resolve()).startswith(str(RUN.resolve())):
+                print(f"SKIP   {rd.name}/out（受保护或在 run/ 之外）")
+                continue
+            sz = _dir_size(target)
+            action = "PRUNE-PRODUCTS" if args.apply else "WOULD-PRUNE-PRODUCTS"
+            print(f"{action} {rd.name}/out  {_human(sz)}")
+            if args.apply:
+                shutil.rmtree(target, ignore_errors=False)
+            pruned += sz
+        if pruned:
+            print(f"\n{'已回收' if args.apply else '可回收'}产品树 {_human(pruned)}"
+                  f"（保留清单命中轮次的 out/）")
+
     free_after = shutil.disk_usage(RUN).free
+    freed += pruned
     verb = "已回收" if args.apply else "可回收"
     print(f"\n{verb} {_human(freed)}；run/ 可用空间 {_human(free_before)} → {_human(free_after)}")
     if not args.apply:
