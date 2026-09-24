@@ -27,7 +27,7 @@ extern "C" {
 
 /* 模块静态标识 (module.yaml / DLL descriptor / product manifest 三方一致, 12 §5) */
 #define ASTROCS_GAIA_MODULE_ID   "astrocs.catalog.gaia"
-#define ASTROCS_GAIA_VERSION     "0.11.0-alpha.2"
+#define ASTROCS_GAIA_VERSION     "0.1.0-alpha.1"
 #define ASTROCS_GAIA_ABI_VERSION 1u
 #define ASTROCS_GAIA_BUILD_ID    "CAT-GAIA-IMPL"
 

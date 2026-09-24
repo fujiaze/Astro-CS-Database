@@ -64,7 +64,7 @@ id: MOD-astrocs-phase3-writer
 module_id: astrocs.p3.fits_writer
 owner: SA-P3-F27
 language: c++17
-module_version: 0.11.0-alpha.2
+module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase3
 dll_name: astrocs_p3_fits_writer.dll

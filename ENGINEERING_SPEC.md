@@ -138,7 +138,7 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
 - **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，**不得**写入任何非标准 `hips_tile_format`；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
 - **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**，禁止静默取默认）；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
-- **Alpha 之前代码与产物中不含任何版本信息**（最高设计 §13）；发布 Alpha 时 CLI `--version` 输出 `0.0.1alpha`。
+- **版本信息按阶段出现**（最高设计 §13）：alpha 阶段之前代码与产物中不含任何版本信息；进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/owner/RELEASE_STATUS.md` §2），CLI `--version` 输出该源派生的生成串。
 
 ---
 

@@ -51,16 +51,18 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 - 逐面状态与证据锚以本文（§0 词表 + 分面表）与 `docs/modules/MODULE_MAP.yaml` 为准。
 - **合成测试或历史可用节点不等于真实数据 / Windows `VERIFIED`**（`ASTROCS_DESIGN.md` §12.5 末条）。
-- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ASTROCS_DESIGN.md` §12）。Alpha 前程序/代码/产物内不存在版本信息（§12）；根 `VERSION` 仅为内部助记符，不进入程序与发布产物（`ENGINEERING_SPEC.md` §7）。
+- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ASTROCS_DESIGN.md` §12）。版本信息按阶段出现：alpha 阶段之前程序/代码/产物内不存在版本信息；进入 alpha 阶段后按本文 §2 单源条款出现（`ASTROCS_DESIGN.md` §13、`ENGINEERING_SPEC.md` §7）。
 
 ## 2. 版本与发布面
 
-- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.2`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）。
+- 产品版本唯一源：根 `VERSION` = `0.1.0-alpha.1`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）。
+- **本条款管"谁是唯一源"，不规定版本信息何时开始出现**（后者见 `ASTROCS_DESIGN.md` §13）：进入 alpha 阶段后，
+  程序/代码/产物中的产品版本一律由根 `VERSION` 派生或与其一致；alpha 阶段之前不出现版本信息。
 - **版本命名空间**（生命周期独立，禁止跨命名空间借用号段）：
 
 | 命名空间 | 权威定义点 | 当前值 | 递增规则 / 生命周期 |
 |---|---|---|---|
-| product | 仓库根 `VERSION`（唯一事实源） | `0.11.0-alpha.2` | `MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升 |
+| product | 仓库根 `VERSION`（唯一事实源） | `0.1.0-alpha.1` | `MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升 |
 | module | 各模块 `module.yaml` 的 `module_version` | 逐模块独立（以 manifest 为准） | 模块接口/产物变更时由模块 owner 递增，与产品版本无关 |
 | ABI | `lib/include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1` 与 CLI 暴露的 `abi_version` | ABI v1（头常量 `1u`） | 任何破坏二进制兼容的变更必须递增 |
 | data-schema | `eng/contracts/data/artifact_types.registry.json` 的 `schema_version` 与各 schema 文件的 `$schema` 版本 | type_id schema_version = 1 | 数据产品结构变更时按 registry 递增 |
@@ -69,7 +71,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 - 非产品版本的数字三元组不得当作产品版本，也不得反向手抄：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
 - **生成链**（CMake/CLI/打包从根 `VERSION` 派生，禁止手抄字面量）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
-- 生成串形态：clean main 为 `0.11.0-alpha.2+g<commit12>`，dirty 工作树追加 `.dirty`。
+- 生成串形态：clean main 为 `0.1.0-alpha.1+g<commit12>`，dirty 工作树追加 `.dirty`。
 - **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
 - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
 - 已知他人路径遗留：`docs/VERSIONING.md`、CMake `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 —— 由版本检查器 `known_legacy_reported` 输出登记（见检查器 `out_of_scope` 列表）。

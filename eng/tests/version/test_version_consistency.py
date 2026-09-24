@@ -477,9 +477,9 @@ MUTATIONS = {
         "pass  # 注入: 去掉标准名后裸条款号豁免"),
     # 过宽 4: 过宽豁免提前到 alpha 判定之前 → alpha 漂移被掩盖
     "over_broad_masking_before_alpha_check": (
-        "        for i, line in enumerate(f, 1):",
-        "        for i, _raw in enumerate(f, 1):\n"
-        "            line = ' ' * len(_raw) if '\u00a7' in _raw else _raw"),
+        "    for i, line in enumerate(lines, 1):",
+        "    for i, _raw in enumerate(lines, 1):\n"
+        "        line = ' ' * len(_raw) if '\u00a7' in _raw else _raw"),
     # BLD-401 R3 第三方工具版本口径的双向守卫:
     # 过窄: 取消工具版本豁免 → 研究包 7 条误报再现 (test_19/test_22 必败)
     "external_tool_mask_disabled": (

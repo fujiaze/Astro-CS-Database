@@ -59,7 +59,7 @@ modules:
     target_file: lib/algorithms/calibration/CMakeLists.txt
     co_located_tests: lib/algorithms/calibration/tests
     module_id: astrocs.p1.calibration
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -88,7 +88,7 @@ modules:
     target_file: lib/algorithms/cosmetic/CMakeLists.txt
     co_located_tests: lib/algorithms/cosmetic/tests
     module_id: astrocs.p1.cosmetic
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -117,7 +117,7 @@ modules:
     target_file: lib/algorithms/star_detection/CMakeLists.txt
     co_located_tests: lib/algorithms/star_detection/tests
     module_id: astrocs.p1.star_detection
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -147,7 +147,7 @@ modules:
     co_located_tests: lib/algorithms/psf/tests
     module_id: astrocs.p1.psf
     aliases: [astrocs.phase1.star-psf]   # MOD-002 中面：D 面将检测/PSF 拆两页，star-psf 指 PSF 模块
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -177,7 +177,7 @@ modules:
     co_located_tests: lib/algorithms/platesolve/cpp/ipv/test
     module_id: astrocs.p1.platesolve
     aliases: [astrocs.p1.wcs, astrocs.phase1.wcs, astrocs.phase1.wcs-platesolve]   # MOD-002：规范形 astrocs.p1.platesolve；B/C/D 面写法登记为弃用别名
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -206,7 +206,7 @@ modules:
     target_file: lib/algorithms/photometry/CMakeLists.txt
     co_located_tests: lib/algorithms/photometry/tests
     module_id: astrocs.p1.photometry
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -236,7 +236,7 @@ modules:
     co_located_tests: lib/algorithms/noise_snr/tests
     module_id: astrocs.p1.noise_snr
     aliases: [astrocs.p1.noise, astrocs.phase1.noise, astrocs.phase1.noise-snr]   # MOD-002 中面：B/C 面子集名登记为弃用别名
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -265,7 +265,7 @@ modules:
     target_file: lib/algorithms/drizzle/CMakeLists.txt
     co_located_tests: lib/algorithms/drizzle/healpix_drizzle/tests
     module_id: astrocs.p1.drizzle
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -294,7 +294,7 @@ modules:
     target_file: lib/algorithms/coverage/CMakeLists.txt
     co_located_tests: lib/algorithms/coverage/tests
     module_id: astrocs.p2.coverage
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -324,7 +324,7 @@ modules:
     co_located_tests: lib/algorithms/sampling/tests
     module_id: astrocs.p2.sampling
     aliases: [astrocs.phase2.sample]   # MOD-002：C/D 面用 sample，登记为弃用别名
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -353,7 +353,7 @@ modules:
     target_file: lib/algorithms/upm/CMakeLists.txt
     co_located_tests: lib/algorithms/upm/tests
     module_id: astrocs.p2.upm
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -382,7 +382,7 @@ modules:
     target_file: lib/algorithms/rejection/CMakeLists.txt
     co_located_tests: lib/algorithms/rejection/tests
     module_id: astrocs.p2.rejection
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -411,7 +411,7 @@ modules:
     target_file: lib/algorithms/integration/CMakeLists.txt
     co_located_tests: lib/algorithms/integration/tests
     module_id: astrocs.p2.integration
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -440,7 +440,7 @@ modules:
     target_file: lib/algorithms/projection/CMakeLists.txt
     co_located_tests: lib/algorithms/projection/tests
     module_id: astrocs.p3.projection
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -469,7 +469,7 @@ modules:
     target_file: lib/algorithms/resample/CMakeLists.txt
     co_located_tests: lib/algorithms/resample/tests
     module_id: astrocs.p3.resample
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -499,7 +499,7 @@ modules:
     co_located_tests: lib/algorithms/fits_output/tests
     module_id: astrocs.p3.fits_output
     aliases: [astrocs.p3.fits_writer, astrocs.phase3.writer]   # MOD-002：A 面规范形；B/C/D 用角色名 fits_writer/writer
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -528,7 +528,7 @@ modules:
     target_file: lib/infrastructure/aio/CMakeLists.txt
     co_located_tests: lib/infrastructure/aio/tests
     module_id: astrocs.infra.aio
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -557,7 +557,7 @@ modules:
     target_file: lib/infrastructure/cli/CMakeLists.txt
     co_located_tests: lib/infrastructure/cli/tests
     module_id: astrocs.infra.cli
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: main
     entrypoint_kind: exe-main
@@ -586,7 +586,7 @@ modules:
     target_file: CMakeLists.txt
     co_located_tests: lib/infrastructure/scheduler/tests
     module_id: astrocs.infra.scheduler
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -623,7 +623,7 @@ modules:
     target_file: lib/infrastructure/benchmark/CMakeLists.txt
     co_located_tests: lib/infrastructure/benchmark/tests
     module_id: astrocs.infra.benchmark
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -652,7 +652,7 @@ modules:
     target_file: lib/infrastructure/observability/CMakeLists.txt
     co_located_tests: lib/infrastructure/observability/tests
     module_id: astrocs.infra.observability
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -681,7 +681,7 @@ modules:
     target_file: lib/infrastructure/gaia_xpsd_client/CMakeLists.txt
     co_located_tests: lib/infrastructure/gaia_xpsd_client/tests
     module_id: astrocs.catalog.gaia
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
@@ -714,7 +714,7 @@ modules:
     target_file: lib/infrastructure/hips_browser/CMakeLists.txt
     co_located_tests: lib/infrastructure/hips_browser/healpix_browser_qt/tests
     module_id: astrocs.infra.hips_browser
-    module_version: 0.11.0-alpha.2
+    module_version: 0.1.0-alpha.1
     abi_version: 1
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi

@@ -5,7 +5,7 @@
 `eng/cmake/toolchain/verify_toolchain.py`，冻结事实合同
 `eng/packaging/schemas/preset-contract.json`。
 
-## Windows x64 发布工具链（冻结，BLD-001；Alpha 0.11.0）
+## Windows x64 发布工具链（冻结，BLD-001；Alpha 0.1.0）
 
 | 组件 | 冻结值 | 说明 |
 |------|--------|------|
