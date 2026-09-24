@@ -140,10 +140,72 @@ P2_API int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
 // 2. 稀疏天光面求解
 // ===========================================================================
 
+// ---------------------------------------------------------------------------
+// 2a. 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/PHASE2_UPM.md §7a）
+// ---------------------------------------------------------------------------
+//
+// 规范依据（§7a「节点间距必须由输入自适应导出（不得是标定常数）」）：
+//   节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2；
+//   对「帧间加性天光差」这一目标量，该尺度是**重叠带宽度**与**指向间距**中的较小者。
+//
+// 为什么不能取标定常数：节点间距是 B_ref **表示能力的唯一决定量**（§7a 首条），
+// 而「约束 δ_k 的最小尺度」是**逐产品**由输入几何决定的。取固定值会在几何不同的
+// 产品上要么粗到不可表示（M42 实测：1.0° vs 需要 0.075°，见 run/UPM-NODE-ADAPT-01），
+// 要么细到欠定。
+//
+// 量纲与换算（逐项；换仪器/换像素尺度后行为必须自洽）：
+//   overlap_band_width_deg  度。相邻指向公共成像区在**指向连线方向**上的角宽度。
+//   pointing_spacing_deg    度。相邻指向中心之间的天球角距离。
+//   sample_pitch_deg        度。采样点（control）角间距 = 数据自身的分辨率极限：
+//                           比它更细的节点不可能被数据约束。由 sampler 几何算出：
+//                           Δθ = tile 角边长 / control_grid_per_tile（PHASE2_SAMPLER §…）。
+//   pixel_scale_arcsec      角秒/像素。源帧像素角尺度。**只**用于把导出的角量换算到
+//                           像素域（h_px = h_deg·3600 / pixel_scale_arcsec）与给出像素级
+//                           分辨率极限；不参与 h_deg 的取值。故 h_deg 与像素尺度无关、
+//                           h_px 与像素尺度成反比——这正是「换仪器后度数不变、像素数按
+//                           比例变」的自洽性要求。
+typedef struct {
+    double overlap_band_width_deg;
+    double pointing_spacing_deg;
+    double sample_pitch_deg;
+    double pixel_scale_arcsec;
+} P2SkyPlaneGeometry;
+
+// 导出结果。全部字段都是**由输入几何算出**的量，不含任何标定常数。
+typedef struct {
+    double constraining_scale_deg;    // min(重叠带宽度, 指向间距)：真正约束 δ_k 的窄尺度
+    double upper_deg;                 // 规则 1 上界 = constraining_scale_deg / 2
+    double lower_deg;                 // 下界 = 数据自身分辨率极限 = max(sample_pitch_deg, 像素角尺度)
+    double node_spacing_deg;          // 导出节点间距（= upper_deg；自适应从它向 lower_deg 细化）
+    double representable_scale_deg;   // 2·h：B_ref 可表示的最小尺度（§7a）
+    double pixel_scale_deg;           // pixel_scale_arcsec / 3600（供调用方复核换算）
+    double node_spacing_px;           // h 换算到源像素：h_deg·3600 / pixel_scale_arcsec
+    double representable_scale_px;    // 2h 的源像素数
+    double lower_px;                  // 下界的源像素数
+} P2SkyPlaneNodeSpacing;
+
+enum {
+    P2_SKY_NODE_SPACING_OK = 0,
+    P2_SKY_NODE_SPACING_INVALID_ARGS = 1,          // 几何量缺失/非有限/非正
+    P2_SKY_NODE_SPACING_GEOMETRY_UNSUPPORTED = 2   // 规则上界 < 数据分辨率极限：无可采纳节点间距
+};
+
+// 由输入几何导出节点间距。**纯函数**（无 I/O、无全局状态），可单测。
+// 返回 P2_SKY_NODE_SPACING_*；out 可空（只做合法性检查）。
+// 失败时 err 写明缺了哪个量纲，**不**回退任何常数。
+P2_API int p2_sky_plane_derive_node_spacing(const P2SkyPlaneGeometry* geom,
+                                            P2SkyPlaneNodeSpacing* out,
+                                            char* err, std::size_t err_size);
+
 // 天光面配置（默认值见 p2_sky_plane_default_config）。
 typedef struct {
     int    spline_degree;         // B_ref 样条阶数：1（双线性）或 3（双三次）；默认 1
-    double node_spacing_deg;      // B_ref 节点间距（切平面角度）；默认 1.0
+    // B_ref 节点间距（切平面角度，度）。
+    //   >0：调用方显式给定（**不再有默认标定值**，§7a 禁止配置里留「默认节点间距」）；
+    //   <=0：未显式给出 ⇒ 由 geometry 字段经 p2_sky_plane_derive_node_spacing 导出；
+    //        几何量缺失 ⇒ p2_sky_plane_build 返回 P2_SKY_PLANE_GEOMETRY_REQUIRED
+    //        （**显式失败**，禁止回退常数）。
+    double node_spacing_deg;      // 默认 0.0 = 未给出（由输入导出）
     int    frame_gradient_order;  // δ_k 阶数：0=偏移 1=平面 2=二次；默认 1
     double roughness_penalty;     // B_ref 二阶差分粗糙度惩罚 λ；默认 1e-3
     double huber_delta;           // 稳健 Huber δ；默认 1.345
@@ -151,8 +213,11 @@ typedef struct {
     double tolerance;             // 收敛门（max|ΔB| 相对量）；默认 1e-10
     int    gauge_mode;            // 0=reference_frame；1=sum_zero；默认 0
     int    weight_mode;           // 0=inverse_variance；1=snr2；默认 0
-    double kappa_max;             // 约化系统条件数上限；默认 1e8
-    double rank_rtol;             // 奇异值相对门；默认 1e-10
+    // κ 门控上限。**默认 0.0 = 由矩阵谱自身派生**（= 1/rank_rtol，见下），
+    // 不再是标定常数（§7a「κ 上限不得是两个不同的标定值」）。>0 时表示调用方
+    // 显式覆盖，门控来源会记入 info.kappa_max_source 与 provenance。
+    double kappa_max;             // 默认 0.0 = 由 rank_rtol 派生（=1/rank_rtol）
+    double rank_rtol;             // 奇异值相对门；默认 1e-10（κ 门与秩判据**同一口径**）
     std::int32_t min_samples;     // 拟合最少有效采样点；默认 8
     std::int32_t min_samples_per_frame;  // 每帧 δ_k 可辨识最少点；默认 4
     std::int32_t max_nodes;       // B_ref 系数上限（内存门）；默认 8192
@@ -165,7 +230,87 @@ typedef struct {
     // lease），将来若引入并行，worker 数必须由 Runtime 预算/租约注入（形如
     // P2SamplerConfig.cpu_workers，见 module_adapters.cpp CON-004），不得在此
     // 以字面量预留。
+    // 节点间距导出所需输入几何（见 §2a）。node_spacing_deg<=0 时**必须**给出；
+    // 未给出即显式失败（P2_SKY_PLANE_GEOMETRY_REQUIRED），不回退常数。
+    P2SkyPlaneGeometry geometry;
 } P2SkyPlaneConfig;
+
+// ---------------------------------------------------------------------------
+// 2b. 节点间距自适应重试（§7a「节点间距必须进入自适应重试回路」）
+// ---------------------------------------------------------------------------
+//
+// 分工（§7a 正向约束）：**节点间距负责表示能力，粗糙度惩罚负责条件数**。
+// 故本回路的两条分支互不代偿：
+//   · 残差仍受表示能力限制（细化节点能实质降低 chi2_red）⇒ 细化节点间距；
+//   · κ 超门（求解矩阵病态）⇒ 提高 roughness_penalty，**不动**节点间距。
+// 禁止用强平滑掩盖不可表示分量（§7a：那会把可见台阶变成被抹平的错误电平）。
+enum {
+    P2_SKY_ADAPT_ACCEPTED             = 0,  // 本次尝试被采纳
+    P2_SKY_ADAPT_REFINE_NODES         = 1,  // 残差仍受表示能力限制 ⇒ 细化节点间距
+    P2_SKY_ADAPT_COARSEN_NODES        = 2,  // 网格不可行（节点数/秩）⇒ 放粗节点间距
+    P2_SKY_ADAPT_RAISE_PENALTY        = 3,  // κ 超门 ⇒ 提高粗糙度惩罚（表示能力不动）
+    P2_SKY_ADAPT_REPRESENTATION_LIMIT = 4,  // 已到分辨率极限下界而残差仍在下降（诚实边界）
+    P2_SKY_ADAPT_BUILD_FAILED         = 5   // 无可行分支，fail-closed
+};
+
+// 单次尝试的完整记录（写入 provenance）。
+typedef struct {
+    double node_spacing_deg;     // 本次尝试的节点间距（度）
+    double roughness_penalty;    // 本次尝试的 λ
+    double kappa;                // 求解矩阵 H_solve 的条件数（门控量）
+    double kappa_data;           // 未惩罚数据矩阵 H_red 的条件数（诊断）
+    double chi2_red;
+    double rms_weighted;
+    std::uint64_t rank;          // H_red 在 rank_rtol 口径下的有效秩
+    std::uint64_t rank_solve;    // H_solve 在 rank_rtol 口径下的有效秩（κ 门的等价表述）
+    std::uint64_t n_nodes;
+    std::int32_t rc;             // P2_SKY_PLANE_*
+    std::int32_t action;         // P2_SKY_ADAPT_*（本次尝试后所走分支）
+    std::int32_t adopted;        // 1 = 本尝试的解即最终生效解；0 = 被后续尝试取代/被拒
+} P2SkyPlaneAttempt;
+
+enum { P2_SKY_ADAPT_MAX_ATTEMPTS = 12 };
+
+// 自适应回路的完整 provenance。n_node_refinements>0 或 n_node_coarsenings>0
+// 即「节点间距自适应确实被触发过」（§7a：无触发记录的路径视为未实现）。
+typedef struct {
+    std::int32_t n_attempts;
+    std::int32_t n_node_refinements;      // 细化次数
+    std::int32_t n_node_coarsenings;      // 放粗次数
+    std::int32_t n_penalty_escalations;   // 粗糙度提升次数
+    std::int32_t node_adaptive_used;      // 节点间距是否**真的被调整过**
+    std::int32_t penalty_adaptive_used;   // 粗糙度是否**真的被提高过**
+    std::int32_t representation_limited;  // 在下界上残差仍未收敛 ⇒ 表示能力到顶（如实登记）
+    std::int32_t clamped_to_upper;        // 显式初值被规则 1 上界夹紧过
+    double constraining_scale_deg;
+    double node_spacing_upper_deg;        // 搜索上界（规则 1 的值）
+    double node_spacing_lower_deg;        // 搜索下界（数据自身分辨率极限）
+    double node_spacing_deg;              // 最终生效
+    double roughness_penalty;             // 最终生效
+    double kappa;                         // 最终 κ
+    double kappa_data;
+    double chi2_red;
+    double residual_improve_ratio;        // 实际使用的表示收敛判据
+    double kappa_max_effective;           // 实际生效的 κ 门
+    P2SkyPlaneAttempt attempts[P2_SKY_ADAPT_MAX_ATTEMPTS];
+} P2SkyPlaneAdaptiveReport;
+
+// 自适应回路配置。默认值见 p2_sky_plane_default_adaptive_config。
+// **没有任何标定常数**：搜索区间由输入几何给，判据是相对量。
+typedef struct {
+    int    enabled;                   // 0=关闭（单次求解）；默认 1
+    int    max_attempts;              // 总尝试上限（含首次）；<=0 → 默认 6
+    int    max_node_refinements;      // 细化次数上限；<0 → 默认 4
+    int    max_node_coarsenings;      // 放粗次数上限；<0 → 默认 4
+    // κ 触顶时先走「提高粗糙度惩罚」分支的次数上限；用完仍超门才转「细化节点重解」
+    // （§7a 规则 2：条件数不达门时，除提高粗糙度惩罚外**必须允许细化节点重解**）。
+    int    max_penalty_escalations;   // <0 → 默认 2
+    // 表示收敛判据 r∈(0,1)：细化到 h/2 后 chi2_red 至少降到 r 倍，才认为残差仍受
+    // 表示能力限制、继续细化；否则认为已收敛、采纳较粗的网格（条件数更好）。
+    // 该判据是**相对量**（同一数据两次求解之比），不含任何绝对标定值。
+    double residual_improve_ratio;    // <=0 → 默认 0.5
+    double penalty_growth;            // κ 触顶时 λ 的倍率；<=1 → 默认 10
+} P2SkyPlaneAdaptiveConfig;
 
 typedef struct {
     std::uint32_t version;
@@ -196,6 +341,17 @@ typedef struct {
     // 随 roughness_penalty 下降，自适应重试才可能成功；本字段保留**未惩罚**数据
     // 矩阵的条件数作为独立诊断量（λ=0 时两者逐位相等）。
     double kappa_data;
+    // 实际生效的 κ 门与来源（§7a 规则 4：门控口径必须按矩阵谱自身定，不得保留
+    // 互相矛盾的绝对常数）。kappa_max_source: 0 = 由 rank_rtol 派生（1/rank_rtol，
+    // 与「H_solve 在 rank_rtol 口径下的有效秩 == n_free」等价）；1 = 调用方显式覆盖。
+    double kappa_max_effective;
+    int    kappa_max_source;
+    // H_solve 在 rank_rtol 口径下的有效秩（κ 门的等价表述；rank 字段是 H_red 的）。
+    std::uint64_t rank_solve;
+    // 节点间距来源：0 = 由输入几何导出；1 = 调用方显式给出。
+    int    node_spacing_source;
+    double node_spacing_upper_deg;   // 规则 1 上界（导出时）
+    double node_spacing_lower_deg;   // 数据分辨率极限下界（导出时）
 } P2SkyPlaneInfo;
 
 enum {
@@ -208,7 +364,10 @@ enum {
     P2_SKY_PLANE_RANK_DEFICIENT      = 6,
     P2_SKY_PLANE_KAPPA_EXCEEDED      = 7,
     P2_SKY_PLANE_NONFINITE_SOLUTION  = 8,
-    P2_SKY_PLANE_IO_ERROR            = 9
+    P2_SKY_PLANE_IO_ERROR            = 9,
+    // 未给出 node_spacing_deg 且无法由输入几何导出（几何量缺失/不受支持）。
+    // **显式失败**：§7a 禁止回退到「默认节点间距」标定常数。
+    P2_SKY_PLANE_GEOMETRY_REQUIRED   = 10
 };
 
 // 求值状态。
@@ -221,11 +380,33 @@ enum {
 
 P2_API P2SkyPlaneConfig p2_sky_plane_default_config(void);
 
+P2_API P2SkyPlaneAdaptiveConfig p2_sky_plane_default_adaptive_config(void);
+
 // 联合拟合 B_ref + δ_k（按帧 Schur 消元 + 稳健 IRLS）。
 // 返回 P2_SKY_PLANE_*。err 可空（8KB 文本建议）。
+// cfg->node_spacing_deg<=0 时由 cfg->geometry 导出；几何缺失 ⇒
+// P2_SKY_PLANE_GEOMETRY_REQUIRED（显式失败，不回退常数）。
 P2_API int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                               const P2SkyPlaneConfig* cfg, void** out_model,
                               char* err, std::size_t err_size);
+
+// 带**节点间距自适应**的联合拟合（§7a「节点间距必须进入自适应重试回路」）。
+// 搜索区间由输入几何给（上界 = 规则 1 的值，下界 = 数据自身分辨率极限），
+// 起点默认取上界（在规则内最粗 ⇒ 条件数最好），按表示收敛判据向下细化。
+// cfg->geometry 必须有效；否则返回 P2_SKY_PLANE_GEOMETRY_REQUIRED。
+// out_report 可空；非空时写出**每次尝试**的节点间距/λ/κ/rank/残差与最终生效值。
+// 返回最终采纳解的 P2_SKY_PLANE_*；全部尝试失败时返回最后一次的失败码。
+P2_API int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
+                                       const P2SkyPlaneConfig* cfg,
+                                       const P2SkyPlaneAdaptiveConfig* adaptive,
+                                       void** out_model,
+                                       P2SkyPlaneAdaptiveReport* out_report,
+                                       char* err, std::size_t err_size);
+
+// 取回模型上记录的自适应 provenance（由 p2_sky_plane_build_adaptive 写入；
+// 单次 build 时 n_attempts=0）。返回 0=ok，1=参数错误。
+P2_API int p2_sky_plane_adaptive_report(const void* model,
+                                        P2SkyPlaneAdaptiveReport* out);
 
 P2_API int p2_sky_plane_info(const void* model, P2SkyPlaneInfo* out);
 

@@ -244,6 +244,8 @@ struct SkyPlaneModel {
     int ref_frame = 0;
     std::vector<double> last_weights;   // 最后使用的样本权重（诊断/残差）
     std::vector<std::uint64_t> used_idx;
+    // §7a：节点间距自适应的完整 provenance（单次 build 时 n_attempts=0）。
+    P2SkyPlaneAdaptiveReport adaptive{};
 };
 
 void sky_plane_free(void* p) { delete static_cast<SkyPlaneModel*>(p); }
@@ -400,10 +402,91 @@ int p2_star_mask_contains(const P2StarMaskCap* caps, std::uint64_t n,
 // sky plane
 // ===========================================================================
 
+// ---------------------------------------------------------------------------
+// 节点间距的输入自适应导出（SCI-UPM-CAP-001；docs/science/PHASE2_UPM.md §7a）
+// ---------------------------------------------------------------------------
+//
+// 规则 1（§7a）：节点间距 ≤ (该产品实际约束帧间改正量的最小尺度) / 2。
+// 对「帧间加性天光差」这一目标量，该尺度 = min(重叠带宽度, 指向间距)——它们才是
+// 真正约束 δ_k 的量（重叠带决定 δ_k 的横向可辨识宽度，指向间距决定帧间差的空间
+// 尺度）。**本函数不含任何标定常数**：所有输出都是这四个输入几何量的显式函数。
+//
+// 量纲链（逐项）：
+//   constraining_scale_deg = min(overlap_band_width_deg, pointing_spacing_deg)   [deg]
+//   upper_deg              = constraining_scale_deg / 2                          [deg]
+//   pixel_scale_deg        = pixel_scale_arcsec / 3600                           [deg]
+//   lower_deg              = max(sample_pitch_deg, pixel_scale_deg)              [deg]
+//                            （数据自身的分辨率极限：比它更细的节点既不能被采样点
+//                              约束，也不比一个源像素更有意义）
+//   node_spacing_deg       = upper_deg                                           [deg]
+//   node_spacing_px        = node_spacing_deg * 3600 / pixel_scale_arcsec        [px]
+//   representable_scale_deg= 2 * node_spacing_deg                                [deg]
+//
+// 自洽性（换仪器/换像素尺度）：h_deg 只由角量决定 ⇒ 与 pixel_scale_arcsec 无关；
+// h_px ∝ 1/pixel_scale_arcsec。故像素域判据（如「尺度 ≲ 256 px」）必须随像素尺度重算。
+int p2_sky_plane_derive_node_spacing(const P2SkyPlaneGeometry* geom,
+                                     P2SkyPlaneNodeSpacing* out,
+                                     char* err, std::size_t err_size) {
+    auto fail = [&](int rc, const char* what) {
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "node spacing geometry invalid: %s (overlap_band_width_deg=%.6g, "
+                          "pointing_spacing_deg=%.6g, sample_pitch_deg=%.6g, pixel_scale_arcsec=%.6g)",
+                          what,
+                          geom ? geom->overlap_band_width_deg : 0.0,
+                          geom ? geom->pointing_spacing_deg : 0.0,
+                          geom ? geom->sample_pitch_deg : 0.0,
+                          geom ? geom->pixel_scale_arcsec : 0.0);
+        return rc;
+    };
+    if (!geom) return fail(P2_SKY_NODE_SPACING_INVALID_ARGS, "geometry not provided");
+    if (!finite_pos(geom->overlap_band_width_deg))
+        return fail(P2_SKY_NODE_SPACING_INVALID_ARGS, "overlap_band_width_deg missing/non-positive");
+    if (!finite_pos(geom->pointing_spacing_deg))
+        return fail(P2_SKY_NODE_SPACING_INVALID_ARGS, "pointing_spacing_deg missing/non-positive");
+    if (!finite_pos(geom->sample_pitch_deg))
+        return fail(P2_SKY_NODE_SPACING_INVALID_ARGS, "sample_pitch_deg missing/non-positive");
+    if (!finite_pos(geom->pixel_scale_arcsec))
+        return fail(P2_SKY_NODE_SPACING_INVALID_ARGS, "pixel_scale_arcsec missing/non-positive");
+
+    const double constraining =
+        std::min(geom->overlap_band_width_deg, geom->pointing_spacing_deg);
+    const double upper = 0.5 * constraining;
+    const double pixel_deg = geom->pixel_scale_arcsec / 3600.0;
+    const double lower = std::max(geom->sample_pitch_deg, pixel_deg);
+    // 规则上界低于数据分辨率极限 ⇒ 该产品**没有**可采纳的节点间距：
+    // 满足规则 1 就必须细过数据能约束的极限（欠定），不细过极限就违反规则 1。
+    // 这是几何本身的不相容，必须显式失败，不得静默取其一。
+    if (!(upper >= lower)) {
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "node spacing geometry unsupported: rule upper bound %.6g deg < data "
+                          "resolution limit %.6g deg (constraining scale=%.6g deg, sample pitch=%.6g "
+                          "deg, pixel scale=%.6g deg)",
+                          upper, lower, constraining, geom->sample_pitch_deg, pixel_deg);
+        return P2_SKY_NODE_SPACING_GEOMETRY_UNSUPPORTED;
+    }
+    if (out) {
+        out->constraining_scale_deg = constraining;
+        out->upper_deg = upper;
+        out->lower_deg = lower;
+        out->node_spacing_deg = upper;
+        out->representable_scale_deg = 2.0 * upper;
+        out->pixel_scale_deg = pixel_deg;
+        out->node_spacing_px = upper * 3600.0 / geom->pixel_scale_arcsec;
+        out->representable_scale_px = 2.0 * out->node_spacing_px;
+        out->lower_px = lower * 3600.0 / geom->pixel_scale_arcsec;
+    }
+    if (err && err_size) err[0] = '\0';
+    return P2_SKY_NODE_SPACING_OK;
+}
+
 P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     P2SkyPlaneConfig c{};
     c.spline_degree = 3;   // 研究 Q4：三次张量 B 样条条件数 ~30 且与节点数无关
-    c.node_spacing_deg = 1.0;
+    // §7a：**禁止**在配置里留「默认节点间距」标定值。0 = 未给出 ⇒ 由输入几何导出；
+    // 调用方给不出几何量时 p2_sky_plane_build 显式失败（GEOMETRY_REQUIRED）。
+    c.node_spacing_deg = 0.0;
     c.frame_gradient_order = 1;
     c.roughness_penalty = 1e-3;
     c.huber_delta = 1.345;
@@ -411,12 +494,16 @@ P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     c.tolerance = 1e-10;
     c.gauge_mode = 0;
     c.weight_mode = 0;
-    c.kappa_max = 1e8;
+    // §7a 规则 4：κ 上限**不得**是标定常数。0 = 由矩阵谱自身派生（= 1/rank_rtol，
+    // 与「H_solve 在 rank_rtol 口径下的有效秩 == n_free」等价）。显式 >0 时按覆盖处理
+    // 并记入 kappa_max_source，便于审计「同一份数据被两个常数一放一拦」。
+    c.kappa_max = 0.0;
     c.rank_rtol = 1e-10;
     c.min_samples = 8;
     c.min_samples_per_frame = 4;
     c.max_nodes = 2048;
     c.max_extrapolation_deg = 0.0;
+    c.geometry = P2SkyPlaneGeometry{};   // 全 0 = 未提供
     // 无 worker 数字段：本求解内在串行（Schur 消元 + 稳健 IRLS 整面一次），
     // 不设并行路径；将来并行化须由 Runtime 预算/租约注入（QA-002/P2-002）。
     return c;
@@ -432,14 +519,51 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     *out_model = nullptr;
     P2SkyPlaneConfig cfg = cfg_in ? *cfg_in : p2_sky_plane_default_config();
     if (cfg.spline_degree != 1 && cfg.spline_degree != 3) cfg.spline_degree = 1;
-    if (!(cfg.node_spacing_deg > 0.0) || !std::isfinite(cfg.node_spacing_deg)) cfg.node_spacing_deg = 1.0;
+    // §7a：节点间距不得回退标定常数。未显式给出 ⇒ 由输入几何导出；
+    // 几何量缺失/不受支持 ⇒ 显式失败（GEOMETRY_REQUIRED）。
+    int node_spacing_source = 1;   // 1 = 调用方显式给出
+    double node_spacing_upper_deg = 0.0;   // 规则 1 上界（仅导出时已知）
+    double node_spacing_lower_deg = 0.0;   // 数据分辨率极限（仅导出时已知）
+    {
+        // 只要几何量可用就把它算出来（供 provenance 记录搜索区间），
+        // 但**不**用它改写调用方显式给出的 node_spacing_deg。
+        P2SkyPlaneNodeSpacing ns{};
+        if (p2_sky_plane_derive_node_spacing(&cfg.geometry, &ns, nullptr, 0) ==
+            P2_SKY_NODE_SPACING_OK) {
+            node_spacing_upper_deg = ns.upper_deg;
+            node_spacing_lower_deg = ns.lower_deg;
+        }
+        if (!(cfg.node_spacing_deg > 0.0) || !std::isfinite(cfg.node_spacing_deg)) {
+            if (node_spacing_upper_deg <= 0.0) {
+                char gerr[512] = {0};
+                p2_sky_plane_derive_node_spacing(&cfg.geometry, nullptr, gerr, sizeof(gerr));
+                if (err && err_size)
+                    std::snprintf(err, err_size,
+                                  "node_spacing_deg not given and cannot be derived from input "
+                                  "geometry (%s); refusing to fall back to a calibrated constant",
+                                  gerr);
+                return P2_SKY_PLANE_GEOMETRY_REQUIRED;
+            }
+            cfg.node_spacing_deg = node_spacing_upper_deg;
+            node_spacing_source = 0;   // 0 = 由输入几何导出
+        }
+    }
     if (cfg.frame_gradient_order < 0) cfg.frame_gradient_order = 0;
     if (cfg.frame_gradient_order > 2) cfg.frame_gradient_order = 2;
     if (!(cfg.huber_delta > 0.0)) cfg.huber_delta = 1.345;
     if (cfg.max_iterations < 1) cfg.max_iterations = 1;
     if (!(cfg.tolerance > 0.0)) cfg.tolerance = 1e-10;
-    if (!(cfg.kappa_max > 0.0)) cfg.kappa_max = 1e8;
-    if (!(cfg.rank_rtol > 0.0)) cfg.rank_rtol = 1e-10;
+    if (!(cfg.rank_rtol > 0.0) || !std::isfinite(cfg.rank_rtol)) cfg.rank_rtol = 1e-10;
+    // §7a 规则 4：κ 上限按**矩阵谱自身**定，与 rank 判据同一口径（相对 rank_rtol）：
+    //     κ(H_solve) ≤ 1/rank_rtol  ⟺  λ_min > rank_rtol·λ_max
+    //                              ⟺  H_solve 在 rank_rtol 口径下的有效秩 == n_free。
+    // 两式等价，故门控只有一个口径；未显式给 kappa_max 时即取此派生值。
+    int kappa_max_source = 0;   // 0 = 由 rank_rtol 派生
+    if (!(cfg.kappa_max > 0.0) || !std::isfinite(cfg.kappa_max)) {
+        cfg.kappa_max = 1.0 / cfg.rank_rtol;
+    } else {
+        kappa_max_source = 1;   // 1 = 调用方显式覆盖（记入 provenance，便于审计）
+    }
     if (cfg.min_samples < 1) cfg.min_samples = 1;
     if (cfg.min_samples_per_frame < 1) cfg.min_samples_per_frame = 1;
     if (cfg.max_nodes < 4) cfg.max_nodes = 4;
@@ -975,43 +1099,66 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             model->coeff[static_cast<std::size_t>(idx)] = (best >= 0) ? B[static_cast<std::size_t>(best)] : 0.0;
         }
 
-    // ---- 诊断：秩/条件数 ----
+    // ---- 诊断与门控：秩/条件数 ----
     // SCI-502 FIX-3 订正（SCI-505 复核 + 本测试实证）：**门控 κ 必须取实际求解矩阵**
     //   H_solve = H_red + λ·DᵀD，
     // 而不是未惩罚的数据矩阵 H_red。原因：在 H_red 上度量时提高 roughness_penalty
     // 不会改变 κ，于是「κ 超限 ⇒ 走粗糙度正则化」的自适应重试**永远不可能成功**，
     // 条款形同虚设（实测：λ 从 1e-3 提到 1e6，H_red 的 κ 恒为 2.497e9）。
-    // 未惩罚 κ 仍作为独立观测量保留（info.kappa_data / JSON kappa_data）。
+    //
+    // §7a 规则 4 统一口径（本次）：**只有一个门、一把尺子、一个矩阵**。
+    //   · 门：κ(H_solve) ≤ kappa_max_eff，其中 kappa_max_eff = 1/rank_rtol（未显式覆盖时）。
+    //     该式与「H_solve 在 rank_rtol 口径下的有效秩 == n_free」**等价**：
+    //         κ = λmax/λmin ≤ 1/rtol  ⟺  λmin ≥ rtol·λmax。
+    //   · 尺子：rank_rtol（相对量），不再有 1e8 / 1e6 这类互相矛盾的绝对常数。
+    //   · 矩阵：H_solve。
+    // H_red 的 κ 与有效秩降为**独立诊断量**（§7a:218 已如此规定 kappa_data），
+    // 同时作为自适应回路的放粗触发信号（H_red 在 rank_rtol 口径下秩亏 ⇒ 网格细过
+    // 数据能约束的极限，惩罚在替数据做功）。
+    //
+    // 口径变更的实证后果（run/UPM-NODE-ADAPT-01）：真实 M42 产品在 h=0.0752° 时
+    // H_red 的 κ_data ≈ 1.6e13（旧实现据此 rc=6 硬拒），而 H_solve 的 κ 远低于门
+    // ⇒ 旧实现用两把不同的尺子把**规则 1 要求的节点间距**判死。统一后该网格可用。
     std::vector<double> Ld;
-    if (!chol_spd(H_red, n_free, Ld)) {
-        sky_plane_free(model);
-        if (err && err_size) std::snprintf(err, err_size, "reduced data matrix rank-deficient (n_free=%d)", n_free);
-        return P2_SKY_PLANE_RANK_DEFICIENT;
-    }
-    const double lam_max = lambda_max_power(H_red, n_free);
-    const double lam_min = lambda_min_inverse(H_red, Ld, n_free);
-    double kappa_data = 0.0;
+    double kappa_data = std::numeric_limits<double>::quiet_NaN();
+    double lam_min_data = 0.0;
     std::uint64_t rank = 0;
-    if (!(lam_min > 0.0) || !std::isfinite(lam_min) || !std::isfinite(lam_max)) {
-        rank = 0;
-    } else {
-        kappa_data = lam_max / lam_min;
-        rank = (lam_min > cfg.rank_rtol * lam_max) ? static_cast<std::uint64_t>(n_free) : 0;
-    }
-    if (rank == 0) {
-        sky_plane_free(model);
-        if (err && err_size) std::snprintf(err, err_size, "rank-deficient reduced system (lambda_min=%.3e)", lam_min);
-        return P2_SKY_PLANE_RANK_DEFICIENT;
+    if (chol_spd(H_red, n_free, Ld)) {
+        const double lam_max = lambda_max_power(H_red, n_free);
+        lam_min_data = lambda_min_inverse(H_red, Ld, n_free);
+        if (lam_min_data > 0.0 && std::isfinite(lam_min_data) && std::isfinite(lam_max)) {
+            kappa_data = lam_max / lam_min_data;
+            rank = (lam_min_data > cfg.rank_rtol * lam_max)
+                       ? static_cast<std::uint64_t>(n_free) : 0;
+        }
     }
     // 门控 κ：求解矩阵（含惩罚）。λ=0 时 H_solve == H_red ⇒ 与旧口径逐位一致。
-    double kappa = kappa_data;
+    double kappa = std::numeric_limits<double>::infinity();
+    std::uint64_t rank_solve = 0;
     if (static_cast<std::size_t>(n_free) * static_cast<std::size_t>(n_free) == H_solve.size()) {
         std::vector<double> Ls;
         if (chol_spd(H_solve, n_free, Ls)) {
             const double s_max = lambda_max_power(H_solve, n_free);
             const double s_min = lambda_min_inverse(H_solve, Ls, n_free);
-            if (s_min > 0.0 && std::isfinite(s_min) && std::isfinite(s_max)) kappa = s_max / s_min;
+            if (s_min > 0.0 && std::isfinite(s_min) && std::isfinite(s_max)) {
+                kappa = s_max / s_min;
+                rank_solve = (s_min > cfg.rank_rtol * s_max)
+                                 ? static_cast<std::uint64_t>(n_free) : 0;
+            }
         }
+    }
+    if (rank_solve == 0 && std::isfinite(kappa)) {
+        // κ 有限但有效秩 < n_free：κ 必然 > 1/rank_rtol（两式等价），由下方门拦下。
+    }
+    if (!std::isfinite(kappa)) {
+        // H_solve 连 Cholesky 都过不去 ⇒ 求解矩阵在浮点下不正定，无可用解。
+        sky_plane_free(model);
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "solved normal matrix not SPD in floating point (n_free=%d, "
+                          "lambda=%.3e, kappa_data=%.3e)",
+                          n_free, cfg.roughness_penalty, kappa_data);
+        return P2_SKY_PLANE_RANK_DEFICIENT;
     }
     if (kappa > cfg.kappa_max) {
         sky_plane_free(model);
@@ -1063,6 +1210,13 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     info.rank = rank;
     info.kappa = kappa;            // 门控值 = 求解矩阵（含惩罚）的条件数
     info.kappa_data = kappa_data;  // 未惩罚数据矩阵的条件数（诊断，SCI-502 FIX-3）
+    // §7a 规则 4：门控口径的**来源与生效值**必须可审计
+    info.kappa_max_effective = cfg.kappa_max;
+    info.kappa_max_source = kappa_max_source;
+    info.rank_solve = rank_solve;
+    info.node_spacing_source = node_spacing_source;
+    info.node_spacing_upper_deg = node_spacing_upper_deg;
+    info.node_spacing_lower_deg = node_spacing_lower_deg;
     info.rms_weighted = (sw > 0.0) ? std::sqrt(swr2 / sw) : 0.0;
     info.rms_unweighted = std::sqrt(sr2 / static_cast<double>(used.size()));
     const double dof = static_cast<double>(used.size()) - static_cast<double>(info.n_params);
@@ -1105,6 +1259,311 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     return P2_SKY_PLANE_OK;
 }
 
+
+// ===========================================================================
+// 节点间距自适应重试（§7a「节点间距必须进入自适应重试回路」）
+// ===========================================================================
+//
+// 分工（§7a 正向约束）：节点间距负责**表示能力**，粗糙度惩罚负责**条件数**。
+// 故两条分支互不代偿，各有独立触发条件：
+//   · 残差仍受表示能力限制（细化到 h/2 后 chi2_red 至少降到 r 倍）⇒ 细化节点间距；
+//   · κ 超门（求解矩阵病态）⇒ 提高 roughness_penalty，**不动**节点间距；
+//   · 网格不可行（节点数超 max_nodes / 求解矩阵在 rank_rtol 口径下秩亏）⇒ 放粗节点间距
+//     （只在规则区间 [下界, 上界] 内放粗）。
+// 搜索区间由**输入几何**给（上界 = 规则 1 的值，下界 = 数据自身分辨率极限），
+// 起点默认取上界（规则内最粗 ⇒ 条件数最好），按表示收敛判据向下细化。
+// 全部为相对判据，**不含任何标定常数**。
+P2SkyPlaneAdaptiveConfig p2_sky_plane_default_adaptive_config(void) {
+    P2SkyPlaneAdaptiveConfig a{};
+    a.enabled = 1;
+    a.max_attempts = 6;              // 与编排面既有 κ 自适应同级（总尝试上限 6）
+    a.max_node_refinements = 4;
+    a.max_node_coarsenings = 4;
+    a.max_penalty_escalations = 2;
+    a.residual_improve_ratio = 0.5;  // 相对判据：细化后 chi2_red 至少减半才算「仍受限」
+    a.penalty_growth = 10.0;         // 与编排面既有 λ 逐级 ×10 一致
+    return a;
+}
+
+int p2_sky_plane_adaptive_report(const void* model_in, P2SkyPlaneAdaptiveReport* out) {
+    if (!model_in || !out) return 1;
+    const SkyPlaneModel* m = static_cast<const SkyPlaneModel*>(model_in);
+    *out = m->adaptive;
+    return 0;
+}
+
+int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
+                                const P2SkyPlaneConfig* cfg_in,
+                                const P2SkyPlaneAdaptiveConfig* adaptive_in,
+                                void** out_model,
+                                P2SkyPlaneAdaptiveReport* out_report,
+                                char* err, std::size_t err_size) {
+    if (!out_model || !samples || n == 0) return P2_SKY_PLANE_INVALID_ARGS;
+    *out_model = nullptr;
+    if (out_report) *out_report = P2SkyPlaneAdaptiveReport{};
+
+    P2SkyPlaneConfig cfg = cfg_in ? *cfg_in : p2_sky_plane_default_config();
+    P2SkyPlaneAdaptiveConfig ad =
+        adaptive_in ? *adaptive_in : p2_sky_plane_default_adaptive_config();
+    if (ad.max_attempts <= 0) ad.max_attempts = 6;
+    if (ad.max_attempts > P2_SKY_ADAPT_MAX_ATTEMPTS) ad.max_attempts = P2_SKY_ADAPT_MAX_ATTEMPTS;
+    if (ad.max_node_refinements < 0) ad.max_node_refinements = 4;
+    if (ad.max_node_coarsenings < 0) ad.max_node_coarsenings = 4;
+    if (ad.max_penalty_escalations < 0) ad.max_penalty_escalations = 2;
+    if (!(ad.residual_improve_ratio > 0.0) || !(ad.residual_improve_ratio < 1.0))
+        ad.residual_improve_ratio = 0.5;
+    if (!(ad.penalty_growth > 1.0) || !std::isfinite(ad.penalty_growth)) ad.penalty_growth = 10.0;
+
+    // 搜索区间**必须**由输入几何给（§7a：不得引入标定常数）。
+    P2SkyPlaneNodeSpacing ns{};
+    char gerr[512] = {0};
+    if (p2_sky_plane_derive_node_spacing(&cfg.geometry, &ns, gerr, sizeof(gerr)) !=
+        P2_SKY_NODE_SPACING_OK) {
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "adaptive node spacing requires input geometry: %s", gerr);
+        return P2_SKY_PLANE_GEOMETRY_REQUIRED;
+    }
+
+    P2SkyPlaneAdaptiveReport rep{};
+    rep.constraining_scale_deg = ns.constraining_scale_deg;
+    rep.node_spacing_upper_deg = ns.upper_deg;
+    rep.node_spacing_lower_deg = ns.lower_deg;
+    rep.residual_improve_ratio = ad.residual_improve_ratio;
+
+    // 起点：规则 1 上界（规则内最粗、条件数最好）。调用方显式给了初值就夹进区间
+    // （只夹到区间内，不引入任何标定值），夹过就记 clamped_to_upper。
+    double h = ns.upper_deg;
+    if (cfg.node_spacing_deg > 0.0 && std::isfinite(cfg.node_spacing_deg)) {
+        if (cfg.node_spacing_deg > ns.upper_deg) { h = ns.upper_deg; rep.clamped_to_upper = 1; }
+        else if (cfg.node_spacing_deg < ns.lower_deg) { h = ns.lower_deg; rep.clamped_to_upper = 1; }
+        else h = cfg.node_spacing_deg;
+    }
+    double lam = cfg.roughness_penalty;
+    if (!(lam >= 0.0) || !std::isfinite(lam)) lam = 0.0;
+    // λ=0 而 κ 触顶时需要一个起始正则化量：取**同一模块的既有默认惩罚**（非新标定常数）。
+    const double lam_seed = p2_sky_plane_default_config().roughness_penalty;
+
+    int attempts = 0;
+    int n_refine = 0, n_coarsen = 0, n_pen = 0;
+    int rep_limited = 0;
+    int last_rc = P2_SKY_PLANE_INVALID_ARGS;
+    std::string last_err;
+    void* best = nullptr;
+    P2SkyPlaneInfo best_info{};
+    double best_lam = lam;
+
+    // 每次求解只登记一次；分支与「是否被采纳」在决策确定后用 mark() 回填
+    // （避免同一 (h, λ) 因「先探后定」被重复登记）。
+    auto record = [&](double hh, double ll, int rc, const P2SkyPlaneInfo* pi) -> int {
+        if (attempts >= P2_SKY_ADAPT_MAX_ATTEMPTS) return -1;
+        const int idx = attempts++;
+        P2SkyPlaneAttempt& a = rep.attempts[idx];
+        a.node_spacing_deg = hh;
+        a.roughness_penalty = ll;
+        a.rc = rc;
+        a.action = P2_SKY_ADAPT_BUILD_FAILED;
+        a.adopted = 0;
+        if (pi) {
+            a.kappa = pi->kappa;
+            a.kappa_data = pi->kappa_data;
+            a.chi2_red = pi->chi2_red;
+            a.rms_weighted = pi->rms_weighted;
+            a.rank = pi->rank;
+            a.rank_solve = pi->rank_solve;
+            a.n_nodes = pi->n_nodes;
+        }
+        return idx;
+    };
+    auto mark = [&](int idx, int action, int adopted) {
+        if (idx < 0 || idx >= P2_SKY_ADAPT_MAX_ATTEMPTS) return;
+        rep.attempts[idx].action = action;
+        rep.attempts[idx].adopted = adopted;
+    };
+    auto finalize = [&]() {
+        rep.n_attempts = attempts;
+        rep.n_node_refinements = n_refine;
+        rep.n_node_coarsenings = n_coarsen;
+        rep.n_penalty_escalations = n_pen;
+        rep.node_adaptive_used = (n_refine + n_coarsen > 0) ? 1 : 0;
+        rep.penalty_adaptive_used = (n_pen > 0) ? 1 : 0;
+        rep.representation_limited = rep_limited;
+        rep.node_spacing_deg = best ? best_info.node_spacing_deg : h;
+        rep.roughness_penalty = best ? best_lam : lam;
+        rep.kappa = best_info.kappa;
+        rep.kappa_data = best_info.kappa_data;
+        rep.chi2_red = best_info.chi2_red;
+        rep.kappa_max_effective = best_info.kappa_max_effective;
+        if (out_report) *out_report = rep;
+    };
+
+    // 单次求解的小工具（顺带把 Info 取回）。
+    auto solve_at = [&](double hh, double ll, void** outm, P2SkyPlaneInfo* outi,
+                        char* e, std::size_t es) -> int {
+        P2SkyPlaneConfig c = cfg;
+        c.node_spacing_deg = hh;
+        c.roughness_penalty = ll;
+        void* mm = nullptr;
+        const int rc = p2_sky_plane_build(samples, n, &c, &mm, e, es);
+        if (rc == P2_SKY_PLANE_OK && mm && outi) p2_sky_plane_info(mm, &outi[0]);
+        *outm = mm;
+        return rc;
+    };
+    // 是否还能向更细的网格走一步（规则区间内 + 次数预算 + 尝试预算）。
+    auto can_refine = [&]() {
+        return (std::max(ns.lower_deg, 0.5 * h) < h) &&
+               (n_refine < ad.max_node_refinements) && (attempts + 1 < ad.max_attempts);
+    };
+    int last_move_was_refine = 0;
+
+    while (attempts < ad.max_attempts) {
+        void* m = nullptr;
+        char e[512] = {0};
+        P2SkyPlaneInfo info{};
+        const int rc = solve_at(h, lam, &m, &info, e, sizeof(e));
+        int idx = record(h, lam, rc, (rc == P2_SKY_PLANE_OK) ? &info : nullptr);
+        last_rc = rc;
+        last_err = e;
+        if (rc != P2_SKY_PLANE_OK) {
+            int action = P2_SKY_ADAPT_BUILD_FAILED;
+            if (rc == P2_SKY_PLANE_KAPPA_EXCEEDED) {
+                // 条件数分支（§7a 规则 3：粗糙度惩罚负责条件数）
+                action = (n_pen < ad.max_penalty_escalations) ? P2_SKY_ADAPT_RAISE_PENALTY
+                                                              : P2_SKY_ADAPT_REFINE_NODES;
+            } else if (rc == P2_SKY_PLANE_RANK_DEFICIENT ||
+                       rc == P2_SKY_PLANE_TOO_MANY_NODES ||
+                       rc == P2_SKY_PLANE_NONFINITE_SOLUTION) {
+                // 网格不可行 ⇒ 放粗（仅在规则区间内、且不是刚细化过，避免来回振荡）
+                action = (h < ns.upper_deg && !last_move_was_refine &&
+                          n_coarsen < ad.max_node_coarsenings)
+                             ? P2_SKY_ADAPT_COARSEN_NODES : P2_SKY_ADAPT_REFINE_NODES;
+            }
+            if (action == P2_SKY_ADAPT_REFINE_NODES && !can_refine())
+                action = P2_SKY_ADAPT_BUILD_FAILED;
+            mark(idx, action, 0);
+            if (action == P2_SKY_ADAPT_RAISE_PENALTY) {
+                lam = (lam > 0.0) ? lam * ad.penalty_growth : lam_seed;
+                ++n_pen;
+                last_move_was_refine = 0;
+                continue;
+            }
+            if (action == P2_SKY_ADAPT_COARSEN_NODES) {
+                h = std::min(ns.upper_deg, h * 2.0);
+                ++n_coarsen;
+                last_move_was_refine = 0;
+                continue;
+            }
+            if (action == P2_SKY_ADAPT_REFINE_NODES) {
+                // §7a 规则 2：条件数不达门时，除提高粗糙度惩罚外**必须允许细化节点重解**。
+                // 细化本身是一次尝试：探针失败即视为该方向不可行，不采纳其网格。
+                const double h_probe = std::max(ns.lower_deg, 0.5 * h);
+                void* mp = nullptr;
+                char ep[512] = {0};
+                P2SkyPlaneInfo ip{};
+                const int rcp = solve_at(h_probe, lam, &mp, &ip, ep, sizeof(ep));
+                const int idx2 = record(h_probe, lam, rcp,
+                                        (rcp == P2_SKY_PLANE_OK) ? &ip : nullptr);
+                if (rcp == P2_SKY_PLANE_OK && mp) {
+                    mark(idx2, P2_SKY_ADAPT_REFINE_NODES, 1);
+                    if (m) p2_sky_plane_close(m);
+                    m = mp;
+                    info = ip;
+                    h = h_probe;
+                    idx = idx2;
+                    ++n_refine;
+                    last_move_was_refine = 1;
+                    // 落到下方「成功路径」：继续按表示收敛判据探更细的网格
+                } else {
+                    mark(idx2, P2_SKY_ADAPT_BUILD_FAILED, 0);
+                    if (mp) p2_sky_plane_close(mp);
+                    if (m) p2_sky_plane_close(m);
+                    finalize();
+                    if (err && err_size)
+                        std::snprintf(err, err_size,
+                                      "adaptive node spacing exhausted: rc=%d at h=%.6g "
+                                      "lambda=%.6g (refinement probe rc=%d: %s)",
+                                      rc, h, lam, rcp, ep);
+                    return rcp;
+                }
+            } else {
+                if (m) p2_sky_plane_close(m);
+                finalize();
+                if (err && err_size)
+                    std::snprintf(err, err_size,
+                                  "adaptive node spacing exhausted: rc=%d at h=%.6g lambda=%.6g (%s)",
+                                  rc, h, lam, last_err.c_str());
+                return rc;
+            }
+        }
+
+        // ---- 成功路径：按表示收敛判据逐级细化（内层循环，不重复求解当前 h）----
+        for (;;) {
+            const double h_next = std::max(ns.lower_deg, 0.5 * h);
+            const bool can_probe = (h_next < h) && (n_refine < ad.max_node_refinements) &&
+                                   (attempts + 1 < ad.max_attempts);
+            if (!can_probe) {
+                mark(idx, P2_SKY_ADAPT_ACCEPTED, 1);
+                best = m;
+                best_info = info;
+                best_lam = lam;
+                break;
+            }
+            // 表示收敛探针：细化到 h/2，chi2_red 至少降到 r 倍才认为残差仍受表示能力限制。
+            void* m2 = nullptr;
+            char e2[512] = {0};
+            P2SkyPlaneInfo i2{};
+            const int rc2 = solve_at(h_next, lam, &m2, &i2, e2, sizeof(e2));
+            const int idx2 = record(h_next, lam, rc2, (rc2 == P2_SKY_PLANE_OK) ? &i2 : nullptr);
+            const bool improved = (rc2 == P2_SKY_PLANE_OK) && (info.chi2_red > 0.0) &&
+                                  (i2.chi2_red <= ad.residual_improve_ratio * info.chi2_red);
+            if (improved) {
+                mark(idx, P2_SKY_ADAPT_REFINE_NODES, 0);
+                mark(idx2, P2_SKY_ADAPT_REFINE_NODES, 1);
+                if (m) p2_sky_plane_close(m);
+                m = m2;
+                info = i2;
+                h = h_next;
+                idx = idx2;
+                ++n_refine;
+                last_move_was_refine = 1;
+                // 已到分辨率极限下界而残差仍在降 ⇒ 表示能力到顶（诚实边界，如实登记）
+                if (h <= ns.lower_deg) rep_limited = 1;
+                continue;
+            }
+            // 探针未被采纳：采纳当前（较粗、条件数更好）的解，并如实记录探针结果。
+            mark(idx2, P2_SKY_ADAPT_ACCEPTED, 0);
+            mark(idx, P2_SKY_ADAPT_ACCEPTED, 1);
+            if (m2) p2_sky_plane_close(m2);
+            best = m;
+            best_info = info;
+            best_lam = lam;
+            break;
+        }
+        break;   // 已定解 ⇒ 退出外层 while
+    }
+
+    if (!best) {
+        finalize();
+        if (err && err_size)
+            std::snprintf(err, err_size,
+                          "adaptive node spacing exhausted after %d attempts (last rc=%d: %s)",
+                          attempts, last_rc, last_err.c_str());
+        return (last_rc != P2_SKY_PLANE_OK) ? last_rc : P2_SKY_PLANE_INVALID_ARGS;
+    }
+    // 最终模型的节点间距来源 = **由输入几何导出**（自适应在几何给的区间内搜索），
+    // 搜索区间一并写入 info，供 provenance 复核。
+    best_info.node_spacing_source = 0;
+    best_info.node_spacing_upper_deg = ns.upper_deg;
+    best_info.node_spacing_lower_deg = ns.lower_deg;
+    static_cast<SkyPlaneModel*>(best)->info.node_spacing_source = 0;
+    static_cast<SkyPlaneModel*>(best)->info.node_spacing_upper_deg = ns.upper_deg;
+    static_cast<SkyPlaneModel*>(best)->info.node_spacing_lower_deg = ns.lower_deg;
+    finalize();
+    static_cast<SkyPlaneModel*>(best)->adaptive = rep;
+    *out_model = best;
+    if (err && err_size) err[0] = '\0';
+    return P2_SKY_PLANE_OK;
+}
 int p2_sky_plane_info(const void* model, P2SkyPlaneInfo* out) {
     if (!model || !out) return P2_SKY_PLANE_INVALID_ARGS;
     *out = static_cast<const SkyPlaneModel*>(model)->info;
@@ -1304,20 +1763,82 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"weight_mode", m->cfg.weight_mode},
             {"kappa_max", m->cfg.kappa_max},
             {"rank_rtol", m->cfg.rank_rtol},
-            {"max_extrapolation_deg", m->cfg.max_extrapolation_deg}};
+            {"max_extrapolation_deg", m->cfg.max_extrapolation_deg},
+            // §7a：节点间距导出所需的输入几何（原样落盘，供独立复核导出规则）
+            {"geometry", {
+                {"overlap_band_width_deg", m->cfg.geometry.overlap_band_width_deg},
+                {"pointing_spacing_deg", m->cfg.geometry.pointing_spacing_deg},
+                {"sample_pitch_deg", m->cfg.geometry.sample_pitch_deg},
+                {"pixel_scale_arcsec", m->cfg.geometry.pixel_scale_arcsec}}}};
         j["coeff"] = m->coeff;
         j["frame_ids"] = m->frame_ids;
         j["deltas"] = m->deltas;
+        // kappa_data 在 H_red 浮点不正定（chol 失败）时不可计算：写 null 而非 NaN，
+        // 避免 JSON 消费者把不可计算读成 0。
+        auto num_or_null = [](double v) -> nlohmann::json {
+            if (!std::isfinite(v)) return nlohmann::json(nullptr);
+            return nlohmann::json(v);
+        };
         j["info"] = {
             {"n_samples", m->info.n_samples}, {"n_used", m->info.n_used},
             {"n_frames", m->info.n_frames}, {"n_nodes", m->info.n_nodes},
             {"n_params", m->info.n_params}, {"rank", m->info.rank},
             {"kappa", m->info.kappa},
-            {"kappa_data", m->info.kappa_data}, {"rms_weighted", m->info.rms_weighted},
+            {"kappa_data", num_or_null(m->info.kappa_data)},
+            {"rms_weighted", m->info.rms_weighted},
             {"rms_unweighted", m->info.rms_unweighted},
             {"chi2_red", m->info.chi2_red}, {"iterations", m->info.iterations},
             {"n_masked", m->info.n_masked}, {"n_rejected", m->info.n_rejected},
-            {"model_hash", std::string(m->info.model_hash)}};
+            {"model_hash", std::string(m->info.model_hash)},
+            // §7a 规则 4 / 规则 1：门控口径与节点间距来源必须可审计
+            {"kappa_max_effective", m->info.kappa_max_effective},
+            {"kappa_max_source", m->info.kappa_max_source},
+            {"rank_solve", m->info.rank_solve},
+            {"node_spacing_source", m->info.node_spacing_source},
+            {"node_spacing_upper_deg", m->info.node_spacing_upper_deg},
+            {"node_spacing_lower_deg", m->info.node_spacing_lower_deg}};
+        // §7a：自适应重试的**逐次尝试**与最终生效值（provenance 最小集之外的自适应记录）
+        {
+            const P2SkyPlaneAdaptiveReport& a = m->adaptive;
+            nlohmann::json ja;
+            ja["n_attempts"] = a.n_attempts;
+            ja["n_node_refinements"] = a.n_node_refinements;
+            ja["n_node_coarsenings"] = a.n_node_coarsenings;
+            ja["n_penalty_escalations"] = a.n_penalty_escalations;
+            ja["node_adaptive_used"] = a.node_adaptive_used;
+            ja["penalty_adaptive_used"] = a.penalty_adaptive_used;
+            ja["representation_limited"] = a.representation_limited;
+            ja["clamped_to_upper"] = a.clamped_to_upper;
+            ja["constraining_scale_deg"] = a.constraining_scale_deg;
+            ja["node_spacing_upper_deg"] = a.node_spacing_upper_deg;
+            ja["node_spacing_lower_deg"] = a.node_spacing_lower_deg;
+            ja["node_spacing_deg"] = a.node_spacing_deg;
+            ja["roughness_penalty"] = a.roughness_penalty;
+            ja["kappa"] = a.kappa;
+            ja["kappa_data"] = num_or_null(a.kappa_data);
+            ja["chi2_red"] = a.chi2_red;
+            ja["residual_improve_ratio"] = a.residual_improve_ratio;
+            ja["kappa_max_effective"] = a.kappa_max_effective;
+            nlohmann::json jatt = nlohmann::json::array();
+            const int na = std::min<int>(a.n_attempts, P2_SKY_ADAPT_MAX_ATTEMPTS);
+            for (int i = 0; i < na; ++i) {
+                const P2SkyPlaneAttempt& t = a.attempts[i];
+                jatt.push_back({{"node_spacing_deg", t.node_spacing_deg},
+                                {"roughness_penalty", t.roughness_penalty},
+                                {"kappa", num_or_null(t.kappa)},
+                                {"kappa_data", num_or_null(t.kappa_data)},
+                                {"chi2_red", t.chi2_red},
+                                {"rms_weighted", t.rms_weighted},
+                                {"rank", t.rank},
+                                {"rank_solve", t.rank_solve},
+                                {"n_nodes", t.n_nodes},
+                                {"rc", t.rc},
+                                {"action", t.action},
+                                {"adopted", t.adopted}});
+            }
+            ja["attempts"] = jatt;
+            j["adaptive"] = ja;
+        }
         // CLEAN-403 (§10 aio 唯一 I/O 边界): 落盘经 aio 原子写原语
         // (临时文件 → fflush → fsync → 原子 rename), 本 TU 不再自持 FILE*。
         const std::string s = j.dump(2);
@@ -1368,6 +1889,14 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             m->cfg.kappa_max = c.value("kappa_max", m->cfg.kappa_max);
             m->cfg.rank_rtol = c.value("rank_rtol", m->cfg.rank_rtol);
             m->cfg.max_extrapolation_deg = c.value("max_extrapolation_deg", m->cfg.max_extrapolation_deg);
+            if (c.contains("geometry")) {
+                const auto& gg = c["geometry"];
+                m->cfg.geometry.overlap_band_width_deg =
+                    gg.value("overlap_band_width_deg", 0.0);
+                m->cfg.geometry.pointing_spacing_deg = gg.value("pointing_spacing_deg", 0.0);
+                m->cfg.geometry.sample_pitch_deg = gg.value("sample_pitch_deg", 0.0);
+                m->cfg.geometry.pixel_scale_arcsec = gg.value("pixel_scale_arcsec", 0.0);
+            }
         }
         m->coeff = j["coeff"].get<std::vector<double>>();
         m->frame_ids = j["frame_ids"].get<std::vector<std::uint64_t>>();
@@ -1384,7 +1913,17 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             m->info.n_params = i.value("n_params", (std::uint64_t)0);
             m->info.rank = i.value("rank", (std::uint64_t)0);
             m->info.kappa = i.value("kappa", 0.0);
-            m->info.kappa_data = i.value("kappa_data", 0.0);
+            // kappa_data 可为 null（H_red 浮点不正定 ⇒ 不可计算）；null → NaN，不是 0。
+            if (i.contains("kappa_data") && !i["kappa_data"].is_null())
+                m->info.kappa_data = i["kappa_data"].get<double>();
+            else
+                m->info.kappa_data = std::numeric_limits<double>::quiet_NaN();
+            m->info.kappa_max_effective = i.value("kappa_max_effective", 0.0);
+            m->info.kappa_max_source = i.value("kappa_max_source", 1);
+            m->info.rank_solve = i.value("rank_solve", (std::uint64_t)0);
+            m->info.node_spacing_source = i.value("node_spacing_source", 1);
+            m->info.node_spacing_upper_deg = i.value("node_spacing_upper_deg", 0.0);
+            m->info.node_spacing_lower_deg = i.value("node_spacing_lower_deg", 0.0);
             m->info.rms_weighted = i.value("rms_weighted", 0.0);
             m->info.rms_unweighted = i.value("rms_unweighted", 0.0);
             m->info.chi2_red = i.value("chi2_red", 0.0);
@@ -1402,6 +1941,57 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             m->info.gauge_shift = m->gauge_shift;
             const std::string hx = i.value("model_hash", std::string());
             std::snprintf(m->info.model_hash, sizeof(m->info.model_hash), "%s", hx.c_str());
+        }
+        // 自适应 provenance 回读（旧模型文件无该段 ⇒ n_attempts=0，语义 = 单次求解）
+        if (j.contains("adaptive")) {
+            const auto& a = j["adaptive"];
+            P2SkyPlaneAdaptiveReport& r = m->adaptive;
+            r.n_attempts = a.value("n_attempts", 0);
+            if (r.n_attempts < 0) r.n_attempts = 0;
+            if (r.n_attempts > P2_SKY_ADAPT_MAX_ATTEMPTS) r.n_attempts = P2_SKY_ADAPT_MAX_ATTEMPTS;
+            r.n_node_refinements = a.value("n_node_refinements", 0);
+            r.n_node_coarsenings = a.value("n_node_coarsenings", 0);
+            r.n_penalty_escalations = a.value("n_penalty_escalations", 0);
+            r.node_adaptive_used = a.value("node_adaptive_used", 0);
+            r.penalty_adaptive_used = a.value("penalty_adaptive_used", 0);
+            r.representation_limited = a.value("representation_limited", 0);
+            r.clamped_to_upper = a.value("clamped_to_upper", 0);
+            r.constraining_scale_deg = a.value("constraining_scale_deg", 0.0);
+            r.node_spacing_upper_deg = a.value("node_spacing_upper_deg", 0.0);
+            r.node_spacing_lower_deg = a.value("node_spacing_lower_deg", 0.0);
+            r.node_spacing_deg = a.value("node_spacing_deg", 0.0);
+            r.roughness_penalty = a.value("roughness_penalty", 0.0);
+            r.kappa = a.value("kappa", 0.0);
+            r.kappa_data = (a.contains("kappa_data") && !a["kappa_data"].is_null())
+                               ? a["kappa_data"].get<double>()
+                               : std::numeric_limits<double>::quiet_NaN();
+            r.chi2_red = a.value("chi2_red", 0.0);
+            r.residual_improve_ratio = a.value("residual_improve_ratio", 0.0);
+            r.kappa_max_effective = a.value("kappa_max_effective", 0.0);
+            if (a.contains("attempts") && a["attempts"].is_array()) {
+                const int na = std::min<int>(static_cast<int>(a["attempts"].size()),
+                                             P2_SKY_ADAPT_MAX_ATTEMPTS);
+                for (int t = 0; t < na; ++t) {
+                    const auto& at = a["attempts"][static_cast<std::size_t>(t)];
+                    P2SkyPlaneAttempt& o = r.attempts[t];
+                    o.node_spacing_deg = at.value("node_spacing_deg", 0.0);
+                    o.roughness_penalty = at.value("roughness_penalty", 0.0);
+                    o.kappa = (at.contains("kappa") && !at["kappa"].is_null())
+                                  ? at["kappa"].get<double>()
+                                  : std::numeric_limits<double>::quiet_NaN();
+                    o.kappa_data = (at.contains("kappa_data") && !at["kappa_data"].is_null())
+                                       ? at["kappa_data"].get<double>()
+                                       : std::numeric_limits<double>::quiet_NaN();
+                    o.chi2_red = at.value("chi2_red", 0.0);
+                    o.rms_weighted = at.value("rms_weighted", 0.0);
+                    o.rank = at.value("rank", (std::uint64_t)0);
+                    o.rank_solve = at.value("rank_solve", (std::uint64_t)0);
+                    o.n_nodes = at.value("n_nodes", (std::uint64_t)0);
+                    o.rc = at.value("rc", 0);
+                    o.action = at.value("action", 0);
+                    o.adopted = at.value("adopted", 0);
+                }
+            }
         }
         const std::size_t expect = static_cast<std::size_t>(m->nx) * static_cast<std::size_t>(m->ny);
         if (m->coeff.size() != expect || m->deltas.size() != m->frame_ids.size()) {
