@@ -7,10 +7,10 @@
     "abi_version": 1
   },
   "model": {
-    "sizeof": 112,
+    "sizeof": 200,
     "struct_size_off": 0,
     "abi_version_off": 4,
-    "abi_version": 1
+    "abi_version": 2
   },
   "config_fields": {
     "mask_k_sigma": 88,
@@ -23,5 +23,19 @@
     "mask_degraded": 92,
     "mask_radius_p50": 96,
     "mask_frac": 104
+  },
+  "model_adapt_fields": {
+    "n_structure_rejected_patches": 112,
+    "n_r_unavailable_patches": 116,
+    "r_min": 120,
+    "r_median": 128,
+    "r_max": 136,
+    "r_fence": 144,
+    "plane_a": 152,
+    "plane_b": 160,
+    "plane_c": 168,
+    "ctrl_variance_range": 176,
+    "hull_min_pred": 184,
+    "hull_nonpositive_frac": 192
   }
 }

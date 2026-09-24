@@ -60,11 +60,19 @@ const double SAT = 65535.0;
 const double MU = 1000.0;
 const double SIG = 5.0;
 const double TRUE_VAR = SIG * SIG;      // 25 ADU^2
-const double FLAT_REL = 0.01;
+const double FLAT_REL = 0.05;
 
-// 合成：sky + 单颗极亮饱和星（F=5e13 ⇒ 平台半径 ~44 px；ZP=25/300 s/gain=1 下约 V≈0 mag）
+// 合成：sky + 单颗极亮饱和星（F=1e14 ⇒ 平台半径 ~48 px；ZP=25/300 s/gain=1 下约 V≈0 mag）
 //   翼按 Moffat 物理延伸到 ~1 ADU（不截断到固定半径，避免人为"翼台阶"污染判据）。
-const double STAR_X = 256.0, STAR_Y = 256.0, STAR_F = 5e13, STAR_FWHM = 3.0;
+// SCI-VAR-ADAPT-01 适配（2026-09-25）: 星心移到**patch 中心** (288,288)（patch 中心 =
+//   32+64k）, 亮度提到平台半径 48.4 px > 该 patch 的半对角 45.3 px ⇒ 平台**整块**覆盖
+//   一个 patch。理由: §5d 的自校准 patch 有效性判据会把「平台 + 天空」的**混合** patch
+//   判为结构污染并剔除（实测该帧 8→20 个 patch 被剔）, 于是「未提供电平」臂的污染不再
+//   进入拟合 —— 那是 §5d 的正确行为, 但会让本门失去区分力。整块平台是**同方差**的
+//   （patch 内 R ≈ 1）, §5d **原理上无法**剔除它 ⇒ 这里才是饱和电平元数据不可替代的
+//   作用域。平台噪声取单侧（记录值 ≥ 电平）: 饱和平台是**上限**, 使过滤能把整块平台
+//   排除干净, 判据得以给出明确的两臂差。
+const double STAR_X = 288.0, STAR_Y = 288.0, STAR_F = 1e14, STAR_FWHM = 3.0;
 std::vector<double> synth(int h, int w, double amp, bool with_star, unsigned long long seed) {
     Rng rng(seed);
     std::vector<double> img((size_t)h * (size_t)w);
@@ -82,7 +90,7 @@ std::vector<double> synth(int h, int w, double amp, bool with_star, unsigned lon
                 const double rr2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
                 const double prof = amp / std::pow(1.0 + rr2 / (alpha * alpha), 4.0);
                 double v = img[(size_t)y * w + x] + prof;
-                if (v >= SAT) v = SAT * (1.0 + FLAT_REL * rng.normal());
+                if (v >= SAT) v = SAT * (1.0 + FLAT_REL * std::fabs(rng.normal()));
                 img[(size_t)y * w + x] = v;
             }
         }
@@ -130,8 +138,8 @@ RunResult run(const std::vector<double>& img, int h, int w, double sat_level) {
         const double v = m.ctrl_variance[i];
         if (v > r.ctrl_var_max) r.ctrl_var_max = v;
         if (v > 100.0 * TRUE_VAR) ++r.n_polluted;
-        // 平台 patch 中心 = (224,224)（含星 (256,256) 角点的 patch [192,256) 的中心）
-        if (std::fabs(m.ctrl_x_px[i] - 224.0) < 0.5 && std::fabs(m.ctrl_y_px[i] - 224.0) < 0.5) {
+        // 平台 patch = 以星心为中心的 patch（星心取在 patch 中心 ⇒ 该 patch 被平台整块覆盖）
+        if (std::fabs(m.ctrl_x_px[i] - STAR_X) < 0.5 && std::fabs(m.ctrl_y_px[i] - STAR_Y) < 0.5) {
             r.plateau_patch_var = v;
             r.plateau_patch_n = 1;
         }
@@ -201,24 +209,31 @@ int group_contract() {
                 off.rc, off.n_qual, off.sigma, off.var_median, off.var_max, off.n_polluted,
                 off.plateau_patch_var);
 
-    // G2 正例：提供电平 ⇒ 平台 patch 不再产出污染控制点，且权场与真值同阶
+    // G2 正例：提供电平 ⇒ 平台 patch 不再产出污染控制点（**控制点层面**的权场恢复）
     check(on.n_polluted <= off.n_polluted,
           "G2a level=SAT: 污染控制点数不增加");
-    check(on.var_median < off.var_median,
-          "G2b level=SAT: 权场中位数方差严格下降");
-    check(on.mean_ivar > 3.0 * off.mean_ivar,
-          "G2c level=SAT: 帧平均 ivar >= 3x 未过滤臂（帧权重显著恢复）");
+    check(on.n_polluted == 0 && on.ctrl_var_max <= 100.0 * TRUE_VAR,
+          "G2b level=SAT: 污染控制点清零（ctrl_var 全部回到 100*sigma_bg^2 以内）");
+    check(off.plateau_patch_n > 0 && on.plateau_patch_n == 0,
+          "G2c level=SAT: 平台 patch 从控制点集合中消失（过滤直接作用面）");
     check(on.plateau_patch_var < off.plateau_patch_var,
           "G2d level=SAT: 平台 patch 的 ctrl_var 严格下降（过滤直接作用面）");
 
-    // G3 负例（缺陷必须可检出 = 门不得恒真）：未提供电平 ⇒ 平台 patch 变污染控制点 + 帧权重崩塌
+    // G3 负例（缺陷必须可检出 = 门不得恒真）：未提供电平 ⇒ 平台 patch 变污染控制点。
+    // 注（SCI-VAR-ADAPT-01）: 旧的 G2c/G3c 断言「帧平均 ivar 比 ≥3x / <1/2」在 §5d 之后
+    //   **不再成立且不应成立** —— §5d 的相对误差加权 w ∝ 1/v² 把高方差（被污染）控制点的
+    //   杠杆压到 (v_med/v_i)² ≈ 5e-11 量级, 帧级权场因此对平台污染**本就不敏感**（实测两臂
+    //   mean_ivar 相对差 < 1e-6）。这正是 §5d 要求的「降低被污染控制点的杠杆」, 是**纵深
+    //   防御**: 污染在控制点层面由饱和电平清除（G2b/G2c/G2d/G3a/G3b）, 在帧级由 §5d 加权
+    //   兜住。故把该断言改锚到新不变量（两臂帧级权场一致）—— 判据强度不降: 它现在同时
+    //   锁定「加权确实压住了污染杠杆」这条 §5d 性质, 若加权退化为无权, 本断言必红。
     check(off.plateau_patch_n > 0 && off.plateau_patch_var > 1.0e6,
           "G3a level=0: 平台 patch 成为污染控制点 (ctrl_var > 1e6 ADU^2, 真值 25)");
     check(off.n_polluted >= 1 && off.ctrl_var_max > 100.0 * TRUE_VAR,
           "G3b level=0: 存在污染控制点（ctrl_var > 100*sigma_bg^2）");
     check(off.mean_ivar > 0.0 && on.mean_ivar > 0.0 &&
-              (off.mean_ivar / on.mean_ivar) < 0.5,
-          "G3c level=0: 帧平均 ivar 比 < 1/2（未提供电平 ⇒ 帧权重至少减半）");
+              std::fabs(off.mean_ivar / on.mean_ivar - 1.0) < 1e-3,
+          "G3c level=0: 帧级权场对平台污染不敏感（§5d 相对误差加权压住杠杆, 两臂一致）");
     // σ_bg_global 的"表观正常"正是缺陷的静默性：两臂都必须给出接近真值的全局 σ
     check(std::fabs(off.sigma - SIG) / SIG < 0.05 && std::fabs(on.sigma - SIG) / SIG < 0.05,
           "G3d 两臂 sigma_bg_global 均在 5% 内（说明污染只体现在逐像素权重场，非全局 σ）");

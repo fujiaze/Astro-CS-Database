@@ -230,6 +230,96 @@ def disk_mask_frac(w, h, cx, cy, radii):
     return float(mask.mean())
 
 
+def fit_plane_constrained(xs, ys, vs):
+    """§5d ② 独立复算: 相对误差加权 + 控制点凸包非负的平面拟合。
+
+    估计量（与生产同一定义）:
+        min_β Σ w_i (a + b·x_i + c·y_i − v_i)²,  w_i = (v_med/v_i)²,
+        s.t.  a + b·x_i + c·y_i ≥ 0  ∀ 控制点 i
+    实现路径**与生产不同源**: 这里对全部控制点枚举 |S| ≤ 3 的活跃子集, 子问题用
+    NumPy 的 SVD 最小二乘 (np.linalg.lstsq) + 零空间代换; 生产用割平面 + Householder
+    QR, 测试内 oracle 用全枚举 + 修正 Gram-Schmidt。三者数学等价, 数值路径互不相同。
+    返回 (a, b, c)。
+    """
+    xs = np.asarray(xs, dtype=np.float64)
+    ys = np.asarray(ys, dtype=np.float64)
+    vs = np.asarray(vs, dtype=np.float64)
+    n = xs.size
+    if n < 4:
+        return None
+    vmed = float(np.median(vs))
+    if not (vmed > 0.0):
+        return None
+    w = (vmed / vs) ** 2
+    sw = np.sqrt(w)
+    A0 = np.column_stack([np.ones(n), xs, ys])          # 未加权设计 (合同模型形式)
+    B = A0 * sw[:, None]                                 # 加权设计
+    rhs = vs * sw
+    guard_eps = 8.0 * np.finfo(np.float64).eps
+
+    def feasible(beta):
+        t = A0 @ beta
+        g = guard_eps * (np.abs(beta[0]) + np.abs(beta[1] * xs) + np.abs(beta[2] * ys))
+        return bool(np.all(t >= -g))
+
+    best = [None, None]                                   # (目标值, beta)
+
+    def consider(S):
+        k = len(S)
+        if k == 0:
+            Z = np.eye(3)
+        elif k == 1:
+            a = A0[S[0]]
+            nn = float(a @ a)
+            if not (nn > 0.0):
+                return
+            Z = np.eye(3) - np.outer(a, a) / nn           # 正交投影到 a^⊥ 的两列
+            Z = Z[:, [j for j in range(3) if np.linalg.norm(Z[:, j]) > 1e-12]][:, :2]
+            if Z.shape[1] < 2:
+                return
+        elif k == 2:
+            z = np.cross(A0[S[0]], A0[S[1]])
+            nz = float(np.linalg.norm(z))
+            na = float(np.linalg.norm(A0[S[0]]))
+            nb = float(np.linalg.norm(A0[S[1]]))
+            if not (nz > 1e-12 * na * nb):
+                return
+            Z = (z / nz).reshape(3, 1)
+        else:
+            M = A0[list(S)]
+            if abs(float(np.linalg.det(M))) <= 0.0:
+                return
+            beta = np.zeros(3)                            # 3 约束 ⇒ 唯一解 β = 0 之外的
+            try:
+                beta = np.linalg.solve(M, np.zeros(3))    # 齐次解 = 0（行满秩）
+            except np.linalg.LinAlgError:
+                return
+            if feasible(beta):
+                f = float(np.sum(w * (A0 @ beta - vs) ** 2))
+                if best[0] is None or f < best[0]:
+                    best[0], best[1] = f, beta
+            return
+        gamma, *_ = np.linalg.lstsq(B @ Z, rhs, rcond=None)
+        beta = Z @ gamma
+        if not np.all(np.isfinite(beta)) or not feasible(beta):
+            return
+        f = float(np.sum(w * (A0 @ beta - vs) ** 2))
+        if best[0] is None or f < best[0]:
+            best[0], best[1] = f, beta
+
+    consider(())
+    for i in range(n):
+        consider((i,))
+    for i in range(n):
+        for j in range(i + 1, n):
+            consider((i, j))
+    for i in range(n):
+        for j in range(i + 1, n):
+            for k in range(j + 1, n):
+                consider((i, j, k))
+    return None if best[1] is None else (float(best[1][0]), float(best[1][1]), float(best[1][2]))
+
+
 def reference_model(data, h, w, gx, gy, minsamp, clip, rounds, floor_v):
     """NumPy 第一性原理复算（不调用生产实现）。"""
     gx = max(2, gx)
@@ -331,14 +421,21 @@ def run_case(exe, name, data, gx, gy, minsamp, clip, rounds, floor_v, tmp,
         close(float(out["VG"][0]), vg, RTOL_MODEL, "%s variance_bg_global" % name)
         close(float(out["VG"][1]), 1.0 / vg, RTOL_MODEL, "%s ivar_bg_global" % name)
         close(float(out["VG"][2]), math.sqrt(vg), RTOL_MODEL, "%s sigma_bg_global" % name)
-        A = np.column_stack([np.ones_like(xs), xs, ys])
-        coef, *_ = np.linalg.lstsq(A, np.maximum(var, floor_v), rcond=None)
+        # SCI-VAR-ADAPT-01 (§5d ②): 参考平面 = 相对误差加权 + 凸包非负的拟合
+        # (不再是"对控制点做无权 LS + clamp 到 floor"—— 那是被本任务替换掉的旧估计量)。
+        coef = fit_plane_constrained(xs, ys, np.maximum(var, floor_v))
+        check(coef is not None, "%s 约束平面拟合可解" % name)
         yy, xx = np.mgrid[0:h, 0:w]
-        ref_var = np.maximum(coef[0] + coef[1] * xx + coef[2] * yy, floor_v)
+        pred = coef[0] + coef[1] * xx + coef[2] * yy
+        # §5/§9④ 三态表（DATA_SEMANTICS §4a）: 预测 > 0 ⇒ 可用, variance = max(pred, floor);
+        # 预测 ≤ 0 ⇒ **不可用**, variance = 0 且 ivar = 0（**不 clamp 到 floor**）。
+        usable = pred > 0.0
+        ref_var = np.where(usable, np.maximum(pred, floor_v), 0.0)
+        ref_ivar = np.where(usable, 1.0 / np.maximum(pred, floor_v), 0.0)
         check(int(out["FILLRC"][0]) == 0, "%s fill rc=0" % name)
         close(out["FV"], ref_var.reshape(-1), RTOL_PLANE,
               "%s fill variance 平面 [ADU^2, f32]" % name)
-        close(out["FI"], (1.0 / ref_var).reshape(-1), RTOL_PLANE,
+        close(out["FI"], ref_ivar.reshape(-1), RTOL_PLANE,
               "%s fill ivar 平面 [ADU^-2, f32]" % name)
     return out
 
@@ -468,8 +565,13 @@ def main():
             close(float(out_d["MASK"][2]), disk_mask_frac(W4, H4, cx4, cy4, radii), 1e-6,
                   "D_starfield mask_frac (NumPy 独立光栅化)")
             check(int(out_d["MASK"][0]) == 0, "D_starfield mask_degraded==0 (F/FWHM 齐备)")
-            check(int(out_d["MASK"][3]) > 0 and int(out_d["MASK"][4]) == 1,
-                  "D_starfield 模型 ABI 头部在场")
+            # SCI-VAR-ADAPT-01: NoiseWeightModelV1 追加 12 个 §5d 审计字段
+            # (n_structure_rejected_patches .. hull_nonpositive_frac) ⇒ ABI 版本 1 → 2,
+            # struct_size 随之增大。版本断言随合同更新（不是放宽: 布局锁 p1noise_abi_layout
+            # 逐字段锁死新旧偏移, 该组自检含突变必红）。
+            check(int(out_d["MASK"][3]) > 0 and int(out_d["MASK"][4]) == 2,
+                  "D_starfield 模型 ABI 头部在场 (struct_size=%s abi_version=%s)"
+                  % (out_d["MASK"][3], out_d["MASK"][4]))
             sig_prod = math.sqrt(float(out_d["VG"][0]))
             bias4 = abs(sig_prod / sigma4 - 1.0)
             check(bias4 <= 0.02,

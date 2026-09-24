@@ -76,6 +76,54 @@ inline FixNoiseA fix_noise_a_gaussian(std::uint64_t seed, int w, int h,
     return fx;
 }
 
+
+// ---------------------------------------------------------------------------
+// FIX-NOISE-STRUCT (SCI-VAR-ADAPT-01 / SCI-NOISE-001 §5d): 纯噪声 + 可选大尺度
+// 平滑结构（延展"星云"）。
+//   data(x,y) = sigma·N(0,1) + amp·exp(−((x−cx)²+(y−cy)²)/(2·r²))
+// 结构在 **1 px 尺度上平滑** ⇒ 相邻像素一阶差分几乎不受影响, 而 patch 内的 MAD-σ
+// 被结构撑大 ⇒ R = σ_MAD/σ_white ≫ 1（§5d 的"结构污染"形态）。
+//   amp = 0 ⇒ 与 FIX-NOISE-A 同类的纯噪声帧（真值无效应臂: R 的理论值 = 1,
+//   自校准判据**不得**剔除任何 patch）。
+// 用途: 自校准判据的**能红能绿**双向负例（结构臂必须剔到并改善; 纯噪声臂必须不剔）。
+// ---------------------------------------------------------------------------
+struct FixNoiseStruct {
+    int w = 0, h = 0;
+    double sigma_true = 0.0;
+    double amp = 0.0;
+    double blob_cx = 0.0, blob_cy = 0.0, blob_r = 0.0;
+    std::vector<double> data;
+};
+
+inline FixNoiseStruct fix_noise_struct(std::uint64_t seed, int w, int h,
+                                       double sigma_true, double amp,
+                                       double blob_cx, double blob_cy, double blob_r) {
+    FixNoiseStruct fx;
+    fx.w = w;
+    fx.h = h;
+    fx.sigma_true = sigma_true;
+    fx.amp = amp;
+    fx.blob_cx = blob_cx;
+    fx.blob_cy = blob_cy;
+    fx.blob_r = blob_r;
+    fx.data.assign(static_cast<std::size_t>(w) * h, 0.0);
+    std::uint64_t st = seed;
+    const double two_r2 = 2.0 * blob_r * blob_r;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            const std::size_t i = static_cast<std::size_t>(y) * w + x;
+            double v = sigma_true * gauss01(st);
+            if (amp != 0.0 && blob_r > 0.0) {
+                const double dx = static_cast<double>(x) - blob_cx;
+                const double dy = static_cast<double>(y) - blob_cy;
+                v += amp * std::exp(-(dx * dx + dy * dy) / two_r2);
+            }
+            fx.data[i] = v;
+        }
+    }
+    return fx;
+}
+
 // ---------------------------------------------------------------------------
 // FIX-NOISE-B 平面场 (ALG §13.4): var(x,y)=a+b·x+c·y (b,c 非零), 像素
 // N(0, var(x,y))。两组: 正梯度 (b>0,c>0) 与负梯度 (b<0,c<0, 控制点区域

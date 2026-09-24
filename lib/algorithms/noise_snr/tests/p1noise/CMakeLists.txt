@@ -94,6 +94,10 @@ add_test(NAME p1noise_fill COMMAND p1noise_tests fill)
 # 旧 oracle/negative 面只有无星纯高斯帧 ⇒ 原理上发现不了半径错误
 # (实测 r=0/8/60 px 输出逐位相同), 本组为结构性补强 (新增门, 不放宽任何旧断言)。
 add_test(NAME p1noise_mask COMMAND p1noise_tests mask)
+# SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d): 平面场自适应约束组 —— 自校准 patch 有效性
+# 判据（纯噪声 ⇒ 不剔任何 patch; 结构污染 ⇒ 必剔且改善）+ 拟合的凸包非负约束
+# + §5d 审计量 provenance。**新增门, 不放宽任何旧断言。**
+add_test(NAME p1noise_adaptive COMMAND p1noise_tests adaptive)
 # ABI 版本化证据门 (claim SC-009): 结构布局探针 + 锁定文件比对 + 突变自检
 add_test(NAME p1noise_abi_layout
          COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/p1noise_abi_layout_check.py)
