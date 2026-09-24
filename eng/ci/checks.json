@@ -6051,7 +6051,7 @@
             "python3",
             "eng/tools/v6/v6_cli_mode_matrix.py",
             "--cli-bin",
-            "run/ci/build-gcc-release/astrocs",
+            "run/ci/build-gcc-release/acsd",
             "--work",
             "run/v6/cli-matrix",
             "--json-out",
@@ -12096,7 +12096,7 @@
       "command": [
         "python3",
         "eng/tools/check_link_scan.py",
-        "build/astrocs"
+        "build/acsd"
       ],
       "timeout_seconds": 300,
       "heavy": false,
