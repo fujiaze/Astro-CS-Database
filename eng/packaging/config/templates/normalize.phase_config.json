@@ -8,7 +8,7 @@
       "master_dark": "path/to/dark.fits",
       "master_flat": "path/to/flat_red.fits",
       "output_dir": "path/to/out/red",
-      "drizzle": {"nested": 1, "pixfrac": 1.0, "precision_mode": 1},
+      "drizzle": {"nested": 1, "pixfrac": 0.8, "precision_mode": 1},
       "filter_passband": "Baader R",
       "wcs": {"gaia_data_dir": "path/to/gaia"}
     },
@@ -19,7 +19,7 @@
       "master_dark": "path/to/dark.fits",
       "master_flat": "path/to/flat_ha.fits",
       "output_dir": "path/to/out/ha",
-      "drizzle": {"nested": 1, "pixfrac": 1.0, "precision_mode": 1},
+      "drizzle": {"nested": 1, "pixfrac": 0.8, "precision_mode": 1},
       "filter_passband": "Baader 7nm H-alpha",
       "wcs": {"gaia_data_dir": "path/to/gaia"}
     }

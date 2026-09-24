@@ -45,7 +45,7 @@
     球面交叠面积 [sr]；A_pixel,j = **未收缩**源像素球面面积 [sr]，由
     `spherical::polygon_area_consistent`（与 drop_area 同一分支同一例程）
     对未收缩四角求值。`pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ 分母直接取
-    `drop_area`（**逐位不变**，默认 `drizzle.pixfrac=1.0` 零回归）；
+    `drop_area`（**逐位不变**，默认 `drizzle.pixfrac=0.8`）；
     `pixfrac<1` 时多 4 次 `pixelToSky`（审核量化 +3%）。w≤0 拒绝。
     **适用域（分母口径不可替换）**：`A_pixel,j` 必须由未收缩四角在同一球面面积例程上
     求值；`A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确，球面残差

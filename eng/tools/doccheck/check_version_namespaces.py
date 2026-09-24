@@ -365,9 +365,9 @@ def main() -> int:
     # 他人路径遗留 (不判 FAIL; 前台集成/后续 GOV 任务协调)
     legacy = {
         "docs/VERSIONING.md": "VER-001 遗留: '当前冻结基线 0.10.0-alpha.2' (非允许路径, 需 GOV-005/前台收敛)",
-        "CMakeLists.txt": "project(astrocs VERSION 0.10.0) 字面量 (BLD-002 配合从 VERSION 生成; 主串已 file(READ) 生成)",
+        "CMakeLists.txt": "project(acsd VERSION 0.10.0) 字面量 (BLD-002 配合从 VERSION 生成; 主串已 file(READ) 生成)",
         "eng/tests/version/test_version_consistency.py": "test_01/05 硬编码 0.10.0-alpha.2 断言 (QA 配合更新)",
-        "eng/tests/quality/test_linux_release.py": "assertIn('astrocs 0.10.0') (QA 配合更新)",
+        "eng/tests/quality/test_linux_release.py": "assertIn('acsd 0.10.0') (QA 配合更新)",
         "eng/tests/backend/test_cpu_profile.py": "gen --version 0.10.0-alpha.2 (QA 配合更新)",
         "eng/tools/check_final_traceability.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",
         "eng/tools/check_release_consistency.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",

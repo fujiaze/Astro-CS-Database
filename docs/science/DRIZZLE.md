@@ -22,7 +22,7 @@
 | `F_p, D_p, S_p` | 累积通量/覆盖/归一信号 | 同上 |
 | `sumVarNum` | `Σ v_j·w_jp²` 方差分子 | `TileLeafAccumulator` |
 | `hp_res` | HEALPix 像素尺度 `√(π/3)/nside rad` | `spherical_overlap.cpp:40` |
-| `pixfrac` | drop 收缩因子 (0,1]（`drizzle.pixfrac`，默认 1.0） | `drizzle_engine:half=0.5*pixfrac` |
+| `pixfrac` | drop 收缩因子 (0,1]（`drizzle.pixfrac`，默认 0.8） | `drizzle_engine:half=0.5*pixfrac` |
 | `C=π/2, C45=π/(2√2)` | 极区 Lipschitz 常数 | 极区 prune |
 
 ## 3 物理量和单位
@@ -48,7 +48,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 
   等价形式 (Fruchter & Hook 2002 PASP 114,144 式(5); 按输出像素面积归一):
     I_p = Σ_i d_i · a_ip · w_i · s² / Σ_i a_ip · w_i,   s² = A_out/A_in
-    AstroCS 取 w_i=1、a_jp = drop∩目标 球面交叠面积、B_j = x_j/A_pixel,j
+    Astro Celestial Sphere Database（ACSD） 取 w_i=1、a_jp = drop∩目标 球面交叠面积、B_j = x_j/A_pixel,j
     ⇒ S_p = Σ_j B_j a_jp / Σ_j a_jp
     drop 面积 A_drop,j 在分子分母相消(均匀 drop 尺度下), 只决定 footprint;
     按 A_drop,j 归一的权重 a_jp/A_drop,j 满足 w_jp = pixfrac²·(a_jp/A_drop,j)，
@@ -188,8 +188,8 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 - **Drizzle 线性重建/drop/pixfrac**：Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087v2 §2 式(2)-(5)）。式(5) 为**一致加权均值**
   `I_p = Σ_i d_i a_ip w_i s² / Σ_i a_ip w_i`（`a_ip`=drop 与目标像素的分数交叠、`s²=A_out/A_in`），
   `A_drop` 同时出现在分子与分母、在均匀 drop 尺度下相消；对常数面亮度场输出面亮度 `=B0`，
-  与 pixfrac 无关。**AstroCS 取 w_i=1、按输出像素面积归一 ⇒ §5 的 `S_p=Σ_j B_j a_jp/Σ_j a_jp`**
-  （`B_j=x_j/A_pixel,j`）。**差异**：原始 Drizzle 在切平面上实施；AstroCS 在球面 HEALPix 上实施（§5），属 Project-defined 迁移。
+  与 pixfrac 无关。**ACSD 取 w_i=1、按输出像素面积归一 ⇒ §5 的 `S_p=Σ_j B_j a_jp/Σ_j a_jp`**
+  （`B_j=x_j/A_pixel,j`）。**差异**：原始 Drizzle 在切平面上实施；ACSD 在球面 HEALPix 上实施（§5），属 Project-defined 迁移。
   **独立实现对照**：drizzlepac `src/cdrizzlebox.c` `update_data()`（`output=(output·vc+dow·d)/(vc+dow)`）与 `do_kernel_square()` 的
   `dover/=jaco`（`jaco=A_drop`）后 `dow=dover·w`——drop 面积同入分子分母，是一致加权均值；
   DrizzlePac Handbook §2.3.2（p.17）“the weights of the individual output pixels … are independent of the choice of p [pixfrac]”；
