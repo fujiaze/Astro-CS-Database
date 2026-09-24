@@ -18,7 +18,7 @@
   **astrocs_p2_coverage.dll**（迁移目标合同值，尚未存在——现状编入
   astrocs_phase2 STATIC，根 CMakeLists.txt:338-346；独立 DLL target
   归 P2-COV-IMPL）。
-- module_version 0.11.0-alpha.2（VERSION 实测）；abi_version 1；
+- module_version 0.1.0-alpha.1（VERSION 实测）；abi_version 1；
   phase_scope phase2；owner SA-P2-S20；状态 **CONTRACT_READY**
   （P2-COV-DOC 冻结 2026-09-07）；entrypoint **MISSING**（registry
   入口未接；descriptor 占位见 §6）。

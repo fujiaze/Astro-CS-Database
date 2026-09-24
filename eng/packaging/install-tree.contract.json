@@ -2,8 +2,8 @@
   "contract_id": "CONTRACT-BLD003-INSTALL-TREE-V1",
   "contract_version": 1,
   "doc_status": "ACTIVE_NORMATIVE",
-  "target_version": "0.11.0-alpha.2",
-  "root_layout": "<prefix>/ (Linux 技术预览; Windows: AstroCS-0.11.0-alpha.1-win-x64/ 由 WIN-* 验证)",
+  "target_version": "0.1.0-alpha.1",
+  "root_layout": "<prefix>/ (Linux 技术预览; Windows: AstroCS-0.1.0-alpha.1-win-x64/ 由 WIN-* 验证)",
   "units": [
     { "unit_id": "PLATFORM-CLI", "kind": "exe", "install_path": "astrocs", "required": true },
     { "unit_id": "PLATFORM-RUNTIME", "kind": "runtime", "install_path": "libastrocs_runtime.so", "required": true },

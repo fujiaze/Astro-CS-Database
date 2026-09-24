@@ -45,7 +45,7 @@ id: MOD-astrocs-phase2-session
 module_id: astrocs.p2.session
 owner: SA-P2-X24
 language: c++17
-module_version: 0.11.0-alpha.2
+module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase2
 dll_name: astrocs_p2_session.dll

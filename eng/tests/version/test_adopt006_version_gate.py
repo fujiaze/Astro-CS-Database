@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """V81-ADOPT-006 机器测试: 版本统一 + eng/ci/check_version.py 门 (stdlib only)。
 
-A. 版本统一面: 根 VERSION / CMake project() / 活动文档 alpha 字面量全部 == alpha.2;
-B. eng/ci/check_version.py 正向: 当前树 --expected 0.11.0-alpha.2 → exit 0;
+A. 版本统一面: 根 VERSION / CMake project() / 活动文档 alpha 字面量全部 == 根 VERSION;
+B. eng/ci/check_version.py 正向: 当前树 --expected <根 VERSION> → exit 0;
 C. mutation 合同 (负向样例, /tmp fake 树): 任何一处版本漂移 (VERSION 文件 /
    project() 三元组 / CLI 手抄字面量 / 活动文档字面量) 必须使
    eng/ci/check_version.py 非零退出 (exit 1) 且 verdict=VERSION_CHECK_FAIL。
@@ -17,7 +17,11 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXPECTED = "0.11.0-alpha.2"
+EXPECTED = "0.1.0-alpha.1"
+# 漂移 token 一律由 EXPECTED 派生（不在本文件写死第二份版本字面量）:
+# 基础号 BASE 供 project() 三元组与坏格式 token 复用; DRIFT_ALPHA 是"与唯一源不同的 alpha.N"。
+BASE, ALPHA = EXPECTED.split("-alpha.")
+DRIFT_ALPHA = str(int(ALPHA) + 1)
 CHECK = os.path.join(REPO, "eng", "ci", "check_version.py")
 TOL = "同步规则: project() 数字三元组必须等于根 VERSION 去 -alpha.N 的基础号"
 
@@ -35,8 +39,8 @@ def run_check(root, expected=EXPECTED):
                           capture_output=True, text=True, timeout=120)
 
 
-def make_fake_tree(dst, *, version="0.11.0-alpha.2", project="0.11.0",
-                   doc="0.11.0-alpha.2"):
+def make_fake_tree(dst, *, version=EXPECTED, project=BASE,
+                   doc=EXPECTED):
     """最小活动面 fake 树 —— **必须满足 eng/ci/check_version.py 的锚存活合同**。
 
     W4-A3 订正：原夹具按迁移前布局构造（`cli/version_generated.h.in`、根
@@ -92,7 +96,7 @@ def make_fake_tree(dst, *, version="0.11.0-alpha.2", project="0.11.0",
 
 
 def make_absence_tree(dst):
-    """§12 absence 夹具: 完全无版本信息面。
+    """§13 absence 夹具: 完全无版本信息面。
 
     无 VERSION / 无 project() VERSION / 无 file(READ VERSION) 生成链 /
     无 CLI 版本模板 / 文档与 CLI 源码均无 alpha 字面量。
@@ -112,7 +116,7 @@ def make_absence_tree(dst):
         full = os.path.join(dst, rel)
         os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, "w", encoding="utf-8") as f:
-            f.write("# t\n\n版本信息面: 无 (Alpha 前, ASTROCS_DESIGN §12)\n")
+            f.write("# t\n\n版本信息面: 无 (alpha 阶段之前, ASTROCS_DESIGN §13)\n")
     for d in cv.DOC_SET_DIRS:
         full = os.path.join(dst, d)
         os.makedirs(full, exist_ok=True)
@@ -123,19 +127,19 @@ def make_absence_tree(dst):
 
 
 class TestAdopt006VersionUnification(unittest.TestCase):
-    def test_01_version_file_is_alpha2(self):
+    def test_01_version_file_matches_expected(self):
         with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
             self.assertEqual(f.read().strip(), EXPECTED)
 
-    def test_02_cmake_project_base_is_0_11_0(self):
+    def test_02_cmake_project_base_matches_version_source(self):
         import re
         with open(os.path.join(REPO, "CMakeLists.txt"), encoding="utf-8") as f:
             text = f.read()
         m = re.search(r"project\(\s*astrocs\s+VERSION\s+(\S+)", text)
         self.assertIsNotNone(m, "根 CMakeLists.txt 必须含唯一 project()")
-        self.assertEqual(m.group(1), "0.11.0", TOL)
+        self.assertEqual(m.group(1), BASE, TOL)
 
-    def test_03_active_doc_literals_are_alpha2(self):
+    def test_03_active_doc_literals_match_expected(self):
         """活动文档 alpha 字面量统一性 —— 扫描面**单源**取自 eng/ci/check_version.py。
 
         W4-A3 订正：原实现硬编码 ("README.md", "REVIEW.md", "HANDOVER.md")。
@@ -174,7 +178,7 @@ class TestAdopt006CheckGate(unittest.TestCase):
     def test_05_gate_bad_expected_format_fails(self):
         # 漂移 token 运行期拼接构造 (对 eng/tools/check_version_consistency.py 的
         # 全文扫描不可见; 该检查器只豁免自身 fixture, 无法豁免新文件)。
-        r = run_check(REPO, expected="0.11.0-" + "beta.1")
+        r = run_check(REPO, expected=BASE + "-" + "beta.1")
         self.assertEqual(r.returncode, 1)
         self.assertEqual(json.loads(r.stdout)["verdict"], "VERSION_CHECK_FAIL")
 
@@ -182,7 +186,7 @@ class TestAdopt006CheckGate(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             make_fake_tree(td)
             with open(os.path.join(td, "VERSION"), "w", encoding="utf-8") as f:
-                f.write("0.11.0-alpha." + "1\n")  # VERSION 文件漂移 (运行期拼接)
+                f.write(BASE + "-alpha." + DRIFT_ALPHA + "\n")  # VERSION 文件漂移 (运行期拼接)
             r = run_check(td)
             self.assertEqual(r.returncode, 1)
             self.assertEqual(json.loads(r.stdout)["verdict"], "VERSION_CHECK_FAIL")
@@ -218,7 +222,7 @@ class TestAdopt006CheckGate(unittest.TestCase):
 
     def test_09_mutation_active_doc_drift_fails(self):
         with tempfile.TemporaryDirectory() as td:
-            make_fake_tree(td, doc="0.11.0-alpha." + "1")  # 活动文档旧版本
+            make_fake_tree(td, doc=BASE + "-alpha." + DRIFT_ALPHA)  # 活动文档旧版本
             r = run_check(td)
             self.assertEqual(r.returncode, 1)
             self.assertEqual(json.loads(r.stdout)["verdict"], "VERSION_CHECK_FAIL")
@@ -245,16 +249,16 @@ class TestAdopt006CheckGate(unittest.TestCase):
     def test_11_cmake_project_alpha_suffix_rejected(self):
         """project() 不可能携带 alpha 后缀 (CMake 数字语法); 出现即 FAIL。"""
         with tempfile.TemporaryDirectory() as td:
-            make_fake_tree(td, project="0.11.0-alpha.2")
+            make_fake_tree(td, project=EXPECTED)
             r = run_check(td)
             self.assertEqual(r.returncode, 1)
 
 
     def test_12_absence_no_version_info_passes(self):
-        """§12 门方向: 版本信息完全不存在 ⇒ 不判红 (RELEASE-02 CI-HYGIENE)。
+        """§13 门方向: 版本信息完全不存在 ⇒ 不判红 (RELEASE-02 CI-HYGIENE)。
 
         旧实现反向强制版本存在 (anchor_alive_VERSION_REL ⇒ ANCHOR_STALE exit 2),
-        CI 绿灯 = 必然违反 §12。新判据 = 版本信息存在则校验一致性, 不存在不得判红;
+        CI 绿灯 = 必然违反 §13。新判据 = 版本信息存在则校验一致性, 不存在不得判红;
         absence 模式必须显式留痕 version_absence_alpha_pre (不静默通过)。
         """
         with tempfile.TemporaryDirectory() as td:

@@ -13,7 +13,7 @@
 # ALG-CAL §6/§10）。
 id: MOD-astrocs-phase1-calibration
 module_id: astrocs.p1.calibration
-module_version: 0.11.0-alpha.2
+module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
 dll_name: astrocs_p1_calibration.dll

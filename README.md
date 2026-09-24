@@ -6,8 +6,8 @@
 > 与其他文档冲突时以 `ASTROCS_DESIGN.md` 为准（§0）；已删除的旧根治理文件（旧宪章、旧工程约束、旧 `CHANGELOG.md`/`REVIEW.md`/`HANDOVER.md`）、
 > `设计大纲/`、`evidence/**`
 > 已由 ROOT-007、CLEAN-402 及后续根清洁删除，历史仅存在于 git 历史。
-> 目标产品版本为根 `VERSION` = `0.11.0-alpha.2`——**仅内部开发助记符**，不进入程序/代码/产物；
-> Alpha 前程序内不存在任何版本信息（ASTROCS_DESIGN §12、ENGINEERING_SPEC §7）。
+> 目标产品版本为根 `VERSION` = `0.1.0-alpha.1`——唯一事实源；程序/代码/产物中的版本信息一律由该源派生或与其一致（ASTROCS_DESIGN §13、RELEASE_STATUS §2）。
+> 版本信息按阶段出现：alpha 阶段之前程序内不存在任何版本信息，进入 alpha 阶段后按上述单源条款出现。
 > 现状与发布口径：`docs/owner/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`。
 > 本轮治理控制包：`工程控制/PROJECT-GOVERNANCE-01/`（任务与验收状态以该包 `TASK_LIST.md`/`ACCEPTANCE.md` 为准）。
 >

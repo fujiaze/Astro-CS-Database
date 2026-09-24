@@ -35,7 +35,7 @@ doc_index:
   version: "2.0.0"
   authoring_task: "DOC-403"
   base_main_sha: "d1ccfa1bed9c9c4ae3dbf032ae04de24d2618eb8"
-  base_product_version: "0.11.0-alpha.2"
+  base_product_version: "0.1.0-alpha.1"
   coverage: "docs/**（含 docs/validation/v6/** 活动设计档案）+ 仓库根治理文档（ENGINEERING_SPEC §7）"
   active:
     - path: "ASTROCS_DESIGN.md"

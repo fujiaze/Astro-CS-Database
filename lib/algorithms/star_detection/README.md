@@ -16,7 +16,7 @@
 | MOD ID | `MOD-astrocs-phase1-star` | registry（matrix 行键） |
 | module_id | `astrocs.p1.star_detection` | MODULE_MIGRATION_MATRIX P1-STAR 行 |
 | DLL target | `astrocs_p1_star_detection.dll`（合同值，尚未存在） | 同上；现状 `star_detector.dll`（Makefile:39） |
-| module/ABI revision | module_version 0.11.0-alpha.1 / abi_version 1 | module.yaml |
+| module/ABI revision | module_version 0.1.0-alpha.1 / abi_version 1 | module.yaml |
 | owner | SA-P1-S15 | matrix 行 |
 | 状态 | CONTRACT_READY（未 IMPLEMENTED） | 本任务冻结 |
 | 遗留路径 | `lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1`（matrix legacy_paths） | 本目录即生产源 |

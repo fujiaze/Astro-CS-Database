@@ -387,7 +387,7 @@ int main(void) {
               "A: descriptor cpu_heavy parallel_ok");
         CHECK(desc.version.size == strlen(ASTROCS_CAL_VERSION) &&
               memcmp(desc.version.data, ASTROCS_CAL_VERSION, desc.version.size) == 0,
-              "A: descriptor version 0.11.0-alpha.2");
+              "A: descriptor version == ASTROCS_CAL_VERSION (module.yaml module_version)");
         CHECK(desc.sci_id.size == 11 && memcmp(desc.sci_id.data, "SCI-CAL-001", 11) == 0,
               "A: descriptor sci_id");
     }

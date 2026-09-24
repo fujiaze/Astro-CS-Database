@@ -2,7 +2,7 @@
   "lock_schema": "astrocs.dependency-lock/v1",
   "lock_version": 1,
   "doc_status": "ACTIVE_NORMATIVE",
-  "target_version": "0.11.0-alpha.2",
+  "target_version": "0.1.0-alpha.1",
   "owner": "SA-BLD-02",
   "policy": {
     "vcpkg": "NOT_USED",

@@ -32,7 +32,7 @@ id: MOD-astrocs-phase1-noise-snr
 module_id: astrocs.p1.noise
 owner: SA-P1-N17
 language: c++17
-module_version: 0.11.0-alpha.2
+module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
 dll_name: astrocs_p1_noise.dll

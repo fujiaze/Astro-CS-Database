@@ -5,7 +5,7 @@
 # CMakeLists.txt（INT-001 域），模块侧清单已在 CMakeLists.txt 备好。
 id: MOD-astrocs-infrastructure-cli
 module_id: astrocs.infrastructure.cli
-module_version: 0.11.0-alpha.2
+module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: all
 dll_name: astrocs_infrastructure_cli.dll

@@ -18,7 +18,7 @@
 | MOD ID | `MOD-astrocs-phase1-star-psf` | registry（matrix 行键） |
 | module_id | `astrocs.p1.psf` | MODULE_MIGRATION_MATRIX P1-PSF 行 |
 | DLL target | `astrocs_p1_psf.dll`（合同值，尚未存在） | 同上；现状 `dynamic_psf.dll`（dll_loader.cpp:39） |
-| module/ABI revision | module_version 0.11.0-alpha.2 / abi_version 1 | module.yaml |
+| module/ABI revision | module_version 0.1.0-alpha.1 / abi_version 1 | module.yaml |
 | owner | SA-P1-S15 | matrix 行 |
 | 状态 | CONTRACT_READY（未 IMPLEMENTED） | 本任务冻结 |
 | 遗留路径 | `lib/algorithms/psf`（matrix legacy_paths） | 本目录即生产源 |

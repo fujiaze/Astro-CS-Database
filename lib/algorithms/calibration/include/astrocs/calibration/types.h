@@ -7,7 +7,7 @@
  * 纯宏头: 无任何实现/分配/函数; C11 与 C++17 双可编译。
  * 字符串值与 module.yaml / DLL descriptor 三方一致 (12 §5):
  *   module_id   = astrocs.p1.calibration      (module.yaml module_id 字段)
- *   version     = 0.11.0-alpha.2              (module.yaml module_version, 避免双口径)
+ *   version     = 0.1.0-alpha.1              (module.yaml module_version, 避免双口径)
  *   abi_version = 1                           (module.yaml abi_version)
  * 合同 ID 三组 (docs/algorithms/CALIBRATION_ALGORITHMS.md §8 冻结):
  *   sci_id = SCI-CAL-001 / alg_id = ALG-CAL-001 / api_id = API-P1-001
@@ -17,7 +17,7 @@
 
 /* ── 模块静态标识 ── */
 #define ASTROCS_CAL_MODULE_ID    "astrocs.p1.calibration"
-#define ASTROCS_CAL_VERSION      "0.11.0-alpha.2"
+#define ASTROCS_CAL_VERSION      "0.1.0-alpha.1"
 #define ASTROCS_CAL_ABI_VERSION  1u
 #define ASTROCS_CAL_BUILD_ID     "P1-CAL-IMPL"
 #define ASTROCS_CAL_SCI_ID       "SCI-CAL-001"

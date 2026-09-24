@@ -9,7 +9,7 @@ lib/algorithms/cosmetic/ 是 astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll 的
 迁移目标（P1-COS-IMPL 落码）。
 
 ## 当前版本
-- 版本号：0.11.0-alpha.2（module_version，随仓库 VERSION）
+- 版本号：0.1.0-alpha.1（module_version，随仓库 VERSION）
 - 模块状态：CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）
 
 ## 关键决策记录

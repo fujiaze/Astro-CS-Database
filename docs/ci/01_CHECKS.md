@@ -68,7 +68,7 @@
 | ENG-CONSTRAINTS | 治理 | 工程约束（§7 目录规范 / 根条目白名单 / 旧权威回归） | `python3 eng/tools/doccheck/check_engineering_constraints.py` | P0 |
 | CHK-RETIRED-CODE | 治理 | 历史实现处置（ENGINEERING_SPEC §2：R1 注释旧逻辑 / R2 保留件注释块 / R3 注释块字段完整性 / R4 生产可达性报表 / R5 锚存活；台账 `eng/ci/retired_code_allowlist.json`） | `python3 eng/ci/check_retired_code.py --json-out run/ci/retired-code/retired_code.json` | P0 |
 | CHK-RETIRED-CODE-SELFTEST | 治理 | 上项的可执行负例面（9 例 fault-inject） | `python3 eng/ci/check_retired_code.py --self-test` | P0 |
-| VERSION-CONSISTENCY | 文档一致性 | 版本注入链单一真源 + 现行活动文档集完整性 | `python3 eng/ci/check_version.py --expected 0.11.0-alpha.2` | P1 |
+| VERSION-CONSISTENCY | 文档一致性 | 版本注入链单一真源 + 现行活动文档集完整性 | `python3 eng/ci/check_version.py`（缺省 expected = 根 `VERSION`，不写死字面量） | P1 |
 | VERSION-NAMESPACES | 文档一致性 | 版本命名空间一致性（陈旧版本号） | `python3 eng/tools/doccheck/check_version_namespaces.py` | P1 |
 | DOC-L0 | 文档一致性 | L0 现行文档集（docs/owner/**）与索引 active 登记完整性 | `python3 eng/tools/check_l0_docs.py` | P1 |
 | GLOSSARY-DOCS | 文档一致性 | 词典锚点/别名唯一性（报告项） | `python3 eng/tools/check_glossary.py` | P2 |

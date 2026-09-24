@@ -42,9 +42,9 @@ id: MOD-astrocs-phase1-star
 module_id: astrocs.p1.star_detection
 owner: SA-P1-S15
 language: c++17
-# 2026-09-20 订正（CHK-MODULE-MANIFEST 结构缺口修复）：版本滞后于产品版本，
-# 0.11.0-alpha.1 → 0.11.0-alpha.2（唯一事实源 = 仓库根 VERSION；MODULE_MAP.yaml 期望值同）。
-module_version: 0.11.0-alpha.2
+# module_version 属 module 命名空间（docs/owner/RELEASE_STATUS.md §2），取值须与
+# docs/modules/MODULE_MAP.yaml 登记值一致。
+module_version: 0.1.0-alpha.1
 abi_version: 1
 phase_scope: phase1
 dll_name: astrocs_p1_star_detection.dll

@@ -807,8 +807,11 @@ flowchart TD
 
 ## 13. 版本与发布权
 
-- Alpha 之前，程序、代码与产物中不出现任何版本信息；当前所有内部"版本"只是开发助记符。
-- 全部验证通过、可发布 Alpha 时，CLI `--version` 输出 **`0.0.1alpha`**。
+- **版本信息按阶段出现**：进入 alpha 阶段后，程序、代码与产物中的版本信息按版本单源条款出现 ——
+  产品版本以仓库根 `VERSION` 为唯一事实源（形态 `MAJOR.MINOR.PATCH-alpha.N`），
+  CMake、CLI、产品 manifest 与活动文档由该源派生或与其一致，不得手抄第二份
+  （单源条款 = `docs/owner/RELEASE_STATUS.md` §2）；alpha 阶段之前，程序、代码与产物中不出现任何版本信息。
+- CLI `--version` 输出唯一源派生的生成串 `MAJOR.MINOR.PATCH-alpha.N+g<commit12>`（dirty 工作树追加 `.dirty`），不另立产品版本字面量。
 - 只有通过验收的 Phase 能在 product manifest 标 available；未实现/未验收明确报告。
 - 发布候选至少满足：合同冻结无冲突、追踪无断链、模块可独立加载/验证/卸载、ACR 生产不可达、无硬编码线程/单线程长计算/无界内存增长、双平台 CI 通过、四层验收全部通过（L4 含两组真实数据目检）、P0/P1=0、发行包白名单与哈希/provenance 通过。
 - 文档与合同的内部修订号不进入程序、代码与产物。
