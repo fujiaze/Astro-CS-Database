@@ -21,6 +21,7 @@ CI/工具链在进程外做同一口径的采样与门限记录（不同实现�
 from __future__ import annotations
 
 import argparse
+import ctypes
 import dataclasses
 import json
 import os
@@ -171,8 +172,120 @@ class ProcessBudgetRegistry:
 
 
 # --------------------------------------------------------------------------- 采样 ----
+# 判据：采样链在**宿主平台**上必须真的可用（selftest 的 "thread count sampled"
+# 就是这一条）。Windows 上没有 /proc，原实现静默返回 0 ⇒ 该门在 Windows 上
+# 自检不绿，且是「无判别力的绿」（RSS/线程/CPU 全 0，任何阈值都恒真）。
+# 下面用 ctypes 补 Windows 真实读数；API 不可用时返回 0，由 selftest 判据暴露，
+# 不静默降级成"看起来通过"。
+_IS_WINDOWS = os.name == "nt"
+
+
+class _PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+    _fields_ = [("cb", ctypes.c_ulong),
+                ("PageFaultCount", ctypes.c_ulong),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t)]
+
+
+class _FILETIME(ctypes.Structure):
+    _fields_ = [("dwLowDateTime", ctypes.c_ulong),
+                ("dwHighDateTime", ctypes.c_ulong)]
+
+
+class _THREADENTRY32(ctypes.Structure):
+    _fields_ = [("dwSize", ctypes.c_ulong),
+                ("cntUsage", ctypes.c_ulong),
+                ("th32ThreadID", ctypes.c_ulong),
+                ("th32OwnerProcessID", ctypes.c_ulong),
+                ("tpBasePri", ctypes.c_long),
+                ("tpDeltaPri", ctypes.c_long),
+                ("dwFlags", ctypes.c_ulong)]
+
+
+def _win_open_process(pid: int):
+    PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    try:
+        return ctypes.windll.kernel32.OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+    except (AttributeError, OSError):
+        return None
+
+
+def _win_thread_count(pid: int) -> int:
+    TH32CS_SNAPTHREAD = 0x00000004
+    INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+    try:
+        snap = ctypes.windll.kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)
+    except (AttributeError, OSError):
+        return 0
+    if not snap or snap == INVALID_HANDLE_VALUE:
+        return 0
+    n = 0
+    try:
+        entry = _THREADENTRY32()
+        entry.dwSize = ctypes.sizeof(entry)
+        ok = ctypes.windll.kernel32.Thread32First(snap, ctypes.byref(entry))
+        while ok:
+            if int(entry.th32OwnerProcessID) == int(pid):
+                n += 1
+            ok = ctypes.windll.kernel32.Thread32Next(snap, ctypes.byref(entry))
+    except (AttributeError, OSError):
+        return 0
+    finally:
+        ctypes.windll.kernel32.CloseHandle(snap)
+    return n
+
+
+def _win_read_status(pid: int):
+    """(rss, vms, threads)；API 不可用 ⇒ 对应项为 0（不静默假装成功）。"""
+    rss = vms = 0
+    h = _win_open_process(pid)
+    if h:
+        try:
+            counters = _PROCESS_MEMORY_COUNTERS()
+            counters.cb = ctypes.sizeof(counters)
+            if ctypes.windll.psapi.GetProcessMemoryInfo(
+                    h, ctypes.byref(counters), counters.cb):
+                rss = int(counters.WorkingSetSize)
+                vms = int(counters.PagefileUsage)
+        except (AttributeError, OSError):
+            pass
+        finally:
+            ctypes.windll.kernel32.CloseHandle(h)
+    return rss, vms, _win_thread_count(pid)
+
+
+def _win_read_proc_cpu(pid: int) -> float:
+    """进程累计 CPU 秒（GetProcessTimes）。"""
+    def _secs(ft):
+        return ((int(ft.dwHighDateTime) << 32) | int(ft.dwLowDateTime)) / 1e7
+
+    h = _win_open_process(pid)
+    if not h:
+        return 0.0
+    try:
+        creation, exit_, kernel, user = (_FILETIME(), _FILETIME(),
+                                         _FILETIME(), _FILETIME())
+        if ctypes.windll.kernel32.GetProcessTimes(
+                h, ctypes.byref(creation), ctypes.byref(exit_),
+                ctypes.byref(kernel), ctypes.byref(user)):
+            return _secs(kernel) + _secs(user)
+    except (AttributeError, OSError):
+        pass
+    finally:
+        ctypes.windll.kernel32.CloseHandle(h)
+    return 0.0
+
 
 def _read_status(pid: int):
+    if _IS_WINDOWS:
+        return _win_read_status(pid)
     rss = vms = threads = 0
     try:
         with open("/proc/%d/status" % pid, "r", encoding="utf-8", errors="replace") as f:
@@ -214,6 +327,8 @@ def _read_io(pid: int):
 
 
 def _read_proc_cpu(pid: int) -> float:
+    if _IS_WINDOWS:
+        return _win_read_proc_cpu(pid)
     try:
         with open("/proc/%d/stat" % pid, "r", encoding="utf-8", errors="replace") as f:
             data = f.read()
@@ -227,7 +342,14 @@ def _read_proc_cpu(pid: int) -> float:
 
 
 def _read_thread_cpu(pid: int):
-    """返回 {tid: 累计 CPU 秒}。"""
+    """返回 {tid: 累计 CPU 秒}。
+
+    Windows 无 /proc/<pid>/task：逐线程 CPU 由 C++ 侧记录面提供；此处返回空表，
+    d_thread_sum 退化为 0，selftest 的 "per-thread cpu delta sampled" 判据
+    (>= 0.0) 仍成立，但 **不** 假装采到了真实值（空表可被调用方识别）。
+    """
+    if _IS_WINDOWS:
+        return {}
     out = {}
     try:
         tids = os.listdir("/proc/%d/task" % pid)
@@ -436,11 +558,38 @@ def _selftest() -> int:
     v = evaluate_heavy_run(m)
     check(v["hard_fail"] is False, "evaluate never hard fails before signoff")
     check(any(f["kind"] == "cpu_mean_low" for f in v["findings"]), "low cpu recorded as finding")
-    # 从本进程自身采样一次，确认 /proc 记录链可用
+    # 从本进程自身采样一次，确认宿主平台记录链可用（Linux=/proc，Windows=ctypes）
     s = sample_proc(os.getpid(), None)
     s2 = sample_proc(os.getpid(), s)
     check(s2["threads"] >= 1, "thread count sampled")
     check(s2["d_thread_sum"] >= 0.0, "per-thread cpu delta sampled")
+
+    # 负例（GATE-TRIAGE-01）：平台分派必须真的切到 Windows 面，且不得崩。
+    # ① 分派：把 _IS_WINDOWS 置真、把三个 Win 读数换成已知值，断言 _read_status /
+    #    _read_proc_cpu 走的是 Win 面（原实现无条件读 /proc ⇒ 这里必失败）。
+    # ② 判别力自证：置真 _IS_WINDOWS 但**不**替换实现时，Linux 上 _win_* 必须
+    #    返回 0/空而不是抛异常（Windows API 不可用 ⇒ 明确降级，不静默假装成功）。
+    real_flag = globals()["_IS_WINDOWS"]
+    real_status = globals()["_win_read_status"]
+    real_cpu = globals()["_win_read_proc_cpu"]
+    try:
+        globals()["_IS_WINDOWS"] = True
+        globals()["_win_read_status"] = lambda pid: (123456, 654321, 7)
+        globals()["_win_read_proc_cpu"] = lambda pid: 4.25
+        check(_read_status(os.getpid()) == (123456, 654321, 7),
+              "windows path dispatch (status)")
+        check(abs(_read_proc_cpu(os.getpid()) - 4.25) < 1e-9,
+              "windows path dispatch (cpu)")
+        globals()["_win_read_status"] = real_status
+        globals()["_win_read_proc_cpu"] = real_cpu
+        check(_read_status(os.getpid()) == (0, 0, 0),
+              "windows api unavailable degrades to 0 (no crash)")
+        check(_read_proc_cpu(os.getpid()) == 0.0,
+              "windows cpu unavailable degrades to 0 (no crash)")
+    finally:
+        globals()["_IS_WINDOWS"] = real_flag
+        globals()["_win_read_status"] = real_status
+        globals()["_win_read_proc_cpu"] = real_cpu
     R.reset_for_test()
     print("V6_BUDGET_SELFTEST_%s fails=%d" % ("PASS" if fails == 0 else "FAIL", fails))
     return 0 if fails == 0 else 1
