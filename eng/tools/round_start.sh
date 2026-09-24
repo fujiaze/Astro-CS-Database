@@ -32,8 +32,11 @@ die_anchor() { echo "ANCHOR_STALE: $1 $2" >&2; exit 2; }
 
 cd "$ROOT"
 
-echo "== 1/3 回收旧轮次产物（保留 $KEEP 与 $ROUND）=="
-python3 "$GC" --apply --keep "$ROUND" --keep-file "$KEEP"
+echo "== 1/3 回收旧轮次产物（保留 $KEEP 与 $ROUND；并回收保留轮次内的 out/ 产品树）=="
+# --prune-products：保留清单用的是**族 glob**（PERF-* / E2E-* / P1-* …），命中面很宽，
+# 只靠"删未命中轮次"压不住盘——真正的大头是各轮次内部的 run/<轮次>/out/。
+# 该开关只删名为 out 的直接子目录，REPORT.md / evidence / results / logs 一律保留。
+python3 "$GC" --apply --prune-products --keep "$ROUND" --keep-file "$KEEP"
 
 echo "== 2/3 建立 run/$ROUND =="
 mkdir -p "run/$ROUND/logs" "run/$ROUND/evidence"

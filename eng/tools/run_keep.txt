@@ -29,3 +29,20 @@ E2E-*
 VIS-*
 ROOT-*
 .gitkeep
+
+# ── 轮次 ID 前缀陷阱（登记规则补充）──────────────────────────────────────────
+# 本清单按 **fnmatch 前缀族** 匹配，因此"名字里含族名"**不会**命中：
+#   M42-E2E-01 不匹配 E2E-*（它以 M42- 开头）⇒ 会被当成未命中轮次整体回收。
+# 新增轮次时不要想当然，登记前先跑 dry-run（eng/tools/run_gc.py，不加 --apply）
+# 确认目标轮次打印的是 KEEP 而不是 WOULD-DELETE。
+M42-*
+DRZ-*
+AUDIT-*
+CHAIN-*
+VARIANCE-*
+SPARSE-*
+EXPORT-*
+WCS-*
+PATHDOMAIN-*
+GATE-*
+PHOTOCURVE-*
