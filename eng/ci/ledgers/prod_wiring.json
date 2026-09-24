@@ -1,0 +1,134 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "prod-wiring",
+  "purpose": "CHK-PROD-WIRING 的显式豁免台账：承载「声明⇒生产接线⇒生效」判据族 (W1 不可达 / W2 实参退化 / W3 死键 / W4 无构建目标 / W5 默认关 / W6 插件通道不可达) 中经核验为**合法**的项。每条写明 reason/owner/exit_condition/authority/evidence。",
+  "policy": {
+    "only_decrease": "high_water.max_entries 只允许下调；新增豁免必须由负责人批准，并把 authority 写成权威条款 file:line 或裁决编号、evidence 写成证据路径",
+    "not_a_backdoor": "台账不是消红通道：真实缺陷必须接线 / 换真检测源 / 补构建目标；只有核验为「设计上就该如此」的项才准登记",
+    "no_blank_reason": "reason/owner/exit_condition/authority 任一为空即 rc=2（gate_common.load_ledger + 本门 _check_high_water）"
+  },
+  "high_water": {
+    "max_entries": 15,
+    "current": 15,
+    "established_by": "WIRING-AUDIT-01 (2026-09-25)"
+  },
+  "entries": [
+    {
+      "id": "unbuildable_test:lib/infrastructure/aio/tests/hiss_writer_smoke.cpp",
+      "kind": "known_test_debt",
+      "reason": "该测试断言当前为红（MAGIC 不匹配），aio 测试注册文件已明文记账为「未注册者（构建或断言未通过，另行登记，不混入绿门）」，不是漏登记",
+      "owner": "前台（aio 测试债务，RELEASE-01/TST-001 欠账）",
+      "exit_condition": "修复断言或补齐依赖后进 ctest 注册，并从本台账移除",
+      "authority": "lib/infrastructure/aio/tests/CMakeLists.txt:15-18",
+      "evidence": "lib/infrastructure/aio/tests/CMakeLists.txt"
+    },
+    {
+      "id": "unbuildable_test:lib/infrastructure/aio/tests/hiss_correctness_test.cpp",
+      "kind": "known_test_debt",
+      "reason": "缺 astro_calibration.h（跨模块依赖未接线），注册文件已明文记账为未注册者",
+      "owner": "前台（aio 测试债务）",
+      "exit_condition": "补齐跨模块依赖并注册进 ctest，然后从本台账移除",
+      "authority": "lib/infrastructure/aio/tests/CMakeLists.txt:15-18",
+      "evidence": "lib/infrastructure/aio/tests/CMakeLists.txt"
+    },
+    {
+      "id": "unbuildable_test:lib/infrastructure/aio/tests/pipeline_frame_contract_test.cpp",
+      "kind": "known_test_debt",
+      "reason": "需 aio_pipeline_frame_* 符号（未接线），注册文件已明文记账为未注册者",
+      "owner": "前台（aio 测试债务）",
+      "exit_condition": "补齐符号接线并注册进 ctest，然后从本台账移除",
+      "authority": "lib/infrastructure/aio/tests/CMakeLists.txt:15-18",
+      "evidence": "lib/infrastructure/aio/tests/CMakeLists.txt"
+    },
+    {
+      "id": "dead_config_key:sparse_snr.density",
+      "kind": "pending_authority_key",
+      "reason": "defaults.json 自述 authority_status=pending_authority、value=null（无权威数值，禁止编造），按构造不可能有消费点；数值裁决落地前该键恒不可消费",
+      "owner": "前台（科学数值裁决）",
+      "exit_condition": "权威数值落地并接线消费点后从本台账移除",
+      "authority": "eng/packaging/config/defaults.json（fields[].key=sparse_snr.density 的 authority_status/pending_task 字段 + 文件头 transcription_rule）",
+      "evidence": "eng/packaging/config/defaults.json"
+    },
+    {
+      "id": "dead_config_key:scalar_gate.rd",
+      "kind": "pending_authority_key",
+      "reason": "同上：pending_authority + value=null",
+      "owner": "前台（科学数值裁决）",
+      "exit_condition": "权威数值落地并接线消费点后从本台账移除",
+      "authority": "eng/packaging/config/defaults.json（transcription_rule + 该字段 authority_status）",
+      "evidence": "eng/packaging/config/defaults.json"
+    },
+    {
+      "id": "dead_config_key:scalar_gate.trend",
+      "kind": "pending_authority_key",
+      "reason": "同上：pending_authority + value=null",
+      "owner": "前台（科学数值裁决）",
+      "exit_condition": "权威数值落地并接线消费点后从本台账移除",
+      "authority": "eng/packaging/config/defaults.json（transcription_rule + 该字段 authority_status）",
+      "evidence": "eng/packaging/config/defaults.json"
+    },
+    {
+      "id": "degenerate_arg:sdet_detect_ex:11",
+      "kind": "designed_nullable_param",
+      "reason": "形参 extra_names 按设计可空：仅在 extra_count>0 时才被解引用；调用点传 nullptr 是合同允许的默认路径，不是能力被禁用",
+      "owner": "前台（sdet API 合同）",
+      "exit_condition": "若合同改为必需，则调用点必须供源并删除本登记",
+      "authority": "lib/algorithms/star_detection/src/sdet_api.cpp:2441,2447（extra_count>0 守卫）；头文件 sdet API 声明的 extra_names/extra_count 成对语义",
+      "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp"
+    },
+    {
+      "id": "degenerate_arg:sdet_detect_ex_f64:11",
+      "kind": "designed_nullable_param",
+      "reason": "同上（f64 变体）",
+      "owner": "前台（sdet API 合同）",
+      "exit_condition": "同上",
+      "authority": "lib/algorithms/star_detection/src/sdet_api.cpp:2441,2447",
+      "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp"
+    },
+    {
+      "id": "nullable_source:ac_calibrate_frame:3",
+      "kind": "config_optional_param",
+      "reason": "形参 master_dark 由配置面供给（normalize 模板与 schema 都声明 master_dark 键，p1_session 从 config 读取），条件式在配置给出母版时为真 ⇒ 非「恒禁用」",
+      "owner": "前台（P1-CAL 合同）",
+      "exit_condition": "若采用「母版必须显式提供」口径，则改为断言并删除本登记",
+      "authority": "eng/packaging/config/templates/normalize.phase_config.json:7-9,18-20（master_bias/master_dark/master_flat 键）；eng/contracts/schemas/phase_config_normalize.schema.json（同键）",
+      "evidence": "eng/packaging/config/templates/normalize.phase_config.json"
+    },
+    {
+      "id": "nullable_source:ac_calibrate_frame:4",
+      "kind": "config_optional_param",
+      "reason": "形参 master_flat 同上（配置面供给）",
+      "owner": "前台（P1-CAL 合同）",
+      "exit_condition": "同 ac_calibrate_frame:3",
+      "authority": "eng/packaging/config/templates/normalize.phase_config.json:9,20",
+      "evidence": "eng/packaging/config/templates/normalize.phase_config.json"
+    },
+    {
+      "id": "nullable_source:ac_calibrate_frame:5",
+      "kind": "config_optional_param",
+      "reason": "形参 master_bias 同上（配置面供给）",
+      "owner": "前台（P1-CAL 合同）",
+      "exit_condition": "同 ac_calibrate_frame:3",
+      "authority": "eng/packaging/config/templates/normalize.phase_config.json:7,18",
+      "evidence": "eng/packaging/config/templates/normalize.phase_config.json"
+    },
+    {
+      "id": "nullable_source:ac_correct_columns_ex2:1",
+      "kind": "config_optional_param",
+      "reason": "坏列检测源 master_dark 由配置面供给；module_adapters.cpp 的 p1_op_cosmetic 现在按 p1_has(doc,\"master_dark\") 真实读取并做尺寸守卫",
+      "owner": "前台（P1-COS 合同）",
+      "exit_condition": "若改为必需源，则加断言并删除本登记",
+      "authority": "lib/infrastructure/scheduler/src/module_adapters.cpp 的 p1_op_cosmetic 母版读取段（master_dark 分支）+ 配置键 master_dark",
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp"
+    },
+    {
+      "id": "nullable_source:ac_correct_columns_ex2:2",
+      "kind": "config_optional_param",
+      "reason": "同上（master_bias）",
+      "owner": "前台（P1-COS 合同）",
+      "exit_condition": "同 ac_correct_columns_ex2:1",
+      "authority": "lib/infrastructure/scheduler/src/module_adapters.cpp 的 p1_op_cosmetic 母版读取段（master_bias 分支）",
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp"
+    }
+  ]
+}
