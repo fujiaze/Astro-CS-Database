@@ -118,7 +118,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **决策树（调用点实现口径）**：
   1. `sigma_sky_source=shot_noise_only` 且 `gain_e_per_adu>0 && read_noise_e>0` ⇒ 走 `σ_sky,散粒² + (RN/g)² + F·P_i/g`（设计本意路径）；
   2. `sigma_sky_source=empirical_total_rms` ⇒ 只加源泊松项 `F·P_i/g`，**不再加** `(RN/g)²`；
-  3. `gain_e_per_adu<=0`（gain 未知，PSF 行路径）⇒ 只加源泊松项，不加 `(RN/g)²`；
+  3. `gain_e_per_adu<=0`（gain 未知，PSF 行路径）⇒ **源泊松项 `F·P_i/g` 同样不可加**——该项含 `1/g`，无 `g` 即无法计算 ⇒ 退回**天空受限**口径 `σ_F² = σ_sky²/ΣP_i²`，**不加** `(RN/g)²`。此口径下 SNR **系统性偏高**，是**上界**而不是绝对 SNR（解析式 `SNR_rep/SNR_true = √(1+F/σ_bg²)`；φ=0.5 偏高 41%、φ=0.95 偏高 347%）⇒ 产品必须标 `snr_caliber = upper_bound_no_gain` 并带 `snr_degraded_reason`，**禁止**把该值当绝对 SNR 使用（最高设计 §2.2 的交付物是绝对 SNR）；
   4. 声明与实际来源不一致（声称散粒而来源为经验总 rms，或反之）⇒ **fail-closed 拒绝**，不得静默择一、不得只告警。
 - **实测证据**（`实验/absolute-snr/results/b2_noise_terms.json`，N_MC=1000，复现 `python3 实验/absolute-snr/code/b2_noise_terms.py`）：双计使 `σ_F` 高估 **+12.8%**（基准点 F=1000 e⁻、B=100 e⁻/px、RN=10 e⁻、g=1.3、D=0.5）至 **+34.0%**（RN=50 e⁻ 最坏点）；天光主导点（B≥10⁵）偏差 <1%；正确口径臂在全部扫描点 ≤3σ。
 - **帧级 SNR 实证**（`实验/absolute-snr/results/b1_sky_scan.json`）：B=0 时双计臂 SNR=38.47 vs 定义式/真值 43.32/43.21（**−11.2%**）。
