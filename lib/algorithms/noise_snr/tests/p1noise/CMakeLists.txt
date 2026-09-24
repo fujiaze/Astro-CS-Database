@@ -185,4 +185,13 @@ if(P1NOISE_PYTHON3)
   add_test(NAME p1noise_saturation_wiring
            COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/check_saturation_wiring.py)
   set_tests_properties(p1noise_saturation_wiring PROPERTIES LABELS "p1noise")
+
+  # SNR 口径门：Phase1 的 SNR 产品必须自报「绝对 SNR」还是「无增益上界」。
+  # 无增益时源散粒项 F*P_i/g 不可计算 ⇒ SNR 是上界；产品不自报口径则消费者会误用。
+  add_test(NAME p1noise_snr_caliber
+           COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/check_snr_caliber.py)
+  set_tests_properties(p1noise_snr_caliber PROPERTIES LABELS "p1noise")
+  add_test(NAME p1noise_snr_caliber_selftest
+           COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/check_snr_caliber.py --self-test)
+  set_tests_properties(p1noise_snr_caliber_selftest PROPERTIES LABELS "p1noise")
 endif()

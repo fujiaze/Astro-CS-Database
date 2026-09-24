@@ -150,13 +150,13 @@
       "unit": "count",
       "constraint": ">= 1；patch 合格样本数下限（默认 64）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:45（§4 min_samples 默认 64，claim SC-002；行锚 SC-007 后重算）",
+      "source": "docs/science/NOISE_MODEL.md:52（§4 min_samples 默认 64，claim SC-002）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 45
+        "line": 52
       },
       "pending_task": null,
-      "note": "§4:43 为 SCI 唯一陈述行；实现锚 snr_estimator.h:117、noise_model.cpp default_config。同键另受 §8 全帧兜底阈收紧影响（max(min_samples, 9216)，见 noise.mask_budget_min_sky）。行锚 +6（claim SC-007）。"
+      "note": "§4:52 为 SCI 唯一陈述行；实现锚 snr_estimator.h:117、noise_model.cpp default_config。同键另受 §8 全帧兜底阈收紧影响（max(min_samples, 9216)，见 noise.mask_budget_min_sky）。行锚 +6（claim SC-007）。"
     },
     {
       "key": "noise.max_clip_rounds",
@@ -178,10 +178,10 @@
       "unit": "ADU",
       "constraint": "0/负/非有限 = **未提供电平（unset）**，不等于「无饱和」；>0 = 饱和电平 ADU。来源优先级 = 显式 cfg > 帧元数据 FITS SATURATE > DATAMAX；未提供时编排层必须写显式降级声明 photo_stats.NOISE_SATURATION_FILTER=DISABLED_NO_METADATA（禁止静默）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:45（§4「饱和域」：x >= saturation_level 的像素不参与 blank-sky 统计，无条件生效；0/负/非有限 = 未提供电平；claim SC-008 / SAT-001）",
+      "source": "docs/science/NOISE_MODEL.md:52（§4「饱和域」：x >= saturation_level 的像素不参与 blank-sky 统计，无条件生效；0/负/非有限 = 未提供电平；claim SC-008 / SAT-001）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 45
+        "line": 52
       },
       "pending_task": null,
       "note": "数值 0 的语义 = 「未提供」而非「禁用」：现行 SCI/ALG/DATA 三处条文都要求饱和像素不参与统计，无任何条文授权「默认关闭饱和过滤」；电平由调用方从帧元数据解析（FITS SATURATE/DATAMAX；标准做法同 LSST ip_isr IsrTaskConfig.doSaturation 默认 True 且置 SAT 面）。SAT-001 实测（run/PROJECT-GOVERNANCE-01/SAT-001/expS1_saturation.py，生产源零改动）：level=0 且帧含亮星饱和核（512²，平台半径 44 px，掩膜 6 px）⇒ 平台 patch 控制点方差 6.87e8 vs 提供电平后 1.74e8 ADU²（真值 25），帧平均 ivar 比 0.218（丢失 4.6× 权重），而 sigma_bg_global 两臂均 5.08 ADU（差 0%）——缺陷只体现在逐像素权重场，故必须显式声明。"
@@ -570,10 +570,10 @@
       "unit": "iterations",
       "constraint": ">= 1；S>0 时 IRLS 迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:45（S>0 时迭代 max_iter=50, tol=1e-6）",
+      "source": "docs/science/PHOTOMETRY.md:192（S>0 时迭代 max_iter=50, tol=1e-6）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 45
+        "line": 192
       },
       "pending_task": null,
       "note": "同文件 §5 :53（迭代直到 |loc_new-loc_old|<1e-6 或 50 步）。"
@@ -584,10 +584,10 @@
       "unit": "dex",
       "constraint": "> 0；IRLS location 收敛门",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:45（tol=1e-6）",
+      "source": "docs/science/PHOTOMETRY.md:192（tol=1e-6）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 45
+        "line": 192
       },
       "pending_task": null,
       "note": ""

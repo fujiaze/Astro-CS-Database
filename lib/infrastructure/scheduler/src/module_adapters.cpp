@@ -5890,6 +5890,24 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         "SNR_F = F/sigma_F (Horne 1986 optimal extraction; "
         "sigma_F^-2 = sum_i P_i^2/sigma_i^2); frame-level science benchmark = "
         "5-sigma point-source depth (SCI-CW-001 2a)";
+    // ── SNR 口径（本帧 σ_F 是否含**源光子散粒项**）──────────────────────────
+    // 源项 = F·P_i/g 含 1/g ⇒ 增益未知（gain<=0）时该项**不可计算**，σ_F 只剩天空项
+    // ⇒ SNR 系统性**偏高**，是**上界**而不是绝对值（解析式
+    // SNR_rep/SNR_true = sqrt(1 + F/σ_bg²)，φ=0.5 时偏高 41%、φ=0.95 时 347%）。
+    // 必须显式发布：最高设计 §2.2 的交付物是**绝对 SNR**，若产品不记口径，消费者
+    // 会把无增益上界当成绝对 SNR 用（下游定权 w = SNR²/F_ref² 直接受此影响）。
+    const bool gain_known =
+        (sci_cfg.gain_e_per_adu > 0.0) && std::isfinite(sci_cfg.gain_e_per_adu);
+    frame["snr_gain_e_per_adu"] =
+        gain_known ? Json(sci_cfg.gain_e_per_adu) : Json(nullptr);
+    frame["snr_source_shot_term_included"] = gain_known;
+    frame["snr_caliber"] =
+        gain_known ? Json("absolute_flux_type_snr") : Json("upper_bound_no_gain");
+    frame["snr_degraded_reason"] =
+        gain_known
+            ? Json(nullptr)
+            : Json("gain_unknown: source shot-noise term F*P_i/g is not computable "
+                   "without g; sigma_F is sky-limited and SNR is an UPPER BOUND");
     const Json* src_frame = find_src_frame(base);
     if (src_frame == nullptr) {
       frame["snr_catalogue_status"] = "unavailable_no_upstream_frame";
@@ -6058,6 +6076,16 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   }
   const std::string out_path = out_dir + "/p1_snr.json";
   const bool fref_fixed_out = (ref_flux_source == "fixed_magnitude");
+  // 逐帧 snr_caliber 的聚合（口径定义见逐帧写入处的注释）。
+  size_t n_abs = 0, n_ub = 0;
+  for (const Json& fj : frames) {
+    const std::string c = fj.value("snr_caliber", std::string("unavailable"));
+    if (c == "absolute_flux_type_snr") ++n_abs;
+    else if (c == "upper_bound_no_gain") ++n_ub;
+  }
+  const char* caliber_summary = (n_abs > 0 && n_ub == 0) ? "absolute_flux_type_snr"
+                              : (n_ub > 0 && n_abs == 0) ? "upper_bound_no_gain"
+                                                         : "mixed_or_unavailable";
   Json snr_out = Json{{"schema", "DATA-P1-SNR"},
                       {"schema_version", "3"},
                       // WEIGHT-SCI-001: 块级参考通量 provenance。
@@ -6083,6 +6111,12 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
                        fref_fixed_out ? Json("gaia_g_via_synthetic_xpsd") : Json(nullptr)},
                       {"reference_zero_point_syn_mag",
                        fref_fixed_out ? Json(ref_zero_point_syn) : Json(nullptr)},
+                      // ── SNR 口径汇总：逐帧 snr_caliber 的聚合。全帧一致时等于该值，
+                      // 否则 mixed_or_unavailable。消费者据此判断本文件的 SNR 能否
+                      // 当作**绝对 SNR** 使用（无增益 ⇒ 只是上界）。
+                      {"snr_caliber", caliber_summary},
+                      {"n_frames_absolute_snr", n_abs},
+                      {"n_frames_upper_bound_no_gain", n_ub},
                       {"frames", frames}};
   if (!p1_write_text(out_path, snr_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
