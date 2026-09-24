@@ -48,6 +48,31 @@
   v2 因此把判据落在**有符号**的 step 上（v1 的 excess、对照线净量、噪声差全部降级为
   **诊断量**：只报告、不判红），并逐边落盘供复核。
 
+为什么本判据**没有** v1 的「周期即盲区」（独立审查 P0-7；本工具的负例自检 S8/S9 把它钉住）：
+  v1 的判据量 excess = median|seam| − median|ctrl| **把对照线从判据里减掉了**，所以当场里存在
+  与某条帧边界平行、间距整除 ctrl_shift 的同幅阶跃时，对照线自己踩在同幅阶跃上 ⇒ 两项精确
+  相消 ⇒ 接缝判绿。解析条件：若 I(p + k·ctrl_shift·n) = I(p) + Δ（k 整数），则 ctrl 差分 ≡
+  seam 差分 ⇒ excess ≡ 0，**与 Δ 大小无关**。
+  实测（run/SEAM-PERIOD-BLIND-01：v1 用自写朴素实现复算、v2 逐字调用本工具）：
+    P = 50 / 100 / 200（均整除 200）+ Δ = 200 ADU（= 背景 100 ADU 的 **200% 电平阶跃**）
+    ⇒ v1 excess ≡ 0、整幅判绿；同式只把 P 改成 400 ⇒ v1 正常判红（Δ=5 ⇒ rel 5.0e-2 FAIL）。
+  v2 的判据量 rel_step = median(img[+d] − img[−d]) / bg **不含对照线**（对照线只剩诊断量与
+  适用域判定）⇒ 该退化族在结构上不存在。同一批夹具实测：P = 50/100/200/400 四档周期的
+  rel_step **逐位相同**（200% 阶跃档 rel_step = ±1.0/±2.0，四档一字不差）⇒ 判据量与阶跃
+  周期无关。
+  ⇒ 由此也可见：审查给的处方「把 ctrl_shift 改成由输入几何自适应导出」**不是**这条缺陷的充分
+  修法 —— 任何自适应偏移仍是一个具体的数，总存在整除它的周期 ⇒ 换个周期照样相消；根治只能
+  把对照线移出判据（v2 已做）。故本工具**保留** ctrl_shift 常量（理由见「适用域」一节）。
+
+判据的可检出下限（**诚实边界**；同时写进 --help 与 JSON 的 criterion.detection_floor）：
+  判据是相对口径 ⇒ 允许的最大绝对台阶 = max_rel_excess × bg，bg = 边界两侧 |电平| 的中位数。
+  对「下侧电平 L、阶跃 Δ」的边：step = Δ、bg = L + Δ/2 ⇒
+      rel_step = Δ / (L + Δ/2) > max_rel_excess  ⟺  Δ/L > max_rel_excess / (1 − max_rel_excess/2)
+  ⇒ 默认门 1e-2 时**可检出下限 = Δ/L 的 1.005%**（L = 边界**下侧**电平；≈ 0.0109 mag），
+     更小的电平阶跃被放过。
+  实测（run/SEAM-PERIOD-BLIND-01 门限扫描；合成夹具、无噪声）：Δ/L = 1.00% ⇒ PASS；
+  1.01% ⇒ FAIL；5% / 20% / 200% ⇒ FAIL。**周期 200（旧盲区几何）与周期 400 的下限一致**。
+
 判据的适用域（前置约束；与既有 min_samples 同类的工程处理，**不是**放松阈值）：
   只有「**两侧都在数据内部**」的帧边界才计入判据 —— 要求法向 ±ctrl_shift 处的平行线**两侧都能
   放置**、且各有 >= min_samples 个有效样本。两条理由：
@@ -60,6 +85,19 @@
   法向余量，阶梯扫描给出；margin_px >= ctrl_shift ⟺ 计入判据）。被排除的边界仍逐条落盘
   （exclude 字段 + 全部度量），只是不进判据 —— 不静默丢弃。
 
+  为什么 v2 **不**把 ctrl_shift 改成「由输入几何自适应导出」（独立审查 P0-7 的处方；此处如实
+  说明为何不采纳）：在 v2 里对照线已**不参与判红**，它只剩两个用途 ——
+    ① 适用域：要求边界两侧各能放下一条 ±ctrl_shift 的平行线（"两侧都在数据内部"的可判定表述）；
+    ② 诊断量：ctrl_step / step_net / noise_ratio / bg_ctrl。
+  这两项都不与任何"周期"相消，所以 v1 的盲区机制在 v2 上无从复现（S8/S9 实测，见下）。
+  反过来，把 ctrl_shift 变成随输入几何浮动的量会**引入**两个无依据的风险：
+    ① 判据覆盖集（哪些边界计入）会随输入几何变化 ⇒ 同一产品在不同输入下判绿/判红的边界集
+       不同，跨产品、跨版本不可比（适用域是"判据定义的一部分"，不是可调参数）；
+    ② 自适应值只要等于某个周期 ⇒ 又落回 v1 的相消族（见「周期即盲区」一节），治不了病。
+  故**保留常量 200 px**，并把"它的用途已降级"写在这里，而不是为了"看起来更自适应"引入浮动量。
+  诚实边界：诊断量在"对照线自己踩在同幅阶跃上"时**不可读**（step_net 会 ≈0 而判据仍判红）；
+  S8/S9 的夹具正是这种情形 —— 判读以 rel_step 为准，不看 step_net。
+
 fail-closed（「无法判定」不得当「无接缝」）：
     · FITS / 帧清单 / 依赖不可用                ⇒ exit 2；
     · 有效帧边界数 == 0，或 rel_step 全部不可算 ⇒ **红**（exit 1）。
@@ -71,11 +109,16 @@ fail-closed（「无法判定」不得当「无接缝」）：
                  同时打印旧 V4 方差比作对照（旧门对同一输入必须**不动** = 盲区复现）。
   任一不满足 ⇒ 该注入用例判红并计入 exit code。
 
---self-test（机器门常驻入口，不依赖 run/ 大产品）：合成夹具跑**同一代码路径**七组用例——
+--self-test（机器门常驻入口，不依赖 run/ 大产品）：合成夹具跑**同一代码路径**九组用例——
   S1 无台阶 ⇒ 绿；S2 注入已知台阶 ⇒ 红；S3 旧 V4 在 S2 输入上 ⇒ 绿（盲区复现）；
   S4 帧足迹落在画幅外 ⇒ 红（fail-closed）；S5 注入 0 ⇒ 与基线逐条一致且判绿（负例）；
   S6 **两侧噪声差 57× 但无电平台阶**的合成边 ⇒ 绿（v1 假阳性模式的负例；同一夹具上 v1 判据必须红）；
-  S7 贴着数据边界（边缘余量高噪声）的边 ⇒ 被适用域排除、门判绿（同一夹具上 v1 判据必须红）。
+  S7 贴着数据边界（边缘余量高噪声）的边 ⇒ 被适用域排除、门判绿（同一夹具上 v1 判据必须红）；
+  S8 **平行同幅阶跃、间距 = ctrl_shift（=200 px）、幅度 = 200% 局部电平**，且第一条阶跃正压在
+     帧 0 的 top 边上 ⇒ **必须判红**，且同一夹具上 v1 口径必须**整幅判绿**（P0-7「周期即盲区」负例）；
+  S9 同 S8 但间距 = ctrl_shift 的**因子**（=100 px）⇒ 同样必须判红、v1 必须判绿；
+     两例都带对照臂 P = 2·ctrl_shift（=400，200 不整除它）⇒ v1 在该臂上必须**不**判绿（夹具非平凡），
+     且三档周期的 rel_step 必须一致（判据量与周期无关）。
   REQUIRED_SELFTEST_CASES 硬校验用例名单：**缺任一条即自检失败**。
 
 用法：
@@ -125,6 +168,8 @@ REQUIRED_SELFTEST_CASES = (
     "S5-zero-injection-identity",
     "S6-noise-difference-no-step-green",
     "S7-boundary-margin-edge-excluded",
+    "S8-periodic-step-on-edge-red",
+    "S9-periodic-step-factor-on-edge-red",
 )
 
 
@@ -570,6 +615,12 @@ def evaluate_product(fits_path, p1_dirs, frame_naxis=(4096, 4096), tile=512, d=2
                                "noise_ratio = MAD(seam)/MAD(ctrl)（噪声差；不判红）",
                                "noise_diff = MAD(seam) − MAD(ctrl)（不判红）",
                                "excess / rel_excess（v1 无符号口径，历史对照；不判红）"],
+               "detection_floor": ("可检出下限 Δ/L > max_rel_excess/(1 − max_rel_excess/2)；"
+                                   "默认 1e-2 ⇒ Δ/L > 1.005%（L = 边界下侧电平；≈0.0109 mag），"
+                                   "更小的电平阶跃被放过（run/SEAM-PERIOD-BLIND-01 门限扫描）"),
+               "period_blindness": ("v1 的 excess 口径在「平行同幅阶跃、间距整除 ctrl_shift」时"
+                                    "精确相消（P0-7）；v2 判据不含对照线 ⇒ 与阶跃周期无关"
+                                    "（--self-test 的 S8/S9 钉住）"),
                "v1_note": ("v1 的 excess = median|seam| − median|ctrl| 对噪声差敏感，"
                            "已降级为诊断量（run/VIS-E2E02-01/REPORT.md §1.1/§9）")},
            "v4": {"ratio": base_v4, "detail": base_v4d, "note": "方差比粗筛（对电平阶跃原理性失明）"},
@@ -694,6 +745,36 @@ def rewrite_fixture_noise(src_fits, dst_fits, sigma_fn, nan_fn=None, bg=1.0, gra
     return dst_fits
 
 
+def write_periodic_step_fixture(src_fits, dst_fits, period_px, delta, edge_y, d=2.0, bg=1.0):
+    """「平行同幅阶跃」负例夹具（独立审查 P0-7「周期即盲区」）：沿 y 每 period_px 一条
+    **同向同幅**阶跃，第一条正好压在 edge_y（某条帧边界的 y 采样）所代表的那条帧边界上。
+
+    阶跃行吸附到最近的**半整数**行（本工具的像素中心取整数坐标）⇒ 边界法向 ±d 的采样点分别
+    落在阶跃两侧、各自距阶跃 >= d − 0.5 px；不满足即抛错（防夹具静默退化成"没有台阶"）。
+
+    用途：period_px 整除 ctrl_shift 时，v1 的对照线（法向平移 ctrl_shift 的平行线）自己踩在
+    同幅阶跃上 ⇒ excess = median|seam| − median|ctrl| 精确相消 ⇒ v1 判绿；v2 的判据量不含
+    对照线 ⇒ 必须判红。返回 (dst_fits, step_row)。
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(dst_fits)), exist_ok=True)
+    with fits.open(src_fits, memmap=True) as h:
+        hdr = h[0].header.copy()
+        shape = tuple(int(v) for v in h[0].data.shape)
+    ey = np.asarray(edge_y, dtype=float)
+    ey = ey[np.isfinite(ey)]
+    ys = float(np.floor(float(np.median(ey))) + 0.5)
+    lo, hi = float(ey.min()), float(ey.max())
+    if not (hi - d < ys < lo + d):
+        raise RuntimeError("周期盲区夹具退化：阶跃行 %.4f 落不进全部边界采样点的 ±%g px 内"
+                           "（y ∈ [%.4f, %.4f]）" % (ys, d, lo, hi))
+    yy = np.arange(shape[0], dtype=float)[:, None]
+    n = np.clip(np.floor((yy - ys) / float(period_px)) + 1.0, 0.0, None)
+    data = float(bg) + float(delta) * n
+    fits.PrimaryHDU(data=np.broadcast_to(data, shape).astype(np.float32),
+                    header=hdr).writeto(dst_fits, overwrite=True)
+    return dst_fits, ys
+
+
 def _f(x):
     return "%.4e" % x if isinstance(x, float) else repr(x)
 
@@ -811,6 +892,74 @@ def self_test(work_dir, max_rel_excess=1e-2):
            _st(r7).get("n_edges_excluded_not_interior"), _f(lg7),
            "v1 判红（边缘余量假阳性复现）" if red7 else "**v1 未判红**"))
 
+    # ---- S8/S9：P0-7「周期即盲区」负例（平行同幅阶跃、间距 = ctrl_shift 及其因子）----
+    # 场 = 沿 y 每 P 一条**同向同幅**阶跃（幅度 delta_p = 2.0 = 200% 局部电平，bg = 1.0），
+    # 第一条阶跃正压在帧 0 的 top 边上。P 取 ctrl_shift（=200）与其**因子**（=100）时，v1 的
+    # 对照线（法向平移 ctrl_shift）自己踩在同幅阶跃上 ⇒ excess 精确相消 ⇒ v1 **整幅判绿**；
+    # v2 的判据量不含对照线 ⇒ 必须判红。对照臂 P = 2·ctrl_shift（=400，200 不整除它）⇒
+    # v1 必须**不**判绿（证明夹具非平凡：不是"什么都看不见"）。三档周期的 rel_step 必须一致。
+    ctrl_shift_p, delta_p = 200.0, 2.0
+    f_ax, p_ax, fn_ax = make_fixture(os.path.join(work_dir, "fixture_axis"), theta_deg=0.0)
+    _, wp3_ax = product_wcs(f_ax)
+    frames_ax = collect_frames(p_ax)
+    wf_ax, _ = load_wcs_from_p1(frames_ax[0])
+    top_ax = dict(frame_edges_p3(wf_ax, wp3_ax, fn_ax, n_pts=256))["top"]
+    fr_ax = os.path.basename(os.path.dirname(frames_ax[0]))
+    kw_p = dict(frame_naxis=fn_ax, tile=512, min_samples=20,
+                max_rel_excess=max_rel_excess, ctrl_shift=ctrl_shift_p)
+    periods_p = (ctrl_shift_p, ctrl_shift_p / 2.0, ctrl_shift_p * 2.0)
+    rows_p = {}
+    for period in periods_p:
+        dst_p, step_row = write_periodic_step_fixture(
+            f_ax, os.path.join(work_dir, "fixture_axis", "periodic", "product.fits"),
+            period, delta_p, top_ax[:, 1], d=2.0, bg=1.0)
+        r_p = evaluate_product(dst_p, p_ax, **kw_p)
+        g_p = r_p["baseline"]["gate"]
+        e_p = next((q for q in r_p["baseline"]["per_edge"]
+                    if q.get("frame") == fr_ax and q.get("edge") == "top"), {})
+        rows_p[period] = dict(step_row=step_row, gate=g_p["verdict"],
+                              rel_step=e_p.get("rel_step"), rel_excess=e_p.get("rel_excess"),
+                              legacy=g_p["stats"].get("legacy_rel_max"),
+                              margin_px=e_p.get("margin_px"), exclude=e_p.get("exclude"))
+
+    def _p_label(period):
+        return ("ctrl_shift 本身" if period == ctrl_shift_p
+                else ("ctrl_shift 的因子" if period < ctrl_shift_p else "ctrl_shift 的 2 倍（对照臂）"))
+
+    def _p_note(period):
+        r = rows_p[period]
+        return ("P=%g（%s）：v2 门 %s（该边 rel_step=%s），v1 口径 max|rel_excess|=%s ⇒ %s"
+                % (period, _p_label(period), r["gate"], _f(r["rel_step"]), _f(r["legacy"]),
+                   "v1 判绿 = 旧盲区复现" if (r["legacy"] is not None
+                                              and abs(r["legacy"]) <= max_rel_excess)
+                   else "v1 判红（非退化臂）"))
+
+    def _p_spread():
+        v = [rows_p[p]["rel_step"] for p in periods_p if rows_p[p]["rel_step"] is not None]
+        return (max(v) - min(v)) if len(v) == len(periods_p) else None
+
+    def _p_ok(period):
+        r, ctrl = rows_p[period], rows_p[ctrl_shift_p * 2.0]
+        sp = _p_spread()
+        return bool(r["gate"] == "FAIL" and r["rel_step"] is not None
+                    and abs(r["rel_step"]) > max_rel_excess
+                    and r["legacy"] is not None and abs(r["legacy"]) <= max_rel_excess
+                    and ctrl["gate"] == "FAIL"
+                    and ctrl["legacy"] is not None and abs(ctrl["legacy"]) > max_rel_excess
+                    and sp is not None and sp <= 1e-12)
+
+    add("S8-periodic-step-on-edge-red", _p_ok(ctrl_shift_p),
+        "平行同幅阶跃、间距 = ctrl_shift（=%g px）、幅度 = 200%% 电平（Δ=%g / bg=1.0）压在帧 0 的 "
+        "top 边上（阶跃行 %s；边界 y∈[%.3f, %.3f]，margin_px=%s）：%s；对照臂 %s；三档周期 "
+        "rel_step 极差 = %s（判据量与周期无关）"
+        % (ctrl_shift_p, delta_p, _f(rows_p[ctrl_shift_p]["step_row"]),
+           float(top_ax[:, 1].min()), float(top_ax[:, 1].max()),
+           _f(rows_p[ctrl_shift_p]["margin_px"]), _p_note(ctrl_shift_p),
+           _p_note(ctrl_shift_p * 2.0), _f(_p_spread())))
+    add("S9-periodic-step-factor-on-edge-red", _p_ok(ctrl_shift_p / 2.0),
+        "同 S8 但间距 = ctrl_shift 的因子（=%g px）：%s"
+        % (ctrl_shift_p / 2.0, _p_note(ctrl_shift_p / 2.0)))
+
     bad = [c["name"] for c in cases if not c["ok"]]
     have = {c["name"] for c in cases}
     missing = [n for n in REQUIRED_SELFTEST_CASES if n not in have]
@@ -841,21 +990,28 @@ def main(argv=None):
     ap.add_argument("--json-out", "--out", dest="json_out", default=None,
                     help="机器可读证据落盘路径")
     ap.add_argument("--max-rel-excess", type=float, default=1e-2,
-                    help="门：max|rel_excess| 上限（默认 1e-2 = SCI-C R5「相对接缝度量 < 1%%」）")
+                    help="门：max|rel_step| 上限（默认 1e-2 = SCI-C R5「相对接缝度量 < 1%%」）。"
+                         "判据是**相对**口径 ⇒ 可检出下限 = 本值/(1 − 本值/2) 的**局部电平**占比："
+                         "1e-2 时 Δ/L = 1.005%%（L = 边界下侧电平；≈0.0109 mag），更小的电平阶跃被放过（诚实边界，"
+                         "见模块 docstring「判据的可检出下限」）")
     ap.add_argument("--min-samples", type=int, default=20,
                     help="一条边界计入判据所需的最少有效采样点数（默认 20）")
     ap.add_argument("--tile", type=int, default=512, help="V4 方差比对照用的分块边长")
     ap.add_argument("--frame-naxis", type=int, default=4096, help="帧像素边长（默认 4096）")
     ap.add_argument("--norm-d", type=float, default=2.0, help="法向差分半距（px，默认 2）")
     ap.add_argument("--ctrl-shift", type=float, default=200.0,
-                    help="对照平行线的法向平移量（px，默认 200）")
+                    help="对照平行线的法向平移量（px，默认 200）。v2 里对照线**不参与判红**，"
+                         "只用于适用域（两侧都在数据内部）与诊断量 ⇒ 保留常量，"
+                         "不由输入几何自适应导出（理由见模块 docstring「适用域」一节）")
     ap.add_argument("--inject-frame", action="append", default=[],
                     help="正/负例：<k>:<amp>，把 amp 加进第 k 帧足迹内部（amp=0 为负例）")
     ap.add_argument("--inject-detect-frac", type=float, default=0.5,
-                    help="注入 amp 后该帧边界 |excess| 至少需达 |amp| 的该比例（默认 0.5）")
+                    help="注入 amp 后该帧边界 max|有符号台阶 step| 至少需达 |amp| 的该比例"
+                         "（默认 0.5）")
     ap.add_argument("--self-test", action="store_true", dest="self_test",
-                    help="跑合成夹具七组用例（机器门常驻入口，不需要 --fits/--p1-dirs；"
-                         "缺任一条必需用例即失败）")
+                    help="跑合成夹具九组用例（机器门常驻入口，不需要 --fits/--p1-dirs；"
+                         "缺任一条必需用例即失败；含「平行同幅阶跃、间距 = ctrl_shift 及其因子 "
+                         "⇒ 必须判红」的 P0-7 负例 S8/S9）")
     ap.add_argument("--work-dir", default=DEFAULT_WORK_DIR,
                     help="自检夹具与默认证据落盘根（默认 run/ci/seam-footprint）")
     ap.add_argument("--quiet", action="store_true")

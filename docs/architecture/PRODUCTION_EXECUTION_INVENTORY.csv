@@ -5,9 +5,9 @@ exe_target,p1cal_selfcheck_test,lib/algorithms/calibration/tests/p1cal/CMakeList
 exe_target,p1cos_tests,lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:33,
 exe_target,p1cos_perf_test,lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:47,
 exe_target,p1cos_selfcheck_test,lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:56,
-exe_target,astrocs-stage2,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/coverage/CMakeLists.txt:205,
-exe_target,calibrated_pair_diag,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/coverage/CMakeLists.txt:218,
-exe_target,rejection_cli,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/coverage/CMakeLists.txt:223,
+exe_target,astrocs-stage2,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/coverage/CMakeLists.txt:206,
+exe_target,calibrated_pair_diag,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/coverage/CMakeLists.txt:219,
+exe_target,rejection_cli,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/coverage/CMakeLists.txt:224,
 exe_target,p1drz_tests,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:38,
 exe_target,p1drz_perf_test,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:55,
 exe_target,p1drz_selfcheck_test,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:65,
@@ -16,10 +16,10 @@ exe_target,p1drz_thread_probe,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz
 exe_target,weight_chain_selfcheck,lib/algorithms/integration/v6/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/v6/oracle/CMakeLists.txt:12,
 exe_target,recon_dump,lib/algorithms/integration/v6/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/v6/oracle/CMakeLists.txt:25,
 exe_target,p1noise_tests,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:75,
-exe_target,p1noise_perf_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:102,
-exe_target,p1noise_selfcheck_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:111,
-exe_target,p1snr_science_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:142,
-exe_target,p1noise_saturation_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:159,
+exe_target,p1noise_perf_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:106,
+exe_target,p1noise_selfcheck_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:115,
+exe_target,p1snr_science_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:146,
+exe_target,p1noise_saturation_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:163,
 exe_target,p1phot_tests,lib/algorithms/photometry/tests/p1phot/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:79,
 exe_target,p1phot_perf_test,lib/algorithms/photometry/tests/p1phot/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:106,
 exe_target,p1phot_selfcheck_test,lib/algorithms/photometry/tests/p1phot/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:121,
@@ -134,13 +134,13 @@ thread_creation,const unsigned hc = std::thread::hardware_concurrency();,lib/alg
 thread_creation,// 消除 64× 重读；并行由 std::thread + Runtime lease 驱动。,lib/algorithms/coverage/src/sampler.cpp:666,production,yes,-,std::thread 显式创建,lib/algorithms/coverage/src/sampler.cpp:666,
 thread_creation,"// 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件",lib/algorithms/coverage/src/sampler.cpp:926,production,yes,-,std::async,lib/algorithms/coverage/src/sampler.cpp:926,
 thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/sampler.cpp:934,production,yes,-,std::async,lib/algorithms/coverage/src/sampler.cpp:934,
-thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:607,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:607,
-thread_creation,// 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease wo,lib/algorithms/coverage/src/upm.cpp:734,production,yes,-,std::thread 显式创建,lib/algorithms/coverage/src/upm.cpp:734,
-thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:738,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:738,
-thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:781,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:781,
-thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:903,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:903,
-thread_creation,"// dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenM",lib/algorithms/coverage/src/upm.cpp:1847,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:1847,
-thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:1854,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:1854,
+thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:620,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:620,
+thread_creation,// 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease wo,lib/algorithms/coverage/src/upm.cpp:747,production,yes,-,std::thread 显式创建,lib/algorithms/coverage/src/upm.cpp:747,
+thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:751,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:751,
+thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:794,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:794,
+thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:916,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:916,
+thread_creation,"// dense tile 求值并行(std::thread; workers 由调用方传 lease, 无 OpenM",lib/algorithms/coverage/src/upm.cpp:2163,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:2163,
+thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:2170,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:2170,
 thread_creation,std::thread producer([&] {,lib/algorithms/coverage/tests/async_io_test.cpp:59,test,no,-,std::thread 显式创建,lib/algorithms/coverage/tests/async_io_test.cpp:59,
 thread_creation,std::thread producer([&] { pushed = q.push(1); });,lib/algorithms/coverage/tests/async_io_test.cpp:90,test,no,-,std::thread 显式创建,lib/algorithms/coverage/tests/async_io_test.cpp:90,
 thread_creation,std::thread reader([&] {,lib/algorithms/coverage/tests/async_io_test.cpp:110,test,no,-,std::thread 显式创建,lib/algorithms/coverage/tests/async_io_test.cpp:110,
@@ -223,7 +223,7 @@ thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/
 thread_creation,//   std::thread(Scheduler::run pool) → Scheduler::run lambd,lib/infrastructure/scheduler/src/module_adapters.cpp:353,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:353,
 thread_creation,// std::thread worker 的 ICV 是进程默认值（= 硬件并发），若不显式收窄就会,lib/infrastructure/scheduler/src/module_adapters.cpp:1884,production,yes,-,std::thread 显式创建,lib/infrastructure/scheduler/src/module_adapters.cpp:1884,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:1894,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:1894,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:7373,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:7373,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:7847,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:7847,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/mosaic_window.cpp:271,production,yes,-,std::async,lib/infrastructure/scheduler/src/mosaic_window.cpp:271,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/normalize_workflow.cpp:462,production,yes,-,std::async,lib/infrastructure/scheduler/src/normalize_workflow.cpp:462,
 thread_creation,std::vector<std::thread> prefetch_pool;,lib/infrastructure/scheduler/src/normalize_workflow.cpp:464,production,yes,-,std::async,lib/infrastructure/scheduler/src/normalize_workflow.cpp:464,
@@ -310,15 +310,15 @@ queue,//   - 连通域: std::deque 队列 BFS (被测: std::queue + 单遍,lib/a
 queue,std::queue<ExecutorTask> tasks;         // 待执行任务（尚,lib/infrastructure/scheduler/src/executor.cpp:38,production,yes,-,队列语义,lib/infrastructure/scheduler/src/executor.cpp:38,
 queue,"std::queue<std::pair<IoTaskClass, ExecutorTask>> t",lib/infrastructure/scheduler/src/executor.cpp:216,production,yes,-,队列语义,lib/infrastructure/scheduler/src/executor.cpp:216,
 queue,std::queue<std::string> ready;,lib/infrastructure/scheduler/src/scheduler.cpp:75,production,yes,-,队列语义,lib/infrastructure/scheduler/src/scheduler.cpp:75,
-acr_boundary,"std::string acr_route = ""auto"";",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:140,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:140,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:162,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:162,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"bool acr_registered,",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:163,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:163,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"cfg->acr_route = in.value(""acr_route"", std::string(""auto""));",lib/algorithms/coverage/src/stage2_common.cpp:469,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:469,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"if (cfg->acr_route != ""auto"" && cfg->acr_route != ""cpu"") {",lib/algorithms/coverage/src/stage2_common.cpp:470,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:470,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"*err = ""acr_route 只支持 auto/cpu"";",lib/algorithms/coverage/src/stage2_common.cpp:471,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:471,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/algorithms/coverage/src/stage2_common.cpp:512,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:512,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"bool acr_registered,",lib/algorithms/coverage/src/stage2_common.cpp:513,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:513,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,(void)acr_registered;,lib/algorithms/coverage/src/stage2_common.cpp:525,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:525,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"std::string acr_route = ""auto"";",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:163,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:163,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:185,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:185,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"bool acr_registered,",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:186,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:186,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"cfg->acr_route = in.value(""acr_route"", std::string(""auto""));",lib/algorithms/coverage/src/stage2_common.cpp:468,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:468,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"if (cfg->acr_route != ""auto"" && cfg->acr_route != ""cpu"") {",lib/algorithms/coverage/src/stage2_common.cpp:469,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:469,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"*err = ""acr_route 只支持 auto/cpu"";",lib/algorithms/coverage/src/stage2_common.cpp:470,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:470,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/algorithms/coverage/src/stage2_common.cpp:511,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:511,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"bool acr_registered,",lib/algorithms/coverage/src/stage2_common.cpp:512,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:512,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,(void)acr_registered;,lib/algorithms/coverage/src/stage2_common.cpp:524,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/src/stage2_common.cpp:524,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"""acr_route"":""cpu"",",lib/algorithms/coverage/tests/routing_test.cpp:19,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tests/routing_test.cpp:19,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"EXPECT_EQ(cfg.acr_route, ""cpu"");",lib/algorithms/coverage/tests/routing_test.cpp:35,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tests/routing_test.cpp:35,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,// 能红能绿：若把 p2_acr_block_eligible 改回「条件成立即 true」，本测试转红。,lib/algorithms/coverage/tests/routing_test.cpp:57,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tests/routing_test.cpp:57,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
@@ -328,9 +328,9 @@ acr_boundary,cfg.acr_route = route;,lib/algorithms/coverage/tests/routing_test.c
 acr_boundary,"EXPECT_FALSE(p2_acr_block_eligible(cfg, true, method, large)",lib/algorithms/coverage/tests/routing_test.cpp:69,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tests/routing_test.cpp:69,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"cfg.acr_route = ""cpu"";",lib/algorithms/coverage/tests/routing_test.cpp:76,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tests/routing_test.cpp:76,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"EXPECT_FALSE(p2_acr_block_eligible(cfg, false, P2_REJECT_SIG",lib/algorithms/coverage/tests/routing_test.cpp:77,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tests/routing_test.cpp:77,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,const std::string requested_route = cfg.acr_route;,lib/algorithms/coverage/tools/stage2.cpp:756,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tools/stage2.cpp:756,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,std::string effective_route = cfg.acr_route;,lib/algorithms/coverage/tools/stage2.cpp:757,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tools/stage2.cpp:757,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
-acr_boundary,"p2_acr_block_eligible(cfg, acr_reg != nullptr,",lib/algorithms/coverage/tools/stage2.cpp:869,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tools/stage2.cpp:869,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,const std::string requested_route = cfg.acr_route;,lib/algorithms/coverage/tools/stage2.cpp:859,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tools/stage2.cpp:859,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,std::string effective_route = cfg.acr_route;,lib/algorithms/coverage/tools/stage2.cpp:860,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tools/stage2.cpp:860,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
+acr_boundary,"p2_acr_block_eligible(cfg, acr_reg != nullptr,",lib/algorithms/coverage/tools/stage2.cpp:972,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/tools/stage2.cpp:972,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 io_writer,drizzle_engine.cpp,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp,
 io_writer,hp_drizzle_internal.h,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_internal.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_internal.h,
 io_writer,mini_sip1000.cpp,lib/algorithms/drizzle/healpix_drizzle/tests/mini_sip1000.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/algorithms/drizzle/healpix_drizzle/tests/mini_sip1000.cpp,
@@ -349,6 +349,7 @@ io_writer,aio_pipeline.cpp,lib/infrastructure/aio/src/aio_pipeline.cpp,productio
 io_writer,aio_hips_writer.cpp,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp,
 io_writer,dataflow_fuzz.cpp,lib/infrastructure/aio/tests/dataflow_fuzz.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/dataflow_fuzz.cpp,
 io_writer,hips_sanitize_driver.cpp,lib/infrastructure/aio/tests/hips_sanitize_driver.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/hips_sanitize_driver.cpp,
+io_writer,p1hips_fixtures.hpp,lib/infrastructure/aio/tests/p1hips/p1hips_fixtures.hpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/p1hips/p1hips_fixtures.hpp,
 io_writer,p1hips_test_main.hpp,lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp,
 io_writer,p1hips_tests_diag_prov.cpp,lib/infrastructure/aio/tests/p1hips/p1hips_tests_diag_prov.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/p1hips/p1hips_tests_diag_prov.cpp,
 io_writer,p2hips_test_main.hpp,lib/infrastructure/aio/tests/p2hips/p2hips_test_main.hpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/p2hips/p2hips_test_main.hpp,
