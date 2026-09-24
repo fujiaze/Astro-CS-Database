@@ -213,6 +213,18 @@ inline FixViewF64 fix_hips_f_uncovered_var_tile(std::uint64_t parent_ipix) {
     return f;
 }
 
+// FIX-HIPS-F4: 「有覆盖但**信号**不可用」视图 (area>0 恒定, flux_sum 全 NaN)
+//   §4a 三态表第三态 ⇒ signal 必须 NaN，而 support **必须仍 >0**。
+//   覆盖（area）与信号可用性（flux 有限）是两件事：把 support 的发布条件与 flux
+//   有限性绑死，会让第三态被写成 support=0，与**同一次写出的 variance=0** 自相矛盾
+//   （§4a 要求「无覆盖 ⟺ support=0」），并使覆盖面积被低估（tile_covered 少计）。
+//   本夹具是 aio_hips_writer.cpp 叶级与层级两处 support 发布条件的回归锁。
+inline FixViewF64 fix_hips_f_no_signal_tile(std::uint64_t parent_ipix) {
+    FixViewF64 f = fix_hips_a_tile(parent_ipix, 10.0, 0.5, 1.0, true, true);
+    for (auto& v : f.flux_sum) v = std::numeric_limits<double>::quiet_NaN();
+    return f;
+}
+
 // FIX-HIPS-F3: 损坏视图 (§12.4:423) —— vnum<0 或非有限 ⇒ write_variance rc=−6。
 inline FixViewF64 fix_hips_f_corrupt_var_tile(std::uint64_t parent_ipix,
                                               double bad_value) {

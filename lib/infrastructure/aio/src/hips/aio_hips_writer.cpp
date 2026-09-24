@@ -996,10 +996,16 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
         const double area = acc.areaAt(i);
         const double flux = acc.fluxAt(i);
         double sig = 0.0, sup = 0.0;
-        if (area > 0.0 && std::isfinite(flux)) {
-            sig = flux / area;
+        // 同叶级：覆盖与信号可用性解耦（§4a 三态表）。父级 support 也必须在
+        // 「有覆盖但信号不可用」时发布，否则层级面的覆盖并集被低估
+        // （与叶级 :1313 同一处缺陷的同型实例）。
+        const bool covered = area > 0.0 && std::isfinite(area);
+        if (covered) {
             sup = area / A_cell_k;
             if (sup > 1.0) sup = 1.0;   // I2: 发布面唯一一次钳制
+        }
+        if (covered && std::isfinite(flux)) {
+            sig = flux / area;
         } else {
             sig = std::numeric_limits<double>::quiet_NaN();
         }
@@ -1310,8 +1316,15 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 if (view->covered_area) area = ((const double*)view->covered_area)[i];
             }
             double sig = 0.0, sup = 0.0, area_true = 0.0;
-            if (v && area > 0.0 && std::isfinite(flux) && std::isfinite(area)) {
-                sig = flux / area;
+            // 覆盖与「信号是否可用」是两件事，必须解耦（DATA_SEMANTICS §4a 三态表）：
+            //   无覆盖 (area<=0 / 非有限)      → support=0 ∧ signal=NaN
+            //   有覆盖 ∧ 信号可用 (flux 有限)   → support=area/A_cell ∧ signal=flux/area
+            //   有覆盖 ∧ 信号不可用             → support=area/A_cell ∧ signal=NaN
+            // 原实现把 support 的发布条件与 flux 有限性绑死，第三态被写成 support=0，
+            // 与**同一次写出的 variance=0** 自相矛盾（§4a 要求「无覆盖 ⟺ support=0」），
+            // 且使覆盖面积被低估（tile_covered 少计 ⇒ ps->covered_area_sr 偏小）。
+            const bool covered = v && area > 0.0 && std::isfinite(area);
+            if (covered) {
                 sup = area / ps->A_cell;
                 area_true = area;   // 未钳制真实覆盖面积 (层级归约权重)
                 if (sup > 1.0) {
@@ -1319,6 +1332,9 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                     ++ps->support_clamped_pixels;
                 }
                 tile_covered += area;
+            }
+            if (covered && std::isfinite(flux)) {
+                sig = flux / area;
                 if (sig < ps->sig_min) ps->sig_min = sig;
                 if (sig > ps->sig_max) ps->sig_max = sig;
             } else {

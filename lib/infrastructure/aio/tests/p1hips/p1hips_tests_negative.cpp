@@ -231,6 +231,43 @@ int test_negative() {
         }
     }
 
+    // --- N3b: signal/support 面的三态（覆盖与信号可用性**解耦**）------------
+    //   §4a 三态表：无覆盖 ⇒ support=0 ∧ signal=NaN；
+    //               有覆盖 ∧ 信号可用 ⇒ support>0 ∧ signal 有限；
+    //               有覆盖 ∧ 信号不可用 ⇒ **support>0 ∧ signal=NaN**  ← 本块回归锁
+    //   原实现把 support 的发布条件与 flux 有限性绑死，第三态被写成 support=0。
+    //   能红能绿：把 support 的发布条件再绑回 flux ⇒ 本块立即转红。
+    {
+        const std::string dir = make_tmp_dir("n3b");
+        {
+            AioHipsProductSet* ps = aio_hips_product_begin(
+                dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
+                AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+                "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+            P1HIPS_CHECK(cs, ps != nullptr, "n3b_begin");
+            if (ps) {
+                FixViewF64 fx = fix_hips_f_no_signal_tile(0);
+                P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
+                P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
+            }
+        }
+        TileFits sig, sup;
+        const bool ok_s = read_tile_fits(dir + "/signal/Norder0/Dir0/Npix0.fits", sig);
+        const bool ok_p = read_tile_fits(dir + "/support/Norder0/Dir0/Npix0.fits", sup);
+        P1HIPS_CHECK(cs, ok_s && ok_p, "n3b_readback");
+        if (ok_s && ok_p) {
+            bool sig_all_nan = true, sup_all_pos = true;
+            for (std::size_t i = 0; i < sig.pix_d.size(); ++i)
+                if (std::isfinite(sig.pix_d[i])) sig_all_nan = false;
+            for (std::size_t i = 0; i < sup.pix_d.size(); ++i)
+                if (!(sup.pix_d[i] > 0.0)) sup_all_pos = false;
+            P1HIPS_CHECK_MSG(cs, sig_all_nan, "n3b_signal_nan_when_flux_unavailable",
+                             "有覆盖但信号不可用 ⇒ signal 必须 NaN");
+            P1HIPS_CHECK_MSG(cs, sup_all_pos, "n3b_support_pos_when_covered",
+                             "有覆盖 ⇒ support 必须 >0（不得随 flux 有限性塌成 0）");
+        }
+    }
+
     // --- N4: FITS 路径不可写 → write_signal rc=−4 / write_variance rc=−6
     //     (§9 行: FITS 路径不可写 −4/−5/−6/−7; 信号 FITS 失败先于 support)
     {
