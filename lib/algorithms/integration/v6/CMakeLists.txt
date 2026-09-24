@@ -28,6 +28,8 @@ if(NOT TARGET astrocs_v6_phase2_integrate)
     # RELEASE-02 P2b: 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
     src/variance_propagation.cpp
     "${V6P2_REPO}/lib/algorithms/coverage/src/upm.cpp"
+    # UPM-KAPPA-UNIFY-01：唯一可辨识性判据（upm.cpp 依赖它，必须同 target 编译）
+    "${V6P2_REPO}/lib/algorithms/coverage/src/identifiability.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/rejection.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/sampler.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/coverage.cpp"

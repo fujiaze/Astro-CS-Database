@@ -91,7 +91,10 @@ struct P2Stage2Config {
     int    sky_plane_gradient_order = 1;
     int    sky_plane_gauge_mode = 0;
     int    sky_plane_weight_mode = 0;
-    double sky_plane_roughness_penalty = 1e-3;
+    // 已退休：sky_plane_roughness_penalty（λ 自由标定值）。λ 现由判据阈值派生
+    // （λ_eff = rank_rtol·mean(diag(H_red))，见 astro/phase2/identifiability.h），
+    // 不再有配置面；旧配置键被**忽略**而不是继续生效（避免旧值悄悄复活）。
+    double sky_plane_rank_rtol = 1e-10;   // FZ-AP2S-RANK-RTOL（唯一判据阈值）
     // 乘法响应 g_k（v6 UPM MA 求解器）接入主链；build 失败时显式 g=1 降级。
     bool   frame_gain_enabled = true;
     // integration

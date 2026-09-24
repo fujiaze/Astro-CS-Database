@@ -240,11 +240,18 @@ P2_API int p2_upm_close(void* model);
 //   frame-control 二分图连通分量；每分量独立 gauge，ref = 分量内最小
 //   frame_id，scale gauge g_ref=1，level gauge b_ref=0（共 2*n_components）。
 //
-// 秩 / 条件数（ALG-P2S-UPM.3/.4）：
-//   rank(J) == n_free = n_p + 2F - 2*n_components；
-//   奇异值判据 sigma_i/sigma_max > rank_rtol（FZ-AP2S-RANK-RTOL=1e-10）；
-//   kappa = cond_2( D^-1 (J^T W J) D^-1 )，D=diag(列范数)，上限
-//   kappa_max（FZ-AP2S-KAPPA-MAX=1e6）；超限 fail-closed，禁止静默欠定解。
+// 可辨识性（ALG-P2S-UPM.3/.4；本次统一口径）：
+//   **唯一判据** = astro/phase2/identifiability.h::p2_identifiability_assess
+//   （与天光面样条求解器**同一个函数**）：
+//       H_eq = D^-1 (J^T W J) D^-1,  D = diag(sqrt(H_ii))   （列均衡消除参数单位）
+//       r_eff = #{ λ_i(H_eq) > τ·λ_max }，κ = λ_max/λ_min
+//       identifiable ⟺ r_eff == n_free ⟺ κ < 1/τ
+//   τ = rank_rtol（FZ-AP2S-RANK-RTOL=1e-10），与天光面侧**同一个符号、同一个值**。
+//   「欠定」与「病态」是同一条不等式的两种读法（λ_n 最先跌破 τ·λ_max），
+//   故只有**一个判决位**，不再有 rank 与 κ 两套并行判据。
+//   已退休：kappa_max 绝对常数（FZ-AP2S-KAPPA-MAX=1e6）与「rank(J) 用 σ(J) 阈值、
+//   κ 用 λ(H) 阈值」的同函数内两把尺（前者等价 τ_H=1e-10，后者 τ_H=1e-20，
+//   相差 10 个数量级）。判红 ⇒ rc=3（欠定/病态统一返回码），fail-closed。
 //   min_frames（FZ-AP2S-UPM-MINFRAMES=2）：单帧分量禁拟合 g，须显式
 //   additive-only 降级声明。
 //
@@ -262,8 +269,10 @@ P2_API int p2_upm_close(void* model);
 //   0  ok
 //   1  参数错误（空指针/空数据/非法配置）
 //   2  缺/非法 control_ivar（<=0 或非有限；production 禁止静默回退 legacy）
-//   3  秩亏（rank < n_free；含恒常 s 场导致的 g/b 退化）
-//   4  kappa > kappa_max
+//   3  未通过唯一可辨识性判据（r_eff < n_free ⟺ κ ≥ 1/rank_rtol；含恒常 s 场
+//      导致的 g/b 退化）。**它同时覆盖旧口径的 rc=3 与 rc=4**。
+//   4  **已退休**（原「kappa > kappa_max=1e6」绝对常数门）。保留数值位以免
+//      旧消费者误读，但本实现不再返回它——欠定与病态走同一条判据、同一个 rc。
 //   5  单帧分量未声明 additive-only（FZ-AP2S-UPM-MINFRAMES）
 //   6  共享系统项按独立处理（未表示共享项声明为已表示）
 //   7  k_corr provenance 不完整/越域（FZ-PROV-KCORR）
@@ -281,8 +290,9 @@ typedef struct {
 // UPM 乘法/加性构建配置（默认值在 upm.cpp 中生效）。
 typedef struct {
     int    min_frames;          // FZ-AP2S-UPM-MINFRAMES，默认 2
-    double rank_rtol;           // FZ-AP2S-RANK-RTOL，默认 1e-10
-    double kappa_max;           // FZ-AP2S-KAPPA-MAX，默认 1e6
+    // **唯一**判据阈值 τ（FZ-AP2S-RANK-RTOL，默认 1e-10）：与天光面侧同一个符号、
+    // 同一个值、同一个实现。已退休：kappa_max（FZ-AP2S-KAPPA-MAX=1e6）。
+    double rank_rtol;
     // 0 = min_frame_id gauge（g_ref=1, b_ref=0）；其他值 → 参数错误。
     int    gauge_mode;
     // 1 = 显式声明单帧分量 additive-only 降级（g=1 固定，不拟合 g）；
@@ -316,10 +326,12 @@ typedef struct {
     std::uint64_t n_components;
     std::uint64_t n_observations;
     std::uint64_t n_params;       // n_free（gauge 消除后）
-    std::uint64_t rank;           // rank(J) 于解处
-    double rank_rtol;
-    double kappa;
-    double kappa_max;
+    std::uint64_t rank;           // r_eff：τ 口径下高于阈值的特征值**计数**
+    double rank_rtol;             // 请求的 τ
+    double rank_rtol_effective;   // 实际生效的 τ = max(rank_rtol, max(m,n)·eps)
+    double kappa;                 // 判据读数 κ(H_eq)；秩亏 ⇒ +inf（不发布伪值）
+    std::uint64_t n_unidentified; // n_free − r_eff：未被数据约束的方向数
+    int identifiable;             // 判据的唯一判决位：1=绿，0=红
     int min_frames;
     int gauge_mode;
     int iterations;
@@ -361,11 +373,69 @@ P2_API int p2_upm_ma_c_out(
     double* out_C_out, std::uint64_t ld_out);
 
 // provenance JSON（FZ-PROV-MINIMAL-SET / ALG-P2S-UPM.8）：gauge_mode、
-// 每分量 ref_frame_id、rank、rank_rtol、kappa、kappa_max、C_theta 摘要、
-// k_corr+适用域、flux_conservation_factor、model_hash、min_frames、
-// any_fail_closed_reason。成功构建时 reason 为空串。
+// 每分量 ref_frame_id、rank、rank_rtol、rank_rtol_effective、kappa、
+// n_unidentified、identifiable、C_theta 摘要、k_corr+适用域、
+// flux_conservation_factor、model_hash、min_frames、any_fail_closed_reason。
+// 成功构建时 reason 为空串。已退休键：kappa_max。
 P2_API int p2_upm_ma_provenance(
     const void* model, char* out_json, std::size_t buf_size);
+
+// ===========================================================================
+// 生产链（p2_upm_build_geo）的可辨识性与拟合诊断 —— 只读访问器
+// ===========================================================================
+// 背景：生产链走 W2 冻结的 p2_upm_build_geo（坐标下降 Huber IRLS），**不是** V6
+// MA 求解器，而 P2ModelInfo（本文件 :60-68）没有 rank/kappa 访问器。此前
+// p2_upm_model.json 只能把 rank/kappa 记成 null + 「不可得原因」。
+//
+// 本访问器用**同一个判据函数**（astro/phase2/identifiability.h）在**生产求解器
+// 实际面对的法方程**上算判决：
+//   · 生产默认 λs = smoothing_lambda = 0 ⇒ 联合法方程在 (M_k, C_{f,k}) 参数化下
+//     **按 control 分块对角**（每个观测只耦合「本 control 的 M」与「本帧的 C」），
+//     故全系统可辨识 ⟺ 每个 control 块可辨识，且 κ(全系统) = max_k κ(块 k)。
+//   · 每个块的参数 = (M_k, C_{f,k} for f ∈ F_k  {ref})，F_k = 有权观测该 control
+//     的帧集合；块内法方程 H_k = Σ_{f∈F_k} w_{fk} a_f a_fᵀ，a_f = e_M + e_{C_f}。
+//   · 未被任何帧观测的几何节点（单帧区 harmonic continuation 填）**不参与**判据：
+//     它们不是被拟合的参数，而是文档化的延拓；其数量单独登记。
+// λs > 0 时块间出现耦合（同帧相邻 control 的 C 被 Laplacian 惩罚连起来），
+// 此时 coupling_assembled = 0 —— **如实登记边界**，不声称判据已含耦合项。
+typedef struct {
+    std::uint64_t n_blocks;              // 参与判据的 control 块数（有观测的 control）
+    std::uint64_t n_params;              // Σ_k |块 k 的参数数|
+    std::uint64_t rank_eff;              // Σ_k r_eff(块 k)（计数）
+    std::uint64_t n_unidentified;        // n_params − rank_eff
+    std::uint64_t n_blocks_rank_deficient;  // r_eff(块 k) < |块 k| 的块数（**定 gauge 后**）
+    std::uint64_t n_blocks_gauge_pinned; // 需要块内 gauge 选择的块数（分量参考帧不观测它）
+    std::uint64_t n_unidentified_raw;    // n_unidentified + n_blocks_gauge_pinned（未定 gauge 读数）
+    std::uint64_t n_blocks_single_frame; // 只被 1 帧观测的块数（具名，便于读者归因）
+    std::uint64_t n_unobserved_geometry_nodes;  // 无观测几何节点（不参与判据）
+    double rank_rtol;                    // 请求的 τ
+    double rank_rtol_effective;          // 生效 τ
+    double kappa;                        // max_k κ(块 k)；秩亏块 ⇒ +inf
+    double chi2;                         // Σ (r/σ_eff)²（标准化残差平方和）
+    double dof_eff;                      // n_obs − rank_eff（有效自由度）
+    double chi2_red;                     // chi2/dof_eff；dof_eff<=0 ⇒ NaN（见 chi2_red_defined）
+    int chi2_red_defined;                // 0 ⇒ χ²_red **无定义**（dof<=0），持久化必须写 null
+    double objective;                    // 末轮 Huber 目标（ADU² 量纲）
+    int iterations;                      // 实际 IRLS 迭代数
+    int converged;                       // 0=max_iter 1=converged 2=stalled 3=invalid
+    double rel_improve;                  // 末轮目标相对改善量
+    int identifiable;                    // 判据的唯一判决位：1=绿，0=红
+    int coupling_assembled;              // 0 = λs>0 时块间耦合未装配（边界登记）
+} P2UpmIdentifiability;
+
+// 取回上述诊断。model 为 p2_upm_build / p2_upm_build_geo 返回的模型（也可为
+// p2_upm_open 打开的模型：诊断随模型持久化）。返回 0=ok；1=参数错误或该模型
+// 未记录诊断（旧模型文件）。
+P2_API int p2_upm_identifiability(const void* model, P2UpmIdentifiability* out);
+
+// **不收敛/判红的产品级警告块**（负责人裁决：报警告，不影响运行，不 fail-closed）。
+// 输出可直接并入产品 JSON 的机器可检标记，形如：
+//   {"warnings":[{"code":"P2-UPM-NOT-CONVERGED","severity":"warning",...}],
+//    "warning_codes":["P2-UPM-NOT-CONVERGED"],"upm_converged_warning":true,...}
+// 语义：**只描述状态，不改变 rc**（构建仍成功）。下游/CI 按 warning_codes 判定。
+// 无警告时 warnings 为空数组、warning_codes 为空数组。
+// 返回 0=ok（含「无警告」）；1=参数错误；2=缓冲区不足（out_json 写空串）。
+P2_API int p2_upm_warnings_json(const void* model, char* out_json, std::size_t buf_size);
 
 P2_API void p2_upm_ma_close(void* model);
 

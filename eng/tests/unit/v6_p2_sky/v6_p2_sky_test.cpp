@@ -330,7 +330,14 @@ void test_memory() {
     std::printf("  n_nodes: 8f=%llu 64f=%llu ; rss delta=%ld KB\n",
                 (unsigned long long)i8.n_nodes, (unsigned long long)i64.n_nodes, r1 - r0);
     check(i8.n_nodes == i64.n_nodes, "n_nodes independent of frame count");
-    check(i64.n_params > i8.n_params, "n_params grows with frames");
+    // UPM-KAPPA-UNIFY-01：n_params 的语义改为**判据矩阵的阶**（Schur 消元后的
+    // B_ref 自由节点数）；δ_k 已被精确消去、不是判据面对的未知量 ⇒ 它**不**随帧数增长。
+    // 求解器全部未知量 = n_params_full，那个才随帧数增长（每帧多 m 个 δ 系数）。
+    check(i64.n_params == i8.n_params,
+          "n_params (criterion matrix order) independent of frame count");
+    check(i64.n_params_full > i8.n_params_full, "n_params_full grows with frames");
+    check(i64.rank_full == i64.rank + (i64.n_frames - 1) * 3,
+          "rank_full == r_eff + (n_frames-1)*m (delta block full rank)");
     check((r1 - r0) < 200 * 1024, "peak RSS delta for 8x frames < 200 MB");
     (void)r0; (void)r1;
     if (m8) p2_sky_plane_close(m8);

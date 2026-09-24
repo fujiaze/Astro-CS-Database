@@ -1265,8 +1265,8 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
 
   P2UpmMaConfig cfg{};
   cfg.min_frames = 2;
+  // 唯一判据阈值 τ = FZ-AP2S-RANK-RTOL（已退休：kappa_max=1e6 绝对常数）。
   cfg.rank_rtol = 1e-10;
-  cfg.kappa_max = 1e6;
   cfg.gauge_mode = 0;
   cfg.allow_additive_only_single_frame = 1;
   cfg.c_in_has_unrepresented_shared_terms = 0;

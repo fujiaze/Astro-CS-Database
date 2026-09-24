@@ -8,14 +8,20 @@
 // - 联合加权最小二乘对 δ_k 做 **按帧 Schur 消元**：
 //       H_red = Σ_k (A_kᵀ W A_k − S_k M_k⁻¹ S_kᵀ),  S_k = A_kᵀ W P_k, M_k = P_kᵀ W P_k
 //   H_red 只有 nx*ny 阶，因此求解内存与帧数无关，也不随像素数增长；
-// - 粗糙度惩罚 λ·DᵀD（二阶差分）只加到求解矩阵，秩/κ 诊断用未惩罚数据矩阵；
-//   该惩罚的零空间 = {1, ix, iy, ix·iy}（bilinear，4 维）；当数据权重与惩罚量级
+// - 求解矩阵 = 数据矩阵 H_red + **派生**数值岭 λ_eff·DᵀD（二阶差分），其中
+//   λ_eff = rank_rtol · mean(diag(H_red))（判据自己的分辨率下限，非自由参数）。
+//   **判决只看未正则化的 H_red**：κ(H_red + λP) 随 λ→∞ 有上界 →1，在 H_solve 上
+//   设门等于恒真门（见 astro/phase2/identifiability.h）。κ(H_solve) 仅作诊断。
+//   惩罚的零空间 = {1, ix, iy, ix·iy}（bilinear，4 维）；当数据权重与惩罚量级
 //   悬殊时，惩罚矩阵的浮点舍入会淹没数据在该零空间上的曲率，使法方程失去正定性。
 //   求解先走直接 Cholesky（常规档逐位不变）；失败时对零空间做极小 Tikhonov 锚并
 //   用 deflation 校正扣回锚偏置（见 build 内注释），不改变科学解；
 // - 稳健 IRLS：Huber 权重按标准化残差更新；
 // - gauge：参考帧 δ≡0（reference_frame）或 δ 常数项和为零（sum）。
 #include "astro/phase2/sky_plane.h"
+
+// 唯一「可辨识性/病态」判据（与 UPM/GLS 侧**同一个函数**；§7a:196-198）。
+#include "astro/phase2/identifiability.h"
 
 #include "astrocs/probe.h"  // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
@@ -170,54 +176,9 @@ void chol_solve(const std::vector<double>& L, int n, std::vector<double>& b) {
     }
 }
 
-double sym_rayleigh(const std::vector<double>& A, int n, const std::vector<double>& x) {
-    double num = 0.0, den = 0.0;
-    for (int i = 0; i < n; ++i) {
-        double ax = 0.0;
-        const double* row = &A[static_cast<std::size_t>(i) * n];
-        for (int j = 0; j < n; ++j) ax += row[j] * x[static_cast<std::size_t>(j)];
-        num += x[static_cast<std::size_t>(i)] * ax;
-        den += x[static_cast<std::size_t>(i)] * x[static_cast<std::size_t>(i)];
-    }
-    return (den > 0.0) ? num / den : 0.0;
-}
-
-// λ_max（幂迭代）与 λ_min（逆幂迭代，用 Cholesky）。
-double lambda_max_power(const std::vector<double>& A, int n) {
-    std::vector<double> x(static_cast<std::size_t>(n), 1.0 / std::sqrt((double)n)), y(static_cast<std::size_t>(n));
-    double prev = 0.0;
-    for (int it = 0; it < 300; ++it) {
-        for (int i = 0; i < n; ++i) {
-            double s = 0.0;
-            const double* row = &A[static_cast<std::size_t>(i) * n];
-            for (int j = 0; j < n; ++j) s += row[j] * x[static_cast<std::size_t>(j)];
-            y[static_cast<std::size_t>(i)] = s;
-        }
-        double norm = 0.0;
-        for (int i = 0; i < n; ++i) norm += y[static_cast<std::size_t>(i)] * y[static_cast<std::size_t>(i)];
-        norm = std::sqrt(norm);
-        if (!(norm > 0.0) || !std::isfinite(norm)) break;
-        for (int i = 0; i < n; ++i) x[static_cast<std::size_t>(i)] = y[static_cast<std::size_t>(i)] / norm;
-        const double lam = sym_rayleigh(A, n, x);
-        if (it > 3 && std::fabs(lam - prev) <= 1e-13 * std::max(1.0, std::fabs(lam))) { prev = lam; break; }
-        prev = lam;
-    }
-    return sym_rayleigh(A, n, x);
-}
-
-double lambda_min_inverse(const std::vector<double>& A, const std::vector<double>& L, int n) {
-    std::vector<double> x(static_cast<std::size_t>(n), 1.0 / std::sqrt((double)n));
-    for (int it = 0; it < 300; ++it) {
-        std::vector<double> w = x;
-        chol_solve(L, n, w);   // w = A^-1 x
-        double norm = 0.0;
-        for (int i = 0; i < n; ++i) norm += w[static_cast<std::size_t>(i)] * w[static_cast<std::size_t>(i)];
-        norm = std::sqrt(norm);
-        if (!(norm > 0.0) || !std::isfinite(norm)) return 0.0;
-        for (int i = 0; i < n; ++i) x[static_cast<std::size_t>(i)] = w[static_cast<std::size_t>(i)] / norm;
-    }
-    return sym_rayleigh(A, n, x);
-}
+// λ_max/λ_min/幂迭代的本地实现已删除：判据统一由
+// astro/phase2/identifiability.h::p2_identifiability_assess 提供（同一函数供
+// UPM/GLS 侧共用），避免「每处各留一套口径」。本地只保留求解所需的 Cholesky。
 
 struct SkyFrame {
     std::uint64_t frame_id = 0;
@@ -246,6 +207,10 @@ struct SkyPlaneModel {
     std::vector<std::uint64_t> used_idx;
     // §7a：节点间距自适应的完整 provenance（单次 build 时 n_attempts=0）。
     P2SkyPlaneAdaptiveReport adaptive{};
+    // 诊断（审计用）：仅当 cfg.retain_normal_matrices != 0 时保留，
+    // 供 p2_sky_plane_normal_matrices 导出做离线谱分析；否则为空（零内存）。
+    std::vector<double> retained_h_red;
+    std::vector<double> retained_penalty;
 };
 
 void sky_plane_free(void* p) { delete static_cast<SkyPlaneModel*>(p); }
@@ -488,17 +453,15 @@ P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     // 调用方给不出几何量时 p2_sky_plane_build 显式失败（GEOMETRY_REQUIRED）。
     c.node_spacing_deg = 0.0;
     c.frame_gradient_order = 1;
-    c.roughness_penalty = 1e-3;
     c.huber_delta = 1.345;
     c.max_iterations = 30;
     c.tolerance = 1e-10;
     c.gauge_mode = 0;
     c.weight_mode = 0;
-    // §7a 规则 4：κ 上限**不得**是标定常数。0 = 由矩阵谱自身派生（= 1/rank_rtol，
-    // 与「H_solve 在 rank_rtol 口径下的有效秩 == n_free」等价）。显式 >0 时按覆盖处理
-    // 并记入 kappa_max_source，便于审计「同一份数据被两个常数一放一拦」。
-    c.kappa_max = 0.0;
+    // 唯一判据阈值 τ（FZ-AP2S-RANK-RTOL，与 UPM/GLS 侧同一个符号、同一个值）。
+    // 已退休：原 kappa_max = 1e8 绝对常数与 κ(H_solve) 门控口径。
     c.rank_rtol = 1e-10;
+    c.retain_normal_matrices = 0;
     c.min_samples = 8;
     c.min_samples_per_frame = 4;
     c.max_nodes = 2048;
@@ -554,20 +517,9 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     if (cfg.max_iterations < 1) cfg.max_iterations = 1;
     if (!(cfg.tolerance > 0.0)) cfg.tolerance = 1e-10;
     if (!(cfg.rank_rtol > 0.0) || !std::isfinite(cfg.rank_rtol)) cfg.rank_rtol = 1e-10;
-    // §7a 规则 4：κ 上限按**矩阵谱自身**定，与 rank 判据同一口径（相对 rank_rtol）：
-    //     κ(H_solve) ≤ 1/rank_rtol  ⟺  λ_min > rank_rtol·λ_max
-    //                              ⟺  H_solve 在 rank_rtol 口径下的有效秩 == n_free。
-    // 两式等价，故门控只有一个口径；未显式给 kappa_max 时即取此派生值。
-    int kappa_max_source = 0;   // 0 = 由 rank_rtol 派生
-    if (!(cfg.kappa_max > 0.0) || !std::isfinite(cfg.kappa_max)) {
-        cfg.kappa_max = 1.0 / cfg.rank_rtol;
-    } else {
-        kappa_max_source = 1;   // 1 = 调用方显式覆盖（记入 provenance，便于审计）
-    }
     if (cfg.min_samples < 1) cfg.min_samples = 1;
     if (cfg.min_samples_per_frame < 1) cfg.min_samples_per_frame = 1;
     if (cfg.max_nodes < 4) cfg.max_nodes = 4;
-    if (!(cfg.roughness_penalty >= 0.0)) cfg.roughness_penalty = 0.0;
     if (cfg.gauge_mode != 0 && cfg.gauge_mode != 1) cfg.gauge_mode = 0;
     if (cfg.weight_mode != 0 && cfg.weight_mode != 1) cfg.weight_mode = 0;
     if (cfg.max_extrapolation_deg < 0.0) cfg.max_extrapolation_deg = 0.0;
@@ -834,6 +786,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     std::vector<double> rhs(static_cast<std::size_t>(n_free), 0.0);
     std::vector<double> L;
     std::vector<double> B(static_cast<std::size_t>(n_free), 0.0);
+    // 派生数值岭 λ_eff（每次 IRLS 迭代按当次 H_red 的尺度重算；见下方说明）。
+    double lam = 0.0;
     int iterations = 0;
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         ++iterations;
@@ -927,11 +881,23 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                     H_red[static_cast<std::size_t>(i) * n_free + j] -= s;
                 }
         }
-        // 求解矩阵 = 约化数据矩阵 + 粗糙度惩罚 λ·DᵀD（二阶差分，两个方向）
+        // 求解矩阵 = 约化数据矩阵 + **派生**数值岭 λ_eff·DᵀD（二阶差分，两个方向）。
+        //   λ_eff = τ · mean(diag(H_red))   （τ = rank_rtol，唯一判据阈值）
+        // 语义：判据自己的**分辨率下限**——低于 τ·λ_max 的方向按定义不可分辨，
+        // 故把谱底垫到该水平是无损的数值正则化。它由判据派生、无自由参数，
+        // 且**不参与判决**（判决只看 H_red）：κ(H_red+λP) 随 λ→∞ 有上界 →1，
+        // 若把门设在 H_solve 上，任何不可辨识矩阵都能被足够大的 λ 压成绿。
+        // 已退休：原 cfg.roughness_penalty 自由标定值（生产权重尺度下惰性，
+        // 归一后又能买绿门——两条路都不能留，见 identifiability.h）。
+        double mean_diag = 0.0;
+        for (int i = 0; i < n_free; ++i) mean_diag += H_red[static_cast<std::size_t>(i) * n_free + i];
+        mean_diag = (n_free > 0) ? mean_diag / static_cast<double>(n_free) : 0.0;
+        lam = (mean_diag > 0.0 && std::isfinite(mean_diag)) ? cfg.rank_rtol * mean_diag : 0.0;
         H_solve = H_red;
-        if (cfg.roughness_penalty > 0.0) {
-            const double lam = cfg.roughness_penalty;
-            auto add_stencil = [&](int i0, int i1, int i2) {
+        {
+            const bool retain_p = (cfg.retain_normal_matrices != 0);
+            if (retain_p) model->retained_penalty.assign(static_cast<std::size_t>(n_free) * n_free, 0.0);
+            auto add_stencil = [&](std::vector<double>& T, double coef, int i0, int i1, int i2) {
                 const int f0 = free_of_full[static_cast<std::size_t>(i0)];
                 const int f1 = free_of_full[static_cast<std::size_t>(i1)];
                 const int f2 = free_of_full[static_cast<std::size_t>(i2)];
@@ -940,14 +906,26 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                 const int ii[3] = {f0, f1, f2};
                 for (int a = 0; a < 3; ++a)
                     for (int b = 0; b < 3; ++b)
-                        H_solve[static_cast<std::size_t>(ii[a]) * n_free + ii[b]] += lam * v[a] * v[b];
+                        T[static_cast<std::size_t>(ii[a]) * n_free + ii[b]] += coef * v[a] * v[b];
             };
             for (int iy = 0; iy < model->ny; ++iy)
-                for (int ix = 0; ix + 2 < model->nx; ++ix)
-                    add_stencil(iy * model->nx + ix, iy * model->nx + ix + 1, iy * model->nx + ix + 2);
+                for (int ix = 0; ix + 2 < model->nx; ++ix) {
+                    if (lam > 0.0)
+                        add_stencil(H_solve, lam, iy * model->nx + ix, iy * model->nx + ix + 1,
+                                    iy * model->nx + ix + 2);
+                    if (retain_p)
+                        add_stencil(model->retained_penalty, 1.0, iy * model->nx + ix,
+                                    iy * model->nx + ix + 1, iy * model->nx + ix + 2);
+                }
             for (int ix = 0; ix < model->nx; ++ix)
-                for (int iy = 0; iy + 2 < model->ny; ++iy)
-                    add_stencil(iy * model->nx + ix, (iy + 1) * model->nx + ix, (iy + 2) * model->nx + ix);
+                for (int iy = 0; iy + 2 < model->ny; ++iy) {
+                    if (lam > 0.0)
+                        add_stencil(H_solve, lam, iy * model->nx + ix, (iy + 1) * model->nx + ix,
+                                    (iy + 2) * model->nx + ix);
+                    if (retain_p)
+                        add_stencil(model->retained_penalty, 1.0, iy * model->nx + ix,
+                                    (iy + 1) * model->nx + ix, (iy + 2) * model->nx + ix);
+                }
         }
         // ---- 求解：先直接 Cholesky；失败才对惩罚零空间做极小锚 + deflation 校正 ----
         // 数值根因（对生产数据的复核）：惩罚项 ~1e-3 与约化数据项 ~1e-18 相差 ~1e15
@@ -1099,73 +1077,63 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             model->coeff[static_cast<std::size_t>(idx)] = (best >= 0) ? B[static_cast<std::size_t>(best)] : 0.0;
         }
 
-    // ---- 诊断与门控：秩/条件数 ----
-    // SCI-502 FIX-3 订正（SCI-505 复核 + 本测试实证）：**门控 κ 必须取实际求解矩阵**
-    //   H_solve = H_red + λ·DᵀD，
-    // 而不是未惩罚的数据矩阵 H_red。原因：在 H_red 上度量时提高 roughness_penalty
-    // 不会改变 κ，于是「κ 超限 ⇒ 走粗糙度正则化」的自适应重试**永远不可能成功**，
-    // 条款形同虚设（实测：λ 从 1e-3 提到 1e6，H_red 的 κ 恒为 2.497e9）。
+    // ---- 唯一判据：列均衡**数据信息矩阵** H_red 的相对有效秩 ----
+    // 判据实现 = astro/phase2/identifiability.h::p2_identifiability_assess
+    // （与 UPM/GLS 侧**同一个函数**、同一个阈值符号 rank_rtol、同一个判决语义）：
+    //     identifiable ⟺ r_eff(H_red) == n_free ⟺ κ(H_red) < 1/rank_rtol
+    // 「欠定」与「病态」是同一条不等式的两种读法：λ_n 最先跌破 τ·λ_1，
+    // 故 κ > 1/τ ⟺ r_eff < n（自证；Hansen RTv4.1 §2.2/§2.3.1 把二者并列）。
     //
-    // §7a 规则 4 统一口径（本次）：**只有一个门、一把尺子、一个矩阵**。
-    //   · 门：κ(H_solve) ≤ kappa_max_eff，其中 kappa_max_eff = 1/rank_rtol（未显式覆盖时）。
-    //     该式与「H_solve 在 rank_rtol 口径下的有效秩 == n_free」**等价**：
-    //         κ = λmax/λmin ≤ 1/rtol  ⟺  λmin ≥ rtol·λmax。
-    //   · 尺子：rank_rtol（相对量），不再有 1e8 / 1e6 这类互相矛盾的绝对常数。
-    //   · 矩阵：H_solve。
-    // H_red 的 κ 与有效秩降为**独立诊断量**（§7a:218 已如此规定 kappa_data），
-    // 同时作为自适应回路的放粗触发信号（H_red 在 rank_rtol 口径下秩亏 ⇒ 网格细过
-    // 数据能约束的极限，惩罚在替数据做功）。
-    //
-    // 口径变更的实证后果（run/UPM-NODE-ADAPT-01）：真实 M42 产品在 h=0.0752° 时
-    // H_red 的 κ_data ≈ 1.6e13（旧实现据此 rc=6 硬拒），而 H_solve 的 κ 远低于门
-    // ⇒ 旧实现用两把不同的尺子把**规则 1 要求的节点间距**判死。统一后该网格可用。
-    std::vector<double> Ld;
-    double kappa_data = std::numeric_limits<double>::quiet_NaN();
-    double lam_min_data = 0.0;
-    std::uint64_t rank = 0;
-    if (chol_spd(H_red, n_free, Ld)) {
-        const double lam_max = lambda_max_power(H_red, n_free);
-        lam_min_data = lambda_min_inverse(H_red, Ld, n_free);
-        if (lam_min_data > 0.0 && std::isfinite(lam_min_data) && std::isfinite(lam_max)) {
-            kappa_data = lam_max / lam_min_data;
-            rank = (lam_min_data > cfg.rank_rtol * lam_max)
-                       ? static_cast<std::uint64_t>(n_free) : 0;
-        }
-    }
-    // 门控 κ：求解矩阵（含惩罚）。λ=0 时 H_solve == H_red ⇒ 与旧口径逐位一致。
-    double kappa = std::numeric_limits<double>::infinity();
-    std::uint64_t rank_solve = 0;
-    if (static_cast<std::size_t>(n_free) * static_cast<std::size_t>(n_free) == H_solve.size()) {
-        std::vector<double> Ls;
-        if (chol_spd(H_solve, n_free, Ls)) {
-            const double s_max = lambda_max_power(H_solve, n_free);
-            const double s_min = lambda_min_inverse(H_solve, Ls, n_free);
-            if (s_min > 0.0 && std::isfinite(s_min) && std::isfinite(s_max)) {
-                kappa = s_max / s_min;
-                rank_solve = (s_min > cfg.rank_rtol * s_max)
-                                 ? static_cast<std::uint64_t>(n_free) : 0;
-            }
-        }
-    }
-    if (rank_solve == 0 && std::isfinite(kappa)) {
-        // κ 有限但有效秩 < n_free：κ 必然 > 1/rank_rtol（两式等价），由下方门拦下。
-    }
-    if (!std::isfinite(kappa)) {
-        // H_solve 连 Cholesky 都过不去 ⇒ 求解矩阵在浮点下不正定，无可用解。
+    // 为什么判决矩阵是 H_red 而不是 H_solve（订正 §7a:218 的旧口径）：
+    //   κ(H_red + λP) 对 λ 有上界且 →1（P 半正定），即「把 λ 调大」总能把 κ
+    //   压到任何门以下 ⇒ 在 H_solve 上设门是**恒真门**，对可辨识性零信息。
+    //   Hansen RTv4.1 §1 第 2 条明列此陷阱（"replacing A by a well-conditioned
+    //   matrix derived from A does not necessarily lead to a useful solution"），
+    //   §2.7.3 把正则化刻画为引入一个 "new problem"。成熟实现一律在未正则化矩阵
+    //   上判秩（LAPACK A / numpy A / Eigen 被分解矩阵 / GSL X / Ceres Jacobian J /
+    //   R dqrdc2 逐列相对 / astropy 未正则化正规矩阵）。
+    //   §7a:218 当年要求取 H_solve 的**理由**是「让 λ 提升分支可能成功」；
+    //   该分支本次已退休（实测惰性 + 归一后能买绿门），理由随之消失。
+    // H_solve 的 κ 降为**求解稳定性**诊断量，单独记账、不参与判决。
+    P2Identifiability id{};
+    const int id_rc = p2_identifiability_assess(
+        H_red.data(), static_cast<std::uint64_t>(n_free),
+        static_cast<std::uint64_t>(used.size()), cfg.rank_rtol, &id);
+    if (id_rc != 0) {
         sky_plane_free(model);
         if (err && err_size)
             std::snprintf(err, err_size,
-                          "solved normal matrix not SPD in floating point (n_free=%d, "
-                          "lambda=%.3e, kappa_data=%.3e)",
-                          n_free, cfg.roughness_penalty, kappa_data);
+                          "identifiability criterion undefined: H_red diagonal non-positive/"
+                          "non-finite (n_free=%d) ⇒ column equilibration has no meaning",
+                          n_free);
         return P2_SKY_PLANE_RANK_DEFICIENT;
     }
-    if (kappa > cfg.kappa_max) {
+    const double kappa = id.kappa;
+    const std::uint64_t rank = id.rank_eff;
+    const double kappa_data = id.kappa;   // 兼容字段：判据读数就是 H_red 的 κ
+    // 诊断：κ(H_solve)（求解稳定性；正则化后 κ 有上界，故它**不能**当判据）。
+    double kappa_solve = std::numeric_limits<double>::quiet_NaN();
+    std::uint64_t rank_solve = 0;
+    {
+        P2Identifiability ids{};
+        if (p2_identifiability_assess(H_solve.data(), static_cast<std::uint64_t>(n_free),
+                                      static_cast<std::uint64_t>(used.size()), cfg.rank_rtol,
+                                      &ids) == 0) {
+            kappa_solve = ids.kappa;
+            rank_solve = ids.rank_eff;
+        }
+    }
+    if (!id.identifiable) {
         sky_plane_free(model);
         if (err && err_size)
-            std::snprintf(err, err_size, "kappa=%.3e > kappa_max=%.3e (kappa_data=%.3e, lambda=%.3e)",
-                          kappa, cfg.kappa_max, kappa_data, cfg.roughness_penalty);
-        return P2_SKY_PLANE_KAPPA_EXCEEDED;
+            std::snprintf(err, err_size,
+                          "identifiability criterion RED: rank_eff=%llu < n_free=%d "
+                          "(unidentified directions=%llu, kappa(H_red)=%.3e, tau=%.3e, "
+                          "lambda_numerical=%.3e, kappa(H_solve)=%.3e)",
+                          (unsigned long long)id.rank_eff, n_free,
+                          (unsigned long long)id.n_unidentified, id.kappa,
+                          id.rank_rtol_effective, lam, kappa_solve);
+        return P2_SKY_PLANE_NOT_IDENTIFIABLE;
     }
 
     // ---- gauge ----
@@ -1206,21 +1174,38 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     info.n_used = n_used0;
     info.n_frames = static_cast<std::uint64_t>(n_frames);
     info.n_nodes = static_cast<std::uint64_t>(n_full);
-    info.n_params = static_cast<std::uint64_t>(n_free) + static_cast<std::uint64_t>(n_frames - 1) * static_cast<std::uint64_t>(m);
-    info.rank = rank;
-    info.kappa = kappa;            // 门控值 = 求解矩阵（含惩罚）的条件数
-    info.kappa_data = kappa_data;  // 未惩罚数据矩阵的条件数（诊断，SCI-502 FIX-3）
-    // §7a 规则 4：门控口径的**来源与生效值**必须可审计
-    info.kappa_max_effective = cfg.kappa_max;
-    info.kappa_max_source = kappa_max_source;
+    // n_params = **判据矩阵的阶**（= Schur 消元后 B_ref 的自由节点数 n_free）。
+    // δ_k 已被精确消去，不是判据面对的未知量；求解器全部未知量另记 n_params_full。
+    info.n_params = static_cast<std::uint64_t>(n_free);
+    info.n_params_full = static_cast<std::uint64_t>(n_free) +
+                         static_cast<std::uint64_t>(n_frames - 1) * static_cast<std::uint64_t>(m);
+    info.rank = rank;              // r_eff(H_red)：τ 口径下的**计数**（不是布尔）
+    info.rank_full = static_cast<std::uint64_t>(rank) +
+                     static_cast<std::uint64_t>(n_frames - 1) * static_cast<std::uint64_t>(m);
+    info.kappa = kappa;            // 判据读数 κ(H_red)；秩亏 ⇒ +inf（不发布伪值）
+    info.kappa_data = kappa_data;  // 同 kappa（兼容字段）
+    info.kappa_solve = kappa_solve;// 诊断：κ(H_solve)，**不参与判决**
+    // 唯一判据的全部可审计读数
+    info.rank_rtol_effective = id.rank_rtol_effective;
+    info.lambda_numerical = lam;
+    info.lambda_max = id.lambda_max;
+    info.lambda_min = id.lambda_min;
+    info.n_unidentified = id.n_unidentified;
+    info.identifiable = id.identifiable;
     info.rank_solve = rank_solve;
     info.node_spacing_source = node_spacing_source;
     info.node_spacing_upper_deg = node_spacing_upper_deg;
     info.node_spacing_lower_deg = node_spacing_lower_deg;
     info.rms_weighted = (sw > 0.0) ? std::sqrt(swr2 / sw) : 0.0;
     info.rms_unweighted = std::sqrt(sr2 / static_cast<double>(used.size()));
-    const double dof = static_cast<double>(used.size()) - static_cast<double>(info.n_params);
-    info.chi2_red = (dof > 0.0) ? (swr2 / dof) : 0.0;
+    // 自由度 = n_used − r_eff（**有效**自由度，Andrae et al. 2010 式 (9)）；
+    // 已退休口径 n_used − n_params（秩亏时低估 χ²_red 并掩盖未约束方向数）。
+    // 有效自由度 = n_obs − rank(完整设计矩阵)。δ 块每帧满秩（上面 chol_spd(Mk) 已强制），
+    // 故 rank(完整) = r_eff(H_red) + (n_frames−1)·m。用 n_params 会低估被拟合的自由度、
+    // 把 chi2_red 系统性地抬高（Andrae et al. 2010, arXiv:1012.3754 式 (8)(9)：dof = N − rank(X)）。
+    info.dof_eff = p2_identifiability_dof(static_cast<std::uint64_t>(used.size()),
+                                          info.rank_full);
+    info.chi2_red = (info.dof_eff > 0.0) ? (swr2 / info.dof_eff) : 0.0;
     info.iterations = iterations;
     info.gauge_mode = cfg.gauge_mode;
     info.weight_mode = cfg.weight_mode;
@@ -1255,6 +1240,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         std::snprintf(info.model_hash, sizeof(info.model_hash), "%s", hx.c_str());
     }
     model->last_weights = w;
+    // 诊断（仅 cfg.retain_normal_matrices）：保留本次判据所用的 H_red 供离线谱分析。
+    if (cfg.retain_normal_matrices != 0) model->retained_h_red = H_red;
     *out_model = model;
     return P2_SKY_PLANE_OK;
 }
@@ -1264,24 +1251,20 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
 // 节点间距自适应重试（§7a「节点间距必须进入自适应重试回路」）
 // ===========================================================================
 //
-// 分工（§7a 正向约束）：节点间距负责**表示能力**，粗糙度惩罚负责**条件数**。
-// 故两条分支互不代偿，各有独立触发条件：
-//   · 残差仍受表示能力限制（细化到 h/2 后 chi2_red 至少降到 r 倍）⇒ 细化节点间距；
-//   · κ 超门（求解矩阵病态）⇒ 提高 roughness_penalty，**不动**节点间距；
-//   · 网格不可行（节点数超 max_nodes / 求解矩阵在 rank_rtol 口径下秩亏）⇒ 放粗节点间距
-//     （只在规则区间 [下界, 上界] 内放粗）。
+// **唯一旋钮 = 节点间距 h；唯一判据 = 相对有效秩**（负责人原则①：不得多路径）。
+// 同一判据决定**两个方向**（不是两条路径）：
+//   · 判红（r_eff(H_red) < n_free：网格细过数据能约束的极限）⇒ 在规则区间内**放粗** h；
+//   · 判绿且残差仍受表示能力限制（细化到 h/2 后 chi2_red 至少降到 r 倍）⇒ **细化** h。
 // 搜索区间由**输入几何**给（上界 = 规则 1 的值，下界 = 数据自身分辨率极限），
-// 起点默认取上界（规则内最粗 ⇒ 条件数最好），按表示收敛判据向下细化。
-// 全部为相对判据，**不含任何标定常数**。
+// 起点取上界（规则内最粗 ⇒ 判据最稳），按表示收敛判据向下细化。
+// 全部为相对判据，**不含任何标定常数**；已退休：原「提高 roughness_penalty」分支。
 P2SkyPlaneAdaptiveConfig p2_sky_plane_default_adaptive_config(void) {
     P2SkyPlaneAdaptiveConfig a{};
     a.enabled = 1;
-    a.max_attempts = 6;              // 与编排面既有 κ 自适应同级（总尝试上限 6）
+    a.max_attempts = 6;              // 总尝试上限（含首次与探针）
     a.max_node_refinements = 4;
     a.max_node_coarsenings = 4;
-    a.max_penalty_escalations = 2;
     a.residual_improve_ratio = 0.5;  // 相对判据：细化后 chi2_red 至少减半才算「仍受限」
-    a.penalty_growth = 10.0;         // 与编排面既有 λ 逐级 ×10 一致
     return a;
 }
 
@@ -1309,10 +1292,8 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
     if (ad.max_attempts > P2_SKY_ADAPT_MAX_ATTEMPTS) ad.max_attempts = P2_SKY_ADAPT_MAX_ATTEMPTS;
     if (ad.max_node_refinements < 0) ad.max_node_refinements = 4;
     if (ad.max_node_coarsenings < 0) ad.max_node_coarsenings = 4;
-    if (ad.max_penalty_escalations < 0) ad.max_penalty_escalations = 2;
     if (!(ad.residual_improve_ratio > 0.0) || !(ad.residual_improve_ratio < 1.0))
         ad.residual_improve_ratio = 0.5;
-    if (!(ad.penalty_growth > 1.0) || !std::isfinite(ad.penalty_growth)) ad.penalty_growth = 10.0;
 
     // 搜索区间**必须**由输入几何给（§7a：不得引入标定常数）。
     P2SkyPlaneNodeSpacing ns{};
@@ -1339,38 +1320,38 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
         else if (cfg.node_spacing_deg < ns.lower_deg) { h = ns.lower_deg; rep.clamped_to_upper = 1; }
         else h = cfg.node_spacing_deg;
     }
-    double lam = cfg.roughness_penalty;
-    if (!(lam >= 0.0) || !std::isfinite(lam)) lam = 0.0;
-    // λ=0 而 κ 触顶时需要一个起始正则化量：取**同一模块的既有默认惩罚**（非新标定常数）。
-    const double lam_seed = p2_sky_plane_default_config().roughness_penalty;
+    // λ 不再是自由参数：每次求解按判据阈值**派生** λ_eff = τ·mean(diag(H_red))
+    // （见 build 内的说明），故自适应回路里没有 λ 状态。
 
     int attempts = 0;
-    int n_refine = 0, n_coarsen = 0, n_pen = 0;
+    int n_refine = 0, n_coarsen = 0;
     int rep_limited = 0;
     int last_rc = P2_SKY_PLANE_INVALID_ARGS;
     std::string last_err;
     void* best = nullptr;
     P2SkyPlaneInfo best_info{};
-    double best_lam = lam;
 
-    // 每次求解只登记一次；分支与「是否被采纳」在决策确定后用 mark() 回填
-    // （避免同一 (h, λ) 因「先探后定」被重复登记）。
-    auto record = [&](double hh, double ll, int rc, const P2SkyPlaneInfo* pi) -> int {
+    // 每次求解只登记一次；方向与「是否被采纳」在决策确定后用 mark() 回填
+    // （避免同一 h 因「先探后定」被重复登记）。
+    auto record = [&](double hh, int rc, const P2SkyPlaneInfo* pi) -> int {
         if (attempts >= P2_SKY_ADAPT_MAX_ATTEMPTS) return -1;
         const int idx = attempts++;
         P2SkyPlaneAttempt& a = rep.attempts[idx];
         a.node_spacing_deg = hh;
-        a.roughness_penalty = ll;
         a.rc = rc;
         a.action = P2_SKY_ADAPT_BUILD_FAILED;
         a.adopted = 0;
         if (pi) {
+            a.lambda_numerical = pi->lambda_numerical;
             a.kappa = pi->kappa;
-            a.kappa_data = pi->kappa_data;
+            a.kappa_solve = pi->kappa_solve;
             a.chi2_red = pi->chi2_red;
             a.rms_weighted = pi->rms_weighted;
             a.rank = pi->rank;
             a.rank_solve = pi->rank_solve;
+            a.n_params = pi->n_params;
+            a.n_unidentified = pi->n_unidentified;
+            a.identifiable = pi->identifiable;
             a.n_nodes = pi->n_nodes;
         }
         return idx;
@@ -1384,35 +1365,31 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
         rep.n_attempts = attempts;
         rep.n_node_refinements = n_refine;
         rep.n_node_coarsenings = n_coarsen;
-        rep.n_penalty_escalations = n_pen;
         rep.node_adaptive_used = (n_refine + n_coarsen > 0) ? 1 : 0;
-        rep.penalty_adaptive_used = (n_pen > 0) ? 1 : 0;
         rep.representation_limited = rep_limited;
         rep.node_spacing_deg = best ? best_info.node_spacing_deg : h;
-        rep.roughness_penalty = best ? best_lam : lam;
+        rep.lambda_numerical = best_info.lambda_numerical;
+        rep.rank_rtol = best_info.rank_rtol_effective;
         rep.kappa = best_info.kappa;
-        rep.kappa_data = best_info.kappa_data;
+        rep.kappa_solve = best_info.kappa_solve;
         rep.chi2_red = best_info.chi2_red;
-        rep.kappa_max_effective = best_info.kappa_max_effective;
+        rep.rank = best_info.rank;
+        rep.n_params = best_info.n_params;
+        rep.n_unidentified = best_info.n_unidentified;
+        rep.identifiable = best_info.identifiable;
         if (out_report) *out_report = rep;
     };
 
     // 单次求解的小工具（顺带把 Info 取回）。
-    auto solve_at = [&](double hh, double ll, void** outm, P2SkyPlaneInfo* outi,
+    auto solve_at = [&](double hh, void** outm, P2SkyPlaneInfo* outi,
                         char* e, std::size_t es) -> int {
         P2SkyPlaneConfig c = cfg;
         c.node_spacing_deg = hh;
-        c.roughness_penalty = ll;
         void* mm = nullptr;
         const int rc = p2_sky_plane_build(samples, n, &c, &mm, e, es);
         if (rc == P2_SKY_PLANE_OK && mm && outi) p2_sky_plane_info(mm, &outi[0]);
         *outm = mm;
         return rc;
-    };
-    // 是否还能向更细的网格走一步（规则区间内 + 次数预算 + 尝试预算）。
-    auto can_refine = [&]() {
-        return (std::max(ns.lower_deg, 0.5 * h) < h) &&
-               (n_refine < ad.max_node_refinements) && (attempts + 1 < ad.max_attempts);
     };
     int last_move_was_refine = 0;
 
@@ -1420,83 +1397,41 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
         void* m = nullptr;
         char e[512] = {0};
         P2SkyPlaneInfo info{};
-        const int rc = solve_at(h, lam, &m, &info, e, sizeof(e));
-        int idx = record(h, lam, rc, (rc == P2_SKY_PLANE_OK) ? &info : nullptr);
+        const int rc = solve_at(h, &m, &info, e, sizeof(e));
+        int idx = record(h, rc, (rc == P2_SKY_PLANE_OK) ? &info : nullptr);
         last_rc = rc;
         last_err = e;
         if (rc != P2_SKY_PLANE_OK) {
-            int action = P2_SKY_ADAPT_BUILD_FAILED;
-            if (rc == P2_SKY_PLANE_KAPPA_EXCEEDED) {
-                // 条件数分支（§7a 规则 3：粗糙度惩罚负责条件数）
-                action = (n_pen < ad.max_penalty_escalations) ? P2_SKY_ADAPT_RAISE_PENALTY
-                                                              : P2_SKY_ADAPT_REFINE_NODES;
-            } else if (rc == P2_SKY_PLANE_RANK_DEFICIENT ||
-                       rc == P2_SKY_PLANE_TOO_MANY_NODES ||
-                       rc == P2_SKY_PLANE_NONFINITE_SOLUTION) {
-                // 网格不可行 ⇒ 放粗（仅在规则区间内、且不是刚细化过，避免来回振荡）
-                action = (h < ns.upper_deg && !last_move_was_refine &&
-                          n_coarsen < ad.max_node_coarsenings)
-                             ? P2_SKY_ADAPT_COARSEN_NODES : P2_SKY_ADAPT_REFINE_NODES;
-            }
-            if (action == P2_SKY_ADAPT_REFINE_NODES && !can_refine())
-                action = P2_SKY_ADAPT_BUILD_FAILED;
+            // 判红 / 网格不可行 ⇒ 同一旋钮的**放粗**方向（规则区间内、且不是刚细化过，
+            // 避免来回振荡）。放粗改善条件数与有效秩，代价是表示能力——两个方向由
+            // **同一条判据**择一，不是两条路径。
+            const bool can_coarsen = (h < ns.upper_deg) && !last_move_was_refine &&
+                                     (n_coarsen < ad.max_node_coarsenings) &&
+                                     (attempts < ad.max_attempts);
+            const bool recoverable = (rc == P2_SKY_PLANE_NOT_IDENTIFIABLE ||
+                                      rc == P2_SKY_PLANE_RANK_DEFICIENT ||
+                                      rc == P2_SKY_PLANE_TOO_MANY_NODES ||
+                                      rc == P2_SKY_PLANE_NONFINITE_SOLUTION);
+            const int action = (recoverable && can_coarsen) ? P2_SKY_ADAPT_COARSEN_NODES
+                                                            : P2_SKY_ADAPT_BUILD_FAILED;
             mark(idx, action, 0);
-            if (action == P2_SKY_ADAPT_RAISE_PENALTY) {
-                lam = (lam > 0.0) ? lam * ad.penalty_growth : lam_seed;
-                ++n_pen;
-                last_move_was_refine = 0;
-                continue;
-            }
             if (action == P2_SKY_ADAPT_COARSEN_NODES) {
                 h = std::min(ns.upper_deg, h * 2.0);
                 ++n_coarsen;
                 last_move_was_refine = 0;
                 continue;
             }
-            if (action == P2_SKY_ADAPT_REFINE_NODES) {
-                // §7a 规则 2：条件数不达门时，除提高粗糙度惩罚外**必须允许细化节点重解**。
-                // 细化本身是一次尝试：探针失败即视为该方向不可行，不采纳其网格。
-                const double h_probe = std::max(ns.lower_deg, 0.5 * h);
-                void* mp = nullptr;
-                char ep[512] = {0};
-                P2SkyPlaneInfo ip{};
-                const int rcp = solve_at(h_probe, lam, &mp, &ip, ep, sizeof(ep));
-                const int idx2 = record(h_probe, lam, rcp,
-                                        (rcp == P2_SKY_PLANE_OK) ? &ip : nullptr);
-                if (rcp == P2_SKY_PLANE_OK && mp) {
-                    mark(idx2, P2_SKY_ADAPT_REFINE_NODES, 1);
-                    if (m) p2_sky_plane_close(m);
-                    m = mp;
-                    info = ip;
-                    h = h_probe;
-                    idx = idx2;
-                    ++n_refine;
-                    last_move_was_refine = 1;
-                    // 落到下方「成功路径」：继续按表示收敛判据探更细的网格
-                } else {
-                    mark(idx2, P2_SKY_ADAPT_BUILD_FAILED, 0);
-                    if (mp) p2_sky_plane_close(mp);
-                    if (m) p2_sky_plane_close(m);
-                    finalize();
-                    if (err && err_size)
-                        std::snprintf(err, err_size,
-                                      "adaptive node spacing exhausted: rc=%d at h=%.6g "
-                                      "lambda=%.6g (refinement probe rc=%d: %s)",
-                                      rc, h, lam, rcp, ep);
-                    return rcp;
-                }
-            } else {
-                if (m) p2_sky_plane_close(m);
-                finalize();
-                if (err && err_size)
-                    std::snprintf(err, err_size,
-                                  "adaptive node spacing exhausted: rc=%d at h=%.6g lambda=%.6g (%s)",
-                                  rc, h, lam, last_err.c_str());
-                return rc;
-            }
+            if (m) p2_sky_plane_close(m);
+            finalize();
+            if (err && err_size)
+                std::snprintf(err, err_size,
+                              "adaptive node spacing exhausted: rc=%d at h=%.6g "
+                              "(upper=%.6g lower=%.6g coarsenings=%d, last: %s)",
+                              rc, h, ns.upper_deg, ns.lower_deg, n_coarsen, last_err.c_str());
+            return rc;
         }
 
-        // ---- 成功路径：按表示收敛判据逐级细化（内层循环，不重复求解当前 h）----
+        // ---- 判绿路径：按表示收敛判据逐级细化（内层循环，不重复求解当前 h）----
         for (;;) {
             const double h_next = std::max(ns.lower_deg, 0.5 * h);
             const bool can_probe = (h_next < h) && (n_refine < ad.max_node_refinements) &&
@@ -1505,15 +1440,14 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
                 mark(idx, P2_SKY_ADAPT_ACCEPTED, 1);
                 best = m;
                 best_info = info;
-                best_lam = lam;
                 break;
             }
             // 表示收敛探针：细化到 h/2，chi2_red 至少降到 r 倍才认为残差仍受表示能力限制。
             void* m2 = nullptr;
             char e2[512] = {0};
             P2SkyPlaneInfo i2{};
-            const int rc2 = solve_at(h_next, lam, &m2, &i2, e2, sizeof(e2));
-            const int idx2 = record(h_next, lam, rc2, (rc2 == P2_SKY_PLANE_OK) ? &i2 : nullptr);
+            const int rc2 = solve_at(h_next, &m2, &i2, e2, sizeof(e2));
+            const int idx2 = record(h_next, rc2, (rc2 == P2_SKY_PLANE_OK) ? &i2 : nullptr);
             const bool improved = (rc2 == P2_SKY_PLANE_OK) && (info.chi2_red > 0.0) &&
                                   (i2.chi2_red <= ad.residual_improve_ratio * info.chi2_red);
             if (improved) {
@@ -1530,13 +1464,15 @@ int p2_sky_plane_build_adaptive(const P2SkySample* samples, std::uint64_t n,
                 if (h <= ns.lower_deg) rep_limited = 1;
                 continue;
             }
-            // 探针未被采纳：采纳当前（较粗、条件数更好）的解，并如实记录探针结果。
-            mark(idx2, P2_SKY_ADAPT_ACCEPTED, 0);
+            // 探针未被采纳（判红，或细化未实质降低 chi2_red）：采纳当前更粗的解，
+            // 并如实记录探针结果（含它被判红/未改善的读数）。
+            mark(idx2, (rc2 == P2_SKY_PLANE_OK) ? P2_SKY_ADAPT_ACCEPTED
+                                                : P2_SKY_ADAPT_BUILD_FAILED,
+                 0);
             mark(idx, P2_SKY_ADAPT_ACCEPTED, 1);
             if (m2) p2_sky_plane_close(m2);
             best = m;
             best_info = info;
-            best_lam = lam;
             break;
         }
         break;   // 已定解 ⇒ 退出外层 while
@@ -1568,6 +1504,33 @@ int p2_sky_plane_info(const void* model, P2SkyPlaneInfo* out) {
     if (!model || !out) return P2_SKY_PLANE_INVALID_ARGS;
     *out = static_cast<const SkyPlaneModel*>(model)->info;
     return P2_SKY_PLANE_OK;
+}
+
+int p2_sky_plane_normal_matrix_size(const void* model, std::uint64_t* out_n_free) {
+    if (!model || !out_n_free) return 1;
+    const SkyPlaneModel* m = static_cast<const SkyPlaneModel*>(model);
+    const std::size_t n2 = m->retained_h_red.size();
+    if (n2 == 0) return 1;
+    const std::size_t n = static_cast<std::size_t>(std::llround(std::sqrt((double)n2)));
+    if (n * n != n2) return 1;
+    *out_n_free = static_cast<std::uint64_t>(n);
+    return 0;
+}
+
+int p2_sky_plane_normal_matrices(const void* model, double* out_h_red, double* out_penalty,
+                                 std::uint64_t ld) {
+    if (!model || !out_h_red || !out_penalty) return 1;
+    const SkyPlaneModel* m = static_cast<const SkyPlaneModel*>(model);
+    std::uint64_t n = 0;
+    if (p2_sky_plane_normal_matrix_size(model, &n) != 0) return 1;
+    if (ld < n) return 1;
+    for (std::uint64_t i = 0; i < n; ++i) {
+        std::memcpy(out_h_red + i * ld, &m->retained_h_red[static_cast<std::size_t>(i * n)],
+                    static_cast<std::size_t>(n) * sizeof(double));
+        std::memcpy(out_penalty + i * ld, &m->retained_penalty[static_cast<std::size_t>(i * n)],
+                    static_cast<std::size_t>(n) * sizeof(double));
+    }
+    return 0;
 }
 
 int p2_sky_plane_eval(const void* model_in, std::uint64_t frame_id,
@@ -1757,11 +1720,10 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"spline_degree", m->cfg.spline_degree},
             {"node_spacing_deg", m->cfg.node_spacing_deg},
             {"frame_gradient_order", m->cfg.frame_gradient_order},
-            {"roughness_penalty", m->cfg.roughness_penalty},
             {"huber_delta", m->cfg.huber_delta},
             {"gauge_mode", m->cfg.gauge_mode},
             {"weight_mode", m->cfg.weight_mode},
-            {"kappa_max", m->cfg.kappa_max},
+            // 唯一判据阈值（FZ-AP2S-RANK-RTOL）。已退休键：roughness_penalty / kappa_max。
             {"rank_rtol", m->cfg.rank_rtol},
             {"max_extrapolation_deg", m->cfg.max_extrapolation_deg},
             // §7a：节点间距导出所需的输入几何（原样落盘，供独立复核导出规则）
@@ -1785,14 +1747,20 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"n_params", m->info.n_params}, {"rank", m->info.rank},
             {"kappa", m->info.kappa},
             {"kappa_data", num_or_null(m->info.kappa_data)},
+            {"kappa_solve", num_or_null(m->info.kappa_solve)},
             {"rms_weighted", m->info.rms_weighted},
             {"rms_unweighted", m->info.rms_unweighted},
             {"chi2_red", m->info.chi2_red}, {"iterations", m->info.iterations},
             {"n_masked", m->info.n_masked}, {"n_rejected", m->info.n_rejected},
             {"model_hash", std::string(m->info.model_hash)},
-            // §7a 规则 4 / 规则 1：门控口径与节点间距来源必须可审计
-            {"kappa_max_effective", m->info.kappa_max_effective},
-            {"kappa_max_source", m->info.kappa_max_source},
+            // 唯一判据的全部读数（判决位 = identifiable；τ = rank_rtol_effective）
+            {"identifiable", m->info.identifiable},
+            {"rank_rtol_effective", m->info.rank_rtol_effective},
+            {"lambda_numerical", m->info.lambda_numerical},
+            {"lambda_max", num_or_null(m->info.lambda_max)},
+            {"lambda_min", num_or_null(m->info.lambda_min)},
+            {"n_unidentified", m->info.n_unidentified},
+            {"dof_eff", m->info.dof_eff},
             {"rank_solve", m->info.rank_solve},
             {"node_spacing_source", m->info.node_spacing_source},
             {"node_spacing_upper_deg", m->info.node_spacing_upper_deg},
@@ -1804,33 +1772,38 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             ja["n_attempts"] = a.n_attempts;
             ja["n_node_refinements"] = a.n_node_refinements;
             ja["n_node_coarsenings"] = a.n_node_coarsenings;
-            ja["n_penalty_escalations"] = a.n_penalty_escalations;
             ja["node_adaptive_used"] = a.node_adaptive_used;
-            ja["penalty_adaptive_used"] = a.penalty_adaptive_used;
             ja["representation_limited"] = a.representation_limited;
             ja["clamped_to_upper"] = a.clamped_to_upper;
             ja["constraining_scale_deg"] = a.constraining_scale_deg;
             ja["node_spacing_upper_deg"] = a.node_spacing_upper_deg;
             ja["node_spacing_lower_deg"] = a.node_spacing_lower_deg;
             ja["node_spacing_deg"] = a.node_spacing_deg;
-            ja["roughness_penalty"] = a.roughness_penalty;
-            ja["kappa"] = a.kappa;
-            ja["kappa_data"] = num_or_null(a.kappa_data);
+            ja["lambda_numerical"] = a.lambda_numerical;
+            ja["rank_rtol"] = a.rank_rtol;
+            ja["kappa"] = num_or_null(a.kappa);
+            ja["kappa_solve"] = num_or_null(a.kappa_solve);
             ja["chi2_red"] = a.chi2_red;
             ja["residual_improve_ratio"] = a.residual_improve_ratio;
-            ja["kappa_max_effective"] = a.kappa_max_effective;
+            ja["rank"] = a.rank;
+            ja["n_params"] = a.n_params;
+            ja["n_unidentified"] = a.n_unidentified;
+            ja["identifiable"] = a.identifiable;
             nlohmann::json jatt = nlohmann::json::array();
             const int na = std::min<int>(a.n_attempts, P2_SKY_ADAPT_MAX_ATTEMPTS);
             for (int i = 0; i < na; ++i) {
                 const P2SkyPlaneAttempt& t = a.attempts[i];
                 jatt.push_back({{"node_spacing_deg", t.node_spacing_deg},
-                                {"roughness_penalty", t.roughness_penalty},
+                                {"lambda_numerical", t.lambda_numerical},
                                 {"kappa", num_or_null(t.kappa)},
-                                {"kappa_data", num_or_null(t.kappa_data)},
+                                {"kappa_solve", num_or_null(t.kappa_solve)},
                                 {"chi2_red", t.chi2_red},
                                 {"rms_weighted", t.rms_weighted},
                                 {"rank", t.rank},
                                 {"rank_solve", t.rank_solve},
+                                {"n_params", t.n_params},
+                                {"n_unidentified", t.n_unidentified},
+                                {"identifiable", t.identifiable},
                                 {"n_nodes", t.n_nodes},
                                 {"rc", t.rc},
                                 {"action", t.action},
@@ -1882,11 +1855,11 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             m->cfg.spline_degree = c.value("spline_degree", m->cfg.spline_degree);
             m->cfg.node_spacing_deg = c.value("node_spacing_deg", m->cfg.node_spacing_deg);
             m->cfg.frame_gradient_order = c.value("frame_gradient_order", m->cfg.frame_gradient_order);
-            m->cfg.roughness_penalty = c.value("roughness_penalty", m->cfg.roughness_penalty);
             m->cfg.huber_delta = c.value("huber_delta", m->cfg.huber_delta);
             m->cfg.gauge_mode = c.value("gauge_mode", m->cfg.gauge_mode);
             m->cfg.weight_mode = c.value("weight_mode", m->cfg.weight_mode);
-            m->cfg.kappa_max = c.value("kappa_max", m->cfg.kappa_max);
+            // 唯一判据阈值。旧产品里的 roughness_penalty / kappa_max 键被**忽略**
+            // （它们属已退休的绝对常数口径），不再回读——回读会让旧值悄悄复活。
             m->cfg.rank_rtol = c.value("rank_rtol", m->cfg.rank_rtol);
             m->cfg.max_extrapolation_deg = c.value("max_extrapolation_deg", m->cfg.max_extrapolation_deg);
             if (c.contains("geometry")) {
@@ -1918,8 +1891,16 @@ int p2_sky_plane_open(const char* path, void** out_model) {
                 m->info.kappa_data = i["kappa_data"].get<double>();
             else
                 m->info.kappa_data = std::numeric_limits<double>::quiet_NaN();
-            m->info.kappa_max_effective = i.value("kappa_max_effective", 0.0);
-            m->info.kappa_max_source = i.value("kappa_max_source", 1);
+            m->info.kappa_solve = (i.contains("kappa_solve") && !i["kappa_solve"].is_null())
+                                      ? i["kappa_solve"].get<double>()
+                                      : std::numeric_limits<double>::quiet_NaN();
+            m->info.identifiable = i.value("identifiable", 0);
+            m->info.rank_rtol_effective = i.value("rank_rtol_effective", m->cfg.rank_rtol);
+            m->info.lambda_numerical = i.value("lambda_numerical", 0.0);
+            m->info.lambda_max = i.value("lambda_max", 0.0);
+            m->info.lambda_min = i.value("lambda_min", 0.0);
+            m->info.n_unidentified = i.value("n_unidentified", (std::uint64_t)0);
+            m->info.dof_eff = i.value("dof_eff", 0.0);
             m->info.rank_solve = i.value("rank_solve", (std::uint64_t)0);
             m->info.node_spacing_source = i.value("node_spacing_source", 1);
             m->info.node_spacing_upper_deg = i.value("node_spacing_upper_deg", 0.0);
@@ -1951,23 +1932,27 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             if (r.n_attempts > P2_SKY_ADAPT_MAX_ATTEMPTS) r.n_attempts = P2_SKY_ADAPT_MAX_ATTEMPTS;
             r.n_node_refinements = a.value("n_node_refinements", 0);
             r.n_node_coarsenings = a.value("n_node_coarsenings", 0);
-            r.n_penalty_escalations = a.value("n_penalty_escalations", 0);
             r.node_adaptive_used = a.value("node_adaptive_used", 0);
-            r.penalty_adaptive_used = a.value("penalty_adaptive_used", 0);
             r.representation_limited = a.value("representation_limited", 0);
             r.clamped_to_upper = a.value("clamped_to_upper", 0);
             r.constraining_scale_deg = a.value("constraining_scale_deg", 0.0);
             r.node_spacing_upper_deg = a.value("node_spacing_upper_deg", 0.0);
             r.node_spacing_lower_deg = a.value("node_spacing_lower_deg", 0.0);
             r.node_spacing_deg = a.value("node_spacing_deg", 0.0);
-            r.roughness_penalty = a.value("roughness_penalty", 0.0);
-            r.kappa = a.value("kappa", 0.0);
-            r.kappa_data = (a.contains("kappa_data") && !a["kappa_data"].is_null())
-                               ? a["kappa_data"].get<double>()
-                               : std::numeric_limits<double>::quiet_NaN();
+            r.lambda_numerical = a.value("lambda_numerical", 0.0);
+            r.rank_rtol = a.value("rank_rtol", m->cfg.rank_rtol);
+            r.kappa = (a.contains("kappa") && !a["kappa"].is_null())
+                          ? a["kappa"].get<double>()
+                          : std::numeric_limits<double>::quiet_NaN();
+            r.kappa_solve = (a.contains("kappa_solve") && !a["kappa_solve"].is_null())
+                                ? a["kappa_solve"].get<double>()
+                                : std::numeric_limits<double>::quiet_NaN();
             r.chi2_red = a.value("chi2_red", 0.0);
             r.residual_improve_ratio = a.value("residual_improve_ratio", 0.0);
-            r.kappa_max_effective = a.value("kappa_max_effective", 0.0);
+            r.rank = a.value("rank", (std::uint64_t)0);
+            r.n_params = a.value("n_params", (std::uint64_t)0);
+            r.n_unidentified = a.value("n_unidentified", (std::uint64_t)0);
+            r.identifiable = a.value("identifiable", 0);
             if (a.contains("attempts") && a["attempts"].is_array()) {
                 const int na = std::min<int>(static_cast<int>(a["attempts"].size()),
                                              P2_SKY_ADAPT_MAX_ATTEMPTS);
@@ -1975,17 +1960,20 @@ int p2_sky_plane_open(const char* path, void** out_model) {
                     const auto& at = a["attempts"][static_cast<std::size_t>(t)];
                     P2SkyPlaneAttempt& o = r.attempts[t];
                     o.node_spacing_deg = at.value("node_spacing_deg", 0.0);
-                    o.roughness_penalty = at.value("roughness_penalty", 0.0);
+                    o.lambda_numerical = at.value("lambda_numerical", 0.0);
                     o.kappa = (at.contains("kappa") && !at["kappa"].is_null())
                                   ? at["kappa"].get<double>()
                                   : std::numeric_limits<double>::quiet_NaN();
-                    o.kappa_data = (at.contains("kappa_data") && !at["kappa_data"].is_null())
-                                       ? at["kappa_data"].get<double>()
-                                       : std::numeric_limits<double>::quiet_NaN();
+                    o.kappa_solve = (at.contains("kappa_solve") && !at["kappa_solve"].is_null())
+                                        ? at["kappa_solve"].get<double>()
+                                        : std::numeric_limits<double>::quiet_NaN();
                     o.chi2_red = at.value("chi2_red", 0.0);
                     o.rms_weighted = at.value("rms_weighted", 0.0);
                     o.rank = at.value("rank", (std::uint64_t)0);
                     o.rank_solve = at.value("rank_solve", (std::uint64_t)0);
+                    o.n_params = at.value("n_params", (std::uint64_t)0);
+                    o.n_unidentified = at.value("n_unidentified", (std::uint64_t)0);
+                    o.identifiable = at.value("identifiable", 0);
                     o.n_nodes = at.value("n_nodes", (std::uint64_t)0);
                     o.rc = at.value("rc", 0);
                     o.action = at.value("action", 0);
