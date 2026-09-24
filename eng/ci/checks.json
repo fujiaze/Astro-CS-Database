@@ -12168,6 +12168,37 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-L4-SEAM-FOOTPRINT",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "prerelease"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/e2e/seam_footprint.py",
+        "--self-test",
+        "--json-out",
+        "run/ci/seam-footprint/selftest.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/seam-footprint/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/e2e/**"
+      ],
+      "requires_monitor": false,
+      "prerequisite_tools": [
+        "python3:numpy",
+        "python3:astropy"
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

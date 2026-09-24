@@ -154,6 +154,7 @@
 | CHK-P3-EXPORT-STREAM-RSS | 架构 | Phase3 导出子块流式的**动态驻留判据**：把已回收引用归零后读内核 VmHWM 记账真实峰值（非声明值、非采样），流式峰值与产品面积解耦，比值与斜率双阈值 | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-RSS --quiet` | P0 |
 | CHK-BUILD-PROVENANCE | 合同 | 构建期指纹一致性：产物自报的 `build_source_digest` 必须等于当前工作树重算值（与 `eng/tools/gen_build_stamp.py` 同口径）。不相等即判红并点名不一致的文件；构建树缺少指纹锚记时判**不可锚定**（rc=2，不等于通过） | `python3 eng/ci/check_build_provenance.py --build-dir build --json-out run/ci/build-provenance/check.json` |
 | CHK-BUILD-PROVENANCE-SELFTEST | 合同 | 上项的可执行正/负例面（8 例：2 绿 + 改源文件不重建 / 篡改记录 / 形态非法 / 记录自相矛盾 4 红 + 缺指纹 rc=2） | `python3 eng/ci/check_build_provenance.py --self-test` |
+| CHK-L4-SEAM-FOOTPRINT | 视觉 | L4 接缝机器门：沿**真实帧足迹**取法向 ±2px 差分，并在同一边界法向平移 200px 的平行线上取同款差分作 off-locus 对照，`rel = (median|seam| − median|ctrl|) / 局部背景电平`，门 `max|rel| ≤ 1e-2`。**方差比对电平阶跃原理性失明**（阶跃不改变方差），故 V4 降级为粗筛、**不得**引用为帧间无接缝证据。含 `--self-test`（无台阶判绿 / 注入已知台阶判红 / 旧 V4 在同一输入判绿即盲区复现 / 帧足迹落在画幅外判红） | `python3 eng/tools/e2e/seam_footprint.py --self-test` | P0 |
 
 ### 2.1 检查器退役与预留
 
