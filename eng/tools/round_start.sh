@@ -12,7 +12,29 @@
 # run/RELEASE-04 以及其余全部轮次，且 exit 0 打印"run/NEW-01 就绪"。
 set -euo pipefail
 
-ROUND="${1:?用法: eng/tools/round_start.sh <ROUND-ID>}"
+# 参数解析（fail-closed）：**未知选项必须点名退出 2，不得静默忽略**。
+# 原实现只取 "$1" 作轮次、其余参数一律丢弃 —— 于是 "round_start.sh NEW-01 --dry-run"
+# 会**静默执行真实删除**（--dry-run 被当成多余的 $2 丢掉，而 run_gc.py 仍带 --apply）。
+# 任何「我以为加了保护开关」的调用都会真的删掉证据；未知开关一律拒绝。
+ROUND=""
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    -h|--help)
+      echo "用法: eng/tools/round_start.sh <ROUND-ID> [--dry-run]"
+      echo "  --dry-run  只预演回收（不删除、不建目录）；去掉它才实际执行"
+      exit 0 ;;
+    -*) echo "未知选项: $arg" >&2
+        echo "用法: eng/tools/round_start.sh <ROUND-ID> [--dry-run]" >&2
+        exit 2 ;;
+    *) if [ -n "$ROUND" ]; then
+         echo "多余的参数: $arg（轮次 ID 只能给一个）" >&2; exit 2
+       fi
+       ROUND="$arg" ;;
+  esac
+done
+[ -n "$ROUND" ] || { echo "用法: eng/tools/round_start.sh <ROUND-ID> [--dry-run]" >&2; exit 2; }
 SELF="${BASH_SOURCE[0]}"
 case "$SELF" in
   */*) : ;;
@@ -31,6 +53,13 @@ die_anchor() { echo "ANCHOR_STALE: $1 $2" >&2; exit 2; }
 [ -f "$KEEP" ]                || die_anchor KEEP_FILE "$KEEP"
 
 cd "$ROOT"
+
+if [ "$DRY_RUN" = "1" ]; then
+  echo "== DRY-RUN：只预演回收（不删除、不建目录）=="
+  python3 "$GC" --prune-products --keep "$ROUND" --keep-file "$KEEP"
+  echo "== DRY-RUN 结束；去掉 --dry-run 才会实际执行 =="
+  exit 0
+fi
 
 echo "== 1/3 回收旧轮次产物（保留 $KEEP 与 $ROUND；并回收保留轮次内的 out/ 产品树）=="
 # --prune-products：保留清单用的是**族 glob**（PERF-* / E2E-* / P1-* …），命中面很宽，
