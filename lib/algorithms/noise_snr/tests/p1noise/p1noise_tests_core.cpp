@@ -207,10 +207,17 @@ int check_b1_plane_ls(CheckState& cs) {
                                   nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
     P1NOISE_CHECK_EQ(cs, r.rc, 0);
     P1NOISE_CHECK_EQ(cs, r.model.n_control_points, 64);
-    const PlaneOracle p = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
-                                          r.model.ctrl_variance,
-                                          r.model.n_control_points);
+    // SCI-VAR-ADAPT-01 (§5d ②): 估计量 = 相对误差加权 + 凸包非负（模型形式仍是冻结的
+    // var(x,y)=a+b·x+c·y）。期望系数由**独立**的 plane_fit_oracle 复算, 并与 build 落进
+    // provenance 的 plane_a/b/c 核对（rtol 1e-9）; 再对注入真值判 10% 门（SNR-006）。
+    const PlaneOracle p = plane_fit_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
+                                           r.model.ctrl_variance,
+                                           r.model.n_control_points);
     P1NOISE_CHECK(cs, p.solvable, "b1_plane_ls_rtol");
+    P1NOISE_CHECK(cs, r.model.has_spatial_field == 1, "b1_plane_ls_rtol");
+    P1NOISE_CHECK(cs, rel_diff(r.model.plane_a, p.a) <= 1e-9, "b1_plane_ls_rtol");
+    P1NOISE_CHECK(cs, rel_diff(r.model.plane_b, p.b) <= 1e-9, "b1_plane_ls_rtol");
+    P1NOISE_CHECK(cs, rel_diff(r.model.plane_c, p.c) <= 1e-9, "b1_plane_ls_rtol");
     const double rel_b = rel_diff(p.b, fx.b);
     const double rel_c = rel_diff(p.c, fx.c);
     const double rel_a = rel_diff(p.a, fx.a);
@@ -686,10 +693,28 @@ int test_negative() {
                                       nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         P1NOISE_CHECK_EQ(cs, r.model.degenerate, 0);
-        const PlaneOracle pn = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
-                                               r.model.ctrl_variance,
-                                               r.model.n_control_points);
+        // SCI-VAR-ADAPT-01 (§5d ②): 期望系数 = build 的 provenance; 先用独立 oracle
+        // 复算同一估计量核对（rtol 1e-9）; 「哪些像素预测 ≤ 0」由该系数判定, **不是**
+        // 由产品面里恰好等于 0 的像素反推（后者是恒真门）。
+        const PlaneOracle pfit = plane_fit_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
+                                                  r.model.ctrl_variance,
+                                                  r.model.n_control_points);
+        P1NOISE_CHECK(cs, pfit.solvable, "n7_plane_pred_unavailable");
+        P1NOISE_CHECK(cs, rel_diff(r.model.plane_a, pfit.a) <= 1e-9, "n7_plane_pred_unavailable");
+        P1NOISE_CHECK(cs, rel_diff(r.model.plane_b, pfit.b) <= 1e-9, "n7_plane_pred_unavailable");
+        P1NOISE_CHECK(cs, rel_diff(r.model.plane_c, pfit.c) <= 1e-9, "n7_plane_pred_unavailable");
+        const PlaneOracle pn = plane_oracle_from_model(r.model);
         P1NOISE_CHECK(cs, pn.solvable, "n7_plane_pred_unavailable");
+        // §5d ②「凸包内恒 ≥ 0」: 约束必须在全部控制点上成立, 凸包内负区占比必须为 0。
+        // 凸包外（真正的边缘外推）仍可为负 ⇒ 本 fixture 的 n_unavail > 0 由凸包外像素提供。
+        // 浮点口径: 约束在 double 下只能保证到 ~1 ulp 的相对量级（活跃约束的残差）,
+        // 故按「|a|+|b·x|+|c·y| 的 1e-12 倍」判定 —— 数值余量, 不是科学阈值。
+        const double pscale = std::fabs(r.model.plane_a) +
+                              std::fabs(r.model.plane_b) * fneg.w +
+                              std::fabs(r.model.plane_c) * fneg.h;
+        P1NOISE_CHECK(cs, r.model.hull_min_pred >= -1e-12 * pscale, "n7_hull_nonnegative");
+        P1NOISE_CHECK(cs, r.model.hull_nonpositive_frac == 0.0, "n7_hull_nonnegative");
+        P1NOISE_CHECK(cs, r.model.ctrl_variance_range > 0.0, "n7_hull_nonnegative");
         std::vector<float> vf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
         std::vector<float> ivf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
         const int rc = snr_noise_model_v1_fill(&r.model, fneg.h, fneg.w,
@@ -1150,9 +1175,17 @@ int test_fill() {
                                       nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         P1NOISE_CHECK_EQ(cs, r.model.has_spatial_field, 1);
-        const PlaneOracle p = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
-                                              r.model.ctrl_variance,
-                                              r.model.n_control_points);
+        // SCI-VAR-ADAPT-01 (§5d ②): 期望系数取 **build 的 provenance**（plane_a/b/c）,
+        // 先用独立 oracle（plane_fit_oracle: 相对误差加权 + 凸包非负, 与生产不同路径）
+        // 复算同一估计量并核对（rtol 1e-9）⇒ 逐像素期望不来自产品面自身输出（非恒真）。
+        const PlaneOracle pfit = plane_fit_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
+                                                  r.model.ctrl_variance,
+                                                  r.model.n_control_points);
+        P1NOISE_CHECK(cs, pfit.solvable, "g2_plane_fill_refbitwise");
+        P1NOISE_CHECK(cs, rel_diff(r.model.plane_a, pfit.a) <= 1e-9, "g2_plane_fill_refbitwise");
+        P1NOISE_CHECK(cs, rel_diff(r.model.plane_b, pfit.b) <= 1e-9, "g2_plane_fill_refbitwise");
+        P1NOISE_CHECK(cs, rel_diff(r.model.plane_c, pfit.c) <= 1e-9, "g2_plane_fill_refbitwise");
+        const PlaneOracle p = plane_oracle_from_model(r.model);
         P1NOISE_CHECK(cs, p.solvable, "g2_plane_fill_refbitwise");
         std::vector<float> vf(static_cast<std::size_t>(fx.w) * fx.h, 0.0f);
         std::vector<float> ivf(static_cast<std::size_t>(fx.w) * fx.h, 0.0f);
@@ -1365,6 +1398,193 @@ int test_mask() {
     return cs.failures == 0 ? 0 : 1;
 }
 
+
+// ---- adaptive 组 (SCI-VAR-ADAPT-01 / SCI-NOISE-001 §5d) --------------------
+// 判据必须**能红能绿**（模板 §3「真值无效应 ⇒ 归零」+ 备择必红）:
+//   a1 纯噪声臂（真值无效应）: 自校准 R 判据**不得**剔除任何 patch; R 的稳健中位数
+//      复现理论值 1（恒等式）; 拟合结果与旧法（无权 LS）在可表示域内一致。
+//   a2 结构污染臂（备择）: 必须剔到（n_structure_rejected > 0）**且**改善
+//      （预测 ≤ 0 的像素占比显著下降）。两条各自独立 ⇒ 恒不动作或恒动作都判红。
+//   a3 provenance: §5d 要求的可观测量逐项在场、自洽, 并与独立 oracle 复算一致。
+//   a4 判据的武装域: patch 数不足以自校准（< 天空预算 8）时判据**不动作**（保守,
+//      显式登记而非静默剔除）。
+inline std::size_t count_pred_nonpositive(const PlaneOracle& p, int w, int h) {
+    std::size_t n = 0;
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            if (!(p.a + p.b * static_cast<double>(x) + p.c * static_cast<double>(y) > 0.0)) ++n;
+    return n;
+}
+
+int test_adaptive() {
+    CheckState cs;
+    const SnrNoiseModelConfig cfg = default_cfg();
+    const std::vector<float> no_mask;
+
+    // ── a1 纯噪声臂（真值无效应 ⇒ 判据归零）────────────────────────────────
+    {
+        const std::uint64_t seeds[3] = {20260941ull, 20260942ull, 20260943ull};
+        for (int k = 0; k < 3; ++k) {
+            const FixNoiseStruct fx = fix_noise_struct(seeds[k], 512, 512, 5.0,
+                                                       0.0, 0.0, 0.0, 0.0);
+            BuildResult r = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr, nullptr, nullptr);
+            P1NOISE_CHECK_EQ(cs, r.rc, 0);
+            P1NOISE_CHECK_EQ(cs, r.model.n_qualified_patches + r.model.n_rejected_patches, 64);
+            // 真值无效应: 一个 patch 也不得剔除
+            P1NOISE_CHECK_EQ(cs, r.model.n_structure_rejected_patches, 0u);
+            P1NOISE_CHECK(cs, r.model.n_structure_rejected_patches == 0,
+                          "a1_no_reject_pure_noise");
+            P1NOISE_CHECK(cs, r.model.n_control_points == 64, "a1_no_reject_pure_noise");
+            // R 的理论值 = 1（恒等式, 不是标定值）: 稳健中位数复现 1（5% 内, 与 §11
+            // 冻结的 σ 5% oracle 同一容差量级; 64 patch 的零假设散布 ~0.6%）
+            P1NOISE_CHECK(cs, std::fabs(r.model.r_median - 1.0) <= 0.05, "a1_r_identity");
+            P1NOISE_CHECK(cs, r.model.r_min > 0.0 && r.model.r_max >= r.model.r_median &&
+                              r.model.r_median >= r.model.r_min, "a1_r_identity");
+            P1NOISE_CHECK(cs, r.model.r_fence > 0.0, "a1_r_identity");
+            // 拟合与旧法（无权 LS, 同一控制点）在可表示域内一致: 逐点相对差 ≤5%
+            const PlaneOracle p_new = plane_oracle_from_model(r.model);
+            const PlaneOracle p_old = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
+                                                      r.model.ctrl_variance,
+                                                      r.model.n_control_points);
+            P1NOISE_CHECK(cs, p_new.solvable && p_old.solvable, "a1_fit_consistent_with_legacy");
+            double worst = 0.0;
+            for (int c = 0; c < 4; ++c) {
+                const double xx = (c & 1) ? (fx.w - 1.0) : 0.0;
+                const double yy = (c & 2) ? (fx.h - 1.0) : 0.0;
+                const double vn = p_new.a + p_new.b * xx + p_new.c * yy;
+                const double vo = p_old.a + p_old.b * xx + p_old.c * yy;
+                worst = std::max(worst, rel_diff(vn, vo));
+            }
+            P1NOISE_CHECK(cs, worst <= 0.05, "a1_fit_consistent_with_legacy");
+            std::fprintf(stdout,
+                         "[p1noise][adapt-a1] seed=%llu rej=%u R(min/med/max)=%.4f/%.4f/%.4f "
+                         "fence=%.4f |plane_new/plane_old-1|<=%.4f\n",
+                         static_cast<unsigned long long>(seeds[k]),
+                         r.model.n_structure_rejected_patches, r.model.r_min,
+                         r.model.r_median, r.model.r_max, r.model.r_fence, worst);
+            free_model(&r.model);
+        }
+    }
+
+    // ── a2 结构污染臂（备择 ⇒ 必须剔到并改善）──────────────────────────────
+    {
+        // 「星云」放在**帧角**（高杠杆位置）: 与生产帧的形态一致 —— 延展结构使少数
+        // patch 的 MAD-σ 被撑大（R ≫ 1）, 无权 LS 被这些控制点拉出巨大斜率 ⇒ 平面在
+        // 帧**内部**穿过零点（实测本 fixture 改前 30.9% 像素预测 ≤ 0, 与生产 30.42%
+        // 同量级）。结构只污染少数 patch（R 中位数仍 ≈ 1）⇒ 噪声总体仍是多数派。
+        const FixNoiseStruct fs = fix_noise_struct(20260944ull, 512, 512, 5.0,
+                                                   20000.0, 60.0, 60.0, 30.0);
+        BuildResult r = build_f64(fs.data, fs.w, fs.h, nullptr, nullptr, nullptr, nullptr);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        P1NOISE_CHECK(cs, r.model.n_structure_rejected_patches > 0, "a2_structure_rejected");
+        // 结构污染使 R 出现远离噪声总体的上尾（本 fixture 的「星云」patch）
+        P1NOISE_CHECK(cs, r.model.r_max > 3.0 * r.model.r_median, "a2_structure_rejected");
+        P1NOISE_CHECK_EQ(cs, r.model.n_qualified_patches + r.model.n_rejected_patches, 64);
+        // 对照臂 = 改前的估计量: 对**全部**合格 patch（含被结构污染的）做无权 LS,
+        // 控制点由独立 oracle 复算（不经过被测函数）
+        const BlankSkyOracle o = blank_sky_oracle(fs.data, fs.w, fs.h, no_mask, cfg);
+        std::vector<double> ox, oy, ov;
+        for (std::size_t i = 0; i < o.qualified.size(); ++i) {
+            if (!o.qualified[i]) continue;
+            ox.push_back(o.ctrl_x[i]);
+            oy.push_back(o.ctrl_y[i]);
+            ov.push_back(o.ctrl_variance[i]);
+        }
+        P1NOISE_CHECK_EQ(cs, static_cast<int>(ox.size()), 64);
+        const PlaneOracle p_old = plane_ls_oracle(ox.data(), oy.data(), ov.data(),
+                                                  static_cast<std::uint32_t>(ox.size()));
+        P1NOISE_CHECK(cs, p_old.solvable, "a2_structure_improved");
+        const PlaneOracle p_new = plane_oracle_from_model(r.model);
+        P1NOISE_CHECK(cs, p_new.solvable, "a2_structure_improved");
+        const std::size_t n_old = count_pred_nonpositive(p_old, fs.w, fs.h);
+        const std::size_t n_new = count_pred_nonpositive(p_new, fs.w, fs.h);
+        const double f_old = static_cast<double>(n_old) / (static_cast<double>(fs.w) * fs.h);
+        const double f_new = static_cast<double>(n_new) / (static_cast<double>(fs.w) * fs.h);
+        std::fprintf(stdout,
+                     "[p1noise][adapt-a2] 预测<=0 像素占比: 改前(无权 LS, 全 64 控制点)=%.4f%% "
+                     "改后(SCI-NOISE §5d)=%.4f%%; 剔除 %u patch; R(max/med)=%.3f/%.3f\n",
+                     100.0 * f_old, 100.0 * f_new, r.model.n_structure_rejected_patches,
+                     r.model.r_max, r.model.r_median);
+        P1NOISE_CHECK(cs, f_old > 0.0, "a2_structure_improved");     // 对照臂必须真有病
+        P1NOISE_CHECK(cs, f_new < f_old, "a2_structure_improved");   // 改后必须严格改善
+        P1NOISE_CHECK(cs, f_new <= 0.5 * f_old, "a2_structure_improved");
+        // §5d ②: 凸包内恒 ≥ 0（约束生效; 凸包外才是真外推）。同 n7 的浮点口径。
+        const double pscale = std::fabs(r.model.plane_a) +
+                              std::fabs(r.model.plane_b) * fs.w +
+                              std::fabs(r.model.plane_c) * fs.h;
+        P1NOISE_CHECK(cs, r.model.hull_min_pred >= -1e-12 * pscale, "a2_hull_nonnegative");
+        P1NOISE_CHECK(cs, r.model.hull_nonpositive_frac == 0.0, "a2_hull_nonnegative");
+        free_model(&r.model);
+    }
+
+    // ── a3 provenance（§5d「可观测量」逐项在场且自洽）──────────────────────
+    {
+        const FixNoiseStruct fs = fix_noise_struct(20260945ull, 256, 256, 5.0,
+                                                   120.0, 128.0, 128.0, 60.0);
+        BuildResult r = build_f64(fs.data, fs.w, fs.h, nullptr, nullptr, nullptr, nullptr);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        const NoiseWeightModelV1& m = r.model;
+        P1NOISE_CHECK(cs, std::isfinite(m.r_min) && std::isfinite(m.r_median) &&
+                              std::isfinite(m.r_max) && std::isfinite(m.r_fence),
+                      "a3_provenance_present");
+        P1NOISE_CHECK(cs, m.r_min <= m.r_median && m.r_median <= m.r_max, "a3_provenance_present");
+        P1NOISE_CHECK(cs, std::isfinite(m.plane_a) && std::isfinite(m.plane_b) &&
+                              std::isfinite(m.plane_c), "a3_provenance_present");
+        P1NOISE_CHECK(cs, m.ctrl_variance_range >= 1.0, "a3_provenance_present");
+        P1NOISE_CHECK(cs, std::isfinite(m.hull_min_pred) && std::isfinite(m.hull_nonpositive_frac),
+                      "a3_provenance_present");
+        P1NOISE_CHECK_EQ(cs, m.n_qualified_patches + m.n_rejected_patches, 64);
+        P1NOISE_CHECK_EQ(cs, m.n_control_points, m.n_qualified_patches);
+        // 控制点方差动态范围 = 实测 max/min
+        double vlo = m.ctrl_variance[0], vhi = m.ctrl_variance[0];
+        for (std::uint32_t i = 1; i < m.n_control_points; ++i) {
+            vlo = std::min(vlo, m.ctrl_variance[i]);
+            vhi = std::max(vhi, m.ctrl_variance[i]);
+        }
+        P1NOISE_CHECK(cs, rel_diff(m.ctrl_variance_range, vhi / vlo) <= 1e-12,
+                      "a3_provenance_consistent");
+        // 凸包内最小预测 = 控制点上的最小预测（线性函数的最小值在顶点取到）
+        double pmin = 1e300;
+        for (std::uint32_t i = 0; i < m.n_control_points; ++i) {
+            const double p = m.plane_a + m.plane_b * m.ctrl_x_px[i] + m.plane_c * m.ctrl_y_px[i];
+            pmin = std::min(pmin, p);
+        }
+        P1NOISE_CHECK(cs, rel_diff(m.hull_min_pred, pmin) <= 1e-9, "a3_provenance_consistent");
+        // 平面系数与独立 oracle 同解
+        const PlaneOracle pf = plane_fit_oracle(m.ctrl_x_px, m.ctrl_y_px, m.ctrl_variance,
+                                                m.n_control_points);
+        P1NOISE_CHECK(cs, pf.solvable, "a3_provenance_consistent");
+        P1NOISE_CHECK(cs, rel_diff(m.plane_a, pf.a) <= 1e-9, "a3_provenance_consistent");
+        P1NOISE_CHECK(cs, rel_diff(m.plane_b, pf.b) <= 1e-9, "a3_provenance_consistent");
+        P1NOISE_CHECK(cs, rel_diff(m.plane_c, pf.c) <= 1e-9, "a3_provenance_consistent");
+        // 消费侧策略: 凸包内负区占比 > 0 ⇒ 不可审计（判据无数值阈值: 0 是约束定义值）
+        P1NOISE_CHECK(cs, astrocs::noise::variance_plane_auditable(m.hull_nonpositive_frac),
+                      "a3_plane_auditable");
+        P1NOISE_CHECK(cs, !astrocs::noise::variance_plane_auditable(0.01), "a3_plane_auditable");
+        P1NOISE_CHECK(cs, !astrocs::noise::variance_plane_auditable(-1.0), "a3_plane_auditable");
+        P1NOISE_CHECK(cs, !astrocs::noise::variance_plane_auditable(
+                              std::numeric_limits<double>::quiet_NaN()), "a3_plane_auditable");
+        free_model(&r.model);
+    }
+
+    // ── a4 武装域: patch 数 < 天空预算(8) ⇒ 判据不动作（保守, 显式登记）──────
+    {
+        SnrNoiseModelConfig c4 = default_cfg();
+        c4.patch_grid_x = 2;
+        c4.patch_grid_y = 2;
+        const FixNoiseStruct fs = fix_noise_struct(20260946ull, 256, 256, 5.0,
+                                                   300.0, 128.0, 128.0, 60.0);
+        BuildResult r = build_f64(fs.data, fs.w, fs.h, nullptr, nullptr, nullptr, &c4);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        P1NOISE_CHECK_EQ(cs, r.model.n_structure_rejected_patches, 0u);
+        P1NOISE_CHECK(cs, r.model.r_max > 0.0, "a4_criterion_disarmed_below_budget");
+        std::fprintf(stdout, "[p1noise][adapt-a4] 4 patch（<预算 8）: 剔除=%u, R(max)=%.3f\n",
+                     r.model.n_structure_rejected_patches, r.model.r_max);
+        free_model(&r.model);
+    }
+    return cs.failures == 0 ? 0 : 1;
+}
+
 }  // namespace
 
 // selfcheck 重入入口 (带注入环境子进程直接跑指定组; TU 外部符号)
@@ -1377,6 +1597,7 @@ int p1noise_run_core_groups(int argc, char** argv) {
         {"scale_law", test_scale_law},
         {"fill", test_fill},
         {"mask", test_mask},
+        {"adaptive", test_adaptive},
     };
     return p1noise::run_all_groups(groups, sizeof(groups) / sizeof(groups[0]), argc, argv);
 }

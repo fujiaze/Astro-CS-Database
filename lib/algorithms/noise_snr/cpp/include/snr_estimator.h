@@ -21,7 +21,11 @@
 // ============================================================================
 #define SNR_ABI_MISMATCH               (-9)
 #define SNR_NOISE_CONFIG_ABI_VERSION   1u
-#define SNR_NOISE_MODEL_ABI_VERSION    1u
+// v2 (SCI-VAR-ADAPT-01 / SCI-NOISE-001 §5d): NoiseWeightModelV1 尾部**只增** 12 个
+// provenance 字段（控制点有效性 + 平面系数 + 凸包审计量）。布局变了 ⇒ struct_size
+// 逐位校验使旧调用方 fail-closed; 版本常量同步 +1 让失配可诊断（MASK-002 只改了
+// 尾部字段未动版本, 本处按同一"只增"纪律但显式标版本）。
+#define SNR_NOISE_MODEL_ABI_VERSION    2u
 #define SNR_ABI_HEADER(TYPE, VERSION)      \
     uint32_t struct_size; /* = sizeof(TYPE) @0 */ \
     uint32_t abi_version; /* = VERSION @4 */
@@ -176,6 +180,25 @@ typedef struct {
                                  //       bit1=1 MASK_DEGRADED (天空预算收缩生效后 n_qualified<预算 或 全局兜底)
     double   mask_radius_p50;    // 逐星半径中位数 (px); 统一半径/手工掩膜通道 = 0
     double   mask_frac;          // 掩膜覆盖比 = 掩膜像素数 / (h*w); 无掩膜 = 0
+    // --- SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d): 自适应平面 provenance -----------
+    // §5d「可观测量（必须写入 provenance）」逐项: 控制点方差动态范围、平面系数、
+    // 凸包内预测 ≤ 0 的占比、被剔除 patch 数、R 的分布。**缺任一项即视为该帧的
+    // 方差面不可审计**。全部为尾部**只增**字段: 旧字段语义与偏移不变。
+    uint32_t n_structure_rejected_patches; // §5d① 自校准 R 判据剔除的 patch 数
+    uint32_t n_r_unavailable_patches;      // R 不可算（差分样本 < min_samples）的 patch 数;
+                                           //   这些 patch **不**被 R 判据剔除（判据只对可算者动作）
+    double   r_min;                        // R 分布（剔除前的合格 patch）min; 无 = 0
+    double   r_median;                     // R 分布稳健中位数
+    double   r_max;                        // R 分布 max
+    double   r_fence;                      // 生效的自校准栅栏（R 单位）; 未触发时 =
+                                           //   所考察的最紧栅栏（判据未动作的审计下界）
+    double   plane_a;                      // 拟合平面 var(x,y)=a+b·x+c·y 的系数
+    double   plane_b;                      //   （本模型数组标度; 与 fill 逐像素求值同一表达式）
+    double   plane_c;
+    double   ctrl_variance_range;          // 控制点方差动态范围 max/min（拟合输入, 剔除后）
+    double   hull_min_pred;                // 凸包内最小平面预测（在控制点上精确求得:
+                                           //   线性函数在凸包上的最小值在顶点取到）
+    double   hull_nonpositive_frac;        // 凸包内 {预测 ≤ 0} 的**面积**占比; 非负约束下恒 0
 } NoiseWeightModelV1;
 
 // 从校准帧估计 blank-sky 稳健方差模型。

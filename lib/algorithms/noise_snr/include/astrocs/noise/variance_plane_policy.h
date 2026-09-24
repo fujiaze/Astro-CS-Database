@@ -73,6 +73,22 @@ inline bool legacy_plane_all_strictly_positive(const float* v, std::size_t n) {
     return true;
 }
 
+// ── SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d): 凸包内负区 = 拟合缺陷, fail-closed ──
+// §5d:「凸包内出现大面积预测 ≤ 0 属**拟合缺陷**, 必须按 §8 登记并 fail-closed,
+//      不得静默出片」; 凸包**外**的预测 ≤ 0 才是合法不可用态（真正的边缘外推）。
+// 生产者（snr_noise_model_v1/_f64 的 build）在控制点凸包内施加**非负约束** ⇒
+// NoiseWeightModelV1.hull_nonpositive_frac（凸包内 {预测 ≤ 0} 的面积占比）应恒为 0。
+// 本函数把「0」变成可执行门: 任何 > 0 的占比都判**不可审计**（消费方不得据此发布）。
+//   **无数值阈值**: 0 是"结构非负"约束的**定义值**, 不是可调门限 —— 与 §5d
+//   「禁止写死阈值常数」一致。
+// 与 classify_variance_plane 正交: 后者判「这张已 fill 的面能不能挂」, 本函数判
+//   「这张面的**拟合**是否可信」; 两者都过才应发布（缺一即 fail-closed）。
+// 判据取**严格等于 0**: 任何 ≠ 0 的取值（正残差、负值、NaN）一律判不可审计 ——
+// fail-closed 且不含任何数值容差（0 是约束的定义值, 不是"小到可以忽略"的阈值）。
+inline bool variance_plane_auditable(double hull_nonpositive_frac) {
+    return std::isfinite(hull_nonpositive_frac) && hull_nonpositive_frac == 0.0;
+}
+
 }  // namespace noise
 }  // namespace astrocs
 

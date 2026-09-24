@@ -50,10 +50,28 @@ int main(void) {
                 offsetof(SnrNoiseModelConfig, mask_budget_min_patches),
                 offsetof(SnrNoiseModelConfig, mask_budget_min_sky));
     std::printf("  \"model_fields\": {\"mask_degraded\": %zu, \"mask_radius_p50\": %zu, "
-                "\"mask_frac\": %zu}\n",
+                "\"mask_frac\": %zu},\n",
                 offsetof(NoiseWeightModelV1, mask_degraded),
                 offsetof(NoiseWeightModelV1, mask_radius_p50),
                 offsetof(NoiseWeightModelV1, mask_frac));
+    // SCI-VAR-ADAPT-01 (SCI-NOISE-001 §5d): 尾部只增的 provenance 字段偏移同样锁定
+    std::printf("  \"model_adapt_fields\": {\"n_structure_rejected_patches\": %zu, "
+                "\"n_r_unavailable_patches\": %zu, \"r_min\": %zu, \"r_median\": %zu, "
+                "\"r_max\": %zu, \"r_fence\": %zu, \"plane_a\": %zu, \"plane_b\": %zu, "
+                "\"plane_c\": %zu, \"ctrl_variance_range\": %zu, \"hull_min_pred\": %zu, "
+                "\"hull_nonpositive_frac\": %zu}\n",
+                offsetof(NoiseWeightModelV1, n_structure_rejected_patches),
+                offsetof(NoiseWeightModelV1, n_r_unavailable_patches),
+                offsetof(NoiseWeightModelV1, r_min),
+                offsetof(NoiseWeightModelV1, r_median),
+                offsetof(NoiseWeightModelV1, r_max),
+                offsetof(NoiseWeightModelV1, r_fence),
+                offsetof(NoiseWeightModelV1, plane_a),
+                offsetof(NoiseWeightModelV1, plane_b),
+                offsetof(NoiseWeightModelV1, plane_c),
+                offsetof(NoiseWeightModelV1, ctrl_variance_range),
+                offsetof(NoiseWeightModelV1, hull_min_pred),
+                offsetof(NoiseWeightModelV1, hull_nonpositive_frac));
     std::printf("}\n");
     return 0;
 }

@@ -121,6 +121,48 @@ int run_selfcheck() {
                      " (n7 判据能红验证通过)\n", rc2);
     }
 
+    // 阶段 4/5: adaptive 组（SCI-VAR-ADAPT-01 §5d）双向必败。
+    // 目的: 证明自校准判据的两条断言**都能红** ——
+    //   4) 「纯噪声 ⇒ 不剔任何 patch」被注入后 adaptive 必失败（判据非恒真）;
+    //   5) 「结构污染 ⇒ 必剔且改善」被注入后 adaptive 必失败（备择侧非空断言）。
+    {
+        const char* faults[2] = {"a1_no_reject_pure_noise", "a2_structure_rejected"};
+        for (int fi = 0; fi < 2; ++fi) {
+            char a0[] = "p1noise_selfcheck";
+            char a1[] = "adaptive";
+            char* av[] = {a0, a1, nullptr};
+            if (p1noise_run_core_groups(2, av) != 0) {
+                std::fprintf(stderr, "SELFCHECK: baseline adaptive FAIL — 恒 FAIL 侧不通过\n");
+                return 1;
+            }
+            std::string envs = std::string("ASTROCS_P1NOISE_FAULT=") + faults[fi];
+            std::vector<char> buf(envs.begin(), envs.end());
+            buf.push_back('\0');
+            char* env[] = {buf.data(), nullptr};
+            const pid_t pid3 = fork();
+            if (pid3 < 0) {
+                std::perror("fork");
+                return 1;
+            }
+            if (pid3 == 0) {
+                execve("/proc/self/exe", av, env);
+                _exit(127);
+            }
+            int st3 = 0;
+            waitpid(pid3, &st3, 0);
+            const int rc3 = WIFEXITED(st3) ? WEXITSTATUS(st3) : -1;
+            if (rc3 == 0) {
+                std::fprintf(stderr,
+                             "SELFCHECK: fault-inject '%s' 后 adaptive 仍 PASS — 该判据恒真,"
+                             " 无证据资格\n", faults[fi]);
+                return 1;
+            }
+            std::fprintf(stdout,
+                         "SELFCHECK phase4/%d: baseline adaptive PASS + fault-inject '%s'"
+                         " → child rc=%d (判据能红验证通过)\n", fi + 1, faults[fi], rc3);
+        }
+    }
+
     std::fprintf(stdout, "P1NOISE SELFCHECK PASS (baseline + fault-injection both verified)\n");
     return 0;
 }
