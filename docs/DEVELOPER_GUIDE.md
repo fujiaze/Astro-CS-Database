@@ -1,4 +1,4 @@
-# AstroCS 开发者指南
+# Astro Celestial Sphere Database（ACSD） 开发者指南
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 

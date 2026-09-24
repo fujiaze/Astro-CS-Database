@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-007 Checkpoint 与幂等恢复
+// ACSD Core Contracts — CORE-007 Checkpoint 与幂等恢复
 #pragma once
 
 #include "astrocs/core/artifact.h"

@@ -20,7 +20,7 @@
 
 #include "monitor.h"
 
-// PERF-401: cfitsio 取锁点（aio）的**实测**阻塞等待。aio/src 已在 astrocs
+// PERF-401: cfitsio 取锁点（aio）的**实测**阻塞等待。aio/src 已在 acsd
 // 目标的 include 面上；其他 include 本头的 target 若无该路径则本块自动退化
 // （lock_wait_ns 保持 0，不引入新依赖、不改公共 ABI）。
 #if defined(__has_include)

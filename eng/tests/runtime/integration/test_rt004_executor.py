@@ -301,7 +301,7 @@ int main() {
 # run 结束前全部 join 回收，非永久驻留）——属 Scheduler 自身调度协调线程而非
 # "模块私建永久池"，显式豁免并记录（见 known_limits）。
 CPP_PROD_ROOTS = [CORE]
-HDR_PROD_ROOT = INC / "astrocs" / "core"
+HDR_PROD_ROOT = INC / "acsd" / "core"
 
 # scheduler.cpp CORE-006 基线 bounded per-run join pool 豁免（run 内 join 回收）
 _SCHEDULER_JOIN_POOL_OK = {"scheduler.cpp"}
@@ -677,7 +677,7 @@ int main() {
     c.queue_depth = 4;
     c.output_path = std::string(RT004_POOL_TMP) + "/rt004_pool_w" + std::to_string(round) + ".fits";
     c.wcs_header = "SIMPLE  =                    T\nNAXIS   =                    2\n";
-    c.properties = "ASTROCS PROVENANCE\nPROJECT = AstroCS\n";
+    c.properties = "ASTROCS PROVENANCE\nPROJECT = ACSD\n";
     ExportStreamScheduler s(c);
     s.set_image(512, 512);
     s.set_pixel_fn(ref_pixel);

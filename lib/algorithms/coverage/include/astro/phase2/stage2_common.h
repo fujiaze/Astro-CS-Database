@@ -101,7 +101,7 @@ struct P2Stage2Config {
     int precision = 0;
     std::uint64_t memory_limit_mb = 24576;
     int reject_method = P2_REJECT_AUTO;  // production default = auto
-    // CONFORM-FIX-B-007: 生产默认 profile = AstroCS 自研档
+    // CONFORM-FIX-B-007: 生产默认 profile = ACSD 自研档
     // （负责人裁决 FIX-SCI-SNR-CANON-001 / GAP_AUDIT §9.40 C2「自研的 ⇒ 改文档
     // 对齐代码」；docs/science/REJECTION.md:21,47、CONFIG_SCHEMA.md:25、
     // eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
@@ -117,7 +117,7 @@ struct P2Stage2Config {
     // RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
     std::string reject_normalization = "astrocs_median_center_v1";
     double reject_normalization_floor = 1e-12;
-    // astrocs.large_scale_rejection.v1（WBPP 大尺度拒绝的 AstroCS
+    // astrocs.large_scale_rejection.v1（WBPP 大尺度拒绝的 ACSD
     // 自有实现；默认关闭 = WBPP largeScaleClipLow/High 默认一致）
     bool large_scale_enabled = false;
     int large_scale_min_structure_pixels = 8;

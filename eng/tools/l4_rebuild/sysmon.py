@@ -420,7 +420,7 @@ class Sampler:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="AstroCS RELEASE-02 procfs 系统监视器")
+    ap = argparse.ArgumentParser(description="ACSD RELEASE-02 procfs 系统监视器")
     ap.add_argument("--out", required=True, help="输出 CSV 路径")
     ap.add_argument("--pid", action="append", default=[],
                     help="跟踪目标进程 pid (可重复; 含全部后代)")

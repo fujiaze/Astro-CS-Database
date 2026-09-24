@@ -1,4 +1,4 @@
-// AstroCS Runtime — RT-001 typed DAG node 合同（冻结头，编译期合同）
+// ACSD Runtime — RT-001 typed DAG node 合同（冻结头，编译期合同）
 //
 // 本头是 RT-001「类型化运行图」node 定义的 C++ 合同形态；权威 JSON 形态为
 // lib/infrastructure/pipeline/typed_dag.schema.json，语义执行形态为 lib/infrastructure/pipeline/typed_dag.py

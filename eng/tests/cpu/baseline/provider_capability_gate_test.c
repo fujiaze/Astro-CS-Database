@@ -1,4 +1,4 @@
-/* AstroCS CPU baseline provider — capability 门负测 (stub 探测)
+/* ACSD CPU baseline provider — capability 门负测 (stub 探测)
  * eng/tests/cpu/baseline/provider_capability_gate_test.c (CPU-002)
  *
  * 覆盖 (CPU-002 验收 "能力矩阵消费: capability 不足 → baseline 路径"):

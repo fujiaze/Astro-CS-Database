@@ -19,7 +19,7 @@
      astropy 可用时交叉复核
   H. --self-test：上述每一项都有可执行正例/负例（真值无效应时判红）
 
-本检查器只用 stdlib + ctypes(libzstd) + tar/zstd CLI；不运行任何 AstroCS 可执行文件，
+本检查器只用 stdlib + ctypes(libzstd) + tar/zstd CLI；不运行任何 ACSD 可执行文件，
 不加载仓内构建的 .so。
 
 用法：
@@ -147,7 +147,7 @@ def write_fits_tile(path: Path, tw: int, ipix: int) -> None:
 def write_properties(path: Path, order: int, tw: int, tile_format: str = "fits") -> None:
     lines = [
         "creator_did=ivo://astrocs/hipsform",
-        "obs_title=AstroCS storage-form fixture",
+        "obs_title=ACSD storage-form fixture",
         "hips_version=1.4",
         f"hips_order={order}",
         f"hips_tile_width={tw}",

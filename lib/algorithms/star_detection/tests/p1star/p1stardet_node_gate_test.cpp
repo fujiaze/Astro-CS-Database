@@ -25,7 +25,7 @@
 //   N8/N9/N9b 需要 gaia 数据集（外部只读数据集 gaia/GaiaDR3）；
 //   缺失时打印 SKIP 并在结尾汇总（可用 ASTROCS_STARDET_REQUIRE_GAIA=1 把 SKIP 判红）。
 //
-// 节点调用不启动 astrocs CLI（进程内直调测试钩子）。
+// 节点调用不启动 acsd CLI（进程内直调测试钩子）。
 // ctest 目标名: p1stardet_node_gate
 // ============================================================================
 

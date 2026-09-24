@@ -1,6 +1,6 @@
 # DEPENDENCIES.md — 工具链版本锁定 (QA-005 / BLD-001)
 
-本文件是 AstroCS 工具链与依赖的版本锁定权威（仓库根）。Windows x64 发布
+本文件是 Astro Celestial Sphere Database（ACSD） 工具链与依赖的版本锁定权威（仓库根）。Windows x64 发布
 工具链以控制包 `09_WINDOWS_TOOLCHAIN_LOCK.md` 为唯一编译依据；机器校验入口
 `eng/cmake/toolchain/verify_toolchain.py`，冻结事实合同
 `eng/packaging/schemas/preset-contract.json`。
@@ -26,10 +26,7 @@
 | preset 合同 | `eng/packaging/schemas/preset-contract.json` | verifier 单一事实源 |
 | verifier | `eng/cmake/toolchain/verify_toolchain.py` | preset/.vsconfig 漂移 FAIL fast |
 
-正式 preset：`win-msvc-17.14.39-x64`（CMakePresets.json）。禁止替换：
-VS 2026/v144/v145、17.14 evergreen latest、CMake 4.x、Ninja 作为 Windows
-正式 generator、MinGW/MSYS2、`/MT`、`/fp:fast`、全局 `/arch:AVX*`、
-固定 `-j16`/`/m:16`、Windows 11-only API。
+正式 preset：`win-msvc-17.14.39-x64`（`CMakePresets.json`）——Windows 工具链取值以该 preset 的显式声明为来源。preset 边界之外的取值面（VS 2026/v144/v145、17.14 evergreen latest、CMake 4.x、Ninja 以外的 Windows generator、MinGW/MSYS2、`/MT`、`/fp:fast`、全局 `/arch:AVX*`、固定 `-j16`/`/m:16`、Windows 11-only API）不属正式工具链面。
 
 ## Linux 控制节点（轻验证；非发布产物）
 
@@ -70,10 +67,6 @@ configure 无机器绝对路径扫描 + SBOM 输入生成）。
 - nlohmann-json `3.12.0` — vendored `lib/third_party/nlohmann/json.hpp`
   （单头）; 来源 nlohmann/json (MIT); hash 见 lock。**当前树零引用**
   （lock `reference_status=UNREFERENCED` + 理由; 有机器判据）。
-- gsl / gslcblas — 系统发行版库（`libgsl.so.28`/`libgslcblas.so.0`）;
-  经 `astrocs_p1_sdet → astrocs_module_adapters → astrocs` 进入产品 exe
-  动态链（ldd 实证）; **GPL 族再分发判定 PENDING_OWNER**（lock
-  `license_review`）。
 - zlib / zstd / lz4 — Linux 链接系统发行版库; MSVC 经 `ACS_ZLIB_ROOT`
   显式 cache 变量 (默认空, 不硬编码用户路径), 无则 cfitsio zcompress
   路径降级。
@@ -90,7 +83,7 @@ configure 无机器绝对路径扫描 + SBOM 输入生成）。
 
 ### 机器路径政策 (BLD-004)
 `machine_absolute_path: FORBIDDEN` (F:/、C:/Users/<user>、/home/<user>
-不得进入 CMake 构建输入); `msys2_mingw: FORBIDDEN`; `vcpkg: NOT_USED`
+只出现在非构建输入面); `msys2_mingw: FORBIDDEN`; `vcpkg: NOT_USED`
 (若引入必须 manifest + baseline)。冻结 Windows 工具链安装约定
 `C:/AstroCS/toolchains/...` 由 preset 显式声明, 属白名单例外。
 遗留 Windows 开发脚本 (eng/build/toolchain.ps1 等) 含 C:\msys64 / C:\Users\fujia

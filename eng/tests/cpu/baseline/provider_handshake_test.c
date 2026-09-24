@@ -1,5 +1,5 @@
 #define _POSIX_C_SOURCE 200112L
-/* AstroCS CPU baseline provider — query 握手与 capability 门测试
+/* ACSD CPU baseline provider — query 握手与 capability 门测试
  * eng/tests/cpu/baseline/provider_handshake_test.c (CPU-002)
  *
  * 覆盖 (CPU-002 验收: provider query/self_test/export/ABI 完整):

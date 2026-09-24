@@ -1,4 +1,4 @@
-# AstroCS phase1 drizzle module — 元数据 (P1-DRZ-DOC 冻结, 2026-09-07)
+# ACSD phase1 drizzle module — 元数据 (P1-DRZ-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/drizzle/healpix_drizzle/，
 # 编译进根 CMakeLists.txt:356-366 静态库 astrocs_drizzle；C ABI 导出
 # hp_drizzle_api.h:42,62,70,130,139,140 六符号），模块化迁移（独立模块源

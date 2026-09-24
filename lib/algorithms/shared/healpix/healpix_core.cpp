@@ -1,5 +1,5 @@
 // ============================================================================
-// healpix_core.cpp - AstroCS 共享 HEALPix 核心实现 (NESTED)
+// healpix_core.cpp - ACSD 共享 HEALPix 核心实现 (NESTED)
 //
 // ang2pix/pix2ang 算法来源: astrometry.net healpix.c
 // (BSD-3-Clause, 与 astropy-healpix 内置 C 核心同源, 见

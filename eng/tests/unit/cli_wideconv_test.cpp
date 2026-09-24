@@ -69,7 +69,7 @@ static void test_boundary_math() {
 }
 
 static void test_conversion_sequences() {
-  const std::vector<std::string> cases = {"", "a", "hello.exe", "C:\\astro\\astrocs.exe",
+  const std::vector<std::string> cases = {"", "a", "hello.exe", "C:\\astro\\acsd.exe",
                                           "中文路径/天体.fits"};
   for (const auto& want : cases) {
     WideConvSim api{want};
@@ -85,7 +85,7 @@ static void test_conversion_sequences() {
 // (真实 API 中参数为指针容量检查, 越界写发生在实现层 — 本测试固化"错误序列
 // 与正确序列容量请求不同"这一可静态区分事实)。
 static void test_legacy_sequence_rejected() {
-  WideConvSim api{"C:\\x\\astrocs.exe"};  // n = 18+1 = 19
+  WideConvSim api{"C:\\x\\acsd.exe"};  // n = 13+1 = 14
   const int n = api.query();
   const size_t legacy_alloc = utf8_from_wide_final_len(n);      // 旧: n-1
   const int legacy_cb = n;                                       // 旧: 传 n

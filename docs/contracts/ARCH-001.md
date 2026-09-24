@@ -17,7 +17,7 @@
 
 ```mermaid
 flowchart TD
-    CLI["astrocs CLI"] --> RT["Pipeline Runtime"]
+    CLI["acsd CLI"] --> RT["Pipeline Runtime"]
     RT --> REG["Module Registry"]
     RT --> CTX["RunContext 服务"]
     REG --> MOD["科学模块"]
@@ -86,7 +86,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 | orchestrator.cpp 5522 行全局调度 | 第二生产调度器 (P1-002) | LEG-002 |
 | p2_session cpu_workers=1 | 生产串行 (P0-001) | P2-002 |
 | CLI drizzle 直呼 hp_drizzle_run_hips | CLI 直连科学 (P1-005) | LEG-001 |
-| ACR registry 符号在生产 astrocs | ACR 生产泄漏 (P1-007) | LEG-004 |
+| ACR registry 符号在生产 acsd | ACR 生产泄漏 (P1-007) | LEG-004 |
 
 ## 8. 验收
 

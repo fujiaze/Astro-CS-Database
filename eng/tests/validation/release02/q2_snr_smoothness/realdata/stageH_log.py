@@ -6,7 +6,7 @@ J=json.load(open(OUT+'/realdata_seam.json'))
 L=[]
 def w(s=''): L.append(s)
 w('='*118)
-w('AstroCS RELEASE-02  Q2 real-data measurement log')
+w('ACSD RELEASE-02  Q2 real-data measurement log')
 w('generated (UTC): '+J['generated_utc'])
 w('products: OLD=p3_r_vis (mosaic_out_w1, SWVER 98e529ec) | NEW=bitref_16w -> p3_r_vis_fixed | upmfix -> p3_upmfix (both SWVER 9405f1b)')
 w('='*118)

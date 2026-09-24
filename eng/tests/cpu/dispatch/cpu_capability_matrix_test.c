@@ -1,4 +1,4 @@
-/* AstroCS CPU-001 feature matrix 模拟测试 — eng/tests/cpu/dispatch/cpu_capability_matrix_test.c
+/* ACSD CPU-001 feature matrix 模拟测试 — eng/tests/cpu/dispatch/cpu_capability_matrix_test.c
  *
  * 目的 (CPU-001 验收 "模拟 feature matrix; 缺 AVX/OS state/子集拒绝"):
  *   以合成 CPUID/OS 证据 (leaf1_ecx/edx, leaf7_ebx, osxsave 经 leaf1_ecx.bit27,

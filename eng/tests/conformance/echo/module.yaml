@@ -1,4 +1,4 @@
-# AstroCS echo conformance module — 元数据 (ABI-005)
+# ACSD echo conformance module — 元数据 (ABI-005)
 # 状态: IMPLEMENTED (ABI-005 conformance 探针; 无科学含义)。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4; conformance 模块无科学/算法/
 # 数据合同 → 显式 NONE 引用并注释原因。

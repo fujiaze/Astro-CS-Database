@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://astrocs/contracts/config/cli-selftest-v1.json",
-  "title": "astrocs selftest --json 输出合同 (CLI-001 冻结)",
+  "title": "acsd selftest --json 输出合同 (CLI-001 冻结)",
   "description": "稳定机器输出: 宿主自检(版本/CPU 基线/退出码表一致性) + 可选 module/provider 装配校验。缺 DLL/未装配 → verdict FAIL, 退出非零(5)。",
   "type": "object",
   "additionalProperties": false,

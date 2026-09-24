@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://astrocs/contracts/config/cli-modules-list-v1.json",
-  "title": "astrocs modules list --json 输出合同 (CLI-001 冻结)",
+  "title": "acsd modules list --json 输出合同 (CLI-001 冻结)",
   "description": "稳定机器输出: 从 exe 旁 astrocs.product.json 扫描登记 unit。stdout 恰一个 JSON 文档, 无混杂进度文字。",
   "type": "object",
   "additionalProperties": false,

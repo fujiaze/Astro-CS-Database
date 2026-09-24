@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/port/v1",
-  "title": "AstroCS 统一对象端口合同（跨对象引用只能同对象）",
+  "title": "ACSD 统一对象端口合同（跨对象引用只能同对象）",
   "description": "UNIFIED_MODEL §2（数据对象禁止互相冒充）+ ENGINEERING_SPEC §4.7（端口引用有效 DATA 合同）。端口/连接声明必须写明接受的对象与 schema ID，且被连接文档的对象判别式必须与端口一致；例如把 source_snr 接进要求 variance 的端口必败。枚举 = UNIFIED_MODEL §2 的 13 个 canonical 数据对象（2026-09-20 起 14→13；retired 对象见 x-astrocs-object.retired_objects）。",
   "x-astrocs-object": {
     "name": "port_contract",

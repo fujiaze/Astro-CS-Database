@@ -10,7 +10,7 @@
 namespace astrocs::backend_host {
 
 /* 采集硬件画像并返回 JSON 文本(单文档 UTF-8)。
- * build_id: AstroCS 版本串(X.Y.Z-alpha.N+g<hash12>), 由 CLI 注入。
+ * build_id: ACSD 版本串(X.Y.Z-alpha.N+g<hash12>), 由 CLI 注入。
  * reentrant=yes; threadsafe=yes; internal_parallel=none。 */
 std::string hardware_inspect_json_v1(const std::string& build_id);
 

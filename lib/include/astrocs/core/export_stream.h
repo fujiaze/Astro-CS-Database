@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-504 export 子块流式调度器
+// ACSD Core — ARCH-504 export 子块流式调度器
 //
 // 依据：ASTROCS_DESIGN.md §6（投影导出）、§8.3（export = 子块流式）；ENGINEERING_SPEC.md
 //       §4.1；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md。

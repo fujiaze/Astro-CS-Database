@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/frame_snr/v1",
-  "title": "AstroCS 统一对象 frame_snr —— 帧级信噪比（不是权重）",
+  "title": "ACSD 统一对象 frame_snr —— 帧级信噪比（不是权重）",
   "description": "UNIFIED_MODEL §2：frame_snr = 帧级 SNR（信噪比，非权重）：真实信号/噪声比，不受天光影响；可否作权重 = 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算。frame_snr 本身不是权重，也不是 depth_m5（5σ 深度），二者不得互填。",
   "x-astrocs-object": {
     "name": "frame_snr",

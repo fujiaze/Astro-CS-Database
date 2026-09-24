@@ -8,7 +8,7 @@ V11 P11-2/P11-5: REF_HIPS 源图生成（外部标准判决用）
   - ref_oracle.fits : 精确 oracle 编码（float64：v = ra*1e6*1e6 + (dec+90)*1e6，
                       可从像素值恢复天球坐标，用于 FITS tile 布局外部判决）
 
-两者 FOV/指向一致，由 CDS Hipsgen 各自生成 REF_HIPS（不使用 AstroCS writer）。
+两者 FOV/指向一致，由 CDS Hipsgen 各自生成 REF_HIPS（不使用 ACSD writer）。
 """
 from __future__ import annotations
 

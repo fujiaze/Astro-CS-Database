@@ -138,15 +138,15 @@ class Checker:
 
     # ── [A] 命令树 vs CLI --help ──
     # 命令树 golden 的可执行候选（顺序=优先级）：
-    #   1. build/astrocs           —— 产品图产物（CMakeLists.txt 根图 add_executable(astrocs)
-    #      是唯一 install(TARGETS astrocs) 交付件）；
-    #   2. build/astrocs.exe       —— 产品图 Windows 产物；
+    #   1. build/acsd           —— 产品图产物（CMakeLists.txt 根图 add_executable(acsd)
+    #      是唯一 install(TARGETS acsd) 交付件）；
+    #   2. build/acsd.exe       —— 产品图 Windows 产物；
     #   3. build/cli/astrocs       —— 兼容图产物（cli/CMakeLists.txt 自述 COMPATIBILITY、
     #      非产品事实源，仅作历史回落）；
-    #   4. build/cli/astrocs.exe   —— 兼容图 Windows 产物。
+    #   4. build/cli/acsd.exe   —— 兼容图 Windows 产物。
     # 两图同名不同源集，故产品图优先（问题扫描 M5b-G-01：门必须验交付物）。
-    CLI_EXE_CANDIDATES = ("build/astrocs", "build/astrocs.exe",
-                          "build/cli/astrocs", "build/cli/astrocs.exe")
+    CLI_EXE_CANDIDATES = ("build/acsd", "build/acsd.exe",
+                          "build/cli/astrocs", "build/cli/acsd.exe")
 
     def _cli_exe(self):
         """返回首个存在的 CLI 可执行路径；候选全缺返回 None（调用方 fail-closed）。"""
@@ -161,10 +161,10 @@ class Checker:
         if not os.path.isfile(doc):
             return self.fail("缺少 CLI_PROTOCOL_V1.md")
         doc_text = open(doc, encoding="utf-8", errors="ignore").read()
-        doc_cmds = re.findall(r"^\s*astrocs .*$", doc_text, re.M)
+        doc_cmds = re.findall(r"^\s*acsd .*$", doc_text, re.M)
         # 去尾部注释
         doc_cmds = [c.split("#")[0].strip() for c in doc_cmds]
-        doc_cmds = {c for c in doc_cmds if c.startswith("astrocs") and len(c) > 7}
+        doc_cmds = {c for c in doc_cmds if c.startswith("acsd") and len(c) > 7}
         exe = self._cli_exe()
         if exe is None:
             # fail-closed: 缺产物即 FAIL。历史缺陷：此处曾无 else 分支，产物缺失时
@@ -180,9 +180,9 @@ class Checker:
             return self.fail("%s --help rc=%d（命令树 golden 不可读，fail-closed）"
                              % (exe, proc.returncode))
         help_text = proc.stdout
-        help_cmds = {l.strip() for l in help_text.splitlines() if l.strip().startswith("astrocs")}
+        help_cmds = {l.strip() for l in help_text.splitlines() if l.strip().startswith("acsd")}
         if not help_cmds:
-            return self.fail("%s --help 未输出任何 astrocs 命令行（命令树 golden 不可读，"
+            return self.fail("%s --help 未输出任何 acsd 命令行（命令树 golden 不可读，"
                              "fail-closed）" % exe)
         missing = sorted(c for c in doc_cmds if c not in help_cmds)
         if missing:
@@ -197,9 +197,9 @@ class Checker:
         if self.exit_codes_h and os.path.isfile(self.exit_codes_h):
             hdr = self.exit_codes_h
         else:
-            for cand in (os.path.join(self.repo, "include", "astrocs", "exit_codes.h"),
+            for cand in (os.path.join(self.repo, "include", "acsd", "exit_codes.h"),
                          os.path.join(self.repo, "lib", "infrastructure", "cli", "exit_codes.h"),
-                         os.path.join(self.repo, "include", "astrocs", "exit_codes.hpp")):
+                         os.path.join(self.repo, "include", "acsd", "exit_codes.hpp")):
                 if os.path.isfile(cand):
                     hdr = cand
                     break

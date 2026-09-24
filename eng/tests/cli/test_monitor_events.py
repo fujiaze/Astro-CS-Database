@@ -17,7 +17,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
 # CTESTFULL-01：fixture 制备已收归 cli_fixture（自带 AIO/SHARED/cfitsio 定位），
 # 本文件原有的 _pick/AIO/SHARED 兼容垫片随之退役。
@@ -75,7 +75,7 @@ class TestMonitorEvents(unittest.TestCase):
 
     def _require_exe(self):
         if not self.exe_ok:
-            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
+            self.skipTest("CLI 二进制缺失(先构建 build/acsd)")
 
     def _require_fixture(self):
         self._require_exe()

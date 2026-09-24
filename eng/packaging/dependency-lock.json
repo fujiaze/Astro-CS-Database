@@ -81,7 +81,7 @@
       "version": "system-optional",
       "usage": "production-optional",
       "license": "编译器运行时 (GCC libgomp: GPL-3.0-or-later WITH GCC-exception-3.1; 未随安装树分发)",
-      "policy": "仅遗留 target (astrocs_aio/calibration/drizzle) omp pragma 需要; find_package(OpenMP QUIET) UNIX only; 生产不依赖; ldd build/astrocs 实测动态依赖 libgomp.so.1",
+      "policy": "仅遗留 target (astrocs_aio/calibration/drizzle) omp pragma 需要; find_package(OpenMP QUIET) UNIX only; 生产不依赖; ldd build/acsd 实测动态依赖 libgomp.so.1",
       "source": "编译器运行时"
     },
     {
@@ -97,16 +97,6 @@
       "usage": "production (UNIX)",
       "license": "glibc (LGPL-2.1-or-later; 动态链接, 未随安装树分发)",
       "policy": "m/z/dl 链接见根 CMakeLists; CMAKE_DL_LIBS"
-    },
-    {
-      "name": "gsl",
-      "version": "system (控制节点 libgsl.so.28 / libgslcblas.so.0)",
-      "usage": "production",
-      "source": "发行版 GNU Scientific Library",
-      "license": "GPL-3.0-or-later (GNU Scientific Library)",
-      "license_review": "PENDING_OWNER: GSL 属 GPL 族且经 astrocs_p1_sdet → astrocs_module_adapters → astrocs 进入产品 exe 动态链; 再分发/许可兼容判定权属负责人, 本锁只登记事实不复判。",
-      "policy": "根 CMakeLists target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)（sdet PSF trust-region LM 求解器）; ldd build/astrocs 实测动态依赖 libgsl.so.28 + libgslcblas.so.0。未 vendored、未随安装树分发（运行期系统库）。",
-      "note": "W5-PKG-001 登记缺口闭合: 原锁/DEPENDENCIES.md 对 gsl 均 0 命中而 CMake 与 ldd 实证在链（改前红 → 改后绿）。"
     },
     {
       "name": "kernel32",

@@ -12,7 +12,7 @@
     GUI 用其它语言直接捕获 CLI 输出）。
 
 方法（外部 harness 视角；独立重实现协议文本，不链接库内部）：
-  * spawn astrocs normalize --json CFG -y（**不带任何事件旗标**）→ 逐行读 stdout；
+  * spawn acsd normalize --json CFG -y（**不带任何事件旗标**）→ 逐行读 stdout；
   * 每行恰一个 JSON 对象；10 必含字段名逐字；sequence 从 0 单调无空洞（**唯一**顺序键）；
   * 负例注入第二种字段命名（LOG-001 键名 / 额外 seq / 缺 kind / 乱序）⇒ 判据必须判红。
 """
@@ -89,7 +89,7 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -152,7 +152,7 @@ def validate_stream(lines):
 class TestRunEventStreamDefault(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="fix208_stream_")
         cache = os.environ.get("ASTROCS_FIX208_FIXTURE_DIR")
         if cache and os.path.isfile(os.path.join(cache, "fixture")) and \
@@ -313,7 +313,7 @@ class TestRunEventStreamDefault(unittest.TestCase):
                            timeout=60, cwd=run_cwd())
         self.assertEqual(r.returncode, 0)
         doc = json.loads(r.stdout)
-        self.assertEqual(doc["name"], "astrocs")
+        self.assertEqual(doc["name"], "acsd")
         self.assertNotIn("sequence", r.stdout)
         r2 = subprocess.run([EXE, "doctor", "--json"], capture_output=True, text=True,
                             timeout=120, cwd=run_cwd())

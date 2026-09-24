@@ -105,11 +105,12 @@ g++ -std=c++17 $SAN -Icalibration/cpp/include -Icalibration/include -Iastro_imag
 run_mod calibration cal_san
 
 # 4. StarDetector（FP64 合成星图）
-g++ -std=c++17 $SAN -fopenmp -Istar_detector/include -Istar_detector -lgsl -lgslcblas -lm \
+g++ -std=c++17 $SAN -fopenmp -Istar_detector/include -Istar_detector -lm \
   star_detector/test/sdet_fp64_test.cpp \
   star_detector/src/sdet_api.cpp \
   star_detector/src/sdet_detector.cpp star_detector/src/sdet_image.cpp \
   star_detector/src/sdet_log.cpp star_detector/src/sdet_background.cpp \
+  star_detector/src/nls_lm.cpp \
   -o sdet_san 2>"$OUT/sdet.build.log" || { echo "star_detector,sdet_fp64_test,BUILD_FAIL,$(head -3 $OUT/sdet.build.log)" >> "$OUT/sanitizer_coverage.csv"; }
 run_mod star_detector sdet_san
 

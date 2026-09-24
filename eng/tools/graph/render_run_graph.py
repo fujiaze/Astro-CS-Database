@@ -696,7 +696,7 @@ def to_svg(graph: Dict[str, Any]) -> str:
     lines.append('<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" '
                  'viewBox="0 0 %d %d">' % (width, height, width, height))
     m = graph.get("metrics", {})
-    lines.append('  <title>AstroCS runtime graph (LOG-003, %s v%s) — '
+    lines.append('  <title>ACSD runtime graph (LOG-003, %s v%s) — '
                  'derived display; DOT/JSON are audit truth</title>'
                  % (TOOL, VERSION))
     lines.append('  <desc>nodes=%s module_calls=%s sched_concurrency=%s '

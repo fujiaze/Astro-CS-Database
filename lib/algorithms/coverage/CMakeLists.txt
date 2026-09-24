@@ -1,6 +1,6 @@
 # lib/algorithms/coverage/CMakeLists.txt — COMPATIBILITY 声明 (BLD-002, 非产品事实源)
 #
-# 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(astrocs))。
+# 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(acsd))。
 # 本文件仅保留给 lib/algorithms/coverage 模块自测与工具按需构建 (compatibility target):
 #   - phase2 STATIC 库的正式产品源集由根 CMakeLists.txt 的 astrocs_phase2 声明
 #     (lib/algorithms/coverage/src/*.cpp 显式列表, 无 GLOB); 本文件不再作为生产 target 事实源;

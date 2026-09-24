@@ -19,7 +19,7 @@
 
 ## 1. 科学范围（权威：docs/science/SCIENCE_SCOPE.md）
 
-AstroCS 从多帧天文 CCD 图像估计统一天球辐射场（HiPS signal）及其不确定性
+Astro Celestial Sphere Database（ACSD） 从多帧天文 CCD 图像估计统一天球辐射场（HiPS signal）及其不确定性
 （variance/ivar），输出标准 IVOA HiPS 产品与平面 FITS。科学 ID 链
 `SCI-SCOPE-001 → SCI-CAL/WCS/PHOT/PSF/NOISE/DRZ/UPM/REJ/INT/CW/P3` 全量
 登记于 `docs/contracts/INDEX.yaml`（contract-index）。

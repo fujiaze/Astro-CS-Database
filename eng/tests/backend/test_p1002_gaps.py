@@ -5,7 +5,8 @@
              WCS(已知星场/扰动初值/roundtrip/无解)、photometry(已知flux/background/PSF、饱和拒绝)。
 
 方法(independent, 不调待测 kernel 复算):
-  A) stars/PSF: C++ driver 编译链接 lib/algorithms/star_detection/src/*.cpp(生产同源, GSL trust-region LM)。
+  A) stars/PSF: C++ driver 编译链接 lib/algorithms/star_detection/src/*.cpp(生产同源, 仓内自研
+     trust-region LM: src/nls_lm.cpp; 无外部求解器依赖)。
      Python 侧**解析合成**已知位置/流量/σ 的高斯星场(独立第一性原理生成, 非检测器输出),
      驱动 sdet_detect_ex_f64(FP64 全精度)与 sdet_detect_ex(u16 饱和平台);
      completeness=检出/注入, FP=纯噪声图检出数, centroid 误差 vs 注入中心(预冻结 <0.5px),
@@ -196,7 +197,7 @@ int main(int argc,char**argv){
 '''
 
 SDET_SRCS = ["sdet_api.cpp", "sdet_detector.cpp", "sdet_image.cpp",
-             "sdet_log.cpp", "sdet_background.cpp"]
+             "sdet_log.cpp", "sdet_background.cpp", "nls_lm.cpp"]
 
 # ---------- 模块级 lazy 编译缓存(避免 unittest 字母序导致跨类依赖跳过) ----------
 _SDET_EXE = {"path": None, "tmp": None}
@@ -206,8 +207,8 @@ _PHOT_EXE = {"path": None, "tmp": None}
 def _ensure_sdet_exe():
     if _SDET_EXE["path"] is None:
         srcs = [os.path.join(SDET_SRC, s) for s in SDET_SRCS]
-        exe, tmp = _compile("sdet", SDET_DRIVER, [SDET_INC], srcs,
-                            ["-lgsl", "-lgslcblas", "-lm"])
+        # GSL-REPLACE-01: 拟合后端改为仓内自研（src/nls_lm.cpp）, 只链 libm
+        exe, tmp = _compile("sdet", SDET_DRIVER, [SDET_INC], srcs, ["-lm"])
         _SDET_EXE["path"], _SDET_EXE["tmp"] = exe, tmp
     return _SDET_EXE["path"]
 

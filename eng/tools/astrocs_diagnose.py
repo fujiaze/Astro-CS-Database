@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""astrocs_diagnose.py — AstroCS 轻量故障定位工具 (V19)
+"""astrocs_diagnose.py — ACSD 轻量故障定位工具 (V19)
 
 用法:
   py -3.12 eng/tools/astrocs_diagnose.py <run_dir> [--json out.json] [--timeout 30]
@@ -166,7 +166,7 @@ def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    ap = argparse.ArgumentParser(description="AstroCS 轻量故障定位")
+    ap = argparse.ArgumentParser(description="ACSD 轻量故障定位")
     ap.add_argument("run_dir", help="run/ 目录 (或任意日志目录)")
     ap.add_argument("--json", help="输出机器可读 JSON 路径")
     ap.add_argument("--timeout", type=int, default=30,
@@ -195,7 +195,7 @@ def main() -> int:
         report["exec_output"] = run_command(args.exec.split(), args.timeout)
 
     # 人类可读输出
-    print(f"=== AstroCS Diagnose: {args.run_dir} ===")
+    print(f"=== ACSD Diagnose: {args.run_dir} ===")
     print(f"stage ids: {', '.join(STAGE_IDS)}")
     n_err = 0
     for f in findings:

@@ -1,4 +1,4 @@
-/* AstroCS HiPS 输入读取核心实现 — lib/infrastructure/aio/io/hips_core.c (IO-002)
+/* ACSD HiPS 输入读取核心实现 — lib/infrastructure/aio/io/hips_core.c (IO-002)
  *
  * 职责: acs_hips_* C ABI (hips_input_v1.h) 的实现。读取磁盘上已发布的 IVOA
  * HiPS 1.4 兼容子产品目录: properties 解析校验、NESTED tile address 布局

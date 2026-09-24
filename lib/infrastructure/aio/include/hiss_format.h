@@ -2,7 +2,7 @@
 #define HISS_FORMAT_H
 
 // ============================================================================
-// hiss_format.h - AstroCS 1.0 HISS (HEALPix Image Storage System) 格式接口
+// hiss_format.h - ACSD 1.0 HISS (HEALPix Image Storage System) 格式接口
 //
 // 已冻结规范 (见 Wiki HISS-Container-and-Tiles.md):
 // - XISF 式 Header + attachments, 无 Footer/Checkpoint

@@ -1,4 +1,4 @@
-/* AstroCS 动态模块 Registry 合同头（ABI-004）
+/* ACSD 动态模块 Registry 合同头（ABI-004）
  *
  * 文件: lib/infrastructure/pipeline/module_loader/module_registry.h
  * 依赖: astrocs/abi/host_api_v1.h（span/错误类型; 族链 status→artifact→host）;

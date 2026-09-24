@@ -62,9 +62,9 @@ inline int mode_gate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
                     (mr.reason.empty() ? std::string() : (" - " + mr.reason)),
                 payload);
         if (reject) {
-            std::fprintf(stderr, "astrocs: %s rejected: %s\n", label, mr.reason.c_str());
+            std::fprintf(stderr, "acsd: %s rejected: %s\n", label, mr.reason.c_str());
         } else if (mr.kind == RouteKind::kBaseline) {
-            std::fprintf(stderr, "astrocs: WARNING %s=%s is a baseline "
+            std::fprintf(stderr, "acsd: WARNING %s=%s is a baseline "
                                  "(non-production) weight surface\n",
                          label, mr.token.c_str());
         }

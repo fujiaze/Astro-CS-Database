@@ -141,9 +141,9 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
 
 - 用户命令面以 `docs/api/CLI_PROTOCOL_V1.md`（API-CLI-001 冻结）为准：
   `normalize/mosaic/export`、`help`、`--version`、`doctor`、`benchmark`（唯一命令树）。
-- 目标发布安装树（03 §4）：`astrocs.exe` + runtime/io/科学模块/provider DLL；
+- 目标发布安装树（03 §4）：`acsd.exe` + runtime/io/科学模块/provider DLL；
   HiPS Browser、ACR/CUDA 不入 product manifest。当前根 CMake（BLD-002）唯一
-  `add_executable(astrocs)` 显式链接各静态库；**Linux 技术预览安装面已 `INSTALLED`**
+  `add_executable(acsd)` 显式链接各静态库；**Linux 技术预览安装面已 `INSTALLED`**
   （`eng/cmake/install_layout.cmake`:104-105 五科学模块入 `modules/`，
   `eng/packaging/astrocs.product.json` units=10，安全 loader 实测 64/64 PASS），
   **Windows 侧安装树复验 `NOT_VERIFIED`**（`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`

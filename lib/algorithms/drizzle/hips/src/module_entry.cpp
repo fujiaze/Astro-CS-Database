@@ -371,7 +371,7 @@ static acs_status hips_cfg_parse(const char* json, hips_cfg* c,
         snprintf(c->creator_did, sizeof(c->creator_did), "ivo://astrocs/phase1");
     json_copy_str(json, HIPS_CFG_KEY_OBS_TITLE, c->obs_title, sizeof(c->obs_title));
     if (!c->obs_title[0])
-        snprintf(c->obs_title, sizeof(c->obs_title), "AstroCS Phase1");
+        snprintf(c->obs_title, sizeof(c->obs_title), "ACSD Phase1");
     json_copy_str(json, HIPS_CFG_KEY_OBS_FILTER, c->obs_filter, sizeof(c->obs_filter));
     json_copy_str(json, HIPS_CFG_KEY_OBS_DATE, c->obs_date, sizeof(c->obs_date));
     c->exposure_s = json_get_f64(json, HIPS_CFG_KEY_EXPOSURE_S, &f);

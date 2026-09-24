@@ -2,7 +2,7 @@
 
 ## 1. 职责与边界
 
-AstroCS **唯一可执行入口** `astrocs`（Windows 交付名 `astrocs.exe`）的命令编排层：
+Astro Celestial Sphere Database（ACSD） **唯一可执行入口** `acsd`（Windows 交付名 `acsd.exe`）的命令编排层：
 
 - **职责**（薄入口，ASTROCS_DESIGN §6.1）：命令解析、配置预检、模板生成、运行确认、
   机器输出（`--json` 下 stdout 恰一个 JSON 文档）、JSONL 事件、取消与退出码；
@@ -35,7 +35,7 @@ help / --version / doctor / benchmark
 | `export/` | `export` 子命令入口 |
 
 用户可见命令名/旗标的唯一事实源是 `command_tree.h`；根 `lib/infrastructure/cli/parser.cpp` 只从该表
-取白名单，不再自带命令清单。构建接线（根 `CMakeLists.txt` 的 `astrocs` target）
+取白名单，不再自带命令清单。构建接线（根 `CMakeLists.txt` 的 `acsd` target）
 由 INT-001 登记；本层当前以头文件形式被 `lib/infrastructure/cli/commands.cpp` 消费。
 
 ## 4. 测试

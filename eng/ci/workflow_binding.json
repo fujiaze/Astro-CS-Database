@@ -46,7 +46,6 @@
         "python3:numpy",
         "python3:astropy",
         "nlohmann/json.hpp",
-        "libgsl-dev",
         "libgtest-dev",
         "zlib1g-dev",
         "libzstd-dev",
@@ -73,7 +72,6 @@
         "python3:astropy",
         "python3:scipy",
         "python3:yaml",
-        "libgsl-dev",
         "libomp-18-dev"
       ]
     },
@@ -126,7 +124,6 @@
       ],
       "provides_tools": [
         "zlib",
-        "gsl",
         "dumpbin",
         "PyYAML"
       ]

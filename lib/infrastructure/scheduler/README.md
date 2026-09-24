@@ -1,6 +1,6 @@
 # lib/infrastructure/scheduler — 运行时内核与 Phase 节点适配层
 
-本目录承载 AstroCS 的运行时内核（scheduler/executor/pipeline/artifact/runtime）
+本目录承载 Astro Celestial Sphere Database（ACSD） 的运行时内核（scheduler/executor/pipeline/artifact/runtime）
 与三个 Phase 的**生产节点适配实现**。唯一真实节点实现集中在
 `src/module_adapters.cpp`：CLI 只做薄入口，科学计算由这里的 `p1_op_*` /
 `p2_op_*` / `p3_op_*` 委托到各模块库。

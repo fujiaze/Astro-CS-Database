@@ -2,7 +2,7 @@
 #define HISS_TILE_MODEL_H
 
 // ============================================================================
-// hiss_tile_model.h - AstroCS HISS Tile 父子几何模型
+// hiss_tile_model.h - ACSD HISS Tile 父子几何模型
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §11 (自适应空间 Tile)

@@ -4,11 +4,11 @@
 
 ## 目的
 
-定义 AstroCS 科学处理范围与权威链入口。
+定义 Astro Celestial Sphere Database（ACSD） 科学处理范围与权威链入口。
 
 ## 科学定义
 
-AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）及其
+ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）及其
 不确定性（variance/ivar），并输出标准 IVOA HiPS 产品。
 
 ## 处理链

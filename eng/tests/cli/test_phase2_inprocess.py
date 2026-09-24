@@ -3,7 +3,7 @@
 
 按 CLI-001 §6.2 新树同步（原文件用 phase2 run --config）:
   * 命令: mosaic --json <cfg> [--events-jsonl] [-y]（§6.2 / §6.3）;
-  * 二进制: 唯一 exe build/astrocs（ASTROCS_CLI_BIN 可覆盖）;
+  * 二进制: 唯一 exe build/acsd（ASTROCS_CLI_BIN 可覆盖）;
   * fixture 源码路径: ARCH-001 迁移后布局（lib/infrastructure/aio +
     lib/algorithms/shared/healpix），旧路径回退以便迁移中间态两侧可构建。
 
@@ -21,11 +21,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -69,7 +69,7 @@ def cfitsio_objs(tmp):
 class TestPhase2InProcess(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="p2int_")
         incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",

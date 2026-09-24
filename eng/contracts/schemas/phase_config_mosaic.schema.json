@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/mosaic/v1",
-  "title": "AstroCS phase_config — mosaic v1（三命令通用输入合同：blocks[] / 平铺单块简写 / 旧合同分支保留）",
+  "title": "ACSD phase_config — mosaic v1（三命令通用输入合同：blocks[] / 平铺单块简写 / 旧合同分支保留）",
   "description": "CFG-001 建立的 mosaic 科学配置合同。GAP_AUDIT §9.71 裁决 2（负责人 2026-09-20）+ ASTROCS_DESIGN.md §3.3「三命令通用输入合同」：三命令同构 —— 顶层 blocks[]（每块 = 输出名称 name/output_dir + 运行参数（块内平铺）+ 一组输入帧 hips_paths）或**平铺单块简写**（只有一块时的等价写法；与 blocks[] 互斥，同时出现 → 报错不静默取一）。旧合同形态 {phase_name, config, inputs[]} **保留不退役**（§9.71 裁决 2 定案 4：「不是退役旧合同，而是把三套口径统一到块状结构这一个概念上」）——它是**合同留痕**，CLI 会话面按裁决 2 定案 3/4 **显式拒绝 + 给迁移提示**（lib/infrastructure/cli/parser.cpp retired_perframe_form_message）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "mosaic",

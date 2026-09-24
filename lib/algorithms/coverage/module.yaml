@@ -1,4 +1,4 @@
-# AstroCS phase2 coverage module — 元数据 (P2-COV-DOC 冻结, 2026-09-07)
+# ACSD phase2 coverage module — 元数据 (P2-COV-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/coverage/src/coverage.cpp
 # 239 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/coverage.h 59 行；
 # C ABI 导出 p2_coverage_build :144 / p2_coverage_free :233，内部链接

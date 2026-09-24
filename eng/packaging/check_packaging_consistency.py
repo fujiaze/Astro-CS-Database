@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS 打包面一致性检查器（W5-PKG-001）
+"""ACSD 打包面一致性检查器（W5-PKG-001）
 
 职责（单一入口，全部 fail-closed）：核对「产品清单 / 安装树合同 / 依赖锁 / 安装规则 /
 构建图声明的外部依赖」四处登记面是否同源一致，并在负例注入下必须判红。
@@ -63,8 +63,10 @@ DL_LIBS_TOKEN = "$" + "{CMAKE_DL_LIBS}"
 # 版本常量形态: 出现在 eng/packaging/schemas/** 即陈旧第二事实源
 VERSION_LITERAL_RE = re.compile(r"\b\d+\.\d+\.\d+-alpha\.\d+\b")
 # 根 CMakeLists 里允许出现的外部（非本仓库 target）链接库名
+# GSL-REPLACE-01: "gsl"/"gslcblas" 已从产品链接面摘除（sdet PSF 拟合改用仓内自研
+# 信赖域 LM, 见 lib/algorithms/star_detection/src/nls_lm.cpp），不再属于允许 token。
 EXTERNAL_LIB_TOKENS = {
-    "gsl", "gslcblas", "z", "zstd", "lz4", "m", "dl", "pthread",
+    "z", "zstd", "lz4", "m", "dl", "pthread",
     "kernel32", "user32",
 }
 # 依赖锁里代表「系统线程/OpenMP/数学库」的等价登记名
@@ -363,7 +365,7 @@ def _linked_external_tokens(cmake_text: str) -> set:
     for m in re.finditer(r"target_link_libraries\(([^)]*)\)", cmake_text, re.S):
         for token in re.sub(r"\s+", " ", m.group(1)).split(" "):
             tok = token.strip()
-            if not tok or tok in ("PRIVATE", "PUBLIC", "INTERFACE") or tok.startswith("astrocs"):
+            if not tok or tok in ("PRIVATE", "PUBLIC", "INTERFACE") or tok.startswith(("astrocs", "acsd")):
                 continue
             bare = re.sub(r"^\$\{|\}$", "", tok)
             if tok in EXTERNAL_LIB_TOKENS or tok in (DL_LIBS_TOKEN,
@@ -667,11 +669,13 @@ def self_test(repo: Path) -> int:
         ("C4 聚合哈希不符", lambda r: _mutate_json(
             r / LOCK, lambda d: d["production_dependencies"][0].__setitem__(
                 "aggregate_sha256", "0" * 64)), "C4"),
+        # GSL-REPLACE-01: 原负例以"删掉 gsl 条目"触发 C5; gsl 已从链接面摘除,
+        # 该负例失去判别力 ⇒ 改用仍登记且在链接面的 zlib（删其条目必须报红）。
         ("C5 CMake 外部库漏登记", lambda r: _mutate_json(
             r / LOCK, lambda d: d.__setitem__(
                 "system_dependencies",
                 [x for x in d["system_dependencies"]
-                 if "gsl" not in x["name"].lower()])), "C5"),
+                 if "zlib" not in x["name"].lower()])), "C5"),
         ("C6 目录通配安装回归", _inject_wildcard, "C6"),
         ("C7 许可文本缺失", lambda r: (r / LICENSE_DIR / "nlohmann_json.MIT.txt").unlink(),
          "C7"),
@@ -717,7 +721,7 @@ def self_test(repo: Path) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="AstroCS 打包面一致性检查器 (W5-PKG-001)")
+    ap = argparse.ArgumentParser(description="ACSD 打包面一致性检查器 (W5-PKG-001)")
     ap.add_argument("--root", default="", help="仓库根 (默认由脚本位置推导)")
     ap.add_argument("--json-out", default="", help="可选 JSON 报告输出路径")
     ap.add_argument("--self-test", action="store_true",

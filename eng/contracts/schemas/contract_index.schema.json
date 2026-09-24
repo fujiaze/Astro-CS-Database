@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/contract-index-v1.json",
-  "title": "AstroCS Contract Index v1",
+  "title": "ACSD Contract Index v1",
   "description": "DOC-001 合同 ID 注册表约束: 唯一 ID, owner, version, status, links, 无悬空引用。",
   "type": "object",
   "additionalProperties": false,

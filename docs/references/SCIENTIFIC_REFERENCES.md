@@ -1,4 +1,4 @@
-# AstroCS 科学与格式参考文献档案
+# Astro Celestial Sphere Database（ACSD） 科学与格式参考文献档案
 
 > 上游：ASTROCS_DESIGN.md 附录 B（外部标准与文献）
 
@@ -12,11 +12,11 @@
 
 ## B. PSF、最优提取、SNR 与图像权重
 
-4. Horne, K. 1986, “An Optimal Extraction Algorithm for CCD Spectroscopy”, PASP 98, 609. DOI: 10.1086/131801。用途：已知 profile 和方差下的最优提取；AstroCS 借其统计结构定义 `PᵀC⁻¹P`，成像 PSF 需独立验证。
+4. Horne, K. 1986, “An Optimal Extraction Algorithm for CCD Spectroscopy”, PASP 98, 609. DOI: 10.1086/131801。用途：已知 profile 和方差下的最优提取；ACSD 借其统计结构定义 `PᵀC⁻¹P`，成像 PSF 需独立验证。
 5. Naylor, T. 1998, “An optimal extraction algorithm for imaging photometry”, MNRAS 296, 339. [全文](https://academic.oup.com/mnras/article-pdf/296/2/339/2988643/296-2-339.pdf)。用途：成像最优 PSF 光度。
 6. Zackay, B. & Ofek, E. O. 2017, “How to coadd images? I. Optimal source detection and photometry using ensembles of images”, ApJ 836, 187. [arXiv:1512.06872](https://arxiv.org/abs/1512.06872)。用途：每帧按自身 PSF matched filter 后组合；普通先叠加后滤波/PSF homogenization 会损失灵敏度。
 7. Zackay, B. & Ofek, E. O. 2017, “How to coadd images? II. A coaddition image that is optimal for any purpose in the background-dominated noise limit”, ApJ 836, 188. [arXiv:1512.06879](https://arxiv.org/abs/1512.06879)。用途：proper coadd 与信息保持表示。
-8. [PixInsight Reference: New Image Weighting Algorithms](https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html)。用途：§2.5 PSF Signal Weight、§2.6 PSF SNR、signal concentration 和工程加权语义。现行规定：AstroCS 正式支持 `psfsw_robust` conventional-integration 模式；其 PSF signal/concentration/noise/background 四分量和组内归一须可审计，但无量纲复合权重不自动等同严格 `1/Var(F_hat)`。
+8. [PixInsight Reference: New Image Weighting Algorithms](https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html)。用途：§2.5 PSF Signal Weight、§2.6 PSF SNR、signal concentration 和工程加权语义。现行规定：ACSD 正式支持 `psfsw_robust` conventional-integration 模式；其 PSF signal/concentration/noise/background 四分量和组内归一须可审计，但无量纲复合权重不自动等同严格 `1/Var(F_hat)`。
 
 ## C. Drizzle、HEALPix 与 HiPS
 
@@ -66,12 +66,12 @@
 
 ## I. PSF、星点检测与最优提取
 
-21. Moffat, A. F. J. 1969, “A Theoretical Investigation of Focal Stellar Images in the Photographic Emulsion”, A&A 3, 455（bibcode 1969A&A.....3..455M）。用途：Moffat 轮廓 I(r)∝(1+r²/α²)^(−β) 及 β 族；AstroCS 取 β=4。**核验状态**：文章级定位（bibcode/卷页经多篇文献引用交叉核对），未逐式核验公式号。
+21. Moffat, A. F. J. 1969, “A Theoretical Investigation of Focal Stellar Images in the Photographic Emulsion”, A&A 3, 455（bibcode 1969A&A.....3..455M）。用途：Moffat 轮廓 I(r)∝(1+r²/α²)^(−β) 及 β 族；ACSD 取 β=4。**核验状态**：文章级定位（bibcode/卷页经多篇文献引用交叉核对），未逐式核验公式号。
 22. Stetson, P. B. 1987, “DAOPHOT: A Computer Program for Crowded-Field Stellar Photometry”, PASP 99, 191（DOI 10.1086/131977）。用途：拥挤场 PSF 拟合测光、迭代星表构建、质量代理语义的历史来源。
-23. Stetson, P. B. 1990, “On the growth-curve method for calibrating stellar photometry with CCDs”, PASP 102, 932（DOI 10.1086/132719）。用途：孔径改正/增长曲线；AstroCS 的解析 flux=2πA·sxsy/3 为整平面值，与此类孔径改正**不互通**（未建模项）。
+23. Stetson, P. B. 1990, “On the growth-curve method for calibrating stellar photometry with CCDs”, PASP 102, 932（DOI 10.1086/132719）。用途：孔径改正/增长曲线；ACSD 的解析 flux=2πA·sxsy/3 为整平面值，与此类孔径改正**不互通**（未建模项）。
 24. Bertin, E. & Arnouts, S. 1996, “SExtractor: Software for source extraction”, A&AS 117, 393（DOI 10.1051/aas:1996164）。用途：背景网格 + 阈值检测、去混叠、FLUXERR/MAGERR 误差口径、FLUX_AUTO 等测光量的权威定义。
-25. Bertin, E. 2011, “Automated Morphometry with SExtractor and PSFEx”, ASP Conf. Ser. 442, 435（<http://aspbooks.org/custom/publications/paper/442-0435.html>）。用途：PSFEx 的 PSF 采样/多项式空间变异建模；AstroCS 现状不做空间变异 PSF（PSF.md §1 非目标）。
-26. Levenberg, K. 1944, Quart. Appl. Math. 2, 164；Marquardt, D. W. 1963, SIAM J. Appl. Math. 11, 431；Moré, J. J. 1978, in Numerical Analysis (Lecture Notes in Mathematics 630), 105。用途：LM 阻尼最小二乘；AstroCS lm_solve 收敛语义的理论来源。
+25. Bertin, E. 2011, “Automated Morphometry with SExtractor and PSFEx”, ASP Conf. Ser. 442, 435（<http://aspbooks.org/custom/publications/paper/442-0435.html>）。用途：PSFEx 的 PSF 采样/多项式空间变异建模；ACSD 现状不做空间变异 PSF（PSF.md §1 非目标）。
+26. Levenberg, K. 1944, Quart. Appl. Math. 2, 164；Marquardt, D. W. 1963, SIAM J. Appl. Math. 11, 431；Moré, J. J. 1978, in Numerical Analysis (Lecture Notes in Mathematics 630), 105。用途：LM 阻尼最小二乘；ACSD lm_solve 收敛语义的理论来源。
 27. Press, W. H. et al. 2007, Numerical Recipes 3rd ed., Ch.15（Levenberg–Marquardt）。用途：LM 实现实践的教科书级对照（非唯一 Oracle）。
 28. Horne, K. 1986, PASP 98, 609（已在 §B 第 4 条登记）。用途：图像域最优提取的统计结构 PᵀC⁻¹P。
 29. Naylor, T. 1998, MNRAS 296, 339（已在 §B 第 5 条登记）。用途：成像最优 PSF 光度。
@@ -88,8 +88,8 @@
 37. Beaton, A. E. & Tukey, J. W. 1974, “The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data”, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）。用途：Tukey biweight（bisquare）w=(1−u²)² 与 c=4.685 的原始出处（现引 Mosteller & Tukey 1977 为教科书转引）。
 38. Gruen, D., Seitz, S. & Bernstein, G. M. 2014, PASP 126, 158（已在 §E 第 19 条登记）。用途：clipped-mean 叠加排异与 PSF 差异伪影控制。
 39. Siril 官方文档（free-astro/Siril，GPL-3.0，<https://gitlab.com/free-astro/siril>）的 stacking/rejection 章节。用途：winsorized/averaged sigma 与 linear-fit 排异阈值的开源对照（REJECTION_ALGORITHMS.md F2–F4 的 Siril 1.4.3 语义锚）。
-40. PixInsight WeightedBatchPreprocessing (WBPP)（<https://pixinsight.com/doc/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing.html>）的 bestRejectionMethod 与 ImageIntegration 参考文档。用途：wbpp_2_9_1 auto 路由与阈值表的**非学术软件来源**（AstroCS 自认“非论文引用”）。
-61. IRAF imcombine（IRAF/NOAO 许可，非 OSI；<https://iraf-community.github.io/>）的 reject=sigclip|avsigclip|pclip|lfitclip|minmax 与 winsorize 参数。用途：AstroCS 六类排异核（sigma/winsorized/averaged/linear_fit/percentile/minmax）的**共同祖先**；iraf.net 403，**需网络核验精确 URL**。
+40. PixInsight WeightedBatchPreprocessing (WBPP)（<https://pixinsight.com/doc/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing.html>）的 bestRejectionMethod 与 ImageIntegration 参考文档。用途：wbpp_2_9_1 auto 路由与阈值表的**非学术软件来源**（ACSD 自认“非论文引用”）。
+61. IRAF imcombine（IRAF/NOAO 许可，非 OSI；<https://iraf-community.github.io/>）的 reject=sigclip|avsigclip|pclip|lfitclip|minmax 与 winsorize 参数。用途：ACSD 六类排异核（sigma/winsorized/averaged/linear_fit/percentile/minmax）的**共同祖先**；iraf.net 403，**需网络核验精确 URL**。
 62. ccdproc.combine（BSD-3-Clause，<https://ccdproc.readthedocs.io/>）：clip_extrema（=IRAF-like minmax）、sigma_clip_low/high_thresh、combine 的加权/裁剪语义。用途：IRAF 排异核的可执行独立实现对照。
 63. Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction: Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）。用途：噪声加权最优检验/预测残差方差阈值（plugins/12_rejection.md:23 若引最优检验应锚此）。
 
@@ -103,7 +103,7 @@
 46. Tikhonov, A. N. 1963, “Solution of Incorrectly Formulated Problems and the Regularization Method”, Soviet Math. Dokl. 4, 1035。用途：弱零锚（弱 Tikhonov/岭正则）的原始概念出处（**核验状态**：文章级，卷页需网络核验）。
 47. Duchon, J. 1977, “Splines minimizing rotation-invariant semi-norms in Sobolev spaces”, in Constructive Theory of Functions of Several Variables, 85。用途：薄板样条/平滑样条基；PHASE2_UPM.md 的“稀疏天光面（B-spline/薄板样条）”目标表示的方法学出处。
 48. Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。用途：样条粗糙度惩罚/节点选择的教科书级定位。
-49. Bertin, E. 2011, ASPC 442, 435（PSFEx，见 §I 第 25 条）。用途：空间变异 PSF 与背景/星点采样；与 AstroCS 现状（块状共享 PSF、8×8 control cell）差异对照。
+49. Bertin, E. 2011, ASPC 442, 435（PSFEx，见 §I 第 25 条）。用途：空间变异 PSF 与背景/星点采样；与 ACSD 现状（块状共享 PSF、8×8 control cell）差异对照。
 64. Holland, P. W. & Welsch, R. E. 1977, “Robust Regression Using Iteratively Reweighted Least-Squares”, Communications in Statistics A6, 813（DOI 10.1080/03610927708827533）。用途：Huber δ=1.345（Gaussian 95% 渐近效率）与 IRLS 权重实现出处。
 65. Kendall, M. G. & Stuart, A., The Advanced Theory of Statistics, Vol.1（Distribution Theory）。用途：正态样本中位数渐近方差 Var(median)≈πσ²/(2N) 的教科书定位（UPM control_variance 的 π/2 因子）。
 
@@ -113,14 +113,14 @@
 51. Goldberg, D. 1991, “What Every Computer Scientist Should Know About Floating-Point Arithmetic”, ACM Computing Surveys 23, 5（DOI 10.1145/103162.103163）。用途：浮点归约/结合律与容差设定。
 52. Higham, N. J. 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。用途：归约误差界、确定性求和顺序。
 53. Van Oosterom, A. & Strackee, J. 1983, “The Solid Angle of a Plane Triangle”, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207）。用途：Girard 定理/球面三角面积（DRIZZLE.md §5 Sutherland–Hodgman + Girard）。
-54. Sutherland, I. E. & Hodgman, G. W. 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）。用途：球面多边形裁剪的平面算法原型（AstroCS 在球面上实施，属 Project-defined 迁移）。
-55. Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II，已在 §D 第 15 条登记）§2.1/§2.2/Table 1。用途：TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA 的 native↔celestial 旋转、LONPOLE 默认、各投影 native 层；AstroCS 八投影冻结集合逐式出自此。
+54. Sutherland, I. E. & Hodgman, G. W. 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）。用途：球面多边形裁剪的平面算法原型（ACSD 在球面上实施，属 Project-defined 迁移）。
+55. Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II，已在 §D 第 15 条登记）§2.1/§2.2/Table 1。用途：TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA 的 native↔celestial 旋转、LONPOLE 默认、各投影 native 层；ACSD 八投影冻结集合逐式出自此。
 56. Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I，已在 §D 第 14 条登记）§2.1.1。用途：CRPIX/CRVAL/CD/1-based 像素定义性不变量。
 57. Shupe, D. L. et al. 2005, “The SIP Convention for Representing Distortion in FITS Image Headers”, ASP Conf. Ser. 347, 491（bibcode 2005ASPC..347..491S）。用途：SIP A/B/AP/BP 约定（**核验状态**：bibcode 级）。
-58. IVOA HiPS 1.0 Recommendation（<https://www.ivoa.net/documents/HiPS/>，已在 §C 第 13 条登记）。用途：HiPS properties/tile/层级与互操作；AstroCS 支持子集为 ICRS/NESTED/W=512/float FITS。
+58. IVOA HiPS 1.0 Recommendation（<https://www.ivoa.net/documents/HiPS/>，已在 §C 第 13 条登记）。用途：HiPS properties/tile/层级与互操作；ACSD 支持子集为 ICRS/NESTED/W=512/float FITS。
 59. IVOA MOC 1.0 Recommendation（<https://www.ivoa.net/documents/MOC/>）。用途：HiPS↔MOC 关系与 coverage 域表达（PHASE3_HIPS_TO_FITS.md §14 第 1 条）。
 60. Fernique, P. et al. 2015, A&A 578, A114（已在 §C 第 12 条登记；DOI 10.1051/0004-6361/201526075）。用途：HiPS 层级索引与目录结构。
-66. Van Oosterom, A. & Strackee, J. 1983, “The Solid Angle of a Plane Triangle”, IEEE Trans. Biomed. Eng. BME-30(2), 125–126（DOI 10.1109/TBME.1983.325207）。用途：球面多边形面积（S-H 裁剪后的扇形三角剖分；单位向量下 Ω = 2·atan2(a·(b×c), 1+a·b+b·c+c·a)）；AstroCS DRIZZLE.md §5 误记为“Girard 定理”，实现实为 Van Oosterom 扇形剖分。**核验状态**：Crossref 已核验（题名/作者/卷期页/DOI/被引 269 次）。代码内旧引 “Eriksson, F. 2018, The area of a spherical triangle” 经 Crossref 书目检索与 arXiv 检索均无此文献，已订正。
+66. Van Oosterom, A. & Strackee, J. 1983, “The Solid Angle of a Plane Triangle”, IEEE Trans. Biomed. Eng. BME-30(2), 125–126（DOI 10.1109/TBME.1983.325207）。用途：球面多边形面积（S-H 裁剪后的扇形三角剖分；单位向量下 Ω = 2·atan2(a·(b×c), 1+a·b+b·c+c·a)）；ACSD DRIZZLE.md §5 误记为“Girard 定理”，实现实为 Van Oosterom 扇形剖分。**核验状态**：Crossref 已核验（题名/作者/卷期页/DOI/被引 269 次）。代码内旧引 “Eriksson, F. 2018, The area of a spherical triangle” 经 Crossref 书目检索与 arXiv 检索均无此文献，已订正。
 67. Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124）。用途：PixInsight MRS/N* 稳健噪声估计（ImageWeighting §2.4）的一手论文；NOISE_MODEL 现状未采用小波 MRS/N*。
 
 ## M. 参考代码库（含许可证）
@@ -156,7 +156,7 @@
 
 ### N.1 方法学一手来源（PixInsight，公开文档）
 
-- **PixInsight Reference: New Image Weighting Algorithms**（Juan Conejero 等，Pleiades Astrophoto）。官网 <https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html>；**官方源文件**（含 LaTeX 原文）GitLab `Reference-Documentation/docs/ImageWeighting/`：`01-Introduction.pidoc`、`02-PSF_Flux_Weighting_Algorithms.pidoc`、`03-Implementation.pidoc`、`04-Examples.pidoc`、`05-Linear_Regression_Analysis.pidoc`（master）。用途：PSFSW 式[16]、PSFSNR 式[18]、标准 SNR 式[20]、PSF flux 式[7]、mean PSF flux 式[8]、`M*` 式[13]、`N*` 式[14][15]、FITS 关键字表（PSFFLX/PSFMFL/PSFMST/PSFNST/NOISE 等）。**AstroCS 不照抄其标定常数**（见 §N.3）。
+- **PixInsight Reference: New Image Weighting Algorithms**（Juan Conejero 等，Pleiades Astrophoto）。官网 <https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html>；**官方源文件**（含 LaTeX 原文）GitLab `Reference-Documentation/docs/ImageWeighting/`：`01-Introduction.pidoc`、`02-PSF_Flux_Weighting_Algorithms.pidoc`、`03-Implementation.pidoc`、`04-Examples.pidoc`、`05-Linear_Regression_Analysis.pidoc`（master）。用途：PSFSW 式[16]、PSFSNR 式[18]、标准 SNR 式[20]、PSF flux 式[7]、mean PSF flux 式[8]、`M*` 式[13]、`N*` 式[14][15]、FITS 关键字表（PSFFLX/PSFMFL/PSFMST/PSFNST/NOISE 等）。**ACSD 不照抄其标定常数**（见 §N.3）。
 - **PCL 2.10.4** `pcl::PSFSignalEstimator`（Doxygen `PSFSignalEstimator.h`，2026 年发布）。用途：核对文章版与实现版常数差异（c1=5.326e-6、c3=1.316e-7 vs 文章 c1=8.0832e-6、c3=1.350e-7）；`NStar_MAD=2.48308·MAD`、`NStar_Sn=2.03636·Sn`。**只作方法学取证，不复制**（PCL 为 PixInsight 自定义 source-available 许可，非 OSI）。
 
 ### N.2 学术文献
@@ -165,20 +165,20 @@
 62. Zackay, B. & Ofek, E. O. 2017, “How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit”, ApJ 836, 188（DOI 10.3847/1538-4357/836/2/188；arXiv:1512.06879）。用途：proper coaddition、方差归一与有效 PSF。
 63. **（消歧）** Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction—Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）——这是 **ZOGY 图像相减**论文，**不是** “How to coadd images? I”。`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §5.1 第 1 条曾把两者混引，引用时须拆开。
 64. Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124）。用途：MRS/starlet 小波稳健噪声（PixInsight 默认噪声估计的方法学来源）。
-65. Rousseeuw, P. J. & Croux, C. 1993, “Alternatives to the Median Absolute Deviation”, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。用途：MAD 的 σ 一致化常数 1.4826 与 Sn/Qn 尺度估计；AstroCS 用标准 MAD→σ，**未采用** PixInsight 的 2.48308/2.03636。
-66. Moffat, A. F. J. 1969, A&A 3, 455（见 §I 第 21 条）。用途：Moffat 轮廓；AstroCS 取 β=4，FWHM=1.230310·σ。
+65. Rousseeuw, P. J. & Croux, C. 1993, “Alternatives to the Median Absolute Deviation”, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。用途：MAD 的 σ 一致化常数 1.4826 与 Sn/Qn 尺度估计；ACSD 用标准 MAD→σ，**未采用** PixInsight 的 2.48308/2.03636。
+66. Moffat, A. F. J. 1969, A&A 3, 455（见 §I 第 21 条）。用途：Moffat 轮廓；ACSD 取 β=4，FWHM=1.230310·σ。
 67. Stetson, P. B. 1987, PASP 99, 191（DOI 10.1086/131977，见 §I 第 22 条）。用途：拥挤场 PSF 测光。
 68. Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（DOI 10.1051/aas:1996164，见 §I 第 24 条）。用途：背景网格、检测阈值、FLUXERR 误差传播。
 69. Maples, M. P. et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d，见 §J 第 34 条）。用途：Robust Chauvenet 离群剔除（PixInsight PSF 通量剔除的方法学来源）。
 
 ### N.3 参考代码库（含许可证；GPL 只对照不复制）
 
-- **Siril** — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril）。对照面：帧级权重 `compute_noise_weights` `w=1/(pscale²·bgnoise²)`（`src/stacking/median_and_mean.c:1111-1135`）、wFWHM/星数权重、IKSS 稳健尺度、多项式/RBF 背景。与 AstroCS 差异：Siril 把权重直接当叠加系数、按帧均值归一；AstroCS 的 `W_psfsw` 为组内中值归一无量纲量。
+- **Siril** — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril）。对照面：帧级权重 `compute_noise_weights` `w=1/(pscale²·bgnoise²)`（`src/stacking/median_and_mean.c:1111-1135`）、wFWHM/星数权重、IKSS 稳健尺度、多项式/RBF 背景。与 ACSD 差异：Siril 把权重直接当叠加系数、按帧均值归一；ACSD 的 `W_psfsw` 为组内中值归一无量纲量。
 - **SWarp** — **GPL-3.0** [V]（https://github.com/astromatic/swarp）。对照面：`COADD_WEIGHTED` 逆方差组合与输出方差 `1/Σ(1/var_k)`（`src/coadd.c:1279-1311`）、`RESCALE_WEIGHTS` 实测噪声重标定 `sigfac`（`src/back.c:361-389`）。
 - **DeepSkyStacker（DSS）** — **BSD-3-Clause** [V]（https://github.com/deepskystacker/DSS）。**更正**：`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §4 表把它标为 GPL v3 且 URL `github.com/DeepSkyStacker/DeepSkyStacker`（404）——实际为 BSD-3-Clause（LICENSE 全文 + `README.md:13`），仓库 `deepskystacker/DSS`。对照面：帧评分 `ComputeScore`（圆度加权，`RegisterEngine.cpp:86-118`）、自适应加权平均 `w=1/(1+(x−µ)²/σ²)`（`avx_output.cpp:463-575`）。其 quality 与 SNR/FWHM 乘积无关。
 - **SExtractor** — **GPL-3.0** [V]（https://github.com/astromatic/sextractor）。对照面：背景网格/众数估计（`src/back.c:449-743`）、`Var(F)=Σ(σ_bkg²+F_pix/gain)`（`src/analyse.c:200-203,304-310`）。
 - **SEP** — **LGPL-3.0** [V]（https://github.com/kbarbary/sep）。对照面：孔径方差 `σ²_sum=Σvar_pix·w²+Σ/gain`（`src/aperture.c:516-570`）、背景网格（`src/background.c:277-790`）。
 - **photutils / astropy** — **BSD-3-Clause** [V]（https://github.com/astropy/photutils）。对照面：`Background2D` + `SExtractorBackground`（`photutils/background/core.py:464-531`）、孔径误差 `σ²=Σw_frac²·error²`（`_batch_photometry.pyx:273-277`）、总误差 `σ_tot²=σ_bkg²+I/g_eff`（`photutils/utils/errors.py:91-92`）。本分片已用 photutils 3.0.0 做数值对拍（见报告 §3.6）。
-- **properimage** — **BSD-3-Clause** [V]（https://github.com/quatrope/properimage，PyPI 0.7.2）。对照面：Zackay & Ofek proper coaddition 的 Python 参考实现（`properimage/operations.py:457-577` 的 `R=IFFT(Ŝ/√P̂)` 与有效 PSF `P_r`），与 AstroCS `C_out=R C_in Rᵀ` 最接近的开源实现。
+- **properimage** — **BSD-3-Clause** [V]（https://github.com/quatrope/properimage，PyPI 0.7.2）。对照面：Zackay & Ofek proper coaddition 的 Python 参考实现（`properimage/operations.py:457-577` 的 `R=IFFT(Ŝ/√P̂)` 与有效 PSF `P_r`），与 ACSD `C_out=R C_in Rᵀ` 最接近的开源实现。
 - **SCAMP** — **GPL-3.0** [V]（https://github.com/astromatic/scamp）。对照面：相对光度零点与相对天体测量（`src/photsolve.c:117-409,437-570,782-785`）。**边界**：在核心源文件中未发现像素背景估计/归一代码（SCI-001-S1 复核，未做全仓穷举），故 UPM 的背景归一不应引 SCAMP 为依据。
 

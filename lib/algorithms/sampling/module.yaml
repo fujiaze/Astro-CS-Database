@@ -1,4 +1,4 @@
-# AstroCS phase2 sampling 模块 — 元数据 (P2-SAMP-DOC 冻结, 2026-09-09)
+# ACSD phase2 sampling 模块 — 元数据 (P2-SAMP-DOC 冻结, 2026-09-09)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/coverage/src/sampler.cpp
 # 1156 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/sampler.h
 # 136 行，行号 grep/read 实测；构建挂载: 根 CMakeLists.txt:337-346

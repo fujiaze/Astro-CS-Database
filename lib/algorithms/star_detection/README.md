@@ -1,4 +1,4 @@
-# AstroCS P1 Star Detection 模块（astrocs.p1.star_detection）— 冻结合同 README
+# Astro Celestial Sphere Database（ACSD） P1 Star Detection 模块（astrocs.p1.star_detection）— 冻结合同 README
 
 > r1（P1-STAR-DOC，2026-09-07）：由 SRC-STAR-001 源码实测冻结，不信任旧 README
 > （旧版 V5.0 性能叙事/匹配率表格为过程记录，归本目录 memory.md，
@@ -26,7 +26,8 @@
 
 **负责**：Phase1 单帧 light 上的权威星点检测——peaker 七步候选（11×11 局部
 极大/3×3 meanhigh/零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R/对称门/候选去重）+ 椭圆高斯
-（GSL trust-region LM，7 参数 Gaussian 参数化；母函数 sdet_gaussian_f）逐候选拟合 + 饱和星（edge-walking
+（仓内自研 trust-region LM，src/nls_lm.{h,cpp}；7 参数 Gaussian 参数化，母函数
+sdet_gaussian_f）逐候选拟合 + 饱和星（edge-walking
 中心、A>dynrange 标记）+ mag 排序去重截断；输出十数组
 `(x,y,flux,saturated,mag,has_saturated[,extras])`（DATA-P1-STAR）；FP32/FP64
 双通道（DISP-STAR-001）；一帧一次权威检测原则（API-P1-003）。
@@ -94,8 +95,8 @@ C API（9 导出，头 lib/algorithms/star_detection/include/star_detector.h:1-7
 float/double 双实例生产核心）、`sdet_compute_bgnoise`（:440-476，FnNoise1
 行差分+3×5σ clip）、peaker 七步主扫描（:1709-1974，star_finder.c 族对齐
 注释 :1653-1660）、`sdet_gauss_fit`（:483-620，采样/饱和 mask/bkg0 截尾
-MAD/halfA 初始化）、`sdet_lm_fit`（:262-437，GSL TR-LM 7 参数
-`{B,A,x0,y0,SX,fr,alpha}`，:348-352 trs=LM）、`reject_star`（:189-239，
+MAD/halfA 初始化）、`sdet_lm_fit`（:262-437，自研 trust-region LM 7 参数
+`{B,A,x0,y0,SX,fr,alpha}`，求解器见 src/nls_lm.cpp）、`reject_star`（:189-239，
 SfError 五码 :177-186）、`sdet_dedup_stars`（:822-939）、`sdet_sort_stars`
 （:941-956）、`edge_walking_center`（:627-674）/`sdet_detect_saturated_stars`
 （:675-775，debug 路径）、`get_extra_field`/`parse_extra_name`（:778-819）。
@@ -149,8 +150,9 @@ R）；fwhmClipSigma 仅 debug 入口（:1450-1452）；其余 5 字段仅旧 CC
 ## 8. provider 能力与 fallback
 
 `cpu_providers: [baseline]`（无 ISA 特化路径；`-march=native -O3` 为构建配置
-Makefile:20-26，非 provider 选择）；GSL gsl_multifit_nlinear 链接（Makefile
-LDLIBS）。fallback：无（baseline 单通道）。
+Makefile:20-26，非 provider 选择）；拟合求解器为仓内自研实现，**无外部库依赖**
+（Makefile LDLIBS=-lm；禁止重新引入 GSL，见 src/nls_lm.h 顶部说明）。fallback：
+无（baseline 单通道）。
 
 ## 9. oracle / property / boundary / performance / 容差来源（测试设计）
 

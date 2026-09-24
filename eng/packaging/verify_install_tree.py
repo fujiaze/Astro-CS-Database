@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS 安装树/模块 verify 验证器 (BLD-003 + W5-PKG-001)
+"""ACSD 安装树/模块 verify 验证器 (BLD-003 + W5-PKG-001)
 
 机器验收:
   1. clean install 仅白名单: 以 eng/packaging/install-tree.contract.json 的 units
@@ -317,7 +317,7 @@ def self_test(repo: Path) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="AstroCS 安装树 verify (BLD-003/W5-PKG-001)")
+    ap = argparse.ArgumentParser(description="ACSD 安装树 verify (BLD-003/W5-PKG-001)")
     ap.add_argument("--prefix", default="", help="安装前缀 (install prefix)")
     ap.add_argument("--contract", default="",
                     help="安装树合同 JSON (默认 <repo>/eng/packaging/install-tree.contract.json)")

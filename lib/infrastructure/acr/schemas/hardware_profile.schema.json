@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/acr-hardware-profile.schema.json",
-  "title": "AstroCS ACR HardwareProfile",
+  "title": "ACSD ACR HardwareProfile",
   "type": "object",
   "additionalProperties": false,
   "required": [

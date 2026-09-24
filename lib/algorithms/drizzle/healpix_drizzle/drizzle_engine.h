@@ -46,12 +46,14 @@ struct DrizzleConfig {
 
 // 单个 HEALPix 像素的累加器 (float64 内部精度, 02_FROZEN §8/§10)
 struct PixelAccumulator {
-    double sumFlux = 0.0;     // Σ L_j * a_jp / A_j_drop (通量守恒累加)
-    double sumWeight = 0.0;   // Σ weight (兼容旧代码, 通量守恒模式下 = sumArea)
+    double sumFlux = 0.0;     // Σ_j L_j·w_jp, w_jp = a_jp/A_drop,j (drop 面积归一, 通量守恒累加)
+    double sumWeight = 0.0;   // Σ weight (兼容旧代码, 通量守恒模式下 = sumNorm)
     double sumSnrSq = 0.0;    // Σ SNR² * weight
     double sumArea = 0.0;    // Σ a_jp (球面重叠面积, 用于 support = Σ a_jp / A_p)
-    // 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_j_drop)
-    // variance_p = sumVarNum / sumArea² ; ivar_p = 1/variance_p
+    // 面亮度归一分母 Σ_j w_jp·A_pixel,j (与 drop 面积归一权重配对 ⇒ S_p = B0 与 pixfrac 无关)
+    double sumNorm = 0.0;
+    // 方差传播分子 Σ v_j × w_jp² (w_jp = a_jp/A_drop,j)
+    // variance_p = sumVarNum / sumNorm² ; ivar_p = 1/variance_p
     double sumVarNum = 0.0; // variance alpha^2 scaling: DRIZZLE.md scaling x'=alpha x -> var'=alpha^2 var (SNR-002)
     uint32_t nContrib = 0;    // 贡献源像素数 (诊断用)
 };
@@ -59,12 +61,23 @@ struct PixelAccumulator {
 // Tile 局部累加器的叶像素累加单元 (模板双实例 Scalar=float/double)
 // FP32 模式: sumFlux/sumArea 为 IEEE binary32 (真 FP32 累计, 不共享 double)
 // FP64 模式: IEEE binary64 (与旧 PixelAccumulator 语义一致)
-// release 叶单元只有 4 个字段: sumFlux/sumArea/sumVarNum(累加量) + nContrib(计数);
+// release 叶单元字段: sumFlux/sumArea/sumNorm/sumVarNum(累加量) + nContrib(计数);
 // sumWeight/sumSnrSq 为诊断字段, 已移除.
+//
+// 三个累加量的口径 (F&H 2002 §7.2 式(7) 下方 "fractional area overlap of **the
+// drop**" ⇒ 核按 drop 面积归一, 与 drizzlepac cdrizzlebox.c dover/=jaco 同式):
+//   w_jp  = a_jp/A_drop,j            (drop 分数交叠) ⇒ Σ_p w_jp = 1
+//   sumFlux = Σ_j x_j·w_jp           ⇒ Σ_p sumFlux_p = Σ_j x_j  (与 pixfrac 无关)
+//   sumArea = Σ_j a_jp               (覆盖面积, support = sumArea/A_cell)
+//   sumNorm = Σ_j w_jp·A_pixel,j     (面亮度归一分母 ⇒ S_p = sumFlux/sumNorm
+//                                     = Σ_j B_j a_jp / Σ_j a_jp, 与 pixfrac 无关)
+// pixfrac == 1 时 A_drop ≡ A_pixel ⇒ w_jp = a_jp/A_pixel,j、sumNorm ≡ sumArea
+// (逐位相同), 默认路径零回归.
 template <typename Scalar>
 struct TileLeafAccumulatorT {
     Scalar sumFlux = Scalar(0);
     Scalar sumArea = Scalar(0);
+    Scalar sumNorm = Scalar(0);     // 面亮度归一分母 (Σ w_jp·A_pixel,j)
     Scalar sumVarNum = Scalar(0);   // 方差传播分子 (Σ v_j w_jp²)
     uint32_t nContrib = 0;
 };

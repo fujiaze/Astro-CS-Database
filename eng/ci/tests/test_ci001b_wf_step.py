@@ -36,7 +36,7 @@ def _sha256(data: bytes) -> str:
 
 def valid_candidate_members() -> dict:
     """最小合法 candidate 成员集（清单在 zip 根、SHA256SUMS 双向完备）。"""
-    readme = b"AstroCS candidate readme\n"
+    readme = b"ACSD candidate readme\n"
     dll = b"MZ" + b"\x00" * 32
     provenance = json.dumps({
         "schema_version": 1, "source_sha": "a" * 40,

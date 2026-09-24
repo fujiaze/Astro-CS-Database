@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-501 命名块与块生命周期实现
+// ACSD Core — ARCH-501 命名块与块生命周期实现
 // 依据：ASTROCS_DESIGN.md §8.2；CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md
 #include "astrocs/core/block_frame.h"
 

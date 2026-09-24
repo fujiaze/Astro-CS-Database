@@ -560,7 +560,7 @@ oracle 同容差；actual_k 精确相等。
   `lib/infrastructure/scheduler/src/module_adapters.cpp:2003-2125`；
   声明换算 `:2033,2037,2041`；K 推导 `:2129-2147,2198-2216`；
   `ac_calibrate_frame` 调用 `:2220`）。
-  **独立实测（自写 XISF/FITS 读取器，不导入 AstroCS）**：T2 母版
+  **独立实测（自写 XISF/FITS 读取器，不导入 Astro Celestial Sphere Database（ACSD））**：T2 母版
   `sampleFormat=Float32 bounds="0:1"`——`masterBias` median
   0.015288（×65535 = **1001.87 ADU**）、`masterDark600` median 0.015391（**1008.63 ADU**）、
   `masterFlatRed` median 0.206381（**13525.15 ADU**，**未归一**到 1.0）；真实亮场

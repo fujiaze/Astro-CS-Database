@@ -6,7 +6,7 @@
 #   structure + 独立 Gaussian 噪声）上测真实 rejection 质量：
 #     - true sample FPR / pixel any-rejection FPR（背景区；production kernel）
 #     - Siril 1.4.3 frozen harness 同源 case 对照（同一批 stack 的
-#       LinearFit decision；避免 AstroCS 自身过拒而不自知）
+#       LinearFit decision；避免 ACSD 自身过拒而不自知）
 #     - production stage2 马赛克：none vs auto 的 star aperture flux /
 #       PSF FWHM / faint structure transfer / background noise efficiency
 #     - 注入离群 recall：thin satellite / cosmic / hot streak（production

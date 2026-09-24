@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md 附录 B（外部标准与文献）
 
-本文是 AstroCS 的**文献参考档案**，收录测光定标、孔径/PSF 测光、SNR 与不确定度、Gaia XP 合成测光方向的文献调查结论与引用清单（B1–B90、U1–U3）。**本文不覆盖 `docs/science/` 正本**：科学定义、公式、容差、门限与权重语义一律以 `ASTROCS_DESIGN.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`、`docs/science/PHOTOMETRY.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/CONTROL_WEIGHT_SNR.md`、`docs/science/PHASE2_UPM.md`、`docs/science/NOISE_MODEL.md`、`docs/science/UNCERTAINTY_AND_COVARIANCE.md` 为准。引文的作者、年份、标题、期刊/卷/页、DOI/arXiv/URL 按原文保留；核验标签 [V]/[S]/[U] 的含义见 §2。
+本文是 Astro Celestial Sphere Database（ACSD） 的**文献参考档案**，收录测光定标、孔径/PSF 测光、SNR 与不确定度、Gaia XP 合成测光方向的文献调查结论与引用清单（B1–B90、U1–U3）。**本文不覆盖 `docs/science/` 正本**：科学定义、公式、容差、门限与权重语义一律以 `ASTROCS_DESIGN.md`、`docs/science/UNIFIED_SCIENCE_MODEL.md`、`docs/science/PHOTOMETRY.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/CONTROL_WEIGHT_SNR.md`、`docs/science/PHASE2_UPM.md`、`docs/science/NOISE_MODEL.md`、`docs/science/UNCERTAINTY_AND_COVARIANCE.md` 为准。引文的作者、年份、标题、期刊/卷/页、DOI/arXiv/URL 按原文保留；核验标签 [V]/[S]/[U] 的含义见 §2。
 
 ---
 

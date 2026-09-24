@@ -1,4 +1,4 @@
-/* AstroCS noop conformance module — 公共类型 (BLD-003 SKELETON)
+/* ACSD noop conformance module — 公共类型 (BLD-003 SKELETON)
  *
  * 角色: 模块对外只经 module C ABI v1 (lib/include/astrocs/abi/module_api_v1.h)
  * 暴露; 本头仅保留跨边界可复用常量/枚举, 不引入任何实现。

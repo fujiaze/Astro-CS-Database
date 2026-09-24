@@ -1,7 +1,7 @@
-# AstroCS 根 CMake — 唯一产品构建入口与唯一产品事实源 (BLD-002)
+# ACSD 根 CMake — 唯一产品构建入口与唯一产品事实源 (BLD-002)
 # ── 契约 (BLD-002 唯一根 CMake 构建图) ──
-# 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 astrocs 只在此声明
-#    (add_executable(astrocs ...)), 显式源列表, 禁 GLOB (QA-002)。
+# 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 acsd 只在此声明
+#    (add_executable(acsd ...)), 显式源列表, 禁 GLOB (QA-002)。
 # 2) 子目录 CMakeLists 只声明本模块 target (eng/tests/unit 为测试, 见文末 add_subdirectory)。
 # 3) 旧 CLI 兼容子图的 CMakeLists（仓库根遗留, 非产品事实源; 其路径同步归 INT-001）与
 #    lib/algorithms/coverage/CMakeLists.txt 已降级为 compatibility 声明 (BLD-002): 保留给
@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.24)
 # project() VERSION 只接受数字三元组(CMake 语法); alpha 后缀由根 VERSION 唯一承载,
 # 生成串 ASTROCS_VERSION_STRING = VERSION + g<commit> (V81-ADOPT-006 统一规则)。
 # 同步规则: 此三元组必须 == 根 VERSION 的 major.minor.patch (eng/ci/check_version.py 校验)。
-project(astrocs VERSION 0.1.0 LANGUAGES C CXX)
+project(acsd VERSION 0.1.0 LANGUAGES C CXX)
 
 # ── 选项 (03/BLD-001 冻结) ──
 option(ASTROCS_ENABLE_ACR "Build dormant ACR tree (default OFF, production exclusion)" OFF)
@@ -199,20 +199,20 @@ target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/include)
 
 # io adapter (IO-001: 依赖方向 core <- io; 不 include 平台 runtime 模块)
-# BLD-003: 更名 astrocs_io_adapter —— ARC-001 冻结的 DLL target 计划
-# (install_tree 一一对应) 中 "astrocs_io" 是平台 SHARED DLL (astrocs_io.dll/.so,
+# BLD-003: 更名 acsd_io_adapter —— ARC-001 冻结的 DLL target 计划
+# (install_tree 一一对应) 中 "acsd_io" 是平台 SHARED DLL (acsd_io.dll/.so,
 # FITS/HiPS/原子流式 I/O 宿主服务), 见下 "BLD-003 平台 SHARED 骨架" 段落;
 # 本 STATIC 为 legacy 文件适配器 (ArtifactTransaction/FileIoAdapter, IO-001),
 # 保留原名会导致 target 重名 (CMake fatal)。
-add_library(astrocs_io_adapter STATIC lib/infrastructure/aio/io/src/io_adapter.cpp)
-target_include_directories(astrocs_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
-target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
+add_library(acsd_io_adapter STATIC lib/infrastructure/aio/io/src/io_adapter.cpp)
+target_include_directories(acsd_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
+target_link_libraries(acsd_io_adapter PUBLIC astrocs_core)
 
-# ── BLD-003 平台 SHARED 骨架 (G2: SHARED astrocs_runtime/io/noop/baseline targets) ──
+# ── BLD-003 平台 SHARED 骨架 (G2: SHARED acsd_runtime/io/noop/baseline targets) ──
 # 契约 (BLD-003 + 03_TARGET §4.1 + ARC-001):
 #   - 唯一 install 规则源 = eng/cmake/install_layout.cmake (文末 include);
 #     install 树与 ARC-001 dll_units 计划一一对应; clean install 仅白名单。
-#   - astrocs_runtime / astrocs_io: 平台 SHARED DLL 骨架。当前以已冻结、
+#   - acsd_runtime / acsd_io: 平台 SHARED DLL 骨架。当前以已冻结、
 #     自包含的 C ABI 源 (DATA-001 artifact / IO-001 fits stream) 起步,
 #     使 target 真实可编译、可安装、可被 ABI-003 loader 加载验证;
 #     loader/registry/DAG/scheduler/ArtifactStore 接线由 ABI-003/004 与
@@ -227,45 +227,45 @@ target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 # 导出可见性 (12 §1/ABI-006): module DLL 只导出批准 C ABI 入口; C 源 DLL
 # 使用 ASTROCS_ABI_SHARED/EXPORTS + -fvisibility=hidden 控制 (各 target)。
 
-# astrocs_runtime: runtime 平台 DLL 骨架 (artifact C ABI, DATA-001 冻结源)
+# acsd_runtime: runtime 平台 DLL 骨架 (artifact C ABI, DATA-001 冻结源)
 # 导出: 源为冻结 C ABI (无 ASTROCS_EXPORT 标注, SA-IO-07/DATA-06 头所有
 # 顶层函数即 API) → Linux 默认全导出; Windows 经 WINDOWS_EXPORT_ALL_SYMBOLS
 # (C 源, 导出全部顶层 API; ABI-006 收紧为精确导出清单, 正式 DLL 由 WIN-* 复核)。
-add_library(astrocs_runtime SHARED lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c)
-target_include_directories(astrocs_runtime PUBLIC
+add_library(acsd_runtime SHARED lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c)
+target_include_directories(acsd_runtime PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 if(MSVC)
-  set_property(TARGET astrocs_runtime PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  set_property(TARGET acsd_runtime PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
-  target_compile_options(astrocs_runtime PRIVATE -Wall -Wextra)
+  target_compile_options(acsd_runtime PRIVATE -Wall -Wextra)
 endif()
 if(WIN32)
-  set_target_properties(astrocs_runtime PROPERTIES OUTPUT_NAME "astrocs_runtime")
+  set_target_properties(acsd_runtime PROPERTIES OUTPUT_NAME "acsd_runtime")
 endif()
 
-# astrocs_io: io 平台 DLL 骨架 (FITS stream C ABI, IO-001 冻结源)
-add_library(astrocs_io SHARED lib/infrastructure/aio/io/fits_core.c)
-target_include_directories(astrocs_io PUBLIC
+# acsd_io: io 平台 DLL 骨架 (FITS stream C ABI, IO-001 冻结源)
+add_library(acsd_io SHARED lib/infrastructure/aio/io/fits_core.c)
+target_include_directories(acsd_io PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/io/include)
 if(MSVC)
-  set_property(TARGET astrocs_io PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  set_property(TARGET acsd_io PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
   # HOSTFIX (WIN-BUILD C1189): fits_core.c 用 C11 <stdatomic.h> (tmp 名计数器),
   # MSVC C11 atomics 是实验特性, 默认关闭 → vcruntime_c11_stdatomic.h 抛
-  # "C atomic support is not enabled" (C1189), astrocs_io.dll 构建失败并连带
+  # "C atomic support is not enabled" (C1189), acsd_io.dll 构建失败并连带
   # io_* 测试。/experimental:c11atomics 需 MSVC 19.35+ (VS 17.5+); 只作用于
   # 本 target 的 C 编译单元, 不影响其他 C/C++ target。
-  target_compile_options(astrocs_io PRIVATE
+  target_compile_options(acsd_io PRIVATE
     $<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:MSVC>,$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,19.35>>:/experimental:c11atomics>)
 else()
-  target_compile_options(astrocs_io PRIVATE -Wall -Wextra)
+  target_compile_options(acsd_io PRIVATE -Wall -Wextra)
 endif()
 if(WIN32)
-  set_target_properties(astrocs_io PROPERTIES OUTPUT_NAME "astrocs_io")
+  set_target_properties(acsd_io PROPERTIES OUTPUT_NAME "acsd_io")
 endif()
 # fits_core.c 需数学库 (Linux); Windows CRT 自带
 if(NOT WIN32)
-  target_link_libraries(astrocs_io PRIVATE m)
+  target_link_libraries(acsd_io PRIVATE m)
 endif()
 
 # astrocs_noop: conformance module SHARED (模块 CMakeLists 只声明本 target,
@@ -352,7 +352,7 @@ set_target_properties(astrocs_cpu_baseline PROPERTIES
 
 # RPATH (12 §6): install 后 SHARED 依赖以 $ORIGIN 解析; 禁 LD_LIBRARY_PATH 语义
 # (F-CI-002-01: astrocs_p1_noise 随 snr_estimator 断链解除摘出——target 未入库)
-foreach(tgt astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer)
+foreach(tgt acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline astrocs_p1_drizzle astrocs_p1_calibration astrocs_p1_cosmetic astrocs_p1_hips_writer)
   if(UNIX AND NOT APPLE)
     set_target_properties(${tgt} PROPERTIES
       INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
@@ -696,7 +696,7 @@ target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 # 不污染 astrocs_cpu/baseline 与主 CLI; 主 CLI 保持最低 amd64/SSE2 (ARCH-003 §2)。
 # 变体与 baseline 共享 baseline_kernels_impl.inc/backend_table.inc 同一源(零复制漂移),
 # 仅编译旗标与 ASTROCS_BACKEND_ID 不同 → 每条路径独立编译成不同目标并各自 self-test。
-# 注意: 两个变体 target 均不得被 astrocs(主 CLI) 链接 — 由 check_isa_leak 的 link map 验证把关。
+# 注意: acsd(主 CLI) 的链接闭包只含基线段 — 两个变体 target 由 check_isa_leak 的 link map 验证把关。
 add_library(astrocs_cpu_avx2 STATIC lib/infrastructure/benchmark/backend_host/avx2_backend.cpp)
 target_include_directories(astrocs_cpu_avx2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
@@ -856,15 +856,20 @@ add_library(astrocs_p1_sdet STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_detector.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_image.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_log.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_background.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_background.cpp
+  # GSL-REPLACE-01: 自研信赖域 LM 求解器（替代外部 GSL gsl_multifit_nlinear）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/nls_lm.cpp)
 target_include_directories(astrocs_p1_sdet PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src
   # CLEAN-403: sdet_log.cpp 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
 target_link_libraries(astrocs_p1_sdet PUBLIC OpenMP::OpenMP_CXX)
-# sdet PSF 拟合 trust-region LM 求解器依赖 GSL（star_detector Makefile 同款 -lgsl -lgslcblas）
-target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)
+# GSL-REPLACE-01: PSF 拟合的 trust-region LM 求解器改为仓内自研实现
+# （lib/algorithms/star_detection/src/nls_lm.cpp, 无外部依赖）。
+# **禁止**重新引入 GSL/gslcblas: Windows 无来源, 且其为 GPL 族并经
+# astrocs_p1_sdet → astrocs_module_adapters → astrocs 进入产品 exe 动态链。
+target_link_libraries(astrocs_p1_sdet PUBLIC m)
 
 # phases sessions (facade, 后续迁移为 preset)
 add_library(astrocs_phase1_session STATIC lib/phase1_session/p1_session.cpp)
@@ -922,8 +927,8 @@ target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_ai
 # normalize|mosaic|export 三子目录) 在此登记为 INTERFACE target
 # (astrocs_cli_subcommands 及三个子命令 target); 声明见
 # lib/infrastructure/cli/CMakeLists.txt (BLD-002: 子目录文件非产品事实源,
-# 唯一 project()/唯一 add_executable(astrocs) 仍在本文件)。
-# 置于 astrocs target 之前: INTERFACE target 无源编译, 仅提供 include 面。
+# 唯一 project()/唯一 add_executable(acsd) 仍在本文件)。
+# 置于 acsd target 之前: INTERFACE target 无源编译, 仅提供 include 面。
 add_subdirectory(lib/infrastructure/cli)
 
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
@@ -935,7 +940,7 @@ target_include_directories(astrocs_cli_process PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 
-add_executable(astrocs
+add_executable(acsd
   # G-RES-01 生成头显式声明为构建输入（不依赖"碰巧已生成"）。
   ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h
   lib/infrastructure/cli/main.cpp
@@ -943,7 +948,7 @@ add_executable(astrocs
   lib/infrastructure/cli/commands.cpp
   lib/infrastructure/cli/process.cpp
   lib/infrastructure/cli/runtime_client.cpp)
-target_include_directories(astrocs PRIVATE
+target_include_directories(acsd PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
   # INT-001 W4-A9 接线步 2/3: CLI 子命令模块四个 include 目录。前三个供
   # commands.cpp 的 normalize/normalize.h 等引号包含解析, 第 4 个为其上级目录;
@@ -962,7 +967,7 @@ target_include_directories(astrocs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/projection)
-target_link_libraries(astrocs PRIVATE
+target_link_libraries(acsd PRIVATE
   astrocs_contracts astrocs_core astrocs_cli_runtime astrocs_common astrocs_cfitsio astrocs_aio astrocs_hips
   astrocs_p3_projection_wcs
   astrocs_calibration astrocs_phase2 astrocs_drizzle astrocs_cpu
@@ -973,10 +978,10 @@ target_link_libraries(astrocs PRIVATE
   ${CMAKE_DL_LIBS})
 if(MSVC)
   if(ACS_ZLIB_LIBRARY)
-    target_link_libraries(astrocs PRIVATE "${ACS_ZLIB_LIBRARY}")
+    target_link_libraries(acsd PRIVATE "${ACS_ZLIB_LIBRARY}")
   endif()
 else()
-  target_link_libraries(astrocs PRIVATE m z)
+  target_link_libraries(acsd PRIVATE m z)
 endif()
 
 # ── QA-001: 自有生产 targets 分层严格 warning (GCC/Clang; MSVC 用 /W4) ──
@@ -993,7 +998,7 @@ if(NOT MSVC)
       target_compile_options(${tgt} PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
     endif()
   endforeach()
-  target_compile_options(astrocs PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+  target_compile_options(acsd PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 endif()
 
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
@@ -1052,7 +1057,7 @@ target_link_libraries(astrocs_cli_runtime PUBLIC
 # W4-A9 批次 1: projection 算法模块注册 (p3_wcs TAN 投影/WCS 内核,
 # 原 lib/phase3_session/p3_wcs.cpp; ASTROCS_DESIGN §7.1「projection」)。
 # 声明见 lib/algorithms/projection/CMakeLists.txt (if(NOT TARGET) 守卫)。
-# 由 astrocs_phase3_session / astrocs / astrocs_module_adapters 经
+# 由 astrocs_phase3_session / acsd / astrocs_module_adapters 经
 # target_link_libraries 引用 astrocs_p3_projection_wcs (同名 target 前向引用)。
 add_subdirectory(lib/algorithms/projection)
 
@@ -1189,4 +1194,4 @@ endif()
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。
 include(eng/cmake/install_layout.cmake)
 
-message(STATUS "AstroCS ${ASTROCS_VERSION_STRING} root target graph ready (ACR=${ASTROCS_ENABLE_ACR})")
+message(STATUS "ACSD ${ASTROCS_VERSION_STRING} root target graph ready (ACR=${ASTROCS_ENABLE_ACR})")

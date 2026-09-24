@@ -1,4 +1,4 @@
-# AstroCS phase1 star-psf module — 元数据 (P1-PSF-DOC 冻结, 2026-09-07;
+# ACSD phase1 star-psf module — 元数据 (P1-PSF-DOC 冻结, 2026-09-07;
 # PSF-001 r2 2026-09-10: 批 ABI 尺寸边界 dpsf_batch_dims_check 落码后行号锚
 # 全量复测刷新 + notes 增补 PSF-001 语义, 科学公式/容差/状态码语义零改动)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/psf/src/dpsf_psf.cpp 的

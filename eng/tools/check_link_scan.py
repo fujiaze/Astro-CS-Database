@@ -13,7 +13,7 @@ fail-closed（docs/ci/01_CHECKS.md §1「注册表原则」:12–15）
     ANCHOR_STALE: <常量名> <路径> 显式失败并点名（rc=2），不得 traceback、不得静默降级；
   * 默认二进制路径不存在 ⇒ **判红**（rc=2）—— 旧实现把「二进制不存在」当「无 ACR 违规」，
     静默跳过 nm 段仍打印 LINK_SCAN_PASS（恒绿）；默认值同时由失效的
-    build/root-cmake/astrocs 改为现行构建布局 build/astrocs（AGENTS.md §3）；
+    build/root-cmake/astrocs 改为现行构建布局 build/acsd（AGENTS.md §3）；
   * nm 不可用 / nm 非零退出 / nm 输出无可解析符号行 ⇒ 扫描面塌缩 ⇒ 判红（rc=2）
     （§1 :13「scanned == 0 ⇒ rc != 0」）。
 
@@ -38,7 +38,7 @@ import sys
 
 # ── 判据锚（§1 锚存活：硬编码引用的仓库路径必须存在） ──────────────────────
 CMAKELISTS_REL = "CMakeLists.txt"
-DEFAULT_BINARY_REL = os.path.join("build", "astrocs")
+DEFAULT_BINARY_REL = os.path.join("build", "acsd")
 NM_TOOL = "nm"
 
 # vendored cfitsio 生成清单行（GLOB 合法用法）与注释行不判红
@@ -153,13 +153,13 @@ _FAKE_NM_EMPTY = """#!/bin/sh
 exit 0
 """
 _CMAKELISTS_CLEAN = """cmake_minimum_required(VERSION 3.20)
-project(astrocs CXX)
+project(acsd CXX)
 file(GLOB cfitsio_sources ${CFITSIO_DIR}/*.c)
 # file(GLOB legacy_sources *.cpp)   # 注释里的 GLOB 不判红
-add_executable(astrocs main.cpp)
+add_executable(acsd main.cpp)
 """
 _CMAKELISTS_GLOB = """cmake_minimum_required(VERSION 3.20)
-project(astrocs CXX)
+project(acsd CXX)
 file(GLOB production_sources lib/*.cpp)
 """
 
@@ -203,7 +203,7 @@ def self_test() -> int:
         bindir = os.path.join(td, "bin")
         empty_bindir = os.path.join(td, "emptybin")
         os.makedirs(empty_bindir)
-        _write(os.path.join(root, "build", "astrocs"), "ELF-fake\n")
+        _write(os.path.join(root, "build", "acsd"), "ELF-fake\n")
 
         # P1 正例：无 GLOB、无 ACR 符号 ⇒ rc=0
         _write(os.path.join(root, CMAKELISTS_REL), _CMAKELISTS_CLEAN)

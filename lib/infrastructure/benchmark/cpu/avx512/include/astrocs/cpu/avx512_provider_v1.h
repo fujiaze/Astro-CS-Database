@@ -1,4 +1,4 @@
-/* AstroCS CPU AVX-512 provider — 公共 kernel 参数合同 v1 (热点子集)
+/* ACSD CPU AVX-512 provider — 公共 kernel 参数合同 v1 (热点子集)
  * lib/infrastructure/benchmark/cpu/avx512/include/astrocs/cpu/avx512_provider_v1.h (CPU-004)
  *
  * 角色: CPU-004 冻结的 AMD64 AVX-512 provider (target 单独

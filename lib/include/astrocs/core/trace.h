@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — RT-006 真实运行 trace 存储与 JSONL 重放
+// ACSD Core Contracts — RT-006 真实运行 trace 存储与 JSONL 重放
 //
 // 角色（tasks/03_RUNTIME_DATA_IO_TASKS.md RT-006 +
 //       14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md §4/§5）：

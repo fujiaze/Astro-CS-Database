@@ -221,7 +221,7 @@
         "anchor": "catch",
         "line_hint": 157,
         "kind": "accepted",
-        "reason": "编排层遗留 target（astrocs_infra_orchestrator 未链入生产 astrocs）内的人读检查工具：JSON 解析失败仅输出原始 JSON。",
+        "reason": "编排层遗留 target（astrocs_infra_orchestrator 未链入生产 acsd）内的人读检查工具：JSON 解析失败仅输出原始 JSON。",
         "owner": "编排层（遗留 target）域主",
         "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
       },
@@ -447,7 +447,7 @@
         "anchor": "lib\\\\astro_image_io\\\\logs\\\\astro_image_io.log",
         "line_hint": 43,
         "kind": "known_gap",
-        "reason": "aio 日志硬编码落源码树（Windows 分支 lib\\astro_image_io\\logs\\astro_image_io.log）；aio 链入生产 astrocs ⇒ **生产可达**，每次运行都写源码树（实测该文件 63 MB）。",
+        "reason": "aio 日志硬编码落源码树（Windows 分支 lib\\astro_image_io\\logs\\astro_image_io.log）；aio 链入生产 acsd ⇒ **生产可达**，每次运行都写源码树（实测该文件 63 MB）。",
         "owner": "aio 域主",
         "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
       },
@@ -471,7 +471,7 @@
         "anchor": "run/logs/orchestrator",
         "line_hint": 566,
         "kind": "known_gap",
-        "reason": "编排层遗留 target 的 log_dir 默认值 = CWD 相对 run/logs/orchestrator；该 target 未链入生产 astrocs，但路径形态违反最高设计 §7.3。",
+        "reason": "编排层遗留 target 的 log_dir 默认值 = CWD 相对 run/logs/orchestrator；该 target 未链入生产 acsd，但路径形态违反最高设计 §7.3。",
         "owner": "编排层（遗留 target）域主",
         "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
       },

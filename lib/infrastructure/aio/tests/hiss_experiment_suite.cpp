@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_experiment_suite.cpp - AstroCS HISS Phase C++ 实验 (DQ-001 ~ DQ-007)
+// hiss_experiment_suite.cpp - ACSD HISS Phase C++ 实验 (DQ-001 ~ DQ-007)
 //
 // 依据:
 // - 任务: codec/transform/occupancy/checksum/alignment/browser I/O 实验
@@ -1284,7 +1284,7 @@ static bool run_browser_io_experiment() {
 // ============================================================================
 int main(int argc, char** argv) {
     fprintf(stderr, "============================================================\n");
-    fprintf(stderr, "  AstroCS HISS Phase C++ Experiment Suite\n");
+    fprintf(stderr, "  ACSD HISS Phase C++ Experiment Suite\n");
     fprintf(stderr, "  DQ-001 ~ DQ-007 (INTERIM_BASELINE_NOT_FROZEN)\n");
     fprintf(stderr, "============================================================\n");
 

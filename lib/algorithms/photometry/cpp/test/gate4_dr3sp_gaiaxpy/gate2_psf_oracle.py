@@ -2,7 +2,7 @@
 """
 Gate 2 (Phase1 Full Freeze v2): PSF/STAR_MEASURE 外部 Oracle 对比
 
-对比: AstroCS (star_detector + dynamic_psf DLL) vs Photutils vs 解析真值
+对比: ACSD (star_detector + dynamic_psf DLL) vs Photutils vs 解析真值
 指标: 质心 / 通量 / FWHM / 椭率 / 背景
 
 门的两类地位 (M3b-F-01 整改; **不得混用**):
@@ -249,7 +249,7 @@ def main():
         # 坐标约定: DPSF 输出为像素中心坐标 (index+0.5), 统一到 0-based 像素索引
         # 坐标约定: star_detector/DPSF 输出为像素中心坐标 (array index + 0.5, FITS 约定)
         astro.append({"x": cx, "y": cy, "flux": flux, "fwhm": fwhm, "ell": ell})
-    print(f"[gate2] AstroCS 检测拟合: {len(astro)} 星 (valid={n_valid})")
+    print(f"[gate2] ACSD 检测拟合: {len(astro)} 星 (valid={n_valid})")
 
     ph = photutils_measure(img, truths)
     print(f"[gate2] Photutils: {len(ph)} 星")

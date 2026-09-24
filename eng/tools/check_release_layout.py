@@ -51,7 +51,7 @@ def legacy_main(dist: str) -> int:
     exes = [p for p in os.listdir(dist)
             if os.path.isfile(os.path.join(dist, p))
             and os.stat(os.path.join(dist, p)).st_mode & 0o111]
-    if len(exes) != 1 or exes[0] != "astrocs":
+    if len(exes) != 1 or exes[0] != "acsd":
         errors.append("非单一入口: %s" % sorted(exes))
     for req in REQUIRED_FILES:
         if not os.path.isfile(os.path.join(dist, req)):
@@ -83,7 +83,7 @@ def legacy_main(dist: str) -> int:
         for e in errors:
             print("  " + e)
         return 1
-    print("REL-001_PASS: 单一入口 astrocs, 必含文件齐, checksum 一致, 无 build/testdata/history")
+    print("REL-001_PASS: 单一入口 acsd, 必含文件齐, checksum 一致, 无 build/testdata/history")
     return 0
 
 
@@ -94,7 +94,7 @@ def _run_cli(args: list[str]) -> "subprocess.CompletedProcess":
                           capture_output=True, text=True, timeout=300)
 
 
-def _mk_dist(root: str, exes=("astrocs",), files=REQUIRED_FILES, bad_checksum=False,
+def _mk_dist(root: str, exes=("acsd",), files=REQUIRED_FILES, bad_checksum=False,
              banned=()) -> str:
     dist = os.path.join(root, DIST_REL)
     os.makedirs(dist, exist_ok=True)
@@ -150,7 +150,7 @@ def _self_test() -> int:
         check("P1_legacy_green", r.returncode, 0, r.stdout + r.stderr, "REL-001_PASS")
 
         shutil.rmtree(dist)
-        _mk_dist(td, exes=("astrocs", "helper"))
+        _mk_dist(td, exes=("acsd", "helper"))
         r = _run_cli(["--legacy-check", "--dist", dist])
         check("N1_two_entries_red", r.returncode, 1, r.stdout + r.stderr, "非单一入口")
 

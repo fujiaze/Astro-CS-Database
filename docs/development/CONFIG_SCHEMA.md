@@ -59,7 +59,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
 
 rejection.method 说明（V17 冻结）：
   - 默认 `method=auto` + `profile=astrocs_adaptive_pixel`
-    （**AstroCS 自研**，逐输出像素几何 N 内置映射：1≤N≤3→none；4≤N≤5→
+    （**Astro Celestial Sphere Database（ACSD） 自研**，逐输出像素几何 N 内置映射：1≤N≤3→none；4≤N≤5→
     percentile；6≤N≤15→winsorized_sigma；N≥16→linear_fit；阈值逐档继承
     SCI-REJ 冻结锚点）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 为
     alias，解析并序列化为 wbpp_2_9_1）；
@@ -67,7 +67,7 @@ rejection.method 说明（V17 冻结）：
     contributors（几何可贡献独立 exposure 数）解析一次，禁止在 pixel loop
     内按 effective count 路由；对照档 WBPP 2.9.1（本机源码 bestRejectionMethod）：
       nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
-  - `astrocs_adaptive` = AstroCS 自有策略（tile nominal depth 自适应，
+  - `astrocs_adaptive` = ACSD 自有策略（tile nominal depth 自适应，
     独立命名，不冒充 WBPP exact）；
   - effective 候选数 <= underdetermined_n（**默认 0 = 按 profile 解析**：wbpp/adaptive=2；
     astrocs_adaptive_pixel=3；显式 request=EXTREME_VALUE_PRIOR_SIGMA（opt-in）=1）或 < 方法 minimum N →

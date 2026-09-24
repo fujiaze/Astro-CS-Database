@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS 统一 CI 执行器（控制包任务 V8-CI-002，owner=SA-CI-32）。
+"""ACSD 统一 CI 执行器（控制包任务 V8-CI-002，owner=SA-CI-32）。
 
 职责（tasks/02_CI_TASKS.md「V8-CI-002」+ 07_CI_MACHINE_CONTRACT.md）：
   - 唯一 CI 入口：CI YAML 只调用 ``python3 eng/ci/run.py --profile ...``，不复制业务命令。
@@ -1206,7 +1206,7 @@ def write_outputs(out_root: Path, ci_result: dict, check_results: list[dict],
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="eng/ci/run.py",
-        description="AstroCS 统一 CI 执行器：CI YAML 的唯一入口（V8-CI-002）。",
+        description="ACSD 统一 CI 执行器：CI YAML 的唯一入口（V8-CI-002）。",
     )
     parser.add_argument("--profile", choices=PROFILES, default="fast",
                         help="检查 profile（默认 fast）")

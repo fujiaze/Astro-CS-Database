@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/normalize/v1",
-  "title": "AstroCS phase_config — normalize v1（三命令通用输入合同：多数据块 blocks[] / 平铺单块简写）",
+  "title": "ACSD phase_config — normalize v1（三命令通用输入合同：多数据块 blocks[] / 平铺单块简写）",
   "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态，GAP_AUDIT §9.71 裁决 2（2026-09-20）把该形态确立为**三命令通用输入合同**（ASTROCS_DESIGN.md §3.3）：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。逐帧 {phase_name, config, inputs[]} 形态已按 §9.68 **退役**（与 mosaic/export 的处置不同：那两份 schema 按 §9.71 裁决 2 定案 4「不是退役旧合同」**保留**旧分支作合同留痕；normalize 侧旧分支由 §9.68 删除，CLI 明确拒绝并给迁移提示）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "normalize",

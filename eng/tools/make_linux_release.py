@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """make_linux_release.py — LNX-005: 生成 Linux amd64 alpha 发布包(09 §5 / 13 § 版本 + 05 §7 manifest)。
 正式包结构(单一 user exe + manifest + SBOM/licenses + hash):
-   AstroCS-Linux-amd64-<X.Y.Z-alpha.N>.tar.zst
+   ACSD-Linux-amd64-<X.Y.Z-alpha.N>.tar.zst
    └─ astrocs/                     (根目录, 便于解包)
       ├─ bin/astrocs               (唯一用户可执行; 无旧 phase/benchmark/tool exe)
       ├─ MANIFEST.json             (每文件 path,sha256,size,mode; 单源: gen_version.py)
@@ -11,7 +11,7 @@
       ├─ LICENSES/                 (第三方/自有许可证; 本包 CLI 静态自带 libs → 标注来源)
       ├─ VERSION                    (0.10.0-alpha.2+g<commit12>)
       └─ SHA256SUMS                (除自身外全文件 hash; tar.zst 外层另附 .sha256)
-用法: python3 eng/tools/make_linux_release.py --bin <astrocs> --out <outdir> [--tar-gz]
+用法: python3 eng/tools/make_linux_release.py --bin <acsd> --out <outdir> [--tar-gz]
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def git(*args):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--bin", required=True, help="Release astrocs 可执行路径")
+    ap.add_argument("--bin", required=True, help="Release acsd 可执行路径")
     ap.add_argument("--out", required=True, help="输出目录(将写入 tar 包 + .sha256)")
     ap.add_argument("--tar-gz", action="store_true", help="zstd 不可用时以 .tar.gz 替代(09 §5 需记录)")
     args = ap.parse_args()
@@ -55,15 +55,15 @@ def main() -> int:
     commit = git("rev-parse", "HEAD")
     c12 = commit[:12]
     pkg_version = f"{base}+g{c12}"
-    pkg_name_base = f"AstroCS-Linux-amd64-{base}"
+    pkg_name_base = f"ACSD-Linux-amd64-{base}"
 
     work = tempfile.mkdtemp(prefix="lnxrel_")
-    root = os.path.join(work, "astrocs")
+    root = os.path.join(work, "acsd")
     os.makedirs(os.path.join(root, "bin"))
     os.makedirs(os.path.join(root, "LICENSES"))
 
     # 1) 唯一用户 exe
-    bin_dst = os.path.join(root, "bin", "astrocs")
+    bin_dst = os.path.join(root, "bin", "acsd")
     shutil.copy2(args.bin, bin_dst)
 
     # 2) VERSION(clean main 的 X.Y.Z-alpha.N+g<commit12>, 不带 dirty)
@@ -83,11 +83,11 @@ def main() -> int:
     with open(os.path.join(root, "backends.manifest.json"), "w", encoding="utf-8") as f:
         json.dump(bm, f, indent=1, ensure_ascii=False)
 
-    # 4) SBOM (SPDX 2.3): 本包由单一 CONTAINER(AstroCS CLI)承载, 无外部可交付二进制
+    # 4) SBOM (SPDX 2.3): 本包由单一 CONTAINER(ACSD CLI)承载, 无外部可交付二进制
     license_text = (
-        "AstroCS CLI 发布包自带许可证。仓库内第三方许可见工程控制/RELEASE_V5/.../"
+        "ACSD CLI 发布包自带许可证。仓库内第三方许可见工程控制/RELEASE_V5/.../"
         "PACKAGE_MANIFEST.md 与各 third_party 目录 LICENSE。"
-        "本 SBOM 对发布包交付对象(AstroCS Linux amd64 单一 CLI)建档。"
+        "本 SBOM 对发布包交付对象(ACSD Linux amd64 单一 CLI)建档。"
     )
     with open(os.path.join(root, "LICENSES", "NOTICE.txt"), "w", encoding="utf-8") as f:
         f.write(license_text + "\n")
@@ -95,18 +95,18 @@ def main() -> int:
         "spdxVersion": "SPDX-2.3",
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
-        "name": f"AstroCS-Linux-amd64-{base}",
+        "name": f"ACSD-Linux-amd64-{base}",
         "documentNamespace": f"https://astrocs.local/spdx/{c12}",
         "creationInfo": {"created": "2026-08-30T10:45:00Z",
                          "creators": ["Tool:make_linux_release.py"]},
         "packages": [{
-            "SPDXID": "SPDXRef-Package-AstroCS",
-            "name": "AstroCS",
+            "SPDXID": "SPDXRef-Package-ACSD",
+            "name": "ACSD",
             "versionInfo": pkg_version,
             "downloadLocation": "NOASSERTION",
             "filesAnalyzed": True,
             "licenseConcluded": "NOASSERTION",
-            "supplier": "Organization:AstroCS",
+            "supplier": "Organization:ACSD",
             "primaryPackagePurpose": "APPLICATION",
         }],
     }
@@ -150,11 +150,11 @@ def main() -> int:
     os.makedirs(args.out, exist_ok=True)
     if args.tar_gz or shutil.which("zstd") is None:
         arch = os.path.join(args.out, f"{pkg_name_base}.tar.gz")
-        subprocess.run(["tar", "-C", work, "-czf", arch, "astrocs"], check=True)
+        subprocess.run(["tar", "-C", work, "-czf", arch, "acsd"], check=True)
         arch_type = "tar.gz"
     else:
         arch = os.path.join(args.out, f"{pkg_name_base}.tar.zst")
-        subprocess.run(["tar", "-C", work, "--zstd", "-cf", arch, "astrocs"], check=True)
+        subprocess.run(["tar", "-C", work, "--zstd", "-cf", arch, "acsd"], check=True)
         arch_type = "tar.zst"
     sums = sha256_file(arch)
     with open(arch + ".sha256", "w", encoding="utf-8") as f:

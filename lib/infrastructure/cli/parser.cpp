@@ -1,4 +1,4 @@
-// astrocs CLI — parser (RT-008 拆分自 main.cpp)
+// acsd CLI — parser (RT-008 拆分自 main.cpp)
 // 统一 parser + 参数校验帮助器 + CPU 指纹/hash 帮助器。
 // 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头 ——
 // 只 include CLI 自身的单一声明头 session_commands.h（input_contract()，供 §9.71
@@ -8,7 +8,7 @@
 
 // CLI-001: 用户可见命令树唯一事实源（lib/infrastructure/cli/command_tree.h）。
 // 命令名/旗标白名单/help 文本都从这里取；本文件不再自带命令清单。
-// 相对路径: 根 CMakeLists.txt 的 astrocs target include 目录尚未登记本模块
+// 相对路径: 根 CMakeLists.txt 的 acsd target include 目录尚未登记本模块
 // （登记属 INT-001 域），此处用工作区相对包含保证根图与 lib/infrastructure/cli/ 独立图都能编译。
 #include "command_tree.h"
 #include "session_commands.h"   // CLI-MULTIBLOCK: input_contract() 单一声明
@@ -549,7 +549,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
                          bool session_mode, const std::string& session_name) {
     std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
     if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", path.c_str());
+        std::fprintf(stderr, "acsd: config not found '%s'\n", path.c_str());
         return astrocs::INPUT;                       // 04: 输入缺失 → 3
     }
     std::stringstream buf; buf << f.rdbuf();
@@ -557,11 +557,11 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     try {
         doc = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
-        std::fprintf(stderr, "astrocs: config malformed JSON: %s\n", sanitize(e.what()).c_str());
+        std::fprintf(stderr, "acsd: config malformed JSON: %s\n", sanitize(e.what()).c_str());
         return astrocs::INPUT;                       // 04: 格式错 → 3
     }
     if (!doc.is_object()) {
-        std::fprintf(stderr, "astrocs: config is not a JSON object\n");
+        std::fprintf(stderr, "acsd: config is not a JSON object\n");
         return astrocs::INPUT;
     }
     static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
@@ -572,7 +572,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     // 判别：phase_name 顶层键（该形态的 phase 判别键），或 inputs 为**数组**
     // （V1 形态的 inputs 是对象；逐帧形态才是每帧一个对象的数组）。
     if (session_mode && config_is_retired_perframe_form(doc)) {
-        std::fprintf(stderr, "astrocs: %s\n",
+        std::fprintf(stderr, "acsd: %s\n",
                      retired_perframe_form_message(session_name).c_str());
         return astrocs::INPUT;                       // 3: 配置形态不可用
     }
@@ -583,7 +583,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
                              (session_mode &&
                               (kSessionKeys.count(it.key()) != 0 || it.key() == "blocks"));
         if (!allowed) {
-            std::fprintf(stderr, "astrocs: config has unknown key '%s'\n", it.key().c_str());
+            std::fprintf(stderr, "acsd: config has unknown key '%s'\n", it.key().c_str());
             return astrocs::INPUT;                   // 防拼写静默忽略 → 3
         }
     }
@@ -598,7 +598,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         int bcode = astrocs::ARGS;
         const std::vector<std::string> berrs = session_blocks_errors(session_name, doc, &bcode);
         if (!berrs.empty()) {
-            for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+            for (const auto& e : berrs) std::fprintf(stderr, "acsd: %s\n", e.c_str());
             return bcode;                            // 2: 结构错 / 3: 块内未知键
         }
     }
@@ -606,33 +606,33 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     const bool session_form = flat_session || has_blocks;
     if (!doc.contains("schema_version")) {
         if (!session_form) {
-            std::fprintf(stderr, "astrocs: config missing 'schema_version'\n");
+            std::fprintf(stderr, "acsd: config missing 'schema_version'\n");
             return astrocs::INPUT;
         }
     } else if (!doc["schema_version"].is_string() ||
                doc["schema_version"].get<std::string>() != "1") {
-        std::fprintf(stderr, "astrocs: config schema_version must be \"1\"\n");
+        std::fprintf(stderr, "acsd: config schema_version must be \"1\"\n");
         return astrocs::ARGS;                        // 版本错=配置错 → 2
     }
     if (!session_form && (!doc.contains("inputs") || !doc["inputs"].is_object())) {
-        std::fprintf(stderr, "astrocs: config missing 'inputs' object\n");
+        std::fprintf(stderr, "acsd: config missing 'inputs' object\n");
         return astrocs::INPUT;
     }
     if (!session_form) {
         for (const char* k : {"lights", "darks", "flats", "bias"}) {
             auto it = doc["inputs"].find(k);
             if (it == doc["inputs"].end() || !it->is_array()) {
-                std::fprintf(stderr, "astrocs: config inputs.%s must be an array\n", k);
+                std::fprintf(stderr, "acsd: config inputs.%s must be an array\n", k);
                 return astrocs::INPUT;
             }
             for (const auto& e : *it) {
                 if (!e.is_string() || e.get<std::string>().empty()) {
-                    std::fprintf(stderr, "astrocs: config inputs.%s has empty path\n", k);
+                    std::fprintf(stderr, "acsd: config inputs.%s has empty path\n", k);
                     return astrocs::INPUT;
                 }
                 std::error_code ec;
                 if (!std::filesystem::exists(std::filesystem::u8path(e.get<std::string>()), ec)) {
-                    std::fprintf(stderr, "astrocs: config input not found '%s'\n",
+                    std::fprintf(stderr, "acsd: config input not found '%s'\n",
                                  e.get<std::string>().c_str());
                     return astrocs::INPUT;
                 }
@@ -640,7 +640,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         }
     }
     if (!session_form && (!doc.contains("output_dir") || !doc["output_dir"].is_string())) {
-        std::fprintf(stderr, "astrocs: config missing 'output_dir'\n");
+        std::fprintf(stderr, "acsd: config missing 'output_dir'\n");
         return astrocs::INPUT;
     }
     // FIX-E2E B1-A8: 平铺会话同样必须显式给 output_dir —— 取消隐式 CWD "." 默认，
@@ -650,7 +650,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         (!doc.contains("output_dir") || !doc["output_dir"].is_string() ||
          doc["output_dir"].get<std::string>().empty())) {
         std::fprintf(stderr,
-                     "astrocs: config missing 'output_dir' (required for phase run; "
+                     "acsd: config missing 'output_dir' (required for phase run; "
                      "run products are written only under output_dir)\n");
         return astrocs::ARGS;                        // 2: 配置错
     }
@@ -659,7 +659,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     // 多块形态不走本条：output_dir 在块级（session_blocks_errors 已逐块校验）。
     if (!session_form &&
         !std::filesystem::exists(std::filesystem::u8path(doc["output_dir"].get<std::string>()), ec)) {
-        std::fprintf(stderr, "astrocs: config output_dir not found\n");
+        std::fprintf(stderr, "acsd: config output_dir not found\n");
         return astrocs::INPUT;
     }
     *doc_out = std::move(doc);
@@ -670,7 +670,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
 int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
     std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
     if (!f) {
-        std::fprintf(stderr, "astrocs: cpu profile not found '%s'\n", path.c_str());
+        std::fprintf(stderr, "acsd: cpu profile not found '%s'\n", path.c_str());
         return astrocs::INPUT;
     }
     std::stringstream buf; buf << f.rdbuf();
@@ -678,7 +678,7 @@ int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
     try {
         prof = nlohmann::json::parse(buf.str());
     } catch (const nlohmann::json::parse_error& e) {
-        std::fprintf(stderr, "astrocs: cpu profile malformed JSON: %s\n", sanitize(e.what()).c_str());
+        std::fprintf(stderr, "acsd: cpu profile malformed JSON: %s\n", sanitize(e.what()).c_str());
         return astrocs::INPUT;
     }
     // CPU-004: v2 profile 校验(结构 + 机器一致性: arch/quota_signature/logical_available)
@@ -686,7 +686,7 @@ int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out) {
     const auto verdict = astrocs::backend_host::validate_profile_v2_for_machine(
         buf.str(), ASTROCS_COMMIT_SHA, hw);
     if (!verdict.valid) {
-        std::fprintf(stderr, "astrocs: cpu profile invalid: %s — rerun 'astrocs benchmark cpu'\n",
+        std::fprintf(stderr, "acsd: cpu profile invalid: %s — rerun 'acsd benchmark cpu'\n",
                      verdict.stale_reason.c_str());
         return astrocs::BACKEND;                     // 04: CPU 特征/损坏 → 5
     }

@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-505 阶段块流执行器（生产节点命名块装配）
+// ACSD Core — ARCH-505 阶段块流执行器（生产节点命名块装配）
 //
 // 依据：ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线与块生命周期）、§8.3（三阶段调度器）、
 //       §10.3；ENGINEERING_SPEC.md §2；CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md；

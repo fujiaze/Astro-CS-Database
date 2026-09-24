@@ -10,7 +10,7 @@
   §13 测试锚：TST-PSF-001 解析一致性 + TST-PSF-INV-* 不变量门。
 
 独立性（关键）:
-  * 本 Oracle **不 import 任何本仓 C/C++ 产物**、不链接、不调用 dpsf_* 或任何 astrocs 库；
+  * 本 Oracle **不 import 任何本仓 C/C++ 产物**、不链接、不调用 dpsf_* 或任何 acsd 库；
   * 真值生成与拟合模型都不用生产的 p1/p2/p3 二次型，而用**旋转主轴投影**形式
       u =  cosθ·dx + sinθ·dy   (σ = sx)
       v = −sinθ·dx + cosθ·dy   (σ = sy)

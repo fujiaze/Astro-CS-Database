@@ -69,7 +69,7 @@ import unittest
 from fixture_common import ensure_seam_hips  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-EXE = os.path.join(REPO, "build", "astrocs")
+EXE = os.path.join(REPO, "build", "acsd")
 
 GATE_OK_VERDICTS = {"ok"}
 

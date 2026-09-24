@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/source_snr/v1",
-  "title": "AstroCS 统一对象 source_snr —— 依赖源亮度的 F_hat/sigma_F",
+  "title": "ACSD 统一对象 source_snr —— 依赖源亮度的 F_hat/sigma_F",
   "description": "UNIFIED_MODEL §2：source_snr = F_hat/sigma_F；可否作权重 = 不直接作帧权重。source_snr 不是 variance/ivar，不得接入任何要求 variance 的端口（ENGINEERING_SPEC §4.7）。",
   "x-astrocs-object": {
     "name": "source_snr",

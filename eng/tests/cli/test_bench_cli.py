@@ -31,11 +31,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -69,7 +69,7 @@ def benchmark_once():
 class TestBenchCli(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
 
     # ── 1. 单命令 profile 有效性（v2 schema / kernel 规格） ──
     def test_01_benchmark_profile_v2_valid(self):
@@ -129,7 +129,7 @@ class TestBenchCli(unittest.TestCase):
         for case in cases:
             r = run(*case, timeout=60)
             self.assertEqual(r.returncode, 2,
-                             "旧命令/旗标必须 rc=2: astrocs %s → %s" % (" ".join(case),
+                             "旧命令/旗标必须 rc=2: acsd %s → %s" % (" ".join(case),
                                                                         r.returncode))
             self.assertEqual(r.stdout, "", "参数错误 stdout 不得有输出")
             self.assertFalse(os.path.isfile(out), "被拒命令不得产出 profile 文件")

@@ -1,4 +1,4 @@
-# AstroCS 已知限制（Known Limitations）
+# Astro Celestial Sphere Database（ACSD） 已知限制（Known Limitations）
 
 > 上游：ASTROCS_DESIGN.md §1.3（非目标）
 
@@ -130,7 +130,7 @@
 44. **球面 S-H 的逐源像素闭合散布无逐像素门覆盖**
     - **现象**：Σ_p a_jp 应恒等于 A_drop（与裁剪实现无关的解析恒等式）。球面 S-H 路径实测闭合散布：1.00″/px（nside=2^18）max **+1.72e-06** / min −1.54e-06 / **σ=1.04e-06**；0.30″/px max +3.14e-05 / σ=1.22e-05；而独立平面精确算法（顶点枚举，完全不同的算法）闭合误差 **2.7e-16**（机器精度）。归因：球面 S-H 用相邻单位向量叉积重建大圆的条件数限制（近平行平面交点误差 ~1e-11 rad ÷ drop 角尺度 θ），`lib/algorithms/drizzle/` 下 `spherical_overlap.cpp` 既有注释已识别该机制。**性质：散布而非系统偏置**（16 像素 mean≈0）⇒ **帧级**通量闭合仍很好（实测 2.4e-08 @pf=1，远优于冻结 FP64 <1e-6 门），**但逐源像素的乘性随机误差 σ≈1.0e-6 @1″/px 不被任何现有门覆盖**（现有门是帧级/逐叶级）。
     - **规范依据**：`docs/algorithms/DRIZZLE_GEOMETRY.md`（ALG-DRZ-001）；`AGENTS.md §5`「判据必须非退化」；docs/science 冻结的 FP64 通量闭合门。
-    - **诚实边界**：证据来自**忠实 Python 复刻**（叶边界与 astropy_healpix 逐位一致），**未**在产品二进制上复现（审核禁止运行 AstroCS 可执行文件）。
+    - **诚实边界**：证据来自**忠实 Python 复刻**（叶边界与 astropy_healpix 逐位一致），**未**在产品二进制上复现（审核面落在静态复算与独立 Python 复刻上）。
     - **归属/去向**：drizzle 域 + 判据面；是否新增**逐像素/逐源**闭合门并冻结其预算待裁决（若 SCI-B 要声明 1e-6 级绝对 SNR 精度，该噪声不可忽略）。
 
 45. **`leaf_fully_inside_drop` 解析面积快路径与 S-H 路径的面积不连续**

@@ -47,7 +47,7 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 
 > 执行形态说明：`lib/infrastructure/aio/io/hips_output_store.py` + `fits_verify.py` 为纯 Python
 > 语义层（Linux 控制/轻合成节点可完整验证；与 DATA-003 production_store 同模式）。
-> Windows 正式 DLL 交付（astrocs_io.dll）由 IO-003 同语义 C 接线复刻同一发布状态机；
+> Windows 正式 DLL 交付（acsd_io.dll）由 IO-003 同语义 C 接线复刻同一发布状态机；
 > manifest/tree hash/错误码公式不变，跨 DLL 边界不暴露路径字符串句柄。
 
 ## 3. 唯一目标与 run 隔离
@@ -177,7 +177,7 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 ## 8. 已知限制
 
 1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 Python 语义层 +
-   全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）用同一状态机源码执行。
+   全部契约/负测。Windows 正式 DLL 构建（acsd_io.dll）用同一状态机源码执行。
 2. `Moc.fits`（BINTABLE 扩展）不做内容校验（IO-001 §14.2：表扩展 UNSUPPORTED；
    IO-002 MOC optional hint 语义：缺失/损坏不阻塞读/写）。
 3. 并发安全以 run 目录隔离 + 单次发布单线程为前提；单 run 内并发发布同一

@@ -1,4 +1,4 @@
-# AstroCS 版本合同（VER-001）
+# Astro Celestial Sphere Database（ACSD） 版本合同（VER-001）
 
 > 上游：ASTROCS_DESIGN.md §13（版本与发布权）
 

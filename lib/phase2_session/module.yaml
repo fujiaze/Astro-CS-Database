@@ -1,10 +1,10 @@
-# AstroCS phase2 session 模块 — 元数据 (P2-SESSION-DOC 冻结, 2026-09-10)
+# ACSD phase2 session 模块 — 元数据 (P2-SESSION-DOC 冻结, 2026-09-10)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase2_session/p2_session.cpp
 # 282 行 + 唯一权威签名头 lib/phase2_session/p2_session.h 39 行，行号
 # grep/read 实测 2026-09-10；构建挂载: 根 CMakeLists.txt:454
 # add_library(astrocs_phase2_session STATIC ...) + :455-457 include +
 # :458 target_link_libraries(astrocs_contracts astrocs_phase2)；编入
-# astrocs 可执行 :501-506/:504 + QA-001 严格警告层 :517-529/:522），
+# acsd 可执行 :501-506/:504 + QA-001 严格警告层 :517-529/:522），
 # 模块化迁移（独立迁移目标 astrocs_p2_session.dll / plan-execute-
 # cancel-inspect / ThreadLease 接线）由 P2-SESSION-IMPL 执行；
 # 可执行测试由 P2-SESSION-TEST 建立（TEST-P2-SESSION-001 MISSING，
@@ -16,7 +16,7 @@
 # 的独立迁移空目录先例）；memory.md 归主 agent 登记。
 # dll_target=astrocs_p2_session.dll 为迁移目标合同值（尚未存在，
 # MISSING 如实登记）；现状构建=根 CMakeLists.txt astrocs_phase2_
-# session 静态库编入 astrocs 可执行（:501-506）。
+# session 静态库编入 acsd 可执行（:501-506）。
 # entrypoint=MISSING：registry 无 astrocs.p2.session module_id 的
 # descriptor——p2_session 五函数经 P2Api（lib/infrastructure/scheduler/src/
 # module_adapters.cpp:711-718 五静态委托）被占位 descriptor 工厂

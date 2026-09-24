@@ -110,24 +110,16 @@ add_test(NAME p1psf_prodpath_centroid COMMAND p1psf_prodpath_check_test)
 set(P1PSF_GATE_SDET_DIR ${P1PSF_DIR}/../../../star_detection)
 set(P1PSF_GATE_ORCH_INC
   ${P1PSF_DIR}/../../../../infrastructure/pipeline/orchestrator/cpp/include)
-find_path(P1PSF_GATE_GSL_INCLUDE_DIR gsl/gsl_multifit_nlinear.h
-  HINTS /usr/include /usr/local/include)
-find_library(P1PSF_GATE_GSL_LIB NAMES gsl
-  HINTS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /usr/local/lib)
-find_library(P1PSF_GATE_GSLCBLAS_LIB NAMES gslcblas
-  HINTS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /usr/local/lib)
-if(NOT P1PSF_GATE_GSL_INCLUDE_DIR OR NOT P1PSF_GATE_GSL_LIB
-   OR NOT P1PSF_GATE_GSLCBLAS_LIB)
-  message(FATAL_ERROR
-    "G-P1-CENTROID-1: GSL (gsl_multifit_nlinear + libgsl/libgslcblas) not found; "
-    "sdet/dpsf 生产源依赖 GSL trust-region LM, 无法编译本门")
-endif()
+# GSL-REPLACE-01: sdet 拟合后端改为仓内自研信赖域 LM
+# （lib/algorithms/star_detection/src/nls_lm.cpp）。原 find_path/find_library(GSL) +
+# fail-fast 段已整段摘除: Windows 无 GSL 来源, 且其为 GPL 族（禁止重新引入）。
 set(P1PSF_GATE_SDET_SRC
   ${P1PSF_GATE_SDET_DIR}/src/sdet_api.cpp
   ${P1PSF_GATE_SDET_DIR}/src/sdet_detector.cpp
   ${P1PSF_GATE_SDET_DIR}/src/sdet_image.cpp
   ${P1PSF_GATE_SDET_DIR}/src/sdet_log.cpp
-  ${P1PSF_GATE_SDET_DIR}/src/sdet_background.cpp)
+  ${P1PSF_GATE_SDET_DIR}/src/sdet_background.cpp
+  ${P1PSF_GATE_SDET_DIR}/src/nls_lm.cpp)
 add_executable(p1psf_centroid_gate_test
   ${P1PSF_DIR}/p1psf_centroid_gate.cpp
   ${P1PSF_PROD_SOURCES}
@@ -138,10 +130,9 @@ target_include_directories(p1psf_centroid_gate_test PRIVATE
   ${P1PSF_DIR}
   ${P1PSF_GATE_SDET_DIR}/include
   ${P1PSF_GATE_SDET_DIR}/src
-  ${P1PSF_GATE_ORCH_INC}
-  ${P1PSF_GATE_GSL_INCLUDE_DIR})
+  ${P1PSF_GATE_ORCH_INC})
 target_link_libraries(p1psf_centroid_gate_test PRIVATE
-  ${P1PSF_GATE_GSL_LIB} ${P1PSF_GATE_GSLCBLAS_LIB} m ${ASTROCS_OMP_TARGET})
+  m ${ASTROCS_OMP_TARGET})
 # sdet_log 写 CWD 相对日志 → WORKING_DIRECTORY 隔离; OMP_NUM_THREADS=1 固定
 # 候选拟合归约序 (门要求逐位可复现)。
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run)

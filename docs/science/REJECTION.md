@@ -20,7 +20,7 @@
 | `n` | `nominal contributors` 几何可贡献数（一次解析） | `p2_reject_plan_resolve` |
 | `n_eff` | 资格后有效候选数 | 资格层 |
 | `method` | `None/Sigma/Winsorized/AveragedSigma/LinearFit/GeneralizedESD/RCR` | `P2RejectionMethod` |
-| `profile` | `astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）/ `wbpp_2_9_1`（对照档）/ `wbpp_current`(alias) / `astrocs_adaptive`（可调档） | `plan` |
+| `profile` | `astrocs_adaptive_pixel`（**生产默认，Astro Celestial Sphere Database（ACSD） 自研**）/ `wbpp_2_9_1`（对照档）/ `wbpp_current`(alias) / `astrocs_adaptive`（可调档） | `plan` |
 | `large_scale` | 结构生长开关及参数 | `P2RejectionLargeScaleConfig` |
 | `P2_REASON_*` | `ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED` | `rejection.h:94-99` |
 | `P2_STATUS_*` | `OK/MIN_SAMPLES/ALL_REJECTED/INVALID_INPUT/UNDERDETERMINED/...` | `rejection.h:102-111` |
@@ -50,7 +50,7 @@
   （`rejection.cpp:1860-1874`）。该容错的**可达域恰为 n=4**：n≤2 已被白名单截走；
   奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。**可达域三条件**：① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`、永不进方法核——**`plan.method` 对 `N ≤ 3` 的取值随 profile 而定**（`rejection.cpp:1148-1158/:1254-1268`，实测）：生产档 `astrocs_adaptive_pixel` 解析为 `none`（method=0），`wbpp_2_9_1`/`wbpp_current`/`astrocs_adaptive` 解析为 `percentile`（method=7）；故「N≤3 ⇒ 不排异」在生产档由**路由**保证、在对照档由**内核闸**保证，两档都不得用 `plan.method` 单值断言）；② 路由把 `n = 4` 分派给 `percentile`（本文件 §5 两个 profile 均命中）；③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。**电平依赖**：小 N 段优劣**由电平决定、不由 N 决定**——低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile **有损**（`ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` **不可用**（83.5% 像素无输出）；高电平（≳3400 e⁻/pix）对抗轮 R5 实测 `N=3` 占优，翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）⇒ 生产默认取保守读法 `1 ≤ N ≤ 3 → none`。
 - `support/weights` 有限性在资格层校验，非有限 ⇒ `INVALID_INPUT` hard fail。
-- `profile` 合法集 = {`astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）, `wbpp_2_9_1`（**对照档**，路由阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `astrocs_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
+- `profile` 合法集 = {`astrocs_adaptive_pixel`（**生产默认，ACSD 自研**）, `wbpp_2_9_1`（**对照档**，路由阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `astrocs_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
 
 ## 5 连续定义
 
@@ -59,7 +59,7 @@
 
   None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 
-生产默认 auto + profile = astrocs_adaptive_pixel (AstroCS 自研，按逐输出像素几何 n):
+生产默认 auto + profile = astrocs_adaptive_pixel (ACSD 自研，按逐输出像素几何 n):
   1 ≤ n ≤ 3      → none（不排异 + 直接逆方差加权积分；provenance 记 underdetermined_no_rejection。**偏离代价**：不排异的代价 = 污染**泄漏**——注入实验实测 `N=2` 泄漏 **1/2**、`N=3` 泄漏 **1/3**；收益 = **不误剔真信号**——低/中电平（≲2700 e⁻/pix）下强制 percentile 使 `N=3` 精度损失 `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出**）
   4 ≤ n ≤ 5      → percentile (low 0.2 / high 0.1, scale=|median|)
   6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
@@ -237,7 +237,7 @@ large_scale 结构生长:
    **② 该引用支持本层主张**：论文给出「多离群、按回退准则定 k_out」的广义 ESD 过程与临界值表，正是本层 F8 的判据来源。
    `alpha=0.05`/`max_outliers=10` 为 Project-defined 采纳值，**文献不提供**这两个门值。
 2. **winsorization 概念**：Hoaglin, Mosteller & Tukey (eds.) 1983, *Understanding Robust and Exploratory Data Analysis*, Wiley（ISBN 0-471-09777-2）——书籍级定位；本层 `winsorized_sigma` 的**核语义锚是 Siril 1.4.3 源码**（见 §14a），本书只作概念背景。
-3. **`astrocs_adaptive_pixel`（生产默认，AstroCS 自研）**：内置映射与低 n 保守档为项目自定（阈值逐档继承 §5 冻结锚点，不新增阈值）；**对照档** `wbpp_2_9_1` 的 auto 路由与阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`（非学术软件来源；`PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`）。
+3. **`astrocs_adaptive_pixel`（生产默认，ACSD 自研）**：内置映射与低 n 保守档为项目自定（阈值逐档继承 §5 冻结锚点，不新增阈值）；**对照档** `wbpp_2_9_1` 的 auto 路由与阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`（非学术软件来源；`PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`）。
 4. **RCR**：方法论文 = Maples, M. P., Reichart, D. E., Konz, N. C., et al. 2018, ApJS **238**, 2（DOI [10.3847/1538-4365/aad23d](https://doi.org/10.3847/1538-4365/aad23d)；[arXiv:1807.05276](https://arxiv.org/abs/1807.05276)）；
    **① 引用存在且逐字匹配**：Crossref 与 arXiv 元数据核验题名/作者/卷/页一致。
    **② 该引用支持本层主张**：论文提出序贯更换集中趋势测度的 RCR 过程（本层 3-pass 链）与**经验确定的**拒绝 σ 修正因子（本层查找表来源）。

@@ -1,6 +1,7 @@
-# AstroCS phase1 star-detection module — 元数据 (P1-STAR-DOC 冻结, 2026-09-07)
+# ACSD phase1 star-detection module — 元数据 (P1-STAR-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/star_detection/src/sdet_api.cpp 的
-# sdet_detect_impl/peaker 七步候选/sdet_gauss_fit(椭圆高斯)/sdet_lm_fit(GSL TR-LM)/
+# sdet_detect_impl/peaker 七步候选/sdet_gauss_fit(椭圆高斯)/sdet_lm_fit(仓内自研
+# trust-region LM: src/nls_lm.cpp, 无外部求解器依赖)/
 # reject_star/sdet_dedup_stars/sdet_sort_stars + C API sdet_create/sdet_destroy/
 # sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps/
 # sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex，唯一权威签名头

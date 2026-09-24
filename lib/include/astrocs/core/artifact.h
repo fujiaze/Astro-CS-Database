@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-002 DataArtifact + Provenance
+// ACSD Core Contracts — CORE-002 DataArtifact + Provenance
 #pragma once
 
 #include "astrocs/core/contracts.h"

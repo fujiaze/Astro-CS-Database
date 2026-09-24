@@ -25,11 +25,10 @@
 #include <unordered_map>
 #include <omp.h>
 
-// 替代 IPv 手写 LM, 解决 More 缩放/对角预处理缺失导致的饱和星收敛率低
-#include <gsl/gsl_multifit_nlinear.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_vector.h>
+// 拟合后端: 自研信赖域 Levenberg-Marquardt（见 src/nls_lm.h; 该头载有不得退回外部求解器的禁止性说明）
+// 算法与行为对齐依据见 docs/science/PSF.md §14a 所列文献（Moré 1978 等）与
+// src/nls_lm.cpp 顶部说明; 该后端不引入任何外部依赖（Windows 可编译, 无 GPL 传染）。
+#include "nls_lm.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -38,6 +37,13 @@
 // LM 拟合收敛参数
 #define LM_XTOL 1e-3
 #define LM_GTOL 1e-3
+// GSL-REPLACE-01 说明: 原后端 GSL 2.8 driver 的 ftol 判据实测**从不触发**
+// （8 个解析问题 × 尺度 1/1e-2/1e-4 × 零噪声/相对噪声, 以及真实帧 236 次拟合
+// 的终止码只出现 xtol/gtol; 证据见 run/GSL-REPLACE-01/REPORT.md §3.2）。
+// 本后端把 ftol 实现为**有语义的** MINPACK 相对代价判据, 值仍取 1e-3, 使它在
+// 生产 regime 下承担原 gtol 的"噪声平台上早停"角色（实测终止码分布与原后端
+// 同量级）, 同时不改变任何调用面常数。若取 1e-8（MINPACK sqrt(eps)）则收敛更紧
+// 但真实帧失败率由 0.8% 升到 14%（超迭代上限）, 故不取（REPORT §5.2）。
 #define LM_FTOL 1e-3
 #define LM_MAX_ITER_ANGLE 20
 #define LM_MIN_HALF_RADIUS 1
@@ -108,19 +114,19 @@ static double sdet_median_of(std::vector<double>& v) {
 // SX = fabs(x[4]), r = 0.5*(cos(x[5])+1) ∈ [0,1], SY = r²*SX
 // tmpx = ca*(j+0.5-x0) - sa*(i+0.5-y0), IPv samples.dx 已含 +0.5
 // f[k] = B + A*exp(-(tmpx²/SX + tmpy²/SY)) - y[k]
-static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
+static void sdet_gaussian_f(const double* x, void* params, double* f) {
     PSFFitData* d = static_cast<PSFFitData*>(params);
     size_t n = d->n;
     const double* y = d->y;
     const SamplePixel* samples = d->samples;
-    double B = gsl_vector_get(x, 0);
-    double A = gsl_vector_get(x, 1);
-    double x0 = gsl_vector_get(x, 2);
-    double y0 = gsl_vector_get(x, 3);
-    double SX = fabs(gsl_vector_get(x, 4));
-    double r = 0.5 * (cos(gsl_vector_get(x, 5)) + 1.0);
+    double B = x[0];
+    double A = x[1];
+    double x0 = x[2];
+    double y0 = x[3];
+    double SX = fabs(x[4]);
+    double r = 0.5 * (cos(x[5]) + 1.0);
     double SY = r * r * SX;
-    double alpha = gsl_vector_get(x, 6);
+    double alpha = x[6];
     double ca = cos(alpha), sa = sin(alpha);
     double sumres = 0.0;
     for (size_t k = 0; k < n; k++) {
@@ -134,16 +140,15 @@ static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
         double tmpy = sa * (raw_x - x0) + ca * (raw_y - y0);
         double tmpc = exp(-(tmpx * tmpx / SX + tmpy * tmpy / SY));
         double val = B + A * tmpc - y[k];
-        gsl_vector_set(f, k, val);
+        f[k] = val;
         sumres += val * val;
     }
     d->rmse = sqrt(sumres / n);
     // B4-4: 保留残差供真实 MAD 计算 (n 与 samples/y 固定, 每次调用覆盖)
     d->residuals.resize(n);
     for (size_t k = 0; k < n; ++k) {
-        d->residuals[k] = static_cast<double>(gsl_vector_get(f, k));
+        d->residuals[k] = f[k];
     }
-    return GSL_SUCCESS;
 }
 
 // PSF 拟合
@@ -154,39 +159,39 @@ static int sdet_gaussian_f(const gsl_vector* x, void* params, gsl_vector* f) {
 // dSX = tmpc*A*( (tmpx/SX)² + (tmpy/(SX*r))²)
 // dfr = -A*tmpc*sc*tmpy²/SY/r (sc = sin(fr))
 // dalpha = 2*A*tmpc*tmpx*tmpy*(1/SX - 1/SY)
-static int sdet_gaussian_df(const gsl_vector* x, void* params, gsl_matrix* J) {
+static void sdet_gaussian_df(const double* x, void* params, double* J) {
     PSFFitData* d = static_cast<PSFFitData*>(params);
     size_t n = d->n;
     const SamplePixel* samples = d->samples;
-    double A = gsl_vector_get(x, 1);
-    double x0 = gsl_vector_get(x, 2);
-    double y0 = gsl_vector_get(x, 3);
-    double SX = fabs(gsl_vector_get(x, 4));
-    double r = 0.5 * (cos(gsl_vector_get(x, 5)) + 1.0);
+    double A = x[1];
+    double x0 = x[2];
+    double y0 = x[3];
+    double SX = fabs(x[4]);
+    double r = 0.5 * (cos(x[5]) + 1.0);
     double SY = r * r * SX;
-    double alpha = gsl_vector_get(x, 6);
+    double alpha = x[6];
     double ca = cos(alpha), sa = sin(alpha);
-    double sc = sin(gsl_vector_get(x, 5));
+    double sc = sin(x[5]);
     for (size_t k = 0; k < n; k++) {
         double raw_x = samples[k].dx;
         double raw_y = samples[k].dy;
         double tmpx = ca * (raw_x - x0) - sa * (raw_y - y0);
         double tmpy = sa * (raw_x - x0) + ca * (raw_y - y0);
         double tmpc = exp(-(tmpx * tmpx / SX + tmpy * tmpy / SY));
-        gsl_matrix_set(J, k, 0, 1.0);  // dB
-        gsl_matrix_set(J, k, 1, tmpc);  // dA
+        double* row = J + 7 * k;  // 行主序 n×7
+        row[0] = 1.0;  // dB
+        row[1] = tmpc;  // dA
         double tmpd = 2.0 * A * tmpc * (tmpx / SX * ca + tmpy / SY * sa);  // dx0
-        gsl_matrix_set(J, k, 2, tmpd);
+        row[2] = tmpd;
         tmpd = 2.0 * A * tmpc * (-tmpx / SX * sa + tmpy / SY * ca);  // dy0
-        gsl_matrix_set(J, k, 3, tmpd);
+        row[3] = tmpd;
         tmpd = tmpc * A * (tmpx * tmpx / (SX * SX) + tmpy * tmpy / (SX * SX * r * r));  // dSX
-        gsl_matrix_set(J, k, 4, tmpd);
+        row[4] = tmpd;
         tmpd = -A * tmpc * sc * tmpy * tmpy / SY / r;  // dfr
-        gsl_matrix_set(J, k, 5, tmpd);
+        row[5] = tmpd;
         tmpd = 2.0 * A * tmpc * tmpx * tmpy * (1.0 / SX - 1.0 / SY);  // dalpha
-        gsl_matrix_set(J, k, 6, tmpd);
+        row[6] = tmpd;
     }
-    return GSL_SUCCESS;
 }
 
 // reject_star 验证错误码（参考
@@ -366,45 +371,31 @@ static int sdet_lm_fit(const T* image, int width,
     double alpha_init = 0.0;  //
 
     double x_init[7] = { bkg0, A0, x0_init, y0_init, SX_init, fr_init, alpha_init };
-    gsl_vector_view x = gsl_vector_view_array(x_init, p);
 
-    gsl_multifit_nlinear_parameters fdf_params = gsl_multifit_nlinear_default_parameters();
-    fdf_params.trs = gsl_multifit_nlinear_trs_lm;
+    // 自研信赖域 LM（nls_lm; 与原 trs_lm 后端同母函数/同迭代上限/同三判据）:
+    // 同一母函数/雅可比、同一迭代上限与同一 xtol/gtol/ftol=1e-3；
+    // 工作区 thread_local 复用（逐星调用, 避免每次堆分配; 相比原后端逐星 alloc/free 只减不增）。
+    astrocs::star_detection::nls::Options lm_opts;
+    lm_opts.max_iter = static_cast<std::size_t>(LM_MAX_ITER_ANGLE * (has_saturated ? 3 : 1));
+    lm_opts.xtol = LM_XTOL;
+    lm_opts.gtol = LM_GTOL;
+    lm_opts.ftol = LM_FTOL;
+    static thread_local astrocs::star_detection::nls::Workspace lm_workspace;
+    astrocs::star_detection::nls::Report lm_report = astrocs::star_detection::nls::solve(
+        &sdet_gaussian_f, &sdet_gaussian_df, &pdata, n, p, x_init, lm_opts, &lm_workspace);
 
-    gsl_multifit_nlinear_fdf fdf;
-    fdf.f = &sdet_gaussian_f;
-    fdf.df = &sdet_gaussian_df;
-    fdf.fvv = NULL;
-    fdf.n = n;
-    fdf.p = p;
-    fdf.params = &pdata;
-
-    const gsl_multifit_nlinear_type* nlin_type = gsl_multifit_nlinear_trust;
-    gsl_multifit_nlinear_workspace* work = gsl_multifit_nlinear_alloc(nlin_type, &fdf_params, n, p);
-    if (!work) return SDET_FIT_INVALID_PARAMS;
-
-    gsl_multifit_nlinear_init(&x.vector, &fdf, work);
-
-    int max_iter = LM_MAX_ITER_ANGLE * (has_saturated ? 3 : 1);
-
-    int info;
-    int status = gsl_multifit_nlinear_driver(max_iter, LM_XTOL, LM_GTOL, LM_FTOL,
-                                              NULL, NULL, &info, work);
-
-    if (status != GSL_SUCCESS) {
-        gsl_multifit_nlinear_free(work);
+    if (lm_report.status != astrocs::star_detection::nls::Status::Success) {
         result->status = SDET_FIT_NO_CONVERGENCE;
         return SDET_FIT_NO_CONVERGENCE;
     }
 
-    #define GSL_FIT(i) gsl_vector_get(work->x, i)
-    double B = GSL_FIT(0);
-    double A = GSL_FIT(1);
-    double x0 = GSL_FIT(2);
-    double y0 = GSL_FIT(3);
-    double SX = fabs(GSL_FIT(4));
-    double fr = GSL_FIT(5);
-    double alpha = GSL_FIT(6);
+    double B = x_init[0];
+    double A = x_init[1];
+    double x0 = x_init[2];
+    double y0 = x_init[3];
+    double SX = fabs(x_init[4]);
+    double fr = x_init[5];
+    double alpha = x_init[6];
 
     double sx = sqrt(SX * 0.5);  // Gaussian: σ = sqrt(SX/2)
     double r = 0.5 * (cos(fr) + 1.0);
@@ -413,7 +404,7 @@ static int sdet_lm_fit(const T* image, int width,
     double fwhm_y = sy * TWO_SQRT_2_LOG2;
 
     // SDET-ANGLE-001 (P11): 朝向角归一化必须有界且 fail-closed。
-    // 原实现 `while (fabs(angle_deg) > 90.0) angle_deg ±= 180.0;` 在 GSL LM
+    // 原实现 `while (fabs(angle_deg) > 90.0) angle_deg ±= 180.0;` 在 LM 求解器
     // 返回 alpha=±inf (或 |angle_deg| 极大) 时永不终止 —— 单核 100% CPU 挂死,
     // 违反宪章 §10.5/§17.6; 原紧随其后的 |angle_deg|>10000 保护在循环之后属
     // 死代码。现由 normalize_angle_deg_bounded 提供: 非有限/超界 -> 明确失败;
@@ -422,7 +413,6 @@ static int sdet_lm_fit(const T* image, int width,
     double angle_deg_norm = 0.0;
     if (!astrocs::star_detector::normalize_angle_deg_bounded(angle_deg,
                                                              &angle_deg_norm)) {
-        gsl_multifit_nlinear_free(work);
         result->status = SDET_FIT_NO_CONVERGENCE;
         return SDET_FIT_NO_CONVERGENCE;
     }
@@ -450,7 +440,6 @@ static int sdet_lm_fit(const T* image, int width,
         result->mad = sdet_median_of(deviations);
     }
 
-    gsl_multifit_nlinear_free(work);
     return SDET_FIT_OK;
 }
 
@@ -604,7 +593,7 @@ int sdet_gauss_fit(const T* image, int width, int height,
 
     // 回退: B 初始值仍用局部 lower_half 中位数 (bkg0), 不用全局中位数
     // 原因: 试验用全局中位数导致 NGC4945 顺序 100%→21%, 偏差 1→4
-    // IPv 手写 LM 与 GSL trust-region LM 收敛行为不同, 全局中位数初始值在 IPv 中导致 B 收敛偏差
+    // 旧 IPv 手写 LM 与现 trust-region LM 收敛行为不同, 全局中位数初始值在旧 LM 中导致 B 收敛偏差
     // (void)bg_init; // 参数保留但不使用, 避免签名变更
 
     double max_val = -1e30;
@@ -616,21 +605,21 @@ int sdet_gauss_fit(const T* image, int width, int height,
 
     // 用候选 Sr/Sc 作为初始 σ, 退化时用 0.15*rw
     // Gaussian: FWHM=2.3548*σ, Sr/Sc 已是 σ 估计 (高斯平滑图零交叉点距离)
-    // 用 GSL trust-region LM + halfA 边界搜索初始化, 替代 IPv 手写 LM
-    // GSL LM 有 More 缩放/对角预处理, 能处理参数量级差异 ( 失败根因)
+    // 用信赖域 LM（nls_lm: More 缩放/对角预处理, 处理参数量级差异）+ halfA 边界搜索初始化,
+    // 替代旧 IPv 手写 LM（后者缺缩放, 是饱和星收敛率低的根因）
     // 用 init_sx*2.3548 转 FWHM 不对齐, 用 halfA 边界搜索
 
     // has_saturated = (sat_threshold > 0.0 且有像素被排除)
 
     bool has_saturated = (sat_threshold > 0.0 && m < rw * rh);
 
-    int gsl_status = sdet_lm_fit<T>(image, width,
+    int fit_status = sdet_lm_fit<T>(image, width,
                                     rect_x0, rect_y0, rect_x1, rect_y1,
                                     cx, cy, bkg0, sat_threshold,
                                     samples.data(), m, has_saturated, result);
 
-    if (gsl_status != SDET_FIT_OK) {
-        return gsl_status;
+    if (fit_status != SDET_FIT_OK) {
+        return fit_status;
     }
 
     // 保留 NaN/A 保护
@@ -2284,7 +2273,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
     for (int i = 0; i < cc_count; i++) {
 
 
-        // GSL LM status != GSL_SUCCESS 时 error=PSF_ERR_DIVERGED, minimize_candidates 丢弃
+        // 拟合 status != SDET_FIT_OK（不收敛/数值失败）等价于 DIVERGED, minimize_candidates 丢弃
         // IPv: fit_results[i].status != SDET_FIT_OK 等价于 DIVERGED, 丢弃
         if (fit_results[i].status != SDET_FIT_OK) { f_fit++; continue; }
         // 移除全局 FWHM clip (fwhm_med±3*mad), 完全依赖 reject_star 自适应 FWHM 上限
@@ -2501,7 +2490,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
 //       星表反向投影到像素域), 只对星表位置做质心/PSF 拟合; 拟合成功即星点,
 //       失败**直接丢弃**(不计虚警、不报错)。
 // 与盲检测 (sdet_detect_impl) 的关系: 盲检测的 peaker 七步候选扫描被替换为
-//       "调用方给出的预测位置"; 其后的椭圆高斯 GSL TR-LM 拟合、质量门
+//       "调用方给出的预测位置"; 其后的椭圆高斯 trust-region LM 拟合、质量门
 //       (maxAxisRatio / reject_star)、mag 公式、去重/排序/maxStars 截断与盲检测
 //       **同一实现、同一常数**, 不新设阈值。全图盲检测保留为**诊断/初值**路径。
 // 逐位置处理:
@@ -2509,7 +2498,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
 //   ② 3×3 邻域双条件饱和判定 (与盲检测同式, 阈值 median+5·bgnoise)
 //   ③ 初始宽度 Sr/Sc = σ=2 平滑图上 9×9 窗二阶矩 (质心/矩估计), 下限 0.5px
 //   ④ R = max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5), 钳位 [1,200] 且不出帧
-//   ⑤ sdet_gauss_fit (椭圆高斯 7 参 GSL TR-LM)
+//   ⑤ sdet_gauss_fit (椭圆高斯 7 参 trust-region LM, 见 nls_lm.h)
 //   ⑥ 质量门: maxAxisRatio / reject_star; 未过 → 丢弃 (n_rejected)
 //   ⑦ mag = −2.5·log10(Σ_box(pixel − B_fit)) (与盲检测同式同 box)
 //   ⑧ dedup → mag 升序 stable_sort (NaN 末尾) → maxStars 截断
@@ -2719,7 +2708,7 @@ static int sdet_detect_guided_impl(StarDetectorHandle handle,
         candidates.resize((size_t)params.maxStars * 2);
     }
 
-    // 阶段C: 椭圆高斯拟合 (与盲检测同一 sdet_gauss_fit / GSL TR-LM 7 参)
+    // 阶段C: 椭圆高斯拟合 (与盲检测同一 sdet_gauss_fit / trust-region LM 7 参)
     const int cc_count = (int)candidates.size();
     std::vector<InternalFitResult> fit_results((size_t)cc_count);
     int fit_ok_count = 0;

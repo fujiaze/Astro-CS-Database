@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/ivar/v1",
-  "title": "AstroCS 统一对象 ivar —— 同一估计量方差的倒数",
+  "title": "ACSD 统一对象 ivar —— 同一估计量方差的倒数",
   "description": "UNIFIED_MODEL §2：variance / ivar = 同一估计量的方差及倒数；可否作权重 = 对该估计目标可以。ivar = 1/variance；variance 缺失/为 0 → ivar 显式不可用（missing_value），禁止伪装。",
   "x-astrocs-object": {
     "name": "ivar",

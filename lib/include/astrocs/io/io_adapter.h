@@ -1,4 +1,4 @@
-// AstroCS I/O Adapter — IO-001 Artifact 事务 + I/O 边界
+// ACSD I/O Adapter — IO-001 Artifact 事务 + I/O 边界
 #pragma once
 
 #include "astrocs/core/artifact.h"

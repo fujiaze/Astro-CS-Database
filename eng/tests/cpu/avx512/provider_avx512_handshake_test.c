@@ -1,5 +1,5 @@
 #define _POSIX_C_SOURCE 200112L
-/* AstroCS CPU AVX-512 provider — query 握手、注册表与回落语义测试
+/* ACSD CPU AVX-512 provider — query 握手、注册表与回落语义测试
  * eng/tests/cpu/avx512/provider_avx512_handshake_test.c (CPU-004)
  *
  * 覆盖 (CPU-004 验收 "函数入口由 provider 表查询, 不复制科学模块; 其余

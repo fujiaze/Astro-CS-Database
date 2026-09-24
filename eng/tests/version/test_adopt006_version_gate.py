@@ -61,7 +61,7 @@ def make_fake_tree(dst, *, version=EXPECTED, project=BASE,
         f.write(version + "\n")
     with open(os.path.join(dst, "CMakeLists.txt"), "w", encoding="utf-8") as f:
         f.write("cmake_minimum_required(VERSION 3.24)\n"
-                f"project(astrocs VERSION {project} LANGUAGES C CXX)\n"
+                f"project(acsd VERSION {project} LANGUAGES C CXX)\n"
                 'file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)\n'
                 "configure_file(" + cv.CLI_TEMPLATE_REL + " "
                 "${CMAKE_CURRENT_BINARY_DIR}/version_generated.h @ONLY)\n")
@@ -107,7 +107,7 @@ def make_absence_tree(dst):
     os.makedirs(dst, exist_ok=True)
     with open(os.path.join(dst, "CMakeLists.txt"), "w", encoding="utf-8") as f:
         f.write("cmake_minimum_required(VERSION 3.24)\n"
-                "project(astrocs LANGUAGES C CXX)\n")
+                "project(acsd LANGUAGES C CXX)\n")
     cli_dir = os.path.join(dst, cv.CLI_DIR_REL)
     os.makedirs(cli_dir, exist_ok=True)
     with open(os.path.join(cli_dir, "placeholder.txt"), "w", encoding="utf-8") as f:

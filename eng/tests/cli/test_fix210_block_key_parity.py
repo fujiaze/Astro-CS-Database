@@ -76,11 +76,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -126,7 +126,7 @@ def gate_violations(session, flat_gate, block_gate, universe, block_only,
 class TestFix210BlockKeyParity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="fix210_parity_")
         cls._cache = {}
 

@@ -1,4 +1,4 @@
-# AstroCS P1 PSF 模块（astrocs.p1.psf）— 冻结合同 README
+# Astro Celestial Sphere Database（ACSD） P1 PSF 模块（astrocs.p1.psf）— 冻结合同 README
 
 > r1（P1-PSF-DOC，2026-09-07）：由 SRC-PSF-001 源码实测冻结，不信任旧 README。
 > r2（PSF-001，2026-09-10）：批 ABI 尺寸边界修复（DISP-PSF-007 候选收口）后

@@ -1211,7 +1211,7 @@ AioHipsProductSet* aio_hips_product_begin(
         ps->tile_order = ps->leaf_order - 9;
         ps->A_cell = 4.0 * kPi() / (12.0 * (double)nside * nside);
         ps->creator_did = creator_did ? creator_did : "ivo://astrocs/phase1";
-        ps->obs_title = obs_title ? obs_title : "AstroCS Phase1";
+        ps->obs_title = obs_title ? obs_title : "ACSD Phase1";
         ps->obs_filter = obs_filter ? obs_filter : "";
         ps->obs_date = obs_date ? obs_date : "";
         ps->exposure = exposure_s;
@@ -1831,7 +1831,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     std::vector<std::pair<std::string, std::string>> kv;
     kv.push_back({"creator_did", ps->creator_did});
     kv.push_back({"obs_title", ps->obs_title});
-    kv.push_back({"obs_creator", "AstroCS"});
+    kv.push_back({"obs_creator", "ACSD"});
     kv.push_back({"hips_version", "1.4"});
     kv.push_back({"hips_order", std::to_string(ps->tile_order)});
     kv.push_back({"hips_tile_width", "512"});
@@ -1852,8 +1852,8 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"dataproduct_subtype", subtype});
     kv.push_back({"hips_tile_format", "fits"});
     kv.push_back({"hips_status", "private master"});
-    kv.push_back({"hips_creator", "AstroCS (astro_image_io)"});
-    kv.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
+    kv.push_back({"hips_creator", "ACSD (astro_image_io)"});
+    kv.push_back({"hips_builder", "ACSD aio_hips_writer (CFITSIO 4.6.4)"});
     kv.push_back({"hips_estsize", "1000000"});
     // META-001: 真实 UTC finalize 时间, 禁止硬编码日期
     char rel_date[32], cre_date[40];
@@ -1861,7 +1861,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     utc_now_iso(cre_date, sizeof(cre_date));
     kv.push_back({"hips_release_date", rel_date});
     kv.push_back({"hips_creation_date", cre_date});
-    kv.push_back({"obs_description", "AstroCS Phase1 single-frame HiPS product"});
+    kv.push_back({"obs_description", "ACSD Phase1 single-frame HiPS product"});
     kv.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     // （K_CORR_DOMAIN）：Drizzle provenance → sampler 按帧 k_corr
     if (ps->drizzle_prov_set) {
@@ -2029,15 +2029,15 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"dataproduct_subtype", "snr"});
     kv2.push_back({"hips_tile_format", "tsv"});
     kv2.push_back({"hips_status", "private master"});
-    kv2.push_back({"hips_creator", "AstroCS (astro_image_io)"});
-    kv2.push_back({"hips_builder", "AstroCS aio_hips_writer (CFITSIO 4.6.4)"});
+    kv2.push_back({"hips_creator", "ACSD (astro_image_io)"});
+    kv2.push_back({"hips_builder", "ACSD aio_hips_writer (CFITSIO 4.6.4)"});
     // META-001: 真实 UTC finalize 时间, 禁止硬编码日期
     char rel_date2[32], cre_date2[40];
     utc_now_date(rel_date2, sizeof(rel_date2));
     utc_now_iso(cre_date2, sizeof(cre_date2));
     kv2.push_back({"hips_release_date", rel_date2});
     kv2.push_back({"hips_creation_date", cre_date2});
-    kv2.push_back({"obs_description", "AstroCS Phase1 single-frame SNR catalogue HiPS product"});
+    kv2.push_back({"obs_description", "ACSD Phase1 single-frame SNR catalogue HiPS product"});
     kv2.push_back({"prov_progenitor", "ivo://astrocs/phase1/drizzle"});
     kv2.push_back({"obs_regime", "optical"});
     // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max

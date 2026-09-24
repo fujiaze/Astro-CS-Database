@@ -41,7 +41,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 E2E = os.path.join(REPO, "run/RELEASE-05/e2e")
 OUT = os.path.join(E2E, "out")
 LOGS = os.path.join(REPO, "run/RELEASE-05/logs")
-BINARY = os.path.join(REPO, "build/astrocs")
+BINARY = os.path.join(REPO, "build/acsd")
 
 
 def sha256_file(p):
@@ -273,10 +273,10 @@ def main():
     ok, ev = verify_chain(args.dataset, timings, findings)
     ev["verdict"] = "PASS" if ok else "FAIL"
     ev["commands"] = {
-        "normalize": "build/astrocs normalize --json run/RELEASE-05/e2e/configs/p1_m42_%s_red.json -y"
+        "normalize": "build/acsd normalize --json run/RELEASE-05/e2e/configs/p1_m42_%s_red.json -y"
                      % args.dataset.lower(),
-        "mosaic": "build/astrocs mosaic --json run/RELEASE-05/e2e/configs/mosaic_e2e.json -y",
-        "export": "build/astrocs export --json run/RELEASE-05/e2e/configs/export_e2e.json -y",
+        "mosaic": "build/acsd mosaic --json run/RELEASE-05/e2e/configs/mosaic_e2e.json -y",
+        "export": "build/acsd export --json run/RELEASE-05/e2e/configs/export_e2e.json -y",
     }
     io.open(args.json_out, "w", encoding="utf-8").write(
         json.dumps(ev, ensure_ascii=False, indent=1) + "\n")

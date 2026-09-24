@@ -15,7 +15,7 @@
   - candidate 内含 BUILD_PROVENANCE.json / SOURCE_MANIFEST.json /
     SHA256SUMS；不含源码、测试数据、build cache；
   - 验证所有 DLL 名称、导出 ABI、加载、注册、CLI 入口、合成 Oracle。
-    二进制级行为（dumpbin /EXPORTS、DLL 加载、astrocs.exe 运行）只在
+    二进制级行为（dumpbin /EXPORTS、DLL 加载、acsd.exe 运行）只在
     Windows 主机真跑（hosted）；非 Windows 主机逐项登记
     ``hosted-only`` 状态与 hosted 预期，绝不伪造 PASS。
 
@@ -100,8 +100,8 @@ ERROR_LINE_RE = re.compile(
 ERROR_LINES_CAP = 50
 
 # F-R4-03：逐阶段全量 tee 日志（相对仓库根）。run 5e457d425fc8 实证：build
-# exit 1 时 output_tail 25 行只见成功链接行（astrocs.vcxproj -> ...astrocs.exe），
-# 真实 error（astrocs_io C1189 / io_reentrant_test LNK1104）仅靠 error_lines
+# exit 1 时 output_tail 25 行只见成功链接行（astrocs.vcxproj -> ...acsd.exe），
+# 真实 error（acsd_io C1189 / io_reentrant_test LNK1104）仅靠 error_lines
 # 幸存；全量日志 win-stage-<name>.log 保证下一轮可完整还原失败上下文。
 STAGE_LOG_TEMPLATE = "run/ci/win-stage-{name}.log"
 
@@ -509,10 +509,10 @@ def expected_windows_artifacts(contract_path: Path | None = None) -> list[str]:
     """从 install-tree contract 推导 Windows 形态期望产物（ARC-001 dll_units）。
 
     映射规则（单一事实源 = eng/packaging/install-tree.contract.json，不硬编码清单）：
-      kind=exe  → astrocs.exe（Windows CLI 入口，astrocs 目标 OUTPUT_NAME）；
+      kind=exe  → acsd.exe（Windows CLI 入口，acsd 目标 OUTPUT_NAME）；
       *.so      → 同目录同名 *.dll（无 lib 前缀：MSVC/CMake 对 Windows DLL
                   不加前缀，见 install_layout.cmake「Windows 正式形态」注释——
-                  astrocs_runtime.dll / astrocs_io.dll / modules/astrocs_noop.dll /
+                  acsd_runtime.dll / acsd_io.dll / modules/astrocs_noop.dll /
                   providers/astrocs_cpu_baseline.dll）；
       其余（licenses/schemas/manifest）原样保留。
     """
@@ -578,22 +578,22 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
             f"candidate 根 {manifest} 存在性",
             executed=run_binaries))
 
-    exe = candidate / "astrocs.exe"
+    exe = candidate / "acsd.exe"
     if not run_binaries:
         # 非 Windows 主机：二进制级行为逐项登记 hosted-only 预期
         hosted_note = "hosted windows-2022 才真跑（本机 Linux 无法执行 Windows 二进制）"
         for item, detail in (
             ("exported_abi_dumpbin",
-             "dumpbin /EXPORTS astrocs_runtime.dll|astrocs_io.dll|"
+             "dumpbin /EXPORTS acsd_runtime.dll|acsd_io.dll|"
              "modules/astrocs_noop.dll|providers/astrocs_cpu_baseline.dll "
-             "非空符号表，且 astrocs_runtime 导出 acs_artifact_*、"
-             "astrocs_io 导出 acs_fio_*（头文件冻结 C ABI）"),
+             "非空符号表，且 acsd_runtime 导出 acs_artifact_*、"
+             "acsd_io 导出 acs_fio_*（头文件冻结 C ABI）"),
             ("dll_load_and_register",
-             "astrocs.exe modules list / modules verify 退出 0：平台 DLL 同目录"
+             "acsd.exe modules list / modules verify 退出 0：平台 DLL 同目录"
              "加载 + noop 模块经 loader 注册（WIN-* hosted 端到端）"),
-            ("cli_entry", "astrocs.exe version --json 退出 0 且 JSON 含 name=astrocs"),
+            ("cli_entry", "acsd.exe version --json 退出 0 且 JSON 含 name=acsd"),
             ("synthetic_oracle",
-             "astrocs.exe selftest 退出 0（CLI 内置合成自检）；CTest 全合成矩阵"
+             "acsd.exe selftest 退出 0（CLI 内置合成自检）；CTest 全合成矩阵"
              "由 WIN-TEST-UNIT 阶段 ctest --preset win-rel 承担"),
         ):
             checks.append(_verify_pair(item, None, f"{detail}；{hosted_note}",
@@ -603,7 +603,7 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
 
     # ---- Windows 主机：真跑 ----
     dumpbin = probe_tool("dumpbin")
-    for dll in ("astrocs_runtime.dll", "astrocs_io.dll",
+    for dll in ("acsd_runtime.dll", "acsd_io.dll",
                 "modules/astrocs_noop.dll", "providers/astrocs_cpu_baseline.dll"):
         path = candidate / dll
         if not path.is_file() or not dumpbin:
@@ -639,12 +639,12 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
             res = run_step(argv, timeout=180, cwd=candidate, env=env)
             ok = res["exit_code"] == 0
             if ok and expect_json:
-                # version --json 返回 {"schema_version":"1","name":"astrocs",
-                # "version":...}: "name" 键的值才是 astrocs。旧写法
-                # "astrocs" in dict 检查的是键而非值, 恒假 → cli_entry 必 FAIL。
+                # version --json 返回 {"schema_version":"1","name":"acsd",
+                # "version":...}: "name" 键的值才是 acsd。旧写法
+                # "acsd" in dict 检查的是键而非值, 恒假 → cli_entry 必 FAIL。
                 try:
                     doc = json.loads(res["output_tail"].splitlines()[-1])
-                    ok = doc.get("name") == "astrocs" and bool(doc.get("version"))
+                    ok = doc.get("name") == "acsd" and bool(doc.get("version"))
                 except Exception:
                     ok = False
             checks.append(_verify_pair(item, ok,
@@ -652,7 +652,7 @@ def verify_candidate(candidate: Path, *, run_binaries: bool | None = None,
                                        executed=True))
     else:
         checks.append(_verify_pair("cli_entry", False,
-                                   "candidate/astrocs.exe 缺失", executed=True))
+                                   "candidate/acsd.exe 缺失", executed=True))
     failed = [c["item"] for c in checks if c["executed"] and c["verdict"] is False]
     return {"executed": run_binaries, "checks": checks,
             "expected_artifacts": expected, "failed": failed}

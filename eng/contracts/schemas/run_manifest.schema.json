@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/run_manifest/v1",
-  "title": "AstroCS run_manifest v1",
+  "title": "ACSD run_manifest v1",
   "description": "CFG-001 建立的运行冻结合同：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本。不承载科学参数，也不承载硬件调优字段。",
   "x-astrocs-schema-family": "run_manifest",
   "x-astrocs-config-class": "run_manifest",

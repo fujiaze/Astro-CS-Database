@@ -295,7 +295,7 @@ class TestDriverStages(unittest.TestCase):
 
     def test_expected_artifacts_derived_from_contract_no_lib_prefix(self):
         arts = DRV.expected_windows_artifacts()
-        for rel in ("astrocs.exe", "astrocs_runtime.dll", "astrocs_io.dll",
+        for rel in ("acsd.exe", "acsd_runtime.dll", "acsd_io.dll",
                     "modules/astrocs_noop.dll",
                     "providers/astrocs_cpu_baseline.dll"):
             self.assertIn(rel, arts)

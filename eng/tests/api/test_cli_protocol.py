@@ -28,13 +28,13 @@ JSONL_SCHEMA = os.path.join(REPO, "eng", "contracts", "schemas", "jsonl_event_v1
 
 # §1 冻结命令树（ASTROCS_DESIGN §7.1 的唯一命令树在本合同的落地形态）。
 SPEC_TREE = [
-    "astrocs --version [--json]",
-    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs help",
-    "astrocs doctor [--json]",
-    "astrocs benchmark",
+    "acsd --version [--json]",
+    "acsd normalize (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd mosaic (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd export (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd help",
+    "acsd doctor [--json]",
+    "acsd benchmark",
 ]
 # 旧命令面（§1 显式声明不在命令面上，调用 rc=2）。
 RETIRED_ALIASES = ["phase1|2|3", "config *", "modules *", "selftest", "test synthetic",
@@ -97,8 +97,8 @@ class TestCliProtocol(unittest.TestCase):
             self.assertIn(legacy, self.preamble, "文档头缺旧命令面删除声明: %s" % legacy)
         self.assertIn("不在命令面上", self.preamble)
         self.assertIn("返回 rc=2", self.preamble)
-        # 发布 manifest 恰一 astrocs（§6-5 的联动声明必须在 §1 正文可见）
-        self.assertIn("恰一 astrocs", self.s)
+        # 发布 manifest 恰一 acsd（§6-5 的联动声明必须在 §1 正文可见）
+        self.assertIn("恰一 acsd", self.s)
 
     # ── 2. §1 与最高设计 §7.1 交叉核对（两份 tracked 权威不得漂移） ──
     def test_02_command_tree_matches_design_71(self):

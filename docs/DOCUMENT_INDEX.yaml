@@ -1,4 +1,4 @@
-# AstroCS 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图
+# ACSD 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图
 #
 # 依据：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、ENGINEERING_SPEC.md §8（文档集）
 # 重写：DOC-403（2026-09-21，基线 HEAD d1ccfa1bed9c）——双向层级索引闭合
@@ -319,7 +319,7 @@ doc_index:
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/owner/SCIENCE_OVERVIEW.md、lib/infrastructure/cli/session_commands.h、eng/tests/backend/test_phase3_reproject_oracle.py"
     - path: "docs/architecture/ARCHITECTURE.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Architecture (V5 单一 CLI 冻结版)"
+      duty: "ACSD Architecture (V5 单一 CLI 冻结版)"
       upstream: "ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md、docs/audit/doc_classification.csv、docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md 等 6 处"
     - path: "docs/architecture/ASYNC_IO_CONTRACT.md"
@@ -404,7 +404,7 @@ doc_index:
       downstream: "docs/DOCUMENT_INDEX.yaml"
     - path: "docs/architecture/PIPELINE.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Pipeline（Phase1 → Phase2）"
+      duty: "ACSD Pipeline（Phase1 → Phase2）"
       upstream: "ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/audit/inventory.csv"
     - path: "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv"
@@ -465,19 +465,19 @@ doc_index:
       downstream: "docs/DOCUMENT_INDEX.yaml"
     - path: "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS 资源监控伴随器合同（LOG-002）"
+      duty: "ACSD 资源监控伴随器合同（LOG-002）"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/api/CLI_PROTOCOL_V1.md、docs/architecture/observability/RUN_GRAPH_CONTRACT.md、lib/infrastructure/observability/monitoring/windows_pdh_etw.py"
       notes: "LOG-002 资源监控 CSV 合同（GOV-002 base 之后集成，补登）"
     - path: "docs/architecture/observability/RUN_GRAPH_CONTRACT.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS 运行图渲染工具合同（LOG-003）"
+      duty: "ACSD 运行图渲染工具合同（LOG-003）"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）"
       downstream: "docs/DOCUMENT_INDEX.yaml"
       notes: "LOG-003 运行图渲染工具合同（eng/tools/graph 生成 DOT/SVG/JSON，机器验证与 trace 一致）"
     - path: "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS 结构化日志合同（LOG-001）"
+      duty: "ACSD 结构化日志合同（LOG-001）"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/api/CLI_PROTOCOL_V1.md、docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md、docs/contracts/API-001.md 等 5 处"
       notes: "LOG-001 结构化日志合同（GOV-002 base 之后集成，补登）"
@@ -616,7 +616,7 @@ doc_index:
       notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 权威源/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001); P2-COV-DOC (2026-09-07) 追加 §19 DATA-COV-001: HiPS 兼容域/union MOC P2MocCell[K] NESTED 坐标契约/P2HipsInputInfo 逐字段/coverage≠support≠validity 与 no-use-as-weight 负向条款"
     - path: "docs/contracts/INDEX.yaml"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Contract Index (DOC-001)"
+      duty: "ACSD Contract Index (DOC-001)"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
       downstream: "eng/ci/tests/test_impact_map.py、eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md 等 26 处"
     - path: "docs/contracts/PUBLIC_API.md"
@@ -745,7 +745,7 @@ doc_index:
       notes: "IO-003 原子产物发布合同（IO-003 集成补登）"
     - path: "docs/modules/MODULE_MAP.yaml"
       status: ACTIVE_INFORMATIVE
-      duty: "AstroCS 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）"
+      duty: "ACSD 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、eng/cmake/ARCH-001-migration-manifest.md、eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/schemas/projection_registry.schema.json 等 21 处"
       notes: "模块八元组映射（MOD-001；指向 docs/plugins 23 篇）"
@@ -1372,62 +1372,62 @@ doc_index:
       notes: "ASTROCS-SCIENCE-MODEL-001：统一 SNR/PSF information/covariance 与跨阶段合同"
     - path: "docs/standards/API_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Public API Standard"
+      duty: "ACSD Public API Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/BENCHMARK_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Benchmark Standard"
+      duty: "ACSD Benchmark Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/CODE_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Code Standard"
+      duty: "ACSD Code Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/standards/NUMERIC_STANDARD.md"
     - path: "docs/standards/COMMENT_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Comment Standard"
+      duty: "ACSD Comment Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/CONCURRENCY_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Concurrency Standard"
+      duty: "ACSD Concurrency Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、lib/algorithms/coverage/include/astro/phase2/sky_plane.h"
     - path: "docs/standards/C_ABI_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS C ABI Standard"
+      duty: "ACSD C ABI Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/architecture/abi/ABI_003_SECURE_LOADER.md、docs/audit/doc_classification.csv、docs/modules/orchestrator.md 等 6 处"
     - path: "docs/standards/DOCUMENTATION_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Documentation Standard"
+      duty: "ACSD Documentation Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/ERROR_HANDLING_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Error Handling Standard"
+      duty: "ACSD Error Handling Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/IO_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS I/O Standard"
+      duty: "ACSD I/O Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Logging & Diagnostics Standard"
+      duty: "ACSD Logging & Diagnostics Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/standards/ERROR_HANDLING_STANDARD.md"
     - path: "docs/standards/NUMERIC_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Numeric Standard"
+      duty: "ACSD Numeric Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md、docs/standards/CODE_STANDARD.md 等 5 处"
     - path: "docs/standards/RELEASE_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Release Standard"
+      duty: "ACSD Release Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/STANDARDS_REGISTRY.md"
@@ -1438,7 +1438,7 @@ doc_index:
       notes: "STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18）国际标准冻结注册表：领域→标准→版本→条款→符合性清单→偏差指针六域冻结（球面投影=FITS WCS Paper I/II+SIP；HiPS=IVOA HiPS 1.0+properties 1.4；HEALPix=Górski 2005 NESTED；Drizzle=Fruchter & Hook 2002；星表=Gaia DR3 data model；FITS=4.0）；机器检查 docs/standards/checks/check_standards_registry.py（C1-C9）；承接 05 号 findings 登记册 §STD-F6 处置"
     - path: "docs/standards/TEST_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "AstroCS Test Standard"
+      duty: "ACSD Test Standard"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/standards/checks/check_standards_registry.py"

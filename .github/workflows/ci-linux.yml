@@ -45,7 +45,7 @@ jobs:
     env:
       # V8.1-CI：cmd_test_synthetic 的 unit 门二进制目录重定向
       # （默认 build/root-cmake/tests/unit 为 V6.1 布局，hosted 无此树）。
-      # 仅被 astrocs test synthetic 读取；相对路径按进程 cwd=仓库根解析。
+      # 仅被 acsd test synthetic 读取；相对路径按进程 cwd=仓库根解析。
       ASTROCS_TEST_BIN_DIR: build/linux-control/tests/unit
     steps:
       - name: Checkout exact SHA

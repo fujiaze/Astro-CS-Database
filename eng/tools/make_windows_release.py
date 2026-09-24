@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """make_windows_release.py — WIN-009: 生成 Windows amd64 alpha 发布包(09 §5)。
 正式包结构(单一 user exe + 私有运行时 DLL + manifest + SBOM/licenses + hash):
-   AstroCS-Windows-amd64-<X.Y.Z-alpha.N>.zip
+   ACSD-Windows-amd64-<X.Y.Z-alpha.N>.zip
    └─ astrocs/                    (根目录, 便于解包)
-      ├─ astrocs.exe              (唯一用户可执行; 无旧 phase/benchmark/tool exe)
+      ├─ acsd.exe              (唯一用户可执行; 无旧 phase/benchmark/tool exe)
       ├─ msvcp140.dll              (私有运行时; vcomp/vcruntime 同理)
       ├─ vcomp140.dll
       ├─ vcruntime140.dll
@@ -15,7 +15,7 @@
       ├─ LICENSES/NOTICE.txt       (本包静态自带 libs 来源标注)
       ├─ MANIFEST.json             (每文件 path,sha256,size)
       └─ SHA256SUMS                (除自身外全文件 hash)
-用法: python3 eng/tools/make_windows_release.py --exe <astrocs.exe> --out <outdir>
+用法: python3 eng/tools/make_windows_release.py --exe <acsd.exe> --out <outdir>
       [--dlls "msvcp140.dll vcomp140.dll vcruntime140.dll vcruntime140_1.dll"]
 """
 from __future__ import annotations
@@ -49,7 +49,7 @@ def git(*args):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--exe", required=True, help="Release astrocs.exe 路径")
+    ap.add_argument("--exe", required=True, help="Release acsd.exe 路径")
     ap.add_argument("--out", required=True, help="输出目录(写入 zip + .sha256)")
     ap.add_argument("--dlls", default="", help="空格分隔的私有 DLL 路径列表")
     args = ap.parse_args()
@@ -67,15 +67,15 @@ def main() -> int:
     commit = git("rev-parse", "HEAD")
     c12 = commit[:12]
     pkg_version = f"{base}+g{c12}"
-    pkg_name_base = f"AstroCS-Windows-amd64-{base}"
+    pkg_name_base = f"ACSD-Windows-amd64-{base}"
 
     work = tempfile.mkdtemp(prefix="winrel_")
-    root = os.path.join(work, "astrocs")
+    root = os.path.join(work, "acsd")
     os.makedirs(root)
     os.makedirs(os.path.join(root, "LICENSES"))
 
     # 1) 唯一用户 exe(Windows 需 .exe 扩展名)
-    shutil.copy2(args.exe, os.path.join(root, "astrocs.exe"))
+    shutil.copy2(args.exe, os.path.join(root, "acsd.exe"))
     # 2) 私有运行时 DLL
     for d in dll_paths:
         shutil.copy2(d, os.path.join(root, os.path.basename(d)))
@@ -97,10 +97,10 @@ def main() -> int:
     with open(os.path.join(root, "backends.manifest.json"), "w", encoding="utf-8") as f:
         json.dump(bm, f, indent=1, ensure_ascii=False)
 
-    # 5) SBOM (SPDX 2.3): 单一 CONTAINER(AstroCS CLI), 无外部可交付二进制
+    # 5) SBOM (SPDX 2.3): 单一 CONTAINER(ACSD CLI), 无外部可交付二进制
     license_text = (
-        "AstroCS CLI 发布包自带许可证。仓库内第三方许可见控制包 PACKAGE_MANIFEST.md 与各 third_party LICENSE。"
-        "本包对交付对象(AstroCS Windows amd64 单一 CLI + 私有 VC 运行时)建档。\n"
+        "ACSD CLI 发布包自带许可证。仓库内第三方许可见控制包 PACKAGE_MANIFEST.md 与各 third_party LICENSE。"
+        "本包对交付对象(ACSD Windows amd64 单一 CLI + 私有 VC 运行时)建档。\n"
         "静态自带的第三方: cfitsio(BSD), zlib(zlib license), nlohmann/json(MIT), "
         "HEALPix(见 lib/plate_solve/LICENSE 等), OpenMP/VC 运行时(MSVC 红分发)。\n"
     )
@@ -110,18 +110,18 @@ def main() -> int:
         "spdxVersion": "SPDX-2.3",
         "dataLicense": "CC0-1.0",
         "SPDXID": "SPDXRef-DOCUMENT",
-        "name": f"AstroCS-Windows-amd64-{base}",
+        "name": f"ACSD-Windows-amd64-{base}",
         "documentNamespace": f"https://astrocs.local/spdx/{c12}",
         "creationInfo": {"created": "2026-08-30T16:00:00Z",
                          "creators": ["Tool:make_windows_release.py"]},
         "packages": [{
-            "SPDXID": "SPDXRef-Package-AstroCS",
-            "name": "AstroCS",
+            "SPDXID": "SPDXRef-Package-ACSD",
+            "name": "ACSD",
             "versionInfo": pkg_version,
             "downloadLocation": "NOASSERTION",
             "filesAnalyzed": True,
             "licenseConcluded": "NOASSERTION",
-            "supplier": "Organization:AstroCS",
+            "supplier": "Organization:ACSD",
             "primaryPackagePurpose": "APPLICATION",
         }],
     }

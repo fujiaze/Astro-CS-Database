@@ -89,7 +89,7 @@ class TestDocMachineCheck(unittest.TestCase):
     def test_05_command_tree_mutation_fails(self):
         """命令树: 把 doc CLI §1 的 phase1 行改为 CLI --help 中不存在的文本
         (加非法 --min-obs 选项) → 命令树 doc vs help 不一致 → FAIL。
-        (原 mutation 针对的 `astrocs run --phases <...>` 废弃行已从文档删除,
+        (原 mutation 针对的 `acsd run --phases <...>` 废弃行已从文档删除,
          replace 静默无效; 改用现行 phase1 行保证 mutation 真实生效。)"""
         dst = os.path.join(self.tmp, "docs", "api")
         shutil.rmtree(dst, ignore_errors=True)
@@ -99,8 +99,8 @@ class TestDocMachineCheck(unittest.TestCase):
         # CLI-001 已按 ASTROCS_DESIGN §6.1/§6.2 唯一命令树重写本文档（phase1/2/3 用户命令删除，
         # 现行为 normalize/mosaic/export + help/--version/doctor/benchmark）；mutation 目标随文档更新，
         # 仍取 §1 命令块内的现行行，并注入 help 中不存在的非法选项。
-        old = "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)"
-        new = "astrocs normalize (--json <config.json> | --template [-o <path>] | --help) --min-obs 9"
+        old = "acsd normalize (--json <config.json> | --template [-o <path>] | --help)"
+        new = "acsd normalize (--json <config.json> | --template [-o <path>] | --help) --min-obs 9"
         self.assertIn(old, t, "前置: 文档应包含现行 normalize 命令行(否则本 mutation 无效)")
         t = t.replace(old, new)
         open(p, "w", encoding="utf-8").write(t)
@@ -128,7 +128,7 @@ class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
 
     历史缺陷：check_command_tree 只在 build/cli/astrocs 存在时比对，缺失即静默
     return —— 命令树门退化为 0 检查（GAP-027 / 问题扫描 M5b-G-01）。现改为：候选
-    产物解析（产品图 build/astrocs 优先，兼容图 build/cli/astrocs 回落）+ 全缺 FAIL。
+    产物解析（产品图 build/acsd 优先，兼容图 build/cli/astrocs 回落）+ 全缺 FAIL。
     本类在临时沙箱仓库（符号链接真实 docs/lib/include/cli/contracts）里证明该分支
     「能红能绿」：无产物必须红，有产物且 --help 与文档一致必须绿；全程不动真实仓库。
     """
@@ -153,9 +153,9 @@ class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
         """按 checker 口径复算 CLI_PROTOCOL_V1.md §1 的命令行集合。"""
         text = open(os.path.join(REPO, "docs", "api", "CLI_PROTOCOL_V1.md"),
                     encoding="utf-8", errors="ignore").read()
-        cmds = re.findall(r"^\s*astrocs .*$", text, re.M)
+        cmds = re.findall(r"^\s*acsd .*$", text, re.M)
         cmds = [c.split("#")[0].strip() for c in cmds]
-        return sorted({c for c in cmds if c.startswith("astrocs") and len(c) > 7})
+        return sorted({c for c in cmds if c.startswith("acsd") and len(c) > 7})
 
     def _install_fake_cli(self, td, rel):
         """在沙箱内放一个只回显文档命令行的可执行替身（hermetic，不依赖真实构建）。"""
@@ -179,9 +179,9 @@ class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
                          "沙箱内唯一失败应来自命令树缺产物（归因证据）:\n" + err)
 
     def test_product_binary_present_passes(self):
-        """正例：沙箱内存在产品图 build/astrocs 且 --help 与文档一致 → rc=0。"""
+        """正例：沙箱内存在产品图 build/acsd 且 --help 与文档一致 → rc=0。"""
         td = self._sandbox()
-        self._install_fake_cli(td, "build/astrocs")
+        self._install_fake_cli(td, "build/acsd")
         rc, out, err = run_check(td)
         self.assertEqual(rc, 0, "有 CLI 产物时应比对通过（证明上例的红不是恒红）:\n" + err)
 

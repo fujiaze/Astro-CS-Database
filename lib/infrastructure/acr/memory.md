@@ -363,7 +363,7 @@ GTEST_SKIP、ASan 实际开启、外部单 HEAD Evidence 生成中）。**尚未
 5. CUDA backend 启用真实验证（RTX 3060 Ti，本机 CUDA 11.8）
 6. 本次范围 Phase A-H，Phase I 合并 main 等用户二次授权
 7. 公共 API 不暴露第三方类型（PIMPL/type-erased）
-8. ACR lazy initialization，合并后普通 AstroCS 运行无副作用
+8. ACR lazy initialization，合并后普通 Astro Celestial Sphere Database（ACSD） 运行无副作用
 9. path guard 用 git pathspec exclusion 处理中文路径（pwsh 执行）
 
 ## 下一阶段

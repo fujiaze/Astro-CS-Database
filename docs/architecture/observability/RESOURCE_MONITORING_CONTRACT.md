@@ -1,4 +1,4 @@
-# AstroCS 资源监控伴随器合同（LOG-002）
+# Astro Celestial Sphere Database（ACSD） 资源监控伴随器合同（LOG-002）
 
 > 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
 
@@ -10,7 +10,7 @@
 
 ## 1. 目的与边界
 
-AstroCS 需要一个**资源监控伴随器**：重任务（`cpu_heavy` / 长运行）run 自动创建
+ACSD 需要一个**资源监控伴随器**：重任务（`cpu_heavy` / 长运行）run 自动创建
 monitor，同一 run ID **每秒**采集 process/system CPU、active/granted workers、
 RSS/private/commit、read/write bytes、queue/lock/io wait、provider/module，
 产出**不可手工合成**的原始 CSV，供运行图（LOG-003）、审计、容量分析消费。

@@ -1,6 +1,6 @@
 /* ============================================================================
  * fits_cross_reader.c - 独立 FITS 交叉读取器（判据 CHK-SPARSE-PUNCH-PROBE 的
- * 「第二路读器」）。**链接系统 cfitsio，不链接 AstroCS 任何库**，因此它读到的
+ * 「第二路读器」）。**链接系统 cfitsio，不链接 ACSD 任何库**，因此它读到的
  * 一致性与生产实现无关。
  *
  * 依据: ACCEPTANCE_SPEC.md §3.2「cfitsio 与 astropy 两路独立读器逐 HDU 的

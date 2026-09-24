@@ -80,7 +80,7 @@ enum P2RejectionMethod {
 #define P2_PROFILE_WBPP_2_9_1             "wbpp_2_9_1"
 #define P2_PROFILE_WBPP_CURRENT           "wbpp_current"  // = wbpp_2_9_1 alias
 #define P2_PROFILE_ASTROCS_ADAPTIVE       "astrocs_adaptive"
-// AstroCS 自有「按逐输出像素几何 N」内置映射。**路由
+// ACSD 自有「按逐输出像素几何 N」内置映射。**路由
 // = WBPP 一手实测表**（BPP-FrameGroup.js:1304-1312）：N<6 → percentile；
 // 6≤N≤15 → winsorized_sigma；N>15 → linear_fit。原四档表（n≤3 不排异 /
 // 4–7 percentile / 8–15 winsorized / ≥16 linear）**作废**。
@@ -151,7 +151,7 @@ typedef struct {
 } P2RcrParams;
 
 // astrocs.large_scale_rejection.v1 —— 大尺度结构拒绝（WBPP
-// Large-Scale Pixel Rejection 的 AstroCS 自有实现，PIXINSIGHT_EXACT=
+// Large-Scale Pixel Rejection 的 ACSD 自有实现，PIXINSIGHT_EXACT=
 // NOT_CLAIMED）。语义：对每帧 pixel-level rejection mask 做
 // connected-component grow：
 // - 8-连通分量中，只有分量大小 >= min_structure_pixels 的结构才被
@@ -244,9 +244,9 @@ typedef struct {
 // profile 语义：
 // wbpp_2_9_1（wbpp_current alias）→ 调用方必须传 integration group active
 // count，一次解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
-// astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
+// astrocs_adaptive → ACSD 自有策略：允许按 tile nominal geometric depth
 // 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
-// astrocs_adaptive_pixel → AstroCS 自有「按逐输出像素几何 N」内置映射
+// astrocs_adaptive_pixel → ACSD 自有「按逐输出像素几何 N」内置映射
 // （**路由 = WBPP 实测表**：N<6 percentile；6..15 winsorized；
 // >15 linear_fit；原四档表作废）。AUTO 路由**禁止**产出 min/max 与
 // NoRejection（WBPP :1237-1243）⇒ 命中即 fail-closed（返回非 0）。

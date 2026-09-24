@@ -1,4 +1,4 @@
-# AstroCS phase1 wcs module — 元数据 (P1-WCS-DOC 冻结, 2026-09-07)
+# ACSD phase1 wcs module — 元数据 (P1-WCS-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/platesolve/cpp/ipv/
 # ipv_entry.cpp 12 个 C ABI 导出（ipv_solve_create :237 / ipv_solve_destroy
 # :249 / ipv_set_gaia_handle :260 / ipv_set_detector_handle :273 /

@@ -1,4 +1,4 @@
-// AstroCS Core — ARCH-502 normalize 异步工作流调度器
+// ACSD Core — ARCH-502 normalize 异步工作流调度器
 //
 // 依据：ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（normalize =
 //       异步工作流编排）、§9（探针驱动优化）；ENGINEERING_SPEC.md §4.1（管线纪律）；

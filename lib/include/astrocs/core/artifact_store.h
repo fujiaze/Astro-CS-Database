@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — RT-007 类型化 ArtifactStore + 跨阶段绑定
+// ACSD Core Contracts — RT-007 类型化 ArtifactStore + 跨阶段绑定
 // Artifact descriptor 含 ID、role、schema/version、unit、coordinate、dtype/shape、validity、
 // path/URI、size/hash、producer node/module/version、source commit、input IDs/hashes、created UTC。
 // 消费前验证完整；禁止从文件名/目录猜角色。

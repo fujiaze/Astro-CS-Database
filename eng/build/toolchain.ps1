@@ -1,5 +1,5 @@
 # ============================================================================
-# AstroCS 统一工具链 (唯一入口, 2026-08-04 确定)
+# ACSD 统一工具链 (唯一入口, 2026-08-04 确定)
 # ============================================================================
 param(
     [Parameter(Position=0)][string]$Command = "check",
@@ -16,19 +16,19 @@ $AstroCS_ROOT   = $PSScriptRoot
 function Set-AstroCSEnv {
     if ($env:Path -notlike "*$AstroCS_MSYS2*") {
         $env:Path = "$AstroCS_MSYS2;$env:Path"
-        Write-Host "[AstroCS] PATH 已加入 MSYS2 MinGW64" -ForegroundColor Green
+        Write-Host "[ACSD] PATH 已加入 MSYS2 MinGW64" -ForegroundColor Green
     }
 }
 
 function Get-AstroCSPython {
     if (Test-Path -LiteralPath $AstroCS_PYTHON) { return $AstroCS_PYTHON }
-    Write-Warning "[AstroCS] 未找到规范 Python $AstroCS_PYTHON, 回退到 PATH 中的 python"
+    Write-Warning "[ACSD] 未找到规范 Python $AstroCS_PYTHON, 回退到 PATH 中的 python"
     return (Get-Command python -ErrorAction SilentlyContinue).Source
 }
 
 function Test-AstroCSToolchain {
     Set-AstroCSEnv
-    Write-Host "===== AstroCS 工具链自检 =====" -ForegroundColor Cyan
+    Write-Host "===== ACSD 工具链自检 =====" -ForegroundColor Cyan
     $checks = @(
         @{n="g++ (MinGW64)"; c="g++";   a="--version"},
         @{n="GNU Make";      c="make";  a="--version"},
@@ -195,15 +195,15 @@ function New-AstroCSReviewPack {
     [IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip)
     $zh = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLower()
     $size = (Get-Item -LiteralPath $zip).Length
-    Write-Host "[AstroCS] 审核包已生成: $zip" -ForegroundColor Green
-    Write-Host "[AstroCS] 大小: $size bytes | SHA256: $zh" -ForegroundColor Cyan
+    Write-Host "[ACSD] 审核包已生成: $zip" -ForegroundColor Green
+    Write-Host "[ACSD] 大小: $size bytes | SHA256: $zh" -ForegroundColor Cyan
     return $zip
 }
 
 if ($MyInvocation.InvocationName -ne ".") {
     switch ($Command.ToLower()) {
         "check"  { Test-AstroCSToolchain }
-        "env"    { Set-AstroCSEnv; Write-Host "[AstroCS] 直接运行不会保留 PATH, 请 dot-source: . .\eng/build/toolchain.ps1" -ForegroundColor Yellow }
+        "env"    { Set-AstroCSEnv; Write-Host "[ACSD] 直接运行不会保留 PATH, 请 dot-source: . .\eng/build/toolchain.ps1" -ForegroundColor Yellow }
         "build"  { Build-AstroCSAll }
         "run"    { if (-not $JsonPath) { Write-Error "用法: .\eng/build/toolchain.ps1 run <stage1.json>"; exit 1 }
                    Invoke-AstroCSOrchestrator -JsonPath $JsonPath }

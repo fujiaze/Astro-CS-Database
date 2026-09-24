@@ -6,7 +6,7 @@
  * 不进公共导出面 (无 C ABI 符号)。背景 (F-13 / P1-003 生产路由清理):
  * 原 hp_drizzle_run_hips 与 hp_drizzle_run 同处 hp_drizzle_api.cpp 单一 TU;
  * CLI 生产闭包只引用 hp_drizzle_run, 但静态库按 .o 取成员, 会把同一 .o 内
- * 未被引用的 run_hips 一并拉入 astrocs exe。将 hp_drizzle_run_hips 原样迁至
+ * 未被引用的 run_hips 一并拉入 acsd exe。将 hp_drizzle_run_hips 原样迁至
  * hp_drizzle_hips_api.cpp, 两 TU 经本头共享 run_drizzle_internal 与错误写入
  * 辅助; 签名/语义/数值零改动。
  *

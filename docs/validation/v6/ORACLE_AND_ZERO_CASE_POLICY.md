@@ -11,7 +11,7 @@
 
 1. 独立真值来源白名单：`independent_numpy | independent_numpy_mc | independent_stdlib | structural |
    real_data_checklist | preregistered_comparison | independent_driver`。
-2. 每条门必须声明 `oracle.truth`（真值来源）与 `oracle.must_not`（禁止调用的对象，至少含 `astrocs`）。
+2. 每条门必须声明 `oracle.truth`（真值来源）与 `oracle.must_not`（独立于被测对象的对象集，至少含 `acsd`）。
 3. `qa_oracle.py` 只用 NumPy + 标准库，参考实现为显式矩阵、解析恒等与定种子 MC；被测公式以 subject 形式独立转写。
 4. 禁止子串存在性断言替代值断言；禁止调用被测实现生成期望（对应 AR-042）。
 5. 历史"Oracle 全过"结论不得直接继承（AR-043）；真实数据门禁止以生产输出为唯一 expected（PROJECT_SPEC §8）。

@@ -127,7 +127,7 @@ def check_static(root=None):
             errors.append("旧命令首段 token 仍在命令表: %s" % first)
     # help 文本里不得出现旧命令行
     for legacy in LEGACY_COMMANDS:
-        if re.search(r"^astrocs %s(\s|$)" % re.escape(legacy), tree_text, re.M):
+        if re.search(r"^acsd %s(\s|$)" % re.escape(legacy), tree_text, re.M):
             errors.append("help 文本仍含旧命令: %s" % legacy)
     # 命令实现的源码面：三个子命令之外不得再出现用户命令分发字符串
     cmds_cpp = read(root / "lib" / "infrastructure" / "cli" / "commands.cpp")
@@ -180,7 +180,7 @@ def check_runtime(binary, timeout=120):
     for args in ok_new:
         got = rc(*args)
         if got != 0:
-            errors.append("新命令应 rc=0: astrocs %s → rc=%s" % (" ".join(args), got))
+            errors.append("新命令应 rc=0: acsd %s → rc=%s" % (" ".join(args), got))
 
     bad_old = [[c, sub] for c in ("phase1", "phase2", "phase3")
                for sub in ("run", "validate", "plan", "inspect")]
@@ -196,7 +196,7 @@ def check_runtime(binary, timeout=120):
     for args in bad_old:
         got = rc(*args)
         if got != 2:
-            errors.append("旧命令应 rc=2: astrocs %s → rc=%s" % (" ".join(args), got))
+            errors.append("旧命令应 rc=2: acsd %s → rc=%s" % (" ".join(args), got))
 
     # 参数/命令错 → 2；输入缺失/格式错 → 3（ASTROCS_DESIGN §6.3 码表）
     bad_args = [["normalize"], ["normalize", "--json"], ["mosaic"], ["export"],
@@ -207,11 +207,11 @@ def check_runtime(binary, timeout=120):
     for args in bad_args:
         got = rc(*args)
         if got != 2:
-            errors.append("参数/命令错误应 rc=2: astrocs %s → rc=%s" % (" ".join(args), got))
+            errors.append("参数/命令错误应 rc=2: acsd %s → rc=%s" % (" ".join(args), got))
     for args in missing_input:
         got = rc(*args)
         if got != 3:
-            errors.append("输入缺失应 rc=3: astrocs %s → rc=%s" % (" ".join(args), got))
+            errors.append("输入缺失应 rc=3: acsd %s → rc=%s" % (" ".join(args), got))
     return errors
 
 
@@ -267,7 +267,7 @@ def self_test():
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--binary", default=None,
-                    help="被测 astrocs 可执行文件（默认自动探测 build/astrocs、build/cli/astrocs）")
+                    help="被测 acsd 可执行文件（默认自动探测 build/acsd、build/cli/astrocs）")
     ap.add_argument("--static-only", action="store_true", help="只跑静态判据")
     ap.add_argument("--self-test", action="store_true", help="跑负例自证（必须能红）")
     args = ap.parse_args(argv)
@@ -287,7 +287,7 @@ def main(argv=None):
     if not args.static_only:
         binary = args.binary or os.environ.get("ASTROCS_CLI_BIN")
         if not binary:
-            for cand in (REPO / "build" / "astrocs", REPO / "build" / "cli" / "astrocs"):
+            for cand in (REPO / "build" / "acsd", REPO / "build" / "cli" / "acsd"):
                 if cand.is_file():
                     binary = str(cand)
                     break

@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — RT-005 plan 真实资源估算实现（独立纯函数库）
+// ACSD Core Contracts — RT-005 plan 真实资源估算实现（独立纯函数库）
 //
 // 公式权威（不得重定义科学常量；docs/algorithms、docs/science、lib/phase* 实现）:
 //   P3 order 选择/内存守卫: docs/science/PHASE3_HIPS_TO_FITS.md §5 + p3_session.cpp

@@ -1,5 +1,29 @@
 # Star Detector 模块变更日志
 
+## GSL-REPLACE-01 (2026-09-24) — 拟合求解器去 GSL 化（禁止重新引入）
+
+### 变更
+1. **新增仓内求解器** `src/nls_lm.{h,cpp}`：信赖域 Levenberg–Marquardt（直接步
+   (JᵀJ+λD²)h=−Jᵀf + Cholesky、Moré 列范数缩放 D、Nielsen 1999 的 Δ/λ 更新、
+   MINPACK lmpar 式 Δ↔λ 一维求根），三判据 xtol/ftol/gtol，迭代上限语义与原后端一致。
+2. **调用点替换** `sdet_api.cpp`：`gsl_multifit_nlinear_alloc/init/driver/free` 全部移除，
+   改调 `astrocs::star_detection::nls::solve`；母函数/雅可比、LM_XTOL/LM_GTOL/LM_FTOL、
+   迭代上限、`status != Success ⇒ SDET_FIT_NO_CONVERGENCE` 的对外映射、MAD 与角度
+   fail-closed 归一化全部保持不变。
+3. **构建面去 GSL**：根 CMakeLists（astrocs_p1_sdet 加 nls_lm.cpp、去掉 -lgsl/-lgslcblas）、
+   p1star/p1psf 测试 CMake 的 GSL 探测 + fail-fast 段整段摘除、模块 Makefile LDLIBS=-lm、
+   dependency-lock.json/DEPENDENCIES.md 删除 gsl 条目、CI 工具链与测试驱动同步。
+
+### 理由
+Windows 平台无 GSL 来源（`lib/algorithms/psf/tests/p1psf/CMakeLists.txt` 原在 configure 期
+fail-fast），且 GSL 属 GPL 族并经 `astrocs_p1_sdet → astrocs_module_adapters → acsd` 进入
+产品 exe 动态链（`license_review: PENDING_OWNER`）。
+
+### 禁令
+**禁止**重新引入 GSL/gslcblas 或任何外部非线性最小二乘库（依据见 `src/nls_lm.h` 顶部
+「位置依据/许可依据」段与 `run/GSL-REPLACE-01/REPORT.md` §3/§8）。下文中 V5.0 及更早的
+历史条目里出现的 GSL 字样是**当时的事实记录**，不是当前实现（现状以上述第 1-3 条为准）。
+
 ## V5.0 (2026-07-07) — 模块化重构 + 代码清理 + 编译优化
 
 ### 重构内容

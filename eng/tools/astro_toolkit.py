@@ -6,7 +6,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AstroCS 工程工具集 - Python 脚本 + JSON 配置驱动的批量操作工具
+ACSD 工程工具集 - Python 脚本 + JSON 配置驱动的批量操作工具
 
 设计目标：
   - 将"git 提交/推送 / 运行 orchestrator / 算 hash / 建目录 / 写文件"等常用操作
@@ -455,7 +455,7 @@ EXAMPLE_CONFIG = [
 
 
 def main():
-    ap = argparse.ArgumentParser(description="AstroCS 工程工具集")
+    ap = argparse.ArgumentParser(description="ACSD 工程工具集")
     ap.add_argument("config", nargs="?", help="JSON 配置文件路径")
     ap.add_argument("--log", default=None, help="日志输出文件（默认 stderr）")
     ap.add_argument("--cwd", default=None, help="工作目录（默认当前目录）")

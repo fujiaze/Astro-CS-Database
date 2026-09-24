@@ -1,4 +1,4 @@
-/* AstroCS CPU 能力探测实现 — lib/infrastructure/benchmark/cpu/common/src/capability_detect.c (CPU-001)
+/* ACSD CPU 能力探测实现 — lib/infrastructure/benchmark/cpu/common/src/capability_detect.c (CPU-001)
  *
  * 职责: acs_cap_* C ABI (capability_v1.h) 的 AMD64 实现。
  *   - CPUID 叶 0/1/7.0/80000000-4 只读探测 (feature/厂商/型号);

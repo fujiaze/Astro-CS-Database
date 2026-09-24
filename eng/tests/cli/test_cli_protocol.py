@@ -34,13 +34,13 @@ CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 from cli_test_hygiene import run_cwd  # noqa: E402
 
 HELP_LINES = [
-    "astrocs --version [--json]",
-    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs help",
-    "astrocs doctor [--json]",
-    "astrocs benchmark",
+    "acsd --version [--json]",
+    "acsd normalize (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd mosaic (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd export (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd help",
+    "acsd doctor [--json]",
+    "acsd benchmark",
 ]
 
 
@@ -101,11 +101,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -129,7 +129,7 @@ def run(*args, env=None, timeout=90):
 class TestGolden(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="astrocs_proto_")
         cls.cfg = os.path.join(cls.tmp, "cfg_valid.json")
         with open(cls.cfg, "w", encoding="utf-8") as fh:
@@ -152,7 +152,7 @@ class TestGolden(unittest.TestCase):
         lines = [l for l in r.stdout.splitlines() if l.strip()]
         self.assertEqual(len(lines), 1)
         doc = json.loads(lines[0])
-        self.assertEqual(doc["name"], "astrocs")
+        self.assertEqual(doc["name"], "acsd")
         self.assertEqual(doc["schema_version"], "1")
         self.assertRegex(doc["version"],
                          r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
@@ -358,14 +358,14 @@ class TestManifestIncomplete(unittest.TestCase):
 # → rc=2）+ docs/api/CLI_PROTOCOL_V1.md §1/§3（--json 恰一个 JSON 文档；退出码
 # 2 参数 / 3 输入 / 5 版本 / 8 完整性）。
 # 落位: command_tree.h 把 --run-manifest 登记为 doctor 的**内部/机器旗标**
-# （不写进 help ⇒ help golden 行 "astrocs doctor [--json]" 不变），dispatch 的
+# （不写进 help ⇒ help golden 行 "acsd doctor [--json]" 不变），dispatch 的
 # doctor 分支在该旗标在位时走 cmd_verify（manifest→status→version→输入 hash→
 # 逐 artifact 存在/sha256/size）。
 # =====================================================================
 class TestDoctorVerifyLocus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="astrocs_doctor_verify_")
 
     @classmethod

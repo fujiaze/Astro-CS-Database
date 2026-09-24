@@ -1,4 +1,4 @@
-# AstroCS Troubleshooting
+# Astro Celestial Sphere Database（ACSD） Troubleshooting
 
 > 上游：ASTROCS_DESIGN.md §7.2（配置、事件与退出码）
 

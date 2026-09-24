@@ -1,4 +1,4 @@
-/* AstroCS 模块 C ABI v1 — 基础层：宏 / 版本 / 状态码 / 基础 POD（ABI-001）
+/* ACSD 模块 C ABI v1 — 基础层：宏 / 版本 / 状态码 / 基础 POD（ABI-001）
  *
  * 文件: lib/include/astrocs/abi/status_codes.h   （modular ABI 层中最底层）
  *
@@ -77,7 +77,7 @@ extern "C" {
 #elif UINTPTR_MAX == UINT32_MAX
 #define ACS_ABI_PTR_BITS 32
 #else
-#error "AstroCS ABI: unsupported pointer width (only 32/64-bit)"
+#error "ACSD ABI: unsupported pointer width (only 32/64-bit)"
 #endif
 
 /* ═══════════════════════════ 2. 版本常量 ═══════════════════════════ */

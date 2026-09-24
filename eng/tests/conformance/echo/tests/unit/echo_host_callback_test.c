@@ -1,4 +1,4 @@
-/* AstroCS echo conformance module — host callback 正/负测试 (ABI-005)
+/* ACSD echo conformance module — host callback 正/负测试 (ABI-005)
  *
  * 覆盖 (ABI-005 验收: 每个 host callback 有正/负测试):
  *   - query/describe/validate_config/plan/create/destroy 生命周期正/负;

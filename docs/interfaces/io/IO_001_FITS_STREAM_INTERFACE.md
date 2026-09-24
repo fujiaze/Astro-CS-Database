@@ -8,7 +8,7 @@
 
 IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不含科学算法迁移）：
 
-1. 把 FITS 第三方库（CFITSIO 等）隔离在 `astrocs_io.dll` **内部**；公开边界是纯 C ABI，
+1. 把 FITS 第三方库（CFITSIO 等）隔离在 `acsd_io.dll` **内部**；公开边界是纯 C ABI，
    **CFITSIO 类型/句柄（`fitsfile*` 等）绝不跨 DLL 边界**。
 2. 提供 header / plane / chunk 三级读接口、原子写接口、checksum(DATASUM/CHECKSUM)/verify、稳定错误码。
 3. 可观测性：每次 read/write 的 **bytes 累计到 trace 计数器**（宿主注入），供运行时 I/O 监控使用。
@@ -24,7 +24,7 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 | 本冻结合同 | `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md` |
 | io 服务模块骨架（README/module.yaml/CMake/占位入口） | `lib/infrastructure/aio/io/` |
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
-| FITS 流 C ABI（只被 astrocs_io.dll 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
+| FITS 流 C ABI（只被 acsd_io.dll 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
 | 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h`（**该文件不存在**：全仓零命中，如实登记为缺口；现行 io ABI 面 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` + `hips_input_v1.h`） |
 | 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `eng/tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
@@ -33,8 +33,8 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 
 ## 3. DLL 边界与所有权
 
-- 目标 DLL：`astrocs_io.dll`（Windows）/ `libastrocs_io.so`（Linux 技术预览）。
-- **第三方隔离**：CFITSIO 只在 `astrocs_io.dll` 内部编译；fits_core 不包含任何 CFITSIO 头，
+- 目标 DLL：`acsd_io.dll`（Windows）/ `libacsd_io.so`（Linux 技术预览）。
+- **第三方隔离**：CFITSIO 只在 `acsd_io.dll` 内部编译；fits_core 不包含任何 CFITSIO 头，
   不出现 `fitsfile` 等类型；若未来以 CFITSIO 实现读写，均封装在 DLL 内私有层。
 - 跨边界类型：POD 结构 + 固定宽度整数 + 定长 UTF-8 字符数组 + opaque handle + 回调；禁 STL/异常/RTTI。
 - 所有跨边界结构体前两字段为 `struct_size` / `abi_version`（同 `acs_head` 模式）。
@@ -198,7 +198,7 @@ typedef struct acs_fio_trace_hooks_v1 {
 ## 14. 已知限制（v1 骨架）
 
 1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + 模块骨架 +
-   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）用同一源码执行。
+   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（acsd_io.dll）用同一源码执行。
 2. 只支持基本图像 HDU（NAXIS 0–3）；表/随机群/压缩扩展 → `UNSUPPORTED`（后续任务扩展）。
 3. 不自动应用 BSCALE/BZERO（避免隐式标度）；调用方显式处理。
 4. CHECKSUM 卡写路径默认关闭；verify 支持标准 HDU CHECKSUM 校验。

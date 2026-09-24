@@ -104,7 +104,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     const size_t n_leaf = 512 * 512;  // 4^9
     const int dtype = (sizeof(Scalar) == sizeof(float)) ? AIO_HIPS_FLOAT32
                                                         : AIO_HIPS_FLOAT64;
-    const std::string title = meta.filter.empty() ? "AstroCS Phase1" : ("AstroCS " + meta.filter);
+    const std::string title = meta.filter.empty() ? "ACSD Phase1" : ("ACSD " + meta.filter);
 
     const int prod_flags = has_variance ? AIO_HIPS_PRODUCT_ALL_V19
                                         : AIO_HIPS_PRODUCT_ALL;
@@ -330,7 +330,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     AioHipsProductSet* ps = aio_hips_product_begin(
         hips_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32,
         prod_flags,
-        "astrocs/phase1", "AstroCS Phase1 single-frame stack",
+        "astrocs/phase1", "ACSD Phase1 single-frame stack",
         filter_passband.c_str(), 0.0, nullptr, 0);
     if (!ps) {
         err = "aio_hips_product_begin 失败: " +
@@ -492,14 +492,26 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             long q = std::lround(255.0 * S);
             if (q < 0) q = 0;
             if (q > 255) q = 255;
-            // signal = 累计通量, HiPS 产品位深 float32 (旧 writer 的显式窄化)
-            flux_buf[local] = (float)((double)acc.sumFlux);
+            // 面亮度换算因子 k = sumArea/sumNorm = D_p/(Σ_j w_jp·A_pixel,j)。
+            // 核按 **drop 面积** 归一 (drizzlepac dover/=jaco; F&H 2002 §7.2), 故
+            // acc.sumFlux 是"分配通量"(Σ_p sumFlux = Σ_j x_j, 与 pixfrac 无关),
+            // 而 writer 发布的 signal 面语义是**面亮度** (sig = flux/covered_area)。
+            // 把 flux 折算回覆盖面积口径后:
+            //   sig = sumFlux·D_p/(sumNorm·A_cov) = Σ_j B_j a_jp / Σ_j a_jp
+            // (B_j = x_j/A_pixel,j), 与 pixfrac 无关 = 常量面亮度场时恒 B0。
+            // pixfrac==1 时 sumNorm ≡ sumArea (逐位) ⇒ k == 1.0 ⇒ 产品逐位不变。
+            const double k = ((double)acc.sumNorm > 0.0)
+                                 ? (double)acc.sumArea / (double)acc.sumNorm
+                                 : 1.0;
+            // signal = 累计通量(折算后), HiPS 产品位深 float32 (旧 writer 的显式窄化)
+            flux_buf[local] = (float)((double)acc.sumFlux * k);
             // covered_area = (u8/255)·A_cell (旧 writer 的面积比连续缩放)
             area_buf[local] = (float)(((double)q / 255.0) * a_cell);
             // variance 分子 Σ v_j·w_jp² (ADU², SCI-DRZ-014 §5); writer 归约
             // variance = var_num_sum/covered_area²、ivar = 1/variance (§12.2/§4a)。
+            // 方差与信号共用同一归一分母 ⇒ 同步乘 k² (pixfrac=1 时 k≡1 逐位不变)。
             if (has_variance)
-                var_buf[local] = (float)((double)acc.sumVarNum);
+                var_buf[local] = (float)((double)acc.sumVarNum * k * k);
             valid_buf[local] = 1;
         }
         prof_transform += std::chrono::duration<double>(

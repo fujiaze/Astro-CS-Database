@@ -13,7 +13,7 @@
   N2 对照（TAN）: 投影门必须放行 —— 输出不得出现上述「不支持」文本
      （证明 N1 的拒绝由投影码引起, 而非请求整体恒失败）。
 
-用法: python3 p3_projection_unsupported_cli.py <astrocs 可执行文件>
+用法: python3 p3_projection_unsupported_cli.py <acsd 可执行文件>
 exit 0 = 判据全过; 1 = 判据失败; 2 = 输入不可用（fail-closed）。
 """
 from __future__ import annotations
@@ -54,7 +54,7 @@ def run_export(exe: str, projection: str, tmp: str):
 
 def main() -> int:
     if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
-        print("FAIL: astrocs 可执行文件不可用（fail-closed）", file=sys.stderr)
+        print("FAIL: acsd 可执行文件不可用（fail-closed）", file=sys.stderr)
         return 2
     exe = os.path.abspath(sys.argv[1])
     bad = 0

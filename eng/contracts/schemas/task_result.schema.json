@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/task-result-v2.json",
-  "title": "AstroCS V6.1 Task Result",
+  "title": "ACSD V6.1 Task Result",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "task_id", "status", "parent_commit", "control_sha256", "ledger_sha256", "change_class", "changed_paths", "impact", "commands", "tests", "evidence", "findings", "expected_commit_subject", "created_utc"],

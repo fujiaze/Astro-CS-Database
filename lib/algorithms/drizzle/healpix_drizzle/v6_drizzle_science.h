@@ -2,7 +2,7 @@
 #define ASTROCS_v6_DRIZZLE_SCIENCE_H
 
 // ============================================================================
-// AstroCS v6 Phase1 Drizzle 科学核心（signal 单位 / SB 组合 / variance &
+// ACSD v6 Phase1 Drizzle 科学核心（signal 单位 / SB 组合 / variance &
 // correlation 传播 / 条件通量守恒）
 //
 // 任务: IMPL-P1-DRZ-001 (wave 5, write_scope = lib/infrastructure/aio/healpix_db/)
@@ -21,17 +21,21 @@
 //                       ⇒ 显式拒绝 + 迁移提示（is_retired_unit_symbol /
 //                       retired_unit_reject_reason），不得静默接受
 //   FZ-FORMULA-DRIZZLE-SB
+//       核按 drop 面积归一（F&H 2002 §7.2 式(7) 下方逐字 a = "the fractional
+//       area overlap of **the drop**"；drizzlepac cdrizzlebox.c dover/=jaco）:
+//       w_jp = a_jp / A_drop_j （Sum_p w_jp = 1）
 //       B_j = x_j / A_pixel_j ; S_p = Sum_j B_j a_jp / Sum_j a_jp
-//           = Sum_j w_SB_jp x_j / D_p = Sum_j c_jp x_j
-//       w_SB_jp = a_jp / A_pixel_j ; c_jp = w_SB_jp / D_p ; D_p = Sum_j a_jp
+//           = Sum_j w_jp x_j / N_p = Sum_j c_jp x_j
+//       c_jp = w_jp / N_p ; N_p = Sum_j w_jp * A_pixel_j （面亮度归一分母）
+//       等价参数化（同一 c_jp）: w'_jp = a_jp/A_pixel_j, N'_p = Sum_j w'_jp = D_p。
 //   FZ-FORMULA-DRIZZLE-VAR
-//       variance_p = Sum_j c_jp^2 v_j = Sum_j v_j w_SB_jp^2 / D_p^2
+//       variance_p = Sum_j c_jp^2 v_j = Sum_j v_j w_jp^2 / N_p^2
 //       x -> alpha x  =>  var -> alpha^2 var , ivar -> ivar / alpha^2
 //   FZ-FORMULA-COV-PROP
 //       Cov(S_p,S_q) = Sum_j c_jp c_jq v_j ; C_out = R C_in R^T
 //   FZ-COND-FLUX-CONSERV
-//       Phi_out = Sum_p S_p D_p = Sum_j B_j A_drop_j = pixfrac^2 * Sum_j x_j
-//       flux_conservation_factor = pixfrac^2 （必须落 provenance）
+//       Phi_out = Sum_p Sum_j w_jp x_j = Sum_j x_j （与 pixfrac 无关）
+//       flux_conservation_factor = 1（口径标记；必须落 provenance）
 //   FZ-GATE-CONST-SB
 //       x_j = B0 * A_pixel_j  =>  S_p = B0 对所有 pixfrac in (0,1]
 //       容差 |S_p/B0 - 1| < 1e-3（沿用，不改数值）
@@ -120,19 +124,20 @@ std::string retired_unit_reject_reason(const std::string& symbol);
 // 2. 算子原语：w_SB / c_jp / D_p
 // ---------------------------------------------------------------------------
 
-// w_SB_jp = a_jp / A_pixel_j   （无量纲；a_jp 与 A_pixel_j 同 px^2 单位）
-double sb_weight(double a_jp, double A_pixel_j);
-
-// c_jp = w_SB_jp / D_p          （作用于 x_j，无量纲）
-double sb_combination_coefficient(double w_sb_jp, double D_p);
-
-// 历史 legacy drop 权重 w_legacy_jp = a_jp / A_drop_j，
-// 满足 w_SB_jp = pixfrac^2 * w_legacy_jp。
+// **canonical 核权重** w_jp = a_jp / A_drop_j （drop 面积归一；无量纲）。
+// 名称保留 drop_weight 以免位移既有调用点；它就是 F&H/drizzlepac 的分数交叠。
 double legacy_drop_weight(double a_jp, double A_drop_j);
-double legacy_to_sb_weight(double w_legacy_jp, double pixfrac);
+
+// 等价参数化（面亮度保持权重） w'_jp = a_jp / A_pixel_j = pixfrac^2 * w_jp。
+// 两种参数化给出**同一个** c_jp（分母同步变换），见 operator build。
+double sb_weight(double a_jp, double A_pixel_j);
+double legacy_to_sb_weight(double w_drop_jp, double pixfrac);
 double sb_to_legacy_weight(double w_sb_jp, double pixfrac);
 
-// FZ-COND-FLUX-CONSERV 的 provenance 因子。
+// c_jp = w_jp / N_p          （作用于 x_j，无量纲）
+double sb_combination_coefficient(double w_jp, double N_p);
+
+// FZ-COND-FLUX-CONSERV 的 provenance 因子：drop 面积归一下恒为 1（与 pixfrac 无关）。
 double flux_conservation_factor(double pixfrac);
 
 // ---------------------------------------------------------------------------

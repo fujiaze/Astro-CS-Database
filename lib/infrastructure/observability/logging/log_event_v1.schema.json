@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "astrocs.log.event.v1",
-  "title": "AstroCS 结构化日志事件合同 (LOG-001, schema v1)",
-  "description": "AstroCS 统一结构化日志的机器 JSONL 单行事件合同。LOG-001 冻结字段语义；LOG-002 起生产 Runtime/模块/监控伴生器写入本 schema 的行。单行 = 一个 JSON 对象 + '\\n'。所有字符串必须为合法 UTF-8 且不含换行/回车（JSONL 约束）。**边界（RELEASE-03 GAP_AUDIT §4.3 Q6 裁决）：本 schema 是「结构化日志」合同，不是运行事件流**——运行事件流的唯一 schema = lib/infrastructure/cli/protocol.h（ValidateEventV1）+ lib/infrastructure/cli/jsonl.h（JsonlEmitter），字段为 schema_version/event_id/run_id/timestamp_utc/sequence/kind/severity/phase/stage/message，事件枚举键名是 kind（progress/resource/artifact/backend/final）。本合同的事件键名是 event、顺序键是 seq，**不得**与运行事件流的 kind/sequence 混用；两份流各用不同工件名（本合同的工件名 = astrocs.log.event.v1 行），不得互相冒充。",
+  "title": "ACSD 结构化日志事件合同 (LOG-001, schema v1)",
+  "description": "ACSD 统一结构化日志的机器 JSONL 单行事件合同。LOG-001 冻结字段语义；LOG-002 起生产 Runtime/模块/监控伴生器写入本 schema 的行。单行 = 一个 JSON 对象 + '\\n'。所有字符串必须为合法 UTF-8 且不含换行/回车（JSONL 约束）。**边界（RELEASE-03 GAP_AUDIT §4.3 Q6 裁决）：本 schema 是「结构化日志」合同，不是运行事件流**——运行事件流的唯一 schema = lib/infrastructure/cli/protocol.h（ValidateEventV1）+ lib/infrastructure/cli/jsonl.h（JsonlEmitter），字段为 schema_version/event_id/run_id/timestamp_utc/sequence/kind/severity/phase/stage/message，事件枚举键名是 kind（progress/resource/artifact/backend/final）。本合同的事件键名是 event、顺序键是 seq，**不得**与运行事件流的 kind/sequence 混用；两份流各用不同工件名（本合同的工件名 = astrocs.log.event.v1 行），不得互相冒充。",
   "type": "object",
   "additionalProperties": false,
   "required": [

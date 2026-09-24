@@ -1,4 +1,4 @@
-/* AstroCS CPU AVX2/FMA provider — .so 加载冒烟 (dlopen 唯一入口 + ABI)
+/* ACSD CPU AVX2/FMA provider — .so 加载冒烟 (dlopen 唯一入口 + ABI)
  * eng/tests/cpu/avx2/provider_avx2_so_load_test.c (CPU-003)
  *
  * 覆盖 (CPU-003 验收 "非支持 CPU 不加载" 的加载面 + 12 §1 唯一导出 +

@@ -1,4 +1,4 @@
-# AstroCS Data Semantics（跨阶段唯一数据合同）
+# Astro Celestial Sphere Database（ACSD） Data Semantics（跨阶段唯一数据合同）
 
 > 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）
 
@@ -404,7 +404,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | tile_width | int | — | 恒 512（≠512 拒绝 :402；tile_order=leaf_order−9） |
 | data_type | 0=float32 / 1=float64 | — | 其他值拒绝（:403）；决定存储 bitpix −32/−64 与 hierarchy 累加器轨（f32 产品 float 累加，DISP-HIPS-009） |
 | flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入。**产品集由输入面声明决定，不得由内容扫描推断**：调用方在**输入**中声明「本帧携带方差面」（Phase1 末端 = `write_hips_phase1` 的 `has_variance` 形参，与通用档 `write_hips_direct` 同形参同口径），writer 据此请求 VARIANCE\|IVAR 并成对落盘；**禁止**用「至少一个叶像素 var_num_sum>0」之类的**内容判据**决定是否产出子产品 —— 那会让「整帧方差不可用」的帧不产 ivar 子产品，把像素级不可用升级为产品级拒绝（读侧 `ivar_product_missing>0` ⇒ fail-closed） |
-| creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | **B2-A8: obs_filter 恒写（参数 NULL→空串值，禁"不写键"）**，Phase1 config `filter_passband` 透传（lib/infrastructure/cli/parser.cpp:303-309；module_adapters p1_op_writer）；obs_date 仍可 NULL（不写键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="AstroCS Phase1"（:414-415） |
+| creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | **B2-A8: obs_filter 恒写（参数 NULL→空串值，禁"不写键"）**，Phase1 config `filter_passband` 透传（lib/infrastructure/cli/parser.cpp:303-309；module_adapters p1_op_writer）；obs_date 仍可 NULL（不写键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="ACSD Phase1"（:414-415） |
 | moc_order | uint | — | 0=auto（=tile_order）；>0 取 min(moc_order, tile_order) 静默钳位（:419，DISP-HIPS-005） |
 | AstroSphereTileView: parent_ipix | uint64 | NESTED ipix（Norder K） | ≥12·4^K 拒绝 rc=−3（:433-437）；width/leaf_order/dtype 不匹配拒绝 rc=−2（:428-431） |
 | AstroSphereTileView: flux_sum | float32 或 float64 `[512×512]` NESTED local 行主序 | ADU（drizzle 层 ADU·w 加权和，§11.2） | 非 NULL 强制；无效像素处理见 §12.4 |
@@ -3120,7 +3120,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 
 ### 31.1a 面亮度单位口径的推导（`FZ-UNIT-SIGNAL-SB`）
 
-**结论**：AstroCS 全链 `signal` 承载的物理量是**面亮度**（surface brightness），单位唯一写作
+**结论**：ACSD 全链 `signal` 承载的物理量是**面亮度**（surface brightness），单位唯一写作
 **`ADU/sr`**（计数按**立体角**归一）；`variance` = `ADU^2/sr^2`、`ivar` = `sr^2/ADU^2`
 由二次律唯一导出。产品 FITS/HiPS 写盘 `BUNIT` 一律取该串（canonical 面亮度族 = `ADU/sr` / `ADU^2/sr^2` / `sr^2/ADU^2`；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed）。
 **BUNIT 相等不是标度相等的充分条件（正向约束）**：`BUNIT` 描述**量的种类**，逐帧标度由 `PHOTSCAL`/`PHOTAPPL`（DATA-P1-PHOTPROV-001）与 `k_photo` 承载。跨帧比较、合并、加权或做阈值判定前，消费侧**必须**读逐帧标度并按标度律换算到同一标度（`docs/standards/NUMERIC_STANDARD.md`）；**禁止**仅凭 `BUNIT` 相同即认定可合并、可加权、可比较。
@@ -3156,7 +3156,7 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 以每像素为单位则不同像元尺度的帧不可比。**面亮度是强度量（per solid angle），不是广延量（per pixel）。**
 
 **为什么不是 `mag/arcsec^2` 或 `erg/s/cm^2/Å/arcsec^2`**：两者都是**绝对定标**后的面亮度单位，
-且前者承载对数值。AstroCS 的 `signal` 是**线性**探测器计数面亮度；本阶段的测光链只建立
+且前者承载对数值。ACSD 的 `signal` 是**线性**探测器计数面亮度；本阶段的测光链只建立
 **逐帧相对零点** `ZP_k`（`m = ZP − 2.5·log10 F`，§13.4）。
 **绝对/相对口径的边界（正向约束）**：本链**不**建立增益标定（`e⁻/ADU` 不入本层，`docs/science/CALIBRATION.md` §1 非目标）；**不**建立具名标准测光系统（Johnson/Cousins/SDSS 等）的零点。它建立的是**以本帧滤光片正向合成的模型通带积分辐照度 `F_syn`（`W·m^-2·nm^-1`，Gaia DR3 XP 绝对 XPSD 谱）为参考**的逐帧乘性标度 `k_photo`（§14.3 与本节推导链）；该参考的**通带正确性**受制于滤镜库 provenance 状态（`docs/contracts/CONFIG_CONTRACT.md` §4：45/45 曲线 `status=unverified`）。故本链的「绝对」**只**指参考谱本身的绝对定标，**不**指本仓已独立核验的绝对测光；对外声称绝对测光前必须先补齐通带 provenance。
 写 `mag/arcsec^2` 会同时错在量纲（线性 vs 对数）与定标声明（宣称未做的绝对定标）。

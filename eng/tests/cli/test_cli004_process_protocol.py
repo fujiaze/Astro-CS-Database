@@ -3,12 +3,12 @@
 
 权威: docs/api/CLI_PROTOCOL_V1.md §3/§4/§5 + lib/infrastructure/cli/protocol.h 生产侧硬闸。
 方法(independent, 模拟外部 harness/GUI, 不调用库内部):
-  - spawn 'astrocs normalize --json <cfg> --events-jsonl -y' 子进程, 流式逐行读 stdout;
+  - spawn 'acsd normalize --json <cfg> --events-jsonl -y' 子进程, 流式逐行读 stdout;
   - 每行恰一个 UTF-8 JSON 事件(stdout 纪律), 独立重实现协议合同校验(防生产侧同源盲区);
   - 取消: SIGINT → exit 9, 不落 complete manifest;
   - run directory: manifest 落 config.output_dir, 文件名 astrocs_run_<run_id>.json;
   - 无 Qt/HiPS Browser 链接(源码 + 动态依赖双查)。
-依赖: CLI 已构建(build/astrocs; ASTROCS_CLI_BIN 可覆盖)。phase1 fixture 同
+依赖: CLI 已构建(build/acsd; ASTROCS_CLI_BIN 可覆盖)。phase1 fixture 同
 test_phase1_inprocess 编译模式; fixture 源码路径用 ARCH-001 迁移后布局
 (lib/infrastructure/aio), 旧路径回退。
 
@@ -43,11 +43,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -157,7 +157,7 @@ def build_fixture(tmp):
 class TestCli004ProcessProtocol(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.tmp = tempfile.mkdtemp(prefix="cli004_")
         cls.fixture = build_fixture(cls.tmp)
         cls.data = os.path.join(cls.tmp, "data")

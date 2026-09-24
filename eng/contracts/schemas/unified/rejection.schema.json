@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/rejection/v1",
-  "title": "AstroCS 统一对象 rejection —— 污染推断结果",
+  "title": "ACSD 统一对象 rejection —— 污染推断结果",
   "description": "UNIFIED_MODEL §2：rejection = 污染推断结果；可否作权重 = 门/概率，不是 coverage。rejection 必须携带污染推断本体；禁止把 coverage（几何有效域）当作 rejection 提交。",
   "x-astrocs-object": {
     "name": "rejection",

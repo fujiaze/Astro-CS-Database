@@ -1,4 +1,4 @@
-/* AstroCS catalog gaia service module — C ABI adapter (CAT-GAIA-IMPL)
+/* ACSD catalog gaia service module — C ABI adapter (CAT-GAIA-IMPL)
  *
  * 文件: lib/infrastructure/gaia_xpsd_client/src/module_entry.c
  *

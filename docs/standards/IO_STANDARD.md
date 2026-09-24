@@ -1,4 +1,4 @@
-# AstroCS I/O Standard
+# Astro Celestial Sphere Database（ACSD） I/O Standard
 
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
 

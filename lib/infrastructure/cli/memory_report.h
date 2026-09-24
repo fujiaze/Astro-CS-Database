@@ -1,4 +1,4 @@
-// astrocs RSS/allocation report (MON-002, V7 04_CPU_RESOURCE_TASKS) —
+// acsd RSS/allocation report (MON-002, V7 04_CPU_RESOURCE_TASKS) —
 // 长 run 定期采样 RSS/private/commit/allocator outstanding; 区分 cache/高水位/工作集;
 // run 结束验证可解释回落; 保存原始曲线(alloc_samples.csv + alloc_report.json)。
 //

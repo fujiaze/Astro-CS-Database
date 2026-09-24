@@ -1,4 +1,4 @@
-/* AstroCS noop conformance module — eng/tests/conformance/noop/src/noop_module.c
+/* ACSD noop conformance module — eng/tests/conformance/noop/src/noop_module.c
  *
  * 状态: BLD-003 SKELETON (宿主骨架 G2 的可加载性探针)。本文件只负责:
  *   - 提供可被安全 loader (ABI-003) 加载的独立 SHARED target;

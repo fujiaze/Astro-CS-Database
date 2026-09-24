@@ -1,4 +1,4 @@
-/* AstroCS CPU AVX-512 provider — .so 加载冒烟 (dlopen 唯一入口 + ABI)
+/* ACSD CPU AVX-512 provider — .so 加载冒烟 (dlopen 唯一入口 + ABI)
  * eng/tests/cpu/avx512/provider_avx512_so_load_test.c (CPU-004)
  *
  * 覆盖 (CPU-004 验收 "非支持 CPU 不加载" 的加载面 + 12 §1 唯一导出 +

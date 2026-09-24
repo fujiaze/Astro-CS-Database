@@ -1,5 +1,5 @@
 entry_symbol,config_gate,target,source_symbol,execution_mode,diagnostic_field,test_id,notes
-mosaic --json <config.json> (唯一 CLI 子命令),phase_config_mosaic.schema.json,astrocs(cli),mosaic_command::run,serial,exit_code,TEST-CLI-002,"唯一 Phase2 入口 = 唯一 CLI 的 mosaic 子命令（最高设计 §6.2/§7.1/§11）；历史登记：main(astrocs-stage2 <stage2.json>) 已非入口"
+mosaic --json <config.json> (唯一 CLI 子命令),phase_config_mosaic.schema.json,acsd(cli),mosaic_command::run,serial,exit_code,TEST-CLI-002,"唯一 Phase2 入口 = 唯一 CLI 的 mosaic 子命令（最高设计 §6.2/§7.1/§11）；历史登记：main(astrocs-stage2 <stage2.json>) 已非入口"
 coverage_union,stage2.inputs.hips,phase2/coverage,p2_coverage_union,serial,coverage.n_frames,TEST-COV-001,MOC union
 control_sample,stage2.model.*,phase2/sampler,p2_sample_controls,serial (P2_ENABLE_OPENMP OFF) / parallel_cpu if ON,sampler.n_controls,TEST-UPMW-004,patch estimator
 upm_build,stage2.model.*,phase2/upm,p2_upm_build,serial,upm.n_components,TEST-UPMW-001,Huber IRLS

@@ -182,7 +182,7 @@ EXTERNAL_TOOL_NAMES = ("swarp", "deepskystacker", "sextractor", "scamp", "siril"
 EXTERNAL_TOOL_NAME_RE = re.compile(
     r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(set(EXTERNAL_TOOL_NAMES), key=len, reverse=True))
     + r")(?![A-Za-z0-9_])", re.IGNORECASE)
-PROJECT_VERSION_CONTEXT_RE = re.compile(r"本项目|项目版本|产品版本|AstroCS|VERSION|版本源")
+PROJECT_VERSION_CONTEXT_RE = re.compile(r"本项目|项目版本|产品版本|ACSD|VERSION|版本源")
 EXTERNAL_TOOL_GAP_MAX = 120
 
 

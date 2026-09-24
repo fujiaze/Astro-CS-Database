@@ -1,4 +1,4 @@
-// AstroCS CPU AVX2/FMA provider — lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp (CPU-003)
+// ACSD CPU AVX2/FMA provider — lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp (CPU-003)
 //
 // 职责: AMD64 AVX2/FMA provider (本 TU 单独以 -mavx2 -mfma 编译; Windows
 // /arch:AVX2, 15 §6 编译隔离)。

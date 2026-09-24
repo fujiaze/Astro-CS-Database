@@ -1,4 +1,4 @@
-// AstroCS CPU AVX-512 provider — lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp (CPU-004)
+// ACSD CPU AVX-512 provider — lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp (CPU-004)
 //
 // 职责: AMD64 AVX-512 provider (本 TU 单独以 -mavx512f -mavx512cd
 // -mavx512bw -mavx512dq -mavx512vl 编译; Windows /arch:AVX512, 15 §6

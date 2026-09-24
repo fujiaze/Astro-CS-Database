@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_correctness_test.cpp - AstroCS HISS 正确性测试 (合成数据)
+// hiss_correctness_test.cpp - ACSD HISS 正确性测试 (合成数据)
 //
 // 覆盖范围:
 // 校准测试 (1~5): 标准模式 / 曝光比例模式 / 最优 Dark 成功/失败/硬失败
@@ -1269,7 +1269,7 @@ static void test_21_nested_ipix_recovery(int id) {
 // ============================================================================
 
 int main() {
-    fprintf(stderr, "=== AstroCS HISS 正确性测试 ===\n");
+    fprintf(stderr, "=== ACSD HISS 正确性测试 ===\n");
     fprintf(stderr, "编译时间: %s %s\n", __DATE__, __TIME__);
 #ifdef HAS_LZ4
     fprintf(stderr, "LZ4: 已启用\n");

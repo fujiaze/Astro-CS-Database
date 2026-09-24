@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS CPU-003 AVX2/FMA provider — 科学对照 oracle 运行器
+"""ACSD CPU-003 AVX2/FMA provider — 科学对照 oracle 运行器
 eng/tests/cpu/avx2/run_provider_avx2_checks.py
 
 验收 (04_CPU_RESOURCE_TASKS.md CPU-003):

@@ -132,7 +132,7 @@ ProfileVerdict validate_profile_v2_for_machine(const std::string& profile_json,
         const std::string hw_q = jget_ref<std::string>(hw, "quota_signature", "");
         const std::string prof_q = jget_ref<std::string>(hst, "quota_signature", "");
         if (hw_q.empty() || prof_q.empty() || hw_q != prof_q) {
-            v.stale_reason = "quota_signature mismatch (rerun 'astrocs benchmark cpu')";
+            v.stale_reason = "quota_signature mismatch (rerun 'acsd benchmark cpu')";
             return v;
         }
         const uint32_t hw_avail = static_cast<uint32_t>(hw.value("available_logical_cpus", 0u));

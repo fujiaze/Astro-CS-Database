@@ -4,12 +4,12 @@
 
 被测对象（输入对象）解析 —— 仓库既有约定，不新造：
   1. 环境变量 ASTROCS_CLI_BIN（全仓 CLI 测试统一覆盖点）；
-  2. build/astrocs（AGENTS.md §3 唯一根 CMake 产物；ROOT-008 后唯一产品二进制）；
+  2. build/acsd（AGENTS.md §3 唯一根 CMake 产物；ROOT-008 后唯一产品二进制）；
   3. run/ci/build-gcc-release/astrocs（CI 构建目录）。
   先例（逐字同序）：eng/ci/check_algo_wiring.py:150
-  `for rel in ("build/astrocs", "run/ci/build-gcc-release/astrocs")`；
+  `for rel in ("build/acsd", "run/ci/build-gcc-release/astrocs")`；
   另见 eng/tools/check_cli_run_preset.py:285、eng/tools/check_legacy_exit.py:36、
-  eng/tests/cli/test_phase123_pipeline.py:34（"唯一产品二进制 build/astrocs"）。
+  eng/tests/cli/test_phase123_pipeline.py:34（"唯一产品二进制 build/acsd"）。
 
 原实现硬编码 build/lnx_v5_clean_rel/astrocs —— 该路径**全仓无生产者**（仅
 eng/tools/assemble_audit.py:128 的历史审计行提及），于是类级 @skipUnless 恒假、
@@ -33,11 +33,11 @@ def find_cli_binary():
         if os.path.isfile(env):
             return env, None
         return None, ("ASTROCS_CLI_BIN=%s 指向的文件不存在" % env)
-    for rel in ("build/astrocs", "run/ci/build-gcc-release/astrocs"):
+    for rel in ("build/acsd", "run/ci/build-gcc-release/astrocs"):
         cand = os.path.join(REPO, *rel.split("/"))
         if os.path.isfile(cand):
             return cand, None
-    return None, ("已探测 ASTROCS_CLI_BIN / build/astrocs / "
+    return None, ("已探测 ASTROCS_CLI_BIN / build/acsd / "
                   "run/ci/build-gcc-release/astrocs 均不存在")
 
 
@@ -87,7 +87,7 @@ class TestLinuxRelease(unittest.TestCase):
         门禁判据：LNX-005 是版本条款的可执行载体，SKIP 等于该条款没有载体。
         """
         if BUILD is None:
-            self.fail("MISSING_CLI_BINARY: 未找到被测 astrocs CLI 产物（%s）。"
+            self.fail("MISSING_CLI_BINARY: 未找到被测 acsd CLI 产物（%s）。"
                       "构建: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && "
                       "ninja -C build；或用 ASTROCS_CLI_BIN=<path> 指定。"
                       "本用例不得以 SKIP 通过。" % BUILD_MISSING)
@@ -96,14 +96,14 @@ class TestLinuxRelease(unittest.TestCase):
         self._require_bin()
         self.assertEqual(self.rc, 0, self.outtxt)
         self.assertTrue(self.pkg and os.path.isfile(self.pkg), "必须生成 tar 包")
-        self.assertIn("AstroCS-Linux-amd64-", os.path.basename(self.pkg))
+        self.assertIn("ACSD-Linux-amd64-", os.path.basename(self.pkg))
 
     def test_02_package_name_is_alpha(self):
         self._require_bin()
         base = os.path.basename(self.pkg)
         # 版本单源: 读取 VERSION
         ver = open(os.path.join(REPO, "VERSION"), encoding="utf-8").read().strip()
-        m = re.search(r"AstroCS-Linux-amd64-(.+)\.tar\.", base)
+        m = re.search(r"ACSD-Linux-amd64-(.+)\.tar\.", base)
         self.assertTrue(m)
         self.assertEqual(m.group(1), ver, "包名版本必须来自 VERSION 源")
         # 版本号单源 = 根 VERSION（VERSION-CONSISTENCY 门，见 docs/ci/01_CHECKS.md）
@@ -123,7 +123,7 @@ class TestLinuxRelease(unittest.TestCase):
 
     def test_03_single_user_exe_and_tree(self):
         self._require_bin()
-        root = os.path.join(self.unpack, "astrocs")
+        root = os.path.join(self.unpack, "acsd")
         exes = []
         for dp, _dn, files in os.walk(root):
             for fn in files:
@@ -136,14 +136,14 @@ class TestLinuxRelease(unittest.TestCase):
 
     def test_04_manifest_sbom_licenses_hash_present(self):
         self._require_bin()
-        root = os.path.join(self.unpack, "astrocs")
+        root = os.path.join(self.unpack, "acsd")
         for req in ["MANIFEST.json", "SBOM.spdx.json", "VERSION", "SHA256SUMS",
                     "backends.manifest.json", "LICENSES/NOTICE.txt"]:
             self.assertTrue(os.path.isfile(os.path.join(root, req)), f"缺 {req}")
 
     def test_05_manifest_entries_match_files(self):
         self._require_bin()
-        root = os.path.join(self.unpack, "astrocs")
+        root = os.path.join(self.unpack, "acsd")
         man = json_load(os.path.join(root, "MANIFEST.json"))
         for e in man["files"]:
             p = os.path.join(root, e["path"])
@@ -155,14 +155,14 @@ class TestLinuxRelease(unittest.TestCase):
 
     def test_06_extracted_run_doctor_passes(self):
         self._require_bin()
-        exe = os.path.join(self.unpack, "astrocs", "bin", "astrocs")
+        exe = os.path.join(self.unpack, "acsd", "bin", "acsd")
         r = subprocess.run([exe, "doctor", "--json"], capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn('"verdict": "PASS"', r.stdout, "解包后 doctor must PASS")
         v = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=30)
         with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as vf:
             base_num = vf.read().strip().split("-alpha.")[0]  # 单源: 根 VERSION 基础号
-        self.assertIn("astrocs " + base_num, v.stdout, "解包后 --version 可运行")
+        self.assertIn("acsd " + base_num, v.stdout, "解包后 --version 可运行")
 
 
 def json_load(path):

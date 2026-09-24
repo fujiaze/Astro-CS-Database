@@ -78,7 +78,7 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
   经 `add_subdirectory` 注册），vendored json-schema-validator 独立为
   `astrocs_orchestrator_jsv`；入口可执行 `orchestrator_legacy_cli` 为**非产品**
   （不进 install 白名单、不进产品 manifest；`ASTROCS_DESIGN §6.2` 的唯一命令树仍是产品
-  `astrocs`）。共址测试 6 条 ctest（`cpp/tests/CMakeLists.txt`）：logger 单测、checkpoint
+  `acsd`）。共址测试 6 条 ctest（`cpp/tests/CMakeLists.txt`）：logger 单测、checkpoint
   单测、CLI 集成、`orchestrator_legacy_cli` 冒烟 ×2、可执行级饱和接线门。
 
 ## 构建/契约锚点

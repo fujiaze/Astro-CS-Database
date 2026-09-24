@@ -1,4 +1,4 @@
-# AstroCS phase1 calibration module — 元数据 (P1-CAL-DOC 冻结, 2026-09-07)
+# ACSD phase1 calibration module — 元数据 (P1-CAL-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（lib/algorithms/calibration，CMake astrocs_calibration），
 # 模块化迁移已由 P1-CAL-IMPL 交付：astrocs_p1_calibration DLL（C ABI v1 九操作
 # adapter，entrypoint astrocs_module_query_v1，唯一导出 ABI-006；plan-execute-

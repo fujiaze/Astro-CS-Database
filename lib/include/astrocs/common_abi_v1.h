@@ -1,4 +1,4 @@
-/* AstroCS 公共 C ABI v1 (05 §4 / docs/api/COMMON_ABI_V1.md) — ABI-001 实现
+/* ACSD 公共 C ABI v1 (05 §4 / docs/api/COMMON_ABI_V1.md) — ABI-001 实现
  * 单一头文件: C11 与 C++17 双可编译; 禁 STL/异常/RTTI 跨边界。
  * 合同: 结构前两字段恒 struct_size+abi_version(handshake, 失配即拒); 内存分配方释放
  * 或全经 host allocator; 并发合同逐函数注释(可重入/线程安全/内部并行/嵌套并行)。

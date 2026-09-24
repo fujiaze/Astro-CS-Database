@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — RT-001 唯一 Runtime 公共合同 (ARCH-001 §1)
+// ACSD Core Contracts — RT-001 唯一 Runtime 公共合同 (ARCH-001 §1)
 //
 // 冻结接口：Runtime create/run/cancel/inspect；ModuleDescriptor/ModulePlan/IModule；
 // typed Port/DataArtifact；ThreadBudget/ThreadLease；logger/metrics/checkpoint。

@@ -10,7 +10,7 @@
 //             orchestrator_saturation_wiring_gate），而 eng/tools/quality/check_ctest_registration.py
 //             的 C4 对「ctest_targets 模式匹配不到现存目标」fail-closed；eng/ci/checks.json 属
 //             DOC-403 文件域，本任务（CLEAN-401）无权同步，故本轮不能删。
-// STATUS:     未接入生产。产品可执行 astrocs 的 target_link_libraries（根 CMakeLists.txt:834-842）
+// STATUS:     未接入生产。产品可执行 acsd 的 target_link_libraries（根 CMakeLists.txt:834-842）
 //             不含 astrocs_infra_orchestrator；orchestrator_legacy_cli 为非发布目标
 //             （docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:93-95 记 production=no）。
 //             本目录职责已由 lib/infrastructure/scheduler/** 生产实现承接：注册=module 注册表、
@@ -130,7 +130,7 @@ enum class TaskState {
 };
 
 // ============================================================================
-// AstroCS 进程退出码 (/ 扩展)
+// ACSD 进程退出码 (/ 扩展)
 // 必需阶段/DLL/块失败必须返回非零退出码, 禁止静默跳过 (return true on skip)
 // 0=成功; 1=通用错误; 2=DLL 加载失败; 3=必需块缺失;
 // 4=校准失败; 5=PlateSolve 失败; 6=Drizzle 失败;

@@ -1,4 +1,4 @@
-// AstroCS Core Contracts — CORE-004 Pipeline IR + 静态验证
+// ACSD Core Contracts — CORE-004 Pipeline IR + 静态验证
 // RT-004: 使用真正 JSON parser (nlohmann) + schema 驱动校验；validate 接受完整 ModuleRegistry。
 #pragma once
 

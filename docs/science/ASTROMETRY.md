@@ -226,7 +226,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 | WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、禁止合并** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 实测二者统计等价（T3 solved 0.5644 px / 0.5410″ vs header 0.5051 px / 0.4841″；T2 0.4202 px / 0.4062″ vs 0.3627 px / 0.3507″）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
 | 像素换算 | `median_px = median_arcsec / s0`，`s0 = 3600·sqrt\|det(CD)\|`（**线性 CD 标度**；SIP 的局部标度不参与），s0 必须同报 | 以 px 报值；s0 定义与本节口径一致，缺 s0 则 px 值不可复现 |
 | 残差定义 | 1-最近邻（tangent 平面 KD-tree 选邻居）→ 最终用**真大圆角距**（不用平面近似代替） | 与独立 astropy 对拍通过（逐点 100% 相等） |
-| 独立性 | 只用 astropy（≥7.0.1）从产物 JSON/FITS 头重建 WCS + 独立星表解码；**不导入 AstroCS 代码、不读 `wcs_result.*`** | ENGINEERING_SPEC §5.1「不调用生产实现的独立 Oracle」；GATES_AND_TOLERANCES §1 R3 |
+| 独立性 | 只用 astropy（≥7.0.1）从产物 JSON/FITS 头重建 WCS + 独立星表解码；**不导入 Astro Celestial Sphere Database（ACSD） 代码、不读 `wcs_result.*`** | ENGINEERING_SPEC §5.1「不调用生产实现的独立 Oracle」；GATES_AND_TOLERANCES §1 R3 |
 | 复现容差 | 同输入同口径两次运行：**median 完全相等（容差 0 px）**、`n_matched` 完全相等 | 实测：全链科学面产物逐字节 EQUAL、规范哈希全等 ⇒ 同输入同口径的指标漂移实测 = 0；非 0 即说明样本/口径/输入哈希有未记录变化 ⇒ 判红。记录内的 `1e-9 px` 只是 JSON 浮点往返护栏，**不是科学容差** |
 
 **判读纪律（与门同读，禁止单独引用 median）**：

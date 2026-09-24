@@ -182,12 +182,12 @@ class TestRedact(unittest.TestCase):
 
     def test_redact_absolute_paths(self):
         cases = [
-            ("写入 /home/alice/astrocs/run/out.fits", "写入 <redacted>"),
+            ("写入 /home/alice/acsd/run/out.fits", "写入 <redacted>"),
             ("读取 /Users/bob/Documents/catalog.fits 失败", "读取 <redacted> 失败"),
-            ("临时文件 C:\\Users\\mallory\\astrocs\\data.fits",
+            ("临时文件 C:\\Users\\mallory\\acsd\\data.fits",
              "临时文件 <redacted>"),
             ("共享 \\\\srv\\share\\hips\\tile.fits", "共享 <redacted>"),
-            ("缓存 /tmp/astrocs_tmp_123", "缓存 <redacted>"),
+            ("缓存 /tmp/acsd_tmp_123", "缓存 <redacted>"),
         ]
         for src, expect in cases:
             self.assertEqual(redact(src), expect, src)

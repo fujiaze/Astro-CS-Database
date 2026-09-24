@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/signal/v1",
-  "title": "AstroCS 统一对象 signal —— 声明单位和像素语义的科学估计量",
+  "title": "ACSD 统一对象 signal —— 声明单位和像素语义的科学估计量",
   "description": "UNIFIED_MODEL §2：signal = 声明单位和像素语义的估计量；可否作权重 = 否。禁止用模糊 weight/value 字段承载 signal 与 variance（ASTROCS_DESIGN §2 对象禁止互相冒充）。",
   "x-astrocs-object": {
     "name": "signal",

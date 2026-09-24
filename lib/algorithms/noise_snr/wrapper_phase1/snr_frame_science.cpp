@@ -1,4 +1,4 @@
-// AstroCS Phase1 — 帧级 SNR 科学聚合实现 (P8-SNR-LINUX)
+// ACSD Phase1 — 帧级 SNR 科学聚合实现 (P8-SNR-LINUX)
 //
 // 科学公式零本地副本: 本 TU 的全部数值都来自 P5-SNR 唯一权威实现
 // lib/algorithms/noise_snr/cpp/src/snr_science.cpp:

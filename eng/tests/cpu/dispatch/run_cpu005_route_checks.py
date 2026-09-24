@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS CPU-005 provider 数值自测与路由表 — 验收运行器
+"""ACSD CPU-005 provider 数值自测与路由表 — 验收运行器
 eng/tests/cpu/dispatch/run_cpu005_route_checks.py
 
 验收 (04_CPU_RESOURCE_TASKS.md CPU-005):

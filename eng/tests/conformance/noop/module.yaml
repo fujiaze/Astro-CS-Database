@@ -1,4 +1,4 @@
-# AstroCS noop conformance module — 元数据 (BLD-003 SKELETON)
+# ACSD noop conformance module — 元数据 (BLD-003 SKELETON)
 # 状态: SKELETON — 可加载性骨架, 语义由 ABI-005 填充 (见 README.md)。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4; conformance 模块无科学/算法/
 # 数据合同 → 显式 NONE 引用并注释原因, 不伪装迁移完成。

@@ -37,7 +37,7 @@ namespace astrocs::cli::cmd {
 // 非交互 stdin（EOF）→ false：绝不把「无人确认」当成 yes（fail-closed）。
 inline bool confirm_run(const std::string& command_name, const std::string& checks_text) {
     std::fputs(checks_text.c_str(), stderr);
-    std::fprintf(stderr, "astrocs: %s ready to run — type 'yes' to continue "
+    std::fprintf(stderr, "acsd: %s ready to run — type 'yes' to continue "
                          "(-y skips this confirmation): ", command_name.c_str());
     std::fflush(stderr);
     std::string answer;
@@ -375,7 +375,7 @@ struct Subcommand {
                     // run_context ⇒ 不写 manifest（不造假清单），final.run_manifest=null。
                     ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr,
                                   "cancelled by user");
-                    std::fprintf(stderr, "astrocs: %s cancelled\n", name);
+                    std::fprintf(stderr, "acsd: %s cancelled\n", name);
                     return astrocs::CANCELLED;             // 9
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -385,7 +385,7 @@ struct Subcommand {
         const std::string cfg = need_value(p, "--json");   // 缺 → ParseError → 2
         std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
         if (!f) {
-            std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+            std::fprintf(stderr, "acsd: config not found '%s'\n", cfg.c_str());
             return astrocs::INPUT;                          // 3
         }
         nlohmann::json doc;
@@ -393,11 +393,11 @@ struct Subcommand {
             doc = nlohmann::json::parse(std::string(std::istreambuf_iterator<char>(f),
                                                     std::istreambuf_iterator<char>()));
         } catch (const nlohmann::json::parse_error& e) {
-            std::fprintf(stderr, "astrocs: config malformed JSON: %s\n", sanitize(e.what()).c_str());
+            std::fprintf(stderr, "acsd: config malformed JSON: %s\n", sanitize(e.what()).c_str());
             return astrocs::INPUT;                          // 3
         }
         if (!doc.is_object()) {
-            std::fprintf(stderr, "astrocs: config is not a JSON object\n");
+            std::fprintf(stderr, "acsd: config is not a JSON object\n");
             return astrocs::INPUT;                          // 3
         }
         // §3.5: -force 是「我知道我在干什么」的总开关 —— 跳过**全部**预检
@@ -407,7 +407,7 @@ struct Subcommand {
         // 后果由用户承担（DC-313/DC-411 按负责人口径）。
         const bool forced = p.flags.count("-force") > 0;
         if (forced) {
-            std::fprintf(stderr, "astrocs: %s -force: skipping precheck and confirmation\n", name);
+            std::fprintf(stderr, "acsd: %s -force: skipping precheck and confirmation\n", name);
             return session_dispatch(static_cast<int>(session), SessionOp::Run, p, ev);
         }
         // CLI-MULTIBLOCK（§9.68 否决项）：退役的逐帧形态 {phase_name, config, inputs[]}
@@ -417,7 +417,7 @@ struct Subcommand {
             std::fputs(render_checks({{"error", retired_perframe_form_message(
                                                          session_cli_name(session))}}).c_str(),
                        stderr);
-            std::fprintf(stderr, "astrocs: %s blocked by config error(s); fix the config\n", name);
+            std::fprintf(stderr, "acsd: %s blocked by config error(s); fix the config\n", name);
             return astrocs::INPUT;                          // 3: 配置形态不可用
         }
         const std::vector<CheckLine> checks = precheck_config(session, doc);
@@ -432,7 +432,7 @@ struct Subcommand {
         const std::vector<std::string> structural = config_structure_errors(session, doc);
         if (!structural.empty()) {
             std::fputs(page.c_str(), stderr);
-            std::fprintf(stderr, "astrocs: %s blocked by config error(s); "
+            std::fprintf(stderr, "acsd: %s blocked by config error(s); "
                                  "fix the config\n", name);
             return astrocs::ARGS;                           // 2: 配置错
         }
@@ -443,13 +443,13 @@ struct Subcommand {
         }
         if (!input_path_errors(session, doc).empty()) {
             std::fputs(page.c_str(), stderr);
-            std::fprintf(stderr, "astrocs: %s blocked by missing/unreadable input path(s); "
+            std::fprintf(stderr, "acsd: %s blocked by missing/unreadable input path(s); "
                                  "-y cannot override (use -force to bypass precheck)\n", name);
             return astrocs::INPUT;                          // 3: 输入缺失
         }
         if (has_error(checks)) {
             std::fputs(page.c_str(), stderr);
-            std::fprintf(stderr, "astrocs: %s blocked by precheck error(s); "
+            std::fprintf(stderr, "acsd: %s blocked by precheck error(s); "
                                  "fix the config or pass -force\n", name);
             return astrocs::ARGS;                           // 2: 配置错
         }
@@ -460,7 +460,7 @@ struct Subcommand {
         if (assume_yes) std::fputs(page.c_str(), stderr);
         if (!assume_yes && !confirm_run(name, page)) {
             std::fputs(page.c_str(), stderr);
-            std::fprintf(stderr, "astrocs: %s not confirmed — aborting before any product write\n",
+            std::fprintf(stderr, "acsd: %s not confirmed — aborting before any product write\n",
                          name);
             return astrocs::ARGS;                           // 2: 未确认
         }
@@ -475,7 +475,7 @@ struct Subcommand {
         if (!out_path.empty()) {
             std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
             if (!f) {
-                std::fprintf(stderr, "astrocs: cannot write template '%s'\n", out_path.c_str());
+                std::fprintf(stderr, "acsd: cannot write template '%s'\n", out_path.c_str());
                 return astrocs::IO;                         // 7
             }
             f << text;

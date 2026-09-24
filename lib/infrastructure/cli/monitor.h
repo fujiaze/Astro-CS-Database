@@ -1,4 +1,4 @@
-// astrocs 进程/系统资源监控模块 (MON-001) — Linux /proc 读取 + Windows API 桩
+// acsd 进程/系统资源监控模块 (MON-001) — Linux /proc 读取 + Windows API 桩
 // 07 §2 必采指标: 进程 user/sys CPU、等效核数(平均/峰值)、thread/runnable/ctxsw、
 // RSS/PSS、系统可用内存/swap/page-faults、进程 read/write bytes/ops、wall/吞吐。
 // 单调时间(steady_clock), 采样开销可测量(见 overhead())。原始 timeseries 留节点;
@@ -22,7 +22,7 @@
 #include <psapi.h>
 #include <tlhelp32.h>
 // WIN-001: windows.h 噪音宏 (ERROR/OPTIONAL/REQUIRED/interface/NEAR/FAR/small/DELETE/YIELD/
-// TRUE/FALSE 等) 会污染其后 include 的 AstroCS 头 (enum 值/标识符, C2143/C2065 级联)。
+// TRUE/FALSE 等) 会污染其后 include 的 ACSD 头 (enum 值/标识符, C2143/C2065 级联)。
 // windows.h 内宏用途已展开完毕; undef 恢复干净命名空间 (monitor.h 是主 CLI 链唯一
 // windows.h 引入点, 此处清理一次保护全部下游头; 与下游公共头的 include 自清理配合)。
 #ifdef ERROR

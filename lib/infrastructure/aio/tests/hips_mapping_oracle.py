@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """HiPS tile mapping 自洽 Oracle (V5 HIPS-IMG-001, 标准排列).
 
-生成 native HEALPix 图 (value = NESTED ipix), 经 AstroCS 流式直写为 HiPS,
+生成 native HEALPix 图 (value = NESTED ipix), 经 ACSD 流式直写为 HiPS,
 再用 astropy-healpix (独立实现) 逐像素验证标准排列:
   fits_index = (511 - x) * 512 + y, (x,y) = NESTED local 位解交错
   (x=偶数位, y=奇数位); 标准由 CDS Hipsgen MAPTILES 外部 Oracle 冻结

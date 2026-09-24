@@ -9,7 +9,7 @@
 外部依据：XISF 1.0 §Image（bounds=可表示域；浮点实型必须声明）、PCL XISFReader NormalizeSamples
           （Float32[0,1] ↔ UInt16[0,65535]，MaxSampleValue=65535）、FITS 3.0 BSCALE/BZERO。
 
-判据（对真实二进制 build/astrocs 的端到端注入，不依赖文件名/目录名推断单位）：
+判据（对真实二进制 build/acsd 的端到端注入，不依赖文件名/目录名推断单位）：
   N1 母版 [0,1] 归一化 + 亮场 ADU，未声明标度  → rc=2 且诊断含 MASTER_UNIT_MISMATCH
   N2 master flat 未归一（median 出判定带），未声明归一 → rc=2 且含 MASTER_FLAT_NOT_NORMALIZED
   N3 提供 master_dark 而未显式声明 bias 约定（dark_optimization 缺失） → rc=2 且含
@@ -24,7 +24,7 @@
 --real 模式用真实 T2 母版 + 真实亮场；正例判据为**逐像素 NumPy oracle**（独立于生产实现）。
 
 用法：
-  eng/tools/quality/check_master_unit_guard.py --binary build/astrocs [--real] [--self-test]
+  eng/tools/quality/check_master_unit_guard.py --binary build/acsd [--real] [--self-test]
 出口：0 全过；1 判据不满足；2 环境错；3 自检（--self-test）异常。
 """
 from __future__ import annotations
@@ -52,7 +52,7 @@ FLAT_BAND_DEFAULT = [0.5, 2.0]
 XISF_SCALE_16BIT = 65535.0
 
 
-# ────────────────────────────── 最简 FITS / XISF 写读（独立性：不导入 AstroCS） ──────────────
+# ────────────────────────────── 最简 FITS / XISF 写读（独立性：不导入 ACSD） ──────────────
 
 def _fits_cards(pairs):
     out = []
@@ -143,7 +143,7 @@ def read_fits_primary(path: Path):
 
 
 def array_of(path: Path) -> "np.ndarray":
-    """独立读取器（不导入 AstroCS）：XISF Float32 附件 / FITS 主 HDU（施加 BSCALE/BZERO）。"""
+    """独立读取器（不导入 ACSD）：XISF Float32 附件 / FITS 主 HDU（施加 BSCALE/BZERO）。"""
     if path.suffix.lower() == ".xisf":
         raw = path.read_bytes()
         hlen = struct.unpack("<I", raw[8:12])[0]
@@ -310,7 +310,7 @@ def main():
     args = ap.parse_args()
 
     repo = Path(args.repo).resolve()
-    binary = Path(args.binary) if args.binary else repo / "build/astrocs"
+    binary = Path(args.binary) if args.binary else repo / "build/acsd"
     if not binary.is_file():
         print(f"environment: binary missing: {binary}", file=sys.stderr)
         return 2

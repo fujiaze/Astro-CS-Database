@@ -16,7 +16,7 @@
 - dead Runtime（core 符号无生产可达）→ FAIL
 
 用法:
-  python3 eng/tools/quality/check_prod_reachability.py --repo ROOT --binary build/astrocs --compile-commands build/compile_commands.json
+  python3 eng/tools/quality/check_prod_reachability.py --repo ROOT --binary build/acsd --compile-commands build/compile_commands.json
   python3 eng/tools/quality/check_prod_reachability.py --selftest
 """
 
@@ -122,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     cc_path = args.compile_commands
     if binary is None:
         candidates = list(repo.glob("run/temp/build_v61/astrocs")) + \
-                     list(repo.glob("build/*/astrocs")) + [repo / "build" / "astrocs"]
+                     list(repo.glob("build/*/astrocs")) + [repo / "build" / "acsd"]
         binary = next((c for c in candidates if c.is_file()), None)
     if binary is None or not binary.is_file():
         print("REACH_FAIL: no production binary found (pass --binary)", file=sys.stderr)

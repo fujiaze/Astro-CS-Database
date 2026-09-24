@@ -115,7 +115,7 @@ ATTRIBUTION = {
     "UT-CLI": {
         "domain": "CLI",
         "owner_node": "UT-CLI-MAINT",
-        "root_cause": "mutates_workspace=false 的检查改写了工作区：astrocs graph 落 graph/*.json、memory-report 落 alloc_report.json/alloc_samples.csv，目标目录解析为 CWD(=仓库根)",
+        "root_cause": "mutates_workspace=false 的检查改写了工作区：acsd graph 落 graph/*.json、memory-report 落 alloc_report.json/alloc_samples.csv，目标目录解析为 CWD(=仓库根)",
         "root_cause_path": "cli/commands.cpp",
         "in_whitelist": False,
         "minimal_patch": "cli 侧把运行产物默认落 run/resource/（AGENTS.md 目录规范），或 eng/tests/cli 显式传 --out-dir run/...；禁以 dirty_ignore 登记掩盖「运行产物落根目录」违规",

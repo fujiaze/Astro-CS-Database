@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_tile_model.cpp - AstroCS HISS Tile 父子几何模型实现
+// hiss_tile_model.cpp - ACSD HISS Tile 父子几何模型实现
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §11

@@ -1,4 +1,4 @@
-# AstroCS phase2 HiPS mosaic writer 模块 — 元数据 (P2-HIPS-DOC 冻结, 2026-09-09)
+# ACSD phase2 HiPS mosaic writer 模块 — 元数据 (P2-HIPS-DOC 冻结, 2026-09-09)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/coverage/tools/stage2.cpp
 # 1762 行 + config 层 lib/algorithms/coverage/include/astro/phase2/stage2_common.h
 # P2Stage2Config :16-99 / p2_stage2_parse_config :102 /

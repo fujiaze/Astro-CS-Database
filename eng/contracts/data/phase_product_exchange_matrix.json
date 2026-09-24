@@ -1,7 +1,7 @@
 {
   "matrix_schema": "astrocs.phase-product-exchange-matrix/v1",
   "matrix_version": 1,
-  "title": "AstroCS 三阶段产品交换兼容矩阵 (DATA-002 冻结)",
+  "title": "ACSD 三阶段产品交换兼容矩阵 (DATA-002 冻结)",
   "frozen_at": "2026-09-02T00:00:00Z",
   "owner": "SA-DATA-06",
   "doc_ref": "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
@@ -90,7 +90,7 @@
       "direction": "external_fixture -> phase3_input",
       "medium": "disk",
       "rule_ids": ["R-DISK-ONLY", "R-NO-RUN-BINDING", "R-NO-NAME-BINDING", "R-EVIDENCE-REQUIRED"],
-      "note": "Phase3 可接受外部 fixture：origin=external_fixture 的交换对象（AstroCS 之外生成但完整满足证据要求）。origin=external_fixture 允许 artifact_manifest.run.phase=phase3 自述（fixture 生成进程），但不得携带 / 依赖任何 AstroCS phase run 内部标识。验收 D2：Phase3 接受外部 fixture。"
+      "note": "Phase3 可接受外部 fixture：origin=external_fixture 的交换对象（ACSD 之外生成但完整满足证据要求）。origin=external_fixture 允许 artifact_manifest.run.phase=phase3 自述（fixture 生成进程），其标识面限于 fixture 自身；ACSD phase run 内部标识属另一来源面。验收 D2：Phase3 接受外部 fixture。"
     },
     {
       "edge_id": "E-P2-IN-NO-RUN-BIND",

@@ -3,7 +3,7 @@
 
 同一份 NESTED HEALPix map (value=ipix, FP64) 分别经:
   [Ref]     CDS Hipsgen MAPTILES
-  [AstroCS] AIO writer + 共享 HEALPix core
+  [ACSD] AIO writer + 共享 HEALPix core
 生成 HiPS, 逐像素比较全部 leaf tile:
   tile_missing = 0, tile_extra = 0, pixel_mismatch = 0
 
@@ -129,7 +129,7 @@ def write_astrocs(order: int, out_root: Path) -> None:
         str(out_root).encode(), nside, 512, 1, 1,  # FP64 signal-only
         b"ivo://astrocs/maptile_oracle", b"Maptile Oracle", None, 1.0, None, 0)
     if not ps:
-        raise SystemExit("astrocs product_begin fail: " + aio.aio_hips_last_error().decode())
+        raise SystemExit("acsd product_begin fail: " + aio.aio_hips_last_error().decode())
     for parent in range(n_tiles):
         base = parent << 18
         z = np.arange(n, dtype=np.float64)
@@ -141,10 +141,10 @@ def write_astrocs(order: int, out_root: Path) -> None:
                              covered_area=area.ctypes.data_as(ctypes.c_void_p))
         rc = aio.aio_hips_write_signal_support_tile(ps, ctypes.byref(view))
         if rc != 0:
-            raise SystemExit(f"astrocs tile {parent} fail: {aio.aio_hips_last_error().decode()}")
+            raise SystemExit(f"acsd tile {parent} fail: {aio.aio_hips_last_error().decode()}")
     if aio.aio_hips_finalize(ps) != 0:
-        raise SystemExit("astrocs finalize fail: " + aio.aio_hips_last_error().decode())
-    print(f"astrocs HiPS: order={order} tiles={n_tiles} out_root={out_root.name}")
+        raise SystemExit("acsd finalize fail: " + aio.aio_hips_last_error().decode())
+    print(f"acsd HiPS: order={order} tiles={n_tiles} out_root={out_root.name}")
 
 
 def leaf_tile_dims(root: Path) -> tuple:
@@ -170,7 +170,7 @@ def same_path_compare(astrocs_root: Path, ref_root: Path) -> dict:
     missing = sorted(set(r) - set(a))
     extra_all = sorted(set(a) - set(r))
     extra_leaf = [k for k in extra_all if int(k.split("/")[0][6:]) >= leaf_norder]
-    # AstroCS 低阶 hierarchy tile (Norder < leaf) 是产品自带扩展, Hipsgen 不一定生成;
+    # ACSD 低阶 hierarchy tile (Norder < leaf) 是产品自带扩展, Hipsgen 不一定生成;
     # 逐像素硬门只约束参考存在的全部 tile + 叶级不允许多出。
     mismatch_tiles = 0
     mismatch_pixels = 0
@@ -208,9 +208,9 @@ def deinterleave(z: np.ndarray, shift: int) -> tuple:
 
 
 def derived_compare(astrocs_root: Path, ref_root: Path, order: int, ref_w: int) -> dict:
-    # AstroCS leaf tile t 覆盖 ipix [t*512^2, (t+1)*512^2);
+    # ACSD leaf tile t 覆盖 ipix [t*512^2, (t+1)*512^2);
     # Hipsgen leaf tile ip 覆盖 [ip*ref_w^2, (ip+1)*ref_w^2)。
-    # 故每个 AstroCS tile t == 连续 factor 个 Hipsgen tile ip = t*factor + tt。
+    # 故每个 ACSD tile t == 连续 factor 个 Hipsgen tile ip = t*factor + tt。
     ref_log2 = int(round(math.log2(ref_w)))
     leaf_norder = order - ref_log2
     astro_norder = order - 9
@@ -248,7 +248,7 @@ def derived_compare(astrocs_root: Path, ref_root: Path, order: int, ref_w: int) 
             with fits.open(rp, memmap=False) as fr:
                 rr = np.asarray(fr[0].data).reshape(-1)
             mask = tt_local == tt
-            # 按 astrocs FITS 索引位置组装 (astrocs_flat[astro_fi] 与 rr[ref_fi] 应相等)
+            # 按 acsd FITS 索引位置组装 (astrocs_flat[astro_fi] 与 rr[ref_fi] 应相等)
             assembled[astro_fi[mask]] = rr[ref_fi[mask]]
         total_pixels += face_pix
         same = (aa == assembled) | (np.isnan(aa) & np.isnan(assembled))
@@ -273,7 +273,7 @@ def main() -> int:
     wd.mkdir(parents=True, exist_ok=True)
     map_path = wd / f"map_order{order}_pixval.fits"
     ref_root = wd / "ref"
-    astrocs_root = wd / "astrocs"
+    astrocs_root = wd / "acsd"
     if args.reuse and map_path.exists() and ref_root.exists() and astrocs_root.exists():
         print("reuse: 跳过生成 (map/ref/astrocs 已存在)")
     else:

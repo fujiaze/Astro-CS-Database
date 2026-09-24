@@ -70,7 +70,7 @@ inline const std::set<std::string>& value_flags() {
         // 提供（doctor --json --run-manifest <p>：manifest→status→version→输入
         // hash→逐 artifact(存在→sha→size) 校验，退出码同 §7.2）。
         // 不写进 help：help 文本 golden = docs/api/CLI_PROTOCOL_V1.md §1
-        // 「astrocs doctor [--json]」逐行一致，新增命令条目或改 help 行会判红。
+        // 「acsd doctor [--json]」逐行一致，新增命令条目或改 help 行会判红。
         "--run-manifest",
     };
     return k;
@@ -105,7 +105,7 @@ inline const std::vector<CommandDesc>& commands() {
         {"-h",        false, {}},
         // G3-11: doctor 承载 verify 能力（--run-manifest 机器旗标，
         // 见 value_flags() 注释）；help 行仍由 help_usage() 生成为
-        // 「astrocs doctor [--json]」⇒ §7.1 命令树与 help golden 不变。
+        // 「acsd doctor [--json]」⇒ §7.1 命令树与 help golden 不变。
         {"doctor",    true, {"--json", "--run-manifest"}},
         {"benchmark", true, {}},
     };
@@ -135,7 +135,7 @@ inline std::size_t count_with_prefix(const std::string& path) {
 // help 文本生成：命令树是唯一事实源，help 不允许手写副本（手写副本必然漂移，
 // CLI-001 前身正是「help 与命令表各自维护」）。
 inline std::string help_usage(const CommandDesc& c) {
-    std::string line = std::string("astrocs ") + c.path;
+    std::string line = std::string("acsd ") + c.path;
     if (c.path == std::string("--version")) {
         line += " [--json]";
         return line;

@@ -59,7 +59,7 @@ int main(int argc, char** argv){
         # 必须可包含：DISPATCH 附录 H（构建隔离）→ 构建树 = 被测二进制所在目录
         # （ASTROCS_CLI_BIN 覆盖），不再写死共享 build/。
         build_root = os.path.dirname(os.path.abspath(
-            os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))))
+            os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))))
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{CLI}",
                             f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             f"-I{build_root}",

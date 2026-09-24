@@ -1,4 +1,4 @@
-# AstroCS phase1_session module — 元数据 (P1-SESSION-DOC 冻结, 2026-09-07)
+# ACSD phase1_session module — 元数据 (P1-SESSION-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— assembly 层：p1_session 函数族是 Phase1 进程内
 # 装配会话的唯一实现（lib/phase1_session/p1_session.cpp:90-371，五导出 C API
 # + astrocs::phase1::last_error，唯一权威签名头 lib/phase1_session/p1_session.h）。
@@ -23,7 +23,7 @@
 # 恢复）；锚 eng/tests/unit/p1001_real_nodes_test.cpp。
 # 构建=根 CMakeLists.txt:448-452（STATIC 库 astrocs_phase1_session，链接
 # astrocs_contracts/astrocs_calibration/astrocs_aio）+ :496/:514/:530 编入
-# astrocs 主可执行。MODULE_MIGRATION_MATRIX 无 P1-SESSION 行：assembly 层
+# acsd 主可执行。MODULE_MIGRATION_MATRIX 无 P1-SESSION 行：assembly 层
 # 不设独立 DLL 迁移目标 → dll_name=MISSING（11 号标准：未知/不适用显式
 # MISSING，禁止空串）。
 # entrypoint=p1_session_run：真实导出符号（p1_session.cpp:149 定义，

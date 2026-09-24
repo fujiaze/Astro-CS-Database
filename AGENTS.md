@@ -1,4 +1,4 @@
-# AGENTS.md — AstroCS 机器干活手册
+# AGENTS.md — Astro Celestial Sphere Database（ACSD） 机器干活手册
 
 ---
 
@@ -36,7 +36,7 @@
 
 ## 2. 一句话项目定位
 
-AstroCS = 天文 CCD/CMOS 图像校准与标准化数据库。三个独立命令：`normalize`（单帧标准化）、`mosaic`（马赛克）、`export`（投影导出）。核心科学方法是三个紧密相连的创新点：测光校准到星等坐标系、跨帧绝对 SNR、加性天光与无接缝叠加（最高设计 §2）。阶段间只通过磁盘产品 + manifest + 哈希交换。正式平台 Windows x64 与 Linux amd64，纯 CPU 生产，ACR 生产不可达。
+ACSD = 天文 CCD/CMOS 图像校准与标准化数据库。三个独立命令：`normalize`（单帧标准化）、`mosaic`（马赛克）、`export`（投影导出）。核心科学方法是三个紧密相连的创新点：测光校准到星等坐标系、跨帧绝对 SNR、加性天光与无接缝叠加（最高设计 §2）。阶段间只通过磁盘产品 + manifest + 哈希交换。正式平台 Windows x64 与 Linux amd64，纯 CPU 生产，ACR 生产不可达。
 
 ---
 

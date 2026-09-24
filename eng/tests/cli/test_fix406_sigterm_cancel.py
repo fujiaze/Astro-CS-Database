@@ -245,7 +245,7 @@ class TestFix406SigtermCancel(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
         cls.fx = _FixtureCache.get()
         cls.tmp = tempfile.mkdtemp(prefix="fix406_run_")
         cls.results = []

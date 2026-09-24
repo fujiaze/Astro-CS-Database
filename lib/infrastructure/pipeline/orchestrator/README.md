@@ -1,6 +1,6 @@
 # Orchestrator（Stage1 编排器）
 
-版本：AstroCS Orchestrator 2.0（Phase1 JSON 唯一入口）| C++17 | MSYS2 MinGW64
+版本：Astro Celestial Sphere Database（ACSD） Orchestrator 2.0（Phase1 JSON 唯一入口）| C++17 | MSYS2 MinGW64
 
 ## 唯一运行方式
 

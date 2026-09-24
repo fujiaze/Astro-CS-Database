@@ -7,7 +7,7 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
 
 被测事实链（本脚本逐段断言, 任一失败 → 非零退出, 绝不静默 PASS）:
   S0 安全 loader 自检（sha256 FIPS 向量 + 布局断言）;
-  S1 科学模块 DLL/平台 SHARED 构建在位（build 树 7 模块 .so + astrocs exe）;
+  S1 科学模块 DLL/平台 SHARED 构建在位（build 树 7 模块 .so + acsd exe）;
   S2 cmake --install 产生白名单安装树（eng/cmake/install_layout.cmake 唯一 install 源）;
   S3 eng/packaging/verify_install_tree.py: required 全在 + product manifest units 全在;
   S4 产品清单完整性: astrocs.product.json 与 install-tree.contract.json 同步登记
@@ -74,7 +74,7 @@ SCIENCE_MODULES = [
     ("MOD-P1-HIPSW",   "astrocs.p1.hips_writer",  "astrocs_p1_hips_writer"),
 ]
 SCIENCE_TARGETS = [t[2] for t in SCIENCE_MODULES]
-PLATFORM_TARGETS = ["astrocs", "astrocs_runtime", "astrocs_io", "astrocs_noop",
+PLATFORM_TARGETS = ["acsd", "acsd_runtime", "acsd_io", "astrocs_noop",
                     "astrocs_cpu_baseline"]
 
 FAILURES = []
@@ -222,7 +222,7 @@ def main():
     missing_paths = [t for t, p in so_paths.items() if not p]
     check("S1 build tree science .so 全在（构建树实际输出位）",
           not missing_paths, f"missing: {missing_paths}" if missing_paths else "")
-    check("S1 build tree astrocs exe 在", os.path.isfile(os.path.join(build, "astrocs")))
+    check("S1 build tree acsd exe 在", os.path.isfile(os.path.join(build, "acsd")))
 
     # ── S2: 安装树 ──
     prefix = os.path.join(work, "install")
@@ -331,7 +331,7 @@ def main():
     #     eng/packaging/verify_install_tree.py（§S3 同一入口，此处对 unit 集再断言）；
     #   * 逐模块「装配 PASS」  → 装载器合同探针（sha256+module_id+root 三校验）；
     #   * 未登记模块必败        → 同一探针的 module_id 错配路径。
-    exe = os.path.join(prefix, "astrocs")
+    exe = os.path.join(prefix, "acsd")
     env = dict(os.environ)
     munits = {u.get("unit_id"): u for u in manifest.get("units", [])
               if isinstance(u, dict)} if manifest_ok else {}

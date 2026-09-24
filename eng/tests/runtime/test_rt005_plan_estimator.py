@@ -429,7 +429,7 @@ int main() {
 '''
 
 # ── Python 静态断言 ──
-_HDR = INC / "astrocs" / "core" / "plan_estimator.h"
+_HDR = INC / "acsd" / "core" / "plan_estimator.h"
 _SRC = CORE / "plan_estimator.cpp"
 _BACKEND_TABLE = (REPO / "lib" / "infrastructure" / "benchmark" / "backend_host"
                  / "backend_table.inc")

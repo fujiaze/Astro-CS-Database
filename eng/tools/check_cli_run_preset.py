@@ -184,7 +184,7 @@ def check_runtime(binary, timeout=60):
             for args in ([cmd, "--json"], [cmd, "--json", cfg, "--bogus"]):
                 rc5, _o5, _e5 = _rc(binary, args, tmp, timeout)
                 if rc5 != 2:
-                    errors.append("参数错误应 rc=2: astrocs %s → rc=%s" % (" ".join(args), rc5))
+                    errors.append("参数错误应 rc=2: acsd %s → rc=%s" % (" ".join(args), rc5))
             # 输入缺失 → 3（§6.3 码表）
             rc6, _o6, _e6 = _rc(binary, [cmd, "--json", os.path.join(tmp, "nope.json"), "-y"],
                                 tmp, timeout)
@@ -213,7 +213,7 @@ def check_runtime(binary, timeout=60):
                      ["phase1"], ["run", "--phases", "1,2,3"]):
             rc8, _o8, _e8 = _rc(binary, args, tmp, timeout)
             if rc8 != 2:
-                errors.append("旧命令应 rc=2: astrocs %s → rc=%s" % (" ".join(args), rc8))
+                errors.append("旧命令应 rc=2: acsd %s → rc=%s" % (" ".join(args), rc8))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return errors
@@ -282,7 +282,7 @@ def find_binary(explicit=None):
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in ("build/astrocs", "build/cli/astrocs"):
+    for rel in ("build/acsd", "build/cli/astrocs"):
         cand = REPO / rel
         if cand.is_file():
             return str(cand)
@@ -292,7 +292,7 @@ def find_binary(explicit=None):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--binary", default=None,
-                    help="被测 astrocs（默认探测 build/astrocs、build/cli/astrocs 或 ASTROCS_CLI_BIN）")
+                    help="被测 acsd（默认探测 build/acsd、build/cli/astrocs 或 ASTROCS_CLI_BIN）")
     ap.add_argument("--static-only", action="store_true", help="只跑静态判据")
     ap.add_argument("--self-test", action="store_true", help="负例自证（必须能红）")
     args = ap.parse_args(argv)

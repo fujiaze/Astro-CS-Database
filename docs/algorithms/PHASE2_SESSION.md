@@ -17,7 +17,7 @@
 > 模块: astrocs.p2.session（本任务冻结的合同模块词汇）——迁移目标
 > astrocs_p2_session.dll 为 MODULE_MIGRATION_MATRIX 矩阵合同值，
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
-> astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 astrocs
+> astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 acsd
 > 可执行（:501-506）。权威源: lib/phase2_session/p2_session.h（39 行）
 > + p2_session.cpp（318 行，实测；本文件行号禁止手抄他版）。
 
@@ -51,7 +51,7 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
   =add_library(STATIC lib/phase2_session/p2_session.cpp) :454 +
   target_include_directories（lib/phase2_session 与 lib/algorithms/coverage/include）
   :455-457 + target_link_libraries PUBLIC astrocs_contracts astrocs_phase2
-  :458；编入 astrocs 可执行 target_link_libraries（astrocs_phase2_session
+  :458；编入 acsd 可执行 target_link_libraries（astrocs_phase2_session
   :504，块 :501-506）；astrocs_module_adapters 亦链接之（:538）。
 - **QA-001**（:517-529）：astrocs_phase2_session 列入自有生产 targets
   严格警告层 -Wall -Wextra -Wpedantic -Wconversion（:522，MSVC /W4）。
@@ -301,7 +301,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 | # | artifact | 现状（实测） | 差距归属 |
 |---|---|---|---|
-| 1 | astrocs_p2_session.dll（独立迁移目标） | 不存在（MISSING）；现状=静态库 astrocs_phase2_session（CMakeLists.txt:454-458）编入 astrocs 可执行（:501-506/:504） | P2-SESSION-IMPL |
+| 1 | astrocs_p2_session.dll（独立迁移目标） | 不存在（MISSING）；现状=静态库 astrocs_phase2_session（CMakeLists.txt:454-458）编入 acsd 可执行（:501-506/:504） | P2-SESSION-IMPL |
 | 2 | coverage 域产物（union MOC+target_order，P2CoverageResult 进程内） | 已实现（lib/algorithms/coverage/src/coverage.cpp，ALG-COV-001 域） | 已存在（P2-COV 域） |
 | 3 | sample 域产物（P2ControlObservation/P2ControlNode/P2SampleStats） | 已实现（sampler.cpp，ALG-P2-SMP-001 域） | 已存在（P2-SAMP 域） |
 | 4 | upm 域产物（model 构建/持久化 p2_upm_build/save/info/close） | 已实现（lib/algorithms/coverage/src/upm*.cpp，ALG-UPM-001 域） | 已存在（P2-UPM 域） |
@@ -382,7 +382,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 - 实现：lib/phase2_session/p2_session.h（39 行）+ p2_session.cpp
   （298 行，复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
-  :454-458）→ astrocs 可执行（:501-506）+ QA-001 严格警告层
+  :454-458）→ acsd 可执行（:501-506）+ QA-001 严格警告层
   （:517-529）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
   （module_adapters.cpp:777-784 P2Api，注册 :746-751/:782-794）。

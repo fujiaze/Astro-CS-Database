@@ -1,4 +1,4 @@
-// AstroCS Phase1 — P1-003 StarDetector (SCI-PSF-001 / SCI-PHOT-001)
+// ACSD Phase1 — P1-003 StarDetector (SCI-PSF-001 / SCI-PHOT-001)
 // 场景: 孤立 Gaussian/Moffat、重叠星、饱和星、边缘星、纯噪声。
 // 合同: 输入图像 f32 (ADU) + 背景估计; 输出 catalog (坐标/单位/质量字段)。
 #pragma once

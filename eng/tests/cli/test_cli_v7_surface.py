@@ -23,13 +23,13 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 from cli_test_hygiene import run_cwd  # noqa: E402
 
 HELP_LINES = [
-    "astrocs --version [--json]",
-    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs help",
-    "astrocs doctor [--json]",
-    "astrocs benchmark",
+    "acsd --version [--json]",
+    "acsd normalize (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd mosaic (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd export (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd help",
+    "acsd doctor [--json]",
+    "acsd benchmark",
 ]
 
 LEGACY_SURFACE = [
@@ -57,11 +57,11 @@ def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
         return env
-    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+    for rel in (("build", "acsd"), ("build", "cli", "acsd")):
         cand = os.path.join(REPO, *rel)
         if os.path.isfile(cand):
             return cand
-    return os.path.join(REPO, "build", "astrocs")
+    return os.path.join(REPO, "build", "acsd")
 
 
 EXE = cli_binary()
@@ -82,7 +82,7 @@ class TestCommandSurface(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build acsd）"
 
     def test_01_help_lists_exactly_spec_tree(self):
         a = run("help")
@@ -96,9 +96,9 @@ class TestCommandSurface(unittest.TestCase):
         for case in LEGACY_SURFACE:
             r = run(*case)
             self.assertEqual(r.returncode, 2,
-                             "旧命令必须 rc=2: astrocs %s → %s" % (" ".join(case), r.returncode))
+                             "旧命令必须 rc=2: acsd %s → %s" % (" ".join(case), r.returncode))
             self.assertEqual(r.stdout, "", "参数错误 stdout 应无输出: %s" % (case,))
-            self.assertIn("astrocs", r.stderr)
+            self.assertIn("acsd", r.stderr)
 
 
 class TestVersionSurface(unittest.TestCase):
@@ -114,7 +114,7 @@ class TestVersionSurface(unittest.TestCase):
         # 版本串单源 = 根 CMakeLists（产品事实源, BLD-002）: VERSION+g<commit>;
         # 根图用 rev-parse HEAD 全 40 hex（旧 lib/infrastructure/cli/ 独立图才是 --short=12, 已退役）。
         self.assertRegex(r.stdout.strip(),
-                         r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
+                         r"^acsd " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
         self.assertEqual(r.stderr, "")
 
     def test_02_version_json_single_document(self):
@@ -123,7 +123,7 @@ class TestVersionSurface(unittest.TestCase):
         lines = [l for l in r.stdout.splitlines() if l.strip()]
         self.assertEqual(len(lines), 1, "stdout 恰一个 JSON 文档(无日志混杂)")
         doc = json.loads(lines[0])
-        self.assertEqual(doc["name"], "astrocs")
+        self.assertEqual(doc["name"], "acsd")
         self.assertEqual(doc["schema_version"], "1")
         self.assertRegex(doc["version"],
                          r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")

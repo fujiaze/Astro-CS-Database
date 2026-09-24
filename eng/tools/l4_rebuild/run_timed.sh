@@ -13,7 +13,7 @@ export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
 mkdir -p "$TMPDIR"
 
 L4=run/RELEASE-02/L4-rebuild
-BIN=build/astrocs
+BIN=build/acsd
 NORM=$L4/norm
 LOGS=$L4/logs
 mkdir -p "$NORM" "$LOGS"
@@ -22,7 +22,7 @@ echo 'step,rc,wall_s,user_s,sys_s,maxrss_kb' > "$TIMINGS"
 
 # ── RELEASE-02 性能探针: 系统监视器随程序同步启动, 结束(含异常退出)自动收尾 ──
 # ASTROCS_SYSMON=0 可关闭; ASTROCS_SYSMON_INTERVAL 覆盖采样间隔 (默认 1s)。
-# 跟踪 $$ (本 runner) 的整个进程树 ⇒ 覆盖每一步 astrocs 子进程; 不做线程数假设。
+# 跟踪 $$ (本 runner) 的整个进程树 ⇒ 覆盖每一步 acsd 子进程; 不做线程数假设。
 SYSMON_PID=""
 SYSMON_CSV="$LOGS/sysmon.csv"
 sysmon_stop() {

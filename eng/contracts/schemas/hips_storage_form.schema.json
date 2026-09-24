@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "astrocs.hips-storage-form/v1",
-  "title": "AstroCS HiPS 落盘形态索引 schema",
+  "title": "ACSD HiPS 落盘形态索引 schema",
   "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。① 两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；② 形态相关的输入配置键与输出清单字段按 $defs.frame_storage / $defs.coverage_index_ref / $defs.manifest_storage 校验。不变式 I1..I4 / H1..H3 / R1..R6 / F1..F4 / M1..M4 由 eng/tools/hipsform/check_hips_storage_form.py 现场计算。",
   "x-astrocs-contract": "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
   "x-astrocs-design": "docs/design/PRODUCT_STORAGE_FORM.md",

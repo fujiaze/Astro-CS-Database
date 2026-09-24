@@ -1,4 +1,4 @@
-# AstroCS Concurrency Standard
+# Astro Celestial Sphere Database（ACSD） Concurrency Standard
 
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
 

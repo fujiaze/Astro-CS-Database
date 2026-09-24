@@ -1,4 +1,4 @@
-// astrocs G-RES-01 资源门阈值生成头 —— 由 CMake 从唯一数值源生成, 禁止手改。
+// acsd G-RES-01 资源门阈值生成头 —— 由 CMake 从唯一数值源生成。
 //
 // 唯一数值源: eng/contracts/resource_gate_v1.json
 // 判据语义权威: docs/plugins/infrastructure/21_observability.md §8

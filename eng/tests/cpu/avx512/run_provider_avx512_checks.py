@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AstroCS CPU-004 AVX-512 provider — 验收运行器 (全部测试)
+"""ACSD CPU-004 AVX-512 provider — 验收运行器 (全部测试)
 eng/tests/cpu/avx512/run_provider_avx512_checks.py
 
 验收 (04_CPU_RESOURCE_TASKS.md CPU-004):

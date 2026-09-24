@@ -153,7 +153,7 @@ G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能�
   是 **`/proc/stat` 首行第 5 个数值（系统级 iowait，jiffies）÷ 采样区间 × 100**
   （`lib/infrastructure/cli/monitor.h:189-210` 取值、`resource_recorder.h:158-159` 归一），
   单位与 `cpu_pct` 同刻度 = **等效核 × 100**，且**含其它进程**的 I/O 等待。
-  ⇒ 它回答「盘上有没有负载」，**不**回答「是不是 AstroCS 在等盘」。
+  ⇒ 它回答「盘上有没有负载」，**不**回答「是不是 Astro Celestial Sphere Database（ACSD） 在等盘」。
 - `resource_monitor.py` 新增的 `io_wait_all_ms` = **Σ 全线程 `delayacct_blkio_ticks` 增量**
   （`/proc/<pid>/task/<tid>/stat` 第 42 字段），是**本进程树**真实块 I/O 等待；旧字段
   `io_wait_ms` 只取线程组组长（`/proc/<pid>/stat`），在帧级并行下会系统性低估。

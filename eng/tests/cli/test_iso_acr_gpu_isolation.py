@@ -4,7 +4,7 @@
 fallback); 发行包不含 ACR/GPU/CUDA 标识。仅 Linux amd64。
 
 CLI-002 重锚(ROOT-008 + CLI-001 命令树): CLI 源在 lib/infrastructure/cli/, 唯一产品二进制
-build/astrocs; 旧 'phase3 run --config' 已删除 → 运行面改用 export 会话命令(§6.2)。判据语义
+build/acsd; 旧 'phase3 run --config' 已删除 → 运行面改用 export 会话命令(§6.2)。判据语义
 不变(拒绝面/清单面/发行面), 只换载体。源扫描用例不依赖二进制, 不再被 EXE 门槛整体跳过。
 """
 import json, os, re, shutil, subprocess, tempfile, unittest
@@ -13,7 +13,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "acsd"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
 # CTESTFULL-01：fixture 制备已收归 cli_fixture（自带 AIO/SHARED/cfitsio 定位），
 # 本文件原有的 _pick/AIO/SHARED/HEALPIX_SRC 兼容垫片随之退役。
@@ -93,7 +93,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
     def test_03_config_requests_acr_gpu_rejected(self):
         """config 顶层出现 backend/acr_route/gpu_route/mixed_backend → 明确拒绝(exit 3, 非静默)。"""
         if not self.exe_ok:
-            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
+            self.skipTest("CLI 二进制缺失(先构建 build/acsd)")
         out = os.path.join(self.tmp, "o3")
         os.makedirs(out, exist_ok=True)
         base = {"schema_version": "1",
@@ -138,7 +138,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
     def test_05_backends_manifest_only_pure_cpu(self):
         """doctor --json 的后端面仅纯 CPU 变体(无 acr/gpu/cuda)。"""
         if not self.exe_ok:
-            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
+            self.skipTest("CLI 二进制缺失(先构建 build/acsd)")
         r = subprocess.run([EXE, "doctor", "--json"], capture_output=True, text=True,
                            timeout=120, cwd=run_cwd())
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
@@ -161,7 +161,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
     def test_06_export_manifest_no_acr_gpu(self):
         """export 生产运行 manifest 不含 acr/gpu/route/dispatcher/mixed 选路字段。"""
         if not self.exe_ok:
-            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
+            self.skipTest("CLI 二进制缺失(先构建 build/acsd)")
         self.assertTrue(self.hips, "无合成 fixture（setUpClass 未产出 FIELD.hips）")
         out = os.path.join(self.tmp, "o6")
         os.makedirs(out, exist_ok=True)

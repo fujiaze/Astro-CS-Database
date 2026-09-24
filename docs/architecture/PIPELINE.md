@@ -1,9 +1,9 @@
-# AstroCS Pipeline（Phase1 → Phase2）
+# Astro Celestial Sphere Database（ACSD） Pipeline（Phase1 → Phase2）
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
 > 本文按最高设计 §3.2 / §4.2 / §4.5 / §6.2 / §8.2 描述。
-> **入口只有一个**：`astrocs.exe`（Windows）/ `astrocs`（Linux）的 `normalize` / `mosaic` / `export` 三个子命令
+> **入口只有一个**：`acsd.exe`（Windows）/ `acsd`（Linux）的 `normalize` / `mosaic` / `export` 三个子命令
 > （最高设计 §7.1）。
 > **阶段内走内存块管线，阶段间落盘**（最高设计 §8.2）。
 

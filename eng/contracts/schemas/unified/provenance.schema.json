@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/provenance/v1",
-  "title": "AstroCS 统一对象 provenance —— 输入/配置/软件/哈希来源链",
+  "title": "ACSD 统一对象 provenance —— 输入/配置/软件/哈希来源链",
   "description": "UNIFIED_MODEL §2：provenance = 输入/配置/软件/哈希来源链；可否作权重 = ——（不适用）。provenance 承载来源链，不承载任何数值权重。",
   "x-astrocs-object": {
     "name": "provenance",

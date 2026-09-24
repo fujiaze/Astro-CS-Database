@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/point_information/v1",
-  "title": "AstroCS 统一对象 point_information —— 点源严格权重 W = a²PᵀC⁻¹P",
+  "title": "ACSD 统一对象 point_information —— 点源严格权重 W = a²PᵀC⁻¹P",
   "description": "UNIFIED_MODEL §2：point_information = a²PᵀC⁻¹P = 1/Var(F_hat)；可否作权重 = 点源目标的严格权重。W_info 由完整 PᵀC⁻¹P 给出，禁止用 source_snr/depth_m5/frame_snr 等诊断量替代。",
   "x-astrocs-object": {
     "name": "point_information",

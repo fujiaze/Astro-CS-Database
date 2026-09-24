@@ -42,7 +42,7 @@ set_tests_properties(orchestrator_cli_integration PROPERTIES
 add_test(NAME orchestrator_legacy_cli_smoke COMMAND orchestrator_legacy_cli --version)
 set_tests_properties(orchestrator_legacy_cli_smoke PROPERTIES
   WORKING_DIRECTORY ${ORCH_TEST_WORK}
-  PASS_REGULAR_EXPRESSION "AstroCS Orchestrator")
+  PASS_REGULAR_EXPRESSION "ACSD Orchestrator")
 add_test(NAME orchestrator_legacy_cli_validate
   COMMAND orchestrator_legacy_cli --validate
           ${CMAKE_CURRENT_SOURCE_DIR}/../configs/stage1.template.json)

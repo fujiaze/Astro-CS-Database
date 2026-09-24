@@ -1,4 +1,4 @@
-# AstroCS run manifest 与 verify 合同 v1 (CLI-003 冻结)
+# Astro Celestial Sphere Database（ACSD） run manifest 与 verify 合同 v1 (CLI-003 冻结)
 
 > 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
 
@@ -32,7 +32,7 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
 ```
 
 - `config_sha256`/`cpu_profile_sha256` 记录**输入文件字节 hash**(verify 重算比对;路径由 `config_path`/`cpu_profile_path` 提供)。
-- 取消/崩溃/not-wired stub → `status:"incomplete"` manifest(**禁止无科学运行的 complete manifest**——run 命令 stub 亦写 incomplete 并 exit 2);atomic tmp+rename。
+- 取消/崩溃/not-wired stub → `status:"incomplete"` manifest(**complete manifest 只出自完成的科学运行**——run 命令 stub 亦写 incomplete 并 exit 2);atomic tmp+rename。
 
 ### 2.1 provenance 子对象（加性扩展；`ASTROCS_DESIGN.md` §9 manifest 必记项）
 
@@ -67,7 +67,7 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
   `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
   `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
 
-## 3 verify 合同(astrocs verify --run-manifest --json)
+## 3 verify 合同(acsd verify --run-manifest --json)
 
 校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→astrocs_version 与本机一致(5, 版本不同不可 verify)→重算 eng/packaging/config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`。
 

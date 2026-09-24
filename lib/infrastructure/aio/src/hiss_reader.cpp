@@ -1,5 +1,5 @@
 // ============================================================================
-// hiss_reader.cpp - AstroCS HISS Reader (XISF 式 Header + attachments 格式)
+// hiss_reader.cpp - ACSD HISS Reader (XISF 式 Header + attachments 格式)
 //
 // 内容:
 // 1. 小端序二进制读写工具

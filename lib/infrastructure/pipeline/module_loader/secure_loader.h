@@ -1,4 +1,4 @@
-/* AstroCS 模块 C ABI v1 — Secure Loader 合同头（ABI-003）
+/* ACSD 模块 C ABI v1 — Secure Loader 合同头（ABI-003）
  *
  * 文件: lib/infrastructure/pipeline/module_loader/secure_loader.h
  * 依赖: astrocs/abi/module_api_v1.h（族链: module → host → artifact → status）;

@@ -1,4 +1,4 @@
-/* v6_sha256.h — AstroCS V6 科学产品 I/O: SHA-256 完整性摘要
+/* v6_sha256.h — ACSD V6 科学产品 I/O: SHA-256 完整性摘要
  *
  * 任务: IMPL-AIO-001 (Wave 5)。写域: lib/infrastructure/aio/v6/。
  * 语义锚: FZ-PROV-MINIMAL-SET (output_hash / input_product_hashes)、宪章 §4.3。

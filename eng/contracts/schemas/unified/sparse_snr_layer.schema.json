@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
-  "title": "AstroCS 统一对象 sparse_snr_layer —— 帧内稀疏控制点绝对 SNR 参考（可选标准层）",
+  "title": "ACSD 统一对象 sparse_snr_layer —— 帧内稀疏控制点绝对 SNR 参考（可选标准层）",
   "description": "UNIFIED_MODEL §2：sparse_snr_layer = 帧内稀疏控制点上的**绝对** SNR 参考（可选标准层）；控制点值 = 该点的通量型信噪比 F_ref/sigma_F(x,y)（与 frame_snr 同物理定义、同逐帧参考通量 F_ref，无量纲），Phase2 由控制点**直接重建**为稠密 SNR 场，权重逐像素换算 w(x,y)=SNR(x,y)^2/F_ref^2；可否作权重 = 帧内精细参考。该层是参考层，不是 variance/ivar，不承载帧级权重；与 frame_snr 相互独立（frame_snr 不作本层的尺度基准）。",
   "x-astrocs-object": {
     "name": "sparse_snr_layer",

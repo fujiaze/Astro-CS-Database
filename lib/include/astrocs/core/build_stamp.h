@@ -1,4 +1,4 @@
-// AstroCS Core — 构建期指纹（RUN-PROVENANCE-01）
+// ACSD Core — 构建期指纹（RUN-PROVENANCE-01）
 //
 // 语义权威: docs/VERSIONING.md「构建指纹合同」；证据: run/RUN-PROVENANCE-01/REPORT.md。
 //

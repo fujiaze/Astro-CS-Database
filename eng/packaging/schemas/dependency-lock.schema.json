@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "astrocs://astrocs/packaging/dependency-lock/v1",
-  "title": "AstroCS 依赖锁合同 (BLD-004)",
+  "title": "ACSD 依赖锁合同 (BLD-004)",
   "description": "生产依赖(production_dependencies) 与 test-only oracle(test_only_oracles) 分离锁定; 版本/来源/hash/license; 机器绝对路径与 MSYS2/MinGW 策略; vcpkg 政策 (NOT_USED, 若用必须 manifest+baseline)。机器校验入口 eng/packaging/gen_sbom_input.py (与 DEPENDENCIES.md 一致性 + fresh configure 无机器路径扫描)。",
   "type": "object",
   "required": [

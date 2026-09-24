@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """独立 Oracle：V6 Phase2 分类排异（ALG-P2S-REJ.1..7）。
 
-真值来源 = 独立实现（本文件只依赖 Python 标准库），不调用 astrocs 任何实现。
+真值来源 = 独立实现（本文件只依赖 Python 标准库），不调用 acsd 任何实现。
 逐条转写冻结合同：
   sigma_eff^2 = sigma_phase1^2 + J C_theta J^T      (DESIGN-P2-001 §5)
   reason: z<=-4.0 -> rejected_low; z>=+3.0 -> rejected_high; else accepted

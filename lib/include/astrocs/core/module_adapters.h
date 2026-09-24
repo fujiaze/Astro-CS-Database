@@ -1,4 +1,4 @@
-// AstroCS Core — RT-005 可执行模块适配器
+// ACSD Core — RT-005 可执行模块适配器
 // 将真实 Phase1/2/3 session (C ABI) 包装为 IModule 工厂并注册到 ModuleRegistry。
 // 工厂经 astrocs_host_services_default_v1 创建 host services（唯一宿主）。
 #pragma once

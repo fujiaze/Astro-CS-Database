@@ -1,4 +1,4 @@
-/* AstroCS 动态模块 Registry — 真实实现 (ABI-004)
+/* ACSD 动态模块 Registry — 真实实现 (ABI-004)
  *
  * 文件: lib/infrastructure/pipeline/module_loader/module_registry.c
  * 实现: 12_DLL_ABI_AND_LOADER_STANDARD.md §5/§6 + 合同头 module_registry.h +

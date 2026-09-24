@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RUNTIME-CI-001 CLI 模式路由矩阵（真实二进制端到端；CLI-001 命令树对齐版）。
 
-对已构建的 astrocs 二进制跑冻结模式路由矩阵。命令面 = ASTROCS_DESIGN §7.1 唯一
+对已构建的 acsd 二进制跑冻结模式路由矩阵。命令面 = ASTROCS_DESIGN §7.1 唯一
 命令树（normalize|mosaic|export (--json <cfg>|--template|--help) + help + --version
 + doctor + benchmark）；'phase1|2|3 <op>' 用户命令与 '--config' 旗标已随 CLI-001
 删除（lib/infrastructure/cli/parser.cpp:31-33/39-43 一律 unknown command/flag → 2），
@@ -65,8 +65,8 @@ hips_paths[0] 指向的路径不存在）。
 随后在会话/科学面自然失败（rc≠0），断言只要求「门未拒绝 + 已进会话运行面」。
 
 用法:
-  python3 eng/tools/v6/v6_cli_mode_matrix.py --cli-bin <astrocs> [--work <dir>] [--json-out <path>]
-  python3 eng/tools/v6/v6_cli_mode_matrix.py --cli-bin <astrocs> --self-test
+  python3 eng/tools/v6/v6_cli_mode_matrix.py --cli-bin <acsd> [--work <dir>] [--json-out <path>]
+  python3 eng/tools/v6/v6_cli_mode_matrix.py --cli-bin <acsd> --self-test
       # 正例/负例自检：真实二进制 ⇒ 必绿；注入一条「权重模式选择」分支 ⇒ 必红
 缺失二进制 → rc 2（fail-closed，不静默通过）。
 """
@@ -361,7 +361,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     binary = pathlib.Path(args.cli_bin).resolve()
     if not binary.exists():
-        print("V6_CLI_MATRIX_FAIL(prerequisite): astrocs binary missing: %s -> fail-closed"
+        print("V6_CLI_MATRIX_FAIL(prerequisite): acsd binary missing: %s -> fail-closed"
               % binary, file=sys.stderr)
         _emit(args.json_out, {"schema": "astrocs.v6.cli-mode-matrix/v1",
                               "verdict": "FAIL", "reason": "binary missing", "cases": [],

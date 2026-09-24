@@ -5,7 +5,7 @@
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""生成 AstroCS v1.1 审计包。"""
+"""生成 ACSD v1.1 审计包。"""
 import hashlib
 import json
 import os
@@ -152,7 +152,7 @@ manifest["total_files"] = len(file_hashes)
 
 # 人类可读清单
 lines = [
-    "AstroCS v1.1 审计包清单",
+    "ACSD v1.1 审计包清单",
     "=" * 60,
     f"版本: {manifest['version']}",
     f"生成时间: {manifest['generated_at']}",

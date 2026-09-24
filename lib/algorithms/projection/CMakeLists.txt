@@ -1,6 +1,6 @@
 # lib/algorithms/projection/CMakeLists.txt — projection 算法模块 target 清单
 #
-# BLD-002: 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(astrocs))。
+# BLD-002: 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(acsd))。
 # 本文件只声明本模块的算法库 target 与共址测试; 由根 CMakeLists.txt 的
 # add_subdirectory(lib/algorithms/projection) 引入产品图 (INT-001 W4-A9 批次 1)。
 #

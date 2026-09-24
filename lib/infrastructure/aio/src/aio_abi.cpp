@@ -1,5 +1,5 @@
 // ============================================================================
-// aio_abi.cpp — AstroCS 唯一 AIO C ABI v1 实现 (AIO-001)
+// aio_abi.cpp — ACSD 唯一 AIO C ABI v1 实现 (AIO-001)
 //
 // 合同: lib/include/astrocs/io/aio_abi_v1.h (v1 冻结) +
 //       eng/contracts/data/aio_abi_contract_v1.json (唯一事实源)。

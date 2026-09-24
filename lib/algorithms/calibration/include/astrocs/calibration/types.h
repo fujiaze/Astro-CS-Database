@@ -1,4 +1,4 @@
-/* AstroCS P1 calibration 模块静态标识与词表（P1-CAL-IMPL 迁移面）
+/* ACSD P1 calibration 模块静态标识与词表（P1-CAL-IMPL 迁移面）
  *
  * 文件: lib/algorithms/calibration/include/astrocs/calibration/types.h
  * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL)

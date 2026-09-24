@@ -1,4 +1,4 @@
-# AstroCS Contract Index (DOC-001)
+# ACSD Contract Index (DOC-001)
 
 schema: astrocs.contract-index/v1
 # §12 口径（DOC-203 / Q2 前置裁决 2026-09-20）：本索引的修订标识一律用**变更编号/日期**，
@@ -16,7 +16,7 @@ contracts:
   - id: SCI-SCOPE-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/SCIENCE_SCOPE.md
     upstream: []
@@ -24,7 +24,7 @@ contracts:
   - id: SCI-CAL-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/CALIBRATION.md
     upstream: [SCI-SCOPE-001]
@@ -32,7 +32,7 @@ contracts:
   - id: SCI-WCS-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/ASTROMETRY.md
     upstream: [SCI-SCOPE-001]
@@ -40,7 +40,7 @@ contracts:
   - id: SCI-PHOT-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/PHOTOMETRY.md
     upstream: [SCI-SCOPE-001]
@@ -48,7 +48,7 @@ contracts:
   - id: SCI-PSF-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/PSF.md
     upstream: [SCI-SCOPE-001]
@@ -56,7 +56,7 @@ contracts:
   - id: SCI-NOISE-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/NOISE_MODEL.md
     upstream: [SCI-SCOPE-001]
@@ -64,7 +64,7 @@ contracts:
   - id: SCI-DRZ-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/DRIZZLE.md
     upstream: [SCI-SCOPE-001]
@@ -72,7 +72,7 @@ contracts:
   - id: SCI-UPM-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/PHASE2_UPM.md
     upstream: [SCI-SCOPE-001]
@@ -80,7 +80,7 @@ contracts:
   - id: SCI-REJ-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/REJECTION.md
     upstream: [SCI-SCOPE-001]
@@ -88,7 +88,7 @@ contracts:
   - id: SCI-INT-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/INTEGRATION.md
     upstream: [SCI-SCOPE-001]
@@ -96,7 +96,7 @@ contracts:
   - id: SCI-CW-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/CONTROL_WEIGHT_SNR.md
     upstream: [SCI-SCOPE-001, SCI-NOISE-001]
@@ -104,7 +104,7 @@ contracts:
   - id: SCI-AST-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/ASTROMETRY.md
     upstream: [SCI-SCOPE-001]
@@ -112,7 +112,7 @@ contracts:
   - id: ALG-CW-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/CONTROL_WEIGHT_SNR.md
     upstream: [SCI-CW-001]
@@ -120,7 +120,7 @@ contracts:
   - id: SCI-P3-001
     type: SCI
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/PHASE3_HIPS_TO_FITS.md
     upstream: [SCI-WCS-001, SCI-DRZ-001, SCI-SCOPE-001]
@@ -128,7 +128,7 @@ contracts:
   - id: SCI-ACR-EQUIV-001
     type: SCI
     status: DORMANT
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/science/ACR_EQUIVALENCE.md
     upstream: [SCI-SCOPE-001]
@@ -139,7 +139,7 @@ contracts:
   - id: ALG-ANCHOR-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/anchors/ANCHOR_CONTRACT.md
     upstream: []
@@ -147,7 +147,7 @@ contracts:
   - id: ALG-CAL-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/CALIBRATION_ALGORITHMS.md
     upstream: [SCI-CAL-001]
@@ -155,7 +155,7 @@ contracts:
   - id: ALG-WCS-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/PLATESOLVE.md
     upstream: [SCI-WCS-001]
@@ -179,7 +179,7 @@ contracts:
   - id: ALG-PHOT-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/PHOTOMETRIC_FIT.md
     upstream: [SCI-PHOT-001]
@@ -187,7 +187,7 @@ contracts:
   - id: ALG-PHOT-002
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/PHOTOMETRIC_FIT.md
     upstream: [SCI-PHOT-001]
@@ -195,7 +195,7 @@ contracts:
   - id: ALG-STARPSF-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/STAR_PSF_ALGORITHMS.md
     upstream: [SCI-PSF-001]
@@ -203,7 +203,7 @@ contracts:
   - id: ALG-NOISE-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
@@ -211,7 +211,7 @@ contracts:
   - id: ALG-NOISE-002
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
@@ -219,7 +219,7 @@ contracts:
   - id: ALG-NOISE-003
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/NOISE_ESTIMATION.md
     upstream: [SCI-NOISE-001]
@@ -227,7 +227,7 @@ contracts:
   - id: ALG-DRZ-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/DRIZZLE_GEOMETRY.md
     upstream: [SCI-DRZ-001]
@@ -235,7 +235,7 @@ contracts:
   - id: ALG-HIPS-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/HIPS_WRITER.md
     upstream: [SCI-DRZ-001]
@@ -243,7 +243,7 @@ contracts:
   - id: ALG-UPM-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/UPM_SOLVER.md
     upstream: [SCI-UPM-001]
@@ -251,7 +251,7 @@ contracts:
   - id: ALG-UPM-CONTROL-IVAR-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/PHASE2_SAMPLER.md
     upstream: [SCI-NOISE-001, SCI-CW-001]
@@ -451,7 +451,7 @@ contracts:
   - id: ALG-REJ-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/REJECTION_ALGORITHMS.md
     upstream: [SCI-REJ-001]
@@ -459,7 +459,7 @@ contracts:
   - id: ALG-INT-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/PHASE2_INTEGRATION.md
     upstream: [SCI-INT-001]
@@ -563,7 +563,7 @@ contracts:
   - id: ALG-P3-001
     type: ALG
     status: DRAFT
-    owner: AstroCS
+    owner: ACSD
     version: 0.1.0
     path: docs/algorithms/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
@@ -571,7 +571,7 @@ contracts:
   - id: ALG-P3-002
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 0.1.0
     path: docs/algorithms/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
@@ -579,7 +579,7 @@ contracts:
   - id: ALG-P3-003
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 0.1.0
     path: docs/algorithms/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
@@ -587,7 +587,7 @@ contracts:
   - id: ALG-P3-004
     type: ALG
     status: DRAFT
-    owner: AstroCS
+    owner: ACSD
     version: 0.1.0
     path: docs/algorithms/PHASE3_RESAMPLE.md
     upstream: [SCI-P3-001]
@@ -619,7 +619,7 @@ contracts:
   - id: ALG-HEALPIX-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/HEALPIX_MAPPING.md
     upstream: [SCI-DRZ-001]
@@ -627,7 +627,7 @@ contracts:
   - id: ALG-GAIA-001
     type: ALG
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/GAIA_QUERY.md
     upstream: [SCI-AST-001]
@@ -635,7 +635,7 @@ contracts:
   - id: ALG-ACR-EQUIV-001
     type: ALG
     status: DORMANT
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/algorithms/ACR_EQUIVALENCE.md
     upstream: [SCI-ACR-EQUIV-001]
@@ -645,7 +645,7 @@ contracts:
   - id: DATA-SEMANTICS-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: []
@@ -653,7 +653,7 @@ contracts:
   - id: DATA-P1-NOISE
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: [ALG-NOISE-001, ALG-NOISE-002]
@@ -661,7 +661,7 @@ contracts:
   - id: API-NOISE-001
     type: API
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/PUBLIC_API.md
     upstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003]
@@ -685,7 +685,7 @@ contracts:
   - id: DATA-P1-HIPS
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: [ALG-HIPS-001]
@@ -733,7 +733,7 @@ contracts:
   - id: DATA-ARTIFACTS-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_ARTIFACTS.md
     upstream: [DATA-SEMANTICS-001]
@@ -751,7 +751,7 @@ contracts:
   - id: ARCH-001
     type: ARCH
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/ARCH-001.md
     upstream: []
@@ -761,7 +761,7 @@ contracts:
   - id: API-CONTRACTS-001
     type: API
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/API_CONTRACTS.csv
     upstream: []
@@ -769,7 +769,7 @@ contracts:
   - id: API-001
     type: API
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/API-001.md
     upstream: [ARCH-001]
@@ -787,7 +787,7 @@ contracts:
   - id: DATA-UNC-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: []
@@ -795,7 +795,7 @@ contracts:
   - id: DATA-P2-VAR-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001, SCI-INT-001, SCI-DRZ-001, SCI-NOISE-001]
@@ -803,7 +803,7 @@ contracts:
   - id: DATA-P2-REJ-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001, SCI-REJ-001]
@@ -811,7 +811,7 @@ contracts:
   - id: DATA-P2-PROV-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001]
@@ -819,7 +819,7 @@ contracts:
   - id: DATA-P3-UNC-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001, SCI-P3-001, SCI-DRZ-001, SCI-NOISE-001]
@@ -836,7 +836,7 @@ contracts:
   - id: DATA-OBJ-SIGNAL-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/signal.schema.json
     upstream: []
@@ -844,7 +844,7 @@ contracts:
   - id: DATA-OBJ-VARIANCE-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/variance.schema.json
     upstream: []
@@ -852,7 +852,7 @@ contracts:
   - id: DATA-OBJ-IVAR-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/ivar.schema.json
     upstream: []
@@ -860,7 +860,7 @@ contracts:
   - id: DATA-OBJ-SOURCE-SNR-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/source_snr.schema.json
     upstream: []
@@ -868,7 +868,7 @@ contracts:
   - id: DATA-OBJ-DEPTH-M5-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/depth_m5.schema.json
     upstream: []
@@ -876,7 +876,7 @@ contracts:
   - id: DATA-OBJ-FRAME-SNR-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/frame_snr.schema.json
     upstream: []
@@ -884,7 +884,7 @@ contracts:
   - id: DATA-OBJ-POINT-INFORMATION-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/point_information.schema.json
     upstream: []
@@ -896,7 +896,7 @@ contracts:
   - id: DATA-OBJ-PSFSW-ROBUST-WEIGHT-001
     type: DATA
     status: OBSOLETE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: ""
     upstream: []
@@ -904,7 +904,7 @@ contracts:
   - id: DATA-OBJ-SPARSE-SNR-LAYER-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/sparse_snr_layer.schema.json
     upstream: []
@@ -912,7 +912,7 @@ contracts:
   - id: DATA-OBJ-SUPPORT-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/support.schema.json
     upstream: []
@@ -920,7 +920,7 @@ contracts:
   - id: DATA-OBJ-COVERAGE-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/coverage.schema.json
     upstream: []
@@ -928,7 +928,7 @@ contracts:
   - id: DATA-OBJ-VALIDITY-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/validity.schema.json
     upstream: []
@@ -936,7 +936,7 @@ contracts:
   - id: DATA-OBJ-REJECTION-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/rejection.schema.json
     upstream: []
@@ -944,7 +944,7 @@ contracts:
   - id: DATA-OBJ-PROVENANCE-001
     type: DATA
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: eng/contracts/schemas/unified/provenance.schema.json
     upstream: []
@@ -954,7 +954,7 @@ contracts:
   - id: TEST-001
     type: TEST
     status: ACTIVE
-    owner: AstroCS
+    owner: ACSD
     version: 1.0.0
     path: docs/contracts/TEST_MATRIX.md
     upstream: []
@@ -964,7 +964,7 @@ contracts:
   - id: MOD-PHASE2-001
     type: MOD
     status: DRAFT
-    owner: AstroCS
+    owner: ACSD
     version: 0.1.0
     path: lib/algorithms/coverage/CMakeLists.txt
     upstream: []

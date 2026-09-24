@@ -20,7 +20,7 @@
 #   （模块文档 docs/modules/orchestrator.md），**不写死 pipeline 或 scheduler 任意一侧**。
 #
 # 契约（BLD-002）：本文件只声明本模块 target；唯一 project()/唯一产品可执行
-# astrocs 仍只在根 CMakeLists.txt。
+# acsd 仍只在根 CMakeLists.txt。
 # ============================================================================
 
 # ── 1) 第三方 json-schema-validator v2.4.0（vendored，与 cpp/Makefile 同一份源）──
@@ -88,7 +88,7 @@ if(NOT MSVC)
 endif()
 
 # ── 3) legacy CLI 入口（非产品；不进 install 白名单）──
-# ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 astrocs（normalize|mosaic|export）；
+# ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
 # 本可执行是 docs/modules/orchestrator.md 记载的 legacy「stage1.json 入口」，
 # 仅用于共址冒烟测试与诊断，**不 install、不进产品 manifest**。其退场与否
 # （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分交前台裁决。

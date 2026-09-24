@@ -1,6 +1,6 @@
 # lib/algorithms/resample/CMakeLists.txt — Phase3 重采样模块 target 清单
 #
-# BLD-002: 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(astrocs))。
+# BLD-002: 唯一产品事实源 = 根 CMakeLists.txt (唯一 project / 唯一 add_executable(acsd))。
 # 本文件由根 CMakeLists.txt 的 add_subdirectory(lib/algorithms/resample) 引入产品图。
 #
 # 目标:

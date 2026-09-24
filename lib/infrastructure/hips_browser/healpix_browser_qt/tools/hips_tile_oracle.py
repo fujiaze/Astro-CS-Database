@@ -8,7 +8,7 @@ V11 P11-5: 外部 FITS tile pixel-layout oracle
   - 每 tile 选 M 个 (row,col) 点（corner/edge/center/random，≥32）；
   - 读像素值 → 解码 (ra,dec)（ref_oracle 的 float64 编码）；
   - 用 astropy_healpix（独立实现）求该天球位置的 NESTED leaf local；
-  - 与 AstroCS `nested_local_to_fits_index`（(511-x)*512+y, x=偶数位）比对。
+  - 与 ACSD `nested_local_to_fits_index`（(511-x)*512+y, x=偶数位）比对。
 
 可区分：x/y swap、x flip、y flip、transpose、Morton 位序错、face 依赖错。
 
@@ -49,7 +49,7 @@ def interleave(x, y, bits):
 
 
 def astrocs_fits_to_local(row, col):
-    """AstroCS 约定：fits_index=(511-x)*512+y；x=偶数位,y=奇数位。"""
+    """ACSD 约定：fits_index=(511-x)*512+y；x=偶数位,y=奇数位。"""
     x = TW - 1 - row
     y = col
     return interleave(x, y, SHIFT)
@@ -80,9 +80,9 @@ def main() -> int:
         ipix = int(hp.skycoord_to_healpix(ICRS(ra=ra * u.deg, dec=dec * u.deg)))
         return ipix & MASK, ipix >> 18
 
-    # 候选映射（用于判定公式；AstroCS 为 candA）
+    # 候选映射（用于判定公式；ACSD 为 candA）
     def cands(row, col):
-        xA, yA = TW - 1 - row, col          # AstroCS
+        xA, yA = TW - 1 - row, col          # ACSD
         xB, yB = row, col
         xC, yC = col, row                   # transpose 候选
         return {

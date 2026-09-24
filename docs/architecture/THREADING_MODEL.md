@@ -8,7 +8,7 @@
   执行与取消；最高设计 §7.1/§8）。一个进程只有一个全局执行顺序与线程预算源。
 - 科学模块：内部并行 region 由宿主按预算注入；每模块文档化 parallel/shared/
   thread-local/reduction/determinism/float accumulation order。
-- 编排层由唯一 CLI 入口承担：按命令拉起对应阶段的调度器，一次调用只驱动一个阶段；唯一入口 = `astrocs.exe`（Windows）/ `astrocs`（Linux）（最高设计 §7.1/§8.1）。
+- 编排层由唯一 CLI 入口承担：按命令拉起对应阶段的调度器，一次调用只驱动一个阶段；唯一入口 = `acsd.exe`（Windows）/ `acsd`（Linux）（最高设计 §7.1/§8.1）。
 - ~~ACR：work_pool + device_executor 调度；CPU reference 与 GPU 等价契约。~~
   **DORMANT**：保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**
   （最高设计 §8）。

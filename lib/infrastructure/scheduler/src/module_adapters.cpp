@@ -1506,6 +1506,25 @@ std::string p1_cosmetic_path(const Json& doc, const std::string& light) {
   return out_dir + "/cleaned_" + p1_base_name(light);
 }
 
+// 坏列掩膜产物路径（LINDEF-IMPL-01）: badcol_<base>。float32 [H][W]，
+// 1.0 = 该像素由坏列修复覆盖，0.0 = 未覆盖。与 cleaned_ 同 geometry，
+// 故下游（noise/SNR）可按像素定位被插值的样本，无需再解析几何。
+// 这是"修复像素在产品里可识别"的落盘面（DATA-P1-COS §10.3 的掩膜不作产品
+// 输出条款只约束**坏点**掩膜；本掩膜是坏列路径新增的独立产物，不改该条款）。
+std::string p1_badcol_path(const Json& doc, const std::string& light) {
+  const std::string out_dir = doc.value("output_dir", std::string("."));
+  return out_dir + "/badcol_" + p1_base_name(light);
+}
+
+// 坏列**来源**掩膜路径: badcolsrc_<base>。float32 [H][W]，值为
+// AC_COLSTAT_SRC_SCIENCE|DARK|BIAS 的按位或 ⇒ 下游可逐像素区分
+// "科学帧判出 / dark 判出 / bias 判出 / 多路一致"，按置信度筛选而不必信任
+// 单一布尔掩膜。
+std::string p1_badcol_src_path(const Json& doc, const std::string& light) {
+  const std::string out_dir = doc.value("output_dir", std::string("."));
+  return out_dir + "/badcolsrc_" + p1_base_name(light);
+}
+
 // cosmetic 下游节点的输入帧路径: 优先 cos 节点产物 cleaned_<base>, 无则退回
 // cal 产物/原帧（节点单独运行时缺上游产物 = 确定性回退, 不 silent 造数据）。
 std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
@@ -2394,7 +2413,13 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   if (p1_lights_rc.failed()) return p1_lights_rc;
   Json stages = Json::array();
   Json artifacts = Json::array();
-  if (!p1_has(doc, "cosmetic") || !p1_flag(doc["cosmetic"], "enabled", true)) {
+  // LINDEF-IMPL-01（负责人 2026-09-24 裁决: 坏列修复默认开启）：
+  // 旧判据 `!p1_has(doc,"cosmetic") ||` 使**无 cosmetic 段的 config** 整节点
+  // 跳过（frames=0、mode=disabled）——"默认开启"在该分支下无从成立（M42 真实
+  // run 的 p1_full.json 即无该段，故坏列/坏点路径在生产上都从未生效）。
+  // 现改为：**仅显式 `{"cosmetic":{"enabled":false}}`** 关闭整节点。显式关闭时
+  // 行为与改动前逐位一致（A/B 取证见 run/LINDEF-IMPL-01/REPORT.md §5）。
+  if (p1_has(doc, "cosmetic") && !p1_flag(doc["cosmetic"], "enabled", true)) {
     stages.push_back(Json{{"name", "cosmetic"}, {"status", "ok"}, {"frames", 0},
                           {"mode", "disabled"}});
     (*man)["stages"] = stages;
@@ -2402,12 +2427,43 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
     (*man)["artifacts"] = artifacts;
     return Result<void>::success();
   }
-  const Json& c = doc["cosmetic"];
+  const Json cos_cfg = p1_has(doc, "cosmetic") ? doc["cosmetic"] : Json::object();
+  const Json& c = cos_cfg;
   const float hot_sigma = static_cast<float>(p1_num(c, "hot_sigma", 5.0));
   const float cold_sigma = static_cast<float>(p1_num(c, "cold_sigma", 5.0));
   const int method = p1_int(c, "method", AC_METHOD_MEDIAN) == AC_METHOD_BILINEAR
                          ? AC_METHOD_BILINEAR : AC_METHOD_MEDIAN;
   const int mss = p1_int(c, "max_structure_size", 4);
+  // ── 坏列（linear defect, 单列）路径配置（LINDEF-IMPL-01；默认开启）──
+  // bad_column_enabled 默认 true（负责人 2026-09-24 裁决: 默认开启、可选关闭）；
+  // 关闭时本节点对像素的行为与改动前逐位一致（A/B 取证见 REPORT §5）。
+  // 检测源 = 本帧自身（cal 节点产物）：生产两条路径都不接线 dark/bias 母版
+  // （DISP-COS-009），故坏列判据不得依赖母版；判据自校准，见
+  // lib/algorithms/calibration/src/cosmetic_corrector.cpp 的 detect_bad_columns。
+  const bool col_enabled = p1_flag(c, "bad_column_enabled", true);
+  const float col_sigma = static_cast<float>(p1_num(c, "bad_column_sigma", 5.0));
+  const int col_k = p1_int(c, "bad_column_neighbor_k", 3);
+  // 段长上限：默认 1 = **只修单列**（负责人 2026-09-24 裁决：单列缺陷可接受，
+  // 相邻多列不属本任务）。>1 才允许修连续多列段（修复算子已支持线性插值）；
+  // 超限的段一律降级为"仅标记不修"并置 AC_COLSTAT_WIDE_DEFECT。
+  const int col_maxseg = p1_int(c, "bad_column_max_seg_len", 1);
+  // ── 坏列检测源：dark / bias 母版（可选；负责人 2026-09-24 裁决要求支持）──
+  // 母版是整列缺陷的**物理来源**观测面，判据比科学帧自身统计干净（其上没有
+  // 天体结构）。两条路径各自帧内自校准 ⇒ 标度不一致不影响判坏集合（见
+  // ac_detect_bad_columns_from_master 的标度无关性说明）。母版不可得/不可读/
+  // 尺寸不符 ⇒ 该路径不参与，但**必须留痕**（不得静默退化成"只有科学帧"）。
+  P1Image m_dark, m_bias;
+  std::string dark_src = "unavailable", bias_src = "unavailable";
+  if (col_enabled && p1_has(doc, "master_dark")) {
+    const std::string p = doc["master_dark"].get<std::string>();
+    m_dark = p1_read_image(p);
+    dark_src = m_dark.ok() ? ("in_use:" + p1_base_name(p)) : ("unreadable:" + p1_base_name(p));
+  }
+  if (col_enabled && p1_has(doc, "master_bias")) {
+    const std::string p = doc["master_bias"].get<std::string>();
+    m_bias = p1_read_image(p);
+    bias_src = m_bias.ok() ? ("in_use:" + p1_base_name(p)) : ("unreadable:" + p1_base_name(p));
+  }
   Json& st = stages.emplace_back(Json{{"name", "cosmetic"}, {"status", "running"}});
   int hot_total = 0, cold_total = 0;
   uint32_t frames = 0;
@@ -2419,7 +2475,14 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   std::vector<Result<void>> f_err(n_lights, Result<void>::success());
   std::vector<int> f_hot(n_lights, 0), f_cold(n_lights, 0);
   std::vector<std::string> f_out(n_lights);
-  std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input 2=output 3=internal
+  // 坏列路径的逐帧结果槽（帧序归约在 join 之后，与 worker 数无关）
+  std::vector<int> f_ncols(n_lights, 0), f_pxcol(n_lights, 0), f_colstat(n_lights, 0);
+  std::vector<float> f_sigcol(n_lights, 0.0f);
+  std::vector<int> f_nsci(n_lights, 0), f_ndark(n_lights, 0), f_nbias(n_lights, 0);
+  std::vector<std::vector<int>> f_cols(n_lights);
+  std::vector<std::string> f_mask_out(n_lights);
+  std::vector<std::string> f_srcmask_out(n_lights);
+  std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input 2=output 3=internal 4=badcol
   p1_parallel_for(cos_workers, n_lights, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     const std::string lp = doc["input_lights"][fi].get<std::string>();
     // 输入 = artifact:cal（cal 节点产物 calibrated_<base>, 无则原帧）
@@ -2442,6 +2505,41 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       return;
     }
     std::memcpy(im.px(), fixed.data(), fixed.size() * sizeof(float));
+
+    // ── 坏列（linear defect）路径：独立于上面的坏点路径，默认开启 ──
+    // 两套逻辑互不覆盖（坏点按像素、坏列按列），且坏列判据/阈值/索引与
+    // ac_correct_frame 的 frozen 面无关（后者输入输出零改动）。
+    std::vector<unsigned char> cmask(static_cast<size_t>(im.w()), 0);
+    std::vector<unsigned char> csrc(static_cast<size_t>(im.w()), 0);
+    if (col_enabled) {
+      const bool dim_ok = (m_dark.ok() && m_dark.w() == im.w() && m_dark.h() == im.h());
+      const bool bim_ok = (m_bias.ok() && m_bias.w() == im.w() && m_bias.h() == im.h());
+      std::vector<float> colfixed(fixed.size(), 0.0f);
+      int ncols = 0, pxcol = 0, cstat = 0, nsci = 0, ndark = 0, nbias = 0;
+      float sigcol = 0.0f;
+      const int rcc = ac_correct_columns_ex(
+          im.px(), dim_ok ? m_dark.px() : nullptr, bim_ok ? m_bias.px() : nullptr,
+          im.w(), im.h(), colfixed.data(), col_sigma, col_k, col_maxseg,
+          cmask.data(), csrc.data(), nullptr,
+          &ncols, &nsci, &ndark, &nbias, &pxcol, &sigcol, &cstat);
+      if (rcc != AC_OK) {
+        f_errkind[fi] = 4;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::INTERNAL,
+            std::string("ac_correct_columns_ex failed rc=") + std::to_string(rcc)));
+        return;
+      }
+      std::memcpy(im.px(), colfixed.data(), colfixed.size() * sizeof(float));
+      f_ncols[fi] = ncols;
+      f_pxcol[fi] = pxcol;
+      f_colstat[fi] = cstat;
+      f_sigcol[fi] = sigcol;
+      f_nsci[fi] = nsci;
+      f_ndark[fi] = ndark;
+      f_nbias[fi] = nbias;
+      for (int x = 0; x < im.w(); ++x)
+        if (cmask[x]) f_cols[fi].push_back(x);
+    }
+
     // 输出 = artifact:cos（cleaned_<base>, 独立于上游 artifact:cal）+ 原子发布。
     // CORE-RACE-001: 修复前此处就地覆写 artifact:cal 路径 —— 与并发下游 drz
     // 读同一路径竞争, aio_write_fits 非原子 ⇒ 撕裂读（P1 数据完整性缺陷）。
@@ -2452,20 +2550,102 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cosmetic " + werr));
       return;
     }
+    // 坏列掩膜落盘（float32 [H][W]，1.0 = 该像素由坏列修复覆盖）。
+    // 复用已发布 cleaned 的句柄：cleaned 已原子发布到磁盘，im.px() 不再需要
+    // 保留原值 ⇒ 就地改写为掩膜，零额外内存、零额外读盘，geometry 天然一致。
+    // CORE-RACE-001 同语义：掩膜落独立路径 badcol_<base>，不覆写任何上游产物。
+    if (col_enabled) {
+      float* mp = im.px();
+      const int mw = im.w(), mh = im.h();
+      for (int yy = 0; yy < mh; ++yy) {
+        const size_t row = static_cast<size_t>(yy) * mw;
+        for (int xx = 0; xx < mw; ++xx)
+          mp[row + xx] = cmask[static_cast<size_t>(xx)] ? 1.0f : 0.0f;
+      }
+      const std::string mpath = p1_badcol_path(doc, lp);
+      std::string merr;
+      if (!p1_write_fits_atomic(im, mpath, &merr)) {
+        f_errkind[fi] = 2;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "badcol " + merr));
+        return;
+      }
+      f_mask_out[fi] = mpath;
+      // 来源掩膜（float32 [H][W]，值为 AC_COLSTAT_SRC_* 位组合）：
+      // 让"这一列是科学帧判的、还是 dark/bias 判的、还是多路一致"在产品里
+      // 逐像素可读，供下游按置信度筛选与审计（不把三路证据压成一个布尔）。
+      for (int yy = 0; yy < mh; ++yy) {
+        const size_t row = static_cast<size_t>(yy) * mw;
+        for (int xx = 0; xx < mw; ++xx)
+          mp[row + xx] = static_cast<float>(csrc[static_cast<size_t>(xx)]);
+      }
+      const std::string spath = p1_badcol_src_path(doc, lp);
+      std::string serr;
+      if (!p1_write_fits_atomic(im, spath, &serr)) {
+        f_errkind[fi] = 2;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "badcolsrc " + serr));
+        return;
+      }
+      f_srcmask_out[fi] = spath;
+    }
     f_hot[fi] = hot;
     f_cold[fi] = cold;
     f_out[fi] = out_path;
   });
   // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
+  int ncol_total = 0, pxcol_total = 0, col_degraded_frames = 0;
+  Json col_frames = Json::array();
+  Json col_degrade_hist = Json::object();
   for (size_t fi = 0; fi < n_lights; ++fi) {
     if (!f_err[fi].ok()) {
       if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
       else if (f_errkind[fi] == 2) (*man)["error_kind"] = "output";
+      else if (f_errkind[fi] == 4) (*man)["error_kind"] = "badcol";
       st["status"] = "fail";
       return f_err[fi];
     }
     hot_total += f_hot[fi];
     cold_total += f_cold[fi];
+    ncol_total += f_ncols[fi];
+    pxcol_total += f_pxcol[fi];
+    if (col_enabled) {
+      // 逐帧坏列 provenance（列索引可重建掩膜；掩膜本身落盘 badcol_<base>）
+      Json fr = Json{{"input", p1_base_name(doc["input_lights"][fi].get<std::string>())},
+                     {"n_columns", f_ncols[fi]},
+                     {"px_repaired", f_pxcol[fi]},
+                     {"sigma_col_adu", static_cast<double>(f_sigcol[fi])},
+                     {"status", f_colstat[fi]},
+                     {"n_from_science", f_nsci[fi]},
+                     {"n_from_dark", f_ndark[fi]},
+                     {"n_from_bias", f_nbias[fi]}};
+      fr["columns"] = f_cols[fi];
+      Json flags = Json::array();
+      if (f_colstat[fi] & AC_COLSTAT_SCALE_DEGENERATE) {
+        flags.push_back("scale_degenerate");
+        col_degrade_hist["scale_degenerate"] = col_degrade_hist.value("scale_degenerate", 0) + 1;
+      }
+      if (f_colstat[fi] & AC_COLSTAT_FRAME_TOO_SMALL) {
+        flags.push_back("frame_too_small");
+        col_degrade_hist["frame_too_small"] = col_degrade_hist.value("frame_too_small", 0) + 1;
+      }
+      if (f_colstat[fi] & AC_COLSTAT_EDGE_ONE_SIDED) {
+        flags.push_back("edge_one_sided");
+        col_degrade_hist["edge_one_sided"] = col_degrade_hist.value("edge_one_sided", 0) + 1;
+      }
+      if (f_colstat[fi] & AC_COLSTAT_NO_ANCHOR) {
+        flags.push_back("no_anchor_unrepaired");
+        col_degrade_hist["no_anchor_unrepaired"] = col_degrade_hist.value("no_anchor_unrepaired", 0) + 1;
+      }
+      if (!flags.empty()) { fr["degrade"] = flags; col_degraded_frames++; }
+      if (!f_mask_out[fi].empty()) {
+        fr["mask"] = f_mask_out[fi].substr(f_mask_out[fi].find_last_of("/\\") + 1);
+        artifacts.push_back(f_mask_out[fi]);
+      }
+      if (!f_srcmask_out[fi].empty()) {
+        fr["source_mask"] = f_srcmask_out[fi].substr(f_srcmask_out[fi].find_last_of("/\\") + 1);
+        artifacts.push_back(f_srcmask_out[fi]);
+      }
+      col_frames.push_back(fr);
+    }
     ++frames;
     artifacts.push_back(f_out[fi]);
   }
@@ -2473,6 +2653,24 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   st["frames"] = frames;
   st["hot_fixed"] = hot_total;
   st["cold_fixed"] = cold_total;
+  // ── 坏列路径的 manifest 面（DATA-P1-COS provenance 扩展；不改坏点字段）──
+  // 显式区分"关闭"与"跑了但检出 0 列"：二者都使 px_repaired=0，但语义不同，
+  // 不得互相顶替（ALG-COS-004 对 0 计数的同款要求）。
+  st["bad_column_enabled"] = col_enabled;
+  st["bad_column_sigma"] = static_cast<double>(col_sigma);
+  st["bad_column_neighbor_k"] = col_k;
+  st["bad_column_mode"] = col_enabled ? "applied" : "disabled";
+  if (col_enabled) {
+    st["bad_column_columns_total"] = ncol_total;
+    st["bad_column_px_repaired_total"] = pxcol_total;
+    st["bad_column_degraded_frames"] = col_degraded_frames;
+    st["bad_column_degrade_hist"] = col_degrade_hist;
+    st["bad_column_detection_sources"] = Json::array({"science_frame_self", "master_dark", "master_bias"});
+    st["bad_column_master_dark"] = dark_src;
+    st["bad_column_master_bias"] = bias_src;
+    st["bad_column_arbitration"] = "union_with_per_column_source_and_confidence";
+    st["bad_column_per_frame"] = col_frames;
+  }
   (*man)["stages"] = stages;
   (*man)["frames"] = frames;
   (*man)["artifacts"] = artifacts;
@@ -11513,7 +11711,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
         "mosaic staging 创建失败: " + staging));
   AioHipsProductSet* ps = aio_hips_product_begin(
       staging.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
-      "ivo://astrocs/phase2", "AstroCS Phase2 mosaic",
+      "ivo://astrocs/phase2", "ACSD Phase2 mosaic",
       // B2-A8: coverage union 已验证全帧 filter 身份（含显式空声明），mosaic
       // 恒透传该身份；properties 写侧恒写 obs_filter 键（空值也是声明）。
       obs_filter.c_str(),

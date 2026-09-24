@@ -1,4 +1,4 @@
-/* AstroCS echo conformance module — eng/tests/conformance/echo/src/echo_module.c
+/* ACSD echo conformance module — eng/tests/conformance/echo/src/echo_module.c
  *
  * 状态: ABI-005 conformance (跨平台契约探针, 无科学含义)。
  * 角色: 每个 host callback (artifact read/manifest query、host allocator、

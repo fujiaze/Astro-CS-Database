@@ -35,7 +35,7 @@
 // drop footprint, candidate leaf, overlap,
 // contribution, sum contribution)
 // <dir>/leaf_internal.jsonl: 内部累计值 (parent/local/ipix, sumFlux,
-// sumArea, nContrib) — 与 HiPS readback 对照
+// sumArea, sumNorm, nContrib) — 与 HiPS readback 对照
 // ============================================================================
 namespace drizzle_trace {
 
@@ -64,6 +64,7 @@ struct LeafRec {
     uint64_t ipix = 0;
     double sumFlux = 0.0;
     double sumArea = 0.0;
+    double sumNorm = 0.0;
     uint32_t nContrib = 0;
 };
 
@@ -215,6 +216,7 @@ void flush() {
               << ",\"ipix\":" << r.ipix
               << ",\"sumFlux\":" << fmt("%.17g", r.sumFlux)
               << ",\"sumArea\":" << fmt("%.17g", r.sumArea)
+              << ",\"sumNorm\":" << fmt("%.17g", r.sumNorm)
               << ",\"nContrib\":" << r.nContrib << "}\n";
         }
     }
@@ -874,6 +876,7 @@ bool DrizzleEngine::drizzle(const FitsImage& img, const DrizzleConfig& config,
             d.sumWeight = 0.0;   // 诊断字段已移除 (release 精简)
             d.sumSnrSq  = 0.0;
             d.sumArea   = s.sumArea;
+            d.sumNorm   = s.sumNorm;
             d.sumVarNum = s.sumVarNum;
             d.nContrib  = s.nContrib;
         }
@@ -992,6 +995,7 @@ bool DrizzleEngine::drizzle_f64(const FitsImage& img, const DrizzleConfig& confi
             d.sumWeight = 0.0;   // 诊断字段已移除 (release 精简)
             d.sumSnrSq  = 0.0;
             d.sumArea   = s.sumArea;
+            d.sumNorm   = s.sumNorm;
             d.sumVarNum = s.sumVarNum;
             d.nContrib  = s.nContrib;
         }
@@ -1259,6 +1263,10 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
 
     // 6. 逐 Tile 构造 DrizzleTileAccumulator 并写入
     // signal = 累计通量 (步骤7), support = 面积比 (步骤10, A_p 归一化)
+    // 口径 (DRZ-FLUX-FIX-01): signal = Σ_j x_j·w_jp, w_jp = a_jp/A_drop,j (drop
+    // 面积归一, drizzlepac dover/=jaco) ⇒ Σ_p signal_p = Σ_j x_j, 与 pixfrac
+    // 无关。**不**在此除面积 — .hiss 的 signal 是分配通量; 面亮度面由 HiPS
+    // 产品 (astro_sphere_sink.cpp) 以 k = sumArea/sumNorm 折算后发布。
     for (const auto& [parent_ipix, tg] : tile_groups) {
         hiss::DrizzleTileAccumulator acc;
         acc.tile_nside  = tile_nside;
@@ -1597,13 +1605,16 @@ void DrizzleEngine::processPixelSharedTiled(
             continue;
         }
 
-        // DISP-DRZ-009: 权重分母 = A_pixel,j (面亮度保持), **不是** A_drop,j。
-        // 与 acc.sumArea (D_p = Σ a_jp, 绝对球面面积, support 语义) 搭配后
-        // S_p = Σ_j B_j a_jp / Σ_j a_jp。F&H 2002 式(5) 与 drizzlepac
-        // (cdrizzlebox.c update_data: (out·vc + dow·d)/(vc+dow), vc = Σ(a·w))
-        // 都是"权重和"归一的一致加权均值, 故与 pixfrac 无关; AstroCS 的分母是
-        // 绝对面积而非权重和, 因此分子权重必须取 a_jp/A_pixel,j 才与之配对。
-        Scalar weight = overlap_area / pixel_area;
+        // 核按 **drop 面积** 归一 (F&H 2002 §7.2 式(7) 下方逐字: a 是 "the
+        // fractional area overlap of **the drop** of input data pixel d_xy with
+        // the output pixel o" ⇒ Σ_o a_io = 1); 等价于 drizzlepac
+        // cdrizzlebox.c do_kernel_square 的 dover /= jaco (jaco = 映射后 drop
+        // 面积) → dow = dover·w。因此每源像素分配出去的权重和 = 1:
+        //   Σ_p sumFlux_p = Σ_j x_j · (Σ_p a_jp)/A_drop,j = Σ_j x_j
+        // 与 pixfrac **无关** (pixfrac 只决定 footprint 大小)。
+        // 面亮度归一分母由 acc.sumNorm (Σ w_jp·A_pixel,j) 承担, 见 drizzle_engine.h
+        // 的字段说明: S_p = sumFlux/sumNorm = Σ_j B_j a_jp/Σ_j a_jp。
+        Scalar weight = overlap_area / drop_area;
         if (weight <= Scalar(0)) {
             counters.quick_rejects++;
             continue;
@@ -1627,7 +1638,11 @@ void DrizzleEngine::processPixelSharedTiled(
         TileLeafAccumulatorT<Scalar>& acc = tile.leaf(local);
         acc.sumFlux   += Scalar(pixelValue * weight);
         acc.sumArea   += Scalar(overlap_area);
-        // 方差传播 (SCI-DRZ-014 / ALG-DRZ-VAR · DRIZZLE.md §方差传播 α²v): sumVarNum+=v·w², var=sumVarNum/D², ivar=1/var
+        // 面亮度归一分母: Σ_j w_jp·A_pixel,j (= Σ_j a_jp·A_pixel,j/A_drop,j)。
+        // pixfrac==1 时 pixel_area 与 drop_area 是同一个变量 ⇒ 比值恰为 1.0
+        // ⇒ sumNorm 与 sumArea 逐位相同 (默认路径零回归的代数保证)。
+        acc.sumNorm   += Scalar(overlap_area * (pixel_area / drop_area));
+        // 方差传播 (SCI-DRZ-014 / ALG-DRZ-VAR · DRIZZLE.md §方差传播 α²v): sumVarNum+=v·w², var=sumVarNum/sumNorm², ivar=1/var
         // 数值: (double)v·(double)w²→Scalar; 归一在 sink/writer finalize (astro_sphere_sink.cpp:100)
         if (varianceValue > 0.0f) {
             const Scalar w2 = weight * weight;
@@ -1700,6 +1715,7 @@ void merge_tile_map_into(
             if (dl.nContrib == 0) d.touched.push_back(local);
             dl.sumFlux   += sl.sumFlux;
             dl.sumArea   += sl.sumArea;
+            dl.sumNorm   += sl.sumNorm;
             dl.sumVarNum += sl.sumVarNum;
             dl.nContrib  += sl.nContrib;
         }
@@ -2187,6 +2203,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                 lr.ipix = (shift > 0) ? ((tile.parent_ipix << shift) | local) : tile.parent_ipix;
                 lr.sumFlux = (double)acc.sumFlux;
                 lr.sumArea = (double)acc.sumArea;
+                lr.sumNorm = (double)acc.sumNorm;
                 lr.nContrib = acc.nContrib;
                 drizzle_trace::push_leaf(lr);
             }

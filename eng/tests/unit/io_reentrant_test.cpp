@@ -77,7 +77,7 @@ int main() {
 #else
   std::string path = std::string((tmpenv && *tmpenv) ? tmpenv : "/tmp")
 #endif
-                     + "/astrocs_io003_tile.fits";
+                     + "/acsd_io003_tile.fits";
   std::remove(path.c_str());
   std::string err = make_fits(path);
   CHECK(err.empty());

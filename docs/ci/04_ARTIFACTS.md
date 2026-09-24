@@ -29,7 +29,7 @@
 
 ## 4. 产物验证（CI 内）
 
-- 安装目录可自检：`astrocs doctor` rc=0；
+- 安装目录可自检：`acsd doctor` rc=0；
 - 模块可独立加载/验证/卸载（CHK-MODULE-MANIFEST 关联）；
 - 打包白名单/哈希/版本/provenance 校验通过（CHK-PACKAGE）。
 

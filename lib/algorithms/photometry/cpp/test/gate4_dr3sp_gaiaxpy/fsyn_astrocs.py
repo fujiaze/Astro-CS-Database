@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Gate 4: AstroCS DR3SP 积分参考实现 (numpy 移植)
+Gate 4: ACSD DR3SP 积分参考实现 (numpy 移植)
 
 本文件含两条通道, 语义不同, **不得混用**:
 

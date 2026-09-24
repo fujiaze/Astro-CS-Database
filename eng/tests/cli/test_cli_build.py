@@ -3,7 +3,7 @@
 import json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# 单一产品事实源 = 根 CMakeLists.txt（唯一 project()/唯一 add_executable(astrocs)）。
+# 单一产品事实源 = 根 CMakeLists.txt（唯一 project()/唯一 add_executable(acsd)）。
 # 旧 cli/CMakeLists.txt（BLD-002 compatibility 声明，非产品事实源）退役后，静态
 # 属性断言改锚到根文件 + 迁移后的生成头模板 lib/infrastructure/cli/version_generated.h.in。
 ROOT_CMAKE = os.path.join(REPO, "CMakeLists.txt")
@@ -17,7 +17,7 @@ def _code_lines(path):
 
 
 def _single_exe_violations(text):
-    """唯一 project()/唯一 add_executable(astrocs) + 版本单源锚点（根文件口径）。
+    """唯一 project()/唯一 add_executable(acsd) + 版本单源锚点（根文件口径）。
 
     返回违规列表（空 = 合规）；每条都可由注入式负例转红（见 test_05）。
     """
@@ -26,8 +26,8 @@ def _single_exe_violations(text):
         bad.append("根 CMakeLists 必须恰有一个 project()")
     if len(re.findall(r"add_executable\(", text)) != 1:
         bad.append("根 CMakeLists 必须恰有一个 add_executable()")
-    if len(re.findall(r"add_executable\(astrocs\b", text)) != 1:
-        bad.append("根 CMakeLists 必须恰有一个 add_executable(astrocs ...)")
+    if len(re.findall(r"add_executable\(acsd\b", text)) != 1:
+        bad.append("根 CMakeLists 必须恰有一个 add_executable(acsd ...)")
     if "file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION" not in text:
         bad.append("版本单源必须是根 VERSION 文件（file(READ <root>/VERSION ...)）")
     if VERSION_H_IN not in text.replace(os.sep, "/"):
@@ -87,13 +87,13 @@ def _repo_version():
 # 旧命令（phase1/2/3、config *、modules *、selftest、test synthetic、verify*、
 # drizzle、benchmark cpu|verify-profile、hardware inspect）不得出现在 help 里。
 EXPECTED_HELP_LINES = [
-    "astrocs --version [--json]",
-    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
-    "astrocs help",
-    "astrocs doctor [--json]",
-    "astrocs benchmark",
+    "acsd --version [--json]",
+    "acsd normalize (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd mosaic (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd export (--json <config.json> | --template [-o <path>] | --help)",
+    "acsd help",
+    "acsd doctor [--json]",
+    "acsd benchmark",
 ]
 # 旧用户命令（命令 + 别名）：help 里不得出现，运行必须 rc=2
 LEGACY_COMMANDS = [
@@ -109,7 +109,7 @@ LEGACY_COMMANDS = [
 
 @unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 eng/cmake/g++")
 class TestCliBuild(unittest.TestCase):
-    """被测对象 = **根产品图**产出的唯一 exe（build/astrocs; ASTROCS_CLI_BIN 可覆盖）。
+    """被测对象 = **根产品图**产出的唯一 exe（build/acsd; ASTROCS_CLI_BIN 可覆盖）。
 
     退役登记: 旧 setUpClass 以 cmake -S cli -B <tmp> 构建 lib/infrastructure/cli/ 独立图（compatibility
     target）; BLD-002 明确唯一产品事实源是根 CMakeLists.txt, 且该独立图在 ARCH-001
@@ -121,13 +121,13 @@ class TestCliBuild(unittest.TestCase):
     def setUpClass(cls):
         env = os.environ.get("ASTROCS_CLI_BIN")
         cands = [env] if env else []
-        cands += [os.path.join(REPO, "build", "astrocs"),
-                  os.path.join(REPO, "build", "cli", "astrocs")]
+        cands += [os.path.join(REPO, "build", "acsd"),
+                  os.path.join(REPO, "build", "cli", "acsd")]
         for cand in cands:
             if cand and os.path.isfile(cand):
                 cls.exe = cand
                 return
-        raise AssertionError("先构建根产品 exe: cmake -S . -B build && ninja -C build astrocs")
+        raise AssertionError("先构建根产品 exe: cmake -S . -B build && ninja -C build acsd")
 
     def run_cli(self, *args):
         return subprocess.run([self.exe, *args], capture_output=True, text=True, timeout=30,
@@ -138,7 +138,7 @@ class TestCliBuild(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         # 根图用 rev-parse HEAD 全 40 hex（旧 lib/infrastructure/cli/ 独立图才是 --short=12, 已退役）
         self.assertRegex(r.stdout.strip(),
-                         r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
+                         r"^acsd " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
 
     def test_02_version_json_single_document(self):
         r = self.run_cli("--version", "--json")
@@ -146,7 +146,7 @@ class TestCliBuild(unittest.TestCase):
         lines = [l for l in r.stdout.splitlines() if l.strip()]
         self.assertEqual(len(lines), 1, "stdout 恰一个 JSON 文档")
         doc = json.loads(lines[0])
-        self.assertEqual(doc["name"], "astrocs")
+        self.assertEqual(doc["name"], "acsd")
         self.assertEqual(doc["schema_version"], "1")
         self.assertRegex(doc["version"],
                          r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
@@ -165,14 +165,14 @@ class TestCliBuild(unittest.TestCase):
         # 旧命令与别名全部消失且 rc=2（不保留兼容开关/隐藏别名）
         for args in LEGACY_COMMANDS:
             r = self.run_cli(*args)
-            self.assertEqual(r.returncode, 2, f"旧命令必须 rc=2: astrocs {' '.join(args)}")
+            self.assertEqual(r.returncode, 2, f"旧命令必须 rc=2: acsd {' '.join(args)}")
             self.assertNotIn("phase", r.stdout.lower(), "旧命令不得有任何可用输出")
 
     def test_03c_new_subcommands_template_and_help(self):
         for cmd in ("normalize", "mosaic", "export"):
             h = self.run_cli(cmd, "--help")
             self.assertEqual(h.returncode, 0, f"{cmd} --help")
-            self.assertIn(f"astrocs {cmd}", h.stdout)
+            self.assertIn(f"acsd {cmd}", h.stdout)
             t = self.run_cli(cmd, "--template")
             self.assertEqual(t.returncode, 0, f"{cmd} --template")
             doc = json.loads(t.stdout)          # 模板必须是可直接改的 JSON
@@ -247,14 +247,14 @@ class TestCliBuild(unittest.TestCase):
 
     def test_05_single_exe_rule(self):
         # 单一产品事实源 = 根 CMakeLists.txt（旧 cli/CMakeLists.txt compatibility
-        # 声明已退役）；判据: 唯一 project()/唯一 add_executable(astrocs) + 版本单源
+        # 声明已退役）；判据: 唯一 project()/唯一 add_executable(acsd) + 版本单源
         # 锚在根 VERSION 与 lib/infrastructure/cli/version_generated.h.in。
         text = _code_lines(ROOT_CMAKE)
         self.assertEqual(_single_exe_violations(text), [],
                          "根 CMakeLists 违反唯一产品 exe 规则")
         # 判别力自证（负例，注入式）: 改掉对应行 ⇒ 同一判据必须转红。
         self.assertTrue(_single_exe_violations(
-            text.replace("add_executable(astrocs", "add_executable(astrocs_dup", 1)),
+            text.replace("add_executable(acsd", "add_executable(acsd_dup", 1)),
             "负例: target 改名未被判出（判据失去判别力）")
         self.assertTrue(_single_exe_violations(text.replace(
             "lib/infrastructure/cli/version_generated.h.in",

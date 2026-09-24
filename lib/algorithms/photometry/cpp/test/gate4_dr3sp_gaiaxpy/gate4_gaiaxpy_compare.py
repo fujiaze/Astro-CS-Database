@@ -7,9 +7,9 @@ Gate 4 (Phase1 Full Freeze v2): DR3SP 积分 vs GaiaXPy 官方 Oracle 对比
   2. GaiaXPy generate -> Gaia_DR3_Vega 合成测光 (G/BP/RP)  = Oracle 参考
   3. GaiaXPy 自洽校验: 合成 G/BP/RP 星等 vs Gaia DR3 发布测光 (TAP)
   4. gaiaxpy convert 采样到 XPSD 网格 (336-1020nm @2nm)
-  5. AstroCS 参考积分 (fsyn_astrocs.compute_f_syn, λ 加权 + G 归一化)
+  5. ACSD 参考积分 (fsyn_astrocs.compute_f_syn, λ 加权 + G 归一化)
      × 官方 Gaia EDR3/DR3 通带 (Riello+2021 passband.dat)
-  6. 对比颜色 (m_BP-m_G, m_G-m_RP, m_BP-m_RP): AstroCS vs GaiaXPy
+  6. 对比颜色 (m_BP-m_G, m_G-m_RP, m_BP-m_RP): ACSD vs GaiaXPy
   7. numpy 移植 vs 生产 C++ (fsyn_export.exe) 交叉验证 (uint8 光谱)
 
 用法:
@@ -131,8 +131,8 @@ def main():
         sampled = sampled.loc[sampled.index.isin(df["source_id"])]
     print(f"[gate4] 绝对光谱完成: {len(sampled)} 星")
 
-    # 4. AstroCS 参考积分 (merged BP+RP 光谱, 模拟 XPSD 单条合并光谱)
-    print("[gate4] AstroCS 参考积分 ...")
+    # 4. ACSD 参考积分 (merged BP+RP 光谱, 模拟 XPSD 单条合并光谱)
+    print("[gate4] ACSD 参考积分 ...")
     band_cols = {"G": "GaiaDr3Vega_mag_G", "BP": "GaiaDr3Vega_mag_BP", "RP": "GaiaDr3Vega_mag_RP"}
     rows = []
     for sid in sampled.index.unique():

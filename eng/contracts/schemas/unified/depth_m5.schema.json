@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/depth_m5/v1",
-  "title": "AstroCS 统一对象 depth_m5 —— 固定参考 PSF/孔径下 5σ 深度",
+  "title": "ACSD 统一对象 depth_m5 —— 固定参考 PSF/孔径下 5σ 深度",
   "description": "UNIFIED_MODEL §2：depth_m5 = 固定参考 PSF/孔径下 5σ 深度；可否作权重 = 摘要，不作权重。depth_m5 是摘要量，禁止当作 frame_snr 或权重使用。",
   "x-astrocs-object": {
     "name": "depth_m5",

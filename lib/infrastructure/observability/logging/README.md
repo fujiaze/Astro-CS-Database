@@ -1,6 +1,6 @@
-# AstroCS 结构化日志（LOG-001）
+# Astro Celestial Sphere Database（ACSD） 结构化日志（LOG-001）
 
-本目录冻结 AstroCS 统一结构化日志合同（LOG-001，owner SA-LOG-08）。
+本目录冻结 ACSD 统一结构化日志合同（LOG-001，owner SA-LOG-08）。
 
 ## 内容
 

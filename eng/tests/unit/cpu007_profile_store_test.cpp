@@ -118,13 +118,13 @@ int main() {
     ::setenv("XDG_DATA_HOME", td.c_str(), 1);
     const PathResult r = default_profile_path_v1();
     CHECK(r.ok);
-    CHECK(r.path == td + "/AstroCS/cpu_profile.json");
+    CHECK(r.path == td + "/ACSD/cpu_profile.json");
     CHECK(!r.path.empty() && r.path[0] == '/');
     ::unsetenv("XDG_DATA_HOME");
     ::setenv("HOME", td.c_str(), 1);
     const PathResult r2 = default_profile_path_v1();
     CHECK(r2.ok);
-    CHECK(r2.path == td + "/.local/share/AstroCS/cpu_profile.json");
+    CHECK(r2.path == td + "/.local/share/ACSD/cpu_profile.json");
     CHECK(fs::path(r2.path).is_absolute());
     ::setenv("XDG_DATA_HOME", td.c_str(), 1);   // 还原, 后续用例不受影响
   }
@@ -133,7 +133,7 @@ int main() {
   std::string dir, target;
   {
     dir = temp_dir();
-    target = dir + "/AstroCS/cpu_profile.json";   // 不存在的父目录 → 自动创建
+    target = dir + "/ACSD/cpu_profile.json";   // 不存在的父目录 → 自动创建
     const std::string prof = make_v2_profile();
     const SaveResult s = save_profile_atomic_v1(prof, make_hw_json(), kCommit, target);
     CHECK(s.ok);
@@ -216,7 +216,7 @@ int main() {
 
   // ── 8) 负向: 无 profile → missing + 清晰 warning(消费方按 V8-CPU-002 回落) ──
   {
-    const std::string t = temp_dir() + "/AstroCS/cpu_profile.json";
+    const std::string t = temp_dir() + "/ACSD/cpu_profile.json";
     const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(!l.valid);
     CHECK(l.status == "missing");

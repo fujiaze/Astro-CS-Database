@@ -40,7 +40,7 @@
   注释 "禁止重新检测星点" :73）。
 - 输出: 单个 Phase2 马赛克 HiPS 目录（`cfg.out_hips`），仅 signal/support 两产品
   （flags=`AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT` :594；DISP-P2HIPS-001），
-  creator="ivo://astrocs/phase2"、title="AstroCS Phase2 Mosaic"（:595）、
+  creator="ivo://astrocs/phase2"、title="Astro Celestial Sphere Database（ACSD） Phase2 Mosaic"（:595）、
   filter=infos[0].filter_passband（:531/:596）；diagnostics=true 时另写
   diagnostics.json（:1748-1750）与 upm_sparse.json/upm_dense.cache（:472-483）。
 - 下游消费: 编排层 p2_session（lib/phase2_session/p2_session.cpp:81-92 仅验证
@@ -420,7 +420,7 @@ main(stage2.json, CLI overrides):
   DATA-P2-RES（mosaic，astrocs.phase2.write.md:23）；逐字段唯一权威见
   DATA_SEMANTICS §20。
 - API: API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权/并发合同）+
-  PUBLIC_API Phase2 mosaic write 节（生产入口 = `astrocs phase2 run` 编排；
+  PUBLIC_API Phase2 mosaic write 节（生产入口 = `acsd phase2 run` 编排；
   本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。
 - 模块: MOD-astrocs-phase2-hips-writer（registry 现状实测
   astrocs.phase2.write.md，module_id=astrocs.phase2.write，execution_class=io；
@@ -503,7 +503,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   TRACEABILITY_MATRIX.json 与 registry astrocs.phase2.integrate.md:22/
   astrocs.phase2.write.md:23）。
 - PUBLIC_API.md :54 的 astrocs-stage2 CLI 条目为历史登记；生产入口 =
-  `astrocs phase2 run`，本文档登记其底层写出实现
+  `acsd phase2 run`，本文档登记其底层写出实现
   lib/algorithms/coverage/tools/stage2.cpp。
 - 测试现状: 无名为 TEST-P2-HIPS-001 的测试；实测基线 = ivar_wiring_test.cpp
   （直接跑生产 astrocs-stage2）、routing_test.cpp、synthetic_gate.cpp

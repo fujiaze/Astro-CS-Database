@@ -1,4 +1,4 @@
-# AstroCS phase1 noise-snr module — 元数据 (P1-NOISE-DOC 冻结, 2026-09-07)
+# ACSD phase1 noise-snr module — 元数据 (P1-NOISE-DOC 冻结, 2026-09-07)
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
 # 的 noise_model_impl/fill_impl/free/scale_law/gain_variance + C API
 # snr_noise_model_v1(+_f64/_default_config/_fill/_free)/snr_noise_scale_law/

@@ -1,5 +1,5 @@
 # ============================================================================
-# AstroCS V6 Phase1 单帧产品装配库 (P1-INTEGRATE-001, Wave 7)
+# ACSD V6 Phase1 单帧产品装配库 (P1-INTEGRATE-001, Wave 7)
 # 写域: lib/algorithms/integration/v6_phase1/。本层只"接线" Wave 5 生产源，不复制科学公式。
 # 根/公共 CMakeLists 的注册归 RUNTIME-CI-001/W9 (C-004.4)；本文件自包含可独立
 # 构建（cmake -S lib/algorithms/integration/v6_phase1 -B <build>），也可被上层 add_subdirectory 复用。
