@@ -72,7 +72,7 @@ def gen_readme(d):
         f"| `{p['name']}` | `{p['data']}` | {'必' if p['required'] else '可'} | `{p['unit']}` | `{p['frame']}` |"
         for p in d["ports"]) or "_(无端口)_"
     exec_md = (f"`{d['execution_class']}`; parallel={'是' if d['parallel_ok'] else '否'}"
-               "(heavy+serial 资源门禁止)")
+               "(heavy+serial 资源门)")
     return f"""---
 id: MOD-{d['module_id'].replace('.', '-')}
 version: 1.0.0

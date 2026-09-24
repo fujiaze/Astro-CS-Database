@@ -24,7 +24,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
 > 合同，SCI/ALG 占位 ID⇒合同 ID 映射声明在其映射节）。descriptor
 > 词汇 module_id=`astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
 > （module_adapters.cpp:661-678/:680-694）为编排层占位，由 P2-XX-INT
-> 对齐 `astrocs.p2.upm`，不得反向作为冻结依据。
+> 对齐 `astrocs.p2.upm`；冻结依据 = 该矩阵行本身。
 
 ## 身份与合同落位
 

@@ -81,11 +81,11 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（:1301-1305）。
   **量纲（逐项）**：flux_sum [ADU]、covered_area [sr] ⇒ `signal` **[ADU/sr]**
   （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 DATA_SEMANTICS §31.1a 量纲链表）；
-  `support` **无量纲**（sr/sr，∈[0,1]）。**禁止**把 `signal` 读作"每像素计数"
+  `support` **无量纲**（sr/sr，∈[0,1]）。**`signal` 的读法 = 面亮度 [ADU/sr]**；另一种读数是"每像素计数"
   （裸 ADU）：两者相差 1/A_cell 的立体角因子，且跨像元尺度不可比。
 - (2b-上游) Phase1 编排（module_adapters.cpp p1_op_writer）必须按 HISS 支持度
   uint8 面连续缩放 `covered_area = (support/255)·A_cell`，并置 `valid_mask`=
-  本 parent 实际触及叶像素（未覆盖偏移**不得**保留上一 parent 缓冲）；
+  本 parent 实际触及叶像素（未覆盖偏移一律取未触及态，与上一 parent 缓冲无关）；
   **禁用** `support>0 ? A_cell : 0` 这一写法——它把任意部分覆盖塌缩为满覆盖
   （AIO 侧 `support=area/A_cell` 恒 1，负例判据）；provenance
   `covered_area_model="hiss_support_ratio_x_A_cell"`。
@@ -150,7 +150,7 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 - (4b) 逐父 cell 确定性累加（叶级缓存 :689-694、归约 :748-758）：
   `flux_n += sig·a`、`area_n += a`，其中 **`a` = 未钳制真实覆盖面积**
   （叶级 `area_true`→`scratch_area_n`，:645/:670-694），`sig` = 发布面叶级
-  signal（f32 产品取 float 截断后的值，:689）。**归约不得用钳后的 support 当
+  signal（f32 产品取 float 截断后的值，:689）。**归约权重取自未钳制真实覆盖面积；钳后的 support 只作发布值，不进入
   权重**：support 是 a/A_cell 的钳后发布值，用它反乘等于把父级面亮度降为
   sup 加权均值；异质覆盖（a>A_cell）下父级通量出现**本可避免的损失**
   （M2a-H-3；R-7 实测 sb=10@c=4 与 sb=0.1@c=1 混合域：面积加权 8.02 vs
@@ -331,7 +331,7 @@ round-trip（(5c)）。容差冻结见 §9。
   FITS 局部索引（DATA_SEMANTICS §3 (511−x)·512+y；外部对拍可取 CDS
   Hipsgen 样例）；FITS 头键精确匹配；MOC UNIQ 精确（式见 (5a)）；
   hierarchy 父像素=子像素精确聚合（NESTED 4 分叉）；**层次闭合 oracle 的权重
-  必须取 fixture 输入的未钳制覆盖面积，不得用产物 support（钳后值）反乘
+  必须取 fixture 输入的未钳制覆盖面积（权重面唯一来源）；产物 support（钳后值）只作被检对象，不参与反乘
   ——否则 oracle 与实现同源、对 (4b) 型错误恒绿（负例判据：同源 oracle
   对等价缺陷注入必须判红）**；moc_sky_fraction 的序列化
   判别点必须取十进制非有限小数（oracle 组 O6 用 N=1,K=0 ⇒ 1/12：
@@ -345,7 +345,7 @@ round-trip（(5c)）。容差冻结见 §9。
   I3 无效规则→NaN/0；I4 variance/ivar 互为倒数（有限域）；I5 MOC cells=
   非空叶 cells（order K）；I6 moc_sky_fraction·4π=moc_area_sr；
   **I7 hierarchy 逐阶聚合闭合 = 面积加权（权重为未钳制真实覆盖面积 a；
-  发布面 support=min(Σa/A_cell_k,1) 是编码限，不得回流当归约权重），
+  发布面 support=min(Σa/A_cell_k,1) 是编码限，只作发布值，不回流当归约权重），
   f64 域 bitwise（c>1 亦然）；f32 路径按 §9 容差（accumulator 漂移）**；I8
   manifest 计数字段=实际文件数；I9 double finalize rc=−2；I10 abort 后
   句柄不可复用；I11 F=signal×support×A_cell 有限非负（gate7 同式）；

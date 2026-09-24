@@ -70,7 +70,7 @@ flowchart TD
 
 ## 6. 失败处理
 
-- 红灯：回退该 commit 或补修提交；禁止 amend/force push；
+- 红灯：回退该 commit 或补修提交；提交历史一律前向追加（amend/force push 在处置面之外）；
 - 基础设施故障：重跑一次；连续失败负责人介入；
 - 所有失败留日志与复现命令。
 

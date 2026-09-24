@@ -14,4 +14,4 @@ hierarchy 重建
 browser：screen→sky→HEALPix 每像素映射；STF 变化不重新采样
 ```
 
-禁止凭感觉重写；禁止降精度换速度。
+重写依据 = 实测 profile；速度增益只从实现面获取，精度档位保持不变。

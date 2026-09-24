@@ -36,7 +36,7 @@
       "precision": "float32|float64",
       "weight_verdict": "对该估计目标可以",
       "weight_capable": true,
-      "notes": "同一估计量的方差；variance_from 不得为权重标量（FZ-FORMULA-COV-PROP）。",
+      "notes": "同一估计量的方差；variance_from 只取方差来源（FZ-FORMULA-COV-PROP）。",
       "compatibility_projections": []
     },
     {
@@ -50,7 +50,7 @@
       "precision": "float32|float64",
       "weight_verdict": "对该估计目标可以",
       "weight_capable": true,
-      "notes": "ivar=1/variance；variance 缺失/为 0 → ivar 显式不可用，禁止伪装。",
+      "notes": "ivar=1/variance；variance 缺失/为 0 → ivar 显式不可用（状态即显式不可用，伪装形态判红）。",
       "compatibility_projections": []
     },
     {
@@ -64,7 +64,7 @@
       "precision": "float32|float64",
       "weight_verdict": "不直接作帧权重",
       "weight_capable": false,
-      "notes": "依赖源亮度的 F_hat/sigma_F；不是 variance/ivar，不得接入要求 variance 的端口。",
+      "notes": "依赖源亮度的 F_hat/sigma_F；不是 variance/ivar，端口连接按对象名匹配（要求 variance 的端口一律判红）。",
       "compatibility_projections": []
     },
     {
@@ -176,7 +176,7 @@
       "precision": "float32|float64|integer",
       "weight_verdict": "门/概率，不是 coverage",
       "weight_capable": false,
-      "notes": "污染推断结果；必须携带 pollution_inference 本体，不得用 coverage 冒充。",
+      "notes": "污染推断结果；必须携带 pollution_inference 本体（用 coverage 冒充一律判红）。",
       "compatibility_projections": []
     },
     {
@@ -196,8 +196,8 @@
   ],
   "legacy_contract_ids": {
     "task": "DATA-001",
-    "trigger": "MOD-001 的 docs/modules/MODULE_MAP.yaml 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 不得引用权威面之外的 ID。",
-    "decision_rule": "(a) 有 canonical 映射 = 旧 ID → 统一对象（或组件对象组合）canonical schema ID；(b) 无 canonical 对应 = 明确判定并附旧合同面证据，不得留待定。",
+    "trigger": "MOD-001 的 docs/modules/MODULE_MAP.yaml 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 引用的 ID 一律取自权威面。",
+    "decision_rule": "(a) 有 canonical 映射 = 旧 ID → 统一对象（或组件对象组合）canonical schema ID；(b) 无 canonical 对应 = 明确判定并附旧合同面证据（结论只取 mapped / no_canonical 二值）。",
     "entries": [
       {
         "legacy_id": "DATA-P1-CAL",
@@ -395,7 +395,7 @@
   "port_contract_ref": {
     "schema_id": "https://astrocs.local/schemas/unified/port/v1",
     "canonical_schema_file": "eng/contracts/schemas/unified/port_contract.schema.json",
-    "purpose": "端口合同 canonical：跨对象连接只能同对象（UNIFIED_MODEL §2 禁止对象互相冒充；ENGINEERING_SPEC §4.7）。本 registry 的 port_contracts 只登记具体端口示例，不重复定义该约束。"
+    "purpose": "端口合同 canonical：跨对象连接只能同对象（UNIFIED_MODEL §2 对象各自具名；ENGINEERING_SPEC §4.7）。本 registry 的 port_contracts 只登记具体端口示例，不重复定义该约束。"
   },
   "other_schema_files": [
     {
@@ -564,11 +564,11 @@
           "eng/contracts/schemas/unified/psfsw_robust_weight.schema.json",
           "eng/contracts/schemas/unified/examples/psfsw_robust_weight.example.json"
         ],
-        "rejection": "旧产品声明 unified_object=psfsw_robust_weight ⇒ 显式拒绝（无 canonical schema；端口合同 enum 判红），不得静默接受",
+        "rejection": "旧产品声明 unified_object=psfsw_robust_weight ⇒ 显式拒绝（无 canonical schema；端口合同 enum 判红），处置只有具名拒绝这一条",
         "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary），不构成 canonical 对象。完整记录见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
       }
     },
-    "policy": "eng/contracts/schemas/ 是唯一事实源；旧路径（eng/contracts/data/**、已出库的 v6 字段级 schema、合同变体根文件）只保留兼容期映射与产品族专用投影，不得再新增与 canonical 等价的第二份定义；对象身份/单位/无效值/精度/可否作权重一律以 eng/contracts/schemas/unified/ 为准。",
+    "policy": "eng/contracts/schemas/ 是唯一事实源；旧路径（eng/contracts/data/**、已出库的 v6 字段级 schema、合同变体根文件）只保留兼容期映射与产品族专用投影，canonical 等价定义只有 eng/contracts/schemas/unified/ 一份；对象身份/单位/无效值/精度/可否作权重一律以 eng/contracts/schemas/unified/ 为准。",
     "legacy_paths": [
       {
         "old_path": "eng/contracts/data/v6_data_dictionary_v1.json",
@@ -670,7 +670,7 @@
   },
   "u02_criterion": {
     "id": "U-02",
-    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。",
+    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。",
     "machine_assertions": [
       "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_schema_loads_and_has_unique_global_id",
       "eng/tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_object_name_has_exactly_one_canonical_file",

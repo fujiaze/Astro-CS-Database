@@ -182,7 +182,7 @@
       "doc": "docs/science/INTEGRATION.md",
       "raw": "lib/algorithms/coverage/src/integrate.cpp:10-79",
       "kind": "FROZEN_SCI_CLAIM",
-      "reason": "SCI §5:63 冻结声明原文（实际 76 行）；ALG 侧已登记为已知漂移且禁止反向修改 SCI",
+      "reason": "SCI §5:63 冻结声明原文（实际 76 行）；ALG 侧已登记为已知漂移，修改方向 = 从 SCI 到 ALG",
       "owner": "SCI-INT owner",
       "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:182"
     },

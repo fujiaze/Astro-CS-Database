@@ -29,14 +29,14 @@
 - **数值判据（浮点结果）**：1 worker 与 N worker **数值等价**，容差来源按优先级取：
   1. 模块科学页已冻结的三档（`docs/science/PHASE2_UPM.md` §7：同配置重复=位精确 + `model_hash` 逐字相同；跨 worker 数（1..N）= **1e-12 绝对容差**；跨后端等价=不允许）；
   2. 未在模块页冻结的，按 `docs/contracts/TEST_MATRIX.md` §2 通用容差规则（FP64 非归约 `rtol=1e-12, atol=1e-13×scale`；FP32 产品非归约 `rtol=5e-6, atol=1e-6×scale`；归约 `C·γ_n·Σ|terms| + atol`，`C≤4`）。
-- **可满足性下限**：绝对容差只有在被比较量量级使 `atol ≥ 1 ulp(scale)` 时才可判。模块冻结的是绝对容差时，必须同时声明其**适用量级域**；超出该域按同值的相对形式判（只放宽不收紧）。低于 1 ulp 的绝对容差不可满足，不得作为门。
+- **可满足性下限**：绝对容差只有在被比较量量级使 `atol ≥ 1 ulp(scale)` 时才可判。模块冻结的是绝对容差时，必须同时声明其**适用量级域**；超出该域按同值的相对形式判（只放宽不收紧）。低于 1 ulp 的绝对容差不可满足，门只允许取可满足的容差。
 - **模块自有门可以更严**：由构造保证位精确的路径（固定槽位写回、per-thread 定序归并、整数索引归约）其共址测试仍可断言 bitwise——这是模块的更强保证，不违反本合同；**合同层不要求逐位一致**。
 - 容差在写测试前冻结；NaN/Inf/缺失的**位置与语义**必须精确一致（`docs/contracts/TEST_MATRIX.md` §2）。
 
 ## 3 资源声明（每阶段必填）
 
 - 线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；
-- 上述参数**由配置/资源门决定**，禁止硬编码线程数与 ISA；
+- 上述参数**由配置/资源门决定**，线程数与 ISA 取自该配置/门的取值；
 - 编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）的**最终取值**由 PERF-501 基于探针实测数据确定，本任务只保证机制正确与探针齐全。
 
 ## 4 探针事件 schema（JSONL，随事件流落盘）
@@ -57,7 +57,7 @@
 | `window_id` | uint64? | 窗口/子块身份（可缺） |
 | `worker` | int? | worker 序号（`worker_busy`） |
 
-**映射表（与 observability 现有事件流）**：本 schema 与 `eng/contracts/schemas/jsonl_event_v1.schema.json` 兼容——`ts`/`kind`/`value`/`unit` 复用其字段名；`stage`/`node`/`block`/`worker` 作为 `tags` 的等价展开。落地时由 observability 侧提供单一写出点，禁止第二份事件格式。
+**映射表（与 observability 现有事件流）**：本 schema 与 `eng/contracts/schemas/jsonl_event_v1.schema.json` 兼容——`ts`/`kind`/`value`/`unit` 复用其字段名；`stage`/`node`/`block`/`worker` 作为 `tags` 的等价展开。落地时由 observability 侧提供单一写出点，事件格式只有这一份。
 
 ## 5 取消与原子性
 

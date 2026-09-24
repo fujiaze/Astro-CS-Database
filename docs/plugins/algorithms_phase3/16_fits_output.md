@@ -5,7 +5,7 @@
 ## 1. 职责与边界
 
 - **职责**：把重采样后的平面产品流式写出为测量意义明确的 FITS 文件（PRIMARY + 扩展 HDU + WCS + provenance）。
-- **不是**：不做重采样/投影（resample/projection）；失败/取消不得留下可被误认的正式产品。
+- **不是**：不做重采样/投影（resample/projection）；失败/取消的产物面 = 无正式产品。
 
 ## 2. 权威依据
 
@@ -31,7 +31,7 @@
 ## 4. 算法与公式要点
 
 - 写临时文件 → flush/close/fsync → 标准 checksum → 原子 rename → 重开独立验证；
-- 流式：按行带/块执行，内存 `O(width×band_height + tile_cache)`，**禁止整幅超大图常驻**；
+- 流式：按行带/块执行，内存 `O(width×band_height + tile_cache)`，**常驻内存以该式为上界**；
 - cache 只缓存，不改变 order/核/科学值；
 - 线程预算来自 Runtime；并行输出与单线程科学结果一致。
 
@@ -52,7 +52,7 @@
 ## 7. 错误与边界
 
 - 输出模式缺所需科学层 → 拒绝或明确 unavailable；
-- BUNIT 与实际量纲不一致（`bunit="ADU"` vs `flux_sum/covered_area`）⇒ 必须显式失败或标注 unavailable，**不得**静默按 `"ADU"` 声明；
+- BUNIT 与实际量纲不一致（`bunit="ADU"` vs `flux_sum/covered_area`）⇒ 必须显式失败或标注 unavailable，**声明值以实际量纲为准**（`"ADU"` 只在量纲一致时使用）；
 - >2 GiB、长 UTF-8 路径、Windows CFITSIO、取消、缺 tile 必须正确处理；
 - 取消 → 无可见半成品（临时文件隔离 + 原子 rename）。
 

@@ -33,9 +33,9 @@
 | 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`、`eng/tools/monitoring/check_log_contract.py` |
 
 - 每行 = 一个 JSON 对象 + `\n`；单行（含换行）≤ **4096 字节**；
-- 事件键名 `event`、顺序键 `seq`；**不得**与运行事件流的 `kind`/`sequence` 混用；
+- 事件键名 `event`、顺序键 `seq`；与运行事件流的 `kind`/`sequence` **各自独立**；
 - `level=error` 必须携带 `error{source,symbol,status}`；
-- `commit` 为真实运行现场的 40 位小写 SHA，禁止 config 值冒充；
+- `commit` 为真实运行现场的 40 位小写 SHA（取值只来自运行现场，config 值不参与）；
 - 落点文件名固定 `run_<run_id>.jsonl`（§7）。
 
 **为什么定成机器校验格式**：运行日志要能被机器判定（判据 R1–R3 的输入）、被审计回放、
@@ -50,7 +50,7 @@
 - 它的消费者是人（操作员/验收者），不参与任何机器判定；
 - 它的内容必须与 JSONL **同源生成**（同一事件的两路渲染，LOG-001 §2 摘要模板），
   因此自由文本不引入第二套语义；
-- 机器判定一律走 JSONL；摘要行**不得**作为任何判据的输入。
+- 机器判定一律走 JSONL；摘要行的用途限于人读。
 
 摘要行仍受两条约束：脱敏（§8）与单行 ≤ 4096 字节。
 
@@ -105,7 +105,7 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 | `CANCELLED` | 9（CANCELLED） | 用户取消或超时 |
 | `INTERNAL` | 70（INTERNAL） | 未分类内部错误；必须生成脱敏 crash report |
 
-- **禁止第二套数值表**：本文档只做"域 → 码"映射，不复写码值含义；
+- **数值表只有一份**：本文档只做"域 → 码"映射，不复写码值含义；
 - 未列出的域一律 70，并在 `status` 里给出可定位的稳定错误码；
 - 现行实现的域映射偏差登记在 `eng/ci/ledgers/log_system_ledger.json#findings`（登记不改码）。
 
@@ -127,7 +127,7 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 测光拟合失败属**显式失败**，按 §5 口径逐帧记 `status=fail` + `error_domain`/`error_status`/`error`，
 不写 `degraded_reason`（失败 ≠ 降级，判据见 §6 D1–D3 与 `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）。
 
-**禁止**：静默回退到低优先输入、静默保持缺省值、静默跳过校验。三者都是故障，必须上行到 CLI。
+**三种情形一律具名上行**：回退到低优先输入、保持缺省值、跳过校验都属故障，必须上行到 CLI。
 
 ---
 
@@ -140,7 +140,7 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 | 人可读摘要 | `<log_dir>/run_<run_id>.log` |
 | 目录创建 | 幂等；由 L2 在 run_start 前创建 |
 
-**禁止落点**：进程 CWD 相对路径、源码树目录（如 `lib/**/logs/`）、`run/`（那是开发/CI 过程日志）、
+**落点之外的位置**：进程 CWD 相对路径、源码树目录（如 `lib/**/logs/`）、`run/`（那是开发/CI 过程日志）、
 安装目录、用户家目录。判据 R3 与台账 `log_system_ledger.json#log_landing` 强制本约束。
 
 ---

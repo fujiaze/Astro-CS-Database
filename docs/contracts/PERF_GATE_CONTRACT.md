@@ -14,8 +14,8 @@
 | 3 | 达标样本占比（利用率 ≥ 0.85 的采样窗比例） | ≥ 0.70 | red |
 | 4 | 无「连续 ≥142 s 低利用窗且无积压」 | 无 | red |
 
-- **enforcement = fail-closed**：任一判据违规 ⇒ `verdict=red`；`record_and_justify` **不得**用于掩盖违规（GATE-501 须把 L2 门从 record_and_justify 改为 fail-closed，并用 RELEASE-04 归档违规数据回放证明改前绿、改后红）；
-- 判据阈值本身**不得放宽**求绿；如确有硬件/算法上限 ⇒ 给证据化上限并登记到未决问题台账（随审核包交付），不 waiver。
+- **enforcement = fail-closed**：任一判据违规 ⇒ `verdict=red`；违规一律由 fail-closed 判红，`record_and_justify` 只用于无违规样本（GATE-501 须把 L2 门从 record_and_justify 改为 fail-closed，并用 RELEASE-04 归档违规数据回放证明改前绿、改后红）；
+- 判据阈值本身**保持事前冻结值**；如确有硬件/算法上限 ⇒ 给证据化上限并登记到未决问题台账（随审核包交付），不 waiver。
 
 ## 2 测量口径（冻结）
 
@@ -31,15 +31,15 @@
 utilization_pct = 100 × mean_over_windows( busy_workers_in_window / n_workers )
 ```
 
-- **禁止**用「0.5 × 100」式常量或「(min+max)/2」式与负载无关的算法（D-10 实测恒 50.00%）；
+- 判据算法必须与负载相关：「0.5 × 100」式常量与「(min+max)/2」式恒值算法一律判红（D-10 实测恒 50.00%）；
 - 判据：合成两组不同负载必须给出**不同**输出（GATE-501 的 `WORKER-BALANCE-METRIC-REPLAY` 负例）。
 
 ## 4 监控字段语义（二选一落地，冻结为「真强制」）
 
 | 字段 | 语义（冻结） | 执行 |
 |---|---|---|
-| `requires_monitor` | 声明该检查**必须**有监控证据（CPU/RSS/时长采样） | **真强制**：声明为 true 而监控证据缺失/为空/不可解析 ⇒ **判红**（fail-closed）；不得落 `else PASS` |
-| `mutates_workspace` | 声明该检查**会改写工作区**（如生成产物、改配置） | **真语义**：为 true 时检查前后工作区指纹必须**可解释**（声明的 outputs 之外不得有新增/修改）；不得仅「跳过 git 对比」 |
+| `requires_monitor` | 声明该检查**必须**有监控证据（CPU/RSS/时长采样） | **真强制**：声明为 true 而监控证据缺失/为空/不可解析 ⇒ **判红**（fail-closed）；判定只走具名分支（`else PASS` 属未登记形态） |
+| `mutates_workspace` | 声明该检查**会改写工作区**（如生成产物、改配置） | **真语义**：为 true 时检查前后工作区指纹必须**可解释**（改动面 = 声明的 outputs）；指纹对比是唯一判据（「跳过 git 对比」属未登记形态） |
 
 - 8 条 `requires_monitor` 声明逐个核对执行语义，出对照表（GATE-501 交付）；
 - 语义若改为纯能力声明，须改名为 `monitor_capable` 并在本文件登记——**本期选择真强制**。

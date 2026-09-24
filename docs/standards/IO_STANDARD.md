@@ -20,4 +20,4 @@ temp write → validate → atomic promote（同目录临时文件 + rename）�
 
 ## 只读约束
 
-- testdata/ 禁止写入运行产物；运行产物统一 run/。
+- testdata/ 保持只读；运行产物统一 run/。

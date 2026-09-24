@@ -8,7 +8,7 @@
     "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
     "owner_rulings": "工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md「负责人补充裁决（2026-09-16 第二轮）」"
   },
-  "field_count": 53,
+  "field_count": 56,
   "registry_ref": {
     "path": "eng/packaging/config/config_registry.json",
     "scope": "W5-CFG-002（CFG-002）登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
@@ -668,7 +668,7 @@
       "unit": "1",
       "constraint": "0 < pixfrac <= 1（严格校验，非法值显式 NO_DATA，不静默夹逼；DRIZZLE.md:31,:92；DRIZZLE_GEOMETRY.md:61,:102）",
       "authority_status": "owner_adjudicated",
-      "source": "docs/science/DRIZZLE.md:35（0<pixfrac<=1，非法 NO_DATA，不静默夹逼）；docs/contracts/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
+      "source": "docs/science/DRIZZLE.md §4/§7（0<pixfrac<=1，非法 NO_DATA，不静默夹逼；核按 drop 面积归一时 Σ_p F_p=Σ_j x_j 对全部 pixfrac∈(0,1] 严格成立，provenance.flux_conservation_factor 恒 1）；docs/contracts/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
       "source_ref": {
         "path": "docs/science/DRIZZLE.md",
         "line": 35
@@ -749,6 +749,48 @@
       "source_ref": null,
       "pending_task": null,
       "note": "绝对路径不入库（AGENTS.md §3 禁写死服务器绝对路径）；本键只承载默认相对位置与覆盖机制。"
+    },
+    {
+      "key": "cosmetic.bad_column_enabled",
+      "value": true,
+      "unit": "1",
+      "constraint": "bool；false 时列状缺陷路径逐位不生效",
+      "authority_status": "owner_adjudicated",
+      "source": "docs/contracts/DATA_SEMANTICS.md §10.4（列状缺陷路径）",
+      "source_ref": {
+        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "line": 304
+      },
+      "pending_task": null,
+      "note": "列状缺陷（整列或列内一段）的连通域尺寸与天体源在大尺寸端重合，连通域尺寸过滤对它无效，故独立成路径。默认启用，配置可关闭。"
+    },
+    {
+      "key": "cosmetic.bad_column_sigma",
+      "value": 5.0,
+      "unit": "MAD 倍数",
+      "constraint": "> 0；列统计量跨列跳变与帧内稳健尺度比对的阈值",
+      "authority_status": "sourced",
+      "source": "docs/contracts/DATA_SEMANTICS.md §10.4（判据）；docs/science/CALIBRATION.md（缺陷形态可分性）",
+      "source_ref": {
+        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "line": 304
+      },
+      "pending_task": null,
+      "note": "与点状缺陷的 hot_sigma/cold_sigma 同量纲（稳健尺度倍数），作用对象为列统计量而非逐像素。"
+    },
+    {
+      "key": "cosmetic.bad_column_neighbor_k",
+      "value": 3,
+      "unit": "列数",
+      "constraint": ">= 1；每侧参与列统计量估计的列数",
+      "authority_status": "sourced",
+      "source": "docs/contracts/DATA_SEMANTICS.md §10.4（邻域宽度）",
+      "source_ref": {
+        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "line": 304
+      },
+      "pending_task": null,
+      "note": "与修复算子同构：修复用左右两邻，统计用每侧 k 列以抵抗单列污染。"
     }
   ]
 }

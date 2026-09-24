@@ -12,7 +12,7 @@
 - module_id: astrocs.p3.projection（MODULE_MIGRATION_MATRIX P3-PROJ
   行权威值）；registry 行 MOD-astrocs-phase3-wcs；
   dll_target=astrocs_p3_projection.dll（合同值，尚未存在，
-  entrypoint=MISSING，由 P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED）；
+  entrypoint=MISSING，由 P3-PROJ-IMPL 建立，IMPLEMENTED 只由验收签发）；
   现状构建=astrocs_phase3_session 静态库成员（根 CMakeLists.txt
   :460-465）。
 - owner: SA-P3-P25；language: c++17；abi_version: 1；
@@ -44,7 +44,7 @@
 - **投影集口径（最高设计 §5.3）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**已实现并可作为产品声明的以实际注册表为准
   —— 当前登记：仅 `TAN` 已实现**（`lib/algorithms/projection/p3_projection_registry.h`
-  的声明集 D = 实现集 I = `{TAN}`）；**未实现的必须显式报「不支持」，禁止声称支持**
+  的声明集 D = 实现集 I = `{TAN}`）；**支持声明以注册表登记为准：未实现者报「不支持」**
   （`p3_proj_declare` 返回 `P3_WCS_UNSUPPORTED` 并给出请求码 + 原因 + 已支持清单）。
   新增投影须**同时**进实现集与声明集
   （`p3_proj_registry_selfcheck` 判红），并附独立往返 Oracle + 追溯条目。

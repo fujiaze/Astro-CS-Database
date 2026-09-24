@@ -126,12 +126,12 @@ flowchart TD
 
 ### 5.1 任务拆分原则
 
-- **一个任务 = 一个可独立验证的 commit**；
+- **一个任务 = 一个可独立验证的 commit**（提交粒度正本 = `ENGINEERING_SPEC.md` §6）；
 - 按文件域互斥拆分，使多个 SubAgent 可并行而不冲突；
 - 科学/架构/性能/文档不混在一个任务；
 - 每个任务给出**验收命令**；
 - 大模块拆小步：先合同/schema → 再算法实现 → 再测试 → 再集成；
-- 科学创新点验证用实验单元任务（SCI-A/B/C），自带报告八要素与独立审稿。
+- 科学创新点验证用实验单元任务（SCI-A/B/C），自带报告八要素与独立审稿（八要素与目录结构的唯一正本 = `ASTROCS_DESIGN.md` §12.3，本规范不复制清单）。
 
 ---
 
@@ -152,7 +152,7 @@ flowchart LR
     E --> F["汇总报告 → 负责人"]
 ```
 
-- SubAgent = 干活的手，**零 git 写权限**（不 commit、不 push、不改任务声明范围之外的文件）；
+- SubAgent = 干活的手，**零 git 写权限**（不 commit、不 push、不改任务声明范围之外的文件；提交纪律的唯一正本 = `ENGINEERING_SPEC.md` §6）；
 - 前台 = 调度员 + 独立验证官 + 提交者；
 - 同一工作区 tracked 文件写入串行，审查/测试可并行；
 - 所有外部命令带 timeout 并保存日志；改完必须验证才能报告完成；
@@ -160,7 +160,7 @@ flowchart LR
 
 ### 6.3 任务状态
 
-`NOT_STARTED → IN_PROGRESS → PASS / FAIL / BLOCKED`（PASS 仅由前台验收后写入）。
+`NOT_STARTED → IN_PROGRESS → PASS / FAIL / BLOCKED`（PASS 仅由前台验收后写入）。**任务状态词表属本规范域，与模块状态词表（`ASTROCS_DESIGN.md` §12.5）是两个域，取值互不代用**。
 
 ```mermaid
 flowchart LR
@@ -205,7 +205,7 @@ flowchart LR
 
 ## 9. 阶段汇总与收口清理
 
-- 控制包全部任务 PASS 后，前台写 `SUMMARY.md`：目标、差距清单闭合情况、每模块状态（CONTRACT_READY/IMPLEMENTED/INSTALLED/VERIFIED）、遗留项；
+- 控制包全部任务 PASS 后，前台写 `SUMMARY.md`：目标、差距清单闭合情况、每模块状态（**取值集合 = `ASTROCS_DESIGN.md` §12.5 词表，本规范不复制**）、遗留项；
 - **真实数据终验先于控制包完成声明**（最高设计 §12）；未过终验不写"完成"；
 - **收口即清理**：SUMMARY 中有长期价值的结论沉淀进正式文档（最高设计/科学文档/插件文档/索引），随后把本控制包目录从仓库移除（与清理任务同一提交）；任务的完整过程、证据与讨论由 git 历史承载，仓库工作区只保留当前生产代码、自解释文档集与当前在执行的控制包；
 - 不产 zip/胶囊/台账等重量级长期设施。

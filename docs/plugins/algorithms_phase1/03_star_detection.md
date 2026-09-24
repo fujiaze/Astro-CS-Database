@@ -71,7 +71,7 @@ photometry 同一判据 `p1_wcs_astrometry_usable` 确认）→ ③ `wcs.init_so
 `<frame_dir>/p1_wcs.json`（`platesolve` 节点先落盘，由 IR 的 typed 边 `artifact:p1_wcs` 保证序）；
 配置的 `approx_wcs` / `rotation_deg`+`parity` 是覆盖与兜底。两种来源都不可得时：
 `catalog_guided` 直接 DATA 拒绝，`auto` 显式降级（`detection_authoritative=false`），
-**不得**以「北向上/东向左」默认值冒充权威取向。
+**权威取向只出自已解 WCS 或显式声明的先验**。
 先验来源逐帧记入 manifest 溯源（`approx_wcs_source` / `approx_wcs_orientation_assumed` /
 `orientation_from_solved_wcs`），使「权威用的是哪一种先验」在产物上可审计。
 
@@ -102,7 +102,7 @@ photometry 同一判据 `p1_wcs_astrometry_usable` 确认）→ ③ `wcs.init_so
 |---|---|
 | `catalog_guided` 且未配置星表目录 | DATA 拒绝（点名 `gaia_data_dir`），**不**回退全图盲检测 |
 | 星表目录 0 个 `.xpsd` | DATA 拒绝（`gaia catalog is empty`） |
-| 星表 shard 装载失败或装载数 ≠ 条目数（部分装载） | DATA 拒绝（`gaia catalog is incomplete` / `gaia_client_create failed`）——静默部分装载事故不得重演 |
+| 星表 shard 装载失败或装载数 ≠ 条目数（部分装载） | DATA 拒绝（`gaia catalog is incomplete` / `gaia_client_create failed`）——本条判据即静默部分装载事故的封堵点 |
 | 逆投影先验缺失（无本帧 `p1_wcs.json` 产物，且无 `approx_wcs` CD、无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并留痕 |
 | 本帧 `p1_wcs.json` 存在但天测不可用（缺 crval/CD、非有限、CD 退化） | DATA 拒绝（与 photometry 同一判据 `p1_wcs_astrometry_usable`，禁 silent default） |
 | 近似 WCS 不可解析（指向/板尺度缺失或退化） | DATA 拒绝（禁 silent default） |

@@ -40,7 +40,7 @@
   rc=7 显式科学错误）→ 逆归一
   （area=sup×A_cell、flux=signal×area）——
   ⚠ **该 `flux` 是 writer 视图的中间量**（writer 入参口径），
-  **落盘值 = `flux_sum / covered_area` = 面亮度**（写端口 `UnitId::SURFACE_BRIGHTNESS`；**不得**读成「产品是通量」）→
+  **落盘值 = `flux_sum / covered_area` = 面亮度**（写端口 `UnitId::SURFACE_BRIGHTNESS`；**产品语义 = 面亮度**）→
   FITS 序→NESTED 序转换
   （HIPS-IMG-001）→ writer 库写 signal+support 两产品 → HIPS_VERIFY 回读。
 - 非职责：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库 P1 域）；

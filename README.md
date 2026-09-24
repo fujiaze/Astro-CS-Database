@@ -25,11 +25,11 @@ ACSD 把单帧观测转换为可独立消费、带不确定度与来源链的球
 
 ## 三个命令，三个独立产品
 
-`normalize` / `mosaic` / `export` 是三个平级独立命令：各自独立启动、独立重跑、独立验收，阶段间只通过
-磁盘产品、manifest 与哈希交换（`ASTROCS_DESIGN.md` §1.2；产品交换合同见
+`normalize` / `mosaic` / `export` 是三个平级独立命令：各自独立启动、独立重跑、独立验收（阶段间交换媒介的
+唯一正本 = `ASTROCS_DESIGN.md` §8.1；产品交换合同见
 `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`）。对外只有一个 CLI 入口 `acsd`，它按命令
-拉起对应阶段的调度器（§8.1）。`phase` 是设计与目录层面的内部指代，命令名与代码目录用
-`normalize`/`mosaic`/`export`（§7.1）。
+拉起对应阶段的调度器（§8.1）。`phase` 是内部指代：命令名与 CLI 子目录用
+`normalize`/`mosaic`/`export`，会话层目录为 `lib/phase{1,2,3}_session`（§7.1、§8.4）。
 
 | 命令 | 内部指代 | 输入 | 输出 |
 |---|---|---|---|
@@ -98,8 +98,7 @@ acsd help / acsd --version / acsd doctor / acsd benchmark
 
 ## 状态口径
 
-状态词表唯一口径 = `ASTROCS_DESIGN.md` §12.5：`CONTRACT_READY` / `IMPLEMENTED` / `INSTALLED` / `VERIFIED`，
-负向 `NOT_IMPLEMENTED` / `NOT_VERIFIED` / `DEFERRED` / `DORMANT` / `FAIL`；状态由检查与验收现场计算，
+状态词表唯一口径 = `ASTROCS_DESIGN.md` §12.5（**取值集合见该节，本文档不复制**）；状态由检查与验收现场计算，
 登记表不预写状态。
 
 - 逐模块/逐阶段状态与证据锚：`docs/owner/RELEASE_STATUS.md`、`docs/modules/MODULE_MAP.yaml`。

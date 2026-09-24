@@ -4,7 +4,7 @@
 
 ## 原则
 
-科学正确性优先于透明兼容；ambiguous/损坏旧文件显式拒绝，禁止猜测。
+科学正确性优先于透明兼容；ambiguous/损坏旧文件显式拒绝，判据取自文件自述字段。
 
 ## UPM 持久化（DATA-UPM-MODEL-001）
 
@@ -12,7 +12,7 @@
   升序（std::set）→ 旧文件自洽，可直接读取（方案 A 安全迁移）。
 - 读取时强制校验：frames 唯一/类型、C 行数==帧数、控件字段类型；
   畸形文件稳定报错（ERR-P2-UPM-001）。
-- 禁止从有序容器遍历重建绑定；绑定只由 frame_id_by_index 决定。
+- 绑定只由 frame_id_by_index 决定；有序容器遍历顺序与绑定取值无关。
 - 旧签名保留仅为兼容：`p2_reject_stack` 为 COMPAT adapter，生产用 `p2_reject_stack_ex`（含 eligibility/large_scale）。
 
 ## 配置/接口

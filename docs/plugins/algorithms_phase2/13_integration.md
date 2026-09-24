@@ -5,7 +5,7 @@
 ## 1. 职责与边界
 
 - **职责**：按明确科学目标把归一化+排异后的帧集成为马赛克：扩展源 GLS、点源 Q/W、PSF 信号权重复合分量的诊断/基线对照。
-- **不是**：不产"一个万能 weight"；普通像素 ivar coadd 在 PSF 不同时**不保证**最大点源 SNR，不得宣称等价；不宣称 PSF 信号权重复合分量为 Fisher 最优。
+- **不是**：不产"一个万能 weight"；普通像素 ivar coadd 在 PSF 不同时**不保证**最大点源 SNR，两者的等价性宣称以专项证明为前提；Fisher 最优的宣称同以专项证明为前提。
 
 ## 2. 权威依据
 
@@ -20,7 +20,7 @@
 - **SNR 重建路径（三条，配置文件 JSON 显式指定；默认稀疏）**：这三条是**重建方式**的选择，**不是**权重口径的选择 —— 三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，都走同一条逆方差定权式（见 §4.0）；
   - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：由稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；
   - `sparse_reconstruct` 且输入**有**稀疏层 → 由稀疏**绝对** SNR 控制点**直接重建**出稠密 `SNR(x,y)`（控制点值即绝对信噪比本身，**不乘帧级标量**），参与科学运算；
-  - 输入**无**稀疏层而路径为默认/`sparse_reconstruct` → 按帧级执行并**显式记录实际路径**（`snr_path_effective=frame_reconstruct` + 计数），**不得静默**；稀疏层存在但损坏/不可重建 → 明确失败（§7）；
+  - 输入**无**稀疏层而路径为默认/`sparse_reconstruct` → 按帧级执行并**显式记录实际路径**（`snr_path_effective=frame_reconstruct` + 计数）；稀疏层存在但损坏/不可重建 → 明确失败（§7）；
   - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）；其中 **HST 类高对比域的结论与重建算子绑定**（双线性/默认算子下帧级更优，`..._mesh_median_v1` 下稀疏更优），判据与 Δ\* 见 `07_noise_snr.md` §4.2/§4.5。
   - **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应权重（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
 - **输出**（同一马赛克包可含多个明确产品族）：
@@ -63,7 +63,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 - `psfsw_integration` 用 Phase1 产出的 PSF 信号权重复合分量做 conventional integration，**只作诊断与基线对照**，不计入科学叠加权重；
 - 必须用共同星集/selection-function 门，传播实际线性组合 covariance，输出 effective PSF，与等权/exposure/pixel-ivar/`W_info` 基线比较；
-- **不得宣称 Fisher 最优**，除非专项证明。
+- **Fisher 最优的宣称以专项证明为前提**。
 
 ## 5. 配置项
 
@@ -80,10 +80,10 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 ## 7. 错误与边界
 
-- PSF 不同的输入用像素 ivar coadd 且宣称点源最优 → 禁止；
+- PSF 不同的输入用像素 ivar coadd 且宣称点源最优 → 判红；
 - 相关噪声无描述 → variance 不完备，标记；
 - PSF 信号权重复合分量缺共同星集/selection function → fail-closed；
-- 稀疏 SNR 层存在但损坏/不可重建 → 明确失败（不得静默回退帧级）。
+- 稀疏 SNR 层存在但损坏/不可重建 → 明确失败（帧级回退属另一路径）。
 
 ## 8. 测试与 Oracle
 
@@ -96,9 +96,9 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 - PSF 信号权重复合分量与基线比较 + covariance 传播正确；
 - M42/银心真实数据检查。
 
-### 权重来源禁止表的锁定状态
+### 权重来源受限表的锁定状态
 
-- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/contracts/DATA_SEMANTICS.md` §31.8（`G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT`）与 `docs/science/PSF_SIGNAL_WEIGHT.md` §8（禁止事项）**在役判据的执行面**——**不是死代码**，不得按「残留清理」删除。
-- **解锁条件 = §31.8 禁止表本身被变更流程废止**；顺序不可颠倒：先废止禁止表，再收缩代码词表。反序会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
-- 生产权重来源仍是单一现场派生量（逐样本 ivar）；该禁止表只负责**拒绝**非法来源，不产生权重。
+- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/contracts/DATA_SEMANTICS.md` §31.8（`G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT`）与 `docs/science/PSF_SIGNAL_WEIGHT.md` §8 **在役判据的执行面**——**不是死代码**，删除路径 = 变更流程。
+- **解锁条件 = §31.8 受限来源表本身被变更流程废止**；顺序不可颠倒：先废止受限来源表，再收缩代码词表。反序会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
+- 生产权重来源仍是单一现场派生量（逐样本 ivar）；该受限来源表只负责**拒绝**非法来源，不产生权重。
 

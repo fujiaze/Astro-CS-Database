@@ -17,14 +17,14 @@
 
 ## 1 规则（冻结）
 
-- **R1 表外阈值禁止**：任何检查器/门/测试注释不得引用本表之外的容差；新增门必须
+- **R1 表内唯一来源**：任何检查器/门/测试注释的容差一律取自本表；新增门必须
   先在本表登记（门ID / 判据式 / 量测域 / 统计量 / SNR 定义 / 阈值 / 来源 / 证据）。
 - **R2 证据必需**：`发布门=Y` 的行，证据ID 必须解析到可执行目标（`ctest:<test 名>`
   或仓内存在的测试源路径）；无证据者把 `发布门` 置 `N`，证据ID 写 `UNJUSTIFIED`。
-- **R3 量测域独立**：`量测域` 不得与「拟合/生成域」重合（禁止自证门；例如
+- **R3 量测域独立**：`量测域` 与「拟合/生成域」各自独立（自证门不计入门表；例如
   「7×7 网格上往返 <1e-6 px」既是拟合域又是检验域，不作门，见 G-P1-WCS-RT）。
 - **R4 统计量显式**：必须是 `max` / `median` / `p95` / `rms` / `bitwise` / `精确` 之一，
-  禁止只写「误差 ≤ x」而不说统计量。
+  阈值一律与统计量同写（「误差 ≤ x」的写法不含统计量）。
 - **R5 SNR 统一**：凡门引用 SNR，必须使用 §2 已登记的定义（`SNR_peak` / `SNR_det`；`SNR_phot` 不属本域），并写明所用列
   （检测侧 `A_fit`=star_det flux 列 / PSF 侧 Moffat4 振幅 `A`）。
 
@@ -34,7 +34,7 @@
 |---|---|---|---|
 | `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:458-476` 的 `sdet_compute_bgnoise`）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad·1.482602218505602`（star_measurements 列 [4]/[10]） |
 | `SNR_phot` | `F / sigma_F`（Horne 1986） | 无量纲 | 测光域（DATA-P1-SNR §13.4），**与本表门无关**，列此仅作区分 |
-| `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_sources.json` 的 `sources[].snr`）：`peak` = **未平滑原图**上检出像素峰值、`background`/`noise_sigma` = 该帧背景与背景 RMS；实现 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:240`（`s.snr = (peak − cat.background) / cat.noise_sigma`）。**与 `SNR_peak` 不同源**：`SNR_peak` 用椭圆高斯拟合振幅 `A_fit`（检测侧 `flux` 列），`SNR_det` 用原始峰值 ⇒ 两列**禁止互换**；凡门写「SNR>x」必须点名用哪一行 |
+| `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_sources.json` 的 `sources[].snr`）：`peak` = **未平滑原图**上检出像素峰值、`background`/`noise_sigma` = 该帧背景与背景 RMS；实现 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:240`（`s.snr = (peak − cat.background) / cat.noise_sigma`）。**与 `SNR_peak` 不同源**：`SNR_peak` 用椭圆高斯拟合振幅 `A_fit`（检测侧 `flux` 列），`SNR_det` 用原始峰值 ⇒ 两列**各自具名**；凡门写「SNR>x」必须点名用哪一行 |
 
 **SNR_peak 的定义敏感性（必须随门一起读）**：全局检测阈值是
 `threshold = median(img) + 5.0·bgnoise`（`sdet_api.cpp:1790`，阈值语义锚 `:1782`），作用于
@@ -59,7 +59,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 | G-P1-STAR-FP | 虚警密度 | 合成纯噪声场（无注入星，与 G-P1-STAR-RECALL 异场） | 计数密度（每千像素） | n/a | ≤0.1 /千像素 | 设计冻结：ALG-STARDET-001 §11.4 F1 | ctest:p1star_units | Y |
 | G-P1-STAR-DET | 输出 bitwise 一致（含 mag 全序 + NaN 末尾 + maxStars 保最亮） | 合成星场，同输入、线程数 1/2/4 | bitwise / 精确 | n/a | 完全相等 | 解析：ALG-STARDET-001 §5 全序与串行归约 | ctest:p1star_properties | Y |
 | G-P1-WCS-F1 | `rms_arcsec`（″） | **trans 拟合内点集（n_pairs ≥ 12）+ 合成线性场（order=1，已知 CD/CRVAL/CRPIX）**；**不是**产品级天测精度门 | rms | n/a | 0.5″ | 标定：**无有效标定**——`Galaxy_Center 0.1431″` 在当前版本 T4 帧上不可复现（实测 0.2803–0.3588″），只在 T2/T3 档场复现，**禁用**该值作标定依据（SCI-WCS-001 §11a）；量测域 = trans 拟合内点集 + 合成线性场 | UNJUSTIFIED（无可执行 F1 目标，落地归 P1-WCS-TEST） | N |
-| G-P1-WCS-CLOSURE | `median{d_i : d_i ≤ 1.0″}`（角秒；像素换算 `median_px = median_arcsec/s0`），**必须同报** `n_matched` / `match_rate` / `p95` / `max` | **产品级外部闭环 + 真实帧**：检出星样本 = `x,y` 有限 ∧ `snr>20`（`SNR_det`，超 20000 按 flux 降序截断并记录 `sample_capped`），星表 = 本地 Gaia DR3 XPSD 视场单锥 `G<18`；WCS 口径 solved(CD+SIP) 与 frame_header **分别报告**（`wcs_flavor`），禁止合并比较；独立工具不导入生产代码 | median / p95 / max | `SNR_det`（§2；门槛 20） | 分档阈值 UNJUSTIFIED（实测参考：T2/T3 档 s0≈0.96″/px ⇒ 0.4202–0.5644 px；T4 档 s0≈6.31″/px 见 §4a） | UNJUSTIFIED：口径已冻结（SCI-WCS-001 §11a），**阈值仍未标定**——现有实测值取自 XISF 母版单位未修复的输入，修复后必须整体复跑才可定阈；台账中 0.897 px 一项用 v1.2 工具 × 2 帧、半径/星选/统计量均未冻结（改半径 1″→5″ median 漂 14%），**不可复现，不作门** | UNJUSTIFIED（口径实现 `eng/tools/astrometry/closure_metric.py`） | N |
+| G-P1-WCS-CLOSURE | `median{d_i : d_i ≤ 1.0″}`（角秒；像素换算 `median_px = median_arcsec/s0`），**必须同报** `n_matched` / `match_rate` / `p95` / `max` | **产品级外部闭环 + 真实帧**：检出星样本 = `x,y` 有限 ∧ `snr>20`（`SNR_det`，超 20000 按 flux 降序截断并记录 `sample_capped`），星表 = 本地 Gaia DR3 XPSD 视场单锥 `G<18`；WCS 口径 solved(CD+SIP) 与 frame_header **分别报告**（`wcs_flavor`），各自独立成项；独立工具不导入生产代码 | median / p95 / max | `SNR_det`（§2；门槛 20） | 分档阈值 UNJUSTIFIED（实测参考：T2/T3 档 s0≈0.96″/px ⇒ 0.4202–0.5644 px；T4 档 s0≈6.31″/px 见 §4a） | UNJUSTIFIED：口径已冻结（SCI-WCS-001 §11a），**阈值仍未标定**——现有实测值取自 XISF 母版单位未修复的输入，修复后必须整体复跑才可定阈；台账中 0.897 px 一项用 v1.2 工具 × 2 帧、半径/星选/统计量均未冻结（改半径 1″→5″ median 漂 14%），**不可复现，不作门** | UNJUSTIFIED（口径实现 `eng/tools/astrometry/closure_metric.py`） | N |
 | G-P1-WCS-CLOSURE-REPRO | 同输入同口径两次运行：`median_px(A) = median_px(B)`（**完全相等**）∧ `n_matched(A) = n_matched(B)`；且每份记录声明的 `n_matched/median/p95/max/match_rate` 必须能由**该记录自带的残差向量 + 声明半径**重新导出，且 `params` 必须逐项等于冻结口径 | **产品级真实帧**（同输入两跑记录）+ 记录面（`params` / 残差向量 / 输入 sha256）；合成场自检同在 ctest 目标内 | median / 精确 | `SNR_det`（§2；样本门槛 20） | 0 px（完全相等）/ `n_matched` 精确相等 | 实测漂移 0：E2E-001 §5.1/§5.3 全链科学面产物逐字节相等、规范哈希全等 ⇒ 同输入同口径指标漂移 = 0；记录内 `1e-9 px` 仅为 JSON 浮点往返护栏，**不是科学容差** | ctest:p1wcs_closure_metric_gate | Y |
 | G-P1-WCS-F2 | astropy WCS 前向/逆向 `\|Δ\|`（px） | 合成 SIP 场（order=2，注入已知 A/B），中心 90% 区域 | max | n/a | 1e-4 px | 预冻结（ALG-WCS-001 §8/§11.4 F2 承接，不放宽） | ctest:p1wcs_apbp | Y |
 | G-P1-WCS-RT | roundtrip `max‖(x,y) − WCS⁻¹(WCS(x,y))‖`（px） | **独立密集域**：中心 90% + 四边 + 四角 + ≥1000 随机点（**不是**拟合采样网格） | max | n/a | 1e-4 px | 解析+实测：与 ALG-WCS-001 §11.4 F2 同值（SCI/ALG 冻结值，**不放宽**）。「7×7 网格上 <1e-6 px」为**自证门**（自网格 1.8e-12 px vs 离网格 3.10 px），不作门。**分层定位**：本行是**全链冻结门**（判据力弱：实测最坏 2.91e-9 px ⇒ 余量 3.4e4×，与 FP64 地板无关）；迭代反演路径的紧门见 G-P1-WCS-RT-ITER、多项式逆表示门见 G-P1-WCS-RT-APBP | ctest:p1wcs_apbp | Y |
@@ -70,11 +70,11 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 | G-P1-WCS-RT-APBP | APx/BPx 多项式逆**一步直加表示残差** `max‖UV + APx(UV) − u*‖`（u* = 独立 oracle 反演） | P1 SIP 多项式逆路径；**合成畸变场** fixture（FIX-WCS-F 三档，边缘畸变预算 18.4/91.8/183.6 px），中心 90% 网格 | max | n/a | ≤ 10% × 边缘畸变预算（px）；**表示门，不是 FP64 地板门** | 推导：多项式表示残差随畸变预算陡增（实测 low 1.9e-4% / mid 0.036% / high 1.89% ⇒ 最坏档余量 5.3×）；~184 px 畸变下多项式逆**根本达不到 1e-4 px**（实测 3.46 px）⇒ 必须与 τ 门分开登记。真值无效应⇒归零：零畸变 fixture 残差 2.61e-11 px（比 high 档小 1.3e11×）；等价缺陷（APx 清零）⇒ 202.2 px 必红 | ctest:p1wcs_apbp | Y |
 | G-P1-CENTROID-BRANCH-ORDER | `star_measurements` 写端契约：PSF 支路**恒等**（dpsf 输出即 index-is-center）、fallback 支路 `−0.5`（sdet 连续系）；读端统一 `+0.5` | 契约函数级（`star_coord_contract.h`）+ 端到端（G-P1-CENTROID-1） | 精确 / max | n/a | 精确相等（fallback 输出 − sdet 原始坐标 = 0） | 解析：DATA-P1-STAR §17.2 + dpsf 采样式 dpsf_psf.cpp:295 / sdet 采样式 sdet_api.cpp:127-131（R-3 §3.1/§3.4 实测） | ctest:p1psf_centroid_gate | Y |
 
-## 4 诊断脚本（**不是门**，R1/R2 约束下不得作为发布门）
+## 4 诊断脚本（**不是门**，R1/R2 约束下只作诊断）
 
 | 脚本 / 阈值 | 现状 | 处置 |
 |---|---|---|
-| `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进 `eng/ci/checks.json`（`grep -c gate2 eng/ci/checks.json` = 0），4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：不得引用为发布门；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
+| `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进 `eng/ci/checks.json`（`grep -c gate2 eng/ci/checks.json` = 0），4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：引用面限于诊断；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
 
 ## 4a 台账实测值（**XISF 母版单位修复后须整体复跑**）
 
@@ -108,7 +108,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 - 天测残差口径与大圆角距：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）；astropy.wcs（BSD-3-Clause）作独立重建 Oracle。
 - Gaia G<18 样本与 1″ 匹配：Gaia DR3（Gaia Collaboration et al. 2023, A&A 674, A1）；匹配半径/统计量的冻结依据见本文件 §3 与 ASTROMETRY §11a。
 - MAD→σ 常数：Rousseeuw & Croux 1993, JASA 88, 1273。
-- 本表阈值均为 Project-defined 冻结门（不得引用表外阈值）；外部文献只提供量测域语义，不提供门值。
+- 本表阈值均为 Project-defined 冻结门（阈值来源只此一表）；外部文献只提供量测域语义，不提供门值。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
@@ -123,6 +123,6 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 
 ## 接缝与 WCS 基线（回归对照）
 
-- **接缝判据**：在**保留公共天光面 `B_ref`** 的前提下比较帧间一致性与边界跳变，残余阶跃门 = **≤ 2×** 参考水平；把整张背景减掉后再比帧间差是**退化判据**（背景归零时差值天然为零），不得使用（依据 `ASTROCS_DESIGN.md` §5.4 与 `docs/science/PHASE2_UPM.md`）。
+- **接缝判据**：在**保留公共天光面 `B_ref`** 的前提下比较帧间一致性与边界跳变，残余阶跃门 = **≤ 2×** 参考水平；把整张背景减掉后再比帧间差是**退化判据**（背景归零时差值天然为零），判据只用保留 `B_ref` 的写法（依据 `ASTROCS_DESIGN.md` §5.4 与 `docs/science/PHASE2_UPM.md`）。
 - **WCS 真实数据基线值**：绝对零点残差 **0.1028″**（典型）/ **0.3242″**（最坏）。二者是既有实测**基线**，用于回归对照与验收叙事，**不是**新增科学门；门表以上文 §3 为唯一来源。
 

@@ -16,7 +16,7 @@
 | boundary | 边界/极端/NaN/Inf/空 | 所有模块 |
 | parallel/backend equivalence | 1/N worker、baseline/AVX 等价 | CPU-heavy 模块 |
 
-## 2. 通用容差规则（事前冻结，禁止跑后调阈值）
+## 2. 通用容差规则（事前冻结，阈值只按事前冻结值取用）
 
 - 元数据/mask/计数/索引/端口/选择结果: 精确一致。
 - FP64 非归约: `rtol=1e-12, atol=1e-13×scale`。
@@ -24,8 +24,8 @@
 - 归约: `γ_n = n·u/(1−n·u)`, 门限 `C·γ_n·Σ|terms| + atol`, `C≤4` 事前冻结。
 - 并行归约 deterministic 用固定分块/树合并; 否则 reproducible-within-bound 文档化。
 - 并行等价（1/N worker、baseline/ISA）判据 = **容差等价**，不是逐位一致：按上列 FP64/FP32/归约三档取值；整数/mask/索引/计数/端口精确一致。归约顺序冻结是结构性不变量（跨 worker 无共享浮点累加器），与容差判据两者都要满足。
-- **绝对容差的可满足性下限**: 任何绝对容差 `atol` 只有在被比较量量级 `scale` 满足 `atol ≥ 1 ulp(scale)` 时才可判；模块若冻结绝对容差（如 `docs/science/PHASE2_UPM.md` §7 跨 worker 数的 `1e-12`），必须同时声明**适用量级域**，超出该域按同值的相对形式判（只放宽不收紧）。低于 1 ulp 的绝对容差不可满足，不得作为门。
-- NaN/Inf/missing 位置与语义精确一致, 禁止仅比较 finite 像素。
+- **绝对容差的可满足性下限**: 任何绝对容差 `atol` 只有在被比较量量级 `scale` 满足 `atol ≥ 1 ulp(scale)` 时才可判；模块若冻结绝对容差（如 `docs/science/PHASE2_UPM.md` §7 跨 worker 数的 `1e-12`），必须同时声明**适用量级域**，超出该域按同值的相对形式判（只放宽不收紧）。低于 1 ulp 的绝对容差不可满足，门只允许取可满足的容差。
+- NaN/Inf/missing 位置与语义精确一致, 比较面覆盖 finite 与非 finite 像素。
 - 容差调整必须是独立 SCI/TEST commit, 附失败分布与推导。
 
 ## 3. 每 SCI/ALG 的 TEST 映射（当前冻结）

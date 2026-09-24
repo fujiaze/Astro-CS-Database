@@ -9,7 +9,7 @@
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
 > MOD-astrocs-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；禁止手抄他版。
+> lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。
@@ -23,7 +23,7 @@
   球面集合量（本模块唯一产物）；`support` = 逐像素覆盖支撑 [0,1]（样本级，
   SCI-INT-001 §2/§5，P2PixelStack.support，仅作 eligibility 与 canonical
   reducer `max`，integrator 语义）；`validity` = 数据有效性标志（finite/
-  accepted/排异接受掩码语义，SCI-INT-001 §5 valid(i)）。三者禁止混用，
+  accepted/排异接受掩码语义，SCI-INT-001 §5 valid(i)）。三者各自独立、各自具名，
   本模块不生产 support/validity，也不消费之（coverage.cpp 无任何 support/
   accepted 输入，实测 inspect_frame :59-140 只读 properties 与 Moc.fits
   tile 列表）。
@@ -40,11 +40,11 @@
   :145-147）、stage2 正式入口（lib/algorithms/coverage/tools/stage2.cpp:189-200）、registry descriptor（module_adapters.cpp:627-642）。
 - descriptor astrocs.phase2.coverage（module_adapters.cpp:627-642）为编排层
   词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
-  以本合同为准修订，P2-COV-INT 对齐，不得反向作为冻结依据。
+  以本合同为准修订，P2-COV-INT 对齐；冻结依据唯一 = 本合同。
 
 ## 2 离散公式
 
-（锚=coverage.cpp 实测行号；公式与源码一一对应，禁止改写）
+（锚=coverage.cpp 实测行号；公式与源码一一对应，正文按源码逐字照录）
 
 - properties 解析（static parse_props :20-45，文件作用域 static，非匿名 ns）: 逐行
   `key=value`（首个 `=` 分割 :28-31），`#` 开头行跳过 :27，两端空白
@@ -63,13 +63,13 @@
   （shift=9）一致），**不是** IVOA HiPS 1.0 的强制值——IVOA HiPS 1.0 §4.4.1
   的 `hips_tile_width` 合法值是 2 的幂，允许其它 tile 宽。故本模块合法域的正确
   表述是「本产品线冻结 tile_width=512」；域外（如 256）判红属**产品约定拒绝**，
-  **不得**表述为「标准不允许」。
+  **表述口径 = 「产品约定拒绝」**。
   (ii) `hips_frame ∈ {equatorial, icrs}` 同为**产品约定**：IVOA HiPS 1.0 §4.4.1
   的 `hips_frame` 标准值域是 {equatorial, galactic, ecliptic}，本模块额外接受
   `icrs` 而拒绝 `galactic`/`ecliptic`。`equatorial` 与 `icrs` 在本仓语义等价
   （同一天球系、J2000 参考架），列为两个取值是**输入兼容性**需要，不是两个不同的
   坐标系；下游一律按 ICRS/J2000 消费。域外（galactic/ecliptic）判红属**未实现**，
-  **不得**表述为「非法坐标系」。
+  **表述口径 = 「未实现」**。
 - B2-A8 filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
   **键缺失 → rc=1 "missing obs_filter property ..."**（:92-104，fail-closed）；
   键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
@@ -83,7 +83,7 @@
   :119，语义=该 HiPS signal 子目录 properties 声明的叶级 order）。
 - target_order（:194-196，逐帧 min :195-196）:
   `target_order = min(f.max_leaf_order, f∈[0,N))`
-  （冻结语义：禁止低 order 插值伪装分辨率，coverage.h:8/:56 注释；全部
+  （冻结语义：分辨率取最低输入 order，插值不产生新分辨率，coverage.h:8/:56 注释；全部
   输入同 order 时即该 order）。
 - filter/passband 一致性（build :215-225）: 基准 = 首帧 `filter_passband`
   （:215-218，无论空串与否）；后续帧 `filter ≠ filter_ref` →
@@ -188,14 +188,14 @@ p2_coverage_build(hips_paths, n_inputs, out):
 ## 7 合同负向条款（科学红线，P2-COV 专项）
 
 - **no use as implicit scientific weight**（matrix P2-COV 专项）: 本模块
-  输出（union MOC/target_order/逐帧 tile 计数）是几何登记量，**禁止**
+  输出（union MOC/target_order/逐帧 tile 计数）是几何登记量，**用途 = 几何登记与分组，本量不**
   被任何下游作为科学权重、统计权重或置信度使用；科学权重唯一冻结公式
   `w_UPM = quality_factor × geometric_reliability × control_ivar`
   （docs/science/PHASE2_UPM.md §5 F2），其中 support 仅
   eligibility/coverage 语义（PHASE2_UPM.md §5 注释行
   "禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅
   eligibility/coverage"）、canonical reducer=max（SCI-INT-001 §5，
-  "覆盖并集保守下界"）——coverage 帧数/N_cover 不得进入该式或替代
+  "覆盖并集保守下界"）——该式的输入 = 三项冻结因子，coverage 帧数/N_cover 只作几何登记、不进入该式、不替代
   control_ivar。
 - **coverage/support/validity 三概念分离**（matrix P2-COV 专项）: 本模块
   只生产 coverage（几何集合）；support 样本级 [0,1]（SCI-INT-001 §2）
@@ -242,7 +242,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   本模块对 AIO 层的信任边界 = `aio_hips_open` rc 与
   `aio_hips_reader_last_error` 透传（:62-64）。
 - 上述容差在 P2-COV-TEST 落地时逐项写死（TEST-COV-DESIGN-001 §11.4），
-  不得放宽；fixture 生成器须注记容差来源（本节）。
+  取值一律按本节；fixture 生成器须注记容差来源（本节）。
 
 ## 10 关联 ARC/API/TST
 
@@ -305,7 +305,7 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   保持 memset（:151）后的 0——rc=1 与 status=0 并存，
   违反 status/return 同步惯例（对照 :168/:177/:190/:200 均置 1）；
   调用方若只看 status 会误判成功。整改: 统一 status=1（P2-COV-IMPL）。
-- **两个 frame_id 的命名区分（禁止混名，正向约束）**：
+- **两个 frame_id 的命名区分（各自具名，正向约束）**：
   (i) **coverage frame_id**（本模块，路径基名截断，64 B 上限）：仅作本模块输入
   登记与 union 分组键，**不保证跨 run 稳定**、**不保证唯一**；
   (ii) **sampler/UPM frame_id**（内容 SHA-256 truncated-64，
@@ -391,8 +391,8 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   （MOD-astrocs-phase2-coverage 行）。
   三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001
   （本文档 §2/§7），SCI 公式语义不在此重复定义，两处冲突时以
-  docs/science/ 为准并回改本文档（禁止反向）。
-- 本节禁止被编排层词汇反向改写（descriptor astrocs.phase2.coverage
+  docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
+- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor astrocs.phase2.coverage
   由 P2-COV-INT 对齐，不作冻结依据）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

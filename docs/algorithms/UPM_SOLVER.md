@@ -53,7 +53,7 @@ function p2_upm_build(observations, cfg):
 | frame_id重复 | 去重, persist同长校验 |
 | NaN weight | INVALID_INPUT |
 | 无观测 | NO_DATA |
-| 迭代耗尽（未达 tolerance） | `p2_upm_build` rc 仍 0；只读访问器 `p2_upm_convergence` 报 `converged=0`（M7-H-101，禁止以 rc=0 冒充已收敛） |
+| 迭代耗尽（未达 tolerance） | `p2_upm_build` rc 仍 0；只读访问器 `p2_upm_convergence` 报 `converged=0`（M7-H-101，收敛结论以 `converged` 为准，rc=0 只表构建成功） |
 
 ## 5 确定性与归约
 
@@ -65,7 +65,7 @@ function p2_upm_build(observations, cfg):
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU：IRLS 求解串行为确定性 reference；块级(C frame×control)求值可 worker pool（按 affinity, **禁止硬编码线程数**）, 控制索引固定顺序归约；dense/sparse 1e-12 等价门保留(实现自检, 非跨后端)。
+- 仅 CPU：IRLS 求解串行为确定性 reference；块级(C frame×control)求值可 worker pool（按 affinity, **线程数取自 benchmark profile**）, 控制索引固定顺序归约；dense/sparse 1e-12 等价门保留(实现自检, 非跨后端)。
 
 ## 5c SIMD 安全与取消点
 
@@ -81,7 +81,7 @@ function p2_upm_build(observations, cfg):
 - 1e-12 (dense/sparse)，预冻结；
 - **跨 worker 数（1..N）= 1e-12 绝对容差**（实测 ΔC_max=2.22e-15 ≈ 1 ulp @10 ADU，
   见 `docs/science/PHASE2_UPM.md` §11）；**同配置重复 = 位精确 +
-  `model_hash` 逐字相同**（`synthetic_gate.cpp` CON-009 门）；跨后端等价不允许。
+  `model_hash` 逐字相同**（`synthetic_gate.cpp` CON-009 门）；门的等价面 = 同配置重复（跨后端等价不在门内）。
 
 ## 10 关联 ARC/API/TST
 

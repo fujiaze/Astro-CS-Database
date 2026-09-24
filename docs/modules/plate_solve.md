@@ -41,7 +41,7 @@ POD，无堆所有权转移。
 ## Errors
 
 几何退化/星不足 → ret=0/success=0（error_msg 载因）→ 编排
-PLATESOLVE_FAILED；BLOCK_MISSING（必需块缺失）；CD 退化坍缩禁止冒充解
+PLATESOLVE_FAILED；BLOCK_MISSING（必需块缺失）；CD 退化坍缩按失败处理
 （DISP-WCS-001 失败-置信度语义）。
 
 ## Science IDs

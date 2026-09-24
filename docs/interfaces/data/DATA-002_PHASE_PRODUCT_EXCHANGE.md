@@ -29,7 +29,7 @@
 
 角色命名：`phase1_product_v1` / `phase2_mosaic_v1` / `phase3_planar_fits_v1`。
 角色是**交换语义名**；type_id 是 DATA-001 已登记的类型化产物标识。二者**强绑定**——
-role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role 的歧义）。
+role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧义）。
 
 | product_role | type_id（registry） | registry schema_version | producer_phase | 最小平面集 | content format |
 |---|---|---|---|---|---|
@@ -91,13 +91,13 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     DATA_SEMANTICS §1 + SCI-P3 §3a）；RA/Dec 单位 `deg`。
   - `geometry`：format + 结构子块（hips→ordering/tile_width；fits→projection/wcs）。
   - `planes`：每平面显式 `plane_id/units/dtype/invalid_policy`；plane_id 集合
-    `{signal, support, variance, ivar, mask, sparse_snr}`；units 非空、禁止占位/空串/首尾空白。
+    `{signal, support, variance, ivar, mask, sparse_snr}`；units 非空且取实义字符串（占位/空串/首尾空白一律拒绝）。
     - `sparse_snr` 是稀疏 SNR 层在交换合同中的位置（GAP_AUDIT G09）。
     - **`sparse_snr` 的语义（最高设计 §4.4，强制）**：稀疏控制点层作为**标准层插入 HiPS 文件内**，
       控制点值 = 该点的**绝对**通量型 SNR `SNR_c = F_ref / σ_F,c`（与帧级 SNR 同物理定义、
       同逐帧参考通量 `F_ref`），`units` = `dimensionless`（无量纲信噪比）。
       消费时由控制点**直接重建**为稠密 SNR 场 `SNR(p)`（重建算子显式声明、在控制点处精确复现节点值、并返回预测方差）；
-      **禁止**把它当作权重、**禁止**把权重面写进 HiPS（最高设计 §3.1：HiPS 里只**存**
+      该层只作 SNR 表示、不进权重面，HiPS 里只**存**（最高设计 §3.1：HiPS 里只**存**
       **帧级 SNR** 与**稀疏绝对 SNR 控制点**；权重是阶段二现场派生量 `w(p) = SNR(p)²/F_ref²`）。
       该层**可选**（`sparse_snr_layer=true` 时存在，默认 true），**不属于** §1 的最小平面集。
     - **机器形态**：`plane_id` 枚举同步落在 `eng/contracts/data/phase_product_exchange.schema.json`；
@@ -125,8 +125,8 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     |---|---|
     | **合格样本** | 参与聚合的源样本满足：值有限（`isfinite(x_j)`）且几何上覆盖该输出像素（`w_jp > 0`）。**方差是否可用不参与合格性判定**（上游授权 = `ASTROCS_DESIGN.md` §5.5「NaN 采用样本级掩膜」，该条只对 NaN 授权；§0.1「每一层只由它的上一层推出」） |
     | **方差可用样本** | 合格样本中 `V_j` 有限且 `V_j > 0` 者：其 `V_j` 计入 `Var_p` |
-    | **方差不可用样本** | 合格样本中 `V_j` **有限且 `V_j ≤ 0`** 者（"有覆盖但无方差信息"）：**信号与几何权重照常计入 `F_p`、`W_p`**（保信号、保覆盖），方差项**不计入** `Var_p`；**禁止**用任何常数、地板或哨兵值顶替 `V_j` |
-    | **方差面损坏** | `V_j` 非有限（NaN/±Inf）：按 §4a「NaN/负只表示产品损坏」处置 —— 该样本按不合格样本剔除并计入 `n_rejected_nonfinite_variance`，**禁止**当作「方差不可用」静默放行 |
+    | **方差不可用样本** | 合格样本中 `V_j` **有限且 `V_j ≤ 0`** 者（"有覆盖但无方差信息"）：**信号与几何权重照常计入 `F_p`、`W_p`**（保信号、保覆盖），方差项**不计入** `Var_p`；`V_j` 一律取原值，常数、地板或哨兵值一律不参与 |
+    | **方差面损坏** | `V_j` 非有限（NaN/±Inf）：按 §4a「NaN/负只表示产品损坏」处置 —— 该样本按不合格样本剔除并计入 `n_rejected_nonfinite_variance`，类别恒为「损坏」并与「方差不可用」分列 |
     | **零合格样本** | 某输出像素的全部候选样本都不合格（或根本没有候选样本） |
     | **无覆盖** | 该输出像素没有任何候选样本（几何无覆盖） |
     | **无效输出** | `signal = NaN` **且** `support ≤ 0`；两者**必须同时**成立（互推） |
@@ -145,7 +145,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     **适用域边界（强制）**：规则 1 / 1a / 2 的「分母」按上表**逐分支**取值。
     **`W_p` 在 Phase 1 drizzle drop 分支不成立** —— 该分支的分母是**球面面积** `D_p`
     （量纲 `sr`，= 本文件与 `DATA_SEMANTICS` §12.2 的 `covered_area`），**不是**无量纲权重和。
-    `D_p` 与 `W_p` 量纲不同，**不得同名复用、不得互换**：`D_p` 只表示 `covered_area[sr]`，
+    `D_p` 与 `W_p` 量纲不同，**各自具名、不可互换**：`D_p` 只表示 `covered_area[sr]`，
     权重和一律用 `W_p`（符号唯一性强制与错误代入的量级差见 `DATA_SEMANTICS` §4a）。
 
     **处置规则（样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数）** —— 对**每一个聚合算子**
@@ -154,17 +154,17 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     1. **样本级掩膜（只作用于不合格样本）**：不合格样本（值非有限）**从该输出像素的
        分子、分母、方差三项中一并剔除**（`F_p = Σ_合格 x_j w_jp`、`W_p = Σ_合格 w_jp`），
        并**重新归一**。**方差不可用样本不属此列**：它计入 `F_p` 与 `W_p`（保信号、保覆盖），
-       只是不计入 `Var_p`。**禁止**让单个不合格样本使整个输出像素变为 NaN；
-       **禁止**保留被剔除样本的权重在分母里（会引入系统性偏低）。
+       只是不计入 `Var_p`。单个不合格样本**只**作用于该样本自身的项；
+       分母**只**含合格样本的权重（保留被剔除样本的权重会引入系统性偏低）。
     1a. **方差项的乘积表达**：`Var_p = Σ_{方差可用} V_j w_jp² / W_p²`，其中 `W_p` **含方差不可用
        样本的 `w_jp`**（**分母不缩小**，避免方差系统性偏高）。输出像素的 `variance/ivar` 按
-       `DATA_SEMANTICS` §4a 表达为 **`variance=0 ∧ ivar=0`（显式不可用）**；**禁止**写 NaN
+       `DATA_SEMANTICS` §4a 表达为 **`variance=0 ∧ ivar=0`（显式不可用）**；该情形只写 0
        —— NaN 保留给「无覆盖」（§11.2 / §30.4）。
     2. **覆盖级 NaN**：仅当 `W_p = 0`（零合格样本）时，输出 `signal = NaN`、`variance = NaN`、
-       `support = 0`。NaN 是**无效的唯一表示**；**禁止**用 `0`、`±Inf` 或任意哨兵值冒充无效。
-    3. **强制计数（禁止静默剔除）**：每个输出像素**必须**同时暴露被剔除样本的计数
+       `support = 0`。NaN 是**无效的唯一表示**；`0`、`±Inf` 或任意哨兵值一律不表示无效。
+    3. **强制计数（剔除一律显式计数）**：每个输出像素**必须**同时暴露被剔除样本的计数
        `n_rejected_nonfinite`（按原因分类：值非有限 / 方差非有限 / 权重非正）。
-       计数为 0 与「字段缺失」**必须可区分**；缺失该计数的产品**不得**声称满足本规则。
+       计数为 0 与「字段缺失」**必须可区分**；满足本规则的判据 = 该计数字段在场。
        **Phase3 承载面（已冻结，2026-09-23）**：`docs/contracts/DATA_SEMANTICS.md`
        §30.7（DATA-P3-REJ-001）—— 诊断统计平面 `<p3 out_dir>/p3_rejection.bin`
        （int32、W×H、行主序，0 即「无」、禁 −1 哨兵）+ `p3_resampled.json`
@@ -174,7 +174,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
        先例：诊断平面由 artifact manifest 声明描述，science 枚举零改动）。
        判据 = `eng/tools/quality/check_p3_rejection_count.py`。
     4. **帧间集成**：某帧在该像素的输出非有限时，该帧作为**候选被剔除并计数**；
-       **不得**因单帧非有限而把该像素整体判为 `INVALID_INPUT`（`integrate.cpp` 合同：仅
+       判 `INVALID_INPUT` 的条件 = 全部候选非有限，单帧非有限只剔除该帧（`integrate.cpp` 合同：仅
        「全部候选非有限」才报无效）。零合格候选 ⇒ 规则 2。
 
     **与两类输入的对应**
@@ -199,11 +199,11 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     `variance==0` = 无信息」逐字一致。
 
     **一句话版本**：**NaN 在重采样与集成中按「样本级掩膜、重归一、覆盖级 NaN、强制计数」处置**：
-    不合格样本从聚合的分子/分母/方差中一并剔除并重新归一（**不得**传播为使整像素无效的 NaN，
-    **不得**以 0 替代，**不得**静默剔除）；仅当零合格样本时输出 `signal=NaN ∧ support≤0`，
+    不合格样本从聚合的分子/分母/方差中一并剔除并重新归一（无效面的表示限于覆盖级；
+    剔除项一律显式计数）；仅当零合格样本时输出 `signal=NaN ∧ support≤0`（该形态下 `support` 取 0），
     且每个输出像素必须暴露被剔除样本计数。
     **方差可用性是独立通道**：`V_j` 有限且 `≤ 0` 的合格样本照常贡献 `F_p`/`W_p` 与覆盖，
-    方差面写 `variance=0 ∧ ivar=0`（显式不可用，**不得**由 clamp/常数/地板产生）。
+    方差面写 `variance=0 ∧ ivar=0`（显式不可用，取值与 clamp/常数/地板结果可区分）。
 
     **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ASTROCS_DESIGN.md` §5.5）；
     `docs/standards/NUMERIC_STANDARD.md`（§MUST）与 `docs/standards/STANDARDS_REGISTRY.md`
@@ -230,8 +230,8 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 ```
 
 - **rule_id `R-DISK-ONLY`**：任一 Phase 进程只接受另一 Phase 通过原子发布 + 完整 manifest
-  （hash/provenance）产生的**磁盘产品**；禁止进程内对象 / ArtifactHandle / run 上下文直传；
-  禁止单进程自动串联（约束 §A4：无 `--phases 1,2,3`；RT-002 phase-isolated runtime）。
+  （hash/provenance）产生的**磁盘产品**；跨 Phase 传输面限于磁盘产品（进程内对象 / ArtifactHandle / run 上下文不承载交换）；
+  单进程串联不在合同面内（约束 §A4：无 `--phases 1,2,3`；RT-002 phase-isolated runtime）。
 - 磁盘交换是唯一跨 Phase 通道：无共享内存、无进程内 registry 直连、无隐式文件路径猜测。
 - 交换对象文档中的 `artifact_manifest.run.run_id` **仅溯源**，绝不作为接收方进程内匹配依据。
 
@@ -254,7 +254,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 | rule_id | 名称 | 内容 |
 |---|---|---|
 | `R-DISK-ONLY` | 仅磁盘交换 | §3 |
-| `R-NO-RUN-BINDING` | 无 run ID 依赖 | 接收方不得要求输入 `producer.run.run_id` / `artifact_id` 与自身 run/session 相同或可解析；消费资格仅依据 manifest 完整性 + 内容证据。**Phase2 不要求 Phase1 run ID；Phase3 不要求输入来自 Phase2** |
+| `R-NO-RUN-BINDING` | 无 run ID 依赖 | 接收方对输入 `producer.run.run_id` / `artifact_id` 与自身 run/session 的异同不做要求；消费资格仅依据 manifest 完整性 + 内容证据。**Phase2 不要求 Phase1 run ID；Phase3 不要求输入来自 Phase2** |
 | `R-NO-NAME-BINDING` | 无隐式 artifact name binding | 输入资格、角色识别、单位/坐标/平面语义**绝不根据文件名/目录名/storage_uri 尾段/路径猜测**；产品角色由 `exchange.product_role` + `artifact_manifest.type_id` 判定；科学语义只来自 manifest 与 product_content 显式字段。artifact_id 是稳定标识，不是输入资格或语义来源 |
 | `R-EVIDENCE-REQUIRED` | 证据齐备才接受 | 缺 manifest / 缺 hash / 缺 schema（role↔type 不一致或未登记）/ 缺 units → 拒绝 |
 
@@ -290,19 +290,19 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 
 测试：`eng/tests/artifact/test_phase_product_exchange.py`（正/负测，无第三方依赖）。
 
-## 7. 边界与禁止
+## 7. 边界与拒绝面
 
 - 本合同**不重定义科学公式/单位/坐标/平面语义**——units 只做显式声明与强制呈现，不发明单位
   （`ADU`/`ADU^2`/`dimensionless`/`bitmask` 源自 DATA_ARTIFACTS.md / DATA_SEMANTICS.md）；
   不新增 registry type（沿用 DATA-001 三产品 type + calibrated_frame 内部类型）。
-- 禁止把 `support`/`coverage` 当科学权重（DATA_ARTIFACTS.md §1）；禁止 flux-per-pixel
-  冒充 surface brightness（SCI-P3 §9a.8）——本合同只要求显式声明与强制校验，不重定义科学。
-- 禁止同进程自动串联；禁止把另一 phase 的 run 上下文当输入；禁止以文件名/路径识别角色。
+- `support`/`coverage` 属覆盖/有效性面，不承载科学权重（DATA_ARTIFACTS.md §1）；flux-per-pixel
+  与 surface brightness 语义分列（SCI-P3 §9a.8）——本合同只要求显式声明与强制校验，不重定义科学。
+- 三阶段各自独立进程；输入只取磁盘产品，不取另一 phase 的 run 上下文；角色识别只依据 manifest 字段。
 - 非目标（alpha 拒绝项延续 SCI-P3 §1）：多通道/RGBA/lossy HiPS。
 - **阶段三接受域（最高设计 §5.1/§5.3）**：export **接受任一合同兼容 HiPS**（含来自 `normalize`
   的单帧产品，见 §4 `E-P2-OUT-P3-IN`/`E-P1-OUT-P3-IN`）；**variance/ivar 按显式消费并传播**
   （输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时**显式 `unavailable`**（不静默）；
-  **禁止**以「Phase3 不接受方差类输入」为由拒收带方差的兼容产品；**禁止**把方差/逆方差静默丢弃。
+  带方差的兼容产品一律接收并显式消费；方差/逆方差一律显式呈现（Phase3 承载方差类输入；输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时**显式 `unavailable`**（不静默）。
   （`weight`/`support` 冒充方差/逆方差仍**显式拒绝**；flux-per-pixel 输入仍显式拒绝。）
 
 ## 8. 文档追溯

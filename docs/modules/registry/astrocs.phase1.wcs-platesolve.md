@@ -27,7 +27,7 @@ downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 > 由 P1-WCS-TEST 执行落 TEST-P1-WCS-001 + EVIDENCE。现状缺陷登记
 > DISP-WCS-001..006（§11.3，登记不改码，整改归 P1-WCS-IMPL/INT；
 > CD 退化静默坍缩=DISP-WCS-001，失败-置信度语义冻结：退化必须
-> success=0 禁止冒充解）。
+> success=0 并按失败登记）。
 
 ## 职责与明确非职责
 
@@ -63,7 +63,7 @@ focal_length/pixel_size 覆盖，orchestrator.cpp:1922-1944）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`; parallel=是(heavy+serial 资源门禁止); worker 数=ThreadBudget.max_workers(禁 hardware_concurrency);
+`cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
 现状 OpenMP 仅三角形投票/选星（整数归并，bitwise 与线程数无关），
 ThreadLease 未接线（DISP-WCS-005）; 确定性=固定顺序输出
 （determinism=fixed_reduction_order，ALG-WCS-001 §11.4 F5 冻结断言）。

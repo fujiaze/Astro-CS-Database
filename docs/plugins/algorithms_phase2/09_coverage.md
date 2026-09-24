@@ -16,7 +16,7 @@
 ## 3. 输入/输出数据合同
 
 - **输入**：一组合同兼容 Phase1 产品（含各自 coverage/validity/WCS/manifest）；产品的落盘形态不进入科学语义（裸/归档同义，形态由落盘名判定）；`hips_paths` 的元素**保持字符串**，逐帧产品级索引路径由命名规则派生（`<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`）；按天区查帧集合走**块级覆盖索引**（不压缩；由**加性可选键** `coverage_index` 引用数据集级 `coverage.index.json`，缺失时由产品级索引现场倒排），不逐瓦片探测。输入合同**不设** `storage_form` 键（阶段二产物固定裸形态），出现即 REJECT。
-- **索引边界**：索引给出块 → 候选帧集合与覆盖分数，只用于剪枝与调度；像素级裁决仍由 support/validity/排异语义执行，索引不得当作有效性来源。
+- **索引边界**：索引给出块 → 候选帧集合与覆盖分数，只用于剪枝与调度；像素级裁决仍由 support/validity/排异语义执行；**有效性来源 = support/validity/排异语义本身**。
 - **输出**：帧/区域重叠图、有效面积、信息量、连通分量、coverage 产品。
 - 参考：`eng/contracts/schemas/coverage_output.schema.json`。
 

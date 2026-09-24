@@ -17,7 +17,7 @@ downstream: [TEST-P1-COS-001]
 > 冻结 ID；模块级事实以 lib/algorithms/cosmetic/README.md（r1，CONTRACT_READY）
 > 与现行生产实现 lib/algorithms/calibration/src/cosmetic_corrector.cpp 为准；
 > descriptor 占位 ID（module_adapters.cpp p1_cosmetic_descriptor）
-> 将由 W3 接线任务对齐本页，不得反向作为冻结依据。
+> 将由 W3 接线任务对齐本页；冻结依据 = 本页本身。
 
 ## 职责与明确非职责
 
@@ -59,7 +59,7 @@ schema 由 P1-COS-IMPL 冻结）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`; parallel=是(heavy+serial 资源门禁止); worker 数=
+`cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=
 ThreadBudget.max_workers(禁 hardware_concurrency)。现状并行=OpenMP
 像素域 schedule(static)（DISP-COS-008，ThreadLease 迁移整改点）;
 确定性=输出 bitwise 与线程数无关（逐像素独立 + 固定遍历顺序）。

@@ -1,26 +1,39 @@
-# eng/packaging/windows/.vsconfig — Windows 工具链组件锁 (BLD-001)
+# eng/packaging/windows/ — Windows 发布工具链落点 (BLD-001)
 
 ## 用途
 
-本文件是 Visual Studio 2022 Build Tools 安装的唯一组件清单
-（09_WINDOWS_TOOLCHAIN_LOCK.md §4 固定组件），与 CMakePresets.json 的正式
-Windows preset 一起构成 `win-msvc-17.14.39-x64` 发布工具链的配置面。
+本目录是 Windows x64 发布工具链的**取值落点**：
 
-机器校验：`eng/cmake/toolchain/verify_toolchain.py`（合同
-`eng/packaging/schemas/preset-contract.json` 为单一事实源）会对本文件做组件
-精确比对——多一个或少一个组件都会 FAIL fast。
+- `.vsconfig` —— Visual Studio 2022 Build Tools 安装的**唯一组件清单**（机器精确比对面）；
+- 本 README —— 组件清单与工具链取值的**登记面**；机器单一事实源是
+  `eng/packaging/schemas/preset-contract.json`。
 
-## 为什么放 eng/packaging/windows/ 而不是仓库根
+机器校验：`eng/cmake/toolchain/verify_toolchain.py`（合同 `preset-contract.json` 为单一事实源）
+对本目录 `.vsconfig` 做组件精确比对——多一个或少一个组件都会 FAIL fast；构建入口是
+`CMakePresets.json` 的正式 preset `win-msvc-17.14.39-x64`。
 
-Astro Celestial Sphere Database（ACSD） 05_FIXED_SUBAGENT_BINDINGS.yaml 给 SA-BLD-02 的 write 白名单为
-`CMakeLists.txt / CMakePresets.json / eng/cmake/** / eng/packaging/** / DEPENDENCIES.md
-/ vcpkg.json / vcpkg-configuration.json`，根目录 `.vsconfig` 不在白名单内。
-`eng/packaging/windows/` 是本 owner 可写且语义贴切的位置（Windows 发布包内容）。
-Visual Studio 安装器支持以 `--config <path>` 显式传入任意路径的组件清单
-文件（文件名不必是 `.vsconfig`），因此本文件的语义与官方 `.vsconfig`
-完全等价。
+## 工具链取值（Windows 正式面）
 
-## 组件（冻结，7 项，与 09_WINDOWS_TOOLCHAIN_LOCK.md §4 逐字一致）
+下表逐项来自机器源（`preset-contract.json` 与 `CMakePresets.json`）；**漂移一律以机器源为准**，
+本表只是登记镜像，不构成第二套取值。
+
+| 项 | 取值 | 机器源 |
+|---|---|---|
+| 正式 generator | `Visual Studio 17 2022`，`-A x64`，host tool `x64` | `preset-contract.json#windows.formal_generator` / `architecture` |
+| platform toolset | `v143`；`toolset_version = 14.44.35207`；compiler family `19.44` | `preset-contract.json#windows.toolset` / `toolset_version` / `compiler_family` |
+| VS 2022 Build Tools | `17.14.39`；installationVersion `17.14.37614.0` | `preset-contract.json#windows.vs_buildtools_version` / `vs_installationVersion` |
+| Windows SDK | `10.0.26100.0`；servicing bundle `10.0.26100.9169` | `preset-contract.json#windows.sdk_version` / `sdk_servicing_bundle` |
+| CMake | `3.31.12` | `preset-contract.json#windows.cmake_version`；`CMakePresets.json` vendor 段 `cmake_pin` |
+| C++ 标准 | C++17 | `preset-contract.json#windows.cpp_standard` |
+| CRT | Debug `/MDd`；Release/RelWithDebInfo `/MD`；禁 `/MT` | `preset-contract.json#windows.crt_debug` / `crt_release`、`forbidden.static_crt` |
+| VS 安装位置 | `C:/AstroCS/toolchains/vs2022-17.14.39` | `preset-contract.json#windows.vs_installation`（由 preset 显式声明，属机器路径白名单例外） |
+| 禁面 | `forbidden` 段（evergreen / mingw_msys / vs2026 / future_toolset / ninja_generator / non_x64_arch / static_crt） | `preset-contract.json#forbidden` |
+
+**未决面（仓内无可核依据，故不登记取值）**：Windows 侧浮点开关（`/fp:*`）、优化开关
+（`/O2` 与 `/GL`/LTCG/PGO 禁面）、clang-tidy 版本、Windows 验证脚本所用的 Python 版本。
+仓内（含 git 全历史）没有这些取值的机器锚或构建锚；需要时先补机器锚，再登记到本表。
+
+## 组件（冻结，7 项；`.vsconfig` 是唯一清单）
 
 - Microsoft.VisualStudio.Workload.VCTools
 - Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64

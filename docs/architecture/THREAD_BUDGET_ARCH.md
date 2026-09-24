@@ -9,7 +9,7 @@
 
 - CLI 启动时建立**唯一**全局预算对象:`available_cpus = affinity ∩ cgroup ∩ Job Object`(非机器总核,与 ARCH-003 六查④同源);预算按 `phase→stage→kernel` 层级显式分配,任何时刻 Σ(活动 worker) ≤ budget。
 - 分配策略(冻结): 串行 I/O 与控制面恒 1 线程;CPU 内核获得 `min(budget, kernel_block_hint)`;异步 I/O pipeline 恒 1 专用线程;后台服务(watchdog/资源监控/progress 日志)恒 1 线程+独立小预算(不入科学预算池)。
-- **backend 禁私有线程池**(ARCH-003 §4);模块内 OpenMP 线程数经 host callback 注入运行时(由预算派生),禁 `omp_set_num_threads` 自定值;**全仓禁止硬编码线程数**(ARCH-001 清单 risk_note 列逐行登记)。
+- **backend 线程池经 host callback 注入**(ARCH-003 §4);模块内 OpenMP 线程数经 host callback 注入运行时(由预算派生),取值与 `omp_set_num_threads` 无关;**全仓线程数由预算派生**(ARCH-001 清单 risk_note 列逐行登记)。
 
 ## 2 每阶段执行画像(串行 I/O · CPU task · async pipeline · backpressure)
 
@@ -27,7 +27,7 @@
 
 - **async 仅两类**: I/O pipeline(读/写双缓冲)与后台服务;科学计算无 async/future(消除嵌套并行与不可预算并发)。
 - **取消**: CLI JSONL cancel → 全局取消标志(原子)→ 各内核取消点(ALG 文档 5c 已逐内核冻结: 帧粒度/行带粒度/迭代间/整模型/整文件);取消后预算立即回收,取消单元不落盘(ARCH-002 §5)。
-- **嵌套并行**: 禁止(科学内核不得在 parallel region 内再开并行;I/O 线程不得执行科学内核);唯一豁免=watchdog(独立预算)。
+- **嵌套并行**: 外层已并行则内层串行(科学内核只在 parallel region 外开并行;I/O 线程与科学内核分属不同线程);唯一豁免=watchdog(独立预算)。
 
 ## 4 并发正确性合同(承接旧锚点)
 

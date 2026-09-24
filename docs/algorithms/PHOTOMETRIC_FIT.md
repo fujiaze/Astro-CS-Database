@@ -34,7 +34,7 @@ F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·l
   **代价**：`c=4.685` 的 95% 渐近效率只对**已知尺度**严格成立（statsmodels `robust/_tables.py`：`tukeybiweight_eff[0.95]=(4.685065, 0.119414)`；闭式复算 `ARE(4.685065)=0.950000`）。本层合成实测 93.7%（n=1000）–96.0%（n=50），与名义值同量级。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E3_irls_fixed_scale`。
   **成对变更约束**：若改为**每轮重估尺度**（MASS `rlm()` `R/rlm.R:171-183`、statsmodels `RLM(update_scale=True)` 的默认路线），`c=4.685` 下的崩溃点降到 **11.9%**；要保 50% 崩溃点必须同时把 `c` 降到 1.548（效率仅 28.7%）。⇒ `c` 与「尺度是否重估」**必须成对变更**，单独改任一项即破坏另一侧保证。
 - **F4 中心约定与语义**：实现的 `MAD` 中心是 **IRLS 收敛后的 `location`**，不是 `median(r_inliers)`（`star_matcher.cpp:616-621`）。二者相差 `δ=|location−median(r_inliers)|` 时，本式相对标准 MAD 的一阶偏差为 `δ/σ`：合成实验实测纯高斯 5.6e-6、含污染（δ=0.056 dex）0.81%。**适用域**：`δ ≪ σ`（帧内残差近似单峰对称）时与标准 MAD 等价；`δ ≳ 0.1σ` 时必须声明所用中心。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E2_mad_center`。
-  **语义**：`sigma_residual` 是**逐星定标散度**（系综量，dex），不是单源通量误差；与 SExtractor 的 `FLUXERR/MAGERR` **同名不同义**，禁止互换。SExtractor 定义见其**用户手册** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明该误差「provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」——即**逐源**量，与本层系综散度不同。
+  **语义**：`sigma_residual` 是**逐星定标散度**（系综量，dex），不是单源通量误差；与 SExtractor 的 `FLUXERR/MAGERR` **同名不同义**，两者各自独立、不可互换。SExtractor 定义见其**用户手册** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明该误差「provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」——即**逐源**量，与本层系综散度不同。
 - **F5 语义与覆盖边界**：`sigma_mag`、`sigma_cal_rel` 是帧级定标散度的线性换算，**不含**参考端（XP 谱解码、Gaia 星表、通带曲线）误差与逐源测量误差；作为单源精度指标使用会低估（误差预算逐项见 `docs/science/PHOTOMETRY.md` §16.4）。
 - **F6 量纲与施加面**：`scale` 单位 `[F_syn 单位]/ADU`，其绝对量级由该帧仪器标度（增益/口径/曝光等不可测量）决定，**无物理意义**（`docs/science/PHOTOMETRY.md` §1/§16.2）；施加式 `I_cal=I·scale` 逐元素（`image_corrector.cpp:62-78`，OpenMP `schedule(static)` :74）。
 - **F7 适用域**：窗口作用于 `Δ−median(Δ)`，故对 `F_instr` 的**整体乘性标度严格不变**（合成实验：`k=10⁻⁴…10⁶` 下拒绝集逐位相同）；对**与星相关的颜色项不不变**。真实尺度（M42 T2/M1，`1.4826·MAD(Δ)=0.4115 mag`）下窗口 = **7.29×MAD**，高斯触发概率 3.1e-13；合成实验显示需颜色项散度 ≈3.0 mag 才首次触发（斜率 4.0 mag/颜色单位），而实测通带取错（Baader R→Antlia V Pro Series B）的跨星散度仅 **0.449 mag** ⇒ **该窗在本仓真实数据上不承担「防通带失配」职能**；对 6 mag 级粗大离群，其相对 IRLS 的边际贡献不可测（污染 0–49% 时 location RMSE 差 <2%）。`3.0` 为 Project-defined 冻结值。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E1_mag_prefilter`。
@@ -65,7 +65,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 | `\|r_inliers\|<2` | `sigma_residual=0`（不可估计） |
 | `S=0` 且 `\|r_consistent\|≥3` | 可达：n=3 时两颗星 `r` 逐位相等即 `MAD=0`（合成实验实测）；此时 `location=median(r)`、`scale` 照常发布、`sigma_residual=0` |
 
-**`sigma_residual=0` 的双义与下游消歧（正向约束）**：`0` 同时表示「不可估计（`|r_inliers|<2`）」与「实测零散度（S=0 分支）」。下游 `snr_phot_cal_quality`（`noise_model.cpp:630-641`）把 `sigma≤0` 映射为 `fit_status=2`（未估计）并**不发布** `sigma_mag/sigma_cal_rel`，故两种含义在 SNR 面被消歧为「无不确定度可用」；**任何其他消费方**必须按同一规则处理，禁止把 `0` 解释为「零不确定度」。
+**`sigma_residual=0` 的双义与下游消歧（正向约束）**：`0` 同时表示「不可估计（`|r_inliers|<2`）」与「实测零散度（S=0 分支）」。下游 `snr_phot_cal_quality`（`noise_model.cpp:630-641`）把 `sigma≤0` 映射为 `fit_status=2`（未估计）并**不发布** `sigma_mag/sigma_cal_rel`，故两种含义在 SNR 面被消歧为「无不确定度可用」；**任何其他消费方**必须按同一规则处理，`0` 的解释 = 「无不确定度可用」；「零不确定度」是另一含义。
 **S=0 分支的可达性证据**：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E4_S_zero_degeneracy`（n=3 两值相等 ⇒ S=0；n=3 三值互异 ⇒ S>0，负例对照）。
 
 ## 5 确定性与归约
@@ -79,7 +79,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 | 到达序来源 | 是否允许进入浮点路径 | 判据（事前冻结） |
 |---|---|---|
 | **PSF 星表序**（`psf_cx/cy/flux/status` 的数组序） | 允许，且**它就是样本序本身**：匹配与 IRLS 的归约序由它唯一决定（`star_matcher.cpp` 的 `matchWithKdTree` 按 PSF 下标 `k=0..n-1` 正向查询；`cleanAndScale` 的 `r_consistent` 按同一序累积） | 置换该序 ⇒ 计数/索引/选择结果**精确一致**；IRLS 归约按 `docs/contracts/TEST_MATRIX.md` §2 的 `C·γ_n·Σ\|terms\| + atol`（`C≤4`）判等价（§5c：顺序变化仅影响 <1ulp） |
-| **Gaia 参考星表序**（`gaia_ra/dec/mag/fsyn` 的数组序） | **不得**进入任何浮点累加序 | 置换该序 ⇒ **全输出逐位（bitwise）不变**（含 out_pixels / scale / sigma / diag / 逐星 records） |
+| **Gaia 参考星表序**（`gaia_ra/dec/mag/fsyn` 的数组序） | **只作索引标号** | 置换该序 ⇒ **全输出逐位（bitwise）不变**（含 out_pixels / scale / sigma / diag / 逐星 records） |
 
 理由：匹配是**集合谓词**（互为最近邻），与表的枚举序无关；`matches[]` 的输出序由 PSF 序驱动。
 故 Gaia 表序只改变索引标号，任何随它变化的结果都说明该序泄漏进了数值路径 —— 那是缺陷，不是容差问题。
@@ -105,7 +105,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 | 曲线身份 | 装载到的曲线对象必须自证为请求的库键（对象 `name` 字段逐字节相等；点数与 `provenance` 声明的包络 + 逐元素指纹一致） | 不一致 ⇒ `curve_identity_mismatch`，装配期具名拒绝，不产出标度 |
 | 声明一致性 | 配置声明的通带名与 `FILTER` 关键字解析出的库键必须相等 | 不等 ⇒ `passband identity mismatch`，环境作用域拒绝 |
 | 组内唯一 | 同一次运行内各组帧只能有一条模型通带 | 某帧与组内首帧不一致 ⇒ 该帧 `PHOT_PASSBAND_IDENTITY_INCONSISTENT` |
-| 身份自述 | 拟合结果必须带回实际使用的曲线身份（库键 / 自述名 / 点数 / 波长域 / 透过率域），由调用方落进产物 provenance | 缺自述 ⇒ 该产物不得被引用为「某通带下的结果」（§2a.4 写作约束） |
+| 身份自述 | 拟合结果必须带回实际使用的曲线身份（库键 / 自述名 / 点数 / 波长域 / 透过率域），由调用方落进产物 provenance | 缺自述 ⇒ 该产物的引用面不含「某通带下的结果」（§2a.4 写作约束） |
 
 **为什么是装配契约而不是新的科学判据**：通带形状**不被零点吸收**（`docs/science/PHOTOMETRY.md` §2a.5），故「用了哪条曲线」决定 `sigma_residual` 的可比性；本节只核对「用的是不是声明的那条」，**不改**任何公式、阈值、容差与权重。
 
@@ -117,7 +117,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU：IRLS 迭代为全样本顺序归约(样本序固定)，天然确定性；规模小(星数级)无并行收益，worker pool 可行但非必需；**禁止硬编码线程数**。
+- 仅 CPU：IRLS 迭代为全样本顺序归约(样本序固定)，天然确定性；规模小(星数级)无并行收益，worker pool 可行但非必需；**线程数取自 benchmark profile**。
 
 ## 5c SIMD 安全与取消点
 
@@ -146,7 +146,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 > 共享引用不改动）、§13.3 已登记现状缺陷 DISP-PHOT-001..009、§13.4 冻结测试设计
 > TEST-PHOT-DESIGN-001、§13.5 非生产通道与待迁移符号。行号为
 > lib/algorithms/photometry/cpp/ 的 grep 实测，后续重构以 grep
-> 重锚为准。禁止声明 IMPLEMENTED（迁移落码归 P1-PHOT-IMPL）。
+> 重锚为准。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码归 P1-PHOT-IMPL）。
 
 ### 13.1 逐符号实现锚定
 
@@ -198,7 +198,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 | 滤光片/QE 缓存 | prepare_filter_cache（T、Q 用 Akima 重采样到**完整** 343 点谱网格，区间外 0；权重 = Simpson 系数×T×Q×λ） | :288-365（重采样 :339/:343，权重 :346-351） |
 | XPSD 解码 | F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹，逐星量化参数） | gaia_client.h:61-64；记录解码 `gaia_client.c:1985-1999` |
 | 谱网格来源 | 由 XPSD 文件头 `parameters="spectrumStart=336,spectrumStep=2,spectrumCount=343,spectrumBits=8"` 逐字给出（真实分片实测） | `gaia_client.c:1437-1491` |
-| **非生产通道（历史相对口径）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**不得**用于生产定标 | :172-283 / :369-410 |
+| **非生产通道（历史相对口径）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**生产定标面不含该通道** | :172-283 / :369-410 |
 
 **生产路径的实证锚**（真实 M42 产物，`run/SCI-PHOT-FORMULA-01/evidence/d1_zp_sigma_rederive.json`）：
 `zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 由上式**逐位复现** —— T2/M1 落盘 `−15.126346726632235` vs 复算 `−15.126346726631280`（Δ=9.5e−13，n=2338）；T3/M1 落盘 `−15.123241368129857` vs 复算 `−15.123241368086541`（n=2309）。
@@ -229,7 +229,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   **该结论的依据（逐条，缺一即不成立）**：① F_syn 按星写入**各自下标**的数组，星间无浮点归约；② 并行区内唯一的归约是**整数**计数器 `reduction(+:n_valid_fsyn)`（整数加法可结合，次序无关）；③ `location`/`scale`/`sigma_residual` 的 IRLS 归约是 `cleanAndScale` 内的**串行**循环（`star_matcher.cpp:548-586`，无 OpenMP 指令），样本序由 PSF 表序唯一决定（§5.1）；④ 像素校正是逐元素乘法（`image_corrector.cpp:74`）。
   ⇒ **若在星间或样本间引入任何浮点归约**（如并行求和/并行排序），该 bitwise 保证立即失效，必须重新论证。
 - 匹配半径 `match_radius=2.0 px` 是**像素域常数**（`pc_api.cpp:137,427,592,835,1115` 传入；`star_matcher.h:71` 默认值）。
-  **适用域**：匹配成功要求（a）该帧 WCS 的**绝对指向残差 ≪ match_radius**（像素域），且（b）`match_radius` ≳ PSF 质心不确定度。仓内真实帧的像元尺度跨 **0.9586″/px – 6.3076″/px（6.58 倍）**，同一常数对应的天球半径为 **1.92″ – 12.6″**；testdata 真实帧的 WCS 二轮精化后残余 **0.0068″**（`docs/science/PHOTOMETRY.md` §16.5 第 6 条）⇒ 在该帧上条件 (a) 以 ~280 倍余量成立。**跨仪器使用时必须按像元尺度复核该常数**，不得默认 2.0 px 通用。
+  **适用域**：匹配成功要求（a）该帧 WCS 的**绝对指向残差 ≪ match_radius**（像素域），且（b）`match_radius` ≳ PSF 质心不确定度。仓内真实帧的像元尺度跨 **0.9586″/px – 6.3076″/px（6.58 倍）**，同一常数对应的天球半径为 **1.92″ – 12.6″**；testdata 真实帧的 WCS 二轮精化后残余 **0.0068″**（`docs/science/PHOTOMETRY.md` §16.5 第 6 条）⇒ 在该帧上条件 (a) 以 ~280 倍余量成立。**跨仪器使用时必须按像元尺度复核该常数**（2.0 px 的通用性只在上述条件下成立）。
 
 ### 13.3 已登记现状缺陷（DISP-PHOT-001..009，登记不改码，整改归 P1-PHOT-IMPL/INT）
 
@@ -259,7 +259,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
   snr_estimator（snr_phot_cal_quality，noise_model.cpp:305），本模块仅
   登记边界。
 
-### 13.4 冻结测试设计 TEST-PHOT-DESIGN-001（容差不得放宽）
+### 13.4 冻结测试设计 TEST-PHOT-DESIGN-001（容差取值即本节）
 
 - fixture F1: 合成注入已知乘性偏移 k（location=log10 k 恢复，rtol 1e-4，
   SCI-PHOT-001 §11）。**该 fixture 的行使域（必须如实声明）**：F1 的注入**无扰动**（`p1phot_fixtures.hpp:125` 以 `perturb_amp=0.0` 构造 ⇒ 全部 `r_i ≡ log10 k`），故 `S=0`，走的正是 §4 的 **S=0 直取 median 分支**；可执行测试同时断言 `robust_iterations==0` 与 `sigma==0`（`p1phot_tests_units.cpp:112-118`）。⇒ **rtol 1e-4 门只覆盖 median 通路，不覆盖 IRLS 迭代通路**；IRLS 通路的可执行门是 F2（`perturb_amp=0.02` ⇒ `S>0`）的 `|Δlocation|<0.1 dex`（宽松门）。
@@ -299,7 +299,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - Tukey biweight c=4.685：Beaton & Tukey 1974, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）；Mosteller & Tukey 1977。
 - MAD→σ 0.6744897501960817：标准正态分位恒等式；Rousseeuw & Croux 1993, JASA 88, 1273。
 - 最优提取/统计结构：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
-- 误差口径 FLUXERR/MAGERR：**SExtractor User Manual** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明「this error estimate provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」。**引用边界**：Bertin & Arnouts 1996, A&AS 117, 393（DOI 10.1051/aas:1996164）正文**不含** `FLUXERR/MAGERR` 定义，故定义式不得归给该文。**差异**：本层 sigma_residual 是逐星定标散度（dex，系综量），不是单源通量误差。
+- 误差口径 FLUXERR/MAGERR：**SExtractor User Manual** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明「this error estimate provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」。**引用边界**：Bertin & Arnouts 1996, A&AS 117, 393（DOI 10.1051/aas:1996164）正文**不含** `FLUXERR/MAGERR` 定义，故定义式的出处 = SExtractor User Manual §2.24.2。**差异**：本层 sigma_residual 是逐星定标散度（dex，系综量），不是单源通量误差。
 - MAD 有限样本修正 `b_n`：Croux & Rousseeuw 1992, *Computational Statistics* **1**, 411（p.413 表：n=3→1.495、4→1.363、5→1.206、9→1.107；n>9→`n/(n−0.8)`；定义式 `MAD_n = b_n·1.4826·med_i|x_i−med_j x_j|`）。
 - 稳健估计的尺度路线（先验尺度 vs 同时迭代）：Huber & Ronchetti 2009, *Robust Statistics* 2nd ed., Wiley（ISBN 978-0-470-12990-6）§6.4 p.133「Simultaneous M-Estimates of Location and Scale」、§6.5 p.137「M-Estimates with Preliminary Estimates of Scale」、§7.7 p.172「In practice, we calculate the estimates β and σ by simultaneous iterations」。Tukey biweight 的效率/崩溃点表：statsmodels `statsmodels/robust/_tables.py` `tukeybiweight_eff`（`c=4.685065 → eff 0.95 / breakdown 0.119414`）。
 - Gaia XP/CALSPEC：Gaia Collaboration et al. 2023, A&A 674, A1；Bohlin, Hubeny & Rauch 2020, AJ 159, 246；Bessell & Murphy 2012, PASP 124, 140。

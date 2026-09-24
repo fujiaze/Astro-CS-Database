@@ -17,10 +17,12 @@ ASTROCS_REJECT_PROFILE = FROZEN（生产科学路由 = ASTROCS_DESIGN.md
                         §5.5 五档表，N = 几何覆盖帧数：1≤N≤3→none；
                         4≤N≤5→percentile；6≤N≤15→winsorized sigma；
                         N≥16→linear_fit；min/max 不用于生产）
-WBPP_AUTO_POLICY       = FROZEN（对照档 wbpp_2_9_1 = WBPP 2.9.1
-                        bestRejectionMethod；nominal<6→percentile；
-                         6..15→winsorized；>15→linear_fit；wbpp_current 为
-                         alias，运行期解析并序列化为 wbpp_2_9_1）
+WBPP_AUTO_POLICY       = FROZEN（对照档 wbpp_2_9_1 = 本仓冻结解析表；档界
+                        取自 WBPP 2.5.9 bestRejectionMethod，engine.js:1421-1429，
+                        包 sha1 712cc7c3…；nominal<6→percentile；
+                         6..15→winsorized；>15→linear_fit（**该档 WBPP 2.4.0+ 为
+                         ESD，本仓取 linear_fit = WBPP ≤2.3.x 旧表**）；
+                         wbpp_current 为 alias，运行期解析并序列化为 wbpp_2_9_1）
 WBPP_LARGE_SCALE       = SUPPORTED（astrocs.large_scale_rejection.v1：
                         connected-component grow，min structure size，
                         low/high 独立半径；默认关闭 = WBPP
@@ -69,7 +71,7 @@ routing 政策与参数映射，不宣称与 PixInsight 内核 bit-exact）。
 - 业务扩展、GUI、新算法（不改基础定义）；
 - 经科学等价门（C/M 逐位或数值等价 + 回归集）的性能/重构优化。
 
-## 冻结后不允许
+## 冻结后排除面
 
 - 恢复 `low`/`high`/`max_iterations`/`min_samples` 等 config alias
   （这些键不存在于现行 parser；旧 config 必须经 eng/tools/migrate_stage2_config.py 迁移）；

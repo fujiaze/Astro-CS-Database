@@ -22,7 +22,7 @@ downstream: [TEST-P2-INT-001]
 > 表、坐标 PIXEL）为编排层占位（module_adapters.cpp:719-737
 > p2_integrate_descriptor，注册 :785），由 P2-XX-INT 对齐
 > astrocs.p2.integration（MODULE_MIGRATION_MATRIX P2-INT 行），
-> 不得反向作为冻结依据。
+> 冻结依据 = 该矩阵行本身。
 
 ## 身份与合同落位
 
@@ -65,7 +65,7 @@ downstream: [TEST-P2-INT-001]
 输出 P2PixelResult（signal f64 ADU/support f64 [0,1]/五计数器/status
 0..4）。invalid 显式化: 非法输入→INVALID_INPUT、无候选→
 NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
-禁止静默 0/±Inf（§4 同源条款；wsum==0 不做除法，integrate.cpp:65-69）。
+取值 = 上述错误码之一（0/±Inf 属非法值；§4 同源条款；wsum==0 不做除法，integrate.cpp:65-69）。
 
 ## 公共 header、核心 symbol 与生命周期
 

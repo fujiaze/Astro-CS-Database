@@ -8,10 +8,10 @@
 
 - **目的**：将仪器流量 `F_instr` 校准到**锚在 Gaia XP 绝对分光刻度（CALSPEC 溯源）的模型通带**光度尺度；模型通带当前为 `T(λ)·Q(λ)·λ`，**不含光学系统透过率与大气消光**（记为未建模项）。在模型通带内的结果可称「绝对通量（Gaia XP 刻度）」；跨通带/换系统/波段外通量不在本合同范围。估计零点 `location`、尺度因子 `scale` 及残差 QA `sigma_residual / sigma_mag`。
 - **非目标**：不处理带通外颜色项高阶效应（仅 QA 暴露残差分布）；不估计逐像素噪声方差（SCI-NOISE 边界）；不做大气消光时变建模。
-- **测光标定语义（claim `FIX-SCI-SNR-CANON-001`；不可协商）**：标定目标是**真实测光坐标系（星等）**，手段 = 星点光通量积分 + Gaia + CCD QE + 滤镜透过率曲线。**「消除物理单位」的准确含义 = 不宣称绝对通量刻度、禁止用物理闭合式反推仪器参数（§16.3），不是「产品面只写星等」**——两个面必须分开写：
+- **测光标定语义（claim `FIX-SCI-SNR-CANON-001`；不可协商）**：标定目标是**真实测光坐标系（星等）**，手段 = 星点光通量积分 + Gaia + CCD QE + 滤镜透过率曲线。**「消除物理单位」的准确含义 = 不宣称绝对通量刻度、仪器参数只以未知量形式被吸收（§16.3），不是「产品面只写星等」**——两个面必须分开写：
   - **定标坐标系（星等面）**：零点、残差与判据都在 `log10`/星等域表达（`location` 单位 dex、`sigma_mag` 单位 mag），绝对通量刻度不被宣称；
   - **像素承载面（线性标度面）**：`I_photo = k_photo·m(x,y)·I_cal`（§16.1 ⑤），标度类别 = `photo_scaled_adu`；单位随输入标度（输入 `ADU` ⇒ 输出 `[F_syn 单位]`），消费按 `x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`（`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」；`docs/science/SCIENCE_SCOPE.md` §变量/单位）。
-标定因子（本文件 `scale`、Phase1 标定面 `k_photo`）的**绝对值无物理意义**——它把增益/口径/曝光等**未知量全部吸收**；**禁止**用任何物理闭合式（如 `k = g·h·c·1e9/(A·t)`）反推仪器参数或论证其合理性（设计前提 = **FITS 头拿不到这些量**）。**有意义的判据只有一条（尺度无关）**：**测光一致性**——施加后星点**星等**与 Gaia 的残差（散度/MAD）必须小。
+标定因子（本文件 `scale`、Phase1 标定面 `k_photo`）的**绝对值无物理意义**——它把增益/口径/曝光等**未知量全部吸收**；物理闭合式（如 `k = g·h·c·1e9/(A·t)`）只作形式对照，仪器参数一律按未知量处理（设计前提 = **FITS 头拿不到这些量**）。**有意义的判据只有一条（尺度无关）**：**测光一致性**——施加后星点**星等**与 Gaia 的残差（散度/MAD）必须小。
 **「帧间一致性」（各帧 `k`/`scale` 落在同一测光体系）是语义目标与报告字段，不是门禁判据**
 （负责人 §9.49 定案 2「这玩意应该是帧间独立的，为啥要组间对比」；变更 claim `PHOT-GATE-DROP-001`）。
 门只有一个 = 单帧标定是否可信，与其它帧无关；跨帧 `k` 不同是正常的。
@@ -58,7 +58,7 @@ F_syn = ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ            # W·m⁻²·nm
 
 | 条件 | 后果 |
 |---|---|
-| 通带与光谱网格**完全不重叠**（`T(λ)Q(λ)≡0` 于整个网格） | `F_syn ≡ 0`；`F_syn>0` 的有效域判据拒绝**全部**参考星 ⇒ 定标无输入，必须报拟合失败（`NO_DATA`/`zero_point_valid=false`），**不得**给出零点或星等 |
+| 通带与光谱网格**完全不重叠**（`T(λ)Q(λ)≡0` 于整个网格） | `F_syn ≡ 0`；`F_syn>0` 的有效域判据拒绝**全部**参考星 ⇒ 定标无输入，必须报拟合失败（`NO_DATA`/`zero_point_valid=false`），**输出面 = 无零点、无星等** |
 | 解码后 `F_λ` 出现负值且积分 `F_syn≤0` | 该星被有效域判据剔除（§4）；`F_syn` 本身不做非负钳位，非正值由调用方拒绝 |
 | 通带显著超出 XP 覆盖（330–1050 nm） | 网格外无数据，`T·Q` 置 0 而**不外推**；颜色项误差上升，结论不成立（§2a.5）。官方口径同此：只有**完全落在** 330–1050 nm 内的通带可复现 |
 | 参考星亮度超出 XP 谱的发布范围 | 全部均值谱限 `G < 17.65`、采样表示限 `G < 15`（§2a.5）；超出者无参考谱 ⇒ 不进入定标 |
@@ -124,7 +124,7 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
 
   两者合成星等差 `Δm`（G∈[6,16]、解码谱处处为正，n=8406）：**中位 −0.978 mag、跨星散度（1.4826·MAD）0.449 mag**。这个散度**不被任何单标量零点吸收**，直接进入 `sigma_residual`。
 - **判据参照**：本仓 49 帧 M42 真实数据的逐帧 `2.5·sigma_residual_dex` 中位由（误取通带）**0.42720 mag** 降到（正确通带）**0.04505 mag**，比值 **9.5×**；而本表独立算出的通带失配散度 **0.449 mag** 与之同量级 ⇒ 两者互为独立佐证（`实验/photometric-magnitude/RESOLUTION_m42_curve_resolve.md` §3；本轮 `d1_zp_sigma_rederive.json`）。
-- **量级的适用域（不得混用）**：文献中的「通带失配」指**同名通带的曲线差异/微小偏移**，其定量量级为 **0.05–0.1 mag**（Bessell 1990：`"nonlinear deviations of up to 0.1 mag"`、`"systematic differences up to 0.05 mag"`）、**2–5%**（Stubbs & Tonry 2006 引 Saha et al. 2005：`"systematic discrepancies at the 2-5% level. They attribute these discrepancies to passband differences"`）、**~5 mmag**（Burke et al. 2017：`"less than 5 mmag"`，其通带形状精度 `"better than 0.1%"`）、**7 mmag**（Souverin et al. 2024, StarDICE III：中心波长 0.2 nm / 宽带通量 7 mmag）。本节的 **0.449 mag** 来自**取到另一支滤镜**（λ_eff 差 173 nm），**远在该文献区间之外**；因此该数字的用途是「证明通带身份错误不可接受」，**不得**被引作「同名通带失配」的典型量级。
+- **量级的适用域（两个量级各自具名）**：文献中的「通带失配」指**同名通带的曲线差异/微小偏移**，其定量量级为 **0.05–0.1 mag**（Bessell 1990：`"nonlinear deviations of up to 0.1 mag"`、`"systematic differences up to 0.05 mag"`）、**2–5%**（Stubbs & Tonry 2006 引 Saha et al. 2005：`"systematic discrepancies at the 2-5% level. They attribute these discrepancies to passband differences"`）、**~5 mmag**（Burke et al. 2017：`"less than 5 mmag"`，其通带形状精度 `"better than 0.1%"`）、**7 mmag**（Souverin et al. 2024, StarDICE III：中心波长 0.2 nm / 宽带通量 7 mmag）。本节的 **0.449 mag** 来自**取到另一支滤镜**（λ_eff 差 173 nm），**远在该文献区间之外**；因此该数字的用途是「证明通带身份错误不可接受」，**引用域 = 通带身份错误的证据**。
 
 ### 2a.6 判定证据汇总（四类）
 
@@ -144,7 +144,7 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
 
 **必须是什么**
 
-- 曲线解析的输入是**滤镜库对象键**（`resolve(name) = filters[name]`，字节精确、不折叠大小写/空白、不解析别名，见 `docs/contracts/CONFIG_CONTRACT.md` §4 与 `eng/packaging/config/filters.json#lookup`）。解析结果必须**自证身份**，不得只凭「在文件里搜到了这个名字」就使用。
+- 曲线解析的输入是**滤镜库对象键**（`resolve(name) = filters[name]`，字节精确、不折叠大小写/空白、不解析别名，见 `docs/contracts/CONFIG_CONTRACT.md` §4 与 `eng/packaging/config/filters.json#lookup`）。解析结果必须**自证身份**（判据 = 下节四项同时成立）。
 - 判定「取到的就是声明的那条曲线」需要**四项同时成立**：
 
   | 项 | 内容 | 不成立的后果 |
@@ -154,9 +154,9 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
   | ③ 包络 | 对象自述与 `provenance.per_filter[<键>].curve_stats` 的 `n_points`/`wl_min`/`wl_max`/`val_min`/`val_max` 一致 | 判红（同上） |
   | ④ 指纹 | 同上的 `wl_sum`/`val_sum`/`val_sumsq`（逐元素和）与**实际数组**算出的值一致 | 判红（同上） |
 
-- **③ 不足以定身份、④ 是必需的**：`min`/`max` 只是包络，两支不同曲线可以共用同一包络（把 `value` 数组整段换成另一支滤镜的值即为一例）。指纹字段是 `provenance` 对曲线的**逐元素**声明，缺字段 ⇒ fail-closed（不得跳过核对）。
+- **③ 不足以定身份、④ 是必需的**：`min`/`max` 只是包络，两支不同曲线可以共用同一包络（把 `value` 数组整段换成另一支滤镜的值即为一例）。指纹字段是 `provenance` 对曲线的**逐元素**声明，缺字段 ⇒ fail-closed（核对项按四项全查）。
 - **身份核对与声明名核对是两条独立判据**，互不替代：声明名核对比较「配置声明的通带名」与「`FILTER` 关键字解析出的库键」（两者不等 ⇒ 配置自相矛盾）；身份核对比较「库键」与「实际取到的曲线对象」（不等 ⇒ 解析器取错了对象）。
-- 任一项不成立 ⇒ **装配期具名拒绝**（`curve_identity_mismatch`，作用域 = 环境/配置），且**不得**返回任何曲线数据（禁止「取到一条曲线再继续」）。
+- 任一项不成立 ⇒ **装配期具名拒绝**（`curve_identity_mismatch`，作用域 = 环境/配置），且返回面 = 无曲线数据（拒绝先于取用）。
 
 **不成立的条件（退化到「不能定标」）**
 
@@ -261,7 +261,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - **WCS frame/pixel convention**：不在本层处理；交叉匹配依赖 SCI-WCS 输出的 ICRS/J2000 坐标（§3a）。
 - **PSF 参数**：星点通量来自 PSF 拟合域（PSF.md），饱和判据 `psf_status/SATURATED` 决定剔除（§4）。
 - **aperture/flux/background**：`F_instr` 为仪器通量（ADU·px 或 e⁻ 同尺度）；无孔径背景扣除项——背景已在 PSF/测光上游处理；`F>0` 有限值为有效域，非有限显式拒绝（§8）。
-- **photometric scale 与不确定度**：`scale=10^{−location}`（IRLS/Tukey 稳健位置）；不确定度 `sigma_residual`（dex）→`sigma_mag`（mag）→`sigma_cal_rel`（相对）；`q_psf`/`sigma_residual` 禁止混为逐像素 ivar（§10）。
+- **photometric scale 与不确定度**：`scale=10^{−location}`（IRLS/Tukey 稳健位置）；不确定度 `sigma_residual`（dex）→`sigma_mag`（mag）→`sigma_cal_rel`（相对）；`q_psf`/`sigma_residual` 与逐像素 ivar 各自具名（§10）。
 
 ## 10 不可接受变化
 
@@ -293,7 +293,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ## 14 Primary literature（引用定位声明）
 
 1. Tukey biweight `c=4.685`（95% 高斯渐近效率）：Mosteller & Tukey 1977, *Data Analysis and Regression*；定位经 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/) 实证核对（"c=4.685 yields 95% asymptotic efficiency at the Gaussian"）。
-2. MAD→σ 换算 `1/0.6744897501960817 = 1.482602218505602`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`；与 `docs/science/NOISE_MODEL.md` §14 同值），教科书级恒等式，Project-defined 采纳。4 位截断写法 `0.6745` 与全精度值相对差 **+1.5196e-05**，只允许出现在「≈」语境并标注该偏差，不得再作权威值（W4-A6 处置 V12-N-03）。
+2. MAD→σ 换算 `1/0.6744897501960817 = 1.482602218505602`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`；与 `docs/science/NOISE_MODEL.md` §14 同值），教科书级恒等式，Project-defined 采纳。4 位截断写法 `0.6745` 与全精度值相对差 **+1.5196e-05**，只允许出现在「≈」语境并标注该偏差；权威值 = 全精度写法（W4-A6 处置 V12-N-03）。
 3. Gaia DR3 合成通量参考：Gaia Collaboration 星表发布文献——bibcode 级定位（未逐页核验），本合同仅消费星表数值，不转述其定标推导。
 
 ## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
@@ -303,7 +303,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - **Tukey biweight w=(1−u²)²、c=4.685（95% 高斯渐近效率）**：Beaton, A. E. & Tukey, J. W. 1974, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）；Mosteller & Tukey 1977；Huber & Ronchetti 2009, Robust Statistics, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
 - **MAD→σ 换算 0.6744897501960817 = Φ⁻¹(3/4)**：标准正态分位恒等式；稳健性讨论见 Rousseeuw & Croux 1993, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。
 - **最优提取（PᵀC⁻¹P 结构）**：Horne, K. 1986, PASP 98, 609（DOI 10.1086/131801）；Naylor, T. 1998, MNRAS 296, 339。**边界**：二者为已知 profile/方差下的最优提取；Astro Celestial Sphere Database（ACSD） 本层做的是 Gaia 交叉定标的零点/尺度，不是逐源最优提取（§1 非目标），引用只作统计结构对照。
-- **误差口径 FLUXERR/MAGERR 与孔径改正**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；photutils（BSD-3-Clause）aperture_photometry 的误差传播。**差异**：ACSD 的 sigma_residual 是**逐星定标散度**（dex），不是 SExtractor 的单源通量误差；两者语义不同，禁止互换（NOISE_MODEL §9a）。
+- **误差口径 FLUXERR/MAGERR 与孔径改正**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；photutils（BSD-3-Clause）aperture_photometry 的误差传播。**差异**：ACSD 的 sigma_residual 是**逐星定标散度**（dex），不是 SExtractor 的单源通量误差；两者语义不同、各自独立消费（NOISE_MODEL §9a）。
 - **Gaia XP 绝对分光刻度与 CALSPEC 溯源**：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3）；Gaia Collaboration et al. 2021, A&A 649, A1（EDR3）；Bohlin, R. C., Hubeny, I. & Rauch, T. 2020, AJ 160, 21（DOI 10.3847/1538-3881/ab94b4）；Bohlin et al. 2014, AJ 147, 127（DOI 10.1088/0004-6256/147/6/127）；Bessell, M. & Murphy, S. 2012, PASP 124, 140（DOI 10.1086/664083）。
 - **4. XP 采样均值谱的官方定义与单位（§2a.1/§2a.3 的一手依据）**：ESA Gaia DR3 官方文档 §20.12.4 `xp_sampled_mean_spectrum`，https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_sampled_mean_spectrum.html 。**原文**："This is the BP/RP externally calibrated sampled mean spectrum. All mean spectra are sampled to the same set of absolute wavelength positions, viz. 343 values from 336 to 1020 nm with a step of 2 nm."；字段表 **"flux : mean BP + RP combined spectrum flux (float[] array, Flux[W m-2 nm-1]) Externally-calibrated combined BP and RP flux."**（2026-09-23 抓取核验，HTTP 200）。
 - **5. 合成通量的官方定义式与绝对刻度上限（§2a.1/§2a.5 的一手依据）**：ESA Gaia DR3 官方文档 §5.4.1 *Photometric processing → Calibration → External Calibration → Zero points*，https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photProc/cu5pho_ssec_photCal.html 。**原文（式 5.41）**："in VEGAMAG system the mean energy per wavelength units ⟨f_λ⟩ is calculated as: ⟨f_λ⟩ = ∫ f_λ(λ) S(λ) λ dλ / ∫ S(λ) λ dλ"；**原文（绝对刻度）**："Thus 1 % is thought to be the current state-of-the art uncertainty on the 'absolute' calibration scales."；**原文（零点适用面）**：Gaia 星表通量以 photo-electrons s⁻¹ 发布，其零点 "are not suitable for synthetic photometry computations"（2026-09-23 抓取核验，HTTP 200）。
@@ -364,7 +364,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - 星等/相对星等表达对这种退化**天然免疫**：乘性因子在 `log10` 下变成加性零点，零点平移不变量（§7）保证残差散度 `sigma_residual` 与判据不变；
 - 故 §3 明确 `F_instr`（ADU）与 `F_syn`（模型通带积分辐照度）**量纲不同**、其比值的对数即 `location`；§6 明确不宣称绝对通量刻度。这与最高设计 §2.1「消除物理单位」与 §4.4「通量以星等/相对星等表达」一致。
 
-### 16.3 禁止物理闭合反推的理由（§10 条款的论证）
+### 16.3 物理闭合反推不成立的论证（§10 条款的依据）
 
 1. **欠定**：单个乘性观测无法同时定出 `g、t、A_eff、η、消光`（未知数多于独立方程），反推必须假定未测量的先验；
 2. **不可证伪**：若为 `k_photo`/`scale` 设绝对数值窗口，该窗口是未知仪器参数的函数，任何取值都能被某组未知参数“解释”，因此**没有证据资格**（AGENTS.md §5「判据必须非退化」）；
@@ -389,7 +389,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 | 稳健统计与离群处理 | Rousseeuw & Croux 1993；Beaton & Tukey 1974；Maples et al. 2018 | §5 的 MAD/Tukey 层 |
 | 拟合算法与谱插值 | Marquardt 1963；Akima 1970（§14a） | PSF/零点拟合与 `F_syn` 数值积分 |
 
-- 未测项**不得**用估计值填充；预算上限按未测项不加处理，因此**偏严**（fail-closed），与 `06_photometry.md` §4.1 一致。
+- 未测项一律留空；预算上限按未测项不加处理，因此**偏严**（fail-closed），与 `06_photometry.md` §4.1 一致。
 
 ### 16.5 星数依赖与降级语义（SCI-A 实验定案）
 
@@ -397,7 +397,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 > C6（参考通量口径）的一手记录另见 `实验/photometric-magnitude/RESOLUTION_fsyn_formula.md`。
 
 1. **星数不构成拒绝条件**：不存在星点少到无法测光的图；任何可解析帧都完成测光定标并出产品，产品按该帧自身实测的 `σ_obs` 与误差预算如实标注精度，不设固定星数门槛、也不套用他帧的精度口径。§5 的双边界判据（`σ_obs` 上下界）按本帧自身星数自算；
-2. **星少到拟合不成立时报拟合失败（不是门槛拦截）**：§4 的冻结门「`|r_consistent| ≥ 3` 才进 IRLS」是**求解前提**——不成立时拟合**本就不产出标度**，走 NO_DATA 拟合失败路径（`fit_ok=false` + `degraded_reason` + `error` 上报，产品不得声明已施加测光）。该前提只回答「本次拟合有没有产出标度」，不作「星数够不够」的准入判据；
+2. **星少到拟合不成立时报拟合失败（不是门槛拦截）**：§4 的冻结门「`|r_consistent| ≥ 3` 才进 IRLS」是**求解前提**——不成立时拟合**本就不产出标度**，走 NO_DATA 拟合失败路径（`fit_ok=false` + `degraded_reason` + `error` 上报，产品的测光施加声明面为空）。该前提只回答「本次拟合有没有产出标度」，不作「星数够不够」的准入判据；
 3. **N5 低样本量边界（判据能力边界，非拒绝门槛）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)` 在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（实测 tol=0.002、n=5 时 σ_obs=0.00356 仍 PASS，`results/step7_negatives.json → N5`）。该现象**只出现在低样本量区间**，实拍帧的典型星数区间（实测 n = 105 / 157 等）不构成缺陷；在低样本量区间使用该判据时，下界取 `max(rho_lo, 0)·σ_fit`；
 4. **`σ_psfsys` 的孔径口径（C2 订正）**：用「PSF 域通量 vs 独立孔径通量」的中位绝对偏差估计 `σ_psfsys` 时，**必须用小孔径（≈2×FWHM）+ 低背景星子样本**。大孔径（r=10 px）把星云结构算进「方法系统误差」，实测高估约 **10×**（帧 A 0.2574 vs 真值 0.0256 mag；帧 C 1.3775 vs 0.0394 mag）；小孔径（r=4 px）在稀疏场准确（0.0250 / 0.0401 vs 0.0256 / 0.0344），在拥挤场仍上偏约 **2.7×**（保守方向，判据偏松不偏紧）。
   **判据形态（正向）**：`σ_psfsys = median(|F_PSF − F_aper|)`，取**小孔径**（半径 ≈ 2×FWHM）且**低背景**星子样本；该量是**方法系统误差**的估计量，不是逐星随机误差。
@@ -407,8 +407,8 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 6. **WCS 二轮精化是**平移**精化**：HST HLSP drz 头部 WCS 与 Gaia DR3 有 ~1.6″ 系统偏移（F657N 1.622″、F673N 1.629″，`results/step3_forward_vs_photflam.json → wcs_refinement`）；testdata 真实帧残余仅 0.0068″ ⇒ 二轮精化的必要性取决于上游 WCS 质量，不是流程固定开销；设计须能覆盖 ~2″ 量级平移；
 7. **参考通量的合成口径与适用域（C6，任务 SCI-PHOT-FORMULA-01）**：`F_syn` 的唯一权威写法是 §2a.1（绝对谱辐照度 × 通带 × 光子计数权重，**不含** `10^(−0.4·G)`）；XPSD uint8 解码的绝对刻度由真实数据实证锚定（26211 星，`median(m_syn−G)=−0.0037 mag`、MAD 0.0033 mag，G∈[6,18]），适用域 **G ≲ 18**；通带（含 `Q`）与 XP 覆盖必须完全包含，否则 `F_syn≡0` 而**不产出零点**。生产落盘的 `ZP_syn` 由该公式**逐位复现**（T2/M1：落盘 −15.126346726632235 vs 复算 −15.126346726631280，Δ=9.5e−13），证实生产实现与本节口径一致。
 8. **绝对刻度的适用域（C5）**：XP 合成通量在**窄带**（等效宽度 29–39 nm）上与 HST PHOTFLAM 的中位差为 −0.147 / −0.263 / −0.080 mag（F657N/F673N/F502N，色项斜率 0.464/0.765/0.565）。
-  **适用域（逐帧声明，禁止外推）**：上述量级**只对等效宽度 29–39 nm 的窄带成立**；**宽带**（Baader R，等效宽度 ~144 nm）的同类误差**未测量**。
-  **与生产默认配置的关系（必须写明）**：生产默认通带是**宽带** —— `eng/packaging/config/templates/normalize.phase_config.json:12` 的 `filter_passband` 取 `Baader R`。⇒ **生产主要场景的绝对刻度误差处于未测量状态**；产品精度标注与任何绝对刻度断言都不得由窄带结果外推到宽带，也不得把「窄带 −0.147…−0.080 mag」当作宽带误差的量级。
+  **适用域（逐帧声明，按域取用）**：上述量级**只对等效宽度 29–39 nm 的窄带成立**；**宽带**（Baader R，等效宽度 ~144 nm）的同类误差**未测量**。
+  **与生产默认配置的关系（必须写明）**：生产默认通带是**宽带** —— `eng/packaging/config/templates/normalize.phase_config.json:12` 的 `filter_passband` 取 `Baader R`。⇒ **生产主要场景的绝对刻度误差处于未测量状态**；产品精度标注与绝对刻度断言的引用域 = 窄带结果本身；「窄带 −0.147…−0.080 mag」只标识窄带误差量级。
 
 ### 16.6 指针
 

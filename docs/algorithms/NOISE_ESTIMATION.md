@@ -69,7 +69,7 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU：patch 网格(8×8)间独立，worker pool（按 affinity）patch 级并行，**禁止硬编码线程数**；平面最小二乘(3 参数)为全控制点固定序归约(FP64, 禁重结合)。
+- 仅 CPU：patch 网格(8×8)间独立，worker pool（按 affinity）patch 级并行，**线程数取自 benchmark profile**；平面最小二乘(3 参数)为全控制点固定序归约(FP64, 禁重结合)。
 
 ## 5c SIMD 安全与取消点
 
@@ -121,7 +121,7 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 > 本节由源码逐符号核对后追加：§1-§12 为既有登记，
 > 根公式（MAD→σ、5σ≤2 轮、平面场、floor、ivar=1/variance）不变；本节登记
 > 现行唯一生产实现逐符号锚、与旧节的实现事实差异修订、缺陷清单与测试设计。
-> 禁止声明 IMPLEMENTED（迁移落码由 P1-NOISE-IMPL 执行）。禁止根据代码缺陷
+> 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发（迁移落码由 P1-NOISE-IMPL 执行）。SCI 修改从 SCI 发起，代码缺陷一律登记，不
 > 反向修改 SCI——全部差异登记 DISP-NOISE-*。
 
 ### 13.1 逐符号实现锚定（现行唯一生产实现）
@@ -177,7 +177,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
   `lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h`，生产接线
   orchestrator.cpp run_stage_snr 噪声块）。`saturation_level=0` **只表示「未提供电平」，
   不表示「无饱和」**；未提供时编排层必须写 `NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`
-  显式降级声明。**不得**把 0 当作"该帧无饱和像素"消费。
+  显式降级声明。**0 的语义 = 「未提供电平」**，"该帧无饱和像素"是独立的另一读数。
 - 取消检查点：§5c "patch 行带粒度检查取消"为计划语义，现状
   noise_model_impl/fill_impl **无** cancel 回调（DISP-NOISE-004）。
 - §11 "n_ctrl ∈ {1..64}"：n_qualified_patches = 合格 patch 数 ∈ {0..64}
@@ -188,7 +188,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 
 ### 13.3 缺陷清单（DISP-NOISE，登记不改码）
 
-均为**现行实现事实**，迁移整改归 P1-NOISE-IMPL/INT；本 DOC 阶段禁止据此
+均为**现行实现事实**，迁移整改归 P1-NOISE-IMPL/INT；本 DOC 阶段的写域限于文档，不
 修改生产代码。编号与 SCI §10"不可接受变化"独立（SCI 层禁令不重复）。
 
 | ID | 缺陷（现状事实） | 锚 |
@@ -210,7 +210,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 |---|---|---|---|
 | 1 | 平面几何判据 | `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | 数值判据表见 `docs/science/NOISE_MODEL.md`（A=0 / B=0.0133 / C=0.200 / 满格=1.0） |
 | 2 | gain 方向 | 解析式 `signal/gain + (rn/gain)²`；`eng/tests/unit/p1_noise_test.cpp` fixture 用 SCI 约定 `ADU=N_e/gain+N(0,rn/gain)`、容差 SCI 冻结 **5%**；断言生产诊断式 `snr_noise_gain_variance` 与该解析式一致 | SCI-NOISE-001 §5:58 |
-| 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；11 位简写 `1.4826022185` 与 4 位 `1.4826` 只作约等于语境（实测绝对差 5.602e-12、相对 3.779e-12）；`Φ⁻¹(3/4) = 0.6744897501960817`，测光侧 `0.6745` 相对差 +1.5196e-05，**不得与本层冻结值互换** | SCI-NOISE-001 §9:91；`docs/GLOSSARY.md` 禁两套定义 |
+| 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；11 位简写 `1.4826022185` 与 4 位 `1.4826` 只作约等于语境（实测绝对差 5.602e-12、相对 3.779e-12）；`Φ⁻¹(3/4) = 0.6744897501960817`，测光侧 `0.6745` 相对差 +1.5196e-05，**与本层冻结值不可互换** | SCI-NOISE-001 §9:91；`docs/GLOSSARY.md` 禁两套定义 |
 | 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA_SEMANTICS:553 |
 | 5 | kLn10 | 模块内唯一定义点 = `noise_model.cpp:92`（字面量 `2.302585092994045684`） | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True |
 | 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/NOISE_MODEL.md` 实际陈述行（`patch_grid`→:46、`clip_sigma`→:48、`max_clip_rounds`→:48、`min_patch_samples`→:37、`spatial_field_enabled`→:39、`variance_floor`→:21）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG:134——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式（:46）不给数值 | `ENGINEERING_SPEC.md` §3 权威链：科学默认值引用落在 `docs/science/**` |
@@ -218,10 +218,10 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 ### 13.4 测试设计 TEST-NOISE-DESIGN-001（冻结容差）
 
 > 可执行测试由 P1-NOISE-TEST 建立（TEST-P1-NOISE-001 目标 ID）；本节冻结
-> fixture/oracle/容差，P1-NOISE-TEST 不得放宽。全离线合成数据（固定 seed
+> fixture/oracle/容差，P1-NOISE-TEST 一律按本节取值。全离线合成数据（固定 seed
 > 生成），零真实数据依赖。负面行必须逐条断言（ALG §4/§13.3 + SCI §7/§8）。
 > 既有容差锚：σ 5%（SNR-004）、平面场 10%（SNR-006）、Poisson 诊断交叉 5%
-> （SNR-005）、NumPy 参考 rtol 1e-9（SCI §11）——本节不得放宽。
+> （SNR-005）、NumPy 参考 rtol 1e-9（SCI §11）——本节取值即冻结值。
 
 - **FIX-NOISE-A Gaussian 合成**: `N(0,σ²)` 空背景帧（σ=5 ADU，固定 seed
   ≥4 组独立 seed）→ `sigma_bg_global` 相对真值 ≤5%（SNR-004 oracle；
@@ -232,9 +232,9 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
   **预测 > 0** ⇒ `variance=max(预测, floor)` 且 `ivar=1/variance`（与独立 LS oracle
   逐位一致）；**预测 ≤ 0** ⇒ `variance==0 ∧ ivar==0`。
   **判据非退化**：「哪些像素预测 ≤ 0」由独立 LS oracle（只消费 build 导出的
-  `ctrl_*` 数组）判定，不得用产品面自身的 0 值定义期望；两档各自必须非空。
+  `ctrl_*` 数组）判定；期望值取自该 oracle，产品面自身的 0 值只作被检对象；两档各自必须非空。
   **产品 dtype 门**：生效 floor 在输出 dtype 中不可表示（如 α² 换算后 `1e-46` 在
-  float32 下溢为 0）时，产品面必须取不可用态——**禁止** `(0, +inf)`。
+  float32 下溢为 0）时，产品面必须取不可用态——**不可用对的取值 = 不可用态**；`(0, +inf)` 归入另一形态。
   落地：`p1noise_negative` 的 `n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`，
   非恒真由 `p1noise_selfcheck` 的故障注入证明。
 - **FIX-NOISE-C 常量场退化**: 常量输入 C → MAD=0 → 全部 patch 拒绝 →
@@ -242,7 +242,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
   （bitwise 断言零值，不产生伪权重）。
 - **FIX-NOISE-D 掩膜半径单调性**: 逐星半径 `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)`
   对 `F_i` 与 `FWHM_i` **单调不减**（同 `(F_i,FWHM_i,σ_bg)` 逐位可复现），见 SCI-NOISE-001 §5a。
-  「半径与亮度解耦」**不是**不变量、**不得**作为判据（旧「亮星/暗星掩膜逐位一致」门把该被证伪
+  「半径与亮度解耦」**不是**不变量、**判据面不含该项**（旧「亮星/暗星掩膜逐位一致」门把该被证伪
   的陈述机器化）。**负例（门必须能红）**：只给 flux 不给 FWHM ⇒ 回落统一 rmax、半径与 F 无关
   ⇒ 严格单调判据必红，且必须置 `MASK_LEGACY`。落地 `p1noise_oracle` 的 `o2_mask_radius_monotone`
   （含 `o2_mask_radius_monotone_F` / `o2_mask_radius_monotone_fwhm` / 门牙证明）。
@@ -252,7 +252,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
   use_gain_model=1 不改变生产输出（DISP-NOISE-003 现状：字段无效）。
 - **FIX-NOISE-F scale law**: α∈{0.5,2,10} → var'=α²var、ivar'=ivar/α²
   逐位；回乘 α·(1/α) 恒等。负面：alpha=NaN → 按 DISP-NOISE-005 断言
-  **现状行为**（variance=NaN 直传），不得断言"已校验"。
+  **现状行为**（variance=NaN 直传）；断言口径 = 该现状行为（"已校验"不在断言面内）。
 - **FIX-NOISE-G fill 语义**: has_spatial_field=0（n_ctrl<4）→ 输出全场
   常量 variance_bg_global/ivar_bg_global；n_ctrl≥4 → 平面像素值与 NumPy
   独立 LS 复算 rtol 1e-9；out_variance/out_ivar 任一可 NULL（可空输出）。
@@ -286,7 +286,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
-- 背景网格 + 稳健 σ：Bertin & Arnouts 1996, A&AS 117, 393（**§2** 背景网格与稳健估计；§3 是检测不是背景）；源码 SExtractor（GPL-3.0）back.c/makeback。**差异**：SExtractor 用 mode/median + 迭代 σ，本模块用 8×8 patch MAD + 最小二乘平面场，二者不等价。**适用域**：该文不讨论权重图/逆方差加权/逐像元方差通道，不得引它支持本模块的 `variance/ivar` 面。
+- 背景网格 + 稳健 σ：Bertin & Arnouts 1996, A&AS 117, 393（**§2** 背景网格与稳健估计；§3 是检测不是背景）；源码 SExtractor（GPL-3.0）back.c/makeback。**差异**：SExtractor 用 mode/median + 迭代 σ，本模块用 8×8 patch MAD + 最小二乘平面场，二者不等价。**适用域**：该文不讨论权重图/逆方差加权/逐像元方差通道，本模块的 `variance/ivar` 面另立来源。
 - 多尺度稳健噪声 MRS/N*：Starck & Murtagh 2006, Astronomical Image and Data Analysis 2nd ed., Springer（ISBN 978-3-540-33023-3）；Starck, Donoho & Candès 2003, A&A 398, 785。现状未采用，仅选型对照。
 - MAD→σ：Rousseeuw & Croux 1993, JASA 88, 1273；稳健尺度 Hoaglin et al. 1983。
 - Poisson+read noise 诊断式：Newberry 1991, PASP 103, 122；Janesick 2001, SPIE PM83, Ch.2。

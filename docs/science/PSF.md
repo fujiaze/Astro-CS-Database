@@ -93,7 +93,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
   典型拟合窗 `r_win = 3.7172·σ`（`sdet_api.cpp:2071-2074` 的 `s_factor`）
   ⇒ `r_win/α = 2.629`、`f_out = 2.02e-3`，即发布 flux 相对窗内积分通量
   **偏高 0.20%**。**当 `r_win/α < 1`（`r_win < 1.41σ`）时 `f_out > 3.1%`**，
-  该域下 flux **不得**当作全通量使用。
+  该域下 flux 的语义 = 窗内积分通量。
 
 ## 6 假设
 
@@ -130,7 +130,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
   实测（4e6 样本/分布）：残差分布为 Gaussian / Uniform / Laplace / Student-t(5) 时
   `σ̂ = residual_scale/0.7316727929211932` 相对真值之比 = 1.0004 / 1.1837 / 0.8024 /
   0.8648 ⇒ **非高斯残差下偏差可达 ±18%**。残差含未建模源/宇宙线/邻星时
-  `robust_residual_sigma` **不得**当作噪声 σ 的绝对标度。证据同上 §C。
+  `robust_residual_sigma` 的语义 = 相对残差尺度（绝对 σ 标度随残差分布而变）。证据同上 §C。
 - **实现截尾边界的有限-m 效应**：`compute_trimmed_mad` 取
   `lo = int(0.1·m)`、`hi = int(0.9·m)`（`dpsf_psf.cpp:248-249`），两端裁剪
   **不对称**（`m` 非 10 的整数倍时上端多裁）。实测 `E[该统计量]/σ`：
@@ -208,4 +208,4 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 - `eng/tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-002 转换：解析 PSF 星场（已知 A/σ/θ）、q_psf 边界、饱和标志用例登记 SYN-002。
 
-> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门的阈值一律取自该表）。

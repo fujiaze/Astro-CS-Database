@@ -13,7 +13,7 @@
   行权威值）；registry 行 MOD-astrocs-phase3-resample2；
   dll_target=astrocs_p3_resample.dll（合同值，尚未存在，
   entrypoint=MISSING，DISP-P3RSMP-005，由 P3-RSMP-IMPL 建立，
-  禁止声明 IMPLEMENTED）；现状构建=astrocs_phase3_session 静态库
+  IMPLEMENTED 只由验收签发）；现状构建=astrocs_phase3_session 静态库
   成员（根 CMakeLists.txt:460-465）。
 - owner: SA-P3-S26；language: c++17；abi_version: 1；
   phase_scope: phase3；resource_class: cpu_heavy；

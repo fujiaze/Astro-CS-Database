@@ -134,7 +134,7 @@ eligibility（逐候选 i，候选索引固定序）:
   （默认 false）时的**显式降级路径**（stage2.cpp:1113-1120），
   **不是逐样本 ivar 的定义**；
   该降级发生时 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
-- 禁止（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
+- 本层冻结的改动面 = 空（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
   ZERO_VALID_WEIGHT；在本层引入 ivar/SNR 策略；改变求和顺序。
 
@@ -145,7 +145,7 @@ eligibility（逐候选 i，候选索引固定序）:
   :1141/:1402 → p2_integrate_pixel 三调用点：chunk 并行路径
   :1213-1223、CPU 串行路径 :1515-1527（注释 :1525-1526 冻结
   "support 唯一 canonical reducer（max accepted support）由
-  p2_integrate_pixel 计算，Stage2 只消费"——**调用方禁止二次
+  p2_integrate_pixel 计算，Stage2 只消费"——**调用方的用法 = 只消费该值，不做二次
   max/mean**）、large_scale 二次积分 :1579-1585。逆归一化
   `area=support_out×A_cell`、`flux=signal×area`（:1227-1228/
   :1588-1589）在 Stage2 域（DATA_SEMANTICS §20.3）。
@@ -171,7 +171,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - SCI §5:55-60 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
   signal/support reducer/状态分支）。
 - **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI §5:58、
-  integrate.h:17-19、SCI §2:21/§5:63/§7:75 同文，**不得存在第二口径**）。
+  integrate.h:17-19、SCI §2:21/§5:63/§7:75 同文，**本口径即全部口径**）。
   `sup_max` 更新必须置于权重分支**之前**（integrate.cpp:49-50），
   作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
   support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
@@ -186,7 +186,7 @@ eligibility（逐候选 i，候选索引固定序）:
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
 
 - signal: ADU（f64 输出；写盘 f32/f64 由 Stage2 precision 决定）；
-  weights: 1/ADU²（本层仅数值域，无量纲混用禁止）；support: 无量纲
+  weights: 1/ADU²（本层仅数值域，与无量纲量各自独立）；support: 无量纲
   [0,1]；计数: 无量纲 u32/u64。全浮点 IEEE double 域（核内），
   无 long double/复数。
 - 整数登记量（status/counters）bitwise 确定；浮点仅 vs/wsum 累加
@@ -210,18 +210,18 @@ eligibility（逐候选 i，候选索引固定序）:
 1. 五态枚举 name/value/顺序（integrate.h:45-51）。
 2. support canonical reducer 语义 = max(accepted support)（integrate.h:17-19
    文本口径；`sup_max` 更新位置 = integrate.cpp:49-50，位于权重分支之前，
-   **禁止改语义解释或更新位置**）。
+   **语义解释与更新位置均取上列值**）。
 3. 零权重=合法零贡献（integrate.cpp:56 / SCI §10）。
 4. 候选索引固定序归约（确定性合同，§6）。
 5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。
-6. 调用方禁止对 pr.support 二次 max/mean（stage2.cpp:1525-1526
+6. 调用方对 pr.support 的用法 = 只消费（stage2.cpp:1525-1526
    注释冻结；ACR 同型）。
 
 ## 11 冻结附录（SRC-P2-INT-001 源码实测）
 
 ### 11.1 逐符号锚
 
-见 §3 表（锚=`grep -n`/read 实测；禁止手抄他版行号）。
+见 §3 表（锚=`grep -n`/read 实测；行号一律照录实测值）。
 
 ### 11.2 返回码/状态码语义
 
@@ -229,7 +229,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - status: §4 表（五态互斥显式；wsum==0 无除法路径）。
 - 并发合同: reentrant=yes（无全局/静态可变状态，纯函数）；
   threadsafe=no（无内部锁，并发由调用方像素划分）；internal_parallel
-  =none；取消点=无（ThreadLease 接线迁移不得引入取消点，
+  =none；取消点=无（ThreadLease 接线迁移保持取消点=无，
   与 DISP-COV-005 同构）。
 
 ### 11.3 support reducer 冻结约束与负例判据
@@ -246,7 +246,7 @@ eligibility（逐候选 i，候选索引固定序）:
   即 support 与 signal 正交。
 - **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/contracts/DATA_SEMANTICS.md` §21.5
   与 `integrate.h:17-19` 的文本口径必须同为 `max_{accepted} support[i]`，
-  **不得存在第二口径**。
+  **该口径即唯一口径**。
 
 ### 11.4 TEST-P2-INT-DESIGN-001 冻结测试设计（可执行 TEST-P2-INT-001 由 P2-INT-TEST 落地）
 
@@ -288,7 +288,7 @@ eligibility（逐候选 i，候选索引固定序）:
   **适用域**：rtol 0 只在归约顺序完全一致时可达——F1/F1b 的期望值用同一 `i=0..count-1`
   固定序、同一 `vs/wsum` 双累加器复算；跨编译器/跨 FMA 契约的复算必须降到 rtol 1e-12
   并在报告中声明所用域。F1 的「与权重分布无关」指**结果与权重分布无关**（常量场恒真），
-  **不**指「任何权重下的舍入都相同」——该表述不得作为容差依据。
+  **不**指「任何权重下的舍入都相同」——容差依据 = 上列的固定序复算口径。
 
 ### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
@@ -301,9 +301,9 @@ eligibility（逐候选 i，候选索引固定序）:
   （docs/science/INTEGRATION.md，矩阵 science_doc=
   docs/science/INTEGRATION.md，MOD-astrocs-phase2-integrate 行）。
   SCI 公式语义不在此重复定义，
-  两处冲突时以 docs/science/ 为准并回改本文档（禁止反向）。
+  两处冲突时以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
   ALG-INT-001/002（SCI §12）⇒ 本文档 §3/§5 算法定义承接。
-- 本节禁止被编排层词汇反向改写（descriptor astrocs.phase2.integrate
+- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor astrocs.phase2.integrate
   由 P2-XX-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）

@@ -4,8 +4,8 @@
 
 > 生产构建图: target/source/define/link 与 CMake File API/compile_commands.json 对应
 
-> ⚠ **生产构建不得链入 ACR/CUDA**：
-> 最高设计 §8「**禁止**生产目标编译或链接 ACR 的任何源文件；**禁止**任何 GPU 路由开关与
+> ⚠ **生产构建采用无 ACR/CUDA 的链接面**：
+> 最高设计 §8「生产目标只编译链接非 ACR 源文件；GPU 路由开关与
 > 第二个可执行入口」；ACR 状态 = `DORMANT`（保留源码与隔离测试，不进生产构建/加载/路由/
 > benchmark/发布）。因此 **§1/§2/§3/§4 中的 ACR 源集、ACR 编译定义、ACR 链接行与
 > `astrocs-stage2` 目标均不是生产构建面**（下表已逐行标注）。
@@ -16,7 +16,7 @@
 | Target | Type | Sources | CMakeLists |
 |---|---|---|---|
 | phase2（**现状，含 ACR 违规**） | STATIC | src/upm.cpp, stage2_common.cpp, rejection.cpp, coverage.cpp, sampler.cpp, block.cpp, integrate.cpp, common/healpix_core.cpp, common/crypto/sha256.cpp —— ⛔ **现状源集另含 `acr_kernels.cpp` / `acr/api/kernel_registry.cpp` / `acr/backends/cuda/cuda_bridge_loader.cpp` / `acr/scheduler/device_executor.cpp`，违反最高设计 §8，须从生产源集移除（代码侧整改）** | lib/algorithms/coverage/CMakeLists.txt |
-| ~~astrocs-stage2~~（**非发布入口**） | EXEC | lib/algorithms/coverage/tools/stage2.cpp —— 旧 Phase2 CLI，**不是入口**（最高设计 §6.2 唯一命令树 / §7.1「旧可执行程序不是入口」）；保留仅为历史/工具面，**不得作为发布目标** | lib/algorithms/coverage/CMakeLists.txt |
+| ~~astrocs-stage2~~（**非发布入口**） | EXEC | lib/algorithms/coverage/tools/stage2.cpp —— 旧 Phase2 CLI，**不是入口**（最高设计 §6.2 / §7.1「旧可执行程序不是入口」）；仅保留为工具面，**发布目标 = §6.2 唯一命令树** | lib/algorithms/coverage/CMakeLists.txt |
 | calibrated_pair_diag | EXEC | lib/algorithms/coverage/tools/calibrated_pair_diag.cpp | lib/algorithms/coverage/CMakeLists.txt |
 | rejection_cli | EXEC | lib/algorithms/coverage/tools/rejection_cli.cpp | lib/algorithms/coverage/CMakeLists.txt |
 | phase2_synthetic_gate | TEST | lib/algorithms/coverage/tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
@@ -38,7 +38,7 @@
 |---|---|---|
 | ~~astrocs-stage2~~（**非发布入口**） | phase2 + astro_image_io.dll | `target_link_libraries(astrocs-stage2 PRIVATE phase2 astro_image_io.dll)` lib/algorithms/coverage/CMakeLists.txt:73 —— 该目标**不是入口**（最高设计 §6.2/§7.1） |
 | phase2 (when ON) | OpenMP::OpenMP_CXX | `target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)` |
-| ~~acr_cuda_bridge.dll~~ **DORMANT（禁止链接生产目标）** | ~~phase2 executables~~ | POST_BUILD copy to TARGET_FILE_DIR if EXISTS —— **生产构建不得链入 ACR/CUDA**（最高设计 §8），该 POST_BUILD 拷贝须移除（代码侧整改） |
+| ~~acr_cuda_bridge.dll~~ **DORMANT（生产目标链接面排除此项）** | ~~phase2 executables~~ | POST_BUILD copy to TARGET_FILE_DIR if EXISTS —— **生产构建采用无 ACR/CUDA 的链接面**（最高设计 §8），该 POST_BUILD 拷贝须移除（代码侧整改） |
 
 ## 4 File-API / compile_commands 对应
 

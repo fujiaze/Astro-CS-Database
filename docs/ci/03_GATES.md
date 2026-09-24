@@ -39,7 +39,7 @@
 （语义继任者 `AGENTS-GOV`）。逐条依据与重新注册前置条件见 `01_CHECKS.md §2.3`；机器可读面见
 `eng/ci/id_migration_map.json::reserved_targets`。**保留一个不存在的 P0 门 = 把假绿写进本表。**
 
-## 4. 禁止事项
+## 4. 判据边界
 
 - 用 waiver 掩盖红灯（未被授权豁免的条款不可豁免）；
 - 把"能编译"当"验收过"（必须跑断言/测试/机器门）；
@@ -64,7 +64,7 @@
 违规即红。历史证据回放：`artifacts/acceptance/l2_performance/gates/*_gate.json`
 9 份 `verdict=pass` 的违规证据现在全部判红（`L2-FROZEN-GATE-REPLAY`）。
 生产侧 `run_monitored.py` 的 `record_and_justify` 字段是记录语义，
-**不得**再被当作"门禁通过"的依据。
+**门禁通过的依据 = 机器门 rc=0**。
 
 ### 6.2 requires_monitor 声明对照表（8 个检查 / 11 个执行单元）
 

@@ -29,7 +29,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
   `surface_brightness`（HiPS 产品，`ADU/sr`）。e⁻ 只在调用方另行给出 gain 换算后才成立（本链不建模 gain）。
   - **可判定条件**（产品处于哪一档由产品自身声明，不靠推断）：Phase1 帧面由
     `p1_phot.json#photometry_applied` 与 `#photscales`（`DATA-P1-PHOTPROV-001`）判定；
-    HiPS 产品由 `BUNIT` 与 `provenance` 判定。缺声明 ⇒ 显式拒绝，不得按同标度消费。
+    HiPS 产品由 `BUNIT` 与 `provenance` 判定。缺声明 ⇒ 显式拒绝（消费前提 = 产品自身声明）。
   - **α 是逐帧量，不是全仓常数**（实测：M42 生产 33 帧 `α ∈ [1.1387e-17, 6.0083e-17]`，跨 5.28×；
     `run/RELEASE-05/vis/out/m42_p1_t3/p1_phot.json`）。
 - **标度律（强制）**：`x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`；`S = F/A_cell ⇒ Var(S) = Var(F)/A_cell²`。
@@ -47,7 +47,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
   - **失效判据（可执行、非退化）**：以 patch 尺度上的对数斜率
     `γ = dlog(patch 方差)/dlog(patch 中位信号)` 为判据——纯随机分量应给出 `γ ≈ 1`；
     `γ` 显著偏离 1 ⇒ 该 patch 估计器量的是**空间结构**而非随机分量，噪声场必须显式降级
-    （退回已规定的全局常量场并登记 `degraded_reason`），**不得**按随机噪声消费。
+    （退回已规定的全局常量场并登记 `degraded_reason`），**消费口径 = 显式降级的常量场**。
   - **实测（本仓独立复算）**：M42 真实帧 8×8 patch MAD 稳健方差对 patch 中位信号的对数斜率
     `γ = 1.983`（corr 0.593，262 144 个 patch）⇒ **该真实域不满足 `γ ≈ 1`**，前提在本帧上不成立。
     证据：`run/SCI-FIX-SEMANTICS-01/evidence/m42_structure_contamination.json`。
@@ -67,22 +67,22 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
 ## 失效条件
 
 - 无合格控制点/无重叠 → NO_DATA / UNDERDETERMINED 显式状态；
-- 输入损坏 → INPUT_CORRUPT 显式错误（禁止猜测）；
+- 输入损坏 → INPUT_CORRUPT 显式错误（状态只出自输入校验面）；
 - **标度不可判定**（无法从产品自身声明判定其标度类别）→ 显式拒绝（`rc=2`），
-  不得按同标度消费（`docs/standards/NUMERIC_STANDARD.md`）；
+  消费前提 = 标度类别可判定（`docs/standards/NUMERIC_STANDARD.md`）；
 - **局部平稳前提被违反**（patch 尺度结构污染，见 §假设的 `γ` 判据）→ 噪声场显式降级并登记，
-  不得静默按随机噪声消费。
+  消费口径 = 显式降级的噪声场。
 
 ## 系统/随机误差
 
 系统性：flat 残差、PSF 色差、测光零点漂移（QA 元数据化）；
-随机性由**两个用途不同的方差面**承载，二者量纲相同、**不得互相替代**（`docs/science/NOISE_MODEL.md` §5/§5c）：
+随机性由**两个用途不同的方差面**承载，二者量纲相同、**各自独立消费**（`docs/science/NOISE_MODEL.md` §5/§5c）：
 **背景方差面** = 空背景随机分量，由 `NoiseWeightModelV1` 以 **patch 稳健尺度（MAD→σ）** 估计并落成 `variance/ivar`，
 其唯一基线是**经验空背景方差**（`source==0`，`noise_model.cpp:618`）；
 **加权方差面** = 该像素的**总方差**，含**源光子散粒项**，供叠加与拟合的最优加权，其源项与常数项来自
 `gain`/\`read_noise_e\` 与星点测光给出的源电平（`docs/science/NOISE_MODEL.md` §5c）。
 「光子泊松 + 读出噪声」的参数式 `var_ADU = max(signal,0)/gain + (read_noise_e/gain)²`
-**不得**作为背景方差面的来源，**必须**作为加权方差面的来源。
+**即为**加权方差面的来源，背景方差面以经验空背景方差为准。
 **适用域**：背景方差面 = 空背景散粒 + 读出的**经验合计**；系统项与 Drizzle 后协方差不在任一面内
 （`docs/science/UNCERTAINTY_AND_COVARIANCE.md`）。
 
@@ -92,7 +92,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
 **稀疏/有限数据**（帧级 SNR、WCS 解、星表匹配、测光定标）全程 **FP64**。
   - **计算与承载分离**：本层内部归约/累积用 FP64，FP32 是**落盘/发布 dtype**（块类型 `AIO_BLOCK_FLOAT32`/`AIO_BLOCK_FLOAT64` 由精度模式选择，`module_adapters.cpp:6355-6377`）。
   - **量纲后果（必须显式处理）**：任何**绝对**常数一旦随标度换算就会改变可表示性。方差地板 `1e-12`（单位 `ADU²`）按 `α²`（`α` 为逐帧测光标度，`α ∈ [1.1387e-17, 6.0083e-17]`）换算后为 `~1e-46`，在 FP32 中精确下溢为 `0`，而 `1/floor` 上溢为 `+inf`；
-    该像素**必须**取不可用态 `(variance=0 ∧ ivar=0)`，禁止发布 `(0, +inf)`（`docs/science/NOISE_MODEL.md` §7「产品 dtype 成对不变量」、§9 ②③）。
+    该像素**必须**取不可用态 `(variance=0 ∧ ivar=0)`：成对不变量下的合法发布对即 `(0, 0)`，`(0, +inf)` 属不可表示态（`docs/science/NOISE_MODEL.md` §7「产品 dtype 成对不变量」、§9 ②③）。
   - **显式等价路径门**：UPM 稀疏模型与稠密缓存对同一输入的块输出按 `EXPECT_NEAR(..., 1e-12)` 判等（`lib/algorithms/coverage/tests/synthetic_gate.cpp:2849`，用例 `Phase2Upm.SparseEqualsDense`）；该门只覆盖 UPM 物化路径，不覆盖 FP32/FP64 承载面之间的差异。
 
 ## 参考文献

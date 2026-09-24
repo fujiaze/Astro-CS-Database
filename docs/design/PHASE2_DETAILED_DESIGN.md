@@ -16,7 +16,7 @@
 
 `admit → coverage graph → control sampling → global relative photometry/background model → apply normalization → rejection inference → science-objective integration → product validation → atomic publish`。
 
-每步产物持久或可重建，七个 operation 不得由同一个全阶段调用伪装。
+每步产物持久或可重建，七个 operation 逐一具名调用。
 
 SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），不由上游落盘（`ASTROCS_DESIGN.md` §5.3）。
 
@@ -35,10 +35,10 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 - `C_k(x)` 是加性天光背景（校正场）；**不引入乘性 `g_k`**（恒等；乘性残留归 Phase1 低阶空间增益，见 `docs/science/PHASE2_UPM.md` §14a）；
 - 星点掩膜之外每帧取稀疏背景采样点，采样点权重取**噪声逆方差 `control_ivar`**：被估量是变化的背景电平，`SNR²` 在该处不是有效逆方差代理；SNR 只作 veto/质量门（`ASTROCS_DESIGN.md` §5.4）；
 - 约束 gauge，报告**可辨识性判决与读数**（判在**未正则化**的列均衡数据信息矩阵上，唯一相对阈值；欠定与病态是同一条不等式的两种读法）、连通性、残差和参数协方差；
-- 参考天光面的节点间距由**输入几何**导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的**唯一旋钮**；几何量缺失 ⇒ fail-closed，**不得**回退标定常数；
+- 参考天光面的节点间距由**输入几何**导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的**唯一旋钮**；几何量缺失 ⇒ fail-closed，取值只来自输入几何；
 - 控制点避开源、饱和、坏点和高结构区域；
 - 校准参数不确定度必须传播到最终 covariance；
-- 欠定、断图、不可辨识或显著模型失配显式失败/分组件；判据**不得**设在加了正则化的求解矩阵上（正则化后条件数有上界 ⇒ 恒真门），正则化矩阵的条件数只作诊断。
+- 欠定、断图、不可辨识或显著模型失配显式失败/分组件；判据**只**设在未正则化的求解矩阵上（正则化后条件数有上界 ⇒ 恒真门），正则化矩阵的条件数只作诊断。
 
 ## 5. Rejection
 
@@ -49,7 +49,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 - 小样本规则、迭代上限和方法版本化；
 - 输出 rejection mask/count/reason/probability；
 - 移动源等科学信号可选择保留到独立层，不默认当缺陷删除；
-- NaN 采用**样本级掩膜**：污染样本掩除后**重归一**、覆盖级缺数置 NaN 并**强制计数**，**禁止静默剔除**。
+- NaN 采用**样本级掩膜**：污染样本掩除后**重归一**、覆盖级缺数置 NaN 并**强制计数**，掩膜动作逐条计数。
 
 ### 5.1 逐像素排异路由（最终五档表）
 
@@ -90,7 +90,7 @@ Q_k = a_k P_kᵀ C_k⁻¹ d_k,    W_k = a_k² P_kᵀ C_k⁻¹ P_k
 Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 ```
 
-这条产品线显式消费 Phase1 的 PSF、光度响应和噪声/协方差。普通像素 ivar coadd 在 PSF 不同时不保证最大点源 SNR；不得宣称等价。目标产品可采用：
+这条产品线显式消费 Phase1 的 PSF、光度响应和噪声/协方差。普通像素 ivar coadd 在 PSF 不同时不保证最大点源 SNR；两者不等价，声明面按此区分。目标产品可采用：
 
 - detection statistic / score map；
 - point-source information map `W`；
@@ -101,7 +101,7 @@ Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 ### 6.3 权重的来源与产生链
 
 Phase2 **不消费**任何来自 Phase1 的相对权重产品：权重一律**按该天球像素对应的帧集合现场算出**（派生量）；
-Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**禁止**计入科学叠加权重（`ASTROCS_DESIGN.md` §2、§3.1）。
+Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**权重面排除**该项（`ASTROCS_DESIGN.md` §2、§3.1）。
 
 **产生链固定为两步、没有可选择项**：
 
@@ -132,7 +132,7 @@ Phase1 的 PSF/information/noise 若为空间模型，Phase2 必须在输出位�
 4. UPM 参数、协方差和残差诊断；
 5. manifest：输入列表/哈希、目标函数、权重模型、近似、排异和 provider。
 
-不得只写一张图和一个语义不明的 weight。
+manifest 写全每张图，且每个 weight 具名。
 
 Phase2 产物是**服务面天球数据库**，落盘形态固定为**裸 `<name>.hips/`**（被随机读取，不引入解压延迟）；同样写出产品级索引与数据集级覆盖索引，供 Phase3 按天区查。
 

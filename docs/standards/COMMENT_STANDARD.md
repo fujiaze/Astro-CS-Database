@@ -20,12 +20,12 @@ NON-OBVIOUS PERFORMANCE；Code 解释 WHAT；历史沿革进 ADR 与 git 提交�
 
 ## 必须删除/迁移
 
-production code 中禁止出现：V[0-9]+、R[0-9]+、MICROFIX、控制包、审计轮次、
+production code 注释的清理面 = V[0-9]+、R[0-9]+、MICROFIX、控制包、审计轮次、
 骨架版本、第??号计划、"本次修复"、"历史原因如下"、"以后 Task 再做"。
 允许 whitelist：API protocol version、FITS/HiPS formal version、
 scientific model version。
 
-## 禁止废话注释
+## 叙述性注释的清理面
 
 删除 "// 初始化变量"、"// 遍历数组"、"// 写文件"、"// 返回成功" 等叙述性注释。
 

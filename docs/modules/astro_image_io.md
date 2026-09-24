@@ -21,7 +21,7 @@ PipelineFrame/引擎。
 
 aio_* 系列（aio_fits/aio_xisf/aio_hips_reader/aio_hips_writer/
 aio_upm/aio_compressor/aio_pipeline）；API-AIO-001..（S2 注册）。
-PipelineFrame：纯命名块容器（按块名索引）。**块词表的唯一登记处 = `lib/infrastructure/aio/include/aio_pipeline.h:287-305` 的「标准块定义表」**（aio 是文件级唯一 I/O 边界，块词表属 aio 的内存块合同 ⇒ 登记处归 aio）；**其它文档只作引用，不得自称第二套登记处**——`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**（orchestrator 不在产品入口位）；`docs/contracts/DATA_SEMANTICS.md` §11.1 的「帧内命名块」表**只作引用**。⚠ **Q8 待落地的代码侧项（登记，非本任务文件域）**：① 把 `variance` 块补进标准块定义表；② 删除 `:304`「未列出的自定义块名也允许」；③ 补机器判据（块名 ∉ 标准表 ⇒ 判红）。`PipelineStageFn` 签名 `const input/output/params + error_msg/error_capacity（可为 NULL，>0 保证 NUL 终止/截断）`，`aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc` buffer）。
+PipelineFrame：纯命名块容器（按块名索引）。**块词表的唯一登记处 = `lib/infrastructure/aio/include/aio_pipeline.h:287-305` 的「标准块定义表」**（aio 是文件级唯一 I/O 边界，块词表属 aio 的内存块合同 ⇒ 登记处归 aio）；**其它文档只作引用**——`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**（orchestrator 不在产品入口位）；`docs/contracts/DATA_SEMANTICS.md` §11.1 的「帧内命名块」表**只作引用**。⚠ **Q8 待落地的代码侧项（登记，非本任务文件域）**：① 把 `variance` 块补进标准块定义表；② 删除 `:304`「未列出的自定义块名也允许」；③ 补机器判据（块名 ∉ 标准表 ⇒ 判红）。`PipelineStageFn` 签名 `const input/output/params + error_msg/error_capacity（可为 NULL，>0 保证 NUL 终止/截断）`，`aio_frame_add_block_move` 为 move 语义（成功接管后调用方不再拥有 `aio_alloc` buffer）。
 
 ## Data contract
 
@@ -75,7 +75,7 @@ fuzz/sanitize driver；Python oracle（hips_mapping_oracle）；
 
 ## Known limitations
 
-UPM sparse 已于 V19R6R2 temp+rename 已修复（F-V19R2-IO-001 已闭环，见 docs/architecture/IO_AND_ATOMICITY.md）；**HiPS tiles 仍非原子 —— 已登记的待修缺口（未闭合）**：partial-file 策略 = abort 尽力清理、finalize 写 CHECKSUM/DATASUM 后交付，单 tile 为 remove→create→write_chksum→close（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:330/:399` 的 `std::remove`），**不是** temp+rename 原子发布；**未闭合前不得声称 HiPS tile 已原子发布**（最高设计 §9「本期例外（如实登记）」）；orchestrator 日志路径嵌套 bug（非阻断）。
+UPM sparse 已于 V19R6R2 temp+rename 已修复（F-V19R2-IO-001 已闭环，见 docs/architecture/IO_AND_ATOMICITY.md）；**HiPS tiles 仍非原子 —— 已登记的待修缺口（未闭合）**：partial-file 策略 = abort 尽力清理、finalize 写 CHECKSUM/DATASUM 后交付，单 tile 为 remove→create→write_chksum→close（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:330/:399` 的 `std::remove`），**不是** temp+rename 原子发布；**HiPS tile 原子发布的宣称以该缺口闭合为前提**（最高设计 §9「本期例外（如实登记）」）；orchestrator 日志路径嵌套 bug（非阻断）。
 
 ## Source files
 

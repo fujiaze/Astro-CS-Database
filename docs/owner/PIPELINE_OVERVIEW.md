@@ -26,15 +26,15 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2）
 ```
 
 - 阶段间只通过原子发布、哈希与 provenance 完整的磁盘产品/manifest 交换（§A.6；DATA-002）。
-- 禁止同进程 `--phases 1,2,3`；外部脚本可显式依次启动三个独立进程（§A.4）。
-- Phase3 不得假设输入来自 Phase2；Phase2 不得假设输入由同一进程 Phase1 产生（§A.5）。
+- 同进程 `--phases 1,2,3` 不在命令面上；外部脚本可显式依次启动三个独立进程（§A.4）。
+- Phase3 的输入面 = 磁盘产品（与上游是否为 Phase2 无关）；Phase2 的输入面 = 磁盘产品（与 Phase1 是否同进程无关）（§A.5）。
 
 ### 现状核实（源码在位）
 
 | 隔离要求 | 状态 | 依据（当前提交内静态可核） |
 |---|---|---|
 | 唯一命令树 `normalize/mosaic/export`（+ `help/--version/doctor/benchmark`）存在 | `INSTALLED` | CLI-001 切换为 `ASTROCS_DESIGN.md` §6.2 唯一命令树：旧 `phase1/2/3` 用户命令与 `validate/plan/inspect` 全部删除且 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1）；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS |
-| **三命令平级独立（唯一命令树，无跨阶段连跑入口）** | `IMPLEMENTED` | `run`/`graph` 不在命令树内（CLI-002，`a6c39cc1`）；实测 `run --phases` → rc=2 `unknown command 'run'`，与 `ASTROCS_DESIGN.md` §1.2/§7.1（唯一命令树、禁止隐式串接）一致 |
+| **三命令平级独立（唯一命令树，无跨阶段连跑入口）** | `IMPLEMENTED` | `run`/`graph` 不在命令树内（CLI-002，`a6c39cc1`）；实测 `run --phases` → rc=2 `unknown command 'run'`，与 `ASTROCS_DESIGN.md` §1.2/§7.1（唯一命令树、串接一律显式）一致 |
 | 单 Phase 命令走独立进程/独立 Runtime 实例 | `IMPLEMENTED` | `normalize/mosaic/export` 子命令（`cli/commands.cpp`，handler 名经 CLI-001 切换）各启动单 Phase 运行 |
 | RT-001 类型化 DAG 拒绝跨 Phase edge | PASS | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`（module 带 phase 字段，跨 Phase edge 拒绝，见 RT-001 集成 commit requirements） |
 | DATA-002 产品交换合同（磁盘交换、role↔type 绑定、Phase2 不依赖 Phase1 run ID） | PASS | `eng/contracts/data/phase_product_exchange*` + `runtime/artifact_store/phase_product_exchange_validator.py`（合同冻结） |
@@ -96,7 +96,7 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
 ## 4. Phase3 内部链
 
 目标链（03 §5）：`input_hips → projection_plan → resample_blocks → fits_stream_writer`
-（投影/重采样/写出是真实独立节点，禁止三个节点重复调用完整 p3_session_run —— 属 W4 删除范围）。
+（投影/重采样/写出是真实独立节点，整套 p3_session_run 的重复调用属 W4 删除范围）。
 
 当前基线装配：
 - `cli/runtime_client.cpp` `phase3_nodes()`：5 节点链

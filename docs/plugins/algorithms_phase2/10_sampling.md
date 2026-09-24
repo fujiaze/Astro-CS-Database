@@ -58,7 +58,7 @@ flowchart LR
 
 - 天光采样点与光度控制点的数量下限由 UPM 自由度（样条节点数/阶数）决定；
 - 有效点不足、空间连通性不支持样条拟合 → 明确失败，由 upm fail-closed；
-- **可辨识性判决只有一条口径**（欠定与病态是同一条不等式的两种读法）：判在**未正则化**的列均衡数据信息矩阵上，唯一相对阈值 `τ = rank_rtol`（地板 `max(m,n)·eps`）。**不得**设绝对条件数上限，**不得**在加了正则化的求解矩阵上设门（正则化后条件数有上界 ⇒ 恒真门）。判决位与全部读数（`identifiable` / `rank_eff` / `n_unidentified` / `rank_rtol_effective` / `kappa` / `dof_eff` / `chi2_red`）见 `11_upm.md` §4.7。
+- **可辨识性判决只有一条口径**（欠定与病态是同一条不等式的两种读法）：判在**未正则化**的列均衡数据信息矩阵上，唯一相对阈值 `τ = rank_rtol`（地板 `max(m,n)·eps`）。**设门位置 = 这一个矩阵**（绝对条件数上限、正则化后求解矩阵均属另一口径：正则化后条件数有上界 ⇒ 恒真门）。判决位与全部读数（`identifiable` / `rank_eff` / `n_unidentified` / `rank_rtol_effective` / `kappa` / `dof_eff` / `chi2_red`）见 `11_upm.md` §4.7。
 
 ## 5. 配置项
 
@@ -80,7 +80,7 @@ flowchart LR
 
 ## 7. 错误与边界
 
-- 控制点/采样点不足、连通性断裂 → fail-closed（UPM 欠定/不可辨识），判据口径见 §4.4（唯一判据，**不得**用绝对条件数上限）；
+- 控制点/采样点不足、连通性断裂 → fail-closed（UPM 欠定/不可辨识），判据口径见 §4.4（唯一判据，绝对条件数上限属另一口径）；
 - 高结构区域误入 → 标记，不进拟合；
 - 帧内大片掩膜（如星云占满视场）导致采样点空间分布退化 → 报告覆盖缺口，降阶或分组件处理；
 - 移动源区域标记（供 rejection 参考）。
@@ -112,7 +112,7 @@ flowchart LR
    子集现场求值与全网格求值**逐位相同**（δ_k、b_k 均为 0.0）。
 4. **真实数据**（M42 M1 T3 Red 4 帧）：生产天光面 rc=0、`identifiable = 1`（`r_eff == n_params`，
    `n_params` = 判据矩阵的阶）、χ²_red 1.004；同一次求解的 `κ(H_red) = 3.16e7` 是**诊断读数**，
-   **不得**据它本身判合格/不合格（判据只看 `r_eff == n_params` ⟺ `κ < 1/τ`，τ = `rank_rtol`）。
+   **它的用途 = 诊断**（合格判定只看 `r_eff == n_params` ⟺ `κ < 1/τ`，τ = `rank_rtol`）。
    真实帧间背景乘性斜率中位 0.995（0.806–1.323，分块动态范围仅 ~10 ADU ⇒ 不确定度大）。
 5. **收敛状态与容差**：`converged` 是状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`
    （`p2_upm_convergence` 与 `p2_upm_model.json#identifiability.converged` 同源）。

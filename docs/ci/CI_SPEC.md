@@ -10,7 +10,7 @@ CI 必须能在**任何提交**上回答三个问题：
 
 1. 这个提交是否满足文档集定义的工程与科学合同（一致性）？
 2. 双平台构建是否通过、产物是否可安装可加载？
-3. 是否有检查项变红（红灯必须阻塞合并，不允许 waiver 掩盖）？
+3. 是否有检查项变红（红灯必须阻塞合并，waiver 不构成放行）？
 
 ```mermaid
 flowchart LR
@@ -29,7 +29,7 @@ flowchart LR
 
 ### 2.1 三种范围（唯一口径）
 
-每次运行只有一个 `scope`，写进结果 JSON 的顶层 `scope` 字段，禁止"看起来像全量其实不是"：
+每次运行只有一个 `scope`，写进结果 JSON 的顶层 `scope` 字段；"看起来像全量其实不是"即判红：
 
 | `scope` | 触发方式 | 含义 |
 |---|---|---|
@@ -50,7 +50,7 @@ flowchart LR
 2. `git status --porcelain=v1 --untracked-files=all`（工作树未提交改动，含未跟踪文件）。
 
 `--base REF` 默认 `HEAD`。基线 ref 不存在 / 仓库不可用 / 路径无法解析 ⇒ **runner error（rc=2）**，
-不得退化成"空改动集 ⇒ 全绿"。
+"空改动集 ⇒ 全绿"不在判据面内。
 
 ### 2.3 选择规则
 
@@ -65,14 +65,14 @@ flowchart LR
 
 ### 2.4 fail-closed 安全网（增量档必须能红）
 
-增量最大的风险是"漏检"，因此以下三条**必须判红**，不得静默跳过：
+增量最大的风险是"漏检"，因此以下三条一律判红、逐条点名：
 
 1. **未覆盖路径**：改动集中存在不匹配**任何**注册检查 `changed_paths` 的文件 ⇒ 判红
    （`UNCOVERED_CHANGED_PATHS`）并逐条列出，提示"注册表覆盖缺口，请补 `changed_paths` 或显式全量"。
    显式 `--all` 与已升级全量不适用本条（全量本身即补救），但必须把未覆盖路径打印为注册表缺口告警。
 2. **全局敏感面强制升级**：改动命中 `eng/ci/**`、`eng/cmake/**`、`CMakeLists.txt`、`CMakePresets.json`、
    `lib/include/**`、`eng/contracts/**`、`eng/packaging/config/**`、`docs/DOCUMENT_INDEX.yaml` ⇒
-   自动升级为 `scope="full"`，并打印 `escalated_to_full: <命中的敏感面>`。升级后不得再按改动裁剪。
+   自动升级为 `scope="full"`，并打印 `escalated_to_full: <命中的敏感面>`。升级后按全量执行。
 3. **空选择**：改动集非空而选中检查数为 0 ⇒ 判红（`EMPTY_SELECTION`）。改动集为空是唯一合法情形，
    必须显式打印 `no_changes` 并以 rc=0 结束（不跑任何检查）。
 
@@ -84,7 +84,7 @@ flowchart LR
   `prerelease` 档重步骤另设上限 10800 s；
 - 增量档设总预算 `--budget-seconds`（默认 120 s）：实际耗时超出即报告"应拆分"并以 rc=1 结束，
   而不是默默跑几小时；
-- 禁止无超时执行（缺失 / 非法 timeout 一律 runner error rc=2）。
+- 每条命令都带 timeout（缺失 / 非法 timeout 一律 runner error rc=2）。
 
 ### 2.6 档位与重步骤
 
@@ -100,7 +100,7 @@ flowchart LR
   **不是靠放宽判据、也不是靠 skip**。因此：
   - **提交前必须跑 `integration` 档**，否则 FIX208 事件流与磁盘门、资源门（正负例）、runtime 集成用例无人跑；
   - `fast` 档汇总行必须打印 `integration_not_run` 提示，结果 JSON 带同名字段（机器可读），
-    禁止把"fast 全绿"当作"提交可合"；
+    "提交可合"的判据 = `integration` 档全绿；
   - 集成型用例以**目录归属**（`eng/tests/runtime/integration/**`，非包目录、`unittest discover` 不递归）
     划出，不以 `skip` / `xfail` / 环境变量绕过。
 - 重步骤带**输入指纹缓存**：`commit + 相关配置 SHA256 + 数据清单 SHA256 + worker 数`。
@@ -165,9 +165,9 @@ flowchart TD
 
 ## 7. 失败策略
 
-- 红灯阻塞合并；修复方式：回退该 commit 或补修提交（禁止 amend/force push）；
+- 红灯阻塞合并；修复方式：回退该 commit 或补修提交（提交历史前向追加）；
 - CI 基础设施故障：重跑一次；连续失败由负责人介入，不以 waiver 放行；
-- 所有失败必须有可复现证据（日志/命令），禁止"环境问题"口头掩盖。
+- 所有失败必须有可复现证据（日志/命令），"环境问题"的成立同样以该证据为准。
 
 ---
 

@@ -26,7 +26,7 @@
 12. **Phase1 SNR catalogue**：作为诊断保留，不作为科学权重。
 13. **Phase1 不确定度子产品缺失（未关，P0 级）**：CLI `normalize` 产出的 `p1_final.json` 实测 `n_variance_tiles=0` / `n_ivar_tiles=0`；写出器本身具备产出 variance/ivar 子产品的能力，缺口在 p1 节点未向 PipelineFrame 注入 variance 块。**最高设计 §3.1 规定不存在「权重模式」概念（全程只有 SNR）**，故该缺口的影响面 = 绝对 SNR / 不确定度链的可达性。
 15. **接缝残余未随天光面修复消失（L4 视觉复验，未关）**：全量 R 通道成品帧目检，天光面修复后接缝仍存在，幅度为本地背景的 1–3%；水平带 1 上缘由 +1.06% 变为 −2.39%（**变差 ≈2.2×**）。**根因不是 sky_plane 回退**，而是等权均值下帧集变化处的残余零点差 / 排异差异，需另行定位。接缝判据尚未通过。
-16. **天光面生效后的负值像素属约定变更（非缺陷）**：加性天光面生效后背景归零，负值像素占比由 6.0e-7 升至 **0.459**（46%）；下游读取与判据需按"允许负像素"的约定解释，不得当缺陷判红。
+16. **天光面生效后的负值像素属约定变更（非缺陷）**：加性天光面生效后背景归零，负值像素占比由 6.0e-7 升至 **0.459**（46%）；下游读取与判据需按"允许负像素"的约定解释，该项归类为约定变更。
 17. **`drizzle_scale_arcsec` 合法域**：NaN / ≤0 / >824.52″ 一律 `rc=2` + `set_error`（契约侧登记；去向 `docs/contracts/DATA_SEMANTICS.md`，由前台合并）。
 
 ## C. 工程与产品面
@@ -55,7 +55,7 @@
 > 原发现编号（如 `M-4`、`F-03`、`P3-05`、`N1`）与条目号的对照表在 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1。
 
 30. **内存静态预算与内存回压（调度准入）**
-    - **现行口径**：内存预算是**调度准入输入**（在途节点估算峰值之和 > 预算 ⇒ 就绪节点排队等待，不拒绝、不改退出码），**不是资源门**（`ASTROCS_DESIGN.md §3.5` 的「内存不设门」约束门禁语义，与 §8.3 的调度语义不互斥）；预算 = 实测可用内存（`lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes`，aio 是文件级唯一 I/O 边界）× 可配置比例（默认 95，唯一数值源 `eng/packaging/config/runtime_resources.json`）；节点 `estimated_memory_bytes` 由 `lib/infrastructure/scheduler/src/plan_estimator.cpp` 真实估算给出，不得硬写 0。
+    - **现行口径**：内存预算是**调度准入输入**（在途节点估算峰值之和 > 预算 ⇒ 就绪节点排队等待，不拒绝、不改退出码），**不是资源门**（`ASTROCS_DESIGN.md §3.5` 的「内存不设门」约束门禁语义，与 §8.3 的调度语义不互斥）；预算 = 实测可用内存（`lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes`，aio 是文件级唯一 I/O 边界）× 可配置比例（默认 95，唯一数值源 `eng/packaging/config/runtime_resources.json`）；节点 `estimated_memory_bytes` 由 `lib/infrastructure/scheduler/src/plan_estimator.cpp` 真实估算给出，取值 = 实测估算（0 不作占位值）。
     - **规范依据**：`ASTROCS_DESIGN.md §8.3`「静态预算…内存占用永不越界」、`§9`；`ENGINEERING_SPEC.md §12`「队列有容量/背压」；`docs/contracts/PIPELINE_BLOCK_CONTRACT.md §5`；`docs/contracts/SCHEDULER_CONTRACT.md §3`。
     - **残余**：P1（normalize）节点的帧尺寸只在 FITS 头里，核心层无 IO 面 ⇒ 这些节点不可静态估算（`unestimable_reason` 显式登记），解除路径 = CLI 在 IR 侧带帧形状或模块 `plan()` 自报 `estimated_memory_bytes`。
     - **归属/去向**：调度器域；判据面归 `eng/ci`。**不在 `eng/ci/ledgers/dormant_algorithms.json` 登记 `plan_estimator`**：该台账以 `lib/**/module.yaml` 的 `source_symbols` 为唯一键源，`plan_estimator` 未被任何 module.yaml 声明。
@@ -70,7 +70,7 @@
     - **规范依据**：`docs/contracts/PIPELINE_BLOCK_CONTRACT.md §1/§3`；`AGENTS.md §9`「判据必须非退化…门禁本身不合理时改进门禁本身」。
     - **归属/去向**：`eng/contracts/block_flow/**` + `eng/tools/quality/check_block_flow_conformance.py`（补「登记册完整性」正例/负例）。同族事实（`BFD-A17` 的降级显式性无判据）已写入该登记册的 `note`。
 
-33. **`build_pipeline_ir` 保留多阶段串联面、生产侧无门禁止**
+33. **`build_pipeline_ir` 保留多阶段串联面、生产侧该约束缺门**
     - **现象**：`lib/infrastructure/scheduler/src/runtime_client.cpp` 的 `want1/want2/want3` 允许一次调用串多阶段；三阶段组合**仅单测**使用，生产调用点传单 phase，但**无任何门约束生产调用点的 phases 参数基数**。
     - **规范依据**：`ASTROCS_DESIGN.md §8.1`「一次 CLI 调用只驱动一个阶段」；`AGENTS.md §6`「不串三阶段」。
     - **归属/去向**：调度器域 + `eng/ci`（生产调用点 phases 基数判据）。
@@ -109,7 +109,7 @@
 40. **`PHASE3_HIPS_TO_FITS §16` 与 `PHASE3_PROJ_IMPL §16` 的 C4/C5 登记面已被反证**
     - **现象**：两处 §16 C4 称「§5.3 输入语义守卫在生产 export 路径**未生效（守卫未接线）**…守卫内核 `p3_rsmp_units.cpp` 与会话接线层 `p3_v6_export.cpp` 未进构建」；C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」。**已过期的一半**：`lib/algorithms/resample/CMakeLists.txt` 已把 `p3_rsmp_units.cpp` 编入 `astrocs_p3_rsmp`；`module_adapters.cpp#p3n_guard_input_units` 已被生产 IR 节点链 properties/resample2/writer 调用（`#resolve_bunit` + 冻结串 `kP3BunitSurfaceBrightness`，缺 BUNIT/不可判 → fail-closed）；`#p3_op_writer` 强制 `p3_resampled.json#bunit` 校验。**仍然成立的一半**：`p3_v6_export.cpp` 仍未进构建（`grep -c p3_v6_export CMakeLists.txt` = 0，文件抬头自述「未接入生产」），该半已由 `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06` 登记。
     - **规范依据**：`ASTROCS_DESIGN.md §0.2`（同一主题只有一份正本）、`§12.5`；`ENGINEERING_SPEC.md §8`「文档集随代码持续维护更新，保持自解释」。
-    - **归属/去向**：订正 §16（两处，两文档「同一实验单元不得两套文字」），必须按「生产链已接线 / v6 shell 仍未接线」**分开陈述**，不得整体删除；登记面已由 `SNI-S4-P3X-06` 承载。
+    - **归属/去向**：订正 §16（两处，两文档「同一实验单元只有一套文字」），必须按「生产链已接线 / v6 shell 仍未接线」**分开陈述**，文字逐段保留；登记面已由 `SNI-S4-P3X-06` 承载。
 
 41. **SIN / CAR / AIT 缺「往返误差上界 + 尺度域」声明**
     - **现象**：`lib/algorithms/projection/p3_wcs.cpp#p3_wcs_applicability()` 只对 **TAN** 返回非空，SIN/CAR/AIT 返回 `nullptr`（`p3_proj_probe`/`p3_wcs_check_applicability` 因此 fail-closed，**不静默回落 TAN**）；v6 投影 Spec 结构体字段只有 `max_abs_crval_dec_deg` / `max_fov_deg` / `singularity_kind` 三项——**没有往返容差字段、没有尺度下限字段**。`max_fov_deg` 是**声明字段而非 make 硬门**（文档 §15.1 明说，实测一致）。

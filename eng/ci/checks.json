@@ -3951,10 +3951,16 @@
         "ipv_platform_binding",
         "ipv_triangle_budget",
         "p1cal_bias_influence_gate",
+        "p1cos_badcol",
+        "p1cos_badcol_selfcheck",
+        "p1noise_adaptive",
         "p1noise_mask",
         "p1noise_saturation",
         "p1noise_saturation_selfcheck",
         "p1noise_saturation_wiring",
+        "p1noise_snr_caliber",
+        "p1noise_snr_caliber_selftest",
+        "p1phot_spatial",
         "p1psf_center_contract_astropy",
         "p1psf_center_contract_gate",
         "p1psf_center_contract_gate_neg",
@@ -3965,6 +3971,7 @@
         "p1star_angle_guard",
         "p1star_guided",
         "p1star_mad",
+        "p1star_nls_lm",
         "p1stardet_node_gate",
         "p2hips_determinism",
         "p2hips_negative",
@@ -3973,6 +3980,78 @@
         "xpsd_spectrum_count_bounds"
       ],
       "steps": [
+        {
+          "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "hips_publish_atomic",
+            "--output",
+            "run/ci/ctest/hips_publish_atomic.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/hips_publish_atomic.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "hips_publish_atomic"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "hips_publish_atomic_units",
+            "--output",
+            "run/ci/ctest/hips_publish_atomic_units.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/hips_publish_atomic_units.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "hips_publish_atomic_units"
+          ]
+        },
         {
           "id": "CTEST-DRIZZLE-PRECISION-DEFAULT",
           "profiles": [
@@ -4009,7 +4088,7 @@
           ]
         },
         {
-          "id": "CTEST-P1STAR-MAD",
+          "id": "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
           "profiles": [
             "linux-main",
             "prerelease"
@@ -4022,353 +4101,25 @@
             "--build-dir",
             "run/ci/build-gcc-release",
             "--target",
-            "p1star_mad",
+            "gaia_magnitude_range_bounds",
             "--output",
-            "run/ci/ctest/p1star_mad.json"
+            "run/ci/ctest/gaia_magnitude_range_bounds.json"
           ],
-          "timeout_seconds": 900,
+          "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/ci/ctest/p1star_mad.json"
+            "run/ci/ctest/gaia_magnitude_range_bounds.json"
           ],
           "waivable": false,
           "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1star_mad"
-          ]
-        },
-        {
-          "id": "CTEST-P1PSF-PRODPATH-CENTROID",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1psf_prodpath_centroid",
-            "--output",
-            "run/ci/ctest/p1psf_prodpath_centroid.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1psf_prodpath_centroid.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1psf_prodpath_centroid"
-          ]
-        },
-        {
-          "id": "CTEST-P1STAR-ANGLE-GUARD",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1star_angle_guard",
-            "--output",
-            "run/ci/ctest/p1star_angle_guard.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1star_angle_guard.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1star_angle_guard"
-          ]
-        },
-        {
-          "id": "CTEST-P1STAR-GUIDED",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1star_guided",
-            "--output",
-            "run/ci/ctest/p1star_guided.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1star_guided.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/algorithms/star_detection/**",
+            "lib/infrastructure/gaia_xpsd_client/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
           "ctest_targets": [
-            "p1star_guided"
-          ]
-        },
-        {
-          "id": "CTEST-P1STARDET-NODE-GATE",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1stardet_node_gate",
-            "--output",
-            "run/ci/ctest/p1stardet_node_gate.json"
-          ],
-          "timeout_seconds": 1800,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1stardet_node_gate.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/algorithms/star_detection/**",
-            "lib/infrastructure/scheduler/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1stardet_node_gate"
-          ]
-        },
-        {
-          "id": "CTEST-P1SNR-FRAME-PARITY",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1snr_frame_parity",
-            "--output",
-            "run/ci/ctest/p1snr_frame_parity.json"
-          ],
-          "timeout_seconds": 600,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1snr_frame_parity.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/infrastructure/scheduler/**",
-            "lib/algorithms/noise_snr/**",
-            "eng/tests/**"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1snr_frame_parity"
-          ]
-        },
-        {
-          "id": "CTEST-P2HIPS-UNITS",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p2hips_units",
-            "--output",
-            "run/ci/ctest/p2hips_units.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p2hips_units.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/infrastructure/aio/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p2hips_units"
-          ],
-          "prerequisite_tools": [
-            "python3:numpy"
-          ]
-        },
-        {
-          "id": "CTEST-P2HIPS-DETERMINISM",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p2hips_determinism",
-            "--output",
-            "run/ci/ctest/p2hips_determinism.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p2hips_determinism.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/infrastructure/aio/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p2hips_determinism"
-          ],
-          "prerequisite_tools": [
-            "python3:numpy"
-          ]
-        },
-        {
-          "id": "CTEST-P2HIPS-NEGATIVE",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p2hips_negative",
-            "--output",
-            "run/ci/ctest/p2hips_negative.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p2hips_negative.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/infrastructure/aio/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p2hips_negative"
-          ],
-          "prerequisite_tools": [
-            "python3:numpy"
-          ]
-        },
-        {
-          "id": "CTEST-P2HIPS-SELFCHECK",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p2hips_selfcheck",
-            "--output",
-            "run/ci/ctest/p2hips_selfcheck.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p2hips_selfcheck.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/infrastructure/aio/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p2hips_selfcheck"
-          ],
-          "prerequisite_tools": [
-            "python3:numpy"
+            "gaia_shard_coverage"
           ]
         },
         {
@@ -4404,76 +4155,6 @@
           "requires_monitor": false,
           "ctest_targets": [
             "gaia_module_manifest_bounds"
-          ]
-        },
-        {
-          "id": "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "xpsd_spectrum_count_bounds",
-            "--output",
-            "run/ci/ctest/xpsd_spectrum_count_bounds.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/xpsd_spectrum_count_bounds.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "xpsd_spectrum_count_bounds"
-          ]
-        },
-        {
-          "id": "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "gaia_magnitude_range_bounds",
-            "--output",
-            "run/ci/ctest/gaia_magnitude_range_bounds.json"
-          ],
-          "timeout_seconds": 300,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/gaia_magnitude_range_bounds.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/infrastructure/gaia_xpsd_client/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "gaia_shard_coverage"
           ]
         },
         {
@@ -4617,288 +4298,6 @@
           ]
         },
         {
-          "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "hips_publish_atomic_units",
-            "--output",
-            "run/ci/ctest/hips_publish_atomic_units.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/hips_publish_atomic_units.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "lib/infrastructure/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "hips_publish_atomic_units"
-          ]
-        },
-        {
-          "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "hips_publish_atomic",
-            "--output",
-            "run/ci/ctest/hips_publish_atomic.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/hips_publish_atomic.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "lib/infrastructure/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "hips_publish_atomic"
-          ]
-        },
-        {
-          "id": "IPV-PLATFORM-BINDING",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "ipv_platform_binding",
-            "--output",
-            "run/ci/ctest/ipv_platform_binding.json"
-          ],
-          "timeout_seconds": 300,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/ipv_platform_binding.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "lib/**",
-            "eng/tests/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "ipv_platform_binding"
-          ]
-        },
-        {
-          "id": "CTEST-P1PSF-CENTROID-GATE",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1psf_centroid_gate",
-            "--output",
-            "run/ci/ctest/p1psf_centroid_gate.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1psf_centroid_gate.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1psf_centroid_gate"
-          ]
-        },
-        {
-          "id": "CTEST-P1PSF-CENTROID-GATE-NEG",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1psf_centroid_gate_neg",
-            "--output",
-            "run/ci/ctest/p1psf_centroid_gate_neg.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1psf_centroid_gate_neg.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1psf_centroid_gate_neg"
-          ]
-        },
-        {
-          "id": "CTEST-P1PSF-CENTER-CONTRACT",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1psf_center_contract_gate",
-            "--output",
-            "run/ci/ctest/p1psf_center_contract_gate.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1psf_center_contract_gate.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1psf_center_contract_gate"
-          ]
-        },
-        {
-          "id": "CTEST-P1PSF-CENTER-CONTRACT-NEG",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1psf_center_contract_gate_neg",
-            "--output",
-            "run/ci/ctest/p1psf_center_contract_gate_neg.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1psf_center_contract_gate_neg.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1psf_center_contract_gate_neg"
-          ]
-        },
-        {
-          "id": "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
-          "profiles": [
-            "linux-main",
-            "prerelease"
-          ],
-          "platform": "linux",
-          "command": [
-            "python3",
-            "eng/tools/quality/deep_ci_driver.py",
-            "ctest-target",
-            "--build-dir",
-            "run/ci/build-gcc-release",
-            "--target",
-            "p1psf_center_contract_astropy",
-            "--output",
-            "run/ci/ctest/p1psf_center_contract_astropy.json"
-          ],
-          "timeout_seconds": 900,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [
-            "run/ci/ctest/p1psf_center_contract_astropy.json"
-          ],
-          "waivable": false,
-          "changed_paths": [
-            "eng/tests/**",
-            "lib/**",
-            "CMakeLists.txt"
-          ],
-          "requires_monitor": false,
-          "ctest_targets": [
-            "p1psf_center_contract_astropy"
-          ]
-        },
-        {
           "id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
           "profiles": [
             "linux-main",
@@ -4921,6 +4320,111 @@
           "mutates_workspace": false,
           "outputs": [
             "run/ci/ctest/p1cal_bias_influence_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1COS-BADCOL",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1cos_badcol",
+            "--output",
+            "run/ci/ctest/p1cos_badcol.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1cos_badcol.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1COS-BADCOL-SELFCHECK",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1cos_badcol_selfcheck",
+            "--output",
+            "run/ci/ctest/p1cos_badcol_selfcheck.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1cos_badcol_selfcheck.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-ADAPTIVE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_adaptive",
+            "--output",
+            "run/ci/ctest/p1noise_adaptive.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_adaptive.json"
           ],
           "waivable": false,
           "changed_paths": [
@@ -5071,6 +4575,754 @@
           "requires_monitor": false,
           "ctest_targets": [
             "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-SNR-CALIBER",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_snr_caliber",
+            "--output",
+            "run/ci/ctest/p1noise_snr_caliber.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_snr_caliber.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-SNR-CALIBER-SELFTEST",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_snr_caliber_selftest",
+            "--output",
+            "run/ci/ctest/p1noise_snr_caliber_selftest.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_snr_caliber_selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1PHOT-SPATIAL",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1phot_spatial",
+            "--output",
+            "run/ci/ctest/p1phot_spatial.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1phot_spatial.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-CENTER-CONTRACT",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_center_contract_gate",
+            "--output",
+            "run/ci/ctest/p1psf_center_contract_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_center_contract_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_center_contract_gate"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_center_contract_astropy",
+            "--output",
+            "run/ci/ctest/p1psf_center_contract_astropy.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_center_contract_astropy.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_center_contract_astropy"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-CENTER-CONTRACT-NEG",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_center_contract_gate_neg",
+            "--output",
+            "run/ci/ctest/p1psf_center_contract_gate_neg.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_center_contract_gate_neg.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_center_contract_gate_neg"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-CENTROID-GATE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_centroid_gate",
+            "--output",
+            "run/ci/ctest/p1psf_centroid_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_centroid_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_centroid_gate"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-CENTROID-GATE-NEG",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_centroid_gate_neg",
+            "--output",
+            "run/ci/ctest/p1psf_centroid_gate_neg.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_centroid_gate_neg.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_centroid_gate_neg"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-PRODPATH-CENTROID",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_prodpath_centroid",
+            "--output",
+            "run/ci/ctest/p1psf_prodpath_centroid.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_prodpath_centroid.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_prodpath_centroid"
+          ]
+        },
+        {
+          "id": "CTEST-P1SNR-FRAME-PARITY",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1snr_frame_parity",
+            "--output",
+            "run/ci/ctest/p1snr_frame_parity.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1snr_frame_parity.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/scheduler/**",
+            "lib/algorithms/noise_snr/**",
+            "eng/tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1snr_frame_parity"
+          ]
+        },
+        {
+          "id": "CTEST-P1STAR-ANGLE-GUARD",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1star_angle_guard",
+            "--output",
+            "run/ci/ctest/p1star_angle_guard.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1star_angle_guard.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1star_angle_guard"
+          ]
+        },
+        {
+          "id": "CTEST-P1STAR-GUIDED",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1star_guided",
+            "--output",
+            "run/ci/ctest/p1star_guided.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1star_guided.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/star_detection/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1star_guided"
+          ]
+        },
+        {
+          "id": "CTEST-P1STAR-MAD",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1star_mad",
+            "--output",
+            "run/ci/ctest/p1star_mad.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1star_mad.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1star_mad"
+          ]
+        },
+        {
+          "id": "CTEST-P1STAR-NLS-LM",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1star_nls_lm",
+            "--output",
+            "run/ci/ctest/p1star_nls_lm.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1star_nls_lm.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1STARDET-NODE-GATE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1stardet_node_gate",
+            "--output",
+            "run/ci/ctest/p1stardet_node_gate.json"
+          ],
+          "timeout_seconds": 1800,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1stardet_node_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/star_detection/**",
+            "lib/infrastructure/scheduler/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1stardet_node_gate"
+          ]
+        },
+        {
+          "id": "CTEST-P2HIPS-DETERMINISM",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p2hips_determinism",
+            "--output",
+            "run/ci/ctest/p2hips_determinism.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p2hips_determinism.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p2hips_determinism"
+          ],
+          "prerequisite_tools": [
+            "python3:numpy"
+          ]
+        },
+        {
+          "id": "CTEST-P2HIPS-NEGATIVE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p2hips_negative",
+            "--output",
+            "run/ci/ctest/p2hips_negative.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p2hips_negative.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p2hips_negative"
+          ],
+          "prerequisite_tools": [
+            "python3:numpy"
+          ]
+        },
+        {
+          "id": "CTEST-P2HIPS-SELFCHECK",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p2hips_selfcheck",
+            "--output",
+            "run/ci/ctest/p2hips_selfcheck.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p2hips_selfcheck.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p2hips_selfcheck"
+          ],
+          "prerequisite_tools": [
+            "python3:numpy"
+          ]
+        },
+        {
+          "id": "CTEST-P2HIPS-UNITS",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p2hips_units",
+            "--output",
+            "run/ci/ctest/p2hips_units.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p2hips_units.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p2hips_units"
+          ],
+          "prerequisite_tools": [
+            "python3:numpy"
+          ]
+        },
+        {
+          "id": "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "xpsd_spectrum_count_bounds",
+            "--output",
+            "run/ci/ctest/xpsd_spectrum_count_bounds.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/xpsd_spectrum_count_bounds.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "xpsd_spectrum_count_bounds"
+          ]
+        },
+        {
+          "id": "IPV-PLATFORM-BINDING",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "ipv_platform_binding",
+            "--output",
+            "run/ci/ctest/ipv_platform_binding.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/ipv_platform_binding.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "ipv_platform_binding"
           ]
         }
       ]

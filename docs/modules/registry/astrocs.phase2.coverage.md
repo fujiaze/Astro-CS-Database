@@ -15,13 +15,13 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 
 > 手写合同页：本页重写 registry
 > 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
-> 词汇不得作为冻结依据，本页手写登记事实修订；registry 页保留先例
+> 词汇只作编排层占位，冻结依据 = 本页手写登记事实；registry 页保留先例
 > astrocs.phase1.session.md / astrocs.phase1.star-detection.md）。模块级
 > 事实以 lib/algorithms/coverage/README.md（r1，CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase2-coverage，module_id=astrocs.p2.coverage，
 > dll_target=astrocs_p2_coverage.dll，entrypoint=MISSING）为准。权威
 > 签名头 lib/algorithms/coverage/include/astro/phase2/coverage.h:1-59（grep 实测，
-> 禁止手抄他版）。
+> 签名以该头文件为准）。
 
 - 模块词汇：`astrocs.p2.coverage`（MODULE_MIGRATION_MATRIX P2-COV 行
   module_id；owner=SA-P2-S20，legacy_paths="lib/algorithms/coverage coverage

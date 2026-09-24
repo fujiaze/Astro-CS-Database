@@ -35,7 +35,7 @@
 - 不做控制点采样（ALG-P2-SMP-001 域，obs 输入来自该域）；
 - 不做每像素候选排异（ALG-P2-REJ-001 域）；
 - 不做样本合并/积分（ALG-P2-INT-001 域）；
-- 不产 per-frame gradient 产品（upm.h:12-13 冻结，禁止暴露
+- 不产 per-frame gradient 产品（upm.h:12-13 冻结，对外面只含 C 场消费路径，不含
   per-frame 梯度面；C 场只经 calibrate_block/evaluate_c 消费）；
 - 不解释 control_variance 科学定义（sampler 域
   ALG-UPM-CONTROL-IVAR-001 承接，本域只消费 control_ivar）。
@@ -62,7 +62,7 @@
 | quality/support | 观测质量因子 / 覆盖支持度 | 无量纲 [0,1] | upm.cpp:207-216（`quality_factor`：16→0.0 / 2→0.1 / 1→1.0 / 0→0.5 / 其余 0.5） |
 | dtype | 全链 FP64（P2ModelInfo.precision=1 fp64 reference） | — | upm.h:62 |
 
-禁止单位漂移（**逐项与 SCI-UPM-001 §3 同标度**）：`C/M/raw/calibrated/σ_bg` = **面亮度 ADU·sr⁻¹**、
+单位面逐项冻结（**逐项与 SCI-UPM-001 §3 同标度**）：`C/M/raw/calibrated/σ_bg` = **面亮度 ADU·sr⁻¹**、
 `control_variance` = **(ADU·sr⁻¹)²**、`control_ivar` = **(ADU·sr⁻¹)⁻²**、`w_UPM` = **(ADU·sr⁻¹)⁻²**、
 `quality/support` 无量纲、`frame_id` 无量纲 uint64。
 **标度来源（正向约束）**：上游 Phase1 HiPS signal 层写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，
@@ -152,7 +152,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1240-1269
   - `ALG-P2-UPM-002`（apply 行，TRACEABILITY_MATRIX.csv:21）⇒
     **ALG-UPM-001** + **ALG-P2-UPM-IMPL-001**。
   - SCI/公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
-    回改本文档（禁止反向）；descriptor 词汇 astrocs.phase2.upm-fit/
+    回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇 astrocs.phase2.upm-fit/
     upm-apply 端口语义对齐归 P2-XX-INT（DISP-P2UPM-004），不作冻结依据。
 
 ## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md §2 一致，逐条实现锚）
@@ -285,7 +285,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
   upm.cpp:265 注释「默认 1(串行 reference); 生产由 p2_session 传
   lease」；:595 注释明确 **无 hardware_concurrency**——实测 grep 仅命中该注释行）；
 - **SIMD 安全**：残差/Huber 权重逐观测独立（w[i] 写不相交）；加权 M/C
-  聚合为观测/控制索引固定序累加（FP64，禁止重结合；归并顺序 §7 冻结）；
+  聚合为观测/控制索引固定序累加（FP64，累加按固定序、结合方式逐位固定；归并顺序 §7 冻结）；
   dense 每 (f,tile) 输出 buf 独立无别名（:1756-1885 分块循环）；
   `upm.h:92-94` 注释残留 OpenMP 旧表述为漂移（§14 DISP-P2UPM-002），
   实现以本节为唯一权威；
@@ -327,12 +327,12 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 - 退化几何：无观测几何节点 sentinel 不入数据图（:217/:417-418）；
   断开分量各自 gauge（:22 注释/:415-491）；单帧区 continuation
   （upm.h:99-101）；
-- 哨兵条款：**不可用一律 NaN**，禁止用与合法值冲突的 0.0
+- 哨兵条款：**不可用一律 NaN**；哨兵面与合法值域互不相交——0.0 属合法值
   （gauge 参考帧合法 C=0）；`p2_upm_evaluate_c(nullptr,…)` 与未知 frame_id 同码。
   开放项：缺失 cell（tile 不在模型 control 图内）仍返回 0.0=无校正（调用契约要求
   frame+leaf 在覆盖域内；升级为显式错误需另行变更）。
 - 收敛可观测：`p2_upm_build` 的 rc=0 **只**表示构建成功；"迭代耗尽"
-  由 `p2_upm_convergence` 的 `converged=0` 报告，禁止以 rc=0 冒充已收敛。
+  由 `p2_upm_convergence` 的 `converged=0` 报告；收敛结论以 `converged` 为准（rc=0 只表构建成功）。
 - 错误粒度 = rc 二值/三值 + AIO 层 aio_upm_last_error 文本；编排层
   ACS_ERR 映射归 API-P2-001 编排面，不在本模块域。
 
@@ -356,7 +356,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 **双语声明**：本节为设计冻结面 **VERIFIED**（引用既有测试源容差）；
 可执行 TEST-P2-UPM-001/002 登记为 **MISSING**（归 P2-UPM-TEST 落地，
 本文件不冒认执行态；先例=PHASE2_SAMPLER.md §11.3 双面登记）。每条
-阈值已在既有测试源冻结，**TEST 任务不得事后修改**：
+阈值已在既有测试源冻结，**TEST 任务一律照录该冻结值**：
 
 | # | 设计面 | 冻结容差 | 现状测试锚 |
 |---|---|---|---|
@@ -415,7 +415,7 @@ converged = 0  ⇔ 迭代耗尽（max_iterations）                       # :105
 ```
 
 **分母口径（正向约束）**：分母**必须**取观测量尺度 `scale_obs`（|value| 的中位数），
-**不得**取 `max|M|`/`max|C|`。`max(scale_obs,1.0)` 保证近零尺度输入退回绝对判据
+**分母取值 = `scale_obs` 唯一**（`max|M|`/`max|C|` 只作对照）。`max(scale_obs,1.0)` 保证近零尺度输入退回绝对判据
 （小尺度合成数据与 legacy 逐位等价）。**头文件注释漂移（登记项）**：`upm.h:80` 仍写
 `scale = max|M| 或 max|C|`、`upm.h:147` 仍写 `tol_step`/`tol_obj`、`upm.h:111-112` 仍写
 「生产显式 1 + 1e-3」——三处均与实现（`:1019-1027`）及生产装配（`tolerance=1e-6`）
@@ -426,7 +426,7 @@ converged = 0  ⇔ 迭代耗尽（max_iterations）                       # :105
 1.4"；常量 `kControlCorrDefault=1.4`（`sampler.cpp:83`）。**k_corr 属
 sampler 域合同**（ALG-P2-SMP-001 §5.4 / ALG-UPM-CONTROL-IVAR-001，
 PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不重复
-标定。**本表数值与公式为冻结面：任何修改必须走 SCI/合同变更，禁止
+标定。**本表数值与公式为冻结面：任何修改必须走 SCI/合同变更（放宽动作只随变更落地），不
 在实现或测试内就地放宽。**
 
 ## 14 现状缺陷登记（DISP-P2UPM-001..004，登记不改码）

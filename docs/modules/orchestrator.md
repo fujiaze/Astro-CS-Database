@@ -71,7 +71,7 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
   （`eng/cmake/ARCH-001-migration-manifest.md`）登记的 DONE 位，该条依据写的是
   「7.1 infrastructure/pipeline（typed DAG 编排）」。
 - ⇒ **位置与职责分离（登记 ORCH-HOME-01，待收敛）**：位置搬迁 = `git mv` + 引用/锚同步。
-  因此：任何按目录推断归属的判据（检查器/清单/文档）**不得**把本模块当作 pipeline 的
+  因此：任何按目录推断归属的判据（检查器/清单/文档）**一律按登记职责归位**：本模块 = 编排层，pipeline = 
   typed DAG 实现。
 - **构建 target**：
   `astrocs_infra_orchestrator`（静态库；`cpp/CMakeLists.txt` 声明，根 `CMakeLists.txt`

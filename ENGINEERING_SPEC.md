@@ -6,7 +6,7 @@
 
 - C++17 双平台；MSVC v143（Windows）/ GCC 或 Clang（Linux）；
 - 公共 C ABI 版本化；跨 DLL 不传 STL/异常/RTTI/编译器私有类型；
-- Windows 10+ amd64 下限（22H2），Windows 11 主验证；Linux amd64；
+- Windows 10+ amd64 下限、Windows 11 主验证（平台下限的取值与理由 = `docs/owner/ARCHITECTURE_OVERVIEW.md`）；Linux amd64；
 - 构建系统：唯一根 CMake（`CMakeLists.txt`）+ presets；不引入第二套构建入口。
 
 ---
@@ -83,7 +83,7 @@
 - 普通重构跑模块测试 + 影响分析选出的链路；
 - 发布候选/科学/数据/拓扑/编译器/ISA 变化才扩大验证；
 - 真实数据只验证当前候选；
-- 控制包完成前过真实数据终验（未过不标完成）；
+- 控制包完成前过真实数据终验（未过不标完成；唯一正本 = `CONTROL_PACK_SPEC.md` §9）；
 - 测试不可用就跳过并如实标注，不伪造通过。
 
 ---
@@ -101,7 +101,7 @@
 ## 7. 目录规范（强制）
 
 ```text
-仓库根固定条目：
+仓库根固定条目（含无扩展名文件 VERSION——产品版本唯一事实源，见本节末版本条款与最高设计 §13）：
 README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
 CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / DEPENDENCIES.md / memory.md /
 CMakeLists.txt / CMakePresets.json / eng/build/build.sh / eng/build/toolchain.ps1 /
@@ -115,8 +115,10 @@ lib/
 │   └── shared/
 ├── include/            公共头
 ├── third_party/        第三方依赖
-└── infrastructure/     基建（cli/{normalize,mosaic,export} + pipeline 命名块与块生命周期 +
-                          调度器（scheduler/，三阶段）+ aio/benchmark/observability/gaia/acr/hips_browser）
+├── infrastructure/     基建（cli/{normalize,mosaic,export} + pipeline 命名块与块生命周期 +
+│                         调度器（scheduler/，三阶段）+
+│                         aio/benchmark/observability/gaia_xpsd_client/acr/hips_browser）
+└── phase{1,2,3}_session/  三阶段会话编排（引用算法模块，不重复实现）
 
 其他固定目录：eng/contracts/ docs/ eng/tests/ testdata/ eng/packaging/ gaia/
 eng/（工程支撑面）
@@ -129,14 +131,16 @@ docs/contracts/（合同的文档化说明，与 eng/contracts 的 schema 双向
 实验/（科学实验单元：photometric-magnitude / absolute-snr / additive-sky-seamless + shared，随仓库维护）
 工程控制/（控制包工作区，收口后按 CONTROL_PACK_SPEC §9 清理）
 artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与证据锚 artifacts/evidence/**）
-run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
+run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 的运行日志不互替（最高设计 §10）；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
 ```
 
 - 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记、经负责人核准后生效；
+- **根 `VERSION` 是固定条目**（产品版本唯一事实源，最高设计 §13）：它无扩展名，故以本条文字登记；机器登记见 `eng/ci/root_manifest.json` 的 `registered_local_retention` 段（该段是登记面，不是白名单放宽）；
+- `eng/build/toolchain.ps1` 是**现役固定条目**（Windows 侧构建/自检脚本），不是遗留待清理对象；其依赖面只允许仓内 vendored 依赖与系统工具链（见 `eng/packaging/dependency-lock.json` 的 `msys2_mingw: FORBIDDEN` 与 `machine_absolute_path: FORBIDDEN`）；
 - **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，`hips_tile_format` 取标准词表值（词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
-- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**（默认值来源 = `eng/packaging/config/defaults.json`））；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
+- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**（默认值来源 = `eng/packaging/config/defaults.json`））；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引，**字段名、取值与清单段结构的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`**（本节不复制字段清单；逐帧与运行级字段见该词表）；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
 - **版本信息按阶段出现**（最高设计 §13）：alpha 阶段之前代码与产物中不含任何版本信息；进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/owner/RELEASE_STATUS.md` §2），CLI `--version` 输出该源派生的生成串。
 
@@ -195,7 +199,7 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
   不把故障降级为"警告后继续"；错误通过统一状态码 + 结构化诊断传播；不跨 C ABI 抛异常；
 - **降级必须显式**：写 `degraded_reason` + manifest 记录 + 不改变科学语义，三者齐备才允许继续运行；
   改变科学语义的降级按故障处理（fail-closed）；
-- **运行日志落输出目录**：`<output_dir>/logs/run_<run_id>.jsonl` 与 `run_<run_id>.log`，成功/失败/取消三路都产出，
+- **运行日志落输出目录**：成功/失败/取消三路都产出日志工件，**工件名、目录结构与清单字段的唯一正本 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md`**（本节不复制工件名）；
   收尾 fsync + 算哈希 + 原子发布并在 run manifest 的 `log_artifacts[]` 登记；
   日志落点的唯一来源 = 块级 `<output_dir>`；日志写失败即运行失败（非 0 退出码）；
 - 日志经 `aio` 唯一 I/O 边界写出；模块不自建文本 logger、不自持日志文件句柄、不自行决定落点；

@@ -13,8 +13,8 @@
    real_data_checklist | preregistered_comparison | independent_driver`。
 2. 每条门必须声明 `oracle.truth`（真值来源）与 `oracle.must_not`（独立于被测对象的对象集，至少含 `acsd`）。
 3. `qa_oracle.py` 只用 NumPy + 标准库，参考实现为显式矩阵、解析恒等与定种子 MC；被测公式以 subject 形式独立转写。
-4. 禁止子串存在性断言替代值断言；禁止调用被测实现生成期望（对应 AR-042）。
-5. 历史"Oracle 全过"结论不得直接继承（AR-043）；真实数据门禁止以生产输出为唯一 expected（PROJECT_SPEC §8）。
+4. 断言面 = 值断言，子串存在性只作辅助；期望由独立参考实现生成，与被测实现分离（对应 AR-042）。
+5. 历史"Oracle 全过"结论一律逐门重新实测（AR-043）；真实数据门的 expected 取自独立真值，生产输出只作辅助（PROJECT_SPEC §8）。
 
 ## 2. 零用例即红（对应宪章 §14.2 与任务强制纪律）
 
@@ -43,4 +43,4 @@ doc    ：修改 QA_MATRIX.md 渲染块 -> check_docs.check_file -> 断言不一
 
 - 本任务是**验证设计**：science 门以原型 Oracle 证明"门能红"，生产实现期（W5/W7/W8/W10）必须把原型扩展为完整规模。
 - 真实数据门（G-RD-01/02/06）与预注册比较（G-BASE-03）在 W10/W11 执行，本任务登记为 pending。
-- `pending_freeze` 数值阈值由 ALG-W3/W4 冻结；在数值落地前，任何实现不得以本矩阵的度量冒充已冻结容差。
+- `pending_freeze` 数值阈值由 ALG-W3/W4 冻结；在数值落地前，本矩阵的度量仅作设计默认，容差以 FZ/ALG 登记为准。

@@ -118,7 +118,7 @@ function p2_reject(stack, plan):
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU: 逐像素独立, worker pool（按 affinity）按像素行带并行, **禁止硬编码线程数**；7 方法逻辑与线程划分无关（每像素独立决策树）；large_scale 结构半径仅邻域读, 无跨像素写。
+- 仅 CPU: 逐像素独立, worker pool（按 affinity）按像素行带并行, **线程数取自 benchmark profile**；7 方法逻辑与线程划分无关（每像素独立决策树）；large_scale 结构半径仅邻域读, 无跨像素写。
 
 ## 5c SIMD 安全与取消点
 
@@ -144,7 +144,7 @@ function p2_reject(stack, plan):
   （`P2EligibilityGatherInput`，`rejection.h`）；**帧主序** `value_stride=support_stride=chunk_pixels`
   （stage2 `process_cpu_pixel_parallel`：`gidx=s·stride+pixel`），ACR/kernels 亦共享该布局。
 - 规划层：`p2_reject_plan_resolve` 以 `n`（nominal contributors，一次解析）路由到 method
-  （`rejection.h:227-239` request / `:203-224` plan），禁止 per-pixel effective 路由；同 n 方法确定性一致。
+  （`rejection.h:227-239` request / `:203-224` plan），路由 = 一次解析的 n；同 n 方法确定性一致。
 - **布局单位**：`values` = 面亮度 ADU·sr⁻¹、`weights` = (ADU·sr⁻¹)⁻²、`support` 无量纲 [0,1]
   （单位权威 = `docs/science/REJECTION.md` §3 + DATA_SEMANTICS §22）。
 - 输出：reject plan（method+阈值）、per-sample reason（`P2_REASON_*`）、`P2_STATUS_*`；
@@ -158,7 +158,7 @@ function p2_reject(stack, plan):
   （冻结头注释 `rejection.cpp:1-12`；规划层默认值 `rejection.cpp:1226-1251`）。
 - 数值：FP64 全链路；ESD/RCR 参照 NIST 独立实现验证；归一化 `astrocs_median_center_v1` 默认
   （`rejection.cpp:1226-1228`）。**正向约束**：ESD 标准差单次 `sqrt`；非有限 values/weights
-  一律 `INVALID_INPUT`，不得回读为接受（`rejection.cpp:2025-2034`）。
+  一律 `INVALID_INPUT`，该码即最终读法（`rejection.cpp:2025-2034`）。
 - 归约确定性：按固定顺序归约；`n <= underdetermined_n` 全接受、`recall=0` 显式（不做伪剔除）。
 - 阈值不变量：同 `n` 的 `plan.resolve` 输出 method 唯一（`synthetic_gate`）；非有限
   weights/support → `INVALID_INPUT` hard fail。
@@ -174,14 +174,23 @@ function p2_reject(stack, plan):
 - Generalized ESD：Rosner 1983, Technometrics 25, 165；NIST/SEMATECH e-Handbook §1.3.5.17/§7.1.6。
 - RCR：Maples et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d；arXiv:1807.05276）；Konz & Reichart 2023, arXiv:2301.07838。
 - winsorization/稳健尺度：Hoaglin et al. 1983；Tukey biweight Beaton & Tukey 1974。
-- 开源对照：Siril（GPL-3.0）stacking/rejection；PixInsight WBPP bestRejectionMethod（非学术软件来源）。
+- 次生参考实现（只用于掩码逐元素对拍，**不是**核语义来源）：Siril（GPL-3.0）stacking/rejection；
+  档界来源：PixInsight WBPP **2.5.9** `bestRejectionMethod`（官方更新包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`，
+  `WeightedBatchPreprocessing-engine.js:1421-1429`；非学术软件来源）。
 - 阈值表（4.0/3.0/8、5.0/3.5/8、0.2/0.1、α=0.05/max10、1/1/4）为 Project-defined 冻结值（本文件 §12），文献不提供门值。
-- **方法核来源归属**：`percentile`/`winsorized_sigma`/`linear_fit` 的核语义锚 = Siril 1.4.3
-  （`percentile` 与 `src/stacking/rejection_float.c:31-44` 逐式等价，见 `docs/science/REJECTION.md` §8a；
-  语义注册表 `rejection.cpp:1082-1098` 的 `*_SIRIL` id）；`sigma` = Astropy
-  `sigma_clip(median+mad_std)` 语义；ESD = Rosner 1983 + NIST 实现；RCR = Maples et al. 2018 +
-  官方 RCR 2.4.7 行为对照。IRAF `imcombine` 仅提供方法族命名（sigclip/avsigclip/pclip/lfitclip/minmax、
-  winsorize 参数），**页面级未核验**，不作核语义依据。
+- **方法核来源归属（订正后）**：`linear_fit` 的语义来源 = PixInsight ImageIntegration 官方**式[21]/式[22]**
+  （横轴 = 排序秩 `0…N−1`、带升序约束）+ *Numerical Recipes* 3rd ed. **§15.7.3**（`Fitmed`，L1 稳健拟合）；
+  `winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/REJECTION.md` §5/§8a 的本层定义
+  （IRAF `pclip` 与本层 `percentile` 同名不同义，并列说明见该文件 §8a）；`sigma` = Astropy `sigma_clip(median+mad_std)` 语义；
+  ESD = Rosner 1983 + NIST 实现；RCR = Maples et al. 2018 + 官方 RCR 2.4.7 行为对照。
+  **Siril 1.4.3 是次生参考实现**（`percentile` 与 `src/stacking/rejection_float.c:31-44` 逐式等价，见该文件 §8a；
+  `rejection.cpp:1082-1098` 的 `*_SIRIL` id 与核注释 `:1514/1614` 是**冻结的对拍标识**），**不作为核语义归属**
+  （oracle 保留：用未修改的 Siril 1.4.3 官方源码做掩码逐元素对拍）。
+  IRAF `combine`/`imcombine` 共用引擎的参数文件 `noao/imred/ccdred/combine.par`（iraf-community/iraf@main）
+  的 `reject` 值域为 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，另有 `nlow=1`/`nhigh=1`/`nkeep=1`/
+  `mclip=yes`/`lsigma=3.`/`hsigma=3.`/`pclip=-0.5`/`sigscale=0.1`/`grow=0`；
+  **该引擎没有 `lfitclip` 也没有 `winsorize` 参数**（旧引文中这两个名字在 IRAF 中不存在，已删去），
+  只作方法族命名来源，不作核语义依据。
 - **Tukey biweight（Beaton & Tukey 1974）在本层无对应实现**：本层 11 个方法均不使用 biweight 核，
   该引用只作稳健估计背景。
 - **预测残差方差阈值/最优检验**：Zackay et al. 2016（DOI 10.3847/0004-637X/830/1/27）为方法学候选，

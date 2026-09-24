@@ -5,7 +5,7 @@
 ## 1. 职责与边界
 
 - **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。
-- **不是**：不定义科学公式；不产生科学值；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（最高设计 §7.1）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，不得作为职责名引用。
+- **不是**：不定义科学公式；不产生科学值；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（最高设计 §7.1）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 是登记在册的文档路径，仅作路径使用。
 
 ## 2. 权威依据
 
@@ -24,7 +24,7 @@
 ### 4.1 DAG 与线程预算
 
 - typed DAG：节点 = 模块/entrypoint/operation；科学依赖不可改变（最高设计 §3/4/5）；
-- 一个进程只有一个资源调度器与线程预算源；模块不得硬编码 workers、不得私建长期线程池；
+- 一个进程只有一个资源调度器与线程预算源；workers 与长期线程池均取该预算源的分配值；
 - 分块/并行只改变执行，不改变归约次序或科学结果；
 - **并行轴分配（PERF-501）**：Phase1 节点的帧级宽度与帧内 OpenMP 度由同一 lease 预算切分，
   `in_flight = min(n, frame_workers)`、`inner_omp = max(1, thread_budget / in_flight)`，
@@ -71,7 +71,7 @@ flowchart LR
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `workers` | 由 profile | —— | 线程预算（来自 cpu_profile，不得硬编码） |
+| `workers` | 由 profile | —— | 线程预算（取自 cpu_profile） |
 | `block` | 由 profile | —— | 分块大小（结合内存预算自动收窄） |
 | `checkpoint` | true | —— | 是否支持 checkpoint |
 | `memory_limit` | —— | MB | 内存预算（可选） |
@@ -92,7 +92,7 @@ flowchart LR
 - 取消/超时 → exit 9（CANCELLED）；
 - 内存预算内无法安排最小工作集 → 显式失败并报告所需工作集，不静默退化。
 - **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5。
-- **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段，**禁止**吞错（空 catch、忽略返回码）、**禁止**只写日志不返回错误、**禁止**把故障降级为"警告后继续"；
+- **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
 - **降级必须显式**：上游产物/能力缺失时改走替代路径并继续运行，只允许在"显式写 `degraded_reason` + manifest 记录 + 不改变科学语义"三要件齐备时发生（合同 §6）；改变科学语义的降级 = 故障，必须 fail-closed；
 - **节点运行日志**：节点事件经 `observability` 汇聚落 `<output_dir>/logs`（最高设计 §7.3）；节点不自行开文件写日志、不自行决定落点。
 
@@ -118,7 +118,7 @@ flowchart LR
 - 对应登记：`docs/modules/MODULE_MAP.yaml` 条目 `id: scheduler` /
   `module_id: astrocs.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
   `docs/plugins/00_INDEX.md` §2 第 2 列 = `scheduler`。
-- `runtime` **不是模块名**，不得作为职责名/模块名引用；本页文件名 `19_runtime.md` 是
+- `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是
   `eng/packaging/config/config_registry.json` 与 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
 - `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中随 `index_module_count = 23` 的登记规模
   一并维护；本页与 `00_INDEX.md` 已覆盖其名。

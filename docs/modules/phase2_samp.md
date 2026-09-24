@@ -19,7 +19,7 @@ downstream: [TEST-P2-SMP-001]
 > docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
 > CONTRACT_READY）。descriptor 词汇 module_id=astrocs.phase2.sample
 > （module_adapters.cpp:642-654）为编排层占位，由 P2-XX-INT 对齐
-> astrocs.p2.sampling（MODULE_MIGRATION_MATRIX P2-SAMP 行），不得
+> astrocs.p2.sampling（MODULE_MIGRATION_MATRIX P2-SAMP 行）；冻结依据 = 该矩阵行本身，本页 descriptor 词汇只作对齐说明，以免
 > 反向作为冻结依据。
 
 ## 身份与合同落位

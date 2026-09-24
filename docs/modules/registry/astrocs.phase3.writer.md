@@ -24,7 +24,7 @@ downstream: [TEST-P3-WR-001]
 
 - 模块: astrocs.p3.fits_writer（dll_target=astrocs_p3_fits_writer.dll
   为迁移合同值，尚未存在——MISSING 语义，由 P3-FITS-IMPL 建立，
-  禁止声明 IMPLEMENTED；现状构建=astrocs_phase3_session 静态库成员，
+  IMPLEMENTED 只由验收签发；现状构建=astrocs_phase3_session 静态库成员，
   根 CMakeLists.txt:460-465）。
 - 合同落位: lib/algorithms/fits_output/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
@@ -186,7 +186,7 @@ downstream: [TEST-P3-WR-001]
 ## NaN 与写端口
 
 - NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
-  禁止静默剔除。无覆盖/无数据 = NaN，禁 0 或 ±Inf 冒充。
+  剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
 

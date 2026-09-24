@@ -8,7 +8,7 @@
 ## 0. 状态词阶梯（`ASTROCS_DESIGN.md` §12.5 的操作层判据）
 
 > 本节展开 `ASTROCS_DESIGN.md` §12.5（状态阶梯）的**操作层判据**；其它登记表/映射表
-> 只引用 §12.5 与本表，不得复述或改写状态词清单。
+> 只引用 §12.5 与本表（状态词清单的唯一登记处 = §12.5）。
 
 | 状态词 | 语义 | 判据（当前提交内可核） |
 |---|---|---|
@@ -58,7 +58,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 - 产品版本唯一源：根 `VERSION` = `0.1.0-alpha.1`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）。
 - **本条款管"谁是唯一源"，不规定版本信息何时开始出现**（后者见 `ASTROCS_DESIGN.md` §13）：进入 alpha 阶段后，
   程序/代码/产物中的产品版本一律由根 `VERSION` 派生或与其一致；alpha 阶段之前不出现版本信息。
-- **版本命名空间**（生命周期独立，禁止跨命名空间借用号段）：
+- **版本命名空间**（生命周期独立，号段只在各自命名空间内递增）：
 
 | 命名空间 | 权威定义点 | 当前值 | 递增规则 / 生命周期 |
 |---|---|---|---|
@@ -67,10 +67,10 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | ABI | `lib/include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1` 与 CLI 暴露的 `abi_version` | ABI v1（头常量 `1u`） | 任何破坏二进制兼容的变更必须递增 |
 | data-schema | `eng/contracts/data/artifact_types.registry.json` 的 `schema_version` 与各 schema 文件的 `$schema` 版本 | type_id schema_version = 1 | 数据产品结构变更时按 registry 递增 |
 | doc-revision | 治理/规范文档自身的修订号 | 逐文档独立 | 文档内容修订时递增；与产品版本无换算关系 |
-| history（历史工程轮次） | 只允许出现在 `git log` 与 `docs/**/v6/**`（产品族设计档案） | — | 不携带可递增的"当前值"；禁止把旧轮次数字冒充当前产品状态 |
+| history（历史工程轮次） | 只允许出现在 `git log` 与 `docs/**/v6/**`（产品族设计档案） | — | 不携带可递增的"当前值"；旧轮次数字只作历史标识，当前产品状态取自根 `VERSION` |
 
-- 非产品版本的数字三元组不得当作产品版本，也不得反向手抄：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
-- **生成链**（CMake/CLI/打包从根 `VERSION` 派生，禁止手抄字面量）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
+- 非产品版本的数字三元组只作格式/组件标识，产品版本一律取自根 `VERSION`：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
+- **生成链**（CMake/CLI/打包从根 `VERSION` 派生，字面量只有一个来源）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
 - 生成串形态：clean main 为 `0.1.0-alpha.1+g<commit12>`，dirty 工作树追加 `.dirty`。
 - **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
 - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。

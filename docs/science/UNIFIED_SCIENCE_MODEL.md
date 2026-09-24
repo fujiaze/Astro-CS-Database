@@ -34,7 +34,7 @@ d_k = A_k x + n_k, Cov(n_k)=C_k。A_k 包含光度响应、PSF、像素响应、
 | validity | 坏点/缺失/越界等状态 | 门，不是权重 |
 | rejection | 污染推断结果 | 门/概率，不是 coverage |
 
-禁止继续使用无前缀的模糊 weight 或 snr 字段。
+字段名一律带限定前缀：裸 `weight`/`snr` 属泛称、不指代本表定义。
 
 ## 4. 点源最优统计
 
@@ -76,13 +76,13 @@ Cov(x_hat) = (Aᵀ C⁻¹ A)⁻¹
 
 - 独立随机项：进入 variance/covariance；
 - 共享系统项：进入低秩 covariance/provenance；
-- 模型偏差：进入 validity/quality 和系统误差预算，不得伪装随机 ivar。
+- 模型偏差：进入 validity/quality 和系统误差预算，与随机 ivar 分属两个面。
 
 ## 7. 重采样与 Drizzle
 
 重采样是线性算子 R：C_out=R C_in Rᵀ。输出只存对角 variance 时，必须另存 correlation kernel/scale 或可重建算子摘要。Drizzle 的 signal 单位、源/目标像素面积、pixfrac 和归一必须统一；常量面亮度和总积分通量 Oracle 同时成立。
 
-非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**禁止静默剔除**（`ASTROCS_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
+非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**剔除项逐条进场级日志并计数**（`ASTROCS_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
 
 ## 8. 空间模型与标量压缩
 
@@ -110,14 +110,14 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - 点源与扩展源目标分别相对基线证明无损或改善；
 - 每个近似有 mutation 能使门变红。
 
-## 11. 口径禁止项
+## 11. 口径边界（取值来源与适用域）
 
-- 禁止把 median(source SNR) 作为 Phase2 科学权重；
-- 禁止使用未绑定固定参考通量/信息模型的 support×snr² 作为权重；
-- 禁止把 PSF 拟合质量或复合质量权重当作 1/Var(F_hat)，也禁止把它混名为 Fisher information/ivar；
-- 禁止宣称像素 ivar average 对任意 PSF 点源目标都最优；
-- 禁止宣称 variance 足以描述所有 Drizzle 相关噪声（相关核/可重建算子摘要必须同存）；
-- 禁止宣称一帧内 SNR 无条件常数。
+- Phase2 科学权重取与固定参考通量/信息模型绑定的量；median(source SNR) 属帧级诊断统计；
+- 权重的取值来源 = 绑定固定参考通量/信息模型的量；未绑定的 support×snr² 属诊断量；
+- PSF 拟合质量与复合质量权重各自具名（质量面）；1/Var(F_hat) 与 Fisher information/ivar 属信息量面；
+- 像素 ivar average 的通用最优性（对任意 PSF 点源目标）以逐目标证据为成立条件；
+- variance 对 Drizzle 相关噪声的描述以相关核/可重建算子摘要同存为成立条件；
+- 一帧内 SNR 的常数性以显式验证为成立条件。
 
 ## 12 参考文献与参考代码库（含许可证）
 
@@ -128,7 +128,7 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - **广义最小二乘 x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d、Cov=(AᵀC⁻¹A)⁻¹**：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（GLS 原始出处）；教科书级。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
 - **5σ 深度 m5**：Tonry et al. 2012, ApJ 750, 99；Ivezić et al. 2019, ApJ 873, 111。
-- **跨文档口径**：本文件 §3 表的 frame_snr（未加权原始信噪比）与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a（相对质量权重，非科学信噪比）是不同对象，不得互相替代；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
+- **跨文档口径**：本文件 §3 表的 frame_snr（未加权原始信噪比）与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a（相对质量权重，非科学信噪比）是不同对象，各自独立消费、取值互不代用；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。

@@ -25,7 +25,7 @@
 | 负向 mutation | `run_mutations.py` 56/56 全部检出（science 39 / spec 14 / doc 3） |
 | 基线比较矩阵 | 3 生产模式 × 2 文档基线 + 1 延迟模式；10 个比较单元（见 §8/§9） |
 
-## 1. 权威继承与冻结口径（原样继承，不得矛盾）
+## 1. 权威继承与冻结口径（原样继承，与上位权威一致）
 
 本矩阵全部判据以下列上位权威为语义源，**原样继承**、不新增第三条口径：
 
@@ -69,16 +69,16 @@
 ## 4. 零用例即红机制
 
 - 每个门在 `case_ledger.json` 登记 `required_cases / executed_cases / skipped_cases / pends / counts_as_pass`。
-- runner 规则：`executed_cases == 0`（且非 pending）或 `skipped_cases >= executed_cases`（skip-only）→ **rc=2**，不得计入 PASS。
+- runner 规则：`executed_cases == 0`（且非 pending）或 `skipped_cases >= executed_cases`（skip-only）→ **rc=2**，PASS 的计入条件 = executed_cases>0 且非 skip-only。
 - `pends=true` 的门（真实数据/预注册比较）必须显式声明 `counts_as_pass=false`、`implementation_cases_scheduled >= required_cases`、并带 owner；否则 rc!=0。
 - `validate_spec.py` 的 V-LEDGER-* 规则逐条强制；负向 mutation MUT-SPEC-15（executed=0）、MUT-SPEC-16（skip-only）证明该机制能红。
 
-## 5. 独立 Oracle 与禁止同源自证
+## 5. 独立 Oracle 与自证来源独立
 
-- 每门 `oracle` 必须声明 `kind`（白名单见 `validate_spec.py`）、独立 `truth` 与 `must_not`（禁止调用的对象）。
+- 每门 `oracle` 必须声明 `kind`（白名单见 `validate_spec.py`）、独立 `truth` 与 `must_not`（排除对象清单）。
 - 独立 Oracle `qa_oracle.py` 为纯 NumPy + 标准库，从第一性原理构造参考（显式矩阵、解析恒等、定种子 MC、testdata 索引），
   **不 import / 不 link / 不执行任何 Astro Celestial Sphere Database（ACSD） 生产实现或生产测试二进制**。
-- 真实数据门禁止以生产输出作唯一 expected（PROJECT_SPEC §8；G-RD-04；对应 AR-043 根因）。
+- 真实数据门的 expected 取自独立 Oracle，生产输出只作辅助对照（PROJECT_SPEC §8；G-RD-04；对应 AR-043 根因）。
 
 ## 6. 负向 mutation 总则
 
@@ -320,7 +320,7 @@
 
 ### `G-ANA-11` — Drizzle 面亮度归一 + 常量场 Oracle + 条件通量守恒
 
-- **claim**：S_p=Σ_j B_j a_jp/Σ_j a_jp（B_j=x_j/A_pixel,j）对全部 pixfrac in (0,1] 满足常量面亮度 S_p=B0；通量守恒为条件不变量：pf=1 严格 ΣF=Σx，pf<1 总输出通量=pixfrac^2*Σx 且须记 flux_conservation_factor。
+- **claim**：S_p=Σ_j B_j a_jp/Σ_j a_jp（B_j=x_j/A_pixel,j，核 w_jp=a_jp/A_drop,j、归一分母 N_p=Σ_j w_jp·A_pixel,j）对全部 pixfrac in (0,1] 满足常量面亮度 S_p=B0；通量守恒为**严格**不变量：对全部 pixfrac in (0,1] 有 Σ_p F_p=Σ_j x_j，provenance.flux_conservation_factor 恒 1（DRZ-FLUX-FIX-01 口径订正，依据 F&H 2002 §7.2 式(7) 与 drizzlepac dover/=jaco）。
 - **条款锚**：FZ-FORMULA-DRIZZLE-SB；FZ-GATE-CONST-SB；FZ-COND-FLUX-CONSERV；ADJ-F-OBS-02；ADJ-S3；DESIGN-P1 §9；UNIFIED §7
 - **文献锚**：Fruchter & Hook 2002 PASP 114,144
 - **输入 -> 输出**：B0, A_pixel, a_jp, pixfrac, x_j -> S_p, factor

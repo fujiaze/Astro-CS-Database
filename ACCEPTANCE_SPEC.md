@@ -6,13 +6,12 @@ Astro Celestial Sphere Database（ACSD） 发布预览版前经过四层验收�
 
 ```mermaid
 flowchart TB
-    L0["三个创新点实验单元 SCI-A/B/C<br/>测光星等 · 绝对 SNR · 无接缝"]
-    L1["L1 合成数据科学性验收<br/>公式 · 不变量 · Oracle 对拍"]
+    L1["L1 合成数据科学性验收<br/>公式 · 不变量 · Oracle 对拍<br/>含三个创新点实验单元 SCI-A/B/C（§2）"]
     L2["L2 合成数据性能验收<br/>CPU 利用率 · 内存 · 线程扩展"]
     L3["L3 小批量真实数据端到端<br/>三命令串行 · 可行性/科学性/性能"]
     L4["L4 真实数据端到端视觉验收<br/>M42 + Galaxy Center · 负责人目检"]
-    REL["发布预览版 0.0.1alpha<br/>负责人决定"]
-    L0 --> L1 --> L2 --> L3 --> L4 --> REL
+    REL["发布预览版<br/>版本号取自仓库根 VERSION<br/>负责人决定"]
+    L1 --> L2 --> L3 --> L4 --> REL
     L4 -.不通过.-> FIX["登记问题 · 修复 · 从受影响层重跑"] -.-> L1
 ```
 
@@ -29,7 +28,7 @@ flowchart TB
 
 ## 2. 科学创新点实验单元（SCI-A/B/C）
 
-三个创新点（最高设计 §2）各立一个自包含实验单元，alpha 发布前必须全部跑通并经独立审稿。组织形式与报告要素按最高设计 §12.3：`实验/<单元>/` 下含 README 实验报告、`code/`（固定 seed、可复跑）、`results/`、`data/`；报告含假说、方法、数据、结果（真实数字+不确定度+对照）、可判定结论、诚实边界、复现命令、佐证来源（DOI/arXiv 核验过的论文、开源项目+版本+文件:行、仓内实测）。
+三个创新点（最高设计 §2）各立一个自包含实验单元，alpha 发布前必须全部跑通并经独立审稿。**实验单元目录结构与报告八要素的唯一正本 = 最高设计 §12.3**（本节不复制要素清单；佐证来源按 §12.1 的三类独立证据要求：论文/标准给 DOI 或 arXiv 号并核验可解析、开源库给项目+版本+文件:行、仓内实测给复现命令与输出）。
 
 ### 2.1 SCI-A：测光校准到测光星等坐标系
 
@@ -46,14 +45,14 @@ flowchart TB
 
 ### 2.2 SCI-B：跨帧绝对 SNR 传递链
 
-验证最高设计 §2.2：不受天光影响的帧级 SNR + 稀疏相对 SNR，Phase2 插值重建稠密并用于拟合与叠加。
+验证最高设计 §2.2：不受天光影响的帧级 SNR + 稀疏**绝对** SNR，Phase2 插值重建稠密并用于拟合与叠加。
 
 | 验收项 | 判据 |
 |---|---|
 | SNR 不含天光信号 | 固定源信号、抬升天光（含散粒噪声）时 SNR 单调下降并趋零；信号项经独立局部背景扣除 |
 | 真值一致性 | 已知噪声仿真下，帧级 SNR 与 Monte Carlo 真值一致（容差冻结）；σ_F 各噪声项组成与 Horne 口径对拍 |
 | 方法学对标 | 与 PixInsight PSFSNR 公开方法学对照说明异同；PSFSW 是权重不是 SNR，不混用 |
-| 稀疏层与重建 | 稀疏相对场 + 插值重建的稠密 SNR 在平滑噪声区精度达标；重建算子返回预测方差；给出 dense/sparse/frame 三口径适用域图谱（地面视宁度、HST 高对比两类场景） |
+| 稀疏层与重建 | 稀疏**绝对**场 + 插值重建的稠密 SNR 在平滑噪声区精度达标；重建算子返回预测方差；给出 dense/sparse/frame 三口径适用域图谱（地面视宁度、HST 高对比两类场景） |
 | 逆方差集成 | 独立帧满足 SNR_combined² = ΣSNR_k²；point information 集成（Q/W 形式）对拍解析解；拟合权重与堆叠权重分离且各有验证 |
 | 传递到 Phase3 | 方差经投影重采样按 C_out=R C_in Rᵀ 传播；点源信息量按输出 PSF 重算 |
 | 非退化负例 | 污染/退化 SNR 输入时链路 fail-closed 或显式记 snr_path_effective；恒真门不出现 |
@@ -93,7 +92,7 @@ flowchart TB
 | 科学不变量 | 校准通量守恒；帧级 SNR 定义与计算；Phase2 逆方差叠加（权重由各源像素 SNR 导出）；drizzle 面亮度与总积分通量守恒；投影正反互逆；HiPS 层级像素面积关系 |
 | 精度 | FP32/FP64 两条路径分别满足合同容差；常数使用全精度字面量 |
 | 判据判别力 | 每个度量有"真值无效应 ⇒ 归零/判红"的负例，恒真门不计证据 |
-| 统计与排异 | σ-clipping/MAD 口径、排异五档路由（N 为几何覆盖帧数）、归约顺序与科学文档逐项一致 |
+| 统计与排异 | σ-clipping/MAD 口径、排异**四档**路由（N 为该输出像素的几何可贡献帧数）、归约顺序与科学文档逐项一致；逐像素档位表正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9（本节不复制档界） |
 | 边界 | NaN（样本级掩膜 + 重归一 + 覆盖级 NaN + 计数）/Inf、空输入、极端参数、错误输入均有确定行为 |
 | 并行确定性 | 同一输入 1 worker 与 N worker 结果数值一致（容差按合同） |
 
@@ -116,7 +115,7 @@ flowchart TB
 | 索引可重算 | 产品级索引的覆盖集合与定位表可由产品内容重算并逐字段一致 |
 | **形态键缺省留痕** | Phase1 输入 JSON 缺 `storage_form`（或留空/`null`）⇒ 必须取默认 `archive` **且**必须存在一条点名该键的 `level=warn` 事件；形态来源记入 `manifest.json#storage.form_source = "default"`。**负例红**：缺省却未报 warn（静默取默认）⇒ 判红；缺省却未走登记默认 ⇒ 判红；显式声明却报 warn ⇒ 判红 |
 | **产物自报索引** | `p1_products.json` 逐帧必须带齐 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`；`index_path` 的 basename = `<产品名>.hips.index.json`；`bare` ⇔ `archive_sha256 = null`。**负例红**：缺 `index_path` ⇒ 判红；`bare` 却带归档指纹 ⇒ 判红 |
-| **运行清单 storage 段** | `manifest.json#storage` 字段齐备（`storage_form` / `form_source` / `products[]` / `coverage_index`），运行级与逐产品形态一致，`coverage_index.path` basename = `coverage.index.json` 且 `n_blocks ≥ 1`。**负例红**：`form_source=default` 却无 warn ⇒ 判红 |
+| **运行清单 storage 段** | `manifest.json#storage` 字段齐备（`storage_form` / `form_source` / `products[]` / `coverage_index`），运行级与逐产品形态一致，`coverage_index.path` basename = `coverage.index.json` 且 `n_blocks ≥ 1`（**本门比 schema 下限严**：`eng/contracts/schemas/hips_storage_form.schema.json` 的 `n_blocks.minimum = 0`；空覆盖索引不是可发布产品，故验收侧收紧为 ≥ 1）。**负例红**：`form_source=default` 却无 warn ⇒ 判红 |
 | **Phase2/3 形态键 REJECT** | 输入合同不设 `storage_form`（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）；注入 `storage_form: "archive"` ⇒ 必须 REJECT（schema 面 + CLI 面双门）。对照：合法 mosaic 输入照常接受（判据非恒真）；`coverage_index` 加性可选键必须被接受 |
 | **逐层口径一致（机器化）** | `CHK-HIPS-STORAGE-FORM --doc-consistency`：每层文档必须出现其登记词，且层内用词限于其登记词表。**负例红**：某层把 `storage_form` 写成同义名、或把取值 `archive` 写成别的 token ⇒ 判红 |
 | 负例红 | 归档内 properties 声明非标准格式 / 读路径不支持某一形态 / 归档缺索引 / 索引与内容不一致 / 归档截断 / 流内混装不压缩区 / byte-shuffle 预变换 —— 逐一判红（`CHK-HIPS-STORAGE-FORM --self-test`） |
@@ -136,7 +135,7 @@ flowchart TB
 | 只打全零块 | 只对 4 KiB 对齐的整块全零区域打洞；**负例**：对含非零字节的块打洞必须被判红（字节改变 + 校验和失效） |
 | 降级不 fail-closed | 卷不支持稀疏（`EOPNOTSUPP` 等）⇒ 跳过打洞、产品保持完整可读、provenance 记 `trim=skipped(reason)`，运行照常成功 |
 | 产品身份不受影响 | 打洞产物与未打洞同源产物的产品哈希（`tree_hash` / `canonical_sha256`）相同 |
-| 口径不混用 | 报告与 provenance 描述打洞收益时取打洞口径（13.31% 是包围盒 TRIM 的口径）；打洞实测整产物 2.77%（Linux）/2.10%（Windows），signal/variance/ivar 三层 0.0000% |
+| 口径不混用 | 报告与 provenance 描述打洞收益时取打洞口径——13.31% 属**包围盒 TRIM**（9.2），不属打洞；打洞收益的机制、口径与实测落点 = `docs/design/PRODUCT_STORAGE_FORM.md` §9（本节不复制数值）。**适用域**：该收益已在 Linux 上实测成立；**Windows 面未实测**（见本节末"未实测项如实登记"） |
 
 **判据入口（机器）**：
 
@@ -155,13 +154,13 @@ flowchart TB
 
 **目标**：证明重计算负载下 CPU 利用率接近满载、内存占用合理且无无界增长。
 
-**数据**：规模化合成数据，使每段重计算区间严格大于 10 s，覆盖 normalize/mosaic/export 典型负载。
+**数据**：规模化合成数据，使每段重计算区间严格大于 10 s（数值来源 = `eng/contracts/resource_gate_v1.json` 与 `docs/plugins/infrastructure/21_observability.md`），覆盖 normalize/mosaic/export 典型负载。
 
 | 类别 | 内容 |
 |---|---|
-| CPU 利用率 | 无单线程跑满全程、无连续 ≥10 s 低利用窗且队列有工作；均值/p50/逐样本利用率记录达标或超标登记有合理解释 |
+| CPU 利用率 | 无单线程跑满全程、无连续 ≥10 s 低利用窗且队列有工作（判据口径与阈值来源 = `eng/contracts/resource_gate_v1.json`、`docs/plugins/infrastructure/21_observability.md`）；均值/p50/逐样本利用率记录达标或超标登记有合理解释 |
 | 内存工作集 | 峰值工作集随分块大小而非总数据量增长（成倍增大输入帧数，峰值 RSS 不线性膨胀）；稠密权重/天光面按需现场求值、无整轮驻留 |
-| 线程扩展 | 1/4/16 worker 三档测量吞吐与加速比；worker 均衡度由 `worker_balance.csv` 佐证 |
+| 线程扩展 | 多个 worker 档位测量吞吐与加速比，档位取自 `benchmark` 生成的 `cpu_profile`（`docs/plugins/infrastructure/20_benchmark.md`），不硬编码并行度（最高设计 §9）；worker 均衡度由 `worker_balance.csv` 佐证 |
 | 编排连续性 | 同一数据块连续节点在同一 worker 完成；worker 空转率、块重载次数、跨 worker 搬运量归档，无"A 做一半切 B 再回 A" |
 | 缓存复用 | Gaia/星表同组查询外部请求计数为 1（查询合并 + 两级缓存）；命中率归档 |
 | I/O | 读写带宽与 I/O wait 记录在案；aio 不构成不可解释瓶颈；磁盘门零违约 |
@@ -187,7 +186,7 @@ flowchart LR
 
 | 类别 | 内容 |
 |---|---|
-| 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest 交接，Phase1 输出 JSON 直接满足 Phase2 输入并串行跑通；预检三级（🟢 correct / 🟠 warn / 🔴 error）与 yes、`-y`/`-yes`、`-force` 语义按最高设计 §4.5 生效（correct/warn 需 yes，warn 不阻塞，error 阻塞且 -y 不可越，-force 跳过整个检查） |
+| 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN.md` §8.1），Phase1 输出 JSON 直接满足 Phase2 输入并串行跑通；预检三级（🟢 correct / 🟠 warn / 🔴 error）与 yes、`-y`/`-yes`、`-force` 语义按最高设计 §4.5 生效（correct/warn 需 yes，warn 不阻塞，error 阻塞且 -y 不可越，-force 跳过整个检查） |
 | 科学性 | 产品通过 schema 校验、manifest 字段完整；WCS 与已知天区坐标对拍；星点定位/通量抽检与合成层结论一致；SNR 权重链可追溯 |
 | 性能 | 全程资源记录归档；真实负载下无异常；内存峰值合理 |
 | 并行确定性 | 同批数据 1 worker 与 N worker 产品数值一致 |
@@ -201,7 +200,7 @@ flowchart LR
 
 **目标**：在两组有代表性的真实天区完成全流程，由负责人整幅视觉验收，作为预览版发布的最终门。本版只做 R 通道。
 
-**数据**：`testdata/` 中 M42（猎户座大星云，T2+T3 Red 300s 49 帧）与 Galaxy Center（银心，T4 Red 180s 32 帧）两组完整数据集——前者检验亮星云、高动态范围与密集星场，后者检验极密集星场、背景结构与大尺度马赛克。工作盘预留 ≥100 GiB。
+**数据**：`testdata/` 中 M42（猎户座大星云，T2+T3 Red 300s 49 帧）与 Galaxy Center（银心，T4 Red 180s 32 帧）两组完整数据集——前者检验亮星云、高动态范围与密集星场，后者检验极密集星场、背景结构与大尺度马赛克。工作盘回收与预留口径 = `AGENTS.md` §3（运营事实源，本节不复制数值）。
 
 ### 6.1 产品生成链
 
@@ -226,7 +225,7 @@ flowchart LR
 |---|---|
 | 无"黑洞" | 无异常零值/死区/未填充孔洞；稀疏区与重叠区过渡自然，无不自然暗斑 |
 | 无亮斑 | 无宇宙线/卫星线残留、校准伪影、饱和溢出形成的异常亮点；星云高亮区有层次而非死白 |
-| 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）**：沿**真实帧足迹**取法向 ±`d`（默认 2 px）差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+d] − img[−d]) / bg`，门 `max|rel_step| ≤ 1e-2`（相对口径，无量纲、可跨产品比）。**适用域**：只对**两侧都在数据内部**的帧边界计入（法向 ±`ctrl_shift` 两侧都能放对照线且各 ≥ `min_samples` 个有效样本；`N = ctrl_shift` 从输入导出），被排除的边界仍**逐条落盘**（`exclude` / `margin_px`），不静默丢弃。噪声比、扣对照线的净台阶、`d` 扫描与旧 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），只作诊断量（无接缝证据取有符号台阶 `rel_step`） |
+| 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）**：沿**真实帧足迹**取法向 ±`d` 差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+d] − img[−d]) / bg`，门 `max|rel_step| ≤ 1e-2`（相对口径，无量纲、可跨产品比）。**判据取值与默认参数的唯一数值来源 = 机器门实现** `eng/tools/e2e/seam_footprint.py`（`d` 默认 2 px、`ctrl_shift` 默认 200 px、`min_samples` 默认 20；本节不复制取值），阈值口径与运行方式见 `docs/ci/01_CHECKS.md`。**适用域**：只对**两侧都在数据内部**的帧边界计入（法向 ±`ctrl_shift` 两侧都能放对照线且各 ≥ `min_samples` 个有效样本；`N = ctrl_shift` 从输入导出。**注意同名异域**：本门的 `min_samples` 属帧足迹接缝域，与 `docs/science/PHASE2_UPM.md` §7 的 UPM patch 域 `min_samples` 不是同一个量），被排除的边界仍**逐条落盘**（`exclude` / `margin_px`），不静默丢弃。噪声比、扣对照线的净台阶、`d` 扫描与旧 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），只作诊断量（无接缝证据取有符号台阶 `rel_step`） |
 | 星点质量 | 星点圆锐、无拖尾/拉伸/双线，跨帧星点重合 |
 | 背景与几何 | 背景均匀、天光结构连续；无明显投影畸变，WCS 网格与星点位置吻合 |
 | 全局观感 | 整幅缩略图上天区结构正确（M42 星云形态、银心带与星场分布），灰度/动态范围自然 |
@@ -282,7 +281,7 @@ flowchart LR
 | E3 | **无吞错**：生产收敛面 catch 吞错点全部登记 | 同上（R1）；注入空 catch ⇒ 判红 |
 | E4 | **日志落输出目录**：成功/失败/取消三路都在 `<output_dir>/logs/` 产出两工件，manifest `log_artifacts[]` 的 sha256/行数/级别分布与磁盘一致 | 端到端试跑 + `log_artifacts` 复算；注入"落 `run/`/CWD/源码树"⇒ 判红（R3） |
 | E5 | **日志写失败不静默**：只读日志目录注入 ⇒ 运行非 0 退出且 stderr 有脱敏摘要 | 负例注入 |
-| E6 | **判据自身能红能绿** | `python3 eng/tools/quality/check_log_system.py --self-test` 全绿（含 5 类故障注入必红） |
+| E6 | **判据自身能红能绿** | `python3 eng/tools/quality/check_log_system.py --self-test` 全绿（含全部故障注入必红；注入清单与条数 = 该工具的 `--self-test`，本节不复制条数） |
 | E7 | **台账只减不增、锚存活** | 同上（R4/R5）；台账条目数超过基线或锚失效 ⇒ 判红 |
 
 E1–E7 的机器入口 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/ci/01_CHECKS.md` §2）；证据落 `artifacts/acceptance/`。

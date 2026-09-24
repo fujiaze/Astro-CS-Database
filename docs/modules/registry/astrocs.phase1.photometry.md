@@ -21,7 +21,7 @@ downstream: [TEST-P1-PHOT-001]
 > lib/algorithms/photometry/cpp/（现状构建=cpp/Makefile:11 g++ -shared
 > -fopenmp → photometric_calib.dll + cpp/build.ps1:9，未编入根 CMake 主
 > 构建）为准；descriptor 占位 ID（module_adapters.cpp:531-548
-> p1_photometry_descriptor）由 P1-PHOT-INT 对齐本页，不得反向作为冻结
+> p1_photometry_descriptor）由 P1-PHOT-INT 对齐本页；冻结依据 = 本页本身，以免反向作为冻结
 > 依据。port DATA 编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES/
 > fluxes→DATA-P1-FLUX）为编排层词汇，模块合同 DATA 层=DATA-P1-PHOT
 > （DATA_SEMANTICS §14）。生产调用=orchestrator.cpp:2474
@@ -60,7 +60,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`; parallel=是(heavy+serial 资源门禁止); worker 数=ThreadBudget.max_workers(禁 hardware_concurrency);
+`cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
 确定性=固定顺序输出(1/N 等价已验)。
 
 ## 内存/cache/I-O/所有权

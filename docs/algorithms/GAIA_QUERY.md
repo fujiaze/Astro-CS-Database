@@ -127,7 +127,7 @@ radius < 0                    → 不剪枝（防御）
 ```
 
 编译期定义 `GAIA_POLAR_PRUNE_DISABLED` 时恒为"相交"（differential reference
-mode，仅测试用；生产编译不得定义）。三个搜索变体（star/spectrum/photometry）
+mode，仅测试用；生产编译一律保持该宏未定义）。三个搜索变体（star/spectrum/photometry）
 使用同一 predicate（gaia_client.c:1183-1192 / 1312-1321 / 1452-1460）。
 
 ### 2.6 DR3SP 光谱量化解码（gaia_client.c:1378-1387）
@@ -262,7 +262,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   手写 SIMD，默认 bitwise 合同）。
 - **资源**：RSS 结束回落有解释高水位；块缓存 total_memory ≤ 4GB；trace 关闭
   时无共享热写。
-- **冻结容差（供 CAT-GAIA-TEST 引用，不得事后改）**：
+- **冻结容差（供 CAT-GAIA-TEST 引用，取值一律按本节）**：
   - 迁移等价（直调 vs DLL）：bitwise（无 SIMD/归约顺序变化）；
   - oracle 数值比较：位置 |Δ| ≤ 5e-10 deg（double acos 往返界）、星等
     |Δ| ≤ 1e-9 mag（同一有理式 raw×0.001−1.5）、光谱字节恒等（整数域）；
