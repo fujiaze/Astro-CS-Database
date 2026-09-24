@@ -10,7 +10,7 @@
 3. hard error（rc≠0：CONFIG / INPUT_CORRUPT / DEPENDENCY / NUMERIC /
    NO_DATA / RESOURCE / TIMEOUT / IO / SCIENCE_GATE / INTERNAL）。
 
-## 禁止
+## 违规判据
 
 - `rc=0 + invalid status` 双语义；
 - 以 warning/log 替代 error status；

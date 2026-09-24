@@ -18,8 +18,8 @@
 
 ## 约定
 
-- 禁止库内修改全局 OpenMP 设置；线程数由 run context 配置。
-- 计数器：atomic 或 thread-local 聚合（禁止裸 data race counter）。
+- 全局 OpenMP 设置只由宿主进程持有；线程数由 run context 配置。
+- 计数器：atomic 或 thread-local 聚合（计数一律经同步原语）。
 - 浮点累积顺序固定（确定性输出）；reduction 顺序文档化。
 - cache（dense UPM、Gaia 查询缓存）必须线程安全或单线程互斥访问。
 
@@ -27,7 +27,7 @@
 
 P1 各节点有两个可独立分配的并行轴：**帧级**（同时处理几帧，受内存闸门约束）与
 **帧内 OpenMP**（每帧几条线程，受线程预算约束）。两轴之和必须 ≤ Runtime lease 给出的
-预算（禁止 N×N 超额订阅），实现落点 = `p1_parallel_for(workers, n, thread_budget, body)`
+预算（订阅比例上界为单轴 1×1），实现落点 = `p1_parallel_for(workers, n, thread_budget, body)`
 （`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
 
 ```
@@ -73,7 +73,7 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 不可并行的串行段**（FITS 读、`hips_write` 与 `drizzle_run` 帧内串行且占 drizzle 帧时 24–30%、
 星表查询、`wcs-platesolve` 无帧级并行），帧级并发正是把这些串行段互相重叠的手段；
 压到 1 帧会让其余核在串行段上空转（CPU p50 98.9% = 真的变成单核）。
-⇒ **保留「帧轴优先摊开、剩余预算转帧内轴」的分配**；不得以「显然更优」为由改回一帧独占。
+⇒ **保留「帧轴优先摊开、剩余预算转帧内轴」的分配**；分配式的改动依据 = 实测收益记录。
 
 **观测面**：`ASTROCS_LEASE_TRACE=1` 给租约（`[lease] ... cap=`）、`ASTROCS_NODE_TRACE=1`
 给节点执行窗口、`ASTROCS_P1CAP_TRACE=1` 给本分配快照（`[p1cap] ...`）。三者由

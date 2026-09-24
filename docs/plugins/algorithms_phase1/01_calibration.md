@@ -33,8 +33,8 @@ y_p = [r_p - b_p - alpha (d_p - b_p)] / f_p,    alpha = t_light / t_dark
 V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 ```
 
-- **禁止**裁切负值、加未声明 pedestal、夹紧负值；
-- 共享 master 的相关性用低秩/相关核/共同 master ID 保留，**不得误当独立**；
+- 负值按原值传递、pedestal 只取显式声明值、夹紧保持关闭；
+- 共享 master 的相关性用低秩/相关核/共同 master ID 保留，**按相关样本处理**；
 - gain、Poisson、read noise、量化、master 方差分别标识。
 
 ## 5. 配置项
@@ -47,7 +47,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 | `flat_path` | —— | —— | master flat 路径 |
 | `gain` | —— | e⁻/ADU | 由元数据或显式覆盖 |
 | `read_noise` | —— | e⁻ | 由元数据或显式覆盖 |
-| `clip_negative` | false | —— | 禁止 true（除非负责人批准降级并记录） |
+| `clip_negative` | false | —— | true 只用于负责人批准降级并记录的场合 |
 
 ## 6. 接口/ABI
 

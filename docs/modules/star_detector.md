@@ -7,7 +7,7 @@
 > 合同入口 = lib/algorithms/star_detection/README.md r1（CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase1-star，module_id=astrocs.p1.star_detection，
 > dll_target=astrocs_p1_star_detection.dll，entrypoint=MISSING）。本页
-> 以冻结合同为准，禁止反向改写合同层。
+> 以冻结合同为准，改动一律从合同层发起。
 
 ## 职责
 
@@ -50,7 +50,7 @@ x,y,flux,mag,saturated,has_saturated）+ star_det_psf_compat FLOAT32 [N,4]。
 ## Ownership
 
 输出十数组模块 malloc，调用方唯一经 `sdet_free_detect_ex` 整组释放
-（sdet_api.cpp:2357-2372），禁止逐数组 free。
+（sdet_api.cpp:2357-2372），释放一律经该接口整组进行。
 
 ## Thread safety
 

@@ -36,14 +36,14 @@
   `RA`: deg `[0,360)`, `Dec`: deg `[-90,90]`；`σ` 质心误差: pixel；
   `rms`: **两个不同量纲的列必须分别命名**——`rms_px`（pixel）与
   `rms_arcsec`（arcsec），换算 `rms_px = rms_arcsec/s0`、
-  `s0 = 3600·√|det(CD)|`（arcsec/pixel，§11a）。**禁止**把 `rms` 写成
+  `s0 = 3600·√|det(CD)|`（arcsec/pixel，§11a）。**`rms` 的单位面 = `rms_px`（pixel）与 `rms_arcsec`（arcsec）两个列名；另一种写法**
   `pixel/arcsec`（该写法会被读成「每角秒的像素数」，与像素残差差 `s0²` 倍）。
 
 ## 3a 坐标 frame
 
 - 天球 frame：**ICRS/J2000**（Gaia DR3 星表同系）；`RA∈[0,360)`, `Dec∈[-90,90]`（GLOSSARY `ra_dec`）。
 - 像素约定：内部 0-based `x,y`，FITS 输出 1-based `xp=x+1`，`CRPIX` 1-based 恒为 `(w/2+0.5, h/2+0.5)`（§7 不变量）；FITS 输出执行 Y-up→Y-down 翻转（§5），`|det(CD)|` 不变。
-- **口径边界与责任方**（STD-F1 合同条款）：**每一个 0-based 量在它自己的输出边界上恰好施加一次「下标→FITS 1-based」换算**；同一量在别处**不得**再施加一次 `+1`（双重桥接 = 恒定 1px 系统偏移）。桥接点逐项（§5a 为唯一事实源）：
+- **口径边界与责任方**（STD-F1 合同条款）：**每一个 0-based 量在它自己的输出边界上恰好施加一次「下标→FITS 1-based」换算**；`+1` 在整链中只施加一次（双重桥接 = 恒定 1px 系统偏移）。桥接点逐项（§5a 为唯一事实源）：
   1. **ipv 求解器内部不是桥接点**——其 `u = det_x − w/2` 已等于 Paper I §2.1.1 的
      `q`，迭代反演输出 `u + CRPIX` 已是 1-based FITS `p`（§5a），故
      `ipv_wcs.cpp` 输出侧**不再叠加** `+1`；
@@ -115,7 +115,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   对 samples 的 0-based `(x,y)` 同样单次 `+1` 后喂 1-based `WcsTan`，并声明
   `pixel_origin`/`fits_pixel_origin`（`:2555-2557`、`:2811-2813`）。
 - **责任方**：**Phase3 导出边界**（`lib/phase3_session/`）与 `p1_wcs.json` 写出侧负责产品网格/数组
-  下标 → FITS 1-based 的**单次**换算；ipv 求解器内部输出已是 1-based FITS `p`，**不得**再叠加 `+1`
+  下标 → FITS 1-based 的**单次**换算；ipv 求解器内部输出已是 1-based FITS `p`，`+1` 已含于该输出
   （双重桥接 = 恒定 1px 系统偏移）。`wcs_sky_to_pixel_iterative` 当前无生产消费方（仅测试面调用）。
 - **冻结门不变**：Paper I 第三方交叉门 `1e-4 px`（§11）与冻结不变量（§7）**均不变、不放宽**；
   本条不改变任何科学公式、CD/SIP/CRVAL/CRPIX 数值或默认容差。
@@ -208,7 +208,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 > 唯一可执行实现 = `eng/tools/astrometry/closure_metric.py`（`compute` 出记录 /
 > `check` 判门 / `selftest` 负例注入）；门行登记在
 > `docs/algorithms/GATES_AND_TOLERANCES.md` §3（G-P1-WCS-CLOSURE 口径、
-> G-P1-WCS-CLOSURE-REPRO 可复现门）。**本节的数值参数是唯一事实源，别处不得重述。**
+> G-P1-WCS-CLOSURE-REPRO 可复现门）。**本节的数值参数是唯一事实源，重述一律回指本节。**
 
 **定义（一句话）**：一帧真实数据的检出星子样本 `S`，经 WCS 前向映射到天球后，
 与星表 1-最近邻星的**真实大圆角距** `d_i`（角秒）；指标
@@ -221,24 +221,24 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 | 样本上限 | `flux` 降序前 **20000**（超限时记录 `sample_capped=true`，并同时记录 `n_det_snr_pass`） | 运行时间上界（T4 场 n_detected 1.46e5、星表锥内 3.4e6）；**上限必须随记录报告**，否则 |S| 不可复现（实测方法学） |
 | 星表样本 | 本仓 Gaia DR3 XPSD 视场单锥搜索，**G < 18** | 与 `lib/algorithms/platesolve/memory.md:49-63` 记录的工具口径一致；mag<18 与 T2/T3/T4 探测深度匹配，避免暗端错配主导 |
 | 匹配半径 | **1.0″（唯一值）**，必须写入记录 `params.match_radius_arcsec` | ① 1″ 在 T2/T3 原生采样（0.9586/0.9669″/px）≈1 px，把残差锚回像素尺度（`0.897 px` 的本意）；② 1″ 是四档扫描（1/2/3/5″）中最严的一档，错配污染最小；③ **不冻结半径即不可复现**：仅把半径 1″→5″，T3 median 即从 0.5410″ 漂到 0.6140″（**+13.5%**） |
-| 统计量 | **median**（必须同时报 p95 / max / n_matched / match_rate） | ① 该口径用 median，保持可比；② median 对错配长尾稳健；③ p95/max 几乎贴住半径上限正是「错配主导」的特征 ⇒ 三者必须同报，禁止单选 |
+| 统计量 | **median**（必须同时报 p95 / max / n_matched / match_rate） | ① 该口径用 median，保持可比；② median 对错配长尾稳健；③ p95/max 几乎贴住半径上限正是「错配主导」的特征 ⇒ 三者必须同报，判读面 = 四项联合 |
 | 匹配率 | `match_rate = n_matched / \|S\|`，**必须与 median 同报** | median 单独不可解释：`M` 只描述「已匹配的那些星」，匹配率回答「多少星根本没匹配上」；实测 4.9%（T3）/3.5%（T2）/28.0%（T4，全样本） |
-| WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、禁止合并** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 实测二者统计等价（T3 solved 0.5644 px / 0.5410″ vs header 0.5051 px / 0.4841″；T2 0.4202 px / 0.4062″ vs 0.3627 px / 0.3507″）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
+| WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、各自具名** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 实测二者统计等价（T3 solved 0.5644 px / 0.5410″ vs header 0.5051 px / 0.4841″；T2 0.4202 px / 0.4062″ vs 0.3627 px / 0.3507″）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
 | 像素换算 | `median_px = median_arcsec / s0`，`s0 = 3600·sqrt\|det(CD)\|`（**线性 CD 标度**；SIP 的局部标度不参与），s0 必须同报 | 以 px 报值；s0 定义与本节口径一致，缺 s0 则 px 值不可复现 |
 | 残差定义 | 1-最近邻（tangent 平面 KD-tree 选邻居）→ 最终用**真大圆角距**（不用平面近似代替） | 与独立 astropy 对拍通过（逐点 100% 相等） |
 | 独立性 | 只用 astropy（≥7.0.1）从产物 JSON/FITS 头重建 WCS + 独立星表解码；**不导入 Astro Celestial Sphere Database（ACSD） 代码、不读 `wcs_result.*`** | ENGINEERING_SPEC §5.1「不调用生产实现的独立 Oracle」；GATES_AND_TOLERANCES §1 R3 |
 | 复现容差 | 同输入同口径两次运行：**median 完全相等（容差 0 px）**、`n_matched` 完全相等 | 实测：全链科学面产物逐字节 EQUAL、规范哈希全等 ⇒ 同输入同口径的指标漂移实测 = 0；非 0 即说明样本/口径/输入哈希有未记录变化 ⇒ 判红。记录内的 `1e-9 px` 只是 JSON 浮点往返护栏，**不是科学容差** |
 
-**判读纪律（与门同读，禁止单独引用 median）**：
+**判读纪律（与门同读，median 的引用面 = 联合判读）**：
 
 1. 本指标**不是**「天测精度」本身：它同时含检出星质心误差、星表系统差、
    投影/SIP 模型残差与错配长尾；`median` 与 `match_rate`、内部解 `rms_arcsec`/`n_pairs`
-   （§9a）必须联合判读。**该指标不得单独作科学门。**
+   （§9a）必须联合判读。**科学门判据 = 该指标与 match_rate 的联合面。**
 2. 阈值按**像素尺度分档**给定：T2/T3 档（s0≈0.96″/px）与 T4 档（s0≈6.31″/px）不可互推。
    当前分档阈值 **UNJUSTIFIED（发布门=N）**：实测值是在 UNIT-001（XISF 母版单位）
    未修复的输入上取得的，修复后必须整体复跑才可标定阈值。
 3. 星表锥内星数、`sample_capped`、`s0`、星表/p1_sources 的 sha256 必须随记录落盘
-   （`eng/tools/astrometry/closure_metric.py` 已强制），否则该记录不可复现、不得引用。
+   （`eng/tools/astrometry/closure_metric.py` 已强制），缺任一项则该记录的可复现面与引用面均不成立。
 
 ## 12 关联 ALG ID
 
@@ -254,7 +254,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 ## 14 Primary literature（引用定位声明）
 
-1. Greisen & Calabretta 2002, A&A 395, 1061（Paper I，DOI 10.1051/0004-6361:20021326，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.right.html)）：WCS 关键词体系（CRPIX/CRVAL/CD）与广义坐标映射方法——文章级定位，TAN/SIP 公式号未逐式核验，不得以其覆盖本合同 §5。
+1. Greisen & Calabretta 2002, A&A 395, 1061（Paper I，DOI 10.1051/0004-6361:20021326，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.right.html)）：WCS 关键词体系（CRPIX/CRVAL/CD）与广义坐标映射方法——文章级定位，TAN/SIP 公式号未逐式核验；本合同 §5 的权威面 = Project-defined 定义本身。
 2. Calabretta & Greisen 2002, A&A 395, 1077（Paper II，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3860/aah3860.right.html)）：天球坐标实现与 TAN 投影——文章级定位（§5 TAN 语义为 Project-defined）。
 3. Shupe et al. 2005, ASPC 347, 491（SIP畸变约定，bibcode 2005ASPC..347..491S）：SIP A/B/AP/BP 来源——文章级定位（bibcode 级，未逐页核验）。
 

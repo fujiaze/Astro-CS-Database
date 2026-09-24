@@ -32,7 +32,7 @@ ingest（输入 + 元数据校验） → calibration（bias/dark/flat）
   测光归一化**必须真正落到像素**——施加与拟合**同一步**完成（省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返），
   生产 IR 的 normalize 阶段因此是 8 节点（`calibrate/cosmetic_correct/detect_sources/plate_solve/measure_flux/estimate_snr/drizzle_stack/write_hips`），
   施加是 `measure_flux` 的内部步骤而非第 9 个节点；未启用时产品必须显式记 `degraded_reason` 并 fail-closed，
-  **不得**按未归一化 ADU 静默走完全链。
+  未归一化 ADU 的路径终止于显式 `degraded_reason`。
 - 入口：`normalize --json <config.json>`（唯一 CLI 子命令）。
 
 ## Phase2（mosaic：多帧 → 马赛克 HiPS）
@@ -48,11 +48,11 @@ admit（兼容性校验） → coverage（重叠图 union） → sampling（控�
 - **排异不是「7 种任选」**：排异算法**逐像素按该像素几何可贡献帧数 N 自动选择**；
   **排异档位映射表（WBPP 一手实测）**：
   `1≤N≤3` **none（不排异）** / `4≤N≤5` percentile / `6≤N≤15`（或 BIAS/DARK）winsorized /
-  `N≥16` linear fit；**禁止 min/max**。
+  `N≥16` linear fit；档位取值限于 percentile/winsorized/linear fit。
   冻结表落位 = `docs/plugins/algorithms_phase2/12_rejection.md` §9（**只引用，不复制**）。
 - **阶段内节点之间传块，不落中间文件**（最高设计 §8.2）；当前生产实现仍用磁盘 JSON/FITS
   在阶段内传递，属**现行设计缺口**：20 个生产节点中命名块管线覆盖率 = **1/20**（唯一命中是
-  drizzle 节点内自建自毁），相邻节点之间传块 = **0**；未完成前不得声称本条款已满足。
+  drizzle 节点内自建自毁），相邻节点之间传块 = **0**；本条款的满足声明以覆盖率达成为条件。
 
 ## 关键不变量
 

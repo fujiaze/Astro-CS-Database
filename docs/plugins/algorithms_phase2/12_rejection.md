@@ -21,7 +21,7 @@
 ## 4. 算法与公式要点
 
 - 分类型估计：cosmic ray、卫星线、坏列、移动源、云/梯度、失焦/拖线；
-- 阈值使用**预测残差方差**（包含 Phase1 噪声与 UPM 参数不确定度），不得用固定全局阈值；
+- 阈值使用**预测残差方差**（包含 Phase1 噪声与 UPM 参数不确定度）；固定全局阈值属另一口径；
 - 小样本规则、迭代上限、方法版本化；
 - 输出 mask/count/reason/probability；
 - 移动源等科学信号 → 独立层保留选项。
@@ -59,7 +59,7 @@
 
 **路由**：排异算法**逐像素**、按该像素的**几何可贡献帧数 N** 自动选择（**不是**全局单算法）。
 `N` = 该像素的**几何可贡献帧数**（由 coverage 覆盖图一次解析得出）；
-**禁止**用整组帧数代替 N，**禁止**按掩膜后存活数（per-pixel `n_eff`）重选算法。
+**N 的取值 = 该像素的几何可贡献帧数**；整组帧数、掩膜后存活数（per-pixel `n_eff`）均属另一口径。
 
 | N（该像素几何可贡献帧数） | 方法 |
 |---|---|
@@ -69,12 +69,13 @@
 | **N ≥ 16** | linear fit clipping |
 
 - 生产排异算法集 = none / percentile / winsorized / linear fit；**min/max 极值法不用于生产**
-  （WBPP 一手源码明文拒绝：`BPP-FrameGroup.js:1239-1240`；其算法清单亦不含 min/max：`BPP-engine.js:2695-2719`）。
+  （WBPP 2.5.9 一手源码明文拒绝：`WeightedBatchPreprocessing-engine.js:1349-1412` 的 `rejectionIsGood()`；
+  其算法清单 `StackEngine.rejectionMethods` 亦不含 min/max。包 sha1 与可核验出处见 `docs/science/REJECTION.md` §14a）。
 - `none` 是**显式档位**，**不是**「静默跳过」：必须写 provenance。
 - 本表档界与 WBPP 档界的差异及其实验依据（低/中电平下强制 percentile 的有损性）见
   `docs/science/REJECTION.md`；算法本身的公式与参数语义同样以该文件为唯一正本（只读权威）。
 
-**显式指定的合法性窗口**（`BPP-FrameGroup.js:1229-1293`，**只告警、不硬阻断**）：
+**显式指定的合法性窗口**（WBPP 2.5.9 `WeightedBatchPreprocessing-engine.js:1349-1412` 的 `rejectionIsGood()`，**只告警、不硬阻断**）：
 
 | 算法 | 合法性窗口 |
 |---|---|
@@ -86,9 +87,9 @@
 
 - JSON 中排异字段留空或 `auto` 时按上表逐像素路由；显式指定单一算法时按指定执行；
   指定算法与该 N 的适用域冲突时报 warn 并请确认；方法名不存在或表达式非法报 error。
-- 不合适**只告警、不硬阻断**；**禁止**静默改算法、**禁止**静默降级。
+- 不合适**只告警、不硬阻断**；算法变更与降级一律显式具名登记。
 - **provenance**：实际使用的方法、参数与 N **必须**写入 `rejection` provenance，可追溯。
-- **判据**：排异必须**能红能绿**（注入卫星线/宇宙线必被剔除；无污染**不得**误剔真实信号）；
+- **判据**：排异必须**能红能绿**（注入卫星线/宇宙线必被剔除；无污染样本按真实信号保留）；
   1 worker 与 N worker 结果一致。
 - NaN 采用**样本级掩膜**：污染样本掩除后**重归一**、覆盖级缺数置 NaN 并**强制计数**
   （规则见 `docs/science/REJECTION.md`）。

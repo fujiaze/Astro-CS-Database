@@ -4,15 +4,15 @@
 
 > 上游: 03_TARGET_ARCHITECTURE.md (控制包)  下游: API-001, BLD-001, CORE-*, LEG-*
 > ⚠ **DOC-202 R04 订正（2026-09-20）**：原句「本文件是 V6 架构的**唯一权威**；与
-> docs/architecture/* 冲突时以本文件为准」**已删除**——它违反最高设计 §0.1「**禁止**任何
-> 下级文档声明自己的权威顺序，**禁止**自称『唯一权威』」。本文件是详细文档层的一员，
+> docs/architecture/* 冲突时以本文件为准」**已删除**——它与最高设计 §0.1 相抵触（§0.1：每份文档的权威顺序由最高设计唯一给出，任何
+> 下级文档只陈述与本设计一致的细化内容）。本文件是详细文档层的一员，
 > **不另立权威链**；架构问题的权威 = `ASTROCS_DESIGN.md` §7，与本文件冲突时以最高设计为准
 > （§0.1/§0.2）。
 
 ## 1. 唯一全局执行平面
 
 - **只有 Pipeline Runtime 拥有全局执行顺序与资源预算**。
-- CLI、I/O、科学模块、计算后端都不得建立第二套全局调度器。
+- CLI、I/O、科学模块、计算后端的调度一律走唯一全局执行平面（Pipeline Runtime）。
 - 组件图（冻结）：
 
 ```mermaid
@@ -26,9 +26,9 @@ flowchart TD
     DATA --> IO["I/O + Artifact Store"]
 ```
 
-## 2. 职责边界（禁止交叉）
+## 2. 职责边界（职责各自归属、互不交叉）
 
-| 组件 | 允许 | 禁止 |
+| 组件 | 允许 | 边界外（归他处） |
 |---|---|---|
 | CLI | 命令解析、配置加载、benchmark、运行控制、稳定机器输出 | include 科学内部实现; 直接调用内核符号; 第二套编排 |
 | Pipeline Runtime | 解析 IR、建立 DAG、调度模块、传播取消/错误、管理 checkpoint | 把调度职责外包给 I/O 或 CLI |
@@ -46,8 +46,8 @@ modules → data_contracts (DATA-*)
 io → data_contracts; io ⇏ runtime; io ⇏ modules
 ```
 
-- 禁止反向依赖：`io → runtime`、`module → cli`、`backend → pipeline`。
-- 禁止 `file(GLOB)` 隐式塞目录；每个模块/I/O adapter/Runtime/CLI/CPU provider
+- 依赖方向只走上图箭头：`io → runtime`、`module → cli`、`backend → pipeline` 属反向边，检出即判红。
+- 目录内容靠显式罗列，`file(GLOB)` 隐式塞目录一律判红；每个模块/I/O adapter/Runtime/CLI/CPU provider
   是显式 CMake target（BLD-001）。
 
 ## 4. 线程与资源预算
@@ -55,24 +55,24 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 - 只有 Runtime 创建全局 worker pool；线程数基于配额与 profile，不直接用裸
   `hardware_concurrency`。
 - CPU-heavy 节点按估算 work units 获取 `ThreadLease`；模块只向 lease executor
-  投递 work；禁止 `omp_set_num_threads`、无界 `std::async`、私有永久 pool。
+  投递 work；线程数只来自 lease（`omp_set_num_threads`、无界 `std::async`、私有永久 pool 均判红）。
 - 保留 OpenMP 内核时由 Runtime 设置 `num_threads(lease.size)`，nested disabled。
-- 生产重计算路径禁止固定 `workers=1`；可用 CPU≥2 且工作量超 `parallel_min_work`
+- 生产重计算路径的并行度取自 profile：固定 `workers=1` 一律判红；可用 CPU≥2 且工作量超 `parallel_min_work`
   时 active workers 必须 ≥2。
 
 ## 5. 数据管道
 
 - 内存对象与磁盘对象使用同一 Artifact ID；producer 写完整 descriptor，
   consumer 在执行前验证。
-- 单位转换必须是显式模块或 adapter；禁止悄悄改 BUNIT。
-- weight 细分为 inverse variance / exposure / support / quality；禁止模糊
+- 单位转换必须是显式模块或 adapter；BUNIT 只由该模块或 adapter 改写。
+- weight 细分为 inverse variance / exposure / support / quality；跨模块传递面只认细分后的具名量，模糊形式判红 ——
   `weight/value/scale` 跨模块传递（DATA-001 歧义映射）。
 - Provenance 至少记录：源码 commit、pipeline hash、module/backend build id、
   配置 hash、输入 hash、时间、平台。
 
 ## 6. ACR 隔离
 
-- 默认构建 `ASTROCS_ENABLE_ACR=OFF`；生产 CLI 链接图/符号/运行模块表不得出现
+- 默认构建 `ASTROCS_ENABLE_ACR=OFF`；生产 CLI 链接图/符号/运行模块表内一律没有
   ACR。
 - ACR 源码保留 dormant target，可独立构建/测试，不属本 Alpha 门禁。
 - 未来接入只实现同一 CPU Backend/Compute Provider 上层合同。

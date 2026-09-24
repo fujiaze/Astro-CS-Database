@@ -9,7 +9,7 @@
 - 上游: `SCI-PSF-001` (Moffat4 β=4, FWHM=1.230310·σ, q_psf=A/residual_scale)
 - 输入: 校准图像 `float32[H×W]` + 背景噪声 `σ_bg` (NoiseWeightModelV1)
 - 输出: 星点表 `(x,y,flux,A,B,σ,q_psf,residual_scale)` + PSF 块 `[N,9]`——
-  **存在两种互不兼容的 9 列布局，严禁混用**（实测锚 @f7fa3160）：
+  **存在两种互不兼容的 9 列布局，各自独立、取值互不代用**（实测锚 @f7fa3160）：
 
 ### 1.1 布局 A：oracle/表面亮度参数布局（科学参数序，9 列）
 
@@ -123,7 +123,7 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU：逐星独立 LM 拟合，worker pool（按 affinity）按星批并行，**禁止硬编码线程数**；per-star 结果与线程调度无关（无跨星归约）。
+- 仅 CPU：逐星独立 LM 拟合，worker pool（按 affinity）按星批并行，**线程数取自 benchmark profile**；per-star 结果与线程调度无关（无跨星归约）。
 
 ## 5c SIMD 安全与取消点
 
@@ -222,7 +222,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 科学专项（matrix P1-PSF 行）映射：known Gaussian/Moffat parameters=§2 公式 + §11.1
 参数序/初值/常量锚；fit failure semantics=§11.2（四码语义冻结，无含糊）；degenerate/
 saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST 专项）；covariance=
-现状缺失，DISP-PSF-005 显式登记为 P1-PSF-IMPL 整改项，禁止宣称已实现。
+现状缺失，DISP-PSF-005 显式登记为 P1-PSF-IMPL 整改项，状态词停在登记态。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

@@ -85,7 +85,7 @@ coverage:
   - 上界 `max/θ_pix → 2.0892036`（闭式 `√(16/5 + 5π²/36)/√(π/3)`，与数值外推 2.0892037 吻合到 7 位有效数字；nside=256 实测 2.0861）。极值像素恒在**极冠边界**（`|z| = 2/3`，纬度 ≈ 41.81°），**不在极点**。
   - ⇒ 安全上界 **`h_max = 2.13794 / nside_leaf` rad**（= 2.0892036·θ_pix），对全部像素、全部 nside 成立。
 - **适用域**：`θ_pix ≤ s_out` 是「输出网格比输入采样更细」的过采样条件；在 `order_needed ≤ hips_order` 时按**等面积尺度精确成立**。但 bilinear 的 `O(h²)` 误差界必须取 `h = h_max`（局部最大采样间隔）；用 `θ_pix` 会把该界低估最多 `2.089² = 4.36` 倍。
-- **夹紧域（必须显式声明）**：`order_needed > hips_order` 时 `order_sel = hips_order`，此时 `θ_pix > s_out`，**`h ≤ s_out` 不成立**。例：`hips_order=3, W=512, s_out=0.001°/px` ⇒ `order_needed=7`、`order_sel=3`、`θ_pix = 0.01431° = 51.5″/px = 14.31×s_out`。该情形按 §9a-5「按 survey 原生分辨率输出并记录」处理，**不得**声称已满足过采样条件。
+- **夹紧域（必须显式声明）**：`order_needed > hips_order` 时 `order_sel = hips_order`，此时 `θ_pix > s_out`，**`h ≤ s_out` 不成立**。例：`hips_order=3, W=512, s_out=0.001°/px` ⇒ `order_needed=7`、`order_sel=3`、`θ_pix = 0.01431° = 51.5″/px = 14.31×s_out`。该情形按 §9a-5「按 survey 原生分辨率输出并记录」处理，**过采样主张的成立条件 = `θ_pix ≤ s_out`**。
 - 证据：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E9_order_selection`；`run/SCI-FIX-PHOTFIT-01/evidence/e4_healpix_tan.json → equal_area_exactness / pixel_extent`。
 
 **位移恒等式的地位（正向约束）**：`tile = ipix >> (2·log2(W))` 与 `local = ipix & ((1<<(2·log2(W)))−1)` 由 HEALPix NESTED 的层级性质（父索引 = 子索引 `>> 2`，HiPS REC §4.1 逐字「The tile index N at order K corresponds to the 4 tile indices Nx4, Nx4+1, Nx4+2 and Nx4+3 at order K+1」）与 tile/leaf 的 S 阶差（REC §4.2.1 逐字「HiPS image tile hierarchy is S orders less deep than the original HEALPix resampled data, packaging the 2^S x 2^S HEALPix cell values」）合成；**规范未逐字写出该位移式**，它是推论，且**要求 W = 2^S**。
@@ -132,7 +132,7 @@ coverage:
    **registry 冻结集合 = ASTROCS_DESIGN §5.3 八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），
    v3 已实现 4/8（STG/MOL/CEA/ZEA 归 P3-001）。会话面与 registry 面分离：注册面已登记、
    alpha 会话未接线（ALG-P3-PROJ-IMPL-001 §15.1）；新增投影必须落在冻结集合内并附独立
-   往返 Oracle（禁止"支持所有"）。
+   往返 Oracle（支持面 = 冻结集合内的投影）。
 4. **像素中心/CRPIX/CD/经度方向**：FITS 1-based；CRPIX=`((W_out+1)/2,(H_out+1)/2)`（中心像元整数偏置由 s_out/center 显式参数决定，冻结公式见 ALG-P3-002）；**CD-only**（禁 PC+CDELT 混用）；经度方向=用户显式 parity（`east_left` 默认 ⇒ CD1_1<0，`east_right` ⇒ CD1_1>0）。实现锚：CRPIX 计算 `p3_wcs.cpp:114-115`、校验 :463-469；parity 与 `det(CD)<0` :102-138；CD 写出 `p3_output.cpp:267/:710`。
 5. **order 选择公式**：§5 `order_needed`（Project-defined，等面积等效角尺度 `θ_pix ≤ s_out` 的最小 order），上下限 `0 ≤ order_sel ≤ hips_order`；过采样降采样允许，欠采样（被 `hips_order` 夹紧）按 survey 原生分辨率输出并记录。
    **夹紧的可判定条件与记录面**：夹紧 ⇔ `order_needed > hips_order` ⇔ `order_sel == hips_order` 且按 §5 复算的 `order_needed` 更大。记录面 = FITS 关键字 `ORDERSEL`（`p3_output.cpp:290/:724`）与 manifest 的 `order_sel_used`（`p3_session.cpp:413`）；**该分支不产生独立布尔标记**，消费方须以 `order_sel` + 复算 `order_needed` 判定欠采样。
@@ -142,9 +142,9 @@ coverage:
    **无人工接缝=SYN-007 连续场判据**。
 7. **重采样器与 alpha 默认**：`nearest`（无插值）与 `bilinear`（一阶，**Σw = 1 ± k·ULP**，
    不作逐位断言）两种；**alpha 默认=bilinear**。
-8. **SB/flux/未知输入**：tile 值=面亮度（HiPS image 语义）；**flux-per-pixel 输入不支持→显式拒绝**（不做面积换算，禁止默认混淆 flux 与 SB）。
+8. **SB/flux/未知输入**：tile 值=面亮度（HiPS image 语义）；**flux-per-pixel 输入不支持→显式拒绝**（不做面积换算，flux 与 SB 各自具名）。
 9. **NaN/missing/coverage/mask/alpha channel/blank**：§5/§8——coverage 二值 mask；NaN 传播；missing tile=无覆盖+provenance；alpha channel HiPS 与 BLANK int tile 显式拒绝。
-10. **variance/ivar/support 输入（DATA-UNC-001 更新块口径）**：Phase3 输入 HiPS **含 variance/ivar 子产品时必须显式消费传播**（输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时显式 `unavailable`（不静默）；唯一权威 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（Phase3 节，DATA-P3-UNC-001）+ `docs/contracts/DATA_SEMANTICS.md` §30.4。**weight/support tile 输入仍不支持→显式拒绝**（不得静默丢弃）；flux-per-pixel 输入仍显式拒绝（§9a-8）。
+10. **variance/ivar/support 输入（DATA-UNC-001 更新块口径）**：Phase3 输入 HiPS **含 variance/ivar 子产品时必须显式消费传播**（输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时显式 `unavailable`（不静默）；唯一权威 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（Phase3 节，DATA-P3-UNC-001）+ `docs/contracts/DATA_SEMANTICS.md` §30.4。**weight/support tile 输入仍不支持→显式拒绝**（拒绝逐条登记）；flux-per-pixel 输入仍显式拒绝（§9a-8）。
 11. **FITS 关键字**：`BITPIX=-32/-64`；`BSCALE=1,BZERO=0`；`BUNIT` 按 properties，缺省为 canonical `ADU/sr`（**不是**裸 `ADU`——裸 `ADU` 无法量纲可判且与写盘数值不符，见 §3）；WCS=`CRPIX/CRVAL/CD1_1,1_2,2_1,2_2/CTYPE=TAN/CUNIT=deg`；`HISTORY+provenance`（源 HiPS 标识/order_sel/sampler/软件版本/manifest hash）必写。实现锚：缺省串 `p3_resample.cpp:293`、`p3_output.cpp:284-285`；variance/ivar 的 BUNIT 由二次律 canonical 推导（`p3_output.cpp:55-90/:348-372`），不在冻结单位表内的串显式拒绝。
     `CRVAL=(center.RA, center.Dec)` 且**两个分量都进映射**；LONPOLE 取标准默认（`δ0 ≥ θ0 ⇒ φ0`，否则 `φ0+180°`；`φ0` 由 `PVi_1a` 给出、通常为 0。该口径是 Paper II §2.2 的**现行有效形式**，与 FITS Standard 4.0 §8.3 及官方勘误件「Corrections and clarifications for FITS WCS papers I, II, & III」一致。TAN 为天顶投影 ⇒ `θ0 = 90°`，本合同 `|CRVAL2| ≤ 85°` 排除 `δ0 = θ0` ⇒ **默认恒为 `φ0+180° = 180°`**）
     （δ0≥θ0 ⇒ 0° 否则 180°），读方无需额外关键字即可复现。
@@ -177,7 +177,7 @@ coverage:
 2. [IVOA HiPS 1.0 (PR-HiPS-1.0-20161122)](http://www.ivoa.net/documents/HiPS/20161122/PR-HiPS-1.0-20161122.pdf)：§3、§4.1、§4.2.1、§4.4.1、§6.3.1（控制包 13 §2 指定清单；主题——tile/properties/all-sky map/客户端绘制——经全文检索印证；逐行标题核验留 ALG-P3-001 施工时复核）。
 3. Górski et al. 2005, ApJ 622, 759（bibcode 2005ApJ...622..759G）：NESTED/`nside=2^order`/ang2pix 语义——文章级（逐式核验留 ALG-P3-003）。
 4. Greisen & Calabretta 2002, A&A 395, 1061（Paper I，DOI 10.1051/0004-6361:20021326）§2.1.1（CRPIX 为参考点像素坐标：`p_j = CRPIX_j ⇒ q_i = 0`；CRPIX 可非整数、可在图像外）与 Calabretta & Greisen 2002, A&A 395, 1077（Paper II，DOI 10.1051/0004-6361:20021327）§2.2（**Reference point of the projection**：native↔celestial 三 Euler 角旋转、θ0/φ0 参考点、LONPOLE 默认规则）与 §5.1.3 式(54)(55)（TAN = gnomonic，`Rθ = (180°/π)·cot θ`）——CRPIX/CRVAL（含 CRVAL2）/CD/CTYPE 语义与 TAN 参考点即出此。
-   **引用边界**：① `CRVAL` 作为「参考点世界坐标」只在**线性** CTYPE 下是 Paper I 的直接结论；对 `RA---TAN` 该语义由 Paper II §2.2 的投影方程构造（`(φ0,θ0) → (ξ,η)=(0,0)`）保证，不得归给 Paper I。② LONPOLE 默认值的**现行口径**为 `φ0/φ0+180°`，依据 = 官方勘误件「Corrections and clarifications for FITS WCS papers I, II, & III」§2「Corrections and clarifications for Paper II」第 1 条逐字：「For δ0 ≥ θ0 , the default for LONPOLE a is φ0 . For δ0 < θ0 , the default for LONPOLE a is φ0 + 180° .」；FITS Standard 4.0 §8.3 同此（逐字：「default: φ0 if δ0 ≥ θ0 , φ0 + 180° otherwise」）。**引用 Paper II 正文的 `0/180°` 形式不构成有效依据**，实现与文档一律取 `φ0/φ0+180°`。③ Paper II 未给出 TAN 畸变的**定量**表述（§5.1 的「conformality is a local property」针对 conformal 投影，TAN 不是 conformal，不得引作 TAN 依据）；§9a-12 的百分比由式(54) 自行求导。
+   **引用边界**：① `CRVAL` 作为「参考点世界坐标」只在**线性** CTYPE 下是 Paper I 的直接结论；对 `RA---TAN` 该语义由 Paper II §2.2 的投影方程构造（`(φ0,θ0) → (ξ,η)=(0,0)`）保证，归属面 = Paper II §2.2。② LONPOLE 默认值的**现行口径**为 `φ0/φ0+180°`，依据 = 官方勘误件「Corrections and clarifications for FITS WCS papers I, II, & III」§2「Corrections and clarifications for Paper II」第 1 条逐字：「For δ0 ≥ θ0 , the default for LONPOLE a is φ0 . For δ0 < θ0 , the default for LONPOLE a is φ0 + 180° .」；FITS Standard 4.0 §8.3 同此（逐字：「default: φ0 if δ0 ≥ θ0 , φ0 + 180° otherwise」）。**引用 Paper II 正文的 `0/180°` 形式不构成有效依据**，实现与文档一律取 `φ0/φ0+180°`。③ Paper II 未给出 TAN 畸变的**定量**表述（§5.1 的「conformality is a local property」针对 conformal 投影，TAN 不是 conformal，其引用域限于 conformal 投影）；§9a-12 的百分比由式(54) 自行求导。
 5. **可执行标准（替代口径）**：astropy 7.0.1（WCSLIB）作 Paper I/II 的可执行标准逐点对拍
    （22 组配置 max 6.854e-13°；AIT 椭圆半轴实测 162.0560°/81.0280° vs 标准
    162.0569°/81.0285°）。
@@ -224,7 +224,7 @@ coverage:
 
 | # | 项 | 实测现状 | 结论 |
 |---|---|---|---|
-| C4 | §5.3 输入语义守卫在**生产路径**的接线面 | **调度节点面已接线、会话面未接线**。已接线：守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp`（`parse_bunit_string`/`resolve_bunit`）随 `astrocs_p3_rsmp` **进生产链接闭包**（`lib/algorithms/resample/CMakeLists.txt:22`，经根 `CMakeLists.txt:1011` 的 `add_subdirectory`）；`module_adapters.cpp` 的 `p3n_guard_input_units`（:11440-11535）在 `p3_op_properties`（:11561）与重采样节点（:11729）两处**先于任何像素读取**调用，失败即 `p3n_guard_fail`（:11541）fail-closed。未接线：`lib/phase3_session/p3_session.cpp:166-172,396` 只透传 BUNIT、不做语义判定；`lib/phase3_session/p3_v6_export.cpp` 未进构建（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **不得声称会话面已生效**；会话面接线归 Phase3 export 域 |
+| C4 | §5.3 输入语义守卫在**生产路径**的接线面 | **调度节点面已接线、会话面未接线**。已接线：守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp`（`parse_bunit_string`/`resolve_bunit`）随 `astrocs_p3_rsmp` **进生产链接闭包**（`lib/algorithms/resample/CMakeLists.txt:22`，经根 `CMakeLists.txt:1011` 的 `add_subdirectory`）；`module_adapters.cpp` 的 `p3n_guard_input_units`（:11440-11535）在 `p3_op_properties`（:11561）与重采样节点（:11729）两处**先于任何像素读取**调用，失败即 `p3n_guard_fail`（:11541）fail-closed。未接线：`lib/phase3_session/p3_session.cpp:166-172,396` 只透传 BUNIT、不做语义判定；`lib/phase3_session/p3_v6_export.cpp` 未进构建（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **生效面 = 调度节点面**；会话面归 Phase3 export 域 |
 | C5 | 守卫对仓内 HiPS 产品的实测裁决 | **分布而非单一结论**（扫描仓内全部 340 份 `*/signal/properties`）：`BUNIT` 缺失 **132**、`ADU/sr` **114**、`ADU/px^2` **93**、`ADU/px^-2` **1**。按守卫分支裁决：`ACCEPT` **114**、`P3-INPUT-BUNIT-MISSING`（exit 3）**132**、`P3-INPUT-NOT-SURFACE-BRIGHTNESS`（exit 4）**94**。产品侧单位声明节点 `declare_hips_surface_brightness_units`（`module_adapters.cpp:10113-10160`，标记键 `ASTROCS_SIGNAL_UNIT`）已对 **206** 份产品写入 canonical `ADU/sr` + `ASTROCS_PIXEL_SEMANTICS=surface_brightness` + `ASTROCS_PIXEL_AREA_POWER=-2`（其中 114 份为 canonical 串、92 份仍带旧串 `ADU/px^2`）；未经该节点的 **132** 份（`aio_hips_writer` 直出）无任何单位键 | **产品侧 provenance 分布性缺口**（不是语义错）：未经声明节点的产品缺 `BUNIT`；带 `ADU/px^2` 的旧产品按 §3 属**正确拒绝**（`pix` 已是面积单位）。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e3_realdata_hips_bunit.json` |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素 `S=F/D` 分母退化） | 归 P1 域单独处理 |
 | — | Phase2 `signal` 量纲 | 实测 = **面亮度**（分辨率不变密度算子：常量场 `R_cross = 1.0`、真实 testdata `0.999999972724`；链内零单位换算，FLUX-IN 负例逐像元 ×Ω） | 与 §5.3「导出只接受面亮度语义输入」**一致** |

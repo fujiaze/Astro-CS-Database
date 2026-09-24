@@ -150,7 +150,7 @@ doc_index:
       duty: "P1 星检测/PSF/WCS 冻结门表与 SNR 定义（机器可校验）"
       upstream: "ASTROCS_DESIGN.md §12.1（科学正确性与三重佐证）、§4.4（输出合同）"
       downstream: "eng/ci/checks.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PLATESOLVE.md、docs/algorithms/STAR_DETECTION_ALGORITHMS.md 等 14 处"
-      notes: "SCI-FIX-PSF 第 9 项 (F-2 整改, 2026-09-16): P1 星检测/PSF/WCS 冻结门表 (16 门) + SNR_peak 定义; 规则 R1 表外阈值禁止 / R2 证据必需 / R3 量测域独立 / R4 统计量显式 / R5 SNR 统一; 机器检查器 eng/tools/check_gates_and_tolerances.py (含负例自检)"
+      notes: "SCI-FIX-PSF 第 9 项 (F-2 整改, 2026-09-16): P1 星检测/PSF/WCS 冻结门表 (16 门) + SNR_peak 定义; 规则 R1 阈值只取表内登记 / R2 证据必需 / R3 量测域独立 / R4 统计量显式 / R5 SNR 统一; 机器检查器 eng/tools/check_gates_and_tolerances.py (含负例自检)"
     - path: "docs/algorithms/HEALPIX_MAPPING.md"
       status: ACTIVE_NORMATIVE
       duty: "HEALPix 球面索引映射与层级归约算法"
@@ -1451,7 +1451,7 @@ doc_index:
       duty: "docs/traceability/TRACEABILITY_LAYERS.csv"
       upstream: "ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/traceability/TRACEABILITY_SPEC.md、eng/tests/traceability/fixtures/bad_id_format.json、eng/tests/traceability/fixtures/chain_break.json 等 10 处"
-      notes: "DOC-001 机器追溯合同 CSV schema（八层必填/取值域/空串禁止）"
+      notes: "DOC-001 机器追溯合同 CSV schema（八层必填/取值域/空串即违规）"
     - path: "docs/traceability/TRACEABILITY_MATRIX.csv"
       status: ACTIVE_NORMATIVE
       duty: "docs/traceability/TRACEABILITY_MATRIX.csv"

@@ -43,14 +43,14 @@ control_variance = k_corr × (π/2) × sigma_bg² / N_retained
 control_ivar     = 1 / control_variance
 ```
 
-- 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；**适用域（必须与 `sigma_bg` 的前提一致）**：样本独立同分布且 patch 内**无未分辨空间结构**。`sigma_bg` 来自 8×8 patch 的稳健尺度，其前提是背景在 patch 尺度局部平稳（`docs/science/SCIENCE_SCOPE.md` §假设的 `γ = dlog(patch 方差)/dlog(patch 中位信号) ≈ 1` 判据）。前提被违反时 `sigma_bg` 量的是空间结构而非随机分量，`control_variance` 与 `control_ivar` **一并失真** ⇒ 该 patch 的噪声场必须显式降级并登记 `degraded_reason`，不得按随机噪声消费；
+- 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；**适用域（必须与 `sigma_bg` 的前提一致）**：样本独立同分布且 patch 内**无未分辨空间结构**。`sigma_bg` 来自 8×8 patch 的稳健尺度，其前提是背景在 patch 尺度局部平稳（`docs/science/SCIENCE_SCOPE.md` §假设的 `γ = dlog(patch 方差)/dlog(patch 中位信号) ≈ 1` 判据）。前提被违反时 `sigma_bg` 量的是空间结构而非随机分量，`control_variance` 与 `control_ivar` **一并失真** ⇒ 该 patch 的噪声场必须显式降级并登记 `degraded_reason`；消费口径 = 降级后的噪声场；
   **量纲**：`sigma_bg²` 单位 `ADU²`，`N_retained` 无量纲计数，`k_corr` 无量纲 ⇒ `control_variance` 单位 `ADU²`、`control_ivar` 单位 `ADU⁻²`；
 - k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained：MC
   （pixfrac=0.8，2000 实现）k_corr=1.3883，N_eff≈181/251；冻结 1.4；
 - N_retained 用 clipping 后保留样本（patch vs truth 验证）；
 - 生产 UPM 权重 = quality × control_reliability × control_ivar（SCI-UPM-WEIGHT-001；
   `control_reliability` **实现为配置常量 1.0，不是按覆盖度算出的几何量**，缺陷登记
-  SC-005），禁止再用单像素 ivar/support/SNR 乘因子。
+  SC-005），权重因子面 = 上述三项。
 - k_corr 定义域 1 ≤ k_corr：k_corr<1 ⇔ N_eff>N_retained（正相关样本的有效样本量不可能
   大于样本数），`p2_upm_control_variance` 与 `p2_upm_ma_build` 显式拒（rc=1 / rc=7）。
 
@@ -98,9 +98,9 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
   输出方差：偏差因子 ≈ 1+0.75ρ（两像素近邻近似），ρ=0.19 ⇒ 方差低估 36.3%、
   σ 低估 20.2%（MC 复算 0.39415 vs 理论 0.39250）。
   与 ALG-P3-001 §3（`C_y = R C_x Rᵀ`）同式；`Σc_k²` 标量式**只在 C_in 对角时**
-  成立，禁止当通用式（标量式只是 C_in 对角时的特例）。
+  成立，该式的适用域 = C_in 对角（通用式见上）。
 - **Σc_k² ≠ 1 是正确物理**：bilinear 平均降低独立像素方差但引入相邻相关
-  （§上协方差机制），禁止误用 Σc_k=1 归一 variance（常数信号场不变量
+  （§上协方差机制），归一 variance 的因子 = Σc_k² ≠ 1（常数信号场不变量
   SCI-P3 §7 只对 signal 成立，对 variance 不成立）。
 - **实现口径（正向约束）**：`propagate_covariance(op, c_in)` 按一般式 `C_y = R C_x Rᵀ` 计算，
   **不假定 `C_in` 对角**（`lib/algorithms/resample/p3_rsmp_covariance.cpp:22-45`）；输出只取对角线作为
@@ -112,12 +112,12 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
   u=1/ivar；两者皆无 → uncertainty unavailable（输出无 VARIANCE/IVAR HDU +
   manifest uncertainty_available=false，DATA_SEMANTICS §30.4 unavailable 模式）；
   负/Inf = 产品损坏显式错误；NaN 传播（C=1）；**ivar==0 像素 = 零权重 ⇒
-  u 无效（NaN 传播态），不是硬错误，也不得导出 1/0→Inf**（DATA_SEMANTICS §30.4-1/-3）。
+  u 无效（NaN 传播态），不是硬错误，导出值取 NaN 而非 1/0→Inf**（DATA_SEMANTICS §30.4-1/-3）。
   - **哨兵语义的跨阶段对照（必须成对读）**：Phase1 产品面把 `ivar=0` 定义为**不可用（拒绝加权）**并
     强制成对 `variance=0 ∧ ivar=0`（`docs/science/NOISE_MODEL.md` §7「空 support 不传播」「产品 dtype 成对不变量」）；
     Phase3 输入面把 `ivar=0` 读作**零权重 ⇒ 输出 NaN 传播态**。两者是同一哨兵值在**不同承载面**上的
     语义，转换点在 P3 输入选择：`variance=0 ∧ ivar=0` 的输入像素其输出 `variance/ivar=NaN`，
-    既不硬错也不得反解出 `+Inf`。
+    输出面一律为 NaN 传播态（`+Inf` 属不可导出值）。
 - invalid（输出面）：无覆盖（C=0）→ variance/ivar=NaN（signal=NaN 同态）；
   覆盖不一致（leaf signal 有限而 u 缺失）→ 输出 NaN + provenance 计数。
 - 产品/FITS 表达（EXTNAME=VARIANCE/IVAR、BUNIT 派生）与验证门：

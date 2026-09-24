@@ -11,7 +11,7 @@
 ## 1. 目的与范围
 
 为每个模块建立**机器可执行**的八层追溯合同，缺口必须**显式表达**（`MISSING`），
-禁止以空字符串、占位符或静默缺列通过。矩阵的“事实”是
+空缺一律写显式值；空串、占位符与静默缺列即判红。矩阵的“事实”是
 
 - `docs/traceability/TRACEABILITY_MATRIX.json`（权威，机器真相）
 - `docs/traceability/TRACEABILITY_MATRIX.csv`（同构视图，供人工/diff）
@@ -52,22 +52,22 @@ parent→child 链：
   对**每个已注册模块**都必须是 `VERIFIED`（有真实文件）或至少 `MISSING` 显式占位；
   服务模块（io）允许 DATA/API `VERIFIED` 而 SCI/ALG `MISSING`。
 - “每层必填”= 矩阵每行、每层状态单元格**必须出现且非空**（取值于该层合法集合），
-  不允许缺列/空串/空白；`MISSING` 是合法显式值，不是空串。
+  缺列/空串/空白即判红；`MISSING` 是合法显式值，不是空串。
 
-### 2.1 空缺的表达（禁止空字符串通过）
+### 2.1 空缺的表达（空串即判红）
 
-- 状态空缺 → 状态列必须写 `MISSING`（或按层的 `NONE`），不得留空、不得写 `-`/`?`/`TBD`。
+- 状态空缺 → 状态列必须写 `MISSING`（或按层的 `NONE`）；留空与 `-`/`?`/`TBD` 即判红。
 - ID 空缺 → ID 列写显式占位：
   - 通用层（SCI/ALG/DATA/API/ARCH/TEST/EVIDENCE/SRC 的 id 列）：`<LAYER>-MISSING`
     （例如 `SCI-MISSING`、`TEST-MISSING`）。
   - SRC 的 source symbol 表达：`<src_path>::MISSING`（占位无符号）。
-- 文档/路径空缺 → 列写 `MISSING`（禁止空串）。
+- 文档/路径空缺 → 列写 `MISSING`（空串即判红）。
 - 任何单元格为 `""`、纯空白、`-`、`?`、`TBD`、`TODO` → 机器检查器判
   `EMPTY_CELL_VIOLATION`（FAIL，报告具体行/列）。
 
 ## 3. ID 格式（机器正则）
 
-ID 一律 ASCII 大写，允许段分隔符 `-`，不允许空格、点、下划线之外的字符，不允许空段：
+ID 一律 ASCII 大写，段分隔符取 `-`；空格、点、下划线之外的字符与空段都判红：
 
 ```text
 SCI      ^SCI-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 SCI-CAL-001、SCI-P1-DRIZ-001
@@ -88,7 +88,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml` +
   `eng/tools/check_contract_graph.py`），本矩阵对共享引用只登记不判重。
 - 状态 `MISSING` 的层允许保留 **descriptor/registry 已预留的真实 ID**（ID 占用
-  命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串一律禁止。
+  命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串判红。
 - 状态 `VERIFIED` 的层必须满足：id 非占位，且锚可机器解析（见 §4/§5 与 §7）。
 - `docs/TRACEABILITY.csv`、`docs/contracts/*` 沿用各自格式，不由本合同重写；
   本矩阵是模块化事实源（第 5 节给出两表关系）。
@@ -103,12 +103,12 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   - `evidence_id` 给出 EVIDENCE 层锚点（证据包/日志/现场 hash）。
 - 跨层 parent-child 校验规则（机器可查）：
   1. **前导链非空**：TEST 层引用成立的前提是同一行 MOD（行存在）与 SRC 层非 `MISSING`
-     （SRC `MISSING` 时 TEST 必须 `MISSING`，禁止“有测试无实现”）；
+     （SRC `MISSING` 时 TEST 必须 `MISSING`；“有测试无实现”即判红）；
   2. **承载层引用**：API `VERIFIED` 的行应能通过 API 注册表/API_CONTRACTS.csv
      找到对应 ID（由扩展检查给出具体缺失，不崩溃）；
   3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `reports/`、`artifacts/`
      、`returns/` 或 TASK_STATE evidence_refs 中解析（同 2 语义）；
-  4. 一行内不允许出现“下层 VERIFIED 而上层同链 MISSING”的科学链断裂
+  4. 一行内“下层 VERIFIED 而上层同链 MISSING”即科学链断裂、判红
      （SCI MISSING 但 ALG VERIFIED 之类）→ 判 `CHAIN_BREAK`（给出 module_id 与层）。
      例外（显式登记，不判断链）：conformance/service/provider 行 —— SCI/ALG
      MISSING 而 DATA/API/ARCH/VERIFIED 属宿主/服务边界语义，notes 已给出原因。
@@ -121,7 +121,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 
 - SRC 层引用格式：`<repo-relative-path>::<symbol>[,<symbol>...]`，多符号用逗号分隔。
 - 文件必须存在且受 Git 跟踪；符号必须在文件文本中可见（宽松匹配标识符边界）。
-- 无符号可锚时写 `<path>::MISSING`（文件存在但符号待补）——禁止留空、禁止裸路径冒充。
+- 无符号可锚时写 `<path>::MISSING`（文件存在但符号待补）——留空与裸路径冒充即判红。
 - 表达示例：`eng/tests/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
   `lib/infrastructure/benchmark/cpu/common/README.md::MISSING`。
 
@@ -144,7 +144,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 运行：`python3 eng/tools/traceability/check_traceability_matrix.py --root . [--json-out out.json] [--strict]`
 （Python 3.10+ 标准库；无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
 
-必须实现且失败时给出**具体断链**（模块 + 层 + 路径 + 期望/实际），不允许崩溃：
+必须实现且失败时给出**具体断链**（模块 + 层 + 路径 + 期望/实际）；崩溃即判红：
 
 | 检查 | 失败输出前缀 | 说明 |
 |---|---|---|
@@ -158,7 +158,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 | 引用越界（API/TEST/EVID 允许外部注册表缺失但必须逐条列 WARN） | `REF_OUT_OF_SCOPE` | 报 具体 ID（strict 下为 FAIL） |
 
 - exit 0 且仅当零 ERROR；输出一行 `TRACEABILITY_MATRIX_PASS modules=<n> rows=<n> errors=0`。
-- 任何未捕获异常 → 打印 `TOOLING_FAILURE` 并 exit 3（不允许伪 PASS）。
+- 任何未捕获异常 → 打印 `TOOLING_FAILURE` 并 exit 3（伪 PASS 即判红）。
 - 负面 fixture 在 `eng/tests/traceability/fixtures/`，试金石测试
   `eng/tests/traceability/test_traceability_matrix.py` 用 mutation 证明：删任意层/填空串/
   造重复 ID/悬空引用 → 检查器必失败且不崩溃。

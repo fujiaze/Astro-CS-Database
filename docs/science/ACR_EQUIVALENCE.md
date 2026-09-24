@@ -114,10 +114,10 @@
 
 ## 9 精度策略
 
-- 容差**必须按信号标度声明**，禁止只给绝对量。设 `s` 为该域信号的特征量级（`signal` 缓冲的标度代表值）：
+- 容差**必须按信号标度声明**，声明面 = 相对量（绝对量随标度变化）。设 `s` 为该域信号的特征量级（`signal` 缓冲的标度代表值）：
   - `signal`（FP32 承载面）：`max_abs ≤ 8·ulp_fp32(s)`，即**相对容差** `max_rel ≤ 1e-6`；
   - FP64 内部累积（`vs/wsum`，未落盘）：`max_rel ≤ 1e-12`；
-  - 推导：FP32 机器精度 `~1.19e-7` × `depth≤32` 累积 × 独立像素数，实测相对包络 `≤1e-6`；禁止失败后增大。
+  - 推导：FP32 机器精度 `~1.19e-7` × `depth≤32` 累积 × 独立像素数，实测相对包络 `≤1e-6`；该容差为冻结值，失败路径不改动。
 - **为什么不能写成绝对 `ADU`**（标度依赖的定量后果；下表按 IEEE 754 单/双精度的 `nextafter` 间距直接计算，三档结论互不相同）：
 
   | 信号标度 `s` | `ulp_fp32(s)` | `1e-6 ADU / ulp` | 判定 |
@@ -163,7 +163,7 @@
 - 公开 API: `register_phase2_acr_kernels, kOpMosaicReject`
 - 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/TRACEABILITY.csv`）。
 - 用例锚（`lib/algorithms/coverage/tests/synthetic_gate.cpp`）：`Phase2Acr.LegacyLauncherEquivalent`(:3355)、`Phase2Acr.CudaEquivalent`(:3466)、`Phase2Acr.CudaWeightedSupportEquivalent`(:3513)、`Phase2Acr.G9CompactFrameSubset`(:3591)、`Phase2Acr.G9WinsorizedCpuRoute`(:3648)、`Phase2AcrParallel.LegacyCpuOneVsTwoTDetermine`(:3395)。
-- **执行域（不得含糊）**：CUDA bridge 不可用时 CUDA 侧用例走 `GTEST_SKIP`（`synthetic_gate.cpp:3476`）；`LegacyCpuOneVsTwoTDetermine` 的并行分支依赖 `P2_ENABLE_OPENMP` 编译宏，未定义时两档都在串行路径上运行 ⇒ **报告必须区分「通过」与「该门未行使」**，不得把 SKIP 或未行使计为等价证据。
+- **执行域（逐条具名）**：CUDA bridge 不可用时 CUDA 侧用例走 `GTEST_SKIP`（`synthetic_gate.cpp:3476`）；`LegacyCpuOneVsTwoTDetermine` 的并行分支依赖 `P2_ENABLE_OPENMP` 编译宏，未定义时两档都在串行路径上运行 ⇒ **报告必须区分「通过」与「该门未行使」**，等价证据面只含真正行使的门。
 
 ## 14 参考文献与参考代码库（含许可证）
 

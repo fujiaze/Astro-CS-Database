@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §4（normalize：单帧标准化）
 
 上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）、`docs/owner/PROJECT_SPEC.md`  
-下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，现有实现不得反向定义目标。
+下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，目标只由本文件定义。
 
 ## 1. 使命与科学产品
 
@@ -24,7 +24,7 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 - 原始/预处理 light；bias、dark、flat、cosmetic map（按相机、增益、温度、滤镜、曝光分组）；
 - 曝光、gain、read noise、饱和、非线性状态、时间、滤镜和观测站元数据；
 - Gaia/离线星表输入及版本；
-- phase_config，只含科学参数；不得含 workers/ISA/block；其中 `storage_form` 选定产品落盘形态（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并报 warn，禁止静默取默认）——形态是输入配置项而非运行期开关，同一份输入 JSON 在不同机器上必须得到同一种形态；
+- phase_config，只含科学参数（workers/ISA/block 归执行预算面）；其中 `storage_form` 选定产品落盘形态（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并报 warn，取默认动作一律记 warn）——形态是输入配置项而非运行期开关，同一份输入 JSON 在不同机器上必须得到同一种形态；
 - 每个输入有 SHA-256、单位、dtype、shape、所有权和 frame identity。
 
 缺失关键单位、gain/read-noise 口径、WCS 所需元数据或产品身份不一致时 fail-closed；允许的降级必须写 manifest，不能以默认零代替未知。
@@ -46,13 +46,13 @@ ingest → calibration → cosmetic/validity → background/noise
 `psf` 的唯一消费者是 `photometry`（本就在解算之后），故该序不延长关键路径。
 节点序与依赖边由注册表端口图唯一确定，机器判据见 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7.1。
 
-节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，不得通过多个 facade 重复运行整段 Phase1。
+节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，整段 Phase1 逐 operation 执行一次。
 **photometry 为什么是一步（不是两步）**：拟合出的归一化标度 `k_photo` 必须真正落到像素，但**施加不需要独立的节点**——
 同一节点内「读 calibrated 面 → `I_photo = k_photo·I_cal`（in-place）→ 写 photoapplied 面」一次走完，
 省掉一次中间产物落盘，即**省一次写 + 一次读的 IO 往返**（生产 IR 的 normalize 阶段因此是 8 个节点：
 `calibrate / cosmetic_correct / detect_sources / plate_solve / measure_flux / estimate_snr / drizzle_stack / write_hips`，
 其中 `measure_flux` 即 photometry，施加是它的**内部步骤**而不是第 9 个节点）。
-**强制语义（不得放宽，细化见 §3.6）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
+**强制语义（判据固定，细化见 §3.6）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
 ② WCS 解算只有**一个节点、一个权威解**：近似指向由 `wcs.init_source` 给出（不是解算节点），`platesolve` 在该指向下匹配星表并稳健迭代精化，输出即权威 WCS（轮次数是求解器实现细节，不是流程语义）；
 ③ **一次检测、一次通量积分、三处复用**（`star_detection` → `psf` → `photometry` → `noise_snr` 共用同一份
 检测结果与同一 `flux` 口径）；④ **测光归一化必须真正落到像素**（`I_photo = k_photo·m(x,y)·I_cal`；
@@ -62,7 +62,7 @@ ingest → calibration → cosmetic/validity → background/noise
 `photscal` / `photscales`（逐帧 `k_photo`）/ `photoapplied_artifacts`（施加后产物路径），使「k 确实乘进了像素」
 可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `run/RULING-DOC-01/REPORT.md` 裁决 B）。
 
-**测光失败的失败语义（帧级 vs 全局，作用域不得互相冒充）**：
+**测光失败的失败语义（帧级 vs 全局，两种作用域各自具名）**：
 
 - **帧级失败**（该帧自身条件不成立：本帧 WCS 不可用、本帧在上游星点目录里缺行、拟合未产出标度、
   `k_photo` 非物理、帧内残差散度超 `P1_PHOT_MAX_SIGMA_DEX`）⇒ **该帧 fail，其余帧照常完成**：
@@ -93,11 +93,11 @@ ingest → calibration → cosmetic/validity → background/noise
 y_p = [r_p - b_p - alpha (d_p - b_p)] / f_p,    alpha = t_light / t_dark
 ```
 
-不得裁切负值或加未声明 pedestal。flat 归一、暗场缩放、非线性和饱和的实际口径必须进入 manifest。
+负值一律保留原样，pedestal 必须在 manifest 声明后施加。flat 归一、暗场缩放、非线性和饱和的实际口径必须进入 manifest。
 
 ### 4.2 不确定度
 
-目标态不得再用“校准层不传播、后面重新猜一个噪声”替代物理传播。独立近似下至少传播：
+目标态的噪声一律经物理传播链路导出；“校准层不传播、后面重新猜一个噪声”一律不采用。独立近似下至少传播：
 
 ```text
 V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
@@ -107,7 +107,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 ## 5. 背景、有效性与源检测
 
-- 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景但不得把背景校正和 UPM 混成同一层；
+- 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景，背景校正与 UPM 各占一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
 - 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md:18-19`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
@@ -147,7 +147,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 | Phase3 导出平面 | 线性面亮度（采样核的凸组合） | 透传输入 `BUNIT` | 重采样不改量纲类别 |
 
 **`k_photo` 的语义**：对齐各帧的**相对零点**，使帧间信号处于同一测光体系。其**绝对值无物理意义**——
-增益、口径、曝光、`hc` 等未建模常数被 `location` 吸收，因此禁止用它反解仪器参数，也禁止设绝对数值窗口
+增益、口径、曝光、`hc` 等未建模常数被 `location` 吸收，因此它只作相对零点使用，取值窗口取相对量
 （`docs/science/PHOTOMETRY.md` §3/§6）。逐帧 `k_photo` 与“是否真的乘进像素”记入 `p1_phot.json`
 （DATA-P1-PHOTPROV-001），可由独立读者用“calibrated 面 × k”逐像素复算核对。
 
@@ -185,7 +185,7 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；
 **不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
-PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**禁止**计入阶段二科学叠加权重（`ASTROCS_DESIGN.md` §2、§3.1）。
+PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**权重面排除**该项（`ASTROCS_DESIGN.md` §2、§3.1）。
 
 ### 8.3 标量降级门
 
@@ -212,9 +212,9 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
 
-产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（禁止静默取默认，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）。
+产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）。
 
-禁止用一个 `snr` 字段同时承载上述对象。
+上述对象各自具名字段，`snr` 只承载其中之一。
 
 ## 11. 验收
 

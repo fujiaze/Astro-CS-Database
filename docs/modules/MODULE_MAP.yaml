@@ -13,12 +13,12 @@
 #
 # 本表是**期望映射**：不含任何模块状态声明。模块状态一律由
 # eng/tools/quality/check_module_map.py 现场计算，状态词只取 §12.5 词表；
-# 禁止在本表写 status 字段（防「表内自证绿」）。
+# status 字段的取值源 = check_module_map.py 的现场计算（防「表内自证绿」）。
 #
 # 诚实性约定：legacy_paths 保存**迁移前**的路径（历史键），只作 ARCH-001 的定位线索，
 # **不参与实现/安装判定**；实现只认 target_dir 下的生产源。迁移完成后这些路径在树中
 # 一律不存在（清单与逐条映射见 eng/cmake/ARCH-001-migration-manifest.md §1，23/23 条已核对）。
-# 禁止把 target_dir 自身或其子路径写进 legacy_paths——否则「声明路径存在」
+# legacy_paths 只登记 target_dir 之外的迁移前路径——否则「声明路径存在」
 # 这类 NOTE 会被自身目录触发，把历史键退化成自证。
 #
 # 维护：本表随 DATA-001（合同/schema 面）与 ARCH-001/INT-001（目录迁移/装配）更新；
@@ -608,7 +608,7 @@ modules:
       scheduler（注册、资源预算、执行、取消、checkpoint；物理位 lib/infrastructure/scheduler）
       与 pipeline（typed DAG、artifact、内存/数据管线；物理位 lib/infrastructure/pipeline）。
       「runtime」不是模块名（禁第二名字）：plugin_doc 文件名 19_runtime.md 仅为历史路径，
-      不得作为职责名引用。物理位与 target 如实登记：scheduler 源集编入根 CMakeLists.txt:292
+      只承载路径语义。物理位与 target 如实登记：scheduler 源集编入根 CMakeLists.txt:292
       的 astrocs_core STATIC（本项目唯一根 CMake，无逐模块 CMakeLists.txt）；
       readme 在位；module_yaml / 共址 tests 缺失属已登记缺口（见文件头「声明路径缺失登记」）。
       lib 侧源 = lib/core（已迁入 target_dir）。
@@ -698,7 +698,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     # CHK-MODULE-MANIFEST 结构约定：legacy_paths 只登记迁移前路径，
-    # **不得**含 **target_dir 自身**或其子路径（否则 legacy_paths_present 这类 NOTE
+    # 条目只取 **target_dir 之外**的路径（否则 legacy_paths_present 这类 NOTE
     # 会退化成自证噪声）。迁移前路径以
     # eng/cmake/ARCH-001-migration-manifest.md:27（lib/gaia_xpsd_client → lib/infrastructure/gaia_xpsd_client）为准。
     legacy_paths: [lib/gaia_xpsd_client]
@@ -739,10 +739,10 @@ modules:
 # ---------------------------------------------------------------------------
 # 本表是**期望映射**：下列声明指向的路径/target **当前在树中不存在**（实测
 # os.path.exists=false / 全仓 CMake 无 add_library(target)）。此处**如实登记为缺口**，
-# 不得读作「该路径已存在」；实现只认 target_dir 下的真实生产源，缺口不参与实现/安装判定。
+# 该登记与「该路径已存在」是两回事；实现只认 target_dir 下的真实生产源，缺口不参与实现/安装判定。
 #
-# 硬规则（FIX-404 / GAP_AUDIT G3-8/G1-5；禁止删条目粉饰）：
-#   * 声明缺失 ⇒ 必须在本表逐条登记 owner；**不得**为过门删除声明；
+# 硬规则（FIX-404 / GAP_AUDIT G3-8/G1-5；条目一律如实保留）：
+#   * 声明缺失 ⇒ 必须在本表逐条登记 owner；**过门只走登记路径**；
 #   * 文件已移动的 ⇒ 直接更新声明路径、不登记缺口（FIX-404 已按实测更新 drizzle /
 #     platesolve / hips_browser 的 co_located_tests 三条）；
 #   * owner 必须命中下方 gap_owners；kind=task 的 owner 必须有对应任务书文件，
@@ -771,7 +771,7 @@ gap_owners:
 declared_absent_paths:
   note: >-
     下列声明路径/target 在登记时点实测不存在。这是**已登记缺口**，不是「已存在」声明；
-    逐条处置由 owner 承接（创建真实文件 / 补 target）或上呈负责人裁决，不得删声明。
+    逐条处置由 owner 承接（创建真实文件 / 补 target）或上呈负责人裁决，声明一律如实保留。
   checked_at: 2026-09-21（FIX-404 复核实测）
   path_gap_count: 50
   target_gap_count: 16
@@ -849,13 +849,13 @@ declared_absent_paths:
 # 与 declared_absent_paths 同一纪律：模块「声明具备但实测缺失」的能力（entrypoint 实现、
 # 公开头 ABI 标记、module.yaml 字段一致、产品清单 unit、共址测试文件）逐条登记 owner。
 # 登记 ⇒ GAP（逐条出机器表并计数）；未登记 ⇒ FAIL；登记了却不再出现 ⇒ FAIL（棘轮反向自证）。
-# 这些缺口不是 FIX-404 的实现面（任务书禁止改模块实现本身），转 owner 承接或上呈。
+# 这些缺口不属于 FIX-404 的实现面（任务书的改动面 = 登记侧），转 owner 承接或上呈。
 # 校验：python3 eng/tools/quality/check_module_map.py（capability_gap_count 必须与实测条数一致）
 # ===========================================================================
 declared_absent_capabilities:
   note: >-
     下列 (module, code) 组合在登记时点实测缺失。这是**已登记实现缺口**，不是「已具备」声明；
-    逐条处置由 owner 承接（补实现/manifest/unit）或上呈负责人裁决，不得删判据换绿。
+    逐条处置由 owner 承接（补实现/manifest/unit）或上呈负责人裁决，判据一律如实保留。
   checked_at: 2026-09-23（前台复核：删除 star_detection 的陈旧 missing_co_located_tests 登记并同步计数 71→70 —— 该模块共址测试 lib/algorithms/star_detection/tests/p1star/ 已落地，检查器 CHK-MODULE-MANIFEST 的 stale_declared_absent_capability 判红要求「缺口登记必须随落地同步删除」；上一轮 2026-09-22 删除 noise_snr 的陈旧 header_missing_abi_version 登记并同步计数 72→71）
   capability_gap_count: 70
   items:

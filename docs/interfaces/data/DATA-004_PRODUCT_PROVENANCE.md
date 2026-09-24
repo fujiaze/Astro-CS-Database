@@ -16,7 +16,7 @@ DATA-003 建立了生产 ArtifactStore 的原子发布与校验读；本合同�
 定义**产物溯源（provenance）与版本语义**：
 
 1. 区分 **revision 类别**：product / module / ABI / data schema / doc revision /
-   history——每类有独立语义与校验规则，不允许混为一谈；
+   history——每类有独立语义与校验规则，各自具名、各按本类规则校验；
 2. provenance 写 **source commit / config / provider / worker / input hashes、
    science IDs**；
 3. **确定性 provenance digest**：同输入配置 ⇒ 同 digest（运行时间/目录等运行
@@ -112,7 +112,7 @@ provenance_digest = sha256(canonical_json({
 | 门 | 位置 | 规则 | 对应验收 |
 |---|---|---|---|
 | data_schema 绑定 | publish（`_build_publish_provenance`） | `revision.data_schema` 必须 = manifest `v{schema_version}` | 新/旧 schema 冒充拒 |
-| 历史拒收 | publish | revision.product ∈ history.replaced → 硬拒（已替换版本不得静默重发） | 被替换版本不静默接收 |
+| 历史拒收 | publish | revision.product ∈ history.replaced → 硬拒（重发只经显式迁移路径） | 被替换版本不静默接收 |
 | 隐私门 | publish（`make_provenance_doc`） | 文档任一字符串字段命中敏感模式 → 拒 | privacy scan 不泄露 |
 | 消费溯源门 | `bind_product_input` | provenance sidecar 存在 + 校验通过 + digest 复算一致 | 缺 provenance 拒绑定 |
 | 版本门槛 | `bind_product_input(min_product_version)` | 输入 product 版本 ≥ 阈值才放行 | 被替换版本不静默接收 |

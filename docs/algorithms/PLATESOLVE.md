@@ -71,7 +71,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 4a.1 图像侧选星样本的定义域
 
 - **样本定义域 = 星等可靠的非饱和检测**。进入 `U` 向量组（三角形匹配几何）的图像侧样本，
-  其每个成员**必须**满足 `saturated == false`；饱和检测**必须**被排除，**禁止**回填。
+  其每个成员**必须**满足 `saturated == false`；饱和检测一律排除在样本外，样本回填只取非饱和检测。
 - **理由（两条，各自独立可测）**：
   1. 饱和像元的读出被饱和电平截断，box 积分通量既不等于真实通量、也不随真实亮度单调，
      故"按 box 积分星等升序取前 N 颗"在该定义域上不是任何一致亮度量的最亮 N 颗，
@@ -82,20 +82,20 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - **排序与截取**：候选按 box 积分星等**升序**（越小越亮）排序；`mag` 非有限（NaN）者
   排在末尾且不被选中（候选充足时）；取前 `img_n_target` 颗。
 - **候选不足的兜底**：非饱和候选少于 `img_n_target` 时，样本 = 全部非饱和候选
-  （即 `|样本| = min(img_n_target, n_unsat)`），**不得**用饱和检测补足。
+  （即 `|样本| = min(img_n_target, n_unsat)`），补足来源只限非饱和候选。
 - **候选为空/过少**：非饱和候选数 < 2 时求解**必须** fail-closed，错误信息**必须**点名
-  `n_detected / n_saturated / n_unsat`，**禁止**以饱和检测冒充样本继续求解。
+  `n_detected / n_saturated / n_unsat`，求解只在非饱和样本上继续。
 
 ### 4a.2 由样本导出的密度与目标星数
 
 - `rho_img` 的分子**必须**是**实际进入 `U` 样本的成员数**（4a.1 的样本基数），
-  分母**必须**是同一图像几何下的图像立体角；两者同域，**禁止**用"检测总数"或
+  分母**必须**是同一图像几何下的图像立体角；两者同域，分子的唯一取值 = 实际样本基数；对照写法 "检测总数"与
   "含饱和样本数"作分子。
 - **判据**：图像几何不变时，样本基数由 `N1` 变为 `N2`，`rho_img` **必须**按 `N2/N1`
   同比例变化。
 - `n_target` 由 `rho_img`、查询锥面积与密度比导出，且**必须**落在闭区间 `[50, 60]`。
 - `rho_img` 的分子与"极限星等迭代的查询目标星数"是**两件事**：前者恒为 `|U|`
-  （§4a.1 的样本基数），后者按 §4a.5 由样本亮度深度基数导出。二者**不得**互相替代。
+  （§4a.1 的样本基数），后者按 §4a.5 由样本亮度深度基数导出。二者各自独立消费，取值互不代用。
 
 ### 4a.3 极限星等迭代的单调性与步进方向
 
@@ -104,10 +104,10 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   （每文件返回上限造成的顺序截断区间除外，该情形单列为 `capped`）。
 - **判据**：同一查询锥内 `m2 > m1 ⇒ N(m2) ≥ N(m1)`（上限截断区间除外）。
 - 由单调性：`N == 0` 时**唯一能增加星数的方向是更暗**（`m_lim` 增大）。
-  规范**禁止**把"向更亮回退重试"作为空结果的补救——它只能取到子集，恒为 0。
+  规范的补救方向 = 更暗（"向更亮回退重试"只能取到子集，恒为 0）。
   空结果的处置 = 按 `m_lim_zero_step` 向更暗步进并重试，直至查询次数上界。
 
-### 4a.4 空结果与截断结果的失效语义（fail-closed，禁止静默采用）
+### 4a.4 空结果与截断结果的失效语义（fail-closed，一律显式报错）
 
 - 迭代的每一次查询**必须**计入可观测 provenance：查询次数、扫描区间
   `[m_sweep_first, m_sweep_last]`、空结果次数 `n_zero_queries`、是否空扫描 `empty_sweep`、
@@ -116,9 +116,9 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - **空扫描（`empty_sweep`）**：全部成功查询都返回 `N == 0`。该状态**必须**以显式错误终止求解，
   错误信息**必须**点名"整个扫描区间内星表返回 0 颗"并携带
   `(ra, dec, query_r, m_sweep_first, m_sweep_last, query_count)`，
-  **不得**表述为"星等未收敛"或"星等调参未达容差"——空星表与星等选取是不同失效面。
+  **表述口径 = 空星表**（"星等未收敛"与"星等调参未达容差"是另一失效面）。
 - **截断样本（`capped`）**：`N` 触到星表每文件返回上限时，返回的星表按遍历序被截断，
-  在空间/星等上不完整，属科学有偏样本。该样本**不得**被交付给求解器作参考星表：
+  在空间/星等上不完整，属科学有偏样本。该样本一律走显式错误，不进求解器参考星表面：
   **必须**以显式错误终止并点名 `m_lim / N / 每文件上限`。
 - **允许继续的唯一情形**：至少一次成功查询返回 `N > 0` 且未触顶；此时按 §2 流程继续，
   并把 `converged / capped / n_zero_queries / empty_sweep` 逐项落到交付面。
@@ -133,12 +133,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   若查询深度仍按 `n_target` 标定，`U` 的对应体**根本不进入**星表返回集，
   两侧样本在星等上互斥，三角形投票不存在真峰。
 - **选取窗口**：`W` **必须**取星表 FOV 亮度序中与 `U` **同位次**的成员（第 `r_i` 个），
-  **禁止**取"FOV 内最亮 `n_target` 颗"。位次是两侧样本唯一不依赖星等零点的同域判据；
+  **选取面只含同位次成员**（"FOV 内最亮 `n_target` 颗"不在其列）。位次是两侧样本唯一不依赖星等零点的同域判据；
   "最亮 N 颗"只在 `U` 恰为位次 `1..N` 时与位次对齐等价。
 - **退化性（无回归）**：`n_sat = 0` 时 `r_i = i`、`n_depth = |U|`，
   位次对齐窗口与"取最亮 `n_target` 颗"**逐位一致**。
 - **失效面（fail-closed）**：FOV 内星表成员数 < `n_depth` ⇒ **必须**显式错误终止并点名
-  `(n_fov, n_depth, n_target)`，**禁止**静默退化为"最亮 N 颗"——那正是两侧样本亮度域互斥的成因。
+  `(n_fov, n_depth, n_target)`，"最亮 N 颗"是两侧样本亮度域互斥的成因，选取面只含同位次成员。
 - **判据（可证伪）**：构造合成星表使"第 `k` 亮的星表星"恰为"第 `k` 亮的检测星"的对应体时，
   `|U ∩ W| ≥ |U|/2` 必须成立；把选取窗口退回"最亮 `n_target` 颗"时该判据**必须判红**。
 
@@ -148,12 +148,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   其内容**必须**是**合法 UTF-8**（承接 `ENGINEERING_SPEC`「文件编码 UTF-8」与
   `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §8「超限按 UTF-8 边界截断」的口径）。
 - **写入定长缓冲的规则**：
-  1. 截断**只**发生在 UTF-8 码点边界，**禁止**切断多字节序列；
+  1. 截断**只**发生在 UTF-8 码点边界，多字节序列整体保留；
   2. 非法字节（孤立续字节 / 非法首字节 / 过长编码 / 代理区 / 越界码点 / 被 NUL 截断的序列）
-     **必须**替换为 ASCII `?` 后写入，**禁止**原样透传；
+     **必须**替换为 ASCII `?` 后写入，原样透传不在写入面内；
   3. 恒以 `'\0'` 结尾，写入字节数 ≤ 缓冲容量 − 1。
 - **失败面**：`success == 0` 时 `error_msg` **必须**非空；错误串的内容**必须**点名失败面
-  （参数/星表通道/选星样本/几何/拟合），**禁止**以通用文案掩盖具体失效面。
+  （参数/星表通道/选星样本/几何/拟合），文案与失效面一一对应。
 - **判据（可证伪）**：对任意失败输入，`error_msg` 非空且通过严格 UTF-8 校验（RFC 3629）；
   负例注入（含 GBK 字节的消息、跨容量边界的多字节序列）**必须**被判据判红。
 - **编码边界声明**：本条只约束**求解器写出的字节**；上层控制台渲染若自行做 ASCII 化
@@ -169,11 +169,11 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU：求解为逐星/逐帧独立算术，可经 worker pool（按 affinity）帧级并行，**禁止硬编码线程数**；Gaia 查询由 gaia_xpsd_client 网络 IO 主导，无计算瓶颈。
+- 仅 CPU：求解为逐星/逐帧独立算术，可经 worker pool（按 affinity）帧级并行，**线程数取自 benchmark profile**；Gaia 查询由 gaia_xpsd_client 网络 IO 主导，无计算瓶颈。
 
 ## 5c SIMD 安全与取消点
 
-- CD/SIP 矩阵算术逐元素独立；最小二乘(AP/BP，采样网格 ≥7×7，实现 41×41/81×81，DISP-WCS-008)为确定性顺序归约(样本序固定)——**禁止并行重结合**；FP64 全链路禁 fast-math。
+- CD/SIP 矩阵算术逐元素独立；最小二乘(AP/BP，采样网格 ≥7×7，实现 41×41/81×81，DISP-WCS-008)为确定性顺序归约(样本序固定)——**结合序逐位固定**；FP64 全链路禁 fast-math。
 - 取消点: 按帧(星表行块)粒度检查; 取消时丢弃半成品 trans 并返回错误码(语义随 API 冻结)。
 
 ## 8 参考实现/Oracle
@@ -188,7 +188,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   产品级天测精度门另立（G-P1-WCS-CLOSURE，阈值 UNJUSTIFIED）。
 - 三角形匹配容差 5.0″：`ipv_solver.cpp:660` 实参。**量纲 arcsec**；
   **阈值来源 UNJUSTIFIED**（无推导、未随像素尺度归一），登记为待标定项，
-  在标定前**不得**被引用为精度声明。
+  标定前其引用面 = 待标定项登记。
 - 尺度容差 0.002（各向异性 0.2%）：**阈值来源 UNJUSTIFIED**，登记为待标定项。
 - Huber 1.345：**有文献依据**——Huber (1964) `ψ_k` 族在 `k = 1.345` 处对
   Gaussian 的渐近效率为 **95%**（Huber, P. J. 1964, Ann. Math. Statist. 35, 73,
@@ -200,9 +200,9 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - IRLS 迭代上限 15、收敛 ε 1e-6：`ipv_sip.cpp:408-409`（`IRLS_MAX_ITER`、
   `IRLS_CONV_EPS`）。**阈值来源 UNJUSTIFIED**；该路径经 DISP-WCS-003 登记为
   **非生产**（生产走 `extract_wcs_sip` 的采样网格解析路径），本条只描述
-  非生产实现，**不得**作为生产精度依据。
+  非生产实现，生产精度依据只取生产路径的实测值。
 - 预冻结声明不变：上述数值除 Huber 1.345 外均无推导，标记 UNJUSTIFIED 的部分
-  在标定前不得引用。
+  标定前的引用面 = 待标定项登记。
 
 ## 10 关联 ARC/API/TST
 
@@ -236,7 +236,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | IPVSolver::solve_from_memory | ipv_solver.cpp:781 | 主求解流程（入口日志 :794） |
 | 选星 + U 构建 | ipv_select.cpp:787-837（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1）、:840-852（样本不足报错，点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:57,:282） |
 | 密度/目标星数 | ipv_select.cpp:260-330（`compute_fov_density`，rho_img 分子 = 实际样本基数，§4a.2） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
-| 极限星等迭代与交付 | ipv_select.cpp:374-556（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance）、:600-664（`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本不得作参考星表 |
+| 极限星等迭代与交付 | ipv_select.cpp:374-556（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance）、:600-664（`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本一律走显式错误 |
 | 错误串编码归一 | ipv_entry.cpp:320-370（`utf8_safe_copy`，§4b）、:186-193（`set_error_msg`）、:179-185（`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
 | 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |
 | iter_trans_solve | ipv_itertrans.cpp:974 | 迭代重投影多项式拟合（order 1→3） |
@@ -282,7 +282,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   到 CRPIX−1 附近，无错误码无标志位；同族 lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp:48-51
   det<1e-30 → 直接返回 CRPIX 且零日志。调用方无法区分"真解≈CRPIX"与
   "退化坍缩=CRPIX"（wcs_transform 输出恒 CRPIX−1，0-based，更不可判）。
-  失败-置信度语义契约：**CD det 退化必须视为求解失败（success=0），禁止
+  失败-置信度语义契约：**CD det 退化必须视为求解失败（success=0），解的取值面 = 显式失败，不
   以 CRPIX 坍缩值冒充解**——本语义由 P1-WCS-IMPL 落地、P1-WCS-TEST 按
   TEST-WCS-DESIGN-001 F4 验收。
 - DISP-WCS-002 wcs_transform 错误通道缺失族：tanWorldToIntermediate
@@ -321,7 +321,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   **量测域冻结**：本项 `rms_arcsec` 定义在 `trans` 拟合的**内点集**（`n_pairs≥12`）
   与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
   天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
-  **G-P1-WCS-CLOSURE**，其阈值需另行标定；该门与 F1 量测域不同，两者**不得
+  **G-P1-WCS-CLOSURE**，其阈值需另行标定；该门与 F1 量测域不同，两者**各自独立出证，不
   互为证据**。门表见 `docs/algorithms/GATES_AND_TOLERANCES.md`。
 - F2 SIP 场 oracle（注入已知 A/B，order=2）：astropy WCS（隔离 test-only
   oracle，§5 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
@@ -330,12 +330,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   后 CD 第 2 列符号翻转与 F5 公式一致；ASTROMETRY.md §7 CRPIX 不变量不破。
 - F4 失败语义负例：0 星/<3 星 → ret=0 或 success=0 且 error_msg 非空，进程
   不崩溃；指向偏差 >FOV → 显式失败；**CD det 退化注入（DISP-WCS-001）→
-  success=0 禁止坍缩值冒充解**；DLL 缺失 → orchestrator 非零退出码
+  success=0 即最终取值，坍缩值只作诊断量**；DLL 缺失 → orchestrator 非零退出码
   （orchestrator.cpp:1764）。
 - F5 确定性：同输入同线程数 3 次运行 IpvWcsResult bitwise 一致；线程
   1/2/4 下 bitwise 一致（投票归并为整数求和 ipv_triangle.cpp:347-357、
   拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
-  如实登记不得放宽语义）。
+  如实登记，语义取值照本节）。
 - F6 WcsTan 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
   （eng/tests/unit/p1_wcs_phot_test.cpp:50 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
   独立 TAN 逆投影参考解（module_adapters.cpp 内 p1_tan_forward_reference，
@@ -345,8 +345,8 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）。
 - 回归锚：Galaxy_Center 实场 fixture。当前版本实测 T4 Galaxy_Center panel1 Red
   `rms_arcsec=0.2803–0.3588″`（六帧）；该值须在 UNIT-001（XISF 母版单位）落地后
-  整体复跑，在此之前 P1-WCS-TEST 不得把它写死为冻结数值。容差冻结：其余数值
-  在 TEST 落地时逐项写死，不得放宽；fixture 生成器注记容差来源（本节）。
+  整体复跑，在此之前该值只作观测记录（P1-WCS-TEST 的冻结面不含它）。容差冻结：其余数值
+  在 TEST 落地时逐项写死，取值一律按本节；fixture 生成器注记容差来源（本节）。
 
 ### 11.5 SCI-WCS-001 状态声明
 
@@ -355,7 +355,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 （orchestrator.cpp:2007，ASTROMETRY.md §3a）；degenerate conditions=
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
-不因本附录改动；本节禁止被编排层词汇反向改写（descriptor
+不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。

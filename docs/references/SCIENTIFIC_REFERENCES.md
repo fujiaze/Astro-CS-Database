@@ -35,7 +35,7 @@
 ## E. 全局相对定标、马赛克与排异
 
 17. Padmanabhan, N. et al. 2008, “An Improved Photometric Calibration of the Sloan Digital Sky Survey Imaging Data”, ApJ 674, 1217. [ADS](http://ui.adsabs.harvard.edu/abs/2008ApJ...674.1217P/abstract)。用途：重叠观测联合相对光度标定、gauge/连通性。
-18. Bertin, E. 2010, “SCAMP: automatic astrometric and photometric calibration”, ASP Conf. Ser. 442, 435. [ADS](https://ui.adsabs.harvard.edu/abs/2010ASPC..442..435B/abstract)。用途：多帧天体/光度联合校准实践。**勘误**：SCAMP 论文的正确定位为 **Bertin, E. 2006, ASP Conf. Ser. 351, 112, “Automatic Astrometric and Photometric Calibration with SCAMP”**（<http://aspbooks.org/custom/publications/paper/351-0112.html>）；**ASPC 442, 435 为 Bertin, E. 2011, “Automated Morphometry with SExtractor and PSFEx”**（PSFEx 论文，<http://aspbooks.org/custom/publications/paper/442-0435.html>）。ASPC 442, 435 不得作为 SCAMP 的 bibcode 使用；SCAMP 引用用 Bertin 2006, ASPC 351, 112。
+18. Bertin, E. 2010, “SCAMP: automatic astrometric and photometric calibration”, ASP Conf. Ser. 442, 435. [ADS](https://ui.adsabs.harvard.edu/abs/2010ASPC..442..435B/abstract)。用途：多帧天体/光度联合校准实践。**勘误**：SCAMP 论文的正确定位为 **Bertin, E. 2006, ASP Conf. Ser. 351, 112, “Automatic Astrometric and Photometric Calibration with SCAMP”**（<http://aspbooks.org/custom/publications/paper/351-0112.html>）；**ASPC 442, 435 为 Bertin, E. 2011, “Automated Morphometry with SExtractor and PSFEx”**（PSFEx 论文，<http://aspbooks.org/custom/publications/paper/442-0435.html>）。ASPC 442, 435 的 bibcode 归属 = Bertin, E. 2011（PSFEx 论文）；SCAMP 引用用 Bertin 2006, ASPC 351, 112。
 19. Gruen, D., Seitz, S. & Bernstein, G. M. 2014, “Implementation of Robust Image Artifact Removal in SWarp through Clipped Mean Stacking”, PASP 126, 158. [ADS](https://ui.adsabs.harvard.edu/abs/2014PASP..126..158G/abstract)。用途：叠加排异与 PSF 差异下的伪影控制。
 20. Mosteller, F. & Tukey, J. W. 1977, *Data Analysis and Regression*. 用途：robust biweight；常数与效率必须由专项 SCI 精确定位。
 
@@ -54,13 +54,13 @@
 
 这些专项资料被本总档案整体纳入，重点包括：Bessell & Murphy 2012（光子/能量通带与零点）、Gaia EDR3/DR3 测光与 XP 外部定标、CALSPEC、Stetson/Anderson & King/Dolphin/Naylor 的 PSF/拥挤/欠采样测光、Howell/Newberry 的 CCD SNR、Fruchter & Hook/Zackay 等的相关噪声，以及 Pan-STARRS/HSC/LSST 的深度定义。
 
-核验标签沿用原档案：`[V]` 为逐字或主来源核验，`[S]` 为次级/摘要定位，`[U]` 为未核实。实施前引用具体数字时必须回到原条目，不得把总档案的“纳入”误当成逐式复核。完整原文见 tracked 快照；最终采用的引用须落到对应 SCI/ALG，并保留 DOI/bibcode。
+核验标签沿用原档案：`[V]` 为逐字或主来源核验，`[S]` 为次级/摘要定位，`[U]` 为未核实。实施前引用具体数字时必须回到原条目，总档案的“纳入”只登记范围，逐式复核以原条目为准。完整原文见 tracked 快照；最终采用的引用须落到对应 SCI/ALG，并保留 DOI/bibcode。
 
 ## G. 引用纪律
 
 - 新 SCI 条目必须给作者/年份/稳定 URL 或 DOI、具体节/式及项目推导差异；
 - 文献没有定义项目字段单位、schema 和失败语义，这些必须由项目明确；
-- 经验质量指标与 Fisher information/逆方差不得仅因名字相似而等同；
+- 经验质量指标与 Fisher information/逆方差各自独立定义，等同须另有依据；
 - 参考实现不可作为唯一 Oracle；至少一个解析/独立数值实现；
 - 链接失效时保留 DOI/bibcode 和访问日期，不删除引用历史。
 
@@ -87,9 +87,9 @@
 36. Hoaglin, D. C., Mosteller, F. & Tukey, J. W. (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。用途：winsorization 与稳健尺度的教科书级定义（REJECTION.md §14 第 2 条）。
 37. Beaton, A. E. & Tukey, J. W. 1974, “The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data”, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）。用途：Tukey biweight（bisquare）w=(1−u²)² 与 c=4.685 的原始出处（现引 Mosteller & Tukey 1977 为教科书转引）。
 38. Gruen, D., Seitz, S. & Bernstein, G. M. 2014, PASP 126, 158（已在 §E 第 19 条登记）。用途：clipped-mean 叠加排异与 PSF 差异伪影控制。
-39. Siril 官方文档（free-astro/Siril，GPL-3.0，<https://gitlab.com/free-astro/siril>）的 stacking/rejection 章节。用途：winsorized/averaged sigma 与 linear-fit 排异阈值的开源对照（REJECTION_ALGORITHMS.md F2–F4 的 Siril 1.4.3 语义锚）。
-40. PixInsight WeightedBatchPreprocessing (WBPP)（<https://pixinsight.com/doc/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing.html>）的 bestRejectionMethod 与 ImageIntegration 参考文档。用途：wbpp_2_9_1 auto 路由与阈值表的**非学术软件来源**（ACSD 自认“非论文引用”）。
-61. IRAF imcombine（IRAF/NOAO 许可，非 OSI；<https://iraf-community.github.io/>）的 reject=sigclip|avsigclip|pclip|lfitclip|minmax 与 winsorize 参数。用途：ACSD 六类排异核（sigma/winsorized/averaged/linear_fit/percentile/minmax）的**共同祖先**；iraf.net 403，**需网络核验精确 URL**。
+39. Siril 官方文档（free-astro/Siril，GPL-3.0，<https://gitlab.com/free-astro/siril>）的 stacking/rejection 章节。用途：**次生参考实现**（只用于掩码逐元素对拍；`REJECTION_ALGORITHMS.md` F2–F4 的 `*_SIRIL` 冻结标识）。**不是核语义来源**——语义来源见 `docs/science/REJECTION.md` §14a（linear_fit = 官方式[21]/[22] + NR 3rd ed. §15.7.3；winsorized = 官方式[18]/[19]）。
+40. PixInsight WeightedBatchPreprocessing (WBPP)（<https://pixinsight.com/doc/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing.html>）的 bestRejectionMethod 与 ImageIntegration 参考文档。用途：**档界与算法类型**的非学术软件来源。**可核验版本 = WBPP 2.5.9**：官方更新包 `https://pixinsight.com/update/1.8.9-1/20230203-script.zip`，sha1 `712cc7c3fdb523643ad0e685104592d511996f82`（`product-info.txt` 自述 2.5.9），`WeightedBatchPreprocessing-engine.js:1421-1429`（`bestRejectionMethod()`，`n = activeFrames().length`）：`n<6` percentile / `n≤15` 或 BIAS|DARK winsorized / 否则 **ESD**；`:1349-1412` 为 `rejectionIsGood()`。**仓内旧引文 `BPP-FrameGroup.js:1304-1312` 作废**（该文件名不存在于任何官方包；`n>15 → LinearFit` 在 1.4.2–2.5.9 任何版本均不成立）。WBPP ≥2.6 源码随商业安装分发、公开不可核验。
+61. IRAF `combine`/`imcombine` 共用引擎（IRAF/NOAO 许可，非 OSI；<https://github.com/iraf-community/iraf>）的参数文件 `noao/imred/ccdred/combine.par`（@main）：`reject` 值域 = `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`；`combine=average|median`、`nlow=1`/`nhigh=1`、`nkeep=1`、`mclip=yes`、`lsigma=3.`/`hsigma=3.`、`pclip=-0.5`、`sigscale=0.1`、`rdnoise=0.`/`gain=1.`/`snoise=0.`、`grow=0`、`lthreshold`/`hthreshold=INDEF`。用途：**方法族命名来源**（非核语义来源）。**该引擎没有 `lfitclip` 也没有 `winsorize` 参数**——旧引文中的这两个名字在 IRAF 中不存在，已删去；`imcombine` 任务本体属 `obsutil` 包、在公开社区仓中不可得，故以其**共用引擎**的参数文件为可核验基准。
 62. ccdproc.combine（BSD-3-Clause，<https://ccdproc.readthedocs.io/>）：clip_extrema（=IRAF-like minmax）、sigma_clip_low/high_thresh、combine 的加权/裁剪语义。用途：IRAF 排异核的可执行独立实现对照。
 63. Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction: Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）。用途：噪声加权最优检验/预测残差方差阈值（plugins/12_rejection.md:23 若引最优检验应锚此）。
 
@@ -126,7 +126,7 @@
 ## M. 参考代码库（含许可证）
 
 > 许可证均以仓库内 LICENSE/COPYING 原文或托管 API 的 SPDX 标识为准；[V] = 逐字/接口核验，[U] = 需网络核验。
-> **GPL/共版许可代码仅作理解与数值行为对照，不得复制进本仓**（控制包任务边界）。
+> **GPL/共版许可代码仅作理解与数值行为对照，本仓代码面只含自研实现**（控制包任务边界）。
 
 - Astropy — **BSD-3-Clause** [V]（https://github.com/astropy/astropy）。对照面：WCS/投影（astropy/wcs）、统计、单位。SCI-WCS/SCI-P3/数据口径。
 - photutils — **BSD-3-Clause** [V]（https://github.com/astropy/photutils）。对照面：DAOStarFinder/IRAFStarFinder、MoffatPSF/GaussianPSF、孔径与 PSF 测光、背景估计。SCI-PSF/SCI-PHOT/SCI-P1-STAR。

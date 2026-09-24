@@ -4,12 +4,12 @@
 
 > 关联: ARC-EXEC-001..00N  模块: phase2/acr  状态: FROZEN
 
-> ⚠ **休眠面不得写成生产执行层**：
+> ⚠ **休眠面一律标 `DORMANT`，与生产执行层分列**：
 > 本文件的 **ACR / CUDA / GPU 行与 §2/§5 的 H2D/D2H、GPU buffer、GPU fallback 全部标
 > `DORMANT`**（保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**，
 > 最高设计 §8/§1.3）；**浏览器（Qt）标「工具分类（非发布）」**（最高设计 §7.1/§10.1：
 > HiPS Browser 不进产品 manifest）；**orchestrator 标「历史保留」**（最高设计 §7.1：
-> 接入后删除）。上述三类**均不是生产执行层**，任何发布/性能结论不得引用其行。
+> 接入后删除）。上述三类**均不是生产执行层**，发布/性能结论只引用生产层行。
 
 ## 1 串/并行分层
 
@@ -67,7 +67,7 @@
 |---|---|
 | 浮点求和顺序 | 按输入索引固定顺序, reduction文档化 (THREADING_MODEL ARC-004) |
 | 输入顺序 | frame_id/cell/pixel 索引固定, 不依赖线程调度 |
-| 嵌套并行 | 禁止 (外层已并行则内层串行) |
+| 嵌套并行 | 外层已并行则内层串行 |
 
 ## 7 错误/异常传播
 
@@ -93,10 +93,10 @@
 
 ---
 
-## 在役生产/CI 面（不得标为 DORMANT）
+## 在役生产/CI 面（状态词取自 DORMANT 面之外）
 
 - `lib/infrastructure/cli/v6_runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `acsd`** ⇒ **在役生产**。
 - `lib/infrastructure/cli/v6_mode_gate.h`：同链 include ⇒ **在役生产**。
 - `lib/infrastructure/scheduler/v6_budget.py`：由 `eng/tools/v6/check_v6_runtime_closure.py` 调用其 `selftest`、`eng/tools/v6/v6_runtime_oracle.py` 锚定 ⇒ **在役 CI 面**。
-- 上述三者与本节开头的 `DORMANT` 面（ACR/CUDA/GPU、Qt 浏览器、orchestrator）**分属不同类别**，不得混列。
+- 上述三者与本节开头的 `DORMANT` 面（ACR/CUDA/GPU、Qt 浏览器、orchestrator）**分属不同类别**，两者各列一张表。
 

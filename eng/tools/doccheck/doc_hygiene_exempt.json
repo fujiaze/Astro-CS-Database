@@ -1,7 +1,539 @@
 {
  "schema": "doc-hygiene-exempt/v1",
- "note": "显式豁免台账（只减不增）。每条 = path + rule + fingerprint + reason + authority；条目不再命中 ⇒ 门判红 D3_exempt_stale（要求删除或收紧）。豁免不隐藏现状：--dump exempt / --audit 可逐条查看。",
+ "note": "显式豁免台账（只减不增）。每条 = path + rule + fingerprint + reason + authority；条目不再命中 ⇒ 门判红 D3_exempt_stale（要求删除或收紧）。fingerprint 与门同口径（行内 code span 屏蔽后取整行 sha256[:16]）。",
  "entries": [
+  {
+   "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eaf423f57e680a9b",
+   "reason": "逐字引述生产源码注释串 stage2.cpp:81「// 帧级 SNR（Phase1 SNR Catalogue median；禁止重新检测星点）」，改词即改实测引文",
+   "authority": "该行自述锚 :73（源串见 lib/algorithms/coverage/tools/stage2.cpp:81）"
+  },
+  {
+   "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "179d87d3f84c1b1a",
+   "reason": "逐字引述生产源码日志串 stage2.cpp:214 log(\"target_order 高于输入最高 order，禁止插值伪装分辨率\")，改词即改实测引文",
+   "authority": "该行自述锚 :205-208（源串见 lib/algorithms/coverage/tools/stage2.cpp:214）"
+  },
+  {
+   "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "4347051de8f8e8b5",
+   "reason": "逐字引述生产源码注释串 stage2.cpp:1553「// 禁止像素热循环创建 vector（depth 级小块复用）」，改词即改实测引文",
+   "authority": "该行自述锚 :1290-1297（源串见 lib/algorithms/coverage/tools/stage2.cpp:1553）"
+  },
+  {
+   "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "345a083795b79206",
+   "reason": "逐字引述生产源码注释串 stage2.cpp:1630「禁止静默换 support」；本行正文本就是同一串的重述，改任一即改实测引文",
+   "authority": "该行自述锚 :1369（源串见 lib/algorithms/coverage/tools/stage2.cpp:1630）"
+  },
+  {
+   "path": "docs/algorithms/PHASE2_REJECTION.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "756e5299fbdddc1c",
+   "reason": "逐字引述生产源码冻结头注释 rejection.cpp:12「本文件为阈值/迭代权威实现，禁止阈值漂移。」，改词即改实测引文",
+   "authority": "该行自述锚 rejection.cpp:1-11（源串见 lib/algorithms/coverage/src/rejection.cpp:12）"
+  },
+  {
+   "path": "docs/algorithms/PHASE2_REJECTION.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "38b08af8ccf3807e",
+   "reason": "表行内逐字引述同一条冻结头注释 rejection.cpp:12 的「禁止阈值漂移」，改词即改实测引文",
+   "authority": "该行自述锚 :1-12（源串见 lib/algorithms/coverage/src/rejection.cpp:12）"
+  },
+  {
+   "path": "docs/api/CLI_PROTOCOL_V1.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "40603a4cae807099",
+   "reason": "该行是**逐字引述负责人裁决**（原文以「负责人裁决 2026-09-23 逐字：『…边框不得裁剪任何有效像素…』」形式登记），改词即改引语原文",
+   "authority": "该行自述出处（负责人裁决 2026-09-23 逐字）；引文不可改写纪律（本任务 §3 例外第 1 类）"
+  },
+  {
+   "path": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv",
+   "rule": "D3h_prohibition",
+   "fingerprint": "3a0cdc9f7a7e652d",
+   "reason": "该行 symbol 字段是**机器字面量**：由 eng/tools/arch/build_production_execution_inventory.py 的 rg() 逐字复制 lib/include/astrocs/core/executor.h:6 的源行文本，且 eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent 断言「生成器重跑后 CSV 逐字节一致」。改该字段即改生成器输出 ⇒ 必红幂等门",
+   "authority": "eng/tools/arch/build_production_execution_inventory.py（symbol 列 = rg() 抓到的源行原文）；eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent（逐字节幂等）"
+  },
+  {
+   "path": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv",
+   "rule": "D3h_prohibition",
+   "fingerprint": "3cfd00733c9a8541",
+   "reason": "同上：symbol 字段逐字复制 lib/algorithms/coverage/tests/routing_test.cpp:62 的注释行；改写会使生成器输出与库内 CSV 不一致（幂等门判红）。清单一类 row 的 symbol 列整体属机器字面量",
+   "authority": "eng/tools/arch/build_production_execution_inventory.py（symbol 列 = 源行原文）；eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent"
+  },
+  {
+   "path": "docs/contracts/DATA_SEMANTICS.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "cec7b8563dfdbe93",
+   "reason": "§31.1「冻结串读法消歧（FZ-P3-BUNIT-QUADRATIC）」bullet 内的逐字冻结声明：机器门 D3e 用例要求该 bullet 必须逐字含「不得改写」，改词即门判红；行号 3112 为改写前编号（另一批次在文件前部插入 31 行后现为 3143）。同一 bullet 内其余可正向化行（原 3105/3109/3115/3118）已全部改写，仅本行保留。",
+   "authority": "eng/tools/doccheck/check_frozen_string_disambiguation.py（D3e；本批实测 FROZEN_STRING_DISAMBIGUATION_PASS checks=9）；freeze_id = FZ-P3-BUNIT-QUADRATIC"
+  },
+  {
+   "path": "docs/contracts/SCHEDULER_CONTRACT.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "123dae167e61a3bb",
+   "reason": "逐字引述科学权威页冻结的三档容差档名（跨后端不允许 = 无等价档），改词即改科学口径",
+   "authority": "docs/science/PHASE2_UPM.md §7 (c)「跨后端等价 = **不允许**（无此合同）」；同款豁免先例 = eng/tools/doccheck/doc_hygiene_exempt.json 对 ASTROCS_DESIGN.md 同短语的既有登记"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "afb57f4055f5ad5b",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/contracts/unified_object_registry.json",
+   "rule": "D3h_prohibition",
+   "fingerprint": "eb98796d85d386b6",
+   "reason": "该 JSON 字段取值被机器门逐字断言（必需子串），改词即门判红；字段本身是退役口径登记值，不是文档叙事",
+   "authority": "eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_registry_has_deprecation_window —— assertIn(\"版本号不得作为退役条件\", dep[\"retire_note\"]) 与逐条 dep[\"legacy_paths\"][i][\"retire_note\"]"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "b24421a797694d1a",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "d8d8a6017e045365",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "fe82f0356dd16544",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "9de36deb9fef6a75",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "f47ccd1dff87f67b",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "b7e698de196666f1",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "3b7484cab89434c7",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "a7799de804e27955",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "e82c334900822166",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "a1c063c2be2771aa",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "52d84e0f6b1f958f",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "092cd664666ee006",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "8e584dc8875396f1",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "d10b421e138be687",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "ed86beb74e95237f",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "410ed6a29173215f",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "297e24014cbcf3bb",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "835985f601ed5f8c",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "6e38929821e2ec64",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "f994ccc1275aff65",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "0b1097d657b8b5e2",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "aaf7ecc2641da2d4",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "c60c7dab0dcfaae7",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "6df01adbb831064a",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "280714f3eb49ce7e",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "6a1cd2afcb7d89cd",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "8528f100426e2e11",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "f13a4430bc1bc777",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "2a64b13acf2d3eb2",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "52cefce98cb52e42",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "cdeacebbbbb41175",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "027fbf884ff213e5",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "5d76760e0fe27124",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "c1fee729b870bed7",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "4d6c7c244f059c6b",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "a78481bf0a431685",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "ee1b924141d7c34f",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "ff985da5ec1f56fe",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "3cacf852acda1245",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "dc9e36732a5fbe27",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "1ddc1c907c9caea7",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "997c25288f52f355",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "9ea572b829433857",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "cfc8ddce09dd6c4d",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "28be7da958391eaf",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "e345fcee49e2b37e",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "2f324c9f586ed087",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "adf1016f22b26cfc",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "a39a4c58839587c0",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "bd5ed83b07cd54a5",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/validation/v6/QA_MATRIX.md",
+   "rule": "D3h_prohibition",
+   "fingerprint": "7d3071f347f6d038",
+   "reason": "docs/validation/v6/*.md 的 <!-- *-BEGIN/END --> 渲染块由 artifacts/evidence/v6/qa-design/oracle/render_docs.py 从 qa_matrix.json/data/baseline_matrix.json 逐字渲染，check_docs.py 逐字断言文档块 == 渲染输出；改文即 render 漂移，且渲染源在 artifacts/**（本任务禁止改动）",
+   "authority": "artifacts/evidence/v6/qa-design/oracle/{render_docs.py,check_docs.py}（QA-MATRIX-001 人读/机读一致性）；任务边界：不改 artifacts/**"
+  },
+  {
+   "path": "docs/TRACEABILITY.csv",
+   "rule": "D3h_prohibition",
+   "fingerprint": "563493351632ffa6",
+   "reason": "该行 title 字段末句「禁止 star-SNR/support^p 乘因子」是 eng/tools/quality/v19r3_traceability.py 的 CONTRACTS 常量逐字生成并覆盖 docs/TRACEABILITY.csv 的字段值；改本行即与生成器源串漂移，且重新生成会把禁令还原，而生成器位于 eng/**（本任务禁止改动代码）",
+   "authority": "eng/tools/quality/v19r3_traceability.py:57-59（CONTRACTS 常量；docstring 第 14 行「输出：docs/TRACEABILITY.csv（覆盖原文件）」）"
+  },
   {
    "path": "ASTROCS_DESIGN.md",
    "rule": "D3h_prohibition",

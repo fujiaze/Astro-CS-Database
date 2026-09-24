@@ -9,7 +9,7 @@
 
 科学叠加权重**只能来自纯净信号与噪声之比**——即由 SNR 换算的逆方差；要求**跨帧可用**：**不基于参考帧**、不依赖帧内相对基准，而是**绝对标定**（最高设计 §3.1）。
 
-PSF 相关的量因此分两类，不得混名：
+PSF 相关的量因此分两类，各自具名：
 
 1. **psf_information_weight**：基于观测模型的点源信息权重，是 Phase2 唯一的科学权重来源；
 2. **PSF 拟合质量代理**（FWHM、残差尺度、以及受 PixInsight PSFSW 启发的稳健复合量）：**只作诊断**，不计入科学叠加权重，不参与科学叠加权重。
@@ -52,17 +52,17 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 >   标定集为 1000 幅 4096² 合成图（背景高斯 σ=0.001、均值 0.015、平均 1500 颗可检测星、
 >   Moffat β=4 FWHM=5 px），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。**未独立核验**：PCL 头文件在 `gitlab.com/pixinsight/PCL` 的常见路径上 404，该行数值与下一条元数据断言均待补一手锚点。
 >
-> **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
+> **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；其最优性以本项目 L1 合成数据标定记录为判据。
 > - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:42-64,137-138`。
 
-对象身份 `psfsw_robust_weight` **已退役**（权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定，最高设计 §3.1）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。上列特征描述的是**在役诊断量**必须保留的形态；为避免星表选择偏差，诊断量还必须满足以下约束：
+对象身份 `psfsw_robust_weight` **已退役**（权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定，最高设计 §3.1）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），接受面 = 具名拒绝。上列特征描述的是**在役诊断量**必须保留的形态；为避免星表选择偏差，诊断量还必须满足以下约束：
 
 - 只在同一波段、同一目标/重叠连通分量、光度已归一的帧组内比较；
 - 使用跨帧匹配的共同恒星集合或显式 selection-function 校正；
 - 排除饱和、混合、拖线、移动源、严重 PSF 失配和边缘截断源；
 - signal、concentration、noise、background 四个分量分别写入产品；
-- 指数、截断、稳健估计器和归一常数版本化，训练/调参样本不得与最终验收样本相同；
-- 输出无量纲相对值，按组归一（如 median=1），不得写入 ivar、variance 或 W_info；
+- 指数、截断、稳健估计器和归一常数版本化，训练/调参样本与最终验收样本分立；
+- 输出无量纲相对值，按组归一（如 median=1），落盘面 = 诊断字段（ivar、variance、W_info 各属科学权重面）；
 - 无共同星集、背景非正且变换未定义、有效星不足或选择偏差门失败时 unavailable，不回退成 median source SNR。
 
 项目不要求逐字复制 PixInsight 的实现常数；项目公式必须通过公开文献语义、独立推导和真实数据优化后冻结。若选择精确兼容模式，则字段另命名 pixinsight_psfsw_compat 并记录所兼容版本。
@@ -77,7 +77,7 @@ w_k = SNR_k² / F_ref,k²  ≡  1 / σ_F,k²
 
 帧级 SNR 与稀疏控制点 SNR 共用同一物理定义与同一逐帧参考通量 `F_ref`，换算对两者一致（最高设计 §2.2、§3.1）。点源目标下它与严格点源信息权重同值：`W_info = a²PᵀC⁻¹P = 1/Var(F_hat)`；白噪声近似 `W_info = a²/(σ_pix²·A_NEA)`（§2）。
 
-**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物；权重不是预先算好并落盘在产品里的量，而是消费时按天球像素对应的输入帧集合现场算出的派生量。Phase1 与 Phase3 不产生、不消费权重；消费方也不得由"检测到多少颗星"一类偶然因素自动切换口径。
+**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物；权重不是预先算好并落盘在产品里的量，而是消费时按天球像素对应的输入帧集合现场算出的派生量。Phase1 与 Phase3 不产生、不消费权重；消费方的口径 = 上述单一现场派生量（"检测到多少颗星"一类偶然因素不参与定权）。
 
 阶段一与阶段二的分工固定为：
 
@@ -88,9 +88,9 @@ w_k = SNR_k² / F_ref,k²  ≡  1 / σ_F,k²
         → 叠加
 ~~~
 
-实现面对任何口径 token 一律 fail-closed 显式拒绝并给出迁移提示，不得静默接受：已退役对象 token（`psfsw_robust`）、延迟口径（`psf_snr_power`）、legacy token（`auto` / `support_x_snr2` / 整数 `0|1|2`）与未知值，理由分别引用 `FZ-MODE-RETIRED` / `FZ-MODE-DEFERRED` / `FZ-FIELD-WEIGHTMODE` / `FZ-WEIGHT-SINGLE-PATH`；**没有任何 token 属于合法口径**（CLI `--mode` 面对 phase2 全部 fail-closed）。
+实现面对任何口径 token 一律 fail-closed 显式拒绝并给出迁移提示；接受面 = 空：已退役对象 token（`psfsw_robust`）、延迟口径（`psf_snr_power`）、legacy token（`auto` / `support_x_snr2` / 整数 `0|1|2`）与未知值，理由分别引用 `FZ-MODE-RETIRED` / `FZ-MODE-DEFERRED` / `FZ-FIELD-WEIGHTMODE` / `FZ-WEIGHT-SINGLE-PATH`；**没有任何 token 属于合法口径**（CLI `--mode` 面对 phase2 全部 fail-closed）。
 
-扩展源 GLS（`x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d`，§5 与 `docs/science/INTEGRATION.md`）是**估计量**，不是可选的权重口径：它的权重同样来自重建 SNR 面的逆方差；把"扩展源 GLS"当成另一套权重来源属禁止项（§8）。
+扩展源 GLS（`x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d`，§5 与 `docs/science/INTEGRATION.md`）是**估计量**，不是可选的权重口径：它的权重同样来自重建 SNR 面的逆方差；把"扩展源 GLS"属估计量面，权重来源仍是重建 SNR 面的逆方差（§8）。
 
 ## 5. 诊断量与不确定度的边界
 
@@ -111,9 +111,9 @@ C_out = R C_in Rᵀ
 
 1. 注入点源验证 1/sqrt(W_info) 与实测 flux dispersion；
 2. 透明度、seeing、背景和 read noise 单变量扫描方向正确；
-3. 改变不相关星表深度/检测阈值不得显著改变共同星集 PSFSW；
+3. 改变不相关星表深度/检测阈值，共同星集 PSFSW 的稳定性判据 = 显著不变；
 4. 诊断量（§3 复合量）在预注册 M42/银心及合成集上，与等权、exposure、pixel-ivar、W_info 对照，结论只作诊断；
-5. 分别报告点源 detection power、photometric variance、effective PSF、扩展源偏差和伪影；不得只以“看起来更好”通过；
+5. 分别报告点源 detection power、photometric variance、effective PSF、扩展源偏差和伪影；通过判据 = 上述各项分别报告；
 6. 零星、少星、拥挤、严重梯度、云、拖线、不同 FOV 和不同波段都有 fail-closed 测试；
 7. 权重分量和最终权重的负向 mutation 必须使门变红。
 
@@ -127,10 +127,10 @@ C_out = R C_in Rᵀ
 3. **F_ref 锚定**：`F_ref,k=10^(-0.4(m_ref−ZP_k))`、`m_ref=6.0`、逐帧独立、**必须同帧配对**；锚定权重相对该源电平 oracle 权重的散度惩罚在 `|m−m_ref|≤4` 内 ≤0.6%、6 等（10 倍通量）处 3.6%；定义 F_ref 与换算 F_ref 不同源时效率损失随 ZP 散度 1.0 mag 达 30.1%（散度=0 时严格归零）。
 4. **拟合权重 ≠ 堆叠权重**：带杠杆 `h` 的拟合值方差为 `σ²h`，不能按 `1/σ²` 当独立测量堆叠（实测方差高 52.3%，解析 50.4%）；等杠杆时两者严格等价（损失≡0）。稳健拟合（Huber k=1.345, IRLS）在 5%×10σ 离群下把偏差从 0.426 压到 0.084，干净数据下不损失。
 5. **Phase3 传递**：`C_out=R C_in Rᵀ`（对角元 MC/解析 0.9980）；点源信息量必须按**输出 PSF**与**完整 C_out** 重算（`Var=1/(P_outᵀC_out⁻¹P_out)`，实测 9.105 vs 解析 9.071）；只取对角 `Σc_k²u_k` 使输出方差低估 1.37 倍，其"宣称方差"只有实际散度的 32.5%。
-6. **非退化判据（强制）**：空间权重/σ 场的精度判据用**权重效率损失** `E=Var_w/Var_opt−1`（E=0 ⇔ σ̂∝σ_true，全局尺度相消）；"帧级臂 RMSE ≤ K·s_field"类判据对任意真值场恒真（对抗场下 E=7.17 仍绿），**不得充当证据**（`results/b6_gates_audit.json`）。
+6. **非退化判据（强制）**：空间权重/σ 场的精度判据用**权重效率损失** `E=Var_w/Var_opt−1`（E=0 ⇔ σ̂∝σ_true，全局尺度相消）；"帧级臂 RMSE ≤ K·s_field"类判据对任意真值场恒真（对抗场下 E=7.17 仍绿），**证据资格 = 空**（`results/b6_gates_audit.json`）。
 7. **三口径适用域**：默认 `sparse_reconstruct`(Δ=64) 在地面视宁度受限域三帧全部胜出帧级标量；HST 类高对比结构域帧级标量更优（cell 稳健 MAD 偏差随 Δ 从 +0.029 增到 +0.301 dex）。稠密口径 4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 64 倍，**稠密超门结论成立**。
 
-## 8. 禁止事项
+## 8. 命名与构成边界
 
 - 把实际恒星 median(SNR) 直接命名 PSFSW；
 - 把 PSF 拟合 residual、FWHM 或背景任一项单独冒充完整 PSF signal weight；

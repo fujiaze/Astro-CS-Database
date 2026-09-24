@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
 > 上游：`AGENTS.md` §3（环境与构建：唯一根 CMake + presets、Linux 开发节点、`python3 eng/ci/run_checks.py`）、
-> `ENGINEERING_SPEC.md` §1（语言/编译器/平台）/§6（Git 与提交：只 `main`，禁止分支/worktree）、
+> `ENGINEERING_SPEC.md` §1（语言/编译器/平台）/§6（Git 与提交：只 `main`，提交面不含分支/worktree）、
 > `ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）。
 
 ## 环境与构建
@@ -34,8 +34,8 @@ astro_image_io:     pipeline_frame_contract_test / dataflow_fuzz
 
 - 仅修改 `lib/` 源码; 运行产物只写 `run/`（或 `output_dir`）
 - 一个 commit = 一个明确目的；只 `main` 原子提交（`ENGINEERING_SPEC.md` §6）
-- 修改后必须自测; 未验证不得宣称完成
-- 禁止大规模 cosmetic refactor
+- 修改后必须自测; 「完成」以验证通过为前提
+- 大规模 cosmetic refactor 与语义改动分开提交
 - 日志统一写 `run/logs/<module>/<YYYYMMDD>/`
 - 中文注释; 科学文档含公式/单位/假设/失效域/源码入口
 - 规范标准：`docs/standards/`；追溯：`docs/traceability/TRACEABILITY_MATRIX.json`（机器真相）

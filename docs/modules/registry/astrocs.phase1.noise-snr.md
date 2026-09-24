@@ -19,7 +19,7 @@ downstream: [TEST-P1-SNR-001]
 > CONTRACT_READY）与现行生产实现 lib/algorithms/noise_snr/cpp/（现状构建=
 > cpp/Makefile:5,12 g++ -shared → snr_estimator.dll + cpp/build.ps1:29，
 > 未编入根 CMake 主构建）为准；descriptor 占位 ID（module_adapters.cpp
-> p1_noise_snr_descriptor）以本页为准，不得反向作为冻结
+> p1_noise_snr_descriptor）以本页为准；冻结依据 = 本页本身，以免反向作为冻结
 > 依据。port DATA 编目（DATA-P1-FLUX/DATA-P1-SNR）为编排层词汇，模块
 > 合同 DATA 层=DATA-P1-NOISE（DATA_SEMANTICS §13）。
 > **噪声模型 A 为唯一生产模型**；噪声 σ 来源 = 局部 patch + 星点掩膜 + 饱和过滤。
@@ -53,7 +53,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`; parallel=是(heavy+serial 资源门禁止); worker 数=ThreadBudget.max_workers(禁 hardware_concurrency);
+`cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
 确定性=固定顺序输出(1/N 等价已验)。
 
 ## 内存/cache/I-O/所有权

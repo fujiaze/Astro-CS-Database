@@ -21,7 +21,7 @@ downstream: [TEST-P2-REJ-001]
 > docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.reject、端口表、坐标
 > PIXEL）为编排层占位（module_adapters.cpp:700-717，注册 :785），由
-> P2-XX-INT 对齐 astrocs.p2.rejection（矩阵 P2-REJ 行），不得反向
+> P2-XX-INT 对齐 astrocs.p2.rejection（矩阵 P2-REJ 行）；冻结依据 = 该矩阵行本身，以免反向
 > 作为冻结依据。
 
 ## 身份与合同落位

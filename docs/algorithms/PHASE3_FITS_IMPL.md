@@ -63,8 +63,8 @@
   `<dir>/.<base>.<pid>.tmp` 形态偏差**（DISP-P3FITS-002）。
 - `sha256_file_checked`（:166-176）: R10-C 封装（:159-165 注释冻结）——
   文件打开/读取/关闭机制下沉 aio（`aio_file::sha256_hex`）：空串/前缀哈希
-  不得作为完整性锚，仅完整读出产出 64hex，失败返回 false 由调用方
-  整体失败（禁止空串/前缀哈希入 provenance）。ASTROCS_HASH_FAIL_INJECT
+  完整性锚 = 完整读出后的 64hex（空串/前缀哈希只表失败），失败返回 false 由调用方
+  整体失败（provenance 只收完整 64hex 哈希）。ASTROCS_HASH_FAIL_INJECT
   仅测试构建注入（:172-174）。
 - `p3_output_write_atomic`（h:58-66 声明；实现体 = `p3_output_write_atomic_ex`
   cpp:197-448，`p3_output_write_atomic` cpp:182-195 为兼容薄壳，转调 `_ex`
@@ -181,7 +181,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
     **astrocs.p3.fits_writer**（MODULE_MIGRATION_MATRIX P3-FITS 行
     权威值）。
   - SCI/公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
-    回改本文档（禁止反向）；descriptor 词汇由 P3-FITS-INT 对齐，
+    回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇由 P3-FITS-INT 对齐，
     不作冻结依据。
 
 ## 6 实现级合同 F1-F4（非 SCI 新公式；G5/G1/G2 引用 PHASE3_RESAMPLE.md 零改动）
@@ -199,7 +199,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   :376-383 VARIANCE/IVAR），由 cfitsio 负责累加与归属，符合 IAU FITS 4.0
   §4.4.2.5。
 - **F2 完整性锚**（:159-165/:166-176）: sha256 仅在文件完整读出后产出
-  64hex；空串/前缀哈希禁止入 result/provenance；测试注入开关
+  64hex；result/provenance 只收完整 64hex 哈希；测试注入开关
   ASTROCS_HASH_FAIL_INJECT 仅测试构建。
 - **F3 coverage 二值门**（:437/:556）: covered ⇔ value>0.5f；回环
   比对在二值化后进行（浮点 0.7 与 0.9 等价 covered），与 DATA-P3-FITS
@@ -337,11 +337,11 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   `envelope_c_env = 128`（解析包络设计常数，实测 max 78）。门值/适用域/推导
   以 `docs/algorithms/GATES_AND_TOLERANCES.md` §3 与 `run/GATE-DERIVE-01/REPORT.md`
   为准。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
-  它只用于"是否触发人工复核"，**不得**被引用为合同容差；
+  它只用于"是否触发人工复核"，**合同容差 = §3 门值**；
   常数场 0（bilinear 权重和=1 构造保证）；
   回环逐值精确（F4 NaN 语义）；sha256 64hex 小写。
 - R10-C 发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归
-  P3-FITS-IMPL 时不得放宽（禁前缀哈希/禁半成品发布）。
+  P3-FITS-IMPL 时取值即本节冻结值（发布面只收完整哈希与完整产物）。
 
 ## 14 现状缺陷登记（DISP-P3FITS-001..003，登记不改码）
 

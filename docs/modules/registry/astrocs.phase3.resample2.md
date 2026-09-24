@@ -23,7 +23,7 @@ downstream: [TEST-P3-RES-001]
 
 - 模块: astrocs.p3.resample（dll_target=astrocs_p3_resample.dll
   为迁移合同值，尚未存在——MISSING 语义（DISP-P3RSMP-005），由
-  P3-RSMP-IMPL 建立，禁止声明 IMPLEMENTED；现状构建=
+  P3-RSMP-IMPL 建立，IMPLEMENTED 只由验收签发；现状构建=
   astrocs_phase3_session 静态库成员，根 CMakeLists.txt:460-465，
   p3_resample.cpp 为五源文件之一）。
 - 合同落位: lib/algorithms/resample/ 三件套（README r1 + module.yaml
@@ -102,7 +102,7 @@ downstream: [TEST-P3-RES-001]
   IO=3）/P3Sampler（h:29-31，impl+last_error[256]）。
 - 生命周期: open(_ex)→set_max_tiles（可选，≤0 恢复默认 8）→
   逐像素 sample_nearest/sample_bilinear N 次→close（幂等）；
-  sampler 自含 TileCache，**单实例非线程安全**（无内部锁），禁止
+  sampler 自含 TileCache，**单实例非线程安全**（无内部锁）；使用方式 = 每 worker 独立实例，以免
   跨线程共享——每 worker 独立实例（§7）；会话编排面 API-P3-001
   FROZEN 五段 create→validate→run→inspect→destroy 不变，run 内
   主 sampler open_ex（p3_session.cpp:171）→每 worker 独立
@@ -155,7 +155,7 @@ downstream: [TEST-P3-RES-001]
   std::thread 池）——**每 worker 独立 sampler+cache**（:217-244
   闭包内 open_ex），HiPS tile 文件只读共享无写锁；CPU-005 禁单线程
   重计算由 worker 池结构性满足。
-- 单一 P3Sampler 实例非线程安全（无内部锁）——合同禁止项跨线程
+- 单一 P3Sampler 实例非线程安全（无内部锁）——合同条款 = 每 worker 独立实例，以免跨线程
   共享（ALG-P3-RSMP-IMPL-001 §7）。
 - 确定性: 逐像素计算路径固定（邻域确定→最近中心确定→权重确定）
   ⇒ 输出与 tile 装载顺序/worker 数/缓存容量无关，bitwise 一致
@@ -209,7 +209,7 @@ downstream: [TEST-P3-RES-001]
 ## NaN 与写端口
 
 - NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
-  禁止静默剔除。无覆盖/无数据 = NaN，禁 0 或 ±Inf 冒充。
+  剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
 

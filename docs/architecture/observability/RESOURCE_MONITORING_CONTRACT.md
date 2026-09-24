@@ -48,8 +48,8 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 | **`monitor_timeseries.csv`**（本合同的监控伴随器原始数据） | `lib/infrastructure/observability/monitoring/monitor.py` | 本节 §3.1（21 列 + seed 行 + 行指纹链） | **每秒采样 + seed 行 + 指纹链 + 写后只读** |
 
 - 本合同的 CSV 工件名**固定为 `monitor_timeseries.csv`**（本节以下所有「CSV」均指该工件）；
-- **两工件不得互替**：任何消费方**禁止**用 `monitor_timeseries.csv` 冒充
-  `resource_timeseries.csv`（或反之）；也**禁止**把本节的 21 列合同套到
+- **两工件各自具名**：任何消费方读取 `monitor_timeseries.csv` 时
+  `resource_timeseries.csv` 名列另一份工件；本节的 21 列合同只覆盖
   `resource_timeseries.csv` 上。
 
 ### 3.1 CSV 列合同（`monitor_timeseries.csv`）
@@ -78,7 +78,7 @@ io_wait_rate_est,faults_rate,row_fingerprint
 | `sys_cpu_pct` | % | 系统级 CPU = 非空闲 jiffies/总 jiffies（整机） |
 | `active_workers` | int | **真实观测**（RT-006 trace 注入；无来源留 0） |
 | `granted_workers` | int | **真实观测**授予租约上限（无来源留 0） |
-| `provider` | string | **真实观测** provider（禁止 config 冒充） |
+| `provider` | string | **真实观测** provider，取值只来自观测来源 |
 | `module` | string | **真实观测** module/node 归属 |
 | `rss_bytes` | B | RSS（VmRSS） |
 | `private_bytes` | B | private 匿名内存（RssAnon） |
@@ -128,7 +128,7 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 6. `t_iso_utc` 单调（秒精度允许相等；`--no-ts-monotonic` 可关）；
 7. `run_phase ∈ PHASES`。
 
-## 6. 真实观测接线（RT-006 trace，禁止 config 冒充）
+## 6. 真实观测接线（RT-006 trace，取值只来自观测来源）
 
 `lib/infrastructure/observability/monitoring/trace_feed.py::TraceSnapshotObserver` 从 **RT-006 trace
 事件**（JSONL 或 TraceStore 快照 dict 列表）推导当前观测：

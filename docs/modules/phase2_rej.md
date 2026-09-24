@@ -19,7 +19,7 @@ downstream: [TEST-P2-REJ-001]
 > （ALG-P2-REJ-001，CONTRACT_READY）。descriptor 词汇
 > module_id=astrocs.phase2.reject（module_adapters.cpp:700-717，
 > 注册 :785）为编排层占位，由 P2-XX-INT 对齐 astrocs.p2.rejection
-> （MODULE_MIGRATION_MATRIX P2-REJ 行），不得反向作为冻结依据。
+> （MODULE_MIGRATION_MATRIX P2-REJ 行）；冻结依据 = 该矩阵行本身。
 
 ## 身份与合同落位
 
@@ -42,7 +42,7 @@ downstream: [TEST-P2-REJ-001]
 
 - 职责：每像素候选栈排异决策——eligibility strided gather 单路径
   （source_indices 权威映射 PHASE2_IVAR_WIRING，rejection.h:252-255，
-  compact 后禁止用 compact index 猜 original slot）→ planning 层
+  compact 后 original slot 只经 source_indices 映射）→ planning 层
   AUTO 一次解析（生产默认 profile astrocs_adaptive_pixel（自研）：
   n≤3→NONE、4..7→PERCENTILE、8..15→WINSORIZED、≥16→LINEAR_FIT；
   对照档 wbpp_2_9_1 / astrocs_adaptive）→ 10 显式方法核
@@ -53,7 +53,7 @@ downstream: [TEST-P2-REJ-001]
   rejection.h:20-21）→ large_scale 结构生长后处理（trail 扩张只增
   不减，compact cosmic 不生长，默认关闭）。
 - 阈值/迭代权威锚定：rejection.cpp:1-11 冻结头注释"本文件为阈值/
-  迭代权威实现，禁止阈值漂移"；AUTO 路由禁止 per-pixel n_eff 重选。
+  迭代权威实现"（阈值/迭代取值以该冻结头为准，漂移即违约）；AUTO 路由只按 N 的几何值选算法（per-pixel n_eff 不参与重选）。
 - 工作域归一 NONE/MEDIAN_CENTER/MEDIAN_SCALE（floor 1e-12，不除零）；
   mask 应用回原始 calibrated 值（经 source_indices 回映射）。
 - 非职责：不合并/积分样本（P2-INT 下游）；不做权重策略（weights

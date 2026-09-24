@@ -7,7 +7,7 @@
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
 > 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2973 行实测；源文件唯一在役副本）；合同头
-> lib/algorithms/star_detection/include/star_detector.h（110 行）；禁止手抄他版。
+> lib/algorithms/star_detection/include/star_detector.h（110 行）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
 > 迁移目标 astrocs_p1_star_detection.dll）。
@@ -29,7 +29,7 @@
 
 ## 2 离散公式
 
-（锚=sdet_api.cpp 实测行号；公式与源码一一对应，禁止改写）
+（锚=sdet_api.cpp 实测行号；公式与源码一一对应，正文按源码照录）
 
 - 背景噪声（FnNoise1 行差分族，:462-518；sdet_compute_bgnoise 定义 :462）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
   3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.7071
@@ -44,7 +44,7 @@
   `σ̂_n/σ_n = 0.9999` 无偏（正例）；`ρ_adj = 0.75` 时 `0.4991` 低估 50.1%
   （负例 ⇒ 该估计量在相关噪声下必须判红）。
   ⇒ 对 drizzle/重采样/插值后的帧，**必须**先用独立方法标定 `ρ_adj` 并除以 `√(1−ρ_adj)`；
-  `ρ_adj` 未标定时该估计量**不得**用作检测阈的 σ 基准。
+  `ρ_adj` 未标定时检测阈的 σ 基准 = 另行独立标定的估计量。
   纯独立高斯噪声下实测无偏：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
   散布 0.42%）。
 - 全局检测阈值（:1783 估 `bgnoise` 于**未平滑原图**；:1790 组装；:1856-1857 判 `smooth > threshold`）:
@@ -66,7 +66,7 @@
   满阱=65535 ADU 的帧**。对已定标 float 帧，`dynrange` 的物理含义退化为
   「帧自身 max 与 65535 的较小者减帧中位」，**不等于探测器饱和电平**；
   该域外 `saturated` 列**必须**按 Project-defined 判据
-  `A_fit > min(max(img),65535) − median(img)` 消费，**不得**读作探测器饱和真值。
+  `A_fit > min(max(img),65535) − median(img)` 消费；该列语义 = Project-defined 判据，探测器饱和真值另立。
   实测（M42_M1_T2 Red 20251212@012404 校准帧，4096²，float32，max=80789.7 ADU）：
   `dynrange=65339.0 ADU`，`saturated=1` 的检出星 94/2474，其中 53 颗 3×3 峰值
   ≤ 65535 ADU。**测法**：生产盲检测输出逐星取 3×3 峰值与 `saturated` 列。
@@ -95,7 +95,7 @@
   GSL trust-region LM，7 参数）:
   `f(x,y)=B+A·exp(−(x′²/SX+(y′/r)²/SX)/1)`，参数 `{B,A,x0,y0,SX=2σ²,fr,alpha}`，
   `r=0.5·(cos fr+1)`，`sx=√(SX/2)`，`sy=sx·r`，`fwhm=2.3548·σ`（TWO_SQRT_2_LOG2），
-  PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 §5）；同 sx 下 FWHM 相差 1.9140×，禁止跨块比较（DISP-STAR-007）。
+  PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 §5）；同 sx 下 FWHM 相差 1.9140×，两块的 FWHM 各自独立取值（DISP-STAR-007）。
   `theta=−alpha` 归一到 (−90°,90°]。残差坐标 `dx=x+0.5−cx`（像素中心=索引+0.5，
   :510-513）。
 - 初始化（:289-346）: halfA 边界搜索（`max_val=A0+B0`，沿中心行列向外走到
@@ -204,7 +204,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1749-2499
 
 - 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），**椭圆高斯**中心
   由 GSL LM（XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于 §11.4
-  冻结，禁止放宽。检测侧高斯 / PSF 侧 Moffat4 双母函数语义与换算见 §2 与
+  冻结，取值一律按本节。检测侧高斯 / PSF 侧 Moffat4 双母函数语义与换算见 §2 与
   DISP-STAR-007。
 - FP32 通道经 uint16 量化（DISP-STAR-001），其容差与 FP64 通道分别冻结。
 
@@ -265,7 +265,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   （orchestrator.cpp:2200-2212）；star_det 权威块写入失败 → BLOCK_MISSING
   （:2247-2253）。
 - 线程安全: handle 级互斥使用（PHASE1_API_V1 §2 表行登记 handle 级 no/no）；
-  无内部锁，禁止跨线程共享句柄并发检测。
+  无内部锁，句柄共享面 = 单线程。
 
 ### 11.3 现状缺陷清单（DISP-STAR-001..007，登记不改码，整改归 P1-STAR-IMPL/INT）
 
@@ -299,7 +299,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4
   （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，
   解析流量比 0.902（R-3 §2.2/§2.4 实测）。因此 `star_det` 的 fwhm/flux 列与
-  PSF 块同名列**禁止跨块比较**；整改（如统一母函数或列改名）归
+  PSF 块同名列**只在各自块内可比**；整改（如统一母函数或列改名）归
   P1-STAR-IMPL/P1-PSF-IMPL。
 - 线程数未接 ThreadBudget（#pragma omp 无 num_threads 注入，
   threading_model=host_executor_lease 为合同值，接线归 P1-STAR-IMPL）；
@@ -332,10 +332,10 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   998/1000、997/1000，故「54.0」只是 300 次/档下首个恰好零失败的格点、**不是
   稳定阈**，已撤销。区间下端 52 = 使实测召回自该点起恒 ≥0.99 的最小信噪比
   （`SNR_peak ∈ [52, 76]` 上实测 0.9940–1.0000）；上端 65 = 首次出现零失败的格点。
-  **引用该档阈必须同时报出区间**，**禁止**用单参数闭式内插该档。
+  **引用该档阈必须同时报出区间**，**该档只用区间标定**。
   其余五档在 `n = 1000` 下自阈起连续 ≥4 个格点零失败，点值稳定。
   档间 `σ_psf` 取相邻两档中较严者（较大阈）；`σ_psf` 超出 `[1.0, 3.0] px`
-  未标定，**不得**引用本表。
+  未标定，**本表的引用域 = `[1.0, 3.0] px`**。
   **判据可复现性（单 seed 稳定性）**：以上表为域界，对 F1 召回场换 24 个噪声 seed
   重跑，域内召回逐个 seed 均为 100%，**判据判决翻转率 0/24**；以 64 次/档旧标定
   为域界时翻转率 3/16 = 18.75% ⇒ 样本量是该判据可复现的必要条件。
@@ -349,7 +349,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   +5.4% / +0.9% / −9.2% / −0.7% / +5.0%（**最大 9.2%**）。幂次形式
   `a·(1 + σ_smooth²/σ_psf²)^p` 在六档上最大残差仍 >10%。
   **单参数闭式不足以定义召回域**，验收一律用上表；闭式仅作档间趋势判断，
-  其内插结果**不得**低于相邻两档的较严者。50% 行的单参数式为
+  内插结果的下界 = 相邻两档的较严者。50% 行的单参数式为
   `κ₅₀ = 6.21 ± 0.50`（六档，逐档残差 ≤12.4%）。
 
   **适用域**：本表在 `σ_psf ∈ [1.0, 3.0] px` 且峰值对齐像素中心时成立。
@@ -358,9 +358,9 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   平滑主导、不由点扩散主导 ⇒ **它本来就是另一个物理区制**，不服从单参数标度是
   应有的，不是标定错误。该档 1000 次/档实测：检出概率在 `SNR_peak ∈ [46, 76]` 上
   在 0.9850–1.0000 之间**非单调**波动，无稳定零失败点 ⇒ 该档按**区间标定**，
-  **必须**用区间、**禁止**用闭式内插，且引用时必须同时报出区间。
+  **必须**用区间标定（闭式内插只作趋势判断），且引用时必须同时报出区间。
   `σ_psf < 0.8 px` 时离散采样使过渡区进一步展宽（实测 50% 点 90 vs
-  连续式给 36.3），**不适用**。亚像素相位未标定；随机相位输入**不得**直接引用本表。
+  连续式给 36.3），**不适用**。亚像素相位未标定；随机相位输入的引用面 = 先标定后引用。
   **判据非退化要求（AGENTS.md §5）**：F1 的召回场**必须**包含落在过渡带内的真星
   ——过渡带 = `10 ≤ SNR_peak < 99% 召回阈(σ_psf)`——且**必须**同时报告过渡带
   负例的召回率，该召回率**必须**低于 99%（证明召回度量非恒真）。过渡带真星
@@ -383,7 +383,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 - F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
 - F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训
   :1854/:2217-2218 固化）。容差冻结: 上述数值在 TEST 落地时逐项写死，
-  P1-STAR-TEST 不得放宽；fixture 生成器注记容差来源（本节）。
+  P1-STAR-TEST 取值一律按本节；fixture 生成器注记容差来源（本节）。
 
 ### 11.5 SCI-P1-STAR-001 状态声明
 
@@ -393,10 +393,10 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   由逐档 99% 召回阈表定义，非单一 5σ 语义）；saturation/
 blend/edge=§2 饱和双条件+edge-walking+dedup 保饱和+§4 边界丢弃；deterministic
 ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 SCI（PSF/
-PHOTOMETRY/ASTROMETRY）不因本附录改动；本节禁止被编排层词汇反向改写
+PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象）
 （descriptor astrocs.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
 
-> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
@@ -423,7 +423,7 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节禁止被编排层词汇�
 ## 背景 σ 估计器的现行口径与实测增益
 
 - **两级 σ 估计并存，均在役**：主路径用冻结式稳健尺度 `1.482602218505602 · MAD`；另有**第三 σ 估计器**（`star_detector.cpp` 的稳健估计路径）作为生产可达路径保留。二者不互相替代，选用由现行配置决定。
-- **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化）实测相对冻结式 `1.482602218505602·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。**忠实性交叉验证（与增益是两件事，禁止混写）**：C++ 探针直调生产实现 `StarDetector::estimate_background`（`wrapper_phase1/star_detector.cpp:30-70`）读同一批 `.f32` 帧，Python 复刻与生产实现 **270/270 帧 σ 相对偏差 = 0.0（逐位一致）**——该 270/270 描述的是「复刻↔生产」一致性，**不是**第三估计器与冻结式的一致性。**测法**：同一批帧分别用冻结式与第三估计器估计 σ，逐帧取相对误差后池化
+- **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化）实测相对冻结式 `1.482602218505602·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。**忠实性交叉验证（与增益是两件事，各自独立登记）**：C++ 探针直调生产实现 `StarDetector::estimate_background`（`wrapper_phase1/star_detector.cpp:30-70`）读同一批 `.f32` 帧，Python 复刻与生产实现 **270/270 帧 σ 相对偏差 = 0.0（逐位一致）**——该 270/270 描述的是「复刻↔生产」一致性，**不是**第三估计器与冻结式的一致性。**测法**：同一批帧分别用冻结式与第三估计器估计 σ，逐帧取相对误差后池化
   `mean|rel err|`，增益 = 相对降幅；CI 由帧级 bootstrap 重采样给出。**负对照
   （可推翻条件）**：两估计器若在同一批帧上逐帧相等，增益必须为 0；实测 CI 不含 0
   ⇒ 两者是可区分的不同估计量。
@@ -432,6 +432,6 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节禁止被编排层词汇�
   `StarDetector::estimate_background`（2 轮 `median±3σ` 裁剪后 RMS），两者互不调用。
   **负对照**：两套 σ 若可互换，同帧比值必须为 1；实测 1.5012 ≠ 1 ⇒ 引用「σ_bg」
   而不点名估计器的判据不可复核。凡写「σ_bg」的判据**必须**点名估计器。
-- **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备为引用前提；缺任一项的增益数字不得引用。
+- **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备即引用前提；缺项数字只作过程记录。
 - **NaN fail-open 已闭合**：估计器入口逐像素 `isfinite` 归约 + 返回值检查，NaN 输入不再静默通过；负例（全 NaN patch）必须判红。
 

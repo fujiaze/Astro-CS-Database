@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）
 
-权威：本文档。任何模块/文档不得出现第二套定义。
+权威：本文档。任何模块/文档的定义都只有这一份。
 
 ## 1. Sky coordinates
 
@@ -32,7 +32,7 @@ FITS index = (511 - x) * 512 + y
   **不使用 display stretch**；负值保留，不自动加 pedestal、不无故 clamp。
 - `support`：覆盖/有效支持度 [0,1]；`support=0` 表示无覆盖。
 - `invalid`：`NaN` 或 `support<=0`；有效样本判定为 `finite && support>0`。
-- 无有效样本（all-rejected / denominator≈0）必须有明确 status，禁止静默
+- 无有效样本（all-rejected / denominator≈0）必须有明确 status，其取值面 = 具名状态，区别于
   输出 0 或 ±Inf（integrate.cpp status=1/2 guard）。
 
 ## 4a. variance / ivar 产品（DATA-HIPS-VAR-001 / DATA-HIPS-IVAR-001）
@@ -48,29 +48,29 @@ FITS index = (511 - x) * 512 + y
   - `D_p = Σ_j a_jp` = **covered_area，量纲 `sr`**（即 §12.2 的 `covered_area`；实现锚
     `drizzle_engine.cpp` `acc.sumArea += overlap_area`）。**`D_p` 不是无量纲权重和**：
     本式与 §12.2 的 `variance = var_num_sum / covered_area²`（`var_num_sum = Σ_j v_j·w_jp²`，
-    量纲 `ADU^2`）是**同一式的两种写法**，不得当作两套公式。
+    量纲 `ADU^2`）是**同一式的两种写法**，二者共用同一公式定义。
   - `variance_p` 量纲 `ADU^2/sr^2`（§31.1 `sb_variance_out`，标度类别 `surface_brightness`）。
   - **符号唯一性（强制）**：`D_p` 只表示 covered_area[sr]。其它聚合算子的**分母是权重和**，
     记 `W_p = Σ_{合格} w`（下标取该分支的样本索引：Phase 2 为帧 `i`、Phase 3 为邻域样本 `j`），
     **量纲 = `w` 的量纲**（Phase 3 双线性几何权重无量纲 ⇒ `W_p` 无量纲；Phase 2 逆方差权重
-    取 `1/(signal 量纲)²`）—— **必须另用符号**，不得复用 `D_p` —— 二者量纲不同，
+    取 `1/(signal 量纲)²`）—— **必须另用符号**，`D_p` 专表 covered_area —— 二者量纲不同，
     代入错误相差 `A_cell²`（`nside = 2^18` 时 4.306e21，即 21.63 dex，见
     `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律）。**本仓适用点（逐分支）**：
     Phase 1 drizzle 全链（含 §11 累加、§12.2 `covered_area`）用 `D_p`（`sr`）；
     Phase 2 帧间集成与 Phase 3 投影重采样的分母用 `W_p`（§29.2 / §30.2 的 `W_p=0` 覆盖级 NaN
-    判据、`DATA-002` §2a）。**同一式内 `D_p` 与 `W_p` 不得互换、不得同名复用。**
+    判据、`DATA-002` §2a）。**同一式内 `D_p` 与 `W_p` 各自独立、各自具名。**
   编码三态见 §4a 表（无覆盖 ⇒ NaN）。
 - `ivar`：逆方差 `1/variance`（**有限域严格互倒**）；variance=0/缺失 → ivar=0（显式不可用，
-  禁止伪装）；NaN/负 variance 视为产品损坏。**标度随 variance 同承载面**：面亮度域
+  0 值本身即显式不可用标记）；NaN/负 variance 视为产品损坏。**标度随 variance 同承载面**：面亮度域
   `sr^2/ADU^2`（§31.1 `sb_ivar_out`）、像素域帧内块 `ADU^-2`（§11.1）。`ivar = 1/variance`
   只在**同一承载面内**成立；跨承载面必须先按 `docs/standards/NUMERIC_STANDARD.md` 的
-  面亮度标度律（因子 `1/A_cell^2`）换算，禁止直接代入。
+  面亮度标度律（因子 `1/A_cell^2`）换算，换算完成后才代入。
 - 相邻像素非严格独立（协方差已文档化，见
   docs/science/UNCERTAINTY_AND_COVARIANCE.md），pixel variance ≠
   aperture variance。
 - HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
 - **Phase1 逐帧 variance/ivar 产品的逐像素三态**：
-  依据 = `docs/science/NOISE_MODEL.md` §7（「不可用一律 `ivar=0`、**不得由 clamp
+  依据 = `docs/science/NOISE_MODEL.md` §7（「不可用一律 `ivar=0`、**取值为显式不可用，与 clamp 结果可区分**；该值由显式降级判定
   产生**」+「NaN 保留给产品损坏」）与「与 signal 同态」原则（`ASTROCS_DESIGN.md` §0.1：
   科学公式与算法推导的唯一权威是 `docs/science/`）。下表是**唯一口径**：
 
@@ -100,7 +100,7 @@ FITS index = (511 - x) * 512 + y
   与输入顺序无关；参考帧 = 每分量最小 frame_id。
 - 碰撞策略：64 位截断哈希（工程上忽略碰撞；重复 frame_id 在 UPM
   构建/持久化层显式拒绝）。
-- 禁止描述为 FNV-1a / 路径派生（docs exact checker
+- 描述口径 = 64 位截断哈希，FNV-1a / 路径派生各属另一套口径（docs exact checker
   的 frame_id_contract_exact 全仓校验）。
 - input_manifest_hash：输入集合与配置的稳定摘要（stage2 diagnostics）。
 - HiPS properties 中 `hips_creation_date` 为真实 UTC 时间，不伪造。
@@ -158,7 +158,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 = 第一个含光谱文件的 spectrum_count，回退 343）。
 
 明确**不输出**：`source_id`（恒 0 占位）、parallax/pmra/pmdec（输出结构体中
-**未初始化**，调用方不得使用——现状契约，CAT-GAIA-IMPL 迁移时需显式置 0 或
+**未初始化**，调用方一律按未初始化对待——现状契约，CAT-GAIA-IMPL 迁移时需显式置 0 或
 剔除）、误差列、proper motion 消化坐标。
 
 ### 8.3 缓存与溯源语义
@@ -185,13 +185,13 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 | 数组 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
 | stack（bias/dark/flat 帧） | float32 或 float64（f64 ABI）`[n_frames][h][w]` 连续 | ADU | 单帧元素可为 NaN（统计跳过，ALG-CAL-001 F1.3）；`n_frames==1` 直接拷贝含 NaN 原样保留 |
-| master_bias | `[h][w]` | ADU（**UNIT-001**：XISF 归一化浮点母版须显式声明 `master_units`+`master_scale` 换算，见 §9.1a） | 可为 NULL（calibrate: 该项为 0 = 本底不去除，调用方必须在预检/manifest 显式登记；cosmetic: 不检测冷像素）。**标准式下必须显式减除**（BIAS-001）；**禁止**在默认分支完全不读该项（DISP-CAL-012） |
+| master_bias | `[h][w]` | ADU（**UNIT-001**：XISF 归一化浮点母版须显式声明 `master_units`+`master_scale` 换算，见 §9.1a） | 可为 NULL（calibrate: 该项为 0 = 本底不去除，调用方必须在预检/manifest 显式登记；cosmetic: 不检测冷像素）。**标准式下必须显式减除**（BIAS-001）；**默认分支同样读该项**（DISP-CAL-012） |
 | master_dark | `[h][w]` | ADU（**UNIT-001**：同 master_bias 的声明要求） | **约定：已减 bias 的暗电流母版**（默认，`dark_opt=0`）；含 bias 的暗场母版必须用 `dark_optimization=true` 显式声明（`dark_opt=1`，内部按 `dark−bias` 分离）。可为 NULL（不减暗场；cosmetic: 不检测热像素）。**UNIT-001**：提供 dark 而未显式给出 `dark_optimization` ⇒ DATA 拒绝（rc=2，§9.1a U3） |
-| master_flat | `[h][w]` | 无量纲（约定已 median≈1.0 归一，ALG-CAL-002 产物） | 可为 NULL（跳过除法）；floor 0.1 下界在 calibrate 内施加；**B2-A6 消费边界 fail-closed**：全零 / median<=0 / 任一非有限像素的整帧退化 master flat 不得进入 calibrate —— P1 校准节点 `p1_op_calibrate`（`module_adapters.cpp:1149-1175,1226-1236`）返回 DATA 拒绝（CLI rc=2），不写 `calibrated_*`、不写 complete manifest；**UNIT-001**：另加 `median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]）或显式声明 `master_flat_normalize="median"`，否则 DATA 拒绝（rc=2，§9.1a U2） |
+| master_flat | `[h][w]` | 无量纲（约定已 median≈1.0 归一，ALG-CAL-002 产物） | 可为 NULL（跳过除法）；floor 0.1 下界在 calibrate 内施加；**B2-A6 消费边界 fail-closed**：全零 / median<=0 / 任一非有限像素的整帧退化 master flat 一律在 calibrate 入口被拒 —— P1 校准节点 `p1_op_calibrate`（`module_adapters.cpp:1149-1175,1226-1236`）返回 DATA 拒绝（CLI rc=2），不写 `calibrated_*`、不写 complete manifest；**UNIT-001**：另加 `median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]）或显式声明 `master_flat_normalize="median"`，否则 DATA 拒绝（rc=2，§9.1a U2） |
 | light（data） | `[h][w]` | ADU | NaN 直传输出（ALG-CAL-003，DISP-CAL-004） |
 | 掩码 hot/cold（ac_correct_frame 内部） | char `[h][w]` | 0/1 | 极性 **1=坏点**（SCI-CAL-001 §9a） |
 | sigma_low/sigma_high/hot_sigma/cold_sigma | float，无量纲 | MAD 倍数 | NaN 行为未定义（前置条件，负面测试覆盖）；sigma<=0 = 禁用对应检测 |
-| K（dark_scale_factor） | float/double，无量纲 | =t_light/t_dark | 由调用方计算（曝光秒，FITS EXPTIME）；**标准式（dark_opt=0）与兼容式（dark_opt=1）都施加**（BIAS-001）；**禁止**在标准分支强制 K=1.0（属缺陷，DISP-CAL-012）；dark 缺省时 K 不进入算术。**B2-A13 消费边界 fail-closed**：P1 校准节点 `p1_op_calibrate`（`module_adapters.cpp:1243-1305`）在 K 分支（bias+dark 在位）从 light/dark 的 FITS `EXPTIME` 推导 `K=t_light/t_dark`；EXPTIME 缺失/非正，或显式 `dark_scale_factor` 与 EXPTIME 比不一致（>1e-6 相对）→ DATA 拒绝（CLI rc=2），不写 `calibrated_*`、不写 complete；K 的公式与单位不变 |
+| K（dark_scale_factor） | float/double，无量纲 | =t_light/t_dark | 由调用方计算（曝光秒，FITS EXPTIME）；**标准式（dark_opt=0）与兼容式（dark_opt=1）都施加**（BIAS-001）；**标准分支同样施加该 K**（强制 K=1.0 属缺陷，DISP-CAL-012）；dark 缺省时 K 不进入算术。**B2-A13 消费边界 fail-closed**：P1 校准节点 `p1_op_calibrate`（`module_adapters.cpp:1243-1305`）在 K 分支（bias+dark 在位）从 light/dark 的 FITS `EXPTIME` 推导 `K=t_light/t_dark`；EXPTIME 缺失/非正，或显式 `dark_scale_factor` 与 EXPTIME 比不一致（>1e-6 相对）→ DATA 拒绝（CLI rc=2），不写 `calibrated_*`、不写 complete；K 的公式与单位不变 |
 | combine | int 0=mean / 1=median | — | 其他值按 mean 路径（实现按 `==AC_COMBINE_MEDIAN` 判定） |
 | method | int 0=median / 1=IDW（名义 bilinear） | — | 其他值按 IDW 路径 |
 
@@ -212,14 +212,14 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 | `dark_optimization` | bool（既有键） | **提供 `master_dark` 时强制显式给出**：`false`=已减 bias（默认约定）、`true`=含 bias（兼容形态） |
 
 **四条消费边界规则（`p1_op_calibrate` 前置；违反一律 `ErrorDomain::DATA` ⇒ CLI rc=2，
-诊断点名文件名 + 观测中位数 + 缺失声明项，禁止静默按错误标度计算）**：
+诊断点名文件名 + 观测中位数 + 缺失声明项，计算面一律取已声明的标度）**：
 
 - **U1 单位/标度一致**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0（归一化域特征）
   且未声明 `master_units=<类>=normalized` + 对应 `master_scale` ⇒ 拒绝。
 - **U2 平场归一化**：`median(flat)` ∉ `master_flat_median_range` 且未声明
-  `master_flat_normalize="median"` ⇒ 拒绝（禁止整帧被 `1/median` 静默缩放）。
+  `master_flat_normalize="median"` ⇒ 拒绝（整帧按 `1/median` 缩放须显式声明）。
 - **U3 dark bias 约定**：提供 `master_dark` 而未显式给出 `dark_optimization` ⇒ 拒绝
-  （两种约定的产物在 K≠1 时不同，属科学输入，不得取隐式默认）。
+  （两种约定的产物在 K≠1 时不同，属科学输入，一律显式给出）。
 - **U4 声明自洽**：声明 `normalized` 必须带正的 `master_scale`；同时提供 bias 与 dark 时两者
   声明域/换算因子必须一致；`master_units.light` 声明非 ADU 时必须给出 `master_scale.light`
   （产物合同 §9.2 要求 ADU）⇒ 否则拒绝。
@@ -240,7 +240,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 | 数组 | dtype/shape | 值域 | invalid |
 |---|---|---|---|
 | out（master 或校准帧） | float32/float64 `[h][w]` | ADU（可负，**不 clamp 不加 pedestal**，§4 负值保留） | 全 NaN 像素列 → NaN（合法输出，非错误）；参数错误时不写 out |
-| actual_k | float*/double* 单值 | 无量纲 | 两分支生效时=入参 K（标准分支**不得**强制 1.0，BIAS-001）；参数错误=k_init；可 NULL |
+| actual_k | float*/double* 单值 | 无量纲 | 两分支生效时=入参 K（标准分支**同样取入参 K**，1.0 只作为显式入参值，BIAS-001）；参数错误=k_init；可 NULL |
 | out_hot / out_cold | int* 单值 | 像素计数 | 结构过滤后掩码像素数；可 NULL |
 | ac_version() | const char* 静态串 | — | `"Astro Calibration C++ v1.0.0"` |
 | 错误码 | int | — | 0=AC_OK；−1=AC_ERR_PARAM（空指针/非正维度；master flat 负 median 拒绝 B13-R13-7）；−2/−3 定义但**从未返回**（DISP-CAL-001） |
@@ -297,10 +297,41 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   0/1 char，`all_bad = hot | cold` 位或合并）；掩码为模块内部产物，
   不作为产品输出（与 §9.4 一致）。
 - **no fabrication of valid coverage**：修复仅发生在被检测判坏的像素，
-  非坏点逐像素恒等；空邻域回退原值而非虚构好值；生产调用现状
-  （p1_session.cpp:294-307 dark/bias 传 NULL）下模块为恒等 pass、
+  非坏点逐像素恒等；空邻域回退原值而非虚构好值；检测源不可得时模块为恒等 pass、
   out_hot=out_cold=0——不做无依据的"已修复"声明（DISP-COS-009）。
-- variance/ivar/coverage 不在本层（§4a/§9.4 同界）。
+- variance/ivar/coverage 不在本层（§4a/§9.4 同界）；列状缺陷路径的方差处置见 §10.5。
+
+### 10.4 列状缺陷路径（bad column）
+
+**缺陷形态分两类，判据各不相同**：点状缺陷（热/冷像素、宇宙线斑点）按连通域尺寸可分；
+列状缺陷（整列或列内一段）的连通域尺寸与天体源在大尺寸端重合，**连通域尺寸过滤对它无效**，
+按**列统计量的跨列跳变**判定。
+
+| 项 | 语义 |
+|---|---|
+| 检测源 | 三路并列：母版暗场、母版偏置、科学帧自身；各路在帧内自校准，故源面标度差不影响判坏集合 |
+| 判据 | 列统计量的跨列一阶差分与帧内稳健尺度（MAD）比对；阈值取自列状缺陷的 sigma 配置键 |
+| 修复 | 单列按左右两邻算术平均；列内不做沿列平滑 |
+| 邻域宽度 | 每侧参与统计的列数由配置键给出 |
+| 开关 | 列状缺陷路径默认启用；置 false 时本路径逐位不生效 |
+| 边缘与连续多列 | 无两侧邻列时按声明行为降级并留痕，不虚构好值 |
+
+**产物**（与本层掩码不同，列状缺陷路径的产品是落盘的）：
+
+| 产物 | dtype/shape | 值域 |
+|---|---|---|
+| 列状修复掩膜 | float32 同帧形状 | **1 = 该像素被列状修复覆盖；2 = 仅标记未修**；其余 0 |
+| 列状来源掩膜 | 整型 同帧形状 | 来源位：哪几路判出该列 |
+
+配置键名与产物名以 `eng/packaging/config/defaults.json` 与 §10.6 的登记为准。
+
+### 10.5 列状缺陷的方差处置
+
+被修复像素的方差按传播式 `var = (Σ w² · var) · κ` 取值：单列两邻算术平均给出 `Σ w² = 1/2`；
+`κ > 1` 补偿插值引入的像素间相关。**不做该补偿会使修复像素的 SNR 系统性偏高**（量级约 √2）。
+下游可据列状修复掩膜自行选择是否施加补偿。
+
+
 
 
 ## 11. Phase1 drizzle 模块输入/输出数据（DATA-P1-DRZ）
@@ -316,19 +347,19 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > lib/infrastructure/scheduler/src/module_adapters.cpp:570-587 p1_drizzle_descriptor）将
 > 本模块登记为 ports calibrated→stacked、data_id=DATA-P1-STACK；本节
 > DATA-P1-DRZ 为按 SCI-DRZ-001 语义新建的模块级合同，descriptor 引用
-> 由 P1-DRZ-INT 对齐。禁止声明 IMPLEMENTED。
+> 由 P1-DRZ-INT 对齐。IMPLEMENTED 只由验收签发。
 
 ### 11.1 输入（PipelineFrame 命名块；文件通道 FITS 另注）
 
 > **块词表归属（GAP_AUDIT §4.4）**：**帧内命名块的唯一登记处**
 > = `lib/infrastructure/aio/include/aio_pipeline.h` 的「**标准块定义表**」（名字 / 形状 / 类型 / 单位 /
-> 可缺性）。**下表只作引用**（本模块消费哪些块、块的 dtype/域/invalid 语义），**不得**自称第二套
+> 可缺性）。**下表只作引用**（本模块消费哪些块、块的 dtype/域/invalid 语义）——**引用面；唯一**
 > 登记处；块名 ∉ 标准表 ⇒ 机器判红。`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:3211-3213`
 > 的 6 个名字**不是块词表**（是 `stage_trace.jsonl` 的跟踪子集），只作引用。
 > **`variance` / `ivar` 块**：按 GAP_AUDIT §4.4 处置①与 G1-5 纳入标准表登记范围。
 > **标准块定义表现行内容**：`aio_pipeline.h` 标准块定义表含 `variance`、`ivar` 两行，
 > 并含编排层实测生产块 `star_measurements` / `photometric_match` / `snr_model`（由
-> `orchestrator_saturation_wiring_gate` 机器核验）；**未列出的自定义块名不得放行**——
+> `orchestrator_saturation_wiring_gate` 机器核验）；**放行集 = 标准表 + 显式注册**——
 > 块名 ∉ 标准表且未经 `aio_block_name_register` 显式注册 ⇒ `aio_frame_add_block` /
 > `aio_frame_add_block_move` 拒绝（返回 9），KV 自动创建与缓存回读同口径；
 > 机器判据 = `eng/tools/quality/check_module_map.py`（标准表↔`kStandardBlockNames` 逐名一致 +
@@ -337,18 +368,18 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**——**禁止** `isfinite(...)+continue` 式静默吞像素（会使无效值不进累加器、无计数暴露，DISP-DRZ-004）；实现锚 `drizzle_engine.cpp:1899-1902`、`hp_drizzle_api.cpp`，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`） |
+| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**——**逐像素一律计入累加器并计数**（`isfinite(...)+continue` 式静默吞像素即反例，DISP-DRZ-004）；实现锚 `drizzle_engine.cpp:1899-1902`、`hp_drizzle_api.cpp`，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`） |
 | "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-447，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:434-443）。 |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**，**禁**静默取 FP32（权威 = docs/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点**必须**按 `drizzle.precision_mode` 写实际精度，**禁**写死 "0"；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
-| "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`；**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，不得随 `PHOTAPPL` 区分**——BUNIT 描述「量的种类」（线性计数面亮度），标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed，只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
+| "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`；**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，与 `PHOTAPPL` 各自独立**——BUNIT 描述「量的种类」（线性计数面亮度），标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed，只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
 | "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | **像素域**量纲 `ADU^2`（§31.1 `pixel_variance_in`；UNIFIED_MODEL §2 variance 对象）；**标度 = 与同帧 `data` 块同一数组、同一 dtype**（数组为 `photo_scaled_adu` ⇒ 随 α² 一并缩放；本节点不二次缩放。标度词表 = `docs/standards/NUMERIC_STANDARD.md`）。**输入块（`ADU^2`，像素域）与输出产品（`ADU^2/sr^2`，面亮度域，§12.2）量纲不同**；换算责任方 = writer 归一（因子 `1/covered_area^2`，§4a） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
 | "ivar" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU⁻²（= 1/variance，有限域互为倒数） | variance 缺失/≤0 → ivar=0（显式不可用，禁 1/0→Inf；§4a）；非有限或 ≤0 → 跳过该像素 |
-| ~~weight 面（文件通道 FITS）~~ | — | — | **禁用面**（§9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏控制点上的绝对 SNR**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)` 的该形参（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）**不得**作为输入通道使用 |
+| ~~weight 面（文件通道 FITS）~~ | — | — | **禁用面**（§9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏控制点上的绝对 SNR**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)` 的该形参（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）**输入通道即生产末端** |
 | snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
 
 ### 11.2 输出（HEALPix NESTED tile 产品 + 统计）
@@ -361,7 +392,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | nContrib（tile 内 leaf 计数） | int `[512][512]`/tile | 贡献源像素数 | 0 = touched 集合外（不写） |
 | SNR 控制点子块（有 snr_model 时） | local_ipix + snr | 像素序、无量纲 | 逐 tile 内嵌 SNR 子块（legacy 容器格式） |
 | HiPS 产品集 | hips_dir 目录树（Norder/Shard 目录 + properties） | — | 直写硬门 tile_depth=9、nside≥512（astro_sphere_sink.cpp:36-51）；overwrite 清理由编排层（orchestrator.cpp:3345-3354） |
-| legacy 单文件堆栈容器 | — | — | **生产路径只落标准 HiPS，不落任何 legacy 容器**：Phase1 末端为 hp_drizzle_run_phase1_hips 直写标准 HiPS（module_adapters.cpp p1_op_drizzle），末端产物 = signal/support 全 tile + Moc.fits + metadata.fits；**禁止**写出或读取 legacy 容器（含 p1_stack 容器与 p1_op_writer 的容器读面）。 |
+| legacy 单文件堆栈容器 | — | — | **生产路径只落标准 HiPS，不落任何 legacy 容器**：Phase1 末端为 hp_drizzle_run_phase1_hips 直写标准 HiPS（module_adapters.cpp p1_op_drizzle），末端产物 = signal/support 全 tile + Moc.fits + metadata.fits；**写读面即标准 HiPS**；legacy 容器含 p1_stack 与 p1_op_writer 的容器读面。 |
 | operation_counts.json | JSON 剖面文件 | — | 通用 HiPS 直写档（hips_profile=0）写 `<hips_dir>/operation_counts.json`；Phase1 生产档（hips_profile=1）不写；产物文件集 = signal/support 全 tile + Moc.fits + metadata.fits（astro_sphere_sink.cpp write_hips_phase1） |
 | p1_stack.json（编排 provenance，module_adapters.cpp p1_op_drizzle） | JSON: schema=DATA-P1-STACK/nside/nested/pixfrac/precision_mode/n_healpix_pixels/n_source_pixels/artifact/entry + **B2-A17** sip_present/sip_order/sip_ap_order/ctype1/ctype2 + **DET-001** photometry_provenance | — | frame header 实际下发 SIP 的逐项可追溯证据；无 SIP → sip_present=false 且 ctype1/2 不含 `-SIP`（不冒充观测）。**DET-001**：本文件是 manifest 登记产物，产品面必须逐字节可复现，故墙钟遥测 elapsed_sec 不进产品、只记节点 manifest（(*man)["elapsed_sec"]）；photometry_provenance 由 phot→drz 的 typed 依赖边保证取值确定（见 DATA_ARTIFACTS §DATA-P1-PHOTPROV-001） |
 | HpDrizzleResult 统计 | int64/int/double + error_msg[512] | — | n_healpix_pixels/n_source_pixels/nside/nested/pixfrac/elapsed_sec；错误时 error_msg 非空 |
@@ -388,7 +419,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > lib/infrastructure/aio/src/hips/aio_hips_writer.cpp，合同头
 > lib/infrastructure/aio/include/aio_hips.h，经根 CMake 静态库 astrocs_hips
 > 编译，CMakeLists.txt:298-309）；迁移 DLL astrocs_p1_hips_writer.dll 由
-> P1-HIPS-IMPL 建立（语义不变，禁止声明 IMPLEMENTED）。ALG:
+> P1-HIPS-IMPL 建立（语义不变，IMPLEMENTED 只由验收签发）。ALG:
 > ALG-HIPS-001..005；上游: DATA-P1-DRZ（§11，AstroSphereTileView 直供）；
 > SCI: SCI-DRZ-001（:130/:145 共享锚）；发布合同: IO-003（§12.5 对齐
 > 边界）。本节是 HiPS 产品集（signal/support/variance/ivar Image HiPS +
@@ -403,7 +434,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | nside | int，2 的幂 | — | ≥512 强制（<512 返回 NULL，aio_hips_writer.cpp:399-401）；叶阶 leaf_order=ilog2(nside) |
 | tile_width | int | — | 恒 512（≠512 拒绝 :402；tile_order=leaf_order−9） |
 | data_type | 0=float32 / 1=float64 | — | 其他值拒绝（:403）；决定存储 bitpix −32/−64 与 hierarchy 累加器轨（f32 产品 float 累加，DISP-HIPS-009） |
-| flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入。**产品集由输入面声明决定，不得由内容扫描推断**：调用方在**输入**中声明「本帧携带方差面」（Phase1 末端 = `write_hips_phase1` 的 `has_variance` 形参，与通用档 `write_hips_direct` 同形参同口径），writer 据此请求 VARIANCE\|IVAR 并成对落盘；**禁止**用「至少一个叶像素 var_num_sum>0」之类的**内容判据**决定是否产出子产品 —— 那会让「整帧方差不可用」的帧不产 ivar 子产品，把像素级不可用升级为产品级拒绝（读侧 `ivar_product_missing>0` ⇒ fail-closed） |
+| flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入。**产品集 = 输入面声明的函数，内容扫描不参与**：调用方在**输入**中声明「本帧携带方差面」（Phase1 末端 = `write_hips_phase1` 的 `has_variance` 形参，与通用档 `write_hips_direct` 同形参同口径），writer 据此请求 VARIANCE\|IVAR 并成对落盘；**判据 = 该声明本身**；「至少一个叶像素 var_num_sum>0」之类的**内容判据** —— 那会让「整帧方差不可用」的帧不产 ivar 子产品，把像素级不可用升级为产品级拒绝（读侧 `ivar_product_missing>0` ⇒ fail-closed） |
 | creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | **B2-A8: obs_filter 恒写（参数 NULL→空串值，禁"不写键"）**，Phase1 config `filter_passband` 透传（lib/infrastructure/cli/parser.cpp:303-309；module_adapters p1_op_writer）；obs_date 仍可 NULL（不写键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="ACSD Phase1"（:414-415） |
 | moc_order | uint | — | 0=auto（=tile_order）；>0 取 min(moc_order, tile_order) 静默钳位（:419，DISP-HIPS-005） |
 | AstroSphereTileView: parent_ipix | uint64 | NESTED ipix（Norder K） | ≥12·4^K 拒绝 rc=−3（:433-437）；width/leaf_order/dtype 不匹配拒绝 rc=−2（:428-431） |
@@ -438,13 +469,13 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   lib/algorithms/shared/healpix/healpix_core.cpp:287-296）。层级 tile 同式。
 - 目录布局：`Norder{K}/Dir{(ipix/10000)*10000}/Npix{ipix}.fits`（IVOA
   REC-HIPS-1.0 §4.1：Dir = 万进制块**起始值**，Npix = 完整 tile 号；M2b-B-01
-  判据：**禁止**写 Dir=商/Npix=余数（与标准相反）；读侧标准优先，legacy 布局只读回退）；
+  判据：**Dir/Npix 一律按标准式写**（Dir = 万进制块起始值，Npix = 完整 tile 号）；读侧标准优先，legacy 布局只读回退）；
   hierarchy 逐阶同布局（k<K）。
 - 面亮度链（与 §4/§4a、SCI-DRZ-001 :145 一致）：drizzle 层产原始累加量
   （§11.2；flux_sum=Σ x_j·(a_jp/A_pixel,j) 单位 ADU、covered_area=Σ a_jp 单位 sr）
   → writer 归一 signal=flux_sum/covered_area（⇒ **`ADU/sr`**）、
   support=min(covered_area/A_cell,1)、variance=var_num_sum/covered_area²、
-  ivar=1/variance。F=signal×support×A_cell 闭合**只在 support 未被钳制时恒等**（`support = min(covered_area/A_cell, 1)` 是钳后发布值，covered_area>A_cell 时丢失倍数信息）——适用域、两条冻结处置与可观测计数见 §20.3「support 钳制的编码限」；过覆盖像素上该式**不得**用于复原 covered_area。
+  ivar=1/variance。F=signal×support×A_cell 闭合**只在 support 未被钳制时恒等**（`support = min(covered_area/A_cell, 1)` 是钳后发布值，covered_area>A_cell 时丢失倍数信息）——适用域、两条冻结处置与可观测计数见 §20.3「support 钳制的编码限」；过覆盖像素上该式只适用于 support 未钳制的域。
 - 天区度量：moc_area_sr=Σ A_cell(K)（逐叶 tile 登记制，
   aio_hips_writer.cpp:530）；hips/moc_sky_fraction=moc_area_sr/4π；
   astrocs_covered_sky_fraction=covered_area_sr/4π；hips_pixel_scale=
@@ -485,7 +516,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   完整性证据=逐 tile FITS DATASUM/CHECKSUM + manifest 计数字段
   （n_leaf_tiles 等）。
 - 对齐规则：调用方（P1-HIPS-INT 接线）必须让 writer 输出到发布层 staging
-  区、经 IO-003 门禁后对外可见；不得以 writer 直写目录冒认 IO-003 原子
+  区、经 IO-003 门禁后对外可见；对外可见性一律以 IO-003 门禁为唯一来源，即 IO-003 原子
   语义；同 out_dir 重跑的旧残留清理由发布层 staging 隔离解决（writer 自身
   不清理）。
 
@@ -505,20 +536,20 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| data | float32（v1）/ float64（f64）`[h·w]` 行主序 0-based | 标度类别 = 调用方声明的输入面标度（`docs/standards/NUMERIC_STANDARD.md`）：现行生产面 = `calibrated_adu`（ADU，α=1）；`photo_scaled_adu` 时量纲为 `α·ADU` 且 `variance_floor` 必须按 α² 同标度换算（见本表 `variance_floor` 行）。或 e⁻（同输入标度，仅当调用方另行给出 gain 换算） | 非 NULL 强制；h>0/w>0 否则 rc=3（noise_model.cpp:143）；NaN/Inf 与饱和像素过滤不统计（valid_pixel :64-68）；**饱和像素 = `x ≥ saturation_level`**，**`x` 与 `saturation_level` 必须同标度**（电平来源 = 帧元数据 FITS `SATURATE`/`DATAMAX`，属探测器原始 ADU 面 ⇒ 数组为 `photo_scaled_adu` 时**不得**直接比较，须先换算或改用同标度电平；换算责任方 = 调用方），电平来源优先级 = 显式 `cfg.saturation_level>0` > 帧元数据 FITS `SATURATE` > `DATAMAX`；`0`/负/非有限 = **未提供电平（unset）≠「无饱和」**，此时编排层**必须**写显式降级声明 `photo_stats.NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`（禁止静默；SCI NOISE_MODEL §4「饱和域」，claim SC-008 / SAT-001） |
+| data | float32（v1）/ float64（f64）`[h·w]` 行主序 0-based | 标度类别 = 调用方声明的输入面标度（`docs/standards/NUMERIC_STANDARD.md`）：现行生产面 = `calibrated_adu`（ADU，α=1）；`photo_scaled_adu` 时量纲为 `α·ADU` 且 `variance_floor` 必须按 α² 同标度换算（见本表 `variance_floor` 行）。或 e⁻（同输入标度，仅当调用方另行给出 gain 换算） | 非 NULL 强制；h>0/w>0 否则 rc=3（noise_model.cpp:143）；NaN/Inf 与饱和像素过滤不统计（valid_pixel :64-68）；**饱和像素 = `x ≥ saturation_level`**，**`x` 与 `saturation_level` 必须同标度**（电平来源 = 帧元数据 FITS `SATURATE`/`DATAMAX`，属探测器原始 ADU 面 ⇒ 数组为 `photo_scaled_adu` 时**比较前换算到同一标度**（或取同标度电平）；换算责任方 = 调用方），电平来源优先级 = 显式 `cfg.saturation_level>0` > 帧元数据 FITS `SATURATE` > `DATAMAX`；`0`/负/非有限 = **未提供电平（unset）≠「无饱和」**，此时编排层**必须**写显式降级声明 `photo_stats.NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`（一律具名；SCI NOISE_MODEL §4「饱和域」，claim SC-008 / SAT-001） |
 | source_mask | float32 `[h·w]` | —（≠0 即源掩膜 1） | 可 NULL（改用 star 坐标通道）；非 NULL 时忽略 star_x/y（互斥，DISP-NOISE-006）；掩膜像素不参与统计 |
 | star_x / star_y | double `[n_stars]` | pixel（0-based） | 可 NULL/n_stars=0；掩膜半径 rmax=max(1,r0)·max(1,scale)（默认 10·6=60 px）统一不按亮度缩放；非有限坐标跳过该星（:148-151） |
 | cfg（SnrNoiseModelConfig） | 结构体按 snr_estimator.h:108-122 | — | 可 NULL（=default_config）；patch_grid_x/y≥2、cosmic_clip_sigma≥1、min_patch_samples≥1（默认 64）、max_clip_rounds≥0 静默钳位（DISP-NOISE-007）；gain_e_per_adu/read_noise_e/use_gain_model 三字段现状零读取（DISP-NOISE-003）；`saturation_level`：>0 = 饱和电平 ADU（过滤生效），0/负/非有限 = **未提供（unset）**，来源与降级声明语义见 SCI NOISE_MODEL §4「饱和域」（claim SC-008） |
-| variance_floor | double | ADU² | 默认 1e-12。**标度 = 与所作用数组同一标度**（标度词表 = `docs/standards/NUMERIC_STANDARD.md`）：数组为 `calibrated_adu` ⇒ 1e-12 ADU²；数组为 `photo_scaled_adu` ⇒ 按线性标度律取 `α²·1e-12`（α = 该帧 photscal，**逐帧量**；实现锚 = `module_adapters.cpp` 的 `p1_noise_model_for_frame(data_scale=…)` 把 `variance_floor` 乘 `data_scale²`）。**两个阶段同口径**：取非正值 ⇒ 具名拒绝 `SNR_FLOOR_UNBOUND`（rc=−10），**不得直通、不得回退到任何常数**。生效地板必须在其产品 dtype 中可表示（`NOISE_MODEL` §9），否则同样拒绝 |
+| variance_floor | double | ADU² | 默认 1e-12。**标度 = 与所作用数组同一标度**（标度词表 = `docs/standards/NUMERIC_STANDARD.md`）：数组为 `calibrated_adu` ⇒ 1e-12 ADU²；数组为 `photo_scaled_adu` ⇒ 按线性标度律取 `α²·1e-12`（α = 该帧 photscal，**逐帧量**；实现锚 = `module_adapters.cpp` 的 `p1_noise_model_for_frame(data_scale=…)` 把 `variance_floor` 乘 `data_scale²`）。**两个阶段同口径**：取非正值 ⇒ 具名拒绝 `SNR_FLOOR_UNBOUND`（rc=−10），**拒绝即终态，无常数回退路径**。生效地板必须在其产品 dtype 中可表示（`NOISE_MODEL` §9），否则同样拒绝 |
 
 ### 13.2 输出（NoiseWeightModelV1 + fill 逐像素场）
 
 | 字段/数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
 | NoiseWeightModelV1（snr_estimator.h:127-144） | ctrl_* double `[n_control_points]`（patch 中心 0-based 像素坐标/σ/variance/ivar） | σ: ADU；variance: ADU²；ivar: ADU⁻² | 合格 patch 的 max(patch_var, floor) 与 1/var；n_qualified_patches+n_rejected_patches==64（8×8） |
-| sigma_bg_global / variance_bg_global / ivar_bg_global | double 标量 | ADU / ADU² / ADU⁻² | 全局兜底=合格 patch variance 稳健中位数（非退化）；完全退化 rc=1 时 ivar_bg_global==0.0（显式不可用，禁止伪装——§4a） |
-| source / has_spatial_field / degenerate | uint8 标志 | — | source=0（empirical blank-sky 唯一生产基线）。**适用域（正向约束）**：empirical 路径以 8×8 patch 的稳健尺度估计随机噪声，**要求 patch 内以天空背景为主**——帧含大面积未分辨结构 / 强梯度 / 弥散源时 patch 尺度量的是**结构**而非随机噪声，该域权重效率损失 E 由 0.0091 升至 0.4364（判据 `E = Var_w/Var_opt − 1`，见 `docs/science/CONTROL_WEIGHT_SNR.md`）⇒ 该域必须走 `has_spatial_field` 空间场或显式降级，**不得**以 source=0 标量场冒充；has_spatial_field=1 须 enable_spatial_field==1、n_control_points>=4 且控制点几何张成二维（点云相对条件数 λlo/λhi≥1/16，即 κ=√(λhi/λlo)≤4；DISP-NOISE-010 已整改）；degenerate=1=无合格 patch 且全帧兜底退化 |
-| fill 输出 out_variance / out_ivar | float32 `[h·w]` 行主序 | ADU² / ADU⁻² | 任一可 NULL（可空输出，双 NULL 拒绝 rc=3 :467）；平面预测**为正**时取 max(a+b·x+c·y, floor)（floor 为**按 dtype 导出**的数值保护，见 SCI §9）；**预测 ≤ 0 ⇒ 该像素方差不可用：variance=0 ∧ ivar=0（显式不可用，不得由 clamp 产生、不得写 NaN）**；无合格 patch 时 ivar=0 拒绝加权（SCI §7） |
+| sigma_bg_global / variance_bg_global / ivar_bg_global | double 标量 | ADU / ADU² / ADU⁻² | 全局兜底=合格 patch variance 稳健中位数（非退化）；完全退化 rc=1 时 ivar_bg_global==0.0（显式不可用标记本身——§4a） |
+| source / has_spatial_field / degenerate | uint8 标志 | — | source=0（empirical blank-sky 唯一生产基线）。**适用域（正向约束）**：empirical 路径以 8×8 patch 的稳健尺度估计随机噪声，**要求 patch 内以天空背景为主**——帧含大面积未分辨结构 / 强梯度 / 弥散源时 patch 尺度量的是**结构**而非随机噪声，该域权重效率损失 E 由 0.0091 升至 0.4364（判据 `E = Var_w/Var_opt − 1`，见 `docs/science/CONTROL_WEIGHT_SNR.md`）⇒ 该域必须走 `has_spatial_field` 空间场或显式降级，**source=0 标量场限于该适用域**；has_spatial_field=1 须 enable_spatial_field==1、n_control_points>=4 且控制点几何张成二维（点云相对条件数 λlo/λhi≥1/16，即 κ=√(λhi/λlo)≤4；DISP-NOISE-010 已整改）；degenerate=1=无合格 patch 且全帧兜底退化 |
+| fill 输出 out_variance / out_ivar | float32 `[h·w]` 行主序 | ADU² / ADU⁻² | 任一可 NULL（可空输出，双 NULL 拒绝 rc=3 :467）；平面预测**为正**时取 max(a+b·x+c·y, floor)（floor 为**按 dtype 导出**的数值保护，见 SCI §9）；**预测 ≤ 0 ⇒ 该像素方差不可用：variance=0 ∧ ivar=0（显式不可用，由该判据直接给出；NaN 只留给无覆盖）**；无合格 patch 时 ivar=0 拒绝加权（SCI §7） |
 
 ### 13.3 坐标与精度规则（汇总）
 
@@ -526,7 +557,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   patch 中心 ctrl_x_px/ctrl_y_px 为 patch 几何中心（(x0+x1)/2）。
 - FP64 全链路统计（f32 输入升 double 计）；fill 输出 float32 截断
   （诊断值非科学累加值）。
-- 量纲不变量（**两态穷尽**）：方差可用 ⇒ `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance` 精确互倒；方差不可用 ⇒ `variance=0 ∧ ivar=0`。**不存在 `ivar=1/max(variance,floor)` 这一形态**——地板不得进入产品值（SCI §7/§9）；gain 模型
+- 量纲不变量（**两态穷尽**）：方差可用 ⇒ `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance` 精确互倒；方差不可用 ⇒ `variance=0 ∧ ivar=0`。**不存在 `ivar=1/max(variance,floor)` 这一形态**——产品值只取该两态（地板只作数值保护，SCI §7/§9）；gain 模型
   var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
   §4a/SCI §10 域外引用）。
 
@@ -557,7 +588,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | reference_baseline.scope | string | — | `frame_independent_fixed_magnitude`（**现行**：逐帧 `F_ref,k`，只依赖本帧标定，无「组」概念）；`group` = 块级公共 `F0`（**旧口径**） |
 | reference_baseline.reference_mag | f64 | mag | **`m_ref = 6.0`**（§9.60 `FREF-BASELINE-001`；§9.67 定案 4 前台判定「取 6 等星那一支」） |
 | reference_baseline.reference_mag_system | string | — | 星等系统（现行 = `gaia_g_via_synthetic_xpsd`：Gaia DR3 XP 绝对 XPSD 谱经本帧滤光片/QE 正向合成） |
-| reference_baseline.reference_flux_source | string | — | `fixed_magnitude`（现行）/ `group_median`（**不得作默认**）/ `config` / `unavailable`（该帧 fail-closed，不写帧级 SNR 键） |
+| reference_baseline.reference_flux_source | string | — | `fixed_magnitude`（现行）/ `group_median`（**仅作显式选项**）/ `config` / `unavailable`（该帧 fail-closed，不写帧级 SNR 键） |
 | reference_baseline.reference_flux_common | f64 | 见 `reference_flux_common_unit` | **物理公共锚 `F0`**：对同波段同星场恒为同一数 |
 | reference_baseline.reference_flux_common_unit | string | — | 公共锚单位（现行 = `F_syn (Gaia XPSD absolute spectral integral)`；显式 `snr.reference_flux_adu` 覆盖时为 ADU） |
 | reference_flux_k | f64 | 同上 | **逐帧** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`（逐帧、只依赖本帧标定） |
@@ -578,7 +609,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 > `<帧>/p1_final.json#variance_audit`（节点 manifest 在本链上不落盘，故产品面是唯一载体）。
 > 键名与清单的**唯一权威** = `astrocs::noise::variance_audit_required_fields()`
 > （`lib/algorithms/noise_snr/include/astrocs/noise/variance_plane_policy.h`）：
-> 生产者、校验者、产品级检查器与测试**必须**引用同一份，**不得**各写一份。
+> 生产者、校验者、产品级检查器与测试**必须**引用同一份，**唯一来源 = 该函数**。
 
 块内**必落字段**（缺任一即该帧方差面**不可审计**）：
 
@@ -601,19 +632,19 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 | `variance_audit_source` | string | 内容来源（= `p1_stack.json#variance_audit`） |
 
 - 判据的**零假设值恒为 1**（`R = σ_MAD / σ_white-equiv` 是恒等式，不是按数据集标定的值）
-  ⇒ **禁止**把 `R` 与任何写死的绝对倍数比较（如 `R > 3`）；**禁止**回退常数场；
+  ⇒ **`R` 的比较基准 = 恒等式的零假设值 1**（写死的绝对倍数如 `R > 3` 属另一类）；**拟合取值只来自平面场**；
   拟合必须在控制点凸包内**结构非负**。
 - **失败语义（fail-closed）**：本帧**已发布** variance/ivar 子产品而 `variance_audit_present == false`，
   或块在位但其 `status` 声称已挂方差面而 `variance_audit_missing_fields` 非空 ⇒ 判红
   （DATA 类：节点失败，`p1_final.json` 不落盘）。本帧**未**发布方差面时如实登记，
-  **不得**把「本次没有这张面」读成「字段丢了」。
+  「本次没有这张面」与「字段丢了」分属两种登记形态。
 - **额外诊断（不进必落清单）**：`n_r_unavailable_patches`（`R` 不可算的 patch 数，**不**被 R 判据剔除）、
   `hull_min_pred`（凸包内最小平面预测）、`schema` / `clause` / `status` / `reason` /
   `degenerate` / `auditable` / `plane_used` / `required_fields`。
 - **失败标记与注入键**：`variance_plane_audit_failed` = 凸包内占比非零 ⇒ 该帧**拟合不可审计**、
   不挂 variance 块（`status = skipped_variance_plane_not_auditable`）；
   `variance_plane_fault_injected` / `variance_audit_dropped_injected` 是**仅测试**的故障注入标记
-  （由环境变量触发，生产默认不可达），**不得**出现在正常产品里。
+  （由环境变量触发，生产默认不可达），**正常产品面 = 无该标记**。
 
 ## 14. Phase1 photometry 模块输入/输出数据（DATA-P1-PHOT）
 
@@ -628,7 +659,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 > 单位/dtype/shape/invalid 的唯一权威；descriptor 端口编目（psf→
 > DATA-P1-PSF/sources→DATA-P1-SOURCES/fluxes→DATA-P1-FLUX，
 > module_adapters.cpp:531-548）为编排层词汇，由 P1-PHOT-INT 对齐，
-> 不得反向作为冻结依据。
+> 冻结依据只取上游权威文档。
 
 
 ### 14.1 输入（生产通道 pc_calibrate_simple_with_gaia_v2 / _f64_v2）
@@ -652,7 +683,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 
 | 输出 | dtype/shape | 单位/域 | 语义 |
 |---|---|---|---|
-| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化 = `calibrated_adu`（量纲 ADU）；已定标（scale≠1 且 n_matched>0）= `photo_scaled_adu`（量纲 `α·ADU` = 模型通带积分辐照度 `F_syn` 单位，α = scale） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，不得随 `PHOTAPPL` 区分**——标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed）；裸 `ADU` 只在 §31.2 (b) 的 provenance 声明齐备时可写 |
+| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化 = `calibrated_adu`（量纲 ADU）；已定标（scale≠1 且 n_matched>0）= `photo_scaled_adu`（量纲 `α·ADU` = 模型通带积分辐照度 `F_syn` 单位，α = scale） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，与 `PHOTAPPL` 各自独立**——标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed）；裸 `ADU` 只在 §31.2 (b) 的 provenance 声明齐备时可写 |
 | out_scale_factor | double 标量 | **`[F_syn 单位]/ADU`**（`scale = 10^(−location)`；F_syn 单位 = 模型通带积分辐照度，逐项见 §14.3。**不是**无量纲——只有在显式声明参考通量单位后才允许称其为无量纲乘性因子，SCI-PHOT-001 §10） | 10^(−location)（IRLS/Tukey，`star_matcher.cpp` 的 `std::pow(10.0, -location)`）；退化/一致集空 = 1.0（恒等，量纲退化为无量纲的特例） |
 | out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6744897501960817（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |
 | out_n_matched | int32 标量 | 颗 | IRLS inliers 数（fit_used） |
@@ -672,10 +703,10 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
   的单位为 **dex(ADU / [F_syn 单位])**，其中 F_syn 的单位为模型通带积分辐照度
   （W·m⁻²·nm）；`scale = 10^(−location)` 的单位为 **[F_syn 单位]/ADU**。合同在此
   **显式声明参考通量单位**；只有在声明单位后，才允许称 scale 为无量纲乘性因子。
-  禁止反向（SCI-PHOT-001 §10）。
+  读法方向唯一（SCI-PHOT-001 §10）。
 - determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
   像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。
-  **口径注记（RULING-DOC-01）**：此处的「bitwise 与线程数无关」是**模块层由构造保证的更强断言**（该路径无跨像素归约，故不存在归约顺序依赖），**不是**合同层对"1/N worker 等价"的一般判据；合同层的等价判据是**事前冻结的浮点容差**（`docs/contracts/SCHEDULER_CONTRACT.md` §2.1、`docs/contracts/TEST_MATRIX.md` §2）。模块门可以比合同更严，不得据此把其它含跨 worker 归约的路径也断言成逐位一致。
+  **口径注记（RULING-DOC-01）**：此处的「bitwise 与线程数无关」是**模块层由构造保证的更强断言**（该路径无跨像素归约，故不存在归约顺序依赖），**不是**合同层对"1/N worker 等价"的一般判据；合同层的等价判据是**事前冻结的浮点容差**（`docs/contracts/SCHEDULER_CONTRACT.md` §2.1、`docs/contracts/TEST_MATRIX.md` §2）。模块门可以比合同更严，其它跨 worker 归约路径按合同层浮点容差判定。
 
 ## 15. Phase1 star-psf 模块输入/输出数据（DATA-P1-PSF）
 
@@ -688,7 +719,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 > （PHASE1_API_V1 §2）。本节是该模块单位/dtype/shape/invalid 的唯一权威；
 > descriptor 端口编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES，
 > module_adapters.cpp:499-503）与本节一致。**双 [N,9] 布局并存**（15.2 A/B）
-> 为冻结事实，禁止混淆。
+> 为冻结事实，两布局各自具名。
 
 ### 15.1 输入（dpsf_fit_batch_f / _d 生产通道，orchestrator.cpp:2314/:2339）
 
@@ -734,8 +765,8 @@ orchestrator.cpp:2564-2570）**——DPSFFitResult 序列化（:2376-2387）：
 第 0..n_valid−1 行；失败星不占据参数行（**禁留 NaN 占位行**）。逐星真值由可选
 `out_status`（`psf_status:INT32[N]`，`DPSF_PSF_STATUS_{OK,FIT_FAILED,RECT_EMPTY,ALLOC_FAILED}`
 =0/1/2/3）按检测下标报告；调用方**必须**用 `out_status` 做星 ID↔参数行映射，
-**禁止按 `i < out_n_valid` 截断前缀**（否则 NaN/错位行贴真实 star_id、后续有效星被丢弃）。
-两布局列序不同（A=状态/派生量序，B=参数序），跨层传递禁止直接复用同一缓冲。
+**参数行下标一律取自 `out_status`**（按 `i < out_n_valid` 截断前缀会让 NaN/错位行贴真实 star_id、后续有效星被丢弃）。
+两布局列序不同（A=状态/派生量序，B=参数序），跨层传递各用各自缓冲。
 
 **附属产出：`star_measurements` 权威块 FLOAT64 [N,15]（schema
 astrocs-star-measurements-1，orchestrator.cpp:2403-2411 注释）**：列
@@ -746,7 +777,7 @@ astrocs-star-measurements-1，orchestrator.cpp:2403-2411 注释）**：列
 [7]=fwhm，[8]=A，[9]=B，[10]=mad（与 [4] 同源，保留为兼容别名），[11]=eccentricity，[12]=mag（detector），
 [13]=saturated，[14]=has_saturated。PSF 不输出独立 background_rms，SNR 使用
 A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.482602218505602；
-唯一冻结定义见 docs/algorithms/GATES_AND_TOLERANCES.md §2，**禁用**无落点回指式表述）；下游必须经 star_id 连接，禁止数组
+唯一冻结定义见 docs/algorithms/GATES_AND_TOLERANCES.md §2，**表述须带落点**）；下游必须经 star_id 连接，连接键 = star_id，非数组
 行号隐式连接（:2409-2411）。该块列语义由 P1-STAR-INT 承接（matrix depends_on_int=P1-STAR-INT）。
 
 ### 15.3 坐标与精度规则（汇总）
@@ -758,8 +789,8 @@ A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.48
   （fixed_reduction_order，README §7）。
 - FP64 通道（dpsf_fit_batch_d/f64）不降级；FP32 通道不经 uint16 有损转换
   （PREC-105）。
-- determinism/dtype 变更属科学改动，须走 owner 流程；本节禁止被编排层词汇反向
-  改写（descriptor 占位 ALG-002/TEST-P1-PSF-001 不得反向作为冻结依据）。
+- determinism/dtype 变更属科学改动，须走 owner 流程；本节文本的编辑方向 = 由上游发起，
+  改写（descriptor 占位 ALG-002/TEST-P1-PSF-001 只作占位，冻结依据 = 本节与上游 DATA 节）。
 
 ## 16. Phase1 装配会话输入/输出数据（DATA-P1-SESSION）
 
@@ -773,7 +804,7 @@ A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.48
 > （docs/api/PHASE1_API_V1.md，FROZEN）；入口符号合同 API-P1-SESSION
 > （PUBLIC_API.md）。本节是该会话数据面单位/dtype/shape/invalid 的**依据**（上位 =
 > `ASTROCS_DESIGN.md` §0/§0.1；科学公式与算法推导以 `docs/science/`、`docs/algorithms/` 为准），
-> 禁止被编排层占位词汇反向改写；本节不自称「唯一权威」（依 §0.1「禁止任何下级文档自称唯一权威」）。
+> 本节词汇的改写方向 = 由上游发起；本节权威等级由上位文档授予（依 §0.1：下级文档不另立权威链）。
 
 ### 16.1 config JSON（p1_session_validate 键集，p1_session.cpp:115-143）
 
@@ -802,7 +833,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 - `cancel`（:92-97 单向置位）：检查点=io_read 文件粒度（:177-181）、
   calibrate 帧粒度（:228-231）、cosmetic 帧粒度（:289）。
 - `budget`（:100-108）：`max_workers` → `ac_set_num_threads` 注入
-  （:162-165）；`available_cpus` 上限快照。**B2-A18**：Runtime 节点 trace 的 `workers`/`granted_workers` 与 CLI 资源门 U 分母**必须**读 `granted_worker_observation()`（ThreadBudget acquire/release 真实累计的峰值并发租约 token 数）；哨兵 0=未观测时回退 `min(selected_workers, available_cpus)`（阈值不变）；**禁用配置 budget 冒充观测**（权威 = ENGINEERING_SPEC.md §10「一个进程只有一个资源调度器与线程预算源；模块不得硬编码 workers」+ 实现锚 `lib/infrastructure/scheduler/src/context.cpp:127`、`lib/infrastructure/cli/commands.cpp:668/788`；**语义不变**）。
+  （:162-165）；`available_cpus` 上限快照。**B2-A18**：Runtime 节点 trace 的 `workers`/`granted_workers` 与 CLI 资源门 U 分母**必须**读 `granted_worker_observation()`（ThreadBudget acquire/release 真实累计的峰值并发租约 token 数）；哨兵 0=未观测时回退 `min(selected_workers, available_cpus)`（阈值不变）；**配置 budget 只作声明面**（权威 = ENGINEERING_SPEC.md §10「一个进程只有一个资源调度器与线程预算源；模块不硬编码 workers、不私建长期线程池」+ 实现锚 `lib/infrastructure/scheduler/src/context.cpp:127`、`lib/infrastructure/cli/commands.cpp:668/788`；**语义不变**）。
 
 ### 16.3 manifest JSON（p1_session_inspect 输出，dump(2) :348）
 
@@ -837,7 +868,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   权威）与任何其他阶段算法；不描述 Phase2/3 数据面。
 - API-P1-001 冻结 7-stage 序列与现状 4 段（CAL+COS）的差距在
   lib/phase1_session/README.md §3 如实声明；补齐归 P1-SESSION-IMPL。
-- assembly 层禁止声明 IMPLEMENTED 于无证据处；descriptor 端口编目
+- assembly 层的 IMPLEMENTED 只由证据签发；descriptor 端口编目
   （module_adapters.cpp:317-606）与本节冲突时以本节+各冻结 DATA 节为准。
 
 ## 17. Phase1 star-detection 模块输入/输出数据（DATA-P1-STAR）
@@ -852,7 +883,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 > 引用不改动）；编排级合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威
 > 检测，PLATESOLVE 禁重检测）。本节是该模块单位/dtype/shape/invalid 的唯一
 > 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-510）为
-> 编排层词汇，由 P1-PSF-INT 对齐，不得反向作为冻结依据。
+> 编排层词汇，由 P1-PSF-INT 对齐；冻结依据只取上游权威文档。
 
 ### 17.1 输入（生产通道 sdet_detect_ex / sdet_detect_ex_f64，orchestrator.cpp:2172-2196）
 
@@ -867,7 +898,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 | 数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
 | x / y | double `[n]` | pixel（0-based，像素中心=索引+0.5） | n=0 时全 NULL（空场合法 rc=0，:2252-2263）；分配失败 → rc=−1（:2264-2270） |
-| flux | float `[n]` | ADU（正常星=**检测侧椭圆高斯峰值振幅 A**，非解析积分流量；检测侧母函数=椭圆高斯、PSF 侧=Moffat4，两列**禁止跨块比较**（同 sx 下 FWHM 差 1.9140×），DISP-STAR-007） | 饱和星拟合失败=0.0f 哨兵（:1519-1531） |
+| flux | float `[n]` | ADU（正常星=**检测侧椭圆高斯峰值振幅 A**，非解析积分流量；检测侧母函数=椭圆高斯、PSF 侧=Moffat4，两列**各按自身母函数口径**（同 sx 下 FWHM 差 1.9140×），DISP-STAR-007） | 饱和星拟合失败=0.0f 哨兵（:1519-1531） |
 | mag | float `[n]` | mag（正常星=−2.5·log10(Σ_box(pixel−B_fit))，box 半径=候选 R 钳 [5,200]；饱和星=−2.5·log10(A)，量纲差异=DISP-STAR-004） | box_sum≤0 或拟合失败=NaN（:2177-2198）；NaN 恒排末尾（:941-956） |
 | saturated / has_saturated | int `[n]` | 0/1 | saturated=(A_fit>dynrange)（:2159）；has_saturated 恒=saturated（:2203，DISP-STAR-004） |
 | extras 列（可选） | float `[n]` | 各 extra_name 定义 | — |
@@ -880,7 +911,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   现状只解包 x/y）；PLATESOLVE fallback 读 star_det 块显式 DETECTOR_FALLBACK，
   其坐标**已是**「像素中心=索引+0.5」接口契约 ⇒ **直送，禁再 −0.5**
   （orchestrator.cpp:1837-1858；**禁用**「−0.5 转统一契约」写法，与实码互斥，R-3 §3.4）；
-  PLATESOLVE 禁止调用 sdet_detect_ex 重检测
+  PLATESOLVE 的检测输入一律取已解出的 PSF 星点
   （:1748-1755）。
 - **SNR 定义（本域）**：`SNR_peak := A_fit / sigma_bg`，无量纲；检测侧
   `A_fit` = 椭圆高斯拟合峰值振幅（= 本表 §17.2 flux 列，**非**解析积分流量）、
@@ -905,7 +936,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   （DISP-STAR-001）。
 - determinism=fixed_reduction_order（module.yaml；输出 bitwise 与线程数
   无关，ALG-STARDET-001 §5）；dtype/determinism 变更属科学改动，须走
-  owner 流程；本节禁止被编排层词汇反向改写。
+  owner 流程；本节词汇的改写方向 = 由上游发起。
 
 ### 17.4 错误/边界
 
@@ -915,7 +946,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   （orchestrator.cpp:2200-2212）；star_det 写块失败 → 阶段失败
   （:2242-2247）；缓冲在 PIPELINE 收尾释放（:2466）。
 - 释放纪律：10 数组必须经 sdet_free_detect_ex 整组释放（:2357-2373），
-  禁止逐数组 free（extras 数组同组释放）。
+  释放单位 = 整组（extras 数组同组释放）。
 
 ## 18. Phase1 wcs（plate_solve）模块输入/输出数据（DATA-P1-WCS）
 
@@ -930,8 +961,8 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 > 不改动）；编排级合同 API-P1-004（PHASE1_API_V1 §2：一帧只做一次权威
 > 求解，PLATESOLVE 消费 PSF 星点禁重检测）。本节是该模块单位/dtype/
 > shape/invalid 的唯一权威；descriptor astrocs.phase1.wcs-platesolve
-> （module_adapters.cpp:512-526）为编排层词汇，由 P1-WCS-INT 对齐，不得
-> 反向作为冻结依据。
+> （module_adapters.cpp:512-526）为编排层词汇，由 P1-WCS-INT 对齐；冻结依据的
+> 唯一来源 = 上游权威文档与本节合同文本（descriptor 词汇仅作对齐面）。
 
 ### 18.1 输入（生产通道 ipv_solve_from_detections_v1，orchestrator.cpp:1967）
 
@@ -951,7 +982,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 
 | 字段 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
-| success | int | 0/1 | 0=失败（error_msg[256] 填充，ipv_entry.cpp:141 set_error_msg；:181-187/:218-224 异常路径）；**CD det 退化坍缩禁止冒充解**（DISP-WCS-001 失败-置信度语义，PLATESOLVE.md §11.3） |
+| success | int | 0/1 | 0=失败（error_msg[256] 填充，ipv_entry.cpp:141 set_error_msg；:181-187/:218-224 异常路径）；**CD det 退化坍缩的呈现 = success 0**（DISP-WCS-001 失败-置信度语义，PLATESOLVE.md §11.3） |
 | cd[4] | double `[2×2]` | deg/pixel（Y-down，cd12/cd22 已取反 ipv_wcs.cpp:542-544） | trans 线性项 det<1e-15 仅 warn 跳过 SIP（:322-325，DISP-WCS-004） |
 | crval[2] | double | deg（ICRS/J2000） | 收敛失败 → success=0 |
 | crpix[2] | double | pixel，1-based，=(w/2+0.5, h/2+0.5)（ipv_wcs.cpp:274-277） | **退化坍缩时近似 CRPIX 的输出不可判**（DISP-WCS-001） |
@@ -981,8 +1012,8 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   同族合规）；Gaia 查询 mag 上限自适应（ipv_select.cpp:429 m_lim）。
 - determinism=fixed_reduction_order（module.yaml；投票矩阵整数归并
   ipv_triangle.cpp:347-357，线程数无关；§11.4 F5 冻结断言）；
-  dtype/determinism 变更属科学改动，须走 owner 流程；本节禁止被编排层
-  词汇反向改写。
+  dtype/determinism 变更属科学改动，须走 owner 流程；本节词汇的改写发起方 = 上游，
+  词汇反向改写属未登记方向。
 
 ### 18.4 错误/边界
 
@@ -1011,7 +1042,7 @@ default）：
 | `config` | `config.wcs.ra0/dec0` | `206.265·pixel_size_um/focal_length_mm` | 调用方给定的数据集指向（与帧头 WCS 无关） |
 | `neighbor_crval` | `config.wcs.neighbor_ra0/neighbor_dec0` | 同 `config` | 邻帧来源必须来自**我们自己已解出的产物**（本管线 `p1_wcs.json` 的 CRVAL），由调用方回填；**明确不是帧头 WCS** |
 
-- **`header_crval` 不是合法取值（未授权）**：`p1_op_wcs` 不得读取/使用帧头
+- **`header_crval` 不是合法取值（未授权）**：`p1_op_wcs` 的解算输入面 = 自身已解出的产物；帧头
   CRVAL1/2、`PLTSOLVD`、`CD`/`PC` 或 `SIP` 作为初始指向或任何解算输入；
   传 `init_source=header_crval` 一律 DATA 拒绝（不静默回退）。
 - 帧头 WCS 未授权的实测证据（P9 全库 906 帧扫描）：31 帧无 `CRVAL1/2`
@@ -1039,8 +1070,8 @@ default）：
 > 编排级合同 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权图
 > Coverage 行）；descriptor astrocs.phase2.coverage
 > （module_adapters.cpp:623-638）为编排层词汇（端口坐标 PIXEL 登记与
-> NESTED 球面实际不符，以本节为准修订），由 P2-COV-INT 对齐，不得反向
-> 作为冻结依据。registry 端口语义沿用 DATA-P2-COV 端口名（本节冻结后
+> NESTED 球面实际不符，以本节为准修订），由 P2-COV-INT 对齐；冻结依据的唯一
+> 来源 = 上游权威文档与本节合同文本。registry 端口语义沿用 DATA-P2-COV 端口名（本节冻结后
 > 为其权威定义）。
 
 ### 19.1 输入（p2_coverage_build，coverage.cpp:144）
@@ -1094,7 +1125,7 @@ P2HipsInputInfo 逐字段（coverage.h:32-38，回填锚 :113-143）:
 
 - **coverage 是几何集合量，非权重**（P2-COV 合同红线，ALG-COV-001 §7）:
   union MOC cell / target_order / n_tiles / 覆盖帧数为 NESTED
-  equatorial/ICRS 球面几何登记，无量纲整数；禁止被任何下游作为科学
+  equatorial/ICRS 球面几何登记，无量纲整数；下游消费面 = 几何/覆盖语义，非科学
   权重/置信度使用（科学权重唯一冻结式 `w_UPM = quality_factor ×
   geometric_reliability × control_ivar`，docs/science/PHASE2_UPM.md §5，
   support 仅 eligibility/coverage 语义）。
@@ -1115,7 +1146,7 @@ P2HipsInputInfo 逐字段（coverage.h:32-38，回填锚 :113-143）:
 - **dtype/确定性**: 全链路整数（无浮点），bitwise 确定；输出 MOC
   升序唯一（sort+unique :212-214）；determinism=fixed_reduction_order
   （module.yaml）；坐标契约 = HEALPix NESTED 父单元索引（z-order 2D
-  移位 `t >> 2·(order_f−target_order)`，:207-209），禁止以 PIXEL 坐标
+  移位 `t >> 2·(order_f−target_order)`,:207-209），**坐标解读面 = HEALPix NESTED 索引**；PIXEL 坐标
   解读（registry descriptor 像素登记由 P2-COV-INT 修订）。
 
 ### 19.4 错误/边界
@@ -1136,7 +1167,7 @@ P2HipsInputInfo 逐字段（coverage.h:32-38，回填锚 :113-143）:
 > ID: DATA-P2-HIPS  状态: CONTRACT_READY
 > 模块: lib/algorithms/coverage/tools/stage2.cpp 生产工具 astrocs-stage2
 > （astrocs.p2.hips_writer；迁移目标 astrocs_p2_hips_writer.dll 为矩阵
-> 合同值，尚未存在，由 P2-HIPS-IMPL 建立，禁止声明 IMPLEMENTED）。
+> 合同值，尚未存在，由 P2-HIPS-IMPL 建立，IMPLEMENTED 只由验收签发）。
 > 本节是 Phase2 马赛克（HiPS）输出单位/dtype/shape/invalid 的唯一
 > 权威；ALG: ALG-P2-HIPS-001..004（docs/algorithms/
 > PHASE2_MOSAIC_WRITE.md，算法级逐符号锚由该文档登记）；编排级合同
@@ -1158,10 +1189,10 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 | 字段 | 默认（锚 :16-99） | 单位/域 | 语义/约束 |
 |---|---|---|---|
 | hips | —（:19） | 文件系统路径 `[n_frames]` | 每帧 Phase1 HiPS 目录；空集 → rc=2/3 拒绝 |
-| target_order_spec / target_order | "auto" / −1（:20-21） | 无量纲（HEALPix order） | target_order≥0 显式采用，否则 = cov.target_order；**不得高于输入最高 order**（stage2.cpp:203-205，禁插值伪装分辨率，对齐 §19.2 target_order 冻结语义） |
+| target_order_spec / target_order | "auto" / −1（:20-21） | 无量纲（HEALPix order） | target_order≥0 显式采用，否则 = cov.target_order；**上界 = 输入最高 order**（stage2.cpp:203-205，插值不参与分辨率，对齐 §19.2 target_order 冻结语义） |
 | precision | 0（:50） | 无量纲 | 0=float32 / 1=float64 输出 dtype（stage2.cpp:529） |
 | memory_limit_mb | 24576（:51） | MB | 执行内存预算（CON-002 全局执行预算域） |
-| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "astrocs_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；工具链默认 "wbpp_2_9_1" 为对照档，分歧已登记） | 无量纲 | planning 层解析为显式方法；profile 版本化（自研档逐输出像素几何 n；对照档阈值表采纳自 WBPP 2.9.1） |
+| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "astrocs_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；工具链默认 "wbpp_2_9_1" 为对照档，分歧已登记） | 无量纲 | planning 层解析为显式方法；profile 版本化（自研档逐输出像素几何 n；对照档 = 本仓冻结解析表，档界取自 WBPP 2.5.9 bestRejectionMethod） |
 | reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一；mask 应用回原始 calibrated 值 |
 | large_scale_enabled（及 min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭（WBPP largeScaleClip 默认一致） |
 | ~~weight_mode~~（键不存在） | — | 无量纲 | **禁用键**：不存在「权重模式」概念（§9.73 A44；ASTROCS_DESIGN.md §2.1）；逆方差权重由阶段二按该天球像素对应的帧集合**现场算出**（派生量，非配置项）；配置中出现该键 ⇒ 具名 fail-closed 拒绝（§31.8） |
@@ -1189,7 +1220,7 @@ signal + support 两个 Image HiPS**；无 variance/ivar/snr 产品
 **目标态合同（DATA-UNC-001）**：Phase2 马赛克产品
 集目标含 variance/ivar/nused/nrej 子产品与 provenance 键（§30.1–
 §30.3，DATA-P2-VAR-001/DATA-P2-REJ-001/DATA-P2-PROV-001）；实现
-不得先行，接线整改归 P2-001（writer 通道
+面按接线缺口推进，整改归 P2-001（writer 通道
 `aio_hips_write_variance_tile` 已具备，属接线缺口非能力缺口，
 DISP-P2HIPS-001 整改去向不变）；本节现状描述在实现落地前保持有效。
 几何: NESTED（§2 唯一 ordering），
@@ -1215,7 +1246,7 @@ Phase1/Phase2 的 FITS tile **当前不写 `BUNIT`**（实测 tile 头只有
 以现行 Phase2 面亮度产品（`BUNIT=ADU/sr`）为输入调用 `resolve_bunit`，声明 `pixel_semantics=SurfaceBrightness`
 且 `pixel_area_power=-2`（即产品自述的立体角幂）；判据 = 返回 `resolvable=false` ⇒ 缺口成立、§5.3 守卫**未生效**。
 反例（负对照）：把 `BUNIT` 换成 `ADU` 且 `pixel_area_power=0` 时 `resolvable=true` ⇒ 判据非退化。
-**不得**据此缺口声称 §5.3 守卫已生效。
+**§5.3 守卫生效的判据 = 该缺口关闭**。
 
 写出 tile 集: cov.n_union_cells 顺序逐 tile（stage2.cpp:659-660），
 探测读零帧的 tile 跳过（frames.empty() → continue，:669）；写后
@@ -1231,12 +1262,12 @@ signal 回读失败 rc=7 :1665）。
   AstroSphereTileView（flux_sum/covered_area/valid_mask，
   :1620-1628）进 AIO writer，按 DATA-P1-HIPS §12.2 同一公式落盘
   （signal=flux_sum/covered_area、support=covered_area/A_cell）——
-  Phase2 输出单位公式与 P1 writer 严格同源，禁止第二套定义。
+  Phase2 输出单位公式与 P1 writer 严格同源，定义只有这一份。
 - **四概念分离**（matrix P2-HIPS 专项）:
   - signal = 加权积分信号 → flux_sum 逆变换（ADU surface
     brightness）——唯一科学信号产品；
   - support = covered_area/A_cell ∈ [0,1]（样本级支持度）——仅
-    eligibility/覆盖语义，禁止作科学权重（§4；科学权重唯一冻结式
+    eligibility/覆盖语义（科学权重另立，§4；科学权重唯一冻结式
     `w_UPM = quality_factor × geometric_reliability × control_ivar`，
     docs/science/PHASE2_UPM.md §5）；
   - ivar/variance = **输入侧逐帧产品**（§4a，DATA-HIPS-VAR-001/
@@ -1274,7 +1305,7 @@ signal 回读失败 rc=7 :1665）。
   `astrocs_support_clamped_pixels`（叶级 covered_area>A_cell 像素数）与
   `astrocs_coverage_gt1_pixels`（层级 Σa>A_cell_k 像素数，即"覆盖面积
   不可复原"的像素数），properties 与 manifest.json 双写；消费者见 >0 时
-  不得宣称覆盖面积可复原（DATA-P1-HIPS §12.2 的 F=signal×support×A_cell
+  按「覆盖面积不可复原」处置（DATA-P1-HIPS §12.2 的 F=signal×support×A_cell
   闭合式同受此限）。
   **⚠ 计数被 f32 舍入污染（登记项）**：`A_cell` 以
   **f32** 进入 writer 视图后再回除，相对误差 ~1e-8 使 `sup = covered_area/A_cell`
@@ -1301,15 +1332,15 @@ signal 回读失败 rc=7 :1665）。
 - **原子发布边界（对齐 §12.5）**: stage2 直写 out_hips
   （aio_hips_product_begin :592 起），非原子、覆盖式、无回滚；原子
   rename/manifest COMPLETE 发布语义由 IO-003 编排层承接
-  （DISP-P2HIPS-003）——与 DATA-P1-HIPS §12.5 同源对齐，禁止以
-  stage2 直写目录冒认 IO-003 原子发布。
+  （DISP-P2HIPS-003）——与 DATA-P1-HIPS §12.5 同源对齐；原子发布语义的承载方 = IO-003 编排层，
+  stage2 直写目录属 IO-003 之外的非原子面。
 - **编排层词汇注记**: registry descriptor p2_write_descriptor
   （lib/infrastructure/scheduler/src/module_adapters.cpp:739-756，module_id=
   "astrocs.phase2.write" :679）端口表 integrated=DATA-P2-INT in /
   mosaic=DATA-P2-RES out（UnitId::ADU/CoordinateFrame::PIXEL，
   :684-687）为编排层词汇，与球面 NESTED 马赛克实际不符（产品为
   NESTED 球面 tile，非 PIXEL 平面），以本节为准修订，P2-XX-INT
-  对齐，不得反向作为冻结依据；DATA-P2-INT 端口（集成内部视图）
+  对齐；冻结依据只取上游权威文档；DATA-P2-INT 端口（集成内部视图）
   逐符号数据合同见 §21。
 - **dtype/确定性**: 全浮点输出限 float32/float64 IEEE 域
   （precision 唯一选择 :528）；整数登记量（nside/order/tile 计数/
@@ -1348,7 +1379,7 @@ signal 回读失败 rc=7 :1665）。
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
 > （astrocs.p2.integration；合同三件套 lib/algorithms/integration/，迁移目标
 > astrocs_p2_integration.dll 为矩阵合同值，尚未存在，由 P2-INT-IMPL
-> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 逐像素积分内核
+> 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 逐像素积分内核
 > in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-INT-001
 > （docs/algorithms/PHASE2_INTEGRATION.md，逐符号锚与 §11 冻结附录）；
 > SCI 上游: SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，零改动）；
@@ -1406,7 +1437,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 
 - 全浮点为 IEEE f64（核内）；f32/f64 写盘转换在 Stage2 precision
   （§20.2/:529），本层不输出文件产品。weights（1/ADU²）与
-  support（无量纲）量纲不同，本层分开消费、禁止互换（§20.3
+  support（无量纲）量纲不同，本层分开消费、各自具名（§20.3
   红线在本层的镜像）。
 - 确定性: 候选索引 i=0..count-1 固定序单栈归约（:30-57）；
   vs/wsum 双累加器顺序确定（:52-53），signal=vs/wsum 单除法
@@ -1450,7 +1481,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）
 > （astrocs.p2.rejection；合同三件套 lib/algorithms/rejection/，迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在，由 P2-REJ-IMPL
-> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 候选栈排异内核
+> 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 候选栈排异内核
 > in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-REJ-001
 > （docs/algorithms/PHASE2_REJECTION.md，逐符号锚与 §11 冻结容差）；
 > SCI 上游: SCI-REJ-001（docs/science/REJECTION.md，FROZEN，零改动；
@@ -1458,8 +1489,8 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > API 面: API-P2-REJ-001（PUBLIC_API.md）+ 编排级 API-P2-001
 > （FROZEN）。
 >
-> **`MINMAX` 在合同层不可选（`FZ-REJ-NO-MINMAX`）**：`min/max` **不得**在任何档位使用。
-> **依据分两层，两层都只支持「不推荐 / AUTO 不选」，不支持「外部标准禁止」**：
+> **`MINMAX` 在合同层不可选（`FZ-REJ-NO-MINMAX`）**：`min/max` **在全部档位的使用面 = 空**。
+> **依据分两层，两层的支持面都 = 「不推荐 / AUTO 不选」；「外部标准禁令」属另一类主张**：
 > ① **外部依据（软件惯例，非学术共识）**：WBPP（PixInsight WeightedBatchPreprocessing）
 > **2.5.9** 官方更新包 `src/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing-engine.js`
 > 的 `rejectionIsGood()`（:1349）对 `MinMax` 返回
@@ -1470,7 +1501,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > *"Other than these control tasks and some special cases, min/max should be avoided in production work"*
 > —— **带明文豁免**。**已检索 arXiv 多组关键词（min/max × pixel rejection / image stacking /
 > small number of images / CR-SPLIT 等），未找到任何同行评议文献支持该禁令** ⇒ 本条是**工程惯例**，
-> 不得表述为学术结论。**引用要求**：引外部依据时必须写明 WBPP 版本（**2.5.9** 为可公开核验版；
+> **表述口径 = 工程惯例**（非学术结论）。**引用要求**：引外部依据时必须写明 WBPP 版本（**2.5.9** 为可公开核验版；
 > 2.9.1 源码随商业安装分发、行号未独立验证），并写明行为是 **WARN** 而非 REJECT。
 > ② **内部冻结（本条的真正效力来源）** = AUTO 路由值域恒为 `{percentile, winsorized_sigma, linear_fit}`
 > （实现锚 `lib/algorithms/coverage/src/rejection.cpp` 的 `astrocs_n_map_method`）。
@@ -1527,7 +1558,7 @@ Output → 紧凑 P2CandidateStack（kernel 输入，rejection.h:267-273）:
 
 + `source_indices` u32 `[n_eff]`（Output 成员 :256）：eligible→
 original slot 权威回映射——PHASE2_IVAR_WIRING 冻结注释（:252-255）：
-compact 后禁止用 compact index 猜 original slot；ivar/quality/
+compact 后的 original slot 一律取自 source_indices；ivar/quality/
 variance/metadata 一律经此映射，权重构造方 stage2.cpp:1098 以此回
 映射 ivar slot。
 
@@ -1539,7 +1570,7 @@ eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
 **(3) kernel 层**（P2CandidateStack :266-273 + P2RejectionPlan
 :151-169）:
 
-- typed params 六组（禁止跨方法共享 low/high/max_iter，:99 注释）:
+- typed params 六组（low/high/max_iter 各自方法独占，:99 注释）:
   P2SigmaParams :100-104（robust_mad/winsorized/averaged/
   median_sigma 共用结构）/ P2LinearFitParams :106-110 /
   P2EsdParams :112-115 / P2PercentileParams :117-120 /
@@ -1561,7 +1592,7 @@ eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
 
 | 字段 | dtype/shape | 单位/值域 | invalid/未定 |
 |---|---|---|---|
-| reasons | u8 `[count]` | 0..3（P2RejectReason :72-78: ACCEPTED=0/REJECTED_LOW=1/REJECTED_HIGH=2/UNDERDETERMINED=3）。判向冻结=低于 lower threshold→REJECTED_LOW、高于 upper→REJECTED_HIGH（:20-21 冻结注释，禁止原始值正负号判向） | UNDERDETERMINED reason=全接受语义（计入 accepted_count，:1820-1834）；INVALID_METHOD/UNDERDETERMINED 栈时 reasons 相应全 UNDERDETERMINED/全接受（:1688-1701/:1842-1849） |
+| reasons | u8 `[count]` | 0..3（P2RejectReason :72-78: ACCEPTED=0/REJECTED_LOW=1/REJECTED_HIGH=2/UNDERDETERMINED=3）。判向冻结=低于 lower threshold→REJECTED_LOW、高于 upper→REJECTED_HIGH（:20-21 冻结注释，判向只按阈值两侧） | UNDERDETERMINED reason=全接受语义（计入 accepted_count，:1820-1834）；INVALID_METHOD/UNDERDETERMINED 栈时 reasons 相应全 UNDERDETERMINED/全接受（:1688-1701/:1842-1849） |
 | accepted_count | u32 标量 | 无量纲（含 UNDERDETERMINED 样本，全接受语义） | — |
 | rejected_low | u32 标量 | 无量纲（仅显式拒绝） | — |
 | rejected_high | u32 标量 | 无量纲（仅显式拒绝） | — |
@@ -1606,7 +1637,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
   stack->values）；PERCENTILE scale=原始域 |median|（:1587）；σ 族/
   ESD/RCR 在工作域（MEDIAN_SCALE 下无量纲化
   work/max(|median|,1e-12)，:1763-1766）。weights（1/ADU²）与
-  support（无量纲）量纲不同，分开消费禁止互换（§20.3 红线在本层
+  support（无量纲）量纲不同，分开消费、各自具名（§20.3 红线在本层
   镜像）；整数登记量（status/reasons/计数）bitwise 确定。
 - 确定性=fixed_reduction_order: 逐样本独立判定（无跨样本浮点归约
   顺序问题）→ per-pixel 决策 bitwise 独立于 worker 数（像素间并行
@@ -1653,7 +1684,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 - 端口词汇注记: registry descriptor p2_reject_descriptor
   （module_adapters.cpp:700-717，module_id=astrocs.phase2.reject
   占位）端口表为编排层词汇，由 P2-XX-INT 对齐 astrocs.p2.rejection，
-  不得反向作为冻结依据。
+  冻结依据的唯一来源 = 本合同的冻结正文。
 
 ## 23. Phase2 sampling（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-SMP）
 
@@ -1662,7 +1693,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 > lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）
 > （astrocs.p2.sampling；合同三件套 lib/algorithms/sampling/，迁移目标
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在，由 P2-SAMP-IMPL
-> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 background-clean 控制
+> 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 background-clean 控制
 > 点采样 in/out 单位/dtype/shape/invalid 的唯一权威；ALG:
 > ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，逐符号锚与 §11
 > 冻结容差）；SCI 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，
@@ -1705,7 +1736,7 @@ DISP-P2SMP-001；control_k_corr<=0 → 冻结默认 1.4 :497-498）:
 | background_tolerance | double | 3.0 | 局部 tolerance gate（MAD 单位，h:44；:988-992） |
 | background_neighbor_radius | int | 2 | 局部 baseline 邻域 cell 半径（h:45；:970-975） |
 | background_catalog_veto | int | 1 | SNR catalogue veto 开关（h:46；:853-856） |
-| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（**无量纲**）。**适用域（正向约束）**：Drizzle 核 `pixfrac ∈ [0.5, 1.0]` 且源像素角尺度 `∈ [300, 600]″/px`（= 逐帧查表域）；**域外（含 NaN / 未知）一律取冻结默认 1.4，禁止 clamp 静默饱和**（域外 clamp 会把一个与帧无关的表值当成逐帧标定）。**证据**：MC 标定 `UPMW-005 control_median_mc_test`（当前 Drizzle 引擎、`pixfrac = 0.8` 生产默认、2000 次实现）实测 `k_corr_empirical = 1.3883`、`N_eff ≈ 181 < N_retained = 251`；取 1.4 ≥ 1.3883（保守侧）。逐帧查表（pixfrac × 角尺度双线性插值）优先于该值；实现锚 = `lib/algorithms/coverage/src/sampler.cpp` 的 `kcorr_lookup` / `kControlCorrDefault` |
+| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（**无量纲**）。**适用域（正向约束）**：Drizzle 核 `pixfrac ∈ [0.5, 1.0]` 且源像素角尺度 `∈ [300, 600]″/px`（= 逐帧查表域）；**域外（含 NaN / 未知）一律取冻结默认 1.4；域外取值面 = 该冻结默认本身**（域外 clamp 会把一个与帧无关的表值当成逐帧标定）。**证据**：MC 标定 `UPMW-005 control_median_mc_test`（当前 Drizzle 引擎、`pixfrac = 0.8` 生产默认、2000 次实现）实测 `k_corr_empirical = 1.3883`、`N_eff ≈ 181 < N_retained = 251`；取 1.4 ≥ 1.3883（保守侧）。逐帧查表（pixfrac × 角尺度双线性插值）优先于该值；实现锚 = `lib/algorithms/coverage/src/sampler.cpp` 的 `kcorr_lookup` / `kControlCorrDefault` |
 | cpu_workers | int | 1 | CON-004 worker 数，Runtime lease 唯一来源（h:54-56；stage2.cpp:273-274；0→1 :883） |
 
 **(4) 输出缓冲四组**（probe/fill 协议，sampler.h:101-102/:118-119
@@ -1730,7 +1761,7 @@ sampler.cpp:1029-1059）:
 | uncertainty | f64 | ADU（=sqrt(control_variance)，:843/:1036） | — |
 | snr | f64 | 无量纲（局部 catalogue SNR 中位或回退整帧精确中位 ：860-861/:1037） | snr_available=0 时整帧回退值（不以 1.0 伪装，upm.h:51-55） |
 | ivar | f64 | 1/ADU²（**仅诊断**：单 leaf Phase1 ivar ≠ Var(control estimator)，:1039-1054 冻结注释；ivar 产品缺失/非 finite/≤0 → 0.0 如实降级 :1046，UPM 侧回退 1/uncertainty² :580 注） | 0.0=无 ivar 产品 |
-| control_variance | f64 | ADU²（`k_corr × (π/2) × σ_bg² / N_retained`；ALG-UPM-CONTROL-IVAR-001；实现锚 `lib/algorithms/coverage/src/sampler.cpp` 的 `cvar = kcorr_f * kPiHalf * sigma * sigma / n_ret`）。**标度 = 与所消费的 Phase1 帧面同一标度**（§25.3 标度条）。**逐项来源**：`σ_bg` = patch 的稳健尺度（MAD×1.482602218505602），量纲 ADU，标度同上；`(π/2)` = **样本中位数的渐近方差因子** `Var(median) = (π/2)·σ²/N`（零均值高斯、i.i.d.、大样本；一般式 `1/(4N·f(m)²)` 代入高斯密度即得，见 §25.3 证据条）；`N_retained` = 通过 cosmic 裁剪的保留样本数；`k_corr` 见上表。**适用域与修正（正向约束；方向已核实，不得写成「保守」）**：`Var(median) = (π/2)·σ²/N` 的成立条件 = **i.i.d. + 连续型分布 + 密度 `f` 在中位数邻域连续可微（`f(m)>0`）+ 大样本渐近**。证据（一手，逐字）：Cramér, *Mathematical Methods of Statistics*, Princeton Univ. Press, 1946, **§28.5 "The quantiles"（pp. 367–369）** —— *"the median z of a sample of n from this distribution is asymptotically normal (m, σ√(π/(2n)))"*（括号内是**标准差** ⇒ 方差恰为 `πσ²/(2n)`，不是近似）；一般式 `Var(ζ_p) = pq/(n·f(ζ_p)^2)`，中位数 `p = q = 1/2` ⇒ `1/(4N·f(m)^2)`。
+| control_variance | f64 | ADU²（`k_corr × (π/2) × σ_bg² / N_retained`；ALG-UPM-CONTROL-IVAR-001；实现锚 `lib/algorithms/coverage/src/sampler.cpp` 的 `cvar = kcorr_f * kPiHalf * sigma * sigma / n_ret`）。**标度 = 与所消费的 Phase1 帧面同一标度**（§25.3 标度条）。**逐项来源**：`σ_bg` = patch 的稳健尺度（MAD×1.482602218505602），量纲 ADU，标度同上；`(π/2)` = **样本中位数的渐近方差因子** `Var(median) = (π/2)·σ²/N`（零均值高斯、i.i.d.、大样本；一般式 `1/(4N·f(m)²)` 代入高斯密度即得，见 §25.3 证据条）；`N_retained` = 通过 cosmic 裁剪的保留样本数；`k_corr` 见上表。**适用域与修正（正向约束；方向已核实，「保守」属误读）**：`Var(median) = (π/2)·σ²/N` 的成立条件 = **i.i.d. + 连续型分布 + 密度 `f` 在中位数邻域连续可微（`f(m)>0`）+ 大样本渐近**。证据（一手，逐字）：Cramér, *Mathematical Methods of Statistics*, Princeton Univ. Press, 1946, **§28.5 "The quantiles"（pp. 367–369）** —— *"the median z of a sample of n from this distribution is asymptotically normal (m, σ√(π/(2n)))"*（括号内是**标准差** ⇒ 方差恰为 `πσ²/(2n)`，不是近似）；一般式 `Var(ζ_p) = pq/(n·f(ζ_p)^2)`，中位数 `p = q = 1/2` ⇒ `1/(4N·f(m)^2)`。
   **σ-clip 后的修正**：以样本中位数为中心、对称 `±aσ` 裁剪后，因子由 `π/2` 变为 `C(a)·π/2`，`C(a) = (1+r)^2 + 2q − 4q(1+r)`（`q = Φ(−a)`、`r = e^{−a^2/2}`）：`a = 3 ⇒ C = 1.0196`、`a = 2 ⇒ 1.2312`、`a = 1 ⇒ 1.8787`。⇒ **本式在 3σ 裁剪下偏小约 2%，即由此得到的权重偏大约 2%（偏乐观，不是保守）**；裁剪越激进偏差越大。**非对称裁剪会改变中位数的估计目标，本修正不适用**。
   **σ 由 MAD×1.482602218505602 估计的影响**：`π/2` 因子本身不变（plug-in + Slutsky），但 `(π/2)·σ̂²/N` 作为估计量多一份变异性：`Var(1.4826·MAD) ≈ 1.3604·σ²/N`（渐近效率 36.75%）⇒ 该估计量的相对标准差 ≈ `2.33/√N`（`N = 4096` 时约 3.6%）。 | cvar≤0 不可达（σ floor 1e-12 :818/:829） |
 | control_ivar | f64 | 1/ADU²（=1/cvar，cvar≤0 → 0 如实降级 :842；:1042） | 0.0=方差未定义 |
@@ -1770,7 +1801,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
   double）。量纲分面: value/uncertainty=ADU、control_variance=ADU²、
   ivar/control_ivar=1/ADU²、snr/support/quality=无量纲、
   ra/dec=deg——ivar（1/ADU²）与 control_ivar（1/ADU²）数值域同、
-  语义域不同（诊断 vs 科学权重），禁止互换（upm.h:38-41 冻结）；
+  语义域不同（诊断 vs 科学权重），各自独立、互不代用（upm.h:38-41 冻结）；
   weights/supply 语义红线 §20.3 在本域镜像（control_ivar 是唯一
   科学权重源，value 为 patch median 非单像素）。
 - 确定性=fixed_reduction_order: 固定槽位写回 cells[idx]（:870-872）
@@ -1825,7 +1856,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 - 端口词汇注记: registry descriptor p2_sample_descriptor
   （module_adapters.cpp:642-654，module_id=astrocs.phase2.sample
   占位）端口表 coverage→samples 为编排层词汇，由 P2-XX-INT 对齐
-  astrocs.p2.sampling，不得反向作为冻结依据。
+  astrocs.p2.sampling；冻结依据只取上游权威文档。
 
 ## 24. Phase2 装配会话（lib/phase2_session）数据语义（DATA-P2-SESSION）
 
@@ -1834,7 +1865,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 > lib/phase2_session/p2_session.h（39 行）（astrocs.p2.session；构建=
 > 静态库 astrocs_phase2_session，根 CMakeLists.txt:454-458；迁移目标
 > astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实登记，
-> 由 P2-SESSION-IMPL 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 装配
+> 由 P2-SESSION-IMPL 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 装配
 > 会话 eng/packaging/config/manifest/错误码/各段数据面单位与透传口径的唯一权威；
 > 本域为纯编排透传层（不实现科学公式，直调 lib/algorithms/coverage 生产符号），
 > SCI 上游零改动: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
@@ -1860,7 +1891,7 @@ validate 全套检查（仅 parse 兜底 :107-109，提示 "validate first"）�
 
 未知键语义（权威=实现实测，非头注释）: **validate 现状不拒绝未知键**
 ——p2_session.h:19 注释声明"拒未知键/缺必需键"，实现 :69-98 仅拒缺
-必需键 + 类型错（无未知键遍历）；注释-实现漂移，禁止按头注释宣称
+必需键 + 类型错（无未知键遍历）；注释-实现漂移，**以实现实测为准**；头注释的
 unknown-key 拒绝语义，整改（补拒绝或改注释）归 P2-SESSION-IMPL
 （编号见 ALG-P2-SESSION-001 DISP 清单）。缺必需键锚=:81-85（无
 silent default，两键逐名报错）。
@@ -1967,7 +1998,7 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
   无取消检查（取消只能整段前后），persist 取消先 p2_upm_close 防泄漏
   （:224）。
 - 并发合同（p2_session.h:16 注释锚）: **threadsafe:no（handle 级）**
-  ——同一 acs_handle 的并发调用未受保护，禁止；**reentrant:yes**——
+  ——同一 acs_handle 的并发调用未受保护，使用面 = 单线程；**reentrant:yes**——
   不同 handle 并发合法（SessionState 全实例态，无共享可变全局）。
 - 内部并行**仅 UPM blocks**（预算驱动）: sample/upm 段 cpu_workers=
   host->budget.max_workers（:155/:195，Runtime lease 唯一来源，ARCH-004
@@ -2008,7 +2039,7 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
 > lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）（astrocs.p2.upm-fit；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移目标
 > astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL 建立，
-> 禁止声明 IMPLEMENTED）。本节是 Phase2 UPM fit（联合拟合/持久化/
+> IMPLEMENTED 只由验收签发）。本节是 Phase2 UPM fit（联合拟合/持久化/
 > 求值底座）in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游:
 > SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动；单位权威=
 > 其 §3）；ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
@@ -2024,7 +2055,7 @@ n_obs；upm.h:31-57）: 上游 DATA-P2-SMP 产物（p2_upm_build 入口），
 本域科学权重唯一来源=control_ivar（=1/control_variance，production
 use_ivar_weight=1，upm.h:43-50/:83-86 冻结；ALG-UPM-CONTROL-IVAR-001）:
 control_ivar≤0/非有限 → p2_upm_raw_weight rc=2 显式失败（:1311，
-h:126-133 "禁止静默回退 support/SNR"；权重语义红线 §23.4 镜像）。
+h:126-133 冻结注释 = support/SNR 回退一律具名降级；权重语义红线 §23.4 镜像）。
 value 可负（局部 patch 光度估计，§23.2(1)）；uncertainty=sqrt(
 control_variance)（h:38）；ivar 字段弃用仅诊断（h:40-42），UPM 域
 不消费（production 权重路径无 ivar 引用，:1292-1317）。
@@ -2052,7 +2083,7 @@ rc=1**（空间 UPM 必须知 control leaf 层级 order=target+9，:261/:380；
 | max_iterations | int | 100 | IRLS 最大迭代（h:77；≤0→100 :238） |
 | tolerance | double | 1e-6 | 收敛容差（h:78） |
 | target_order | int | -1(auto) | 模型目标 order；auto 必须显式，否则 rc=1（h:79；:246-249） |
-| sigma_floor | double | 1e-3 | uncertainty 下限。**标度 = 与所消费的 `uncertainty` 同标度**（本域 = 帧面标度，见 §25.3 标度条；帧面为 `photo_scaled_adu` 时按 α 同标度换算，方差类量按 α²）。**三个地板的分工（正向约束，禁止混用）**：`sigma_floor = 1e-3` 作用于 **σ（ADU）**、只用于 UPM 观测降权路径 `sigma_eff = max(|unc|, sigma_floor)`；`variance_floor = 1e-12` 作用于 **variance（ADU²）**、只用于 noise 模型的数值保护（§13.1）；`σ_bg` 的 1e-12 是 patch 方差下界、只用于 `cvar>0` 可达性。三者的量纲与作用面不同，**不得**互相替代或合并 |
+| sigma_floor | double | 1e-3 | uncertainty 下限。**标度 = 与所消费的 `uncertainty` 同标度**（本域 = 帧面标度，见 §25.3 标度条；帧面为 `photo_scaled_adu` 时按 α 同标度换算，方差类量按 α²）。**三个地板的分工（正向约束，三面各自独立）**：`sigma_floor = 1e-3` 作用于 **σ（ADU）**、只用于 UPM 观测降权路径 `sigma_eff = max(|unc|, sigma_floor)`；`variance_floor = 1e-12` 作用于 **variance（ADU²）**、只用于 noise 模型的数值保护（§13.1）；`σ_bg` 的 1e-12 是 patch 方差下界、只用于 `cvar>0` 可达性。三者的量纲与作用面不同，**互不代用、互不合并** |
 | support_power | double | 1.0 | support 因子指数（h:81；<0→1.0 :240） |
 | quality_mode | int | 0 | 0=flags 映射（h:82） |
 | use_ivar_weight | int | 1 | 1=science weight 用 control_ivar（h:83-86；production control_ivar≤0/非有限→显式 INVALID，:1307-1311）；0=legacy 仅 ablation/诊断（SNR-015） |
@@ -2096,13 +2127,13 @@ evaluate_c/dense_read_block（apply 域=§26）。端口 samples→upm_model
 - 唯一权威 dtype=FP64（precision=1，upm.cpp:256 "fp64 reference"）；
   dense cache 亦 fp64（:1402 写 1 /* fp64 缓存 */）；模型 JSON/AIO
   文本同值。
-- **标度（正向约束）**：本域全部 ADU 面量（`C`/`M`/`uncertainty`/`σ_bg`/`control_variance`/`control_ivar`）**与所消费的 Phase1 帧面同一标度**（标度词表 = `docs/standards/NUMERIC_STANDARD.md`）：帧面为 `calibrated_adu` ⇒ 1 ADU；帧面为 `photo_scaled_adu` ⇒ 量纲 `α·ADU`、方差按 α² 缩放（α = 该帧 photscal，**逐帧量**）。混合标度的帧集**不得**直接进同一 UPM 拟合；换算责任方 = 调用方（帧侧）。
+- **标度（正向约束）**：本域全部 ADU 面量（`C`/`M`/`uncertainty`/`σ_bg`/`control_variance`/`control_ivar`）**与所消费的 Phase1 帧面同一标度**（标度词表 = `docs/standards/NUMERIC_STANDARD.md`）：帧面为 `calibrated_adu` ⇒ 1 ADU；帧面为 `photo_scaled_adu` ⇒ 量纲 `α·ADU`、方差按 α² 缩放（α = 该帧 photscal，**逐帧量**）。混合标度的帧集**先换算到同一标度再进同一 UPM 拟合**；换算责任方 = 调用方（帧侧）。
 - 单位权威=SCI-UPM-001 §3（docs/science/PHASE2_UPM.md:30 实测
   "C, raw, calibrated, σ_bg: ADU"）: 校正场 C/参数 M/uncertainty/
   σ_bg=ADU、control_variance=ADU²、control_ivar=1/ADU²、
   snr/support/quality 无量纲、frame_id 无量纲 u64、M=latent unified
   reference（内部待求量，upm.cpp:56）。**校正量一律以 ADU 为冻结口径**；
-  "校正=mag"表述与 SCI §3 不符，**不得**作为冻结依据
+  "校正=mag"表述与 SCI §3 不符，**冻结依据 = SCI §3**
   （偏差登记项）。
 - leaf_ipix 几何链: NESTED leaf 像素，tile=leaf_ipix>>18（tile_shift=9
   :261/:1254；leaf order=target+9，:380 nside=2^(target+9)）。
@@ -2128,8 +2159,8 @@ evaluate_c/dense_read_block（apply 域=§26）。端口 samples→upm_model
   aio_upm.cpp:469）。
 - invalid/负向条款（如实，不静默伪装）: **未知 frame_id 双门**——
   calibrate_block rc=1 显式失败（:1250-1252 注释"未知 frame_id 必须
-  显式失败，禁止回退 frame 0 参数（错误帧校准会静默制造错误科学
-  结果）"）/ evaluate_c 返回 NaN 显式不可用（:1276-1279"禁止用
+  显式失败；frame 0 参数只用于该 frame_id 自身的校准（错误帧校准会静默制造错误科学
+  结果）"）/ evaluate_c 返回 NaN 显式不可用（:1276-1279 的具名反例 = "
   frame 0 参数伪装有效结果"）——**禁回退红线，任何静默替换=违约**；
   NaN uncertainty → sigma_eff=max(|unc|, sigma_floor) 降权路径
   （:628/:646/:868；sigma_floor 冻结 1e-3）；control_ivar≤0/非有限
@@ -2181,7 +2212,7 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 - 端口词汇注记: registry descriptor p2_upm_fit_descriptor
   （module_adapters.cpp:661-678，module_id=astrocs.phase2.upm-fit
   占位）端口表 samples→upm_model 为编排层词汇，由 P2-XX-INT 对齐
-  astrocs.p2.upm-fit，不得反向作为冻结依据。
+  astrocs.p2.upm-fit；冻结依据只取上游权威文档。
 
 ### 25.7 p2_upm_model.json 的可辨识性段与产品级警告（DATA-P2-UPM）
 
@@ -2208,7 +2239,7 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 | `chi2` | f64 | `Σ (r/σ_eff)²`（标准化残差平方和） |
 | `dof_eff` | f64 | `n_obs − rank_eff`（Andrae et al. 2010 式 (9)） |
 | `chi2_red` | f64 / **null** | `chi2/dof_eff`；`dof_eff <= 0` ⇒ **无定义 ⇒ 写 `null`** |
-| `chi2_red_defined` | bool | `false` = `chi2_red` 无定义（**不得**写 0 冒充完美拟合） |
+| `chi2_red_defined` | bool | `false` = `chi2_red` 无定义（**取值 = `null`；0 只表示完美拟合**） |
 | `objective` / `iterations` / `converged` / `rel_improve` | f64 / i32 | 末轮 Huber 目标（ADU²）/ IRLS 迭代数 / 状态枚举（`0=max_iter`、`1=converged`、`2=stalled`、`3=invalid`）/ 末轮目标相对改善量 |
 | `identifiable` | bool | **唯一判决位** |
 | `coupling_assembled` | bool | `false` = `smoothing_lambda > 0` 时块间耦合**未装配**（如实登记边界，不声称判据已含耦合项） |
@@ -2230,12 +2261,12 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 | 形态 | 读法 |
 |---|---|
 | `kappa = null` 且 `identifiability` 段**在位** | 量**存在但发散**（秩亏块上 κ = +∞；JSON 不能表示非有限值）⇒ 如实写 `null`，**不是**字段缺失 |
-| `chi2_red = null` 且 `chi2_red_defined = false` | χ²_red **无定义**（`dof_eff <= 0`）⇒ **不得**读成 0、**不得**读成缺失 |
-| `identifiability` 段**不在位**（口径统一之前落盘的产品） | 该段**具名不可得**：消费侧落 `rank_unavailable_reason` / `kappa_unavailable_reason` / `unavailable_fields`，**不得**静默缺键、**不得**由权重标量反推 |
+| `chi2_red = null` 且 `chi2_red_defined = false` | χ²_red **无定义**（`dof_eff <= 0`）⇒ **读法 = 无定义本身**（独立于 0 与缺失两态） |
+| `identifiability` 段**不在位**（口径统一之前落盘的产品） | 该段**具名不可得**：消费侧落 `rank_unavailable_reason` / `kappa_unavailable_reason` / `unavailable_fields`，**落键面 = 上述三个键；取值只来自该段本身** |
 | 键存在且为有限数 | 真值 |
 
 - **λ 不是自由参数**：粗糙度惩罚已退休，数值岭由判据阈值派生（`λ_eff = τ·mean(diag(H_red))`），
-  没有配置面；**不得**设绝对条件数上限（`kappa_max` 类），**不得**在加了正则化的求解矩阵上设门。
+  没有配置面；**判据来源 = 派生数值岭 `λ_eff` 本身**（`kappa_max` 类绝对条件数上限与正则化求解矩阵上的门均不在判据面）。
 - 产品级摘要 `p2_final.json#phase2_audit`（§30.3）从**磁盘产品**读回本段，不做节点间内存传递；
   κ 为 `null` 时审计块另记 `kappa_infinite = true` 与具名说明，且**不**把 κ 计入 `missing_fields`。
 
@@ -2247,7 +2278,7 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 > dense_read 面 =upm.h:112-123/:164-172）（astrocs.p2.upm-apply；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移
 > 目标 astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL
-> 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 UPM apply（逐帧校正）
+> 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 UPM apply（逐帧校正）
 > in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-UPM-001
 > §5 连续定义（calibrated_f(p) = raw_f(p) − C_f(p)，FROZEN，零改动）；
 > ALG: ALG-P2-UPM-IMPL-001；API 面: API-P2-UPM-001；descriptor 占位
@@ -2292,9 +2323,9 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   （:1250-1252，§25.4 禁回退红线镜像）；evaluate_c 面未知帧=NaN
   显式不可用（:1276-1279）；dense_read_block 未知帧 rc=1（:1553）。
 - dense stale 语义: source_hash（=model_hash）不匹配 → rc=2
-  stale-cache（aio_upm.cpp:469），禁止陈旧缓存静默出数；调用方处置
+  stale-cache（aio_upm.cpp:469），陈旧缓存一律经该 rc=2 具名失败出口；调用方处置
   =重新 materialize_dense_n 后重试（本域不自动切换 sparse）。
-- 单位/帧绑定漂移禁止: save→close→open 保持 frame_id→θ 映射
+- 单位/帧绑定不变量: save→close→open 保持 frame_id→θ 映射
   （SCI-UPM-PERSIST-001/ALG-UPM-FRAME-BIND-001，§25.5(1)）；save 前
   绑定守卫=§25.4。会话编排（p2_session）不直接消费 apply 面——
   四段编排止于 persist（§24.4），apply 消费链=stage2.cpp（生产）。
@@ -2317,7 +2348,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   （module_adapters.cpp:680-696，module_id=astrocs.phase2.upm-apply
   占位）端口表 upm_model→calibrated_frames→corrected 为编排层词汇
   （DISP-P2UPM-004 占位语义），由 P2-XX-INT 对齐
-  astrocs.p2.upm-apply，不得反向作为冻结依据。
+  astrocs.p2.upm-apply；冻结依据只取上游权威文档。
 
 ## 27. Phase3 FITS 写出（lib/algorithms/fits_output）模块输入/输出数据（DATA-P3-FITS）
 
@@ -2327,7 +2358,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > =p3_output.h:45-60）（astrocs.p3.fits_writer；astrocs_phase3_session
 > 静态库成员，根 CMakeLists.txt:460-465；迁移目标
 > astrocs_p3_fits_writer.dll 为矩阵合同值，尚未存在，由 P3-FITS-IMPL
-> 建立，禁止声明 IMPLEMENTED）。本节是 Phase3 FITS 写出域 in/out
+> 建立，IMPLEMENTED 只由验收签发）。本节是 Phase3 FITS 写出域 in/out
 > 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-P3-001 §9a-11
 > G5 FITS 写公式 + §96 关键字冻结（docs/science/PHASE3_HIPS_TO_FITS.md，
 > FROZEN V5 SCI-007，零改动）；ALG:
@@ -2382,7 +2413,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 发布协议冻结（R10-C）：fits_flush_file → close → fsync(fd) →
   rename（p3_output.cpp:235-287）；任何一步失败整体 IO。
 - NaN 语义：signal 双方 NaN 视为一致（源无覆盖=NaN，:327-330）；
-  禁止 0.0 伪装无覆盖。
+  无覆盖的表示 = NaN（0.0 只表示真实零值）。
 - 取消：内核行粒度 cancelled_at_row；会话层取消在采样循环
   （p3_session.cpp:228-229），写面一旦进入发布序不可中断。
 
@@ -2402,8 +2433,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 端口词汇注记: registry descriptor p3_writer_descriptor
   （module_adapters.cpp:445-460，module_id=astrocs.phase3.writer
   占位）端口表 resampled(DATA-P3-RES 必)+fits(DATA-P3-FITS 可) 为
-  编排层词汇，由 P3-FITS-INT 对齐 astrocs.p3.fits_writer，不得
-  反向作为冻结依据。
+  编排层词汇，由 P3-FITS-INT 对齐 astrocs.p3.fits_writer；冻结依据的
+  唯一来源 = 上游权威文档与本节合同文本。
 
 ## 29. Phase3 HiPS 重采样（lib/algorithms/resample）模块输入/输出数据（DATA-P3-RES）
 
@@ -2413,7 +2444,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > 全部公共面）（astrocs.p3.resample；astrocs_phase3_session 静态库
 > 成员，根 CMakeLists.txt:460-465；迁移目标 astrocs_p3_resample.dll
 > 为矩阵合同值，尚未存在（DISP-P3RSMP-005），由 P3-RSMP-IMPL 建立，
-> 禁止声明 IMPLEMENTED；合同落位 lib/algorithms/resample/ 三件套）。本节是
+> IMPLEMENTED 只由验收签发；合同落位 lib/algorithms/resample/ 三件套）。本节是
 > Phase3 重采样域 in/out 单位/dtype/shape/invalid 的唯一权威；SCI
 > 上游: SCI-P3-001 §4 值语义 + §5 连续定义 + §9a-1 tile 冻结 +
 > §9a-5 order 选择 + §9a-7 采样核 + §9a-8/10 输入拒绝（docs/science/
@@ -2453,7 +2484,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ### 29.3 单位/dtype/确定性
 
 - 单位唯一权威=本节：采样值=面亮度（surface brightness，HiPS image
-  语义，SCI §9a-8），单位经 BUNIT 透传（canonical `ADU/sr`，缺省同）；**禁止
+  语义，SCI §9a-8），单位经 BUNIT 透传（canonical `ADU/sr`，缺省同）；解释面 = 面亮度本身，**
   flux-per-pixel 解释与面积换算**（SCI §9a-8 显式拒）；order 无量纲；
   coverage 无量纲二值。
 - dtype 唯一权威=本节：采样值/coverage=float32（tile 原生 float32，
@@ -2500,7 +2531,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   （module_adapters.cpp:425-439，module_id=astrocs.phase3.resample2
   占位）端口表 wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+
   resampled(DATA-P3-RES 可) 为编排层词汇，由 P3-RSMP-INT 对齐
-  astrocs.p3.resample，不得反向作为冻结依据。
+  astrocs.p3.resample；冻结依据只取上游权威文档。
 
 ## 28. Phase3 投影/WCS（lib/algorithms/projection）模块输入/输出数据（DATA-P3-WCS）
 
@@ -2509,7 +2540,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > lib/algorithms/projection/p3_wcs.h（本域四函数 =p3_wcs.h:44-59）
 > （astrocs.p3.projection；astrocs_phase3_session 静态库成员，根
 > CMakeLists.txt:460-465；迁移目标 astrocs_p3_projection.dll 为矩阵
-> 合同值，尚未存在，由 P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED；
+> 合同值，尚未存在，由 P3-PROJ-IMPL 建立，IMPLEMENTED 只由验收签发；
 > 合同落位 lib/algorithms/projection/ 三件套）。本节是 Phase3 投影/WCS 域
 > in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游:
 > SCI-P3-001 §5 连续定义 + §9a-4 CRPIX/CD/parity 冻结 + §9a-6 极点/
@@ -2529,9 +2560,9 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | width_px / height_px | int | 标量 | px | ∈[1,20000]（:42-43，kMaxSide 默认 20000，ASTROCS_P3_MAX_SIDE 编译期覆盖如实冻结） |
 | parity | char* | 1 | — | "east_left"（默认，nullptr 归一，CD1_1<0）\|"east_right"（CD1_1>0）；其它 →PARAM（:39） |
 | rotation_pa_deg | float64 | 标量 | deg | 天北相对 +y 位置角，逆时针为正；会话层现状恒 0.0（p3_session.cpp:160，PA 未接线=整改项不修码） |
-| projection | char* | 1 | — | **请求投影码**（B2-A4，p3_wcs_validate_request）。缺省 "TAN"；仅 "TAN" 在本生产路径已实现。SIN/CAR/AIT（即便在 lib/algorithms/projection registry 注册为 §18.1 首批四投影之一）与任意未注册码在 alpha 生产路径**一律 P3_WCS_UNSUPPORTED，禁止静默映射为 TAN**；四投影生产扩展见 §6/B2-A4 延期项 |
-| frame | char* | 1 | — | 请求参考架（B2-A5）；缺省 "icrs"（接受 "ICRS"）；非 icrs → P3_WCS_UNSUPPORTED（不得静默忽略） |
-| coverage_output | char* | 1 | — | 覆盖率输出语义（B2-A5）；缺省 "mask"；非 mask（如 "weight"）→ P3_WCS_PARAM（不得静默按 mask 产出） |
+| projection | char* | 1 | — | **请求投影码**（B2-A4，p3_wcs_validate_request）。缺省 "TAN"；仅 "TAN" 在本生产路径已实现。SIN/CAR/AIT（即便在 lib/algorithms/projection registry 注册为 §18.1 首批四投影之一）与任意未注册码在 alpha 生产路径**一律 P3_WCS_UNSUPPORTED，映射目标不落在 TAN**；四投影生产扩展见 §6/B2-A4 延期项 |
+| frame | char* | 1 | — | 请求参考架（B2-A5）；缺省 "icrs"（接受 "ICRS"）；非 icrs → P3_WCS_UNSUPPORTED（一律具名拒绝） |
+| coverage_output | char* | 1 | — | 覆盖率输出语义（B2-A5）；缺省 "mask"；非 mask（如 "weight"）→ P3_WCS_PARAM（退出码 = P3_WCS_PARAM，产出面 = 空） |
 | d（映射入口） | P3WcsDescriptor* | 1 | deg、px | 见 28.2 输出面；非空守卫（:95/:122） |
 | x / y（pix2world） | float64 | 标量 | px | **0-based**（FITS 1-based=+1，:97-98 内部换算）；TAN 半球外 r≥π/2 → P3_WCS_HEMISPHERE（:104） |
 | ra_deg / dec_deg（world2pix） | float64 | 标量 | deg（ICRS） | \|dec\|>85° →PARAM（:123）；背面 denom≤0 →HEMISPHERE（:130） |
@@ -2564,12 +2595,12 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   态（:35），不产出半成品 descriptor；四角同半球守卫失败
   （:80-88）按首次失败码透传。
 - **未实现投影必须拒绝（B2-A4 冻结口径，01_SCIENCE_AUTHORITY_BASELINE
-  §4「未实现的投影或语义必须拒绝」+ ENGINEERING_SPEC.md §9「错误通过统一状态码+结构化诊断传播；失败不得留下可被误认成正式产品的半成品」）**：
+  §4「未实现的投影或语义必须拒绝」+ ENGINEERING_SPEC.md §9「错误通过统一状态码+结构化诊断传播；失败时不留可被误认成正式产品的半成品」）**：
   `p3_wcs_validate_request` 是请求层 projection/frame/coverage_output 的
   唯一机器源，节点面（module_adapters p3n_geom/P3NodeModule::validate_config/
   p3n_wcs_from_json）与 CLI 配置面（runtime_client phase_config）共用；
   非 "TAN" 的 projection、非 icrs 的 frame、非 mask 的 coverage_output
-  必须在 `export --json` 的预检与运行**一致地非零退出**（CLI-001 唯一命令树；`phase3 validate|plan|run` 不是命令树成员，传入即 rc=2），且 **运行不得
+  必须在 `export --json` 的预检与运行**一致地非零退出**（CLI-001 唯一命令树；`phase3 validate|plan|run` 不是命令树成员，传入即 rc=2），且 **运行在预检即停，不
   写出 output_phase3.fits**（写路径 p3_output_write_atomic_ex 在创建任何
   文件前二次校验）。消费上游 wcs_plan 时若 projection 字段漂移/被篡改，
   按 DATA 拒绝而非按 TAN 消费。
@@ -2598,8 +2629,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 端口词汇注记: registry descriptor p3_wcs_descriptor
   （module_adapters.cpp:406-423，module_id=astrocs.phase3.wcs
   占位）端口表 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)
-  为编排层词汇，由 P3-PROJ-INT 对齐 astrocs.p3.projection，不得
-  反向作为冻结依据。
+  为编排层词汇，由 P3-PROJ-INT 对齐 astrocs.p3.projection；冻结依据的唯一
+  来源 = 上游权威文档与本节合同文本。
 
 ### 28.6 Phase3 逐像素立体角 `Omega` 与采样核版本化 registry（`FZ-P3-OMEGA-NONCONST` / `FZ-P3-KERNEL-REGISTRY` / `FZ-P3-QW-RECOMPUTE` / `FZ-P3-MODES`）
 
@@ -2627,13 +2658,13 @@ AIT 等积:   max/min = 1.00000006
 
 - `phase3.omega` 必须携带 `units="sr"`、`representation`、`required_for`、`projection_id`；
 - `surface_brightness` 做 flux 换算而无逐像素 `Omega` → REJECT；`point_source_flux` 必需 `Omega`；
-- **禁止**用常数 `Omega` 近似冒充逐像素面积元（常数 `Ω` 的 flux 偏差可达 97.5%，属已知失效模式）；
+- **面积元 = 逐像素取值**（常数 `Omega` 近似的 `Ω` 的 flux 偏差可达 97.5%，属已知失效模式）；
 - CAR 的解析式在 `CRVAL2 != 0` 时不成立（行是倾斜等纬线），此时必须走 Paper II §2.2 三 Euler 角的
-  逐像素 Jacobian，不得沿用解析式。
+  逐像素 Jacobian，解析式在该域不适用。
 
 **采样核版本化 registry（`FZ-P3-KERNEL-REGISTRY`）**
 
-采样核是**产品语义**，由版本化 registry 注册，不得由现码倒推冻结：
+采样核是**产品语义**，由版本化 registry 注册，取值来源 = registry 登记项：
 
 | family | 状态要求 | 语义 |
 |---|---|---|
@@ -2643,7 +2674,7 @@ AIT 等积:   max/min = 1.00000006
 
 `status != registered` 用于生产、或 `registered` 而无 `oracle_ref`/`boundary_definition` → REJECT。
 variance 传播：`nearest: var_out=u_in`；`bilinear: var_out=Sum_k c_k^2 u_k`（`Σc_k=1` 但 `Σc_k²≠1`，
-**禁止**误用 `Σc_k` 归一 variance）。
+variance 的归一因子 = `Σc_k^2`，`Σc_k` 只用于信号归一）。
 
 **输出帧 Q/W 重算（`FZ-P3-QW-RECOMPUTE`）**
 
@@ -2652,8 +2683,8 @@ a = 光度响应尺度;  pi = S p  (输出有效 PSF)
 Q = a * pi^T C_y^-1 f;  W = a^2 * pi^T C_y^-1 pi;  F_hat = Q/W;  Var(F_hat) = 1/W
 ```
 
-- **必须**在输出帧以输出有效 PSF 与完整（或带相关核的）`C_y` 重算；**禁止**重采样输入 `Q`/`W`；
-- Phase3 **消费**上游 `W_info`，不重算、不替换；无量纲相对复合权重**不得**写入 ivar/variance；
+- **必须**在输出帧以输出有效 PSF 与完整（或带相关核的）`C_y` 重算；**输入 `Q`/`W` 只作读入，重算面在输出帧**；
+- Phase3 **消费**上游 `W_info`，不重算、不替换；无量纲相对复合权重**的落点 = 诊断面**；
 - `R` 与匹配滤波不可交换：`W_out != Sum_i (核) W_in,i`；
 - 缺 PSF / PSF 未归一 / 缺 point_information 且不可重建 / 仅对角 covariance 无相关核 / 缺 `a` /
   未输出 effective PSF → REJECT。
@@ -2669,17 +2700,17 @@ Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²，ivar = 1/variance（§
 
 > ID: DATA-UNC-001  状态: FROZEN_TARGET_CONTRACT
 > 上位依据（在役权威，唯一；不存在第二条权威链）：R-1 §1.4 全文核查确认
-> 旧世代档案树不在库内、不可解析，**不得**作为引用来源——故上位依据只取
+> 旧世代档案树不在库内、不可解析，**引用来源 = 在役文档**——故上位依据只取
 > 下列在役文档：
 > 上位约束: docs/science/UNCERTAINTY_AND_COVARIANCE.md（Phase2/Phase3 方差与
 > 协方差唯一计算权威）+ docs/science/INTEGRATION.md §5（积分权重=ivar）+
 > docs/science/PHASE3_HIPS_TO_FITS.md §5/§7（采样核与不变量）+ 本节
 > §30.1/§30.4（产品合同与 unavailable 显式登记模式）；supersession 生效。
-> **目标态声明（实现不得先行）**：本节冻结的是产品合同目标态；现状代码不满足
+> **目标态声明（实现面后置）**：本节冻结的是产品合同目标态；现状代码不满足
 > 本节（DISP-P2HIPS-001/002、§27.2、§29.1 守卫），差距整改归 P2-001/P3-001
-> 及其 IMPL 子任务；本节不得被现状代码反向否证，现状描述节在实现落地前保持
+> 及其 IMPL 子任务；本节的冻结效力独立于现状代码，现状描述节在实现落地前保持
 > 有效。科学公式权威 = docs/science/UNCERTAINTY_AND_COVARIANCE.md（§30 引用
-> 不重复定义，两处冲突以 docs/science/ 为准并回改本节，禁止反向）。
+> 不重复定义，两处冲突以 docs/science/ 为准并回改本节；改写方向 = 由上游发起）。
 
 ### 30.1 Phase2 马赛克 variance/ivar 产品（DATA-P2-VAR-001）
 
@@ -2697,14 +2728,14 @@ ivar_mosaic(p) = W(p) = Σ_i ivar_i(p)          # = SCI-INT §5 wsum（逐像素
 variance_mosaic(p) = 1 / W(p)
 ```
 
-  一致性锚（一般式，权重非纯逆方差时适用，禁止换第二套公式）:
+  一致性锚（一般式，权重非纯逆方差时适用，公式只有这一份）:
   `variance = Σ_i w_i²·v_i / W²`（SCI-DRZ-014 同构；w_i=实际参与积分权重，
   v_i=该样本输入方差=1/ivar_i）。UPM 控制权重（SCI-UPM-WEIGHT-001）与马赛克
   合成方差严格分离：control_variance 只进 w_UPM，不进本产品。
 
 - **unavailable 规则（fail-closed，唯一出口）**: 下列任一 → **不写
   variance/ivar 子产品** + manifest `uncertainty_available=false` +
-  diagnostics 标红计数，禁止用 support/snr²/常量 0 伪 variance：
+  diagnostics 标红计数，variance 取值只来自权重面与方差面（support/snr²/常量 0 均不代入）：
   1. 权重非纯逆方差（等权 / legacy 诊断档非科学方差面，ivar
      读端亦不强制打开，§20.1）；
   2. fallback 发生（legacy 降级键 `legacy_allow_weight_fallback=true`且
@@ -2779,7 +2810,7 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
 - **逐帧 reason 级产品为非目标**（本合同不冻结 per-frame rejection map；上述
   逐样本接受掩码是 DATA-P2-REJ 内部**消费载体**（integrate 的原始样本索引
   资格权威），不是逐帧 row/observation 级科学产品；需要 per-frame rejection
-  map 时须 SCI/owner 冻结变更，禁止实现自行扩展）。
+  map 时须 SCI/owner 冻结变更，扩展入口 = SCI/owner 变更流程）。
 - **AIO 子产品位分配（冻结）**: NREJ=32、NUSED=64（uint32 flags 域；
   1/2/4/8/16 已占用见 aio_hips.h:35-40，32/64 空闲）；AIO_ALL 掩码扩展由
   实现任务在 AIO 域合同登记，本节只冻结位值不冻结掩码。
@@ -2841,7 +2872,7 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
 - **发散 ≠ 缺失**：`kappa = null` 与「键不存在」必须分开读；缺失清单只针对**必落字段**，
   不把「量存在但发散」计成缺失。
 - 缺任一必落字段 ⇒ 该产品的该求解器 §7a provenance **不完整**：必须登记在 `missing_fields`
-  且 `audit_complete = false`（天光面子块缺失时另在 stderr 出声）；消费方**不得**把它读成「已通过」。
+  且 `audit_complete = false`（天光面子块缺失时另在 stderr 出声）；消费方**读法 = 未通过**。
 
 ### 30.4 Phase3 uncertainty 传播产品合同（DATA-P3-UNC-001）
 
@@ -2852,7 +2883,7 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
   1. 输入 HiPS 含 variance/ 子产品 → u_in = variance 平面（**variance==0 像素 =
      「有覆盖但方差不可用」（§4a 三态表）⇒ 该样本**不计入** `var_out` 的方差项，
      信号与几何权重照常计入；输出面写 `variance=0 ∧ ivar=0`（显式不可用），
-     **禁止读作零不确定度、也禁止写成 NaN**（NaN 保留给「无覆盖」）；
+     **该态 = 有覆盖但方差不可用，写 `variance=0 ∧ ivar=0`**（NaN 保留给「无覆盖」）；
      u 的无效态**一律**按本条处置，不存在「无效即传播 NaN」的写法）；
      否则含 ivar/ → u_in = 1/ivar（**ivar==0 像素 = 零权重 ⇒ 同上「有覆盖但方差不可用」
      口径，非硬错误**，见 -3 与 UNC Phase3 节）；两者并存 → variance 优先，
@@ -2862,9 +2893,9 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
      （unavailable 显式登记模式；禁静默丢弃，禁占位 HDU）；
   3. u 值域: NaN = 无覆盖/缺失态（见 invalid 表）；**`u==0`（有限）= 有覆盖但方差不可用
      （见 -1，不作损坏、不作 NaN）**；负/Inf（**ivar==0 导出的 1/0→Inf
-     明确禁止**）= **产品损坏 → 显式错误**（run 拒绝，rc 由实现任务映射到现行
+     属产品损坏面**）= **产品损坏 → 显式错误**（run 拒绝，rc 由实现任务映射到现行
      P3_RS_*/ACS_ERR_* 状态域登记，禁 clamp/补 0/静默跳过）；
-     **约束**：**禁止** `1/0→Inf` 导出——像素级零权重（`ivar==0` ⇒ u 无效，
+     **约束**：**`1/0→Inf` 归入损坏态，导出面 = 有限值**——像素级零权重（`ivar==0` ⇒ u 无效，
      本条 -1）与产品损坏必须分列：`u==0`（有限）= 有覆盖但方差不可用，
      负/Inf = 产品损坏；两态互斥，与 docs/science/UNCERTAINTY_AND_COVARIANCE.md
      同口径，禁 clamp/补 0/静默跳过。
@@ -2899,13 +2930,13 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | 正常传播（足迹 signal 与 u 全有效） | Σ c_k·s_k | Σ c_k²·u_k | 1/var_out | 1 |
 
   **「样本级掩膜 + 重归一」口径（唯一正本 = DATA-002 §2a 规则 1）**：足迹内 leaf signal/u 非有限的
-  样本**必须**从分子、分母、方差三项一并剔除并重归一，**禁止**整体传播为输出 NaN。同口径三处 =
+  样本**必须**从分子、分母、方差三项一并剔除并重归一；**输出 NaN 的适用范围 = 仅零合格样本**。同口径三处 =
   `docs/standards/NUMERIC_STANDARD.md` §MUST「NaN/Inf 契约」、
   `lib/algorithms/resample/p3_resample.h:150-159`；实现锚 = `p3_resample.h:93-96`、
   `p3_sample_bilinear_nanmask_ex` :176-179。**仅零合格样本**（或 `W_p=0`；本分支分母 = 权重和 `W_p = Σ_{合格} w_j`，**无量纲**，**不是** Phase 1 的面积 `D_p`[`sr`]）才是覆盖级 NaN（`signal=NaN`），
   且每个输出像素**必须**暴露 `n_rejected_nonfinite`（承载面 = §30.7 DATA-P3-REJ-001）。
 
-  **「u 无效」与「u 缺失」必须分列（§2a 规则 1a）**：两者**禁止**合并为同一 `variance=NaN`。
+  **「u 无效」与「u 缺失」必须分列（§2a 规则 1a）**：两者**各自具名、互不合并**（`variance=NaN` 只表缺失态）。
   分列口径：
   - **u 无效** = 该 leaf 的 `variance==0` 或 `ivar==0`（**有限且 ≤0**）= **有覆盖但方差不可用**
     ⇒ 该样本**不计入** `var_out` 的方差项，信号与几何权重照常计入；输出面写
@@ -2928,7 +2959,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   权重由几何唯一确定（§29.3 合同不变）；1..N worker bitwise（同 §27.3
   写面串行 + §29.3 采样确定性）。
 
-### 30.5 验证门（TEST 设计冻结；可执行实现归 P2-001/P3-001，未运行不得 PASS）
+### 30.5 验证门（TEST 设计冻结；可执行实现归 P2-001/P3-001，PASS 只由实跑签发）
 
 - **TEST-P2-UNC-DESIGN-001**（Phase2，f64 oracle rtol=1e-12、1T/2T/repeat
   bitwise、索引/整数 bitwise）:
@@ -3038,7 +3069,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 - **invalid**: 无覆盖像素（coverage=0）→ 计数 **0**；**0 即「无」**，
   **禁 −1 哨兵**（§30.2 逐字同款：int 无 NaN，0 即"无"，禁 −1 哨兵）。
   **字段缺失 ≠ 全 0**：缺 `diagnostic_planes.n_rejected_nonfinite` 的产品
-  **不得**声称满足 §2a 规则 3（判据具名 `COUNT_FIELD_MISSING`）。
+  **该产品的结论 = 未满足 §2a 规则 3**（判据具名 `COUNT_FIELD_MISSING`）。
 
 - **逐像素四行可分（判据唯一口径 = §2a「与两类输入的对应」表）**：
   设 n_cand = 采样核候选样本数（`bilinear` = 4，`nearest` = 1，
@@ -3079,12 +3110,12 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 > 条款 ID：`DATA-V6-SCHEMA`　状态：**现行**（V6 合同层语义由本 §31 与 §28.6 承载；变更编号 `CHG-2026-09-22-V6-CONTRACT-MERGE`）
 > **语义权威 = 本 §31 正文**（`ASTROCS_DESIGN.md` §0.1/§0.2）。机器可读登记表 =
 > `eng/contracts/data/v6_clause_registry_v1.json`：登记表承载定义与映射，**不自声为权威**；
-> **不存在第二条权威链**，任何文档不得声明自己的权威顺序或"唯一口径"。
+> **不存在第二条权威链**，任何文档的权威顺序与"唯一口径"均取自该链。
 > 条款注册表、待签登记与开放项见 **§31.10**；Phase3 逐像素立体角与采样核版本化 registry 见 **§28.6**。
 > 字段级机器门：对象级判据落在 `eng/contracts/schemas/unified/*.schema.json` 的 `allOf`；
 > 产品族记录级判据落在 `eng/contracts/schemas/product_family_field_constraints.schema.json`；
 > 正例 `eng/contracts/data/examples/v6/`；验证 `eng/tests/contracts/product_family/`（独立 Oracle + 负向 mutation）。
-> 状态语义：`PENDING_OWNER_SIGNOFF` = 条款值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-01..SO-07` 签字后方可作为正式修订生效；**生效前相关面 fail-closed，实现不得放宽、任何产物不得写成已冻结**（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8；逐条登记见 §31.10）。
+> 状态语义：`PENDING_OWNER_SIGNOFF` = 条款值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-01..SO-07` 签字后方可作为正式修订生效；**生效前相关面 fail-closed，实现面保持条款原样、任何产物都标 pending**（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8；逐条登记见 §31.10）。
 
 ### 31.1 单位表（`FZ-UNIT-*` / `FZ-P3-BUNIT-QUADRATIC`）
 
@@ -3102,20 +3133,20 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
 
 **二次律（`FZ-P3-BUNIT-QUADRATIC`）**：**`BUNIT(variance) = BUNIT(signal)^2`**、**`BUNIT(ivar) = 1/BUNIT(signal)^2`**；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
-**契约冻结串（逐字引用，登记表与 schema `const` 同值；不得改写）**：
+**契约冻结串（逐字引用，登记表与 schema `const` 同值；以该同值为唯一来源）**：
 `"variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"`（`freeze_id = FZ-P3-BUNIT-QUADRATIC`）。
 **本条只约束单位串，不约束数值——两件事必须分开（正向约束）**：
 - **单位层（恒真式，无需附加条件）**：标准差不变量 `s` 的单位为 `U` ⇒ 其平方（方差）的单位为 `U^2`、`ivar` 为 `U^-2`。证据（一手，逐字）：JCGM 100:2008（GUM）§4.2.3 NOTE 2 —— *"Although the variance s²(q̄) is the more fundamental quantity, the standard deviation s(q̄) is more convenient in practice because **it has the same dimension as q**"*；§4.3.3/§4.3.4/§4.3.5 逐字给出 `g^2` / `Ω^2` / `mm^2` 的单位串实例；FITS 4.0 §4.3.1 + Table 6 规定幂次记法（`**` 或 `ˆ` 或并置）。该层**仅用于构造与校验 `BUNIT` 字符串**。
-- **数值层（一般不成立，必须独立给出）**：数值等式 `variance = signal^2` 只在**纯泊松散粒噪声主导、且 signal 以同一标度的期望计数（电子数）表述**时成立。证据（一手，逐字）：EMVA Standard 1288 Release 4.0 Linear（2021-06-16）§2.4 "Noise Model" Eq.(13) —— *"Therefore the variance of the fluctuations is equal to the mean number of accumulated electrons"*，即 `σ_e^2 = μ_e`；**同一节** Eq.(14)(15) 给出完整式 `σ_y^2 = K^2·σ_d^2 + σ_q^2 + K·(μ_y − μ_{y,dark})`，其中 offset 项 `K^2 σ_d^2 + σ_q^2` **与信号无关**（读噪被原文明确称为 *"signal independent"*；`σ_q^2 = 1/12 DN^2`）⇒ **signal → 0 时 variance 不趋于 0**，`variance = signal^2` 在低信号端必然失效。仓内对应的数值式 = `docs/science/NOISE_MODEL.md` 的 gain 模型 `var_ADU = max(signal,0)/gain + (rn/gain)^2`（**仅诊断、不入生产**）。产品面的 `variance` 是**独立估计量**（§4a / §12.2 的 `var_num_sum/covered_area^2`）；**禁止**用 `signal^2` 反算、顶替或校验产品方差。
+- **数值层（一般不成立，必须独立给出）**：数值等式 `variance = signal^2` 只在**纯泊松散粒噪声主导、且 signal 以同一标度的期望计数（电子数）表述**时成立。证据（一手，逐字）：EMVA Standard 1288 Release 4.0 Linear（2021-06-16）§2.4 "Noise Model" Eq.(13) —— *"Therefore the variance of the fluctuations is equal to the mean number of accumulated electrons"*，即 `σ_e^2 = μ_e`；**同一节** Eq.(14)(15) 给出完整式 `σ_y^2 = K^2·σ_d^2 + σ_q^2 + K·(μ_y − μ_{y,dark})`，其中 offset 项 `K^2 σ_d^2 + σ_q^2` **与信号无关**（读噪被原文明确称为 *"signal independent"*；`σ_q^2 = 1/12 DN^2`）⇒ **signal → 0 时 variance 不趋于 0**，`variance = signal^2` 在低信号端必然失效。仓内对应的数值式 = `docs/science/NOISE_MODEL.md` 的 gain 模型 `var_ADU = max(signal,0)/gain + (rn/gain)^2`（**仅诊断、不入生产**）。产品面的 `variance` 是**独立估计量**（§4a / §12.2 的 `var_num_sum/covered_area^2`）；产品方差的取值来源 = 该独立估计量本身（`signal^2` 只作单位层读法）。
 - **冻结串读法消歧（`FZ-P3-BUNIT-QUADRATIC`，必须按此读）**：本仓多处登记的同一条冻结串
   `"variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"`
   （`freeze_id = FZ-P3-BUNIT-QUADRATIC`）**是契约值，逐字冻结、不得改写**；其**首分句 `variance = signal^2` 必须按单位读**——
   它等价于 `BUNIT(variance) = BUNIT(signal)^2`，**不是**数值物理律。判据：该串的**第三分句**
   `Phase3 variance BUNIT = (main HDU signal BUNIT)^2` 就是同一件事的**显式单位写法**，三分句并列即自证首分句读的是单位。
-  **反例（数值层，禁止按首分句的字面读法使用）**：数值上方差**不等于**信号的平方——探测器偏置项
+  **反例（数值层，首分句的字面读法在此不适用）**：数值上方差**不等于**信号的平方——探测器偏置项
   （读噪方差 + 量化方差 `1/12 DN^2`）与信号无关 ⇒ **信号趋零时方差不趋零**，而 `signal^2` 趋零
   （EMVA Standard 1288 Release 4.0 Linear §2.4 Eq.(14)(15) 逐字）。数值方差是**独立估计量**（见下条），
-  **禁止**用 `signal^2` 反算、顶替或校验产品方差。
+  产品方差的取值来源 = 该独立估计量本身（`signal^2` 只作单位层读法）。
 - **EMVA 1288 的引用口径（版本敏感）**：方差法 / photon transfer 只在 **Release 3.0（2010-11-29）/ 3.1a** 中定义（§2.1 增益 `K` 单位为 **DN/e⁻**，注意不是 e⁻/ADU；§2.2 Eq.(9) 含 offset；§6.6 回归程序）；**Release 4.0 General（2021-06-16）已声明不再使用 photon transfer curve**（Preface 逐字 *"The photon transfer curve is no longer used."*）。引「EMVA 1288 方差法」**必须**写明 Release 3.0/3.1a；引「EMVA 1288」（=4.0）只支持散粒噪声式与完整方差式。
 
 ### 31.1a 面亮度单位口径的推导（`FZ-UNIT-SIGNAL-SB`）
@@ -3123,7 +3154,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 **结论**：ACSD 全链 `signal` 承载的物理量是**面亮度**（surface brightness），单位唯一写作
 **`ADU/sr`**（计数按**立体角**归一）；`variance` = `ADU^2/sr^2`、`ivar` = `sr^2/ADU^2`
 由二次律唯一导出。产品 FITS/HiPS 写盘 `BUNIT` 一律取该串（canonical 面亮度族 = `ADU/sr` / `ADU^2/sr^2` / `sr^2/ADU^2`；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed）。
-**BUNIT 相等不是标度相等的充分条件（正向约束）**：`BUNIT` 描述**量的种类**，逐帧标度由 `PHOTSCAL`/`PHOTAPPL`（DATA-P1-PHOTPROV-001）与 `k_photo` 承载。跨帧比较、合并、加权或做阈值判定前，消费侧**必须**读逐帧标度并按标度律换算到同一标度（`docs/standards/NUMERIC_STANDARD.md`）；**禁止**仅凭 `BUNIT` 相同即认定可合并、可加权、可比较。
+**BUNIT 相等不是标度相等的充分条件（正向约束）**：`BUNIT` 描述**量的种类**，逐帧标度由 `PHOTSCAL`/`PHOTAPPL`（DATA-P1-PHOTPROV-001）与 `k_photo` 承载。跨帧比较、合并、加权或做阈值判定前，消费侧**必须**读逐帧标度并按标度律换算到同一标度（`docs/standards/NUMERIC_STANDARD.md`）；**合并/加权/阈值判定的判据 = `BUNIT` ∧ 标度类别 ∧ 逐帧因子三者同**。
 
 **推导链（逐段量纲）**：
 
@@ -3137,7 +3168,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | Phase1 writer 归一 | `signal = sumFlux/sumArea` | **`ADU/sr`** | §12.3；`support = sumArea/A_cell` 无量纲、`variance = sumVarNum/sumArea²` ⇒ `ADU^2/sr^2` |
 | Phase2 逐样本消费 | 与 Phase1 同标度 | **`ADU/sr`** | §20.1 / §20.3（逆变换 `flux_sum = signal×area`、`area = support×A_cell`，area 单位 sr ⇒ 链内零单位换算） |
 | Phase2 输出 | `signal = flux_sum/covered_area` | **`ADU/sr`** | §20.3（与 P1 writer 同式同源，禁第二套定义） |
-| Phase3 重采样 | 输入 tile 值的加权平均（凸组合） | **`ADU/sr`** | §29.3（采样值 = 面亮度；禁止 flux-per-pixel 解释与面积换算） |
+| Phase3 重采样 | 输入 tile 值的加权平均（凸组合） | **`ADU/sr`** | §29.3（采样值 = 面亮度；解释面即面亮度本身） |
 | Phase3 FITS 写出 | 主 HDU `signal` 的 `BUNIT` | **`ADU/sr`** | §27.1 / §27.3；`VARIANCE`/`IVAR` HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`） |
 
 **测光归一化层不改变量纲类别**：`I_photo = k_photo·I_cal` 是**线性乘性标度**，施加后帧平面与
@@ -3172,7 +3203,7 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
   header keyword values … should conform with the recommendations in the IAU Style Manual (McNally 1988)"*；
   *"Note that, per IAU convention, **case is significant throughout**. The IAU style manual forbids the use of
   more than one slash ('/') character in a units string. **However, since normal mathematical precedence rules
-  apply in this context, more than one slash may be used but is discouraged.**"*（两句并列，引用时不得只引前一句）
+  apply in this context, more than one slash may be used but is discouraged.**"*（两句并列，引用面 = 完整两句）
 - Table 3（IAU-recommended basic units，正文 p.8）逐字列 **`solid angle | sr | steradian`**。
 - Table 4（Additional allowed units，正文 p.9）逐字列 **`adu | Analog-to-digital converter`**，
   并把 **`pixel` / `pix` 列在 `area`（面积）量类**（逐字 `area | pixel | (image/detector) pixel`）；
@@ -3182,12 +3213,12 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 ⇒ 面亮度串 `ADU/sr` 由 Table 3 的 `sr` 与 Table 4 的 `adu`、单一斜杠构成，量纲精确。
 ⇒ **大小写偏差（如实登记）**：§4.3.1 规定 *case is significant throughout*，Table 4 的合法符号是**小写** `adu`；
   本仓冻结的 canonical 串用大写 `ADU`（社区通行拼法）。严格按 IAU 大小写应为 `adu/sr`。
-  `ADU/sr` **保留为 canonical（冻结项，不因本条改动）**，但**不得**声称它逐字等于 Table 4 的符号。
+  `ADU/sr` **保留为 canonical（冻结项，不因本条改动）**，其与 Table 4 符号的关系 = 大小写差异。
 ⇒ 反例（两处违规）：`ADU/px^2` —— ① `px` **不是** Table 4 列出的单位串（只有 `pixel` 与 `pix`）；
   ② 幂符号 `^` 不在 Table 6 允许集内。合规写法为 `adu/pix**2` / `adu/pixˆ2` / `adu/pix2`。
   语义上因 Table 4 把 `pixel` 定义为**面积**，`adu/pix` 已是「每像素面积」（面亮度），
   而 `adu/pix**2` 量纲为 area⁻²，**不是**通常想表达的「每像素」。
-⇒ `ADU/px^2/sr` 含两个斜杠：IAU Style Manual **禁止**，FITS 4.0 §4.3.1 **允许但劝阻**。
+⇒ `ADU/px^2/sr` 含两个斜杠：IAU Style Manual **的合规面 = 单一斜杠**，FITS 4.0 §4.3.1 **允许但劝阻**。
 
 **单位串与内部幂次编码的对应**：内部量纲代数把立体角维记在 `px_power` / `pixel_area_power` 上
 （`signal_sb = -2`、`sb_variance_out = -4`、`sb_ivar_out = +4`）。
@@ -3215,23 +3246,23 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 ```
 
 仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。
-**BUNIT 相等不蕴含标度相等（正向约束）**：`BUNIT` 只描述量的种类；同一 `ADU/sr` 串下，未施加测光的帧与已施加测光的帧相差逐帧因子 `α`。消费侧判据 = `BUNIT` 相同 **∧** 标度类别相同 **∧** 逐帧因子相同（或已按标度律换算到同一标度）；三者缺一即不得合并、不得加权、不得做阈值判定。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
+**BUNIT 相等不蕴含标度相等（正向约束）**：`BUNIT` 只描述量的种类；同一 `ADU/sr` 串下，未施加测光的帧与已施加测光的帧相差逐帧因子 `α`。消费侧判据 = `BUNIT` 相同 **∧** 标度类别相同 **∧** 逐帧因子相同（或已按标度律换算到同一标度）；三者缺一即另作换算后再合并/加权/阈值判定。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
 机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.json` 的 `units.allOf/if-then`（`bunit` 含 `/sr` ⇒ `bunit_semantics=written_px_power` + `pixel_semantics=surface_brightness` + `pixel_area_power=-2`；`bunit_semantics=declared_via_provenance` ⇒ 必需 `target_pixel_area`；`pixel_semantics=integrated_flux` ⇒ `pixel_area_power=0`）；`eng/contracts/schemas/unified/signal.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。产品族记录层同判据见 §31.6 登记的产品族字段级合同。
 
 ### 31.3 ~~`weight_mode` 三分~~（该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（`FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 的条款去向见 §31.10；变更编号 `CHG-2026-09-22-V6-CONTRACT-MERGE`）
 
 | 面 | 合法值 | 语义 |
 |---|---|---|
-| 生产科学模式 | `point_information` / `surface_gls` | 配置显式选择，不得自动切换；各自权威式见 §31.4/§31.5 与 `eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary` |
+| 生产科学模式 | `point_information` / `surface_gls` | 配置显式选择，模式切换只经配置；各自权威式见 §31.4/§31.5 与 `eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary` |
 | 文档基线模式 | `equal` / `pixel_ivar` | 仅基线比较，**非**科学最优声明 |
 | 延迟模式 | `psf_snr_power` | DEFERRED/NOT_IMPLEMENTED（`FZ-MODE-DEFERRED`），**不进** V6 生产路由（`C-004.1`，本包不解冻） |
-| ~~退役模式~~ | ~~`psfsw_robust`~~ | **禁用 token**（PSFSW-RETIRE-01/03；§9.73 A44）：它是对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。依据：`ASTROCS_DESIGN.md` §3.1（权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/design/UNIFIED_MODEL.md:58`、变更编号 `CHG-2026-09-20-PSFSW-RETIRE` 与 §9.73 A44。机器登记：`eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`（`_psfsw_retirement_note`）与 `#a44_deprecation.psfsw_retire_03_correction`。 |
+| ~~退役模式~~ | ~~`psfsw_robust`~~ | **禁用 token**（PSFSW-RETIRE-01/03；§9.73 A44）：它是对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`）；接受面 = 空。依据：`ASTROCS_DESIGN.md` §3.1（权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/design/UNIFIED_MODEL.md:58`、变更编号 `CHG-2026-09-20-PSFSW-RETIRE` 与 §9.73 A44。机器登记：`eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`（`_psfsw_retirement_note`）与 `#a44_deprecation.psfsw_retire_03_correction`。 |
 
 **legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `eng/contracts/data/v6_clause_registry_v1.json#migration_map.legacy_weight_mode_disposition`；该概念不存在——权重是阶段二按该天球像素对应帧集合现场算出的派生量）：
 **全值域一律拒绝**（§9.73 A44）：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— 该字段不存在任何合法取值（`ASTROCS_DESIGN.md` §3.1:175「没有可选择项」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`v6_runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
-生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键（两键均不存在，§9.73 A44；权重是阶段二按天球像素对应帧集合现场算出的派生量） / 未知值 → REJECT。`ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
+生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键（两键均不存在，§9.73 A44；权重是阶段二按天球像素对应帧集合现场算出的派生量） / 未知值 → REJECT。`ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，生产枚举定义只取本节。
 
-**登记面 vs 输入路径（A44 口径，本节判据形态；本段对 `weight_mode` 的登记作说明）**：「登记面」= 描述**既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH` / A44）禁止的是**后者**，不禁止前者 —— 故本节与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**历史词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，不得据此声称生产可用。
+**登记面 vs 输入路径（A44 口径，本节判据形态；本段对 `weight_mode` 的登记作说明）**：「登记面」= 描述**既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH` / A44）适用面 = **后者**；前者不受约束 —— 故本节与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**历史词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。
 
 ### 31.4 单一权重词表归一（`C-004.3`/`DI-01`/`DI-07`）
 
@@ -3252,7 +3283,7 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 `units.{bunit,pixel_semantics,pixel_area_power,target_pixel_area}`、`coordinate.frame`、`pixel_semantics`、`sampling`、
 `algorithm_ids`、`module`、`provider`、`approximations`、`degradations`（含 unavailable 原因）、`normalization_version`、
 ~~`weight_mode_version`~~（键不存在，§9.73 A44）、`correlation_summary`、`flux_conservation_factor`、`k_corr`（定义/值/适用域/标定）、`generated_utc`、`output_hash`。
-`unavailable.{flag,reason,scope}` 必填；禁止占位、静默缺键、空输出冒充完成。`k_corr.value = 1` 忽略相关 → REJECT（`FZ-PROV-KCORR`）；`k_corr` 缺适用域/标定脚本/固定种子或跨域外推 → REJECT。
+`unavailable.{flag,reason,scope}` 必填；取值 = 真实原因，三键齐备且非空才构成完成态。`k_corr.value = 1` 忽略相关 → REJECT（`FZ-PROV-KCORR`）；`k_corr` 缺适用域/标定脚本/固定种子或跨域外推 → REJECT。
 
 ### 31.6 字段级合同索引（生产）
 
@@ -3263,15 +3294,15 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 | canonical 对象层 | `https://astrocs.local/schemas/unified/provenance/v1` 等 13 个 | `eng/contracts/schemas/unified/<对象名>.schema.json` 的 `allOf` | `FZ-BUNIT-SEMANTICS`、`FZ-PROV-KCORR`/`FZ-PROV-KCORR-VALUE`、`FZ-FORMULA-COV-PROP`、`FZ-GATE-PARENT-VAR`、`FZ-UNIT-WINFO`、`FZ-GATE-PSFSW-COV` |
 | 产品族记录层 | `https://astrocs.local/schemas/product_family/field_constraints/v1` | `eng/contracts/schemas/product_family_field_constraints.schema.json`（`$defs` 逐件） | `FZ-UNIT-*`、`FZ-P3-BUNIT-QUADRATIC`、`FZ-FORMULA-DRIZZLE-SB`/`-VAR`、`FZ-GATE-CONST-SB`、`FZ-COND-FLUX-CONSERV`、`FZ-DEGRADE-SCALAR`、`FZ-FORMULA-COV-PROP`、`FZ-FORMULA-GLS`、`FZ-GATE-PIXIVAR-APPROX`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-FORMULA-WINFO/Q/FHAT`、`FZ-COND-WHITENOISE`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE`、`FZ-FIELD-PSFSW-4COMP`/`-UNIT`、`FZ-FORMULA-PSFSW-COMPOSITE`、`FZ-GATE-PSFSW-FAILCLOSED`/`-COV`/`-EPSF`、`FZ-MODE-*`、`FZ-FIELD-WEIGHTMODE`、`FZ-PROV-MINIMAL-SET`、`FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY` |
 
-产品族记录层的 `$defs` 逐件对应 `units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录，字段级判据逐条保留（`if/then` 量纲可判、`propertyNames.not.enum` 禁止键、`const` 单位锚、`required` 最小集、`pattern` 收紧）。全部 schema 通过 JSON Schema 2020-12 meta-schema 校验；正例集 `eng/contracts/data/examples/v6/` 逐条结构校验通过（证据 `eng/tests/contracts/product_family/evidence/rc_summary.json`）。
+产品族记录层的 `$defs` 逐件对应 `units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录，字段级判据逐条保留（`if/then` 量纲可判、`propertyNames.not.enum` 排除键、`const` 单位锚、`required` 最小集、`pattern` 收紧）。全部 schema 通过 JSON Schema 2020-12 meta-schema 校验；正例集 `eng/contracts/data/examples/v6/` 逐条结构校验通过（证据 `eng/tests/contracts/product_family/evidence/rc_summary.json`）。
 
 ### 31.7 PSFSW 四分量与 concentration 单位唯一权威（`FZ-FIELD-PSFSW-4COMP`，FROZEN）
 
 四分量分别落产品、`measurement_id` 互异、各带 `p05/p50/p95` + 有效覆盖：`psfsw.signal` / `psfsw.concentration` / `psfsw.noise` / `psfsw.background`（缺分量、塌陷、`p05>p50>p95` → REJECT）。
 单位一致性：`signal/noise/background` 共享组内常量 `component_flux_unit`（显式声明），
 **`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP²`，单位 `px^2`）。
-concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` 是唯一合法写法（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`）；合法域**不含** `ADU/px`，登记对象（v6 Phase1 算法规格 §4.2 四分量表，不在库内）不得被静默采纳，登记块见 `eng/contracts/data/v6_clause_registry_v1.json#concentration_unit_authority`。生产正例 `eng/contracts/data/examples/v6/psfsw.example.json` 的写法为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），禁止写成 ivar/Fisher/W_info（禁止键 `ivar/variance/sigma/fisher/w_info/w_psf/…` 由 schema `propertyNames` 守卫）。
-**禁用面（§9.73 A44；PSFSW-RETIRE-03）**：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 不在生产接受集（§31.1 OBSOLETE 行、§31.3 退役模式行；`ASTROCS_DESIGN.md` §3.1：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作诊断面**：Phase1 产品**不携带**该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode`/`weight` **不在** `required` 内），产品仍携带者**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **不得**进入科学叠加权重。
+concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` 是唯一合法写法（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`）；合法域**不含** `ADU/px`，登记对象（v6 Phase1 算法规格 §4.2 四分量表，不在库内）只作历史登记，登记块见 `eng/contracts/data/v6_clause_registry_v1.json#concentration_unit_authority`。生产正例 `eng/contracts/data/examples/v6/psfsw.example.json` 的写法为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），写法只取组内比值式（`ivar/variance/sigma/fisher/w_info/w_psf/…` 等键由 schema `propertyNames` 守卫排除）。
+**禁用面（§9.73 A44；PSFSW-RETIRE-03）**：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 不在生产接受集（§31.1 OBSOLETE 行、§31.3 退役模式行；`ASTROCS_DESIGN.md` §3.1：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作诊断面**：Phase1 产品**不携带**该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode`/`weight` **不在** `required` 内），产品仍携带者**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **的落点 = 诊断面**。
 
 ### 31.8 fail-closed 摘要（完整表见 `eng/contracts/data/v6_clause_registry_v1.json#fail_closed`）
 
@@ -3290,7 +3321,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 
 ### 31.9 边界与登记（只登记不擅改）
 
-- **不得重新引入**：本文 §12.2 / §13.4 / §13.5 / §27 **不得**出现帧级单一 SNR 系数落位段或「生产路径不消费的参数登记」节；帧级 `median(SNR_F)` 只登记为诊断/深度表达（`C-004.2`），不得接入任何权重面。
+- **登记面 = 现行条款集**：本文 §12.2 / §13.4 / §13.5 / §27 的落位段面 = 现行条款，帧级单一 SNR 系数段与「生产路径不消费的参数登记」节属另一形态；帧级 `median(SNR_F)` 只登记为诊断/深度表达（`C-004.2`），落点 = 诊断/深度面。
 - `DI-06`（`eng/contracts/data/phase_product_exchange.schema.json` science plane 枚举扩展与 runtime validator 同一提交；`F-UNC-003`）**保持 OPEN**：runtime validator 不在本任务写域，故本次**未**修改 exchange plane 枚举。
 - `SO-01`..`SO-07` 的 49 条 `PENDING_OWNER_SIGNOFF` 与 8 条 `OPEN` **保持原状态并 fail-closed**；本集成不使任何待签条款生效、不改冻结公式/容差/门。
 - 上游：`ASTROCS_DESIGN.md` §0/§1/§2/§9/§11/§12；`docs/owner/PROJECT_SPEC.md` §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/design/UNIFIED_MODEL.md`。
@@ -3307,8 +3338,8 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 | 状态 | 含义 | 生产面处置 |
 |---|---|---|
 | `FROZEN` | 条款值与文本唯一确定，已冻结 | 生产实现与产物必须逐条满足 |
-| `PENDING_OWNER_SIGNOFF` | 值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-xx` 签字后方可作为正式修订生效 | **fail-closed**：实现不得放宽，任何生产 artifact 不得把它写成 `FROZEN` |
-| `OPEN` | 尚未冻结（数值待定或数据面待实例化） | 不得作为生产判据；引用处必须显式标注 pending |
+| `PENDING_OWNER_SIGNOFF` | 值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-xx` 签字后方可作为正式修订生效 | **fail-closed**：实现面保持条款原样，生产 artifact 的状态词只写 `PENDING_OWNER_SIGNOFF`（`FROZEN` 由签字后签发） |
+| `OPEN` | 尚未冻结（数值待定或数据面待实例化） | 生产判据面 = 空；引用处必须显式标注 pending |
 
 **49 条 `PENDING_OWNER_SIGNOFF` 条款（id）**
 
@@ -3352,7 +3383,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 | `SO-02` | F-OBS-02 / S2 面亮度归一改为 (B) 面亮度保持 | FROZEN DRIZZLE.md §5/§7/§11 公式变更 + 重跑全部 Drizzle 不变量/variance 门 | 项目负责人 + CONTRACT-FREEZE-001 |
 | `SO-03` | S3 常量场 Oracle 判据取代 DRIZZLE §11 | FROZEN 判据取代登记 | 项目负责人 + CONTRACT-FREEZE-001 |
 | `SO-04` | AR-030/AR-031 协方差产品非目标声明取代 | FROZEN DRIZZLE §1/§9a 取代登记 | 项目负责人 + CONTRACT-FREEZE-001 |
-| `SO-05` | AR-036/AR-019/AR-026 宪章 §10.5/§17.6 记录/裁决分离 | 宪章修订须负责人签字；不得由 Agent 放宽 | 项目负责人 |
+| `SO-05` | AR-036/AR-019/AR-026 宪章 §10.5/§17.6 记录/裁决分离 | 宪章修订须负责人签字；放宽入口 = 负责人 | 项目负责人 |
 | `SO-06` | AR-032 非 v6 SCI 迁移/取代清单 | 跨文档权威裁定与 DOC-CONVERGE 收口 | 项目负责人 + CONTRACT-FREEZE-001 + DOC-CONVERGE-001 |
 | `SO-07` | F-OBS-03/F-OBS-04/F-OBS-05 的数值阈值/数据面/标定 | 误差门数值、低秩数据面、k_corr 标定脚本须 W3/W4 冻结并由负责人确认 | ALG-P1-001/ALG-P2-UPM-001/CONTRACT-FREEZE-001 + 负责人 |
 
@@ -3413,7 +3444,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 | `SUP-09` | `SCI-P3-001` | §1 范围与非目标 / §3 输出投影 | `FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-UNIT-IVAR-SB` | SO-06 |
 | `SUP-10` | `UNCERTAINTY_AND_COVARIANCE(V19R3)` | §V19R3 control estimator 方差 | `FZ-PROV-KCORR`、`FZ-GATE-PARENT-VAR` | SO-06/SO-07 |
 
-**fail-closed 策略**：`PENDING_OWNER_SIGNOFF` 条款保持 pending 并 fail-closed，任何生产 artifact 不得将其写成
+**fail-closed 策略**：`PENDING_OWNER_SIGNOFF` 条款保持 pending 并 fail-closed，任何生产 artifact 的状态词 = pending 本身，而非
 `FROZEN`；缺项 / 枚举越界 / 单位不一致 / 待签写成已冻结 / 诊断量进权重面 → 判红。判据由
 `eng/tests/contracts/product_family/` 的独立 Oracle 与负向 mutation 证明"能红"。
 

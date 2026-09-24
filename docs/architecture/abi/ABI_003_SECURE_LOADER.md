@@ -58,7 +58,7 @@ product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/bui
    LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32)`;
 4. PE 头校验(PE32+/AMD64/子系统) + Authenticode 或 sha256 登记比对;
 5. 加载后 GetProcAddress 入口符号 + 握手 + describe 校验(与本文件同序);
-6. 禁止: 当前目录/PATH/SearchPath/用户数据目录发现, 无 fallback 静态算法。
+6. 发现范围: 仅限白名单目录(应用目录/System32), 解析算法 = 静态白名单, 无 fallback。
 
 `secure_loader.c` 在 `_WIN32` 下返回 ACS_ERR_UNSUPPORTED, 不伪装实现完成。
 

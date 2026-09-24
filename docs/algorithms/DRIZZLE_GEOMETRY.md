@@ -11,7 +11,7 @@
 > 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
 > **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
-> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。禁止声明 IMPLEMENTED。
+> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
 
 ## 0 范围界定
 
@@ -42,21 +42,33 @@
   的量纲链逐段一致，`FZ-UNIT-SIGNAL-SB` FROZEN）:
   - 权重: `w_jp = a_jp / A_pixel,j`，**量纲 = 1（无量纲）**（a_jp 与 A_pixel,j 同为 sr）。
     **面亮度保持口径**（SCI-DRZ-001 §5 目标态面亮度保持权重），a_jp = drop ∩ target p
-    球面交叠面积 [sr]；A_pixel,j = **未收缩**源像素球面面积 [sr]，由
-    `spherical::polygon_area_consistent`（与 drop_area 同一分支同一例程）
-    对未收缩四角求值。`pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ 分母直接取
-    `drop_area`（**逐位不变**，默认 `drizzle.pixfrac=0.8`）；
-    `pixfrac<1` 时多 4 次 `pixelToSky`（审核量化 +3%）。w≤0 拒绝。
-    **适用域（分母口径不可替换）**：`A_pixel,j` 必须由未收缩四角在同一球面面积例程上
-    求值；`A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确，球面残差
+    球面交叠面积 [sr]；`A_drop,j` = drop 球面面积 [sr]（`build_drop_geometry` 的
+    `g.drop_area`），由 `spherical::polygon_area_consistent`（收缩四角）求值。
+    `pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ `A_drop,j ≡ A_pixel,j`（**逐位不变**）。
+    w≤0 拒绝。**核按 drop 面积归一**（F&H 2002 §7.2 式(7) 逐字: `a` 是 **the drop**
+    与输出像素的分数交叠 ⇒ `Σ_o a_io=1`；等价于 drizzlepac `cdrizzlebox.c` 的
+    `dover /= jaco`）：`Σ_p w_jp = 1` ⇒ `Σ_p F_p = Σ_j x_j`，**与 pixfrac 无关**。
+    **归一分母（口径不可替换）**：`N_p = Σ_j w_jp·A_pixel,j`（`acc.sumNorm`，:1629 前后）。
+    若改用覆盖面积 `D_p=Σ_j a_jp` 作分母，`S_p` 偏 `1/pixfrac²`（pf=0.8 → +56.25%），
+    负例判据 `1/pf²−1`（DISP-DRZ-009 回归门的 N 判据）。
+    等价参数化 `w'_jp=a_jp/A_pixel,j` 配分母 `Σ_j w'_jp=D_p/pixfrac²` 给出同一个 `c_jp`，
+    但 `Phi_out` 只有 drop 面积归一口径 = `Σ_j x_j`。
+    **适用域**：`A_pixel,j`（面亮度分母用）必须由未收缩四角在同一球面面积例程上求值；
+    `A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确，球面残差
     `δ = A_drop/(pixfrac²·A_pixel) − 1 = (1−pixfrac²)·θ²·[0.25/(1+r_c²) − 0.625·ξ_c²/(1+r_c²)²] + O(θ⁴)`
     （θ = 源像素角尺度 [rad]，(ξ_c,η_c) = 像素中心的 gnomonic 平面坐标 [rad]；
     推导与实测见 §10 DISP-DRZ-009 段）。θ=2″/px、pixfrac=0.8、r_c=0 时 δ=8.46e-12；
-    θ=300″/px 时 δ=1.90e-7（与 DISP-009 注入产物实测 1.48e-7 同阶）。故该替换**不得**采用。
-    **禁用**按 `A_drop,j` 归一（`w_jp=a_jp/A_drop,j`）：会使 `S_p` 偏 `1/pixfrac²`
-    （pf=0.8 → +56.25%），负例判据 `1/pf²−1`。
+    θ=300″/px 时 δ=1.90e-7（与 DISP-009 注入产物实测 1.48e-7 同阶）。故面积面**只采用球面精确式**——
+    也因此 `sumNorm` 用 `overlap_area·(pixel_area/drop_area)` 逐源累加，而不是在最后乘 `pixfrac²`。
   - 通量: `F_p = Σ_j x_j · w_jp`，**单位 = ADU**（x_j 为帧平面线性计数 [ADU]，
     w 无量纲；`acc.sumFlux += Scalar(pixelValue * weight)`，:1628）。
+    `Σ_p F_p = Σ_j x_j`（drop 面积归一的直接推论，见上）。
+  - 面亮度归一分母: `N_p = Σ_j w_jp·A_pixel,j`，**单位 = sr**
+    （`acc.sumNorm += Scalar(overlap_area * (pixel_area / drop_area))`）；
+    `pixfrac==1` 时 `pixel_area` 与 `drop_area` 是同一变量 ⇒ 比值恒 1.0 ⇒ `sumNorm ≡ sumArea`
+    逐位相同（默认路径零回归的代数保证）；产品面 `S_p = F_p/N_p`。
+  - `.hiss` signal 面 = `F_p`（**分配通量**，Σ = Σx）；HiPS signal 面 = `F_p·k/A_cov`
+    （`k = sumArea/sumNorm`，见 `astro_sphere_sink.cpp`）——两者的差别是覆盖面积口径。
   - 支撑面积: `D_p = Σ_j a_jp`，**单位 = sr**（`acc.sumArea += Scalar(overlap_area)`，
     :1629；**绝对球面面积**，非无量纲覆盖分数；support = D_p/A_cell 无量纲，语义不变）。
   - 方差分子: `sumVarNum_p = Σ_j v_j · w_jp²`，**单位 = ADU²**（v_j 为输入源像素方差
@@ -69,7 +81,7 @@
     ivar 按二次律 `→ α⁻²`；该律是恒等式而非近似，故回归门取逐像素 `worst_rel < 1e-4`
     只受浮点重结合限制（§9 容差行）。
   - 贡献计数: `nContrib_p = Σ_j 1`（**合格样本计数**，计样本级贡献，非权重级；
-    与 §5 的 `n_rejected_nonfinite` 是两个不同的量，不得混用）。
+    与 §5 的 `n_rejected_nonfinite` 是两个不同的量，各自独立取值）。
 - **估计量类别（与一手文献对照）**：`S_p = F_p/D_p = Σ_j B_j·a_jp / Σ_j a_jp`
   （B_j = x_j/A_pixel,j [ADU/sr]）是**输入面亮度的 a_jp 加权平均**。Fruchter & Hook 2002
   （PASP 114, 144；arXiv:astro-ph/9808087v2 §2 式(4)(5)）的 drizzle 输出为
@@ -78,7 +90,7 @@
   差别在权重口径——F&H 用 `a·w`（w = 用户输入权重）并把像素尺度比以 `s²` 显式换算，
   本模块用 `a`（几何交叠面积）并把绝对面亮度写进分子 `a/A_pixel,j`（⇒ 无需 s² 因子），
   分母 D_p 兼作 support 的分子（`support = D_p/A_cell`）。该差异为 Project-defined
-  选择，须与 `FZ-UNIT-SIGNAL-SB` 的量纲链一并阅读，不得按 F&H 原式替换。
+  选择，须与 `FZ-UNIT-SIGNAL-SB` 的量纲链一并阅读，实现口径只取本模块 Project-defined 定义。
 - **S_p = F_p/D_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
   逐 tile 传出（astro_sphere_sink.cpp:99-104 dense 化），归一在
   aio_hips_writer finalize_tile（variance = var_num_sum/area²，
@@ -136,7 +148,7 @@
   依据 Górski et al. 2005, ApJ 622, 759 §4「all pixels have exactly equal area
   `4π/(12·nside²)`」；本仓实验锚 `run/SCI-FIX-DRZGEOM-01/evidence/exp_a_geometry.json`
   A3 段：三档 nside 的恒等相对差 = 0.0）。
-  **数值纪律**：常数按上式**求值**，不得抄写十进制近似值；`211034.6` 与上式相差
+  **数值纪律**：常数按上式**求值**，取值来源 = 求值结果；`211034.6` 与上式相差
   −1.97e-4（相对），会使 `nside` 决策在每个倍频程的
   `finest ∈ (211034.6/2^k, 211076.285/2^k)` 窗口内**少取一阶**
   （窗口相对宽度 1.97e-4，20 个倍频程全部存在；实测例：finest=105527.7″ 时
@@ -147,7 +159,7 @@
   （:726-730）。**钳位下界 16 的适用域**：nside=16 对应等面积尺度
   `211076.285/16 = 13192.3″ ≈ 3.66°`，即该函数可表达的最粗叶级；更粗的请求被钳到 16，
   此时 `oversample = hp_res/finest > 1`（欠采样）——消费方必须读 `oversample` 字段判欠采样，
-  不得只看 `nside`（:732-740 输出该字段）。
+  判据输入 = `oversample` 字段，`nside` 单独不构成判据（:732-740 输出该字段）。
   **适用域**：判据量是**等面积等效线尺度** `sqrt(A_cell)`（面积是常数），
   而 HEALPix 单元的**局部采样步长**（邻元中心角距）随纬度与方向变化：
   nside=512 实测邻元步长 ∈ [0.63, 0.71]×`sqrt(A_cell)`（共边邻元）与
@@ -162,7 +174,7 @@
 - 源锚: reverse_drizzle.h:26-70、reverse_drizzle.cpp:255-334。
 - 语义: 每 source leaf 构造球面 footprint（边界自适应细分），pixfrac
   沿球面向 leaf 中心收缩；目标平面像素经 WCS/SIP 映射为球面
-  footprint；重叠面积 = 球面面积（禁止平面 2D 面积作权重）；signal
+  footprint；重叠面积 = 球面面积（权重一律取球面面积，平面 2D 面积只作几何参照）；signal
   按球面面积比例分摊；coverage 以"覆盖在 leaf 内均匀分布"假设输出。
 - 严格校验（reverse_drizzle.cpp:255-334）: nside 2 的幂 [1,2^22]；
   仅 NESTED；宽高>0；pixfrac∈(0,1]；CD 行列式有限且 |det|≥1e-30、
@@ -182,7 +194,7 @@
 | 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | api.cpp:541-545 |
 | 尺寸/空指针非法 | 拒绝 | drizzle_engine.cpp:1597-1606 |
 | **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`（按原因分类、互斥可加）。**实现锚**：`!std::isfinite(pixelValue) → ++tc.rejected_nonfinite_value; continue`（`DrizzleEngine::drizzleTiledImpl` 主循环，:2000-2005）；分类计数聚合为 `DrizzleStats::n_rejected_nonfinite{,_value,_variance,_nonpositive_weight}`（:2203-2208）。 | :2000-2005 / :2203-2208 |
-| SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，禁止静默跳过） | :2000-2005 |
+| SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，剔除项逐条计数登记） | :2000-2005 |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | :2013-2018 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | :2022-2027 |
 | **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 DATA_SEMANTICS §4a「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（ASTROCS_DESIGN §5.5:379 只授权对 NaN 做样本级掩膜） | `drizzle_engine.cpp` V≤0 分支（现行 :2033-2038 置 0 不 continue）；订正依据与实测见 `run/VARIANCE-SEMANTICS-01/REPORT.md` |
@@ -288,7 +300,7 @@
     ≠C，检验 D_p 语义）；FIX-DRZ-B 点源高斯（总通量守恒）；
     FIX-DRZ-C 梯度场；FIX-DRZ-D 脉冲单像素；FIX-DRZ-E NaN/Inf 注入面；
     FIX-DRZ-F SIP 畸变边缘 patch（15° 宽场）。
-- 冻结容差（预冻结，源自既有测试门，不得放宽）:
+- 冻结容差（预冻结，源自既有测试门，取值一律按本节）:
   - FP64 通量闭合 <1e-6（主域）；FP32/FP64 逐 leaf <1e-5
     （drizzle_freeze_test.cpp 硬门，:211 附近；l0 小图 FP64<1e-10）；
   - 方差 α² 缩放律逐像素 worst_rel <1e-4（variance_propagation_test，
@@ -305,7 +317,7 @@
 - 负面矩阵: §5 表逐行断言（pixfrac 0/负/>1、RING、多通道、缺 WCS、
   NaN 面、reverse 二选一/越界/重复 ipix）。
 
-## 10 DISP-DRZ-001..009（SCI/文档 vs 源码口径清单；修复不得反向改 SCI）
+## 10 DISP-DRZ-001..009（SCI/文档 vs 源码口径清单；修复方向 = 从 SCI 到实现）
 
 | # | 文档声称 | 源码实际 | 双方锚 |
 |---|---|---|---|
@@ -317,7 +329,7 @@
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:132 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**两条路径都禁用** `w_jp=a_jp/A_drop,j`：正向 `pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向则使输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）与 reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1、§11.2）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §7.2 / drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | DRIZZLE.md §5/§7 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1、§11.2）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
@@ -332,7 +344,7 @@ _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性�
 （sha256 实证：`pixfrac==1` 默认路径的 `.norm.hiss`/`.canon` 与分母取 `drop_area` 时逐字节相同
 ⇒ 默认路径零回归）。`sumArea`（D_p=Σa_jp，
 support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
-**注意**：近似写法 `overlap_area·pixfrac²/drop_area` **不得采用** ——
+**注意**：近似写法 `overlap_area·pixfrac²/drop_area` **只作对照，权重口径 = 球面精确交叠面积** ——
 恒等式 `A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确。**残差标度律**
 （二阶展开 + Gauss-Legendre 求积独立复算，锚 `run/SCI-FIX-DRZGEOM-01/evidence/
 exp_a_geometry.json` A2 段；两条数值路径与解析式在 |δ|>1e-13 域内相对差 <2.4e-3，
@@ -349,7 +361,7 @@ exp_a_geometry.json` A2 段；两条数值路径与解析式在 |δ|>1e-13 域�
 ⇒ θ ≲ 10″/px 时该替换的系统偏差 ≲ 1e-10（远低于本模块 1e-5/1e-6 通量门），
 但 θ ≳ 100″/px 时进入 1e-7–1e-6 量级，与门禁容差同阶 ⇒ **全域禁用**该替换。
 **与精度效应分离**：float32 存储角点另引入面积相对误差（实测 θ=2″→7.6e-8、
-θ=300″→4.4e-8，随角点舍入符号变化），量级与 δ 不同源；文档与实现不得把两者
+θ=300″→4.4e-8，随角点舍入符号变化），量级与 δ 不同源；文档与实现**把两者各自独立成项，不**
 合并成单一常数。**真实产物实证**（θ=300″/px 常量场
 B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B0` 实测
 1.562500231（pixfrac=0.8）/2.777777366（0.6）/3.999998942（0.5），与解析

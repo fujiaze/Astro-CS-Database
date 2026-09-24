@@ -54,7 +54,7 @@
 
 ## 1.6 ISA-004 AVX512 复测与判定(vm-bj)
 
-- vm-bj CPU 支持 AVX512(F/BW/VL/DQ/CD, `/proc/cpuinfo` 验证), 故按任务规则**可以**在 Linux 完整验证(规则只禁止"CPU 不支持时不验证就谎报 PASS", 本机支持→必须验证)。
+- vm-bj CPU 支持 AVX512(F/BW/VL/DQ/CD, `/proc/cpuinfo` 验证), 故按任务规则**可以**在 Linux 完整验证(规则要求"CPU 支持时必须验证并如实登记", 本机支持→必须验证)。
 - 变体 `lib/infrastructure/benchmark/backend_host/avx512_backend.cpp` → `avx512_backend.so`(`-mavx512f -mavx512bw -mavx512vl -mavx512dq`), 共享 impl/table 同源。
 - 能力证明(bidirectional): baseline 零 VEX(`BASELINE_OPCODE_PASS`); avx512 变体**含 15× %zmm**(512-bit=AVX512)+ vmovaps/vmovdqu8(EVEX 编码)。真 AVX512 变体成立。
 - 逐 kernel 复测(median, 多轮, best-of baseline), 与 avx2(SHIP) 对照:

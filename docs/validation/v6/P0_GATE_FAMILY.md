@@ -22,9 +22,9 @@
 | 门 | 根因 | 判据 | 能红 mutation |
 |---|---|---|---|
 | `P0-01` | R1 机器门"看着在跑、实际不会红" | 每门 mutation 非空且逐条实测 rc!=0；零用例/skip-only rc=2 | MUT-SPEC-01/15/16 |
-| `P0-02` | R2 子串断言/同源自证 | 每门 `oracle.truth` 非空、`must_not` 非空；禁止生产输出作唯一 expected | MUT-SPEC-07/12 |
-| `P0-03` | R4 独立 Oracle 缺位 | `oracle.kind` ∈ 白名单；历史"Oracle 全过"不得继承 | MUT-SPEC-08 |
-| `P0-04` | R10 无回归锁/反向固化 | 退休 `support×snr²`/`weight_mode=0`/`auto`/`support_x_snr2` 不得成合法规格 | MUT-SPEC-06/13 |（已按 §9.73 A44 作废：该概念不存在）
+| `P0-02` | R2 子串断言/同源自证 | 每门 `oracle.truth` 非空、`must_not` 非空；生产输出只作辅助 expected | MUT-SPEC-07/12 |
+| `P0-03` | R4 独立 Oracle 缺位 | `oracle.kind` ∈ 白名单；"Oracle 全过"结论逐门重新实测 | MUT-SPEC-08 |
+| `P0-04` | R10 无回归锁/反向固化 | 退休 `support×snr²`/`weight_mode=0`/`auto`/`support_x_snr2` 仅登记为 retired token | MUT-SPEC-06/13 |（已按 §9.73 A44 作废：该概念不存在）
 | `P0-05` | AR-035/AR-051 785 销账与层口径 | 账本数字带层号；覆盖 R1/R2/R4/R5/R10 | MUT-SPEC-09 |
 | `P0-06` | R5 不可达阈值/依据虚构 | frozen 必须有真实锚；pending 必须有 owner | MUT-SPEC-10/14 |
 

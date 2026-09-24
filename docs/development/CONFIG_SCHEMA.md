@@ -5,7 +5,7 @@
 规则：C++ struct 默认值、parser 默认值、JSON schema、template config、
 docs、tests 必须一致；一致性由 `eng/tools/config_consistency_check.py` 校验。
 
-> **文档范围与 `output_mode` 口径（依 `ASTROCS_DESIGN.md` §0.2「详细层不得与本设计相反」）**
+> **文档范围与 `output_mode` 口径（依 `ASTROCS_DESIGN.md` §0.2「详细层只陈述与本设计一致的细化内容」）**
 > - 本文描述的是 **orchestrator 的 Stage2 配置**（parser = `lib/algorithms/coverage/src/stage2_common.cpp`，
 >   struct = `stage2_common.h`），**不是**三命令 `phase_config` 合同；后者的语义与索引唯一权威 =
 >   `docs/contracts/CONFIG_CONTRACT.md` §3。
@@ -15,8 +15,8 @@ docs、tests 必须一致；一致性由 `eng/tools/config_consistency_check.py`
 > - **`output_mode` 不属本文范围**（它只出现在 export 的 `phase_config`）：**必填且必须显式** ——
 >   `blocks[]` 分支、平铺单块简写分支、`{phase_name, config, inputs[]}` 简写分支的 `required`
 >   **都含 `output_mode`**（fail-closed；`docs/contracts/CONFIG_CONTRACT.md` §3 末条）；
->   合同登记的 `surface_brightness` **只作 `--template` 骨架值**，**不得**当成「运行期缺省」。
->   ⇒ 本文与 `CONFIG_CONTRACT.md` 在此点上**不得两边相反**。
+>   合同登记的 `surface_brightness` **只作 `--template` 骨架值**，运行期缺省另有显式来源。
+>   ⇒ 本文与 `CONFIG_CONTRACT.md` 在此点上**两边同向**。
 
 ## Stage2 config 段
 
@@ -65,7 +65,9 @@ rejection.method 说明（V17 冻结）：
     alias，解析并序列化为 wbpp_2_9_1）；
   - auto 在 **planning 层**按 integration cohort/tile 的 nominal
     contributors（几何可贡献独立 exposure 数）解析一次，禁止在 pixel loop
-    内按 effective count 路由；对照档 WBPP 2.9.1（本机源码 bestRejectionMethod）：
+    内按 effective count 路由；对照档 = **本仓冻结解析表**（档界取自 WBPP 2.5.9
+    `bestRejectionMethod`，`engine.js:1421-1429`，包 sha1 `712cc7c3…`；
+    其 `n>15` 分支为 ESD，本仓该档取 linear_fit = WBPP ≤2.3.x 旧表）：
       nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
   - `astrocs_adaptive` = ACSD 自有策略（tile nominal depth 自适应，
     独立命名，不冒充 WBPP exact）；
@@ -85,8 +87,9 @@ rejection.method 说明（V17 冻结）：
       reject_high_count 个样本（n−low−high >= min_kept；无 max_iterations）；
   - sigma = astrocs.robust_mad_clip.v1（median + MAD 迭代 clip；
       Astropy sigma_clip(mad_std) oracle）；旧字符串 "sigma" 为 alias；
-  - winsorized_sigma: robust 版（median 位置 + 1.5σ winsorize 迭代，
-      对齐 Siril 1.4.3 rejection_float.c）。
+  - winsorized_sigma: robust 版（median 位置 + 1.5σ winsorize 迭代；
+      语义来源 = PixInsight ImageIntegration 官方式[18]/[19]（Huber 体系）；
+      Siril 1.4.3 仅作**次生参考实现对拍**，不是语义来源）。
   - V17：旧顶层 low/high/max_iterations/min_samples 已从 parser 删除，
       出现即硬错误（提示 eng/tools/migrate_stage2_config.py）。
 output.hips / diagnostics

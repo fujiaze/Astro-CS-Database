@@ -21,7 +21,7 @@
    单位串的语义权威 = **FITS Standard 4.0 §4.3 `BUNIT`**：「The value field shall contain a character string
    describing the physical units in which the quantities in the array, **after application of BSCALE and BZERO**,
    are expressed.」单位串写法按该标准指向的 IAU Style Manual（McNally 1988）。
-   **禁止**省略立体角幂（面亮度方差是 `ADU^2/sr^2`，不是 `ADU^2`）。
+  **立体角幂必须写出**（面亮度方差是 `ADU^2/sr^2`，不是 `ADU^2`）。
 2. **标度类别（scale class）**：该量数值所在的线性标度，取值只能来自下表（封闭词表）：
 
 | token | 定义 | 量纲 | 现行承载面（示例） |
@@ -59,7 +59,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
 - **数值**：`nside = 2^18` ⇒ `A_cell = 1.5239e-11 sr` ⇒ 像素域→面亮度域的方差因子 `1/A_cell² = 4.306e21`（21.63 dex）。
 - **负例**：`A_cell = 1`（像素域即面亮度域）⇒ 因子恰为 1，度量归零。
 
-**禁止**：
+**违规判据**：
 
 - 跨标度类别直接比较、合并、加权或做阈值判定；**跨帧 `α_k` 不同时必须逐帧换算到同一标度再聚合**；
 - 把与数据无关的绝对常数（如按 ADU² 冻结的地板/下限）直接作用于其它标度的数组。
@@ -81,8 +81,8 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
   §2a 的 `invalid_handling` 块**；科学正本见 `docs/science/DRIZZLE.md`）：
   - **样本级掩膜 + 重归一**：不合格样本（`¬isfinite(x_j)`，**只看值是否有限**）
     从该输出像素的**分子、分母、方差三项中一并剔除**并**重新归一**；
-    **禁止**让单个不合格样本使整个输出像素变为 NaN；**禁止**保留被剔除样本的权重在分母里。
-  - **分母符号随分支而定（强制）**：`D_p` 与 `W_p` 是**两个量纲不同的量**，不得同名复用、不得互换。
+    不合格样本逐样本剔除：单个不合格样本的效应限于自身，输出像素保持可计算；被剔除样本的权重同时从分母移除。
+  - **分母符号随分支而定（强制）**：`D_p` 与 `W_p` 是**两个量纲不同的量**，各自具名、不可互换。
     - **Phase 1 drizzle drop**：分母 = **覆盖球面面积** `D_p = Σ_j a_jp`，量纲 **`sr`**；
       方差传播 `variance_p = Σ_j v_j·w_jp² / D_p²`（`DATA_SEMANTICS` §4a / §31.1a）。
     - **Phase 2 帧间集成 / Phase 3 投影重采样**：分母 = **权重和** `W_p = Σ_{合格} w`，量纲 = `w` 的
@@ -100,18 +100,18 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
     方差面损坏（§4a）⇒ 按不合格样本剔除并计入 `n_rejected_nonfinite_variance`。
   - **覆盖级 NaN**：仅当**零合格样本**（该分支分母 `= 0`：Phase 1 为 `D_p = 0`、
     Phase 2/3 为 `W_p = 0`）时输出 `signal = NaN` **且** `support ≤ 0`
-    （两者互推）；**NaN 是无效的唯一表示**；**禁止**用 `0`、`±Inf` 或任意哨兵值冒充无效。
-  - **强制计数（禁止静默）**：每个输出像素**必须**暴露被剔除样本计数
+    （两者互推）；**无效的唯一表示 = NaN**（`0`、`±Inf` 或任意哨兵值都不构成无效表示）。
+  - **强制计数（显式可见）**：每个输出像素**必须**暴露被剔除样本计数
     **`n_rejected_nonfinite`**（值非有限 / 方差非有限 / 权重非正，分类计数）；
     计数为 0 与「字段缺失」**必须可区分**。
-  - **禁止**把 NaN **传播**为合法产品。
+  - NaN 只作无效标记出现，合法产品只含有效值。
     与此相反的 `DISP-DRZ-004`「NaN 经 `F_p` 传播、不掩膜」为 **TRACKED/OPEN** 偏差，
     见 `docs/standards/STANDARDS_REGISTRY.md` D.drizzle 偏差表与 §3 索引。
   - **本文件不复制第二套**：三处（本文件、DATA-002 §2a、STANDARDS_REGISTRY D.drizzle）
     必须逐字同口径；如有分歧以 DATA-002 §2a 的 `invalid_handling` 块为准。
 - division by zero：显式守卫或状态。
 - overflow：checked 尺寸运算；科学累积用 FP64/stable sums。
-- epsilon 必须说明物理/数值来源，禁止裸 `1e-6` 无来源。
+- epsilon 必须说明物理/数值来源；裸 `1e-6` 视为无来源。
 - FP32/FP64 boundary：fp32 路径与 fp64 等价性测试。
 
 ## 权重/逆方差
@@ -123,7 +123,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
 - `ivar` 与 `uncertainty` 是**数据对象**（各有正本定义，见 `docs/contracts/DATA_SEMANTICS.md`），
   **不是**两个可回退的权重来源档位；不存在「权重模式」（`ASTROCS_DESIGN.md` §3.1）。
 - 权重必须**正有限**；全 0 / NaN / Inf 权重 → `ZERO_VALID_WEIGHT` / `INVALID_INPUT`。
-- **禁止**用 `support` / `coverage` / `validity` / `mask` 冒充权重（四概念分离，最高设计 §4.4）。
+- 权重取值为正有限值；`support` / `coverage` / `validity` / `mask` 与权重各自独立（四概念分离，最高设计 §4.4）。
 
 ## 关联
 

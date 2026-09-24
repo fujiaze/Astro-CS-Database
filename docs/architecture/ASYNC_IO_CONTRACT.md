@@ -4,7 +4,7 @@
 
 > 关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`
 > 目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；
-> 队列容量由 `memory_budget_bytes / item_bytes` 推导，禁止无界队列。
+> 队列容量由 `memory_budget_bytes / item_bytes` 推导，取值有上界。
 
 ## 1. 模型
 
@@ -14,14 +14,14 @@
   空时消费者阻塞。
 - **容量**：`bounded_queue_capacity(memory_budget_bytes, item_bytes)`；
   `item_bytes` 必须包含该条目在队列中持有期间的全部内存占用（buffer + 控制块）。
-  最低容量为 1，禁止 0。
+  容量下界为 1，0 不是合法取值。
 
 ## 2. Buffer 所有权
 
 - 每队列条目持有 `T` 的所有权；`T` 必须是可移动类型（`std::move` 入队）。
 - 入队后，生产者不再访问该 buffer；出队后所有权移交给消费者。
-- 消费者处理后必须显式释放或复用，不得把已出队 buffer 重新入队。
-- 禁止两个线程同时读写同一 buffer；每个 `TilePair` 等条目绑定唯一 reader 会话。
+- 消费者处理后必须显式释放或复用；已出队 buffer 的去向就此确定。
+- 同一 buffer 的读写归属唯一线程；每个 `TilePair` 等条目绑定唯一 reader 会话。
 
 ## 3. Reader 线程安全
 
@@ -35,7 +35,7 @@
 
 - `BoundedAsyncQueue::cancel(reason)` 唤醒所有阻塞者，后续 `push/pop` 返回失败。
 - Worker 捕获读取/写入异常后调用 `cancel`，主线程通过 `error()` 获得第一错误文本。
-- 禁止在 worker 线程中向主线程“尽力而忽略”错误；未取消且未关闭的队列不得静默吞错。
+- worker 线程的错误一律经 `cancel` 上达主线程并逐条登记；未取消且未关闭的队列对错误一律显式报告。
 
 ## 5. 取消
 
@@ -51,7 +51,7 @@
 - **正常关闭**：`close()`。生产者停止入队，消费者继续排空队列，直到 `pop() == nullopt`。
 - **Flush**：消费者必须在计算阶段结束时保证所有已入队 buffer 被消费；对写队列，
   flush 表示等待所有 writer 完成并关闭文件。
-- **Shutdown**：所有 worker 线程 join 后销毁队列；禁止在仍有线程访问时析构。
+- **Shutdown**：所有 worker 线程 join 后销毁队列；析构时点 = 线程全部 join 之后。
 
 ## 7. 内存预算
 
@@ -62,7 +62,7 @@
 | `capacity()` | 队列条目上限 = `max(1, budget / item_bytes)` |
 
 - 队列容量不是全局内存上限；各阶段还需要自己的工作缓冲预算。
-- 严禁用 `std::deque::size()` 无限增长；超预算应通过背压或分块降级。
+- 用 `std::deque::size()` 施加容量上界；超预算应通过背压或分块降级。
 
 ## 8. 测试要求
 
@@ -86,7 +86,7 @@
      `AioHipsDataset*` 句柄读取，杜绝跨线程共享句柄并发读；
   2. **I/O 解耦（CON-008）**：`BoundedAsyncQueue` 作为有界生产/消费缓冲，
      用于“有界预取队列 + 单一 IO 线程 / 每 worker 独立 reader”的解耦层；
-     禁止把未证明线程安全的共享句柄塞进异步队列并发读。
+     异步队列并发读的入队项限于已证明线程安全的句柄。
 - **待接入点（明确记录，不伪造并发读安全）**：
   - `stage2.cpp`：tile 读取/写入可使用 `BoundedAsyncQueue<TileReadTask>` /
     `BoundedAsyncQueue<TileWriteResult>`；

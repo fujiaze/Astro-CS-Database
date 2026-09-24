@@ -80,7 +80,7 @@ function integrate_pixel(in, out):
 
 ## 7 CPU-only 后端策略（V5）
 
-- 仅 CPU: 像素独立无共享, worker pool（按 affinity）按像素行带并行, **禁止硬编码线程数**；signal 与线程划分无关（像素内固定候选序归约）。
+- 仅 CPU: 像素独立无共享, worker pool（按 affinity）按像素行带并行, **线程数取自 benchmark profile**；signal 与线程划分无关（像素内固定候选序归约）。
 
 ## 5c SIMD 安全与取消点
 

@@ -61,11 +61,11 @@ Phase3 接收任意兼容 HiPS，按选定投影与采样导出标准 WCS 平面
 
 ## 7. 数据对象不可混淆
 
-`signal`、`variance/ivar`、帧级 SNR 与稀疏绝对 SNR 层、`quality`、`support`、`coverage`、`validity`、`rejection`、UPM 参数和 `provenance` 是不同合同对象。禁止模糊 `weight/value/mask/snr` 承载多个含义；权重是 Phase2 消费 SNR 时的现场派生量，不是独立合同对象。
+`signal`、`variance/ivar`、帧级 SNR 与稀疏绝对 SNR 层、`quality`、`support`、`coverage`、`validity`、`rejection`、UPM 参数和 `provenance` 是不同合同对象。`weight/value/mask/snr` 这些泛称各指一个含义；权重是 Phase2 消费 SNR 时的现场派生量，不是独立合同对象。
 
 ## 8. 科学正确性门
 
-- 科学定义先于算法，算法先于实现；不得以当前程序输出生成唯一 expected；
+- 科学定义先于算法，算法先于实现；唯一 expected 取自冻结定义与独立 oracle；
 - 每个模型有解析/独立高精度/Monte Carlo Oracle；
 - 注入点源验证理论 information 与实测 flux variance；
 - 独立帧条件下验证 `SNR_combined²=ΣSNR_k²`，有相关项时验证简单求和被拒；
@@ -83,4 +83,4 @@ Phase3 接收任意兼容 HiPS，按选定投影与采样导出标准 WCS 平面
 
 ## 11. 当前迁移原则
 
-现有 FROZEN SCI、代码和旧工程包凡与本规范冲突，均作为待迁移基线而非反证。本轮优先完成三阶段设计和统一科学合同，再做合同/代码差距审计，最后实施；不得再次把工程现状写进目标规范主体。
+现有 FROZEN SCI、代码和旧工程包凡与本规范冲突，均作为待迁移基线而非反证。本轮优先完成三阶段设计和统一科学合同，再做合同/代码差距审计，最后实施；目标规范主体只承载目标态（工程现状属差距审计面）。

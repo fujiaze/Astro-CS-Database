@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
 > ID: ARCH-BACKEND-001  状态: FROZEN  上游: ARCH-002/ALG-001..007  下游: ABI-001/002, ISA-001..005, BENCH-001..005
-> 权威来源: 控制包 05 全条目(§1–§7)逐节落成架构; 禁止项与 05 完全一致。
+> 权威来源: 控制包 05 全条目(§1–§7)逐节落成架构; 约束项与 05 完全一致。
 
 ## 1 设计结论(05 §1)
 
@@ -11,16 +11,16 @@
 
 ## 2 编译隔离(05 §2)
 
-- baseline 必须在最低 amd64 合同 CPU 上加载;变体 TU 局部编译选项;主 CLI 与 baseline 零 AVX 污染;**禁止全局 `-march=native`/`/arch:AVX2`/`-mavx*`**;CI 反汇编/对象扫描 baseline opcode;变体与 baseline 共享同一数学合同头(单一 `lib/infrastructure/benchmark/backend_host/baseline_kernels.h`,禁止复制漂移;V6.1 实际实现,CPU-BACKEND-ARCH-001)。
+- baseline 必须在最低 amd64 合同 CPU 上加载;变体 TU 局部编译选项;主 CLI 与 baseline 零 AVX 污染;**编译选项限于变体 TU 局部**（全局 `-march=native`/`/arch:AVX2`/`-mavx*` 属全局设置）;CI 反汇编/对象扫描 baseline opcode;变体与 baseline 共享同一数学合同头(单一 `lib/infrastructure/benchmark/backend_host/baseline_kernels.h`,该头为唯一副本;V6.1 实际实现,CPU-BACKEND-ARCH-001)。
 
 ## 3 CPU/OS 状态检测与信任边界(05 §3)
 
 加载前六查(全过才执行): ① CPUID feature bits; ② OSXSAVE; ③ XGETBV(XMM/YMM/ZMM 保存); ④ 进程可用 CPU=affinity∩cgroup∩Job Object(非机器总核); ⑤ manifest `required_features`; ⑥ 文件 sha256+ABI 版本。
-**信任边界**: Windows 受限 DLL 搜索目录;Linux 仅发行包相对私有目录;**禁止任意 `PATH`/`LD_LIBRARY_PATH` 注入**;开发覆盖=显式危险开关+manifest 记录;host 永不执行未过六查的 backend(无 illegal instruction 可能)。
+**信任边界**: Windows 受限 DLL 搜索目录;Linux 仅发行包相对私有目录;解析只走这两个可信来源（`PATH`/`LD_LIBRARY_PATH` 的值不参与）;开发覆盖=显式危险开关+manifest 记录;host 只执行已过六查的 backend(无 illegal instruction 可能)。
 
 ## 4 稳定 C ABI v1(05 §4)
 
-- 跨边界禁: C++ STL/异常/RTTI/编译器分配所有权;异常不得跨边界(测试断言)。
+- 跨边界面: 只传稳定 C ABI 类型; C++ STL/异常/RTTI/编译器分配所有权留在边界内;异常处理限于边界内(测试断言)。
 - 唯一入口: `astrocs_backend_get_api_v1(host_abi_version, host_struct_size, host*, out_api*)`;`struct_size`/version handshake 失配拒绝。
 - 结构必含: `abi_version, struct_size`;`backend_id, backend_build_id, backend_sha256`;required/detected feature bits;对齐/precision/determinism/aliasing 合同;allocator/log/cancel/thread-budget host callbacks;kernel capability 表+函数指针;`self_test()/warmup()/shutdown()`;结构化错误码。
 - 内存: 分配方释放或全部 host allocator;并发合同逐函数写明(可重入/线程安全/内部并行/嵌套并行);host 传全局 thread budget,**backend 禁私有线程池**。
@@ -34,7 +34,7 @@
 1. 启动前预检失败→warning/backend event→回退 baseline→run 开始;
 2. 计算中失败→**安全中止整个 stage,禁静默换 backend 混合结果**;
 3. profile hash/ABI/kernel version 不匹配→该项或整体失效,走保守路线(baseline+动态 worker);
-4. baseline 自检失败→不得运行,返回错误(exit 5 语义随 API-002 冻结)。
+4. baseline 自检失败→返回错误并停止执行(exit 5 语义随 API-002 冻结)。
 
 ## 7 发布检查(05 §7)
 

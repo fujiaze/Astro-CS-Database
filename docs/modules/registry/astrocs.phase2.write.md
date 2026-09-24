@@ -14,7 +14,7 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 
 > 手写合同页：本页重写 registry
 > 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
-> 词汇不得作为冻结依据，本页手写登记事实修订；registry 页保留先例
+> 词汇只作编排层占位，冻结依据 = 本页手写登记事实；registry 页保留先例
 > astrocs.phase1.session.md / astrocs.phase1.star-detection.md /
 > astrocs.phase2.coverage.md）。模块级事实以 lib/algorithms/coverage/hips_p2/README.md
 > （r1，CONTRACT_READY）+ lib/algorithms/coverage/hips_p2/module.yaml（MOD-astrocs-phase2-
@@ -23,7 +23,7 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 > lib/algorithms/coverage/tools/stage2.cpp（1965 行，astrocs-stage2 工具，
 > lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
 > lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100），
-> 全部行锚 grep/sed 实测，禁止手抄他版。
+> 全部行锚 grep/sed 实测，抄录一律以实测锚为准。
 
 ## 职责与明确非职责
 
@@ -42,7 +42,7 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
   p2_integrate_pixel）→
   逆归一（area=sup×A_cell :527、flux=signal×area :1000-1017/:1219-1233）——
   ⚠ **该 `flux` 是 writer 视图的中间量**（`aio_hips_write_signal_support_tile` 的入参口径），
-  **落盘值 = `flux_sum / covered_area` = 面亮度**（写端口 `UnitId::SURFACE_BRIGHTNESS`；**不得**读成「产品是通量」；
+  **落盘值 = `flux_sum / covered_area` = 面亮度**（写端口 `UnitId::SURFACE_BRIGHTNESS`；**产品语义 = 面亮度**；
   通量语义只在 writer 视图内部存在，产品语义 = 面亮度）→
   FITS 序→NESTED 序转换（HIPS-IMG-001，nested_local_to_fits_index
   :1032/:1611）→ aio_hips_write_signal_support_tile/
@@ -90,7 +90,7 @@ stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
 沿用 `MOD-astrocs-phase2-write`；descriptor（**`module_adapters.cpp:1040-1057`**，
 module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
-test_id=TEST-P2-WR-001）为编排占位词汇，不得反向作为冻结依据，由
+test_id=TEST-P2-WR-001）为编排占位词汇；冻结依据 = 该矩阵行本身，由
 P2-XX-INT 对齐本页与 lib/algorithms/coverage/hips_p2/module.yaml。配置=single JSON
 （P2Stage2Config :16-99：reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
 astrocs_adaptive_pixel）、large_scale 默认关、acr_route=auto、

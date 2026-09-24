@@ -37,7 +37,7 @@
 - module_id=astrocs.p3.projection（MODULE_MIGRATION_MATRIX P3-PROJ 行
   权威值）；registry 行 MOD-astrocs-phase3-wcs；
   dll_target=astrocs_p3_projection.dll（合同值，尚未存在，由
-  P3-PROJ-IMPL 建立，禁止声明 IMPLEMENTED）；现状构建=
+  P3-PROJ-IMPL 建立；IMPLEMENTED 词由验收在建立后签发）；现状构建=
   astrocs_phase3_session 静态库成员（根 CMakeLists.txt:460-465，
   p3_wcs.cpp 为五源文件之一）。
 - 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
@@ -116,12 +116,12 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 ```
 
-- **投影拒绝（B2-A4 冻结，不得放宽）**：`p3_wcs_validate_request` 对
+- **投影拒绝（B2-A4 冻结，取值一律按本节）**：`p3_wcs_validate_request` 对
   projection 仅接受 "TAN"（缺省即 TAN）；SIN/CAR/AIT 即便已在
   `lib/algorithms/projection` registry（v3）注册，也**未接入**
   alpha 会话生产路径（会话层收窄，SCI-P3 §9a-3），故与任意未注册码一样返回
   P3_WCS_UNSUPPORTED——
-  **禁止静默改写为 TAN**（01_SCIENCE_AUTHORITY_BASELINE §4）。frame
+  **P3_WCS_UNSUPPORTED 即最终取值（TAN 只来自显式请求）**（01_SCIENCE_AUTHORITY_BASELINE §4）。frame
   非 icrs（接受 "ICRS"）→ P3_WCS_UNSUPPORTED；coverage_output 非 mask
   → P3_WCS_PARAM。`p3_wcs_make` 的 projection 默认实参保持既有调用
   零改动，入口先于一切数值构造校验；`p3_wcs_fits_keywords` 的 CTYPE
@@ -297,7 +297,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     401×401 网格（160801 点）中被 `r≥π/2` 拒绝的 8124 点**全部**满足 `denom>0`。
   - **适用域**：本域合同域 FOV ≤ 20°（§6.1 适用域门）的四角 ρ_max ≈ 14.2° < ρ*，
     故该守卫在 alpha 合同域内**永不触发**；它只在视场半对角 > 57.52°（FOV ≳ 115°）时生效。
-    消费方不得用"半球"字样解释该判据——那会把 57.52°–90° 的合法天区误判为不可达。
+    该判据的表述口径 = 「视场半对角越界」；用"半球"字样解释它会把 57.52°–90° 的合法天区误判为不可达。
 - make 四角守卫透传的返回码可能为 P3_WCS_HEMISPHERE（视场超半球）
   ——即"参数合法但视场越界"仍属失败，不产出 descriptor。
 
@@ -335,7 +335,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   SCI-P3-WCS-001、alg_id=ALG-P3-002、test_id=TEST-P3-WCS-001、
   端口 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)）为编排层
   词汇（module_adapters.cpp:410-427），由 P3-PROJ-INT 对齐
-  astrocs.p3.projection，不得反向作为冻结依据。
+  astrocs.p3.projection；冻结依据唯一 = 本合同。
 
 ## 12 TEST-P3-WCS-DESIGN-001 设计冻结（登记面 VERIFIED）
 
@@ -365,7 +365,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   →make 返回 HEMISPHERE。
 - **T6 oracle**: 现状=独立解析解（test_p1002_gaps.py）；验收级=
   **WCSLIB 独立实现**（矩阵 notes "WCSLIB test oracle"，由
-  P3-PROJ-TEST 建立，禁止用生产实现自证）；双平台数值合同按
+  P3-PROJ-TEST 建立，与生产实现相互独立）；双平台数值合同按
   backend 数值测试族先例。
 - **T7 不变量/回归**: eng/tests/unit/p3_wcs_test.cpp 溢出检查与 WCS
   完整性面保持通过；RAFT: 同入参 1/N worker 结果 bitwise 一致
@@ -389,8 +389,8 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - **订正原则（`ENGINEERING_SPEC.md` §3）**：`docs/science/**` 与
   `docs/algorithms/**` 必须科学正确。当独立证据（外部标准/文献/可复跑实验）
   证明文档与标准或事实不符时，**订正文档是义务**；反之文档已被证明正确而
-  实现不符时，改实现。**禁止**「以代码为准」或「禁止反向修改 SCI」式权威
-  倒置表述，也禁止以「文档已冻结」保留已知错误。
+  实现不符时，改实现。**权威方向 = 从 SCI 到实现**：不接受「以代码为准」式权威
+  倒置表述；「文档已冻结」只表取值的当前状态，已知错误照改。
 - 现行口径：SCI-P3 的 CAR/AIT CRVAL2 语义、AIT 域界、CAR 极行、order/leaf
   公式、coverage/权重容差表述与 DATA_SEMANTICS §30.4 传播式，均以外部标准
   （Paper I/II、astropy/WCSLIB）与可复跑实验为准；正本见
@@ -427,7 +427,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - **v1 线**（`lib/algorithms/projection/p3_projection.h/.cpp`，
   `kP3ProjectionRegistryVersion = 1`，`kP3ProjectionRegistryRetired = true`）
   **RETIRED**：仅保留偏差对照证据门（§15.9 + `ctest
-  v6_p3_proj_legacy_deviation`），禁止新消费方引用；其行为冻结不得再变
+  v6_p3_proj_legacy_deviation`），引用面限于偏差对照证据门；其行为冻结、取值固定
   （偏差集合只减不增，任何变化须复核并更新 §15.9）。
 - **实现状态（如实）**：v3 已实现 4/8（TAN/SIN/CAR/AIT）；`STG/MOL/CEA/ZEA`
   未实现——`registry_find()` 返回 nullptr（fail-closed，无 fallback），
@@ -506,7 +506,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   与解析最优 2ab = 8 rad² 吻合）；**全天空（360°×180°）不可构造**——四角守卫下 360×180 帧四角
   A = xp²/4 + yp² = **1.994 > 1** ⇒ 必判 HEMISPHERE（720×360 → 1.997）。性质：椭圆内接矩形四角恒在椭圆上
   （A=1），而覆盖整个椭圆的矩形四角恒在椭圆外（A=2>1）⇒ 该限制**数学上不可达**，不是实现缺陷。
-  「全天空」只作展示语义（投影自身定义域），**不得**当作可构造 FOV 声明使用。
+  「全天空」只作展示语义（投影自身定义域），**可构造 FOV 声明面不含该表述**。
 - **STG/MOL/CEA/ZEA**：只登记集合成员与适用域（§15.1 表）；逐式公式 +
   域界 + 独立往返/绝对对拍 Oracle 随实现引入并在本节追加。
   四者均属 Paper II 标准集合（astropy/WCSLIB 可构造，R-1 §2.4）。
@@ -628,7 +628,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 > 依据：`ASTROCS_DESIGN.md` §5.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
 > 证据：Phase2 信号量纲判据冻结 sha256 `562d9f7447b91f650d547ce0a322fc519e91de270956da9c49094b7f163d5de0`（正本见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16）与 `ALIGNMENT-5.3.md` C1–C9；
-> 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，不得两套文字）。
+> 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，文字只有这一份）。
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
@@ -637,7 +637,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
 | C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
-| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_v6_export.cpp` **未进构建**（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；**不得声称 §5.3 已生效**） |
+| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_v6_export.cpp` **未进构建**（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§5.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |

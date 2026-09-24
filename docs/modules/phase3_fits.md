@@ -30,14 +30,14 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 > 合同，SCI-P3-WR-001⇒SCI-P3-001 映射声明在其 §5）。descriptor 词汇
 > module_id=`astrocs.phase3.writer`（module_adapters.cpp:445-460
 > p3_writer_descriptor）为编排层占位，由 P3-FITS-INT 对齐
-> `astrocs.p3.fits_writer`，不得反向作为冻结依据。
+> `astrocs.p3.fits_writer`；冻结依据 = 该矩阵行本身。
 
 ## 身份与合同落位
 
 - MOD ID：`MOD-astrocs-phase3-writer`（registry 行 ID 沿用）；
   module_id=`astrocs.p3.fits_writer`（矩阵权威）；
   dll_target=`astrocs_p3_fits_writer.dll`（迁移合同值，尚未存在——
-  MISSING 语义，由 P3-FITS-IMPL 建立，禁止声明 IMPLEMENTED）；
+  MISSING 语义，由 P3-FITS-IMPL 建立，IMPLEMENTED 只由验收签发）；
   现状构建=astrocs_phase3_session 静态库成员。
 - 合同落位：`lib/algorithms/fits_output/` 三件套——README r1（合同页）+
   module.yaml（CONTRACT_READY，entrypoint=MISSING，31 键 schema

@@ -84,7 +84,7 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 - `COMMENT`/`HISTORY`/`END`/空卡片：写路径自动生成；读路径跳过（`END` 后卡片非法）。
 - 保留关键字（写路径校验）：`SIMPLE`、`XTENSION`、`BITPIX`、`NAXIS`、`NAXISn`、`PCOUNT`、
   `GCOUNT`、`EXTEND`、`BSCALE`、`BZERO`、`BLANK`、`DATASUM`、`CHECKSUM` —— 由 writer 内建，
-  不允许调用方自定义卡片占用；占用返回 `ACS_FIO_ERR_BAD_HEADER`。
+  卡片归属 = writer 内建，调用方卡片另占键位时返回 `ACS_FIO_ERR_BAD_HEADER`。
 - 写路径卡片总数（含内建+校验所需）超 1023 拒绝。
 - `BUNIT`：写路径从调用方 `bunit` 字段写；读路径在 header 中保留，verify 按 dtype/shape/unit 三项分别校验。
 

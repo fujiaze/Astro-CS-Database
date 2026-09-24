@@ -7,7 +7,7 @@
 > SCI-INT-001（docs/science/INTEGRATION.md §5 signal/sup_max 公式）、SCI-REJ-001（docs/science/REJECTION.md，
 > SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md）。共享 SCI 引用不改动；
 > 本文件登记实现级语义（SCI 公式语义不在本文重复定义，两处冲突以
-> docs/science/ 为准并回改本文档，禁止反向）。
+> docs/science/ 为准并回改本文档，方向 = 从 docs/science/ 到本文档）。
 > 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（1965 行实测；入口 main :112）。
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
 > no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
@@ -17,7 +17,7 @@
 > MOD-astrocs-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=astrocs.phase2.write 现状域）。
 > 纪律声明: 所有 stage2.cpp:NNN 行锚逐条 `grep -n`/`sed` 实测；
-> 未持有源码锚的语句不得声称 IMPLEMENTED；缺陷以 DISP-P2HIPS-* 登记，不反向修改 SCI。
+> IMPLEMENTED 词只签给持有源码锚的语句；缺陷以 DISP-P2HIPS-* 登记，SCI 修改从 SCI 发起。
 
 ## 1 上游 SCI 与输入输出
 
@@ -47,9 +47,9 @@
   hips_paths/输出目录键，不做 HiPS 写）；P3 重采样经 aio_hips_reader（P3 域）；
   HIPS_VERIFY 为 stage2 自回读（§2 ALG-P2-HIPS-004）。
 
-## 2 离散公式（锚=stage2.cpp 实测行号，禁止改写）
+## 2 离散公式（锚=stage2.cpp 实测行号，正文按源码照录）
 
-- **target_order 决议与禁止插值伪装分辨率**: `target_order =
+- **target_order 决议与分辨率上限（插值不提升分辨率）**: `target_order =
   cfg.target_order ≥ 0 ? cfg.target_order : cov.target_order`（:203-204）；
   `target_order > cov.target_order`（高于输入最高 order）→ 显式拒绝 rc=3，
   log "target_order 高于输入最高 order，禁止插值伪装分辨率"（:205-208）。
@@ -328,15 +328,15 @@ main(stage2.json, CLI overrides):
   由 Phase2 按该天球像素对应帧集合现场算出），
   `support`（SCI-INT §5 sup_max=max(accepted support)，几何覆盖 [0,1]，
   A_cell 归一）、`mask`（rejection reasons→accepted 掩码，large_scale grow
-  后处理）在缓冲/产品/命名上严格分离；**禁止 support 当科学权重冒充
+  后处理）在缓冲/产品/命名上严格分离；**support 与 ivar 各自独立；科学权重面只取
   ivar**——缺 ivar 产品 → rc=7 或显式标红 fallback（:565-577），
   像素级缺 ivar 仅显式 fallback 路径可达并降级 support 计数（:1372-1375）；
-  **禁止 valid_mask 入权重式**（valid_mask 仅 writer 视图层
+  **权重式的输入 = ivar/support**（valid_mask 仅 writer 视图层
   `view.valid_mask` :1628，权重式只取 ivar/support）。
 - **no root science formula change**: w_UPM（PHASE2_UPM.md §5）、signal/sup_max
   （INTEGRATION.md §5）、rejection 判据（REJECTION.md SCI-REJ-001..008）
   一律不改；本模块实现锚只登记 stage2 侧编排语义（§1 纪律声明）。
-- **禁止插值伪装分辨率**: target_order ≤ 输入最高 order，违者 rc=3
+- **分辨率上限 = 输入最高 order**: target_order ≤ 输入最高 order，违者 rc=3
   （:205-208）。
 - **输出确定性**: 同输入同 config → 同 mosaic（固定 tile 序 :659、固定
   chunk 划分 :795-799、OMP 定序归并 :1310-1317、单线程 writer 调用
@@ -483,7 +483,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   由本节声明——SCI-P2-WR-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=INTEGRATION.md
   §5 + PHASE2_UPM.md §5 + REJECTION.md + SCIENCE_SCOPE.md）；
   ALG-P2-WR-001 ⇒ ALG-P2-HIPS-001..004（本文档
-  §2/§7）。两处冲突以 docs/science/ 为准并回改本文档（禁止反向）。
+  §2/§7）。两处冲突以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
 
 ### 11.6 与任务给定事实的实测差异记录（以实测为准，供 P2-HIPS-INT 对齐）
 

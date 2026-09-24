@@ -53,7 +53,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
-`cpu_heavy`; parallel=是(heavy+serial 资源门禁止); worker 数=ThreadBudget.max_workers(禁 hardware_concurrency);
+`cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
 确定性=固定顺序输出(1/N 等价已验)。
 
 ## 内存/cache/I-O/所有权

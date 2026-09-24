@@ -6,7 +6,7 @@
 > `docs/owner/RELEASE_STATUS.md` §0（该节引 §12.5，不另立阶梯）。
 > ⚠ 本文件**不声明第二套状态阶梯**，也不复述状态词清单；
 > 本表**不写状态字段**，状态一律由 `eng/tools/quality/check_module_map.py` **现场计算**
-> （最高设计 §0.2/§12.5：登记表与映射表禁止写状态字段，防「表内自证绿」）。
+> （最高设计 §0.2/§12.5：登记表与映射表的状态字段留空，防「表内自证绿」）。
 > 本表按 **`lib/` 实际目录** 登记（不再描述已不存在或尚未建立的产物）；
 > 每行给出可核证据锚。详细 L5 文档见 `docs/modules/`。
 
@@ -50,7 +50,7 @@
 
 | 迁移目标 | 路径 | 交付状态 | 现状与去向 |
 | --- | --- | --- | --- |
-| p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | **设计冻结 8 种投影**（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计 §5.3）；**已实现并可作为产品声明的以实际注册表为准**（`lib/algorithms/projection/p3_projection.cpp` registry，行锚以该注册表为准），**未实现的必须显式报「不支持」、禁止声称支持**（最高设计 §5.3）；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
+| p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | **设计冻结 8 种投影**（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计 §5.3）；**已实现并可作为产品声明的以实际注册表为准**（`lib/algorithms/projection/p3_projection.cpp` registry，行锚以该注册表为准），未实现项报「不支持」（最高设计 §5.3）；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
 | p3 resample | `lib/algorithms/resample` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_resample.dll`；生产实现在 `lib/algorithms/resample/p3_resample.cpp`（W4-A3 改绑：原 `lib/phase3_session/` 路径已随投影/重采样迁出删除）；顶层占位 descriptor `astrocs.phase3.resample` 归 P3-RSMP-INT（DEFERRED） |
 | p3 fits | `lib/algorithms/fits_output` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_fits.dll`；生产实现在 `lib/algorithms/fits_output/p3_output.cpp`；流式 FITS 接入 NOT_IMPLEMENTED |
 | phase2 upm / samp / rej / int | `lib/algorithms/upm`、`lib/algorithms/sampling`、`lib/algorithms/rejection`、`lib/algorithms/integration` | CONTRACT_READY（合同目录） | 生产实现在 `lib/algorithms/coverage`（节点化已 IMPLEMENTED）；独立 DLL 化为迁移目标 |

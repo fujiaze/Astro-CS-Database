@@ -3,14 +3,14 @@
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
 > 唯一执行预算对象。并行/IO/确定性/内存预算以此为唯一来源；嵌套模块
-> 只能从该预算借用，不得各自创建等规模线程池。异步队列必须有界，取消/错误
+> 只能从该预算借用，线程池规模同源于该预算。异步队列必须有界，取消/错误
 > 传播与关闭顺序必须明确。
 
-> ⚠ **预算唯一来源**：worker 数**不得**由「硬件并发数」默认值决定——**只能**来自 benchmark
-> 生成的机器 profile 与全局预算对象（最高设计 §8）；**禁止**任何绕过 profile 的默认值。
+> ⚠ **预算唯一来源**：worker 数**只**来自 benchmark
+> 生成的机器 profile 与全局预算对象（最高设计 §8）；默认值一律取自 profile。
 > 合法来源 = benchmark 生成的机器 profile（安装目录）+ 全局预算对象
 > （可用 CPU = 亲和性 ∩ cgroup ∩ Job Object 的交集）。
-> **禁止**任何 GPU 路由开关与第二个可执行入口（最高设计 §6.2/§8）；
+> GPU 路由开关与第二个可执行入口**不在合同面内**（最高设计 §6.2/§8）；
 > 配置 schema 与 CLI **不含** `gpu_route`，也不提供兼容别名。
 > `ExecutionOptions` 只承载调用方从预算对象借到的值。
 
@@ -20,8 +20,8 @@
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
-| `cpu_workers` | int | **无默认**（由 benchmark profile / 全局预算对象注入） | CPU worker 数；`0` = auto ⇒ 由 profile 与预算对象决定（**禁止** `hardware_concurrency` 兜底） |
-| `io_workers` | int | **无默认**（同上） | IO worker 数；`0` = auto ⇒ 由 profile 与预算对象决定（**禁止** `cpu_workers/2` 兜底） |
+| `cpu_workers` | int | **无默认**（由 benchmark profile / 全局预算对象注入） | CPU worker 数；`0` = auto ⇒ 由 profile 与预算对象决定，兜底面排除 `hardware_concurrency` |
+| `io_workers` | int | **无默认**（同上） | IO worker 数；`0` = auto ⇒ 由 profile 与预算对象决定，兜底面排除 `cpu_workers/2` |
 | `deterministic` | bool | true | 固定 seed/顺序/归并 => 可复现结果 |
 | `memory_budget_bytes` | uint64 | 0 | 内存预算字节；0 => 由 `memory_limit_mb` 决定 |
 
@@ -59,9 +59,9 @@
 
 - 模块仅通过 `ExecutionOptions` 读取已分配预算；`effective_cpu_workers(exec)` /
   `effective_io_workers(exec)` 返回生效值。
-- 嵌套模块不得新建等规模线程池（如再 `omp_set_num_threads(hc)`）——必须复用该预算。
+- 嵌套模块复用该预算（如再 `omp_set_num_threads(hc)` 属新建等规模线程池）。
 - 异步队列容量由 `memory_budget_bytes` 推导（见 CON-008 异步 I/O 合同）。
-- **禁止**任何 GPU 路由开关与第二个可执行入口（最高设计 §8）。
+- GPU 路由开关与第二个可执行入口**不在合同面内**（最高设计 §8）。
 - **代码侧现状（登记）**：`execution_options.h` 仍含 `gpu_route`（:18/:43）与
   `hardware_concurrency` 默认（:16/:24/:38）；文档与合同侧不承认这些键。
 

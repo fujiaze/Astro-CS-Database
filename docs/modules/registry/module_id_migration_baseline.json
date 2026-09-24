@@ -27,7 +27,7 @@
     },
     {
       "at": "2026-09-17T07:35:00+08:00",
-      "change": "大面步骤1 落地后下调 21/18 → 20/17；依据=新增 module_id 的页 astrocs.phase1.star-detection.md（+1 页）+ 覆盖模块 astrocs.p1.star_detection（+1 模块有页）。大面步骤2（新增 A 面条目 astrocs.p1.hips_writer）已回退：check_module_map findings 155→161（missing_map_field plugin_doc / dangling_data_contract DATA-P1-DRZ+DATA-P1-HIPS / header_missing_abi_version 等 6 条），违反「findings 不得上升」⇒ 登记为待 B/C 面补齐后新增，不为凑数造条目"
+      "change": "大面步骤1 落地后下调 21/18 → 20/17；依据=新增 module_id 的页 astrocs.phase1.star-detection.md（+1 页）+ 覆盖模块 astrocs.p1.star_detection（+1 模块有页）。大面步骤2（新增 A 面条目 astrocs.p1.hips_writer）已回退：check_module_map findings 155→161（missing_map_field plugin_doc / dangling_data_contract DATA-P1-DRZ+DATA-P1-HIPS / header_missing_abi_version 等 6 条），与「findings 只降不升」冲突 ⇒ 登记为待 B/C 面补齐后新增，条目一律以实测为依据"
     },
     {
       "at": "2026-09-20T00:00:00+08:00",

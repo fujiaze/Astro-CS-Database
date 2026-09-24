@@ -19,7 +19,7 @@
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
 > astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 acsd
 > 可执行（:501-506）。权威源: lib/phase2_session/p2_session.h（39 行）
-> + p2_session.cpp（318 行，实测；本文件行号禁止手抄他版）。
+> + p2_session.cpp（318 行，实测；本文件行号一律照录实测值）。
 
 ## 1 目的与非目标
 
@@ -95,7 +95,7 @@ write，:561-694）注册段 :782-794——**无第二调度顺序**（注释
 | 合同 ID：SCI-UPM-001+SCI-INT-001+SCI-REJ-001 / ALG-P2-SESSION-001 / DATA-P2-SESSION / API-P2-SESSION-001 / TEST-P2-SESSION-001 | 占位 api_id 一致同为 API-P2-001（:575 等） | P2-XX-INT |
 
 **注记（冻结边界）**：descriptor 占位 ID 为编排层词汇（P1 registry
-页先例 astrocs.phase1.session.md:20-23 同构表述），不得反向作为本
+页先例 astrocs.phase1.session.md:20-23 同构表述），编排层词汇只作对齐对象，本
 文件冻结依据；对齐由 P2-SESSION-INT 执行（台账 V7_1_STATIC_TASK_
 LEDGER.csv:188 关键词 "module integration descriptor + typed ports"）。
 
@@ -338,7 +338,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   取消歧义现状断言（DISP-P2SES-003）。
 - **容差=装配层无科学数值容差**：config 透传/manifest 计数/artifacts
   全部 bitwise（EXPECT_EQ 级）；科学数值容差归各域 TEST（ALG-COV/
-  ALG-P2-SMP/ALG-UPM 各自 TEST 面），本层禁止引入 epsilon。
+  ALG-P2-SMP/ALG-UPM 各自 TEST 面），本层取值面 = bitwise（无 epsilon）。
 - fixture：合成最小 HiPS 树（固定 seed，不提交大二进制；P2-SAMP
   fixture 先例）；host services 用假 host（logger/cancel/budget/
   allocator 可编程）。
@@ -355,9 +355,9 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   write 四域）的共享 SCI 引用，现状未由本会话直接调用——如实登记，
   不冒认调用面。
 - SCI 公式语义不在此重复定义；两处冲突以 docs/science/ 为准并回改
-  本文档（禁止反向）。
+  本文档（方向 = 从 docs/science/ 到本文档）。
 - descriptor 占位词汇（SCI-P2-RES-001 等，§4）与本页冲突时以本页为
-  准；本节禁止被编排层词汇反向改写（astrocs.p2.session 由
+  准；本节是唯一冻结依据（编排层词汇只作对齐对象；astrocs.p2.session 由
   P2-SESSION-INT 对齐，不作冻结依据）。
 
 ## 12 关联 ID 映射（本文件承接）

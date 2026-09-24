@@ -10,7 +10,7 @@
 
 - `surface_brightness`：科学面亮度/扩展源；
 - `point_source_flux`：Q/W/flux/detection 产品；
-- `visualization`：允许显示型降级，但不得冒充测量产品。
+- `visualization`：允许显示型降级，类别字段标为显示型，与测量产品分列。
 
 - 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ASTROCS_DESIGN.md` §5.3/§5.6；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
 - 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（`docs/contracts/DATA_SEMANTICS.md` §31.1a/§31.2）。
@@ -21,7 +21,7 @@
 
 ## 2. WCS 计划
 
-用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**禁止**声称支持（`ASTROCS_DESIGN.md` §5.3）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
+用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**支持声明只以该注册表为准**（`ASTROCS_DESIGN.md` §5.3）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
 
 计划阶段：
 
@@ -32,11 +32,11 @@
 
 ## 3. 反向映射与采样
 
-对每个输出像素中心，WCS inverse 得到 sky，再 HEALPix 定位输入。科学模式要求球面几何一致，不允许平面距离替代。采样核是产品语义：
+对每个输出像素中心，WCS inverse 得到 sky，再 HEALPix 定位输入。科学模式要求球面几何一致，距离一律取球面量。采样核是产品语义：
 
 - nearest 仅离散 mask/诊断或显式用户选择；
 - bilinear/高阶核用于连续场，但必须说明通量/面亮度语义；
-- point-source Q、W、PSF 参数不得把普通 signal 插值规则机械套用；
+- point-source Q、W、PSF 参数各自具名插值规则，与普通 signal 规则分列；
 - coverage、variance、correlation 分别传播；非有限/缺 tile 不以零填充。
 
 当前“四象限最近中心双线性”只能在独立 Oracle 和误差/边界定义后作为一个注册核；不能因现码存在就成为永恒目标。
@@ -49,7 +49,7 @@
 C_y = R C_x Rᵀ
 ```
 
-若仅输出对角 variance，必须同时给相关核/近似误差；coverage 不得代替 variance。PSF 随同采样算子传播，输出 effective PSF 或明确无法支持点源测量。Q/W 产品的重采样必须保持信息解释，并用注入源验证。
+若仅输出对角 variance，必须同时给相关核/近似误差；coverage 与 variance 是两个独立量。PSF 随同采样算子传播，输出 effective PSF 或明确无法支持点源测量。Q/W 产品的重采样必须保持信息解释，并用注入源验证。
 
 ## 5. FITS 产品
 
@@ -63,7 +63,7 @@ C_y = R C_x Rᵀ
 
 ## 6. 流式与资源
 
-输出按行带/块执行，内存 `O(width × band_height + tile_cache)`，不允许整幅超大图常驻。cache 只缓存，不改变 order/核/科学值。线程预算来自 Runtime；并行输出与单线程科学结果一致。
+输出按行带/块执行，内存 `O(width × band_height + tile_cache)`，常驻内存限于单条带与 tile cache。cache 只缓存，不改变 order/核/科学值。线程预算来自 Runtime；并行输出与单线程科学结果一致。
 
 ## 7. 验收
 
@@ -72,19 +72,19 @@ C_y = R C_x Rᵀ
 - 常量面亮度、点源通量、variance/correlation 传播与注入源恢复；
 - 不同 block/cache/worker 输出科学值一致；
 - >2 GiB、长 UTF-8 路径、Windows CFITSIO、取消和缺 tile；
-- 只要输出缺失其声明的科学层，就不得标 VERIFIED。
+- 标 VERIFIED 的条件 = 输出含其声明的全部科学层。
 
 ## 8. 导出裁剪范围（crop）
 
 > 上游：`ASTROCS_DESIGN.md` §6（export 按用户指定 WCS 导出平面 FITS）。
-> 约束：导出**不得裁剪任何有效像素**；边界黑边**允许**保留，由用户到平面后自行裁剪；
+> 约束：导出**保留全部有效像素**；边界黑边**允许**保留，由用户到平面后自行裁剪；
 > 裁剪范围**可手动输入**；保留 GUI HiPS 浏览器框选导出的接口。
 
 ### 8.1 语义
 
 - **默认不裁剪**：配置里没有 `crop` 键 ⇒ 导出**整幅**请求画幅，行为与既有导出逐位相同。
   请求画幅可以大于数据足迹，此时边框上自然出现**非有限黑边**——这是**设计允许**的
-  （导出不得裁剪任何有效像素；用户到平面后自行裁剪）。视觉验收判据因此只禁**内部空洞**
+  （导出保留全部有效像素；用户到平面后自行裁剪）。视觉验收判据因此只覆盖**内部空洞**
   （被有限值包围的非有限像素），不禁边界黑边（`ACCEPTANCE_SPEC.md` §6.2「无"黑洞"」）。
 - **裁剪 = 在已定义好的输出画幅上取矩形子窗**。画幅仍由 `center` / `width_px` /
   `height_px` / `scale_deg_per_px` / `longitude_parity` / `projection` 定义；`crop`
@@ -104,7 +104,7 @@ C_y = R C_x Rᵀ
 - `sky` 的转换 = 边界**加密采样**（每边 257 点，确定性）→ 逐点 `world2pix` → **外扩**整数
   包围盒（`floor(min)` / `floor(max)+1`）⇒ 保证不切掉任何**中心落在矩形内**的像素。
 - 判别键名取 `crop_form` 而非 `mode`：`cpu_profile` 的 `legacy_v1`/`kernel_v1` 已占用
-  `mode`，同名异义被 `docs/design/UNIFIED_MODEL.md` §3 禁止（与 export 用 `output_mode`
+  `mode`，同名异义与 `docs/design/UNIFIED_MODEL.md` §3 冲突（与 export 用 `output_mode`
   避开 `mode` 同一处置）。
 
 ### 8.3 fail-closed 判据（全部具名报错，禁静默夹取）
@@ -117,7 +117,7 @@ C_y = R C_x Rᵀ
 | 裁剪后为空 | 转换后窗口零面积或空集 ⇒ 拒绝 |
 | 适用域 | `sky` 边界点落在 TAN 半球之外 / abs(dec)>85° ⇒ 拒绝（继承 §2 的 TAN 冻结域） |
 
-夹取（clamp）被禁止：把「用户以为裁到了」变成静默错图，比拒绝更危险。
+夹取（clamp）不进入实现：把「用户以为裁到了」变成静默错图，比拒绝更危险。
 
 ### 8.4 落点与不变式
 
@@ -132,9 +132,9 @@ C_y = R C_x Rᵀ
 
 ## 9. 导出产品的视觉验收判据（V1a / V1b）
 
-工具 = `eng/tools/e2e/render_vis.py`（整幅 PNG + 分块 PNG + 逐块自检）；其接缝度量是**方差比**口径，只作渲染分块伪影的**粗筛**——方差比对电平阶跃**原理性失明**（阶跃不改变方差），**不得**引用为帧间无接缝证据；帧间接缝的机器门 = `CHK-L4-SEAM-FOOTPRINT`（判据与门槛见 `ACCEPTANCE_SPEC.md` §6.2）；
+工具 = `eng/tools/e2e/render_vis.py`（整幅 PNG + 分块 PNG + 逐块自检）；其接缝度量是**方差比**口径，只作渲染分块伪影的**粗筛**——方差比对电平阶跃**原理性失明**（阶跃不改变方差），**帧间无接缝证据只取**机器门；帧间接缝的机器门 = `CHK-L4-SEAM-FOOTPRINT`（判据与门槛见 `ACCEPTANCE_SPEC.md` §6.2）；
 上游 = `ACCEPTANCE_SPEC.md` §6.2「无"黑洞"：无异常零值/死区/未填充孔洞」+ §6 L4
-（真实数据端到端视觉验收）+ §8（导出不得裁剪任何有效像素，**允许**边界黑边）。
+（真实数据端到端视觉验收）+ §8（导出保留全部有效像素，**允许**边界黑边）。
 
 ### 9.1 V1a：未覆盖却有值（幻影数据）
 

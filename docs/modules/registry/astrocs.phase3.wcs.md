@@ -23,7 +23,7 @@ downstream: [TEST-P3-WCS-001]
 
 - 模块: astrocs.p3.projection（dll_target=astrocs_p3_projection.dll
   为迁移合同值，尚未存在——MISSING 语义，由 P3-PROJ-IMPL 建立，
-  禁止声明 IMPLEMENTED；现状构建=astrocs_phase3_session 静态库成员，
+  IMPLEMENTED 只由验收签发；现状构建=astrocs_phase3_session 静态库成员，
   根 CMakeLists.txt:460-465，p3_wcs.cpp 为五源文件之一）。
 - 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
@@ -56,7 +56,7 @@ downstream: [TEST-P3-WCS-001]
 - **投影集口径（最高设计 §5.3）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**当前登记：仅 `TAN` 已实现**
   （声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`）；
-  **未实现的必须显式报「不支持」，禁止声称支持**（`p3_proj_declare` →
+  **支持声明以注册表登记为准：未实现者报「不支持」**（`p3_proj_declare` →
   `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。
 
   新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立往返 Oracle + 追溯条目。
@@ -181,7 +181,7 @@ downstream: [TEST-P3-WCS-001]
 ## NaN 与输出语义
 
 - NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
-  禁止静默剔除。无覆盖/无数据 = NaN，禁 0 或 ±Inf 冒充。
+  剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - 输出语义守卫：只接受**面亮度**语义输入，端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式
   `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计 §6.3）。
 

@@ -5,7 +5,7 @@
 > ID: ALG-CAL-001  范围: ALG-CAL-001..006  上游 SCI: SCI-CAL-001  状态: CONTRACT_READY  模块: lib/algorithms/calibration（astrocs.p1.calibration / 目标 DLL astrocs_p1_calibration.dll）
 >
 > 连续数学定义以 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
-> 本文只做离散化与实现事实登记，**禁止**以本文反向修改 SCI。现行源码中不存在
+> 本文只做离散化与实现事实登记，**本文为下游派生件，SCI 的修改从 SCI 自身发起**。现行源码中不存在
 > 黄金分割搜索、ISA benchmark 注册与取消检查点（§6 登记）。
 
 ## 1 上游 SCI 与模块边界
@@ -48,7 +48,7 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场�
 
 **标度声明（SCI-CAL-001 §3/§6）**：本层 C ABI 单位盲，
 入参必须已同标度；把母版文件解释成该标度是**调用方（io_read/编排）义务**，且必须**显式声明**
-（禁止按后缀/目录名推断，`eng/contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）：
+（标度只认显式声明，与后缀/目录名无关，`eng/contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）：
 
 | 文件形态 | 文件自身声明 | 到 ADU 的换算 | 违反时 |
 |---|---|---|---|
@@ -148,7 +148,7 @@ F2.3  步骤3（最终归一）[255-288]:
 > 中位数）；"全 NaN 帧 / 全 NaN 输出 → fail-closed" 属**生产侧**合同
 > （产不出 `median=1.0` 的母版即不可交付），与 §3.3 的消费侧分工同源。
 > **要求**：该 fail-closed 必须以 `AC_ERR_PARAM` 上抛并由消费边界转成
-> DATA 拒绝（rc=2），不得把退化输入静默产成常数 0.1 的假母版。
+> DATA 拒绝（rc=2）；退化输入一律走 DATA 拒绝路径，常数 0.1 的假母版不在产出面内。
 >
 > **消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
 > （`module_adapters.cpp:1154-1179,1230-1240`）在进入 `ac_calibrate_frame`
@@ -186,7 +186,7 @@ F3.4  契约边界:
 | 标准式 K=1 | 在位 | 在位 | t_light = t_dark | 1.0 | `(raw−bias−dark)/flat`；`bias_participated=true` | 0 |
 | 标准式 K≠1 | 在位 | 在位 | t_light ≠ t_dark | t_l/t_d | `(raw−bias−K·dark)/flat` | 0 |
 | 兼容式 K≠1 | 在位 | 在位 | t_light ≠ t_dark + `dark_optimization=true` | t_l/t_d | `(raw−bias−K·(dark−bias))/flat` | 0 |
-| dark 缺 EXPTIME | 在位 | 在位 | master_dark 无/非正 EXPTIME | — | DATA fail-closed（不得静默 K=1） | 2 |
+| dark 缺 EXPTIME | 在位 | 在位 | master_dark 无/非正 EXPTIME | — | DATA fail-closed（K=1 仅限 EXPTIME 齐备） | 2 |
 | light 缺 EXPTIME | 在位 | 在位 | light 无/非正 EXPTIME | — | DATA fail-closed | 2 |
 | 显式 `dark_scale_factor` 与 EXPTIME 比不一致 | 在位 | 在位 | 在位 | — | DATA fail-closed（>1e-6 相对） | 2 |
 | dark 缺失 | NULL | 在位 | 任意 | 不进入算术 | `(raw−bias)/flat` | 0 |
@@ -213,7 +213,7 @@ F3.4  契约边界:
     **可执行实证**（实测：直接调用生产 `ac::normalize_flat` 与 `ac::generate_master_flat`）：
     同一组 `{-1,-2,-3,-4}` 输入，`ac::normalize_flat` 输出 `{-1,-2,-3,-4}`
     （原样），`ac::generate_master_flat` 返回 `-1`（`AC_ERR_PARAM`）。
-  - **消费侧总门（冻结）**：`median(flat)<=0` 的平场**不得进入** `calibrate`
+  - **消费侧总门（冻结）**：`median(flat)<=0` 的平场在总门处即被拒绝，其取值不进入 `calibrate`
     的除法（`max(flat,0.1)` 会把负响应整片钳成 0.1）。生产口径 = 消费边界
     `module_adapters.cpp:1992-2002` 的 DATA 拒绝（CLI rc=2）。
 - `compute_mad`（`calibrator.cpp:71-81`）：与 cosmetic 的
@@ -297,15 +297,15 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 **可核对性**：独立读者可用「calibrated 面 × k」逐像素复算核对施加结果；**该复算判据必须尺度相关**——取无量纲相对差，绝对容差在真实 `k_photo` 量级（~1e-17）下会把"乘两次"判绿。
 
 **k_photo 语义**：`k_photo` 的**绝对值无物理意义**
-（吸收增益/口径/曝光等未知量；设计前提 = FITS 头拿不到这些量）；**禁止**用物理闭合式反推仪器参数，
-**禁止**设绝对窗口。**两个判据面必须分开（冻结）**：
+（吸收增益/口径/曝光等未知量；设计前提 = FITS 头拿不到这些量）；**仪器参数只取自显式登记值**，
+**判据窗口一律取无量纲相对量**。**两个判据面必须分开（冻结）**：
 ① **科学验收面**（判"测光体系对不对"）：只用一个**尺度无关**判据——**测光一致性**
 （星等与 Gaia 残差散度/MAD 小）；任何含 `k_photo` 绝对值的窗口在此面无判别力，
 因为 `k_photo` 与真值之间只差一个整体常数；
 ② **可核对性面**（判"该标量是否被正确施加一次"）：必须用**尺度相关**判据——
 以 `calibrated_*` 面 × `k_photo` 逐像素复算并与 `photoapplied_*` 面比对，
 容差为无量纲相对差；绝对容差在真实 `k_photo` 量级（~1e-17）下会把"乘两次"判绿，
-**不得**用于此面。**「帧间一致性」（各帧落同一测光体系）是语义目标与报告字段，不是门禁判据**。
+**该面一律取无量纲相对差**。**「帧间一致性」（各帧落同一测光体系）是语义目标与报告字段，不是门禁判据**。
 两面的判据口径见 `docs/science/PHOTOMETRY.md` §1。
 
 ## 4 实现事实（源码核对）
@@ -334,7 +334,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 `cc_last_error()`。不在任何 CMake 目标内（唯一构建路径是同目录 Windows
 MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0` 回退总体
 标准差 vs 生产源的 `σ=0`、窗口 clamp vs 镜像反射、参数化窗口 vs 固定
-5×5）见 COSMETIC_ALGORITHMS.md §8，禁止作为现状依据或 oracle。
+5×5）见 COSMETIC_ALGORITHMS.md §8，现状依据与 oracle 一律取自生产源。
 `docs/modules/calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此通道，
 非 ac_correct_frame。
 
@@ -414,7 +414,7 @@ MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0
   资源分类（heavy）；execute=逐帧 ac_calibrate_frame 等价算术（内部并行
   须经 host ThreadLease，废除 ac_set_num_threads 全局 ICV）；cancel=帧
   粒度（现 phase1_session 模式收编为模块合同）；inspect=manifest 输出
-  actual_k/帧计数/资源时序。C ABI adapter 禁止 STL/异常/RTTI 跨界
+  actual_k/帧计数/资源时序。C ABI adapter 的跨界面只含 C 类型（STL/异常/RTTI 留在模块内部）
   （约束 F.3）。
 - 配置 schema（现状为 C 参数直传 + phase1_session JSON）:
   `master_bias/master_dark/master_flat`（路径或 NULL）、`input_lights[]`、
@@ -484,7 +484,7 @@ oracle 同容差；actual_k 精确相等。
   NumPy oracle），**不**界定输入标度是否正确。输入标度错（母版 [0,1] 归一化
   被当 ADU 消费、平场未归一）会使产物整体相差 4.845×/16.161× 量级，
   但实现与"同样用错标度的 oracle"仍可逐位一致 ⇒ **本容差组对输入标度类
-  缺陷不敏感，不得作为标度正确的证据**；标度由 §2 标度声明表 + 消费边界
+  缺陷不敏感，标度正确的判据另设**；标度由 §2 标度声明表 + 消费边界
   门判定（DISP-CAL-013）。
 
 ## 10 现状缺陷清单（如实登记，P1-CAL-IMPL/INT 处理；不改代码）
@@ -597,7 +597,7 @@ oracle 同容差；actual_k 精确相等。
   `calibrated_*`；门脚本 `eng/tools/quality/check_master_unit_guard.py` 对三条负例显式断言
   「拒绝路径不留 calibrated_* 半成品」。**残留（通用语义，不在本文件域，待裁定）**：
   run 级 incomplete 时上游节点已原子发布的产品如何标记/清理（`.incomplete` 后缀、独立
-  staging、或 run 结束统一回滚）——ENGINEERING_SPEC §9「失败不得留下可被误认成正式产品的
+  staging、或 run 结束统一回滚）——ENGINEERING_SPEC §9「失败时不留可被误认成正式产品的
   半成品」的落地口径；该场景下 output_dir 会留下形状完整、可被误认成正式产品的
   `calibrated_*`/`cleaned_*`（下游节点如 plate_solve 失败时 rc≠0、run manifest
   `status=incomplete`）。

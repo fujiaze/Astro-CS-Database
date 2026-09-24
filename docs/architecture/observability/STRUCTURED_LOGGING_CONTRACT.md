@@ -14,7 +14,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 - 多线程并发事件有确定顺序键（sequence）；
 - 错误事件携带可定位的结构化载荷（source/symbol/status）；
 - 日志行可机器校验（schema 检查）且有大小上限；
-- 日志/诊断不得泄露敏感路径（绝对用户路径/凭据）或夹带 raw testdata。
+- 日志/诊断的敏感路径（绝对用户路径/凭据）与 raw testdata 一律脱敏或省略。
 
 **边界（本任务冻结范围）**：LOG-001 只冻结合同 + schema + 小型验证，**不实现生产 logger、
 不接监控**。LOG-002 把生产 Runtime/模块/资源监控接入本合同的 JSONL 输出。
@@ -22,16 +22,16 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 ### 1.1 身份声明：本合同**不是**运行事件流
 
 > ⚠ **强制消歧（唯一口径）**：LOG-001 的身份 = **「结构化日志合同」**（人可读摘要 + 机器 JSONL
-> 双通道同源），**它⛔不是运行事件流（run event stream）**，不得被当作运行事件流消费或冒充。
+> 双通道同源），**它⛔不是运行事件流（run event stream）**，消费方按结构化日志合同解析。
 
 | 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
 |---|---|---|---|---|
 | **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §6.3） |
 | **结构化日志**（本合同 LOG-001） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
 
-- **两份流各用不同工件名，不得互相冒充**；
-- **键名 `event`（本合同）与 `kind`（运行事件流）不得混用**：本合同的 `event` 字段
-  **不得**承载运行事件流的枚举，运行事件流**不得**新增 `event` 键；
+- **两份流各用不同工件名，各自具名**；
+- **键名 `event`（本合同）与 `kind`（运行事件流）各归各流**：本合同的 `event` 字段
+  只承载本合同的枚举（`event`），运行事件流的枚举键 = `kind`；
 - 运行事件流的字段名 / 枚举 / 顺序键**唯一**以 `protocol.h` + `jsonl.h` 为源
   （最高设计 §6.3）；本合同**不复制**其字段表。
 
@@ -44,7 +44,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 | 中文可读摘要 | 单行文本（前缀时间/seq/level/event + 归属 + 诊断） | 操作员/控制台/报告 |
 | 机器 JSONL | 单行 JSON 对象 + `\n`，符合 `astrocs.log.event.v1` | 工具/监控/回放/运行图 |
 
-摘要与 JSONL 必须同源生成；禁止两个通道各写一套内容。
+摘要与 JSONL 必须同源生成；两个通道的内容出自同一份生成逻辑。
 
 ### 2.1 JSONL 行结构
 
@@ -64,9 +64,9 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 | `module` | string | 唯一 module id | 同上；无则 `""` |
 | `phase` | string | 阶段归属（**枚举以 schema 为准**，本表是视图） | `phase1/phase2/phase3/runtime/monitoring/cli/""` |
 | `commit` | string | 产生事件的 commit | 40 位小写 hex；真实运行现场值 |
-| `host` | string | 主机逻辑标识 | 安全字符；不得含用户/凭据 |
+| `host` | string | 主机逻辑标识 | 字符集限于安全字符，不含用户/凭据 |
 | `level` | string | 级别 | `debug/info/warn/error` |
-| `event` | string | 事件种类（**结构化日志专用键**；运行事件流用 `kind`，见 §1.1，**两者不得混用**） | `start/progress/end/warn/error/metric/checkpoint/cancel/trace` |
+| `event` | string | 事件种类（**结构化日志专用键**；运行事件流用 `kind`，见 §1.1，两者各归各流） | `start/progress/end/warn/error/metric/checkpoint/cancel/trace` |
 | `units` | string | 数值量纲 | `[A-Za-z0-9/%._-]{0,32}`；无则 `""` |
 | `elapsed` | number ≥0 | 自 run 开始经过时间 | 单位 = `units`；无则 0 |
 | `diagnostic` | string | 中文诊断/摘要 | ≤1024 字符；可空串但字段必在 |
@@ -78,7 +78,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 
 | 子字段 | 语义 | 约束示例 |
 |---|---|---|
-| `source` | 错误来源（模块 id 或仓库内相对路径） | 禁止绝对用户路径（脱敏）；`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（路径形态示例） |
+| `source` | 错误来源（模块 id 或仓库内相对路径） | 绝对用户路径一律脱敏；`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（路径形态示例） |
 | `symbol` | 出错符号 | `astrocs::noise::estimate_sigma` |
 | `status` | 稳定错误码 | `ACS_ERR_IO`、`ACS_ERR_CANCELLED`、`ACS_ERR_BUDGET` |
 
@@ -140,8 +140,8 @@ LOG-004 **不修改**本合同冻结的字段语义、枚举与 schema：它消�
 
 - **与运行事件流的关系**：本合同**不是**运行事件流，见 §1.1；
   运行事件流的唯一 schema = `lib/infrastructure/cli/protocol.h` + `jsonl.h`。
-  两者**可以并存**（日志面向操作员/审计，事件流面向 GUI/机器消费），但**不得互相替代**，
-  也不得把任一方的字段名搬到另一方。
+  两者**可以并存**（日志面向操作员/审计，事件流面向 GUI/机器消费），消费面各自独立，
+  字段名各留在本方工件内。
 
 
 `lib/include/astrocs/core/logging.h`（CORE-008 Logger/MetricsAggregator）是既有运行时组件

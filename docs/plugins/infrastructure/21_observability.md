@@ -24,7 +24,7 @@
 
 - 事件类型统一 schema，跨模块一致；
 - stdout 无日志污染（CLI 合同）：日志走文件/JSONL；
-- 运行图（run-graph）是实际观测（trace），`plan` 是预期，**禁止把计划值伪装成实际值**；
+- 运行图（run-graph）是实际观测（trace），`plan` 是预期，**两者的值各按各自来源登记**；
 - 资源监控字段见 `19_runtime.md`（scheduler + pipeline）；与退出码联动（exit 10 资源门禁）。
 
 ## 5. 配置项
@@ -42,15 +42,15 @@
 
 ## 7. 错误与边界
 
-- 日志/事件写入失败 → 记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）；**禁止**"换一路日志继续跑"式的静默吞错；
+- 日志/事件写入失败 → 记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）；**故障一律按上述退出码上行**（"换一路日志继续跑"不在处置面内）；
 - 日志目录解析失败 → exit 2（ARGS）；目录创建失败 → exit 7（IO）；收尾 fsync 失败 → exit 7；哈希或 manifest 登记失败 → exit 8（INTEGRITY）；
 - 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6）；
-- 凭据/密钥与绝对用户路径不得出现在日志/事件/诊断（脱敏规则唯一源 = LOG-001 §5）。
+- 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = LOG-001 §5）。
 
 ## 8. 重计算负载资源门（G-RES-01）
 
 > **本节是 G-RES-01 判据的唯一语义权威**（`ASTROCS_DESIGN.md` §0：具体硬约束与细节写入下级文档）。
-> **数值唯一源 = `eng/contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）不得再出现字面量阈值。
+> **数值唯一源 = `eng/contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）的阈值一律从该文件取。
 > 维护规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
 
 ### 8.1 判定域（applicability）
@@ -59,7 +59,7 @@
 |---|---|
 | 有效 CPU 数 < 2 | `NOT_APPLICABLE`（显式分类，**不是豁免**） |
 | 计算区间**未严格超过 10 s**（`<= 10.0 s`） | `NOT_APPLICABLE`（显式分类） |
-| 有效 CPU 数不可得（affinity ∩ cgroup 均不可得） | **fail-closed → FAIL**（不得以机器总核或配置值冒充） |
+| 有效 CPU 数不可得（affinity ∩ cgroup 均不可得） | **fail-closed → FAIL**（判定只取 affinity ∩ cgroup 的实测值） |
 
 判定域的界是**严格大于 10 s**；窗口判据自身的长度界是 **≥ 10 s**（滑窗长度，与判定域区分）。
 
@@ -114,15 +114,15 @@
 | `so05_signoff_id` / `so05_signoff_status` | SO-05 签字项身份与状态（`DATA_SEMANTICS.md` §31.10：恒 `SO-05` / `PENDING_OWNER_SIGNOFF`） |
 | `auto_adjudication_allowed` | 自动裁决是否放行（恒 `false`） |
 
-**不得**在 `resource_gate` 事件写「若已签字是否会失败」类字段：§8.3 的 ④⑤⑥ 是 `record_and_justify`（违约后果 = 记录 + 超标登记，**不改退出码**），事件级常量无法表达逐判据的 enforce/record 分类，写了就是错的。
+**`resource_gate` 事件只写可表达逐判据 enforce/record 分类的字段**：§8.3 的 ④⑤⑥ 是 `record_and_justify`（违约后果 = 记录 + 超标登记，**不改退出码**），事件级常量无法表达逐判据的 enforce/record 分类，「若已签字是否会失败」类字段即属此类。
 
 `resource`（severity=info，每阶段末发出）的必含扩展字段 = CLI-004 冻结五项（`cpu_cores_used` / `rss_bytes` / `io_read_bytes` / `io_write_bytes` / `threads`）；其余（含 SO-05 记录字段 `measurement_policy` / `so05_signoff_id` / `so05_signoff_status` / `auto_adjudication_allowed` / `auto_adjudication_policy` / `one_budget_source_rule` / `determinism_contract`，以及 `strict_flag_requested`）是**实现侧附加字段**，不属冻结必含集（口径同 `CLI_PROTOCOL_V1.md` §4 对 `artifact` 的 DET-001 附加字段）。
 
 ### 8.5 豁免与不可豁免面
 
-- `NOT_APPLICABLE`（有效 CPU<2 或计算区间 ≤10 s）是**显式分类**，必须在证据里给出 `reason`，不得写成通过。
+- `NOT_APPLICABLE`（有效 CPU<2 或计算区间 ≤10 s）是**显式分类**，必须在证据里给出 `reason`，该分类与「通过」各自具名。
 - 监控/采样证据缺失（无 CPU 样本、`threads_max` 非法、区间中部断流、`effective_cpus` 不可得）**不是**低利用率的豁免，一律 fail-closed 判 FAIL。
-- 本门不因任务性质自动豁免：非重计算面**不得请求判定**（`--gate-required` / `--gate-workers` 不出现即不判定）。
+- 本门不因任务性质自动豁免：判定请求只对重计算面发出（`--gate-required` / `--gate-workers` 不出现即不判定）。
 
 ### 8.6 实现落点
 

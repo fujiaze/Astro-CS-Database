@@ -12,10 +12,10 @@
 1. **唯一性**：本文件是仓库**唯一**的「领域 → 国际标准 → 版本 → 条款 → 符合性清单 →
    偏差指针」冻结注册表。任何科学/格式实现与外部标准的关系，以本文件登记为准；
    域级 SCI/ALG/DATA 文档承载公式与源码锚，本文件不复制公式、不改写任何 SCI/ALG 语义。
-2. **禁止按实现反推标准**（跨域治理偏差 `STD-F6`「国际标准冻结注册表缺失」处置条款；
+2. **标准条款的权威方向 = 标准 → 实现**（跨域治理偏差 `STD-F6`「国际标准冻结注册表缺失」处置条款；
    其定义见本注册表 §3.2）：
-   实现与标准不一致时，**一律登记偏差（§3）并按 finding 处理**，不得反向修改标准条款、
-   不得把实现现状写成标准要求。
+   实现与标准不一致时，**一律登记偏差（§3）并按 finding 处理**：标准条款文字保持原样、
+   实现现状只作偏差登记项。
 3. **版本冻结**：§2 域表的「冻结版本」字面量由本注册表冻结，机器检查器逐字比对
    （`C3_version_frozen_*`）——版本漂移（含以"最新版"含糊表述替代版本号）判 FAIL。
 4. **符合状态取值域**（唯一合法四值，机器检查）：
@@ -28,7 +28,7 @@
 5. **偏差指针纪律**：清单表「偏差」列与域字段 `DEVIATION` 必须指向已定义 ID。
    **偏差 ID 的闭包域 = 本注册表域偏差表 ∪ 本注册表 §3.2 跨域治理偏差表**；
    无外部 findings 登记册时，机器检查器显式登记
-   `C6_external_findings_source`，不得静默返回空集；悬空指针判 FAIL
+   `C6_external_findings_source`，空集一律显式登记；悬空指针判 FAIL
    （`C6_deviation_id_closure`）。
 6. **变更流程**：新增/变更域、版本或条款映射必须走 `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 变更流程并同步本文件 §2/§3
    与机器检查器冻结表；仅新增偏差指针（不改语义）由域内原子任务随实现提交更新。
@@ -65,8 +65,8 @@
 | Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp；eng/tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |
 | Paper II §2.1（LONPOLE 与旋转） | 允许通用 LONPOLE/φ_p 附加旋转机制 | PROJECT_DEFINED | docs/algorithms/PHASE3_PROJ_IMPL.md | 无（本实现固定 θ₀=+90°、无 φ_p 附加旋转，显式冻结为 Project-defined；不实现通用 LONPOLE） |
 | SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） | SIP 畸变系数约定与单位线性项处理 | PROJECT_DEFINED | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md | DISP-WCS-008（AP/BP 采样网格 ≥7×7，实现 41×41/81×81 + 迭代反演；7×7 自证门不成立） |
-| Paper I/II parity 与手性（det(CD) 符号、east_left/east_right） | 像素手性由 CD 行列式符号表达，翻转不得改变 abs(det(CD)) | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp | 无（T3/T5 含 det<0 与 crpix 奇偶双例 bitwise 断言） |
-| 退化语义（CD det→0 禁坍缩冒充解） | 退化线性变换不得产生伪 WCS | PARTIAL | docs/algorithms/PLATESOLVE.md；lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp；eng/tests/unit/p1wcs/p1wcs_tests_negative.cpp | DISP-WCS-001（CD 退化静默坍缩，负面用例已覆盖） |
+| Paper I/II parity 与手性（det(CD) 符号、east_left/east_right） | 像素手性由 CD 行列式符号表达，翻转下 abs(det(CD)) 恒定 | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp | 无（T3/T5 含 det<0 与 crpix 奇偶双例 bitwise 断言） |
+| 退化语义（CD det→0 禁坍缩冒充解） | 退化线性变换一律显式报退化 | PARTIAL | docs/algorithms/PLATESOLVE.md；lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp；eng/tests/unit/p1wcs/p1wcs_tests_negative.cpp | DISP-WCS-001（CD 退化静默坍缩，负面用例已覆盖） |
 
 ### D.spherical-projection 偏差表
 
@@ -106,7 +106,7 @@
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| STD-F4 | 中（P2） | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md | HiPS 域原子任务（以 testdata/index.json 真实滤镜元数据接通 em_min/em_max/obs_bandpass，不得臆造） |
+| STD-F4 | 中（P2） | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md | HiPS 域原子任务（以 testdata/index.json 真实滤镜元数据接通 em_min/em_max/obs_bandpass，取值一律取自真实元数据） |
 | DISP-HIPS-001 | 高 | docs/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL / P1-HIPS-INT（abort 不删除已写文件，无 rollback） |
 | DISP-HIPS-002 | 中 | docs/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（hips_estsize/hips_initial_fov 硬编码占位） |
 | DISP-HIPS-003 | 低 | docs/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（hips_status 恒值未参数化） |
@@ -160,13 +160,13 @@
   （**`DISP-DRZ-004` 口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 =
   `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling` 块：
   样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；
-  `docs/standards/NUMERIC_STANDARD.md` §MUST 引用同一份文字，**不得两套**）。
+  `docs/standards/NUMERIC_STANDARD.md` §MUST 引用同一份文字，**口径只有一套**）。
   **禁用**把值 NaN 经 `F_p` 传播——会污染整像素信号与几何支撑。）
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
 | §2（drop 与 pixfrac 收缩因子） | drop 为源像素按 pixfrac 收缩后的足迹，pixfrac∈(0,1] | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp | DISP-DRZ-003（API 层接受 pixfrac=0.0，引擎层拒绝——两层双轨） |
-| §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 一致加权均值，drop 面积在分子分母相消；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz | DISP-DRZ-009（CLOSED：**正向**归一为 `w=a/A_pixel`、**反向**为 `Σ B·a/Σ a`；**两条路径都禁用** `w=a/A_drop`——正向在 pixfrac<1 时偏 1/pixfrac²，反向使输出随源 nside 变化）；DISP-DRZ-002（TRACKED：源码注释写「Girard 定理」而实现为 S-H 裁剪 + Van Oosterom & Strackee 扇形剖分，注释须同步） |
+| §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 核按 drop 面积归一（`Σ_p w_jp=1`）⇒ `Σ_p F_p=Σ_j x_j`；面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j` ⇒ `S_p=Σ_j B_j a_jp/Σ_j a_jp`；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz；lib/algorithms/drizzle/healpix_drizzle/tests（drizzle_acceptance_test） | DISP-DRZ-009（CLOSED：**正向**核 `w=a/A_drop` 配分母 `N_p`、**反向**为 `Σ B·a/Σ a`；**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`——pixfrac<1 时偏 1/pixfrac²；反向路径改变仍使输出随源 nside 变化）；DRZ-FLUX-FIX-01（口径订正：通量守恒为严格不变量、`flux_conservation_factor≡1`）；DISP-DRZ-002（TRACKED：源码注释写「Girard 定理」而实现为 S-H 裁剪 + Van Oosterom & Strackee 扇形剖分，注释须同步） |
 | §3（球面交叠面积与微小 drop 数值路径） | 交叠面积计算须数值稳定 | PROJECT_DEFINED | docs/algorithms/DRIZZLE_GEOMETRY.md | DISP-DRZ-005（角跨度 <1e-3 rad 时切平面分支为真路径，注释论证偏差 <4e-8；禁删） |
 | §4（欠采样重建与候选枚举完备性） | 重建须覆盖全部候选源像素，零漏选 | CONFORMANT | lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；docs/algorithms/DRIZZLE_GEOMETRY.md | 无（9003 例全枚举 false_negative=0：4 pixfrac × 5 尺度 × 7 nside × RA 跨 0 × 极区 × face 边界） |
 | §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | DISP-DRZ-004（CLOSED：口径 = `NAN-SAMPLE-MASK-COVERAGE-NAN`，样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数，实现锚见 `docs/algorithms/DRIZZLE_GEOMETRY.md` §5/§10）；DISP-DRZ-007（TRACKED：方差锚行号漂移） |
@@ -184,7 +184,7 @@
 | DISP-DRZ-006 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（累加器字段数注释漂移） |
 | DISP-DRZ-007 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（方差锚行号漂移） |
 | DISP-DRZ-008 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（PolyClip 零调用） |
-| DISP-DRZ-009 | **高** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | CLOSED：归一恒为面亮度保持口径 `w=a/A_pixel`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`）；**禁用** `w=a/A_drop`——pixfrac<1 偏 `1/pixfrac²`（负例判据） |
+| DISP-DRZ-009 | **高** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | CLOSED：归一为 drop 面积归一核 `w=a/A_drop` + 面亮度分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`）；**禁用**分母取覆盖面积 `D_p=Σ_j a_jp`——pixfrac<1 偏 `1/pixfrac²`（负例判据） |
 
 ---
 
@@ -278,12 +278,12 @@
 
 ### 3.1 登记纪律
 
-- 偏差 ID 命名：域内文档已冻结的 `DISP-<域>-NNN` 沿用原 ID（不得重编号）；
+- 偏差 ID 命名：域内文档已冻结的 `DISP-<域>-NNN` 沿用原 ID（编号冻结）；
   跨域治理类偏差使用 05 号 findings 登记册的 `STD-F<n>` ID。
 - 新增偏差必须**同时**更新：本表、对应域偏差表、域清单行「偏差」列、
   以及域文档自身的 DISP 清单（域文档为偏差语义的权威落点，本文件只登记指针）。
 - 偏差闭环（修复完成）后：删除基线/豁免条目、把清单行状态升为 `CONFORMANT`、
-  本表行状态改为 `CLOSED`（不得直接删行，保留追溯）；无外部 findings 登记册时，
+  本表行状态改为 `CLOSED`（行保留追溯，只变状态）；无外部 findings 登记册时，
   同步面 = §3.2（跨域治理）与域偏差表。
 - 跨域治理级 ID（`STD-F<n>`，不属任何单一域）在本表以 `域 = (跨域治理)` 登记，
   其**定义**落在 §3.2；域级 ID 的定义仍落在对应域偏差表（`C7`/§5）。
@@ -326,7 +326,7 @@
 | C5′ | §3.2 跨域治理偏差表在位、ID 合法唯一、指针非空，且与域偏差表**跨表不重号** |
 | C6 | 正文所有 STD-F*/DISP-* 引用在**闭包域**（本注册表域偏差表 ∪ §3.2 跨域治理偏差表 ∪（若存在）外部 findings 登记册）中有定义（悬空指针 FAIL）；外部登记册缺席时显式登记"缺席（可选来源）"，绝不静默返回空集 |
 | C7 | §3 偏差索引行与定义域（域偏差表 ∪ §3.2）逐 ID 一致（「（无）」行不计入 ID 集合）；域行指向的域/条款在对应清单中真实存在且域 DEVIATION 字段含该 ID；跨域治理行（域列 = `(跨域治理)`）校验其定义在 §3.2 表内且字段齐全 |
-| C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行（不得留空）；定义域非空 ⇒ 索引不得出现「（无）」行（不得用"无"掩盖真实偏差） |
+| C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行；定义域非空 ⇒ 索引各行均为真实偏差 ID（「（无）」行的适用范围 = 定义域为空） |
 | C9 | **[W4-A3]** 域清单「偏差」列 → 域 DEVIATION 字段**反向一致**：清单行偏差列里出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义。C4 只判该列非空、C7 只判 §3 索引 → DEVIATION；补上反向后"清单行写着 STD-F1 而 DEVIATION 字段删掉它"不再可能整体绿 |
 
 用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：
@@ -345,7 +345,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 > `STD-REG-FI-VERSION-DRIFT` = `version-drift`）；**其余 7 个场景与空转守卫为
 > PLANNED（计划）**，**不是**已生效的强制 CI 义务。
 > 本节的「全部必须 FAIL」是**域内手工复跑**判据（手动执行 `--fault-inject`），
-> **不得**读作「CI 已强制」。补登记属 `eng/ci/checks.json` 写入面（**不在本文件域**），
+> 其效力范围 = 域内手工复跑，CI 强制需另经登记。补登记属 `eng/ci/checks.json` 写入面（**不在本文件域**），
 > 须先在 `eng/ci/checks.json` 登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
 > 补登记完成后方可把本节改回强制口径。
 
@@ -374,7 +374,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 > （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
 > **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 `eng/ci/checks.json` 写入面，
 > 超出本文件域（参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
-> 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**，**不得**声称已被 CI 强制。
+> 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**；CI 强制的范围以 `eng/ci/checks.json` 登记为准。
 
 ---
 
@@ -395,7 +395,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 ## 附：状态字段口径
 
-> 依据：`ASTROCS_DESIGN.md` §0.2（登记表/映射表不得写状态字段）、§12.5（状态必须现场计算）。
+> 依据：`ASTROCS_DESIGN.md` §0.2（登记表/映射表的状态字段一律留空）、§12.5（状态必须现场计算）。
 
 - 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `eng/tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `eng/tools/doccheck/check_doc_index.py` 为准。
 - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：

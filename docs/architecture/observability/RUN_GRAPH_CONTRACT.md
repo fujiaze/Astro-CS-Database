@@ -18,7 +18,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 - 图与 trace 调用计数一致：图节点 `call_count` == replay `call_count` ==
   原始 `module_call` 事件计数（`--verify` exit 0 = GRAPH_CONSISTENT）；
 - 图与 trace 的 DLL hash、artifact hash 一致（从 trace 事件真实字段取；
-  观测缺失留空，**禁止 config 值冒充**）；
+  观测缺失留空，字段值只来自 trace 事件）；
 - 每次生成写 generator 版本、source SHA、输入文件 hash；DOT/JSON 是可审计
   事实，SVG 是派生展示物（policy §2.5）；
 - Doxygen/Graphviz 仅生成文档，不改变产品执行 → `scientific_change` 恒 false。
@@ -29,10 +29,10 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 
 ## 2. 两类图分开（policy §1）
 
-| 图 | 来源 | 表示 | 冒充禁止 |
+| 图 | 来源 | 表示 | 取值来源 |
 |---|---|---|---|
 | 静态/声明图 | typed plan（`astrocs.typed-dag/v1` / `astrocs.plan-graph/v1`） | resource_class、数据边、operation | 不表示实际调用/耗时/hash |
-| 真实运行图 | RT-006 trace JSONL（`astrocs.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 静态计划不得冒充运行事实 |
+| 真实运行图 | RT-006 trace JSONL（`astrocs.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 取值只来自 trace 事件 |
 
 `eng/tools/graph/render_run_graph.py render --trace <jsonl> [--plan <plan.json>]`
 把二者合成一张运行图：节点=真实执行入口（trace 观测），计划声明属性
@@ -45,7 +45,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 `graph-runtime.dot`（+ `--svg` 时 `graph-runtime.svg`）。每张图含：
 
 - `generator.tool/version`（`eng/tools/graph/render_run_graph.py` v1.0.0）；
-- `source.main_sha`（当前提交 SHA，`--sha` 显式传入，禁止默认猜测）；
+- `source.main_sha`（当前提交 SHA，`--sha` 显式传入，取值只来自显式传参）；
 - `source.inputs.*.sha256`（trace/plan 输入文件 hash）；
 - `metrics`（node_count / module_call_total / scheduler_concurrency_max /
   worker_lease_max / worker_task_total——真实观测）。
@@ -59,7 +59,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 文本规范形态；本工具用纯 Python 标准库生成 DOT + JSON（审计事实），`--svg`
 时直出**最小合法 SVG**（拓扑分层布局，`xml.etree` 可解析）。
 
-**禁止假装调用 dot 成功**：不调用任何外部二进制（代码中无 subprocess）；
+**调用面 = 零外部二进制**（代码中无 subprocess，不假装调用 dot 成功）；
 无 dot 不报错也不把缺 SVG 当 PASS 阻碍——DOT/JSON 已生成即满足工具职责
 （policy §4：工具不可用不能把缺图标记 PASS；只要 DOT/JSON 已生成，其他不
 依赖 SVG 的任务继续）。未来若控制节点登记固定版本 Graphviz，可把 DOT 交给
@@ -133,7 +133,7 @@ call_count/workers/granted_workers/provider/kernel_id/status/error/
 artifact_id/artifact_sha256/artifact_size/cpu_ms/wall_ms/seq。聚合语义与
 `lib/infrastructure/pipeline/trace_replay.py` 对齐（同合法类型集、同 call_count 计数、
 同 provider 最后观测胜出）；replay 未聚合的 dll/artifact/workers/cpu 观测
-由本工具从事件直接收集。**禁止 config 冒充**：worker/provider/duration/
+由本工具从事件直接收集。字段值只来自 trace 事件：worker/provider/duration/
 hash 等观测字段一律只来自 trace 事件。
 
 ## 8. 旧手绘图不再作为规范来源
@@ -145,7 +145,7 @@ hash 等观测字段一律只来自 trace 事件。
   生成的 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）；
 - 静态架构示意图（`docs/architecture/DATA_FLOW.md` 等 ASCII 流程、ARCH-001
   mermaid、历史 evidence DOT）是**信息性视图**，不作运行事实规范来源；
-- 文档维护：变更运行图语义必须改本工具 + 本合同 + 重跑验证，**不得手改
+- 文档维护：变更运行图语义必须改本工具 + 本合同 + 重跑验证；证据面只用重跑
   生成的图作证**（标准 14 §5）。
 
 ## 9. 验收（LOG-003）

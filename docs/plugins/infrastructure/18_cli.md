@@ -27,7 +27,7 @@
 - `benchmark` 直接输出 profile 到**安装目录**（自动生成/更新），后续运行时自动读取；
 - `help` 直接输入即为详细帮助；
 - 取消：协作取消 → 关 writer → incomplete manifest → 隔离临时产物 → **收尾并发布运行日志** → exit 9；
-- **错误收敛（唯一判定点）**：模块/节点/子系统的错误以稳定错误码上行，CLI 按 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5 映射为退出码并输出 `error_report`；**禁止**把故障降级为"警告后继续"；
+- **错误收敛（唯一判定点）**：模块/节点/子系统的错误以稳定错误码上行，CLI 按 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5 映射为退出码并输出 `error_report`；**故障一律按错误码上行处理**；
 - stdout 无日志污染；事件走 JSONL（schema_version/event_id/run_id/kind 含 progress/resource/artifact/backend/final）。
 
 ## 5. 配置项
@@ -53,7 +53,7 @@
 - 参数错误 → 2；输入缺失/格式错 → 3；科学验证失败 → 4；ABI/加载失败 → 5；执行失败 → 6；I/O → 7；输出完整性 → 8；取消/超时 → 9；资源门禁 → 10；未分类 → 70；
 - 存在 error 时**强制阻断**运行（`-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤）；
 - 未捕获异常 → exit 70 + 脱敏 crash report，不泄露凭据；
-- **日志落点**：默认 `<output_dir>/logs`；禁止落进程 CWD、源码树、`run/`、安装目录、家目录（判据 `CHK-LOG-SYS` R3）；
+- **日志落点**：默认 `<output_dir>/logs`；落点由 `output_dir` 唯一决定（进程 CWD、源码树、`run/`、安装目录、家目录均不取）（判据 `CHK-LOG-SYS` R3）；
 - **日志写失败不静默**：记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）。
 
 ## 8. 测试与 Oracle

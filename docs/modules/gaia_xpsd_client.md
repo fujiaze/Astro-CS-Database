@@ -50,7 +50,7 @@ get_spectrum_params）；签名/返回码/所有权以 API-GAIA-001 为准。
 
 文件级 OpenMP parallel for（每文件独立 collector/scratch/块缓存单写者）+
 client 级缓存互斥（Win32 CRITICAL_SECTION / POSIX mutex）；命中路径持锁
-完成 O(N) 输出构造；destroy 不得与在途查询并发。现状使用 OpenMP 默认
+完成 O(N) 输出构造；destroy 与在途查询串行执行。现状使用 OpenMP 默认
 team（迁移后由 host ThreadLease 授予）。
 
 ## Errors

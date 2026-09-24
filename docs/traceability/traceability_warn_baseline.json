@@ -11,37 +11,37 @@
    "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-calibration|EVID|EVID-P1-CAL-001",
    "owner": "DOC-SCI-001/W4-A4",
    "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
-   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+   "burn_down": "补 authority 文件后删除本条目（条目只减不增）"
   },
   {
    "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-noise-snr|EVID|EVID-P1-NOISE-001",
    "owner": "DOC-SCI-001/W4-A4",
    "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
-   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+   "burn_down": "补 authority 文件后删除本条目（条目只减不增）"
   },
   {
    "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-photometry|EVID|EVID-P1-PHOT-001",
    "owner": "DOC-SCI-001/W4-A4",
    "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
-   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+   "burn_down": "补 authority 文件后删除本条目（条目只减不增）"
   },
   {
    "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-writer|DATA|DATA-P1-FITS",
    "owner": "DOC-SCI-001/W4-A4",
    "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
-   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+   "burn_down": "补 authority 文件后删除本条目（条目只减不增）"
   },
   {
    "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase3-verify|DATA|DATA-P3-VER",
    "owner": "DOC-SCI-001/W4-A4",
    "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
-   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+   "burn_down": "补 authority 文件后删除本条目（条目只减不增）"
   },
   {
    "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-services-io|API|API-IO-STREAM-V1",
    "owner": "DOC-SCI-001/W4-A4",
    "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
-   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+   "burn_down": "补 authority 文件后删除本条目（条目只减不增）"
   }
  ]
 }

@@ -15,7 +15,7 @@
 > lib/algorithms/resample/p3_resample.cpp（586 行）。
 > （2026-09-23 复测; NAN-SAMPLE-MASK 对齐任务新增 P3SampleRejection +
 > p3_sample_bilinear_nanmask_ex，见 §4/§6.5/§6.6。）
-> 代码中不得出现第二套数学核心（healpix 权威函数唯一，见 §6）。
+> 代码中的数学核心唯一 = healpix 权威函数（见 §6）。
 
 ## 1 目的与非目标
 
@@ -160,7 +160,7 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 面积相对偏差恒为 0.0；同一实验的等经纬网格阴性对照在 dec=89.9° 偏 −20.5%）。
 **适用域**：该式是**面平均**判据；HEALPix 单元的局部采样步长（邻元中心角距）随纬度与
 方向变化——实测 nside=512 共边邻元步长 ∈ [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×
-该尺度。要求方向性分辨率保证时须按局部步长另加余量，不得把它当各向同性分辨率上界。
+该尺度。要求方向性分辨率保证时须按局部步长另加余量；该尺度是面平均量，各向同性上界另按局部步长给出。
 与 ALG-P3-003 G3 冻结式 `s_tile_rad = sqrt(π/3)/(2^order·W)`、
 `order = clamp(ceil(log2(sqrt(π/3)/(W·s_out))), 0, hips_order)`
 **数学等价**（nside = W·2^k，W=512）：取等价形式
@@ -233,7 +233,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   几何权重 `wg = {(1-u)(1-v), u(1-v), (1-u)v, uv}`（FP64，Σwg=1±k·ULP）；
   四角 tile 任一缺失 → `*coverage=0` 且 `*value=NaN`（无覆盖，非错误）
   ④**样本级掩膜 + 重归一**（rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`，权威 =
-  DATA-002 §2a `invalid_handling`；本文件 §11 DISP 台账与 §13 禁止项同步）:
+  DATA-002 §2a `invalid_handling`；本文件 §11 DISP 台账与 §13 合同外实现同步）:
   合格 = `isfinite(值)`（NaN 与 ±Inf 同类）；被剔除样本**从分子、分母、方差三项
   一并剔除**，剩余合格邻域重归一 `c_k = wg_k / Σ(合格 wg_j)`（FP64，固定 k 序 ⇒
   确定性）；仅 `n_eligible==0` 或有效权重和 `W_p==0` 时 `*value=NaN`（覆盖级 NaN，
@@ -246,7 +246,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - **weights[4] 语义（本次对齐）**: 暴露**生效（重归一）权重** `c_k`，被剔除样本恰为
   `0.0`（零合格样本时四权重全 0）。依据 DATA-002 §2a 规则 1「不合格样本从分子、
   分母、**方差**三项一并剔除并重新归一」⇒ 方差传播 `Σ c_k²u_k` 必须消费该权重，
-  不得沿用未重归一的几何权重（沿用即系统性偏差；回归锚 `p3_nan_mask_test.cpp` T6
+  权重取值 = 重归一生效权重 `c_k`（沿用未重归一几何权重即系统性偏差；回归锚 `p3_nan_mask_test.cpp` T6
   断言两者相对差 >5%）。全部样本合格时 `c_k = wg_k/(1±k·ULP)`，仍满足 Σc_k=1±k·ULP。
 - 与 ALG-P3-003 G4 施工规格"面积重叠分数（投影线性化）"的差异:
   实现为**切平面四象限最近中心双线性**——同属一阶插值族、Σw=1
@@ -266,7 +266,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   （存在判定，ALG-P3-003 §2 G4 / §4：值非有限**不改** C；4 个 tile 均可读则 C=1；
   任一角 tile 缺失 ⇒ C=0）。mask 输出由会话层从 coverage 生成
   （coverage_output 仅 `mask` 合法，p3_session.cpp:128-129）。
-- **零填禁止**: 零合格样本必须是 NaN（覆盖级 NaN），禁 `0`/`±Inf`/哨兵冒充；
+- **零填口径**: 零合格样本取 NaN（覆盖级 NaN）；`0`/`±Inf`/哨兵属另一形态；
   被剔除样本的权重必须**不进分母**（禁留在分母 ⇒ 系统性偏低），也**不进方差项**。
 - 计数语义: `n_rejected_nonfinite` 按原因分类（值非有限 / 方差非有限 / 权重非正，
   互斥可加）；计数 0 与「字段缺失」必须可区分（DATA-002 §2a 规则 3）。信号核的
@@ -287,7 +287,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - 键: `(order, tile_ipix)`；值: tile 缓冲（`shared_ptr<const TileData>`，只读共享）。
   每 sampler 另有 `kHotSlots=8` 前端热缓存（命中不取共享锁）。
 - 并发模型: 缓存本身线程安全；**单 `P3Sampler` 实例的其余状态非线程安全**
-  （无内部锁），禁止跨线程共享同一 `P3Sampler`——合同禁止项。
+  （无内部锁），同一 `P3Sampler` 的共享面 = 单线程（合同项）。
   HiPS tile 文件只读共享，无写锁（p3_session.cpp:217-244 worker 闭包内
   `p3_sampler_open_ex` 每 worker 重建 + attach 共享缓存）。
 - 确定性: 缓存策略（LRU/容量/负缓存开关）只影响 I/O 命中率，**不影响任何像素值**
@@ -321,7 +321,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 - 采样函数（nearest/bilinear）无返回码（void 语义经 value/coverage
   表达）；`last_error[256]` 缓冲仅 open/set_max_tiles 路径填充。
-- 禁止静默默认: sampler 关闭态调用采样函数 → coverage=0（不 crash、
+- 缺省行为 = 显式定义: sampler 关闭态调用采样函数 → coverage=0（不 crash、
   不伪造数据）；open 失败必须经 err 缓冲带原因（test_p3_resample.py
   test_06_no_silent_default_open 冻结此行为）。
 
@@ -331,7 +331,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   会话守卫默认 ≤1024 tile）；输出平面 2×W·H×4 B（S/C）。
 - 每输出像素: 1 次 pix2ang + 1 次 ang2pix（nearest）或 1 次 pix2ang +
   1 次 neighbors + ≤4 次 ang2pix（bilinear）——均为 O(1)。
-- 线程: worker 数 = budget.max_workers（≤hpx），禁止硬编码与
+- 线程: worker 数 = budget.max_workers（≤hpx），取值面 = budget 一项——硬编码与
   hardware_concurrency（AGENTS 约束一致）；串行阈值 <2 workers。
 - 取消: 行级响应（每行首检查），取消后已写行保留、报行号。
 
@@ -389,7 +389,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 - 本合同冻结**现状实现**为合同基线；§11 偏差表登记与合同基线的差异，
   整改走 P3-RSMP-IMPL/INT。
-- 禁止项（合同）: 第二套 healpix 数学核心；第三种采样核；flux/
+- 合同外实现（引入即违约）: 第二套 healpix 数学核心；第三种采样核；flux/
   variance/weight 输入静默接受；**BUNIT 缺省非 canonical `ADU/sr`**
   （缺省必须为 `ADU/sr`，见 §6.3）；仅写 metadata 的
   order；hardware_concurrency 决定线程数；静默默认 open；**静默剔除**

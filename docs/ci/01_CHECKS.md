@@ -9,12 +9,12 @@
 - 豁免显式登记 `eng/ci/exemptions.json`，只减不增，需负责人批准；
 - **可执行负例面**（`ENGINEERING_SPEC.md §8`）：每项检查必须提供**机器可执行**的负例入口
   （`--self-test` 或 `--fault-inject`）；仅有人工说明不算。检查器的注册步骤中必须能看到该入口；
-- **fail-closed**：输入缺失 / 路径不存在 / 依赖不可用时必须**判红**，不得崩溃后静默通过，
-  也不得把「文件不存在」当「无违规」（`scanned == 0 ⇒ rc != 0`）；
+- **fail-closed**：输入缺失 / 路径不存在 / 依赖不可用时必须**判红**，崩溃同样判红，
+  「文件不存在」一律按「有违规」处理（`scanned == 0 ⇒ rc != 0`）；
 - **锚存活**：判据里硬编码引用的仓库路径必须存在；失效时以 `ANCHOR_STALE: <常量名> <路径>`
-  **显式失败并点名**，不得 traceback、不得静默降级；
-- **注册表双向一致**：`eng/ci/checks.json` 与本文件 §2 必须双向对齐（既不得「注册未登记」，
-  也不得「文档承诺 P0 但无实现」），由 `CHK-REGISTRY-DOC-SYNC` 机器保证；
+  **显式失败并点名**：traceback 与静默降级一律按失败处理；
+- **注册表双向一致**：`eng/ci/checks.json` 与本文件 §2 的条目集合互相相等（「注册未登记」、
+  「文档承诺 P0 但无实现」这两种偏差都由 `CHK-REGISTRY-DOC-SYNC` 判红）；
 
 ## 2. 检查项清单
 
@@ -25,17 +25,17 @@
 | CHK-STATIC | 静态 | 静态分析 | `python3 eng/ci/run_checks.py --check CHK-STATIC --quiet` | P1 |
 | CHK-MODULE-MANIFEST | 文档一致性 | 模块 manifest/注册表/构建 target/产品清单一致 | `python3 eng/ci/run_checks.py --check CHK-MODULE-MANIFEST --quiet` | P0 |
 | CHK-CONTRACT-REF | 文档一致性 | 端口引用有效 DATA 合同 | `python3 eng/ci/run_checks.py --check CHK-CONTRACT-REF --quiet` | P0 |
-| CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG；含 ACR/编排层退出面（`ACR-DORMANT` = `eng/tools/check_legacy_exit.py`，LEG-002..004）；其执行单元 `DOC-LINE-ANCHORS` = 全库文档行号锚 vs 源文件实测（扫描面 `docs/**/*.md`；C1 目标 tracked / C2 锚可解析且未解析须逐条登记 / C3 区间在界内 / C4 逐符号绑定 / C5 豁免项仍是活锚 / C6 锚的起止行**不得落在空行** / C7 `ANCHOR_CONTRACT.md` §1 规模声明与实测逐字相等 / C8 未解析登记台账只减不增；9 豁免 + 26 未解析逐条点名；fail-closed） | `python3 eng/ci/run_checks.py --check CHK-SCI-REF --quiet` | P0 |
+| CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG；含 ACR/编排层退出面（`ACR-DORMANT` = `eng/tools/check_legacy_exit.py`，LEG-002..004）；其执行单元 `DOC-LINE-ANCHORS` = 全库文档行号锚 vs 源文件实测（扫描面 `docs/**/*.md`；C1 目标 tracked / C2 锚可解析且未解析须逐条登记 / C3 区间在界内 / C4 逐符号绑定 / C5 豁免项仍是活锚 / C6 锚的起止行**取非空行** / C7 `ANCHOR_CONTRACT.md` §1 规模声明与实测逐字相等 / C8 未解析登记台账只减不增；9 豁免 + 26 未解析逐条点名；fail-closed） | `python3 eng/ci/run_checks.py --check CHK-SCI-REF --quiet` | P0 |
 | CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试 | `python3 eng/ci/run_checks.py --check CHK-CONTRACT-TEST --quiet` | P0 |
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | `python3 eng/ci/run_checks.py --check CHK-DANGLING --quiet` | P1 |
 | DOC-INDEX | 文档一致性 | 双向层级索引闭合（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed；跨域未修项台账 `eng/tools/doccheck/dangling_ledger.json` 只减不增） | `python3 eng/tools/doccheck/check_doc_index.py --strict` | P0 |
 | DOC-INDEX-SELFTEST | 文档一致性 | 上项的可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失各自判红） | `python3 eng/tools/doccheck/check_doc_index.py --self-test` | P0 |
 | ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚（扫描面 `docs/**/*.md`，与上项同面）+ `docs/algorithms/*.md` 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；空行判据归上项 C6，本项不重复；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
-| CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 不得出现负责人裁决逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1 编号表双向一致、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py --json-out run/ci/doc-hygiene/doc_hygiene.json` | P0 |
+| CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 的判红面 = 负责人裁决逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1 编号表双向一致、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py --json-out run/ci/doc-hygiene/doc_hygiene.json` | P0 |
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
-| CON-SYMBOL-DIM-UNIQUE | 合同一致性 | 符号量纲唯一性门：同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值 / 显式量纲断言 / 禁止共现短语（带否定式豁免，避免把正确的消歧写法判红）。 |
+| CON-SYMBOL-DIM-UNIQUE | 合同一致性 | 符号量纲唯一性门：同一符号在全仓只指一个量纲。三条子判据为定义站点量纲代数求值 / 显式量纲断言 / 共现短语判据（带否定式豁免，避免把正确的消歧写法判红）。 |
 | CON-SYMBOL-DIM-UNIQUE-SELFTEST | 合同一致性 | 上项的可执行正/负例面（含恒真守卫、判别力守卫与恒假守卫三类）。 |
-| CHK-FROZEN-STRING-DISAMBIG | 文档一致性 | 冻结串一致性门：冻结串在 schema 常量、登记表与示例三处必须逐字相同且不得被改写；其单位读法消歧说明必须在位并逐字含冻结串、单位读法、数值反例与不得改写条款。 |
+| CHK-FROZEN-STRING-DISAMBIG | 文档一致性 | 冻结串一致性门：冻结串在 schema 常量、登记表与示例三处必须逐字相同（改写即重新冻结，须走变更流程）；其单位读法消歧说明必须在位并逐字含冻结串、单位读法、数值反例与逐字冻结条款。 |
 | CHK-FROZEN-STRING-DISAMBIG-SELFTEST | 文档一致性 | 上项的可执行正/负例面（含判别力自检：删去消歧段后必须精确判红，其余子判据保持绿）。 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | `python3 eng/ci/run_checks.py --check CHK-STALE-DOC --quiet` | P1 |
 | API-DOCS | 文档一致性 | doc↔code 命令树/签名/退出码/schema 一致（命令树：CLI 产物候选缺失即 fail-closed） | `eng/tools/check_api_docs.py` | P0 |
@@ -51,7 +51,7 @@
 | CHK-ISA-EQ | 科学 | baseline/AVX2/AVX-512 等价 | `python3 eng/ci/run_checks.py --check CHK-ISA-EQ --quiet` | P1 |
 | CHK-NWORKER | 科学 | 1 vs N worker 数值等价（判据 = 事前冻结的浮点容差，非逐位一致；口径见 `docs/contracts/SCHEDULER_CONTRACT.md` §2.1） | `python3 eng/ci/run_checks.py --check CHK-NWORKER --quiet` | P0 |
 | CHK-NWORKER-TOLERANCE | 科学 | 1/N worker 数值等价的**判据非退化面**：分层容差比较器自检（float64 用 `rtol=1e-12`；float32 产品用 `rtol=5e-6`；整型/掩码/索引/计数/端口逐位；NaN/Inf **位置**必须精确一致；易变卡 `DATE/CHECKSUM/DATASUM/CHECKVER` 除外）；**负例**：扰动一个浮点载荷必须被检出 | `python3 eng/tools/v6/v6_numeric_equiv.py --self-test --json-out run/ci/nworker-tolerance/selftest.json` | P0 |
-| CHK-PHOTOMETRY-APPLY-SELFTEST | 科学 | 测光归一化**施加到像素**的像素级复算判据（裁决 B）：判据必须**尺度相关**（`max(rtol·| `python3 eng/tools/quality/check_photometry_apply.py --self-test --workdir run/ci/photometry-apply --json-out run/ci/photometry-apply/selftest.json` |, 2·float32 ULP)`），绝对窗口在真实 `k≈1e-17` 量级会把「乘两次」判绿；判别力证明 = `k·I` 绿、漏乘 / `k²·I` / 半帧施加全红 | `python3 eng/tools/quality/check_photometry_apply.py --self-test`（**自给自足**：未给 `--calibrated` 时自行合成夹具——仓库约定 FITS 不入库，门不得依赖仓内 FITS 文件） | P0 |
+| CHK-PHOTOMETRY-APPLY-SELFTEST | 科学 | 测光归一化**施加到像素**的像素级复算判据（裁决 B）：判据必须**尺度相关**（`max(rtol·| `python3 eng/tools/quality/check_photometry_apply.py --self-test --workdir run/ci/photometry-apply --json-out run/ci/photometry-apply/selftest.json` |, 2·float32 ULP)`），绝对窗口在真实 `k≈1e-17` 量级会把「乘两次」判绿；判别力证明 = `k·I` 绿、漏乘 / `k²·I` / 半帧施加全红 | `python3 eng/tools/quality/check_photometry_apply.py --self-test`（**自给自足**：未给 `--calibrated` 时自行合成夹具——仓库约定 FITS 不入库，门的输入一律取自行合成夹具） | P0 |
 | CHK-RUN-MANIFEST-SCHEMA | 合同 | 真实产出 run manifest 对**两份冻结合同**的符合性：T1 = `docs/api/MANIFEST_VERIFY_V1.md`（CLI-003）§2/§2.1 严格符合（必填、类型、`provenance.source_sha` 40-hex、未登记顶层键判红）；T2 = `eng/contracts/schemas/run_manifest.schema.json`（CFG-001）**偏差棘轮**（与 `eng/ci/ledgers/run_manifest_schema_deviations.json` 逐项比对，新增或陈旧偏差判红）；**负例**：缺必填 / 未登记键 / 类型错 / 新增 CFG-001 偏差逐一判红 | `python3 eng/ci/check_run_manifest_schema.py --json-out run/ci/run-manifest/schema.json` | P0 |
 | CHK-RUN-MANIFEST-SCHEMA-SELFTEST | 合同 | 上项的**可执行负例面**（11 例正/负例：CLI-003 必填/类型/未登记键/kind/provenance 缺失与坏 sha、CFG-001 偏差子集与「能检出」两类） | `python3 eng/ci/check_run_manifest_schema.py --self-test --json-out run/ci/run-manifest/selftest.json` | P0 |
 | CHK-SPARSE-PUNCH | 合同 | 裸形态体积削减（**文件系统打洞**，合同 §7 表 T1）的**静态不变量 + 判据判别力**：生产头缺失即红；打洞路径**零浮点**（IEEE -0.0 在浮点比较下等于 0.0 但其位型含非零字节，浮点判定会改字节）；可打洞谓词必须逐字节；打洞系统调用唯一实现且带 `PUNCH_HOLE\| `python3 eng/tools/quality/check_sparse_punch.py --self-test --json-out run/ci/sparse-punch/selftest.json` | `python3 eng/tools/quality/check_sparse_punch.py --self-test --json-out run/ci/sparse-punch/selftest.json` | P0 |
@@ -102,16 +102,16 @@
 | AHPX-WEIGHT-RETIRED | 合同/ABI | HiPS 格式内部权重枚举作废（FIX-202；N1/N2/P1/N3 共 36 断言；负例面 `ASTROCS_AHPX_FAULT=accept_legacy\|writer_accept_legacy_meta\|writer_drop_snr` 各期望 rc=1） | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target ahpx_hips_format` | P0 |
 | CHK-DRZ-DISP009 | 模块数值 | DISP-DRZ-009 面亮度保持权重回归门：`w_jp=a_jp/A_pixel,j`；判据 = 常量面亮度 `| `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target p1drz_disp009 --output run/ci/ctest/p1drz_disp009.json` |<1e-3`（pixfrac∈{1.0,0.8,0.6,0.5}）+ "分母取 A_drop 必判红"负例控制 + `pixfrac=1` 端点退化；`pixfrac=1` 产物逐字节不变 | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target p1drz_disp009` | P0 |
 | CHK-FIX203-PROMOTED-KEYS | 治理 | 提升键落地三方一致（CLI 键表 ↔ 生产消费 ↔ 死键台账；内建 test_04 负例面，纯源码级不需构建） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix203_*.py` | P1 |
-| CHK-P3-PROJ-DECL | 合同/ABI | 投影注册表声明集 == 实际可运行集（FIX-205；未实现投影显式报「不支持」，不得静默回落 TAN） | `python3 eng/ci/run_checks.py --check CHK-P3-PROJ-DECL --quiet` |^p3_projection_unsupported_cli$" --output-on-failure` | P0 |
+| CHK-P3-PROJ-DECL | 合同/ABI | 投影注册表声明集 == 实际可运行集（FIX-205；未实现投影显式报「不支持」，静默回落 TAN 即判红） | `python3 eng/ci/run_checks.py --check CHK-P3-PROJ-DECL --quiet` |^p3_projection_unsupported_cli$" --output-on-failure` | P0 |
 | CHK-P3-PROJ-DECL-SELFTEST | 合同/ABI | 上项的注册表自检面（`p3_projection_registry_selftest`，可执行负例面） | `python3 eng/ci/run_checks.py --check CHK-P3-PROJ-DECL-SELFTEST --quiet` | P0 |
 | CHK-AIO-IO-BOUNDARY | 静态 | aio 是文件级唯一 I/O 边界（HARD H1/H2 + A44 代码面 + 台账棘轮；除 aio 外越界 I/O 命中 = 0；台账 `eng/ci/ledgers/aio_io_boundary_inventory.json`） | `python3 eng/ci/check_aio_io_boundary.py` | P0 |
 | AIO-IO-BOUNDARY-SELFTEST | 静态 | 上项的可执行负例面（8 条负例 + 台账缺失 fail-closed + HARD 层台账不可豁免） | `python3 eng/ci/check_aio_io_boundary.py --self-test` | P0 |
 | CHK-PSFSW-RETIRED-STATIC | 合同/ABI | PSFSW 退役对象 canonical 面静态清零（`eng/contracts/schemas/unified/` 除「已退役/retired」留痕外零残留；Python 落地满足注册表校验器 R4，含锚缺失 fail-closed 与 `--self-test` 正负例面） | `python3 eng/ci/run_checks.py --check CHK-PSFSW-RETIRED-STATIC --quiet` | P1 |
-| CHK-PSFSW-RETIRED-NEGATIVE | 合同/ABI | 退役对象行为门（无 canonical 正本 / 旧声明显式拒绝 / 迁移提示 / 不得回流） | `python3 -B -m unittest discover -s eng/tests/contracts -t eng/tests/contracts -p test_unified_object_contract.py -k RetiredObjectContract` | P1 |
+| CHK-PSFSW-RETIRED-NEGATIVE | 合同/ABI | 退役对象行为门（无 canonical 正本 / 旧声明显式拒绝 / 迁移提示 / 回流即判红） | `python3 -B -m unittest discover -s eng/tests/contracts -t eng/tests/contracts -p test_unified_object_contract.py -k RetiredObjectContract` | P1 |
 | CHK-FIX208-EVENT-STREAM-DEFAULT | 治理 | 事件流 = 默认输出（无需 `-y`/`--events` 旗标即输出，唯一 schema） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix208_event_stream_default.py` | P0 |
 | CHK-FIX208-DISK-GATE | 治理 | 资源门只管磁盘（跑前 warn / 写盘失败 error=rc10；内存/CPU 不设门；缺 `unshare -Ur -m` 时用例显式 skip） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix208_disk_gate.py` | P0 |
 | CHK-FIX406-SIGTERM | 治理 | CLI 取消矩阵（POSIX SIGTERM/SIGINT × 三阶段 × 取消点 + Windows 控制台事件；`CTRL_CLOSE_EVENT` 平台限制显式登记于 `run/FIX-406/WINDOWS_CANCEL_PLATFORM_LIMITS.md` §3，非退化判据 + 结构化登记门为负例面；Linux 节点上 Windows 用例显式 skip ≠ 通过） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix406_sigterm_cancel.py` | P0 |
-| CHK-REGISTRY-VALIDATE | 治理 | 注册表结构校验器（R1–R15）成为真正的门：`eng/ci/checks.json` 唯一注册表结构一致（命令可执行体/路径锚/ID 唯一/迁移映射覆盖/无孤儿 unit/不得硬编码线程） | `python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict` | P0 |
+| CHK-REGISTRY-VALIDATE | 治理 | 注册表结构校验器（R1–R15）成为真正的门：`eng/ci/checks.json` 唯一注册表结构一致（命令可执行体/路径锚/ID 唯一/迁移映射覆盖/无孤儿 unit/线程数取自 profile） | `python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict` | P0 |
 | L2-FROZEN-GATE-SELFTEST | 资源 | L2 性能门四条冻结判据裁决器（平均利用率 / p50 / 达标样本占比 / 无低利用窗）红绿双向自测：合规证据必须绿；缺失证据 / 坏证据 / 空文件 / 门不适用 / 分母未声明 / 阈值合同缺失必须红 | `python3 eng/ci/check_frozen_gate.py --self-test` | P0 |
 | L2-FROZEN-GATE-REPLAY | 资源 | 上项对 RELEASE-04 归档 L2 违规证据的回放（历史 `frozen_gate.verdict=pass` 的证据现在必须判红——恒真门改真判红，D-10） | `python3 eng/ci/check_frozen_gate.py --replay --json-out run/ci/l2-frozen-gate/replay.json` | P0 |
 | WORKER-BALANCE-METRIC-SELFTEST | 资源 | worker_balance 利用率指标判别力自测：按「忙碌 worker 数 / 已分配 worker 数」正确算法复算，两组合成负载必须给出不同且非常数的输出；退化派生件 / 算法不符 / 缺失 / 空 / 坏表头 / 分母未声明 / 恒定序列必须红 | `python3 eng/ci/check_worker_balance.py --self-test` | P0 |
@@ -135,7 +135,7 @@
 | CHK-E2E-CHAIN-SELFTEST | 集成 | E2E 链判据自测：退化产品（covered_px==0、FITS 缺失）必须判红，防「空产品也判绿」 | `python3 eng/ci/run_checks.py --check CHK-E2E-CHAIN-SELFTEST --quiet` | P0 |
 | CHK-SCHED-PROBE-SCHEMA | 合同 | 探针事件 schema 机器校验：逐行校验 JSONL 的必填字段/枚举/单位与事件名一致性，空文件与无输出判红（fail-closed）；含 --self-test 1 正 5 负 | `python3 eng/ci/run_checks.py --check CHK-SCHED-PROBE-SCHEMA --quiet` | P0 |
 | CHK-HIPS-STORAGE-FORM | 合同 | 落盘形态合同（CONTRACT-STORAGE-001）：两形态命名与互斥、归档必须为「整包 tar + 逐成员独立 zstd 帧」且标准工具 `zstd -dc \| `python3 eng/tools/hipsform/check_hips_storage_form.py --self-test --json-out run/ci/hipsform/self_test.json` | `python3 eng/tools/hipsform/check_hips_storage_form.py --self-test` | P0 |
-| CHK-P3-EXPORT-STREAM-PROD | 架构 | Phase3 导出子块流式的**生产接线静态锁**：生产 writer 节点 TU 必须引用子块流式调度器（整幅驻留路径不得回流）；含 `--self-test`（3 处变异必红） | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-PROD --quiet` | P0 |
+| CHK-P3-EXPORT-STREAM-PROD | 架构 | Phase3 导出子块流式的**生产接线静态锁**：生产 writer 节点 TU 必须引用子块流式调度器（整幅驻留路径回流即判红）；含 `--self-test`（3 处变异必红） | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-PROD --quiet` | P0 |
 | CHK-REGISTRATION-ANCHORS | 治理 | eng/contracts/** 与 eng/ci/** 登记 JSON 的活引用必须仍有对象（指向临时产物区一律判红；按「规则| `python3 eng/ci/check_registration_anchors.py --json-out run/ci/registration-anchors/report.json` |类别」逐值登记为只减不增的棘轮；输入缺失或台账缺失 fail-closed 点名） | `python3 eng/ci/check_registration_anchors.py --json-out run/ci/registration-anchors/report.json` | P0 |
 | CHK-REGISTRATION-ANCHORS-SELFTEST | 治理 | 上项的可执行正/负例面（13 组，含空扫描面判红与身份级棘轮用例） | `python3 eng/ci/check_registration_anchors.py --self-test` | P0 |
 | CHK-CMAKE-USEBEFOREDEF | 构建 | CMake 目标在使用前必须已定义（跨全部 CMakeLists） | `python3 eng/tools/quality/check_cmake_usebeforedef.py --root . --json-out run/ci/cmake-usebeforedef/report.json` | P1 |
@@ -148,13 +148,13 @@
 | CHK-GATES-AND-TOLERANCES-SELFTEST | 科学 | 上项的可执行正/负例面（7 组注入） | `python3 eng/tools/check_gates_and_tolerances.py --self-test` | P0 |
 | CHK-VERSION-CONSISTENCY-VER001 | 治理 | 版本一致性 VER-001：版本号唯一源与全库字面量一致 | `python3 eng/tools/check_version_consistency.py` | P0 |
 | CHK-VERSION-CONSISTENCY-VER001-SELFTEST | 治理 | 上项的可执行正/负例面（12 组） | `python3 eng/tools/check_version_consistency.py --self-test` | P0 |
-| CHK-BASELINE-OPCODES | 构建 | 基线目标文件指令集：baseline 目标不得含向量指令（对象路径按构建目录解析） | `python3 eng/tools/check_baseline_opcodes.py build/CMakeFiles/astrocs_cpu_baseline.dir/lib/backend_host/baseline_backend.cpp.o` | P0 |
+| CHK-BASELINE-OPCODES | 构建 | 基线目标文件指令集：baseline 目标的指令集 = 标量集（无向量指令）（对象路径按构建目录解析） | `python3 eng/tools/check_baseline_opcodes.py build/CMakeFiles/astrocs_cpu_baseline.dir/lib/backend_host/baseline_backend.cpp.o` | P0 |
 | CHK-LINK-SCAN | 构建 | 链接面扫描：生产二进制的符号表与 ACR 符号集不相交 + 根 CMake 的 GLOB 面完整（输入缺失或工具不可用一律 fail-closed） | `python3 eng/tools/check_link_scan.py build/acsd` | P0 |
 | CHK-MUTATION-GATES | 治理 | 变异门登记册的「登记项必须仍有对象」：`eng/ci/mutation_gates.json` 的 `design_claim` 锚存活（doc/§节号/行号/引文四查）+ 每条 gate 的 driver/registration/evidence 路径必须存在或在 `gone_artifacts` 显式登记（棘轮，只减不增，产物回来了判红）；输入缺失/不可解析 fail-closed | `python3 eng/ci/check_mutation_gates.py` | P1 |
 | CHK-P3-EXPORT-STREAM-RSS | 架构 | Phase3 导出子块流式的**动态驻留判据**：把已回收引用归零后读内核 VmHWM 记账真实峰值（非声明值、非采样），流式峰值与产品面积解耦，比值与斜率双阈值 | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-RSS --quiet` | P0 |
 | CHK-BUILD-PROVENANCE | 合同 | 构建期指纹一致性：产物自报的 `build_source_digest` 必须等于当前工作树重算值（与 `eng/tools/gen_build_stamp.py` 同口径）。不相等即判红并点名不一致的文件；构建树缺少指纹锚记时判**不可锚定**（rc=2，不等于通过） | `python3 eng/ci/check_build_provenance.py --build-dir build --json-out run/ci/build-provenance/check.json` |
 | CHK-BUILD-PROVENANCE-SELFTEST | 合同 | 上项的可执行正/负例面（8 例：2 绿 + 改源文件不重建 / 篡改记录 / 形态非法 / 记录自相矛盾 4 红 + 缺指纹 rc=2） | `python3 eng/ci/check_build_provenance.py --self-test` |
-| CHK-L4-SEAM-FOOTPRINT | 视觉 | L4 接缝机器门：沿**真实帧足迹**取法向 ±2px 差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+2] − img[−2]) / bg`，门 `max|rel_step| ≤ 1e-2`；**只对两侧都在数据内部**的边界计入（法向 ±200px 两侧都能放对照线，N = `--ctrl-shift`，从输入导出），被排除的边界仍逐条落盘（`exclude`/`margin_px`）。**对照线不参与判红**（只用于适用域与诊断），故判据量与阶跃周期无关。噪声差（`noise_ratio`）、扣 200px 对照线的净台阶（`step_net`）、d 扫描、v1 的 `excess = median|seam| − median|ctrl|` 都只作**诊断量、不判红**（v1 口径对噪声差敏感，且当阶跃间距整除对照偏移时相减归零 ⇒ 会把同幅阶跃判绿；`step_net` 在那种退化几何上同样不可读）。**方差比对电平阶跃原理性失明**（阶跃不改变方差），故 V4 降级为粗筛、**不得**引用为帧间无接缝证据。实测可检出下限 Δ/L ≈ 1.005%（≈0.0109 mag），与 `gate/(1−gate/2)` 一致。含 `--self-test` 九组用例（无台阶判绿 / 注入已知台阶判红 / 旧 V4 在同一输入判绿即盲区复现 / 帧足迹落在画幅外判红 / 注入 0 回落基线 / 两侧噪声差 57× 但无台阶判绿 / 贴数据边界的边被适用域排除且判绿 / **间距 = 对照偏移的平行同幅阶跃必须判红而 v1 口径在同一夹具整幅判绿** / **间距 = 对照偏移因子的同上**），缺任一条必需用例即自检失败 | `python3 eng/tools/e2e/seam_footprint.py --self-test` | P0 |
+| CHK-L4-SEAM-FOOTPRINT | 视觉 | L4 接缝机器门：沿**真实帧足迹**取法向 ±2px 差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+2] − img[−2]) / bg`，门 `max|rel_step| ≤ 1e-2`；**只对两侧都在数据内部**的边界计入（法向 ±200px 两侧都能放对照线，N = `--ctrl-shift`，从输入导出），被排除的边界仍逐条落盘（`exclude`/`margin_px`）。**对照线不参与判红**（只用于适用域与诊断），故判据量与阶跃周期无关。噪声差（`noise_ratio`）、扣 200px 对照线的净台阶（`step_net`）、d 扫描、v1 的 `excess = median|seam| − median|ctrl|` 都只作**诊断量、不判红**（v1 口径对噪声差敏感，且当阶跃间距整除对照偏移时相减归零 ⇒ 会把同幅阶跃判绿；`step_net` 在那种退化几何上同样不可读）。**方差比对电平阶跃原理性失明**（阶跃不改变方差），故 V4 降级为粗筛、**帧间无接缝证据只取真实帧足迹的净台阶**。实测可检出下限 Δ/L ≈ 1.005%（≈0.0109 mag），与 `gate/(1−gate/2)` 一致。含 `--self-test` 九组用例（无台阶判绿 / 注入已知台阶判红 / 旧 V4 在同一输入判绿即盲区复现 / 帧足迹落在画幅外判红 / 注入 0 回落基线 / 两侧噪声差 57× 但无台阶判绿 / 贴数据边界的边被适用域排除且判绿 / **间距 = 对照偏移的平行同幅阶跃必须判红而 v1 口径在同一夹具整幅判绿** / **间距 = 对照偏移因子的同上**），缺任一条必需用例即自检失败 | `python3 eng/tools/e2e/seam_footprint.py --self-test` | P0 |
 
 ### 2.1 检查器退役与预留
 
@@ -223,8 +223,8 @@
 | `eng/contracts/**` 与 `eng/ci/**` 登记 JSON 的**活引用路径** | `CHK-REGISTRATION-ANCHORS` | **实现已落地，注册项待写入** |
 
 `CHK-REGISTRATION-ANCHORS` = `eng/ci/check_registration_anchors.py`：R1 合同登记 JSON 的活引用
-（`path`/`doc_ref`/`implementations`/`entries` 等白名单键）必须存在；R2 登记册不得把对象登记到
-临时面 `run/`（`AGENTS.md` §7）；棘轮台账 `eng/ci/ledgers/registration_anchor_ledger.json`
+（`path`/`doc_ref`/`implementations`/`entries` 等白名单键）必须存在；R2 登记册的对象一律落正式面（
+临时面 `run/`（`AGENTS.md` §7）在登记面之外）；棘轮台账 `eng/ci/ledgers/registration_anchor_ledger.json`
 按 `(rule|file|class)` 逐值登记、只减不增；输入缺失或扫描面为空判红；含 `--self-test`（13 例正负例）。
 
 

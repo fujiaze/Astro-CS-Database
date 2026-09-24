@@ -2,7 +2,7 @@
 
 schema: astrocs.contract-index/v1
 # §12 口径（DOC-203 / Q2 前置裁决 2026-09-20）：本索引的修订标识一律用**变更编号/日期**，
-# **禁止**用版本号作为任何生效或退役条件（ASTROCS_DESIGN.md §12）。
+# 生效或退役条件只取**变更编号/日期**（ASTROCS_DESIGN.md §12）。
 revision_id: CHG-2026-09-20-DOC203
 # 下列 `version:` 字段（含逐条合同）是**合同文档的内部修订号**——不进入程序/代码/产物，
 # 也不承载任何生效/退役语义；合同路径的退役一律用**日期或变更编号**表达
@@ -892,7 +892,7 @@ contracts:
   # DATA-OBJ-PSFSW-ROBUST-WEIGHT-001：**已退役**（真删，14→13；
   # GAP_AUDIT §4.5 C01；变更 claim CHG-2026-09-20-PSFSW-RETIRE）。canonical schema
   # `eng/contracts/schemas/unified/psfsw_robust_weight.schema.json` 已删除，故本条不再登记 path
-  # （登记一条指向不存在文件的 path 会让合同图判红）。留痕保留 ID，**不得**据此实现或验收。
+  # （登记一条指向不存在文件的 path 会让合同图判红）。留痕保留 ID，**实现与验收一律以 canonical schema 面为准**。
   - id: DATA-OBJ-PSFSW-ROBUST-WEIGHT-001
     type: DATA
     status: OBSOLETE

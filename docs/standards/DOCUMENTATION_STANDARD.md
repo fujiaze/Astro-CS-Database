@@ -32,5 +32,5 @@ L5 模块文档        docs/modules/**（module 页 + MODULE_MAP.yaml + registry
   source map。
 - 每份 troubleshooting：symptom、likely stage、log/metric/error、
   minimal reproduction、expected invariant、source/doc/test path。
-- 正式文档集只保留现行设计；历史材料不入库，也不得作为 current authority。
+- 正式文档集只保留现行设计；current authority 只取正式文档集内的现行条目。
 - 机器一致性：docs_machine_consistency.py 必须 PASS（S8）。

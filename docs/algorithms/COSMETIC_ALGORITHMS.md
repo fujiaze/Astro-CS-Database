@@ -12,7 +12,7 @@
 > 科学定义见 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN，§2 参数表
 > `hot_sigma/cold_sigma/method/max_structure_size`、§6 假设、§9a mask 极性
 > 1=坏点）。本文档只登记离散算法与实现事实，不修改 SCI；算法分层与
-> ALG-CAL-004 的重叠界定见 §0。禁止声明 IMPLEMENTED。
+> ALG-CAL-004 的重叠界定见 §0。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
 
 ## 0 范围与 ALG-CAL-004 重叠界定
 
@@ -34,7 +34,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   与根 `CMakeLists.txt` 的 `add_library(astrocs_calibration STATIC ...)`
   源清单均含它）；
   同名文件 `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp` **已退役**，
-  登记见 §8。二者是两套独立实现，**禁止**用 cpp/ 版本的公式、阈值或退化语义
+  登记见 §8。二者是两套独立实现，**本模块行为的口径唯一取自生产源；cpp/ 版本的公式、阈值或退化语义无资格**
   解释或复算本模块行为。
 - 退役通道 cc_*（`lib/algorithms/calibration/cpp/cosmetic_corrector.{cpp,h}`：
   cc_detect_hot/cc_detect_cold/cc_correct_median/cc_last_error）**不在任何 CMake
@@ -56,7 +56,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   同一 32×32 帧与其 ×(1/65535) 副本检出数均为 3、掩码**逐像素 0 处不同**；
   负对照（撤掉其中 1 个热像素）掩码有 1 像素不同 ⇒ 该不变性判据非恒真。
   ⇒ **"标度错使检测结果完全改变"不成立**；`src` 的绝对标度**不是**本层的
-  正确性前提，本层也不得据此声称做过标度校验。
+  正确性前提，标度校验不在本层的结论面内。
   - **真正的域要求**：`src` 与 `data`/`bad_mask` **必须同域**——掩码是像素集合
   （与标度无关），但产物 `out` 的非坏点像素逐位拷贝自 `data`，坏点像素由
   `data` 的邻域插值而来 ⇒ **`out` 的标度 = `data` 的标度**。若 `data` 不在
@@ -84,9 +84,9 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   （真值 0），且 `ac::correct_frame` 实际改写 205/1024 像素；对照组同尺寸帧注入
   3 个孤立热像素（+200/+300/+400 ADU，帧内 σ≈7.08 ADU）⇒ 检出恰 3 个。
   ⇒ **本检测的成立前提是检测源帧有非零稳健尺度（`mad>0`）**；`mad=0` 时
-  检出数由"与中位不等的像素占比"决定，**不是坏点率**，该结果不得作为坏点
+  检出数由"与中位不等的像素占比"决定，**不是坏点率**，**该结果的用途限于诊断，不用于坏点**
   统计或 QA 指标使用。调用方必须在 `mad=0` 时显式降级登记（拒绝或标记
-  "检测不可用"），不得把此时的计数当真值消费。
+  "检测不可用"）；此时的计数只作降级标记的伴随量。
 - 并行: 判定循环 `#pragma omp parallel for schedule(static)`
   （cosmetic_corrector.cpp:126,147），逐像素独立、bitwise 确定性；统计
   （median/MAD）在主线程串行。并行轴=像素域。
@@ -131,7 +131,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   输出 `out`（调用方分配）。
 - **极性口径（冻结，跨模块对照）**：本模块 `bad_mask`/`hot_mask`/`cold_mask`
   一律 **1 = 坏点（需修复）**；叠加 rejection 层的 `accepted` 掩码极性**相反**
-  （1 = 被接受）。跨模块传递掩码时**必须**显式转换，禁止直接复用同一缓冲区；
+  （1 = 被接受）。跨模块传递掩码时**必须**显式转换，缓冲区复用一律以转换后的极性为准；
   本层不校验极性、也不推断极性，极性错的表现是"修好像素、保留坏像素"。
 - 通用规则（逐像素 i，`#pragma omp parallel for schedule(static)`，
   cosmetic_corrector.cpp:166）:
@@ -169,9 +169,9 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   插值核的数学形式；本模块的**唯一**插值核即本节两条（method=0 5×5 镜像反射
   中值、method=1 四方向 `1/dist` IDW），P1-COS-TEST 按本节公式冻结容差。
   **要改插值核**（含把 method=1 改成真 bilinear）必须先改 SCI-CAL-001 §2 的
-  `method` 定义并走 ALG 变更流程——实现不得单方面偏离本节公式，测试也不得
+  `method` 定义并走 ALG 变更流程——实现的取值面 = 本节公式，测试的 oracle 一律取自已冻结的核，没有任何测试会
   按未冻结的核写 oracle。**要求**：任何 `method` 取值都必须落到本节两条之一，
-  且核的适用域（孤立点 / 拉长结构 / 小帧）按本节声明，不得留未定义分支。
+  且核的适用域（孤立点 / 拉长结构 / 小帧）按本节声明，分支集合在本节内完整定义。
 - 并行/确定性: 逐像素独立，线程数无关；float 累加顺序 = 方向数组固定顺序
   d=0..3（确定性）。
 - 内存: 每像素临时 `std::vector<float> vals`（≤25 float，method=0），
@@ -189,7 +189,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
      **禁用必须显式登记（冻结）**：`hot_sigma<=0` 与 `dark==NULL` 都是
      "该类检测关闭"的语义，本层不产生错误码、不产生退化标志；调用方**必须**
      把"检测源未接线/阈值置零"写入 manifest 与产物 provenance，并在
-     `out_hot==0 && out_cold==0` 时**不得**把该帧记为"已做坏点修复"
+     `out_hot==0 && out_cold==0` 时**该帧一律记为"检测关闭"而非"已做坏点修复"**
      （0 计数与"检测关闭"不可区分，见 §4 生产现状与 §9 非退化伴随断言）；
   3. 冷检测: 当且仅当 `bias != NULL && cold_sigma > 0`
      （cosmetic_corrector.cpp:248-252）→ detect_cold_pixels（ALG-COS-001）；
@@ -206,7 +206,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
      **不适用**于坏点率、探测器坏点表或 QA 指标（`max_size` 与 `mad` 都会
      改变它，见 §1 适用域与 §9）。`out_hot/out_cold` 可为 NULL（不输出，
      调用点判空）。
-- 关键编排语义（生产事实，禁止美化）:
+- 关键编排语义（生产事实，一律如实登记）:
   - `dark==NULL` 或 `hot_sigma<=0` → 热检测关闭；`bias==NULL` 或
     `cold_sigma<=0` → 冷检测关闭；两者皆关 → `all_bad` 全 0，
     interpolate_pixels 逐像素拷贝（恒等映射），**模块退化为空转 pass**；
@@ -279,7 +279,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   全 false（hot）或全 false（cold）→ **NaN 输入可使检测静默失效**
   （DISP-COS-002；负面测试必须覆盖）。**要求（冻结）**：检测源帧或数据帧
   含 NaN/Inf 时，调用方**必须**在进入本层前拒绝该帧或显式降级登记
-  （"检测不可用"），**不得**把"阈值 NaN ⇒ 判定全 false ⇒ 0 检出"当真值消费；
+  （"检测不可用"），**"阈值 NaN ⇒ 判定全 false ⇒ 0 检出"一律按降级标记消费**；
   本层自身的 NaN 行为按上列现状断言，不构成"已处理 NaN"的保证。
 - 无 fast-math（CMake 主构建，CMakeLists.txt astrocs_calibration 无
   相关 flag；非生产 MinGW 通道除外）。
@@ -302,8 +302,8 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   | 邻域源 | 原帧 `data` | 备份副本 `backup`（:147,:172） |
   | 全局统计 | 单线程 median/MAD | 同口径但偶数样本用两次 `nth_element`（:39-45，数值等价） |
   ⇒ 二者在**退化语义与边界语义上给出不同数值**，属两套独立实现。退役源
-  **禁止**被引用为现状依据、禁止被新测试选为 oracle；如需其能力（参数化
-  窗口）应迁入生产源并走 ALG 变更流程，不得反向以退役源为准。
+  只作历史登记；现状依据与新测试 oracle 一律取自生产源；如需其能力（参数化
+  窗口）应迁入生产源并走 ALG 变更流程；权威口径始终是生产源。
 - 迁移落点: `lib/algorithms/cosmetic/`（P1-COS-IMPL 建 astrocs_p1_cosmetic.dll +
   C ABI adapter + plan/execute/cancel/inspect + ThreadLease 接线）；
   本文档不改任何生产代码。
@@ -311,7 +311,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 ## 9 测试设计 TEST-COS-DESIGN-001（冻结容差）
 
 > 可执行测试由 P1-COS-TEST 建立（TEST-P1-COS-001 目标 ID）；本节冻结
-> fixture/oracle/容差，P1-COS-TEST 不得放宽。全离线合成数据，零真实
+> fixture/oracle/容差，P1-COS-TEST 一律按本节取值。全离线合成数据，零真实
 > 数据依赖。负面行必须逐条断言（ALG §1-§4 + DATA-P1-COS invalid 列）。
 
 - **FIX-COS-A 常量场**: data=常量 C、dark/bias=常量 → mad=0、无坏点、
@@ -325,7 +325,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   精确相等（无量纲像素个数）。**适用域（冻结）**：本容差组界定的是
   "同一输入下实现 vs NumPy oracle 的算术自洽性"，**对检测源标度错完全不
   敏感**——源帧整体缩放时实现与"按同错标度写的 oracle"仍逐位一致，而掩码
-  会整体改变。⇒ 本容差组**不得**作为"标度正确"或"检测有效"的证据；
+  会整体改变。⇒ 本容差组**的证据面 = 算术自洽性**；"标度正确"与"检测有效"的判据另设，
   后者由 §1 标度前置与 §9 非退化伴随断言承担。
 - **FIX-COS-C 连通域结构**: 注入 L 形 5 像素、2 像素对、孤立单点
   （max_size=4 → 5 像素域被剔除保留原值，2 像素域保留修复）；
@@ -333,7 +333,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   容差: 掩码精确相等；8 连通语义独立 oracle。
 - **FIX-COS-D NaN/Inf 注入**: data 或检测源帧注入 NaN/Inf →
   **必须按 DISP-COS-002 断言现状行为**（NaN 不判坏；NaN 源帧使检测
-  全 false）；不得断言"未定义"。
+  全 false）；断言口径 = 上列现状行为（"未定义"不在断言面内）。
   容差: 行为断言（bitwise/布尔），非数值容差。
 - **FIX-COS-E IDW 方向性**: 竖直 3 像素坏点列 → 修复值 = 上下好像素
   等权均值（dist=1,1; 左右 dist=2,2 → 权重 0.5,0.5）——解析解逐位
@@ -370,7 +370,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   **显式失败**（`ACS_ERR_PARAM`，fail-closed）；
   ③ 调度器路径：`module_adapters.cpp:2328-2329` 对词表外取值**静默回落 median**
   （fail-open）。⇒ **词表外取值在生产两条路径上都不走 IDW 分支**；①的
-  "非 0 即 IDW"是模块内事实，**不得**当作生产行为描述。③与②互斥，登记
+  "非 0 即 IDW"是模块内事实，**生产行为的描述一律以 ②③ 为准**。③与②互斥，登记
   DISP-COS-012。
 - **串并行/资源**: 1/2/4 线程 bitwise 一致；heavy run CPU/RSS 监控、
   内存上限断言（O(n) 常数界）；无嵌套并行。
@@ -418,7 +418,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - **宇宙线剔除（单帧）**：van Dokkum 2001, PASP **113, 1420**（LA Cosmic，DOI 10.1086/323894，卷页已核）；Pych 2004, **PASP 116, 148–153**,"A Fast Algorithm for Cosmic-Ray Removal from Single Images"（DOI **10.1086/381786**，卷页与 DOI 经 Crossref + OpenAlex 双源核验）。
-  **适用域（两层核验结论）**：这两篇解决的是**单帧宇宙线剔除**（拉普拉斯边缘检测 / 直方图分析），与坏点检测**不是同一问题**：数据源不同（单帧亮场 vs 母版 dark/bias）、统计量不同（边缘响应 / 直方图 vs 全局 median + k·MAD）、目标不同（瞬态事件 vs 固定坏点）。⇒ 二者**不得**被引作本模块坏点检测算法选型的依据，仅作"同类图像缺陷处理"的领域背景。
+  **适用域（两层核验结论）**：这两篇解决的是**单帧宇宙线剔除**（拉普拉斯边缘检测 / 直方图分析），与坏点检测**不是同一问题**：数据源不同（单帧亮场 vs 母版 dark/bias）、统计量不同（边缘响应 / 直方图 vs 全局 median + k·MAD）、目标不同（瞬态事件 vs 固定坏点）。⇒ 二者**只作"同类图像缺陷处理"的领域背景**；本模块坏点检测的选型依据 = Project-defined（见下条）。
 - **坏点（hot/cold pixel）检测与修复**：本模块为 Project-defined 实现（§1–§5 即其完整规范），算法要素的通用依据见下条"稳健尺度"与"连通域"；**无**外部算法被引为该检测器的选型来源。
 - 稳健尺度（median/MAD 换算）：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
   **`1.4826·MAD` 的归属**：Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）把 `1.4826·MAD` 当**既有对照基线**引用，其研究对象是 `S_n`/`Q_n` 及其有限样本偏差校正的粗糙近似 ⇒ **该文不是本模块 MAD 有限样本校正的来源**；本模块使用**渐近常数**、不做有限样本校正。若要做，来源为 Akinshin 2022（arXiv:2207.12005 / arXiv:2209.12268）或 Park, Kim & Wang 2020（DOI 10.1080/03610918.2019.1699114）。

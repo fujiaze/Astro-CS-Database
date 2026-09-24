@@ -55,7 +55,7 @@ flowchart TD
     W2 --> C2
 ```
 
-| 层 | 名称 | 唯一责任 | 落点 | 禁止 |
+| 层 | 名称 | 唯一责任 | 落点 | 行为边界 |
 |---|---|---|---|---|
 | L0 | 事件产生 | 产生事件 + 返回稳定错误码 | 各模块/节点 | 直接开文件写日志；吞错；自行决定退出码 |
 | L1 | 汇聚 | seq 分配、级别过滤、脱敏、双通道同源、单行上限 | `lib/infrastructure/observability/logging/` | 另立第二套行格式 |
@@ -76,7 +76,7 @@ L3 不改写事件内容（L1 独占格式）。
 | `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5 |
 | `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6 |
 
-- `run_log` 与 `error_report` **不得互相冒充**：`run_log` 是运行过程的完整记录（含成功路径），
+- `run_log` 与 `error_report` **各自具名**：`run_log` 是运行过程的完整记录（含成功路径），
   `error_report` 是失败结论（一次运行至多一条终止性结论）；
 - `degradation_record` 只在"降级已发生且不改变科学语义"时出现；改变科学语义的降级不是降级，
   是**故障**，必须 fail-closed 上行。
@@ -94,13 +94,13 @@ L3 不改写事件内容（L1 独占格式）。
 | 机器日志文件 | `<log_dir>/run_<run_id>.jsonl` | 每行 = 一个 `log_event`（UTF-8，LF，单行 ≤ 4096 字节） |
 | 人可读摘要 | `<log_dir>/run_<run_id>.log` | 与 JSONL 同源生成的摘要行 |
 | 多数据块 | 每块自己的 `<block output_dir>/logs` | 块 = 一次运行 = 一份独立 run manifest 与独立日志 |
-| 失败/取消路径 | 同样落 `<log_dir>` | 失败与取消的日志是**最有价值**的证据，不得丢弃 |
+| 失败/取消路径 | 同样落 `<log_dir>` | 失败与取消的日志是**最有价值**的证据，一律保留 |
 
-**禁止落点**（判据红）：进程 CWD 相对路径、源码树内目录（如 `lib/**/logs/`）、
+**落点范围**：`<log_dir>` 及其子目录；判据红 = 进程 CWD 相对路径、源码树内目录（如 `lib/**/logs/`）、
 `run/` 下的运行日志、安装目录、用户家目录。
 
 `run/` 的定位不变：**只放临时产物与日志**（最高设计 §10）——但那是**开发/CI 过程日志**
-（`run/<task>/logs/`），不是**程序运行日志**；两者不得互替。
+（`run/<task>/logs/`），不是**程序运行日志**；两者各占一个目录。
 
 ---
 
@@ -126,7 +126,7 @@ flowchart LR
 | 5 收尾 | run 终止点（成功/失败/取消） | fsync 失败 ⇒ exit 7；磁盘满 ⇒ exit 10 |
 | 6 发布 | 收尾之后 | 哈希失败 ⇒ exit 8（INTEGRITY）；manifest 登记失败 ⇒ exit 7 |
 
-**日志写失败不得静默**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
+**日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
 "日志写不进去就继续跑完"不是可接受行为。
 
 ---
@@ -135,7 +135,7 @@ flowchart LR
 
 - `run_log` 是 run 产物的一部分，登记在 run manifest 的 `log_artifacts[]`（字段表见合同 §4）；
 - **manifest 不写进日志**（避免自引用循环）：manifest 是日志的登记面，日志不是 manifest 的载体；
-- 日志行内的 `commit` 来自真实构建/运行现场（既有 schema 强制 40 位 SHA，禁止 config 冒充），
+- 日志行内的 `commit` 来自真实构建/运行现场（既有 schema 强制 40 位 SHA，取值只来自现场），
   因此日志可作为 provenance 的独立佐证；
 - 溯源链：`run manifest → log_artifacts[] → 日志文件 sha256 → 行内容`；任一环断裂 ⇒ exit 8。
 
@@ -166,11 +166,11 @@ flowchart LR
 
 | 旋钮 | 登记点（权威） | 默认 | 值域/约束 |
 |---|---|---|---|
-| `log_dir` | `docs/plugins/infrastructure/21_observability.md` §5（plugin_doc / runtime_policy） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；禁止 CWD 相对路径 |
+| `log_dir` | `docs/plugins/infrastructure/21_observability.md` §5（plugin_doc / runtime_policy） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
 | `log_level` | 同上 | `info` | `debug\|info\|warn\|error` |
 | `log_keep` | 同上 | `all` | `all`（保留全部运行日志）或正整数（保留最近 N 次运行） |
 
-- 缺省即默认值，且**缺省不得改变落点**：不设任何旋钮时落点恒为 `<output_dir>/logs`；
+- 缺省即默认值，且**落点与旋钮设置无关**：不设任何旋钮时落点恒为 `<output_dir>/logs`；
 - `log_dir` 显式给出时，其解析结果必须落在本次运行的 `output_dir` 可写域内（跨块写同一目录 = 配置错 ⇒ exit 2）；
 - 旋钮的**取值通道**（CLI 旗标 / 环境变量）由实现任务接线；通道一旦落地，其登记点随之迁移到对应文档面
   （CLI 旗标 → `18_cli.md` 的 `cli_surface` 行），并由 `CFG002-01` 强制唯一登记点。
@@ -192,7 +192,7 @@ flowchart LR
 
 ## 10. 失败作用域：帧级失败与全局失败
 
-多帧节点（一次调用处理 N 帧输入）必须把失败按**作用域**分开上报，两种作用域不得互相冒充：
+多帧节点（一次调用处理 N 帧输入）必须把失败按**作用域**分开上报，两种作用域各自具名：
 
 | 作用域 | 触发条件 | 上报形态 | 运行结果 |
 |---|---|---|---|
@@ -200,8 +200,8 @@ flowchart LR
 | **全局失败** | 失败与具体帧无关：换任何一帧都不会好（星表/响应曲线等程序级输入不可读、配置缺项、冻结 C 入口返回非零） | 节点直接返回 `Error`（域 = `CONFIG`/`IO`）上行到 CLI，收敛为退出码（合同 §4） | **中止运行**：不再处理后续帧，也不把整批帧逐帧判 fail |
 
 **帧级失败不是降级**：降级 = 上游能力缺失时改走替代路径并**继续运行**且**科学语义不变**（合同 §6 D1–D3）。
-帧级失败改变的是「这一帧有没有合格的科学结果」，因此不写 `degraded_reason`，也不得用「警告后继续」掩盖（L3 禁止项）。
+帧级失败改变的是「这一帧有没有合格的科学结果」，因此不写 `degraded_reason`，并以帧级失败状态上报（L3 行为边界项）。
 反之，**通道整体缺席**（例如测光标定通道未配置、产品以未归一化的中性标度继续）是降级：写 `degraded_reason` 并在元数据如实登记标度。
 
 **逐帧判决表是唯一真相**：组级摘要（如 `photometry_applied`）只表示「至少一帧成立」，下游节点必须按逐帧表选择输入面，
-不得用组级摘要替代；下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，不得静默丢弃。
+下游节点按逐帧表选择输入面；下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，记录完整。
