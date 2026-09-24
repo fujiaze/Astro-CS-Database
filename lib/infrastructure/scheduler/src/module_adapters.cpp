@@ -6164,6 +6164,71 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
+// ── SCI-NOISE-001 §5d「可观测量必须写入 provenance」的**产品面**实现 ─────────
+// 缺陷（AUDIT-PERSIST-01 实测）：这些字段原先只汇入 `var_diag` → `f_var_diag[fi]`
+//   → `(*man)`（**内存里的节点 manifest**），而该 manifest 在这条路径上从不落盘：
+//   阶段一 CLI 只用它做两件事 —— 收集 `man["artifacts"]` 与抽取
+//   algorithm_id/module_build_id/provider/bunit/coordinate_frame/input_manifest_hash
+//   （见 `build_run_provenance`，lib/infrastructure/cli/commands.cpp:242-296），
+//   其余键全部丢弃。⇒ 产品里搜不到任何一个 §5d 可观测量。
+// 修法（落点 = 既有逐帧产品，不引入新文件/新清理负担）:
+//   ① 生产者 p1_op_drizzle 把审计块写进**自己本来就要写的** `<frame>/p1_stack.json`；
+//   ② 消费/校验者 p1_op_writer 从磁盘读回并写进**帧级产品摘要** `<frame>/p1_final.json`；
+//   ③ 生产者在落盘前自检「挂了 variance 块 ⇒ §5d 清单必须齐全」，缺一即 fail-closed。
+// 判据清单的唯一权威 = astrocs::noise::variance_audit_required_fields()
+//   （lib/algorithms/noise_snr/include/astrocs/noise/variance_plane_policy.h）。
+//
+// §5d 清单里缺哪些字段（键不存在，或取值不是有限数）。返回顺序 = 清单顺序，
+// 便于机检输出稳定；空 vector = 可审计。
+std::vector<std::string> p1_variance_audit_missing_fields(const Json& audit) {
+  std::vector<std::string> miss;
+  const char* const* fields = astrocs::noise::variance_audit_required_fields();
+  const std::size_t n = astrocs::noise::variance_audit_required_field_count();
+  for (std::size_t i = 0; i < n; ++i) {
+    const char* k = fields[i];
+    if (!audit.contains(k)) { miss.emplace_back(k); continue; }
+    const Json& v = audit[k];
+    // 整数字段（被剔除 patch 数）按有限整数判；其余按有限浮点判。两者都拒绝
+    // null / 字符串 / NaN / ±inf —— §5d 要的是**可观测量**，不是占位符。
+    bool ok = false;
+    if (v.is_number_integer() || v.is_number_unsigned()) ok = true;
+    else if (v.is_number_float()) ok = std::isfinite(v.get<double>());
+    if (!ok) miss.emplace_back(k);
+  }
+  return miss;
+}
+
+// §5d 审计块 = 逐帧 provenance 里「可审计」的唯一载体。
+//   var_diag          生产者给出的逐帧诊断（已含 §5d 全部键，见下方 var_diag 构造）
+//   status/reason     本帧方差面的发布状态（与 variance_product_frames 同串）
+//   degenerate        模型退化标（rc==1 或 model.degenerate）
+//   auditable         variance_plane_auditable() 的结论（拟合是否可信）
+//   plane_used        本帧**实际发布**的是哪张面（空间平面 / 全局常量场回退 / 未发布）
+// 说明：把 var_diag 的键**平铺**进块内（而非再嵌一层），使同一批键在
+//   p1_stack.json / p1_final.json / variance_product_frames / 节点 manifest 四处
+//   逐字同名，消费方不必记两套路径。
+Json p1_variance_audit_block(const Json& var_diag, const std::string& status,
+                             const std::string& reason, bool degenerate,
+                             bool auditable, const std::string& plane_used) {
+  Json block = var_diag.is_object() ? var_diag : Json::object();
+  block["schema"] = "DATA-P1-VARIANCE-AUDIT";
+  block["clause"] = "SCI-NOISE-001 §5d:270-271 (docs/science/NOISE_MODEL.md)";
+  block["status"] = status;
+  block["reason"] = reason;
+  block["degenerate"] = degenerate;
+  block["auditable"] = auditable;
+  block["plane_used"] = plane_used;
+  // 自描述清单：消费方（含产品级检查器）据此判「字段是否齐全」，不必自带一份
+  // 可能漂移的键表；检查器仍会与 §5d 条款清单交叉核对（防生产者自缩清单）。
+  Json req = Json::array();
+  const char* const* fields = astrocs::noise::variance_audit_required_fields();
+  const std::size_t n = astrocs::noise::variance_audit_required_field_count();
+  for (std::size_t i = 0; i < n; ++i) req.push_back(fields[i]);
+  block["required_fields"] = req;
+  block["missing_fields"] = p1_variance_audit_missing_fields(block);
+  return block;
+}
+
 // ── op: drizzle_stack（唯一真实入口 hp_drizzle_run_phase1_hips; nside 科学参数无缺省）──
 //    2026-09-20 订正 [V5 分片 5 / R-2 同源]: 旧文 hp_drizzle_run 已作废, 实调用 :4745
 Result<void> p1_op_drizzle(const Json& doc, Json* man) {
@@ -6629,6 +6694,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     //   ③ rc=3/-9（A 拒绝输入 / ABI 失配）⇒ DATA fail-closed（不静默出权重面）。
     // 降级声明 = 节点 manifest 键 + stderr; 产品面事实由 writer 节点 p1_final.json
     //   的 uncertainty_available / n_variance_tiles 从**磁盘事实**给出（禁硬编码）。
+    // §5d 审计结论（在**帧作用域**内声明：方差段结束后 p1_stack.json 还要用它落盘）:
+    //   var_plane_auditable = variance_plane_auditable() 的结论（拟合是否可信）
+    //   var_plane_used      = 本帧**实际发布**的是哪张面（未发布 = "none"）
+    //   var_audit           = §5d 审计块（逐帧产品面的唯一载体）
+    bool var_plane_auditable = false;
+    std::string var_plane_used = "none";
+    Json var_audit = Json::object();
     {
       f_var_ran[fi] = true;   // 本帧 var 段已进入（归约据此复现 diag 键的写入时机）
       // 上游 p1_sources.json（DATA-P1-SOURCES）: 逐星掩膜输入的唯一来源。
@@ -6720,7 +6792,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         // **缺任一项即视为该帧的方差面不可审计**。
         // 数据来源 = ABI v2 的 NoiseWeightModelV1 尾部字段（生产模型自身的输出，
         // 不是调用侧重算；ABI 版本 SNR_NOISE_MODEL_ABI_VERSION=2）。逐项写入本帧
-        // var_diag ⇒ 同时落节点 manifest（:6976）与 variance_product_frames 条目。
+        // var_diag ⇒ **落盘产品**（p1_stack.json#variance_audit，见 :6985/:7099 与
+        // p1_variance_audit_block 头注）与 variance_product_frames 条目。
+        // 注：节点 manifest（(*man)）**不是**落盘面 —— CLI 只从它抽 6 个键
+        // （commands.cpp:242-296），所以「写进 (*man)」曾经等于「写进内存后丢弃」。
         var_diag = Json{{"sigma_bg_global", nmc.model.sigma_bg_global},
                         {"variance_bg_global", nmc.model.variance_bg_global},
                         {"n_control_points", nmc.model.n_control_points},
@@ -6767,9 +6842,17 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             hull_nonpositive_frac_eff = 1.0;
             var_diag["variance_plane_fault_injected"] = true;
             var_diag["hull_nonpositive_frac"] = hull_nonpositive_frac_eff;
+          } else if (vpf && std::string(vpf) == "drop_audit_observables") {
+            // AUDIT-PERSIST-01 §5d 落盘自检的**可执行负例**（ENGINEERING_SPEC §8）:
+            // 把 §5d 可观测量从本帧 provenance 里删掉，使「字段不在产品里 ⇒ 判红」
+            // 这条自检可被判红。生产默认不可达（环境变量未设时零影响）。
+            const char* const* kf = astrocs::noise::variance_audit_required_fields();
+            const std::size_t kn = astrocs::noise::variance_audit_required_field_count();
+            for (std::size_t ki = 0; ki < kn; ++ki) var_diag.erase(kf[ki]);
+            var_diag["variance_audit_dropped_injected"] = true;
           }
         }
-        const bool var_plane_auditable =
+        var_plane_auditable =
             astrocs::noise::variance_plane_auditable(hull_nonpositive_frac_eff);
         if (var_degenerate) {
           var_status = "skipped_degenerate_empty_support";
@@ -6841,6 +6924,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
               plane_ok = true;
               plane_invalid_fallback = true;
               var_status = "attached_global_field_plane_invalid";
+              // 本帧发布的**不是**拟合出来的空间平面，而是 §4/§5 的全局常量场。
+              // 审计块里的 §5d 可观测量描述的是被拒的那张**空间平面**（它们是它的
+              // 拟合事实）；plane_used 使这一点在产品里显式可见，消费方不会把
+              // 「全局常量场」误读成「按 §5d 平面发布」。
+              var_plane_used = "global_constant_field_fallback";
               var_reason = "spatial plane is not a valid variance field (fill failed or"
                            " holds a non-positive value); fell back to the SCI-NOISE"
                            " §4/§5 global constant field (variance_bg_global) —"
@@ -6873,6 +6961,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             if (!plane_invalid_fallback) {   // 降级声明不得被默认状态覆盖
               var_status = "attached";
               var_reason = "ok";
+              var_plane_used = "fitted_spatial_plane";
             }
             // §4a 三态表的产品面事实: 有多少像素是「有覆盖但方差不可用」(0∧0)。
             // 与「平面是否被采用」正交, 故两条路径都要登记。
@@ -6888,9 +6977,23 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                      " signal/support 产品面不受影响（显式降级, 非静默）\n",
                      var_status.c_str(), var_reason.c_str(), frame_path.c_str());
       }
+      // ── SCI-NOISE-001 §5d: 审计块构造 + **落盘自检**（fail-closed）──────────
+      // 规范：§5d:270-271「可观测量（必须写入 provenance）… **缺任一项即视为该帧的
+      // 方差面不可审计**」。本帧一旦挂了 variance 块（status 以 "attached" 开头），
+      // 它的 §5d 可观测量就必须齐全 —— 否则这张已发布的方差面**不可审计**，
+      // 按 §8 的同一口径 fail-closed（登记 + 出声 + 不出片），不得静默落盘。
+      // 对**未发布**方差面的帧（skipped_*）本块照样构造：它把「没有方差面」这个
+      // 事实连同原因写进产品，消费方不必从「键不存在」猜状态。
+      // 可执行负例：ASTROCS_VARPLANE_FAULT=drop_audit_observables（见上方注入面）。
+      var_audit = p1_variance_audit_block(var_diag, var_status, var_reason,
+                                          var_degenerate, var_plane_auditable,
+                                          var_plane_used);
       // 逐帧审计（§30.1「diagnostics 标红计数」面）。PERF-P1: 条目与块形状暂存到
       // 本帧槽；累积（variance_product_frames / status / 块词表键）在 join 之后按
       // 帧序执行，复现串行的"读-改-写"时序。
+      // 注：本条目必须在**自检之前**落槽 —— 自检失败时归约段仍会读
+      // f_var_entry[fi]（默认构造的 Json 是 null，读它会抛 type_error 并把
+      // fail-closed 的原因覆盖成 JSON 异常）。
       Json var_entry = Json{{"frame_id", p1_frame_key(lp)},
                             {"status", var_status},
                             {"reason", var_reason},
@@ -6898,8 +7001,30 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                             {"model", "snr_noise_model_v1"}};
       for (auto it = var_diag.begin(); it != var_diag.end(); ++it)
         var_entry[it.key()] = it.value();
+      // 逐帧条目与产品面（p1_stack.json / p1_final.json）同判据同键名：条目自带
+      // 「可审计」结论与缺失清单，使节点 manifest 的逐帧列表与产品可逐项对照。
+      var_entry["auditable"] = var_audit["auditable"];
+      var_entry["plane_used"] = var_audit["plane_used"];
+      var_entry["missing_fields"] = var_audit["missing_fields"];
       f_var_entry[fi] = std::move(var_entry);
       f_var_block[fi] = Json{{"shape", Json::array({im.h(), im.w()})}};
+      // §5d 落盘自检（fail-closed）：挂了 variance 块却给不出可观测量 ⇒ 不出片。
+      if (var_status.rfind("attached", 0) == 0) {
+        const Json& miss = var_audit["missing_fields"];
+        if (!miss.empty()) {
+          std::fprintf(stderr,
+                       "[drizzle_node][variance][FAIL] §5d 可观测量缺失, 该帧方差面"
+                       "不可审计: %s (frame %s)\n",
+                       miss.dump().c_str(), frame_path.c_str());
+          f_stage[fi] = 3;
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+              "SCI-NOISE-001 §5d provenance incomplete for a published variance"
+              " plane (frame " + frame_path + "): missing_fields=" + miss.dump() +
+              " -- 缺任一项即视为该帧的方差面不可审计, 按 §8 fail-closed"
+              " (不得静默出片)"));
+          return;
+        }
+      }
     }
     // ── P17-NSIDE: 该帧最终 nside 决策 + 采样率 provenance/告警 ───────────
     // 自动: 必须成功, 否则 DATA fail-closed。显式: 原样使用, 但 best-effort
@@ -6970,6 +7095,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // 产物与节点 manifest 都带, 使 1x-2x 合规性与任何显式降级完全可机检。
     const int auto_nside_value = (auto_rc == 0) ? auto_res.nside : 0;
     Json stack_out = Json{{"schema", "DATA-P1-STACK"},
+                          // §5d 审计块（逐帧产品面）。落点理由：本文件是本节点
+                          // **自己就要写**的逐帧产物 ⇒ 与既有产品同生命周期、
+                          // 不引入新文件；下游 p1_op_writer 再把它带进帧级摘要
+                          // p1_final.json（消费方不必知道 p1_stack.json 的内部结构）。
+                          {"variance_audit", var_audit},
                           {"nside", res.nside}, {"nested", res.nested},
                           {"pixfrac", res.pixfrac}, {"precision_mode", precision_mode},
                           {"sip_present", sip.present},
@@ -7210,17 +7340,57 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           "upstream HiPS product missing: " + props +
           " (writer validates drizzle direct HiPS output per frame; frame " + lp + ")"));
     }
-    // 上游 provenance: 该帧 p1_stack.json (drizzle 节点落盘, 携带 nside 决策依据)
+    // 上游 provenance: 该帧 p1_stack.json (drizzle 节点落盘, 携带 nside 决策依据
+    // 与 §5d 方差面审计块)。
     const std::string stack_json = fdir + "/p1_stack.json";
     int nside = 0;
+    // ── SCI-NOISE-001 §5d: 把**上游落盘**的审计块读回来（AUDIT-PERSIST-01）──────
+    // 为什么读磁盘而不是靠节点间内存传递：三阶段/多节点之间只经「磁盘产品 +
+    // manifest + 哈希」交换（ASTROCS_DESIGN §1），节点 manifest 在本链上不落盘
+    // （见 p1_variance_audit_block 头注）。p1_stack.json 是 drizzle 节点自己写的
+    // 逐帧产物，读它与读 nside 走的是同一次 open，零额外 I/O。
+    Json var_audit_up = Json::object();
+    bool var_audit_present = false;
+    std::string var_audit_missing_note;
     {
       std::string stext;
       Json sj;
       try {
         if (aio_fs::read_all(stack_json, &stext)) sj = Json::parse(stext);
       } catch (...) { sj = Json::object(); }
-      if (sj.is_object()) nside = sj.value("nside", 0);
+      if (sj.is_object()) {
+        nside = sj.value("nside", 0);
+        if (sj.contains("variance_audit") && sj["variance_audit"].is_object()) {
+          var_audit_up = sj["variance_audit"];
+          var_audit_present = true;
+        }
+      }
     }
+    // 可审计 = 块在位 ∧ §5d 清单齐全（逐字段判，不由生产者自报的布尔值代替）。
+    // 缺字段时**点名**缺了哪些，使「字段不在产品里」这件事在 p1_final.json 里
+    // 直接可读（机器可判红），而不是只在 stderr 里出现。
+    // 「产品里缺哪些 §5d 字段」= 逐字段查产品（块整个不在 ⇒ §5d 清单**全缺**，
+    // 不是「无字段可缺」）。这样同一句话在两种缺法下都成立且可机检。
+    std::vector<std::string> var_audit_missing =
+        p1_variance_audit_missing_fields(var_audit_present ? var_audit_up
+                                                           : Json::object());
+    if (!var_audit_present) {
+      var_audit_missing_note =
+          "p1_stack.json carries no variance_audit block (no Phase-1 drizzle"
+          " provenance on disk for this frame)";
+    } else if (!var_audit_missing.empty()) {
+      var_audit_missing_note = "variance_audit block present but incomplete";
+    }
+    const bool var_audit_available =
+        var_audit_present && var_audit_missing.empty();
+    // 本帧的**上游 provenance 是否声称发布过方差面**（status 以 "attached" 开头）。
+    // 判红只针对「声称发布了、却给不出可观测量」这一种；「本次没发布方差面」而磁盘上
+    // 残留了上一轮的 variance tile（同 output_dir 重跑）是另一回事，如实登记即可，
+    // 不在这里硬判红（否则会把「重跑进同一目录」误报成 provenance 缺陷）。
+    const std::string var_audit_status =
+        var_audit_present ? var_audit_up.value("status", std::string()) : std::string();
+    const bool var_audit_claims_attached =
+        var_audit_status.rfind("attached", 0) == 0;
     // 叶片 Norder = log2(nside) - 9 (标准 512 叶 tile)。只统计叶片 tile, 排除
     // finalize 额外写出的上层 hierarchy NorderK (K < 叶片 order) 汇总 tile。
     int leaf_order = 0;
@@ -7376,6 +7546,42 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     const bool variance_products_present = (n_variance_tiles > 0 && n_ivar_tiles > 0);
     const bool has_uncertainty =
         variance_products_present && variance_census_available && (var_usable_px > 0);
+    // ── SCI-NOISE-001 §5d: 「字段不在产品里就判红」（AUDIT-PERSIST-01）──────────
+    // 规范：§5d:270-271「可观测量（必须写入 provenance）… **缺任一项即视为该帧的
+    // 方差面不可审计**」+ §8「必须按 §8 登记并 fail-closed，不得静默出片」。
+    // 本帧一旦发布了 variance/ivar 子产品，它的 §5d 可观测量就必须在**落盘产品**
+    // 里齐全；缺失 ⇒ 该帧方差面不可审计 ⇒ 按与 var_corrupt_px>0 同一口径判红
+    // （DATA 类 fail-closed，节点失败、p1_final.json 不落盘、已写出的 tile 不回滚）。
+    // 可执行负例：删掉某帧 p1_stack.json 的 variance_audit 块后重跑 writer
+    // （见 eng/tests/unit/p1001_real_nodes_test.cpp 的 AUDIT-PERSIST 段）。
+    const bool var_audit_violation =
+        variance_products_present &&
+        (!var_audit_present || (var_audit_claims_attached && !var_audit_missing.empty()));
+    if (variance_products_present && !var_audit_present) {
+      // 回归形态：产品里有 variance tile，却**完全没有**上游审计块（drizzle 节点
+      // 必然写它）⇒ 这张方差面没有 provenance 支撑 ⇒ §5d 不可审计 ⇒ 判红。
+    } else if (variance_products_present && !var_audit_claims_attached) {
+      // 上游如实声明「本次没发布方差面」，而磁盘上有 variance tile（同 output_dir
+      // 重跑的残留）：登记，不硬判红（与 provenance 缺陷是两回事）。
+      std::fprintf(stderr,
+                   "[writer][variance][WARN] %s: 上游 provenance 声明本帧未发布方差面"
+                   "(status=%s)，但磁盘上存在 variance tile -- 已登记"
+                   " variance_audit_available=false（可能为同 output_dir 重跑残留）\n",
+                   lp.c_str(), var_audit_status.c_str());
+    }
+    if (var_audit_violation) {
+      (*man)["error_kind"] = "output";
+      (*man)["variance_audit_missing_fields"] = var_audit_missing;
+      (*man)["variance_audit_present"] = var_audit_present;
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "phase1 variance plane published but NOT auditable (frame " + lp +
+          "): " + (var_audit_missing_note.empty()
+                       ? std::string("variance_audit incomplete")
+                       : var_audit_missing_note) +
+          "; missing_fields=" + Json(var_audit_missing).dump() +
+          " (SCI-NOISE-001 §5d:270-271 缺任一项即视为该帧的方差面不可审计;"
+          " §8: 登记并 fail-closed, 不得静默出片)"));
+    }
     // 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
     // 面亮度 signal_sb = ADU/sr; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
     // ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
@@ -7414,6 +7620,18 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                           {"variance_census_available", variance_census_available},
                           {"variance_census_source",
                            "on_disk_variance_leaf_tiles(aio_hips_reader)"},
+                          // ── SCI-NOISE-001 §5d 审计块（逐帧产品面）──────────────
+                          // 落点理由：p1_final.json 是**帧级产品摘要**（DATA-P1-HIPS），
+                          // 与 p1_stack.json 同目录同生命周期（不引入新文件、新清理负担），
+                          // 且消费方读「这一帧的方差面可不可审计」只需读这一个文件。
+                          // 内容 = 上游 p1_stack.json 的 variance_audit **逐字读回**，
+                          // 另加「在产品里是否齐全」的判定（missing_fields/audit_available），
+                          // 使 §5d 的「缺任一项即不可审计」在产品里自证。
+                          {"variance_audit", var_audit_up},
+                          {"variance_audit_present", var_audit_present},
+                          {"variance_audit_available", var_audit_available},
+                          {"variance_audit_missing_fields", var_audit_missing},
+                          {"variance_audit_source", "p1_stack.json#variance_audit"},
                           {"products", products},
                           {"filter_passband", filter_passband},
                           {"covered_area_model", "support_ratio_x_A_cell"},
@@ -7455,7 +7673,13 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                                   {"variance_unavailable_pixels", var_unavailable_px},
                                   {"variance_uncovered_pixels", var_uncovered_px},
                                   {"variance_corrupt_pixels", var_corrupt_px},
-                                  {"variance_census_available", variance_census_available}});
+                                  {"variance_census_available", variance_census_available},
+                                  // §5d: 同一判据同值写入聚合清单，使 p1_products.json
+                                  // 的逐帧表与逐帧 p1_final.json 可逐项对照。
+                                  {"variance_audit_present", var_audit_present},
+                                  {"variance_audit_available", var_audit_available},
+                                  {"variance_audit_missing_fields",
+                                   var_audit_missing}});
     if (!have_first) {
       have_first = true;
       (*man)["n_tiles"] = n_tiles_written;
@@ -8263,6 +8487,17 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     upm_objective = 0.0;
     upm_converged = 0;   // 读不到一律按"未证明收敛"
   }
+  // PHASE2_UPM 7a 规则 4/5：可辨识性读数与产品级警告。**必须在 p2_upm_close 之前取**
+  // （close 后句柄失效）。旧的两把绝对尺（天光面 kappa_max=1e8 与 UPM 侧 1e6）已退休：
+  // 同一份数据被两个常数一放一拦，说明门控口径本身没有物理依据。
+  P2UpmIdentifiability upm_idn{};
+  const bool upm_idn_ok = (p2_upm_identifiability(model, &upm_idn) == 0);
+  std::string upm_warn_json;
+  {
+    char wbuf[8192] = {0};
+    if (p2_upm_warnings_json(model, wbuf, sizeof(wbuf)) == 0 && wbuf[0])
+      upm_warn_json.assign(wbuf);
+  }
   const std::string bin_path = out_dir + "/p2_upm_model.bin";
   if (p2_upm_save(model, bin_path.c_str()) != 0) {
     p2_upm_close(model);
@@ -8297,6 +8532,38 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
                        {"gs_damping", uc.gs_damping},
                        {"m_full_frame", uc.m_full_frame},
                        {"final_gauge", uc.final_gauge}};
+  if (upm_idn_ok) {
+    // identifiability 段**逐字取自 p2_upm_save 写的模型文件**（同一份序列化），
+    // 不在此处手工重建键表：手工键表会随算法侧新增字段而漂移，且漂移是静默的
+    // ——产品少一个键，消费方无法区分「本就没有这个量」与「拷贝时漏了」。
+    // 模型文件是 JSON 文本（.bin 是历史约定的后缀），可直接读回。
+    {
+      Json bin_doc = Json::object();
+      const bool bin_ok = p2_read_json(bin_path, &bin_doc);
+      if (bin_ok && bin_doc.contains("identifiability") &&
+          bin_doc["identifiability"].is_object()) {
+        artifact["identifiability"] = bin_doc["identifiability"];
+      } else {
+        // 读不回就如实登记不可得，不静默给一个空段冒充完整。
+        artifact["identifiability"] = Json(nullptr);
+        artifact["identifiability_unavailable_reason"] =
+            "model file unreadable or carries no identifiability section";
+      }
+    }
+  }
+  // 不收敛/判红的**产品级警告**（报警告，不影响运行，不 fail-closed）：机器可检，
+  // 下游与 CI 按 warning_codes 判定；构建 rc 不变。
+  if (!upm_warn_json.empty()) {
+    const Json wj = Json::parse(upm_warn_json, nullptr, false);
+    if (!wj.is_discarded() && wj.is_object())
+      for (auto it = wj.begin(); it != wj.end(); ++it) artifact[it.key()] = it.value();
+  }
+  if (upm_converged != 1) {
+    std::fprintf(stderr,
+                 "[upm] WARNING: IRLS not converged (converged=%d iterations=%d"
+                 " objective=%.6g) -> product written WITH WARNING, rc unchanged\n",
+                 upm_converged, (int)upm_iterations, upm_objective);
+  }
   if (!p2_write_text(out_path, artifact.dump(2))) {
     aio_fs::remove(bin_path);
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
@@ -8497,11 +8764,12 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       spc.frame_gradient_order = sp_cfg.value("frame_gradient_order", 1);
       spc.gauge_mode = sp_cfg.value("gauge_mode", 0);
       spc.weight_mode = sp_cfg.value("weight_mode", 0);
-      spc.roughness_penalty = sp_cfg.value("roughness_penalty", 1e-3);
       if (sp_cfg.contains("huber_delta")) spc.huber_delta = sp_cfg["huber_delta"].get<double>();
       if (sp_cfg.contains("max_iterations")) spc.max_iterations = sp_cfg["max_iterations"].get<int>();
       if (sp_cfg.contains("tolerance")) spc.tolerance = sp_cfg["tolerance"].get<double>();
-      if (sp_cfg.contains("kappa_max")) spc.kappa_max = sp_cfg["kappa_max"].get<double>();
+      // 可辨识性判决只有一个阈值：rank_rtol（相对口径，尺度不变，PHASE2_UPM 7a 规则 4）。
+      // 旧的 kappa_max 绝对常数与 roughness_penalty 已退休：绝对条件数阈值依赖参数标度、
+      // 换单位就变；且生产权重尺度下 roughness_penalty 数值惰性（差 6 个数量级）。
       if (sp_cfg.contains("rank_rtol")) spc.rank_rtol = sp_cfg["rank_rtol"].get<double>();
       if (sp_cfg.contains("min_samples")) spc.min_samples = sp_cfg["min_samples"].get<int>();
       if (sp_cfg.contains("min_samples_per_frame"))
@@ -8535,7 +8803,6 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       // 搜索区间由输入几何给（上界 = 规则 1 的值，下界 = 数据分辨率极限），
       // 逐次尝试的 (h, lambda, rc, action, adopted) 全部入 provenance。
       // 放宽 kappa_max 求绿仍属禁止项（FZ-AP2S-KAPPA-MAX 负例）。
-      const double kappa_penalty0 = spc.roughness_penalty;
       P2SkyPlaneAdaptiveConfig spad = p2_sky_plane_default_adaptive_config();
       P2SkyPlaneAdaptiveReport spread{};
       int src = p2_sky_plane_build_adaptive(sky_samples.data(), sky_samples.size(),
@@ -8543,11 +8810,9 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
                                             sperr, sizeof(sperr));
       // 节点间距自适应是否真的被触发过（7a:199-200：无触发记录的路径视为未实现）。
       (*man)["sky_plane_node_adaptive_used"] = (spread.node_adaptive_used != 0);
-      (*man)["sky_plane_penalty_adaptive_used"] = (spread.penalty_adaptive_used != 0);
       (*man)["sky_plane_adaptive_attempts"] = spread.n_attempts;
       (*man)["sky_plane_node_refinements"] = spread.n_node_refinements;
       (*man)["sky_plane_node_coarsenings"] = spread.n_node_coarsenings;
-      (*man)["sky_plane_penalty_escalations"] = spread.n_penalty_escalations;
       (*man)["sky_plane_representation_limited"] = (spread.representation_limited != 0);
       (*man)["sky_plane_clamped_to_upper"] = (spread.clamped_to_upper != 0);
       (*man)["sky_plane_adaptive_search"] = Json{
@@ -8555,20 +8820,28 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
           {"node_spacing_lower_deg", spread.node_spacing_lower_deg},
           {"constraining_scale_deg", spread.constraining_scale_deg},
           {"residual_improve_ratio", spread.residual_improve_ratio},
-          {"kappa_max_effective", spread.kappa_max_effective},
+          {"rank_rtol", spread.rank_rtol},
           {"node_spacing_deg", spread.node_spacing_deg},
-          {"roughness_penalty", spread.roughness_penalty}};
+          {"lambda_numerical", spread.lambda_numerical},
+          {"kappa_solve", spread.kappa_solve},
+          {"rank", spread.rank},
+          {"n_params", spread.n_params},
+          {"n_unidentified", spread.n_unidentified},
+          {"identifiable", (spread.identifiable != 0)}};
       {
         Json att = Json::array();
         for (int ai = 0; ai < spread.n_attempts && ai < P2_SKY_ADAPT_MAX_ATTEMPTS; ++ai) {
           const P2SkyPlaneAttempt& a = spread.attempts[ai];
           att.push_back(Json{{"node_spacing_deg", a.node_spacing_deg},
-                             {"roughness_penalty", a.roughness_penalty},
+                             {"lambda_numerical", a.lambda_numerical},
                              {"rc", a.rc},
                              {"action", a.action},
                              {"adopted", a.adopted},
                              {"kappa", a.kappa},
-                             {"kappa_data", a.kappa_data},
+                             {"kappa_solve", a.kappa_solve},
+                             {"n_params", a.n_params},
+                             {"n_unidentified", a.n_unidentified},
+                             {"identifiable", (a.identifiable != 0)},
                              {"rank", a.rank},
                              {"rank_solve", a.rank_solve},
                              {"n_nodes", a.n_nodes},
@@ -8577,12 +8850,13 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         }
         (*man)["sky_plane_adaptive_trace"] = att;
       }
-      (*man)["sky_plane_kappa_adaptive_attempts"] = spread.n_penalty_escalations;
-      (*man)["sky_plane_kappa_adaptive_used"] = (spread.n_penalty_escalations > 0);
-      (*man)["sky_plane_roughness_penalty_configured"] = kappa_penalty0;
-      (*man)["sky_plane_roughness_penalty_used"] = spread.roughness_penalty;
-      // 生效门 = H_solve 的谱自身口径（1/rank_rtol），显式覆盖时即配置值（7a:196-198）。
-      (*man)["sky_plane_kappa_max"] = spread.kappa_max_effective;
+      // 唯一的可辨识性判决（PHASE2_UPM 7a 规则 4/5）：判在**未正则化**的列均衡信息矩阵上，
+      // 阈值只有一个 rank_rtol。旧的两把互相矛盾的绝对尺（天光面 1e8 与 UPM 侧 1e6）已退休；
+      // 在 H_solve 上设门是恒真门（正则化后 kappa 有上界），故门不在那里。
+      (*man)["sky_plane_identifiable"] = (spread.identifiable != 0);
+      (*man)["sky_plane_rank_rtol"] = spread.rank_rtol;
+      (*man)["sky_plane_kappa_solve"] = spread.kappa_solve;
+      (*man)["sky_plane_lambda_numerical"] = spread.lambda_numerical;
       if (src != P2_SKY_PLANE_OK) {
         std::fprintf(stderr,
                      "[sky_plane] build FAILED rc=%d %s -> explicit fallback to UPM C field\n",
@@ -8620,6 +8894,15 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
           (*man)["sky_plane_kappa"] = spinfo.kappa;
           // SCI-502 FIX-3：未惩罚数据矩阵条件数（独立诊断量；λ=0 时与 kappa 逐位相等）
           (*man)["sky_plane_kappa_data"] = spinfo.kappa_data;
+          // PHASE2_UPM 7a 规则 4/5：可辨识性读数（唯一判据落在未正则化矩阵上）
+          (*man)["sky_plane_identifiable"] = (spinfo.identifiable != 0);
+          (*man)["sky_plane_rank_rtol_effective"] = spinfo.rank_rtol_effective;
+          (*man)["sky_plane_lambda_numerical"] = spinfo.lambda_numerical;
+          (*man)["sky_plane_lambda_max"] = spinfo.lambda_max;
+          (*man)["sky_plane_lambda_min"] = spinfo.lambda_min;
+          (*man)["sky_plane_n_unidentified"] = spinfo.n_unidentified;
+          (*man)["sky_plane_dof_eff"] = spinfo.dof_eff;
+          (*man)["sky_plane_kappa_solve"] = spinfo.kappa_solve;
           (*man)["sky_plane_rank"] = spinfo.rank;
           (*man)["sky_plane_n_params"] = spinfo.n_params;
           (*man)["sky_plane_iterations"] = spinfo.iterations;
@@ -10802,6 +11085,137 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
   return true;
 }
 
+// ── SCI-UPM §7a（docs/science/PHASE2_UPM.md 的 §7a「可辨识性判决」）阶段二审计 provenance ──
+// 缺陷（AUDIT-PERSIST-01 实测）：阶段二把 §7a 的 (rank, kappa, chi2_red,
+//   node_spacing, converged, iterations, …) 全量写进**内存里的节点 manifest**
+//   （p2_op_upm_fit 的 (*man)["sky_plane_kappa"|"sky_plane_rank"|… 与
+//   (*man)["upm_converged"]，见本文件 :8620-8660 / :8330 区段），而节点 manifest
+//   在 CLI 上只被抽取 algorithm_id / module_build_id / provider / bunit /
+//   coordinate_frame / input_manifest_hash（build_run_provenance，
+//   lib/infrastructure/cli/commands.cpp:242-296）⇒ 其余键全部丢弃，产品里读不到。
+// 规范依据（§7a 逐条）:
+//   :190-192「节点间距必须进入自适应重试回路…**逐次尝试的节点间距与生效值必须写入
+//            provenance**」；
+//   :204「天光面正规方程条件数 κ 必须**可观测**并写入 provenance」；
+//   :217「κ > kappa_max 的处置…并在 provenance 记录所走分支、尝试次数、生效参数与
+//            最终 κ」；
+//   :219 provenance 最小集：gauge_mode、每分量 ref_frame_id、rank、rank_rtol、
+//            kappa、kappa_max、k_corr、model_hash、any_fail_closed_reason。
+// 落点（自定）：阶段二**产品级摘要** p2_final.json（DATA-P2-RES）新增 phase2_audit
+//   块，内容从磁盘产品 **读回**（p2_sky_plane.bin 是求解器自己落盘的 §7a 记录，
+//   JSON 文本；p2_upm_model.json 是 W2 模型面），不做节点间内存传递。
+//
+// 两个求解器的口径必须**分开登记**（§7a:205-216「κ 上限是两个不同求解器的两个不同
+// 口径，必须逐求解器写明」）:
+//   ① 天光面样条求解器 p2_sky_plane_build_adaptive：κ 门 kappa_max 由 rank_rtol
+//      派生（见 kappa_max_source），实测 M42 κ=3.35e8；
+//   ② UPM/GLS 正规矩阵 p2_upm_ma_build：冻结 FZ-AP2S-KAPPA-MAX=1e6 —— 但**生产链
+//      不调用该求解器**（生产入口是 W2 冻结的 p2_upm_build_geo，其 P2ModelInfo 无
+//      rank/kappa 访问器，见 upm.h:60-68 与 upm.h:311-328）。故本块对 ② 的
+//      rank/kappa 作**具名不可得登记**（不是静默缺键），并同时给出冻结门值，
+//      使「是否把 converged=0 与 rank≪n_params 升级为 fail-closed」这条待裁决项
+//      有可机读的数据面（本任务不改该行为）。
+// 必落字段 = §7a 点名的可观测量本身（rank / kappa / chi2_red / node_spacing 与
+// 比较基准 n_params）。**故意不含** kappa_max_effective / rank_rtol / gauge_mode /
+// model_hash 这类「门控口径」字段：它们是 §7a 规则 4 正在收敛的项（κ 门的口径本身
+// 在改），把它们设成必落会把一次正当的口径变更变成产品判红。它们照旧落盘（读到
+// 就写），只是**缺失不判红**——判红只针对「可观测量本身不见了」。
+constexpr const char* kP2SkyAuditRequiredFields[] = {
+    "kappa", "rank", "n_params", "chi2_red", "node_spacing_deg"};
+constexpr const char* kP2UpmAuditRequiredFields[] = {
+    "converged", "iterations", "objective", "model_hash"};
+
+// 缺哪些字段（不存在 / 非有限数 / 空串）。返回顺序 = 清单顺序。
+std::vector<std::string> p2_audit_missing(const Json& j,
+                                          const char* const* fields,
+                                          std::size_t n) {
+  std::vector<std::string> miss;
+  for (std::size_t i = 0; i < n; ++i) {
+    const char* k = fields[i];
+    if (!j.contains(k)) { miss.emplace_back(k); continue; }
+    const Json& v = j[k];
+    bool ok = false;
+    if (v.is_number_integer() || v.is_number_unsigned()) ok = true;
+    else if (v.is_number_float()) ok = std::isfinite(v.get<double>());
+    else if (v.is_string()) ok = !v.get<std::string>().empty();
+    if (!ok) miss.emplace_back(k);
+  }
+  return miss;
+}
+
+// 从落盘的 p2_sky_plane.bin（JSON 文本）抽取 §7a ① 的审计面。
+// 返回 false = 该文件不是可用的天光面产品（不存在/不可解析/format 不符）。
+bool p2_sky_plane_audit_from_product(const Json& sp, Json* out,
+                                     std::vector<std::string>* missing) {
+  if (!sp.is_object()) return false;
+  if (sp.value("format", std::string()) != "astrocs-sky-plane-v1") return false;
+  const Json info = sp.contains("info") && sp["info"].is_object()
+                        ? sp["info"] : Json::object();
+  const Json cfg = sp.contains("cfg") && sp["cfg"].is_object()
+                       ? sp["cfg"] : Json::object();
+  Json a = Json::object();
+  a["solver"] = "p2_sky_plane_build_adaptive";
+  // §7a:219 最小集在**天光面求解器**上的对应量（口径逐项注明）。
+  a["kappa"] = info.contains("kappa") ? info["kappa"] : Json(nullptr);
+  a["kappa_data"] = info.contains("kappa_data") ? info["kappa_data"] : Json(nullptr);
+  a["kappa_max_effective"] =
+      info.contains("kappa_max_effective") ? info["kappa_max_effective"] : Json(nullptr);
+  a["kappa_max_source"] =
+      info.contains("kappa_max_source") ? info["kappa_max_source"] : Json(nullptr);
+  a["rank"] = info.contains("rank") ? info["rank"] : Json(nullptr);
+  a["rank_solve"] = info.contains("rank_solve") ? info["rank_solve"] : Json(nullptr);
+  a["rank_rtol"] = cfg.contains("rank_rtol") ? cfg["rank_rtol"] : Json(nullptr);
+  a["n_params"] = info.contains("n_params") ? info["n_params"] : Json(nullptr);
+  a["n_nodes"] = info.contains("n_nodes") ? info["n_nodes"] : Json(nullptr);
+  a["chi2_red"] = info.contains("chi2_red") ? info["chi2_red"] : Json(nullptr);
+  a["rms_weighted"] = info.contains("rms_weighted") ? info["rms_weighted"] : Json(nullptr);
+  a["iterations"] = info.contains("iterations") ? info["iterations"] : Json(nullptr);
+  a["gauge_mode"] = cfg.contains("gauge_mode") ? cfg["gauge_mode"] : Json(nullptr);
+  a["model_hash"] = info.contains("model_hash") ? info["model_hash"] : Json(nullptr);
+  a["n_samples"] = info.contains("n_samples") ? info["n_samples"] : Json(nullptr);
+  a["n_used"] = info.contains("n_used") ? info["n_used"] : Json(nullptr);
+  a["n_masked"] = info.contains("n_masked") ? info["n_masked"] : Json(nullptr);
+  a["n_rejected"] = info.contains("n_rejected") ? info["n_rejected"] : Json(nullptr);
+  // §7a:190-192：节点间距的**生效值**与导出依据（表示能力的唯一决定量）。
+  a["node_spacing_deg"] = cfg.contains("node_spacing_deg")
+                              ? cfg["node_spacing_deg"]
+                              : (sp.contains("h") ? sp["h"] : Json(nullptr));
+  a["node_spacing_source"] =
+      info.contains("node_spacing_source") ? info["node_spacing_source"] : Json(nullptr);
+  a["node_spacing_upper_deg"] = info.contains("node_spacing_upper_deg")
+                                    ? info["node_spacing_upper_deg"] : Json(nullptr);
+  a["node_spacing_lower_deg"] = info.contains("node_spacing_lower_deg")
+                                    ? info["node_spacing_lower_deg"] : Json(nullptr);
+  // §7a:199-200「每条自适应路径都必须有『触发过』的实测记录」+ :217「记录所走分支、
+  // 尝试次数、生效参数与最终 κ」。
+  if (sp.contains("adaptive") && sp["adaptive"].is_object()) {
+    const Json& ad = sp["adaptive"];
+    a["adaptive"] = Json{
+        {"n_attempts", ad.value("n_attempts", 0)},
+        {"node_adaptive_used", ad.value("node_adaptive_used", 0) != 0},
+        {"penalty_adaptive_used", ad.value("penalty_adaptive_used", 0) != 0},
+        {"n_node_refinements", ad.value("n_node_refinements", 0)},
+        {"n_node_coarsenings", ad.value("n_node_coarsenings", 0)},
+        {"n_penalty_escalations", ad.value("n_penalty_escalations", 0)},
+        {"representation_limited", ad.value("representation_limited", 0) != 0},
+        {"clamped_to_upper", ad.value("clamped_to_upper", 0) != 0},
+        {"constraining_scale_deg", ad.value("constraining_scale_deg", 0.0)},
+        {"residual_improve_ratio", ad.value("residual_improve_ratio", 0.0)},
+        {"roughness_penalty", ad.value("roughness_penalty", 0.0)},
+        {"attempts", ad.contains("attempts") ? ad["attempts"] : Json::array()}};
+  }
+  *missing = p2_audit_missing(a, kP2SkyAuditRequiredFields,
+                              sizeof(kP2SkyAuditRequiredFields) /
+                                  sizeof(kP2SkyAuditRequiredFields[0]));
+  a["required_fields"] = Json::array();
+  for (const char* k : kP2SkyAuditRequiredFields)
+    a["required_fields"].push_back(k);
+  a["missing_fields"] = *missing;
+  a["audit_available"] = missing->empty();
+  *out = std::move(a);
+  return true;
+}
+
 // ── op: write_mosaic（唯一真实入口 aio_hips_product_begin /
 //      aio_hips_write_signal_support_tile / aio_hips_write_variance_tile /
 //      aio_hips_finalize — AIO-002 原子发布原语内建于 aio_hips 落盘路径;
@@ -10879,16 +11293,205 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
 
   // provenance 面（§30.3 键值来源; 键写入 properties 的 AIO 通道缺口见 artifact）
   std::string manifest_hash, model_hash, reject_profile;
+  Json umd_doc = Json::object();
   {
     Json smp_doc;
     if (p2_read_json(out_dir + "/p2_samples.json", &smp_doc))
       manifest_hash = smp_doc.value("input_manifest_hash", "");
-    Json umd_doc;
     if (p2_read_json(out_dir + "/p2_upm_model.json", &umd_doc))
       model_hash = umd_doc.value("model_hash", "");
     Json rej_doc;
     if (p2_read_json(out_dir + "/p2_rejection.json", &rej_doc))
       reject_profile = rej_doc.value("profile", "");
+  }
+
+  // ── SCI-UPM §7a: phase2_audit（**从磁盘产品读回**，AUDIT-PERSIST-01）──────────
+  // 见上方 p2_sky_plane_audit_from_product 头注（落点理由 + 依据条款）。
+  Json phase2_audit = Json::object();
+  {
+    phase2_audit["schema"] = "DATA-P2-AUDIT";
+    phase2_audit["clause"] =
+        "SCI-UPM §7a (docs/science/PHASE2_UPM.md 的 §7a 可辨识性判决)";
+    phase2_audit["sources"] = Json::object();
+    Json solvers = Json::object();
+    std::vector<std::string> all_missing;
+
+    // ① 天光面样条求解器（§7a:205-210 的 κ 口径 ①）
+    Json sp_doc = Json::object();
+    const std::string sp_path = out_dir + "/p2_sky_plane.bin";
+    const bool sp_read = p2_read_json(sp_path, &sp_doc);
+    Json sp_audit = Json::object();
+    std::vector<std::string> sp_missing;
+    const bool sp_present =
+        sp_read && p2_sky_plane_audit_from_product(sp_doc, &sp_audit, &sp_missing);
+    if (sp_present) {
+      sp_audit["artifact"] = sp_path;
+      phase2_audit["sources"]["sky_plane"] = sp_path;
+      for (const auto& m : sp_missing) all_missing.push_back("sky_plane." + m);
+    } else {
+      // 天光面未建（如 additive_mode=c 的默认路径）**不是**缺字段：如实登记
+      // 「本次没有这张面」以及为什么，使消费方不会把「无此产品」读成「字段丢了」。
+      sp_audit["solver"] = "p2_sky_plane_build_adaptive";
+      sp_audit["present"] = false;
+      sp_audit["reason"] =
+          sp_read ? "p2_sky_plane.bin present but not a usable sky-plane product"
+                  : "p2_sky_plane.bin absent (sky plane not built in this run:"
+                    " disabled or upstream build failed => see node manifest"
+                    " sky_plane_status)";
+      sp_audit["audit_available"] = false;
+      sp_audit["missing_fields"] = Json::array();
+    }
+    sp_audit["present"] = sp_present;
+    solvers["sky_plane"] = sp_audit;
+
+    // ② UPM/GLS 正规矩阵（§7a:211-216 的 κ 口径 ②）
+    Json upm_audit = Json::object();
+    upm_audit["solver"] = "p2_upm_build_geo (W2 frozen production path)";
+    upm_audit["present"] = umd_doc.is_object() && !umd_doc.empty();
+    upm_audit["artifact"] = out_dir + "/p2_upm_model.json";
+    upm_audit["converged"] = umd_doc.contains("converged")
+                                 ? umd_doc["converged"] : Json(nullptr);
+    upm_audit["iterations"] = umd_doc.contains("iterations")
+                                  ? umd_doc["iterations"] : Json(nullptr);
+    upm_audit["objective"] = umd_doc.contains("objective")
+                                 ? umd_doc["objective"] : Json(nullptr);
+    upm_audit["model_hash"] = umd_doc.contains("model_hash")
+                                  ? umd_doc["model_hash"] : Json(nullptr);
+    upm_audit["control_count"] = umd_doc.contains("control_count")
+                                     ? umd_doc["control_count"] : Json(nullptr);
+    upm_audit["observation_count"] = umd_doc.contains("observation_count")
+                                         ? umd_doc["observation_count"] : Json(nullptr);
+    upm_audit["component_count"] = umd_doc.contains("component_count")
+                                       ? umd_doc["component_count"] : Json(nullptr);
+    // ── §7a:211-216 的 κ 口径 ②（UPM/GLS 正规矩阵）────────────────────────
+    // 口径统一（UPM-KAPPA-UNIFY-01）之后，生产入口 p2_upm_build_geo **自己算**
+    // 这些量，并落在 p2_upm_model.json 的 identifiability 段（访问器
+    // p2_upm_identifiability，upm.h:426 / upm.cpp:1739）。因此本审计块**从产品
+    // 读回真值**；只有在旧产品（无 identifiability 段）上才落具名不可得。
+    // 两条已退休的绝对常数尺（天光面 kappa_max=1e8、UPM 侧 1e6）**不再登记**：
+    // 留一个描述已退休条款的键，等于把死条款伪装成现行 provenance。
+    // rank_rtol 仍登记，但取**产品里的实际值**（地板 = max(m,n)·eps，可被输入
+    // 覆盖），不是冻结常数 1e-10。
+    Json upm_idn = Json::object();
+    const bool upm_idn_present = umd_doc.contains("identifiability") &&
+                                 umd_doc["identifiability"].is_object();
+    if (upm_idn_present) upm_idn = umd_doc["identifiability"];
+    // §7a:219 最小集里的 rank/rank_rtol/kappa/model_hash 逐项读回（求解器 ② 口径）。
+    upm_audit["rank"] = upm_idn.contains("rank_eff") ? upm_idn["rank_eff"] : Json(nullptr);
+    upm_audit["n_params"] = upm_idn.contains("n_params") ? upm_idn["n_params"] : Json(nullptr);
+    upm_audit["n_unidentified"] = upm_idn.contains("n_unidentified")
+                                      ? upm_idn["n_unidentified"] : Json(nullptr);
+    upm_audit["identifiable"] = upm_idn.contains("identifiable")
+                                    ? upm_idn["identifiable"] : Json(nullptr);
+    upm_audit["chi2"] = upm_idn.contains("chi2") ? upm_idn["chi2"] : Json(nullptr);
+    upm_audit["dof_eff"] = upm_idn.contains("dof_eff") ? upm_idn["dof_eff"] : Json(nullptr);
+    upm_audit["chi2_red"] = upm_idn.contains("chi2_red") ? upm_idn["chi2_red"] : Json(nullptr);
+    upm_audit["rank_rtol"] = upm_idn.contains("rank_rtol")
+                                 ? upm_idn["rank_rtol"] : Json(nullptr);
+    upm_audit["rank_rtol_effective"] = upm_idn.contains("rank_rtol_effective")
+                                           ? upm_idn["rank_rtol_effective"] : Json(nullptr);
+    upm_audit["n_blocks_rank_deficient"] =
+        upm_idn.contains("n_blocks_rank_deficient")
+            ? upm_idn["n_blocks_rank_deficient"] : Json(nullptr);
+    upm_audit["n_unobserved_geometry_nodes"] =
+        upm_idn.contains("n_unobserved_geometry_nodes")
+            ? upm_idn["n_unobserved_geometry_nodes"] : Json(nullptr);
+    // identifiability 段**逐字随行**：手工挑键会随算法侧新增字段而漂移，而漂移是
+    // 静默的（产品少一个键，消费方分不清「本就没有这个量」与「拷贝时漏了」）。
+    // 上面的具名键是给「按名直查」用的稳定子集，整段随行是给「一个都不许漏」用的。
+    if (upm_idn_present) upm_audit["identifiability"] = upm_idn;
+    // κ 在秩亏块上取 +inf ⇒ 产品里如实写 null（JSON 不能表示非有限值）。这不是
+    // 「字段丢了」，而是「量存在但发散」，故**不进 missing_fields**，改记具名状态。
+    upm_audit["kappa"] = upm_idn.contains("kappa") ? upm_idn["kappa"] : Json(nullptr);
+    if (upm_idn_present && upm_audit["kappa"].is_null()) {
+      upm_audit["kappa_infinite"] = true;
+      upm_audit["kappa_note"] =
+          "kappa=+inf on a rank-deficient block; the product records null because"
+          " JSON cannot represent non-finite values (not a missing field)";
+    }
+    // χ²_red 同理但原因不同：dof_eff ≤ 0 时 χ²_red **数学上无定义**（加性模型在
+    // rank(X) = n_obs 时饱和；真实 M42 也是这一情形，277255 观测 / 秩 277255），
+    // 产品写 null + chi2_red_defined=false + chi2_red_note。判据是「键必须在、且
+    // null 必须带具名理由」，**不是**「必须是数字」—— 否则会把一个如实登记的
+    // 「量存在但无定义」判成「字段丢了」，那是把诚实登记当缺陷罚。
+    if (upm_idn_present && !upm_audit["chi2_red"].is_number()) {
+      if (!upm_audit.contains("chi2_red_defined"))
+        upm_audit["chi2_red_defined"] = false;
+      if (!upm_audit.contains("chi2_red_note") ||
+          !upm_audit["chi2_red_note"].is_string())
+        upm_audit["chi2_red_note"] =
+            "chi2_red is undefined because dof_eff <= 0 (rank(X) = n_obs: the"
+            " additive model saturates); registered as null with a named reason"
+            " instead of a fabricated number";
+    }
+    if (!upm_idn_present) {
+      // 旧产品（口径统一之前落盘的 p2_upm_model.json）才走这条：具名不可得，
+      // 禁静默缺键。理由**不再是**「没有访问器」（现在有了），而是「这份产品里
+      // 没有该段」——重跑 mosaic 即可消除。
+      upm_audit["rank_unavailable_reason"] =
+          "p2_upm_model.json carries no identifiability section (product written"
+          " before the kappa/rank unification; re-run mosaic to obtain it). The"
+          " section is produced by p2_upm_identifiability (upm.h:426).";
+      upm_audit["kappa_unavailable_reason"] = upm_audit["rank_unavailable_reason"];
+      upm_audit["unavailable_fields"] = Json::array({"rank", "kappa", "chi2_red",
+                                                     "dof_eff", "n_unidentified",
+                                                     "identifiable", "rank_rtol"});
+    }
+    {
+      std::vector<std::string> upm_missing =
+          p2_audit_missing(upm_audit, kP2UpmAuditRequiredFields,
+                           sizeof(kP2UpmAuditRequiredFields) /
+                               sizeof(kP2UpmAuditRequiredFields[0]));
+      upm_audit["required_fields"] = Json::array();
+      for (const char* k : kP2UpmAuditRequiredFields)
+        upm_audit["required_fields"].push_back(k);
+      // 产品带 identifiability 段 ⇒ §7a 规则 4/5 点名的量**必须**读到（真值而非
+      // 具名不可得）；这一段本身就是「期望存在」的证据。
+      if (upm_idn_present) {
+        upm_audit["required_fields"].push_back("rank");
+        upm_audit["required_fields"].push_back("chi2_red");
+        upm_audit["required_fields"].push_back("rank_rtol");
+        // 校验**映射之后**的审计键（产品的 identifiability 段用的是 rank_eff，
+        // 审计块统一叫 rank；拿产品键名去查会把一个已读回的真值误判成缺失）。
+        //  · rank / rank_rtol：必须是有限数（这两个量任何情形下都有定义）；
+        //  · chi2_red：键必须在；null 只允许在**带具名理由**时（dof_eff ≤ 0 ⇒
+        //    数学上无定义），此时要求 chi2_red_defined == false ∧ chi2_red_note 非空。
+        for (const char* k : {"rank", "rank_rtol"}) {
+          if (!upm_audit.contains(k) || !upm_audit[k].is_number()) upm_missing.push_back(k);
+        }
+        const bool chi2_ok =
+            upm_audit["chi2_red"].is_number() ||
+            (upm_audit.value("chi2_red_defined", true) == false &&
+             upm_audit.contains("chi2_red_note") &&
+             upm_audit["chi2_red_note"].is_string() &&
+             !upm_audit["chi2_red_note"].get<std::string>().empty());
+        if (!chi2_ok) upm_missing.push_back("chi2_red");
+      }
+      upm_audit["missing_fields"] = upm_missing;
+      upm_audit["audit_available"] = upm_missing.empty();
+      for (const auto& m : upm_missing) all_missing.push_back("upm_gls." + m);
+    }
+    solvers["upm_gls"] = upm_audit;
+
+    phase2_audit["solvers"] = solvers;
+    phase2_audit["missing_fields"] = all_missing;
+    phase2_audit["audit_complete"] = all_missing.empty();
+    // 天光面**产品在位**却给不出 §7a 必落字段 ⇒ 该产品的 §7a provenance 不完整
+    // （§7a:190-192/:204「必须写入 provenance」）。此处**登记 + 出声**，不硬判红：
+    //   · §7a 没有 §5d 那样的「缺任一项即不可审计 ⇒ fail-closed」明文；
+    //   · κ 门的**口径本身**正在被 §7a 规则 4 的口径统一任务改动，把当前键名
+    //     设成硬门会把一次正当的口径变更变成整条 mosaic 链判红（门不得锁死
+    //     实现细节）；
+    //   · 机检的判红形态由产品级检查器承担（run/AUDIT-PERSIST-01/tools/
+    //     check_variance_audit_products.py 的 R5，配正/负例 self-test）。
+    // 待口径统一落定后，把这条升级为 fail-closed 是自然的下一步（已在报告登记）。
+    if (sp_present && !sp_missing.empty()) {
+      std::fprintf(stderr,
+                   "[write_mosaic][phase2_audit][WARN] §7a 天光面可观测量缺失, 该产品"
+                   "不可审计: %s (artifact %s) -- 已登记在 p2_final.json 的"
+                   " phase2_audit.missing_fields, 未硬判红（口径统一任务在改键集）\n",
+                   Json(sp_missing).dump().c_str(), sp_path.c_str());
+    }
   }
 
   int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT;
@@ -11180,7 +11783,14 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                              "DATA-P2-PROV-001 §30.3: AIO writer provenance"
                              " channel (aio_hips_set_drizzle_provenance) only"
                              " exposes pixfrac/scale; ASTROCS_* property keys"
-                             " pending AIO-domain contract registration"}}}};
+                             " pending AIO-domain contract registration"}}},
+                        // ── SCI-UPM §7a 审计块（产品级摘要；AUDIT-PERSIST-01）────
+                        // 落点理由：p2_final.json 是阶段二**产品级摘要**
+                        // （DATA-P2-RES，与 p2_upm_model.json / p2_sky_plane.bin
+                        // 同目录同生命周期），消费方读「阶段二可辨识性/表示能力
+                        // 的 provenance」只需读这一个文件；内容全部**从磁盘产品
+                        // 读回**，不做节点间内存传递。
+                        {"phase2_audit", phase2_audit}};
   if (!p2_write_text_atomic(out_path, final_out.dump(2) + "\n"))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["artifacts"] = Json::array({out_path, out_dir + "/signal/properties"});
