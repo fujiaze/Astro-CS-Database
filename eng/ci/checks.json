@@ -12836,6 +12836,106 @@
           "reads_run_results": true
         }
       ]
+    },
+    {
+      "id": "CHK-PROD-WIRING",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "prerelease",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_prod_wiring.py"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/**",
+        "lib/**",
+        "CMakeLists.txt",
+        "docs/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "drizzle_acceptance",
+        "drizzle_acceptance_negative_injection",
+        "drizzle_acceptance_py",
+        "drizzle_candidate_oracle",
+        "drizzle_control_median_mc",
+        "drizzle_freeze",
+        "drizzle_precision_default",
+        "drizzle_spherical_overlap",
+        "gaia_magnitude_range_bounds",
+        "gaia_module_manifest_bounds",
+        "gaia_shard_coverage",
+        "gaia_shard_coverage_self_test",
+        "hips_publish_atomic",
+        "hips_publish_atomic_units",
+        "ipv_extract_wcs_sip_failclosed",
+        "ipv_platform_binding",
+        "ipv_triangle_budget",
+        "p1cal_bias_influence_gate",
+        "p1cos_badcol",
+        "p1cos_badcol_selfcheck",
+        "p1noise_adaptive",
+        "p1noise_mask",
+        "p1noise_saturation",
+        "p1noise_saturation_selfcheck",
+        "p1noise_saturation_wiring",
+        "p1noise_snr_caliber",
+        "p1noise_snr_caliber_selftest",
+        "p1phot_spatial",
+        "p1psf_center_contract_astropy",
+        "p1psf_center_contract_gate",
+        "p1psf_center_contract_gate_neg",
+        "p1psf_centroid_gate",
+        "p1psf_centroid_gate_neg",
+        "p1psf_prodpath_centroid",
+        "p1snr_frame_parity",
+        "p1star_angle_guard",
+        "p1star_guided",
+        "p1star_mad",
+        "p1star_nls_lm",
+        "p1stardet_node_gate",
+        "p2hips_determinism",
+        "p2hips_negative",
+        "p2hips_selfcheck",
+        "p2hips_units",
+        "xpsd_spectrum_count_bounds"
+      ],
+      "steps": [
+        {
+          "id": "PROD-WIRING-SCAN",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "prerelease",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_prod_wiring.py"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/**",
+            "lib/**",
+            "CMakeLists.txt",
+            "docs/**"
+          ]
+        }
+      ]
     }
   ]
 }
