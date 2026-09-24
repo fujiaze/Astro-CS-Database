@@ -189,7 +189,38 @@ def match_brace(masked: str, open_idx: int) -> int:
     return -1
 
 
-def iter_cpp_files(root: pathlib.Path, subdirs):
+# ── 判定面 = 版本库面（GATE-TRIAGE-01）─────────────────────────────────────
+# 原实现扫**工作区文件系统**：任何未跟踪/被忽略的 .cpp（例如 .gitignore:37 的
+# `archive/` 下的历史快照、并发写者写到一半的文件）都会被当生产面判红。
+# 实测（Windows 节点）：lib/plate_solve/archive/vector_method/cpp/v4_4/experiment/
+# exp_relvec_core.cpp 触发 R3 未登记 ⇒ 门把「工作区快照」当判据（假红），
+# 而该目录按 .gitignore:37（`archive/`，注释「归档目录（GOV-002 起归档文件须受
+# Git 跟踪）」）**不是交付面**。
+# 口径与 eng/tools/quality/check_ctest_registration.py 的 W4-A3 一致：判定面收敛到
+# git ls-files；未跟踪源单独计数并在证据 JSON 的 untracked_cpp_files 字段留痕
+# （不静默丢弃）。git 不可用 ⇒ Fail（rc=2，fail-closed），不得当成「全部未跟踪」。
+def git_tracked_set(root: pathlib.Path):
+    """git ls-files 的 tracked 集合（POSIX 相对路径）；不可用 ⇒ Fail。"""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "-C", str(root), "ls-files", "-z"],
+                             capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise Fail("git 调用失败（%s: %s）" % (exc.__class__.__name__, exc)) from None
+    if out.returncode != 0:
+        last = (out.stderr.decode("utf-8", "replace").strip().splitlines() or [""])[-1]
+        raise Fail("git ls-files rc=%d: %s" % (out.returncode, last[:140]))
+    tracked = {p for p in out.stdout.decode("utf-8", "replace").split("\0") if p}
+    if not tracked:
+        raise Fail("git ls-files 在 %s 返回空版本库面（空面不得当成「全部未跟踪」）" % root)
+    return tracked
+
+
+def iter_cpp_files(root: pathlib.Path, subdirs, tracked=None, skipped=None):
+    """产出 (path, rel) —— 判定面限定为 tracked（tracked=None ⇒ 全收，夹具面用）。
+
+    未跟踪的 .cpp 记入 skipped 列表（留痕，不静默丢弃）。
+    """
     for base in subdirs:
         d = root / base
         if not d.is_dir():
@@ -199,6 +230,10 @@ def iter_cpp_files(root: pathlib.Path, subdirs):
                 continue
             rel = p.relative_to(root).as_posix()
             if any(x in ("/" + rel) for x in PRODUCTION_EXCLUDES):
+                continue
+            if tracked is not None and rel not in tracked:
+                if skipped is not None:
+                    skipped.append(rel)
                 continue
             yield p, rel
 
@@ -231,9 +266,10 @@ def enclosing_function(fns, idx):
     return best
 
 
-def scan_error_swallow(root: pathlib.Path):
+def scan_error_swallow(root: pathlib.Path, tracked=None, skipped=None):
+    """R1：生产收敛面 catch 吞错点。tracked/skipped 语义见 iter_cpp_files。"""
     hits, scanned = [], 0
-    for p, rel in iter_cpp_files(root, CONVERGENCE_DIRS):
+    for p, rel in iter_cpp_files(root, CONVERGENCE_DIRS, tracked, skipped):
         text = p.read_text(encoding="utf-8", errors="replace")
         masked = mask_cpp(text)
         scanned += 1
@@ -262,9 +298,10 @@ def scan_error_swallow(root: pathlib.Path):
     return hits, scanned
 
 
-def scan_silent_degrade(root: pathlib.Path):
+def scan_silent_degrade(root: pathlib.Path, tracked=None, skipped=None):
+    """R2：生产面条件回退点。tracked/skipped 语义见 iter_cpp_files。"""
     hits, scanned = [], 0
-    for p, rel in iter_cpp_files(root, ("lib",)):
+    for p, rel in iter_cpp_files(root, ("lib",), tracked, skipped):
         text = p.read_text(encoding="utf-8", errors="replace")
         masked = mask_cpp(text)
         scanned += 1
@@ -298,10 +335,10 @@ def scan_silent_degrade(root: pathlib.Path):
     return hits, scanned
 
 
-def scan_log_landing(root: pathlib.Path):
+def scan_log_landing(root: pathlib.Path, tracked=None, skipped=None):
     """硬编码日志落点：字面量自带 logs/ 目录，或赋值给 log_dir/log_path/log_file/event_dir。"""
     hits, scanned = [], 0
-    for p, rel in iter_cpp_files(root, ("lib",)):
+    for p, rel in iter_cpp_files(root, ("lib",), tracked, skipped):
         text = p.read_text(encoding="utf-8", errors="replace")
         if not text:
             continue
@@ -436,9 +473,13 @@ def run_checks(root: pathlib.Path, ledger_path: pathlib.Path):
     problems = []
     led = load_ledger(ledger_path)
 
-    r1_hits, r1_scanned = scan_error_swallow(root)
-    r2_hits, r2_scanned = scan_silent_degrade(root)
-    r3_hits, r3_scanned = scan_log_landing(root)
+    # 判定面 = 版本库面：真仓库（有 .git）走 git ls-files；夹具沙箱（无 .git）
+    # 按全收，否则自检夹具无法构造。git 不可用 ⇒ Fail（fail-closed）。
+    tracked = git_tracked_set(root) if (root / ".git").exists() else None
+    skipped = []
+    r1_hits, r1_scanned = scan_error_swallow(root, tracked, skipped)
+    r2_hits, r2_scanned = scan_silent_degrade(root, tracked, skipped)
+    r3_hits, r3_scanned = scan_log_landing(root, tracked, skipped)
 
     if r1_scanned == 0:
         problems.append("R1 fail-closed: 生产收敛面扫描文件数为 0")
@@ -460,6 +501,8 @@ def run_checks(root: pathlib.Path, ledger_path: pathlib.Path):
         "verdict": "FAIL" if problems else "PASS",
         "root": str(root),
         "scanned": {"convergence_files": r1_scanned, "production_files": r2_scanned},
+        "surface": ("git ls-files（版本库面）" if tracked is not None else "工作区全收（无 .git 夹具面）"),
+        "untracked_cpp_files": sorted(set(skipped)),
         "hits": {"R1_error_swallow": len(r1_hits), "R2_silent_degrade": len(r2_hits),
                  "R3_log_landing": len(r3_hits)},
         "problems": problems,
@@ -467,6 +510,8 @@ def run_checks(root: pathlib.Path, ledger_path: pathlib.Path):
             "静态扫描只证明未登记点存在，不证明运行期走到该分支",
             "R1 仅覆盖生产收敛面 cli/scheduler/pipeline/aio（算法模块错误面由 C ABI 返回码门覆盖）",
             "R2 是语法形态识别（探测调用 + 探测结果被返回 + 另一分支返回值），不含跨函数数据流分析",
+            "判定面 = git ls-files（版本库面）；未跟踪/被忽略的 .cpp 不计入判定，"
+            "逐条列在 untracked_cpp_files 留痕（口径同 check_ctest_registration.py W4-A3）",
         ],
     }
 
@@ -476,7 +521,9 @@ def self_test(root: pathlib.Path):
     problems = []
     real = run_checks(root, root / LEDGER_DEFAULT)
     if real["verdict"] != "PASS":
-        problems.append("真实仓库未全绿: %s" % real["problems"][:5])
+        # 判词不截断（GATE-TRIAGE-01）：原实现 [:5] 会把「哪几条没绿」吞掉，
+        # 自检失败时读者拿不到可定位的全貌。
+        problems.append("真实仓库未全绿: %s" % (real["problems"] or []))
 
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="logsys-selftest-"))
     injections = []
@@ -559,6 +606,38 @@ def self_test(root: pathlib.Path):
             (d / rel).parent.mkdir(parents=True, exist_ok=True)
             (d / rel).write_text("<output_dir>/logs\n", encoding="utf-8")
         injections.append(("R0 扫描面为空 fail-closed", run_checks(d, ledger(d))["verdict"] == "FAIL"))
+
+        # 注入 7（GATE-TRIAGE-01）：判定面 = 版本库面。
+        #     有 .git 的沙箱里，**未跟踪**的 .cpp 带 R3 违规 ⇒ 不得判红（假红），
+        #     且必须逐条列进 untracked_cpp_files 留痕（不静默丢弃）。
+        #     判别力自证：同一份文件 git add 之后必须判红（负例不是恒真门）。
+        import subprocess as _sp
+
+        def _git(d, *cmd):
+            return _sp.run(["git"] + list(cmd), cwd=str(d), capture_output=True, text=True)
+
+        d = sandbox("surface_tracked")
+        _git(d, "init", "-q")
+        _git(d, "config", "user.email", "b12@example.invalid")
+        _git(d, "config", "user.name", "B12")
+        (d / "lib/infrastructure/aio/src/ok.cpp").write_text(
+            "int f(){ return 0; }\n", encoding="utf-8")
+        (d / "lib/infrastructure/aio/src/untracked_bad.cpp").write_text(
+            'void g(){ h = std::fopen("lib/infrastructure/aio/logs/x.log", "a"); }\n',
+            encoding="utf-8")
+        p = ledger(d)
+        _git(d, "add", "-A")
+        _git(d, "commit", "-qm", "tracked-baseline")
+        # 基线：文件已被跟踪 ⇒ 判红（R3 有牙）
+        tracked_red = run_checks(d, p)["verdict"] == "FAIL"
+        # 删除索引项（保留工作区文件）⇒ 变成未跟踪 ⇒ 不得判红，且要留痕
+        _git(d, "rm", "--cached", "-q", "lib/infrastructure/aio/src/untracked_bad.cpp")
+        untracked = run_checks(d, p)
+        injections.append(("S1 tracked 面判红（正控）", tracked_red))
+        injections.append(("S2 untracked 不判红 + 留痕",
+                           untracked["verdict"] == "PASS"
+                           and "lib/infrastructure/aio/src/untracked_bad.cpp"
+                           in untracked["untracked_cpp_files"]))
 
         for name, ok in injections:
             if not ok:

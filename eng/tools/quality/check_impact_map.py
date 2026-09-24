@@ -92,7 +92,11 @@ PROBE_DOMAINS = [
     # 2026-09-21 根目录整合：packaging/ → eng/packaging/（锚必须随域走）。
     ("eng/packaging/**", "eng/packaging", "eng/packaging/astrocs.product.json"),
     (".github/**", ".github/workflows/ci-linux.yml", ".github/workflows/ci-linux.yml"),
-    ("artifacts/**", "artifacts/ci", "artifacts/ci/run.json"),
+    # GATE-TRIAGE-01 重锚：原锚 artifacts/ci 是 **CI 运行产物**（.gitignore:160
+    # `/artifacts/ci/` 显式忽略）⇒ 干净检出 / Windows 节点上不存在，R4 判红是
+    # 「锚失效」假红（锚必须是版本库面里稳定存在的东西）。改锚到 tracked 的
+    # artifacts/acceptance（L2/L3/L4 验收证据，git ls-files 命中 77 件）。
+    ("artifacts/**", "artifacts/acceptance", "artifacts/ci/run.json"),
     # 2026-09-21 根目录整合：reports/ 退役 → artifacts/evidence/**（AGENTS.md §7）；
     # 域继承者按新路径重锚，不保留已不存在的根条目。
     ("artifacts/evidence/**", "artifacts/evidence/README.md",

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -632,7 +633,10 @@ class TestCoverageCppDriver(unittest.TestCase):
         self.assertIn("qa_coverage_report.sh", merge[0][1])
         payload = json.loads(out.splitlines()[-1])
         self.assertEqual(payload["verdict"], "FAIL")
-        copied = set(payload["copied_outputs"])
+        # copied_outputs 是**仓库相对路径**，分隔符必须归一为 "/"：
+        # 原实现直接比对，Windows 上 os.path.join 产出 "run\\ci\\..." ⇒ 断言恒假
+        # （GATE-TRIAGE-01：这是测试的平台缺陷，不是产物缺失）。
+        copied = {str(p).replace(os.sep, "/") for p in payload["copied_outputs"]}
         self.assertIn("run/ci/test-covcpp-ut-out/astrocs.profdata", copied)
         self.assertIn("run/ci/test-covcpp-ut-out/coverage.json", copied)
         self.assertIn("run/ci/test-covcpp-ut-out/42-1234.profraw", copied)

@@ -114,8 +114,17 @@ class TestSignal(unittest.TestCase):
 
     run.py 实现：Popen 未 setpgid，子进程自杀 SIGTERM 后 returncode=-15；
     -15 仅在非 timeout 路径判为 SIGNAL（源码 execute_check verdict 顺序）。
+
+    平台边界（GATE-TRIAGE-01）：本场景的判据是 **POSIX 信号语义**——Windows 上
+    os.kill(pid, SIGTERM) 走 TerminateProcess，returncode 是正的退出码而**不是**
+    -15，"被信号终止"这一事实在 Windows 进程 API 上不可表达。原实现无条件断言
+    returncode == -15 ⇒ CHK-CI-CONTRACT-SELFTESTS 在 Windows 上必红且是假红
+    （被测对象没有缺陷，是断言绑了平台）。故 Windows 上显式跳过并给出理由；
+    verdict 顺序逻辑本身由 Linux 档（linux-main / fast）持续覆盖。
     """
 
+    @unittest.skipIf(sys.platform.startswith("win"),
+                     "POSIX 信号语义：Windows 上进程无负 returncode，SIGNAL 不可表达")
     def test_sigterm_yields_signal_verdict(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -259,6 +268,58 @@ class TestLogCapture(unittest.TestCase):
             self.assertIn("out-line", text)
             self.assertIn("===== STDERR =====", text)
             self.assertIn(marker, per["stderr_tail"])
+
+
+class TestCrashTristate(unittest.TestCase):
+    """GATE-TRIAGE-01：三态（PASS/FAIL/CRASH）+ 崩溃独立退出码（run.py 面）。
+
+    判据：检查器抛未捕获异常 ⇒ 它**没有给 verdict**（门崩），必须记 CRASH 且
+    runner 退出码 = 3；检查器给出结构化 FAIL 判词（即使输出里有 Traceback，
+    例如 unittest 失败报告）⇒ 仍记 FAIL、退出码 1（不得把真判红误报成门崩）。
+    """
+
+    def _run(self, code: str):
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        root = Path(td.name)
+        repo = H.make_repo(root / "repo")
+        out_root = root / "out"
+        H.write_registry(repo, [H.check(id="CHK-TRISTATE",
+                                        command=[sys.executable, "-c", code],
+                                        timeout_seconds=30)])
+        H.write_ci_result_schema(repo)
+        proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
+        return proc, H.load_check_result(out_root, "CHK-TRISTATE")
+
+    def test_uncaught_exception_is_crash_with_exit_code_3(self):
+        code = ("def boom():\n"
+                "    raise ValueError('selftest injected crash')\n"
+                "boom()\n")
+        proc, per = self._run(code)
+        self.assertEqual(per["verdict"], "CRASH",
+                         "门崩必须记 CRASH（无 verdict），不得与判红同码")
+        self.assertEqual(proc.returncode, 3, f"崩溃必须换独立退出码 3：{proc.stderr}")
+        # 判词必须带「文件:行」且崩溃证据不截断（栈帧是第一现场）
+        self.assertIn("line", per["reason"], per["reason"])
+        self.assertIn("selftest injected crash", per["stderr_tail"])
+
+    def test_fail_with_traceback_stays_fail(self):
+        code = ("import sys, traceback\n"
+                "try:\n"
+                "    raise AssertionError('assertion')\n"
+                "except AssertionError:\n"
+                "    traceback.print_exc()\n"
+                "print('SELFTEST_TOOL_FAIL: verdict=FAIL')\n"
+                "sys.exit(1)\n")
+        proc, per = self._run(code)
+        self.assertEqual(per["verdict"], "FAIL",
+                         "有结构化 verdict 的判红不得被误报成门崩")
+        self.assertEqual(proc.returncode, 1)
+
+    def test_green_stays_pass(self):
+        proc, per = self._run("print('SELFTEST_TOOL_PASS: verdict=PASS')\n")
+        self.assertEqual(per["verdict"], "PASS")
+        self.assertEqual(proc.returncode, 0)
 
 
 if __name__ == "__main__":

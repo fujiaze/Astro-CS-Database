@@ -49,7 +49,7 @@ g("DOC-L0", "RE-JUDGED", "P1",
   "selftest(8 例：缺文档/索引未登记/根索引复活/旧权威重主张/strict 升级)",
   "run/PROJECT-GOVERNANCE-01/CI-003/logs/", auto=True)
 g("VERSION-CONSISTENCY", "RE-JUDGED", "P1",
-  (_p("eng/ci/check_version.py", "--expected", "0.11.0-alpha.2"), 0, "repo"),
+  (_p("eng/ci/check_version.py", "--expected", "0.1.0-alpha.1"), 0, "repo"),
   (_p("eng/ci/check_version.py", "--self-test"), 0, "repo"),
   "selftest(6 例：doc 成员缺失/CLI 版本漂移/doc 版本漂移/锚失效)",
   "run/PROJECT-GOVERNANCE-01/CI-003/logs/B3_check_version_after2.log", auto=True)

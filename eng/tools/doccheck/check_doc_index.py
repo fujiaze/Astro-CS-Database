@@ -25,9 +25,10 @@
     12. 锚存活 + 旧权威回归（docs/review/**、REVIEW.md、CHANGELOG.md、HANDOVER.md）。
   D. 扫描面自证
     13. 逐文件排除项（SKIP_EXACT）逐条有据：是台账本身，或该文件自带 --self-test
-        夹具面（既注册 --self-test 入口、又实现 self_test()）；文件不存在亦判红
-        （锚存活 / fail-closed）。"为了让红灯变绿而随手把某文件塞进排除面"由此判红
-        （负例 S17 无夹具面 / S18 锚缺失 / S19 台账被移出），排除面只减不增、判别力不降。
+        夹具面（既注册 --self-test 入口、又实现 self_test()/_self_test()）；文件不存在
+        亦判红（锚存活 / fail-closed）。"为了让红灯变绿而随手把某文件塞进排除面"由此
+        判红（负例 S17 无夹具面 / S18 锚缺失 / S19 台账被移出 / S20 判据判别力），
+        排除面只减不增、判别力不降。
 
 --strict 语义：判据硬引用的锚（ANCHOR_PATHS）任一缺失 ⇒ FAIL 并打印
   "ANCHOR_STALE: <path>"；退役锚缺失 ⇒ "ANCHOR_RETIRED_OK"（出库完成态，不判红）。
@@ -130,12 +131,25 @@ SKIP_EXACT = (
     LEDGER_PATH,                                # ① 台账（悬空引用的登记面本身）
     "eng/tools/doccheck/check_doc_index.py",    # ② 本检查器（--self-test 夹具面）
     "eng/tools/doccheck/check_doc_hygiene.py",  # ② DOC-HYGIENE 检查器（--self-test 夹具面）
+    # ② 其余自带 --self-test 夹具面的检查器（GATE-TRIAGE-01 补登记）：
+    # 它们的夹具按构造写入不存在的 docs/ 路径（docs/DESIGN.md、docs/NOPE.md、
+    # docs/gone/SPEC.md、docs/other.md、docs/contracts/FIX.md）作为**应当被判红的
+    # 样例文本**，被本门当悬空引用扫描 = 把负例当违规（15 条假红全部来自这三份
+    # 文件的夹具）。准入判据不变：仍须 --self-test 入口 + self_test()/_self_test()
+    # 实现体（skip_exact_reason 机器自证；负例 S17/S18 覆盖）。
+    "eng/ci/check_mutation_gates.py",                       # ② --self-test 夹具面
+    "eng/ci/check_registration_anchors.py",                 # ② --self-test 夹具面
+    "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",  # ② 同上
 )
 
-# ②的机器判据：既要有 --self-test 入口，又要有 self_test() 实现体 ——
+# ②的机器判据：既要有 --self-test 入口，又要有 self_test()/_self_test() 实现体 ——
 # 只在注释里提一句 "--self-test" 不算夹具面（防"塞注释过闸"）。
+# 判据放宽到两种命名**不是放松**：判据的实质是「该文件确实存在一个可执行的
+# 夹具面实现体」，而不是「函数名恰好不带下划线」；eng/ci/check_mutation_gates.py
+# 的夹具面实现在 `_self_test()` 里（前导下划线是包内私有约定），原正则把它误判成
+# 「未实现 self_test()」⇒ 该文件无法被登记，夹具里的 docs/ token 恒被判悬空。
 SELFTEST_FLAG = "--self-test"
-SELFTEST_ENTRY_RE = re.compile(r"def\s+self_test\s*\(")
+SELFTEST_ENTRY_RE = re.compile(r"def\s+_?self_test\s*\(")
 
 # docs/... 指针 token：左边界禁止为路径字符（排除 URL 与 lib/.../docs/x 形态的误报）
 TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_./-])docs/[A-Za-z0-9_./-]*")
@@ -269,12 +283,13 @@ def token_resolution(text: str, m, files: set, dirs: set) -> tuple:
 
 
 def scan_dangling(root: str, rel: str, files: set, dirs: set) -> list:
+    """返回 [(token, line)] —— 判词必须能定位到「文件:行」（GATE-TRIAGE-01）。"""
     text = _read(os.path.join(root, rel))
     out = []
     for m in TOKEN_RE.finditer(text):
         ok, tok = token_resolution(text, m, files, dirs)
         if not ok:
-            out.append(tok)
+            out.append((tok, text.count("\n", 0, m.start()) + 1))
     return out
 
 
@@ -526,15 +541,18 @@ def run_checks(root: str, strict: bool) -> tuple:
                 scan_files.append((p, "code"))
         dangling_all = []
         for rel, scope in scan_files:
-            for tok in scan_dangling(root, rel, tset, dirs):
-                dangling_all.append((rel, tok, scope))
-        new_dangling = [(f, t, s) for f, t, s in dangling_all if (f, t) not in ledger]
-        seen = {(f, t) for f, t, _ in dangling_all}
+            for tok, ln in scan_dangling(root, rel, tset, dirs):
+                dangling_all.append((rel, tok, scope, ln))
+        new_dangling = [x for x in dangling_all if (x[0], x[1]) not in ledger]
+        seen = {(f, t) for f, t, _s, _l in dangling_all}
         resolved_ledger = [k for k in ledger if k not in seen]
         detail = ("扫描 " + str(len(scan_files)) + " 文件；台账=" + ledger_detail
                   + "；台账中已消除=" + str(len(resolved_ledger)) + " 条（可从台账移除）")
+        # 判词不截断且带「文件:行」（GATE-TRIAGE-01）：原实现 `new_dangling[:10]`
+        # 只列前 10 条且不含行号 ⇒ 读者无法定位到具体位置。
+        rendered = ["%s:%d %s" % (f, ln, t) for f, t, _s, ln in new_dangling]
         results.append(check("docs_path_refs_resolve", not new_dangling,
-                             ("未登记悬空=" + repr(new_dangling[:10]) + " 共"
+                             ("未登记悬空=" + repr(rendered) + " 共"
                               + str(len(new_dangling)) + "；" + detail)
                              if new_dangling else ("未登记悬空=0；" + detail)))
 
@@ -723,11 +741,11 @@ def dump(root: str, kind: str) -> int:
                   + ("yes" if has_upstream_header(_read(os.path.join(root, p))) else "NO"))
         return 0
     if kind == "dangling":
-        print("file" + T + "token" + T + "scope")
+        print("file" + T + "line" + T + "token" + T + "scope")
         for p in ROOT_DOCS:
             if os.path.isfile(os.path.join(root, p)):
-                for tok in scan_dangling(root, p, tset, dirs):
-                    print(p + T + tok + T + "root")
+                for tok, ln in scan_dangling(root, p, tset, dirs):
+                    print(p + T + str(ln) + T + tok + T + "root")
         for p in sorted(tset):
             if (p.startswith(SKIP_DIRS) or not p.endswith(SCAN_EXT) or p in SKIP_EXACT
                     or p.endswith(SKIP_SUFFIX) or any(s in p for s in SKIP_CONTAINS)):
@@ -740,8 +758,8 @@ def dump(root: str, kind: str) -> int:
                 scope = None
             if not scope:
                 continue
-            for tok in scan_dangling(root, p, tset, dirs):
-                print(p + T + tok + T + scope)
+            for tok, ln in scan_dangling(root, p, tset, dirs):
+                print(p + T + str(ln) + T + tok + T + scope)
         return 0
     if kind == "entries":
         try:
@@ -1042,12 +1060,19 @@ def self_test() -> int:
         cases.append(("S12-unregistered-doc",) + _red(r12, "s12", True,
                                                       "subordinate_docs_registered"))
 
-        # S13 负例：代码注释里的 docs/ 路径悬空且未登记台账 ⇒ docs_path_refs_resolve 判红
+        # S13 负例：代码注释里的 docs/ 路径悬空且未登记台账 ⇒ docs_path_refs_resolve 判红，
+        #     且判词必须带「文件:行」（GATE-TRIAGE-01：原实现只给 token 与 scope，
+        #     读者无法定位到哪一行）。
         r13 = _mk_repo(tmp, "s13")
         _write(os.path.join(r13, "lib/y/bar.cpp"), "// see docs/missing/X.md\n")
         _git_init(r13)
+        res13, _ = run_checks(r13, True)
+        d13 = next((r for r in res13 if r["check"] == "docs_path_refs_resolve"), None)
+        has_where = bool(d13) and ("lib/y/bar.cpp:1" in d13.get("detail", ""))
         cases.append(("S13-dangling-code-comment-ref",) + _red(r13, "s13", True,
                                                                "docs_path_refs_resolve"))
+        cases.append(("S13b-dangling-detail-has-file-line", has_where,
+                      (d13 or {}).get("detail", "")[:120]))
 
         # S14 负例：非 ASCII 路径旧控制包残留必须被判红（core.quotepath 假绿回归）
         r14 = _mk_repo(tmp, "s14")
@@ -1112,6 +1137,30 @@ def self_test() -> int:
             ok19, msg19 = _red(r19, "s19", True, "skip_exact_justified")
         cases.append(("S19-ledger-dropped-from-skip-exact", ok19, msg19))
 
+        # S20 负例：夹具面判据（--self-test 入口 + 实现体）的**判别力**自证。
+        #     GATE-TRIAGE-01 把 SELFTEST_ENTRY_RE 从 `def self_test(` 放宽到
+        #     `def _?self_test(`（check_mutation_gates.py 的实现体叫 _self_test）。
+        #     放宽必须仍然拒绝「只有 --self-test 字样、没有实现体」的文件，
+        #     否则就是为过闸而放松判据。三条断言：
+        #       a) 桩（self_test）被接受；b) 桩（_self_test）被接受；
+        #       c) 只提 --self-test 而无实现体 ⇒ 拒绝（skip_exact_reason 非空）。
+        r20 = _mk_repo(tmp, "s20")
+        p_stub_a = os.path.join(r20, "eng/tools/doccheck/stub_a.py")
+        p_stub_b = os.path.join(r20, "eng/tools/doccheck/stub_b.py")
+        p_fake = os.path.join(r20, "eng/tools/doccheck/fake_c.py")
+        _write(p_stub_a, _selftest_stub("stub_a.py"))
+        _write(p_stub_b, _selftest_stub("stub_b.py").replace(
+            "def self_test()", "def _self_test()").replace(
+            "return self_test()", "return _self_test()"))
+        _write(p_fake, "# 只提 --self-test，不实现任何实现体\nX = 1\n")
+        why_a = skip_exact_reason(r20, "eng/tools/doccheck/stub_a.py")
+        why_b = skip_exact_reason(r20, "eng/tools/doccheck/stub_b.py")
+        why_c = skip_exact_reason(r20, "eng/tools/doccheck/fake_c.py")
+        ok20 = (why_a == "" and why_b == "" and why_c != "")
+        cases.append(("S20-selftest-entry-criterion", ok20,
+                      "self_test()=%r _self_test()=%r no_impl=%r"
+                      % (why_a, why_b, why_c[:60])))
+
     bad = [(n, m) for n, ok, m in cases if not ok]
     for n, ok, m in cases:
         print("SELFTEST " + ("PASS" if ok else "FAIL") + " " + n + ": " + m)
@@ -1121,7 +1170,8 @@ def self_test() -> int:
         return 1
     print("SELFTEST_PASS: " + str(len(cases)) + "/" + str(len(cases))
           + " 例符合预期（正例 rc=0；悬空条目/悬空根文档指针/缺抬头/漏登记/代码注释悬空/"
-            "非 ASCII 旧控制包残留/台账缺失/排除面无据、锚缺失、台账被移出 各自判红）")
+            "非 ASCII 旧控制包残留/台账缺失/排除面无据、锚缺失、台账被移出、"
+            "夹具面判据判别力 各自判红）")
     return 0
 
 

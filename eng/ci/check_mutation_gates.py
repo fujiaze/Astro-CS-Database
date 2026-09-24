@@ -212,10 +212,32 @@ def check_registry(repo: str, doc: dict) -> tuple[list[str], dict]:
 CONSUMER_SCAN_ROOTS = ("eng", "docs", "lib")
 CONSUMER_MAX_BYTES = 2 * 1024 * 1024
 
+# Windows 保留设备名（NUL/CON/PRN/AUX/COM1-9/LPT1-9）。工作树里存在这类条目时，
+# ntpath.relpath 会把路径解析成设备名并抛 ValueError
+# （path is on mount ...nul, start on mount 'F:'）⇒ 检查器抛 Traceback 而
+# **没有 verdict**。门崩与判红必须可区分（GATE-TRIAGE-01）。
+RESERVED_DEVICE_RE = re.compile(
+    r"^(?:nul|con|prn|aux|com[1-9]|lpt[1-9])(?:\..*)?$", re.IGNORECASE)
 
-def find_consumers(repo: str) -> list[str]:
-    """报告项：仓库内引用本登记册的文件（限 CONSUMER_SCAN_ROOTS）。"""
+
+def rel_path(repo: str, full: str):
+    """相对仓库根的 POSIX 风格路径；不可解析（设备名/跨卷/符号环）返回 None。
+
+    不静默丢弃：None 由调用方登记进 CONSUMER_SCAN_UNRESOLVABLE 报告项。
+    """
+    try:
+        return os.path.relpath(full, repo).replace(os.sep, "/")
+    except (ValueError, OSError):
+        return None
+
+
+def find_consumers(repo: str):
+    """(消费方, 不可解析路径) 二元组；后者非空即 fail-closed 判红。
+
+    消费方 = 仓库内引用本登记册的文件（限 CONSUMER_SCAN_ROOTS）。
+    """
     hits: list[str] = []
+    unresolvable: list[str] = []
     skip = {".git", "build", "run", "artifacts", "__pycache__", ".dsh-code-index",
             "gaia", "testdata", "实验", "工程控制"}
     for root in CONSUMER_SCAN_ROOTS:
@@ -223,10 +245,17 @@ def find_consumers(repo: str) -> list[str]:
         if not os.path.isdir(base):
             continue
         for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = [d for d in dirnames if d not in skip]
+            dirnames[:] = [d for d in dirnames
+                           if d not in skip and not RESERVED_DEVICE_RE.match(d)]
             for fn in filenames:
+                if RESERVED_DEVICE_RE.match(fn):
+                    unresolvable.append(os.path.join(dirpath, fn))
+                    continue
                 full = os.path.join(dirpath, fn)
-                rel = os.path.relpath(full, repo).replace(os.sep, "/")
+                rel = rel_path(repo, full)
+                if rel is None:
+                    unresolvable.append(full)
+                    continue
                 if rel == "eng/ci/mutation_gates.json":
                     continue
                 try:
@@ -237,7 +266,7 @@ def find_consumers(repo: str) -> list[str]:
                             hits.append(rel)
                 except OSError:
                     continue
-    return sorted(hits)
+    return sorted(hits), sorted(unresolvable)
 
 
 def _self_test() -> int:
@@ -320,6 +349,57 @@ def _self_test() -> int:
             ok = (rc == want_rc) and (token in blob)
             problems.append("%s rc=%d want=%d %s | %s"
                             % (name, rc, want_rc, "OK" if ok else "MISMATCH", blob[:120]))
+
+        # A6（GATE-TRIAGE-01 负例）：Windows 保留设备名/跨卷路径不得让门崩。
+        # 复现原缺陷：os.walk 在工作树里遇到设备名条目时 ntpath.relpath 抛
+        #   ValueError: path is on mount '<device>', start on mount 'F:'
+        # 原实现直接 Traceback（rc=1 但**没有 verdict**，与「判红」不可区分）。
+        # 本负例在任意平台可跑：monkeypatch relpath 对探针路径抛同样的异常，
+        # 断言 ①find_consumers 不抛 ②该路径进 unresolvable（不静默丢弃）。
+        probe_dir = os.path.join(tmp, "eng", "probe")
+        os.makedirs(probe_dir, exist_ok=True)
+        probe = os.path.join(probe_dir, "consumer.py")
+        with open(probe, "w", encoding="utf-8") as fh:
+            fh.write("# mutation_gates.json\n")
+        real_relpath = os.path.relpath
+        real_rel_path = globals()["rel_path"]
+
+        def boom(path, start=None):
+            if os.path.abspath(str(path)) == os.path.abspath(probe):
+                raise ValueError("path is on mount '<device>', start on mount 'F:'")
+            return real_relpath(path, start) if start is not None else real_relpath(path)
+
+        os.path.relpath = boom
+        try:
+            hits, unres = find_consumers(tmp)
+            crashed = False
+        except Exception:  # noqa: BLE001 - 崩溃即负例失败
+            hits, unres, crashed = [], [], True
+        finally:
+            os.path.relpath = real_relpath
+        ok = (not crashed) and any("consumer.py" in u for u in unres)
+        problems.append("neg_device_path_no_crash %s | unresolvable=%s"
+                        % ("OK" if ok else "MISMATCH", unres[:3]))
+
+        # A6b（判别力自证）：把 rel_path 换回修复前的裸 os.path.relpath，
+        # 同一输入必须抛 ValueError —— 证明 A6 不是恒真门。
+        def raw_rel_path(repo_, full_):
+            return os.path.relpath(full_, repo_).replace(os.sep, "/")
+
+        globals()["rel_path"] = raw_rel_path
+        os.path.relpath = boom
+        try:
+            find_consumers(tmp)
+            pre_fix_raised = False
+        except ValueError:
+            pre_fix_raised = True
+        except Exception:  # noqa: BLE001
+            pre_fix_raised = False
+        finally:
+            os.path.relpath = real_relpath
+            globals()["rel_path"] = real_rel_path
+        problems.append("neg_device_path_pre_fix_raises %s"
+                        % ("OK" if pre_fix_raised else "MISMATCH"))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -363,7 +443,13 @@ def main(argv=None) -> int:
               file=sys.stderr)
         return 2
     problems, info = check_registry(REPO, doc)
-    consumers = find_consumers(REPO)
+    consumers, unresolvable = find_consumers(REPO)
+    if unresolvable:
+        # fail-closed：路径归不到仓库根（Windows 保留设备名/跨卷/符号环）时
+        # 不静默丢弃，具名判红 —— 否则扫描面被悄悄缩小而门仍报绿。
+        problems = problems + [
+            "CONSUMER_SCAN_UNRESOLVABLE 消费方扫描面有 %d 条路径无法归到仓库根：%s"
+            % (len(unresolvable), unresolvable[:5])]
     out = {
         "checker": "eng/ci/check_mutation_gates.py",
         "registry": os.path.relpath(path, REPO).replace(os.sep, "/"),
@@ -371,6 +457,7 @@ def main(argv=None) -> int:
         "artifacts_checked": info["artifacts_checked"],
         "gone_registered": info["gone_registered"],
         "consumers": consumers,
+        "consumers_unresolvable": unresolvable,
         "problems": problems,
         "verdict": "MUTATION_GATES_RED" if problems else "MUTATION_GATES_OK",
     }

@@ -89,7 +89,10 @@ REQUIRED_DOMAINS = {
     "third_party/**": "lib/third_party/nlohmann/json.hpp",
     "eng/tests/**": "eng/tests/testkit/registry.json",
     "testdata/**": "testdata/index.json",
-    "artifacts/**": "artifacts/ci",
+    # GATE-TRIAGE-01 重锚（与门 PROBE_DOMAINS 同口径）：artifacts/ci 是 CI 运行产物
+    # （.gitignore:160 忽略），干净检出上不存在 ⇒ 锚失效假红；改锚 tracked 的
+    # artifacts/acceptance。
+    "artifacts/**": "artifacts/acceptance",
     "artifacts/evidence/**": "artifacts/evidence/README.md",
     "工程控制/**": "工程控制",
     "eng/tools/**": "eng/tools/quality/check_module_map.py",

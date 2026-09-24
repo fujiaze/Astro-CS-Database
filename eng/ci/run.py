@@ -47,6 +47,10 @@ PROFILES = ("fast", "linux-main", "windows-main", "linux-deep", "fatduck")
 EXIT_OK = 0            # verdict PASS / FATDUCK_PENDING
 EXIT_FAIL = 1          # 任一检查失败（含 KNOWN_FAIL，计数分离但 verdict 仍 FAIL）
 EXIT_RUNNER_ERROR = 2  # runner 自身配置/环境错误（registry 非法、ref 无效、schema 违规）
+# GATE-TRIAGE-01：**崩溃换独立退出码**（与 eng/ci/run_checks.py 同合同，W4-A3：
+# 两入口对同一情形的判定必须一致）。检查器抛未捕获异常时它**没有给 verdict** ——
+# 门本身不可信（红绿都可能是噪声），与「检查器判红」是两件事，必须可区分。
+EXIT_CRASH = 3
 
 GIT_TIMEOUT = 60          # runner 内部 git 命令超时（秒）
 ZSTD_TIMEOUT = 60         # zstd 压缩超时（秒）
@@ -57,6 +61,7 @@ MONITOR_SCRIPT = "eng/ci/resource_monitor.py"  # V8-CI-003 产物；heavy 项依
 # per-check verdict 值域（全部由 runner 计算，不接受外部输入）
 V_PASS = "PASS"
 V_FAIL = "FAIL"                        # 非零退出
+V_CRASH = "CRASH"                      # 检查器抛未捕获异常、无 verdict（门崩 ≠ 判红）
 V_TIMEOUT = "TIMEOUT"                  # 超过登记 timeout_seconds 被 kill
 V_SIGNAL = "SIGNAL"                    # 被信号终止（非 timeout 路径）
 V_MISSING_OUTPUT = "FAIL(missing_output)"
@@ -94,7 +99,7 @@ V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时
 # skipped_waivable 计数与 "PASS + N skipped" 判定直接复用, 无需新增值域。
 SKIP_EXIT_CODE = 77
 
-HARD_FAILURE_VERDICTS = (V_FAIL, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT,
+HARD_FAILURE_VERDICTS = (V_FAIL, V_CRASH, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT,
                          V_EMPTY_OUTPUT, V_GATE_MISSING, V_DIRTY, V_PREREQ)
 
 # V8-CIQA-001 P2-GAP-4 豁免白名单（显式登记，非静默兜底）：注册表里 outputs=[]
@@ -687,6 +692,31 @@ def _terminate(process: subprocess.Popen) -> None:
             pass
 
 
+# --------------------------------------------------------------- 门崩识别 ----
+# GATE-TRIAGE-01：三态之三。判据与 eng/ci/run_checks.py::looks_like_crash 同口径。
+CRASH_TAIL_LIMIT = 20000  # 崩溃证据留 20k 字符（远大于 TAIL_LIMIT，够放完整栈）
+_TRACEBACK_RE = re.compile(r"Traceback \(most recent call last\)")
+_VERDICT_TOKEN_RE = re.compile(
+    r"(?:verdict|VERDICT|FAIL|PASS|_FAIL|_PASS|_RED|_OK|_GREEN)\s*[:=]")
+
+
+def crash_site(blob: str) -> str:
+    """从 Traceback 文本抽「最后一帧的文件:行 + 异常行」，供判词直接定位。"""
+    lines = [ln.rstrip() for ln in blob.splitlines()]
+    frames = [ln.strip() for ln in lines if ln.strip().startswith("File \"")]
+    exc = ""
+    for ln in reversed(lines):
+        s = ln.strip()
+        if not s or s.startswith(("File \"", "Traceback", "[")):
+            continue
+        if re.match(r"^[A-Za-z_][\w.]*(?:Error|Exception|Warning|Interrupt|Exit)\b", s) \
+                or re.match(r"^[A-Za-z_][\w.]*:\s", s):
+            exc = s
+            break
+    site = frames[-1] if frames else "(无栈帧)"
+    return "%s | %s" % (site[:400], exc[:400])
+
+
 def _tail(data: bytes, limit: int = TAIL_LIMIT) -> str:
     text = data.decode("utf-8", "replace")
     if len(text) <= limit:
@@ -816,8 +846,16 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     result["timed_out"] = timed_out
     result["finished_utc"] = utc_iso(finished)
     result["duration_seconds"] = round(duration, 3)
-    result["stdout_tail"] = _tail(stdout_b)
-    result["stderr_tail"] = _tail(stderr_b)
+    # 门崩识别（GATE-TRIAGE-01，与 run_checks.py 同口径）：输出含 Python 未捕获
+    # 异常的 Traceback 头、且**没有**任何结构化 verdict 标记 ⇒ 检查器没给出判定。
+    # 判据保守：unittest 的失败报告里也有 Traceback，那种情况检查器确实给了 FAIL
+    # 判定，必须留在 FAIL 档（否则会把真判红误报成门崩）。
+    _blob = stdout_b.decode("utf-8", "replace") + "\n" + stderr_b.decode("utf-8", "replace")
+    crash = bool(_TRACEBACK_RE.search(_blob)) and not _VERDICT_TOKEN_RE.search(_blob)
+    result["crash"] = crash
+    # 崩溃证据不截断（栈帧就是第一现场）
+    result["stdout_tail"] = _tail(stdout_b, CRASH_TAIL_LIMIT if crash else TAIL_LIMIT)
+    result["stderr_tail"] = _tail(stderr_b, CRASH_TAIL_LIMIT if crash else TAIL_LIMIT)
     if returncode is not None and returncode < 0:
         result["signal"] = -returncode
 
@@ -872,7 +910,12 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         result["dirty"] = {"checked": False, "violations": []}
 
     # ---- verdict 判定（顺序固定，全部由证据计算，无手填入口）----
-    if timed_out:
+    # 崩溃优先（GATE-TRIAGE-01）：没有 verdict 的执行单元不能记成「判红」。
+    if crash and returncode != 0 and not timed_out:
+        result["verdict"] = V_CRASH
+        result["reason"] = ("检查器抛未捕获异常（无 verdict，门不可信）："
+                            + crash_site(_blob))
+    elif timed_out:
         result["verdict"] = V_TIMEOUT
         result["reason"] = result["reason"] or f"超过登记 timeout {check['timeout_seconds']}s，进程已被终止"
     elif returncode is not None and returncode < 0 and not timed_out:
@@ -1303,6 +1346,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(summary_line)
         print(f"result: {out_root / 'CI_RESULT.json'}")
+        # 三态退出码（GATE-TRIAGE-01）：任一检查器崩 ⇒ 独立退出码 3。
+        if any(r.get("verdict") == V_CRASH for r in check_results):
+            return EXIT_CRASH
         return EXIT_OK if ci_result["verdict"] in ("PASS", "FATDUCK_PENDING") else EXIT_FAIL
     except RunnerError as exc:
         print(f"eng/ci/run.py：{exc}", file=sys.stderr)
