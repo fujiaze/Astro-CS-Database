@@ -8,6 +8,8 @@ upstream: [SCI-DRZ-001, ALG-DRZ-001, API-P1-007, API-DRZ-001, DATA-P1-DRZ]
 downstream: [TEST-DRZ-DESIGN-001]
 ---
 
+> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
+
 # 模块 astrocs.phase1.drizzle
 
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）

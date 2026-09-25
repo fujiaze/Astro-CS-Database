@@ -41,7 +41,7 @@
 4. **「会被天光抬高的假信噪比」在一手来源里有明确证据**：PixInsight 官方文档自述其
    "standard SNR"（式[20]）的**分子是图像方差**，任何加性图像内容（官方举例：飞机尾迹）会
    "introduce a strong bias in the variance used as the numerator"。
-5. **AstroCS 的帧级 SNR 不能声称"沿用"上述任何一家**：可引的是**结构**（分子已扣背景、分母含天光散粒）
+5. **ACSD 的帧级 SNR 不能声称"沿用"上述任何一家**：可引的是**结构**（分子已扣背景、分母含天光散粒）
    与 **LSST SMTN-002 的帧级公式形状**；实现落点必须自己写并自己验证。
 
 ---
@@ -65,13 +65,13 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
 - **是否扣背景 / 天光如何进入**：`B` 是**每像素天光计数**，只出现在**分母**（`(B/g)·n_eff` = 天光泊松按有效像素数放大）。
   分子 `C` 是**源**计数（不含天光）。⇒ **天光只进分母、只进方差、绝不进分子。**
 - **借鉴点**：① 帧级 SNR 的**分子=源、分母=源泊松+（天光泊松+仪器噪声）×n_eff** 的结构，
-  正是 AstroCS 定案式的同构形式（把 `n_eff` 换成 PSF 的 `A_NEA = 1/ΣP_i²`）；
-  ② `n_eff` 与 PSF 面积挂钩（AstroCS 用 `A_NEA`）；
-  ③ 明确区分「帧级深度量」与「逐源测光量」——AstroCS 的 `frame_snr` 应当照此定位。
+  正是 ACSD 定案式的同构形式（把 `n_eff` 换成 PSF 的 `A_NEA = 1/ΣP_i²`）；
+  ② `n_eff` 与 PSF 面积挂钩（ACSD 用 `A_NEA`）；
+  ③ 明确区分「帧级深度量」与「逐源测光量」——ACSD 的 `frame_snr` 应当照此定位。
 - **不借鉴点**：① 它用于**巡天规划/深度**（输入是曝光级元数据），不是逐帧产品字段；
-  ② `n_eff = 2.266(FWHM/pixelScale)²` 是 LSST 的解析近似，AstroCS 的 PSF 是离散归一化 Moffat4，
-  应直接算 `A_NEA = 1/ΣP_i²` 而不是套这个系数；③ 它假设 gain 已知（AstroCS 的 FITS 头拿不到 gain，见 §5）。
-- **场景差异**：LSST 是巡天曝光级元数据；AstroCS 是单帧 CCD/CMOS 标准化，必须**从帧本身**估噪声。
+  ② `n_eff = 2.266(FWHM/pixelScale)²` 是 LSST 的解析近似，ACSD 的 PSF 是离散归一化 Moffat4，
+  应直接算 `A_NEA = 1/ΣP_i²` 而不是套这个系数；③ 它假设 gain 已知（ACSD 的 FITS 头拿不到 gain，见 §5）。
+- **场景差异**：LSST 是巡天曝光级元数据；ACSD 是单帧 CCD/CMOS 标准化，必须**从帧本身**估噪声。
 - **证据（逐字）**：见上引；`https://smtn-002.lsst.io/` HTTP 200，页面标注 DOI 10.71929/rubin/3408482。
 - **核对状态**：**已核对**（SMTN-002 页面 + `pipe_tasks` 源码 `grep -n` 行号 + commit 钉版本）。
 
@@ -97,7 +97,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
 - **不借鉴点**：① `SdssShape` 用被源污染的质心像素方差（源码自承高估）；
   ② `LocalBackground` 的 fluxErr 是环内**散度**而非均值标准误，语义易误读；
   ③ `Σvar·w²` 假定像素独立，不表达相关噪声。
-- **场景差异**：LSST 的 calexp 已由上游 ISR 建好方差图；AstroCS 必须自建。
+- **场景差异**：LSST 的 calexp 已由上游 ISR 建好方差图；ACSD 必须自建。
 - **核对状态**：**已核对**（`git clone --depth 1` 本地源码 + `grep -n` 行号 + 全仓库 grep 计数）。
 
 ### [A3] SDSS photoop / frames — Lupton et al. photo 论文草稿 + DR17 官方文档
@@ -116,7 +116,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
   **亮度相关的系统偏差**）；② `n²` 的分项清单（读出+暗流+天光光子）可直接作为方差分项模板。
 - **不借鉴点**：① 忽略源自身泊松；② 该文是**草稿**（正文含 `(XXX ...)` 占位），引用须声明；
   ③ 常数 `n²` 不表达天光空间结构。
-- **场景差异**：SDSS 是 TDI 漂移扫描 + 专用测光望远镜；AstroCS 单帧、无专用定标硬件。
+- **场景差异**：SDSS 是 TDI 漂移扫描 + 专用测光望远镜；ACSD 单帧、无专用定标硬件。
 - **核对状态**：**已核对**（PDF 下载 + pypdf 抽文定位 §5.1/§10.3.1；sdss4.org 与 data.sdss.org HTTP 200）。
   **待核对**：CAS `PhotoObj.psfFluxErr` 列文档（`skyserver.sdss.org` 本环境不可达：TLS unexpected eof / 502）。
 
@@ -133,7 +133,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
 - **借鉴点**：① 「分子扣背景 / 分母用背景 RMS 承载天光」的分离写法；
   ② **误差是下界的显式声明**（不夸大）—— 表述纪律值得抄。
 - **不借鉴点**：误差完全外包给 SExtractor 的局部背景 RMS，无逐像素解析方差；不含相关噪声/拥挤/定标误差。
-- **场景差异**：DES 是 coadd 星表级；AstroCS normalize 是单帧。
+- **场景差异**：DES 是 coadd 星表级；ACSD normalize 是单帧。
 - **核对状态**：**已核对**（官方 fork readthedocs HTTP 200；DR1/DR2 PDF 抽文；GitHub 配置文件 raw 200 + 行号）。
 
 ### [A5] Pan-STARRS IPP / psphot（SVN r43094）+ Magnier et al. 2020, ApJS 251, 5, arXiv:1612.05244
@@ -156,7 +156,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
   （严格应为 `Σ w_i²σ_i²`，LSST/JWST 都是平方形式）；
   ② **同名不同义**（CFF 的 `SN` 是 Kron、RAW 的 `SN` 是矩）；
   ③ 论文公式含 `s_i`（局部天光）但实现 `sky ≡ 0`，**文档/实现有落差**。
-- **场景差异**：psphot 面向 PS1 3π 多类产品，天光由上游统一扣；AstroCS 必须自己建模天光。
+- **场景差异**：psphot 面向 PS1 3π 多类产品，天光由上游统一扣；ACSD 必须自己建模天光。
 - **核对状态**：**已核对**（SVN `export/HEAD` 原文 HTTP 200 + `nl -ba` 行号；论文标题/DOI 经 arXiv API + Crossref
   `10.3847/1538-4365/abb82c` 双核）。**部分核对**：方差图是否含天光泊松仅由
   `psphotAddNoise.c:71-73` 注释 `weight = flux/gain + rn^2/g^2` 间接支持。
@@ -174,7 +174,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
   ② 对省略项（质心误差）显式声明。
 - **不借鉴点**：① 没有帧级 SNR 标量，**不能声称沿用 HSC 定义**；
   ② CModel/SdssShape 无误差定义，不能作模型测光 fluxErr 的文献依据。
-- **场景差异**：HSC 分 coadd 与 visit 两层；AstroCS normalize 是单帧。
+- **场景差异**：HSC 分 coadd 与 visit 两层；ACSD normalize 是单帧。
 - **核对状态**：**已核对**（ar5iv 全文逐字复核 Eq(28)/Eq(30)/Eq(32)/calexp 四处）。
   **待核对**：PASJ 卷页 "70, S5"（arXiv Journal-ref 为空；OUP 403 Cloudflare）。
 
@@ -191,8 +191,8 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
 - **借鉴点**：① 「误差数组 = 总误差、含源泊松、与 data 同形同单位」写成**显式输入契约**；
   ② 局部背景的**不确定度单独成列**，不偷偷混入 flux_err（可追溯性好）。
 - **不借鉴点**：① 无 SNR 输出；② flux_err **不含**局部背景扣除的不确定度；
-  ③ 误差正确性完全依赖上游 ERR，本步不做任何误差自检 —— AstroCS 没有上游，不能照搬。
-- **场景差异**：输入是已定标、已减背景、已 drizzle 的 i2d；AstroCS 处理原始单帧。
+  ③ 误差正确性完全依赖上游 ERR，本步不做任何误差自检 —— ACSD 没有上游，不能照搬。
+- **场景差异**：输入是已定标、已减背景、已 drizzle 的 i2d；ACSD 处理原始单帧。
 - **核对状态**：**已核对**（`main.rst:44-50` 与列清单逐字复核；`source_catalog.py` 全文 `snr` 0 命中为字符串计数结论）。
   **待核对**：master 分支 commit SHA（GitHub API 返回不含 sha），以文件行数+md5+文档版本号作锚点。
 
@@ -216,7 +216,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
   bias (usually no more than one to two percent)"）—— 对任何帧级 SNR 定义都是硬约束。
 - **不借鉴点**：① `R` 闭式解只在特定 dither 假设下成立；② 输出只有 SCI/WHT/CTX，**没有 ERR 扩展**；
   ③ IVM 的天光/暗流/读出都是**整帧标量**（`np.ones(shape)*标量`），无法表达天光梯度。
-- **场景差异**：HST 有几何畸变 + 亚像素 dither；AstroCS 若不做亚像素重采样则 `scale→1`、`W = 1/Var`。
+- **场景差异**：HST 有几何畸变 + 亚像素 dither；ACSD 若不做亚像素重采样则 `scale→1`、`W = 1/Var`。
 - **核对状态**：**已核对**（Confluence REST `body.view` 正文 + `imageObject.py:774-791` 逐字复核 + PDF 抽文互校）。
   **待核对**：STIS Data Handbook §2.5 的 ERR 数值定义。
 
@@ -347,12 +347,12 @@ term3 = (.01*flaterr*I)**2   ; term4 = (.01*proferr*M/p1/p2)**2
 - **SNR 定义**（最优提取）：`σ_F^-2 = Σ_i P_i²/σ_i²`，`SNR_F = F/σ_F`。
 - **是否扣背景 / 天光如何进入**：天光**均值**在提取前已从数据里扣除（提取的对象是扣背景后的谱）；
   天光**散粒**经 `σ_i²` 进分母。⇒ 均值不进分子、散粒进分母。
-- **借鉴点**：**AstroCS 逐源/帧级 SNR 的规范式就是这一条**；`1/ΣP_i² = A_NEA` 是它的白噪声特例。
+- **借鉴点**：**ACSD 逐源/帧级 SNR 的规范式就是这一条**；`1/ΣP_i² = A_NEA` 是它的白噪声特例。
 - **不借鉴点**：光谱（一维、按波长 bin）设定；`P_i` 已知且不随波长变的假设；不考虑相关噪声。
-- **场景差异**：AstroCS 是二维成像、`P` 用解析 Moffat4 近似。
+- **场景差异**：ACSD 是二维成像、`P` 用解析 Moffat4 近似。
 - **证据（逐字）**：Crossref `https://api.crossref.org/works/10.1086/131801` 逐字
   `"title":["An optimal extraction algorithm for CCD spectroscopy"],"container-title":["Publications of the Astronomical Society of the Pacific"],"volume":"98","page":"609","published-print":{"date-parts":[[1986,6]]}`。
-  **正文等式未逐字抓取**（PASP 闭源）—— 公式形式引自 AstroCS 前轮 `bibliography.md` 与本仓 `snr_science.cpp:4` 的实现注释，
+  **正文等式未逐字抓取**（PASP 闭源）—— 公式形式引自 ACSD 前轮 `bibliography.md` 与本仓 `snr_science.cpp:4` 的实现注释，
   **本条目只对书目记录做一手核对**。
 - **核对状态**：**书目已核对（Crossref）**；**正文等式号 待核对**。
 
@@ -389,7 +389,7 @@ term3 = (.01*flaterr*I)**2   ; term4 = (.01*proferr*M/p1/p2)**2
 - **借鉴点**：**"帧级 SNR 是点源（PSF）SNR，不是面亮度 SNR；两者不可混用"** 的一手论据；
   也是"逆方差换算 `w = SNR²/F_ref²` 只在 PSF 齐化后严格成立"的论据。
 - **不借鉴点**：高斯噪声假设、PSF 精确已知假设；background-dominated 极限。
-- **场景差异**：AstroCS 的 UPM 同时拟合 `g_k` 与空间场，不是单纯图像组合。
+- **场景差异**：ACSD 的 UPM 同时拟合 `g_k` 与空间场，不是单纯图像组合。
 - **核对状态**：**沿用本仓 `bibliography.md §1.2/§1.3` 的 `[CR, arXiv]` 核对结果**（前轮已核 DOI 10.3847/1538-4357/836/2/187 与 arXiv:1512.06872）；**本轮未重复抓取**（arXiv API 本轮返回解析失败，如实登记）。
 
 ### [C5] 等效噪声面积 `A_NEA = 1/Σ_i P_i²` — **未定位到一手出处**

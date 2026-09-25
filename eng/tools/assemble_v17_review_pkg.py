@@ -87,7 +87,25 @@ def copy_tree(src, dst):
     shutil.copytree(src, dst)
 
 
-def main():
+RETIRED_NOTICE = (
+    "ASSEMBLE_V17_REVIEW_PKG_RETIRED: 本工具（V17 True Final Freeze 审核包组装（zip + SHA256））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
+    "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
+    "  退役原因: ① 输出根 AstroCS_Review_TrueFinalFreeze_V17.zip（V17 世代交付形态） 在本世代不存在（无生产者/无消费者）；"
+    "② Oracle/矩阵行的 result=「PASS」 与「G1-G10 全部满足」等结论写死，无法从证据源复算 ⇒ 再跑一次就产出假绿。\n"
+    "  活动替代: 无（历史版本控制包与审阅胶囊均按负责人裁决作废）。\n"
+    "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/assemble_v17_review_pkg.py\n"
+    "  退役后行为: main() 打印本说明并 exit 2；原实现保留在 _legacy_main()（按复原命令取回）。"
+)
+
+
+def main() -> int:
+    """退役入口：显式失败（fail-closed，不 traceback、不伪装绿）。"""
+    print(RETIRED_NOTICE, file=sys.stderr)
+    return 2
+
+
+def _legacy_main() -> int:
     if STAGE.exists():
         shutil.rmtree(STAGE)
     (STAGE / "docs_snapshot").mkdir(parents=True)
@@ -340,4 +358,4 @@ source/canonical_core（Phase1+Phase2+shared+Browser）+ docs_snapshot。
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

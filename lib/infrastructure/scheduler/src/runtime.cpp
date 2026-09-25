@@ -116,6 +116,17 @@ class RuntimeImpl final : public Runtime {
         memory_limit_bytes_(rb.memory_limit_bytes),
         memory_source_(std::move(rb.memory_source)) {
     trace_store_ = std::make_shared<TraceStore>();
+    // ── MEMGOV-01: 内存压力治理器（ASTROCS_DESIGN.md §8.3:609-615 编排策略）──
+    // 预算**复用** astrocs::core::resolve_memory_budget 的结果（本层不重算预算、
+    // 不发明第二份口径）；压力分子来源由调用方注入。
+    MemoryBudget mb;
+    mb.limit_bytes = memory_limit_bytes_;
+    mb.source = memory_budget_source_from_name(memory_source_);
+    mb.available_bytes = rb.memory_available_bytes;
+    mb.percent = rb.memory_budget_percent;
+    governor_ = std::make_unique<MemoryPressureGovernor>(
+        mb, pressure_policy_from_config(), rb.rss_probe);
+    governor_->set_ledger_path(rb.pressure_ledger_path);
   }
   ~RuntimeImpl() override = default;
 
@@ -156,6 +167,8 @@ class RuntimeImpl final : public Runtime {
     // 上限来源 = RuntimeResourceBudget（由调用方按 配置/profile + 实测探测 解析，
     // 见 astrocs/core/memory_budget.h；本层不发明数值、不硬编码）。
     scheduler_ = std::make_unique<Scheduler>(budget_, budget_, memory_limit_bytes_);
+    // MEMGOV-01: 压力感知派发（就绪节点在压力高时不派发；帧轴经线程本地取用同一治理器）。
+    scheduler_->set_memory_governor(governor_.get());
     for (const auto& n : ir_.nodes) {
       Scheduler::NodeSpec spec;
       spec.node_id = n.node_id;
@@ -377,6 +390,11 @@ class RuntimeImpl final : public Runtime {
     j["memory_limit_bytes"] = scheduler_ ? scheduler_->memory_limit() : 0ull;
     j["memory_limit_bytes_requested"] = memory_limit_bytes_;
     j["memory_limit_source"] = memory_source_;
+    // MEMGOV-01: 压力治理观测面（压力实测值、水位、决策计数、台账路径）。
+    // 只读快照；不参与任何判据（§3.5 内存不设门），供判据与报告核对"治理确实生效"。
+    if (governor_) {
+      j["memory_pressure"] = json::parse(governor_->status_json(), nullptr, false);
+    }
     j["loaded"] = loaded_;
     j["nodes"] = json::array();
     for (const auto& [id, st] : statuses_) {
@@ -435,6 +453,7 @@ class RuntimeImpl final : public Runtime {
   std::string memory_source_ = "none";
   PipelineIR ir_;
   std::unique_ptr<Scheduler> scheduler_;
+  std::unique_ptr<MemoryPressureGovernor> governor_;  // MEMGOV-01（在 Scheduler 之前构造）
   ModuleRegistry registry_;
   std::vector<std::pair<std::string, NodeStatus>> statuses_;
   std::vector<std::pair<std::string, std::string>> node_manifests_;

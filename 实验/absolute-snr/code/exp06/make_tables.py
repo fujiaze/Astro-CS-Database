@@ -60,7 +60,7 @@ def table_arm_a(d: Dict[str, Any], out: List[str]) -> None:
     for f in d["frames"]:
         if f["scene"] not in scenes:
             scenes.append(f["scene"])
-    for target, tname in (("vs_T1_var_bg", "T1 = var_bg（空背景口径，AstroCS 冻结口径）"),
+    for target, tname in (("vs_T1_var_bg", "T1 = var_bg（空背景口径，ACSD 冻结口径）"),
                           ("vs_T2_var_local", "T2 = var_local（逐像素总方差口径）")):
         out.append("### A-%s 权重效率损失 E（中位；E=0 最优，尺度不变）\n" % tname.split(" ")[0])
         out.append("| 场景 | " + " | ".join(METHOD_LABEL.get(m, m) for m in ORDER) + " |")

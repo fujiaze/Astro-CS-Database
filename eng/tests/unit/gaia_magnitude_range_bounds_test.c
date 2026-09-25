@@ -75,7 +75,7 @@ static int write_xpsd(const char* path, const char* mag_decl, int nstars, int ma
             "<XPSDVersion=\"1.0\">\n"
             "<Data%s position=\"%010llu\" compression=\"raw\" itemSize=\"%d\"/>\n"
             "<Statistics totalSources=\"%d\"/>\n"
-            "<DatabaseIdentifier>AstroCS-P19-Test-GaiaDR3</DatabaseIdentifier>\n"
+            "<DatabaseIdentifier>ACSD-P19-Test-GaiaDR3</DatabaseIdentifier>\n"
             "<Tree projection=\"Equirectangular\" center=\"%017.12f,%017.12f\" "
             "rootPosition=\"%010llu\" nodeCount=\"1\"/>\n"
             "</XPSD>\n",

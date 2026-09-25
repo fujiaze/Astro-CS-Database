@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS RELEASE-02 / DATA-TYPE-MATRIX —— 可复用**物理噪声合成器**（论文方法节用）。
+"""ACSD RELEASE-02 / DATA-TYPE-MATRIX —— 可复用**物理噪声合成器**（论文方法节用）。
 
 本模块实现"真实物理实现"的正向噪声链（负责人 2026-09-19 强制要求，GAP_AUDIT §9.41/§9.47）：
 

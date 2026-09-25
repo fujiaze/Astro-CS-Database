@@ -159,7 +159,25 @@ def public_api_inventory() -> list[dict]:
     return out
 
 
+RETIRED_NOTICE = (
+    "GEN_V19_EVIDENCE_RETIRED: 本工具（V19 Round2 证据生成（shipping/warnings/deps/API/findings））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
+    "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
+    "  退役原因: ① 输出根 reports/v19r2/ 与 V19 证据树 在本世代不存在（无生产者/无消费者）；"
+    "② result 列写死 「WARNINGS=PASS (first-party zero)」，无法从证据源复算 ⇒ 再跑一次就产出假绿。\n"
+    "  活动替代: 依赖/告警/API 面由 DEPENDENCIES.md 生成器与各门现场复算。\n"
+    "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/gen_v19_evidence.py\n"
+    "  退役后行为: main() 打印本说明并 exit 2；原实现保留在 _legacy_main()（按复原命令取回）。"
+)
+
+
 def main() -> int:
+    """退役入口：显式失败（fail-closed，不 traceback、不伪装绿）。"""
+    print(RETIRED_NOTICE, file=sys.stderr)
+    return 2
+
+
+def _legacy_main() -> int:
     os.makedirs(QDIR, exist_ok=True)
     units = shipping_units()
     with open(os.path.join(QDIR, "shipping_units.csv"), "w", newline="",

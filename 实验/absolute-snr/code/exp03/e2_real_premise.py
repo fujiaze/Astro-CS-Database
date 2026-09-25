@@ -13,7 +13,7 @@
   P-C 区域化 sigma 的**跨帧一致性** vs **帧级标量口径**的对照；
   P-D 多帧最小二乘解出**逐帧**区域 sigma^2（>=3 帧的 panel）。
 
-只读 testdata；不修改任何文件；不运行任何 AstroCS 可执行文件。固定 seed = 20260925。
+只读 testdata；不修改任何文件；不运行任何 ACSD 可执行文件。固定 seed = 20260925。
 """
 
 from __future__ import annotations

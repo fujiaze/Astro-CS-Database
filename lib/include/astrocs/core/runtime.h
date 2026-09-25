@@ -16,6 +16,7 @@
 #include "astrocs/core/artifact.h"
 #include "astrocs/core/contracts.h"
 #include "astrocs/core/context.h"
+#include "astrocs/core/memory_pressure.h"
 #include "astrocs/core/module.h"
 #include "astrocs/core/pipeline.h"
 #include "astrocs/core/scheduler.h"
@@ -112,6 +113,16 @@ struct RuntimeResourceBudget {
   uint32_t cpu_budget = 1;
   uint64_t memory_limit_bytes = 0;
   std::string memory_source = "none";
+  // ── MEMGOV-01: 内存压力治理输入（全部可选；缺省 ⇒ 治理不启用，行为与注入前一致）──
+  // 压力分子来源（进程树 RSS）。生产由 CLI 侧注入 aio_process_tree_rss_bytes
+  // （aio 是文件级唯一 I/O 边界；core 不因此链接 astrocs_aio）。
+  // 为空 ⇒ 治理不启用，并落台账登记 governance_unavailable（不静默）。
+  RssProbe rss_probe = nullptr;
+  // 预算推导的输入回显（证据面；只进观测，不参与判定）。
+  uint64_t memory_available_bytes = 0;
+  uint32_t memory_budget_percent = 0;
+  // 压力事件台账路径（JSONL；空 ⇒ 只进内存缓冲，不落盘）。
+  std::string pressure_ledger_path;
 };
 
 // create_runtime(rb): 同上，但携带完整资源预算（生产路径唯一入口）。

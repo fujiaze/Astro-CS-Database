@@ -26,6 +26,7 @@
 #define ASTROCS_CORE_MEMORY_BUDGET_H
 
 #include <cstdint>
+#include <string>
 
 namespace astrocs::core {
 
@@ -44,6 +45,12 @@ enum class MemoryBudgetSource : std::uint8_t {
 };
 
 const char* memory_budget_source_name(MemoryBudgetSource s) noexcept;
+
+// 反函数（唯一实现）：把来源标签还原为枚举。未知标签 ⇒ NONE。
+// 存在理由：「限值」与「来源标签」在 CLI→Runtime 的既有合同面上是分开传的
+// （uint64_t + std::string），Runtime 侧需要把标签还原成枚举才能构造完整 MemoryBudget；
+// 该映射只此一处，不允许调用点各写一份（本项目反复出现的「两份实现」病根）。
+MemoryBudgetSource memory_budget_source_from_name(const std::string& name) noexcept;
 
 struct MemoryBudget {
   std::uint64_t limit_bytes = 0;        // 峰值工作集上限；0 = 不启用内存回压

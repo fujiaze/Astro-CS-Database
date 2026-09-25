@@ -24,7 +24,7 @@ SNR 公式里由 F*P_i/g 单独承载 —— 见 docs/plugins/algorithms_phase1/
   B3 **逐帧电平调制**：逐帧天光电平不同（真实 M42 帧实测差 35~136 ADU）时，
      区域 sigma 能否跟着逐帧电平走（这正是 UPM「多退少补」要处理的量）。
 
-固定 seed = 20260925。不运行任何 AstroCS 可执行文件。
+固定 seed = 20260925。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

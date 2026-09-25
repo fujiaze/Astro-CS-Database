@@ -31,7 +31,7 @@ for B in [0.0, 1000.0, 100000.0]:
             if var_mode == "oracle":     # 真值方差（固定权重，线性估计量）
                 var_i = (B+DARK+RN**2+F_E*Pf)/GAIN**2
                 w = 1.0/var_i; den=(Pf*Pf*w).sum(); F[k]=(Pf*w*dsub[k].ravel()).sum()/den
-            elif var_mode == "total":    # 经验总 σ + 源泊松（不另加 RN）—— AstroCS 正确口径
+            elif var_mode == "total":    # 经验总 σ + 源泊松（不另加 RN）—— ACSD 正确口径
                 Fk=0.0
                 for _ in range(2):
                     var_i = s_tot[k]**2 + np.maximum(Fk*Pf,0)/GAIN

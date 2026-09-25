@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS RELEASE-02 / **P7-SYNTHETIC-NOISE** —— 噪声合成器的**独立方法自校验**。
+"""ACSD RELEASE-02 / **P7-SYNTHETIC-NOISE** —— 噪声合成器的**独立方法自校验**。
 
 定位
 ----

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # EXP-05（SNR-ABS-DERIVE-01）一键复跑：推导「稀疏层存绝对 SNR」是否正确的三类数据实验。
 # 固定 seed（SEED=20260926）；全部只读依赖 实验/shared 与 exp02/exp03 的公共库。
-# 不运行任何 AstroCS 可执行文件；不使用 ulimit -v；无 git 写操作。
+# 不运行任何 ACSD 可执行文件；不使用 ulimit -v；无 git 写操作。
 set -euo pipefail
 cd "$(dirname "$0")"
 

@@ -83,7 +83,7 @@ POD（DLL 仅写不 malloc，无堆所有权转移）；inlier 缓冲调用方�
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-P1-WCS-001` 对应测试(逐任务 TASK_RESULT 证据); 容差=验收冻结。
+测试标识=`TEST-P1-WCS-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase1.wcs-platesolve.verification 条目）；容差=NOT_VERIFIED（同上）。
 测试设计=TEST-WCS-DESIGN-001（PLATESOLVE.md §11.4：合成线性场
 rms≤0.5″/astropy SIP oracle ≤1e-4 px/CRPIX 不变量/失败语义负例含
 CD 退化注入/bitwise 确定性/WcsTan roundtrip <1e-6 deg + 独立前向交叉

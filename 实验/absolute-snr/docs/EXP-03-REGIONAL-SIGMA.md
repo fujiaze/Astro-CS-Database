@@ -6,7 +6,7 @@
 > 上游缺陷来源：`实验/absolute-snr/docs/EXP-02-STRUCTURE-CONTAMINATION.md`
 > 权威依据：`AGENTS.md` §5／§8、`ASTROCS_DESIGN.md` §2.2、§5.3、§5.4、§12.1、§12.2、§12.3、`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a／§4.3／§4.5、`docs/science/NOISE_MODEL.md`、`docs/science/CONTROL_WEIGHT_SNR.md`
 > 固定 seed：**20260925**｜本单元**只读** `lib/**`、`eng/**`、`docs/**`、`testdata/**`、`实验/shared/**`
-> **不运行任何 AstroCS 可执行文件**；**不使用 `ulimit -v`**；无 git 写操作；**不运行 `eng/tools/round_start.sh`**。
+> **不运行任何 ACSD 可执行文件**；**不使用 `ulimit -v`**；无 git 写操作；**不运行 `eng/tools/round_start.sh`**。
 
 ---
 
@@ -67,7 +67,7 @@
 ### 1.3 只读边界
 
 - **不改**生产代码（`lib/**`、`eng/**`、`docs/**`、`CMakeLists.txt` 全程只读）；
-- **不运行**任何 AstroCS 可执行文件；**不使用 `ulimit -v`**；**不执行 git 写操作**；**不运行 `eng/tools/round_start.sh`**；
+- **不运行**任何 ACSD 可执行文件；**不使用 `ulimit -v`**；**不执行 git 写操作**；**不运行 `eng/tools/round_start.sh`**；
 - `testdata/**`、`实验/shared/**` 只读；新增产物全部落 `实验/absolute-snr/{code/exp03,results,docs}/`，日志落 `run/SCI-B-EXP-03/logs/`；
 - 全部外部命令带 `timeout` + `/usr/bin/time -v` 记峰值 RSS；本单元实测峰值 **≤ 3.17 GB**（真实数据臂 4096² 多帧对齐）。
 
@@ -513,16 +513,16 @@ EXP-02 的 F1 用的就是 `box=64, filter_size=3, n_iter=2~3` —— **与本�
 | Siril 1.2.4 | 25×25 样本框 | 样本 median | 三个口径并存：`sigma`(全体 RMS)/`mad`(×1.4826)/**`bgnoise`=0.7071×跨行中位数(σ-clipped 一阶差分 RMS)** | 全局多项式 | **标量** | `src/algos/quantize.c:276,324,1351,1494` |
 | ccdproc 2.5.1 | box/滑窗 | **无** | `1.482602218505602 × MAD` | box 填充或滑窗 | **二维图** | `ccdproc/core.py:1019-1043,1093,1134` |
 | Montage | — | **无局部天光** | **无**（只有 plane-fit 残差 RMS） | 每图一平面 | **N/A** | `mFitplane.c:473-537`；`mBgModel.c:1260-1344` |
-| **AstroCS 现行** | 整帧全部像素 | — | 2 轮 `median ± 3·1.4826·MAD` 裁剪 **RMS** | **无（整帧一个标量）** | **标量/帧** | `star_detector.cpp::estimate_background` |
+| **ACSD 现行** | 整帧全部像素 | — | 2 轮 `median ± 3·1.4826·MAD` 裁剪 **RMS** | **无（整帧一个标量）** | **标量/帧** | `star_detector.cpp::estimate_background` |
 
 **一句话对照**：**所有被调研的实现都把 σ 的空间结构当作一等公民** —— 要么逐星（DAOPHOT）、要么逐 mesh 图（photutils/ProFound/Gnuastro/LSST）、
-要么跨 mesh 中值但仍带全分辨率 σ 图的能力（SExtractor/SEP/SWarp）。**只有 AstroCS 现行把整帧压成一个标量。**
+要么跨 mesh 中值但仍带全分辨率 σ 图的能力（SExtractor/SEP/SWarp）。**只有 ACSD 现行把整帧压成一个标量。**
 
 ### 6.2 「逐源/逐区域 SNR」的标准做法 —— **关键是 sky 方差项的「空间作用域」**
 
 > **★ 结构性结论**：经典文献给出的不是「一个 σ_sky 数」，而是「**天光估计面积**与**目标求和面积**之比」。
 > Newberry 1991 的 `(1 + 1/p)` 与 Naylor 1998 的 `N_S/N_A ≳ 100` 都是这个比值 —— 这正是"区域化"在文献里的原始形态。
-> AstroCS 现行把 `σ_sky` 写成整帧标量、作用域隐含为「整帧」，**在文献里找不到对应物**。
+> ACSD 现行把 `σ_sky` 写成整帧标量、作用域隐含为「整帧」，**在文献里找不到对应物**。
 
 | 出处 | 信号估计量 | 方差 / SNR | **sky 方差项的空间作用域** |
 |---|---|---|---|
@@ -530,7 +530,7 @@ EXP-02 的 F1 用的就是 `box=64, filter_size=3, n_iter=2~3` —— **与本�
 | **Newberry 1991**（CCD 方程）PASP **103**, 122；DOI [10.1086/132801](https://doi.org/10.1086/132801) | `C₀ = Σ[C_{0+s} − C_{s,e}]` | `S/N = C₀/[C₀ + n(f_s+B²)(1+1/p)]^{1/2}` | **`n/p`**：n = 孔径内像素数，**p = 用于估计天光的背景像素数**。原文 p.124 逐字："The variance in the sky level estimated for each of the η pixels underneath the object is therefore **reduced by a factor of 1/p**" |
 | **Naylor 1998**（成像最优提取）MNRAS **296**, 339；DOI [10.1046/j.1365-8711.1998.01314.x](https://doi.org/10.1046/j.1365-8711.1998.01314.x) | `F = Σ W(D−S)` | `var[F] = Σ W²V` | **`N_A/N_S`，且给出显式不等式**：`N_A√V_s/√N_S < √(N_A V_s)/10` ⇒ **`N_S/N_A ≳ 100`**；原文："**a ratio of 200 is normally close to the required accuracy**" |
 | **Howell 1989**（二维孔径测光 S/N）PASP **101**, 616；DOI [10.1086/132477](https://doi.org/10.1086/132477) | 孔径求和 | **eq. (1)**（传统 CCD 方程）：`S/N = N*/sqrt(N* + n_pix(N_s + N_d + N_r²))` | **无 sky 项**（隐含"背景无限精确"）。R2/T1 一手核验：全文**只有一个编号公式**，不含 `n_sky` |
-| **Merline & Howell 1995** Exp. Astron. **6**, 163；DOI [10.1007/BF00421131](https://doi.org/10.1007/BF00421131) | 孔径求和 | **eq. (25)**（revised CCD equation）：`S/N ≃ N*/sqrt(N* + n_pix(1 + n_pix/n_B)(N_S + N_D + N_R² + G²σ_f²))` | **`n_pix(1 + n_pix/n_B)`，且该因子乘在【整个逐像素方差括号】上**（含读噪/量化），不只是天空项 —— AstroCS 生产实现采用的正是这个形式 |
+| **Merline & Howell 1995** Exp. Astron. **6**, 163；DOI [10.1007/BF00421131](https://doi.org/10.1007/BF00421131) | 孔径求和 | **eq. (25)**（revised CCD equation）：`S/N ≃ N*/sqrt(N* + n_pix(1 + n_pix/n_B)(N_S + N_D + N_R² + G²σ_f²))` | **`n_pix(1 + n_pix/n_B)`，且该因子乘在【整个逐像素方差括号】上**（含读噪/量化），不只是天空项 —— ACSD 生产实现采用的正是这个形式 |
 | SExtractor ≥2.x | 逐 mesh 背景 + 双三次样条 | 逐 mesh σ → `backrmsline` | **逐像素**（mesh 上的 σ 插值到全图） |
 | photutils 2.x `Background2D` | 逐 box 背景 + 插值 | `background_rms` **二维图** | **逐像素** |
 | LSST afw `BackgroundMI` | 逐 cell MEANCLIP | `getStatsImage()` 的 variance 平面 | **逐 mesh**（插值后成图） |
@@ -571,9 +571,9 @@ EXP-02 的 F1 用的就是 `box=64, filter_size=3, n_iter=2~3` —— **与本�
 ⇒ **本单元 §4 给出的三项误差-尺度关系式（结构泄漏 / 1/(√2B) / 尺度分辨率）本身就是一个可用的选取准则**，
 且其中两项（② ③）**无需真值即可在现场计算**。这是对「无一手理论依据」的补位，不是引用。
 
-### 6.4 与 AstroCS 现行做法的差异（逐条）
+### 6.4 与 ACSD 现行做法的差异（逐条）
 
-| 维度 | 主流共识 | AstroCS 现行 | 差异的后果 |
+| 维度 | 主流共识 | ACSD 现行 | 差异的后果 |
 |---|---|---|---|
 | σ 的作用域 | 逐星（DAOPHOT）或逐 mesh/逐 box 图 | **整帧标量** | M42 类帧上偏 +117%~+133%（HST 前臂实测） |
 | 局部背景模型 | mesh 中值/众数、低阶多项式、环带 | **无**（生产路径直接在原始像素上裁剪） | 结构污染（EXP-02 已证） |
@@ -590,7 +590,7 @@ EXP-02 的 F1 用的就是 `box=64, filter_size=3, n_iter=2~3` —— **与本�
 
 ⇒ **工业界标准做法就是「标量给阈值、图给测光」两条并存**，而不是二选一。
 这与 DAOPHOT 的分工（全局 `SKY` → `FIND` 阈值；逐源环 → 测光）完全同构。
-**AstroCS 缺的正是「图给测光」这一半。**
+**ACSD 缺的正是「图给测光」这一半。**
 
 ### 6.6 独立文献证据：**「同一位置的天光跨帧相同」在宽带光学下不成立**（与本单元 §2.5 实测一致）
 
@@ -610,7 +610,7 @@ EXP-02 的 F1 用的就是 `box=64, filter_size=3, n_iter=2~3` —— **与本�
 1. **§2.5 的「电平不成立」有独立文献支撑**：宽带 5–10%/28 min 与本单元实测 2.9%~6.3%/跨夜 33~101 ADU 同量级；
 2. **「空间形态成立」也有支撑**：Watkins 2024 逐字说单帧内天光是**平的** ⇒ 天光的空间变化发生在**帧间**（时间），不是帧内 —— 这正是「位置稳定分量」的物理来源；
 3. ⇒ **本单元的口径与文献一致**：**不要把「帧间天光恒定」当前提**；把 σ_sky 建成「位置函数 × 逐帧电平」（§2.5、§5.3）才是与文献相符的做法。
-   AstroCS 的 UPM「多退少补」（§5.4）正是处理这个逐帧电平项的机制。
+   ACSD 的 UPM「多退少补」（§5.4）正是处理这个逐帧电平项的机制。
 
 > **口径警告（引用时必须带上）**：Nguyen 的 0.56% 是 **Meinel 线间窄窗口**，原文明确不可外推到宽带；
 > Roellinghoff 的 5–10% 是**模型残差**（含系统误差），是**上界**；Patat 的夜际值是**测光夜**的中天光亮度散布。
@@ -825,7 +825,7 @@ Phase2（多帧）：在天球像素/控制点聚合「同一天区的帧集合�
 5. **含星区域的尾部污染未定量建模**：HST 臂实测 R2 的 p95 从 5.0%（无星）涨到 25.8%（+80 星）。本单元**没有**做星点掩膜后的重跑；
 6. **σ(x,y) 与局部背景电平的物理关系未建立**：尝试用 `σ² = a + b·B_local` 拟合真实帧失败（隐含 gain 荒谬、残差 RMS/信号 3.2~11.3）。合理解释是 mesh 中位数在强梯度区不代表局部均值、且残差含星翼。**「σ 由电平决定」是未验证假设，不得引用**；
 7. **网格参数未做联合最优化**：`box`、`filter_size`、`n_iter`、`k` 只做了有限扫描（box ∈ {16..512}），未评估 `BACK_SIZE` 过小导致的展源过减风险（Watkins 2024 反向条款）；
-8. **本单元未运行任何 AstroCS 可执行文件** ⇒ 生产代码实际产出的 `noise_sigma` 与本单元镜像一致只有**源码级 + 数值级**证据（EXP-02 §3.4），**没有**端到端运行证据；
+8. **本单元未运行任何 ACSD 可执行文件** ⇒ 生产代码实际产出的 `noise_sigma` 与本单元镜像一致只有**源码级 + 数值级**证据（EXP-02 §3.4），**没有**端到端运行证据；
 9. **SExtractor/photutils/Gnuastro/LSST 的代码行号由子代理核验**，本单元**未独立重跑**它们的可执行文件（本环境无 photutils/sep/reproject）；
 10. **本单元未经独立子代理审稿**（按 `AGENTS.md` §5 应经第三方复核）。两份文献调研由两个独立子代理完成，**主结论（前提实证 + 口径 + 误差界 + 判据）尚未经第三方复核**，建议前台在提交前补一轮；
 11. **A1 负例在 box=16 上不归零**（−0.395% ± 0.051%，超出 3σ）：根因是区域样本 256 px 太少导致裁剪低偏增大，已如实登记，**未做**解析订正；
@@ -840,7 +840,7 @@ Phase2（多帧）：在天球像素/控制点聚合「同一天区的帧集合�
 5. **Byun et al. 2018 的任务书标题** —— 错（正确标题见 §6.2）。
 6. **不存在基于天光功率谱 / 相关长度的 mesh 尺度理论**（arXiv + OpenAlex 8 组检索式全部 0 或无关命中）；**也不存在「mesh 尺度 ↔ 展源过减量」的显式定量关系式**（21 条 arXiv + 8 条 Web 检索 + 12 篇 PDF 全文扫描）。
 7. Montage「v6.1」—— 未能一手证实。ProFound 引用的 Irwin 1985 —— 未能一手核验。
-8. **AstroCS `sky_plane.cpp` 的 `k_corr = 1.4`** —— 无一手出处。
+8. **ACSD `sky_plane.cpp` 的 `k_corr = 1.4`** —— 无一手出处。
 9. Stetson 1987 / DAOPHOT II 手册中的 `σ_sky/√N` —— **不存在**；IRAF 的 `σ²A²/nsky` 是**代码事实**（`apcomags.x:49`），手册未写。
 10. 中位数方差的规范教科书一手来源 —— 未能打开；支撑 = 渐近公式自含推导 + LSST 代码 + [arXiv:2107.03403](https://arxiv.org/abs/2107.03403)。
 11. **SDSS sky box 尺度未取得一手全文**（Stoughton et al. 2002 的 ADS 与 IOP 均 403）；「100″ ≈ 252 px 中值滤波」只是 Akhlaghi & Ichikawa 2015 §B.1 的**二手描述**。
@@ -869,7 +869,7 @@ Phase2（多帧）：在天球像素/控制点聚合「同一天区的帧集合�
 ## 10. 复现命令
 
 全部命令在 `实验/absolute-snr/` 下执行；外部命令一律带 `timeout`，RSS 由 `/usr/bin/time -v` 记录。
-**不使用 `ulimit -v`**；**不运行任何 AstroCS 可执行文件**；固定 seed = **20260925**。
+**不使用 `ulimit -v`**；**不运行任何 ACSD 可执行文件**；固定 seed = **20260925**。
 
 ```bash
 cd "实验/absolute-snr"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""M16-SAMPLING 重建驱动：仿真采样帧 -> AstroCS normalize -> mosaic -> export -> 与真值比对。
+"""M16-SAMPLING 重建驱动：仿真采样帧 -> ACSD normalize -> mosaic -> export -> 与真值比对。
 
 用法::
 

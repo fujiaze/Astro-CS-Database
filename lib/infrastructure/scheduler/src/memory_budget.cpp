@@ -2,6 +2,8 @@
 // 层次合同与规范依据见 lib/include/astrocs/core/memory_budget.h。
 #include "astrocs/core/memory_budget.h"
 
+#include <string>
+
 // 比例默认值的唯一数值源（CMake 从 eng/packaging/config/runtime_resources.json 生成）。
 #include "runtime_resources_generated.h"
 
@@ -17,6 +19,12 @@ const char* memory_budget_source_name(MemoryBudgetSource s) noexcept {
     case MemoryBudgetSource::NONE: break;
   }
   return "none";
+}
+
+MemoryBudgetSource memory_budget_source_from_name(const std::string& name) noexcept {
+  if (name == "probe") return MemoryBudgetSource::PROBE;
+  if (name == "invalid_percent") return MemoryBudgetSource::INVALID_PERCENT;
+  return MemoryBudgetSource::NONE;
 }
 
 MemoryBudget resolve_memory_budget(std::uint64_t available_bytes,

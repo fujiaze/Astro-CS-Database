@@ -10,7 +10,7 @@
 | 文件 | 作用 |
 |---|---|
 | `frame_snr_canon.py` | 解析内核：离散归一化 Moffat4、`A_NEA`、逐像素方差、最优提取方差、canon SNR、三个**红例定义**、合成帧 |
-| `frame_snr_physical.py` | **物理前向模型**仿真（Poisson 源/天光/暗流 + 高斯读出 + 增益量化 + 平场 + 梯度）与 AstroCS 等价估计量 |
+| `frame_snr_physical.py` | **物理前向模型**仿真（Poisson 源/天光/暗流 + 高斯读出 + 增益量化 + 平场 + 梯度）与 ACSD 等价估计量 |
 | `run_redlines.py` | 解析红线 T8–T12（不依赖外部库） |
 | `run_redlines_physical.py` | 物理红线 P8–P14（**核心**） |
 | `crosscheck_photutils.py` | 与 `photutils` / `sep` / SExtractor(源码级) 对拍 |

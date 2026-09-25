@@ -19,7 +19,7 @@
     sigma_R  [e-]         读出噪声（高斯，电子域）
     g        [e-/ADU]     转换增益（**含 ADU 量化**：round(I_e/g)）
 
-被检验的估计量（"AstroCS 等价管线"，**全部从数据估计，不用真值**）：
+被检验的估计量（"ACSD 等价管线"，**全部从数据估计，不用真值**）：
     1) 局部背景 b_hat = 天空环像素**中位数**                       [ADU]
     2) F_hat = sum_i P_i (I_i - b_hat)/sigma_i^2 / sum_i P_i^2/sigma_i^2
     3) sigma_i^2 = sig_sky_hat^2 + (sigma_R/g)^2 + max(F_hat,0)*P_i/g   [ADU^2]
@@ -136,7 +136,7 @@ def estimate_snr(
     n_iter: int = 3,
     mode: str = "canon_full",
 ) -> dict:
-    """AstroCS 等价管线：局部背景中位数 + PSF 加权最优提取 + 逐像素方差模型。
+    """ACSD 等价管线：局部背景中位数 + PSF 加权最优提取 + 逐像素方差模型。
 
     mode:
       "canon_full"           : sigma_i^2 = sig_sky^2 + (RN/gain)^2 + F_hat*P_i/gain

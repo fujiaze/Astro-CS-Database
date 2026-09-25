@@ -1,12 +1,14 @@
 ---
 id: MOD-astrocs-phase2-resample
 version: 1.0.0
-status: ACTIVE
+status: NOT_VERIFIED
 owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
+source_commit: 822b9c5391a14cc36979a7c550984f6ce363c713
 upstream: [SCI-P2-RES-001, ALG-P2-RES-001, API-P2-001]
 downstream: [TEST-P2-RES-001]
 ---
+
+<!-- GENERATED-ANCHOR tool=eng/tools/quality/gen_module_readmes.py tool-sha256=4fb971add4d7449dd4b58ca4d2af74c7b8eaeca5924ec940b488dcda0f864402 source=lib/infrastructure/scheduler/src/module_adapters.cpp source-sha256=db3a8ed2fc7e26f232145d7e1e8b020f17c5a555f156a10290aec2a630c29979 ownership=docs/DOCUMENT_INDEX.yaml status=GENERATED evidence=eng/ci/ledgers/module_page_evidence.json evidence-sha256=- regenerate="python3 eng/tools/quality/gen_module_readmes.py" not-verified=status,determinism,verification,tolerance body-sha256=5689e6a29d554acc4cc24d8a145219604bab6211c0a079475a8a9a8e1432c66f -->
 
 # 模块 astrocs.phase2.resample
 
@@ -39,7 +41,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=固定顺序输出(1/N 等价已验)。
+确定性=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json(absent) 无 astrocs.phase2.resample.determinism 条目）。
 
 ## 内存/cache/I-O/所有权
 
@@ -51,7 +53,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-P2-RES-001` 对应测试(逐任务 TASK_RESULT 证据); 容差=验收冻结。
+测试标识=`TEST-P2-RES-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json(absent) 无 astrocs.phase2.resample.verification 条目）；容差=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json(absent) 无 astrocs.phase2.resample.tolerance 条目）。
 
 ## 已知限制
 

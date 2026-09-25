@@ -7,7 +7,7 @@
 在真实结构（含未分辨亮源、星云边缘）上检验物理重建的稳健性。
 
 只读 import 仓内共享仿真器 实验/shared/synthetic/{render.py,noise_model.py}。
-固定 seed：20260927。不运行任何 AstroCS 可执行文件。
+固定 seed：20260927。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

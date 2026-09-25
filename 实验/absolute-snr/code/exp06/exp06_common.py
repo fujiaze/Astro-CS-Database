@@ -19,16 +19,16 @@
   报告时取 F_ref = 1 ADU、A_NEA = 1 px 的规范口径，并显式给出换算 SNR = 1/sigma。
 * **两个真值口径必须分开登记**（本单元的核心澄清之一）：
   - T1 = var_bg：**空背景口径**（天光 + 暗流 + 读出 + 量化），**不含源自身泊松**
-    —— 这是 AstroCS 帧级 SNR 的冻结口径（NOISE_MODEL 9a、frame-snr-canon 1.2 第 4 条）；
+    —— 这是 ACSD 帧级 SNR 的冻结口径（NOISE_MODEL 9a、frame-snr-canon 1.2 第 4 条）；
   - T2 = var_local：**逐像素总方差口径**（再加源自身泊松 src_e/g^2）
     —— 这是「逐像素逆方差最优加权」在数学上需要的量。
   两者在源像素上差异巨大，本单元**同时报告**，不得只报一个。
 * **caliber P**（逐像素显著性 I(p)/sigma(p)）在本单元只作为**错误臂**出现：
-  它不是 AstroCS 的 SNR 口径（frame-snr-canon 1.3 RED-A/RED-B），
+  它不是 ACSD 的 SNR 口径（frame-snr-canon 1.3 RED-A/RED-B），
   但正是「逐像素代入亮度 ⇒ 星点异常高信噪比」这一失效模式所在的口径。
 
 只读边界：只 import 既有单元的公共库（exp02/exp03/exp05、exp04/operators、shared/synthetic），
-不修改、不复制它们的任何文件；不运行任何 AstroCS 可执行文件；无 git 写操作。
+不修改、不复制它们的任何文件；不运行任何 ACSD 可执行文件；无 git 写操作。
 固定 seed：SEED = 20260927。
 """
 

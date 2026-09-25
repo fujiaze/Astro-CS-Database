@@ -214,7 +214,7 @@ jobs:
             summary_text="$(head -c 2000 public-results/FATDUCK_PUBLIC_SUMMARY.json)"
           fi
           body="$(printf '%s\n' \
-            "AstroCS Fatduck 真实数据校验通过（自动通知）。" \
+            "ACSD Fatduck 真实数据校验通过（自动通知）。" \
             "" \
             "- source SHA: \`$SOURCE_SHA\`" \
             "- 公开结果 artifact（含 JPG，名称 \`fatduck-public-$SOURCE_SHA\`）: $RUN_URL#artifacts" \

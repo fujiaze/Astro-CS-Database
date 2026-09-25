@@ -345,7 +345,7 @@ static int fix_write_xpsd(const char *dir, const char *name, const char *db_id,
         o += snprintf(xml + o, sizeof(xml) - (size_t)o,
             "<Statistics totalSources=\"%d\"/>\n", file_nstars);
         o += snprintf(xml + o, sizeof(xml) - (size_t)o,
-            "<DatabaseIdentifier>AstroCS-Test-Fixture-%s-Seed%llu</DatabaseIdentifier>\n",
+            "<DatabaseIdentifier>ACSD-Test-Fixture-%s-Seed%llu</DatabaseIdentifier>\n",
             db_id, (unsigned long long)FIX_SEED);
         for (int t = 0; t < ntree; t++)
             o += snprintf(xml + o, sizeof(xml) - (size_t)o,
@@ -481,7 +481,7 @@ static int fix_write_truncate(const char *dir, int nstars) {
             "<Data magnitudeRange=\"10.0,20.0\" position=\"%010llu\" compression=\"zlib+sh\" "
             "itemSize=\"32\"/>\n"
             "<Statistics totalSources=\"%d\"/>\n"
-            "<DatabaseIdentifier>AstroCS-Test-Fixture-GaiaDR3-Trunc-Seed%llu</DatabaseIdentifier>\n"
+            "<DatabaseIdentifier>ACSD-Test-Fixture-GaiaDR3-Trunc-Seed%llu</DatabaseIdentifier>\n"
             "<Tree projection=\"Equirectangular\" center=\"%017.12f,%017.12f\" "
             "rootPosition=\"%010llu\" nodeCount=\"1\"/>\n"
             "</XPSD>\n",

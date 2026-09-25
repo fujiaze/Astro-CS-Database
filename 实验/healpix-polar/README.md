@@ -2,7 +2,7 @@
 
 ## 这是什么
 
-AstroCS 的 `mosaic` 阶段把源帧 drizzle 到 HEALPix 网格时，需要精确计算"源像元 drop 足迹 × HEALPix 叶单元"的球面交叠面积。
+ACSD 的 `mosaic` 阶段把源帧 drizzle 到 HEALPix 网格时，需要精确计算"源像元 drop 足迹 × HEALPix 叶单元"的球面交叠面积。
 本单元回答：**为什么该算法在极点破门、正确的极区算法是什么、各方案代价与适用域、以及"角点路径 ~1e-5 触底"的根因**。
 
 - 报告：`docs/EXP-07-POLAR.md`

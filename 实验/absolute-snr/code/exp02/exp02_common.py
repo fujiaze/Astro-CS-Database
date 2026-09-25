@@ -3,7 +3,7 @@
 """EXP-02 公共库：生产天光估计器的**独立重写** + 结构感知候选估计器 + 判据。
 
 设计原则（AGENTS.md §5「不以当前程序输出生成唯一 expected」）：
-  * 本模块**不 import 生产代码、不运行任何 AstroCS 可执行文件**；
+  * 本模块**不 import 生产代码、不运行任何 ACSD 可执行文件**；
   * 生产 recipe 依据 lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp
     的 StarDetector::estimate_background（按符号名定位）逐字重写，并给出代码锚；
   * 与 EXP-01 的 exp01_common.production_clip_sigma 做**独立交叉核对**

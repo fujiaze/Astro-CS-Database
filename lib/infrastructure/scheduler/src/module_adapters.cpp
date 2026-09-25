@@ -54,6 +54,9 @@
 
 #include "astrocs/common_abi_v1.h"
 #include "astrocs/core/context.h"
+// MEMGOV-01: 帧轴内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略）。
+// 调度器在执行本节点前经 GovernorScope 绑定线程本地治理器，帧轴在此就近取用。
+#include "astrocs/core/memory_pressure.h"
 // P3-STREAM-01：ARCH-504 export 子块流式调度器（生产接线点 = phase3 writer 节点）。
 // 依据 ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写 FITS，
 // 有界队列 + 背压，不整幅驻留」+ docs/contracts/SCHEDULER_CONTRACT.md §2。
@@ -1823,6 +1826,77 @@ static uint32_t p1_axis_env_u32(const char* name) {
   return static_cast<uint32_t>(std::min<unsigned long long>(x, 4096ull));
 }
 
+// ── MEMGOV-01: 帧轴内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略）──────
+// 落实最高设计 §8.3 的三条策略在**帧级并行轴**上的语义：
+//   :612「探针校正」  —— 压力实测（进程树 RSS / 预算）与每次决策随事件流落盘
+//   :613「异步并行」  —— 「预算充裕」由实测压力判定（不再是一次性静态快照）
+//   :614「可中断排队」—— 压力跨高水位 ⇒ 帧轴**不派发**新的在飞帧（在途跑完再考虑）
+//   :615「可丢弃重跑」—— 高压持续 ⇒ 丢弃**进度最低**的在飞帧并释放其占用，
+//                        该帧随后重新开始（本文件用 deferred 通道重跑）
+// 归属与依据: 帧级并发是「内存闸门 × Runtime lease」两轴之一（§8.3:680）；本函数是
+// P1 帧级并发的**唯一**派发点（7 个 op 共用），故治理只在此处接线一次。
+//
+// 安全前提（资格来自逐 op 帧体调研，见 run/MEMGOV-01/REPORT.md §3）：
+//   帧体只在**丢弃安全点**调用 p1_frame_should_abandon()，该点满足两条：
+//     ① 尚未落盘任何本帧产物（原子提交点之前）；
+//     ② 尚未进入 noise floor 全局注册表的「注册→释放」区间（noise 6774-6828 /
+//        drizzle 7689-7888）—— 该注册表以**帧体栈地址**为键，中途放弃会留下悬挂键
+//        并改变**下一帧**的方差数值（科学面污染），故列为不可放弃区间。
+//   越过安全点后帧体会调用 mark_committed ⇒ 立即退出牺牲帧候选集。
+//   ⇒ 被丢弃的帧必然「零产物 + 零跨帧状态变更」，重跑是幂等的。
+namespace {
+
+// 帧轴治理报告（逐 op 一份；写台账 + 供诊断）
+struct P1FrameAxisReport {
+  // 多 worker 并发累加 ⇒ 原子（报告本身是诊断面，不参与调度判定）。
+  std::atomic<uint64_t> governed_claims{0};  // 经治理登记的认领数
+  std::atomic<uint64_t> gated{0};            // 因压力被挡下的派发次数（§8.3:614）
+  std::atomic<uint64_t> abandoned{0};        // 被丢弃的帧数（§8.3:615）
+  std::atomic<uint64_t> reruns{0};           // 重跑次数（§8.3:615「随后重新开始」）
+  std::atomic<uint64_t> escapes{0};          // 无在飞帧时的放行次数（防挂死；落台账）
+  std::atomic<uint64_t> completed{0};        // 最终完成的帧数
+};
+
+// 线程本地当前帧上下文（帧体内安全点据此判定是否被丢弃）
+struct P1FrameCtx {
+  astrocs::core::MemoryPressureGovernor* gov = nullptr;
+  uint64_t ticket = 0;
+  bool abandoned = false;
+};
+thread_local P1FrameCtx* t_p1_frame_ctx = nullptr;
+
+// P1 规范节点链序号（与 build_pipeline_ir 的 phase1_nodes 逐字一致：
+// cal → cos → wcs → psf → phot → snr → drz → wr）。未知节点 ⇒ (0,0) 并如实登记。
+uint32_t p1_dag_stage_index(const std::string& node, uint32_t* total) {
+  static const char* kChain[] = {"cal", "cos", "wcs", "psf",
+                                 "phot", "snr", "drz", "wr"};
+  const uint32_t kTotal = 8;
+  for (uint32_t i = 0; i < kTotal; ++i) {
+    if (node == kChain[i]) { *total = kTotal; return i + 1; }
+  }
+  *total = 0;
+  return 0;
+}
+
+}  // namespace
+
+// 帧体内的**丢弃安全点**（§8.3:615）。返回 true ⇒ 本帧已被选为牺牲帧，帧体必须
+// 立即 return，由帧轴重跑它；返回 false ⇒ 本帧已越过安全点，永久退出候选集。
+// frame_label = 本帧的身份（取输入/产物路径；仅用于台账可读性，不参与判定）。
+// 未处于治理上下文（治理关闭 / 串行分支 / 无治理器）⇒ 恒 false（与改动前等价）。
+bool p1_frame_should_abandon(const std::string& frame_label) {
+  P1FrameCtx* c = t_p1_frame_ctx;
+  if (c == nullptr || c->gov == nullptr || c->ticket == 0) return false;
+  // 认领时只有占位名；此处用真实身份（本帧输入/产物路径）改写，使台账能指名道姓。
+  c->gov->set_frame_label(c->ticket, p1_base_name(frame_label));
+  if (c->gov->frame_evicted(c->ticket)) {
+    c->abandoned = true;
+    return true;
+  }
+  c->gov->mark_frame_committed(c->ticket);   // 越过安全点 ⇒ 放弃已不安全
+  return false;
+}
+
 template <typename Fn>
 static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget,
                             Fn&& body) {
@@ -1909,6 +1983,53 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   const int inner_omp = static_cast<int>(inner_u);
 #endif
   std::atomic<uint64_t> next{0};
+  // ── MEMGOV-01: 帧轴治理状态（§8.3:612/:613/:614/:615）─────────────────────
+  astrocs::core::MemoryPressureGovernor* gov = astrocs::core::current_governor();
+  // 串行分支（frame_w<=1 / 单帧）无并发可削 ⇒ 不设门、不登记，与改动前逐字节等价。
+  const bool governed = (gov != nullptr) && gov->active() && frame_w >= 2 && n >= 2;
+  std::string gov_stage;
+  uint32_t gov_stage_index = 0, gov_stage_total = 0;
+  if (governed) {
+    gov_stage = astrocs::core::trace_current_node();
+    gov_stage_index = p1_dag_stage_index(gov_stage, &gov_stage_total);
+  }
+  // 丢弃后重跑通道（§8.3:615「该工作流随后重新开始」）：单向 fetch_add 无法回退，
+  // 故被丢弃的帧下标进入 deferred 由任意 worker 重新认领（LIFO ⇒ 先重跑最年轻的）。
+  std::mutex dq_mu;
+  std::vector<uint64_t> deferred;
+  std::vector<uint32_t> rerun_count(governed ? static_cast<size_t>(n) : 0u, 0u);
+  // 重跑上限：同一帧被丢弃超过 kMaxReruns 次 ⇒ fail-closed（不静默丢帧，见函数尾）。
+  // 取值 8：丢弃侧已按「逐帧身份已丢弃次数升序」轮转（不会盯着一帧反复丢），故 8 次
+  // 已远超"正常高压下同一帧被反复丢弃"的量级；撞上它意味着压力长期高于预算且帧
+  // 无法在安全点之后获得推进窗口 —— 此时**必须红**，不能让一帧静默消失。
+  constexpr uint32_t kMaxReruns = 8;
+  constexpr int kGateSleepMs = 50;   // 被门挡下的让出间隔（不忙等自旋）
+  std::atomic<uint64_t> done{0};
+  std::atomic<bool> overflow{false};
+  P1FrameAxisReport rep;
+
+  auto claim = [&](uint64_t* out) -> bool {
+    {
+      std::lock_guard<std::mutex> lk(dq_mu);
+      if (!deferred.empty()) { *out = deferred.back(); deferred.pop_back(); return true; }
+    }
+    const uint64_t i = next.fetch_add(1);
+    if (i >= n) return false;
+    *out = i;
+    return true;
+  };
+  auto requeue = [&](uint64_t i) {
+    std::lock_guard<std::mutex> lk(dq_mu);
+    const size_t k = static_cast<size_t>(i);
+    if (rerun_count[k] + 1u > kMaxReruns) {
+      overflow.store(true);
+      done.store(n, std::memory_order_release);   // 终止全部 worker，随后 fail-closed
+      return;
+    }
+    rerun_count[k] += 1u;
+    deferred.push_back(i);
+  };
+
   std::vector<std::exception_ptr> eptr(frame_w, nullptr);
   std::vector<std::thread> pool;
   pool.reserve(frame_w);
@@ -1919,9 +2040,54 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
 #endif
       try {
         for (;;) {
-          const uint64_t i = next.fetch_add(1);
-          if (i >= n) break;
-          body(i, w);
+          if (done.load(std::memory_order_acquire) >= n) break;
+          uint64_t i = 0;
+          if (!claim(&i)) {
+            if (done.load(std::memory_order_acquire) >= n) break;
+            // 暂无可认领项（被丢弃的帧正在回队 / 其余帧仍在飞）：让出重试，不忙等。
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            continue;
+          }
+          uint64_t ticket = 0;
+          if (governed) {
+            // 派发门（§8.3:613/:614）：压力高 ⇒ 不派发新的在飞帧（在途跑完再考虑）；
+            // **无在飞帧时放行**以保推进（与 Scheduler 内存回压的「无在途可释放时放行」
+            // 同一防挂死不变式）；放行计入 escapes 并落台账，不静默。
+            const bool allow = gov->may_dispatch();
+            if (!allow && gov->in_flight_count() > 0) {
+              rep.gated.fetch_add(1);
+              requeue(i);
+              std::this_thread::sleep_for(std::chrono::milliseconds(kGateSleepMs));
+              continue;
+            }
+            if (!allow) rep.escapes.fetch_add(1);
+            ticket = gov->begin_frame(gov_stage + "#" + std::to_string(i), gov_stage,
+                                      gov_stage_index, gov_stage_total);
+            rep.governed_claims.fetch_add(1);
+          }
+          P1FrameCtx fc;
+          fc.gov = governed ? gov : nullptr;
+          fc.ticket = ticket;
+          P1FrameCtx* prev_ctx = t_p1_frame_ctx;
+          t_p1_frame_ctx = governed ? &fc : nullptr;
+          try {
+            body(i, w);
+          } catch (...) {
+            t_p1_frame_ctx = prev_ctx;
+            if (ticket != 0) gov->end_frame(ticket);
+            throw;
+          }
+          t_p1_frame_ctx = prev_ctx;
+          if (ticket != 0) gov->end_frame(ticket);
+          if (fc.abandoned) {
+            // §8.3:615：本帧的处理进度已被丢弃并释放其占用 ⇒ **重新开始**。
+            rep.abandoned.fetch_add(1);
+            rep.reruns.fetch_add(1);
+            requeue(i);
+            continue;   // done 不增：本帧尚未产出，不得计入完成
+          }
+          rep.completed.fetch_add(1);
+          done.fetch_add(1, std::memory_order_release);
         }
       } catch (...) {
         eptr[w] = std::current_exception();
@@ -1931,6 +2097,28 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   for (auto& th : pool) th.join();
   for (const auto& e : eptr)
     if (e) std::rethrow_exception(e);
+  // §8.3:612「随事件流落盘」：逐 op 一条汇总行（决策不得静默）。
+  if (governed) {
+    char buf[320];
+    std::snprintf(buf, sizeof(buf),
+                  "stage=%s stage_index=%u/%u claims=%llu gated=%llu abandoned=%llu "
+                  "reruns=%llu escapes=%llu completed=%llu",
+                  gov_stage.c_str(), gov_stage_index, gov_stage_total,
+                  static_cast<unsigned long long>(rep.governed_claims.load()),
+                  static_cast<unsigned long long>(rep.gated.load()),
+                  static_cast<unsigned long long>(rep.abandoned.load()),
+                  static_cast<unsigned long long>(rep.reruns.load()),
+                  static_cast<unsigned long long>(rep.escapes.load()),
+                  static_cast<unsigned long long>(rep.completed.load()));
+    gov->record_note("frame_axis_summary", buf);
+  }
+  // 重跑超限 ⇒ fail-closed（不静默丢帧）。异常由节点异常路径映射为节点失败：
+  // 宁可让节点红，也不让一帧静默消失（ASTROCS_DESIGN.md §8.3:616 不变量）。
+  if (overflow.load()) {
+    throw std::runtime_error(
+        "frame axis memory governance: a frame was dropped more than 8 times under "
+        "sustained memory pressure; fail-closed rather than silently losing a frame");
+  }
 }
 
 // P1 节点并行度：Runtime lease 注入的 __workers（budget 唯一权威; 1 = 串行）。
@@ -2283,6 +2471,13 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
           "light size mismatch vs first frame: " + lp));
       return;
     }
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(lp)) return;
     // UNIT-001: 亮场声明域（若声明 normalized + scale，按声明换算；产物合同仍为 ADU）。
     if (mu_decl.light.has_scale) p1_apply_declared_scale(light, mu_decl.light.scale);
     const uint64_t n = static_cast<uint64_t>(W) * static_cast<uint64_t>(H);
@@ -2665,6 +2860,13 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + in_path));
       return;
     }
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(in_path)) return;
     std::vector<float> fixed(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()), 0.0f);
     int hot = 0, cold = 0;
     // 检测源：尺寸不符则该源不参与（与坏列路径同口径），但绝不静默成"无源恒等 pass"
@@ -3634,6 +3836,13 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
       return;
     }
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(path)) return;
     // ── 检测：权威路径（星表引导拟合）或显式声明的诊断路径（全图盲检测）──────
     astrocs::phase1::StarCatalog cat;
     Json guided_prov = Json::object();
@@ -4921,6 +5130,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
       return;
     }
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(path)) return;
     // ── P10-UTIL2-003 (2026-09-14): 逐源并行化 ─────────────────────────
     // 并行轴 = 源 (work unit = 该帧 sources 数组的一行)。Photometer::measure
     // 是 const 且无共享可变状态 (每源只读 image、只写自己的结果槽), 因此逐源
@@ -5778,6 +5994,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
             "photometry apply: cannot read " + src_path_i));
         return;
       }
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(src_path_i)) return;
       // I_photo = k_photo·m(x,y)·I_cal（SCI-PHOT-001 §16.1 ⑤）
       // m_order == 0 ⇒ 走**未改动**的 calibration::apply_photometry（逐位一致）；
       // m_order > 0 ⇒ 走 apply_photometry_spatial（同一函数在 order==0 时也委托
@@ -6753,6 +6976,13 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         : static_cast<const void*>(im.px());
     const std::string base = p1_base_name(path);
 
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(path)) return;
     // ── NOISE-MODEL-CANON-001（负责人 §9.67 定案 3「选对的」）──────────────
     // 改用冻结 SCI-NOISE-001 §5/§5a 的**唯一实现**（docs/science/NOISE_MODEL.md:71/165;
     // ALG §13.1:120「生产符号唯一源」）。旧 wrapper_phase1::NoiseModel 是它的
@@ -7413,6 +7643,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
       return;
     }
+    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
+    // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
+    // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
+    // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
+    // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
+    if (p1_frame_should_abandon(frame_path)) return;
     // 该帧 WCS: 逐帧上游产物优先, 回退 config.wcs; 两者都无 → fail-closed。
     Json wj_storage = Json::object();
     {

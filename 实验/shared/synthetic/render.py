@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS RELEASE-02 / DATA-TYPE-MATRIX —— 参数化**场景渲染器**（场景配方 → 帧）。
+"""ACSD RELEASE-02 / DATA-TYPE-MATRIX —— 参数化**场景渲染器**（场景配方 → 帧）。
 
 上游：noise_model.py（物理噪声过程）。本模块只负责把"场景配方（JSON）"变成
 "期望电子面 + 一帧 ADU"，并把**用了什么**逐项写进产物（provenance），供论文方法节引用。
@@ -548,7 +548,7 @@ def write_frame(outdir: Path, truth: Dict[str, Any], frame: NM.Frame) -> Dict[st
     hdr["NSTARS"] = (int(truth["n_stars_in_frame"]), "injected stars in frame")
     hdr["REALBASE"] = (str(bool(truth["real_base"].get("used"))), "real frame used as base")
     hdr["ADDONADU"] = (float(truth["additive_offset_adu"]), "additive-only offset [ADU]")
-    hdr.add_history("AstroCS RELEASE-02 DATA-TYPE-MATRIX physical noise chain:")
+    hdr.add_history("ACSD RELEASE-02 DATA-TYPE-MATRIX physical noise chain:")
     hdr.add_history("lam_e = t*(src+sky)*flat + t*D(T)*hot")
     hdr.add_history("n_e = Poisson(lam_e) + N(0,rdnoise) + CR")
     hdr.add_history("adu = round(n_e/gain + bias), hard-clipped at full_well")

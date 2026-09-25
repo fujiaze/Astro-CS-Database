@@ -23,7 +23,7 @@
 * 固定 seed：SEED = 20260926。
 
 只读边界：只 import exp02_common（生产 recipe 独立重写）与 exp03_common（区域估计器），
-不修改、不复制这两个单元的任何文件；不运行任何 AstroCS 可执行文件；无 git 写操作。
+不修改、不复制这两个单元的任何文件；不运行任何 ACSD 可执行文件；无 git 写操作。
 """
 
 from __future__ import annotations

@@ -30,11 +30,17 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
 //   来源 = 调用方按「配置/profile + 实测可用内存」解析（见 astrocs/core/memory_budget.h）；
 //   本函数只透传给 create_runtime(RuntimeResourceBudget)，**不发明数值**。
 //   0 = 未提供 ⇒ 不启用内存回压（语义同旧行为，便于既有调用方零改动）。
+// memory_available_bytes / memory_budget_percent —— 预算推导的输入回显（证据面；
+//   只进观测，不参与判定）。压力分子来源（进程树 RSS）由本层注入 aio 探针：
+//   aio 是文件级唯一 I/O 边界（ASTROCS_DESIGN §10），core 不因此链接 astrocs_aio。
+//   压力事件台账落 <config.output_dir>/memory_pressure_ledger.jsonl（JSONL，只增不改）。
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason,
                  std::atomic<bool>* cancel_ext = nullptr,
                  uint64_t memory_limit_bytes = 0,
-                 const std::string& memory_source = std::string("none"));
+                 const std::string& memory_source = std::string("none"),
+                 uint64_t memory_available_bytes = 0,
+                 uint32_t memory_budget_percent = 0);
 
 // 执行后收集每个节点的 session manifest 摘要（node_id → JSON 文本）。
 // 供 CLI 写 run manifest 时逐 artifact 验证（ArtifactStore 绑定语义）。

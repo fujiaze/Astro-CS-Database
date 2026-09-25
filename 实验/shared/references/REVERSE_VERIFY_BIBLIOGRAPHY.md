@@ -24,7 +24,7 @@
 
 ## 1 图像叠加 / 最优组合 / drizzle 与重采样方差
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 1.1 | Fruchter & Hook 2002, Drizzle, PASP 114, 144. DOI 10.1086/338393 `[CR]` | drop-and-share 足迹与 pixfrac；drizzle 累加『输入值加权和』与『权重和』(weight image)——这正是承载逆方差累加的自然位置（输出权重 Σw、输出方差 Σw²σ²）；drizzle 对输入像素值**线性** ⇒ `Var(Ax)=AΣAᵀ` 可直接用 | 输出像素间**不相关**的隐含假设。输入足迹一重叠输出就相关；**禁止**把 drizzle 后的 variance 面当对角协方差（`PΣPᵀ` 的对角线不是全部）；也不把 pixfrac→1 当 PSF 模型替代 | HST 欠采样、PSF 稳定；本项目输出 HEALPix leaf、PSF 随 seeing 变 |
 | 1.2 | Zackay & Ofek 2017, ApJ 836, 187. DOI 10.3847/1538-4357/836/2/187; arXiv:1512.06872 `[CR, arXiv]` | 点源最优 coadd **不是**逆方差加权平均，而是 **PSF 匹配后的滤波**组合 ⇒ 本文『SNR 应在 PSF 齐化后定义』的依据；`ΣwᵢIᵢ/Σwᵢ` 只对**面亮度型**信号最优 | 全文高斯噪声假设与『PSF 已知精确』假设；本项目泊松主导、PSF 是拟合的，最优性只在线性化高 S/N 极限成立 | 本项目 UPM 同时拟合 `g_k` 与空间场，不是单纯图像组合 |
@@ -39,7 +39,7 @@
 
 ## 2 CCD 噪声模型与 CCD 方程
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 2.1 | Janesick 2007, Photon Transfer: DN → λ, SPIE Press. DOI 10.1117/3.725073 `[CR]` — 书 | photon transfer curve 测**转换增益** `g`(e⁻/DN)、读出噪声 `σ_R`，区分时间噪声与固定图案噪声(DSNU/PRNU) ⇒ 方差模型 `gain`/`readnoise` 输入的经验支柱；也是『用 e⁻ 还是 DN 表述噪声项』的正确写法来源 | 单一、稳定、标量增益的假设（本项目多探测器/多放大器拼接，增益逐放大器变且可漂移）；也不取理想化『线性、无 blooming、无 brighter-fatter』传感器模型 | 本项目元数据中**没有** GAIN/RDNOISE 键（实测 117 张卡全无），只能走经验基线（正文 §2.1 决策 D1） |
 | 2.2 | Janesick 2001, Scientific Charge-Coupled Devices, SPIE Press. DOI 10.1117/3.374903 `[CR]` — 书 | 校准帧方差模型必须枚举的噪声项完整清单及物理来源：散粒、读出、暗电流、电荷转移损失、平场/PRNU 误差及其随信号电平的标度 ⇒ 方差方程『完整性』的参照分类学 | 这些项在空间与时间上平稳的假设；本项目把其中若干项当作**空间变化的场**（这正是 UPM 的意义） | 本项目不做探测器级表征，只从数据估计 |
@@ -52,7 +52,7 @@
 
 ## 3 巡天管线：coadd 中的方差/权重处理
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 3.1 | Morganson et al. 2018 (DES), PASP 130, 074501. DOI 10.1088/1538-3873/aab4ef; arXiv:1801.03177 `[CR, arXiv]` | 端到端**架构**：单帧 detrending → 天体测量解 → coaddition，**每个图像产品携带显式权重/方差面**，并有成文策略说明像素被 mask/clip 时权重怎么办 ⇒ 『方差面作为一等产品』是主流巡天标准实践 | 巡天尺度假设：均匀深度 tiling、每像素巨量曝光、以及『每帧光度响应在 coadd **之前**已由独立定标管线解决』；本项目 UPM **联合**求解响应与 coadd | 本项目帧数少（49 帧）、覆盖不规则 |
 | 3.2 | Sevilla-Noarbe et al. 2021 (DES Y3), ApJS 254, 24. DOI 10.3847/1538-4365/abeb66 `[CR]` | 科学级巡天中 **coadd 权重图的具体定义**，以及『权重图在 coadd 图/检测图/测量图之间含义不同』的讨论 ⇒ 论证本文规则：**拟合 UPM 用的权重与叠加用的权重不必是同一个对象，但必须分别成文** | 权重图在所有尺度上都是忠实逆方差的假设——DES 同样必须对相关噪声与『coadd 权重不是 coadd 的逆方差』作修正或加注 | 本项目权重来自稀疏 SNR 重建 + 残差制造者方差 |
@@ -68,7 +68,7 @@
 
 ## 4 背景与噪声估计
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 4.1 | Bertin & Arnouts 1996, SExtractor, A&AS 117, 393. DOI 10.1051/aas:1996164 `[CR]` | 两项（均在当前 SExtractor 文档实页核对）：(1) **背景算法**（.../Background.html）『SExtractor makes a first pass through the pixel data, estimating the local background in each mesh of a rectangular grid that covers the whole frame. The background estimator is a combination of κσ clipping and mode estimation, similar to Stetson's DAOPHOT program.』——正是 UPM 天光场『稀疏网格 + 稳健统计 + 插值』配方的前身。(2) **测光误差方程**（.../Photom.html，**式 (36)**，逐字核对）`FLUXERR = sqrt( Σ_{i∈A} ( σ_i² + p_i / g_i ) )`，『σ_i, p_i, g_i respectively the standard deviation of noise (in ADU) estimated from the local background, p_i the measurement image pixel value subtracted from the background, and g_i the effective detector gain』——**孔径测光 SNR 的规范可引用陈述**，直接回答口径问题：天光**均值被扣除**、**方差留在分母** | 网格背景作为**最终产品**：其 mesh 是检测辅助，插值（中值滤波+样条）不是统计最优重建且**不附不确定度**；UPM 必须给天光场附方差，SExtractor 不提供。也不把孔径误差方程原样用于 PSF 测光（见 2.3），也不把 `FLUXERR` 当总误差——同页自带警告『this error estimate provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise.』**必须一并引用** | 本项目背景场要进 UPM 拟合并有 `C_θ` |
 | 4.2 | Barbary 2016, SEP, JOSS 1, 58. DOI 10.21105/joss.00058 `[CR]` | SExtractor 算法的同行评审**库**实现（背景网格、提取、同一通量误差模型）；SEP 还把背景 RMS 图作为一等数组暴露——正是噪声场需要的 | 同 4.1：背景 RMS 图是稳健**局部散度**估计，不是标定过的方差，也不携带传播 | 本项目噪声场需与 PSF、`a_k` 合成信息权重 |
@@ -84,7 +84,7 @@
 
 ## 5 PSF 测光
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 5.1 | Stetson 1987 — 见 4.6（交叉引用，不重复） | 迭代 PSF 测光的规范引用 | 同 4.6 | 同 4.6 |
 | 5.2 | Bertin 2011, Automated Morphometry with SExtractor and PSFEx, ASP Conf. Ser. 442, 435. ADS 2011ASPC..442..435B `[page: aspbooks 页 + ADS scan]` — 会议论文；**未核到 DOI** | PSFEx 是**用多项式基对 PSF 作场级分解**的参考实现——从星像切片拟合**空间变化**的 PSF。借鉴『PSF 模型是一个**带自身基的场**，不是单张图』 | PSFEx 内部的 `SAMPLE` 基（默认 Sérsic 类基）与『场内有足够密度的合适恒星』假设；本项目每控制点可能星数不足，需要 PSF 模型在场内**共享强度**。也不借鉴其不确定度处理——PSFEx **不产出 PSF 模型的协方差** | 本项目 PSF 信息进入 `W_info`，需要其误差 |
@@ -97,7 +97,7 @@
 
 ## 6 噪声/背景场的稀疏重建
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 6.1 | Górski et al. 2005 (HEALPix), ApJ 622, 759. DOI 10.1086/427976 `[CR]` | (i) **等面积、层级、等纬度**像素化 ⇒ HEALPix 控制点网格是球面**均匀**采样（与赤纬无关），这正是 UPM 控制点是 HEALPix 像素而非 RA/Dec 网格的原因（后者在两极过采样）；(ii) `N_side` 与像素角尺度的显式关系，使控制点间距可写成角分并与场相关长度比较；(iii) 邻居结构给出插值模板 | CMB 分析框架（球谐变换、功率谱、`anafast`/`map2alm`）——我们不做天光场的谐分析；也不取『场在谐意义下带限』假设 | 本项目控制点是每 512² tile 内 8×8 的规则网格（不是按 nside 选的稀疏点集） |
 | 6.2 | Zonca et al. 2019 (healpy), JOSS 4, 1298. DOI 10.21105/joss.01298 `[CR]`；源码 https://github.com/healpy/healpy `[page]` | 我们实际使用的 HEALPix 实现的可引用软件引用，含插值函数（HEALPix 网格上的双线性/样条插值）——即控制点场的稀疏→稠密重建算子 | 默认插值作为**统计最优**重建：healpy 的插值是几何的，不知道控制点值的不确定度，也不返回插值误差方差——那部分必须自己提供（见 6.3/6.4） | 本项目重建还必须给出 `Var(SNR)` 用于加权 |
@@ -112,7 +112,7 @@
 
 ## 7 光度定标、相对响应与加性/乘性分离
 
-| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 AstroCS 的差异 |
+| 编号 | 可核对标识 | 借鉴点 | 不借鉴点 | 与 ACSD 的差异 |
 |---|---|---|---|---|
 | 7.1 | Padmanabhan et al. 2008 — 见 3.8（交叉引用） | 相对/绝对解耦（仅乘性部分） | 无逐帧加性天光场 | 同 3.8 |
 | 7.2 | Schlafly et al. 2012 (PS1), ApJ 756, 158. DOI 10.1088/0004-637X/756/2/158 `[CR]` | **实时、前向的平场光度解**——从巡天自身的重叠观测**同时**拟合仪器响应（乘性平场）与光度零点，即从数据导出**相对**定标 ⇒ UPM 的 `g_k` 拟合最接近的方法学类比；『乘性响应可仅从重叠帧恢复』的正确引用 | 巡天期间**静态**平场的假设（PS1 对每滤光片在 1.5 年内解一个平场）；本项目 `g_k` 是**逐帧**的，假设更弱但也不能在大量观测上平均；也不取其加性天光处理（与 ubercal 一样推定已在别处处理） | 本项目 `g_k` 目前在生产中恒为 1（未接线） |
@@ -123,7 +123,7 @@
 | 7.7 | Riello et al. 2021, A&A 649, A3. DOI 10.1051/0004-6361/202039587 `[CR]` | Gaia 测光内容（G/BP/RP）及其定标的权威描述与验证，含空间与颜色相关定标项的处理 ⇒ 论证所用 Gaia 参考星**质量**与引用定标不确定度地板时使用 | Gaia 具体扫描律与 CCD 级定标模型 | 本项目只用星表数值 |
 | 7.8 | Evans et al. 2018, A&A 616, A4. DOI 10.1051/0004-6361/201832756 `[CR]` | 若使用 DR2 而非 EDR3/DR3 作参考星表时的版本专用引用。**引用实际使用的版本** | 不得在同一句里混用 DR2 与 EDR3/DR3 的定标陈述——定标不同 | 本项目当前用 Gaia DR3 |
 | 7.9 | Gaia Collaboration (Drimmel et al.) 2023, A&A 674, A37. DOI 10.1051/0004-6361/202243797 `[CR]` | DR3 内容总括论文，与 7.6/7.7 并列引用（凡说『我们用了 Gaia DR3』时） | 无方法学内容 | 无 |
-| 7.10 | PhotometricMosaic（PixInsight 模块）— **`[UNVERIFIED]`；不得作为一手来源引用** | **核对结果（诚实登记）**：预期文档 URL `https://www.woodlandsobservatory.com/PhotometricMosaic/PhotometricMosaic.htm` 今日 **HTTP 404**，Internet Archive CDX 对该路径与域名**无快照**。模块确实存在（PixInsight 论坛多个用户主题已实页核对），但**本轮未能定位权威稳定文档来源，因此不编造**。**本仓内已有其源码**：`run/RELEASE-02/pmosaic/PhotometricMosaic/`（v4.0.2，31 文件 18,081 行），**非开源**——`lib/LeastSquareFit.js:3-11` 明示『This program is free for personal use only. You may not redistribute or modify it.』⇒ **不得复制进 AstroCS**。从本地源码读到的算法（可陈述『我们读了源码』，但引用须引同行评审等价物）：乘性 = 星等通量回归（`StarLib.js:888-906`；n<6 过原点 `Σxy/Σx²`，n≥6 调 PJSR `LinearFunction`）**完全不加权**，外加固定条数『垂距最大者逐一剔除』（`StarLib.js:914-933`）**无 σ 裁剪**；加性 = 重叠区分箱**中位数**之差（`SampleGrid.js:322-323`），对 `z = tgt·m − ref` 拟合 PJSR `SurfaceSpline`，权重是**箱内样本计数**（`SampleGrid.js:527-529, 573`）**不是** `1/σ²`。全树**无** variance/ivar/uncertainty 作为计算量的出现，无参数协方差，输出只有信号无方差面，仅 HISTORY 记 5 位有效数字的 `m`（`FitsHeader.js:302-311`）**不带不确定度**。概念层借鉴：加性梯度/背景与乘性标度的**显式分离**（与 UPM 同构） | 其估计器（无权重、无 σ 裁剪、计数权重）、其**无不确定度传播**、以及其许可条款 | PMM 面向业余/Pro-Am 马赛克；本项目要求参数协方差与产品级方差面。**替代引用**：Burke et al. 2018（7.3）作加性+乘性同时拟合的一手来源；SWarp（4.9）作『加性/乘性两个独立旋钮』；Jacob et al. 2010（7.11）作马赛克差分背景改正 |
+| 7.10 | PhotometricMosaic（PixInsight 模块）— **`[UNVERIFIED]`；不得作为一手来源引用** | **核对结果（诚实登记）**：预期文档 URL `https://www.woodlandsobservatory.com/PhotometricMosaic/PhotometricMosaic.htm` 今日 **HTTP 404**，Internet Archive CDX 对该路径与域名**无快照**。模块确实存在（PixInsight 论坛多个用户主题已实页核对），但**本轮未能定位权威稳定文档来源，因此不编造**。**本仓内已有其源码**：`run/RELEASE-02/pmosaic/PhotometricMosaic/`（v4.0.2，31 文件 18,081 行），**非开源**——`lib/LeastSquareFit.js:3-11` 明示『This program is free for personal use only. You may not redistribute or modify it.』⇒ **不得复制进 ACSD**。从本地源码读到的算法（可陈述『我们读了源码』，但引用须引同行评审等价物）：乘性 = 星等通量回归（`StarLib.js:888-906`；n<6 过原点 `Σxy/Σx²`，n≥6 调 PJSR `LinearFunction`）**完全不加权**，外加固定条数『垂距最大者逐一剔除』（`StarLib.js:914-933`）**无 σ 裁剪**；加性 = 重叠区分箱**中位数**之差（`SampleGrid.js:322-323`），对 `z = tgt·m − ref` 拟合 PJSR `SurfaceSpline`，权重是**箱内样本计数**（`SampleGrid.js:527-529, 573`）**不是** `1/σ²`。全树**无** variance/ivar/uncertainty 作为计算量的出现，无参数协方差，输出只有信号无方差面，仅 HISTORY 记 5 位有效数字的 `m`（`FitsHeader.js:302-311`）**不带不确定度**。概念层借鉴：加性梯度/背景与乘性标度的**显式分离**（与 UPM 同构） | 其估计器（无权重、无 σ 裁剪、计数权重）、其**无不确定度传播**、以及其许可条款 | PMM 面向业余/Pro-Am 马赛克；本项目要求参数协方差与产品级方差面。**替代引用**：Burke et al. 2018（7.3）作加性+乘性同时拟合的一手来源；SWarp（4.9）作『加性/乘性两个独立旋钮』；Jacob et al. 2010（7.11）作马赛克差分背景改正 |
 | 7.11 | Jacob et al. 2010 (Montage), arXiv:1005.4454 `[arXiv]` | 摘要（实页核对）：Montage 构造的马赛克『preserve the astrometry (position) and photometry (intensity) of the sources in the input images』，即把跨 tile 的光度一致性当作一等要求，并**把差分背景改正（加性）与通量守恒（乘性）分开实现**；与 SWarp 并列作为第二个把加性/乘性分离显式化的规范马赛克工具包 | Montage 的通量守恒模式当作**光度定标**——它只把 tile 拉平，不导出带不确定度的响应模型；也不把其背景匹配当作不确定度感知的 | 本项目响应模型带 `C_θ` |
 
 ## 8 四条论断的来源核查
@@ -193,9 +193,9 @@
   3. **显式关注标定误差的空间结构**（摘要逐字："pay special attention to the spatial structure of the calibration errors, allowing one to isolate particular error modes"）—— 支持把 m(x,y) 显式建成低阶空间曲面而不是单一标量。
 - **不借鉴点**：
   1. 只有**乘性**项（零点和 + 平场），**没有**加性天光/梯度项（与上文 SNR §10.3 的独立核对一致）；我们不做"用背景吸收梯度"这一步；
-  2. 全巡天规模的重叠网络（8500 sq.deg.）与迭代稀疏求解器不引入：AstroCS 有 Gaia 绝对锚点，每帧可独立拟合；
+  2. 全巡天规模的重叠网络（8500 sq.deg.）与迭代稀疏求解器不引入：ACSD 有 Gaia 绝对锚点，每帧可独立拟合；
   3. 其 ~1%(griz)/~2%(u) 相对精度依赖巡天重叠冗余与大气模型，不能搬到 12 板块 / 49 帧的小样本。
-- **场景差异**：SDSS 是巡天（同一天区多次多夜多相机列覆盖，目标全巡天统一）；AstroCS 是单帧→马赛克（每帧独立对 Gaia 定标，目标帧间/板块间乘性一致）。空间乘法增益的物理来源也不同：SDSS 以相机列平场+大气为主，我们以平场大尺度残差（Q3 实测为线性梯度为主）为主。
+- **场景差异**：SDSS 是巡天（同一天区多次多夜多相机列覆盖，目标全巡天统一）；ACSD 是单帧→马赛克（每帧独立对 Gaia 定标，目标帧间/板块间乘性一致）。空间乘法增益的物理来源也不同：SDSS 以相机列平场+大气为主，我们以平场大尺度残差（Q3 实测为线性梯度为主）为主。
 - **核对状态**：**已核对**（arXiv API 返回的标题/作者/摘要与引用一致；DOI 经公开检索命中）。
 
 ### [P1SG-R2] Burke, D. L. et al. (2018). Forward Global Photometric Calibration of the Dark Energy Survey. AJ 155, 41. arXiv:1706.01542v1
@@ -205,10 +205,10 @@
   2. 摘要逐字要求 "estimate the **spatial- and time-dependence** of the passbands of individual survey exposures" —— 把**逐曝光（逐帧）**的空间依赖当一等公民，支持"逐帧一个 m_k(p)"的建模；
   3. 目标 "stable in time and uniform over the celestial sky to one percent or better" 可作判据量级的参照。
 - **不借鉴点**：
-  1. FGCM 需要**辅助仪器数据 + 大气模型**（摘要逐字："combines data taken with auxiliary instrumentation at the observatory with data from the broad-band survey imaging itself and models of the instrument and atmosphere"）；AstroCS 没有这些，只能从星点 + Gaia 目录反演；
+  1. FGCM 需要**辅助仪器数据 + 大气模型**（摘要逐字："combines data taken with auxiliary instrumentation at the observatory with data from the broad-band survey imaging itself and models of the instrument and atmosphere"）；ACSD 没有这些，只能从星点 + Gaia 目录反演；
   2. 它估计的是 **passband（随波长）** 的空间-时间依赖，我们估计**灰度乘法增益**（不含颜色项）；
   3. 其大气/仪器模型复杂度不引入（冻结链不接受外部大气模型）。
-- **场景差异**：DES 是巡天、grizY 五波段、宇宙学目标、要求 1% 天区均匀性；AstroCS 是 M42 等单目标多夜多望远镜、单波段 Red、以马赛克接缝一致为目标（Q1/Q3 实测接缝 1–3%）。
+- **场景差异**：DES 是巡天、grizY 五波段、宇宙学目标、要求 1% 天区均匀性；ACSD 是 M42 等单目标多夜多望远镜、单波段 Red、以马赛克接缝一致为目标（Q1/Q3 实测接缝 1–3%）。
 - **核对状态**：**已核对**（arXiv API 返回的标题/作者/摘要与引用一致）。
 
 ### [P1SG-R3] Murphy, J. (2019). PhotometricMosaic v1.0（PixInsight 脚本）
@@ -220,9 +220,9 @@
   3. `DEFAULT_STAR_FLUX_TOLERANCE 1.5` / `DEFAULT_OUTLIER_PERCENT 2` 给出离群剔除量级的工程参照。
 - **不借鉴点**：
   1. PMM 是**两图平面马赛克**，乘性 scale 是**整图一个标量**（无空间自由度）+ 加性曲面；我们要的是**逐帧空间乘法曲面 m_k(x,y)**；
-  2. 其加性样条在平面像素坐标上做，AstroCS 的 Phase2 加性面在球面上做（`lib/algorithms/coverage/src/sky_plane.cpp`），坐标模型不可照搬；
+  2. 其加性样条在平面像素坐标上做，ACSD 的 Phase2 加性面在球面上做（`lib/algorithms/coverage/src/sky_plane.cpp`），坐标模型不可照搬；
   3. 曲面样条自由度很高，与"低阶、去掉主要残差、不管高阶"的要求相反。
-- **场景差异**：PMM 是两张已配准平面图求相对增益+相对梯度，一次性、交互式；AstroCS 是 49 帧 / 12 板块 / 2 台望远镜、单帧独立对 Gaia 定标 + 球面重建，需要逐帧可复现、可 provenance、fail-closed 的自动化管线。
+- **场景差异**：PMM 是两张已配准平面图求相对增益+相对梯度，一次性、交互式；ACSD 是 49 帧 / 12 板块 / 2 台望远镜、单帧独立对 Gaia 定标 + 球面重建，需要逐帧可复现、可 provenance、fail-closed 的自动化管线。
 - **核对状态**：**已核对**（本地源码头部版本/作者/URL 逐字核对；`lib/` 文件清单已核对）；官方文档 URL 可达性**未核**（已在上文登记）。
 
 ### 本工作项明确**未**收录（核对失败）
@@ -241,9 +241,9 @@
 - **可核对标识**：https://smtn-002.lsst.io/ （HTTP 200，页面标注 DOI 10.71929/rubin/3408482，By: R. Lynne Jones）；
   实现落点 `lsst/pipe_tasks` commit `0e56ae0` 的 `python/lsst/pipe/tasks/computeExposureSummaryStats.py:1262-1319`。
 - **借鉴点**：**唯一一手帧级 SNR 解析式** `SNR = C/sqrt(C/g + (B/g + σ_instr²)·n_eff)`，`n_eff = 2.266(FWHM/pixelScale)²`；
-  天光 `B` 只进分母。AstroCS 定案式 (2.4)(2.7) 与之同构（`n_eff → A_NEA = 1/ΣP_i²`）。
+  天光 `B` 只进分母。ACSD 定案式 (2.4)(2.7) 与之同构（`n_eff → A_NEA = 1/ΣP_i²`）。
 - **不借鉴点**：仅用于深度/极限星等 m5，非产品字段；`n_eff` 的 2.266 系数是 LSST 解析近似；
-  它假设 gain 已知（AstroCS 的 FITS 头拿不到）。
+  它假设 gain 已知（ACSD 的 FITS 头拿不到）。
 - **核对状态**：**已核对**（页面 + 源码 `grep -n` 行号 + commit 钉版本）。
 
 ### [FSNR-02] Bosch, J. et al. (2018). The Hyper Suprime-Cam Software Pipeline. PASJ 70, S5. arXiv:1705.06766
@@ -251,7 +251,7 @@
 - **借鉴点**：Eq(32) `σ_i² = b + α(φ_i + ε_i)`，逐字 "where **b is the level of the background (before it is subtracted)**" ——
   「背景均值」与「背景噪声」分离的干净范式；matched filter Eq(28)(30)。
 - **不借鉴点**：**HSC 没有任何帧级 SNR 标量**（论文从未写出 `α_MF/σ_MF`）；CModel/SdssShape 不定义误差。
-- **场景差异**：HSC 分 coadd 与 visit 两层；AstroCS normalize 是单帧。
+- **场景差异**：HSC 分 coadd 与 visit 两层；ACSD normalize 是单帧。
 - **核对状态**：**已核对**（ar5iv 全文逐字复核 Eq(28)/Eq(30)/Eq(32)/calexp 四处）。**待核对**：PASJ 卷页（OUP 403 Cloudflare）。
 
 ### [FSNR-03] Magnier, E. A. et al. (2020). Pan-STARRS Pixel Analysis: Source Detection and Characterization. ApJS 251, 5. DOI 10.3847/1538-4365/abb82c. arXiv:1612.05244

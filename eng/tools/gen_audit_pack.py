@@ -15,6 +15,21 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+RETIRED_NOTICE = (
+    "GEN_AUDIT_PACK_RETIRED: 本工具（ACSD v1.1 审计包生成（git bundle + 文档/证据汇总 + AUDIT_MANIFEST））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
+    "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
+    "  退役原因: ① 输出根 audit/AstroCS-v1.1-audit-pack/（且不在根清单允许目录内）；输入 engineering/**、dist/** 均已不存在；"
+    "② verification.regression_tests=「352/352 PASS」、tasks_done=「31/31」、gates_passed=「G0-G8 (9/9)」、verdict=「PASS」 全为字面量，无法从证据源复算 ⇒ 再跑一次就产出假绿（且会把在册汇总覆空仍打印 OK）。\n"
+    "  活动替代: 无；V1.1 世代审计包已作废。\n"
+    "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/gen_audit_pack.py\n"
+    "  退役后行为: 直接调用打印本说明并 exit 2；原实现保留在本文件下半（按复原命令取回）。"
+)
+
+if __name__ == "__main__":
+    print(RETIRED_NOTICE, file=sys.stderr)
+    sys.exit(2)
+
 def _deduce_root() -> Path:
     # auto-deduce project root: walk up until docs/ and lib/ found (Linux-portable)
     try:

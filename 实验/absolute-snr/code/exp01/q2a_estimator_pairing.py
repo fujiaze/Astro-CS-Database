@@ -22,7 +22,7 @@
   N3 同一 seeing（无效应）：跨帧伪差必须**严格 0**；
   N4 sigma->0（无噪声）：配对比度量必须判**退化**（不得静默通过）。
 
-seed 固定 = 20260924；纯 Python/NumPy/SciPy；不运行任何 AstroCS 可执行文件。
+seed 固定 = 20260924；纯 Python/NumPy/SciPy；不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

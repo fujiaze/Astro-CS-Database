@@ -18,7 +18,7 @@
 非退化负例（必须归零）：sigma_true 为常数且 P == 0 时，两种表示必须给出**同一个数**
 （c_agg = 1、b_f = b_c = 1 + 生产裁剪固有低偏），此时任何「绝对优于相对」的判据都退化。
 
-固定 seed：SEED = 20260926。不运行任何 AstroCS 可执行文件。
+固定 seed：SEED = 20260926。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

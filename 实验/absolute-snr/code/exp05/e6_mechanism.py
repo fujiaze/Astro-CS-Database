@@ -7,7 +7,7 @@
   resid ：减去 64 px mesh 局部背景（只用 fam0 像素估计）后的残差像素。
 两者之比 = 「大尺度结构对帧级 sigma 的贡献倍数」——它**不需要真值**，是 c_sigma 机理的直接证据。
 
-只读：astropy.io.fits.getdata + numpy。不运行任何 AstroCS 可执行文件。
+只读：astropy.io.fits.getdata + numpy。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

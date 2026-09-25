@@ -14,7 +14,7 @@
 > → `实验/absolute-snr/docs/{frame-snr-canon.md, EXP-01..EXP-04}`
 >
 > **只读边界（硬约束遵守情况）**：**未改**任何生产代码、schema、权威文档；**零 git 写操作**；
-> **未运行任何 AstroCS 可执行文件**；**未使用 `ulimit -v`**；**未运行 `eng/tools/round_start.sh`**；
+> **未运行任何 ACSD 可执行文件**；**未使用 `ulimit -v`**；**未运行 `eng/tools/round_start.sh`**；
 > 未回退/stash/checkout 任何既有未提交改动。产物只落 `实验/absolute-snr/{code/exp05,results,docs}` 与 `run/SNR-ABS-DERIVE-01/logs`。
 > 固定 seed：**20260926**。
 
@@ -59,7 +59,7 @@ SNR(x,y) = F_signal(x,y) / sigma_F(x,y)                        [无量纲]      
 
 （1.1）是 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的**红线**，也是
 `实验/absolute-snr/docs/frame-snr-canon.md` §0/§2 的定案；（1.3）只在**通量型（一次方比）** SNR 下严格成立，
-这正是 AstroCS 不采用 PixInsight 式[18] 功率比口径的原因。
+这正是 ACSD 不采用 PixInsight 式[18] 功率比口径的原因。
 
 ### 1.2 绝对表示（现行设计）
 
@@ -578,7 +578,7 @@ python3 e1_analytic.py --quick --out /tmp/exp05_e1_quick.json
 
 **复跑纪律**：固定 seed（`SEED = 20260926`，且**不使用** Python 字符串 `hash()`）；`e5` 依赖 `e1..e4` 的产物
 （缺件即 fail-closed 退出，不静默降级）；`e6` 依赖 `e3_real.read_frame`（同目录 import）；
-不写回任何 `testdata/**`；不运行任何 AstroCS 可执行文件；不使用 `ulimit -v`；无 git 写操作。
+不写回任何 `testdata/**`；不运行任何 ACSD 可执行文件；不使用 `ulimit -v`；无 git 写操作。
 
 **复现性实测（本单元自检）**：连续两次独立运行 `run_all.sh`，6 个 JSON 去掉 `elapsed_s` 计时字段后**逐位一致**，
 `EXP05_TABLES.md` **逐字节一致**（`cmp` 通过）：
@@ -613,7 +613,7 @@ IDENTICAL                EXP05_TABLES.md
 
 ### 9.3 **未验证 / 未核实**的项（明确列出，不冒充已验证）
 
-1. **未运行任何 AstroCS 可执行文件**：全部结论基于只读源码核实 + 独立 Python 重写（`exp02_common` 的生产 recipe 镜像）+ 三类实验数据；
+1. **未运行任何 ACSD 可执行文件**：全部结论基于只读源码核实 + 独立 Python 重写（`exp02_common` 的生产 recipe 镜像）+ 三类实验数据；
    ⇒ 「生产端到端行为」未经运行验证（硬约束所限）；
 2. **真实帧的 `F_ref`/`ZP` 不可得**：`testdata` 的 M42 帧是归一化产品，无测光标定 ⇒ 真实数据臂**只在 σ 空间**做比值，
    未验证「`F_ref,k` 的跨帧可比性」本身（该条由 `frame-snr-canon` §4.3 的 C1 判据 `snr_f == flux_adu/sigma_f_adu` 69/69 与 `G11` 登记支撑）；

@@ -6,7 +6,7 @@
 > → `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5 → `docs/plugins/algorithms_phase2/13_integration.md:19-41`
 > 判据正本：`docs/science/CONTROL_WEIGHT_SNR.md` §8b（`E = Var_w/Var_opt − 1`）
 > 固定 seed：`20260921`｜复现：`bash 实验/absolute-snr/code/exp04/run_all.sh`
-> 本单元**只读**生产代码；未运行任何 AstroCS 可执行文件。
+> 本单元**只读**生产代码；未运行任何 ACSD 可执行文件。
 > **v2 修订说明**：本版按独立审稿意见（对抗式、逐格重算）修正了 19 处数字/引用错误，
 > 并**补做了值域钳制的对照实验**（`exp04_e9_clip.json`，新增 §2.7）——
 > 该实验改变了 §4 的推荐结论，v1 的推荐配置含未测组件，本版已改为全测配置。
@@ -751,7 +751,7 @@ python3 summarize.py            # 紧凑摘要（人工阅读用）
 日志 `run/SCI-B-EXP-04/logs/`。
 
 **硬约束遵守情况（v2 收紧表述）**：
-- 未运行任何 AstroCS 可执行文件（唯一外部进程创建是 `rss_guard.py:30` 的 `subprocess.Popen`，
+- 未运行任何 ACSD 可执行文件（唯一外部进程创建是 `rss_guard.py:30` 的 `subprocess.Popen`，
   只把 `python3 -u <本单元脚本>` 交给它；无 `ctypes/CDLL/os.system`，导入集仅 numpy/scipy + 本单元模块）；
 - 未用 `ulimit -v`；未执行 git 写操作；未运行 `eng/tools/round_start.sh`；
 - **本单元未改** `lib/**`、`eng/**`、`docs/**`、`testdata/**`

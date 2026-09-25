@@ -10,6 +10,8 @@ upstream: [SCI-P1-PSF-001, ALG-002, API-P1-003]
 downstream: [TEST-P1-PSF-001]
 ---
 
+> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
+
 # 模块 astrocs.phase1.star-psf
 
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
@@ -54,7 +56,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=固定顺序输出(1/N 等价已验)。
+确定性=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase1.star-psf.determinism 条目；未读到的结论不写成 PASS/FAIL）。
 
 ## 内存/cache/I-O/所有权
 
@@ -66,7 +68,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-P1-PSF-001` 对应测试(逐任务 TASK_RESULT 证据); 容差=验收冻结。
+测试标识=`TEST-P1-PSF-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase1.star-psf.verification 条目）；容差=NOT_VERIFIED（同上）。
 测试设计=TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4：四状态码负例/
 解析 Moffat4 oracle/θ 消歧确定性/NaN 占位一致性，逐码逐锚），fixture 生成器
 注记容差来源。

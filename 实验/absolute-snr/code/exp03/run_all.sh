@@ -2,7 +2,7 @@
 # EXP-03 一键复跑：区域化 sigma_sky 的绝对准确性与跨帧一致性（SCI-B-EXP-03）
 # 用法：bash code/exp03/run_all.sh          （全部；约 25 分钟）
 #       bash code/exp03/run_all.sh quick    （跳过真实数据臂）
-# 纪律：只读 testdata/lib/eng/docs；不运行任何 AstroCS 可执行文件；不使用 ulimit -v；
+# 纪律：只读 testdata/lib/eng/docs；不运行任何 ACSD 可执行文件；不使用 ulimit -v；
 #       外部命令一律带 timeout；RSS 由 /usr/bin/time -v 记录到 run/SCI-B-EXP-03/logs/。
 set -u
 cd "$(dirname "$0")/../.." || exit 1     # -> 实验/absolute-snr

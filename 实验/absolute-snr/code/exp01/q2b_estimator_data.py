@@ -14,7 +14,7 @@
      以及 PSF 块 FWHM 与检测块 FWHM 的跨块列口径陷阱。
   3. 帧级 reference_snr_f 的解析对照。
 
-只读；不运行任何 AstroCS 可执行文件；不修改任何产物。
+只读；不运行任何 ACSD 可执行文件；不修改任何产物。
 """
 
 from __future__ import annotations

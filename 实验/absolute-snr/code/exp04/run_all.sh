@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # EXP-04 一键复跑（固定 seed = 20260921；产物落 实验/absolute-snr/results/exp04_*.json 与 EXP04_TABLES.md）。
-# 硬约束：不运行任何 AstroCS 可执行文件；不用 ulimit -v；不跑 eng/tools/round_start.sh；
+# 硬约束：不运行任何 ACSD 可执行文件；不用 ulimit -v；不跑 eng/tools/round_start.sh；
 #         所有子步骤带 timeout + 外部 RSS 监控（默认上限 3000 MB）。
 # 用法：bash run_all.sh [--quick]
 set -uo pipefail

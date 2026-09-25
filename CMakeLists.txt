@@ -160,6 +160,15 @@ configure_file(lib/infrastructure/cli/resource_gate_thresholds_generated.h.in
 # C++ 侧经生成头消费 ⇒ 实现侧零字面量（不得硬编码比例）。
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/config/runtime_resources.json ASTROCS_RUNTIME_RESOURCES_JSON)
 string(JSON ASTROCS_RR_MEMORY_BUDGET_PERCENT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_budget_percent)
+# 内存压力治理的水位/去抖/节流（ASTROCS_DESIGN.md §8.3:609-615 编排策略）——
+# 与预算比例同一个唯一数值源，不新增第二份配置面。
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_ENABLED GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_enabled)
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_HIGH_PERCENT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_high_percent)
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_LOW_PERCENT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_low_percent)
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_HIGH_DWELL GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_high_dwell_samples)
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_LOW_DWELL GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_low_dwell_samples)
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_EVICT_AFTER GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_evict_after_samples)
+string(JSON ASTROCS_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_sample_interval_ms)
 configure_file(eng/packaging/config/runtime_resources_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/runtime_resources_generated.h @ONLY)
 
@@ -390,6 +399,14 @@ add_library(astrocs_core STATIC
   # MEM-WIRE-01: 内存预算**来源解析**（纯函数；可用内存 × 可配置比例，默认 95）。
   # 唯一数值源 = eng/packaging/config/runtime_resources.json（经生成头消费，零字面量）。
   lib/infrastructure/scheduler/src/memory_budget.cpp
+  # MEMGOV-01: 内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略里
+  # 「探针校正 :612 / 异步并行 :613 / 可丢弃重跑 :615」的共同实现面）。
+  # 依赖面：只 include 自己的公开头 + memory_budget.h(公开头) + 生成头
+  # runtime_resources_generated.h + aio_atomic_file.h(header-only 追加写原语)
+  # ⇒ 不新增链接依赖，core 依赖图仍不含 cfitsio / 产品 IO 库。
+  # 压力分子（进程树 RSS）经函数指针**注入**，调用方（module_adapters，已链 aio）
+  # 传 aio_process_tree_rss_bytes —— core 不因此链接 astrocs_aio。
+  lib/infrastructure/scheduler/src/memory_pressure.cpp
   # DET-001: 规范产品哈希（canonical product hash）—— 与
   # eng/tools/canonical_product_hash.py 逐字节同构的 C++ 实现; 进 core 使 CLI run
   # manifest 与 P3 writer/verify 节点共用同一实现（无第二份口径）。

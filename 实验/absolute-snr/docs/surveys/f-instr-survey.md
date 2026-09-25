@@ -428,7 +428,7 @@ ADS 记录页（`ui.adsabs.harvard.edu`）对脚本返回 405/JS 挑战；OUP(MN
 
 # F 本仓权威与实现（`[repo]` 自核，最强证据）
 
-### [F-30] AstroCS 冻结合同：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN，2026-08-23）`[repo]`
+### [F-30] ACSD 冻结合同：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN，2026-08-23）`[repo]`
 - **通量定义**（原文 `:14-17`）：
   > `F_instr` | 仪器通量 (ADU；e⁻ 需 gain，当前不可得) | 输入
   > `F_syn` | 合成通量 = `∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`（Gaia 星表模型）
@@ -443,7 +443,7 @@ ADS 记录页（`ui.adsabs.harvard.edu`）对脚本返回 405/JS 挑战；OUP(MN
 - **场景差异**：不适用（本仓自身合同）。
 - **核对状态**：**已核对**（直接读 `docs/science/PHOTOMETRY.md:14-17,37,69,85,95,96,100,107`）。
 
-### [F-31] AstroCS 冻结合同：`docs/science/PSF.md`（SCI-PSF-001）`[repo]`
+### [F-31] ACSD 冻结合同：`docs/science/PSF.md`（SCI-PSF-001）`[repo]`
 - **通量定义**（原文 `:21`、`:52`、`:87`）：
   > `flux` | 解析通量 `2πA·sxsy/3` (β=4) | `dpsf_psf.cpp:368`
   > `flux = 2πA·sxsy/3`   (整平面延伸假设)

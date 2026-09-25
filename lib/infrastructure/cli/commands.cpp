@@ -155,12 +155,11 @@ static uint32_t cli_memory_budget_percent(const std::string& cpu_profile_path) {
 // 解析出 (上限, 来源) 并落一条可核对的 stderr 事实行（与既有 "session run: budget workers="
 // 同款；不进协议事件字段面，避免改冻结的事件 schema）。
 static void cli_resolve_memory_budget(const std::string& cpu_profile_path,
-                                      uint64_t* limit_out, std::string* source_out) {
+                                      astrocs::core::MemoryBudget* out) {
     const uint64_t avail = aio_system_available_memory_bytes();
     const uint32_t pct = cli_memory_budget_percent(cpu_profile_path);
     const astrocs::core::MemoryBudget mb = astrocs::core::resolve_memory_budget(avail, pct);
-    if (limit_out) *limit_out = mb.limit_bytes;
-    if (source_out) *source_out = astrocs::core::memory_budget_source_name(mb.source);
+    if (out) *out = mb;   // 完整口径（含来源/可用内存/比例回显）交下游，避免二次解析
     std::fprintf(stderr,
                  "session run: memory budget=%llu B (available=%llu B, percent=%u, source=%s)\n",
                  static_cast<unsigned long long>(mb.limit_bytes),
@@ -813,11 +812,13 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
     // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§3.5 内存不设门）。
-    uint64_t mem_limit = 0;
-    std::string mem_source = "none";
-    cli_resolve_memory_budget(cpu_profile_path, &mem_limit, &mem_source);
-    const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
-                                               &fail_reason, nullptr, mem_limit, mem_source);
+    astrocs::core::MemoryBudget mb;
+    cli_resolve_memory_budget(cpu_profile_path, &mb);
+    // MEMGOV-01: 同一份预算同时喂给「回压准入」（limit_bytes）与「压力治理」
+    // （available/percent 回显）；压力分子来源在 runtime_client 侧注入 aio 探针。
+    const int rrc = astrocs::cli::run_pipeline(
+        {phase.back() - '0'}, cfg_text, budget, &fail_reason, nullptr, mb.limit_bytes,
+        astrocs::core::memory_budget_source_name(mb.source), mb.available_bytes, mb.percent);
     // MON-002 reclaim: 多线程重计算节点释放的大块缓冲会滞留在线程 glibc arena
     // 中（真实 T4 运行 live heap(alloc_outstanding) 仅 ~0.2GB 而 RSS 残留 ~2.4GB,
     // 被 reclaim 门判为"不可解释残留"）。run 结束后显式将各 arena 空闲块归还
