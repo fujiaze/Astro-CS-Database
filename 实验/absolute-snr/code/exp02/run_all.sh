@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # EXP-02 一键复现：天光噪声估计的结构污染查证
 # 用法：bash code/exp02/run_all.sh [--quick]
-# 约束：不运行任何 AstroCS 可执行文件；不使用 ulimit -v；外部命令全部带 timeout。
+# 约束：不运行任何 ACSD 可执行文件；不使用 ulimit -v；外部命令全部带 timeout。
 set -u -o pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"   # 实验/absolute-snr

@@ -22,7 +22,7 @@
 
 ### 1.1 问题定位
 
-AstroCS 三个创新点中，创新点一回答的是「**把一帧图像标定到什么尺度上，这个尺度才既物理诚实又可用于跨帧比较**」（`ASTROCS_DESIGN.md` §2.1、§4.2、§4.4）。项目的数据面前提是硬的：**FITS 头拿不到增益、曝光、有效口径、光学/大气透过率**。于是可观测链只能写成乘积形态
+ACSD 三个创新点中，创新点一回答的是「**把一帧图像标定到什么尺度上，这个尺度才既物理诚实又可用于跨帧比较**」（`ASTROCS_DESIGN.md` §2.1、§4.2、§4.4）。项目的数据面前提是硬的：**FITS 头拿不到增益、曝光、有效口径、光学/大气透过率**。于是可观测链只能写成乘积形态
 
 ```text
 I_cal = (g · t · A_eff · η · …) · ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ  +  噪声
@@ -302,7 +302,7 @@ I_photo = k_photo · m(x,y) · I_cal,   m(x,y) = 10^(+0.4·poly(x,y)) = 1/m_gain
 
 ### 7.1 项目内（版本与提交可核验）
 
-1. AstroCS 仓库，`VERSION = 0.11.0-alpha.2`，HEAD `d8495a65b696759bae209e509c6ef2e6a372245a`（main）。
+1. ACSD 仓库，`VERSION = 0.11.0-alpha.2`，HEAD `d8495a65b696759bae209e509c6ef2e6a372245a`（main）。
 2. `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN，T103 冻结 2026-08-23）；§16.5 由 DOC-502（commit `b85c79dd`）登记；§16.2/§16.3 为单位消除与禁止反解论证。
 3. `docs/plugins/algorithms_phase1/06_photometry.md` §4.1（判据形态与逐项预算；记录 L4 49 帧 PASS 1/49）。
 4. `ACCEPTANCE_SPEC.md` §2.1（SCI-A 六项验收判据）；`ASTROCS_DESIGN.md` §2.1/§4.2/§4.4/§12.2/§12.3。

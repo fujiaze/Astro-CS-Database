@@ -4,7 +4,7 @@
 > 上游缺陷来源：`实验/absolute-snr/docs/EXP-01-DELTA-AND-ESTIMATOR.md` §2.2② 与 D8
 > 权威依据：`AGENTS.md` §5（科学工作纪律）／`ASTROCS_DESIGN.md` §2.2、§5.3、§12.1、§12.2、§12.3
 > 固定 seed：**20260925**｜本单元**只读** `lib/**`、`eng/**`、`docs/**`、`testdata/**`
-> **不运行任何 AstroCS 可执行文件**；**不使用 `ulimit -v`**；无 git 写操作。
+> **不运行任何 ACSD 可执行文件**；**不使用 `ulimit -v`**；无 git 写操作。
 
 ---
 
@@ -61,7 +61,7 @@
 ### 1.3 本单元的只读边界
 
 - **不改**生产代码（`lib/**`、`eng/**`、`docs/**`、`CMakeLists.txt` 全程只读）；
-- **不运行**任何 AstroCS 可执行文件（全部结论来自 Python/NumPy/SciPy/astropy 独立重写与只读共享仿真器）；
+- **不运行**任何 ACSD 可执行文件（全部结论来自 Python/NumPy/SciPy/astropy 独立重写与只读共享仿真器）；
 - **不使用 `ulimit -v`**；每次运行用 `timeout` + `/usr/bin/time -v` 记峰值 RSS（实测峰值 ≤ 0.92 GB）；
 - `testdata/**` 只读；不写 `run/` 之外的位置；不执行任何 git 写操作；
 - 新增产物全部落 `实验/absolute-snr/{code/exp02,results,docs}/`，日志落 `run/SCI-B-EXP-02/logs/`。
@@ -317,7 +317,7 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 | **噪声/阈值用哪个量** | **逐 mesh 裁剪 σ 图 → 跨 mesh 取中值**：`field->backsig = fqmedian(sigma2, np)`；阈值 `= DETECT_THRESH × backsig`；逐像素噪声图 = σ 图的双三次样条插值 | `src/back.c:297-304`、**`:846`**、`:391-419`（`:405`）、`:1229-1354`（`backrmsline`）；`src/readimage.c:90-92`；`src/weight.c:110-117`；`doc/src/Background.rst:62-63` |
 | 一手文献 | Bertin & Arnouts 1996, A&AS **117**, 393–404；**§2 "Background estimation"** 给 Eq.(1) `mode = 2.5 × median − 1.5 × mean`；**§3 "Detection" 未定义噪声 σ 的公式** ⇒ 只能读源码 | DOI [`10.1051/aas:1996164`](https://doi.org/10.1051/aas:1996164)；bibcode `1996A&AS..117..393B`；arXiv 无此文 |
 
-**对 AstroCS 的直接对照（子代理本地编译 2.28.2 实测，512²、噪声 σ=10 ADU、椭圆高斯"星云"峰值 60、σx=150/σy=110 px）**：
+**对 ACSD 的直接对照（子代理本地编译 2.28.2 实测，512²、噪声 σ=10 ADU、椭圆高斯"星云"峰值 60、σx=150/σy=110 px）**：
 
 | 配置 | stdout RMS | 说明 |
 |---|---|---|
@@ -325,7 +325,7 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 | `BACK_SIZE=16` | 9.9034 | 干净 |
 | **`BACK_SIZE=256`** | **18.5386** | mesh ≈ 结构尺度 ⇒ **被污染** |
 | 纯噪声图（默认） | 9.8811 | — |
-| **AstroCS 现行做法（numpy 复算）** | **18.72** | 与 `BACK_SIZE=256` 同病 |
+| **ACSD 现行做法（numpy 复算）** | **18.72** | 与 `BACK_SIZE=256` 同病 |
 
 ⇒ **保护来自"mesh 空间分解 + 跨 mesh 中值聚合"，不是来自估计器公式。**
 
@@ -342,7 +342,7 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 | 官方文档 | 用户指南与 API（版本固定 2.2.0） | [`/en/2.2.0/user_guide/background.html`](https://photutils.readthedocs.io/en/2.2.0/user_guide/background.html)、[`Background2D`](https://photutils.readthedocs.io/en/2.2.0/api/photutils.background.Background2D.html) |
 
 **实测（同一张结构图，真噪声 σ=10）**：`box_size=64` ⇒ `background_rms_median = 10.523`（真值 10.0）；
-**`box_size=512`（整帧一个 box）⇒ 18.500** —— **精确复现 AstroCS 的失效模式**。
+**`box_size=512`（整帧一个 box）⇒ 18.500** —— **精确复现 ACSD 的失效模式**。
 
 > 官方文档对"全局稳健统计"的判词（[用户指南](https://photutils.readthedocs.io/en/stable/user_guide/background.html)）：
 > "…the resulting values are biased by the presence of real sources. A slightly better method involves using statistics that are robust against the presence of outliers, such as the biweight location… **However, for most astronomical scenes these methods will also be biased by the presence of astronomical sources in the image.**"
@@ -375,7 +375,7 @@ PSF 为 Moffat4（检测块高斯 FWHM = 2.5 px）；`cr_rate = 0`、`hot_fracti
 | σ 必须从**天光已扣、源已剔除**的像素上测；mesh 内天光用未检测像素均值，且要求未检测像素占比足够 | Akhlaghi & Ichikawa 2015, ApJS **220**, 1（NoiseChisel）；DOI [`10.1088/0067-0049/220/1/1`](https://doi.org/10.1088/0067-0049/220/1/1)；[arXiv:1505.01664](https://arxiv.org/abs/1505.01664) |
 | 有真实展源时天光模型取**低空间自由度**（二阶多项式），以免减掉天体本征暗弱特征；1σ 由掩源后的残差标准差得到 | Byun et al. 2018, AJ **156**, 249；DOI [`10.3847/1538-3881/aae647`](https://doi.org/10.3847/1538-3881/aae647)；[arXiv:1810.02075](https://arxiv.org/abs/1810.02075) |
 
-### 6.5 文献对 AstroCS 现行做法的判定
+### 6.5 文献对 ACSD 现行做法的判定
 
 **文献与开源实现一致判定：现行"全局 2 轮 median ± 3·1.4826·MAD 裁剪 RMS"不能给出有结构场中的 σ_sky 语义，属已知失效模式。**
 
@@ -650,7 +650,7 @@ flat ON :  delta_mean = -1.609e-03   （PRNU/低阶/渐晕是真实乘性结构�
 
 ### 11.3 未验证 / 未核实的项（明确列出，不冒充已验证）
 
-1. **本单元未运行任何 AstroCS 可执行文件** ⇒ "生产代码实际跑出来的 `noise_sigma` 与本单元镜像一致"
+1. **本单元未运行任何 ACSD 可执行文件** ⇒ "生产代码实际跑出来的 `noise_sigma` 与本单元镜像一致"
    只有**源码级 + 数值级**证据（§3.4），**没有**端到端运行证据；
 2. **真实数据臂没有真值** ⇒ 只能给自洽量（σ̂ 倍数、保留比、块间离散、代理量分布）；
    真实 M42 帧上的"污染 2.4–3.7 倍"是**相对于 mesh 估计**的，不是相对于真值；
@@ -693,7 +693,7 @@ flat ON :  delta_mean = -1.609e-03   （PRNU/低阶/渐晕是真实乘性结构�
 ## 12. 复现命令
 
 全部命令在 `实验/absolute-snr/` 下执行；外部命令一律带 `timeout`，RSS 用 `/usr/bin/time -v` 记录。
-**不使用 `ulimit -v`**；**不运行任何 AstroCS 可执行文件**。
+**不使用 `ulimit -v`**；**不运行任何 ACSD 可执行文件**。
 
 ```bash
 cd "实验/absolute-snr"

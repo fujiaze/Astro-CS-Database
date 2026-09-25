@@ -22,7 +22,7 @@
 
 ## 4. 算法与公式要点
 
-- **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用**本帧已解出的权威 WCS**把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务非权威的诊断/初值用途。
+- **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用**本帧已解出的权威 WCS**把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取上限（规模由配置键 `star_detection.max_stars` 与星表查询口径导出，本行不复制数值；数值/合同域正本 = 本文件 §5.1 表与 `eng/contracts/schemas/phase_config_normalize.schema.json`），极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务非权威的诊断/初值用途。
 - 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于全图盲检测路径**（全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品，最高设计 §4.2）。**权威 WCS** 由 `platesolve` 节点产出（其近似指向由 `wcs.init_source` 给出），节点序上**先于**星表引导检测：解算节点按帧自读校准后像素自行检测与匹配，不消费检测产物；引导检测再以该权威 WCS 作逆投影先验（见 §5.1）。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
@@ -55,11 +55,13 @@ photometry 同一判据 `p1_wcs_astrometry_usable` 确认）→ ③ `wcs.init_so
 `lib/infrastructure/cli/parser.cpp::session_keys()`。**缺段不是错误**：全取编译期默认。
 段内未知键被 schema 拒（`additionalProperties: false`）。
 
+**规模口径**：本段一切「规模/上限」类数字都由配置键与星表查询口径导出，本节只给导出关系与指针。检测定义域 = `star_detection.max_stars`（数值与合同域见本表；设计自定算力上界，非科学常数，语义正本 = `ASTROCS_DESIGN.md` §4.2）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000，消费 `lib/infrastructure/scheduler/src/module_adapters.cpp`）；交付 SNR 样本上限 = `snr.max_sources`（默认 0 = **不限**，只截断交付样本行、**不**截断检测定义域）。三者是不同对象，各自只承担自己的口径。检测定义域与拟合样本上限的合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json`，最高设计 §4.2 只写语义与配置键名。
+
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
 | `mode` | `auto` | —— | `auto` = 有参考星表且**取向先验可得**（本帧 `p1_wcs.json` 产物、或配置给 `approx_wcs`/`rotation_deg`）时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`（非静默）；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
 | `gaia_data_dir` | 无 | path | 本地 XPSD 星表目录（权威路径必需；亦可用 `wcs.gaia_data_dir`） |
-| `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = **[20000, 50000]**（最高设计 §4.2「top 2–5 万」）；越界即 DATA 拒绝，**禁静默夹取** |
+| `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = **[20000, 50000]**（正本 = 本行 + `eng/contracts/schemas/phase_config_normalize.schema.json`）；越界即 DATA 拒绝，**禁静默夹取** |
 | `approx_wcs` | 无 | —— | 逆投影先验的**显式覆盖**：天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`（可改用 `wcs` 段同名字段）。给出即优先于本帧解算产物（诊断/负例注入用）。**六键必须齐备**：显式给出而缺键即 DATA 拒绝，禁静默回退到 `wcs` 段 |
 | `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 逆投影先验的**兜底给法**（无解算产物且无显式 CD 时生效）：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
 | `limiting_mag` | 由焦距/画幅/曝光派生 | mag | 显式指定极限星等；缺省时由 `ipv::estimate_mag_lim_iterative` 按 `focal_length_mm`、画幅、`EXPTIME` 迭代派生（宁多勿少） |

@@ -14,7 +14,7 @@
   * 同一 panel 内跨帧（天光电平不同）时，两种表示的跨帧比值各偏多少？
 
 只读：仅 astropy.io.fits.getdata + numpy；不写回、不修改任何数据文件。
-固定 seed：不涉及随机数（真实数据臂是确定性的）。不运行任何 AstroCS 可执行文件。
+固定 seed：不涉及随机数（真实数据臂是确定性的）。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

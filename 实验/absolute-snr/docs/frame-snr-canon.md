@@ -10,7 +10,7 @@
 
 ## 0 一句话定案
 
-> **AstroCS 的帧级 SNR 是「点源（PSF）信号 SNR」：**
+> **ACSD 的帧级 SNR 是「点源（PSF）信号 SNR」：**
 > `SNR_frame = F_signal / sigma_F`，
 > **`F_signal` 已扣局部背景（天光均值绝不进分子）**，
 > **`sigma_F` 由 PSF 加权最优提取的方差给出、且天光散粒噪声必须计入**。
@@ -55,7 +55,7 @@
 3. **扣背景 ≠ 扣噪声。** LSST 有一手实现级证据：`MaskedImage::operator-=` 只改 image 面
    （`afw/include/lsst/afw/image/MaskedImage.h:823-826`），方差面原样保留。
 4. **源自身泊松是否进分母，各家取舍不同**（SDSS 不进、SExtractor/HSC/JWST/LSST 进、HST-IVM 不进）
-   ⇒ **AstroCS 必须显式声明自己的取舍**，不能默认"大家都这么做"。
+   ⇒ **ACSD 必须显式声明自己的取舍**，不能默认"大家都这么做"。
 5. **帧级 SNR 是点源（PSF）SNR，不是面亮度 SNR。** LSST 的 `n_eff = 2.266(FWHM/pixelScale)²`
    与 HSC 的 matched filter 都是**点源最优**口径；Zackay & Ofek 2017 明确"面亮度最优组合是逆方差加权、
    点源最优是 PSF 匹配滤波，两者不可混用"。
@@ -71,7 +71,7 @@
 **判定一个口径是否安全的唯一问句：分子里有没有天光均值？** 有 ⇒ 必被抬高 ⇒ 否决。
 
 > **注意区分**：PixInsight 的 **PSFSNR（式[18]）** 分子是"FWTM 孔径内像素**减局部背景**求和"的平方，
-> 因此**它本身不会被天光均值抬高**（天光只进 `σ_n`）。AstroCS 不采用它的**功率比形式**，
+> 因此**它本身不会被天光均值抬高**（天光只进 `σ_n`）。ACSD 不采用它的**功率比形式**，
 > 只借鉴方法学（信号取数、稳健噪声、独立背景）—— 与本仓 `docs/plugins/algorithms_phase1/07_noise_snr.md` 一致。
 
 ---
@@ -229,7 +229,7 @@ ADU:     I_adu(x,y) = round( I_e(x,y) / g )
 | `sigma_R` | 读出噪声（高斯） | e- | 5 |
 | `g` | 增益（**含 ADU 量化**：`round(I_e/g)`） | e-/ADU | 1.5 |
 
-**被检验的估计量（AstroCS 等价管线，全部从数据估计、不用真值）**：
+**被检验的估计量（ACSD 等价管线，全部从数据估计、不用真值）**：
 
 ```
 1) b_hat      = median(天空环像素)                                  [ADU]

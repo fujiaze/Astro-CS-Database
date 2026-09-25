@@ -19,7 +19,7 @@
 
 ## 1. 项目与权威链（不要跳读）
 
-AstroCS = 天文 CCD/CMOS 校准数据库；三个**独立**命令 `normalize`/`mosaic`/`export`，
+ACSD = 天文 CCD/CMOS 校准数据库；三个**独立**命令 `normalize`/`mosaic`/`export`，
 阶段间只经磁盘产品 + manifest + 哈希交换。三个科学创新点：测光星等坐标系(SCI-A)、
 跨帧绝对 SNR(SCI-B)、加性天光无接缝(SCI-C)。
 

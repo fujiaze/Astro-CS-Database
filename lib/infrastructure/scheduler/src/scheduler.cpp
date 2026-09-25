@@ -179,6 +179,20 @@ Result<void> Scheduler::run(
           if (active.load() == 0) return;  // 全部完成
           continue;  // 有在途任务: 回 cv.wait 谓词挂起 (完成路径 notify), 非忙等
         }
+        // ── MEMGOV-01: 压力感知派发门（ASTROCS_DESIGN.md §8.3:613/:614/:615）──
+        // 「预算充裕时异步启动多个独立工作流」(:613) 的判定必须是**运行期实测**，而不是
+        // 一次性的静态快照。压力高 ⇒ 不派发新的异步并发（在途的跑完再考虑，:614）；
+        // active==0 时**放行**以保推进 —— 与下方内存回压「无在途可释放时放行队首」
+        // 同一防挂死不变式（治理不得把 run 卡死；放行决定由治理器落台账留痕）。
+        if (governor_ != nullptr && active.load() > 0 && !governor_->may_dispatch()) {
+          bp_cv.wait(lk, [&] {
+            if (cancelled_run.load() || active.load() == 0) return true;
+            return governor_ == nullptr ||
+                   governor_->level() != PressureLevel::HIGH;
+          });
+          // 取消 / 无在途 / 压力已解除 ⇒ 回外层重新评估（放行或再挂起）。
+          continue;
+        }
         // B13-R13-2: 内存回压 — 锁内扫描 ready 队列, 取第一个满足内存约束的
         // 节点执行 (修复前只看队首, 超限即 notify_all+continue 忙等自旋烧 CPU
         // 且阻塞整队 = 队头阻塞)。全部超限 → bp_cv 谓词挂起 (零 CPU), 由
@@ -262,6 +276,10 @@ Result<void> Scheduler::run(
       // independent 节点仍并发 —— eng/tests/unit/core_scheduler_test.cpp CORE-006）。
       std::unique_lock<std::mutex> heavy_gate;
       if (heavy_node) heavy_gate = std::unique_lock<std::mutex>(heavy_mu);
+      // MEMGOV-01: 本节点执行期间绑定线程本地治理器 —— 模块侧帧轴（p1_parallel_for）
+      // 经 current_governor() 就近取用，不做 JSON 透传、不改模块签名；节点结束后
+      // （含异常/取消路径）RAII 复位。与 trace_set_current_node 同款作用域语义。
+      GovernorScope governor_scope(governor_);
       // 执行
       bool node_ok = true;
       {
@@ -378,6 +396,9 @@ Result<void> Scheduler::run(
     return Result<void>::fail(Error(ErrorDomain::CANCELLED,
         "node " + fail_node + " cancelled: " + fail_msg));
   }
+  // MEMGOV-01: run 收尾把压力台账落盘（§8.3:612「随事件流落盘」）。
+  // 状态转移已经即时落盘；此处兜住缓冲里剩下的行。路径未设置 ⇒ 无落盘目标，不是错误。
+  if (governor_ != nullptr) (void)governor_->flush_ledger(nullptr);
   if (!fail_node.empty()) {
     return Result<void>::fail(Error(fail_domain,
         "node " + fail_node + " failed: " + fail_msg));

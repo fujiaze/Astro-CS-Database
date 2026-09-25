@@ -95,9 +95,21 @@ def classify(rel):
     return "OTHER"
 
 
+# 必需输入根：缺失即 exit 2（fail-closed）。"扫不到" ≠ "清单本来就该是空的"，
+# 也不允许覆空在册清单还打印 OK（独立审查《一页纸》S1-2）。
+REQUIRED_ROOTS = ["lib", "docs", "eng/tools"]
+
+
 def main():
+    missing = [r for r in REQUIRED_ROOTS if not (ROOT / r).exists()]
+    if missing:
+        print("REPO_SOURCE_MANIFEST_INPUT_MISSING: 必需输入根不存在: %s（ROOT=%s）"
+              % (", ".join(missing), ROOT), file=sys.stderr)
+        print("REPO_SOURCE_MANIFEST_FAIL: 未写盘", file=sys.stderr)
+        return 2
     rows = []
     seen = set()
+    skipped_roots = []
     for root in INCLUDE_ROOTS:
         p = ROOT / root
         if p.is_file():
@@ -105,6 +117,7 @@ def main():
         elif p.is_dir():
             items = sorted(p.rglob("*"))
         else:
+            skipped_roots.append(root)
             continue
         for f in items:
             if not f.is_file():
@@ -133,7 +146,15 @@ def main():
                                            "production_caller"])
         w.writeheader()
         w.writerows(rows)
+    if skipped_roots:
+        print("REPO_SOURCE_MANIFEST_SKIPPED_ROOTS: %s（可选根缺失，已登记不静默）"
+              % ", ".join(skipped_roots), file=sys.stderr)
+    if not rows:
+        print("REPO_SOURCE_MANIFEST_ZERO_ROWS: 命中 0 个文件 —— 零命中不是空清单的理由，"
+              "不写盘", file=sys.stderr)
+        return 2
     print(f"repo source manifest: {len(rows)} files -> {OUT}")
+    return 0
 
 
 if __name__ == "__main__":

@@ -102,6 +102,15 @@ target_include_directories(mem_wire_test PRIVATE
 target_link_libraries(mem_wire_test PRIVATE astrocs_core)
 add_test(NAME mem_wire COMMAND mem_wire_test)
 
+# MEMGOV-01: 内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略）的
+# 机制判据 —— 四条负例 + 不可确定 fail-open + 调度器派发门红绿配对。
+add_executable(memory_pressure_test memory_pressure_test.cpp)
+target_include_directories(memory_pressure_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
+target_link_libraries(memory_pressure_test PRIVATE astrocs_core)
+add_test(NAME memory_pressure COMMAND memory_pressure_test)
+
 add_executable(core_checkpoint_test core_checkpoint_test.cpp)
 target_include_directories(core_checkpoint_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(core_checkpoint_test PRIVATE astrocs_core)

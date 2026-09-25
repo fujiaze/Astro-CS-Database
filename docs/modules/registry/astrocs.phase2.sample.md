@@ -10,6 +10,8 @@ upstream: [SCI-P2-SMP-001, ALG-P2-SMP-001, API-P2-001]
 downstream: [TEST-P2-SMP-001]
 ---
 
+> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
+
 # 模块 astrocs.phase2.sample
 
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）

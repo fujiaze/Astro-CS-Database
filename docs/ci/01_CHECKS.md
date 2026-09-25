@@ -154,8 +154,9 @@
 | CHK-P3-EXPORT-STREAM-RSS | 架构 | Phase3 导出子块流式的**动态驻留判据**：把已回收引用归零后读内核 VmHWM 记账真实峰值（非声明值、非采样），流式峰值与产品面积解耦，比值与斜率双阈值 | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-RSS --quiet` | P0 |
 | CHK-BUILD-PROVENANCE | 合同 | 构建期指纹一致性：产物自报的 `build_source_digest` 必须等于当前工作树重算值（与 `eng/tools/gen_build_stamp.py` 同口径）。不相等即判红并点名不一致的文件；构建树缺少指纹锚记时判**不可锚定**（rc=2，不等于通过） | `python3 eng/ci/check_build_provenance.py --build-dir build --json-out run/ci/build-provenance/check.json` |
 | CHK-BUILD-PROVENANCE-SELFTEST | 合同 | 上项的可执行正/负例面（8 例：2 绿 + 改源文件不重建 / 篡改记录 / 形态非法 / 记录自相矛盾 4 红 + 缺指纹 rc=2） | `python3 eng/ci/check_build_provenance.py --self-test` |
-| CHK-L4-SEAM-FOOTPRINT | 视觉 | L4 接缝机器门：沿**真实帧足迹**取法向 ±2px 差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+2] − img[−2]) / bg`，门 `max|rel_step| ≤ 1e-2`；**只对两侧都在数据内部**的边界计入（法向 ±200px 两侧都能放对照线，N = `--ctrl-shift`，从输入导出），被排除的边界仍逐条落盘（`exclude`/`margin_px`）。**对照线不参与判红**（只用于适用域与诊断），故判据量与阶跃周期无关。噪声差（`noise_ratio`）、扣 200px 对照线的净台阶（`step_net`）、d 扫描、v1 的 `excess = median|seam| − median|ctrl|` 都只作**诊断量、不判红**（v1 口径对噪声差敏感，且当阶跃间距整除对照偏移时相减归零 ⇒ 会把同幅阶跃判绿；`step_net` 在那种退化几何上同样不可读）。**方差比对电平阶跃原理性失明**（阶跃不改变方差），故 V4 降级为粗筛、**帧间无接缝证据只取真实帧足迹的净台阶**。实测可检出下限 Δ/L ≈ 1.005%（≈0.0109 mag），与 `gate/(1−gate/2)` 一致。含 `--self-test` 九组用例（无台阶判绿 / 注入已知台阶判红 / 旧 V4 在同一输入判绿即盲区复现 / 帧足迹落在画幅外判红 / 注入 0 回落基线 / 两侧噪声差 57× 但无台阶判绿 / 贴数据边界的边被适用域排除且判绿 / **间距 = 对照偏移的平行同幅阶跃必须判红而 v1 口径在同一夹具整幅判绿** / **间距 = 对照偏移因子的同上**），缺任一条必需用例即自检失败 | `python3 eng/tools/e2e/seam_footprint.py --self-test` | P0 |
+| CHK-L4-SEAM-FOOTPRINT | 视觉 | L4 接缝机器门：沿**真实帧足迹**取法向 ±2px 差分，判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+2] − img[−2]) / bg`，门 `max|rel_step| ≤ 1e-2`；**只对两侧都在数据内部**的边界计入（法向 ±200px 两侧都能放对照线，N = `--ctrl-shift`，从输入导出），被排除的边界仍逐条落盘（`exclude`/`margin_px`）。**对照线不参与判红**（只用于适用域与诊断），故判据量与阶跃周期无关。噪声差（`noise_ratio`）、扣 200px 对照线的净台阶（`step_net`）、d 扫描、v1 的 `excess = median|seam| − median|ctrl|` 都只作**诊断量、不判红**（v1 口径对噪声差敏感，且当阶跃间距整除对照偏移时相减归零 ⇒ 会把同幅阶跃判绿；`step_net` 在那种退化几何上同样不可读）。**方差比对电平阶跃原理性失明**（阶跃不改变方差），故 V4 降级为粗筛、**帧间无接缝证据只取真实帧足迹的净台阶**。**门限 `1e-2` 的推导与实测标定正本 = `docs/science/PHASE2_UPM.md` §17**（观测量与零假设分布、虚警率、可检出下限与漏检面；本节不复制 §17 的数值结论）：确定性下限 Δ/L = `gate/(1−gate/2)` = 1.0050%（≈0.0109 mag），统计下限按受影响边数在 Δ/L 0.72%–1.00%（50% 检出）与 1.01%–1.47%（95% 检出）之间。含 `--self-test` 九组用例（无台阶判绿 / 注入已知台阶判红 / 旧 V4 在同一输入判绿即盲区复现 / 帧足迹落在画幅外判红 / 注入 0 回落基线 / 两侧噪声差 57× 但无台阶判绿 / 贴数据边界的边被适用域排除且判绿 / **间距 = 对照偏移的平行同幅阶跃必须判红而 v1 口径在同一夹具整幅判绿** / **间距 = 对照偏移因子的同上**），缺任一条必需用例即自检失败 | `python3 eng/tools/e2e/seam_footprint.py --self-test` | P0 |
 
+| CHK-NAMING-SURFACE | 治理 | 显示名 / 机器契约保留面**类级闭包门**：以 `git grep -w` 扫历史名三族（混写 / 小写 / 全大写；三族字面量的唯一源 = `ENGINEERING_SPEC.md §15`，本节不复述），**每一处命中必须落在 `eng/ci/ledgers/naming_surface.json` 登记的某一保留类内**；落在类外即「显示名漏改」判红。判据 R1 类闭包 / R2 保留类非空（僵尸类判红）/ R3 定义面棘轮（只减不增，防借定义面夹带未登记形态）/ R4 类 `path_globs` 必须真命中（静默失效判红）/ R5 变更集覆盖不可改类即判红；输入缺失或正则非法一律 fail-closed；含 `--self-test` 14 例 | `python3 eng/ci/check_naming_surface.py --json-out run/ci/naming-surface/naming_surface.json` | P0 |
 ### 2.1 检查器退役与预留
 
 - 检查器退役：从 `eng/ci/checks.json` 移除注册项，检查器文件保留可复跑性；退役检查器无参调用时打印退役标识并 exit 2；
@@ -221,6 +222,15 @@
 | `eng/ci/mutation_gates.json` 的 driver/registration/evidence | `CHK-MUTATION-GATES`（`gone_artifacts` 棘轮） | 在册 |
 | `eng/ci/ctest_baseline.json` 的冻结目标 | `CHK-CTEST-REGISTRATION` C5（维护面 `--write-baseline`） | 在册 |
 | `eng/contracts/**` 与 `eng/ci/**` 登记 JSON 的**活引用路径** | `CHK-REGISTRATION-ANCHORS` | **实现已落地，注册项待写入** |
+
+**口径一致性（SPEC-POLARITY-CONSIST-01）**：
+`eng/tools/doccheck/check_spec_polarity_consistency.py` 比对**验收判据的关键词 ↔ 最高设计的冻结语句**：
+P1 冻结语句在场（最高设计需逐字含「仍是线性面亮度」「必须保持线性」「存控制点处的绝对 SNR」）；
+P2 反义判红（星等落盘/星等即数据形态、稀疏控制点层写成相对 SNR、「无绝对数值窗口」被读成「不许出现数值」，命中且不在否定/引用语境即红）；
+P3 体积/规模类数字必须在本段内解析到配置键（反引号 dotted key）或推导式；
+P4 配置真值复算（`star_detection.max_stars` / `photometry.fit.max_stars` / `snr.max_sources` 逐键核对活载体：schema 属性、config_registry 登记键、module_adapters.cpp 读取式，并逐位比文档声明的默认值与合同域）。
+缺输入 / 寄存器为空 / 扫描面为空一律判红（fail-closed）；含 `--self-test`（12 例：2 绿 + 10 红）。
+**注册项待写入**：按本文 §4「新增检查项流程」第 1 步，登记 ID `SPEC-POLARITY-CONSIST-01`（命令 `python3 eng/tools/doccheck/check_spec_polarity_consistency.py --json-out run/ci/spec-polarity/gate.json`，P0、waivable=false、changed_paths 含 `ASTROCS_DESIGN.md`/`ACCEPTANCE_SPEC.md`/`docs/**`/`eng/contracts/**`/`eng/packaging/config/**`）；`eng/ci/checks.json` 属本任务文件域之外（并发轮次占用），故本轮只落地实现 + 自检 + 本行登记说明。
 
 `CHK-REGISTRATION-ANCHORS` = `eng/ci/check_registration_anchors.py`：R1 合同登记 JSON 的活引用
 （`path`/`doc_ref`/`implementations`/`entries` 等白名单键）必须存在；R2 登记册的对象一律落正式面（

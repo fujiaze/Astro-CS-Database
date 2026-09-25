@@ -2,7 +2,7 @@
 # EXP-06（EXP-06-SNR-PHYS）一键复跑：帧内 SNR 的物理建模与重建
 # （臂 A 解析 / 臂 B HST / 臂 C 真实 / 消融 / 门 / 作用域图谱 / 表格）。
 # 固定 seed（SEED=20260927）；只读依赖 实验/shared 与 exp02..exp05 的公共库。
-# 不运行任何 AstroCS 可执行文件；不使用 ulimit -v；无 git 写操作。
+# 不运行任何 ACSD 可执行文件；不使用 ulimit -v；无 git 写操作。
 # 任一步失败即以非零码退出（不静默继续），末行打印端到端判定。
 set -euo pipefail
 cd "$(dirname "$0")"

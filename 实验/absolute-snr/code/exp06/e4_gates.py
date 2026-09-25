@@ -5,7 +5,7 @@
 每条门都带显式阈值、实测值与预期方向；「错误做法」类门要求**必须判红**，
 否则该门本身 FAIL（判据退化）。全部结论来自本脚本实测，不接受恒真门。
 
-固定 seed：20260927。不运行任何 AstroCS 可执行文件。
+固定 seed：20260927。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def _scene(**kw) -> Dict[str, Any]:
 
 
 def _E(ev: Dict[str, Any], key: str, truth: str = "vs_T1_var_bg") -> float:
-    """默认口径 = T1（var_bg，AstroCS 帧级 SNR 的冻结口径）；T2 只在专门的门里用。"""
+    """默认口径 = T1（var_bg，ACSD 帧级 SNR 的冻结口径）；T2 只在专门的门里用。"""
     return float(ev.get(key, {}).get(truth, {}).get("eff_loss", float("nan")))
 
 

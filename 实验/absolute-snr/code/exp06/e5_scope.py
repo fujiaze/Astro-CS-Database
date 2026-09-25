@@ -7,7 +7,7 @@
   Q2 弥散分量的空间尺度 ell_B 相对控制点间隔 Delta 变化时，物理建模与插值的胜负如何翻转？
   Q3 亮度解释不了的噪声结构（分区读出噪声）由谁承载？
 
-固定 seed：20260927。不运行任何 AstroCS 可执行文件。
+固定 seed：20260927。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

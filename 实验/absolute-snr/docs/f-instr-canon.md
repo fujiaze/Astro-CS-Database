@@ -1,4 +1,4 @@
-# F-INSTR 定案 —— AstroCS 星点通量口径（RELEASE-02 裁决 A6）
+# F-INSTR 定案 —— ACSD 星点通量口径（RELEASE-02 裁决 A6）
 
 > 工作项：**F-INSTR-SURVEY**（裁决 A6）。实验代码：`实验/absolute-snr/code/reverse_verify/f_instr/`。
 > 逐条文献/开源软件记录：`实验/absolute-snr/docs/surveys/f-instr-survey.md`（本文件引用其编号 `[F-xx]`，**核对状态以该文件为准**）。
@@ -47,7 +47,7 @@ SExtractor 官方文档已把 `MAG_ISOCOR` 标为 **deprecated**（原文："Cor
   HSC **用 4″ 直径圆孔径通量作为测光标定参考**；
   PS1/`psphot` 有强制的"孔径改正"阶段（curve-of-growth）`[F-13][F-15][F-16][F-17]`。
 - ⇒ **"孔径无关的测量" + "显式孔径改正到统一参考孔径"是现代管线的标准组合**。
-  AstroCS 的冻结合同（`PSF.md:87` "整平面延伸假设"、`flux=2πA·sxsy/3`）等价于**改正到无穷孔径**，
+  ACSD 的冻结合同（`PSF.md:87` "整平面延伸假设"、`flux=2πA·sxsy/3`）等价于**改正到无穷孔径**，
   是上述组合在"参考孔径 → ∞"时的极限；**自洽**，但必须在文档里写明这一点（见 §5.1 步 5）。
 
 ### 1.2 哪些天生孔径无关
@@ -80,7 +80,7 @@ SExtractor 官方文档已把 `MAG_ISOCOR` 标为 **deprecated**（原文："Cor
 | SExtractor（通用工具） | `FLUX_ISOCOR`（官方标注 **deprecated**）/`FLUX_AUTO`（"≥90% of the flux…"）/`FLUX_APER` | 部分（`ISOCOR` 假设高斯且已废弃） | `[F-05]` |
 | photutils（通用工具） | `PSFPhotometry` 的拟合参数 = "total integrated flux" | 不需要（测量即总通量）；`photutils` **无**专用孔径改正 helper | `[F-35]` |
 | Gaia `G` | 图像域（AF）标定，非简单孔径 | — | `[F-18]` |
-| **AstroCS 冻结合同** | **PSF 拟合域** | **无（PSF 通量即总通量）** | `[F-30][F-31]` |
+| **ACSD 冻结合同** | **PSF 拟合域** | **无（PSF 通量即总通量）** | `[F-30][F-31]` |
 
 **结论**：**没有任何主流巡天用"固定小盒和"做测光标定通量**。最接近的 SExtractor `FLUX_ISOCOR` 也带显式轮廓改正。
 
@@ -97,7 +97,7 @@ SExtractor 官方文档已把 `MAG_ISOCOR` 标为 **deprecated**（原文："Cor
 
 ---
 
-## 2 定案：AstroCS 用哪种
+## 2 定案：ACSD 用哪种
 
 ### 2.0 一句话
 

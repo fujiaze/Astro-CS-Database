@@ -239,3 +239,34 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 | ACCEPTANCE_SPEC.md | 四层验收与发布门 |
 | docs/ci/ | CI 组织与门禁定义 |
 | docs/plugins/ | 各模块具体规范（README/module.yaml/测试） |
+
+
+---
+
+## 15. 命名：显示名与机器契约保留面
+
+**显示名（唯一）**：`ACSD`，全称 `Astro Celestial Sphere Database`。正文、文档、UI、注释、报告与提交消息一律使用显示名；历史名 `AstroCS` 只允许出现在本节定义的机器契约保留面内（本节为写清判定规则而逐字给出该历史名）。
+
+**判定规则（一句话，能判任何一处该不该改）**：把该处的历史名 `AstroCS` 换成显示名 `ACSD`，**看是否有任何机器会因此失配或指向不存在的对象**——编译器/链接器（include、符号）、`git`（忽略模式）、CMake（target/变量）、schema 与合同校验（键、ID、字面量）、CI 匹配（workflow 名、artifact 名、路径）、测试断言、台账与文档锚。**会 ⇒ 它是机器契约，原样保留；不会 ⇒ 它是显示名，必须写成 `ACSD`。没有第三种状态。**
+
+**机器契约保留面（按类枚举，一律不改；改名会打断锚、schema、include 与产物兼容）**：
+
+| # | 类 | 保留面 | 改名的机器后果 |
+|---|---|---|---|
+| 1 | C/C++ include 与符号 | 公共头目录 `astrocs/`、`#include <astrocs/…>`、`namespace astrocs`、`astrocs::`、`astrocs_*.dll/.so/.a` | 编译/链接面直接断链 |
+| 2 | 合同 / 注册表 / 模块 ID | schema 注解键 `x-astrocs*`；点分、连字符与斜杠 ID：`astrocs.*`、`MOD-astrocs-*`、`astrocs-*`、`astrocs/<x>/vN`；`astrocs*` 台账 schema id | schema 锚、注册表与产品清单按字面匹配，改名即断链 |
+| 3 | 环境变量 / CMake 选项 / 根文档名 | `ASTROCS_*`、`ASTROCS_DESIGN.md`，及历史轮次 ID `ASTROCS-*` | 构建入口按字面读取；根文档名是全仓行号锚的宿主 |
+| 4 | 可执行 / target / CLI 名 | `astrocs`、`astrocs.exe`、`astrocs-cli`、CI artifact 前缀 `astrocs-windows-candidate-` | 构建 target、CI 选择器与单测断言 | 
+| 5 | CI workflow 名 | `AstroCS Linux CI` / `AstroCS Windows CI` / `AstroCS Fatduck Validation` | `workflow_run.workflows` 与 CI 选择器按名精确匹配 |
+| 6 | CI 候选产物成员名 | `AstroCS-candidate.zip` 及其落盘路径 | 常量、`require_outputs`、工作流绑定与单测 |
+| 7 | 冻结的宿主路径 | `C:/AstroCS/toolchains/…`、`D:\AstroCSRunner\…` | preset 与依赖锁冻结的安装位；SBOM 白名单正则与工作流逐字断言 |
+| 8 | 注册目录名与发布/审核产物名 | 根目录名 `AstroCS.wiki/`；`dist/AstroCS-CLI-v1/…`、`AstroCS-<根 VERSION>-win-x64/`、`AstroCS-audit-*` | `git` 忽略模式、根清单登记、安装树合同与生成器常量 |
+| 9 | 对外协议标识 | HTTP `User-Agent` product token（形如 `AstroCS-BASS-Index/1.0`） | 对外声明的客户端身份；改名是对外行为改变，不属命名统一的范围 |
+| 10 | 封存证据与只读数据登记面 | `artifacts/evidence/**`（证据锚，含对历史文件名与历史标题的逐字引用）、`testdata/**`（§7 只读登记目录，其 `README.md` 规定目录内含数据按只读处理） | 证据锚指向的对象一经封存即保持原样；只读目录的处置属发布权范畴 |
+
+**唯一源与机器门**：
+
+- 本节是显示名与保留面的**唯一定义源**；其它文档、检查器与台账只引用 `ENGINEERING_SPEC.md §15`，不复述本节定义；
+- 类级登记与逐类判据 = `eng/ci/ledgers/naming_surface.json`（只登记类、判据与机器依据，不重复本节定义）；
+- 门 = `CHK-NAMING-SURFACE`（`eng/ci/check_naming_surface.py`）：以 `git grep -w` 扫历史名 `AstroCS` 与小写别名 `astrocs`、全大写命名空间 `ASTROCS` 三族，**每一处命中必须落在某一保留类内**；落在类外 ⇒ 判红，那就是显示名漏改。门自带 `--self-test` 负例面（14 例）与定义面棘轮（只减不增）。
+

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS RELEASE-02 / M16-SCENE —— 哈勃 M16 WFC3/UVIS 三帧的**有效域掩膜**生成器。
+"""ACSD RELEASE-02 / M16-SCENE —— 哈勃 M16 WFC3/UVIS 三帧的**有效域掩膜**生成器。
 
 上游数据（负责人上传，真实哈勃 HLSP Heritage 产品，各 268,917,120 B）::
 

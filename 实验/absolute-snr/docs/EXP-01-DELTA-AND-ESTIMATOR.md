@@ -4,7 +4,7 @@
 > **两个问题**：(一) 天光来源语义缺失时容差 δ 应取多少？(二) 逐源 SNR 的估计量错配怎么修（方案 A vs 方案 B）？
 > **负责人指示**：「这个问题应该由实验得出……相关的一切结论由他们给出充分证据。」
 > **seed**：`20260924`（全部脚本固定）。
-> **约束遵守**：**未运行任何 AstroCS 可执行文件**（本单元 EXP-01 全部为纯 Python/NumPy/SciPy/astropy）；
+> **约束遵守**：**未运行任何 ACSD 可执行文件**（本单元 EXP-01 全部为纯 Python/NumPy/SciPy/astropy）；
 > **未使用 `ulimit -v`**；未修改 `lib/**`、`eng/**`、`docs/**` 任何受跟踪文件；未执行任何 git 写操作；
 > 未改动另两个实验单元（`photometric-magnitude/`、`additive-sky-seamless/`）与 `实验/shared/`（只 import、只读）。
 > **产物**：`code/exp01/{exp01_common.py,hst_sim.py,real_products.py,q1_delta_budget.py,q2a_estimator_pairing.py,q2b_estimator_data.py,negatives_selftest.py,run_all.sh}`
@@ -630,7 +630,7 @@ A 的口径是**总通量**，跨帧乘性偏差为 0（解析）/ 2.7%~3.1%（�
 `~~~bash`
 cd "实验/absolute-snr"
 
-# 一键（纯 Python，不构建/不运行任何 AstroCS 可执行文件；约 4 分钟，峰值 RSS < 1 GB）
+# 一键（纯 Python，不构建/不运行任何 ACSD 可执行文件；约 4 分钟，峰值 RSS < 1 GB）
 bash code/exp01/run_all.sh
 
 # 单跑

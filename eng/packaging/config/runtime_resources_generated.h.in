@@ -17,4 +17,14 @@ inline constexpr std::uint32_t kMemoryBudgetPercentDefault = @ASTROCS_RR_MEMORY_
 inline constexpr std::uint32_t kMemoryBudgetPercentMin = 1;
 inline constexpr std::uint32_t kMemoryBudgetPercentMax = 100;
 
+// ── 内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略的实现口径）──────────
+// 压力 = 进程树 RSS / 上列预算。水位推导与适用域见 runtime_resources.json 的同名键。
+inline constexpr std::uint32_t kMemoryPressureEnabled = @ASTROCS_RR_MEMORY_PRESSURE_ENABLED@;
+inline constexpr std::uint32_t kMemoryPressureHighPercent = @ASTROCS_RR_MEMORY_PRESSURE_HIGH_PERCENT@;
+inline constexpr std::uint32_t kMemoryPressureLowPercent = @ASTROCS_RR_MEMORY_PRESSURE_LOW_PERCENT@;
+inline constexpr std::uint32_t kMemoryPressureHighDwellSamples = @ASTROCS_RR_MEMORY_PRESSURE_HIGH_DWELL@;
+inline constexpr std::uint32_t kMemoryPressureLowDwellSamples = @ASTROCS_RR_MEMORY_PRESSURE_LOW_DWELL@;
+inline constexpr std::uint32_t kMemoryPressureEvictAfterSamples = @ASTROCS_RR_MEMORY_PRESSURE_EVICT_AFTER@;
+inline constexpr std::uint32_t kMemoryPressureSampleIntervalMs = @ASTROCS_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS@;
+
 }  // namespace astrocs::runtime_resources

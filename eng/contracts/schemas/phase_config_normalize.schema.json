@@ -355,7 +355,7 @@
     "star_detection_config": {
       "type": "object",
       "additionalProperties": false,
-      "description": "星表引导检测（权威路径）配置段。段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 全取编译期默认（不是错误）。规范：ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式；按亮度取 top 2–5 万；极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）+ docs/plugins/algorithms_phase1/03_star_detection.md §5.1。",
+      "description": "星表引导检测（权威路径）配置段。段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 全取编译期默认（不是错误）。规范：ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式；按亮度取上限，规模由配置键 `star_detection.max_stars` 与星表查询口径导出；极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）+ docs/plugins/algorithms_phase1/03_star_detection.md §5.1。",
       "propertyNames": {
         "enum": [
           "mode",
@@ -389,7 +389,7 @@
           "minimum": 20000,
           "maximum": 50000,
           "default": 20000,
-          "description": "检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]（ASTROCS_DESIGN.md §4.2「top 2–5 万」）；越界即 DATA 拒绝，禁静默夹取。"
+          "description": "检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]（本 schema 的 minimum/maximum 即唯一事实源，实现锚 = lib/infrastructure/scheduler/src/module_adapters.cpp kP1GuidedMaxStarsLo/Hi 与 p1_guided_cfg）；规模语义 = ASTROCS_DESIGN.md §4.2「按亮度取上限」（设计自定算力上界，非科学常数；本节不复制数值——数值只在本 schema 与 docs/plugins/algorithms_phase1/03_star_detection.md §5.1 表声明）。与本件另一键 `snr.max_sources`（交付 SNR 样本上限，默认 0 = 不限）是**两个不同对象**：本键管检测定义域，交付样本上限不截断本键。越界即 DATA 拒绝，禁静默夹取。"
         },
         "approx_wcs": {
           "type": "object",

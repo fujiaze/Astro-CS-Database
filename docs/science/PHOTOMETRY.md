@@ -224,7 +224,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 ## 6 假设
 
 - 参考端 `F_λ` 是 Gaia DR3 XP 采样均值谱的**外部定标**（绝对）谱辐照度，单位 W·m⁻²·nm⁻¹；本合同据此在**模型通带 `T(λ)·Q(λ)·λ` 内**做正向合成（§2a）。
-- **绝对归一化不可辨识，通带形状必须正确**：`F_syn` 与官方「平均通量」只差一个与星无关的分母（§2a.3），该常数被 `location` 吸收，故本合同**不宣称产物处于绝对通量刻度**（产物以星等/相对星等表达）；但通带形状（含 `Q(λ)`）**不被吸收**，其失配直接进入 `sigma_residual`（§2a.5）。
+- **绝对归一化不可辨识，通带形状必须正确**：`F_syn` 与官方「平均通量」只差一个与星无关的分母（§2a.3），该常数被 `location` 吸收，故本合同**不宣称产物处于绝对通量刻度**（数据形态 = 带逐帧相对测光零点的**线性面亮度**；「以星等表达」只发生在**派生/展示**侧、星等不落盘——口径正本 = `ASTROCS_DESIGN.md` §2.1 两条冻结语句与 §4.4 测光输出语义、`docs/contracts/DATA_SEMANTICS.md` §31.1a）；但通带形状（含 `Q(λ)`）**不被吸收**，其失配直接进入 `sigma_residual`（§2a.5）。
 - **模型通带不含光学系统透过率与大气消光**（显式未建模项，跨帧会成为帧间系统差）；`Q(λ)` 缺失时按 `Q≡1`（显式未建模项，§2a.4）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。
 - **适用域**：
   - 通带必须被 XP 覆盖（330–1050 nm）**完全包含**；官方口径同此（Montegriffo et al. 2023, A&A 674, A3 §8.4："any photometric system whose passbands are fully enclosed in the 330-1050 nm wavelength range covered by Gaia BP and RP spectra"）。本仓消费的采样网格为 336–1020 nm、步长 2 nm、343 点；网格外 `T·Q` 置 0 而**不外推**。
@@ -347,12 +347,12 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 | 步 | 做什么 | 节点（§4.2） | 权威/细则 |
 |---|---|---|---|
-| ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取 top 2–5 万，极限星等按焦距/画幅/曝光派生估计 | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/plugins/algorithms_phase1/03_star_detection.md` §4、`docs/plugins/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
+| ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取（规模由配置键 `star_detection.max_stars` 导出，数值/合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json` 与 `docs/plugins/algorithms_phase1/03_star_detection.md` §5.1；本节不复制数值），极限星等按焦距/画幅/曝光派生估计 | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/plugins/algorithms_phase1/03_star_detection.md` §4、`docs/plugins/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
 | ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/plugins/algorithms_phase1/06_photometry.md` §4、`docs/science/PSF_SIGNAL_WEIGHT.md` §2；研究包 §6（DAOPHOT/Anderson & King 的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
 | ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（定义式与量纲见本文件 §2a.1/§2a.2；与官方式 5.41 的对应见 §2a.3）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4、Montegriffo 2023、De Angeli 2023）、§4（合成测光标准方法：Bessell 1990、Bessell & Murphy 2012、Sirianni 2005、synphot/pysynphot） |
 | ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ASTROCS_DESIGN.md` §4.2（测光归一化落到像素，photometry 一步完成）；研究包 §7 ④（平场/大尺度残余的预算出处） |
 | ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed**。**施加是 `photometry` 节点内的步骤，不是独立节点**（合并成一步省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返） | `photometry`（同一步内的施加步骤） | `ASTROCS_DESIGN.md` §4.2（含 fail-closed 条款） |
-| ⑥ **星等坐标系表达** | 产物通量以**星等/相对星等**表达；零点锚在**同一模型通带**的 Gaia XP 合成刻度上；标定系数绝对值无物理意义 | `noise_snr` 及其后 | `ASTROCS_DESIGN.md` §2.1/§4.4；本文件 §1/§6 |
+| ⑥ **星等坐标系表达** | 数据形态 = 带逐帧相对测光零点的**线性面亮度**；星等属**表达层**、只按 `m = ZP_k − 2.5·log10 F` 现场派生（不落盘），零点锚在**同一模型通带**的 Gaia XP 合成刻度上；标定系数绝对值无物理意义 | `noise_snr` 及其后 | `ASTROCS_DESIGN.md` §2.1/§4.4；本文件 §1/§6 |
 
 - **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ASTROCS_DESIGN.md` §4.2），本节不另立口径。
 - **每帧独立标定**：不同夜/不同透明度的帧 `k_photo` 不同是正常的、正确的；「帧间一致性」是语义目标与报告字段，**不是门禁**（`PHOT-GATE-DROP-001`；本文件 §1/§10）。

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS RELEASE-02 / M16-SCENE —— 哈勃 M16 场景模板的**前向渲染接口**。
+"""ACSD RELEASE-02 / M16-SCENE —— 哈勃 M16 场景模板的**前向渲染接口**。
 
 定位（与 DATA-TYPE-MATRIX 的分工，**不另起炉灶**）
 -----------------------------------------------
@@ -618,7 +618,7 @@ def write_m16_frame(outdir: Path, truth: Dict[str, Any], frame: NM.Frame,
     hdr["SKYEPS"] = (float(truth["sky"]["level_e_per_s_mean"]), "[e-/pix/s] mean sky rate")
     hdr["NINJECT"] = (int(truth["injected_stars"].get("n_injected", 0)), "injected stars")
     hdr["VALIDFRC"] = (float(truth["valid"]["fraction"]), "valid pixel fraction")
-    hdr.add_history("AstroCS RELEASE-02 M16-SCENE physical noise chain (GAP_AUDIT 9.41):")
+    hdr.add_history("ACSD RELEASE-02 M16-SCENE physical noise chain (GAP_AUDIT 9.41):")
     hdr.add_history("lam_e = t*(src_rate+sky_rate)*flat + t*D(T)*hot")
     hdr.add_history("n_e = Poisson(lam_e) + N(0, rdnoise*sqrt(stack_n)) + CR")
     hdr.add_history("adu = round(n_e/gain + bias); invalid -> 0; MASK in HDU 1")

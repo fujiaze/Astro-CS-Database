@@ -325,9 +325,9 @@ int main(int argc, char** argv) {
         uint16_t mags_b[3] = { 15000, 15000, 15000 };
         char p[1200];
         snprintf(p, sizeof(p), "%s/shard_a.xpsd", pos);
-        write_xpsd(p, "AstroCS-G1-Test-GaiaDR3", "8.0000,12.0000", mags_a, 3);
+        write_xpsd(p, "ACSD-G1-Test-GaiaDR3", "8.0000,12.0000", mags_a, 3);
         snprintf(p, sizeof(p), "%s/shard_b.xpsd", pos);
-        write_xpsd(p, "AstroCS-G1-Test-GaiaDR3", "12.0000,18.0000", mags_b, 3);
+        write_xpsd(p, "ACSD-G1-Test-GaiaDR3", "12.0000,18.0000", mags_b, 3);
     }
     int pos_ok = run_case(pos, "positive(2 shards)", 1);
     if (pos_ok) {
@@ -369,9 +369,9 @@ int main(int argc, char** argv) {
         uint16_t mags[2] = { 10000, 10000 };
         char p[1200];
         snprintf(p, sizeof(p), "%s/shard_a.xpsd", neg1);
-        write_xpsd(p, "AstroCS-G1-Test-GaiaDR3", "8.0000,12.0000", mags, 2);
+        write_xpsd(p, "ACSD-G1-Test-GaiaDR3", "8.0000,12.0000", mags, 2);
         snprintf(p, sizeof(p), "%s/shard_b.xpsd", neg1);
-        write_xpsd(p, "AstroCS-G1-Test-GaiaDR3", "12.0000,18.0000", mags, 2);
+        write_xpsd(p, "ACSD-G1-Test-GaiaDR3", "12.0000,18.0000", mags, 2);
         snprintf(p, sizeof(p), "%s/shard_c_corrupt.xpsd", neg1);
         write_garbage(p, 8);          /* 8 字节垃圾（报告 §4 G-1 建议的负例构造） */
     }
@@ -406,9 +406,9 @@ int main(int argc, char** argv) {
         uint16_t mags[2] = { 10000, 10000 };
         char p[1200];
         snprintf(p, sizeof(p), "%s/shard_a.xpsd", neg2);
-        write_xpsd(p, "AstroCS-G1-Test-GaiaDR3", "8.0000,12.0000", mags, 2);
+        write_xpsd(p, "ACSD-G1-Test-GaiaDR3", "8.0000,12.0000", mags, 2);
         snprintf(p, sizeof(p), "%s/shard_b.xpsd", neg2);
-        write_xpsd(p, "AstroCS-G1-Test-GaiaDR3", "12.0000,18.0000", mags, 2);
+        write_xpsd(p, "ACSD-G1-Test-GaiaDR3", "12.0000,18.0000", mags, 2);
         /* 尺寸与合法片相同, 仅魔数被破坏（改前: 静默跳过 ⇒ 参考星表静默少一片） */
         snprintf(p, sizeof(p), "%s/shard_b.xpsd", neg2);
         FILE* f = fopen(p, "r+b");

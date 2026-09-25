@@ -18,7 +18,7 @@ from scia_common import moffat_profile, rng, render_star
 
 
 # --------------------------------------------------------------------------
-# 仪器配置（"AstroCS 系统"，参数锚定 run/RELEASE-02/parallel/out/ptc2.json 实测）
+# 仪器配置（"ACSD 系统"，参数锚定 run/RELEASE-02/parallel/out/ptc2.json 实测）
 # --------------------------------------------------------------------------
 @dataclass
 class Instrument:

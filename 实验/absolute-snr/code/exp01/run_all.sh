@@ -2,7 +2,7 @@
 # ============================================================================
 # EXP-01 一键复跑：SCI-B 单元「问题一（容差 delta）+ 问题二（估计量错配）」全部实验。
 #
-#   * 纯 Python / NumPy / SciPy / astropy；**不构建、不运行任何 AstroCS 可执行文件**；
+#   * 纯 Python / NumPy / SciPy / astropy；**不构建、不运行任何 ACSD 可执行文件**；
 #   * **不使用 ulimit**（本仓曾因 RLIMIT_AS 静默改变行为出过事故）；
 #   * 固定 seed = 20260924；各脚本峰值内存见日志中的 Maximum resident set size；
 #   * 产物 -> ../results/exp01_*.json；日志 -> ../../../run/SCI-B-EXP-01/logs/。

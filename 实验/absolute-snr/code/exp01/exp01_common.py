@@ -5,7 +5,7 @@
 设计原则（AGENTS §5「不以当前程序输出生成唯一 expected」）：
   * 本模块的函数是 lib/algorithms/noise_snr/cpp/src/snr_science.cpp 与
     lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp 的**独立重写**，
-    用于解析/蒙特卡洛对照；**不 import 生产代码、不运行任何 AstroCS 可执行文件**。
+    用于解析/蒙特卡洛对照；**不 import 生产代码、不运行任何 ACSD 可执行文件**。
   * 所有常数与网格规则给出代码锚（按符号名），供落地时核对。
 
 单位约定：ADU（图像值）、e-（电子）；gain [e-/ADU]；RN [e-]。

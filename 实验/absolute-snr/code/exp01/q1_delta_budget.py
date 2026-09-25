@@ -17,7 +17,7 @@ rho = (RN/g)^2 / sigma_given^2（**散粒口径**；语义未知时取两候选�
   规则两向可判红（negatives_selftest.py 复算）：S_sys_max:=0 => delta* 必须为 0；
   A_eff:=0 => delta* 必须 = S_sys_max。
 
-seed 固定 = 20260924；纯 Python/NumPy/SciPy/astropy；**不运行任何 AstroCS 可执行文件**。
+seed 固定 = 20260924；纯 Python/NumPy/SciPy/astropy；**不运行任何 ACSD 可执行文件**。
 """
 
 from __future__ import annotations

@@ -164,7 +164,7 @@
 |---|---|---|
 | SNR 不含天光信号 | **PASS** | §3.1：单调下降（ρ≤−0.956）+ 斜率 −0.49/−0.50 + 10⁶ 时降到 2.1%/1.1%；信号项经独立局部背景扣除（常数偏置 ΔSNR≡6.7e-16） |
 | 真值一致性 | **PASS** | §3.1/§3.2：26+29 点全部 ≤3σ；σ_F 各噪声项组成与 Horne 口径对拍；生产 C++ 与镜像 2.24e-14 |
-| 方法学对标 | **PASS** | §7：PixInsight PSFSNR（功率比）vs AstroCS 通量型；PSFSW 是权重不入库（本单元不含任何 PSFSW 入库路径） |
+| 方法学对标 | **PASS** | §7：PixInsight PSFSNR（功率比）vs ACSD 通量型；PSFSW 是权重不入库（本单元不含任何 PSFSW 入库路径） |
 | 稀疏层与重建 | **PASS** | §3.3：平滑噪声区精度达标（sparse 胜帧级）、重建返回预测方差（`bilinear_regular_grid_v1` + 解析误差预算）、dense/sparse/frame 两域图谱与存储代价齐备 |
 | 逆方差集成 | **PASS** | §3.4：ΣSNR²（2.2e-16）、Q/W 对解析解、拟合/堆叠权重分离且各有验证 |
 | 传递到 Phase3 | **PASS** | §3.5：C_out=R C_in Rᵀ 对拍；点源信息量按输出 PSF 重算 |
@@ -220,7 +220,7 @@ flock /tmp/astrocs_build.lock ctest --test-dir build --output-on-failure -R "p1s
 **② 开源项目 + 版本 + 文件:行**
 - **Siril 1.2.4**（GPL-3.0，仅对照不复制）：`src/stacking/median_and_mean.c:868-870` `pweights[layer][i] = 1.f/(pscale²·bgnoise²)` —— 逆方差型帧权重、`bgnoise` 稳健背景噪声，与本项目"权重由 SNR 现场换算"对照（Siril 把权重直接当叠加系数并按帧均值归一，本项目组内中位归一无量纲相对场）。
 - **photutils（BSD-3-Clause）**：`photutils/utils/errors.py:12` `calc_total_error(data, bkg_error, effective_gain)` —— 背景误差与源泊松误差分离，与 `σ_i²=σ_bkg²+F·P/g` 同构。
-- **PixInsight 官方方法学**（闭源商业软件，仅引用公开文档）：[New Image Weighting Algorithms](https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html)（200，含 `PSFSNR`/`PSF Signal Weight` 与式[16]/[18]/[20] 锚点）。**PSFSNR 是功率比信噪比 `c3(Σf)²/(c4σ_n²)`；PSFSW 是权重（信号×集中度/（噪声×背景））；二者都不进本单元的任何入库路径**——AstroCS 入库的是通量型未加权原始 SNR `F_ref/σ_F`，权重在 Phase2 消费时由 `w=SNR²/F_ref²` 现场换算（§3.4 验证了该换算的严格性）。
+- **PixInsight 官方方法学**（闭源商业软件，仅引用公开文档）：[New Image Weighting Algorithms](https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html)（200，含 `PSFSNR`/`PSF Signal Weight` 与式[16]/[18]/[20] 锚点）。**PSFSNR 是功率比信噪比 `c3(Σf)²/(c4σ_n²)`；PSFSW 是权重（信号×集中度/（噪声×背景））；二者都不进本单元的任何入库路径**——ACSD 入库的是通量型未加权原始 SNR `F_ref/σ_F`，权重在 Phase2 消费时由 `w=SNR²/F_ref²` 现场换算（§3.4 验证了该换算的严格性）。
 - 仓内只读对照：`lib/algorithms/noise_snr/cpp/src/snr_science.cpp`（Horne 最优提取 + Moffat4 网格，§3.2 逐位对拍）、`snr_estimator.cpp:83`（PSF 行路径 σ_sky 语义）、`noise_model.cpp:55-66`（1.4826×MAD 稳健尺度）。
 
 **③ 仓内实测**：`results/b1..b6*.json`、`results/figs/*.png`、`run/SCI-402/prod_snr_driver` 对拍、`ctest -R p1snr_science` 日志（`run/SCI-402/ctest_snr.log`）。
@@ -335,7 +335,7 @@ flock /tmp/astrocs_build.lock ctest --test-dir build --output-on-failure -R "p1s
 > 本单元内的一次**独立取证**：用三类实验数据回答「(一) 天光来源语义缺失时容差 δ 取多少」与
 > 「(二) 逐源 SNR 的估计量错配（盒和通量 + 最优提取方差）怎么修」两个问题。
 > 代码 code/exp01/，产物 results/exp01_*.json，一键复跑 bash code/exp01/run_all.sh
-> （纯 Python，**不构建、不运行任何 AstroCS 可执行文件**；固定 seed 20260924）。
+> （纯 Python，**不构建、不运行任何 ACSD 可执行文件**；固定 seed 20260924）。
 
 ### 10.1 问题一（δ）的实测结论
 

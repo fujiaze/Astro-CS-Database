@@ -15,7 +15,7 @@
 与 EXP-01 的关系：本臂**独立重写**（不 import exp01 的模块），
 p999 网格与 EXP-01 §2.2② 对齐以便逐点对照；差异如实登记。
 
-固定 seed = 20260925。不运行任何 AstroCS 可执行文件。
+固定 seed = 20260925。不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

@@ -167,7 +167,7 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
 # 形态收窄（只准更精确、不准更宽松）: 只挖**紧贴第三方工具名**的版本字面量 ——
 #   ① 工具名与该字面量之间不得再出现别的版本字面量（否则那才是被声明的版本）;
 #   ② 工具名与该字面量之间不得出现本项目版本语境词（本项目/项目版本/产品版本/
-#      AstroCS/VERSION/版本源）—— 那是**产品版本声明**, 必须照旧 FAIL;
+#      ACSD/VERSION/版本源）—— 那是**产品版本声明**, 必须照旧 FAIL;
 #   ③ 间隔长度上限 EXTERNAL_TOOL_GAP_MAX，防止跨语义单元误吸附。
 # 同行其它位置的产品版本字面量照旧必须等于唯一源基础号（负例见 --self-test 与
 # eng/tests/version/test_version_consistency.py::TestExternalToolVersionExemption）。

@@ -16,7 +16,7 @@
   R2(B)  跨帧差分参考（位置稳定分量自动对消）—— 需要 >=2 帧
   S      现行帧级标量（整帧生产 recipe）
 
-固定 seed = 20260925。只读 testdata；不运行任何 AstroCS 可执行文件。
+固定 seed = 20260925。只读 testdata；不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

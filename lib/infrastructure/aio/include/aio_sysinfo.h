@@ -59,6 +59,25 @@ extern "C" {
 // 并发合同: reentrant（无跨调用共享可变状态）。
 AIO_SYSINFO_EXPORT uint64_t aio_system_available_memory_bytes(void);
 
+// 当前**进程树**（本进程 + 其全部后代进程）的常驻集大小 RSS 之和（字节）。
+// 用途: 内存压力的实测分子（压力 = 进程树 RSS / 内存预算）。口径与外部看门狗
+//   eng/tools/monitoring/mem_guard.py 的 --max-rss-gb 一致（两者都按**进程树**求和），
+//   使「程序自身预算」与「外部上限」可在同一张曲线上比较，阈值关系可自洽核对。
+// 语义（冻结）
+//   - 返回 0 = 不可判定（探测失败 / 未知平台）⇒ 调用方必须 fail-closed。
+//   - 每次调用重新探测，不缓存：RSS 是随时间变化的物理量，缓存会让压力判定依赖
+//     调用顺序。无跨调用共享可变状态 ⇒ reentrant（多线程并发调用安全）。
+//   - 只读不写，不产生任何文件系统副作用。
+// 平台
+//   - Linux: 本进程 = /proc/self/status 的 VmRSS（回退 /proc/self/statm 的
+//     resident 页 × 页大小）；后代 = 枚举 /proc/<pid>/status 的 PPid 关系图，
+//     自本进程起 BFS 求和 VmRSS。枚举失败 ⇒ **回退为仅本进程**（仍是有效下界，
+//     fail-open 到本进程口径，不返回 0）——与可用内存探测的 cgroup 项「不可判定
+//     即不参与」同款处置。
+//   - Windows: GetProcessMemoryInfo 的 WorkingSetSize（**仅本进程**；后代枚举
+//     未接入，登记为未核实项）。取不到 ⇒ 0。
+AIO_SYSINFO_EXPORT uint64_t aio_process_tree_rss_bytes(void);
+
 #ifdef __cplusplus
 }
 #endif

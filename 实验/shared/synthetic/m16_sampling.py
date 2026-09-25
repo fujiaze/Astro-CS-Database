@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""AstroCS RELEASE-02 / M16-SAMPLING --- 真实信号模板 -> 仿真采样帧 -> 重建。
+"""ACSD RELEASE-02 / M16-SAMPLING --- 真实信号模板 -> 仿真采样帧 -> 重建。
 
 定位（负责人 9.67 定案 7，逐字）
 ---------------------------------
@@ -11,7 +11,7 @@
 * 在其基础上**建立仿真采样帧**（simulated sampling frames）：按可控的**采样几何**
   （指向 / 抖动 / 像素尺度 / 旋转）、**曝光**、**seeing（PSF FWHM）**、**天光水平**、
   **增益/读出噪声**，从真实信号生成多帧观测；
-* 这些采样帧交给 AstroCS 重建链（normalize -> mosaic -> export）跑，再与**已知真值**
+* 这些采样帧交给 ACSD 重建链（normalize -> mosaic -> export）跑，再与**已知真值**
   （信号面）比较，量化重建保真度。
 
 **不是**用来做多帧叠加/排异/接缝的（那些 >=3 帧才测的项目由合成数据覆盖，
@@ -691,7 +691,7 @@ def write_sampling_frame(outdir: Path, truth: Dict[str, Any], frame: NM.Frame,
     hdr["CTYPE1"] = (w["CTYPE1"], "TAN projection")
     hdr["CTYPE2"] = (w["CTYPE2"], "TAN projection")
     hdr["RADESYS"] = ("ICRS", "celestial reference system")
-    # ── 指向/板尺度关键字：AstroCS normalize 的 wcs.init_source=header_pointing 消费 ──
+    # ── 指向/板尺度关键字：ACSD normalize 的 wcs.init_source=header_pointing 消费 ──
     # （OBJCTRA = 六进制**小时**；OBJCTDEC = 六进制度；s0 = 206.265*XPIXSZ/FOCALLEN）
     hdr["OBJCTRA"] = (_ra_hms(w["CRVAL1"]), "[h m s] field-centre RA (ICRS)")
     hdr["OBJCTDEC"] = (_dec_dms(w["CRVAL2"]), "[d m s] field-centre Dec (ICRS)")
@@ -715,7 +715,7 @@ def write_sampling_frame(outdir: Path, truth: Dict[str, Any], frame: NM.Frame,
     hdr["P_X"] = (float(truth["pointing"]["x"]), "[canvas px] pointing origin x")
     hdr["P_DY"] = (float(truth["pointing"]["dy"]), "[canvas px] sub-pixel dither y")
     hdr["P_DX"] = (float(truth["pointing"]["dx"]), "[canvas px] sub-pixel dither x")
-    hdr.add_history("AstroCS M16-SAMPLING: real M16 signal template -> sampling frame")
+    hdr.add_history("ACSD M16-SAMPLING: real M16 signal template -> sampling frame")
     hdr.add_history("noise chain (GAP_AUDIT 9.41/9.47):")
     hdr.add_history("lam_e = t*(src+sky)*flat + t*D(T)*hot")
     hdr.add_history("n_e = Poisson(lam_e) + N(0,RN); adu = round(n_e/gain + bias)")
@@ -782,7 +782,7 @@ def write_masters(outdir: Path, scene: Dict[str, Any], shape: Tuple[int, int],
         h["GAIN"] = (float(det.gain_e_per_adu), "[e-/ADU]")
         h["TEMPC"] = (temp_c, "[C]")
         h["SCENEID"] = (str(scene["scene_id"]), "sampling scene recipe id")
-        h.add_history("AstroCS RELEASE-02 M16-SAMPLING synthetic master; consistent with the")
+        h.add_history("ACSD RELEASE-02 M16-SAMPLING synthetic master; consistent with the")
         h.add_history("same detector model used to render the sampling frames")
         fits.PrimaryHDU(data=data, header=h).writeto(path, overwrite=True)
         return str(path)

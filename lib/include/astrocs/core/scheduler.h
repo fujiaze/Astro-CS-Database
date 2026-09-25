@@ -4,6 +4,7 @@
 
 #include "astrocs/core/context.h"
 #include "astrocs/core/contracts.h"
+#include "astrocs/core/memory_pressure.h"
 #include "astrocs/core/pipeline.h"
 
 #include <atomic>
@@ -88,6 +89,14 @@ class Scheduler {
   // RT-003: Scheduler 持有的唯一 ThreadBudget（run 间复用；重复 run 不泄漏）。
   std::shared_ptr<ThreadBudget> thread_budget() const noexcept { return budget_obj_; }
 
+  // MEMGOV-01: 注入内存压力治理器（ASTROCS_DESIGN.md §8.3:609-615 编排策略）。
+  // 非空 ⇒ 就绪节点的派发在压力高时被挡下（在途跑完再考虑，§8.3:614 可中断排队），
+  // 且节点执行期间经线程本地 current_governor() 供模块侧帧轴取用（§8.3:680 内存闸门
+  // × lease）。nullptr ⇒ 与注入前逐字节等价（不设门、不落台账）。
+  // 所有权：调用方（Runtime）持有，本类只持裸指针（生命周期覆盖 run）。
+  void set_memory_governor(MemoryPressureGovernor* g) { governor_ = g; }
+  MemoryPressureGovernor* memory_governor() const noexcept { return governor_; }
+
   // RT-006: 注入运行 trace 汇（run 内所有节点事件写入；nullptr 解除）。
   // run() 开始时把 store 与 run_id 注入 ctx（模块/节点经 ctx.record_trace 观测）。
   void set_run_observation(std::shared_ptr<TraceStore> store, std::string run_id) {
@@ -106,6 +115,7 @@ class Scheduler {
   bool built_ = false;
   std::shared_ptr<TraceStore> obs_store_;  // RT-006: run 观测汇（可选）
   std::string obs_run_id_;                 // RT-006: run 观测 id（可选）
+  MemoryPressureGovernor* governor_ = nullptr;  // MEMGOV-01: 压力治理器（可选，不拥有）
   std::mutex run_mu_;            // RT-007: 保护 active_token_（cancel() 与 run() 桥锁）
   CancellationToken* active_token_ = nullptr;  // RT-007: 当前 run 的活动 ctx token
 };

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """SCI-A 步骤 3 · 正向合成 vs HST PHOTFLAM 定标通量（跨滤镜/跨星色对拍）
 
-问题：AstroCS 的合成通量约定 F_syn = ∫S(λ)·T(λ)·Q(λ)·λ dλ 里，S(λ) 是 Gaia XP 谱。
+问题：ACSD 的合成通量约定 F_syn = ∫S(λ)·T(λ)·Q(λ)·λ dλ 里，S(λ) 是 Gaia XP 谱。
       XP 谱的**绝对通量刻度**是否可信？本仓 06.md §6 把它列为"判不了"。
 做法：用真实 HST WFC3/UVIS F657N、F673N drz（BUNIT=e-/s，带 PHOTFLAM/PHOTPLAM/PHOTBW）
       对同一批 Gaia XP 星做引导 PSF 测光，得到实测计数率 CR_meas；

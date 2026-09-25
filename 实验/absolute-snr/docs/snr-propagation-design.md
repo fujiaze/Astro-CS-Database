@@ -1,6 +1,6 @@
 # 信噪比（SNR）在全流程中的传播：从单帧校准到成品的方案设计
 
-> **论文雏形** — 本文是 AstroCS RELEASE-02 `SNR-DESIGN` 工作项的设计文档，可直接扩写为论文的方法节。
+> **论文雏形** — 本文是 ACSD RELEASE-02 `SNR-DESIGN` 工作项的设计文档，可直接扩写为论文的方法节。
 > 工作区：`reverse_verify/`（逆向验收区）。所有数值证据由 `实验/absolute-snr/code/reverse_verify/snr_design/exp1..exp5` 独立产出，
 > 中间产物落 `run/reverse_verify/snr_design/`。
 > **性质**：只做方案设计，不改任何生产代码（`lib/`、`docs/`、`eng/tests/`、`ci/` 零改动），零 git 写。
@@ -154,7 +154,7 @@ V(f_p) = σ_flat² + V_master,flat               [ADU²]    （平场光子噪�
 V(r_p) [ADU²] = ( S_p + B_p + D_p + RN² ) / G²
 ```
 
-**这是"教科书完整式"，但生产上不能直接用**：AstroCS 的校准后帧头**没有 GAIN / RDNOISE / SATURATE / DATAMAX**
+**这是"教科书完整式"，但生产上不能直接用**：ACSD 的校准后帧头**没有 GAIN / RDNOISE / SATURATE / DATAMAX**
 （实测：`run/RELEASE-02/L4-rebuild/norm/t2_m1_red/calibrated_*.fts` 头 117 张卡，无上述任一键）。
 因此本项目冻结的**生产基线是经验式**，而不是 CCD 方程：
 

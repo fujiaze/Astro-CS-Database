@@ -4,7 +4,7 @@
 
 输入：results/exp02_{e1_analytic,e2_hst,e3_real}.json
 输出：results/exp02_figs/*.png、results/EXP02_TABLES.md
-不运行任何 AstroCS 可执行文件。
+不运行任何 ACSD 可执行文件。
 """
 
 from __future__ import annotations

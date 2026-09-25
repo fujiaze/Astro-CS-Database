@@ -296,7 +296,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 82,
+      "line": 84,
       "field": "detection_threshold",
       "declared_default": "5.0",
       "unit": "σ（全局 bgnoise）",
@@ -311,7 +311,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 83,
+      "line": 85,
       "field": "min_area",
       "declared_default": "2",
       "unit": "px",
@@ -332,7 +332,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 84,
+      "line": 86,
       "field": "deblend",
       "declared_default": "true",
       "unit": null,
@@ -353,7 +353,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 85,
+      "line": 87,
       "field": "selection_function",
       "declared_default": "true",
       "unit": null,
@@ -1889,7 +1889,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 60,
+      "line": 62,
       "field": "mode",
       "declared_default": "auto",
       "unit": null,
@@ -1904,7 +1904,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 61,
+      "line": 63,
       "field": "gaia_data_dir",
       "declared_default": "无",
       "unit": "path",
@@ -1919,7 +1919,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 62,
+      "line": 64,
       "field": "max_stars",
       "declared_default": "20000",
       "unit": "颗",
@@ -1929,12 +1929,12 @@
       "registered_key": "star_detection.max_stars",
       "finding": "none",
       "conflict": null,
-      "note": "【B3 收口 2026】star_detection 段已纳入合法输入面：合同声明 = phase_config_normalize#/$defs/star_detection_config（块内 normalize_block.properties 与平铺顶层 properties 两形态同面，additionalProperties:false）；CLI 认键 = session_commands.h config_fields(SESSION_NORMALIZE) + parser.cpp session_keys()。缺段 = 取编译期默认，不是错误。 合同域 [20000,50000] 有最高设计 §4.2「top 2–5 万」权威、越界即 DATA 拒绝（module_adapters.cpp kP1GuidedMaxStarsLo/Hi + p1_guided_cfg，禁静默夹取）；schema 的 minimum/maximum 同域。"
+      "note": "【B3 收口 2026】star_detection 段已纳入合法输入面：合同声明 = phase_config_normalize#/$defs/star_detection_config（块内 normalize_block.properties 与平铺顶层 properties 两形态同面，additionalProperties:false）；CLI 认键 = session_commands.h config_fields(SESSION_NORMALIZE) + parser.cpp session_keys()。缺段 = 取编译期默认，不是错误。 合同域 [20000,50000] 唯一事实源 = eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config/properties/max_stars 的 minimum/maximum，越界即 DATA 拒绝（module_adapters.cpp kP1GuidedMaxStarsLo/Hi + p1_guided_cfg，禁静默夹取）；最高设计 §4.2 给出的是「按亮度取上限」的语义与配置键名（`star_detection.max_stars`），不复述数值。口径对齐：本键 = 检测定义域上限，与 snr.max_sources（交付 SNR 样本上限，默认 0 = 不限）不是同一对象。"
     },
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 63,
+      "line": 65,
       "field": "approx_wcs",
       "declared_default": "无",
       "unit": null,
@@ -1949,7 +1949,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 64,
+      "line": 66,
       "field": "rotation_deg + parity",
       "declared_default": "无 / `pos",
       "unit": "deg / `pos\\",
@@ -1964,7 +1964,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 65,
+      "line": 67,
       "field": "limiting_mag",
       "declared_default": "由焦距/画幅/曝光派生",
       "unit": "mag",
@@ -1979,7 +1979,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 66,
+      "line": 68,
       "field": "limiting_mag_safety",
       "declared_default": "3.0",
       "unit": null,
@@ -1994,7 +1994,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 67,
+      "line": 69,
       "field": "query_radius_factor",
       "declared_default": "0.55",
       "unit": null,
@@ -2009,7 +2009,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 68,
+      "line": 70,
       "field": "limiting_mag_max_iter",
       "declared_default": "4",
       "unit": "次",

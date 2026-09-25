@@ -6,7 +6,7 @@
 
 ## 1. 帧级 SNR 定案（`frame-snr-canon.md §0`，逐字）
 
-> **AstroCS 的帧级 SNR 是「点源（PSF）信号 SNR」：** `SNR_frame = F_signal / sigma_F`，
+> **ACSD 的帧级 SNR 是「点源（PSF）信号 SNR」：** `SNR_frame = F_signal / sigma_F`，
 > **`F_signal` 已扣局部背景（天光均值绝不进分子）**，
 > **`sigma_F` 由 PSF 加权最优提取的方差给出、且天光散粒噪声必须计入**。
 > **固定源通量、天光变亮 ⇒ SNR 严格单调下降；天光→∞ ⇒ SNR→0。**

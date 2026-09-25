@@ -25,6 +25,34 @@ MODULES = [
     ("lib/phase3_session/README.md",                           ["p3_wcs.h", "p3_output.h", "p3_wcs_test.cpp", "p3_assembly_test.cpp"]),
 ]
 
+def check_registry_anchors(errors):
+    """DOC-003 增补（一页纸 S1-2「红灯被改写成绿灯」）：
+
+    registry 生成页的生成依据锚 + 声明面内的无锚结论字面量 + 产物脚本里写死的绿结论。
+    判据全部落在 eng/tools/quality/check_conclusion_anchors.py（带 --self-test 正负例）。
+    **载不进来也判红**：不允许因"门没跑起来"而静默放过。
+    """
+    import importlib.util
+    gate = REPO / "eng/tools/quality/check_conclusion_anchors.py"
+    if not gate.is_file():
+        errors.append("CONCLUSION_ANCHORS_GATE_MISSING: %s" % gate)
+        return
+    try:
+        spec = importlib.util.spec_from_file_location("_concl_anchors", gate)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        report, err = mod.run(REPO, mod.DEFAULT_SURFACE)
+    except Exception as exc:                                    # noqa: BLE001
+        errors.append("CONCLUSION_ANCHORS_GATE_LOAD_FAIL: %r" % exc)
+        return
+    if err:
+        errors.append("CONCLUSION_ANCHORS_INPUT: %s" % err)
+        return
+    for v in report["violations"]:
+        errors.append("CONCLUSION_ANCHOR_%s %s:%s %s"
+                      % (v["rule"], v["file"], v.get("line", "-"), v["detail"]))
+
+
 def main():
     errors = []
     for rel, refs in MODULES:
@@ -53,6 +81,7 @@ def main():
                     errors.append(f"{rel}: 引用文件不存在 {ref}")
         if "L2" not in t:
             errors.append(f"{rel}: 缺 L2 标注")
+    check_registry_anchors(errors)
     if errors:
         print("DOC-003_README_VIOLATION:")
         for e in errors: print("  " + e)

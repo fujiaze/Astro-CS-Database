@@ -3,6 +3,8 @@
 
 #include "astrocs/core/context.h"
 #include "cancel_token.h"
+// MEMGOV-01: 压力分子（进程树 RSS）唯一实现收在 aio 边界（§10 文件级唯一 I/O 边界）。
+#include "aio_sysinfo.h"
 #include "p3_wcs.h"   // B2-A4/A5: 请求层投影/frame/coverage_output 唯一校验源
 
 #include <nlohmann/json.hpp>
@@ -357,7 +359,9 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason,
                  std::atomic<bool>* cancel_ext,
                  uint64_t memory_limit_bytes,
-                 const std::string& memory_source) {
+                 const std::string& memory_source,
+                 uint64_t memory_available_bytes,
+                 uint32_t memory_budget_percent) {
   // MON-002 测试钩子(非用户接口): 假 workload(低 CPU 睡眠)供资源门禁 first-10s/
   // RESOURCE(10) 端到端验证; 不设环境变量时零影响。循环响应信号与外部取消源,
   // 保证 gate 快速失败后本钩子立即让路协作取消。
@@ -388,6 +392,29 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
   rrb.cpu_budget = budget;
   rrb.memory_limit_bytes = memory_limit_bytes;
   rrb.memory_source = memory_source;
+  // ── MEMGOV-01: 内存压力治理（ASTROCS_DESIGN.md §8.3:612/:613/:615）──────────
+  // 压力分子 = 进程树 RSS，唯一实现收在 aio 边界（本层不自持 /proc 读取通道）；
+  // 口径与外部看门狗 mem_guard.py 的 --max-rss-gb 一致（两者都按进程树求和），
+  // 使「程序自身预算」与「外部上限」可在同一张曲线上比较、阈值关系可自洽核对。
+  rrb.rss_probe = &aio_process_tree_rss_bytes;
+  rrb.memory_available_bytes = memory_available_bytes;
+  rrb.memory_budget_percent = memory_budget_percent;
+  // 台账路径 = run 的 output_dir 下（与 products/manifest 同级，运营者当场取证）。
+  {
+    std::string od;
+    try {
+      const nlohmann::json doc = nlohmann::json::parse(config_json);
+      if (doc.is_object()) od = doc.value("output_dir", std::string());
+    } catch (...) {
+      od.clear();
+    }
+    if (!od.empty()) {
+      rrb.pressure_ledger_path = od + "/memory_pressure_ledger.jsonl";
+      std::fprintf(stderr, "session run: memory pressure ledger=%s\n",
+                   rrb.pressure_ledger_path.c_str());
+      std::fflush(stderr);
+    }
+  }
   auto rt = astrocs::core::create_runtime(rrb);
   if (rt.failed()) {
     if (fail_reason) *fail_reason = rt.error().message();
