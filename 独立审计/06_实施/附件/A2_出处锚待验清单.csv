@@ -1,0 +1,197 @@
+﻿编号,符号或键,出处原文,解析出的锚数,锚样例
+A2-001,(无名)·lib/infrastructure/cli/session_commands.h:181,唯一数值源 eng/packaging/config/defaults.json:666-667 drizzle.pixfrac=0.8（authority_status=owner_adjudicated）；docs/plugins/al,2,eng/packaging/config/defaults.json:666; docs/plugins/algorithms_phase1/08_drizzle.md:49
+A2-002,additive_mode（seam）,module_adapters.cpp:9835-9836/:10311-10312 读点、:10313-10316 校验、:10318-10321 降级、:10524/:10528-10537/:10541-10552 施加链、:1069,2,module_adapters.cpp:9835; eng/packaging/config/config_registry.json:1849
+A2-003,calibration.master_flat_median_range,"真锚 docs/science/CALIBRATION.md:182（冻结默认 [0.5, 2.0]）+ docs/algorithms/CALIBRATION_ALGORITHMS.md:57；注册件所引 :103 讲的是**平场响应下界",2,docs/science/CALIBRATION.md:182; docs/algorithms/CALIBRATION_ALGORITHMS.md:57
+A2-004,cosmetic.bad_column_enabled,真锚 docs/contracts/DATA_SEMANTICS.md:316（§10.4 表『开关』行：列状缺陷路径默认启用，置 false 时本路径逐位不生效）；注册件所引 :304 是 §10.4 小节标题,1,docs/contracts/DATA_SEMANTICS.md:316
+A2-005,drizzle.pixfrac,"docs/science/DRIZZLE.md:26（pixfrac (0,1]，默认 0.8）/:35（值域与 NO_DATA）/:56（核按 drop 面积归一 ⇒ 与 pixfrac 无关）；一手 Fruchter & Hook 20",1,docs/science/DRIZZLE.md:26
+A2-006,gate_enforcement（资源门是否影响退出码）,resource_gate.h:268-270；eng/contracts/resource_gate_v1.json enforcement.in_process_hard_fail；21_observability.md §8.3 表 ,1,resource_gate.h:268
+A2-007,kEventLineMaxBytes,docs/contracts/LOG_AND_ERROR_CONTRACT.md:35/:55/:151＋docs/design/LOG_AND_ERROR_SYSTEM.md:94＋docs/architecture/observabil,4,docs/contracts/LOG_AND_ERROR_CONTRACT.md:35; docs/design/LOG_AND_ERROR_SYSTEM.md:94; docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md:122
+A2-008,kEventLineMaxBytes 的实现越界,jsonl.h:55/:86-102/:143/:124/:121；eng/contracts/schemas/jsonl_event_v1.schema.json 无 maxLength（正例对照：log_event_v1.schema.,1,jsonl.h:55
+A2-009,mb_per_s 命名的量纲债,eng/contracts/resource_gate_v1.json#memory.unit；memory_report.h:228/:481；v6_runtime_contract.h:310/:329 required_metric_,3,memory_report.h:228; v6_runtime_contract.h:310; resource_monitor.py:90
+A2-010,noise.clip_sigma,docs/science/NOISE_MODEL.md:63（稳健裁剪: cosmic/hot 5sigma，<=2 轮；注册件所引 :56 是 gain 行）,1,docs/science/NOISE_MODEL.md:63
+A2-011,noise.mask_r_min_px,"docs/science/NOISE_MODEL.md:96（r_min = max(1.5 px, 0.75·FWHM_i)；符号表 :38 同）；注册件所引 :85 是空行",1,docs/science/NOISE_MODEL.md:96
+A2-012,noise.patch_grid,真锚 docs/science/NOISE_MODEL.md:61（§5『patch grid 8x8』）与 :48（§3a 像素域 8x8）；**注册件 source 与 source_ref 都引 :54，该行讲的是平面场启用条件（en,1,docs/science/NOISE_MODEL.md:61
+A2-013,noise.spatial_field_enabled,docs/science/NOISE_MODEL.md:54（enable_spatial_field==1 && n_control_points>=4 且几何张成二维；注册件所引 :47 是空行）,1,docs/science/NOISE_MODEL.md:54
+A2-014,paths.gaia_root,defaults.json:748 记负责人指令原文（无文档条款号，source_ref=null）；ASTROCS_DESIGN.md 与 AGENTS.md §7 记 gaia/ 为根级只读数据集目录（跟踪数 0，gitignore）⇒,1,defaults.json:748
+A2-015,photometry.mag_tolerance,docs/science/PHOTOMETRY.md:34（真陈述行，注册件引 :30 偏 +4）；pc_api.cpp:145/:435 字面量 3.0；defaults.json 标 dead_config_key,2,docs/science/PHOTOMETRY.md:34; pc_api.cpp:145
+A2-016,photometry.min_inlier_stars,docs/science/PHOTOMETRY.md:191（注册件引 :44 偏 +147）；star_matcher.cpp:616 字面量,2,docs/science/PHOTOMETRY.md:191; star_matcher.cpp:616
+A2-017,photometry.min_reference_stars,docs/science/PHOTOMETRY.md:191（真行，注册件引 :44 偏 +147）；star_matcher.cpp:518 字面量,2,docs/science/PHOTOMETRY.md:191; star_matcher.cpp:518
+A2-018,psf.default_model,"docs/science/PSF.md:9（点源响应=椭圆 Moffat4，锚正确）；一手 = Moffat 1969 A&A 3,455（PSF.md:177 登记 bibcode，自注『文章级，未逐式核验』）",2,docs/science/PSF.md:9; PSF.md:177
+A2-019,rejection.large_scale.enabled,"docs/science/REJECTION.md:121（large_scale 默认关闭: enabled=0, min_structure=8, low/high grow radius=2）；注册件 source :61（空行）与 ",1,docs/science/REJECTION.md:121
+A2-020,rejection.linear_fit.upper_sigma,docs/science/REJECTION.md:117,1,docs/science/REJECTION.md:117
+A2-021,snr.path,docs/plugins/algorithms_phase1/07_noise_snr.md:186 附近与 GAP_AUDIT §9.46（负责人：马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）；值域与默认唯一事实源 = ph,2,docs/plugins/algorithms_phase1/07_noise_snr.md:186; eng/contracts/schemas/phase_config_mosaic.schema.json:164
+A2-022,tolerance / tolerance_relative,module_adapters.cpp:9571/:9573（设 1）、:9650-9652（读覆盖键）；p2_session.cpp:204（只设 tolerance）＋:199-212 全列无该键、:212-218 覆盖块只读 max_,4,module_adapters.cpp:9571; p2_session.cpp:204; upm.h:113
+A2-023,w_jp 权重分母,drizzle_engine.cpp:1617；docs/algorithms/DRIZZLE_GEOMETRY.md:48-50/:332（正确侧）vs :337-346、docs/contracts/DATA_SEMANTICS.md:,4,drizzle_engine.cpp:1617; docs/algorithms/DRIZZLE_GEOMETRY.md:48; docs/contracts/DATA_SEMANTICS.md:47
+A2-024,0.85 抄进用户可见诊断串,resource_gate.h:492；契约 eng/contracts/resource_gate_v1.json,1,resource_gate.h:492
+A2-025,1.253（应为 √(π/2)）,snr_science.cpp:279（代码）、:272（自证注释）；p1snr_linux_test.cpp:244（1e-15 断言）；docs/science/NOISE_MODEL.md:323,3,snr_science.cpp:279; p1snr_linux_test.cpp:244; docs/science/NOISE_MODEL.md:323
+A2-026,Phase2 逐像素科学权重（臂 A）,ASTROCS_DESIGN.md:156-158/:168-174；docs/science/NOISE_MODEL.md §5b/§5c/§10；module_adapters.cpp:11936/:8155/:12004,2,ASTROCS_DESIGN.md:156; module_adapters.cpp:11936
+A2-027,USER_HZ / _SC_CLK_TCK,monitor.h:257/:258（硬编码除 100.0）；反证在同文件 :204-205（iowait）与 :277-278（read_thread_cpu）都已用 sysconf(_SC_CLK_TCK) 并只在返回 ≤0 时兜底 1,1,monitor.h:257
+A2-028,eq,:428-437 与 commands.cpp:719 注释（作者以 0.5 s 标称周期自证「normalized 口径成立」）；对照 :470 的 last_t_ 成员（记录上次采样时刻，全文件零使用）,1,commands.cpp:719
+A2-029,hips_pixel_scale（浏览器真值件）,gen_geometry_truth.py:177（写死）、:168/:35（阶数声明）；生产写出路径 aio_hips_writer.cpp:1890 已按式算（不受影响）；本机复算 numerics.txt,2,gen_geometry_truth.py:177; aio_hips_writer.cpp:1890
+A2-030,hips_profile=1 的 support 量化,astro_sphere_sink.cpp:186-191（profile=0 直写不量化）/:520-542（profile=1 量化）/:277-285（k=1.0 回退）；aio_hips_writer.cpp:1322-1341/:,3,astro_sphere_sink.cpp:186; aio_hips_writer.cpp:1322; astro_sphere_sink.h:36
+A2-031,k = D_p/N_p（发布因子）,astro_sphere_sink.h:26-52（:39 写 =pixfrac²）、:50-52；drizzle_engine.cpp:1617/:1639-1641/:1644/:1646-1650；docs/science/DRIZZ,2,astro_sphere_sink.h:26; drizzle_engine.cpp:1617
+A2-032,kLimit,mem_wire_test.cpp:223；同注释 :222 给约束式,1,mem_wire_test.cpp:223
+A2-033,kMoffat4FwhmFactor,docs/algorithms/STAR_PSF_ALGORITHMS.md:62-64（推导 FWHM=2√2·σ·√(2^{1/4}−1)=1.230307652590102·σ，并登记实现常量 MOFFAT4_FWHM_FACTOR=,3,docs/algorithms/STAR_PSF_ALGORITHMS.md:62; dpsf_psf.cpp:25; docs/science/ASTROMETRY.md:170
+A2-034,min_sep_px,"docs/algorithms/GATES_AND_TOLERANCES.md:67（G-P1-WCS-BRIDGE 负对照条款：""移除或错置 +1 桥接必须 ≥1 px 偏差""）；行内推导注释 :1835-1836（""必须相差 ≥0.9 ",1,docs/algorithms/GATES_AND_TOLERANCES.md:67
+A2-035,node_spacing_deg（生产）／NODE_SPACING_DEG（实验）,sky_plane.cpp:392-447/:454/:499-511；docs/science/PHASE2_UPM.md §7a 规则 1/2 与 :176-178（0.0355°→129.2 px @0.989″/px）,1,sky_plane.cpp:392
+A2-036,noise.mask_budget_min_patches,docs/science/NOISE_MODEL.md:98（n_qualified(s) >= 8 且 N_sky >= 9216）；>=4 的来源 = §4 :54 平面场启用条件（3 参数 + 非共线）,1,docs/science/NOISE_MODEL.md:98
+A2-037,noise.mask_k_sigma,docs/science/NOISE_MODEL.md:88 与 :95（k=0.1 ⇒ 残余方差污染 <1%·sigma_bg^2 ⇒ 偏差 <=0.5%；注册件所引 :84 是实现一致性句）,1,docs/science/NOISE_MODEL.md:88
+A2-038,noise.source_mask_radius_px,docs/science/NOISE_MODEL.md:97（rmax 式；注册件所引 :86 是 §5a 小节空行，真锚在 :97，另 :52 写 rmax=60）,1,docs/science/NOISE_MODEL.md:97
+A2-039,photometry.tukey_c,"本仓 docs/science/PHOTOMETRY.md:31（符号表 c 4.685）与 :207（u_i 式, c=4.685）；**注册件 source 引 :21（表头行）、source_ref 引 :24，两条都不含 4.685",4,docs/science/PHOTOMETRY.md:31; docs/science/PHOTOMETRY.md:31; star_matcher.cpp:23
+A2-040,psf.moffat_beta,真锚 docs/science/PSF.md:23/:78/:92/:152/:178（多处 beta=4）；注册件所引 :94 讲的是 r_win/alpha=2.629 与 f_out=2.02e-3（不含 4.0）；PSF.md:17,2,docs/science/PSF.md:23; PSF.md:177
+A2-041,rss_growth_mb_per_s,eng/contracts/resource_gate_v1.json memory.unit 明记『MiB/s（1048576 B/s）；禁止再使用 MB/s（1e6 B/s，口径差 4.858%）』；值：resource_gate_v1,1,eng/tools/quality/resource_monitor.py:536
+A2-042,归一化门阈值（绝对→尺度无关）,upm.cpp:654-671（FIX-UPMSCALE 注释＋代码）；docs/**/PHASE2_UPM_IMPL.md §F2:179-184 与 §3 符号表滞后；docs/science/PHASE2_UPM.md §7；ASTR,1,upm.cpp:654
+A2-043,无增益上界解析式 SNR_rep/SNR_true,docs/plugins/algorithms_phase1/07_noise_snr.md:121；AUD-202 复算表 1.028…3.717 倍,1,docs/plugins/algorithms_phase1/07_noise_snr.md:121
+A2-044,1% 幅度检测读数,实验/additive-sky-seamless/README.md:151/:289-290；results/c2_multiplicative.json,1,实验/additive-sky-seamless/README.md:151
+A2-045,PSD 峰位与预期（对外验收表行）,实验/additive-sky-seamless/README.md:369（§9 验收门表）与 :151；results/c2_multiplicative.json:hf_component,1,实验/additive-sky-seamless/README.md:369
+A2-046,noise.min_patch_samples,docs/science/NOISE_MODEL.md:52（min_samples 默认 64，只陈述不推导）；派生线索在 lib/algorithms/noise_snr/README.md:117『64=8x8 全格』,2,docs/science/NOISE_MODEL.md:52; lib/algorithms/noise_snr/README.md:117
+A2-047,noise.saturation_level,docs/science/NOISE_MODEL.md:52（饱和域 claim SC-008/SAT-001）；SAT-001 读数只在 run/PROJECT-GOVERNANCE-01/SAT-001/…（.gitignore:17 ,1,docs/science/NOISE_MODEL.md:52
+A2-048,pixfrac 系数表标定前提,lib/algorithms/coverage/src/sampler.cpp:81-88；AUD-402-判读-A3 L1,1,lib/algorithms/coverage/src/sampler.cpp:81
+A2-049,polar 闭合预算最坏值（同页两值）,实验/healpix-polar/docs/EXP-07-POLAR-摘要.md:37/:43；results/p2_t9.out:3/:5；results/p3_t13.out:65；docs/EXP-07-POLAR.md:615（把 ,2,实验/healpix-polar/docs/EXP-07-POLAR-摘要.md:37; docs/EXP-07-POLAR.md:615
+A2-050,sparse_snr.spacing_px,负责人 2026-09-19 裁决（GAP_AUDIT §9.45『64 可以了』）；ell 区间见 实验/absolute-snr（跟踪件）；**注册件 source_ref=null，schema 侧 :466 描述仍写 ell=48 ,4,defaults.json:694; eng/packaging/config/defaults.json:694; docs/plugins/algorithms_phase1/07_noise_snr.md:102
+A2-051,upm.k_corr,docs/science/PHASE2_UPM.md:24（锚正确，含定义域与实现锚 sampler.cpp:83）/:116 保守取整/:131 与 :169 MC k_corr≈1.3883；但 defaults.json:649 自证,3,docs/science/PHASE2_UPM.md:24; sampler.cpp:83; defaults.json:649
+A2-052,σ_frame（M42 帧级天空 rms）,实验/absolute-snr/results/EXP06_TABLES.md:241-243；EXP05_TABLES.md:33/:35/:40；exp06_e3_real.json:/meta/crop=1024；exp05_e3_r,4,实验/absolute-snr/results/EXP06_TABLES.md:241; EXP05_TABLES.md:33; docs/EXP-05-ABSOLUTE-SNR.md:363
+A2-053,双计偏差头条数 +12.8%/+34.0%,实验/absolute-snr/results/b2_noise_terms.json、b1_sky_scan.json:36-38；docs/science/NOISE_MODEL.md:324；docs/science/CONTROL_,4,b1_sky_scan.json:36; docs/science/NOISE_MODEL.md:324; docs/science/CONTROL_WEIGHT_SNR.md:201
+A2-054,星密度指数（旧 1.3 → 实测 0.2885）,ipv_select.cpp:360-365 注释自证「该偏差尚未在 docs/algorithms 登记为 DISP 条目」,1,ipv_select.cpp:360
+A2-055,(无名)·lib/infrastructure/cli/commands.cpp:781,resource_gate.h:126-133 以 resource_gate_contract 提供 kMon001UtilSampleMinPercent（注释：单样本 >=0.85）、kMon001QueueUtilMinPercen,1,resource_gate.h:126
+A2-056,P1_PHOT_MAX_SIGMA_DEX,module_adapters.cpp:5327 定义、:5747-5748 判定；AUD201-011【缺输入：判读层与第②层均未给保守取值方向】,1,module_adapters.cpp:5327
+A2-057,Theil-Sen 不可算时返回 0.0,memory_growth.h:55、memory_report.h:330/:336/:338；U-02 立案,2,memory_growth.h:55; memory_report.h:330
+A2-058,arc-chord 面积误差预算,docs/algorithms/DRIZZLE_GEOMETRY.md:313、:558-562；docs/science/DRIZZLE.md:152；spherical_overlap.cpp:543-617 注释（自称「对所有 NSI,3,docs/algorithms/DRIZZLE_GEOMETRY.md:313; docs/science/DRIZZLE.md:152; spherical_overlap.cpp:543
+A2-059,astrocs_process 的 timeout_s 默认,astrocs_process.h:36 默认、:29 注释,1,astrocs_process.h:36
+A2-060,closure_rel_tol,语义锚：lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:73-75（定义判据形式）；数值 1e-6 唯一源＝代码默认 lib/algorithms/integrat,2,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:73; lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:131
+A2-061,control_ivar 零尺度保护量,sampler.cpp:863-877；docs/science/PHASE2_UPM.md:85 §8「σ_bg_raw=0 ⇒ control_ivar 必须为 0 且标为无尺度信息（非有限）；禁止以数值保护量生成有限方差发布」；doc,2,sampler.cpp:863; docs/science/PHASE2_UPM.md:85
+A2-062,cosmetic.bad_column_neighbor_k,docs/contracts/DATA_SEMANTICS.md:315（邻域宽度行：每侧参与统计的列数由配置键给出）⇒ 同样是指针不是出处；3 的取值全仓无任何论证【缺输入：判读层与第②层均未给保守取值方向】,1,docs/contracts/DATA_SEMANTICS.md:315
+A2-063,cosmetic.bad_column_sigma,docs/contracts/DATA_SEMANTICS.md:313（§10.4 判据行原文：阈值取自列状缺陷的 sigma 配置键）⇒ **合同明文把数值来源指回 defaults.json**，而 defaults.json 又把出,1,docs/contracts/DATA_SEMANTICS.md:313
+A2-064,detection.threshold_sigma,docs/science/STAR_DETECTION.md:65（threshold = median(img) + 5.0·bgnoise，单位 ADU；**注册件所引 :21 讲的是 sigma_smooth=2.0 px，与本键无关,1,docs/science/STAR_DETECTION.md:65
+A2-065,drizzle 面积/闭合冻结门,docs/algorithms/DRIZZLE_GEOMETRY.md §9:303-304/:312-313；docs/science/DRIZZLE.md:152；eng/ci/checks.json:4722（drizzle_free,5,docs/science/DRIZZLE.md:152; eng/ci/checks.json:4722; drizzle_freeze_test.cpp:12
+A2-066,fwhmClipSigma,lib/algorithms/star_detection/src/sdet_api.cpp:963-975（默认 3.0f）＋ README.md:119-123 ＋ docs/contracts/PUBLIC_API.md:833；消费,4,lib/algorithms/star_detection/src/sdet_api.cpp:963; README.md:119; docs/contracts/PUBLIC_API.md:833
+A2-067,iterativeClipSigma,值 9.0 唯一源＝代码 lib/algorithms/star_detection/src/sdet_api.cpp:996 与生产调用 lib/infrastructure/pipeline/orchestrator/cpp/src/o,4,lib/algorithms/star_detection/src/sdet_api.cpp:996; lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:1569; lib/algorithms/star_detection/README.md:119
+A2-068,kAllocGrowthWarnMbPerS,无。三件反证：① 本文件 :42/:47 自称「G-RES-01 阈值唯一数值源 = eng/contracts/resource_gate_v1.json（CMake 生成）」；② 同目录 resource_gate.h:105「本文件不,2,resource_gate.h:105; docs/plugins/infrastructure/21_observability.md:53
+A2-069,kDiskEstimateMaxEntries,无（docs/ 与 eng/contracts/ 对 20000 零登记；反向证据见 disk_gate.h:15-17「阈值自由」纪律）【缺输入：判读层与第②层均未给保守取值方向】,1,disk_gate.h:15
+A2-070,kStallPatience / kObjImproveFloor,upm.cpp:732-733 定义、:1061 赋值；docs/science/PHASE2_UPM.md:105【缺输入：判读层与第②层均未给保守取值方向】,2,upm.cpp:732; docs/science/PHASE2_UPM.md:105
+A2-071,leaf 表示选支（弦四边形 vs 真曲线）,spherical_overlap.cpp:1372-1382、:506-541、:1283-1296、:543-617【缺输入：判读层与第②层均未给保守取值方向】,1,spherical_overlap.cpp:1372
+A2-072,m_cut 极限星等初值式,ipv_select.cpp:335（注释）/:343-345（代码）；docs/plugins/algorithms_phase1/03_star_detection.md:25 与 phase_config_normalize.sche,3,ipv_select.cpp:335; docs/plugins/algorithms_phase1/03_star_detection.md:25; phase_config_normalize.schema.json:358
+A2-073,noise.variance_floor,docs/science/NOISE_MODEL.md:30（符号表：配置默认 1e-12，单位 ADU^2）与 :55/§7；注册件所引 :23 是符号表 `x` 行【保守方向·回填自判读件】同值多侧：defaults.json:205｜,4,docs/science/NOISE_MODEL.md:30; defaults.json:205; noise_model.cpp:1256
+A2-074,photometry.fit.spatial_gain_order / kDefaultSpatialGainOrder,module_adapters.cpp:5471 constexpr int kDefaultSpatialGainOrder=2、:5472-5476 读取式、:5489 通道使能门、:5708/:5716/:6072-6075 施加链；,4,module_adapters.cpp:5471; frame_photometry_fit.h:74; spatial_gain.h:80
+A2-075,photometry.irls_tolerance_dex,docs/science/PHOTOMETRY.md:192（tol=1e-6）；锚点正确【保守方向·回填自判读件】**部分证伪机械层结论**：队列记作『同一 IRLS 收敛门两处取值差 3 个数量级』，读码后不成立——spatial_ga,3,docs/science/PHOTOMETRY.md:192; spatial_gain.cpp:43; star_matcher.cpp:27
+A2-076,pixel_area_power,docs/contracts/DATA_SEMANTICS.md:3223-3225/:3249/:3250；eng/contracts/data/v6_clause_registry_v1.json:2902-2909；eng/contr,8,docs/contracts/DATA_SEMANTICS.md:3223; eng/contracts/data/v6_clause_registry_v1.json:2902; eng/contracts/schemas/product_family_field_constraints.schema.json:242
+A2-077,precision.default,真锚 docs/science/SCIENCE_SCOPE.md:91-93（稠密发布面 FP32、稀疏/元数据全程 FP64、计算与承载分离）；注册件所引 :56 讲的是『污染幅度未被定量确认』，与本键无关 ⇒ 注册值『默认 FP64』是,3,docs/science/SCIENCE_SCOPE.md:91; module_adapters.cpp:13519; p3_session.cpp:126
+A2-078,sigma_floor,唯一数值源：docs/contracts/DATA_SEMANTICS.md:2086（冻结 1e-3）＋ lib/algorithms/coverage/include/astro/phase2/upm.h:83、src/upm.cpp:,3,docs/contracts/DATA_SEMANTICS.md:2086; lib/algorithms/coverage/include/astro/phase2/upm.h:83; src/upm.cpp:273
+A2-079,sigma_residual 的「不可估计」编码,star_matcher.cpp:614 注释自证；docs/science/PHOTOMETRY.md:191/§3/§8 无具名不可估计值【缺输入：判读层与第②层均未给保守取值方向】,2,star_matcher.cpp:614; docs/science/PHOTOMETRY.md:191
+A2-080,sigma_sky_source 的择一（生产写死）,module_adapters.cpp:7159 赋值、:7151 noise_sigma 入参、:7130-7136 upper_bound_no_gain（此点证真）；docs/plugins/algorithms_phase1/07_,3,module_adapters.cpp:7159; docs/plugins/algorithms_phase1/07_noise_snr.md:118; docs/science/NOISE_MODEL.md:223
+A2-081,snr.gain_e_per_adu 的默认,phase_config_normalize.schema.json:229；module_adapters.cpp:6794；docs/science/NOISE_MODEL.md:239-240【缺输入：判读层与第②层均未给保守取值方向,3,phase_config_normalize.schema.json:229; module_adapters.cpp:6794; docs/science/NOISE_MODEL.md:239
+A2-082,sparse_snr.density,docs/plugins/algorithms_phase1/07_noise_snr.md:112-113 默认列为 ——（合规的无值登记）；ASTROCS_DESIGN.md §3.3 点名该字段应存在；pending_task=SCI,1,docs/plugins/algorithms_phase1/07_noise_snr.md:112
+A2-083,sys_io_wait_seconds,采集 :189-207；消费链 :367-369 → resource_recorder.h:70 → commands.cpp:1072 事件 io_wait_pct【缺输入：判读层与第②层均未给保守取值方向】,2,resource_recorder.h:70; commands.cpp:1072
+A2-084,zero_anchor_weight / rank_rtol / smoothing_lambda,sky_plane.cpp:463（rank_rtol=τ）；docs/science/PHASE2_UPM.md §5/§7；BD1 同簇合并覆盖 syn008_seam_main.cpp:103-105 的 7 个数值位点【缺输入：判读,2,sky_plane.cpp:463; syn008_seam_main.cpp:103
+A2-085,§3.5 与 §6.x 权威指针,三个 phase_config_*.schema.json 的 authority 数组、defaults.json:7/:22、filters.json:7、runtime_resources.json:5、resource_gate_v,7,defaults.json:7; filters.json:7; runtime_resources.json:5
+A2-086,「07 §1..§6」资源判据族,resource_gate.h:1/8/15/48/53/174/177/310/328/335/404；resource_events.h:8；commands.cpp:624/726/786/916；monitor.h:2/333/39,5,resource_gate.h:1; resource_events.h:8; commands.cpp:624
+A2-087,「活跃线程」定义,resource_gate.h:363；U-07 立案；契约 compute.min_active_compute_threads【缺输入：判读层与第②层均未给保守取值方向】,1,resource_gate.h:363
+A2-088,宪章条款号作为阈值出处（已废止）,v6_runtime_contract.h:4/:17/:22/:250/:291；resource_gate.h:63/:138/:191/:198/:298；docs/DOCUMENT_INDEX.yaml:1065【缺输入：判读层与第,2,v6_runtime_contract.h:4; resource_gate.h:63
+A2-089,工件回显精度低于判定精度,memory_report.h:260/:261/:262、:616、:617（0.005 = 10× %.3f 舍入，放大系数 10 无登记）；U-04 立案【缺输入：判读层与第②层均未给保守取值方向】,1,memory_report.h:260
+A2-090,无守卫的 uint64 增量减法,monitor.h:343（正例对照）、:344-346、:325-331、:433-435【缺输入：判读层与第②层均未给保守取值方向】,1,monitor.h:343
+A2-091,模板示例值与合法值不可分（crval/scale）,session_commands.h:254/:258/:272；phase_config_export.schema.json#/$defs/center、#/$defs/scale_deg_per_px:324-327【缺输入：判读层与,1,session_commands.h:254
+A2-092,裁剪 σ 倍数族（横向口径缺失）,docs/science/NOISE_MODEL.md §5（cosmic 5σ）；sdet_api.cpp:963-975（fwhmClipSigma 默认 3.0f）；:996（iterativeClipSigma 9.0f）；back,1,sdet_api.cpp:963
+A2-093,键名/符号名不对齐族,AUD-402-判读-A1 §1 第 3 条；eng/ci/check_config_defaults.py:182-213【缺输入：判读层与第②层均未给保守取值方向】,1,eng/ci/check_config_defaults.py:182
+A2-094,(无名)·lib/infrastructure/acr/schemas/compute_config.example.yaml:20,lib/infrastructure/acr/utilization/memory_budget.hpp:23（ram_ratio 0.95）＋ :3（公式）＋ docs/KNOWN_LIMITATIONS.md:62（登记它与生产口径有意,1,docs/KNOWN_LIMITATIONS.md:62
+A2-095,"SKY_E+DARK+RN²（σ_sky,e² 声明常数）",实验/absolute-snr/code/b3_domain_map.py:41；复核-AUD202 V1(c) 反解,1,实验/absolute-snr/code/b3_domain_map.py:41
+A2-096,active_window_seconds,—（不进正式链路的观测字段初值：值由调用方在采样后覆盖，本身不承载判据或科学量）；—（初值本身结构性）；被测两量皆有唯一源：适用域 10 s = resource_gate_v1.json `applicability.min_active,1,resource_gate.h:147
+A2-097,avg_cpu_percent,ASTROCS_DESIGN.md §3.3 的「五件事」中「单位/归一化」由 :447 行内注释给出 ✓；但**与 GateConfig 约定冲突**：resource_gate.h:106-108 规定 GateConfig 的 CPU,3,resource_gate.h:106; monitor.h:447; resource_gate.h:5
+A2-098,d_sys_io_wait_seconds,monitor.h:83/:189-207 采集；:367-369 钳位；下游 resource_recorder.h:70 io_wait_pct → commands.cpp:1072 事件字段 → resource_gate.h:32,4,monitor.h:83; resource_recorder.h:70; commands.cpp:1072
+A2-099,drizzle_pf_sb_gate 的 parity 夹具,tests/drizzle_pf_sb_gate.cpp:104-112/:209-214/:245-251/:253-258；界值推导 1/(510·64/255)=6.1e-3 vs 门 1e-5,1,tests/drizzle_pf_sb_gate.cpp:104
+A2-100,iowait_percent,—（不进正式链路的观测字段初值：值由调用方在采样后覆盖，本身不承载判据或科学量）；被测阈值 50.0 的唯一源是代码字面量 lib/infrastructure/cli/resource_gate.h:207（`io_wait_high_p,1,lib/infrastructure/cli/resource_gate.h:207
+A2-101,mem_bandwidth_percent,—（不进正式链路的观测字段初值：值由调用方在采样后覆盖，本身不承载判据或科学量）；被测阈值 15.0 唯一源＝代码字面量 resource_gate.h:369；契约 JSON 无带宽键,1,resource_gate.h:369
+A2-102,node_reproduction_max_abs（「重建误差」）,weight_chain.h:167 声明、weight_chain.cpp:544 赋值；docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:99 要求的是「预测方差」（未实现）,4,weight_chain.h:167; weight_chain.cpp:544; docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:99
+A2-103,(无名)·lib/infrastructure/cli/session_commands.h:269,docs/plugins/algorithms_phase3/14_projection.md:38（经 schema 描述转引：phase_config_export.schema.json:243-246『默认 0』）,2,docs/plugins/algorithms_phase3/14_projection.md:38; phase_config_export.schema.json:243
+A2-104,final_gauge / m_full_frame,module_adapters.cpp:9578/:9579；upm.h:283/:304 默认；upm.cpp:976-977/:1104/:1907-1942,3,module_adapters.cpp:9578; upm.h:283; upm.cpp:976
+A2-105,huber_delta,docs/science/PHASE2_UPM.md §5/§7；docs/algorithms/PLATESOLVE.md:193 同值同锚（正例：常数额外登记了「有文献依据——Huber (1964)」）,1,docs/algorithms/PLATESOLVE.md:193
+A2-106,kMinFitStars,AUD201-011（frame_photometry_fit.h:89）,1,frame_photometry_fit.h:89
+A2-107,noise.max_clip_rounds,docs/science/NOISE_MODEL.md:63（<=2 轮；注册件所引 :56 为 gain 行，:126 亦非该陈述）,1,docs/science/NOISE_MODEL.md:63
+A2-108,photometry.irls_max_iterations,"docs/science/PHOTOMETRY.md:192（S>0 时 max_iter=50, tol=1e-6；实现锚 star_matcher.cpp:25）与 :53 附近迭代框；锚点正确（本队列少数 source 与 sourc",2,docs/science/PHOTOMETRY.md:192; star_matcher.cpp:25
+A2-109,rejection.averaged_sigma.lower_sigma,docs/science/REJECTION.md:116,1,docs/science/REJECTION.md:116
+A2-110,rejection.averaged_sigma.max_iterations,docs/science/REJECTION.md:116,1,docs/science/REJECTION.md:116
+A2-111,rejection.averaged_sigma.upper_sigma,docs/science/REJECTION.md:116,1,docs/science/REJECTION.md:116
+A2-112,rejection.linear_fit.lower_sigma,docs/science/REJECTION.md:117（linear_fit: 5.0/3.5/8）；注册件所引 :59 是空行,1,docs/science/REJECTION.md:117
+A2-113,rejection.linear_fit.max_iterations,docs/science/REJECTION.md:117,1,docs/science/REJECTION.md:117
+A2-114,rejection.minmax.min_kept,docs/science/REJECTION.md:120（minmax: reject_low 1 / reject_high 1 / min_kept 4）；注册件 source :60（方法名列表行）与 source_ref :166,1,docs/science/REJECTION.md:120
+A2-115,rejection.percentile.high,docs/science/REJECTION.md:119,1,docs/science/REJECTION.md:119
+A2-116,rejection.percentile.low,docs/science/REJECTION.md:119（percentile: low 0.2 / high 0.1）与 :64（4<=n<=5 档路由）；注册件 source 引 :59（空行）而 source_ref 又引 :166,1,docs/science/REJECTION.md:119
+A2-117,rejection.sigma.lower_sigma,docs/science/REJECTION.md:116（sigma/winsorized/averaged: 4.0/3.0/8）；注册件所引 :97 是 WBPP 档界叙述行、source_ref 又写 :68（该处无此值）⇒ sou,1,docs/science/REJECTION.md:116
+A2-118,rejection.sigma.max_iterations,docs/science/REJECTION.md:116（第三位 8）,1,docs/science/REJECTION.md:116
+A2-119,rejection.sigma.upper_sigma,docs/science/REJECTION.md:116（同表；注册件 :97/:68 双锚均不含值）,1,docs/science/REJECTION.md:116
+A2-120,rejection.winsorized.lower_sigma,docs/science/REJECTION.md:116,1,docs/science/REJECTION.md:116
+A2-121,rejection.winsorized.max_iterations,docs/science/REJECTION.md:116（第三位）,1,docs/science/REJECTION.md:116
+A2-122,rejection.winsorized.upper_sigma,docs/science/REJECTION.md:116,1,docs/science/REJECTION.md:116
+A2-123,(无名)·lib/infrastructure/cli/session_commands.h:272,导出式 crpix=(1+W)/2（FITS 1-based）配本模板 W=H=1024 ⇒ 512.5；缺省语义 = 中心，出处 14_projection.md:35 + schema:247-258,1,14_projection.md:35
+A2-124,A_cell（HEALPix 叶面积）,aio_hips_writer.cpp:1212；AUD204-02,1,aio_hips_writer.cpp:1212
+A2-125,F_syn 合成通量积分式,docs/science/PHOTOMETRY.md:44（§2a.1）、:55；AUD-201 §1 与 AUD201-002；hc=1.986445857e−16 J·nm 数值闭合,1,docs/science/PHOTOMETRY.md:44
+A2-126,_MAD_SCALE（1/Φ⁻¹(3/4)）,docs/science/PHOTOMETRY.md:34/:296（1.482602218505602 与之差 0）；star_matcher.cpp:21；四位截断 0.6745 偏差 +1.5196382e−05 与正本吻合,2,docs/science/PHOTOMETRY.md:34; star_matcher.cpp:21
+A2-127,cosmetic.bad_column_variance_kappa,真锚 docs/contracts/DATA_SEMANTICS.md:330-331（§10.5 传播式 var=(Σw^2·var)·κ，单列两邻 Σw^2=1/2，κ>1 补偿插值相关，不做补偿会使修复像素 SNR 系统性偏高量级约 ,2,docs/contracts/DATA_SEMANTICS.md:330; defaults.json:815
+A2-128,definition 换算常量（正例集）,monitor.h:233；memory_report.h:481；process.cpp:106；monitor.h:447 与 memory_growth.h:87,5,monitor.h:233; memory_report.h:481; process.cpp:106
+A2-129,expect_zp,docs/science/PHOTOMETRY.md:355（m = ZP_k − 2.5·log10 F，星等只按表达层现场派生）；同式镜像 :27/:33/:214/:404,1,docs/science/PHOTOMETRY.md:355
+A2-130,gain_variance,公式锚：docs/science/NOISE_MODEL.md:32（§5c 加权方差面输入）与实现 lib/algorithms/noise_snr/cpp/src/noise_model.cpp（snr_noise_gain_varia,1,docs/science/NOISE_MODEL.md:32
+A2-131,hips.tile_width,docs/science/PHASE3_HIPS_TO_FITS.md:17（符号表 hips_tile_width tile 宽 W 默认 512=2^9）与 :130（properties 必需键）；**注册件所引 :41 是 §4 输,1,docs/science/PHASE3_HIPS_TO_FITS.md:17
+A2-132,kGaussFwhmFactor,2√(2·ln2) 的双精度值（本机复算见 md 命令）；仓内锚 lib/algorithms/noise_snr/cpp/src/snr_science.cpp:48-50 与 :15/:22（同名常数与用途）、docs/algorith,3,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:48; docs/algorithms/STAR_DETECTION_ALGORITHMS.md:97; docs/science/STAR_DETECTION.md:104
+A2-133,noise.mask_budget_min_sky,docs/science/NOISE_MODEL.md:98-99（(1.44/0.015)^2=9216；SE≈1.44/sqrt(N) 由 c≈1.152/sqrt(N) 与中位数效率 1.25 导出）；:100-101 另警告该量是相,1,docs/science/NOISE_MODEL.md:98
+A2-134,noise.mask_fwhm_floor_scale,docs/science/NOISE_MODEL.md:96（同式一项）；**0.75 与 PSF 核心覆盖的关系全仓无推导**（既未写 0.75·FWHM 覆盖多少能量，也未给 Moffat/Gaussian 的等效半径式）,1,docs/science/NOISE_MODEL.md:96
+A2-135,noise.mask_radius_scale,docs/science/NOISE_MODEL.md:97（=60 的合式），拆分 10·6 的 6 无任何权威陈述（docs/algorithms/NOISE_ESTIMATION.md:134 只是实现锚）,2,docs/science/NOISE_MODEL.md:97; docs/algorithms/NOISE_ESTIMATION.md:134
+A2-136,pred_doublecount_bias（解析值）,实验/absolute-snr/code/b2_noise_terms.py:105；AUD202-012 表,1,实验/absolute-snr/code/b2_noise_terms.py:105
+A2-137,scale_deg,IVOA REC-HIPS-1.0 §4.4.1（hips_pixel_scale 单位=度，见 :151-152 注释与 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1827）；,1,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1827
+A2-138,|J| = pi/3（chart→球面面积雅可比）,实验/healpix-polar/code/polar_common.h:136-196 chart_uv_to_ang；AUD204-02；docs/algorithms/DRIZZLE_GEOMETRY.md,1,实验/healpix-polar/code/polar_common.h:136
+A2-139,σ_i² 逐像素噪声组成式,docs/science/NOISE_MODEL.md:324；docs/plugins/algorithms_phase1/07_noise_snr.md:110；snr_science.cpp:200-202/:198,3,docs/science/NOISE_MODEL.md:324; docs/plugins/algorithms_phase1/07_noise_snr.md:110; snr_science.cpp:200
+A2-140,cosmetic.bad_column_master_wide_frac_max,source_ref=run/LINDEF-CLOSE-01/REPORT.md:1 ⇒ 同 sigma_master：**不在跟踪集**；defaults.json:829 与 :835 记录了标定现象（阈值微调下仅标记列数在 0 与 1,2,run/LINDEF-CLOSE-01/REPORT.md:1; defaults.json:829
+A2-141,cosmetic.bad_column_sigma_master,source_ref=run/LINDEF-CLOSE-01/REPORT.md:1 —— run/* 在 .gitignore:17 ⇒ **该文件不在跟踪集**（git ls-files 对 LINDEF 零命中），代码注释 modul,2,run/LINDEF-CLOSE-01/REPORT.md:1; module_adapters.cpp:2805
+A2-142,稀疏/稠密内存读数,实验/additive-sky-seamless/README.md:211（§4.6 E3）；results/c6_sparse_dense.json:upm_memory；gates.rows[2] E3_rss_scales_with,1,实验/additive-sky-seamless/README.md:211
+A2-143,(无名)·lib/infrastructure/cli/session_commands.h:258,schema 只给 exclusiveMinimum 0（#/$defs/scale_deg_per_px:324-327），无 default；出厂模板 export.phase_config.json:11 同值 0.001 ⇒ 两侧一,1,export.phase_config.json:11
+A2-144,HP_ADAPTIVE_MAX_DEPTH,spherical_overlap.cpp:543-617 注释与常量【缺输入：判读层与第②层均未给保守取值方向】,1,spherical_overlap.cpp:543
+A2-145,Pipeline IR 版本串,runtime_client.cpp:118；对照 VERSION:1=0.1.0-alpha.1 与 CMakeLists.txt:15 三侧一致（那是包版本，非 IR 版本）【缺输入：判读层与第②层均未给保守取值方向】,1,runtime_client.cpp:118
+A2-146,calibration.dark_light_exposure_tolerance,"无（注册件 source 记『负责人裁决 2026-09-16』，source_ref=null；docs/science/CALIBRATION.md:19,21 只有 K 语义无数值，本仓实测该文档内无 5 s）",1,docs/science/CALIBRATION.md:19
+A2-147,kMaxSpatialAmplitudeDex,spatial_gain.cpp:49 定义、:521 判定、:494-497 自述；defaults.json 无该键；UNRESOLVED 台账零命中【缺输入：判读层与第②层均未给保守取值方向】,1,spatial_gain.cpp:49
+A2-148,kZPsyn,"注释 :112（""取自 L4 t2_m1_red 的 Gaia XPSD 拟合量级""）；同族 kK1=6.272203e-17/kK2=5.685037e-17（:113-114）同源，另见 eng/tests/unit/p1001_rea",1,eng/tests/unit/p1001_real_nodes_test.cpp:4649
+A2-149,max_recip 的真判据 5e-3,p1001_real_nodes_test.cpp:3261（判据）、:3241/:3063（同名的两个累加器）【缺输入：判读层与第②层均未给保守取值方向】,1,p1001_real_nodes_test.cpp:3261
+A2-150,oom_frac,"无。docs 侧 0.85 全部命中 CPU 利用率判据（docs/ci/03_GATES.md:62、CI_SPEC.md:210、PERF_GATE_CONTRACT.md:12）与 PS1 PSF_QF 文献值，均与接近 OOM""无关",3,docs/ci/03_GATES.md:62; CI_SPEC.md:210; PERF_GATE_CONTRACT.md:12
+A2-151,rejection.esd.alpha,docs/science/REJECTION.md:118（ESD: alpha 0.05 / max_outliers 10）与 :284『alpha=0.05/max_outliers=10 为 Project-defined 采纳值，,1,docs/science/REJECTION.md:118
+A2-152,rejection.esd.max_outliers,docs/science/REJECTION.md:118/:284【保守方向·回填自判读件】同簇（与 alpha 共用 :118/:284 出处，共 2 行）：10 是绝对数而与 Phase2 典型贡献帧数 n 无关 ⇒ n<10 时该上,2,docs/science/REJECTION.md:118; rejection.cpp:1253
+A2-153,scalar_gate.rd,docs/plugins/algorithms_phase1/07_noise_snr.md:61 默认列与单位列均为 ——；pending_task=SCI-RES-01/R-002【保守方向·回填自判读件】单位字段写 unspecifi,2,docs/plugins/algorithms_phase1/07_noise_snr.md:61; 07_noise_snr.md:76
+A2-154,scalar_gate.trend,docs/plugins/algorithms_phase1/07_noise_snr.md:62（scalar_gate_trend 行，默认与单位列均为 ——）；pending_task=SCI-RES-01/R-002【保守方向·回填,1,docs/plugins/algorithms_phase1/07_noise_snr.md:62
+A2-155,tol,无。可类比登记：docs/standards/NUMERIC_STANDARD.md:68-71 为 1e-12 做过量纲级论证（variance_floor 与 float32 可表示性），但该论证属**方差地板**，不覆盖比较器【保守方,1,docs/standards/NUMERIC_STANDARD.md:68
+A2-156,峰值时刻定位用相等比较,memory_report.h:510-512；U-06 立案,1,memory_report.h:510
+A2-157,报告自校验对 v2 增量字段,memory_report.h:593-594；U-05 立案【缺输入：判读层与第②层均未给保守取值方向】,1,memory_report.h:593
+A2-158,观测开销不影响性能预算的承诺,docs/plugins/infrastructure/21_observability.md:8；U-08 立案【缺输入：判读层与第②层均未给保守取值方向】,1,docs/plugins/infrastructure/21_observability.md:8
+A2-159,(无名)·lib/infrastructure/acr/schemas/compute_config.example.yaml:21,同上一行（memory_budget.hpp:24 ＋ KNOWN_LIMITATIONS.md:62；与 :20 共用一条出处，共 2 行）,1,KNOWN_LIMITATIONS.md:62
+A2-160,(无名)·lib/infrastructure/cli/commands.cpp:925,推导在 lib/infrastructure/cli/resource_gate.h:136-141（利用率判据只在计算区间超过 10 s 时成立 ⇒ 工作量下限 10 核·秒=10 线程秒），并以契约常量 kMon003MinCoreSe,1,lib/infrastructure/cli/resource_gate.h:136
+A2-161,(无名)·lib/infrastructure/cli/commands.cpp:974,阈值来源 = resource_gate_contract::kPerSampleUtilizationMinPercent（经 resource_gate.h:126-127 具名引入，注释记 单样本 >=0.85）；:124 并记『旧 ,1,resource_gate.h:126
+A2-162,(无名)·lib/infrastructure/cli/commands.cpp:978,阈值来源 = resource_gate_contract::kQueueLowUtilizationPercent（resource_gate.h:132-133，注释记 0.60）,1,resource_gate.h:132
+A2-163,(无名)·lib/infrastructure/cli/memory_report.h:599,哨兵约定（-1 未采样、合法值 0–1）由 :6-8/:78/:82 定义；memory_report.h:6-8/:78/:82；test_p2007_joint_gate.py:266 断言 -1.0 语义,2,memory_report.h:6; test_p2007_joint_gate.py:266
+A2-164,(无名)·lib/infrastructure/cli/module.yaml:27,ASTROCS_DESIGN.md:71 ### 1.2 三个命令，三个独立产品（与括号内自述「三命令平级、禁止隐式串接」相符）,1,ASTROCS_DESIGN.md:71
+A2-165,(无名)·lib/infrastructure/cli/monitor.h:351,monitor.h:347-351 算法注释；:88「未观测哨兵」纪律,1,monitor.h:347
+A2-166,(无名)·lib/infrastructure/cli/monitor.h:354,:347-354 算法；下游 commands.cpp:1069 per_thread_cpu_max_pct,1,commands.cpp:1069
+A2-167,(无名)·lib/infrastructure/cli/parser.cpp:428,ASTROCS_DESIGN.md §3.3（:237）实为「科学量与星表」，其正文四条分别是五件事口径、精度归属、HEALPix/帧哈希、星表只本地——**不含块形态**；块形态权威 = §4.3 输入合同（JSON 数据块），且这一归属,1,docs/contracts/CONFIG_CONTRACT.md:14
+A2-168,d_per_thread_cpu_max_seconds,monitor.h:86-91 注释＋:349-354 区间增量算法；消费点 commands.cpp:1069 per_thread_cpu_max_pct,2,monitor.h:86; commands.cpp:1069
+A2-169,fwhm_px,单位与换算口径：lib/algorithms/noise_snr/cpp/include/snr_estimator.h:325（fwhm_px = 检测块高斯 FWHM = 2.3548200450309493·sigma）＋ docs/,2,lib/algorithms/noise_snr/cpp/include/snr_estimator.h:325; docs/science/STAR_DETECTION.md:104
+A2-170,gain,单位锚 docs/science/NOISE_MODEL.md:32/§44；数值 2.0 无出处（也不需要）,1,docs/science/NOISE_MODEL.md:32
+A2-171,gain_e_per_adu,"docs/science/NOISE_MODEL.md:32/:44（gain: e-/ADU）；本文件 :94-97 引 §9.41 负责人裁决要求""真实物理噪声过程（电子域 Poisson + 读出 Gaussian + 增益量化到 A",1,docs/science/NOISE_MODEL.md:32
+A2-172,hips_pixel_scale,412.258369 的正当出处＝nside=512 叶像素**角秒**尺度：3600·(180/π)·√(π/3)/512，登记于 lib/infrastructure/aio/include/aio_hips.h:93-96（用于 SC,2,lib/infrastructure/aio/include/aio_hips.h:93; docs/algorithms/HIPS_WRITER.md:222
+A2-173,intra_snr（Phase2 帧内项）,weight_chain.cpp:714 double intra = 1.0、:739、:779；module_adapters.cpp:11534 in.sparse=nullptr,2,weight_chain.cpp:714; module_adapters.cpp:11534
+A2-174,kMemoryBudgetPercentMin,确认不进科学语义：只做区间校验端点；唯一消费链 = eng/packaging/config/runtime_resources.json:17（memory_budget_percent=95）→ 根 CMakeLists.txt:162,1,eng/packaging/config/runtime_resources.json:17
+A2-175,per_thread_cpu_max_seconds,:316-319 由 thread_cpu 聚合；下游 commands.cpp:1069；—（不进正式链路的观测字段初值：值由调用方在采样后覆盖，本身不承载判据或科学量）,1,commands.cpp:1069
+A2-176,photometric_scale_a,语义锚：docs/science/PHOTOMETRY.md:13（标度类别 photo_scaled_adu 与 α 换算式，引 docs/standards/NUMERIC_STANDARD.md）；合同侧 fail-closed 锚：,3,docs/science/PHOTOMETRY.md:13; eng/contracts/schemas/product_family_field_constraints.schema.json:3999; lib/algorithms/resample/p3_rsmp_failclosed.cpp:153
+A2-177,q_low_run,同上（同簇）；其后续判据的阈值有契约单源（kMon001QueueWindowSeconds、kMon001QueueUtilMinPercent，resource_gate.h:130-133）；无（复位语义，无常数待出处）,1,resource_gate.h:130
+A2-178,r_scaled,"半径硬上界 60 px 的唯一源链：docs/science/NOISE_MODEL.md:97/:368（rmax=max(1,r0)·max(1,scale)=60 px，MASK-002 导出链）→ docs/algorithms/N",3,docs/science/NOISE_MODEL.md:97; docs/algorithms/NOISE_ESTIMATION.md:144; eng/packaging/config/defaults.json:109
+A2-179,read_noise_e,单位与语义有 A/C 锚：docs/science/NOISE_MODEL.md:44（read_noise_e: e-）、§5c 方差式；数值 5.0 本身无出处,1,docs/science/NOISE_MODEL.md:44
+A2-180,reclaim_frac,:120 哨兵簇；:120 哨兵簇（本行是**赋值点**之一，另两处 :497 与初值 :232）；memory_report.h:6-8（哨兵纪律）＋:78/:82 枚举注释＋resource_gate.h:119-121 kMon001,6,memory_report.h:6; resource_gate.h:119; eng/tests/backend/test_p2007_joint_gate.py:266
+A2-181,recs,同上（与 :769 同簇；10 s 判定域见 resource_gate.h:138-141 的 thread-seconds 推导）,1,resource_gate.h:138
+A2-182,sigma_f,单位锚 docs/science/NOISE_MODEL.md:44（σ 类量 ADU）；本行不携带,1,docs/science/NOISE_MODEL.md:44
+A2-183,sigma_logflux_dex,语义与单位：docs/science/NOISE_MODEL.md:323（sigma_location_se_dex ≈ 1.253·sigma_residual/√N_eff，1.253=√(π/2)）；docs/references/,3,docs/science/NOISE_MODEL.md:323; docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:58; lib/algorithms/noise_snr/cpp/src/snr_science.cpp:279
+A2-184,sigma_sky_adu,单位锚 docs/science/NOISE_MODEL.md:44（σ_bg: ADU）；数值 40.0 无出处（无需）,1,docs/science/NOISE_MODEL.md:44
+A2-185,snr,无（作为激励值无需出处；权重式见 docs/algorithms/PHASE2_UPM_IMPL.md:166）,1,docs/algorithms/PHASE2_UPM_IMPL.md:166
+A2-186,cfg.reference_flux_adu（F_ref 逐帧参考通量）,"SNR链路核验报告.md:29（frame_snr = F_ref/σ_F(ref profile)，F_ref,k = 10^(−0.4(m_ref − ZP_k))，m_ref = 6.0）、:149 DEV-03、:168-169；复",4,SNR链路核验报告.md:29; 复核-AUD202.md:35; snr_science.cpp:201
+A2-187,m_ref（参考星等档）,SNR链路核验报告.md:169『m_ref = 6.0 的常数出处四条链路的取证面均未登记（不判错，登记为共同缺口）』、:201（诚实边界表行「m_ref = 6.0 的出处｜四链取证面均未登记｜常数登记」）、:218（DEV-13 论证,3,SNR链路核验报告.md:169; 链路间口径对表.md:32; ipv_select.cpp:343
+A2-188,"snr_noise_model_v1 背景方差场式 var(x,y)=a+b·x+c·y（场幂次=1）","复核-AUD202.md:35 V1(a) 表「A 的方差来源」行（snr_estimator.h:116 头注 = ""source-masked blank-sky 稳健方差""，场是 var(x,y)=a+b·x+c·y——自变量只有位置",4,复核-AUD202.md:35; snr_estimator.h:116; 链路间口径对表.md:42
+A2-189,snr_estimator.cpp 逐源通量缺失兜底式 2πAσ²/3,AUD-202-SNR核验.md:124（:80 p.flux_adu = F（F = row[2] 即该星自己的通量；:75 缺失时用 2πAσ²/3 兜底））；SNR链路核验报告.md:149 DEV-03（snr_estimator.,5,AUD-202-SNR核验.md:124; SNR链路核验报告.md:149; snr_estimator.cpp:65
+A2-190,出厂接缝门判据 max_e|rel_step| ≤ 1e-2,天光无缝核验报告.md:53（判据式与门值）、:87 T10（取证面）、:160 DEV-03（标定证据未入库）、:190（M42 侧唯一历史读数 7.2561e−3 = 门的 72.6%）；复核-AUD203.md:61 V2；AUD-2,2,天光无缝核验报告.md:53; 复核-AUD203.md:61
+A2-191,REQUIRED_SELFTEST_CASES（出厂接缝门自检用例清单 S1–S9）,天光无缝核验报告.md:135（门自检用例 S1–S9｜REQUIRED_SELFTEST_CASES:163-173 缺一条即失败｜S5 注入 0 ⇒ 与基线逐条一致；S2 注入已知台阶⇒红；S3 旧 V4 同输入不动；S6 两侧噪声差 ,2,天光无缝核验报告.md:135; 复核-AUD203.md:95
+A2-192,实验接缝判据窗口常数 base_win=64 / 挖除 ±(halfwin+2) / 基线 order=2,"复核-AUD203.md:62 V2（逐式转录）；天光无缝核验报告.md:159 DEV-02（sci_c_common.py:356-374,:377-410 去趋势＋off-locus）",3,复核-AUD203.md:62; 天光无缝核验报告.md:159; sci_c_common.py:356
+A2-193,off-locus excess 判据 D = excess,"复核-AUD203.md:86,:91 V2（全仓 git grep 假阳性 只命中 README.md:181 与 REPORT_paper.md:236，那里的判据 D = excess；3e−5 不可能来自线性梯度）；天光无缝核验报告",4,复核-AUD203.md:86; README.md:181; REPORT_paper.md:236
+A2-194,rmse_log_rho（σ 场实验度量，两侧中位数归一）,"复核-AUD202.md:333-334 V2/V5（度量定义与三臂来源面）；:350-354（被测物理量 = σ̂/σ 的相对形状，合同口径的交付量 = SNR_c = F_ref/σ_F,c（分子固定）；frame_median ≠ f",1,复核-AUD202.md:333
+A2-195,reference_overlap 逐叶独立蒙特卡洛 oracle 容差,"复核-AUD204.md:401（唯一逐像素独立蒙特卡洛 oracle，1% tol；不注册 ctest；登记文字与三条红灯值）、:422,:428；面积交叠核验报告.md:139、:245、:196-197；UNRESOLVED清单 裁-",2,复核-AUD204.md:401; 面积交叠核验报告.md:139
+A2-196,drizzle_science_completion_test 质心判据 ≤0.01 px（= 0.063″）,复核-AUD204.md:402（drizzle_science_completion_test（质心 ≤0.01 px = 0.063″，源文件 :386-401）｜否（在 DRZ_EXTRA_TESTS，:157-173 编入但不注册）,2,复核-AUD204.md:402; 面积交叠核验报告.md:139
