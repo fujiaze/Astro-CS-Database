@@ -453,7 +453,7 @@ FILE LIST:
   214: # 六张登记面零命中
   218: # 生产启用件不带该键
   221: # 唯一像素级复算门的判据式
-  223: # 三个实测数的 results 字段：产出/复算/photdefault/locate_numbers.py；四侧逐字表：four_sides.py（输出 four_sides.out）
+  223: # 三个实测数的 results 字段：独立审计/复算件/photdefault/locate_numbers.py；四侧逐字表：four_sides.py（输出 four_sides.out）
 
 ########## 复核-结果层与收口层.md  (374 lines, 22224 chars)
     1: # 复核 — AUDIT-06 第②层：结果层（DB-17）与收口层（DB-20）待判 5 条
