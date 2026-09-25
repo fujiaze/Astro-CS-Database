@@ -183,7 +183,47 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   `calibration.master_flat_median_range`）判定：中位数落在区间内即视为已归一；区间外**必须**
   显式声明 `master_flat_normalize="median"`（等价于 §5 `flat_norm` 的 `flat/median(flat)`，
   对已归一平场幂等，§7）才允许消费；既不归一又不落区间的整帧**拒绝**（整帧 `1/median` 缩放路径 = 关闭）；
-- 坏点稀疏且与天体源不混淆（连通域大小过滤可分离）。
+- **坏点分两种形态，可分性判据不同（订正：原文"坏点稀疏且与天体源不混淆
+  （连通域大小过滤可分离）"把"稀疏"当成了全局前提——该前提**只对①成立，对②被证伪**）**：
+  - **① 稀疏点状缺陷**（热/冷像素、宇宙线斑点）：**连通域大小过滤可用**，但其口径是
+    "尺寸上界 + 幅度判据并用"，**不是"尺寸分布不重叠"**。
+    量化口径（同一把尺：8 连通、阈值 = 帧内 `median ± 5·MAD`；来源
+    `run/LINDEF-CLOSE-01/evidence/cc_and_kappa_measurements.json`，可复跑
+    `run/LINDEF-CLOSE-01/measure_cc_kappa.py`）：
+    - 点状缺陷连通域尺寸（真实 T3 母版，n=223241 / 886 / 2192 / 486）：`masterDark`
+      hot **99.83% ≤ 4 px**（p50=1、p90=2、max=40071）；`masterDark` cold **68.2% ≤ 4**
+      （p50=2、p90=14，**冷像素有成团**）；`masterBias` hot 89.4% ≤ 4；`masterBias` cold **100% ≤ 4**。
+    - 天体源连通域尺寸（同一科学帧，阈值 = 背景 + k·σ_bg，σ_bg 由帧内 MAD 定）：
+      k=5σ → p50=1、p90=16、p99=99；k=20σ → p50=5、p90=38、p99=194；最大 354854（星云大尺度结构）。
+      ⇒ **暗弱源的小尺寸端与点状缺陷重叠**（5σ 门限下 76.7% 的源连通域 ≤ 4 px）。
+    因此该类可分性的真实依据是两件事并用：**(a) 幅度判据在母版差分上做**——母版里没有
+    天体源，源被构造性排除；**(b) 尺寸过滤只作为兜底**，用于挡掉成团缺陷、陷阱与宇宙线
+    拖尾。四家实现同口径：**IRAF** `iraf-community/iraf` main @`b80c8df1`
+    `noao/imred/ccdred/ccdmask.par:3-9`（`ncmed=7`、`ncsig=15`、`lsigma=hsigma=6`、`ngood=5`，
+    按像素幅度判）、`pkg/xtools/fixpix/xtfp.gx:139-157`；**Siril** @`6284dc9`
+    `src/filters/cosmetic_correction.c:526,545,558`（`.cosme` 逐条记录 `P`/`L`/`C` 缺陷）；
+    **LSST DM** `afw` w.2026.39 @`41b6eb5` `include/lsst/afw/image/Defect.h:39,41-42,51-54`
+    （缺陷 = 显式 bbox 的缺陷表）；**astropy ccdproc** @`0c21068` `ccdproc/core.py:2608-2790`
+    （`ccdmask`）。
+  - **② 列状缺陷**（坏列/暗列，整列或准整列）：**连通域大小过滤无效**，判据是
+    **列统计量的跨列跳变**（`cs[x] = median_y data`；`d[x] = cs[x] − cs[x−1]`；
+    `σ_d = 1.4826·MAD(d)`；`J = {x : |d[x] − med_d| ≥ column_sigma·σ_d}`；反号就近配对成段，
+    段长 ≤ 2k−1 且不满宽才判坏）。"尺寸面无效"有两条互相独立的实测理由：
+    - **大尺寸端重合**：注入整列 +300 ADU ⇒ 该列所在连通域 size=**10601**（帧高 4096），
+      而**天体源最大连通域 354854** ⇒ 二者在同一分布的重尾里，尺寸不可区分；
+    - **小尺寸端也不成立**：真实坏列 3321 / 1938 在整帧 5σ 门限下沿列的**最长连续超阈段
+      只有 51 px / 10 px**（帧高 4096）——列缺陷在整帧阈值下**根本不是**一个连续大连通域，
+      尺寸判据既抓不到它，也不能把"被抓到的碎片"与大源碎片区分。
+    四家实现同口径：**IRAF** `noao/imred/ccdred/src/t_ccdmask.x:128-130,213`
+    （"Sums of pixels along columns are checked at various scales from single pixels to
+    whole columns with the sigma level set appropriately"，"Reject over column sums at
+    various scales"）+ `ccdmask.par:3-9`；**astropy ccdproc** @`0c21068`
+    `ccdproc/core.py:2746,2777,2787`（中值滤波 `medsub` → 逐列求和 `csum.append` →
+    `_sigma_mask(csum, csum_sigma, lsigma, hsigma)`）；**Siril** @`6284dc9`
+    `src/filters/cosmetic_correction.c:558-578`（`C` 记录 = 坏列，整列替换）；
+    **LSST DM** `pipe_tasks` w.2026.39 @`e6ec3c74` `repair.py:89,169-171` +
+    `meas_algorithms` w.2026.39 @`4a7591d` `src/Interp.cc:2047-2112`（宽缺陷
+    `≥ WIDE_DEFECT = 11` 走常数回填）。
 
 ## 6a 暗场-亮场曝光容差的科学判据（冻结）
 

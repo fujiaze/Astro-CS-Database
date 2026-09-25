@@ -97,8 +97,10 @@ photometric scale、新 runtime I/O DLL。
 ## 2026-08-14 V15 Final Semantic Closure（HEAD 8a772ca）
 
 - rejection 语义冻结：canonical IDs + typed params + planning 层 auto
-  （WBPP 2.9.1 本机源码 bestRejectionMethod：n<6 percentile / 6-15
-  winsorized / >15 linear_fit）+ eligibility 分层 + per-sample reason +
+  （档界自 WBPP 2.5.9 bestRejectionMethod，engine.js:1421-1429，包 sha1
+  712cc7c3…：n<6 percentile / 6-15 winsorized / >15 **ESD**；本仓 >15 档
+  取 linear_fit = WBPP <=2.3.x 的 n<25 LinearFit，与该版**不同**）
+  + eligibility 分层 + per-sample reason +
   UNDERDETERMINED；RJ-001..008 全修复（ESD 双 sqrt、NONE NaN、valid 掩码、
   low/high 阈值、status/reason 分离、参数 typed 化、support/quality 消费、
   sigma 改名 robust_mad_clip）；
@@ -280,3 +282,22 @@ photometric scale、新 runtime I/O DLL。
   工具：补 `add_dependencies(phase2_ivar_wiring astrocs-stage2)`（该工具
   EXCLUDE_FROM_ALL）并把命中路径加 `./` 前缀（/bin/sh 走 PATH 不认裸名）。
   修复后 `ctest -R '^phase2_'` 113/113 PASS（0 failed）。
+
+## 2026-09-25 M3 裁决落地（rejection n≥16 档改投 winsorized）
+
+- **裁决（负责人）**：生产档 astrocs_adaptive_pixel 的 n ≥ 16 档由 linear_fit 改投
+  winsorized_sigma（一行路由，rejection.cpp 的 astrocs_n_map_method）。依据不是检出率
+  （M3 与 M5 打平），而是**干净像素过拒 12.200% → 0.067%**——12% 的干净像素被误拒会压低
+  有效信号、偏置测光、抬高有效噪声，污染「从星点推稠密 SNR」主链；且 n≥16 档占全图
+  **13.14%** 像素、其等效上阈实测只有 **≈2.1–2.4·σ_robust**（名义 3.5·σ_fit）。
+- **受控评估**（生产 kernel，A 臂与生产掩码 5744/5744 逐点一致）：显著点漏检
+  **3.92% → 1.44%**、真·单异常 99.34% → 99.69%、干净像素过拒 **12.200% → 0.067%**、
+  n≥16 可测残余 >2.5σ **27/1175 → 0/1175**。证据 = run/REJECT-DOCFIX-01/。
+- **对照档未动**：wbpp_2_9_1 / wbpp_current / astrocs_adaptive 仍是 N>15 → linear_fit
+  （WBPP 档界对照基线）；linear_fit 仍是合法显式方法（request=linear_fit）。
+- **ESD 自查结论（M5 不采用）**：实现**忠实于 Rosner/NIST**（λ1(54)=3.1588 与 NIST 公布值一致、
+  NIST 54 点算例复现 3 outliers、每步 α=0.05 实测校准 4.95%；kernel 侧纯高斯栈 G=1500 复跑
+  k=1 → 3.47%、k=10 → 10.07%）——但 n=16/17 的**逐像素**路由下空假设错误率被 **k=10 级联**
+  抬到 **11.36%**，干净面像素过拒 5.167%、样本过拒 2.5851%，142/6000 干净像素被剔满上限 10 个
+  （NIST 明说 n≥25 才准确；仓内 W_ESD_LT25 同义）。⇒ 偏离登记写进 docs/science/REJECTION.md §5：
+  WBPP 2.4.0+ 该档是 ESD，本表取 winsorized，依据是实测不是偏好。

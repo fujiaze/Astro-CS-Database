@@ -170,9 +170,9 @@ P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
 // docs/contracts/CONFIG_CONTRACT.md §3（export 行 crop）；
 // 字段合同 = eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop。
 //
-// 语义（负责人裁决 2026-09-23：「默认导出的话是要求边框不得裁剪任何有效像素，然后可以
-// 导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪范围。这样我以后 gui 的
-// HiPS 浏览器里面我可以直接导出框选。需要保留接口。」）：
+// 语义（依据 docs/design/PHASE3_DETAILED_DESIGN.md §8「导出裁剪范围（crop）」：
+// §8.1 语义 + §8.2 两种输入形式（互斥）+ §8.3 fail-closed 判据 + §8.4 落点与不变式。
+// 默认导出不得裁剪任何有效像素、允许黑边；裁剪为可选手动范围；GUI 框选导出直接填本键）：
 //   ① 默认**不裁剪**（active=false；整幅导出，允许黑边，不得裁掉任何有效像素）；
 //   ② 可选**手动裁剪范围**，两种形式都要有：pixels（平面像素矩形）/ sky（天球矩形）；
 //   ③ 参数形态稳定、可机器生成（GUI 框选导出将来直接填）；

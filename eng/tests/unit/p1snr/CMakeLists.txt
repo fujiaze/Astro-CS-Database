@@ -72,3 +72,20 @@ target_link_libraries(p1snr_frame_parity_test PRIVATE
   astrocs_module_adapters astrocs_core astrocs_phase1_session)
 add_test(NAME p1snr_frame_parity COMMAND p1snr_frame_parity_test)
 set_tests_properties(p1snr_frame_parity PROPERTIES LABELS "p1snr")
+
+# ============================================================================
+# WIRING-W34-01 (CHK-PROD-WIRING W3): doc["noise"] 配置块的消费点行为证据锁
+# 权威: eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/noise_config
+#       + docs/science/NOISE_MODEL.md §4/§5/§5a
+# 消费点: lib/infrastructure/scheduler/src/module_adapters.cpp::p1_noise_cfg_apply
+# ============================================================================
+add_executable(p1snr_noise_cfg_wiring_test p1snr_noise_cfg_wiring_test.cpp)
+target_include_directories(p1snr_noise_cfg_wiring_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//phase1_session/tests/p1sess)
+target_link_libraries(p1snr_noise_cfg_wiring_test PRIVATE
+  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+add_test(NAME p1snr_noise_cfg_wiring COMMAND p1snr_noise_cfg_wiring_test)
+set_tests_properties(p1snr_noise_cfg_wiring PROPERTIES
+  LABELS "p1snr" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 900)

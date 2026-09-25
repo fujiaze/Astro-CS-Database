@@ -1996,34 +1996,7 @@ int p2_upm_raw_weight(const P2ControlObservation* obs,
     return 0;
 }
 
-int p2_upm_normalized_weights(const P2ControlObservation* obs,
-                              std::uint64_t n_obs,
-                              const P2UpmBuildConfig* cfg,
-                              double* out_norm) {
-    if (obs == nullptr || out_norm == nullptr || n_obs == 0) return 1;
-    std::map<std::uint64_t, double> sums;
-    std::vector<double> raw(n_obs);
-    for (std::uint64_t i = 0; i < n_obs; ++i) {
-        if (p2_upm_raw_weight(&obs[i], cfg, &raw[i]) != 0) return 1;
-        sums[obs[i].control_id] += raw[i];
-    }
-    const double rel = (cfg && cfg->control_reliability > 0.0)
-                           ? cfg->control_reliability : 1.0;
-    for (std::uint64_t i = 0; i < n_obs; ++i) {
-        const auto it = sums.find(obs[i].control_id);
-        const double s = (it != sums.end()) ? it->second : 0.0;
-        // CONFORM-FIX-B-003（与 build 内部 upm.cpp:646 同判据）：归一化
-        //   w_cell = w_UPM / Σ_cell w_UPM × control_reliability
-        // 的定义域是「Σ 有限且 > 0」（docs/science/PHASE2_UPM.md:56 只给
-        // 份额式定义，无任何绝对阈值）。旧门 s > 1e-12 是绝对阈值：生产
-        // control_ivar 中位 ≈5.6e-22、单 control Σ≈5.1e-21 ⇒ 全部 control
-        // 判假 ⇒ 本公共 API 对每个样本返回 0.0（应为 rel/n），与 build 内部
-        // 的尺度无关判据互斥。真零权重 Σ=0 仍得 0（不被当作有效观测）；
-        // 非法/缺失 ivar 已由 p2_upm_raw_weight rc!=0 显式拦下。
-        out_norm[i] = (s > 0.0 && std::isfinite(s)) ? raw[i] / s * rel : 0.0;
-    }
-    return 0;
-}
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_normalized_weights 定义已删（全仓零消费者；同能力变体入口保留在产）。 */
 
 int p2_upm_geometry_hash(const void* model, char* out, int buf_size) {
     if (model == nullptr || out == nullptr || buf_size <= 0) return 1;
@@ -2873,15 +2846,7 @@ int p2_upm_ma_component_of_frame(const void* model, std::uint64_t frame_id,
     return 0;
 }
 
-int p2_upm_ma_component_of_control(const void* model, std::uint64_t control_id,
-                                   std::uint64_t* out_component) {
-    if (model == nullptr || out_component == nullptr) return 1;
-    const MaModel* m = static_cast<const MaModel*>(model);
-    const auto it = m->control_index.find(control_id);
-    if (it == m->control_index.end()) return 1;
-    *out_component = (std::uint64_t)m->control_component[it->second];
-    return 0;
-}
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_ma_component_of_control 定义已删（全仓零消费者；同能力变体入口保留在产）。 */
 
 int p2_upm_ma_component_ref_frame(const void* model, std::uint64_t component,
                                   std::uint64_t* out_ref_frame_id) {

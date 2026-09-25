@@ -152,7 +152,7 @@
             "esd",
             "percentile"
           ],
-          "description": "排异方法选择；阈值表见 docs/science/REJECTION.md:131。§9.71 裁决 3 + DESIGN-DRAFT §1.8：排异**逐像素按该像素输入集数量 N 自动选择**（N<6 percentile / 6–15 winsorized / >15 linear fit）；**min/max 禁用**（WBPP 脚本明文拒绝），故本 enum 的 minmax 已删。auto 以 nominal n 唯一路由。"
+          "description": "排异方法选择；阈值表见 docs/science/REJECTION.md:97（REJECT-DOCFIX-01 重锚，原 :131 已漂移）。§9.71 裁决 3 + DESIGN-DRAFT §1.8 + M3 裁决 2026-09-25：排异**逐像素按该像素输入集数量 N 自动选择**（生产档 N<6 percentile / N>=6 winsorized；对照档 wbpp_2_9_1 仍为 N<6 percentile / 6–15 winsorized / >15 linear fit；档界取自 WBPP 2.5.9 bestRejectionMethod，该版 n>15 分支为 ESD）；**min/max 禁用**（WBPP 显式拒绝，故本 enum 的 minmax 已删）。auto 以 nominal n 唯一路由。"
         },
         "algorithm_upm_gauge": {
           "enum": [

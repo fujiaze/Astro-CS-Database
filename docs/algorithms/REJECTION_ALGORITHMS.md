@@ -49,11 +49,12 @@
   （显式 opt-in，永不参与任何 AUTO 路由）。
 
 F1: plan resolve（N = 该输出像素的几何覆盖帧数，一次解析；`rejection.cpp:1182-1288`）:
-      生产档 astrocs_adaptive_pixel（`rejection.cpp:1148-1158`）:
+      生产档 astrocs_adaptive_pixel（`rejection.cpp:1153-1176`）:
         1≤N≤3 → none（不排异，直接逆方差加权积分）; 4≤N≤5 → percentile 0.2/0.1;
-        6≤N≤15 → winsorized 4/3/8; N≥16 → linear_fit 5/3.5/8
-      对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（`rejection.cpp:1262-1268`）:
-        N<6 → percentile; 6≤N≤15 → winsorized; N>15 → linear_fit
+        N≥6 → winsorized 4/3/8
+        （**M3 裁决 2026-09-25：原 `N≥16 → linear_fit 5/3.5/8` 档改投 winsorized**）
+      对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（`rejection.cpp:1275-1283`）:
+        N<6 → percentile; 6≤N≤15 → winsorized; N>15 → linear_fit（**未随 M3 改动**）
       min/max 不用于生产（AUTO 路由禁止产出 min/max 与 NoRejection，fail-closed；
       `rejection.cpp:1167-1179/:1272-1278`）
       与 WBPP 档界的差异及其依据见 docs/science/REJECTION.md

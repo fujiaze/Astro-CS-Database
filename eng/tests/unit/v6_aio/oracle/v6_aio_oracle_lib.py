@@ -321,10 +321,12 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
     pixfrac = None
     if isinstance(prov.get("sampling"), dict) and "pixfrac" in prov["sampling"]:
         pixfrac = float(prov["sampling"]["pixfrac"])
-    if pixfrac is not None and 0 < pixfrac < 1:
+    # DRZ-FLUX-FIX-01: drop 面积归一 (F&H 2002 §7.2 / drizzlepac dover/=jaco)
+    # ⇒ 因子恒 1, 与 pixfrac 无关; pixfrac=1 与 pixfrac<1 同判据。
+    if pixfrac is not None and 0 < pixfrac:
         fcf = prov.get("flux_conservation_factor")
-        check(isinstance(fcf, (int, float)) and fcf > 0,
-              "pixfrac<1 requires positive flux_conservation_factor")
+        check(isinstance(fcf, (int, float)) and abs(float(fcf) - 1.0) < 1e-12,
+              "flux_conservation_factor must be 1 (drop-area normalized kernel)")
 
     # ── C6 k_corr (FZ-PROV-KCORR) ───────────────────────────────────────
     kc = prov.get("k_corr")

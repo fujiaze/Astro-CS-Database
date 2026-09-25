@@ -2035,12 +2035,32 @@ static void test_cos_artifact_is_independent() {
   CHECK_MSG(read_bytes(cal_art) == cal_before,
             "cosmetic must not mutate artifact:cal bytes (torn-read source)");
 
-  // ③ 科学语义零变化: 本配置下 ac_correct_frame 无 dark/bias 掩码源（节点面
-  //    传 nullptr/nullptr）⇒ 逐像素直通, cos 产物必须与 artifact:cal 字节相同
-  //    （修复只改落盘路径与原子性, 不动任何科学数值）。
-  CHECK_MSG(read_bytes(cos_art) == cal_before,
-            "cosmetic pass-through must be bitwise identical to artifact:cal"
-            " (scientific_change=none)");
+  // ③ 科学语义零变化（**显式关闭坏列开关**）: ac_correct_frame 无 dark/bias 掩码
+  //    源（节点面传 nullptr/nullptr）且坏列路径被关闭 ⇒ 逐像素直通, cos 产物必须
+  //    与 artifact:cal 字节相同（修复只改落盘路径与原子性, 不动任何科学数值）。
+  //
+  //    LINDEF-IMPL-01 起生产默认**开启**坏列修复（依据
+  //    docs/contracts/DATA_SEMANTICS.md §10.4「开关」行：列状缺陷路径默认启用、
+  //    可配置关闭），故"直通"不再是默认路径
+  //    的产物性质。此处**显式关闭**以继续锁定"关闭 ⇒ 无科学变化"这一可验证锚
+  //    （它与 badcol 层负例③同口径）；默认开启路径的科学效果由 p1cos_badcol 的
+  //    解析负例（修复值逐位等于邻列插值）与 LINDEF-IMPL-01 真实数据 A/B 锁定。
+  json cfg_off = json::parse(cfg);
+  cfg_off["cosmetic"] = json{{"bad_column_enabled", false}};
+  const std::string cfg_off_s = cfg_off.dump();   // run_node 收 JSON 文本
+  json man_off = run_node(reg, "astrocs.phase1.cosmetic", cfg_off_s, ctx);
+  CHECK(man_off.value("status", "") == "ok");
+  CHECK(man_off.contains("artifacts") && man_off["artifacts"].is_array() &&
+        !man_off["artifacts"].empty());
+  const std::string cos_off = man_off["artifacts"][0].get<std::string>();
+  CHECK_MSG(read_bytes(cos_off) == cal_before,
+            "cosmetic pass-through (bad_column_enabled=false) must be bitwise identical"
+            " to artifact:cal (scientific_change=none)");
+  // ③b 生产默认（配置无 cosmetic 段 ⇒ 坏列修复开启）仍必须发布独立路径，
+  //     且不得就地覆写 artifact:cal（由 ② 断言）。允许科学数值变化是**有意**的。
+  CHECK(fs::exists(fs::path(cos_art)));
+  CHECK_MSG(cos_art.rfind(cal_art, 0) != 0 || cos_art != cal_art,
+            "cosmetic default (bad-column on) must still publish an independent artifact");
 
   cleanup_fixture(fx);
 }
@@ -2386,7 +2406,8 @@ static void test_psf_nonfinite_frame_fail_closed() {
   cleanup_fixture(fx);
 }
 
-// ══ 11. PSF-FAST-001 (负责人裁决 2026-09-14): FAST 截断 + INACTIVE 精确路径 ══
+// ══ 11. PSF-FAST-001 (依据 ENGINEERING_SPEC.md §2「保留则注释」): FAST 截断 +
+// INACTIVE 精确路径 ══
 // (a) 生产入口 = FAST: DATA-P1-SOURCES 全量检测**不动**, 仅把 Moffat4 拟合限制到
 //     最亮 psf.max_stars 颗（默认 5000, 节点配置, 禁硬编码）;
 // (b) 完整精确 PSF 路径**保留但 inactive**（kPrecisePsfEnabled=false, 生产路径

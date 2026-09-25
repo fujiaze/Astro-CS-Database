@@ -1,4 +1,4 @@
-// snr_science.cpp - 逐源 SNR 科学实现 (P5-SNR, 负责人授权 2026-09-14)
+// snr_science.cpp - 逐源 SNR 科学实现 (P5-SNR)
 //
 // 依据: run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
 //   C.3.1 (i)  Horne 1986 最优提取: sigma_F^-2 = sum_i P_i^2 / sigma_i^2, SNR_F = F/sigma_F

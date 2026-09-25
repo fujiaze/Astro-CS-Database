@@ -445,15 +445,15 @@
       "kind": "domain",
       "layer": "science",
       "subject": "通量守恒条件不变量",
-      "value": "pixfrac=1: Sum_p F_p=Sum_j x_j 严格; pixfrac<1: 总输出通量=pixfrac^2*Sum_j x_j, provenance flux_conservation_factor",
+      "value": "对全部 pixfrac in (0,1]: Sum_p Sum_j w_jp x_j = Sum_j x_j 严格（w_jp=a_jp/A_drop_j 为 drop 面积归一核, F&H 2002 §7.2 式(7) 下方 / drizzlepac dover/=jaco）；provenance flux_conservation_factor 恒 1（口径标记）",
       "scope": "Phase1 flux 换算/aperture",
-      "anchor": "UNIFIED §7; ADJ-F-OBS-02",
-      "gate": "缺 flux_conservation_factor 即不可用于绝对通量",
-      "fail_closed": "pixfrac<1 缺 flux_conservation_factor 却用于绝对通量/孔径 → REJECT",
+      "anchor": "UNIFIED §7; ADJ-F-OBS-02; F&H 2002 §7.2",
+      "gate": "缺 flux_conservation_factor 即不可用于绝对通量；取值必须为 1",
+      "fail_closed": "缺 flux_conservation_factor 或取值 != 1 却用于绝对通量/孔径 → REJECT",
       "negative_mutation": "删除 flux_conservation_factor 仍声明绝对通量 → rc!=0",
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-02",
-      "signoff_reason": "通量守恒由严格不变量改为条件不变量 + flux_conservation_factor，属 FROZEN 公式变更",
+      "signoff_reason": "通量守恒口径由「A_pixel 归一 + 条件因子 pixfrac^2」订正为「drop 面积归一 + 因子恒 1」（负责人裁决 DRZ-FLUX-FIX-01，依据 F&H 2002 §7.2 式(7) 下方逐字定义与 drizzlepac cdrizzlebox.c dover/=jaco），属 FROZEN 公式变更",
       "required_freeze_id": false
     },
     {
@@ -2674,7 +2674,7 @@
         "FZ-COND-FLUX-CONSERV"
       ],
       "signoff": "SO-02",
-      "suggested_wording": "标注 §5/§7 为 legacy 归一：V6 目标态为面亮度保持 S_p=Σ_j B_j a_jp/Σ_j a_jp（等价 w_SB_jp=a_jp/A_pixel,j=pixfrac²·w_legacy），通量守恒为条件不变量并写 provenance.flux_conservation_factor=pixfrac²。"
+      "suggested_wording": "V6 目标态 = drop 面积归一核 w_jp=a_jp/A_drop,j（F&H 2002 §7.2 / drizzlepac dover/=jaco），面亮度保持 S_p=Σ_j B_j a_jp/Σ_j a_jp（归一分母 N_p=Σ_j w_jp·A_pixel,j；等价参数化 w_SB_jp=pixfrac²·w_jp 配分母 D_p），通量守恒对全部 pixfrac 严格成立 Σ_p Σ_j w_jp x_j=Σ_j x_j，provenance.flux_conservation_factor=1。"
     },
     {
       "id": "SUP-03",
@@ -3991,8 +3991,8 @@
       },
       {
         "id": "MIG-NORM-DRIZZLE",
-        "from": "w_jp=a_jp/A_drop 前向归一（pixfrac<1 时 S_p=B0/pixfrac^2）",
-        "to": "面亮度保持 S_p=Sum_j B_j a_jp / Sum_j a_jp + 条件通量守恒 flux_conservation_factor=pixfrac^2",
+        "from": "w_jp=a_jp/A_pixel 前向归一（核按未收缩像素面积归一 ⇒ Sum_p F_p=pixfrac^2*Sum_j x_j, factor 记 pixfrac^2）",
+        "to": "drop 面积归一核 w_jp=a_jp/A_drop_j（drizzlepac dover/=jaco）+ 面亮度分母 N_p=Sum_j w_jp*A_pixel_j：S_p=Sum_j B_j a_jp/Sum_j a_jp 且 Sum_p Sum_j w_jp x_j=Sum_j x_j（factor=1）",
         "reader_rule": "legacy 归一产品必须带 normalization.version；缺 flux_conservation_factor 禁用于绝对通量/孔径",
         "anchor": "FZ-FORMULA-DRIZZLE-SB; FZ-FORMULA-DRIZZLE-VAR; FZ-COND-FLUX-CONSERV; SO-02",
         "legacy_status": "SUPERSEDED_PENDING_SIGNOFF",

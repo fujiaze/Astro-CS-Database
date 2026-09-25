@@ -175,19 +175,23 @@ DrzError validate_overlap_closure(double sum_a_jp, double A_pixel_j, double pixf
 // 4. Drizzle 线性算子
 // ---------------------------------------------------------------------------
 //
-// 只承载 v6 目标态 SB 归一：c_jp = (a_jp / A_pixel_j) / D_p。
-// legacy_a_drop 仅为等价映射/provenance 登记保留：pixfrac<1 时显式 fail-closed。
+// 两种参数化承载**同一个**算子 c_jp = Σ_j B_j a_jp/Σ_j a_jp：
+//   drop_area  : w_jp = a_jp/A_drop_j  , N_p = Sum_j w_jp*A_pixel_j  ← canonical
+//   sb_a_pixel : w_jp = a_jp/A_pixel_j , N_p = Sum_j w_jp
+// 二者互为 pixfrac^2 缩放 ⇒ c_jp 相同（pixfrac=1 时逐位相同）。
+// DRZ-FLUX-FIX-01 起二者都不再 fail-closed（drop 面积归一即 F&H/drizzlepac 口径）；
+// 但**通量泛函 Phi_out 随参数化**：只有 drop_area 满足 Phi_out = Sum_j x_j。
 enum class NormalizationKind {
-    sb_a_pixel,    // v6 目标态：w_SB = a/A_pixel
-    legacy_a_drop, // 历史：w = a/A_drop；仅 pixfrac==1 与目标态一致
+    sb_a_pixel, // 等价参数化（面亮度保持）：w = a/A_pixel；Phi_out = pixfrac^2*Sum_j x_j
+    drop_area,  // canonical 口径（drop 面积归一）：w = a/A_drop；Phi_out = Sum_j x_j
 };
 
 struct OperatorEntry {
     uint32_t src = 0;    // 源像素 j
     uint32_t dst = 0;    // 目标 leaf p（存储于行内时 == 行索引）
     double a_jp = 0.0;   // 球面交叠面积 [px^2]
-    double w_sb = 0.0;   // a_jp / A_pixel_j
-    double c = 0.0;      // w_sb / D_p
+    double w_sb = 0.0;   // 核权重 w_jp（参数化见 NormalizationKind）
+    double c = 0.0;      // w_jp / N_p
 };
 
 struct OperatorSource {
@@ -198,7 +202,7 @@ class DrizzleOperator {
 public:
     DrizzleOperator() = default;
 
-    // 由 (src, dst, a_jp) 三元组构建；内部转置为 per-target 行并累加 D_p。
+    // 由 (src, dst, a_jp) 三元组构建；内部转置为 per-target 行并累加 D_p 与 N_p。
     // overlaps: 每条 {src, dst, a_jp}。同一个 (src,dst) 只允许出现一次。
     static DrzError build(uint32_t n_src, uint32_t n_dst,
                           const std::vector<OperatorSource>& sources,
@@ -215,6 +219,9 @@ public:
     const std::vector<double>& A_pixel() const { return A_pixel_; }
     double A_pixel(uint32_t j) const { return A_pixel_[j]; }
     double D(uint32_t p) const { return D_p_[p]; }
+    // N_p = Sum_j w_jp * A_pixel_j（面亮度归一分母；参数化见 NormalizationKind）
+    double N(uint32_t p) const { return N_p_[p]; }
+    const std::vector<double>& N_p() const { return N_p_; }
     const std::vector<OperatorEntry>& row(uint32_t p) const { return rows_[p]; }
 
     // S_p = Sum_j c_jp x_j   [ADU/sr]
@@ -229,7 +236,8 @@ public:
     // Cov(S_p, S_q) = Sum_j c_jp c_jq v_j   [ADU^2/sr^2]
     double covariance_sb(uint32_t p, uint32_t q, const double* v) const;
 
-    // Phi_out = Sum_p S_p D_p   [ADU]
+    // Phi_out = Sum_p Sum_j w_jp x_j = Sum_p S_p N_p   [ADU]
+    // （drop 面积归一下 = Sum_j x_j，与 pixfrac 无关）
     double flux_out(const double* x) const;
 
     // Var(Sum_p a_p S_p) = Sum_{p,q} a_p a_q Cov(S_p,S_q)（精确二次型）
@@ -246,9 +254,10 @@ private:
     uint32_t n_src_ = 0;
     uint32_t n_dst_ = 0;
     double pixfrac_ = 1.0;
-    NormalizationKind kind_ = NormalizationKind::sb_a_pixel;
+    NormalizationKind kind_ = NormalizationKind::drop_area;
     std::vector<double> A_pixel_;
     std::vector<double> D_p_;
+    std::vector<double> N_p_;
     std::vector<std::vector<OperatorEntry>> rows_;
 };
 
@@ -303,8 +312,8 @@ GateVerdict gate_covariance_propagation(const DrizzleOperator& op, const double*
                                         bool claims_diagonal_exact,
                                         double diag_rel_tol = 1e-11);
 
-// FZ-COND-FLUX-CONSERV: Phi_out == flux_conservation_factor * Sum_j x_j；
-// pixfrac<1 且声明绝对通量却缺 factor -> REJECT。
+// FZ-COND-FLUX-CONSERV: Phi_out == flux_conservation_factor * Sum_j x_j，
+// factor ≡ 1（drop 面积归一 ⇒ 与 pixfrac 无关）；声明绝对通量却缺 factor -> REJECT。
 GateVerdict gate_flux_conservation(const DrizzleOperator& op, const double* x,
                                    bool factor_recorded,
                                    bool claims_absolute_flux,

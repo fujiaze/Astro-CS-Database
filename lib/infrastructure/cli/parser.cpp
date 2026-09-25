@@ -257,8 +257,8 @@ std::string local_cpu_signature() {
     return astrocs::crypto::sha256_hex(seed.data(), seed.size());
 }
 
-// ── CLI-MULTIBLOCK（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：normalize 多数据块 ──
-// 语义（逐字依据 §9.68）：
+// ── CLI-MULTIBLOCK（依据 ASTROCS_DESIGN.md §4.3 输入合同）：normalize 多数据块 ──
+// 语义（逐条依据 §4.3）：
 //   ① 一个 JSON 内可写多个数据块（block），形如「一个 main 下面写很多个函数」；
 //   ② 每块自带：一组 input_lights + 一套母版 + 运行参数 + 块级 output_dir；
 //   ③ 同一组校准帧和运行参数支持一组 light（不得逐帧重复写校准帧）；
@@ -294,6 +294,16 @@ const std::set<std::string>& session_keys() {
         //   由 p1_op_noise 消费; 缺失 = 未知 gain/ZP (天空受限最优提取,
         //   m_5 = null)。不放宽任何既有键校验。
         "snr",
+        // WIRING-W34-01 (W3-CHK-PROD-WIRING): 噪声模型配置段（SCI-NOISE /
+        //   docs/science/NOISE_MODEL.md §4/§5/§5a）。段内键 = 生产节点
+        //   p1_noise_cfg_apply（lib/infrastructure/scheduler/src/module_adapters.cpp）
+        //   实际写入 SnrNoiseModelConfig 的**封闭词表** 14 键
+        //   （patch_grid/clip_sigma/spatial_field_enabled/mask_*/min_patch_samples/
+        //   max_clip_rounds/source_mask_radius_px/mask_radius_scale/variance_floor/
+        //   saturation_level）；缺段 = 全取冻结默认（不是错误）。
+        //   合同声明 = eng/contracts/schemas/phase_config_normalize.schema.json
+        //   #/$defs/noise_config。段内未知键 ⇒ 节点 rc=3（禁静默忽略）。
+        "noise",
         // FIX-P1 (RELEASE-02): 测光归一化配置块 (photometry.fit.enabled/
         //   gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars),
         //   由 p1_op_photometry 消费 (I_photo=k_photo*I_cal, 02_FROZEN §7)。
@@ -342,7 +352,8 @@ const std::set<std::string>& session_keys() {
         //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 同 snr_path：CLI 只识别并透传，生产消费点未落地 ⇒ 死键台账已登记。
         "rotation_deg", "crpix_px",
-        // EXPORT-CROP-01（负责人裁决 2026-09-23）：导出裁剪范围键（可选，缺省不裁剪）。
+        // EXPORT-CROP-01（依据 docs/design/PHASE3_DETAILED_DESIGN.md §8.1/§8.2）：
+        // 导出裁剪范围键（可选，缺省不裁剪）。
         // 合同声明 = phase_config_export.schema.json#/$defs/export_crop（键名逐字取
         // 合同声明名，禁新造同义键）；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
         // （CLI 配置面与节点面共用）；生产消费点 = scheduler 的 p3 wcs/writer/verify

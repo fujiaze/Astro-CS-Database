@@ -43,6 +43,16 @@ python3 eng/tests/abi/test_secure_loader.py   # 退出码 0 = 36/36 PASS
 
 - 本文件族由 ABI-003 交付: 加载器安全语义冻结; host(registry) 接线属 ABI-004
   (product manifest → unit 记录 → load)。
+- **未启用面（CHK-PROD-WIRING W6，2026-09-25 声明）**：本加载器与 ABI-004 registry
+  (`acs_registry_open_v1`) **不在三个生产命令的运行期调用图上**——三个命令的模块面
+  走构建内 `astrocs::ModuleRegistry`（`module_adapters.cpp`），本通道是**安装/交付面**，
+  由 `eng/tests/abi/mod001_install_load_check.py`（逐 unit 装载 + 4 类负路径必败）、
+  `eng/tests/abi/test_module_registry.py`、`eng/packaging/verify_install_tree.py` 消费。
+  完整声明（依据/消费者/退出条件）见 `docs/architecture/MODULE_MAP.md` §1.1；
+  台账 = `eng/ci/ledgers/prod_wiring.json`。
+- Windows `LoadLibraryExW` 实现由 WIN-* 按本头契约落地(SetDefaultDllDirectories/
+  AddDllDirectory/LOAD_LIBRARY_SEARCH_*); `_WIN32` 分支当前返回
+  ACS_ERR_UNSUPPORTED, 不伪装完成。
 - Windows `LoadLibraryExW` 实现由 WIN-* 按本头契约落地(SetDefaultDllDirectories/
   AddDllDirectory/LOAD_LIBRARY_SEARCH_*); `_WIN32` 分支当前返回
   ACS_ERR_UNSUPPORTED, 不伪装完成。

@@ -86,6 +86,33 @@ static void write_fits_8x8(const std::string& path, float pixel_value) {
     std::fclose(fp);
 }
 
+// WIRING-AUDIT-01 FIX-1：任意像素值的 8x8 FITS fixture（构造「母版含单像素坏点」场景）。
+// 与 write_fits_8x8 同一字节布局，只把常量像素换成逐像素数组；原函数零改动。
+static void write_fits_8x8_pixels(const std::string& path, const std::vector<float>& px) {
+    std::FILE* fp = std::fopen(path.c_str(), "wb");
+    if (!fp) { std::fprintf(stderr, "fixture open failed: %s\n", path.c_str()); std::exit(2); }
+    fits_card(fp, "SIMPLE", "T");
+    fits_card(fp, "BITPIX", "-32");
+    fits_card(fp, "NAXIS", "2");
+    fits_card(fp, "NAXIS1", "8");
+    fits_card(fp, "NAXIS2", "8");
+    fits_card(fp, "END", "");
+    long pos = 80L * 6;
+    int pad = static_cast<int>((2880 - (pos % 2880)) % 2880);
+    for (int i = 0; i < pad; ++i) std::fputc(' ', fp);
+    for (float v : px) {
+        uint32_t u = 0;
+        std::memcpy(&u, &v, sizeof(u));
+        unsigned char be[4] = {static_cast<unsigned char>(u >> 24), static_cast<unsigned char>(u >> 16),
+                               static_cast<unsigned char>(u >> 8), static_cast<unsigned char>(u)};
+        std::fwrite(be, 1, 4, fp);
+    }
+    long dpos = 256;
+    int dpad = static_cast<int>((2880 - (dpos % 2880)) % 2880);
+    for (int i = 0; i < dpad; ++i) std::fputc('\0', fp);
+    std::fclose(fp);
+}
+
 // ── 会话驱动: create→(可选 validate)→run→inspect→parse manifest ──────────────
 struct SessionOutcome {
     acs_status validate_rc = ACS_ERR_INTERNAL;
@@ -230,6 +257,43 @@ int main() {
     {
         SessionOutcome o = drive("{\"input_lights\":[\"" + light + "\"],\"output_dir\":\"" + out_dir + "\",\"cosmetic\":{\"enabled\":\"x\"}}", false);
         CHECK(o.run_rc == ACS_OK, "T7 run barrier: no terminate, error surfaced as status code");
+    }
+
+    // T8 (WIRING-AUDIT-01 FIX-1): cosmetic 检测源必须真接线 —— 判据**非退化**。
+    // 缺陷背景：p1_session.cpp 阶段 3 的 ac_correct_frame 调用点原恒传
+    //   master_dark/master_bias = nullptr ⇒ 检测永久禁用、阶段是恒等 pass
+    //   （连单像素坏点都不修），而 module.yaml 声明了 detect_hot_pixels /
+    //   detect_cold_pixels 与 cosmetic.* 配置键 ⇒ 「声明有、生产不生效」。
+    // 双向判据（真值无效应时必须归零，否则本用例是恒真门、没有证据资格）：
+    //   (a) 不给 master_dark：hot_fixed 必须 == 0，且 hot_source == "none"；
+    //   (b) 给一个含单像素坏点（9000 vs 本底 100）的 master_dark：
+    //       hot_fixed 必须 >= 1，且 hot_source == "master_dark"。
+    //       把检测源改回 nullptr ⇒ (b) 立刻退化为 0 并判红。
+    {
+        const std::string mdark = base + "/master_dark_hot.fts";
+        std::vector<float> mpx(64, 100.0f);
+        mpx[3 * 8 + 4] = 9000.0f;   // 单像素坏点（孤立 8 连通结构，< max_structure_size）
+        write_fits_8x8_pixels(mdark, mpx);
+
+        SessionOutcome a = drive("{\"input_lights\":[\"" + light + "\"],\"output_dir\":\"" +
+                                 out_dir + "\",\"cosmetic\":{}}", true);
+        CHECK(a.run_rc == ACS_OK, "T8a run ok without master_dark");
+        const json* st_a = stage_by_name(a.manifest, "cosmetic");
+        CHECK(st_a != nullptr && (*st_a).value("hot_fixed", -1) == 0,
+              "T8a 无检测源时 hot_fixed == 0（源缺席的如实计数，非恒真）");
+        CHECK(st_a != nullptr && (*st_a).value("hot_source", "") == "none",
+              "T8a 无检测源时 hot_source == none");
+
+        SessionOutcome b = drive("{\"input_lights\":[\"" + light + "\"],\"output_dir\":\"" +
+                                 out_dir + "\",\"master_dark\":\"" + mdark +
+                                 "\",\"cosmetic\":{}}", true);
+        CHECK(b.validate_rc == ACS_OK, "T8b validate accepts master_dark");
+        CHECK(b.run_rc == ACS_OK, "T8b run ok with master_dark");
+        const json* st_b = stage_by_name(b.manifest, "cosmetic");
+        CHECK(st_b != nullptr && (*st_b).value("hot_fixed", 0) >= 1,
+              "T8b 接上 master_dark 后 hot_fixed >= 1（检测真生效，非恒等 pass）");
+        CHECK(st_b != nullptr && (*st_b).value("hot_source", "") == "master_dark",
+              "T8b hot_source == master_dark（检测源参与面如实留痕）");
     }
 
     if (failures == 0) {

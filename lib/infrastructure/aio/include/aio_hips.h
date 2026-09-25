@@ -222,10 +222,11 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 //   ASTROCS_REJECT_PROFILE       版本化 profile 串 (如 wbpp_2_9_1)
 //
 // **已删除的键: 旧「权重模式」provenance 键**。
-//   依据: ASTROCS_DESIGN §2.1 总纲(负责人 2026-09-20 裁决)「全程只有 SNR,
-//   不存在『权重模式』这个概念」+ GAP_AUDIT §9.73【裁决 A44】逐字:
-//   「在 HiPS 里面存的是帧级 SNR 和稀疏的相对 SNR 比值。全程都是 SNR 才对。
-//   只有阶段二消费 SNR 的时候, 根据这个位置上像素对应的集合计算权重」。
+//   依据: ASTROCS_DESIGN §2.1 总纲 + §3.1 数据对象（HiPS 含帧级 SNR 与可选稀疏
+//   控制点层：绝对 SNR 控制点、同一参考通量 F_ref）+ §4.4 输出合同 + §5.5
+//   「先排异、后加权」+ docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
+//   w(x,y) = SNR(x,y)²/F_ref²」—— 阶段二按该位置像素对应集合现场取逆方差定权，
+//   不存在独立于 SNR 的第二套权重通道。
 //   ⇒ provenance 只承载帧级 SNR 与稀疏相对 SNR 比值, **不承载任何权重模式**;
 //   该键与其取值来源 (旧 int 权重模式形参 / cfg 的权重模式配置) 一并删除。
 //   变量名若要表达权重只能是阶段二现场派生的 weight, 不得再引入"模式"语义。

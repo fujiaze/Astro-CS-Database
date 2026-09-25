@@ -36,7 +36,7 @@
 | FZ-GATE-PSFSW-COV | `drizzle_covariance.representation=diagonal_variance_plus_correlation_kernel`（由真实算子非对角 Cov 计算 ρ）；`variance_from=actual_combination_coefficients`，禁 `weight/median_snr/support/coverage/fwhm` |
 | FZ-GATE-PSFSW-EPSF | `conventional_effective_psf` 出 `effective_psf_id`+peak 归一+profile 值+per-frame kernel transfer；只给 FWHM 标量即 REJECT |
 | FZ-FORMULA-DRIZZLE-SB/VAR | `build_operator_from_sources`（真实球面 overlap）+ `signal_sb/variance_sb/ivar_sb`；门 `gate_sb_definition/gate_variance_identity` 实测 pass |
-| FZ-COND-FLUX-CONSERV | provenance `flux_conservation_factor=pixfrac^2`（pixfrac=0.8 ⇒ 0.64）；pixfrac<1 缺因子重开必红 |
+| FZ-COND-FLUX-CONSERV | provenance `flux_conservation_factor=1`（drop 面积归一核，与 pixfrac 无关；DRZ-FLUX-FIX-01 口径订正）；值 ≠1 或键缺失时重开必红 |
 | FZ-FORMULA-COV-PROP / FZ-GATE-PARENT-VAR | `gate_covariance_propagation` pass；`diagonal_approximation.is_lower_bound=true`/`use_for_aperture=false` + deficit=(exact-diag)/exact（记录值） |
 | FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC | FITS 层 BUNIT=ADU/sr、px^2、ADU^2/sr^2、sr^2/ADU^2；重开逐 HDU 独立回读校验 + 二次律 |
 | FZ-PROV-MINIMAL-SET / SHARED-SYSTEMATIC / KCORR | provenance 走 AIO `validate_provenance`；校准共享 bias master 走 `common_master` 通道（`representation=common_master`）；k_corr 域内冻结常数 1.4 并登记为继承（不重拟合） |

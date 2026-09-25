@@ -8,7 +8,7 @@
     "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
     "owner_rulings": "工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md「负责人补充裁决（2026-09-16 第二轮）」"
   },
-  "field_count": 56,
+  "field_count": 59,
   "registry_ref": {
     "path": "eng/packaging/config/config_registry.json",
     "scope": "W5-CFG-002（CFG-002）登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
@@ -290,7 +290,7 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -304,7 +304,7 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -318,7 +318,7 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -332,7 +332,7 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -346,7 +346,7 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -360,7 +360,7 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -374,7 +374,7 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -388,7 +388,7 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -402,7 +402,7 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:68（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -791,6 +791,48 @@
       },
       "pending_task": null,
       "note": "与修复算子同构：修复用左右两邻，统计用每侧 k 列以抵抗单列污染。"
+    },
+    {
+      "key": "cosmetic.bad_column_sigma_master",
+      "value": 10.5,
+      "unit": "MAD 倍数",
+      "constraint": "> 0；母版路径（暗/偏置母版）专用的列状缺陷判据阈值",
+      "authority_status": "measured",
+      "source": "按路径对等判据用生产实现在真实母版上标定：母版每路已修列数不超过同一帧科学帧路径已修列数",
+      "source_ref": {
+        "path": "run/LINDEF-CLOSE-01/REPORT.md",
+        "line": 1
+      },
+      "pending_task": null,
+      "note": "母版与科学帧的列统计量尺度不同（母版经叠加，标度与噪声结构都变），故单独取值；取值来自实测标定曲线而非拍数。"
+    },
+    {
+      "key": "cosmetic.bad_column_variance_kappa",
+      "value": 2.0,
+      "unit": "1",
+      "constraint": ">= 1/Σw²（单列两邻算术平均 ⇒ >= 2）；修复像素方差 = (Σw²·var)·κ",
+      "authority_status": "derived",
+      "source": "推导：修复值是两个邻居的确定性函数，不得声称比一次独立测量携带更多信息 ⇒ var >= σ² ⇒ κ >= 1/Σw² = 2；见 docs/contracts/DATA_SEMANTICS.md §10.5",
+      "source_ref": {
+        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "line": 328
+      },
+      "pending_task": null,
+      "note": "对照实验测得估计量误差 0.5502σ² ≈ Σw²σ²，即纯噪声项支持 κ=1；两者语义不同（估计量误差 vs 像素携带的独立信息量）。取保守侧以避免稠密 SNR 重建把插值像素当成比干净像素更可靠。"
+    },
+    {
+      "key": "cosmetic.bad_column_master_wide_frac_max",
+      "value": 0.001,
+      "unit": "1",
+      "constraint": "0 < x <= 1；母版路径「仅标记不修」列数的声明上界（占帧宽）",
+      "authority_status": "measured",
+      "source": "实测母版列统计量在重尾分布上存在就近反号配对事故：阈值微调下仅标记列数在 0 与 1419 之间跳变 ⇒ 该量本身不稳定，必须设可声明上界并在超界时整类丢弃并记账",
+      "source_ref": {
+        "path": "run/LINDEF-CLOSE-01/REPORT.md",
+        "line": 1
+      },
+      "pending_task": null,
+      "note": "加守卫前真实数据母版路径标记 1192 列；加守卫后整类丢弃并记账。科学帧路径同形处置由 docs/science/CALIBRATION.md 的缺陷形态可分性条款约束。"
     }
   ]
 }

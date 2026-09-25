@@ -18,7 +18,7 @@
 //   W4 1/N worker 逐位一致：budget ∈ {1,2,4,8} × 同一内存上限 ⇒ 每节点输出逐位相同。
 //
 // 依据：ASTROCS_DESIGN.md §8.3/§9/§3.5；docs/contracts/SCHEDULER_CONTRACT.md §3；
-//       负责人裁决 2026-09-22（内存上限 = 空闲内存 × 可配置比例，默认 95；不设固定上限）。
+//       内存上限 = 空闲内存 × 可配置比例（默认 95，比例可配置）；**不设固定上限**。
 #include "astrocs/core/memory_budget.h"
 #include "astrocs/core/module.h"
 #include "astrocs/core/plan_estimator.h"

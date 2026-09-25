@@ -9,7 +9,7 @@
     "vcpkg_policy": "本项目生产依赖采用 vendored 源码(third_party/ 与 lib/*/third_party/) 与系统标准库; 不采用 vcpkg 管理。若未来引入 vcpkg, 必须按 vcpkg.json manifest + vcpkg-configuration.json baseline 双重锁定(09/BLD-004 契约), 本锁文件同步记录 vcpkg triplet/baseline commit。",
     "msys2_mingw": "FORBIDDEN",
     "machine_absolute_path": "FORBIDDEN",
-    "machine_absolute_path_policy": "CMake/构建输入不得读取 F:/、C:/Users/<user>、/home/<user> 等机器绝对路径(fresh configure 可复现); Windows 正式工具链安装位置 C:/AstroCS/toolchains/... 为冻结安装约定(09_WINDOWS_TOOLCHAIN_LOCK.md), 由 preset 显式声明, 不属于隐式读取。"
+    "machine_absolute_path_policy": "CMake/构建输入不得读取 F:/、C:/Users/<user>、/home/<user> 等机器绝对路径(fresh configure 可复现); Windows 正式工具链安装位置 C:/AstroCS/toolchains/... 为冻结安装约定(eng/packaging/windows/README.md), 由 preset 显式声明, 不属于隐式读取。"
   },
   "production_dependencies": [
     {
@@ -193,9 +193,10 @@
       "cli/CMakeLists.txt (legacy compat)"
     ],
     "remaining_known": [
-      "CMakePresets.json CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39 → 冻结 Windows 工具链安装约定 (09 §2.1), 非隐式用户路径",
+      "CMakePresets.json CMAKE_GENERATOR_INSTANCE=C:/AstroCS/toolchains/vs2022-17.14.39 → 冻结 Windows 工具链安装约定 (eng/packaging/windows/README.md), 非隐式用户路径",
       "eng/packaging/schemas/preset-contract.json vs_installation 同上一并冻结",
-      "eng/build/toolchain.ps1 / eng/tools/quality/v19r3_static.py 等遗留 Windows 开发脚本含 C:\\msys64、C:\\Users\\fujia → 非 CMake 构建输入 (owner 不在 SA-BLD-02; 记录 known_limits, 由 WIN-*/CLI 系列清理或归档)"
+      "eng/build/toolchain.ps1 已订正依赖面: 只用仓内 vendored 依赖与系统工具链, 不再引用 MSYS2/MinGW 路径或机器绝对用户路径 (ENGINEERING_SPEC §7 现役固定条目)",
+      "eng/tools/quality/v19r3_static.py 仍引用 MSYS2/MinGW 路径 → 登记为缺陷, 待其依赖面订正 (与本 lock 的 msys2_mingw=FORBIDDEN 冲突)"
     ]
   }
 }

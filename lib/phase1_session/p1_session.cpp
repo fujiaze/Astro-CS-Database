@@ -317,11 +317,17 @@ acs_status run_session(SessionState* s, const json& doc) {
     // ── 阶段 2: calibrate(逐帧; master 全可空; 取消点=帧粒度) ──
     const std::string out_dir = doc.value("output_dir", std::string());
     uint32_t frames_ok = 0;
+    // WIRING-AUDIT-01 整改（①"能力已实现但未接入生产"）：master 句柄提到 calibrate
+    // 块之外声明 —— cosmetic 阶段（阶段 3）的坏点检测源就是这两张参考平面
+    // （热=master_dark、冷=master_bias，README §2 / ALG-COS-001..005）。
+    // 原实现 cosmetic 调用点恒传 nullptr ⇒ 检测禁用恒等 pass（连单像素坏点都不修），
+    // 与 module.yaml 声明的 source_symbols（detect_hot_pixels/
+    // detect_cold_pixels）以及 cosmetic.* 配置键形成了"声明有、生产不生效"的缺口。
+    ImagePtr bias, dark, flat;
     {
         // [RELEASE-02 probe] Phase1 阶段边界: calibrate
         ASTROCS_PROBE_SCOPE("phase1", "calibrate.stage");
         s->manifest["stages"].emplace_back(json{{"name", "calibrate"}, {"status", "running"}});
-        ImagePtr bias, dark, flat;
         if (doc.contains("master_bias") && !doc["master_bias"].is_null())
             if (!(bias = read_image(doc["master_bias"].get<std::string>(), &err))) {
                 s->last_error = err; s->manifest["error_kind"] = "input"; return ACS_ERR_IO;
@@ -459,9 +465,22 @@ acs_status run_session(SessionState* s, const json& doc) {
             if (!im) { s->last_error = err; st["status"] = "fail"; return ACS_ERR_IO; }
             std::vector<float> fixed(static_cast<size_t>(image_w(im.get())) * static_cast<size_t>(image_h(im.get())));
             int hot = 0, cold = 0;
+            // WIRING-AUDIT-01 整改（②"接入了但参数恒退化"）：检测源必须是真实参考
+            // 平面，不再是常量 nullptr。尺寸不一致时不静默降级为恒等 pass，而是显式
+            // 判红（PARAM），与 calibrate 段 "light size mismatch vs masters" 同口径。
+            const int fw = image_w(im.get()), fh = image_h(im.get());
+            for (const auto* m : {dark.get(), bias.get()})
+                if (m && (image_w(m) != fw || image_h(m) != fh)) {
+                    s->last_error = "cosmetic master size mismatch vs frame: " +
+                                    a.get<std::string>();
+                    st["status"] = "fail";
+                    return ACS_ERR_PARAM;
+                }
+            const float* dark_plane = dark ? image_px(dark.get()) : nullptr;
+            const float* bias_plane = bias ? image_px(bias.get()) : nullptr;
             const int rc = ac_correct_frame(
-                image_px(im.get()), image_w(im.get()), image_h(im.get()),
-                nullptr, nullptr, fixed.data(),
+                image_px(im.get()), fw, fh,
+                dark_plane, bias_plane, fixed.data(),
                 hot_sigma, cold_sigma, method, max_structure_size, &hot, &cold);
             if (rc != AC_OK) {
                 s->last_error = std::string("ac_correct_frame failed rc=") + ac_err_name(rc);
@@ -476,6 +495,9 @@ acs_status run_session(SessionState* s, const json& doc) {
             }
             st["hot_fixed"] = st.value("hot_fixed", 0) + hot;
             st["cold_fixed"] = st.value("cold_fixed", 0) + cold;
+            // BIAS-001 同口径：检测源参与面显式可见（避免"恒等 pass 却看起来跑过"）
+            st["hot_source"] = dark ? "master_dark" : "none";
+            st["cold_source"] = bias ? "master_bias" : "none";
             ASTROCS_PROBE_COUNT("phase1", "cosmetic.frames", 1);
         }
         st["status"] = "ok";

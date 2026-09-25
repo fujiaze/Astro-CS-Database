@@ -18,6 +18,8 @@
 // 装配，不做任何科学公式改动。
 // ============================================================================
 
+#include "spatial_gain.h"   // PHOT-MXY-01: m(x,y) 空间增益场（SCI-PHOT-001 §16.1 ④）
+
 #include <cstdint>
 #include <string>
 
@@ -66,6 +68,17 @@ struct FramePhotFitRequest {
   std::string qe_name;         // QE 曲线键（可空）
   double mag_min = 6.0;
   double mag_max = 16.0;
+  // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）───────────
+  // 0 = 关闭：本入口**不触碰**空间路径（C 入口调用参数与改动前逐位一致）。
+  // 1/2 = 请求阶（>=3 由 spatial_gain.cpp 钳到 2；规范未授权更高阶）。
+  int spatial_gain_order = 0;
+  // 降级门（默认值 = 实验/photometric-magnitude/docs/p1-spatial-gain.md §2.5 登记值）
+  int spatial_gain_min_stars_order1 = 50;
+  int spatial_gain_min_stars_order2 = 200;
+  int spatial_gain_coverage_block_grid = 3;
+  int spatial_gain_coverage_min_stars_per_block = 5;
+  int spatial_gain_coverage_min_blocks = 6;
+  double spatial_gain_coverage_min_bbox_frac = 0.5;
 };
 
 // SCI-PHOT-001 §4/§8 的**求解前提**（不是星数准入门槛）: |r_consistent| >= 3 才
@@ -144,6 +157,13 @@ struct FramePhotFitResult {
   double filter_wl_max_nm = 0.0;
   double filter_val_min = 0.0;
   double filter_val_max = 0.0;
+  // ── PHOT-MXY-01: m(x,y) 空间增益场 ───────────────────────────────────────
+  // order==0 ⇒ m ≡ 1（未启用 / 分布不足降级）；此时调用方必须走**未改动**的
+  // 全局路径（calibration::apply_photometry），以保证与改动前逐位一致。
+  SpatialGainField spatial;
+  // true ⇒ 调用方**必须把该帧判 fail**（几何充分但空间拟合数值失败 = 缺陷；
+  // 帧级失败作用域，见 docs/design/LOG_AND_ERROR_SYSTEM.md §10）。
+  bool spatial_frame_fail = false;
 };
 
 // 运行单帧生产星匹配链, 返回 k_photo。

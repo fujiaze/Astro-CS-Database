@@ -470,7 +470,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成测试 - 阶段1�
 3. n_healpix_pixels: HEALPix 像素数 > 0
 4. pixels_nonzero: 像素值非全 0
 5. no_nan_inf: 像素值无 NaN/Inf
-6. flux_conservation: (可选, 需 --input-fits) |sum_out - sum_in*pixfrac^2|/sum_in < 10%
+6. flux_conservation: (可选, 需 --input-fits) |sum_out - sum_in|/sum_in < 10%（核按 drop 面积归一 ⇒ 总通量与 pixfrac 无关；DRZ-FLUX-FIX-01）
 7. wcs_metadata: 元数据含 cd + crval 字段（crpix 可选）
 8. nside: nside 在 64-32768 且为 2 的幂
 

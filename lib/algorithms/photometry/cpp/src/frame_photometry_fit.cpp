@@ -203,6 +203,17 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     PhotometricDiag diag;
     std::memset(&diag, 0, sizeof(diag));
 
+    // ── PHOT-MXY-01: 逐星 inlier 记录（仅空间增益开启时申请）─────────────────
+    // records[i] 与 PSF 行 i 对齐（pc_api.cpp 的 per-star 记录块）；status==1 表示
+    // matched+used（IRLS inlier），residual = r_i = log10(F_instr/F_syn)。
+    // **关闭空间增益时传 nullptr**：C 入口调用参数与改动前逐位一致。
+    std::vector<PcMatchRecord> records;
+    PcMatchRecord* records_out = nullptr;
+    if (req.spatial_gain_order > 0) {
+        records.resize(static_cast<std::size_t>(req.n_psf));
+        records_out = records.data();
+    }
+
     const int rc = pc_calibrate_simple_with_gaia_f64_v2_qf(
         reinterpret_cast<void*>(client),
         req.crval1, req.crval2, fov_radius_deg,
@@ -214,7 +225,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         spectrum_wl.data(), static_cast<int>(spectrum_wl.size()),
         req.pixels, req.width, req.height,
         req.psf_cx, req.psf_cy, req.psf_flux, req.psf_status, req.n_psf,
-        nullptr, nullptr,
+        nullptr, records_out,
         req.crval1, req.crval2, req.crpix1, req.crpix2,
         req.cd11, req.cd12, req.cd21, req.cd22,
         req.sip_order, req.sip_a, req.sip_b, req.sip_ap, req.sip_bp,
@@ -332,6 +343,48 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     } else {
         out.fit_ok = true;
         out.failure_scope = FitFailureScope::kNone;
+    }
+
+    // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④）─────────
+    // 只在标度成立时做（标度不成立时该帧已判 fail，空间项无意义）。空间项是
+    // **零均值**修正：全局项仍是既有 k_photo，故 order=0 时与改动前逐位一致。
+    // location_dex 由 scale 反算（−log10 k_photo）：这是 1 ulp 量级的往返，且
+    // 只进入阶段 3 的 Tukey 权重与残差诊断——空间系数对 location 的**常数平移
+    // 严格不变**（基函数按样本加权中心化），故不改变发布结果。
+    if (req.spatial_gain_order > 0) {
+        if (!out.fit_ok) {
+            out.spatial.order = 0;
+            out.spatial.status = SpatialGainStatus::kDisabled;
+            out.spatial.degraded_reason = "scalar_fit_not_ok";
+        } else {
+            std::vector<SpatialGainSample> samples;
+            samples.reserve(static_cast<std::size_t>(req.n_psf));
+            for (int i = 0; i < req.n_psf; ++i) {
+                if (records[static_cast<std::size_t>(i)].status != 1) continue;  // 非 inlier
+                const double r = records[static_cast<std::size_t>(i)].residual;
+                if (!std::isfinite(r)) continue;
+                SpatialGainSample sm;
+                sm.x = req.psf_cx[i];
+                sm.y = req.psf_cy[i];
+                sm.r = r;
+                samples.push_back(sm);
+            }
+            SpatialGainParams sp;
+            sp.order_requested = req.spatial_gain_order;
+            sp.location_dex = -std::log10(scale);
+            sp.width = req.width;
+            sp.height = req.height;
+            sp.min_stars_order1 = req.spatial_gain_min_stars_order1;
+            sp.min_stars_order2 = req.spatial_gain_min_stars_order2;
+            sp.coverage_block_grid = req.spatial_gain_coverage_block_grid;
+            sp.coverage_min_stars_per_block = req.spatial_gain_coverage_min_stars_per_block;
+            sp.coverage_min_blocks = req.spatial_gain_coverage_min_blocks;
+            sp.coverage_min_bbox_frac = req.spatial_gain_coverage_min_bbox_frac;
+            out.spatial = fit_spatial_gain(samples.empty() ? nullptr : samples.data(),
+                                           static_cast<int>(samples.size()), sp);
+            out.spatial.sigma_global_dex = sigma_residual;
+            out.spatial_frame_fail = out.spatial.frame_fail;
+        }
     }
     return out;
 }

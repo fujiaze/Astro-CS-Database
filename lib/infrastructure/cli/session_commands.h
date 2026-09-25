@@ -145,7 +145,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
     // drizzle.precision_mode 必须显式（docs/algorithms/DRIZZLE_GEOMETRY.md B2-A12：
     // 0=FP32/1=FP64，缺失即 DATA 拒绝，不 silent 降精度）；模板取 1（FP64）与
     // RESCUE-FD-02 的库边界缺省一致（宁可慢，不静默丢精度）。
-    // CLI-MULTIBLOCK（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：normalize 配置 =
+    // CLI-MULTIBLOCK（依据 ASTROCS_DESIGN.md §4.3 输入合同）：normalize 配置 =
     // 多数据块 JSON。模板 = 两块示例；块内键 = 平铺会话键集（与 parser.cpp
     // session_keys() 同面）。平铺单块简写保留（单块时两种写法等价），两形态互斥。
     static const std::vector<ConfigField> kNormalize = {
@@ -272,9 +272,10 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"crpix_px", "[512.5, 512.5]",
          "参考像素（FITS 1-based；示例值 = 本模板 1024×1024 输出的几何中心，缺省 = 中心；"
          "合同声明 = phase_config_export.schema.json；生产消费点未落地，见死键台账）"},
-        // EXPORT-CROP-01（负责人裁决 2026-09-23）：「默认导出的话是要求边框不得裁剪任何
-        // 有效像素，然后可以导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪
-        // 范围。这样我以后 gui 的 HiPS 浏览器里面我可以直接导出框选。需要保留接口。」
+        // EXPORT-CROP-01（依据 docs/design/PHASE3_DETAILED_DESIGN.md §8.1「导出裁剪
+        // 范围（crop）」+ §8.2 两种输入形式（互斥）+ §8.4 落点与不变式）：
+        // 默认导出**不得裁剪任何有效像素**（允许黑边），裁剪为**可选**手动范围，
+        // 两种形式都要有（平面像素矩形 / 天球矩形，供 GUI 框选导出直接填）。
         // ⇒ crop 是**可选**键，缺省不裁剪（整幅导出，允许黑边）；两种形式互斥：
         //   pixels —— 平面像素矩形（FITS 1-based 闭区间，相对未裁剪输出画幅；手动裁剪面）
         //   sky    —— 天球轴对齐矩形（ICRS deg；GUI 框选来自 HiPS 浏览器，框的是天区）

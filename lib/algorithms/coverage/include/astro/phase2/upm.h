@@ -178,10 +178,7 @@ P2_API int p2_upm_raw_weight(const P2ControlObservation* obs,
                              double* out_raw);
 
 // per-control 归一化权重（raw/sum_j(raw) × control_reliability）。
-P2_API int p2_upm_normalized_weights(const P2ControlObservation* obs,
-                                     std::uint64_t n_obs,
-                                     const P2UpmBuildConfig* cfg,
-                                     double* out_norm);
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_normalized_weights 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
 
 // geometry/topology hash（仅 geometry/coverage 决定，不含
 // SNR/quality/support 等观测可信度；权重变化不得改变）。
@@ -355,8 +352,7 @@ P2_API int p2_upm_ma_solution(
 // frame -> 连通分量下标；control -> 连通分量下标。未知 id → 返回 1。
 P2_API int p2_upm_ma_component_of_frame(
     const void* model, std::uint64_t frame_id, std::uint64_t* out_component);
-P2_API int p2_upm_ma_component_of_control(
-    const void* model, std::uint64_t control_id, std::uint64_t* out_component);
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_ma_component_of_control 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
 // 每分量 gauge 参考帧（分量内最小 frame_id；与构建顺序无关）。
 P2_API int p2_upm_ma_component_ref_frame(
     const void* model, std::uint64_t component, std::uint64_t* out_ref_frame_id);

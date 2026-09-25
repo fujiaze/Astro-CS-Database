@@ -1272,42 +1272,9 @@ int p2_sample_controls_cached(const P2CoverageResult* coverage,
                                    err, err_size);
 }
 
-int p2_sample_sky(const P2CoverageResult* coverage,
-                  const char* const* hips_paths,
-                  const P2SamplerConfig* cfg,
-                  P2SkySample* out_sky, std::uint64_t sky_capacity,
-                  std::uint64_t* out_n_sky,
-                  P2StarMaskCap* out_mask, std::uint64_t mask_capacity,
-                  std::uint64_t* out_n_mask,
-                  P2SampleStats* out_stats,
-                  char* err, std::size_t err_size) {
-    std::uint64_t n_obs = 0, n_controls = 0;
-    return p2_sample_controls_impl(coverage, hips_paths, nullptr, cfg,
-                                   nullptr, 0, &n_obs, &n_controls, out_stats,
-                                   nullptr, 0,
-                                   out_sky, sky_capacity, out_n_sky,
-                                   out_mask, mask_capacity, out_n_mask,
-                                   err, err_size);
-}
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_sample_sky 定义已删（全仓零消费者；同能力变体入口保留在产）。 */
 
-int p2_sample_sky_cached(const P2CoverageResult* coverage,
-                         const char* const* hips_paths,
-                         const std::uint64_t* frame_ids,
-                         const P2SamplerConfig* cfg,
-                         P2SkySample* out_sky, std::uint64_t sky_capacity,
-                         std::uint64_t* out_n_sky,
-                         P2StarMaskCap* out_mask, std::uint64_t mask_capacity,
-                         std::uint64_t* out_n_mask,
-                         P2SampleStats* out_stats,
-                         char* err, std::size_t err_size) {
-    std::uint64_t n_obs = 0, n_controls = 0;
-    return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg,
-                                   nullptr, 0, &n_obs, &n_controls, out_stats,
-                                   nullptr, 0,
-                                   out_sky, sky_capacity, out_n_sky,
-                                   out_mask, mask_capacity, out_n_mask,
-                                   err, err_size);
-}
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_sample_sky_cached 定义已删（全仓零消费者；同能力变体入口保留在产）。 */
 
 // ===========================================================================
 // V6 目标态：空间模型求值 / 空间摘要 / 帧级标量降级门

@@ -228,6 +228,126 @@
       "type": "object",
       "description": "可选 SNR 科学块（gain_e_per_adu/read_noise_e/zero_point_mag/sigma_logflux_dex/n_matches 等）；缺失 = 未知 gain/ZP（天空受限最优提取，m_5 = null），消费 = p1_op_noise"
     },
+    "noise_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "噪声模型配置段（SCI-NOISE / docs/science/NOISE_MODEL.md §4/§5/§5a）。**唯一消费点** = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p1_noise_cfg_apply（由 p1_noise_model_for_frame 调用，SNR 节点与 drizzle 逐像素 variance 块共用同一份配置推导）；缺段 = 全取 snr_noise_model_v1_default_config 的冻结默认（不是错误，数值逐位不变）。段内键 = 该函数实际写入 SnrNoiseModelConfig 的全部键（封闭词表）；**未知键即 DATA 拒绝（rc=3），禁静默忽略**（静默忽略等于把「声明了没消费」换成「假装消费」）。逐键实际生效值以产物诊断键 noise_cfg_applied 回执。",
+      "propertyNames": {
+        "enum": [
+          "patch_grid",
+          "clip_sigma",
+          "spatial_field_enabled",
+          "mask_k_sigma",
+          "mask_r_min_px",
+          "mask_fwhm_floor_scale",
+          "mask_budget_min_patches",
+          "mask_budget_min_sky",
+          "min_patch_samples",
+          "max_clip_rounds",
+          "source_mask_radius_px",
+          "mask_radius_scale",
+          "variance_floor",
+          "saturation_level"
+        ]
+      },
+      "properties": {
+        "patch_grid": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 2, "maximum": 4096 },
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [8, 8],
+          "description": "[gx, gy] 每边 patch 数（默认 8×8，§5 冻结）。生产按画幅收缩（每 patch 仍需 ≥ min_patch_samples 个天空样本），收缩事实以诊断键 noise_patch_grid_adapted 回执；本键给出的是**上界**（大画幅保持本值）。"
+        },
+        "clip_sigma": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "default": 5.0,
+          "description": "patch 内 cosmic/hot 稳健裁剪倍数 k（默认 5σ，§5 冻结，映射 SnrNoiseModelConfig.cosmic_clip_sigma）。"
+        },
+        "spatial_field_enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "1 = 最小二乘平面空间方差场（默认）；0 = 退回 §4/§5 已规定的全局常量场（调用方在平面场非法时的 fail-closed 退化通道）。"
+        },
+        "mask_k_sigma": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "default": 0.1,
+          "description": "逐星掩膜边缘残余面亮度系数 k（默认 0.1σ_bg，§5a 冻结；r_local 的推导参数）。"
+        },
+        "mask_r_min_px": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 1.5,
+          "description": "逐星掩膜半径下界的绝对项（默认 1.5 px，§5a）。"
+        },
+        "mask_fwhm_floor_scale": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 0.75,
+          "description": "逐星掩膜半径下界的 FWHM 项系数（默认 0.75·FWHM_i，§5a）。"
+        },
+        "mask_budget_min_patches": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "default": 8,
+          "description": "天空预算：合格 patch 数下限（默认 8，§5a）。生产按帧内可行性收缩，收缩以 noise_mask_patch_budget_adapted 回执。"
+        },
+        "mask_budget_min_sky": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000000,
+          "default": 9216,
+          "description": "天空预算：未掩膜合法像素数下限（默认 9216，§5a）。生产按帧内可行性收缩，收缩以 noise_mask_sky_budget_adapted 回执。"
+        },
+        "min_patch_samples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "default": 64,
+          "description": "patch 合格最小天空样本数（默认 64，§5 冻结）。"
+        },
+        "max_clip_rounds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 2,
+          "description": "cosmic 裁剪轮数（默认 ≤2，§5 冻结）。"
+        },
+        "source_mask_radius_px": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 10,
+          "description": "星点固定保守掩膜半径（默认 10 px，§5a；与 mask_radius_scale 相乘得硬上界 rmax，60 px 只能作硬上界）。"
+        },
+        "mask_radius_scale": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000,
+          "default": 6.0,
+          "description": "固定半径乘数（默认 6.0 → rmax = 10·6 = 60 px 硬上界，§5a）。"
+        },
+        "variance_floor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1e-12,
+          "description": "ivar 分母下限（**单位 ADU²**，§7 冻结默认 1e-12）。承载 ADU 标度量的键：数组被上游测光归一化（x' = α·x）时按 α² 换算，换算责任方 = 调用方（docs/contracts/CONFIG_CONTRACT.md 逐键标度类别表）。"
+        },
+        "saturation_level": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 0,
+          "description": "饱和电平（**单位 ADU**，§4 饱和域 claim SC-008）。来源优先级（冻结，逐级显式登记）：noise.saturation_level > snr.saturation_level > FITS 头 SATURATE/DATAMAX；三级皆无 ⇒ 显式 DISABLED_NO_METADATA，禁静默。"
+        }
+      }
+    },
     "photometry": {
       "type": "object",
       "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry"
@@ -442,6 +562,9 @@
         "star_detection": {
           "$ref": "#/$defs/star_detection_config"
         },
+        "noise": {
+          "$ref": "#/$defs/noise_config"
+        },
         "sparse_snr_layer": {
           "$ref": "#/$defs/sparse_snr_layer"
         },
@@ -518,6 +641,9 @@
     },
     "snr": {
       "$ref": "#/$defs/snr"
+    },
+    "noise": {
+      "$ref": "#/$defs/noise_config"
     },
     "photometry": {
       "$ref": "#/$defs/photometry"

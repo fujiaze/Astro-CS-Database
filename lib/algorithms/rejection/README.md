@@ -116,6 +116,6 @@ eng/tests/unit/p2_rejection_test.cpp（P2-005）。
 | ID | 摘要 | 源锚 |
 |---|---|---|
 | DISP-P2REJ-001 | h:118 percentile low_fraction 注释"默认 0.1"与实现/SCI 默认 0.2 表述矛盾（以 ALG §5 冻结表 0.2 为准） | rejection.h:118 |
-| DISP-P2REJ-002 | SCI §8 退化态 "NO_CANDIDATES" 与实现空栈=MIN_SAMPLES（:1706/:1869）冲突；NO_CANDIDATES 属积分域 P2IntegrateStatus（integrate.h:46），排异域无该状态 | docs/science/REJECTION.md:89 |
+| DISP-P2REJ-002 | SCI §8 退化态 "NO_CANDIDATES" 与实现空栈=MIN_SAMPLES（:1706/:1869）冲突；NO_CANDIDATES 属积分域 P2IntegrateStatus（integrate.h:46），排异域无该状态 | docs/science/REJECTION.md:140（REJECT-DOCFIX-01 重锚，原 :89 已漂移） |
 | DISP-P2REJ-003 | SCI/REJECTION_ALGORITHMS 行号锚漂移；行号权威=ALG-P2-REJ-001 §3 逐符号实测锚 | docs/science/REJECTION.md |
 | DISP-P2REJ-004 | minmax 比较器 value-only（sort :1667-1669，比较器仅 w[a]<w[b]），tie-break 未显式冻结，等值样本 permutation 不变性未承诺 | rejection.cpp:1667-1669 |

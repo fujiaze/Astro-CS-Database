@@ -140,6 +140,13 @@ add_executable(p1phot_passband_identity_gate
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/wcs_transform.cpp
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/image_corrector.cpp
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp
+  # PHOT-MXY-01: frame_photometry_fit 现在还要拟合低阶乘性空间增益 m(x,y)
+  # （SCI-PHOT-001 §16.1 ④⑤）⇒ 本「直接编入生产源」的目标必须带上同一批生产源：
+  #   spatial_gain.cpp    = 空间增益拟合的唯一实现；
+  #   identifiability.cpp = 仓内**唯一**可辨识性判据实现（不是副本；根 CMakeLists
+  #     的 astrocs_identifiability 也编同一份文件，phase2 改为链接该库）。
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/spatial_gain.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/coverage/src/identifiability.cpp
   # gaia 客户端按**生产源零改动**直接编入（既有共享库把 legacy 符号设为 hidden,
   # 不可链接）; C 标准与根 CMakeLists 的同名源一致。
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c)
@@ -148,6 +155,11 @@ set_property(SOURCE ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/
 target_include_directories(p1phot_passband_identity_gate PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
+  # PHOT-MXY-01: astro/phase2/identifiability.h（唯一判据的公共头）
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/coverage/include
+  # PHOT-MXY-01: photometry_apply.h 里是基函数与 log10 m 求值的**唯一** inline 实现
+  # （spatial_gain.cpp 与施加端共用同一份, 不复制公式）。
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/src
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/shared

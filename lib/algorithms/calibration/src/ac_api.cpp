@@ -14,6 +14,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <cmath>
 #include <cstring>
 #include <vector>
 
@@ -48,6 +49,28 @@ namespace ac {
                             int* out_n_dark, int* out_n_bias,
                             int* out_px_repaired, float* out_sigma_col,
                             int* out_status);
+    // LINDEF-CLOSE-01: 母版专用阈值 + 宽标记区间守卫 + 已修/仅标记分账
+    void correct_columns_ex_impl(const float* data, const float* dark, const float* bias,
+                            int w, int h, float* out,
+                            float column_sigma, float master_column_sigma,
+                            float master_wide_frac_max, float science_wide_frac_max,
+                            int neighbor_k, int max_seg_len,
+                            unsigned char* col_mask,
+                            unsigned char* source_mask, unsigned char* conf_mask,
+                            int* out_n_cols, int* out_n_marked_only,
+                            int* out_n_sci, int* out_n_dark, int* out_n_bias,
+                            int* out_n_sci_marked, int* out_n_dark_marked,
+                            int* out_n_bias_marked,
+                            int* out_master_wide_suppressed,
+                            int* out_science_wide_suppressed,
+                            int* out_px_repaired, float* out_sigma_col,
+                            float* out_sigma_col_dark, float* out_sigma_col_bias,
+                            int* out_status);
+    // LINDEF-CLOSE-01: 修复像素方差面 var = (Σw²·var)·κ
+    void column_variance_inflate(const float* var_in, int w, int h,
+                                 const unsigned char* col_mask, float kappa,
+                                 float* var_out, float* out_w2_mean,
+                                 int* out_px_inflated);
 }
 
 // 从 calibrator.cpp
@@ -358,6 +381,56 @@ AC_API int ac_correct_columns_ex(
                            out_source_mask, out_conf_mask,
                            out_n_cols, out_n_science, out_n_dark, out_n_bias,
                            out_px_repaired, out_sigma_col, out_status);
+    return AC_OK;
+}
+
+// LINDEF-CLOSE-01：母版专用阈值 + 宽标记区间守卫 + 已修/仅标记分账
+// （同判据、同仲裁、同修复算子，只多这几个信息面与守卫）
+AC_API int ac_correct_columns_ex2(
+    const float* data, const float* master_dark, const float* master_bias,
+    int width, int height, float* out,
+    float column_sigma, float master_column_sigma, float master_wide_frac_max,
+    float science_wide_frac_max,
+    int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    unsigned char* out_source_mask,
+    unsigned char* out_conf_mask,
+    int* out_n_cols, int* out_n_marked_only,
+    int* out_n_science, int* out_n_dark, int* out_n_bias,
+    int* out_n_science_marked, int* out_n_dark_marked, int* out_n_bias_marked,
+    int* out_master_wide_suppressed, int* out_science_wide_suppressed,
+    int* out_px_repaired, float* out_sigma_col,
+    float* out_sigma_col_dark, float* out_sigma_col_bias,
+    int* out_status) {
+    if (!data || !out || width <= 0 || height <= 0)
+        return AC_ERR_PARAM;
+    ac::correct_columns_ex_impl(data, master_dark, master_bias, width, height, out,
+                           column_sigma, master_column_sigma, master_wide_frac_max,
+                           science_wide_frac_max,
+                           neighbor_k, max_seg_len,
+                           col_mask, out_source_mask, out_conf_mask,
+                           out_n_cols, out_n_marked_only,
+                           out_n_science, out_n_dark, out_n_bias,
+                           out_n_science_marked, out_n_dark_marked, out_n_bias_marked,
+                           out_master_wide_suppressed, out_science_wide_suppressed,
+                           out_px_repaired, out_sigma_col,
+                           out_sigma_col_dark, out_sigma_col_bias, out_status);
+    return AC_OK;
+}
+
+// LINDEF-CLOSE-01：修复像素方差面 var_out = (Σw²·var_in)·κ
+AC_API int ac_column_variance_inflate(
+    const float* var_in, int width, int height,
+    const unsigned char* col_mask,
+    float kappa,
+    float* var_out,
+    float* out_w2_mean, int* out_px_inflated) {
+    if (!var_in || !var_out || !col_mask || width <= 0 || height <= 0)
+        return AC_ERR_PARAM;
+    if (!(kappa > 0.0f) || !std::isfinite(kappa))
+        return AC_ERR_PARAM;   // κ 非有限/非正 = 参数错，不静默取默认
+    ac::column_variance_inflate(var_in, width, height, col_mask, kappa, var_out,
+                                out_w2_mean, out_px_inflated);
     return AC_OK;
 }
 

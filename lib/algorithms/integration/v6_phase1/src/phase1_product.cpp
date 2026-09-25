@@ -277,7 +277,7 @@ Provenance make_provenance(const Phase1FrameInputs& in, const Phase1Units& u,
       "(FZ-PROV-KCORR-VALUE / PENDING_OWNER_SIGNOFF); Phase1 does not re-fit",
       "OI-01 OPEN: psfsw group_normalization deferred to Phase2"};
   p.degradations.clear();
-  p.normalization_version = "drizzle_sb_a_pixel_preserving_v1";
+  p.normalization_version = "drizzle_drop_area_normalized_v1";
   p.weight_mode_version = "psfsw_composite_PSFSW-COMPOSITE-V1";
   /* provenance.correlation_summary.representation 的词表与 covariance.v1
    * representation 不同（生产 provenance schema 只接受 correlation_kernel /
@@ -292,8 +292,12 @@ Provenance make_provenance(const Phase1FrameInputs& in, const Phase1Units& u,
     p.correlation_summary.has_max_abs_rho = true;
     p.correlation_summary.max_abs_rho = rho_max;
   }
+  /* DRZ-FLUX-FIX-01（负责人裁决）：核按 drop 面积归一（F&H 2002 §7.2 式(7)
+   * 下方 "fractional area overlap of the drop"；drizzlepac cdrizzlebox.c
+   * dover /= jaco）⇒ Phi_out = Sum_j x_j 与 pixfrac 无关，因子恒为 1。
+   * 旧口径 factor=pixfrac^2 是"按 A_pixel 归一"的代数产物，已废止。 */
   p.has_flux_conservation_factor = true;
-  p.flux_conservation_factor = pixfrac * pixfrac;
+  p.flux_conservation_factor = 1.0;
   p.k_corr.definition = "k_corr = Var(median)/[pi sigma_bg^2/(2 N_retained)]";
   p.k_corr.value = 1.4; /* FZ-PROV-KCORR-VALUE 域内冻结常数；Phase1 不重拟合 */
   p.k_corr.domain.geometry = "spherical_drizzle";
@@ -1162,13 +1166,15 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir) {
   const json& pj = doc["provenance"];
   const bool has_pixfrac = pj["sampling"].contains("pixfrac");
   const double pixfrac = pj["sampling"].value("pixfrac", 1.0);
-  if (has_pixfrac && pixfrac > 0.0 && pixfrac < 1.0) {
+  /* DRZ-FLUX-FIX-01：drop 面积归一 ⇒ 因子恒 1（与 pixfrac 无关）。缺因子仍
+   * fail-closed（provenance 最小集），但取值必须为 1；写成 pixfrac^2 判红。 */
+  if (has_pixfrac) {
     if (!pj.contains("flux_conservation_factor") ||
         !pj["flux_conservation_factor"].is_number() ||
         pj["flux_conservation_factor"].get<double>() <= 0.0)
-      return fail("pixfrac<1 without positive flux_conservation_factor");
-    if (std::fabs(pj["flux_conservation_factor"].get<double>() - pixfrac * pixfrac) > 1e-12)
-      return fail("flux_conservation_factor != pixfrac^2");
+      return fail("missing/nonpositive flux_conservation_factor");
+    if (std::fabs(pj["flux_conservation_factor"].get<double>() - 1.0) > 1e-12)
+      return fail("flux_conservation_factor != 1 (drop-area normalized kernel)");
   }
   if (doc["drizzle_covariance"]["diagonal_approximation"]["deficit_metric"].value("value", -1.0) < 0.0)
     return fail("parent deficit must be >= 0");

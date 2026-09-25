@@ -22,8 +22,8 @@
 //     「同一 run 内不同节点的并发上限」依赖调用顺序。无跨调用共享可变状态 ⇒
 //     reentrant（多线程并发调用安全）。
 //
-// 平台（口径按平台补全，负责人裁决 2026-09-22「不要只看 MemFree，
-//         要考虑可回收页」「Linux 用 cgroup/可用内存口径」）
+// 平台（口径按平台补全；依据 ASTROCS_DESIGN.md §9「可用 CPU = 亲和性 ∩ cgroup
+//         ∩ Job Object」的同款交叠语义）
 //   - Linux  : ① /proc/meminfo 的 MemAvailable（内核估算的「不触发 swap 即可满足
 //     新分配」的内存，**含可回收 page cache**）。这是本项目既有口径：
 //     sysconf(_SC_AVPHYS_PAGES) 在 Linux 只反映 MemFree（实测本机 MemFree

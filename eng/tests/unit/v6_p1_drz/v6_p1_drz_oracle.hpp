@@ -11,7 +11,8 @@
 //   Cov(S_p,S_q)= Sum_j (w_jp/D_p)(w_jq/D_q) v_j
 //   Var(Sum a_p S_p) = Sum_{p,q} a_p a_q Cov
 //   Var(S_parent) = Sum_{p,q} (D_p D_q/(Sum D)^2) Cov
-//   Phi_out    = Sum_p S_p D_p
+//   Phi_out    = Sum_p Sum_j w_jp x_j , w_jp = a_jp/A_drop_j (drop 面积归一;
+//                DRZ-FLUX-FIX-01) —— 几何闭合时 = Sum_j x_j，与 pixfrac 无关
 // ============================================================================
 
 #include <cmath>
@@ -128,10 +129,17 @@ public:
         return acc;
     }
 
+    // Phi_out = Sum_p Sum_j w_jp x_j (w_jp = a_jp/A_drop_j = a_jp/(pf^2*A_pixel_j))
+    // 独立于被测实现: 只用 raw (a_jp, A_pixel_j, pixfrac) 重算。
     long double flux(const double* x) const {
+        const long double pf2 = (long double)pixfrac_ * (long double)pixfrac_;
         long double acc = 0.0L;
         for (std::uint32_t p = 0; p < n_dst_; ++p) {
-            acc += signal(p, x) * D_[p];
+            for (const Item& it : rows_[p]) {
+                const long double a_drop =
+                    pf2 * (long double)A_pixel_[it.src];
+                acc += (long double)x[it.src] * (long double)it.a / a_drop;
+            }
         }
         return acc;
     }
