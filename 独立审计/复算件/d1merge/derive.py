@@ -4,8 +4,8 @@
 Reads   : records.json / instances.json (stages 1-2), the 360-doc universe,
           the repo's pinned HEAD tree (git show / git ls-files, read-only).
 Writes  : merged.json, conflicts.json, gaps.json, derived.json
-          ../../整改文档包/01_文档/文档现状审计台账.csv      (main table, 60-row appends)
-          ../../整改文档包/01_文档/文档现状审计台账.md       (body + derived tables)
+          ../../独立审计/01_文档/文档现状审计台账.csv      (main table, 60-row appends)
+          ../../独立审计/01_文档/文档现状审计台账.md       (body + derived tables)
 Deterministic: sorted iteration everywhere, no timestamps, no randomness.
 """
 import io
@@ -19,9 +19,9 @@ import collections
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-WORK = r"F:\Astro dev\独立审查\工包-AUDIT-06\产出\复算\d1merge"
-INV = r"F:\Astro dev\独立审查\工包-AUDIT-06\产出\inventory"
-OUT_DIR = r"F:\Astro dev\独立审查\工包-AUDIT-06\产出\整改文档包\01_文档"
+WORK = r"独立审计/复算件/d1merge"
+INV = r"独立审计/批次清单"
+OUT_DIR = r"独立审计/01_文档"
 REPO = r"F:\Astro dev\Astro CS Normalization Database"
 
 FIELDS = ["路径", "标题", "行数", "角色", "主题", "上游", "下游", "是否正本",
