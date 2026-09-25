@@ -151,6 +151,7 @@ testdata/              真实数据与外部只读数据集索引（只读；REA
 gaia/                  根级外部只读星表数据集（GaiaDR3 / GaiaDR3SP，gitignore，只读不入库）
 artifacts/             证据与产物（artifacts/ci/<sha>/ CI 产物；artifacts/evidence/ 证据锚）
 工程控制/               控制包（收口后按 CONTROL_PACK_SPEC §9 清理）
+独立审计/               独立审计交付件（审查报告＋随包取证成稿与复算件；只读参照，不作构建/门禁输入）
 run/                   临时产物/日志（gitignore，不入库）；日志一律落 run/<task>/logs/
 ```
 

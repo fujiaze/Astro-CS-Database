@@ -131,6 +131,7 @@ docs/contracts/（合同的文档化说明，与 eng/contracts 的 schema 双向
 实验/（科学实验单元：photometric-magnitude / absolute-snr / additive-sky-seamless + shared，随仓库维护）
 工程控制/（控制包工作区，收口后按 CONTROL_PACK_SPEC §9 清理）
 artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与证据锚 artifacts/evidence/**）
+独立审计/（独立审计交付件：审查报告与随包取证成稿、批次清单、复算件与取证脚本；只读参照件，不被代码消费、不被构建与门禁当作仓库判据输入，条目见该目录 00_总目录.md）
 run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 的运行日志不互替（最高设计 §10）；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
 ```
 

@@ -29,7 +29,8 @@
     "工程控制",
     "run",
     "gaia",
-    "实验"
+    "实验",
+    "独立审计"
   ],
   "required_files": [
     "README.md",
