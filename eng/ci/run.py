@@ -693,28 +693,127 @@ def _terminate(process: subprocess.Popen) -> None:
 
 
 # --------------------------------------------------------------- 门崩识别 ----
-# GATE-TRIAGE-01：三态之三。判据与 eng/ci/run_checks.py::looks_like_crash 同口径。
+# GATE-TRIAGE-01 / GATE-TRUST-01：三态之三。判据与
+# eng/ci/run_checks.py::looks_like_crash **同口径**（W4-A3：两入口对同一退出码的判定
+# 必须一致，否则同一 step 在两个入口一红一绿）。
 CRASH_TAIL_LIMIT = 20000  # 崩溃证据留 20k 字符（远大于 TAIL_LIMIT，够放完整栈）
 _TRACEBACK_RE = re.compile(r"Traceback \(most recent call last\)")
+# 结构化 verdict 标记：JSON "verdict": "FAIL" / TOOL_FAIL: / SELFTEST_FAIL，
+# 以及 unittest/pytest 的终端汇总行（旧式正则不认 `FAILED (errors=2)`，会把
+# 「内容不合规」误记成「门崩」——GATE-TRUST-01 实测 UT-RUNTIME 即此误判）。
 _VERDICT_TOKEN_RE = re.compile(
-    r"(?:verdict|VERDICT|FAIL|PASS|_FAIL|_PASS|_RED|_OK|_GREEN)\s*[:=]")
+    r"(?:(?:verdict|VERDICT|FAIL|PASS|_FAIL|_PASS|_RED|_OK|_GREEN)\s*[:=])"
+    r"|(?:^\s*SELFTEST_FAIL\b)"
+    r"|(?:^\s*(?:FAILED|OK)\b[^\n]*$)"
+    r"|(?:^\s*(?:FAIL|ERROR):\s)"
+    r"|(?:^\s*=+\s*(?:FAILURES|ERRORS)\s*=+\s*$)",
+    re.M)
+# 「门自述不可信」的标记（GATE-TRUST-01）：退出码 3 **必须**与这些标记之一同时出现，
+# 才算显式声明。只看退出码会把第三方工具的正常非零退出（通用工具常用 3）误标成
+# 「门不可信」——那正是本轮要消灭的失效方向。口径与 run_checks.py 完全一致。
+_TRUST_DECLARED_RE = re.compile(r"GATE_TRUST_FAIL|SELFTEST_FAIL")
+# 判词抽取：门「说自己红了」的那几行。必须逐条保留（含 文件:行），不得截断。
+_JUDGMENT_RE = re.compile(
+    r"(^\s*(?:\[)?(?:FAIL|FAILED|ERROR|CRASH)\b)"
+    r"|(_FAIL\b|_FAIL:)"
+    r"|(SELFTEST_FAIL\b)"
+    r"|(GATE_TRUST_FAIL\b)"
+    r"|(CONTENT_FAIL\b)"
+    r"|(\b[A-Z][A-Z0-9]*[_-][A-Z0-9_]*(?:FAIL|FAILED|VIOLATION|RED|ERROR)\b\s*:?)"
+    r"|(\bverdict\"?\s*[:=]\s*\"?\s*(?:FAIL|FAILED|RED))"
+    r"|(\"pass\"\s*:\s*false)"
+    r"|(^\s*\{\s*\"check\"\s*:)",
+    re.I | re.M)
+BANNER_MAX = 200
+_DETAIL_KEY_RE = re.compile(r'"(?:detail|check|reason|message)"\s*:')
 
 
-def crash_site(blob: str) -> str:
-    """从 Traceback 文本抽「最后一帧的文件:行 + 异常行」，供判词直接定位。"""
-    lines = [ln.rstrip() for ln in blob.splitlines()]
-    frames = [ln.strip() for ln in lines if ln.strip().startswith("File \"")]
-    exc = ""
-    for ln in reversed(lines):
+def _gate_repo_root() -> Path:
+    return Path(__file__).resolve().parent.parent.parent
+
+
+def judgment_lines(*blobs) -> list:
+    """抽出门自己的判词行（含 文件:行），**不做条数截断**（与 run_checks.py 同口径）。"""
+    out: list = []
+    seen: set = set()
+    root = str(_gate_repo_root())
+    for blob in blobs:
+        if not blob:
+            continue
+        lines = blob.splitlines()
+        for i, line in enumerate(lines):
+            if not _JUDGMENT_RE.search(line):
+                continue
+            chunk = [line.rstrip()]
+            if '"pass"' in line and "false" in line:
+                for j in range(i - 1, max(-1, i - 6), -1):
+                    if _DETAIL_KEY_RE.search(lines[j]):
+                        chunk.insert(0, lines[j].rstrip())
+                        break
+            elif len(line) <= BANNER_MAX:
+                # 判词横幅 + 其下缩进列出的逐条 finding；口径与 run_checks.py 一致。
+                for nxt in lines[i + 1:]:
+                    if nxt.strip() and not nxt[:1].isspace():
+                        break
+                    chunk.append(nxt.rstrip())
+            elif re.match(r"^\s*(?:ERROR|FAIL):\s", line, re.I):
+                frames = []
+                for nxt in lines[i + 1:i + 41]:
+                    st = nxt.strip()
+                    if st.startswith('File "'):
+                        frames.append(st)
+                    elif frames and re.match(r"^\s*(?:ERROR|FAIL):\s", nxt, re.I):
+                        break
+                inside = [f for f in frames if root in f]
+                site = (inside or frames or [""])[0]
+                if site:
+                    chunk.append("    " + site)
+            text = "\n".join(chunk)
+            if text not in seen:
+                seen.add(text)
+                out.append(text)
+    return out
+
+
+def crash_frames(blob: str) -> list:
+    """Traceback 的全部栈帧（按出现顺序，不截断）。"""
+    return [ln.strip() for ln in blob.splitlines() if ln.strip().startswith('File "')]
+
+
+def crash_exception(blob: str) -> str:
+    """Traceback 末尾的异常行，不截断。"""
+    for ln in reversed(blob.splitlines()):
         s = ln.strip()
-        if not s or s.startswith(("File \"", "Traceback", "[")):
+        if not s or s.startswith(('File "', "Traceback", "[")):
             continue
         if re.match(r"^[A-Za-z_][\w.]*(?:Error|Exception|Warning|Interrupt|Exit)\b", s) \
                 or re.match(r"^[A-Za-z_][\w.]*:\s", s):
-            exc = s
-            break
-    site = frames[-1] if frames else "(无栈帧)"
-    return "%s | %s" % (site[:400], exc[:400])
+            return s
+    return ""
+
+
+def crash_site(blob: str) -> str:
+    """崩溃判词：**仓内第一现场** + 全栈链 + 异常行，全部不截断。
+
+    为什么不是「最后一帧」：最后一帧常落在标准库（如 pathlib/_local.py:539 in open），
+    读者据此无法定位本仓哪一行写错了（GATE-TRUST-01 实测 UT-RUNTIME 即此症状）。
+    """
+    frames = crash_frames(blob)
+    exc = crash_exception(blob)
+    root = str(_gate_repo_root())
+    inside = [f for f in frames if root in f]
+    first = inside[0] if inside else (frames[0] if frames else "(无栈帧)")
+    parts = ["第一现场: %s" % first]
+    if len(frames) > 1:
+        parts.append("栈链(%d 帧，未截断): %s" % (len(frames), " <- ".join(frames)))
+    if exc:
+        parts.append("异常: %s" % exc)
+    return " | ".join(parts)
+
+
+def _head(data: bytes, limit: int = TAIL_LIMIT) -> str:
+    text = data.decode("utf-8", "replace")
+    return text if len(text) <= limit else text[:limit]
 
 
 def _tail(data: bytes, limit: int = TAIL_LIMIT) -> str:
@@ -851,11 +950,25 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     # 判据保守：unittest 的失败报告里也有 Traceback，那种情况检查器确实给了 FAIL
     # 判定，必须留在 FAIL 档（否则会把真判红误报成门崩）。
     _blob = stdout_b.decode("utf-8", "replace") + "\n" + stderr_b.decode("utf-8", "replace")
-    crash = bool(_TRACEBACK_RE.search(_blob)) and not _VERDICT_TOKEN_RE.search(_blob)
+    # 三态之 CRASH 的**显式声明**通道：检查器以 EXIT_CRASH(3) 退出 = 它自认不可信
+    # （判别力坏了 / 缺豁免分支负例）。这条通道不依赖任何文本启发式。
+    trust_declared = (not timed_out and returncode == EXIT_CRASH
+                      and bool(_TRUST_DECLARED_RE.search(_blob)))
+    crash = (bool(_TRACEBACK_RE.search(_blob)) and not _VERDICT_TOKEN_RE.search(_blob)) \
+        or trust_declared
     result["crash"] = crash
-    # 崩溃证据不截断（栈帧就是第一现场）
+    result["trust_declared"] = trust_declared
+    # 判词单独成列、**不截断**（旧实现只留末 4000 字符，门把全量结果打在前面时判词整体丢失）。
+    _judgments = judgment_lines(_blob)
+    result["judgment_lines"] = _judgments
+    # 崩溃证据不截断（栈帧就是第一现场）；非绿步骤另留**全文**。
     result["stdout_tail"] = _tail(stdout_b, CRASH_TAIL_LIMIT if crash else TAIL_LIMIT)
     result["stderr_tail"] = _tail(stderr_b, CRASH_TAIL_LIMIT if crash else TAIL_LIMIT)
+    result["stdout_head"] = _head(stdout_b)
+    result["stderr_head"] = _head(stderr_b)
+    if returncode != 0:
+        result["stdout_full"] = stdout_b.decode("utf-8", "replace")
+        result["stderr_full"] = stderr_b.decode("utf-8", "replace")
     if returncode is not None and returncode < 0:
         result["signal"] = -returncode
 
@@ -913,8 +1026,13 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     # 崩溃优先（GATE-TRIAGE-01）：没有 verdict 的执行单元不能记成「判红」。
     if crash and returncode != 0 and not timed_out:
         result["verdict"] = V_CRASH
-        result["reason"] = ("检查器抛未捕获异常（无 verdict，门不可信）："
-                            + crash_site(_blob))
+        if trust_declared and not _TRACEBACK_RE.search(_blob):
+            result["reason"] = ("检查器以退出码 %d 显式声明自身不可信（判别力面坏了 / 缺"
+                                "豁免分支负例；红绿都不具证据资格）：%s"
+                                % (EXIT_CRASH, "; ".join(_judgments) or "(未打印判词)"))
+        else:
+            result["reason"] = ("检查器抛未捕获异常（无 verdict，门不可信）："
+                                + crash_site(_blob))
     elif timed_out:
         result["verdict"] = V_TIMEOUT
         result["reason"] = result["reason"] or f"超过登记 timeout {check['timeout_seconds']}s，进程已被终止"
@@ -943,8 +1061,14 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
                 "合同化 SKIP 仅适用 waivable 检查（fail-closed）"
             )
     elif returncode != 0:
+        # 判红：**必须把检查器自己的判词（含 文件:行）带出来**，不得只留退出码。
         result["verdict"] = V_FAIL
-        result["reason"] = result["reason"] or f"命令非零退出：{returncode}"
+        if _judgments:
+            result["reason"] = (result["reason"] or "") + (
+                "；判词 %d 条（全量，不截断）：\n%s" % (len(_judgments), "\n".join(_judgments)))
+        else:
+            result["reason"] = (result["reason"] or f"命令非零退出：{returncode}") + (
+                "；检查器未打印可识别判词（判据要求：判词须带 文件名:行 且不截断）")
     else:
         # 平台跳过的 step，其登记 outputs 不得在其它平台被要求：
         # CHK-UNIT 的 WIN-TEST-UNIT（platform=windows）产物在 linux 上永不产生，

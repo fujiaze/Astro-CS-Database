@@ -1100,6 +1100,8 @@ def main(argv=None):
             os.makedirs(d, exist_ok=True)
         with open(p, "w", encoding="utf-8") as fh:
             json.dump(new, fh, ensure_ascii=False, indent=1, sort_keys=True)
+        # conclusion-anchor: 本分支是 --write-baseline 写基线成功后的回执；
+        # verdict 描述「本次写入动作成功」，不是对被测文档的判定结论（判定在同函数上文算）。
         print(json.dumps({"verdict": "PASS", "baseline": RATCHET_BASELINE,
                           "d3_entries": sum(len(x) for per in new["d3"].values() for x in per.values()),
                           "d4_entries": sum(len(x) for x in new["d4"].values())}, ensure_ascii=False))

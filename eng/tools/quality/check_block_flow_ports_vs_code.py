@@ -41,6 +41,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_block_flow_conformance import symbol_ranges  # noqa: E402  单一符号解析实现
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.join(REPO, "eng", "ci"))
+from gate_trust import (  # noqa: E402  三态（PASS/FAIL/CRASH）口径的单一实现点
+    KIND_CONTENT, KIND_DISCRIMINATING, KIND_EXEMPTION, KIND_PROTECTIVE, emit)
 REGISTRY = "lib/infrastructure/pipeline/module_ports.registry.json"
 CODE = "lib/infrastructure/scheduler/src/module_adapters.cpp"
 CARRIERS = ("output_dir_file", "hips_product_tree", "config_path")
@@ -216,6 +219,9 @@ def declared_tokens(op):
 
 # ── 判据 ────────────────────────────────────────────────────────────────────
 def evaluate(repo):
+    # C4 的**豁免分支计数**：节点函数体没碰、锚点又在别的文件的条目。
+    # 「未判定」必须与「已判定为合规」可区分（GATE-TRUST-01）。
+    c4_skipped_foreign: list = []
     reg_path = os.path.join(repo, REGISTRY)
     code_path = os.path.join(repo, CODE)
     if not os.path.isfile(reg_path):
@@ -325,20 +331,32 @@ def evaluate(repo):
         for key, items in sorted(by_key.items()):
             if token_key(items[0][0], "+") is None:
                 continue   # 非产物文法 token（配置键 / 树动词 / 派生键）：由 C2 锚点负责
-            if all(a.get("file") != CODE for _, info in items for a in info["anchors"]):
-                continue   # 该产物在别的文件里被读写（如 HiPS 末端 sink）：由 C2 锚点负责
-            if key not in cs:
-                errs.append("C4 %s declares artifact %r but %s() never touches it"
-                            % (mid, key, fn))
-                continue
             want = {info["direction"] for _, info in items}
-            got = cs[key]["roles"]
-            if not got:
-                errs.append("C4 %s artifact %r role unclassifiable in %s() (fail-closed: "
-                            "声明方向无法被代码证据确认)" % (mid, key, fn))
-            elif not (want & got):
-                errs.append("C4 %s artifact %r declared %s but code shows %s"
-                            % (mid, key, sorted(want), sorted(got)))
+            if key in cs:
+                # 代码侧**有证据**：角色一致性判据必须照常执行，与锚点落在哪个文件无关。
+                # 旧实现在此之前就把「锚点全在别的文件」的条目 `continue` 掉了，于是
+                # 「节点函数碰了这个产物、方向却与声明相反」被静默放过——这正是失效形态
+                # 「豁免面把该红的东西放过去了」（负例 X1 锁定）。代码侧证据是本文件局部
+                # 的，这条豁免在这里没有依据。
+                got = cs[key]["roles"]
+                if not got:
+                    errs.append("C4 %s artifact %r role unclassifiable in %s() "
+                                "(fail-closed: 声明方向无法被代码证据确认)" % (mid, key, fn))
+                elif not (want & got):
+                    errs.append("C4 %s artifact %r declared %s but code shows %s"
+                                % (mid, key, sorted(want), sorted(got)))
+                continue
+            if all(a.get("file") != CODE for _, info in items for a in info["anchors"]):
+                # 豁免分支（保留）：节点函数体没碰这个产物，且锚点全在别的文件 ⇒
+                # 本门**没有**代码侧证据可判。但「未判定」必须**可见**：旧实现静默
+                # `continue`，使「已判定为合规」与「根本没判」在证据面上无法区分。
+                c4_skipped_foreign.append({
+                    "module": mid, "artifact": key,
+                    "anchors": sorted({a.get("file") for _, info in items
+                                       for a in info["anchors"] if a.get("file")})})
+                continue   # 由 C2 锚点负责（声明⇒实现方向）
+            errs.append("C4 %s declares artifact %r but %s() never touches it"
+                        % (mid, key, fn))
         # C3b 载体一致：节点触碰 HiPS 产品树 ⇒ 必须有对应 carrier 的端口
         body_txt = "\n".join(code_lines[s0 - 1:s1])
         ports = op.get("ports") or []
@@ -378,7 +396,8 @@ def evaluate(repo):
         errs.append("C6 code-side token inventory only %d (min %d) -> 抽取退化"
                     % (n_code, MIN_CODE_TOKENS))
     return errs, {"modules": len(modules), "ports": n_ports, "edges": n_edges,
-                  "code_tokens": n_code, "node_functions": len(bodies)}
+                  "code_tokens": n_code, "node_functions": len(bodies),
+                  "c4_skipped_foreign": c4_skipped_foreign}
 
 
 NODE_FN_BY_MODULE = {
@@ -409,10 +428,36 @@ def node_fn_of(module_id):
     return NODE_FN_BY_MODULE.get(module_id)
 
 
+# 每条自检用例的**种类**（单一事实源，逐条显式列举）。种类决定该用例失败时门给的是
+# rc=1（被判对象不合规）还是 rc=3（门自身不可信），见 eng/ci/gate_trust.py 的三态口径。
+# S1 是**内容断言**（真实注册表必须与代码一致），不是判别力断言——把两者混在一格里，
+# 正是「门自检不绿」被误读成「门不可信」的根因。漏登记一条即判 CRASH。
+CASE_KIND = {
+    "S1-current-repo-green": KIND_CONTENT,
+    "S2-empty-registry-red": KIND_DISCRIMINATING,
+    "S3-declared-edge-without-implementation-red": KIND_DISCRIMINATING,
+    "S4-undeclared-real-flow-red": KIND_DISCRIMINATING,
+    "S4b-undeclared-hips-tree-red": KIND_DISCRIMINATING,
+    "S5-direction-flipped-red": KIND_DISCRIMINATING,
+    "S6-anchor-token-deleted-red": KIND_DISCRIMINATING,
+    "S7-token-outside-symbol-red": KIND_DISCRIMINATING,
+    "S8-unknown-symbol-red": KIND_DISCRIMINATING,
+    "S9-cross-stage-edge-red": KIND_DISCRIMINATING,
+    "S10-carrier-contract-missing-red": KIND_DISCRIMINATING,
+    "S11-port-without-anchor-red": KIND_DISCRIMINATING,
+    "S12-anchor-file-missing-red": KIND_DISCRIMINATING,
+    "S13-node-function-renamed-red": KIND_DISCRIMINATING,
+    # ↓ 落在本门**自身豁免分支**内的负例（见各用例处的注释）
+    "X1-exempt-foreign-anchor-cannot-hide-direction-mismatch-red": KIND_EXEMPTION,
+    "X2-exempt-nonartifact-grammar-token-still-anchor-checked-red": KIND_EXEMPTION,
+}
+
+
 # ── 自测（正例 + 负例；负例必须判红）────────────────────────────────────────
-def _self_test():
+def _self_test(json_out=None):
     import tempfile
     cases = []
+    details = {}
     reg_txt = io.open(os.path.join(REPO, REGISTRY), encoding="utf-8").read()
     code_txt = io.open(os.path.join(REPO, CODE), encoding="utf-8").read()
 
@@ -455,6 +500,7 @@ def _self_test():
     # S1 正例：仓库现状全绿
     e = errs_of()
     cases.append(("S1-current-repo-green", e == []))
+    details["S1-current-repo-green"] = "\n".join(e) or "(真实注册表与代码一致)"
 
     # S2 负例：空注册表 ⇒ C6 判红（不得把「没登记」当「一致」）
     doc = json.loads(reg_txt); doc["modules"] = []
@@ -555,14 +601,57 @@ def _self_test():
     cases.append(("S13-node-function-renamed-red",
                   any(x.startswith("C3") for x in errs_of(code=code_bad))))
 
-    bad = [n for n, g in cases if not g]
-    for n, g in cases:
-        print("SELFTEST " + ("PASS " if g else "FAIL ") + n)
-    if bad:
-        print("SELFTEST_FAIL: " + repr(bad), file=sys.stderr)
-        return 1
-    print("SELFTEST_PASS: %d/%d" % (len(cases), len(cases)))
-    return 0
+    # ── 落在本门**自身豁免分支**内的负例（GATE-TRUST-01）────────────────────
+    # 分支①：C4 的守卫原本是「声明的锚点全不在本文件 ⇒ 整条 continue」。
+    # 负例把违规喂进这条分支：把 photometry 的 p1_flux 锚点整体搬到**另一个文件**
+    # （该文件内容与 CODE 逐字节相同，故 C2 锚点仍解析得到），同时把 direction 从
+    # output 翻成 input —— 与代码事实相反。旧实现在此 `continue` 掉 ⇒ 全绿；
+    # 修后代码侧有证据（节点函数确实碰了这个产物）⇒ 必须 C4 判红。
+    doc = json.loads(reg_txt)
+    foreign_rel = "lib/other/code_copy.cpp"
+    for m in doc["modules"]:
+        if m["module_id"] == "astrocs.phase1.photometry":
+            for p in m["operations"][0]["ports"]:
+                if p["name"] == "p1_flux":
+                    p["direction"] = "input"
+                    for a in p["code"]:
+                        a["file"] = foreign_rel
+    errs_x1 = errs_of(json.dumps(doc), extra=(foreign_rel, code_txt))
+    cases.append(("X1-exempt-foreign-anchor-cannot-hide-direction-mismatch-red",
+                  any(x.startswith("C4") for x in errs_x1)))
+    details["X1-exempt-foreign-anchor-cannot-hide-direction-mismatch-red"] = \
+        "\n".join(errs_x1)
+
+    # 分支②：`token_key(...) is None ⇒ continue`（非产物文法 token，如配置键/树动词）。
+    # 负例把违规喂进这条分支：声明一个**非产物文法**的 token "/p1_op_photometry"
+    # （故 C4 走豁免），但把它的 code 锚点 symbol 换成一个不存在的函数名 ⇒
+    # 豁免只免掉 C4 的**角色**核对，**不得**连锚点可解析性一起免掉，必须 C2 判红。
+    doc = json.loads(reg_txt)
+    for m in doc["modules"]:
+        if m["module_id"] == "astrocs.phase1.photometry":
+            m["operations"][0]["ports"].append({
+                "name": "ghost_grammar", "direction": "input", "carrier": "output_dir_file",
+                "artifacts": ["p1_ghost"], "data_schema_id": "DATA-P1-GHOST",
+                "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32",
+                "shape_hint": "[H,W]",
+                "code": [{"file": CODE, "symbol": "p1_op_no_such_function",
+                          "token": "/p1_op_photometry"}]})
+    errs_x2 = errs_of(json.dumps(doc))
+    cases.append(("X2-exempt-nonartifact-grammar-token-still-anchor-checked-red",
+                  any(x.startswith("C2") for x in errs_x2)))
+    details["X2-exempt-nonartifact-grammar-token-still-anchor-checked-red"] = \
+        "\n".join(errs_x2)
+
+    # 种类表覆盖性自检：漏登记一条用例的种类 ⇒ 三态会失真 ⇒ 本身就是门不可信。
+    uncovered = [n for n, _g in cases if n not in CASE_KIND]
+    if uncovered:
+        cases.append(("S0-case-kind-table-must-cover-all-cases", False))
+
+    items = [(n, g, CASE_KIND.get(n, KIND_DISCRIMINATING), details.get(n, ""))
+             for n, g in cases]
+    return emit(items, tool="check_block_flow_ports_vs_code", json_out=json_out,
+                extra={"case_kind_table_covers_all": not uncovered,
+                       "uncovered_cases": uncovered})
 
 
 def main(argv=None):
@@ -572,13 +661,7 @@ def main(argv=None):
     ap.add_argument("--self-test", action="store_true", dest="self_test")
     args = ap.parse_args(argv)
     if args.self_test:
-        rc = _self_test()
-        if args.json_out:
-            os.makedirs(os.path.dirname(args.json_out), exist_ok=True)
-            io.open(args.json_out, "w", encoding="utf-8").write(json.dumps(
-                {"tool": "block_flow_ports_vs_code", "mode": "self-test", "rc": rc,
-                 "verdict": "PASS" if rc == 0 else "FAIL"}, ensure_ascii=False) + "\n")
-        return rc
+        return _self_test(json_out=args.json_out)
     try:
         errs, extra = evaluate(args.repo)
     except GateError as exc:
@@ -588,7 +671,8 @@ def main(argv=None):
     print("BLOCK_FLOW_PORTS_VS_CODE_%s: modules=%d ports=%d edges=%d code_tokens=%d errors=%d"
           % (verdict, extra["modules"], extra["ports"], extra["edges"],
              extra["code_tokens"], len(errs)))
-    for e in errs[:60]:
+    # 判词逐条全量打印，**不截断**（旧实现 `errs[:60]` 会隐藏其余 finding）。
+    for e in errs:
         print("  " + e)
     if args.json_out:
         os.makedirs(os.path.dirname(args.json_out), exist_ok=True)

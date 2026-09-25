@@ -127,14 +127,16 @@ g++ -std=c++17 $SAN -Iplate_solve/cpp/ipv/include -lm \
   plate_solve/cpp/ipv/src/ipv_entry.cpp \
   -o ipv_san 2>"$OUT/ipv.build.log" || { echo "plate_solve,test_synthetic,BUILD_FAIL,$(head -3 $OUT/ipv.build.log)" >> "$OUT/sanitizer_coverage.csv"; }
 run_mod plate_solve ipv_san
+# 判据：CSV 的 status 列只反映驱动退出码，**不得**把 FAIL 行改写成 PASS
+# （独立审查《一页纸》S1-2：红灯不得被 sed 成绿灯）。测试断言的 n_inliers 阈值
+# （变换精确 RMS=0 时 38<40）与 sanitizer 无关 ⇒ 单独落一份注记文件，status 保持 FAIL。
 if grep -q "AddressSanitizer\|runtime error:" "$OUT/plate_solve.log" 2>/dev/null; then
-  echo "plate_solve,test_synthetic,FAIL,ASan/UBSan finding" >> "$OUT/sanitizer_coverage.csv"
+  echo "plate_solve,ipv_san,FAIL,ASan/UBSan finding" >> "$OUT/plate_solve.note"
 else
-  # 测试断言 n_inliers 阈值（变换精确 RMS=0）与 sanitizer 无关：
-  # 无 ASan/UBSan 发现 → 记为 PASS-with-note
-  sed -i 's|^plate_solve,ipv_san,FAIL.*|plate_solve,test_synthetic,PASS,test threshold n_inliers 38<40 (transform exact RMS=0); no ASan/UBSan findings|' \
-      "$OUT/sanitizer_coverage.csv"
+  echo "plate_solve,ipv_san,FAIL,驱动 rc!=0 源自阈值断言（n_inliers 38<40, transform exact RMS=0），非 ASan/UBSan 发现；status 保持 FAIL，未改写为 PASS" \
+      >> "$OUT/plate_solve.note"
 fi
+echo "注记见 $OUT/plate_solve.note（本脚本不再修改 sanitizer_coverage.csv 的 status 列）"
 
 # 6. Photometry（谱积分器 golden）
 printf '2\n3500 1.0\n9000 1.0\n' > filter.dat

@@ -16,6 +16,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import zipfile
 
 def _deduce_root() -> str:
@@ -88,7 +89,25 @@ def write(path: str, content: str) -> None:
         f.write(content)
 
 
+RETIRED_NOTICE = (
+    "BUILD_V19R3_PACKAGE_RETIRED: 本工具（V19R3 审阅包组装（AstroCS_Review_TraceableFoundationCorrection_V19R3.zip））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
+    "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
+    "  退役原因: ① 输出根 V19R3 审阅 zip（V19 世代交付形态，本世代无生产者/无消费者）；② 写出的取证 JSON 里 result=「PASS」是字面量，"
+    "不是从门输出读来的 ⇒ 再跑一次就产出假绿。\n"
+    "  活动替代: 无（V19 世代审阅包已作废）。\n"
+    "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/quality/build_v19r3_package.py\n"
+    "  退役后行为: main() 打印本说明并 exit 2；原实现保留在 _legacy_main()（按复原命令取回）。"
+)
+
+
 def main() -> int:
+    """退役入口：显式失败（fail-closed，不 traceback、不伪装绿）。"""
+    print(RETIRED_NOTICE, file=sys.stderr)
+    return 2
+
+
+def _legacy_main() -> int:
     if os.path.isdir(TMP):
         shutil.rmtree(TMP)
     os.makedirs(TMP)

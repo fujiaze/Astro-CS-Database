@@ -427,9 +427,6 @@
    "docs/modules/phase3_fits.md": [
     "6ec5038a89ec2aee"
    ],
-   "docs/modules/registry/astrocs.phase1.calibration.md": [
-    "6ec5038a89ec2aee"
-   ],
    "docs/modules/registry/astrocs.phase1.cosmetic.md": [
     "6ec5038a89ec2aee"
    ],
@@ -469,9 +466,6 @@
    "docs/modules/registry/astrocs.phase2.reject.md": [
     "6ec5038a89ec2aee"
    ],
-   "docs/modules/registry/astrocs.phase2.resample.md": [
-    "6ec5038a89ec2aee"
-   ],
    "docs/modules/registry/astrocs.phase2.sample.md": [
     "6ec5038a89ec2aee"
    ],
@@ -485,12 +479,6 @@
     "6ec5038a89ec2aee"
    ],
    "docs/modules/registry/astrocs.phase2.write.md": [
-    "6ec5038a89ec2aee"
-   ],
-   "docs/modules/registry/astrocs.phase3.properties.md": [
-    "6ec5038a89ec2aee"
-   ],
-   "docs/modules/registry/astrocs.phase3.resample.md": [
     "6ec5038a89ec2aee"
    ],
    "docs/modules/registry/astrocs.phase3.resample2.md": [
@@ -864,7 +852,7 @@
    "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md": 1,
    "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md": 1,
    "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md": 2,
-   "docs/ci/01_CHECKS.md": 55,
+   "docs/ci/01_CHECKS.md": 56,
    "docs/contracts/API-001.md": 1,
    "docs/contracts/CONFIG_CONTRACT.md": 17,
    "docs/contracts/DATA_ARTIFACTS.md": 32,

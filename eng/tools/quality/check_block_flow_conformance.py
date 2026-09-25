@@ -42,9 +42,14 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.join(REPO, "eng", "ci"))
+from gate_trust import (  # noqa: E402  三态（PASS/FAIL/CRASH）口径的单一实现点
+    KIND_CONTENT, KIND_DISCRIMINATING, KIND_EXEMPTION, KIND_PROTECTIVE, emit)
 REGISTER = os.path.join(REPO, "eng/contracts/block_flow/conformance_deviations.json")
 OPEN_QUESTIONS = os.path.join(REPO, "工程控制/RELEASE-05/OPEN_QUESTIONS.md")
 SEVERITIES = ("blocker", "major", "minor", "info")
@@ -156,7 +161,11 @@ def check_register(doc, repo=REPO):
     seen = set()
     oq = ""
     oqp = os.path.join(repo, "工程控制/RELEASE-05/OPEN_QUESTIONS.md")
-    if os.path.isfile(oqp):
+    # D7 的上呈锚点：**锚点缺失不得静默放行**（fail-closed）。旧实现用
+    # `if os.path.isfile(oqp)` 把「文件不在」变成「D7 整条不判」——这正是失效形态
+    # 「豁免面把该红的东西放过去了」：删掉锚点文件即可让 blocker 免于上呈判据。
+    oq_missing = not os.path.isfile(oqp)
+    if not oq_missing:
         oq = io.open(oqp, encoding="utf-8").read()
     # 每个文件只读/解析一次（文本行 + 符号表）
     cache = {}
@@ -233,10 +242,16 @@ def check_register(doc, repo=REPO):
             stripped = text.strip()
             if not stripped or stripped.startswith("//") or stripped.startswith("#"):
                 errs.append("D3 %s evidence points at empty/comment line %s:%d" % (did, f, ln))
-        if d.get("severity") == "blocker" and not doc.get("owner_decision_required"):
-            errs.append("D5 %s is blocker but register lacks owner_decision_required" % did)
-        if d.get("severity") == "blocker" and oq and did not in oq:
-            errs.append("D7 %s is blocker but not escalated in OPEN_QUESTIONS.md" % did)
+        if d.get("severity") == "blocker":
+            if not doc.get("owner_decision_required"):
+                errs.append("D5 %s is blocker but register lacks owner_decision_required" % did)
+            if oq_missing:
+                errs.append("D7 %s is blocker but escalation anchor is MISSING: "
+                            "工程控制/RELEASE-05/OPEN_QUESTIONS.md (fail-closed: "
+                            "锚点缺失时 D7 无法成立，不得静默放行)" % did)
+            elif did not in oq:
+                errs.append("D7 %s is blocker but not escalated in "
+                            "工程控制/RELEASE-05/OPEN_QUESTIONS.md" % did)
     return errs
 
 
@@ -247,10 +262,45 @@ def run(path):
     return check_register(doc), doc
 
 
-def _self_test():
+# 每条自检用例的**种类**（单一事实源，逐条显式列举）。
+# 种类决定该用例失败时门给的是 rc=1（被判对象不合规）还是 rc=3（门自身不可信），
+# 见 eng/ci/gate_trust.py 的三态口径。S1 是**内容断言**（真实册子必须干净），
+# 不是判别力断言——把它与判别力用例混在一格里，正是「门自检不绿」被误读成
+# 「门不可信」的根因。漏登记一条即判 CRASH（见 _self_test 末尾的覆盖性自检）。
+CASE_KIND = {
+    "S1-valid-green": KIND_CONTENT,
+    "S2-empty-register-red": KIND_DISCRIMINATING,
+    "S3-token-rot-red": KIND_DISCRIMINATING,
+    "S4-line-out-of-range-red": KIND_DISCRIMINATING,
+    "S5-missing-file-red": KIND_DISCRIMINATING,
+    "S6-duplicate-id-red": KIND_DISCRIMINATING,
+    "S7-bad-severity-red": KIND_DISCRIMINATING,
+    "S8-blocker-without-owner-flag-red": KIND_DISCRIMINATING,
+    "S9-comment-line-evidence-red": KIND_DISCRIMINATING,
+    "S10-blocker-not-escalated-red": KIND_DISCRIMINATING,
+    "S12-symbol-token-deleted-red": KIND_DISCRIMINATING,
+    "S13-token-outside-declared-symbol-red": KIND_DISCRIMINATING,
+    "S14-unknown-symbol-red": KIND_DISCRIMINATING,
+    "S15-missing-symbol-red": KIND_DISCRIMINATING,
+    "S16-ambiguous-symbol-red": KIND_DISCRIMINATING,
+    "S18-file-scope-token-deleted-red": KIND_DISCRIMINATING,
+    "S11-symbol-resolves-green": KIND_PROTECTIVE,
+    "S17-line-drift-keeps-D8-green-D2-red": KIND_PROTECTIVE,
+    # ↓ 落在本门**自身豁免分支**内的负例（见各用例处的注释）
+    "X1-exempt-missing-escalation-anchor-red": KIND_EXEMPTION,
+    "X2-exempt-severity-downgrade-cannot-launder-anchor-red": KIND_EXEMPTION,
+}
+
+
+def _self_test(json_out=None) -> int:
     doc = json.load(io.open(REGISTER, encoding="utf-8"))
     cases = []
-    cases.append(("S1-valid-green", check_register(doc) == []))
+    details = {}
+    # S1 是**内容断言**（真实册子必须干净）：它红了说明**被判对象**需要维护，
+    # 不说明门坏了。判词必须逐条带 文件:行 ⇒ 把 errs 全文挂到该用例的 detail 上。
+    errs_s1 = check_register(doc)
+    cases.append(("S1-valid-green", errs_s1 == []))
+    details["S1-valid-green"] = "\n".join(errs_s1) or "(真实册子全绿)"
 
     d = copy.deepcopy(doc); d["deviations"] = []
     cases.append(("S2-empty-register-red", any(x.startswith("D6") for x in check_register(d))))
@@ -352,14 +402,42 @@ def _self_test():
     cases.append(("S18-file-scope-token-deleted-red",
                   any(x.startswith("D8") for x in check_register(d))))
 
-    bad = [n for n, g in cases if not g]
-    for n, g in cases:
-        print("SELFTEST " + ("PASS " if g else "FAIL ") + n)
-    if bad:
-        print("SELFTEST_FAIL: " + repr(bad), file=sys.stderr)
-        return 1
-    print("SELFTEST_PASS: %d/%d" % (len(cases), len(cases)))
-    return 0
+    # ── 落在本门**自身豁免分支**内的负例（GATE-TRUST-01）────────────────────
+    # 分支①：D7 的守卫原本是 `if ... and oq and did not in oq` —— 上呈锚点文件
+    # 不存在时 `oq` 为空 ⇒ D7 整条不判。这是一条**静默豁免**：删掉锚点文件就能让
+    # blocker 免于「登记了但没上呈」的判据。负例把违规喂进这条分支：临时 repo 里
+    # **不放** OPEN_QUESTIONS.md，且册中 blocker 未上呈 ⇒ 必须判红。
+    d = copy.deepcopy(doc)
+    tmp2 = tempfile.mkdtemp()   # 故意不建 工程控制/RELEASE-05/OPEN_QUESTIONS.md
+    errs_no_anchor = check_register(d, repo=tmp2)
+    shutil.rmtree(tmp2, ignore_errors=True)
+    cases.append(("X1-exempt-missing-escalation-anchor-red",
+                  any(x.startswith("D7") for x in errs_no_anchor)))
+    details["X1-exempt-missing-escalation-anchor-red"] = "\n".join(errs_no_anchor)
+
+    # 分支②：D5/D7 只对 `severity == "blocker"` 生效 ⇒「非 blocker」是一条豁免面。
+    # 负例把违规喂进这条分支：把一条 blocker 降级成合法非 blocker 值（major），
+    # 同时把它的 evidence 锚点弄坏 —— **降级不得给坏锚点洗白**（D8/D2 与 severity
+    # 正交，必须照常判红）。只验「blocker 的正确性」会漏掉这条。
+    d = copy.deepcopy(doc)
+    d["deviations"][0]["severity"] = "major"
+    d["deviations"][0]["evidence"][0]["contains"] = "NO_SUCH_TOKEN_XYZ"
+    errs_downgraded = check_register(d)
+    cases.append(("X2-exempt-severity-downgrade-cannot-launder-anchor-red",
+                  any(x.startswith("D8") for x in errs_downgraded)))
+    details["X2-exempt-severity-downgrade-cannot-launder-anchor-red"] = \
+        "\n".join(errs_downgraded)
+
+    # 种类表覆盖性自检：漏登记一条用例的种类 ⇒ 三态会失真 ⇒ 本身就是门不可信。
+    uncovered = [n for n, _g in cases if n not in CASE_KIND]
+    if uncovered:
+        cases.append(("S0-case-kind-table-must-cover-all-cases", False))
+
+    items = [(n, g, CASE_KIND.get(n, KIND_DISCRIMINATING), details.get(n, ""))
+             for n, g in cases]
+    return emit(items, tool="check_block_flow_conformance", json_out=json_out,
+                extra={"case_kind_table_covers_all": not uncovered,
+                       "uncovered_cases": uncovered})
 
 
 def main():
@@ -369,14 +447,8 @@ def main():
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
-        rc = _self_test()
-        # 注册表按 outputs 判 missing_output：自测也必须落机器可读证据。
-        if getattr(args, "json_out", None):
-            os.makedirs(os.path.dirname(args.json_out), exist_ok=True)
-            io.open(args.json_out, "w", encoding="utf-8").write(json.dumps(
-                {"tool": "block_flow_conformance", "mode": "self-test", "rc": rc,
-                 "verdict": "PASS" if rc == 0 else "FAIL"}, ensure_ascii=False) + "\n")
-        return rc
+        # 注册表按 outputs 判 missing_output：自测也必须落机器可读证据（含三态 verdict）。
+        return _self_test(json_out=args.json_out)
     errs, doc = run(args.register)
     verdict = "PASS" if not errs else "FAIL"
     n = len(doc["deviations"]) if doc else 0
@@ -384,7 +456,9 @@ def main():
     ne = sum(len(d.get("evidence") or []) for d in (doc or {}).get("deviations", []))
     print("BLOCK_FLOW_CONFORMANCE_%s: deviations=%d blockers=%d evidence=%d errors=%d"
           % (verdict, n, nb, ne, len(errs)))
-    for e in errs[:40]:
+    # 判词逐条全量打印，**不截断**（旧实现 `errs[:40]` 会让「共 N 条」只列 40 条，
+    # 读者据此无法确认其余锚点是否也被放宽）。
+    for e in errs:
         print("  " + e)
     if args.json_out:
         os.makedirs(os.path.dirname(args.json_out), exist_ok=True)
