@@ -1,0 +1,7 @@
+# 批次 CR-06｜lib/algorithms/photometry 第 6 段｜6 个文件（每个文件整读＋逐数值处置表）
+lib/algorithms/photometry/cpp/src/spatial_gain.cpp
+lib/algorithms/photometry/cpp/src/spatial_gain.h
+lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp
+lib/algorithms/photometry/cpp/src/spectrum_integrator.h
+lib/algorithms/photometry/cpp/src/star_matcher.cpp
+lib/algorithms/photometry/cpp/src/star_matcher.h

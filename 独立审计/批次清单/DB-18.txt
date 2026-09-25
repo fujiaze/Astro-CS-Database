@@ -1,0 +1,15 @@
+实验/m42-realdata/README.md
+实验/m42-realdata/REPORT_paper.md
+实验/m42-realdata/docs/CRITERIA.md
+实验/m42-realdata/docs/DATA-SOURCES.md
+实验/photometric-magnitude/README.md
+实验/photometric-magnitude/REPORT_paper.md
+实验/photometric-magnitude/RESOLUTION_fsyn_formula.md
+实验/photometric-magnitude/RESOLUTION_m42_curve_resolve.md
+实验/photometric-magnitude/code/README.md
+实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/README.md
+实验/photometric-magnitude/data/README.md
+实验/photometric-magnitude/docs/p1-spatial-gain.md
+实验/photometric-magnitude/results/DOC_CORRECTIONS.md
+实验/photometric-magnitude/results/GATES.md
+实验/photometric-magnitude/results/REVERSE_VERIFY_CANON.md

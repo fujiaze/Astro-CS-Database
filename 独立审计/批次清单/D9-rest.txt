@@ -1,0 +1,84 @@
+1	docs/GLOSSARY.md:15; docs/GLOSSARY.md:14; eng/tools/check_glossary.py:12; docs/GLOSSARY.md
+2	docs/GLOSSARY.md:16; docs/design/UNIFIED_MODEL.md:50-51; .schema.json; docs/GLOSSARY.md
+3	docs/GLOSSARY.md:26; docs/contracts/DATA_SEMANTICS.md:98-103; lib/algorithms/coverage/include/astro/phase2/sampler.h:94-
+4	lib/infrastructure/scheduler/src/module_adapters.cpp:1970-1971; eng/packaging/config/runtime_resources.json; CMakeLists.
+5	lib/infrastructure/scheduler/src/module_adapters.cpp:12355-12391; p3_resampled.json; docs/contracts/DATA_ARTIFACTS.md; d
+6	lib/infrastructure/scheduler/src/module_adapters.cpp:8443; eng/tests/validation/release02/README.md:96-103; which_correc
+7	QA-V19R7-A2-07/EVIDENCE_INDEX.md:42; lib/algorithms/coverage/tests/synthetic_gate.cpp:5791; lib/algorithms/drizzle/healp
+8	QA-V19R7-A2-07/EVIDENCE_INDEX.md:42; lib/algorithms/coverage/tests/synthetic_gate.cpp:5791; lib/algorithms/drizzle/healp
+9	ab2f_ab.json; artifacts/acceptance/l2_performance/README.md:59; eng/ci/checks.json; eng/ci/check_frozen_gate.py; eng/ci/
+10	artifacts/acceptance/l2_performance/README.md:82-104; measure.py; run_rest.py; bitwise.py; bitwise_classify.py; gaia_cou
+11	artifacts/acceptance/l2_performance/ab2f_ab.json; lib/infrastructure/cli/resource_recorder.h:70; lib/infrastructure/cli/
+12	artifacts/acceptance/l2_performance/ab2f_ab.json; resource_summaries/v1locked2f_w16.json; README.md:57
+13	drizzle_engine.cpp:1409; drizzle_engine.cpp:1339-1340; drizzle_engine.cpp; hp_drizzle_api.cpp:709; hp_drizzle_api.cpp:89
+14	test_output.txt:73; hiss_correctness_test.cpp:498; drizzle_engine.cpp:642-643; docs/algorithms/DRIZZLE_GEOMETRY.md:146
+15	docs/contracts/API_CONTRACTS.c; lib/infrastructure/pipeline/orchestrator/cpp/include/spill_manager.h; spill_manager.h; a
+16	docs/contracts/DATA_SEMANTICS.md:3102; docs/contracts/PUBLIC_API.md:2139; PUBLIC_API.md:2150; DATA_SEMANTICS.md:3108
+17	docs/contracts/DATA_SEMANTICS.md:340; docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:151-158; DATA_SEMANTICS.md
+18	docs/science/DRIZZLE.md:101-104; eng/contracts/schemas/product_family_field_constraints.schema.json:425-433; lib/algorit
+19	docs/science/DRIZZLE.md:101-104; eng/contracts/data/v6_clause_registry_v1.json:448; DRIZZLE.md:47; user.h; cdrizzlebox.c
+20	backend_table.in; baseline_kernels.h:33-42; in0..in; baseline_kernels_impl.in; docs/science/NOISE_MODEL.md:283; docs/sci
+21	articles.adsabs.h; docs/science/NOISE_MODEL.md:80; docs/algorithms/NOISE_ESTIMATION.md:27; docs/contracts/DATA_SEMANTICS
+22	docs/validation/v6/QA_MATRIX.md:69-74; docs/validation/v6/README.md:13; ORACLE_AND_ZERO_CASE_POLICY.md; docs/validation/
+23	docs/validation/v6/QA_MATRIX.md:28; ASTROCS_PROJECT_CONSTITUTION.md; ASTROCS_DESIGN.md; docs/ci/03_GATES.md; docs/DOCUME
+24	lib/algorithms/calibration/V6_CALIBRATION_COVARIANCE.md:13; docs/science/PSF_SIGNAL_WEIGHT.md:100; docs/contracts/DATA_S
+25	lib/algorithms/calibration/V6_CALIBRATION_COVARIANCE.md:8; eng/contracts/data/v6_clause_registry_v1.json:2495-2502; v6_c
+26	lib/algorithms/platesolve/IPV_PIPELINE.md:113-128; lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:358-372; cpp/ipv
+27	lib/algorithms/platesolve/IPV_PIPELINE.md:88-93; lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:1117-1125; src/ipv
+28	lib/algorithms/star_detection/src/sdet_detector.cpp:88; lib/algorithms/star_detection/src/sdet_api.cpp:308-309; lib/algo
+29	lib/algorithms/star_detection/src/sdet_detector.cpp; ASTROCS_DESIGN.md; AGENTS.md
+30	lib/infrastructure/aio/src/aio_fits.cpp:1154-1158; CMakeLists.txt:504; aio_api.cpp:232; CMakeLists.txt:527-530; CMakeLis
+31	lib/infrastructure/aio/src/aio_fits.cpp:1090; lib/infrastructure/aio/src/aio_api.cpp:232; lib/infrastructure/aio/include
+32	lib/infrastructure/benchmark/backend_host/avx512_backend.cpp:2; CMakeLists.txt:694; cpu_features.h; cpu_features.h:12-17
+33	CMakeLists.txt:711; lib/infrastructure/benchmark/backend_host/avx512_backend.cpp:11; backend_host/cpu_features.cpp:44; c
+34	lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp:243-258; lib/infrastructure/benchmark/backend_host/host_
+35	lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp:82-88; eng/tests/cpu/avx512/check_avx512_illegal_instr.p
+36	qualification/benchmarks/benchmark_common.h; benchmarks/arithmetic_benchmark.cpp; backends/cpu/isa/dispatch.cpp:9-12
+37	qualification/benchmarks/benchmark_common.h; benchmarks/reduction_benchmark.cpp
+38	weight_consistency_q2.py:32-38; synth_q2_v3.py:133-138; weight_consistency.json; release02/README.md:123-124
+39	docs/algorithms/DRIZZLE_GEOMETRY.md:390 ;; docs/references/SCIENTIFIC_REFERENCES.md:115 ;; docs/references/SCIENTIFIC_RE
+40	实验/additive-sky-seamless/results/evidence_code.json:376 ;; 实验/additive-sky-seamless/results/evidence_code.json:389 ;; 实验
+41	.../CMakeLists.txt; cmake/cfitsioConfig.c; eng/cmake/cfitsioConfig.c; lib/infrastructure/aio/third_party/cfitsio/cmake/c
+42	ASTROCS_DESIGN.md:758; ACCEPTANCE_SPEC.md; AGENTS.md; RELEASE-05/OPEN_QUESTIONS.md:74-152; ACCEPTANCE.md:20; docs/KNOWN_
+43	_work/D5b/p10_entries.py; docs/research/PHOTOMETRY_RESEARCH_PACK.md:18; run/DOC-404/verify_refs.py; verify_oss.py; verif
+44	_work/l1/graph_scan.py; CMakeLists.txt; lib/algorithms/coverage/CMakeLists.txt:12; lib/algorithms/integration/v6/CMakeLi
+45	../_work/q209_census2.py; ../_work/q209/census/census.json; eng/ci/checks.json; eng/ci/run_checks.py; resource_monitor.p
+46	artifacts/acceptance/L3/EVIDENCE.json:62; ACCEPTANCE_SPEC.md:191; ACCEPTANCE_SPEC.md:177; EVIDENCE.json; EVIDENCE.json:6
+47	artifacts/acceptance/L4/STATUS.json:14; 工程控制/RELEASE-05/SUMMARY.md:80-82; artifacts/evidence/release-05/AUDIT_PACKAGE.md
+48	artifacts/acceptance/l2_performance/real16_bitwise_bitwise.json:34; artifacts/acceptance/l2_performance/real16_bitwise_c
+49	check_full_integration.py:107-108; artifacts/evidence/audit-2026-01/FIX_LEDGER.c; eng/tools/quality/contracts/check_full
+50	artifacts/evidence/compress-01/code/build.sh:6-9; rt_diff.c; fits_loss.c; diag_cfitsio.c; build.sh; docs/research/COMPRE
+51	artifacts/evidence/compress-01/code/run_bench.sh:9-32; artifacts/evidence/compress-01/code/run_bench2.sh:8-26; artifacts
+52	artifacts/evidence/compress-01/verify/final_numbers.py:87-89; artifacts/evidence/compress-01/final_numbers.json; docs/re
+53	02_待裁决清单.md:12; artifacts/evidence/governance-01/research/R-4_资源门与观测权威落点.md:420-429; /nonexistent.json; lib/infrastructu
+54	artifacts/evidence/release-05/D-14_STALE_PATH_CLEANUP.md:33-43; MEASUREMENTS.c; /MEASUREMENTS.c; eng/ci/checks.json; eng
+55	artifacts/evidence/release-05/G2-9_CI_INCREMENTAL_STATUS.md:9; run_checks.py; eng/ci/checks.json; eng/ci/run_checks.py:7
+56	artifacts/evidence/v19r7-quality/audit_stats.json:60-62; audit_findings.md:17; file_audit_before.json
+57	artifacts/evidence/v19r7-quality/checkpoints/round32_machine_consistency.json; evidence/QA-V19R7-A1-01/EVIDENCE_INDEX.md
+58	artifacts/evidence/v19r7-quality/evidence/QA-V19R7-A1-01/EVIDENCE_INDEX.md:11; eng/tools/docs_machine_consistency.py; au
+59	artifacts/evidence/v19r7-quality/evidence/QA-V19R7-A1-01/TASK_REPORT.md:7; TEST_REPORT.md:3; eng/tools/docs_machine_cons
+60	run_mutations.py:19; artifacts/evidence/v6/qa-design/evidence/rc_summary.json; run_mutations.py; qa_matrix.json
+61	artifacts/evidence/v6/qa-design/oracle/qa_oracle.py:506,:511 ;; eng/tests/integration/v6_p2/oracle/v6_p2_oracle.py:77 ;;
+62	.../c_delta_composition/map_test2.py:10
+63	checkpoints/round32_machine_consistency.json:16-18; orchestrator.h; eng/tools/docs_machine_consistency.py:334-343; lib/i
+64	PENDING.md; trace_replay.py; ../../common/crypto/sha256.cpp; lib/algorithms/shared/crypto/sha256.cpp
+65	../common/healpix/healpix_core.cpp; ../common/crypto/sha256.cpp; lib/algorithms/shared/healpix/healpix_core.cpp; lib/alg
+66	core/browser_backend.h; core/browser_backend.cpp; memory.md; lib/healpix_db/archive/healpix_browser_cpp/include/browser_
+67	core/healpix_math.cpp; core/browser_backend.cpp; core/gl_renderer.cpp
+68	.cpp/.h/.h; CMakeLists.txt; p1drz_oracle.h; docs/science/DRIZZLE.md:111; docs/science/DRIZZLE.md:112; docs/algorithms/DR
+69	SIRIL_COMPARISON.md:544; build.ps1; cpp/ipv/REPORT.md:884; lib/algorithms/platesolve/cpp/ipv/build.ps1:27; REPORT.md/SIR
+70	cpp/ipv/test/ipv_dead_params_lock.py:9-11
+71	data/gates_analytic.json:186-192; data/gates_mc.json:167-173; qa_oracle.py:117
+72	docs/TRACEABILITY.c; eng/tools/quality/v19r3_traceability.py:409-411; eng/tools/quality/check_traceability.py; eng/tools
+73	docs/architecture.md:5; docs/modules/astro_image_io.md; lib/infrastructure/aio/include/astro_image_io.h; tests/test_orch
+74	docs/architecture/DEPENDENCY_RULES.md:13; CMakeLists.txt:441-453; cpp/include/dll_loader.h; cpp/src/dll_loader.cpp; docs
+75	machine_consistency_before.json:18; docs/architecture/ERROR_MODEL.md:26; lib/infrastructure/cli/exit_codes.h; lib/infras
+76	docs/architecture/EXECUTION_MODEL.md:50; docs/architecture/ERROR_MODEL.md:30; lib/infrastructure/cli/exit_codes.h:16-17;
+77	docs/architecture/MODULE_MAP.md:7-9; eng/tools/quality/check_module_map.py; RELEASE_STATUS.md; check_module_map.py; REVI
+78	docs/architecture/PERFORMANCE_MODEL.md:178; THREADING_MODEL.md:91-108
+79	docs/architecture/THREAD_BUDGET_ARCH.md:34; docs/architecture/EXECUTION_MODEL.md:18; eng/tools/arch/check_thread_budget.
+80	/stage2_common.h:140; docs/architecture/production_call_paths_stage2.c; docs/architecture/execution_inventory.c
+81	ASTROCS_DESIGN.md:746; AGENTS.md; docs/ci/03_GATES.md:13-19; docs/ci/02_PIPELINE.md:69
+82	docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
+83	docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md:100-102
+84	docs/modules/hips_p2.md:28-29

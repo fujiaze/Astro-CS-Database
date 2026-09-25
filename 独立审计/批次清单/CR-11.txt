@@ -1,0 +1,7 @@
+# 批次 CR-11｜lib/algorithms/drizzle 第 3 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_l0_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_l2_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_l3_full_fp32.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_nonfinite_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_pf_sb_gate.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_science_completion_test.cpp

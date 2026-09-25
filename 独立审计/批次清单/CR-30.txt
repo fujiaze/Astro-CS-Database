@@ -1,0 +1,7 @@
+# 批次 CR-30｜lib/algorithms/star_detection 第 2 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/star_detection/tests/p1star/p1star_oracle.hpp
+lib/algorithms/star_detection/tests/p1star/p1star_test_main.hpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_core.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_main.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_perf.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_selfcheck.cpp

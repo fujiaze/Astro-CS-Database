@@ -1,0 +1,60 @@
+key	value	anchor_agree	anchors	value_in_cited_line	cited_line_text
+calibration.dark_light_exposure_tolerance	5	ONLY-SOURCE	:0 vs :None	n/a	
+calibration.master_flat_median_range	[0.5, 2.0]	SAME	docs/science/CALIBRATION.md:103 vs docs/science/CALIBRATION.md:103	NO-VALUE	docs/science/CALIBRATION.md:103 => 响应场**（`flat_norm` 的 median = 1.0）；`0.1` 是**无量纲响应下界**，语义是
+detection.threshold_sigma	5.0	SAME	docs/science/STAR_DETECTION.md:21 vs docs/science/STAR_DETECTION.md:21	NO-VALUE	docs/science/STAR_DETECTION.md:21 => `σ_smooth = 2.0 px` 是检测所用高斯平滑核宽度，`sdet_api.cpp:1772-1774`
+psf.default_model	"moffat4"	SAME	docs/science/PSF.md:9 vs docs/science/PSF.md:9	NO-VALUE	docs/science/PSF.md:9 => - **目的**：描述点源响应（椭圆 Moffat4），估计 PSF 形状/位置及拟合质量代理 `q_psf`，用于 Astrometry/Photometry 的星点建模与剔星/QA。
+psf.moffat_beta	4.0	SAME	docs/science/PSF.md:94 vs docs/science/PSF.md:94	NO-VALUE	docs/science/PSF.md:94 => ⇒ `r_win/α = 2.629`、`f_out = 2.02e-3`，即发布 flux 相对窗内积分通量
+noise.patch_grid	[8, 8]	SAME	docs/science/NOISE_MODEL.md:54 vs docs/science/NOISE_MODEL.md:54	NO-VALUE	docs/science/NOISE_MODEL.md:54 => - 平面场仅 `enable_spatial_field==1 && n_control_points>=4`（`n_control_points` = 经 §5d① 保留的控制点数）**且控制点几何张成二维**时启用，否则退化为全局常量场（`has_spatial_field=0`）；几何判据 =
+noise.source_mask_radius_px	10	SAME	docs/science/NOISE_MODEL.md:86 vs docs/science/NOISE_MODEL.md:86	NO-VALUE	docs/science/NOISE_MODEL.md:86 => ### 5a 掩膜半径的物理导出（MASK-002）
+noise.mask_radius_scale	6	SAME	docs/science/NOISE_MODEL.md:86 vs docs/science/NOISE_MODEL.md:86	NO-VALUE	docs/science/NOISE_MODEL.md:86 => ### 5a 掩膜半径的物理导出（MASK-002）
+noise.clip_sigma	5.0	SAME	docs/science/NOISE_MODEL.md:56 vs docs/science/NOISE_MODEL.md:56	HIT	docs/science/NOISE_MODEL.md:56 => - `gain<=0` 时 `snr_noise_gain_variance` 返回 0；**加权方差面**（§5c）在 `gain` 不可用时必须显式降级并具名登记（0 的语义 = `gain<=0` 的返回值；降级状态另具名）。
+noise.min_patch_samples	64	SAME	docs/science/NOISE_MODEL.md:52 vs docs/science/NOISE_MODEL.md:52	HIT	docs/science/NOISE_MODEL.md:52 => - 维度 `h>0,w>0`，`data` 非空且含有限值；`min_samples`（patch 样本数阈）默认 64；`rmax` 是**逐星掩膜半径的硬上界**（默认 60 px），实际半径 `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rm
+noise.max_clip_rounds	2	SAME	docs/science/NOISE_MODEL.md:56 vs docs/science/NOISE_MODEL.md:56	NO-VALUE	docs/science/NOISE_MODEL.md:56 => - `gain<=0` 时 `snr_noise_gain_variance` 返回 0；**加权方差面**（§5c）在 `gain` 不可用时必须显式降级并具名登记（0 的语义 = `gain<=0` 的返回值；降级状态另具名）。
+noise.saturation_level	0	SAME	docs/science/NOISE_MODEL.md:52 vs docs/science/NOISE_MODEL.md:52	HIT	docs/science/NOISE_MODEL.md:52 => - 维度 `h>0,w>0`，`data` 非空且含有限值；`min_samples`（patch 样本数阈）默认 64；`rmax` 是**逐星掩膜半径的硬上界**（默认 60 px），实际半径 `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rm
+noise.spatial_field_enabled	1	SAME	docs/science/NOISE_MODEL.md:47 vs docs/science/NOISE_MODEL.md:47	NO-VALUE	docs/science/NOISE_MODEL.md:47 => 
+noise.variance_floor	1e-12	SAME	docs/science/NOISE_MODEL.md:23 vs docs/science/NOISE_MODEL.md:23	NO-VALUE	docs/science/NOISE_MODEL.md:23 => | `x` | 像素值（校准后 ADU/e⁻ 空背景） | 输入 |
+noise.mask_k_sigma	0.1	SAME	docs/science/NOISE_MODEL.md:84 vs docs/science/NOISE_MODEL.md:84	NO-VALUE	docs/science/NOISE_MODEL.md:84 => 与 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1-938` 一致（`fill_impl` :776-866；`snr_noise_model_v1_fill` :868-883）。
+noise.mask_r_min_px	1.5	SAME	docs/science/NOISE_MODEL.md:85 vs docs/science/NOISE_MODEL.md:85	NO-VALUE	docs/science/NOISE_MODEL.md:85 => 
+noise.mask_fwhm_floor_scale	0.75	SAME	docs/science/NOISE_MODEL.md:85 vs docs/science/NOISE_MODEL.md:85	NO-VALUE	docs/science/NOISE_MODEL.md:85 => 
+noise.mask_budget_min_patches	8	SAME	docs/science/NOISE_MODEL.md:87 vs docs/science/NOISE_MODEL.md:87	NO-VALUE	docs/science/NOISE_MODEL.md:87 => 
+noise.mask_budget_min_sky	9216	SAME	docs/science/NOISE_MODEL.md:87 vs docs/science/NOISE_MODEL.md:87	NO-VALUE	docs/science/NOISE_MODEL.md:87 => 
+rejection.sigma.lower_sigma	4.0	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.sigma.upper_sigma	3.0	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.sigma.max_iterations	8	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.winsorized.lower_sigma	4.0	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.winsorized.upper_sigma	3.0	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.winsorized.max_iterations	8	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.averaged_sigma.lower_sigma	4.0	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.averaged_sigma.upper_sigma	3.0	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.averaged_sigma.max_iterations	8	DIFF	docs/science/REJECTION.md:97 vs docs/science/REJECTION.md:68	NO-VALUE	docs/science/REJECTION.md:97 => WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
+rejection.linear_fit.lower_sigma	5.0	SAME	docs/science/REJECTION.md:59 vs docs/science/REJECTION.md:59	NO-VALUE	docs/science/REJECTION.md:59 => 
+rejection.linear_fit.upper_sigma	3.5	SAME	docs/science/REJECTION.md:59 vs docs/science/REJECTION.md:59	NO-VALUE	docs/science/REJECTION.md:59 => 
+rejection.linear_fit.max_iterations	8	SAME	docs/science/REJECTION.md:59 vs docs/science/REJECTION.md:59	NO-VALUE	docs/science/REJECTION.md:59 => 
+rejection.esd.alpha	0.05	SAME	docs/science/REJECTION.md:60 vs docs/science/REJECTION.md:60	NO-VALUE	docs/science/REJECTION.md:60 => None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
+rejection.esd.max_outliers	10	SAME	docs/science/REJECTION.md:60 vs docs/science/REJECTION.md:60	NO-VALUE	docs/science/REJECTION.md:60 => None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
+rejection.percentile.low	0.2	DIFF	docs/science/REJECTION.md:59 vs docs/science/REJECTION.md:166	NO-VALUE	docs/science/REJECTION.md:59 => 
+rejection.percentile.high	0.1	DIFF	docs/science/REJECTION.md:59 vs docs/science/REJECTION.md:166	NO-VALUE	docs/science/REJECTION.md:59 => 
+rejection.minmax.min_kept	4	DIFF	docs/science/REJECTION.md:60 vs docs/science/REJECTION.md:166	NO-VALUE	docs/science/REJECTION.md:60 => None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
+rejection.large_scale.enabled	false	DIFF	docs/science/REJECTION.md:61 vs docs/science/REJECTION.md:24	NO-VALUE	docs/science/REJECTION.md:61 => 
+photometry.mag_tolerance	3.0	SAME	docs/science/PHOTOMETRY.md:30 vs docs/science/PHOTOMETRY.md:30	NO-VALUE	docs/science/PHOTOMETRY.md:30 => | `S` | `MAD(r)/0.6744897501960817` 初值尺度 (dex) | `star_matcher.cpp:21-27` |
+photometry.tukey_c	4.685	DIFF	docs/science/PHOTOMETRY.md:21 vs docs/science/PHOTOMETRY.md:24	NO-VALUE	docs/science/PHOTOMETRY.md:21 => | 符号 | 含义 | 出现位置 |
+photometry.irls_max_iterations	50	SAME	docs/science/PHOTOMETRY.md:192 vs docs/science/PHOTOMETRY.md:192	HIT	docs/science/PHOTOMETRY.md:192 => - `S>0` 时迭代 `max_iter=50, tol=1e-6`；`S==0` 跳过 IRLS 取 `median(r)`（`star_matcher.cpp:549-552`；常数 `:25` `_IRLS_MAX_ITER=50`、`:27` `_IRLS_CONVERGE=1e-6`）。
+photometry.irls_tolerance_dex	1e-06	SAME	docs/science/PHOTOMETRY.md:192 vs docs/science/PHOTOMETRY.md:192	NO-VALUE	docs/science/PHOTOMETRY.md:192 => - `S>0` 时迭代 `max_iter=50, tol=1e-6`；`S==0` 跳过 IRLS 取 `median(r)`（`star_matcher.cpp:549-552`；常数 `:25` `_IRLS_MAX_ITER=50`、`:27` `_IRLS_CONVERGE=1e-6`）。
+photometry.min_reference_stars	3	SAME	docs/science/PHOTOMETRY.md:44 vs docs/science/PHOTOMETRY.md:44	NO-VALUE	docs/science/PHOTOMETRY.md:44 => F_syn = ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ            # W·m⁻²·nm
+photometry.min_inlier_stars	2	SAME	docs/science/PHOTOMETRY.md:44 vs docs/science/PHOTOMETRY.md:44	NO-VALUE	docs/science/PHOTOMETRY.md:44 => F_syn = ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ            # W·m⁻²·nm
+precision.default	"fp64"	SAME	docs/science/SCIENCE_SCOPE.md:56 vs docs/science/SCIENCE_SCOPE.md:56	NO-VALUE	docs/science/SCIENCE_SCOPE.md:56 => 故**污染幅度未被本次独立复算定量确认**；本节只冻结判据形式与「前提可被违反」这一事实。
+upm.k_corr	1.4	SAME	docs/science/PHASE2_UPM.md:24 vs docs/science/PHASE2_UPM.md:24	HIT	docs/science/PHASE2_UPM.md:24 => | `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒），冻结默认 1.4 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） |
+hips.tile_width	512	SAME	docs/science/PHASE3_HIPS_TO_FITS.md:41 vs docs/science/PHASE3_HIPS_TO_FITS.md:41	NO-VALUE	docs/science/PHASE3_HIPS_TO_FITS.md:41 => ## 4 输入有效域
+drizzle.pixfrac	0.8	DIFF	:0 vs docs/science/DRIZZLE.md:35	NO-VALUE	docs/science/DRIZZLE.md:35 => - `w>0,h>0`, WCS 有效，`0<pixfrac<=1` 否则 `NO_DATA`（`drizzle:拒绝非法pixfrac`），NESTED 唯一 ordering，`nside=2^order` 为 2 的幂。
+sparse_snr.density	null	ONLY-SOURCE	:0 vs :None	n/a	
+sparse_snr.spacing_px	64	ONLY-SOURCE	:0 vs :None	n/a	
+snr.path	"sparse_reconstruct"	SAME	docs/plugins/algorithms_phase1/07_noise_snr.md:186 vs docs/plugins/algorithms_phase1/07_noise_snr.md:186	NO-VALUE	docs/plugins/algorithms_phase1/07_noise_snr.md:186 => | `bilinear_regular_grid_v1` | 规则网格双线性（边界 clamp） | 保留为**对照/回退**（现行实现的忠实保留） |
+scalar_gate.rd	null	ONLY-SOURCE	:0 vs :None	n/a	
+scalar_gate.trend	null	ONLY-SOURCE	:0 vs :None	n/a	
+paths.gaia_root	"gaia"	ONLY-SOURCE	:0 vs :None	n/a	
+cosmetic.bad_column_enabled	true	DIFF	:0 vs docs/contracts/DATA_SEMANTICS.md:304	NO-VALUE	docs/contracts/DATA_SEMANTICS.md:304 => ### 10.4 列状缺陷路径（bad column）
+cosmetic.bad_column_sigma	5.0	DIFF	:0 vs docs/contracts/DATA_SEMANTICS.md:304	NO-VALUE	docs/contracts/DATA_SEMANTICS.md:304 => ### 10.4 列状缺陷路径（bad column）
+cosmetic.bad_column_neighbor_k	3	DIFF	:0 vs docs/contracts/DATA_SEMANTICS.md:304	NO-VALUE	docs/contracts/DATA_SEMANTICS.md:304 => ### 10.4 列状缺陷路径（bad column）
+cosmetic.bad_column_sigma_master	10.5	DIFF	:0 vs run/LINDEF-CLOSE-01/REPORT.md:1	missing	<<MISSING FILE>>run/LINDEF-CLOSE-01/REPORT.md
+cosmetic.bad_column_variance_kappa	2.0	DIFF	:0 vs docs/contracts/DATA_SEMANTICS.md:328	NO-VALUE	docs/contracts/DATA_SEMANTICS.md:328 => ### 10.5 列状缺陷的方差处置
+cosmetic.bad_column_master_wide_frac_max	0.001	DIFF	:0 vs run/LINDEF-CLOSE-01/REPORT.md:1	missing	<<MISSING FILE>>run/LINDEF-CLOSE-01/REPORT.md

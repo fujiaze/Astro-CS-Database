@@ -1,0 +1,201 @@
+FILES_SCANNED 253
+
+== (1) subprocess text=True WITHOUT encoding/errors == 127
+  eng/ci/bootstrap.py:65  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/bootstrap.py:149  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_algo_wiring.py:123  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_build_provenance.py:181  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_design_clause_wiring.py:542  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_design_clause_wiring.py:592  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_plugin_symbol_closure.py:63  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_plugin_symbol_closure.py:309  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/check_plugin_symbol_closure.py:131  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_realdata_e2e.py:148  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/check_version.py:184  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/check_version.py:197  run  kws=['capture_output', 'text', 'timeout']
+  eng/ci/polarity_probe.py:195  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/reconcile_state.py:70  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/reconcile_state.py:60  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/verify_remote_run.py:186  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/verify_workspace_adoption.py:60  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/ci/verify_workspace_adoption.py:216  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/assemble_audit.py:276  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/assemble_audit.py:62  run  kws=['capture_output', 'text']
+  eng/tools/assemble_v17_review_pkg.py:265  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/astrocs_diagnose.py:156  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/audit_intake.py:30  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/check_api_docs.py:175  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_ast_api.py:101  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_baseline_opcodes.py:89  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_baseline_opcodes.py:212  run  kws=['capture_output', 'env', 'text', 'timeout']
+  eng/tools/check_cli_command_layer.py:170  run  kws=['capture_output', 'env', 'text', 'timeout']
+  eng/tools/check_duplication.py:30  run  kws=['capture_output', 'text']
+  eng/tools/check_final_traceability.py:130  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_final_traceability.py:85  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_l0_docs.py:87  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/check_l0_docs.py:270  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/check_legacy_exit.py:270  run  kws=['capture_output', 'text']
+  eng/tools/check_link_scan.py:109  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_link_scan.py:179  run  kws=['capture_output', 'env', 'text', 'timeout']
+  eng/tools/check_p2_symbol_map.py:348  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_release_consistency.py:114  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_release_layout.py:93  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_reproducible_build.py:109  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_reproducible_build.py:136  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_reproducible_build.py:153  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/check_traceability_matrix.py:234  run  kws=['capture_output', 'text']
+  eng/tools/check_traceability_matrix.py:246  run  kws=['capture_output', 'text']
+  eng/tools/check_warning_suppression.py:345  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/config_consistency_check.py:133  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/doccheck/check_alg_line_anchors.py:91  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/doccheck/check_doc_index.py:168  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/doccheck/check_doc_index.py:931  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/doccheck/check_engineering_constraints.py:96  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/doccheck/check_test_index_live.py:118  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/doccheck/check_version_namespaces.py:189  run  kws=['capture_output', 'env', 'text', 'timeout']
+  eng/tools/doccheck/check_version_namespaces.py:307  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/doccheck/check_version_namespaces.py:277  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/docs_machine_consistency.py:609  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/docs_machine_consistency.py:147  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/e2e/run_e2e_chain.py:256  run  kws=['capture_output', 'cwd', 'env', 'text']
+  eng/tools/gen_build_stamp.py:106  run  kws=['capture_output', 'cwd', 'input', 'text', 'timeout']
+  eng/tools/gen_build_stamp.py:71  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/gen_build_stamp.py:337  run  kws=['capture_output', 'cwd', 'env', 'text', 'timeout']
+  eng/tools/gen_provider_manifests.py:117  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/gen_v19_evidence.py:138  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/gen_version.py:121  run  kws=['capture_output', 'cwd', 'env', 'text', 'timeout']
+  eng/tools/gen_version.py:60  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/make_capsule.py:25  run  kws=['capture_output', 'check', 'cwd', 'text']
+  eng/tools/make_linux_release.py:40  run  kws=['capture_output', 'check', 'text']
+  eng/tools/make_rev2_capsule.py:41  run  kws=['capture_output', 'check', 'text']
+  eng/tools/make_windows_release.py:46  run  kws=['capture_output', 'text']
+  eng/tools/pack_audit_package.py:114  run  kws=['capture_output', 'text']
+  eng/tools/quality/check_block_flow_spec.py:207  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/quality/check_comment_hygiene.py:209  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_comment_hygiene.py:219  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_comment_hygiene.py:229  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_comment_hygiene.py:240  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_commits_csv.py:74  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_commits_csv.py:273  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_commits_csv.py:217  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_conclusion_anchors.py:352  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_conclusion_anchors.py:356  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_conclusion_anchors.py:368  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_conclusion_truth.py:325  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_conclusion_truth.py:398  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_ctest_registration.py:111  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_ctest_registration.py:321  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_isa_leak.py:49  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_master_unit_guard.py:253  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_module_map.py:1162  run  kws=['capture_output', 'cwd', 'text']
+  eng/tools/quality/check_prod_reachability.py:163  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_resource_gate_real.py:43  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/check_sparse_punch.py:562  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_sparse_punch.py:570  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_sparse_punch.py:583  run  kws=['capture_output', 'env', 'text', 'timeout']
+  eng/tools/quality/check_sparse_punch.py:592  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/check_task_result_schema.py:232  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/ci_coverage_runner.py:140  run  kws=['capture_output', 'cwd', 'env', 'text', 'timeout']
+  eng/tools/quality/contracts/check_api_contracts.py:35  check_output  kws=['text']
+  eng/tools/quality/contracts/check_full_integration.py:31  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/contracts/check_full_integration.py:116  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/contracts/generate_contract_report.py:47  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/deep_ci_driver.py:275  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/gen_commits_csv.py:34  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/gen_module_readmes.py:265  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/quality/gen_source_index_v61.py:298  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/known_failures_baseline.py:135  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/known_failures_baseline.py:700  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/known_failures_baseline.py:1077  run  kws=['capture_output', 'text']
+  eng/tools/quality/known_failures_baseline.py:791  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/quality/run_preflight_matrix.py:29  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/run_gc.py:122  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/run_gc.py:166  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/testkit/check_testkit.py:308  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/testkit/check_testkit.py:83  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/testkit/check_testkit.py:109  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/testkit/check_testkit.py:354  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/traceability/check_traceability_matrix.py:195  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/traceability/check_traceability_matrix.py:221  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/traceability/check_traceability_matrix.py:289  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/traceability/check_traceability_matrix.py:556  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/v6/check_v6_runtime_closure.py:25  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_cli_mode_matrix.py:159  run  kws=['capture_output', 'cwd', 'text', 'timeout']
+  eng/tools/v6/v6_ctest_driver.py:29  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_ctest_driver.py:99  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_determinism_driver.py:130  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_determinism_driver.py:135  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_determinism_driver.py:106  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_runtime_mutation_driver.py:99  run  kws=['capture_output', 'text', 'timeout']
+  eng/tools/v6/v6_runtime_mutation_driver.py:115  run  kws=['capture_output', 'text', 'timeout']
+
+== (2) EMPTY-SCAN-GREEN candidates (`if not X: return 0/exit0/'PASS'`) == 19
+  eng/ci/check_aio_io_boundary.py:402  if not _DECL_PREFIX_RX.match(prefix) -> False
+  eng/ci/check_product_contract.py:150  if not isinstance(doc, dict) -> False
+  eng/ci/incremental.py:69  if not pattern -> False
+  eng/ci/incremental.py:518  if not path.is_file() -> False
+  eng/ci/monitor_evidence.py:43  if not rel -> False
+  eng/ci/resource_monitor.py:46  if not argv -> 0
+  eng/ci/run.py:426  if not base -> False
+  eng/ci/run_checks.py:541  if not CRASH_TRACEBACK_RE.search(blob) -> False
+  eng/tools/check_ast_api.py:206  if not p.is_file() -> False
+  eng/tools/gen_build_stamp.py:97  if not any((path == r or path.startswith(r + '/') for r in SOURCE_ROOTS)) -> False
+  eng/tools/monitoring/resource_probe.py:115  if not text -> 0
+  eng/tools/quality/check_module_map.py:877  if not target -> False
+  eng/tools/quality/check_test_discriminative.py:90  if not isinstance(node, ast.Call) -> False
+  eng/tools/quality/check_test_discriminative.py:108  if not isinstance(item, ast.withitem) -> False
+  eng/tools/quality/compare_products.py:227  if not abs_diffs -> 0.0
+  eng/tools/quality/contracts/check_execution_contracts.py:299  if not src.is_file() -> False
+  eng/tools/quality/resource_monitor.py:405  if not pts -> False
+  eng/tools/run_gc.py:273  if not RUN.is_dir() -> 0
+  eng/tools/traceability/check_traceability_matrix.py:568  if not tracking_available() -> False
+
+== (3) HARDCODED verdict literals (name matches verdict|result|status|conclusion|state) == 11
+  eng/ci/declared_inputs.py:31  STATE_OK = 'ok'
+  eng/ci/gate_trust.py:57  VERDICT_PASS = 'PASS'
+  eng/ci/run.py:1271  verdict = 'PASS'
+  eng/ci/run.py:1274  verdict = 'PASS'
+  eng/tools/quality/contracts/check_api_contracts.py:47  status = 'PASS'
+  eng/tools/quality/contracts/check_doc_symbols.py:132  status = 'PASS'
+  eng/tools/quality/contracts/check_execution_contracts.py:121  status = 'PASS'
+  eng/tools/quality/contracts/check_forbidden_patterns.py:17  status = 'PASS'
+  eng/tools/quality/contracts/check_science_units.py:17  status = 'PASS'
+  eng/tools/quality/contracts/check_test_contracts.py:17  status = 'PASS'
+  eng/tools/quality/contracts/check_traceability.py:21  status = 'PASS'
+
+== (4) checker scripts WITHOUT --self-test surface == 35 of 124
+   eng/ci/check_workflow_governance.py
+   eng/tools/check_abi_boundary.py
+   eng/tools/check_api_docs.py
+   eng/tools/check_ast_api.py
+   eng/tools/check_contract_graph.py
+   eng/tools/check_data_artifacts.py
+   eng/tools/check_duplication.py
+   eng/tools/check_p1_symbol_map.py
+   eng/tools/check_p3_status.py
+   eng/tools/check_pipeline_trace.py
+   eng/tools/check_serial_hardcode.py
+   eng/tools/check_traceability.py
+   eng/tools/check_unit_closure.py
+   eng/tools/monitoring/check_log_contract.py
+   eng/tools/quality/check_cmake_usebeforedef.py
+   eng/tools/quality/check_complexity.py
+   eng/tools/quality/check_ctest_registration.py
+   eng/tools/quality/check_isa_leak.py
+   eng/tools/quality/check_module_map.py
+   eng/tools/quality/check_pipeline_graph.py
+   eng/tools/quality/check_prod_reachability.py
+   eng/tools/quality/check_root_cleanliness.py
+   eng/tools/quality/check_secret_hygiene.py
+   eng/tools/quality/check_serial_heavy.py
+   eng/tools/quality/check_source_inventory.py
+   eng/tools/quality/check_traceability.py
+   eng/tools/quality/contracts/check_api_contracts.py
+   eng/tools/quality/contracts/check_doc_symbols.py
+   eng/tools/quality/contracts/check_forbidden_patterns.py
+   eng/tools/quality/contracts/check_full_integration.py
+   eng/tools/quality/contracts/check_science_units.py
+   eng/tools/quality/contracts/check_test_contracts.py
+   eng/tools/quality/contracts/check_traceability.py
+   eng/tools/testkit/check_testkit.py
+   eng/tools/v6/check_v6_runtime_closure.py

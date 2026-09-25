@@ -1,0 +1,7 @@
+# 批次 CR-216｜lib/infrastructure/aio｜6 项（整读＋逐数值处置表；合计约 1099 行）
+lib/infrastructure/aio/third_party/cfitsio/zuncompress.c
+lib/infrastructure/aio/v6/include/astro/aio/v6_atomic_publish.h
+lib/infrastructure/aio/v6/include/astro/aio/v6_bunit.h
+lib/infrastructure/aio/v6/include/astro/aio/v6_fits.h
+lib/infrastructure/aio/v6/include/astro/aio/v6_hips_manifest.h
+lib/infrastructure/aio/v6/include/astro/aio/v6_product_io.h

@@ -1,0 +1,7 @@
+# 批次 CR-227｜lib/phase1_session/tests｜6 项（整读＋逐数值处置表；合计约 1487 行）
+lib/phase1_session/tests/p1sess/p1sess_tests_negative.cpp
+lib/phase1_session/tests/p1sess/p1sess_tests_perf.cpp
+lib/phase1_session/tests/p1sess/p1sess_tests_properties.cpp
+lib/phase1_session/tests/p1sess/p1sess_tests_selfcheck.cpp
+lib/phase1_session/tests/p1sess/p1sess_tests_units.cpp
+lib/phase1_session/tests/test_p1_session_manifest.cpp

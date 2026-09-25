@@ -1,0 +1,11 @@
+# 批次 CR-263｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/cfileio.c
+lib/infrastructure/aio/third_party/cfitsio/cfortran.h
+lib/infrastructure/aio/third_party/cfitsio/checksum.c
+lib/infrastructure/aio/third_party/cfitsio/drvrfile.c
+lib/infrastructure/aio/third_party/cfitsio/drvrgsiftp.c
+lib/infrastructure/aio/third_party/cfitsio/drvrgsiftp.h
+lib/infrastructure/aio/third_party/cfitsio/drvrmem.c
+lib/infrastructure/aio/third_party/cfitsio/drvrnet.c
+lib/infrastructure/aio/third_party/cfitsio/drvrsmem.c
+lib/infrastructure/aio/third_party/cfitsio/drvrsmem.h

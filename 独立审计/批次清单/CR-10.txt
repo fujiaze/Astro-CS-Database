@@ -1,0 +1,7 @@
+# 批次 CR-10｜lib/algorithms/drizzle 第 2 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/drizzle/healpix_drizzle/tests/concurrency_cache_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/control_median_mc_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_acceptance_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_freeze_test.cpp

@@ -1,0 +1,23 @@
+module.yaml path | MOD-id | module_id | in-port-registry?
+lib/algorithms/calibration/module.yaml | MOD-astrocs-phase1-calibration | astrocs.p1.calibration | no
+lib/algorithms/cosmetic/module.yaml | MOD-astrocs-phase1-cosmetic | astrocs.p1.cosmetic | no
+lib/algorithms/coverage/hips_p2/module.yaml | MOD-astrocs-phase2-hips-writer | astrocs.p2.hips_writer | no
+lib/algorithms/coverage/module.yaml | MOD-astrocs-phase2-coverage | astrocs.p2.coverage | no
+lib/algorithms/drizzle/hips/module.yaml | MOD-astrocs-phase1-hips-writer | astrocs.p1.hips_writer | no
+lib/algorithms/drizzle/module.yaml | MOD-astrocs-phase1-drizzle | astrocs.p1.drizzle | no
+lib/algorithms/fits_output/module.yaml | MOD-astrocs-phase3-writer | astrocs.p3.fits_writer | no
+lib/algorithms/integration/module.yaml | MOD-astrocs-phase2-integrate | astrocs.p2.integration | no
+lib/algorithms/noise_snr/module.yaml | MOD-astrocs-phase1-noise-snr | astrocs.p1.noise | no
+lib/algorithms/photometry/module.yaml | MOD-astrocs-phase1-photometry | astrocs.p1.photometry | no
+lib/algorithms/platesolve/module.yaml | MOD-astrocs-phase1-wcs-platesolve | astrocs.p1.wcs | no
+lib/algorithms/projection/module.yaml | MOD-astrocs-phase3-wcs | astrocs.p3.projection | no
+lib/algorithms/psf/module.yaml | MOD-astrocs-phase1-star-psf | astrocs.p1.psf | no
+lib/algorithms/rejection/module.yaml | MOD-astrocs-phase2-reject | astrocs.p2.rejection | no
+lib/algorithms/resample/module.yaml | MOD-astrocs-phase3-resample2 | astrocs.p3.resample | no
+lib/algorithms/sampling/module.yaml | MOD-astrocs-phase2-sample | astrocs.p2.sampling | no
+lib/algorithms/star_detection/module.yaml | MOD-astrocs-phase1-star | astrocs.p1.star_detection | no
+lib/algorithms/upm/module.yaml | MOD-astrocs-phase2-upm-fit | astrocs.p2.upm | no
+lib/infrastructure/cli/module.yaml | MOD-astrocs-infrastructure-cli | astrocs.infrastructure.cli | no
+lib/infrastructure/gaia_xpsd_client/module.yaml | MOD-astrocs-catalog-gaia | astrocs.catalog.gaia | no
+lib/phase1_session/module.yaml | MOD-astrocs-phase1-session | astrocs.phase1.session | no
+lib/phase2_session/module.yaml | MOD-astrocs-phase2-session | astrocs.p2.session | no

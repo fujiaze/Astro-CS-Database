@@ -1,0 +1,11 @@
+# 批次 CR-272｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/utilities/fvrf_misc.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/imcopy.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/iter_image.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/iter_var.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/smem.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/speed.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/testprog.c
+lib/infrastructure/aio/third_party/cfitsio/vmsieee.c
+lib/infrastructure/aio/third_party/cfitsio/wcssub.c
+lib/infrastructure/aio/third_party/cfitsio/wcsutil.c

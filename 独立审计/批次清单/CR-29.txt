@@ -1,0 +1,7 @@
+# 批次 CR-29｜lib/algorithms/star_detection 第 1 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/star_detection/src/nls_lm.cpp
+lib/algorithms/star_detection/src/nls_lm.h
+lib/algorithms/star_detection/tests/p1star/p1star_fixtures.hpp
+lib/algorithms/star_detection/tests/p1star/p1star_guided_test.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_mad_check.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_nls_lm_test.cpp

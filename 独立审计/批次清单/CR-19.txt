@@ -1,0 +1,7 @@
+# 批次 CR-19｜lib/algorithms/coverage 第 1 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/coverage/include/astro/phase2/acr_kernels.h
+lib/algorithms/coverage/src/acr_kernels.cpp
+lib/algorithms/coverage/include/astro/phase2/async_io.h
+lib/algorithms/coverage/src/async_io.cpp
+lib/algorithms/coverage/tests/async_io_test.cpp
+lib/algorithms/coverage/include/astro/phase2/block.h

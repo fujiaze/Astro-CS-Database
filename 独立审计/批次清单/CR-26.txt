@@ -1,0 +1,7 @@
+# 批次 CR-26｜lib/algorithms/platesolve 第 1 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/platesolve/cpp/ipv/test/ipv_abi_layout_probe.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_angle.h
+lib/algorithms/platesolve/cpp/ipv/src/ipv_angle.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h
+lib/algorithms/platesolve/cpp/ipv/include/ipv_distortion.h
+lib/algorithms/platesolve/cpp/ipv/src/ipv_distortion.cpp

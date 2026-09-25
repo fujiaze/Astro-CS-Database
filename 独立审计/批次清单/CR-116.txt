@@ -1,0 +1,7 @@
+# 批次 CR-116｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1933 行）
+lib/infrastructure/acr/qualification/profile_schema.hpp
+lib/infrastructure/acr/routing/benchmark_route_estimator.cpp
+lib/infrastructure/acr/routing/benchmark_route_estimator.hpp
+lib/infrastructure/acr/routing/route_profile_v2.cpp
+lib/infrastructure/acr/routing/route_profile_v2.hpp
+lib/infrastructure/acr/scheduler/current_state.cpp

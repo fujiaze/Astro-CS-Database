@@ -1,0 +1,7 @@
+# 批次 CR-219｜lib/infrastructure/hips_browser｜6 项（整读＋逐数值处置表；合计约 1627 行）
+lib/infrastructure/hips_browser/healpix_browser_qt/app/main_window.cpp
+lib/infrastructure/hips_browser/healpix_browser_qt/app/main_window.h
+lib/infrastructure/hips_browser/healpix_browser_qt/app/stf_bar.cpp
+lib/infrastructure/hips_browser/healpix_browser_qt/app/stf_bar.h
+lib/infrastructure/hips_browser/healpix_browser_qt/app/stf_panel.cpp
+lib/infrastructure/hips_browser/healpix_browser_qt/app/stf_panel.h

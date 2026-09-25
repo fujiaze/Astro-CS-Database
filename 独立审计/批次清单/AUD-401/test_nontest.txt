@@ -1,0 +1,10 @@
+lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp
+lib/algorithms/projection/p3_proj_v6.cpp
+lib/algorithms/projection/p3_projection.cpp
+lib/infrastructure/aio/io/hips_core.c
+lib/infrastructure/aio/src/ahpx/aio_ahpx_api.cpp
+lib/infrastructure/aio/src/ahpx/aio_ahpx_reader.cpp
+lib/infrastructure/aio/src/ahpx/aio_ahpx_writer.cpp
+lib/infrastructure/observability/probes/src/probe.cpp
+lib/infrastructure/scheduler/src/executor.cpp
+lib/phase3_session/p3_v6_export.cpp

@@ -1,0 +1,7 @@
+# 批次 CR-34｜lib/algorithms/psf 第 3 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/psf/tests/p1psf/p1psf_test_main.hpp
+lib/algorithms/psf/tests/p1psf/p1psf_tests_core.cpp
+lib/algorithms/psf/tests/p1psf/p1psf_tests_main.cpp
+lib/algorithms/psf/tests/p1psf/p1psf_tests_perf.cpp
+lib/algorithms/psf/tests/p1psf/p1psf_tests_selfcheck.cpp
+lib/algorithms/psf/include/astrocs/v6/psf_information.h

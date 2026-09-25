@@ -1,0 +1,7 @@
+# 批次 CR-108｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1192 行）
+lib/infrastructure/acr/core/task_descriptor.hpp
+lib/infrastructure/acr/cost/cost_estimator.cpp
+lib/infrastructure/acr/cost/cost_estimator.hpp
+lib/infrastructure/acr/diagnostics/hardware_report.cpp
+lib/infrastructure/acr/examples/legacy_chunk_adapter.cpp
+lib/infrastructure/acr/examples/minimal_parallel_for.cpp

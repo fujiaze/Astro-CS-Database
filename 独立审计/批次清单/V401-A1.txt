@@ -1,0 +1,4 @@
+# 批次清单 V401-A1.txt｜对象 raw/AUD-401-架构对齐.md｜3 条（自 V401-A 前半）
+AUD401-002	raw/AUD-401-架构对齐.md:39-52	AUD401-002 · 阶段名大量出现在代码目录与 CMake target 名（应只存在于设计与命令层）
+AUD401-003	raw/AUD-401-架构对齐.md:53-68	AUD401-003 · phase1/2/3_session 仍在构建图内、且被生产可执行 `acsd` 直接链接（未退役）
+AUD401-004	raw/AUD-401-架构对齐.md:69-83	AUD401-004 · 但 session 不在生产调用面上：p1 连注册都没有，p2/p3 以错误的 resample ID 注册且生产 IR 永不引用

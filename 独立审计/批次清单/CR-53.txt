@@ -1,0 +1,7 @@
+# 批次 CR-53｜lib/algorithms/calibration / lib/algorithms/star_detection｜6 项（整读＋逐数值处置表；合计约 1230 行）
+lib/algorithms/star_detection/tests/p1star/sdet_oom_interposer.c
+lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp
+lib/algorithms/star_detection/wrapper_phase1/star_detector.h
+lib/algorithms/calibration/cpp/cosmetic_corrector.cpp
+lib/algorithms/calibration/cpp/cosmetic_corrector.h
+lib/algorithms/calibration/include/astro_calibration.h

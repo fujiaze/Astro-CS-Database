@@ -1,0 +1,7 @@
+# 批次 CR-126｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1691 行）
+lib/infrastructure/acr/tests/fault/sanitizer_actual.cpp
+lib/infrastructure/acr/tests/integration/test_weighted_integration.cpp
+lib/infrastructure/acr/tests/sanitizer/msvc_asan_main.cpp
+lib/infrastructure/acr/tests/unit/test_api.cpp
+lib/infrastructure/acr/tests/unit/test_api_traits.cpp
+lib/infrastructure/acr/tests/unit/test_buffer.cpp

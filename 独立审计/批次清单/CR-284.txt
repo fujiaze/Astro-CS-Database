@@ -1,0 +1,2 @@
+# 批次 CR-284｜超大第一方文件按行段分片｜lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp 的 1-1500 行（全文件 4091 行，拆成 3 段，跨段结论须读完全部段才下）
+lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp:1-1500

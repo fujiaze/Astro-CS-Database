@@ -1,0 +1,7 @@
+# 批次 CR-130｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 2938 行）
+lib/infrastructure/acr/tests/unit/test_route_estimator.cpp
+lib/infrastructure/acr/tests/unit/test_scheduler.cpp
+lib/infrastructure/acr/tests/unit/test_task_descriptor.cpp
+lib/infrastructure/acr/tests/unit/test_topology.cpp
+lib/infrastructure/acr/tests/unit/test_utilization.cpp
+lib/infrastructure/acr/tests/unit/test_work_pool.cpp

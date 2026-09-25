@@ -1,0 +1,6 @@
+# 批次 CR-88｜lib/infrastructure/pipeline｜5 项（整读＋逐数值处置表；合计约 1984 行）
+lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/gate_module_snr_extract_spy.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/orchestrator_saturation_wiring_gate.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_checkpoint.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_dll_loader.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_logger.cpp

@@ -1,0 +1,7 @@
+# 批次 CR-09｜lib/algorithms/drizzle 第 1 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/drizzle/hips/src/aio_publish.cpp
+lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp
+lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.h
+lib/algorithms/drizzle/healpix_drizzle/tests/bench_drizzle.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/bench_write.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp

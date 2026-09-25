@@ -1,0 +1,20 @@
+# 批次 CIT-04｜18 条未核引用（P-1 优先）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 列：序号	优先级	命中次数	引用件	类型	代表位点(断言所在处)
+53	P-1	4	DOI 10.1086/675080	DOI/DOI-url	实验/additive-sky-seamless/results/REVIEW.md:123 ;; 实验/additive-sky-seamless/results/evidence_lit.json:27 ;; 实验/additive-sky-seamless/README.md:327
+80	P-1	3	DOI 10.3847/1538-3881/ab94b4	DOI/DOI-url	docs/science/PHOTOMETRY.md:307 ;; 实验/photometric-magnitude/README.md:381 ;; 实验/photometric-magnitude/REPORT_paper.md:317
+92	P-1	2	arXiv:1506.00837	arXiv	实验/absolute-snr/docs/surveys/f-instr-survey.md:166 ;; 实验/absolute-snr/docs/surveys/f-instr-survey.md:30
+98	P-1	2	arXiv:2201.07246	arXiv	实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md:710 ;; 实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md:91
+104	P-1	2	arXiv:astro-ph/0101420	arXiv	实验/absolute-snr/docs/surveys/f-instr-survey.md:186 ;; 实验/absolute-snr/docs/surveys/f-instr-survey.md:203
+110	P-1	2	DOI 10.1051/0004-6361/202243797	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1144 ;; 实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:125
+116	P-1	2	DOI 10.1086/346140	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:70 ;; 实验/absolute-snr/docs/surveys/f-instr-survey.md:76
+122	P-1	2	DOI 10.1109/TIT.2005.862083	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1153 ;; 实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:107
+128	P-1	2	DOI 10.3847/1538-4365/abb82a	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:243 ;; 实验/absolute-snr/docs/surveys/f-instr-survey.md:255
+134	P-1	1	1964AnMS...35...73H	ADS-bibcode	docs/science/PHASE2_UPM.md:288
+140	P-1	1	arXiv:0805.2366	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:236
+146	P-1	1	arXiv:1203.0297	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:137
+152	P-1	1	arXiv:1802.10157	arXiv	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:92
+158	P-1	1	arXiv:2206.01007	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:194
+164	P-1	1	arXiv:2406.06850	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:196
+170	P-1	1	arXiv:astro-ph/0504244	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:229
+176	P-1	1	DOI 10.1017/S0370164600014346（题名级核验	DOI	实验/absolute-snr/docs/EXP-06-SNR-PHYS.md:447
+182	P-1	1	DOI 10.1051/0004-6361/201832756；Gaia	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1144

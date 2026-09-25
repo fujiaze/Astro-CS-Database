@@ -1,0 +1,6 @@
+# 批次 CR-39｜lib/algorithms/drizzle｜5 项（整读＋逐数值处置表；合计约 2756 行）
+lib/algorithms/drizzle/healpix_drizzle/tests/reverse_drizzle_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/test_nside_pixfrac.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/test_spherical_overlap.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/variance_propagation_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/verify_bench.cpp

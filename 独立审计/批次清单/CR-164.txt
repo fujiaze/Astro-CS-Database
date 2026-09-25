@@ -1,0 +1,5 @@
+# 批次 CR-164｜lib/infrastructure/aio｜4 项（整读＋逐数值处置表；合计约 2215 行）
+lib/infrastructure/aio/third_party/cfitsio/checksum.c
+lib/infrastructure/aio/third_party/cfitsio/drvrfile.c
+lib/infrastructure/aio/third_party/cfitsio/drvrgsiftp.c
+lib/infrastructure/aio/third_party/cfitsio/drvrgsiftp.h

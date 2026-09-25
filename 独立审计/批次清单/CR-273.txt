@@ -1,0 +1,6 @@
+# 批次 CR-273｜第三方引入件**溯源登记**批（不逐值立卡）｜5 个文件
+lib/infrastructure/aio/third_party/cfitsio/win_compat/unistd.h
+lib/infrastructure/aio/third_party/cfitsio/windumpexts.c
+lib/infrastructure/aio/third_party/cfitsio/zcompress.c
+lib/infrastructure/aio/third_party/cfitsio/zuncompress.c
+lib/third_party/nlohmann/json.hpp

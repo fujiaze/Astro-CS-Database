@@ -1,0 +1,7 @@
+# 批次 CR-52｜lib/algorithms/star_detection｜6 项（整读＋逐数值处置表；合计约 1459 行）
+lib/algorithms/star_detection/src/sdet_image.cpp
+lib/algorithms/star_detection/src/sdet_image.h
+lib/algorithms/star_detection/src/sdet_log.cpp
+lib/algorithms/star_detection/src/sdet_log.h
+lib/algorithms/star_detection/test/sdet_fp64_test.cpp
+lib/algorithms/star_detection/test/sdet_saturation_cursor_test.cpp

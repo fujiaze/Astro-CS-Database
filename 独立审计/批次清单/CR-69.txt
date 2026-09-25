@@ -1,0 +1,7 @@
+# 批次 CR-69｜lib/include/astrocs｜6 项（整读＋逐数值处置表；合计约 943 行）
+lib/include/astrocs/core/canonical_hash.h
+lib/include/astrocs/core/checkpoint.h
+lib/include/astrocs/core/context.h
+lib/include/astrocs/core/contracts.h
+lib/include/astrocs/core/executor.h
+lib/include/astrocs/core/export_stream.h

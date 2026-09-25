@@ -1,0 +1,16 @@
+# 批次 CIT-09｜14 条未核引用（P-1 优先，按命中次数降序）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 列：序号	优先级	命中次数	引用件	类型	代表位点(断言所在处)
+187	P-1	1	DOI 10.1051/0004-6361/202141249	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:297
+193	P-1	1	DOI 10.1051/0004-6361/202555722	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:138
+199	P-1	1	DOI 10.1051/aas:1996164，见	DOI	docs/references/SCIENTIFIC_REFERENCES.md:171
+205	P-1	1	DOI 10.1086/129100	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:175
+211	P-1	1	DOI 10.1086/132801，SCI-001	DOI	docs/science/NOISE_MODEL.md:357
+217	P-1	1	DOI 10.1086/190669	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:96
+223	P-1	1	DOI 10.1086/316851	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:162
+229	P-1	1	DOI 10.1086/338393；arXiv:astro-ph/9808087v2	DOI	docs/science/DRIZZLE.md:188
+235	P-1	1	DOI 10.1086/444553	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:183
+241	P-1	1	DOI 10.1086/677655	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:198
+247	P-1	1	DOI 10.1093/biomet/35.3-4.246；公式	DOI	实验/absolute-snr/docs/EXP-06-SNR-PHYS.md:454
+253	P-1	1	DOI 10.1093/pasj/psx066	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:259
+259	P-1	1	DOI 10.1109/TIP.2011.2121085	DOI	实验/absolute-snr/docs/EXP-06-SNR-PHYS.md:606
+265	P-1	1	DOI 10.1214/aoms/1177703732（稳健位置估计的原始框架	DOI	docs/science/PHASE2_UPM.md:136

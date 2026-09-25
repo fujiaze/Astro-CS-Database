@@ -1,0 +1,7 @@
+# 批次 CR-48｜lib/algorithms/coverage｜6 项（整读＋逐数值处置表；合计约 2966 行）
+lib/algorithms/coverage/src/sampler.cpp
+lib/algorithms/coverage/src/stage2_common.cpp
+lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp
+lib/algorithms/coverage/tests/retired_object_reject_negative_test.cpp
+lib/algorithms/coverage/tests/routing_test.cpp
+lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp

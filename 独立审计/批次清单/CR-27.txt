@@ -1,0 +1,7 @@
+# 批次 CR-27｜lib/algorithms/platesolve 第 2 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_itertrans.h
+lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_kvector.h
+lib/algorithms/platesolve/cpp/ipv/src/ipv_kvector.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_log.h

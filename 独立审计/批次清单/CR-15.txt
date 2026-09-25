@@ -1,0 +1,7 @@
+# 批次 CR-15｜lib/algorithms/noise_snr 第 1 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/noise_snr/cpp/src/information_weight.cpp
+lib/algorithms/noise_snr/include/astrocs/v6/information_weight.h
+lib/algorithms/noise_snr/src/module_entry.cpp
+lib/algorithms/noise_snr/cpp/src/noise_model.cpp
+lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_abi_layout_probe.cpp

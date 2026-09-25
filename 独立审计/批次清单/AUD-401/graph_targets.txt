@@ -1,0 +1,302 @@
+${_t}	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:233	0	
+${name}	eng/tests/unit/v6_p3_rsmp/CMakeLists.txt:29	0	
+acsd	CMakeLists.txt:981	5	lib/infrastructure/cli/main.cpp;lib/infrastructure/cli/parser.cpp;lib/infrastructure/cli/commands.cpp;lib/infrastructure/cli/process.cpp;lib/infrastructure/cli/runtime_client.cpp
+acsd_io	CMakeLists.txt:256	1	lib/infrastructure/aio/io/fits_core.c
+acsd_io_adapter	CMakeLists.txt:216	1	lib/infrastructure/aio/io/src/io_adapter.cpp
+acsd_runtime	CMakeLists.txt:243	1	lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c
+ahpx_hips_format_test	eng/tests/unit/CMakeLists.txt:1396	3	eng/tests/unit/ahpx_hips_format_test.cpp;lib/infrastructure/aio/src/ahpx/aio_ahpx_writer.cpp;lib/infrastructure/aio/src/ahpx/aio_ahpx_reader.cpp
+aio_${_t}	lib/infrastructure/aio/tests/CMakeLists.txt:25	0	
+aio_abi_layout_probe	lib/infrastructure/aio/tests/abi/CMakeLists.txt:16	0	
+aio_abi_selfcheck	eng/tests/unit/CMakeLists.txt:1373	3	eng/tests/unit/aio_abi_selfcheck.cpp;eng/tests/unit/aio_abi_tests.cpp;lib/infrastructure/aio/src/aio_abi.cpp
+aio_abi_tests	eng/tests/unit/CMakeLists.txt:1361	2	eng/tests/unit/aio_abi_tests.cpp;lib/infrastructure/aio/src/aio_abi.cpp
+aio_hips_atomic_publish	lib/infrastructure/aio/tests/CMakeLists.txt:39	0	
+astrocs-stage2	lib/algorithms/coverage/CMakeLists.txt:206	1	lib/algorithms/coverage/tools/stage2.cpp
+astrocs_aio	CMakeLists.txt:535	8	lib/infrastructure/aio/src/aio_fits.cpp;lib/infrastructure/aio/src/aio_api.cpp;lib/infrastructure/aio/src/aio_log.cpp;lib/infrastructure/aio/src/aio_compressor.cpp;lib/infrastructure/aio/src/aio_xisf.cpp;lib/infrastructure/aio/src/aio_pipeline.cpp;lib/infrastructure/aio/src/aio_sysinfo.cpp;lib/infrastructure/aio/src/aio_abi.cpp
+astrocs_calibration	CMakeLists.txt:589	5	lib/algorithms/calibration/src/calibrator.cpp;lib/algorithms/calibration/src/master_generator.cpp;lib/algorithms/calibration/src/cosmetic_corrector.cpp;lib/algorithms/calibration/src/photometry_apply.cpp;lib/algorithms/calibration/src/ac_api.cpp
+astrocs_catalog_gaia	lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15	2	lib/infrastructure/gaia_xpsd_client/src/gaia_client.c;lib/infrastructure/gaia_xpsd_client/src/module_entry.c
+astrocs_cfitsio	CMakeLists.txt:488	0	
+astrocs_cli_process	CMakeLists.txt:976	1	lib/infrastructure/cli/process.cpp
+astrocs_cli_runtime	CMakeLists.txt:1087	1	lib/infrastructure/cli/runtime_client.cpp
+astrocs_cli_subcommand_export	lib/infrastructure/cli/CMakeLists.txt:38	0	
+astrocs_cli_subcommand_mosaic	lib/infrastructure/cli/CMakeLists.txt:33	0	
+astrocs_cli_subcommand_normalize	lib/infrastructure/cli/CMakeLists.txt:28	0	
+astrocs_cli_subcommands	lib/infrastructure/cli/CMakeLists.txt:21	0	
+astrocs_common	CMakeLists.txt:464	2	lib/algorithms/shared/crypto/sha256.cpp;lib/algorithms/shared/healpix/healpix_core.cpp
+astrocs_contracts	CMakeLists.txt:205	0	
+astrocs_core	CMakeLists.txt:372	19	lib/infrastructure/scheduler/src/artifact.cpp;lib/infrastructure/scheduler/src/artifact_store.cpp;lib/infrastructure/scheduler/src/module.cpp;lib/infrastructure/scheduler/src/pipeline.cpp;lib/infrastructure/scheduler/src/block_frame.cpp;lib/infrastructure/scheduler/src/normalize_workflow.cpp;lib/infrastructure/scheduler/src/mosaic_window.cpp;lib/infrastructure/scheduler/src/export_stream.cpp;lib/infrastructure/scheduler/src/block_flow.cpp;lib/infrastructure/scheduler/src/context.cpp;lib/infrastructure/scheduler/src/runtime.cpp;lib/infrastructure/scheduler/src/scheduler.cpp;lib/infrastructure/scheduler/src/checkpoint.cpp;lib/infrastructure/scheduler/src/logging.cpp;lib/infrastructure/scheduler/src/plan_estimator.cpp;lib/infrastructure/scheduler/src/memory_budget.cpp;lib/infrastructure/scheduler/src/memory_pressure.cpp;lib/infrastructure/scheduler/src/canonical_hash.cpp;lib/infrastructure/scheduler/src/build_stamp.cpp
+astrocs_cpu	CMakeLists.txt:701	12	lib/infrastructure/benchmark/backend_host/cpu_features.cpp;lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp;lib/infrastructure/benchmark/backend_host/backend_loader.cpp;lib/infrastructure/benchmark/backend_host/baseline_backend.cpp;lib/infrastructure/benchmark/backend_host/profile_gen.cpp;lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp;lib/infrastructure/benchmark/backend_host/cpu_routing.cpp;lib/infrastructure/benchmark/backend_host/host_services.cpp;lib/infrastructure/benchmark/backend_host/bench_harness.cpp;lib/infrastructure/benchmark/backend_host/bench_report.cpp;lib/infrastructure/benchmark/backend_host/profile_store.cpp;lib/infrastructure/benchmark/backend_host/worker_advisor.cpp
+astrocs_cpu_avx2	CMakeLists.txt:729	1	lib/infrastructure/benchmark/backend_host/avx2_backend.cpp
+astrocs_cpu_avx512	CMakeLists.txt:736	1	lib/infrastructure/benchmark/backend_host/avx512_backend.cpp
+astrocs_cpu_baseline	CMakeLists.txt:344	1	lib/infrastructure/benchmark/backend_host/baseline_backend.cpp
+astrocs_drizzle	CMakeLists.txt:669	10	lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp;lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp;lib/algorithms/drizzle/healpix_drizzle/poly_clip.cpp;lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp;lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp;lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp;lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp;lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_hips_api.cpp;lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp;lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.cpp
+astrocs_hips	CMakeLists.txt:567	11	lib/infrastructure/aio/src/hips/aio_hips_reader.cpp;lib/infrastructure/aio/src/hips/aio_hips_writer.cpp;lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp;lib/infrastructure/aio/src/hiss_codec.cpp;lib/infrastructure/aio/src/hiss_common.cpp;lib/infrastructure/aio/src/hiss_reader.cpp;lib/infrastructure/aio/src/hiss_stream_writer.cpp;lib/infrastructure/aio/src/hiss_tile_model.cpp;lib/infrastructure/aio/src/hiss_transform.cpp;lib/infrastructure/aio/src/hiss_writer.cpp;lib/infrastructure/aio/src/aio_upm.cpp
+astrocs_hips_properties	CMakeLists.txt:654	1	lib/algorithms/coverage/hips_properties.cpp
+astrocs_identifiability	CMakeLists.txt:617	1	lib/algorithms/coverage/src/identifiability.cpp
+astrocs_infra_orchestrator	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50	6	lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp;lib/infrastructure/pipeline/orchestrator/cpp/src/dll_loader.cpp;lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp;lib/infrastructure/pipeline/orchestrator/cpp/src/logger.cpp;lib/infrastructure/pipeline/orchestrator/cpp/src/cli_command.cpp;lib/infrastructure/pipeline/orchestrator/cpp/src/json_config.cpp
+astrocs_module_adapters	CMakeLists.txt:1043	3	lib/infrastructure/scheduler/src/module_adapters.cpp;lib/algorithms/integration/v6/src/weight_chain.cpp;lib/algorithms/integration/v6/src/variance_propagation.cpp
+astrocs_noop	eng/tests/conformance/noop/CMakeLists.txt:9	1	eng/tests/conformance/noop/src/noop_module.c
+astrocs_orchestrator_jsv	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28	6	lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-uri.cpp;lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp;lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-patch.cpp;lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/smtp-address-validator.cpp;lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/string-format-check.cpp;lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-schema-draft7.json.cpp
+astrocs_p1_cal_v6_covariance	eng/tests/unit/v6_p1_cal/CMakeLists.txt:16	0	
+astrocs_p1_calibration	lib/algorithms/calibration/CMakeLists.txt:30	0	
+astrocs_p1_cosmetic	lib/algorithms/cosmetic/CMakeLists.txt:50	0	
+astrocs_p1_dpsf	CMakeLists.txt:865	3	lib/algorithms/psf/src/dpsf_psf.cpp;lib/algorithms/psf/src/dpsf_image.cpp;lib/algorithms/psf/src/dpsf_log.cpp
+astrocs_p1_drizzle	lib/algorithms/drizzle/CMakeLists.txt:61	0	
+astrocs_p1_hips_writer	lib/algorithms/drizzle/hips/CMakeLists.txt:50	0	
+astrocs_p1_ipv	CMakeLists.txt:843	1	lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
+astrocs_p1_sdet	CMakeLists.txt:892	6	lib/algorithms/star_detection/src/sdet_api.cpp;lib/algorithms/star_detection/src/sdet_detector.cpp;lib/algorithms/star_detection/src/sdet_image.cpp;lib/algorithms/star_detection/src/sdet_log.cpp;lib/algorithms/star_detection/src/sdet_background.cpp;lib/algorithms/star_detection/src/nls_lm.cpp
+astrocs_p3_fits_output	lib/algorithms/fits_output/CMakeLists.txt:17	1	lib/algorithms/fits_output/p3_output.cpp
+astrocs_p3_projection_wcs	lib/algorithms/projection/CMakeLists.txt:19	1	lib/algorithms/projection/p3_wcs.cpp
+astrocs_p3_rsmp	lib/algorithms/resample/CMakeLists.txt:20	7	lib/algorithms/resample/p3_rsmp_units.cpp;lib/algorithms/resample/p3_rsmp_kernel_registry.cpp;lib/algorithms/resample/p3_rsmp_operator.cpp;lib/algorithms/resample/p3_rsmp_covariance.cpp;lib/algorithms/resample/p3_rsmp_propagation.cpp;lib/algorithms/resample/p3_rsmp_failclosed.cpp;lib/algorithms/resample/p3_resample.cpp
+astrocs_phase1_noise	CMakeLists.txt:807	3	lib/algorithms/noise_snr/cpp/src/noise_model.cpp;lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp;lib/algorithms/noise_snr/cpp/src/snr_science.cpp
+astrocs_phase1_phot	CMakeLists.txt:751	1	lib/algorithms/photometry/wrapper_phase1/photometer.cpp
+astrocs_phase1_photcal	CMakeLists.txt:764	7	lib/algorithms/photometry/cpp/src/pc_api.cpp;lib/algorithms/photometry/cpp/src/star_matcher.cpp;lib/algorithms/photometry/cpp/src/wcs_transform.cpp;lib/algorithms/photometry/cpp/src/image_corrector.cpp;lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp;lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp;lib/algorithms/photometry/cpp/src/spatial_gain.cpp
+astrocs_phase1_session	CMakeLists.txt:913	1	lib/phase1_session/p1_session.cpp
+astrocs_phase1_stars	CMakeLists.txt:826	1	lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp
+astrocs_phase1_wcs	CMakeLists.txt:748	1	lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp
+astrocs_phase2	CMakeLists.txt:624	9	lib/algorithms/coverage/src/upm.cpp;lib/algorithms/coverage/src/sky_plane.cpp;lib/algorithms/coverage/src/stage2_common.cpp;lib/algorithms/coverage/src/rejection.cpp;lib/algorithms/coverage/src/coverage.cpp;lib/algorithms/coverage/src/sampler.cpp;lib/algorithms/coverage/src/block.cpp;lib/algorithms/coverage/src/integrate.cpp;lib/algorithms/coverage/src/cuda_bridge_stub.cpp
+astrocs_phase2_session	CMakeLists.txt:925	1	lib/phase2_session/p2_session.cpp
+astrocs_phase3_session	CMakeLists.txt:933	1	lib/phase3_session/p3_session.cpp
+astrocs_probes	CMakeLists.txt:458	0	
+astrocs_v6_aio	lib/infrastructure/aio/v6/CMakeLists.txt:13	7	lib/infrastructure/aio/v6/src/v6_sha256.cpp;lib/infrastructure/aio/v6/src/v6_bunit.cpp;lib/infrastructure/aio/v6/src/v6_fits.cpp;lib/infrastructure/aio/v6/src/v6_atomic_publish.cpp;lib/infrastructure/aio/v6/src/v6_provenance.cpp;lib/infrastructure/aio/v6/src/v6_hips_manifest.cpp;lib/infrastructure/aio/v6/src/v6_product_io.cpp
+astrocs_v6_phase1_product	lib/algorithms/integration/v6_phase1/CMakeLists.txt:13	1	lib/algorithms/integration/v6_phase1/src/phase1_product.cpp
+astrocs_v6_phase2_integrate	lib/algorithms/integration/v6/CMakeLists.txt:25	3	lib/algorithms/integration/v6/src/phase2_integrate.cpp;lib/algorithms/integration/v6/src/weight_chain.cpp;lib/algorithms/integration/v6/src/variance_propagation.cpp
+block_flow_test	eng/tests/unit/CMakeLists.txt:77	1	eng/tests/unit/block_flow_test.cpp
+calibrated_pair_diag	lib/algorithms/coverage/CMakeLists.txt:219	1	lib/algorithms/coverage/tools/calibrated_pair_diag.cpp
+calibration_adapter_test	eng/tests/unit/CMakeLists.txt:1179	1	eng/tests/unit/calibration_adapter_test.cpp
+calibration_integration_test	eng/tests/unit/CMakeLists.txt:1197	1	eng/tests/unit/calibration_integration_test.cpp
+candidate_oracle_test	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:91	0	
+cli_bench_verdict_test	eng/tests/unit/CMakeLists.txt:186	1	eng/tests/unit/cli_bench_verdict_test.cpp
+cli_process_test	eng/tests/unit/CMakeLists.txt:178	1	eng/tests/unit/cli_process_test.cpp
+cli_wideconv_test	eng/tests/unit/CMakeLists.txt:194	1	eng/tests/unit/cli_wideconv_test.cpp
+control_median_mc_test	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:110	0	
+core_artifact_test	eng/tests/unit/CMakeLists.txt:7	1	eng/tests/unit/core_artifact_test.cpp
+core_block_frame_test	eng/tests/unit/CMakeLists.txt:22	1	eng/tests/unit/core_block_frame_test.cpp
+core_checkpoint_test	eng/tests/unit/CMakeLists.txt:114	1	eng/tests/unit/core_checkpoint_test.cpp
+core_context_test	eng/tests/unit/CMakeLists.txt:85	1	eng/tests/unit/core_context_test.cpp
+core_contracts_test	eng/tests/unit/CMakeLists.txt:2	1	eng/tests/unit/core_contracts_test.cpp
+core_logging_test	eng/tests/unit/CMakeLists.txt:119	1	eng/tests/unit/core_logging_test.cpp
+core_module_test	eng/tests/unit/CMakeLists.txt:12	1	eng/tests/unit/core_module_test.cpp
+core_pipeline_test	eng/tests/unit/CMakeLists.txt:17	1	eng/tests/unit/core_pipeline_test.cpp
+core_scheduler_test	eng/tests/unit/CMakeLists.txt:90	1	eng/tests/unit/core_scheduler_test.cpp
+cosmetic_adapter_test	eng/tests/unit/CMakeLists.txt:1230	1	eng/tests/unit/cosmetic_adapter_test.cpp
+cosmetic_integration_test	eng/tests/unit/CMakeLists.txt:1258	1	eng/tests/unit/cosmetic_integration_test.cpp
+cpu001_negative_test	eng/tests/unit/CMakeLists.txt:510	1	eng/tests/unit/cpu001_negative_test.cpp
+cpu001_provider_selftest_avx2	eng/tests/unit/CMakeLists.txt:480	2	lib/infrastructure/benchmark/backend_host/host_services.cpp;lib/infrastructure/benchmark/backend_host/cpu_features.cpp
+cpu001_provider_selftest_avx512	eng/tests/unit/CMakeLists.txt:491	2	lib/infrastructure/benchmark/backend_host/host_services.cpp;lib/infrastructure/benchmark/backend_host/cpu_features.cpp
+cpu001_provider_selftest_baseline	eng/tests/unit/CMakeLists.txt:472	0	
+cpu003_profile_v2_test	eng/tests/unit/CMakeLists.txt:329	1	eng/tests/unit/cpu003_profile_v2_test.cpp
+cpu004_routing_test	eng/tests/unit/CMakeLists.txt:361	1	eng/tests/unit/cpu004_routing_test.cpp
+cpu006_bench_report_test	eng/tests/unit/CMakeLists.txt:337	1	eng/tests/unit/cpu006_bench_report_test.cpp
+cpu007_profile_store_test	eng/tests/unit/CMakeLists.txt:345	1	eng/tests/unit/cpu007_profile_store_test.cpp
+cpu008_worker_advisor_test	eng/tests/unit/CMakeLists.txt:353	1	eng/tests/unit/cpu008_worker_advisor_test.cpp
+cpu_abi_test	eng/tests/unit/CMakeLists.txt:270	1	eng/tests/unit/cpu_abi_test.cpp
+cpu_backend_exception_test	eng/tests/unit/CMakeLists.txt:286	1	eng/tests/unit/cpu_backend_exception_test.cpp
+cpu_bench_test	eng/tests/unit/CMakeLists.txt:314	1	eng/tests/unit/cpu_bench_test.cpp
+cpu_fallback_test	eng/tests/unit/CMakeLists.txt:307	1	eng/tests/unit/cpu_fallback_test.cpp
+cpu_features_test	eng/tests/unit/CMakeLists.txt:293	1	eng/tests/unit/cpu_features_test.cpp
+cpu_lease_test	eng/tests/unit/CMakeLists.txt:275	1	eng/tests/unit/cpu_lease_test.cpp
+cpu_monitor_test	eng/tests/unit/CMakeLists.txt:526	1	eng/tests/unit/cpu_monitor_test.cpp
+cpu_profile_test	eng/tests/unit/CMakeLists.txt:321	1	eng/tests/unit/cpu_profile_test.cpp
+cpu_provider_test	eng/tests/unit/CMakeLists.txt:300	1	eng/tests/unit/cpu_provider_test.cpp
+drizzle_acceptance_test	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:34	0	
+drizzle_adapter_test	eng/tests/unit/CMakeLists.txt:1147	1	eng/tests/unit/drizzle_adapter_test.cpp
+drizzle_freeze_test	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:76	0	
+drizzle_l3_full_fp32	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:277	0	
+drizzle_nonfinite_test	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:185	0	
+drizzle_pf_sb_gate	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:312	0	
+drizzle_precision_default_test	eng/tests/unit/CMakeLists.txt:1164	1	eng/tests/unit/drizzle_precision_default_test.cpp
+drizzle_science_matrix_test	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:197	0	
+executor_provider_race_test	eng/tests/unit/CMakeLists.txt:242	5	eng/tests/unit/executor_provider_race_test.cpp;lib/infrastructure/scheduler/src/executor.cpp;lib/infrastructure/scheduler/src/context.cpp;lib/infrastructure/scheduler/src/artifact.cpp;lib/infrastructure/scheduler/src/logging.cpp
+export_stream_test	eng/tests/unit/CMakeLists.txt:42	1	eng/tests/unit/export_stream_test.cpp
+gaia_adapter_test	eng/tests/unit/CMakeLists.txt:1018	1	eng/tests/unit/gaia_adapter_test.c
+gaia_cat_polar_ref	eng/tests/unit/CMakeLists.txt:965	1	eng/tests/unit/gaia_cat_test.c
+gaia_cat_test	eng/tests/unit/CMakeLists.txt:961	1	eng/tests/unit/gaia_cat_test.c
+gaia_integration_test	eng/tests/unit/CMakeLists.txt:1039	1	eng/tests/unit/gaia_integration_test.c
+gaia_magnitude_range_bounds_test	eng/tests/unit/CMakeLists.txt:1106	1	eng/tests/unit/gaia_magnitude_range_bounds_test.c
+gaia_module_manifest_bounds_test	eng/tests/unit/CMakeLists.txt:1067	2	eng/tests/unit/gaia_module_manifest_bounds_test.c;lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
+gaia_shard_coverage_gate_test	eng/tests/unit/CMakeLists.txt:1125	1	eng/tests/unit/gaia_shard_coverage_gate_test.c
+gaia_unshuffle_test	eng/tests/unit/CMakeLists.txt:203	1	eng/tests/unit/gaia_unshuffle_test.c
+gaia_xpsd_fixture_gen	eng/tests/unit/CMakeLists.txt:937	1	eng/tests/unit/gaia_xpsd_fixture_gen.c
+hips_publish_atomic_test	eng/tests/unit/CMakeLists.txt:692	3	eng/tests/unit/p1_hips/publish_atomic_test.c;eng/tests/unit/p1_hips/adapter_entry_impl.cpp;lib/algorithms/drizzle/hips/src/aio_publish.cpp
+hips_writer_adapter_test	eng/tests/unit/CMakeLists.txt:670	3	eng/tests/unit/p1_hips/adapter_test.c;eng/tests/unit/p1_hips/adapter_entry_impl.cpp;lib/algorithms/drizzle/hips/src/aio_publish.cpp
+io_adapter_test	eng/tests/unit/CMakeLists.txt:213	1	eng/tests/unit/io_adapter_test.cpp
+io_ownership_test	eng/tests/unit/CMakeLists.txt:218	1	eng/tests/unit/io_ownership_test.cpp
+io_reentrant_test	eng/tests/unit/CMakeLists.txt:225	1	eng/tests/unit/io_reentrant_test.cpp
+ipv_platform_binding_test	eng/tests/unit/CMakeLists.txt:1503	1	eng/tests/unit/ipv_platform_binding_test.cpp
+m42_criterion_probe	CMakeLists.txt:1156	1	run/UPM-KAPPA-UNIFY-01/tools/m42_criterion_probe.cpp
+master_flat_median_test	eng/tests/unit/CMakeLists.txt:541	1	eng/tests/unit/master_flat_median_test.cpp
+mem_wire_test	eng/tests/unit/CMakeLists.txt:98	1	eng/tests/unit/mem_wire_test.cpp
+memory_pressure_test	eng/tests/unit/CMakeLists.txt:107	1	eng/tests/unit/memory_pressure_test.cpp
+mini_sip1000	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:246	0	
+mon001_gate_test	eng/tests/unit/CMakeLists.txt:398	1	eng/tests/unit/mon001_gate_test.cpp
+mon001_recorder_test	eng/tests/unit/CMakeLists.txt:369	1	eng/tests/unit/mon001_recorder_test.cpp
+mon002_alloc_test	eng/tests/unit/CMakeLists.txt:388	1	eng/tests/unit/mon002_alloc_test.cpp
+mon002_gate_test	eng/tests/unit/CMakeLists.txt:377	1	eng/tests/unit/mon002_gate_test.cpp
+mon004_enforcement_test	eng/tests/unit/CMakeLists.txt:409	1	eng/tests/unit/mon004_enforcement_test.cpp
+mosaic_window_test	eng/tests/unit/CMakeLists.txt:35	1	eng/tests/unit/mosaic_window_test.cpp
+noop_handshake_test	eng/tests/conformance/noop/CMakeLists.txt:46	1	eng/tests/conformance/noop/tests/unit/noop_handshake_test.c
+normalize_workflow_test	eng/tests/unit/CMakeLists.txt:27	1	eng/tests/unit/normalize_workflow_test.cpp
+orchestrator_curve_resolve_gate	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:109	1	lib/infrastructure/pipeline/orchestrator/cpp/tests/test_photometry_curve_resolve.cpp
+orchestrator_gate_module_aio	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:59	0	
+orchestrator_gate_module_snr	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:74	1	lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/gate_module_snr_extract_spy.cpp
+orchestrator_legacy_cli	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:95	1	lib/infrastructure/pipeline/orchestrator/cpp/src/main.cpp
+orchestrator_saturation_wiring_gate	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:85	1	lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/orchestrator_saturation_wiring_gate.cpp
+orchestrator_test_${orch_test}	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:18	1	lib/infrastructure/pipeline/orchestrator/cpp/tests/test_${orch_test}.cpp
+orchestrator_test_cli	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:27	1	lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp
+p1001_modules_test	eng/tests/unit/CMakeLists.txt:418	1	eng/tests/unit/p1001_modules_test.cpp
+p1001_real_nodes_test	eng/tests/unit/CMakeLists.txt:428	1	eng/tests/unit/p1001_real_nodes_test.cpp
+p15_artifact_collect_test	eng/tests/unit/CMakeLists.txt:920	1	eng/tests/unit/p15_artifact_collect_test.cpp
+p1_calibration_test	eng/tests/unit/CMakeLists.txt:534	1	eng/tests/unit/p1_calibration_test.cpp
+p1_hips_writer_test	eng/tests/unit/CMakeLists.txt:744	1	eng/tests/unit/p1_hips_writer_test.cpp
+p1_io_hardening_test	eng/tests/unit/CMakeLists.txt:902	1	lib/infrastructure/aio/tests/test_p1_io_hardening.cpp
+p1_ir_facade_test	eng/tests/unit/CMakeLists.txt:751	1	eng/tests/unit/p1_ir_facade_test.cpp
+p1_noise_adapter_test	eng/tests/unit/CMakeLists.txt:1324	2	eng/tests/unit/p1_noise/adapter_test.cpp;eng/tests/unit/p1_noise/adapter_entry_impl.cpp
+p1_noise_test	eng/tests/unit/CMakeLists.txt:722	1	eng/tests/unit/p1_noise_test.cpp
+p1_nside_test	eng/tests/unit/CMakeLists.txt:730	1	eng/tests/unit/p1_nside_test.cpp
+p1_resource_test	eng/tests/unit/CMakeLists.txt:783	1	eng/tests/unit/p1_resource_test.cpp
+p1_session_manifest_test	eng/tests/unit/CMakeLists.txt:759	1	lib/phase1_session/tests/test_p1_session_manifest.cpp
+p1_stars_test	eng/tests/unit/CMakeLists.txt:709	1	eng/tests/unit/p1_stars_test.cpp
+p1_wcs_phot_test	eng/tests/unit/CMakeLists.txt:715	1	eng/tests/unit/p1_wcs_phot_test.cpp
+p1cal_perf_test	lib/algorithms/calibration/tests/p1cal/CMakeLists.txt:44	0	
+p1cal_selfcheck_test	lib/algorithms/calibration/tests/p1cal/CMakeLists.txt:53	0	
+p1cal_tests	lib/algorithms/calibration/tests/p1cal/CMakeLists.txt:30	0	
+p1cos_badcol_tests	lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:75	0	
+p1cos_perf_test	lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:47	0	
+p1cos_selfcheck_test	lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:56	0	
+p1cos_tests	lib/algorithms/cosmetic/tests/p1cos/CMakeLists.txt:33	0	
+p1drz_disp009_gate	lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:85	0	
+p1drz_perf_test	lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:55	0	
+p1drz_selfcheck_test	lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:65	0	
+p1drz_tests	lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:38	0	
+p1drz_thread_probe	lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:99	0	
+p1hips_digest_verify	lib/infrastructure/aio/tests/p1hips/CMakeLists.txt:93	0	
+p1hips_perf_test	lib/infrastructure/aio/tests/p1hips/CMakeLists.txt:68	0	
+p1hips_selfcheck_test	lib/infrastructure/aio/tests/p1hips/CMakeLists.txt:77	0	
+p1hips_tests	lib/infrastructure/aio/tests/p1hips/CMakeLists.txt:47	0	
+p1noise_perf_test	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:106	0	
+p1noise_saturation_test	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:163	0	
+p1noise_selfcheck_test	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:115	0	
+p1noise_tests	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:75	0	
+p1noise_under_test	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:68	0	
+p1phot_fixgates_test	lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:167	0	
+p1phot_passband_identity_gate	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:135	1	lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1phot_passband_identity.cpp
+p1phot_perf_test	lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:124	0	
+p1phot_selfcheck_test	lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:140	0	
+p1phot_tests	lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:92	0	
+p1psf_center_contract_gate_test	lib/algorithms/psf/tests/p1psf/CMakeLists.txt:175	0	
+p1psf_centroid_gate_test	lib/algorithms/psf/tests/p1psf/CMakeLists.txt:123	0	
+p1psf_perf_test	lib/algorithms/psf/tests/p1psf/CMakeLists.txt:59	0	
+p1psf_prodpath_check_test	lib/algorithms/psf/tests/p1psf/CMakeLists.txt:89	0	
+p1psf_selfcheck_test	lib/algorithms/psf/tests/p1psf/CMakeLists.txt:70	0	
+p1psf_tests	lib/algorithms/psf/tests/p1psf/CMakeLists.txt:42	0	
+p1sess_selfcheck_test	lib/phase1_session/tests/p1sess/CMakeLists.txt:75	0	
+p1sess_tests	lib/phase1_session/tests/p1sess/CMakeLists.txt:54	0	
+p1snr_frame_parity_test	eng/tests/unit/p1snr/CMakeLists.txt:66	1	eng/tests/unit/p1snr/p1snr_frame_parity_test.cpp
+p1snr_fref_baseline_test	eng/tests/unit/p1snr/CMakeLists.txt:56	1	eng/tests/unit/p1snr/p1snr_fref_baseline_test.cpp
+p1snr_linux_test	eng/tests/unit/p1snr/CMakeLists.txt:20	1	eng/tests/unit/p1snr/p1snr_linux_test.cpp
+p1snr_noise_cfg_wiring_test	eng/tests/unit/p1snr/CMakeLists.txt:82	1	eng/tests/unit/p1snr/p1snr_noise_cfg_wiring_test.cpp
+p1snr_science_test	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:146	0	
+p1star_angle_guard_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:195	1	lib/algorithms/star_detection/test/sdet_angle_guard_test.cpp
+p1star_guided_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:227	0	
+p1star_mad_check_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:171	0	
+p1star_nls_lm_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:209	0	
+p1star_oom_interposer	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:91	0	
+p1star_perf_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:126	0	
+p1star_selfcheck_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:145	0	
+p1star_tests	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:67	0	
+p1stardet_node_gate_test	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:249	0	
+p1wcs_perf_test	eng/tests/unit/p1wcs/CMakeLists.txt:96	0	
+p1wcs_selfcheck_test	eng/tests/unit/p1wcs/CMakeLists.txt:107	0	
+p1wcs_tests	eng/tests/unit/p1wcs/CMakeLists.txt:81	0	
+p2001_real_nodes_test	eng/tests/unit/CMakeLists.txt:439	1	eng/tests/unit/p2001_real_nodes_test.cpp
+p2002_unc_rej_prov_test	eng/tests/unit/CMakeLists.txt:453	1	eng/tests/unit/p2002_unc_rej_prov_test.cpp
+p2_block_plan_test	eng/tests/unit/CMakeLists.txt:803	1	eng/tests/unit/p2_block_plan_test.cpp
+p2_ir_facade_test	eng/tests/unit/CMakeLists.txt:821	1	eng/tests/unit/p2_ir_facade_test.cpp
+p2_output_semantics_test	eng/tests/unit/CMakeLists.txt:815	1	eng/tests/unit/p2_output_semantics_test.cpp
+p2_rej_v6_test	eng/tests/unit/v6_p2_rej/CMakeLists.txt:14	1	eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp
+p2_rejection_test	eng/tests/unit/CMakeLists.txt:809	1	eng/tests/unit/p2_rejection_test.cpp
+p2_seam_gate_test	eng/tests/unit/CMakeLists.txt:825	1	eng/tests/unit/p2_seam_gate_test.cpp
+p2_upm_synthetic_test	eng/tests/unit/CMakeLists.txt:799	1	eng/tests/unit/p2_upm_synthetic_test.cpp
+p2_workers_test	eng/tests/unit/CMakeLists.txt:791	1	eng/tests/unit/p2_workers_test.cpp
+p2hips_tests	lib/infrastructure/aio/tests/p2hips/CMakeLists.txt:38	0	
+p3002_real_nodes_test	eng/tests/unit/CMakeLists.txt:1450	1	eng/tests/unit/p3002_real_nodes_test.cpp
+p3002_uncertainty_test	eng/tests/unit/CMakeLists.txt:1463	1	eng/tests/unit/p3002_uncertainty_test.cpp
+p3_assembly_test	eng/tests/unit/CMakeLists.txt:852	1	eng/tests/unit/p3_assembly_test.cpp
+p3_coverage_test	eng/tests/unit/CMakeLists.txt:841	1	eng/tests/unit/p3_coverage_test.cpp
+p3_export_stream_prod_test	eng/tests/unit/CMakeLists.txt:60	1	eng/tests/unit/p3_export_stream_prod_test.cpp
+p3_interp_test	eng/tests/unit/CMakeLists.txt:837	1	eng/tests/unit/p3_interp_test.cpp
+p3_output_test	eng/tests/unit/CMakeLists.txt:845	1	eng/tests/unit/p3_output_test.cpp
+p3_projection_registry_test	lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:17	2	lib/algorithms/projection/tests/p3wcs/p3_projection_registry_test.cpp;lib/algorithms/projection/p3_proj_v6.cpp
+p3_projection_test	eng/tests/unit/CMakeLists.txt:1424	3	eng/tests/unit/p3_projection_test.cpp;lib/algorithms/projection/p3_projection.cpp;lib/algorithms/projection/p3_wcs.cpp
+p3_rsmp_retired_object_negative	lib/algorithms/coverage/CMakeLists.txt:167	1	lib/algorithms/coverage/tests/retired_object_reject_negative_test.cpp
+p3_sampler_cache_test	eng/tests/unit/CMakeLists.txt:863	1	eng/tests/unit/p3_sampler_cache_test.cpp
+p3_wcs_test	lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:8	1	lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp
+p5snr_under_test	lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:136	0	
+phase2	lib/algorithms/coverage/CMakeLists.txt:42	15	lib/algorithms/coverage/src/upm.cpp;lib/algorithms/coverage/src/sky_plane.cpp;lib/algorithms/coverage/src/identifiability.cpp;lib/algorithms/coverage/src/stage2_common.cpp;lib/algorithms/coverage/src/rejection.cpp;lib/algorithms/coverage/src/coverage.cpp;lib/algorithms/coverage/src/sampler.cpp;lib/algorithms/coverage/src/block.cpp;lib/algorithms/coverage/src/integrate.cpp;lib/algorithms/coverage/src/acr_kernels.cpp;lib/algorithms/coverage/src/async_io.cpp;lib/infrastructure/acr/api/kernel_registry.cpp;lib/infrastructure/acr/scheduler/device_executor.cpp;lib/algorithms/shared/healpix/healpix_core.cpp;lib/algorithms/shared/crypto/sha256.cpp
+phase2_async_io	lib/algorithms/coverage/CMakeLists.txt:138	1	lib/algorithms/coverage/tests/async_io_test.cpp
+phase2_coverage_mode_retire	lib/algorithms/coverage/CMakeLists.txt:155	1	lib/algorithms/coverage/tests/weight_mode_retire_negative_test.cpp
+phase2_execution_options	lib/algorithms/coverage/CMakeLists.txt:120	1	lib/algorithms/coverage/tests/execution_options_test.cpp
+phase2_ivar_wiring	lib/algorithms/coverage/CMakeLists.txt:106	1	lib/algorithms/coverage/tests/ivar_wiring_test.cpp
+phase2_rej_nonfinite_weights	lib/algorithms/coverage/CMakeLists.txt:150	1	lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp
+phase2_routing	lib/algorithms/coverage/CMakeLists.txt:122	1	lib/algorithms/coverage/tests/routing_test.cpp
+phase2_sampler	lib/algorithms/coverage/CMakeLists.txt:143	1	lib/algorithms/coverage/tests/kcorr_lookup_test.cpp
+phase2_sampler_parallel	lib/algorithms/coverage/CMakeLists.txt:124	1	lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp
+phase2_synthetic_gate	lib/algorithms/coverage/CMakeLists.txt:103	1	lib/algorithms/coverage/tests/synthetic_gate.cpp
+r9b_healpix_neighbors_test	eng/tests/unit/CMakeLists.txt:740	1	lib/algorithms/shared/healpix/tests/test_healpix_neighbors.cpp
+reference_overlap	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:257	0	
+rejection_cli	lib/algorithms/coverage/CMakeLists.txt:224	1	lib/algorithms/coverage/tools/rejection_cli.cpp
+rt001_abi_test	eng/tests/unit/CMakeLists.txt:124	1	eng/tests/unit/rt001_abi_test.cpp
+rt001_unique_executor_test	eng/tests/unit/CMakeLists.txt:1485	1	eng/tests/unit/rt001_unique_executor_test.cpp
+rt002_budget_test	eng/tests/unit/CMakeLists.txt:129	1	eng/tests/unit/rt002_budget_test.cpp
+rt003_context_test	eng/tests/unit/CMakeLists.txt:134	1	eng/tests/unit/rt003_context_test.cpp
+rt005_registry_test	eng/tests/unit/CMakeLists.txt:139	1	eng/tests/unit/rt005_registry_test.cpp
+rt006_scheduler_test	eng/tests/unit/CMakeLists.txt:146	1	eng/tests/unit/rt006_scheduler_test.cpp
+rt007_artifact_store_test	eng/tests/unit/CMakeLists.txt:153	1	eng/tests/unit/rt007_artifact_store_test.cpp
+rt008_runtime_client_test	eng/tests/unit/CMakeLists.txt:160	1	eng/tests/unit/rt008_runtime_client_test.cpp
+rt009_node_trace_test	eng/tests/unit/CMakeLists.txt:169	1	eng/tests/unit/rt009_node_trace_test.cpp
+test_photometry_apply_test	eng/tests/unit/CMakeLists.txt:886	1	lib/algorithms/calibration/tests/test_photometry_apply.cpp
+test_spherical_overlap	lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:125	0	
+v6_aio_test	eng/tests/unit/v6_aio/CMakeLists.txt:23	1	eng/tests/unit/v6_aio/v6_aio_test.cpp
+v6_p1_cal_covariance_test	eng/tests/unit/v6_p1_cal/CMakeLists.txt:26	0	
+v6_p1_drz_test	eng/tests/unit/v6_p1_drz/CMakeLists.txt:24	0	
+v6_p1_integrate_test	eng/tests/integration/v6_p1/CMakeLists.txt:19	0	
+v6_p1_psfw_tests	eng/tests/unit/v6_p1_psfw/CMakeLists.txt:30	0	
+v6_p2_identifiability_test	eng/tests/unit/v6_p2_identifiability/CMakeLists.txt:2	1	eng/tests/unit/v6_p2_identifiability/v6_p2_identifiability_test.cpp
+v6_p2_integrate_test	eng/tests/integration/v6_p2/CMakeLists.txt:19	0	
+v6_p2_samp_test	eng/tests/unit/v6_p2_samp/CMakeLists.txt:25	1	eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp
+v6_p2_sky_geometry_test	eng/tests/unit/v6_p2_sky/CMakeLists.txt:53	1	eng/tests/unit/v6_p2_sky/v6_p2_sky_geometry_test.cpp
+v6_p2_sky_kappa_test	eng/tests/unit/v6_p2_sky_kappa/CMakeLists.txt:2	1	eng/tests/unit/v6_p2_sky_kappa/v6_p2_sky_kappa_test.cpp
+v6_p2_sky_node_adapt_test	eng/tests/unit/v6_p2_sky/CMakeLists.txt:27	1	eng/tests/unit/v6_p2_sky/v6_p2_sky_node_adapt_test.cpp
+v6_p2_sky_test	eng/tests/unit/v6_p2_sky/CMakeLists.txt:4	1	eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp
+v6_p2_upm_geo_diag_test	eng/tests/unit/v6_p2_upm/CMakeLists.txt:42	1	eng/tests/unit/v6_p2_upm/v6_p2_upm_geo_diag_test.cpp
+v6_p2_upm_ma_test	eng/tests/unit/v6_p2_upm/CMakeLists.txt:18	1	eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp
+v6_p3_export_test	eng/tests/integration/v6_p3/CMakeLists.txt:34	1	eng/tests/integration/v6_p3/p3_v6_export_e2e_test.cpp
+v6_p3_proj_legacy_probe	eng/tests/unit/v6_p3_proj/CMakeLists.txt:46	1	eng/tests/unit/v6_p3_proj/v6_p3_proj_legacy_probe.cpp
+v6_p3_proj_probe	eng/tests/unit/v6_p3_proj/CMakeLists.txt:23	1	eng/tests/unit/v6_p3_proj/v6_p3_proj_probe.cpp
+v6_p3_proj_test	eng/tests/unit/v6_p3_proj/CMakeLists.txt:14	1	eng/tests/unit/v6_p3_proj/v6_p3_proj_test.cpp
+v6_runtime_contract_test	eng/tests/system/v6_runtime/CMakeLists.txt:16	1	eng/tests/system/v6_runtime/v6_runtime_contract_test.cpp
+v6_runtime_determinism_test	eng/tests/system/v6_runtime/CMakeLists.txt:27	1	eng/tests/system/v6_runtime/v6_runtime_determinism_test.cpp
+v6_runtime_resource_record_test	eng/tests/system/v6_runtime/CMakeLists.txt:33	1	eng/tests/system/v6_runtime/v6_runtime_resource_record_test.cpp
+variance_floor_test	eng/tests/unit/CMakeLists.txt:1588	1	eng/tests/unit/variance_floor_test.cpp
+w34_aio_dataflow_fuzz	eng/tests/unit/CMakeLists.txt:1711	0	
+w34_aio_hiss_benchmark	eng/tests/unit/CMakeLists.txt:1740	0	
+w34_aio_hiss_experiment_suite	eng/tests/unit/CMakeLists.txt:1744	0	
+w34_aio_hiss_experiments	eng/tests/unit/CMakeLists.txt:1742	0	
+w34_aio_test_drizzle_integration	eng/tests/unit/CMakeLists.txt:1757	0	
+w34_aio_test_p0_io_hardening	eng/tests/unit/CMakeLists.txt:1705	0	
+w34_aio_test_snr_unknown_block	eng/tests/unit/CMakeLists.txt:1709	0	
+w34_aio_test_writer_integration	eng/tests/unit/CMakeLists.txt:1707	0	
+w34_dpsf_nan_sort	eng/tests/unit/CMakeLists.txt:1648	0	
+w34_fits_core_selftest	eng/tests/unit/CMakeLists.txt:1678	0	
+w34_gaia_race	eng/tests/unit/CMakeLists.txt:1769	0	
+w34_gaia_spec_collector_ownership	eng/tests/unit/CMakeLists.txt:1772	0	
+w34_hips_core_selftest	eng/tests/unit/CMakeLists.txt:1680	0	
+w34_ipv_last_inlier_reset	eng/tests/unit/CMakeLists.txt:1638	0	
+w34_p0_pc_api_exception_barrier	eng/tests/unit/CMakeLists.txt:1620	0	
+w34_p0_sip_order_guard	eng/tests/unit/CMakeLists.txt:1622	0	
+w34_p1_apply_oracle	eng/tests/unit/CMakeLists.txt:1788	0	
+w34_p1_qf_oracle	eng/tests/unit/CMakeLists.txt:1796	0	
+w34_p3_nan_mask_test	eng/tests/unit/CMakeLists.txt:1665	0	
+w34_sdet_saturation_cursor	eng/tests/unit/CMakeLists.txt:1657	0	
+w34_snr_reconcile_test	eng/tests/unit/CMakeLists.txt:1607	0	
+xpsd_spectrum_count_bounds_test	eng/tests/unit/CMakeLists.txt:1089	1	eng/tests/unit/xpsd_spectrum_count_bounds_test.c

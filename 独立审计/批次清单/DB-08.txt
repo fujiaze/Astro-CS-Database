@@ -1,0 +1,5 @@
+docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md
+docs/contracts/INDEX.yaml
+docs/contracts/LOG_AND_ERROR_CONTRACT.md
+docs/contracts/PERF_GATE_CONTRACT.md
+docs/contracts/PIPELINE_BLOCK_CONTRACT.md

@@ -1,0 +1,14 @@
+lib/algorithms/coverage/include/astro/phase2
+lib/algorithms/integration/v6/include/astrocs/v6
+lib/algorithms/integration/v6/src
+lib/algorithms/integration/v6_phase1
+lib/algorithms/integration/v6_phase1/include/astrocs/v6
+lib/algorithms/integration/v6_phase1/src
+lib/algorithms/noise_snr/wrapper_phase1
+lib/algorithms/photometry/wrapper_phase1
+lib/algorithms/platesolve/wrapper_phase1
+lib/algorithms/star_detection/wrapper_phase1
+lib/infrastructure/pipeline/fixtures
+lib/phase1_session
+lib/phase2_session
+lib/phase3_session

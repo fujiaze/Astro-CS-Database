@@ -1,0 +1,3 @@
+eng/packaging/config/runtime_resources_generated.h.in	CMakeLists.txt:172:configure_file
+lib/infrastructure/cli/resource_gate_thresholds_generated.h.in	CMakeLists.txt:153:configure_file
+lib/infrastructure/cli/version_generated.h.in	CMakeLists.txt:81:configure_file

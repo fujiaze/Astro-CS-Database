@@ -1,0 +1,324 @@
+eng/tests/conformance/noop/src/noop_module.c	eng/tests/conformance/noop/CMakeLists.txt:9:add_library:src/noop_module.c
+eng/tests/conformance/noop/tests/unit/noop_handshake_test.c	eng/tests/conformance/noop/CMakeLists.txt:46:add_executable:tests/unit/noop_handshake_test.c
+eng/tests/integration/v6_p3/p3_v6_export_e2e_test.cpp	eng/tests/integration/v6_p3/CMakeLists.txt:34:add_executable:p3_v6_export_e2e_test.cpp
+eng/tests/system/v6_runtime/v6_runtime_contract_test.cpp	eng/tests/system/v6_runtime/CMakeLists.txt:16:add_executable:v6_runtime_contract_test.cpp
+eng/tests/system/v6_runtime/v6_runtime_determinism_test.cpp	eng/tests/system/v6_runtime/CMakeLists.txt:27:add_executable:v6_runtime_determinism_test.cpp
+eng/tests/system/v6_runtime/v6_runtime_resource_record_test.cpp	eng/tests/system/v6_runtime/CMakeLists.txt:33:add_executable:v6_runtime_resource_record_test.cpp
+eng/tests/unit/ahpx_hips_format_test.cpp	eng/tests/unit/CMakeLists.txt:1396:add_executable:ahpx_hips_format_test.cpp
+eng/tests/unit/aio_abi_selfcheck.cpp	eng/tests/unit/CMakeLists.txt:1373:add_executable:aio_abi_selfcheck.cpp
+eng/tests/unit/aio_abi_tests.cpp	eng/tests/unit/CMakeLists.txt:1361:add_executable:aio_abi_tests.cpp | eng/tests/unit/CMakeLists.txt:1373:add_executable:aio_abi_tests.cpp
+eng/tests/unit/block_flow_test.cpp	eng/tests/unit/CMakeLists.txt:77:add_executable:block_flow_test.cpp
+eng/tests/unit/calibration_adapter_test.cpp	eng/tests/unit/CMakeLists.txt:1179:add_executable:calibration_adapter_test.cpp
+eng/tests/unit/calibration_integration_test.cpp	eng/tests/unit/CMakeLists.txt:1197:add_executable:calibration_integration_test.cpp
+eng/tests/unit/cli_bench_verdict_test.cpp	eng/tests/unit/CMakeLists.txt:186:add_executable:cli_bench_verdict_test.cpp
+eng/tests/unit/cli_process_test.cpp	eng/tests/unit/CMakeLists.txt:178:add_executable:cli_process_test.cpp
+eng/tests/unit/cli_wideconv_test.cpp	eng/tests/unit/CMakeLists.txt:194:add_executable:cli_wideconv_test.cpp
+eng/tests/unit/core_artifact_test.cpp	eng/tests/unit/CMakeLists.txt:7:add_executable:core_artifact_test.cpp
+eng/tests/unit/core_block_frame_test.cpp	eng/tests/unit/CMakeLists.txt:22:add_executable:core_block_frame_test.cpp
+eng/tests/unit/core_checkpoint_test.cpp	eng/tests/unit/CMakeLists.txt:114:add_executable:core_checkpoint_test.cpp
+eng/tests/unit/core_context_test.cpp	eng/tests/unit/CMakeLists.txt:85:add_executable:core_context_test.cpp
+eng/tests/unit/core_contracts_test.cpp	eng/tests/unit/CMakeLists.txt:2:add_executable:core_contracts_test.cpp
+eng/tests/unit/core_logging_test.cpp	eng/tests/unit/CMakeLists.txt:119:add_executable:core_logging_test.cpp
+eng/tests/unit/core_module_test.cpp	eng/tests/unit/CMakeLists.txt:12:add_executable:core_module_test.cpp
+eng/tests/unit/core_pipeline_test.cpp	eng/tests/unit/CMakeLists.txt:17:add_executable:core_pipeline_test.cpp
+eng/tests/unit/core_scheduler_test.cpp	eng/tests/unit/CMakeLists.txt:90:add_executable:core_scheduler_test.cpp
+eng/tests/unit/cosmetic_adapter_test.cpp	eng/tests/unit/CMakeLists.txt:1230:add_executable:cosmetic_adapter_test.cpp
+eng/tests/unit/cosmetic_integration_test.cpp	eng/tests/unit/CMakeLists.txt:1258:add_executable:cosmetic_integration_test.cpp
+eng/tests/unit/cpu001_negative_test.cpp	eng/tests/unit/CMakeLists.txt:510:add_executable:cpu001_negative_test.cpp
+eng/tests/unit/cpu001_provider_selftest.cpp	eng/tests/unit/CMakeLists.txt:471:set:${CMAKE_CURRENT_SOURCE_DIR}/cpu001_provider_selftest.cpp
+eng/tests/unit/cpu003_profile_v2_test.cpp	eng/tests/unit/CMakeLists.txt:329:add_executable:cpu003_profile_v2_test.cpp
+eng/tests/unit/cpu004_routing_test.cpp	eng/tests/unit/CMakeLists.txt:361:add_executable:cpu004_routing_test.cpp
+eng/tests/unit/cpu006_bench_report_test.cpp	eng/tests/unit/CMakeLists.txt:337:add_executable:cpu006_bench_report_test.cpp
+eng/tests/unit/cpu007_profile_store_test.cpp	eng/tests/unit/CMakeLists.txt:345:add_executable:cpu007_profile_store_test.cpp
+eng/tests/unit/cpu008_worker_advisor_test.cpp	eng/tests/unit/CMakeLists.txt:353:add_executable:cpu008_worker_advisor_test.cpp
+eng/tests/unit/cpu_abi_test.cpp	eng/tests/unit/CMakeLists.txt:270:add_executable:cpu_abi_test.cpp
+eng/tests/unit/cpu_backend_exception_test.cpp	eng/tests/unit/CMakeLists.txt:286:add_executable:cpu_backend_exception_test.cpp
+eng/tests/unit/cpu_bench_test.cpp	eng/tests/unit/CMakeLists.txt:314:add_executable:cpu_bench_test.cpp
+eng/tests/unit/cpu_fallback_test.cpp	eng/tests/unit/CMakeLists.txt:307:add_executable:cpu_fallback_test.cpp
+eng/tests/unit/cpu_features_test.cpp	eng/tests/unit/CMakeLists.txt:293:add_executable:cpu_features_test.cpp
+eng/tests/unit/cpu_lease_test.cpp	eng/tests/unit/CMakeLists.txt:275:add_executable:cpu_lease_test.cpp
+eng/tests/unit/cpu_monitor_test.cpp	eng/tests/unit/CMakeLists.txt:526:add_executable:cpu_monitor_test.cpp
+eng/tests/unit/cpu_profile_test.cpp	eng/tests/unit/CMakeLists.txt:321:add_executable:cpu_profile_test.cpp
+eng/tests/unit/cpu_provider_test.cpp	eng/tests/unit/CMakeLists.txt:300:add_executable:cpu_provider_test.cpp
+eng/tests/unit/drizzle_adapter_test.cpp	eng/tests/unit/CMakeLists.txt:1147:add_executable:drizzle_adapter_test.cpp
+eng/tests/unit/drizzle_precision_default_test.cpp	eng/tests/unit/CMakeLists.txt:1164:add_executable:drizzle_precision_default_test.cpp
+eng/tests/unit/executor_provider_race_test.cpp	eng/tests/unit/CMakeLists.txt:242:add_executable:executor_provider_race_test.cpp
+eng/tests/unit/export_stream_test.cpp	eng/tests/unit/CMakeLists.txt:42:add_executable:export_stream_test.cpp
+eng/tests/unit/gaia_adapter_test.c	eng/tests/unit/CMakeLists.txt:1018:add_executable:gaia_adapter_test.c
+eng/tests/unit/gaia_cat_test.c	eng/tests/unit/CMakeLists.txt:961:add_executable:gaia_cat_test.c | eng/tests/unit/CMakeLists.txt:965:add_executable:gaia_cat_test.c
+eng/tests/unit/gaia_integration_test.c	eng/tests/unit/CMakeLists.txt:1039:add_executable:gaia_integration_test.c
+eng/tests/unit/gaia_magnitude_range_bounds_test.c	eng/tests/unit/CMakeLists.txt:1106:add_executable:gaia_magnitude_range_bounds_test.c
+eng/tests/unit/gaia_module_manifest_bounds_test.c	eng/tests/unit/CMakeLists.txt:1067:add_executable:gaia_module_manifest_bounds_test.c
+eng/tests/unit/gaia_shard_coverage_gate_test.c	eng/tests/unit/CMakeLists.txt:1125:add_executable:gaia_shard_coverage_gate_test.c
+eng/tests/unit/gaia_unshuffle_test.c	eng/tests/unit/CMakeLists.txt:203:add_executable:gaia_unshuffle_test.c
+eng/tests/unit/gaia_xpsd_fixture_gen.c	eng/tests/unit/CMakeLists.txt:937:add_executable:gaia_xpsd_fixture_gen.c
+eng/tests/unit/io_adapter_test.cpp	eng/tests/unit/CMakeLists.txt:213:add_executable:io_adapter_test.cpp
+eng/tests/unit/io_ownership_test.cpp	eng/tests/unit/CMakeLists.txt:218:add_executable:io_ownership_test.cpp
+eng/tests/unit/io_reentrant_test.cpp	eng/tests/unit/CMakeLists.txt:225:add_executable:io_reentrant_test.cpp
+eng/tests/unit/ipv_platform_binding_test.cpp	eng/tests/unit/CMakeLists.txt:1503:add_executable:ipv_platform_binding_test.cpp
+eng/tests/unit/master_flat_median_test.cpp	eng/tests/unit/CMakeLists.txt:541:add_executable:master_flat_median_test.cpp
+eng/tests/unit/mem_wire_test.cpp	eng/tests/unit/CMakeLists.txt:98:add_executable:mem_wire_test.cpp
+eng/tests/unit/memory_pressure_test.cpp	eng/tests/unit/CMakeLists.txt:107:add_executable:memory_pressure_test.cpp
+eng/tests/unit/mon001_gate_test.cpp	eng/tests/unit/CMakeLists.txt:398:add_executable:mon001_gate_test.cpp
+eng/tests/unit/mon001_recorder_test.cpp	eng/tests/unit/CMakeLists.txt:369:add_executable:mon001_recorder_test.cpp
+eng/tests/unit/mon002_alloc_test.cpp	eng/tests/unit/CMakeLists.txt:388:add_executable:mon002_alloc_test.cpp
+eng/tests/unit/mon002_gate_test.cpp	eng/tests/unit/CMakeLists.txt:377:add_executable:mon002_gate_test.cpp
+eng/tests/unit/mon004_enforcement_test.cpp	eng/tests/unit/CMakeLists.txt:409:add_executable:mon004_enforcement_test.cpp
+eng/tests/unit/mosaic_window_test.cpp	eng/tests/unit/CMakeLists.txt:35:add_executable:mosaic_window_test.cpp
+eng/tests/unit/normalize_workflow_test.cpp	eng/tests/unit/CMakeLists.txt:27:add_executable:normalize_workflow_test.cpp
+eng/tests/unit/p1001_modules_test.cpp	eng/tests/unit/CMakeLists.txt:418:add_executable:p1001_modules_test.cpp
+eng/tests/unit/p1001_real_nodes_test.cpp	eng/tests/unit/CMakeLists.txt:428:add_executable:p1001_real_nodes_test.cpp
+eng/tests/unit/p15_artifact_collect_test.cpp	eng/tests/unit/CMakeLists.txt:920:add_executable:p15_artifact_collect_test.cpp
+eng/tests/unit/p1_calibration_test.cpp	eng/tests/unit/CMakeLists.txt:534:add_executable:p1_calibration_test.cpp
+eng/tests/unit/p1_hips/adapter_entry_impl.cpp	eng/tests/unit/CMakeLists.txt:670:add_executable:p1_hips/adapter_entry_impl.cpp | eng/tests/unit/CMakeLists.txt:692:add_executable:p1_hips/adapter_entry_impl.cpp
+eng/tests/unit/p1_hips/adapter_test.c	eng/tests/unit/CMakeLists.txt:670:add_executable:p1_hips/adapter_test.c
+eng/tests/unit/p1_hips/publish_atomic_test.c	eng/tests/unit/CMakeLists.txt:692:add_executable:p1_hips/publish_atomic_test.c
+eng/tests/unit/p1_hips_writer_test.cpp	eng/tests/unit/CMakeLists.txt:744:add_executable:p1_hips_writer_test.cpp
+eng/tests/unit/p1_ir_facade_test.cpp	eng/tests/unit/CMakeLists.txt:751:add_executable:p1_ir_facade_test.cpp
+eng/tests/unit/p1_noise/adapter_entry_impl.cpp	eng/tests/unit/CMakeLists.txt:1324:add_executable:p1_noise/adapter_entry_impl.cpp
+eng/tests/unit/p1_noise/adapter_test.cpp	eng/tests/unit/CMakeLists.txt:1324:add_executable:p1_noise/adapter_test.cpp
+eng/tests/unit/p1_noise_test.cpp	eng/tests/unit/CMakeLists.txt:722:add_executable:p1_noise_test.cpp
+eng/tests/unit/p1_nside_test.cpp	eng/tests/unit/CMakeLists.txt:730:add_executable:p1_nside_test.cpp
+eng/tests/unit/p1_resource_test.cpp	eng/tests/unit/CMakeLists.txt:783:add_executable:p1_resource_test.cpp
+eng/tests/unit/p1_stars_test.cpp	eng/tests/unit/CMakeLists.txt:709:add_executable:p1_stars_test.cpp
+eng/tests/unit/p1_wcs_phot_test.cpp	eng/tests/unit/CMakeLists.txt:715:add_executable:p1_wcs_phot_test.cpp
+eng/tests/unit/p1snr/p1snr_frame_parity_test.cpp	eng/tests/unit/p1snr/CMakeLists.txt:66:add_executable:p1snr_frame_parity_test.cpp
+eng/tests/unit/p1snr/p1snr_fref_baseline_test.cpp	eng/tests/unit/p1snr/CMakeLists.txt:56:add_executable:p1snr_fref_baseline_test.cpp
+eng/tests/unit/p1snr/p1snr_linux_test.cpp	eng/tests/unit/p1snr/CMakeLists.txt:20:add_executable:p1snr_linux_test.cpp
+eng/tests/unit/p1snr/p1snr_noise_cfg_wiring_test.cpp	eng/tests/unit/p1snr/CMakeLists.txt:82:add_executable:p1snr_noise_cfg_wiring_test.cpp
+eng/tests/unit/p2001_real_nodes_test.cpp	eng/tests/unit/CMakeLists.txt:439:add_executable:p2001_real_nodes_test.cpp
+eng/tests/unit/p2002_unc_rej_prov_test.cpp	eng/tests/unit/CMakeLists.txt:453:add_executable:p2002_unc_rej_prov_test.cpp
+eng/tests/unit/p2_block_plan_test.cpp	eng/tests/unit/CMakeLists.txt:803:add_executable:p2_block_plan_test.cpp
+eng/tests/unit/p2_ir_facade_test.cpp	eng/tests/unit/CMakeLists.txt:821:add_executable:p2_ir_facade_test.cpp
+eng/tests/unit/p2_output_semantics_test.cpp	eng/tests/unit/CMakeLists.txt:815:add_executable:p2_output_semantics_test.cpp
+eng/tests/unit/p2_rejection_test.cpp	eng/tests/unit/CMakeLists.txt:809:add_executable:p2_rejection_test.cpp
+eng/tests/unit/p2_seam_gate_test.cpp	eng/tests/unit/CMakeLists.txt:825:add_executable:p2_seam_gate_test.cpp
+eng/tests/unit/p2_upm_synthetic_test.cpp	eng/tests/unit/CMakeLists.txt:799:add_executable:p2_upm_synthetic_test.cpp
+eng/tests/unit/p2_workers_test.cpp	eng/tests/unit/CMakeLists.txt:791:add_executable:p2_workers_test.cpp
+eng/tests/unit/p3002_real_nodes_test.cpp	eng/tests/unit/CMakeLists.txt:1450:add_executable:p3002_real_nodes_test.cpp
+eng/tests/unit/p3002_uncertainty_test.cpp	eng/tests/unit/CMakeLists.txt:1463:add_executable:p3002_uncertainty_test.cpp
+eng/tests/unit/p3_assembly_test.cpp	eng/tests/unit/CMakeLists.txt:852:add_executable:p3_assembly_test.cpp
+eng/tests/unit/p3_coverage_test.cpp	eng/tests/unit/CMakeLists.txt:841:add_executable:p3_coverage_test.cpp
+eng/tests/unit/p3_export_stream_prod_test.cpp	eng/tests/unit/CMakeLists.txt:60:add_executable:p3_export_stream_prod_test.cpp
+eng/tests/unit/p3_interp_test.cpp	eng/tests/unit/CMakeLists.txt:837:add_executable:p3_interp_test.cpp
+eng/tests/unit/p3_output_test.cpp	eng/tests/unit/CMakeLists.txt:845:add_executable:p3_output_test.cpp
+eng/tests/unit/p3_projection_test.cpp	eng/tests/unit/CMakeLists.txt:1424:add_executable:p3_projection_test.cpp
+eng/tests/unit/p3_sampler_cache_test.cpp	eng/tests/unit/CMakeLists.txt:863:add_executable:p3_sampler_cache_test.cpp
+eng/tests/unit/rt001_abi_test.cpp	eng/tests/unit/CMakeLists.txt:124:add_executable:rt001_abi_test.cpp
+eng/tests/unit/rt001_unique_executor_test.cpp	eng/tests/unit/CMakeLists.txt:1485:add_executable:rt001_unique_executor_test.cpp
+eng/tests/unit/rt002_budget_test.cpp	eng/tests/unit/CMakeLists.txt:129:add_executable:rt002_budget_test.cpp
+eng/tests/unit/rt003_context_test.cpp	eng/tests/unit/CMakeLists.txt:134:add_executable:rt003_context_test.cpp
+eng/tests/unit/rt005_registry_test.cpp	eng/tests/unit/CMakeLists.txt:139:add_executable:rt005_registry_test.cpp
+eng/tests/unit/rt006_scheduler_test.cpp	eng/tests/unit/CMakeLists.txt:146:add_executable:rt006_scheduler_test.cpp
+eng/tests/unit/rt007_artifact_store_test.cpp	eng/tests/unit/CMakeLists.txt:153:add_executable:rt007_artifact_store_test.cpp
+eng/tests/unit/rt008_runtime_client_test.cpp	eng/tests/unit/CMakeLists.txt:160:add_executable:rt008_runtime_client_test.cpp
+eng/tests/unit/rt009_node_trace_test.cpp	eng/tests/unit/CMakeLists.txt:169:add_executable:rt009_node_trace_test.cpp
+eng/tests/unit/v6_aio/v6_aio_test.cpp	eng/tests/unit/v6_aio/CMakeLists.txt:23:add_executable:v6_aio_test.cpp
+eng/tests/unit/v6_p2_identifiability/v6_p2_identifiability_test.cpp	eng/tests/unit/v6_p2_identifiability/CMakeLists.txt:2:add_executable:v6_p2_identifiability_test.cpp
+eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp	eng/tests/unit/v6_p2_rej/CMakeLists.txt:14:add_executable:p2_rej_v6_test.cpp
+eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp	eng/tests/unit/v6_p2_samp/CMakeLists.txt:25:add_executable:v6_p2_samp_test.cpp
+eng/tests/unit/v6_p2_sky/v6_p2_sky_geometry_test.cpp	eng/tests/unit/v6_p2_sky/CMakeLists.txt:53:add_executable:v6_p2_sky_geometry_test.cpp
+eng/tests/unit/v6_p2_sky/v6_p2_sky_node_adapt_test.cpp	eng/tests/unit/v6_p2_sky/CMakeLists.txt:27:add_executable:v6_p2_sky_node_adapt_test.cpp
+eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp	eng/tests/unit/v6_p2_sky/CMakeLists.txt:4:add_executable:v6_p2_sky_test.cpp
+eng/tests/unit/v6_p2_sky_kappa/v6_p2_sky_kappa_test.cpp	eng/tests/unit/v6_p2_sky_kappa/CMakeLists.txt:2:add_executable:v6_p2_sky_kappa_test.cpp
+eng/tests/unit/v6_p2_upm/v6_p2_upm_geo_diag_test.cpp	eng/tests/unit/v6_p2_upm/CMakeLists.txt:42:add_executable:v6_p2_upm_geo_diag_test.cpp
+eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp	eng/tests/unit/v6_p2_upm/CMakeLists.txt:18:add_executable:v6_p2_upm_ma_test.cpp
+eng/tests/unit/v6_p3_proj/v6_p3_proj_legacy_probe.cpp	eng/tests/unit/v6_p3_proj/CMakeLists.txt:46:add_executable:v6_p3_proj_legacy_probe.cpp
+eng/tests/unit/v6_p3_proj/v6_p3_proj_probe.cpp	eng/tests/unit/v6_p3_proj/CMakeLists.txt:23:add_executable:v6_p3_proj_probe.cpp
+eng/tests/unit/v6_p3_proj/v6_p3_proj_test.cpp	eng/tests/unit/v6_p3_proj/CMakeLists.txt:14:add_executable:v6_p3_proj_test.cpp
+eng/tests/unit/variance_floor_test.cpp	eng/tests/unit/CMakeLists.txt:1588:add_executable:variance_floor_test.cpp
+eng/tests/unit/xpsd_spectrum_count_bounds_test.c	eng/tests/unit/CMakeLists.txt:1089:add_executable:xpsd_spectrum_count_bounds_test.c
+lib/algorithms/calibration/src/ac_api.cpp	CMakeLists.txt:589:add_library:lib/algorithms/calibration/src/ac_api.cpp | lib/algorithms/calibration/CMakeLists.txt:20:set:${CMAKE_CURRENT_SOURCE_DIR}/src/ac_api.cpp
+lib/algorithms/calibration/src/calibrator.cpp	CMakeLists.txt:589:add_library:lib/algorithms/calibration/src/calibrator.cpp | lib/algorithms/calibration/CMakeLists.txt:20:set:${CMAKE_CURRENT_SOURCE_DIR}/src/calibrator.cpp
+lib/algorithms/calibration/src/cosmetic_corrector.cpp	CMakeLists.txt:589:add_library:lib/algorithms/calibration/src/cosmetic_corrector.cpp | lib/algorithms/calibration/CMakeLists.txt:20:set:${CMAKE_CURRENT_SOURCE_DIR}/src/cosmetic_corrector.cpp
+lib/algorithms/calibration/src/master_generator.cpp	CMakeLists.txt:589:add_library:lib/algorithms/calibration/src/master_generator.cpp | lib/algorithms/calibration/CMakeLists.txt:20:set:${CMAKE_CURRENT_SOURCE_DIR}/src/master_generator.cpp
+lib/algorithms/calibration/src/module_entry.cpp	lib/algorithms/calibration/CMakeLists.txt:26:set:${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
+lib/algorithms/calibration/src/photometry_apply.cpp	CMakeLists.txt:589:add_library:lib/algorithms/calibration/src/photometry_apply.cpp
+lib/algorithms/calibration/tests/test_photometry_apply.cpp	eng/tests/unit/CMakeLists.txt:886:add_executable:../../../lib//algorithms/calibration/tests/test_photometry_apply.cpp
+lib/algorithms/cosmetic/src/module_entry.cpp	lib/algorithms/cosmetic/CMakeLists.txt:46:set:${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
+lib/algorithms/coverage/hips_properties.cpp	CMakeLists.txt:654:add_library:lib/algorithms/coverage/hips_properties.cpp
+lib/algorithms/coverage/src/acr_kernels.cpp	lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/acr_kernels.cpp
+lib/algorithms/coverage/src/async_io.cpp	lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/async_io.cpp
+lib/algorithms/coverage/src/block.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/block.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/block.cpp
+lib/algorithms/coverage/src/coverage.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/coverage.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/coverage.cpp
+lib/algorithms/coverage/src/cuda_bridge_stub.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/cuda_bridge_stub.cpp
+lib/algorithms/coverage/src/identifiability.cpp	CMakeLists.txt:617:add_library:lib/algorithms/coverage/src/identifiability.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/identifiability.cpp
+lib/algorithms/coverage/src/integrate.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/integrate.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/integrate.cpp
+lib/algorithms/coverage/src/rejection.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/rejection.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/rejection.cpp | eng/tests/unit/v6_p2_rej/CMakeLists.txt:11:set:${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/coverage/src/rejection.cpp
+lib/algorithms/coverage/src/sampler.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/sampler.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/sampler.cpp
+lib/algorithms/coverage/src/sky_plane.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/sky_plane.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/sky_plane.cpp
+lib/algorithms/coverage/src/stage2_common.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/stage2_common.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/stage2_common.cpp
+lib/algorithms/coverage/src/upm.cpp	CMakeLists.txt:624:add_library:lib/algorithms/coverage/src/upm.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:src/upm.cpp
+lib/algorithms/coverage/tests/async_io_test.cpp	lib/algorithms/coverage/CMakeLists.txt:138:add_executable:tests/async_io_test.cpp
+lib/algorithms/coverage/tests/execution_options_test.cpp	lib/algorithms/coverage/CMakeLists.txt:120:add_executable:tests/execution_options_test.cpp
+lib/algorithms/coverage/tests/ivar_wiring_test.cpp	lib/algorithms/coverage/CMakeLists.txt:106:add_executable:tests/ivar_wiring_test.cpp
+lib/algorithms/coverage/tests/kcorr_lookup_test.cpp	lib/algorithms/coverage/CMakeLists.txt:143:add_executable:tests/kcorr_lookup_test.cpp
+lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp	lib/algorithms/coverage/CMakeLists.txt:150:add_executable:tests/rejection_nonfinite_weights_test.cpp
+lib/algorithms/coverage/tests/retired_object_reject_negative_test.cpp	lib/algorithms/coverage/CMakeLists.txt:167:add_executable:tests/retired_object_reject_negative_test.cpp
+lib/algorithms/coverage/tests/routing_test.cpp	lib/algorithms/coverage/CMakeLists.txt:122:add_executable:tests/routing_test.cpp
+lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp	lib/algorithms/coverage/CMakeLists.txt:124:add_executable:tests/sampler_parallel_consistency_test.cpp
+lib/algorithms/coverage/tests/synthetic_gate.cpp	lib/algorithms/coverage/CMakeLists.txt:103:add_executable:tests/synthetic_gate.cpp
+lib/algorithms/coverage/tests/weight_mode_retire_negative_test.cpp	lib/algorithms/coverage/CMakeLists.txt:155:add_executable:tests/weight_mode_retire_negative_test.cpp
+lib/algorithms/coverage/tools/calibrated_pair_diag.cpp	lib/algorithms/coverage/CMakeLists.txt:219:add_executable:tools/calibrated_pair_diag.cpp
+lib/algorithms/coverage/tools/rejection_cli.cpp	lib/algorithms/coverage/CMakeLists.txt:224:add_executable:tools/rejection_cli.cpp
+lib/algorithms/coverage/tools/stage2.cpp	lib/algorithms/coverage/CMakeLists.txt:206:add_executable:tools/stage2.cpp
+lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp
+lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_hips_api.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_hips_api.cpp
+lib/algorithms/drizzle/healpix_drizzle/poly_clip.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/poly_clip.cpp
+lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp
+lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.cpp
+lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp
+lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp	CMakeLists.txt:669:add_library:lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp
+lib/algorithms/drizzle/hips/src/aio_publish.cpp	lib/algorithms/drizzle/hips/CMakeLists.txt:26:set:${CMAKE_CURRENT_SOURCE_DIR}/src/aio_publish.cpp | eng/tests/unit/CMakeLists.txt:670:add_executable:../../../lib//algorithms/drizzle/hips/src/aio_publish.cpp | eng/tests/unit/CMakeLists.txt:692:add_executable:../../../lib//algorithms/drizzle/hips/src/aio_publish.cpp
+lib/algorithms/drizzle/hips/src/module_entry.cpp	lib/algorithms/drizzle/hips/CMakeLists.txt:26:set:${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
+lib/algorithms/drizzle/src/module_entry.cpp	lib/algorithms/drizzle/CMakeLists.txt:32:set:${CMAKE_CURRENT_SOURCE_DIR}/src/module_entry.cpp
+lib/algorithms/fits_output/p3_output.cpp	lib/algorithms/fits_output/CMakeLists.txt:17:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_output.cpp
+lib/algorithms/integration/v6/src/phase2_integrate.cpp	lib/algorithms/integration/v6/CMakeLists.txt:25:add_library:src/phase2_integrate.cpp
+lib/algorithms/integration/v6/src/variance_propagation.cpp	CMakeLists.txt:1043:add_library:lib/algorithms/integration/v6/src/variance_propagation.cpp | lib/algorithms/integration/v6/CMakeLists.txt:25:add_library:src/variance_propagation.cpp
+lib/algorithms/integration/v6/src/weight_chain.cpp	CMakeLists.txt:1043:add_library:lib/algorithms/integration/v6/src/weight_chain.cpp | lib/algorithms/integration/v6/CMakeLists.txt:25:add_library:src/weight_chain.cpp
+lib/algorithms/integration/v6_phase1/src/phase1_product.cpp	lib/algorithms/integration/v6_phase1/CMakeLists.txt:13:add_library:src/phase1_product.cpp
+lib/algorithms/noise_snr/cpp/src/noise_model.cpp	CMakeLists.txt:807:add_library:lib/algorithms/noise_snr/cpp/src/noise_model.cpp
+lib/algorithms/noise_snr/cpp/src/snr_science.cpp	CMakeLists.txt:807:add_library:lib/algorithms/noise_snr/cpp/src/snr_science.cpp
+lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp	CMakeLists.txt:807:add_library:lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp
+lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp
+lib/algorithms/photometry/cpp/src/image_corrector.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/image_corrector.cpp
+lib/algorithms/photometry/cpp/src/pc_api.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/pc_api.cpp
+lib/algorithms/photometry/cpp/src/spatial_gain.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/spatial_gain.cpp
+lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp
+lib/algorithms/photometry/cpp/src/star_matcher.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/star_matcher.cpp
+lib/algorithms/photometry/cpp/src/wcs_transform.cpp	CMakeLists.txt:764:add_library:lib/algorithms/photometry/cpp/src/wcs_transform.cpp
+lib/algorithms/photometry/wrapper_phase1/photometer.cpp	CMakeLists.txt:751:add_library:lib/algorithms/photometry/wrapper_phase1/photometer.cpp
+lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp	CMakeLists.txt:748:add_library:lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp
+lib/algorithms/projection/p3_proj_v6.cpp	lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:17:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../p3_proj_v6.cpp
+lib/algorithms/projection/p3_projection.cpp	eng/tests/unit/CMakeLists.txt:1424:add_executable:../../../lib//algorithms/projection/p3_projection.cpp
+lib/algorithms/projection/p3_wcs.cpp	lib/algorithms/projection/CMakeLists.txt:19:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_wcs.cpp | eng/tests/unit/CMakeLists.txt:1424:add_executable:../../../lib//algorithms/projection/p3_wcs.cpp
+lib/algorithms/projection/tests/p3wcs/p3_projection_registry_test.cpp	lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:17:add_executable:p3_projection_registry_test.cpp
+lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp	lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:8:add_executable:p3_wcs_test.cpp
+lib/algorithms/psf/src/dpsf_image.cpp	CMakeLists.txt:865:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_image.cpp
+lib/algorithms/psf/src/dpsf_log.cpp	CMakeLists.txt:865:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp
+lib/algorithms/psf/src/dpsf_psf.cpp	CMakeLists.txt:865:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_psf.cpp
+lib/algorithms/resample/p3_resample.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_resample.cpp
+lib/algorithms/resample/p3_rsmp_covariance.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_covariance.cpp
+lib/algorithms/resample/p3_rsmp_failclosed.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_failclosed.cpp
+lib/algorithms/resample/p3_rsmp_kernel_registry.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_kernel_registry.cpp
+lib/algorithms/resample/p3_rsmp_operator.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_operator.cpp
+lib/algorithms/resample/p3_rsmp_propagation.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_propagation.cpp
+lib/algorithms/resample/p3_rsmp_units.cpp	lib/algorithms/resample/CMakeLists.txt:20:add_library:${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_units.cpp
+lib/algorithms/shared/crypto/sha256.cpp	CMakeLists.txt:464:add_library:lib/algorithms/shared/crypto/sha256.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:../shared/crypto/sha256.cpp
+lib/algorithms/shared/healpix/healpix_core.cpp	CMakeLists.txt:464:add_library:lib/algorithms/shared/healpix/healpix_core.cpp | lib/algorithms/coverage/CMakeLists.txt:42:add_library:../shared/healpix/healpix_core.cpp
+lib/algorithms/shared/healpix/tests/test_healpix_neighbors.cpp	eng/tests/unit/CMakeLists.txt:740:add_executable:../../../lib//algorithms/shared/healpix/tests/test_healpix_neighbors.cpp
+lib/algorithms/star_detection/src/nls_lm.cpp	CMakeLists.txt:892:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/nls_lm.cpp
+lib/algorithms/star_detection/src/sdet_api.cpp	CMakeLists.txt:892:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_api.cpp
+lib/algorithms/star_detection/src/sdet_background.cpp	CMakeLists.txt:892:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_background.cpp
+lib/algorithms/star_detection/src/sdet_detector.cpp	CMakeLists.txt:892:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_detector.cpp
+lib/algorithms/star_detection/src/sdet_image.cpp	CMakeLists.txt:892:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_image.cpp
+lib/algorithms/star_detection/src/sdet_log.cpp	CMakeLists.txt:892:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_log.cpp
+lib/algorithms/star_detection/test/sdet_angle_guard_test.cpp	lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:195:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../test/sdet_angle_guard_test.cpp
+lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp	CMakeLists.txt:826:add_library:lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp
+lib/include/zlib.h	CMakeLists.txt:500:set:lib/include/zlib.h
+lib/infrastructure/acr/api/kernel_registry.cpp	lib/algorithms/coverage/CMakeLists.txt:42:add_library:../../infrastructure/acr/api/kernel_registry.cpp
+lib/infrastructure/acr/scheduler/device_executor.cpp	lib/algorithms/coverage/CMakeLists.txt:42:add_library:../../infrastructure/acr/scheduler/device_executor.cpp
+lib/infrastructure/aio/io/fits_core.c	CMakeLists.txt:256:add_library:lib/infrastructure/aio/io/fits_core.c
+lib/infrastructure/aio/io/src/io_adapter.cpp	CMakeLists.txt:216:add_library:lib/infrastructure/aio/io/src/io_adapter.cpp
+lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c	CMakeLists.txt:243:add_library:lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c
+lib/infrastructure/aio/src/ahpx/aio_ahpx_api.cpp	eng/tests/unit/CMakeLists.txt:1403:target_sources:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src/ahpx/aio_ahpx_api.cpp
+lib/infrastructure/aio/src/ahpx/aio_ahpx_reader.cpp	eng/tests/unit/CMakeLists.txt:1396:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src/ahpx/aio_ahpx_reader.cpp
+lib/infrastructure/aio/src/ahpx/aio_ahpx_writer.cpp	eng/tests/unit/CMakeLists.txt:1396:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/src/ahpx/aio_ahpx_writer.cpp
+lib/infrastructure/aio/src/aio_abi.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_abi.cpp | eng/tests/unit/CMakeLists.txt:1361:add_executable:../../../lib//infrastructure/aio/src/aio_abi.cpp | eng/tests/unit/CMakeLists.txt:1373:add_executable:../../../lib//infrastructure/aio/src/aio_abi.cpp
+lib/infrastructure/aio/src/aio_api.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_api.cpp
+lib/infrastructure/aio/src/aio_compressor.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_compressor.cpp
+lib/infrastructure/aio/src/aio_fits.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_fits.cpp
+lib/infrastructure/aio/src/aio_log.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_log.cpp
+lib/infrastructure/aio/src/aio_pipeline.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_pipeline.cpp
+lib/infrastructure/aio/src/aio_sysinfo.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_sysinfo.cpp
+lib/infrastructure/aio/src/aio_upm.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/aio_upm.cpp
+lib/infrastructure/aio/src/aio_xisf.cpp	CMakeLists.txt:535:add_library:lib/infrastructure/aio/src/aio_xisf.cpp
+lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp
+lib/infrastructure/aio/src/hips/aio_hips_reader.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hips/aio_hips_reader.cpp
+lib/infrastructure/aio/src/hips/aio_hips_writer.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+lib/infrastructure/aio/src/hiss_codec.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_codec.cpp
+lib/infrastructure/aio/src/hiss_common.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_common.cpp
+lib/infrastructure/aio/src/hiss_reader.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_reader.cpp
+lib/infrastructure/aio/src/hiss_stream_writer.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_stream_writer.cpp
+lib/infrastructure/aio/src/hiss_tile_model.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_tile_model.cpp
+lib/infrastructure/aio/src/hiss_transform.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_transform.cpp
+lib/infrastructure/aio/src/hiss_writer.cpp	CMakeLists.txt:567:add_library:lib/infrastructure/aio/src/hiss_writer.cpp
+lib/infrastructure/aio/tests/test_p1_io_hardening.cpp	eng/tests/unit/CMakeLists.txt:902:add_executable:../../../lib//infrastructure/aio/tests/test_p1_io_hardening.cpp
+lib/infrastructure/aio/v6/src/v6_atomic_publish.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_atomic_publish.cpp
+lib/infrastructure/aio/v6/src/v6_bunit.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_bunit.cpp
+lib/infrastructure/aio/v6/src/v6_fits.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_fits.cpp
+lib/infrastructure/aio/v6/src/v6_hips_manifest.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_hips_manifest.cpp
+lib/infrastructure/aio/v6/src/v6_product_io.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_product_io.cpp
+lib/infrastructure/aio/v6/src/v6_provenance.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_provenance.cpp
+lib/infrastructure/aio/v6/src/v6_sha256.cpp	lib/infrastructure/aio/v6/CMakeLists.txt:13:add_library:src/v6_sha256.cpp
+lib/infrastructure/benchmark/backend_host/avx2_backend.cpp	CMakeLists.txt:729:add_library:lib/infrastructure/benchmark/backend_host/avx2_backend.cpp
+lib/infrastructure/benchmark/backend_host/avx512_backend.cpp	CMakeLists.txt:736:add_library:lib/infrastructure/benchmark/backend_host/avx512_backend.cpp
+lib/infrastructure/benchmark/backend_host/backend_loader.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/backend_loader.cpp
+lib/infrastructure/benchmark/backend_host/baseline_backend.cpp	CMakeLists.txt:344:add_library:lib/infrastructure/benchmark/backend_host/baseline_backend.cpp | CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/baseline_backend.cpp
+lib/infrastructure/benchmark/backend_host/bench_harness.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/bench_harness.cpp
+lib/infrastructure/benchmark/backend_host/bench_report.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/bench_report.cpp
+lib/infrastructure/benchmark/backend_host/cpu_features.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/cpu_features.cpp | eng/tests/unit/CMakeLists.txt:480:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host/cpu_features.cpp | eng/tests/unit/CMakeLists.txt:491:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host/cpu_features.cpp
+lib/infrastructure/benchmark/backend_host/cpu_routing.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/cpu_routing.cpp
+lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp
+lib/infrastructure/benchmark/backend_host/host_services.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/host_services.cpp | eng/tests/unit/CMakeLists.txt:480:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host/host_services.cpp | eng/tests/unit/CMakeLists.txt:491:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/benchmark/backend_host/host_services.cpp
+lib/infrastructure/benchmark/backend_host/profile_gen.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/profile_gen.cpp
+lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp
+lib/infrastructure/benchmark/backend_host/profile_store.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/profile_store.cpp
+lib/infrastructure/benchmark/backend_host/worker_advisor.cpp	CMakeLists.txt:701:add_library:lib/infrastructure/benchmark/backend_host/worker_advisor.cpp
+lib/infrastructure/cli/commands.cpp	CMakeLists.txt:981:add_executable:lib/infrastructure/cli/commands.cpp
+lib/infrastructure/cli/main.cpp	CMakeLists.txt:981:add_executable:lib/infrastructure/cli/main.cpp
+lib/infrastructure/cli/parser.cpp	CMakeLists.txt:981:add_executable:lib/infrastructure/cli/parser.cpp
+lib/infrastructure/cli/process.cpp	CMakeLists.txt:976:add_library:lib/infrastructure/cli/process.cpp | CMakeLists.txt:981:add_executable:lib/infrastructure/cli/process.cpp
+lib/infrastructure/cli/runtime_client.cpp	CMakeLists.txt:981:add_executable:lib/infrastructure/cli/runtime_client.cpp | CMakeLists.txt:1087:add_library:lib/infrastructure/cli/runtime_client.cpp
+lib/infrastructure/gaia_xpsd_client/lib/include/zlib.h	lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:86:set:lib/include/zlib.h
+lib/infrastructure/gaia_xpsd_client/src/gaia_client.c	CMakeLists.txt:843:add_library:${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c | lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15:add_library:src/gaia_client.c | eng/tests/unit/CMakeLists.txt:1067:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/src/gaia_client.c
+lib/infrastructure/gaia_xpsd_client/src/module_entry.c	lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15:add_library:src/module_entry.c
+lib/infrastructure/observability/probes/src/probe.cpp	CMakeLists.txt:444:add_library:lib/infrastructure/observability/probes/src/probe.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50:add_library:src/checkpoint.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/cli_command.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50:add_library:src/cli_command.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/dll_loader.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50:add_library:src/dll_loader.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/json_config.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50:add_library:src/json_config.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/logger.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50:add_library:src/logger.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/main.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:95:add_executable:src/main.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:50:add_library:src/orchestrator.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/gate_module_snr_extract_spy.cpp	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:74:add_library:gate/gate_module_snr_extract_spy.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/orchestrator_saturation_wiring_gate.cpp	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:85:add_executable:gate/orchestrator_saturation_wiring_gate.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_${orch_test}.cpp	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:18:add_executable:test_${orch_test}.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:27:add_executable:test_orchestrator_cli.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1phot_passband_identity.cpp	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:135:add_executable:test_p1phot_passband_identity.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_photometry_curve_resolve.cpp	lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt:109:add_executable:test_photometry_curve_resolve.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-patch.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28:add_library:third_party/json-schema-validator/json-patch.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-schema-draft7.json.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28:add_library:third_party/json-schema-validator/json-schema-draft7.json.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-uri.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28:add_library:third_party/json-schema-validator/json-uri.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28:add_library:third_party/json-schema-validator/json-validator.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/smtp-address-validator.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28:add_library:third_party/json-schema-validator/smtp-address-validator.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/string-format-check.cpp	lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:28:add_library:third_party/json-schema-validator/string-format-check.cpp
+lib/infrastructure/scheduler/src/artifact.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/artifact.cpp | eng/tests/unit/CMakeLists.txt:242:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/scheduler/src/artifact.cpp
+lib/infrastructure/scheduler/src/artifact_store.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/artifact_store.cpp
+lib/infrastructure/scheduler/src/block_flow.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/block_flow.cpp
+lib/infrastructure/scheduler/src/block_frame.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/block_frame.cpp
+lib/infrastructure/scheduler/src/build_stamp.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/build_stamp.cpp
+lib/infrastructure/scheduler/src/canonical_hash.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/canonical_hash.cpp
+lib/infrastructure/scheduler/src/checkpoint.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/checkpoint.cpp
+lib/infrastructure/scheduler/src/context.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/context.cpp | eng/tests/unit/CMakeLists.txt:242:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/scheduler/src/context.cpp
+lib/infrastructure/scheduler/src/executor.cpp	eng/tests/unit/CMakeLists.txt:242:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/scheduler/src/executor.cpp
+lib/infrastructure/scheduler/src/export_stream.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/export_stream.cpp
+lib/infrastructure/scheduler/src/logging.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/logging.cpp | eng/tests/unit/CMakeLists.txt:242:add_executable:${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/scheduler/src/logging.cpp
+lib/infrastructure/scheduler/src/memory_budget.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/memory_budget.cpp
+lib/infrastructure/scheduler/src/memory_pressure.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/memory_pressure.cpp
+lib/infrastructure/scheduler/src/module.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/module.cpp
+lib/infrastructure/scheduler/src/module_adapters.cpp	CMakeLists.txt:1043:add_library:lib/infrastructure/scheduler/src/module_adapters.cpp
+lib/infrastructure/scheduler/src/mosaic_window.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/mosaic_window.cpp
+lib/infrastructure/scheduler/src/normalize_workflow.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/normalize_workflow.cpp
+lib/infrastructure/scheduler/src/pipeline.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/pipeline.cpp
+lib/infrastructure/scheduler/src/plan_estimator.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/plan_estimator.cpp
+lib/infrastructure/scheduler/src/runtime.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/runtime.cpp
+lib/infrastructure/scheduler/src/scheduler.cpp	CMakeLists.txt:372:add_library:lib/infrastructure/scheduler/src/scheduler.cpp
+lib/phase1_session/p1_session.cpp	CMakeLists.txt:913:add_library:lib/phase1_session/p1_session.cpp
+lib/phase1_session/tests/test_p1_session_manifest.cpp	eng/tests/unit/CMakeLists.txt:759:add_executable:../../../lib//phase1_session/tests/test_p1_session_manifest.cpp
+lib/phase2_session/p2_session.cpp	CMakeLists.txt:925:add_library:lib/phase2_session/p2_session.cpp
+lib/phase3_session/p3_session.cpp	CMakeLists.txt:933:add_library:lib/phase3_session/p3_session.cpp
+run/UPM-KAPPA-UNIFY-01/tools/m42_criterion_probe.cpp	CMakeLists.txt:1156:add_executable:run/UPM-KAPPA-UNIFY-01/tools/m42_criterion_probe.cpp

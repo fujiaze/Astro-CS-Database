@@ -1,0 +1,7 @@
+实验/absolute-snr/code/reverse_verify/f_instr/README.md
+实验/absolute-snr/code/reverse_verify/frame_snr/README.md
+实验/absolute-snr/code/reverse_verify/snr_design/README.md
+实验/absolute-snr/data/README.md
+实验/absolute-snr/docs/EXP-01-DELTA-AND-ESTIMATOR.md
+实验/absolute-snr/docs/EXP-02-STRUCTURE-CONTAMINATION.md
+实验/absolute-snr/docs/EXP-03-REGIONAL-SIGMA.md

@@ -1,0 +1,7 @@
+# 批次 CR-132｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1005 行）
+lib/infrastructure/acr/utilization/actual_tracker.cpp
+lib/infrastructure/acr/utilization/actual_tracker.hpp
+lib/infrastructure/acr/utilization/config_hot_read.cpp
+lib/infrastructure/acr/utilization/config_hot_read.hpp
+lib/infrastructure/acr/utilization/memory_budget.cpp
+lib/infrastructure/acr/utilization/memory_budget.hpp

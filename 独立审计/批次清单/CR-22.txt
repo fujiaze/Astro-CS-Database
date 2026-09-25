@@ -1,0 +1,7 @@
+# 批次 CR-22｜lib/algorithms/coverage 第 4 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/coverage/src/integrate.cpp
+lib/algorithms/coverage/tests/ivar_wiring_test.cpp
+lib/algorithms/coverage/tests/kcorr_lookup_test.cpp
+lib/algorithms/coverage/include/astro/phase2/rejection.h
+lib/algorithms/coverage/src/rejection.cpp
+lib/algorithms/coverage/tools/rejection_cli.cpp

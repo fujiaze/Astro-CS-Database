@@ -1,0 +1,7 @@
+# 批次 CR-54｜lib/algorithms/calibration｜6 项（整读＋逐数值处置表；合计约 2187 行）
+lib/algorithms/calibration/include/astrocs/calibration/types.h
+lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h
+lib/algorithms/calibration/src/ac_api.cpp
+lib/algorithms/calibration/src/calibrator.cpp
+lib/algorithms/calibration/src/cosmetic_corrector.cpp
+lib/algorithms/calibration/src/dark_optimizer.cpp

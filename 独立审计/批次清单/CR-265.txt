@@ -1,0 +1,11 @@
+# 批次 CR-265｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/f77_wrap3.c
+lib/infrastructure/aio/third_party/cfitsio/f77_wrap4.c
+lib/infrastructure/aio/third_party/cfitsio/fits_hcompress.c
+lib/infrastructure/aio/third_party/cfitsio/fits_hdecompress.c
+lib/infrastructure/aio/third_party/cfitsio/fitscore.c
+lib/infrastructure/aio/third_party/cfitsio/fitsio.h
+lib/infrastructure/aio/third_party/cfitsio/fitsio2.h
+lib/infrastructure/aio/third_party/cfitsio/getcol.c
+lib/infrastructure/aio/third_party/cfitsio/getcolb.c
+lib/infrastructure/aio/third_party/cfitsio/getcold.c

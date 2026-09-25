@@ -1,0 +1,11 @@
+# 批次 CR-270｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/region.c
+lib/infrastructure/aio/third_party/cfitsio/region.h
+lib/infrastructure/aio/third_party/cfitsio/ricecomp.c
+lib/infrastructure/aio/third_party/cfitsio/scalnull.c
+lib/infrastructure/aio/third_party/cfitsio/simplerng.c
+lib/infrastructure/aio/third_party/cfitsio/simplerng.h
+lib/infrastructure/aio/third_party/cfitsio/swapproc.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/cookbook.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/fitscopy.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/fitsverify.c

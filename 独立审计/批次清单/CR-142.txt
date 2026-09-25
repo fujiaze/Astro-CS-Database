@@ -1,0 +1,7 @@
+# 批次 CR-142｜lib/infrastructure/aio｜6 项（整读＋逐数值处置表；合计约 2457 行）
+lib/infrastructure/aio/io/hips_core.c
+lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h
+lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h
+lib/infrastructure/aio/io/src/io_adapter.cpp
+lib/infrastructure/aio/io/tests/fits_core_selftest.c
+lib/infrastructure/aio/io/tests/hips_core_selftest.c

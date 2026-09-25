@@ -1,0 +1,7 @@
+# 批次 CR-133｜lib/infrastructure/acr / lib/infrastructure/aio｜6 项（整读＋逐数值处置表；合计约 1276 行）
+lib/infrastructure/acr/utilization/staging_ledger.cpp
+lib/infrastructure/acr/utilization/staging_ledger.hpp
+lib/infrastructure/acr/utilization/system_metrics.cpp
+lib/infrastructure/acr/utilization/system_metrics.hpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_format.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_reader.cpp

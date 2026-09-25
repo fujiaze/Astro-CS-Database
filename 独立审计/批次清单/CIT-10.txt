@@ -1,0 +1,16 @@
+# 批次 CIT-10｜14 条未核引用（P-1 优先，按命中次数降序）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 列：序号	优先级	命中次数	引用件	类型	代表位点(断言所在处)
+188	P-1	1	DOI 10.1051/0004-6361/202141249，XP	DOI	docs/science/PHOTOMETRY.md:311
+194	P-1	1	DOI 10.1051/0004-6361:20021326，[A&A	DOI	docs/science/ASTROMETRY.md:257
+200	P-1	1	DOI 10.1080/01621459.1993.10476408（MAD	DOI	docs/algorithms/PHASE2_SAMPLER.md:217
+206	P-1	1	DOI 10.1086/131801、Zackay	DOI	实验/absolute-snr/REPORT_paper.md:44
+212	P-1	1	DOI 10.1086/133014	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:223
+218	P-1	1	DOI 10.1086/301513	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:62
+224	P-1	1	DOI 10.1086/323387	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:217
+230	P-1	1	DOI 10.1086/345491	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:169
+236	P-1	1	DOI 10.1086/444553**	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:332
+242	P-1	1	DOI 10.1088/0004-6256/147/6/127	DOI	docs/science/PHOTOMETRY.md:307
+248	P-1	1	DOI 10.1093/biomet/36.3-4.458	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:38
+254	P-1	1	DOI 10.1093/pasj/psx080；Morganson	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1145
+260	P-1	1	DOI 10.1109/TIT.2006.885507	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:108
+266	P-1	1	DOI 10.1214/aoms/1177703732；效率表见	DOI	docs/algorithms/PLATESOLVE.md:195

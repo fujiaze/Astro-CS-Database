@@ -1,0 +1,56 @@
+V6 复核记录（只读，未跑任何构建/测试/检查器）
+================================================
+
+1) 跟踪性核对（命令 → 结果）
+  git ls-files --error-unmatch artifacts/evidence/audit-2026-01/FIX_LEDGER.csv
+    → artifacts/evidence/audit-2026-01/FIX_LEDGER.csv          （跟踪，是仓库事实）
+  git ls-files --error-unmatch lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/evidence/gate2_result.json
+    → 同名回显                                                  （跟踪）
+  git ls-files lib/photometric_calib | wc -l
+    → 0            （台账里写的证据路径 lib/photometric_calib/** 不在跟踪集）
+  git grep -c -I "gate2" -- eng/ci/checks.json
+    → 无命中       （产生该读数的脚本面未注册为门）
+  git grep -c -I "p1psf_centroid_gate" -- eng/ci/checks.json
+    → 10           （现行登记门已注册）
+
+2) 归档读数（gate2_result.json，我自己解析）
+  results.astrocs_production_path:
+    n_matched            = 109
+    centroid_median_px   = 0.7701382981823749
+    centroid_p95_px      = 1.1528986035412487
+    flux_median_rel      = 0.0021012859130402945
+  results.photutils:
+    centroid_median_px   = 0.004719151971911133
+    centroid_p95_px      = 0.03997009361034349
+  results.astrocs_converged_init（非生产初始化配置）:
+    centroid_median_px   = 0.004050294149607052
+    centroid_p95_px      = 0.022787555733850093
+  gates.centroid_p95_le_0.3px_production = false
+
+3) 容差与倍数
+  冻结容差 = 0.3 px（三处一致）：
+    docs/science/STAR_DETECTION.md:15, :135          |Δc| ≤ 0.3 px @ SNR≥20（SCI-P1-STAR-001 §1）
+    docs/algorithms/GATES_AND_TOLERANCES.md:52       G-P1-CENTROID-SCI   统计量 max  0.3 px
+    docs/algorithms/GATES_AND_TOLERANCES.md:54       G-P1-CENTROID-1     统计量 p95  0.3 px
+    lib/algorithms/psf/tests/p1psf/p1psf_centroid_gate.cpp:61  constexpr double kGateP95Px = 0.3;
+  倍数 = 1.1528986035412487 / 0.3 = 3.842995345137496  → 3.84×（成稿"数倍/3.8×"成立）
+
+4) 时间线（决定定级的一条，git log --diff-filter=A 首现提交）
+  c3452d48        2026-09-14  红读数所属提交（FIX_LEDGER 行 M3b-F-01 内文引用）
+  b249082f        2026-09-16  GATES_AND_TOLERANCES.md、p1psf_centroid_gate.cpp、
+                              star_coord_contract.h 同批新增（= M3b-C-01 坐标契约收口载体）
+  9a2b5d11        2026-09-21  audit-2026-01 / governance-01 证据目录批量入库
+  ⇒ 红读数早于收口两天；跟踪集里没有"收口之后的现行门读数原始件"。
+
+5) 定性结论
+  1.1529 px 出自 gate2_psf_oracle.py 的产物，而门表 :77 已明文把该脚本"降级为诊断脚本
+  （未注册进 eng/ci/checks.json）" ⇒ 这不是"一条科学门的归档红灯"，而是"已降级诊断脚本的历史红灯"。
+  现行登记门（ctest: p1psf_prodpath_centroid / p1psf_centroid_gate）的当前读数
+  落在 run/ci/ctest/*.json（.gitignore 排除）⇒ 跟踪集内不可判红也不可判绿 → 待证/需复测。
+  门表 :54 标定栏自述"双支路分离 −0.0000/+0.0001 px、各支路 p95 ≤0.040 px"方向为绿，
+  但同样没有入库原始件（R-3 正文引的 logs/02_oracle_detail.txt 未跟踪）。
+
+6) 复测要跑的那条（本审查按负责人"测试与端到端全停"令，未跑）
+  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build
+  ctest --test-dir build -R "p1psf_(prodpath_centroid|centroid_gate|centroid_gate_neg)" --output-on-failure
+  重计算须套内存看门狗：python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 4 -- <上面的 ctest>

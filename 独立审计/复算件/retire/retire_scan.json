@@ -1,0 +1,107 @@
+{
+ "retained": [
+  {
+   "file": "eng/ci/check_retired_code.py",
+   "block_start": 18,
+   "block_end": 24,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "eng/ci/check_retired_code.py",
+   "block_start": 656,
+   "block_end": 665,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py",
+   "block_start": 12,
+   "block_end": 13,
+   "missing_tokens": [
+    "WHAT:",
+    "WHY-KEPT:",
+    "STATUS:",
+    "EXIT:",
+    "AUTHORITY:"
+   ],
+   "empty_fields": [],
+   "compliant": false
+  },
+  {
+   "file": "lib/algorithms/coverage/src/rejection.cpp",
+   "block_start": 2622,
+   "block_end": 2639,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/algorithms/drizzle/healpix_drizzle/healpix_core.cpp",
+   "block_start": 1,
+   "block_end": 16,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/algorithms/drizzle/healpix_drizzle/healpix_core.h",
+   "block_start": 1,
+   "block_end": 18,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/algorithms/projection/p3_proj_v6.cpp",
+   "block_start": 1,
+   "block_end": 40,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/algorithms/projection/p3_proj_v6.h",
+   "block_start": 1,
+   "block_end": 80,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp",
+   "block_start": 30,
+   "block_end": 74,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h",
+   "block_start": 1,
+   "block_end": 41,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/phase3_session/p3_v6_export.cpp",
+   "block_start": 1,
+   "block_end": 47,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  },
+  {
+   "file": "lib/phase3_session/p3_v6_export.h",
+   "block_start": 1,
+   "block_end": 70,
+   "missing_tokens": [],
+   "empty_fields": [],
+   "compliant": true
+  }
+ ],
+ "banners": []
+}

@@ -1,0 +1,7 @@
+# 批次 CR-13｜lib/algorithms/drizzle 第 5 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_hips_api.cpp
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_internal.h
+lib/algorithms/drizzle/healpix_drizzle/tests/kcorr_matrix_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/mini_sip1000.cpp

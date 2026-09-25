@@ -1,0 +1,7 @@
+# 批次 CR-105｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 210 行）
+lib/infrastructure/acr/backends/cpu/isa/avx.cpp
+lib/infrastructure/acr/backends/cpu/isa/avx2.cpp
+lib/infrastructure/acr/backends/cpu/isa/avx512.cpp
+lib/infrastructure/acr/backends/cpu/isa/dispatch.cpp
+lib/infrastructure/acr/backends/cpu/isa/isa_kernels.hpp
+lib/infrastructure/acr/backends/cpu/isa/scalar.cpp

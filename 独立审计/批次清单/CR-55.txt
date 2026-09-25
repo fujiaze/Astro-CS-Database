@@ -1,0 +1,7 @@
+# 批次 CR-55｜lib/algorithms/calibration｜6 项（整读＋逐数值处置表；合计约 2947 行）
+lib/algorithms/calibration/src/master_generator.cpp
+lib/algorithms/calibration/src/module_entry.cpp
+lib/algorithms/calibration/src/photometry_apply.cpp
+lib/algorithms/calibration/src/photometry_apply.h
+lib/algorithms/calibration/src/v6_calibration_covariance.cpp
+lib/algorithms/calibration/tests/p1cal/bias_influence_harness.cpp

@@ -1,0 +1,7 @@
+# 批次 CR-124｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1666 行）
+lib/infrastructure/acr/tests/classic/e11_gemm.cpp
+lib/infrastructure/acr/tests/classic/e12_fft.cpp
+lib/infrastructure/acr/tests/classic/e15_failure.cpp
+lib/infrastructure/acr/tests/classic/e16_concurrency.cpp
+lib/infrastructure/acr/tests/classic/e17_model_fit.cpp
+lib/infrastructure/acr/tests/classic/e18_workpool.cpp

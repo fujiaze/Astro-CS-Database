@@ -1,0 +1,45 @@
+##### ci_repair_round
+eng/ci/checks.json:12701:            "test_ci_repair_round.py"
+##### polarity_probe
+eng/ci/ledgers/registration_anchor_ledger.json:77:      "owner": "CI 域（polarity_probe 登记册，eng/ci/polarity_probe.py 生成）",
+eng/ci/ledgers/registration_anchor_ledger.json:78:      "exit_condition": "polarity_probe 落点改到持久面（artifacts/evidence/**）并重建登记册，或整表清空重生成后，删除本条目。"
+eng/ci/polarity_evidence.json:4:  "generated_by": "eng/ci/polarity_probe.py",
+##### reconcile_state
+##### select_candidate
+.github/workflows/fatduck.yml:7:# head_branch == main 且 conclusion == success（双重防线，eng/ci/select_candidate.py）。
+.github/workflows/fatduck.yml:41:      # 由 select_candidate.py 从已验证 artifact bundle 实算），供 fatduck-validate
+.github/workflows/fatduck.yml:60:          python3 eng/ci/select_candidate.py \
+.github/workflows/fatduck.yml:66:            --log "$PWD/artifacts/select_candidate_log.jsonl"
+.github/workflows/fatduck.yml:94:          path: artifacts/select_candidate_log.jsonl
+eng/ci/ledgers/naming_surface.json:45:        "eng/ci/select_candidate.py / eng/ci/verify_remote_run.py（按 name 指认 run）",
+##### verify_ciqa_report
+##### check_p1_symbol_map
+eng/tools/doccheck/dangling_ledger.json:349:   "file": "eng/tools/check_p1_symbol_map.py",
+##### check_p2_symbol_map
+eng/tools/doccheck/dangling_ledger.json:361:   "file": "eng/tools/check_p2_symbol_map.py",
+eng/tools/doccheck/dangling_ledger.json:373:   "file": "eng/tools/check_p2_symbol_map.py",
+eng/tools/doccheck/dangling_ledger.json:385:   "file": "eng/tools/check_p2_symbol_map.py",
+eng/tools/doccheck/dangling_ledger.json:397:   "file": "eng/tools/check_p2_symbol_map.py",
+##### check_release_layout
+##### check_traceability_matrix
+docs/contracts/unified_object_registry.json:427:      "note": "可追溯矩阵形状；由 eng/tools/traceability/check_traceability_matrix.py 消费。"
+eng/ci/checks.json:1203:            "eng/tools/traceability/check_traceability_matrix.py"
+eng/tests/backend/test_p3006_production_pipeline.py:161:#       eng/tools/traceability/check_traceability_matrix.py(注册于 eng/ci/checks.json
+eng/tests/traceability/test_traceability_matrix.py:3:"""DOC-001 试金石测试：eng/tools/traceability/check_traceability_matrix.py 的 mutation 验证。
+eng/tests/traceability/test_traceability_matrix.py:24:CHECKER = os.path.join(REPO, "eng", "tools", "traceability", "check_traceability_matrix.py")
+eng/tools/doccheck/dangling_ledger.json:601:   "file": "eng/tools/traceability/check_traceability_matrix.py",
+eng/tools/gen_version.py:16:    - eng/tools/traceability/check_traceability_matrix.py（GIT_UNAVAILABLE ⇒ rc=2）。
+##### check_comment_hygiene
+eng/tools/quality/build_v19r2_package.py:100:        ["py -3.12", "eng/tools/quality/check_comment_hygiene.py"],
+eng/tools/quality/strip_version_comments.py:7:重编译全量 + 重跑测试 + check_comment_hygiene 复扫。
+##### check_commits_csv
+##### check_p3_rejection_count
+eng/tests/quality/test_p3_rejection_count.py:5:本文件不复制判据逻辑：唯一事实源是 eng/tools/quality/check_p3_rejection_count.py。
+eng/tests/quality/test_p3_rejection_count.py:26:CHECKER = os.path.join(REPO, "eng", "tools", "quality", "check_p3_rejection_count.py")
+##### check_source_inventory
+eng/ci/ledgers/naming_surface.json:99:        "eng/tools/quality/{check_ctest_registration,check_source_inventory,check_doc_symbols,gen_source_index_v61,v19r3_audit,build_v19r2_package,build_v19r3_package,build_v19r4_package}.py（skip/排除列表）",
+eng/tools/quality/build_v19r2_package.py:99:        ["py -3.12", "eng/tools/quality/check_source_inventory.py"],
+##### check_task_result_schema
+docs/contracts/unified_object_registry.json:455:      "note": "任务结果合同；由 eng/tools/quality/check_task_result_schema.py 消费。"
+eng/ci/polarity_evidence.json:480:          "eng/tools/quality/check_task_result_schema.py",
+eng/ci/polarity_probe.py:134:     _p("eng/tools/quality/check_task_result_schema.py", "--results-dir", EMPTY),

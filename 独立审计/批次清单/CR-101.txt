@@ -1,0 +1,7 @@
+# 批次 CR-101｜lib/infrastructure/benchmark｜6 项（整读＋逐数值处置表；合计约 1454 行）
+lib/infrastructure/benchmark/backend_host/cpu_routing.cpp
+lib/infrastructure/benchmark/backend_host/cpu_routing.h
+lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp
+lib/infrastructure/benchmark/backend_host/hardware_inspect.h
+lib/infrastructure/benchmark/backend_host/host_services.cpp
+lib/infrastructure/benchmark/backend_host/profile_gen.cpp

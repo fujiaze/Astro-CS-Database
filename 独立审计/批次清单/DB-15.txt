@@ -1,0 +1,6 @@
+实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md
+实验/absolute-snr/docs/EXP-05-ABSOLUTE-SNR.md
+实验/absolute-snr/docs/EXP-06-SNR-PHYS.md
+实验/absolute-snr/docs/EXP-06-SUMMARY.md
+实验/absolute-snr/docs/f-instr-canon.md
+实验/absolute-snr/docs/frame-snr-canon.md

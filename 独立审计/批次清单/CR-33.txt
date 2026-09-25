@@ -1,0 +1,7 @@
+# 批次 CR-33｜lib/algorithms/psf 第 2 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/psf/include/dynamic_psf.h
+lib/algorithms/psf/tests/p1psf/p1psf_center_contract_gate.cpp
+lib/algorithms/psf/tests/p1psf/p1psf_centroid_gate.cpp
+lib/algorithms/psf/tests/p1psf/p1psf_fixtures.hpp
+lib/algorithms/psf/tests/p1psf/p1psf_oracle.hpp
+lib/algorithms/psf/tests/p1psf/p1psf_prodpath_check.cpp

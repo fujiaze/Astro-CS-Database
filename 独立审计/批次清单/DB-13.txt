@@ -1,0 +1,16 @@
+docs/research/SNR_WEIGHT_RESEARCH_PACK.md
+docs/traceability/TRACEABILITY_LAYERS.csv
+docs/traceability/TRACEABILITY_MATRIX.csv
+docs/traceability/TRACEABILITY_MATRIX.json
+docs/traceability/TRACEABILITY_SPEC.md
+docs/traceability/traceability_warn_baseline.json
+docs/validation/SCIENCE_FREEZE.md
+docs/validation/v6/BASELINE_COMPARISON_MATRIX.md
+docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md
+docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md
+docs/validation/v6/P0_GATE_FAMILY.md
+docs/validation/v6/QA_MATRIX.md
+docs/validation/v6/README.md
+实验/absolute-snr/B7_ABSOLUTE_SNR_RECON.md
+实验/absolute-snr/README.md
+实验/absolute-snr/REPORT_paper.md

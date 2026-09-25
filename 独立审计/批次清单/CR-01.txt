@@ -1,0 +1,7 @@
+# 批次 CR-01｜lib/algorithms/photometry 第 1 段｜6 个文件（每个文件整读＋逐数值处置表）
+lib/algorithms/photometry/cpp/src/filter_curve_json.h
+lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp
+lib/algorithms/photometry/cpp/src/frame_photometry_fit.h
+lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/fsyn_export.cpp
+lib/algorithms/photometry/cpp/src/image_corrector.cpp
+lib/algorithms/photometry/cpp/src/image_corrector.h

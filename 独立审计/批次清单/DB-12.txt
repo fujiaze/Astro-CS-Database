@@ -1,0 +1,13 @@
+docs/owner/RELEASE_STATUS.md
+docs/owner/SCIENCE_OVERVIEW.md
+docs/performance/BASELINE.md
+docs/performance/OPTIMIZATION.md
+docs/quality/complexity_baseline_v1.md
+docs/quality/coverage_baseline_v1.md
+docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md
+docs/references/SCIENTIFIC_REFERENCES.md
+docs/research/CCD_LINEAR_DEFECT_LITERATURE.md
+docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md
+docs/research/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md
+docs/research/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md
+docs/research/PHOTOMETRY_RESEARCH_PACK.md

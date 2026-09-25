@@ -1,0 +1,7 @@
+# 批次 CR-41｜lib/algorithms/drizzle / lib/algorithms/platesolve｜6 项（整读＋逐数值处置表；合计约 904 行）
+lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h
+lib/algorithms/drizzle/hips/include/astrocs/hips/types.h
+lib/algorithms/drizzle/include/astrocs/drizzle/types.h
+lib/algorithms/platesolve/cpp/ipv/include/ipv_robust_refine.h
+lib/algorithms/platesolve/cpp/ipv/include/ipv_select.h
+lib/algorithms/platesolve/cpp/ipv/include/ipv_sip.h

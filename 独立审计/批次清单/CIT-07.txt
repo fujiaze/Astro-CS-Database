@@ -1,0 +1,16 @@
+# 批次 CIT-07｜14 条未核引用（P-1 优先，按命中次数降序）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 列：序号	优先级	命中次数	引用件	类型	代表位点(断言所在处)
+185	P-1	1	DOI 10.1051/0004-6361/202039587；Evans	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1144
+191	P-1	1	DOI 10.1051/0004-6361/202243880；arXiv:2206.06205	DOI	docs/science/PHOTOMETRY.md:311
+197	P-1	1	DOI 10.1051/aas:1996164**（当前手册	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1114
+203	P-1	1	DOI 10.1086/114121	DOI	docs/algorithms/PLATESOLVE.md:369
+209	P-1	1	DOI 10.1086/132749	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:184
+215	P-1	1	DOI 10.1086/133670	DOI	docs/algorithms/PLATESOLVE.md:369
+221	P-1	1	DOI 10.1086/316595	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:190
+227	P-1	1	DOI 10.1086/338393，bibcode	DOI	docs/science/DRIZZLE.md:180
+233	P-1	1	DOI 10.1086/431468	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:229
+239	P-1	1	DOI 10.1086/524677（公开检索命中	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:189
+245	P-1	1	DOI 10.1088/0067-0049/219/1/12	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:186
+251	P-1	1	DOI 10.1093/mnras/stv1320	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:80
+257	P-1	1	DOI 10.1109/TIP.2010.2056693	DOI	实验/absolute-snr/docs/EXP-06-SNR-PHYS.md:454
+263	P-1	1	DOI 10.1137/0201010	DOI	docs/algorithms/PHASE2_COVERAGE.md:403

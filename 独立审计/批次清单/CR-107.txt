@@ -1,0 +1,7 @@
+# 批次 CR-107｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1300 行）
+lib/infrastructure/acr/backends/cuda/cuda_buffer.cpp
+lib/infrastructure/acr/backends/cuda/cuda_buffer.hpp
+lib/infrastructure/acr/backends/cuda/cuda_executor.cpp
+lib/infrastructure/acr/backends/cuda/cuda_executor.hpp
+lib/infrastructure/acr/core/runtime.cpp
+lib/infrastructure/acr/core/task_descriptor.cpp
