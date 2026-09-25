@@ -48,7 +48,7 @@ admit（兼容性校验） → coverage（重叠图 union） → sampling（控�
 - **排异不是「7 种任选」**：排异算法**逐像素按该像素几何可贡献帧数 N 自动选择**；
   **排异档位映射表（档界取自 WBPP 2.5.9，逐项正本见 §9）**：
   `1≤N≤3` **none（不排异）** / `4≤N≤5` percentile / `N≥6` winsorized
-  （**M3 裁决 2026-09-25：原 `N≥16` linear fit 档改投 winsorized**）；
+  ；
   档位取值限于 percentile/winsorized/linear fit（linear fit 仍为对照档 `wbpp_2_9_1` 的 `N>15` 档）。
   冻结表落位 = `docs/plugins/algorithms_phase2/12_rejection.md` §9（**只引用，不复制**）。
 - **阶段内节点之间传块，不落中间文件**（最高设计 §8.2）；当前生产实现仍用磁盘 JSON/FITS

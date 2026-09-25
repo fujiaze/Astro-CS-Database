@@ -149,6 +149,6 @@ DISP-P2REJ-001/002/003/004（上节，登记不改码）；本页旧派生内容
 ## 排异档位（权威 = `ASTROCS_DESIGN.md` §5.5 / `docs/science/REJECTION.md`）
 
 按 N = 该输出像素的**几何覆盖帧数**自动路由：`1≤N≤3` none（不排异）/ `4≤N≤5` percentile /
-`N≥6` winsorized sigma clipping（**M3 裁决 2026-09-25：原 `N≥16` linear fit clipping 档改投**）。
+`N≥6` winsorized sigma clipping。
 生产算法集 = none / percentile / winsorized / linear fit（linear fit 仅显式指定）；**min/max 不用于生产**。实际方法、参数与 N 写入 `rejection` provenance。
 
