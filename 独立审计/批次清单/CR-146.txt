@@ -1,0 +1,5 @@
+# 批次 CR-146｜lib/infrastructure/aio｜4 项（整读＋逐数值处置表；合计约 3080 行）
+lib/infrastructure/aio/src/aio_pipeline.cpp
+lib/infrastructure/aio/src/aio_pipeline_engine.cpp
+lib/infrastructure/aio/src/aio_sparse_punch.h
+lib/infrastructure/aio/src/aio_sysinfo.cpp

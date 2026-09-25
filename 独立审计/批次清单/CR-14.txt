@@ -1,0 +1,7 @@
+# 批次 CR-14｜lib/algorithms/drizzle 第 6 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/drizzle/hips/src/module_entry.cpp
+lib/algorithms/drizzle/src/module_entry.cpp
+lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp
+lib/algorithms/drizzle/healpix_drizzle/tests/oracle_edge_crossing_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/oracle_independent_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/tests/p0_sip_order_guard_test.cpp

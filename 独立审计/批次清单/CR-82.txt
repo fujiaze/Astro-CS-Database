@@ -1,0 +1,7 @@
+# 批次 CR-82｜lib/infrastructure/cli｜6 项（整读＋逐数值处置表；合计约 1774 行）
+lib/infrastructure/cli/protocol.h
+lib/infrastructure/cli/resource_events.h
+lib/infrastructure/cli/resource_gate.h
+lib/infrastructure/cli/resource_recorder.h
+lib/infrastructure/cli/runtime_client.cpp
+lib/infrastructure/cli/runtime_client.h

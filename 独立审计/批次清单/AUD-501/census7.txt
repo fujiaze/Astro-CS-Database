@@ -1,0 +1,100 @@
+DISPATCHED_CHECKERS_WITH_SCANS 86 of 141
+scripts with >=1 scan face and ZERO zero-face-guard text: 33
+  UNGUARDED eng/ci/check_config_defaults.py                          faces=  3 guardhits=0
+        scan@75: templates = sorted(repo.glob("eng/packaging/config/templates/*.json"))
+        scan@96: for path in sorted(repo.glob("eng/contracts/schemas/phase_config_*.schema.json")):
+  UNGUARDED eng/ci/check_frozen_gate.py                              faces=  1 guardhits=0
+        scan@220: paths = sorted(pathlib.Path(p) for p in _glob.glob(str(REPO / pattern)))
+  UNGUARDED eng/ci/check_provenance_consistency.py                   faces=  1 guardhits=0
+        scan@137: for path in root.glob(pattern):
+  UNGUARDED eng/ci/check_psfsw_retired.py                            faces=  1 guardhits=0
+        scan@38: files = sorted(p for p in root.rglob("*") if p.is_file())
+  UNGUARDED eng/ci/check_realdata_e2e.py                             faces=  3 guardhits=0
+        scan@75: writers = sorted(work_dir.glob("**/p3_writer.json"))
+        scan@76: verifiers = sorted(work_dir.glob("**/p3_verify.json"))
+  UNGUARDED eng/ci/check_run_manifest_schema.py                      faces=  3 guardhits=0
+        scan@171: out += sorted(root.rglob("astrocs_run_*.json"))
+        scan@173: out += sorted(FIXTURES.glob("*.json"))
+  UNGUARDED eng/ci/validate_registry.py                              faces=  3 guardhits=0
+        scan@84: files = sorted(p for p in root.glob(pattern) if p.is_file())
+        scan@85: for sub in sorted(root.iterdir()):
+  UNGUARDED eng/ci/validate_workflow_binding.py                      faces=  1 guardhits=0
+        scan@321: present = sorted(p.name for p in wf_dir.glob("*.yml")) if wf_dir.is_dir() else []
+  UNGUARDED eng/tools/check_abi_boundary.py                          faces=  1 guardhits=0
+        scan@35: for p in sorted(abi_dir.glob("*.h"))]
+  UNGUARDED eng/tools/check_duplication.py                           faces=  2 guardhits=0
+        scan@43: for f in d.rglob("*.cpp"):
+        scan@55: for f in d.rglob("*.cpp"):
+  UNGUARDED eng/tools/check_gates_and_tolerances.py                  faces=  1 guardhits=0
+        scan@98: for dirpath, dirnames, filenames in os.walk(ROOT):
+  UNGUARDED eng/tools/check_glossary.py                              faces=  1 guardhits=0
+        scan@72: for dirpath, _, files in os.walk(os.path.join(REPO, root)):
+  UNGUARDED eng/tools/check_module_readmes.py                        faces=  2 guardhits=0
+        scan@74: in_lib = (REPO / "lib").glob("**/" + ref)
+        scan@79: in_tests = list((REPO / "eng" / "tests" / "unit").glob(ref))
+  UNGUARDED eng/tools/check_p3_status.py                             faces=  1 guardhits=0
+        scan@18: for f in sorted(root.rglob("*")):
+  UNGUARDED eng/tools/check_pipeline_trace.py                        faces=  2 guardhits=0
+        scan@61: manifests = sorted((REPO / "build").rglob("astrocs_run_*.json")) + \
+        scan@62: sorted(REPO.glob("astrocs_run_*.json"))
+  UNGUARDED eng/tools/check_serial_hardcode.py                       faces=  1 guardhits=0
+        scan@56: files = [base] if base.is_file() else (base.rglob("*.cpp") if base.is_dir() else [])
+  UNGUARDED eng/tools/check_unit_closure.py                          faces=  1 guardhits=0
+        scan@80: for dirpath, _, files in os.walk(d):
+  UNGUARDED eng/tools/check_version_consistency.py                   faces=  1 guardhits=0
+        scan@293: for dirpath, dirnames, filenames in os.walk(os.path.join(REPO, root)):
+  UNGUARDED eng/tools/e2e/run_e2e_chain.py                           faces=  1 guardhits=0
+        scan@104: fs = sorted(glob.glob(os.path.join(d, "astrocs_run_*.json")), key=os.path.getmtime)
+  UNGUARDED eng/tools/e2e/seam_footprint.py                          faces=  1 guardhits=0
+        scan@238: frames += sorted(glob.glob(os.path.join(d, "*", "p1_wcs.json")))
+  UNGUARDED eng/tools/quality/check_budget_single_source.py          faces=  1 guardhits=0
+        scan@184: for dirpath, dirnames, filenames in os.walk(os.path.join(root, base)):
+  UNGUARDED eng/tools/quality/check_master_unit_guard.py             faces=  3 guardhits=0
+        scan@224: lights = sorted((repo / "testdata/NGC1727_T2_flying_dutchman/lights").glob("*600S-Red.fts"))
+        scan@257: for mf in out_dir.glob("astrocs_run_*.json"):
+  UNGUARDED eng/tools/quality/check_secret_hygiene.py                faces=  1 guardhits=0
+        scan@279: for path in sorted(root.rglob("*")):
+  UNGUARDED eng/tools/quality/check_serial_heavy.py                  faces=  1 guardhits=0
+        scan@139: for p in base.rglob("*.cpp"):
+  UNGUARDED eng/tools/quality/check_sparse_punch.py                  faces=  4 guardhits=0
+        scan@170: for dirpath, dirnames, filenames in os.walk(base):
+        scan@175: full = Path(dirpath) / name
+  UNGUARDED eng/tools/quality/ci_windows_driver.py                   faces=  5 guardhits=0
+        scan@385: for path in sorted(candidate.rglob("*")):
+        scan@391: for path in sorted((p for p in candidate.rglob("*") if p.is_dir()),
+  UNGUARDED eng/tools/quality/contracts/check_comments.py            faces=  2 guardhits=0
+        scan@65: srcs = (list((repo / "lib").rglob("*.cpp")) + list((repo / "lib").rglob("*.h"))
+        scan@66: + list((repo / "lib").rglob("*.hpp")))
+  UNGUARDED eng/tools/quality/contracts/check_config_contracts.py    faces=  5 guardhits=0
+        scan@80: p = pathlib.Path(repo) / rel
+        scan@93: cfg_dir = pathlib.Path(repo) / CONFIGS_REL
+  UNGUARDED eng/tools/quality/contracts/check_execution_contracts.py faces=  1 guardhits=0
+        scan@273: for p in base.rglob("*.cpp"):
+  UNGUARDED eng/tools/quality/contracts/check_forbidden_patterns.py  faces=  3 guardhits=0
+        scan@27: for f in list((repo / "lib").rglob("*.cpp")) + list((repo / "lib").rglob("*.h")):
+        scan@38: for f in list((repo / "lib").rglob("*.json")) + list((repo / "docs").rglob("*.md")):
+  UNGUARDED eng/tools/quality/known_failures_baseline.py             faces=  4 guardhits=0
+        scan@414: for item in sorted(path.glob("*.json")):
+        scan@931: alg_mds = sorted(alg_dir.glob("*.md")) if alg_dir.is_dir() else []
+  UNGUARDED eng/tools/v6/v6_determinism_driver.py                    faces=  3 guardhits=0
+        scan@81: for p in sorted(root.rglob("*")):
+        scan@189: for q in sorted(prod_root.rglob("*")):
+  UNGUARDED eng/tools/v6/v6_numeric_equiv.py                         faces=  1 guardhits=0
+        scan@234: for p in sorted(root.rglob("*")) if p.is_file() and p.suffix != ".log"}
+
+== guard-positive examples (anchor proof that the pattern is detectable) ==
+  docs/algorithms/anchors/check_doc_line_anchors.py faces=2 guards=3
+        guard@19: C6 boundary_blank    锚的边界行（start 与 end）不得为空行 —— 行号锚的语义是
+        guard@303: "0 篇文档命中 doc_globs=%s（扫描面塌缩，fail-closed）"
+  eng/ci/check_aio_io_boundary.py faces=1 guards=6
+        guard@99: 扫描面：仓库首方 C/C++ 源（lib/ eng/tests/ lib/include/ eng/tools/ scripts/ eng/ci/ eng/cmake/ cli/ runtime/）。
+        guard@121: # ── 扫描面 ──────────────────────────────────────────────────────────────────
+  eng/ci/check_algo_wiring.py faces=1 guards=2
+        guard@132: raise gc.GateError("NM_EMPTY: %s（不得把空符号表当通过）" % binary)
+        guard@145: raise gc.GateError("NM_EMPTY: %s" % path)
+  eng/ci/check_cite_claim_mark_consistency.py faces=1 guards=1
+        guard@368: print("CITE-CLAIM-MARK-CONSISTENCY_FAIL: 无任何语料（fail-closed）", file=sys.stderr)
+  eng/ci/check_config_consumed.py faces=1 guards=1
+        guard@100: findings.append("%s (%s) — 生产源码零命中" % (key, rel))
+
+== scripts with no scan face (read specific files only) == 55

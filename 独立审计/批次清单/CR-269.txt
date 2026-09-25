@@ -1,0 +1,11 @@
+# 批次 CR-269｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/putcolk.c
+lib/infrastructure/aio/third_party/cfitsio/putcoll.c
+lib/infrastructure/aio/third_party/cfitsio/putcols.c
+lib/infrastructure/aio/third_party/cfitsio/putcolsb.c
+lib/infrastructure/aio/third_party/cfitsio/putcolu.c
+lib/infrastructure/aio/third_party/cfitsio/putcolui.c
+lib/infrastructure/aio/third_party/cfitsio/putcoluj.c
+lib/infrastructure/aio/third_party/cfitsio/putcoluk.c
+lib/infrastructure/aio/third_party/cfitsio/putkey.c
+lib/infrastructure/aio/third_party/cfitsio/quantize.c

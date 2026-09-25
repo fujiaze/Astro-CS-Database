@@ -1,0 +1,7 @@
+# 批次 CR-28｜lib/algorithms/platesolve 第 3 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/platesolve/cpp/ipv/src/ipv_log_sink.h
+lib/algorithms/platesolve/cpp/ipv/test/ipv_params_abi_failclosed_test.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_polygon.h
+lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp
+lib/algorithms/platesolve/cpp/ipv/include/ipv_ransac.h
+lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp

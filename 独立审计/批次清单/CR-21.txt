@@ -1,0 +1,7 @@
+# 批次 CR-21｜lib/algorithms/coverage 第 3 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/coverage/tests/execution_options_test.cpp
+lib/algorithms/coverage/hips_properties.cpp
+lib/algorithms/coverage/hips_properties.h
+lib/algorithms/coverage/include/astro/phase2/identifiability.h
+lib/algorithms/coverage/src/identifiability.cpp
+lib/algorithms/coverage/include/astro/phase2/integrate.h

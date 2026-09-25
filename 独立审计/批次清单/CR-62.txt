@@ -1,0 +1,5 @@
+# 批次 CR-62｜lib/algorithms/integration｜4 项（整读＋逐数值处置表；合计约 2774 行）
+lib/algorithms/integration/v6/src/phase2_integrate.cpp
+lib/algorithms/integration/v6/src/variance_propagation.cpp
+lib/algorithms/integration/v6/src/weight_chain.cpp
+lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h

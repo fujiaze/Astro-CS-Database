@@ -1,0 +1,7 @@
+# 批次 CR-90｜lib/infrastructure/pipeline｜6 项（整读＋逐数值处置表；合计约 2675 行）
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_photometry_curve_resolve.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-patch.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-patch.hpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-schema-draft7.json.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-uri.cpp
+lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator/json-validator.cpp

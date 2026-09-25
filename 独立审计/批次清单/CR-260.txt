@@ -1,0 +1,11 @@
+# 批次 CR-260｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_format.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_reader.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_reader.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_writer.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ahps_writer.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/corrected_stacker.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/corrected_stacker.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/gradient_fitter.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/gradient_fitter.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/gradient_sampler.cpp

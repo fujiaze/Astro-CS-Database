@@ -1,0 +1,7 @@
+# 批次 CR-18｜lib/algorithms/noise_snr 第 4 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp
+lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h
+lib/algorithms/noise_snr/cpp/test/snr_reconcile_test.cpp
+lib/algorithms/noise_snr/cpp/src/snr_science.cpp
+lib/algorithms/noise_snr/include/astrocs/noise/types.h
+lib/algorithms/noise_snr/include/astrocs/noise/variance_plane_policy.h

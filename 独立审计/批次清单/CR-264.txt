@@ -1,0 +1,11 @@
+# 批次 CR-264｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/editcol.c
+lib/infrastructure/aio/third_party/cfitsio/edithdu.c
+lib/infrastructure/aio/third_party/cfitsio/eval_defs.h
+lib/infrastructure/aio/third_party/cfitsio/eval_f.c
+lib/infrastructure/aio/third_party/cfitsio/eval_l.c
+lib/infrastructure/aio/third_party/cfitsio/eval_tab.h
+lib/infrastructure/aio/third_party/cfitsio/eval_y.c
+lib/infrastructure/aio/third_party/cfitsio/f77_wrap.h
+lib/infrastructure/aio/third_party/cfitsio/f77_wrap1.c
+lib/infrastructure/aio/third_party/cfitsio/f77_wrap2.c

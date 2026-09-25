@@ -1,0 +1,7 @@
+# 批次 CR-45｜lib/algorithms/platesolve｜6 项（整读＋逐数值处置表；合计约 2250 行）
+lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp
+lib/algorithms/platesolve/cpp/ipv/test/test_error_utf8.cpp
+lib/algorithms/platesolve/cpp/ipv/test/test_extract_wcs_sip_failclosed.cpp
+lib/algorithms/platesolve/cpp/ipv/test/test_kvector.cpp
+lib/algorithms/platesolve/cpp/ipv/test/test_last_inlier_reset.cpp
+lib/algorithms/platesolve/cpp/ipv/test/test_mag_iter.cpp

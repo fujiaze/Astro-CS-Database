@@ -1,0 +1,7 @@
+# 批次 CR-16｜lib/algorithms/noise_snr 第 2 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/noise_snr/tests/p1noise/p1noise_fixtures.hpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_oracle.hpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_saturation_test.cpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_test_main.hpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_tests_core.cpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_tests_main.cpp

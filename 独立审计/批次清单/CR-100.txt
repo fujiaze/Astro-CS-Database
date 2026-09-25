@@ -1,0 +1,7 @@
+# 批次 CR-100｜lib/infrastructure/benchmark｜6 项（整读＋逐数值处置表；合计约 1027 行）
+lib/infrastructure/benchmark/backend_host/bench_harness.cpp
+lib/infrastructure/benchmark/backend_host/bench_harness.h
+lib/infrastructure/benchmark/backend_host/bench_report.cpp
+lib/infrastructure/benchmark/backend_host/bench_report.h
+lib/infrastructure/benchmark/backend_host/cpu_features.cpp
+lib/infrastructure/benchmark/backend_host/cpu_features.h

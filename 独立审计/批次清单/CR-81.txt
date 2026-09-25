@@ -1,0 +1,7 @@
+# 批次 CR-81｜lib/infrastructure/cli｜6 项（整读＋逐数值处置表；合计约 2057 行）
+lib/infrastructure/cli/memory_report.h
+lib/infrastructure/cli/monitor.h
+lib/infrastructure/cli/mosaic/mosaic.h
+lib/infrastructure/cli/normalize/normalize.h
+lib/infrastructure/cli/parser.cpp
+lib/infrastructure/cli/process.cpp

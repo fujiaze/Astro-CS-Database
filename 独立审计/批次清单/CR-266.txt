@@ -1,0 +1,11 @@
+# 批次 CR-266｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/getcole.c
+lib/infrastructure/aio/third_party/cfitsio/getcoli.c
+lib/infrastructure/aio/third_party/cfitsio/getcolj.c
+lib/infrastructure/aio/third_party/cfitsio/getcolk.c
+lib/infrastructure/aio/third_party/cfitsio/getcoll.c
+lib/infrastructure/aio/third_party/cfitsio/getcols.c
+lib/infrastructure/aio/third_party/cfitsio/getcolsb.c
+lib/infrastructure/aio/third_party/cfitsio/getcolui.c
+lib/infrastructure/aio/third_party/cfitsio/getcoluj.c
+lib/infrastructure/aio/third_party/cfitsio/getcoluk.c

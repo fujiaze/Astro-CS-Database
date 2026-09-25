@@ -1,0 +1,60 @@
+key	value	doc	candidates	true_anchor
+calibration.dark_light_exposure_tolerance	5	docs/science/CALIBRATION.md	0	
+calibration.master_flat_median_range	[0.5, 2.0]	docs/science/CALIBRATION.md	4	112:| 1.0 / 0.5 / 0.2 / **0.1** | 1000 / 2000 / 5000 / **10000** | 同 | **0.00%** | ;; 122:`{1.0,0.5,0.1,0.05,0.01,2.0}` → `{3.3333,1.6667,0.3333,0.1667,0.1000,6.6667}`， ;; 182:消费边界按 `master_flat_median_range`（冻结默认 `[0.5, 2.0]`，见 `eng/packaging/config/defaults.json`
+detection.threshold_sigma	5.0	docs/science/STAR_DETECTION.md	1	65:`threshold = median(img) + 5.0·bgnoise`，**单位 ADU**；`bgnoise` 为
+psf.default_model	"moffat4"	docs/science/PSF.md	0	
+psf.moffat_beta	4.0	docs/science/PSF.md	0	
+noise.patch_grid	[8, 8]	docs/science/NOISE_MODEL.md	0	
+noise.source_mask_radius_px	10	docs/science/NOISE_MODEL.md	2	108:实测（12 seeds；1024²/320 星；Moffat β=2.5；FWHM=3 px）：`r=10 px` ⇒ 偏差 `+0.13%`、RMSE `0.17%`、`n_qualified=64`；`r=60 px` ⇒ 偏差 `−0.28%`、RMSE `0.76%`（**4.6×**）、`n_qualifie ;; 368:5. 掩膜半径默认值的导出依据（MASK-002）：以 §11 源污染 oracle 为判据，`k=0.1`、`r_min=max(1.5 px, 0.75·FWHM)`、硬上界 `rmax=max(1,r0)·max(1,scale)=60 px`、`N_sky ≥ 9216`、`n_qualified ≥ 8`。`
+noise.mask_radius_scale	6	docs/science/NOISE_MODEL.md	0	
+noise.clip_sigma	5.0	docs/science/NOISE_MODEL.md	1	346:- **饱和域 oracle（SAT-001）**：校准后饱和平台不是常数——平台电平 `SAT` 经平场除法带响应残差 `ε`（相对 1% ⇒ 平台散布 `0.01·SAT`，对 sky 仅 `0.01·μ`），故「平台像素」在值域上是**有噪声的整段总体**，不能指望 5σ 裁剪兜底。判据：**正例**（电平已提供
+noise.min_patch_samples	64	docs/science/NOISE_MODEL.md	0	
+noise.max_clip_rounds	2	docs/science/NOISE_MODEL.md	0	
+noise.saturation_level	0	docs/science/NOISE_MODEL.md	0	
+noise.spatial_field_enabled	1	docs/science/NOISE_MODEL.md	0	
+noise.variance_floor	1e-12	docs/science/NOISE_MODEL.md	3	30:| `variance_floor` | **可用方差**的下界（配置默认 `1e-12`，单位 ADU²；`max(var,floor)`）。**只作用于平面预测 > 0 的像素**；预测 ≤ 0 的像素方差不可用，产品面写 `variance=0 ∧ ivar=0`（§5/§7/§9）。非有限或 ≤0 一律显式拒绝 ;; 289:- **Floor 夹逼不变量**：`variance_floor` 单位为 **ADU²**、配置默认 `1e-12` 属冻结项（变更须走工程变更）。clamp **只作用于可用方差**：任意**可用** `variance` 经 `max(..., floor)` 后 `variance ≥ floor` 且 `i ;; 335:- 改变 `variance_floor` 默认值 `1e-12` 或 `g_model_floor` 的指针 key 隔离语义；
+noise.mask_k_sigma	0.1	docs/science/NOISE_MODEL.md	2	37:| `k` | 掩膜边缘残余面亮度系数，默认 `0.1`（⇒ 残余方差污染 < 1%·σ_bg²） | `noise.mask_k_sigma` | ;; 95:k     = 0.1                        # noise.mask_k_sigma
+noise.mask_r_min_px	1.5	docs/science/NOISE_MODEL.md	3	38:| `r_min` | 逐星半径下界 `max(1.5 px, 0.75·FWHM_i)` | 掩膜 | ;; 96:r_min = max(1.5 px, 0.75·FWHM_i)   # noise.mask_r_min_px / noise.mask_fwhm_floor_scale（至少覆盖 PSF 核心） ;; 368:5. 掩膜半径默认值的导出依据（MASK-002）：以 §11 源污染 oracle 为判据，`k=0.1`、`r_min=max(1.5 px, 0.75·FWHM)`、硬上界 `rmax=max(1,r0)·max(1,scale)=60 px`、`N_sky ≥ 9216`、`n_qualified ≥ 8`。`
+noise.mask_fwhm_floor_scale	0.75	docs/science/NOISE_MODEL.md	3	38:| `r_min` | 逐星半径下界 `max(1.5 px, 0.75·FWHM_i)` | 掩膜 | ;; 96:r_min = max(1.5 px, 0.75·FWHM_i)   # noise.mask_r_min_px / noise.mask_fwhm_floor_scale（至少覆盖 PSF 核心） ;; 368:5. 掩膜半径默认值的导出依据（MASK-002）：以 §11 源污染 oracle 为判据，`k=0.1`、`r_min=max(1.5 px, 0.75·FWHM)`、硬上界 `rmax=max(1,r0)·max(1,scale)=60 px`、`N_sky ≥ 9216`、`n_qualified ≥ 8`。`
+noise.mask_budget_min_patches	8	docs/science/NOISE_MODEL.md	0	
+noise.mask_budget_min_sky	9216	docs/science/NOISE_MODEL.md	7	98:天空预算收缩: 取最大 s∈(0,1] 使 n_qualified(s) ≥ 8 且 N_sky(s) ≥ 9216；无可行 s ⇒ rc=1（§7 空 support 不传播不变） ;; 99:预算推导（a priori）: 单 patch 相对误差 c ≈ 1.152/√N，中位数效率 1.25 ⇒ SE(σ̂)/σ ≈ 1.44/√N_sky；取 SE ≤ 1.5% ⇒ N_sky ≥ 9216 ;; 287:- **天空预算不变量**：任何掩膜方案必须留下 `n_qualified ≥ 8` 且 `N_sky ≥ 9216`；不满足 ⇒ 按 §5a 收缩半径；收缩到 `r_min` 仍不满足 ⇒ `ivar=0, r=1` 拒绝加权（「空 support 不传播」保持）。
+rejection.sigma.lower_sigma	4.0	docs/science/REJECTION.md	2	116:sigma/winsorized/averaged: 4.0/3.0/8 ;; 274:- **阈值**：表驱动冻结锚点（冻结头注释 `rejection.cpp:1-12`；规划层 typed 默认值 `rejection.cpp:1226-1251`：sigma/winsorized/averaged/median_sigma 4.0/3.0/8；linear_fit 5.0/3.5/8；ESD al
+rejection.sigma.upper_sigma	3.0	docs/science/REJECTION.md	0	
+rejection.sigma.max_iterations	8	docs/science/REJECTION.md	0	
+rejection.winsorized.lower_sigma	4.0	docs/science/REJECTION.md	0	
+rejection.winsorized.upper_sigma	3.0	docs/science/REJECTION.md	0	
+rejection.winsorized.max_iterations	8	docs/science/REJECTION.md	0	
+rejection.averaged_sigma.lower_sigma	4.0	docs/science/REJECTION.md	0	
+rejection.averaged_sigma.upper_sigma	3.0	docs/science/REJECTION.md	0	
+rejection.averaged_sigma.max_iterations	8	docs/science/REJECTION.md	0	
+rejection.linear_fit.lower_sigma	5.0	docs/science/REJECTION.md	0	
+rejection.linear_fit.upper_sigma	3.5	docs/science/REJECTION.md	0	
+rejection.linear_fit.max_iterations	8	docs/science/REJECTION.md	0	
+rejection.esd.alpha	0.05	docs/science/REJECTION.md	4	118:ESD: alpha 0.05 / max_outliers 10 ;; 267:GeneralizedESD=近似正态多离群检验（`alpha=0.05, max_outliers=10`，`rejection.cpp:1236`）； ;; 274:- **阈值**：表驱动冻结锚点（冻结头注释 `rejection.cpp:1-12`；规划层 typed 默认值 `rejection.cpp:1226-1251`：sigma/winsorized/averaged/median_sigma 4.0/3.0/8；linear_fit 5.0/3.5/8；ESD al
+rejection.esd.max_outliers	10	docs/science/REJECTION.md	3	118:ESD: alpha 0.05 / max_outliers 10 ;; 267:GeneralizedESD=近似正态多离群检验（`alpha=0.05, max_outliers=10`，`rejection.cpp:1236`）； ;; 284:`alpha=0.05`/`max_outliers=10` 为 Project-defined 采纳值，**文献不提供**这两个门值。
+rejection.percentile.low	0.2	docs/science/REJECTION.md	5	64:4 ≤ n ≤ 5      → percentile (low 0.2 / high 0.1, scale=|median|) ;; 101:n < 6          → percentile (low 0.2 / high 0.1, scale=|median|) ;; 119:percentile: low 0.2 / high 0.1
+rejection.percentile.high	0.1	docs/science/REJECTION.md	6	64:4 ≤ n ≤ 5      → percentile (low 0.2 / high 0.1, scale=|median|) ;; 101:n < 6          → percentile (low 0.2 / high 0.1, scale=|median|) ;; 119:percentile: low 0.2 / high 0.1
+rejection.minmax.min_kept	4	docs/science/REJECTION.md	0	
+rejection.large_scale.enabled	false	docs/science/REJECTION.md	0	
+photometry.mag_tolerance	3.0	docs/science/PHOTOMETRY.md	7	34:| `mag_tolerance` | 星等一致性阈 `3.0 mag` | `pc_api.cpp:145,435` | ;; 202:预拒绝 i  若  |delta_i − median_delta| > mag_tolerance    # mag_tolerance=3.0 ;; 218:与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp:21-27`（常数 `_MAD_SCALE/_TUKEY_C/_IRLS_MAX_ITER/_IRLS_CONVERGE`）、`:486-500`（星等一致性预过滤）、`:518-536`（`|r_consist
+photometry.tukey_c	4.685	docs/science/PHOTOMETRY.md	6	31:| `c` | Tukey 形状参数 `4.685` | 同上 | ;; 207:u_i = (r_i − location)/(c·S),  c=4.685 ;; 221:- **为什么窗宽不构成风险**：真正决定鲁棒性的是其后 IRLS/Tukey 层——`S = MAD(r)/0.6744897501960817`、`c = 4.685` 的 biweight 截断（§7「鲁棒性」不变量：注入 20% 离群 `location` 变化 `<0.1 dex`）。预过滤窗只需保证「不放走
+photometry.irls_max_iterations	50	docs/science/PHOTOMETRY.md	0	
+photometry.irls_tolerance_dex	1e-06	docs/science/PHOTOMETRY.md	0	
+photometry.min_reference_stars	3	docs/science/PHOTOMETRY.md	0	
+photometry.min_inlier_stars	2	docs/science/PHOTOMETRY.md	0	
+precision.default	"fp64"	docs/science/SCIENCE_SCOPE.md	3	92:**稀疏/有限数据**（帧级 SNR、WCS 解、星表匹配、测光定标）全程 **FP64**。 ;; 93:- **计算与承载分离**：本层内部归约/累积用 FP64，FP32 是**落盘/发布 dtype**（块类型 `AIO_BLOCK_FLOAT32`/`AIO_BLOCK_FLOAT64` 由精度模式选择，`module_adapters.cpp:6355-6377`）。 ;; 96:- **显式等价路径门**：UPM 稀疏模型与稠密缓存对同一输入的块输出按 `EXPECT_NEAR(..., 1e-12)` 判等（`lib/algorithms/coverage/tests/synthetic_gate.cpp:2849`，用例 `Phase2Upm.SparseEqualsDense`）；该门只
+upm.k_corr	1.4	docs/science/PHASE2_UPM.md	9	24:| `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒），冻结默认 1.4 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） | ;; 42:- `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:874`）； ;; 49:**适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。生产取值 1.4 的来源是
+hips.tile_width	512	docs/science/PHASE3_HIPS_TO_FITS.md	12	17:| `hips_tile_width` | tile 宽 `W`（默认 512=2⁹） | 输入 | ;; 18:| `leaf_order` | leaf 像素 order = `tile_order + log2(W)`（`W=hips_tile_width`；**支持子集 W=512 ⇒ +9**） | DATA_SEMANTICS §3 | ;; 43:- properties 必需键存在且合法: `hips_order`(int≥0), `hips_tile_width`(**支持子集 W=512**), `hips_frame`='equatorial', 数据属性含 float FITS tiles；**合法转换=仅恒等 ICRS**。
+drizzle.pixfrac	0.8	docs/science/DRIZZLE.md	3	26:| `pixfrac` | drop 收缩因子 (0,1]（`drizzle.pixfrac`，默认 0.8） | `drizzle_engine:half=0.5*pixfrac` | ;; 132:`pixfrac∈{0.1,0.5,0.8,1.0}` × 过采样率 `{1,2,3,4}` 上断言 `Σ_p sumFlux_p=Σ_j x_j` ;; 172:`pixfrac∈{0.1,0.5,0.8,1.0}`×过采样率 `{1,2,3,4}` 上断言 `Σ_p sumFlux_p=Σ_j x_j`
+sparse_snr.density	null	-	-	<<no cited file>>
+sparse_snr.spacing_px	64	-	-	<<no cited file>>
+snr.path	"sparse_reconstruct"	docs/plugins/algorithms_phase1/07_noise_snr.md	2	97:- **不静默降级**：输入无稀疏层而路径为 `sparse_reconstruct`（含默认）⇒ 按帧级执行但**必须显式记录实际路径**（`snr_path_effective`）并计数；稀疏层存在但损坏/不可重建 ⇒ 显式失败； ;; 216:| `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径的适用域由 `实验/absolute-snr` 给出 |
+scalar_gate.rd	null	-	-	<<no cited file>>
+scalar_gate.trend	null	-	-	<<no cited file>>
+paths.gaia_root	"gaia"	-	-	<<no cited file>>
+cosmetic.bad_column_enabled	true	docs/contracts/DATA_SEMANTICS.md	0	
+cosmetic.bad_column_sigma	5.0	docs/contracts/DATA_SEMANTICS.md	0	
+cosmetic.bad_column_neighbor_k	3	docs/contracts/DATA_SEMANTICS.md	0	
+cosmetic.bad_column_sigma_master	10.5	run/LINDEF-CLOSE-01/REPORT.md	-	<<no cited file>>
+cosmetic.bad_column_variance_kappa	2.0	docs/contracts/DATA_SEMANTICS.md	0	
+cosmetic.bad_column_master_wide_frac_max	0.001	run/LINDEF-CLOSE-01/REPORT.md	-	<<no cited file>>

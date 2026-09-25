@@ -1,0 +1,2 @@
+# 批次 CR-279｜超大第一方文件按行段分片｜lib/algorithms/coverage/tests/synthetic_gate.cpp 的 6001-6077 行（全文件 6077 行，拆成 5 段，跨段结论须读完全部段才下）
+lib/algorithms/coverage/tests/synthetic_gate.cpp:6001-6077

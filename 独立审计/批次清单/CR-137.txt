@@ -1,0 +1,7 @@
+# 批次 CR-137｜lib/infrastructure/aio｜6 项（整读＋逐数值处置表；合计约 1236 行）
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/spherical_spline.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/spherical_spline.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/test_gradient_sampler.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/test_snr_evaluator.cpp

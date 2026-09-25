@@ -1,0 +1,7 @@
+# 批次 CR-212｜lib/infrastructure/aio｜6 项（整读＋逐数值处置表；合计约 1554 行）
+lib/infrastructure/aio/third_party/cfitsio/utilities/fvrf_key.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/fvrf_misc.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/imcopy.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/iter_image.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/iter_var.c
+lib/infrastructure/aio/third_party/cfitsio/utilities/smem.c

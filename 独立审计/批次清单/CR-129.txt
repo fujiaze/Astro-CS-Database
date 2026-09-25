@@ -1,0 +1,7 @@
+# 批次 CR-129｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1296 行）
+lib/infrastructure/acr/tests/unit/test_mixed_route.cpp
+lib/infrastructure/acr/tests/unit/test_profile_holdout.cpp
+lib/infrastructure/acr/tests/unit/test_qualification.cpp
+lib/infrastructure/acr/tests/unit/test_residency.cpp
+lib/infrastructure/acr/tests/unit/test_resource_control.cpp
+lib/infrastructure/acr/tests/unit/test_route_calibration.cpp

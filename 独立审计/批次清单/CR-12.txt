@@ -1,0 +1,7 @@
+# 批次 CR-12｜lib/algorithms/drizzle 第 4 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_science_matrix_test.cpp
+lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp
+lib/algorithms/drizzle/healpix_drizzle/fits_reader.h
+lib/algorithms/drizzle/healpix_drizzle/healpix_core.cpp
+lib/algorithms/drizzle/healpix_drizzle/healpix_core.h
+lib/algorithms/drizzle/healpix_drizzle/tests/hiss_write_probe.cpp

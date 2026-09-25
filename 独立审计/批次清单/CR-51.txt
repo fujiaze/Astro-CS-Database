@@ -1,0 +1,6 @@
+# 批次 CR-51｜lib/algorithms/coverage / lib/algorithms/star_detection｜5 项（整读＋逐数值处置表；合计约 2752 行）
+lib/algorithms/coverage/tests/weight_mode_retire_negative_test.cpp
+lib/algorithms/coverage/tools/stage2.cpp
+lib/algorithms/star_detection/include/star_detector.h
+lib/algorithms/star_detection/src/sdet_detector.cpp
+lib/algorithms/star_detection/src/sdet_detector.h

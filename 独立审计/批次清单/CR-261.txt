@@ -1,0 +1,11 @@
+# 批次 CR-261｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/gradient_sampler.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/nanoflann.hpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/snr_evaluator.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/spherical_spline.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/spherical_spline.h
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/test_gradient_sampler.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/gradient/test_snr_evaluator.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/healpix_core.cpp
+lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/healpix_core.h

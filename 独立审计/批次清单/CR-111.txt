@@ -1,0 +1,7 @@
+# 批次 CR-111｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1284 行）
+lib/infrastructure/acr/include/astro/compute/kernel_registry.hpp
+lib/infrastructure/acr/include/astro/compute/runtime_internal.h
+lib/infrastructure/acr/include/astro/compute/task_traits.hpp
+lib/infrastructure/acr/include/astro/compute/topology.hpp
+lib/infrastructure/acr/profile/profile_reader.cpp
+lib/infrastructure/acr/profile/profile_reader.hpp

@@ -1,0 +1,7 @@
+# 批次 CR-64｜lib/algorithms/shared｜6 项（整读＋逐数值处置表；合计约 787 行）
+lib/algorithms/shared/healpix/tests/test_healpix_neighbors.cpp
+lib/algorithms/shared/healpix/tests/test_healpix_oracle.cpp
+lib/algorithms/shared/healpix/tests/test_hips_tile_mapping.cpp
+lib/algorithms/shared/include/astro_scalar.h
+lib/algorithms/shared/include/precision_context.h
+lib/algorithms/shared/tests/test_precision.cpp

@@ -1,0 +1,71 @@
+DISPATCHED_SCRIPTS 167
+reads PRODUCT/run or 实验/testdata : 43
+reads only DOCS/SELFCONFIG/FIXTURE  : 22
+reads PRODSRC (source code text)    : 77
+reads DOCS                          : 98
+reads SELFCONFIG(eng/ci,contracts)  : 58
+reads FIXTURE                       : 20
+reads TESTSRC                       : 39
+no path-like literals at all        : 33
+
+== scripts with NO product/archive/docs/prodsrc class (candidate self-referential) ==
+  eng/ci/check_product_contract.py                           cls=['FIXTURE', 'SELFCONFIG', 'TESTSRC']  units=['PRODUCT-CONTRACT', 'PRODUCT-CONTRACT-SELFTEST']
+  eng/ci/check_workflow_governance.py                        cls=['SELFCONFIG']  units=['WORKFLOW-GOV-SELFTEST', 'WORKFLOW-GOVERNANCE']
+  eng/ci/resource_monitor.py                                 cls=['SELFCONFIG']  units=['BUILD-GCC-RELEASE', 'CHK-REALDATA-E2E', 'CTEST-LINUX-FULL']
+  eng/ci/validate_registry.py                                cls=['SELFCONFIG', 'TESTSRC']  units=['CHK-REGISTRY-VALIDATE']
+  eng/ci/verify_actions_lock.py                              cls=['SELFCONFIG']  units=['ACTIONS-LOCK-OFFLINE', 'ACTIONS-LOCK-ONLINE', 'ACTIONS-LOCK-SELFTEST']
+  eng/ci/verify_toolchain.py                                 cls=[]  units=['TOOLCHAIN-VERIFY']
+  eng/tests/cpu/dispatch/run_cpu_capability_checks.py        cls=[]  units=['UT-CPU-DISPATCH']
+  eng/tools/quality/check_exit_conclusion_consistency.py     cls=[]  units=['EXIT-CONSISTENCY-SCAN', 'EXIT-CONSISTENCY-SELFTEST']
+  eng/tools/quality/check_isa_leak.py                        cls=[]  units=['ISA-LEAK-SELFTEST']
+  eng/tools/quality/check_pipeline_graph.py                  cls=[]  units=['PRODUCTION-GRAPH']
+  eng/tools/quality/check_scheduler_probe_schema.py          cls=[]  units=['CHK-SCHED-PROBE-SCHEMA-STEP']
+  eng/tools/quality/resource_gate_probe.py                   cls=[]  units=['RESOURCE-GATE-REAL']
+  test_bootstrap_utf8.py                                     cls=MISSING-ON-DISK  units=['CI-CONTRACT-BOOTSTRAP-UTF8']
+  test_ci001_failclosed.py                                   cls=MISSING-ON-DISK  units=['CI-INTEGRATION-CI001-FAILCLOSED']
+  test_ci001b_*.py                                           cls=MISSING-ON-DISK  units=['CI-BINDING-TESTS']
+  test_ci_repair_round.py                                    cls=MISSING-ON-DISK  units=['CI-INTEGRATION-CI-REPAIR-ROUND']
+  test_ctest_registration.py                                 cls=MISSING-ON-DISK  units=['CI-CONTRACT-CTEST-REGISTRATION']
+  test_deep_profiles.py                                      cls=MISSING-ON-DISK  units=['CHK-DEEP-PROFILES-TESTS']
+  test_fatduck_workflow.py                                   cls=MISSING-ON-DISK  units=['CI-CONTRACT-FATDUCK-WORKFLOW']
+  test_fix203_*.py                                           cls=MISSING-ON-DISK  units=['CHK-FIX203-PROMOTED-KEYS']
+  test_fix208_disk_gate.py                                   cls=MISSING-ON-DISK  units=['CHK-FIX208-DISK-GATE']
+  test_fix208_event_stream_default.py                        cls=MISSING-ON-DISK  units=['CHK-FIX208-EVENT-STREAM-DEFAULT']
+  test_fix406_sigterm_cancel.py                              cls=MISSING-ON-DISK  units=['CHK-FIX406-SIGTERM']
+  test_gap4_empty_outputs_guard.py                           cls=MISSING-ON-DISK  units=['CI-CONTRACT-GAP4-EMPTY-OUTPUTS']
+  test_gate_failclosed_selftest.py                           cls=MISSING-ON-DISK  units=['CHK-GATE-FAILCLOSED-SELFTEST']
+  test_impact_map.py                                         cls=MISSING-ON-DISK  units=['CI-CONTRACT-IMPACT-MAP']
+  test_negative_guards.py                                    cls=MISSING-ON-DISK  units=['CI-CONTRACT-NEGATIVE-GUARDS']
+  test_resource_monitor_shim.py                              cls=MISSING-ON-DISK  units=['CI-CONTRACT-RESOURCE-MONITOR-SHIM']
+  test_resource_probe.py                                     cls=MISSING-ON-DISK  units=['CI-CONTRACT-RESOURCE-PROBE']
+  test_run_monitored.py                                      cls=MISSING-ON-DISK  units=['CI-INTEGRATION-RUN-MONITORED']
+  test_run_prefix_probe.py                                   cls=MISSING-ON-DISK  units=['CI-CONTRACT-RUN-PREFIX-PROBE']
+  test_runner_contract.py                                    cls=MISSING-ON-DISK  units=['CI-CONTRACT-RUNNER-CONTRACT']
+  test_runner_execution.py                                   cls=MISSING-ON-DISK  units=['CI-CONTRACT-RUNNER-EXECUTION']
+  test_runner_selection.py                                   cls=MISSING-ON-DISK  units=['CI-CONTRACT-RUNNER-SELECTION']
+  test_unified_object_contract.py                            cls=MISSING-ON-DISK  units=['CHK-PSFSW-RETIRED-NEGATIVE']
+  test_verify_remote_run.py                                  cls=MISSING-ON-DISK  units=['CI-CONTRACT-VERIFY-REMOTE-RUN']
+  test_windows_ci.py                                         cls=MISSING-ON-DISK  units=['CI-CONTRACT-WINDOWS-CI']
+  test_workflow_lock.py                                      cls=MISSING-ON-DISK  units=['CI-CONTRACT-WORKFLOW-LOCK']
+
+== FIXTURE-reading scripts and their unit ids ==
+  eng/ci/check_design_clause_wiring.py                       units=['CHK-DESIGN-CLAUSE-WIRING', 'CHK-DESIGN-CLAUSE-WIRING-SELFTEST']
+  eng/ci/check_frozen_gate.py                                units=['L2-FROZEN-GATE-REPLAY', 'L2-FROZEN-GATE-SELFTEST']
+  eng/ci/check_product_contract.py                           units=['PRODUCT-CONTRACT', 'PRODUCT-CONTRACT-SELFTEST']
+  eng/ci/check_provenance_consistency.py                     units=['CHK-PROVENANCE-CONSISTENCY']
+  eng/ci/check_registration_anchors.py                       units=['CHK-REGISTRATION-ANCHORS', 'CHK-REGISTRATION-ANCHORS-SELFTEST']
+  eng/ci/check_run_manifest_schema.py                        units=['CHK-RUN-MANIFEST-SCHEMA', 'CHK-RUN-MANIFEST-SCHEMA-SELFTEST']
+  eng/ci/check_worker_balance.py                             units=['WORKER-BALANCE-METRIC-REPLAY', 'WORKER-BALANCE-METRIC-SELFTEST']
+  eng/tools/astrometry/closure_metric.py                     units=['E2E-WCS-CLOSURE-REPRO-SELFTEST']
+  eng/tools/check_agents_gov.py                              units=['AGENTS-GOV']
+  eng/tools/check_legacy_exit.py                             units=['ACR-DORMANT']
+  eng/tools/doccheck/check_doc_index.py                      units=['DOC-INDEX', 'DOC-INDEX-SELFTEST']
+  eng/tools/doccheck/check_engineering_constraints.py        units=['ENG-CONSTRAINTS']
+  eng/tools/e2e/run_e2e_chain.py                             units=['E2E-CHAIN-SELFTEST-STEP', 'E2E-CHAIN-VERIFY-STEP']
+  eng/tools/e2e/seam_footprint.py                            units=['SEAM-FOOTPRINT-PRODUCT', 'SEAM-FOOTPRINT-SELFTEST']
+  eng/tools/quality/check_log_system.py                      units=['LOG-SYS-SCAN', 'LOG-SYS-SELFTEST']
+  eng/tools/quality/check_module_map.py                      units=['CHK-MODULE-MANIFEST']
+  eng/tools/quality/check_path_domain_anchors.py             units=['CHK-PATH-DOMAIN-ANCHORS']
+  eng/tools/quality/check_serial_heavy.py                    units=['NO-SERIAL-HEAVY', 'SERIAL-HEAVY-SELFTEST']
+  eng/tools/quality/known_failures_baseline.py               units=['KNOWN-FAILURES-BASELINE', 'KNOWN-FAILURES-BASELINE-CHECK', 'KNOWN-FAILURES-BASELINE-VERIFY']
+  eng/tools/testkit/check_testkit.py                         units=['TESTKIT-LIST']

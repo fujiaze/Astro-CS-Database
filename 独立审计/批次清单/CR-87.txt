@@ -1,0 +1,2 @@
+# 批次 CR-87｜lib/infrastructure/pipeline｜1 项（整读＋逐数值处置表；合计约 5522 行）
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:1-5522

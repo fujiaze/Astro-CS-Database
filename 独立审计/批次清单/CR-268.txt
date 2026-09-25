@@ -1,0 +1,11 @@
+# 批次 CR-268｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/iter_c.c
+lib/infrastructure/aio/third_party/cfitsio/longnam.h
+lib/infrastructure/aio/third_party/cfitsio/modkey.c
+lib/infrastructure/aio/third_party/cfitsio/pliocomp.c
+lib/infrastructure/aio/third_party/cfitsio/putcol.c
+lib/infrastructure/aio/third_party/cfitsio/putcolb.c
+lib/infrastructure/aio/third_party/cfitsio/putcold.c
+lib/infrastructure/aio/third_party/cfitsio/putcole.c
+lib/infrastructure/aio/third_party/cfitsio/putcoli.c
+lib/infrastructure/aio/third_party/cfitsio/putcolj.c

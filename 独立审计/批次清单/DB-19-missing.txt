@@ -1,0 +1,10 @@
+工程控制/RELEASE-05/tasks/ACCEPT-501.md
+工程控制/RELEASE-05/tasks/ARCH-501.md
+工程控制/RELEASE-05/tasks/ARCH-502.md
+工程控制/RELEASE-05/tasks/ARCH-503.md
+工程控制/RELEASE-05/tasks/ARCH-504.md
+工程控制/RELEASE-05/tasks/ARCH-505.md
+工程控制/RELEASE-05/tasks/BLD-501.md
+工程控制/RELEASE-05/tasks/CLEAN-501.md
+工程控制/RELEASE-05/tasks/CONTRACT-501.md
+工程控制/RELEASE-05/tasks/DOC-501.md

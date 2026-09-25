@@ -1,0 +1,2 @@
+# 批次 CR-249｜超大第一方文件按行段分片｜lib/infrastructure/scheduler/src/module_adapters.cpp 的 13501-15000 行（全文件 15532 行，拆成 11 段，跨段结论须读完全部段才下）
+lib/infrastructure/scheduler/src/module_adapters.cpp:13501-15000

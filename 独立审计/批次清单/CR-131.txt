@@ -1,0 +1,7 @@
+# 批次 CR-131｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 950 行）
+lib/infrastructure/acr/tools/acr_benchmark/main.cpp
+lib/infrastructure/acr/tools/acr_classic_runner/main.cpp
+lib/infrastructure/acr/tools/acr_report/main.cpp
+lib/infrastructure/acr/tools/acr_status/main.cpp
+lib/infrastructure/acr/topology/cpu_features.cpp
+lib/infrastructure/acr/topology/hwloc_topo.cpp

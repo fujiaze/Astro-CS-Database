@@ -1,0 +1,2 @@
+# 批次 CR-283｜超大第一方文件按行段分片｜lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp 的 4501-5522 行（全文件 5522 行，拆成 4 段，跨段结论须读完全部段才下）
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:4501-5522

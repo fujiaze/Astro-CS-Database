@@ -1,0 +1,5 @@
+# 批次 CR-201｜lib/infrastructure/aio｜4 项（整读＋逐数值处置表；合计约 2297 行）
+lib/infrastructure/aio/third_party/cfitsio/putcoll.c
+lib/infrastructure/aio/third_party/cfitsio/putcols.c
+lib/infrastructure/aio/third_party/cfitsio/putcolsb.c
+lib/infrastructure/aio/third_party/cfitsio/putcolu.c

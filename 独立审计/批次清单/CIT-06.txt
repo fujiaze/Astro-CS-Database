@@ -1,0 +1,20 @@
+# 批次 CIT-06｜18 条未核引用（P-1 优先）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 列：序号	优先级	命中次数	引用件	类型	代表位点(断言所在处)
+60	P-1	4	DOI:10.1137/1.9781611970128	DOI/DOI-url	实验/additive-sky-seamless/results/evidence_lit.json:69 ;; 实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md:708 ;; 实验/additive-sky-seamless/README.md:330
+85	P-1	3	DOI:10.1093/mnras/stw474	DOI/DOI-url	实验/additive-sky-seamless/results/evidence_lit.json:55 ;; 实验/additive-sky-seamless/README.md:329 ;; 实验/additive-sky-seamless/REPORT_paper.md:394
+94	P-1	2	arXiv:1602.08037	arXiv	实验/additive-sky-seamless/REPORT_paper.md:394 ;; 实验/additive-sky-seamless/results/evidence_lit.json:55
+100	P-1	2	arXiv:2209.12268	arXiv	docs/algorithms/COSMETIC_ALGORITHMS.md:424 ;; docs/science/CALIBRATION.md:422
+106	P-1	2	arXiv:astro-ph/0703454v2	arXiv	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:188 ;; 实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:189
+112	P-1	2	DOI 10.1051/0004-6361:20021327	DOI	docs/algorithms/PHASE3_RESAMPLE.md:191 ;; docs/science/PHASE3_HIPS_TO_FITS.md:179
+118	P-1	2	DOI 10.1088/0004-6256/135/6/2055	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:215 ;; 实验/absolute-snr/docs/surveys/f-instr-survey.md:413
+124	P-1	2	DOI 10.1214/ss/1038425655	DOI	实验/absolute-snr/docs/snr-propagation-design.md:1126 ;; 实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:104
+130	P-1	2	DOI 10.3847/1538-4365/ac00b3.	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:268 ;; 实验/absolute-snr/docs/surveys/frame-snr-survey.md:26
+136	P-1	1	2008ApJ...674.1217P	ADS-bibcode	docs/references/SCIENTIFIC_REFERENCES.md:37
+142	P-1	1	arXiv:0904.0638	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:191
+148	P-1	1	arXiv:1302.4764	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:176
+154	P-1	1	arXiv:2011.08625	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:201
+160	P-1	1	arXiv:2309.11225	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:133
+166	P-1	1	arXiv:2411.09049	arXiv	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:200
+172	P-1	1	DOI 10.1002/opph.201190082	DOI	实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md:48
+178	P-1	1	DOI 10.1051/0004-6361/201015441	DOI	实验/absolute-snr/docs/surveys/f-instr-survey.md:289
+184	P-1	1	DOI 10.1051/0004-6361/202039587；arXiv:2012.01916	DOI	docs/science/PHOTOMETRY.md:312

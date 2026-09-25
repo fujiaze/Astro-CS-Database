@@ -1,0 +1,46 @@
+TARGETS(checker-like) 143 DIRECT 141
+REACHABLE_from_registry 129
+UNREACHABLE_from_registry 14
+
+ORPHAN eng/ci/ci_repair_round.py
+   workflow-hit: none
+   test-hit    : ('eng/ci/tests/test_ci_repair_round.py', 299, 'import ci_repair_round as M')
+ORPHAN eng/ci/polarity_probe.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/ci/reconcile_state.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/ci/select_candidate.py
+   workflow-hit: none
+   test-hit    : ('eng/ci/tests/test_fatduck_workflow.py', 2, '"""V8-CI-008 单测：Fatduck workflow / select_candidate / notify 构造（全离线）。')
+ORPHAN eng/ci/verify_ciqa_report.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/check_p1_symbol_map.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/check_p2_symbol_map.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/check_release_layout.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/check_traceability_matrix.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/quality/check_comment_hygiene.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/quality/check_commits_csv.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/quality/check_p3_rejection_count.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/quality/check_source_inventory.py
+   workflow-hit: none
+   test-hit    : none
+ORPHAN eng/tools/quality/check_task_result_schema.py
+   workflow-hit: none
+   test-hit    : none

@@ -1,0 +1,6 @@
+# 批次 CR-07｜lib/algorithms/photometry 第 7 段｜5 个文件（每个文件整读＋逐数值处置表）
+lib/algorithms/photometry/cpp/test/test_p0_pc_api_exception_barrier.cpp
+lib/algorithms/photometry/cpp/test/test_p0_sip_order_guard.cpp
+lib/algorithms/photometry/cpp/test/test_spectrum_integrator.cpp
+lib/algorithms/photometry/cpp/src/wcs_transform.cpp
+lib/algorithms/photometry/cpp/src/wcs_transform.h

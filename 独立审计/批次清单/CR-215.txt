@@ -1,0 +1,7 @@
+# 批次 CR-215｜lib/infrastructure/aio｜6 项（整读＋逐数值处置表；合计约 2780 行）
+lib/infrastructure/aio/third_party/cfitsio/vmsieee.c
+lib/infrastructure/aio/third_party/cfitsio/wcssub.c
+lib/infrastructure/aio/third_party/cfitsio/wcsutil.c
+lib/infrastructure/aio/third_party/cfitsio/win_compat/unistd.h
+lib/infrastructure/aio/third_party/cfitsio/windumpexts.c
+lib/infrastructure/aio/third_party/cfitsio/zcompress.c

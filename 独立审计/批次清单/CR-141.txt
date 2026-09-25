@@ -1,0 +1,5 @@
+# 批次 CR-141｜lib/infrastructure/aio｜4 项（整读＋逐数值处置表；合计约 2661 行）
+lib/infrastructure/aio/include/aio_upm.h
+lib/infrastructure/aio/include/astro_image_io.h
+lib/infrastructure/aio/include/hiss_format.h
+lib/infrastructure/aio/io/fits_core.c

@@ -1,0 +1,16 @@
+实验/absolute-snr/results/EXP05_TABLES.md
+实验/absolute-snr/results/EXP06_TABLES.md
+实验/absolute-snr/results/REVERSE_VERIFY_CANON.md
+实验/absolute-snr/results/REVIEW.md
+实验/absolute-snr/results/ctest_evidence.md
+实验/additive-sky-seamless/README.md
+实验/additive-sky-seamless/REPORT_paper.md
+实验/additive-sky-seamless/code/reverse_verify/m16_scene/README.md
+实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/CRITERIA.md
+实验/additive-sky-seamless/data/README.md
+实验/additive-sky-seamless/docs/smooth-lambda.md
+实验/additive-sky-seamless/results/REVERSE_VERIFY_CANON.md
+实验/additive-sky-seamless/results/REVIEW.md
+实验/healpix-polar/README.md
+实验/healpix-polar/docs/EXP-07-POLAR-摘要.md
+实验/healpix-polar/docs/EXP-07-POLAR.md

@@ -1,0 +1,105 @@
+# 批次 C-08｜生产面·具名·语义筛选后待判符号 102 个（源自 2,592 个待判具名符号，筛掉局部量噪声）
+# 每行：符号	风险分	入选理由	位点数	位点样例(路径:行|现行值|单位|来源现状)
+# 判据见 DISPATCH-C-PREAMBLE.md；产出必须逐符号给 §4 四选一定档
+snr	6	名含科学/阈值语素、跨 12 文件共享、登记了单位（即被判为物理量）	14	lib/infrastructure/scheduler/src/mosaic_window.cpp:46|10.0|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/sampler.cpp:1087|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/tools/stage2.cpp:466|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+gain	6	名含科学/阈值语素、跨 6 文件共享、登记了单位（即被判为物理量）	7	lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:243|1.5|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:84|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/tools/stage2.cpp:1166|1.0|未标注|无来源（行内字面量，未见文档/文献锚）
+maxAxisRatio	6	名含科学/阈值语素、跨 5 文件共享、登记了单位（即被判为物理量）	6	lib/algorithms/star_detection/src/sdet_api.cpp:1002|2.0f|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/star_detection/test/sdet_fp64_test.cpp:60|2.0f|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/star_detection/test/sdet_saturation_cursor_test.cpp:120|2.0f|未标注|无来源（行内字面量，未见文档/文献锚）
+tolerance	6	名含科学/阈值语素、跨 4 文件共享、登记了单位（即被判为物理量）	5	lib/algorithms/coverage/src/sky_plane.cpp:518|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/upm.cpp:291|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/upm.cpp:2461|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+scale_arcsec	6	名含科学/阈值语素、跨 3 文件共享、登记了单位（即被判为物理量）	4	lib/algorithms/coverage/src/sampler.cpp:123|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/sampler.cpp:140|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp:130|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+drop_area	6	名含科学/阈值语素、跨 3 文件共享、登记了单位（即被判为物理量）	3	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:53|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h:267|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:46|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+radius	6	名含科学/阈值语素、跨 3 文件共享、登记了单位（即被判为物理量）	3	lib/algorithms/psf/src/dpsf_image.cpp:29|3.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/star_detection/src/sdet_detector.cpp:26|.1f|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/star_detection/src/sdet_image.cpp:31|3.0|未标注|无来源（行内字面量，未见文档/文献锚）
+ACS_DIAG_MAX_UTF8	6	名含科学/阈值语素、位点在配置或公共头、登记了单位（即被判为物理量）	1	lib/include/astrocs/abi/lifecycle_v1.h:200|4096u|未标注|无来源（代码内字面量，未见文档/文献锚）
+kFlatMedianBandLo	6	名含科学/阈值语素、位点在配置或公共头、登记了单位（即被判为物理量）	1	lib/include/astrocs/core/master_unit_guard.h:34|0.5|未标注|无来源（代码内字面量，未见文档/文献锚）
+const	5	跨 4 文件共享、位点在配置或公共头、登记了单位（即被判为物理量）	19	lib/include/astrocs/core/runtime.h:59|0|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/include/astrocs/core/runtime.h:63|0|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/include/astrocs/core/runtime.h:84|0|未标注|无来源（代码内字面量，未见文档/文献锚）
+max_vote	4	名含科学/阈值语素、登记了单位（即被判为物理量）	7	lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp:355|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp:462|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp:598|.2f|未标注|无来源（行内字面量，未见文档/文献锚）
+max_angle	4	名含科学/阈值语素、登记了单位（即被判为物理量）	4	lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:1114|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:1510|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:1606|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+background_clip_sigma	4	名含科学/阈值语素、登记了单位（即被判为物理量）	3	lib/algorithms/coverage/include/astro/phase2/stage2_common.h:45|3.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/sampler.cpp:309|3.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/sampler.cpp:504|0.0;3.0|未标注|无来源（行内字面量，未见文档/文献锚）
+dmin	4	名含科学/阈值语素、登记了单位（即被判为物理量）	3	lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:831|0.0f;1.0f|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:867|0.005|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/hips_browser/healpix_browser_qt/app/main_window.cpp:560|0.0f;1.0f|未标注|无来源（行内字面量，未见文档/文献锚）
+initial_rms_arcsec	4	名含科学/阈值语素、登记了单位（即被判为物理量）	3	lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp:714|1.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp:1104|1.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp:1401|1.0|未标注|无来源（行内字面量，未见文档/文献锚）
+rms_arcsec	4	名含科学/阈值语素、登记了单位（即被判为物理量）	3	lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:212|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:647|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:777|.4f|未标注|无来源（行内字面量，未见文档/文献锚）
+size	4	名含科学/阈值语素、登记了单位（即被判为物理量）	3	lib/algorithms/shared/include/astro_scalar.h:51|4|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/shared/include/astro_scalar.h:59|8|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp:169|.4f|未标注|无来源（行内字面量，未见文档/文献锚）
+AC_COLSTAT_SCALE_DEGENERATE	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/calibration/include/astro_calibration.h:34|1|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/calibration/src/cosmetic_corrector.cpp:288|1|未标注|无来源（代码内字面量，未见文档/文献锚）
+MAX_BOX_RADIUS	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/star_detection/src/sdet_api.cpp:1813|200|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/star_detection/src/sdet_api.cpp:2568|200|未标注|无来源（代码内字面量，未见文档/文献锚）
+bias	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:215|5.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:218|.3f;.4f;5.0|未标注|无来源（行内字面量，未见文档/文献锚）
+dark_exptime	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:1006|-1.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/scheduler/src/module_adapters.cpp:2477|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+detection_threshold_sigma	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:448|5.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/photometry/include/astrocs/v6/psfsw.h:207|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+fov_radius_deg	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp:173|1.0;10.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2726|1.0;10.0|未标注|无来源（行内字面量，未见文档/文献锚）
+kMoffat4FwhmFactor	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:40|1.230310|未标注|无来源（代码内字面量，未见文档/文献锚） ;; lib/algorithms/noise_snr/cpp/src/snr_science.cpp:54|1.230310|未标注|无来源（代码内字面量，未见文档/文献锚）
+low_fraction	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/coverage/src/rejection.cpp:1254|0.1;0.2|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/tools/rejection_cli.cpp:221|0.2|未标注|无来源（行内字面量，未见文档/文献锚）
+max_extrapolation_deg	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/coverage/src/sky_plane.cpp:468|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/sky_plane.cpp:525|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+maxstep	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/coverage/src/upm.cpp:2662|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/upm.cpp:2710|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+per_thread_cpu_max_seconds	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/infrastructure/cli/monitor.h:90|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/cli/v6_runtime_contract.h:305|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+reclaim_frac_alloc	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/infrastructure/cli/memory_report.h:121|-1.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/cli/memory_report.h:236|-1.0|未标注|无来源（行内字面量，未见文档/文献锚）
+sigma_logflux_dex	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:55|0.0|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/infrastructure/scheduler/src/module_adapters.cpp:6800|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+star_mask_radius_deg	4	名含科学/阈值语素、登记了单位（即被判为物理量）	2	lib/algorithms/coverage/src/sampler.cpp:319|0.012|未标注|无来源（行内字面量，未见文档/文献锚） ;; lib/algorithms/coverage/src/sampler.cpp:514|0.0;0.012|未标注|无来源（行内字面量，未见文档/文献锚）
+ACS_CAL_MAX_STACK	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/calibration/src/module_entry.cpp:300|64|未标注|无来源（代码内字面量，未见文档/文献锚）
+ACS_CPU_AVX512_MAX_IN_SLOTS	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/benchmark/cpu/avx512/include/astrocs/cpu/avx512_provider_v1.h:76|4u|未标注|不适用（结构性常数，非科学量）
+ACS_FIO_KEYWORD_COMMENT_MAX	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h:31|72|未标注|无来源（代码内字面量，未见文档/文献锚）
+ACS_HIPS_ORDER_MIN	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h:32|0|未标注|无来源（代码内字面量，未见文档/文献锚）
+AC_COLSTAT_SRC_DARK	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/calibration/include/astro_calibration.h:192|2u|未标注|无来源（代码内字面量，未见文档/文献锚）
+AIO_CACHE_MAX_BLOCKS	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/include/aio_pipeline.h:62|65536|未标注|无来源（代码内字面量，未见文档/文献锚）
+AIO_KEYWORD_COMMENT_MAX	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/include/astro_image_io.h:19|72|未标注|无来源（代码内字面量，未见文档/文献锚）
+APX_STRIDE	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:544|10|未标注|无来源（代码内字面量，未见文档/文献锚）
+BLOCKSIZE	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp:898|8192|未标注|无来源（代码内字面量，未见文档/文献锚）
+D_EW_HALF_FACTOR	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1037|1.0|未标注|无来源（代码内字面量，未见文档/文献锚）
+HISS_SIGNATURE_SIZE	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/include/hiss_format.h:258|16|未标注|无来源（代码内字面量，未见文档/文献锚）
+IPV_ARCSEC_PER_UM_PER_MM	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:58|206.265|未标注|无来源（代码内字面量，未见文档/文献锚）
+LM_XTOL	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/star_detection/src/sdet_api.cpp:38|1e-3|未标注|无来源（代码内字面量，未见文档/文献锚）
+MAX_PIX_FOR_MESH	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.cpp:1338|4000000|未标注|无来源（代码内字面量，未见文档/文献锚）
+NSIDE_MAX	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:663|4194304|未标注|无来源（代码内字面量，未见文档/文献锚）
+P2_REJ_PROFILE_BIN_COUNT	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/coverage/include/astro/phase2/rejection.h:508|10u|未标注|无来源（代码内字面量，未见文档/文献锚）
+SAT_THRESHOLD_FRAC	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/star_detection/src/sdet_api.cpp:1809|0.7|未标注|无来源（代码内字面量，未见文档/文献锚）
+SNR_FAILED	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h:160|23|未标注|无来源（代码内字面量，未见文档/文献锚）
+TEX_SIZE	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.cpp:1676|1024|未标注|无来源（代码内字面量，未见文档/文献锚）
+_IRLS_MAX_ITER	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/photometry/cpp/src/star_matcher.cpp:25|50|未标注|无来源（代码内字面量，未见文档/文献锚）
+amax	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/photometry/cpp/src/spatial_gain.cpp:503|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+bias²	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/calibration/include/astro_calibration.h:292|1.5e-4|未标注|无来源（行内字面量，未见文档/文献锚）
+clip_lo	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:950|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+cos_thresh_60	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:262|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+d_per_thread_cpu_max_seconds	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/cli/monitor.h:101|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+dbg_reject_px	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/coverage/tools/stage2.cpp:834|9.73|未标注|无来源（行内字面量，未见文档/文献锚）
+dmin_	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/hips_browser/healpix_browser_qt/app/stf_bar.h:64|0.0f|未标注|无来源（行内字面量，未见文档/文献锚）
+effective_psf_fwhm	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:176|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+filter_size	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/src/weight_chain.cpp:254|.0;2.2|未标注|无来源（行内字面量，未见文档/文献锚）
+flat	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:162|1.0|未标注|无来源（行内字面量，未见文档/文献锚）
+fwhm_floor	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:828|0.0;0.75|未标注|无来源（行内字面量，未见文档/文献锚）
+has_scale	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/plan_estimator.cpp:127|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+kAllocReclaimWindowSeconds	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/cli/memory_report.h:63|2.0|未标注|无来源（代码内字面量，未见文档/文献锚）
+kCommonMin	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:70|3|未标注|无来源（代码内字面量，未见文档/文献锚）
+kDefaultSpatialGainOrder	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/module_adapters.cpp:5471|2|未标注|无来源（代码内字面量，未见文档/文献锚）
+kEpsPixivar	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:64|0.05|未标注|无来源（代码内字面量，未见文档/文献锚）
+kFrozenProjectionCount	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/projection/p3_proj_v6.h:104|8|未标注|无来源（代码内字面量，未见文档/文献锚）
+kMadScale	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/photometry/cpp/src/spatial_gain.cpp:41|0.6744897501960817|未标注|无来源（代码内字面量，未见文档/文献锚）
+kMaxSamples	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:5016|128|未标注|无来源（代码内字面量，未见文档/文献锚）
+kMinComputeToLaunchRatio	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/acr/cost/cost_estimator.hpp:135|10.0|未标注|无来源（代码内字面量，未见文档/文献锚）
+kNonuniformityMax	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/photometry/include/astrocs/v6/psfsw.h:50|0.30|未标注|无来源（代码内字面量，未见文档/文献锚）
+kP1GuidedMaxStarsLo	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/module_adapters.cpp:3298|20000|未标注|无来源（代码内字面量，未见文档/文献锚）
+kQwRelTol	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/noise_snr/include/astrocs/v6/information_weight.h:30|1e-9|未标注|无来源（代码内字面量，未见文档/文献锚）
+kTinyOutputPixels	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/plan_estimator.cpp:35|128|未标注|无来源（代码内字面量，未见文档/文献锚）
+legacy_allow_weight_fallback	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/module_adapters.cpp:11579|9.73|未标注|无来源（行内字面量，未见文档/文献锚）
+m_lim_alpha_max	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/platesolve/cpp/ipv/include/ipv_types.h:262|100.0|未标注|无来源（行内字面量，未见文档/文献锚）
+mask_fwhm_floor_scale	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1260|0.75|未标注|无来源（行内字面量，未见文档/文献锚）
+max_ang	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:215|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+max_dev	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/coverage/src/rejection.cpp:2911|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+max_irls_iter	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/platesolve/cpp/ipv/src/ipv_distortion.cpp:203|15|未标注|无来源（代码内字面量，未见文档/文献锚）
+max_rounds	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/psf/src/dpsf_image.cpp:409|.6f|未标注|无来源（行内字面量，未见文档/文献锚）
+merge_per_chunk_ns	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/acr/scheduler/queue_aware.hpp:31|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+module_reported_memory	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/runtime.cpp:183|8.3|未标注|无来源（行内字面量，未见文档/文献锚）
+nside_leaf	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:3956|1|未标注|无来源（代码内字面量，未见文档/文献锚）
+order_uniq_base	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/src/hips/aio_hips_reader.cpp:294|4|未标注|无来源（代码内字面量，未见文档/文献锚）
+passband_identity_val_max	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/module_adapters.cpp:5459|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+photometric_scale_a	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/phase3_session/p3_v6_export.h:139|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+pixel_variance_in	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/resample/p3_rsmp_units.cpp:96|2|未标注|无来源（代码内字面量，未见文档/文献锚）
+prof_finalize_snr	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:940|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+ransac_inlier_threshold_arcsec	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/platesolve/cpp/ipv/include/ipv_types.h:240|3.0|未标注|无来源（行内字面量，未见文档/文献锚）
+rho_max	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:123|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+s_min	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/platesolve/cpp/ipv/include/ipv_types.h:242|0.90|未标注|无来源（行内字面量，未见文档/文献锚）
+sigma_bg	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/src/phase2_integrate.cpp:1221|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+sigma_gradient	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:78|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+sky_sigma	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/photometry/wrapper_phase1/photometer.cpp:92|1.482602218505602|未标注|无来源（行内字面量，未见文档/文献锚）
+spatial_gain_coverage_min_bbox_frac	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/photometry/cpp/src/frame_photometry_fit.h:81|0.5|未标注|无来源（行内字面量，未见文档/文献锚）
+sum_area	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/aio/include/hiss_format.h:354|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+tol_	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/integration/v6/src/weight_chain.cpp:379|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+total_covered_area_in	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:57|0.0|未标注|无来源（行内字面量，未见文档/文献锚）
+util_samples_pass_frac	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/cli/resource_gate.h:211|.1;0.75|未标注|无来源（行内字面量，未见文档/文献锚）
+zps	4	名含科学/阈值语素、登记了单位（即被判为物理量）	1	lib/infrastructure/scheduler/src/module_adapters.cpp:6967|0.0|未标注|无来源（行内字面量，未见文档/文献锚）

@@ -1,0 +1,7 @@
+# 批次 CR-31｜lib/algorithms/star_detection 第 3 段｜6 个文件（整读＋逐数值处置表）
+lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp
+lib/algorithms/star_detection/src/sdet_angle_guard.h
+lib/algorithms/star_detection/test/sdet_angle_guard_test.cpp
+lib/algorithms/star_detection/src/sdet_api.cpp
+lib/algorithms/star_detection/src/sdet_background.cpp
+lib/algorithms/star_detection/src/sdet_background.h

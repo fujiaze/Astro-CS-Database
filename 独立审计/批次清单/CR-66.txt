@@ -1,0 +1,7 @@
+# 批次 CR-66｜lib/algorithms/cosmetic / lib/algorithms/fits_output｜6 项（整读＋逐数值处置表；合计约 2007 行）
+lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_core.cpp
+lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_main.cpp
+lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_perf.cpp
+lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_selfcheck.cpp
+lib/algorithms/fits_output/p3_output.cpp
+lib/algorithms/fits_output/p3_output.h

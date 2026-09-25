@@ -1,0 +1,7 @@
+# 批次 CR-03｜lib/algorithms/photometry 第 3 段｜6 个文件（每个文件整读＋逐数值处置表）
+lib/algorithms/photometry/tests/p1phot/p1phot_oracle.hpp
+lib/algorithms/photometry/tests/p1phot/p1phot_test_main.hpp
+lib/algorithms/photometry/tests/p1phot/p1phot_tests_determinism.cpp
+lib/algorithms/photometry/tests/p1phot/p1phot_tests_main.cpp
+lib/algorithms/photometry/tests/p1phot/p1phot_tests_negative.cpp
+lib/algorithms/photometry/tests/p1phot/p1phot_tests_oracle.cpp

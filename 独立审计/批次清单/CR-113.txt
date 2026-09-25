@@ -1,0 +1,7 @@
+# 批次 CR-113｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1255 行）
+lib/infrastructure/acr/qualification/benchmarks/branch_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/convolution_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/irregular_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/numa_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/overhead_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/reduction_benchmark.cpp

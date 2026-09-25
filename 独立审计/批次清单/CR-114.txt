@@ -1,0 +1,7 @@
+# 批次 CR-114｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1564 行）
+lib/infrastructure/acr/qualification/benchmarks/stream_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/thread_curve_benchmark.cpp
+lib/infrastructure/acr/qualification/benchmarks/transfer_benchmark.cpp
+lib/infrastructure/acr/qualification/focused/acr_benchmark_focused_main.cpp
+lib/infrastructure/acr/qualification/focused/focused_benchmark.cpp
+lib/infrastructure/acr/qualification/focused/focused_benchmark.hpp

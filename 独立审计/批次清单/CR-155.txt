@@ -1,0 +1,4 @@
+# 批次 CR-155｜lib/infrastructure/aio｜3 项（整读＋逐数值处置表；合计约 3056 行）
+lib/infrastructure/aio/tests/hiss_experiment_suite.cpp
+lib/infrastructure/aio/tests/hiss_experiments.cpp
+lib/infrastructure/aio/tests/hiss_writer_smoke.cpp

@@ -1,0 +1,3 @@
+docs/algorithms/CALIBRATION_ALGORITHMS.md
+docs/algorithms/COSMETIC_ALGORITHMS.md
+docs/algorithms/PHASE2_SAMPLER.md

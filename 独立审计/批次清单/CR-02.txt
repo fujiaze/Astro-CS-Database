@@ -1,0 +1,7 @@
+# 批次 CR-02｜lib/algorithms/photometry 第 2 段｜6 个文件（每个文件整读＋逐数值处置表）
+lib/algorithms/photometry/cpp/include/log_macros.h
+lib/algorithms/photometry/tests/p1phot/p1phot_field_stub.hpp
+lib/algorithms/photometry/tests/p1phot/p1phot_fixgates.cpp
+lib/algorithms/photometry/tests/p1phot/p1phot_fixtures.hpp
+lib/algorithms/photometry/tests/p1phot/p1phot_gaia_stub.cpp
+lib/algorithms/photometry/tests/p1phot/p1phot_gaia_stub.hpp

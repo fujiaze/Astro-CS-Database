@@ -1,0 +1,7 @@
+# 批次 CR-05｜lib/algorithms/photometry 第 5 段｜6 个文件（每个文件整读＋逐数值处置表）
+lib/algorithms/photometry/cpp/src/pc_api_qf.h
+lib/algorithms/photometry/wrapper_phase1/photometer.cpp
+lib/algorithms/photometry/wrapper_phase1/photometer.h
+lib/algorithms/photometry/cpp/include/photometric_calib.h
+lib/algorithms/photometry/cpp/src/psfsw.cpp
+lib/algorithms/photometry/include/astrocs/v6/psfsw.h

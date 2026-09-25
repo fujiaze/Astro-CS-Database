@@ -1,0 +1,2 @@
+# 批次 CR-289｜超大第一方文件按行段分片｜lib/infrastructure/gaia_xpsd_client/src/gaia_client.c 的 3001-3141 行（全文件 3141 行，拆成 3 段，跨段结论须读完全部段才下）
+lib/infrastructure/gaia_xpsd_client/src/gaia_client.c:3001-3141

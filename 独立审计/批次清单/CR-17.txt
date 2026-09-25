@@ -1,0 +1,7 @@
+# 批次 CR-17｜lib/algorithms/noise_snr 第 3 段｜6 个文件（每个整读＋逐数值处置表）
+lib/algorithms/noise_snr/tests/p1noise/p1noise_tests_perf.cpp
+lib/algorithms/noise_snr/tests/p1noise/p1noise_tests_selfcheck.cpp
+lib/algorithms/noise_snr/tests/p1noise/p1snr_science_test.cpp
+lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h
+lib/algorithms/noise_snr/cpp/include/snr_estimator.h
+lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp

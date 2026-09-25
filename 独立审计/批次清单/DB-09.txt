@@ -1,0 +1,7 @@
+docs/contracts/PUBLIC_API.md
+docs/contracts/RT-001.md
+docs/contracts/SCHEDULER_CONTRACT.md
+docs/contracts/TEST_MATRIX.md
+docs/contracts/UNIFIED_OBJECTS.md
+docs/contracts/config_separation_anchors.json
+docs/contracts/unified_object_registry.json

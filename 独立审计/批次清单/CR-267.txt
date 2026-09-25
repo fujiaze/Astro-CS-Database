@@ -1,0 +1,11 @@
+# 批次 CR-267｜第三方引入件**溯源登记**批（不逐值立卡）｜10 个文件
+lib/infrastructure/aio/third_party/cfitsio/getkey.c
+lib/infrastructure/aio/third_party/cfitsio/group.c
+lib/infrastructure/aio/third_party/cfitsio/group.h
+lib/infrastructure/aio/third_party/cfitsio/grparser.c
+lib/infrastructure/aio/third_party/cfitsio/grparser.h
+lib/infrastructure/aio/third_party/cfitsio/histo.c
+lib/infrastructure/aio/third_party/cfitsio/imcompress.c
+lib/infrastructure/aio/third_party/cfitsio/iraffits.c
+lib/infrastructure/aio/third_party/cfitsio/iter_a.c
+lib/infrastructure/aio/third_party/cfitsio/iter_b.c

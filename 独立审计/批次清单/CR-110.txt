@@ -1,0 +1,7 @@
+# 批次 CR-110｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 2806 行）
+lib/infrastructure/acr/examples/weighted_integration/weighted_integration_benchmark.cpp
+lib/infrastructure/acr/examples/weighted_integration/weighted_integration_common.hpp
+lib/infrastructure/acr/examples/weighted_integration/weighted_integration_kernels.cpp
+lib/infrastructure/acr/examples/weighted_integration/weighted_integration_kernels.hpp
+lib/infrastructure/acr/include/astro/compute/acr.hpp
+lib/infrastructure/acr/include/astro/compute/hardware_profile.hpp

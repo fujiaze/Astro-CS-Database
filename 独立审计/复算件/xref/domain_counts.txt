@@ -1,0 +1,1 @@
+exact_objects=57 pairs_exact=155 pairs_nested=175 object_sum=204 dir_claims=17 claims=290 uniq=191 tasks=32

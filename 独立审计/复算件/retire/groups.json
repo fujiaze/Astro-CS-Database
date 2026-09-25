@@ -1,0 +1,635 @@
+{
+ "A": [
+  [
+   7,
+   "lib/algorithms/coverage/src/upm.cpp:1999",
+   "删除本行注释"
+  ],
+  [
+   8,
+   "lib/algorithms/coverage/src/upm.cpp:2849",
+   "删除本行注释"
+  ],
+  [
+   9,
+   "lib/algorithms/coverage/src/sampler.cpp:1275",
+   "删除本行注释"
+  ],
+  [
+   10,
+   "lib/algorithms/coverage/src/sampler.cpp:1277",
+   "删除本行注释"
+  ],
+  [
+   11,
+   "lib/algorithms/coverage/src/rejection.cpp:2223",
+   "删除本行注释"
+  ],
+  [
+   18,
+   "docs/algorithms/UPM_SOLVER.md:115",
+   "改写：去掉退役符号，保留 raw_weight 绑定"
+  ],
+  [
+   24,
+   "lib/algorithms/upm/memory.md:57",
+   "删除该行或改写"
+  ],
+  [
+   32,
+   "eng/tools/quality/contracts/fixtures/check_test_contracts/ (valid_min.csv, invalid_missing_assertion.csv, invalid_unregistered.csv)",
+   "删除整目录（3 文件）或按现行路径重生成后接线"
+  ],
+  [
+   36,
+   "lib/include/astrocs/core/executor.h:22",
+   "改写：路径改成 lib/infrastructure/scheduler/src/executor.cpp；本行还声明「本头为 RT-004 冻结合同」，须与 RT-004 条款核对后再定"
+  ],
+  [
+   37,
+   "lib/infrastructure/cli/commands.cpp:548",
+   "改写：去掉重复 eng/ 前缀，改成 eng/tools/quality/gen_run_graphs.py"
+  ],
+  [
+   47,
+   "lib/infrastructure/benchmark/backend_host/avx_backend.cpp",
+   "删除"
+  ],
+  [
+   49,
+   "lib/algorithms/calibration/src/dark_optimizer.cpp",
+   "删除"
+  ],
+  [
+   51,
+   "lib/infrastructure/gaia_xpsd_client/example/demo.c",
+   "删除（标准 04 §4「无任何引用的…示例/一次性脚本直接删除」）"
+  ],
+  [
+   53,
+   "lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack/ 的 13 个翻译单元（ahps_reader.cpp, ahps_writer.cpp, hp_stack_api.cpp, hp_stack_hiss.cpp, simple_test.cpp, stack_db.cpp, stack_engine.cpp, gradient/{corrected_stacker,gradient_fitter,gradient_sampler,spherical_spline,test_gradient_sampler,test_snr_evaluator}.cpp）",
+   "删除（连同上一行的目录级动作）；其中 simple_test.cpp / test_gradient_sampler.cpp / test_snr_evaluator.cpp 是**归档内的一次性自测**，标准 04 §4 直删"
+  ]
+ ],
+ "B": [
+  [
+   2,
+   "lib/algorithms/coverage/include/astro/phase2/upm.h:181",
+   "先解引用再删：本行是文档侧 16 处引用的存活凭据，必须与 AUD-404 行 6-14 同批处理后才可删"
+  ],
+  [
+   3,
+   "lib/algorithms/coverage/include/astro/phase2/upm.h:355",
+   "删除本行注释＋同批改 docs/contracts/PUBLIC_API.md:21"
+  ],
+  [
+   4,
+   "lib/algorithms/coverage/include/astro/phase2/sampler.h:133",
+   "删除本行注释"
+  ],
+  [
+   5,
+   "lib/algorithms/coverage/include/astro/phase2/sampler.h:135",
+   "删除本行注释"
+  ],
+  [
+   6,
+   "lib/algorithms/coverage/include/astro/phase2/rejection.h:416",
+   "删除本行注释"
+  ],
+  [
+   12,
+   "docs/contracts/PUBLIC_API.md:1806",
+   "删除 :1806 签名条目；:20-22 的变更叙述按标准 04 §5「注释/文档不含已撤销设计的历史叙述」一并清除"
+  ],
+  [
+   13,
+   "docs/contracts/API_CONTRACTS.csv:280",
+   "先解引用再删：删本行前先取该门现网读数（本审查禁止运行 eng/**，未取），确认本行是已判红还是已被豁免"
+  ],
+  [
+   14,
+   "docs/architecture/api_inventory.csv:325",
+   "可直接删（与 PUBLIC_API.md:1806 同批更干净）：inventory 与 PUBLIC_API.md 由未注册工具对账，删一侧不会被门判红"
+  ],
+  [
+   15,
+   "docs/TRACEABILITY.csv:2",
+   "先解引用再删：只从 symbols 列去掉退役 token，保留在产两个符号；改后须复跑追溯门"
+  ],
+  [
+   16,
+   "docs/algorithms/PHASE2_UPM_IMPL.md:87",
+   "先解引用再删：三处锚同批改"
+  ],
+  [
+   17,
+   "docs/algorithms/PHASE2_UPM_IMPL.md:61",
+   "改写而非删除：保留 raw_weight 半边与其锚，只去掉 normalized_weights 半边与 :1683-1710 锚"
+  ],
+  [
+   19,
+   "docs/science/PHASE2_UPM.md:272",
+   "改写：去退役符号半边，ALG-UPM-003 仍由 p2_upm_raw_weight 承载"
+  ],
+  [
+   20,
+   "docs/modules/phase2_upm.md:144",
+   "先解引用再删：三处同批；若该门只核模块 ID，三处可独立直删"
+  ],
+  [
+   21,
+   "docs/modules/registry/astrocs.phase2.upm-apply.md:92",
+   "先解引用再删（与 :85 及 phase2_upm.md:144 同批）"
+  ],
+  [
+   22,
+   "docs/modules/registry/astrocs.phase2.upm-fit.md:85",
+   "先解引用再删（与 :92 及 phase2_upm.md:144 同批）"
+  ],
+  [
+   23,
+   "lib/algorithms/upm/README.md:127",
+   "先解引用再删：README:127 的行锚 :1325 指向已删定义，须删；module.yaml:85 是注释性说明，改文即可"
+  ],
+  [
+   27,
+   "docs/audit/doc_classification.csv:33",
+   "删除本行（被登记文件的跟踪集中不存在）；复核命令：git ls-files docs/backlog => 0 文件"
+  ],
+  [
+   30,
+   "eng/tools/quality/contracts/fixtures/check_api_contracts/ (valid_min.csv, invalid_sig_mismatch.csv, invalid_missing_symbol.csv)",
+   "删除整目录（3 文件）或接线：ENGINEERING_SPEC §10 要求每检查项有正负例，若 check_api_contracts.py 无 --self-test，则该门缺可执行负例入口，删夹具前须先补"
+  ],
+  [
+   33,
+   "eng/contracts/data/aio_abi_contract_v1.json",
+   "先解引用再删：把陈旧路径改成现行路径而非删除条目（它是 ABI 合同对实现锚的绑定）"
+  ],
+  [
+   35,
+   "eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json",
+   "先解引用再删：两个路径名换成现行实现路径（现行为 lib/infrastructure/aio/io/hips_core.c 与 lib/infrastructure/aio/src/ahpx/ 三件），不可删条目"
+  ],
+  [
+   39,
+   "eng/tools/quality/contracts/check_api_contracts.py:20",
+   "先解引用再删：把指针改成 .csv 或直接删该 optional 分支；本条已被 eng/tools/doccheck/dangling_ledger.json 显式登记（token=docs/architecture/api_inventory.json，owner=BLD-401，classification=「历史/退役路径登记面」）"
+  ],
+  [
+   40,
+   "lib/infrastructure/benchmark/cpu/avx512/include/astrocs/cpu/avx512_provider_v1.h:16-17",
+   "加统一退役标注（本头属未被编译的 provider 侧，见 AUD-404 行 45）：把「热点 profile 台账 = ISA-004 实测」改写为如实口径——ISA-004 工件由 eng/tests/backend/test_isa_avx512.py:76-77 现场生成、不入库，与 ISA-001..003 已入库不同"
+  ],
+  [
+   43,
+   "lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp",
+   "删除（并补 ISA provider 侧的构建接线，若产品仍要 CPU 变体实测）"
+  ],
+  [
+   44,
+   "lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp",
+   "删除（与 baseline_provider.cpp 同批），或改注册进独立构建 target"
+  ],
+  [
+   45,
+   "lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp",
+   "删除，或改注册进 astrocs_cpu_avx512 的源清单（须先确认 ABI 与 PIC/version-script 约束）"
+  ],
+  [
+   46,
+   "lib/infrastructure/benchmark/cpu/common/src/capability_detect.c",
+   "删除；若 backend_host 三个壳需要能力探测，改为把该 TU 编进 astrocs_cpu_* 三 target 之一"
+  ],
+  [
+   48,
+   "lib/infrastructure/aio/src/aio_pipeline_engine.cpp",
+   "先解引用再删：它承载 hp_drizzle_run 的第二套 PipelineFrame 语义；须先确认 hp_drizzle_api.cpp 的入参类型改指向哪一套，再删"
+  ],
+  [
+   50,
+   "lib/infrastructure/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp",
+   "加统一退役标注：它属「等待接线的实现」，按 ENGINEERING_SPEC §2 保留则注释五字段登记（现无块 ⇒ 若前 40 行出现横幅 token 会触 R2；本件当前无 token ⇒ 不红，但按标准 04 §4 二选一仍应标注）"
+  ],
+  [
+   52,
+   "lib/infrastructure/aio/healpix_db/ （整目录，跟踪 42 文件）",
+   "删除：标准 04 §4「历史控制包、一次性过程脚本、过期台账不留在生产目录」＋「归档留在生产目录」正是本项；ARCH-001 迁移台账已把 lib/healpix_db 标为 **DONE**，归档件留在 lib/ 生产树下"
+  ],
+  [
+   60,
+   "lib/infrastructure/aio/io/hips_core.c",
+   "先解引用再删：它承载 HiPS 核心 I/O 的实现语义；要么进 astrocs_aio 生产源清单，要么按标准 04 §4 加统一退役标注并把 w34 selftest 一并撤下"
+  ],
+  [
+   61,
+   "lib/algorithms/projection/p3_projection.cpp",
+   "先解引用再删：本文件是「旧投影实现」，与 p3_proj_v6.cpp 构成同域重复实现（见下两行）；按标准 04 §3「同一能力只有一份实现；重复实现保留一份、其余按退役处置」处置"
+  ],
+  [
+   63,
+   "lib/algorithms/projection/p3_projection.h 的 RETIRED 登记（与 p3_proj_v6.h 配对）",
+   "加统一退役标注（已有，保持）：不得因「看着像退役」就删头——RETAINED 块是 ENGINEERING_SPEC §2 的第二种合法状态"
+  ],
+  [
+   64,
+   "lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp",
+   "先解引用再删：与 snr_science.cpp 构成「同一能力两份实现」（标准 04 §3），须先定保留哪一份，另一份按 §4 二选一处置"
+  ],
+  [
+   67,
+   "lib/phase1_session/p1_session.cpp",
+   "先解引用再删：它编译进产品却无调用者。P1Api 在全仓代码面只有 1 个命中=其自身定义（git grep -nw P1Api -- lib eng => module_adapters.cpp:1193），即会话的 C ABI 包装无人构造 ⇒ 主动作是**删注册面**（见 AUD-404 行 71-72），不是接线"
+  ],
+  [
+   68,
+   "lib/phase2_session/p2_session.cpp",
+   "先解引用再删：删本文件前必须先解除注册并撤掉 rt005 对该 has_factory 的断言（见行 71-72、74）"
+  ],
+  [
+   69,
+   "lib/phase3_session/p3_session.cpp",
+   "先解引用再删：同 p2；且必须先确认哪些命中属于 resample2（真在产模块）**不许动**"
+  ],
+  [
+   70,
+   "lib/infrastructure/scheduler/src/module_adapters.cpp:711-729（phase2_descriptor 占位体）",
+   "先解引用再删：标准 04 §3 要求「模块端口由注册表单一来源声明，代码注册与注册表一致」——本 descriptor 与 module_ports.registry.json **不一致**（该 JSON 只有 astrocs.phase3.resample2，无 phase2.resample）⇒ 整改方向是删占位 descriptor，而非把它补进注册表"
+  ],
+  [
+   71,
+   "lib/infrastructure/scheduler/src/module_adapters.cpp:730-760（phase3_descriptor 占位体）",
+   "先解引用再删（与 :711-729 同批）"
+  ],
+  [
+   72,
+   "lib/infrastructure/scheduler/src/module_adapters.cpp:15443-15456（两个占位 descriptor 的 register_module + register_factory）",
+   "先解引用再删：删除顺序=①撤 rt005 的 has_factory 断言 ②解除 conformance_deviations.json 两条 ③把 registry_ir_parity.json 两条置空/转「已解除」 ④删 :15443-15456 与两个 descriptor ⑤重跑 gen_module_readmes.py 更新两张生成页"
+  ],
+  [
+   73,
+   "lib/infrastructure/scheduler/src/module_adapters.cpp:1193-1216（P1Api/P2Api/P3Api 三个 C ABI 包装 struct）",
+   "删除（P1Api）／先解引用再删（P2Api、P3Api，随 :15443-15456 注册解除同批）"
+  ],
+  [
+   77,
+   "tests 目录内但无 target 编译的测试源：lib/algorithms/drizzle/healpix_drizzle/tests/ 的 19 个 TU（bench_drizzle.cpp, bench_write.cpp, concurrency_cache_test.cpp, drizzle_l0_test.cpp, drizzle_l2_test.cpp, drizzle_science_completion_test.cpp, hiss_write_probe.cpp, kcorr_matrix_test.cpp, oracle_edge_crossing_test.cpp, oracle_independent_test.cpp, p0_sip_order_guard_test.cpp, probe_reverse_steps.cpp 等）",
+   "先解引用再删：这批是**写了但从未接线的测试**，属「测试静默漏跑」而不是纯死码。逐条判：仍描述现行合同 ⇒ 接进 eng/tests 或模块 test target；已被别的门覆盖 ⇒ 删"
+  ],
+  [
+   78,
+   "tests 目录内但无 target 编译的测试源：lib/infrastructure/aio/ 下 13 个 TU",
+   "先解引用再删（同上）"
+  ],
+  [
+   79,
+   "tests 目录内但无 target 编译的测试源：其余 19 个 TU（lib/infrastructure/pipeline/ 5、lib/algorithms/shared/ 3、noise_snr/ 2、photometry/ 2、platesolve/ 2、calibration/ 1、coverage/ 1、projection/ 1、resample/ 1、star_detection/ 1、其余 0）",
+   "先解引用再删（同上；lib/algorithms/coverage/tests/sanitize_driver.cpp 属 sanitizer 驱动，须单独判是否由手工脚本面使用）"
+  ],
+  [
+   80,
+   "六个零引用头：lib/algorithms/shared/dirent_win.h、lib/infrastructure/aio/include/aio_ahpx_format.h、lib/infrastructure/cli/memory_growth.h、lib/infrastructure/pipeline/orchestrator/cpp/include/spill_manager.h、lib/infrastructure/aio/third_party/cfitsio/f77.inc、lib/infrastructure/pipeline/typed_dag_contract.h",
+   "分组处置：dirent_win.h／f77.inc（vendored 上游文件）保留并说明理由；aio_ahpx_format.h **不许删**（是 AHPX 三件套测试 target 的类型来源，见 AUD-404 行 6-8）；memory_growth.h／spill_manager.h／typed_dag_contract.h 删除"
+  ],
+  [
+   81,
+   "CMakeLists.txt:337（「…退役; 落地取 §9.66-B 选项 1 = 源文件直接编入 astrocs_phase1_noise」）",
+   "加统一退役标注→实际应为改写：这是「已按选项 1 落地」的历史叙述（标准 04 §5:49 注释不含已撤销设计的历史叙述），应改写为正向陈述「本 TU 由 §9.66-B 选项 1 直接编入 astrocs_phase1_noise」"
+  ],
+  [
+   82,
+   "CMakeLists.txt:804（「B 已退役, 不再编入。」）",
+   "加统一退役标注：B 方案属「等待被删的历史实现说明」，按 ENGINEERING_SPEC §2 五字段块登记（WHAT/WHY-KEPT/STATUS/EXIT/AUTHORITY），别留半句话"
+  ],
+  [
+   85,
+   "lib/algorithms/coverage/include/astro/phase2/{coverage.h:93,sampler.h:172}（「历史单位项 psfsw_robust_weight=1 随该对象退役」）",
+   "加统一退役标注→更准确是改写：单位项既然已物理删除，头里这两句属「已撤销设计的历史叙述」（标准 04 §5:49），应改写为正向约束「单位表不含该符号；出现即拒绝」"
+  ],
+  [
+   97,
+   "docs/algorithms/PHASE3_PROJ_IMPL.md 的 4 处 RETIRED 叙述",
+   "先解引用再删：文档侧的「已退役」叙述必须与实现侧的实际档位一致；在实现进生产或按 §4 标注之前，文档不能先宣称退役，也不能被删（它是该实现的唯一说明面）"
+  ],
+  [
+   98,
+   "lib/algorithms/coverage/src/sampler.cpp:86,567,581（K_CORR_DOMAIN 选项 B，scale 维 RETIRED）",
+   "加统一退役标注（本处目前只是散句，无六字段块）：把「scale 维退役」的原因/替代/去向按 ENGINEERING_SPEC §2 五字段登记；不要删代码路径的拒绝分支"
+  ],
+  [
+   102,
+   "lib/algorithms/calibration/Makefile（MinGW 平行构建面；SRC_DIR=cpp，产物 cosmetic_corrector.dll）",
+   "删除（连同下一行的 cpp/ 分叉）：标准 04 §4:41 一次性过程脚本不留生产目录；本仓根 CMakeLists.txt:4 明令「禁 GLOB (QA-002)」且以 CMake 为唯一构建事实源 ⇒ 一个手写 Makefile 是**第二套构建事实源**"
+  ],
+  [
+   103,
+   "lib/algorithms/calibration/cpp/{cosmetic_corrector.cpp, cosmetic_corrector.h}（338 行；同能力另一份在 src/cosmetic_corrector.cpp 780 行）",
+   "删除：标准 04 §3:33「同一能力只有一份实现；重复实现保留一份、其余按退役处置」。保留 src/ 那份（astrocs_calibration 与 lib/algorithms/cosmetic/CMakeLists.txt:43 都指它）"
+  ],
+  [
+   104,
+   "其余 11 个 lib/**/Makefile：drizzle/healpix_drizzle、noise_snr/cpp、photometry/cpp、platesolve/cpp/ipv、psf、shared、star_detection、infrastructure/aio、infrastructure/aio/healpix_db/archive/legacy/healpix_stack、infrastructure/gaia_xpsd_client、infrastructure/pipeline/orchestrator/cpp（另有 hips_browser/healpix_browser_qt/Makefile）",
+   "分组处置：archive/legacy/healpix_stack/Makefile 随归档目录同批删；orchestrator/hips_browser/aio 三个的 Makefile 若其独立构建树仍被文档指向 ⇒ 加统一退役标注（写明保留原因与删除条件）；其余按「一次性过程脚本」删"
+  ],
+  [
+   122,
+   "docs/ci/01_CHECKS.md（5 处 RETIRED）",
+   "先解引用再删：其中描述 CHK-RETIRED-CODE / CHK-PSFSW-RETIRED-* 的段落是这些门的对外说明；改门必须同批改此处"
+  ]
+ ],
+ "C": [
+  [
+   25,
+   "eng/ci/prod_wiring_baseline.json:149",
+   "改注册：由前台跑 --update-baseline 收紧（本审查禁跑 eng/**，不代跑）。锚符号声明与定义均已撤 ⇒ 本条属陈旧冻结项"
+  ],
+  [
+   26,
+   "eng/tools/quality/v19r3_traceability.py:62",
+   "改注册：去掉退役 token，与 docs/TRACEABILITY.csv:2 同批；因无门承载，删改本身不判红"
+  ],
+  [
+   28,
+   "eng/ci/known_failures_baseline.json:257 (F-025)",
+   "改注册（不删）：F-025 不是死代码而是**待修缺陷的登记**；它随 docs/contracts/API_CONTRACTS.csv 占位清理一并解除"
+  ],
+  [
+   29,
+   "eng/tools/doccheck/dangling_ledger.json (max_entries=50 / entries=50)",
+   "保留并说明理由：它是棘轮台账本身不是死代码；但**已饱和**——须先解除条目再新增，否则新的悬空引用无处登记 ⇒ 直接判红"
+  ],
+  [
+   31,
+   "eng/tools/quality/contracts/fixtures/check_traceability/ (valid_min.csv, invalid_dup_id.csv, invalid_missing_doc.csv)",
+   "改注册：invalid_missing_doc.csv 保留（是负例夹具，且已在台账豁免）；另两份为改名前陈旧快照（lib/phase2/src/upm.cpp 等 6 个路径不在跟踪集），删或重生成"
+  ],
+  [
+   34,
+   "eng/ci/ledgers/registration_anchor_ledger.json",
+   "改注册：更新锚路径为现行；台账性质是「登记」，删除等于解除绑定，不该用"
+  ],
+  [
+   38,
+   "lib/infrastructure/aio/third_party/cfitsio/win_compat/unistd.h:1",
+   "保留并说明理由：vendored 第三方不随本仓改名规整（标准 04 §1 要求第三方集中在 third_party/ 并记许可证）；只在文件头加一行「本仓现路径为 …」即可，不改第三方正文"
+  ],
+  [
+   41,
+   "lib/infrastructure/pipeline/module_loader/secure_loader.c",
+   "保留并说明理由（**不许按死代码删**）：它是 ABI-003 合同的唯一实现与唯一测试载体；整改动作应是「进构建图」（给独立 add_library 或登记进 orchestrator 的装载器 target），而不是删除"
+  ],
+  [
+   42,
+   "lib/infrastructure/pipeline/module_loader/module_registry.c",
+   "保留并说明理由＋改注册（进构建图）；与 secure_loader.c 同一批处置"
+  ],
+  [
+   54,
+   "eng/packaging/launch/start_browser.ps1:27 与 :43",
+   "改注册：把两处路径改成 lib\\infrastructure\\hips_browser\\healpix_browser_qt\\…；这是「启动脚本按已退役路径找 exe」⇒ 脚本必然走 :37 的「未找到则现场构建」分支，且构建目录也不存在"
+  ],
+  [
+   55,
+   "lib/infrastructure/aio/third_party/cfitsio/{drvrgsiftp.c, iter_a.c, iter_b.c, iter_c.c, vmsieee.c, windumpexts.c, utilities/fitsverify.c}（7 文件）",
+   "保留并说明理由：vendored 上游发行包内的**平台/驱动专用**文件（gsiftp 驱动、Iter 迭代器示例、VMS/Windows 端ian、fitsverify 独立工具），本仓按白名单裁剪是**设计选择**不是遗漏；标准 04 §1 要求第三方集中在 third_party/ 并记许可证，未要求逐文件编译"
+  ],
+  [
+   56,
+   "lib/infrastructure/observability/probes/src/probe.cpp",
+   "保留并说明理由：默认 OFF 的可选探针实现，属设计选择；不是死代码。若加退役标注反而误导（它随时可 ON 编译）"
+  ],
+  [
+   57,
+   "lib/infrastructure/aio/src/ahpx/aio_ahpx_api.cpp",
+   "不许删（改注册）：它是 AHPX-WEIGHT-RETIRED 这条门的唯一被测实现载体；删它 = 该门失去对象，门要么恒绿（找不到 target 即 SKIP）要么构建红。正确动作是把它纳入 astrocs_aio 生产源清单（CMakeLists.txt:535）或按标准 04 §4 加统一退役标注并同步撤门"
+  ],
+  [
+   58,
+   "lib/infrastructure/aio/src/ahpx/aio_ahpx_reader.cpp",
+   "不许删（与 api/reader/writer 三件同批改注册）"
+  ],
+  [
+   59,
+   "lib/infrastructure/aio/src/ahpx/aio_ahpx_writer.cpp",
+   "不许删（三件同批）"
+  ],
+  [
+   62,
+   "lib/algorithms/projection/p3_proj_v6.cpp",
+   "不许删：它是 RETIRED-CODE-RETAINED 合规保留件（六 token 齐备，本审查独立复核通过）且被复现门钉住。若内核被修好，走该门声明的三步同步再删"
+  ],
+  [
+   65,
+   "lib/infrastructure/scheduler/src/executor.cpp",
+   "不许删，且四档定位须按「经文本 include 进生产二进制」记录：本条不是死代码，是**编译归属错位**。整改=归位：根 CMakeLists 为 astrocs_module_adapters 追加本 TU 并删除 :255 的 include（该注释本身写明了这个整改方向）"
+  ],
+  [
+   66,
+   "lib/phase3_session/p3_v6_export.cpp",
+   "不许删（保留并说明理由）：已按规范标注退役原因与去向；删除须等其 EXIT 条件成立"
+  ],
+  [
+   74,
+   "eng/ci/ledgers/registry_ir_parity.json:entries（2 条 registered_not_in_ir）",
+   "改注册：台账本身不是死代码，它是**唯一登记「注册未接线」这一事实**的载体；解除顺序见上一行第③步，不可先删台账（先删 ⇒ 门立即判红而非「已解决」）"
+  ],
+  [
+   75,
+   "docs/modules/registry/astrocs.phase2.resample.md 与 astrocs.phase3.resample.md（两张模块登记页）",
+   "不许手删：改注册——解除代码侧注册后由 gen_module_readmes.py 重新生成；astrocs.phase2.resample.md **没有** GENERATED-ANCHOR（即它是手工页，生成器不覆盖它），删它须同步 doc_hygiene_exempt.json 的豁免条目与 DOCUMENT_INDEX.yaml:953"
+  ],
+  [
+   76,
+   "eng/contracts/block_flow/conformance_deviations.json:36-41（把 astrocs.phase2.resample 登记为「代码额外注册」的合规偏差）",
+   "改注册：解除代码注册时**必须同批**删本偏差条目；本条是偏差合同的载体，不是残留——单独删它等于隐瞒偏差，单独留它等于要求代码里继续存在错误注册"
+  ],
+  [
+   83,
+   "lib/algorithms/coverage/src/coverage.cpp:369-390（RETIRED-OBJECT-REJECT / PSFSW-RETIRE-01 注释块）",
+   "不许删：这是退役对象 **psfsw_robust_weight 的显式拒绝面**（fail-closed），删掉即从「显式拒绝」退化为「静默接受」，负例门立即判红"
+  ],
+  [
+   84,
+   "lib/algorithms/coverage/include/astro/phase2/coverage.h:78-93 与 :160-161（FZ-MODE-RETIRED 词表与「不得另造词表」条款）",
+   "不许删：拒绝面的词表定义位置；:160-161 已如实改述为「退役对象的显式拒绝面」而非在役权重，写法合规"
+  ],
+  [
+   86,
+   "lib/algorithms/coverage/tests/retired_object_reject_negative_test.cpp 与 lib/algorithms/coverage/tests/weight_mode_retire_negative_test.cpp",
+   "不许删：它们是标准 04 §4:42「退役处置可由检查器核对，防止旧实现回流」的**唯一防回流机制**；删了就没有门能发现旧实现回流"
+  ],
+  [
+   87,
+   "lib/algorithms/coverage/src/rejection.cpp:2622-2640（RETIRED-CODE-RETAINED 块，EXIT 段提到 DOC-402 与 coverage.cpp:376 同批删除）",
+   "保留并说明理由：合规保留件；不得因「看到 RETIRED 就删」。它的 EXIT 未成立（DOC-402 未收口）⇒ 现在删属违规"
+  ],
+  [
+   88,
+   "lib/algorithms/drizzle/healpix_drizzle/healpix_core.cpp:1 与 healpix_core.h:1（RETIRED-CODE-RETAINED 块在文件第 1 行）",
+   "保留并说明理由：合规保留件；但横幅出现在文件第 1 行意味着「整文件退役」，与「仍被测试 target 编译」矛盾 ⇒ 须核 EXIT 是否已成立"
+  ],
+  [
+   89,
+   "lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:30（RETIRED-CODE-RETAINED 块）与 lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h:1（同）",
+   "保留并说明理由（两块均合规）；注意 star_detector.cpp **同时**带 RETAINED 块又列在生产 target ⇒ 这是「在产但自述保留件」的档冲突，须按 EXIT 判定并消解"
+  ],
+  [
+   90,
+   "lib/algorithms/{noise_snr,photometry,platesolve,star_detection}/wrapper_phase1/ 四个目录 ＋ lib/algorithms/integration/v6_phase1/",
+   "改注册（迁移目录，不删代码）：把 wrapper_phase1/ 的内容并到模块根或 lib/include 面，目录名去阶段词；v6_phase1 同理。代码本身在产，删之即破产品"
+  ],
+  [
+   91,
+   "工程控制/RELEASE-05/ 全部 31 个跟踪文件",
+   "改注册：RELEASE-05 若已收口 ⇒ 需要留证的部分迁 artifacts/evidence/，其余删除；若未收口 ⇒ 保留并说明理由（写明所属轮次）"
+  ],
+  [
+   92,
+   "lib/infrastructure/cli/ 三命令「薄入口」（normalize/mosaic/export 三个头与 commands.cpp 的对应入口函数）",
+   "不许删：命令面是合同；其「零调用」指内部辅助入口，整改是把入口接到调度器而非删命令。本条入表是为防止按「薄入口零调用」字面去删命令"
+  ],
+  [
+   93,
+   "lib/infrastructure/acr/ 的 108 个 ALONE 档 TU ＋ lib/infrastructure/hips_browser/ 的 18 个 ＋ lib/algorithms/platesolve/cpp/ipv 测试 8 个",
+   "保留并说明理由：它们不是死码，是「闭包外独立构建」，被误并入四档任何一档都会判错处置；标准 04 §4 不适用"
+  ],
+  [
+   94,
+   "源代码注释指向 run/ 下未跟踪产物的指针（示例：lib/algorithms/coverage/include/astro/phase2/{upm.h,sampler.h,rejection.h} 五处「见 run/WIRING-W16-01/REPORT.md」；eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py:20-21「run/FIX-406/SIN_ROUNDTRIP_ORACLE.md」；eng/ci/retired_code_allowlist.json:5「run/CLEAN-401/RECEIPT.md」）",
+   "改注册：run/ 是 gitignore 的临时产物根（AGENTS.md §7），把注释里的「见 run/…」改成可长期解析的指针：或迁 artifacts/evidence/ 并指过去，或删指针只留结论。标准 04 §5:47 要求「实验编号作为证据指针可保留并指向实验单元」，而 run/ 不满足「可长期解析」"
+  ],
+  [
+   95,
+   "eng/ci/retired_code_allowlist.json（9 处 RETIRED 命中；条目为逐条豁免台账）",
+   "不许删：删了会让检查器在「文件不存在」上行为分叉（默认路径缺失时只提示不判红，见其 :7 说明），且 9 条已复核假阳性失去豁免 ⇒ R1/R2 立即回潮"
+  ],
+  [
+   96,
+   "eng/ci/ID_MIGRATION_MAP.md 与 eng/ci/id_migration_map.json（9 与 29 处 RETIRED 命中）",
+   "不许删：改名贯穿的唯一登记处；且 MD 不得手改（生成件，须改 JSON 后重跑生成器）"
+  ],
+  [
+   99,
+   "docs/contracts/DATA_SEMANTICS.md（3 处）与 docs/science/{PSF_SIGNAL_WEIGHT.md 2 处, UNIFIED_SCIENCE_MODEL.md 1 处}、docs/design/PHASE2_DETAILED_DESIGN.md、docs/owner/SCIENCE_OVERVIEW.md、docs/plugins/algorithms_phase2/13_integration.md、docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md、docs/algorithms/PHASE3_PROJ_IMPL.md 的 RETIRED/退役叙述",
+   "不许删（改文档走变更流程）：科学面与合同面的退役叙述是裁决留痕，其「日期口径」由负责人裁决记录承载；本审查只在表内登记其存在，不提议删"
+  ],
+  [
+   100,
+   "artifacts/evidence/{governance-01/retire/RETIREMENT_LEDGER.md（5 处）, release-05/FAILCLOSED_SURVEY.md（6 处）, release-05/D-14_STALE_PATH_CLEANUP.md, v6/qa-design/{evidence/mutations.json, oracle/validate_spec.py}}",
+   "保留并说明理由：artifacts/evidence/ 是证据根（AGENTS §7），标准 04 §4:41 正是要求「需要留证的落归档或 evidence 目录」⇒ 这些条目位置合规，不属「留在生产目录」"
+  ],
+  [
+   101,
+   "reports/v19r2/{file_audit_inventory.csv, source_manifest.csv}（合计 2 处对 astrocs.phase{2,3}.resample、eng/ci/prod_wiring_baseline.json 等现役面的登记）",
+   "改注册：这是**过期台账**（v19r2 轮次的快照，含已退役路径与 SHA/行数）；标准 04 §4:41 明令「过期台账不留在生产目录」。reports/ 不在 AGENTS §7 登记的根目录清单内 ⇒ 属根目录未登记条目"
+  ],
+  [
+   105,
+   "lib/algorithms/{drizzle/healpix_drizzle,shared/healpix}/healpix_core.cpp（另有第三份在 aio/healpix_db/archive/legacy/healpix_stack/）",
+   "不许删 shared/ 那份（它是 HEALPix 几何的共用来源）；drizzle/ 那份按其 RETAINED 块的 EXIT 条件处理；archive 那份随 healpix_db 目录同批删"
+  ],
+  [
+   106,
+   "lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp 与 lib/infrastructure/scheduler/src/checkpoint.cpp",
+   "保留并说明理由：两份分属两套构建事实源（根图与 orchestrator 独立树），不是同图内的重复实现；标准 04 §3 的「只有一份实现」应在**同一构建闭包内**解释，否则判错处置"
+  ],
+  [
+   107,
+   "lib/infrastructure/acr/{topology/cpu_features.cpp, utilization/memory_budget.cpp, core/runtime.cpp} 与 lib/infrastructure/{benchmark/backend_host/cpu_features.cpp, scheduler/src/memory_budget.cpp, scheduler/src/runtime.cpp}",
+   "保留并说明理由：同名不同域（ACR 资源侧 vs 调度器侧），且 ACR 面按设计不进生产链接；不是死码也不是重复实现"
+  ],
+  [
+   108,
+   "lib/algorithms/{calibration,cosmetic,drizzle,drizzle/hips,noise_snr}/src/module_entry.cpp（5 份）",
+   "保留并说明理由：module_entry.cpp 是本仓的**模块入口命名约定**（一模块一入口），不是模板复制残留；标准 04 §3:32「每个模块有唯一职责与清晰端口」正是它承载的"
+  ],
+  [
+   109,
+   "lib/algorithms/coverage/src/cuda_bridge_stub.cpp",
+   "保留并说明理由：GPU 桥的 CPU 侧桩件，用于在无 CUDA 平台（本仓正式平台是 Windows x64 与 Linux amd64 纯 CPU 生产）保持符号存在；删之 ⇒ astrocs_phase2 链接期缺符号"
+  ],
+  [
+   110,
+   "lib/algorithms/upm/{module.yaml, README.md, memory.md}（模块目录内无任何源文件）",
+   "保留并说明理由：module.yaml 是模块身份的正本登记（不能因「目录无源」就删）；整改方向是把 module.yaml:85 的注释性符号列表与 :110-115 的「已撤下符号」叙述收敛，或把目录与实现对齐"
+  ],
+  [
+   111,
+   "lib/infrastructure/{benchmark,hips_browser,observability,pipeline}/PENDING.md（4 份）",
+   "改注册：过程性「待办」台账不留在 lib/ 生产树（标准 04 §4:41）；其内容若仍有效应进 docs/KNOWN_LIMITATIONS.md 或对应工单，若已失效直接删"
+  ],
+  [
+   112,
+   "eng/tests/backend/ 的 19 个 TU（abi_selftest_main.cpp, bench_candidates_main.cpp, bench_harness_main.cpp, candidates_probe_main.cpp, cheat_backend.cpp, fixture_backend.cpp, hips_properties_probe_main.cpp, kernel_bench_main.cpp, kernel_oracle_main.cpp, loader_probe_main.cpp, mon003_synthetic_main.cpp, p3_output_fsync_interposer.cpp, p3_output_fsync_probe.cpp, p3_output_probe_main.cpp, phase1_fixture_main.cpp, phase2_fixture_main.cpp, profile_gen_main.cpp, syn008_seam_main.cpp 等）",
+   "不许删（改注册）：四档字面是「不被任何 target 编译」，但处置必须是「接线进 CMake 或如实登记为运行期编译夹具」。本仓根 CMakeLists.txt:4 禁 GLOB、要求显式源清单 ⇒ 这批绕开构建事实源属**结构性缺口**"
+  ],
+  [
+   113,
+   "eng/tests/cpu/{avx2,avx512,...} 的 15 个 TU（provider_avx2_capability_gate_test.c, provider_avx2_handshake_test.c, provider_avx2_oracle_main.cpp 等）",
+   "不许删（改注册）：它们是 CPU provider 的门面证据；而**其被测对象**（lib/infrastructure/benchmark/cpu/** 的 4 个 provider TU，见 AUD-404 行 44-47）却不被任何 target 编译 ⇒ 形成「测试现场编、被测件不在图」的双层错位"
+  ],
+  [
+   114,
+   "eng/tests/abi/{abi002_lifecycle_probe.c, abi003_loader_probe.c, abi004_registry_probe.c}",
+   "不许删：它们与 secure_loader.c／module_registry.c 构成 ABI-003/004 合同的**唯一**验证面（行 42-43 已判「不许删」），删探针等于解除 ABI 验证"
+  ],
+  [
+   116,
+   "lib/algorithms/calibration/src/v6_calibration_covariance.cpp:54 与 :680-706（PSFSW-RETIRE-01 退役对象拒绝面与「不是残留清理」的说明）",
+   "不许删：:680-682 逐字说明「删除即变成静默接受」，:706 是 fail-closed 拒绝路径；这是仓库自己写明的「不可删理由」"
+  ],
+  [
+   117,
+   "lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:65 与 :93（PSFSW-RETIRE-03：原 RETIRED 占位行已物理删除 ＋ 退役对象显式拒绝段）",
+   "不许删：:65 是「占位行已物理删除」的正面陈述（合规：不留历史叙述，只说明当前无该行），:93 起的显式拒绝段是判据本体"
+  ],
+  [
+   118,
+   "lib/algorithms/coverage/src/stage2_common.cpp:445（「该键既不能被设、也不能被读：出现即 fail-closed 拒绝（退役对象的…）」）",
+   "不许删：拒绝面"
+  ],
+  [
+   119,
+   "eng/contracts/data/v6_clause_registry_v1.json 的 weight_modes.retired 段（4 处 RETIRED 命中）",
+   "不许删：它是退役对象「接受面 = 空」这一裁决的**合同载体**；PUBLIC_API.md:2175 的作废标注正指向此处"
+  ],
+  [
+   120,
+   "eng/contracts/schemas/{product_family_field_constraints.schema.json（3 处）, projection_registry.schema.json（2 处）}",
+   "不许删：schema 里的 retired 枚举值就是「显式拒绝」的机器形式"
+  ],
+  [
+   121,
+   "eng/ci/{polarity_evidence.json（1 处）, polarity_probe.py（2 处）}",
+   "保留并说明理由：这是「判据极性」证据登记（防恒真门），与本项目「判据必须非退化」纪律直接对应；不属死码"
+  ],
+  [
+   123,
+   "eng/ci/check_no_weight_mode.py（1 处）与 eng/ci/check_no_weight_mode_code.py（5 处）",
+   "不许删：它们是「权重模式退役」的**执行门**；其 retired 命中是拒绝面 token 表"
+  ],
+  [
+   124,
+   "eng/ci/check_aio_io_boundary.py（2 处）与 eng/ci/ledgers/aio_io_boundary_inventory.json（9 处）",
+   "不许删：清单是该门的输入；本审查的 healpix_db／aio_pipeline_engine 判定即依赖其「登记了但不在图」的事实"
+  ],
+  [
+   125,
+   "eng/tests/config/test_cfg004_unified_contract.py（2 处）与 eng/tests/contracts/test_unified_object_contract.py（14 处）",
+   "不许删：它们是「退役对象数量 = 13」的机器断言载体；与 unified_object_compatibility_map_v1.json:133-143 互为凭据"
+  ],
+  [
+   126,
+   "eng/tests/api/test_cli_protocol.py（2 处）与 eng/tests/integration/v6_p1/{EVIDENCE.md, oracle/v6_p1_reopen_oracle.py}（1/2 处）",
+   "不许删：命令面与 Oracle 面的判据载体；本表把它们的 retired 命中如实登记，供开发节点理解「删任何退役件前先看这两面是否断言它仍在」"
+  ]
+ ],
+ "U": [
+  [
+   115,
+   "eng/tools/quality/ 的 7 个 TU ＋ eng/tests/validation/ 的 2 个 TU",
+   "待证＋缺什么：缺「该 TU 是否被某 harness 运行期编译」的逐条判定；本表先登记不处置，避免误删"
+  ]
+ ]
+}

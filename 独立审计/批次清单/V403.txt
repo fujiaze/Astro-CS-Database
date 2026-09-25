@@ -1,0 +1,11 @@
+# 批次清单 V403.txt｜对象 raw/AUD-403-注释与README.md（全文 177 行）｜条目 10 条
+AUD403-01	raw/AUD-403-注释与README.md:12-23	AUD403-01 · 注释与现行实现直接矛盾（additive_mode 生产默认）
+AUD403-02	raw/AUD-403-注释与README.md:24-42	AUD403-02 · 注释内任务编号 / 缺陷流水号 / 控制包章节 / 日期 / commit / 历史叙述（普查规模与典型位置）
+AUD403-03	raw/AUD-403-注释与README.md:43-55	AUD403-03 · 注释卫生门的覆盖面缺口（在册门窄于自述，eng/ Python 注释无门）
+AUD403-04	raw/AUD-403-注释与README.md:56-68	AUD403-04 · 版本与状态口径单一事实源（值一致；两处副本 + 违禁元信息块）
+AUD403-05	raw/AUD-403-注释与README.md:69-80	AUD403-05 · 排障手册（常见问题）指向不存在的命令与禁用工具链
+AUD403-06	raw/AUD-403-注释与README.md:81-93	AUD403-06 · 开发者指南与模块 README 完整性门覆盖面单薄
+AUD403-07	raw/AUD-403-注释与README.md:94-104	AUD403-07 · 平台角色口径张力：Linux 是发行平台还是轻验证面
+AUD403-08	raw/AUD-403-注释与README.md:105-115	AUD403-08 · 根 README 完整性判定：六要素齐备、链接零悬空（正向结论 + 轻微前瞻注记）
+AUD403-09	raw/AUD-403-注释与README.md:116-126	AUD403-09 · 注释总体在讲"为什么"，真缺陷是"为什么"被过程流水号包裹（对任务书前提的校正）
+AUD403-10	raw/AUD-403-注释与README.md:127-137	AUD403-10 · 模块 README 质量：内容达标、夹带 owner 叙事与行号锚

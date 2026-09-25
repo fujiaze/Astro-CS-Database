@@ -1,0 +1,50 @@
+sigma_floor|sigma_floor
+snr|\.snr = 
+max_rel|max_rel
+read_noise_e|read_noise_e
+dark|\.dark = 
+bias_dark|bias_dark
+closure_rel_tol|closure_rel_tol
+gain|\.gain = 
+photometric_scale_a|photometric_scale_a
+scale|i % 17
+max_pt|max_pt
+iterativeClipSigma|iterativeClipSigma
+fwhmClipSigma|fwhmClipSigma
+kLimit|kLimit
+scale_deg_per_px|scale_deg_per_px
+limit|per_node / 2
+cpu_percent|cpu_percent
+cpu_p50_percent|cpu_p50_percent
+cpu_mean_percent|cpu_mean_percent
+iowait_percent|iowait_percent
+active_window_seconds|active_window_seconds
+mem_bandwidth_percent|mem_bandwidth_percent
+max_dev0|max_dev0
+kPxScaleDeg|kPxScaleDeg
+min_sep_px|min_sep_px|min_unbridged
+max_recip|max_recip
+r_scaled|r_scaled
+frac_scaled|frac_scaled
+gain_e_per_adu|gain_e_per_adu
+scale_deg|scale_deg
+hips_pixel_scale|hips_pixel_scale
+FX_SIGMA|FX_SIGMA
+gain_variance|gain_variance
+sigma_true|sigma_true
+sigma|rel=%\.6f
+kZPsyn|kZPsyn
+zpk|\bzpk\b
+snrf|\bsnrf\b
+expect_zp|expect_zp
+ZP_k|ZP_k
+kRealSky|kRealSky
+fwhm_px|fwhm_px
+sigma_sky_adu|sigma_sky_adu
+sigma_logflux_dex|sigma_logflux_dex
+legacy_dex|legacy_dex
+tol|\btol = 1e-12\b
+kGaussFwhmFactor|kGaussFwhmFactor
+kMoffat4FwhmFactor|kMoffat4FwhmFactor
+snr_optimal|snr_optimal
+sigma_f|\bsigma_f\b

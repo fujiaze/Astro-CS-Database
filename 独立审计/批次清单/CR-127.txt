@@ -1,0 +1,7 @@
+# 批次 CR-127｜lib/infrastructure/acr｜6 项（整读＋逐数值处置表；合计约 1911 行）
+lib/infrastructure/acr/tests/unit/test_cost.cpp
+lib/infrastructure/acr/tests/unit/test_cpu_profile.cpp
+lib/infrastructure/acr/tests/unit/test_cuda.cpp
+lib/infrastructure/acr/tests/unit/test_cuda_bridge.cpp
+lib/infrastructure/acr/tests/unit/test_cuda_bridge_chunk.cpp
+lib/infrastructure/acr/tests/unit/test_device_executor.cpp
