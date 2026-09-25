@@ -153,12 +153,14 @@ def spec_whitelist(sec7: str):
         ignored.add(name)
     if re.search(r"^lib/", sec7, re.M):
         dirs.add("lib")
-    # CJK 目录名（工程控制/、实验/）不匹配上面的 ASCII token 正则，必须显式登记；
-    # 这两个目录是 §7 代码块内逐字点名的固定条目，显式登记不是放宽判据。
+    # CJK 目录名不匹配上面的 ASCII token 正则，只能在此显式登记；
+    # 集合内每个名字都必须是 §7 代码块逐字点名的固定条目，显式登记不是放宽判据。
+    # 结构缺陷（已登记，不在本任务域内整改）：新增中文根目录必须同时改这里，
+    # 否则 §7 登记面与 allowed_dirs 的一致性判红——中文名无法从 §7 文本机械抽出。
     # 2026-09-21 ROOT-CONSOLIDATION：根 logs/ 条目已退役（日志一律落 run/<task>/logs/，
     # AGENTS.md §3）；旧解析靠 §7 的「logs/（gitignore）」字面量把它抵消，新 §7 已无该
     # 字面量 —— 再从显式集合登记 logs 等于要求一个已退役的根目录。
-    dirs |= {"run", "工程控制", "实验"}
+    dirs |= {"run", "工程控制", "实验", "独立审计"}
     dirs -= ignored
     return files, dirs, ignored
 
