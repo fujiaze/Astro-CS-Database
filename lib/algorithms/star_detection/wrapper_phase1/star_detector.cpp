@@ -12,7 +12,7 @@ using astrocs::core::Error;
 using astrocs::core::ErrorDomain;
 
 namespace {
-// PSF-BG-001 (P2 性能, 判定值零变化, 负责人批准 2026-09-14):
+// PSF-BG-001 (P2 性能, 判定值零变化; 依据 ENGINEERING_SPEC.md §12「资源与性能」):
 // 分位数选择替代"每轮整图 std::sort"(16.2 M 像素 × 5 次)。
 // std::nth_element(begin, begin+k, end) 保证位置 k 上的元素 == 整序后该位置
 // 的元素, 因此 median / MAD / bg **逐位等于旧实现**(非近似直方图), 下游

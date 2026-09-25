@@ -13,7 +13,8 @@
 #       kernel 逐像素 stack）
 #   stage2 输出与 kernel 测量使用同一 production config 语义：
 #     method=auto profile=wbpp_2_9_1 normalization=astrocs_median_center_v1
-#     underdetermined_n=2（20 样本 → WBPP 2.9.1 路由 LinearFit）。
+#     underdetermined_n=2（20 样本 → 本仓冻结路由表 n>=16 档 = LinearFit；
+#     档界取自 WBPP 2.5.9，其 n>15 分支为 ESD，本仓该档对应 WBPP <=2.3.x）。
 #
 # 已知近似：kernel 级测量直接用原始 stack（UPM 校准对零梯度合成数据≈恒等，
 # stage2 内部校准同样近恒等）；文档中如实标注。

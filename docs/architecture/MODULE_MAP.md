@@ -28,6 +28,44 @@
 > RPATH）+ `eng/packaging/astrocs.product.json`（units=10）+ `eng/packaging/install-tree.contract.json`。
 > 当前为 **Linux 技术预览** 安装面；Windows 侧复验 NOT_VERIFIED。
 
+### 1.1 未启用面声明：C ABI 动态装载通道（ABI-003 loader + ABI-004 registry）
+
+**本节是「未启用面」的显式声明，不是能力宣称**，判据门 = `CHK-PROD-WIRING`
+（`eng/ci/check_prod_wiring.py`）的 `W6 plugin_entry_unreachable` 与
+`W1 declared_unreachable:manifest.entrypoint / integration.{op_entry,unique_entry}`。
+
+- **声明事实**：`acs_registry_open_v1`（`lib/infrastructure/pipeline/module_loader/module_registry.c:570`）
+  在 `lib/**` 生产源**零调用者**；其唯一宿主解析点 `acs_secure_loader_load_v1`
+  （`secure_loader.c:369`，内含 `dlsym("astrocs_module_query_v1")` :558 与
+  `dlsym("astrocs_provider_query_v1")` :612）不在三个生产命令
+  （`cmd_session{1,2,3}_run`）的调用图上。⇒ 各模块 `module.yaml#entrypoint` 与
+  `integration.json#dll.unique_entry`/`operations[].entry` 声明的九操作入口，
+  **在本版不由三个命令在运行期 dlopen**。
+- **为什么不是缺陷（本版口径）**：最高设计 §8 的组件图里，**生产运行面**的「模块注册表」
+  是**构建内**的 `astrocs::ModuleRegistry`（`lib/include/astrocs/core/module.h:94`）
+  + 节点适配器表（`lib/infrastructure/scheduler/src/module_adapters.cpp`，本文件 §2），
+  它**已接线**并经 `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes` 实测；
+  §1 的五个科学模块 DLL 是**交付/安装面**（`INSTALLED`），由安全 loader 探针逐 unit
+  实测装配。动态通道的**宿主接线是另一个已登记的交付项**，不由本版运行期承担。
+- **谁是消费者（仓内真实存在，且走通）**：
+  - `eng/tests/abi/mod001_install_load_check.py` —— 安全 loader 逐 unit 加载 5 个科学
+    模块 DLL + noop，正路径（sha256/module_id/allowed_root 三校验）与 4 类负路径
+    （HASH_MISMATCH / MODULE_ID_MISMATCH / PATH_ESCAPE / FILE_MISSING）必败；
+  - `eng/tests/abi/test_module_registry.py`（ABI-004 registry 验收）与
+    `eng/tests/abi/test_abi005_echo.py`（三方一致正测）；
+  - `eng/packaging/verify_install_tree.py`（安装树产品清单核对）。
+- **退出条件**（满足任一条即删除本声明与 `CHK-PROD-WIRING` 台账中的对应豁免）：
+  1. ABI-004 / RT-002（`eng/packaging/astrocs.product.json` 自述「宿主接线归
+     RT-002/WIN-*」）落地**运行期**宿主接线，即三个命令在启动预检里经
+     `acs_registry_open_v1` 装载安装树模块，且失败按退出码 5 fail-closed；
+  2. 或按 CLI-001 先例**恢复/新增**一条用户可见的模块面命令，使该通道有生产入口；
+  3. 或经裁决**收缩声明面**：从 `module.yaml`/`*.integration.json` 撤下
+     `entrypoint`/`unique_entry`/`operations[].entry` 的九操作声明。
+
+相邻已登记事实：`eng/packaging/astrocs.product.json` 的 note 已自述
+PLATFORM-RUNTIME/IO 仍为 SKELETON 且「不伪装实现完成」；
+`lib/infrastructure/pipeline/module_loader/README.md` 自述「host(registry) 接线属 ABI-004」。
+
 ## 2. 会话与节点执行面（构建内，非独立 DLL）
 
 | 模块 | 路径 | 交付状态 | 职责 | 证据锚 |

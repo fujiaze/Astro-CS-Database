@@ -162,7 +162,8 @@ SnrFrameScienceResult compute_snr_frame_science(
 
   // --- 帧级科学基准: 显式参考轮廓 = (median FWHM, sigma_sky, 参考通量) ---
   //
-  // WEIGHT-SCI-001（2026-09-18 科学裁决，reports/RELEASE-02/weight-sci-ruling.md）:
+  // WEIGHT-SCI-001（依据 docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
+  // w(x,y) = SNR(x,y)²/F_ref²」与 docs/science/PSF_SIGNAL_WEIGHT.md 的参考通量口径）:
   // F_ref 必须是**组内公共参考通量**，且与存入 HiPS 头的 ASTROCS_FRAME_SNR
   // **配对**（同一定义参考）。配对性定理:
   //   SNR_f = a_f·F_ref/σ_f  ⇒  SNR_f²/F_ref² = a_f²/σ_f² = w_f

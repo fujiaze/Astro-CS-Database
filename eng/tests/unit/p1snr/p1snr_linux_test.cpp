@@ -155,7 +155,8 @@ const RealSrc kReal[5] = {
 // NumPy oracle extract_v3 锚 (同一 5 源)
 constexpr double kOracleMedian = 16.04022427426992;
 constexpr double kOracleFlux5 = 3563.641141562232;
-// WEIGHT-SCI-001（2026-09-18 裁决）: 组内公共参考通量 F0。同一帧组的所有帧必须
+// WEIGHT-SCI-001（依据 docs/science/CONTROL_WEIGHT_SNR.md §8c「F_ref 为逐帧参考通量/
+// 配对性只要求同一帧内 SNR 与 F_ref 同源」）: 组内公共参考通量 F0。同一帧组的所有帧必须
 // 用**同一个** F0 定义 SNR 并写入 reference_flux_adu（配对性定理）。逐帧检出通量
 // 中位数回退已删除；本常量取 5 颗真实源通量的中位数作为冻结的公共参考值。
 constexpr double kGroupRefFlux = 11581.213134765625;

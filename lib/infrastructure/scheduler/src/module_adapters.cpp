@@ -2392,6 +2392,69 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   }
   st_cal["per_frame"] = per_frame;
 
+  // ── LINDEF-CLOSE-01：母版回填面（master_refs.json）───────────────────────────
+  // 缺陷（修复前）：坏列的 dark/bias 两条检测路径要消费**母版**，而母版在整个
+  // 运行期只有本节点真正读过、校验过（含 master_units/master_scale 声明换算与
+  // 平场归一化）。下游 cosmetic 节点拿到的 config 若不含 master_* 键，那两条
+  // 路径就退化成"只有科学帧"，且**不留任何机器可读痕迹**。
+  // 处置：本节点把**实际消费**的母版落成边车 master_refs.json（与产物同目录），
+  // 供下游回填；状态逐键具名（in_use / unreadable / absent），下游不得把
+  // "缺失"静默当成"没有缺陷"。这是"把母版回填进 config"的唯一事实源。
+  {
+    Json refs = Json{{"schema", "astrocs.phase1.master_refs/v1"},
+                     {"producer_node", "astrocs.phase1.calibration"},
+                     {"output_dir", out_dir},
+                     {"dark_convention", st_cal["dark_convention"]},
+                     {"dark_exptime_s", dark.ok() ? dark_exptime : 0.0},
+                     {"frames_ok", frames_ok}};
+    auto add_ref = [&](const char* key, const P1Image& im, bool scale_applied,
+                       double scale) {
+      Json e = Json::object();
+      e["config_key"] = key;
+      if (!p1_has(doc, key)) {
+        e["status"] = "absent";
+        refs[key] = e;
+        return;
+      }
+      const std::string p = doc[key].get<std::string>();
+      e["path"] = p;
+      e["basename"] = p1_base_name(p);
+      if (!im.ok()) {
+        e["status"] = "unreadable";
+      } else {
+        e["status"] = "in_use";
+        e["width"] = im.w();
+        e["height"] = im.h();
+        e["declared_scale_applied"] = scale_applied;
+        e["declared_scale"] = scale;
+        std::string hex;
+        if (aio_file::sha256_hex(p.c_str(), &hex)) e["sha256"] = hex;
+      }
+      refs[key] = e;
+    };
+    add_ref("master_dark", dark, mu_decl.dark.has_scale, mu_decl.dark.scale);
+    add_ref("master_bias", bias, mu_decl.bias.has_scale, mu_decl.bias.scale);
+    add_ref("master_flat", flat, mu_decl.flat.has_scale, mu_decl.flat.scale);
+    (*man)["master_refs"] = refs;
+    const std::string refs_path = out_dir + "/master_refs.json";
+    const std::string refs_tmp = p1_staging_path(refs_path);
+    bool refs_ok = false;
+    std::FILE* fp = std::fopen(refs_tmp.c_str(), "wb");
+    if (fp) {
+      const std::string txt = refs.dump(1);
+      const size_t wr = std::fwrite(txt.data(), 1, txt.size(), fp);
+      std::fclose(fp);
+      std::string rerr;
+      if (wr == txt.size() && p1_atomic_publish(refs_tmp, refs_path, &rerr)) {
+        refs_ok = true;
+      } else {
+        aio_fs::remove(refs_tmp);
+      }
+    }
+    (*man)["master_refs_status"] = refs_ok ? "published" : "write_failed";
+    if (refs_ok) (*man)["master_refs_path"] = refs_path;
+  }
+
   // io_write 校验（产物存在性 fail-closed）
   Json& st_wr = (*man)["stages"].emplace_back(Json{{"name", "io_write"}, {"status", "running"}});
   for (const auto& a : artifacts) {
@@ -2407,13 +2470,40 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
+// ── LINDEF-CLOSE-01：母版路径的专用判据阈值（默认值 = 实测标定，不是拍数）──────
+// 母版 d 分布重尾是"同一 5σ 不等价"的根因：真实 T3 master dark/bias 实测
+// |d−med| 的 p99/p50 ≈ 23（高斯分布该比值 2.6）⇒ 母版必须有自己的尺度。
+//
+// 取值依据（可复跑：run/LINDEF-CLOSE-01/probe_master_sigma.cpp 经**生产实现**
+// ac_detect_bad_columns_from_master 扫 k，曲线落 evidence/master_sigma_tradeoff.json）：
+//   判据 = **路径对等**：母版路径在单帧上的"已修"列数不得超过**科学帧路径**在
+//   同一帧上的已修列数（尺度无关，不引入任何新的绝对常数）。实测科学帧路径
+//   k_science = 5.0 判 30 列；母版路径的满足点（细网格 0.5 步长）= **k = 10.5**
+//   （k=10.0 时 dark 判 31 列 > 30，k=10.5 时 dark 30 / bias 7，均在预算内）。
+//   注：该判据只绑定"母版不得比科学帧更啰嗦"，不放松任何既有判据 —— 科学帧路径
+//   的阈值一个字未动，强缺陷（列 3321 z=91.6、列 1938 z=77.4）本就由科学帧路径判出。
+// 覆盖点：cosmetic.bad_column_sigma_master；<=0 ⇒ 归一到科学帧阈值（向后兼容）。
+static const double kP1BadcolMasterSigmaDefault = 10.5;
+
+// ── LINDEF-CLOSE-01：母版路径"仅标记"（宽缺陷，掩膜值 2）的声明区间 ─────────────
+// 声明：母版路径的仅标记列率 ≤ 1e-3（4096 列里 ≤ 4 列）。超出 ⇒ 该母版路径的宽
+// 标记**整类丢弃**（不是静默：丢弃列数与来源写进 badcol_report.json 的
+// master_wide_suppressed 字段），**单列（已修）判定完全不受影响**。
+// 依据（实测，不是拍数）：母版宽标记的**阈值不稳定性** —— 同一 master bias 在
+// k = 5/10/30/40/60/80 上分别标 350/596/1383/**0**/1419/**0** 列。同一份数据在
+// 阈值微调下从 0 跳到 1419 列又回到 0，说明这些"宽缺陷"不是稳定物理结构，而是
+// "就近反号配对"在重尾 d 上的配对事故（两个相距很远的显著跳变被配成一段）。
+// 因此不给它们留"按幅度排序保留前 N 个"的空间：整类丢弃 + 计数留痕。
+static const double kP1BadcolMasterWideFracMax = 1e-3;
+
 // ── op: cosmetic_correct（唯一真实入口 ac_correct_frame; enabled=false → 0 帧如实记录）──
 Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
   Json stages = Json::array();
   Json artifacts = Json::array();
-  // LINDEF-IMPL-01（负责人 2026-09-24 裁决: 坏列修复默认开启）：
+  // LINDEF-IMPL-01（依据 docs/contracts/DATA_SEMANTICS.md §10.4「开关」行:
+  // 列状缺陷路径默认启用）：
   // 旧判据 `!p1_has(doc,"cosmetic") ||` 使**无 cosmetic 段的 config** 整节点
   // 跳过（frames=0、mode=disabled）——"默认开启"在该分支下无从成立（M42 真实
   // run 的 p1_full.json 即无该段，故坏列/坏点路径在生产上都从未生效）。
@@ -2434,36 +2524,114 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   const int method = p1_int(c, "method", AC_METHOD_MEDIAN) == AC_METHOD_BILINEAR
                          ? AC_METHOD_BILINEAR : AC_METHOD_MEDIAN;
   const int mss = p1_int(c, "max_structure_size", 4);
-  // ── 坏列（linear defect, 单列）路径配置（LINDEF-IMPL-01；默认开启）──
-  // bad_column_enabled 默认 true（负责人 2026-09-24 裁决: 默认开启、可选关闭）；
-  // 关闭时本节点对像素的行为与改动前逐位一致（A/B 取证见 REPORT §5）。
-  // 检测源 = 本帧自身（cal 节点产物）：生产两条路径都不接线 dark/bias 母版
-  // （DISP-COS-009），故坏列判据不得依赖母版；判据自校准，见
+  // ── 列状缺陷（linear defect, 单列）路径配置；默认启用 ──
+  // bad_column_enabled 默认 true，配置可关闭；关闭时本节点对像素的行为
+  // 与不启用该路径时逐位一致。
+  // 检测源 = 本帧自身（cal 节点产物）：坏列判据自校准，不依赖母版；见
   // lib/algorithms/calibration/src/cosmetic_corrector.cpp 的 detect_bad_columns。
   const bool col_enabled = p1_flag(c, "bad_column_enabled", true);
   const float col_sigma = static_cast<float>(p1_num(c, "bad_column_sigma", 5.0));
   const int col_k = p1_int(c, "bad_column_neighbor_k", 3);
-  // 段长上限：默认 1 = **只修单列**（负责人 2026-09-24 裁决：单列缺陷可接受，
-  // 相邻多列不属本任务）。>1 才允许修连续多列段（修复算子已支持线性插值）；
+  // 段长上限：默认 1 = **只修单列**（依据 docs/contracts/DATA_SEMANTICS.md §10.4
+  // 「修复」行与「边缘与连续多列」行：单列按左右两邻算术平均，无两侧邻列时按声明
+  // 行为降级并留痕、不虚构好值）。>1 才允许修连续多列段（修复算子已支持线性插值）；
   // 超限的段一律降级为"仅标记不修"并置 AC_COLSTAT_WIDE_DEFECT。
   const int col_maxseg = p1_int(c, "bad_column_max_seg_len", 1);
-  // ── 坏列检测源：dark / bias 母版（可选；负责人 2026-09-24 裁决要求支持）──
+  // ── 坏列检测源：dark / bias 母版（可选；依据 docs/contracts/DATA_SEMANTICS.md
+  // §10.4「检测源」行：三路并列 = 母版暗场 / 母版偏置 / 科学帧自身）──
   // 母版是整列缺陷的**物理来源**观测面，判据比科学帧自身统计干净（其上没有
   // 天体结构）。两条路径各自帧内自校准 ⇒ 标度不一致不影响判坏集合（见
   // ac_detect_bad_columns_from_master 的标度无关性说明）。母版不可得/不可读/
   // 尺寸不符 ⇒ 该路径不参与，但**必须留痕**（不得静默退化成"只有科学帧"）。
+  // WIRING-AUDIT-01 整改（②"接入了但参数恒退化"）：母版读取不再挂在 col_enabled
+  // 之下 —— master_dark/master_bias 同时是**坏点检测**（ac_correct_frame 的
+  // master_dark/master_bias 形参，驱动 detect_hot_pixels/detect_cold_pixels）与
+  // **坏列检测**（ac_correct_columns_ex）的物理来源。原实现两处都恒传 nullptr，
+  // 使 module.yaml 声明的 source_symbols(detect_hot_pixels/detect_cold_pixels) 与
+  // cosmetic.* 配置键在生产上恒不生效（连单像素坏点都不修的恒等 pass）。
+  // 母版专用阈值（LINDEF-CLOSE-01）：母版的 d 分布重尾（实测 T3 master dark/bias
+  // 的 |d−med| p99/p50 ≈ 23，高斯分布该比值 2.6）⇒ 同一 5σ 在母版上不是同一
+  // 松紧度，母版路径的"仅标记"列数虚高（实测帧 1 达 924 列）。母版路径因此用
+  // **独立的、更严的**阈值；取值按母版自身的稳健尺度标定，标定曲线与落点见
+  // run/LINDEF-CLOSE-01/REPORT.md §4 与 evidence/master_sigma_calibration.json。
+  // 归一口径：<=0 ⇒ 归一到科学帧阈值（向后兼容）；不得比科学帧更松。
+  const float col_sigma_master = static_cast<float>(p1_num(c, "bad_column_sigma_master",
+      static_cast<double>(kP1BadcolMasterSigmaDefault)));
+  // 修复像素方差面的 inflate 因子 κ（LINDEF-CLOSE-01）：var = (Σw²·var)·κ。
+  // κ = 1/Σw² = 2（单列两邻算术平均）为"信息平价"落点；κ=1 会让 ivar 翻倍、
+  // SNR 系统性偏高 √2。推导、蒙特卡洛与真实数据佐证见 REPORT §3。
+  const double col_kappa = p1_num(c, "bad_column_variance_kappa", 2.0);
+  // "仅标记"（宽缺陷）的声明区间（列率上界）；超出 ⇒ 该路宽标记整类丢弃并记账。
+  // **两条路径各有上界**：给"标记"这个动作设一个可声明的上界本身就是要求
+  // （没有上界等于一个没有推导的常数），不是对某一路的特例。
+  const float col_wide_frac = static_cast<float>(p1_num(
+      c, "bad_column_master_wide_frac_max",
+      static_cast<double>(kP1BadcolMasterWideFracMax)));
+  const float col_wide_frac_sci = static_cast<float>(p1_num(
+      c, "bad_column_science_wide_frac_max",
+      static_cast<double>(kP1BadcolMasterWideFracMax)));
+
   P1Image m_dark, m_bias;
   std::string dark_src = "unavailable", bias_src = "unavailable";
-  if (col_enabled && p1_has(doc, "master_dark")) {
-    const std::string p = doc["master_dark"].get<std::string>();
-    m_dark = p1_read_image(p);
-    dark_src = m_dark.ok() ? ("in_use:" + p1_base_name(p)) : ("unreadable:" + p1_base_name(p));
+  std::string dark_from = "config", bias_from = "config";
+  // ── 母版回填（LINDEF-CLOSE-01）───────────────────────────────────────────────
+  // 节点 config 未带母版键时，从 cal 节点落的 master_refs.json 回填（该文件是
+  // "本次运行实际消费过的母版"的唯一事实源，含 sha256 与声明换算记录）。
+  // 回填是**显式可追**的：状态字符串写成 "backfilled:master_refs.json"，
+  // 不伪装成 config 自带；回填不到就保持 "unavailable" 并落盘（见 badcol_report.json）。
+  Json master_refs = Json::object();
+  bool have_master_refs = false;
+  {
+    const std::string rp = doc.value("output_dir", std::string(".")) + "/master_refs.json";
+    std::FILE* fp = std::fopen(rp.c_str(), "rb");
+    if (fp) {
+      std::string txt;
+      char buf[4096];
+      size_t rd = 0;
+      while ((rd = std::fread(buf, 1, sizeof(buf), fp)) > 0) txt.append(buf, rd);
+      std::fclose(fp);
+      Json parsed = Json::parse(txt, nullptr, false);
+      if (!parsed.is_discarded() && parsed.is_object()) {
+        master_refs = parsed;
+        have_master_refs = true;
+      }
+    }
   }
-  if (col_enabled && p1_has(doc, "master_bias")) {
-    const std::string p = doc["master_bias"].get<std::string>();
-    m_bias = p1_read_image(p);
-    bias_src = m_bias.ok() ? ("in_use:" + p1_base_name(p)) : ("unreadable:" + p1_base_name(p));
-  }
+  auto resolve_master = [&](const char* key, P1Image* out, std::string* src,
+                            std::string* from) {
+    if (p1_has(doc, key) && doc[key].is_string() &&
+        !doc[key].get<std::string>().empty()) {
+      const std::string p = doc[key].get<std::string>();
+      *out = p1_read_image(p);
+      *src = out->ok() ? ("in_use:" + p1_base_name(p)) : ("unreadable:" + p1_base_name(p));
+      *from = "config";
+      return;
+    }
+    if (have_master_refs) {
+      const auto it = master_refs.find(key);
+      if (it != master_refs.end() && it->is_object() &&
+          it->value("status", std::string()) == "in_use" && it->contains("path")) {
+        const std::string p = (*it)["path"].get<std::string>();
+        *out = p1_read_image(p);
+        *src = out->ok() ? ("backfilled:" + p1_base_name(p))
+                         : ("backfill_unreadable:" + p1_base_name(p));
+        *from = "master_refs.json";
+        return;
+      }
+      if (it != master_refs.end() && it->is_object()) {
+        *src = "backfill_" + it->value("status", std::string("unknown"));
+        *from = "master_refs.json";
+        return;
+      }
+      *src = "backfill_absent";
+      *from = "master_refs.json";
+      return;
+    }
+    *src = "unavailable";
+    *from = "none";
+  };
+  resolve_master("master_dark", &m_dark, &dark_src, &dark_from);
+  resolve_master("master_bias", &m_bias, &bias_src, &bias_from);
   Json& st = stages.emplace_back(Json{{"name", "cosmetic"}, {"status", "running"}});
   int hot_total = 0, cold_total = 0;
   uint32_t frames = 0;
@@ -2477,8 +2645,12 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   std::vector<std::string> f_out(n_lights);
   // 坏列路径的逐帧结果槽（帧序归约在 join 之后，与 worker 数无关）
   std::vector<int> f_ncols(n_lights, 0), f_pxcol(n_lights, 0), f_colstat(n_lights, 0);
+  std::vector<int> f_nmark(n_lights, 0);
   std::vector<float> f_sigcol(n_lights, 0.0f);
+  std::vector<float> f_sigd(n_lights, 0.0f), f_sigb(n_lights, 0.0f);
   std::vector<int> f_nsci(n_lights, 0), f_ndark(n_lights, 0), f_nbias(n_lights, 0);
+  std::vector<int> f_ksci(n_lights, 0), f_kdark(n_lights, 0), f_kbias(n_lights, 0);
+  std::vector<int> f_ksupp(n_lights, 0), f_ksupp_sci(n_lights, 0);
   std::vector<std::vector<int>> f_cols(n_lights);
   std::vector<std::string> f_mask_out(n_lights);
   std::vector<std::string> f_srcmask_out(n_lights);
@@ -2495,7 +2667,13 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
     }
     std::vector<float> fixed(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()), 0.0f);
     int hot = 0, cold = 0;
-    const int rc = ac_correct_frame(im.px(), im.w(), im.h(), nullptr, nullptr,
+    // 检测源：尺寸不符则该源不参与（与坏列路径同口径），但绝不静默成"无源恒等 pass"
+    // —— 参与面由下方 st 的 hot_source/cold_source 如实留痕。
+    const bool p_dark_ok = m_dark.ok() && m_dark.w() == im.w() && m_dark.h() == im.h();
+    const bool p_bias_ok = m_bias.ok() && m_bias.w() == im.w() && m_bias.h() == im.h();
+    const int rc = ac_correct_frame(im.px(), im.w(), im.h(),
+                                    p_dark_ok ? m_dark.px() : nullptr,
+                                    p_bias_ok ? m_bias.px() : nullptr,
                                     fixed.data(), hot_sigma, cold_sigma, method,
                                     mss, &hot, &cold);
     if (rc != AC_OK) {
@@ -2512,30 +2690,43 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
     std::vector<unsigned char> cmask(static_cast<size_t>(im.w()), 0);
     std::vector<unsigned char> csrc(static_cast<size_t>(im.w()), 0);
     if (col_enabled) {
-      const bool dim_ok = (m_dark.ok() && m_dark.w() == im.w() && m_dark.h() == im.h());
-      const bool bim_ok = (m_bias.ok() && m_bias.w() == im.w() && m_bias.h() == im.h());
+      const bool dim_ok = p_dark_ok;
+      const bool bim_ok = p_bias_ok;
       std::vector<float> colfixed(fixed.size(), 0.0f);
       int ncols = 0, pxcol = 0, cstat = 0, nsci = 0, ndark = 0, nbias = 0;
-      float sigcol = 0.0f;
-      const int rcc = ac_correct_columns_ex(
+      int nmark = 0, ksci = 0, kdark = 0, kbias = 0, ksupp = 0, ksupp_sci = 0;
+      float sigcol = 0.0f, sigdark = 0.0f, sigbias = 0.0f;
+      const int rcc = ac_correct_columns_ex2(
           im.px(), dim_ok ? m_dark.px() : nullptr, bim_ok ? m_bias.px() : nullptr,
-          im.w(), im.h(), colfixed.data(), col_sigma, col_k, col_maxseg,
+          im.w(), im.h(), colfixed.data(),
+          col_sigma, col_sigma_master, col_wide_frac, col_wide_frac_sci,
+          col_k, col_maxseg,
           cmask.data(), csrc.data(), nullptr,
-          &ncols, &nsci, &ndark, &nbias, &pxcol, &sigcol, &cstat);
+          &ncols, &nmark, &nsci, &ndark, &nbias, &ksci, &kdark, &kbias, &ksupp,
+          &ksupp_sci,
+          &pxcol, &sigcol, &sigdark, &sigbias, &cstat);
       if (rcc != AC_OK) {
         f_errkind[fi] = 4;
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::INTERNAL,
-            std::string("ac_correct_columns_ex failed rc=") + std::to_string(rcc)));
+            std::string("ac_correct_columns_ex2 failed rc=") + std::to_string(rcc)));
         return;
       }
       std::memcpy(im.px(), colfixed.data(), colfixed.size() * sizeof(float));
       f_ncols[fi] = ncols;
+      f_nmark[fi] = nmark;
       f_pxcol[fi] = pxcol;
       f_colstat[fi] = cstat;
       f_sigcol[fi] = sigcol;
+      f_sigd[fi] = sigdark;
+      f_sigb[fi] = sigbias;
       f_nsci[fi] = nsci;
       f_ndark[fi] = ndark;
       f_nbias[fi] = nbias;
+      f_ksci[fi] = ksci;
+      f_kdark[fi] = kdark;
+      f_kbias[fi] = kbias;
+      f_ksupp[fi] = ksupp;
+      f_ksupp_sci[fi] = ksupp_sci;
       for (int x = 0; x < im.w(); ++x)
         if (cmask[x]) f_cols[fi].push_back(x);
     }
@@ -2550,7 +2741,10 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cosmetic " + werr));
       return;
     }
-    // 坏列掩膜落盘（float32 [H][W]，1.0 = 该像素由坏列修复覆盖）。
+    // 坏列掩膜落盘（float32 [H][W]，**取值语义而非布尔**：1=单列缺陷已修复，
+    // 2=宽缺陷仅标记未修）。压成布尔会让下游无法区分"该像素的值被替换过"与
+    // "只是被怀疑"——实测一轮真实运行有 405 列被标记、其中仅 63 列真正改了
+    // 像素值，压成布尔会把 342 个未修列谎报为已修。
     // 复用已发布 cleaned 的句柄：cleaned 已原子发布到磁盘，im.px() 不再需要
     // 保留原值 ⇒ 就地改写为掩膜，零额外内存、零额外读盘，geometry 天然一致。
     // CORE-RACE-001 同语义：掩膜落独立路径 badcol_<base>，不覆写任何上游产物。
@@ -2560,7 +2754,7 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       for (int yy = 0; yy < mh; ++yy) {
         const size_t row = static_cast<size_t>(yy) * mw;
         for (int xx = 0; xx < mw; ++xx)
-          mp[row + xx] = cmask[static_cast<size_t>(xx)] ? 1.0f : 0.0f;
+          mp[row + xx] = static_cast<float>(cmask[static_cast<size_t>(xx)]);
       }
       const std::string mpath = p1_badcol_path(doc, lp);
       std::string merr;
@@ -2593,6 +2787,9 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   });
   // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
   int ncol_total = 0, pxcol_total = 0, col_degraded_frames = 0;
+  int nmark_total = 0, nsci_total = 0, ndark_total = 0, nbias_total = 0;
+  int ksci_total = 0, kdark_total = 0, kbias_total = 0;
+  int ksupp_total = 0, ksupp_sci_total = 0;
   Json col_frames = Json::array();
   Json col_degrade_hist = Json::object();
   for (size_t fi = 0; fi < n_lights; ++fi) {
@@ -2607,16 +2804,34 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
     cold_total += f_cold[fi];
     ncol_total += f_ncols[fi];
     pxcol_total += f_pxcol[fi];
+    nmark_total += f_nmark[fi];
+    nsci_total += f_nsci[fi];
+    ndark_total += f_ndark[fi];
+    nbias_total += f_nbias[fi];
+    ksci_total += f_ksci[fi];
+    kdark_total += f_kdark[fi];
+    kbias_total += f_kbias[fi];
+    ksupp_total += f_ksupp[fi];
+    ksupp_sci_total += f_ksupp_sci[fi];
     if (col_enabled) {
       // 逐帧坏列 provenance（列索引可重建掩膜；掩膜本身落盘 badcol_<base>）
+      // 已修（n_columns，掩膜值 1）与仅标记（n_marked_only，掩膜值 2）**分账**：
+      // 两者在产物里的含义不同（前者真的换了像素值），合并报数会把未修的列
+      // 谎报为已修（LINDEF-CLOSE-01 裁决 4）。
       Json fr = Json{{"input", p1_base_name(doc["input_lights"][fi].get<std::string>())},
                      {"n_columns", f_ncols[fi]},
+                     {"n_marked_only", f_nmark[fi]},
                      {"px_repaired", f_pxcol[fi]},
                      {"sigma_col_adu", static_cast<double>(f_sigcol[fi])},
+                     {"sigma_col_dark_adu", static_cast<double>(f_sigd[fi])},
+                     {"sigma_col_bias_adu", static_cast<double>(f_sigb[fi])},
                      {"status", f_colstat[fi]},
                      {"n_from_science", f_nsci[fi]},
                      {"n_from_dark", f_ndark[fi]},
-                     {"n_from_bias", f_nbias[fi]}};
+                     {"n_from_bias", f_nbias[fi]},
+                     {"n_marked_from_science", f_ksci[fi]},
+                     {"n_marked_from_dark", f_kdark[fi]},
+                     {"n_marked_from_bias", f_kbias[fi]}};
       fr["columns"] = f_cols[fi];
       Json flags = Json::array();
       if (f_colstat[fi] & AC_COLSTAT_SCALE_DEGENERATE) {
@@ -2636,18 +2851,25 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
         col_degrade_hist["no_anchor_unrepaired"] = col_degrade_hist.value("no_anchor_unrepaired", 0) + 1;
       }
       if (!flags.empty()) { fr["degrade"] = flags; col_degraded_frames++; }
-      if (!f_mask_out[fi].empty()) {
+      // 掩膜路径只写进 per-frame provenance；**push 进 artifacts 的动作统一放到
+      // 主产物之后**（见下方循环）。理由：artifacts[0] 被既有消费者当作
+      // "cosmetic 的主产物"读取（p1001_real_nodes_test.cpp:2081 与 star-psf 的
+      // file 字段都依赖这一点）。把掩膜插在前面会让 artifacts[0] 变成 badcol_*，
+      // 实测该契约被破坏（p1001 红灯）。
+      if (!f_mask_out[fi].empty())
         fr["mask"] = f_mask_out[fi].substr(f_mask_out[fi].find_last_of("/\\") + 1);
-        artifacts.push_back(f_mask_out[fi]);
-      }
-      if (!f_srcmask_out[fi].empty()) {
+      if (!f_srcmask_out[fi].empty())
         fr["source_mask"] = f_srcmask_out[fi].substr(f_srcmask_out[fi].find_last_of("/\\") + 1);
-        artifacts.push_back(f_srcmask_out[fi]);
-      }
       col_frames.push_back(fr);
     }
     ++frames;
-    artifacts.push_back(f_out[fi]);
+    artifacts.push_back(f_out[fi]);   // ← artifacts[0..n_lights-1] 恒为主产物
+  }
+  // 派生掩膜追加在**主产物之后**：它们是 cosmetic 的附属证据，不得抢占
+  // artifacts[0]（主产物）的位置——见上方注释引用的既有消费契约。
+  for (size_t fi = 0; fi < n_lights; ++fi) {
+    if (!f_mask_out[fi].empty()) artifacts.push_back(f_mask_out[fi]);
+    if (!f_srcmask_out[fi].empty()) artifacts.push_back(f_srcmask_out[fi]);
   }
   st["status"] = "ok";
   st["frames"] = frames;
@@ -2658,18 +2880,96 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   // 不得互相顶替（ALG-COS-004 对 0 计数的同款要求）。
   st["bad_column_enabled"] = col_enabled;
   st["bad_column_sigma"] = static_cast<double>(col_sigma);
+  st["bad_column_sigma_master"] = static_cast<double>(col_sigma_master);
+  st["bad_column_variance_kappa"] = col_kappa;
   st["bad_column_neighbor_k"] = col_k;
   st["bad_column_mode"] = col_enabled ? "applied" : "disabled";
   if (col_enabled) {
     st["bad_column_columns_total"] = ncol_total;
+    st["bad_column_marked_only_total"] = nmark_total;
     st["bad_column_px_repaired_total"] = pxcol_total;
     st["bad_column_degraded_frames"] = col_degraded_frames;
     st["bad_column_degrade_hist"] = col_degrade_hist;
     st["bad_column_detection_sources"] = Json::array({"science_frame_self", "master_dark", "master_bias"});
     st["bad_column_master_dark"] = dark_src;
     st["bad_column_master_bias"] = bias_src;
+    st["bad_column_master_dark_from"] = dark_from;
+    st["bad_column_master_bias_from"] = bias_from;
+    st["bad_column_master_refs"] = have_master_refs ? "master_refs.json" : "unavailable";
+    st["bad_column_path_dark_active"] = m_dark.ok();
+    st["bad_column_path_bias_active"] = m_bias.ok();
+    st["bad_column_n_from_science"] = nsci_total;
+    st["bad_column_n_from_dark"] = ndark_total;
+    st["bad_column_n_from_bias"] = nbias_total;
+    st["bad_column_master_wide_frac_max"] = static_cast<double>(col_wide_frac);
+    st["bad_column_master_wide_suppressed"] = ksupp_total;
+    st["bad_column_science_wide_frac_max"] = static_cast<double>(col_wide_frac_sci);
+    st["bad_column_science_wide_suppressed"] = ksupp_sci_total;
+    st["bad_column_n_marked_from_science"] = ksci_total;
+    st["bad_column_n_marked_from_dark"] = kdark_total;
+    st["bad_column_n_marked_from_bias"] = kbias_total;
     st["bad_column_arbitration"] = "union_with_per_column_source_and_confidence";
     st["bad_column_per_frame"] = col_frames;
+
+    // ── LINDEF-CLOSE-01：具名降级与三路径计数的**落盘**面（badcol_report.json）──
+    // 缺陷（修复前）：母版缺失/不可读/尺寸不符时的"具名降级"只活在节点内存
+    // manifest 里，运行结束即消失（实测产品树内零处含 bad_column_* 键）⇒
+    // "不得静默"在磁盘上没有兑现面。本文件把它落盘：三路径各自的判出列数、
+    // 额外判出多少列（并集 − 科学帧单独）、已修/仅标记分账、κ 与母版状态。
+    {
+      Json rep = Json{{"schema", "astrocs.phase1.badcol_report/v1"},
+                      {"node", "astrocs.phase1.cosmetic"},
+                      {"output_dir", doc.value("output_dir", std::string("."))},
+                      {"enabled", col_enabled},
+                      {"column_sigma_science", static_cast<double>(col_sigma)},
+                      {"column_sigma_master", static_cast<double>(col_sigma_master)},
+                      {"variance_kappa", col_kappa},
+                      {"variance_rule", "var_repaired = (sum_i w_i^2 * var_anchor) * kappa"},
+                      {"neighbor_k", col_k},
+                      {"max_seg_len", col_maxseg},
+                      {"master_resolution", {{"master_dark", dark_src},
+                                             {"master_bias", bias_src},
+                                             {"master_dark_from", dark_from},
+                                             {"master_bias_from", bias_from},
+                                             {"master_refs_sidecar",
+                                              have_master_refs ? "master_refs.json" : "unavailable"}}},
+                      {"path_active", {{"science_frame_self", true},
+                                       {"master_dark", m_dark.ok()},
+                                       {"master_bias", m_bias.ok()}}},
+                      {"n_repaired_total", ncol_total},
+                      {"n_marked_only_total", nmark_total},
+                      {"px_repaired_total", pxcol_total},
+                      {"n_from_science", nsci_total},
+                      {"n_from_dark", ndark_total},
+                      {"n_from_bias", nbias_total},
+                      // 母版路径相对"只有科学帧"的**额外**判出列数（并集口径）
+                      {"n_extra_vs_science_only", ncol_total - nsci_total},
+                      {"n_marked_only_from_science", ksci_total},
+                      {"n_marked_only_from_dark", kdark_total},
+                      {"n_marked_only_from_bias", kbias_total},
+                      {"declared_marked_only_frac_max_master", static_cast<double>(col_wide_frac)},
+                      {"declared_marked_only_frac_max_science", static_cast<double>(col_wide_frac_sci)},
+                      {"master_wide_suppressed", ksupp_total},
+                      {"science_wide_suppressed", ksupp_sci_total},
+                      {"degrade_hist", col_degrade_hist},
+                      {"per_frame", col_frames}};
+      (*man)["badcol_report"] = rep;
+      const std::string rpath =
+          doc.value("output_dir", std::string(".")) + "/badcol_report.json";
+      const std::string rtmp = p1_staging_path(rpath);
+      bool ok = false;
+      std::FILE* rf = std::fopen(rtmp.c_str(), "wb");
+      if (rf) {
+        const std::string txt = rep.dump(1);
+        const size_t wr = std::fwrite(txt.data(), 1, txt.size(), rf);
+        std::fclose(rf);
+        std::string rerr;
+        if (wr == txt.size() && p1_atomic_publish(rtmp, rpath, &rerr)) ok = true;
+        else aio_fs::remove(rtmp);
+      }
+      st["bad_column_report_status"] = ok ? "published" : "write_failed";
+      if (ok) st["bad_column_report_path"] = rpath;
+    }
   }
   (*man)["stages"] = stages;
   (*man)["frames"] = frames;
@@ -2690,12 +2990,12 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
 //      （module_adapters.cpp:1995 sp.maxStars=2000）。旧注释误标为
 //      "lib/algorithms/star_detection sdet 检测"; 误述源自 9e09941a 的提交信息。
 //
-//      PSF-FAST-001 (负责人裁决 2026-09-14): 生产路径只跑 FAST ——
+//      PSF-FAST-001 (依据 ENGINEERING_SPEC.md §2「保留则注释」): 生产路径只跑 FAST ——
 //      DATA-P1-SOURCES 全量检测**不动**（p1_sources.json 与下游孔径测光
 //      p1_flux.json 逐字节不变），只把 Moffat4 拟合限制到**最亮 N_fit 颗**
 //      （配置 psf.max_stars, 默认 5000, 禁编译期硬编码; 0 = 不截断=全量精确）。
 //      依据: psf_params 在仓库内零消费者、psf 端口为死边、测光正式口径=孔径
-//      测光（负责人 2026-09-14 裁决）; 全量 145,884 颗拟合实测 156.7 s/帧,
+//      测光（孔径测光为生产口径）; 全量 145,884 颗拟合实测 156.7 s/帧,
 //      最亮 5000 颗 ~4 s（REPORT.md §4）。完整精确路径保留为
 //      p1_op_star_psf_precise（inactive, kPrecisePsfEnabled=false）。
 // ── F-INSTR-CONFORM-FIX: Moffat4 (β=4) 整平面解析通量 ──────────────────────
@@ -3343,6 +3643,10 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     // FP64 图像缓冲（引导检测与 PSF 拟合共用一份）
     std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
     for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
+    // STARDET-01/GSL-REPLACE-01: 引导模式下的**任何**本帧失败都必须点名权威路径与
+    // 计数并声明拒绝回退 —— 权威路径产出 >0 星但下游阶段失败时（例如 dpsf 批拟合
+    // 0/M 收敛）同样不得让报错退化成只提下游阶段。gstats 在本分支内填充后写入。
+    std::string guided_ctx;
     if (guided) {
       // ① 逆投影先验: 显式配置 CD > 本帧解算产物 > 初始指向(+rotation/parity)
       astrocs::phase1::WcsTan awcs;
@@ -3430,6 +3734,11 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
             "); refusing to fall back to full-frame blind detection: " + path));
         return;
       }
+      guided_ctx = "catalog_guided: " + std::to_string(gstats.n_output) + "/" +
+                   std::to_string(gstats.n_predicted) + " catalog-guided fits survived (dropped=" +
+                   std::to_string(gstats.n_dropped) + ", fit_failed=" +
+                   std::to_string(gstats.n_fit_failed) + ", rejected=" +
+                   std::to_string(gstats.n_rejected) + ")";
       cat.background = g_bg;
       cat.noise_sigma = g_sigma;
       for (int i = 0; i < g_count; ++i) {
@@ -3540,12 +3849,22 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
           nullptr, psf_params.data(), &n_valid, psf_status.data());
       if (drc != 0) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
-            "dpsf_fit_batch_f64 failed rc=" + std::to_string(drc)));
+            guided_ctx.empty()
+                ? std::string("dpsf_fit_batch_f64 failed rc=" + std::to_string(drc))
+                : guided_ctx + "; downstream stage failed: dpsf_fit_batch_f64 rc=" +
+                      std::to_string(drc) +
+                      "; refusing to fall back to full-frame blind detection: " + path));
         return;
       }
       if (n_valid <= 0) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
-            "dpsf_fit_batch_f64: 0/" + std::to_string(N_fit) + " fits converged"));
+            guided_ctx.empty()
+                ? std::string("dpsf_fit_batch_f64: 0/" + std::to_string(N_fit) +
+                              " fits converged")
+                : guided_ctx + "; downstream stage failed: dpsf_fit_batch_f64: 0/" +
+                      std::to_string(N_fit) +
+                      " fits converged; refusing to fall back to full-frame blind detection: " +
+                      path));
         return;
       }
       // 成功行按拟合输入序（== 检测序）compact; 逐星按真值索引取行 (row 只读)
@@ -3656,7 +3975,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
                       // DPSF_PSF_STATUS_OK compact; 失败星不入 psf_params)
                       {"status_schema", DPSF_PSF_STATUS_SCHEMA},
                       {"entry", "dpsf_fit_batch_f64"},
-                      // PSF-FAST-001 (负责人裁决 2026-09-14) + P14-N-08:
+                      // PSF-FAST-001 (依据 ENGINEERING_SPEC.md §2「保留则注释」) + P14-N-08:
                       // psf_mode = 真实模式（n_fit_limit>0 ⇒ "fast"/"precise",
                       // 由 p1_op_star_psf_impl 派生, 不再是字面量）。
                       // n_sources = 全量检测星数（与 p1_sources.n_detected 一致,
@@ -3707,9 +4026,10 @@ int p1_psf_fit_limit(const Json& doc) {
 }
 
 // ── PSF-FAST-001 / INACTIVE: 完整精确 PSF 路径（保留实现, 生产路径不调用）──────
-// 负责人裁决 2026-09-14: (a) 测光正式口径 = 孔径测光（现状实现）; (b) psf 端口
-// 为死边、psf_params 在仓库内零消费者, 故 PSF 测光本轮及后续都不作为要求。
-// ⇒ 精确 PSF 生产上不启用; 但按裁决**完整实现予以保留**（不删算法代码）。
+// (a) 测光正式口径 = 孔径测光（现状实现）; (b) psf 端口为死边、psf_params 在仓库内
+// 零消费者, 故 PSF 测光本轮及后续都不作为要求。
+// ⇒ 精确 PSF 生产上不启用; 但按 ENGINEERING_SPEC.md §2「保留则注释」
+// **完整实现予以保留**（不删算法代码）。
 // 唯一启用开关（恒 false ⇒ 生产路径永不进入精确分支）:
 constexpr bool kPrecisePsfEnabled = false;
 
@@ -4775,8 +5095,86 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     int filter_n_points = 0;
     double filter_wl_min_nm = 0.0;
     double filter_wl_max_nm = 0.0;
+    // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）──────
+    // m_order == 0 ⇒ m ≡ 1（未启用 / 按声明降级）；此时施加走**未改动**的
+    // calibration::apply_photometry，与改动前逐位一致。
+    // log10 m(x,y) = −Σ m_coef[j]·B_j(x̃,ỹ)，x̃=(x−m_x_ref)/m_x_scale；
+    // 规范（gauge）见 m_gauge（星集合上 log10 m 的加权均值 = 0）。
+    int m_order = 0;
+    int m_order_requested = 0;
+    std::string m_status = "disabled";
+    std::string m_gauge;
+    std::vector<std::string> m_basis;
+    double m_coef[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+    // 规范中心: 拟合样本上基函数的加权均值（施加端按 B̃ = B − center 求值）
+    double m_center[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+    double m_x_ref = 0.0, m_y_ref = 0.0, m_x_scale = 1.0, m_y_scale = 1.0;
+    int m_n_stars = 0, m_n_used = 0, m_n_outliers = 0;
+    int m_identifiable = 0;
+    double m_kappa = 0.0, m_rank_rtol_eff = 0.0;
+    uint64_t m_rank_eff = 0, m_n_unidentified = 0;
+    int m_coverage_blocks = 0;
+    double m_coverage_bbox_frac = 0.0;
+    double m_sigma_spatial_dex = 0.0, m_field_ptp_dex = 0.0, m_noise_floor_dex = 0.0;
+    double m_field_rms_dex = 0.0, m_noise_floor_max_dex = 0.0;
+    // 逐星拟合样本（审计证据; 仅空间通道开启时非空 ⇒ 关闭路径逐位一致）
+    std::vector<double> m_sx, m_sy, m_sr;
+    std::vector<int> m_sused;
+    std::string m_degraded_reason;
   };
   std::map<std::string, P1FrameScale> scales;
+  // PHOT-MXY-01: m(x,y) 的审计面（系数 + 规范 + 基函数清单 + 拟合残差 + 可辨识性
+  // 读数 + 降级原因）。落进 p1_phot.json 的 photscale_detail / photscale_fit，
+  // 使「乘进像素的空间场是什么」可被独立读者复算（ASTROCS_DESIGN §4.2 的可核对性）。
+  auto p1_spatial_gain_json = [](const P1FrameScale& sc) -> Json {
+    Json c = Json::array();
+    const int nt = (sc.m_order <= 0) ? 0 : (sc.m_order == 1 ? 2 : 5);
+    for (int j = 0; j < nt; ++j) c.push_back(sc.m_coef[j]);
+    Json ctr = Json::array();
+    for (int j = 0; j < nt; ++j) ctr.push_back(sc.m_center[j]);
+    Json b = Json::array();
+    for (const std::string& s : sc.m_basis) b.push_back(s);
+    return Json{{"order", sc.m_order},
+                {"order_requested", sc.m_order_requested},
+                {"status", sc.m_status},
+                {"gauge", sc.m_gauge},
+                {"basis", b},
+                {"coef", c},
+                {"center", ctr},
+                {"coef_units", "dex_per_basis_unit"},
+                {"norm", Json{{"x_ref", sc.m_x_ref}, {"y_ref", sc.m_y_ref},
+                              {"x_scale", sc.m_x_scale}, {"y_scale", sc.m_y_scale}}},
+                {"n_stars", sc.m_n_stars},
+                {"n_used", sc.m_n_used},
+                {"n_outliers", sc.m_n_outliers},
+                {"identifiable", sc.m_identifiable},
+                {"kappa", sc.m_kappa},
+                {"rank_rtol_eff", sc.m_rank_rtol_eff},
+                {"rank_eff", sc.m_rank_eff},
+                {"n_unidentified", sc.m_n_unidentified},
+                {"coverage_blocks", sc.m_coverage_blocks},
+                {"coverage_bbox_frac", sc.m_coverage_bbox_frac},
+                {"sigma_spatial_residual_dex", sc.m_sigma_spatial_dex},
+                {"field_ptp_dex", sc.m_field_ptp_dex},
+                {"field_rms_dex", sc.m_field_rms_dex},
+                {"noise_floor_dex", sc.m_noise_floor_dex},
+                {"noise_floor_max_dex", sc.m_noise_floor_max_dex},
+                {"degraded_reason", sc.m_degraded_reason}};
+  };
+  // PHOT-MXY-01 审计面: 逐星拟合样本（仅空间通道开启的帧; 关闭路径不产出该键 ⇒
+  // 与改动前的 p1_phot.json 逐字节一致）。用途: 独立复算「加/不加 m(x,y) 的逐星
+  // 残差与其空间结构」，并区分 m 吸收的是真实乘性响应还是天光/背景梯度。
+  auto p1_spatial_samples_json = [](const P1FrameScale& sc) -> Json {
+    if (sc.m_sx.empty()) return Json();
+    Json x = Json::array(), y = Json::array(), r = Json::array(), u = Json::array();
+    for (std::size_t i = 0; i < sc.m_sx.size(); ++i) {
+      x.push_back(sc.m_sx[i]);
+      y.push_back(sc.m_sy[i]);
+      r.push_back(sc.m_sr[i]);
+      u.push_back((i < sc.m_sused.size()) ? sc.m_sused[i] : 0);
+    }
+    return Json{{"x", x}, {"y", y}, {"r_log10_finstr_over_fsyn", r}, {"used", u}};
+  };
   // 组级通带身份（配置声明 + 实际装载的曲线身份）。拟合通道启用时由**首帧**
   // 结果落定；随后每帧必须与它一致，否则该帧判 fail（帧间不得混用不同通带）。
   bool passband_identity_valid = false;
@@ -4795,6 +5193,29 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                             ? doc["photometry"] : Json::object();
   const Json fit_cfg = (phot_cfg.contains("fit") && phot_cfg["fit"].is_object())
                            ? phot_cfg["fit"] : Json::object();
+  // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y) 的配置（SCI-PHOT-001 §16.1 ④⑤）──
+  // photometry.fit.spatial_gain_order ∈ {0,1,2}（>=3 钳到 2；规范只授权「低阶」）。
+  //   0 = 关闭 ⇒ m ≡ 1，施加路径与改动前**逐位一致**（A/B 与回退用）。
+  // 降级门默认值 = 实验/photometric-magnitude/docs/p1-spatial-gain.md §2.5 登记值；
+  // 语义与两级可辨识性检查见 lib/algorithms/photometry/cpp/src/spatial_gain.h。
+  constexpr int kDefaultSpatialGainOrder = 2;
+  int spatial_gain_order = kDefaultSpatialGainOrder;
+  if (fit_cfg.contains("spatial_gain_order") && fit_cfg["spatial_gain_order"].is_number_integer())
+    spatial_gain_order = fit_cfg["spatial_gain_order"].get<int>();
+  if (spatial_gain_order < 0) spatial_gain_order = 0;
+  if (spatial_gain_order > 2) spatial_gain_order = 2;
+  const int spatial_min_stars_order1 =
+      fit_cfg.value("spatial_gain_min_stars_order1", 50);
+  const int spatial_min_stars_order2 =
+      fit_cfg.value("spatial_gain_min_stars_order2", 200);
+  const int spatial_coverage_grid =
+      fit_cfg.value("spatial_gain_coverage_block_grid", 3);
+  const int spatial_coverage_min_per_block =
+      fit_cfg.value("spatial_gain_coverage_min_stars_per_block", 5);
+  const int spatial_coverage_min_blocks =
+      fit_cfg.value("spatial_gain_coverage_min_blocks", 6);
+  const double spatial_coverage_min_bbox =
+      fit_cfg.value("spatial_gain_coverage_min_bbox_frac", 0.5);
   const bool fit_enabled = !fit_cfg.empty() && p1_flag(fit_cfg, "enabled", false);
   const Json& lights = doc["input_lights"];
   const size_t n_lights = lights.size();
@@ -5013,6 +5434,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         freq.declared_filter_passband = doc.value("filter_passband", std::string());
         freq.filters_json = filters_json;
         freq.qe_json = qe_json; freq.qe_name = qe_name;
+        // PHOT-MXY-01: m(x,y) 请求阶与降级门（0 = 关闭 ⇒ 空间路径完全不被触碰）
+        freq.spatial_gain_order = spatial_gain_order;
+        freq.spatial_gain_min_stars_order1 = spatial_min_stars_order1;
+        freq.spatial_gain_min_stars_order2 = spatial_min_stars_order2;
+        freq.spatial_gain_coverage_block_grid = spatial_coverage_grid;
+        freq.spatial_gain_coverage_min_stars_per_block = spatial_coverage_min_per_block;
+        freq.spatial_gain_coverage_min_blocks = spatial_coverage_min_blocks;
+        freq.spatial_gain_coverage_min_bbox_frac = spatial_coverage_min_bbox;
         const astrocs::photometry::FramePhotFitResult fr =
             astrocs::photometry::fit_frame_photometry(freq);
         // 拟合失败 = **拟合自身的判决**（rc / fit_ok），不是本节点另立的星数门。
@@ -5057,9 +5486,51 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           verdicts[i].sigma_residual_dex = fr.sigma_residual_dex;
           continue;
         }
+        // ── PHOT-MXY-01: 空间增益的 fail-closed 分支（帧级失败作用域）────────
+        // 几何充分（预检可辨识）却数值求解失败 = 缺陷, 不是「分布不足的声明降级」：
+        // 该帧判 fail、不产出 photoapplied 产物，其余帧照常（LOG 合同 §10）。
+        if (fr.spatial_frame_fail) {
+          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_SPATIAL_GAIN_FIT_FAILED",
+                          "spatial gain fit failed for " + key + ": " +
+                              fr.spatial.degraded_reason,
+                          "spatial_gain_fit_failed");
+          continue;
+        }
         P1FrameScale sc;
         sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;
         sc.sigma_residual_dex = fr.sigma_residual_dex;
+        // PHOT-MXY-01: 空间增益场（系数/规范/基函数清单/残差/可辨识性读数）
+        sc.m_order = fr.spatial.order;
+        sc.m_order_requested = fr.spatial.order_requested;
+        sc.m_status = astrocs::photometry::spatial_gain_status_name(fr.spatial.status);
+        sc.m_gauge = fr.spatial.gauge;
+        sc.m_basis = fr.spatial.basis_names;
+        for (int mj = 0; mj < 5; ++mj) {
+          sc.m_coef[mj] = fr.spatial.coef[mj];
+          sc.m_center[mj] = fr.spatial.center[mj];
+        }
+        sc.m_x_ref = fr.spatial.x_ref; sc.m_y_ref = fr.spatial.y_ref;
+        sc.m_x_scale = fr.spatial.x_scale; sc.m_y_scale = fr.spatial.y_scale;
+        sc.m_n_stars = fr.spatial.n_stars;
+        sc.m_n_used = fr.spatial.n_used;
+        sc.m_n_outliers = fr.spatial.n_outliers;
+        sc.m_identifiable = fr.spatial.identifiable;
+        sc.m_kappa = fr.spatial.kappa;
+        sc.m_rank_rtol_eff = fr.spatial.rank_rtol_eff;
+        sc.m_rank_eff = fr.spatial.rank_eff;
+        sc.m_n_unidentified = fr.spatial.n_unidentified;
+        sc.m_coverage_blocks = fr.spatial.coverage_blocks;
+        sc.m_coverage_bbox_frac = fr.spatial.coverage_bbox_frac;
+        sc.m_sigma_spatial_dex = fr.spatial.sigma_spatial_dex;
+        sc.m_field_ptp_dex = fr.spatial.field_ptp_dex;
+        sc.m_noise_floor_dex = fr.spatial.noise_floor_dex;
+        sc.m_field_rms_dex = fr.spatial.field_rms_dex;
+        sc.m_noise_floor_max_dex = fr.spatial.noise_floor_max_dex;
+        sc.m_sx = fr.spatial.sample_x;
+        sc.m_sy = fr.spatial.sample_y;
+        sc.m_sr = fr.spatial.sample_r;
+        sc.m_sused = fr.spatial.sample_used;
+        sc.m_degraded_reason = fr.spatial.degraded_reason;
         sc.source = "gaia_star_matcher_tukey_irls";
         sc.fitted = true;
         sc.n_psf_domain = n_psf_domain;    // F-INSTR-CONFORM-FIX provenance
@@ -5232,8 +5703,9 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
 
   // ── P1-PHOT-BROKEN (c): 帧标度收集 + **组间一致性报告字段**（非门禁）─────
   // 依据 SCI-PHOT-001 §3/§6: scale 的绝对值含未建模仪器常数（可跨数量级）。
-  // **负责人 2026-09-19 裁决（GAP_AUDIT §9.49 定案 2）：组间一致性不是门禁** ——
-  // 帧间独立标定，各帧只对「自己的标定是否可信」负责；不同光学系统混装不得报错。
+  // **组间一致性不是门禁**（依据 SCI-PHOT-001 §10「不可接受变化」：绝对窗口不存在，
+  // 「帧间一致性」是语义目标/报告字段，**不是门禁**；且帧间独立、各帧只对自己的
+  // 标定是否可信负责，不同光学系统混装不得报错）。
   // 此处仍**计算并落盘** `photscale_spread_dex`（PMM warning 范式，供人工审阅）。
   double photscale_spread_dex = 0.0;
   bool photscale_spread_warn = false;
@@ -5250,17 +5722,16 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       if (n_k == 0 || sc->k_photo > kmax) kmax = sc->k_photo;
       ++n_k;
     }
-    // ── 负责人 2026-09-19 裁决（GAP_AUDIT §9.49 定案 2）：**删除组间 k 散度门** ──
-    // 原话：「极度异常值拒绝，并抛出错误，其他的合理范围都可以接受。这玩意应该是
-    // 帧间独立的，为啥要组间对比」「不同光学系统的帧混装不得报错」「门只有一个：
-    // 单帧标定是否可信…与其它帧无关」。
+    // ── **删除组间 k 散度门**（依据 SCI-PHOT-001 §10：帧间一致性不是门禁）──
+    // 判据：极度异常值拒绝并报错，其余合理范围都可接受；该量本属帧间独立，不做组间
+    // 对比；不同光学系统的帧混装不得报错；门只有一个 = 单帧标定是否可信，与其它帧无关。
     // 独立佐证（PMM-STUDY §Q-B）：PhotometricMosaic 亦**没有任何「拒绝帧」的跨帧
     // 一致性门**，其模型本身是相对的（scale 允许任意量级，注释显式支持 12bit vs
     // 16bit、高达 2× 尺度差）；跨帧比例只用于**星点匹配预筛**，超限的后果是
     // 「这一对星不匹配」而**不是「这一帧被拒绝」**。
-    // 实证（E2E 2026-09-20）：本门曾使 L4 真实数据 **photometry_applied=false**
+    // 实证（E2E 真实数据一轮）：本门曾使 L4 真实数据 **photometry_applied=false**
     // （t2_m1 两帧 k 散度 0.0311 dex = 0.078 mag > 0.02 dex）⇒ **测光归一化在
-    // 生产上完全不执行**，正是本裁决要消除的故障。
+    // 生产上完全不执行**，正是删除本门要消除的故障。
     // 处置：**保留 spread_dex 的计算与落盘**（供人工审阅，PMM 的 warning 范式），
     // **删除其 fail-closed 分支**；组间一致性是**语义目标，不是门禁**。
     if (n_k > 0 && kmin > 0.0) {
@@ -5277,6 +5748,11 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   Json photscale_detail = Json::object();
   double photscal_rep = 1.0;
   bool photometry_applied = false;
+  // PHOT-MXY-01: m(x,y) 的组级摘要（逐帧真相在 photscale_fit / photscale_detail）
+  std::string spatial_gain_mode = "absent";
+  // PHOT-MXY-01: 真正带空间项（m_order>0）与**请求过**空间项的施加帧数（组级摘要）
+  int n_spatial_applied = 0;
+  int n_spatial_requested = 0;
   if (n_applied > 0) {
     // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽
     // 与**自己帧**的产物路径；跨帧无浮点归约；帧序归约（applied_artifacts /
@@ -5302,9 +5778,25 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
             "photometry apply: cannot read " + src_path_i));
         return;
       }
-      // I_photo = k_photo · I_cal (apply_photometry, in-place; 非有限像素透传)
-      const int arc = calibration::apply_photometry(im.px(), im.w(), im.h(),
-                                                    sc->k_photo, im.px());
+      // I_photo = k_photo·m(x,y)·I_cal（SCI-PHOT-001 §16.1 ⑤）
+      // m_order == 0 ⇒ 走**未改动**的 calibration::apply_photometry（逐位一致）；
+      // m_order > 0 ⇒ 走 apply_photometry_spatial（同一函数在 order==0 时也委托
+      // 前者，见 photometry_apply.cpp）。两个入口都是 in-place、非有限像素透传。
+      // 场的映射: astrocs::photometry::SpatialGainField → calibration::PhotoSpatialGain
+      // （纯数据搬运; 基函数与求值的**唯一实现**在 photometry_apply.h）。
+      calibration::PhotoSpatialGain poly;
+      poly.order = sc->m_order;
+      for (int mj = 0; mj < 5; ++mj) {
+        poly.coef[mj] = sc->m_coef[mj];
+        poly.center[mj] = sc->m_center[mj];
+      }
+      poly.x_ref = sc->m_x_ref; poly.y_ref = sc->m_y_ref;
+      poly.x_scale = sc->m_x_scale; poly.y_scale = sc->m_y_scale;
+      const int arc = (sc->m_order > 0)
+          ? calibration::apply_photometry_spatial(im.px(), im.w(), im.h(),
+                                                  sc->k_photo, poly, im.px())
+          : calibration::apply_photometry(im.px(), im.w(), im.h(),
+                                          sc->k_photo, im.px());
       if (arc != 0) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "apply_photometry failed rc=" + std::to_string(arc) + " for " + key));
@@ -5332,7 +5824,9 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                           {"source", sc->source},
                           {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
                           {"n_psf_domain", sc->n_psf_domain},
-                          {"n_psf_skipped", sc->n_psf_skipped}};
+                          {"n_psf_skipped", sc->n_psf_skipped},
+                          // PHOT-MXY-01: m(x,y) 的系数/规范/基函数清单/残差（审计面）
+                          {"spatial_gain", p1_spatial_gain_json(*sc)}};
     });
     // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
     std::vector<double> ks;
@@ -5342,7 +5836,26 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       applied_artifacts.push_back(f_apath[i]);
       photscales[f_key[i]] = f_k[i];
       photscale_detail[f_key[i]] = f_detail[i];
+      // PHOT-MXY-01: 统计真正带空间项的帧数（组级摘要，逐帧真相在 detail/fit）
+      const P1FrameScale* scm = find_scale(lights[i].get<std::string>());
+      if (scm != nullptr && scm->m_order > 0) ++n_spatial_applied;
+      // 请求过空间项（order_requested>0）的帧数 ⇒ 区分"有意保持全局常数"与"降级"
+      if (scm != nullptr && scm->m_order_requested > 0) ++n_spatial_requested;
       ks.push_back(f_k[i]);
+    }
+    // 组级摘要（FAILSEM-01 同精神：**失败 ≠ 降级 ≠ 关闭**，三者必须可区分）：
+    //   applied_spatial  全部施加帧都带 m(x,y)
+    //   partial_spatial  部分帧带 m(x,y)
+    //   degraded_scalar  请求过空间项但没有任何一帧发布（数据/几何不足或求解失败）
+    //   off_scalar       有意保持全局常数（spatial_gain_order=0）
+    // 逐帧真相（order/order_requested/status/degraded_reason/frame_fail）在
+    // photscale_detail[<frame>].spatial_gain 与顶层 spatial_gain[<frame>]。
+    if (n_spatial_applied > 0) {
+      spatial_gain_mode = (n_spatial_applied == (int)ks.size()) ? std::string("applied_spatial")
+                                                                : std::string("partial_spatial");
+    } else {
+      spatial_gain_mode = (n_spatial_requested > 0) ? std::string("degraded_scalar")
+                                                    : std::string("off_scalar");
     }
     std::sort(ks.begin(), ks.end());
     photscal_rep = ks.empty() ? 1.0 : ks[ks.size() / 2];
@@ -5387,7 +5900,9 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"zero_point_valid", sc->zero_point_valid},
              {"zero_point_mag", sc->zero_point_mag},
              {"zero_point_n_stars", sc->zero_point_n_stars},
-             {"zero_point_scatter_mag", sc->zero_point_scatter_mag}};
+             {"zero_point_scatter_mag", sc->zero_point_scatter_mag},
+             // PHOT-MXY-01: m(x,y)（逐帧; 与 photscale_detail 同源同值）
+             {"spatial_gain", p1_spatial_gain_json(*sc)}};
   }
 
   // ── FAILSEM-01: 逐帧判决的落盘形态（provenance 与节点 manifest 同源）─────
@@ -5475,6 +5990,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                                         : (n_applied == n_lights ? std::string("applied")
                                                                  : std::string("partial"))},
                    {"photscale_source", photscale_source},
+                   // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）──
+                   // 组级摘要（applied_spatial / partial_spatial / degraded_scalar /
+                   // absent）；逐帧系数/规范/基函数清单/残差在 photscale_fit 与
+                   // photscale_detail[<frame>].spatial_gain（同一份 JSON）。
+                   {"spatial_gain_mode", spatial_gain_mode},
+                   {"n_spatial_applied", static_cast<uint64_t>(n_spatial_applied)},
                    // 组间一致性：**报告字段，非门禁**（负责人 GAP_AUDIT §9.49 定案 2）。
                    {"photscale_spread_dex", photscale_spread_dex},
                    {"photscale_spread_warn", photscale_spread_warn},
@@ -5496,6 +6017,23 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // photscale_detail 保持原语义（只描述"已施加"的那组标度），不受影响。
   prov["photscale_fit"] = photscale_fit;
   if (photometry_applied) {
+    // PHOT-MXY-01: m(x,y) 的独立顶层块（按 frame_key，键序 = std::map 升序 ⇒ 确定）。
+    // 与 photscale_fit / photscale_detail 内的同名块**同源同值**（同一 lambda）；
+    // 独立顶层块使审计读者不必解析 photscales 的标量面即可复算空间场。
+    {
+      Json sgm = Json::object();
+      for (const auto& kv : scales) {
+        Json e = p1_spatial_gain_json(kv.second);
+        Json smp = p1_spatial_samples_json(kv.second);
+        if (!smp.is_null()) e["samples"] = smp;
+        sgm[kv.first] = e;
+      }
+      prov["spatial_gain"] = sgm;
+    }
+    // apply_entry 保持既有冻结值（家族入口）; 空间项的实际入口单独登记，
+    // 二者不互相替代（逐帧真相仍在 photscale_detail[<frame>].spatial_gain.order）。
+    if (spatial_gain_mode == "applied_spatial" || spatial_gain_mode == "partial_spatial")
+      prov["apply_entry_spatial"] = "calibration::apply_photometry_spatial";
     prov["apply_entry"] = "calibration::apply_photometry";
     prov["photscales"] = photscales;
     prov["photscale_detail"] = photscale_detail;
@@ -5573,10 +6111,168 @@ struct P1NoiseFrameModel {
   Json diag = Json::object();
 };
 
+// ── WIRING-W34-01 (CHK-PROD-WIRING W3): doc["noise"] 块的**唯一消费点** ────────
+// 背景: eng/packaging/config/defaults.json 的 noise.* 14 键此前**零消费点**
+// （lib/** 生产面不出现键名 token）⇒ CHK-PROD-WIRING W3 红。本函数把
+// doc["noise"] 逐键校验后写入 SnrNoiseModelConfig（SCI-NOISE §4/§5/§5a 的配置
+// 面）；缺省值仍由 snr_noise_model_v1_default_config 给出 ⇒ 键缺失时逐位不变。
+// 纪律（与负责人「配置键存在而无消费点即红」配套）:
+//   * **未知键 fail-closed**（rc=3 + 显式 reason），不静默忽略 —— 静默忽略只是把
+//     「声明了没消费」换成「声明了假装消费」，仍是红的另一种写法；
+//   * 值域按字段注释声明的冻结域校验（patch_grid>=2、clip_sigma>0 等），越界即拒；
+//   * 只增诊断键 noise_cfg_applied（逐键回执），不改任何公式与默认容差。
+// 返回 false 时 *err 为具体原因，调用方按 rc=3（参数非法，fail-closed）处置。
+static bool p1_noise_cfg_apply(const Json& noise_cfg, SnrNoiseModelConfig* ncfg,
+                               Json* diag, double* out_sat_level,
+                               std::string* err) {
+  *out_sat_level = std::numeric_limits<double>::quiet_NaN();
+  if (noise_cfg.is_null()) return true;   // 键缺失 = 全取默认（不是错误）
+  if (!noise_cfg.is_object()) {
+    *err = "doc[\"noise\"] must be an object";
+    return false;
+  }
+  Json applied = Json::object();
+  auto num = [&](const Json& v, const char* key, double* out) -> bool {
+    if (!v.is_number()) { *err = std::string(key) + " must be a number"; return false; }
+    const double d = v.get<double>();
+    if (!std::isfinite(d)) { *err = std::string(key) + " must be finite"; return false; }
+    *out = d;
+    return true;
+  };
+  auto i32 = [&](const Json& v, const char* key, long long lo, long long hi,
+                 long long* out) -> bool {
+    if (!v.is_number_integer()) { *err = std::string(key) + " must be an integer"; return false; }
+    const long long d = v.get<long long>();
+    if (d < lo || d > hi) {
+      *err = std::string(key) + " out of range [" + std::to_string(lo) + "," +
+             std::to_string(hi) + "]";
+      return false;
+    }
+    *out = d;
+    return true;
+  };
+  auto flag = [&](const Json& v, const char* key, int* out) -> bool {
+    if (v.is_boolean()) { *out = v.get<bool>() ? 1 : 0; return true; }
+    if (v.is_number_integer()) {
+      const long long d = v.get<long long>();
+      if (d != 0 && d != 1) { *err = std::string(key) + " must be 0/1 or bool"; return false; }
+      *out = static_cast<int>(d);
+      return true;
+    }
+    *err = std::string(key) + " must be 0/1 or bool";
+    return false;
+  };
+  for (auto it = noise_cfg.begin(); it != noise_cfg.end(); ++it) {
+    const std::string& k = it.key();
+    const Json& v = it.value();
+    double d = 0.0;
+    long long i = 0;
+    int f = 0;
+    if (k == "patch_grid") {
+      if (!v.is_array() || v.size() != 2) {
+        *err = "noise.patch_grid must be [gx, gy]";
+        return false;
+      }
+      long long gx = 0, gy = 0;
+      if (!i32(v[0], "noise.patch_grid[0]", 2, 4096, &gx)) return false;
+      if (!i32(v[1], "noise.patch_grid[1]", 2, 4096, &gy)) return false;
+      ncfg->patch_grid_x = static_cast<int>(gx);
+      ncfg->patch_grid_y = static_cast<int>(gy);
+      applied[k] = Json::array({gx, gy});
+    } else if (k == "clip_sigma") {
+      if (!num(v, "noise.clip_sigma", &d) || !(d > 0.0) || d > 100.0) {
+        if (err->empty()) *err = "noise.clip_sigma must be in (0, 100]";
+        return false;
+      }
+      ncfg->cosmic_clip_sigma = d;
+      applied[k] = d;
+    } else if (k == "spatial_field_enabled") {
+      if (!flag(v, "noise.spatial_field_enabled", &f)) return false;
+      ncfg->enable_spatial_field = static_cast<uint32_t>(f);
+      applied[k] = f;
+    } else if (k == "mask_k_sigma") {
+      if (!num(v, "noise.mask_k_sigma", &d) || !(d > 0.0) || d > 100.0) {
+        if (err->empty()) *err = "noise.mask_k_sigma must be in (0, 100]";
+        return false;
+      }
+      ncfg->mask_k_sigma = d;
+      applied[k] = d;
+    } else if (k == "mask_r_min_px") {
+      if (!num(v, "noise.mask_r_min_px", &d) || d < 0.0 || d > 1.0e4) {
+        if (err->empty()) *err = "noise.mask_r_min_px must be in [0, 1e4]";
+        return false;
+      }
+      ncfg->mask_r_min_px = d;
+      applied[k] = d;
+    } else if (k == "mask_fwhm_floor_scale") {
+      if (!num(v, "noise.mask_fwhm_floor_scale", &d) || d < 0.0 || d > 1.0e3) {
+        if (err->empty()) *err = "noise.mask_fwhm_floor_scale must be in [0, 1e3]";
+        return false;
+      }
+      ncfg->mask_fwhm_floor_scale = d;
+      applied[k] = d;
+    } else if (k == "mask_budget_min_patches") {
+      if (!i32(v, "noise.mask_budget_min_patches", 1, 1000000, &i)) return false;
+      ncfg->mask_budget_min_patches = static_cast<uint32_t>(i);
+      applied[k] = i;
+    } else if (k == "mask_budget_min_sky") {
+      if (!i32(v, "noise.mask_budget_min_sky", 1, 1000000000LL, &i)) return false;
+      ncfg->mask_budget_min_sky = static_cast<uint32_t>(i);
+      applied[k] = i;
+    } else if (k == "min_patch_samples") {
+      if (!i32(v, "noise.min_patch_samples", 1, 1000000, &i)) return false;
+      ncfg->min_patch_samples = static_cast<int>(i);
+      applied[k] = i;
+    } else if (k == "max_clip_rounds") {
+      if (!i32(v, "noise.max_clip_rounds", 0, 100, &i)) return false;
+      ncfg->max_clip_rounds = static_cast<int>(i);
+      applied[k] = i;
+    } else if (k == "source_mask_radius_px") {
+      if (!num(v, "noise.source_mask_radius_px", &d) || d < 0.0 || d > 1.0e4) {
+        if (err->empty()) *err = "noise.source_mask_radius_px must be in [0, 1e4]";
+        return false;
+      }
+      ncfg->source_mask_radius_px = d;
+      applied[k] = d;
+    } else if (k == "mask_radius_scale") {
+      if (!num(v, "noise.mask_radius_scale", &d) || d < 1.0 || d > 1.0e4) {
+        if (err->empty()) *err = "noise.mask_radius_scale must be in [1, 1e4]";
+        return false;
+      }
+      ncfg->mask_radius_scale = d;
+      applied[k] = d;
+    } else if (k == "variance_floor") {
+      if (!num(v, "noise.variance_floor", &d) || !(d > 0.0)) {
+        if (err->empty()) *err = "noise.variance_floor must be > 0 (ADU^2)";
+        return false;
+      }
+      ncfg->variance_floor = d;
+      applied[k] = d;
+    } else if (k == "saturation_level") {
+      if (!num(v, "noise.saturation_level", &d) || !(d > 0.0)) {
+        if (err->empty()) *err = "noise.saturation_level must be > 0 (ADU)";
+        return false;
+      }
+      *out_sat_level = d;   // 优先级见调用点: noise > snr > FITS 头
+      applied[k] = d;
+    } else {
+      *err = "unknown key noise." + k +
+             " (declared vocabulary: patch_grid/clip_sigma/spatial_field_enabled"
+             "/mask_k_sigma/mask_r_min_px/mask_fwhm_floor_scale"
+             "/mask_budget_min_patches/mask_budget_min_sky/min_patch_samples"
+             "/max_clip_rounds/source_mask_radius_px/mask_radius_scale"
+             "/variance_floor/saturation_level)";
+      return false;
+    }
+  }
+  if (!applied.empty()) (*diag)["noise_cfg_applied"] = applied;
+  return true;
+}
 P1NoiseFrameModel p1_noise_model_for_frame(const void* data, bool data_is_f64,
                                            int h, int w,
                                            const std::string& frame_path,
                                            const Json& snr_cfg,
+                                           const Json& noise_cfg,
                                            const Json* src_frame,
                                            double data_scale,
                                            bool disable_spatial_field) {
@@ -5586,6 +6282,18 @@ P1NoiseFrameModel p1_noise_model_for_frame(const void* data, bool data_is_f64,
     out.cfg_default_failed = true;
     out.rc = 3;
     return out;
+  }
+  // ── WIRING-W34-01 (W3): doc["noise"] 覆盖默认配置（缺省逐位不变）────────────
+  // 未知键/越界值 ⇒ rc=3（参数非法）;**不静默忽略**。诊断键 noise_cfg_applied
+  // 逐键回执实际生效的配置（只在 doc["noise"] 出现时才有）。
+  double cfg_sat_level = std::numeric_limits<double>::quiet_NaN();
+  {
+    std::string nerr;
+    if (!p1_noise_cfg_apply(noise_cfg, &ncfg, &out.diag, &cfg_sat_level, &nerr)) {
+      out.diag["noise_cfg_rejected"] = nerr;
+      out.rc = 3;
+      return out;
+    }
   }
   // ── 单位链（SCI-NOISE §3/§7 + SNR-002 尺度律）─────────────────────────────
   // variance_floor 的冻结单位是 **ADU²**（SCI-NOISE §7「variance_floor 单位为 ADU²、
@@ -5662,7 +6370,13 @@ P1NoiseFrameModel p1_noise_model_for_frame(const void* data, bool data_is_f64,
   double sat_level = snr_cfg.value("saturation_level", 0.0);
   std::string sat_filter = "DISABLED_NO_METADATA";
   std::string sat_source = "unset";
-  if (std::isfinite(sat_level) && sat_level > 0.0) {
+  if (std::isfinite(cfg_sat_level) && cfg_sat_level > 0.0) {
+    // WIRING-W34-01 (W3): noise.saturation_level 优先于 snr.saturation_level
+    // 与 FITS 头（两处都是显式声明；更具体的噪声块胜出，来源如实登记）。
+    sat_level = cfg_sat_level;
+    sat_filter = "ENABLED";
+    sat_source = "noise_config";
+  } else if (std::isfinite(sat_level) && sat_level > 0.0) {
     sat_filter = "ENABLED";
     sat_source = "config";
   } else {
@@ -6048,6 +6762,8 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     // 与 §11 的 5% oracle），而本实现全算法 <=0.35%（独立复现, 3 seed）。已退役。
     const Json snr_cfg = (doc.contains("snr") && doc["snr"].is_object())
                              ? doc["snr"] : Json::object();
+    const Json noise_cfg = (doc.contains("noise") && doc["noise"].is_object())
+                               ? doc["noise"] : Json::object();
     // 逐星掩膜与 background 键共用同一上游帧条目（p1_sources.json frames[]）。
     const Json* nm_src = find_src_frame(base);
     // A 的唯一调用面（NOISE-MODEL-CANON-002）: 与 drizzle 节点的逐像素 variance
@@ -6057,7 +6773,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     // 量纲正确，逐位不变（SCI-NOISE §3/§7）。
     P1NoiseFrameModel nmc = p1_noise_model_for_frame(
         nm_data, im_f64, static_cast<int>(im.h()), static_cast<int>(im.w()),
-        path, snr_cfg, nm_src, /*data_scale=*/1.0, /*disable_spatial_field=*/false);
+        path, snr_cfg, noise_cfg, nm_src, /*data_scale=*/1.0, /*disable_spatial_field=*/false);
     // 调用侧适配事实（键名与既有 manifest 键一致；未适配的键不出现）。
     // PERF-P1: 写入 man 的动作移出并行体（逐帧暂存，join 后按帧序覆盖）。
     f_diag[fi] = nmc.diag;
@@ -6962,6 +7678,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       } else {
         const Json snr_cfg = (doc.contains("snr") && doc["snr"].is_object())
                                  ? doc["snr"] : Json::object();
+        const Json noise_cfg = (doc.contains("noise") && doc["noise"].is_object())
+                                   ? doc["noise"] : Json::object();
         // 数组标度 α（SCI-NOISE §3/§7 + SNR-002）: frame_applied ⇒ 本帧消费
         // photoapplied_<base>，像素值 = α·ADU（α = frame_photscal ≈ 1e-17）；
         // 噪声模型的 variance_floor（冻结单位 ADU²）必须按 α² 换算到同一标度，
@@ -6969,7 +7687,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         // 未施加测光（显式 ADU 降级面）时 α=1，逐位不变。
         const double nm_data_scale = frame_applied ? frame_photscal : 1.0;
         P1NoiseFrameModel nmc = p1_noise_model_for_frame(
-            nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src,
+            nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, noise_cfg, nm_src,
             nm_data_scale, /*disable_spatial_field=*/false);
         // 调用侧适配事实（与 p1_op_noise 同键名, 只增诊断不改数值）。
         // PERF-P1: 暂存到本帧槽；写入 man 的动作在 join 后按帧序复现（并行体不写 man）。
@@ -7109,7 +7827,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             // 注意「平面含非正**预测**」不再是本分支的触发条件——那是生产者的合法
             // 零方差态（见上），由 §4a 三态表按像素承载。
             P1NoiseFrameModel nmc_global = p1_noise_model_for_frame(
-                nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src,
+                nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, noise_cfg, nm_src,
                 nm_data_scale, /*disable_spatial_field=*/true);
             const bool global_ok =
                 (nmc_global.rc == 0) && (nmc_global.model.degenerate == 0);
@@ -8806,7 +9524,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     const Json sp_cfg = (doc.contains("sky_plane") && doc["sky_plane"].is_object())
                             ? doc["sky_plane"] : Json::object();
     // CONFORM-FIX-B-011：默认值 = 「本次是否真的会施加 δ」。
-    // 依据：① FIX-SCI-SNR-CANON-001（负责人 2026-09-19）§2/§3.1 明文
+    // 依据：① FIX-SCI-SNR-CANON-001 §2/§3.1 明文
     //   「FIX-P2a 默认路径为**保留 C 去 δ**，raw − C_k，g_k ≡ 1 本期不启用」
     //   ⇒ 生产默认 additive_mode = "c"（本文件 :5503 起），δ 从不施加；
     //   ② docs/ 内**无任何**规定 sky_plane.enabled 默认值的条款
@@ -9740,7 +10458,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
 }
 
 // ── n=2 档外部先验（FIX-REJ §8 方案 A; REJ-kernel §7 接线约定）──────────────
-// **显式 opt-in 辅助（不在生产 AUTO 路由上）**：SD-18（2026-09-18）裁决后
+// **显式 opt-in 辅助（不在生产 AUTO 路由上）**：SD-18 起
 // astrocs_adaptive_pixel 的 n<=3 走保守 none（不排异 + 加权积分），生产
 // p2_op_reject **不再调用本函数**、不再逐样本填 prior_sigma/prior_sky
 // （原逐像素 31×31 稳健统计粗估 1000-1200s 单线程, 已从生产路径移除）。
@@ -10268,8 +10986,12 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                              {"percentile_band_min_n",
                               p2_rejection_percentile_band_min_n()},
                              {"routing",
-                              "N<6 percentile / 6..15 winsorized_sigma / "
-                              ">15 linear_fit (WBPP BPP-FrameGroup.js:1304-1312)"},
+                              "N<6 percentile / N>=6 winsorized_sigma "
+                              "(ACSD per-pixel table; band edges per WBPP "
+                              "2.5.9 engine.js:1421-1429, sha1 712cc7c3...; "
+                              "WBPP 2.4.0+ selects ESD on that band, whose "
+                              "per-pixel small-n domain is not applicable "
+                              "here)"},
                              {"low_n_max_n", 3},
                              {"low_n_effect",
                               "underdetermined_gate_no_rejection"},
@@ -12553,8 +13275,8 @@ bool p3n_sub_block_px(const Json& doc, int* out, std::string* err) {
 // ── EXPORT-CROP-01：导出裁剪范围（默认不裁剪）──────────────────────────────
 // 权威：docs/contracts/CONFIG_CONTRACT.md §3（export 行 crop）+ docs/design/
 // PHASE3_DETAILED_DESIGN.md §8；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
-// （CLI 配置面与节点面共用，禁第二份）。负责人裁决 2026-09-23：默认导出不得裁剪
-// 任何有效像素（允许黑边），裁剪为**可选**参数，且两种形式都要有。
+// （CLI 配置面与节点面共用，禁第二份）。依据 docs/design/PHASE3_DETAILED_DESIGN.md
+// §8：默认导出不得裁剪任何有效像素（允许黑边），裁剪为**可选**参数，且两种形式都要有。
 // 键形（稳定、可机器生成；GUI 框选直接填）：
 //   {"crop":{"crop_form":"pixels","pixels":{"x0":1,"y0":1,"x1":512,"y1":512}}}
 //     —— FITS 1-based 闭区间，相对**未裁剪输出画幅**（用户到平面后手动裁剪；GUI 框选）
@@ -14401,7 +15123,7 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
 // PSF-FAST-001 / INACTIVE: 精确 PSF 路径的**直调测试钩子**（声明见
 // lib/include/astrocs/core/module_adapters.h）。生产注册表（register_phase_modules）
 // **不注册**本路径; 本钩子只供测试证明精确实现仍可编译、仍能跑出结果,
-// 防止 inactive 代码被当作死代码清理（负责人裁决 2026-09-14）。
+// 防止 inactive 代码被当作死代码清理（依据 ENGINEERING_SPEC.md §2「保留则注释」）。
 // 入参/出参用 std::string 承载 JSON: core 公共头不引入 nlohmann 实现依赖。
 // n_fit_limit=0 ⇒ 全量星 Moffat4 拟合（= PSF-FAST-001 之前的旧口径）。
 Result<void> p1_op_star_psf_precise_json(const std::string& config_json,

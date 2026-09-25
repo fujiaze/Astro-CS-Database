@@ -64,6 +64,19 @@ static std::vector<std::string> g_failures;
         fprintf(stderr, "  OK: %s\n", (msg)); \
     }
 
+#define ASSERT_EQ(a, b, msg) \
+    if ((a) != (b)) { \
+        char buf[512]; \
+        std::snprintf(buf, sizeof(buf), "%s (got=%lld expected=%lld)", (msg), \
+                      (long long)(a), (long long)(b)); \
+        std::string m = std::string("[TEST ") + std::to_string(id) + "] FAIL: " + buf; \
+        fprintf(stderr, "  FAIL: %s\\n", buf); \
+        g_failures.push_back(m); \
+        return; \
+    } else { \
+        fprintf(stderr, "  OK: %s (count=%lld)\\n", (msg), (long long)(a)); \
+    }
+
 #define ASSERT_NEAR(a, b, tol, msg) \
     if (std::fabs((double)(a) - (double)(b)) > (tol)) { \
         char buf[512]; \
@@ -186,7 +199,8 @@ static void test_02_full_roundtrip(int id) {
         }
         ++checked;
     }
-    ASSERT_EQ(checked, n_leaf) << "全部 " << n_leaf << " 个 signal 值均已逐元素校验";
+    // 全部 n_leaf 个 signal 值均已逐元素校验（等价断言: 计数相等）
+    ASSERT_EQ(checked, n_leaf, "全部 signal 值均已逐元素校验");
 
     // 验证 support 值 (sum_area = A_p → S = 1.0 → support = 255)
     ASSERT_TRUE(support[0] == 255, "support[0] = 255 (S=1.0)");
@@ -275,7 +289,7 @@ static void test_03_bitmap_roundtrip(int id) {
         }
         ++checked;
     }
-    ASSERT_EQ(checked, (uint32_t)valid_indices.size()) << "全部有效像素 signal 值均已逐元素校验";
+    ASSERT_EQ(checked, (uint32_t)valid_indices.size(), "全部有效像素 signal 值均已逐元素校验");
 
     // 验证无效像素为 0
     ASSERT_NEAR(signal[1], 0.0f, 1e-6, "无效像素 signal[1] = 0");
@@ -363,7 +377,7 @@ static void test_04_sparse_roundtrip(int id) {
         ASSERT_TRUE(support[idx] > 0, "有效像素 support > 0");
         ++checked;
     }
-    ASSERT_EQ(checked, (uint32_t)valid_idx.size()) << "全部有效像素 signal 值均已逐元素校验";
+    ASSERT_EQ(checked, (uint32_t)valid_idx.size(), "全部有效像素 signal 值均已逐元素校验");
 
     // 验证无效像素
     ASSERT_NEAR(signal[0], 0.0f, 1e-6, "无效像素 signal[0] = 0");

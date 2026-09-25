@@ -1,7 +1,7 @@
 {
   "$schema": "https://cmake.org/cmake/help/v3.31/schema/presets.schema.json",
   "version": 10,
-  "$comment": "ACSD BLD-001 frozen toolchain presets. Formal Windows generator is Visual Studio 17 2022 (x64 / v143 host=x64 without a pinned MSVC build number / SDK 10.0.26100.0 / CMake 3.31.12) per 09_WINDOWS_TOOLCHAIN_LOCK.md. V8-CI-010 F-R3-02b: VS instance is discovered by cmake via vswhere (no CMAKE_GENERATOR_INSTANCE override); toolset carries no version= pin so the hosted mirror default v143 and the local VS default v143 both resolve. Machine validation: eng/cmake/toolchain/verify_toolchain.py against eng/packaging/schemas/preset-contract.schema.json.",
+  "$comment": "ACSD BLD-001 frozen toolchain presets. Formal Windows generator is Visual Studio 17 2022 (x64 / v143 host=x64 without a pinned MSVC build number / SDK 10.0.26100.0 / CMake 3.31.12) per eng/packaging/windows/README.md (value landing) + eng/packaging/schemas/preset-contract.json (machine source of truth). V8-CI-010 F-R3-02b: VS instance is discovered by cmake via vswhere (no CMAKE_GENERATOR_INSTANCE override); toolset carries no version= pin so the hosted mirror default v143 and the local VS default v143 both resolve. Machine validation: eng/cmake/toolchain/verify_toolchain.py against eng/packaging/schemas/preset-contract.schema.json.",
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 31,
@@ -9,7 +9,7 @@
   },
   "vendor": {
     "astrocs.org/toolchain/1": {
-      "doc": "09_WINDOWS_TOOLCHAIN_LOCK.md",
+      "doc": "eng/packaging/windows/README.md",
       "frozen_utc": "2026-09-02T00:00:00Z",
       "contract_schema": "eng/packaging/schemas/preset-contract.schema.json",
       "windows_formal": {

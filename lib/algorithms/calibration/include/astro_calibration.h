@@ -40,8 +40,9 @@ extern "C" {
                                            *  该位恒置，非故障。实际排除列数见 manifest 的
                                            *  bad_column_edge_columns_excluded） */
 #define AC_COLSTAT_WIDE_DEFECT        32  /* 检出宽度 > max_seg_len 的缺陷段：**未修复**，
-                                           * 仅在 col_mask 里以值 2 标记（负责人 2026-09-24
-                                           * 裁决：只修单列；相邻多列不属本任务）。
+                                           * 仅在 col_mask 里以值 2 标记（依据
+                                           * docs/contracts/DATA_SEMANTICS.md §10.4
+                                           * 产物表：值 2 = 仅标记未修；只修单列）。
                                            * 该位只声明"存在被跳过的宽段"，不静默。 */
 
 /* col_mask 的取值语义（不是布尔！） */
@@ -212,6 +213,107 @@ AC_API int ac_correct_columns_ex(
     unsigned char* out_conf_mask,
     int* out_n_cols, int* out_n_science, int* out_n_dark, int* out_n_bias,
     int* out_px_repaired, float* out_sigma_col, int* out_status);
+
+/* ========== 坏列：母版专用阈值 + 已修/仅标记分账（LINDEF-CLOSE-01）==========
+ *
+ * 【为什么母版要单独一个阈值】三条路径**各自帧内自校准**（尺度取本帧 MAD），
+ * 但"同一个 column_sigma 数值"在三条路径上**不是同一个松紧度**：母版的 d 分布
+ * 重尾（真实 T3 master dark/bias 实测 |d-med| 的 p99/p50 ≈ 23，高斯分布该比值
+ * 为 2.6），同一 5σ 在母版上放进的假跳变比科学帧多一个量级 ⇒ 母版路径的
+ * **仅标记**（宽缺陷，掩膜值 2）列数虚高（真实数据实测帧 1 达 924 列）。
+ * 因此母版路径用**独立的** master_column_sigma；其取值按母版自身的稳健尺度
+ * 标定（见 run/LINDEF-CLOSE-01/REPORT.md §4 的标定曲线与落点）。
+ *   母版阈值必须 >= 科学帧阈值：更严，不得更松（放松判据 = 回退）。
+ *
+ * 【宽标记的声明区间与守卫 master_wide_frac_max / science_wide_frac_max】
+ * **"仅标记"（宽缺陷，掩膜值 2）这个动作本身必须有可声明的上界**——没有上界就
+ * 等于一个没有推导的常数。两条路径各有一个上界参数（占帧宽的比例；<=0 = 不设界），
+ * 某路超过上界 ⇒ **该路整类宽标记丢弃**并把丢弃列数分别写入
+ * out_master_wide_suppressed / out_science_wide_suppressed（不静默、**不影响已修判定**）。
+ * 依据（实测）：两类路径的宽标记都不是稳定物理结构 ——
+ *   母版：同一 master bias 在 k=5/10/30/40/60/80 上标 350 / 596 / 1383 / **0** / 1419 / **0** 列；
+ *   科学帧：真实 T3 第 2 帧标 588 列（同一帧第 1 帧 0 列），同为"就近反号配对"
+ *   在重尾 d 上的配对事故（相距很远的两个显著跳变被配成一段）。
+ * 为什么只丢"标记"不动"判据"：已修（掩膜值 1）是逐列的可验证判决（单列段 + 解析插值），
+ * 宽标记只是"这一片可疑"的提示且**从不参与修复**；给它设上界不放松任何判据。
+ *
+ * 【已修与仅标记必须分账】并集掩膜只说明"这一列被判为缺陷"，不说明"改没改
+ * 像素值"。out_n_cols = 已修（掩膜值 1）；out_n_marked_only = 仅标记（值 2）；
+ * 二者不得互相顶替（下游按掩膜筛选权重时，只有前者真的换了值）。
+ *
+ * 其余语义与 ac_correct_columns_ex **逐字相同**（同判据、同仲裁、同修复算子）；
+ * master_column_sigma <= 0 时归一到 column_sigma、两个 *_wide_frac_max <= 0 时
+ * 不设界 ⇒ 与旧入口逐位一致。
+ */
+AC_API int ac_correct_columns_ex2(
+    const float* data, const float* master_dark, const float* master_bias,
+    int width, int height, float* out,
+    float column_sigma, float master_column_sigma, float master_wide_frac_max,
+    float science_wide_frac_max,
+    int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    unsigned char* out_source_mask,
+    unsigned char* out_conf_mask,
+    int* out_n_cols, int* out_n_marked_only,
+    int* out_n_science, int* out_n_dark, int* out_n_bias,
+    int* out_n_science_marked, int* out_n_dark_marked, int* out_n_bias_marked,
+    int* out_master_wide_suppressed, int* out_science_wide_suppressed,
+    int* out_px_repaired, float* out_sigma_col,
+    float* out_sigma_col_dark, float* out_sigma_col_bias,
+    int* out_status);
+
+/* ========== 修复像素的方差面：var = (Σᵢwᵢ²·var)·κ（LINDEF-CLOSE-01）==========
+ *
+ * 【本层为什么产方差**因子**而不是方差本身】DATA-P1-COS §10.3 冻结
+ * "variance/ivar 不在本层（由 snr_estimator 独立估计）"。本函数不越这条线：
+ * 它只把"修复算子的权重平方和 Σwᵢ²"与"是否被修复"这两个**本层已知的事实**
+ * 施加到调用方给的方差面上，不引入任何新的噪声模型。
+ *
+ * 【处方（冻结式）】
+ *     var_out[p] = (Σᵢ wᵢ² · var_in[p]) · κ       p 属于被修复列
+ *     var_out[p] = var_in[p]                      p 未被修复（干净 or 仅标记）
+ * 权重即修复算子自己的插值权重（与 repair_bad_columns 同式）：
+ *     段 [a,b] 两侧锚点 L=a-1、R=b+1：w_L=(R-x)/(R-L)、w_R=(x-L)/(R-L)；
+ *     单列段（本层默认 max_seg_len=1）⇒ w_L=w_R=1/2 ⇒ Σw² = 1/2；
+ *     贴边单侧复制 ⇒ w=1 ⇒ Σw² = 1。
+ *
+ * 【三个量必须并列写清，不得只留一个（依据 docs/contracts/DATA_SEMANTICS.md
+ *   §10.5「列状缺陷的方差处置」：Σw²、κ 与实测口径三者并列）】
+ *   (Q1) **Σw² = 1/2**（传播式）：单列段两侧锚点各 1/2 ⇒ 权重平方和 1/2。
+ *        这是"把修复算子自己的插值权重施加到方差面"（与 LSST meas_algorithms
+ *        w.2026.39 src/Interp.cc:2108-2110 用同一个 do_defects 插值 variance 面同源）。
+ *   (Q2) **κ = 2**（本层取值，配置键 bad_column_variance_kappa 默认 2.0）：
+ *        由"独立信息不重复计数"推导 —— 修复值 = 同帧两个**已被计入数据**的邻居的
+ *        确定性函数，若给它 1/(Σw²·var) 的 ivar 就是**重复计数**邻居的光子；
+ *        故其 ivar 不得高于一次独立测量 ⇒ κ >= 1/Σw² = 2。取最小可行值 2。
+ *        语义域：**该像素携带多少独立信息**（逆方差加权 / 稠密 SNR 重建用）。
+ *   (Q3) **Var(pred − truth) = 0.5502·σ²**（实测，蒙特卡洛真值已知；配套实测
+ *        留一干净列 σ_r/(√1.5·σ_pix) = 0.9998）。量级与 Σw²·σ² = 0.5σ² 一致
+ *        （偏差项 bias² = 1.5e-4·σ² 可忽略）。
+ *        **适用域 = 独立噪声下"估计量误差"**（插值值作为该位置真值的估计有多准）——
+ *        它确实**小于** σ²，因为两邻平均降低了噪声。
+ * 【Q2 与 Q3 冲突时的取舍（依据 DATA_SEMANTICS.md §10.5 的 SNR 偏高条款）】
+ * 二者语义域不同：Q3 说"估计得准"，Q2 说
+ * "携带的独立信息不大于一次测量"。**κ 偏小 ⇒ 修复像素 SNR 系统性偏高**
+ * （稠密 SNR 重建时把插值像素当成比干净像素更可靠，正是本项点名的危害）；
+ * **κ 偏大只是保守**。预发布阶段取**保守且可推导**的一侧 ⇒ 默认 κ = 2.0。
+ * 保留 Q3 的实测不删：它是"若下游语义确实是估计量误差、且能正确处理与邻居的
+ * 相关性"时把 κ 取 1 的依据。κ 由调用方给出，掩膜 0/1/2 已落盘，下游可按自己的
+ * 语义选（kappa=2 / kappa=1 / 直接按掩膜剔除）。
+ *
+ * col_mask: [width]，取值语义同产物掩膜：1 = 已修（inflate），2/0 = 原样拷贝。
+ * out_w2_mean: 输出被修复列的平均 Σw²（可 NULL，供审计）；
+ * out_px_inflated: 输出被乘过 κ 的**列数**（可 NULL）。
+ * 返回：AC_OK；var_in/var_out/col_mask 空指针、width/height 非正、kappa 非有限
+ * 或 <=0 ⇒ AC_ERR_PARAM（不写 var_out）。
+ * 非有限输入按同态处理（NaN→NaN、Inf→Inf），不做静默替换。
+ */
+AC_API int ac_column_variance_inflate(
+    const float* var_in, int width, int height,
+    const unsigned char* col_mask,
+    float kappa,
+    float* var_out,
+    float* out_w2_mean, int* out_px_inflated);
 
 /* ========== 双精度 ABI (FP64) ==========
  *

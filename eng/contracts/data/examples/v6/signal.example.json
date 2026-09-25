@@ -11,7 +11,7 @@
     "version": "drizzle_sb_normalization_v2_surface_brightness_preserving",
     "kind": "surface_brightness_preserving",
     "pixfrac": 0.8,
-    "flux_conservation_factor": 0.64
+    "flux_conservation_factor": 1.0
   },
   "representation": "map",
   "dtype": "float32",

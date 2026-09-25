@@ -56,7 +56,8 @@ enum P2RejectionMethod {
     P2_REJECT_AUTO = 10,            // 只在 planning 层解析，永不进入 kernel
     // 已知先验 σ 的极值检验（FIX-REJ §3；见 P2ExtremeValuePriorSigmaParams）。
     // **显式 opt-in 方法**：永不参与任何 AUTO 路由（含 astrocs_adaptive_pixel
-    // 的逐几何 n 映射——SD-18 2026-09-18 裁决后 n<=3 走 none 保守路径）。
+    // 的逐几何 n 映射——SD-18 起 n<=3 走 none 保守路径；依据见
+    // docs/science/REJECTION.md §5/§16）。
     // API 保留供调用方显式指定并自带外部先验时使用。
     P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA = 11
 };
@@ -80,9 +81,13 @@ enum P2RejectionMethod {
 #define P2_PROFILE_WBPP_2_9_1             "wbpp_2_9_1"
 #define P2_PROFILE_WBPP_CURRENT           "wbpp_current"  // = wbpp_2_9_1 alias
 #define P2_PROFILE_ASTROCS_ADAPTIVE       "astrocs_adaptive"
-// ACSD 自有「按逐输出像素几何 N」内置映射。**路由
-// = WBPP 一手实测表**（BPP-FrameGroup.js:1304-1312）：N<6 → percentile；
-// 6≤N≤15 → winsorized_sigma；N>15 → linear_fit。原四档表（n≤3 不排异 /
+// ACSD 自有「按逐输出像素几何 N」内置映射。**档界取自 WBPP 2.5.9
+// bestRejectionMethod()**（WeightedBatchPreprocessing-engine.js:1421-1429，
+// 包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：N<6 → percentile；
+// **N ≥ 6 → winsorized_sigma**（M3：原 N≥16 → linear_fit 档改投；WBPP 该档
+// N>15 为 Rejection_ESD，本表两者都不取，偏离依据见 docs/science/REJECTION.md §5，
+// 实测见 run/REJECT-DOCFIX-01/REPORT.md）；
+// 逐像素粒度是 ACSD 自定扩展。原四档表（n≤3 不排异 /
 // 4–7 percentile / 8–15 winsorized / ≥16 linear）**作废**。
 // 「N<6 档的下界是否含 N≤3」是**单一显式决策点**
 // （rejection.cpp 的 kPixelSmallNPolicy；待 EXP-204 定案，查询见
@@ -160,7 +165,8 @@ typedef struct {
 // 标记 rejected（低/高侧独立半径）；
 // - 扩张后 mask 应用回原始 calibrated 科学值（与 pixel rejection
 // 同一 accepted mask 语义）。
-// 默认值（WBPP 2.9.1 largeScaleClipLow/High 默认关闭 → 默认 enabled=0）：
+// 默认值（WBPP 2.5.9 largeScaleClipLow/High 默认 false
+// （engine.js:11901-11902，包 sha1 712cc7c3…）→ 默认 enabled=0）：
 // min_structure_pixels=8；low/high grow radius=2。
 typedef struct {
     int enabled;                  // 0/1（默认 0）
@@ -239,17 +245,24 @@ typedef struct {
 } P2RejectionPlanRequest;
 
 // 在 planning 层把 request（含 AUTO）解析为显式 P2RejectionPlan。
-// WBPP 2.9.1（本机安装源码 bestRejectionMethod）Auto 路由：
-// nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
+// 冻结 profile 的 Auto 路由（**本仓解析表**）：
+// 对照档（wbpp_2_9_1 / wbpp_current / astrocs_adaptive）：
+//   nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
+// 生产档（astrocs_adaptive_pixel，M3 后；依据 docs/science/REJECTION.md §5）：
+//   nominal < 6 → percentile；**nominal ≥ 6 → winsorized_sigma**。
+// 注：档界与 WBPP 2.5.9 bestRejectionMethod()（engine.js:1421-1429）一致，
+// 但 >15 档两档都不取 WBPP 2.4.0+ 的 ESD（对照档取 ≤2.3.x 旧表 linear_fit）。
 // profile 语义：
 // wbpp_2_9_1（wbpp_current alias）→ 调用方必须传 integration group active
 // count，一次解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
 // astrocs_adaptive → ACSD 自有策略：允许按 tile nominal geometric depth
 // 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
 // astrocs_adaptive_pixel → ACSD 自有「按逐输出像素几何 N」内置映射
-// （**路由 = WBPP 实测表**：N<6 percentile；6..15 winsorized；
-// >15 linear_fit；原四档表作废）。AUTO 路由**禁止**产出 min/max 与
-// NoRejection（WBPP :1237-1243）⇒ 命中即 fail-closed（返回非 0）。
+// （档界取自 WBPP 2.5.9：N<6 percentile；**N≥6 winsorized**（M3 裁决
+// 2026-09-25：原 N≥16 → linear_fit 档改投，该档既不取 WBPP 2.4.0+ 的
+// ESD、也不取 ≤2.3.x 的 linear_fit，依据见 docs/science/REJECTION.md §5）；
+// 原四档表作废）。AUTO 路由**禁止**产出 min/max 与
+// NoRejection（WBPP 2.5.9 engine.js:1349-1412）⇒ 命中即 fail-closed（返回非 0）。
 // 「N<6 档的下界是否含 N≤3」= 单一显式决策点
 // （p2_rejection_percentile_band_min_n 可查询；EXP-204 定案后一处改）。
 // extreme_value_clip_prior_sigma 保留为**显式 opt-in**，不出现在该映射中。
@@ -267,7 +280,7 @@ P2_API const char* p2_rejection_semantic_id(int method);
 // 唯一决策点查询（决策点本体在 rejection.cpp：
 // enum class PixelSmallNPolicy / kPixelSmallNPolicy）。
 // 返回「N<6 → percentile」档的**下界（含）**：
-//   1 = 档含 N≤3（WBPP 一手实测表，当前实现）；
+//   1 = 档含 N≤3（WBPP 档界的对称读法，当前实现）；
 //   4 = N≤3 走保守 none（EXP-204 若定案「保留不排异」时的取值）。
 // 用途：provenance 如实记录小 N 策略 + 测试锁定路由表下界。
 // 待定科学问题见 工程控制/RELEASE-03/tasks/EXP-204.md。
@@ -400,11 +413,7 @@ P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
 // AUTO（在本函数内于 planning 层解析，kernel 永不见 AUTO）。resolved_plan
 // 可空；非空时回填解析结果（provenance）。返回 0=OK（out->status 表达
 // 科学状态）；非 0=参数非法（err 填充原因）。
-P2_API int p2_reject_stack_resolve_ex(const P2CandidateStack* stack,
-                                      const P2RejectionPlanRequest* req,
-                                      P2RejectionDecision* out,
-                                      P2RejectionPlan* resolved_plan,
-                                      char* err, std::size_t err_cap);
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_reject_stack_resolve_ex 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
 
 // 大尺度 grow 后处理（生产 stage2 唯一调用点）。
 // low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。

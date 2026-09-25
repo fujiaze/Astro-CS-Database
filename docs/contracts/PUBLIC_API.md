@@ -2,6 +2,41 @@
 
 > 上游：ASTROCS_DESIGN.md §7（CLI 合同）、§8.4（模块与 ABI）
 
+## C ABI 声明面 ≠ 三命令生产调用面（CHK-PROD-WIRING W1 口径，2026-09-25 登记）
+
+> 本节由 CHK-PROD-WIRING 的 W1（`declared_unreachable`）逐条判红所触发，是**口径条款**，
+> 不是新增能力：它把「模块版本化公开头（最高设计 §8.4/§8.5）里以 C ABI 标记声明的函数」
+> 与「三个生产命令（`cmd_session{1,2,3}_run`）的运行期调用图」两件事显式分开。
+
+最高设计 §10 已规定「块与文件之间的导出/缓存接口属于**诊断/测试接口**，与生产路径
+**区分登记**」。本节即该条在 C ABI 声明面上的落法：
+
+- **判定口径**：`header.P2_API` / `header.AC_API` 等标记声明的符号，其「声明」是
+  **模块 C ABI 面**（供同库其它入口、诊断工具、契约/Oracle 测试与下游消费），不是
+  「三个命令必然在运行期调用」的承诺。生产路径若使用 `*_ex` / `*_v1` / `*_wcs` 等
+  **变体入口**，裸名声明仍留在合同面内。
+- **可豁免的门槛（不满足即必须接线或撤下声明）**：该符号必须有**具名在仓消费者**且
+  有**具名退出条件**；「仓内零消费者且本合同未列名」的符号**不得**走豁免，只能接线或
+  撤下声明（本轮实例：`p2_sample_sky` / `p2_sample_sky_cached` /
+  `p2_reject_stack_resolve_ex` / `p2_upm_ma_component_of_control` /
+  `p2_upm_normalized_weights` 五条零消费者声明已删）。
+- **消费者名册（本轮登记的类级消费者）**：① 本模块诊断/工具面
+  （`lib/algorithms/coverage/tools/stage2.cpp`、`rejection_cli.cpp`、
+  `tests/synthetic_gate.cpp`、`tests/sanitize_driver.cpp`）；② 契约与 Oracle 测试
+  （`eng/tests/unit/v6_p2_*`、`eng/tests/validation/release02/`…）；③ 生产路径的
+  变体入口（`p2_reject_stack_ex` / `p2_sky_plane_eval_delta` / `p2_sample_controls*` /
+  `p2_upm_build_geo` / `p3_sample_*_ex` 等，已接线）。
+- **退出条件**（任一即成，随后删除 `eng/ci/ledgers/prod_wiring.json` 中对应豁免）：
+  1. 该符号进入三个命令的生产调用图（或其在生产链上被真实消费）；
+  2. 或按本合同变更流程**退役**该符号（删声明 + 实现 + 测例迁移）；
+  3. 或该符号被并入已接线变体入口（合并重复入口）。
+- **本轮的类级判定依据（逐条抽样复核，见 `run/WIRING-W16-01/REPORT.md` §3）**：
+  - `p2_upm_ma_*`（UPM 矩阵装配族）：`lib/algorithms/coverage/include/astro/phase2/upm.h:386`
+    自述「生产链走 W2 冻结的 `p2_upm_build_geo`（坐标下降 Huber IRLS），**不是** V6」；
+  - `p2_reject_stack`：本节上文已明文「（旧签名）为 COMPAT adapter，生产 Stage2 不再调用」；
+  - `p3_projection_*` / `p3_sample_*`：生产 export 走 `astrocs_p3_projection_wcs` 与
+    `p3_sample_*_ex` / `p3_sampler_open_ex` / `p3_output_*_ex` 变体。
+
 ## C ABI（`extern "C"`，不跨边界抛 C++ exception）
 
 - `lib/infrastructure/aio`：`aio_*`（image/HiPS I/O、writer/reader、pipeline）。

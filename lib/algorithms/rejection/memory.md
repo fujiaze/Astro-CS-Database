@@ -58,7 +58,7 @@
   - DISP-P2REJ-001: rejection.h:118 percentile low_fraction 注释
     "默认 0.1" vs 实现/SCI 0.2（冻结表以 ALG §5/rejection.cpp:1-11
     为准）。
-  - DISP-P2REJ-002: SCI REJECTION.md:89 退化态 "NO_CANDIDATES" vs
+  - DISP-P2REJ-002: SCI REJECTION.md:140 退化态 "NO_CANDIDATES" vs
     实现空栈=MIN_SAMPLES（:1706/:1869）；NO_CANDIDATES 属积分域
     P2IntegrateStatus（integrate.h:46）。
   - DISP-P2REJ-003: SCI/REJECTION_ALGORITHMS 行号锚漂移；行号权威

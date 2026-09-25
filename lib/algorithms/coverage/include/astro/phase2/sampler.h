@@ -130,24 +130,9 @@ P2_API int p2_sample_controls(
 // 观测值仍来自实际 Phase1 HiPS；禁止重新检测星点。
 // probe/fill 协议同 p2_sample_controls*（out 可空查询容量）。
 // ===========================================================================
-P2_API int p2_sample_sky(
-    const P2CoverageResult* coverage,
-    const char* const* hips_paths,
-    const P2SamplerConfig* cfg,
-    P2SkySample* out_sky, std::uint64_t sky_capacity, std::uint64_t* out_n_sky,
-    P2StarMaskCap* out_mask, std::uint64_t mask_capacity, std::uint64_t* out_n_mask,
-    P2SampleStats* out_stats,
-    char* err, std::size_t err_size);
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_sample_sky 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
 
-P2_API int p2_sample_sky_cached(
-    const P2CoverageResult* coverage,
-    const char* const* hips_paths,
-    const std::uint64_t* frame_ids,
-    const P2SamplerConfig* cfg,
-    P2SkySample* out_sky, std::uint64_t sky_capacity, std::uint64_t* out_n_sky,
-    P2StarMaskCap* out_mask, std::uint64_t mask_capacity, std::uint64_t* out_n_mask,
-    P2SampleStats* out_stats,
-    char* err, std::size_t err_size);
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_sample_sky_cached 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
 
 // 含 frame_id 缓存的重载（性能：stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希）。
 // @param frame_ids 长度 n_inputs，与 hips_paths 同序；0 视为非法（p2_frame_id 失败哨兵），实现将直接拒绝。

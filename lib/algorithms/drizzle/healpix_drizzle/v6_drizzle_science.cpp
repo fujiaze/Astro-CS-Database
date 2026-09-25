@@ -125,16 +125,25 @@ std::string retired_unit_reject_reason(const std::string& symbol) {
 // 算子原语
 // ---------------------------------------------------------------------------
 
-double sb_weight(double a_jp, double A_pixel_j) { return a_jp / A_pixel_j; }
-double sb_combination_coefficient(double w_sb_jp, double D_p) { return w_sb_jp / D_p; }
+// canonical 核权重（drop 面积归一，F&H 2002 §7.2 / drizzlepac dover/=jaco）
 double legacy_drop_weight(double a_jp, double A_drop_j) { return a_jp / A_drop_j; }
-double legacy_to_sb_weight(double w_legacy_jp, double pixfrac) {
-    return pixfrac * pixfrac * w_legacy_jp;
+// 等价参数化（面亮度保持）：w'_jp = pixfrac^2 * w_jp
+double sb_weight(double a_jp, double A_pixel_j) { return a_jp / A_pixel_j; }
+double legacy_to_sb_weight(double w_drop_jp, double pixfrac) {
+    return pixfrac * pixfrac * w_drop_jp;
 }
 double sb_to_legacy_weight(double w_sb_jp, double pixfrac) {
     return w_sb_jp / (pixfrac * pixfrac);
 }
-double flux_conservation_factor(double pixfrac) { return pixfrac * pixfrac; }
+double sb_combination_coefficient(double w_jp, double N_p) { return w_jp / N_p; }
+
+// DRZ-FLUX-FIX-01（负责人裁决）: 核按 drop 面积归一 ⇒ Sum_p Sum_j w_jp x_j = Sum_j x_j，
+// 因子恒为 1，与 pixfrac 无关（pixfrac 只决定 footprint/drop 面积大小，不收缩总流量）。
+// 形参保留以免位移既有调用点；返回值不依赖它。
+double flux_conservation_factor(double pixfrac) {
+    (void)pixfrac;
+    return 1.0;
+}
 
 double reference_sb_coefficient(double a_jp, double A_pixel_j, double D_p) {
     return (a_jp / A_pixel_j) / D_p;
@@ -203,11 +212,6 @@ DrzError DrizzleOperator::build(uint32_t n_src, uint32_t n_dst,
     if (validate_pixfrac(pixfrac) != DrzError::ok) return DrzError::invalid_pixfrac;
     if (n_src == 0 || n_dst == 0) return DrzError::invalid_argument;
     if (sources.size() != n_src) return DrzError::invalid_argument;
-    if (kind == NormalizationKind::legacy_a_drop && pixfrac < 1.0) {
-        // FZ-FORMULA-DRIZZLE-SB fail-closed：legacy 归一不得用于 pixfrac<1 的
-        // 绝对面亮度层。
-        return DrzError::legacy_normalization_at_pixfrac_lt_one;
-    }
 
     DrizzleOperator op;
     op.n_src_ = n_src;
@@ -221,6 +225,7 @@ DrzError DrizzleOperator::build(uint32_t n_src, uint32_t n_dst,
         op.A_pixel_[j] = a;
     }
     op.D_p_.assign(n_dst, 0.0);
+    op.N_p_.assign(n_dst, 0.0);
     op.rows_.assign(n_dst, {});
 
     std::unordered_set<uint64_t> seen;
@@ -233,14 +238,26 @@ DrzError DrizzleOperator::build(uint32_t n_src, uint32_t n_dst,
         if (!seen.insert(key).second) return DrzError::invalid_argument; // 重复 (src,dst)
         op.D_p_[e.dst] += e.a_jp;
     }
+    // 面亮度归一分母 N_p = Sum_j w_jp * A_pixel_j（两种参数化给出同一 c_jp）：
+    //   drop_a_drop: N_p = Sum a_jp*A_pixel/A_drop = D_p / pixfrac^2
+    //   sb_a_pixel : N_p = Sum a_jp/A_pixel * A_pixel = D_p
     for (const OperatorEntry& e : overlaps) {
         if (op.D_p_[e.dst] <= 0.0) return DrzError::coverage_mismatch;
-        const double w = (kind == NormalizationKind::legacy_a_drop)
+        const double w = (kind == NormalizationKind::drop_area)
+                             ? legacy_drop_weight(e.a_jp, pixfrac * pixfrac * op.A_pixel_[e.src])
+                             : sb_weight(e.a_jp, op.A_pixel_[e.src]);
+        op.N_p_[e.dst] += w * op.A_pixel_[e.src];
+    }
+    for (uint32_t p = 0; p < n_dst; ++p) {
+        if (op.D_p_[p] > 0.0 && !(op.N_p_[p] > 0.0)) return DrzError::coverage_mismatch;
+    }
+    for (const OperatorEntry& e : overlaps) {
+        const double w = (kind == NormalizationKind::drop_area)
                              ? legacy_drop_weight(e.a_jp, pixfrac * pixfrac * op.A_pixel_[e.src])
                              : sb_weight(e.a_jp, op.A_pixel_[e.src]);
         OperatorEntry entry = e;
         entry.w_sb = w;
-        entry.c = sb_combination_coefficient(w, op.D_p_[e.dst]);
+        entry.c = sb_combination_coefficient(w, op.N_p_[e.dst]);
         op.rows_[e.dst].push_back(entry);
     }
     // 行内按源像素 j 升序：covariance_sb 的归并扫描依赖该不变量。
@@ -291,8 +308,13 @@ double DrizzleOperator::covariance_sb(uint32_t p, uint32_t q, const double* v) c
 }
 
 double DrizzleOperator::flux_out(const double* x) const {
+    // Sum_p Sum_j w_jp x_j —— 等于 Sum_p S_p N_p（drop 面积归一下 = Sum_j x_j）。
     double phi = 0.0;
-    for (uint32_t p = 0; p < n_dst_; ++p) phi += signal_sb(p, x) * D_p_[p];
+    for (uint32_t p = 0; p < n_dst_; ++p) {
+        double row = 0.0;
+        for (const OperatorEntry& e : rows_[p]) row += e.w_sb * x[e.src];
+        phi += row;
+    }
     return phi;
 }
 
@@ -359,9 +381,10 @@ GateVerdict gate_sb_definition(const DrizzleOperator& op, const double* x,
                                const std::vector<double>& claimed_signal,
                                double rel_tol) {
     const char* g = "FZ-FORMULA-DRIZZLE-SB";
-    if (op.normalization() != NormalizationKind::sb_a_pixel) {
-        return fail(g, "normalization != sb_a_pixel");
-    }
+    // DRZ-FLUX-FIX-01: drop_area（canonical）与 sb_a_pixel 给出同一个 c_jp，
+    // 故两种参数化都接受；下面的数值判据（S_p = Sum_j B_j a_jp/Sum_j a_jp）不变。
+    // 旧写法的 "!= sb_a_pixel" fail-closed 已被负责人裁决取消（drop 面积归一是
+    // F&H 2002 §7.2 / drizzlepac dover/=jaco 的口径，不是 legacy）。
     if (claimed_signal.size() != op.n_dst()) return fail(g, "claim size mismatch");
     for (uint32_t p = 0; p < op.n_dst(); ++p) {
         double ref = 0.0;
@@ -384,9 +407,10 @@ GateVerdict gate_constant_surface_brightness(const DrizzleOperator& op, const do
                                              const std::vector<double>* claimed_signal,
                                              double rel_tol) {
     const char* g = "FZ-GATE-CONST-SB";
-    if (op.normalization() != NormalizationKind::sb_a_pixel) {
-        return fail(g, "normalization != sb_a_pixel");
-    }
+    // DRZ-FLUX-FIX-01: drop_area（canonical）与 sb_a_pixel 给出同一个 c_jp，
+    // 故两种参数化都接受；下面的数值判据（S_p = Sum_j B_j a_jp/Sum_j a_jp）不变。
+    // 旧写法的 "!= sb_a_pixel" fail-closed 已被负责人裁决取消（drop 面积归一是
+    // F&H 2002 §7.2 / drizzlepac dover/=jaco 的口径，不是 legacy）。
     // (1) 构造必须是面亮度：x_j == B0 * A_pixel_j（禁止常量 ADU 构造）。
     for (uint32_t j = 0; j < op.n_src(); ++j) {
         const double expect = B0 * op.A_pixel(j);
@@ -418,9 +442,10 @@ GateVerdict gate_variance_identity(const DrizzleOperator& op, const double* v,
                                    const std::vector<double>& claimed_variance,
                                    double rel_tol) {
     const char* g = "FZ-FORMULA-DRIZZLE-VAR";
-    if (op.normalization() != NormalizationKind::sb_a_pixel) {
-        return fail(g, "normalization != sb_a_pixel");
-    }
+    // DRZ-FLUX-FIX-01: drop_area（canonical）与 sb_a_pixel 给出同一个 c_jp，
+    // 故两种参数化都接受；下面的数值判据（S_p = Sum_j B_j a_jp/Sum_j a_jp）不变。
+    // 旧写法的 "!= sb_a_pixel" fail-closed 已被负责人裁决取消（drop 面积归一是
+    // F&H 2002 §7.2 / drizzlepac dover/=jaco 的口径，不是 legacy）。
     if (claimed_variance.size() != op.n_dst()) return fail(g, "claim size mismatch");
     for (uint32_t p = 0; p < op.n_dst(); ++p) {
         double ref = 0.0;
@@ -501,18 +526,18 @@ GateVerdict gate_flux_conservation(const DrizzleOperator& op, const double* x,
     const char* g = "FZ-COND-FLUX-CONSERV";
     const double pf = op.pixfrac();
     const double factor = flux_conservation_factor(pf);
-    if (claims_absolute_flux && pf < 1.0 && !factor_recorded) {
-        return fail(g, "pixfrac<1 absolute flux without flux_conservation_factor");
+    if (claims_absolute_flux && !factor_recorded) {
+        return fail(g, "absolute flux without flux_conservation_factor");
     }
     if (!factor_recorded) {
         return fail(g, "missing flux_conservation_factor in provenance");
     }
     double sum_x = 0.0;
     for (uint32_t j = 0; j < op.n_src(); ++j) sum_x += x[j];
-    const double expect = factor * sum_x;
+    const double expect = factor * sum_x;   // factor ≡ 1（drop 面积归一）
     const double phi = op.flux_out(x);
     if (rel_diff(phi, expect) > rel_tol) {
-        return fail(g, "Phi_out != pixfrac^2 * Sum_j x_j");
+        return fail(g, "Phi_out != Sum_j x_j (drop-area normalized kernel)");
     }
     return pass(g);
 }
@@ -600,7 +625,7 @@ GateVerdict gate_provenance_minimal_set(const ProvenanceRecord& prov,
         return fail(g, "missing flux_conservation_factor");
     }
     if (rel_diff(prov.flux_conservation_factor, expected_flux_conservation_factor) > 1e-12) {
-        return fail(g, "flux_conservation_factor != pixfrac^2");
+        return fail(g, "flux_conservation_factor != 1 (drop-area normalized)");
     }
     if (!prov.has_kcorr) return fail(g, "missing k_corr");
     if (!prov.kcorr_has_domain) return fail(g, "k_corr missing applicability domain");

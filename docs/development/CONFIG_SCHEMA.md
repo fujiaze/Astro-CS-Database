@@ -60,7 +60,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
 rejection.method 说明（V17 冻结）：
   - 默认 `method=auto` + `profile=astrocs_adaptive_pixel`
     （**Astro Celestial Sphere Database（ACSD） 自研**，逐输出像素几何 N 内置映射：1≤N≤3→none；4≤N≤5→
-    percentile；6≤N≤15→winsorized_sigma；N≥16→linear_fit；阈值逐档继承
+    percentile；N≥6→winsorized_sigma（**M3 裁决 2026-09-25：原 N≥16→linear_fit 档改投**）；阈值逐档继承
     SCI-REJ 冻结锚点）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 为
     alias，解析并序列化为 wbpp_2_9_1）；
   - auto 在 **planning 层**按 integration cohort/tile 的 nominal
@@ -100,7 +100,7 @@ output.hips / diagnostics
 
 > **排异档位映射**
 > **生产科学路由唯一权威** = `ASTROCS_DESIGN.md` §5.5：`1≤N≤3` none / `4≤N≤5` percentile /
-> `6≤N≤15` winsorized / `N≥16` linear fit；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；
+> `N≥6` winsorized（M3：原 `N≥16` linear fit 档改投）；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；
 > **min/max 不用于生产**。内核同值见 `lib/algorithms/coverage/src/rejection.cpp:1139`
 > `kPixelSmallNPolicy`。上方 fenced 块是 `eng/tools/config_consistency_check.py` 的 docs 腿输入，
 > 其 `astrocs_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述

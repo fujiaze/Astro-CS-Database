@@ -2,10 +2,12 @@
 // FIX-204（§9.71 裁决 3）：逐像素按几何 N 自动选择 —— WBPP 实测表
 //   N<6 → percentile / 6≤N≤15 → winsorized / N>15 → linear fit；
 //   禁止 min/max（含 NoRejection）；显式指定合法性窗口只告警不硬阻断。
-// 权威：ASTROCS_DESIGN.md §4.5（下半节，2026-09-20 裁决）；一手实测
-//   run/RELEASE-02/FIX-REJ/wbpp/BatchPreprocessing/BPP-FrameGroup.js:1304-1312
-//   （bestRejectionMethod）、:1229-1293（rejectionIsGood 合法性窗口）、
-//   :1237-1243（明文拒绝 NoRejection/MinMax/CCDClip）。
+// 权威：ASTROCS_DESIGN.md §4.5（下半节）；一手实测出处
+//   = WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429
+//   （bestRejectionMethod，包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）、
+//   :1349-1412（rejectionIsGood 合法性窗口与明文拒绝 NoRejection/MinMax/CCDClip）。
+//   注：WBPP 2.4.0+ 的 n>15 分支是 ESD；本表 n>=16 取 linear_fit（对应
+//   WBPP <=2.3.x 的 n<25 LinearFit）。旧引文 BPP-FrameGroup.js 作废。
 #include "astro/phase2/rejection.h"
 
 #include <cmath>
@@ -89,8 +91,9 @@ int expect_pixel_method(std::uint32_t n) {
   const std::uint32_t band_min = p2_rejection_percentile_band_min_n();
   if (band_min > 1u && n >= 1u && n < band_min) return P2_REJECT_NONE;
   if (n < 6u) return P2_REJECT_PERCENTILE;
-  if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
-  return P2_REJECT_LINEAR_FIT;
+  // M3（依据 docs/science/REJECTION.md §5）：n ≥ 6 一律 winsorized_sigma ——
+  // n ≥ 16 档原为 linear_fit，已改投（第 7 段有对应的负例断言，改回即红）。
+  return P2_REJECT_WINSORIZED_SIGMA;
 }
 
 }  // namespace
@@ -192,7 +195,7 @@ int main() {
   // =====================================================================
   // FIX-204：逐像素按几何 N 自动选择（WBPP 表；原四档表作废）
   // =====================================================================
-  // 7) 路由表：N<6 percentile / 6≤N≤15 winsorized / N>15 linear fit
+  // 7) 路由表：N<6 percentile / N≥6 winsorized（M3：原 N>15 linear fit 档改投）
   {
     for (std::uint32_t n = 0; n <= 24u; ++n) {
       const int got = resolve_pixel_method(n);
@@ -202,19 +205,25 @@ int main() {
                      "FIX-204 路由不符: n=%u got=%d want=%d\n", n, got, want);
       CHECK(got == want);
     }
-    // 档界显式（WBPP BPP-FrameGroup.js:1304-1312）
+    // 档界显式（WBPP 2.5.9 engine.js:1421-1429；n>=16 档算法见文件头注）
     CHECK(resolve_pixel_method(5) == P2_REJECT_PERCENTILE);
     CHECK(resolve_pixel_method(6) == P2_REJECT_WINSORIZED_SIGMA);
     CHECK(resolve_pixel_method(15) == P2_REJECT_WINSORIZED_SIGMA);
-    CHECK(resolve_pixel_method(16) == P2_REJECT_LINEAR_FIT);
+    CHECK(resolve_pixel_method(16) == P2_REJECT_WINSORIZED_SIGMA);
+    // **M3 负例（能红）**：n ≥ 16 档不得再解析为 linear_fit。若路由被改回，
+    // 下面两行立即失败（依据 = 生产 kernel 受控评估，
+    // run/REJECT-DOCFIX-01/REPORT.md §2/§4：干净像素过拒 12.200% → 0.067%）。
+    CHECK(resolve_pixel_method(16) != P2_REJECT_LINEAR_FIT);
+    CHECK(resolve_pixel_method(20) != P2_REJECT_LINEAR_FIT);
+    CHECK(resolve_pixel_method(20) == P2_REJECT_WINSORIZED_SIGMA);
     // 原四档表（n≤3 none / 4-7 percentile / 8-15 winsorized / ≥16 linear）
     // 的两处档界已作废：n=6..7 不再 percentile（n≤3 是否 none 由 EXP-204
     // 决策点定，见 band_min 派生断言）。
     CHECK(resolve_pixel_method(7) != P2_REJECT_PERCENTILE);
     CHECK(resolve_pixel_method(7) == P2_REJECT_WINSORIZED_SIGMA);
     // 决策点当前取值 = **EXP-204 定案「保守读法」**（band_min = 4）：
-    // 1≤N≤3 → none（不排异；维持 2026-09-19 原裁决），4≤N≤5 → percentile。
-    // （负责人若改判对称读法 ⇒ rejection.cpp 决策点 1 行 + 本 3 行断言。）
+    // 1≤N≤3 → none（不排异；依据 docs/science/REJECTION.md §16），4≤N≤5 → percentile。
+    // （若改采对称读法 ⇒ rejection.cpp 决策点 1 行 + 本 3 行断言。）
     CHECK(p2_rejection_percentile_band_min_n() == 4u);
     CHECK(resolve_pixel_method(1) == P2_REJECT_NONE);
     CHECK(resolve_pixel_method(2) == P2_REJECT_NONE);
@@ -235,7 +244,8 @@ int main() {
   }
 
   // 8) 禁止 min/max：AUTO 路由**永不**产出 minmax / NoRejection
-  //    （WBPP :1237-1243 明文拒绝；BPP-engine.js:2695-2719 清单无 minmax）
+  //    （WBPP 2.5.9 engine.js:1349-1412 rejectionIsGood() 明文拒绝；
+  //     其算法清单 StackEngine.rejectionMethods 无 minmax）
   {
     const std::uint32_t band_min = p2_rejection_percentile_band_min_n();
     CHECK(band_min == 1u || band_min == 4u);   // 仅两个合法取值（EXP-204 二选一）
@@ -243,7 +253,7 @@ int main() {
       const int m = resolve_pixel_method(n);
       CHECK(m != P2_REJECT_MINMAX);
       // NoRejection 只允许作为「小 N 保守决策点」的显式结果出现
-      // （band_min = 4 且 1≤N≤3）；其余一律禁止（WBPP :1237）。
+      // （band_min = 4 且 1≤N≤3）；其余一律禁止（WBPP 2.5.9 engine.js:1359-1360）。
       if (m == P2_REJECT_NONE)
         CHECK(band_min > 1u && n >= 1u && n <= 3u);
     }
@@ -287,12 +297,13 @@ int main() {
     for (int i = 0; i < n; ++i)
       if (i != 1) CHECK(d.reasons[static_cast<std::size_t>(i)] == P2_REASON_ACCEPTED);
   }
-  //    9c) N=20（linear fit 档）：卫星线 +200
+  //    9c) N=20（M3 后 = winsorized 档）：卫星线 +200 —— 科学行为必须保留
   {
     auto vals = synth_stack(20, 1000.0);
     vals[7] = 1200.0;
     const P2RejectionPlan plan = pixel_plan(20);
-    CHECK(plan.method == P2_REJECT_LINEAR_FIT);
+    CHECK(plan.method == P2_REJECT_WINSORIZED_SIGMA);
+    CHECK(plan.method != P2_REJECT_LINEAR_FIT);  // M3 负例（能红）
     const Decision d = run_pixel_stack(vals, plan);
     CHECK(d.status == P2_STATUS_OK);
     CHECK(d.reasons[7] == P2_REASON_REJECTED_HIGH);
@@ -411,7 +422,7 @@ int main() {
     CHECK(small_n_polluted > 0u);   // 小 N 像素确实存在于本 fixture（判据有覆盖）
   }
 
-  // 13) 显式指定的合法性窗口（WBPP :1229-1293）：**只告警不硬阻断**
+  // 13) 显式指定的合法性窗口（WBPP 2.5.9 engine.js:1349-1412）：**只告警不硬阻断**
   {
     auto warn = [](int method, std::uint32_t n) {
       char code[64] = {0};

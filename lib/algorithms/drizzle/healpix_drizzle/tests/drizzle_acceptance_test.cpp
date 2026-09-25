@@ -3,21 +3,26 @@
 //
 // 覆盖 (用户验收要求):
 // A. 天极/赤道/RA 跨 0/常规位置: CRVAL 合成图 FP64 通量闭合 + FP32 一致性
-// B. pixfrac {0.1,0.25,0.5,1.0} x 过采样率 {1,2,3,4} (输入尺度 vs NSIDE):
+// B. pixfrac {0.1,0.5,0.8,1.0} x 过采样率 {1,2,3,4} (输入尺度 vs NSIDE):
 // FP64 能量守恒 + FP32 vs FP64 逐 leaf
 // C. 球面<->平面双向投影: skyToPixel(pixelToSky(x,y)) 往返 (导出需要)
 // D. 尺度 x NSIDE 矩阵 (0.5"/1"/2"/3" 大气视宁度常见 + 对应 NSIDE)
 // E. 广域大畸变矩阵 (T4 真实 WCS + 合成广域 SIP5 + 广域极区/RA 跨 0)
 // F. 数值类型证据: 生产路径仅 IEEE float32/float64 (sizeof 自动输出)
 //
-// 能量守恒定义: Σ output signal = Σ input calibrated signal (Gate P3,
-// 无有效域截断; FP64 参考 < 1e-7, FP32 vs FP64 逐 leaf < 1e-5)
+// 能量守恒定义 (DRZ-FLUX-FIX-01): Σ_p sumFlux_p = Σ_j x_j —— 核按 **drop 面积**
+// 归一 (F&H 2002 §7.2 式(7) 下方 "fractional area overlap of **the drop**";
+// drizzlepac cdrizzlebox.c dover/=jaco) ⇒ 每源权重和 = 1, **与 pixfrac 无关**。
+// 判据: FP64 参考 < 1e-7 (全部 pixfrac 档), FP32 vs FP64 逐 leaf < 1e-5。
+// 负例注入 --inject-legacy-pixfrac2: 把 Σout 乘回 pf² (旧「按 A_pixel 归一」口径)
+// ⇒ 同一判据必须判红 (证明本门非退化; 恒真门没有证据资格)。
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"
 #include "spherical_overlap.h"
 #include "wcs_sip.h"
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cmath>
 #include <vector>
@@ -58,6 +63,16 @@ static double make_synth(FitsImage& img, const WcsParams& w, int size) {
     return total;
 }
 
+// DRZ-FLUX-FIX-01 负例注入: 全局乘因子 (默认 1.0)。
+//   0.0  = 关闭注入; 非 0 = 把 Σout 乘上该因子后再判闭合。
+//   --inject-legacy-pixfrac2 令因子 = pixfrac² (旧「按 A_pixel 归一」口径),
+//   用于证明同一判据能红。
+static double g_inject_fixed = 0.0;    // 全局固定乘因子 (0 = 未启用)
+static bool   g_inject_pf2   = false;  // 乘 pixfrac²
+
+// FP64 通量闭合门限 (与下方各 CHECK 的判据同值 — 改动时两处必须同步)
+static const double GATE_CLOSURE = 1e-7;
+
 // 单组合: FP64 一次 + FP32 一次, 返回 (rel_closure64, max_rel_fp32)
 static void run_case(FILE* jsonl, const char* tag, const WcsParams& w,
                      int size, int nside, double pixfrac,
@@ -90,7 +105,19 @@ static void run_case(FILE* jsonl, const char* tag, const WcsParams& w,
             sum_out64 += p.sumFlux;
             ref[(tile.parent_ipix << shift) | local] = p.sumFlux;
         }
+    // 负例注入: 仅作用于被测输出 (模拟错误归一), 不改变引擎本身。
+    const double inject = g_inject_pf2 ? (pixfrac * pixfrac) : g_inject_fixed;
+    if (inject != 0.0) sum_out64 *= inject;
     *rel64 = std::fabs(sum_out64 - sum_in) / sum_in;
+    // 注入模式下 **首例即判**: 负例控制的目的是证明「同一判据能红」,
+    // 不需要跑完整矩阵 (完整矩阵要小时级); 首例红即 exit 1。
+    if (inject != 0.0 && *rel64 >= GATE_CLOSURE) {
+        printf("[FAIL] %s: 注入因子 %.6g 后闭合 rel=%.3e >= %.0e"
+               " (负例控制成立: 判据非恒真)\n",
+               tag, inject, *rel64, GATE_CLOSURE);
+        fflush(stdout);
+        std::exit(1);
+    }
     double max_rel = 0.0;
     int missing = 0;
     size_t n_leaf32 = 0;
@@ -111,10 +138,12 @@ static void run_case(FILE* jsonl, const char* tag, const WcsParams& w,
                 "{\"tag\":\"%s\",\"nside\":%d,\"pixfrac\":%.2f,"
                 "\"rel_closure_fp64\":%.6e,\"max_rel_fp32_vs_fp64\":%.6e,"
                 "\"n_leaf64\":%zu,\"n_leaf32\":%zu,\"missing\":%d,"
-                "\"finite64\":%d,\"engine_s_fp64\":%.4f,\"engine_s_fp32\":%.4f}\n",
+                "\"finite64\":%d,\"engine_s_fp64\":%.4f,\"engine_s_fp32\":%.4f,"
+                "\"inject_factor\":%.6g,\"sum_out\":%.10e,\"sum_in\":%.10e}\n",
                 tag, nside, pixfrac, *rel64, max_rel,
                 ref.size(), n_leaf32,
-                missing, finite64 ? 1 : 0, st64.elapsedSec, st32.elapsedSec);
+                missing, finite64 ? 1 : 0, st64.elapsedSec, st32.elapsedSec,
+                (inject != 0.0) ? inject : 1.0, sum_out64, sum_in);
     }
     (void)finite64;
 }
@@ -160,7 +189,7 @@ static void acceptance_oversample(FILE* jsonl) {
     printf("=== B. pixfrac x 过采样率 {1,2,3,4} ===\n");
     const int size = 96, nside = 65536;
     const double hp_res = 3.22;  // NSIDE=65536 像素分辨率 (角秒)
-    const double pixfracs[] = {0.1, 0.25, 0.5, 1.0};
+    const double pixfracs[] = {0.1, 0.5, 0.8, 1.0};
     const int rates[] = {1, 2, 3, 4};
     for (double pf : pixfracs) {
         for (int r : rates) {
@@ -424,19 +453,41 @@ static void acceptance_types() {
 }
 
 int main(int argc, char** argv) {
-    const char* base = (argc > 1) ? argv[1]
-                                  : "run/temp/precise_hardening";
+    const char* base = "run/temp/precise_hardening";
+    bool saw_dir = false;
+    // --sections <letters>: 分片跑 (A 位置/B pixfrac×过采样/C 双向投影/
+    //   D 尺度×nside/E 广域大畸变/T 数值类型)。缺省 = 全部。
+    //   动机: E 段 (1024^2 SIP order=5 @ nside=65536) 的几何构建是小时级,
+    //   整门无法在单次 CI 预算内跑完; 分片让 A..D 的判据可被常态执行,
+    //   E 段按需单独跑, 而不是把整门变成「没人跑的门」。
+    std::string sections = "ABCDET";
+    for (int i = 1; i < argc; ++i) {
+        const std::string a = argv[i];
+        if (a == "--inject-legacy-pixfrac2") { g_inject_pf2 = true; continue; }
+        if (a == "--inject-flux-factor" && i + 1 < argc) {
+            g_inject_fixed = std::atof(argv[++i]);
+            continue;
+        }
+        if (a == "--sections" && i + 1 < argc) { sections = argv[++i]; continue; }
+        if (!saw_dir) { base = argv[i]; saw_dir = true; }
+    }
+    const auto do_s = [&](char c) { return sections.find(c) != std::string::npos; };
     std::string dir(base);
     std::string path = dir + "/acceptance_matrix.jsonl";
     FILE* f = std::fopen(path.c_str(), "w");
     if (!f) { printf("[FAIL] 无法写 %s\n", path.c_str()); return 1; }
     printf("=== Drizzle 初步冻结全面合成验收 ===\n");
-    acceptance_types();
-    acceptance_position(f);
-    acceptance_oversample(f);
-    acceptance_scale_nside(f);
-    acceptance_wide(f);
-    acceptance_bidirectional(f);
+    if (g_inject_pf2)
+        printf("  [负例注入] Sigma_out *= pixfrac^2 (旧 A_pixel 归一口径) —— 本门必须判红\n");
+    else if (g_inject_fixed != 0.0)
+        printf("  [负例注入] Sigma_out *= %.6g —— 本门必须判红\n", g_inject_fixed);
+    printf("  sections=%s\n", sections.c_str());
+    if (do_s('T')) acceptance_types();
+    if (do_s('A')) acceptance_position(f);
+    if (do_s('B')) acceptance_oversample(f);
+    if (do_s('D')) acceptance_scale_nside(f);
+    if (do_s('E')) acceptance_wide(f);
+    if (do_s('C')) acceptance_bidirectional(f);
     std::fclose(f);
     printf("== 验收结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

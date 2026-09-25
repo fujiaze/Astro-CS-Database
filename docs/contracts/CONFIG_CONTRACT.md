@@ -45,7 +45,7 @@
 | detection（σ 检测阈值） | 1 | `docs/science/STAR_DETECTION.md:21` |
 | psf（默认模型/β） | 2 | `docs/science/PSF.md:7`、`:92` |
 | noise（噪声模型默认配置） | 14 | `docs/science/NOISE_MODEL.md` §4/§5/§5a/§6 陈述行（:41,:49,:73,:95；逐字段 source_ref 见 defaults.json）。**逐键标度类别（强制，封闭二分）**：① **承载 ADU 标度量的键只有 `noise.variance_floor`（ADU²）与 `noise.saturation_level`（ADU）**——两者标度必须与所作用数组同标度，数组为 `photo_scaled_adu` 时按 α²（方差）/ α（电平）换算，换算责任方 = 调用方；② 其余 12 键（`patch_grid`/`clip_sigma`/`min_patch_samples`/`max_clip_rounds`/`spatial_field_enabled`/`source_mask_radius_px`/`mask_radius_scale`/`mask_k_sigma`/`mask_r_min_px`/`mask_fwhm_floor_scale`/`mask_budget_min_patches`/`mask_budget_min_sky`）**不承载 ADU 标度量**——其量纲为像素几何长度 / 计数 / 无量纲比值，**标度不变**（对 α 免疫），不需要标度换算。标度词表 = `docs/standards/NUMERIC_STANDARD.md` |
-| rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:68`（§5「阈值冻结锚点」块；W5-CFG-002 重锚，原 :131 已因文档重排失效） |
+| rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:97`（§5「阈值冻结锚点」块；W5-CFG-002 重锚；REJECT-DOCFIX-01 二次重锚，原 :68/:131 均已因文档重排失效） |
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `docs/science/PHOTOMETRY.md:21,24,38,39` |
 | weight（默认权重口径；~~权重模式~~ 概念已作废 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:14`、`:28` |
 | precision（默认精度） | 1 | `docs/science/SCIENCE_SCOPE.md:53` |

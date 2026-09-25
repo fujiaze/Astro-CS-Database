@@ -469,6 +469,165 @@ void case_master_paths(int w, int h) {
     }
 }
 
+
+// ═══════ ⑨ 修复像素方差面 var_out = (Σw²·var_in)·κ（LINDEF-CLOSE-01 裁决 3）═══════
+// 判据非退化对照：κ=1（只做 Σw² 传播）与 κ=2（信息平价）必须给出**不同**结果；
+// 仅标记（掩膜值 2）的列必须**不动**方差（值没被换过）；κ<=0/非有限必须拒绝且不写输出。
+void case_variance_inflate(int w, int h) {
+    std::fprintf(stderr, "[case 9] badcol_variance_inflate\n");
+    std::vector<float> d = make_frame(w, h, 7101u, 1000.0f);
+    for (int y = 0; y < h; ++y) d[static_cast<size_t>(y) * w + 20] -= 500.0f;
+    std::vector<unsigned char> m(static_cast<size_t>(w), 0);
+    int n = -1, px = -1, st = 0; float sg = 0.0f;
+    std::vector<float> colfix(d.size(), 0.0f);
+    check(ac_correct_columns(d.data(), w, h, colfix.data(), 5.0f, 3, 1, m.data(),
+                             &n, &px, &sg, &st) == AC_OK, "9a 前置: ABI rc==AC_OK");
+    check(n == 1 && m[20] == AC_COLSTAT_MASK_REPAIRED, "9a 前置: 列 20 被判为已修复");
+
+    const float VAR0 = 4.0f;
+    std::vector<float> var(d.size(), VAR0), vo(d.size(), -1.0f);
+    float w2m = -1.0f; int npx = -1;
+    check(ac_column_variance_inflate(var.data(), w, h, m.data(), 2.0f, vo.data(),
+                                     &w2m, &npx) == AC_OK, "9a inflate ABI rc==AC_OK");
+    check(npx == 1, "9a 只有 1 个被修复列参与 inflate");
+    check(std::fabs(w2m - 0.5f) < 1e-6f,
+          "9a Σw² == 0.5（单列 = 左右两邻算术平均，w=(0.5,0.5)）");
+    check(std::fabs(vo[static_cast<size_t>(10) * w + 20] - (0.5f * VAR0) * 2.0f) < 1e-5f,
+          "9a var_out = (Σw²·var)·κ = 0.5·4·2 = 4.0");
+    check(vo[static_cast<size_t>(10) * w + 19] == VAR0, "9a 非修复像素原样拷贝（逐位）");
+    check(vo[static_cast<size_t>(10) * w + 21] == VAR0, "9a 非修复像素原样拷贝（右邻）");
+
+    // 9b. κ=1：只做 Σw² 传播（对照 9a，必须不同 ⇒ 非退化）
+    std::vector<float> vo4(d.size(), -1.0f);
+    check(ac_column_variance_inflate(var.data(), w, h, m.data(), 1.0f, vo4.data(),
+                                     nullptr, nullptr) == AC_OK, "9b κ=1 rc==AC_OK");
+    check(std::fabs(vo4[static_cast<size_t>(10) * w + 20] - 0.5f * VAR0) < 1e-5f,
+          "9b κ=1 ⇒ var_out = Σw²·var = 2.0（与 9a 的 4.0 不同 ⇒ 判据非退化）");
+
+    // 9c. 仅标记（掩膜值 2，未修）的列：值没被换过 ⇒ 方差不得动
+    std::vector<unsigned char> m2(static_cast<size_t>(w), 0);
+    m2[30] = AC_COLSTAT_MASK_WIDE;
+    std::vector<float> vo2(d.size(), -1.0f); npx = -1;
+    check(ac_column_variance_inflate(var.data(), w, h, m2.data(), 2.0f, vo2.data(),
+                                     nullptr, &npx) == AC_OK, "9c rc==AC_OK");
+    check(npx == 0 && vo2[static_cast<size_t>(5) * w + 30] == VAR0,
+          "9c 仅标记（值 2）的列不做 inflate（区分已修/仅标记）");
+
+    // 9d. 贴边单侧复制 ⇒ Σw² = 1（不得套用 0.5）
+    std::vector<unsigned char> m3(static_cast<size_t>(w), 0);
+    m3[0] = AC_COLSTAT_MASK_REPAIRED;
+    std::vector<float> vo5(d.size(), -1.0f); w2m = -1.0f;
+    check(ac_column_variance_inflate(var.data(), w, h, m3.data(), 2.0f, vo5.data(),
+                                     &w2m, nullptr) == AC_OK, "9d rc==AC_OK");
+    check(std::fabs(w2m - 1.0f) < 1e-6f, "9d 贴边单侧复制 Σw² == 1");
+    check(std::fabs(vo5[static_cast<size_t>(3) * w + 0] - 1.0f * VAR0 * 2.0f) < 1e-5f,
+          "9d 贴边 var_out = 1·4·2 = 8.0");
+
+    // 9e. κ 非正 / 非有限 ⇒ 拒绝且**不写输出**（不得留半成品方差面）
+    std::vector<float> vo3(d.size(), -1.0f);
+    check(ac_column_variance_inflate(var.data(), w, h, m.data(), 0.0f, vo3.data(),
+                                     nullptr, nullptr) != AC_OK, "9e κ=0 必须拒绝");
+    check(ac_column_variance_inflate(var.data(), w, h, m.data(), -1.0f, vo3.data(),
+                                     nullptr, nullptr) != AC_OK, "9e κ<0 必须拒绝");
+    check(vo3[0] == -1.0f && vo3[static_cast<size_t>(10) * w + 20] == -1.0f,
+          "9e 拒绝时不得写出任何方差值");
+}
+
+// ═══════ ⑩ 母版专用阈值 + 宽标记区间守卫 + 已修/仅标记分账（裁决 2/4）═══════
+// 非退化对照：同一帧、同一母版，只改 master_column_sigma（5.0 → 40.0）必须给出
+// 不同的母版路径判出数，而**科学帧路径的判出数一个字不变**。
+void case_master_sigma_and_wide_budget(int w, int h) {
+    std::fprintf(stderr, "[case 10] badcol_master_sigma_and_wide_budget\n");
+    std::vector<float> sci = make_frame(w, h, 8101u, 1000.0f);
+    std::vector<float> dk = make_frame(w, h, 8102u, 900.0f);
+    std::vector<float> bs = make_frame(w, h, 8103u, 500.0f);
+    for (int y = 0; y < h; ++y) {
+        dk[static_cast<size_t>(y) * w + 25] -= 400.0f;   // 母版独有的单列缺陷
+        bs[static_cast<size_t>(y) * w + 25] -= 300.0f;
+        sci[static_cast<size_t>(y) * w + 50] -= 500.0f;  // 科学帧独有的单列缺陷
+    }
+    struct Run {
+        int n = -1, mark = -1, ns = -1, nd = -1, nb = -1, ks = -1, kd = -1, kb = -1;
+        int supp = -1, supp_sci = -1, px = -1, st = 0;
+    };
+    auto run = [&](float msig, float widefrac) {
+        Run r;
+        std::vector<float> o(sci.size(), 0.0f);
+        std::vector<unsigned char> cm(static_cast<size_t>(w), 0), sm(static_cast<size_t>(w), 0),
+                                   cf(static_cast<size_t>(w), 0);
+        float s1 = 0, s2 = 0, s3 = 0;
+        const int rc = ac_correct_columns_ex2(
+            sci.data(), dk.data(), bs.data(), w, h, o.data(),
+            5.0f, msig, widefrac, widefrac, 3, 1, cm.data(), sm.data(), cf.data(),
+            &r.n, &r.mark, &r.ns, &r.nd, &r.nb, &r.ks, &r.kd, &r.kb, &r.supp,
+            &r.supp_sci, &r.px, &s1, &s2, &s3, &r.st);
+        check(rc == AC_OK, "ex2 rc==AC_OK");
+        return r;
+    };
+    const Run a = run(5.0f, 0.0f);      // 母版阈值 = 科学帧阈值（旧行为）
+    const Run b = run(40.0f, 0.0f);     // 母版阈值更严
+    check(a.nd >= 1, "10a 母版阈值=5 时 dark 路径必须判出注入的列 25（非退化前提）");
+    check(b.nd < a.nd, "10b 母版阈值收紧后 dark 路径判出数必须下降（非退化对照）");
+    check(a.ns == b.ns && a.ns >= 1,
+          "10c 科学帧路径的判出数不受母版阈值影响（一个字不变）");
+    check(a.n == a.ns + (a.n - a.ns) && a.n >= a.ns, "10d 并集 >= 科学帧单独");
+
+    // 宽标记区间守卫：同一母版，只在 wide_frac_max 上做对照。
+    // 注入两相邻列 ⇒ 段长 2 > max_seg_len=1 ⇒ 宽缺陷（掩膜值 2，仅标记不修）。
+    std::vector<float> sci2 = make_frame(w, h, 8201u, 1000.0f);
+    std::vector<float> dk2 = make_frame(w, h, 8202u, 900.0f);
+    for (int y = 0; y < h; ++y) {
+        dk2[static_cast<size_t>(y) * w + 12] -= 400.0f;
+        dk2[static_cast<size_t>(y) * w + 13] -= 400.0f;
+    }
+    auto run2 = [&](float widefrac) {
+        Run r;
+        std::vector<float> o(sci2.size(), 0.0f);
+        std::vector<unsigned char> cm(static_cast<size_t>(w), 0);
+        float s1 = 0, s2 = 0, s3 = 0;
+        ac_correct_columns_ex2(sci2.data(), dk2.data(), nullptr, w, h, o.data(),
+                               5.0f, 5.0f, widefrac, widefrac, 3, 1, cm.data(), nullptr,
+                               nullptr,
+                               &r.n, &r.mark, &r.ns, &r.nd, &r.nb, &r.ks, &r.kd, &r.kb,
+                               &r.supp, &r.supp_sci, &r.px, &s1, &s2, &s3, &r.st);
+        return r;
+    };
+    const Run wide_ok = run2(0.0f);        // 不设界
+    const Run wide_cut = run2(1e-4f);      // 界 = 64·1e-4 = 0 列
+    check(wide_ok.kd >= 2, "10e 不设界时母版宽标记必须存在（非退化前提）");
+    check(wide_cut.kd == 0 && wide_cut.supp >= 2,
+          "10f 超界 ⇒ 该路宽标记整类丢弃并**记账**（suppressed>0，不静默）");
+    check(wide_cut.nd == wide_ok.nd,
+          "10g 丢弃宽标记不得影响**已修**（单列）判定");
+
+    // 10h. **科学帧路径的宽标记同样受声明区间约束**（同一形式、同一记账）
+    std::vector<float> sci3 = make_frame(w, h, 8301u, 1000.0f);
+    // 造一条"宽"结构：三个相邻列同向偏移 ⇒ 段长 3 > max_seg_len=1 ⇒ 仅标记
+    for (int y = 0; y < h; ++y) {
+        for (int c = 40; c <= 42; ++c) sci3[static_cast<size_t>(y) * w + c] -= 500.0f;
+    }
+    auto run3 = [&](float sciwide) {
+        Run r;
+        std::vector<float> o(sci3.size(), 0.0f);
+        std::vector<unsigned char> cm(static_cast<size_t>(w), 0);
+        float s1 = 0, s2 = 0, s3 = 0;
+        ac_correct_columns_ex2(sci3.data(), nullptr, nullptr, w, h, o.data(),
+                               5.0f, 5.0f, 0.0f, sciwide, 3, 1, cm.data(), nullptr, nullptr,
+                               &r.n, &r.mark, &r.ns, &r.nd, &r.nb, &r.ks, &r.kd, &r.kb,
+                               &r.supp, &r.supp_sci, &r.px, &s1, &s2, &s3, &r.st);
+        return r;
+    };
+    const Run s_ok = run3(0.0f);
+    const Run s_cut = run3(1e-4f);          // 界 = 64·1e-4 = 0 列
+    check(s_ok.ks >= 3, "10h 不设界时科学帧路径宽标记必须存在（非退化前提）");
+    check(s_cut.ks == 0 && s_cut.supp_sci >= 3,
+          "10i 科学帧路径超界 ⇒ 整类丢弃并记账（science_wide_suppressed>0）");
+    check(s_cut.ns == s_ok.ns,
+          "10j 科学帧路径的**已修**（单列）判定不受宽标记守卫影响");
+    check(s_ok.supp == 0 && s_cut.supp == 0,
+          "10k 无母版时母版侧 suppressed 必须为 0（两侧互不串味）");
+}
+
 void run_all() {
     g_fail = 0; g_case = 0;
     const int w = 64, h = 64;
@@ -480,6 +639,8 @@ void run_all() {
     case_coexist_with_frozen(w, h);
     case_f64(w, h);
     case_master_paths(w, h);
+    case_variance_inflate(w, h);
+    case_master_sigma_and_wide_budget(w, h);
     std::fprintf(stderr, "p1cos_badcol: %d checks, %d failures\n", g_case, g_fail);
     if (g_fail) std::fprintf(stderr, "RESULT: FAIL\n");
     else std::fprintf(stderr, "RESULT: PASS\n");

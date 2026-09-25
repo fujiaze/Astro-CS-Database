@@ -454,7 +454,7 @@ struct Subcommand {
             return astrocs::ARGS;                           // 2: 配置错
         }
         const bool assume_yes = p.flags.count("-y") > 0 || p.flags.count("--yes") > 0;
-        // §3.5（2026-09-20 裁决）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
+        // §3.5（依据 ASTROCS_DESIGN.md §4.5 运行前预检）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
         // 预估），**无论 correct / warn / error 都必须显示页面**；-y 只跳过**确认**，
         // 不跳过页面 ⇒ 无确认交互时在此打印（有确认时由 confirm_run 打印同一份 page）。
         if (assume_yes) std::fputs(page.c_str(), stderr);

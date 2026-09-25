@@ -257,13 +257,16 @@ ValidationReport validate_provenance_json(
                   ? j["sampling"]["pixfrac"].get<double>()
                   : 1.0;
   }
-  if (has_pixfrac && pixfrac > 0.0 && pixfrac < 1.0) {
-    const bool fcf_ok = j.contains("flux_conservation_factor") &&
-                        j["flux_conservation_factor"].is_number() &&
-                        j["flux_conservation_factor"].get<double>() > 0.0;
-    if (!fcf_ok) {
+  // DRZ-FLUX-FIX-01: drop 面积归一 ⇒ 因子恒 1 (与 pixfrac 无关); pixfrac=1 与
+  // pixfrac<1 同判据 (旧口径只在 pixfrac<1 时检查正性, 掩盖了因子语义)。
+  if (has_pixfrac && pixfrac > 0.0) {
+    const double fcf = j.contains("flux_conservation_factor") &&
+                               j["flux_conservation_factor"].is_number()
+                           ? j["flux_conservation_factor"].get<double>()
+                           : 0.0;
+    if (std::fabs(fcf - 1.0) > 1e-12) {
       r.add("G-FLUX-CONSERV-FACTOR", "FZ-COND-FLUX-CONSERV",
-            "pixfrac<1 requires positive flux_conservation_factor");
+            "flux_conservation_factor must be 1 (drop-area normalized kernel)");
     }
   }
   // k_corr (FZ-PROV-KCORR)。

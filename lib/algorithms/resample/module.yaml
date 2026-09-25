@@ -111,17 +111,20 @@ contract_ids:
   api: API-P3-RSMP-001
   arch: ARCH-001
   test: TEST-P3-RES-001
+# ── 2026-09-25 CHK-PROD-WIRING W1 声明面收缩 ──
+# 下列符号已从 source_symbols 撤下：它们在三个生产命令（cmd_session{1,2,3}_run）
+# 的名字级调用图上不可达（判据 = eng/ci/check_prod_wiring.py W1），且不在本模块
+# exports 面内。符号本体、公共头声明与既有 API 面均不动；去向 = API 合同面/
+# 诊断工具面/契约测试面，逐类处置依据见 run/WIRING-W16-01/REPORT.md §3。
+# 本撤销同时是既有门 CHK-ALGO-WIRING W2 台账 dormant_algorithms.json 明文
+# 退出条件之一（「或从 lib/**/module.yaml source_symbols 移除该声明」）。
 source_symbols:
   - P3ResampleStatus
   - p3_order_select
-  - p3_resample_check_mode
   - P3SamplerImpl
   - P3Sampler
-  - p3_sampler_open
   - p3_sampler_open_ex
   - p3_sampler_set_max_tiles
-  - p3_sample_nearest
-  - p3_sample_bilinear
   - p3_sampler_close
 test_ids:
   - TEST-P3-RES-001

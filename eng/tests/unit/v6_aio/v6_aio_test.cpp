@@ -147,7 +147,7 @@ Provenance make_positive_provenance() {
   p.correlation_summary.has_mean_abs_rho = true;
   p.correlation_summary.mean_abs_rho = 0.19;
   p.has_flux_conservation_factor = true;
-  p.flux_conservation_factor = 0.64;
+  p.flux_conservation_factor = 1.0;  // DRZ-FLUX-FIX-01: drop 面积归一 ⇒ 恒 1
   p.k_corr.definition = "k_corr = Var(median)/[pi sigma_bg^2/(2 N_retained)]";
   p.k_corr.value = 1.4;
   p.k_corr.domain.geometry = "spherical_drizzle";

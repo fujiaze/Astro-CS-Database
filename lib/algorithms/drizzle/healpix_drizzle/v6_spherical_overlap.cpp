@@ -140,7 +140,7 @@ DrzError build_operator_from_sources(const ::healpix::HealpixCore& hp,
 
     DrzError e = DrizzleOperator::build(
         static_cast<uint32_t>(sources.size()), static_cast<uint32_t>(n_dst),
-        op_sources, pixfrac, NormalizationKind::sb_a_pixel, overlaps, out);
+        op_sources, pixfrac, NormalizationKind::drop_area, overlaps, out);
     if (e != DrzError::ok) return e;
 
     if (target_ipix_out) *target_ipix_out = std::move(target_ipix);

@@ -1,26 +1,30 @@
 // ============================================================================
-// DRIZZLE-FIX-01 · DISP-DRZ-009 回归门 (面亮度保持权重 w_jp = a_jp/A_pixel,j)
+// DRIZZLE-FIX-01 / DRZ-FLUX-FIX-01 · DISP-DRZ-009 回归门 (核按 drop 面积归一,
+// 面亮度归一分母 N_p = Σ_j w_jp·A_pixel,j)
 // ----------------------------------------------------------------------------
 // 合同锚:
-//   * SCI-DRZ-001 §5 (docs/science/DRIZZLE.md): w_jp = a_jp/A_pixel,j,
-//     F_p = Σ_j x_j·w_jp, D_p = Σ_j a_jp, S_p = F_p/D_p = Σ_j B_j a_jp/Σ_j a_jp;
+//   * SCI-DRZ-001 §5 (docs/science/DRIZZLE.md, 负责人裁决口径):
+//     w_jp = a_jp/A_drop,j (F&H 2002 §7.2 式(7) 下方 "fractional area overlap of
+//     **the drop**"; drizzlepac cdrizzlebox.c dover/=jaco),
+//     F_p = Σ_j x_j·w_jp, D_p = Σ_j a_jp, N_p = Σ_j w_jp·A_pixel,j,
+//     S_p = F_p/N_p = Σ_j B_j a_jp/Σ_j a_jp;
 //   * SCI-DRZ-001 §7 常量场不变量 + FZ-GATE-CONST-SB (门 |S_p/B0−1| < 1e-3,
 //     对全部 pixfrac∈(0,1] 成立);
-//   * SCI-DRZ-001 §10 不可接受变化: "将 S_p 用 w_jp=a_jp/A_drop,j 归一计算并
-//     宣称绝对面亮度 (pixfrac<1 偏 1/pixfrac²)" — 本门即该条的回归锁;
-//   * ALG-DRZ-001 §10 DISP-DRZ-009 (修复前登记).
+//   * SCI-DRZ-001 §10 不可接受变化: "将 S_p 的**分母**取覆盖面积 D_p=Σ_j a_jp
+//     而非面亮度归一分母 N_p"(pixfrac<1 偏 1/pixfrac²) — 本门即该条的回归锁;
+//   * ALG-DRZ-001 §10 DISP-DRZ-009 (历史缺陷登记) + DRZ-FLUX-FIX-01 (口径订正).
 //
-// 缺陷口径 (修复前, 实测): 分子用 drop 的分数交叠 a_jp/A_drop,j、分母用绝对
-// 球面面积 Σ a_jp ⇒ S_p = B0/pixfrac², 与解析式 1/pf²−1 逐位吻合
+// 缺陷口径 (历史, 实测): 核取 drop 分数交叠 a_jp/A_drop,j **而分母取覆盖面积
+// Σ a_jp** ⇒ S_p = B0/pixfrac², 与解析式 1/pf²−1 逐位吻合
 // (pf=0.8 → +56.25%, 0.6 → +177.8%, 0.5 → +300%); pixfrac=1 时 A_drop≡A_pixel
-// ⇒ 误差恰为 0 (默认值掩盖缺陷)。
+// 且 N_p≡D_p ⇒ 误差恰为 0 (默认值掩盖缺陷)。
 //
 // 本门的**两条**判据 (缺一不可, 保证非退化):
-//   P (正例): 实测 max|S_p/B0 − 1| < 1e-3            ⇒ 修复后必须绿;
+//   P (正例): 实测 max|S_p/B0 − 1| < 1e-3            ⇒ 必须绿;
 //   N (负例控制): 用**独立 oracle 几何**给出的 A_pixel/A_drop 比值把实测 S_p
-//     投影回"若分母取 A_drop 会得到什么", 该投影必须**判红** (偏差 > 1e-3)。
-//     ⇒ 证明该门的容差确有分辨两种归一口径的能力 (恒真门没有证据资格);
-//       修复前实测 S_p=B0/pf², 投影回 B0 ⇒ 本条判红, 整个门判红。
+//     投影回"若分母取覆盖面积 D_p=Σ a_jp 会得到什么", 该投影必须**判红**。
+//     ⇒ 证明该门的容差确有分辨两种归一分母的能力 (恒真门没有证据资格);
+//       S_p^wrong = S_p·(A_pixel/A_drop) = B0/pf² ⇒ 本条判红。
 // 本门不调用被测函数产生期望值: 期望值来自 SCI §5 恒等式 + p1drz_oracle.hpp
 // 的独立几何 (Van Oosterom 立体角, 与生产 Van Oosterom 扇形不同式)。
 //
@@ -123,8 +127,8 @@ CaseResult evaluate(double pixfrac, const char* dump_dir) {
     r.rel_std = u.rel_std;
     r.measured_green = gate_green(leafs, B0, GATE_TOL);
 
-    // 负例控制: 用独立 oracle 几何的 A_pixel/A_drop 把实测值投影回
-    // "分母取 A_drop" 的口径 (A_drop,j = pixfrac²·A_pixel,j, 只差该比值)。
+    // 负例控制: 用独立 oracle 几何的 A_pixel/A_drop = 1/pf² 把实测值投影回
+    // "分母取覆盖面积 D_p=Σ_j a_jp" 的口径 (N_p = D_p/pf², 只差该比值)。
     const int cx = W / 2, cy = H / 2;
     const double a_pix = p1drz::oracle_pixel_area(img.wcs, cx, cy);
     const double a_drop = p1drz::oracle_drop_area(img.wcs, (double)cx,
@@ -136,7 +140,7 @@ CaseResult evaluate(double pixfrac, const char* dump_dir) {
         worst = std::max(worst, std::fabs(s_defect / B0 - 1.0));
     }
     r.defect_dev = worst;
-    // "分母取 A_drop" 的预测必须被本门判红 (非退化证据)
+    // "分母取覆盖面积 D_p" 的预测必须被本门判红 (非退化证据)
     r.defect_red = !(worst < GATE_TOL);
 
     std::printf("[p1drz-disp009] pf=%.3f leaf=%zu max|S/B0-1|=%.6e rel_std=%.3e "
@@ -216,8 +220,9 @@ int main(int argc, char** argv) {
     const char* dump_dir = nullptr;
     if (argc >= 3 && std::strcmp(argv[1], "dump") == 0) dump_dir = argv[2];
 
-    std::printf("[p1drz-disp009] DISP-DRZ-009 回归门: w_jp = a_jp/A_pixel,j "
-                "(SCI-DRZ-001 §5/§7/§10; FZ-GATE-CONST-SB tol=%.0e)\n",
+    std::printf("[p1drz-disp009] DISP-DRZ-009 回归门: w_jp = a_jp/A_drop,j + "
+                "N_p = Sum w_jp*A_pixel,j (SCI-DRZ-001 §5/§7/§10; "
+                "FZ-GATE-CONST-SB tol=%.0e)\n",
                 GATE_TOL);
     const double pixfracs[] = {1.0, 0.8, 0.6, 0.5};
     for (double pf : pixfracs) {
@@ -232,16 +237,16 @@ int main(int argc, char** argv) {
         check(r.measured_green, what, det);
 
         if (pf < 1.0) {
-            // 负例控制只在 pixfrac<1 有意义: 两种归一口径相差 1/pf²。
+            // 负例控制只在 pixfrac<1 有意义: 两种归一分母相差 1/pf²。
             std::snprintf(what, sizeof(what),
-                          "N pf=%.3f 负例控制: 分母取 A_drop 必须判红", pf);
+                          "N pf=%.3f 负例控制: 分母取覆盖面积 D_p 必须判红", pf);
             std::snprintf(det, sizeof(det),
                           "defect_pred_dev=%.6e (须 >%.0e), 1/pf^2-1=%.6e",
                           r.defect_dev, GATE_TOL, 1.0 / (pf * pf) - 1.0);
             check(r.defect_red, what, det);
         } else {
-            // pixfrac=1 端点: A_drop ≡ A_pixel ⇒ 两种归一**恒等**, 缺陷在此处
-            // 必然零效应 (这正是默认值掩盖缺陷的机制, 也是向后兼容硬约束)。
+            // pixfrac=1 端点: A_drop ≡ A_pixel ⇒ N_p ≡ D_p, 两种归一**恒等**,
+            // 缺陷在此处必然零效应 (这正是默认值掩盖缺陷的机制, 也是向后兼容硬约束)。
             std::snprintf(what, sizeof(what),
                           "E pf=1.000 端点退化: A_pixel/A_drop == 1 (缺陷零效应)");
             std::snprintf(det, sizeof(det),

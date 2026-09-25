@@ -63,9 +63,22 @@ set(P1PHOT_PROD_SOURCES
   ${P1PHOT_SRC}/wcs_transform.cpp
   ${P1PHOT_SRC}/image_corrector.cpp
   ${P1PHOT_SRC}/spectrum_integrator.cpp
+  # PHOT-MXY-01: 低阶乘性空间增益 m(x,y) 的拟合 + 唯一空间场求值/施加实现
+  # (spatial_gain.cpp 只 include photometry_apply.h 的基函数与内联求值; 单一实现)
+  ${P1PHOT_SRC}/spatial_gain.cpp
+  ${P1PHOT_LIB}/algorithms/calibration/src/photometry_apply.cpp
+  # PHOT-MXY-01: 可辨识性判据 = 仓内唯一实现 (coverage/src/identifiability.cpp,
+  # 与 astrocs_phase2 同一份源码; 测试 target 沿用「生产源零修改编入」先例)
+  ${P1PHOT_LIB}/algorithms/coverage/src/identifiability.cpp
   # F6 legacy 旧符号 (README §9; 只读引用, 不改生产面)
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1/photometer.cpp
 )
+
+# PHOT-MXY-01 追加 include 面: calibration/src (photometry_apply.h 扁平头名)
+# + coverage/include (astro/phase2/identifiability.h)
+set(P1PHOT_EXTRA_INC
+  ${P1PHOT_LIB}/algorithms/calibration/src
+  ${P1PHOT_LIB}/algorithms/coverage/include)
 
 # OpenMP (被测域 pc_api/image_corrector 使用; G9 同款可选降级)
 find_package(OpenMP QUIET)
@@ -83,6 +96,7 @@ add_executable(p1phot_tests
   ${P1PHOT_DIR}/p1phot_tests_oracle.cpp
   ${P1PHOT_DIR}/p1phot_tests_negative.cpp
   ${P1PHOT_DIR}/p1phot_tests_determinism.cpp
+  ${P1PHOT_DIR}/p1phot_tests_spatial.cpp
   ${P1PHOT_DIR}/p1phot_gaia_stub.cpp
   ${P1PHOT_PROD_SOURCES})
 target_include_directories(p1phot_tests PRIVATE
@@ -91,6 +105,7 @@ target_include_directories(p1phot_tests PRIVATE
   ${P1PHOT_SRC}
   ${P1PHOT_LIB}/infrastructure/gaia_xpsd_client/src
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1
+  ${P1PHOT_EXTRA_INC}
   ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_tests PRIVATE ${P1PHOT_OMP_TARGET})
 # 单组单跑: ctest -R p1phot_units / p1phot_properties / p1phot_oracle / p1phot_negative
@@ -101,6 +116,9 @@ add_test(NAME p1phot_negative COMMAND p1phot_tests negative)
 # 到达顺序不变性 + 线程数扫描 (1/2/4/8): §13.4 I5 只扫线程数、样本序恒定 ⇒
 # 本组把"样本序"变成被控自变量 (判据口径 = docs/contracts/TEST_MATRIX.md §2)。
 add_test(NAME p1phot_determinism COMMAND p1phot_tests determinism)
+# PHOT-MXY-01: 低阶乘性空间增益 m(x,y) —— 正例恢复 + 四条负例（真值无效应归零 /
+# 分布不足声明降级 / 开关关闭逐位一致 / 判据能红能绿）。
+add_test(NAME p1phot_spatial COMMAND p1phot_tests spatial)
 
 # performance 基线 (独立可执行, 时长敏感与 core 组隔离)
 add_executable(p1phot_perf_test
@@ -113,6 +131,7 @@ target_include_directories(p1phot_perf_test PRIVATE
   ${P1PHOT_SRC}
   ${P1PHOT_LIB}/infrastructure/gaia_xpsd_client/src
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1
+  ${P1PHOT_EXTRA_INC}
   ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_perf_test PRIVATE ${P1PHOT_OMP_TARGET})
 add_test(NAME p1phot_performance COMMAND p1phot_perf_test)
@@ -125,6 +144,7 @@ add_executable(p1phot_selfcheck_test
   ${P1PHOT_DIR}/p1phot_tests_oracle.cpp
   ${P1PHOT_DIR}/p1phot_tests_negative.cpp
   ${P1PHOT_DIR}/p1phot_tests_determinism.cpp
+  ${P1PHOT_DIR}/p1phot_tests_spatial.cpp
   ${P1PHOT_DIR}/p1phot_gaia_stub.cpp
   ${P1PHOT_PROD_SOURCES})
 target_include_directories(p1phot_selfcheck_test PRIVATE
@@ -133,6 +153,7 @@ target_include_directories(p1phot_selfcheck_test PRIVATE
   ${P1PHOT_SRC}
   ${P1PHOT_LIB}/infrastructure/gaia_xpsd_client/src
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1
+  ${P1PHOT_EXTRA_INC}
   ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_selfcheck_test PRIVATE ${P1PHOT_OMP_TARGET})
 add_test(NAME p1phot_selfcheck COMMAND p1phot_selfcheck_test)

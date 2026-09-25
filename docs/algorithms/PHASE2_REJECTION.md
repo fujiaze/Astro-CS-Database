@@ -208,8 +208,7 @@ AUTO 路由（N = 该输出像素的几何覆盖帧数，一次解析；两档�
   生产档 astrocs_adaptive_pixel（:1148-1158 唯一决策点）:
     1 ≤ N ≤ 3  → NONE（不排异，直接逆方差加权积分）
     4 ≤ N ≤ 5  → PERCENTILE
-    6 ≤ N ≤ 15 → WINSORIZED_SIGMA
-    N ≥ 16     → LINEAR_FIT
+    N ≥ 6      → WINSORIZED_SIGMA   （M3 裁决 2026-09-25：原 N ≥ 16 → LINEAR_FIT 档改投）
   对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（:1262-1268）:
     N < 6 → PERCENTILE;  6 ≤ N ≤ 15 → WINSORIZED_SIGMA;  N > 15 → LINEAR_FIT
   min/max 不用于生产（AUTO 禁止产出 min/max 与 NoRejection，生产路径守卫 fail-closed
@@ -566,8 +565,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 3. 阈值表（4.0/3.0/8；5.0/3.5/8；0.05/10；0.2/0.1；1/1/4；
    minimum_n 注册表）——rejection.cpp:1-12/:1226-1251/:982-999；
    阈值表取值 = 上列冻结值（"效果好"不是重定义依据，SCI §9a）。
-4. AUTO 路由（生产档 1≤N≤3 none / 4≤N≤5 percentile / 6≤N≤15 winsorized /
-   N≥16 linear_fit；对照档 N<6 percentile / 6..15 winsorized / N>15 linear_fit）
+4. AUTO 路由（生产档 1≤N≤3 none / 4≤N≤5 percentile / **N≥6 winsorized**
+   （M3 裁决：原 N≥16 linear_fit 档改投）；对照档 N<6 percentile / 6..15
+   winsorized / N>15 linear_fit，**未随 M3 改动**）
    与 nominal n 一次解析（解析结果即最终值，per-pixel n_eff 重选不在其列，SCI §7/§10）。
 5. normalization 默认 MEDIAN_CENTER + floor 1e-12；PERCENTILE/RCR/
    EXTREME_PRIOR 的 normalization 绑定（:2036-2062）。
@@ -806,5 +806,5 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
 - 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照，**次生参考实现对拍**）。
-- **真实数据读数（M42 沿线，口径与分母显式）**：显著点（卫星帧留一稳健 z>5）漏检 **3.92%（220/5611）**、真·单异常口径检出率 **99.34%（4526/4556）**；其中 `n ≥ 16`（linear_fit 档）显著点漏检 **9.67%（160/1655）**、`n = 6..15`（winsorized 档）**1.52%（60/3956）**。*「5785 点全作分母 = 4.96%」的旧读法已作废*（分母混入 174 个无 >5σ 异常的点）。权威口径见 `docs/science/REJECTION.md` §17；复现 = `run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py` + `m3_m5_metrics.py`（生产 kernel 复现，与产品掩码 5744/5744 一致）。
+- **真实数据读数（M42 沿线，口径与分母显式）**：显著点（卫星帧留一稳健 z>5）漏检 **3.92%（220/5611）**、真·单异常口径检出率 **99.34%（4526/4556）**；其中 `n ≥ 16`（**M3 前**为 linear_fit 档，M3 后改投 winsorized）显著点漏检 **9.67%（160/1655）**、`n = 6..15`（winsorized 档）**1.52%（60/3956）**。*「5785 点全作分母 = 4.96%」的旧读法已作废*（分母混入 174 个无 >5σ 异常的点）。权威口径见 `docs/science/REJECTION.md` §17；复现 = `run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py` + `m3_m5_metrics.py`（生产 kernel 复现，与产品掩码 5744/5744 一致）。
 

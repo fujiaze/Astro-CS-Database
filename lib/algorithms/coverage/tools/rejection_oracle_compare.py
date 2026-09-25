@@ -3,7 +3,9 @@
 # 用途（控制包 07_REJECTION_IMPLEMENTATION / 12_DELIVERY evidence）：
 #   - Sigma ↔ Astropy astropy.stats.sigma_clip（median + mad_std）
 #   - ESD  ↔ NIST Generalized ESD（Rosner 示例，54 点 3 outliers）
-#   - Auto ↔ WBPP 2.9.1 本机源码 bestRejectionMethod 政策
+#   - Auto ↔ **本仓冻结 AUTO 路由表**（档界取自 WBPP 2.5.9 bestRejectionMethod，
+#     engine.js:1421-1429，包 sha1 712cc7c3…；n>15 档本仓取 linear_fit，
+#     WBPP 2.4.0+ 该档为 ESD，见 docs/science/REJECTION.md §5/§14a）
 #   - 边界矩阵（NaN/±Inf/valid=false/零方差/n=2 卫星线）
 # 只读 Oracle 工具（NON_PRODUCTION_TOOL_ONLY）。
 #
@@ -218,7 +220,9 @@ def esd_vs_nist():
 
 
 def auto_vs_wbpp_policy():
-    """WBPP 2.9.1 bestRejectionMethod 政策核验（本机源码证据）：
+    """**本仓冻结 AUTO 路由表**核验（档界取自 WBPP 2.5.9 bestRejectionMethod，
+       engine.js:1421-1429，包 sha1 712cc7c3…；n>15 档本仓取 linear_fit =
+       WBPP <=2.3.x 的 n<25 LinearFit，WBPP 2.4.0+ 该档为 ESD）：
        n<6 → percentile；6..15 → winsorized；>15 → linear_fit。"""
     expected = {2: "percentile", 5: "percentile", 6: "winsorized_sigma",
                 15: "winsorized_sigma", 16: "linear_fit", 20: "linear_fit"}
@@ -233,7 +237,37 @@ def auto_vs_wbpp_policy():
         ok &= (names[got] == want)
         print(f"[auto-policy] nominal={n} resolved={names[got]} "
               f"want={want} {'OK' if names[got] == want else 'FAIL'}")
-    assert ok, "Auto 路由与 WBPP 2.9.1 政策不一致"
+    assert ok, "Auto 路由与本仓冻结路由表（档界取自 WBPP 2.5.9）不一致"
+    return True
+
+
+def pixel_profile_policy():
+    """**生产档 astrocs_adaptive_pixel** 的 AUTO 路由（M3 裁决 2026-09-25）：
+       n<6 → percentile；n>=6 → winsorized_sigma（n>=16 档原为 linear_fit，已改投）。
+       负例：n>=16 **不得**解析为 linear_fit（路由被改回 ⇒ 本函数红）。
+       依据 = 生产 kernel 受控评估 run/REJECT-DOCFIX-01/REPORT.md §2/§4。"""
+    names = {0: "none", 1: "sigma", 2: "winsorized_sigma", 3: "averaged_sigma",
+             4: "linear_fit", 5: "generalized_esd", 6: "rcr", 7: "percentile",
+             8: "median_sigma", 9: "minmax"}
+    expected = {3: "none", 5: "percentile", 15: "winsorized_sigma",
+                16: "winsorized_sigma", 20: "winsorized_sigma"}
+    ok = True
+    for n, want in expected.items():
+        _m, _r, stat = run_plan([10.0] * max(3, n), "auto", n,
+                                profile="astrocs_adaptive_pixel")
+        got = names[int(stat.rsplit("method=", 1)[1])]
+        ok &= (got == want)
+        print(f"[pixel-policy] nominal={n} resolved={got} want={want} "
+              f"{'OK' if got == want else 'FAIL'}")
+    for n in (16, 20):
+        _m, _r, stat = run_plan([10.0] * n, "auto", n,
+                                profile="astrocs_adaptive_pixel")
+        got = names[int(stat.rsplit("method=", 1)[1])]
+        bad = (got == "linear_fit")
+        ok &= (not bad)
+        print(f"[pixel-policy-negative] nominal={n} must NOT be linear_fit -> "
+              f"{got} {'OK' if not bad else 'FAIL'}")
+    assert ok, "生产档 astrocs_adaptive_pixel 的 AUTO 路由与 M3 冻结表不一致"
     return True
 
 
@@ -274,6 +308,7 @@ def main():
     ok &= winsorized_vs_scipy()
     ok &= winsorized_mirror_smoke()
     ok &= auto_vs_wbpp_policy()
+    ok &= pixel_profile_policy()
     ok &= edge_matrix()
     # RCR oracle 由 rcr_oracle_compare.py 覆盖（官方 rcr 2.4.7 固定版本）
     print("ORACLE_RESULT=" + ("PASS" if ok else "FAIL"))

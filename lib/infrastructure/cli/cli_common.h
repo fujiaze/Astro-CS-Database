@@ -91,7 +91,7 @@ std::string sanitize_path(const std::string& p);
 std::string file_sha256(const std::string& u8path, bool* ok);
 std::string local_cpu_signature();
 
-// ── CLI-MULTIBLOCK（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：normalize 多数据块配置 ──
+// ── CLI-MULTIBLOCK（依据 ASTROCS_DESIGN.md §4.3 输入合同「两种形态互斥」）：多数据块配置 ──
 // 一个 JSON 内可并列多个数据块（block）：每块自带一组 input_lights + 一套母版
 // （master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir；
 // 一块 = 一次运行（独立 output_dir / 独立 run manifest）。

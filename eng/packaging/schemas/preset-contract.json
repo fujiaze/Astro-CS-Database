@@ -1,6 +1,6 @@
 {
   "contract_version": 1,
-  "description": "ACSD BLD-001 frozen toolchain contract (09_WINDOWS_TOOLCHAIN_LOCK.md). Single source of truth read by eng/cmake/toolchain/verify_toolchain.py. The formal Windows surface (CMakePresets.json windows presets + eng/packaging/windows/.vsconfig) must match every field below exactly; drift fails fast with a non-zero exit. This file is NOT a CMake presets schema: CMakePresets.json is validated by CMake itself (schema version 10) at parse/configure time.",
+  "description": "ACSD BLD-001 frozen toolchain contract (value landing: eng/packaging/windows/README.md). Single source of truth read by eng/cmake/toolchain/verify_toolchain.py. The formal Windows surface (CMakePresets.json windows presets + eng/packaging/windows/.vsconfig) must match every field below exactly; drift fails fast with a non-zero exit. This file is NOT a CMake presets schema: CMakePresets.json is validated by CMake itself (schema version 10) at parse/configure time.",
   "windows": {
     "formal_generator": "Visual Studio 17 2022",
     "architecture": "x64",

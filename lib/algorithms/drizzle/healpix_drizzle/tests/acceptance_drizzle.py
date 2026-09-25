@@ -7,17 +7,21 @@
   - 本脚本: numpy 向量化生成/核对合成数据 -> 运行 C++ 验收 exe -> numpy 聚合
     断言 -> 输出验收报告与 JSON 证据
 
-验收项:
+验收项 (DRZ-FLUX-FIX-01: 核按 drop 面积归一 ⇒ Sigma_out = Sigma_in, 与 pixfrac 无关):
   A. 天极/赤道/RA 跨 0/常规位置: FP64 能量守恒 + FP32 vs FP64 逐 leaf
-  B. pixfrac {0.1,0.25,0.5,1.0} x 过采样率 {1,2,3,4}: 能量守恒 + 一致性
+  B. pixfrac {0.1,0.5,0.8,1.0} x 过采样率 {1,2,3,4}: 能量守恒 + 一致性
   C. 球面<->平面双向投影往返 (TAN, 导出所需)
   D. 尺度 x NSIDE 矩阵 (0.5"/1"/2"/3" + 对应 NSIDE)
   E. 广域大畸变矩阵 (T4 真实 WCS + 合成 SIP5 + 极区 + RA 跨 0)
   F. 数值类型审计: 生产源码仅 IEEE float32/float64
   G. 标准 ULP 分布 + 候选零漏选
+  H. 负例控制: 同一 exe 注入旧 pixfrac^2 口径 (--inject-legacy-pixfrac2) 必须判红
 
 用法:
-  py -3.12 acceptance_drizzle.py [--tests-dir <dir>] [--out <dir>] [--skip-run]
+  python3 acceptance_drizzle.py [--exe <path>] [--tests-dir <dir>] [--out <dir>] [--skip-run]
+
+exe 定位 (跨平台): --exe 显式给定 > 环境 ASTROCS_DRIZZLE_ACCEPTANCE_EXE >
+tests_dir / build 下若干候选 (含/不含 .exe 后缀, 递归 glob)。
 """
 
 import argparse
@@ -87,12 +91,51 @@ def audit_source_types(module_dir):
     return bad
 
 
-def run_cxx_exe(exe, out_dir, env):
+def find_exe(explicit, tests_dir):
+    """跨平台定位 drizzle_acceptance_test。
+
+    历史缺陷: 原实现硬编码 tests_dir/drizzle_acceptance_test.exe (Windows 专名),
+    在 Linux 上恒为 "exe 不存在"——验收门永远跑不起来。
+    搜索顺序: --exe > $ASTROCS_DRIZZLE_ACCEPTANCE_EXE > tests_dir 及其上溯的
+    build/ 树下若干候选 (带/不带 .exe 后缀, 含递归 glob)。
+    """
+    if explicit:
+        return explicit if os.path.exists(explicit) else None
+    env_exe = os.environ.get("ASTROCS_DRIZZLE_ACCEPTANCE_EXE")
+    if env_exe and os.path.exists(env_exe):
+        return env_exe
+    names = ("drizzle_acceptance_test", "drizzle_acceptance_test.exe")
+    roots = [tests_dir]
+    here = tests_dir
+    for _ in range(6):
+        here = os.path.dirname(here)
+        roots.append(os.path.join(here, "build"))
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for name in names:
+            cand = os.path.join(root, name)
+            if os.path.isfile(cand):
+                return cand
+    # 最后回退: 在 build/ 下递归找 (target 输出目录布局可能变化)
+    import glob as _glob
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for name in names:
+            hits = sorted(_glob.glob(os.path.join(root, "**", name),
+                                     recursive=True))
+            if hits:
+                return hits[0]
+    return None
+
+
+def run_cxx_exe(exe, out_dir, env, extra_args=()):
     if not os.path.exists(exe):
         return False, "exe 不存在: %s" % exe
     proc = subprocess.run(
-        [exe, out_dir], capture_output=True, text=True, env=env, timeout=1200,
-        encoding="utf-8", errors="replace")
+        [exe, out_dir] + list(extra_args), capture_output=True, text=True,
+        env=env, timeout=3600, encoding="utf-8", errors="replace")
     tail = (proc.stdout or "")[-2000:]
     return proc.returncode == 0, tail
 
@@ -101,6 +144,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tests-dir", default="lib/algorithms/drizzle/healpix_drizzle/tests")
     ap.add_argument("--out", default="run/temp/precise_hardening")
+    ap.add_argument("--exe", default=None,
+                    help="drizzle_acceptance_test 可执行文件路径 (默认自动定位)")
     ap.add_argument("--skip-run", action="store_true",
                     help="只分析已有 JSONL, 不运行 C++ 验收 exe")
     args = ap.parse_args()
@@ -126,7 +171,12 @@ def main():
         check("numpy 解析 Σin size=%d" % size, True, "%.6g" % synth_flux(size))
 
     # ---- A/B/C: 运行 C++ 验收 exe, numpy 聚合断言 ----
-    exe = os.path.join(tests_dir, "drizzle_acceptance_test.exe")
+    exe = find_exe(args.exe, tests_dir)
+    if exe is None:
+        check("C++ 验收 exe 可定位", False,
+              "请用 --exe 指定 drizzle_acceptance_test (或先构建该 target)")
+        return 1
+    print("  exe: %s" % exe)
     ok, tail = run_cxx_exe(exe, out_dir, env)
     if not args.skip_run:
         if not ok:
@@ -138,7 +188,7 @@ def main():
     rows = load_jsonl(os.path.join(out_dir, "acceptance_matrix.jsonl"))
     pos_tags = ["north_pole", "south_pole", "equator_ra0", "ra_cross0", "nominal"]
     os_tags = ["os%d_pf%.2f" % (r, pf)
-               for r in (1, 2, 3, 4) for pf in (0.10, 0.25, 0.50, 1.00)]
+               for r in (1, 2, 3, 4) for pf in (0.10, 0.50, 0.80, 1.00)]
     scale_tags = ["scale%.1f_n%d" % (s, n)
                   for s, n in ((0.5, 2097152), (1.0, 1048576),
                                (2.0, 262144), (3.0, 131072))]
@@ -274,6 +324,26 @@ def main():
                                   "pass": okc})
     else:
         check("candidate_matrix.jsonl 存在", False)
+
+    # ---- H. 负例控制 (非退化证据): 旧 pixfrac^2 口径必须判红 ----
+    # 同一可执行、同一判据, 只把 Sigma_out 乘回 pixfrac^2 (即「按 A_pixel 归一」
+    # 的旧口径 = provenance.flux_conservation_factor 写成 pixfrac^2)。
+    # 该模式必须 exit != 0; 否则说明正例门是恒真门, 没有证据资格。
+    print("--- H. 负例控制: 注入旧 pixfrac^2 口径 (必须判红) ---")
+    if not args.skip_run:
+        neg_dir = os.path.join(out_dir, "negative_injection")
+        os.makedirs(neg_dir, exist_ok=True)
+        neg_ok, neg_tail = run_cxx_exe(exe, neg_dir, env,
+                                       ("--inject-legacy-pixfrac2",))
+        bad = [l for l in neg_tail.splitlines() if "[FAIL]" in l]
+        okh = check("注入 pixfrac^2 后判据判红 (exit != 0)",
+                    (not neg_ok) and len(bad) > 0,
+                    "exit=%s, FAIL 行=%d" % ("0" if neg_ok else "非0", len(bad)))
+        results["checks"].append({"scope": "H", "tag": "inject_legacy_pixfrac2",
+                                  "exe_exit_zero": bool(neg_ok),
+                                  "fail_lines": len(bad), "pass": okh})
+    else:
+        print("  (--skip-run: 跳过负例注入)")
 
     # ---- 汇总 ----
     passed = sum(1 for c in results["checks"] if c["pass"])

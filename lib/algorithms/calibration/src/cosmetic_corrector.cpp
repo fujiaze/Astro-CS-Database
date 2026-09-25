@@ -332,7 +332,8 @@ void detect_bad_columns(const float* data, int w, int h,
     if (!data || !col_mask || w <= 0 || h <= 0) return;
     for (int x = 0; x < w; x++) col_mask[x] = 0;
     if (column_sigma <= 0.0f) return;   // 显式禁用（不是降级）
-    // 段长上限（负责人 2026-09-24 裁决：**只修单列**；相邻多列不属本任务）
+    // 段长上限（依据 docs/contracts/DATA_SEMANTICS.md §10.4「修复」行：**只修单列**，
+    // 按左右两邻算术平均；相邻多列不属本路径）
     //   <=0 ⇒ 默认 1（只判单列缺陷）。超限的段**不修复**，仅以掩膜值 2 标记
     //   并置 AC_COLSTAT_WIDE_DEFECT，如实登记而不静默。
     const int maxlen = (max_seg_len > 0) ? max_seg_len : 1;
@@ -544,49 +545,113 @@ void correct_columns(const float* data, int w, int h, float* out,
 //   dark 与 bias 一致判坏                      => HIGH（物理来源双重印证）
 //   仅一个物理来源判坏 / 科学帧 + 任一母版      => MEDIUM
 //   仅科学帧自身判坏                            => LOW
-void correct_columns_ex(const float* data, const float* dark, const float* bias,
+// 逐路分账：掩膜里"已修"（值 1）与"仅标记"（值 2）必须分开计数 ——
+// 二者在产物里的含义不同（前者真的换了像素值），合起来报会让下游把未修的列
+// 当成已修（实测一轮真实运行有 405 列被标记、其中仅 63 列真正改值）。
+static void count_mask_cols(const unsigned char* m, int w, int* n_rep, int* n_mark) {
+    int r = 0, k = 0;
+    for (int x = 0; x < w; ++x) {
+        if (m[x] == AC_COLSTAT_MASK_REPAIRED) ++r;
+        else if (m[x] == AC_COLSTAT_MASK_WIDE) ++k;
+    }
+    if (n_rep) *n_rep = r;
+    if (n_mark) *n_mark = k;
+}
+
+// 母版路径"仅标记"（宽缺陷）的声明区间守卫：某路宽标记列率超过 frac_max 时，
+// **该路整类宽标记丢弃**并把丢弃列数记账（不静默）。判据依据见
+// astro_calibration.h 与 module_adapters.cpp 的 kP1BadcolMasterWideFracMax 注释：
+// 母版宽标记在阈值微调下 0→1419→0 列地跳变，不是稳定物理结构。
+// frac_max <= 0 ⇒ 不设区间（科学帧路径用）。
+static void apply_wide_budget(unsigned char* m, int w, float frac_max, int* dropped) {
+    if (dropped) *dropped = 0;
+    if (!m || w <= 0 || !(frac_max > 0.0f)) return;
+    int n_mark = 0;
+    for (int x = 0; x < w; ++x) if (m[x] == AC_COLSTAT_MASK_WIDE) ++n_mark;
+    if (n_mark == 0) return;
+    const int budget = static_cast<int>(frac_max * static_cast<float>(w));
+    if (n_mark <= budget) return;
+    for (int x = 0; x < w; ++x) if (m[x] == AC_COLSTAT_MASK_WIDE) m[x] = 0;
+    if (dropped) *dropped = n_mark;
+}
+
+// 三路径仲裁的**唯一实现**（LINDEF-CLOSE-01 起带母版专用阈值、宽标记区间守卫与
+// 逐路分账）。master_column_sigma <= 0 ⇒ 归一到 column_sigma（旧入口逐位不变）。
+void correct_columns_ex_impl(const float* data, const float* dark, const float* bias,
                         int w, int h, float* out,
-                        float column_sigma, int neighbor_k, int max_seg_len,
+                        float column_sigma, float master_column_sigma,
+                        float master_wide_frac_max, float science_wide_frac_max,
+                        int neighbor_k, int max_seg_len,
                         unsigned char* col_mask,
                         unsigned char* source_mask, unsigned char* conf_mask,
-                        int* out_n_cols, int* out_n_sci,
-                        int* out_n_dark, int* out_n_bias,
+                        int* out_n_cols, int* out_n_marked_only,
+                        int* out_n_sci, int* out_n_dark, int* out_n_bias,
+                        int* out_n_sci_marked, int* out_n_dark_marked,
+                        int* out_n_bias_marked,
+                        int* out_master_wide_suppressed,
+                        int* out_science_wide_suppressed,
                         int* out_px_repaired, float* out_sigma_col,
+                        float* out_sigma_col_dark, float* out_sigma_col_bias,
                         int* out_status) {
     int st_det = 0, st_rep = 0;
     if (out_n_cols) *out_n_cols = 0;
+    if (out_n_marked_only) *out_n_marked_only = 0;
     if (out_n_sci) *out_n_sci = 0;
     if (out_n_dark) *out_n_dark = 0;
     if (out_n_bias) *out_n_bias = 0;
+    if (out_n_sci_marked) *out_n_sci_marked = 0;
+    if (out_n_dark_marked) *out_n_dark_marked = 0;
+    if (out_n_bias_marked) *out_n_bias_marked = 0;
+    if (out_master_wide_suppressed) *out_master_wide_suppressed = 0;
+    if (out_science_wide_suppressed) *out_science_wide_suppressed = 0;
     if (out_px_repaired) *out_px_repaired = 0;
     if (out_sigma_col) *out_sigma_col = 0.0f;
+    if (out_sigma_col_dark) *out_sigma_col_dark = 0.0f;
+    if (out_sigma_col_bias) *out_sigma_col_bias = 0.0f;
     if (out_status) *out_status = AC_COLSTAT_FRAME_TOO_SMALL;
     if (!data || !out || w <= 0 || h <= 0) return;
+
+    // 母版路径阈值：<=0 归一到科学帧阈值（向后兼容；配置不得把母版放松到
+    // 比科学帧更松 —— 见 astro_calibration.h 的条款说明）。
+    const float m_sigma_raw = (master_column_sigma > 0.0f) ? master_column_sigma
+                                                           : column_sigma;
 
     std::vector<unsigned char> m_sci(static_cast<size_t>(w), 0);
     std::vector<unsigned char> m_dark(static_cast<size_t>(w), 0);
     std::vector<unsigned char> m_bias(static_cast<size_t>(w), 0);
     int n_sci = 0, n_dark = 0, n_bias = 0;
+    int k_sci = 0, k_dark = 0, k_bias = 0;
+    int supp_dark = 0, supp_bias = 0, supp_sci = 0;
     float sig_sci = 0.0f, sig_dark = 0.0f, sig_bias = 0.0f;
 
     detect_bad_columns(data, w, h, column_sigma, neighbor_k, max_seg_len,
                        m_sci.data(), &n_sci, &sig_sci, &st_det);
+    // 科学帧路径的宽标记同样受声明区间约束（LINDEF-CLOSE-01 裁决：给"标记"这个
+    // 动作设可声明的上界，而不是只约束母版）。判据一个字未动，只对"仅标记"这一类
+    // 加可声明上界；超界 ⇒ 整类丢弃并记账。依据与母版同源：真实第 2 帧上科学帧
+    // 路径标 588 列，机制是重尾 d 上的就近反号配对事故（非稳定物理结构）。
+    apply_wide_budget(m_sci.data(), w, science_wide_frac_max, &supp_sci);
+    count_mask_cols(m_sci.data(), w, &n_sci, &k_sci);
     if (dark) {
         int st2 = 0;
-        detect_bad_columns(dark, w, h, column_sigma, neighbor_k, max_seg_len,
+        detect_bad_columns(dark, w, h, m_sigma_raw, neighbor_k, max_seg_len,
                            m_dark.data(), &n_dark, &sig_dark, &st2);
+        apply_wide_budget(m_dark.data(), w, master_wide_frac_max, &supp_dark);
+        count_mask_cols(m_dark.data(), w, &n_dark, &k_dark);
         // 母版路径的"帧过小"不改变科学帧路径的适用域判定；尺度退化只记在 status
         if (st2 & AC_COLSTAT_FRAME_TOO_SMALL) st_det |= AC_COLSTAT_FRAME_TOO_SMALL;
     }
     if (bias) {
         int st3 = 0;
-        detect_bad_columns(bias, w, h, column_sigma, neighbor_k, max_seg_len,
+        detect_bad_columns(bias, w, h, m_sigma_raw, neighbor_k, max_seg_len,
                            m_bias.data(), &n_bias, &sig_bias, &st3);
+        apply_wide_budget(m_bias.data(), w, master_wide_frac_max, &supp_bias);
+        count_mask_cols(m_bias.data(), w, &n_bias, &k_bias);
         if (st3 & AC_COLSTAT_FRAME_TOO_SMALL) st_det |= AC_COLSTAT_FRAME_TOO_SMALL;
     }
 
     std::vector<unsigned char> merged(static_cast<size_t>(w), 0);
-    int n_merged = 0;
+    int n_merged = 0, n_marked_only = 0;
     for (int x = 0; x < w; x++) {
         unsigned src = 0;
         if (m_sci[x]) src |= AC_COLSTAT_SRC_SCIENCE;
@@ -603,10 +668,12 @@ void correct_columns_ex(const float* data, const float* dark, const float* bias,
             else if (has_s) conf = AC_COLSTAT_CONF_LOW;
             conf_mask[x] = static_cast<unsigned char>(conf);
         }
-        // 只有"可修"柱并入 merged；宽缺陷（值 2）保持仅标记，不参与修复
+        // 只有"可修"柱并入 merged；宽缺陷（值 2）保持仅标记，不参与修复。
+        // 已修与仅标记**分别计数**（LINDEF-CLOSE-01）：两者在产物里的含义不同，
+        // 合并成一个数会让下游把"只是被怀疑"的列当成"值被换过"。
         if (m_sci[x] == AC_COLSTAT_MASK_REPAIRED || m_dark[x] == AC_COLSTAT_MASK_REPAIRED ||
             m_bias[x] == AC_COLSTAT_MASK_REPAIRED) { merged[x] = AC_COLSTAT_MASK_REPAIRED; n_merged++; }
-        else if (src) { merged[x] = AC_COLSTAT_MASK_WIDE; }
+        else if (src) { merged[x] = AC_COLSTAT_MASK_WIDE; n_marked_only++; }
         if (m_sci[x] == AC_COLSTAT_MASK_WIDE || m_dark[x] == AC_COLSTAT_MASK_WIDE ||
             m_bias[x] == AC_COLSTAT_MASK_WIDE) st_det |= AC_COLSTAT_WIDE_DEFECT;
     }
@@ -614,11 +681,99 @@ void correct_columns_ex(const float* data, const float* dark, const float* bias,
     repair_bad_columns(data, w, h, merged.data(), out, out_px_repaired, &st_rep);
     if (col_mask) for (int x = 0; x < w; x++) col_mask[x] = merged[x];
     if (out_n_cols) *out_n_cols = n_merged;
+    if (out_n_marked_only) *out_n_marked_only = n_marked_only;
     if (out_n_sci) *out_n_sci = n_sci;
     if (out_n_dark) *out_n_dark = n_dark;
     if (out_n_bias) *out_n_bias = n_bias;
+    if (out_n_sci_marked) *out_n_sci_marked = k_sci;
+    if (out_n_dark_marked) *out_n_dark_marked = k_dark;
+    if (out_n_bias_marked) *out_n_bias_marked = k_bias;
+    if (out_master_wide_suppressed) *out_master_wide_suppressed = supp_dark + supp_bias;
+    if (out_science_wide_suppressed) *out_science_wide_suppressed = supp_sci;
     if (out_sigma_col) *out_sigma_col = sig_sci;
+    if (out_sigma_col_dark) *out_sigma_col_dark = sig_dark;
+    if (out_sigma_col_bias) *out_sigma_col_bias = sig_bias;
     if (out_status) *out_status = st_det | st_rep;
+}
+
+// 旧入口（LINDEF-IMPL-01 起的 C ABI 语义）：母版阈值 = 科学帧阈值，
+// 结果与 correct_columns_ex_impl(..., master_sigma=column_sigma) **逐位相同**。
+void correct_columns_ex(const float* data, const float* dark, const float* bias,
+                        int w, int h, float* out,
+                        float column_sigma, int neighbor_k, int max_seg_len,
+                        unsigned char* col_mask,
+                        unsigned char* source_mask, unsigned char* conf_mask,
+                        int* out_n_cols, int* out_n_sci,
+                        int* out_n_dark, int* out_n_bias,
+                        int* out_px_repaired, float* out_sigma_col,
+                        int* out_status) {
+    correct_columns_ex_impl(data, dark, bias, w, h, out, column_sigma, column_sigma,
+                            0.0f, 0.0f, neighbor_k, max_seg_len, col_mask, source_mask,
+                            conf_mask,
+                            out_n_cols, nullptr, out_n_sci, out_n_dark, out_n_bias,
+                            nullptr, nullptr, nullptr, nullptr, nullptr,
+                            out_px_repaired, out_sigma_col, nullptr, nullptr,
+                            out_status);
+}
+
+// ======================== 修复像素的方差面（var = (Σw²·var)·κ）===============
+// 权重 = 修复算子自己的插值权重（与 repair_bad_columns 同式，不另立一套）：
+//   段 [a,b]、锚点 L=a-1、R=b+1：w_L=(R-x)/(R-L)、w_R=(x-L)/(R-L) ⇒ Σw²；
+//   单列段（默认 max_seg_len=1）⇒ w_L=w_R=1/2 ⇒ Σw² = 1/2；
+//   贴边单侧复制（w=1）⇒ Σw² = 1。
+// 只对被修复列（掩膜值 1）施加；干净列与"仅标记"列**逐位拷贝**输入方差
+// （仅标记没有改过像素值 ⇒ 方差没有任何理由被改）。
+// κ 的含义与依据见 astro_calibration.h 的条款说明；本函数不替调用方选 κ。
+void column_variance_inflate(const float* var_in, int w, int h,
+                             const unsigned char* col_mask, float kappa,
+                             float* var_out, float* out_w2_mean,
+                             int* out_px_inflated) {
+    if (out_w2_mean) *out_w2_mean = 0.0f;
+    if (out_px_inflated) *out_px_inflated = 0;
+    if (!var_in || !var_out || !col_mask || w <= 0 || h <= 0) return;
+    if (!(kappa > 0.0f) || !std::isfinite(kappa)) return;
+
+    double w2_acc = 0.0;
+    int n_cols = 0;
+    for (int x = 0; x < w; ) {
+        if (col_mask[x] != AC_COLSTAT_MASK_REPAIRED) {
+            for (int y = 0; y < h; ++y) {
+                const size_t i = static_cast<size_t>(y) * w + x;
+                var_out[i] = var_in[i];
+            }
+            ++x;
+            continue;
+        }
+        const int a = x;
+        while (x < w && col_mask[x] == AC_COLSTAT_MASK_REPAIRED) ++x;
+        const int b = x - 1;
+        const int L = ((a - 1 >= 0) && col_mask[a - 1] != AC_COLSTAT_MASK_REPAIRED)
+                          ? a - 1 : -1;
+        const int R = ((b + 1 <= w - 1) && col_mask[b + 1] != AC_COLSTAT_MASK_REPAIRED)
+                          ? b + 1 : -1;
+        const float inv = (L >= 0 && R >= 0) ? 1.0f / static_cast<float>(R - L) : 0.0f;
+        for (int xx = a; xx <= b; ++xx) {
+            float w2;
+            if (L >= 0 && R >= 0) {
+                const float wl = static_cast<float>(R - xx) * inv;
+                const float wr = static_cast<float>(xx - L) * inv;
+                w2 = wl * wl + wr * wr;
+            } else {
+                w2 = 1.0f;      // 贴边单侧复制：权重 1
+            }
+            w2_acc += static_cast<double>(w2);
+            ++n_cols;
+            for (int y = 0; y < h; ++y) {
+                const size_t i = static_cast<size_t>(y) * w + xx;
+                var_out[i] = (w2 * var_in[i]) * kappa;
+            }
+        }
+    }
+    if (out_w2_mean) {
+        *out_w2_mean = (n_cols > 0)
+            ? static_cast<float>(w2_acc / static_cast<double>(n_cols)) : 0.0f;
+    }
+    if (out_px_inflated) *out_px_inflated = n_cols;
 }
 
 

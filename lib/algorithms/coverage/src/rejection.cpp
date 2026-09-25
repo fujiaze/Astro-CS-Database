@@ -1102,10 +1102,15 @@ const char* p2_rejection_semantic_id(int method) {
 // 逐像素按几何 N 自动选择 —— 唯一决策点 + WBPP 映射
 // =====================================================================
 // 权威：ASTROCS_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
-// 自动选择（负责人 2026-09-20 裁决，一手证据定案）」；一手实测
-// run/RELEASE-02/FIX-REJ/wbpp/BatchPreprocessing/BPP-FrameGroup.js:1304-1312
-// bestRejectionMethod()：n < 6 → PercentileClip；6 ≤ n ≤ 15（或 BIAS/DARK）
-// → WinsorizedSigmaClip；n > 15 → LinearFit。
+// 自动选择」；档界实测出处 =
+// WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429 bestRejectionMethod()
+// （官方包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：
+// n < 6 → PercentileClip；6 ≤ n ≤ 15（或 BIAS/DARK）→ WinsorizedSigmaClip；
+// n > 15 → Rejection_ESD。**本表 N ≥ 16 → linear_fit 与 WBPP 2.4.0+ 该分支不同**
+// （对应的是 WBPP ≤2.3.x 的 n < 25 → LinearFit，1.4.6 :190-203 实测）；
+// 即档界取自 2.4.0+、该档算法取自 ≤2.3.x。逐像素粒度是 ACSD 自定扩展
+// （WBPP 按帧组 activeFrames().length 路由，无逐像素行为）。
+// 旧引文 "BPP-FrameGroup.js:1304-1312" 的文件名不存在于任何官方包，已作废。
 //
 // ╔════════════════════════════════════════════════════════════════════╗
 // ║ **唯一显式决策点**（EXP-204 定案后**只改这一处**）                   ║
@@ -1113,13 +1118,14 @@ const char* p2_rejection_semantic_id(int method) {
 // 待定科学问题（工程控制/RELEASE-03/tasks/EXP-204.md）—— **已由 EXP-204 定案**：
 //   「N < 6 → percentile 档的**下界是否含 N ≤ 3**？」⇒ **不含**（保守读法）。
 //   - PixelSmallNPolicy::kConservativeNone（**EXP-204 定案值，当前生效**）：
-//     1 ≤ N ≤ 3 → none（不排异 + 直接加权积分；维持负责人 2026-09-19 原裁决）。
+//     1 ≤ N ≤ 3 → none（不排异 + 直接加权积分；依据 docs/science/REJECTION.md §16
+//     「小 N 档位取舍的依据」：低/中电平下强制 percentile 有损 ⇒ 该段取保守读法）。
 //     依据：EXP-204 三数据面 + 6 轮独立复核 + 对抗轮（判据冻结 sha256 bd8982d6…）：
 //     低/中电平（≲2700 e⁻/pix）下强制 percentile 有损/无益/不可用（N=3 ρ−1 达
 //     0.3–27% ≫ τ_ρ=0.31%；N=2 A1s 83.5% 像素无输出）；「高电平占优」反例
 //     超出实验网格上界（1734 e⁻/pix）属外延。电平依赖与反例已记 GAP_AUDIT §5.8。
 //   - PixelSmallNPolicy::kWbppTable（**对称读法，未采用**）：N < 6 一律 percentile
-//     （含 N ≤ 3；N = 0 为 void 像素占位）。负责人若改判对称读法 ⇒ 只改下面 1 行。
+//     （含 N ≤ 3；N = 0 为 void 像素占位）。若改采对称读法 ⇒ 只改下面 1 行。
 //   最终映射表（逐像素按几何 N）：
 //     1 ≤ N ≤ 3 → none / 4 ≤ N ≤ 5 → percentile /
 //     6 ≤ N ≤ 15（或 BIAS/DARK 类帧）→ winsorized_sigma / N ≥ 16 → linear_fit；
@@ -1154,13 +1160,24 @@ static int astrocs_n_map_method(std::uint32_t n) {
         return P2_REJECT_NONE;
     if (n < 6u) return P2_REJECT_PERCENTILE;
     if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
-    return P2_REJECT_LINEAR_FIT;
+    // M3（依据 docs/science/REJECTION.md §5「n ≥ 6 → winsorized_sigma」）：
+    // n ≥ 16 由 linear_fit 改投 winsorized_sigma。
+    // 实测依据（生产 kernel 受控评估，run/REJECT-DOCFIX-01/REPORT.md）：
+    // 干净像素过拒 12.200% → 0.067%、显著点漏检 3.92% → 1.44%、
+    // n≥16 可测残余 >2.5σ 27/1175 → 0/1175。
+    // 偏离登记：WBPP 2.5.9 的 n>15 分支是 ESD（帧组级选择），本表的档界取自
+    // WBPP、算法类型不取 WBPP 该档；ESD 在 n=16/17 逐像素路由下实测过拒 5.167%
+    // （见同报告 §9 的 ESD 自查：实现忠实于 Rosner/NIST，不适用的是**逐像素
+    // 小 n 域**）。**对照档 wbpp_2_9_1 / astrocs_adaptive 未随此改动**（仍为
+    // N>15 → linear_fit，作 WBPP 档界对照基线）。
+    return P2_REJECT_WINSORIZED_SIGMA;
 }
 
 // AUTO 路由**禁止**产出 min/max 与 NoRejection（已废弃 CCD clip
-// 在本枚举中无对应值 ⇒ 不可达）。WBPP BPP-FrameGroup.js:1237-1243 明文拒绝
+// 在本枚举中无对应值 ⇒ 不可达）。WBPP 2.5.9 rejectionIsGood()
+// （WeightedBatchPreprocessing-engine.js:1349-1412）明文拒绝
 // （"Min/Max rejection should not be used for production work"），
-// BPP-engine.js:2695-2719 算法清单**不含** min/max。
+// 其算法清单 StackEngine.rejectionMethods **不含** min/max。
 // 本函数是**生产路径守卫**：AUTO 解析命中禁止方法 ⇒ fail-closed（返回非 0），
 // 绝不静默改算法、绝不静默降级。显式指定（非 AUTO）不受此守卫约束 —— 按
 // §4.5「不合适只告警、不硬阻断」由 p2_rejection_applicability 出 WARN 码。
@@ -1255,25 +1272,28 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     if (method == P2_REJECT_AUTO) {
         const std::uint32_t n = req->nominal_contributors;
         if (pixel_profile) {
-            // ACSD 自有「按逐输出像素几何 N」映射 = WBPP 实测表
-            // （N<6 percentile / 6..15 winsorized / >15 linear fit），
+            // ACSD 自有「按逐输出像素几何 N」映射（档界 = WBPP 2.5.9 实测表；
+            // N<6 percentile / 6..15 winsorized / **N≥16 winsorized**（M3），
             // 唯一决策点在 astrocs_n_map_method 上方（EXP-204）。
             method = astrocs_n_map_method(n);
         } else {
-            // WBPP 2.9.1 bestRejectionMethod 冻结路由（两 profile 共用；
-            // 区别在 nominal 来源与解析粒度，见头文件）
+            // 本仓冻结 AUTO 路由表（**对照档专用**；档界取自 WBPP 2.5.9
+            // bestRejectionMethod engine.js:1421-1429；n>15 档本表取
+            // linear_fit，WBPP 2.4.0+ 该档为 ESD。**M3 后与生产档不再同表**：
+            // 生产档 astrocs_adaptive_pixel 的 n≥16 已改投 winsorized_sigma，
+            // 本分支不动，见头文件与 docs/science/REJECTION.md §5）
             if (n < 6u) method = P2_REJECT_PERCENTILE;
             else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
             else method = P2_REJECT_LINEAR_FIT;
         }
     }
     // 生产路径守卫：AUTO **禁止**产出 min/max / NoRejection
-    // （WBPP :1237-1243 明文拒绝）。命中 ⇒ fail-closed，绝不静默改算法。
+    // （WBPP 2.5.9 engine.js:1360 明文拒绝）。命中 ⇒ fail-closed，绝不静默改算法。
     if (req->request == P2_REJECT_AUTO &&
         auto_method_forbidden(method, req->nominal_contributors, pixel_profile)) {
         set_err(err, err_cap,
                 "p2_reject_plan_resolve: AUTO 路由命中禁用方法（min/max 或 "
-                "NoRejection；WBPP BPP-FrameGroup.js:1237-1243）");
+                "NoRejection；WBPP 2.5.9 engine.js:1349-1412）");
         return 1;
     }
     p.method = method;
@@ -2200,21 +2220,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     return 0;
 }
 
-int p2_reject_stack_resolve_ex(const P2CandidateStack* stack,
-                               const P2RejectionPlanRequest* req,
-                               P2RejectionDecision* out,
-                               P2RejectionPlan* resolved_plan,
-                               char* err, std::size_t err_cap) {
-    if (stack == nullptr || req == nullptr || out == nullptr) {
-        set_err(err, err_cap, "p2_reject_stack_resolve_ex: null arg");
-        return 1;
-    }
-    // planning 层解析（AUTO 在此消解；kernel 永不见 AUTO）
-    P2RejectionPlan plan{};
-    if (p2_reject_plan_resolve(req, &plan, err, err_cap) != 0) return 1;
-    if (resolved_plan != nullptr) *resolved_plan = plan;
-    return p2_reject_stack_ex(stack, &plan, out);
-}
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_reject_stack_resolve_ex 定义已删（全仓零消费者；同能力变体入口保留在产）。 */
 
 // =====================================================================
 // COMPAT adapter（旧签名；生产 Stage2 不再调用）
@@ -2554,30 +2560,31 @@ int p2_rejection_applicability(int method, std::uint32_t nominal_n,
     const char* code = nullptr;
     switch (method) {
         case P2_REJECT_NONE:
-            code = "W_NONE";  // 排异是必需步骤（DESIGN §4.5.1；WBPP :1237）
+            code = "W_NONE";  // 排异是必需步骤（DESIGN §4.5.1；
+                              // WBPP 2.5.9 engine.js:1359 NoRejection）
             break;
         case P2_REJECT_MINMAX:
-            // WBPP :1239 "Min/Max rejection should not be used for
-            // production work"；FIX-REJ §4.2 恒 WARN+确认。
+            // WBPP 2.5.9 engine.js:1360 "Min/Max rejection should not be
+            // used for production work"；FIX-REJ §4.2 恒 WARN+确认。
             code = "W_MINMAX";
             break;
         case P2_REJECT_PERCENTILE:
-            if (nominal_n > 8u) code = "W_PCT_GT8";        // WBPP :1252-1254
+            if (nominal_n > 8u) code = "W_PCT_GT8";        // WBPP 2.5.9 engine.js:1374
             else if (nominal_n <= 4u) code = "W_PCT_N4_FALLBACK";
             break;
         case P2_REJECT_SIGMA:
             if (nominal_n < 8u || nominal_n > 15u) code = "W_SIGMA_RANGE";
             break;
         case P2_REJECT_WINSORIZED_SIGMA:
-            if (nominal_n < 8u) code = "W_WINS_LT8";       // WBPP :1262-1264
+            if (nominal_n < 8u) code = "W_WINS_LT8";       // WBPP 2.5.9 engine.js:1384
             if (nominal_n <= 4u) code = "W_NR_LE4";        // Siril N-r<=4
             break;
         case P2_REJECT_MEDIAN_SIGMA:
             if (nominal_n <= 4u) code = "W_NR_LE4";        // Siril N-r<=4
             break;
         case P2_REJECT_LINEAR_FIT:
-            // WBPP :1272-1278：n<8 ⇒ "requires at least 15 images"；
-            // 8≤n<20 ⇒ "may not be better than Winsorized"。
+            // WBPP 2.5.9 engine.js:1394 n<8 ⇒ "requires at least 15 images"；
+            // :1396 8≤n<20 ⇒ "may not be better than Winsorized"。
             if (nominal_n < 8u) code = "W_LF_LT8";
             else if (nominal_n < 20u) code = "W_LF_LT20";
             break;
@@ -2589,7 +2596,7 @@ int p2_rejection_applicability(int method, std::uint32_t nominal_n,
             if (nominal_n < 25u) code = "W_ESD_LT25";
             break;
         case P2_REJECT_RCR:
-            if (nominal_n < 15u) code = "W_RCR_LT15";      // WBPP :1285-1287
+            if (nominal_n < 15u) code = "W_RCR_LT15";      // WBPP 2.5.9 engine.js:1407
             break;
         case P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA:
             // FIX-REJ §3 的 n=2 档；显式在 n>2 亦为合法已知-σ 检验，不 WARN。

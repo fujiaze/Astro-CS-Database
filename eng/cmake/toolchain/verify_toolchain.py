@@ -3,7 +3,7 @@
 """ACSD BLD-001 toolchain verifier (machine check).
 
 Freezes the Windows x64 release toolchain per control-package
-09_WINDOWS_TOOLCHAIN_LOCK.md and validates the repository's frozen
+eng/packaging/windows/README.md and validates the repository's frozen
 contract (eng/packaging/schemas/preset-contract.json) against:
 
   * CMakePresets.json            -- the only formal Windows preset surface
@@ -251,7 +251,7 @@ class Verifier:
         """Compare .vsconfig components exactly against the frozen list.
 
         The frozen component list is embedded verbatim from
-        09_WINDOWS_TOOLCHAIN_LOCK.md section 4 (the task spec).
+        eng/packaging/windows/README.md (组件清单) 与 preset-contract.json (机器取值).
         """
         path = os.path.join(self.root, VSCONFIG_RELPATH)
         try:

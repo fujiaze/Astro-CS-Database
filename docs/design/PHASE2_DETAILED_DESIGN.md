@@ -59,10 +59,9 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 |---|---|
 | 1 ≤ N ≤ 3 | none：不排异，直接逆方差加权积分 |
 | 4 ≤ N ≤ 5 | percentile clipping |
-| 6 ≤ N ≤ 15 | winsorized sigma clipping |
-| N ≥ 16 | linear fit clipping |
+| N ≥ 6 | winsorized sigma clipping（**M3 裁决 2026-09-25：原 `N ≥ 16` linear fit clipping 档改投**） |
 
-生产排异算法集 = none / percentile / winsorized / linear fit；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
+生产排异算法集 = none / percentile / winsorized / linear fit（linear fit 仅显式指定）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
 
 ## 6. 两类目标产品，不能混用权重
 

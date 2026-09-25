@@ -567,6 +567,17 @@ add_subdirectory(../../../lib//algorithms/cosmetic/tests/p1cos p1cos)
 add_subdirectory(../../../lib//algorithms/drizzle/healpix_drizzle/tests/p1drz p1drz)
 
 # ----------------------------------------------------------------------------
+# DRZ-FLUX-FIX-01: 端到端验收面 (此前 tracked-but-unbuilt, ctest 命中 0)。
+# 本目录以下四个测试 (drizzle_acceptance_test / drizzle_freeze_test /
+# candidate_oracle_test / control_median_mc_test) 过去没有任何 add_executable
+# 引用, 运行器 acceptance_drizzle.py 还写着 Windows 专名 *.exe —— 本行把它们
+# 真正编进根图。门锚: FZ-COND-FLUX-CONSERV 新口径 (drop 面积归一,
+# Σ_p sumFlux = Σ_j x_j, 与 pixfrac 无关) + 负例注入必须判红。
+# 详见 lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../../lib//algorithms/drizzle/healpix_drizzle/tests drz_tests)
+
+# ----------------------------------------------------------------------------
 # P1-HIPS-TEST (TEST-P1-HIPS-001, 控制包 queue 39, lock-P1-HIPS) —
 # lib/infrastructure/aio/src/hips 可复用验证面。结构与注册详见
 # lib/infrastructure/aio/tests/p1hips/CMakeLists.txt (FIX-HIPS-A..F fixture /
@@ -1568,3 +1579,224 @@ endforeach()
 add_executable(variance_floor_test variance_floor_test.cpp)
 target_include_directories(variance_floor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 add_test(NAME variance_floor COMMAND variance_floor_test)
+
+# ============================================================================
+# WIRING-W34-01 (CHK-PROD-WIRING W4): tracked-but-unbuilt 测试源统一接线面
+# ----------------------------------------------------------------------------
+# 缺口: 下列测试源在库内、且各自目录/相邻目录**无任何构建路径**（不在 build.ninja
+# 编译边、不在任何 CMake 源清单、也无脚本/Makefile 驱动）⇒ 断言从未被机器执行。
+# 本块把它们逐条接进本已注册进构建图的 eng/tests/unit 目标树（源路径用绝对路径，
+# 故不需要为每个遗留目录新增 add_subdirectory 钩子；前台若要按模块就近归位，
+# 直接搬走本块对应条目即可，不涉及判据变更）。
+#
+# 纪律: 不改任何断言与容差; 能红能绿且自包含的 ⇒ 同时注册 ctest; 需要外部数据或
+# 属剖析/实验驱动 ⇒ 只编入构建图（零漂移保证）不注册 ctest。
+# ============================================================================
+set(ACS_W34_REPO ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
+
+# ── A. 模块级回归锁（自包含; 逐条注册 ctest）────────────────────────────────
+add_executable(w34_snr_reconcile_test
+  ${ACS_W34_REPO}/lib/algorithms/noise_snr/cpp/test/snr_reconcile_test.cpp)
+target_include_directories(w34_snr_reconcile_test PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/noise_snr/cpp/include
+  ${ACS_W34_REPO}/lib/algorithms/noise_snr/include
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_snr_reconcile_test PRIVATE p5snr_under_test)
+# **不注册 ctest**: 实跑发现该对账锁的红灯 —— FP32/FP64 的 snr_phot 差 1 ULP
+# (10.8814226 vs 10.8814227, 相对差 9.2e-8), 断言要求逐位相等 ⇒ rc=1。
+# 断言与容差属科学判据面, 本轮禁止放松/删改 ⇒ 只编入构建图并上呈前台裁决
+# (WIRING-W34-01 报告 §W4-E #1)。
+# add_test(NAME w34_snr_reconcile COMMAND w34_snr_reconcile_test)
+
+add_executable(w34_p0_pc_api_exception_barrier
+  ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/test/test_p0_pc_api_exception_barrier.cpp)
+add_executable(w34_p0_sip_order_guard
+  ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/test/test_p0_sip_order_guard.cpp)
+foreach(_t w34_p0_pc_api_exception_barrier w34_p0_sip_order_guard)
+  target_include_directories(${_t} PRIVATE
+    ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/include
+    ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/src
+    ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
+    ${ACS_W34_REPO}/lib/include)
+  # pc::WcsTransform / pc_api 的唯一实现编在 astrocs_phase1_photcal (非 wrapper
+  # 库 astrocs_phase1_phot) —— 以 nm 实测定义符号所在归档为准。
+  target_link_libraries(${_t} PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} m)
+endforeach()
+add_test(NAME w34_p0_pc_api_exception_barrier
+  COMMAND w34_p0_pc_api_exception_barrier)
+add_test(NAME w34_p0_sip_order_guard COMMAND w34_p0_sip_order_guard)
+
+add_executable(w34_ipv_last_inlier_reset
+  ${ACS_W34_REPO}/lib/algorithms/platesolve/cpp/ipv/test/test_last_inlier_reset.cpp)
+target_include_directories(w34_ipv_last_inlier_reset PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/platesolve/cpp/ipv/include
+  ${ACS_W34_REPO}/lib/infrastructure/aio/src
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_ipv_last_inlier_reset PRIVATE astrocs_p1_ipv astrocs_aio
+  astrocs_p1_sdet ${ASTROCS_OMP_TARGET})
+add_test(NAME w34_ipv_last_inlier_reset COMMAND w34_ipv_last_inlier_reset)
+
+add_executable(w34_dpsf_nan_sort
+  ${ACS_W34_REPO}/lib/algorithms/psf/test/test_dpsf_nan_sort.cpp)
+target_include_directories(w34_dpsf_nan_sort PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/psf/include
+  ${ACS_W34_REPO}/lib/algorithms/psf/src
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_dpsf_nan_sort PRIVATE astrocs_p1_dpsf)
+add_test(NAME w34_dpsf_nan_sort COMMAND w34_dpsf_nan_sort)
+
+add_executable(w34_sdet_saturation_cursor
+  ${ACS_W34_REPO}/lib/algorithms/star_detection/test/sdet_saturation_cursor_test.cpp)
+target_include_directories(w34_sdet_saturation_cursor PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/star_detection/include
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_sdet_saturation_cursor PRIVATE astrocs_p1_sdet)
+add_test(NAME w34_sdet_saturation_cursor COMMAND w34_sdet_saturation_cursor)
+
+add_executable(w34_p3_nan_mask_test
+  ${ACS_W34_REPO}/lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp)
+target_include_directories(w34_p3_nan_mask_test PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/resample/include
+  ${ACS_W34_REPO}/lib/phase1_session/tests/p1sess
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_p3_nan_mask_test PRIVATE astrocs_p3_rsmp)
+add_test(NAME w34_p3_nan_mask COMMAND w34_p3_nan_mask_test)
+
+# ── B. 跨模块/IO 面（自包含; 注册 ctest）────────────────────────────────────
+set(ACS_W34_AIO_INC ${ACS_W34_REPO}/lib/infrastructure/aio/include)
+set(ACS_W34_AIO_IO_INC ${ACS_W34_REPO}/lib/infrastructure/aio/io/include)
+
+add_executable(w34_fits_core_selftest
+  ${ACS_W34_REPO}/lib/infrastructure/aio/io/tests/fits_core_selftest.c)
+add_executable(w34_hips_core_selftest
+  ${ACS_W34_REPO}/lib/infrastructure/aio/io/tests/hips_core_selftest.c)
+foreach(_t w34_fits_core_selftest w34_hips_core_selftest)
+  target_include_directories(${_t} PRIVATE
+    ${ACS_W34_AIO_IO_INC} ${ACS_W34_AIO_INC} ${ACS_W34_REPO}/lib/include)
+  target_link_libraries(${_t} PRIVATE acsd_io)
+endforeach()
+# hips_core_selftest 直测 lib/infrastructure/aio/io/hips_core.c 的 C ABI
+# (acs_hips_open_v1)。**该生产文件当前不在任何构建目标内**（根 CMakeLists 的
+# acsd_io 只编 fits_core.c）⇒ 本测试把它编进自身，否则声明的 C ABI 无产物可测;
+# 「hips_core.c 未进任何生产目标」本身是 W1 族缺口, 已在报告 §W4-D 上呈前台。
+target_sources(w34_hips_core_selftest PRIVATE
+  ${ACS_W34_REPO}/lib/infrastructure/aio/io/hips_core.c)
+add_test(NAME w34_fits_core_selftest COMMAND w34_fits_core_selftest)
+# hips_core_selftest 需要合规 HiPS 子产品 fixture (用法: <fixture_dir>);
+# fixture 由 eng/tests/io/make_hips_fixture.py 确定性生成 (固定 seed) ⇒ 两步注册。
+set(ACS_W34_HIPS_FIXTURE ${CMAKE_BINARY_DIR}/hips_fixture_w34)
+add_test(NAME w34_hips_fixture
+  COMMAND python3 ${ACS_W34_REPO}/eng/tests/io/make_hips_fixture.py
+          ${ACS_W34_HIPS_FIXTURE})
+add_test(NAME w34_hips_core_selftest
+  COMMAND w34_hips_core_selftest ${ACS_W34_HIPS_FIXTURE})
+set_tests_properties(w34_hips_core_selftest PROPERTIES
+  DEPENDS w34_hips_fixture TIMEOUT 900)
+
+add_executable(w34_aio_test_p0_io_hardening
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/test_p0_io_hardening.cpp)
+add_executable(w34_aio_test_writer_integration
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/test_writer_integration.cpp)
+add_executable(w34_aio_test_snr_unknown_block
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/test_snr_unknown_block.cpp)
+add_executable(w34_aio_dataflow_fuzz
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/dataflow_fuzz.cpp)
+foreach(_t w34_aio_test_p0_io_hardening w34_aio_test_writer_integration
+           w34_aio_test_snr_unknown_block w34_aio_dataflow_fuzz)
+  target_include_directories(${_t} PRIVATE
+    ${ACS_W34_AIO_INC} ${ACS_W34_AIO_IO_INC} ${ACS_W34_REPO}/lib/include
+    ${ACS_W34_REPO}/lib/third_party)
+  target_compile_definitions(${_t} PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+  target_link_libraries(${_t} PRIVATE astrocs_hips astrocs_aio)
+endforeach()
+add_test(NAME w34_aio_p0_io_hardening COMMAND w34_aio_test_p0_io_hardening)
+add_test(NAME w34_aio_writer_integration COMMAND w34_aio_test_writer_integration)
+add_test(NAME w34_aio_snr_unknown_block COMMAND w34_aio_test_snr_unknown_block)
+add_test(NAME w34_aio_dataflow_fuzz COMMAND w34_aio_dataflow_fuzz)
+set_tests_properties(w34_aio_dataflow_fuzz PROPERTIES TIMEOUT 1800
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+# 其余 w34 门统一以仓库根为工作目录 (项目既有约定: 相对路径 run/temp/... 可写)。
+foreach(_t w34_p0_pc_api_exception_barrier w34_p0_sip_order_guard
+           w34_ipv_last_inlier_reset w34_dpsf_nan_sort
+           w34_sdet_saturation_cursor w34_p3_nan_mask
+           w34_fits_core_selftest w34_aio_p0_io_hardening
+           w34_aio_writer_integration w34_aio_snr_unknown_block)
+  set_tests_properties(${_t} PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endforeach()
+
+# ── C. 剖析/实验驱动（只编入构建图; 不注册 ctest）──────────────────────────
+# hiss_benchmark / hiss_experiment_suite / hiss_experiments 是 DQ-001..007 编解码
+# 实验与计时驱动的**证据生产者**（产出 JSON/CSV），判据是「跑得动且产物可读」，
+# 计时与产物规模随机器变化 ⇒ 不进 CI 判据面（同 drizzle 探针口径）。
+add_executable(w34_aio_hiss_benchmark
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/hiss_benchmark.cpp)
+add_executable(w34_aio_hiss_experiments
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/hiss_experiments.cpp)
+add_executable(w34_aio_hiss_experiment_suite
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/hiss_experiment_suite.cpp)
+foreach(_t w34_aio_hiss_benchmark w34_aio_hiss_experiments
+           w34_aio_hiss_experiment_suite)
+  target_include_directories(${_t} PRIVATE
+    ${ACS_W34_AIO_INC} ${ACS_W34_AIO_IO_INC} ${ACS_W34_REPO}/lib/include
+    ${ACS_W34_REPO}/lib/algorithms/drizzle/healpix_drizzle
+    ${ACS_W34_REPO}/lib/third_party)
+  target_compile_definitions(${_t} PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+  target_link_libraries(${_t} PRIVATE astrocs_hips astrocs_drizzle)
+endforeach()
+
+# test_drizzle_integration: 需真实 drizzle 产物/HISS 输入 ⇒ 编入但不注册。
+add_executable(w34_aio_test_drizzle_integration
+  ${ACS_W34_REPO}/lib/infrastructure/aio/tests/test_drizzle_integration.cpp)
+target_include_directories(w34_aio_test_drizzle_integration PRIVATE
+  ${ACS_W34_AIO_INC} ${ACS_W34_AIO_IO_INC}
+  ${ACS_W34_REPO}/lib/algorithms/drizzle/healpix_drizzle
+  ${ACS_W34_REPO}/lib/include)
+target_compile_definitions(w34_aio_test_drizzle_integration PRIVATE
+  AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(w34_aio_test_drizzle_integration PRIVATE
+  astrocs_hips astrocs_drizzle astrocs_aio)
+
+# ── D. gaia xpsd 客户端并发门（自包含; 注册 ctest）──────────────────────────
+add_executable(w34_gaia_race
+  ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/test/test_gaia_race.c
+  ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c)
+add_executable(w34_gaia_spec_collector_ownership
+  ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/test/test_spec_collector_ownership.c)
+foreach(_t w34_gaia_race w34_gaia_spec_collector_ownership)
+  target_include_directories(${_t} PRIVATE
+    ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
+    ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/include
+    ${ACS_W34_REPO}/lib/include)
+  target_link_libraries(${_t} PRIVATE z pthread m)
+endforeach()
+add_test(NAME w34_gaia_race COMMAND w34_gaia_race)
+add_test(NAME w34_gaia_spec_collector_ownership
+  COMMAND w34_gaia_spec_collector_ownership)
+set_tests_properties(w34_gaia_race w34_gaia_spec_collector_ownership PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+# ── E. RELEASE-02 验证面 oracle（编入 + 注册）─────────────────────────────
+add_executable(w34_p1_apply_oracle
+  ${ACS_W34_REPO}/eng/tests/validation/release02/fix_p1_photometry_apply/p1_apply_oracle.cpp)
+target_include_directories(w34_p1_apply_oracle PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/calibration/include
+  ${ACS_W34_REPO}/lib/algorithms/calibration/src
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_p1_apply_oracle PRIVATE astrocs_calibration)
+
+add_executable(w34_p1_qf_oracle
+  ${ACS_W34_REPO}/eng/tests/validation/release02/fix_p1_photometry_apply/p1_qf_oracle.cpp
+  ${ACS_W34_REPO}/lib/algorithms/photometry/tests/p1phot/p1phot_gaia_stub.cpp)
+target_include_directories(w34_p1_qf_oracle PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/include
+  ${ACS_W34_REPO}/lib/algorithms/photometry/cpp/src
+  ${ACS_W34_REPO}/lib/algorithms/photometry/tests/p1phot
+  ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
+  ${ACS_W34_REPO}/lib/include)
+target_link_libraries(w34_p1_qf_oracle PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} m)
+
+# （原 unc_prop_oracle / p1_apply_oracle 两条 RELEASE-02 oracle 的处置见下）
+
+# ── F. CPU baseline provider 三门: 由 eng/tests/cpu/baseline/run_cpu_baseline_checks.py
+#  逐行真编真跑（本机无法用根构建图 —— baseline/avx2/avx512 三档都走各自的
+#  runner，见 WIRING-W34-01 报告 §W4-B）—— 故此处不重复建 target。

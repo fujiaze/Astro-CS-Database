@@ -27,7 +27,7 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
                                const std::string& software_version,
                                const std::string& source_sha);
 
-// PSF-FAST-001 (负责人裁决 2026-09-14): 精确 PSF 节点路径**保留但 inactive**
+// PSF-FAST-001 (依据 ENGINEERING_SPEC.md §2「保留则注释」): 精确 PSF 节点路径**保留但 inactive**
 // —— 生产路径不调用（当前 DATA-P1-PSF.psf_params 零消费者、psf 端口为死边,
 // 测光正式口径 = 孔径测光）。本声明只暴露**直调测试钩子**, 供测试证明精确
 // 实现仍可编译且能跑出结果, 防止 inactive 代码被当作死代码清理;

@@ -77,19 +77,18 @@ contract_ids:
   api: API-P2-REJ-001
   arch: ARCH-001
   test: TEST-P2-REJ-001
+# ── 2026-09-25 CHK-PROD-WIRING W1 声明面收缩 ──
+# 下列符号已从 source_symbols 撤下：它们在三个生产命令（cmd_session{1,2,3}_run）
+# 的名字级调用图上不可达（判据 = eng/ci/check_prod_wiring.py W1），且不在本模块
+# exports 面内。符号本体、公共头声明与既有 API 面均不动；去向 = API 合同面/
+# 诊断工具面/契约测试面，逐类处置依据见 run/WIRING-W16-01/REPORT.md §3。
+# 本撤销同时是既有门 CHK-ALGO-WIRING W2 台账 dormant_algorithms.json 明文
+# 退出条件之一（「或从 lib/**/module.yaml source_symbols 移除该声明」）。
 source_symbols:
   - p2_reject_plan_resolve
   - p2_reject_stack_ex
   - p2_collect_candidate_stack
-  - p2_eligibility_filter
   - p2_rejection_semantic_id
-  - p2_large_scale_apply
-  - p2_reject_stack
-  - p2_reject_classify
-  - p2_reject_calibration
-  - p2_rejection_class_id
-  - p2_reject_plan_thresholds_inherited
-  - p2_rejection_weight_surface_guard
 test_ids:
   - TEST-P2-REJ-001
 threading_model: host_executor_lease

@@ -468,7 +468,7 @@
               "x-astrocs": {
                 "anchor": "FZ-COND-FLUX-CONSERV",
                 "domain": "Phase1 flux 换算/aperture",
-                "fail_closed": "pixfrac<1 且缺 flux_conservation_factor -> 不可用于绝对通量",
+                "fail_closed": "缺 flux_conservation_factor 或取值 != 1 -> 不可用于绝对通量（drop 面积归一核，通量守恒与 pixfrac 无关；DRZ-FLUX-FIX-01）",
                 "gate": "G-FLUX-CONSERV-FACTOR"
               }
             }

@@ -18,7 +18,7 @@
   "normalization_version": "drizzle_sb_normalization_v2_surface_brightness_preserving",
   "weight_mode_version": "weight_mode_v2_explicit",
   "correlation_summary": { "representation": "correlation_kernel", "kernel_id": "drizzle_rho_v1", "scale": 1.5, "mean_abs_rho": 0.19, "max_abs_rho": 0.57 },
-  "flux_conservation_factor": 0.64,
+  "flux_conservation_factor": 1.0,
   "k_corr": {
     "definition": "k_corr = Var(median)/[pi sigma_bg^2/(2 N_retained)]",
     "value": 1.4,

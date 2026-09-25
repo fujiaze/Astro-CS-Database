@@ -78,172 +78,6 @@
       ]
     },
     {
-      "id": "dormant_symbol:astrocs.p2.hips_writer:p2_stage2_parse_config",
-      "kind": "dormant_unlinked",
-      "reason": "module.yaml source_symbols 声明；定义于生产静态库 libastrocs_phase2.a，但未链入生产二进制 build/acsd（nm 无此符号）。定义/引用：lib/algorithms/coverage/include/astro/phase2/stage2_common.h, lib/algorithms/coverage/src/stage2_common.cpp。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p2.hips_writer",
-      "symbol": "p2_stage2_parse_config",
-      "manifest": "lib/algorithms/coverage/hips_p2/module.yaml",
-      "archives": [
-        "libastrocs_phase2.a"
-      ],
-      "sources": [
-        "lib/algorithms/coverage/include/astro/phase2/stage2_common.h",
-        "lib/algorithms/coverage/src/stage2_common.cpp",
-        "lib/algorithms/coverage/tools/rejection_cli.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p2.hips_writer:p2_stage2_make_upm_cfg",
-      "kind": "dormant_unlinked",
-      "reason": "module.yaml source_symbols 声明；定义于生产静态库 libastrocs_phase2.a，但未链入生产二进制 build/acsd（nm 无此符号）。定义/引用：lib/algorithms/coverage/include/astro/phase2/stage2_common.h, lib/algorithms/coverage/src/stage2_common.cpp。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p2.hips_writer",
-      "symbol": "p2_stage2_make_upm_cfg",
-      "manifest": "lib/algorithms/coverage/hips_p2/module.yaml",
-      "archives": [
-        "libastrocs_phase2.a"
-      ],
-      "sources": [
-        "lib/algorithms/coverage/include/astro/phase2/stage2_common.h",
-        "lib/algorithms/coverage/src/stage2_common.cpp",
-        "lib/algorithms/coverage/tools/stage2.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p2.hips_writer:p2_acr_block_eligible",
-      "kind": "dormant_unlinked",
-      "reason": "module.yaml source_symbols 声明；定义于生产静态库 libastrocs_phase2.a，但未链入生产二进制 build/acsd（nm 无此符号）。定义/引用：lib/algorithms/coverage/include/astro/phase2/stage2_common.h, lib/algorithms/coverage/src/stage2_common.cpp。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p2.hips_writer",
-      "symbol": "p2_acr_block_eligible",
-      "manifest": "lib/algorithms/coverage/hips_p2/module.yaml",
-      "archives": [
-        "libastrocs_phase2.a"
-      ],
-      "sources": [
-        "lib/algorithms/coverage/include/astro/phase2/stage2_common.h",
-        "lib/algorithms/coverage/src/stage2_common.cpp",
-        "lib/algorithms/coverage/tools/stage2.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p2.hips_writer:p2_block_plan",
-      "kind": "dormant_unlinked",
-      "reason": "module.yaml source_symbols 声明；定义于生产静态库 libastrocs_phase2.a，但未链入生产二进制 build/acsd（nm 无此符号）。定义/引用：lib/algorithms/coverage/include/astro/phase2/block.h, lib/algorithms/coverage/src/block.cpp。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p2.hips_writer",
-      "symbol": "p2_block_plan",
-      "manifest": "lib/algorithms/coverage/hips_p2/module.yaml",
-      "archives": [
-        "libastrocs_phase2.a"
-      ],
-      "sources": [
-        "lib/algorithms/coverage/include/astro/phase2/block.h",
-        "lib/algorithms/coverage/src/block.cpp",
-        "lib/algorithms/coverage/tools/stage2.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p1.hips_writer:aio_publish_stage_create_v1",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h, lib/algorithms/drizzle/hips/src/aio_publish.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p1.hips_writer",
-      "symbol": "aio_publish_stage_create_v1",
-      "manifest": "lib/algorithms/drizzle/hips/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h",
-        "lib/algorithms/drizzle/hips/src/aio_publish.cpp",
-        "lib/algorithms/drizzle/hips/src/module_entry.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p1.hips_writer:aio_publish_stage_discard_v1",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h, lib/algorithms/drizzle/hips/src/aio_publish.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p1.hips_writer",
-      "symbol": "aio_publish_stage_discard_v1",
-      "manifest": "lib/algorithms/drizzle/hips/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h",
-        "lib/algorithms/drizzle/hips/src/aio_publish.cpp",
-        "lib/algorithms/drizzle/hips/src/module_entry.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p1.hips_writer:aio_publish_tree_fsync_v1",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h, lib/algorithms/drizzle/hips/src/aio_publish.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p1.hips_writer",
-      "symbol": "aio_publish_tree_fsync_v1",
-      "manifest": "lib/algorithms/drizzle/hips/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h",
-        "lib/algorithms/drizzle/hips/src/aio_publish.cpp",
-        "lib/algorithms/drizzle/hips/src/module_entry.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p1.hips_writer:aio_publish_promote_v1",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h, lib/algorithms/drizzle/hips/src/aio_publish.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p1.hips_writer",
-      "symbol": "aio_publish_promote_v1",
-      "manifest": "lib/algorithms/drizzle/hips/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h",
-        "lib/algorithms/drizzle/hips/src/aio_publish.cpp",
-        "lib/algorithms/drizzle/hips/src/module_entry.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.fits_writer:p3_output_write_atomic",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/fits_output/p3_output.cpp, lib/algorithms/fits_output/p3_output.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.fits_writer",
-      "symbol": "p3_output_write_atomic",
-      "manifest": "lib/algorithms/fits_output/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/fits_output/p3_output.cpp",
-        "lib/algorithms/fits_output/p3_output.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.fits_writer:p3_output_verify",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/fits_output/p3_output.cpp, lib/algorithms/fits_output/p3_output.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.fits_writer",
-      "symbol": "p3_output_verify",
-      "manifest": "lib/algorithms/fits_output/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/fits_output/p3_output.cpp",
-        "lib/algorithms/fits_output/p3_output.h"
-      ]
-    },
-    {
       "id": "dormant_symbol:astrocs.p3.fits_writer:p3_wcs_make",
       "kind": "dormant_uncompiled",
       "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_wcs.cpp, lib/algorithms/projection/p3_wcs.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
@@ -307,22 +141,6 @@
       ]
     },
     {
-      "id": "dormant_symbol:astrocs.p1.photometry:pc_calibrate_simple",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp, lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p1.photometry",
-      "symbol": "pc_calibrate_simple",
-      "manifest": "lib/algorithms/photometry/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
-        "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h",
-        "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp"
-      ]
-    },
-    {
       "id": "dormant_symbol:astrocs.p1.photometry:pc_calibrate_simple_with_gaia",
       "kind": "dormant_uncompiled",
       "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/photometry/cpp/include/photometric_calib.h, lib/algorithms/photometry/cpp/src/pc_api.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
@@ -336,22 +154,6 @@
         "lib/algorithms/photometry/cpp/include/photometric_calib.h",
         "lib/algorithms/photometry/cpp/src/pc_api.cpp",
         "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p1.photometry:pc_calibrate_simple_f64",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/photometry/cpp/include/photometric_calib.h, lib/algorithms/photometry/cpp/src/pc_api.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p1.photometry",
-      "symbol": "pc_calibrate_simple_f64",
-      "manifest": "lib/algorithms/photometry/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/photometry/cpp/include/photometric_calib.h",
-        "lib/algorithms/photometry/cpp/src/pc_api.cpp",
-        "lib/algorithms/photometry/cpp/test/test_p0_pc_api_exception_barrier.cpp"
       ]
     },
     {
@@ -466,126 +268,6 @@
       ]
     },
     {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_registry_table",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_registry_table",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_registry_find",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_registry_find",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_registry_find_id",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_registry_find_id",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_registry_selfcheck",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_registry_selfcheck",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_make",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_make",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_pix2world",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_pix2world",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_world2pix",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_world2pix",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.projection:p3_projection_fits_keywords",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/projection/p3_projection.cpp, lib/algorithms/projection/p3_projection.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.projection",
-      "symbol": "p3_projection_fits_keywords",
-      "manifest": "lib/algorithms/projection/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/projection/p3_projection.cpp",
-        "lib/algorithms/projection/p3_projection.h"
-      ]
-    },
-    {
       "id": "dormant_symbol:astrocs.p1.psf:dpsf_batch_dims_check",
       "kind": "dormant_uncompiled",
       "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/psf/src/dpsf_psf.cpp。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
@@ -630,37 +312,6 @@
       ]
     },
     {
-      "id": "dormant_symbol:astrocs.p3.resample:p3_resample_check_mode",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/resample/p3_resample.cpp, lib/algorithms/resample/p3_resample.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.resample",
-      "symbol": "p3_resample_check_mode",
-      "manifest": "lib/algorithms/resample/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/resample/p3_resample.cpp",
-        "lib/algorithms/resample/p3_resample.h",
-        "lib/infrastructure/scheduler/src/module_adapters.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.resample:p3_sampler_open",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/resample/p3_resample.cpp, lib/algorithms/resample/p3_resample.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.resample",
-      "symbol": "p3_sampler_open",
-      "manifest": "lib/algorithms/resample/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/resample/p3_resample.cpp",
-        "lib/algorithms/resample/p3_resample.h"
-      ]
-    },
-    {
       "id": "dormant_symbol:astrocs.p3.resample:p3_sampler_open_ex",
       "kind": "dormant_uncompiled",
       "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/resample/p3_resample.cpp, lib/algorithms/resample/p3_resample.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
@@ -690,36 +341,6 @@
         "lib/algorithms/resample/p3_resample.cpp",
         "lib/algorithms/resample/p3_resample.h",
         "lib/infrastructure/scheduler/src/module_adapters.cpp"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.resample:p3_sample_nearest",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/resample/p3_resample.cpp, lib/algorithms/resample/p3_resample.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.resample",
-      "symbol": "p3_sample_nearest",
-      "manifest": "lib/algorithms/resample/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/resample/p3_resample.cpp",
-        "lib/algorithms/resample/p3_resample.h"
-      ]
-    },
-    {
-      "id": "dormant_symbol:astrocs.p3.resample:p3_sample_bilinear",
-      "kind": "dormant_uncompiled",
-      "reason": "module.yaml source_symbols 声明；不在任何生产静态库，也未链入 build/acsd。定义/引用仅见：lib/algorithms/resample/p3_resample.cpp, lib/algorithms/resample/p3_resample.h。生产 target 未编译该实现面（wrapper/替身实现见 CMakeLists.txt）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决接线或改 module.yaml）",
-      "exit_condition": "将该符号接入生产调用图并在 build/acsd nm 可见，或从 lib/**/module.yaml source_symbols 移除该声明并出具 DISP 编号，或登记为 ALG/API 合同变更",
-      "module_id": "astrocs.p3.resample",
-      "symbol": "p3_sample_bilinear",
-      "manifest": "lib/algorithms/resample/module.yaml",
-      "archives": [],
-      "sources": [
-        "lib/algorithms/resample/p3_resample.cpp",
-        "lib/algorithms/resample/p3_resample.h"
       ]
     },
     {
@@ -943,5 +564,6 @@
         "lib/infrastructure/acr/backends/cuda/bridge/acr_cuda_bridge.h"
       ]
     }
-  ]
+  ],
+  "pruned_2026_09_25": "WIRING-W16-01：24 条条目的符号已按本台账明文退出条件（「或从 lib/**/module.yaml source_symbols 移除该声明」）从 module.yaml 撤下 ⇒ 条目不再复现，按只减不增删除；见 run/WIRING-W16-01/REPORT.md §3。"
 }

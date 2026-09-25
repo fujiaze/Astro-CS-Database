@@ -197,23 +197,23 @@ static void run_units() {
     pr.normalization_version = "sb_a_pixel/v1";
     pr.has_correlation_kernel_summary = true;
     pr.has_flux_conservation_factor = true;
-    pr.flux_conservation_factor = 0.49;
+    pr.flux_conservation_factor = 1.0;  // DRZ-FLUX-FIX-01: drop 面积归一 ⇒ 恒 1
     pr.has_kcorr = true;
     pr.k_corr = 1.02;
     pr.kcorr_has_domain = true;
     pr.kcorr_calibration_ref = "calib/kcorr/v1";
     pr.generated_utc = "2026-09-15T00:00:00Z";
     pr.output_hash = "out";
-    check_gate(gate_provenance_minimal_set(pr, 0.49), true, "provenance positive");
+    check_gate(gate_provenance_minimal_set(pr, 1.0), true, "provenance positive");
     ProvenanceRecord p2 = pr;
     p2.has_flux_conservation_factor = false;
-    check_gate(gate_provenance_minimal_set(p2, 0.49), false, "provenance negative (no flux factor)");
+    check_gate(gate_provenance_minimal_set(p2, 1.0), false, "provenance negative (no flux factor)");
     ProvenanceRecord p3 = pr;
     p3.k_corr = 1.0; // 忽略相关
-    check_gate(gate_provenance_minimal_set(p3, 0.49), false, "provenance negative (k_corr=1)");
+    check_gate(gate_provenance_minimal_set(p3, 1.0), false, "provenance negative (k_corr=1)");
     ProvenanceRecord p4 = pr;
     p4.kcorr_has_domain = false;
-    check_gate(gate_provenance_minimal_set(p4, 0.49), false, "provenance negative (k_corr no domain)");
+    check_gate(gate_provenance_minimal_set(p4, 1.0), false, "provenance negative (k_corr no domain)");
     ProvenanceRecord p5 = pr;
     p5.run_id.clear();
     check_gate(gate_provenance_minimal_set(p5, 0.49), false, "provenance negative (missing key)");
@@ -230,7 +230,7 @@ static void run_oracle() {
     Fixture f = make_fixture();
     DrizzleOperator op;
     DrzError e = DrizzleOperator::build(f.n_src, f.n_dst, f.sources, f.pixfrac,
-                                        NormalizationKind::sb_a_pixel, f.overlaps, op);
+                                        NormalizationKind::drop_area, f.overlaps, op);
     check(e == DrzError::ok, "fixture build ok");
     if (e != DrzError::ok) return;
 
@@ -316,7 +316,7 @@ static void run_oracle() {
 // ---------------------------------------------------------------------------
 struct MutantClaims {
     std::vector<double> signal_missing_D;   // S_p=F_p（漏 D_p 归一）
-    std::vector<double> signal_legacy;      // legacy w=a/A_drop（pixfrac<1 偏差 1/pf^2）
+    std::vector<double> signal_legacy;      // 分母取覆盖面积 D_p（缺 N_p ⇒ 偏差 1/pf^2）
     std::vector<double> variance_missing_D2; // sum v w_sb^2
     std::vector<double> variance_no_square;  // sum v w_sb/D
 };
@@ -345,7 +345,7 @@ static void run_negative() {
     Fixture f = make_fixture();
     DrizzleOperator op;
     DrzError e = DrizzleOperator::build(f.n_src, f.n_dst, f.sources, f.pixfrac,
-                                        NormalizationKind::sb_a_pixel, f.overlaps, op);
+                                        NormalizationKind::drop_area, f.overlaps, op);
     check(e == DrzError::ok, "negative fixture build ok");
     if (e != DrzError::ok) return;
     const double* x = f.x.data();
@@ -358,7 +358,7 @@ static void run_negative() {
     check_gate(gate_sb_definition(op, x, good_s), true, "M-D3 control (correct S_p)");
     check_gate(gate_sb_definition(op, x, m.signal_missing_D), false, "M-D3 S_p=F_p red");
     check_gate(gate_sb_definition(op, x, m.signal_legacy), false,
-               "M-D1/D3 legacy normalization red");
+               "M-D1/D3 coverage-area denominator red");
 
     // M-D2（方差漏 D^2 / 漏平方）
     check_gate(gate_variance_identity(op, v, good_v), true, "M-D2 control (correct variance)");
@@ -435,17 +435,51 @@ static void run_negative() {
           "multi-channel rejected");
     check(validate_geometry_flags(true, true, false) == DrzError::missing_wcs, "missing WCS rejected");
 
-    // legacy 归一在 pixfrac<1 -> fail-closed
+    // DRZ-FLUX-FIX-01: drop 面积归一即 canonical 口径 —— legacy_a_drop 在 pixfrac<1
+    // 不再 fail-closed；两种参数化必须给出**同一个**算子（等价的强断言，非删断言）。
     {
-        DrizzleOperator o2;
-        DrzError e2 = DrizzleOperator::build(f.n_src, f.n_dst, f.sources, 0.5,
-                                             NormalizationKind::legacy_a_drop, f.overlaps, o2);
-        check(e2 == DrzError::legacy_normalization_at_pixfrac_lt_one,
-              "legacy normalization at pixfrac<1 rejected");
+        // 用 fixture 自身 pixfrac (0.7) 构造: 只有该 pixfrac 下几何闭合
+        // (Sum_p a_jp = pixfrac^2 * A_pixel_j) 成立, Phi_out 才等于 Sum_j x_j。
+        DrizzleOperator o_drop, o_sb;
+        const DrzError e2 = DrizzleOperator::build(
+            f.n_src, f.n_dst, f.sources, f.pixfrac, NormalizationKind::drop_area,
+            f.overlaps, o_drop);
+        const DrzError e3 = DrizzleOperator::build(
+            f.n_src, f.n_dst, f.sources, f.pixfrac, NormalizationKind::sb_a_pixel,
+            f.overlaps, o_sb);
+        check(e2 == DrzError::ok, "drop-area normalization at pixfrac<1 accepted");
+        check(e3 == DrzError::ok, "sb parametrization at pixfrac<1 accepted");
+        // c_jp 在两种参数化下的形状相同 (w/N vs w'/N'), 但浮点运算次序不同
+        // (a/A_drop 与 a/A_pixel 不是同一表达式, N 的累加项也不同) ⇒ 只能要求
+        // **相对一致** 而非逐位相同; 判据取 1e-12 (双精度 1e-16 量级上留 4 个数量级裕量)。
+        double worst_c = 0.0;
+        for (uint32_t p = 0; p < o_drop.n_dst(); ++p) {
+            for (const OperatorEntry& a : o_drop.row(p)) {
+                for (const OperatorEntry& b : o_sb.row(p)) {
+                    if (a.src != b.src) continue;
+                    const double sc = std::max(std::fabs(a.c), std::fabs(b.c));
+                    if (sc == 0.0) continue;
+                    worst_c = std::max(worst_c, std::fabs(a.c - b.c) / sc);
+                }
+            }
+        }
+        check(worst_c < 1e-12,
+              "two parametrizations give the same c_jp (rel < 1e-12)");
+        // 通量守恒：Phi_out = Sum_j x_j（与 pixfrac 无关），两种参数化同值。
+        double sx = 0.0;
+        for (double xv : f.x) sx += xv;
+        check(std::fabs(o_drop.flux_out(f.x.data()) - sx) < 1e-9 * std::fabs(sx),
+              "Phi_out == Sum_j x_j under drop-area normalization");
+        // sb 参数化的核是 a/A_pixel ⇒ Phi_out = pixfrac^2 * Sum_j x_j（同一算子
+        // 的不同通量泛函）; 这里断言其精确值, 避免把两种参数化混为一谈。
+        const double pf2 = f.pixfrac * f.pixfrac;
+        check(std::fabs(o_sb.flux_out(f.x.data()) - pf2 * sx) < 1e-9 * std::fabs(sx),
+              "Phi_out == pixfrac^2 * Sum_j x_j under sb parametrization");
         DrizzleOperator o3;
-        DrzError e3 = DrizzleOperator::build(f.n_src, f.n_dst, f.sources, 1.0,
-                                             NormalizationKind::legacy_a_drop, f.overlaps, o3);
-        check(e3 == DrzError::ok, "legacy normalization at pixfrac=1 accepted");
+        check(DrizzleOperator::build(f.n_src, f.n_dst, f.sources, 1.0,
+                                     NormalizationKind::drop_area, f.overlaps,
+                                     o3) == DrzError::ok,
+              "drop-area normalization at pixfrac=1 accepted");
     }
 
     // 几何闭合上溢 -> reject
@@ -466,7 +500,7 @@ static void run_negative() {
         bad[0].A_pixel = 0.0;
         DrizzleOperator o;
         check(DrizzleOperator::build(f.n_src, f.n_dst, bad, f.pixfrac,
-                                     NormalizationKind::sb_a_pixel, f.overlaps, o) ==
+                                     NormalizationKind::drop_area, f.overlaps, o) ==
                   DrzError::invalid_source_area,
               "nonpositive A_pixel rejected");
     }
@@ -477,7 +511,7 @@ static void run_negative() {
         dup.push_back(dup.front());
         DrizzleOperator o;
         check(DrizzleOperator::build(f.n_src, f.n_dst, f.sources, f.pixfrac,
-                                     NormalizationKind::sb_a_pixel, dup, o) ==
+                                     NormalizationKind::drop_area, dup, o) ==
                   DrzError::invalid_argument,
               "duplicate (src,dst) rejected");
     }
@@ -488,7 +522,7 @@ static void run_negative() {
         nanv[0].a_jp = std::nan("");
         DrizzleOperator o;
         check(DrizzleOperator::build(f.n_src, f.n_dst, f.sources, f.pixfrac,
-                                     NormalizationKind::sb_a_pixel, nanv, o) ==
+                                     NormalizationKind::drop_area, nanv, o) ==
                   DrzError::nonfinite_input,
               "non-finite a_jp rejected");
     }

@@ -169,7 +169,7 @@ def main():
              "result": "PASS"},
             {"oracle": "NIST/Rosner", "method": "generalized_esd", "result": "PASS"},
             {"oracle": "official rcr 2.4.7", "method": "rcr", "result": "PASS"},
-            {"oracle": "WBPP 2.9.1 bestRejectionMethod", "method": "auto",
+            {"oracle": "WBPP 2.5.9 bestRejectionMethod (band edges)", "method": "auto",
              "result": "PASS"},
             {"oracle": "PixInsight MinMax example (3,5)->42", "method": "minmax",
              "result": "PASS"},

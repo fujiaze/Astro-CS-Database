@@ -4564,7 +4564,8 @@ TEST(Phase2Reject, V15EsdSingleSqrtExactRosnerSet) {
     }
 }
 
-// G2：auto 在 planning 层按 nominal contributors 解析（WBPP 2.9.1）
+// G2：auto 在 planning 层按 nominal contributors 解析（本仓冻结路由表；
+//     档界取自 WBPP 2.5.9 bestRejectionMethod，engine.js:1421-1429）
 TEST(Phase2Reject, V15AutoPlanResolvesByNominal) {
     auto resolve = [](std::uint32_t n) {
         P2RejectionPlanRequest req{};
@@ -5002,6 +5003,60 @@ TEST(Phase2Eligibility, V16GatherStridedFp32Fp64) {
     EXPECT_NEAR(out_v[1], 10.2, 1e-6);
     EXPECT_EQ(out_f[0], 0u);
     EXPECT_EQ(out_f[1], 1u);
+}
+
+// M3（依据 docs/science/REJECTION.md §5「n ≥ 6 → winsorized_sigma」）：生产档
+// astrocs_adaptive_pixel 的 n≥16 档由 linear_fit 改投 winsorized_sigma ——
+// 正例（路由档界 + 科学行为保留）+ 负例（改回即红）。
+// 对照档 wbpp_2_9_1 / astrocs_adaptive 的 n>15 → linear_fit **未随此改动**（回归基线）。
+TEST(Phase2Reject, M3PixelProfileRoutesGe16ToWinsorized) {
+    auto resolve = [](std::uint32_t n) {
+        P2RejectionPlanRequest req{};
+        req.request = P2_REJECT_AUTO;
+        req.nominal_contributors = n;
+        req.profile = "astrocs_adaptive_pixel";
+        P2RejectionPlan plan{};
+        char err[64] = {0};
+        EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+        return plan.method;
+    };
+    EXPECT_EQ(resolve(3), P2_REJECT_NONE);                 // 1..3 → none（保守档）
+    EXPECT_EQ(resolve(5), P2_REJECT_PERCENTILE);           // 4..5
+    EXPECT_EQ(resolve(15), P2_REJECT_WINSORIZED_SIGMA);    // 6..15
+    EXPECT_EQ(resolve(16), P2_REJECT_WINSORIZED_SIGMA);    // M3：原 linear_fit
+    EXPECT_EQ(resolve(20), P2_REJECT_WINSORIZED_SIGMA);
+    // 负例（能红）
+    EXPECT_NE(resolve(16), P2_REJECT_LINEAR_FIT);
+    EXPECT_NE(resolve(20), P2_REJECT_LINEAR_FIT);
+    // 对照档回归基线（未随 M3 改动）
+    {
+        P2RejectionPlanRequest req{};
+        req.request = P2_REJECT_AUTO;
+        req.nominal_contributors = 20;
+        req.profile = "wbpp_2_9_1";
+        P2RejectionPlan plan{};
+        char err[64] = {0};
+        EXPECT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+        EXPECT_EQ(plan.method, P2_REJECT_LINEAR_FIT);
+    }
+    // 科学行为保留：20 帧含单帧卫星线，改投 winsorized 后仍须拒该帧
+    std::mt19937 rng(20260925);
+    std::normal_distribution<double> nd(0.0, 0.05);
+    std::vector<double> vals;
+    for (int i = 0; i < 20; ++i) vals.push_back(10.0 + nd(rng));
+    vals[7] = 25.0;  // 卫星线帧
+    P2RejectionPlanRequest req{};
+    req.request = P2_REJECT_AUTO;
+    req.nominal_contributors = 20;
+    req.profile = "astrocs_adaptive_pixel";
+    P2RejectionPlan plan{};
+    char err[64] = {0};
+    ASSERT_EQ(p2_reject_plan_resolve(&req, &plan, err, sizeof(err)), 0);
+    EXPECT_EQ(plan.method, P2_REJECT_WINSORIZED_SIGMA);
+    P2RejectionDecision dec{};
+    auto reasons = v15_reject(vals, plan, &dec);
+    EXPECT_EQ(reasons[7], P2_REASON_REJECTED_HIGH);
+    EXPECT_GE(dec.rejected_high, 1u);
 }
 
 // profile 解析（wbpp_current 与 astrocs_adaptive 都接受；AUTO 路由一致）

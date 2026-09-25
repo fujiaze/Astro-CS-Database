@@ -591,12 +591,22 @@ if(UNIX AND OpenMP_CXX_FOUND)
   target_link_libraries(astrocs_calibration PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+# PHOT-MXY-01: 仓内**唯一**「可辨识性/病态」判据 (identifiability.cpp) 抽成独立
+# 小库, 供 astrocs_phase2 (天光面/UPM) 与 astrocs_phase1_photcal (Phase1 低阶空间
+# 增益 m(x,y) 的基函数秩检验) **共用同一份编译产物** —— 不复制源码、不另立阈值。
+# 依据: docs/science/PHASE2_UPM.md §7a:196-198（判据按矩阵谱自身定）;
+#       lib/algorithms/coverage/include/astro/phase2/identifiability.h 文件头;
+#       CODE_STANDARD §MUST「禁止重复 production science implementation」。
+add_library(astrocs_identifiability STATIC
+  lib/algorithms/coverage/src/identifiability.cpp)
+target_include_directories(astrocs_identifiability PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include)
+target_link_libraries(astrocs_identifiability PUBLIC astrocs_contracts astrocs_common)
+
 # lib/algorithms/coverage (phase2 生产模块; ACR 源不在此列 — LEG-004)
 add_library(astrocs_phase2 STATIC
   lib/algorithms/coverage/src/upm.cpp
   lib/algorithms/coverage/src/sky_plane.cpp
-  # 唯一「可辨识性/病态」判据（天光面与 UPM/GLS 共用同一实现；§7a:196-198）
-  lib/algorithms/coverage/src/identifiability.cpp
   lib/algorithms/coverage/src/stage2_common.cpp
   lib/algorithms/coverage/src/rejection.cpp
   lib/algorithms/coverage/src/coverage.cpp
@@ -612,6 +622,8 @@ target_include_directories(astrocs_phase2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared)
 target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips
+  # PHOT-MXY-01: 唯一可辨识性判据实现 (identifiability.cpp, 见 astrocs_identifiability)
+  astrocs_identifiability
   # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
   astrocs_probes)
 
@@ -736,7 +748,9 @@ add_library(astrocs_phase1_photcal STATIC
   lib/algorithms/photometry/cpp/src/wcs_transform.cpp
   lib/algorithms/photometry/cpp/src/image_corrector.cpp
   lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp
-  lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp)
+  lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp
+  # PHOT-MXY-01: 低阶乘性空间增益 m(x,y) 的拟合 (SCI-PHOT-001 §16.1 ④)
+  lib/algorithms/photometry/cpp/src/spatial_gain.cpp)
 target_include_directories(astrocs_phase1_photcal PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
@@ -746,7 +760,12 @@ target_include_directories(astrocs_phase1_photcal PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
-target_link_libraries(astrocs_phase1_photcal PUBLIC astrocs_contracts astrocs_p1_ipv)
+# PHOT-MXY-01 追加依赖:
+#   · astrocs_calibration —— 只为 photometry_apply.h 的**唯一**空间场求值实现
+#     (基函数 + m(x,y) 内联求值) 与 apply_photometry_spatial; 无反向依赖。
+#   · astrocs_identifiability —— 空间基函数的可辨识性判据 (唯一实现)。
+target_link_libraries(astrocs_phase1_photcal PUBLIC astrocs_contracts astrocs_p1_ipv
+  astrocs_calibration astrocs_identifiability)
 if(UNIX AND OpenMP_CXX_FOUND)
   target_link_libraries(astrocs_phase1_photcal PUBLIC OpenMP::OpenMP_CXX)
 endif()
