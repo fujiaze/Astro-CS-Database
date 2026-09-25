@@ -810,12 +810,6 @@
    "docs/science/PHASE2_UPM.md": 1,
    "docs/traceability/traceability_warn_baseline.json": 1
   },
-  "D4c_anchor_density": {
-   "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv": 0.9623,
-   "docs/architecture/execution_inventory.csv": 8.0667,
-   "docs/audit/risk_verification_T012.csv": 0.75,
-   "docs/traceability/TRACEABILITY_MATRIX.csv": 2.3548
-  },
   "D4d_cell_wall": {
    "ACCEPTANCE_SPEC.md": 7,
    "docs/GLOSSARY.md": 1,
