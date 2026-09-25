@@ -67,7 +67,7 @@
 | **4 ≤ N ≤ 5** | percentile clipping |
 | **N ≥ 6** | winsorized sigma clipping |
 
-> **M3 裁决（负责人 2026-09-25）**：原 `N ≥ 16` 档的 linear fit clipping **改投 winsorized sigma clipping**，
+> `N ≥ 16` 档取 winsorized sigma clipping，
 > 即生产档 `astrocs_adaptive_pixel` 的档位表由四档收成三档（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）。
 > **依据（生产 kernel 受控评估，`run/REJECT-DOCFIX-01/REPORT.md`）**：linear fit 在 `N ≥ 16` 档的
 > 等效上阈实测仅 **≈2.1–2.4·σ_robust**（名义 3.5·σ_fit，因秩轴拟合的 σ 被序统计量间距压小），

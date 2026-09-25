@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §7（CLI 合同）、§8.4（模块与 ABI）
 
-## C ABI 声明面 ≠ 三命令生产调用面（CHK-PROD-WIRING W1 口径，2026-09-25 登记）
+## C ABI 声明面 ≠ 三命令生产调用面（CHK-PROD-WIRING W1 口径）
 
 > 本节由 CHK-PROD-WIRING 的 W1（`declared_unreachable`）逐条判红所触发，是**口径条款**，
 > 不是新增能力：它把「模块版本化公开头（最高设计 §8.4/§8.5）里以 C ABI 标记声明的函数」
@@ -16,7 +16,7 @@
   「三个命令必然在运行期调用」的承诺。生产路径若使用 `*_ex` / `*_v1` / `*_wcs` 等
   **变体入口**，裸名声明仍留在合同面内。
 - **可豁免的门槛（不满足即必须接线或撤下声明）**：该符号必须有**具名在仓消费者**且
-  有**具名退出条件**；「仓内零消费者且本合同未列名」的符号**不得**走豁免，只能接线或
+  有**具名退出条件**；「仓内零消费者且本合同未列名」的符号只能走接线或
   撤下声明（本轮实例：`p2_sample_sky` / `p2_sample_sky_cached` /
   `p2_reject_stack_resolve_ex` / `p2_upm_ma_component_of_control` /
   `p2_upm_normalized_weights` 五条零消费者声明已删）。
