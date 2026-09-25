@@ -12479,7 +12479,6 @@
     {
       "id": "CHK-MASTER-UNIT-GUARD",
       "profiles": [
-        "fast",
         "linux-main",
         "windows-main"
       ],
@@ -12489,14 +12488,17 @@
         "eng/tools/quality/check_master_unit_guard.py",
         "--repo",
         ".",
+        "--work",
+        "run/master_unit_guard/guard",
         "--out-json",
         "run/ci/master-unit-guard/report.json"
       ],
       "timeout_seconds": 1800,
       "heavy": false,
-      "mutates_workspace": false,
+      "mutates_workspace": true,
       "outputs": [
-        "run/ci/master-unit-guard/report.json"
+        "run/ci/master-unit-guard/report.json",
+        "run/master_unit_guard/guard/"
       ],
       "waivable": false,
       "changed_paths": [
@@ -12508,7 +12510,6 @@
     {
       "id": "CHK-MASTER-UNIT-GUARD-SELFTEST",
       "profiles": [
-        "fast",
         "linux-main",
         "windows-main"
       ],
@@ -12516,12 +12517,19 @@
       "command": [
         "python3",
         "eng/tools/quality/check_master_unit_guard.py",
-        "--self-test"
+        "--self-test",
+        "--work",
+        "run/master_unit_guard/selftest",
+        "--out-json",
+        "run/ci/master-unit-guard/selftest.json"
       ],
       "timeout_seconds": 1800,
       "heavy": false,
-      "mutates_workspace": false,
-      "outputs": [],
+      "mutates_workspace": true,
+      "outputs": [
+        "run/ci/master-unit-guard/selftest.json",
+        "run/master_unit_guard/selftest/"
+      ],
       "waivable": false,
       "changed_paths": [
         "eng/tools/quality/check_master_unit_guard.py"
