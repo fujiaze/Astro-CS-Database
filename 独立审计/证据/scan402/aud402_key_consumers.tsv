@@ -1,0 +1,60 @@
+key	leaf	lib_hits	lib_prod_hits	sample_prod
+calibration.dark_light_exposure_tolerance	dark_light_exposure_tolerance	0	0	
+calibration.master_flat_median_range	master_flat_median_range	9	9	lib/include/astrocs/core/master_unit_guard.h:32:// calibration.master_flat_median_range = [0.5, 2.0] 三处同值（SCI:101-102 / ALG:56）。
+detection.threshold_sigma	threshold_sigma	6	6	lib/algorithms/calibration/src/cosmetic_corrector.cpp:117:// 全局统计：median + threshold_sigma * 1.482602218505602 * MAD
+psf.default_model	default_model	0	0	
+psf.moffat_beta	moffat_beta	0	0	
+noise.patch_grid	patch_grid	9	7	lib/infrastructure/cli/parser.cpp:301:        //   （patch_grid/clip_sigma/spatial_field_enabled/mask_*/min_patch_samples/
+noise.source_mask_radius_px	source_mask_radius_px	21	17	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:133:    double source_mask_radius_px;   // 星点固定保守掩膜半径 (默认 10 px)
+noise.mask_radius_scale	mask_radius_scale	21	17	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:134:    double mask_radius_scale;       // 固定半径乘数 (默认 6.0 → 统一 rmax=60 px)
+noise.clip_sigma	clip_sigma	33	32	lib/algorithms/coverage/include/astro/phase2/sky_plane.h:95:    double clip_sigma;               // 默认 3.0（MAD 单位，亮端单侧）
+noise.min_patch_samples	min_patch_samples	19	12	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:142:    int    min_patch_samples;       // patch 合格最小 sky 样本数 (默认 64)
+noise.max_clip_rounds	max_clip_rounds	14	10	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:143:    int    max_clip_rounds;         // cosmic 裁剪轮数 (默认 2)
+noise.saturation_level	saturation_level	54	27	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:137:    double saturation_level;        // 饱和电平 ADU (0/负/非有限 = 未提供电平 unset, 默认 0;
+noise.spatial_field_enabled	spatial_field_enabled	4	4	lib/infrastructure/cli/parser.cpp:301:        //   （patch_grid/clip_sigma/spatial_field_enabled/mask_*/min_patch_samples/
+noise.variance_floor	variance_floor	67	54	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:17:#include "astrocs/core/variance_floor.h"  // 按 dtype 导出的方差地板 (NOISE_MODEL §7/§9)
+noise.mask_k_sigma	mask_k_sigma	13	8	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:150:    double   mask_k_sigma;            // 掩膜边缘残余面亮度系数 k (默认 0.1σ_bg)
+noise.mask_r_min_px	mask_r_min_px	13	8	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:151:    double   mask_r_min_px;           // 逐星半径下界绝对项 (默认 1.5 px)
+noise.mask_fwhm_floor_scale	mask_fwhm_floor_scale	13	8	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:152:    double   mask_fwhm_floor_scale;   // r_min 的 FWHM 项系数 (默认 0.75)
+noise.mask_budget_min_patches	mask_budget_min_patches	16	11	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:153:    uint32_t mask_budget_min_patches; // 天空预算: 合格 patch 数下限 (默认 8)
+noise.mask_budget_min_sky	mask_budget_min_sky	15	10	lib/algorithms/noise_snr/cpp/include/snr_estimator.h:154:    uint32_t mask_budget_min_sky;     // 天空预算: 未掩膜合法像素数下限 (默认 9216)
+rejection.sigma.lower_sigma	lower_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:29:        "lower_sigma": 4.0,
+rejection.sigma.upper_sigma	upper_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:30:        "upper_sigma": 3.0,
+rejection.sigma.max_iterations	max_iterations	205	127	lib/algorithms/calibration/include/astro_calibration.h:63:    float sigma_low, float sigma_high, int max_iterations,
+rejection.winsorized.lower_sigma	lower_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:29:        "lower_sigma": 4.0,
+rejection.winsorized.upper_sigma	upper_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:30:        "upper_sigma": 3.0,
+rejection.winsorized.max_iterations	max_iterations	205	127	lib/algorithms/calibration/include/astro_calibration.h:63:    float sigma_low, float sigma_high, int max_iterations,
+rejection.averaged_sigma.lower_sigma	lower_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:29:        "lower_sigma": 4.0,
+rejection.averaged_sigma.upper_sigma	upper_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:30:        "upper_sigma": 3.0,
+rejection.averaged_sigma.max_iterations	max_iterations	205	127	lib/algorithms/calibration/include/astro_calibration.h:63:    float sigma_low, float sigma_high, int max_iterations,
+rejection.linear_fit.lower_sigma	lower_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:29:        "lower_sigma": 4.0,
+rejection.linear_fit.upper_sigma	upper_sigma	47	33	lib/algorithms/coverage/configs/stage2_full.example.json:30:        "upper_sigma": 3.0,
+rejection.linear_fit.max_iterations	max_iterations	205	127	lib/algorithms/calibration/include/astro_calibration.h:63:    float sigma_low, float sigma_high, int max_iterations,
+rejection.esd.alpha	alpha	403	254	lib/algorithms/calibration/batch_config.json:19:        "H-alpha": "masterFlat_BIN-1_4500x3600_FILTER-H-alpha_mono.xisf",
+rejection.esd.max_outliers	max_outliers	9	7	lib/algorithms/coverage/configs/stage2_gc_3panel_red.json:60:        "max_outliers": 10
+rejection.percentile.low	low	338	312	lib/algorithms/coverage/include/astro/phase2/rejection.h:125:// ---- method-specific typed parameters（禁止跨方法共享 low/high/max_iter） ----
+rejection.percentile.high	high	275	252	lib/algorithms/coverage/include/astro/phase2/rejection.h:125:// ---- method-specific typed parameters（禁止跨方法共享 low/high/max_iter） ----
+rejection.minmax.min_kept	min_kept	14	9	lib/algorithms/coverage/configs/stage2_gc_3panel_red.json:74:        "min_kept": 4
+rejection.large_scale.enabled	enabled	192	131	lib/algorithms/coverage/CMakeLists.txt:32:        message(STATUS "Phase2: OpenMP enabled (P2_ENABLE_OPENMP=ON)")
+photometry.mag_tolerance	mag_tolerance	23	17	lib/algorithms/photometry/cpp/src/pc_api.cpp:145:        3.0,  // mag_tolerance (: 星等一致性容忍度, mag)
+photometry.tukey_c	tukey_c	4	2	lib/algorithms/platesolve/cpp/ipv/include/ipv_robust_refine.h:49:    double tukey_c             = 4.685; // Tukey biweight 常数
+photometry.irls_max_iterations	irls_max_iterations	0	0	
+photometry.irls_tolerance_dex	irls_tolerance_dex	0	0	
+photometry.min_reference_stars	min_reference_stars	0	0	
+photometry.min_inlier_stars	min_inlier_stars	0	0	
+precision.default	default	1392	1253	lib/algorithms/calibration/cpp/cosmetic_corrector.h:9:    #define CC_EXPORT __attribute__((visibility("default")))
+upm.k_corr	k_corr	154	93	lib/algorithms/coverage/include/astro/phase2/sampler.h:51:    // control_variance = k_corr × (π/2) × sigma_bg² / N_retained；
+hips.tile_width	tile_width	108	84	lib/algorithms/coverage/hips_properties.cpp:85:            if (!parse_int(val, &out->tile_width)) return fail("hips_tile_width not integer");
+drizzle.pixfrac	pixfrac	749	277	lib/algorithms/coverage/CMakeLists.txt:141:    # pixfrac grid piecewise-linear + exact corners; drives production impl
+sparse_snr.density	density	31	31	lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h:285://   mag_lim/n_target/sigma_d/vote/density 零命中）。legacy orchestrator 路径同样仅
+sparse_snr.spacing_px	spacing_px	0	0	
+snr.path	path	3322	1829	lib/algorithms/calibration/build.ps1:11:    Write-Host "Expected path: $gpp" -ForegroundColor Yellow
+scalar_gate.rd	rd	236	173	lib/algorithms/fits_output/p3_output.cpp:540:                const bool rd = (sig[(size_t)i] != sig[(size_t)i]);
+scalar_gate.trend	trend	23	12	lib/algorithms/coverage/src/sampler.cpp:1436:                    "scalar_degrade: thresholds not declared (residual/trend and "
+paths.gaia_root	gaia_root	0	0	
+cosmetic.bad_column_enabled	bad_column_enabled	3	3	lib/infrastructure/scheduler/src/module_adapters.cpp:2777:  // bad_column_enabled 默认 true，配置可关闭；关闭时本节点对像素的行为
+cosmetic.bad_column_sigma	bad_column_sigma	2	2	lib/infrastructure/scheduler/src/module_adapters.cpp:2782:  const float col_sigma = static_cast<float>(p1_num(c, "bad_column_sigma", 5.0));
+cosmetic.bad_column_neighbor_k	bad_column_neighbor_k	2	2	lib/infrastructure/scheduler/src/module_adapters.cpp:2783:  const int col_k = p1_int(c, "bad_column_neighbor_k", 3);
+cosmetic.bad_column_sigma_master	bad_column_sigma_master	3	3	lib/infrastructure/scheduler/src/module_adapters.cpp:2734:// 覆盖点：cosmetic.bad_column_sigma_master；<=0 ⇒ 归一到科学帧阈值（向后兼容）。
+cosmetic.bad_column_variance_kappa	bad_column_variance_kappa	3	3	lib/algorithms/calibration/include/astro_calibration.h:285: *   (Q2) **κ = 2**（本层取值，配置键 bad_column_variance_kappa 默认 2.0）：
+cosmetic.bad_column_master_wide_frac_max	bad_column_master_wide_frac_max	2	2	lib/infrastructure/scheduler/src/module_adapters.cpp:2817:      c, "bad_column_master_wide_frac_max",

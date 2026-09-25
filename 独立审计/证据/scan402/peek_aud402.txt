@@ -1,0 +1,82 @@
+=== lib/algorithms/noise_snr/cpp/src/noise_model.cpp:20-32 ===
+20: #include <cstdlib>
+21: #include <cstring>
+22: #include <limits>
+23: #include <vector>
+24: #include <unordered_map>
+25: #include <mutex>      // PERF-P1: floor 注册表的线程安全（帧级并行下多 worker 并发 build/fill/free）
+26: 
+27: #ifndef M_PI
+28: #define M_PI 3.14159265358979323846
+29: #endif
+30: 
+31: namespace {
+32: 
+=== lib/algorithms/noise_snr/cpp/src/noise_model.cpp:86-100 ===
+86: static void registry_erase(const NoiseWeightModelV1* m) {
+87:     std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+88:     g_model_floor.erase(m);
+89:     g_model_floor_clamp.erase(m);
+90: }
+91: 
+92: constexpr double kLn10 = 2.302585092994045684017991454684; // NOISE_ESTIMATION.md / NOISE_MODEL.md 科学定义 log10↔ln 换算
+93: // trimmed-mean-abs-residual → Gaussian σ 换算因子:
+94: // E[10-90% trimmed mean |r|] = 0.731673 σ (Gaussian N(0,σ²)) — 锚点: docs/science/NOISE_MODEL.md 数值精度 / PSF.md
+95: constexpr double kTrimMeanToSigma = 0.7316727929211932; // PSF.md 0.7316728 (7 位简写) ↔ NOISE_MODEL.md robust_residual_sigma
+96: 
+97: [[maybe_unused]] bool finite(double x) { return std::isfinite(x); }
+98: 
+99: // 稳健中位数 (输入会被重排)
+100: double robust_median(std::vector<double>& v) {
+=== lib/algorithms/noise_snr/cpp/src/noise_model.cpp:178-200 ===
+178: // 平面几何可用性判据 (M3-A-005 / DISP-NOISE-010): 控制点必须张成二维。
+179: // 判据 = 中心化点云 Gram 矩阵 [[sxx,sxy],[sxy,syy]] 的特征值比 λlo/λhi,
+180: // 无量纲; 等价于点云条件数 κ=√(λhi/λlo) ≤ 1/√kPlaneGeomRatio。
+181: // 原绝对阈值 |det|>1e-24 (量纲 px⁴) 已废除: 共线点云 det==0 时它不阻止
+182: // has_spatial_field=1; 近共线点云 det 虽 >1e-24, 平面仍把方差场病态外推 ±62%。
+183: constexpr double kPlaneGeomRatio = 0.0625;  // λlo/λhi 下限 (=1/16, κ≤4)
+184: double plane_geometry_ratio(const double* xs, const double* ys, std::size_t n) {
+185:     if (!xs || !ys || n < 2) return 0.0;
+186:     double mx = 0.0, my = 0.0;
+187:     for (std::size_t i = 0; i < n; ++i) { mx += xs[i]; my += ys[i]; }
+188:     mx /= (double)n; my /= (double)n;
+189:     double sxx = 0.0, sxy = 0.0, syy = 0.0;
+190:     for (std::size_t i = 0; i < n; ++i) {
+191:         const double X = xs[i] - mx;
+192:         const double Y = ys[i] - my;
+193:         sxx += X * X; sxy += X * Y; syy += Y * Y;
+194:     }
+195:     const double tr = sxx + syy;
+196:     const double disc = std::sqrt((sxx - syy) * (sxx - syy) + 4.0 * sxy * sxy);
+197:     const double lam_hi = 0.5 * (tr + disc);
+198:     const double lam_lo = 0.5 * (tr - disc);
+199:     if (!(lam_hi > 0.0) || !std::isfinite(lam_hi) || !std::isfinite(lam_lo)) return 0.0;
+200:     return lam_lo / lam_hi;
+=== lib/algorithms/noise_snr/cpp/src/noise_model.cpp:318-330 ===
+318: //     外层用割平面把工作约束集从 4 个极值点长到全部控制点。子问题（等式约束最小二乘）
+319: //     用**零空间 + Householder QR**（β = Zγ, 对加权缩减设计正交三角化）, **不建正规方程**:
+320: //     控制点方差动态范围 D ⇒ 权重跨度 D² ⇒ 正规方程的条件数是设计矩阵的**平方**。实测
+321: //     D=1.2e6 的 fixture 上正规方程解相对偏差达 40%（QR 路径与 SVD 一致到 1e-12）。
+322: //     唯一的常数是浮点比较余量（见下）, 不是科学阈值。
+323: //   返回 false ⇒ 数值上不可解（非科学退化）; 调用方不得据此产出负平面。
+324: constexpr double kFitEpsScale = 8.0;   // 纯浮点比较余量倍数（见下）, 不是科学阈值
+325: 
+326: // 小型稠密最小二乘内核: min_γ ‖B γ − rhs‖₂, B 行主序 n×p（p ≤ 3）。
+327: // Householder QR（正交变换）⇒ 前向误差 ~ eps·cond(B), 不做正规方程的平方放大。
+328: // 返回 false ⇒ 缩减设计列线性相关（该活跃子集退化, 由枚举中的等价小子集覆盖）。
+329: bool lstsq_qr(const double* B, std::size_t n, std::size_t p, const double* rhs,
+330:               double* gamma) {
+=== lib/algorithms/noise_snr/cpp/src/snr_science.cpp:18-30 ===
+18: //   sigma_px            [pixel]    本块 Moffat4 轮廓的尺度参数 sigma [pixel]
+19: //                                  (与 fwhm_px 同一 sigma 尺度; fwhm_px<=0 时直接采用)
+20: //
+21: // 跨块口径 (SCI-P1-STAR-001 §2 :31-34 / ALG-STARDET-001 :64,253-258, DISP-STAR-007):
+22: //   检测块 FWHM_gauss = 2.3548200450309493*sigma, PSF 块 FWHM_moffat4 = 1.230310*sigma,
+23: //   同 sigma 下相差 1.914005x, **两列禁止跨块比较/互换**。本块消费的是检测块列
+24: //   (DATA-P1-SOURCES.fwhm_px) ⇒ 必须用**高斯因子**换算 sigma; 用 PSF 块因子 1.230310
+25: //   反解会使 sigma 高估 1.914005x (CONFORM-SWEEP-1-001 修复面)。本块自身的 Moffat4
+26: //   轮廓模型 FWHM 一律由 sigma 经 kMoffat4FwhmFactor 正向导出, 不与输入列比较。
+27: //   sigma_sky_adu       [ADU]      逐像素空背景 rms
+28: //   gain_e_per_adu      [e-/ADU]   未知传 <=0 (则不加源泊松项)
+29: //   read_noise_e        [e-]       仅在 gain>0 时进入
+30: //   snr_*               [1]        无量纲信噪比
