@@ -19,6 +19,38 @@
 
 namespace drizzle {
 
+// ============================================================================
+// 面亮度归一发布因子 —— **唯一源** (single source of truth)
+// ----------------------------------------------------------------------------
+// 两个直写末端 (write_hips_direct / write_hips_phase1) 的**产品面语义相同**：
+//   * 累加器 (drizzle_engine.h TileLeafAccumulatorT) 记的是
+//       sumFlux = F_p = Σ_j x_j·w_jp        (分配通量, 核 w_jp = a_jp/A_drop,j)
+//       sumArea = D_p = Σ_j a_jp            (覆盖面积)
+//       sumNorm = N_p = Σ_j w_jp·A_pixel,j  (面亮度归一分母)
+//       sumVarNum = Σ_j v_j·w_jp²           (方差分子)
+//   * docs/science/DRIZZLE.md §5:50/§5:83 冻结的发布量是
+//       S_p = F_p / N_p        (= Σ_j B_j a_jp / Σ_j a_jp, B_j = x_j/A_pixel,j)
+//       variance_p = sumVarNum / N_p²
+//   * 而 AIO writer 的落盘口径是 sig = flux_sum / covered_area（aio_hips_writer.cpp
+//     finalize），variance = var_num_sum / covered_area²。
+// 对接两个口径的**唯一**因子（两末端必须逐字相同，禁止内联第二套分母）：
+//
+//   k := D_p / N_p = sumArea / sumNorm
+//      = (Σ_j a_jp) / (Σ_j w_jp·A_pixel,j) = pixfrac²
+//        (A_drop,j = pixfrac²·A_pixel,j 时严格；pixfrac=1 ⇒ pixel_area≡drop_area
+//         ⇒ sumNorm ≡ sumArea 逐位 ⇒ k ≡ 1.0 ⇒ 旧默认路径逐位不变)
+//
+// 于是发布量 = sumFlux·k（writer 再除 covered_area ⇐ S_p = F_p/N_p），
+// 方差分子同步乘 k²（signal 与 variance 共用同一归一分母 ⇒ 幂次 k²，
+// 由 var_pub = (sumVarNum·k²)/D_p² = sumVarNum/N_p² 反解）。
+//
+// 幂次守恒是硬约束：signal 的 k 幂次 = +1、variance 的 k 幂次 = +2；
+// 任一末端漏乘 ⇒ signal 偏 1/pixfrac²、variance 偏 1/pixfrac⁴（pixfrac<1）。
+// sumNorm<=0（手工构造的累加器/空覆盖）退回 k=1.0（沿既有约定，计数并告警）。
+inline double sb_publish_scale(double sum_area, double sum_norm) {
+    return (sum_norm > 0.0) ? (sum_area / sum_norm) : 1.0;
+}
+
 // 将 Tile 级累加结果直接流式写入 HiPS 产品集
 // (signal/support/snr; has_variance=1 时追加 variance/ivar, P1-003)。
 // tiles: 必须按 depth=9 分组 (512x512 叶 tile, 与 HiPS NorderK tile 1:1)。

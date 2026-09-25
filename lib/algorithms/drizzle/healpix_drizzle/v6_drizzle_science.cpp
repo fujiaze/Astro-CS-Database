@@ -170,6 +170,8 @@ const char* drz_error_name(DrzError e) {
             return "missing_flux_conservation_factor";
         case DrzError::unit_undeterminable: return "unit_undeterminable";
         case DrzError::invalid_argument: return "invalid_argument";
+        case DrzError::overlap_area_invalid: return "overlap_area_invalid";
+        case DrzError::overlap_area_deficit: return "overlap_area_deficit";
     }
     return "unknown";
 }
@@ -196,7 +198,11 @@ DrzError validate_overlap_closure(double sum_a_jp, double A_pixel_j, double pixf
     const double expected = pixfrac * pixfrac * A_pixel_j;
     const double rel = (sum_a_jp - expected) / expected;
     if (rel_out) *rel_out = rel;
+    // DRZ-PF-CORRECT-01 (S1 第 19 条): 判据必须**取绝对值** —— 面积失效/被吞掉的
+    // 候选只会使 rel<0，旧判据 (rel > rel_tol) 对亏损恒为假 ⇒ 面积亏损静默进产品。
+    // 两侧分开具名: 超额 = overlap_exceeds_drop; 亏损 = overlap_area_deficit。
     if (rel > rel_tol) return DrzError::overlap_exceeds_drop;
+    if (rel < -rel_tol) return DrzError::overlap_area_deficit;
     return DrzError::ok;
 }
 

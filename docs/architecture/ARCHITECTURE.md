@@ -49,7 +49,7 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 ## 6 线程与执行
 
 - 全局 thread budget 与串行 I/O/异步 pipeline/backpressure 见 ARCH-004（冻结前置）；每 kernel 预算来源=PERFORMANCE_MODEL + benchmark profile；无硬编码线程数（ARCH-001 门+AGENTS 硬约束）。
-- 执行语义存量证据：`production_call_paths_stage1/2.csv`（symbol 级）+`PRODUCTION_EXECUTION_INVENTORY.csv`（**338 行**，实测 `wc -l`）；其中 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
+- 执行语义存量证据：`production_call_paths_stage1/2.csv`（symbol 级）+`PRODUCTION_EXECUTION_INVENTORY.csv`（行数由 `eng/tools/arch/build_production_execution_inventory.py` 产出，`wc -l` 实测）；其中 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
 
 ## 7 不变量（机器可验）
 

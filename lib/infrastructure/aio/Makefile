@@ -1,19 +1,22 @@
+# ISA-001（TRUTHFUL-CONCLUSION-01）：本文件**不得**自带宿主 ISA 旗标（原 -march=native 已移除）。
+# 依据 AGENTS.md §6「不硬编码线程/ISA/block」+ BLD-002「根 CMakeLists.txt 是唯一产品事实源」：
+# ISA 姿态由根构建图与机器 profile 决定，模块级独立构建路径不得另行自定 ISA。
 CXX = g++
 # RESCUE-V3 B3-A3: 共享对象必须位置无关。历史构建在更宽松的 gcc 下侥幸链接,
 # 现版 gcc 14 对 thread_local (aio_hips_reader.cpp 的 g_rd_error, TLS
 # local-exec) 报 "relocation R_X86_64_TPOFF32 ... recompile with -fPIC" 而
 # 无法产出 astro_image_io.dll —— 该产物是 tests/api 独立 oracle 门
 # (seam/UPM/reject) 的链接输入。补 -fPIC, 零科学改动。
-CXXFLAGS = -O2 -march=native -Wall -std=c++17 -fopenmp -fPIC \
-           -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -DAIO_ENABLE_AHPX \
-           -DAIO_ENABLE_HEALPIX -DAIO_ENABLE_COMPRESSOR -DAIO_ENABLE_PIPELINE \
-           -DHAS_ZSTD -DHAS_LZ4
+CXXFLAGS = -O2 -Wall -std=c++17 -fopenmp -fPIC \
+  -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF -DAIO_ENABLE_AHPX \
+  -DAIO_ENABLE_HEALPIX -DAIO_ENABLE_COMPRESSOR -DAIO_ENABLE_PIPELINE \
+  -DHAS_ZSTD -DHAS_LZ4
 CC = gcc
-CFLAGS = -O2 -march=native -Wall -fPIC
+CFLAGS = -O2 -Wall -fPIC
 # V19 (PRERELEASE_CODE_QUALITY): CFITSIO 4.6.4 为 vendored 第三方源码,
 # 严格 warning 门只覆盖 first-party; 第三方 object 用 -w 抑制并记录 exception
 # (shipping_units.csv third_party=true; 上游 144 条警告不属 first-party 缺陷)
-CFLAGS_VENDORED = -O2 -march=native -w -fPIC
+CFLAGS_VENDORED = -O2 -w -fPIC
 INCLUDES = -Iinclude -Isrc -I../common
 SRC_DIR = src
 AHPX_DIR = $(SRC_DIR)/ahpx
@@ -22,49 +25,49 @@ AHPX_DIR = $(SRC_DIR)/ahpx
 # 源文件清单 = 上游 libcfitsio_la_SOURCES (Makefile.in:817), 排除 f77_wrap*/drvrgsiftp
 CFITSIO_DIR = third_party/cfitsio
 CFITSIO_SRC = \
-    $(CFITSIO_DIR)/buffers.c $(CFITSIO_DIR)/cfileio.c $(CFITSIO_DIR)/checksum.c \
-    $(CFITSIO_DIR)/drvrfile.c $(CFITSIO_DIR)/drvrmem.c $(CFITSIO_DIR)/drvrnet.c \
-    $(CFITSIO_DIR)/drvrsmem.c $(CFITSIO_DIR)/editcol.c $(CFITSIO_DIR)/edithdu.c \
-    $(CFITSIO_DIR)/eval_l.c $(CFITSIO_DIR)/eval_y.c $(CFITSIO_DIR)/eval_f.c \
-    $(CFITSIO_DIR)/fitscore.c $(CFITSIO_DIR)/getcol.c $(CFITSIO_DIR)/getcolb.c \
-    $(CFITSIO_DIR)/getcold.c $(CFITSIO_DIR)/getcole.c $(CFITSIO_DIR)/getcoli.c \
-    $(CFITSIO_DIR)/getcolj.c $(CFITSIO_DIR)/getcolk.c $(CFITSIO_DIR)/getcoll.c \
-    $(CFITSIO_DIR)/getcols.c $(CFITSIO_DIR)/getcolsb.c $(CFITSIO_DIR)/getcoluk.c \
-    $(CFITSIO_DIR)/getcolui.c $(CFITSIO_DIR)/getcoluj.c $(CFITSIO_DIR)/getkey.c \
-    $(CFITSIO_DIR)/group.c $(CFITSIO_DIR)/grparser.c $(CFITSIO_DIR)/histo.c \
-    $(CFITSIO_DIR)/iraffits.c $(CFITSIO_DIR)/modkey.c $(CFITSIO_DIR)/putcol.c \
-    $(CFITSIO_DIR)/putcolb.c $(CFITSIO_DIR)/putcold.c $(CFITSIO_DIR)/putcole.c \
-    $(CFITSIO_DIR)/putcoli.c $(CFITSIO_DIR)/putcolj.c $(CFITSIO_DIR)/putcolk.c \
-    $(CFITSIO_DIR)/putcoluk.c $(CFITSIO_DIR)/putcoll.c $(CFITSIO_DIR)/putcols.c \
-    $(CFITSIO_DIR)/putcolsb.c $(CFITSIO_DIR)/putcolu.c $(CFITSIO_DIR)/putcolui.c \
-    $(CFITSIO_DIR)/putcoluj.c $(CFITSIO_DIR)/putkey.c $(CFITSIO_DIR)/region.c \
-    $(CFITSIO_DIR)/scalnull.c $(CFITSIO_DIR)/swapproc.c $(CFITSIO_DIR)/wcssub.c \
-    $(CFITSIO_DIR)/wcsutil.c \
-    $(CFITSIO_DIR)/imcompress.c $(CFITSIO_DIR)/quantize.c $(CFITSIO_DIR)/ricecomp.c \
-    $(CFITSIO_DIR)/pliocomp.c $(CFITSIO_DIR)/fits_hcompress.c \
-    $(CFITSIO_DIR)/fits_hdecompress.c $(CFITSIO_DIR)/simplerng.c \
-    $(CFITSIO_DIR)/zcompress.c $(CFITSIO_DIR)/zuncompress.c
+  $(CFITSIO_DIR)/buffers.c $(CFITSIO_DIR)/cfileio.c $(CFITSIO_DIR)/checksum.c \
+  $(CFITSIO_DIR)/drvrfile.c $(CFITSIO_DIR)/drvrmem.c $(CFITSIO_DIR)/drvrnet.c \
+  $(CFITSIO_DIR)/drvrsmem.c $(CFITSIO_DIR)/editcol.c $(CFITSIO_DIR)/edithdu.c \
+  $(CFITSIO_DIR)/eval_l.c $(CFITSIO_DIR)/eval_y.c $(CFITSIO_DIR)/eval_f.c \
+  $(CFITSIO_DIR)/fitscore.c $(CFITSIO_DIR)/getcol.c $(CFITSIO_DIR)/getcolb.c \
+  $(CFITSIO_DIR)/getcold.c $(CFITSIO_DIR)/getcole.c $(CFITSIO_DIR)/getcoli.c \
+  $(CFITSIO_DIR)/getcolj.c $(CFITSIO_DIR)/getcolk.c $(CFITSIO_DIR)/getcoll.c \
+  $(CFITSIO_DIR)/getcols.c $(CFITSIO_DIR)/getcolsb.c $(CFITSIO_DIR)/getcoluk.c \
+  $(CFITSIO_DIR)/getcolui.c $(CFITSIO_DIR)/getcoluj.c $(CFITSIO_DIR)/getkey.c \
+  $(CFITSIO_DIR)/group.c $(CFITSIO_DIR)/grparser.c $(CFITSIO_DIR)/histo.c \
+  $(CFITSIO_DIR)/iraffits.c $(CFITSIO_DIR)/modkey.c $(CFITSIO_DIR)/putcol.c \
+  $(CFITSIO_DIR)/putcolb.c $(CFITSIO_DIR)/putcold.c $(CFITSIO_DIR)/putcole.c \
+  $(CFITSIO_DIR)/putcoli.c $(CFITSIO_DIR)/putcolj.c $(CFITSIO_DIR)/putcolk.c \
+  $(CFITSIO_DIR)/putcoluk.c $(CFITSIO_DIR)/putcoll.c $(CFITSIO_DIR)/putcols.c \
+  $(CFITSIO_DIR)/putcolsb.c $(CFITSIO_DIR)/putcolu.c $(CFITSIO_DIR)/putcolui.c \
+  $(CFITSIO_DIR)/putcoluj.c $(CFITSIO_DIR)/putkey.c $(CFITSIO_DIR)/region.c \
+  $(CFITSIO_DIR)/scalnull.c $(CFITSIO_DIR)/swapproc.c $(CFITSIO_DIR)/wcssub.c \
+  $(CFITSIO_DIR)/wcsutil.c \
+  $(CFITSIO_DIR)/imcompress.c $(CFITSIO_DIR)/quantize.c $(CFITSIO_DIR)/ricecomp.c \
+  $(CFITSIO_DIR)/pliocomp.c $(CFITSIO_DIR)/fits_hcompress.c \
+  $(CFITSIO_DIR)/fits_hdecompress.c $(CFITSIO_DIR)/simplerng.c \
+  $(CFITSIO_DIR)/zcompress.c $(CFITSIO_DIR)/zuncompress.c
 CFITSIO_OBJ = $(CFITSIO_SRC:.c=.o)
 
 SRCS = $(SRC_DIR)/aio_fits.cpp $(SRC_DIR)/aio_xisf.cpp \
-       $(SRC_DIR)/aio_api.cpp $(SRC_DIR)/aio_log.cpp \
-       $(SRC_DIR)/aio_compressor.cpp \
-       ../common/healpix/healpix_core.cpp \
-       $(SRC_DIR)/aio_upm.cpp \
-       ../common/crypto/sha256.cpp \
-       $(SRC_DIR)/hiss_codec.cpp \
-       $(SRC_DIR)/hiss_common.cpp \
-       $(SRC_DIR)/hiss_tile_model.cpp \
-       $(SRC_DIR)/hiss_transform.cpp \
-       $(SRC_DIR)/hiss_writer.cpp \
-       $(SRC_DIR)/hiss_stream_writer.cpp \
-       $(SRC_DIR)/hiss_reader.cpp \
-       $(SRC_DIR)/hips/aio_hips_writer.cpp \
-       $(SRC_DIR)/hips/aio_hips_reader.cpp \
-       $(SRC_DIR)/healpix/aio_healpix_io.cpp \
-       $(AHPX_DIR)/aio_ahpx_writer.cpp $(AHPX_DIR)/aio_ahpx_reader.cpp $(AHPX_DIR)/aio_ahpx_api.cpp \
-       $(SRC_DIR)/aio_pipeline.cpp \
-       $(SRC_DIR)/aio_pipeline_engine.cpp
+  $(SRC_DIR)/aio_api.cpp $(SRC_DIR)/aio_log.cpp \
+  $(SRC_DIR)/aio_compressor.cpp \
+  ../common/healpix/healpix_core.cpp \
+  $(SRC_DIR)/aio_upm.cpp \
+  ../common/crypto/sha256.cpp \
+  $(SRC_DIR)/hiss_codec.cpp \
+  $(SRC_DIR)/hiss_common.cpp \
+  $(SRC_DIR)/hiss_tile_model.cpp \
+  $(SRC_DIR)/hiss_transform.cpp \
+  $(SRC_DIR)/hiss_writer.cpp \
+  $(SRC_DIR)/hiss_stream_writer.cpp \
+  $(SRC_DIR)/hiss_reader.cpp \
+  $(SRC_DIR)/hips/aio_hips_writer.cpp \
+  $(SRC_DIR)/hips/aio_hips_reader.cpp \
+  $(SRC_DIR)/healpix/aio_healpix_io.cpp \
+  $(AHPX_DIR)/aio_ahpx_writer.cpp $(AHPX_DIR)/aio_ahpx_reader.cpp $(AHPX_DIR)/aio_ahpx_api.cpp \
+  $(SRC_DIR)/aio_pipeline.cpp \
+  $(SRC_DIR)/aio_pipeline_engine.cpp
 
 .PHONY: all clean
 

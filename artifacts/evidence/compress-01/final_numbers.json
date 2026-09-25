@@ -74,7 +74,7 @@
    "net_ms": -27.516264619032302,
    "bw_crit_1": 39.58281420754488
   },
-  "GZIP_1 q4 (fpack\u9ed8\u8ba4,\u6709\u635f)": {
+  "GZIP_1 q4 (fpack默认,有损)": {
    "ratio": 0.1593757811046782,
    "saved_gib": 2.482468396425247,
    "c_ms": 8.7441,
@@ -84,7 +84,7 @@
    "bitwise_eq_corpus": 20,
    "corpus_n": 188
   },
-  "GZIP_1 q0 (\u65e0\u635f)": {
+  "GZIP_1 q0 (无损)": {
    "ratio": 0.4884006863548642,
    "saved_gib": 1.5108167231082916,
    "c_ms": 6.16645,
@@ -94,7 +94,7 @@
    "bitwise_eq_corpus": 103,
    "corpus_n": 188
   },
-  "GZIP_2 q4 (fpack\u9ed8\u8ba4,\u6709\u635f)": {
+  "GZIP_2 q4 (fpack默认,有损)": {
    "ratio": 0.09858630952380952,
    "saved_gib": 2.6619873046875,
    "c_ms": 9.19295,
@@ -104,7 +104,7 @@
    "bitwise_eq_corpus": 20,
    "corpus_n": 188
   },
-  "GZIP_2 q0 (\u65e0\u635f)": {
+  "GZIP_2 q0 (无损)": {
    "ratio": 0.4114995683942522,
    "saved_gib": 1.7379153370857239,
    "c_ms": 6.1013,
@@ -114,7 +114,7 @@
    "bitwise_eq_corpus": 103,
    "corpus_n": 188
   },
-  "RICE_1 q4 (\u6709\u635f)": {
+  "RICE_1 q4 (有损)": {
    "ratio": 0.11251767476399739,
    "saved_gib": 2.62084624171257,
    "c_ms": 6.061249999999999,
@@ -124,5 +124,17 @@
    "bitwise_eq_corpus": 20,
    "corpus_n": 188
   }
- }
+ },
+ "_corrections": [
+  {
+   "id": "TRUTHFUL-CONCLUSION-01/compress-01-bitwise",
+   "field": "schemes.*.bitwise_eq_corpus / corpus_n",
+   "finding": "旧生产者 artifacts/evidence/compress-01/verify/final_numbers.py 把「位相等样本数」硬编为字面量 20/103，而分母 corpus_n 由 len(rows) 现算 ⇒ 分子与分母不同源；103 与 corpus_n=188 无法相互解释，且硬编值不随证据更新（不可核）。",
+   "status": "NOT_RECOMPUTABLE",
+   "reason": "该分母的证据文件 run/COMPRESS-01/evidence/fits_codecs.csv 不在库内（run/ 不入库，且该目录已回收）⇒ 现存 JSON 里的这两个数无法在本仓复算。",
+   "action": "历史数值**原样保留、不静默改写**；生产者已改为从同一批 rows 的 bitwise 列现算（分子分母同源），缺列时置 null 并写明原因（fail-closed，不猜数）。",
+   "recompute_command": "python3 artifacts/evidence/compress-01/verify/final_numbers.py <EV>  # EV 需含 fits_codecs.csv（含 bitwise 列）与 zstd_tiles_*.csv",
+   "producer": "artifacts/evidence/compress-01/verify/final_numbers.py"
+  }
+ ]
 }

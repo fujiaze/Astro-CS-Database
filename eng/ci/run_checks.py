@@ -71,6 +71,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import declared_inputs as _decl_in  # noqa: E402  (eng/ci/declared_inputs.py：声明输入面单一实现点)
 import incremental as _inc  # noqa: E402  (eng/ci/incremental.py：范围计算正本)
 import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
 
@@ -110,6 +111,20 @@ V_SKIP_WAIVABLE = "SKIPPED(waivable)"
 V_PREREQ = "FAIL(prerequisite)"
 V_REUSED = "PASS(reused_fingerprint)"
 V_SCOPE = "FAIL(scope)"
+# ── 声明输入面（GATE-SOLID-01 / 独立审查节点一页纸 S2-A「空扫描恒真通过」）─────
+# 根因：注册项的**扫描对象**（输入文件/目录）从未在注册表里被声明，于是「命令的
+# 扫描对象路径不存在」与「扫描面为空」都不产生任何判定 —— 命令 rc=0 即记 PASS，
+# 门在空面上恒真通过。判据（S2-A「判完成」）：**步内声明的输入路径不存在即红**。
+# 因此 step/check 可选声明两个字段：
+#   inputs          —— 必须存在（目录另须递归非空，即"扫描面不得为空"）；缺失/空 ⇒ 判红
+#   optional_inputs —— **这台机器上本就不该有的可选产物**（跨平台产物、run/ 下由
+#                      他轮次产出的证据、外部数据集）；全部不可用时记 SKIP（不是 PASS），
+#                      任一可用则照常执行并把缺失项打印出来
+# 语义边界：optional_inputs 是「如实登记的可选面」，不得用来把"本该有却没了"洗成跳过
+# —— 本该有的输入一律进 inputs（缺了就是红）。
+V_SKIP_OPTIONAL_INPUT = "SKIPPED(optional_input)"
+V_INPUTS_MISSING = "FAIL(inputs_missing)"
+V_INPUTS_EMPTY = "FAIL(inputs_empty)"
 # GATE-501（D-12 / ENGINEERING_SPEC §10 fail-closed）：exit 0 只是必要条件，
 # 不是充分条件。执行单元还必须兑现内容级证据面：
 #   V_MISSING_OUTPUT  登记 outputs 在执行后不存在（"文件不存在按无违规通过"= 假绿）
@@ -119,7 +134,8 @@ V_MISSING_OUTPUT = "FAIL(missing_output)"
 V_EMPTY_OUTPUT = "FAIL(empty_outputs)"
 V_GATE_MISSING = "FAIL(monitor_gate_missing)"
 FAIL_VERDICTS = (V_FAIL, V_TIMEOUT, V_PREREQ, V_SCOPE,
-                 V_MISSING_OUTPUT, V_EMPTY_OUTPUT, V_GATE_MISSING, V_CRASH)
+                 V_MISSING_OUTPUT, V_EMPTY_OUTPUT, V_GATE_MISSING, V_CRASH,
+                 V_INPUTS_MISSING, V_INPUTS_EMPTY)
 
 # outputs 为空且按设计静默成功的执行单元（显式登记，不设全局兜底）；
 # 新增检查不得进入本表（新防线要求留痕或登记 waivable）。
@@ -139,7 +155,8 @@ DEFAULT_INCREMENTAL_BUDGET_SECONDS = 120
 INHERIT_FIELDS = ("command", "profiles", "platform", "timeout_seconds", "heavy",
                   "mutates_workspace", "outputs", "waivable",
                   "requires_monitor", "prerequisite_tools", "changed_paths",
-                  "dirty_ignore_exact", "dirty_ignore_prefixes", "fingerprint")
+                  "dirty_ignore_exact", "dirty_ignore_prefixes", "fingerprint",
+                  "inputs", "optional_inputs")
 
 
 class RunnerError(Exception):
@@ -304,6 +321,38 @@ def _terminate(process: subprocess.Popen) -> None:
             process.kill()
         except OSError:
             pass
+
+
+def declared_input_state(repo: Path, rel: str) -> tuple:
+    """单个声明输入的可用性（薄封装；实现在 eng/ci/declared_inputs.py，单一事实源）。"""
+    return _decl_in.probe(repo, rel)
+
+
+def declared_inputs_verdict(step: dict, repo: Path) -> tuple[str, str] | None:
+    """声明输入面的执行前判定（fail-closed；None = 可执行）。
+
+    判据（独立审查节点一页纸 S2-A「判完成」：步内声明的输入路径不存在即红）：
+      1. inputs 任一缺失 ⇒ FAIL(inputs_missing)，判词**逐条打印缺失路径**；
+      2. inputs 任一为空的扫描面 ⇒ FAIL(inputs_empty)；
+      3. 未声明 inputs 而 optional_inputs **全部**不可用 ⇒ SKIPPED(optional_input)
+         （"这台机器上本就不该有的可选产物"记 skip 而非 pass；skip 不是绿）。
+    判定实现 = eng/ci/declared_inputs.py::gap —— 与 eng/ci/run.py 共用同一实现
+    （W4-A3：两入口对同一情形的判定必须一致）；本处只做 kind → verdict 常量映射。
+    """
+    found = _decl_in.gap(step, repo)
+    if found is None:
+        return None
+    kind, reason = found
+    return ({
+        _decl_in.GAP_MISSING: V_INPUTS_MISSING,
+        _decl_in.GAP_EMPTY: V_INPUTS_EMPTY,
+        _decl_in.GAP_OPTIONAL_ABSENT: V_SKIP_OPTIONAL_INPUT,
+    }[kind], reason)
+
+
+def declared_inputs_report(step: dict, repo: Path) -> dict:
+    """声明输入面的逐条状态（进 per-step 结果，供复核者核对"到底扫了什么"）。"""
+    return _decl_in.report(step, repo)
 
 
 def evidence_verdict(step: dict, repo: Path, stdout_tail: str,
@@ -537,6 +586,8 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
         "stderr_lines": 0,
         "reason": None,
         "fingerprint": None,
+        # 声明输入面逐条状态（S2-A）：复核者据此核对"这一步到底扫了什么"。
+        "inputs_state": None,
         "verdict": None,
     }
 
@@ -552,6 +603,14 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
     if step["platform"] != "any" and step["platform"] != platform:
         return finish(V_SKIP_PLATFORM,
                       f"platform 登记={step['platform']} 运行={platform}（显式跳过并计数）")
+
+    # 声明输入面（S2-A「空扫描恒真通过」）：**输入不存在即红**，扫描面为空即红，
+    # 可选产物全缺则记 skip（不是 pass）。放在 prerequisite 之前 —— 输入面是本轮
+    # 要堵的根因，任何"能力缺失"都不该先于"我根本没看对象"给出结论。
+    result["inputs_state"] = declared_inputs_report(step, repo)
+    input_gap = declared_inputs_verdict(step, repo)
+    if input_gap is not None:
+        return finish(input_gap[0], input_gap[1])
 
     ok, reason = probe_prerequisite(step)
     if not ok:
@@ -1493,6 +1552,87 @@ def evidence_verdict_self_test() -> list:
     return cases
 
 
+def declared_inputs_self_test() -> list:
+    """声明输入面 fail-closed 自测（S2-A「空扫描恒真通过」）。
+
+    经 main() 真跑（临时注册表 + 临时 repo 根），只驱动 execute_step 使用的同一
+    判定函数 declared_inputs_verdict（单一实现点）。用例分工：
+      N1 inputs 声明的文件不存在        ⇒ FAIL(inputs_missing)，判词带缺失路径
+      N2 inputs 声明的扫描面目录为空     ⇒ FAIL(inputs_empty)
+      N3 glob 声明 0 命中               ⇒ FAIL(inputs_missing)（空面不得恒真）
+      N4 **豁免分支负例**：waivable=true 且 inputs 缺失 ⇒ 仍判红（输入缺失不是
+         "宿主能力缺失"，不得借 waivable 的 SKIP 通道放行）
+      N5 optional_inputs 全不可用        ⇒ SKIPPED(optional_input)（skip 不是 pass）
+      N6 optional 全缺但 required 齐备   ⇒ 可执行（可选面不得把主判据一起跳过）
+      P1 保护性正例：非空目录输入 ⇒ PASS
+      P2 保护性正例：未声明输入字段 ⇒ PASS（机制不得改变既有条目的行为）
+    """
+    import tempfile as _tempfile
+    cases: list = []
+    with _tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "eng" / "ci").mkdir(parents=True, exist_ok=True)
+        (root / "real").mkdir()
+        (root / "real" / "product.fits").write_text("x", encoding="utf-8")
+        (root / "empty_scan").mkdir()
+        (root / "scan").mkdir()
+        (root / "scan" / "a.txt").write_text("x", encoding="utf-8")
+
+        def run_case(name, step_kw, want_verdict, want_rc, must_contain=""):
+            step = {"id": "SELFTEST-IN",
+                    "command": [sys.executable, "-c",
+                                "print('SELFTEST_TOOL_PASS: verdict=PASS')"],
+                    "timeout_seconds": 60, "platform": "any", "profiles": ["fast"],
+                    "waivable": False, "heavy": False, "mutates_workspace": False,
+                    "requires_monitor": False, "outputs": []}
+            step.update(step_kw)
+            doc = {"schema_version": 1, "checks": [{
+                "id": "SELFTEST-IN", "profiles": ["fast"], "platform": "any",
+                "command": step["command"], "timeout_seconds": 60, "heavy": False,
+                "mutates_workspace": False, "outputs": step.get("outputs", []),
+                "waivable": step.get("waivable", False), "requires_monitor": False,
+                "steps": [step]}]}
+            reg_path = root / "eng" / "ci" / "checks.json"
+            reg_path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+            out = root / (name + ".json")
+            rc = main(["--check", "SELFTEST-IN", "--registry", str(reg_path),
+                       "--repo-root", str(root), "--run-root", str(root / "rr"),
+                       "--json-out", str(out), "--quiet"])
+            payload = json.loads(out.read_text(encoding="utf-8"))
+            entry = payload["checks"][0]
+            got = entry["verdict"]
+            reason = entry["steps"][0].get("reason") or ""
+            ok = (got == want_verdict and rc == want_rc
+                  and (not must_contain or must_contain in reason))
+            cases.append({"case": name, "ok": bool(ok),
+                          "verdict": got, "want": want_verdict, "rc": rc,
+                          "want_rc": want_rc, "reason": reason[:200]})
+
+        run_case("N1_inputs_missing_is_red",
+                 {"inputs": ["real/absent.fits"]}, V_INPUTS_MISSING, EXIT_FAIL,
+                 must_contain="real/absent.fits")
+        run_case("N2_empty_scan_face_is_red",
+                 {"inputs": ["empty_scan/"]}, V_INPUTS_EMPTY, EXIT_FAIL,
+                 must_contain="empty_scan/")
+        run_case("N3_glob_zero_hit_is_red",
+                 {"inputs": ["real/*.tiff"]}, V_INPUTS_MISSING, EXIT_FAIL)
+        # 豁免分支负例：waivable 只对"宿主能力缺失"有效，不得吞掉输入面判红
+        run_case("N4_exemption_waivable_input_missing_still_red",
+                 {"inputs": ["real/absent.fits"], "waivable": True},
+                 V_INPUTS_MISSING, EXIT_FAIL)
+        run_case("N5_optional_all_absent_is_skip_not_pass",
+                 {"optional_inputs": ["real/absent.fits"]},
+                 V_SKIP_OPTIONAL_INPUT, EXIT_OK)
+        run_case("N6_optional_absent_but_required_ok_runs",
+                 {"inputs": ["real/product.fits"],
+                  "optional_inputs": ["real/absent.fits"]}, V_PASS, EXIT_OK)
+        run_case("P1_nonempty_dir_input_green",
+                 {"inputs": ["scan/"]}, V_PASS, EXIT_OK)
+        run_case("P2_no_input_fields_unchanged",
+                 {}, V_PASS, EXIT_OK)
+    return cases
+
+
 def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) -> int:
     """fail-closed 负例面（CI_SPEC.md §2.4 末段）：必须能红，且正例能绿。"""
     steps, _owner, _dupes = index_steps(registry)
@@ -1536,6 +1676,7 @@ def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) ->
 
     cases.extend(scheduler_self_test())
     cases.extend(evidence_verdict_self_test())
+    cases.extend(declared_inputs_self_test())
     cases.extend(crash_tristate_self_test())
     cases.extend(gate_trust_contract_self_test())
     passed = sum(1 for c in cases if c["ok"])
@@ -1768,6 +1909,10 @@ def main(argv: list | None = None) -> int:
                 verdict = V_SKIP_PLATFORM
             elif subs and all(s["verdict"] == V_SKIP_WAIVABLE for s in subs):
                 verdict = V_SKIP_WAIVABLE
+            elif subs and all(s["verdict"] == V_SKIP_OPTIONAL_INPUT for s in subs):
+                # 可选输入面全缺（本机不该有的产物）：记 skip 而不是 pass ——
+                # "没跑"与"跑过且绿"在汇总里必须可分。
+                verdict = V_SKIP_OPTIONAL_INPUT
             else:
                 verdict = V_PASS
             entry_results.append({
@@ -1780,7 +1925,8 @@ def main(argv: list | None = None) -> int:
             })
 
         counts = {V_PASS: 0, V_FAIL: 0, V_TIMEOUT: 0, V_CRASH: 0, V_SKIP_PLATFORM: 0,
-                  V_SKIP_WAIVABLE: 0, V_PREREQ: 0, V_SCOPE: 0, V_REUSED: 0}
+                  V_SKIP_WAIVABLE: 0, V_SKIP_OPTIONAL_INPUT: 0, V_PREREQ: 0,
+                  V_SCOPE: 0, V_REUSED: 0, V_INPUTS_MISSING: 0, V_INPUTS_EMPTY: 0}
         for s in step_results:
             counts[s["verdict"]] = counts.get(s["verdict"], 0) + 1
         failures = [s["id"] for s in step_results if s["verdict"] in FAIL_VERDICTS]
@@ -1847,6 +1993,9 @@ def main(argv: list | None = None) -> int:
                 "prerequisite_failed": counts[V_PREREQ],
                 "skipped_platform": counts[V_SKIP_PLATFORM],
                 "skipped_waivable": counts[V_SKIP_WAIVABLE],
+                "skipped_optional_input": counts[V_SKIP_OPTIONAL_INPUT],
+                "inputs_missing": counts[V_INPUTS_MISSING],
+                "inputs_empty": counts[V_INPUTS_EMPTY],
                 "scope_failed": counts[V_SCOPE],
                 "reused_fingerprint": counts[V_REUSED],
                 "duration_seconds": elapsed,
@@ -1886,7 +2035,14 @@ def main(argv: list | None = None) -> int:
               f"pass={counts[V_PASS]} fail={counts[V_FAIL]} timeout={counts[V_TIMEOUT]} "
               f"crash={counts[V_CRASH]} "
               f"prereq={counts[V_PREREQ]} skip_platform={counts[V_SKIP_PLATFORM]} "
-              f"skip_waivable={counts[V_SKIP_WAIVABLE]} scope_failed={counts[V_SCOPE]}")
+              f"skip_waivable={counts[V_SKIP_WAIVABLE]} "
+              f"skip_optional_input={counts[V_SKIP_OPTIONAL_INPUT]} "
+              f"inputs_missing={counts[V_INPUTS_MISSING]} "
+              f"inputs_empty={counts[V_INPUTS_EMPTY]} scope_failed={counts[V_SCOPE]}")
+        if counts[V_SKIP_OPTIONAL_INPUT]:
+            print(f"skipped_optional_input: {counts[V_SKIP_OPTIONAL_INPUT]} 个步骤声明的"
+                  "可选产物在本机不可用（**skip 不是 pass**）：声明 inputs 的主判据不受"
+                  "影响；拿到该产物后必须复跑（S2-A：可选面不得把「没跑」记成「跑绿」）")
         if integration_not_run:
             print(f"integration_not_run: fast 档不含 {len(integration_pending)} 个 integration "
                   "步骤；提交前必须另跑 python3 eng/ci/run_checks.py --all --profile integration"

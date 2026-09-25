@@ -58,7 +58,8 @@ STR_LIST_FIELDS = ("profiles", "command", "outputs", "changed_paths")
 # eng/ci/checks.schema.json 同名字段——CI-001 对齐两者预存断链，否则 strict
 # 永远对 checks[52]/[53] 报 unexpected fields）。
 OPT_STR_LIST_FIELDS = ("prerequisite_tools", "dirty_ignore_exact",
-                       "dirty_ignore_prefixes", "ctest_targets")
+                       "dirty_ignore_prefixes", "ctest_targets",
+                       "inputs", "optional_inputs")
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
             "heavy", "mutates_workspace", "outputs", "waivable") + BOOL_FIELDS[:0]
 REQUIRED = ("id", "profiles", "platform", "command", "timeout_seconds",
@@ -183,7 +184,37 @@ STEP_REQUIRED = ("id", "command", "timeout_seconds", "profiles", "platform")
 STEP_OPT_FIELDS = ("heavy", "mutates_workspace", "outputs", "waivable", "changed_paths",
                    "requires_monitor", "prerequisite_tools", "ctest_targets",
                    "reads_run_results", "fingerprint",
-                   "dirty_ignore_exact", "dirty_ignore_prefixes")
+                   "dirty_ignore_exact", "dirty_ignore_prefixes",
+                   "inputs", "optional_inputs")
+
+
+# R13（GATE-SOLID-01 / 一页纸 S2-A）：声明输入面必须是**仓库相对 POSIX 路径**。
+# 绝对路径 / '..' 逃逸 / 反斜杠 / 空串在 run_checks 与 run.py 的 probe 里会静默
+# 解析失败，把"声明错了"变成"看起来没问题" ⇒ 注册表层直接判红。
+_ABS_PATH_RE = re.compile(r"^(?:[A-Za-z]:[\\/]|[\\/])")
+
+
+def _input_path_errors(where: str, obj: dict) -> list[str]:
+    errors: list[str] = []
+    for field in ("inputs", "optional_inputs"):
+        values = obj.get(field)
+        if values is None:
+            continue
+        if not isinstance(values, list) or not values:
+            errors.append(f"R13 {where}.{field}: must be a non-empty array")
+            continue
+        for item in values:
+            if not isinstance(item, str) or not item.strip():
+                errors.append(f"R13 {where}.{field}: entries must be non-empty strings")
+                continue
+            if "\\" in item:
+                errors.append(f"R13 {where}.{field}: 必须用 POSIX 分隔符: {item!r}")
+            if _ABS_PATH_RE.match(item):
+                errors.append(f"R13 {where}.{field}: 必须为仓库相对路径: {item!r}")
+            parts = item.split("/")
+            if ".." in parts:
+                errors.append(f"R13 {where}.{field}: 不得含 '..' 逃逸段: {item!r}")
+    return errors
 
 
 def _cmd_errors(where: str, cid: str, cmd, strict: bool) -> list[str]:
@@ -240,6 +271,11 @@ def _step_errors(where: str, step, strict: bool) -> list[str]:
         if f in step and (not isinstance(step[f], list)
                           or not all(isinstance(x, str) for x in step[f])):
             errors.append(f"R2 {where}.{f}: must be array of strings")
+    for f in ("inputs", "optional_inputs"):
+        if f in step and (not isinstance(step[f], list) or not step[f]
+                          or not all(isinstance(x, str) and x for x in step[f])):
+            errors.append(f"R2 {where}.{f}: must be non-empty array of non-empty strings")
+    errors.extend(_input_path_errors(f"{where}", step))
     if not step.get("profiles"):
         errors.append(f"R2 {where}.profiles: empty")
     bad = [p for p in step.get("profiles", []) if p not in ALLOWED_PROFILES]
@@ -294,6 +330,7 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
             if f in c and (not isinstance(c[f], list) or not c[f]
                            or not all(isinstance(x, str) and x for x in c[f])):
                 errors.append(f"R2 {where}.{f}: must be non-empty array of non-empty strings")
+        errors.extend(_input_path_errors(where, c))
         cid = c["id"]
         if not isinstance(cid, str) or not ID_RE.match(cid):
             errors.append(f"R2 {where}: bad id {cid!r} (must match {ID_RE.pattern})")

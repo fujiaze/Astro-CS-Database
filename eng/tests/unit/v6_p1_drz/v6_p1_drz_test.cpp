@@ -17,11 +17,21 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
 
 using namespace astrocs::v6::drizzle;
+
+// 故障注入用的进程环境设置（Linux setenv / Windows _putenv_s）。
+static void set_env(const char* key, const char* value) {
+#ifdef _WIN32
+    _putenv_s(key, value);
+#else
+    setenv(key, value, 1);
+#endif
+}
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -482,7 +492,8 @@ static void run_negative() {
               "drop-area normalization at pixfrac=1 accepted");
     }
 
-    // 几何闭合上溢 -> reject
+    // 几何闭合上溢 -> reject；**亏损侧同样必须 reject**（DRZ-PF-CORRECT-01:
+    // 判据取绝对值 —— 面积失效只会使 rel<0，旧判据 rel>tol 对亏损恒为假）。
     {
         double rel = 0.0;
         const double A = f.A_pixel[0];
@@ -492,6 +503,13 @@ static void run_negative() {
         check(validate_overlap_closure(expect * 1.01, A, f.pixfrac, 1e-6, &rel) ==
                   DrzError::overlap_exceeds_drop,
               "closure overflow rejected");
+        const DrzError deficit =
+            validate_overlap_closure(expect * 0.99, A, f.pixfrac, 1e-6, &rel);
+        check(deficit == DrzError::overlap_area_deficit && rel < 0.0,
+              "closure deficit rejected with named error (abs(rel) judge)");
+        check(validate_overlap_closure(expect * (1.0 - 1e-9), A, f.pixfrac, 1e-6, &rel) ==
+                  DrzError::ok,
+              "closure deficit inside tolerance accepted (negative control)");
     }
 
     // A_pixel 非法
@@ -678,11 +696,69 @@ static void run_geometry_case(int nside, double pixfrac) {
     check_gate(gate_parent_reduction(rec), false, "geometry parent exact red " + tag);
 }
 
+// ---------------------------------------------------------------------------
+// 组 4b: 面积失效不得静默吞掉 (DRZ-PF-CORRECT-01 / S1 第 19 条)
+//
+// 负例注入: ASTROCS_V6_DRZ_FAULT=invalid_area 把**一个**候选 target 的交叠面积
+// 置为 NaN。修复前该分支是裸 continue —— sum_a_jp 偏小、闭合亏损 (rel<0)，而
+// 闭合判据只判 rel>tol ⇒ 面积亏损静默进产品，本测试无从察觉。
+// 修复后要求: ① 计数 n_area_rejected 上升; ② 算子构建以具名错误
+// overlap_area_invalid 失败（回传非零）。因此本门在修复前必红。
+// ---------------------------------------------------------------------------
+static void run_geometry_area_invalid_injection() {
+    std::printf("[geometry/area-invalid]\n");
+    TanWcs wcs;
+    ::healpix::HealpixCore hp(4096, true);
+    std::vector<SourceDropSpec> sources;
+    SourceDropSpec s;
+    s.px = 8.5;
+    s.py = 8.5;
+    s.pixfrac = 0.5;
+    sources.push_back(s);
+
+    DrizzleOperator op;
+    std::vector<uint64_t> target_ipix;
+    OverlapDiagnostics diag;
+
+    // 正例控制: 无注入 ⇒ 构建成功且零失效
+    set_env("ASTROCS_V6_DRZ_FAULT", "");
+    DrzError e0 = build_operator_from_sources(hp, sources, tan_callback, &wcs, 1e-3, op,
+                                              &target_ipix, nullptr, &diag);
+    check(e0 == DrzError::ok, "area-invalid positive control: build ok without injection");
+    check(diag.n_area_rejected == 0, "area-invalid positive control: 0 area-rejected");
+    const std::size_t n_hits_clean = (std::size_t)op.n_dst();
+    check(n_hits_clean > 0, "area-invalid positive control: targets nonempty");
+
+    // 负例: 注入一个面积无效像素 ⇒ 必须计数 + 具名失败
+    set_env("ASTROCS_V6_DRZ_FAULT", "invalid_area");
+    DrizzleOperator op_bad;
+    OverlapDiagnostics diag_bad;
+    const DrzError e1 = build_operator_from_sources(hp, sources, tan_callback, &wcs, 1e-3,
+                                                    op_bad, nullptr, nullptr, &diag_bad);
+    set_env("ASTROCS_V6_DRZ_FAULT", "");
+    check(e1 == DrzError::overlap_area_invalid,
+          std::string("area-invalid injected -> named failure (got ") +
+              drz_error_name(e1) + ")");
+    check(diag_bad.n_area_rejected > 0,
+          "area-invalid injected -> rejected count visible (product provenance)");
+
+    // 单行视图: 同一注入下 OverlapRow 的计数与具名失败
+    set_env("ASTROCS_V6_DRZ_FAULT", "invalid_area");
+    OverlapRow row;
+    const DrzError e2 = compute_overlap_row(hp, s, tan_callback, &wcs, 1e-3, &row);
+    set_env("ASTROCS_V6_DRZ_FAULT", "");
+    check(e2 == DrzError::overlap_area_invalid,
+          std::string("area-invalid row-level named failure (got ") +
+              drz_error_name(e2) + ")");
+    check(row.n_area_rejected == 1, "area-invalid row-level count == 1");
+}
+
 static void run_geometry() {
     std::printf("[geometry]\n");
     run_geometry_case(4096, 1.0);
     run_geometry_case(4096, 0.5);
     run_geometry_case(2048, 1.0);
+    run_geometry_area_invalid_injection();
 }
 
 // ---------------------------------------------------------------------------

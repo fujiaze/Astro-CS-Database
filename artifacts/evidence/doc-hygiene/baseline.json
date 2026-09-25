@@ -726,12 +726,6 @@
    "docs/algorithms/PHASE2_COVERAGE.md": [
     "2e8ac9344c9af0aa"
    ],
-   "docs/architecture/BUILD_GRAPH.md": [
-    "1b34969e96a369d8",
-    "4b4a0d141110a454",
-    "54a5565e2cb66f3d",
-    "968f6bef96cc587d"
-   ],
    "docs/architecture/CACHE_POLICY.md": [
     "18e1d82c9b9b65f9"
    ],
@@ -844,7 +838,6 @@
    "docs/algorithms/PLATESOLVE.md": 2,
    "docs/algorithms/STAR_PSF_ALGORITHMS.md": 1,
    "docs/api/PHASE3_API_V1.md": 1,
-   "docs/architecture/BUILD_GRAPH.md": 4,
    "docs/architecture/CACHE_POLICY.md": 1,
    "docs/architecture/EXECUTION_MODEL.md": 2,
    "docs/architecture/MODULE_MAP.md": 14,

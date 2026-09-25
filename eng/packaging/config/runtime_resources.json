@@ -11,7 +11,8 @@
   ],
   "readers": [
     "CMakeLists.txt（configure_file → runtime_resources_generated.h；实现侧零字面量）",
-    "lib/infrastructure/scheduler/src/memory_budget.cpp（唯一消费点）"
+    "lib/infrastructure/scheduler/src/memory_budget.cpp（memory_budget_percent 的唯一消费点）",
+    "lib/infrastructure/scheduler/src/memory_pressure.cpp（memory_pressure_* 键的唯一消费点：memory_pressure.cpp:pressure_policy_from_config）"
   ],
   "memory_budget_percent": 95,
   "memory_budget_percent_constraint": "整数 1..100。含义：内存预算上限 = **当前可用内存 × percent / 100**。默认 95（避免卡死，不是省内存）。运行期可经机器绑定 profile（--cpu-profile 指向的 astrocs.cpu-profile/v2 的 host.memory_budget_percent）覆盖；profile 未声明或取值非法时用本文件的默认值。",
@@ -41,5 +42,11 @@
   "x-astrocs-writer": "用户（可调）；默认值 95 冻结于本文件",
   "x-astrocs-not-writable-by": [
     "benchmark"
-  ]
+  ],
+  "frame_memory_gate": {
+    "bytes_per_pixel": 116.0,
+    "safety_frac": 0.75,
+    "authority": "lib/infrastructure/scheduler/src/module_adapters.cpp p1_memory_cap（PERF-P1 标定，P1-CONCURRENCY-CALIB-01）",
+    "note": "帧级内存闸门的分母（每像素字节 / 安全系数）。TRUTHFUL-CONCLUSION-01：原先它们只以 constexpr 字面量存在于 module_adapters.cpp，与 memory_budget_percent 构成两个并存分母而文档把本文件登记为唯一预算来源；现两个分母都登记在本唯一源，并由 CHK-BUDGET-SINGLE-SOURCE 与实现侧字面量逐位比对。"
+  }
 }

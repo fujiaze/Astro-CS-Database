@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <limits>
+#include <string>
 #include <unordered_map>
 
 namespace astrocs {
@@ -24,10 +27,18 @@ double drop_src_scale_rad(const SourceDropSpec& src) {
 DrzError compute_overlap_row(const ::healpix::HealpixCore& hp,
                              const SourceDropSpec& src,
                              spherical::PixelToSkyFn pixel_to_sky, void* user_data,
+                             double closure_rel_tol,
                              OverlapRow* out) {
     if (!out || !pixel_to_sky) return DrzError::invalid_argument;
     if (validate_pixfrac(src.pixfrac) != DrzError::ok) return DrzError::invalid_pixfrac;
     *out = OverlapRow{};
+    // ENGINEERING_SPEC §8 可执行负例（故障注入面）: 把首个候选的交叠面积置为
+    // NaN，复现「一个面积无效像素」被静默 continue 吞掉的旧行为 ⇒ 本函数必须
+    // 以具名错误 overlap_area_invalid 失败（门 v6_p1_drz_area_invalid 判红）。
+    const char* v6_fault = std::getenv("ASTROCS_V6_DRZ_FAULT");
+    const bool inject_invalid_area =
+        (v6_fault && std::string(v6_fault) == "invalid_area");
+    bool injected = false;
 
     std::vector<spherical::Vec3> corners;
     if (src.A_pixel > 0.0) {
@@ -61,9 +72,29 @@ DrzError compute_overlap_row(const ::healpix::HealpixCore& hp,
     out->hits.reserve(candidates.size());
     double sum = 0.0;
     for (uint64_t ipix : candidates) {
-        const double a = spherical::compute_overlap_area_g_ctx<double>(
+        double a = spherical::compute_overlap_area_g_ctx<double>(
             geom, hp, ipix, hp_res_rad);
-        if (!std::isfinite(a) || a <= 0.0) continue;
+        if (inject_invalid_area && !injected) {
+            a = std::numeric_limits<double>::quiet_NaN();
+            injected = true;
+        }
+        // DRZ-PF-CORRECT-01 (S1 第 19 条): **面积失效必须计数并具名失败**。
+        // 语义分层（不可混为一谈）:
+        //   * a == 0  = 该候选与该 drop **真的不相交**（候选查询是保守超集,
+        //     见 spherical_overlap.cpp 的 quick-reject 返回 Scalar(0)）⇒ 良性,
+        //     只计数 n_zero_overlap, 不判失败;
+        //   * a < 0 或非有限 = **几何失效**（裁剪多边形面积不可能为负/NaN）⇒
+        //     该 target 的面积既不进 sum_a_jp 也不留痕, 使 sum_a_jp 偏小、
+        //     闭合亏损 (rel<0)。修复前这里是同一句裸 continue ⇒ 面积亏损全程
+        //     静默进产品。现在计数并在超阈值时具名失败。
+        if (!std::isfinite(a) || a < 0.0) {
+            ++out->n_area_rejected;
+            continue;
+        }
+        if (a == 0.0) {
+            ++out->n_zero_overlap;
+            continue;
+        }
         out->hits.push_back(OverlapHit{ipix, a});
         sum += a;
     }
@@ -80,8 +111,15 @@ DrzError compute_overlap_row(const ::healpix::HealpixCore& hp,
     sum = 0.0;
     for (const OverlapHit& h : out->hits) sum += h.a_jp;
     out->sum_a_jp = sum;
-    (void)validate_overlap_closure(sum, out->A_pixel, src.pixfrac, 1e300,
-                                   &out->closure_rel);
+    if (out->n_area_rejected > kMaxInvalidAreaHits) {
+        // 具名失败并回传非零（不再用 1e300 当"求值器"把判据短路掉）。
+        out->closure_rel = 0.0;
+        return DrzError::overlap_area_invalid;
+    }
+    // 闭合判据用**真实容差**且取绝对值（亏损侧同样具名失败）。
+    const DrzError ce = validate_overlap_closure(sum, out->A_pixel, src.pixfrac,
+                                                closure_rel_tol, &out->closure_rel);
+    if (ce != DrzError::ok) return ce;
     return DrzError::ok;
 }
 
@@ -92,13 +130,17 @@ DrzError build_operator_from_sources(const ::healpix::HealpixCore& hp,
                                      double closure_rel_tol,
                                      DrizzleOperator& out,
                                      std::vector<uint64_t>* target_ipix_out,
-                                     std::vector<OverlapRow>* rows_out) {
+                                     std::vector<OverlapRow>* rows_out,
+                                     OverlapDiagnostics* diag_out) {
     if (sources.empty()) return DrzError::invalid_argument;
     const double pixfrac = sources.front().pixfrac;
     if (validate_pixfrac(pixfrac) != DrzError::ok) return DrzError::invalid_pixfrac;
     for (const SourceDropSpec& s : sources) {
         if (s.pixfrac != pixfrac) return DrzError::invalid_argument;
     }
+    // DRZ-PF-CORRECT-01 (S1 第 19 条): 几何诊断按源累加，供产品 provenance。
+    OverlapDiagnostics diag;
+    diag.n_sources = sources.size();
 
     std::vector<OverlapRow> rows(sources.size());
     std::unordered_map<uint64_t, uint32_t> dst_index;
@@ -107,9 +149,20 @@ DrzError build_operator_from_sources(const ::healpix::HealpixCore& hp,
     std::vector<OperatorSource> op_sources(sources.size());
 
     for (size_t j = 0; j < sources.size(); ++j) {
-        DrzError e = compute_overlap_row(hp, sources[j], pixel_to_sky, user_data, &rows[j]);
-        if (e != DrzError::ok) return e;
+        DrzError e = compute_overlap_row(hp, sources[j], pixel_to_sky, user_data,
+                                         closure_rel_tol, &rows[j]);
+        // 先归集本行诊断再判失败 —— 失败路径也必须把"被吞掉几个"回传，
+        // 否则该计数在产品 provenance 上不可见（静默的另一种形态）。
+        diag.n_area_rejected += rows[j].n_area_rejected;
+        diag.n_zero_overlap += rows[j].n_zero_overlap;
+        if (e != DrzError::ok) {
+            if (diag_out) *diag_out = diag;
+            return e;
+        }
+        diag.max_abs_closure_rel =
+            std::max(diag.max_abs_closure_rel, std::fabs(rows[j].closure_rel));
         double rel = 0.0;
+        // 同一判据再核一遍（闭合取绝对值，亏损/超额分别具名）。
         e = validate_overlap_closure(rows[j].sum_a_jp, rows[j].A_pixel, pixfrac,
                                      closure_rel_tol, &rel);
         if (e != DrzError::ok) return e;
@@ -145,6 +198,7 @@ DrzError build_operator_from_sources(const ::healpix::HealpixCore& hp,
 
     if (target_ipix_out) *target_ipix_out = std::move(target_ipix);
     if (rows_out) *rows_out = std::move(rows);
+    if (diag_out) *diag_out = diag;
     return DrzError::ok;
 }
 

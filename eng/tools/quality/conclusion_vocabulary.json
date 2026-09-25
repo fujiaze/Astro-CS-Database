@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "authority": "ASTROCS_DESIGN.md 12.5 状态阶梯（唯一口径）；docs/ci/01_CHECKS.md 1；ENGINEERING_SPEC.md 8",
+  "state_ladder_authority": "ASTROCS_DESIGN.md 12.5「状态阶梯（唯一口径）」表格。本文件的 ladder_snapshot 必须与门现场解析结果逐字相等，否则判红（词汇表不得单方面漂移）。",
+  "ladder_snapshot": [
+    "CONTRACT_READY",
+    "IMPLEMENTED",
+    "INSTALLED",
+    "VERIFIED",
+    "READY_FOR_OWNER_REVIEW",
+    "NOT_IMPLEMENTED",
+    "NOT_VERIFIED",
+    "DEFERRED",
+    "DORMANT",
+    "FAIL"
+  ],
+  "verdict_authority": "门退出码/运行结果合同（正本示例：eng/tools/quality/contracts/check_full_integration.py 文件头 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error；eng/ci/run_checks.py 退出码合同）。判定词描述「这条命令跑成什么样」，与 12.5 状态阶梯是两个面，不得互相顶替。",
+  "verdict": {
+    "PASS": "命令判据全部满足",
+    "FAIL": "命令判据不满足",
+    "ERROR": "命令内部错误（非判据结论）",
+    "ENV_ERROR": "运行环境不满足（非判据结论）",
+    "MISSING": "前置输入缺失（fail-closed）",
+    "TIMEOUT": "超出注册表登记的超时预算"
+  },
+  "denylist": {
+    "DELIVERED": "ASTROCS_DESIGN.md 12.5 阶梯内无此词，判定词表亦无 —— 系 eng/tools/quality/contracts/check_full_integration.py 自造，用于让「存在挂账 P1 债务」也算通过（passed=true）。越词即红：状态只能如实落在阶梯内。"
+  },
+  "scan_roots": [
+    "eng",
+    "artifacts/evidence"
+  ],
+  "denylist_roots": [
+    "eng",
+    "docs/ci"
+  ]
+}

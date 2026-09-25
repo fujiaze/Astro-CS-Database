@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "policy": "覆盖度结论的分子与分母必须由同一条命令产出并可复算；分母必须随产物落盘其定义。contradiction_pairs/contradiction_docs 登记「工具缺失却覆盖达标」这类自相矛盾并存键的扫描面。",
+  "claims": [
+    {
+      "id": "file_audit_shipping_coverage",
+      "artifact": "artifacts/evidence/truthful-conclusion-01/file_audit.json",
+      "producer": "eng/tools/file_audit.py",
+      "numerator_pointer": "/counts/standard_scanned",
+      "denominator_pointer": "/counts/shipping_total",
+      "source_command_pointer": "/source_command",
+      "expected_source_command": [
+        "git",
+        "ls-files",
+        "-z"
+      ],
+      "denominator_definition_pointer": "/denominator_definition",
+      "recompute_command": [
+        "python3",
+        "eng/tools/file_audit.py",
+        "--json-out",
+        "{tmp}",
+        "--quiet"
+      ]
+    }
+  ],
+  "contradiction_pairs": [
+    [
+      "tool_missing",
+      "coverage_ok"
+    ]
+  ],
+  "contradiction_docs": [
+    "artifacts/evidence/v19r7-quality/*.json",
+    "artifacts/evidence/truthful-conclusion-01/*.json"
+  ]
+}

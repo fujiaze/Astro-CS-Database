@@ -145,6 +145,18 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     }
 
     const uint32_t leaf_order = ilog2_u64(nside);
+    // ENGINEERING_SPEC §8 可执行负例（故障注入面）: 复现修复前本末端的缺陷 ——
+    // 直写把 D_p 当归一分母发布 (漏乘 k=D_p/N_p)，pixfrac<1 时 signal 偏
+    // 1/pixfrac²、variance 偏 1/pixfrac⁴。产品级门 drizzle_pf_sb_gate 在该注入下
+    // 必须判红（负例 ctest: drizzle_pf_sb_gate_legacy_injection）。
+    const char* sb_fault = std::getenv("ASTROCS_DRZ_SB_FAULT");
+    const bool legacy_dp_normalization =
+        (sb_fault && std::string(sb_fault) == "legacy_dp_normalization");
+    if (legacy_dp_normalization) {
+        std::fprintf(stderr,
+                     "[sink] *** 故障注入 ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization:"
+                     " 直写漏乘 k=D_p/N_p (遗留缺陷复现, 产品面必须判红) ***\n");
+    }
     // HiPS 直写分段计时（每段一次 clock，低开销）
     const auto t_sink0 = std::chrono::steady_clock::now();
     double prof_transform = 0.0, prof_fits_write = 0.0;
@@ -154,6 +166,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     size_t n_written = 0;
     std::uint64_t n_variance_skipped = 0;
     std::uint64_t n_variance_written = 0;
+    std::uint64_t n_norm_unavailable = 0;   // sumArea>0 但 sumNorm<=0 (归一不可用)
     for (const auto& tile : tiles) {
         if (tile.touched.empty()) continue;
         const auto t_tr0 = std::chrono::steady_clock::now();
@@ -164,9 +177,20 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         for (uint32_t local : tile.touched) {
             if (local >= n_leaf || local >= tile.pixels.size()) continue;
             const auto& acc = tile.pixels[local];
-            dense_flux[local] = acc.sumFlux;
+            if ((double)acc.sumArea > 0.0 && (double)acc.sumNorm <= 0.0)
+                ++n_norm_unavailable;
+            // 面亮度归一发布因子 k = D_p/N_p = sumArea/sumNorm（唯一源:
+            // astro_sphere_sink.h sb_publish_scale；与 write_hips_phase1 逐字相同）。
+            // signal 幂次 +1、variance 幂次 +2 —— 漏乘即 1/pixfrac² 与 1/pixfrac⁴
+            // 偏移 (pixfrac<1)。pixfrac==1 ⇒ sumNorm≡sumArea 逐位 ⇒ k≡1.0 ⇒ 逐位不变。
+            const double k = legacy_dp_normalization
+                                 ? 1.0
+                                 : sb_publish_scale((double)acc.sumArea,
+                                                    (double)acc.sumNorm);
+            dense_flux[local] = Scalar((double)acc.sumFlux * k);
             dense_area[local] = acc.sumArea;
-            if (has_variance) dense_var[local] = acc.sumVarNum;
+            if (has_variance)
+                dense_var[local] = Scalar((double)acc.sumVarNum * k * k);
         }
         prof_transform += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_tr0).count();
@@ -250,6 +274,14 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                  "[sink] variance tiles written=%llu skipped(no-data)=%llu\n",
                  (unsigned long long)n_variance_written,
                  (unsigned long long)n_variance_skipped);
+    // 归一不可用叶像素（覆盖>0 却无面亮度分母）: 沿 sb_publish_scale 的 k=1.0 回退,
+    // 但**不静默** —— 计数 + 显式告警（pixfrac<1 时该类像素的面亮度语义不可判）。
+    if (n_norm_unavailable > 0) {
+        std::fprintf(stderr,
+                     "[sink] *** 警告: %llu 个有覆盖叶像素 sumNorm<=0 ⇒ 面亮度归一"
+                     "不可用, 退回 k=1.0 (产品面按 covering-area 口径发布) ***\n",
+                     (unsigned long long)n_norm_unavailable);
+    }
     std::fprintf(stderr,
                  "[sink][profile] transform=%.3fs fits_write=%.3fs "
                  "finalize=%.3fs total=%.3fs\n",
@@ -500,9 +532,10 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             //   sig = sumFlux·D_p/(sumNorm·A_cov) = Σ_j B_j a_jp / Σ_j a_jp
             // (B_j = x_j/A_pixel,j), 与 pixfrac 无关 = 常量面亮度场时恒 B0。
             // pixfrac==1 时 sumNorm ≡ sumArea (逐位) ⇒ k == 1.0 ⇒ 产品逐位不变。
-            const double k = ((double)acc.sumNorm > 0.0)
-                                 ? (double)acc.sumArea / (double)acc.sumNorm
-                                 : 1.0;
+            // 唯一源 = astro_sphere_sink.h sb_publish_scale（与 write_hips_direct
+            // 逐字同一函数; 两末端禁止各自内联分母）。
+            const double k = sb_publish_scale((double)acc.sumArea,
+                                              (double)acc.sumNorm);
             // signal = 累计通量(折算后), HiPS 产品位深 float32 (旧 writer 的显式窄化)
             flux_buf[local] = (float)((double)acc.sumFlux * k);
             // covered_area = (u8/255)·A_cell (旧 writer 的面积比连续缩放)

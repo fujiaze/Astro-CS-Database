@@ -377,7 +377,7 @@
             "python3",
             "eng/tools/quality/check_complexity.py",
             "--paths",
-            "lib,cli,include",
+            "lib",
             "--output",
             "run/ci/complexity/complexity.json"
           ],
@@ -386,6 +386,9 @@
           "mutates_workspace": false,
           "outputs": [
             "run/ci/complexity/complexity.json"
+          ],
+          "inputs": [
+            "lib/"
           ],
           "waivable": true,
           "changed_paths": [
@@ -527,7 +530,12 @@
             "eng/tools/quality/**",
             "CMakeLists.txt"
           ],
-          "requires_monitor": false
+          "requires_monitor": false,
+          "inputs": [
+            "eng/ci/checks.json",
+            "eng/ci/ctest_baseline.json",
+            "CMakeLists.txt"
+          ]
         },
         {
           "id": "CON-BUILD-GRAPH",
@@ -552,6 +560,33 @@
             "lib/infrastructure/cli/**",
             "eng/tests/**",
             "eng/contracts/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CON-BUILD-GRAPH-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/contracts/check_build_graph.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/contracts/check_build_graph.py",
+            "eng/ci/cmake_graph.py",
+            "eng/ci/gate_trust.py",
+            "docs/architecture/BUILD_GRAPH.md",
+            "CMakeLists.txt"
           ],
           "requires_monitor": false
         },
@@ -607,6 +642,10 @@
           "requires_monitor": false,
           "prerequisite_tools": [
             "python3:yaml"
+          ],
+          "inputs": [
+            ".github/workflows/",
+            "eng/ci/workflow_binding.json"
           ]
         },
         {
@@ -1857,6 +1896,379 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-TRUTHFUL-CONCLUSION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-TRUTHFUL-CONCLUSION",
+        "--quiet"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_conclusion_truth.py",
+        "eng/tools/quality/conclusion_vocabulary.json",
+        "eng/tools/quality/authority_surfaces.json",
+        "eng/tools/quality/coverage_claims.json",
+        "eng/tools/quality/conclusion_snapshots.json",
+        "eng/tools/file_audit.py",
+        "eng/tools/quality/contracts/check_full_integration.py",
+        "eng/tools/quality/contracts/fixtures/check_full_integration/**",
+        "eng/tools/docs_machine_consistency.py",
+        "eng/tools/doccheck/doc_hygiene_exempt.json",
+        "eng/ci/exemptions.json",
+        "ASTROCS_DESIGN.md",
+        "artifacts/evidence/truthful-conclusion-01/**",
+        "artifacts/evidence/v19r7-quality/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "TRUTH-CONCLUSION-GATE",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_conclusion_truth.py",
+            "--quiet"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_conclusion_truth.py",
+            "eng/tools/quality/conclusion_vocabulary.json",
+            "eng/tools/quality/authority_surfaces.json",
+            "eng/tools/quality/coverage_claims.json",
+            "eng/tools/quality/conclusion_snapshots.json",
+            "eng/tools/file_audit.py",
+            "eng/tools/quality/contracts/check_full_integration.py",
+            "eng/tools/quality/contracts/fixtures/check_full_integration/**",
+            "eng/tools/docs_machine_consistency.py",
+            "eng/tools/doccheck/doc_hygiene_exempt.json",
+            "eng/ci/exemptions.json",
+            "ASTROCS_DESIGN.md",
+            "artifacts/evidence/truthful-conclusion-01/**",
+            "artifacts/evidence/v19r7-quality/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "TRUTH-CONCLUSION-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_conclusion_truth.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_conclusion_truth.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "TRUTH-CONCLUSION-INJECT",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_conclusion_truth.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_conclusion_truth.py",
+            "eng/tools/quality/conclusion_vocabulary.json",
+            "eng/tools/quality/authority_surfaces.json",
+            "eng/tools/quality/coverage_claims.json",
+            "eng/tools/quality/conclusion_snapshots.json"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-DOCS-MACHINE-CONSISTENCY",
+      "profiles": [
+        "linux-main",
+        "prerelease"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/docs_machine_consistency.py",
+        "--json-out",
+        "run/ci/docs-machine-consistency/docs_consistency.json",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/docs-machine-consistency/docs_consistency.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "eng/tools/docs_machine_consistency.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/docs_machine_consistency.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/docs_machine_consistency.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-ISA-SAME-SOURCE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-ISA-SAME-SOURCE",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_isa_same_source.py",
+        "eng/tools/quality/isa_sites.json",
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "**/*.cmake",
+        "**/Makefile",
+        "**/GNUmakefile",
+        "lib/infrastructure/benchmark/backend_host/**",
+        "lib/infrastructure/benchmark/cpu/**",
+        "eng/tests/unit/cpu_provider_test.cpp"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "ISA-SAME-SOURCE-GATE",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_isa_same_source.py",
+            "--quiet"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/isa_sites.json",
+            "CMakeLists.txt",
+            "**/CMakeLists.txt",
+            "**/Makefile",
+            "lib/infrastructure/benchmark/backend_host/**"
+          ]
+        },
+        {
+          "id": "ISA-SAME-SOURCE-SELFTEST",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_isa_same_source.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 180,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_isa_same_source.py"
+          ]
+        },
+        {
+          "id": "ISA-SAME-SOURCE-INJECT",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_isa_same_source.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_isa_same_source.py"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHK-BUDGET-SINGLE-SOURCE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-BUDGET-SINGLE-SOURCE",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_budget_single_source.py",
+        "eng/tools/quality/budget_sources.json",
+        "eng/packaging/config/runtime_resources.json",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp",
+        "lib/infrastructure/scheduler/src/memory_budget.cpp"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "BUDGET-SINGLE-SOURCE-GATE",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_budget_single_source.py",
+            "--quiet"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/budget_sources.json",
+            "eng/packaging/config/runtime_resources.json",
+            "lib/infrastructure/scheduler/src/module_adapters.cpp"
+          ]
+        },
+        {
+          "id": "BUDGET-SINGLE-SOURCE-SELFTEST",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_budget_single_source.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 180,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_budget_single_source.py"
+          ]
+        },
+        {
+          "id": "BUDGET-SINGLE-SOURCE-INJECT",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_budget_single_source.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_budget_single_source.py"
+          ]
+        }
+      ]
+    },
+    {
       "id": "CHK-RETIRED-CODE",
       "profiles": [
         "fast",
@@ -2199,7 +2611,11 @@
         "v6_p2_upm_*",
         "v6_p3_proj_*",
         "v6_p3_rsmp_*",
-        "v6_runtime_*"
+        "v6_runtime_*",
+        "w34_*",
+        "memory_pressure*",
+        "p1snr_*",
+        "drizzle_*"
       ],
       "dirty_ignore_exact": [
         "resource_samples.csv",
@@ -9564,6 +9980,41 @@
       ]
     },
     {
+      "id": "CHK-DRZ-PF-AREA-S1",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "build",
+        "--target",
+        "drizzle_pf_sb.*",
+        "--output",
+        "run/ci/ctest/drizzle_pf_sb.json"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/drizzle_pf_sb.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/algorithms/drizzle/**",
+        "lib/algorithms/integration/v6_phase1/**",
+        "eng/tests/unit/v6_p1_drz/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "drizzle_pf_sb_*"
+      ]
+    },
+    {
       "id": "CHK-FIX203-PROMOTED-KEYS",
       "profiles": [
         "fast",
@@ -12744,16 +13195,18 @@
       "platform": "any",
       "command": [
         "python3",
-        "eng/tools/e2e/seam_footprint.py",
-        "--self-test",
-        "--json-out",
-        "run/ci/seam-footprint/selftest.json"
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-L4-SEAM-FOOTPRINT",
+        "--quiet"
       ],
-      "timeout_seconds": 300,
+      "timeout_seconds": 1500,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [
-        "run/ci/seam-footprint/selftest.json"
+        "run/ci/seam-footprint/selftest.json",
+        "run/ci/seam-footprint/product.json",
+        "run/ci/seam-footprint/render-vis/v6_selftest.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -12763,6 +13216,368 @@
       "prerequisite_tools": [
         "python3:numpy",
         "python3:astropy"
+      ],
+      "steps": [
+        {
+          "id": "SEAM-FOOTPRINT-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/e2e/seam_footprint.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/seam-footprint/selftest.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/seam-footprint/selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/e2e/**"
+          ],
+          "requires_monitor": false,
+          "prerequisite_tools": [
+            "python3:numpy",
+            "python3:astropy"
+          ],
+          "inputs": [
+            "eng/tools/e2e/seam_footprint.py"
+          ]
+        },
+        {
+          "id": "SEAM-FOOTPRINT-PRODUCT",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/e2e/seam_footprint.py",
+            "--fits",
+            "run/ci/seam-footprint/product/mosaic.fits",
+            "--p1-dirs",
+            "run/ci/seam-footprint/product/p1",
+            "--json-out",
+            "run/ci/seam-footprint/product.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/seam-footprint/product.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/e2e/**"
+          ],
+          "requires_monitor": false,
+          "prerequisite_tools": [
+            "python3:numpy",
+            "python3:astropy"
+          ],
+          "optional_inputs": [
+            "run/ci/seam-footprint/product/mosaic.fits",
+            "run/ci/seam-footprint/product/p1/"
+          ]
+        },
+        {
+          "id": "RENDER-VIS-V6-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/e2e/render_vis.py",
+            "--self-test",
+            "--out-dir",
+            "run/ci/seam-footprint/render-vis"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/seam-footprint/render-vis/v6_selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/e2e/**"
+          ],
+          "requires_monitor": false,
+          "prerequisite_tools": [
+            "python3:numpy",
+            "python3:astropy"
+          ],
+          "inputs": [
+            "eng/tools/e2e/render_vis.py"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHK-ACTIONS-LOCK",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main",
+        "prerelease",
+        "fatduck"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-ACTIONS-LOCK",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/actions-lock/offline.json",
+        "run/ci/actions-lock/report.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        ".github/workflows/**",
+        "eng/ci/actions.lock.json",
+        "eng/ci/verify_actions_lock.py"
+      ],
+      "requires_monitor": false,
+      "inputs": [
+        ".github/workflows/ci-linux.yml",
+        ".github/workflows/ci-windows.yml",
+        ".github/workflows/fatduck.yml",
+        ".github/workflows/fatduck-admin.yml",
+        "eng/ci/checks.json"
+      ],
+      "steps": [
+        {
+          "id": "ACTIONS-LOCK-OFFLINE",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main",
+            "prerelease",
+            "fatduck"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/verify_actions_lock.py",
+            "--offline",
+            "--workflow-dir",
+            ".github/workflows",
+            "--report-out",
+            "run/ci/actions-lock/offline.json"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/actions-lock/offline.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            ".github/workflows/**",
+            "eng/ci/actions.lock.json",
+            "eng/ci/verify_actions_lock.py"
+          ],
+          "requires_monitor": false,
+          "inputs": [
+            ".github/workflows/ci-linux.yml",
+            ".github/workflows/ci-windows.yml",
+            ".github/workflows/fatduck.yml",
+            ".github/workflows/fatduck-admin.yml",
+            "eng/ci/checks.json"
+          ]
+        },
+        {
+          "id": "ACTIONS-LOCK-ONLINE",
+          "profiles": [
+            "linux-main",
+            "prerelease",
+            "fatduck"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/verify_actions_lock.py",
+            "--workflow-dir",
+            ".github/workflows",
+            "--allow-network-skip",
+            "--report-out",
+            "run/ci/actions-lock/report.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/actions-lock/report.json"
+          ],
+          "waivable": true,
+          "changed_paths": [
+            ".github/workflows/**",
+            "eng/ci/actions.lock.json",
+            "eng/ci/verify_actions_lock.py"
+          ],
+          "requires_monitor": false,
+          "inputs": [
+            ".github/workflows/ci-linux.yml",
+            ".github/workflows/ci-windows.yml",
+            ".github/workflows/fatduck.yml",
+            ".github/workflows/fatduck-admin.yml",
+            "eng/ci/checks.json"
+          ]
+        },
+        {
+          "id": "ACTIONS-LOCK-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main",
+            "prerelease",
+            "fatduck"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/verify_actions_lock.py",
+            "--selftest"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/verify_actions_lock.py"
+          ],
+          "requires_monitor": false,
+          "inputs": [
+            ".github/workflows/ci-linux.yml",
+            ".github/workflows/ci-windows.yml",
+            ".github/workflows/fatduck.yml",
+            ".github/workflows/fatduck-admin.yml",
+            "eng/ci/checks.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHK-WORKFLOW-GOVERNANCE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-WORKFLOW-GOVERNANCE",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/workflow-governance/workflow_governance.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        ".github/workflows/**",
+        "eng/ci/checks.json",
+        "eng/ci/check_workflow_governance.py"
+      ],
+      "requires_monitor": false,
+      "inputs": [
+        ".github/workflows/ci-linux.yml",
+        ".github/workflows/ci-windows.yml",
+        ".github/workflows/fatduck.yml",
+        ".github/workflows/fatduck-admin.yml",
+        "eng/ci/checks.json"
+      ],
+      "steps": [
+        {
+          "id": "WORKFLOW-GOVERNANCE",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_workflow_governance.py",
+            "--json-out",
+            "run/ci/workflow-governance/workflow_governance.json"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/workflow-governance/workflow_governance.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            ".github/workflows/**",
+            "eng/ci/checks.json",
+            "eng/ci/check_workflow_governance.py"
+          ],
+          "requires_monitor": false,
+          "inputs": [
+            ".github/workflows/ci-linux.yml",
+            ".github/workflows/ci-windows.yml",
+            ".github/workflows/fatduck.yml",
+            ".github/workflows/fatduck-admin.yml",
+            "eng/ci/checks.json"
+          ]
+        },
+        {
+          "id": "WORKFLOW-GOV-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_workflow_governance.py",
+            "--selftest"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_workflow_governance.py"
+          ],
+          "requires_monitor": false,
+          "inputs": [
+            ".github/workflows/ci-linux.yml",
+            ".github/workflows/ci-windows.yml",
+            ".github/workflows/fatduck.yml",
+            ".github/workflows/fatduck-admin.yml",
+            "eng/ci/checks.json"
+          ]
+        }
       ]
     },
     {
@@ -12878,53 +13693,6 @@
         "docs/**"
       ],
       "requires_monitor": false,
-      "ctest_targets": [
-        "drizzle_acceptance",
-        "drizzle_acceptance_negative_injection",
-        "drizzle_acceptance_py",
-        "drizzle_candidate_oracle",
-        "drizzle_control_median_mc",
-        "drizzle_freeze",
-        "drizzle_precision_default",
-        "drizzle_spherical_overlap",
-        "gaia_magnitude_range_bounds",
-        "gaia_module_manifest_bounds",
-        "gaia_shard_coverage",
-        "gaia_shard_coverage_self_test",
-        "hips_publish_atomic",
-        "hips_publish_atomic_units",
-        "ipv_extract_wcs_sip_failclosed",
-        "ipv_platform_binding",
-        "ipv_triangle_budget",
-        "p1cal_bias_influence_gate",
-        "p1cos_badcol",
-        "p1cos_badcol_selfcheck",
-        "p1noise_adaptive",
-        "p1noise_mask",
-        "p1noise_saturation",
-        "p1noise_saturation_selfcheck",
-        "p1noise_saturation_wiring",
-        "p1noise_snr_caliber",
-        "p1noise_snr_caliber_selftest",
-        "p1phot_spatial",
-        "p1psf_center_contract_astropy",
-        "p1psf_center_contract_gate",
-        "p1psf_center_contract_gate_neg",
-        "p1psf_centroid_gate",
-        "p1psf_centroid_gate_neg",
-        "p1psf_prodpath_centroid",
-        "p1snr_frame_parity",
-        "p1star_angle_guard",
-        "p1star_guided",
-        "p1star_mad",
-        "p1star_nls_lm",
-        "p1stardet_node_gate",
-        "p2hips_determinism",
-        "p2hips_negative",
-        "p2hips_selfcheck",
-        "p2hips_units",
-        "xpsd_spectrum_count_bounds"
-      ],
       "steps": [
         {
           "id": "PROD-WIRING-SCAN",
@@ -13011,6 +13779,291 @@
             "--self-test"
           ],
           "timeout_seconds": 600
+        }
+      ]
+    },
+    {
+      "id": "CHK-PRODUCT-CONTRACT",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-PRODUCT-CONTRACT",
+        "--quiet"
+      ],
+      "timeout_seconds": 1200,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/product-contract/report.json",
+        "run/ci/product-contract/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_product_contract.py",
+        "eng/ci/checks.json",
+        "eng/contracts/data/phase_product_exchange.schema.json",
+        "eng/contracts/data/artifact_types.registry.json",
+        "eng/contracts/data/phase_product_exchange_matrix.json",
+        "eng/contracts/data/artifact_manifest.schema.json",
+        "eng/contracts/schemas/product_family_field_constraints.schema.json",
+        "docs/interfaces/data/**",
+        "lib/infrastructure/aio/runtime/artifact_store/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "PRODUCT-CONTRACT",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_product_contract.py",
+            "--json-out",
+            "run/ci/product-contract/report.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/product-contract/report.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_product_contract.py",
+            "eng/ci/checks.json",
+            "eng/contracts/data/phase_product_exchange.schema.json",
+            "eng/contracts/data/artifact_types.registry.json",
+            "eng/contracts/data/phase_product_exchange_matrix.json",
+            "eng/contracts/data/artifact_manifest.schema.json",
+            "eng/contracts/schemas/product_family_field_constraints.schema.json",
+            "eng/tests/common/jsonschema_min.py",
+            "docs/interfaces/data/**",
+            "lib/infrastructure/aio/runtime/artifact_store/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "PRODUCT-CONTRACT-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_product_contract.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/product-contract/selftest.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/product-contract/selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_product_contract.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-CITE-CLAIM-MARK-CONSISTENCY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-CITE-CLAIM-MARK-CONSISTENCY",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/cite-claim/report.json",
+        "run/ci/cite-claim/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_cite_claim_mark_consistency.py",
+        "eng/ci/checks.json",
+        "docs/**",
+        "实验/**",
+        "artifacts/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CITE-CLAIM-MARK-CONSISTENCY",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_cite_claim_mark_consistency.py",
+            "--json-out",
+            "run/ci/cite-claim/report.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/cite-claim/report.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_cite_claim_mark_consistency.py",
+            "eng/ci/checks.json",
+            "docs/**",
+            "实验/**",
+            "artifacts/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CITE-CLAIM-MARK-CONSISTENCY-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_cite_claim_mark_consistency.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/cite-claim/selftest.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/cite-claim/selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_cite_claim_mark_consistency.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-DOC-UNVERIFIED-CITE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-DOC-UNVERIFIED-CITE",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/doc-unverified-cite/report.json",
+        "run/ci/doc-unverified-cite/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_doc_unverified_cite.py",
+        "eng/ci/check_cite_claim_mark_consistency.py",
+        "eng/ci/checks.json",
+        "docs/**",
+        "实验/**",
+        "artifacts/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "DOC-UNVERIFIED-CITE",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_doc_unverified_cite.py",
+            "--json-out",
+            "run/ci/doc-unverified-cite/report.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/doc-unverified-cite/report.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_doc_unverified_cite.py",
+            "eng/ci/check_cite_claim_mark_consistency.py",
+            "eng/ci/checks.json",
+            "docs/**",
+            "实验/**",
+            "artifacts/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "DOC-UNVERIFIED-CITE-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_doc_unverified_cite.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/doc-unverified-cite/selftest.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/doc-unverified-cite/selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_doc_unverified_cite.py",
+            "eng/ci/check_cite_claim_mark_consistency.py"
+          ],
+          "requires_monitor": false
         }
       ]
     },

@@ -1,1 +1,7 @@
-{"tool": "check_full_integration", "status": "PASS", "fixtures": "all 10 checkers PASS, waivers []"}
+{
+  "_fixture": "check_full_integration 正例：豁免面为空且可解析",
+  "tool": "check_full_integration",
+  "status": "PASS",
+  "exemption_surface": "eng/ci/exemptions.json",
+  "fixtures": "all 10 checkers PASS, exemptions []"
+}

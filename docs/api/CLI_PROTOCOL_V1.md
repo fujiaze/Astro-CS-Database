@@ -93,7 +93,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 2. JSON/JSONL 样例对 schema 有效(jsonschema 或 stdlib 等价校验);
 3. 退出码常量唯一源(`lib/infrastructure/cli/exit_codes.h`, grep 无第二处数值表);
 4. handler→Phase API 追溯表存在且逐行有 API id;
-5. 发布 manifest 不含 `phase1|2|3` 可执行文件(与 PRODUCTION_EXECUTION_INVENTORY production exe=0 联动, CLI-001 后=恰一 acsd);
+5. 发布 manifest 不含 `phase1|2|3` 可执行文件(与 PRODUCTION_EXECUTION_INVENTORY 的 exe_target 面同源: 生产面 `classification=production` 的行恰一 = `acsd`, CLI-001);
 6. 双平台 golden command tests 字段+退出码一致(Windows 侧 Fatduck 执行)。
 
 1–5 为 Linux 可验;6 属 WIN/FAT 域任务。

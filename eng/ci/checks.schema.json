@@ -85,6 +85,22 @@
               "type": "string"
             }
           },
+          "inputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "GATE-SOLID-01（独立审查节点一页纸 S2-A）：声明的输入路径（仓库相对 POSIX）。执行前必须存在；以 '/' 结尾者为扫描面目录，须递归非空；含通配符者 glob 展开须 >0 命中。缺失/空面 ⇒ FAIL(inputs_missing)/FAIL(inputs_empty)，判词逐条打印缺失路径。"
+          },
+          "optional_inputs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "GATE-SOLID-01：**本机本就不该有**的可选产物（跨平台产物 / run/ 下他轮次证据 / 外部数据集）。全部不可用 ⇒ SKIPPED(optional_input)（记 skip 不是 pass）；任一可用则照常执行并逐条留痕。本该有的输入一律进 inputs —— 不得用本字段把缺失洗成跳过。"
+          },
           "requires_monitor": {
             "type": "boolean"
           },
@@ -232,6 +248,22 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "inputs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "GATE-SOLID-01：step 级声明的输入路径（语义同顶层）"
+                },
+                "optional_inputs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "GATE-SOLID-01：step 级可选产物（语义同顶层）"
                 },
                 "requires_monitor": {
                   "type": "boolean"

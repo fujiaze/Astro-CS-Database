@@ -37,3 +37,8 @@ add_test(NAME v6_p1_drz_units COMMAND v6_p1_drz_test units)
 add_test(NAME v6_p1_drz_oracle COMMAND v6_p1_drz_test oracle)
 add_test(NAME v6_p1_drz_negative COMMAND v6_p1_drz_test negative)
 add_test(NAME v6_p1_drz_geometry COMMAND v6_p1_drz_test geometry)
+# DRZ-PF-CORRECT-01 (S1 第 19 条) 的注册别名: 同一可执行 + 同一 geometry 组
+# （含闭合亏损负例与「注入一个面积无效像素必判红」用例）。名字与 drizzle 侧
+# 的 CHK-DRZ-PF-AREA-S1 门正则 ^drizzle_pf_sb.*$ 同族, 使单条注册项即可一次
+# 覆盖两条 S1 的正例+负例; 不新增判据、不复制断言。
+add_test(NAME drizzle_pf_sb_v6_area_invalid COMMAND v6_p1_drz_test geometry)

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "policy": "每个被登记的门必须在 eng/ci/checks.json 有注册承载（零登记即红）；其对外快照必须与现役输出逐项相等。历史记录面里的旧快照只有两种合法处置：(a) 与现役相等，或 (b) 显式标注 superseded_by 并把 *_live 写成现役真值。残留未标注的旧值即红。",
+  "snapshots": [
+    {
+      "id": "docs_machine_consistency",
+      "producer": "eng/tools/docs_machine_consistency.py",
+      "live_command": [
+        "python3",
+        "eng/tools/docs_machine_consistency.py",
+        "--json-out",
+        "{tmp}",
+        "--quiet"
+      ],
+      "live_extract": {
+        "version": "version",
+        "checks": "__count_checks__"
+      },
+      "recorded": {
+        "version": "2.0.0",
+        "checks": 11
+      },
+      "registration_check_id": "CHK-DOCS-MACHINE-CONSISTENCY",
+      "recorded_in": [
+        {
+          "path": "artifacts/evidence/v19r7-quality/audit_stats.json",
+          "pointer": "/before/machine_consistency",
+          "keys": {
+            "checks": "checks"
+          }
+        }
+      ],
+      "note": "v19r7 证据面记录 machine_consistency.checks=9（工具 v1.0.0 时代快照），现役 v2.0.0 为 11 项。审查节点指出的「快照停在旧版本」即此处：原为无人核对的手抄值与零登记门。"
+    }
+  ]
+}

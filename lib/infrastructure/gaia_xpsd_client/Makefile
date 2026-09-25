@@ -1,4 +1,7 @@
-CFLAGS = -O2 -march=native -Wall -Wextra -Wpedantic
+# ISA-001（TRUTHFUL-CONCLUSION-01）：本文件**不得**自带宿主 ISA 旗标（原 -march=native 已移除）。
+# 依据 AGENTS.md §6「不硬编码线程/ISA/block」+ BLD-002「根 CMakeLists.txt 是唯一产品事实源」：
+# ISA 姿态由根构建图与机器 profile 决定，模块级独立构建路径不得另行自定 ISA。
+CFLAGS = -O2 -Wall -Wextra -Wpedantic
 SRC = src/gaia_client.c
 OBJ = gaia_client.o
 

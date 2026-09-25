@@ -737,7 +737,9 @@ add_library(astrocs_cpu_avx512 STATIC lib/infrastructure/benchmark/backend_host/
 target_include_directories(astrocs_cpu_avx512 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
-# AVX512 实际使用子集: F + DQ + BW + VL (ISA-004, 与 cpu_features.h 检测面一致)
+# AVX512 实际使用子集: F + DQ + BW + VL (ISA-004)。检测面 = cpu_features.h 的
+# ACS_FEAT_AVX512_PROVIDER_REQUIRED（原注释称"与 cpu_features.h 检测面一致"，而该头当时
+# 只有 ACS_FEAT_AVX512F 一位 ⇒ 注释与事实相反；TRUTHFUL-CONCLUSION-01 已补位并改为同源宏）。
 target_compile_options(astrocs_cpu_avx512 PRIVATE
   -mavx512f -mavx512bw -mavx512vl -mavx512dq)
 target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)

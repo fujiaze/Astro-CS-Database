@@ -42,15 +42,21 @@ uint64_t astrocs_cpu_detect_features_v1(void) {
     if (__builtin_cpu_supports("avx2")) f |= ACS_FEAT_AVX2;
     if (__builtin_cpu_supports("fma")) f |= ACS_FEAT_FMA;
     if (__builtin_cpu_supports("avx512f")) f |= ACS_FEAT_AVX512F;
+    // TRUTHFUL-CONCLUSION-01: AVX-512 子集位逐位置位（F 不蕴含 BW/DQ/VL）
+    if (__builtin_cpu_supports("avx512cd")) f |= ACS_FEAT_AVX512CD;
+    if (__builtin_cpu_supports("avx512bw")) f |= ACS_FEAT_AVX512BW;
+    if (__builtin_cpu_supports("avx512dq")) f |= ACS_FEAT_AVX512DQ;
+    if (__builtin_cpu_supports("avx512vl")) f |= ACS_FEAT_AVX512VL;
     // 05 §3-2/3: AVX 系必须 OSXSAVE 且 XCR0 保存 XMM/YMM(avx)/opmask+ZMM(avx512)
     const uint64_t avx_family = ACS_FEAT_AVX | ACS_FEAT_AVX2 | ACS_FEAT_FMA;
-    if (f & (avx_family | ACS_FEAT_AVX512F)) {
+    const uint64_t avx512_group = ACS_FEAT_AVX512_PROVIDER_REQUIRED | ACS_FEAT_AVX512CD;
+    if (f & (avx_family | avx512_group)) {
         const unsigned long long xcr0 = read_xcr0();
         if (xcr0 == 0) {
-            f &= ~(avx_family | ACS_FEAT_AVX512F);   // 无 OSXSAVE/XSAVE → 全部降级
+            f &= ~(avx_family | avx512_group);   // 无 OSXSAVE/XSAVE → 全部降级
         } else {
             if ((xcr0 & 0x6) != 0x6) f &= ~avx_family;          // XMM|YMM 未保存
-            if ((xcr0 & 0xE0) != 0xE0) f &= ~ACS_FEAT_AVX512F;  // opmask|ZMM_Hi256|Hi16_ZMM
+            if ((xcr0 & 0xE0) != 0xE0) f &= ~avx512_group;      // opmask|ZMM_Hi256|Hi16_ZMM
         }
     }
     return f;
@@ -78,15 +84,21 @@ uint64_t astrocs_cpu_detect_features_v1(void) {
     const unsigned int ebx7 = static_cast<unsigned int>(c7[1]);
     if (ebx7 & (1u << 5)) f |= ACS_FEAT_AVX2;
     if (ebx7 & (1u << 16)) f |= ACS_FEAT_AVX512F;
+    // TRUTHFUL-CONCLUSION-01: AVX-512 子集位（CPUID 7.0 EBX: CD=28, BW=30, DQ=17, VL=31）
+    if (ebx7 & (1u << 28)) f |= ACS_FEAT_AVX512CD;
+    if (ebx7 & (1u << 30)) f |= ACS_FEAT_AVX512BW;
+    if (ebx7 & (1u << 17)) f |= ACS_FEAT_AVX512DQ;
+    if (ebx7 & (1u << 31)) f |= ACS_FEAT_AVX512VL;
     // 05 §3-2/3: AVX 系必须 OSXSAVE 且 XCR0 保存 XMM/YMM(avx)/opmask+ZMM(avx512)
     const uint64_t avx_family = ACS_FEAT_AVX | ACS_FEAT_AVX2 | ACS_FEAT_FMA;
-    if (f & (avx_family | ACS_FEAT_AVX512F)) {
+    const uint64_t avx512_group = ACS_FEAT_AVX512_PROVIDER_REQUIRED | ACS_FEAT_AVX512CD;
+    if (f & (avx_family | avx512_group)) {
         const unsigned long long xcr0 = read_xcr0_msvc();
         if (xcr0 == 0) {
-            f &= ~(avx_family | ACS_FEAT_AVX512F);   // 无 OSXSAVE/XSAVE → 全部降级
+            f &= ~(avx_family | avx512_group);   // 无 OSXSAVE/XSAVE → 全部降级
         } else {
             if ((xcr0 & 0x6) != 0x6) f &= ~avx_family;          // XMM|YMM 未保存
-            if ((xcr0 & 0xE0) != 0xE0) f &= ~ACS_FEAT_AVX512F;  // opmask|ZMM_Hi256|Hi16_ZMM
+            if ((xcr0 & 0xE0) != 0xE0) f &= ~avx512_group;      // opmask|ZMM_Hi256|Hi16_ZMM
         }
     }
     return f;
