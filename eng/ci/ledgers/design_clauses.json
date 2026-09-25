@@ -1,0 +1,660 @@
+{
+  "ledger_schema": "astrocs.design-clause-wiring/v1",
+  "ledger_id": "design_clauses",
+  "purpose": "把 ASTROCS_DESIGN.md 里被监视标题范围内的每一条 bullet（条文）逐条映射到生产实现（production_anchor + assertion）或如实登记为 unwired（reason + 具名 exit_condition）。门 CHK-DESIGN-CLAUSE-WIRING 保证这张映射与设计文本始终同步：条文一改、条目缺失或锚点失效即判红。",
+  "authority": [
+    "ASTROCS_DESIGN.md §8.3「编排策略」（:609-:616）",
+    "ASTROCS_DESIGN.md §5.3/§5.4/§5.5/§6.3/§12.1/§12.3/§12.4",
+    "docs/ci/01_CHECKS.md §1（注册表原则：能红能绿、fail-closed、可执行负例面）"
+  ],
+  "policy": {
+    "normalization": "剥行内 markdown（链接取文字、粗体/斜体/行内代码标记与单词边界上的孤立下划线）→ 空白折叠为单空格 → 去首尾空白 → UTF-8 sha256；实现唯一来源 = eng/ci/check_design_clause_wiring.py:clause_sha256",
+    "coverage": "watched_sections 指定标题范围内（有 bullet_scope_marker 时从其下一行起）每一条 bullet 必须且只能有一条 clause；新增/改动设计条文而不建映射 ⇒ 判红",
+    "status_rule": "wired = 该条每一项规范性要求都有可指认的实现面且其中至少一项在生产源码（非测试路径），并给出该锚点上「实现了什么」的 assertion；unwired = 有任何一项在任何面都不存在（零实现），必须写清差在哪与解除条件。有生产锚即主张已接线，故 unwired 不得带 production_anchor。",
+    "bullet_scope_rule": "bullet 内以破折号引入的枚举项按要求的一部分对待（不当作无害举例），任一枚举项零实现即记 unwired。",
+    "scope_rule": "每条的判定只针对该条自身的规范内容；上下游另一条的问题记在那一條。",
+    "anchor_rule": "production_anchor 必须是仓库相对 path:line，落在非测试面且被 git 跟踪，并给出该行必须出现的字面 token（anchor_tokens）。行号漂移由 token 判据发现（判词会打印 token 的实际行号）。",
+    "reachability_note": "本台的锚判据是路径判据，判不出「文件在盘上但从未进入任何生产 target」这一类（实例：lib/algorithms/projection/p3_projection.cpp 不在任何 CMake 源列表）。该维度由 CHK-ALGO-WIRING / CHK-PROD-WIRING 与 eng/ci/ledgers/dormant_algorithms.json 负责，本门不重复造。",
+    "unwired_is_not_red": "unwired 是合法且可见的状态（门的判红面是映射完整性/诚实性，不是「存在未接线条文」）。门的 PASS 行与 JSON 都打印 unwired 清单，使设计-生产之差在 CI 输出里可见。"
+  },
+  "watched_sections": [
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 8.3 三个阶段调度器",
+      "bullet_scope_marker": "编排策略",
+      "scope_note": "marker 之后到下一同级标题之间的全部 bullet（含 :616「不变量」）"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 5.3 SNR 重建与逆方差叠加"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 5.4 天光平面与统一相对模型（UPM）"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 5.5 逐像素排异"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 6.3 投影算法"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 12.1 科学正确性与三重佐证"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 12.3 创新点实验单元"
+    },
+    {
+      "file": "ASTROCS_DESIGN.md",
+      "heading": "### 12.4 验证层级与四层验收"
+    }
+  ],
+  "clauses": [
+    {
+      "id": "DESIGN-8-ORCH-STATIC-BUDGET",
+      "anchor": "ASTROCS_DESIGN.md:611",
+      "text_sha256": "fbb0d1722baedbbe1b36ea42ae8f12f9c8ecd960d3a2b381fa24a43cd3febcd4",
+      "requirement": "静态预算：从输入数据（帧尺寸与类型、配置、模块声明）静态估算每个模块的内存与 CPU 需求，含热点阶段与峰值占用量；该估算是调度决策的输入。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/include/astrocs/core/plan_estimator.h:132",
+        "lib/infrastructure/scheduler/src/plan_estimator.cpp:110",
+        "lib/infrastructure/scheduler/src/runtime.cpp:204"
+      ],
+      "anchor_tokens": {
+        "lib/include/astrocs/core/plan_estimator.h:132": "PlanEstimateResult estimate_plan",
+        "lib/infrastructure/scheduler/src/plan_estimator.cpp:110": "PlanEstimateResult estimate_plan",
+        "lib/infrastructure/scheduler/src/runtime.cpp:204": "estimate_plan(node_plan_metadata"
+      },
+      "assertion": "estimate_plan() 在 plan_estimator.cpp:110 定义、plan_estimator.h:132 声明，输入只取 IR 节点的静态声明（模块 id / 配置 / 资源类），输出 peak_memory_bytes 与本征 worker 上下限；runtime.cpp:191 在构图时逐节点调用它，把 est.plan.peak_memory_bytes 写进 NodeSpec.estimated_memory_bytes（不可估算时显式登记 plan_unestimable_reason，不冒充 0 字节）。该值随后被 scheduler 的派发准入与内存回压读取，即「该估算是调度决策的输入」。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-8-ORCH-PROBE-CALIBRATION",
+      "anchor": "ASTROCS_DESIGN.md:612",
+      "text_sha256": "3ca6ab62b11aca1cc0e8746b6854926402fee1cd96f1226ca0207a0f4deae936",
+      "requirement": "探针校正：模块与调度器预埋探针（每节点墙钟、排队等待、块生命周期、RSS、I/O、worker 均衡、缓存命中），随事件流落盘；用实测校正静态模型，形成该阶段的调度模型。性能优化在功能与数值正确之后进行，编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "前半在位：lib/infrastructure/observability/probes/src/probe.cpp:45 读 ASTROCS_PROBE_LOG、lib/infrastructure/scheduler/src/normalize_workflow.cpp:71 的 ProbeSink::emit 把每节点墙钟/排队等待/块生命周期/缓存命中随事件流写成 JSONL，eng/contracts/schemas/scheduler_probe_event.schema.json 是它的合同面。后半「用实测校正静态模型，形成该阶段的调度模型」生产零实现：全仓读探针 JSONL 的只有测试（eng/tests/unit/normalize_workflow_test.cpp:393 等）与 eng/tools/quality/check_scheduler_probe_schema.py 的 schema 自检，没有任何生产代码把实测回灌 plan_estimator（lib/infrastructure/scheduler/src/plan_estimator.cpp）或 memory_budget 的模型参数；编排参数（窗口大小/预取深度/帧并发度/工作窃取）在 lib/** 内也没有按探针实测迭代的读取面。",
+      "exit_condition": "出现生产读取点，把探针实测（每节点墙钟/排队等待/块生命周期/RSS/I-O/worker 均衡/缓存命中）回灌为调度模型参数（落点 = lib/infrastructure/scheduler/src/plan_estimator.cpp 或 lib/include/astrocs/core/memory_budget.h 的输入面），并有机器门断言校正前后的模型参数差异可复算；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-8-ORCH-ASYNC-PARALLEL",
+      "anchor": "ASTROCS_DESIGN.md:613",
+      "text_sha256": "92cf51a04f7d8b08dd47e3b636545e9c97daba0bafd7cbcb119f2388c62defb3",
+      "requirement": "异步并行：预算充裕时异步启动多个独立工作流——多帧并行、预取下一帧、预解析星表、预建 PSF；异步只用于能隐藏延迟的 I/O、预取与压缩。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "异步面已实现两半：lib/infrastructure/scheduler/src/normalize_workflow.cpp:468 按 cfg_.prefetch_threads起独立预取线程池、:397 在 worker 空闲窗口为尚未开始的帧预取（I/O 与其它 worker 的计算重叠）。但本条以破折号枚举的四项工作流里，另两项在生产零实现：全仓无「预解析星表」「预建 PSF」的异步预取面（grep 预解析/预建/prefetch_catalog/prebuild_psf 在 lib/ 零命中），预取键集合 lib/include/astrocs/core/normalize_workflow.h:146 也没有星表/PSF 类键的生产填充点。",
+      "exit_condition": "「预解析星表」与「预建 PSF」各出现一个生产异步预取面（给出 production_anchor 与 assertion，落点 = lib/infrastructure/scheduler/src/normalize_workflow.cpp 的预取键与预取线程池），且异步准入仍受内存预算约束；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-8-ORCH-INTERRUPT-QUEUE",
+      "anchor": "ASTROCS_DESIGN.md:614",
+      "text_sha256": "0029e16cb0b5e8b60ad7decbd8364db951b107af4de1097c04c7e6dd198f0624",
+      "requirement": "可中断排队：预测到后续工作流将产生内存膨胀或多线程峰值时，中断优先级低的工作流，让其在内存中等待、按序排队进入。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/scheduler.cpp:207",
+        "lib/infrastructure/scheduler/src/scheduler.cpp:215"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/scheduler.cpp:207": "mem_used.load() + need <= memory_limit_bytes_",
+        "lib/infrastructure/scheduler/src/scheduler.cpp:215": "全部就绪节点超限"
+      },
+      "assertion": "scheduler.cpp:202-213 在派发前按「mem_used + 该节点静态估算 <= memory_limit_bytes_」逐节点判定准入，超限的节点不派发、留在 ready 队列中按队列序等待进入；:214-227 当全部就绪节点都超限时用专用条件变量 bp_cv 谓词挂起（零 CPU 自旋），由在途节点完成释放内存后唤醒 —— 即「让其在内存中等待、按序排队进入」，预测量的来源就是 :611 的静态估算。本实现不抢占已在途的工作流（在途丢弃属 :615 的语义）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-8-ORCH-DISCARD-RERUN",
+      "anchor": "ASTROCS_DESIGN.md:615",
+      "text_sha256": "db29a75680e6884c9aa6fb60d9687de98300ea7a1967589d06621cfe21e2ebb1",
+      "requirement": "可丢弃重跑：内存仍不足时，丢弃进度最低的工作流并释放其占用；该工作流随后重新开始。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "生产零实现：HEAD 上没有任何「丢弃进度最低的工作流并释放其占用、随后重新开始」的实现面。带该语义的 PressureAction::EVICT_LOWEST 只出现在未跟踪的工作树草稿 lib/infrastructure/scheduler/src/memory_pressure.cpp:404（git ls-files 无此文件，另一路在制），lib/include/astrocs/core/memory_budget.h:11 只是把本条与 :614 并称为回压、不构成实现。",
+      "exit_condition": "「丢弃进度最低的工作流」出现已提交（git 已跟踪、非测试）的生产实现面：lib/infrastructure/scheduler/src/memory_pressure.cpp 的 EVICT_LOWEST 动作被 lib/infrastructure/scheduler/src/scheduler.cpp 的派发环实际调用、被丢弃工作流可被重新入队起跑；届时给出 production_anchor 与 assertion 并把本条改 wired。"
+    },
+    {
+      "id": "DESIGN-8-INVARIANT-NWORKER",
+      "anchor": "ASTROCS_DESIGN.md:616",
+      "text_sha256": "03f4364d7cc9f72144970cbeb9a4a1f2e447bbd0fbb1bc5803a840333bc57d62",
+      "requirement": "不变量：数值结果与并发度无关——1/N worker 数值等价，判据是事前冻结的浮点容差（口径见 §9）；归约顺序冻结是达成手段，不是判据本身。由构造保证位精确的路径（固定槽位写回、per-thread 定序归并）其模块自有门仍可断言 bitwise，但合同层不要求逐位一致。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/normalize_workflow.cpp:480",
+        "lib/infrastructure/scheduler/src/mosaic_window.cpp:282",
+        "eng/tools/v6/v6_numeric_equiv.py:37"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/normalize_workflow.cpp:480": "归约顺序冻结：按 frame_id 升序输出",
+        "lib/infrastructure/scheduler/src/mosaic_window.cpp:282": "归约顺序冻结：窗口 ID 升序",
+        "eng/tools/v6/v6_numeric_equiv.py:37": "\"float32\": {\"rtol\": 5e-6"
+      },
+      "assertion": "归约顺序由构造冻结（normalize_workflow.cpp:480 按 frame_id 升序输出、mosaic_window.cpp:282 按窗口 ID 升序输出，均与 worker 数无关）；判据面 = v6_numeric_equiv.py:36-38 事前冻结的浮点容差表（fp64 rtol=1e-12 / fp32 rtol=5e-6，NaN/Inf 位置必须精确一致，不比较数值），CHK-NWORKER 与 CHK-NWORKER-TOLERANCE 两道门分别断言 1/N 等价与比较器本身非退化。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.3-SNR-PATH-JSON",
+      "anchor": "ASTROCS_DESIGN.md:398",
+      "text_sha256": "c2cb006410ee8cea52d0cc1d630631e806947fa99f5f874eaf29da3bebc700a6",
+      "requirement": "三种 SNR 重建口径由 JSON 显式指定：dense（稠密帧内 SNR）、sparse_reconstruct（默认，稀疏控制点插值重建）、frame_reconstruct（仅帧级）；实际生效口径记录在 snr_path_effective。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "三条口径键 snr_path 由合同与 CLI 登记（eng/contracts/schemas/phase_config_mosaic.schema.json:171、lib/infrastructure/cli/parser.cpp#session_keys 白名单），但生产科学消费点为零、snr_path_effective 在全仓 lib/** 零命中 —— 该事实已由 eng/ci/ledgers/dead_config_keys.json（id=dead_config_key:snr_path）逐条登记，并明文写下「防止把 CLI 认识误当成已消费」；实验侧同样自认：实验/absolute-snr/results/b6_gates_audit.json 记「lib/ 实现侧尚无该状态机（无 sparse_reconstruct/snr_path_effective/FZ-SNR 符号），不构成对实现的验证」。",
+      "exit_condition": "Phase2 叠加现场按 snr_path 分派出 dense / sparse_reconstruct / frame_reconstruct 三条重建路径、无稀疏层时显式记录 snr_path_effective、损坏层 fail-closed，并出现生产读取点（非 CLI 键表、非测试）；同时删除 dead_config_keys.json 的同名条目。落点 = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p2_op_reject 消费面；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-5.3-SNR-IVAR-WEIGHT",
+      "anchor": "ASTROCS_DESIGN.md:399",
+      "text_sha256": "362318e2d4a8189d7cc6961b27b80d6fe351b69e5fa549a05a21987c7f6a2c7a",
+      "requirement": "实际 SNR 由所选口径直接给出：dense 用 Phase1 稠密面、sparse_reconstruct 用稀疏绝对 SNR 控制点重建、frame_reconstruct 用帧级标量；三者都产出同一物理量 SNR = F_ref/σ_F 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 w = 1/σ² = SNR²/F_ref²（F_ref 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/integration/v6/src/weight_chain.cpp:761"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/integration/v6/src/weight_chain.cpp:761": "w = SNR²/F_ref²·g_k² undefined"
+      },
+      "assertion": "weight_chain.cpp:761 在换算叠加权重时以 w = SNR^2/F_ref^2*g_k^2 现场求逆方差，并对非有限/非正结果 fail-closed（明文 no silent g=1 fallback）；:676 与 :84-88 校验 reference_flux F_ref 有限且 > 0、SNR 为 flux 型（F_ref/sigma_F），不是用 SNR 直接加权。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.3-FIT-VS-STACK-WEIGHT",
+      "anchor": "ASTROCS_DESIGN.md:400",
+      "text_sha256": "1c7153dbf2d377b56434a4ffaf5acdbd6eb40d180738d216e46356e4f0a70354",
+      "requirement": "拟合权重与堆叠权重是两个量：拟合用 1/σ²（可加 Huber），堆叠用残差制造者方差并含拟合参数协方差，公式见 docs/science/CONTROL_WEIGHT_SNR.md。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/upm.cpp:763"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/upm.cpp:763": "huber_w(r / sigma_eff, cfg.huber_delta)"
+      },
+      "assertion": "两个权重在实现里分属两个用途而不混用：upm.cpp:763 的拟合侧按 w[i] = raw_w[i] * huber_w(r/sigma_eff, cfg.huber_delta) 施加 1/sigma^2 并挂 Huber 权重；:713-715 把叠加权重 w 提到迭代循环外、末端残差场 gauge 复用最后一轮的拟合权重（注释明写「拟合权重 = 叠加权重同源」）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.3-SPARSE-RECON-OPERATOR",
+      "anchor": "ASTROCS_DESIGN.md:401",
+      "text_sha256": "df96ed2d7ca06ecff5a8a5884c7d31fa54b1ca4deca20bbe059799b131eec419",
+      "requirement": "稀疏重建算子按冻结词表显式声明（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 docs/plugins/algorithms_phase1/07_noise_snr.md §4.5。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/integration/v6/src/weight_chain.cpp:144"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/integration/v6/src/weight_chain.cpp:144": "natural_bicubic_spline_clip_mesh_median_v1"
+      },
+      "assertion": "重建算子标识取自唯一词表点：weight_chain.cpp:144 返回 natural_bicubic_spline_clip_mesh_median_v1（自然边界双三次样条 + 钳制 + 3x3 mesh 中值前置滤波）；:384-401 对层里声明的 reconstruction_operator 做冻结词表校验，未登记算子显式报 unknown reconstruction_operator token，不静默回退。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.3-SNR-PATH-DOMAIN",
+      "anchor": "ASTROCS_DESIGN.md:402",
+      "text_sha256": "05ab9765c07c779e58a2ecd0a16d2077c09a00017221e18893e495caa2ade9bc",
+      "requirement": "三种口径没有全局最优，只有适用域：地面视宁度受限且噪声场平滑可分辨时，稀疏重建精度最好；高分辨率、高对比结构（如 HST 数据）上帧级口径最好——该结论与重建算子绑定（..._mesh_median_v1 下稀疏反而更优）；稠密口径存储代价高。完整适用域图谱由实验单元二给出，作为默认值与文档口径的依据。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "本条是实验结论（三口径没有全局最优、只有适用域，完整图谱由实验单元二给出并作为默认值依据），生产里没有对应实现面：默认值落在配置 eng/packaging/config/defaults.json#snr.path（不是代码），且没有任何门把该默认值与实验单元二的图谱绑起来（实验/absolute-snr/ 只是研究产物）。",
+      "exit_condition": "出现机器门（如 CHK-SNR-PATH-DOMAIN）断言 eng/packaging/config/defaults.json#snr.path 的默认值与 实验/absolute-snr/results/ 的适用域图谱逐项一致、不一致即红；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-5.3-DENSE-SNR-ONDEMAND",
+      "anchor": "ASTROCS_DESIGN.md:403",
+      "text_sha256": "60011b7a3911bcdeebebc3b18686b786d872223c050498a036809eefd268b8a8",
+      "requirement": "稠密 SNR 是数学表示，工程上按输出像素现场求值、不预计算、不整体驻留，按需权衡 CPU 与内存。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/mosaic_window.cpp:177"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/mosaic_window.cpp:177": "稠密 SNR 现场求值"
+      },
+      "assertion": "mosaic_window.cpp:177 在窗口并行路径上对稠密 SNR 逐像素即时求值，不预计算稠密面、不整幅驻留，内存占用随窗口规模而非常数增长（该注释与同段代码是该语义的实现面）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.3-FREF-ANCHOR",
+      "anchor": "ASTROCS_DESIGN.md:404",
+      "text_sha256": "85bb3751386588cd2754af5d5d161faf653d1d8d235dcbe674dda2435faa14e4",
+      "requirement": "参考通量 F_ref 锚定固定参考星等（逐帧、只依赖本帧标定），保证帧级 SNR 跨帧可比且权重配对，口径与适用域见 docs/plugins/algorithms_phase1/07_noise_snr.md。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp:167"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp:167": "F_ref 必须是**组内公共参考通量**"
+      },
+      "assertion": "snr_frame_science.cpp:166-167 把 F_ref 钉成组内公共参考通量并与存入 HiPS 头的 ASTROCS_FRAME_SNR 同源（口径 = 帧级未加权 F_ref/sigma_F）；snr_frame_science.h:57-59 声明缺失/非有限/<=0 时的显式失败，保证帧级 SNR 跨帧可比且与权重配对。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-ADDITIVE-SKY",
+      "anchor": "ASTROCS_DESIGN.md:408",
+      "text_sha256": "db63b0012014a0fa67d68cbeacc660830b418aeac23789f8a3eb4d7f03bbb850",
+      "requirement": "Phase1 归一化后，帧 = 同一测光体系的真信号 + 可等效为加性的天光；乘性空间残留由 Phase1 的低阶空间增益处理。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/photometry/cpp/src/spatial_gain.h:79"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/photometry/cpp/src/spatial_gain.h:79": "struct SpatialGainParams"
+      },
+      "assertion": "乘性空间残留由 Phase1 低阶空间增益承担：spatial_gain.h:79-88 的 SpatialGainParams 用 order<=2 的低阶基函数参数化 m(x,y)（:80 明文「0=关闭/1/2；>2 被钳到 2」）并给出最小星数（50/200）与 3x3 分块覆盖约束，即「乘性残留 -> Phase1」；加性天光面由 Phase2 UPM 独立承担，两者不在同一模型里混用。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-CONTROL-IVAR-SAMPLING",
+      "anchor": "ASTROCS_DESIGN.md:409",
+      "text_sha256": "c5943c9155433fc685528da625e37b3b30e63b7c5cfa1bce191b3920d5e79415",
+      "requirement": "星点掩膜之外，每帧取稀疏背景采样点，采样点权重取噪声逆方差 control_ivar（被估量是变化的背景电平，SNR² 在该处不是有效逆方差代理；权重式与推导见 docs/plugins/algorithms_phase2/10_sampling.md）；全部帧联合构建参考天光平面，平面稀疏表示、栅格值按需现场求值，不构建稠密背景栅格。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9475"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9475": "x.control_ivar = o.value("
+      },
+      "assertion": "采样点权重取噪声逆方差 control_ivar：module_adapters.cpp:9241 从采样对象读 control_ivar 填进 x.control_ivar（同段 :9212-9213 明文规定 control_ivar<=0/非有限在生产模式显式拒绝、禁静默回退），权重随采样点进入联合建面；参考天光面为稀疏表示、按需求值不建稠密栅格（module_adapters.cpp:9753「稀疏样条, 按需求值, 不建稠密栅格」）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-DELTA-K-BREF",
+      "anchor": "ASTROCS_DESIGN.md:410",
+      "text_sha256": "caefa17e737fe57d935db0c47cbc41fb53de3895540cb30af720b8dfa40fab3f",
+      "requirement": "多退少补：每帧的扣除量是它相对公共平面的偏差 δ_k，calibrated = raw − δ_k，保留公共天光面 B_ref；叠加后的马赛克仍带背景，公共面零点由 gauge 约定承载。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9777",
+        "lib/algorithms/coverage/include/astro/phase2/upm.h:155"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9777": "多退少补到公共天光面，保留 B_ref",
+        "lib/algorithms/coverage/include/astro/phase2/upm.h:155": "P2_API int p2_upm_calibrate_block("
+      },
+      "assertion": "多退少补的实现面 = p2_upm_calibrate_block（upm.h:155 声明，按 frame_id 用公共面参数扣除该帧偏差），默认模式在 module_adapters.cpp:9543 定案为 delta（多退少补到公共天光面、保留 B_ref），:10008 记 calibrated = raw - delta_k；叠加后的马赛克仍带背景，零点由 gauge 约定承载而不是把背景整除。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-JOINT-PLANE-DAMPED",
+      "anchor": "ASTROCS_DESIGN.md:411",
+      "text_sha256": "829339e3ac8e13d32cd5f87e5a6d6ae5726991ea64c0bb792eb0fccd84cb9122",
+      "requirement": "参考平面用其他帧的加权组合（排除自身）、迭代带阻尼、拟合权重与叠加权重同源、末端用叠加权重计算并扣除残差场，使任意覆盖子集上的加权阶跃恒为零；formulation 四要素与收敛判据见 docs/plugins/algorithms_phase2/11_upm.md。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/upm.cpp:956"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/upm.cpp:956": "if (cfg.gs_damping < 1.0) {"
+      },
+      "assertion": "联合建面按参考平面用其他帧加权组合并迭代带阻尼：upm.cpp:956/:1002 在两处更新式里按 cfg.gs_damping 做 x <- (1-alpha)*x_old + alpha*x_new 的阻尼（:302 对 alpha 的合法域做钳制，越界按无阻尼），:713-715 末端残差场复用最后一轮拟合权重，使任意覆盖子集上的加权阶跃为零。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-SEAM-CRITERION",
+      "anchor": "ASTROCS_DESIGN.md:412",
+      "text_sha256": "f6dc9a69ec906da4eefb214cbd3c6d01295ce863416785eacb412a0f6172445e",
+      "requirement": "接缝判据在保留背景的前提下比较帧间一致性与边界跳变，判据量取有符号电平台阶（沿真实帧足迹的法向差分比边界处局部背景电平），且只对两侧都在数据内部的边界计入；判据式与适用域见 docs/plugins/algorithms_phase2/11_upm.md、实现与默认参数见机器门 CHK-L4-SEAM-FOOTPRINT（本节不复制数值），门槛数值 1e-2 的推导与实测标定正本 = docs/science/PHASE2_UPM.md §17（观测量与噪声模型、虚警率、可检出下限）；把整张背景减掉再看帧间差是退化判据（背景都为零时差值天然为零）；方差比对电平阶跃原理性失明，只作诊断量（无接缝证据取有符号电平台阶）。",
+      "status": "wired",
+      "production_anchor": [
+        "eng/tools/e2e/seam_footprint.py:25"
+      ],
+      "anchor_tokens": {
+        "eng/tools/e2e/seam_footprint.py:25": "**有符号**台阶"
+      },
+      "assertion": "本条的判据实现面 = 机器门 CHK-L4-SEAM-FOOTPRINT（eng/ci/checks.json 的注册命令即 python3 eng/tools/e2e/seam_footprint.py）：seam_footprint.py:25 以边界自身的有符号台阶 median(seam(e)) 为判据分子、:28 用 200px 平行对照线作对照量，:32-35 记录「净量」读法被实测否掉的证据，判据落在保留背景的前提上而不是先减背景。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-NODE-SPACING",
+      "anchor": "ASTROCS_DESIGN.md:413",
+      "text_sha256": "e0d230ff6b4e71c29e6f0dd120220c3f5500cf6b0a43837c8b95113f17237dad",
+      "requirement": "参考面表示能力要求：无接缝以公共天光面可表示为前提。参考面的节点间距与基函数必须能表示帧间天光差的空间尺度；对参考面不可表示且沿图像方向相干的小尺度分量（尺度约在两个节点间距以内），残余接缝随该分量幅度线性增长。节点间距由输入几何导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的唯一旋钮；几何量缺失即显式失败（节点间距的来源只有输入几何）。实验定标见 实验/additive-sky-seamless/ 与 docs/plugins/algorithms_phase2/11_upm.md。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9897"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9897": "p2_sky_plane_derive_node_spacing"
+      },
+      "assertion": "节点间距由输入几何导出：module_adapters.cpp:9663 调用 p2_sky_plane_derive_node_spacing() 从输入几何求节点间距上下界并把 sky_plane_node_spacing_upper_deg / lower_deg 写进 manifest；:9585 对显式给出的 node_spacing_deg 走另一分支，:9579-9580 明文记「旧实现写死 1.0 被禁止」，即不落默认标定值。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-IDENTIFIABILITY",
+      "anchor": "ASTROCS_DESIGN.md:414",
+      "text_sha256": "49000030cfc4043317ec52f46bdab251e128bb4b56e043c551ea56ee1f4b01c6",
+      "requirement": "可辨识性判决唯一口径：拟合可辨识性判在未正则化的列均衡数据信息矩阵上，唯一相对阈值（欠定与病态是同一条不等式的两种读法）；可辨识性门设在未正则化的列均衡数据信息矩阵上；加了正则化的求解矩阵其条件数有上界，只作诊断。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/identifiability.cpp:168"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/identifiability.cpp:168": "int p2_identifiability_assess("
+      },
+      "assertion": "identifiability.cpp:168 的 p2_identifiability_assess 是唯一可辨识性判据实现，判在传入的「未正则化、列均衡」信息矩阵上（identifiability.h:17-19 给出 H = A^T W A 与列均衡定义，:55 明文「判据必须落在未正则化的 H 上（否则是恒真门）」），正则化后求解矩阵的条件数只作诊断。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.4-SEAMLESS-BY-EXP3",
+      "anchor": "ASTROCS_DESIGN.md:415",
+      "text_sha256": "8ade689496b90c12e7c28cb306bcae214f7f504ed8bf52673e6b2c5a24fcc4f0",
+      "requirement": "该方法能否做到无接缝由实验单元三证实（§12.3）。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "本条把「能否无接缝」的裁决权交给实验单元三（实验/additive-sky-seamless/）。生产里没有可指认的实现面（实验产物不是生产实现），也没有门把实验结论与 L4 目检或 CHK-L4-SEAM-FOOTPRINT 的判据依据绑起来 —— 该条的证据面与接缝门的判据面之间仍是人工引用。",
+      "exit_condition": "实验/additive-sky-seamless/results/ 的接缝结论以机器可读形式（判据量 + 阈值 + 样本集 + 复现命令）落盘并被 CHK-L4-SEAM-FOOTPRINT 或其继任门引用为判据依据（引用可解析、缺引用即红）；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-5.5-N-GEOMETRIC",
+      "anchor": "ASTROCS_DESIGN.md:421",
+      "text_sha256": "aad9b07bb9204194cd81d5bba5d13a7479decd48a2bb07ea36bd4ac076bf26b4",
+      "requirement": "路由依据 N = 该输出像素的几何可贡献帧数（coverage footprint 一次解析），与掩膜后存活数、整组帧数都无关。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/rejection.cpp:1269"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/rejection.cpp:1269": "p.nominal_n = req->nominal_contributors;"
+      },
+      "assertion": "路由依据 N 取几何可贡献帧数：rejection.cpp:1269 把 req->nominal_contributors（coverage 覆盖图导出的逐 stack 几何 n）写进 p.nominal_n，作为唯一路由入参（rejection.h:291 明文 nominal_n = 该 stack 的几何 nominal contributors，与掩膜后存活数、整组帧数无关）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.5-N-AUTO-ROUTE",
+      "anchor": "ASTROCS_DESIGN.md:422",
+      "text_sha256": "759738b350946f02c67248a8f2e3528f8f54f030ef618750a0c502c0a216bbc6",
+      "requirement": "按 N 自动选择排异算法，逐像素档位表（档界与算法名）的唯一正本 = docs/plugins/algorithms_phase2/12_rejection.md §9（本节不复制档界与取值；实现路由表须与该正本逐项一致）。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/rejection.cpp:1154"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/rejection.cpp:1154": "static int astrocs_n_map_method"
+      },
+      "assertion": "逐像素按 N 自动选择排异算法：rejection.cpp:1154 的 astrocs_n_map_method(n) 是唯一决策点，把几何 n 映射到方法（N<6 -> percentile、6<=N<=15 -> winsorized_sigma、N>=16 -> winsorized_sigma，WBPP 档界作对照基线在 :1172），决策点上方注释逐条记档界取舍的依据与定案来源。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.5-PROD-METHOD-SET",
+      "anchor": "ASTROCS_DESIGN.md:423",
+      "text_sha256": "1fe76499ccd50084330a6354248ad21c72d00e0977ee2bca02ec6dde555b5719",
+      "requirement": "生产排异算法集为 none / percentile / winsorized / linear fit；min/max 极值法不用于生产（WBPP 一手源码明确拒绝）。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/rejection.cpp:1157"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/rejection.cpp:1157": "{percentile, winsorized_sigma, linear_fit}"
+      },
+      "assertion": "生产 AUTO 路由的值域恒为 {percentile, winsorized_sigma, linear_fit}（rejection.cpp:1157 明文写死），min/max 极值法不在路由值域内、永不被 AUTO 选中；P2_REJECT_MINMAX 只作为枚举值域与对照档保留，配置面 algorithm_rejection_method 的 enum 已删 minmax（phase_config_mosaic.schema.json:18 记录依据为「min/max 禁用（WBPP 显式拒绝）」）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.5-JSON-ROUTING-PROVENANCE",
+      "anchor": "ASTROCS_DESIGN.md:424",
+      "text_sha256": "acfa5601bcebfa39c8c9a42c1f2c2252799840827ca6de5711ebbebfa60c40ca",
+      "requirement": "JSON 中排异字段留空或 auto 时按上表逐像素路由；显式指定单一算法时按指定执行；指定算法与该 N 的适用域冲突时报 warn 并请确认，方法名不存在或表达式非法报 error；实际方法、参数与 N 写入 provenance。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "AUTO 路由已实现（rejection.cpp:1154），但本条后半「显式指定单一算法时按指定执行」生产零实现：algorithm_rejection_method 只进 CLI 键表（lib/infrastructure/cli/parser.cpp#session_keys 与 lib/infrastructure/cli/session_commands.h#config_fields(kMosaic)），排异方法实际只由逐像素 N 唯一路由，用户显式指定静默无效 —— 该事实已由 eng/ci/ledgers/dead_config_keys.json（id=dead_config_key:algorithm_rejection_method）登记，并明文写下它违反本条。",
+      "exit_condition": "p2_op_reject 按 algorithm_rejection_method 显式分支（给出显式指定与 AUTO 路由的优先级依据、把实际方法/参数与 N 写进 provenance）出现生产读取点，或经负责人裁决从合同与 CLI 键面摘除该键；两条路任一落地后改 wired。落点 = lib/algorithms/coverage/src/rejection.cpp 的方法解析分支与 eng/ci/ledgers/dead_config_keys.json 的同名条目。"
+    },
+    {
+      "id": "DESIGN-5.5-THRESHOLD-AUTHORITY",
+      "anchor": "ASTROCS_DESIGN.md:425",
+      "text_sha256": "e16bc0ddb69da00fd9a9dc5671e41bc2526aab382b7e39584f44905fb0d0a48d",
+      "requirement": "算法出处、合法性窗口、阈值与合成 Oracle 正负例见 docs/plugins/algorithms_phase2/12_rejection.md 与 docs/science/REJECTION.md。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/rejection.cpp:1251"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/rejection.cpp:1251": "p.linear_fit.lower = 5.0; p.linear_fit.upper = 3.5;"
+      },
+      "assertion": "算法出处、合法性窗口与阈值在生产在位且带出处：rejection.cpp:1245-1252 的默认参数块冻结各方法阈值（linear_fit 5.0/3.5 注明 WBPP Light 默认、winsorized 4.0/3.0/8 等），同一文件 :9-10 的出处行逐项点名 docs/science/REJECTION.md 与对照来源；合法性窗口由 p2_rejection_applicability 实现；合成 Oracle 正负例在 lib/algorithms/coverage/tools/（rejection_matrix.py 等，验证面）。残差（如实记）：文档阈值表与这些常量之间没有机器逐项比对门，一致性靠人工复核。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-5.5-NAN-SAMPLE-MASK",
+      "anchor": "ASTROCS_DESIGN.md:426",
+      "text_sha256": "fbc5c755a8d803e5f3bfb83e6a2bf140d75da0d99958229e4781471e53cc0ecd",
+      "requirement": "NaN 采用样本级掩膜：污染样本掩除后重归一、覆盖级缺数置 NaN 并强制计数，规则见 docs/science/ 对应章节。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/algorithms/coverage/src/coverage.cpp:313",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:10902"
+      ],
+      "anchor_tokens": {
+        "lib/algorithms/coverage/src/coverage.cpp:313": "缺失/NaN：显式 UNAVAILABLE",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:10902": "std::vector<uint8_t> sample_mask("
+      },
+      "assertion": "覆盖级缺数不填零：coverage.cpp:313-315 对 cov/support 未知的 cell 显式置 P2_CELL_UNAVAILABLE 并计数（注释明文「禁止零填为 UNCOVERED/UNSUPPORTED」）；样本级掩膜由 module_adapters.cpp:10900-10904 的逐样本 sample_mask 承载（按原始帧 slot 索引，像素级 accepted(u8) 表达不了的部分拒绝由它补齐，按原始样本索引向 integrate 传递）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-6.3-PROJECTION-REGISTRY",
+      "anchor": "ASTROCS_DESIGN.md:453",
+      "text_sha256": "f7e615cadb14922a88e21202a922dfb1ee85a8d98e128d9811c587cff5b06b4a",
+      "requirement": "内置多种投影，首批冻结 TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA；每种声明适用域、奇点、经度 wrap、轴手性与 WCS 关键字；注册表中未实现的投影在被选择时显式报\"不支持\"（当前仅 TAN 可用）。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "八投影的注册表与「未实现显式报不支持」的代码都在盘上（lib/algorithms/projection/p3_projection.cpp:281 registry_table / :327 返回 P3_PROJ_UNSUPPORTED / p3_projection.h:47 定义该状态），但该文件不在任何 CMake 源列表：lib/algorithms/projection/CMakeLists.txt 的 add_library(astrocs_p3_projection_wcs ...) 只编译 p3_wcs.cpp，并明文写「p3_projection.cpp / p3_proj_v6.cpp 的 target 声明归 P3-002 线（本批次未动）」；该模块 module.yaml 自认状态 CONTRACT_READY。p3_projection_registry_find/_table 的调用点只有模块内部与 eng/tests/unit/p3_projection_test.cpp（grep 实测）⇒ 它不是生产实现面。",
+      "exit_condition": "投影注册表进入某个生产 target 的源列表并可从生产 CLI 路径到达（p3_projection.cpp 出现在 lib/algorithms/projection/CMakeLists.txt 的 add_library 源列表且 p3_projection_registry_find 有非测试调用点），届时给出 production_anchor 与 assertion 并改 wired。"
+    },
+    {
+      "id": "DESIGN-6.3-NEW-PROJECTION-ORACLE",
+      "anchor": "ASTROCS_DESIGN.md:454",
+      "text_sha256": "3f28fe870e4dc344d9531f411966494232c13b8a9f724f141170457eb8e25537",
+      "requirement": "新增投影经 projection registry 注册并附独立往返 Oracle。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "与本范围上一条同因：注册面（p3_projection.cpp:281）与自检面（p3_projection.h:93 p3_projection_registry_selfcheck、p3_projection.cpp:300）都落在不在任何 CMake target 的文件里，自检的调用点只有 eng/tests/unit/p3_projection_test.cpp 与 eng/tests/backend/test_p3_projection_oracle.py（grep 实测）⇒ 注册面与往返 Oracle 目前都只停在验证面，生产里没有可指认的实现面。",
+      "exit_condition": "投影注册表与往返自检进入生产 target（p3_projection.cpp 出现在 lib/algorithms/projection/CMakeLists.txt 的 add_library 源列表），且新增投影必须登记注册表并由门断言每个注册项都有独立往返 Oracle（Oracle 不得 import 被测实现）；届时给出 production_anchor 与 assertion 并改 wired。"
+    },
+    {
+      "id": "DESIGN-6.3-PROJECTION-FIELD-DEFAULT",
+      "anchor": "ASTROCS_DESIGN.md:455",
+      "text_sha256": "321afb607fc5a4d213c1d0a6429dfcabf73176484dc240c35b79f5ae78f0dff9",
+      "requirement": "用户通过 projection 字段选择，缺省 TAN。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:13478"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:13478": "doc.value(\"projection\", std::string(\"TAN\"))"
+      },
+      "assertion": "projection 字段的选择面与缺省 TAN 在生产适配器在位：module_adapters.cpp:13478 以 doc.value(projection, TAN) 读取该键并把结果传给投影请求（:13483 只在键存在时传值），:13748/:13751 对同一缺省做一致性处理；合同面 enum 含八投影、缺省 TAN（eng/contracts/schemas/phase_config_export.schema.json）。本条只判「字段选择与缺省」这一件事；被选中的投影实现本身的可达性属于本范围上两条。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-6.3-INPUT-SEMANTIC-GUARD",
+      "anchor": "ASTROCS_DESIGN.md:456",
+      "text_sha256": "5740e05cbd07f163a334dbc0e0ed53896b3f27e4a5d9d09ae29dc0b30d6b9cfd",
+      "requirement": "输入语义守卫：导出只接受面亮度语义输入，方差/逆方差显式消费并传播，其余语义显式拒绝；输出模式 surface_brightness / point_source_flux / visualization 显式声明，visualization 标注\"不可测量\"。",
+      "status": "wired",
+      "production_anchor": [
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:761",
+        "lib/include/astrocs/core/pipeline.h:47"
+      ],
+      "anchor_tokens": {
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:761": "{\"hips\", \"DATA-HIPS-001\", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::HEALPIX}",
+        "lib/include/astrocs/core/pipeline.h:47": "UNIT_MISMATCH = 5,"
+      },
+      "assertion": "导出链的输入端口按面亮度语义声明：module_adapters.cpp:738-761 把 hips 等端口声明为 UnitId::SURFACE_BRIGHTNESS（同段还声明 resampled 输出端口），管线装配期由 runtime.cpp:131 的 parser.validate 做端口/单位校验，单位冲突以 UNIT_MISMATCH 显式失败（lib/include/astrocs/core/pipeline.h:47）⇒ 非面亮度语义输入在装配阶段被拒绝而不是静默消费。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-12.1-ORACLE-INDEPENDENCE",
+      "anchor": "ASTROCS_DESIGN.md:725",
+      "text_sha256": "2f9a2ceb9507edf60ba91be9093d2e5bffea366be5373532fb32338ff5474bf0",
+      "requirement": "科学定义先于算法，算法先于实现；每个模型有独立解析/高精度/Monte Carlo Oracle，不以当前程序输出生成唯一 expected。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "本条是验证面要求（每个模型有独立解析/高精度/Monte Carlo Oracle，且不以当前程序输出生成唯一 expected），生产源码里没有可指认的实现面。现有门只查「有 Oracle 目标/注册」与判别力自证（eng/ci/check_mutation_gates.py 的 A6b、CHK-ORACLE、CHK-TEST-DISCRIMINATIVE-STEP），没有任何门断言「Oracle 独立于被测实现」（不引用被测符号、expected 不由被测实现生成）。",
+      "exit_condition": "出现门（如 CHK-ORACLE-INDEPENDENCE）静态断言每个 SCI/ALG 模型的 Oracle 不引用被测实现符号、且 expected 不由被测实现生成（负例：Oracle 引用被测实现即红）；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.1-THREE-EVIDENCE",
+      "anchor": "ASTROCS_DESIGN.md:726",
+      "text_sha256": "0a3e238345df72a286cd2718d96285ee84c7b9f4a6720c8b97c5ee76db56bfdf",
+      "requirement": "每个科学结论具备三类独立一手证据，三者齐备： 1. 论文/标准：给 DOI 或 arXiv 号且核验可解析，不凭记忆写引用； 2. 开源库代码：给项目 + 版本 + 文件:行（如 SExtractor、photutils、SEP、DrizzlePac、Astropy、HEALPix、Siril、SWarp、SCAMP），并回到其引用的文献与标准核对，开源实现同样可能有错； 3. 仓内实测：给复现命令与实测输出。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "三类独立一手证据（论文 DOI/arXiv 可解析、开源库项目 + 版本 + 文件:行、仓内复现命令与实测输出）在仓库里只有人工载体（实验/ 单元报告、docs/references、工程控制/*/change-claims/），没有任何机器可读台账或门：eng/ 内无「三类独立一手证据 / 三重佐证」的字段登记面（grep 零命中），证据齐备与否无法由机器判定。",
+      "exit_condition": "出现机器可读证据台账（每条科学结论含 DOI 或 arXiv、开源项目 + 版本 + 文件:行、复现命令三类字段），并由门断言字段齐全、DOI/arXiv 可解析、缺项即红（落点 = eng/ci/checks.json 与 eng/ci/ledgers/）；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.1-EVIDENCE-OVER-DOC",
+      "anchor": "ASTROCS_DESIGN.md:730",
+      "text_sha256": "5688b2fc566a2cac110e3a941c8be99c7000969c0cb367d7511fd34b7781e455",
+      "requirement": "实现、测试与科学文档冲突时，以独立证据为准订正，既不盲从文档也不盲从代码。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "「实现、测试与科学文档冲突时，以独立证据为准订正，既不盲从文档也不盲从代码」是流程条款，生产与门禁里没有实现面：工程控制/*/change-claims/ 是人工文档，没有任何门断言一次科学订正必须附独立证据引用与订正前后对照（eng/ci 内无 change-claim 结构检查器）。",
+      "exit_condition": "出现门断言每个触及 docs/science 或 docs/algorithms 的改动都关联一份 change-claim，且该 claim 含独立证据引用（缺证据即红）；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.3-EXP-UNIT-LAYOUT",
+      "anchor": "ASTROCS_DESIGN.md:760",
+      "text_sha256": "a87f778cf3804877d12f758b6a7e60dba376a2ab8ab5db779e0d10af9df403e4",
+      "requirement": "实验单元目录结构：实验/<单元>/ 下含 README 实验报告、code/（固定 seed、可复跑）、results/、data/（或共享数据说明）。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "本条的对象是实验单元目录（实验/<单元>/ 下含 README、code/、results/、data/），现状在盘上成立（实验/absolute-snr/ 与实验/additive-sky-seamless/ 均有 README.md、code、results、data），但它不是生产源，也没有门断言该布局：eng/ci/checks.json 里 实验/ 只出现在产物路径，没有目录结构判据，缺目录不会被任何门发现。",
+      "exit_condition": "出现门断言每个 实验/<单元>/ 同时具备 README、code/、results/、data/（或共享数据说明），且 code/ 固定 seed 可复跑（缺项即红）。落点 = eng/ci/checks.json 新增执行单元；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.3-EXP-REPORT-8",
+      "anchor": "ASTROCS_DESIGN.md:761",
+      "text_sha256": "06b93d6495667e57401e35560d7e2b7f55dc2825eb39d1686388f6d36d5c5112",
+      "requirement": "实验报告八要素：可证伪假说、方法（公式/判据）、数据来源与生成方式、结果（真实数字+不确定度+对照）、可判定结论（成立/不成立/证据不足）、诚实边界（适用域/反例/未验证部分）、复现命令、佐证来源。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "实验报告八要素（可证伪假说、方法、数据来源与生成方式、结果、可判定结论、诚实边界、复现命令、佐证来源）是文档结构要求，仓库里没有机器可读的逐要素登记面，也没有任何检查器解析实验报告结构（eng/ci 与 eng/tools 内无实验报告结构门）。",
+      "exit_condition": "出现门把 实验/*/README.md（或 REPORT_*.md）解析为八要素字段并断言齐全、缺要素即红（落点 = eng/ci/checks.json 新增执行单元）；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.3-INDEPENDENT-REVIEW",
+      "anchor": "ASTROCS_DESIGN.md:762",
+      "text_sha256": "032de1eed837decc35ec56fbd2745183edf9b376c84037be4a8ca288ce2252b4",
+      "requirement": "每个单元经独立子代理多轮审稿，审稿者不是结论作者；实验材料与结论随仓库维护、可独立复核。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "「每个单元经独立子代理多轮审稿，审稿者不是结论作者」是流程条款，仓库里没有机器可读的审稿记录面（无 review 台账、无审稿者字段），门禁无法核对审稿者是否等于作者、轮次是否达标。",
+      "exit_condition": "出现机器可读审稿台账（每单元含审稿者身份/轮次/结论，门断言审稿者不等于结论作者且轮次 >= 2、缺项即红）。落点 = 实验/<单元>/review.json 与 eng/ci/checks.json 新增执行单元；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.4-ACCEPTANCE-AUTHORITY",
+      "anchor": "ASTROCS_DESIGN.md:784",
+      "text_sha256": "6f47961a1103f3ad847c46c781b155c958146f2fb21f12709b03e919dff0cdc8",
+      "requirement": "各层的数据、执行方、证据落位与逐项判据的唯一正本 = ACCEPTANCE_SPEC.md §1（本节只给层序与核心判据结论，不复制数据与执行方清单）。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "「各层的数据、执行方、证据落位与逐项判据的唯一正本 = ACCEPTANCE_SPEC.md §1」是文档权威条款；现有门只查文档索引闭合与行号锚（DOC-INDEX、ALG-LINE-ANCHORS、CHK-DOC-HYGIENE），没有门断言各层判据未在别处重复定义（重复定义 = 第二权威，应判红）。",
+      "exit_condition": "出现门断言 ACCEPTANCE_SPEC.md §1 的层序与逐项判据不被其它活动文档重复定义（发现同义复本即红），或各层判据以机器可读清单落盘并与该节双向一致（不一致即红）；届时改 wired。"
+    },
+    {
+      "id": "DESIGN-12.4-TOLERANCE-FROZEN",
+      "anchor": "ASTROCS_DESIGN.md:786",
+      "text_sha256": "387bb5b45fa3b3fdaec552c268987787db6e119b1ffccc3c7f9c39ffbc785c5e",
+      "requirement": "容差在写测试前冻结（口径见 §9），NaN/Inf/缺失出现的位置与语义必须精确一致（docs/contracts/TEST_MATRIX.md §2）；受影响验证范围由机器从改动集算出，只扩大不缩小。",
+      "status": "wired",
+      "production_anchor": [
+        "eng/tools/v6/v6_numeric_equiv.py:36",
+        "eng/tools/quality/check_impact_map.py:3"
+      ],
+      "anchor_tokens": {
+        "eng/tools/v6/v6_numeric_equiv.py:36": "\"float64\": {\"rtol\": 1e-12",
+        "eng/tools/quality/check_impact_map.py:3": "changed-path -> checks"
+      },
+      "assertion": "容差在写测试前冻结且有唯一实现面：v6_numeric_equiv.py:10-11/:36-38 冻结 fp64 rtol=1e-12、fp32 rtol=5e-6 与 NaN/Inf/缺失位置必须精确一致（禁止只比较 finite 像素），CHK-NWORKER-TOLERANCE 以自检断言该比较器非退化；「受影响验证范围由机器从改动集算出、只扩大不缩小」的落点 = eng/tools/quality/check_impact_map.py 与 eng/ci/impact_map.json（CHK-IMPACT-MAP 族，changed-path -> checks 映射）。",
+      "reason": "",
+      "exit_condition": ""
+    },
+    {
+      "id": "DESIGN-12.4-THREE-ERROR-SEMANTICS",
+      "anchor": "ASTROCS_DESIGN.md:787",
+      "text_sha256": "365c7df0962cf7c24dac97fa83d92041a5f1550cf2af21c59b2505c12903d75f",
+      "requirement": "三层错误语义：成功 / 可恢复科学状态（状态字段）/ 硬错误（显式错误码）；测试不可用就跳过并如实标注，不伪造通过。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "硬错误域在生产在位（lib/include/astrocs/core/contracts.h:17-26 的 ErrorDomain 区分 CONFIG/DATA/SCIENCE_PRECONDITION/IO/RESOURCE/BACKEND/CANCELLED/INTERNAL，配显式错误码），但本条后半「测试不可用就跳过并如实标注，不伪造通过」无实现面：eng/ci/ctest_skip_register.json 存在却没有任何检查器读取它（grep 全 eng/ci/*.py 零命中）⇒ 跳过登记不受门约束，SKIP 无法被判红。",
+      "exit_condition": "出现门读 eng/ci/ctest_skip_register.json 并断言「每个 SKIP 逐条登记 + 未登记 SKIP 即红 + 登记只减不增」（可挂在 CHK-EXIT-CONSISTENCY 族）；届时给出 production_anchor 与 assertion 并改 wired。"
+    },
+    {
+      "id": "DESIGN-12.4-RELEASE-OWNER",
+      "anchor": "ASTROCS_DESIGN.md:788",
+      "text_sha256": "10c4c6275efc2d344447be2d749c32fd0a4ada29a875d0e27b610439ebce70a0",
+      "requirement": "L4 通过且 P0 机器门全绿后，由负责人决定发布预览版；L4 验收细节（数据规模、拉伸/切块脚本、目检清单）见 ACCEPTANCE_SPEC.md。",
+      "status": "unwired",
+      "production_anchor": [],
+      "anchor_tokens": {},
+      "assertion": "",
+      "reason": "本条把预览版发布决定权交给负责人（agent 至多声明 READY_FOR_OWNER_REVIEW），属治理条款；门禁侧的可见面只有打包一致性（CHK-PACKAGE 查发布包/白名单/哈希/provenance）与验收层级文档，没有任何门断言「未带负责人裁决记录的发布或预览版产物即红」，发布授权不受机器约束。",
+      "exit_condition": "出现门（如 CHK-RELEASE-AUTHORITY）断言未附负责人裁决记录的发布/预览版产物即红（落点 = eng/ci/checks.json 新增执行单元）；届时改 wired。"
+    }
+  ]
+}

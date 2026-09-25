@@ -1,0 +1,503 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "naming-surface",
+  "purpose": "CHK-NAMING-SURFACE 的**类级登记面**：把全仓 AstroCS/astrocs/ASTROCS 命中按「机器契约保留面」归类，给出每类的判据与机器依据。**定义与判定规则的唯一定义源是 ENGINEERING_SPEC.md §15**，本台账不复述定义。命中落在类外 = 显示名漏改，门判红。",
+  "authority": {
+    "spec": "ENGINEERING_SPEC.md §15（显示名与机器契约保留面，唯一定义源）",
+    "ci_rules": "ENGINEERING_SPEC.md §10（唯一注册表 / 能红能绿 / --self-test / fail-closed / 锚存活）",
+    "registry": "docs/ci/01_CHECKS.md §1 / §2（CHK-NAMING-SURFACE）",
+    "checker": "eng/ci/check_naming_surface.py（CHK-NAMING-SURFACE）"
+  },
+  "scan": {
+    "tool": "git -c core.quotepath=false grep -z -n -I -w <word> --",
+    "word_semantics": "git grep -w：命中词两侧不得是 [A-Za-z0-9_]",
+    "scope_note": [
+      "只扫「已入库文本」——run/ 等 gitignore 面天然不在扫描面内（无入库文本即无显示名义务）。",
+      "三族都扫：AstroCS（显示名混写形，唯一可能漏改的族）、astrocs（机器标识符族；本仓不存在把小写当显示名的用法，显示名是 ACSD）、ASTROCS（环境/宏/根文档名/历史轮次族）。",
+      "大小写敏感：族之间不互相覆盖（类必须显式声明 families），防「一类的正则顺手把别族放过」。"
+    ],
+    "families": [
+      {
+        "id": "U",
+        "word": "AstroCS",
+        "note": "显示名混写族。改名收益面；只有落在保留类内才允许保留。"
+      },
+      {
+        "id": "L",
+        "word": "astrocs",
+        "note": "机器标识符族（include/namespace/模块 ID/schema 键/target/CLI 名）。"
+      },
+      {
+        "id": "A",
+        "word": "ASTROCS",
+        "note": "环境变量与 CMake 选项、根文档名、历史轮次 ID、产品扩展键命名空间。"
+      }
+    ]
+  },
+  "classes": [
+    {
+      "id": "U-CI-WORKFLOW-NAME",
+      "title": "GitHub Actions workflow 名",
+      "criterion": "命中是 workflow 的 name 字面量（或其被引用的字面量）。workflow 名是 GitHub 侧 workflow_run 触发的精确匹配键，且被 CI 选择器按字面选 run，改名即静默失配。",
+      "machine_evidence": [
+        ".github/workflows/ci-linux.yml:1 / ci-windows.yml:1 / fatduck.yml:1（name:）",
+        ".github/workflows/fatduck.yml:13（workflow_run.workflows 按名字精确匹配）",
+        "eng/ci/select_candidate.py / eng/ci/verify_remote_run.py（按 name 指认 run）",
+        "eng/ci/tests/test_fatduck_workflow.py / test_verify_remote_run.py / test_negative_guards.py / test_ci_repair_round.py（逐字断言）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "AstroCS (?:Linux|Windows) CI",
+        "AstroCS Fatduck Validation"
+      ]
+    },
+    {
+      "id": "U-CI-CANDIDATE-ARTIFACT-MEMBER",
+      "title": "CI 候选包成员名 / 落盘路径",
+      "criterion": "命中是候选包（candidate zip）的成员名或其路径。该字面量是 CI 产物的机器标识：常量、注册表 require_outputs、工作流绑定与单测共同固定，改名会让候选选取与验证链找不到成员。",
+      "machine_evidence": [
+        "eng/ci/select_candidate.py:65（CANDIDATE_ZIP_MEMBER 常量）",
+        "eng/ci/checks.json（require_outputs）/ eng/ci/workflow_binding.json",
+        "eng/tools/quality/ci_windows_driver.py:81（DEFAULT_ZIP）",
+        "eng/ci/tests/test_ci001b_binding.py / test_ci001b_wf_step.py / test_workflow_lock.py / test_fatduck_workflow.py"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "AstroCS-candidate\\.zip"
+      ]
+    },
+    {
+      "id": "U-FROZEN-WINDOWS-HOST-PATH",
+      "title": "冻结的 Windows 宿主路径（工具链安装位 / fatduck runner）",
+      "criterion": "命中位于宿主绝对路径字面量内：工具链安装位与自托管 runner 工作目录。前者由 preset 与依赖锁冻结并被 SBOM 白名单正则按字面放行，后者被工作流与单测逐字断言。",
+      "machine_evidence": [
+        "CMakePresets.json（CMAKE_GENERATOR_INSTANCE）/ eng/packaging/schemas/preset-contract.json#windows.vs_installation",
+        "eng/packaging/dependency-lock.json（machine_absolute_path_policy）",
+        "eng/packaging/gen_sbom_input.py（C:/AstroCS/toolchains 白名单正则）",
+        ".github/workflows/fatduck.yml（D:\\AstroCSRunner\\...）/ eng/ci/tests/test_fatduck_workflow.py（逐字断言）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "C:[\\\\/]{1,2}AstroCS[\\\\/]{1,2}toolchains",
+        "D:[\\\\/]{1,2}AstroCSRunner"
+      ]
+    },
+    {
+      "id": "U-REPO-ROOT-DIR-NAME",
+      "title": "根目录名 AstroCS.wiki/",
+      "criterion": "命中是根目录名 AstroCS.wiki（外部 wiki 的本地只读克隆）。该字面量登记在根清单的 ignored_patterns 与影响面锚里，并被多处质量检查器的 skip 列表与 .gitignore 按字面依赖；改名会让登记项与忽略规则同时悬空。",
+      "machine_evidence": [
+        "eng/ci/root_manifest.json（ignored_patterns 登记项）",
+        "eng/ci/impact_map.json（迁移前锚）",
+        ".gitignore（/AstroCS.wiki/）",
+        "eng/tools/quality/{check_ctest_registration,check_source_inventory,check_doc_symbols,gen_source_index_v61,v19r3_audit,build_v19r2_package,build_v19r3_package,build_v19r4_package}.py（skip/排除列表）",
+        "eng/tools/check_version_consistency.py、lib/infrastructure/acr/docs/forbidden-paths.md（登记面）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "AstroCS\\.wiki"
+      ]
+    },
+    {
+      "id": "U-LEGACY-RELEASE-AND-AUDIT-PACK-NAME",
+      "title": "发布/安装/审核产物名",
+      "criterion": "命中是已交付或可再生的产物名：发行目录、Windows 安装树、审核包与包内用法串。这些名字由 gitignore 白名单、安装树合同与生成器常量共同固定，改名会让已交付包与生成规则失配。",
+      "machine_evidence": [
+        ".gitignore:91-98（dist/AstroCS-CLI-v1/ 白名单）",
+        "eng/tools/gen_audit_pack.py（成员映射 / package 名 / bundle 用法串）",
+        "eng/tools/assemble_audit.py、eng/tools/pack_audit_package.py（package 生成字面量）",
+        "eng/packaging/schemas/install-tree-contract.schema.json 与 eng/packaging/README.md（AstroCS-<根 VERSION>-win-x64/）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "dist/AstroCS-CLI-v1",
+        "AstroCS-<[^>\\n]{0,60}VERSION[^>\\n]{0,60}>-win-x64",
+        "AstroCS-[0-9][A-Za-z0-9.+-]*-win-x64",
+        "AstroCS-audit-",
+        "AstroCS-v1\\.1-audit-pack",
+        "AstroCS-clone"
+      ]
+    },
+    {
+      "id": "U-EXTERNAL-HISTORICAL-PATH-LITERAL",
+      "title": "仓外历史路径字面量（控制包解压路径）",
+      "criterion": "命中位于一个指向仓外既存（现已回收）对象的路径字面量内。路径字面量的身份就是字符串本身；改名会产生指向「从未存在过的路径」的悬空引用。",
+      "machine_evidence": [
+        "实验/additive-sky-seamless/README.md:3、results/REVIEW.md:4（任务来源路径 /tmp/astrocs_pkg/extracted/.../tasks/SCI-403.md）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "astrocs_pkg/extracted/AstroCS"
+      ]
+    },
+    {
+      "id": "U-FROZEN-EVIDENCE-CORPUS",
+      "title": "封存证据语料（只登记不改）",
+      "criterion": "命中位于 artifacts/evidence/** —— §7 登记的「证据锚」目录，内容为日期化的审计/裁决/限制快照，是对当时文件内容的逐字引用与历史名称快照。其中 FIX_LEDGER.csv 被 eng/tests 引用、known-limitations-ledger/LEDGER.md 被 docs/ci 与 docs/ 行锚引用（锚存活对象）。证据不得事后修饰：改写即伪造被引对象与历史事实。",
+      "machine_evidence": [
+        "eng/tests/backend/test_p3006_production_pipeline.py（引用 audit-2026-01/FIX_LEDGER.csv）",
+        "docs/ci/01_CHECKS.md / docs/KNOWN_LIMITATIONS.md / docs/DOCUMENT_INDEX.yaml（引用 known-limitations-ledger/LEDGER.md）",
+        "audit-2026-01/FIX_LEDGER.csv 的证据列为历史文件原文逐字引用（含已被删除的根约束文件名与历史文档标题）"
+      ],
+      "families": [
+        "U",
+        "L",
+        "A"
+      ],
+      "path_globs": [
+        "artifacts/evidence/**"
+      ],
+      "immutable": true
+    },
+    {
+      "id": "L-PUBLIC-INCLUDE-DIR",
+      "title": "公共头目录 astrocs/",
+      "criterion": "命中位于公共头目录（.../include/astrocs/**）之内。目录名 `astrocs` 是 #include 解析面的一部分，改名会打断全部消费者。",
+      "machine_evidence": [
+        "lib/include/astrocs/**（公共头唯一根）",
+        "CMakeLists.txt（INTERFACE include 面）/ lib/third_party 之外的消费者"
+      ],
+      "families": [
+        "L"
+      ],
+      "path_globs": [
+        "lib/include/astrocs/**",
+        "lib/**/include/astrocs/**"
+      ]
+    },
+    {
+      "id": "L-CPP-INCLUDE-AND-SYMBOL",
+      "title": "C/C++ include 指令与 astrocs 符号",
+      "criterion": "命中是 #include 指令里的 astrocs 路径、namespace astrocs、astrocs:: 限定符、astrocs/<...>.h 头路径或 astrocs_* 模块库名——全部由编译器/链接器按字面解析。",
+      "machine_evidence": [
+        "lib/include/astrocs/**（#include <astrocs/...>）",
+        "CMakeLists.txt（链接闭包中的 astrocs_* 模块库、astrocs:: 符号）"
+      ],
+      "families": [
+        "L"
+      ],
+      "line_regexes": [
+        "#\\s*include\\s*[<\"]astrocs/",
+        "(?<![A-Za-z0-9_])namespace\\s+astrocs(?![A-Za-z0-9_])",
+        "(?<![A-Za-z0-9_])astrocs::",
+        "(?<![A-Za-z0-9_])astrocs/[A-Za-z0-9_./-]+\\.(?:h|hpp)(?![A-Za-z0-9_])",
+        "(?<![A-Za-z0-9_])astrocs_[A-Za-z0-9_]+\\.(?:dll|so|lib|a)(?![A-Za-z0-9_])"
+      ]
+    },
+    {
+      "id": "L-CONTRACT-AND-REGISTRY-ID",
+      "title": "合同 / 注册表 / 模块 ID",
+      "criterion": "命中是 schema 注解键（x-astrocs 及其子键）、点分模块/合同/清单 ID、斜杠式合同 ID 或遗留调度器 id。这些串由 eng/contracts 的 schema、eng/ci 注册表与产品清单按字面匹配（含文档锚 #x-astrocs-*），改名即断链。",
+      "machine_evidence": [
+        "eng/contracts/schemas/**（x-astrocs 注解键与 #x-astrocs-field-vocabulary 锚；键名本身即合同）",
+        "eng/packaging/astrocs.product.json（units 与模块 ID）/ module.yaml 的 module_id",
+        "eng/ci/*（台账 schema id、注册表字面量）",
+        "docs/contracts/**、docs/modules/registry/**（合同与模块 ID 文档面）"
+      ],
+      "families": [
+        "L"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_])x-astrocs",
+        "(?<![A-Za-z0-9_])astrocs\\.",
+        "(?<![A-Za-z0-9_])astrocs/[A-Za-z0-9_.-]+/v[0-9]+",
+        "(?<![A-Za-z0-9_])astrocs-stage[0-9]"
+      ]
+    },
+    {
+      "id": "L-CLI-BINARY-AND-TARGET-NAME",
+      "title": "可执行 / 构建 target / CI artifact 前缀",
+      "criterion": "命中是产品唯一可见入口的名字（二进制与 CMake target）、CI 候选 artifact 名前缀或 astrocs-cli 标识。三者都被构建系统、CI 选择器与单测按字面使用。",
+      "machine_evidence": [
+        "CMakeLists.txt（target astrocs）/ eng/packaging/astrocs.product.json",
+        "eng/ci/select_candidate.py:61（CANDIDATE_ARTIFACT_PREFIX）/ .github/workflows/ci-windows.yml（artifact name）",
+        "eng/ci/tests/test_fatduck_workflow.py（astrocs-cli review open 断言）",
+        "lib/infrastructure/cli/**（唯一薄入口）"
+      ],
+      "families": [
+        "L"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_.-])astrocs(?![A-Za-z0-9_.-])",
+        "(?<![A-Za-z0-9_])astrocs\\.exe(?![A-Za-z0-9_])",
+        "(?<![A-Za-z0-9_])astrocs-cli(?![A-Za-z0-9_])",
+        "(?<![A-Za-z0-9_])astrocs-windows-candidate-"
+      ]
+    },
+    {
+      "id": "L-COMPOUND-MACHINE-ID",
+      "title": "连字符复合机器 ID（模块 / 产品格式 / 注册表 / 夹具）",
+      "criterion": "命中是 astrocs-<复合> 形式的机器 ID：模块 ID（MOD-astrocs-*）、产品落盘格式名、注册表与检查项 id、salt 常量、测试夹具与探针名。这些串由产品清单、合同与测试按字面写入或断言。",
+      "machine_evidence": [
+        "eng/contracts/schemas/** 与 docs/modules/registry/**（MOD-astrocs-* 模块 ID）",
+        "lib/infrastructure/aio/src/aio_upm.cpp（astrocs-upm-v2 / astrocs-upm-dense-v2 落盘 format 字段）",
+        "eng/ci/*（astrocs-* 检查项与台账 id）",
+        "eng/tests/**（夹具与探针字面量）"
+      ],
+      "families": [
+        "L"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_])MOD-astrocs-",
+        "(?<![A-Za-z0-9_])astrocs-[A-Za-z0-9][A-Za-z0-9._/-]*"
+      ]
+    },
+    {
+      "id": "U-ASSERTED-DATA-SCHEMA-ID",
+      "title": "被测试断言的 $schema 字面量",
+      "criterion": "命中是数据索引的 $schema 值，且被单测逐字断言。它是机器可校验的 schema 标识，改名会让断言与索引同时失配。",
+      "machine_evidence": [
+        "testdata/index.json（$schema）",
+        "eng/tests/realdata/test_index_v12.py（assert index[\"$schema\"] == …）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "AstroCS testdata inventory v[0-9][0-9.]*"
+      ]
+    },
+    {
+      "id": "L-MACHINE-NAMESPACE-SEPARATOR",
+      "title": "小写命名空间的分隔形态（点分 / 连字符 / 下划线 / 斜杠）",
+      "criterion": "命中小写 astrocs 后紧跟命名空间分隔符（. - _ /）——即点分前缀（astrocs. / astrocs.*）、连字符前缀（astrocs-、dist/astrocs-alpha、测试夹具路径分量）、下划线前缀（astrocs_*.dll）或斜杠目录（astrocs/…）。显示名不取小写形，小写族的每一种形态都是机器标识符的命名空间分隔形态；本类是该族形状层的闭包（与 include/符号、ID、target/CLI 三个语义类并列，不是兜底万能类：裸小写 astrocs 由 L-CLI-BINARY-AND-TARGET-NAME 覆盖，两者合起来才是整族）。",
+      "machine_evidence": [
+        "lib/infrastructure/scheduler/src/module.cpp（module_id 必须 rfind(\"astrocs.\",0)==0）",
+        "lib/infrastructure/aio/runtime/artifact_store/artifact_manifest_validator.py（producer.module_id required astrocs.*）",
+        "eng/packaging/install-tree.contract.json（schemas/astrocs-product.schema.json 安装路径）",
+        "eng/tools/quality/fixtures/module_map_fixture.py（MOD-astrocs- 前缀拼接）",
+        "eng/ci/tests/test_deep_profiles.py、eng/tests/quality/test_secret_hygiene.py（夹具路径分量）"
+      ],
+      "families": [
+        "L"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_])astrocs\\.",
+        "(?<![A-Za-z0-9_])astrocs[-_/]"
+      ]
+    },
+    {
+      "id": "U-OUTBOUND-CLIENT-IDENTIFIER",
+      "title": "对外协议标识（HTTP User-Agent product token）",
+      "criterion": "命中是发往第三方服务的 HTTP User-Agent product token。对外协议标识不是正文/文档/UI 的显示名；它是本仓代码对外声明的客户端身份，改名是对外行为的改变（而不只是命名统一），且仓内无任何机器按该字面量匹配，故没有「漏改」这一状态。全仓仅定义处出现（grep -rn 零其它引用）。",
+      "machine_evidence": [
+        "testdata/BASS_DR3/tools/{build_coords_index,crawl_bass_dr3,download_subset,verify_bass_dr3}.py（China-VO BASS DR3 归档请求）",
+        "lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/download_xp_sample.py（Gaia XP 样本下载）",
+        "实验/absolute-snr/code/fetch_evidence.py（研究证据抓取）"
+      ],
+      "families": [
+        "U"
+      ],
+      "line_regexes": [
+        "AstroCS-[A-Za-z0-9-]+/[0-9]+\\.[0-9]+"
+      ]
+    },
+    {
+      "id": "TESTDATA-READONLY-DIR",
+      "title": "testdata/ 只读登记目录（约束类，只登记不改）",
+      "criterion": "命中位于 testdata/** —— ENGINEERING_SPEC §7 登记的「外部只读数据集」目录，其自身 README 第 3 行给出硬约束「任何任务不得改写、移动、删除本目录内已有数据（AGENTS.md §10）」，且 §1 给出机器复跑块（git check-ignore / git status 计数）把目录状态本身当作核对面。该目录内的命名一致性不得由本门单方面强改，属负责人裁决面。",
+      "machine_evidence": [
+        "testdata/README.md:3（只读硬约束）与 §1 机器校验复跑块",
+        "AGENTS.md §10（删除或覆盖 testdata/用户数据须先停下问负责人）",
+        "ENGINEERING_SPEC.md §7（testdata/ 登记为外部只读数据集）"
+      ],
+      "families": [
+        "U",
+        "L",
+        "A"
+      ],
+      "path_globs": [
+        "testdata/**"
+      ],
+      "immutable": true
+    },
+    {
+      "id": "U-HISTORICAL-NAME-MENTION",
+      "title": "命名治理定义行里的历史名（提及而非使用）",
+      "criterion": "命中位于 ENGINEERING_SPEC.md §15 的命名治理定义行，且同行显式标注「历史名/旧称」——为让「这一处该不该改」可判，本节必须逐字给出被废止的历史名，属提及而非使用。本类限定单一文件且要求显式标注；别处的裸历史名仍按漏改判红。",
+      "machine_evidence": [
+        "ENGINEERING_SPEC.md §15（显示名与机器契约保留面的唯一定义源）"
+      ],
+      "families": [
+        "U"
+      ],
+      "path_globs": [
+        "ENGINEERING_SPEC.md"
+      ],
+      "line_regexes": [
+        "历史名",
+        "旧称"
+      ]
+    },
+    {
+      "id": "A-ENV-MACRO-AND-ROOT-DOCNAME",
+      "title": "环境变量 / CMake 选项 / C 宏 / 根文档名",
+      "criterion": "命中是全大写 ASTROCS 前缀的机器命名空间：环境变量与 CMake 选项、头文件守卫宏与产品扩展键前缀，以及根文档文件名。根文档名是全仓行号锚的宿主，改名会让全部锚失效。",
+      "machine_evidence": [
+        "CMakeLists.txt 与 CMakePresets.json（ASTROCS_* 选项/变量）",
+        "lib/**（ASTROCS_* 头守卫与产品扩展键前缀）",
+        "ASTROCS_DESIGN.md（最高设计文件名，§0 索引与行号锚的宿主）"
+      ],
+      "families": [
+        "A"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_])ASTROCS_[A-Za-z0-9_]+"
+      ]
+    },
+    {
+      "id": "A-ROUND-ID-AND-PRODUCT-SCHEMA",
+      "title": "历史轮次 ID / 产物 schema 名",
+      "criterion": "命中是历史轮次（控制包轮次）ID 或产物 schema 名。它们是台账、证据与合同按字面引用的历史坐标，改名会让迁移映射与证据锚失配。",
+      "machine_evidence": [
+        "eng/ci/id_migration_map.json / ID_MIGRATION_MAP.md（轮次与执行单元映射）",
+        "eng/contracts/**（schema 名字面量）",
+        "eng/tests/**（schema 名断言与报告 schema 字段）"
+      ],
+      "families": [
+        "A"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_])ASTROCS-[A-Za-z0-9-]+"
+      ]
+    },
+    {
+      "id": "A-BARE-UPPERCASE-MACHINE-FORM",
+      "title": "裸全大写形（代码标识符 / 产品头值 / 通配）",
+      "criterion": "命中是裸的全大写 ASTROCS，只出现在机器位置：代码标识符、产品 FITS 头值、扩展键命名空间指代、通配模式。全大写从不作显示名（显示名是 ACSD），故本族无「显示名漏改」这一状态。",
+      "machine_evidence": [
+        "实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py（ASTROCS 变量指向产品二进制）",
+        "eng/tests/unit/export_stream_test.cpp / eng/tests/runtime/integration/test_rt004_executor.py（FITS properties 头值）",
+        "docs/KNOWN_LIMITATIONS.md（ASTROCS* 标记通配）"
+      ],
+      "families": [
+        "A"
+      ],
+      "line_regexes": [
+        "(?<![A-Za-z0-9_])ASTROCS(?![A-Za-z0-9_])"
+      ]
+    }
+  ],
+  "definition_surface_ratchet": {
+    "paths": [
+      "eng/ci/ledgers/naming_surface.json",
+      "eng/ci/check_naming_surface.py"
+    ],
+    "max_hits": 101,
+    "measured_at_registration": {
+      "eng/ci/ledgers/naming_surface.json": 74,
+      "eng/ci/check_naming_surface.py": 27
+    },
+    "note": "定义面（本台账 + 检查器）承载的是「被定义的形态本身」（保留类正则、字面量与扫描族词），属提及而非使用，故 R1 不适用；R3 棘轮按本次实测登记，只减不增：任何在定义面新增未登记 AstroCS/astrocs/ASTROCS 字面量的改动都会判红。"
+  },
+  "display_name_change_set": {
+    "status": "applied",
+    "criterion": "判据 = ENGINEERING_SPEC.md §15 的判定规则（换成 ACSD 后是否有任何机器会失配）。本条目登记**按显示名改写**的处置面：命中落在全部保留类之外 ⇒ 显示名漏改 ⇒ 改写为 ACSD。",
+    "occurrences_replaced": 164,
+    "files_changed": 72,
+    "evidence": "run/NAMING-SURFACE-01/logs/display_name_changes.json（逐行 before/after）",
+    "method": "逐行改写（不增删行、不动行外字节）：只替换该行词边界内的历史名。已核对 164 组 before/after 全部且仅由该替换解释。",
+    "entries": [
+      {
+        "paths": [
+          ".github/workflows/fatduck.yml",
+          "eng/tests/unit/gaia_magnitude_range_bounds_test.c",
+          "eng/tests/unit/gaia_shard_coverage_gate_test.c",
+          "eng/tests/unit/gaia_xpsd_fixture_gen.c",
+          "eng/tools/check_version_consistency.py",
+          "memory.md",
+          "实验/absolute-snr/README.md",
+          "实验/absolute-snr/REPORT_paper.md",
+          "实验/absolute-snr/code/diag_noise_terms.py",
+          "实验/absolute-snr/code/exp01/exp01_common.py",
+          "实验/absolute-snr/code/exp01/q1_delta_budget.py",
+          "实验/absolute-snr/code/exp01/q2a_estimator_pairing.py",
+          "实验/absolute-snr/code/exp01/q2b_estimator_data.py",
+          "实验/absolute-snr/code/exp01/run_all.sh",
+          "实验/absolute-snr/code/exp02/e1_analytic_scan.py",
+          "实验/absolute-snr/code/exp02/e2_hst_scan.py",
+          "实验/absolute-snr/code/exp02/e3_real_data.py",
+          "实验/absolute-snr/code/exp02/exp02_common.py",
+          "实验/absolute-snr/code/exp02/make_tables.py",
+          "实验/absolute-snr/code/exp02/run_all.sh",
+          "实验/absolute-snr/code/exp03/e1_analytic.py",
+          "实验/absolute-snr/code/exp03/e2_real_premise.py",
+          "实验/absolute-snr/code/exp03/e3_hst.py",
+          "实验/absolute-snr/code/exp03/run_all.sh",
+          "实验/absolute-snr/code/exp04/run_all.sh",
+          "实验/absolute-snr/code/exp05/e1_analytic.py",
+          "实验/absolute-snr/code/exp05/e2_hst.py",
+          "实验/absolute-snr/code/exp05/e3_real.py",
+          "实验/absolute-snr/code/exp05/e4_weight.py",
+          "实验/absolute-snr/code/exp05/e5_gates.py",
+          "实验/absolute-snr/code/exp05/e6_mechanism.py",
+          "实验/absolute-snr/code/exp05/exp05_common.py",
+          "实验/absolute-snr/code/exp05/run_all.sh",
+          "实验/absolute-snr/code/exp06/e1_analytic.py",
+          "实验/absolute-snr/code/exp06/e2_hst.py",
+          "实验/absolute-snr/code/exp06/e3_real.py",
+          "实验/absolute-snr/code/exp06/e4_gates.py",
+          "实验/absolute-snr/code/exp06/e5_scope.py",
+          "实验/absolute-snr/code/exp06/exp06_common.py",
+          "实验/absolute-snr/code/exp06/make_tables.py",
+          "实验/absolute-snr/code/exp06/run_all.sh",
+          "实验/absolute-snr/code/reverse_verify/frame_snr/README.md",
+          "实验/absolute-snr/code/reverse_verify/frame_snr/frame_snr_physical.py",
+          "实验/absolute-snr/docs/EXP-01-DELTA-AND-ESTIMATOR.md",
+          "实验/absolute-snr/docs/EXP-02-STRUCTURE-CONTAMINATION.md",
+          "实验/absolute-snr/docs/EXP-03-REGIONAL-SIGMA.md",
+          "实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md",
+          "实验/absolute-snr/docs/EXP-05-ABSOLUTE-SNR.md",
+          "实验/absolute-snr/docs/EXP-06-SNR-PHYS.md",
+          "实验/absolute-snr/docs/EXP-06-SUMMARY.md",
+          "实验/absolute-snr/docs/f-instr-canon.md",
+          "实验/absolute-snr/docs/frame-snr-canon.md",
+          "实验/absolute-snr/docs/snr-propagation-design.md",
+          "实验/absolute-snr/docs/surveys/f-instr-survey.md",
+          "实验/absolute-snr/docs/surveys/frame-snr-survey.md",
+          "实验/absolute-snr/results/REVERSE_VERIFY_CANON.md",
+          "实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py",
+          "实验/healpix-polar/README.md",
+          "实验/photometric-magnitude/REPORT_paper.md",
+          "实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/src/wcs_lib.py",
+          "实验/photometric-magnitude/code/scia_common.py",
+          "实验/photometric-magnitude/code/scia_sim.py",
+          "实验/photometric-magnitude/code/step3_forward_vs_photflam.py",
+          "实验/photometric-magnitude/docs/p1-spatial-gain.md",
+          "实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md",
+          "实验/shared/synthetic/m16_mask.py",
+          "实验/shared/synthetic/m16_sampling.py",
+          "实验/shared/synthetic/m16_scene.py",
+          "实验/shared/synthetic/noise_model.py",
+          "实验/shared/synthetic/noise_selftest.py",
+          "实验/shared/synthetic/render.py",
+          "工程控制/RELEASE-05/HANDOFF.md"
+        ],
+        "criterion": "全部命中均落在保留类之外（由门判定），且逐条 grep 复核无机器引用方（零跨文件引用）；改写为显示名 ACSD。",
+        "occurrences": 164
+      }
+    ],
+    "deliberately_not_changed": [
+      {
+        "class_id": "U-OUTBOUND-CLIENT-IDENTIFIER",
+        "criterion": "对外 HTTP User-Agent product token 是对外协议标识而非显示名；改名属对外行为变更，且仓内零引用方，不构成「漏改」。"
+      },
+      {
+        "class_id": "TESTDATA-READONLY-DIR",
+        "criterion": "testdata/** 是 §7 只读登记目录，其 README 明文禁止改写内含数据（AGENTS.md §10 要求先停下问负责人）⇒ 本门只登记不改；命名一致性在此让位于只读硬约束，属负责人裁决面。"
+      }
+    ]
+  }
+}

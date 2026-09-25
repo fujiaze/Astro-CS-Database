@@ -45,6 +45,8 @@ def _synthetic_good(workers: int = 16, interval: float = 60.0,
     """合成合规证据：满负荷多核重计算区间（平均/p50/达标占比全达标，无低利用窗）。"""
     samples = [{"t": round(i * 0.2, 3), "cpu_percent": cpu_percent, "threads": workers,
                 "runnable": workers} for i in range(int(interval / 0.2))]
+    # conclusion-anchor: 本函数是夹具构造器（合成 100% 利用率样本），返回的是**被注入的
+    # 输入数据**，其 verdict 是夹具值；真判定由 check_frozen_gate 的 replay 逻辑产生。
     return {
         "duration_seconds": interval,
         "poll_interval": 0.2,

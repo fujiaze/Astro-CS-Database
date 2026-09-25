@@ -1165,9 +1165,14 @@ def self_test() -> int:
     for n, ok, m in cases:
         print("SELFTEST " + ("PASS" if ok else "FAIL") + " " + n + ": " + m)
     if bad:
+        # GATE-TRUST-01 三态：自检用例不符预期 = **门自身不可信**，不是「被判对象不合规」。
+        # 必须用独立退出码 3（eng/ci/run_checks.py::EXIT_CRASH）声明，否则消费者会把
+        # 「门坏了」读成「仓库内容红了」，红绿都当噪声。
         print("SELFTEST_FAIL: " + str(len(bad)) + "/" + str(len(cases)) + " 例不符预期",
               file=sys.stderr)
-        return 1
+        print("GATE_TRUST_FAIL: 门自身不可信（判别力面用例不符预期；红绿都不具证据资格）："
+              + repr([n for n, _m in bad]), file=sys.stderr)
+        return 3
     print("SELFTEST_PASS: " + str(len(cases)) + "/" + str(len(cases))
           + " 例符合预期（正例 rc=0；悬空条目/悬空根文档指针/缺抬头/漏登记/代码注释悬空/"
             "非 ASCII 旧控制包残留/台账缺失/排除面无据、锚缺失、台账被移出、"

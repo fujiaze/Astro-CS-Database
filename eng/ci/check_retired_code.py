@@ -893,6 +893,8 @@ def main(argv=None) -> int:
         for rel in extra["unreferenced_sources"][:20]:
             print("    R4 未引用: %s" % rel)
     if args.json_out:
+        # conclusion-anchor: 只有走到这里才是「零 findings」的成功路径（findings 已在上文
+        # 逐规则算出）；verdict 是计算结果的字面编码，不是写死的结论。
         write_json_atomic(args.json_out, dict(
             {"check_id": CHECK_ID, "verdict": "PASS", "findings": []}, **extra))
     return 0

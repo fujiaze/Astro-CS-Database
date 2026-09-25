@@ -481,6 +481,8 @@ def main(argv=None) -> int:
         explicit = {t for _cid, pat, _cmd in registry_patterns(registry)
                     for t in targets if fnmatch.fnmatchcase(t, pat)}
         path = write_baseline(repo, targets, explicit, previous=baseline)
+        # conclusion-anchor: --write-baseline 分支的回执；verdict 指「基线写入动作完成」，
+        # 被测 ctest 注册面的判定在同文件 evaluate() 之后，不在本分支。
         print(json.dumps({"tool": "check_ctest_registration.py", "mode": "write-baseline",
                           "baseline": str(path.relative_to(repo)).replace("\\", "/"),
                           "targets": len(targets), "explicit": len(explicit),
