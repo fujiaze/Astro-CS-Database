@@ -5,7 +5,7 @@
 ## 0 交接时的状态
 
 - 仓库：`/workspace/Astro CS Database`（**路径含空格，命令一律加引号**）
-- `HEAD` = `origin/main` = `5f8c237b`；构建 `ninja -C build` rc=0；`validate_registry.py --strict` 0 error
+- `HEAD` = `origin/main` = `9be3ab2c`；构建 `ninja -C build` rc=0；`validate_registry.py --strict` 0 error（150 条注册项）
 - 负责人此轮的指令是：**把这批修完停下来**，他要用一段时间系统性扫描所有漏洞，然后新对话一口气修完
 - 待修清单的正本是外部审查节点维护的**一页纸**，见 §5
 
@@ -139,6 +139,14 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 但它用的配置是 **`pixfrac: 0.8`**，而 §6 的**第 18 条修复改变了生产输出**：
 `hips_profile=0` 直写路径原先漏乘 `k = D_p/N_p = pixfrac²` ⇒ 默认 `pixfrac=0.8` 下
 **signal 偏大 56.25%、variance 偏大 144.14%**。修复后 signal 缩小 1.5625×、variance 缩小 2.4414×。
+
+**量级要说清：默认 `drizzle.pixfrac=0.8` 下生产亮度整体偏亮约 0.48 星等**——不是舍入误差，是产品级偏差。
+零回归已实测：`pf=1` 时 `pixel_area ≡ drop_area` 是同一个变量 ⇒ `k≡1.0` 逐位，既有 `pf=1.0` 用例逐位不变。
+
+**它此前为什么测不到**：测试面 `pixfrac` 取值**零处 <1**（40 处全是 `1.0`/`1`）——端到端夹具、CLI 集成、
+节点测试统一钉住 `1.0`；唯一跑 pf<1 的验收 B 段判的是累加器侧 `Σ_p F_p = Σ_j x_j` 与 FP64 闭合，
+二者按构造与归一化无关 ⇒ **没有任何现存判据会因分母取错变红**。这类「判据与缺陷正交」的空档本仓不止一处，
+新对话扫漏洞时优先找它。
 
 ⇒ **新对话开工第一件事：重跑 `run/M42-E2E-03/driver.sh`（约 90 分钟），产出的才是有效证据。**
 驱动脚本与日志在 `run/M42-E2E-03/`；它自带 `mem_guard --max-rss-gb 19 --timeout 21600`。
