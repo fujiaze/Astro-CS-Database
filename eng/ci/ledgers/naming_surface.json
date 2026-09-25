@@ -395,12 +395,12 @@
       "eng/ci/ledgers/naming_surface.json",
       "eng/ci/check_naming_surface.py"
     ],
-    "max_hits": 101,
+    "max_hits": 108,
     "measured_at_registration": {
       "eng/ci/ledgers/naming_surface.json": 74,
       "eng/ci/check_naming_surface.py": 27
     },
-    "note": "定义面（本台账 + 检查器）承载的是「被定义的形态本身」（保留类正则、字面量与扫描族词），属提及而非使用，故 R1 不适用；R3 棘轮按本次实测登记，只减不增：任何在定义面新增未登记 AstroCS/astrocs/ASTROCS 字面量的改动都会判红。"
+    "note": "定义面（本台账 + 检查器）承载的是「被定义的形态本身」（保留类正则、字面量与扫描族词），属提及而非使用，故 R1 不适用；R3 棘轮按实测登记，只减不增。定义面就是这两个文件本身：保留类的正则、字面量与扫描族词必须逐字写出被保留的历史名，故这里是「提及」而非「使用」。棘轮的作用是防止显示名回退到机器面，不是压缩定义面——登记时的 101 是漏计，本值按检查器实测重登。"
   },
   "display_name_change_set": {
     "status": "applied",

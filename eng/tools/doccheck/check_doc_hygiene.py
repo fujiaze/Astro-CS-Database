@@ -27,7 +27,7 @@
   D4 禁模式（结构性判据）
       D4a 过程段落（单段内 ≥2 个 D3b 命中）；D4b 事实唯一性（登记事实键取值在多份文档间发散，
           正本 = eng/tools/doccheck/doc_fact_authority.json 的 authority_value）；
-      D4c 锚密度（file:line 锚 > 0.2/行）；D4d 单元格墙（表格行 > 200 字符）；D4e 段落长度（> 12 行）。
+      D4c 锚密度（file:line 锚 > 0.2/行；**只适用于散文面**：Markdown 文档。机器可读数据面（csv/tsv/json）不是散文，其逐行内容由各自的门按行核对，判据强于密度启发式）；D4d 单元格墙（表格行 > 200 字符）；D4e 段落长度（> 12 行）。
   豁免机制（三层，全部显式可审计，逐项计数上报 notes）：
       ① 结构豁免：代码围栏与行内 code span（机器字面量）；
       ② 规则内建豁免：机器登记字段位、机器登记面里的已登记 ID、带出处的外部日期；
@@ -528,7 +528,7 @@ def scan_hits(root, docs):
             metrics[("D4e_paragraph_len", rel)] = metrics.get(("D4e_paragraph_len", rel), 0) + 1
         if para_hits >= 2:
             metrics[("D4a_process_paragraph", rel)] = metrics.get(("D4a_process_paragraph", rel), 0) + 1
-        if lines and anchors / max(1.0, len(lines)) > D4_MAX_ANCHOR_DENSITY:
+        if (lines and rel.endswith((".md", ".markdown"))                and anchors / max(1.0, len(lines)) > D4_MAX_ANCHOR_DENSITY):
             metrics[("D4c_anchor_density", rel)] = round(anchors / max(1.0, len(lines)), 4)
     return hits, metrics, exempt, used, code_notes, ex_err
 

@@ -275,10 +275,10 @@
       "requirement": "星点掩膜之外，每帧取稀疏背景采样点，采样点权重取噪声逆方差 control_ivar（被估量是变化的背景电平，SNR² 在该处不是有效逆方差代理；权重式与推导见 docs/plugins/algorithms_phase2/10_sampling.md）；全部帧联合构建参考天光平面，平面稀疏表示、栅格值按需现场求值，不构建稠密背景栅格。",
       "status": "wired",
       "production_anchor": [
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:9475"
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9532"
       ],
       "anchor_tokens": {
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:9475": "x.control_ivar = o.value("
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9532": "x.control_ivar = o.value("
       },
       "assertion": "采样点权重取噪声逆方差 control_ivar：module_adapters.cpp:9241 从采样对象读 control_ivar 填进 x.control_ivar（同段 :9212-9213 明文规定 control_ivar<=0/非有限在生产模式显式拒绝、禁静默回退），权重随采样点进入联合建面；参考天光面为稀疏表示、按需求值不建稠密栅格（module_adapters.cpp:9753「稀疏样条, 按需求值, 不建稠密栅格」）。",
       "reason": "",
@@ -291,12 +291,12 @@
       "requirement": "多退少补：每帧的扣除量是它相对公共平面的偏差 δ_k，calibrated = raw − δ_k，保留公共天光面 B_ref；叠加后的马赛克仍带背景，公共面零点由 gauge 约定承载。",
       "status": "wired",
       "production_anchor": [
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:9777",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9834",
         "lib/algorithms/coverage/include/astro/phase2/upm.h:155"
       ],
       "anchor_tokens": {
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:9777": "多退少补到公共天光面，保留 B_ref",
-        "lib/algorithms/coverage/include/astro/phase2/upm.h:155": "P2_API int p2_upm_calibrate_block("
+        "lib/algorithms/coverage/include/astro/phase2/upm.h:155": "P2_API int p2_upm_calibrate_block(",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9834": "多退少补到公共天光面，保留 B_ref"
       },
       "assertion": "多退少补的实现面 = p2_upm_calibrate_block（upm.h:155 声明，按 frame_id 用公共面参数扣除该帧偏差），默认模式在 module_adapters.cpp:9543 定案为 delta（多退少补到公共天光面、保留 B_ref），:10008 记 calibrated = raw - delta_k；叠加后的马赛克仍带背景，零点由 gauge 约定承载而不是把背景整除。",
       "reason": "",
@@ -341,10 +341,10 @@
       "requirement": "参考面表示能力要求：无接缝以公共天光面可表示为前提。参考面的节点间距与基函数必须能表示帧间天光差的空间尺度；对参考面不可表示且沿图像方向相干的小尺度分量（尺度约在两个节点间距以内），残余接缝随该分量幅度线性增长。节点间距由输入几何导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的唯一旋钮；几何量缺失即显式失败（节点间距的来源只有输入几何）。实验定标见 实验/additive-sky-seamless/ 与 docs/plugins/algorithms_phase2/11_upm.md。",
       "status": "wired",
       "production_anchor": [
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:9897"
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9954"
       ],
       "anchor_tokens": {
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:9897": "p2_sky_plane_derive_node_spacing"
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9954": "p2_sky_plane_derive_node_spacing"
       },
       "assertion": "节点间距由输入几何导出：module_adapters.cpp:9663 调用 p2_sky_plane_derive_node_spacing() 从输入几何求节点间距上下界并把 sky_plane_node_spacing_upper_deg / lower_deg 写进 manifest；:9585 对显式给出的 node_spacing_deg 走另一分支，:9579-9580 明文记「旧实现写死 1.0 被禁止」，即不落默认标定值。",
       "reason": "",
@@ -462,11 +462,11 @@
       "status": "wired",
       "production_anchor": [
         "lib/algorithms/coverage/src/coverage.cpp:313",
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:10902"
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:10959"
       ],
       "anchor_tokens": {
         "lib/algorithms/coverage/src/coverage.cpp:313": "缺失/NaN：显式 UNAVAILABLE",
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:10902": "std::vector<uint8_t> sample_mask("
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:10959": "std::vector<uint8_t> sample_mask("
       },
       "assertion": "覆盖级缺数不填零：coverage.cpp:313-315 对 cov/support 未知的 cell 显式置 P2_CELL_UNAVAILABLE 并计数（注释明文「禁止零填为 UNCOVERED/UNSUPPORTED」）；样本级掩膜由 module_adapters.cpp:10900-10904 的逐样本 sample_mask 承载（按原始帧 slot 索引，像素级 accepted(u8) 表达不了的部分拒绝由它补齐，按原始样本索引向 integrate 传递）。",
       "reason": "",
@@ -503,10 +503,10 @@
       "requirement": "用户通过 projection 字段选择，缺省 TAN。",
       "status": "wired",
       "production_anchor": [
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:13478"
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:13535"
       ],
       "anchor_tokens": {
-        "lib/infrastructure/scheduler/src/module_adapters.cpp:13478": "doc.value(\"projection\", std::string(\"TAN\"))"
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:13535": "doc.value(\"projection\", std::string(\"TAN\"))"
       },
       "assertion": "projection 字段的选择面与缺省 TAN 在生产适配器在位：module_adapters.cpp:13478 以 doc.value(projection, TAN) 读取该键并把结果传给投影请求（:13483 只在键存在时传值），:13748/:13751 对同一缺省做一致性处理；合同面 enum 含八投影、缺省 TAN（eng/contracts/schemas/phase_config_export.schema.json）。本条只判「字段选择与缺省」这一件事；被选中的投影实现本身的可达性属于本范围上两条。",
       "reason": "",
