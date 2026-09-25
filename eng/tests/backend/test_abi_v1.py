@@ -3,7 +3,7 @@
 import os, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-HDR = os.path.join(REPO, "lib", "include", "acsd", "common_abi_v1.h")
+HDR = os.path.join(REPO, "lib", "include", "astrocs", "common_abi_v1.h")
 
 # 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
 # （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
