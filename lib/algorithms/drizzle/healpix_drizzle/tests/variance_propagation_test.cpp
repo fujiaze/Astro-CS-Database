@@ -60,11 +60,11 @@ void setup_wcs(FitsImage& im) {
     std::strncpy(im.wcs.ctype2, "DEC--TAN", sizeof(im.wcs.ctype2) - 1);
 }
 
-DrizzleConfig make_cfg() {
+DrizzleConfig make_cfg(double pixfrac = 1.0) {
     DrizzleConfig c;
     c.nside = NSIDE;
     c.nested = true;
-    c.pixfrac = 1.0;
+    c.pixfrac = pixfrac;
     c.threads = 1;   // 确定性单线程 (科学测试)
     c.apply_photometry = true;
     c.photometry_applied_upstream = true;
@@ -72,7 +72,15 @@ DrizzleConfig make_cfg() {
     return c;
 }
 
-// 单次 drizzle: 返回 tile 内 leaf 的 (signal, variance) 汇总
+// 单次 drizzle: 返回 tile 内 leaf 的 (signal, variance) 汇总。
+//
+// **期望式必须与科学正本同幂次**（docs/science/DRIZZLE.md §5:50/§5:83）:
+//   S_p          = sumFlux / sumNorm      (= F_p/N_p, N_p = Σ_j w_jp·A_pixel,j)
+//   variance_p   = sumVarNum / sumNorm²
+// 用覆盖率 sumArea=D_p 当分母是**另一套口径**（legacy 覆盖面积分母）:
+//   sumFlux/sumArea = S_p·(1/pixfrac²)、sumVarNum/sumArea² = var_p·(1/pixfrac⁴)
+// ⇒ pixfrac=1 时 sumNorm≡sumArea 使两者偶然同值, pixfrac<1 时相差 pf²/pf⁴
+//   （本文件旧版正是用 sumArea, 且唯一调用点只用 pixfrac=1.0 ⇒ 结构上测不到）。
 struct LeafStats {
     std::vector<uint64_t> ipix;
     std::vector<double> signal;
@@ -88,16 +96,250 @@ void collect_leafs(const std::vector<TileAccumulatorT<float>>& tiles,
         for (uint32_t local : tile.touched) {
             if (local >= tile.pixels.size()) continue;
             const auto& a = tile.pixels[local];
-            if (a.sumArea <= 0.0) continue;
+            const double norm = (double)a.sumNorm;
+            if (norm <= 0.0) continue;
             out.ipix.push_back((tile.parent_ipix << 18) | (uint64_t)local);
-            out.signal.push_back((double)a.sumFlux / (double)a.sumArea);
+            out.signal.push_back((double)a.sumFlux / norm);
             const double vn = (double)a.sumVarNum;
-            out.variance.push_back(vn / ((double)a.sumArea * (double)a.sumArea));
+            out.variance.push_back(vn / (norm * norm));
         }
     }
 }
 
+// 全局口径对照 (与 collect_leafs 同一归一约定):
+//   S_doc    = Σ_p sumFlux_p / Σ_p sumNorm_p        (= Σ_j x_j / Σ_j A_pixel,j)
+//   S_legacy = Σ_p sumFlux_p / Σ_p sumArea_p        (= Σ_j x_j / (pf²·Σ_j A_pixel,j))
+// ⇒ S_legacy/S_doc ≡ 1/pf²（代数恒等，与本测试的几何无关）。
+struct GlobalScales {
+    double sum_flux = 0.0, sum_area = 0.0, sum_norm = 0.0, sum_varnum = 0.0;
+};
+
+GlobalScales global_scales(const std::vector<TileAccumulatorT<float>>& tiles) {
+    GlobalScales g;
+    for (const auto& tile : tiles) {
+        for (uint32_t local : tile.touched) {
+            if (local >= tile.pixels.size()) continue;
+            const auto& a = tile.pixels[local];
+            g.sum_flux += (double)a.sumFlux;
+            g.sum_area += (double)a.sumArea;
+            g.sum_norm += (double)a.sumNorm;
+            g.sum_varnum += (double)a.sumVarNum;
+        }
+    }
+    return g;
+}
+
 }  // namespace
+
+
+// ---------------------------------------------------------------------------
+// 组 5: pixfrac 扫描 — pf<1 在册用例 (面亮度归一幂次与 pixfrac 无关性)
+//
+// 背景: 本文件的旧版 oracle 用覆盖率 sumArea 当分母 (S=sumFlux/sumArea,
+// var=sumVarNum/sumArea²), 而唯一调用点只用 pixfrac=1.0 —— 在 pf=1 时
+// sumNorm≡sumArea 逐位相同, 故"分母取错"这一缺陷在结构上测不到;
+// pf<1 时它立刻表现为 signal 偏 1/pf²、variance 偏 1/pf⁴。
+// 本组把 pf∈{1.0,0.8,0.5,0.25} 全部纳入在册用例:
+//   (a) N_p 关系      sumNorm·pf² == sumArea   (rel <=1e-3; 残差=球面 O(θ²)+FP32)
+//   (b) 口径幂次      S_legacy/S_doc == 1/pf²          (rel <=1e-4)
+//   (c) 方差幂次      var_legacy/var_doc == 1/pf⁴      (rel <=1e-4)
+//   (d) 非退化        pf<1 时 |S_legacy/S_doc-1| 与 |var_legacy/var_doc-1| > 1e-3
+//   (e) pixfrac 无关性 逐 leaf |S_p(pf)/S_p(1) - 1| < 2e-3 (真实几何, 真值帧)
+//   (f) MC 校验       var_emp/var_doc 中位数 ∈ [0.95,1.05]
+// (a)/(b)/(c) 锁定"累加器确实按 N_p=Σ w·A_pixel 记分母、两种分母相差 pf²/pf⁴";
+// (d) 锁定该判据在 pf<1 上非恒真; (e)/(f) 是物理判据: 发布量确实是面亮度、
+// 且方差是其无偏传播 (MC 经验方差 vs sumVarNum/N_p²)。
+// 容差说明: (a) 的残差来自球面非线性 (A_drop ≠ pf²·A_pixel 的 O(θ²) 项) 与
+// FP32 累加舍入; 缺陷幅度 (1/pf²-1) 在 pf=0.8 即 0.5625 ⇒ 余量 >500×。
+// ---------------------------------------------------------------------------
+static void run_pixfrac_sweep() {
+    printf("\n=== pixfrac 扫描 (在册用例: pf<1 面亮度归一) ===\n");
+    const double kPfs[] = {1.0, 0.8, 0.5, 0.25};
+    const int kMcCounts[] = {0, 1200, 1200, 1200};   // pf=1 的 MC 已由 SNR-011 段承担
+
+    // 基准: pf=1.0 真值帧的逐 leaf 面亮度
+    LeafStats base_truth;
+    {
+        FitsImage im;
+        setup_wcs(im);
+        im.pixels.assign((std::size_t)H * W, (float)SKY);
+        DrizzleEngine eng;
+        DrizzleConfig cfg = make_cfg(1.0);
+        std::vector<TileAccumulatorT<float>> tiles;
+        DrizzleStats st;
+        std::string err;
+        CHECK(eng.drizzleTiled(im, cfg, nullptr, nullptr, nullptr, tiles, st, err),
+              "pf-sweep: pf=1.0 真值帧 drizzle ok");
+        collect_leafs(tiles, base_truth);
+    }
+
+    for (std::size_t ipf = 0; ipf < sizeof(kPfs) / sizeof(kPfs[0]); ++ipf) {
+        const double pf = kPfs[ipf];
+        char tag[96];
+        snprintf(tag, sizeof(tag), "pf=%.2f", pf);
+
+        // 真值帧 (无噪声): 用于 pixfrac 无关性
+        FitsImage truth;
+        setup_wcs(truth);
+        truth.pixels.assign((std::size_t)H * W, (float)SKY);
+        DrizzleEngine eng;
+        DrizzleConfig cfg = make_cfg(pf);
+        std::vector<TileAccumulatorT<float>> ttiles;
+        DrizzleStats tst;
+        std::string err;
+        CHECK(eng.drizzleTiled(truth, cfg, nullptr, nullptr, nullptr, ttiles, tst, err),
+              (std::string("pf-sweep: 真值帧 drizzle ok ") + tag).c_str());
+        LeafStats tleaf;
+        collect_leafs(ttiles, tleaf);
+
+        // (a) N_p 恒等 + (e) pixfrac 无关性
+        {
+            double worst_norm = 0.0, worst_sig = 0.0;
+            int n_cmp = 0;
+            for (const auto& tile : ttiles) {
+                for (uint32_t local : tile.touched) {
+                    if (local >= tile.pixels.size()) continue;
+                    const auto& a = tile.pixels[local];
+                    const double area = (double)a.sumArea;
+                    const double norm = (double)a.sumNorm;
+                    if (area <= 0.0 || norm <= 0.0) continue;
+                    worst_norm = std::max(worst_norm,
+                                          std::fabs(norm * pf * pf / area - 1.0));
+                    const uint64_t ip = (tile.parent_ipix << 18) | (uint64_t)local;
+                    auto it = std::find(base_truth.ipix.begin(), base_truth.ipix.end(), ip);
+                    if (it == base_truth.ipix.end()) continue;
+                    const double s_here = (double)a.sumFlux / norm;
+                    const double s_base = base_truth.signal[(std::size_t)(it - base_truth.ipix.begin())];
+                    if (std::fabs(s_base) > 0.0) {
+                        worst_sig = std::max(worst_sig, std::fabs(s_here / s_base - 1.0));
+                        ++n_cmp;
+                    }
+                }
+            }
+            char msg[256];
+            snprintf(msg, sizeof(msg),
+                     "%s (a) sumNorm*pf^2 == sumArea (球面 O(theta^2)+FP32 残差): "
+                     "worst_rel=%.2e (<=1e-3)", tag, worst_norm);
+            CHECK(worst_norm <= 1e-3, msg);
+            snprintf(msg, sizeof(msg),
+                     "%s (e) S_p 与 pixfrac 无关: worst_rel=%.2e (<2e-3, n=%d)", tag,
+                     worst_sig, n_cmp);
+            CHECK(n_cmp > 0 && worst_sig < 2e-3, msg);
+        }
+
+        // 方差帧 (同一噪声实现 + 逐像素方差): (b)(c)(f) 的输入
+        FitsImage im_v;
+        setup_wcs(im_v);
+        im_v.pixels.assign((std::size_t)H * W, (float)SKY);
+        std::mt19937 rng0(20260823);
+        std::normal_distribution<double> nd(0.0, SIGMA);
+        std::vector<float> var_map((std::size_t)H * W, 0.0f);
+        for (std::size_t i = 0; i < im_v.pixels.size(); ++i) {
+            im_v.pixels[i] += (float)nd(rng0);
+            var_map[i] = (float)(SIGMA * SIGMA);
+        }
+        std::vector<TileAccumulatorT<float>> vtiles;
+        DrizzleStats vst;
+        CHECK(eng.drizzleTiled(im_v, cfg, nullptr, nullptr, var_map.data(), vtiles, vst, err),
+              (std::string("pf-sweep: 方差帧 drizzle ok ") + tag).c_str());
+        LeafStats vleaf;
+        collect_leafs(vtiles, vleaf);
+
+        // (b)(c)(d) 全局口径幂次。真值: 两种分母相差 pf²(signal)/pf⁴(variance)。
+        // 容差 1e-4: 实测残差来自球面非线性 (A_drop 与 pf²·A_pixel 的 O(θ²) 差,
+        // 本 WCS 300"/px 下 ~1e-6) 与 FP32 累加舍入; 而缺陷幅度在 pf=0.8 已是
+        // 0.5625/1.441, pf=0.25 是 15/255 ⇒ 判据仍高判别 (余量 >5e3×)。
+        {
+            const GlobalScales g = global_scales(vtiles);
+            const double s_doc = g.sum_flux / g.sum_norm;
+            const double s_legacy = g.sum_flux / g.sum_area;
+            const double var_doc = g.sum_varnum / (g.sum_norm * g.sum_norm);
+            const double var_legacy = g.sum_varnum / (g.sum_area * g.sum_area);
+            const double pf2 = pf * pf;
+            char msg[256];
+            snprintf(msg, sizeof(msg),
+                     "%s (b) S_legacy/S_doc == 1/pf^2: rel=%.2e (<=1e-4)", tag,
+                     std::fabs((s_legacy / s_doc) * pf2 - 1.0));
+            CHECK(std::fabs((s_legacy / s_doc) * pf2 - 1.0) <= 1e-4, msg);
+            snprintf(msg, sizeof(msg),
+                     "%s (c) var_legacy/var_doc == 1/pf^4: rel=%.2e (<=1e-4)", tag,
+                     std::fabs((var_legacy / var_doc) * pf2 * pf2 - 1.0));
+            CHECK(std::fabs((var_legacy / var_doc) * pf2 * pf2 - 1.0) <= 1e-4, msg);
+            if (pf < 1.0) {
+                snprintf(msg, sizeof(msg),
+                         "%s (d) 判据非退化: |S_legacy/S_doc-1|=%.4f (>1e-3), "
+                         "|var_legacy/var_doc-1|=%.4f (>1e-3)", tag,
+                         std::fabs(s_legacy / s_doc - 1.0),
+                         std::fabs(var_legacy / var_doc - 1.0));
+                CHECK(std::fabs(s_legacy / s_doc - 1.0) > 1e-3 &&
+                          std::fabs(var_legacy / var_doc - 1.0) > 1e-3, msg);
+            }
+        }
+
+        // (f) Monte Carlo: 经验方差 vs 传播方差 (同一 pf)
+        if (kMcCounts[ipf] > 0) {
+            std::vector<std::vector<double>> mc(tleaf.ipix.size());
+            for (std::size_t i = 0; i < tleaf.ipix.size(); ++i) mc[i].reserve(kMcCounts[ipf]);
+            for (int r = 0; r < kMcCounts[ipf]; ++r) {
+                FitsImage im;
+                setup_wcs(im);
+                im.pixels.assign((std::size_t)H * W, (float)SKY);
+                std::mt19937 rng((unsigned)(20260900 + r));
+                std::normal_distribution<double> ndm(0.0, SIGMA);
+                for (std::size_t i = 0; i < im.pixels.size(); ++i) im.pixels[i] += (float)ndm(rng);
+                std::vector<TileAccumulatorT<float>> tiles;
+                DrizzleStats st;
+                if (!eng.drizzleTiled(im, cfg, nullptr, nullptr, nullptr, tiles, st, err)) {
+                    CHECK(false, (std::string("pf-sweep MC drizzle 失败 ") + tag).c_str());
+                    break;
+                }
+                LeafStats ls;
+                collect_leafs(tiles, ls);
+                for (std::size_t i = 0; i < tleaf.ipix.size(); ++i) {
+                    auto it = std::find(ls.ipix.begin(), ls.ipix.end(), tleaf.ipix[i]);
+                    mc[i].push_back(it != ls.ipix.end()
+                                        ? ls.signal[(std::size_t)(it - ls.ipix.begin())]
+                                        : std::numeric_limits<double>::quiet_NaN());
+                }
+            }
+            std::vector<double> ratio;
+            for (std::size_t i = 0; i < tleaf.ipix.size(); ++i) {
+                const std::size_t n = mc[i].size();
+                if (n < 2) continue;
+                double mean = 0.0;
+                bool finite = true;
+                for (double s : mc[i]) {
+                    if (!std::isfinite(s)) { finite = false; break; }
+                    mean += s;
+                }
+                if (!finite) continue;
+                mean /= (double)n;
+                double ve = 0.0;
+                for (double s : mc[i]) ve += (s - mean) * (s - mean);
+                ve /= (double)(n - 1);
+                auto it = std::find(vleaf.ipix.begin(), vleaf.ipix.end(), tleaf.ipix[i]);
+                if (it == vleaf.ipix.end()) continue;
+                const double vp = vleaf.variance[(std::size_t)(it - vleaf.ipix.begin())];
+                if (vp <= 0.0) continue;
+                ratio.push_back(ve / vp);
+            }
+            std::sort(ratio.begin(), ratio.end());
+            char msg[256];
+            if (ratio.empty()) {
+                CHECK(false, (std::string("pf-sweep MC 无有效 leaf ") + tag).c_str());
+            } else {
+                const double p50 = ratio[ratio.size() / 2];
+                snprintf(msg, sizeof(msg),
+                         "%s (f) MC var_emp/var_doc p50=%.3f ∈[0.95,1.05] (n=%zu, MC=%d)",
+                         tag, p50, ratio.size(), kMcCounts[ipf]);
+                CHECK(p50 >= 0.95 && p50 <= 1.05, msg);
+                // 对照: 若按覆盖率分母 (legacy) 期望, 比值应为 pf^4 (pf=0.8 ⇒ 0.41)
+                printf("        %s 对照: 若分母取 sumArea, 同一经验方差对应的比值 p50 会偏 %.3f×\n",
+                       tag, 1.0 / (pf * pf * pf * pf));
+            }
+        }
+    }
+}
 
 int main() {
     printf("=== V19 Drizzle 方差传播科学测试 ===\n");
@@ -152,13 +394,13 @@ int main() {
         for (const auto& t : tiles_v) {
             for (uint32_t local : t.touched) {
                 const auto& a = t.pixels[local];
-                const double area = (double)a.sumArea;
-                if (area <= 0.0) continue;
+                const double norm = (double)a.sumNorm;   // 面亮度分母 (非覆盖面积)
+                if (norm <= 0.0) continue;
                 const uint64_t ip = (t.parent_ipix << 18) | (uint64_t)local;
                 auto it = std::find(ref_leaf.ipix.begin(), ref_leaf.ipix.end(), ip);
                 if (it == ref_leaf.ipix.end()) { same = false; break; }
                 const std::size_t idx = (std::size_t)(it - ref_leaf.ipix.begin());
-                const double sig_diff = std::fabs((double)a.sumFlux / area -
+                const double sig_diff = std::fabs((double)a.sumFlux / norm -
                                                   ref_leaf.signal[idx]);
                 if (sig_diff > 1e-6) { same = false; break; }
             }
@@ -318,6 +560,9 @@ int main() {
                  worst);
         CHECK(scale_ok && worst < 1e-4, msg);
     }
+
+    // ---- pixfrac 扫描 (pf<1 在册用例: 面亮度归一幂次) ----
+    run_pixfrac_sweep();
 
     printf("\n== V19 Drizzle 方差传播结果: %d 通过, %d 失败 ==\n",
            g_pass, g_fail);

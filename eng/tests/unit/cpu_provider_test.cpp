@@ -29,16 +29,25 @@ int main() {
   const Entry entries[] = {
     {"baseline", 0},                 // 恒可加载
     {"avx2", ACS_FEAT_AVX2 | ACS_FEAT_FMA},
-    {"avx512", ACS_FEAT_AVX512F | ACS_FEAT_AVX2},
+    // TRUTHFUL-CONCLUSION-01: avx512 条目的需求位 = 与编译旗标同源的声明需求位
+    // （F|BW|DQ|VL）。原写作 "ACS_FEAT_AVX512F | ACS_FEAT_AVX2" —— 只是恰好比
+    // 真需求弱，掩盖了"声明 ⊊ 编译"的缺陷。
+    {"avx512", ACS_FEAT_AVX512_PROVIDER_REQUIRED},
   };
   uint64_t detected = astrocs_cpu_detect_features_v1();
   // baseline 必须恒满足
   CHECK(features_satisfy(detected, entries[0].required));
-  // 本机 AVX-512 全置位 → avx2 与 avx512 条目均满足 (降级链验证)
-  if (detected & ACS_FEAT_AVX512F) {
+  // 负例锁定（真值无效应必须判红）：只有 AVX512F、没有 BW/DQ/VL 时，
+  // avx512 条目**不得**被判为满足 —— 这正是原缺陷会放过的形态。
+  CHECK(!features_satisfy(ACS_FEAT_AVX512F, entries[2].required));
+  CHECK(!features_satisfy(ACS_FEAT_AVX512F | ACS_FEAT_AVX2, entries[2].required));
+  // 本机 AVX-512 子集全置位 → avx2 与 avx512 条目均满足 (降级链验证)
+  if (features_satisfy(detected, entries[2].required)) {
     CHECK(features_satisfy(detected, entries[1].required));
-    CHECK(features_satisfy(detected, entries[2].required));
-    printf("CPU-004: avx512 provider 满足 (AVX-512 主机)\n");
+    printf("CPU-004: avx512 provider 满足 (AVX-512 子集齐全)\n");
+  } else if (detected & ACS_FEAT_AVX512F) {
+    CHECK(features_satisfy(detected, entries[1].required));
+    printf("CPU-004: 有 AVX-512F 而子集位不全 → 不判支持, 降级 avx2\n");
   } else if (detected & ACS_FEAT_AVX2) {
     CHECK(features_satisfy(detected, entries[1].required));
     CHECK(!features_satisfy(detected, entries[2].required));  // 无 AVX-512 → 回退 avx2

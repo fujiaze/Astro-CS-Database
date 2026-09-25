@@ -10,8 +10,12 @@
     文件数、总行数、函数定义近似计数（正则近似，非正式解析器）；
   * 输出 JSON 基线报告到 --output（登记于 eng/ci/checks.json outputs）；
   * 阈值固定为 null（未冻结），报告带 "placeholder": true 与所有权标注；
-  * 永远 exit 0（只记录，不做门禁判定）；正式 C++ 解析器由后续质量任务
-    （owner=SA-CI-32）替换，届时本文件升级为真实检查器。
+  * **阈值不判红 ≠ 输入面不判红**（GATE-SOLID-01 / 独立审查节点一页纸 S2-A）：
+    --paths 里**任一测量根不存在**即 exit 1 并逐条打印缺失路径。旧实现在
+    "全部不存在"时才判红（GAP-027），部分缺失则静默扫剩下的（注册表登记的
+    `lib,cli,include` 里 cli/include 已迁走 ⇒ 两个根恒空、门恒真通过）；
+  * 无可测量目标（--paths 为空）同样判红（空面不得恒真）；
+  * 正式 C++ 解析器由后续质量任务（owner=SA-CI-32）替换，届时本文件升级为真实检查器。
 
 仅 stdlib；无外部命令；只读扫描 + 写 --output 一个文件（run/ 临时目录）。
 
@@ -81,11 +85,16 @@ def scan_path(base: Path, rel: str) -> dict:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="C/C++ 复杂度基线测量（占位实现，只记录不判阈值）")
-    ap.add_argument("--paths", default="lib,include,cli",
-                    help="逗号分隔的仓库相对目录（默认 lib,include,cli）")
+    ap.add_argument("--paths", default="lib",
+                    help="逗号分隔的仓库相对目录（默认 lib；cli/include 子树已并入 "
+                         "lib/infrastructure/cli 与 lib/include）")
+    ap.add_argument("--selftest", action="store_true",
+                    help="负例面：部分缺失/全缺失/空 --paths 必须判红（GATE-SOLID-01）")
     ap.add_argument("--output", default=None,
                     help="基线报告 JSON 输出路径（仓库相对，如 run/ci/cx/complexity.json）")
     args = ap.parse_args(argv)
+    if args.selftest:
+        return selftest()
 
     targets = [t.strip() for t in args.paths.split(",") if t.strip()]
     per_path = [scan_path(REPO, t) for t in targets]
@@ -115,13 +124,62 @@ def main(argv: list[str] | None = None) -> int:
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(payload + "\n", encoding="utf-8")
     print(payload)
-    if not any(t.get("exists") for t in per_path):
-        # GAP-027 fail-closed（CI-001）：--paths 全不存在时测量面为空，
-        # 原实现仍 rc=0（空转绿，JSON 照写，run.py 的 outputs 锚也不报错）。
-        print("COMPLEXITY_NO_INPUT: 所有 --paths 均不存在，测量面为空 → fail-closed 判 FAIL",
+    if not targets:
+        print("COMPLEXITY_NO_INPUT: --paths 为空，无任何测量根（空面不得恒真）→ 判 FAIL",
               file=sys.stderr)
         return 1
+    missing = [t["path"] for t in per_path if not t.get("exists")]
+    if missing:
+        # GATE-SOLID-01 / 一页纸 S2-A：**声明的输入路径不存在即红**。
+        # 旧实现只在"全部不存在"（GAP-027）时判红 —— 部分缺失时静默扫剩下的，
+        # 恒空的那几个根不产生任何判定（"空扫描恒真通过"）。JSON 照常落盘（留证），
+        # 但退出码必须非零。
+        print("COMPLEXITY_MISSING_INPUT: --paths 声明的测量根不存在 %s "
+              "（fail-closed：声明的输入不存在即红；修正 --paths 或恢复该死路径）"
+              % missing, file=sys.stderr)
+        return 1
     return 0
+
+
+def missing_targets(per_path: list) -> list:
+    """声明测量根中"不存在"的那些（与 main 同一判据，供自检与外部复核复用）。"""
+    return [t["path"] for t in per_path if not t.get("exists")]
+
+
+def selftest() -> int:
+    """负例面（GATE-SOLID-01 / S2-A）：部分缺失、全缺失、空 --paths 均须判红。
+
+    在临时目录上构造真实 scan_path 结果（不扫真实仓库），正例必须不被误伤。
+    """
+    import tempfile
+    cases = []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "present").mkdir()
+        (root / "present" / "a.cpp").write_text("int f(){return 0;}\n", encoding="utf-8")
+
+        def state(rel):
+            return scan_path(root, rel)
+
+        partial = [state("present"), state("gone")]
+        cases.append({"case": "N1_partial_missing_is_red",
+                      "ok": missing_targets(partial) == ["gone"],
+                      "note": "--paths present,gone ⇒ 缺失 gone 必须判红"})
+        cases.append({"case": "N2_all_missing_is_red",
+                      "ok": missing_targets([state("gone"), state("lost")]) == ["gone", "lost"],
+                      "note": "全缺失必须判红"})
+        cases.append({"case": "P1_all_present_is_green",
+                      "ok": missing_targets([state("present")]) == [],
+                      "note": "全部存在不得误伤"})
+        cases.append({"case": "P2_empty_targets_is_red",
+                      "ok": ([] == [t.strip() for t in "".split(",") if t.strip()]),
+                      "note": "空 --paths ⇒ main 走 COMPLEXITY_NO_INPUT 判红分支"})
+    ok = all(c["ok"] for c in cases)
+    for c in cases:
+        print("SELFTEST %s %s  %s" % ("PASS" if c["ok"] else "FAIL", c["case"], c["note"]))
+    print("COMPLEXITY_SELFTEST_%s: %d/%d" % ("PASS" if ok else "FAIL",
+                                             sum(1 for c in cases if c["ok"]), len(cases)))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

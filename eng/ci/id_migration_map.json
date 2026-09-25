@@ -1203,6 +1203,90 @@
       "grade": "P0",
       "name": "口径一致性门：验收判据关键词 ↔ 最高设计冻结语句（P1 冻结语句在场 / P2 反义判红 / P3 规模数字可解析到配置键或推导式 / P4 配置真值逐键复算活载体；fail-closed）",
       "doc": "docs/ci/01_CHECKS.md §2.1.1"
+    },
+    "CHK-TRUTHFUL-CONCLUSION": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-TRUTHFUL-CONCLUSION",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-DOCS-MACHINE-CONSISTENCY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-DOCS-MACHINE-CONSISTENCY",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-ISA-SAME-SOURCE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-ISA-SAME-SOURCE",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-BUDGET-SINGLE-SOURCE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-BUDGET-SINGLE-SOURCE",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "LINUX-MAIN-FIXTURES": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "LINUX-MAIN-FIXTURES",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "LINUX-MAIN-BUILD-TREE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "LINUX-MAIN-BUILD-TREE",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "WIN-CANDIDATE-VALIDATE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "WIN-CANDIDATE-VALIDATE",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-DRZ-PF-AREA-S1": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-DRZ-PF-AREA-S1",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-ACTIONS-LOCK": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-ACTIONS-LOCK",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-WORKFLOW-GOVERNANCE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-WORKFLOW-GOVERNANCE",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-PRODUCT-CONTRACT": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-PRODUCT-CONTRACT",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-CITE-CLAIM-MARK-CONSISTENCY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-CITE-CLAIM-MARK-CONSISTENCY",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-DOC-UNVERIFIED-CITE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-DOC-UNVERIFIED-CITE",
+      "doc": "docs/ci/01_CHECKS.md §2"
     }
   },
   "reserved_targets": {
@@ -4307,11 +4391,254 @@
       "grade": "P0",
       "order_in_target": 1,
       "note": "口径一致性门：验收判据关键词 ↔ 最高设计冻结语句（P1 冻结语句在场 / P2 反义判红 / P3 规模数字可解析到配置键或推导式 / P4 配置真值逐键复算"
+    },
+    {
+      "old_id": "CON-BUILD-GRAPH-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "CHK-MODULE-MANIFEST"
+    },
+    {
+      "old_id": "TRUTH-CONCLUSION-GATE",
+      "decision": "KEPT",
+      "target": "CHK-TRUTHFUL-CONCLUSION",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-TRUTHFUL-CONCLUSION"
+    },
+    {
+      "old_id": "TRUTH-CONCLUSION-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-TRUTHFUL-CONCLUSION",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-TRUTHFUL-CONCLUSION"
+    },
+    {
+      "old_id": "TRUTH-CONCLUSION-INJECT",
+      "decision": "KEPT",
+      "target": "CHK-TRUTHFUL-CONCLUSION",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "CHK-TRUTHFUL-CONCLUSION"
+    },
+    {
+      "old_id": "CHK-DOCS-MACHINE-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-DOCS-MACHINE-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-DOCS-MACHINE-CONSISTENCY"
+    },
+    {
+      "old_id": "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST"
+    },
+    {
+      "old_id": "ISA-SAME-SOURCE-GATE",
+      "decision": "KEPT",
+      "target": "CHK-ISA-SAME-SOURCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-ISA-SAME-SOURCE"
+    },
+    {
+      "old_id": "ISA-SAME-SOURCE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-ISA-SAME-SOURCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-ISA-SAME-SOURCE"
+    },
+    {
+      "old_id": "ISA-SAME-SOURCE-INJECT",
+      "decision": "KEPT",
+      "target": "CHK-ISA-SAME-SOURCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "CHK-ISA-SAME-SOURCE"
+    },
+    {
+      "old_id": "BUDGET-SINGLE-SOURCE-GATE",
+      "decision": "KEPT",
+      "target": "CHK-BUDGET-SINGLE-SOURCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-BUDGET-SINGLE-SOURCE"
+    },
+    {
+      "old_id": "BUDGET-SINGLE-SOURCE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-BUDGET-SINGLE-SOURCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-BUDGET-SINGLE-SOURCE"
+    },
+    {
+      "old_id": "BUDGET-SINGLE-SOURCE-INJECT",
+      "decision": "KEPT",
+      "target": "CHK-BUDGET-SINGLE-SOURCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "CHK-BUDGET-SINGLE-SOURCE"
+    },
+    {
+      "old_id": "CHK-DRZ-PF-AREA-S1",
+      "decision": "KEPT",
+      "target": "CHK-DRZ-PF-AREA-S1",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-DRZ-PF-AREA-S1"
+    },
+    {
+      "old_id": "SEAM-FOOTPRINT-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-L4-SEAM-FOOTPRINT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-L4-SEAM-FOOTPRINT"
+    },
+    {
+      "old_id": "SEAM-FOOTPRINT-PRODUCT",
+      "decision": "KEPT",
+      "target": "CHK-L4-SEAM-FOOTPRINT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-L4-SEAM-FOOTPRINT"
+    },
+    {
+      "old_id": "RENDER-VIS-V6-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-L4-SEAM-FOOTPRINT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "CHK-L4-SEAM-FOOTPRINT"
+    },
+    {
+      "old_id": "ACTIONS-LOCK-OFFLINE",
+      "decision": "KEPT",
+      "target": "CHK-ACTIONS-LOCK",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-ACTIONS-LOCK"
+    },
+    {
+      "old_id": "ACTIONS-LOCK-ONLINE",
+      "decision": "KEPT",
+      "target": "CHK-ACTIONS-LOCK",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-ACTIONS-LOCK"
+    },
+    {
+      "old_id": "ACTIONS-LOCK-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-ACTIONS-LOCK",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "CHK-ACTIONS-LOCK"
+    },
+    {
+      "old_id": "WORKFLOW-GOVERNANCE",
+      "decision": "KEPT",
+      "target": "CHK-WORKFLOW-GOVERNANCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-WORKFLOW-GOVERNANCE"
+    },
+    {
+      "old_id": "WORKFLOW-GOV-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-WORKFLOW-GOVERNANCE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-WORKFLOW-GOVERNANCE"
+    },
+    {
+      "old_id": "PRODUCT-CONTRACT",
+      "decision": "KEPT",
+      "target": "CHK-PRODUCT-CONTRACT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-PRODUCT-CONTRACT"
+    },
+    {
+      "old_id": "PRODUCT-CONTRACT-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-PRODUCT-CONTRACT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-PRODUCT-CONTRACT"
+    },
+    {
+      "old_id": "CITE-CLAIM-MARK-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-CITE-CLAIM-MARK-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-CITE-CLAIM-MARK-CONSISTENCY"
+    },
+    {
+      "old_id": "CITE-CLAIM-MARK-CONSISTENCY-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-CITE-CLAIM-MARK-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-CITE-CLAIM-MARK-CONSISTENCY"
+    },
+    {
+      "old_id": "DOC-UNVERIFIED-CITE",
+      "decision": "KEPT",
+      "target": "CHK-DOC-UNVERIFIED-CITE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "CHK-DOC-UNVERIFIED-CITE"
+    },
+    {
+      "old_id": "DOC-UNVERIFIED-CITE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-DOC-UNVERIFIED-CITE",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "CHK-DOC-UNVERIFIED-CITE"
     }
   ],
   "coverage": {
-    "source_entry_count": 179,
-    "mapped_entry_count": 351,
+    "source_entry_count": 206,
+    "mapped_entry_count": 378,
     "merged_into": 149,
     "kept": 156,
     "retire_pending_gov_001": 0,

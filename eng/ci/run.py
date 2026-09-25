@@ -39,6 +39,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import declared_inputs as _decl_in  # noqa: E402  (eng/ci/declared_inputs.py：声明输入面单一实现点)
 import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
 
 SCHEMA_VERSION = 1
@@ -89,6 +90,14 @@ V_PREREQ = "FAIL(prerequisite)"
 V_KNOWN = "KNOWN_FAIL"
 V_SKIP_WAIVABLE = "SKIPPED(waivable)"
 V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时复用该标记
+# GATE-SOLID-01（一页纸 S2-A「空扫描恒真通过」）：声明输入面判定。与
+# eng/ci/run_checks.py 共用 eng/ci/declared_inputs.py 的同一实现（W4-A3：两入口对
+# 同一情形的判定必须一致）：inputs 缺失/空面 ⇒ 硬失败；optional_inputs 全缺 ⇒ SKIP
+# （skip 不是 pass，须计数并打印，见 summary.skipped_optional_input）。
+V_INPUTS_MISSING = "FAIL(inputs_missing)"
+V_INPUTS_EMPTY = "FAIL(inputs_empty)"
+V_SKIP_OPTIONAL_INPUT = "SKIPPED(optional_input)"
+SKIP_VERDICTS = (V_SKIP_WAIVABLE, V_SKIP_OPTIONAL_INPUT)
 
 # SKIP 退出码（ctest 惯例同码）：检查命令以 exit 77 结束时按 SKIPPED 计, 非 FAIL。
 # 治理先例 = eng/tests/unit/cpu001_selftest_avx512（16867c25）：宿主缺 ACS_FEAT_AVX512F
@@ -100,7 +109,8 @@ V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时
 SKIP_EXIT_CODE = 77
 
 HARD_FAILURE_VERDICTS = (V_FAIL, V_CRASH, V_TIMEOUT, V_SIGNAL, V_MISSING_OUTPUT,
-                         V_EMPTY_OUTPUT, V_GATE_MISSING, V_DIRTY, V_PREREQ)
+                         V_EMPTY_OUTPUT, V_GATE_MISSING, V_DIRTY, V_PREREQ,
+                         V_INPUTS_MISSING, V_INPUTS_EMPTY)
 
 # V8-CIQA-001 P2-GAP-4 豁免白名单（显式登记，非静默兜底）：注册表里 outputs=[]
 # 且非 waivable、但检查脚本按设计静默成功（rc=0 且无任何输出）的既有检查 id。
@@ -853,9 +863,29 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         "outputs_expected": check["outputs"],
         "outputs_missing": [],
         "prerequisite": {"checked": True, "ok": True, "reason": None},
+        # 声明输入面逐条状态（S2-A）：复核者据此核对"这一步到底扫了什么"。
+        "inputs_state": None,
         "verdict": None,
         "reason": None,
     }
+
+    # 声明输入面（一页纸 S2-A）：**输入不存在即红**，扫描面为空即红，可选产物全缺
+    # 记 skip（不是 pass）。放在 prerequisite 之前 —— 输入面是根因，任何"能力缺失"
+    # 都不该先于"我根本没看对象"给出结论。
+    result["inputs_state"] = _decl_in.report(check, repo)
+    input_gap = _decl_in.gap(check, repo)
+    if input_gap is not None:
+        kind, reason = input_gap
+        finished = utc_now()
+        result["finished_utc"] = utc_iso(finished)
+        result["duration_seconds"] = round((finished - started).total_seconds(), 3)
+        result["verdict"] = {
+            _decl_in.GAP_MISSING: V_INPUTS_MISSING,
+            _decl_in.GAP_EMPTY: V_INPUTS_EMPTY,
+            _decl_in.GAP_OPTIONAL_ABSENT: V_SKIP_OPTIONAL_INPUT,
+        }[kind]
+        result["reason"] = reason
+        return result
 
     ok, reason = probe_prerequisite(check, repo, platform)
     if not ok:
@@ -1203,11 +1233,11 @@ def build_ci_result(*, repo: Path, profile: str, selected_meta: dict, check_resu
                     started: _dt.datetime, strict_workspace: bool, changed_from: str | None,
                     known_summary: dict) -> dict:
     finished = utc_now()
-    executed = [r for r in check_results if r["verdict"] != V_SKIP_WAIVABLE]
+    executed = [r for r in check_results if r["verdict"] not in SKIP_VERDICTS]
     hard_fail = [r for r in executed if r["verdict"] in HARD_FAILURE_VERDICTS]
     known_fail = [r for r in executed if r["verdict"] == V_KNOWN]
     passed = [r for r in executed if r["verdict"] == V_PASS]
-    skipped = [r for r in check_results if r["verdict"] == V_SKIP_WAIVABLE]
+    skipped = [r for r in check_results if r["verdict"] in SKIP_VERDICTS]
     # 合同化 SKIP（exit 77）= 命令真实执行并产出 SKIP 证据, 与选择阶段排除
     # （platform/prerequisite, exit_code=None）不同: 后者保持冻结语义
     # （全部排除 → FAIL no_checks_selected, test_windows_ci.py 冻结）。
@@ -1242,7 +1272,12 @@ def build_ci_result(*, repo: Path, profile: str, selected_meta: dict, check_resu
         verdict_reason = None
     elif passed and skipped:
         verdict = "PASS"
-        verdict_reason = f"全部非 waivable 检查 PASS；{len(skipped)} 项 SKIPPED(waivable)"
+        verdict_reason = (
+            f"全部非 waivable 检查 PASS；{len(skipped)} 项 SKIPPED"
+            "（waivable "
+            f"{len([r for r in skipped if r['verdict'] == V_SKIP_WAIVABLE])} / "
+            "optional_input "
+            f"{len([r for r in skipped if r['verdict'] == V_SKIP_OPTIONAL_INPUT])}）")
     else:
         verdict = "FAIL"
         verdict_reason = "无可判定结果"
@@ -1283,7 +1318,10 @@ def build_ci_result(*, repo: Path, profile: str, selected_meta: dict, check_resu
             "pass": len(passed),
             "fail": len([r for r in executed if r["verdict"] in HARD_FAILURE_VERDICTS]),
             "known_fail": len(known_fail),
-            "skipped_waivable": len(skipped),
+            "skipped_waivable": len([r for r in skipped
+                                      if r["verdict"] == V_SKIP_WAIVABLE]),
+            "skipped_optional_input": len([r for r in skipped
+                                           if r["verdict"] == V_SKIP_OPTIONAL_INPUT]),
             "fail_detail": {v: len([r for r in executed if r["verdict"] == v])
                             for v in HARD_FAILURE_VERDICTS
                             if any(r["verdict"] == v for r in executed)},

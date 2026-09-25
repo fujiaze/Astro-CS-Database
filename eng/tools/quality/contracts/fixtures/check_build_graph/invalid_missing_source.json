@@ -1,1 +1,1 @@
-{"tool": "check_build_graph", "status": "FAIL", "reason": "BUILD_GRAPH missing target phase2 or upm.cpp missing"}
+{"tool": "check_build_graph", "status": "FAIL", "reason": "check_build_graph --self-test 的判别力负例 neg_source_digest_drift：生产面某行的源集指纹与构建图不一致（判据 C3）⇒ FAIL"}

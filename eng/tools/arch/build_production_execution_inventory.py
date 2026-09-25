@@ -1,9 +1,32 @@
 #!/usr/bin/env python3
-"""ARCH-001: 从符号检索生成 PRODUCTION_EXECUTION_INVENTORY.csv (生成器, 可重跑)。"""
-import csv, os, re, fnmatch, subprocess, json, datetime
+"""ARCH-001: 生成 PRODUCTION_EXECUTION_INVENTORY.csv（生成器，可重跑）。
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-OUT = os.path.join(REPO, "docs", "architecture", "PRODUCTION_EXECUTION_INVENTORY.csv")
+存在理由（独立审查一页纸 S1 第 22／29 条）
+  * 第 22 条：本生成器曾被校验器跑到**被校对象**上（eng/tests/arch/test_inventory.py
+    的 test_05 先读跟踪件字节、再在原地重跑生成器覆写该文件）⇒ 差异在第一跑即被抹掉、
+    第二跑必然通过。故本生成器支持 --out：校验器写临时目录再比对，跟踪件保持只读。
+  * 第 29 条：exe_target 面原先只扫 lib/ 与 eng/tools，生产入口 acsd（根 CMakeLists.txt）
+    因此完全不在登记面，而「没登记」还被写成通过条件。故 exe 面补读**根构建图目标集**
+    （eng/ci/cmake_graph.py，唯一实现）：登记集合必须包含构建产出的可执行目标集合。
+    非根构建图的子项目目标按原 rg() 口径保留（登记面只增不减，分类与注记原样）。
+
+口径
+  - 只读源树；唯一写操作 = 写 --out（默认跟踪件）；
+  - 确定性：同一棵树两次运行逐字节一致（幂等由 test_inventory.py::test_05 断言）；
+  - 源文件读失败 fail-fast（宪章 §14.4），不得静默产出不完整清单；
+  - 根构建图读取器缺失时**不静默**：打到 stderr（仅夹具树允许缺，真仓由测试判红）。
+"""
+import argparse, csv, fnmatch, importlib.util, json, os, pathlib, re, sys
+
+REPO_DEFAULT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+_AP = argparse.ArgumentParser(description="ARCH-001 生产执行清单生成器（可重跑）")
+_AP.add_argument("--repo", default=REPO_DEFAULT, help="仓库根（默认由脚本位置推导）")
+_AP.add_argument("--out", default=None,
+                 help="输出 CSV 路径（默认跟踪件 docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv）")
+_ARGS = _AP.parse_args()
+REPO = os.path.abspath(_ARGS.repo)
+OUT = os.path.abspath(_ARGS.out) if _ARGS.out else os.path.join(
+    REPO, "docs", "architecture", "PRODUCTION_EXECUTION_INVENTORY.csv")
 COLS = ["category", "symbol", "location", "classification", "production_reachable",
         "phase", "thread_model", "evidence", "risk_note"]
 
@@ -42,6 +65,26 @@ rows, notes = [], []
 def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):
     rows.append(dict(zip(COLS, [cat, sym, loc, cls, reach, phase, tm, ev, risk])))
 
+# 0 真实构建图（唯一实现 eng/ci/cmake_graph.py；一页纸 S1 第 25/26/29 条共用）
+def _load_graph_module():
+    path = os.path.join(REPO, "eng", "ci", "cmake_graph.py")
+    if not os.path.isfile(path):
+        return None
+    spec = importlib.util.spec_from_file_location("acsd_cmake_graph", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+GRAPH_MOD = _load_graph_module()
+GRAPH = None
+ENTRY = None
+if GRAPH_MOD is not None:
+    GRAPH = GRAPH_MOD.parse_cmake_graph(pathlib.Path(REPO))
+    ENTRY = GRAPH_MOD.production_entry(pathlib.Path(REPO))
+else:
+    print("WARNING: 未找到 eng/ci/cmake_graph.py —— 根构建图 exe 面未登记（仅夹具树允许）",
+          file=sys.stderr)
+
 # 1 exe 目标(生产=acsd CLI 唯一; 其余标 test/tool)
 exe = rg("add_executable", ["lib", "eng/tools"], "*.txt") + rg("add_executable", ["lib"], "*.cmake")
 seen = set()
@@ -54,6 +97,26 @@ for line in exe:
     is_prod = name in ("acsd", "astrocs_cli", "astrocsCLI")
     add("exe_target", name, tgt, "production" if is_prod else ("test" if name.startswith("test_") else "tool"),
         "yes" if is_prod else "no", "-", "n/a(单exe策略)" if is_prod else "非发布目标", line.split(":",2)[0]+":"+line.split(":",2)[1].split(":")[0])
+
+# 1b 根构建图目标集（一页纸 S1 第 29 条）：生产入口与全部构建产出的可执行目标必须
+#    落在登记面里 —— 「登记集合 包含 构建产出的可执行目标集合」由
+#    eng/tests/arch/test_inventory.py::test_04 断言（不是断言「production exe 数 == 0」）。
+if GRAPH is not None:
+    for _name in sorted(GRAPH_MOD.executable_targets(GRAPH)):
+        if _name in seen:
+            continue
+        _info = GRAPH["targets"][_name]
+        _is_prod = (_name == ENTRY)
+        _loc = _info["file"]
+        _is_test = (_name.startswith("test_") or _name.endswith("_test")
+                    or "/tests/" in _loc or "/test/" in _loc)
+        add("exe_target", _name, _loc,
+            "production" if _is_prod else ("test" if _is_test else "tool"),
+            "yes" if _is_prod else "no", "-",
+            "n/a(单exe策略)" if _is_prod else "非发布目标",
+            GRAPH_MOD.target_anchor(pathlib.Path(REPO), _name, _info),
+            "发布面唯一入口（ARCHITECTURE 不变量 1 / 最高设计 §6.2）" if _is_prod else "非发布目标")
+        seen.add(_name)
 
 # 2 OpenMP 内核(生产 lib, 排除 archive/third_party)
 omp = rg("pragma omp", ["lib"])
@@ -133,6 +196,7 @@ for _rel in PRODUCTION_UNREACHABLE:
         if _rel not in io_files:
             raise SystemExit("PRODUCTION_UNREACHABLE 登记项已失效(不再命中 I/O 符号面): %s" % _rel)
 
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", newline="", encoding="utf-8") as fh:
     w = csv.DictWriter(fh, fieldnames=COLS, lineterminator="\n")
     w.writeheader(); w.writerows(rows)

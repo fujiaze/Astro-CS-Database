@@ -25,8 +25,12 @@ _WRAPPER = textwrap.dedent('''
             pass
         return _real(file, *a, **k)
     builtins.open = _counting
+    # 生成器已是真 CLI（--out/--repo）：runpy 会把本包装器的 argv 带进去，
+    # 故显式给它一个干净的 argv（argv[0] = 生成器路径），与生产调用同形。
+    _gen = sys.argv[1]
+    sys.argv = [_gen]
     try:
-        runpy.run_path(sys.argv[1], run_name="__main__")
+        runpy.run_path(_gen, run_name="__main__")
         rc = 0
     except BaseException:
         import traceback; traceback.print_exc(); rc = 1

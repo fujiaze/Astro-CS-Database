@@ -383,7 +383,14 @@ PressureSample MemoryPressureGovernor::step_locked(Impl& s, double now) {
     s.high_ticks++;
     const std::uint64_t th = std::max<std::uint32_t>(1, s.policy.evict_after_samples);
     if (s.high_ticks >= th && ((s.high_ticks - th) % th) == 0) {
-      (void)s.evict_one_locked();
+      if (!s.evict_one_locked()) {
+        // 无可丢弃候选（在飞帧全部已越过安全点）⇒ 显式登记"本轮不丢"的理由。
+        // 这是"不得静默"的一部分：**没丢**也是一个决策，必须能解释。
+        s.event("evict_no_candidate", PressureAction::EVICT_LOWEST, now, nullptr,
+                "eviction round due but no discardable in-flight frame "
+                "(all have passed their safe point): stop-dispatch alone holds the "
+                "pressure; nothing is discarded rather than risking a half-product");
+      }
     }
   } else {
     s.high_ticks = 0;
@@ -423,6 +430,17 @@ bool MemoryPressureGovernor::may_dispatch() {
     return false;
   }
   return true;
+}
+
+void MemoryPressureGovernor::observe() {
+  std::lock_guard<std::mutex> lk(impl_->mu);
+  Impl& s = *impl_;
+  if (!s.policy.enabled) return;              // 关闭 ⇒ 零副作用
+  const double now = s.clock();
+  if (!(s.sample_interval > 0.0) || !s.last_valid ||
+      (now - s.last.ts) >= s.sample_interval) {
+    (void)step_locked(s, now);
+  }
 }
 
 PressureLevel MemoryPressureGovernor::level() const {
@@ -554,8 +572,12 @@ void MemoryPressureGovernor::set_frame_label(std::uint64_t ticket,
 void MemoryPressureGovernor::record_note(const char* event,
                                          const std::string& note) {
   std::lock_guard<std::mutex> lk(impl_->mu);
-  impl_->event(event ? event : "note", PressureAction::NONE, impl_->last.ts,
-               nullptr, note);
+  Impl& s = *impl_;
+  // 先推一次采样（按节流间隔）：使台账行携带**记这条事件那一刻**的 RSS/压力，
+  // 而不是上一次派发判定的旧值（帧轴汇总行因此反映"本 op 跑完时"的压力）。
+  (void)step_locked(s, s.clock());
+  impl_->event(event ? event : "note", PressureAction::NONE, s.last.ts, nullptr,
+               note);
 }
 
 void MemoryPressureGovernor::set_ledger_path(const std::string& path) {

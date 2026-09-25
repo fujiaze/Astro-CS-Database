@@ -1,66 +1,121 @@
 # Build Graph
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：ASTROCS_DESIGN.md §8（软件架构）；ARCHITECTURE.md §1（总览与单一入口）、§7 不变量 1。
 
-> 生产构建图: target/source/define/link 与 CMake File API/compile_commands.json 对应
+> **本文的构建图机器块由生成器从根 CMake 构建图导出**：
+> 命令 = python3 eng/tools/arch/gen_build_graph_doc.py（根 CMakeLists 或子目录源集变动后重跑）。
+> 门 = CON-BUILD-GRAPH（python3 eng/tools/quality/contracts/check_build_graph.py）：
+> 逐行比对目标集（与生产闭包的双向差集）、类型、定义文件与源集摘要；判据的输入是构建图本身。
+> 判别力自证 = 同一条命令加 --self-test。
 
-> ⚠ **生产构建采用无 ACR/CUDA 的链接面**：
-> 最高设计 §8「生产目标只编译链接非 ACR 源文件；GPU 路由开关与
-> 第二个可执行入口」；ACR 状态 = `DORMANT`（保留源码与隔离测试，不进生产构建/加载/路由/
-> benchmark/发布）。因此 **§1/§2/§3/§4 中的 ACR 源集、ACR 编译定义、ACR 链接行与
-> `astrocs-stage2` 目标均不是生产构建面**（下表已逐行标注）。
-> **代码侧整改（从生产源集与链接中移除 ACR）归代码任务**；本文件为文档侧如实登记。
+## 1 生产构建图（生产入口的传递闭包）
 
-## 1 顶层 targets
+生产入口取自 eng/ci/spec_named_impls.json 的 production_entry。下表 = 该入口沿
+target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根 CMakeLists.txt
+沿未注释 add_subdirectory 递归。src_fingerprint = 该 target 源集（排序后逐行连接）的 sha256 前 12 位，4-4-4 分组书写。
 
-| Target | Type | Sources | CMakeLists |
-|---|---|---|---|
-| phase2（**现状，含 ACR 违规**） | STATIC | src/upm.cpp, stage2_common.cpp, rejection.cpp, coverage.cpp, sampler.cpp, block.cpp, integrate.cpp, common/healpix_core.cpp, common/crypto/sha256.cpp —— ⛔ **现状源集另含 `acr_kernels.cpp` / `acr/api/kernel_registry.cpp` / `acr/backends/cuda/cuda_bridge_loader.cpp` / `acr/scheduler/device_executor.cpp`，违反最高设计 §8，须从生产源集移除（代码侧整改）** | lib/algorithms/coverage/CMakeLists.txt |
-| ~~astrocs-stage2~~（**非发布入口**） | EXEC | lib/algorithms/coverage/tools/stage2.cpp —— 旧 Phase2 CLI，**不是入口**（最高设计 §6.2 / §7.1「旧可执行程序不是入口」）；仅保留为工具面，**发布目标 = §6.2 唯一命令树** | lib/algorithms/coverage/CMakeLists.txt |
-| calibrated_pair_diag | EXEC | lib/algorithms/coverage/tools/calibrated_pair_diag.cpp | lib/algorithms/coverage/CMakeLists.txt |
-| rejection_cli | EXEC | lib/algorithms/coverage/tools/rejection_cli.cpp | lib/algorithms/coverage/CMakeLists.txt |
-| phase2_synthetic_gate | TEST | lib/algorithms/coverage/tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
-| orchestrator.exe | EXEC | cpp/src/main.cpp, orchestrator.cpp, cli_command.cpp | lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt |
-| astro_image_io.dll | SHARED | src/*.cpp + hips/* + cfitsio | lib/infrastructure/aio/CMakeLists.txt |
-| hepix_drizzle | STATIC/SHARED | healpix_drizzle/*.cpp | lib/algorithms/drizzle/healpix_drizzle/CMakeLists.txt |
+<!-- BUILD-GRAPH-TABLE:BEGIN -->
+| target | kind | cmakelists | sources | src_fingerprint |
+|---|---|---|---|---|
+| acsd | add_executable | CMakeLists.txt | 5 | 8a28-c03e-0a23 |
+| astrocs_aio | add_library | CMakeLists.txt | 8 | 00cb-06ac-ca2e |
+| astrocs_calibration | add_library | CMakeLists.txt | 5 | df12-9401-fe58 |
+| astrocs_cfitsio | add_library | CMakeLists.txt | 0 | e3b0-c442-98fc |
+| astrocs_cli_runtime | add_library | CMakeLists.txt | 1 | 302c-75f0-f0b7 |
+| astrocs_cli_subcommands | add_library | lib/infrastructure/cli/CMakeLists.txt | 0 | e3b0-c442-98fc |
+| astrocs_common | add_library | CMakeLists.txt | 2 | 0999-866f-1db8 |
+| astrocs_contracts | add_library | CMakeLists.txt | 0 | e3b0-c442-98fc |
+| astrocs_core | add_library | CMakeLists.txt | 19 | a537-24d4-cfa9 |
 
-## 2 Compile definitions
+| target | kind | cmakelists | sources | src_fingerprint |
+|---|---|---|---|---|
+| astrocs_cpu | add_library | CMakeLists.txt | 12 | 2652-49d2-aaef |
+| astrocs_drizzle | add_library | CMakeLists.txt | 10 | 55ab-3624-4493 |
+| astrocs_hips | add_library | CMakeLists.txt | 11 | c417-1ccb-f83e |
+| astrocs_hips_properties | add_library | CMakeLists.txt | 1 | e540-501d-bac6 |
+| astrocs_identifiability | add_library | CMakeLists.txt | 1 | 8c32-1b51-d415 |
+| astrocs_module_adapters | add_library | CMakeLists.txt | 3 | 5f34-5c8a-c1c5 |
+| astrocs_p1_dpsf | add_library | CMakeLists.txt | 3 | bd4b-5760-44b7 |
+| astrocs_p1_ipv | add_library | CMakeLists.txt | 14 | bf86-f77b-497a |
+| astrocs_p1_sdet | add_library | CMakeLists.txt | 6 | 64f6-d6c1-554b |
 
-| Define | Target | Source | 证据 |
-|---|---|---|---|
-| P2_ENABLE_OPENMP=ON | phase2 | `option(P2_ENABLE_OPENMP OFF) hard-disable` → `if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND) target_link OpenMP::OpenMP_CXX` | lib/algorithms/coverage/CMakeLists.txt:18,54 |
-| OpenMP_CXX_FOUND=FALSE when OFF | phase2 | `set(OpenMP_CXX_FOUND FALSE)` when OFF | lib/algorithms/coverage/CMakeLists.txt:28 |
-| ~~ACR_BUILD_CUDA=OFF default~~ **DORMANT（非生产）** | acr | `option(ACR_BUILD_CUDA OFF)` —— ACR 整体 `DORMANT`，**不进生产构建**（最高设计 §8） | lib/infrastructure/acr/CMakeLists.txt |
+| target | kind | cmakelists | sources | src_fingerprint |
+|---|---|---|---|---|
+| astrocs_p3_fits_output | add_library | lib/algorithms/fits_output/CMakeLists.txt | 1 | de8b-c0b3-0a99 |
+| astrocs_p3_projection_wcs | add_library | lib/algorithms/projection/CMakeLists.txt | 1 | 81c4-3738-7e10 |
+| astrocs_p3_rsmp | add_library | lib/algorithms/resample/CMakeLists.txt | 7 | 74a1-a82a-a146 |
+| astrocs_phase1_noise | add_library | CMakeLists.txt | 3 | 380c-35c1-6401 |
+| astrocs_phase1_phot | add_library | CMakeLists.txt | 1 | 0752-1556-f4aa |
+| astrocs_phase1_photcal | add_library | CMakeLists.txt | 7 | 8e2a-a074-caf3 |
+| astrocs_phase1_session | add_library | CMakeLists.txt | 1 | a498-df53-69af |
+| astrocs_phase1_stars | add_library | CMakeLists.txt | 1 | d71e-d61c-4a2d |
+| astrocs_phase1_wcs | add_library | CMakeLists.txt | 1 | eab3-b424-92fe |
 
-## 3 Link libraries
+| target | kind | cmakelists | sources | src_fingerprint |
+|---|---|---|---|---|
+| astrocs_phase2 | add_library | CMakeLists.txt | 9 | 1f29-dde6-2cba |
+| astrocs_phase2_session | add_library | CMakeLists.txt | 1 | 8229-66f7-9313 |
+| astrocs_phase3_session | add_library | CMakeLists.txt | 1 | fdfa-26f7-e91a |
+| astrocs_probes | add_library | CMakeLists.txt | 1 | 3f51-ed08-c746 |
+<!-- BUILD-GRAPH-TABLE:END -->
 
-| From | To | Via |
+## 2 非生产闭包面（交付件与工具面）
+
+下表 target 真实存在于根构建图，且不在生产入口的链接闭包内：安装树交付件（运行期按 ABI
+加载）与迁移冻结的工具面。判据 C4：任一行进入生产闭包即判红。
+
+<!-- BUILD-GRAPH-NONPROD:BEGIN -->
+| target | 理由 |
+|---|---|
+| acsd_runtime | 安装树根的平台 SHARED（交付件，运行期加载） |
+| acsd_io | 安装树根的平台 SHARED（交付件，运行期加载） |
+| astrocs_noop | 安装到 modules/ 的一致性模块（交付件） |
+| astrocs_catalog_gaia | 安装到 modules/ 的星表服务模块（交付件） |
+| astrocs_p1_drizzle | 安装到 modules/ 的 Phase1 模块（交付件） |
+| astrocs_p1_calibration | 安装到 modules/ 的 Phase1 模块（交付件） |
+| astrocs_p1_cosmetic | 安装到 modules/ 的 Phase1 模块（交付件） |
+| astrocs_p1_hips_writer | 安装到 modules/ 的 Phase1 模块（交付件） |
+| astrocs_cpu_baseline | 安装到 providers/ 的 baseline provider（交付件） |
+
+| target | 理由 |
+|---|---|
+| astrocs-stage2 | Phase2 工具面（ARCHITECTURE §1 迁移冻结：非入口） |
+| orchestrator_legacy_cli | Phase1 编排工具面（ARCHITECTURE §1 迁移冻结：非入口） |
+| calibrated_pair_diag | 标定对诊断工具（非入口） |
+| rejection_cli | 排异诊断工具（非入口） |
+| m42_criterion_probe | 判据探针工具（非入口） |
+<!-- BUILD-GRAPH-NONPROD:END -->
+
+## 3 非根图目标（子项目自有 CMakeLists）
+
+下表 target 不在根构建图内：其 CMakeLists 未被根 CMakeLists 的 add_subdirectory 纳入。
+判据 C5：任一行出现在根构建图内即判红。
+
+<!-- BUILD-GRAPH-NONROOT:BEGIN -->
+| target | cmakelists | 理由 |
 |---|---|---|
-| ~~astrocs-stage2~~（**非发布入口**） | phase2 + astro_image_io.dll | `target_link_libraries(astrocs-stage2 PRIVATE phase2 astro_image_io.dll)` lib/algorithms/coverage/CMakeLists.txt:73 —— 该目标**不是入口**（最高设计 §6.2/§7.1） |
-| phase2 (when ON) | OpenMP::OpenMP_CXX | `target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)` |
-| ~~acr_cuda_bridge.dll~~ **DORMANT（生产目标链接面排除此项）** | ~~phase2 executables~~ | POST_BUILD copy to TARGET_FILE_DIR if EXISTS —— **生产构建采用无 ACR/CUDA 的链接面**（最高设计 §8），该 POST_BUILD 拷贝须移除（代码侧整改） |
+| healpix_browser_qt | lib/infrastructure/hips_browser/healpix_browser_qt/CMakeLists.txt | 浏览器工具（ARCHITECTURE §1 迁移冻结：工具面） |
+| browser_cli | lib/infrastructure/hips_browser/healpix_browser_qt/CMakeLists.txt | 浏览器工具（ARCHITECTURE §1 迁移冻结：工具面） |
+| acr-benchmark | lib/infrastructure/acr/tools/acr_benchmark/CMakeLists.txt | ACR DORMANT（最高设计 §8：不进生产构建） |
+| acr_test_api | lib/infrastructure/acr/tests/unit/CMakeLists.txt | ACR DORMANT（最高设计 §8：不进生产构建） |
+<!-- BUILD-GRAPH-NONROOT:END -->
 
-## 4 File-API / compile_commands 对应
+## 4 编译定义与链接面
 
-| 声明 | File-API codemodel target | compile DB |
-|---|---|---|
-| phase2 STATIC | `phase2` reply `targetSources + compileGroups` | `compile_commands.json` entries for src/*.cpp with `__cplusplus=202002L` |
-| astrocs-stage2 EXEC | `astrocs-stage2` target | `lib/algorithms/coverage/tools/stage2.cpp` compile command |
-| orchestrator EXEC | `orchestrator` target | `cpp/src/*.cpp` commands |
+- OpenMP：lib/algorithms/coverage/CMakeLists.txt 的 option(P2_ENABLE_OPENMP ... OFF) 默认关；
+  取 ON 且找到 OpenMP 时才 target_compile_definitions(... P2_ENABLE_OPENMP=1) 并链接
+  OpenMP::OpenMP_CXX —— 编译定义与链接同源，见该文件。
+- ACR/CUDA：ACR 状态 DORMANT，其源集、编译定义、链接行与安装单元都在生产面之外
+  （最高设计 §8）；生产安装面的 target 集合见 eng/cmake/install_layout.cmake。
 
-验证: `cmake --build --verbose` 显示命令含 `-std=c++20` + `-D` + `-I` 与声明一致; File-API `reply/codemodel-v2-*.json` 的 `targets[].sources` 与上表一致 (contracts configure 时落地)。
+## 5 复算
 
-## 5 验证方法
+    python3 eng/tools/arch/gen_build_graph_doc.py            # 从构建图导出机器块
+    python3 eng/tools/quality/contracts/check_build_graph.py # 门（PASS / FAIL）
+    python3 eng/tools/quality/contracts/check_build_graph.py --self-test
 
-```sh
-cmake -S lib/algorithms/coverage -B build/linux-release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DP2_ENABLE_OPENMP=OFF
-cmake --build build/linux-release --verbose | grep phase2
-cat build/linux-release/compile_commands.json | python3 -m json.tool | grep -c "phase2/src"
-cat build/linux-release/.cmake/api/v1/reply/codemodel-v2-*.json | python3 -m json.tool | grep target
-```
+## 6 关联
 
-## 6 ARC 映射
-
-- ARC-BUILD-001: phase2 STATIC 源集
-- ARC-BUILD-002: P2_ENABLE_OPENMP compile/linker 编排
-- ARC-BUILD-003: acr_cuda_bridge.dll 运行时投递
+- 安装树：eng/cmake/install_layout.cmake + eng/packaging/install-tree.contract.json；
+- 执行面登记：docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv；
+- 规范点名实现的生产可达性：eng/ci/check_spec_named_impl.py。

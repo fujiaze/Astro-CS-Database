@@ -284,3 +284,48 @@ if(WIN32)
   set_tests_properties(drizzle_l3_full_fp32 PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
 endif()
+
+# ============================================================================
+# 10. DRZ-PF-CORRECT-01 (S1 第 18 条): pixfrac<1 面亮度归一的**在册用例**
+# ----------------------------------------------------------------------------
+# 背景: 第 7 段的 DRZ_EXTRA_TESTS 只编入不注册; 而 variance_propagation_test 的
+# oracle 旧版用覆盖率 sumArea 当分母、唯一调用点只用 pixfrac=1.0 ⇒ "分母口径取错"
+# 在结构上测不到。本轮已把 oracle 期望式改为科学正本口径
+# (S_p=sumFlux/sumNorm、var_p=sumVarNum/sumNorm²; docs/science/DRIZZLE.md §5:50/83)
+# 并把 pf∈{1.0,0.8,0.5,0.25} 全部纳入判据 ⇒ 该可执行成为**在册**门。
+# 实测 ~70 s (含 MC); 超时 1800 s 留 25x 余量。
+# ============================================================================
+# 名字前缀 drizzle_pf_sb_* 与 10b 的两个直写门同族 ⇒ 注册项 CHK-DRZ-PF-AREA-S1
+# 用单条 ctest 正则 ^drizzle_pf_sb.*$ 一次覆盖「oracle 幂次 + 产品级正例 + 负例注入」。
+add_test(NAME drizzle_pf_sb_variance COMMAND variance_propagation_test)
+set_tests_properties(drizzle_pf_sb_variance PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
+
+# ----------------------------------------------------------------------------
+# 10b. drizzle_pf_sb_gate: **产品级**门 — 两个 HiPS 直写末端在 pixfrac<1 上
+#      发布的 signal/variance 必须是面亮度口径 (读回落盘 FITS, 非只看累加器)。
+#      profile=0 = write_hips_direct (生产管线 orchestrator -> hp_drizzle_run_hips
+#      走这一支), profile=1 = write_hips_phase1。
+#      负例 (同一可执行 + 同一判据): ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization
+#      复现修复前缺陷 (直写漏乘 k=D_p/N_p) ⇒ 必须判红 (WILL_FAIL)。
+# ----------------------------------------------------------------------------
+add_executable(drizzle_pf_sb_gate ${DRZ_TESTS_DIR}/drizzle_pf_sb_gate.cpp)
+target_include_directories(drizzle_pf_sb_gate PRIVATE
+  ${DRZ_MODULE_DIR}
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include)
+target_compile_definitions(drizzle_pf_sb_gate PRIVATE
+  AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(drizzle_pf_sb_gate PRIVATE
+  astrocs_drizzle astrocs_hips ${ASTROCS_OMP_TARGET})
+add_test(NAME drizzle_pf_sb_gate
+  COMMAND drizzle_pf_sb_gate ${CMAKE_BINARY_DIR}/drizzle_pf_sb_gate)
+set_tests_properties(drizzle_pf_sb_gate PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
+add_test(NAME drizzle_pf_sb_gate_legacy_injection
+  COMMAND drizzle_pf_sb_gate ${CMAKE_BINARY_DIR}/drizzle_pf_sb_gate_neg)
+set_tests_properties(drizzle_pf_sb_gate_legacy_injection PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600
+  WILL_FAIL TRUE
+  ENVIRONMENT "ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization")
+

@@ -1,1 +1,1 @@
-{"tool": "check_build_graph", "status": "PASS", "fixtures": "BUILD_GRAPH.md with 8 targets + P2_ENABLE_OPENMP + CMakeLists targets"}
+{"tool": "check_build_graph", "status": "PASS", "fixtures": "check_build_graph --self-test 的保护性正例 pos_doc_matches_graph：临时夹具仓的 BUILD_GRAPH.md 机器块与根 CMake 构建图逐行一致 ⇒ PASS"}

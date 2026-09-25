@@ -166,6 +166,11 @@ class MemoryPressureGovernor {
   // 内部按 min_sample_interval 节流采样（interval 由调用方经 set_sample_interval 设）。
   bool may_dispatch();
 
+  // 只推一次采样（按同一节流间隔），**不**改派发判定、**不**计 blocked 计数。
+  // 用途：让调用侧在"帧认领/帧完成/安全点"等自然节拍上推进压力状态机，使压力曲线
+  // 与丢弃判定不只在认领那一刻才有数据（否则帧数 ≤ 并发槽位的 run 里状态机几乎不推进）。
+  void observe();
+
   PressureLevel level() const;
   PressureSample last_sample() const;
   std::uint64_t stop_events() const;     // 进入 HIGH 的次数
@@ -200,6 +205,7 @@ class MemoryPressureGovernor {
 
   // 记一条具名台账事件（调用方自定义 event 名与 note）。用于把**调用侧**的决策
   // （如帧轴的「无在飞帧时放行」「逐 op 汇总」）也落盘 —— 不得静默。
+  // 落行前会按节流间隔推一次采样，故该行的 rss/pressure 是"记这条事件那一刻"的值。
   void record_note(const char* event, const std::string& note);
 
   // ── 台账（§8.3:612「随事件流落盘」）──

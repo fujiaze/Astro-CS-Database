@@ -1855,6 +1855,7 @@ struct P1FrameAxisReport {
   std::atomic<uint64_t> reruns{0};           // 重跑次数（§8.3:615「随后重新开始」）
   std::atomic<uint64_t> escapes{0};          // 无在飞帧时的放行次数（防挂死；落台账）
   std::atomic<uint64_t> completed{0};        // 最终完成的帧数
+  std::atomic<uint64_t> pinned{0};           // 因丢弃达上限而被钉住的帧数（不再丢弃，仍执行）
 };
 
 // 线程本地当前帧上下文（帧体内安全点据此判定是否被丢弃）
@@ -1887,6 +1888,8 @@ uint32_t p1_dag_stage_index(const std::string& node, uint32_t* total) {
 bool p1_frame_should_abandon(const std::string& frame_label) {
   P1FrameCtx* c = t_p1_frame_ctx;
   if (c == nullptr || c->gov == nullptr || c->ticket == 0) return false;
+  // 安全点也是自然节拍：先推一次采样（可能使本帧在本轮被选为牺牲帧）。
+  c->gov->observe();
   // 认领时只有占位名；此处用真实身份（本帧输入/产物路径）改写，使台账能指名道姓。
   c->gov->set_frame_label(c->ticket, p1_base_name(frame_label));
   if (c->gov->frame_evicted(c->ticket)) {
@@ -1998,6 +2001,9 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   std::mutex dq_mu;
   std::vector<uint64_t> deferred;
   std::vector<uint32_t> rerun_count(governed ? static_cast<size_t>(n) : 0u, 0u);
+  // pinned[i] = 该帧已被丢弃达上限 ⇒ 钉住（不再可丢弃，只跑完；见 requeue_discarded）。
+  std::vector<char> pinned(governed ? static_cast<size_t>(n) : 0u, 0);
+  std::vector<uint64_t> pinned_frames;   // 钉住事件（dq_mu 保护）
   // 重跑上限：同一帧被丢弃超过 kMaxReruns 次 ⇒ fail-closed（不静默丢帧，见函数尾）。
   // 取值 8：丢弃侧已按「逐帧身份已丢弃次数升序」轮转（不会盯着一帧反复丢），故 8 次
   // 已远超"正常高压下同一帧被反复丢弃"的量级；撞上它意味着压力长期高于预算且帧
@@ -2005,7 +2011,6 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   constexpr uint32_t kMaxReruns = 8;
   constexpr int kGateSleepMs = 50;   // 被门挡下的让出间隔（不忙等自旋）
   std::atomic<uint64_t> done{0};
-  std::atomic<bool> overflow{false};
   P1FrameAxisReport rep;
 
   auto claim = [&](uint64_t* out) -> bool {
@@ -2018,15 +2023,28 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
     *out = i;
     return true;
   };
-  auto requeue = [&](uint64_t i) {
+  // 压力门挡下（该帧**一点工作都没开始**）⇒ 回队，**不计重跑次数**
+  // —— 这不是"丢弃后重跑"，只是排队等待；把它算进重跑预算会让"持续高压"把预算耗尽。
+  auto requeue_gated = [&](uint64_t i) {
+    std::lock_guard<std::mutex> lk(dq_mu);
+    deferred.push_back(i);
+  };
+  // 丢弃后重跑（§8.3:615）⇒ 计数；同一帧被丢弃达 kMaxReruns 后把该帧**钉住**：
+  // 此后它仍是"必须跑完的帧"，只是不再作为牺牲帧候选。
+  // 语义依据：颠簸的正确代价是"停止丢弃这一帧"，**不是**丢掉它、也不是把整轮判失败
+  //（持续高压下"少丢几次"是允许的策略退化，"少一帧产品"不是）。
+  auto requeue_discarded = [&](uint64_t i) {
     std::lock_guard<std::mutex> lk(dq_mu);
     const size_t k = static_cast<size_t>(i);
-    if (rerun_count[k] + 1u > kMaxReruns) {
-      overflow.store(true);
-      done.store(n, std::memory_order_release);   // 终止全部 worker，随后 fail-closed
-      return;
+    if (rerun_count[k] >= kMaxReruns) {
+      if (!pinned[k]) {
+        pinned[k] = 1;
+        rep.pinned.fetch_add(1);
+        pinned_frames.push_back(i);   // join 后落台账（钉住这件事不静默）
+      }
+    } else {
+      rerun_count[k] += 1u;
     }
-    rerun_count[k] += 1u;
     deferred.push_back(i);
   };
 
@@ -2056,14 +2074,27 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
             const bool allow = gov->may_dispatch();
             if (!allow && gov->in_flight_count() > 0) {
               rep.gated.fetch_add(1);
-              requeue(i);
+              requeue_gated(i);
+              std::this_thread::sleep_for(std::chrono::milliseconds(kGateSleepMs));
+              continue;
+            }
+            ticket = gov->begin_frame(gov_stage + "#" + std::to_string(i), gov_stage,
+                                      gov_stage_index, gov_stage_total);
+            // 放行（escape）**只放一帧**：上面看到 in_flight==0 才走到这里，但多个 worker 可能
+            // 同时看到 0 ⇒ 若都放行，高压下会瞬间放进一整个并发批次（与"不派发新异步并发"
+            // 相反）。登记后复核：已有别人在飞 ⇒ 让出并回队（不是丢帧，只是排队）。
+            if (!allow && gov->in_flight_count() > 1) {
+              gov->end_frame(ticket);
+              rep.gated.fetch_add(1);
+              requeue_gated(i);
               std::this_thread::sleep_for(std::chrono::milliseconds(kGateSleepMs));
               continue;
             }
             if (!allow) rep.escapes.fetch_add(1);
-            ticket = gov->begin_frame(gov_stage + "#" + std::to_string(i), gov_stage,
-                                      gov_stage_index, gov_stage_total);
             rep.governed_claims.fetch_add(1);
+            // 已钉住的帧 ⇒ 登记后立即标记"越过安全点"，使其永不进入牺牲帧候选集
+            //（钉住 = 停止丢弃它，帧本身照常跑完并产出）。
+            if (pinned[static_cast<size_t>(i)]) gov->mark_frame_committed(ticket);
           }
           P1FrameCtx fc;
           fc.gov = governed ? gov : nullptr;
@@ -2074,16 +2105,24 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
             body(i, w);
           } catch (...) {
             t_p1_frame_ctx = prev_ctx;
-            if (ticket != 0) gov->end_frame(ticket);
+            if (ticket != 0) {
+              gov->end_frame(ticket);
+              gov->observe();
+            }
             throw;
           }
           t_p1_frame_ctx = prev_ctx;
-          if (ticket != 0) gov->end_frame(ticket);
+          if (ticket != 0) {
+            gov->end_frame(ticket);
+            // 帧完成 = 自然节拍：推一次采样，使压力状态机在"帧数 ≤ 并发槽位"的 run 里
+            // 也能推进（否则状态机只在认领那一刻有数据 ⇒ 门与丢弃都成摆设）。
+            gov->observe();
+          }
           if (fc.abandoned) {
             // §8.3:615：本帧的处理进度已被丢弃并释放其占用 ⇒ **重新开始**。
             rep.abandoned.fetch_add(1);
             rep.reruns.fetch_add(1);
-            requeue(i);
+            requeue_discarded(i);
             continue;   // done 不增：本帧尚未产出，不得计入完成
           }
           rep.completed.fetch_add(1);
@@ -2098,26 +2137,41 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   for (const auto& e : eptr)
     if (e) std::rethrow_exception(e);
   // §8.3:612「随事件流落盘」：逐 op 一条汇总行（决策不得静默）。
+  if (governed && !pinned_frames.empty()) {
+    std::string pl;
+    for (uint64_t idx : pinned_frames) {
+      if (!pl.empty()) pl += ",";
+      pl += std::to_string(idx);
+    }
+    gov->record_note("frame_pinned",
+                     "frames whose discards reached the rerun cap are pinned (never "
+                     "discarded again; still executed to completion): indices=" + pl);
+  }
   if (governed) {
-    char buf[320];
+    char buf[384];
     std::snprintf(buf, sizeof(buf),
                   "stage=%s stage_index=%u/%u claims=%llu gated=%llu abandoned=%llu "
-                  "reruns=%llu escapes=%llu completed=%llu",
+                  "reruns=%llu escapes=%llu pinned=%llu completed=%llu/%llu",
                   gov_stage.c_str(), gov_stage_index, gov_stage_total,
                   static_cast<unsigned long long>(rep.governed_claims.load()),
                   static_cast<unsigned long long>(rep.gated.load()),
                   static_cast<unsigned long long>(rep.abandoned.load()),
                   static_cast<unsigned long long>(rep.reruns.load()),
                   static_cast<unsigned long long>(rep.escapes.load()),
-                  static_cast<unsigned long long>(rep.completed.load()));
+                  static_cast<unsigned long long>(rep.pinned.load()),
+                  static_cast<unsigned long long>(rep.completed.load()),
+                  static_cast<unsigned long long>(n));
     gov->record_note("frame_axis_summary", buf);
   }
-  // 重跑超限 ⇒ fail-closed（不静默丢帧）。异常由节点异常路径映射为节点失败：
-  // 宁可让节点红，也不让一帧静默消失（ASTROCS_DESIGN.md §8.3:616 不变量）。
-  if (overflow.load()) {
+  // 不变量自检（fail-closed）：帧轴退出时**必须**每一帧都跑完。
+  // 覆盖不到 = 计数/回队逻辑有缺陷 ⇒ 抛异常（节点红），**绝不静默少一帧**
+  //（ASTROCS_DESIGN.md §8.3:616 数值结果与并发度无关、与治理无关）。
+  // 正常路径下恒不触发（含"持续高压把某帧钉住"的路径：钉住只停止丢弃，不停止执行）。
+  if (rep.completed.load() != n) {
     throw std::runtime_error(
-        "frame axis memory governance: a frame was dropped more than 8 times under "
-        "sustained memory pressure; fail-closed rather than silently losing a frame");
+        "frame axis memory governance: invariant violated — completed=" +
+        std::to_string(rep.completed.load()) + " but n=" + std::to_string(n) +
+        "; fail-closed rather than silently losing a frame");
   }
 }
 

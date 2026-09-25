@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "policy": "登记在役的权威/豁免/台账载体：canonical 必须存在且可解析，且必须在在役面被引用（禁止空载登记）；aliases 是历史上被引用过但不存在的名字，出现在在役面即判红（悬空引用）。",
+  "scan_roots": [
+    "eng",
+    "docs/ci",
+    "ASTROCS_DESIGN.md",
+    "ENGINEERING_SPEC.md",
+    "ACCEPTANCE_SPEC.md"
+  ],
+  "scan_exclude": [],
+  "surfaces": [
+    {
+      "id": "exemptions",
+      "canonical": "eng/ci/exemptions.json",
+      "aliases": [
+        "waivers.json"
+      ],
+      "authority": "docs/ci/01_CHECKS.md 1「豁免显式登记 eng/ci/exemptions.json，只减不增，需负责人批准」；CI_SPEC.md 4；ENGINEERING_SPEC.md 8"
+    },
+    {
+      "id": "checks_registry",
+      "canonical": "eng/ci/checks.json",
+      "aliases": [],
+      "authority": "docs/ci/01_CHECKS.md 1（唯一注册表）"
+    },
+    {
+      "id": "known_failures_baseline",
+      "canonical": "eng/ci/known_failures_baseline.json",
+      "aliases": [],
+      "authority": "docs/ci/CI_SPEC.md 4（P0/P1 必须 0 的冻结基线）"
+    },
+    {
+      "id": "prod_wiring_baseline",
+      "canonical": "eng/ci/prod_wiring_baseline.json",
+      "aliases": [],
+      "authority": "eng/ci/check_prod_wiring.py（生产接线冻结基线）"
+    },
+    {
+      "id": "id_migration_map",
+      "canonical": "eng/ci/id_migration_map.json",
+      "aliases": [],
+      "authority": "eng/ci/validate_registry.py R13"
+    },
+    {
+      "id": "impact_map",
+      "canonical": "eng/ci/impact_map.json",
+      "aliases": [],
+      "authority": "eng/ci/incremental.py（影响面反查）"
+    },
+    {
+      "id": "ctest_baseline",
+      "canonical": "eng/ci/ctest_baseline.json",
+      "aliases": [],
+      "authority": "eng/ci/checks.schema.json ctest_targets（注册闭包冻结存量）"
+    },
+    {
+      "id": "ctest_skip_register",
+      "canonical": "eng/ci/ctest_skip_register.json",
+      "aliases": [],
+      "authority": "docs/ci/CI_SPEC.md（skip 必须显式登记）"
+    },
+    {
+      "id": "toolchain_lock",
+      "canonical": "eng/ci/toolchain.lock.json",
+      "aliases": [],
+      "authority": "eng/ci/verify_toolchain.py"
+    },
+    {
+      "id": "workflow_binding",
+      "canonical": "eng/ci/workflow_binding.json",
+      "aliases": [],
+      "authority": "eng/ci/validate_workflow_binding.py"
+    },
+    {
+      "id": "path_domain_reservations",
+      "canonical": "eng/ci/path_domain_reservations.json",
+      "aliases": [],
+      "authority": "eng/ci/check_registration_anchors.py"
+    },
+    {
+      "id": "mutation_gates",
+      "canonical": "eng/ci/mutation_gates.json",
+      "aliases": [],
+      "authority": "eng/ci/check_mutation_gates.py"
+    },
+    {
+      "id": "design_clauses_ledger",
+      "canonical": "eng/ci/ledgers/design_clauses.json",
+      "aliases": [],
+      "authority": "eng/ci/check_design_clause_wiring.py"
+    },
+    {
+      "id": "root_manifest",
+      "canonical": "eng/ci/root_manifest.json",
+      "aliases": [],
+      "authority": "ENGINEERING_SPEC.md 7（根目录固定条目）"
+    }
+  ]
+}

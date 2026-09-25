@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "authority": "AGENTS.md §6（不硬编码线程/ISA/block）；BLD-002（根 CMakeLists.txt = 唯一产品事实源）；ASTROCS_DESIGN.md §12.5（状态词唯一口径）；docs/ci/03_GATES.md",
+  "policy": "本表登记全量构建输入里的每一个 ISA 旗标站点。判据：站点未登记 ⇒ 红；旗标集合与登记不等 ⇒ 红；基线以上（高于 -msse2）的站点必须多侧同源（编译旗标 ⊆ 声明需求位 ⊆ 检测位面，且每个被要求的位在 feature_bit_header 里实有定义）；-march=native/-march= 一律红（AGENTS §6），仅 eng/ci/exemptions.json 的显式豁免可解，当前豁免面为空。",
+  "baseline_flags": [
+    "-msse2"
+  ],
+  "flag_feature_map": {
+    "-msse2": "ACS_FEAT_SSE2",
+    "-mavx2": "ACS_FEAT_AVX2",
+    "-mfma": "ACS_FEAT_FMA",
+    "-mavx512f": "ACS_FEAT_AVX512F",
+    "-mavx512cd": "ACS_FEAT_AVX512CD",
+    "-mavx512bw": "ACS_FEAT_AVX512BW",
+    "-mavx512dq": "ACS_FEAT_AVX512DQ",
+    "-mavx512vl": "ACS_FEAT_AVX512VL"
+  },
+  "feature_aliases": {
+    "ACS_CAP_FEAT_SSE2": "ACS_FEAT_SSE2",
+    "ACS_CAP_FEAT_SSE4_1": "ACS_FEAT_SSE4_1",
+    "ACS_CAP_FEAT_AVX": "ACS_FEAT_AVX",
+    "ACS_CAP_FEAT_AVX2": "ACS_FEAT_AVX2",
+    "ACS_CAP_FEAT_FMA": "ACS_FEAT_FMA",
+    "ACS_CAP_FEAT_AVX512F": "ACS_FEAT_AVX512F",
+    "ACS_CAP_FEAT_AVX512CD": "ACS_FEAT_AVX512CD",
+    "ACS_CAP_FEAT_AVX512BW": "ACS_FEAT_AVX512BW",
+    "ACS_CAP_FEAT_AVX512DQ": "ACS_FEAT_AVX512DQ",
+    "ACS_CAP_FEAT_AVX512VL": "ACS_FEAT_AVX512VL"
+  },
+  "feature_bit_header": "lib/infrastructure/benchmark/backend_host/cpu_features.h",
+  "exemptions": [],
+  "sites": [
+    {
+      "id": "product-avx2",
+      "build_input": "CMakeLists.txt",
+      "posture": "product_graph",
+      "target": "astrocs_cpu_avx2",
+      "flags": [
+        "-mavx2",
+        "-mfma"
+      ],
+      "declaration": {
+        "file": "lib/infrastructure/benchmark/backend_host/avx2_backend.cpp",
+        "macro": "ASTROCS_BACKEND_REQUIRED_FEATURES"
+      },
+      "detection": {
+        "file": "lib/infrastructure/benchmark/cpu/avx2/include/astrocs/cpu/avx2_provider_v1.h",
+        "macro": "ACS_CPU_AVX2_REQUIRED_FEATURES"
+      },
+      "status": "IMPLEMENTED",
+      "note": "基线以上；声明/检测/路由三侧必须覆盖编译旗标。路由侧 avx2 判定与声明同式（cpu_routing.cpp provider_supported）。"
+    },
+    {
+      "id": "product-avx512",
+      "build_input": "CMakeLists.txt",
+      "posture": "product_graph",
+      "target": "astrocs_cpu_avx512",
+      "flags": [
+        "-mavx512f",
+        "-mavx512bw",
+        "-mavx512vl",
+        "-mavx512dq"
+      ],
+      "declaration": {
+        "file": "lib/infrastructure/benchmark/backend_host/avx512_backend.cpp",
+        "macro": "ASTROCS_BACKEND_REQUIRED_FEATURES"
+      },
+      "detection": {
+        "file": "lib/infrastructure/benchmark/cpu/avx512/include/astrocs/cpu/avx512_provider_v1.h",
+        "macro": "ACS_CPU_AVX512_REQUIRED_FEATURES"
+      },
+      "extra_sides": [
+        {
+          "role": "routing",
+          "file": "lib/infrastructure/benchmark/backend_host/cpu_routing.cpp",
+          "macro": "ACS_FEAT_AVX512_PROVIDER_REQUIRED",
+          "definition_file": "lib/infrastructure/benchmark/backend_host/cpu_features.h"
+        }
+      ],
+      "status": "IMPLEMENTED",
+      "note": "改前：声明只有 ACS_FEAT_AVX512F、路由只看 F、检测面（cpu_features.h）没有 BW/DQ/VL 位 —— 三侧缺位。TRUTHFUL-CONCLUSION-01 补齐子集位与同源组宏 ACS_FEAT_AVX512_PROVIDER_REQUIRED。"
+    },
+    {
+      "id": "third-party-cfitsio-sse2",
+      "build_input": "lib/infrastructure/aio/third_party/cfitsio/CMakeLists.txt",
+      "posture": "third_party",
+      "target": "",
+      "flags": [
+        "-msse2"
+      ],
+      "status": "DORMANT",
+      "note": "上游第三方构建文件；-msse2 = amd64 基线本身，不构成基线以上的 ISA 派发面，故不要求多侧声明（但仍必须登记，未登记即红）。"
+    }
+  ],
+  "macro_sources": [
+    "lib/infrastructure/benchmark/backend_host/cpu_features.h",
+    "lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h"
+  ]
+}

@@ -508,9 +508,13 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
       }
     }
     DrizzleOperator op;
+    /* DRZ-PF-CORRECT-01 (S1 第 19 条): 几何诊断（被吞掉的失效面积候选数 /
+       最大 |闭合偏差|）由此出口回传，并登记进产品 provenance —— 面积失效
+       不得静默进产品。 */
+    OverlapDiagnostics drz_diag;
     const DrzError de = build_operator_from_sources(
         hp, sources, in.drizzle.pixel_to_sky, in.drizzle.user_data,
-        in.drizzle.closure_rel_tol, op, &target_ipix_out, nullptr);
+        in.drizzle.closure_rel_tol, op, &target_ipix_out, nullptr, &drz_diag);
     if (de != DrzError::ok) {
       *err = std::string("drizzle operator build failed: ") + drz_error_name(de);
       return false;
@@ -879,7 +883,26 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
                           double s = 0.0;
                           for (uint32_t p = 0; p < op.n_dst(); ++p) s += op.D(p);
                           return s;
-                        }()}};
+                        }()},
+                       /* DRZ-PF-CORRECT-01 (S1 第 19 条): 球面 overlap 的几何
+                          失效面必须留痕 —— overlap_area_rejected = 因面积非有限/
+                          非正而被剔除的候选 target 像素数（旧实现静默 continue）；
+                          max_abs_closure_rel = 闭合判据取绝对值后的最大值。
+                          非零即产品的几何闭合不完整（超阈值时算子构建本身已具名
+                          失败, 故此处数值是"可容忍但必须留痕"的量）。 */
+                       {"overlap_area_rejected", drz_diag.n_area_rejected},
+                       {"overlap_area_rejected_tolerance",
+                        static_cast<unsigned long long>(kMaxInvalidAreaHits)},
+                       /* 被剔除的候选里**良性零交叠**的那部分（保守候选查询的
+                          必然产物）: 旧实现与失效面积走同一句静默 continue, 两类
+                          混在一起、一个都不留痕; 现在分列, 本键是真正会出现在
+                          成功产品里的"被吞掉像素数"。 */
+                       {"overlap_zero_overlap_candidates", drz_diag.n_zero_overlap},
+                       {"overlap_candidates_total",
+                        drz_diag.n_zero_overlap + drz_diag.n_area_rejected},
+                       {"max_abs_closure_rel", drz_diag.max_abs_closure_rel},
+                       {"closure_judge",
+                        "abs(rel) > tol (deficit and overflow both named)"}};
     ext["support_plane_semantics"] = "D_p coverage area [px^2] (gate only, not weight)";
     ext["nside"] = in.drizzle.nside;
     ext["ordering"] = "NESTED";

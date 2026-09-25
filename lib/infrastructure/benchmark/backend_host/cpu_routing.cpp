@@ -60,7 +60,10 @@ bool provider_supported(const std::string& provider) {
     if (provider == "baseline") return true;
     if (provider == "avx2") return (feats & (ACS_FEAT_AVX2 | ACS_FEAT_FMA)) ==
                                    (ACS_FEAT_AVX2 | ACS_FEAT_FMA);
-    if (provider == "avx512") return (feats & ACS_FEAT_AVX512F) != 0;
+    // TRUTHFUL-CONCLUSION-01: 路由判定与声明/编译同源 —— 原实现只看 ACS_FEAT_AVX512F，
+    // 正是同仓注释点名禁止的「只看一个 AVX512F=true」形态；F 不蕴含 BW/DQ/VL。
+    if (provider == "avx512") return (feats & ACS_FEAT_AVX512_PROVIDER_REQUIRED) ==
+                                           ACS_FEAT_AVX512_PROVIDER_REQUIRED;
     return false;
 }
 

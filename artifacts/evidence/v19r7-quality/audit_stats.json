@@ -59,7 +59,9 @@
       },
       "tool_missing": true,
       "defect": "P1: eng/tools/file_audit missing",
-      "coverage": "873/~713+"
+      "coverage": "873/~713+",
+      "denominator_defined": false,
+      "denominator_note": "分母 ~713 全仓无定义（口头目标，非任何命令的产出）。TRUTHFUL-CONCLUSION-01 已补上真实工具 eng/tools/file_audit.py：分子与分母由同一条 git ls-files -z 产出，产物见 artifacts/evidence/truthful-conclusion-01/file_audit.json（shipping 3249 / scanned 3095）。本条历史记录保持原值不改写，只标注其分母无定义。"
     },
     "traceability": {
       "total_rows": 63,
@@ -69,6 +71,9 @@
     },
     "machine_consistency": {
       "checks": 9,
+      "checks_live": 11,
+      "version_live": "2.0.0",
+      "superseded_by": "eng/tools/docs_machine_consistency.py（现役 version=2.0.0 / checks=11；本件 checks=9 为工具 v1.0.0 时代快照，TRUTHFUL-CONCLUSION-01 登记为需与现役对齐的快照面）",
       "broken": 0,
       "pass": true,
       "checks_detail": ["config_weight_mode_ivar", "frame_id_contract_exact", "error_taxonomy_exit_codes", "integration_status_full_set", "rejection_status_full_set", "stage_ids_docs_vs_orchestrator", "snr_constants", "product_contracts", "drizzle_variance_formula"]
@@ -98,7 +103,8 @@
       }
     },
     "gate_before": {
-      "file_audit_coverage_ok": true,
+      "file_audit_coverage_ok": false,
+      "file_audit_coverage_ok_correction": "TRUTHFUL-CONCLUSION-01：原值 true 与同一结论件里 file_audit.tool_missing=true 自相矛盾（工具不存在却宣称覆盖达标）。现改为 false，并把可核结论落到 artifacts/evidence/truthful-conclusion-01/file_audit.json（分子分母同一条命令产出、可复算）。",
       "machine_consistency_json_generated": true,
       "can_enter_A2": true,
       "notes": "file_audit tool missing is P1 but alternative stats produced; 0 machine_consistency broken"

@@ -69,15 +69,15 @@
       "path": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv",
       "rule": "D3h_prohibition",
       "fingerprint": "3a0cdc9f7a7e652d",
-      "reason": "该行 symbol 字段是**机器字面量**：由 eng/tools/arch/build_production_execution_inventory.py 的 rg() 逐字复制 lib/include/astrocs/core/executor.h:6 的源行文本，且 eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent 断言「生成器重跑后 CSV 逐字节一致」。改该字段即改生成器输出 ⇒ 必红幂等门",
-      "authority": "eng/tools/arch/build_production_execution_inventory.py（symbol 列 = rg() 抓到的源行原文）；eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent（逐字节幂等）"
+      "reason": "该行 symbol 字段是**机器字面量**：由 eng/tools/arch/build_production_execution_inventory.py 的 rg() 逐字复制 lib/include/astrocs/core/executor.h:6 的源行文本，且 eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent_without_writing_tracked_file 断言「生成器重跑后 CSV 逐字节一致」。改该字段即改生成器输出 ⇒ 必红幂等门",
+      "authority": "eng/tools/arch/build_production_execution_inventory.py（symbol 列 = rg() 抓到的源行原文）；eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent_without_writing_tracked_file（逐字节幂等）"
     },
     {
       "path": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv",
       "rule": "D3h_prohibition",
       "fingerprint": "3cfd00733c9a8541",
       "reason": "同上：symbol 字段逐字复制 lib/algorithms/coverage/tests/routing_test.cpp:62 的注释行；改写会使生成器输出与库内 CSV 不一致（幂等门判红）。清单一类 row 的 symbol 列整体属机器字面量",
-      "authority": "eng/tools/arch/build_production_execution_inventory.py（symbol 列 = 源行原文）；eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent"
+      "authority": "eng/tools/arch/build_production_execution_inventory.py（symbol 列 = 源行原文）；eng/tests/arch/test_inventory.py::test_05_regeneration_idempotent_without_writing_tracked_file"
     },
     {
       "path": "docs/contracts/DATA_SEMANTICS.md",

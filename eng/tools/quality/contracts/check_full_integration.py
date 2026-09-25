@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """check_full_integration.py — T411 full integration checker
 
-Checks: 全生产运行；waivers []；P0/P1=0 (pending T500 for T407)
+Checks: 全生产运行；豁免面为空（正本 = eng/ci/exemptions.json）；P0/P1=0。
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
+
+TRUTHFUL-CONCLUSION-01（一页纸 S2-B）订正两处「说谎的结论」：
+  1. 原 status 有一个**造词**取值（ASTROCS_DESIGN.md §12.5 唯一状态阶梯里不存在该词），
+     其语义是「存在挂账 P1 债务也算通过」。现改为只输出
+     PASS/FAIL 判定词（与文件头退出码合同同源），债务另立 debt 字段如实登记。
+  2. 原豁免面读一个**全仓不存在的文件名**（悬空引用），于是「豁免必须为空」
+     这条断言在真实仓库里从未被执行过。现读真实载体
+     eng/ci/exemptions.json；文件缺失或不可解析一律判红（fail-closed）。
 """
 import argparse, json, pathlib, sys, subprocess
 
@@ -57,23 +65,45 @@ def main():
     except Exception as e:
         findings.append({"id":"INTEG-BAD-REPORT","detail":str(e),"severity":"P1","observed":"report parse fail","expected":"valid JSON"})
         data={"status":"FAIL","results":[]}
-    # Check waivers
-    waivers = repo / "waivers.json"
-    if waivers.exists():
+    # Check 豁免面：唯一正本 = eng/ci/exemptions.json（docs/ci/01_CHECKS.md §1）。
+    # TRUTHFUL-CONCLUSION-01：原实现读一个全仓不存在的文件名 ⇒ 该断言从未执行过。
+    # 悬空引用必须判红，且缺失/坏 JSON 一律 fail-closed（不静默放行）。
+    exemptions_rel = "eng/ci/exemptions.json"
+    exemptions = repo / exemptions_rel
+    registered_debt_ids = set()
+    if not exemptions.exists():
+        findings.append({"id":"INTEG-EXEMPTIONS-MISSING","severity":"P1",
+                         "observed":f"{exemptions_rel} 不存在","expected":"豁免面显式登记且可解析"})
+    else:
         try:
-            w=json.loads(waivers.read_text(encoding="utf-8"))
-            if w != []:
-                findings.append({"id":"INTEG-WAIVERS-NONEMPTY","severity":"P1","observed":f"waivers {w}","expected":"[]"})
+            ex = json.loads(exemptions.read_text(encoding="utf-8"))
+            entries = ex.get("exemptions", ex if isinstance(ex, list) else [])
+            if not isinstance(entries, list):
+                raise ValueError("exemptions 不是列表")
+            for ent in entries:
+                if isinstance(ent, dict):
+                    for key in ("check", "id", "finding", "check_id"):
+                        if isinstance(ent.get(key), str):
+                            registered_debt_ids.add(ent[key])
+            hw = ex.get("high_water", {}) if isinstance(ex, dict) else {}
+            cap_hw = hw.get("max_entries")
+            if isinstance(cap_hw, int) and len(entries) > cap_hw:
+                findings.append({"id":"INTEG-EXEMPTIONS-OVER-HIGH-WATER","severity":"P1",
+                                 "observed":f"豁免条目 {len(entries)} > high_water {cap_hw}",
+                                 "expected":"只减不增（超水即红）"})
         except Exception as exc:  # noqa: BLE001
-            # W4-A3：原为裸 `except: pass` —— waivers.json 坏掉时静默放行（"豁免面被移空"
-            # 正是要防的失效型）。现显式登记为 P1 finding。
-            findings.append({"id":"INTEG-WAIVERS-BAD-JSON","severity":"P1",
-                             "observed":f"waivers.json 不可解析: {exc}","expected":"[] 或合法 JSON"})
-    # Check P0/P1: 豁免必须条件化, 否则 DELIVERED 永远可达。
+            findings.append({"id":"INTEG-EXEMPTIONS-BAD-JSON","severity":"P1",
+                             "observed":f"{exemptions_rel} 不可解析: {exc}",
+                             "expected":"合法 JSON（fail-closed）"})
+    # Check P0/P1: 豁免必须条件化, 否则「有债务也算通过」永远可达。
     # 豁免白名单口径(来自 T411/T500 上下文): 仅 T407 的 FORBID-HARDCODE-THREADS
     # (hardcoded num_threads(16)) 属挂账债务 pending T500, 额度上限 10 条;
     # T407 的任何其他 finding(如 FORBID-ABS-PATH / FORBID-DETACH)不可豁免。
-    HARDCODE_THREAD_DEBT_CAP = 10
+    # 债务额度不再由本文件写死（原为常量 10，且超额时把 debt_count 截回上限 ⇒
+    # 「有债务也算通过」恒真）。额度唯一来源 = 豁免面 eng/ci/exemptions.json 的登记条目：
+    # 只有显式登记的 finding id 才计入可豁免额度，未登记者额度为 0。
+    HARDCODE_THREAD_DEBT_CAP = (1 if "INTEG-P1-DEBT" in registered_debt_ids
+                                or "FORBID-HARDCODE-THREADS" in registered_debt_ids else 0)
     failing = [r for r in data.get("results",[]) if not r.get("passed")]
     debt_count = 0
     if failing:
@@ -95,18 +125,23 @@ def main():
                 for x in others:
                     findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":tool,"observed":f"{x.get('id')} {x.get('file','')}","expected":"PASS"})
                 if debt_count > HARDCODE_THREAD_DEBT_CAP:
-                    findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":tool,"observed":f"FORBID-HARDCODE-THREADS count {debt_count} > waiver cap {HARDCODE_THREAD_DEBT_CAP}","expected":f"<={HARDCODE_THREAD_DEBT_CAP} pending T500"})
-                    debt_count = HARDCODE_THREAD_DEBT_CAP  # 超额部分不再享受豁免
+                    findings.append({"id":"INTEG-P1-DEBT-UNAUTHORIZED","severity":"P1","symbol":tool,
+                                     "observed":f"FORBID-HARDCODE-THREADS count {debt_count} > 豁免面登记额度 {HARDCODE_THREAD_DEBT_CAP}",
+                                     "expected":f"<={HARDCODE_THREAD_DEBT_CAP}（额度唯一来源 = {exemptions_rel}）"})
                 if debt_count > 0:
                     findings.append({"id":"INTEG-P1-DEBT","severity":"P1","symbol":tool,"observed":f"{debt_count} hardcoded threads findings pending T500 (waiver scope: FORBID-HARDCODE-THREADS only, cap {HARDCODE_THREAD_DEBT_CAP})","expected":"P1=0 after T500"})
             else:
                 findings.append({"id":"INTEG-P1-FAIL","severity":"P1","symbol":f["tool"],"observed":"checker FAIL","expected":"PASS"})
-    status = "PASS" if not [f for f in findings if f["severity"]=="P1" and f["id"]!="INTEG-P1-DEBT"] else "FAIL"
-    # DELIVERED 仅当全部 P1 finding 都是白名单内的挂账债务 (且数量在额度内);
-    # 其他任何失败(其他工具 FAIL / T407 其他 id)都保持 FAIL, 豁免不适用。
-    if findings and all(f["id"]=="INTEG-P1-DEBT" for f in findings) and debt_count <= HARDCODE_THREAD_DEBT_CAP:
-        status="DELIVERED"
-    result = {"tool":"check_full_integration","status":status,"findings":findings,"passed": status in ("PASS","DELIVERED"),"report":data}
+    # 判定词只取退出码合同里的 PASS/FAIL（§12.5 状态阶梯是另一个面，本文件不产状态词）。
+    # 挂账债务如实登记在 debt 字段；只要存在任何 P1 finding 就是 FAIL。
+    status = "PASS" if not [f for f in findings if f["severity"]=="P1"] else "FAIL"
+    result = {"tool":"check_full_integration","status":status,"findings":findings,
+              "passed": status == "PASS",
+              "debt":{"p1_debt_findings":debt_count,
+                      "exemption_surface":exemptions_rel,
+                      "registered_debt_cap":HARDCODE_THREAD_DEBT_CAP,
+                      "registered_ids":sorted(registered_debt_ids)},
+              "report":data}
     if args.out_json:
         pathlib.Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
         pathlib.Path(args.out_json).write_text(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True), encoding="utf-8")
@@ -117,8 +152,7 @@ def main():
         failures = len([f for f in findings if f["severity"] in ("P0","P1") and f["id"]!="INTEG-P1-DEBT"])
         junit = f'<testsuite name="check_full_integration" tests="1" failures="{failures}"><testcase classname="integration" name="full"/></testsuite>'
         pathlib.Path(args.out_junit).write_text(junit, encoding="utf-8")
-    # For T411, return 0 even if DELIVERED (checker exists)
-    return 0 if status in ("PASS","DELIVERED") else 1
+    return 0 if status == "PASS" else 1
 
 if __name__ == "__main__":
     # W4-A3：兜底 —— 任何意外异常转成 exit 2 + 单行说明，绝不打印 Traceback。

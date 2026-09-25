@@ -1,0 +1,6 @@
+{
+  "_fixture": "check_full_integration 负例：豁免面不可解析/缺失 ⇒ 必须判红",
+  "tool": "check_full_integration",
+  "status": "FAIL",
+  "reason": "eng/ci/exemptions.json 缺失或不可解析（豁免面无真实载体）"
+}

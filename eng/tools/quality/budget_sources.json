@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "authority": "eng/packaging/config/runtime_resources.json（自称并登记为唯一预算来源）；AGENTS.md §6（不硬编码线程/ISA/block）；ASTROCS_DESIGN.md §3.5 / §12.5；docs/ci/03_GATES.md",
+  "single_source": {
+    "path": "eng/packaging/config/runtime_resources.json",
+    "claim_marker": "唯一预算来源",
+    "policy": "内存/资源预算的每一个分母（占比、每像素字节、安全系数）只允许定义在这一个文件里。实现侧若必须持有编译期字面量，必须与本源逐位相等，并由本门比对；出现第二个取值即红。"
+  },
+  "denominators": [
+    {
+      "id": "scheduler_memory_budget_percent",
+      "source_key": "memory_budget_percent",
+      "perturb": 0.2,
+      "conclusion": {
+        "kind": "sched_budget",
+        "inputs": {
+          "total_ram_bytes": 23000000000
+        },
+        "bind": {
+          "percent": "memory_budget_percent"
+        }
+      },
+      "consumers": [
+        {
+          "file": "lib/infrastructure/scheduler/src/memory_budget.cpp",
+          "must_reference": "runtime_resources_generated.h"
+        }
+      ],
+      "status": "IMPLEMENTED",
+      "note": "调度器准入预算分母：预算字节 = 当前可用内存 × percent/100；实现侧经生成头 runtime_resources_generated.h 消费（唯一点）。"
+    },
+    {
+      "id": "frame_gate_bytes_per_pixel",
+      "source_key": "frame_memory_gate.bytes_per_pixel",
+      "perturb": 0.2,
+      "conclusion": {
+        "kind": "frame_cap",
+        "inputs": {
+          "avail_bytes": 20770000000,
+          "pixels": 16777216
+        },
+        "bind": {
+          "bytes_per_pixel": "frame_memory_gate.bytes_per_pixel",
+          "safety_frac": "frame_memory_gate.safety_frac"
+        }
+      },
+      "consumers": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "literal_regex": "kP1FrameBytesPerPixel\\s*=\\s*([0-9.]+)"
+        }
+      ],
+      "status": "READY_FOR_OWNER_REVIEW",
+      "note": "帧级内存闸门分母 1：原先只以 constexpr 116.0 存在于实现侧，与调度器预算并存两个分母。现登记于唯一源并逐位比对。"
+    },
+    {
+      "id": "frame_gate_safety_frac",
+      "source_key": "frame_memory_gate.safety_frac",
+      "perturb": 0.2,
+      "conclusion": {
+        "kind": "frame_cap",
+        "inputs": {
+          "avail_bytes": 20770000000,
+          "pixels": 16777216
+        },
+        "bind": {
+          "bytes_per_pixel": "frame_memory_gate.bytes_per_pixel",
+          "safety_frac": "frame_memory_gate.safety_frac"
+        }
+      },
+      "consumers": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "literal_regex": "kP1FrameMemSafetyFrac\\s*=\\s*([0-9.]+)"
+        }
+      ],
+      "status": "READY_FOR_OWNER_REVIEW",
+      "note": "帧级内存闸门分母 2：安全系数 0.75。同上。"
+    }
+  ]
+}

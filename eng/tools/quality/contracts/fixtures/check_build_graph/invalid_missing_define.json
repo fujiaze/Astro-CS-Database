@@ -1,1 +1,1 @@
-{"tool": "check_build_graph", "status": "FAIL", "reason": "BUILD_GRAPH missing P2_ENABLE_OPENMP define"}
+{"tool": "check_build_graph", "status": "FAIL", "reason": "check_build_graph --self-test 的判别力负例 neg_doc_missing_production_target：生产面机器块漏写生产目标（判据 C2 双向差集）⇒ FAIL"}

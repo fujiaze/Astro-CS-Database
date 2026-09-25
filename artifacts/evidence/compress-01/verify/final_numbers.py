@@ -84,18 +84,33 @@ for path, lv, name, ck, dk in (
                                 net_ms=saved - (c + d), bw_crit_1=2 * (1 - rho) / ((c + d) / 1000))
     print("%-26s %8.4f %8.2f %9.3f %9.3f %11.3f %11.1f" % (
         name, rho, (tot - rho * tot) / 2**30, c, d, saved - (c + d), 2 * (1 - rho) / ((c + d) / 1000)))
-for codec, name, bitwise in (("GZIP_1", "GZIP_1 q4 (fpack默认,有损)", 20), ("GZIP_1_q0", "GZIP_1 q0 (无损)", 103),
-                             ("GZIP_2", "GZIP_2 q4 (fpack默认,有损)", 20), ("GZIP_2_q0", "GZIP_2 q0 (无损)", 103),
-                             ("RICE_1", "RICE_1 q4 (有损)", 20)):
+# TRUTHFUL-CONCLUSION-01（一页纸 S2-B）：本循环原先把"位相等样本数"硬编为 20/103，
+# 与同一 dict 里的 corpus_n=len(rows) 不是同一来源（103 与 188 无法相互解释），
+# 且硬编值无法随证据更新 —— 属"不可核的结论"。现改为从**同一批 rows 的 bitwise 列**
+# 计数：分子与分母同源；缺列/空行集时置 None 并写明原因（fail-closed，不猜数）。
+for codec, name in (("GZIP_1", "GZIP_1 q4 (fpack默认,有损)"),
+                    ("GZIP_1_q0", "GZIP_1 q0 (无损)"),
+                    ("GZIP_2", "GZIP_2 q4 (fpack默认,有损)"),
+                    ("GZIP_2_q0", "GZIP_2 q0 (无损)"),
+                    ("RICE_1", "RICE_1 q4 (有损)")):
     med = med_fits(codec)
     rows = [r for r in csv.DictReader(open(os.path.join(EV, "fits_codecs.csv")))
             if r["codec"] == codec and r["status"] == "0" and ".dense." not in r["file"] and lay(r["file"])]
     c = statistics.median([float(r["c_ms"]) for r in rows]); d = statistics.median([float(r["d_ms"]) for r in rows])
     rho = extrap(med)
     saved = (1 - rho) * (1 / BW_W + 1 / BW_R) * 1000
+    if rows and "bitwise" in rows[0]:
+        _bw = [int(float(r["bitwise"])) for r in rows if r.get("bitwise") not in (None, "")]
+        bw_eq, bw_n = sum(1 for v in _bw if v == 1), len(_bw)
+        bw_src = os.path.join(EV, "fits_codecs.csv") + "#bitwise"
+        bw_why = None
+    else:
+        bw_eq, bw_n, bw_src = None, 0, None
+        bw_why = "fits_codecs.csv 缺 bitwise 列或行集为空（fail-closed：不给数）"
     out["schemes"][name] = dict(ratio=rho, saved_gib=(tot - rho * tot) / 2**30, c_ms=c, d_ms=d,
                                 net_ms=saved - (c + d), bw_crit_1=2 * (1 - rho) / ((c + d) / 1000),
-                                bitwise_eq_corpus=bitwise, corpus_n=len(rows))
+                                bitwise_eq_corpus=bw_eq, corpus_n=bw_n,
+                                bitwise_source=bw_src, bitwise_unavailable_reason=bw_why)
     print("%-26s %8.4f %8.2f %9.3f %9.3f %11.3f %11.1f" % (
         name, rho, (tot - rho * tot) / 2**30, c, d, saved - (c + d), 2 * (1 - rho) / ((c + d) / 1000)))
 json.dump(out, open(os.path.join(EV, "final_numbers.json"), "w"), indent=1)

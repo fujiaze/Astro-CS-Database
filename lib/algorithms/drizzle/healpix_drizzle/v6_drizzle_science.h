@@ -158,6 +158,13 @@ enum class DrzError {
     missing_flux_conservation_factor,
     unit_undeterminable,
     invalid_argument,
+    // DRZ-PF-CORRECT-01 (S1 第 19 条): 候选交叠面积失效 (非有限 / <=0) 且超过
+    // 容许阈值。修复前该分支是 continue —— 面积亏损被静默吞掉，既不计数也不
+    // 进产品 provenance。
+    overlap_area_invalid,
+    // 几何闭合**亏损** (sum_a_jp < pixfrac²·A_pixel ⇒ rel < -tol)。修复前闭合
+    // 判据只判 rel > rel_tol，而面积失效只会使 rel<0 ⇒ 亏损一律静默通过。
+    overlap_area_deficit,
 };
 
 const char* drz_error_name(DrzError e);
