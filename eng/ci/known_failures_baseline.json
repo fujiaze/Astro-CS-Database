@@ -1,7 +1,7 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "822b9c5391a14cc36979a7c550984f6ce363c713",
+  "source_commit": "5f6d081cfc65d2d59744330cb5bbd73de9788434",
   "finding_count": 40,
   "reproduced_count": 16,
   "findings": [
