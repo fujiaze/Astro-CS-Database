@@ -337,7 +337,12 @@ static bool run_positive(const fs::path& work) {
   CHECK(doc["psfsw"]["component_flux_unit"] == "ADU", "component_flux_unit");
   CHECK(doc["psfsw"]["components"]["concentration"]["units"] == "ADU/px^2",
         "concentration units W6");
-  CHECK(doc["provenance"]["flux_conservation_factor"] > 0.0, "flux factor present");
+  /* 通量折算因子 = 1：核按 drop 面积归一（w_jp = a_jp / A_drop,j）⇒ Σ_p F_p = Σ_j x_j
+     对全部 pixfrac ∈ (0,1] 严格成立，与 pixfrac 无关。故该键必须**恰好**为 1.0——
+     判 > 0.0 会让 pixfrac²（本行下一句钉的 0.8 ⇒ 0.64）同样通过，
+     等于「记了但没记对」。负例：把该键写成 pixfrac² 必须判红。 */
+  CHECK(doc["provenance"]["flux_conservation_factor"] == 1.0,
+        "flux factor must be exactly 1 (drop-area normalized kernel; pixfrac-independent)");
   CHECK(doc["provenance"]["sampling"]["pixfrac"] == 0.8, "pixfrac recorded");
   /* 禁诊断来源。 */
   CHECK(doc["provenance"]["correlation_summary"]["representation"] ==
@@ -465,6 +470,13 @@ static bool run_negative(const fs::path& work) {
   cases.push_back({"flux_factor_removed", [&](const fs::path& p) {
                      json j = rec(p);
                      j["provenance"].erase("flux_conservation_factor");
+                     put(p, j);
+                   }});
+  /* 该键必须**记对值**，不只是「记了」：核按 drop 面积归一 ⇒ 因子恒为 1。
+     把 pixfrac² 当折算因子是曾经的口径错误（pixfrac=0.8 ⇒ 0.64），此负例把它钉死。 */
+  cases.push_back({"flux_factor_pixfrac2", [&](const fs::path& p) {
+                     json j = rec(p);
+                     j["provenance"]["flux_conservation_factor"] = 0.64;  // 0.8^2
                      put(p, j);
                    }});
   cases.push_back({"provenance_output_hash_removed", [&](const fs::path& p) {
