@@ -1,0 +1,194 @@
+key	where	site
+alpha	lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:169	alpha = 1.0
+alpha	lib/algorithms/coverage/src/rejection.cpp:1253	alpha = 0.05
+alpha	lib/algorithms/coverage/src/rejection.cpp:1264	alpha = 0.05
+alpha	lib/algorithms/coverage/src/rejection.cpp:1740	alpha : 0.05
+alpha	lib/algorithms/coverage/src/rejection.cpp:1942	alpha : 0.05
+alpha	lib/algorithms/coverage/src/sky_plane.cpp:946	alpha = 0.0
+alpha	lib/algorithms/noise_snr/cpp/src/information_weight.cpp:159	alpha = 0
+alpha	lib/algorithms/noise_snr/cpp/src/information_weight.cpp:165	alpha = 0
+alpha	lib/algorithms/noise_snr/cpp/src/information_weight.cpp:171	alpha = 0
+alpha	lib/algorithms/noise_snr/cpp/src/information_weight.cpp:276	alpha = 0
+alpha	lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp:404	alpha=0.5
+alpha	lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp:406	alpha = 0.5
+alpha	lib/infrastructure/acr/qualification/focused/focused_operations.cpp:220	alpha=1
+blocks	lib/algorithms/photometry/cpp/src/spatial_gain.cpp:373	blocks = 0
+blocks	lib/infrastructure/aio/io/hips_core.c:412	blocks = 0
+blocks	lib/infrastructure/scheduler/src/module_adapters.cpp:1274	blocks = 1
+blocks	lib/infrastructure/scheduler/src/module_adapters.cpp:1310	blocks = 1
+center	lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h:316	center{0.0
+center	lib/algorithms/noise_snr/cpp/src/snr_science.cpp:76	center = 0.0
+clip_sigma	lib/algorithms/coverage/src/sky_plane.cpp:230	clip_sigma = 3.0
+clip_sigma	lib/algorithms/coverage/src/sky_plane.cpp:251	clip_sigma = 3.0
+dec_deg	lib/algorithms/coverage/src/sampler.cpp:776	dec_deg = 0.0
+dec_deg	lib/algorithms/coverage/src/upm.cpp:70	dec_deg{0.0
+dec_deg	lib/algorithms/shared/healpix/healpix_core.cpp:250	dec_deg = 0.0
+default	lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp:872	default: 0
+default	lib/infrastructure/scheduler/v6_budget.py:466	default=0.0
+default	lib/infrastructure/scheduler/v6_budget.py:467	default=0
+default	lib/infrastructure/scheduler/v6_budget.py:604	default=2.0
+default	lib/infrastructure/scheduler/v6_budget.py:607	default=1
+enabled	lib/algorithms/coverage/include/astro/phase2/rejection.h:169	enabled=0
+enabled	lib/algorithms/coverage/src/rejection.cpp:1260	enabled = 0
+enabled	lib/algorithms/coverage/src/sky_plane.cpp:1263	enabled = 1
+enabled	lib/algorithms/resample/p3_resample.h:77	enabled=0
+height_px	lib/algorithms/projection/p3_proj_v6.h:134	height_px = 0
+height_px	lib/algorithms/projection/p3_projection.h:79	height_px = 0
+height_px	lib/algorithms/projection/p3_wcs.h:21	height_px = 0
+height_px	lib/include/astrocs/core/plan_estimator.h:94	height_px = 0
+high	lib/infrastructure/aio/src/aio_sparse_punch.h:244	high = 0
+k_corr	lib/algorithms/coverage/src/sky_plane.cpp:233	k_corr = 1.4
+k_corr	lib/algorithms/coverage/src/sky_plane.cpp:254	k_corr = 1.4
+k_corr	lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:377	k_corr = 0.0
+k_corr	lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:9	k_corr=1
+k_corr	lib/infrastructure/aio/v6/src/v6_provenance.cpp:284	k_corr=1
+lower_sigma	lib/algorithms/coverage/src/rejection.cpp:1246	lower_sigma = 4.0
+lower_sigma	lib/algorithms/coverage/src/rejection.cpp:1247	lower_sigma = 4.0
+lower_sigma	lib/algorithms/coverage/src/rejection.cpp:1249	lower_sigma = 4.0
+lower_sigma	lib/algorithms/coverage/src/rejection.cpp:1255	lower_sigma = 4.0
+mag_tolerance	lib/algorithms/photometry/cpp/src/star_matcher.h:72	mag_tolerance = 3.0
+mask_budget_min_patches	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:829	mask_budget_min_patches : 8
+mask_budget_min_patches	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1261	mask_budget_min_patches = 8
+mask_budget_min_sky	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:830	mask_budget_min_sky : 9216
+mask_budget_min_sky	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1262	mask_budget_min_sky = 9216
+mask_fwhm_floor_scale	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:828	mask_fwhm_floor_scale : 0.75
+mask_fwhm_floor_scale	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1260	mask_fwhm_floor_scale = 0.75
+mask_k_sigma	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:826	mask_k_sigma : 0.1
+mask_k_sigma	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1258	mask_k_sigma = 0.1
+mask_r_min_px	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:827	mask_r_min_px : 1.5
+mask_r_min_px	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1259	mask_r_min_px = 1.5
+mask_radius_scale	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1251	mask_radius_scale = 6.0
+max_clip_rounds	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1254	max_clip_rounds = 2
+max_iterations	lib/algorithms/coverage/src/rejection.cpp:1246	max_iterations = 8
+max_iterations	lib/algorithms/coverage/src/rejection.cpp:1248	max_iterations = 8
+max_iterations	lib/algorithms/coverage/src/rejection.cpp:1250	max_iterations = 8
+max_iterations	lib/algorithms/coverage/src/rejection.cpp:1252	max_iterations = 8
+max_iterations	lib/algorithms/coverage/src/rejection.cpp:1256	max_iterations = 8
+max_iterations	lib/algorithms/coverage/src/sky_plane.cpp:457	max_iterations = 30
+max_iterations	lib/algorithms/coverage/src/sky_plane.cpp:517	max_iterations = 1
+max_iterations	lib/algorithms/coverage/src/upm.cpp:270	max_iterations = 100
+max_iterations	lib/algorithms/coverage/src/upm.cpp:287	max_iterations = 100
+max_iterations	lib/algorithms/coverage/src/upm.cpp:2460	max_iterations = 100
+max_iterations	lib/algorithms/integration/v6/src/phase2_integrate.cpp:1274	max_iterations = 100
+max_iterations	lib/algorithms/platesolve/cpp/ipv/include/ipv_robust_refine.h:48	max_iterations      = 10
+max_iterations	lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:50	max_iterations = 100
+max_iterations	lib/infrastructure/scheduler/src/module_adapters.cpp:9556	max_iterations = 100
+max_iterations	lib/phase2_session/p2_session.cpp:203	max_iterations = 100
+max_outliers	lib/algorithms/coverage/src/rejection.cpp:1253	max_outliers = 10
+memory_budget_percent	lib/include/astrocs/core/runtime.h:123	memory_budget_percent = 0
+memory_budget_percent	lib/infrastructure/cli/runtime_client.h:43	memory_budget_percent = 0
+min_kept	lib/algorithms/coverage/src/rejection.cpp:1258	min_kept = 4
+min_patch_samples	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1253	min_patch_samples = 64
+min_patch_samples	lib/infrastructure/scheduler/src/module_adapters.cpp:6599	min_patch_samples(64
+nested	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:70	nested=1
+nested	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:52	nested: 1
+nested	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:72	nested: 1
+nested	lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:440	nested = 0
+nested	lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:1381	nested = 0
+nested	lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:1934	nested = 0
+nested	lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.cpp:264	nested = 0
+nested	lib/infrastructure/scheduler/src/module_adapters.cpp:5157	nested=0
+nested	lib/infrastructure/scheduler/src/module_adapters.cpp:7504	nested=1
+output_dir	lib/infrastructure/cli/subcommand.h:63	output_dir=123
+pixfrac	lib/algorithms/coverage/include/astro/phase2/sampler.h:53	pixfrac=0.8
+pixfrac	lib/algorithms/coverage/src/sampler.cpp:81	pixfrac=0.8
+pixfrac	lib/algorithms/coverage/src/sampler.cpp:122	pixfrac = 0.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp:545	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.h:40	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:54	pixfrac = 0.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1412	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1527	pixfrac=0.8
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1530	pixfrac=1.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:27	pixfrac = 1.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:314	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:39	pixfrac = 1.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h:189	pixfrac=1.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h:398	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:188	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:205	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:35	pixfrac = 1.0
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:36	pixfrac=1
+pixfrac	lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:47	pixfrac=1
+pixfrac	lib/algorithms/drizzle/src/module_entry.cpp:355	pixfrac = 1.0
+pixfrac	lib/algorithms/integration/v6/src/phase2_integrate.cpp:459	pixfrac = 0.8
+pixfrac	lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:130	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/include/hiss_format.h:53	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/include/hiss_format.h:297	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:323	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:362	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:369	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/src/hiss_reader.cpp:75	pixfrac(8
+pixfrac	lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:48	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:85	pixfrac = 0.0
+pixfrac	lib/infrastructure/aio/v6/src/v6_provenance.cpp:252	pixfrac = 1.0
+pixfrac	lib/infrastructure/aio/v6/src/v6_provenance.cpp:260	pixfrac=1
+pixfrac	lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:67	pixfrac = 0.8
+pixfrac	lib/phase3_session/p3_v6_export.cpp:290	pixfrac=1
+pixfrac	lib/phase3_session/p3_v6_export.cpp:294	pixfrac = 1.0
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1187	precision_mode: 0
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1189	precision_mode=1
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:38	precision_mode=1
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:39	precision_mode = 0
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:989	precision_mode = 1
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:993	precision_mode = 1
+precision_mode	lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:996	precision_mode = 0
+precision_mode	lib/infrastructure/aio/include/hiss_format.h:326	precision_mode = 0
+precision_mode	lib/infrastructure/aio/include/hiss_format.h:477	precision_mode: 0
+precision_mode	lib/infrastructure/aio/src/hiss_writer.cpp:801	precision_mode = 1
+precision_mode	lib/infrastructure/aio/src/hiss_writer.cpp:976	precision_mode = 1
+precision_mode	lib/infrastructure/cli/parser.cpp:363	precision_mode(0
+precision_mode	lib/infrastructure/cli/session_commands.h:235	precision_mode(0
+precision_mode	lib/infrastructure/pipeline/orchestrator/cpp/src/main.cpp:144	precision_mode = 0
+ra_deg	lib/algorithms/coverage/src/sampler.cpp:776	ra_deg = 0.0
+ra_deg	lib/algorithms/coverage/src/upm.cpp:69	ra_deg{0.0
+ra_deg	lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp:100	ra_deg += 360.0
+ra_deg	lib/algorithms/shared/healpix/healpix_core.cpp:249	ra_deg = 0.0
+ra_deg	lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.cpp:1718	ra_deg += 360.0
+ra_deg	lib/infrastructure/scheduler/src/module_adapters.cpp:507	ra_deg += 360.0
+rd	lib/infrastructure/pipeline/module_loader/secure_loader.c:310	rd = 0
+rd	lib/infrastructure/scheduler/src/module_adapters.cpp:2839	rd = 0
+rotation_deg	lib/infrastructure/scheduler/src/module_adapters.cpp:3313	rotation_deg = 0.0
+saturation_level	lib/infrastructure/scheduler/src/module_adapters.cpp:6383	saturation_level = 0.0
+scale_deg_per_px	lib/include/astrocs/core/plan_estimator.h:101	scale_deg_per_px = 0.0
+schema_version	lib/algorithms/integration/v6/src/phase2_integrate.cpp:417	schema_version = 1
+schema_version	lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:247	schema_version = 1
+schema_version	lib/include/astrocs/core/artifact.h:88	schema_version = 0
+schema_version	lib/include/astrocs/core/artifact.h:100	schema_version = 0
+schema_version	lib/include/astrocs/core/artifact_store.h:46	schema_version = 0
+schema_version	lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c:585	schema_version : 0
+schema_version	lib/infrastructure/aio/v6/include/astro/aio/v6_hips_manifest.h:56	schema_version = 1
+schema_version	lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:34	schema_version = 1
+schema_version	lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:107	schema_version = 1
+schema_version	lib/phase3_session/p3_v6_export.cpp:257	schema_version = 1
+source	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1165	source = 0
+source_mask_radius_px	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1250	source_mask_radius_px = 10.0
+tile_width	lib/algorithms/coverage/hips_properties.h:14	tile_width = 0
+tile_width	lib/algorithms/shared/healpix/healpix_core.h:37	tile_width = 2
+tile_width	lib/infrastructure/aio/include/aio_hips.h:6	tile_width=512
+tile_width	lib/infrastructure/aio/src/hips/aio_hips_reader.cpp:154	tile_width = 512
+tile_width	lib/infrastructure/aio/src/hips/aio_hips_reader.cpp:370	tile_width=512
+tile_width	lib/infrastructure/aio/src/hips/aio_hips_reader.cpp:436	tile_width=512
+tile_width	lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:913	tile_width = 512
+tile_width	lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1201	tile_width=512
+tile_width	lib/infrastructure/aio/v6/include/astro/aio/v6_hips_manifest.h:35	tile_width = 512
+trend	lib/algorithms/photometry/cpp/src/psfsw.cpp:176	trend = 0.0
+trend	lib/algorithms/photometry/include/astrocs/v6/psfsw.h:266	trend = 0.0
+tukey_c	lib/algorithms/platesolve/cpp/ipv/include/ipv_robust_refine.h:49	tukey_c             = 4.685
+type	lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:135	type = 0
+type	lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:140	type = 3
+type	lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:142	type = 4
+type	lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:144	type = 1
+type	lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:146	type = 2
+type	lib/infrastructure/aio/include/hiss_format.h:163	type(1
+type	lib/infrastructure/aio/include/hiss_format.h:276	type(1
+type	lib/infrastructure/aio/src/hiss_reader.cpp:77	type(1
+type	lib/infrastructure/aio/src/hiss_stream_writer.cpp:59	type(1
+upper_sigma	lib/algorithms/coverage/src/rejection.cpp:1246	upper_sigma = 3.0
+upper_sigma	lib/algorithms/coverage/src/rejection.cpp:1247	upper_sigma = 3.0
+upper_sigma	lib/algorithms/coverage/src/rejection.cpp:1249	upper_sigma = 3.0
+upper_sigma	lib/algorithms/coverage/src/rejection.cpp:1255	upper_sigma = 3.0
+variance_floor	lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1256	variance_floor = 1e-12
+width_px	lib/algorithms/projection/p3_proj_v6.h:133	width_px = 0
+width_px	lib/algorithms/projection/p3_projection.h:78	width_px = 0
+width_px	lib/algorithms/projection/p3_wcs.h:20	width_px = 0
+width_px	lib/include/astrocs/core/plan_estimator.h:93	width_px = 0
