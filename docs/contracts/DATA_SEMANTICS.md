@@ -1719,7 +1719,7 @@ rc=1（:656-669）。
 **(3) cfg**（P2SamplerConfig，sampler.h:33-57，15 字段；默认值
 p2_sampler_default_config 单一来源 sampler.cpp:294-312；显式
 cfg 覆盖；`<=0` 数值字段经 :485-502 修补回退默认——显式 0 被吞=
-DISP-P2SMP-001；control_k_corr<=0 → 冻结默认 1.4 :497-498）:
+DISP-P2SMP-001；control_k_corr<=0 → 回退代码默认 1.4 :497-498（实现记录；公式面按 D-08 两因子查表，见下 control_k_corr 行））:
 
 | 字段 | dtype | 默认 | 单位/语义 |
 |---|---|---|---|
@@ -1736,7 +1736,7 @@ DISP-P2SMP-001；control_k_corr<=0 → 冻结默认 1.4 :497-498）:
 | background_tolerance | double | 3.0 | 局部 tolerance gate（MAD 单位，h:44；:988-992） |
 | background_neighbor_radius | int | 2 | 局部 baseline 邻域 cell 半径（h:45；:970-975） |
 | background_catalog_veto | int | 1 | SNR catalogue veto 开关（h:46；:853-856） |
-| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（**无量纲**）。**适用域（正向约束）**：Drizzle 核 `pixfrac ∈ [0.5, 1.0]` 且源像素角尺度 `∈ [300, 600]″/px`（= 逐帧查表域）；**域外（含 NaN / 未知）一律取冻结默认 1.4；域外取值面 = 该冻结默认本身**（域外 clamp 会把一个与帧无关的表值当成逐帧标定）。**证据**：MC 标定 `UPMW-005 control_median_mc_test`（当前 Drizzle 引擎、`pixfrac = 0.8` 生产默认、2000 次实现）实测 `k_corr_empirical = 1.3883`、`N_eff ≈ 181 < N_retained = 251`；取 1.4 ≥ 1.3883（保守侧）。逐帧查表（pixfrac × 角尺度双线性插值）优先于该值；实现锚 = `lib/algorithms/coverage/src/sampler.cpp` 的 `kcorr_lookup` / `kControlCorrDefault` |
+| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（**无量纲**）。**公式面（订正: D-08）**：`k_corr = k_gauss(N_retained) × k_geo(几何)` 两因子几何查表——k_gauss 表（N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、≥121→≈1.0）与 k_geo 域（紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）由 P3 单元 `实验/healpix-polar` 承载；代码默认 1.4 为**实现记录**，不再是普适冻结常数。**适用域（正向约束）**：Drizzle 核 `pixfrac ∈ [0.5, 1.0]` 且源像素角尺度 `∈ [300, 600]″/px`（= 逐帧查表域）；**域外（含 NaN / 未知）一律走回退链取代码默认 1.4**（域外 clamp 会把一个与帧无关的表值当成逐帧标定）。**证据（1.3883 归属改写）**：MC 标定 `UPMW-005 control_median_mc_test`（源 300″/px、nside=512→412.26″/px、`pixfrac = 0.8` 生产默认、2000 次实现）实测 `k_corr_empirical = 1.3883` = 标定几何专属 MC 实测带 **1.27–1.43（中心 1.34±0.04）**内一次实现值（受控复现 1.3445±0.0416，16 相位 × 8 seed）；冻结 1.4 在该声明域两端低估 control_variance（N=5 端 k_corr(5,紧凑)≈2.05 → 低估 32%；源 583–600″ 端 ≈2.5–3.0 → 低估约 2 倍）。**引用义务**：任何引用 `control_variance` 的陈述必须声明 ① 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成)；② N_retained 档位（N≤25 时 k_gauss(N)>1.08 不可忽略）；③ 元组与产品几何不一致时 **fail-closed 拒绝或现场 MC 重标**。逐帧查表（pixfrac × 角尺度双线性插值）优先于该值；实现锚 = `lib/algorithms/coverage/src/sampler.cpp` 的 `kcorr_lookup` / `kControlCorrDefault` |
 | cpu_workers | int | 1 | CON-004 worker 数，Runtime lease 唯一来源（h:54-56；stage2.cpp:273-274；0→1 :883） |
 
 **(4) 输出缓冲四组**（probe/fill 协议，sampler.h:101-102/:118-119

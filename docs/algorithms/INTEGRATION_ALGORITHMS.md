@@ -104,7 +104,7 @@ function integrate_pixel(in, out):
 
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
-- 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003, Data Reduction and Error Analysis for the Physical Sciences 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42 的 GLS）。**差异**：本层 reducer 不编码 ivar 语义，权重策略在调用方（SCI-NOISE/SCI-UPM）。
+- 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003, Data Reduction and Error Analysis for the Physical Sciences 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346）的 GLS）。**差异**：本层 reducer 不编码 ivar 语义，权重策略在调用方（SCI-NOISE/SCI-UPM）。
 - 最优叠加：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - support=max canonical reducer：Project-defined（覆盖并集保守下界，本文件 F6）。
 

@@ -106,12 +106,14 @@ function p2_upm_build(observations, cfg):
 
 - FP64 全链路；Huber IRLS 坐标下降稳态收敛（`upm.cpp:500-889`）。
 - 弱零锚 `0.001`：正则化偏移 <~0.1%；帧绑定幂等门：`save→open` 重开值 `max_abs==0`
-  （dense/sparse `1e-12` 等价门）；`k_corr=1.4`（MC 实测 1.3883）保守冻结——该 MC 证据源
-  `control_median_mc_test` **已注册（可复跑）**，常数本身按 SCI-UPM §5/§10 冻结但
-  当前不可复跑。
+  （dense/sparse `1e-12` 等价门）；`k_corr` = k_gauss(N_retained)×k_geo 两因子几何查表
+  （<!-- 订正: D-08，负责人已批改表 --> 公式与查表由 P3 单元 实验/healpix-polar 承载；
+  1.3883 = 标定几何专属单次 MC 实测值（带 1.27–1.43），冻结 1.4 在声明域两端
+  低估 32%/约 2 倍，仅作实现记录与域外回退；证据源 `control_median_mc_test`
+  **已注册（可复跑）**）。
 - `control_variance=k_corr·(π/2)·σ_bg²/N_retained`，`control_ivar=1/var`；污染观测经
   `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`upm.cpp:635-638,653-657`）。
-- 误差排序：**数值 FP64(≪1e-12) ≪ 科学/统计容差(k_corr 冻结, 控制噪声) ≪ 门禁**。
+- 误差排序：**数值 FP64(≪1e-12) ≪ 科学/统计容差(k_corr 查表回退, 控制噪声) ≪ 门禁**。
 - 各 F 映射：`F1`→`p2_upm_raw_weight`/`p2_upm_normalized_weights`（`UPMW-001..003`）；
   `F3`→`upm.cpp:203-213,635-657`（Huber, `UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
   `F5`→分量 gauge（`upm.cpp:471-476,837-842`）。
@@ -125,7 +127,7 @@ function p2_upm_build(observations, cfg):
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
 - 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983；UPMW-004 实证 ratio 0.997（SCI-UPM §11）。
-- k_corr=1.4 的 MC 证据源 control_median_mc_test 已注册（可复跑），常数按 SCI-UPM §5/§10 冻结。
+- k_corr 的 MC 证据源 control_median_mc_test 已注册（可复跑）；k_corr 按 D-08 终裁为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载），1.4 降为实现记录/域外回退值。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。

@@ -45,8 +45,20 @@ control_ivar     = 1 / control_variance
 
 - 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；**适用域（必须与 `sigma_bg` 的前提一致）**：样本独立同分布且 patch 内**无未分辨空间结构**。`sigma_bg` 来自 8×8 patch 的稳健尺度，其前提是背景在 patch 尺度局部平稳（`docs/science/SCIENCE_SCOPE.md` §假设的 `γ = dlog(patch 方差)/dlog(patch 中位信号) ≈ 1` 判据）。前提被违反时 `sigma_bg` 量的是空间结构而非随机分量，`control_variance` 与 `control_ivar` **一并失真** ⇒ 该 patch 的噪声场必须显式降级并登记 `degraded_reason`；消费口径 = 降级后的噪声场；
   **量纲**：`sigma_bg²` 单位 `ADU²`，`N_retained` 无量纲计数，`k_corr` 无量纲 ⇒ `control_variance` 单位 `ADU²`、`control_ivar` 单位 `ADU⁻²`；
-- k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained：MC
-  （pixfrac=0.8，2000 实现）k_corr=1.3883，N_eff≈181/251；冻结 1.4；
+- k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained。
+  <!-- 订正: D-08（负责人已批改表）——原「MC（pixfrac=0.8，2000 实现）k_corr=1.3883，
+  N_eff≈181/251；冻结 1.4」改写为两因子公式＋几何查表： -->
+  **k_corr = k_gauss(N_retained) × k_geo(几何)**（即 k_shape×k_geo 两因子：k_shape =
+  估计器/N 因子 k_gauss，k_geo = drizzle 输出像素相关的纯几何因子）；k_gauss 表
+  （N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、≥121→≈1.0）与 k_geo 域
+  （紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）**由 P3 单元
+  `实验/healpix-polar` 承载**。历史 MC 读数 1.3883（pixfrac=0.8、2000 实现、
+  N_eff≈181/251）= **标定几何专属 MC 实测带 1.27–1.43（中心 1.34±0.04）内一次实现值**
+  （受控复现 1.3445±0.0416，16 相位 × 8 seed）；冻结单数 1.4 在其声明标定域两端
+  低估 control_variance（N=5 端 k_corr(5,紧凑)≈2.05 → 低估 32%；源 583–600″ 端
+  ≈2.5–3.0 → 低估约 2 倍）。**引用义务**：任何引用 `control_variance` 的陈述必须声明
+  ① 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成)；② N_retained 档位（N≤25 时
+  k_gauss(N)>1.08 不可忽略）；③ 元组与产品几何不一致时 **fail-closed 拒绝或现场 MC 重标**；
 - N_retained 用 clipping 后保留样本（patch vs truth 验证）；
 - 生产 UPM 权重 = quality × control_reliability × control_ivar（SCI-UPM-WEIGHT-001；
   `control_reliability` **实现为配置常量 1.0，不是按覆盖度算出的几何量**，缺陷登记

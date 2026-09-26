@@ -45,9 +45,14 @@
     球面交叠面积 [sr]；`A_drop,j` = drop 球面面积 [sr]（`build_drop_geometry` 的
     `g.drop_area`），由 `spherical::polygon_area_consistent`（收缩四角）求值。
     `pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ `A_drop,j ≡ A_pixel,j`（**逐位不变**）。
-    w≤0 拒绝。**核按 drop 面积归一**（F&H 2002 §7.2 式(7) 逐字: `a` 是 **the drop**
-    与输出像素的分数交叠 ⇒ `Σ_o a_io=1`；等价于 drizzlepac `cdrizzlebox.c` 的
-    `dover /= jaco`）：`Σ_p w_jp = 1` ⇒ `Σ_p F_p = Σ_j x_j`，**与 pixfrac 无关**。
+    w≤0 拒绝。**核按 drop 面积归一**（F&H 2002 **双锚定**：权重更新式 `W' = a·w + W`
+    与 s² 因子在 §2 式(2)–(5)；`a` 的逐字定义句 "axy is the fractional area overlap
+    of the drop of input pixel dxy with the output pixel o" 在 §7 式(7) 正下方
+    ——两者配合给出 `Σ_o a_io=1` ⇒ 核按 drop 归一；等价于 drizzlepac
+    `cdrizzlebox.c` 的 `dover /= jaco`。<!-- 订正: D-03（终裁修订） -->
+    权重公式（w、a_xy、s² 因子）一手锚 = §2 式(2)–(5)＋§7 式(7) 后定义句双锚；
+    §7 式(6)–(10) 的方差/相关（R = σc/σp）另行分列引用）：
+    `Σ_p w_jp = 1` ⇒ `Σ_p F_p = Σ_j x_j`，**与 pixfrac 无关**。
     **归一分母（口径不可替换）**：`N_p = Σ_j w_jp·A_pixel,j`（`acc.sumNorm`，:1629 前后）。
     若改用覆盖面积 `D_p=Σ_j a_jp` 作分母，`S_p` 偏 `1/pixfrac²`（pf=0.8 → +56.25%），
     负例判据 `1/pf²−1`（DISP-DRZ-009 回归门的 N 判据）。
@@ -84,7 +89,7 @@
     与 §5 的 `n_rejected_nonfinite` 是两个不同的量，各自独立取值）。
 - **估计量类别（与一手文献对照）**：`S_p = F_p/D_p = Σ_j B_j·a_jp / Σ_j a_jp`
   （B_j = x_j/A_pixel,j [ADU/sr]）是**输入面亮度的 a_jp 加权平均**。Fruchter & Hook 2002
-  （PASP 114, 144；arXiv:astro-ph/9808087v2 §2 式(4)(5)）的 drizzle 输出为
+  （PASP 114, 144；arXiv:astro-ph/9808087v2 §2 式(2)–(5)（D-03 统一权重锚））的 drizzle 输出为
   `I = Σ_i d_i·a_i·w_i·s² / Σ_i a_i·w_i`（"a factor of s² is introduced to conserve
   surface intensity"），同属"输入值的加权平均"族：两者对常量面亮度场均与 pixfrac 无关，
   差别在权重口径——F&H 用 `a·w`（w = 用户输入权重）并把像素尺度比以 `s²` 显式换算，
@@ -112,17 +117,24 @@
 - 三层候选缓冲（spherical_overlap.cpp）:
   1. quick-reject: `lim = max_angle + 1.25·hp_res`
      （HP_CIRCUMRADIUS_FACTOR=1.25，:42）。**系数依据（可判定上界）**：HEALPix 单元的
-     外接半径 `r_circ`（中心→最远边界点）与等面积尺度 `hp_res = sqrt(A_cell)` 之比在
-     全天上界为 **1.0442**（本仓实测 `run/SCI-FIX-DRZGEOM-01/evidence/
+     外接半径 `r_circ`（像元中心→像元边界最远点角距）与等面积尺度 `hp_res = sqrt(A_cell)` 之比的
+     全天 sup 为 **1.0415**（N=64 全天穷举实测，随 N 自下方单调升收敛；1.25/1.0415 = 1.2002，
+     即裕量 ≥20.0%）。<!-- 订正: D-01 --> 旧记 **1.0442**（本仓 `run/SCI-FIX-DRZGEOM-01/evidence/
      exp_c_realdata.json` C3 段：nside=512/1024 × 181 档纬度扫描，最坏 1.0441/1.0442，
-     出现在 |dec|≈42°，**不是极区**；阴性对照等经纬网格同度量达 1.669）⇒ 1.25 相对
-     该上界留 19.7% 余量，且覆盖跨 face 边界（面内畸变已由 `hp_res` 的球面定义吸收）。
+     出现在 |dec|≈42°，**不是极区**，1.25 相对留 19.7% 余量）系同一量在不同穷举日程下的读数，
+     口径统一后按全天穷举 sup≈1.0415 记账。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
+     = 2/√π 是"极冠 apex 叶对角（极点→叶远角）/hp_res"的叶对角尺度（ρ₁ = arccos(1−1/(3N²))
+     ≈ √(2/3)/N）——其历史取心法（相邻 ring 纬度中点）在极冠 apex 叶上失效，**不得记作外接半径**
+     （D-01）。阴性对照：等经纬网格同度量达 1.669（本仓实测；独立审计全天穷举另录反例 4.516，
+     D-01——1.25 的安全性只对 HEALPix 特化成立）⇒ 1.25 相对该上界留 ≥20.0% 裕量，且覆盖跨
+     face 边界（面内畸变已由 `hp_res` 的球面定义吸收）。
      零漏选由 9003 例全枚举 oracle 兜底（§9）。
   2. 保守查询圆: `query_radius = max_angle + 3.0·hp_res`
      （queryDisc 回退）。**系数依据**：候选完备性要求
-     `query_radius ≥ max_angle + r_circ,max = max_angle + 1.0442·hp_res`（任一与 drop 相交
+     `query_radius ≥ max_angle + r_circ,max = max_angle + 1.0415·hp_res`（任一与 drop 相交
      的 cell，其中心必落在 drop 的 `max_angle` 邻域加该 cell 外接半径之内）⇒
-     3.0·hp_res 比 1.0442·hp_res 宽 2.87×，属**保守过覆盖**（代价是候选数，不是正确性）；
+     3.0·hp_res 比 1.0415·hp_res 宽 2.88×，属**保守过覆盖**（代价是候选数，不是正确性）；
+     （1.0442→1.0415、2.87×→2.88× 随上条 D-01 口径统一同步订正）
   3. fast 路径: 面 delta×1.15 面内畸变系数 + 极冠/跨 face 边界回退
      queryDisc（:1667-1702）。
 - 交叠面积: 球面多边形裁剪（clip_normals_d，内部 double）——逐边裁剪的球面推广（Sutherland–Hodgman 1974 原文只处理平面多边形，球面形式为本模块推广）
@@ -325,11 +337,11 @@
 | DISP-DRZ-002 | 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写 "Girard 定理" | 面积实现 = S-H 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现；文档侧命名已与实现一致，**禁用** "Girard 定理" 命名 | spherical_overlap.h:15,77; spherical_overlap.cpp:11 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1570 |
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | **约束**：主循环按原因分类计数（值/方差/权重三分类，:2000-2027）并聚合暴露 `DrizzleStats::n_rejected_nonfinite*`（:2203-2208）；**禁用**把非有限样本传播进 `F_p`/分母/方差——会污染整像素信号与几何支撑（负例判据：零合格样本必须输出 `NaN ∧ support≤0` 且分类计数非零） | DRIZZLE.md:116 vs drizzle_engine.cpp:2000-2027 / :2203-2208 |
-| DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079）；θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5 |
+| DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079）；θ=1e-3 时切平面偏差 ≈ −θ_max²/2 = −5.0e-7（恒负、单向下偏；θ_max 按 drop 最远顶点角距约定，A-P3-02/04；旧注 "<4e-8" 缺符号且偏小 12.5 倍，撤换），球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:132 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §7.2 / drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | DRIZZLE.md §5/§7 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1、§11.2）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 canonical 核 `w_jp=a_jp/A_drop,j` + 面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`S_p=F_p/N_p=Σ_j B_j a_jp/Σ_j a_jp`） | **约束（覆盖正向与反向两条路径）**。**正向** `processPixelSharedTiled`：`weight = overlap_area / drop_area`（drop 面积归一，F&H 2002 §2 式(2)–(5)（D-03 订正，原引 §7.2 撤换）/ drizzlepac `dover/=jaco`），归一分母 `acc.sumNorm`。**反向** `reverse_drizzle.cpp`：`S_p = Σ_j B_j·a_jp / Σ_j a_jp`（面亮度加权平均，分子分母各自累加后相除）。**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`：`pixfrac<1` 时偏 `1/pixfrac²`（pf=0.8→+56.25%，与 `1/pf²−1` 逐位吻合）；反向路径若改用非面亮度归一，输出随**源 nside** 变化（实测 nside=16/64/256 偏 −99.98%/−99.70%/−95.23%，`S_p` 与 `B0·A_pixel/A_leaf` 逐位吻合）——两者均为负例判据 | DRIZZLE.md §5/§7 vs drizzle_engine.cpp `processPixelSharedTiled`（`weight=overlap_area/drop_area` + `sumNorm`）/ `astro_sphere_sink.cpp`（`k=sumArea/sumNorm`）/ reverse_drizzle.cpp（`weight` 累加 + 输出归一）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1、§11.2）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
@@ -374,7 +386,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 **DISP-DRZ-005 负面用例建议（仅注记，用例实现不在本批）**：θ < 1e-3 rad
 的微小 drop 两侧对拍——同一输入分别走切平面分支（`planar_polygon_area_n`）
 与球面 Van Oosterom 分支（`spherical_polygon_area_n`），断言面积/weight 差
-落在注释论证的偏差带内（切平面 vs 球面 <4e-8 量级，见 :996-1001），
+落在注释论证的偏差带内（切平面 vs 球面偏差按 −θ_max²/2 律：θ_max=1e-3 ⇒ −5.0e-7——A-P3-04 订正，旧注 4e-8 撤换；见 :996-1001），
 守护该分支在后续迁移中不被误删或语义漂移。
 
 ## 11 关联
@@ -396,7 +408,7 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
-- Drizzle 线性重建/drop/pixfrac：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393）。**差异**：原式在切平面，本模块在球面 HEALPix 上实施（Project-defined 迁移）。
+- Drizzle 线性重建/drop/pixfrac：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087）。**锚分列（D-03）**：权重公式（w、a_xy、s²）= §2 式(2)–(5)；方差/相关（R = σc/σp、单输出像素方差）= §7 式(6)–(10)。**差异**：原式在切平面，本模块在球面 HEALPix 上实施（Project-defined 迁移）。
 - Drizzle 实践：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause）。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0）。
 - 球面三角面积：Van Oosterom & Strackee 1983, IEEE TBME 30, 125（DOI 10.1109/TBME.1983.325207）。
@@ -409,4 +421,14 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+## 订正记录（独立审计 · 实验重做 · 总编对账批）
+
+> 依据唯一事实源 `独立审计/实验重做/总编对账/分歧台账.md`；只登记本批对本文件的改动，不改任何公式、锚点、阈值与容差的实质内容。
+
+| 台账编号 | 位置 | 改动 |
+|---|---|---|
+| D-01 | §2 三层缓冲第 1/2 条 | 外接半径口径统一：全天 sup ≈ **1.0415·hp_res**（N=64 全天穷举，像元中心→边界最远点角距），HP_CIRCUMRADIUS_FACTOR=1.25 裕量 ≥20.0%；旧记 1.0442/19.7% 为纬度扫描读数，保留新旧对照；**1.1284 = √2·ρ₁/hp_res = 2/√π 改记为极冠 apex 叶对角常数，不得记作外接半径** |
+| D-03（终裁修订） | §1 权重条、§1 估计量类别条、§10 DISP-DRZ-009、参考文献节 | F&H 2002 权重公式锚为**双锚定**：权重更新式/s² = §2 式(2)–(5)；a_xy 逐字定义句 = §7 式(7) 正下方（arXiv:astro-ph/9808087v2 实证，该句紧跟式(7)）；方差/相关 = §7 式(6)–(10) 分列引用。SCI-DRZ-001（DRIZZLE.md）原 "§7.2 式(7) 正下方" 锚对定义句而言本就正确，无需订正 |
+| A-P3-02 / A-P3-04 | §10 DISP-DRZ-005 行、§10 负面用例注记 | 切平面偏差按生产实现的 θ_max 约定（drop 最远顶点角距）改 **−θ_max²/2**（θ_max=1e-3 ⇒ −5.0e-7，恒负、单向下偏）；旧注 "<4e-8" 缺符号且偏小 12.5 倍，撤换；条文写明约定依赖 |
 

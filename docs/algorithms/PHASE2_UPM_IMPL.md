@@ -423,7 +423,15 @@ converged = 0  ⇔ 迭代耗尽（max_iterations）                       # :105
 
 **k_corr=1.4 冻结（MC 实测 1.3883）**：`sampler.cpp:82` 注释
 "k_corr_empirical = 1.3883，N_eff ≈ 181 < N_retained=251. 冻结保守值
-1.4"；常量 `kControlCorrDefault=1.4`（`sampler.cpp:83`）。**k_corr 属
+1.4"；常量 `kControlCorrDefault=1.4`（`sampler.cpp:83`）。
+<!-- 订正: D-08（负责人已批改表）——k_corr 公式面由「冻结单数 1.4」改为两因子
+k_gauss(N_retained)×k_geo 几何查表（PHASE2_SAMPLER.md §5.4 承载定义；公式与查表由 P3 单元
+实验/healpix-polar 承载）：1.3883 = 标定几何专属（源 300″/px、nside=512→412.26″/px、
+pixfrac=0.8、全 touched patch N≈225–251）MC 实测带 1.27–1.43（中心 1.34±0.04）内一次
+实现值；冻结单数 1.4 在其声明标定域两端低估 control_variance（N=5 端 32%、源 583–600″
+端约 2 倍），不再作普适常数；消费 = 标定元组 + N 档声明，否则 fail-closed 或现场 MC 重标。
+上述代码注释与常量保留为实现记录。 -->
+**k_corr 属
 sampler 域合同**（ALG-P2-SMP-001 §5.4 / ALG-UPM-CONTROL-IVAR-001，
 PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不重复
 标定。**本表数值与公式为冻结面：任何修改必须走 SCI/合同变更（放宽动作只随变更落地），不

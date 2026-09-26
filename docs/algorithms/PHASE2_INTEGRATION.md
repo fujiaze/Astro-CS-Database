@@ -334,7 +334,7 @@ eligibility（逐候选 i，候选索引固定序）:
 
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
-- 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003；Aitken 1935）。**差异**：本层不编码 ivar 语义（§7）。
+- 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42, DOI 10.1017/S0370164600014346）。**差异**：本层不编码 ivar 语义（§7）。
 - 最优叠加/信息保持：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - support=max：Project-defined（§5）；与 SCI-INT §5 同构。
 - 并行归约容差：IEEE 754-2019；Higham 2002。
