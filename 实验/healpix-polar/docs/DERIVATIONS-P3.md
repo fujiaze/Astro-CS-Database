@@ -127,7 +127,11 @@ TAN/gnomonic 投影（C&G 2002 式(54)，refs V5）的局部面积元定律：
 
 control_variance = k_corr·(π/2)·σ_bg²/N_retained 中的 k_corr 分解为：
 
-  **k_corr = k_shape × k_geo**
+  **k_corr = k_gauss(N_retained) × k_geo**（k_gauss = 有限 N 估计器偏置、主导因子，与
+  补实验-k_corr 原始口径 control_variance = k_gauss(N)×k_geo×(π/2)σ_bg²/N_retained 一致；
+  <!-- 订正: 检查-跨文档冲突 红1（总编令当场闭合遗留 B）——原记「k_corr = k_shape × k_geo」，
+  k_shape 系旧称，指有限 N 估计器偏置因子，现已统一记 k_gauss(N_retained)，与 :132 定征表及
+  tables.md T3 同名。旧对照：k_corr = k_shape × k_geo -->）
 
 - **k_gauss(N)**（iid 高斯有限 N 修正，"正本估计器口径"＝逐实现 MAD→跨实现中位）：
   N=5: 1.637、N=9: 1.316、N=17: 1.144、N=25: 1.083、N=49: 1.046、N≥121: ≈1.00
@@ -142,7 +146,8 @@ control_variance = k_corr·(π/2)·σ_bg²/N_retained 中的 k_corr 分解为：
 **冻结 1.4 的失保守判决**（负责人已批改表）：声明标定域（pixfrac∈[0.5,1] × 源 [300,600]″/px）内
 N=5 端 k_corr(5,紧凑) ≈ 2.05±0.09 ⇒ 1.4 低估 control_variance 32%（标准误低估 14%；空间分散 1.54）；
 源 583–600″ 端 k_corr ≈ 2.5–3.0 ⇒ 低估约 2 倍。消费规则（供 P5 引用的正确表述）：
-k_corr 改 **k_shape × k_geo 两因子公式＋(ρ, pixfrac, 帧数/dither, patch 构成) 几何查表**；
+k_corr 改 **k_gauss(N_retained) × k_geo 两因子公式＋(ρ, pixfrac, 帧数/dither, patch 构成) 几何查表**
+（记号统一见 :130 订正；旧对照：k_shape × k_geo）；
 任何引用必须同时声明 ① 标定元组、② N_retained 档位（N≤25 时 k_gauss(N)>1.08 不可忽略；N=5 须 ≥1.6）；
 几何不匹配时 fail-closed 拒绝或现场 MC 重标（秒级，code/audit/kcorr/ 可复用）。
 

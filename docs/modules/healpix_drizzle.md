@@ -81,7 +81,7 @@ false_negative=0）；计数 METRIC-P1-DRZ-CANDIDATES 等
   geometry_cache_hits / geometry_cache_misses（DrizzleStats +
   [ops] 行）；
 - 科学等价：candidate oracle 9003/0、freeze 42/42、UPMW-005 MC
-  k_corr=1.3883 不变；详见 docs/algorithms/DRIZZLE_GEOMETRY.md。
+  k_corr=1.3883 不变（标定几何专属单次 MC 实测，见 D-08）；详见 docs/algorithms/DRIZZLE_GEOMETRY.md。
 
 ## Tests
 

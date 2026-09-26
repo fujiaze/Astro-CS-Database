@@ -73,7 +73,7 @@ P2.* stage 日志；astrocs-diagnose 支持。
 
 synthetic_gate 89 项（V19R3 新增 UPMW-001..004/006/007）；G5 ivar 真值；
 SNR-015 ablation；UPMW-005 在 healpix_drizzle/tests/
-control_median_mc_test.cpp（2000 实现 Drizzle MC，k_corr=1.3883）。
+control_median_mc_test.cpp（2000 实现 Drizzle MC，k_corr=1.3883——标定几何专属单次 MC 实测，见 D-08）。
 
 ## Known limitations
 

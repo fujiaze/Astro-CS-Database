@@ -127,7 +127,7 @@
 | `G-MC-05` | monte_carlo | phase2 | `|FWHM(P_eff) - median_k FWHM_k| / FWHM(P_eff) > 0 rel` | 构造性区分门（等式不得作为通过）；只给 FWHM 标量不构成 effective PSF（R7 REJECT）。 / frozen | min=1；executed=0 或 skip-only -> rc=2 | MUT-M05 | ALG-P2-PSFSW-001 / P2-INTEGRATE-001 |
 | `G-MC-06` | monte_carlo | phase2 | `|Var(Q/W) - CRLB|/CRLB <= 1e-12 rel` | CRLB 是解析下界（精确恒等）；loss_ratio>1.5 为构造性区分门，继承 K4 的 A_NEA=29.05 参考。 / frozen | min=1；executed=0 或 skip-only -> rc=2 | MUT-M06, MUT-B01 | ALG-P2-POINT-001 |
 | `G-MC-07` | monte_carlo | phase2 | `(C_stat + J C_theta J^T)/C_stat > 1 ratio` | 构造性不变量；SCI-P2-001 C9 的含项/不含项比 = 2.0。 / frozen | min=1；executed=0 或 skip-only -> rc=2 | MUT-M07 | ALG-P2-UPM-001 / IMPL-P2-UPM-001 |
-| `G-MC-08` | monte_carlo | phase2 | `k_corr > 1 ratio` | 方向不变量（k_corr>1）为门；冻结数值 1.4 仅域内可用（SO-07 数值阈值由负责人确认，本任务不发明）。 / frozen | min=1；executed=0 或 skip-only -> rc=2 | MUT-M08 | ALG-P2-UPM-001 / IMPL-P2-UPM-001 |
+| `G-MC-08` | monte_carlo | phase2 | `k_corr > 1 ratio` | 方向不变量（k_corr>1）为门；域内 = k_gauss(N_retained)×k_geo 逐帧查表（D-08），1.4 = 代码默认/域外回退（实现记录；fail-closed 或现场 MC 重标）（SO-07 数值阈值由负责人确认，本任务不发明）<!-- 订正: 检查-跨文档冲突 红3——原「冻结数值 1.4 仅域内可用」与 D-08 反口径。旧对照：冻结数值 1.4 仅域内可用 --> / frozen | min=1；executed=0 或 skip-only -> rc=2 | MUT-M08 | ALG-P2-UPM-001 / IMPL-P2-UPM-001 |
 | `G-INJ-01` | injection | phase2 | `|bias|/F_ref <= 0.02 rel` | 门度量（bias、sigma_F vs 1/sqrt(W)）冻结；数值 2% 属设计默认，最终由 ALG-P2-POINT-001 冻结，本任务不宣称冻结数值。 / pending_freeze | min=1；executed=0 或 skip-only -> rc=2 | MUT-I02, MUT-I03, MUT-SPEC-10 | ALG-P2-POINT-001 / P2-INTEGRATE-001 |
 | `G-INJ-02` | injection | phase2 | `max(|bias|/B0, |var/var_pred-1|, |flux_tot/flux_true-1|) <= 0.03 rel` | 门度量冻结（三量一致性）；数值 3% 设计默认，最终由 ALG-P2-SURF-001 冻结。 / pending_freeze | min=2；executed=0 或 skip-only -> rc=2 | MUT-A11, MUT-I03 | ALG-P2-SURF-001 / P2-INTEGRATE-001 |
 | `G-INJ-03` | injection | phase2 | `max_threshold |W_info - W_info_ref| / W_info_ref <= 0.05 rel` | 门度量冻结；数值 <5% 为 SCI-PSFW-001 建议口径，最终由 ALG-P2-PSFSW-001 冻结（本任务不擅自改冻结门）。 / pending_freeze | min=1；executed=0 或 skip-only -> rc=2 | MUT-I04, MUT-I05 | ALG-P2-PSFSW-001 / IMPL-P1-PSFW-001 |
@@ -449,14 +449,14 @@
 
 ### `G-MC-08` — k_corr 可复现口径与适用域
 
-- **claim**：定义 k_corr=Var(median)/[pi sigma_bg^2/(2 N_retained)]；固定种子 MC 必须复现方向 k_corr>1 且脚本可复跑；未复跑前仅允许在已声明域内取 1.4，禁止外推。
+- **claim**：定义 k_corr=Var(median)/[pi sigma_bg^2/(2 N_retained)]；固定种子 MC 必须复现方向 k_corr>1 且脚本可复跑；域内按 k_gauss(N)×k_geo 查表（D-08），1.4 = 代码默认/域外回退（实现记录），禁止外推（fail-closed 或现场 MC 重标）<!-- 订正: 检查-跨文档冲突 红3。旧对照：未复跑前仅允许在已声明域内取 1.4，禁止外推 -->。
 - **条款锚**：FZ-PROV-KCORR；ADJ-F-OBS-05；UNCERTAINTY_AND_COVARIANCE §V19R3；SCI-OBS-001 门 D5
 - **文献锚**：Starck, Murtagh & Fadili 2010 CBO9780511730344 (MMT)
 - **输入 -> 输出**：pixfrac, patch, N_retained, estimator_version, seed -> k_corr, domain
 - **单位**：k_corr=1
 - **适用域**：显式声明几何/pixfrac/control patch/估计器/是否球面；域外禁用。
 - **判据**：`k_corr > 1 ratio`
-- **容差来源**：方向不变量（k_corr>1）为门；冻结数值 1.4 仅域内可用（SO-07 数值阈值由负责人确认，本任务不发明）。（status=frozen，owner=ALG-P2-UPM-001）
+- **容差来源**：方向不变量（k_corr>1）为门；域内 = k_gauss(N)×k_geo 逐帧查表（D-08），1.4 = 代码默认/域外回退（实现记录；fail-closed 或现场 MC 重标）（SO-07 数值阈值由负责人确认，本任务不发明）<!-- 订正: 检查-跨文档冲突 红3。旧对照：冻结数值 1.4 仅域内可用 -->。（status=frozen，owner=ALG-P2-UPM-001）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：k_corr=1（忽略相关）或域外外推且未更新 provenance -> REJECT。
 - **独立 Oracle**：kind=independent_numpy_mc；truth=定义式 + 定种子 MC；must_not=acsd, lib/

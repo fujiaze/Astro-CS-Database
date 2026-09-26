@@ -110,8 +110,8 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
   正则化后条件数有上界，该门对「原问题是否可辨识」零信息。`κ(H_solve)` 只作**诊断**（`kappa_solve`）。
 - **λ 不是自由参数**：它是判据阈值派生的数值岭 `λ_eff = τ · mean(diag(H_red))`，没有配置面，
   也不能当自适应分支用（唯一自适应旋钮 = 节点间距）。
-- **自由度**：`dof = n_obs − r_eff`（Andrae et al. 2010 式 (9)）；`χ²_red` 的分母**必须**用它，
-  **`χ²_red` 的分母 = `n_obs − r_eff`**（`n_obs − n_params` 作分母在秩亏时系统性**高估** `χ²_red`——实测 1.0714 / 1.0581——并掩盖未被约束的方向数；<!-- 订正: A-P5-01 原文「低估」方向词相反 -->）。`χ²` 本身**不参与**判决。
+- **自由度**：`dof = n_obs − r_eff`（Andrae et al. 2010 式 (9)）；`χ²_red` 的分母**必须**用它
+  （`n_obs − n_params` 作分母在秩亏时系统性**高估** `χ²_red`——实测 1.0714 / 1.0581——并掩盖未被约束的方向数；<!-- 订正: A-P5-01 原文「低估」方向词相反；检查-行文逻辑 G2——订正插入处「χ²_red 的分母 = n_obs − r_eff」重复强调句删去，语义不变 -->）。`χ²` 本身**不参与**判决。
 - **产品键**（`p2_upm_model.json#identifiability`）：`rank_eff`（有效秩**计数**）、`n_params`、
   `n_unidentified`、`rank_rtol` / `rank_rtol_effective`、`kappa`、`chi2`、`dof_eff`、`chi2_red`、
   `chi2_red_defined`、`identifiable`、`n_blocks`、`n_blocks_rank_deficient`、`n_blocks_single_frame`、

@@ -78,7 +78,7 @@
 
 ### 4.6 控制点方差语义：k_corr 与有限样本效应
 
-相关核倍数 k_corr 登记为冻结常数 1.4（标定值 1.3883）。台账 D-08 终裁：1.3883 为标定几何专属的单次蒙特卡洛实现（误差带 1.27–1.43），冻结常数 1.4 在声明域两端低估 32%/2 倍；k_corr 改为两因子公式 k_shape×k_geo 加 (ρ, pixfrac, 帧数, patch) 几何查表，查表由 P3 单元承载（负责人已批），本文不再引用单一常数 [实验:code/audit/route1/exp14_kcorr_inflation.py]。其机制腿验证了 AR(1) 相关正态下中位数方差膨胀律 (1+ρ)/(1−ρ)：n=3、ρ=0.19 实测 1.233，与渐近律 1+(n−1)ρ = 1.38 的差属渐近域外推 [实验:code/audit/route1/exp14_kcorr_inflation.py]。
+相关核倍数 k_corr 登记为冻结常数 1.4（标定值 1.3883）。台账 D-08 终裁：1.3883 为标定几何专属的单次蒙特卡洛实现（误差带 1.27–1.43），冻结常数 1.4 在声明域两端低估 32%/2 倍；k_corr 改为两因子公式 k_gauss(N_retained)×k_geo 加 (ρ, pixfrac, 帧数, patch) 几何查表（<!-- 订正: 检查-跨文档冲突 红1 连带——原 k_shape×k_geo 记号与 P3 正本 D8 的 k_gauss 因子两读，全域统一；旧对照：k_shape×k_geo -->），查表由 P3 单元承载（负责人已批），本文不再引用单一常数 [实验:code/audit/route1/exp14_kcorr_inflation.py]。其机制腿验证了 AR(1) 相关正态下中位数方差膨胀律 (1+ρ)/(1−ρ)：n=3、ρ=0.19 实测 1.233，与渐近律 1+(n−1)ρ = 1.38 的差属渐近域外推 [实验:code/audit/route1/exp14_kcorr_inflation.py]。
 
 控制点方差的渐近式 control_variance = k_corr·(π/2)·σ_bg²/N_retained 的有限 N 行为由补实验三口径定稿（D-07）：**纯公式口径**（σ 已知）下解析精确值给出公式对真方差**高估 9.53%**（N=5，随 N 单调收敛，1% 边界在 N≈45–49）——历史文档"低估 8.5%"的方向词系笔误，本单元历史正本若曾转引已按 D-07 订正；**端到端口径**（σ̂ = 1.4826·MAD 同 patch plug-in）中 MAD 平方偏置（N=5 时 −9.4%）与有限 N 中位数高估同量级反号，净偏差 ≤±1.5%（N=5 为 −0.6%）；**生产链裁剪臂**（逐句复刻生产裁剪流程）低估 1.3–3.2% [实验:code/audit/supplement_control_variance/finiteN_control_variance.py][实验:code/audit/supplement_control_variance/production_chain_control_variance.py]。新发现的偶数 N_retained 效应（偶 N 中位数取两中央均值，真方差低于相邻奇 N）使端到端高估 +5.0%（N=20）、+2.8%（N=40）、+1.3%（N=100），生产 median_of 语义同样适用，登记为文档需补记项 [实验:code/audit/supplement_control_variance/finiteN_control_variance.py]。
 
@@ -104,7 +104,7 @@
 - **k_corr 原始标定网格**不在登记材料内，机制腿（AR(1) 膨胀律）与构造性复原已闭合，但几何查表的具体网格属 P3 单元交付件，本文不引用其数值。
 - **P-CST-23 声称系列的生成配置**欠定：登记三数可在 S2 语义下部分复原（同号同量级），完整复原需补生成配置登记。
 - **生产链控制方差被估量 y 的合同语义**（裁剪后中位数 vs 全样本中位数）文档未写明，补实验按"裁剪后中位数"口径完成并上呈裁决。
-- **文献腿降级项**：Serfling 1980 与 Cramér 1946 §28.5 为书目级（小节号存疑，标注后引用）；Moffat 1969 为 ADS bibcode 锚定（DOI 未核）；Aitken 1935 为标注级引用（DOI 未核，经负责人批准进入科学文档）。全部核验状态见 refs.md。
+- **文献腿降级项**：Serfling 1980 与 Cramér 1946 §28.5 为书目级（小节号存疑，标注后引用）；Moffat 1969 为 ADS bibcode 锚定（DOI 未核）；Aitken 1935 已核 DOI 10.1017/S0370164600014346（年份维持 1935 通行引法；出版年 INSPIRE 记 1936——卷 55 跨 1935–36，1936 通行注同文；经负责人批准进入科学文档。<!-- 订正: 检查-行文逻辑 Y6——原作「DOI 未核」，以 PHOTOMETRY.md:305 / refs.md V11 的已核状态为准统一 -->）全部核验状态见 refs.md。
 - **本单元主实验的仿真坐标**（g=1.3 e⁻/ADU、RN=10 e⁻ 等）为声明量，不反解物理参数；真实数据面无解析真值，hold-out 真值自带 0.0224 dex 噪声。
 - **对 MC 真值的偏置数字带 ±3 pp 蒙特卡洛噪声**（N=1000 时 σ_F 估计量相对标准误 ≈2.2%），闭式预言与实测臂比值之差（≤1.25 pp）才是低噪证据；引用具体偏置数字时应注明该不确定度。
 
@@ -113,7 +113,7 @@
 （只收一手 VERIFIED 条目；核验方式与用途的完整台账见 refs.md）
 
 1. Pogson, N. (1856). Magnitudes of thirty-six of the minor planets. MNRAS 17, 12. DOI: 10.1093/mnras/17.1.12. [星等标度定义]
-2. Aitken, A. C. (1935). On least squares and linear combination of observations. Proc. R. Soc. Edinburgh 55, 42–48. [逆方差加权；标注级引用（DOI 未核），经负责人批准]
+2. Aitken, A. C. (1935). On least squares and linear combination of observations. Proc. R. Soc. Edinburgh 55, 42–48. DOI: 10.1017/S0370164600014346. [逆方差加权；已核 DOI（出版年通行注 1936 同文），经负责人批准] <!-- 订正: 检查-行文逻辑 Y6 -->
 3. Horne, K. (1986). An optimal extraction algorithm for CCD spectroscopy. PASP 98, 609. DOI: 10.1086/131801. [最优提取方差组成]
 4. Naylor, T. (1998). An optimal extraction algorithm for imaging photometry. MNRAS 296. [成像最优提取；书目级（页码未逐字核验，不注）]
 5. Rousseeuw, P. J., & Croux, C. (1993). Alternatives to the median absolute deviation. JASA 88(424), 1273–1283. DOI: 10.1080/01621459.1993.10476408. [MAD→σ 常数]

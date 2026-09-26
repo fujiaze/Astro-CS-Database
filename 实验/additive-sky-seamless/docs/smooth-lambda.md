@@ -2,7 +2,7 @@
 
 > **按分歧台账订正（D-07/D-08，2026-09）**：本文为历史正本（reverse_verify 迁入件），其 §2.1 中
 > `k_corr=1.4` 行按总编对账《分歧台账》D-08 终裁改写——k_corr 不是普适常数，应为
-> `k_shape × k_geo` 两因子公式＋(ρ, pixfrac, 帧数/dither, patch 构成) 几何查表（查表由 P3 单元承载），
+> `k_gauss(N_retained) × k_geo` 两因子公式＋(ρ, pixfrac, 帧数/dither, patch 构成) 几何查表（查表由 P3 单元承载；<!-- 订正: 检查-跨文档冲突 红1 连带，原 k_shape × k_geo 记号全域统一 -->），
 > 引用须同时声明标定元组与 N_retained 档位；1.4 属标定几何专属实测带 1.27–1.43 内的一次实现。
 > 同文件 N=5 渐近式方向词按 D-07 订正为「高估 ≈9.5%（保守）」。
 > 本文 N=4096 档落在 N≥65 渐近域内，公式本体不受影响。详见 `docs/control-variance-adjudication.md`。

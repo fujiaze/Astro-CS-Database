@@ -18,10 +18,13 @@ F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
     qf·support^p·snr²/(1+snr²)/unc²（非生产：use_ivar_weight=0 的 ablation/诊断域）
     天光控制点的被估量是**变化的背景电平**，SNR² 在该处不是有效逆方差代理，
     生产一律取 control_ivar，SNR 只作 veto/质量门（docs/science/PHASE2_UPM.md §5）
-    control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 ≤ k_corr
-F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，
-    Σ_cell w_cell = control_reliability；求解器实际消费的就是它，upm.cpp:565）
-F3: Huber IRLS (标准无量纲残差, 对齐 upm.cpp:207-216,629-639):
+    control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 < k_corr
+    （k_corr=1 ⇔ 忽略相关，p2_upm_control_variance 显式拒 rc=2；k_corr<1 拒 rc=1
+    <!-- 订正: 检查-行文逻辑 Y1——原作「定义域 1 ≤ k_corr」，k_corr=1 恰是实现显式拒绝（rc=2）的点，
+    与 PHASE2_SAMPLER.md §5.4 的冻结拒绝规则对齐。旧对照：定义域 1 ≤ k_corr -->）
+F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，实锚 upm.cpp:655 归一化注释<!-- 订正: 检查-跨文档冲突 黄8 连带——原注 upm.cpp:565，现 :563-567 为 lambda_s/zero_anchor 区。旧对照：upm.cpp:565 -->），
+    Σ_cell w_cell = control_reliability；求解器实际消费的就是它）<!-- 订正: 检查-跨文档冲突 黄8 连带——删除行尾失效锚 upm.cpp:565（实锚 :655 见上行订正注） -->
+F3: Huber IRLS (标准无量纲残差, 对齐 upm.cpp:761-763/:778-780<!-- 订正: 检查-科学性 Y-3c 行漂移连带——原注 :207-216,629-639，现 :207-216 为双线性插值、:629-640 为 joint-LS 归约，均非 Huber。旧对照：upm.cpp:207-216,629-639 -->):
     z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
     loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
     δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑
@@ -112,10 +115,10 @@ function p2_upm_build(observations, cfg):
   低估 32%/约 2 倍，仅作实现记录与域外回退；证据源 `control_median_mc_test`
   **已注册（可复跑）**）。
 - `control_variance=k_corr·(π/2)·σ_bg²/N_retained`，`control_ivar=1/var`；污染观测经
-  `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`upm.cpp:635-638,653-657`）。
+  `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`upm.cpp:761-763/:778-780`；δ 默认 `upm.cpp:286`）<!-- 订正: 检查-跨文档冲突 黄6（同 检查-科学性 Y-3c 行漂移）——原锚 upm.cpp:635-638,653-657 现为线程池归约与 FIX-UPMSCALE 注释，内容不符。旧对照：upm.cpp:635-638,653-657 -->。
 - 误差排序：**数值 FP64(≪1e-12) ≪ 科学/统计容差(k_corr 查表回退, 控制噪声) ≪ 门禁**。
 - 各 F 映射：`F1`→`p2_upm_raw_weight`/`p2_upm_normalized_weights`（`UPMW-001..003`）；
-  `F3`→`upm.cpp:203-213,635-657`（Huber, `UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
+  `F3`→`upm.cpp:761-763/:778-780`（Huber，δ 默认 `upm.cpp:286`<!-- 订正: 检查-科学性 Y-3c 行漂移连带——原锚 :203-213,635-657 现为双线性插值与 joint-LS 归约区。旧对照：upm.cpp:203-213,635-657 -->，`UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
   `F5`→分量 gauge（`upm.cpp:471-476,837-842`）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

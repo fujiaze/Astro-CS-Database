@@ -38,7 +38,7 @@
 | SCI-PSF-001 | TEST-PSF-001 | high-precision | centroid/FWHM 门 | lib/algorithms/psf/... |
 | SCI-NOISE-001 | TEST-NOISE-001..015 | analytic+MC | 固定 seed 统计界 | lib/algorithms/noise_snr/.../noise_model_science_test.cpp |
 | SCI-DRZ-001/014 | TEST-DRZ-CAND-001 / TEST-DRZ-VAR-001 | analytic/property | false_negative=0; α²v | lib/infrastructure/aio/healpix_db/.../candidate_oracle_test.cpp |
-| SCI-UPM-001 | TEST-UPMW-001..007 | MC+property | k_corr≈1.3883; rtol=1e-9 | lib/algorithms/coverage/tests/synthetic_gate.cpp |
+| SCI-UPM-001 | TEST-UPMW-001..007 | MC+property | k_corr≈1.3883（标定几何专属单次 MC 实测，见 D-08）; rtol=1e-9 | lib/algorithms/coverage/tests/synthetic_gate.cpp |
 | SCI-REJ-001 | TEST-REJ-001..008 | property+boundary | precision/recall 门 | lib/algorithms/coverage/tests/... |
 | SCI-INT-001 | TEST-INT-001 | analytic | mean/weighted mean 解析 | lib/algorithms/coverage/tests/... |
 | SCI-CW-001 | TEST-CW-001..008 | property | snr 扰动不变 | lib/algorithms/coverage/tests/... |
