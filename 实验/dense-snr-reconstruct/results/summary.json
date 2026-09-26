@@ -1,0 +1,285 @@
+{
+  "unit": "实验/dense-snr-reconstruct",
+  "point": "P4 重建稠密 SNR（科学链第 4 点）",
+  "provenance_note": "全部读数为独立审计/实验重做/P4重建稠密SNR 三路固定-seed 存档 JSON 的关键读数摘录（本单元不重跑实验）；routeN 指本单元 results/routeN/ 下同名 JSON。",
+  "verdicts_source": "独立审计/实验重做/总编对账/分歧台账.md（D-04/D-05/D-08/D-10/A-P4-01..07/A-P2-11）",
+  "key_results": {
+    "weight_identity_gamma2": {
+      "claim": "w = SNR^2/F_ref^2 = 1/sigma_F^2 逐位恒等；gamma=2 由定义唯一确定（非自由参数）",
+      "identity_max_rel_dev": {
+        "route1_exp_p4_01": 5.551115123125783e-16,
+        "route2_exp01": 4.44e-16,
+        "route2_exp01_variant_diffFref": 5.55e-16,
+        "route3_exp01": 3.7e-16,
+        "route3_exp01_downstream_two_path": 3.4e-16,
+        "P2_route1_exp12_ulp": "4.4e-16 = 2 ulp（台账 A-P2-11 转写）"
+      },
+      "gamma_scan": {
+        "gamma2_rel_var": 0.000006458,
+        "worst_gamma0_penalty_vs_gamma2": "26.3x",
+        "gamma1_relative_efficiency": 3.73,
+        "equal_weight_relative_efficiency": 104.58,
+        "routes": [
+          "route2/exp01",
+          "route3/exp01",
+          "route1/exp_p4_01"
+        ]
+      }
+    },
+    "default_operator": {
+      "claim": "生产默认 = natural_bicubic_spline_clip_v1（台账 D-10）；双线性=对照/回退；IDW=备选",
+      "node_reproduction_max_abs": {
+        "route1": 3.55e-15,
+        "route2": 3.6e-15,
+        "route3_spline_impl": 1.8e-15,
+        "route3_all_ops": "<=9.3e-15",
+        "gate": 1e-9
+      },
+      "dex_rmse_route1_exp_p4_02": {
+        "delta": [
+          16,
+          32,
+          64,
+          128
+        ],
+        "spline_clip": [
+          0.0024,
+          0.0135,
+          0.0892,
+          0.1878
+        ],
+        "bilinear": [
+          0.0057,
+          0.0215,
+          0.0853,
+          0.1798
+        ],
+        "idw_p2": [
+          0.0148,
+          0.043,
+          0.0985,
+          0.173
+        ],
+        "idw_p1": [
+          0.0258,
+          0.0687,
+          0.1311,
+          0.1853
+        ]
+      },
+      "E_route3_exp03_smooth_domain": {
+        "delta": [
+          16,
+          32,
+          64,
+          128,
+          256
+        ],
+        "spline_clip": [
+          6.9e-11,
+          2.9e-8,
+          0.000047,
+          0.022,
+          0.298
+        ],
+        "bilinear": [
+          0.000029,
+          0.00045,
+          0.0065,
+          0.076,
+          0.194
+        ],
+        "idw_p2_k16": [
+          0.0003,
+          0.0034,
+          0.032,
+          0.11,
+          0.15
+        ],
+        "note_delta256_reversal": "样条在 Δ=256 被双线性/IDW 反超（A-P4-07：跨 Δ 外推须重验）"
+      },
+      "convergence_orders": {
+        "bilinear_interior": [
+          -1.93,
+          -1.98
+        ],
+        "spline_interior": [
+          -3.97,
+          -4.18
+        ],
+        "spline_with_natural_endpoints": [
+          -3.88,
+          -4.13
+        ]
+      },
+      "clamp_necessity": {
+        "route1_no_clip_min": -161.5,
+        "nonpositive_pixels": 0.032,
+        "out_of_range": 0.057,
+        "route3_no_clip_range": [
+          -0.148,
+          4.16
+        ]
+      },
+      "positive_homogeneity_violation_counterexample_dev": 0.54,
+      "node_phase_trap": {
+        "misplace_px_delta32": 15.5,
+        "dex_rmse": [
+          0.0135,
+          0.0397
+        ],
+        "E": [
+          0.003,
+          0.0348
+        ]
+      }
+    },
+    "idw_defaults": {
+      "claim": "台账 D-05 终裁：默认 idw_power=1.0（含噪最优带 0.5–1 上端），K=16，gamma<1e-10 数值守卫；配置化+日志输出 p*，不落盘产品",
+      "scan_route2_exp02_best": {
+        "noise_0": {
+          "p": 2,
+          "K": 4,
+          "rmse_rel": 0.001639
+        },
+        "noise_0p02": {
+          "p": 0.5,
+          "K": 16,
+          "rmse_rel": 0.006827
+        },
+        "noise_0p06": {
+          "p": 0.5,
+          "K": 32,
+          "rmse_rel": 0.01414
+        }
+      },
+      "p2_penalty_noisy": "2-3x",
+      "limit_p_to_infinity_route3_exp04": "退化为最近点算子（偏差 0.302→3.3e-3→5.5e-9→0）",
+      "old_registered_value": "idw_power=2.0（无标定记录，按 A-P4-03/D-05 订正）"
+    },
+    "luminance_carrying": {
+      "claim": "控制值必须携带源项亮度；丢源项 → P5 效率最劣损失 12 倍",
+      "oracle_E": {
+        "full": 2.22e-16,
+        "dropped_source": 0.00131,
+        "equal_weight": 0.0178
+      },
+      "rebuild_arms_route1_exp_p4_04": {
+        "A_full_E": 0.00074,
+        "A_bglimit_E": 0.0017,
+        "A_frame_recon_E": 0.018,
+        "mu_hat_rel_err": 0.0045,
+        "dynrange_preserved": [
+          0.989,
+          0.966,
+          0.753
+        ]
+      },
+      "extreme_4dex": {
+        "A_full_E": 0.037,
+        "A_bglimit_E": 0.433,
+        "ratio": "12x"
+      },
+      "zero_source_negative": {
+        "full_equals_bglim_max_abs_dev": 0,
+        "dense_max_abs_snr_route2_exp07": 0
+      },
+      "endtoend_route2_exp07": {
+        "rmse_dex": 0.0795,
+        "pearson_r": 0.9952,
+        "luminance_follow_ratio": 3.19698,
+        "theory_sqrt10": 3.1622776601683795,
+        "P5_stack_var_ratio_eq_over_opt": 1.0428,
+        "theory": 1.0444
+      }
+    },
+    "psf_scale_honest_boundary": {
+      "median_dev_dex": 3.8,
+      "p99_dex": 5.7,
+      "statement": "稀疏控制格不表示 PSF 尺度结构；有效域 = ≥Δ 尺度平滑场（route1/exp_p4_04）"
+    },
+    "three_calibers_same_quantity": {
+      "claim": "dense/sparse_reconstruct/frame_reconstruct 为同一物理量的还原粒度，权公式唯一",
+      "frame_vs_spline": {
+        "dex_rmse": [
+          0.0295,
+          0.0058
+        ],
+        "dynrange_preserved": [
+          0.753,
+          0.989
+        ],
+        "E": [
+          0.018,
+          0.0007
+        ]
+      },
+      "w_vs_mref": "w 比 = 1.0 逐位（route3/exp01 H1d）；m_ref 降格记录参考电平（A-P4-06）"
+    },
+    "geometry_and_constants": {
+      "lambda_ratio_gate": {
+        "amplification_measured": [
+          1.007,
+          2.025,
+          3.956,
+          7.98
+        ],
+        "theory": [
+          1,
+          2,
+          4,
+          8
+        ],
+        "collinear_trigger": 1,
+        "isotropic_min_lo_hi": 0.33,
+        "axis_ratio_identity_dev": "<=0.03%"
+      },
+      "metric_E_properties": {
+        "multiplicative_invariance": -3.3e-16,
+        "wrong_arm_E": 0.314,
+        "shuffled_E": 0.729,
+        "note": "E 必须与 dex 水平判据成对使用（水平偏差差 38 倍）"
+      },
+      "mad_sigma": {
+        "one_over_q": 1.4826022185056023,
+        "rel_dev": 1.5e-16,
+        "budget_9216": "(1.44/0.015)^2 精确；1.44=1.152x1.2533；n_min 带 8905-9494；c=1.152 按 D-04 终裁"
+      },
+      "moffat4": {
+        "closed_form": 1.2303077,
+        "integral": 1.2303078,
+        "registered": 1.23031,
+        "gaussian_same_caliber": 1.6651
+      },
+      "whiteness": {
+        "lag1_first_difference": [
+          -0.5007,
+          -0.4995,
+          -0.4984
+        ],
+        "analytic": -0.5,
+        "relspread_shot": [
+          0.924,
+          0.99999
+        ],
+        "relspread_prnu": [
+          1.911,
+          1.9907
+        ],
+        "loglog_slopes": [
+          1,
+          2,
+          0
+        ]
+      },
+      "delta64": {
+        "verdict": "结构派生 512/8（A-P4-01）；零噪偏置 128/64=4.06（理论 4）随 Δ² 增长（route2/exp03）"
+      }
+    },
+    "exemptions": [
+      "quality_factor 0.1/0.5：项目约定（不注文献出处）；比值 0.1/0.5 与 share/absolute 口径差不豁免（负责人已批）",
+      "gamma<1e-10、节点容差 1e-9：数值卫生",
+      "Delta=64：结构派生（tile_width=512 冻结）"
+    ]
+  }
+}

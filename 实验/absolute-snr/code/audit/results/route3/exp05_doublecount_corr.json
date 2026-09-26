@@ -1,0 +1,141 @@
+{
+ "experiment": "P2-route3 EXP-05 double-count bias / correlated noise / k_corr",
+ "seed": 20260926,
+ "H1_closed_form": {
+  "alpha_eq_sqrt2_sigma_doc": {
+   "sum_p2": 0.09268408746165031,
+   "bias_by_rn": {
+    "0.0": 0.0,
+    "2.0": 0.009439303736612059,
+    "5.0": 0.0514993299527895,
+    "10.0": 0.14500914320209946,
+    "20.0": 0.27702733555712666,
+    "50.0": 0.38252382643948457
+   }
+  },
+  "alpha_eq_sigma_alt": {
+   "sum_p2": 0.21330634091750147,
+   "bias_by_rn": {
+    "0.0": 0.0,
+    "2.0": 0.00653361777500483,
+    "5.0": 0.03586975223870037,
+    "10.0": 0.10443827088924773,
+    "20.0": 0.22291678220117617,
+    "50.0": 0.35991125215938946
+   }
+  },
+  "archived_reference_values": {
+   "0.0": 0.0,
+   "2.0": 0.009439303736612281,
+   "5.0": 0.0514993299527895,
+   "10.0": 0.14500914320209946,
+   "20.0": 0.27702733555712644,
+   "50.0": 0.38252382643948457
+  },
+  "max_rel_diff_vs_archive": 2.35234092599209e-14
+ },
+ "H2_mc": {
+  "n_mc": 2000,
+  "by_rn": {
+   "0.0": {
+    "sigma_mc_correct": 37.83398440882629,
+    "sigma_closed_correct": 37.94662058427504,
+    "z_correct": -0.1876835396757259,
+    "sigma_mc_doublecount": 37.83398440882629,
+    "sigma_closed_doublecount": 37.94662058427504,
+    "z_doublecount": -0.1876835396757259,
+    "bias_mc": 0.0
+   },
+   "10.0": {
+    "sigma_mc_correct": 47.0075026414975,
+    "sigma_closed_correct": 46.03323302675907,
+    "z_correct": 1.3382248045953022,
+    "sigma_mc_doublecount": 47.03310935698984,
+    "sigma_closed_doublecount": 52.708472706791994,
+    "z_doublecount": -6.808236506703299,
+    "bias_mc": 0.0005447367771826972
+   },
+   "50.0": {
+    "sigma_mc_correct": 128.60289868324185,
+    "sigma_closed_correct": 132.35625953164282,
+    "z_correct": -1.7930699371747487,
+    "sigma_mc_doublecount": 128.6003871431438,
+    "sigma_closed_doublecount": 182.98568238090434,
+    "z_doublecount": -18.792552642158938,
+    "bias_mc": -1.9529420594466274e-05
+   }
+  },
+  "closed_bias_ref": {
+   "0.0": 0.0,
+   "10.0": 0.14500914320209946,
+   "50.0": 0.38252382643948457
+  },
+  "negative_rn0_arms_identical": true
+ },
+ "H3_epsilon": {
+  "sum_p2_13x13": 0.09278377385473321,
+  "exp_ell_0.5": {
+   "diag_minus_gls_over_gls": -0.3186575816290683
+  },
+  "exp_ell_1.0": {
+   "diag_minus_gls_over_gls": -0.47610839219068646
+  },
+  "exp_ell_2.0": {
+   "diag_minus_gls_over_gls": -0.3182745947574318
+  },
+  "exp_ell_4.0": {
+   "diag_minus_gls_over_gls": 0.20460874636220439
+  },
+  "exp_ell_8.0": {
+   "diag_minus_gls_over_gls": 1.3344328951355813
+  },
+  "equi_rho_0.050": {
+   "diag_minus_gls_over_gls": -0.007714146503541741,
+   "gls_numeric": 10.861534030295456,
+   "gls_analytic": 10.861534030295456,
+   "analytic_check_rel": 0.0
+  },
+  "equi_rho_0.100": {
+   "diag_minus_gls_over_gls": 0.04383429110154524,
+   "gls_numeric": 10.325150895511328,
+   "gls_analytic": 10.325150895511335,
+   "analytic_check_rel": 6.881669265182316e-16
+  },
+  "equi_rho_0.200": {
+   "diag_minus_gls_over_gls": 0.17212610863054523,
+   "gls_numeric": 9.195040095237486,
+   "gls_analytic": 9.195040095237488,
+   "analytic_check_rel": 1.9318641582871435e-16
+  },
+  "equi_rho_0.363": {
+   "diag_minus_gls_over_gls": 0.4707719680105751,
+   "gls_numeric": 7.327952123068379,
+   "gls_analytic": 7.327952123068381,
+   "analytic_check_rel": 2.4240835769222374e-16
+  },
+  "negative_rho0_is_zero": true,
+  "note": "exact archived 23.3%/36.3% pair UNRESOLVED; sign depends on correlation length"
+ },
+ "H4_kcorr": {
+  "rho_0.0000": {
+   "inflation_mc": 1.0216432429714764,
+   "inflation_theory": 1.0,
+   "implied_kcorr_if_sigma2_mult": 1.0216432429714764,
+   "implied_kcorr_if_sigma_mult": 1.010763692942854
+  },
+  "rho_0.1667": {
+   "inflation_mc": 1.4351714167543634,
+   "inflation_theory": 1.4000960038401535,
+   "implied_kcorr_if_sigma2_mult": 1.4351714167543634,
+   "implied_kcorr_if_sigma_mult": 1.1979864009054375
+  },
+  "rho_0.3172": {
+   "inflation_mc": 1.8869735815581905,
+   "inflation_theory": 1.9291154071470413,
+   "implied_kcorr_if_sigma2_mult": 1.8869735815581905,
+   "implied_kcorr_if_sigma_mult": 1.373671569756829
+  },
+  "archived_calibrated": 1.3883,
+  "negative_rho0_note": "rho=0 inflation = 1.0216 (1 +- MC err)"
+ }
+}

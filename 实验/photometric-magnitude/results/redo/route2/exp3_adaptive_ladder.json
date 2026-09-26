@@ -1,0 +1,154 @@
+{
+  "seed": 20260926,
+  "model": {
+    "N_TOTAL": 1812000000.0,
+    "SKY_DEG2": 41252.96,
+    "N_CUM_PER_DEG2_AT_G21": 43924.12083884405,
+    "alpha_dex_per_mag": 0.36,
+    "anchor": "Gaia Collaboration 2023 (A&A 674, A1) source total + 0.36 dex/mag slope"
+  },
+  "n_cum_per_deg2_by_mag": {
+    "8": 0.9177049571976222,
+    "9": 2.1023406012286636,
+    "10": 4.816184078455101,
+    "11": 11.033240315107966,
+    "12": 25.27569334309414,
+    "13": 57.90326828097209,
+    "14": 132.64872429441314,
+    "15": 303.8806716669816,
+    "16": 696.1504010232329,
+    "17": 1594.7884351654372,
+    "18": 3653.4492391286335,
+    "19": 8369.568682948822,
+    "20": 19173.574163385627,
+    "21": 43924.12083884405
+  },
+  "S6_ladder_table": {
+    "fov=0.5_crowd=1": {
+      "n_gaia_at_stop": 546.7552464120442,
+      "mag_max_used": 16.0,
+      "queries": 5,
+      "n_gaia_at_rung5_full": 546.7552464120442
+    },
+    "fov=0.5_crowd=10": {
+      "n_gaia_at_stop": 2386.6732141923035,
+      "mag_max_used": 15.0,
+      "queries": 4,
+      "n_gaia_at_rung5_full": 5467.552464120443
+    },
+    "fov=0.5_crowd=100": {
+      "n_gaia_at_stop": 4547.7120562585205,
+      "mag_max_used": 13.0,
+      "queries": 2,
+      "n_gaia_at_rung5_full": 54675.52464120442
+    },
+    "fov=1.0_crowd=1": {
+      "n_gaia_at_stop": 2187.020985648177,
+      "mag_max_used": 16.0,
+      "queries": 5,
+      "n_gaia_at_rung5_full": 2187.020985648177
+    },
+    "fov=1.0_crowd=10": {
+      "n_gaia_at_stop": 4167.282577513863,
+      "mag_max_used": 14.0,
+      "queries": 3,
+      "n_gaia_at_rung5_full": 21870.20985648177
+    },
+    "fov=1.0_crowd=100": {
+      "n_gaia_at_stop": 7940.593252105299,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 218702.0985648177
+    },
+    "fov=2.0_crowd=1": {
+      "n_gaia_at_stop": 3818.6771427076856,
+      "mag_max_used": 15.0,
+      "queries": 4,
+      "n_gaia_at_rung5_full": 8748.083942592708
+    },
+    "fov=2.0_crowd=10": {
+      "n_gaia_at_stop": 3176.2373008421196,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 87480.83942592709
+    },
+    "fov=2.0_crowd=100": {
+      "n_gaia_at_stop": 31762.373008421197,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 874808.3942592707
+    },
+    "fov=3.0_crowd=1": {
+      "n_gaia_at_stop": 3750.554319762476,
+      "mag_max_used": 14.0,
+      "queries": 3,
+      "n_gaia_at_rung5_full": 19683.188870833594
+    },
+    "fov=3.0_crowd=10": {
+      "n_gaia_at_stop": 7146.533926894768,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 196831.88870833593
+    },
+    "fov=3.0_crowd=100": {
+      "n_gaia_at_stop": 71465.33926894769,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 1968318.8870833593
+    },
+    "fov=5.0_crowd=1": {
+      "n_gaia_at_stop": 4547.7120562585205,
+      "mag_max_used": 13.0,
+      "queries": 2,
+      "n_gaia_at_rung5_full": 54675.52464120443
+    },
+    "fov=5.0_crowd=10": {
+      "n_gaia_at_stop": 19851.48313026325,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 546755.2464120443
+    },
+    "fov=5.0_crowd=100": {
+      "n_gaia_at_stop": 198514.8313026325,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 5467552.464120443
+    },
+    "fov=10.0_crowd=1": {
+      "n_gaia_at_stop": 7940.593252105299,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 218702.09856481772
+    },
+    "fov=10.0_crowd=10": {
+      "n_gaia_at_stop": 79405.932521053,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 2187020.985648177
+    },
+    "fov=10.0_crowd=100": {
+      "n_gaia_at_stop": 794059.32521053,
+      "mag_max_used": 12.0,
+      "queries": 1,
+      "n_gaia_at_rung5_full": 21870209.856481772
+    }
+  },
+  "S6_queries_saved_vs_full_depth_median": 4.0,
+  "S6_dead_rung_negative": {
+    "fov_deg": 0.2,
+    "n_at_G16_rung5": 87.48083942592709,
+    "n_at_G17_would_be": 200.407025277828,
+    "mag_used_with_dead_6th_rung": 16.0,
+    "reachability_of_G17_rung_metric": 0
+  },
+  "S6_upper_bound_10000_claim": {
+    "max_n_gaia_crowded_fov10": 21870209.856481772,
+    "claimed_bound": 10000,
+    "bound_violated_by_factor": 2187.020985648177
+  },
+  "S6_no_effect_negative": {
+    "n_at_rung0_fov10": 7940.593252105299,
+    "queries_used": 1,
+    "wasted_queries_beyond_first_stop_metric": 0
+  }
+}

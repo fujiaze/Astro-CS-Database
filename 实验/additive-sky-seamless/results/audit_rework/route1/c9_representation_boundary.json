@@ -1,0 +1,70 @@
+{
+  "seed": 20260325,
+  "img_px": 1024,
+  "grid": 8,
+  "node_spacing_px": 128.0,
+  "fixture": "y-coherent sinusoid, B_ref = 8x8 bilinear (x-invariant => 1D)",
+  "scan": [
+    {
+      "lambda_px": 50.0,
+      "resid_rms": 0.9987703510114734,
+      "seam_step": -0.000499474176659298,
+      "seam_step_rms_over_cuts": 0.374925682432629
+    },
+    {
+      "lambda_px": 100.0,
+      "resid_rms": 1.0135635822712632,
+      "seam_step": 0.18107631060639218,
+      "seam_step_rms_over_cuts": 0.1908835880268904
+    },
+    {
+      "lambda_px": 200.0,
+      "resid_rms": 0.9357825886182807,
+      "seam_step": -0.09875005763538902,
+      "seam_step_rms_over_cuts": 0.08916040894088166
+    },
+    {
+      "lambda_px": 400.0,
+      "resid_rms": 0.4795131093738523,
+      "seam_step": -0.004236514339243547,
+      "seam_step_rms_over_cuts": 0.032756649713471364
+    },
+    {
+      "lambda_px": 512.0,
+      "resid_rms": 0.3286112424131724,
+      "seam_step": 0.009857541915998575,
+      "seam_step_rms_over_cuts": 0.022376416961017314
+    },
+    {
+      "lambda_px": 800.0,
+      "resid_rms": 0.15001594501895188,
+      "seam_step": -0.0016096529278084026,
+      "seam_step_rms_over_cuts": 0.009743140911404224
+    },
+    {
+      "lambda_px": 1600.0,
+      "resid_rms": 0.07522540129826437,
+      "seam_step": -0.00018959135056151322,
+      "seam_step_rms_over_cuts": 0.005652656456368572
+    },
+    {
+      "lambda_px": 3200.0,
+      "resid_rms": 0.025757977360294646,
+      "seam_step": 1.5142460033867877e-05,
+      "seam_step_rms_over_cuts": 0.0020604673380769365
+    }
+  ],
+  "proportionality": {
+    "slope_seam_over_rms": 0.20701341275684976,
+    "doc_claim_slope": 0.7976,
+    "pearson_r": 0.8005547384726817,
+    "doc_claim_r": 0.8964
+  },
+  "cutoff_scale_px": 1600.0,
+  "representation_scale_2h": 256.0,
+  "negative_constant_component": {
+    "resid_rms": 0.0,
+    "seam_step": 0.0,
+    "claim": "\u771f\u503c\u53ef\u8868\u793a => \u6b8b\u4f59\u63a5\u7f1d\u5f52\u96f6 (\u5ea6\u91cf\u5f52\u96f6\u8d1f\u4f8b)"
+  }
+}

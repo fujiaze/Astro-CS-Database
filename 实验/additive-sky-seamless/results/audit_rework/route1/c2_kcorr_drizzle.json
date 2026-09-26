@@ -1,0 +1,82 @@
+{
+  "seed": 20260318,
+  "n_mc": 2000,
+  "src_px": 64,
+  "model": "single-frame area-overlap drizzle, flux-conserving, iid N(0,1) source noise",
+  "cases": {
+    "s1.0_pf0.8_K17": {
+      "k_corr": 1.412831938863532,
+      "var_median": 0.004544287335899723,
+      "sigma_out2": 0.5917704101562501,
+      "n_used": 289,
+      "coverage_fraction": 1.0
+    },
+    "s0.5_pf0.8_K17": {
+      "k_corr": 4.268383167211224,
+      "var_median": 0.015724352042480592,
+      "sigma_out2": 0.6777777777777749,
+      "n_used": 289,
+      "coverage_fraction": 1.0
+    },
+    "s1.0_pf0.4_K17": {
+      "k_corr": 1.0489735709879682,
+      "var_median": 0.005701466547449225,
+      "sigma_out2": 1.0,
+      "n_used": 289,
+      "coverage_fraction": 1.0
+    },
+    "s1.0_pf1.0_K17": {
+      "k_corr": 1.6907078172845549,
+      "var_median": 0.004182580809815296,
+      "sigma_out2": 0.45514916,
+      "n_used": 289,
+      "coverage_fraction": 1.0
+    },
+    "s0.5_pf0.4_K17": {
+      "k_corr": 1.9516804773713397,
+      "var_median": 0.020037206045308564,
+      "sigma_out2": 1.0,
+      "n_used": 153,
+      "coverage_fraction": 0.5294117647058824
+    },
+    "s1.0_pf1.0_aligned_K17": {
+      "k_corr": 1.0141365318586646,
+      "var_median": 0.005512117436374069,
+      "sigma_out2": 1.0,
+      "n_used": 289,
+      "coverage_fraction": 1.0
+    },
+    "s1.0_pf0.8_K9": {
+      "k_corr": 1.3684692950135777,
+      "var_median": 0.01570446555048834,
+      "sigma_out2": 0.5917704101562501,
+      "n_used": 81,
+      "coverage_fraction": 1.0
+    },
+    "s1.0_pf0.8_K5": {
+      "k_corr": 1.3132322446018672,
+      "var_median": 0.04882864263724108,
+      "sigma_out2": 0.5917704101562501,
+      "n_used": 25,
+      "coverage_fraction": 1.0
+    }
+  },
+  "ignore_correlation_underestimate": {
+    "var_true": 0.004544287335899723,
+    "var_kcorr1_prediction": 0.0032164387078870136,
+    "fraction_underestimated": 0.29220173150644513
+  },
+  "structural_checks": {
+    "main_case_k_corr_gt_1": true,
+    "null_case_near_1": true,
+    "s1_monotone_in_pixfrac": true,
+    "s0p5_finer_pf0.4_ge_s1_pf0.4": true,
+    "frozen_default_1p4_same_order": true
+  },
+  "relation_to_project_mc": {
+    "project_mc_value": 1.3883,
+    "project_frozen_default": 1.4,
+    "this_fixture_s1_pf0.8": 1.412831938863532,
+    "claim": "\u540c pixfrac=0.8\u3001\u540c\u5c3a\u5ea6\u57df\u5185, \u672c\u72ec\u7acb fixture \u5f97\u5230\u540c\u91cf\u7ea7 k_corr; \u91cf\u503c\u4f9d\u8d56 fixture \u51e0\u4f55, \u4e0d\u6784\u6210\u5bf9 1.3883 \u7684\u590d\u73b0\u58f0\u660e, \u53ea\u6784\u6210\u91cf\u7ea7\u4e0e\u65b9\u5411\u4f50\u8bc1"
+  }
+}

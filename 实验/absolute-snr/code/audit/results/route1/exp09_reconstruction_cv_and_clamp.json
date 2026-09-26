@@ -1,0 +1,39 @@
+{
+ "seed": 20260926,
+ "cv_rmse": {
+  "idw_p1_K4": 0.9274474854430802,
+  "idw_p1_K8": 0.9164697558974839,
+  "idw_p1_K16": 1.2203495053598894,
+  "idw_p1_K256": 5.198854656206557,
+  "idw_p2_K4": 1.0119220148163446,
+  "idw_p2_K8": 0.9698323236448083,
+  "idw_p2_K16": 0.9844642220223148,
+  "idw_p2_K256": 2.0777409059572896,
+  "idw_p3_K4": 1.1371548849506525,
+  "idw_p3_K8": 1.1144989239929282,
+  "idw_p3_K16": 1.0937825873251648,
+  "idw_p3_K256": 1.1522003388611093,
+  "bilinear": 0.2806486798928755
+ },
+ "cv_note": "control noise 2% of mean SNR; lower RMSE = better; K=256 means all 256 nodes (16x16).",
+ "node_reproduction": {
+  "idw_self_max_abs": 7.105427357601002e-14,
+  "bilinear_at_nodes_max_abs": 0.0,
+  "tolerance": 1e-09
+ },
+ "null_flat_grid_metric": 4.263256414560601e-14,
+ "variance_coverage_idw_p2_K16": {
+  "median_emp_over_pred": 0.9977227851148904,
+  "iqr": [
+   0.9522072351340718,
+   1.0500211092762548
+  ],
+  "note": "empirical variance of the LINEAR estimator is exactly w^T Var w when the control values are the only noise source; deviations are MC noise only."
+ },
+ "clamp_checkerboard": {
+  "idw_min_pred_on_2d_checkerboard": 1.1076825552829581,
+  "spline_1d_min_at_midpoints": -111268.0726141079,
+  "control_min": 1.0,
+  "note": "IDW min prediction >= control min (convex, no clamp needed); the spline class undershoots below the control minimum => clamp to [min,max] of control values is required for spline operators (repo P-ALG-09), while for IDW the clamp is a no-op by construction."
+ }
+}

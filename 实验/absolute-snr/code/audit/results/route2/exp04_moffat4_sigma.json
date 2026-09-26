@@ -1,0 +1,38 @@
+{
+  "seed": 20260926,
+  "beta": 4.0,
+  "closed_form_fwhm_over_sigma": 1.2303076525901024,
+  "registered": 1.23031,
+  "rel_diff_registered_vs_closed": 1.907986098137407e-06,
+  "components": {
+    "fwhm_over_alpha": 0.8699588840921645,
+    "sigma_over_alpha_closed": 0.7071067811865475
+  },
+  "numeric_second_moment": 0.4999936679412882,
+  "numeric_sigma_over_alpha": 0.7071023037307177,
+  "numeric_fwhm_over_sigma": 1.2303154430443868,
+  "numeric_vs_registered_rel": -4.4241047428432e-06,
+  "beta2_divergence_negative_control": [
+    {
+      "rmax_over_alpha": 100.0,
+      "truncated_second_moment": 8.210473943951094
+    },
+    {
+      "rmax_over_alpha": 1000.0,
+      "truncated_second_moment": 12.81539013068688
+    },
+    {
+      "rmax_over_alpha": 10000.0,
+      "truncated_second_moment": 17.420491715190717
+    },
+    {
+      "rmax_over_alpha": 100000.0,
+      "truncated_second_moment": 22.025584656241904
+    },
+    {
+      "rmax_over_alpha": 1000000.0,
+      "truncated_second_moment": 26.630667013308454
+    }
+  ],
+  "gaussian_over_moffat4_ratio": 1.9140091017669196
+}

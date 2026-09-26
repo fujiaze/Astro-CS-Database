@@ -1,0 +1,42 @@
+{
+ "seed": 20250926,
+ "floor_activation_vs_scale": [
+  {
+   "scale_S": 1.0,
+   "typical_sigma": 0.01,
+   "floor_activation_rate": 0.08002
+  },
+  {
+   "scale_S": 1000.0,
+   "typical_sigma": 10.0,
+   "floor_activation_rate": 5e-05
+  },
+  {
+   "scale_S": 52600000000000.0,
+   "typical_sigma": 526000000000.0,
+   "floor_activation_rate": 0.0
+  },
+  {
+   "scale_S": 1e-29,
+   "typical_sigma": 9.999999999999999e-32,
+   "floor_activation_rate": 1.0
+  }
+ ],
+ "inf_uncertainty_full_weight": {
+  "z": 0.0,
+  "huber_weight": 1.0,
+  "weight_of_3sigma_outlier": 0.4483333333333333,
+  "verdict": "completely-uncertain obs gets FULL weight"
+ },
+ "pseudo_ivar_domination": {
+  "degenerate_obs_share_weight": 1.0,
+  "expected_if_fair": 0.02,
+  "verdict": "degenerate obs captures the cell"
+ },
+ "fail_closed_correction": {
+  "weighted_mean_with_pseudo_ivar": 1000000.0,
+  "weighted_mean_fail_closed": -0.0007507151139309106,
+  "influence_of_degenerate_obs_fail_closed": 0.0,
+  "damage_removed": true
+ }
+}

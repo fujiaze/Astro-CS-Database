@@ -1,0 +1,63 @@
+{
+  "enumeration": {
+    "worst_r_deficit": -0.5,
+    "at_S": 0.00196078431372549,
+    "claimed_minus_50pct": -0.5,
+    "sup_abs_r_deficit_q254_cell": 0.0019685039370078705,
+    "claimed_0p5_over_254": 0.001968503937007874,
+    "sup_abs_r_mult_all_q_ge1": 1.0,
+    "sup_r_mult_value": 1.0,
+    "sub_lsb_unrepresentable_count": 3999,
+    "sub_lsb_threshold": 0.00196078431372549,
+    "boundary_check_S_1_510": {
+      "S": 0.00196078431372549,
+      "q": 1,
+      "r_deficit": -0.5
+    }
+  },
+  "random_sweep": {
+    "n": 1000000,
+    "max_abs_r_deficit": 0.49959467105319244,
+    "min_r_deficit": -0.49959467105319244,
+    "max_r_deficit": 0.49889393762336987
+  },
+  "variance_law": {
+    "snr2_factor_at_worst": -0.75,
+    "claimed_minus_75pct": -0.75,
+    "snr2_factor_at_1p9685e-3": 0.00394088288176575,
+    "identity_2r_plus_r2_at_worst": -0.75
+  },
+  "negative_control": {
+    "max_abs_r_no_quantization": 0.0,
+    "step_convergence": [
+      {
+        "step": 0.00392156862745098,
+        "max_abs_r_mult": 1.0
+      },
+      {
+        "step": 0.00196078431372549,
+        "max_abs_r_mult": 0.3253363377294718
+      },
+      {
+        "step": 0.000980392156862745,
+        "max_abs_r_mult": 0.1956712372448981
+      },
+      {
+        "step": 0.0004901960784313725,
+        "max_abs_r_mult": 0.09240265044930562
+      }
+    ],
+    "note": "step = 0 (exact float coverage): S_hat = S identically, every metric exactly 0; as the step halves the worst-case relative error doubles in LSB count but the ABSOLUTE error halves, collapsing toward the no-quantization control."
+  },
+  "bankers_hazard": {
+    "S": 0.00196078431372549,
+    "lround_q": 1,
+    "numpy_round_q": 0,
+    "note": "numpy ties-to-even gives q = 0 at S = 1/510: the pixel would be dropped entirely; C lround (production semantic) gives q = 1. The worst-case r_deficit = -0.5 exists only under half-away-from-zero; under banker's rounding the same S vanishes."
+  },
+  "conventions": {
+    "r_deficit": "S/S_hat - 1  (true coverage vs stored; negative = stored overstates coverage)",
+    "r_mult": "S_hat/S - 1  (multiplicative bias applied to S)"
+  },
+  "verdict": "PASS"
+}

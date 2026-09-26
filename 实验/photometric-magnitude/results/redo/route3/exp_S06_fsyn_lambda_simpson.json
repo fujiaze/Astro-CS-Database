@@ -1,0 +1,60 @@
+{
+ "seed": 20260926,
+ "H6a": {
+  "F_syn_lambda1": 4.846014142821031e+18,
+  "hc_times_N_gamma": 4.84601414282103e+18,
+  "rel_diff": 2.1130767881001158e-16,
+  "ratio_drop_lambda": 0.0015757612953688556,
+  "photon_weighted_lambda_eff_nm": 634.6138865949993,
+  "ratio_lambda2": 638.5902398109847,
+  "pass": true
+ },
+ "H6b": {
+  "ratio": 0.39810717055349726,
+  "expected": 0.3981071705534972,
+  "pass": true
+ },
+ "H6c": {
+  "rel_err_by_step_nm": {
+   "8.0": 3.934855546747977e-12,
+   "4.0": 2.619965629998653e-13,
+   "2.0": 1.6428123249991554e-14,
+   "1.0": 6.400567499996709e-16
+  },
+  "err_2nm": 1.6428123249991554e-14,
+  "negative_zero_quadratic": {
+   "value": 333.3333333333333,
+   "truth": 333.3333333333333,
+   "abs_err": 0.0,
+   "criterion": "二次型被积式 Simpson 精确 ⇒ 误差归零",
+   "pass": true
+  },
+  "pass": true
+ },
+ "H6d_B11": {
+  "const_case": {
+   "value_buggy": 3.6666666666666665,
+   "value_correct": 3.0,
+   "truth": 3.0,
+   "rel_bias_buggy": 0.22222222222222218
+  },
+  "linear_case": {
+   "value": 4.5,
+   "truth": 4.5,
+   "note": "误差正比于左端点取值(02 断言)"
+  },
+  "production_grid": {
+   "n_points": 343,
+   "n_intervals": 342,
+   "is_even": true,
+   "triggered": false
+  },
+  "pass": true
+ },
+ "verdict": {
+  "H6a": true,
+  "H6b": true,
+  "H6c": true,
+  "H6d_B11": true
+ }
+}

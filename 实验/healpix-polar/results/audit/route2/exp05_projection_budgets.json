@@ -1,0 +1,105 @@
+{
+  "gnomonic": {
+    "disk_level": [
+      {
+        "rho": 0.0005,
+        "ratio": 1.0000001878431986,
+        "coef_(ratio-1)/rho^2": 0.7513727942054516
+      },
+      {
+        "rho": 0.001,
+        "ratio": 1.0000007500161008,
+        "coef_(ratio-1)/rho^2": 0.7500161007811812
+      },
+      {
+        "rho": 0.002,
+        "ratio": 1.0000029999894187,
+        "coef_(ratio-1)/rho^2": 0.7499973546654104
+      },
+      {
+        "rho": 0.004,
+        "ratio": 1.0000120001145978,
+        "coef_(ratio-1)/rho^2": 0.7500071623617321
+      }
+    ],
+    "predicted_coef": 1.5,
+    "rel_error_at_rho_2e-3_plus_3rho2_over_2": 6e-06,
+    "comment_claimed_value": 2e-06,
+    "polygon_level": [
+      {
+        "rho_c": 0.0,
+        "ratio": 1.00000099999986,
+        "coef_(ratio-1)/rho^2_outer": 0.9999998600296323
+      },
+      {
+        "rho_c": 0.001,
+        "ratio": 1.0000024999992274,
+        "coef_(ratio-1)/rho^2_outer": 1.2499991970394522
+      },
+      {
+        "rho_c": 0.002,
+        "ratio": 1.000007000013778,
+        "coef_(ratio-1)/rho^2_outer": 1.399999768918657
+      }
+    ]
+  },
+  "orthographic_tangent": {
+    "theta_sweep": [
+      {
+        "theta": 0.0001,
+        "mean_bias": -1.0021557910744327e-08,
+        "min": -1.0851084364382757e-08,
+        "max": -9.346045160008032e-09,
+        "coef_mean/theta^2": -1.0021557910744328
+      },
+      {
+        "theta": 0.0003,
+        "mean_bias": -9.000134536973903e-08,
+        "min": -9.012470147951035e-08,
+        "max": -8.989945221582474e-08,
+        "coef_mean/theta^2": -1.0000149485526562
+      },
+      {
+        "theta": 0.001,
+        "mean_bias": -9.999981952668601e-07,
+        "min": -1.0000044995406299e-06,
+        "max": -9.99990411032492e-07,
+        "coef_mean/theta^2": -0.9999981952668602
+      },
+      {
+        "theta": 0.003,
+        "mean_bias": -8.999851514657764e-06,
+        "min": -8.999852574076428e-06,
+        "max": -8.999850772961615e-06,
+        "coef_mean/theta^2": -0.9999835016286404
+      },
+      {
+        "theta": 0.01,
+        "mean_bias": -9.99816701648909e-05,
+        "min": -9.998167022773341e-05,
+        "max": -9.998167009273029e-05,
+        "coef_mean/theta^2": -0.9998167016489089
+      }
+    ],
+    "predicted_coef": -0.5,
+    "bias_at_1e-3_rad": -5e-07,
+    "comment_claimed_4e-8": 4e-08
+  },
+  "negative_control": {
+    "ortho_bias_at_theta_1e-9": 0.0,
+    "gnomonic_disk_ratio_minus_1_at_rho_1e-7": 0.0007999171934500726,
+    "predicted_3rho2_over_2_at_1e-7": 1.5e-14
+  },
+  "measured_laws": {
+    "gnomonic_local_area_element_law": "dA_plane = dA_sphere / cos^3(rho) => +1.5 rho^2 locally (exact); disk-averaged coefficient 0.75",
+    "gnomonic_disk_coef_at_2e-3": 0.7499973546654104,
+    "gnomonic_centered_quad_bias_over_rhomax_sq": 9.999998600296323e-07,
+    "gnomonic_offset_quad_bias_over_rhomax_sq_at_2e-3": 7.000013777958003e-06,
+    "ortho_coef_in_theta_max": -0.49990835082445445,
+    "ortho_bias_at_theta_half_1e-3": -9.999981952668601e-07,
+    "ortho_bias_predicted_at_theta_max_1e-3": -5e-07,
+    "ortho_one_sided": true,
+    "note_budget": "comment 'rho^2/2' is the centered-overlap best case; measured bias/rho_max^2 spans [0.5, 1.5] => budget 1.5 rho_max^2 (= 6e-6 at rho=2e-3) is the conservative upper bound"
+  },
+  "verdict": "PASS"
+}

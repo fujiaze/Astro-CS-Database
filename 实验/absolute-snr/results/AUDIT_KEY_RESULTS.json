@@ -1,0 +1,307 @@
+{
+  "_meta": {
+    "unit": "实验/absolute-snr",
+    "title": "P2 跨帧绝对 SNR · 关键结果汇总（注明来源路线）",
+    "source_of_truth": "独立审计/实验重做/总编对账/分歧台账.md + 五单元成稿简报.md",
+    "routes": {
+      "route1": "独立审计/实验重做/P2跨帧绝对SNR/路线1（seed 20260926，脚本快照 code/audit/route1/，JSON 快照 code/audit/results/route1/）",
+      "route2": "独立审计/实验重做/P2跨帧绝对SNR/路线2（seed 20260926，脚本快照 code/audit/route2/，JSON 快照 code/audit/results/route2/）",
+      "route3": "独立审计/实验重做/P2跨帧绝对SNR/路线3（seed 20260926，脚本快照 code/audit/route3/，JSON 快照 code/audit/results/route3/）",
+      "supplement": "独立审计/实验重做/P2跨帧绝对SNR/补实验-control_variance（seed 20260601/05，快照 code/audit/supplement_control_variance/ 与 code/audit/results/supplement_control_variance/）",
+      "unit_b": "本单元主实验（seed 20260921，code/b1–b7，results/b*.json，历史正本）"
+    },
+    "ledger_ids": "数字若经分歧台账裁决，标注 D-xx / A-P2-xx",
+    "note": "全部为固定 seed 复现读数；本文件只汇总，不重跑。"
+  },
+  "robust_constants": [
+    {
+      "item": "P-CST-03 κ_MAD",
+      "value": 1.482602218505602,
+      "closed_form": "1/Φ^-1(3/4)",
+      "status": "精确",
+      "source": [
+        "route1/exp01",
+        "route2/exp02",
+        "route3/exp01"
+      ]
+    },
+    {
+      "item": "P-CST-04 高斯 FWHM/σ",
+      "value": 2.3548200450309493,
+      "closed_form": "2√(2 ln 2)",
+      "status": "精确（1e-13/0 位差）",
+      "source": [
+        "route1/exp01",
+        "route2/exp03",
+        "route3/exp02"
+      ]
+    },
+    {
+      "item": "P-CST-05 Moffat4 FWHM/σ",
+      "value": 1.23031,
+      "closed_form": "2√2·√(2^{1/4}−1)=1.2303076525901024",
+      "status": "冻结值截断 rel +1.908e-6，三路独立复算一致",
+      "source": [
+        "route1/exp02",
+        "route2/exp04",
+        "route3/exp02"
+      ]
+    },
+    {
+      "item": "P-CST-06 截尾均值→σ",
+      "value": 0.7316727929211932,
+      "closed_form": "2(φ(Φ^-1 0.55)−φ(Φ^-1 0.95))/0.8=0.7316730952806134",
+      "status": "rel −4.13e-7",
+      "source": [
+        "route1/exp01",
+        "route2/exp03",
+        "route3/exp02"
+      ]
+    },
+    {
+      "item": "P-CST-07 中位数 SE 系数",
+      "value": 1.2533141373155001,
+      "closed_form": "√(π/2)",
+      "status": "登记 1.253 截断差 −2.5e-4；MC 1.2491±0.0055",
+      "source": [
+        "route1/exp01",
+        "route3/exp03"
+      ]
+    }
+  ],
+  "mad_sigma_relative_se": [
+    {
+      "item": "P-CST-08 骨架常数 c(n=64)",
+      "value_adjudicated": 1.152,
+      "ledger": "D-04：1.152 vs 1.144 之争终裁取 1.152（20 万次 MC +0.19%；1.144 支系算术漂移 5811→5816.6）",
+      "measurements": [
+        {
+          "value": 1.1508,
+          "setup": "M=200k 行 n=64",
+          "source": "route1/exp01"
+        },
+        {
+          "value": 1.1542,
+          "setup": "M=1200 行",
+          "source": "route1/exp03"
+        },
+        {
+          "value_approx": "合并支 1.148/1.165/1.168，闭式渐近 1.1664",
+          "source": "route3/exp01"
+        }
+      ]
+    },
+    {
+      "item": "管线级 c_eff",
+      "value": 1.4751,
+      "stderr": 0.023,
+      "note": "与主张 1.44 差 +2.4%（≈1.1σ MC）；理论链 1.152×1.2533=1.444 恰为实测中心",
+      "source": "route1/exp03"
+    },
+    {
+      "item": "直接管线 c",
+      "value": 1.449,
+      "note": "⇒ N_min≈9321，与登记 9216 差 1.2%（阈值自洽）",
+      "source": "route3/exp01"
+    },
+    {
+      "item": "9216=(1.44/0.015)^2",
+      "status": "精确成立（解析恒等）",
+      "related_correction": "天光预算 9216→5811 实为 5816.6（精确复算 (1.152×1.25/0.015)^2），5811 属数字漂移，按 D-04 订正",
+      "source": [
+        "route1/exp03",
+        "推导"
+      ]
+    }
+  ],
+  "double_count_bias": [
+    {
+      "item": "P-CST-11 登记值 +14.5009%/+38.2524%",
+      "status": "闭式存在且逐位复现；05『seed 无关闭式』为错误标签（订正）",
+      "ledger": "A-P2-05/06",
+      "evidence": [
+        {
+          "note": "路线3 闭式复算（RN 扫描 6 点 + dark 扫描）max rel diff 2.35e-14",
+          "source": "route3/exp05"
+        },
+        {
+          "note": "路线1 Moffat4 MC 配置复现 max dev 3.3e-7（RN 扫描）/≤4.6e-7（dark）；增益不变性精确",
+          "source": "route1/exp04"
+        },
+        {
+          "note": "+1.91e-6 = 闭式−登记值之差（登记为舍入尾差，非物理量）",
+          "source": "route2/exp06"
+        }
+      ]
+    },
+    {
+      "item": "本单元主实验对 MC 真值的偏置",
+      "value": "+12.8%（基准）~ +34.0%（RN=50）~ +36.6%（B=0 暗源）",
+      "note": "与登记值是不同量（对 MC 真值偏置 vs 报告 σ_F 膨胀），闭合预言与实测臂比值差 ≤1.25 pp；发现→修复（FIX-407）闭环见历史正本",
+      "source": "unit_b/b2_noise_terms.json"
+    }
+  ],
+  "diagonal_covariance": [
+    {
+      "item": "P-CST-22 对角欠估",
+      "closed_form": "Var_exact/Var_diag = 1 + ρ(M_eff−1)",
+      "values": [
+        {
+          "note": "ρ=0.19、均匀 4-tap：欠估 = 0.19×3/(1+0.19×3) = 36.31%，与登记 36.3% 吻合",
+          "source": "route1/exp10"
+        },
+        {
+          "note": "23.3% = ρ=0.101（4-tap）或 M_eff=2.6（ρ=0.19），与 36.3% 同族（同一条曲线两点）",
+          "source": [
+            "route2/exp07",
+            "ledger A-P2-08"
+          ]
+        },
+        {
+          "note": "1+0.75ρ̄=12.5% 与两者皆非（旧启发式淘汰）",
+          "source": "route1/exp10"
+        }
+      ]
+    }
+  ],
+  "weight_identity": [
+    {
+      "item": "P-CST-21 γ=2 唯一性",
+      "identity": "w = SNR^2/F_ref^2 ≡ 1/σ_F^2 当且仅当 γ=2",
+      "evidence": [
+        {
+          "note": "γ=2 恒等偏差 4.4e-16 = 2 ulp；γ=1 留下因子 g_k（帧权畸变 ×0.32–×3.16）",
+          "source": "route1/exp12"
+        },
+        {
+          "note": "γ=2 恒等偏差 2.2e-16（route2 exp12）/ 6.7e-16（route3 exp03）；γ≠2 ⇒ O(1)",
+          "source": [
+            "route2/exp12",
+            "route3/exp03"
+          ]
+        }
+      ]
+    },
+    {
+      "item": "归档恒等门 2.22e-16",
+      "adjudication": "A-P2-10：2.22e-16=1 ulp 随机置位即红（实测 max 2.5 ulp、存档 3.01e-16）→ 门值按 1 ulp 原样保留但判定规则改为 ulp 计数（≤4 ulp 绿）",
+      "source": "route1/exp07"
+    }
+  ],
+  "k_corr": [
+    {
+      "item": "P-CST-10 k_corr=1.4（标定 1.3883）",
+      "adjudication": "D-08：两因子公式 k_shape×k_geo + (ρ,pixfrac,帧数,patch) 几何查表取代冻结常数；1.4 在声明域两端低估 32%/2 倍；1.3883 = 标定几何专属单次 MC 实测值（带 1.27–1.43）。查表由 P3 单元承载（负责人已批）",
+      "evidence": [
+        {
+          "note": "AR(1) 相关正态中位数方差膨胀 (1+ρ)/(1−ρ)；n=3、ρ=0.19 实测 1.233，渐近律 1+(n−1)ρ=1.38",
+          "source": "route1/exp14"
+        },
+        {
+          "note": "路线2 构造性复原 P-CST-10 三腿（toy 级），原标定网格不可复核（登记缺失）",
+          "source": "route2/exp07"
+        }
+      ]
+    }
+  ],
+  "control_variance": [
+    {
+      "item": "N=5 三口径定稿",
+      "ledger": "D-07：方向词订正——纯公式口径公式对真方差高估 ≈9.5%（精确 9.53%，解析 Gauss–Legendre 600 节点）；端到端（σ̂=1.4826·MAD plug-in）±1.5% 内（N=5 为 −0.6%）；生产链裁剪臂低估 1.3–3.2%",
+      "source": "supplement/finiteN_control_variance",
+      "corrections": "PHASE2_UPM.md:79 与 PHASE2_SAMPLER.md:267-274 的『低估 8.5%』按 D-07 订正为『高估 ≈9.5%（保守方向）』"
+    },
+    {
+      "item": "偶 N 效应（新发现）",
+      "value": "偶 N_retained 中位数方差低于相邻奇 N：端到端高估 +5.0%（N=20）、+2.8%（N=40）、+1.3%（N=100）；生产 median_of 同样取两中央均值，效应适用",
+      "source": "supplement/finiteN_control_variance"
+    },
+    {
+      "item": "κ 四点交叉比对",
+      "value": "rel −0.86%~+0.19%（与 P5 路线2 E1），均在 MC 误差内",
+      "source": "supplement/spotcheck_independent_seed"
+    }
+  ],
+  "mask_geometry": [
+    {
+      "item": "P-CST-15 掩膜 k=0.1 / 0.75·FWHM / r∈[1.5,60] px",
+      "classification": "k=0.1 与 0.75·FWHM = 项目约定（负责人已批：不注文献出处）；r_local 闭式 F=1e5 ⇒ 17.60 px",
+      "evidence": [
+        {
+          "note": "掩膜半径实验偏置曲线 + 无星帧负例",
+          "source": [
+            "route2/exp08",
+            "route3/exp06"
+          ]
+        }
+      ]
+    },
+    {
+      "item": "P-CST-16 控制网格 Δ=64 px",
+      "basis": "tile_width=512/8 结构采样；HiPS IVOA REC 1.0 tile_width=512 [文献]",
+      "source": "route2/exp09"
+    },
+    {
+      "item": "P-CST-17 λlo/λhi ≥ 1/16",
+      "basis": "设计矩阵条件数 κ≤4；err/κ≈0.017 线性（实验）",
+      "source": [
+        "route2/exp09",
+        "route3/exp06"
+      ]
+    },
+    {
+      "item": "P-CST-23 截断半窗 min(256,max(30,⌈12·FWHM⌉))",
+      "basis": "生产域偏置 ≤6.5e-5；自洽口径截断必偏红（05『恒偏绿』为符号笔误，按 A-P2-09 订正）；S2 语义（通量来自 P1 精确光度）下正偏差与登记系列同号同量级（A-P2-07 部分复原）",
+      "source": [
+        "route3/exp06",
+        "route2/exp10"
+      ]
+    }
+  ],
+  "chain_interface": [
+    {
+      "item": "m_ref=6.0 / F_ref",
+      "basis": "单位制锚点（冻结纪律替代文献锚）：每 mag 单调降 2.5118864 倍（16 位一致）；换算权 w 的逐帧比对 m_ref/ZP 完全不变（rel ≤3.3e-16）；跨帧比较必须在同一 m_ref 档内",
+      "source": [
+        "route3/exp04",
+        "route1/exp05",
+        "route2/exp01"
+      ]
+    },
+    {
+      "item": "贯穿用例（P1→P2→P3/P4/P5）",
+      "value": "F_ref=1000 e、Moffat4 σ=1.5 px、sky=100 e/px、RN=10 e⁻：ΣP²=0.092684087、σ_F=37.95 e（rn=0）；误喂经验总 rms ⇒ σ_F 虚高 +14.50%~+38.25%，控制点 sparse_snr 系统性低估 12.7%–27.7%",
+      "source": "route1/exp04"
+    },
+    {
+      "item": "P2→P4 接口",
+      "value": "Δ=64 控制点精度 1.5% 穿过 IDW 重建：归一化 RMS 0.229，控制点噪声仅通胀 1.06×",
+      "source": "route3/exp04"
+    },
+    {
+      "item": "P2→P5 集成",
+      "value": "SNR_comb²=ΣSNR_k²（2.2e-16，本单元 b4）；逐帧零点统计误差 = 1.253·σ_residual/√N（P1 消费口径）",
+      "source": [
+        "unit_b/b4_integration.json",
+        "推导"
+      ]
+    }
+  ],
+  "registry_findings": [
+    {
+      "item": "《已确立》§3 常数表",
+      "adjudication": "A-P2-01：实存（行 108–130），行 7/9–15 存在 +2/+3 行漂移但内容均在；『系统性幻觉锚』定性撤销",
+      "source": "route1/grep 取证"
+    },
+    {
+      "item": "P-CST-25 孔径组参数",
+      "adjudication": "豁免成立：仅在 snr_science.cpp:231–235 产生、仅被自身单测消费，生产链零消费者（diagnostic-only）",
+      "source": "route1/grep 取证"
+    },
+    {
+      "item": "5σ 裁剪（P-CST-09）",
+      "basis": "本仓自订设计参数：误剔率 2Φ(−5)=5.733e-7/px [推导]；实测 0.25% 帧 [实验:route3/exp01]",
+      "source": "route3/exp01"
+    }
+  ]
+}

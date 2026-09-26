@@ -1,0 +1,47 @@
+{
+  "seed": 20260926,
+  "grid": {
+    "wl_start": 336.0,
+    "wl_step": 2.0,
+    "n_points": 343,
+    "self_consistency": true
+  },
+  "S11_lambda_power": {
+    "fsyn_p0": 2349403.342069606,
+    "fsyn_p1": 1493968673.4567084,
+    "fsyn_p2": 957809390115.5889,
+    "lambda_eff_photon_nm": 641.1174525496795,
+    "ratio_p0_over_p1": 0.0015725921057190666,
+    "ratio_p2_over_p1": 641.1174525496795
+  },
+  "S11_mag_ratio": {
+    "ratio_1mag_brighter": 2.5118864315095806,
+    "expected": 2.51188643150958,
+    "abs_dev": 4.440892098500626e-16
+  },
+  "S11_rule_comparison": {
+    "simpson_vs_fine_ref_rel": 7.939473244019038e-13,
+    "trapezoid_vs_fine_ref_rel": 1.0250937172991334e-10
+  },
+  "S11_B11_simpson_bug": {
+    "y_ones_4pt_correct": 3.0,
+    "y_ones_4pt_buggy": 3.6666666666666665,
+    "rel_error": 0.2222222222222221,
+    "y_0123_buggy": 4.5,
+    "y_0123_correct": 4.5,
+    "production_grid_343pt_buggy_minus_correct": 0.0,
+    "production_grid_immune": true
+  },
+  "S14_chain_demo": {
+    "n_stars": 2000,
+    "ZP_syn_mag": 28.935825205808797,
+    "location_dex": -0.0006777117850440374,
+    "k_photo_Fsyn_units_per_ADU": 1.0015617072502103,
+    "m_ref": 6.0,
+    "F_ref_ADU": 1491599985.7439475,
+    "sigma_residual_dex": 0.049320123636062696,
+    "sigma_kappa_stat_dex": 0.0013818478583348963,
+    "m5_mag": 27.186705915506142,
+    "units_note": "F_syn in W*m^-2*nm (arb scale from Planck sr^-1); F_instr synthetic ADU; interface to P2 = sigma_kappa_stat, m5"
+  }
+}

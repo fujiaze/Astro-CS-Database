@@ -1,0 +1,61 @@
+{
+ "seed": 20260926,
+ "norm_tol": [
+  {
+   "tol": 0.0,
+   "sigma_F_rel_change": 0.0
+  },
+  {
+   "tol": 1e-12,
+   "sigma_F_rel_change": 5.5067062021407764e-14
+  },
+  {
+   "tol": 1e-09,
+   "sigma_F_rel_change": 5.4927618009514845e-11
+  },
+  {
+   "tol": 1e-06,
+   "sigma_F_rel_change": 5.492760801750762e-08
+  }
+ ],
+ "norm_tol_bound": {
+  "analytic": "|d sigma_F / sigma_F| <= |d sum P^2| / (2 sum P^2) <= tol",
+  "mechanism": "sum P^2 = sum P^2 (1+delta)^2 ~ sum P^2 (1 + 2 sum P delta / sum P^2 * <P^2>) with sum P delta = 0; the residual is O(tol) and one-sided positive for peak-concentrated perturbations"
+ },
+ "norm_tol_note": "sum-preserving peak-concentrated perturbation at the registered tolerance moves sigma_F at the O(tol) level; uniform perturbations cancel identically under renormalization. The tolerance is a guard against gross profile corruption, not a precision budget.",
+ "conditioning": [
+  {
+   "lambda_ratio": 1.0,
+   "kappa": 1.0,
+   "coef_b_err_mean": 0.002248800559074841,
+   "coef_c_err_mean": 0.002198883239810029,
+   "b_err_over_square": 1.0,
+   "c_err_over_square": 1.0
+  },
+  {
+   "lambda_ratio": 0.25,
+   "kappa": 2.0,
+   "coef_b_err_mean": 0.0045513048955408055,
+   "coef_c_err_mean": 0.0022932080347689166,
+   "b_err_over_square": 2.023881076147196,
+   "c_err_over_square": 1.0428966819388903
+  },
+  {
+   "lambda_ratio": 0.0625,
+   "kappa": 4.0,
+   "coef_b_err_mean": 0.009190756008167931,
+   "coef_c_err_mean": 0.002229122687374629,
+   "b_err_over_square": 4.086959144099919,
+   "c_err_over_square": 1.0137521842984316
+  },
+  {
+   "lambda_ratio": 0.015625,
+   "kappa": 8.0,
+   "coef_b_err_mean": 0.018206688794919438,
+   "coef_c_err_mean": 0.0022371019020615665,
+   "b_err_over_square": 8.096177636317242,
+   "c_err_over_square": 1.0173809420889666
+  }
+ ],
+ "conditioning_note": "the x-slope coefficient error scales ~ 1/lambda_ratio (variance of x shrinks with the rectangle width); the y-slope stays flat. At the registered boundary 1/16 the worst coefficient error is bounded (~kappa x base) and one step further (1/64) it degrades another ~4x: the 1/16 criterion is the last well-conditioned rung (formula-derived, no external literature needed)."
+}

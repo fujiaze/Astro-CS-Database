@@ -1,0 +1,374 @@
+{
+  "seed": 20260926,
+  "size": 1024,
+  "query": "dense eval on a 256x256 subgrid with random phase",
+  "domains": {
+    "smooth": {
+      "16": {
+        "bilinear_regular_grid_v1": {
+          "E": 2.9094840160892588e-05,
+          "rmse_dex": 0.0013352197122022955
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 6.920752859684853e-11,
+          "rmse_dex": 2.10636281276737e-06
+        },
+        "..._mesh_median_v1": {
+          "E": 0.00016513878604884624,
+          "rmse_dex": 0.002777466286840046
+        },
+        "idw_p2_k16": {
+          "E": 0.00029659434420126196,
+          "rmse_dex": 0.004310550165218463
+        },
+        "nearest_control_point_v1": {
+          "E": 0.0022366687262553864,
+          "rmse_dex": 0.011972480784384988
+        }
+      },
+      "32": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.0004513845012754647,
+          "rmse_dex": 0.005241349523412475
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 2.8829615583703116e-08,
+          "rmse_dex": 4.158539685962096e-05
+        },
+        "..._mesh_median_v1": {
+          "E": 0.003310682594163561,
+          "rmse_dex": 0.012063316173334141
+        },
+        "idw_p2_k16": {
+          "E": 0.0034270128940079303,
+          "rmse_dex": 0.014521082087959108
+        },
+        "nearest_control_point_v1": {
+          "E": 0.009033617184631915,
+          "rmse_dex": 0.023716492187136364
+        }
+      },
+      "64": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.006455374513069767,
+          "rmse_dex": 0.019623408974640065
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 4.68088032155034e-05,
+          "rmse_dex": 0.0016144431463274672
+        },
+        "..._mesh_median_v1": {
+          "E": 0.03622471274721262,
+          "rmse_dex": 0.04183219429647784
+        },
+        "idw_p2_k16": {
+          "E": 0.03150349409391806,
+          "rmse_dex": 0.043606095421052926
+        },
+        "nearest_control_point_v1": {
+          "E": 0.03614842521784545,
+          "rmse_dex": 0.04696543420068533
+        }
+      },
+      "128": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.07648396132536273,
+          "rmse_dex": 0.06248143693231544
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.02185685946727456,
+          "rmse_dex": 0.036235277317900806
+        },
+        "..._mesh_median_v1": {
+          "E": 0.10155590307107132,
+          "rmse_dex": 0.07556974764247029
+        },
+        "idw_p2_k16": {
+          "E": 0.10884565612748265,
+          "rmse_dex": 0.08374660064593388
+        },
+        "nearest_control_point_v1": {
+          "E": 0.16849235584166533,
+          "rmse_dex": 0.09260259445687218
+        }
+      },
+      "256": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.19379498772556603,
+          "rmse_dex": 0.11080729648025661
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.2982875748717091,
+          "rmse_dex": 0.1787819125486753
+        },
+        "..._mesh_median_v1": {
+          "E": 0.5606310684846862,
+          "rmse_dex": 0.1736249062198798
+        },
+        "idw_p2_k16": {
+          "E": 0.14822005027718532,
+          "rmse_dex": 0.08742263221119712
+        },
+        "nearest_control_point_v1": {
+          "E": 0.2914271320879549,
+          "rmse_dex": 0.1439578357097598
+        }
+      }
+    },
+    "highcontrast": {
+      "16": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.05877183391883234,
+          "rmse_dex": 0.0541834006742344
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.04104235776384124,
+          "rmse_dex": 0.030827773754805388
+        },
+        "..._mesh_median_v1": {
+          "E": 0.4080777468319208,
+          "rmse_dex": 0.1249729563303904
+        },
+        "idw_p2_k16": {
+          "E": 0.18795178190680883,
+          "rmse_dex": 0.09131834043176401
+        },
+        "nearest_control_point_v1": {
+          "E": 0.17181976634176377,
+          "rmse_dex": 0.08775249711272862
+        }
+      },
+      "32": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.5121776196386012,
+          "rmse_dex": 0.14142591597960574
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.6561964447540911,
+          "rmse_dex": 0.1355446506901985
+        },
+        "..._mesh_median_v1": {
+          "E": 1.3894947188743805,
+          "rmse_dex": 0.20021691383793386
+        },
+        "idw_p2_k16": {
+          "E": 0.6848350277950928,
+          "rmse_dex": 0.15828841168145763
+        },
+        "nearest_control_point_v1": {
+          "E": 0.8895937056453371,
+          "rmse_dex": 0.1603729314638368
+        }
+      },
+      "64": {
+        "bilinear_regular_grid_v1": {
+          "E": 1.719710499906566,
+          "rmse_dex": 0.2211650082559514
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 3.6419260599460515,
+          "rmse_dex": 0.25430058225226765
+        },
+        "..._mesh_median_v1": {
+          "E": 1.4719184415757063,
+          "rmse_dex": 0.21332932728444265
+        },
+        "idw_p2_k16": {
+          "E": 1.2964336670388565,
+          "rmse_dex": 0.20552040740870087
+        },
+        "nearest_control_point_v1": {
+          "E": 2.314077294748872,
+          "rmse_dex": 0.25430849377098813
+        }
+      },
+      "128": {
+        "bilinear_regular_grid_v1": {
+          "E": 1.4985446075080353,
+          "rmse_dex": 0.2127754038937792
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 1.678109986501799,
+          "rmse_dex": 0.2214625031942698
+        },
+        "..._mesh_median_v1": {
+          "E": 1.5226314140962898,
+          "rmse_dex": 0.21081294131801157
+        },
+        "idw_p2_k16": {
+          "E": 1.4967427932393407,
+          "rmse_dex": 0.21267181315541805
+        },
+        "nearest_control_point_v1": {
+          "E": 3.391244182613601,
+          "rmse_dex": 0.24040044361480542
+        }
+      },
+      "256": {
+        "bilinear_regular_grid_v1": {
+          "E": 1.635011978693203,
+          "rmse_dex": 0.2209750989637139
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 1.7518887389955817,
+          "rmse_dex": 0.22333328062583374
+        },
+        "..._mesh_median_v1": {
+          "E": 1.51458418729224,
+          "rmse_dex": 0.23117363866384294
+        },
+        "idw_p2_k16": {
+          "E": 1.5822271125304135,
+          "rmse_dex": 0.2207818565708054
+        },
+        "nearest_control_point_v1": {
+          "E": 1.8942351280133365,
+          "rmse_dex": 0.23970675479991224
+        }
+      }
+    },
+    "flat": {
+      "16": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "..._mesh_median_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "idw_p2_k16": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "nearest_control_point_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        }
+      },
+      "32": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "..._mesh_median_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "idw_p2_k16": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "nearest_control_point_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        }
+      },
+      "64": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "..._mesh_median_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "idw_p2_k16": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "nearest_control_point_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        }
+      },
+      "128": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "..._mesh_median_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "idw_p2_k16": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "nearest_control_point_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        }
+      },
+      "256": {
+        "bilinear_regular_grid_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "natural_bicubic_spline_clip_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "..._mesh_median_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "idw_p2_k16": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        },
+        "nearest_control_point_v1": {
+          "E": 0.0,
+          "rmse_dex": 0.0
+        }
+      }
+    }
+  },
+  "theory_convergence_order": {
+    "order_16_32": {
+      "bilinear": -1.9344849106992659,
+      "spline": -3.967321388809528
+    },
+    "order_32_64": {
+      "bilinear": -1.9847324792832677,
+      "spline": -4.182809489984114
+    }
+  },
+  "theory_convergence_order_with_natural_end_layer": {
+    "order_16_32": {
+      "bilinear": -2.298705486202205,
+      "spline": -3.881713036281707
+    },
+    "order_32_64": {
+      "bilinear": -2.114504774609666,
+      "spline": -4.12599665158304
+    }
+  },
+  "theory_convergence_note": "bilinear expected -2 interior; natural cubic spline expected -4 interior; including the natural-end-condition boundary layer degrades the measured order -- a real, spec-relevant property of natural boundary splines on frames with nonzero edge curvature.",
+  "negative_control_flat": {
+    "claim": "flat truth (no spatial effect) => E == 0, RMSE == 0 for exact-reproduction operators",
+    "worst_E_over_operators_deltas": 0.0,
+    "pass": true
+  },
+  "node_exact_reproduction": {
+    "max_abs_deviation": 1.7763568394002505e-15,
+    "pass": true
+  },
+  "all_pass": true
+}

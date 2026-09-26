@@ -1,0 +1,189 @@
+{
+ "seed": 20250926,
+ "gate": 0.01,
+ "d": 2,
+ "N_e": 256,
+ "sigma_over_bg": 0.010703,
+ "deterministic_floor": [
+  {
+   "Delta_over_L": 0.005,
+   "rel_step": 0.0049875311720697195,
+   "closed_form_Delta/(L+Delta/2)": 0.004987531172069826
+  },
+  {
+   "Delta_over_L": 0.009,
+   "rel_step": 0.008959681433548927,
+   "closed_form_Delta/(L+Delta/2)": 0.008959681433549029
+  },
+  {
+   "Delta_over_L": 0.01005,
+   "rel_step": 0.0099997512499688,
+   "closed_form_Delta/(L+Delta/2)": 0.009999751249968906
+  },
+  {
+   "Delta_over_L": 0.011,
+   "rel_step": 0.010939830929885527,
+   "closed_form_Delta/(L+Delta/2)": 0.010939830929885628
+  },
+  {
+   "Delta_over_L": 0.02,
+   "rel_step": 0.01980198019801982,
+   "closed_form_Delta/(L+Delta/2)": 0.019801980198019802
+  }
+ ],
+ "deterministic_gate_crossing_Delta_over_L": 0.010050251256281407,
+ "detection": [
+  {
+   "Delta_over_L": 0.005,
+   "n_s": 1,
+   "P_detect": 0.0
+  },
+  {
+   "Delta_over_L": 0.005,
+   "n_s": 2,
+   "P_detect": 0.0
+  },
+  {
+   "Delta_over_L": 0.005,
+   "n_s": 4,
+   "P_detect": 0.0
+  },
+  {
+   "Delta_over_L": 0.00717,
+   "n_s": 1,
+   "P_detect": 0.0
+  },
+  {
+   "Delta_over_L": 0.00717,
+   "n_s": 2,
+   "P_detect": 0.03333333333333333
+  },
+  {
+   "Delta_over_L": 0.00717,
+   "n_s": 4,
+   "P_detect": 0.0
+  },
+  {
+   "Delta_over_L": 0.009,
+   "n_s": 1,
+   "P_detect": 0.06666666666666667
+  },
+  {
+   "Delta_over_L": 0.009,
+   "n_s": 2,
+   "P_detect": 0.43333333333333335
+  },
+  {
+   "Delta_over_L": 0.009,
+   "n_s": 4,
+   "P_detect": 0.5666666666666667
+  },
+  {
+   "Delta_over_L": 0.0095,
+   "n_s": 1,
+   "P_detect": 0.3
+  },
+  {
+   "Delta_over_L": 0.0095,
+   "n_s": 2,
+   "P_detect": 0.6333333333333333
+  },
+  {
+   "Delta_over_L": 0.0095,
+   "n_s": 4,
+   "P_detect": 0.7666666666666667
+  },
+  {
+   "Delta_over_L": 0.01,
+   "n_s": 1,
+   "P_detect": 0.43333333333333335
+  },
+  {
+   "Delta_over_L": 0.01,
+   "n_s": 2,
+   "P_detect": 0.8333333333333334
+  },
+  {
+   "Delta_over_L": 0.01,
+   "n_s": 4,
+   "P_detect": 0.9
+  },
+  {
+   "Delta_over_L": 0.0105,
+   "n_s": 1,
+   "P_detect": 0.6
+  },
+  {
+   "Delta_over_L": 0.0105,
+   "n_s": 2,
+   "P_detect": 0.9333333333333333
+  },
+  {
+   "Delta_over_L": 0.0105,
+   "n_s": 4,
+   "P_detect": 0.9333333333333333
+  },
+  {
+   "Delta_over_L": 0.011,
+   "n_s": 1,
+   "P_detect": 0.8
+  },
+  {
+   "Delta_over_L": 0.011,
+   "n_s": 2,
+   "P_detect": 1.0
+  },
+  {
+   "Delta_over_L": 0.011,
+   "n_s": 4,
+   "P_detect": 0.9666666666666667
+  },
+  {
+   "Delta_over_L": 0.012,
+   "n_s": 1,
+   "P_detect": 0.9666666666666667
+  },
+  {
+   "Delta_over_L": 0.012,
+   "n_s": 2,
+   "P_detect": 1.0
+  },
+  {
+   "Delta_over_L": 0.012,
+   "n_s": 4,
+   "P_detect": 1.0
+  },
+  {
+   "Delta_over_L": 0.015,
+   "n_s": 1,
+   "P_detect": 1.0
+  },
+  {
+   "Delta_over_L": 0.015,
+   "n_s": 2,
+   "P_detect": 1.0
+  },
+  {
+   "Delta_over_L": 0.015,
+   "n_s": 4,
+   "P_detect": 1.0
+  }
+ ],
+ "gradient_cancellation": {
+  "step_2pct_no_gradient_rel_step": 0.019801980198019802,
+  "step_2pct_plus_opposite_gradient_rel_step": 0.0,
+  "gradient_only_rel_step": -0.020000000000000018,
+  "gradient_only_predicted_4g/bg": -0.02,
+  "verdict_green_despite_step": true
+ },
+ "negative_zero_effect": {
+  "rel_step": 0.0,
+  "metric_zero": true
+ },
+ "null_distribution": {
+  "sigma_rel_step_measured": 0.0012202379465357418,
+  "mean_abs_per_edge": 0.012096136695517007,
+  "analytic_sqrt2_sigma_over_bg": 0.015136327758079238,
+  "median_se_coeff_sqrt_pi_over_2": 1.2533141373155001
+ }
+}

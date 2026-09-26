@@ -1,0 +1,32 @@
+{
+  "unit": "P1 flux-integral fitting (photometric magnitude coordinate system)",
+  "purpose": "实验重做三路证据关键读数汇总；每条注明来源路线与基准 JSON。UNRESOLVED 不入本表（见 REPORT_experiment.md 诚实边界）。",
+  "seed": 20260926,
+  "basis": "独立审计/实验重做/P1通量积分拟合/{路线1,路线2,路线3}；分歧裁决以 独立审计/实验重做/总编对账/分歧台账.md 为准",
+  "key_numbers": [
+    {"item": "Tukey biweight c=4.685 渐近效率 ARE", "value": 0.9499974, "route": "route2", "evidence": "results/redo/route2/exp1_robust_constants.json", "note": "解析解 c*=4.6850649，与 statsmodels robust/_tables.py 4.685065 六位一致；台账 D-06 判 PMC6768164 锚有效"},
+    {"item": "解 ARE=0.95 的 c*", "value": 4.6850649, "route": "route2+route3", "evidence": "results/redo/route2/exp1_robust_constants.json; route3/exp_S01_tukey_c.json", "note": "一手锚 Kafadar 1983 doi:10.6028/jres.088.006 原句含 c=4.685⇒95%"},
+    {"item": "MAD→σ 常数 0.6744897501960817 二分复算相对差", "value": 1.6e-16, "route": "route2+route3", "evidence": "route2/exp1_robust_constants.json; route3/exp_S02_mad_consistency.json", "note": "= Φ⁻¹(3/4)，双精度末位；解析恒等式"},
+    {"item": "1/0.6744897501960817", "value": 1.482602218505602, "route": "route2", "evidence": "route2/exp1_robust_constants.json", "note": "发现 frame_photometry_fit.cpp:292 用 4 位截断 1.4826（相对差 1.496e-6），违反 NOISE_ESTIMATION.md:213 冻结条款（台账 A-P1-08）"},
+    {"item": "IRLS tol 敏度：1e-2→1e-12 中位 location 跨度", "value": 1.93e-4, "route": "route2", "evidence": "route2/exp1_robust_constants.json", "note": "单位 dex；50 步上限最多 17 步未触及 ⇒ tol/max_iter 登记为求解器设置（豁免）"},
+    {"item": "mag_tolerance=3.0 预过滤对 ZP 偏差的边际保护", "value": 0.0, "route": "route1", "evidence": "route1/exp2_mag_window_match.json", "note": "IRLS/Tukey 就位后增益 ≈0（−7.3e-6~0 dex）；真实作用面是控制样本族"},
+    {"item": "星等窗选择 ZP_syn 系统平移上限", "value": 0.0318, "route": "route1", "evidence": "route1/exp2_mag_window_match.json", "note": "单位 mag（窗 12–16 vs 6–16，−1.272e-2 dex）；两消费面口径分裂的可量化系统差源"},
+    {"item": "错配对经预过滤+IRLS 的 location 系统偏移（FOV B12 危害量化）", "value": -0.146, "route": "route1", "evidence": "route1/exp3_fov_ladder.json", "note": "单位 dex；|r_consistent|≥3 门可被满足 ⇒ 奇异 CD 下拟合照常出错误标度"},
+    {"item": "FOV 缓冲 1.2 vs 钳位下界 1.0 的优先语义冲突", "value": "buffer 抬升与钳位压低方向相反（0.3″/px 全幅 ×3.02 vs 10″/px ×0.69）", "route": "route1+route3", "evidence": "route1/exp3_fov_ladder.json; route3/exp_S07_fov_constants.json", "note": "台账 A-P1-12：05 A-4b 优先语义须写明"},
+    {"item": "k_photo 零点平移不变量", "value": "逐位成立", "route": "route3", "evidence": "route3/exp_S04_mag_tolerance.json", "note": "F_instr 整体乘常数后 location 平移精确、内点集逐元素相同"},
+    {"item": "σ_residual=0 ∧ fit_ok=true 帧的可估性", "value": "不可估计", "route": "route3", "evidence": "route3/exp_S05_gates_inlier.json", "note": "完美控制点须按非完美处理，下游 P4 不得以该帧为真值锚"},
+    {"item": "1.0 dex 粗筛门非恒真（能红）", "value": "0.055 / 1.110", "route": "route3", "evidence": "route3/exp_S12_dex_bound.json", "note": "干净场/污染场通过率对照；S12 空间阶数为科学量"},
+    {"item": "n=3 时 MAD 型尺度有限样本偏差", "value": 1.49, "route": "route3", "evidence": "route3/exp_S11_zp_sample_floor.json", "note": "渐近式 1.2533/√n 在 n=3 高估 7.4% ⇒ ZP_syn 三星下限抽样误差是 n≈2338 满载的 25.7 倍"},
+    {"item": "max_stars=5000 对应 σ_ZP", "value": 6.36e-4, "route": "route3", "evidence": "route3/exp_S08_ladder.json", "note": "单位 mag；σ_ZP(N) 曲线支撑的工程上限"},
+    {"item": "幻觉锚核验（路线3 逐锚抽验）", "value": "15/15 锚真实", "route": "route3", "evidence": "route3/exp_S00_anchor_verification.json", "note": "定位偏差（PHOTOMETRY.md:126/:400 实为锚漂移）按台账 A-P1-04/09 改记'行号漂移'"},
+    {"item": "路线2 复核锚体系", "value": "24 处锚，唯一判内容不符者为 PMC6768164", "route": "route2", "evidence": "route2/report.md + 台账 D-06", "note": "D-06 直验原文含 c=4.685 原句 ⇒ 锚有效，路线2 误判撤回"},
+    {"item": "贯穿用例：ZP_syn / k_photo / sigma_residual", "value": "28.9358 mag / 1.00156 / 0.0493 dex", "route": "route2", "evidence": "route2/exp8_fsyn_forward.json", "note": "2000 星端到端；下游 sigma_kappa,stat=1.253·σ_res/√N=0.00138 dex"},
+    {"item": "路线1 贯穿用例 scale 恢复相对误差", "value": 1.44e-3, "route": "route1", "evidence": "route1/exp2_mag_window_match.json", "note": "真值 3.7e6，恢复 3.7053e6，与 σ/√800 量级一致"},
+    {"item": "匹配半径 2.0px 正确率（最优档）", "value": 0.996, "route": "route1", "evidence": "route1/exp2_mag_window_match.json", "note": "全档敏感性表 0.5–4.0px；歧义率 ≈r² 理论（路线3）"}
+  ],
+  "superseded_numbers": [
+    {"item": "arXiv 号 2205.11321（Gaia DR3）", "status": "证伪（实为计量论文）", "corrected": "arXiv:2208.00211", "route": "route1", "ledger": "A-P1 文献腿"},
+    {"item": "PHOTOMETRY.md:126 / :400 锚定位", "status": "行号漂移", "corrected": "正本在 :13 / :15-17", "route": "route3", "ledger": "A-P1-04/09"},
+    {"item": "审查'幻觉锚'定性", "status": "高估", "corrected": "科学量锚实测真实，改记行号漂移", "route": "route2+route3", "ledger": "A-P1-06/09"}
+  ]
+}

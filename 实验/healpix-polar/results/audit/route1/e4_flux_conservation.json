@@ -1,0 +1,112 @@
+{
+ "seed": 20050709,
+ "drizzle_rows": [
+  {
+   "pf": 1.0,
+   "theta_arcsec": 2.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": -1.1657341758564144e-14,
+   "S_with_coverage_denominator_over_B0": 1.0,
+   "expected_1_over_pf2": 1.0,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 1.0
+  },
+  {
+   "pf": 1.0,
+   "theta_arcsec": 300.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": 6.661338147750939e-15,
+   "S_with_coverage_denominator_over_B0": 1.0,
+   "expected_1_over_pf2": 1.0,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 1.0
+  },
+  {
+   "pf": 0.8,
+   "theta_arcsec": 2.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": -5.218048215738236e-15,
+   "S_with_coverage_denominator_over_B0": 1.5624999999999996,
+   "expected_1_over_pf2": 1.5624999999999998,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 0.6400000000000001
+  },
+  {
+   "pf": 0.8,
+   "theta_arcsec": 300.0,
+   "S_B0_minus_1_max": 3.3306690738754696e-16,
+   "conservation_residual": 3.3306690738754696e-15,
+   "S_with_coverage_denominator_over_B0": 1.5625,
+   "expected_1_over_pf2": 1.5624999999999998,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 0.6400000000000001
+  },
+  {
+   "pf": 0.6,
+   "theta_arcsec": 2.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": -6.328271240363392e-15,
+   "S_with_coverage_denominator_over_B0": 2.777777777777778,
+   "expected_1_over_pf2": 2.7777777777777777,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 0.36
+  },
+  {
+   "pf": 0.6,
+   "theta_arcsec": 300.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": 7.771561172376096e-15,
+   "S_with_coverage_denominator_over_B0": 2.7777777777777772,
+   "expected_1_over_pf2": 2.7777777777777777,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 0.36
+  },
+  {
+   "pf": 0.5,
+   "theta_arcsec": 2.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": -1.0325074129013956e-14,
+   "S_with_coverage_denominator_over_B0": 4.0,
+   "expected_1_over_pf2": 4.0,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 0.25
+  },
+  {
+   "pf": 0.5,
+   "theta_arcsec": 300.0,
+   "S_B0_minus_1_max": 4.440892098500626e-16,
+   "conservation_residual": 3.774758283725532e-15,
+   "S_with_coverage_denominator_over_B0": 4.0,
+   "expected_1_over_pf2": 4.0,
+   "covden_dev_matches_1_over_pf2_minus_1": true,
+   "pixnorm_flux_ratio": 0.25
+  }
+ ],
+ "negative_control_no_effect": {
+  "max|S/B0-1|": 4.440892098500626e-16,
+  "verdict": "metric zero (float noise) when the field is exactly constant: the conservation and surface-brightness identities carry no spurious effect"
+ },
+ "variance_law": {
+  "ratio_min": 9.0,
+  "ratio_max": 9.0,
+  "expected": 9.0
+ },
+ "pixfrac_background_numbers": {
+  "1_over_pf2_minus_1": 0.5624999999999998,
+  "1_over_pf4_minus_1": 1.4414062499999996,
+  "mag_offset_2p5log10_1_over_pf2": 0.48455006504028186
+ },
+ "quantization": {
+  "n_samples": 1025,
+  "comp_convention_max_violation": 1.8648277366750676e-17,
+  "comp_strict_bound_holds": true,
+  "inv_convention_max_violation": 0.5,
+  "inv_strict_bound_holds": false,
+  "worst_S": 0.00196078431372549,
+  "worst_r": -0.5,
+  "S_1_over_510": 0.00196078431372549,
+  "r_at_1_over_510_comp": -0.5,
+  "clamp_case_S_1p3": -0.001506024096385561,
+  "inv_max_r_near_half_count_boundary": -0.495
+ }
+}

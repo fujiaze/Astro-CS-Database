@@ -1,0 +1,77 @@
+{
+  "per_N": [
+    {
+      "N": 8,
+      "worst_rel_chord": -0.0971279109028168,
+      "A_chord_times_N2": 0.9454854407463266,
+      "closed_form_ratio": 0.9003163161571062,
+      "abs_deficit_times_N2": 0.10171211045027108,
+      "true_boundary_worst_rel": -1.2698421350543221e-05
+    },
+    {
+      "N": 16,
+      "worst_rel_chord": -0.09904663137740388,
+      "A_chord_times_N2": 0.9434761613639082,
+      "closed_form_ratio": 0.9003163161571062,
+      "abs_deficit_times_N2": 0.10372138983268943,
+      "true_boundary_worst_rel": -1.2935351458964739e-05
+    },
+    {
+      "N": 32,
+      "worst_rel_chord": -0.0995245381286568,
+      "A_chord_times_N2": 0.9429756985842959,
+      "closed_form_ratio": 0.9003163161571062,
+      "abs_deficit_times_N2": 0.10422185261230181,
+      "true_boundary_worst_rel": -1.2994538054922344e-05
+    },
+    {
+      "N": 64,
+      "worst_rel_chord": -0.0996439047399309,
+      "A_chord_times_N2": 0.942850698161275,
+      "closed_form_ratio": 0.9003163161571062,
+      "abs_deficit_times_N2": 0.10434685303532269,
+      "true_boundary_worst_rel": -1.3009331851443484e-05
+    },
+    {
+      "N": 128,
+      "worst_rel_chord": -0.0996737395236903,
+      "A_chord_times_N2": 0.9428194552487816,
+      "closed_form_ratio": 0.9003163161571062,
+      "abs_deficit_times_N2": 0.10437809594781601,
+      "true_boundary_worst_rel": -1.30130299584863e-05
+    },
+    {
+      "N": 256,
+      "worst_rel_chord": -0.09968119778816309,
+      "A_chord_times_N2": 0.9428116449724896,
+      "closed_form_ratio": 0.9003163161571062,
+      "abs_deficit_times_N2": 0.1043859062241081,
+      "true_boundary_worst_rel": -1.3013954056728672e-05
+    }
+  ],
+  "full_sky_chord_closure_N16": 8.881784197001252e-16,
+  "absolute_deficit_fit": {
+    "values_of_deficit_times_N2": [
+      0.10171211045027108,
+      0.10372138983268943,
+      0.10422185261230181,
+      0.10434685303532269,
+      0.10437809594781601,
+      0.1043859062241081
+    ],
+    "claimed_constant": 0.104369,
+    "max_abs_dev_from_claim": 0.0026568895497289247
+  },
+  "negative_control": {
+    "max_abs_true_boundary_rel_over_N": 1.3013954056728672e-05,
+    "note": "metric = |A_true_curve/A_true - 1|. The K=96 chord sampling of the true boundary carries a FIXED floor ~ -1.3e-5 (the polar leaf boundary has N-independent curvature, so the sampling error does not shrink with N); it is 7600x smaller than the chord-quad deficit -9.968e-2 under test, and constant across N, so it cannot mimic the N-converging law. Gate: floor < 3e-5 AND deficit/floor > 1000."
+  },
+  "closed_form_check": {
+    "limit_2sqrt2_over_3": 0.9428090415820635,
+    "A_chord_times_N2_tail_N256": 0.9428116449724896,
+    "ratio_tail_N256": 0.9003188022118369,
+    "limit_2sqrt2_over_pi": 0.9003163161571062,
+    "claimed_rel_error": -0.09968368384289383
+  },
+  "verdict": "PASS"
+}

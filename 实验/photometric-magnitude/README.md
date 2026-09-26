@@ -10,6 +10,14 @@
   `docs/science/PHOTOMETRY.md`（推导出处）；`run/RELEASE-02/parallel/06.md` §2（逐项预算实测）
   ——注意 `run/` 是 gitignore 目录，追溯性弱于 `docs/`，前台合并时应把引用改锚到 `docs/`
 
+### 成稿交付（实验重做轮，2026-09）
+
+- **论文**：`REPORT_paper.md`（三路重做证据融合重写版）；**实验报告**：`REPORT_experiment.md`
+- **文献台账**：`refs.md`（只收一手 VERIFIED 条目）；**支撑推导**：`docs/derivation_robust_weights.md`
+- **重做轮代码/结果**：`code/redo/`（路线1/2/3，seed=20260926，`bash code/redo/run_all.sh`）与 `results/redo/`（基准快照）、`results/redo_summary.json`（关键读数汇总，注明来源路线）
+- **裁决依据**：`独立审计/实验重做/总编对账/分歧台账.md`；订正记录见 `REPORT_experiment.md` §7（A-P1-01/04/06/08/09/12、D-06）
+- **无 P1 专属补实验目录**：`补实验-control_variance / -k_corr / -5.07` 分别由 P2/P3/P5 承载
+
 ---
 
 ## 1. 可证伪的假说
@@ -70,6 +78,11 @@ sigma_floor   = (1 − 3·1.166/√n)·sigma_fit(白; 本帧匹配星通量分�
 sigma_ceiling = (1 + 3·1.166/√n)·sqrt(Σ 预算项²; 本帧)
 PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 ```
+
+> **因子标签订正（按分歧台账 A-P1-01）**：`1.166 = √1.361`，其中 1.361 是 MAD 尺度估计量在
+> 高斯数据下的渐近**标准化方差**（Rousseeuw & Croux 1993 Table 2，refs.md V5）——即 1.166 是
+> σ̂ 的相对标准差因子，`3·1.166/√n` 为 σ 估计量自身抽样涨落的 3σ 包络。推导见
+> `docs/derivation_robust_weights.md` D5。
 
 预算项（**仿真帧上逐项由本帧推导**；真实帧上 σ_color/σ_gaia 不可自算、如实标 `null`，
 见 §4.7）：光子噪声、PSF 拟合不确定度（精确 Fisher，含**自由背景**简并项）、

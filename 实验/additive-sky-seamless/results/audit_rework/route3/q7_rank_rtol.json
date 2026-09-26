@@ -1,0 +1,50 @@
+{
+  "seed": 20260926,
+  "tau": 1e-10,
+  "col_equilibration": {
+    "max_rel_diff_Heq": 4.440892098500625e-16,
+    "kappa_Hred_original": 3.643519197322989,
+    "kappa_Hred_scaled": 6.277316147736832e+22,
+    "kappa_Heq_original": 3.409331659946701,
+    "kappa_Heq_scaled": 3.4093316599467003,
+    "invariant": true,
+    "note": "kappa(H_red) 变 12+ 个量级, kappa(H_eq) 逐位不变 => 只有列均衡口径可判"
+  },
+  "tau_floor_m49_n58": {
+    "rank_rtol_effective": 1e-10,
+    "tau_active": true
+  },
+  "tau_floor_m20_n24": {
+    "rank_rtol_effective": 1e-10,
+    "tau_active": true
+  },
+  "always_green_gate": {
+    "kappa_Hred": Infinity,
+    "r_eff_Hred": 23,
+    "n_free": 24,
+    "verdict_by_Hred": true,
+    "lambda_eff_tau_mean_diag": 2.9912995661960854e-08,
+    "kappa_Hsolve_at_lambda_tau": 22138102537.910686,
+    "lambda_prod_0.1_mean_diag": 29.912995661960856,
+    "kappa_Hsolve_at_production_lambda": 23.13807211058945,
+    "Hsolve_prod_gate_green": true,
+    "r_eff_Hsolve_prod": 24,
+    "r_eff_Hred_unchanged": 23,
+    "conclusion": "lam=tau·mean(diag) 时 kappa(H_solve)~2.2e10 贴门; 生产 lam=0.1·mean(diag) 时 kappa~O(10) 恒绿而 r_eff 仍示秩亏 => H_solve 上的门零信息（规则5 证实）"
+  },
+  "equivalence_family": {
+    "cases": 200,
+    "mismatches": 0
+  },
+  "production_reading": {
+    "m42_kappa_measured": 32000000.0,
+    "one_over_tau": 10000000000.0,
+    "margin": 312.5
+  },
+  "negative_fullrank": {
+    "r_eff": 18,
+    "n_free": 18,
+    "n_unidentified": 0,
+    "identifiable": true
+  }
+}

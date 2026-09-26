@@ -1,0 +1,35 @@
+{
+  "chain_position": "P1 frame -> P3 exact-partition drizzle -> sparse SNR control points on sphere -> P4 IDW dense reconstruction",
+  "interfaces": {
+    "sum_p_w_max_abs_dev_from_1": 4.440892098500626e-16,
+    "n_control_points": 12,
+    "control_point_fields": [
+      "unit_vector_direction",
+      "SNR",
+      "variance_convention"
+    ]
+  },
+  "flux_closure": {
+    "sum_p_F_over_sum_j_x_minus_1": 0.0,
+    "tolerance": 1e-12
+  },
+  "idw": {
+    "max_abs_dev_at_control_points": 0.0,
+    "reconstruction_range": [
+      -0.6854641756369254,
+      0.5101469195807716
+    ],
+    "n_queries": 100
+  },
+  "negative_control": {
+    "max_abs_dev_from_constant": 2.6645352591003757e-15,
+    "expected": 0.0,
+    "note": "weights sum to 1 => constant field reproduces exactly"
+  },
+  "units": {
+    "frame": "ADU/sr surface brightness, per-pixel variance ADU^2",
+    "leaf_flux": "ADU (dimensionless counts per exposure)",
+    "snr": "dimensionless; directions are unit vectors (rad)"
+  },
+  "verdict": "PASS"
+}
