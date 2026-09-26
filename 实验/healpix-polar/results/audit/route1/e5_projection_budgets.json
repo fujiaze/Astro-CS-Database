@@ -1,0 +1,177 @@
+{
+ "seed": 20050709,
+ "gnomonic_scan": [
+  {
+   "h_rad": 0.0001,
+   "rho_max_rad": 0.00014142135529450047,
+   "integrated_rel_inflation": 1.2730817067208022e-08,
+   "integrated_over_rho_max2": 0.6365408618476125,
+   "pointwise_sec3_at_rho_max_minus_1": 3.0000000039720476e-08,
+   "pointwise_over_1p5": 1.0000000146573493
+  },
+  {
+   "h_rad": 0.0003,
+   "rho_max_rad": 0.0004242640432560871,
+   "integrated_rel_inflation": 9.062923322922245e-08,
+   "integrated_over_rho_max2": 0.5034958005818347,
+   "pointwise_sec3_at_rho_max_minus_1": 2.7000001190380374e-07,
+   "pointwise_over_1p5": 1.000000164088165
+  },
+  {
+   "h_rad": 0.001,
+   "rho_max_rad": 0.0014142126195651847,
+   "integrated_rel_inflation": 9.999863452847535e-07,
+   "integrated_over_rho_max2": 0.49999383929980706,
+   "pointwise_sec3_at_rho_max_minus_1": 3.000001499886551e-06,
+   "pointwise_over_1p5": 1.0000018332959173
+  },
+  {
+   "h_rad": 0.002,
+   "rho_max_rad": 0.0028284195823100613,
+   "integrated_rel_inflation": 3.999980502822353e-06,
+   "integrated_over_rho_max2": 0.5000002295043294,
+   "pointwise_sec3_at_rho_max_minus_1": 1.2000024000036191e-05,
+   "pointwise_over_1p5": 1.0000073333427493
+  },
+  {
+   "h_rad": 0.003,
+   "rho_max_rad": 0.004242615231550082,
+   "integrated_rel_inflation": 8.99998840209193e-06,
+   "integrated_over_rho_max2": 0.500005355653242,
+   "pointwise_sec3_at_rho_max_minus_1": 2.7000121499476393e-05,
+   "pointwise_over_1p5": 1.000016500013007
+  },
+  {
+   "h_rad": 0.005,
+   "rho_max_rad": 0.007070949964270685,
+   "integrated_rel_inflation": 2.4999895295030328e-05,
+   "integrated_over_rho_max2": 0.500014572414139,
+   "pointwise_sec3_at_rho_max_minus_1": 7.500093749213121e-05,
+   "pointwise_over_1p5": 1.000045833478415
+  },
+  {
+   "h_rad": 0.008,
+   "rho_max_rad": 0.01131322581782484,
+   "integrated_rel_inflation": 6.39993185098664e-05,
+   "integrated_over_rho_max2": 0.5000373415245792,
+   "pointwise_sec3_at_rho_max_minus_1": 0.00019200614386871706,
+   "pointwise_over_1p5": 1.0001173342879457
+  },
+  {
+   "h_rad": 0.01,
+   "rho_max_rad": 0.014141192927810294,
+   "integrated_rel_inflation": 9.99983336078536e-05,
+   "integrated_over_rho_max2": 0.5000583322618308,
+   "pointwise_sec3_at_rho_max_minus_1": 0.0003000149995000534,
+   "pointwise_over_1p5": 1.00018333566676
+  },
+  {
+   "h_rad": 0.02,
+   "rho_max_rad": 0.02827673239344846,
+   "integrated_rel_inflation": 0.0003999733440469555,
+   "integrated_over_rho_max2": 0.5002333076314778,
+   "pointwise_sec3_at_rho_max_minus_1": 0.0012002399680095532,
+   "pointwise_over_1p5": 1.0007333706692096
+  }
+ ],
+ "gnomonic_integrated_loglog_slope": 1.9492253589246034,
+ "gnomonic_budget_at_2e-3_pointwise": 6e-06,
+ "head_comment_value_2e-6": 2e-06,
+ "gnomonic_ring_quadrature": {
+  "ratio_plane_over_sphere": 1.00007496052859,
+  "mean_sec3": 1.0000500132837729,
+  "rel_agreement": 2.4945997185721325e-05
+ },
+ "gnomonic_square_scan": [
+  {
+   "h_rad": 0.0001,
+   "rho_max_rad": 0.00014142135529450047,
+   "integrated_rel_inflation": 1.2730817067208022e-08
+  },
+  {
+   "h_rad": 0.0005,
+   "rho_max_rad": 0.0007071066633354526,
+   "integrated_rel_inflation": 2.5012695670234564e-07
+  },
+  {
+   "h_rad": 0.001,
+   "rho_max_rad": 0.0014142126195651847,
+   "integrated_rel_inflation": 9.999863452847535e-07
+  },
+  {
+   "h_rad": 0.002,
+   "rho_max_rad": 0.0028284195823100613,
+   "integrated_rel_inflation": 3.999980502822353e-06
+  },
+  {
+   "h_rad": 0.005,
+   "rho_max_rad": 0.007070949964270685,
+   "integrated_rel_inflation": 2.4999895295030328e-05
+  }
+ ],
+ "tangent_plane_square_scan": [
+  {
+   "theta_rad": 0.0001,
+   "planar_over_spherical_minus_1": -4.99999974756804e-09,
+   "over_theta2": -0.499999974756804
+  },
+  {
+   "theta_rad": 0.001,
+   "planar_over_spherical_minus_1": -4.999998748367318e-07,
+   "over_theta2": -0.4999998748367318
+  },
+  {
+   "theta_rad": 0.01,
+   "planar_over_spherical_minus_1": -4.9998750015212146e-05,
+   "over_theta2": -0.49998750015212146
+  }
+ ],
+ "tangent_plane_scan": [
+  {
+   "theta_rad": 0.0001,
+   "planar_over_spherical_minus_1": -2.512038355106938e-09,
+   "over_theta2": -0.2512038355106938
+  },
+  {
+   "theta_rad": 0.0003,
+   "planar_over_spherical_minus_1": -2.2608343641650208e-08,
+   "over_theta2": -0.25120381824055793
+  },
+  {
+   "theta_rad": 0.001,
+   "planar_over_spherical_minus_1": -2.5120379676391025e-07,
+   "over_theta2": -0.25120379676391025
+  },
+  {
+   "theta_rad": 0.002,
+   "planar_over_spherical_minus_1": -1.0048149304831e-06,
+   "over_theta2": -0.251203732620775
+  },
+  {
+   "theta_rad": 0.005,
+   "planar_over_spherical_minus_1": -6.280082061493886e-06,
+   "over_theta2": -0.25120328245975543
+  },
+  {
+   "theta_rad": 0.01,
+   "planar_over_spherical_minus_1": -2.5120167486458733e-05,
+   "over_theta2": -0.25120167486458733
+  },
+  {
+   "theta_rad": 0.03,
+   "planar_over_spherical_minus_1": -0.00022606607494934927,
+   "over_theta2": -0.2511845277214992
+  }
+ ],
+ "tangent_plane_loglog_slope": 1.999999932948378,
+ "tangent_plane_at_1e-3": -2.5120379676391025e-07,
+ "head_comment_claim_4e-8": 4e-08,
+ "single_direction_all_negative": true,
+ "tangent_plane_tiny_theta_metric": -2.5120128199773717e-11,
+ "tangent_plane_fit": {
+  "coefficient": 0.25120372994867607,
+  "max_residual": 6.681523419340042e-14,
+  "wrong_model_residual": 6.714815971497668e-07,
+  "verdict": "theta^2/2-family model fits; theta^2/12-model residual is nonzero"
+ }
+}

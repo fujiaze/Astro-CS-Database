@@ -1,0 +1,41 @@
+{
+  "seed": 20260926,
+  "cst13": {
+    "eps_double": 2.220446049250313e-16,
+    "max_rel_dev_order1": 6.661338147750939e-16,
+    "max_rel_dev_order2": 6.661338147750939e-16,
+    "p9999_rel_dev": 4.440892098500626e-16,
+    "gate": 2.22e-16,
+    "measured_repo_claim": 3.01e-16,
+    "gate_exceeded_fraction_order1": 0.422059
+  },
+  "cst13_negative_control_max_rel_dev": 1.6653345369377348e-15,
+  "cst12": {
+    "node_selfcheck_max_abs_two_orders": 6.572520305780927e-14,
+    "tolerance": 1e-09,
+    "node_selfcheck_after_1e-10_scale_error": 4.973799150320701e-14,
+    "true_relative_scale_error": 1e-10,
+    "interpretation": "gate catches bit-level/order differences only; a 1e-10 systematic scale error passes the self-check (V-5: no evidence value)"
+  },
+  "cst20": {
+    "gauss_fwhm3_h36": {
+      "abs_sumP_minus_1_float64": 2.220446049250313e-16,
+      "abs_sumP_minus_1_float32": 3.375193324828274e-08,
+      "passes_1e-9_float64": true,
+      "passes_1e-9_float32": false
+    },
+    "moffat4_fwhm3_h36": {
+      "abs_sumP_minus_1_float64": 0.0,
+      "abs_sumP_minus_1_float32": 1.6904523336691568e-08,
+      "passes_1e-9_float64": true,
+      "passes_1e-9_float32": false
+    },
+    "moffat4_fwhm60_h720": {
+      "abs_sumP_minus_1_float64": 4.440892098500626e-16,
+      "abs_sumP_minus_1_float32": 4.316696766704098e-08,
+      "passes_1e-9_float64": true,
+      "passes_1e-9_float32": false
+    }
+  },
+  "cst20_tolerance": 1e-09
+}

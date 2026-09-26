@@ -1,0 +1,23 @@
+E1 leaf area + nside scale constant  (seed=20050709, deterministic)
+
+[Jacobian identity |J|=pi/3]
+  equatorial branch: max rel dev = 1.711e-10 over 1089 pts
+  polar branch:      max rel dev = 9.197e-10 over 527 pts
+
+[Leaf area A_leaf = pi/(3N^2)]
+  nside   max|A_true/A_an -1|   max|A_true/(4pi/12N^2)-1|   chord_model_max_dev
+     16   2.500e-13              2.500e-13                    1.599e-03
+     64   6.264e-12              6.264e-12                    1.100e-04
+    256   9.101e-11              9.101e-11                    7.060e-06
+
+[NEGATIVE CONTROL] eps=5.0e-04 injected into chart Jacobian
+  correct chart metric = 6.264e-12 ; perturbed chart metric = 5.000e-04 ; verdict: metric==0 (float noise) for truth; metric~=eps != 0 for perturbed chart
+
+[Scale constant]
+  C = sqrt(pi/3)*(180/pi)*3600 = 211076.28514206141699 (ref 211076.28514206142, |diff|=0.00e+00)
+  handwritten 211034.6 rel diff = -1.9749e-04
+  demo finest=105527.7 arcsec: nside formula=4 vs handwritten=2 (factor lost=2)
+  pixel_resolution_arcsec(256) = 824.516739 arcsec
+
+[Control-point assignment (P2->P3->P4 interface)]
+  roundtrip max err = 1.110e-16 over 3661 in-diamond points ; 3661 distinct leaf ids on 128-grid

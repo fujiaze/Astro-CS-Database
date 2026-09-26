@@ -1,0 +1,60 @@
+{
+  "seed": 20260926,
+  "arms": {
+    "heterogeneous": {
+      "n_trials": 40000,
+      "n_obs": 8,
+      "schemes": {
+        "inverse_variance": {
+          "emp_var": 0.5625295867109927,
+          "E_vs_opt": -0.007718613466337287
+        },
+        "equal": {
+          "emp_var": 48.663346591113324,
+          "E_vs_opt": 84.84034363619456
+        },
+        "w_propto_snr": {
+          "emp_var": 1.1091152384982736,
+          "E_vs_opt": 0.956438261527577
+        },
+        "w_propto_snr_sq": {
+          "emp_var": 0.5625295867109927,
+          "E_vs_opt": -0.007718613466337287
+        }
+      }
+    },
+    "flat_negative_control": {
+      "n_trials": 40000,
+      "n_obs": 8,
+      "schemes": {
+        "inverse_variance": {
+          "emp_var": 3.1403072237524556,
+          "E_vs_opt": 0.0048983116007859095
+        },
+        "equal": {
+          "emp_var": 3.140307223752456,
+          "E_vs_opt": 0.0048983116007859095
+        },
+        "w_propto_snr": {
+          "emp_var": 3.1403072237524565,
+          "E_vs_opt": 0.004898311600786132
+        },
+        "w_propto_snr_sq": {
+          "emp_var": 3.1403072237524565,
+          "E_vs_opt": 0.004898311600786132
+        }
+      }
+    }
+  },
+  "identity_max_rel_dev": 5.551115123125783e-16,
+  "snr_combination_rel_dev": 0.0,
+  "flat_control_max_abs_E": 0.004898311600786132,
+  "gates": {
+    "identity_machine_precision": true,
+    "invvar_optimal_heterogeneous": true,
+    "equal_and_snr_linearly_suboptimal": true,
+    "negative_control_collapses": true
+  },
+  "all_gates_pass": true,
+  "runtime_s": 7.33978533744812
+}

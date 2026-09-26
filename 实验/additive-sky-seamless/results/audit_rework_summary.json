@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "unit": "P5 additive-sky-seamless (SCI-C)",
+    "purpose": "审计重做三路 + 两个补实验的关键结果汇总；每个数字注明来源路线与固化 JSON 文件（相对本文件所在目录 audit_rework/）。",
+    "authoritative_sources": [
+      "独立审计/实验重做/总编对账/分歧台账.md",
+      "独立审计/实验重做/总编对账/五单元成稿简报.md"
+    ],
+    "seed_note": "路线2/路线3/补实验 seed=20250926；路线1 按主题分段写死于脚本头。",
+    "adjudications_applied": ["D-07", "D-08", "A-P5-01", "A-P5-02", "A-P5-03", "A-P5-04", "A-P5-05", "A-P5-06", "A-P5-07", "A-P5-08", "A-P5-09", "A-P5-10", "A-P5-11", "A-P5-12"]
+  },
+  "control_variance": {
+    "formula": "Var(control) = k_corr * (pi/2) * sigma_bg^2 / N_retained",
+    "asymptotic_domain": "N >= 65 时 MC 偏差 < 2%",
+    "N5_adjudication_D07": {
+      "statement": "渐近式在 N=5 对 Var(median) 为高估约 9.5%（纯公式口径），方向保守（权重偏小）；端到端口径偏差 <= ±1.5%；生产链亮端裁剪臂低估 1.3–3.2%。正本原句『N=5 低估 8.5%』方向词错误，按 D-07 订正。",
+      "exact_integral_vs_asymptotic": { "exact": 0.286834, "asymptotic_pi_over_2_div_5": 0.314159, "ratio": 1.0953 },
+      "calibers": {
+        "pure_formula_overestimate_pct": 9.5,
+        "exact_integral_overestimate_pct": 9.53,
+        "end_to_end_deviation_pct": 1.5,
+        "production_chain_bright_clipped_arm_underestimate_pct": [1.3, 3.2]
+      },
+      "provenance": {
+        "route1_exact_integral": "audit_rework/route1/c1_median_variance.json [实验]",
+        "route2_e2e": "audit_rework/route2/e1_control_variance_median.json (纯公式 1.096 = +9.6%；端到端 0.990 = -1%) [实验]",
+        "route3_mc": "audit_rework/route3/q3_median_variance.json (true = 0.913 x formula) [实验]",
+        "p2_supp_final_wording": "audit_rework/supp_control_variance/finiteN_control_variance.json + production_chain_control_variance.json + spotcheck_independent_seed.json [实验]"
+      }
+    },
+    "kcorr_adjudication_D08": {
+      "statement": "k_corr 改为 k_shape x k_geo 两因子公式 + (rho, pixfrac, 帧数/dither, patch 构成) 几何查表；查表由 P3 单元承载。冻结常数 1.4 在其声明标定域两端低估 control_variance 32%（N=5 端）至约 2 倍（源 583–600 arcsec/px 端）。原 MC 1.3883 改述为：标定几何专属实测带 1.27–1.43（受控复现 1.3445±0.0416）内的一次实现。",
+      "two_factor": { "k_shape": "非高斯边际形状贡献，N>=9 时 |k_shape-1| <= 5%，可忽略", "k_geo": "几何因子：紧凑 patch ~1.27±0.03；全 touched ~1.43–1.45；空间分散 ~1.00；几何扫描全域 1.00–5.0；多帧 1/2/4 帧 = 1.424/1.338/1.328" },
+      "declarative_obligations": ["标定元组", "N_retained 档位（N<=25 时 k_gauss(N) > 1.08 不可忽略；N=5 紧凑 patch 须 >=1.6、分散 1.54）", "几何不匹配时 fail-closed 拒绝或现场 MC 重标（秒级）"],
+      "frozen_1p4_consequences": { "N5_compact_underestimate_pct": 32, "src583_600_underestimate_factor": 2, "kcorr_at_N5_compact": 2.05, "kcorr_at_N5_compact_sigma": 0.09 },
+      "provenance": {
+        "route1_forward_mc": "audit_rework/route1/c2_kcorr_drizzle.json (主案 1.413；零共享负例 1.014；强制 k_corr=1 时 29% 方差低估) [实验]",
+        "route2_mc": "audit_rework/route2/e2_kcorr_drizzle_mc.json [实验]",
+        "route3_mc": "audit_rework/route3/q4_kcorr_mc.json (方向/量级/单调性确认) [实验]",
+        "p3_kcorr_lookup": "audit_rework/p3_kcorr/{g1_canonical,g2_decomposition,g3_nscan,g4_geometry_scan,g6_fit}.json + summary.csv + tables.md [实验:P3单元]"
+      }
+    }
+  },
+  "seam_gate": {
+    "criterion": "max|rel_step| <= 1e-2",
+    "deterministic_floor": { "closed_form": 0.0100503, "reading": "Δ/L = 1.0050% 恰在门上判红；1.0049% 判绿；推导见 docs/seam-gate-floor.md [推导]" },
+    "statistical_behavior": {
+      "h0_scatter": { "mc_sigma": 1.151e-3, "formula_sigma": 1.187e-3, "ratio": 0.970, "false_alarm_at_gate": "0/4000" },
+      "multiplicity_detection_at_delta_L_1p05": { "n1": [0.646, 0.652], "n2": [0.875, 0.870], "n4": [0.984, 0.983], "note": "解析(1-∏Φ)/MC 双口径" },
+      "smooth_transition_blindness": { "w_px": [8, 16, 32], "observed_step_factor": [0.50, 0.25, 0.125], "law": "2d/w" },
+      "gradient_cancellation_blindness": { "injected": "1.005% + 反号梯度 (2d·g=Δ)", "rel_step_reading": 0.0006, "verdict": "判绿（结构性漏检面 01 D-57，漏检面抬升至 ~1.73%）", "control_no_gradient": "1.09% 判红" },
+      "negative_case": "无台阶负例 median rel_step = 0，4000 次 MC 全绿（判据非恒真）",
+      "f_lt_half_blindness_limitation": "f<1/2 中位数结构性失明仅在无噪极限成立；M42 级噪声下 f=0.3、Δ/L=5% 读数已达 1.03e-2（A-P5-05 限定）",
+      "provenance": "audit_rework/route1/c3_seam_gate.json + audit_rework/route2/e3_seam_gate_1e-2.json + audit_rework/route3/q1_seam_gate.json [实验]"
+    }
+  },
+  "variance_ratio_diagnostic": {
+    "orthogonality": {
+      "level_step_scenario": { "var_ratio": 0.977, "rel_step": "判红" },
+      "variance_artifact_scenario": { "var_ratio": 3.96, "rel_step": "判绿" },
+      "conclusion": "方差比对电平阶跃原理性失明、rel_step 对纯方差伪影失明——两诊断量正交；方差比引用面限定为渲染分块伪影粗筛"
+    },
+    "variance_definition_requirement_A_P5_04": {
+      "per_side_variance": "对阶跃失明成立",
+      "pooled_window_variance_leakage": "VR_pool = 1.25 / 2.01 / 5.03 @ Δ/σ = 1/2/4（以 Δ^2/4 泄漏）",
+      "left_right_ratio_form": "对噪声放大也失明（路线2 M3/M4）",
+      "rule": "诊断量条文必须写明方差定义",
+      "provenance": "audit_rework/route1/c4_variance_ratio.json + audit_rework/route2/e4_variance_ratio_blindness.json + audit_rework/route3/q2_variance_ratio.json [实验]"
+    }
+  },
+  "huber_delta_1345": {
+    "value": 1.345,
+    "definition": "高斯渐近效率 = 95% 的闭式效率方程解；δ(0.95) = 1.3449975（二分复算）",
+    "mc_efficiency": { "route1": 0.948, "route2": 0.9507 },
+    "sigma_floor_degeneration": "sigma_floor 主导（sigma_eff = max(sigma, floor) >> sigma）时估计量严格退化为 median（方差逐位等于 median 方差），95% 效率结论在该域失效——sigma_eff 必须与观测同标度",
+    "attribution": "δ=1.345 归 Holland & Welsch 1977，不归 Huber 1964（A-P5-09）",
+    "provenance": "audit_rework/route1/c5_huber_efficiency.json + audit_rework/route2/e5_huber_delta_1345.json + audit_rework/route2/e10_sigma_floor_crossscale.json [实验]"
+  },
+  "dof_and_chisq": {
+    "true_denominator": "E[chi^2] = n_obs - r_eff（Andrae 2010 式(9)，[文献]）",
+    "adjudication_A_P5_01": "秩亏时以 n_params 为分母使 chi^2_red 高估（实测 1.0714 / 1.0581），正本『低估』方向词反——两路独立同判订正",
+    "identifiability": "gauge 自由 fixture 判红（r_eff 24 < 32）、gauge 固定判绿、E[chi^2] = 120 精确成立",
+    "h_solve_gate_A_P5_08": "恒真性限定生产 lambda_s 域（生产 0.1*mean(diag) 下 kappa≈23 恒绿；lambda=tau*mean(diag) 时 kappa≈2.2e10 贴门）",
+    "provenance": "audit_rework/route1/c6_identifiability_dof.json + audit_rework/route3/q6_dof_rankeff.json + audit_rework/route3/q7_rank_rtol.json + audit_rework/route2/e8_identifiability_rank_rtol.json [实验]"
+  },
+  "weight_calibers": {
+    "share_vs_absolute": "公共因子消去 1.5e-16；份额式方差放大（异方差极端 fixture ×2500）；伪 ivar = 1.314e26 独占解；ivar=0 正确剔除负例",
+    "share_absolute_divergence": "ivar 跨 control 变化时两口径差 14.8%（varying_ivar_max_rel_dtheta = 0.14830）",
+    "zero_anchor_weight_A_P5_07": "zero_anchor_weight=1e-3 的『弱』性依赖份额式口径（Σw≈1）；绝对 ivar 权重面下偏置 100%——引用须连同权重口径声明",
+    "snr2_weight_exclusion_A_P5_06": "w∝SNR²（11_upm §4.4）与正本 §5/§10 禁令互斥，维持禁令；本几何下 snr² 泄漏仅比 ivar 高 18%（非正本 16.1.3 的 13×），幅度不可迁移",
+    "quality_factor_A_P5_12": "quality_factor_initial=0.5 为归一化规范非科学量（基准值精确抵消 max|Δθ| = 0.0）；科学量 = 比值 0.1/0.5 与 share/absolute 口径差 14.8%；0.1/0.5 豁免为项目约定（不注文献出处）",
+    "provenance": "audit_rework/route1/c7_share_vs_abs_weight.json + audit_rework/route2/e6_quality_factor_share_weights.json (0.14830, stacked_variance_from_weights=0.05931) + audit_rework/route3/q9_zero_anchor.json + audit_rework/route3/q10_weight_arms.json + audit_rework/route3/q12_quality_factor.json [实验]"
+  },
+  "representation_boundary": {
+    "unit_fixture": { "slope": 0.798, "pearson": 0.8964, "note": "fixture 专属常数，不得迁移（路线1 独立 fixture 得 slope 0.207 / Pearson 0.8006；路线3 Q8 相位区间含 0.80 但数值不可迁移）" },
+    "scale_scan_adjudication_A_P5_11": {
+      "statement": "原『尺度 1600→50 px 使残余接缝 ×5.07』端点比不复现，应改写：峰值/长尺度比 ≈8 跨实现稳健（原 8.03 vs 复算 8.02、第三实现 9.21）；肘点（增长始于 s≲2h≈256 px）与非单调性（峰在 100 px、50 px 回落）均复现。",
+      "endpoint_ratio_recomputes": { "noisy": 2.95, "noiseless": 2.43, "gauge_variant": 1.78, "rms_caliber": 1.71 },
+      "peak_to_long_scale_ratio": { "original": 8.03, "recompute": 8.02, "third_implementation": 9.21 },
+      "published_sequence_nonmonotonic": true,
+      "provenance": "audit_rework/supp_507_relstep/ea_507_scale_scan.json + audit_rework/route1/c9_representation_boundary.json + audit_rework/route2/e9_node_spacing_representation.json + audit_rework/route3/q8_node_spacing.json [实验]"
+    }
+  },
+  "relstep_max_0p1_removal_A_P5_10": {
+    "premise_correction": "仓库中不存在 IRLS 步长上限参数（IRLS 收敛面 = tolerance/tolerance_relative/gs_damping/stall）；grep 全仓库 rel_step 仅命中接缝判据面",
+    "uncalibratable": "按其真实身份（相邻 control 平滑性诊断）不可标定为普适阈值：B0=5 合法场景假红 45–60%，B0=1000 永不红",
+    "structurally_blind": ">20% 邻对判红对局部缺陷结构性失明（单节点缺陷至多影响 4/112 = 3.6% 邻对，规格自带 ×10 注入配方实测不判红）",
+    "sensitivity": "比既有接缝门 1e-2 松约 20×，无增量检出力",
+    "counterfactual_step_limit": "任何步长上限只改收敛轮数（20→130 轮）不改终解与判据值",
+    "verdict": "从判据面除名；红位保留在接缝门 1e-2；如需保留降级为无阈值分布报告量",
+    "provenance": "audit_rework/supp_507_relstep/eb_relstep_calibration.json [实验]"
+  },
+  "hallucination_anchors_A_P5_03": {
+    "summary": "05_正向规格 的锚为系统性幻觉：路线1 判 12 项证伪 vs 3 项证实；路线2 独立核出 λ_bend、condition_number_max=1e12、α=0.7/β=2.0/h_abs_min=0.01°、min_cluster_size=3、support_min 错位、rel_step_max=0.1、IRLS 1e-8；路线3 逐节内容核实更进一步。05 §9 自校准栅栏与 §10 判据 01/05 整段回炉，不得作修复依据。",
+    "provenance": "audit_rework/route1/c10_anchor_forensics.json + 路线2/路线3 report 对应节 [实验]"
+  },
+  "scale_tolerance": {
+    "finding": "scale_obs = 5.26e13 处 ULP = 0.0078125 = 7812×1e-6，绝对容差不可达；『实测 ΔC_max=2.22e-15 ≈ 1 ulp』为实现依赖声明（朴素累加 fixture 给 31 ulp）；门 rtol=1e-12 充分性结论不变（A-P5-02）",
+    "provenance": "audit_rework/route1/c8_scale_tolerance.json [实验]"
+  },
+  "downstream_interface_examples": {
+    "stacked_variance_from_weights": { "value": 0.05931, "provenance": "audit_rework/route2/e6_quality_factor_share_weights.json [实验]" }
+  },
+  "unit_original_experiments": {
+    "note": "历史正本结果（本轮未重跑，结论仍成立部分维持），见上级目录 results/c1–c7*.json",
+    "additive_correction": "覆盖子集背景接缝 4.80 → 0.383 e-（12.5×，C1 A4）；产品中位 299.17 ≈ B_ref 297.33 e-；全减背景退化臂 0.845 e- / 48.4% 负值像素 [实验:c1_additive.py]",
+    "multiplicative_precondition": "星表引导 m̂ 将帧间乘性比偏离 1 从 0.560 压到 5.89e-4；未做 Phase1 接缝 27.37 → 做 Phase1 后 6.31 e-（4.33×）[实验:c2_multiplicative.py]",
+    "nondegenerate_criterion": "退化判据响应 0.09σ vs 非退化判据 36.4σ；样本外假阳性 0/60；A=10 e- 检出率 0.975；5σ 检测限 6.98 e- [实验:c4_seam_criterion.py]",
+    "sparse_dense_equivalence": "1,048,576 点 max|Δ| = 3.1e-15；14,001 B vs 8,389,129 B（0.167%）[实验:c6_sparse_dense.py]",
+    "real_data": "M42 testdata：乘性斜率中位 0.995、corr(slope,intercept)=-0.9981、分块动态范围仅 8.5 ADU ⇒ 截距/加性偏移不可辨识 [实验:c7_realdata.py]"
+  }
+}

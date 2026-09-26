@@ -1,0 +1,54 @@
+{
+  "face_area_numeric": {
+    "face_0": {
+      "area_sr": 1.0471975511965979,
+      "rel_dev_from_pi_over_3": 2.220446049250313e-16
+    },
+    "face_4": {
+      "area_sr": 1.0471975511965979,
+      "rel_dev_from_pi_over_3": 2.220446049250313e-16
+    },
+    "face_8": {
+      "area_sr": 1.0471975511965979,
+      "rel_dev_from_pi_over_3": 2.220446049250313e-16
+    }
+  },
+  "identity": {
+    "4": {
+      "A_leaf": 0.06544984694978735,
+      "abs(a1-a2)": 0.0,
+      "abs(a1-a3)": 0.0,
+      "Npix_total_area_rel": 0.0
+    },
+    "16": {
+      "A_leaf": 0.0040906154343617095,
+      "abs(a1-a2)": 0.0,
+      "abs(a1-a3)": 0.0,
+      "Npix_total_area_rel": 0.0
+    },
+    "64": {
+      "A_leaf": 0.00025566346464760684,
+      "abs(a1-a2)": 0.0,
+      "abs(a1-a3)": 0.0,
+      "Npix_total_area_rel": 0.0
+    },
+    "256": {
+      "A_leaf": 1.5978966540475428e-05,
+      "abs(a1-a2)": 0.0,
+      "abs(a1-a3)": 0.0,
+      "Npix_total_area_rel": 0.0
+    },
+    "1024": {
+      "A_leaf": 9.986854087797142e-07,
+      "abs(a1-a2)": 0.0,
+      "abs(a1-a3)": 0.0,
+      "Npix_total_area_rel": 0.0
+    }
+  },
+  "negative_control": {
+    "metric_true": 0.0,
+    "metric_wrong_candidate": 0.25,
+    "wrong_candidate_rel_dev": -0.25
+  },
+  "verdict": "PASS"
+}

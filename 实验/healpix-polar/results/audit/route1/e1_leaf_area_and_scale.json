@@ -1,0 +1,86 @@
+{
+ "jacobian": {
+  "equatorial_max_rel_dev": 1.7109735850340257e-10,
+  "polar_max_rel_dev": 9.197496098067859e-10,
+  "n_equatorial_points": 1089,
+  "n_polar_points": 527
+ },
+ "leaf_area": [
+  {
+   "nside": 16,
+   "A_analytic": 0.0040906154343617095,
+   "max|A_true/A_analytic-1|": 2.5002222514558525e-13,
+   "max|A_true/(4pi/12N^2)-1|": 2.5002222514558525e-13,
+   "chord_model_max_rel_dev": 0.0015992373926376757,
+   "n_leaves": 4000
+  },
+  {
+   "nside": 64,
+   "A_analytic": 0.00025566346464760684,
+   "max|A_true/A_analytic-1|": 6.263767282632671e-12,
+   "max|A_true/(4pi/12N^2)-1|": 6.263767282632671e-12,
+   "chord_model_max_rel_dev": 0.00011002570376250631,
+   "n_leaves": 4000
+  },
+  {
+   "nside": 256,
+   "A_analytic": 1.5978966540475428e-05,
+   "max|A_true/A_analytic-1|": 9.100853404220288e-11,
+   "max|A_true/(4pi/12N^2)-1|": 9.100853404220288e-11,
+   "chord_model_max_rel_dev": 7.059602910919338e-06,
+   "n_leaves": 4000
+  }
+ ],
+ "negative_control": {
+  "eps_injected": 0.0005,
+  "jacobian_rel_shift_measured": 0.0005000000572485952,
+  "metric_correct_chart": 6.263767282632671e-12,
+  "metric_perturbed_chart": 0.000500000000089651,
+  "verdict": "metric==0 (float noise) for truth; metric~=eps != 0 for perturbed chart"
+ },
+ "scale_constant": {
+  "C_evaluated": 211076.28514206142,
+  "C_reference_16_digits": 211076.28514206142,
+  "abs_diff": 0.0,
+  "handwritten_value": 211034.6,
+  "rel_diff_hand": -0.00019748851479622957,
+  "demo_finest_arcsec": 105527.7,
+  "nside_from_formula": 4,
+  "nside_from_handwritten": 2,
+  "nside_factor_lost": 2,
+  "pixel_resolution_arcsec_256": 824.5167388361774,
+  "octave_windows_example": [
+   {
+    "k": 4,
+    "window_arcsec": [
+     13189.6625,
+     13192.267821378839
+    ],
+    "rel_width": 0.00019748851479622957
+   },
+   {
+    "k": 5,
+    "window_arcsec": [
+     6594.83125,
+     6596.133910689419
+    ],
+    "rel_width": 0.00019748851479622957
+   },
+   {
+    "k": 6,
+    "window_arcsec": [
+     3297.415625,
+     3298.0669553447096
+    ],
+    "rel_width": 0.00019748851479622957
+   }
+  ]
+ },
+ "control_point_assignment": {
+  "roundtrip_max_abs_err": 1.1102230246251565e-16,
+  "sample_points_in_face4_diamond": 3661,
+  "distinct_leaf_ids_128grid": 3661,
+  "interface_note": "control point (phi,z) -> (u,v) -> leaf id: P2 frame-domain absolute-SNR value rides this chart assignment onto the sphere; P4 consumes (leaf_id, SNR_value) pairs. Verified on the equatorial branch incl. diamond membership; full-sky polar caps and NESTED bit interleaving stay with the production ang2pix.",
+  "honest_boundary": "polar-branch inverse and NESTED ordering not exercised in this standalone check"
+ }
+}

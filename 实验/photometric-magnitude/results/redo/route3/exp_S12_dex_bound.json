@@ -1,0 +1,50 @@
+{
+ "seed": 20260926,
+ "H12a": {
+  "table": [
+   {
+    "amplitude_dex": 0.05,
+    "max_abs_log10m": 0.13,
+    "binding_at_1.0": false
+   },
+   {
+    "amplitude_dex": 0.1,
+    "max_abs_log10m": 0.26,
+    "binding_at_1.0": false
+   },
+   {
+    "amplitude_dex": 0.15,
+    "max_abs_log10m": 0.39,
+    "binding_at_1.0": false
+   },
+   {
+    "amplitude_dex": 0.3,
+    "max_abs_log10m": 0.78,
+    "binding_at_1.0": false
+   }
+  ],
+  "realistic_0.1_max": 0.26,
+  "looseness_factor_amplitude": 10.0,
+  "looseness_factor_measured_max": 3.846153846153846,
+  "criterion": "权威登记真实幅度 0.1 dex vs 界 1.0 dex ⇒ 幅度口径松 10 倍; 实测该类场 max|log10 m|≈0.26 ⇒ 场峰口径松 ~3.8 倍 ⇒ 对点名失效模式恒不 binding",
+  "pass": true
+ },
+ "H12b": {
+  "max_inside_domain": 0.95,
+  "max_outside_domain": 5.949999999999999,
+  "quadratic_growth_ratio": 6.263157894736842,
+  "criterion": "|x̃|≤1 内 0.3-0.4 dex ⇒ 界不 binding; 外推到 |x̃|=3 达 >1 dex ⇒ 界拦外推失控",
+  "pass": true
+ },
+ "negative_zero_check": {
+  "metric": "max|log10 m| on no-spatial-term frame",
+  "value": 0.0,
+  "criterion": "真值无效应(m≡1) ⇒ max|log10 m|=0",
+  "pass": true
+ },
+ "verdict": {
+  "H12a": true,
+  "H12b": true,
+  "negative_zero": true
+ }
+}

@@ -1,0 +1,73 @@
+{
+  "seed": 20260926,
+  "gamma_grid": [
+    {
+      "g": 0.5,
+      "gamma": 1.0,
+      "w_formula": 0.25,
+      "w_true": 0.12499999999999997,
+      "rel_dev": 1.0000000000000004,
+      "predicted_g_pow_gamma_minus_2": 1.0
+    },
+    {
+      "g": 0.5,
+      "gamma": 2.0,
+      "w_formula": 0.125,
+      "w_true": 0.12499999999999997,
+      "rel_dev": 2.220446049250313e-16,
+      "predicted_g_pow_gamma_minus_2": 0.0
+    },
+    {
+      "g": 1.0,
+      "gamma": 1.0,
+      "w_formula": 0.125,
+      "w_true": 0.12499999999999997,
+      "rel_dev": 2.220446049250313e-16,
+      "predicted_g_pow_gamma_minus_2": 0.0
+    },
+    {
+      "g": 1.0,
+      "gamma": 2.0,
+      "w_formula": 0.125,
+      "w_true": 0.12499999999999997,
+      "rel_dev": 2.220446049250313e-16,
+      "predicted_g_pow_gamma_minus_2": 0.0
+    },
+    {
+      "g": 2.0,
+      "gamma": 1.0,
+      "w_formula": 0.0625,
+      "w_true": 0.12499999999999997,
+      "rel_dev": -0.4999999999999999,
+      "predicted_g_pow_gamma_minus_2": -0.5
+    },
+    {
+      "g": 2.0,
+      "gamma": 2.0,
+      "w_formula": 0.125,
+      "w_true": 0.12499999999999997,
+      "rel_dev": 2.220446049250313e-16,
+      "predicted_g_pow_gamma_minus_2": 0.0
+    },
+    {
+      "g": 4.0,
+      "gamma": 1.0,
+      "w_formula": 0.03125,
+      "w_true": 0.12499999999999997,
+      "rel_dev": -0.75,
+      "predicted_g_pow_gamma_minus_2": -0.75
+    },
+    {
+      "g": 4.0,
+      "gamma": 2.0,
+      "w_formula": 0.125,
+      "w_true": 0.12499999999999997,
+      "rel_dev": 2.220446049250313e-16,
+      "predicted_g_pow_gamma_minus_2": 0.0
+    }
+  ],
+  "gamma2_max_abs_rel_dev": 2.220446049250313e-16,
+  "gamma1_matches_g_prediction": true,
+  "negative_control_g1_max_dev_across_gamma": 0.0,
+  "interpretation": "gamma=2 is the unique exponent under which w = SNR^2 * g^gamma / F_ref^2 stays identically 1/sigma_F^2 at the common scale; gamma=1 biases frame weights by |g_k|, i.e. a frame with g=2 gets its weight doubled relative to inverse-variance optimality."
+}

@@ -1,0 +1,76 @@
+{
+  "seed": 20260926,
+  "nodes": 64,
+  "oversample": 8,
+  "rows": [
+    {
+      "lambda_over_h": 2.0,
+      "residual_frac_measured_mean": 0.6260443780676535,
+      "residual_frac_phase_min": 0.10872355410499875,
+      "residual_frac_phase_max": 0.9887383692513969,
+      "residual_frac_pred_1-sinc2_zero_phase": 0.5947152654306489,
+      "significant_by_2h_rule": true
+    },
+    {
+      "lambda_over_h": 4.0,
+      "residual_frac_measured_mean": 0.11704778484797865,
+      "residual_frac_phase_min": 0.11667377479469529,
+      "residual_frac_phase_max": 0.11742119830528107,
+      "residual_frac_pred_1-sinc2_zero_phase": 0.1894305308612979,
+      "significant_by_2h_rule": false
+    },
+    {
+      "lambda_over_h": 8.0,
+      "residual_frac_measured_mean": 0.023824792207628946,
+      "residual_frac_phase_min": 0.02380626730403183,
+      "residual_frac_phase_max": 0.02384330991202989,
+      "residual_frac_pred_1-sinc2_zero_phase": 0.05035879644821628,
+      "significant_by_2h_rule": false
+    },
+    {
+      "lambda_over_h": 16.0,
+      "residual_frac_measured_mean": 0.005628852507085327,
+      "residual_frac_phase_min": 0.005627757483549968,
+      "residual_frac_phase_max": 0.00562994742411941,
+      "residual_frac_pred_1-sinc2_zero_phase": 0.012785169233341942,
+      "significant_by_2h_rule": false
+    },
+    {
+      "lambda_over_h": 64.0,
+      "residual_frac_measured_mean": 0.00034548388728081257,
+      "residual_frac_phase_min": 0.000345479681991132,
+      "residual_frac_phase_max": 0.00034548809254490183,
+      "residual_frac_pred_1-sinc2_zero_phase": 0.0008029324607687904,
+      "significant_by_2h_rule": false
+    },
+    {
+      "lambda_over_h": Infinity,
+      "residual_frac_measured_mean": 1.2924795880449636e-15,
+      "residual_frac_phase_min": 1.2924795880449636e-15,
+      "residual_frac_phase_max": 1.2924795880449636e-15,
+      "residual_frac_pred_1-sinc2_zero_phase": 0.0,
+      "significant_by_2h_rule": false
+    }
+  ],
+  "negative_ok": true,
+  "doc_claim_0.80RMS": {
+    "doc_value": 0.8,
+    "this_geometry_marginal_2h_phase_range": [
+      0.10872355410499875,
+      0.9887383692513969
+    ],
+    "this_geometry_marginal_2h_mean": 0.6260443780676535,
+    "note": "0.80 为项目特定几何的经验回归值; 本独立几何的边际残余 0.59, 同量级、同方向（显著残余）, 但数值不可迁移"
+  },
+  "rule1_check": {
+    "claim": "节点间距 <= 目标可表示尺度/2",
+    "at_lambda_2h_residual_mean": 0.6260443780676535,
+    "at_lambda_2h_phase_range": [
+      0.10872355410499875,
+      0.9887383692513969
+    ],
+    "at_lambda_4h_residual_mean": 0.11704778484797865,
+    "ratio_means": 5.348622179230118,
+    "note": "尺度从 4h 降到 2h（越过规则1 界限）残余比升 5.3x => '尺度≲2h 显著'方向证实"
+  }
+}

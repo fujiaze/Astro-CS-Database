@@ -1,0 +1,50 @@
+{
+ "experiment": "P2-route3 EXP-04 reference magnitude + chain interface",
+ "seed": 20260926,
+ "upstream_P1": {
+  "zp_k": [
+   25.02208921163624,
+   25.01263354686378,
+   24.97458992383698,
+   24.978690169008054,
+   25.035518087231555,
+   25.01256789338737,
+   24.974973596941027,
+   25.003320411041834
+  ],
+  "zp_scatter_mag": 0.02
+ },
+ "H1_monotonic_scaling": {
+  "snr_by_m_ref": {
+   "4.0": 5041398820.806543,
+   "5.0": 2007017020.1830304,
+   "6.0": 799007867.1577778,
+   "7.0": 318090761.24416745,
+   "8.0": 126634212.93812358,
+   "9.0": 50413988.20806542
+  },
+  "is_monotonic_decreasing": true,
+  "per_mag_ratio_measured": 2.5118864315095806,
+  "per_mag_ratio_theory": 2.51188643150958,
+  "two_mag_ratio_measured": 6.309573444801931,
+  "two_mag_ratio_theory": 6.309573444801933,
+  "frame_snr_at_m_ref_6_first3": [
+   812579160.7848469,
+   839097025.1111238,
+   747881216.6971855
+  ]
+ },
+ "H2_pairing_invariance": {
+  "max_rel_dev": 2.220446049250313e-16,
+  "invariant_to_zp_and_mref": true,
+  "max_rel_dev_across_m_grid": 3.3306690738754696e-16
+ },
+ "H3_downstream_interface": {
+  "n_control_points": 64,
+  "delta_px": 64,
+  "control_noise_rel": 0.015,
+  "dense_rel_rms_with_ctrl_noise": 0.24247489181656756,
+  "dense_rel_rms_noiseless_negative": 0.2287350195578427,
+  "noise_inflation_over_noiseless": 1.060068949150352
+ }
+}

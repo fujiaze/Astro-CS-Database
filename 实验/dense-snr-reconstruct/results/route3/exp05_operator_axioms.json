@@ -1,0 +1,44 @@
+{
+  "seed": 20260926,
+  "A2_positive_homogeneity": {
+    "max_relative_deviation": {
+      "bilinear_regular_grid_v1": 3.469446951953614e-16,
+      "natural_bicubic_spline_clip_v1": 2.7755575615628914e-15,
+      "spline_NO_CLAMP": 2.7755575615628914e-15,
+      "..._mesh_median_v1": 8.298309322745695e-16,
+      "idw_p2_k16": 1.0408340855860843e-15,
+      "nearest_control_point_v1": 0.0,
+      "COUNTEREXAMPLE_shrinkage_to_prior_mean": 0.5400000000000024
+    },
+    "threshold": 1e-08,
+    "frozen_ops_pass": true,
+    "counterexample_violates": true,
+    "claim": "all frozen operators are positively homogeneous; shrinkage-to-fixed-prior is not",
+    "pass": true
+  },
+  "A3_node_reproduction": {
+    "max_abs_deviation": {
+      "bilinear_regular_grid_v1": 0.0,
+      "natural_bicubic_spline_clip_v1": 9.325873406851315e-15,
+      "..._mesh_median_v1": 38.330227577307966,
+      "idw_p2_k16": 0.0,
+      "nearest_control_point_v1": 0.0
+    },
+    "mesh_median_note": "mesh filter is unconditional by spec: node values are pre-filtered; exact node reproduction applies to the filtered values",
+    "pass": true
+  },
+  "A4_clamp_necessity": {
+    "no_clamp_min": -0.148365708627485,
+    "no_clamp_max": 4.1603551977131765,
+    "control_value_range": [
+      1.4475587645176207,
+      40.0
+    ],
+    "overshoots_control_range": true,
+    "negative_sigma_present": true,
+    "clamped_min": 1.4475587645176207,
+    "claim": "without clamp the spline overshoots the control value range and can give negative sigma",
+    "pass": true
+  },
+  "all_pass": true
+}

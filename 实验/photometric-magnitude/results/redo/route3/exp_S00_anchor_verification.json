@@ -1,0 +1,207 @@
+{
+ "seed": null,
+ "items": [
+  {
+   "anchor": "filter_curve_json.h:356",
+   "file": "lib/algorithms/photometry/cpp/src/filter_curve_json.h",
+   "lines": [
+    356,
+    356
+   ],
+   "needle": "map_filter_name",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "inline std::string map_filter_name(const std::string& fits_filter) {",
+   "note": "函数签名在此行: 匹配"
+  },
+  {
+   "anchor": "filter_curve_json.h:444",
+   "file": "lib/algorithms/photometry/cpp/src/filter_curve_json.h",
+   "lines": [
+    444,
+    444
+   ],
+   "needle": "load_curve",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "inline LoadStatus load_curve(const std::string& json_path, const std::string& curve_name,",
+   "note": "函数签名在此行: 匹配"
+  },
+  {
+   "anchor": "filter_curve_json.h:207",
+   "file": "lib/algorithms/photometry/cpp/src/filter_curve_json.h",
+   "lines": [
+    207,
+    207
+   ],
+   "needle": "check_curve_identity",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "inline CurveIdentity check_curve_identity(const std::string& content,",
+   "note": "函数签名在此行: 匹配"
+  },
+  {
+   "anchor": "filter_curve_json.h:190-194",
+   "file": "lib/algorithms/photometry/cpp/src/filter_curve_json.h",
+   "lines": [
+    190,
+    194
+   ],
+   "needle": "1e-9",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "inline bool num_equal(double a, double b) {",
+   "note": "num_equal 相对容差 1e-9: 匹配"
+  },
+  {
+   "anchor": "star_matcher.cpp:493-501",
+   "file": "lib/algorithms/photometry/cpp/src/star_matcher.cpp",
+   "lines": [
+    493,
+    501
+   ],
+   "needle": "mag_tolerance",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "for (size_t k = 0; k < r_vals.size(); ++k) {",
+   "note": "星等一致性预过滤循环: 匹配"
+  },
+  {
+   "anchor": "star_matcher.cpp:518-536",
+   "file": "lib/algorithms/photometry/cpp/src/star_matcher.cpp",
+   "lines": [
+    518,
+    536
+   ],
+   "needle": "< 3",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "if (r_consistent.size() < 3) {",
+   "note": "门① n<3 NO_DATA: 匹配"
+  },
+  {
+   "anchor": "star_matcher.cpp:540-545",
+   "file": "lib/algorithms/photometry/cpp/src/star_matcher.cpp",
+   "lines": [
+    538,
+    545
+   ],
+   "needle": "0.6744897501960817",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "// ---- 3. IRLS + Tukey biweight 稳健位置估计 ----",
+   "note": "MAD 尺度初值(S 固定一次; 注释 :539 与代码 :545 用 _MAD_SCALE): 匹配"
+  },
+  {
+   "anchor": "star_matcher.cpp:555",
+   "file": "lib/algorithms/photometry/cpp/src/star_matcher.cpp",
+   "lines": [
+    555,
+    555
+   ],
+   "needle": "_IRLS_MAX_ITER",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "for (int iter = 0; iter < _IRLS_MAX_ITER; ++iter) {",
+   "note": "步数上界 50(经常量): 匹配"
+  },
+  {
+   "anchor": "star_matcher.cpp:580",
+   "file": "lib/algorithms/photometry/cpp/src/star_matcher.cpp",
+   "lines": [
+    580,
+    580
+   ],
+   "needle": "_IRLS_CONVERGE",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "if (diff < _IRLS_CONVERGE) {",
+   "note": "收敛判据 1e-6(经常量): 匹配"
+  },
+  {
+   "anchor": "star_matcher.cpp:21-27",
+   "file": "lib/algorithms/photometry/cpp/src/star_matcher.cpp",
+   "lines": [
+    18,
+    27
+   ],
+   "needle": "_MAD_SCALE",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "",
+   "note": "四个常数字面量: 匹配"
+  },
+  {
+   "anchor": "frame_photometry_fit.cpp:166-174",
+   "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+   "lines": [
+    166,
+    174
+   ],
+   "needle": ">= 30.0",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "const double cd_det = std::fabs(req.cd11 * req.cd22 - req.cd12 * req.cd21);",
+   "note": "FOV 钳位——实际是条件钳位(fov<=0 或 fov>=30 才钳到 [1,10]); 05 声称'无条件钳位'是整改要求, 锚本身真实, 但 05 若声称现行代码无条件钳位则为内容不符"
+  },
+  {
+   "anchor": "pc_api.cpp:978-1008",
+   "file": "lib/algorithms/photometry/cpp/src/pc_api.cpp",
+   "lines": [
+    978,
+    1008
+   ],
+   "needle": "mag_max_arr",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "static const double mag_max_arr[] = {12.0, 13.0, 14.0, 15.0, 16.0};",
+   "note": "自适应阶梯 {12..16}/2000/i==4/循环5: 匹配"
+  },
+  {
+   "anchor": "pc_api.cpp:290(10000 注释)",
+   "file": "lib/algorithms/photometry/cpp/src/pc_api.cpp",
+   "lines": [
+    290,
+    314
+   ],
+   "needle": "2000-10000",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "// 直到星数在 2000-10000 范围或达 16.0 上限. 不缩小 radius_deg, mag_min 保持外部传入值.",
+   "note": "注释宣称 2000-10000 范围, 实际停止条件只有 n>=2000, '10000 上界'从未实现(01/C5 的'虚假注释'判定成立)"
+  },
+  {
+   "anchor": "PHOTOMETRY.md:126",
+   "file": "docs/science/PHOTOMETRY.md",
+   "lines": [
+    126,
+    126
+   ],
+   "needle": "判据参照",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "- **判据参照**：本仓 49 帧 M42 真实数据的逐帧 `2.5·sigma_residual_dex` 中位由（误取通带）**0.42720 mag** 降到（正确通带）**0.04505 mag**，比值 **9.5×**；而本表",
+   "note": "05 引该行证'载体始终是线性面亮度;星等只在派生/展示时换算'——实际该行是 49 帧 M42 sigma_residual 判据参照; 真实载体语句在 :13。判: 锚漂移(幻觉锚)"
+  },
+  {
+   "anchor": "PHOTOMETRY.md §16.5/:400",
+   "file": "docs/science/PHOTOMETRY.md",
+   "lines": [
+    400,
+    400
+   ],
+   "needle": "求解前提",
+   "anchor_real": true,
+   "needle_found": true,
+   "excerpt_first": "2. **星少到拟合不成立时报拟合失败（不是门槛拦截）**：§4 的冻结门「`|r_consistent| ≥ 3` 才进 IRLS」是**求解前提**——不成立时拟合**本就不产出标度**，走 NO_DATA 拟合失败路径（`fit_ok",
+   "note": "05 引该行证'帧间独立: 一帧失败只使该帧 fail'——实际该行是 '冻结门是求解前提不是准入判据'(相关但非同一句); '帧间独立'正本在 :15-17。判: 锚漂移"
+  }
+ ],
+ "summary": {
+  "n_anchors": 15,
+  "n_anchor_real": 15,
+  "n_needle_found": 15,
+  "hallucinated_or_drifted": [],
+  "conclusion": "05 的代码锚普遍真实且内容相符(无凭空虚构行号); 幻觉/漂移集中在两处文档锚: PHOTOMETRY.md:126(内容不符, 真实在 :13)与 §16.5/:400(相关句但非引句); frame_photometry_fit.cpp:166-174 锚真实但内容为'条件钳位', 与 05 '无条件钳位'主张不符(规格-实现差, 非伪造锚); pc_api.cpp:290 注释 '2000-10000' 的 10000 上界从未实现。"
+ }
+}

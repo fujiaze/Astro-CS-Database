@@ -1,0 +1,37 @@
+{
+ "seed": 20260926,
+ "kappa": 1.482602218505602,
+ "budget_arithmetic": {
+  "(1.44/0.015)^2": 9216.0,
+  "(1.152*1.25/0.015)^2": 9216.0,
+  "(1.144/0.015)^2": 5816.604444444444,
+  "doc_claim_1p144_branch": 5811,
+  "note": "1.144 branch evaluates to 5816.6, not 5811 as documented; 9216 = (1.44/0.015)^2 is exact."
+ },
+ "c1_patch_mad_n64": {
+  "c_sqrt_n": 1.1542455170328902,
+  "rel_bias": -0.012334446237702523
+ },
+ "c1b_patch_mad_clip_n64": {
+  "c_sqrt_n": 1.1548157046213035,
+  "rel_bias": -0.012119174780113706
+ },
+ "c2_patch_clip2nd_n64": {
+  "c_sqrt_n": 0.7062058115003517,
+  "rel_bias": -0.01254927002244366
+ },
+ "c3_pooled_mad": {
+  "N_sky": 65536,
+  "c_sqrt_n": 1.1227162103843378,
+  "rel_bias": -0.0001556457749409823,
+  "asymptotic_theory_1_over_sqrt_ARE": 1.6492
+ },
+ "c4_pipeline_median_patchvar": {
+  "N_sky": 65536,
+  "c_eff_sqrt_Nsky": 1.4750784171269127,
+  "rel_bias": -0.016864240814225107
+ },
+ "null_zero_noise": {
+  "metric": 0.0
+ }
+}

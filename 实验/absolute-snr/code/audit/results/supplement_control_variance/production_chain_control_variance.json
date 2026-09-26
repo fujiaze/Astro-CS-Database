@@ -1,0 +1,96 @@
+{
+ "seed": 20260605,
+ "clip_sigma": 3.0,
+ "clip_iters": 3,
+ "min_samples": 5,
+ "arms": [
+  {
+   "N": 5,
+   "R": 2000000,
+   "kappa_y": 1.4340176412571626,
+   "var_y": 0.2868035282514325,
+   "mean_cvar_over_var_y": 0.9916559598934562,
+   "c_mad2_retained": 0.9053065100086041,
+   "mean_n_retained_over_N": 1.0,
+   "clip_frac_any": 0.0,
+   "sigma_over_true": 0.9514759639678787
+  },
+  {
+   "N": 9,
+   "R": 2000000,
+   "kappa_y": 1.5535595465913903,
+   "var_y": 0.17261772739904335,
+   "mean_cvar_over_var_y": 0.968097078262047,
+   "c_mad2_retained": 0.9534878062486862,
+   "mean_n_retained_over_N": 0.9773207222222222,
+   "clip_frac_any": 0.1301175,
+   "sigma_over_true": 0.9764670021299676
+  },
+  {
+   "N": 17,
+   "R": 2000000,
+   "kappa_y": 1.5790345881253711,
+   "var_y": 0.09288438753678653,
+   "mean_cvar_over_var_y": 0.9765770232725461,
+   "c_mad2_retained": 0.9780174242084353,
+   "mean_n_retained_over_N": 0.9889018235294117,
+   "clip_frac_any": 0.118164,
+   "sigma_over_true": 0.9889476347150213
+  },
+  {
+   "N": 20,
+   "R": 2000000,
+   "kappa_y": 1.522015250776162,
+   "var_y": 0.0761007625388081,
+   "mean_cvar_over_var_y": 1.009176832269034,
+   "c_mad2_retained": 0.9744844129566345,
+   "mean_n_retained_over_N": 0.9910672249999999,
+   "clip_frac_any": 0.1127835,
+   "sigma_over_true": 0.9871597707345222
+  },
+  {
+   "N": 33,
+   "R": 1000000,
+   "kappa_y": 1.5868140736673524,
+   "var_y": 0.04808527495961674,
+   "mean_cvar_over_var_y": 0.9810613042738199,
+   "c_mad2_retained": 0.988246366433417,
+   "mean_n_retained_over_N": 0.9945683636363637,
+   "clip_frac_any": 0.122484,
+   "sigma_over_true": 0.9941058124935278
+  },
+  {
+   "N": 65,
+   "R": 1000000,
+   "kappa_y": 1.5814833667448038,
+   "var_y": 0.024330513334535443,
+   "mean_cvar_over_var_y": 0.9873901582415227,
+   "c_mad2_retained": 0.991959720397375,
+   "mean_n_retained_over_N": 0.9969086615384616,
+   "clip_frac_any": 0.149718,
+   "sigma_over_true": 0.9959717467867123
+  },
+  {
+   "N": 129,
+   "R": 400000,
+   "kappa_y": 1.5845471165691425,
+   "var_y": 0.012283310981156143,
+   "mean_cvar_over_var_y": 0.98783379368962,
+   "c_mad2_retained": 0.9947148461465047,
+   "mean_n_retained_over_N": 0.997854031007752,
+   "clip_frac_any": 0.2111425,
+   "sigma_over_true": 0.9973539222094154
+  },
+  {
+   "N": 289,
+   "R": 400000,
+   "kappa_y": 1.5877919131848968,
+   "var_y": 0.005494089664999643,
+   "mean_cvar_over_var_y": 0.9864847906580718,
+   "c_mad2_retained": 0.9956110971556658,
+   "mean_n_retained_over_N": 0.9983048356401383,
+   "clip_frac_any": 0.3517125,
+   "sigma_over_true": 0.9978031354709533
+  }
+ ]
+}

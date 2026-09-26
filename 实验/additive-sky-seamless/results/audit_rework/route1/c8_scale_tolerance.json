@@ -1,0 +1,21 @@
+{
+  "seed": 20260324,
+  "absolute_tolerance_below_ulp": {
+    "scale_obs": 52600000000000.0,
+    "ulp": 0.0078125,
+    "ulp_over_tol": 7812.5,
+    "claim_check": "ULP/1e-6 = 7.81e+03 => \u7edd\u5bf9\u5224\u636e |dM|<1e-6 \u53ea\u5728 dM \u6070\u4e3a 0 \u65f6\u53ef\u6ee1\u8db3; \u76f8\u5bf9\u5224\u636e |dM|/scale < tol \u624d\u662f\u53ef\u8fbe\u5224\u636e"
+  },
+  "relative_equiv_at_scale1": {
+    "mismatches": 0
+  },
+  "fp_associativity": {
+    "n_items": 4096,
+    "n_workers": 4,
+    "n_trials": 200,
+    "max_abs_diff": 7.2177499532699585e-09,
+    "max_diff_over_rtol_scale": 0.005893464131997545,
+    "max_diff_in_ulp_at_scale": 31.0,
+    "claim_check": "\u8de8 worker \u6c42\u548c\u987a\u5e8f\u5dee ~ ulp \u91cf\u7ea7, \u8fdc\u5c0f\u4e8e rtol=1e-12 \u95e8 (\u89c4\u5219 6)"
+  }
+}

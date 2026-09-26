@@ -1,0 +1,150 @@
+{
+ "exp": "exp02_polar_limit",
+ "limit_rel": -0.09968368384289383,
+ "deficit_coeff": 0.10438850961453426,
+ "rows": [
+  {
+   "N": 2,
+   "npix": 48,
+   "worst_rel": -0.05606422071832806,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 0.04361946312456577,
+   "deficit": 0.014677578661494675,
+   "deficit_times_N2": 0.0587103146459787,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 48,
+   "cap_max_abs_rel": 0.05606422071832806,
+   "belt_max_abs_rel": 0.05200505604448691,
+   "sum_res": 0.0,
+   "worst_ring": 7
+  },
+  {
+   "N": 4,
+   "npix": 192,
+   "worst_rel": -0.08933631576550871,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 0.010347368077385122,
+   "deficit": 0.00584704819391042,
+   "deficit_times_N2": 0.09355277110256673,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 184,
+   "cap_max_abs_rel": 0.08933631576550871,
+   "belt_max_abs_rel": 0.01695765352700862,
+   "sum_res": 0.0,
+   "worst_ring": 1
+  },
+  {
+   "N": 8,
+   "npix": 768,
+   "worst_rel": -0.0971279109028168,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 0.002555772940077028,
+   "deficit": 0.0015892517257854856,
+   "deficit_times_N2": 0.10171211045027108,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 72,
+   "cap_max_abs_rel": 0.0971279109028168,
+   "belt_max_abs_rel": 0.005418579423795089,
+   "sum_res": 0.0,
+   "worst_ring": 1
+  },
+  {
+   "N": 16,
+   "npix": 3072,
+   "worst_rel": -0.09904663137740388,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 0.0006370524654899512,
+   "deficit": 0.0004051616790339431,
+   "deficit_times_N2": 0.10372138983268943,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 128,
+   "cap_max_abs_rel": 0.09904663137740388,
+   "belt_max_abs_rel": 0.0015992373926456693,
+   "sum_res": 0.0,
+   "worst_ring": 1
+  },
+  {
+   "N": 32,
+   "npix": 12288,
+   "worst_rel": -0.0995245381286568,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 0.00015914571423703006,
+   "deficit": 0.00010177915294170099,
+   "deficit_times_N2": 0.10422185261230181,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 16,
+   "cap_max_abs_rel": 0.0995245381286568,
+   "belt_max_abs_rel": 0.00044059355070147355,
+   "sum_res": 0.0,
+   "worst_ring": 1
+  },
+  {
+   "N": 64,
+   "npix": 49152,
+   "worst_rel": -0.0996439047399309,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 3.977910296293352e-05,
+   "deficit": 2.547530591682683e-05,
+   "deficit_times_N2": 0.10434685303532269,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 16,
+   "cap_max_abs_rel": 0.0996439047399309,
+   "belt_max_abs_rel": 0.00011611019898749575,
+   "sum_res": 0.0,
+   "worst_ring": 1
+  },
+  {
+   "N": 128,
+   "npix": 196608,
+   "worst_rel": -0.0996737395236903,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 9.944319203536445e-06,
+   "deficit": 6.370733395252442e-06,
+   "deficit_times_N2": 0.10437809594781601,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 16,
+   "cap_max_abs_rel": 0.0996737395236903,
+   "belt_max_abs_rel": 2.9836513547820687e-05,
+   "sum_res": 0.0,
+   "worst_ring": 1
+  },
+  {
+   "N": 256,
+   "npix": 786432,
+   "worst_rel": -0.09968119778816309,
+   "limit": -0.09968368384289383,
+   "worst_minus_limit": 2.486054730743703e-06,
+   "deficit": 1.5928025241715713e-06,
+   "deficit_times_N2": 0.1043859062241081,
+   "deficit_law_pred": 0.10438850961453426,
+   "n_abs_rel_gt_1pct": 16,
+   "cap_max_abs_rel": 0.09968119778816309,
+   "belt_max_abs_rel": 7.564598646814247e-06,
+   "sum_res": 4.440892098500626e-16,
+   "worst_ring": 1
+  }
+ ],
+ "verdict": {
+  "limit_ratios_halving4": [
+   4.000736627603777,
+   4.0001836373863675,
+   4.000040337230066
+  ],
+  "limit_abs_at_256": 2.486054730743703e-06,
+  "limit_converged": true,
+  "deficit_relerr": [
+   -0.001596507152442861,
+   -0.0003990532996915874,
+   -9.975874506407134e-05,
+   -2.493943476900018e-05
+  ],
+  "deficit_law": true,
+  "count16": true,
+  "belt_o1_over_N2": [
+   0.4511677959183089,
+   0.4755873750527826,
+   0.48884143796749413,
+   0.4957535369176185
+  ]
+ }
+}

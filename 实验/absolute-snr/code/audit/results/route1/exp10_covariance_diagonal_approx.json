@@ -1,0 +1,49 @@
+{
+ "seed": 20260926,
+ "mean_abs_rho_repo": 0.19,
+ "closed_form_equicorrelated": {
+  "bilinear_4tap": {
+   "M_eff": 4.0,
+   "Var_exact_over_diag": 1.57,
+   "underestimate": 0.36305732484076436
+  },
+  "two_tap": {
+   "M_eff": 2.0,
+   "Var_exact_over_diag": 1.19,
+   "underestimate": 0.15966386554621848
+  },
+  "three_tap": {
+   "M_eff": 3.0,
+   "Var_exact_over_diag": 1.38,
+   "underestimate": 0.2753623188405796
+  }
+ },
+ "registered_value_inversion": {
+  "u23.3_4tap_rho": 0.10126032159930465,
+  "u36.3_4tap_rho": 0.18995290423861852,
+  "u36.3_at_rho0.19_Meff_minus1": 0.5698587127158555,
+  "u23.3_at_rho0.19_Meff_minus1": 0.30378096479791394,
+  "note": "WITH THE CORRECT FORM 1 + rho*(M_eff-1): the registered 36.3% is EXACTLY the uniform 4-tap (drizzle/bilinear) underestimate at rho=0.19 (0.19*3/(1+0.19*3) = 0.3631); 23.3% at rho=0.19 needs M_eff-1 = 1.6 (M_eff = 2.6), or rho = 0.101 at 4 taps."
+ },
+ "four_tap_check": {
+  "ratio": 1.57,
+  "underestimate": 0.36305732484076436,
+  "registered": 0.363
+ },
+ "one_plus_075rho": {
+  "value_at_0.19": 1.1425,
+  "underestimate": 0.12472647702407003,
+  "matches_registered": false,
+  "note": "12.5% at rho=0.19; matches neither 23.3% nor 36.3%"
+ },
+ "mc_ar1_random_weights": {
+  "mean_underestimate": 0.14842115070530892,
+  "median_underestimate": 0.1558373081863793,
+  "note": "AR(1) with lag-1 rho=0.19: effective |rho| between the 4 tapped inputs is < 0.19 (adjacent lags), so the underestimate is smaller than the equicorrelated bound; the registered values require the measured mean|rho| to be interpreted between the tapped pairs."
+ },
+ "mc_equicorrelated_check": {
+  "ratio_numeric_var_exact_over_diag": 1.5699999999999998,
+  "closed_form": 1.57
+ },
+ "null_rho0_metric": 0.0
+}

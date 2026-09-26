@@ -1,0 +1,45 @@
+{
+ "seed": 20260926,
+ "closed_form_factor": 6.945991393698745,
+ "H5a": {
+  "violations_over_reps": 0,
+  "total": 140000,
+  "criterion": "内点数 < ⌈n/2⌉ 的构造在 0 例出现 ⇒ 门②对 n≥3 不可达(结构性)",
+  "pass": true
+ },
+ "H5b": {
+  "MAD": 0.0061595783020919,
+  "cS": 0.04278437787514386,
+  "outlier_delta_dex": 0.8,
+  "outlier_in_prefilter": true,
+  "outlier_rejected_by_irls": true,
+  "separation_factor": 18.698413760616358,
+  "pass": true
+ },
+ "H5c_A2_defect": {
+  "S": 0.0,
+  "inlier_values": [
+   0.3,
+   0.3,
+   8.0
+  ],
+  "sigma_residual": 0.0,
+  "scale": 0.5011872336272722,
+  "criterion": "S=0 ⇒ 2 dex 离群星进入内点且 sigma_residual=0 —— A2 判据缺陷的最小复现",
+  "reproduced": true
+ },
+ "negative_gate1": {
+  "n": 2,
+  "expected": "NO_DATA: scale 保持 1.0, sigma_residual 保持 0.0, 不进 IRLS",
+  "scale_stays_1": true,
+  "sigma_stays_0": true,
+  "metric_is_zero": true,
+  "pass": true
+ },
+ "verdict": {
+  "H5a": true,
+  "H5b": true,
+  "H5c_A2_reproduced": true,
+  "negative_gate1": true
+ }
+}

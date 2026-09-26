@@ -1,0 +1,62 @@
+{
+ "exp": "exp07_quantization",
+ "seed": 20260926,
+ "convention": "r_sup = S/(q/255) - 1, q = floor(255S+0.5)",
+ "bound_511": true,
+ "bound_fine_2e6": true,
+ "bound_max_violation": 2.1510571102112408e-16,
+ "worst": {
+  "S": 0.00196078431372549,
+  "r": -0.5,
+  "q": 1
+ },
+ "ledger_points": {
+  "0.05": -0.019230769230769162,
+  "0.64": 0.0012269938650306678,
+  "1.0": 0.0,
+  "1.3": -0.001506024096385561,
+  "0.00196078431372549": -0.5
+ },
+ "variance": [
+  {
+   "S0": 0.05,
+   "sigma": 0.25,
+   "var_ratio_minus_1": 0.007976901542383619,
+   "pred_2rsig_plus": -0.03809171597633121,
+   "r_sig": -0.019230769230769162
+  },
+  {
+   "S0": 0.64,
+   "sigma": 0.25,
+   "var_ratio_minus_1": 2.4365852137275823e-05,
+   "pred_2rsig_plus": 0.0024554932440061794,
+   "r_sig": 0.0012269938650306678
+  },
+  {
+   "S0": 0.3,
+   "sigma": 0.3,
+   "var_ratio_minus_1": 0.00019659634051061303,
+   "pred_2rsig_plus": -0.012944847360431666,
+   "r_sig": -0.00649350649350644
+  }
+ ],
+ "clamp_case": {
+  "S": 1.3,
+  "q": 332,
+  "r_sup_unclamped": -0.001506024096385561,
+  "r_if_stored_clamped_to_1": 0.3
+ },
+ "underflow_case": {
+  "note": "S < 1/510 gives q=0: r_sup undefined (division by zero);",
+  "q_at_S_half_510": 0
+ },
+ "verdict": {
+  "bound_exact": true,
+  "bound_max_violation": 2.1510571102112408e-16,
+  "worst_is_minus_half_at_1_510": true,
+  "ledger_005": true,
+  "ledger_064": true,
+  "one_exact": true,
+  "var_bias_tracks_2rsig": true
+ }
+}

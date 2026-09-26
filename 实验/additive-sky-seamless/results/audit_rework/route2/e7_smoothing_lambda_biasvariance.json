@@ -1,0 +1,63 @@
+{
+ "seed": 20250926,
+ "audit": {
+  "lambda_bend_hits_in_docs": 0,
+  "PHASE2_UPM_section6_is": "\u5047\u8bbe (assumptions), no numeric range",
+  "repo_constants": {
+   "smoothing_lambda_default": 0.0,
+   "P2_SMOOTHING_LAMBDA_AUTO": 0.1
+  },
+  "verdict": "hallucinated anchor in 05_\u6b63\u5411\u89c4\u683c.md \u5224\u636e01"
+ },
+ "sweeps": [
+  {
+   "field": "smooth_broad",
+   "sigma": 0.01,
+   "lambda_star": 3.1622776601683795,
+   "mse_min": 9.759052483943324e-06,
+   "lambda_0.01_mse": 2.197606416543892e-05,
+   "lambda_0.1_mse": 2.152676203666027e-05
+  },
+  {
+   "field": "smooth_broad",
+   "sigma": 0.05,
+   "lambda_star": 10.0,
+   "mse_min": 0.00018001341797102164,
+   "lambda_0.01_mse": 0.0005494016769276059,
+   "lambda_0.1_mse": 0.000538191551734167
+  },
+  {
+   "field": "narrow_structure",
+   "sigma": 0.01,
+   "lambda_star": 0.01,
+   "mse_min": 2.181054252347416e-05,
+   "lambda_0.01_mse": 2.1976481697937314e-05,
+   "lambda_0.1_mse": 2.181054252347416e-05
+  },
+  {
+   "field": "narrow_structure",
+   "sigma": 0.05,
+   "lambda_star": 0.31622776601683794,
+   "mse_min": 0.000481561850975492,
+   "lambda_0.01_mse": 0.0005494037582875565,
+   "lambda_0.1_mse": 0.0005389928161105104
+  }
+ ],
+ "lambda0_degeneracy": {
+  "lam_0.0": {
+   "holdout_mse": 0.6065306597126334
+  },
+  "lam_0.01": {
+   "holdout_mse": 0.4369079465194546
+  },
+  "lam_0.1": {
+   "holdout_mse": 0.45774106654639657
+  },
+  "lam_1.0": {
+   "holdout_mse": 0.562177283160485
+  }
+ },
+ "negative": {
+  "max_abs_dtheta_lam0_vs_1e-10": 1.3731238368563936e-12
+ }
+}

@@ -1,0 +1,28 @@
+{
+  "seed": 20260323,
+  "common_factor_cancellation": {
+    "theta_abs": 0.09480124375030351,
+    "theta_x_kcorr": 0.09480124375030352,
+    "rel_diff": 1.4638824617498783e-16,
+    "claim_check": "\u4efd\u989d\u5f0f\u4e0b\u516c\u5171\u56e0\u5b50\u6d88\u53bb => \u4f30\u8ba1\u91cf\u4e0d\u53d8 (\u6027\u8d28 ii)"
+  },
+  "share_vs_absolute": {
+    "theta_abs_vs_cellmeans": -0.008868389827860876,
+    "theta_share_vs_cellmeans": 2.9785174024108168,
+    "abs_err_abs_weight": 0.009368339832860376,
+    "note": "\u9006\u65b9\u5dee\u5f0f\u6536\u655b\u4e8e\u6700\u4f18\u5408\u5e76 (\u65b9\u5dee\u6700\u5c0f), \u4efd\u989d\u5f0f\u542b\u8de8 control \u7b49\u6743\u504f\u5dee; \u91cf\u5316: \u9006\u65b9\u5dee\u5f0f\u65b9\u5dee vs \u4efd\u989d\u5f0f\u65b9\u5dee",
+    "var_theta_abs": 0.04999500049995002,
+    "var_theta_share": 125.0125,
+    "variance_inflation_share_over_abs": 2500.5000249999994
+  },
+  "fake_ivar_domination": {
+    "share_of_degenerate_observation": 1.0,
+    "exclusive": false,
+    "claim": "1 \u4e2a\u9000\u5316\u89c2\u6d4b (\u5730\u677f\u5e73\u65b9\u4f2a ivar 1.314e26) \u5728 100 \u89c2\u6d4b\u4e2d\u5360\u6743\u91cd ~1.0, \u72ec\u5360\u8be5 control \u76f8\u5bf9\u5149\u5ea6\u89e3 (01 D-01 \u89e6\u53d1\u94fe\u7684\u6570\u503c\u540e\u679c)"
+  },
+  "negative_correct_handling": {
+    "theta_with_ivar0_exclusion": -0.07225782412887724,
+    "unaffected_by_outlier": true,
+    "claim": "\u771f\u503c\u65e0\u5c3a\u5ea6\u4fe1\u606f => ivar=0 => \u6743\u91cd\u5f52\u96f6 => \u89e3\u4e0d\u53d7\u6c61\u67d3 (\u5ea6\u91cf\u5f52\u96f6\u8d1f\u4f8b)"
+  }
+}

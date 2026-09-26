@@ -1,0 +1,73 @@
+{
+ "group": "G0_sanity",
+ "identity_M": true,
+ "identity_geometry": {
+  "n_src": 400,
+  "n_out": 441,
+  "n_touched": 400,
+  "n_per_frame": [
+   400
+  ],
+  "out_scale": 300.0,
+  "src_scale": 300.0,
+  "pixfrac": 1.0,
+  "rho": 1.0,
+  "phase": [
+   0.5,
+   0.5
+  ],
+  "frame_offsets": [
+   [
+    0.0,
+    0.0
+   ]
+  ]
+ },
+ "N289": {
+  "seed0": 991000,
+  "nmc": 4000,
+  "k_corr_mc_se": 0.027831139541723796,
+  "k_corr": 0.9994834531812591,
+  "var_emp": 0.5380077686958564,
+  "sigma_bg": 9.951658215052188,
+  "N": 289,
+  "baseline": 0.5382858185229878,
+  "k_shape": 1.0342927115908003,
+  "sigma_bg_iid": 9.97962063238475,
+  "k_geom": 0.9663448673480425,
+  "exact": {
+   "N": 289,
+   "n_eff_mean_cov": 83521.0,
+   "var_mean_exact": 0.3460207612456747,
+   "var_marg_mean_exact": 100.0
+  },
+  "nn_corr": {
+   "mean_nn_corr": 0.0,
+   "n_nn_pairs": 538
+  }
+ },
+ "N25": {
+  "seed0": 991001,
+  "nmc": 4000,
+  "k_corr_mc_se": 0.037865623084929856,
+  "k_corr": 1.0944123563384087,
+  "var_emp": 6.1081774966243785,
+  "sigma_bg": 9.424870601315188,
+  "N": 25,
+  "baseline": 5.581239522057843,
+  "k_shape": 1.0927899503078116,
+  "sigma_bg_iid": 9.41477440667174,
+  "k_geom": 1.001484645818842
+ },
+ "reference_k_gauss": {
+  "N25": 1.0826,
+  "N289": null,
+  "note": "k_gauss(N) from g3b_gauss_ref.json / direct characterization"
+ },
+ "gate": {
+  "pass_identity_M": true,
+  "pass289": true,
+  "pass25": true
+ },
+ "written_utc": "2026-09-26T16:02:03.831402+00:00"
+}

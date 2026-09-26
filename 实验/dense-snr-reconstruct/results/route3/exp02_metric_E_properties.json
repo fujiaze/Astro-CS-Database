@@ -1,0 +1,32 @@
+{
+  "seed": 20260926,
+  "P1_multiplicative_invariance": {
+    "E_sigma_hat_equals_3p17x_truth": -3.3306690738754696e-16,
+    "claim": "E=0 iff sigma_hat proportional to sigma_true",
+    "pass": true
+  },
+  "P2_degenerate_zeroing": {
+    "E_flat_truth_flat_arm": 0.0,
+    "E_flat_truth_wrong_arm": 0.31372403848789765,
+    "claim": "no spatial effect => metric zero; wrong arm on flat truth => E>0 (non-tautology)",
+    "pass": true
+  },
+  "P3_sensitivity": {
+    "E_shuffled": 0.7285715157809971,
+    "E_reversed": 0.19160717633336533,
+    "claim": "wrong spatial assignment => E >> 0 (metric can go red)",
+    "pass": true
+  },
+  "P4_level_bias_complement": {
+    "armA": "2*sigma_true (pure multiplicative)",
+    "armB": "multiplicative tanh(field) field, amplitude searched to match E",
+    "E_A": 0.0,
+    "E_B": 0.0016980280444731655,
+    "level_bias_A_dex": 0.3010299956639812,
+    "level_bias_B_dex": 0.007890810793546983,
+    "bias_ratio": 0.026212706066524167,
+    "claim": "E equal does not imply equal level bias; report both",
+    "pass": true
+  },
+  "all_pass": true
+}

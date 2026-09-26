@@ -1,0 +1,29 @@
+{
+ "seed": 20250926,
+ "results": {
+  "qf_baseline_cancellation": {
+   "max_abs_dtheta": 0.0,
+   "verdict": "convention (baseline value cancels exactly)"
+  },
+  "qf_ratio_0.1_vs_0.5": {
+   "flagged_obs": [
+    0,
+    1
+   ],
+   "max_abs_dtheta_vs_baseline": 0.016194475798569766,
+   "verdict": "science content = per-observation ratio (estimate shifts)"
+  },
+  "share_vs_absolute": {
+   "n_obs": 24,
+   "n_params": 5,
+   "uniform_ivar_max_abs_dtheta": 9.992007221626409e-16,
+   "varying_ivar_max_abs_dtheta": 0.012490401075228919,
+   "varying_ivar_max_rel_dtheta": 0.14830294030438518
+  },
+  "chain_downstream": {
+   "upstream": "control_ivar = 1/(k_corr*pi/2*sigma_bg^2/N_retained)  (E1)",
+   "stacked_variance_from_weights": 0.05931107773221704,
+   "note": "P5 solver consumes w = qf*reliability*ivar; integration consumes 1/sum(w)"
+  }
+ }
+}

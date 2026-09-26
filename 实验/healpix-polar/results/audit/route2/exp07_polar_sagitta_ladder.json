@@ -1,0 +1,103 @@
+{
+  "sagitta_scale_invariance": [
+    {
+      "N": 64,
+      "sagitta_rad": 0.0010219264170738128,
+      "sagitta_over_hp_res": 0.06391242423836364,
+      "sagitta_over_rho1": 0.0801018016129732
+    },
+    {
+      "N": 256,
+      "sagitta_rad": 0.0002555742086380434,
+      "sagitta_over_hp_res": 0.06393559056289226,
+      "sagitta_over_rho1": 0.08013134556566633
+    },
+    {
+      "N": 1024,
+      "sagitta_rad": 6.389499900374459e-05,
+      "sagitta_over_hp_res": 0.06393703835906903,
+      "sagitta_over_rho1": 0.08013319194603549
+    }
+  ],
+  "depth_ladder": {
+    "rungs": [
+      {
+        "depth": 0,
+        "segments": 1,
+        "max_sagitta_over_hp_res": 0.06391035306965005
+      },
+      {
+        "depth": 1,
+        "segments": 2,
+        "max_sagitta_over_hp_res": 0.026256697553598763
+      },
+      {
+        "depth": 2,
+        "segments": 4,
+        "max_sagitta_over_hp_res": 0.008945438318743544
+      },
+      {
+        "depth": 3,
+        "segments": 8,
+        "max_sagitta_over_hp_res": 0.0026683613834439725
+      },
+      {
+        "depth": 4,
+        "segments": 16,
+        "max_sagitta_over_hp_res": 0.000733565489663523
+      },
+      {
+        "depth": 5,
+        "segments": 32,
+        "max_sagitta_over_hp_res": 0.00019265369100204756
+      },
+      {
+        "depth": 6,
+        "segments": 64,
+        "max_sagitta_over_hp_res": 4.9394886008192955e-05
+      },
+      {
+        "depth": 7,
+        "segments": 128,
+        "max_sagitta_over_hp_res": 1.2507012324628928e-05
+      },
+      {
+        "depth": 8,
+        "segments": 256,
+        "max_sagitta_over_hp_res": 3.146815522778851e-06
+      },
+      {
+        "depth": 9,
+        "segments": 512,
+        "max_sagitta_over_hp_res": 7.892292482458356e-07
+      }
+    ],
+    "per_level_factor_asymptotic": 0.27529888636649696,
+    "levels_to_1e-6_from_r0_log4": 7.981904395147699,
+    "levels_to_1e-6_measured_factor": 8.578406826622178,
+    "claimed_levels": 8.15,
+    "residual_at_depth8_over_hp_res": 3.146815522778851e-06,
+    "threshold": 1e-06,
+    "residual_over_threshold": 3.146815522778851,
+    "claimed_residual_over_threshold": 1.23,
+    "conclusion": "depth cap 8 leaves the polar-edge sagitta ABOVE the 1e-6*hp_res threshold (measured factor > 3x; 02's 23% follows from the 8.094e-2 constant and an exact /4 law) -- adaptive_max_depth = 8 cannot clear the F-05 threshold on polar-cap edges."
+  },
+  "forbidden_constant": {
+    "true_arcsec": 211076.28514206142,
+    "forbidden_arcsec": 211034.6,
+    "rel_error": -0.0001974885147962846,
+    "claimed_rel_error": -0.000197,
+    "demo_target_arcsec": 211034.6,
+    "min_nside_with_true_constant": 2,
+    "min_nside_with_wrong_constant": 1,
+    "verdict_demo": "integer-NSIDE ladder, target scale 211034.6 arcsec: the wrong constant accepts NSIDE = 1 (equality), the true constant demands NSIDE = 2 (true/target = 1.0001975 > 1) -- one nside bin = factor 2 in linear resolution for the same target"
+  },
+  "unit_attribution": {
+    "measured_constant_in_rho1_units": 0.08012211304155833,
+    "measured_constant_in_hp_res_units": 0.06392835105344165,
+    "note": "02 Sec 1.2 states 8.094e-2 * hp_res; the measured constant is 8.01e-2 in units of rho_1 = arccos(1-1/(3N^2)) ~ sqrt(2/3)/N and 6.39e-2 in hp_res units. The scale-INVARIANCE claim is confirmed either way (constant across N to <3e-5 relative); the unit label in 02 appears to denote the polar rho_1 scale, and the constant differs by ~1% from our edge definition. We carry both, gates on invariance + depth-8 conclusion only."
+  },
+  "claimed_0p0809": 0.08094,
+  "spread_over_hp_res": 2.461412070538238e-05,
+  "verdict": "PASS"
+}

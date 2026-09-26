@@ -1,0 +1,140 @@
+{
+  "seed": 20260926,
+  "gate": 0.01,
+  "d": 2,
+  "n_edge": 256,
+  "sigma_over_bg": 0.010703,
+  "cases": {
+    "negative_zero_effect": {
+      "rel_step": 0.0,
+      "ok": true
+    },
+    "deterministic_floor": {
+      "analytic_delta_over_L": 0.010050251256281407,
+      "numeric_delta_over_L": 0.0100505,
+      "match": true
+    },
+    "false_alarm": {
+      "sigma_rel_analytic": 0.0011856608478901087,
+      "k_sigma_gate": 8.434115048831263,
+      "p_single_edge_empirical": 0.0,
+      "p_family_4edges_empirical": 0.0
+    },
+    "detection_curve_ns4_30seeds": [
+      {
+        "delta_over_L": 0.009,
+        "p_detect": 0.5333333333333333
+      },
+      {
+        "delta_over_L": 0.0095,
+        "p_detect": 0.7
+      },
+      {
+        "delta_over_L": 0.01,
+        "p_detect": 0.8666666666666667
+      },
+      {
+        "delta_over_L": 0.0105,
+        "p_detect": 1.0
+      },
+      {
+        "delta_over_L": 0.011,
+        "p_detect": 1.0
+      }
+    ],
+    "analytic_detection_multiplicity": {
+      "analytic_1.187e-3": {
+        "ns1": {
+          "at50": 0.0100503,
+          "at95": 0.0120244
+        },
+        "ns2": {
+          "at50": 0.0093971,
+          "at95": 0.010962
+        },
+        "ns4": {
+          "at50": 0.008854299999999999,
+          "at95": 0.0101319
+        }
+      },
+      "cross_edge_2.814e-3": {
+        "ns1": {
+          "at50": 0.0100503,
+          "at95": 0.0147365
+        },
+        "ns2": {
+          "at50": 0.0085025,
+          "at95": 0.012213
+        },
+        "ns4": {
+          "at50": 0.0072172,
+          "at95": 0.010243799999999999
+        }
+      }
+    },
+    "gradient_sign": {
+      "grad_frac": -0.0072,
+      "anti_sign_miss_floor_delta_over_L": 0.0172865,
+      "claim_1.73pct": true,
+      "metric_at_1.005pct_anti": 0.0028357503544687948,
+      "pos_grad_metric_at_0.505pct": 0.012169576059850373,
+      "pos_grad_false_red": true
+    },
+    "median_blindness_step5pct": [
+      {
+        "frac": 0.3,
+        "rel_step_noisy": 0.010314543339082284,
+        "rel_step_noiseless": 0.0,
+        "noiseless_blind": true,
+        "trips_gate_noisy": true
+      },
+      {
+        "frac": 0.4,
+        "rel_step_noisy": 0.015827550028032877,
+        "rel_step_noiseless": 0.0,
+        "noiseless_blind": true,
+        "trips_gate_noisy": true
+      },
+      {
+        "frac": 0.5,
+        "rel_step_noisy": 0.024242834487557468,
+        "rel_step_noiseless": 0.025,
+        "noiseless_blind": false,
+        "trips_gate_noisy": true
+      },
+      {
+        "frac": 0.6,
+        "rel_step_noisy": 0.0362095524910949,
+        "rel_step_noiseless": 0.05,
+        "noiseless_blind": false,
+        "trips_gate_noisy": true
+      }
+    ],
+    "smooth_seam": [
+      {
+        "width_px": 2.0,
+        "effective_gate_scale": 0.5,
+        "metric_at_0.9x_eff_gate": 0.008852979422830531,
+        "metric_at_1.1x_eff_gate": 0.011268439859355817
+      },
+      {
+        "width_px": 8.0,
+        "effective_gate_scale": 2.0,
+        "metric_at_0.9x_eff_gate": 0.008852979422830531,
+        "metric_at_1.1x_eff_gate": 0.011268439859355817
+      },
+      {
+        "width_px": 16.0,
+        "effective_gate_scale": 4.0,
+        "metric_at_0.9x_eff_gate": 0.008852979422830531,
+        "metric_at_1.1x_eff_gate": 0.011268439859355817
+      },
+      {
+        "width_px": 32.0,
+        "effective_gate_scale": 8.0,
+        "metric_at_0.9x_eff_gate": 0.008852979422830531,
+        "metric_at_1.1x_eff_gate": 0.011268439859355817
+      }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "seed": 20260926,
+  "hypotheses": {
+    "H1a_identity": {
+      "claim": "w = SNR^2/F_ref^2 == 1/sigma_F^2 (algebraic identity)",
+      "n_points": 512,
+      "max_relative_deviation": 3.7220768166518007e-16,
+      "pass": true
+    },
+    "H1b_optimality": {
+      "gamma2_inverse_variance (w=SNR^2/F_ref^2)": {
+        "var_mc": 0.005383074656076898,
+        "var_analytic": 0.0054426209418335135
+      },
+      "gamma1_linear_snr (w~SNR)": {
+        "var_mc": 0.02021313144789654,
+        "var_analytic": 0.020303092469635735
+      },
+      "equal_weight": {
+        "var_mc": 0.5708502785815613,
+        "var_analytic": 0.5691937932571437
+      },
+      "analytic_optimum_1_over_sum_ivar": {
+        "var": 0.0054426209418335135
+      },
+      "efficiency_vs_optimum": {
+        "gamma2_inverse_variance (w=SNR^2/F_ref^2)": 1.0,
+        "gamma1_linear_snr (w~SNR)": 3.730388848795341,
+        "equal_weight": 104.58082591829248
+      },
+      "mc_vs_analytic_consistent_5pct": true,
+      "pass": true
+    },
+    "H1c_negative_control": {
+      "claim": "equal sigmas => all schemes identical (no-effect => metric zero)",
+      "variances": [
+        0.25,
+        0.25,
+        0.25
+      ],
+      "relative_spread": 0.0,
+      "pass": true
+    },
+    "H1d_fref_propagation": {
+      "claim": "dm_ref = +1 => F_ref and SNR x 10^-0.4 = 0.3981 (bright-end direction x 2.512); SNR^2 moves x 10^-0.8 = 0.158 (inverse 6.31); w = SNR^2/F_ref^2 = 1/sigma_F^2 is m_ref-INVARIANT",
+      "dm_ref": 1.0,
+      "F_ref_ratio": 0.3981071705534969,
+      "F_ref_ratio_expected": 0.3981071705534972,
+      "SNR_ratio": 0.3981071705534969,
+      "SNR_ratio_expected": 0.3981071705534972,
+      "SNR2_ratio": 0.1584893192461111,
+      "SNR2_ratio_expected": 0.15848931924611134,
+      "w_ratio": 1.0,
+      "w_ratio_expected": 1.0,
+      "pass": true
+    }
+  },
+  "downstream_interface": {
+    "max_relative_weight_deviation": 3.44403350752929e-16,
+    "threshold": 1e-12,
+    "pass": true
+  },
+  "all_pass": true
+}
