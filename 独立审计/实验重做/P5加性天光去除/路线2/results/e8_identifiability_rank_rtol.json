@@ -1,0 +1,56 @@
+{
+ "seed": 20250926,
+ "tau": 1e-10,
+ "column_equilibration_invariance": {
+  "kappa_H_red": Infinity,
+  "kappa_H_red_rescaled": Infinity,
+  "kappa_changes": false,
+  "r_eff": 7,
+  "r_eff_rescaled": 7,
+  "eigen_max_abs_diff_over_lambda1": 5.42333729921075e-16,
+  "eigen_max_rel_diff_above_threshold": 6.556703738224729e-16
+ },
+ "H_solve_tautology": [
+  {
+   "lam": 0.0,
+   "kappa_H_solve": null
+  },
+  {
+   "lam": 1e-06,
+   "kappa_H_solve": 683517648.7119079
+  },
+  {
+   "lam": 0.001,
+   "kappa_H_solve": 683518.65224609
+  },
+  {
+   "lam": 1.0,
+   "kappa_H_solve": 684.5530991874679
+  },
+  {
+   "lam": 1000.0,
+   "kappa_H_solve": 1.7007544684217735
+  }
+ ],
+ "dof": {
+  "n_obs": 120,
+  "r_eff": 7,
+  "n_params": 9,
+  "chi2": 1.8872380736753482,
+  "chi2_red_dof_r_eff": 0.016701221890932285,
+  "chi2_red_dof_n_params": 0.01700214480788602,
+  "underestimate_factor": 1.018018018018018
+ },
+ "negative_fullrank": {
+  "r_eff": 6,
+  "kappa": 1.6085736305778493,
+  "identifiable": true,
+  "chi2_red": 0.9404732355845791
+ },
+ "audit_condition_number_1e12": {
+  "anchor_claimed": "docs/algorithms/PHASE2_UPM_IMPL.md \u00a76.3",
+  "grep_hits_for_cond/1e12_in_that_file": 0,
+  "rule5_says": "absolute kappa_max constants are NOT on the judgment surface",
+  "verdict": "hallucinated anchor; 1e12 gate contradicts frozen rule 4/5"
+ }
+}

@@ -1,0 +1,66 @@
+{
+  "seed": 20260926,
+  "rows": [
+    {
+      "dist": "gaussian",
+      "N": 5,
+      "reps": 200000,
+      "var_emp_over_formula": 0.9130748001660739,
+      "doc_claim": "正本称 N=5 渐近式低估 8.5% (即 true=1.085x formula); 本实验 N=5 实测 0.913x (2M MC + 精确积分 Var=0.28683 双重证实) => 正本方向写反, 正确为高估 ~9.6%",
+      "exact_integral_var_n5": 0.286833415848178,
+      "mad_sigma_ratio": 0.7471083542805946
+    },
+    {
+      "dist": "gaussian",
+      "N": 65,
+      "reps": 100000,
+      "var_emp_over_formula": 0.9919945498549793,
+      "doc_claim": "正本称 N=5 渐近式低估 8.5% (即 true=1.085x formula); 本实验 N=5 实测 0.913x (2M MC + 精确积分 Var=0.28683 双重证实) => 正本方向写反, 正确为高估 ~9.6%",
+      "exact_integral_var_n5": 0.286833415848178,
+      "mad_sigma_ratio": 0.98308929982702
+    },
+    {
+      "dist": "gaussian",
+      "N": 289,
+      "reps": 60000,
+      "var_emp_over_formula": 1.0009902363868297,
+      "doc_claim": "正本称 N=5 渐近式低估 8.5% (即 true=1.085x formula); 本实验 N=5 实测 0.913x (2M MC + 精确积分 Var=0.28683 双重证实) => 正本方向写反, 正确为高估 ~9.6%",
+      "exact_integral_var_n5": 0.286833415848178,
+      "mad_sigma_ratio": 0.9961598696752498
+    },
+    {
+      "dist": "uniform_sigma1",
+      "N": 65,
+      "reps": 200000,
+      "var_emp_over_formula": 1.8496445246996953,
+      "theory_exact_finiteN_over_formula": 1.85284859121908,
+      "theory_asymp_over_formula": 1.909859317102744,
+      "doc_claim_1.91x": 1.9099
+    },
+    {
+      "dist": "laplace_sigma1",
+      "N": 65,
+      "reps": 200000,
+      "var_emp_over_formula": 0.38687715037140474,
+      "theory_asymp_over_formula": 0.3183098861837907,
+      "doc_claim_0.335": 0.335,
+      "note": "拉普拉斯收敛慢, N=65 实测与渐近有差; 方向(<1)与正本一致"
+    }
+  ],
+  "mad_constant": {
+    "phi_inv_3_4": 0.6744897501960816,
+    "1_over_phi_inv_3_4": 1.4826022185056023,
+    "repo_constant": 1.482602218505602,
+    "abs_err": 2.220446049250313e-16,
+    "identity_holds": true
+  },
+  "degenerate_floor": {
+    "protected_variance": 7.609393970632716e-27,
+    "published_ivar_if_floored": 1.3141651015302217e+26,
+    "d01_recorded_variance": 7.609e-27,
+    "d01_recorded_ivar": 1.314e+26,
+    "arithmetic_matches_D01": true,
+    "honest_publication": "control_ivar = 0（无尺度信息）",
+    "zero_effect_metric_zero": true
+  }
+}

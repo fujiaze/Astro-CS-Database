@@ -1,0 +1,181 @@
+{
+  "audit_extract": {
+    "module": "① 测光星等坐标系",
+    "source_document": "05_正向规格.md",
+    "reviewer_path": "第①路",
+    "route2_independent_status": "进行中",
+    "missing_three_legs": {
+      "A-4b_fov_radius": {
+        "constants": [
+          {
+            "id": "K-26",
+            "name": "缓冲因子",
+            "value": 1.2,
+            "unit": "deg"
+          },
+          {
+            "id": "K-27",
+            "name": "钳位下界",
+            "value": 1.0,
+            "unit": "deg"
+          },
+          {
+            "id": "K-28",
+            "name": "钳位上界",
+            "value": 10.0,
+            "unit": "deg"
+          }
+        ],
+        "issue": "无文献出处、无实验标定、无理论推导",
+        "status": "待补",
+        "formula": "\npixel_scale_deg = sqrt(|cd11·cd22 − cd12·cd21|)          [deg/px]\nfov_radius_deg  = pixel_scale_deg · sqrt(W² + H²) / 2 · 1.2\n钳位              min(max(fov_radius_deg, 1.0), 10.0)      [度]\n"
+      },
+      "A-5_cone_search": {
+        "constants": [
+          {
+            "id": "K-30",
+            "name": "阶梯 1",
+            "value": 12,
+            "unit": "mag"
+          },
+          {
+            "id": "K-31",
+            "name": "阶梯 2",
+            "value": 13,
+            "unit": "mag"
+          },
+          {
+            "id": "K-32",
+            "name": "阶梯 3",
+            "value": 14,
+            "unit": "mag"
+          },
+          {
+            "id": "K-33",
+            "name": "阶梯 4",
+            "value": 15,
+            "unit": "mag"
+          },
+          {
+            "id": "K-34",
+            "name": "阶梯 5",
+            "value": 16,
+            "unit": "mag"
+          },
+          {
+            "id": "N-A",
+            "name": "早停阈",
+            "value": 2000,
+            "unit": "stars"
+          },
+          {
+            "id": "N-B",
+            "name": "循环上限",
+            "value": 5,
+            "unit": "iterations"
+          }
+        ],
+        "issue": "自适应星等查询的四个关键数值全部无锚",
+        "status": "待补",
+        "formula": "\nmag_max_arr = {12, 13, 14, 15, 16}   [mag]\nif n_gaia >= 2000: break           # 早停\nmax_iterations = 5                  # 循环上限\n"
+      },
+      "V-3_spectrum_grid": {
+        "constants": [
+          {
+            "id": "P-1",
+            "name": "起始波长",
+            "value": 336,
+            "unit": "nm"
+          },
+          {
+            "id": "P-2",
+            "name": "步长",
+            "value": 2,
+            "unit": "nm"
+          },
+          {
+            "id": "P-3",
+            "name": "点数",
+            "value": 343,
+            "unit": "points"
+          }
+        ],
+        "issue": "容器自报参数，需验代码是否读取而非硬编码",
+        "status": "待建验证程序"
+      }
+    }
+  },
+  "route2_analysis": {
+    "methodology": "独立科学研究路线 2（零通信）",
+    "data_type": [
+      "解析代数合成",
+      "蒙特卡洛模拟"
+    ],
+    "seed": 42,
+    "excluded": "不导入仓库模块，纯 numpy 实现",
+    "priorities": {
+      "P0_FOV_constants": {
+        "rationale": "经验阈值性质，直接影响 Gaia 查询范围与样本稳定性",
+        "approach": [
+          "解析模型：Poisson 采样数估计",
+          "敏感性分析：不同边界下的坏帧率",
+          "负例测试：缓冲因子必要性验证"
+        ],
+        "expected_outcome": "给出最佳实践建议区间或确认当前值合理性"
+      },
+      "P0_cone_search": {
+        "rationale": "查询策略参数，影响计算成本与颜色偏风险",
+        "approach": [
+          "累积面密度模型（Gaia DR3 元数据近似）",
+          "早停效率分析：多少比例能提前终止？",
+          "亮度截断偏差评估"
+        ],
+        "expected_outcome": "评估阶梯值与早停阈的最优性"
+      },
+      "P1_spectrum_grid": {
+        "rationale": "外部数据模型字段，非项目自定义",
+        "approach": "构建桩实验：修改网格参数，验证代码确实从配置读取",
+        "expected_outcome": "证明非硬编码即可"
+      }
+    }
+  },
+  "existing_evidence": {
+    "FOV_radius_claims": {
+      "document": "docs/algorithms/GAIA_QUERY.md",
+      "claim": "1.2 是赤道带 bbox 拒绝裕量",
+      "counterargument": "不得充当锚——该值用于 bbox 过滤，不是 FOV 半径缓冲"
+    },
+    "cone_search_claims": {
+      "document": "pc_api.cpp:977-1082",
+      "code_alignment": "阶梯值与代码吻合",
+      "missing": "无自适应阶梯代数推导"
+    },
+    "spectrum_grid_official": {
+      "gaia_dr3_doc": "§20.12.4: '343 values from 336 to 1020 nm with a step of 2 nm'",
+      "self_consistency": "336 + 2×342 = 1020 ✓",
+      "repository_anchor": "PHOTOMETRY.md:308"
+    }
+  },
+  "experiment_plan": {
+    "exp1_id": "exp1_fov_radius",
+    "objective": "FOV 半径三常数经验值标定",
+    "script": "code/exp1_fov_radius.py",
+    "commands": [
+      "python3 code/exp1_fov_radius.py --output-dir results",
+      "python3 code/exp1_fov_radius.py --output-dir results --test-adaptive-stages"
+    ],
+    "outputs": [
+      "results/exp1_fov_radius.json",
+      "results/exp1_fov_radius_tsv.tsv"
+    ]
+  },
+  "report_structure": {
+    "section_1_auditor_findings": "摘录审查意见",
+    "section_2_route2_approach": "本路方法论与优先级",
+    "section_3_literature_verification": "文献腿（Crossref/arXiv API，若失败则引用仓内权威文档）",
+    "section_4_experimental_calibration": "实验腿（三类数据选型 + 负例）",
+    "section_5_theoretical_derivation": "理论推导腿（如有），否则注明'经验值无解析解'并给保守建议",
+    "section_6_recommendations": "第 2 路结论与建议",
+    "section_7_fusion_face": "UPM 融合面专项（见报告主件 §4）"
+  }
+}

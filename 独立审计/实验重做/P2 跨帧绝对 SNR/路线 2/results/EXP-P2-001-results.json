@@ -1,0 +1,43 @@
+{
+  "experiment_id": "EXP-P2-001",
+  "title": "Theory validation of P-CST-03 (MAD→σ) and P-CST-04 (FWHM→σ)",
+  "seed": 42,
+  "timestamp": "2026-09-26T16:XX:XX",
+  "tests": [
+    {
+      "experiment": "P-CST-03 MAD theory validation",
+      "true_sigma": 5.0,
+      "sample_size": 100000,
+      "repetitions": 5,
+      "mean_relative_bias": 0.0027863469783175887,
+      "std_bias": 0.002176810453173233,
+      "k_mad_used": 1.482602218505602,
+      "k_mad_expected": 1.482602218505602,
+      "oracle_pass": true
+    },
+    {
+      "experiment": "P-CST-04 FWHM factor mathematical validation",
+      "fwhm_numpy": 2.3548200450309493,
+      "fwhm_math": 2.3548200450309493,
+      "fwhm_claimed": 2.3548200450309493,
+      "error_with_numpy": 0.0,
+      "error_with_math": 0.0,
+      "reverse_recovery_error": 0.0,
+      "oracle_pass": true
+    },
+    {
+      "experiment": "Negative case: zero effect ⇒ metric zero",
+      "mad_of_zero": 0.0,
+      "sigma_of_zero": 0.0,
+      "oracle_pass": true
+    }
+  ],
+  "summary": {
+    "all_oracles_passed": true,
+    "constants_validated": [
+      "P-CST-03",
+      "P-CST-04"
+    ],
+    "conclusion": "✅ PASS 所有理论验证通过"
+  }
+}

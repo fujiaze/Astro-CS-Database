@@ -1,0 +1,13 @@
+E3 HP_CIRCUMRADIUS_FACTOR scan (seed=20050709)
+
+  N=4   max r_circ/hp_res = 1.13233 @ dec=73.40 deg
+  N=8   max r_circ/hp_res = 1.12936 @ dec=81.72 deg
+  N=16  max r_circ/hp_res = 1.12862 @ dec=85.86 deg
+  N=32  max r_circ/hp_res = 1.12844 @ dec=87.93 deg
+  N=64  max r_circ/hp_res = 1.12839 @ dec=88.97 deg
+  monotone increasing: False
+  max measured = 1.13233 ; 1.25 headroom = +10.4%
+  lon-lat grid contrast N=4: 0.9521
+  lon-lat grid contrast N=8: 1.1422
+  lon-lat grid contrast N=16: 3.1254
+  classification: structural safety buffer (exempt from three-leg requirement): soft upper bound for candidate completeness; does not enter published signal/variance; zero-miss enforced by candidate oracle

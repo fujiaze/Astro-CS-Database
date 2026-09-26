@@ -1,0 +1,19 @@
+{
+  "constant_id": "P-CST-03",
+  "constant_name": "MAD→σ scaling factor",
+  "constant_value": 1.482602218505602,
+  "theoretical_basis": "1 / Φ⁻¹(3/4), closed-form mathematical identity",
+  "experiment_config": {
+    "true_sigma": 5.0,
+    "sample_size_N": 1000000,
+    "num_runs": 10,
+    "base_seed": 42
+  },
+  "results": {
+    "mean_rel_error_ppm": -94.76717735314111,
+    "std_rel_error_ppm": 981.4467765908107,
+    "max_abs_error_ppm": 1396.0503185860064
+  },
+  "verdict": "PASS",
+  "conclusion": "MAD→σ constant validated: the error is within O(1/√N) statistical bounds"
+}

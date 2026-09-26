@@ -1,0 +1,50 @@
+{
+  "seed": 20260926,
+  "cst16": {
+    "tile_width": 512,
+    "delta": 64,
+    "center_offset": 31.5,
+    "node_shift_measured_px": 31.5,
+    "node_shift_expected_px": 31.5
+  },
+  "cst17": [
+    {
+      "lambda_ratio": 1.0,
+      "kappa": 1.0,
+      "sd_b": 0.0009233951303220449,
+      "sd_c": 0.0009163075449265083,
+      "infl_vs_ratio1_b": 1.0,
+      "infl_vs_ratio1_c": 1.0
+    },
+    {
+      "lambda_ratio": 0.25,
+      "kappa": 2.0,
+      "sd_b": 0.0016863688921536304,
+      "sd_c": 0.000911906111931039,
+      "infl_vs_ratio1_b": 1.8262700731002226,
+      "infl_vs_ratio1_c": 0.9951965548905064
+    },
+    {
+      "lambda_ratio": 0.0625,
+      "kappa": 4.0,
+      "sd_b": 0.0035648866933230446,
+      "sd_c": 0.0009262855585325162,
+      "infl_vs_ratio1_b": 3.8606297307196633,
+      "infl_vs_ratio1_c": 1.0108893718722005
+    },
+    {
+      "lambda_ratio": 0.015625,
+      "kappa": 8.0,
+      "sd_b": 0.007351859151642598,
+      "sd_c": 0.0012063534834826709,
+      "infl_vs_ratio1_b": 7.9617694638248215,
+      "infl_vs_ratio1_c": 1.3165377608883766
+    }
+  ],
+  "cst17_negative_control": {
+    "ratio": 1.0,
+    "infl_expected": 1.0,
+    "measured_b": 1.0,
+    "measured_c": 1.0
+  }
+}

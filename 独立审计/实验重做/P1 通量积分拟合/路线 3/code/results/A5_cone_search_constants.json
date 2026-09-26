@@ -1,0 +1,48 @@
+{
+  "experiment_id": "A5_cone_search_constants",
+  "route": "独立审计路线 3",
+  "review_claim_id": "01/C5 S2 A-5 锥形搜索四项常数",
+  "code_source": {
+    "file": "lib/algorithms/photometry/cpp/src/pc_api.cpp",
+    "lines": "978, 1001",
+    "constants": {
+      "mag_max_arr": [
+        12.0,
+        13.0,
+        14.0,
+        15.0,
+        16.0
+      ],
+      "early_stop_threshold": 2000,
+      "max_iterations": 5
+    }
+  },
+  "findings": {
+    "exponential_growth": "mag 每增 1 等，样本量增长约3.0x",
+    "early_stop_trigger": "2000 星阈在 mag≥15 时可能在典型 FOV 下触发",
+    "loop_upper_bound": "5 轮=穷尽所有亮度档次的兜底保护"
+  },
+  "three_legs": {
+    "literature": "❌ 缺失 - 未查到天文观测中的锥形搜索星等阶梯标准",
+    "experimental": "⚠ 部分存在 - 本实验证明工程合理性，但最优值未标定",
+    "derivation": "❌ 缺失 - 未见代数推导链"
+  },
+  "unresolved": [
+    "为何选择{12,13,14,15,16}而非其他阶梯间隔？",
+    "为何早停阈是 2000 而非 1000 或 5000？",
+    "循环上限 5 是否足够？是否需要动态扩展？"
+  ],
+  "conclusion": "\n【A-5 锥形搜索四项常数结论】\n\n代码事实清晰：\n- 阶梯{12,13,14,15,16}：亮→暗逐层递进，样本量指数增长\n- 早停阈 2000：平衡查询成本与样本代表性\n- 循环上限 5：兜底穷尽所有档位\n- 末档强制：i==4 时无条件停止，避免无限循环\n\n三腿状态：文献❌ 实验⚠推导❌ → **项目约定值**\n\n建议处置：订正 05 文档为\"经验参数，待标定\"，补充敏感性实验确定最优值\n\n链条位置影响：\n- 阶梯过密⇒查询次数↑⇒成本↑\n- 阶梯过疏⇒错过最佳样本量区间\n- 早停阈过低⇒样本不足；过高⇒超时风险\n- 当前取值在工程可接受范围\n",
+  "references": [
+    {
+      "type": "code",
+      "file": "lib/algorithms/photometry/cpp/src/pc_api.cpp",
+      "lines": "977-1008"
+    },
+    {
+      "type": "design",
+      "file": "ASTROCS_DESIGN.md",
+      "section": "§4.2"
+    }
+  ]
+}

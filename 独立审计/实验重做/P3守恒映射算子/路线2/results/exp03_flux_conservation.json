@@ -1,0 +1,26 @@
+{
+  "weights": {
+    "sum_p_w_dropnorm_max_abs_dev_from_1": 0.0,
+    "sum_p_w_pixelnorm_mean": 0.6400000000064452,
+    "pixfrac_squared": 0.6400000000000001
+  },
+  "fixture": {
+    "S_over_B0_max_abs_dev_Np_denominator": 2.220446049250313e-16,
+    "S_over_B0_wrongDp_mean": 1.5624999999842646,
+    "predicted_1_over_pf2": 1.5624999999999998,
+    "total_flux_conservation_rel": 0.0
+  },
+  "negative_injections": {
+    "note": "pf=1: drop corners == pixel corners => A_drop == A_pixel => all denominator choices coincide; every deviation metric is exactly 0 (checked: sum_p w = 1 to float floor, S_p/B0 = 1 to float floor).",
+    "worst_case_bias_if_Dp_denominator": 0.5624999999999998
+  },
+  "background_numbers_pf08": {
+    "1/pf2 - 1 [%]": 56.24999999999998,
+    "claimed_pct_1": 56.25,
+    "1/pf4 - 1 [%]": 144.14062499999994,
+    "mag_offset_2p5log10_1_over_pf2": 0.48455006504028186,
+    "claimed_pct_2": 144.140625,
+    "claimed_mag_3": 0.48455
+  },
+  "verdict": "PASS"
+}

@@ -1,0 +1,86 @@
+{
+  "seed": 20260926,
+  "constants_under_test": {
+    "buffer_coefficient": 1.2,
+    "clamp_lower_deg": 1.0,
+    "clamp_upper_deg": 10.0
+  },
+  "test_cases": [
+    {
+      "name": "Narrow_FOV",
+      "pixel_scale_deg": 0.0001,
+      "width": 4096,
+      "height": 4096,
+      "fov_radius_raw_deg": 0.2896309375740099,
+      "fov_radius_clamped_deg": 1.0,
+      "was_clamped": true,
+      "clamping_direction": "lower"
+    },
+    {
+      "name": "Medium_FOV",
+      "pixel_scale_deg": 0.0005,
+      "width": 6144,
+      "height": 6144,
+      "fov_radius_raw_deg": 2.172232031805074,
+      "fov_radius_clamped_deg": 2.172232031805074,
+      "was_clamped": false,
+      "clamping_direction": null
+    },
+    {
+      "name": "Wide_FOV",
+      "pixel_scale_deg": 0.002,
+      "width": 8192,
+      "height": 8192,
+      "fov_radius_raw_deg": 11.585237502960396,
+      "fov_radius_clamped_deg": 10.0,
+      "was_clamped": true,
+      "clamping_direction": "upper"
+    }
+  ],
+  "negative_control": [
+    {
+      "buffer_coef": 1.0,
+      "fov_radius_deg": 2.172232031805074
+    },
+    {
+      "buffer_coef": 1.2,
+      "fov_radius_deg": 2.6066784381660884
+    },
+    {
+      "buffer_coef": 1.5,
+      "fov_radius_deg": 3.258348047707611
+    },
+    {
+      "buffer_coef": 2.0,
+      "fov_radius_deg": 4.344464063610148
+    }
+  ],
+  "threshold_analysis": {
+    "Narrow_FOV": {
+      "diagonal_pixels": 5792.618751480198,
+      "lower_bound_trigger_pixel_scale_deg": 0.00028772248583436993,
+      "upper_bound_trigger_pixel_scale_deg": 0.0028772248583436993,
+      "comment_lower": "",
+      "comment_upper": "Above this scale, FOV gets capped at 10.0\u00b0"
+    },
+    "Medium_FOV": {
+      "diagonal_pixels": 8688.928127220295,
+      "lower_bound_trigger_pixel_scale_deg": 0.00019181499055624662,
+      "upper_bound_trigger_pixel_scale_deg": 0.0019181499055624662,
+      "comment_lower": "Below this scale, FOV gets boosted to 1.0\u00b0",
+      "comment_upper": "Above this scale, FOV gets capped at 10.0\u00b0"
+    },
+    "Wide_FOV": {
+      "diagonal_pixels": 11585.237502960395,
+      "lower_bound_trigger_pixel_scale_deg": 0.00014386124291718497,
+      "upper_bound_trigger_pixel_scale_deg": 0.0014386124291718497,
+      "comment_lower": "Below this scale, FOV gets boosted to 1.0\u00b0",
+      "comment_upper": ""
+    }
+  },
+  "conclusions": {
+    "nature_of_constants": "Engineering safety margins for Gaia cone search coverage",
+    "literature_support_needed": true,
+    "experimental_verdict": "Constants serve as fallback bounds, not hard physics limits"
+  }
+}

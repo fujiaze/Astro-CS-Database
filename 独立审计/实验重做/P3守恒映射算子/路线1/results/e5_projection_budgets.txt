@@ -1,0 +1,29 @@
+E5 projection budgets (seed=20050709)
+
+[GNOMONIC pointwise/integrated]
+  h=1.0e-04 rho_max=1.414e-04 integrated=+1.2731e-08 (x rho^2 0.6365) pointwise=+3.0000e-08 (x1.5rho^2 1.00000)
+  h=3.0e-04 rho_max=4.243e-04 integrated=+9.0629e-08 (x rho^2 0.5035) pointwise=+2.7000e-07 (x1.5rho^2 1.00000)
+  h=1.0e-03 rho_max=1.414e-03 integrated=+9.9999e-07 (x rho^2 0.5000) pointwise=+3.0000e-06 (x1.5rho^2 1.00000)
+  h=2.0e-03 rho_max=2.828e-03 integrated=+4.0000e-06 (x rho^2 0.5000) pointwise=+1.2000e-05 (x1.5rho^2 1.00001)
+  h=3.0e-03 rho_max=4.243e-03 integrated=+9.0000e-06 (x rho^2 0.5000) pointwise=+2.7000e-05 (x1.5rho^2 1.00002)
+  h=5.0e-03 rho_max=7.071e-03 integrated=+2.5000e-05 (x rho^2 0.5000) pointwise=+7.5001e-05 (x1.5rho^2 1.00005)
+  h=8.0e-03 rho_max=1.131e-02 integrated=+6.3999e-05 (x rho^2 0.5000) pointwise=+1.9201e-04 (x1.5rho^2 1.00012)
+  h=1.0e-02 rho_max=1.414e-02 integrated=+9.9998e-05 (x rho^2 0.5001) pointwise=+3.0001e-04 (x1.5rho^2 1.00018)
+  h=2.0e-02 rho_max=2.828e-02 integrated=+3.9997e-04 (x rho^2 0.5002) pointwise=+1.2002e-03 (x1.5rho^2 1.00073)
+  integrated log-log slope (small rho): 1.949 (expect 2)
+  budget at rho=2e-3: pointwise +3rho^2/2 = 6.00e-06 (head comment 2e-6 = rho^2/2 => factor-3 error)
+  ring-quadrature check: plane/sphere=1.000075 vs mean sec^3=1.000050 (agree to 2.5e-05)
+
+[TANGENT-PLANE branch]
+  theta=1.0e-04 planar/spherical-1 = -2.51204e-09 (x theta^2 -0.2512)
+  theta=3.0e-04 planar/spherical-1 = -2.26083e-08 (x theta^2 -0.2512)
+  theta=1.0e-03 planar/spherical-1 = -2.51204e-07 (x theta^2 -0.2512)
+  theta=2.0e-03 planar/spherical-1 = -1.00481e-06 (x theta^2 -0.2512)
+  theta=5.0e-03 planar/spherical-1 = -6.28008e-06 (x theta^2 -0.2512)
+  theta=1.0e-02 planar/spherical-1 = -2.51202e-05 (x theta^2 -0.2512)
+  theta=3.0e-02 planar/spherical-1 = -2.26066e-04 (x theta^2 -0.2512)
+  log-log slope: 2.000 (expect 2)
+  at theta=1e-3: -2.51204e-07 (head comment '<4e-8' is wrong: magnitude 12.5x too small)
+  single direction (always negative): True
+  tiny-theta negative control metric: -2.51e-11
+  theta^2-model coefficient = 0.2512 (max residual 6.7e-14); wrong theta^2/12 model residual 6.7e-07

@@ -1,0 +1,252 @@
+{
+ "seed": 20260926,
+ "note": "三常数为项目约定值; 本实验只给敏感性, 不造文献锚",
+ "sensitivity_table": [
+  {
+   "pixel_scale_as": 0.2,
+   "size": 2000,
+   "fov_natural_deg": 0.09428090415820635,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 112.49999999999997,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.2,
+   "size": 4000,
+   "fov_natural_deg": 0.1885618083164127,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 28.124999999999993,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.2,
+   "size": 8000,
+   "fov_natural_deg": 0.3771236166328254,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 7.031249999999998,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.2,
+   "size": 10000,
+   "fov_natural_deg": 0.4714045207910317,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 4.499999999999999,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.35,
+   "size": 2000,
+   "fov_natural_deg": 0.1649915822768611,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 36.73469387755102,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.35,
+   "size": 4000,
+   "fov_natural_deg": 0.3299831645537222,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 9.183673469387754,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.35,
+   "size": 8000,
+   "fov_natural_deg": 0.6599663291074443,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 2.2959183673469385,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.35,
+   "size": 10000,
+   "fov_natural_deg": 0.8249579113843053,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 1.4693877551020416,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.5,
+   "size": 2000,
+   "fov_natural_deg": 0.23570226039551584,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 17.999999999999996,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.5,
+   "size": 4000,
+   "fov_natural_deg": 0.4714045207910317,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 4.499999999999999,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.5,
+   "size": 8000,
+   "fov_natural_deg": 0.9428090415820634,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 1.1249999999999998,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.5,
+   "size": 10000,
+   "fov_natural_deg": 1.178511301977579,
+   "fov_clamped_deg": 1.178511301977579,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 0.73,
+   "size": 2000,
+   "fov_natural_deg": 0.34412530017745313,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 8.44436104334772,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.73,
+   "size": 4000,
+   "fov_natural_deg": 0.6882506003549063,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 2.11109026083693,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 0.73,
+   "size": 8000,
+   "fov_natural_deg": 1.3765012007098125,
+   "fov_clamped_deg": 1.3765012007098125,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 0.73,
+   "size": 10000,
+   "fov_natural_deg": 1.7206265008872657,
+   "fov_clamped_deg": 1.7206265008872657,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 1.0,
+   "size": 2000,
+   "fov_natural_deg": 0.4714045207910317,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 4.499999999999999,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 1.0,
+   "size": 4000,
+   "fov_natural_deg": 0.9428090415820634,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 1.1249999999999998,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 1.0,
+   "size": 8000,
+   "fov_natural_deg": 1.8856180831641267,
+   "fov_clamped_deg": 1.8856180831641267,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 1.0,
+   "size": 10000,
+   "fov_natural_deg": 2.357022603955158,
+   "fov_clamped_deg": 2.357022603955158,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 1.2,
+   "size": 2000,
+   "fov_natural_deg": 0.565685424949238,
+   "fov_clamped_deg": 1.0,
+   "area_inflation": 3.1250000000000004,
+   "clamp_active": true
+  },
+  {
+   "pixel_scale_as": 1.2,
+   "size": 4000,
+   "fov_natural_deg": 1.131370849898476,
+   "fov_clamped_deg": 1.131370849898476,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 1.2,
+   "size": 8000,
+   "fov_natural_deg": 2.262741699796952,
+   "fov_clamped_deg": 2.262741699796952,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  },
+  {
+   "pixel_scale_as": 1.2,
+   "size": 10000,
+   "fov_natural_deg": 2.8284271247461894,
+   "fov_clamped_deg": 2.8284271247461894,
+   "area_inflation": 1.0,
+   "clamp_active": false
+  }
+ ],
+ "H7a": {
+  "n_active": 16,
+  "n_total": 24,
+  "max_area_inflation": 112.49999999999997,
+  "detail": "自然 FOV<1.0 的构型(小像元+大画幅)被抬到 1.0 deg, 取样面积膨胀可达 数十倍以上 ⇒ 星样本与查询成本由钳位界决定; >10 deg 侧仅超大画幅/大像元触发",
+  "pass": true
+ },
+ "H7b": {
+  "wcs_translation_error_deg": 0.0005555555555555556,
+  "min_unbuffered_fov_deg_in_table": 0.07856742013183862,
+  "buffer_margin_fraction": 0.43999999999999995,
+  "criterion": "缓冲后最小半径 1.2 deg ≥ WCS 误差 5.6e-4 deg 六个数量级 ⇒ 覆盖充分;缓冲的物理约束是 Gaia 星 'WCS 解在画幅外' 的边缘星损失, 20% 半径余量覆盖之",
+  "pass": true
+ },
+ "negative_zero_check": {
+  "rows": [
+   {
+    "pixel_scale_as": 3.0,
+    "size": 2000,
+    "fov": 1.4142135623730951,
+    "clamp_ineffective": true
+   },
+   {
+    "pixel_scale_as": 4.0,
+    "size": 2000,
+    "fov": 1.8856180831641267,
+    "clamp_ineffective": true
+   },
+   {
+    "pixel_scale_as": 2.5,
+    "size": 3000,
+    "fov": 1.7677669529663689,
+    "clamp_ineffective": true
+   },
+   {
+    "pixel_scale_as": 5.0,
+    "size": 1500,
+    "fov": 1.7677669529663689,
+    "clamp_ineffective": true
+   }
+  ],
+  "metric": "|k_effect| = 钳位前后面积差(自然 FOV 在窗内时应为 0)",
+  "all_zero": true,
+  "pass": true
+ },
+ "conditional_vs_unconditional": {
+  "n_rows_in_diff_zone": 16,
+  "note": "05 A-4b 把'条件钳位(<=0 或 >=30 才钳)'改为无条件钳位; 本表给出差异区内行数 —— 即该规格变更实际改变行为的构型集合"
+ },
+ "verdict": {
+  "H7a": true,
+  "H7b": true,
+  "negative_zero": true
+ }
+}

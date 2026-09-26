@@ -1,0 +1,54 @@
+{
+ "seed": 20260926,
+ "se_table": {
+  "3": {
+   "se_median_mc": 0.6694184129722605,
+   "asymptotic_1.2533_over_sqrtn": 0.7235930923753581,
+   "exact_pred_n3": 1.086
+  },
+  "5": {
+   "se_median_mc": 0.5356511376298327,
+   "asymptotic_1.2533_over_sqrtn": 0.5604927992400973,
+   "exact_pred_n3": null
+  },
+  "10": {
+   "se_median_mc": 0.3721589548432535,
+   "asymptotic_1.2533_over_sqrtn": 0.39632825914890296,
+   "exact_pred_n3": null
+  },
+  "30": {
+   "se_median_mc": 0.22423242569490642,
+   "asymptotic_1.2533_over_sqrtn": 0.22882022710707492,
+   "exact_pred_n3": null
+  },
+  "2338": {
+   "se_median_mc": 0.026031797471253372,
+   "asymptotic_1.2533_over_sqrtn": 0.025919868044658786,
+   "exact_pred_n3": null
+  }
+ },
+ "exact_n3": {
+  "se_median_exact": 0.6698291607404145,
+  "asymptotic_value": 0.7235930923753581,
+  "ratio_exact_over_asymptotic": 0.9256986665551888
+ },
+ "H11": {
+  "n3_se_mc": 0.6694184129722605,
+  "n3_se_exact": 0.6698291607404145,
+  "n3_vs_asymptotic_at_n3": 0.9256986665551888,
+  "n2338_se_mc": 0.026031797471253372,
+  "n3_se_over_n2338": 25.71541261073085,
+  "criterion": "n=3 的 SE(精确 0.670σ) 是 n=2338 实测 SE 的 ~26 倍, 且渐近式 1.2533σ/√n 在 n=3 处高估 8% ⇒ C9 '3 星中位数抽样误差远大于宣称精度' 定量成立",
+  "pass": true
+ },
+ "negative_zero_check": {
+  "se_on_constant": 0.0,
+  "criterion": "无散度 ⇒ SE=0(归零)",
+  "pass": true
+ },
+ "verdict": {
+  "H11": true,
+  "negative_zero": true,
+  "asymptotic_formula_check": true
+ }
+}

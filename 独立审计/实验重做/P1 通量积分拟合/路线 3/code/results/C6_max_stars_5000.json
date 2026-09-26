@@ -1,0 +1,19 @@
+{
+  "experiment_id": "C6",
+  "title": "max_stars=5000 Verification",
+  "three_legs_assessment": {
+    "literature": "❌",
+    "experiment": "⚠",
+    "derivation": "❌"
+  },
+  "analysis": {
+    "memory_impact": {
+      "total_5000_stars_mb": 1.25
+    },
+    "engineering_tradeoff": {
+      "too_small": "<1000: IRLS 失败",
+      "too_large": ">100K: 超时"
+    },
+    "conclusion": "经验参数 (工程权衡)"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "10.1051/0004-6361/202039653": {
+    "status": "RESOLVED",
+    "doi": "10.1051/0004-6361/202039653",
+    "title": "<i>Gaia</i>\n                    Early Data Release 3",
+    "authors": "L. Lindegren, U. Bastian, M. Biermann, A. Bombrun, A. de Torres",
+    "year": 2021,
+    "journal": "Astronomy &amp; Astrophysics",
+    "relevant_points": [
+      "Gaia DR3 XP spectra definition & units",
+      "External calibration scale (W m^-2 nm^-1)",
+      "Spectrum grid: 336-1020 nm, 2nm step, 343 points",
+      "Passband definition includes QE curve"
+    ]
+  },
+  "10.1051/0004-6361/201833000": {
+    "status": "RESOLVED",
+    "doi": "10.1051/0004-6361/201833000",
+    "title": "Combined helioseismic inversions for 3D vector flows and sound-speed perturbations",
+    "authors": "David Korda, Michal Švanda",
+    "year": 2019,
+    "journal": "Astronomy &amp; Astrophysics",
+    "relevant_points": [
+      "Gaia DR3 XP spectra definition & units",
+      "External calibration scale (W m^-2 nm^-1)",
+      "Spectrum grid: 336-1020 nm, 2nm step, 343 points",
+      "Passband definition includes QE curve"
+    ]
+  },
+  "10.1051/0004-6361/202244579": {
+    "status": "RESOLVED",
+    "doi": "10.1051/0004-6361/202244579",
+    "title": "Catalogue of solar-like oscillators observed by TESS in 120-s and 20-s cadence",
+    "authors": "Emily Hatt, Martin B. Nielsen, William J. Chaplin, Warrick H. Ball, Guy R. Davies",
+    "year": 2023,
+    "journal": "Astronomy &amp; Astrophysics",
+    "relevant_points": [
+      "Gaia DR3 XP spectra definition & units",
+      "External calibration scale (W m^-2 nm^-1)",
+      "Spectrum grid: 336-1020 nm, 2nm step, 343 points",
+      "Passband definition includes QE curve"
+    ]
+  }
+}

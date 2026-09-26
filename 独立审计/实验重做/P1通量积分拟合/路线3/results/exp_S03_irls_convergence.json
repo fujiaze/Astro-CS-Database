@@ -1,0 +1,41 @@
+{
+ "seed": 20260926,
+ "H3a": {
+  "max_abs_dloc_tol1e-2_vs_1e-6": 0.0009902785296996466,
+  "max_abs_dloc_tol1e-9_vs_1e-6": 2.293914054909453e-07,
+  "criterion": "d(1e-2) >> 0(放松可红) 且 d(1e-9) < 自身容差 1e-6(plateau 语义: 1e-6 解与不动点之差不超过其容差)",
+  "pass": true
+ },
+ "H3b": {
+  "iter_stats_tol1e-6": {
+   "mean": 4.975333333333333,
+   "p999": 7.0,
+   "max": 7,
+   "n_at_cap": 0
+  },
+  "fraction_at_cap": 0.0,
+  "criterion": "上界 50 不 binding(≥99.9% 场在 50 步内收敛)",
+  "pass": true
+ },
+ "negative_zero_check": {
+  "metric": "converged_constant_field",
+  "iterations": 0,
+  "delta_location": 0.0,
+  "S": 0.0,
+  "criterion": "真值无效应(常值场) ⇒ 迭代数=0, 位移=0",
+  "pass": true
+ },
+ "v8_replay": {
+  "loc_tol1e-2": -0.00012488371284501536,
+  "loc_tol1e-6": -0.00030852848657831467,
+  "delta": 0.0001836447737332993,
+  "scale_10^-loc_tol1e-6": 1.0007106654971079,
+  "pass": true
+ },
+ "verdict": {
+  "H3a": true,
+  "H3b": true,
+  "negative": true,
+  "v8_replay": true
+ }
+}

@@ -1,0 +1,44 @@
+{
+  "seed": 20261002,
+  "scenario": {
+    "N": 512,
+    "n_src": 8,
+    "flux_range_adu": [
+      1000.0,
+      100000.0
+    ],
+    "fwhm_px": 3.0,
+    "sigma_slow_adu": 5.0,
+    "delta_px": 64,
+    "ctrl_noise_rel": 0.02
+  },
+  "P4_reconstruction": {
+    "rmse_dex_at_control_sources": 0.07953746100660186,
+    "pearson_corr_recon_vs_true_snr": 0.9951857994286644,
+    "operator": "IDW p=2 K=16 on Delta=64 grid (E02-calibrated params)"
+  },
+  "luminance_following": {
+    "flux_gain": 10.0,
+    "median_true_snr_ratio": 3.1968464743483356,
+    "median_recon_snr_ratio": 3.1969498996439123,
+    "theory_sqrt10": 3.1622776601683795,
+    "verdict": "PASS",
+    "note": "\u65b9\u5dee\u56fe\u4e0d\u53d8\u3001\u6e90\u901a\u91cfx10 => \u771f\u503c SNR \u573a\u62ac ~sqrt(10)\uff1b\u91cd\u5efa\u573a\u8ddf\u968f => \u91cd\u5efa\u5e26\u4eae\u5ea6\u800c\u975e\u590d\u5236\u65b9\u5dee\u56fe"
+  },
+  "negative_control_zero_source": {
+    "max_abs_dense_snr": 0.0,
+    "median_abs_dense_snr": 0.0,
+    "verdict": "PASS (\u5ea6\u91cf\u5f52\u96f6)"
+  },
+  "P5_consumption_inverse_variance": {
+    "measured_var_ratio_eq_over_opt": 1.0428457952212777,
+    "theory_var_ratio_eq_over_opt": 1.0444236306915697,
+    "theory_var_ratio_eq_over_opt_pixelmean": 1.1199110699087478,
+    "note": "P4-SNR \u5b9a\u6743 w=SNR^2/F_ref^2 \u7684\u5806\u53e0\u65b9\u5dee\u5e94\u4f18\u4e8e\u7b49\u6743\uff0c\u4e14\u63a5\u8fd1\u7406\u8bba\u6700\u4f18"
+  },
+  "conclusions": [
+    "\u5e26\u4eae\u5ea6\uff1a\u91cd\u5efa SNR \u4e0e\u771f\u503c\u76f8\u5173 r=0.9952, RMSE=0.0795 dex\uff1b\u901a\u91cfx10 \u65f6\u91cd\u5efa\u573a\u6bd4\u503c 3.20 vs \u7406\u8bba 3.16",
+    "\u8d1f\u4f8b\u5f52\u96f6\uff1a\u771f\u503c\u65e0\u6e90 \u21d2 \u7a20\u5bc6\u573a max|SNR|=0.0e+00, median=0.0e+00\uff08\u5224\u636e\u975e\u9000\u5316\u6210\u7acb\uff09",
+    "P5 \u6d88\u8d39\uff1aP4-SNR \u5b9a\u6743\u5806\u53e0\u65b9\u5dee/\u7b49\u6743 = 1.043\uff08\u540c\u53e3\u5f84\u7406\u8bba 1.044\uff1b\u9010\u50cf\u7d20\u6bd4\u503c\u5747\u503c 1.120\uff09\u21d2 \u94fe\u6761\u63a5\u53e3\u95ed\u5408"
+  ]
+}

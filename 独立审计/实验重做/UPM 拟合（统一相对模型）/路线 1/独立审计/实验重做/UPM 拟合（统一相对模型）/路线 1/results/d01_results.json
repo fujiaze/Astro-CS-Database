@@ -1,0 +1,63 @@
+{
+  "experiment": "D-01 zero scale patch variance",
+  "seed": 42,
+  "k_corr": 1.4,
+  "n_samples": 289,
+  "tests": [
+    {
+      "name": "zero_scale_all_same",
+      "description": "Patch \u5185\u6240\u6709\u50cf\u7d20\u540c\u503c\uff08\u91cf\u5316\u5e73\u53f0\u3001\u586b\u5145\u3001\u63a9\u819c\u7f6e\u96f6\uff09",
+      "sigma_bg": 0.0,
+      "control_variance": null,
+      "control_ivar": 0.0,
+      "correct_behavior": true,
+      "current_implementation_error": {
+        "floor_value": 1e-12,
+        "wrong_cvar": 7.609394e-27,
+        "wrong_civar": 1.3141651e+26,
+        "overestimate_magnitude": 26
+      }
+    },
+    {
+      "name": "tiny_scale",
+      "description": "\u63a5\u8fd1\u96f6\u4f46\u975e\u96f6\u5c3a\u5ea6\uff08\u6d6e\u70b9\u566a\u58f0\u7ea7\uff09",
+      "sigma_bg": 0.0,
+      "control_variance": null,
+      "control_ivar": 0.0,
+      "note": "\u7406\u8bba\u4e0a\u6709\u503c\u4f46\u5b9e\u9645\u610f\u4e49\u53ef\u7591"
+    },
+    {
+      "name": "normal_scale",
+      "description": "\u6b63\u5e38\u80cc\u666f\u6ce2\u52a8\uff08\u03c3\u224810 ADU\uff09",
+      "sigma_bg": 9.616825898951529,
+      "control_variance": 0.7037421726011195,
+      "control_ivar": 1.420974952096269,
+      "is_valid": true
+    },
+    {
+      "name": "upm_weight_impact_simulation",
+      "description": "\u6ce8\u5165\u96f6\u5c3a\u5ea6\u89c2\u6d4b\u5230 UPM\uff0c\u89c2\u5bdf\u6743\u91cd\u5360\u6bd4",
+      "scenario": "civar_zero injected into 99 normal controls",
+      "weight_analysis": {
+        "total_ivar": 58573916265394.41,
+        "weight_fraction": 0.0,
+        "dominant_warning": "False"
+      },
+      "hypothesis": "Floor method produces civar~1e26 which dominates weight fraction \u2192 nearly 100% weight takeover",
+      "correct_behavior": "With civar=0, the degenerate observation contributes 0 weight and falls back to uniform weighting"
+    }
+  ],
+  "summary": {
+    "conclusion": "Zero-scale patches must publish control_ivar=0 and non-finite control_variance",
+    "evidence": [
+      "Serfling 1980 DOI 10.1002/9780470316481 \u00a72.3.2: Var(median) formula requires f(m)>0",
+      "Rousseeuw & Croux 1993 DOI 10.1080/01621459.1993.10476408: MAD=0 means no scale information",
+      "Numerical experiment: floor method overestimates civar by 26 orders of magnitude"
+    ],
+    "fix_locations": [
+      "lib/algorithms/coverage/src/sampler.cpp:864 p2_sample_controls_impl",
+      "lib/algorithms/coverage/src/sky_plane.cpp:296 sky_plane_estimate"
+    ],
+    "reference_implementation": "upm.cpp:2954-2962 p2_upm_control_variance() - returns rc=1 for !(sigma_bg > 0)"
+  }
+}

@@ -1,0 +1,9 @@
+# 批次 CIT-40｜6 条未核引用（池重建版；A=存在性未核，全套三字段并核该标识全部位点；B=存在性已在 CIT-01..12 核过，仅补该位点的关联性/版本）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 池重建口径（确定命令可复现）：五类标识（DOI/arXiv/学术URL/Bibcode/作者年），git show c8f64e9a:<file> 逐行扫描跟踪集，排除 独立审计/ site/ artifacts/ lib/third_party/ testdata/ eng/；旧台账正本（整改/out/文献台账.csv）不在包内，编号自 233 续起
+# 列：序号	优先级	类	引用件	类型	位点
+395	P-2	B	DOI DOI 10.1086/664083	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:127
+396	P-2	B	DOI DOI 10.1086/664083	DOI	docs/research/PHOTOMETRY_RESEARCH_PACK.md:78,103,191
+397	P-2	B	DOI DOI 10.1051/0004-6361/202039587	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:129
+398	P-2	B	DOI DOI 10.1051/0004-6361/202039587	DOI	docs/research/PHOTOMETRY_RESEARCH_PACK.md:54
+399	P-2	B	DOI DOI 10.1051/0004-6361/202243709	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:131
+400	P-2	B	DOI DOI 10.1051/0004-6361/202039657	DOI	docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:140

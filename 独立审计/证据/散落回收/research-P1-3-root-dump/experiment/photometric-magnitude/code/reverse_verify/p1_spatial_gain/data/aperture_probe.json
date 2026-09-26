@@ -1,0 +1,108 @@
+{
+ "pairs": [
+  {
+   "kind": "cross-tel",
+   "labelA": "M42_M1_T2_flying_dutchman-20251212_012404-300S-Red",
+   "labelB": "M42_M1_T3_flying_dutchman-20251128_043530-300S-Red",
+   "n": 793,
+   "radii": {
+    "r3": {
+     "n": 793,
+     "median_stars_per_bin": 87.0,
+     "sigma_z_pct": 4.786818734992404,
+     "before_ptp3x3_pct": 7.775338202150506,
+     "after_ptp3x3_pct": 3.403101775943096,
+     "model_ptp_pct": 7.932427059774705
+    },
+    "r4": {
+     "n": 793,
+     "median_stars_per_bin": 87.0,
+     "sigma_z_pct": 2.893445426133834,
+     "before_ptp3x3_pct": 4.927976168184101,
+     "after_ptp3x3_pct": 1.956767220770339,
+     "model_ptp_pct": 7.932427059774705
+    },
+    "r6": {
+     "n": 793,
+     "median_stars_per_bin": 87.0,
+     "sigma_z_pct": 2.1210845219832297,
+     "before_ptp3x3_pct": 3.8071356305607873,
+     "after_ptp3x3_pct": 4.857289762782457,
+     "model_ptp_pct": 7.932427059774705
+    },
+    "r10": {
+     "n": 793,
+     "median_stars_per_bin": 87.0,
+     "sigma_z_pct": 2.4412053247940158,
+     "before_ptp3x3_pct": 4.248982654292877,
+     "after_ptp3x3_pct": 5.734594454971376,
+     "model_ptp_pct": 7.932427059774705
+    }
+   }
+  },
+  {
+   "kind": "same-tile",
+   "labelA": "M42_M1_T3_flying_dutchman-20251126_041940-300S-Red",
+   "labelB": "M42_M1_T3_flying_dutchman-20251127_042719-300S-Red",
+   "n": 919,
+   "radii": {
+    "r3": {
+     "n": 919,
+     "median_stars_per_bin": 104.0,
+     "sigma_z_pct": 1.855483090890342,
+     "before_ptp3x3_pct": 1.1660437986992678,
+     "after_ptp3x3_pct": 0.8747883805564571,
+     "model_ptp_pct": 1.620957386590649
+    },
+    "r4": {
+     "n": 919,
+     "median_stars_per_bin": 104.0,
+     "sigma_z_pct": 1.2148637911107762,
+     "before_ptp3x3_pct": 0.600957238555222,
+     "after_ptp3x3_pct": 0.49267592141208905,
+     "model_ptp_pct": 1.620957386590649
+    },
+    "r6": {
+     "n": 919,
+     "median_stars_per_bin": 104.0,
+     "sigma_z_pct": 0.8506635999333323,
+     "before_ptp3x3_pct": 0.4088421718432489,
+     "after_ptp3x3_pct": 1.0386388471499641,
+     "model_ptp_pct": 1.620957386590649
+    },
+    "r10": {
+     "n": 919,
+     "median_stars_per_bin": 104.0,
+     "sigma_z_pct": 1.04022798499821,
+     "before_ptp3x3_pct": 0.4635124195593754,
+     "after_ptp3x3_pct": 1.3269632505267692,
+     "model_ptp_pct": 1.620957386590649
+    }
+   }
+  }
+ ],
+ "tau": 0.005,
+ "radii": [
+  [
+   3.0,
+   6.0,
+   10.0
+  ],
+  [
+   4.0,
+   6.0,
+   10.0
+  ],
+  [
+   6.0,
+   10.0,
+   16.0
+  ],
+  [
+   10.0,
+   16.0,
+   24.0
+  ]
+ ],
+ "elapsed_s": 97.67831063270569
+}

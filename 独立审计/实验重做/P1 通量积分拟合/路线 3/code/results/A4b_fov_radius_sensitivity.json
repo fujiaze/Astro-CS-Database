@@ -1,0 +1,26 @@
+{
+  "experiment_id": "A4b_fov_radius_sensitivity",
+  "route": "独立审计路线 3",
+  "review_claim_id": "01/C7 S2 A-4b FOV 半径三项常数",
+  "findings": {
+    "illusion_anchor": {
+      "type": "doc_impl_mismatch",
+      "affected_cases": [
+        "below_thresh"
+      ],
+      "recommendation": "订正 05 为条件钳位表述"
+    }
+  },
+  "unresolved": [
+    "缓冲因子 1.2 的最优值未标定",
+    "钳位界 1.0/10.0 来源未说明"
+  ],
+  "conclusion": "幻觉锚确认：05 声称无条件钳位 vs 代码条件钳位 (<=0 或>=30)。\n三项常数均缺文献腿和推导腿；实验腿部分缺失——仅证明工程合理性无最优标定。\n建议订正文档并登记为项目约定值。",
+  "references": [
+    {
+      "type": "code",
+      "file": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+      "lines": "167-173"
+    }
+  ]
+}

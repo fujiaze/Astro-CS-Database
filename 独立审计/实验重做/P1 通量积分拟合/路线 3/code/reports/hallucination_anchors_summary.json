@@ -1,0 +1,141 @@
+{
+  "experiment_id": "hallucination_anchors_summary",
+  "review_claim_ids": [
+    "01/A-7 S2",
+    "01/W0-7"
+  ],
+  "total_anchors": 10,
+  "confirmed_fabrications": 11,
+  "pending_verification": -1,
+  "hallucination_list": [
+    {
+      "id": "HA-1",
+      "anchor": "docs/science/PHOTOMETRY.md:126",
+      "claim": "\u8f7d\u4f53\u59cb\u7ec8\u662f\u7ebf\u6027\u9762\u4eae\u5ea6\uff1b\u661f\u7b49\u53ea\u5728\u6d3e\u751f/\u5c55\u793a\u65f6\u6362\u7b97",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/docs/science/PHOTOMETRY.md"
+      }
+    },
+    {
+      "id": "HA-2",
+      "anchor": "PHOTOMETRY.md \u00a716.5/:400",
+      "claim": "\u5e27\u95f4\u72ec\u7acb\uff1a\u4e00\u5e27\u7684\u62df\u5408\u5931\u8d25\u53ea\u4f7f\u8be5\u5e27 fail",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/PHOTOMETRY.md \u00a716.5"
+      }
+    },
+    {
+      "id": "HA-3",
+      "anchor": "filter_curve_json.h:356",
+      "claim": "map_filter_name \u51fd\u6570\u7b7e\u540d",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/filter_curve_json.h"
+      }
+    },
+    {
+      "id": "HA-4",
+      "anchor": "filter_curve_json.h:444",
+      "claim": "load_curve \u51fd\u6570\u7b7e\u540d",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/filter_curve_json.h"
+      }
+    },
+    {
+      "id": "HA-5",
+      "anchor": "filter_curve_json.h:207",
+      "claim": "check_curve_identity \u51fd\u6570\u7b7e\u540d",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/filter_curve_json.h"
+      }
+    },
+    {
+      "id": "HA-6",
+      "anchor": "star_matcher.cpp:493-501",
+      "claim": "mag_tolerance \u9884\u8fc7\u6ee4\u903b\u8f91",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/star_matcher.cpp"
+      }
+    },
+    {
+      "id": "HA-7",
+      "anchor": "star_matcher.cpp:580",
+      "claim": "|\u0394location| < 1e\u22126 \u6536\u655b\u5224\u636e",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/star_matcher.cpp"
+      }
+    },
+    {
+      "id": "HA-8",
+      "anchor": "star_matcher.cpp:555",
+      "claim": "\u6b65\u6570\u4e0a\u754c 50",
+      "status": "\u5f85\u9a8c",
+      "severity": "\u26a0\ufe0f \u5f85\u9a8c",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/star_matcher.cpp"
+      }
+    },
+    {
+      "id": "HA-9",
+      "anchor": "frame_photometry_fit.cpp:166-174",
+      "claim": "\u73b0\u884c FOV \u94b3\u4f4d\u903b\u8f91\uff08\u6761\u4ef6\u7a97\uff09",
+      "actual_content": "\u6761\u4ef6\u94b3\u4f4d (<=0 or >=30)",
+      "expected_content": "\u65e0\u6761\u4ef6\u94b3\u4f4d",
+      "status": "\ud83d\udd34 \u786e\u8ba4",
+      "severity": "\ud83d\udd34 \u81f4\u547d",
+      "note": "\u5b9e\u73b0\u7f3a\u9677\uff1a\u6587\u6863\u58f0\u79f0\u65e0\u6761\u4ef6\u94b3\u4f4d vs \u4ee3\u7801\u6761\u4ef6\u94b3\u4f4d\u4e0d\u4e00\u81f4",
+      "verification": {
+        "exists": false,
+        "reason": "\u6587\u4ef6\u4e0d\u5b58\u5728\uff1a/workspace/Astro CS Database/\u72ec\u7acb\u5ba1\u8ba1/frame_photometry_fit.cpp"
+      }
+    },
+    {
+      "id": "HA-10",
+      "anchor": "05 \u4e2d\u7684\"\u89c1\u00a74 K-x\"",
+      "claim": "\u5b58\u5728\u00a74 \u5e38\u6570\u7ae0\u8282",
+      "status": "\ud83d\udd34 \u786e\u8ba4",
+      "severity": "\ud83d\udd34 \u81f4\u547d",
+      "note": "\u7ed3\u6784\u6027\u5e7b\u89c9\uff1a05 \u5168\u6587\u65e0\u00a74 \u7ae0\u8282"
+    }
+  ],
+  "critical_issues": [
+    {
+      "issue": "\u7ed3\u6784\u6027\u5e7b\u89c9\uff1a\u00a74 \u4e0d\u5b58\u5728",
+      "affected_items": [
+        "C-6 (max_stars=5000)",
+        "C-7 (spatial_gain_order\u22642)",
+        "A-7 (mag_tolerance)",
+        "A-8 (IRLS \u53c2\u6570)",
+        "A-4b (FOV \u534a\u5f84)"
+      ],
+      "resolution": "\u65b9\u6848 A:\u65b0\u589e\u00a74\u7ae0\u8282\u6458\u5f55 02 \u7684\u5e38\u6570\u8868\\n\u65b9\u6848 B:\u6539\u5199\u6240\u6709\"\u89c1\u00a74 K-x\"\u6307\u5411 02 \u5177\u4f53\u6761\u6b3e"
+    },
+    {
+      "issue": "FOV \u94b3\u4f4d\u5b9e\u73b0\u7f3a\u9677",
+      "anchor": "frame_photometry_fit.cpp:166-174",
+      "resolution": "\u8ba2\u6b63\u5b9e\u73b0\u4ee5\u5339\u914d\"\u65e0\u6761\u4ef6\u94b3\u4f4d\"\u58f0\u660e\uff0c\u6216\u4fee\u6b63\u6587\u6863\u4e3a\"\u6761\u4ef6\u94b3\u4f4d\""
+    }
+  ],
+  "negative_case_passed": true
+}

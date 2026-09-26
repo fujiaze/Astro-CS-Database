@@ -1,0 +1,48 @@
+{
+  "seed": 20260926,
+  "part_A_identity": {
+    "n": 4096,
+    "max_rel_deviation": 4.440892098500626e-16,
+    "max_rel_deviation_per_frame_fref_variant": 5.551115123125783e-16,
+    "verdict": "PASS",
+    "note": "snr = F_ref/sigma_F (CONTROL_WEIGHT_SNR §2a 参考电平定义) => w=(SNR/F_ref)^2 = 1/sigma_F^2 逐位恒等；alpha=2 由平方给出, beta=1(snr 线性), gamma=2(F_ref 平方), delta=1(sigma_F 线性进 sigma_F^2)；逐帧不同 F_ref_k 变体同样恒等（跨帧绝对口径）"
+  },
+  "part_B_gamma_scan_heteroscedastic": {
+    "n_frames": 24,
+    "n_trials": 20000,
+    "sigma_range_adu": [
+      5.0,
+      160.0
+    ],
+    "rel_var_of_stack_by_gamma": {
+      "0.0": 0.00016997640123594642,
+      "0.5": 4.175994106334306e-05,
+      "1.0": 1.2460562970307707e-05,
+      "1.5": 7.155961356885635e-06,
+      "2.0": 6.457851872185678e-06,
+      "2.5": 6.729273352589935e-06,
+      "3.0": 7.275534479469285e-06
+    },
+    "oracle_inverse_variance_rel_var": 6.542542592893931e-06,
+    "worst_over_gamma2_gain": 26.32088883426455
+  },
+  "part_B_gamma_scan_homoscedastic_negative_control": {
+    "sigma_adu": 40.0,
+    "rel_var_of_stack_by_gamma": {
+      "0.0": 6.57993465397471e-05,
+      "0.5": 6.574373125351547e-05,
+      "1.0": 6.57939868202455e-05,
+      "1.5": 6.594914395779549e-05,
+      "2.0": 6.620849203093115e-05,
+      "2.5": 6.657157143645519e-05,
+      "3.0": 6.703816542050678e-05
+    },
+    "effect_gain_gamma2_vs_worst": 1.0125312231728223,
+    "verdict": "PASS (metric collapses to ~1, i.e. no gamma dependence)"
+  },
+  "conclusions": [
+    "A: 恒等式在 FP64 下成立（max_rel_dev 4.441e-16；逐帧 F_ref 变体 5.551e-16），w=SNR^2/F_ref^2 与 1/sigma_F^2 同一物理量，四指数中 alpha=2/beta=1/delta=1 为数学必然，gamma=2 的物理内容=逆方差定权。",
+    "B: 异方差下 stack 相对方差在 gamma=2 处达最小（=6.4579e-06），与 oracle 逆方差 (6.5425e-06) 同水平；",
+    "B-负例: 同方差场景 gamma 无关（gain=1.0125~1）⇒ 判据非退化。"
+  ]
+}

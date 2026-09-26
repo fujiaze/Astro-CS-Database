@@ -1,0 +1,68 @@
+{
+  "seed": 20260926,
+  "assumptions": {
+    "pixel_scale": "1 arcsec/px",
+    "passband": "G<=16 sky-averaged model counts",
+    "density_sky_per_px2": 5.371530872092846e-05,
+    "density_crowded_per_px2": 0.005371530872092846
+  },
+  "S7_radius_table": {
+    "r=0.5": {
+      "recovery_at_sigma_c_0.1": 0.999996273346828,
+      "recovery_at_sigma_c_0.3": 0.7506477912227038,
+      "recovery_at_sigma_c_0.5": 0.3934693402873666,
+      "false_match_sky": 4.2187014918648735e-05,
+      "false_match_crowded100x": 0.004209903886297495
+    },
+    "r=1.0": {
+      "recovery_at_sigma_c_0.1": 1.0,
+      "recovery_at_sigma_c_0.3": 0.9961340798605272,
+      "recovery_at_sigma_c_0.5": 0.8646647167633873,
+      "false_match_sky": 0.00016873738150935402,
+      "false_match_crowded100x": 0.01673357394008579
+    },
+    "r=2.0": {
+      "recovery_at_sigma_c_0.1": 1.0,
+      "recovery_at_sigma_c_0.3": 0.9999999997766369,
+      "recovery_at_sigma_c_0.5": 0.9996645373720975,
+      "false_match_sky": 0.0006747787114305126,
+      "false_match_crowded100x": 0.06527288481177285
+    },
+    "r=3.0": {
+      "recovery_at_sigma_c_0.1": 1.0,
+      "recovery_at_sigma_c_0.3": 1.0,
+      "recovery_at_sigma_c_0.5": 0.9999999847700203,
+      "false_match_sky": 0.0015176118341058142,
+      "false_match_crowded100x": 0.14090559100336353
+    },
+    "r=5.0": {
+      "recovery_at_sigma_c_0.1": 1.0,
+      "recovery_at_sigma_c_0.3": 1.0,
+      "recovery_at_sigma_c_0.5": 1.0,
+      "false_match_sky": 0.004209903886297495,
+      "false_match_crowded100x": 0.34418664356959117
+    }
+  },
+  "S7_downstream_irls_bias": {
+    "r=2.0": {
+      "median_location_dex": -1.9090187981472235e-05,
+      "p90_abs_location_dex": 0.002772108262540027,
+      "k_photo_p90_bias_dex": 0.002772108262540027
+    },
+    "r=3.0": {
+      "median_location_dex": 3.7962611694127696e-05,
+      "p90_abs_location_dex": 0.002845063974390933,
+      "k_photo_p90_bias_dex": 0.002845063974390933
+    },
+    "r=5.0": {
+      "median_location_dex": 0.006861869216442549,
+      "p90_abs_location_dex": 0.012643489765514849,
+      "k_photo_p90_bias_dex": 0.012643489765514849
+    }
+  },
+  "S7_no_effect_negative": {
+    "sigma_c": 0.0,
+    "density": 0.0,
+    "false_match_count_metric": 0
+  }
+}

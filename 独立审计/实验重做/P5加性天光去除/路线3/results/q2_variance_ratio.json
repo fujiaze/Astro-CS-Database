@@ -1,0 +1,40 @@
+{
+  "seed": 20260926,
+  "n_side": 256,
+  "reps": 20000,
+  "rows": [
+    {
+      "delta_over_sigma": 0.0,
+      "VR_side_mean": 1.0073052634934472,
+      "VR_pool_mean": 0.9999773342416047,
+      "VR_pool_analytic": 1.0,
+      "VR_pool_abs_err": 2.26657583952683e-05,
+      "side_blind_vs_pool_sensitive": false
+    },
+    {
+      "delta_over_sigma": 1.0,
+      "VR_side_mean": 1.0072551063431383,
+      "VR_pool_mean": 1.2515895008580165,
+      "VR_pool_analytic": 1.25,
+      "VR_pool_abs_err": 0.0015895008580164571,
+      "side_blind_vs_pool_sensitive": true
+    },
+    {
+      "delta_over_sigma": 2.0,
+      "VR_side_mean": 1.0075953556506094,
+      "VR_pool_mean": 2.006740503603634,
+      "VR_pool_analytic": 2.0,
+      "VR_pool_abs_err": 0.006740503603634096,
+      "side_blind_vs_pool_sensitive": true
+    },
+    {
+      "delta_over_sigma": 4.0,
+      "VR_side_mean": 1.0087761730570377,
+      "VR_pool_mean": 5.025957835762369,
+      "VR_pool_analytic": 5.0,
+      "VR_pool_abs_err": 0.025957835762368653,
+      "side_blind_vs_pool_sensitive": true
+    }
+  ],
+  "negative_ok": true
+}

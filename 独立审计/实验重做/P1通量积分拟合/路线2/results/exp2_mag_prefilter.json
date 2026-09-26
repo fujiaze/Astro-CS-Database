@@ -1,0 +1,58 @@
+{
+  "seed": 20260926,
+  "n_frames": 500,
+  "S4_mag_tolerance_sweep": {
+    "0.5": {
+      "median_location_dex": 0.000633051944774729,
+      "p90_abs_location_dex": 0.004514583748990246,
+      "median_sigma_residual_dex": 0.048661857769255044,
+      "median_n_consistent": 434.0,
+      "median_n_inliers": 434.0
+    },
+    "1.0": {
+      "median_location_dex": -0.00014285634494521423,
+      "p90_abs_location_dex": 0.004263636304343275,
+      "median_sigma_residual_dex": 0.049721422616101484,
+      "median_n_consistent": 450.0,
+      "median_n_inliers": 450.0
+    },
+    "2.0": {
+      "median_location_dex": -0.00012841632772755214,
+      "p90_abs_location_dex": 0.004271018045882438,
+      "median_sigma_residual_dex": 0.049735570396562685,
+      "median_n_consistent": 478.0,
+      "median_n_inliers": 450.0
+    },
+    "3.0": {
+      "median_location_dex": -0.00010295037782174233,
+      "p90_abs_location_dex": 0.004196858921913669,
+      "median_sigma_residual_dex": 0.04974782593587779,
+      "median_n_consistent": 500.0,
+      "median_n_inliers": 450.0
+    },
+    "5.0": {
+      "median_location_dex": -0.00010295037782174233,
+      "p90_abs_location_dex": 0.004196858921913669,
+      "median_sigma_residual_dex": 0.04974782593587779,
+      "median_n_consistent": 500.0,
+      "median_n_inliers": 450.0
+    },
+    "inf": {
+      "median_location_dex": -0.00010295037782174233,
+      "p90_abs_location_dex": 0.004196858921913669,
+      "median_sigma_residual_dex": 0.04974782593587779,
+      "median_n_consistent": 500.0,
+      "median_n_inliers": 450.0
+    }
+  },
+  "S4_zero_point_shift_invariance": {
+    "location_shift_applied_dex": 0.5,
+    "location_shift_observed_dex": 0.0,
+    "inlier_set_identical": true,
+    "scale_ratio_vs_prediction_dev": 0.0,
+    "no_effect_metric": 0.0,
+    "negative_fluxwindow_inlier_set_differs": true
+  },
+  "S4_flux_ratio_at_3mag": 15.848931924611142,
+  "notes": "true calibration location = 0; contamination 10% at +0.8 dex (=2.0 mag); sigma_r=0.05 dex, sigma_eps=0.2 mag"
+}

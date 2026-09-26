@@ -1,0 +1,46 @@
+{
+ "seed": 20260926,
+ "H8a": {
+  "mean_queries_ladder": 4.99975,
+  "mean_queries_fixed16": 1.0,
+  "max_queries_ladder": 5,
+  "sample_identical_to_fixed16_fraction": 1.0,
+  "criterion": "阶梯的最终样本 ≡ 固定 16 的样本(结构性), 效应只在查询成本",
+  "pass": true
+ },
+ "H8b": {
+  "zero_point_se_by_N": {
+   "200": {
+    "se_dex": 0.0017724338577222,
+    "se_mag": 0.0044310846443055
+   },
+   "500": {
+    "se_dex": 0.0011209855984801946,
+    "se_mag": 0.0028024639962004865
+   },
+   "2000": {
+    "se_dex": 0.0005604927992400973,
+    "se_mag": 0.0014012319981002433
+   },
+   "10000": {
+    "se_dex": 0.00025066,
+    "se_mag": 0.00062665
+   }
+  },
+  "gain_2000_vs_200": 3.1622776601683795,
+  "criterion": "N=2000 ⇒ SE≈1.1 mmag, 处于 XP 合成测光 mmag 精度档;N=200 时 SE 退 3.2 倍 ⇒ 早停阈有精度侧理由",
+  "pass": true
+ },
+ "H8c": {
+  "crowded_fields_ladder_exhausted_fraction_2000": 0.9875,
+  "criterion": "前 10% 拥挤场上两阈值都跑满 5 档 ⇒ 阈值不影响拥挤场行为(01/C5 的 M42 断言)"
+ },
+ "negative_zero_check": {
+  "sparse_fields_identical_fraction": 1.0,
+  "criterion": "极稀疏场两阈值行为相同(样本同) ⇒ 无效应时成本差=0, 归零"
+ },
+ "verdict": {
+  "H8a": true,
+  "H8b": true
+ }
+}

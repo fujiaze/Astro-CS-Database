@@ -1,0 +1,31 @@
+{
+  "test_case": "D-01_zero_scale_civar",
+  "theory": {
+    "formula": "cvar = k_corr \u00d7 (\u03c0/2) \u00d7 \u03c3_bg\u00b2 / N_retained",
+    "k_corr": 1.4,
+    "N_retained_default": 289,
+    "zero_scale_rule": "\u03c3_bg == 0 \u21d2 civar = 0 (not floor)"
+  },
+  "closed_form_calculation": {
+    "sigma_bg_0": {
+      "cvar": 0.0,
+      "civar": 0.0
+    },
+    "sigma_bg_floor_1e12": {
+      "cvar": 7.609393970632716e-27,
+      "civar": 1.3141651015302217e+26
+    }
+  },
+  "injection_experiment": {
+    "description": "Inject zero-ratio patches and measure MAD",
+    "patches_tested": [
+      0.4,
+      0.5,
+      0.51,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "threshold": ">=50% zeros \u21d2 MAD=0 \u21d2 civar=0"
+  }
+}

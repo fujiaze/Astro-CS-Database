@@ -1,0 +1,30 @@
+{
+  "parameters": {
+    "mag_steps": [
+      12.0,
+      13.0,
+      14.0,
+      15.0,
+      16.0
+    ],
+    "fov_deg": 5.0,
+    "rho_12": 100.0,
+    "k": 0.6,
+    "early_stop_threshold": 2000
+  },
+  "analysis": {
+    "growth_factor_per_mag": "~4\u00d7",
+    "max_star_count_at_16": 493207,
+    "early_stop_triggers_at_mag_ge": 13.0,
+    "avg_fov_to_trigger": 1.9593276120075358
+  },
+  "negative_control": {
+    "variance": 0.0,
+    "passed": true
+  },
+  "conclusions": {
+    "exponential_growth_confirmed": true,
+    "early_stop_necessary": true,
+    "engineering_tradeoff": "Balance sample\u4ee3\u8868\u6027 vs query cost"
+  }
+}

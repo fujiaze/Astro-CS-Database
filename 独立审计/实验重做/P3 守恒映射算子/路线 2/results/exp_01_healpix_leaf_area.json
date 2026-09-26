@@ -1,0 +1,78 @@
+{
+  "title": "HEALPix Leaf Area Formula Validation",
+  "literature_reference": {
+    "citation": "G\u00f3rski et al. 2005, ApJ 622, 759",
+    "doi": "10.1086/427976",
+    "section": "\u00a74 Equal Area Pixels",
+    "formula": "A_pixel = 4\u03c0/(12\u00b7nside\u00b2) = \u03c0/(3\u00b7nside\u00b2)"
+  },
+  "test_cases": [
+    {
+      "nside": 16,
+      "a_leaf_sr": 0.0040906154343617095,
+      "a_leaf_arcsec_sq": 174035930.27098757,
+      "nside_recovered": 16.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 32,
+      "a_leaf_sr": 0.0010226538585904274,
+      "a_leaf_arcsec_sq": 43508982.56774689,
+      "nside_recovered": 32.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 64,
+      "a_leaf_sr": 0.00025566346464760684,
+      "a_leaf_arcsec_sq": 10877245.641936723,
+      "nside_recovered": 64.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 128,
+      "a_leaf_sr": 6.391586616190171e-05,
+      "a_leaf_arcsec_sq": 2719311.410484181,
+      "nside_recovered": 128.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 256,
+      "a_leaf_sr": 1.5978966540475428e-05,
+      "a_leaf_arcsec_sq": 679827.8526210452,
+      "nside_recovered": 256.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 512,
+      "a_leaf_sr": 3.994741635118857e-06,
+      "a_leaf_arcsec_sq": 169956.9631552613,
+      "nside_recovered": 512.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 1024,
+      "a_leaf_sr": 9.986854087797142e-07,
+      "a_leaf_arcsec_sq": 42489.240788815325,
+      "nside_recovered": 1024.0,
+      "rel_error": 0.0
+    },
+    {
+      "nside": 2048,
+      "a_leaf_sr": 2.4967135219492856e-07,
+      "a_leaf_arcsec_sq": 10622.310197203831,
+      "nside_recovered": 2048.0,
+      "rel_error": 0.0
+    }
+  ],
+  "summary": {
+    "n_test_cases": 8,
+    "max_relative_error": 0.0,
+    "max_error_location": {
+      "nside": 2048,
+      "a_leaf": 2.4967135219492856e-07,
+      "nside_recovered": 2048.0,
+      "rel_error": 0.0
+    },
+    "conclusion": "Formula validated across all tested nside values"
+  }
+}

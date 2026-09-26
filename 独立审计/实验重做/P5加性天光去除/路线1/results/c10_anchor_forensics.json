@@ -1,0 +1,502 @@
+{
+  "repo_root": "/workspace/Astro CS Database",
+  "checks": [
+    {
+      "claim": "05: '11_upm.md §4.2 = 节点密度约束'",
+      "target": "docs/plugins/algorithms_phase2/11_upm.md",
+      "pattern": "### 4\\.2 [^\\n]*",
+      "hits": [
+        {
+          "file": "docs/plugins/algorithms_phase2/11_upm.md",
+          "line": 46,
+          "text": "### 4.2 稀疏天光面表示"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "05: sky_spline.cpp::refine_nodes_adaptive 存在",
+      "target": "lib/algorithms/coverage/src",
+      "pattern": "refine_nodes_adaptive",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: PHASE2_UPM.md §6 = lambda_bend 弯曲能 [0.01,0.1]",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "lambda_bend|弯曲能",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: PHASE2_UPM_IMPL.md §6.3 数值稳定性",
+      "target": "docs/algorithms/PHASE2_UPM_IMPL.md",
+      "pattern": "^### 6\\.3|^## 6 ",
+      "hits": [
+        {
+          "file": "docs/algorithms/PHASE2_UPM_IMPL.md",
+          "line": 158,
+          "text": "## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md §2 一致，逐条实现锚）"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "05: REJECTION.md §5.2 留痕图景",
+      "target": "docs/science/REJECTION.md",
+      "pattern": "^### 5\\.2",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: ASTROCS_DESIGN.md §2.3 平滑性要求",
+      "target": "ASTROCS_DESIGN.md",
+      "pattern": "^### 2\\.3 [^\\n]*",
+      "hits": [
+        {
+          "file": "ASTROCS_DESIGN.md",
+          "line": 208,
+          "text": "### 2.3 创新点三（P3）：算子——平面到 HEALPix 的通量守恒映射与控制点上球面"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "05: sky_corrections.jsonl 产品 schema",
+      "target": "docs",
+      "pattern": "sky_corrections\\.jsonl",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: TilingResult / run_summary.json",
+      "target": "docs",
+      "pattern": "TilingResult|run_summary\\.json",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: min_cluster_size = 3",
+      "target": "lib",
+      "pattern": "min_cluster_size",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: quality_factor 初始 0.5 基准",
+      "target": "lib/algorithms/coverage/src/upm.cpp",
+      "pattern": "quality_factor",
+      "hits": [
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 9,
+          "text": "// - 观测权重 raw_w = quality_factor * control_ivar（ 冻结，"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 220,
+          "text": "inline double quality_factor(std::uint32_t flags, int mode) {"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 663,
+          "text": "// - 真零权重（如 quality_factor=0 的全部观测）Σ=0 ⇒ 仍得 0，"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 1980,
+          "text": "const double qf = quality_factor(obs->quality_flags, cfg.quality_mode);"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "05: sigma_bg_floor = 1.0 ADU",
+      "target": "lib",
+      "pattern": "sigma_bg_floor",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: support_min = 0.2",
+      "target": "lib/algorithms/coverage",
+      "pattern": "support_threshold",
+      "hits": [
+        {
+          "file": "lib/algorithms/coverage/tools/stage2.cpp",
+          "line": 1350,
+          "text": "gin.support_threshold = 0.0;"
+        },
+        {
+          "file": "lib/algorithms/coverage/tools/stage2.cpp",
+          "line": 1602,
+          "text": "gin.support_threshold = 0.0;"
+        },
+        {
+          "file": "lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp",
+          "line": 114,
+          "text": "in.support_threshold = 0.0;"
+        },
+        {
+          "file": "lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp",
+          "line": 144,
+          "text": "in.support_threshold = 0.0;"
+        },
+        {
+          "file": "lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp",
+          "line": 176,
+          "text": "in.support_threshold = 0.0;"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "05: condition_number_max = 1e12",
+      "target": "docs",
+      "pattern": "condition_number_max",
+      "hits": [],
+      "status": "NOT_FOUND"
+    },
+    {
+      "claim": "05: alpha=0.7/beta=2.0/h_absolute_min=0.01 节点密度",
+      "target": "docs/plugins/algorithms_phase2",
+      "pattern": "0\\.7|h_absolute_min",
+      "hits": [
+        {
+          "file": "docs/plugins/algorithms_phase2/10_sampling.md",
+          "line": 109,
+          "text": "χ²_red 0.771、δ_k 非零。"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "05: rel_step_max = 0.1 (接缝门 10%)",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "rel_step",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 295,
+          "text": "`rel_step(e) = median(img[+d] − img[−d]) / bg(e)`，`bg(e)` 为该边界 `±d` 采样上的**局部**背景电平。判据量是**相对**口径（无量纲、可跨产品比），"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 296,
+          "text": "门 `max_e |rel_step(e)| ≤ 1e-2`：**该门槛的推导与实测标定正本 = 本文件 §17**（观测量与零假设分布、虚警率、可检出下限、漏检面与实测标定；本节不再指向别处索取依据），其面向要求 = `ACCEPTANCE_SPEC.md` §6.2「帧间、块间无亮度/灰度阶跃」与 `ASTROCS"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 342,
+          "text": "- 解析不变量→SYN-005 转换：已知低阶光度面恢复、重叠图 gauge/退化强度扫描、接缝指标按 §9a 的**有符号台阶**口径（门 `max|rel_step| ≤ 1e-2`、适用域与 fail-closed 同 §9a），参数恢复/残差/接缝降低且不破坏星 flux 全过。"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 387,
+          "text": "## 17 接缝门槛 `max_e |rel_step(e)| ≤ 1e-2` 的推导（观测量与噪声模型）"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 397,
+          "text": "rel_step(e) = median_i seam_i(e) / bg(e)"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: min_samples 默认 5 (sampler.h)",
+      "target": "lib/algorithms/coverage/include/astro/phase2/sampler.h",
+      "pattern": "min_samples",
+      "hits": [
+        {
+          "file": "lib/algorithms/coverage/include/astro/phase2/sampler.h",
+          "line": 37,
+          "text": "int min_samples;              // 有效样本最小数（默认 5）"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: rank_rtol 判据与 max(m,n)*eps 地板",
+      "target": "lib/algorithms/coverage/include/astro/phase2/identifiability.h",
+      "pattern": "rank_rtol",
+      "hits": [
+        {
+          "file": "lib/algorithms/coverage/include/astro/phase2/identifiability.h",
+          "line": 10,
+          "text": "//      （相对 rank_rtol 口径），**不得**保留互相矛盾的绝对常数。」"
+        },
+        {
+          "file": "lib/algorithms/coverage/include/astro/phase2/identifiability.h",
+          "line": 21,
+          "text": "// 记 H_eq 的特征值 λ_1 ≥ … ≥ λ_n，唯一阈值 τ = rank_rtol，则定义"
+        },
+        {
+          "file": "lib/algorithms/coverage/include/astro/phase2/identifiability.h",
+          "line": 37,
+          "text": "// p2_identifiability_rank_rtol_floor = max(m,n)·eps，与 NumPy"
+        },
+        {
+          "file": "lib/algorithms/coverage/include/astro/phase2/identifiability.h",
+          "line": 128,
+          "text": "double rank_rtol;              // 请求的 τ"
+        },
+        {
+          "file": "lib/algorithms/coverage/include/astro/phase2/identifiability.h",
+          "line": 129,
+          "text": "double rank_rtol_effective;    // 实际生效的 τ = max(请求值, max(m,n)·eps)"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: sigma_floor = 1e-3 (upm.cpp sigma_eff)",
+      "target": "lib/algorithms/coverage/src/upm.cpp",
+      "pattern": "sigma_floor",
+      "hits": [
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 273,
+          "text": "cfg.sigma_floor = 1e-3;"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 292,
+          "text": "if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 762,
+          "text": "std::max(std::fabs(obs[i].uncertainty), cfg.sigma_floor);"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 772,
+          "text": "// sigma_eff = max(观测 uncertainty, sigma_floor)，delta 取"
+        },
+        {
+          "file": "lib/algorithms/coverage/src/upm.cpp",
+          "line": 779,
+          "text": "std::max(std::fabs(obs[i].uncertainty), cfg.sigma_floor);"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: 接缝门 1e-2 (PHASE2_UPM §17)",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "rel_step",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 295,
+          "text": "`rel_step(e) = median(img[+d] − img[−d]) / bg(e)`，`bg(e)` 为该边界 `±d` 采样上的**局部**背景电平。判据量是**相对**口径（无量纲、可跨产品比），"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 296,
+          "text": "门 `max_e |rel_step(e)| ≤ 1e-2`：**该门槛的推导与实测标定正本 = 本文件 §17**（观测量与零假设分布、虚警率、可检出下限、漏检面与实测标定；本节不再指向别处索取依据），其面向要求 = `ACCEPTANCE_SPEC.md` §6.2「帧间、块间无亮度/灰度阶跃」与 `ASTROCS"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 342,
+          "text": "- 解析不变量→SYN-005 转换：已知低阶光度面恢复、重叠图 gauge/退化强度扫描、接缝指标按 §9a 的**有符号台阶**口径（门 `max|rel_step| ≤ 1e-2`、适用域与 fail-closed 同 §9a），参数恢复/残差/接缝降低且不破坏星 flux 全过。"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 387,
+          "text": "## 17 接缝门槛 `max_e |rel_step(e)| ≤ 1e-2` 的推导（观测量与噪声模型）"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 397,
+          "text": "rel_step(e) = median_i seam_i(e) / bg(e)"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: 方差比对电平阶跃失明 (11_upm §4.1)",
+      "target": "docs/plugins/algorithms_phase2/11_upm.md",
+      "pattern": "方差比",
+      "hits": [
+        {
+          "file": "docs/plugins/algorithms_phase2/11_upm.md",
+          "line": 42,
+          "text": "**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），"
+        },
+        {
+          "file": "docs/plugins/algorithms_phase2/11_upm.md",
+          "line": 43,
+          "text": "**方差比的引用面 = 诊断量本身**；"
+        },
+        {
+          "file": "docs/plugins/algorithms_phase2/11_upm.md",
+          "line": 162,
+          "text": "- **非退化接缝判据**：在**保留 `B_ref`** 的前提下比较帧间一致性（`raw−C` 全减会因背景归零而**假通过**，判据面只取保留 `B_ref` 的口径）；判据量取**有符号**台阶 `rel_step` 并套适用域（§4.1），负例 = 注入已知台阶必判红、两侧噪声差大但无台阶必判绿、旧方差比口径"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: control_variance = k_corr*(pi/2)*sigma^2/N",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "pi/2|π/2",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 20,
+          "text": "| `control_variance` | `k_corr·(π/2)·σ_bg²/N_retained` | `ALG-UPM-CONTROL-IVAR-001` |"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 77,
+          "text": "control_variance = k_corr × (π/2) × σ_bg² / N_retained"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 407,
+          "text": "`se(median) = √(π/2)·σ_seam/√N_e`，**中位数的渐近标准误系数 = √(π/2) = 1.2533141…**。故"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 409,
+          "text": "σ_rel(e) = √(π/2) · MAD(seam)(e) / ( √N_e · bg(e) )        （MAD = 1.4826×中位绝对偏差）"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 413,
+          "text": "合成夹具实测：按 `√2σ_pix` 反推得 1.186e-3，实测 `√(π/2)·MAD(seam)/(√N·bg)` = 7.45e-4，"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: k_corr 冻结默认 1.4, MC 1.3883",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "1\\.3883|1\\.4",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 24,
+          "text": "| `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒），冻结默认 1.4 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） |"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 42,
+          "text": "- `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:874`）；"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 49,
+          "text": "**适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。生产取值 1.4 的来源是"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 50,
+          "text": "项目自产 MC（pixfrac=0.8、2000 次、实证 1.3883），该证据源 `control_median_mc_test`"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 54,
+          "text": "冻结常数 1.4**。写盘门（FZ-PROV-KCORR，"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: Huber delta=1.345",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "1\\.345|[Hh]uber",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 95,
+          "text": "Huber IRLS + control-ivar 感知权重 + 弱零锚 (zero_anchor_weight=0.001) + 连通分量独立 gauge"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 131,
+          "text": "- **Huber 对称性（无量纲标准化）**：残差先标准化 `z=r/sigma_eff`，其中 `r=value−M−C`，"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 132,
+          "text": "`sigma_eff=max(|uncertainty|,sigma_floor)`；`Huber(δ=1.345)` 作用于无量纲 `z`："
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 134,
+          "text": "**δ=1.345 的量纲与出处**：δ 无量纲（单位 = sigma_eff）；δ=1.345 是**高斯**参考分布下"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 135,
+          "text": "渐近效率 95% 的 Huber 阈值，出处 Huber, P. J. 1964, *Ann. Math. Statist.* **35**, 73-101,"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: scale_obs=5.26e13 / 绝对 1e-6 容差",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "5\\.26|1e-6",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 100,
+          "text": "tolerance（默认 1e-6，标量，同时作步长判据的容差）"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 111,
+          "text": "ADU·sr⁻¹（M42 真帧天空 1210 ADU/px ÷ Ω_px 2.2991e-11 sr ⇒ ≈5.26e13 ADU·sr⁻¹），"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 112,
+          "text": "绝对 1e-6 比该尺度上的 ULP 严若干数量级、原理上不可达 ⇒ **生产必须 tolerance_relative=1**。"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 378,
+          "text": "| 收敛判据的尺度归一 | 生产必须走相对/尺度归一判据（绝对 1e-6 在生产尺度不可达） | `module_adapters.cpp:7808-7813` 取 `tolerance=1e-6` ∧ `tolerance_relative=1`（相对判据，分母 `max(scale_obs,1)`）；`p2_ses"
+        }
+      ],
+      "status": "FOUND"
+    },
+    {
+      "claim": "正本: rtol 1e-12 跨 worker / 2.22e-15",
+      "target": "docs/science/PHASE2_UPM.md",
+      "pattern": "1e-12|2\\.22e-15|2\\.22",
+      "hits": [
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 106,
+          "text": "|Δobj| / max(|obj_old|, 1e-300) < 1e-12 连续 5 次 ⇒ stalled"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 145,
+          "text": "- **frame_id 绑定幂等**：`save→open` 后 `parameter_rows[index]` 重开值 `max_abs==0`（`dense/sparse 1e-12` 等价门）。"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 154,
+          "text": "（1..N）= 相对容差 rtol 1e-12**（判据 `|ΔC| ≤ 1e-12·max(|C|, C_scale)`，"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 158,
+          "text": "实测 ΔC_max = 2.22e-15（该算例 C 量级 ≈10，即 ≈1 ulp）；"
+        },
+        {
+          "file": "docs/science/PHASE2_UPM.md",
+          "line": 160,
+          "text": "**适用域（正向约束）**：判据必须随标度归一。绝对量 1e-12 只在 `|C| ≈ 1` 时与 rtol 1e-12"
+        }
+      ],
+      "status": "FOUND"
+    }
+  ]
+}

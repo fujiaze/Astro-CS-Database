@@ -1,0 +1,33 @@
+{
+ "seed": 20260926,
+ "H9a": {
+  "n_G_lt15": 23261,
+  "n_G_15_16": 2527,
+  "ZP_syn_family_lt15": 15.129955263417198,
+  "ZP_syn_family_lt16": 15.129945965761614,
+  "delta_ZP_mag": -9.297655584106224e-06,
+  "sigma_G_15_16": 0.01714246904057662,
+  "sigma_base_lt15": 0.01,
+  "criterion": "诚实判据: [15,16) 档散度高于基线(散度上升成立)且越出官方采样表示发布限 G<15(Montegriffo 2023, A&A 674 A3)⇒ 适用域违规为结构性事实;但该族(占比~10%)对 ZP 中位数的影响在本模型仅 ~1e-5 mag ⇒ 不构成可测数值污染",
+  "pass": true
+ },
+ "H9b": {
+  "delta_ZP_two_faces": 0.0,
+  "note": "当阶梯跑满 5 档时两族相同 ⇒ 差=0; 当阶梯在更亮档早停(如 14)时,ZP 面仍含 [14,16) 星 ⇒ 差非零, 本模型给出该差值",
+  "early_stop_at_14_case": {
+   "ZP_fit_family_lt14": 15.12996314800263,
+   "delta_ZP_vs_ZPface": 1.7182241016655553e-05
+  },
+  "pass": true
+ },
+ "negative_zero_check": {
+  "same_family_delta": 0.0,
+  "criterion": "两面同族 ⇒ 差恒 0(结构性恒等)",
+  "pass": true
+ },
+ "mag_min_note": "G=6.0 在 Gaia 星表范围 [3,21] 内(非饱和端); 亮端截断的依据属项目约定, 未见文献给出'定标星族不应亮于 6'的一般性论证 ⇒ 文献腿 UNRESOLVED",
+ "verdict": {
+  "H9a": true,
+  "negative_zero": true
+ }
+}

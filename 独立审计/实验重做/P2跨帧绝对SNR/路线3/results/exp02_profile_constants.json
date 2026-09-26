@@ -1,0 +1,38 @@
+{
+ "experiment": "P2-route3 EXP-02 profile FWHM<->sigma and trimmed-mean constants",
+ "seed": 20260926,
+ "H1_gaussian": {
+  "closed_form": 2.3548200450309493,
+  "frozen_literal": 2.3548200450309493,
+  "rel_diff_closed_vs_frozen": 0.0,
+  "numeric_dense_grid": 2.355,
+  "rel_diff_numeric_vs_closed": 7.641983914243863e-05
+ },
+ "H2_moffat4": {
+  "closed_form": 1.2303076525901024,
+  "frozen_literal": 1.23031,
+  "rel_diff_frozen_vs_closed": 1.907986098137407e-06,
+  "numeric_dense_grid": 1.2304499999999998,
+  "rel_diff_numeric_vs_closed": 0.0001157006620236039,
+  "mc_mean_r2_expect_sigma2": 0.9999521246340717,
+  "mc_mean_x2_expect_sigma2_half": 0.4985205823517884,
+  "mc_n": 2000000
+ },
+ "H3_trimmed_mean": {
+  "closed_form": 0.731673095280613,
+  "frozen_literal": 0.7316727929211932,
+  "rel_diff_frozen_vs_closed": -4.132438676152551e-07,
+  "mc_mean": 0.7318993346947157,
+  "mc_se": 0.00015558709941460605,
+  "mc_minus_closed_over_closed": 0.0003092083275468065,
+  "mc_z": 1.4541013680050316,
+  "n_per_trial": 4096,
+  "n_trials": 4000
+ },
+ "negative_controls": {
+  "gaussian_factor_on_moffat4_rel_mismatch": 0.9140091017669196,
+  "tm_factor_applied_as_mad_factor_rel_mismatch": 0.07815384592450011,
+  "wrong_constant_detected": true,
+  "psf_norm_tol_1e9_propagation": 1.000000082740371e-09
+ }
+}

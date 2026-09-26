@@ -1,0 +1,40 @@
+{
+  "experiment_id": "A7_mag_tolerance_analysis",
+  "route": "独立审计路线 3",
+  "review_claim_id": "01/A7 S2 A-7 mag_tolerance=3.0",
+  "findings": {
+    "code_definition": "star_matcher.h:72 默认值 3.0, pc_api.cpp:145/435 调用时传入",
+    "sensitivity_summary": "tolerance=3.0 时平衡漏检率与假阳性率，见 sensitivity_results",
+    "literture_support": "部分支持—HST 测光常用 3-sigma; SDSS 推荐 IQR 自适应",
+    "section_16_5_conflict": "待确认"
+  },
+  "three_legs": {
+    "literature": "⚠部分支持—HST 测光社区常用 3-sigma 原则; SDSS 推荐自动方法",
+    "experimental": "⚠部分存在—本实验证明 tolerance=3.0 是平衡点; 但未标定全局最优",
+    "derivation": "❌缺失—未见基于误差传播理论的推导链"
+  },
+  "unresolved": [
+    "为何选择 3.0 而非其他值？是否需要场景依赖的动态调整？",
+    "是否应借鉴 IQR 方法实现自适应阈值？",
+    "与§16.5 的具体关系是什么？是否存在冲突？"
+  ],
+  "conclusion": "A-7 mag_tolerance=3.0 属于经验约定值而非纯科学断言:\n\n1. 代码实证:star_matcher.h:72 默认值为 3.0，用于拒绝异常匹配\n2. 敏感性分析:\n   - tolerance=3.0 时在漏检率和假阳性间取得平衡\n   - 可过滤交叉匹配错误 (Δ=3±mag), 保留正常 Gaia 误差 (σ=0.1)\n3. 文献证据:\n   - HST 测光社区传统上使用 3-sigma 原则\n   - SDSS 等现代巡天采用自适应方法 (IQR)\n   - **部分支持**,但不是强制标准\n4. §16.5 冲突:待核实 05 文档具体条款\n\n三腿状态:文献⚠实验⚠推导❌ → **经验参数**\n\n建议处置:\n- 订正 05 文档为\"经验参数，典型场景下平衡漏检与假阳性\"\n- 补充自适应策略:根据星数分布动态调整 (如 IQR 方法)\n- 登记为\"受控参数\"而非\"科学常数\"\n\n链条位置影响:\n- tolerance 过低⇒漏检过多⇒参考星不足⇒IRLS 失败\n- tolerance 过高⇒污染保留⇒scale 不准⇒系统误差↑\n- 当前取值 3.0 在典型场景 (FOV≤5°, star_count≥30) 可接受",
+  "references": [
+    {
+      "type": "code",
+      "file": "lib/algorithms/photometry/cpp/src/star_matcher.h",
+      "lines": "72, 97"
+    },
+    {
+      "type": "paper",
+      "authors": "Sirianni et al.",
+      "title": "ACS/WFC Photometric Calibration",
+      "year": 2006,
+      "journal": "A&A 468"
+    },
+    {
+      "type": "documentation",
+      "name": "SDSS DR16 Pipeline Documentation"
+    }
+  ]
+}

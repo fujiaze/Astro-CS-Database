@@ -1,0 +1,34 @@
+{
+  "seed": 20261001,
+  "scenario": {
+    "N": 512,
+    "gain_adu": 1.0,
+    "sigma_slow_adu": 5.0,
+    "f_sky_skyshot_fraction": 0.368,
+    "moffat_fwhm_px": 3.0,
+    "A_peak_adu": 1416.6
+  },
+  "arm_no_source": {
+    "max_rel_diff_full_vs_nosource_arms": 0.0,
+    "median_abs_Ssrc_over_sigma_slow": 0.0,
+    "verdict": "PASS (\u9010\u4f4d\u6052\u7b49 + \u5f52\u96f6)"
+  },
+  "arm_double_count_sky": {
+    "measured_variance_ratio_vs_sigma_slow": 1.370691790531479,
+    "theory_1_plus_f_sky": 1.3679999999999999,
+    "doc_claimed_136802_scenario": 1.36802,
+    "note": "1.36802 \u662f\u7279\u5b9a\u573a\u666f\u8bfb\u6570\uff1a\u6bd4\u503c=1+f_sky\uff0cf_sky=\u5929\u5149\u6563\u7c92\u65b9\u5dee/\u80cc\u666f\u65b9\u5dee\uff1b\u975e\u666e\u9002\u5e38\u6570"
+  },
+  "contrast_arm_with_source": {
+    "median_abs_Ssrc_over_sigma_w_allframe": 1.867140673878752e-12,
+    "median_abs_Ssrc_over_sigma_w_core": 18.017686700223226,
+    "peak_abs_Ssrc_over_sigma_w": 37.30996577403862,
+    "threshold": 0.05,
+    "verdict": "PASS (>>0.05 \u5224\u7ea2)"
+  },
+  "conclusions": [
+    "\u65e0\u6e90\u8d1f\u4f8b\uff1a\u4e24\u81c2\u76f8\u5bf9\u5dee=0.0e+00\uff0c\u6e90\u9879\u5ea6\u91cf=0.0e+00\uff08\u5f52\u96f6\u6210\u7acb\uff0c\u9010\u81c2\u4e66\u5199\u5224\u636e\u901a\u8fc7\uff09",
+    "\u53cc\u8ba1\u81c2\uff1a\u5b9e\u6d4b\u6bd4\u503c=1.37069 vs \u7406\u8bba 1+f_sky=1.36800\uff08f_sky=0.368 \u573a\u666f\u8bbe\u5b9a\uff09\uff0c\u8bc1\u660e\u8be5\u8bfb\u6570\u968f\u573a\u666f\u53c2\u6570\u53d8\u5316",
+    "\u6709\u6e90\u5bf9\u7167\uff1a\u5cf0\u503c\u5ea6\u91cf=37.31\u3001\u6838\u5fc3\u533a\u4e2d\u4f4d=18.02 >> 0.05\uff08\u5224\u636e\u975e\u9000\u5316\u6210\u7acb\uff09\uff1b37.31 \u4e3a\u573a\u666f\u8bfb\u6570\u975e\u666e\u9002\u5e38\u6570"
+  ]
+}

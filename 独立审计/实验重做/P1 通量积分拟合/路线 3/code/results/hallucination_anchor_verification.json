@@ -1,0 +1,135 @@
+{
+  "experiment_id": "HALLUCINATION",
+  "title": "Hallucination Anchor Verification",
+  "audit_date": "2026-09-26",
+  "review_item": "幻觉锚：frame_photometry_fit.cpp:166-174 '无条件钳位'主张",
+  "finding": {
+    "is_hallucination_anchor": true,
+    "nature": "S2 级幻觉——文档声称的内容与实际代码完全不一致",
+    "details": [
+      {
+        "test_case": "小 FOV (但>0)",
+        "input": 0.5,
+        "document_claim": 1.0,
+        "actual_code": 0.5,
+        "reason": "条件窗未触发时，无条件钳位仍会修改值"
+      },
+      {
+        "test_case": "大 FOV (但<30)",
+        "input": 25.0,
+        "document_claim": 10.0,
+        "actual_code": 25.0,
+        "reason": "条件窗未触发时，无条件钳位仍会修改值"
+      }
+    ]
+  },
+  "correction_required": {
+    "current_document_statement": "无条件钳位 min(max(fov, 1.0), 10.0)",
+    "corrected_statement": "条件钳位：只在 fov≤0 或 fov≥30 时钳位到 [1.0, 10.0]",
+    "priority": "立即订正"
+  },
+  "three_legs_assessment": {
+    "literature": "不适用 (这是文档 - 代码一致性检查)",
+    "experiment": "✅ 代码实证已证实",
+    "derivation": "N/A"
+  },
+  "recommendations": [
+    "1. 立即在 05 中订正：删除'无条件钳位'说法",
+    "2. 改为'条件钳位：只在 fov≤0 或 fov≥30 时钳位到 [1.0, 10.0]'",
+    "3. 将此作为 S2 级问题记录，确保修复包中包含此订正"
+  ],
+  "evidence": {
+    "test_cases": [
+      {
+        "input": 5.0,
+        "description": "典型 FOV"
+      },
+      {
+        "input": 0.5,
+        "description": "小 FOV (但>0)"
+      },
+      {
+        "input": -1.0,
+        "description": "负 FOV"
+      },
+      {
+        "input": 25.0,
+        "description": "大 FOV (但<30)"
+      },
+      {
+        "input": 35.0,
+        "description": "超大 FOV"
+      }
+    ],
+    "unconditional_behavior": [
+      {
+        "input": 5.0,
+        "output": 5.0,
+        "changed": false
+      },
+      {
+        "input": 0.5,
+        "output": 1.0,
+        "changed": true
+      },
+      {
+        "input": -1.0,
+        "output": 1.0,
+        "changed": true
+      },
+      {
+        "input": 25.0,
+        "output": 10.0,
+        "changed": true
+      },
+      {
+        "input": 35.0,
+        "output": 10.0,
+        "changed": true
+      }
+    ],
+    "conditional_behavior": [
+      {
+        "input": 5.0,
+        "output": 5.0,
+        "changed": false
+      },
+      {
+        "input": 0.5,
+        "output": 0.5,
+        "changed": false
+      },
+      {
+        "input": -1.0,
+        "output": 1.0,
+        "changed": true
+      },
+      {
+        "input": 25.0,
+        "output": 25.0,
+        "changed": false
+      },
+      {
+        "input": 35.0,
+        "output": 10.0,
+        "changed": true
+      }
+    ],
+    "inconsistencies": [
+      {
+        "test_case": "小 FOV (但>0)",
+        "input": 0.5,
+        "document_claim": 1.0,
+        "actual_code": 0.5,
+        "reason": "条件窗未触发时，无条件钳位仍会修改值"
+      },
+      {
+        "test_case": "大 FOV (但<30)",
+        "input": 25.0,
+        "document_claim": 10.0,
+        "actual_code": 25.0,
+        "reason": "条件窗未触发时，无条件钳位仍会修改值"
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "seed": 20260926,
+  "cst04": {
+    "closed_form": 2.3548200450309493,
+    "registered": 2.3548200450309493,
+    "rel_diff": 0.0,
+    "numeric_fwhm_over_sigma": 2.3548200450309493
+  },
+  "cst06": {
+    "closed_form_this_convention": 0.7316730945070672,
+    "registered": 0.7316727929211932,
+    "rel_diff_closed_vs_registered": -4.121866393679298e-07,
+    "mc_mean": 0.7316794518889812,
+    "mc_rel_se": 1.352124184790555e-05,
+    "mc_vs_registered_rel": -9.10093589585181e-06,
+    "quantiles_used": [
+      0.12566134687610309,
+      1.644853625133699
+    ]
+  },
+  "cst07": {
+    "N64_zeta_median": 1.2454461394953387,
+    "N200_zeta_median": 1.2553736426502433,
+    "N9216_zeta_median": 1.2442852345684938,
+    "closed_form": 1.2533141373155001,
+    "registered": 1.2533141373155001,
+    "rel_diff": 0.0,
+    "truncated_1p253_rel_bias": -0.00025064531400969154,
+    "expected_truncation_bias_claim": -0.00025065
+  },
+  "cst25_diagnostic": {
+    "note": "diagnostic-only (production zero consumers); no science claim",
+    "enclosed_energy_within_1p5fwhm_gaussian": 0.998046875,
+    "enclosed_energy_within_1p5fwhm_moffat_b2p5": 0.8689320760093728
+  }
+}

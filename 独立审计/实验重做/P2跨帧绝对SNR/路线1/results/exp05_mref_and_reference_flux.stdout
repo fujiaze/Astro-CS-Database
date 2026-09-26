@@ -1,0 +1,66 @@
+{
+ "seed": 20260926,
+ "frame_snr_vs_mref": {
+  "m_ref": [
+   4.0,
+   5.0,
+   6.0,
+   7.0,
+   8.0
+  ],
+  "F_ref": [
+   251188643.1509582,
+   100000000.0,
+   39810717.055349775,
+   15848931.924611142,
+   6309573.444801942
+  ],
+  "frame_snr": [
+   20932386.92924652,
+   8333333.333333333,
+   3317559.754612481,
+   1320744.3270509285,
+   525797.7870668286
+  ],
+  "snr_ratio_per_mag": [
+   2.5118864315095824,
+   2.511886431509577,
+   2.511886431509582,
+   2.511886431509577
+  ],
+  "expected_per_mag": 2.51188643150958,
+  "max_dev": 1.2212453270876722e-15,
+  "monotone_decreasing": true
+ },
+ "weight_mref_invariance_null": {
+  "metric_max_rel_dev": 2.220446049250313e-16,
+  "intra_frame_ratio_change": 0.0
+ },
+ "weight_overall_scale_per_mag": 6.3095734448019325,
+ "fref_kphoto_identity": {
+  "k_photo": [
+   0.7179322397752671,
+   0.9579940901493093,
+   0.5548870481817392,
+   1.8598839288944955,
+   1.1256576242390777,
+   1.0122580015950438,
+   1.9844454302094368,
+   1.839775917641323
+  ],
+  "max_abs_resid_over_F0": 2.6201017231594082e-15,
+  "identity_is_exact_up_to_float": true
+ },
+ "fref_kphoto_perturbation": {
+  "eps": 0.00043,
+  "F0_mismatch_rel": 0.00043,
+  "note": "a k_photo error eps maps one-to-one into a relative F0 mismatch eps"
+ },
+ "mag_structural": {
+  "10^0.4": 2.51188643150958,
+  "2.5118864_doc": 2.5118864,
+  "rel_diff": 1.2544190007283182e-08,
+  "ratio_F(m+1)/F(m)": 0.3981071705534972,
+  "0.4_equals_1_over_2p5": true
+ }
+}

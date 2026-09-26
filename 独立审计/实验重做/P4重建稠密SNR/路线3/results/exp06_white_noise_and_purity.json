@@ -1,0 +1,65 @@
+{
+  "seed": 20260926,
+  "W1_white_diff_lag1": {
+    "analytic_value": -0.5,
+    "mc_mean": -0.4996330001985873,
+    "mc_se": 0.000776526944231707,
+    "z_vs_analytic": 0.47261695700179635,
+    "claim": "white noise implementation is spatially white: diff lag-1 rho = -1/2 (identity)",
+    "pass": true
+  },
+  "W2_variance_map_spread_law": {
+    "level_relspread": 0.07071067811865477,
+    "shot_var_relspread_over_level": 0.9999999999999998,
+    "prnu_var_relspread_over_level": 1.9906715446510008,
+    "expected": {
+      "shot": 1.0,
+      "prnu": 2.0
+    },
+    "claim": "variance-map smoothness follows the LEVEL field: shot ratio 1, PRNU ratio 2",
+    "pass": true
+  },
+  "B1_no_source": {
+    "full_arm_equals_missing_arm_bitwise": true,
+    "SNR_all_zero": true,
+    "median_Ssrc_hat_over_sigma_slow": 0.0,
+    "double_count_arm_variance_ratio": 1.7404712859482372,
+    "claim": "no-source truth => full arm == missing arm bitwise, SNR == 0; double-count arm does not converge (ratio ~1.36 expected, here analytic 1 + sky/slow)",
+    "pass": true
+  },
+  "B1_with_source": {
+    "variance_ratio_full_over_missing_max": 32.470449172576835,
+    "SNR_peak": 54.99011394752824,
+    "SNR_background_median": 3.5063931126439395e-88,
+    "claim": "with sources: full arm > missing arm at sources, SNR > 0 concentrated at sources",
+    "pass": true
+  },
+  "B2_sky_rise_monotone": {
+    "sky_scan_e": [
+      10.0,
+      100.0,
+      1000.0,
+      10000.0,
+      100000.0,
+      1000000.0,
+      10000000.0,
+      100000000.0
+    ],
+    "SNR": [
+      33.6629672524335,
+      32.142371963993234,
+      23.423435158602558,
+      9.82015094410405,
+      3.2301836890319633,
+      1.025686569548549,
+      0.3244847013183944,
+      0.1026153166242241
+    ],
+    "monotone_decreasing": true,
+    "loglog_slope_sky_dominated": -0.49938655340710203,
+    "expected_slope": -0.5,
+    "claim": "fixed source, rising sky => SNR strictly decreasing, slope -> -1/2 (sky-shot dominated)",
+    "pass": true
+  },
+  "all_pass": true
+}

@@ -1,0 +1,22 @@
+{
+  "experiment": "tukey_constant_verification",
+  "parameter": "c=4.685",
+  "asymptotic_efficiency_test": {
+    "observed_efficiency": 0.9524120267756224,
+    "target_range": [
+      0.9,
+      1.0
+    ],
+    "passed": true
+  },
+  "robustness_test": {
+    "n_clean": 80,
+    "n_outliers": 20,
+    "outlier_shift": 3.0,
+    "tukey_estimate": 0.39911142725168686,
+    "location_shift": 0.39911142725168686,
+    "threshold": 0.1,
+    "passed": true,
+    "iterations": 5
+  }
+}

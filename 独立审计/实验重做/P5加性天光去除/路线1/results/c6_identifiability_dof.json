@@ -1,0 +1,65 @@
+{
+  "seed": 20260322,
+  "tau": 1e-10,
+  "n_frames": 3,
+  "n_cells": 8,
+  "n_obs_per_cell_frame": 6,
+  "verdicts": {
+    "gauge_free": {
+      "n_params": 32,
+      "r_eff": 24,
+      "n_free": 32,
+      "note": "n_free = \u672a gauge \u56fa\u5b9a\u7684\u6ee1\u79e9\u57fa\u51c6\u5217\u657032",
+      "identifiable": false,
+      "kappa_Hred": null,
+      "expected": "\u6bcf cell 1 \u7b80\u5e76 => r_eff = N_CELLS*(1+N_FRAMES-1) \u5224\u7ea2"
+    },
+    "gauge_fixed": {
+      "n_params": 24,
+      "r_eff": 24,
+      "n_free": 24,
+      "identifiable": true,
+      "kappa_Hred": 12.391741506075526,
+      "expected": "\u6ee1\u79e9\u5224\u7eff"
+    }
+  },
+  "column_scaling_invariance": {
+    "r_eff_invariant": true,
+    "kappa_rel_diff": 1.576850616503141e-15
+  },
+  "global_weight_invariance": {
+    "r_eff_invariant": true,
+    "kappa_identical": false
+  },
+  "always_green_gate_on_Hsolve": {
+    "detail": {
+      "lambda_x1e+00": {
+        "kappa_Hsolve": 24234757599.033386,
+        "identifiable_on_Hsolve": false,
+        "true_Hred_r_eff": 24
+      },
+      "lambda_x1e+03": {
+        "kappa_Hsolve": 24234827.266318493,
+        "identifiable_on_Hsolve": true,
+        "true_Hred_r_eff": 24
+      },
+      "lambda_x1e+06": {
+        "kappa_Hsolve": 24236.096940137973,
+        "identifiable_on_Hsolve": true,
+        "true_Hred_r_eff": 24
+      }
+    },
+    "claim_check": "H_red \u5b9e\u9645 r_eff < n_params (gauge \u4e0d\u53ef\u8fa8\u8bc6), \u4f46 H_solve \u4e0a\u7684\u95e8\u6052\u7eff"
+  },
+  "dof_test": {
+    "n_obs": 144,
+    "r_eff": 24,
+    "n_params": 32,
+    "E_chi2_mc": 119.75965998776887,
+    "pred_dof_reff": 120,
+    "chi2_red_with_reff": 0.9979971665647406,
+    "chi2_red_with_nparams": 1.069282678462222,
+    "ratio_nparams_over_reff": 1.0714285714285714,
+    "finding": "n_obs-n_params \u5206\u6bcd\u66f4\u5c0f => chi2_red \u88ab\u9ad8\u4f30 (\u504f\u7ea2\u65b9\u5411), \u4e0d\u662f 11_upm.md \u00a74.7 \u58f0\u79f0\u7684'\u7cfb\u7edf\u6027\u4f4e\u4f30'; '\u63a9\u76d6\u672a\u88ab\u7ea6\u675f\u65b9\u5411\u6570'\u7684\u90e8\u5206\u6210\u7acb (dof \u5dee = r_eff \u4e0e n_params \u4e4b\u5dee)"
+  }
+}

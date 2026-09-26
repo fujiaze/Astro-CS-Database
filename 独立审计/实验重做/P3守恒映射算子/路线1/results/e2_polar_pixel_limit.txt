@@ -1,0 +1,24 @@
+E2 polar-pixel closed-form deficit  (seed=20050709)
+
+closed form: A_quad/A_true -> 2*sqrt(2)/pi = 0.9003163162 ; rel = -9.9683683843e-02
+deficit law coefficient (theory) = pi/3*(1-2sqrt2/pi) = 0.104389
+
+  N     max_rel_deficit   worst_ring  |rel|>1%   deficit*N^2   sum/4pi-1
+  2     -5.606422e-02      ring 1     24        0.058710      2.22e-16
+  4     -8.933632e-02      ring 1     40        0.093553      6.66e-16
+  8     -9.712791e-02      ring 1     72        0.101712      -5.55e-16
+  16    -9.904663e-02      ring 1     128       0.103721      -1.55e-15
+  32    -9.952454e-02      ring 1     16        0.104222      -2.00e-15
+  64    -9.964390e-02      ring 1     16        0.104347      6.88e-15
+  128   -9.967374e-02      ring 1     16        0.104378      -3.44e-15
+  256   -9.968120e-02      ring 1     16        0.104386      1.98e-14
+
+N=256 vs closed-form gap: 2.486e-06 (same order as O(1/N^2) remainder)
+
+[NEGATIVE CONTROL a] equatorial cells only (second order, shrinking):
+  N=32   max|rel| = 4.406e-04
+  N=64   max|rel| = 1.161e-04
+  N=128  max|rel| = 2.984e-05
+[NEGATIVE CONTROL b] true-curve edges => metric ~ 0:
+  N=64   K=64 rel dev = 9.998e-09 ; Richardson residual = -7.538e-09
+  N=128  K=64 rel dev = 2.615e-09 ; Richardson residual = -1.972e-09

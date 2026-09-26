@@ -1,0 +1,317 @@
+{
+ "seed": 20260926,
+ "table": [
+  {
+   "n_stars": 200,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.0,
+   "expected_false_rate_rho_pi_r2": 0.00015707963267948965
+  },
+  {
+   "n_stars": 200,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.00075,
+   "expected_false_rate_rho_pi_r2": 0.0006283185307179586
+  },
+  {
+   "n_stars": 200,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.00125,
+   "expected_false_rate_rho_pi_r2": 0.0014137166941154068
+  },
+  {
+   "n_stars": 200,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.00175,
+   "expected_false_rate_rho_pi_r2": 0.0025132741228718345
+  },
+  {
+   "n_stars": 200,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.0,
+   "expected_false_rate_rho_pi_r2": 0.00015707963267948965
+  },
+  {
+   "n_stars": 200,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.00025,
+   "expected_false_rate_rho_pi_r2": 0.0006283185307179586
+  },
+  {
+   "n_stars": 200,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.001,
+   "expected_false_rate_rho_pi_r2": 0.0014137166941154068
+  },
+  {
+   "n_stars": 200,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.0015,
+   "expected_false_rate_rho_pi_r2": 0.0025132741228718345
+  },
+  {
+   "n_stars": 200,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.00425,
+   "false_rate": 0.0,
+   "expected_false_rate_rho_pi_r2": 0.00015707963267948965
+  },
+  {
+   "n_stars": 200,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.001,
+   "expected_false_rate_rho_pi_r2": 0.0006283185307179586
+  },
+  {
+   "n_stars": 200,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.0015,
+   "expected_false_rate_rho_pi_r2": 0.0014137166941154068
+  },
+  {
+   "n_stars": 200,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.00175,
+   "expected_false_rate_rho_pi_r2": 0.0025132741228718345
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.0005,
+   "expected_false_rate_rho_pi_r2": 0.0007853981633974482
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.002,
+   "expected_false_rate_rho_pi_r2": 0.003141592653589793
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.00725,
+   "expected_false_rate_rho_pi_r2": 0.007068583470577034
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.01275,
+   "expected_false_rate_rho_pi_r2": 0.012566370614359171
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.0005,
+   "expected_false_rate_rho_pi_r2": 0.0007853981633974482
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.00375,
+   "expected_false_rate_rho_pi_r2": 0.003141592653589793
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.00725,
+   "expected_false_rate_rho_pi_r2": 0.007068583470577034
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.01625,
+   "expected_false_rate_rho_pi_r2": 0.012566370614359171
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.00625,
+   "false_rate": 0.00025,
+   "expected_false_rate_rho_pi_r2": 0.0007853981633974482
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.00275,
+   "expected_false_rate_rho_pi_r2": 0.003141592653589793
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.00725,
+   "expected_false_rate_rho_pi_r2": 0.007068583470577034
+  },
+  {
+   "n_stars": 1000,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.013,
+   "expected_false_rate_rho_pi_r2": 0.012566370614359171
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.003,
+   "expected_false_rate_rho_pi_r2": 0.002356194490192345
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.01,
+   "expected_false_rate_rho_pi_r2": 0.00942477796076938
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.02,
+   "expected_false_rate_rho_pi_r2": 0.021205750411731103
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.1,
+   "miss_rate": 0.0,
+   "false_rate": 0.03525,
+   "expected_false_rate_rho_pi_r2": 0.03769911184307752
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.00125,
+   "expected_false_rate_rho_pi_r2": 0.002356194490192345
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.00925,
+   "expected_false_rate_rho_pi_r2": 0.00942477796076938
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.01875,
+   "expected_false_rate_rho_pi_r2": 0.021205750411731103
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.2,
+   "miss_rate": 0.0,
+   "false_rate": 0.03375,
+   "expected_false_rate_rho_pi_r2": 0.03769911184307752
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 1.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.003,
+   "false_rate": 0.00275,
+   "expected_false_rate_rho_pi_r2": 0.002356194490192345
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 2.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.00975,
+   "expected_false_rate_rho_pi_r2": 0.00942477796076938
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 3.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.0225,
+   "expected_false_rate_rho_pi_r2": 0.021205750411731103
+  },
+  {
+   "n_stars": 3000,
+   "r_px": 4.0,
+   "sigma_jit_px": 0.3,
+   "miss_rate": 0.0,
+   "false_rate": 0.0385,
+   "expected_false_rate_rho_pi_r2": 0.03769911184307752
+  }
+ ],
+ "H10a": {
+  "max_miss_rate_r2": 0.0,
+  "criterion": "σ_jit≤0.3px 时 r=2.0 ⇒ 漏检≈0(>6σ)",
+  "pass": true
+ },
+ "H10b": {
+  "false_rate_r2_n1000": 0.00375,
+  "false_rate_r3_n1000": 0.00725,
+  "ratio_observed_r3_over_r2": 1.9333333333333336,
+  "ratio_expected_geometric": 2.25,
+  "criterion": "误配率随 r² 增长(观测比应 >1.5, 几何比 2.25)⇒ 收紧方向可复核",
+  "pass": true
+ },
+ "negative_zero_check": {
+  "metric": "false_match_rate_on_isolated_field",
+  "value": 0.0,
+  "criterion": "密度→0 ⇒ 误配率=0(半径此时只影响漏检, 归零)",
+  "pass": true
+ },
+ "verdict": {
+  "H10a": true,
+  "H10b": true,
+  "negative_zero": true
+ }
+}
