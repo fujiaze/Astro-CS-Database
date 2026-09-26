@@ -159,7 +159,7 @@
 
 > 本节只补出处与参考实现，不改动 §5 公式与 §10 禁改清单。
 
-- **加权均值/逆方差聚合**：教科书级（加权最小二乘/逆方差加权平均，如 Bevington, P. R. & Robinson, D. K. 2003, Data Reduction and Error Analysis for the Physical Sciences, 3rd ed., McGraw-Hill；Aitken 1935 的 GLS）。**差异**：Astro Celestial Sphere Database（ACSD） 的 reducer 不编码 ivar 语义（§9），权重策略在调用方（SCI-NOISE/SCI-UPM），故这里是**通用数值加权均值**而非“逆方差估计量”本身。
+- **加权均值/逆方差聚合**：教科书级（加权最小二乘/逆方差加权平均，如 Bevington, P. R. & Robinson, D. K. 2003, Data Reduction and Error Analysis for the Physical Sciences, 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346）的 GLS）。**差异**：Astro Celestial Sphere Database（ACSD） 的 reducer 不编码 ivar 语义（§9），权重策略在调用方（SCI-NOISE/SCI-UPM），故这里是**通用数值加权均值**而非“逆方差估计量”本身。
 - **最优叠加/信息保持组合**：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - **support=max canonical reducer**：Project-defined（覆盖并集保守下界，§5/§10），无外部公式；可对照 coverage/几何并集语义。
 - **Fruchter & Hook 2002, PASP 114, 144**：重采样后相关噪声背景（与 §5 加权平均的适用域相关）。

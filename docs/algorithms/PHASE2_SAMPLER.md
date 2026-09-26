@@ -105,7 +105,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 |---|---|---|
 | kTileWidth/kTileShift | :75-76 | 512×512 tile，shift=log2(512)=9 |
 | kSnrCatalogMax | :78 | SNR catalogue 上限 65536 |
-| kControlCorrDefault | :83 | k_corr 冻结保守默认 1.4 |
+| kControlCorrDefault | :83 | k_corr 代码默认 1.4（实现记录；公式面按 D-08 改两因子 k_gauss(N)×k_geo 几何查表，§5.4） |
 | kPiHalf | :84 | π/2 常数（UPMW-004 中位数方差） |
 | kcorr_lookup | :88-109 | pixfrac×scale 双线性标定表 |
 | frame_drizzle_provenance | :112-137 | 帧 properties 解析 pixfrac/scale |
@@ -265,13 +265,34 @@ uncertainty      = sqrt(control_variance)                  # :878
   取样本中位数、算其样本方差，再与解析式相除取比值；判据 = 比值须随 N 增大收敛到 1）：
   把实测 Var(median) 与
   πσ²/(2N) 相除，高斯族得 **0.9149 (N=5) / 0.9722 (N=17) / 0.9938 (N=65) /
-  1.0030 (N=289)** ⇒ 渐近式在 N=5 时**低估 8.5%**、N=17 时低估 2.8%、N≥65 时误差 <1%。
+  1.0030 (N=289)**（该批 MC 读数与精确序统计量积分 0.9130/0.9745/0.9934/0.9985 在其 MC
+  误差内一致——数值正确，方向词错误，见下）。
+  <!-- 订正: D-07 原句「渐近式在 N=5 时低估 8.5%、N=17 时低估 2.8%」方向词错误：比值 = 实测/公式，
+  比值 < 1 ⟺ 公式对真方差**高估**（N=5 精确高估 +9.53%），并非渐近式低估。 -->
+  ⇒ 渐近式对真方差**恒为高估**（σ 已知的纯公式口径）：κ(N)=N·Var(median)/σ² =
+  1.4342 (N=5) / 1.5308 (17) / 1.5604 (65) / 1.5685 (289)，即公式高估 +9.5% / +2.6% /
+  +0.7% / <0.4%，|偏差| <1% ⟺ N≥49（奇）。方向 = 发布方差偏大 ⇒ control_ivar 偏小
+  ⇒ 权重偏保守。
+  生产端到端口径（σ_bg = 1.4826·MAD 同一 patch plug-in）中 MAD 尺度估计器的小样本向下偏
+  （E[σ̂²]/σ² = 0.906 (N=5) / 0.986 (17) / ≥0.997 (≥65)）与纯公式口径同量级反号抵消：
+  端到端发布偏差 N=5 为 −0.6%、N≈11 峰 +1.5%、N≥65 ≤0.5%（奇 N 全域 |bias| ≤1.5%）。
+  N_retained 为偶数时中位数取两中央序统计量均值（median_of），其真方差低于相邻奇 N
+  （κ(20)=1.470 vs κ(21)=1.538）而 MAD 偏置与奇偶无关 ⇒ 端到端可高估
+  +5.0% (N=20) / +2.8% (40) / +1.3% (100)。
+  含 3σ 亮端裁剪的生产链（裁剪后 MAD、n_retained）下：N=5 不触发裁剪（−0.8%）；
+  N≥9 触发率 12–35%，发布 cvar 对被估量（裁剪后中位数，触发时奇偶翻转）
+  **低估 1.3–3.2%**。
+  <!-- 订正: D-07 三口径定稿，改写文本采用 P2 补实验 §4a
+  （独立审计/实验重做/P2跨帧绝对SNR/补实验-control_variance/report.md §3/§4a，seed 20260601）；
+  偶 N 奇偶效应与生产链裁剪语义按该报告补写 -->
   同一实验对非高斯族给出**判红**结果：均匀分布比值 → 6/π = 1.9099（实测 1.9013 @N=1025）、
   拉普拉斯分布比值 → 1/π = 0.3183（实测 0.3345 @N=1025），两者都与解析值 1/(4Nf(m)²)
   一致而与 πσ²/(2N) 相差 3–6 倍 ⇒ **π/2 因子只对高斯样本成立**，与排除「把 (π/2)
   因子解释为其他分布假设」同义。
 - **适用域**（三条同时成立才可引用本公式）：① 样本 iid；② N 足够大（本仓判据：
-  N ≥ 65 时相对偏差 <1%，N = min_samples = 5 时偏差 −8.5%，属保守方向）；
+  N ≥ 65 时纯公式口径偏差 +0.7% <1%；N = min_samples = 5 时纯公式口径高估 +9.5%
+  （保守方向），端到端口径 |bias| ≤1.5%，生产链亮端裁剪臂低估 1.3–3.2%——
+  单一方向词只在纯公式口径成立，引用时必须声明口径。订正: D-07）；
   ③ patch 内分布近似高斯且无结构梯度（见下条）。**退化条件**：patch 含显著空间结构时
   σ_bg 量的是样本离散度而非噪声（§5.3），本式给出的是「patch 样本离散度的 πσ²/(2N)」，
   不是 control estimator 对真值的统计方差。
@@ -302,19 +323,41 @@ uncertainty      = sqrt(control_variance)                  # :878
   ⇒ 生产侧已具备「无尺度信息即拒」的接口；采样侧当前把地板值送进该接口，
   绕过了这一语义。
 
-- 常数权威：kPiHalf=1.57079632679489661923（:84）；k_corr 默认 1.4（:83）；
-  **定义域 1 < k_corr**（k_corr = 1 ⇔ 忽略相关，`p2_upm_control_variance` 返回 rc=2；
+- 常数权威：kPiHalf=1.57079632679489661923（:84）；k_corr 定义域 **1 < k_corr**
+  （k_corr = 1 ⇔ 忽略相关，`p2_upm_control_variance` 返回 rc=2；
   k_corr < 1 ⇔ N_eff > N_retained，正相关样本的有效样本量不可能大于样本数，物理不可达，
   返回 rc=1 —— `lib/algorithms/coverage/src/upm.cpp:2772-2783`）；
-- **k_corr 的适用域（正向约束）**：k_corr 是「Drizzle 输出像素协方差导致的 control
-  estimator 方差放大」的**现象学因子**，其数值只在**其标定域内**有实证意义。
-  当前生产取值 1.4 的来源是项目自产 MC（`control_median_mc_test`，pixfrac=0.8，2000 次，
-  实证 1.3883，保守上取），而**该测试未注册/不在任何 CMake/ctest/CI 面（构建孤儿）**
-  ⇒ 该常数在仓内**不可复跑**。因此任何引用 `control_variance` 的陈述**必须同时**声明：
-  (i) 所用 k_corr 值；(ii) 其标定域（源像素角尺度 + pixfrac）；(iii) 该标定在当前数据
-  尺度上是否在域内。`upm.cpp:2265-2275` 已把这条落成写盘门（FZ-PROV-KCORR）：
-  `k_corr_applicability_domain` 为空即 rc=7；k_corr ≠ 1.4 时必须另给
-  `k_corr_calibration_run_id`。
+  <!-- 订正: D-08（负责人已批改表）——代码常量 kControlCorrDefault=1.4（:83）保留为实现记录；
+  公式面由「冻结单数 1.4」改为两因子 k_gauss(N)×k_geo 几何查表（见下条），
+  公式与查表由 P3 单元 实验/healpix-polar 承载 -->
+- **k_corr 的定义（D-08 终裁：两因子公式＋几何查表）**：k_corr 不是普适常数、也不含于
+  F&H 2002（全文不含 1.3883/1.4/k_corr；其相关噪声量 = §7 式(8)–(10) 的 R），
+  而是**几何与估计器口径的条件量**：
+  **k_corr = k_gauss(N_retained) × k_geo(几何)**。
+  - **k_gauss(N)**：iid 高斯样本在正本估计器口径（逐实现 MAD → 跨实现中位）下对渐近
+    基线 (π/2)σ²/N 的有限 N 修正——其真实机制 = **MAD 尺度估计器的小样本偏置**
+    （N=5 时中位 MAD/σ = 0.746），与 drizzle 无关（恒等几何直接定征 400k 实现：
+    k_gauss(5)=1.6370）。k_gauss 表（P3 补实验 T3）：**N=5 → 1.63、9 → 1.26、
+    17 → 1.14、25 → 1.08、49 → 1.05、≥121 → ≈1.0**；
+  - **k_geo**：drizzle 输出像素相关的纯几何因子（k_geo = k_corr/k_shape），随
+    (ρ=输出/源尺度比, pixfrac, 帧数/dither, patch 构成) 变化：**紧凑 patch ≈1.27±0.03、
+    全 touched patch ≈1.43–1.45、远散（空间分散）patch ≈1.00**；几何扫描全域 1.00–5.0
+    （多帧 1/2/4 帧 = 1.424/1.338/1.328）；非高斯边际形状效应 ≤±5%（N≥9）可忽略；
+  - **1.3883 的归属（改写）**：标定几何专属（源 300″/px、nside=512 → 412.26″/px、
+    pixfrac=0.8、全 touched patch N≈225–251）的 MC 实测带 **1.27–1.43（中心 1.34±0.04）**
+    内的一次实现值；受控复现 1.3445±0.0416（16 相位 × 8 seed），
+    证据源 `control_median_mc_test` **已注册（`lib/algorithms/drizzle/healpix_drizzle/tests/
+    CMakeLists.txt:110-118` add_executable + add_test）⇒ 可复跑**；
+  - **消费规则（fail-closed）**：任何引用 `control_variance` 的陈述**必须同时**声明
+    (i) 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成)；(ii) N_retained 档位
+    （N≤25 时 k_gauss(N)>1.08 不可忽略，N=5 须取 ≥1.6）；(iii) 元组与本产品几何不一致时
+    **fail-closed 拒绝或现场 MC 重标**（P3 补实验 code/ 可复用）。
+    冻结单数 1.4 即使在**其声明标定域内**也不保守：N=5 端 k_corr(5, 紧凑) ≈ 2.05±0.09
+    → 低估 control_variance 约 32%（标准误低估约 14%）；源尺度 583–600″ 端
+    k_corr ≈ 2.5–3.0 → 低估约 2 倍。`upm.cpp:2265-2275` 已把声明要求落成写盘门
+    （FZ-PROV-KCORR）：`k_corr_applicability_domain` 为空即 rc=7；k_corr ≠ 1.4 时必须另给
+    `k_corr_calibration_run_id`。
+  <!-- 订正: D-08（独立审计/实验重做/P3守恒映射算子/补实验-k_corr/report.md §0/§4） -->
 - **K_CORR_DOMAIN 选项 B（逐帧标定）：仅 pixfrac 维参与标定（SC-005）**：
   仅当帧 Drizzle provenance 的源像素角尺度落在**标定域 [300,600]″/px** 才取
   kcorr_lookup(pixfrac, scale)（:93-117）；**域外一律保留 kcorr=0**（回退链
@@ -331,8 +374,9 @@ uncertainty      = sqrt(control_variance)                  # :878
   `hips_pixel_scale=0.000224 deg = 0.8064″/px`
   （`run/VARIANCE-SEMANTICS-01/probe/out_probe_orig_m42_1024_1024/hips/signal/properties`）
   ⇒ 与标定域 [300,600]″/px 相差 **300× 以上**；
-  (ii) 因此**逐帧标定在所有已知生产数据上恒不生效**，生产实际使用的是未在本尺度标定的
-  冻结常数 1.4；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明这一点；
+  (ii) 因此**逐帧标定在所有已知生产数据上恒不生效**，生产实现现仍回退未在本尺度标定的
+  代码默认 1.4（实现记录）；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明这一点，
+  并按 D-08 消费规则声明标定元组与 N 档（不一致时 fail-closed 或现场 MC 重标）；
   (iii) 域外回退的**可观测性边界**：`sampler.cpp:575-584` 只在 `pixfrac > 0 且
   尺度 ∉ [300,600]` 时打 `[sampler] k_corr 域外回退` 标；**provenance 键缺失
   （pixfrac 不可解析）时回退是静默的**——本仓 probe 产品的 signal properties 内
@@ -460,7 +504,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 | patch robust median/MAD 保留负值 | :802-829（无符号过滤） | 一致 |
 | SNR 来自 Catalogue 查询路径 | :851-867 纯查询 | 一致 |
 | control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
-| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑** |
+| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 公式面按 D-08 改两因子 k_gauss(N)×k_geo 几何查表（冻结单数 1.4 在标定域两端低估 32%/2 倍，不再作普适常数）；**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑**（订正: D-08） |
 | per-control `control_reliability`（`geometric_reliability` 为**禁用**旧名）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:85-87 注释锚定 | 一致 |
 

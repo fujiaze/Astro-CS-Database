@@ -53,7 +53,13 @@ downstream: [TEST-P2-SMP-001]
   n_union×G² 含空覆盖占位（h:118-119）。control estimator 方差
   权威 = k_corr×(π/2)×σ_bg²/N_retained（:840-842；
   ALG-UPM-CONTROL-IVAR-001；k_corr 逐帧 Drizzle provenance 查表
-  :547-555，回退冻结保守 1.4 :82）。frame_id 内容稳定身份
+  :547-555，回退代码默认 1.4 :82）。<!-- 订正: D-08 k_corr 公式面 = 两因子
+  k_gauss(N_retained)×k_geo 几何查表（k_gauss 表与 k_geo 域由 P3 单元 实验/healpix-polar
+  承载；历史 1.3883 = 标定几何专属 MC 实测带 1.27–1.43 内一次实现值；冻结单数 1.4 在其
+  声明标定域两端低估 control_variance 32%/约 2 倍，代码默认 1.4 为实现记录；引用义务 =
+  标定元组 + N_retained 档位声明，不一致时 fail-closed 或现场 MC 重标，见
+  docs/science/PHASE2_UPM.md §4/§5 与 docs/contracts/DATA_SEMANTICS.md §23.1）。 -->
+  frame_id 内容稳定身份
   （truncated-64 canonical SHA-256，h:85-93/DATA-FRAME-ID-001）。
 - 工作域纪律：value 为 patch median（可负，ADU）；ivar 弃用仅诊断
   （单 leaf Phase1 ivar ≠ Var(control estimator)），科学权重一律
@@ -112,9 +118,10 @@ downstream: [TEST-P2-SMP-001]
 
 module_id=`astrocs.phase2.sample`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True。配置=P2SamplerConfig 15 字段
-（sampler.h:33-57；control_k_corr 默认 1.4 h:47-53 冻结）+ sccfg
+（sampler.h:33-57；control_k_corr 默认 1.4 h:47-53——代码实现记录，公式面按
+D-08 两因子 k_gauss(N)×k_geo 几何查表，见 §2 注）+ sccfg
 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，零
-初始化经 impl :497-498 修补回退默认）。
+初始化经 impl :497-498 修补回退默认）。<!-- 订正: D-08 -->
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 

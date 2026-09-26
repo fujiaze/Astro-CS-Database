@@ -292,7 +292,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ## 14 Primary literature（引用定位声明）
 
-1. Tukey biweight `c=4.685`（95% 高斯渐近效率）：Mosteller & Tukey 1977, *Data Analysis and Regression*；定位经 [PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/) 实证核对（"c=4.685 yields 95% asymptotic efficiency at the Gaussian"）。
+1. Tukey biweight `c=4.685`（95% 高斯渐近效率）：Mosteller & Tukey 1977, *Data Analysis and Regression*。一手锚 = Kafadar, K. 1983, "The Efficiency of the Biweight as a Robust Estimator of Location", *J. Res. Natl. Bur. Stand.* 88(2), 105–116（DOI 10.6028/jres.088.006）；[PMC6768164](https://pmc.ncbi.nlm.nih.gov/articles/PMC6768164/) 即该文全文，定位经其原文实证核对（原文含 "c=4.685 yields 95% asymptotic efficiency at the Gaussian" 原句）。<!-- 订正: D-06 --> 锚有效、维持（原文含原句）；并补登 Kafadar 1983 一手题录（卷页与 DOI 见 `实验/photometric-magnitude/refs.md` V1）。
 2. MAD→σ 换算 `1/0.6744897501960817 = 1.482602218505602`：标准正态 MAD 分位恒等式（`Φ⁻¹(3/4) = 0.6744897501960817`，double 逐位等于 `1/1.482602218505602`；与 `docs/science/NOISE_MODEL.md` §14 同值），教科书级恒等式，Project-defined 采纳。4 位截断写法 `0.6745` 与全精度值相对差 **+1.5196e-05**，只允许出现在「≈」语境并标注该偏差；权威值 = 全精度写法（W4-A6 处置 V12-N-03）。
 3. Gaia DR3 合成通量参考：Gaia Collaboration 星表发布文献——bibcode 级定位（未逐页核验），本合同仅消费星表数值，不转述其定标推导。
 
@@ -302,9 +302,10 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - **Tukey biweight w=(1−u²)²、c=4.685（95% 高斯渐近效率）**：Beaton, A. E. & Tukey, J. W. 1974, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）；Mosteller & Tukey 1977；Huber & Ronchetti 2009, Robust Statistics, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
 - **MAD→σ 换算 0.6744897501960817 = Φ⁻¹(3/4)**：标准正态分位恒等式；稳健性讨论见 Rousseeuw & Croux 1993, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。
+- **反方差（ivar）权重口径**（`ivar′ = ivar/α²`，§1/§3——本合同交给下游 GLS/逆方差加权的权重面）：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346，GLS 原始出处；与 `docs/science/UNIFIED_SCIENCE_MODEL.md` 的 GLS 条目同源）。<!-- 订正: 负责人已批（权重章节正式引用） -->
 - **最优提取（PᵀC⁻¹P 结构）**：Horne, K. 1986, PASP 98, 609（DOI 10.1086/131801）；Naylor, T. 1998, MNRAS 296, 339。**边界**：二者为已知 profile/方差下的最优提取；Astro Celestial Sphere Database（ACSD） 本层做的是 Gaia 交叉定标的零点/尺度，不是逐源最优提取（§1 非目标），引用只作统计结构对照。
 - **误差口径 FLUXERR/MAGERR 与孔径改正**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；photutils（BSD-3-Clause）aperture_photometry 的误差传播。**差异**：ACSD 的 sigma_residual 是**逐星定标散度**（dex），不是 SExtractor 的单源通量误差；两者语义不同、各自独立消费（NOISE_MODEL §9a）。
-- **Gaia XP 绝对分光刻度与 CALSPEC 溯源**：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3）；Gaia Collaboration et al. 2021, A&A 649, A1（EDR3）；Bohlin, R. C., Hubeny, I. & Rauch, T. 2020, AJ 160, 21（DOI 10.3847/1538-3881/ab94b4）；Bohlin et al. 2014, AJ 147, 127（DOI 10.1088/0004-6256/147/6/127）；Bessell, M. & Murphy, S. 2012, PASP 124, 140（DOI 10.1086/664083）。
+- **Gaia XP 绝对分光刻度与 CALSPEC 溯源**：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3；arXiv:2208.00211<!-- 订正: P1 文献腿 arXiv 自纠 -->）；Gaia Collaboration et al. 2021, A&A 649, A1（EDR3）；Bohlin, R. C., Hubeny, I. & Rauch, T. 2020, AJ 160, 21（DOI 10.3847/1538-3881/ab94b4）；Bohlin et al. 2014, AJ 147, 127（DOI 10.1088/0004-6256/147/6/127）；Bessell, M. & Murphy, S. 2012, PASP 124, 140（DOI 10.1086/664083）。
 - **4. XP 采样均值谱的官方定义与单位（§2a.1/§2a.3 的一手依据）**：ESA Gaia DR3 官方文档 §20.12.4 `xp_sampled_mean_spectrum`，https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_sampled_mean_spectrum.html 。**原文**："This is the BP/RP externally calibrated sampled mean spectrum. All mean spectra are sampled to the same set of absolute wavelength positions, viz. 343 values from 336 to 1020 nm with a step of 2 nm."；字段表 **"flux : mean BP + RP combined spectrum flux (float[] array, Flux[W m-2 nm-1]) Externally-calibrated combined BP and RP flux."**（2026-09-23 抓取核验，HTTP 200）。
 - **5. 合成通量的官方定义式与绝对刻度上限（§2a.1/§2a.5 的一手依据）**：ESA Gaia DR3 官方文档 §5.4.1 *Photometric processing → Calibration → External Calibration → Zero points*，https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photProc/cu5pho_ssec_photCal.html 。**原文（式 5.41）**："in VEGAMAG system the mean energy per wavelength units ⟨f_λ⟩ is calculated as: ⟨f_λ⟩ = ∫ f_λ(λ) S(λ) λ dλ / ∫ S(λ) λ dλ"；**原文（绝对刻度）**："Thus 1 % is thought to be the current state-of-the art uncertainty on the 'absolute' calibration scales."；**原文（零点适用面）**：Gaia 星表通量以 photo-electrons s⁻¹ 发布，其零点 "are not suitable for synthetic photometry computations"（2026-09-23 抓取核验，HTTP 200）。
 - **6. XP 合成测光与 passband 定义（§2a.4/§2a.5 的一手依据）**：Gaia Collaboration, Montegriffo, P., Bellazzini, M., De Angeli, F., et al. 2023, A&A 674, A33（DOI 10.1051/0004-6361/202243709；arXiv:2206.06215）。**原文（摘要）**："Synthetic photometry directly tied to a flux in physical units can be obtained from these spectra for any passband fully enclosed in this wavelength range."；"Existing top-quality photometry can be reproduced within a few per cent over a wide range of magnitudes and colour, for wide and medium bands, and with up to millimag accuracy when synthetic photometry is standardised with respect to these external sources."；**原文（passband 含探测器）**："actual TCs, which in the following we also refer to as passbands, are defined by the combination of the TC of an optical filter …, the sensitivity curve of a photon-counting detector (typically a CCD for observations in the optical spectral range), and the TC of the optical elements …, plus a contribution from the terrestrial atmosphere"。
@@ -356,6 +357,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ASTROCS_DESIGN.md` §4.2），本节不另立口径。
 - **每帧独立标定**：不同夜/不同透明度的帧 `k_photo` 不同是正常的、正确的；「帧间一致性」是语义目标与报告字段，**不是门禁**（`PHOT-GATE-DROP-001`；本文件 §1/§10）。
+- **项目约定数值的文献豁免**：FOV 三常数、阶梯档距、亮端 `mag_min`、匹配半径 `match_radius_px=2.0`、`max_stars=5000` 上限、`1.0 dex` 粗筛界、质量因子 `0.1/0.5` 等实现级数值为**项目约定**——文献腿查无出处、登记为约定（敏感性与保守方向已由实验单元给出），引用时**不注文献出处**（负责人已批豁免；豁免清单见 `独立审计/实验重做/总编对账/五单元成稿简报.md` P1/P5 豁免节）。
 
 ### 16.2 物理单位消除的论证（为什么产物只能是星等）
 
@@ -398,7 +400,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 1. **星数不构成拒绝条件**：不存在星点少到无法测光的图；任何可解析帧都完成测光定标并出产品，产品按该帧自身实测的 `σ_obs` 与误差预算如实标注精度，不设固定星数门槛、也不套用他帧的精度口径。§5 的双边界判据（`σ_obs` 上下界）按本帧自身星数自算；
 2. **星少到拟合不成立时报拟合失败（不是门槛拦截）**：§4 的冻结门「`|r_consistent| ≥ 3` 才进 IRLS」是**求解前提**——不成立时拟合**本就不产出标度**，走 NO_DATA 拟合失败路径（`fit_ok=false` + `degraded_reason` + `error` 上报，产品的测光施加声明面为空）。该前提只回答「本次拟合有没有产出标度」，不作「星数够不够」的准入判据；
-3. **N5 低样本量边界（判据能力边界，非拒绝门槛）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)` 在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（实测 tol=0.002、n=5 时 σ_obs=0.00356 仍 PASS，`results/step7_negatives.json → N5`）。该现象**只出现在低样本量区间**，实拍帧的典型星数区间（实测 n = 105 / 157 等）不构成缺陷；在低样本量区间使用该判据时，下界取 `max(rho_lo, 0)·σ_fit`；
+3. **N5 低样本量边界（判据能力边界，非拒绝门槛）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)`（<!-- 订正: A-P1-01 --> `1.166 = √1.361`，其中 `1.361` = MAD 的**标准化方差**（Rousseeuw & Croux 1993, JASA 88, 1273, Table 2）；即 `1.166` 是 MAD→σ̂ 估计量的相对标准误 SD 因子，**不是**「SD(MAD)/MAD 正态渐近常数」）在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（实测 tol=0.002、n=5 时 σ_obs=0.00356 仍 PASS，`results/step7_negatives.json → N5`）。该现象**只出现在低样本量区间**，实拍帧的典型星数区间（实测 n = 105 / 157 等）不构成缺陷；在低样本量区间使用该判据时，下界取 `max(rho_lo, 0)·σ_fit`；
 4. **`σ_psfsys` 的孔径口径（C2 订正）**：用「PSF 域通量 vs 独立孔径通量」的中位绝对偏差估计 `σ_psfsys` 时，**必须用小孔径（≈2×FWHM）+ 低背景星子样本**。大孔径（r=10 px）把星云结构算进「方法系统误差」，实测高估约 **10×**（帧 A 0.2574 vs 真值 0.0256 mag；帧 C 1.3775 vs 0.0394 mag）；小孔径（r=4 px）在稀疏场准确（0.0250 / 0.0401 vs 0.0256 / 0.0344），在拥挤场仍上偏约 **2.7×**（保守方向，判据偏松不偏紧）。
   **判据形态（正向）**：`σ_psfsys = median(|F_PSF − F_aper|)`，取**小孔径**（半径 ≈ 2×FWHM）且**低背景**星子样本；该量是**方法系统误差**的估计量，不是逐星随机误差。
   **量纲**：`σ_psfsys` 以**星等**计（mag）；通量域比值经 `−2.5·log10` 转换。
@@ -416,3 +418,15 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - 模块算法与配置：`docs/plugins/algorithms_phase1/06_photometry.md`、`docs/plugins/algorithms_phase1/07_noise_snr.md`；
 - PSF 信息权重与最优性声明：`docs/science/PSF_SIGNAL_WEIGHT.md`；
 - 方差与协方差传播：`docs/science/UNCERTAINTY_AND_COVARIANCE.md`。
+
+## 17 订正记录（独立审计 · 实验重做 · 总编对账批）
+
+> 依据唯一事实源 `独立审计/实验重做/总编对账/分歧台账.md` 与 `五单元成稿简报.md`；只登记本批对本文件的改动，不改 §5 公式、§7 不变量与 §10 禁改清单的实质内容。
+
+| 台账编号 | 位置 | 改动 |
+|---|---|---|
+| A-P1-01 | §16.5 第 3 条 | `1.166` 补正标签：`1.166 = √1.361`（`1.361` = MAD 标准化方差，Rousseeuw & Croux 1993 Table 2），系 MAD→σ̂ 估计量的相对标准误 SD 因子，非「SD(MAD)/MAD 正态渐近常数」；数值 1.166 本身不变 |
+| D-06 | §14 第 1 条 | `c=4.685` 锚维持有效（PMC6768164 原文含原句），并补登一手锚 Kafadar 1983, *J. Res. Natl. Bur. Stand.* 88(2), 105–116（DOI 10.6028/jres.088.006；PMC6768164 即该文全文） |
+| P1 文献腿（arXiv 自纠） | §14a Gaia DR3 条 | 补 arXiv:2208.00211；旧转写 2205.11321 证伪（实为计量论文），见 `实验/photometric-magnitude/refs.md` V6 |
+| 负责人已批（权重章节引文） | §14a 新增条 | 补 Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346）作 ivar 反方差权重口径的一手出处 |
+| 负责人已批（豁免） | §16 新增条 | FOV 三常数/阶梯档距/`mag_min`/`match_radius_px=2.0`/`max_stars=5000`/`1.0 dex` 界/质量因子 `0.1/0.5` 写明「项目约定，不注文献出处」 |

@@ -21,7 +21,7 @@
 | `control_ivar` | `1/control_variance` | `p2_upm_raw_weight` |
 | `quality_factor` | 质量因子（cosmic/geom 质量） | `SCI-UPM-WEIGHT-001` |
 | `control_reliability`（旧名 `geometric_reliability`） | per-control 相对可靠度。**实现事实 = 配置常量**（`P2UpmBuildConfig.control_reliability`，默认 1.0，`upm.cpp:289-290`），**不是**按单 control 覆盖度算出的几何量 | `upm.cpp:264`（默认 1.0）/ `:283`（越域回退 1.0） |
-| `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒），冻结默认 1.4 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） |
+| `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒）；公式面 = 两因子 `k_gauss(N)×k_geo` 几何查表（D-08），代码默认 1.4 为实现记录 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） |
 | `w_cell` | 求解器内 per-control 份额权重（无量纲，`Σ_cell w_cell = control_reliability`） | `upm.cpp:565` |
 | `N_retained` | clipping 后保留样本数 | `P2ControlObservation` |
 | `parameter_rows[index]` | 第 index 帧的 θ 行 | `upm.cpp:parameter_rows` |
@@ -46,17 +46,25 @@
   物理依据：k_corr 表征 Drizzle 输出像素协方差使 `N_eff ≤ N_retained`；k_corr<1 ⇔ N_eff>N_retained，
   正相关样本的有效样本量不可能大于样本数；k_corr=1 ⇔ 忽略相关。**两者都显式拒，不静默饱和**。
   边界已有判别力测试：`eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp`（0.999999→rc=1、1.0000001→rc=0）。
-  **适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。生产取值 1.4 的来源是
-  项目自产 MC（pixfrac=0.8、2000 次、实证 1.3883），该证据源 `control_median_mc_test`
-  **未注册（构建孤儿）⇒ 不可复跑**；逐帧标定表的适用域为源像素角尺度 [300,600]″/px，
+  **适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。
+  <!-- 订正: D-08（负责人已批改表）——原「生产取值 1.4 的来源是项目自产 MC（pixfrac=0.8、
+  2000 次、实证 1.3883）」改写为：1.3883 是标定几何专属（源 300″/px、nside=512→412.26″/px、
+  pixfrac=0.8、全 touched patch N≈225–251、逐实现 MAD 取跨实现中位）的 MC 实测带
+  1.27–1.43（中心 1.34±0.04）内的一次实现值；受控复现 1.3445±0.0416（16 相位 × 8 seed）；
+  证据源 control_median_mc_test 已注册（tests/CMakeLists.txt:110-118）⇒ 可复跑。 -->
+  生产公式面按 D-08 改**两因子 `k_gauss(N_retained) × k_geo` 几何查表**（k_gauss 表、
+  k_geo 域与消费规则见 §5 注；公式与查表由 P3 单元 `实验/healpix-polar` 承载）；
+  逐帧标定表的适用域为源像素角尺度 [300,600]″/px，
   而全部已知生产帧的源像素角尺度 ≈1″/px（M42 真帧 0.98902″/px，由 FITS 头
-  FOCALLEN/XPIXSZ 换算）⇒ **逐帧标定在生产尺度上不生效，生产实际使用未在本尺度标定的
-  冻结常数 1.4**。写盘门（FZ-PROV-KCORR，
+  FOCALLEN/XPIXSZ 换算）⇒ **逐帧标定在生产尺度上不生效**，生产实现现仍回退未在本尺度
+  标定的代码默认 1.4（实现记录）；消费必须按 D-08 规则声明标定元组 (ρ, pixfrac,
+  帧数/dither, patch 构成) 与 N 档，不一致时 **fail-closed 拒绝或现场 MC 重标**。
+  写盘门（FZ-PROV-KCORR，
   `upm.cpp:2265-2275`）要求 `k_corr_applicability_domain` 非空，且 k_corr ≠ 1.4 时
   另给 `k_corr_calibration_run_id`；任何引用 `control_variance` 的陈述必须与所用 k_corr、
   其标定域、以及「该域是否覆盖当前数据尺度」一同给出。
 - 标定表 scale 维（300–600″/px）**不适用于源像素角尺度 <300″/px 的帧**：
-  生产真帧源像素角尺度 ≈0.99″/px 在域外，域外一律显式回退冻结默认 1.4
+  生产真帧源像素角尺度 ≈0.99″/px 在域外，域外一律显式回退代码默认 1.4（实现记录；公式面见上条 D-08）
   （禁 clamp 静默饱和）；域外帧保留 `kcorr=0` 并打 `[sampler] k_corr 域外回退` 标
   （`sampler.cpp:93-104` 查表域界 / `:560-583` 回退与打标）。
 - `parameter_rows` 与 `frame_id_by_index` 同长、无重复，绑定仅由稳定 `frame_id` 决定；容器遍历不构成绑定路径。
@@ -76,8 +84,25 @@
   control_ivar = 1 / control_variance
   control_variance = k_corr × (π/2) × σ_bg² / N_retained
   # 精确形式 Var(median) = 1/(4·N·f(m)²)，高斯特例 = πσ²/(2N)；
-  #   成立条件 = iid ∧ 分布近似高斯 ∧ N ≥ 65（N=5 时渐近式低估 8.5%）；
-  #   非高斯域不成立（均匀 1.91×、拉普拉斯 0.335×，实测见 ALG-P2-SMP-001 §5.4）。
+  #   成立条件 = iid ∧ 分布近似高斯 ∧ 无结构分量；
+  #   有限 N 修正（精确序统计量积分 + 固定 seed MC）：σ 已知的纯公式口径下渐近式对真方差
+  #   **恒为高估**——κ(N)=N·Var(median)/σ² = 1.4342 (N=5) / 1.5308 (17) / 1.5604 (65) /
+  #   1.5685 (289)，即公式高估 +9.5% (N=5) / +2.6% (17) / +0.7% (65) / <0.4% (≥129)，
+  #   |偏差| <1% ⟺ N≥49（奇）；方向 = 发布方差偏大 ⇒ control_ivar 偏小 ⇒ 权重偏保守。
+  #   生产端到端口径（σ_bg = 1.4826·MAD 同一 patch plug-in）中 MAD 尺度估计器的小样本向下偏
+  #   （E[σ̂²]/σ² = 0.906 (N=5) / 0.986 (17) / ≥0.997 (≥65)）与纯公式口径同量级反号抵消：
+  #   端到端发布偏差 N=5 为 −0.6%、N≈11 峰 +1.5%、N≥65 ≤0.5%（奇 N 全域 |bias| ≤1.5%）。
+  #   N_retained 为偶数时中位数取两中央序统计量均值（median_of），真方差低于相邻奇 N
+  #   （κ(20)=1.470 vs κ(21)=1.538）而 MAD 偏置与奇偶无关 ⇒ 端到端可高估
+  #   +5.0% (N=20) / +2.8% (40) / +1.3% (100)。
+  #   含 3σ 亮端裁剪的生产链（裁剪后 MAD、n_retained）下：N=5 不触发裁剪（−0.8%）；
+  #   N≥9 触发率 12–35%，发布 cvar 对被估量（裁剪后中位数，触发时奇偶翻转）低估 1.3–3.2%。
+  #   <!-- 订正: D-07 原注「N=5 时渐近式低估 8.5%」方向词错误，被独立实验一致推翻；定稿三口径：
+  #   纯公式口径高估 ≈9.5%（精确 +9.53%，保守）、端到端 ≤±1.5%、生产链亮端裁剪臂低估
+  #   1.3–3.2%。改写文本采用 P2 补实验 §4a（独立审计/实验重做/P2跨帧绝对SNR/
+  #   补实验-control_variance/report.md），偶 N 奇偶效应与生产链裁剪语义按其报告补写。 -->
+  #   非高斯域不成立（均匀 1.91×、拉普拉斯 0.335×，实测见 ALG-P2-SMP-001 §5.4）；
+  #   结构主导 patch 的偏差比有限 N 修正大 1–2 个数量级（结构臂 b=0.3σ/样本时端到端高估 +117%）。
   #   出处：Serfling 1980 §2.3.2（ISBN 0-471-02403-1 / DOI 10.1002/9780470316481）。
   # σ_bg = patch 内样本稳健尺度（含结构分量）；背景主导 patch 才等于噪声尺度
   #   （实测 3.78% 的 M42 真帧 patch 结构抬升 >2×，ALG-P2-SMP-001 §5.4）。
@@ -85,8 +110,17 @@
   #   禁止以数值保护量生成有限方差发布（ALG-P2-SMP-001 §5.4）。
   # control estimator = patch median (非单 leaf)
   # N_retained = clipping 后保留数 (非 n_total)；域 [min_samples, (2r+1)²] = [5, 289]
-  # k_corr = 1.4 保守冻结；**1 < k_corr**（k_corr=1 与 k_corr<1 一律显式拒，§4）；实证 1.3883 来自
-  #   control_median_mc_test（**已注册：见 §11/§13/§15 的 EXECUTABLE 登记**）
+  # k_corr = k_gauss(N_retained) × k_geo（两因子几何查表，D-08；公式与查表由 P3 单元
+  #   实验/healpix-polar 承载；k_gauss 表：N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、
+  #   ≥121→≈1.0；k_geo：紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00；
+  #   消费规则 = 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成) + N 档声明，
+  #   否则 fail-closed 拒绝或现场 MC 重标，见 §4）
+  #   代码默认 1.4 为实现记录（标定域两端失保守：N=5 端低估 control_variance 32%、
+  #   源 583–600″ 端低估约 2 倍）；历史实证 1.3883 = 标定几何专属 MC 实测带
+  #   1.27–1.43（中心 1.34±0.04）内一次实现值，来自 control_median_mc_test
+  #   （**已注册：见 §11/§13/§15 的 EXECUTABLE 登记**）
+  #   <!-- 订正: D-08 原「k_corr = 1.4 保守冻结」与其 MC 归属改写如上。 -->
+  #   **1 < k_corr**（k_corr=1 与 k_corr<1 一律显式拒，§4）
   # N_eff = N_retained / k_corr
   # 禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅 eligibility/coverage
   # legacy snr²/(1+snr²)/unc² 仅 use_ivar_weight=0 ablation/诊断 (SNR-015)
@@ -179,7 +213,12 @@
   **换仪器/换像素尺度后 `h` 的度数不变、像素数按比例变**，故一切「尺度 ≲ 256 px」类的
   像素域判据必须随像素尺度重算。
 - 当帧间天光差含「`B_ref` **不可表示**且沿向**相干**」的分量时，残余接缝 ≈ **0.80 × 该分量 RMS**（Pearson 0.896，`实验/additive-sky-seamless/results/c2_multiplicative.json`）；
-- 空间尺度 ≲ 2× 节点间距（≈256 px）时显著：尺度 1600→50 px 扫描使残余接缝 **×5.07**；
+- 空间尺度 ≲ 2× 节点间距（≈256 px）时显著：帧间相干分量尺度自 2h 收窄至 h 时残余接缝
+  增长至峰值（**峰值/长尺度比 ≈8**，独立复算 8.0–9.2），并在 s≲h 后**非单调**回落；
+  任何具体倍数（含端点比）依赖度量口径（电平台阶/RMS）、求解器实现与单帧区填充语义，
+  **不冻结数值**——历史发布的 ×5.07 端点比在独立同口径复算中为 2.4–3.0，不复现。
+  <!-- 订正: A-P5-11（补实验-5.07与relstep §5-C1）——原「×5.07」为端点比，实现条件依赖、
+  不复现；跨实现稳健的是峰值/长尺度比 ≈8、非单调形状与肘点 s≲2h。 -->
 - **工程要求（规则 1）**：节点间距须 ≤ 目标可表示尺度的 1/2（上界 = 约束帧间改正量的最小尺度 / 2）；不可表示分量的登记面 = 显式报告；
 - 该边界是**条件结论**：在可表示域内接缝压缩 12.5× 成立，域外不成立；报告与产品必须与边界一同引用（§16.2）。
 - **规则 2｜节点间距必须由输入几何导出（取值面 = 输入几何，非标定常数）**：节点间距是**表示能力的唯一决定量**（规则 1），
@@ -199,7 +238,7 @@
   阈值**只有一个** `τ = rank_rtol`（**相对**口径，尺度不变），由浮点算术给出（精度地板 `max(m,n)·eps`），
   阈值来源 = 浮点算术（数据集标定与绝对条件数上限（`kappa_max` 类常数）不属阈值面）。自由度**必须**用
   `dof = n_obs − r_eff`（Andrae, Schulze-Hartung & Melchior 2010, arXiv:1012.3754 式 (9)）；
-  `χ²_red` 的分母**取** `dof = n_obs − r_eff`；（`n_obs − n_params` 属另一口径：秩亏时后者系统性低估 `χ²_red` 并掩盖未被约束的方向数）。
+  `χ²_red` 的分母**取** `dof = n_obs − r_eff`；（`n_obs − n_params` 属另一口径：秩亏时以它作分母使 `χ²_red` 系统性**高估**——实测 1.0714 / 1.0581——并掩盖未被约束的方向数。<!-- 订正: A-P5-01 原文「低估」方向词相反 -->）。
 - **规则 5｜门设在未正则化矩阵上，自适应面 = 无自由标定参数（正向约束）**：`H_solve = H_red + λ·P`（`P` 半正定）
   的条件数随 `λ` 增大有上界（`κ → 1`）⇒ 在 `H_solve` 上设门是**恒真门**，对「原问题是否可辨识」零信息；
   `κ(H_solve)` **只能**作为求解稳定性诊断量单独记账；判决面不含该量。数值正则化**只能**取判据**派生**的量
@@ -243,8 +282,10 @@
 ## 9 精度策略
 
 - FP64 求解；`dense cache` 与 `sparse` 求值 `1e-12` 等价门（`SparseEqualsDense`）；
-  `k_corr` 冻结默认 `1.4`（保守取整）；其 MC 校准来源 `control_median_mc_test` **已注册
-  （见 §11/§13/§15）**——常数本身由 §5 定义冻结，该 MC 证据可复跑。
+  `k_corr` 代码默认 `1.4`（实现记录）；其公式面按 D-08 改两因子 `k_gauss(N)×k_geo`
+  几何查表（§4/§5）；MC 校准来源 `control_median_mc_test` **已注册
+  （见 §11/§13/§15）**——该 MC 证据可复跑，其历史读数 1.3883 按标定几何专属实测带
+  1.27–1.43 记账（订正: D-08）。
   **适用域（正向约束）**：该 1e-12 是**同标度下**的求值等价门；跨标度引用绝对 1e-12 的
   禁令见 §7 (b) 的适用域段。
 - 并行确定性容差见 §7 三档（同配置重复位精确 + hash exact；跨 worker 数 1e-12；跨后端 = 无此合同）。
@@ -253,14 +294,15 @@
 
 - 在生产 `w_UPM` 中乘 `star SNR / support^p / obs.ivar`(已弃用)；
 - 将 `control_estimator` 改为单 leaf 或 `N_total` 替代 `N_retained`；
-- 改变 `k_corr` 默认 1.4 或 `parameter_rows ↔ frame_id` 绑定语义；
+- 改变 `k_corr` 公式面（D-08 两因子 `k_gauss(N)×k_geo` 查表与 fail-closed 消费规则）
+  或 `parameter_rows ↔ frame_id` 绑定语义；
 - 在 `calibrate_block` 中引入乘性尺度；
 - 在未同步换算 λs/λ0 的前提下把求解器内的 `w_cell`（份额式）替换为 `w_UPM`（绝对式）——
   份额式丢弃跨 control 精度，换绝对权等于换估计量（隐式改科学），须先重标定并登记。
 
 ## 11 验证 Oracle
 
-- **UPMW 硬门 7 项**：001 snr 扰动不变、002 ivar 1:4→weight 1:4、003 星群不变、004 `Var(median)≈πσ²/2N`、005 MC `k_corr≈1.3883`（**`control_median_mc_test` 已注册，可复跑**）、006 无 legacy SNR consumer 且缺 ivar `rc=2`、007 patch 真值恢复（`synthetic_gate`）。
+- **UPMW 硬门 7 项**：001 snr 扰动不变、002 ivar 1:4→weight 1:4、003 星群不变、004 `Var(median)≈πσ²/2N`、005 MC `k_corr`（历史读数 1.3883 = 标定几何专属 MC 实测带 1.27–1.43 内一次实现值，订正: D-08；**`control_median_mc_test` 已注册，可复跑**）、006 无 legacy SNR consumer 且缺 ivar `rc=2`、007 patch 真值恢复（`synthetic_gate`）。
 - **持久化门**：`UpmPersistAllPermutations/RandomStableIds/SparseDenseBinding` 等 PR#1 全排列。
 - **不变量门**：常量场、空 control、Huber 对称、绑定幂等四门。
 - **Python 参考**：NumPy 对同 `raw` 的 Huber IRLS + `control_ivar` 权重复算 `θ`（`rtol 1e-9`）。
@@ -304,7 +346,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 1. **本合同为项目原创推导**（观测方程/光度面 basis/gauge/接缝语义均为 Project-defined，无外部公式依赖）。
 2. Huber IRLS：Huber, P. J. 1964, "Robust Estimation of a Location Parameter", Ann. Math. Statist. 35, 73——文章级定位（bibcode 1964AnMS...35...73H，未逐页核验），仅 robust 求解框架上下文。
 3. 弱零锚=弱 Tikhonov 正则：Tikhonov 解的正则化概念——教科书级，无公式引用。
-4. `k_corr=1.4`（MC 实测 1.3883，pixfrac=0.8，2000 次）：**项目自产 MC 证据**（`control_median_mc_test`，**已注册，本证据可复跑**），非外部文献。
+4. `k_corr` 两因子公式 `k_gauss(N)×k_geo` 与几何查表（订正: D-08；公式与查表由 P3 单元 `实验/healpix-polar` 承载）：**项目自产 MC 证据**（`control_median_mc_test`，**已注册，本证据可复跑**；历史读数 1.3883 按标定几何专属实测带 1.27–1.43 记账），非外部文献；k_corr 必要性的文献依据 = Fruchter & Hook 2002 §7.1（Drizzle 输出像素相关），该文不含 k_corr 数值。
 5. Tukey/MAD 常数：复用 SCI-002/SCI-003 文献链（PMC6768164 实证；Φ⁻¹(3/4) 恒等式）。
 
 ## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
@@ -318,7 +360,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - **var(median)≈πσ²/(2N)**：正态样本中位数渐近方差的教科书结论（Hoaglin et al. 1983；Kendall & Stuart, The Advanced Theory of Statistics Vol.1）；UPMW-004 实证 ratio 0.997。
 - **稀疏天光面样条（加性天光面的表示候选）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。§5 冻结的加性场当前实现为 8×8 control cell 双线性；稀疏样条是**同一加性场**的另一种表示候选（数据面/schema 待合同流程），**不改变** §1/§5 的纯加性模型。
 - **模型形式：纯加性（正向约束）**：本文件 §1/§5 的加性模型 `calibrated_f(p)=raw_f(p)−C_f(p)` 是 Phase2 的唯一模型形式，`g_k ≡ 1` **不启用**；乘性方向 `y_k(x)=g_k·s(x)+b_k(x)` **不在本层**。`÷g²` 保持**恒等式**（`Var(corrected)=[σ_raw²+J_out C_θ J_outᵀ]/g²`，`g≡1` 时退化等价，公式保留）。**依据**：Phase1 正确归一化后，帧本身已是同一测光体系的真信号加可等效为加性的天光；残留天光无论是加性还是乘性都可用加法移除；乘性残留属低阶空间增益，归 Phase1 处理（`I_photo = k_photo·m(x,y)·I_cal`），Phase2 只做加性扣除。`10_sampling.md`/`11_upm.md`/`UNIFIED_MODEL.md` 的目标态表述与本节一致。
-- **k_corr=1.4 的 MC 证据**：control_median_mc_test 已注册（可复跑），常数本身按 §5/§10 冻结（§9/§11/§13/§15）。
+- **k_corr 的 MC 证据与公式面（订正: D-08）**：control_median_mc_test 已注册（可复跑）；公式面 = 两因子 `k_gauss(N)×k_geo` 几何查表（§5/§10），1.3883 按标定几何专属 MC 实测带 1.27–1.43 记账；k_corr 必要性的文献依据 = Fruchter & Hook 2002 §7.1（输出像素非独立、§7 式(8)–(10) 的 R），该文不含 1.3883/1.4/k_corr。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
@@ -362,7 +404,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 1. **无接缝 ⟺ 公共面可表示**。当帧间天光差含「B_ref 不可表示且沿 y 相干」的分量时，
    残余接缝 ≈ 0.80 × 该分量 RMS（Pearson 0.896）；空间尺度 ≲2× 节点间距（≈256 px）时显著
-   （1600→50 px 扫描使残余接缝 ×5.07）。
+   （帧间相干分量尺度自 2h 收窄至 h 时残余接缝增长至峰值，峰值/长尺度比 ≈8、独立复算 8.0–9.2，s≲h 后非单调回落；端点倍数依赖度量/实现不冻结，历史 ×5.07 端点比在独立同口径复算中不复现（2.4–3.0）——订正: A-P5-11）。
 2. **纯加性前提**：帧间乘性差必须先在 Phase1 吸收（实测 5.89e-4）。未做 Phase1 归一时
    （历史 `photometry_applied=false`/`photscal=1.0`，1.56× 帧差），纯加性 UPM 后接缝 27.37 e⁻，
    做了 Phase1 后 6.31 e⁻（**4.33×**）。基外高频乘性分量（1%@24 px）对**电平**接缝贡献有界
