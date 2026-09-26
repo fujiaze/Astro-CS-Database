@@ -423,7 +423,7 @@ flowchart TD
 ```
 
 - 三种 SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。
-- 实际 SNR 由所选口径**直接给出**：`dense` 用 Phase1 稠密面、`sparse_reconstruct` 用稀疏绝对 SNR 控制点重建、`frame_reconstruct` 用帧级标量；三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 `w = 1/σ² = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权；反方差（逆方差）最优加权的经典文献锚为 Aitken 1935（卷期页经 INSPIRE 核验，DOI 未核——标注级引用）。<!-- 订正: 负责人已批（反方差口径＋Aitken 1935 引用落笔） -->
+- 实际 SNR 由所选口径**直接给出**：`dense` 用 Phase1 稠密面、`sparse_reconstruct` 用稀疏绝对 SNR 控制点重建、`frame_reconstruct` 用帧级标量；三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 `w = 1/σ² = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权；反方差（逆方差）最优加权的经典文献锚为 Aitken 1935（卷期页与 DOI 10.1017/S0370164600014346 经 INSPIRE 核验；出版年 INSPIRE 记 1936——卷 55 跨 1935–36，1936 通行注同文）。<!-- 订正: 负责人已批（反方差口径＋Aitken 1935 引用落笔）；检查-行文逻辑 Y6——原作「DOI 未核——标注级引用」，按已核状态统一，年份维持 1935 -->
 - 拟合权重与堆叠权重是两个量：拟合用 `1/σ²`（可加 Huber），堆叠用残差制造者方差并含拟合参数协方差，公式见 `docs/science/CONTROL_WEIGHT_SNR.md`。
 - **稀疏重建算子按冻结词表显式声明**（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5。
 - **三种口径没有全局最优，只有适用域**：地面视宁度受限且噪声场平滑可分辨时，稀疏重建精度最好；高分辨率、高对比结构（如 HST 数据）上帧级口径最好——**该结论与重建算子绑定**（`..._mesh_median_v1` 下稀疏反而更优）；稠密口径存储代价高。完整适用域图谱由实验单元二给出，作为默认值与文档口径的依据。

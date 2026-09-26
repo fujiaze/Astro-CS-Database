@@ -49,7 +49,7 @@
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `docs/science/PHOTOMETRY.md:21,24,38,39` |
 | weight（默认权重口径；~~权重模式~~ 概念已作废 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:14`、`:28` |
 | precision（默认精度） | 1 | `docs/science/SCIENCE_SCOPE.md:53` |
-| upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:24`（定义 + 冻结默认，:124 记不可接受变化；W5-CFG-002 重锚） |
+| upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:24`（定义 + 代码默认 1.4 为实现记录〔D-08〕；不可接受变化见其 §10，:293 起；W5-CFG-002 重锚）<!-- 订正: 检查-跨文档冲突 黄4——原「定义 + 冻结默认，:124 记不可接受变化」：":124" 锚失效（§10 现居 :293 起），"冻结默认"按 D-08 改述。旧对照：定义 + 冻结默认，:124 记不可接受变化 --> |
 | hips（tile 宽） | 1 | `docs/science/PHASE3_HIPS_TO_FITS.md:41`（W 默认 512=2⁹；W5-CFG-002 重锚） |
 | drizzle（pixfrac） | 1 | 语义 `docs/science/DRIZZLE.md:25,27,31`；**数值 0.8**（`defaults.json#drizzle.pixfrac`；通量守恒条件不变量见 `docs/science/DRIZZLE.md` §7 与 FZ-COND-FLUX-CONSERV） |
 | sparse_snr / scalar_gate | 3 | **数值 pending** |

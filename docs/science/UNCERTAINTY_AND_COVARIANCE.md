@@ -9,9 +9,9 @@
 ## 逐像素方差
 
 - 输入方差：噪声模型 A = `NoiseWeightModelV1`（空背景稳健方差，唯一生产模型，SCI-NOISE-001..015）；
-- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；实现 = 分子 `acc.sumVarNum += varianceValue · w²`、分母 `D_p = Σ a_jp`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1632-1634`）。
+- Drizzle 传播：var_p = Σ v_j w_jp² / N_p²（SCI-DRZ-014；<!-- 订正: 检查-科学性 R-1——原作 /D_p²，冻结口径为 N_p²（DRIZZLE.md:83/:120、drizzle_engine.h:56、astro_sphere_sink.h:33/:45：var_pub = (sumVarNum·k²)/D_p² = sumVarNum/N_p²，k := D_p/N_p = pixfrac²）；以 D_p² 计会把方差高估 1/pixfrac⁴（pf=0.8 → ×2.44）。实现写法 = 分子 (sumVarNum·k²)、分母 D_p²，逐位等于 /N_p²；分子累加锚 `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1645-1647`（<!-- 订正: 检查-科学性 Y-3d 行漂移——原锚 :1632-1634。旧对照：drizzle_engine.cpp:1632-1634 -->）。旧对照：var_p = Σ v_j w_jp² / D_p²；分母 D_p = Σ a_jp -->）。
   与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002；实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:919`、声明 `snr_estimator.h:256`）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
-  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp` 无量纲、`D_p = Σ_j a_jp` 为覆盖球面面积（`sr`）且**与 `v_j` 无关** ⇒ 缩放律在标度类别的任何一档上都成立（`DATA_SEMANTICS` §4a；`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
+  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp` 无量纲、归一分母 `N_p = Σ_j w_jp·A_pixel,j`（实现记法 `D_p/k`，`k := D_p/N_p`；`D_p = Σ_j a_jp` 与 `N_p` 同为 `sr` 计面积量）且**与 `v_j` 无关** ⇒ 缩放律在标度类别的任何一档上都成立（量纲论证主语随 R-1 订正由 D_p 改 N_p，两量同量纲，结论不变）（`DATA_SEMANTICS` §4a；`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
 - 产品：HiPS variance + ivar（1/variance）。
 
 ## 协方差（重要边界）
@@ -44,13 +44,13 @@ control_ivar     = 1 / control_variance
 ```
 
 - 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；**适用域（必须与 `sigma_bg` 的前提一致）**：样本独立同分布且 patch 内**无未分辨空间结构**。`sigma_bg` 来自 8×8 patch 的稳健尺度，其前提是背景在 patch 尺度局部平稳（`docs/science/SCIENCE_SCOPE.md` §假设的 `γ = dlog(patch 方差)/dlog(patch 中位信号) ≈ 1` 判据）。前提被违反时 `sigma_bg` 量的是空间结构而非随机分量，`control_variance` 与 `control_ivar` **一并失真** ⇒ 该 patch 的噪声场必须显式降级并登记 `degraded_reason`；消费口径 = 降级后的噪声场；
-  **量纲**：`sigma_bg²` 单位 `ADU²`，`N_retained` 无量纲计数，`k_corr` 无量纲 ⇒ `control_variance` 单位 `ADU²`、`control_ivar` 单位 `ADU⁻²`；
+  **量纲**：`sigma_bg` 为**面亮度 ADU·sr⁻¹**（PHASE2_UPM §3 写盘 BUNIT 冻结集 {ADU/sr, ADU²/sr², sr²/ADU²}，裸 ADU 判红），`N_retained` 无量纲计数，`k_corr` 无量纲 ⇒ `control_variance` 单位 **(ADU·sr⁻¹)²**、`control_ivar` 单位 **(ADU·sr⁻¹)⁻²**（<!-- 订正: 检查-行文逻辑 Y2——原停留旧 ADU 域口径「sigma_bg² 单位 ADU² ⇒ control_variance 单位 ADU²、control_ivar 单位 ADU⁻²」，与 ALG-UPM-CONTROL-IVAR-001 的冻结面亮度口径差 sr⁻²。旧对照：control_variance 单位 ADU²、control_ivar 单位 ADU⁻² -->）；
 - k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained。
   <!-- 订正: D-08（负责人已批改表）——原「MC（pixfrac=0.8，2000 实现）k_corr=1.3883，
   N_eff≈181/251；冻结 1.4」改写为两因子公式＋几何查表： -->
-  **k_corr = k_gauss(N_retained) × k_geo(几何)**（即 k_shape×k_geo 两因子：k_shape =
-  估计器/N 因子 k_gauss，k_geo = drizzle 输出像素相关的纯几何因子）；k_gauss 表
-  （N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、≥121→≈1.0）与 k_geo 域
+  **k_corr = k_gauss(N_retained) × k_geo(几何)**（k_gauss = 有限 N 估计器偏置、**主导因子**；
+  k_geo = drizzle 输出像素相关的纯几何因子<!-- 订正: 检查-跨文档冲突 红1（同 检查-行文逻辑 R1）——原括注「即 k_shape×k_geo 两因子：k_shape = 估计器/N 因子 k_gauss」把 k_shape 等同 k_gauss，与 D-08 台账「k_shape = 非高斯形状因子」的两读冲突，删等式；非高斯边际形状效应 ≤±5%（N≥9）只作附带可忽略性说明，不进入公式面。旧对照：即 k_shape×k_geo 两因子：k_shape = 估计器/N 因子 k_gauss -->）；k_gauss 表
+  （照抄 P3 正本 DERIVATIONS-P3 §D8 全表：N=5→1.637、9→1.316、17→1.144、25→1.083、49→1.046、≥121→≈1.00<!-- 订正: 检查-跨文档冲突 红2——原 N=9 档 1.26 系旧「Var(median) 纯方差比」口径残留（承载单元 P3 实测 1.316），逐值照抄正本。旧对照：N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、≥121→≈1.0 -->）与 k_geo 域
   （紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）**由 P3 单元
   `实验/healpix-polar` 承载**。历史 MC 读数 1.3883（pixfrac=0.8、2000 实现、
   N_eff≈181/251）= **标定几何专属 MC 实测带 1.27–1.43（中心 1.34±0.04）内一次实现值**
@@ -63,13 +63,15 @@ control_ivar     = 1 / control_variance
 - 生产 UPM 权重 = quality × control_reliability × control_ivar（SCI-UPM-WEIGHT-001；
   `control_reliability` **实现为配置常量 1.0，不是按覆盖度算出的几何量**，缺陷登记
   SC-005），权重因子面 = 上述三项。
-- k_corr 定义域 1 ≤ k_corr：k_corr<1 ⇔ N_eff>N_retained（正相关样本的有效样本量不可能
-  大于样本数），`p2_upm_control_variance` 与 `p2_upm_ma_build` 显式拒（rc=1 / rc=7）。
+- k_corr 定义域 **1 < k_corr**：k_corr=1 ⇔ 忽略相关，`p2_upm_control_variance` 显式拒（**rc=2**）；
+  k_corr<1 ⇔ N_eff>N_retained（正相关样本的有效样本量不可能
+  大于样本数），`p2_upm_control_variance` 拒（rc=1）、`p2_upm_ma_build` 拒（rc=7）
+  （<!-- 订正: 检查-行文逻辑 Y1——原作「定义域 1 ≤ k_corr」未含 k_corr=1 拒绝，与 PHASE2_UPM §4、PHASE2_SAMPLER §5.4 的冻结拒绝规则（k_corr=1 ⇔ rc=2）不一致。旧对照：定义域 1 ≤ k_corr：k_corr<1 ⇔ N_eff>N_retained，显式拒（rc=1 / rc=7） -->）。
 
 ## Phase2 马赛克合成方差（DATA-P2-VAR-001）
 
 马赛克加权积分（SCI-INT §5，w_i=逐样本 ivar，权重是阶段二按该天球像素对应帧集合现场算出的派生量，无 fallback）的
-方差传播是 SCI-DRZ-014 一般式 `var_p = Σ_j v_j w_jp²/D_p²` 在积分权重下的
+方差传播是 SCI-DRZ-014 一般式 `var_p = Σ_j v_j w_jp²/N_p²`（随上节「逐像素方差」条目的 R-1 订正同步，原 /D_p² 为同源笔误）在积分权重下的
 直接特例（w_i=1/v_i）：
 
 ```text

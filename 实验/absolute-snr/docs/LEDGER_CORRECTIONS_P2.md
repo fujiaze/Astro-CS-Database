@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | 1 | D-04 | 1.152 vs 1.144 | 取 1.152（20 万次 MC +0.19%；1.144 支算术漂移 5811→5816.6）；本单元与历史正本中 9216→5811 的读数一律改 5816.6 | REPORT_paper §4.2、REPORT_experiment A2、AUDIT_KEY_RESULTS |
 | 2 | D-07 | control_variance N=5 方向词 | “渐近式低估 8.5%”改为“纯公式口径对真方差高估 9.53%（保守）”；端到端 ±1.5%；生产链裁剪臂低估 1.3–3.2%；口径区分写明 | REPORT_paper §4.6、REPORT_experiment A6 |
-| 3 | D-08 | k_corr=1.4 | 冻结常数改两因子公式 k_shape×k_geo + (ρ,pixfrac,帧数,patch) 几何查表，由 P3 单元承载（负责人已批）；1.3883 = 标定几何专属单次 MC（带 1.27–1.43）；本单元只引 AR(1) 机制腿 | REPORT_paper §4.6、REPORT_experiment A7、refs.md D 项 |
+| 3 | D-08 | k_corr=1.4 | 冻结常数改两因子公式 k_gauss(N_retained)×k_geo + (ρ,pixfrac,帧数,patch) 几何查表（<!-- 订正: 检查-跨文档冲突 红1 连带，原 k_shape×k_geo 记号全域统一 -->），由 P3 单元承载（负责人已批）；1.3883 = 标定几何专属单次 MC（带 1.27–1.43）；本单元只引 AR(1) 机制腿 | REPORT_paper §4.6、REPORT_experiment A7、refs.md D 项 |
 | 4 | A-P2-01 | 《已确立》§3 幻觉锚指控 | 定性撤销：常数表实存（行 108–130），行漂移 +2/+3 内容均在 | REPORT_paper §1、AUDIT_KEY_RESULTS.registry_findings |
 | 5 | A-P2-05/06 | P-CST-11 “seed 无关闭式” | 错误标签订正：闭式存在且逐位复现（路线3 2.35×10⁻¹⁴、路线1 MC 3.3×10⁻⁷）；+1.91×10⁻⁶ = 闭式−登记尾差 | REPORT_paper §4.3、REPORT_experiment A4 |
 | 6 | A-P2-07 | P-CST-23 声称系列 | 部分复原（S2 语义 + β≈2.5 + 窗帽 256：3 点同号同单调、2 点同量级），属登记缺失非捏造嫌疑 | REPORT_paper §4.7、诚实边界 |

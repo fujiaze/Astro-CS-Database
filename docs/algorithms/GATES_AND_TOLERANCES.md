@@ -32,13 +32,13 @@
 
 | 名称 | 定义式 | 单位 | 计算面（列/来源） |
 |---|---|---|---|
-| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:458-476` 的 `sdet_compute_bgnoise`）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad·1.482602218505602`（star_measurements 列 [4]/[10]） |
+| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:451` 的 `sdet_compute_bgnoise`<!-- 订正: 检查-科学性 Y-3f 行漂移——原锚 :458-476。旧对照：sdet_api.cpp:458-476 -->）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad·1.482602218505602`（star_measurements 列 [4]/[10]） |
 | `SNR_phot` | `F / sigma_F`（Horne 1986） | 无量纲 | 测光域（DATA-P1-SNR §13.4），**与本表门无关**，列此仅作区分 |
 | `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_sources.json` 的 `sources[].snr`）：`peak` = **未平滑原图**上检出像素峰值、`background`/`noise_sigma` = 该帧背景与背景 RMS；实现 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:240`（`s.snr = (peak − cat.background) / cat.noise_sigma`）。**与 `SNR_peak` 不同源**：`SNR_peak` 用椭圆高斯拟合振幅 `A_fit`（检测侧 `flux` 列），`SNR_det` 用原始峰值 ⇒ 两列**各自具名**；凡门写「SNR>x」必须点名用哪一行 |
 
 **SNR_peak 的定义敏感性（必须随门一起读）**：全局检测阈值是
-`threshold = median(img) + 5.0·bgnoise`（`sdet_api.cpp:1790`，阈值语义锚 `:1782`），作用于
-**σ=2 平滑后**的图像（`sdet_api.cpp:1770-1773` 的 `sdet_gaussian_blur_yvv(..., 2.0)`） ⇒ 同一合成场在不同「峰值 SNR」下可检出性差异极大：
+`threshold = median(img) + 5.0·bgnoise`（`sdet_api.cpp:1779`，阈值语义锚 = `:1771` 的 star_finder.c 注释行），作用于
+**σ=2 平滑后**的图像（`sdet_api.cpp:1761` 的 `sdet_gaussian_blur_yvv(..., 2.0)`<!-- 订正: 检查-科学性 Y-3f 行漂移——原锚 :1790/:1782/:1770-1773，实况 :1779（threshold 赋值）/:1771（注释）/:1761（blur 调用）、bgnoise 计算 :1770。旧对照：sdet_api.cpp:1790，:1782，:1770-1773 -->） ⇒ 同一合成场在不同「峰值 SNR」下可检出性差异极大：
 R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 `SNR_peak=50` 检出 **36/40**、`SNR_peak=300` 检出 36/40。
 ⇒ 任何门若写「SNR≥x」，必须同时写 `SNR_peak`（本节定义）与 `x` 的取值域，

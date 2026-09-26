@@ -43,7 +43,7 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 |---|---|---|---|
 | Ω | coverage union（上游 MOC） | — | coverage.h（P2-COV 域） |
 | tile_ipix | union tile 的 NESTED 像素号（order=target_order） | 无量纲 | coverage.h P2CoverageCell.ipix |
-| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303/:509 |
+| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303-304/:519（<!-- 订正: 检查-跨文档冲突 黄7——原锚 :303/:509，:509 现为 background_contamination_sigma 赋值；grid 默认 8 在 :304、再默认 :519。旧对照：sampler.cpp:303/:509 -->） |
 | cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:76/:630 |
 | cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:771-780 |
 | leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:773-774 |
@@ -123,7 +123,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 `background_contamination_sigma=3.0`/
 `background_min_retained_fraction=0.60`/`background_tolerance=3.0`/
 `background_neighbor_radius=2`/`background_catalog_veto=1`/
-`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-317）。
+`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-320；<!-- 订正: 检查-跨文档冲突 黄7——原区间 303-317 未覆盖 cpu_workers=1 实际赋值行 :320。旧对照：sampler.cpp:303-317 -->）。
 显式 cfg 覆盖路径：sampler.cpp:501（`if (cfg_in) cfg = *cfg_in;`）。
 
 ## 4 算法结构：三阶段 background-clean 采样管线
@@ -326,7 +326,7 @@ uncertainty      = sqrt(control_variance)                  # :878
 - 常数权威：kPiHalf=1.57079632679489661923（:84）；k_corr 定义域 **1 < k_corr**
   （k_corr = 1 ⇔ 忽略相关，`p2_upm_control_variance` 返回 rc=2；
   k_corr < 1 ⇔ N_eff > N_retained，正相关样本的有效样本量不可能大于样本数，物理不可达，
-  返回 rc=1 —— `lib/algorithms/coverage/src/upm.cpp:2772-2783`）；
+  返回 rc=1 —— `lib/algorithms/coverage/src/upm.cpp:2954-2975`（rc=1 @ :2966；<!-- 订正: 检查-行文逻辑 Y3 行漂移——原锚 upm.cpp:2772-2783。旧对照：upm.cpp:2772-2783 -->））；
   <!-- 订正: D-08（负责人已批改表）——代码常量 kControlCorrDefault=1.4（:83）保留为实现记录；
   公式面由「冻结单数 1.4」改为两因子 k_gauss(N)×k_geo 几何查表（见下条），
   公式与查表由 P3 单元 实验/healpix-polar 承载 -->
@@ -337,12 +337,15 @@ uncertainty      = sqrt(control_variance)                  # :878
   - **k_gauss(N)**：iid 高斯样本在正本估计器口径（逐实现 MAD → 跨实现中位）下对渐近
     基线 (π/2)σ²/N 的有限 N 修正——其真实机制 = **MAD 尺度估计器的小样本偏置**
     （N=5 时中位 MAD/σ = 0.746），与 drizzle 无关（恒等几何直接定征 400k 实现：
-    k_gauss(5)=1.6370）。k_gauss 表（P3 补实验 T3）：**N=5 → 1.63、9 → 1.26、
-    17 → 1.14、25 → 1.08、49 → 1.05、≥121 → ≈1.0**；
-  - **k_geo**：drizzle 输出像素相关的纯几何因子（k_geo = k_corr/k_shape），随
+    k_gauss(5)=1.6370）。k_gauss 表（P3 补实验 T3，照抄正本 DERIVATIONS-P3 §D8 全表）：
+    **N=5 → 1.637、9 → 1.316、17 → 1.144、25 → 1.083、49 → 1.046、≥121 → ≈1.00**
+    （<!-- 订正: 检查-跨文档冲突 红2——原 N=9 档 1.26 系旧「Var(median) 纯方差比」口径残留，
+    与同表 N=5 档的估计器链口径混装；正本全表 = 1.637/1.316/1.144/1.083/1.046/≈1.00。
+    旧对照：N=5 → 1.63、9 → 1.26、17 → 1.14、25 → 1.08、49 → 1.05、≥121 → ≈1.0 -->）；
+  - **k_geo**：drizzle 输出像素相关的纯几何因子（k_geo = k_corr/k_gauss(N_retained)），随
     (ρ=输出/源尺度比, pixfrac, 帧数/dither, patch 构成) 变化：**紧凑 patch ≈1.27±0.03、
     全 touched patch ≈1.43–1.45、远散（空间分散）patch ≈1.00**；几何扫描全域 1.00–5.0
-    （多帧 1/2/4 帧 = 1.424/1.338/1.328）；非高斯边际形状效应 ≤±5%（N≥9）可忽略；
+    （多帧 1/2/4 帧 = 1.424/1.338/1.328）；<!-- 订正: 检查-跨文档冲突 红1——原括注「k_geo = k_corr/k_shape」把 k_shape 逼成 k_gauss，与 :345 的 ≤±5% 形状效应一词两义；统一为 k_corr = k_gauss(N_retained) × k_geo，k_shape 一词不再进入公式面。旧对照：k_geo = k_corr/k_shape -->附带说明（非公式因子）：非高斯边际形状效应 ≤±5%（N≥9）可忽略；
   - **1.3883 的归属（改写）**：标定几何专属（源 300″/px、nside=512 → 412.26″/px、
     pixfrac=0.8、全 touched patch N≈225–251）的 MC 实测带 **1.27–1.43（中心 1.34±0.04）**
     内的一次实现值；受控复现 1.3445±0.0416（16 相位 × 8 seed），

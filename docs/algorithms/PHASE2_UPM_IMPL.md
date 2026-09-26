@@ -421,7 +421,7 @@ converged = 0  ⇔ 迭代耗尽（max_iterations）                       # :105
 「生产显式 1 + 1e-3」——三处均与实现（`:1019-1027`）及生产装配（`tolerance=1e-6`）
 不一致，**以代码与本节为准**。
 
-**k_corr=1.4 冻结（MC 实测 1.3883）**：`sampler.cpp:82` 注释
+**k_corr 代码默认 1.4（实现记录；公式面 = k_gauss(N_retained)×k_geo 几何查表，D-08；MC 实测 1.3883）**：`sampler.cpp:82` 注释
 "k_corr_empirical = 1.3883，N_eff ≈ 181 < N_retained=251. 冻结保守值
 1.4"；常量 `kControlCorrDefault=1.4`（`sampler.cpp:83`）。
 <!-- 订正: D-08（负责人已批改表）——k_corr 公式面由「冻结单数 1.4」改为两因子
@@ -430,7 +430,10 @@ k_gauss(N_retained)×k_geo 几何查表（PHASE2_SAMPLER.md §5.4 承载定义�
 pixfrac=0.8、全 touched patch N≈225–251）MC 实测带 1.27–1.43（中心 1.34±0.04）内一次
 实现值；冻结单数 1.4 在其声明标定域两端低估 control_variance（N=5 端 32%、源 583–600″
 端约 2 倍），不再作普适常数；消费 = 标定元组 + N 档声明，否则 fail-closed 或现场 MC 重标。
-上述代码注释与常量保留为实现记录。 -->
+上述代码注释与常量保留为实现记录；段首加粗标题已按 D-08 口径同步。 -->
+<!-- 订正: 检查-科学性 Y-2——原标题「k_corr=1.4 冻结（MC 实测 1.3883）」仍以旧冻结口径陈述，
+只读标题的消费者会得到被终裁否定的口径；代码注释引文保留为实现记录。
+旧对照：k_corr=1.4 冻结（MC 实测 1.3883） -->
 **k_corr 属
 sampler 域合同**（ALG-P2-SMP-001 §5.4 / ALG-UPM-CONTROL-IVAR-001，
 PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不重复

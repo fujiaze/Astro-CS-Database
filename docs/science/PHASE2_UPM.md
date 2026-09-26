@@ -20,9 +20,9 @@
 | `control_variance` | `k_corr·(π/2)·σ_bg²/N_retained` | `ALG-UPM-CONTROL-IVAR-001` |
 | `control_ivar` | `1/control_variance` | `p2_upm_raw_weight` |
 | `quality_factor` | 质量因子（cosmic/geom 质量） | `SCI-UPM-WEIGHT-001` |
-| `control_reliability`（旧名 `geometric_reliability`） | per-control 相对可靠度。**实现事实 = 配置常量**（`P2UpmBuildConfig.control_reliability`，默认 1.0，`upm.cpp:289-290`），**不是**按单 control 覆盖度算出的几何量 | `upm.cpp:264`（默认 1.0）/ `:283`（越域回退 1.0） |
+| `control_reliability`（旧名 `geometric_reliability`） | per-control 相对可靠度。**实现事实 = 配置常量**（`P2UpmBuildConfig.control_reliability`，默认 1.0，`upm.cpp:277`），**不是**按单 control 覆盖度算出的几何量 | `upm.cpp:72`（字段注释）/ `:277`（默认 1.0）/ `:296`（越域回退 1.0）<!-- 订正: 检查-跨文档冲突 黄8（同 检查-科学性 Y-3b 行漂移）——原锚 upm.cpp:289-290/:264/:283 漂移 ~13 行，实况 :72/:277/:296。旧对照：upm.cpp:264（默认 1.0）/ :283（越域回退 1.0），:289-290 --> |
 | `k_corr` | Drizzle 相关校正；定义域 **1 < k_corr**（`k_corr = 1` ⇔ 忽略相关，显式拒）；公式面 = 两因子 `k_gauss(N)×k_geo` 几何查表（D-08），代码默认 1.4 为实现记录 | `sampler.cpp:83`（默认）/ `:874-875`（取值与消费） |
-| `w_cell` | 求解器内 per-control 份额权重（无量纲，`Σ_cell w_cell = control_reliability`） | `upm.cpp:565` |
+| `w_cell` | 求解器内 per-control 份额权重（无量纲，`Σ_cell w_cell = control_reliability`） | `upm.cpp:655`（归一化注释；<!-- 订正: 检查-跨文档冲突 黄8——原锚 upm.cpp:565 现为 lambda_s 行。旧对照：upm.cpp:565 -->） |
 | `N_retained` | clipping 后保留样本数 | `P2ControlObservation` |
 | `parameter_rows[index]` | 第 index 帧的 θ 行 | `upm.cpp:parameter_rows` |
 | `frame_id_by_index[index]` | 第 index 帧的稳定 id | `frame_id_by_index` |
@@ -40,7 +40,7 @@
 - 帧数 `n_frames ≥2` 且至少一 control cell 有 `≥2` 帧 clean 覆盖，否则 harmonic continuation 填单帧区；`n_control_points` 可为 0（→ NO_DATA）。
 - `control_ivar` 有效要求 `use_ivar_weight=1` 时 `control_ivar>0` 且有限，否则 `p2_upm_raw_weight rc=2 → build rc=2`（`DATA-UPM-CONTROL-UNC-001`）。
 - `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:874`）；
-  **定义域 1 < k_corr**：`p2_upm_control_variance`（`upm.cpp:2766-2790`）对 k_corr<1 返回 rc=1、
+  **定义域 1 < k_corr**：`p2_upm_control_variance`（`upm.cpp:2954-2975`<!-- 订正: 检查-科学性 Y-3a 行漂移——原锚 upm.cpp:2766-2790，实际 :2954-2975（rc=1 @:2966）。旧对照：upm.cpp:2766-2790 -->）对 k_corr<1 返回 rc=1、
   对 k_corr=1 返回 rc=2、对非冻结值缺 `calibration_run_id` 返回 rc=3、缺 `applicability_domain` 返回 rc=4；
   `p2_upm_ma_build`（`upm.cpp:2265-2276`）对上述四类越域一律返回 rc=7。
   物理依据：k_corr 表征 Drizzle 输出像素协方差使 `N_eff ≤ N_retained`；k_corr<1 ⇔ N_eff>N_retained，
@@ -111,8 +111,11 @@
   # control estimator = patch median (非单 leaf)
   # N_retained = clipping 后保留数 (非 n_total)；域 [min_samples, (2r+1)²] = [5, 289]
   # k_corr = k_gauss(N_retained) × k_geo（两因子几何查表，D-08；公式与查表由 P3 单元
-  #   实验/healpix-polar 承载；k_gauss 表：N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、
-  #   ≥121→≈1.0；k_geo：紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00；
+  #   实验/healpix-polar 承载；k_gauss 表（照抄正本 DERIVATIONS-P3 §D8 全表）：
+  #   N=5→1.637、9→1.316、17→1.144、25→1.083、49→1.046、≥121→≈1.00
+  #   <!-- 订正: 检查-跨文档冲突 红2——原 N=9 档 1.26 系旧「纯方差比」口径残留，照抄正本全表；
+  #   旧对照：N=5→1.63、9→1.26、17→1.14、25→1.08、49→1.05、≥121→≈1.0 -->
+  #   k_geo：紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00；
   #   消费规则 = 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成) + N 档声明，
   #   否则 fail-closed 拒绝或现场 MC 重标，见 §4）
   #   代码默认 1.4 为实现记录（标定域两端失保守：N=5 端低估 control_variance 32%、
@@ -460,11 +463,13 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 三种零假设口径（同一产品 `run/M42-E2E-02/out/full_p3_whole_v2/output_phase3.fits`，
 49 帧 / 196 条边界 / 适用域内 114 条）：
 
-| 零假设口径 | σ(rel_step) | 1e-2 = kσ | 单边虚警（正态） | 族系虚警（114 条，正态） |
+| 零假设口径 | σ(rel_step) | 1e-2 = kσ | 双边虚警（正态） | 族系虚警（114 条，双边 max\|rel_step\|，正态） |
 |---|---|---|---|---|
-| A 逐边解析（纯估计量噪声，逐边中位） | 1.187e-3 | **8.42** | 3.7e-17 | 4.0e-4（由逐边最大 σ = 2.851e-3 主导） |
+| A 逐边解析（纯估计量噪声，逐边中位） | 1.187e-3 | **8.42** | 3.7e-17 | 6.9e-4（MC 2×10⁵ 次 max_e\|rel_step\|；由逐边最大 σ = 2.851e-3 主导） |
 | B2 off-locus 对照线（同估计量、无法向 200 px 帧边界） | 1.869e-3 | **5.35** | 8.7e-8 | 1.0e-5 |
 | B1 实测跨边散布（含背景梯度项与残余真实接缝） | 2.814e-3 | **3.55** | 3.8e-4 | **4.2%** |
+
+<!-- 订正: 检查-科学性 Y-4（任务黄16）——① 列名「单边虚警（正态）」改「双边」：三格值均为 2(1−Φ(k))（3.7e-17/8.7e-8/3.8e-4 与 run/SEAM-DERIV-01/evidence/null_distribution.json 的 two_sided_p 读数逐位相符），原列名「单边」与值不符；② A 行族系值 4.0e-4 与证据文件 p_familywise_exceed = 6.85e-4（M=2×10⁵）不符，按证据改 6.9e-4 并写明口径（双边、max_e|rel_step|）；B2/B1 族系值（1.0e-5/4.2%）与证据复核相符不动。旧对照：A 行族系 4.0e-4（由逐边最大 σ 主导） -->
 
 - **A 与 B1 差 2.37 倍，方向明确**：估计量自身的采样噪声只占实测跨边散布的约 42%，其余是
   `2d·∂I/∂n` 梯度项与残余真实接缝。d 扫描判别（`|rel_step_d4x|/|rel_step|`：纯台阶 = 1、纯梯度 = 4）
@@ -472,8 +477,8 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
   **故门的判读必须与 `step_net`、d 扫描一起做**（§9a 已把它们列为诊断量）。
 
 - **正态口径在尾部失效**：对照线（= 同一估计量施加在**无缝位置**）114 条里 **1 条**
-  `|ctrl_step/bg_ctrl| = 1.020e-2 > 门`，经验单边虚警 **0.88%**（Clopper–Pearson 95% 区间 [0.022%, 4.8%]）；
-  同一批数据的正态预测 8.7e-8 ⇒ **差 7 个数量级**。非高斯尾部来自局域亮结构（星/星云）与**分母口径**：
+  `|ctrl_step/bg_ctrl| = 1.020e-2 > 门`，经验虚警（判据量取绝对值，双边口径）**0.88%**（Clopper–Pearson 95% 区间 [0.022%, 4.8%]）；
+  同一批数据的正态预测 8.7e-8 ⇒ **差约 5 个数量级**（8.8e-3 / 8.7e-8 ≈ 1.0×10⁵<!-- 订正: 检查-科学性 R-2——原作「差 7 个数量级」与「经验单边虚警」，实为 5 个数量级、双边口径；结论「正态口径在尾部失效」不变。旧对照：差 7 个数量级 -->）。非高斯尾部来自局域亮结构（星/星云）与**分母口径**：
   同一条对照线用边界自身 `bg` 计得 0.78e-2（判绿）、用对照线自己的 `bg_ctrl` 计得 1.02e-2（判红）
   ⇒ **比值判据在分母上就有约 30% 的口径摆动**。少数事件也说明该经验率本身极不确定（1/114）：
   族系虚警的点估计 63%、95% 区间 [2.5%, 99.6%]。

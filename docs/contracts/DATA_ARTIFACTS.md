@@ -116,7 +116,8 @@ G2 consumer API 的入口条件 = ambiguity 已消除。
 | `snr` | CW/sampler | 区域级 SNR 权重因子 snr_v² | SCI-CW-001 | 明确(与 ivar 语义分离) |
 | `value` (integrate) | integrate.h | 候选样本值 | DATA-IMG-CAL-001 标度 | 明确 |
 | `quality` | sampler | 帧/星点质量位掩码 | SCI-CW-001 | 明确 |
-| `k_corr` | sampler.cpp:672 | Drizzle 相关校正 1.4 | SCI-UPM-WEIGHT-001 | 明确 |
+| `k_corr` | sampler.cpp:83/:874-875 | Drizzle 协方差方差放大因子：域内 = k_gauss(N_retained)×k_geo 逐帧查表（D-08）；1.4 = 代码默认（实现记录，域外回退） | SCI-UPM-WEIGHT-001 | 明确 |
+<!-- 订正: 检查-跨文档冲突 黄5——原行「sampler.cpp:672｜Drizzle 相关校正 1.4｜明确」：锚 :672 漂移（实际 = kControlCorrDefault :83、消费 :874-875），语义按 D-08 补查表/回退口径。旧对照：k_corr｜sampler.cpp:672｜Drizzle 相关校正 1.4 -->
 
 结论：`weight` 在 integrate 与 UPM 两处语义已显式分离命名（`stack.*.v1` vs
 `upm.robust_control_weight.v1`），无未消除歧义；`scale/sigma/snr/value/quality` 均有

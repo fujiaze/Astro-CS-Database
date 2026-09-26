@@ -62,10 +62,10 @@ N≈225–251、逐实现 MAD 取跨实现中位）专属的**单次 MC 实测�
 ### 3.2 两因子分解
 
 ```
-k_corr = k_shape × k_geo
+k_corr = k_gauss(N_retained) × k_geo
 ```
 
-- **k_shape**（非高斯边际形状）：N≥9 时 ≤±5%，可忽略 [推导]＋[实验:P3 单元 g2]。
+- **k_gauss**（有限 N 估计器偏置，主导因子）：N=5→1.63、N≥121→≈1.00（表由 P3 单元承载）；<!-- 订正: 检查-跨文档冲突 红1 连带——原式 k_corr = k_shape × k_geo、k_shape 注为非高斯边际形状 ≤±5%，与 P3 正本 DERIVATIONS-P3 §D8/tables.md T3 的 k_gauss 因子两读，全域统一为 k_gauss(N_retained) × k_geo；非高斯边际形状效应 ≤±5%（N≥9）改作附带说明，不进入公式面。旧对照：k_corr = k_shape × k_geo；k_shape（非高斯边际形状）：N≥9 时 ≤±5%，可忽略 -->附带说明（非公式因子）：非高斯边际形状效应 ≤±5%（N≥9），可忽略 [推导]＋[实验:P3 单元 g2]。
 - **k_geo**（几何）：随 (ρ=输出/源尺度比, pixfrac, patch 构成, 帧数/dither) 变化——
   紧凑 patch ≈1.27±0.03、全 touched ≈1.43–1.45、空间分散 ≈1.00、几何扫描全域 1.00–5.0、
   多帧 1/2/4 帧 = 1.424/1.338/1.328 [实验:P3 单元 g1/g3/g4，固化于本单元
@@ -81,7 +81,7 @@ k_corr = k_shape × k_geo
 ### 3.4 P5 的引用义务（论文与文档统一）
 
 凡引用 control_variance 公式，必须同时声明：
-1. **k_corr 按 k_shape × k_geo 两因子公式 + (ρ, pixfrac, 帧数/dither, patch 构成) 几何查表**
+1. **k_corr 按 k_gauss(N_retained) × k_geo 两因子公式 + (ρ, pixfrac, 帧数/dither, patch 构成) 几何查表**（记号统一见 §3.2 订正）
    （查表 P3 单元承载）；
 2. **标定元组**与 **N_retained 档位**（N≤25 时高斯有限样本因子 k_gauss(N) > 1.08 不可忽略；
    N=5 紧凑 patch 须 ≥1.6、分散 1.54）；

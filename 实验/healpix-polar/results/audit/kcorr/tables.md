@@ -19,7 +19,7 @@
 |---|---|---|
 | k_corr | 1.4146 (MC SE 0.0387) | 总因子 |
 | k_shape | 0.9762 | iid 重采样边际的 k(非高斯边际形状, 含有限 N 偏置) |
-| k_geom | 1.4492 | k_corr/k_shape, 纯相关因子 |
+| k_geom | 1.4492 | k_corr/k_shape, 纯相关因子（k_shape＝旧记号，现统一为 k_gauss(N_retained)，见检查-跨文档冲突 红1） |
 | mean_nn_corr | 0.1275 (420 对) | 算子精确最近邻相关 |
 | sigma_bg | 6.0550 | MAD 尺度(正本估计器口径) |
 
