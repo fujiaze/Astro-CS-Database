@@ -1,0 +1,11 @@
+{
+ "group": "G7_fh_ratio_canonical",
+ "n_pix": 225,
+ "R_median": 1.272940030144997,
+ "R_mean": 1.3125158176555642,
+ "R_p16": 1.1203324312074945,
+ "R_p84": 1.585820499024413,
+ "fh_closed_form_r": 0.5821591938540023,
+ "note": "closed form valid only for filled uniform dither (multi-frame)",
+ "written_utc": "2026-09-26T15:56:30.491747+00:00"
+}

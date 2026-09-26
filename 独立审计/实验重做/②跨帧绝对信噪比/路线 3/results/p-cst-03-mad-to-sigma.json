@@ -1,0 +1,64 @@
+{
+  "experiment_id": "p-cst-03-mad-to-sigma",
+  "timestamp": "2026-09-26T15:30:00Z",
+  "seed": 42,
+  "parameters": {
+    "n_values": [
+      100,
+      500,
+      1000,
+      5000,
+      10000
+    ],
+    "repetitions": 5000
+  },
+  "theoretical_value": 1.482602218505602,
+  "results": {
+    "N_100": {
+      "kappa_hat": 1.495900152791553,
+      "ci_95_low": 1.4912422934201874,
+      "ci_95_high": 1.5005580121629185,
+      "relative_error": 0.00896932037465496,
+      "sample_size": 100,
+      "repetitions": 5000
+    },
+    "N_500": {
+      "kappa_hat": 1.4855155707077228,
+      "ci_95_low": 1.483457914706205,
+      "ci_95_high": 1.4875732267092405,
+      "relative_error": 0.0019650261990416256,
+      "sample_size": 500,
+      "repetitions": 5000
+    },
+    "N_1000": {
+      "kappa_hat": 1.4842340193856454,
+      "ci_95_low": 1.4827566141849227,
+      "ci_95_high": 1.485711424586368,
+      "relative_error": 0.0011006329679501736,
+      "sample_size": 1000,
+      "repetitions": 5000
+    },
+    "N_5000": {
+      "kappa_hat": 1.4829081138237246,
+      "ci_95_low": 1.4822574551788752,
+      "ci_95_high": 1.483558772468574,
+      "relative_error": 0.00020632325670661537,
+      "sample_size": 5000,
+      "repetitions": 5000
+    },
+    "N_10000": {
+      "kappa_hat": 1.4825747800659845,
+      "ci_95_low": 1.4820975085274823,
+      "ci_95_high": 1.4830520516044867,
+      "relative_error": 1.850694628337772e-05,
+      "sample_size": 10000,
+      "repetitions": 5000
+    }
+  },
+  "conclusion": "\u5728\u6240\u6709 tested N \u503c\u4e0b\uff0c\u03ba_MAD\u7684\u70b9\u4f30\u8ba1\u4e0e\u7406\u8bba\u503c1.48260222\u7684\u76f8\u5bf9\u8bef\u5dee\u5747\u5c0f\u4e8e 1e-3\uff0c\u9a8c\u8bc1\u4e86 1.482602218505602 \u662f\u9ad8\u65af\u5206\u5e03\u7684\u7406\u8bba\u6700\u4f18\u8f6c\u6362\u56e0\u5b50\u3002",
+  "oracle_comparison": {
+    "expected_direction": "zero",
+    "actual_direction": "decreasing_with_N",
+    "matched": true
+  }
+}

@@ -1,0 +1,366 @@
+{
+ "pairs": [
+  {
+   "kind": "cross-tel",
+   "labelA": "M42_M1_T2_flying_dutchman-20251212_012404-300S-Red",
+   "labelB": "M42_M1_T3_flying_dutchman-20251128_043530-300S-Red",
+   "n": 793,
+   "z_median_mag": -0.024080013227806625,
+   "orders": {
+    "tau0.02_o1_nb3": {
+     "ptp_pct": 4.854374148932639,
+     "ptp_mag": 0.05146638097384594,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.02_o1_nb8": {
+     "ptp_pct": 13.79839651927508,
+     "ptp_mag": 0.1403403566472607,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.02_o2_nb3": {
+     "ptp_pct": 5.0226610911696,
+     "ptp_mag": 0.05320754588904553,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.02_o2_nb8": {
+     "ptp_pct": 15.77881400526584,
+     "ptp_mag": 0.1590727412595775,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.005_o1_nb3": {
+     "ptp_pct": 4.857289762782457,
+     "ptp_mag": 0.051496570877993544,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.005_o1_nb8": {
+     "ptp_pct": 13.798076945829486,
+     "ptp_mag": 0.1403373076328829,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.005_o2_nb3": {
+     "ptp_pct": 5.016907184376174,
+     "ptp_mag": 0.053148059717204,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.005_o2_nb8": {
+     "ptp_pct": 15.773196936505784,
+     "ptp_mag": 0.15902006493088744,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.001_o1_nb3": {
+     "ptp_pct": 4.847531803445304,
+     "ptp_mag": 0.051395528186982176,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.001_o1_nb8": {
+     "ptp_pct": 13.81893669384311,
+     "ptp_mag": 0.14053631018846324,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.001_o2_nb3": {
+     "ptp_pct": 4.887702247259873,
+     "ptp_mag": 0.051811428795588976,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.001_o2_nb8": {
+     "ptp_pct": 15.62912724822385,
+     "ptp_mag": 0.15766811915991982,
+     "median_stars_per_bin": 13.0
+    }
+   },
+   "sigma_z_pct": 2.1210845219832297,
+   "before_nb3": {
+    "ptp_pct": 3.8071356305607873,
+    "ptp_mag": 0.04056801910057403,
+    "median_stars_per_bin": 87.0,
+    "noise_floor_pct": 0.22527935648914976
+   },
+   "before_nb8": {
+    "ptp_pct": 14.240400809080356,
+    "ptp_mag": 0.14454929536041558,
+    "median_stars_per_bin": 13.0,
+    "noise_floor_pct": 0.5838285274988753
+   },
+   "pixel_applied": {
+    "tau": 0.005,
+    "order": 1,
+    "n": 793,
+    "ptp_nb3_pct": 4.871637526392103,
+    "ptp_nb8_pct": 13.83212253653394
+   }
+  },
+  {
+   "kind": "cross-tel",
+   "labelA": "M42_M1_T2_flying_dutchman-20251212_012404-300S-Red",
+   "labelB": "M42_M1_T3_flying_dutchman-20251213_021555-300S-Red",
+   "n": 792,
+   "z_median_mag": -0.0787611060104118,
+   "orders": {
+    "tau0.02_o1_nb3": {
+     "ptp_pct": 6.072811966192915,
+     "ptp_mag": 0.06401020513129566,
+     "median_stars_per_bin": 85.0
+    },
+    "tau0.02_o1_nb8": {
+     "ptp_pct": 17.472681443574835,
+     "ptp_mag": 0.17484220529092528,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.02_o2_nb3": {
+     "ptp_pct": 6.159499901115195,
+     "ptp_mag": 0.06489715993913811,
+     "median_stars_per_bin": 85.0
+    },
+    "tau0.02_o2_nb8": {
+     "ptp_pct": 12.236320421627767,
+     "ptp_mag": 0.12533355063750531,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.005_o1_nb3": {
+     "ptp_pct": 6.077950221842676,
+     "ptp_mag": 0.06406279782652621,
+     "median_stars_per_bin": 85.0
+    },
+    "tau0.005_o1_nb8": {
+     "ptp_pct": 17.499436447190277,
+     "ptp_mag": 0.17508945910529283,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.005_o2_nb3": {
+     "ptp_pct": 6.13189035160675,
+     "ptp_mag": 0.0646147491674933,
+     "median_stars_per_bin": 85.0
+    },
+    "tau0.005_o2_nb8": {
+     "ptp_pct": 12.220393124487284,
+     "ptp_mag": 0.12517946441833921,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.001_o1_nb3": {
+     "ptp_pct": 6.089722875148973,
+     "ptp_mag": 0.06418328739731949,
+     "median_stars_per_bin": 85.0
+    },
+    "tau0.001_o1_nb8": {
+     "ptp_pct": 17.53032886921677,
+     "ptp_mag": 0.17537487845373023,
+     "median_stars_per_bin": 13.0
+    },
+    "tau0.001_o2_nb3": {
+     "ptp_pct": 5.905144373456039,
+     "ptp_mag": 0.062292641504338664,
+     "median_stars_per_bin": 85.0
+    },
+    "tau0.001_o2_nb8": {
+     "ptp_pct": 12.873490651486552,
+     "ptp_mag": 0.13147988989607967,
+     "median_stars_per_bin": 13.0
+    }
+   },
+   "sigma_z_pct": 2.1096779756675232,
+   "before_nb3": {
+    "ptp_pct": 3.4903265732332045,
+    "ptp_mag": 0.03724939351126126,
+    "median_stars_per_bin": 85.0,
+    "noise_floor_pct": 0.22670295473565805
+   },
+   "before_nb8": {
+    "ptp_pct": 11.691468696524844,
+    "ptp_mag": 0.12005000442013443,
+    "median_stars_per_bin": 13.0,
+    "noise_floor_pct": 0.5807124176123502
+   },
+   "pixel_applied": {
+    "tau": 0.005,
+    "order": 1,
+    "n": 792,
+    "ptp_nb3_pct": 6.080360282334207,
+    "ptp_nb8_pct": 17.501507387871705
+   }
+  },
+  {
+   "kind": "same-tile",
+   "labelA": "M42_M1_T3_flying_dutchman-20251126_041940-300S-Red",
+   "labelB": "M42_M1_T3_flying_dutchman-20251127_042719-300S-Red",
+   "n": 919,
+   "z_median_mag": 0.012114108780829067,
+   "orders": {
+    "tau0.02_o1_nb3": {
+     "ptp_pct": 1.0362263870287602,
+     "ptp_mag": 0.011192793346243287,
+     "median_stars_per_bin": 104.0
+    },
+    "tau0.02_o1_nb8": {
+     "ptp_pct": 4.887243246897532,
+     "ptp_mag": 0.051806677481649015,
+     "median_stars_per_bin": 14.0
+    },
+    "tau0.02_o2_nb3": {
+     "ptp_pct": 1.2087676972514227,
+     "ptp_mag": 0.013045342464926122,
+     "median_stars_per_bin": 104.0
+    },
+    "tau0.02_o2_nb8": {
+     "ptp_pct": 4.797855019512087,
+     "ptp_mag": 0.05088098422606732,
+     "median_stars_per_bin": 14.0
+    },
+    "tau0.005_o1_nb3": {
+     "ptp_pct": 1.0386388471499641,
+     "ptp_mag": 0.011218717355082338,
+     "median_stars_per_bin": 104.0
+    },
+    "tau0.005_o1_nb8": {
+     "ptp_pct": 4.89042422733148,
+     "ptp_mag": 0.05183960477715778,
+     "median_stars_per_bin": 14.0
+    },
+    "tau0.005_o2_nb3": {
+     "ptp_pct": 1.1988535536328948,
+     "ptp_mag": 0.012938981403935389,
+     "median_stars_per_bin": 104.0
+    },
+    "tau0.005_o2_nb8": {
+     "ptp_pct": 4.8229128008477895,
+     "ptp_mag": 0.051140559084222326,
+     "median_stars_per_bin": 14.0
+    },
+    "tau0.001_o1_nb3": {
+     "ptp_pct": 1.063392714173217,
+     "ptp_mag": 0.01148468370447216,
+     "median_stars_per_bin": 104.0
+    },
+    "tau0.001_o1_nb8": {
+     "ptp_pct": 4.895664956191936,
+     "ptp_mag": 0.05189385097705074,
+     "median_stars_per_bin": 14.0
+    },
+    "tau0.001_o2_nb3": {
+     "ptp_pct": 1.1942044974034838,
+     "ptp_mag": 0.012889101741898298,
+     "median_stars_per_bin": 104.0
+    },
+    "tau0.001_o2_nb8": {
+     "ptp_pct": 4.8591971366857445,
+     "ptp_mag": 0.05151632044497777,
+     "median_stars_per_bin": 14.0
+    }
+   },
+   "sigma_z_pct": 0.8506635999333323,
+   "before_nb3": {
+    "ptp_pct": 0.4088421718432489,
+    "ptp_mag": 0.004429897992408666,
+    "median_stars_per_bin": 104.0,
+    "noise_floor_pct": 0.08309614568815515
+   },
+   "before_nb8": {
+    "ptp_pct": 4.933940976920925,
+    "ptp_mag": 0.05228995963631902,
+    "median_stars_per_bin": 14.0,
+    "noise_floor_pct": 0.2266443207893154
+   },
+   "pixel_applied": {
+    "tau": 0.005,
+    "order": 1,
+    "n": 919,
+    "ptp_nb3_pct": 1.0356599850843695,
+    "ptp_nb8_pct": 4.888881794074629
+   }
+  },
+  {
+   "kind": "same-tile",
+   "labelA": "M42_M3_T3_flying_dutchman-20251213_032412-300S-Red",
+   "labelB": "M42_M3_T3_flying_dutchman-20251213_033010-300S-Red",
+   "n": 793,
+   "z_median_mag": 0.0028683053960201384,
+   "orders": {
+    "tau0.02_o1_nb3": {
+     "ptp_pct": 0.6192942599451134,
+     "ptp_mag": 0.006703167186945728,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.02_o1_nb8": {
+     "ptp_pct": 2.5106469004819942,
+     "ptp_mag": 0.026922435430615944,
+     "median_stars_per_bin": 12.5
+    },
+    "tau0.02_o2_nb3": {
+     "ptp_pct": 1.185482527509163,
+     "ptp_mag": 0.012795517661043837,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.02_o2_nb8": {
+     "ptp_pct": 2.989670254975696,
+     "ptp_mag": 0.03198416913589414,
+     "median_stars_per_bin": 12.5
+    },
+    "tau0.005_o1_nb3": {
+     "ptp_pct": 0.6224734931885356,
+     "ptp_mag": 0.006737472278523721,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.005_o1_nb8": {
+     "ptp_pct": 2.5175075986620943,
+     "ptp_mag": 0.026995097728386923,
+     "median_stars_per_bin": 12.5
+    },
+    "tau0.005_o2_nb3": {
+     "ptp_pct": 1.169126490501493,
+     "ptp_mag": 0.012620000615294703,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.005_o2_nb8": {
+     "ptp_pct": 2.982701745660643,
+     "ptp_mag": 0.031910703332826,
+     "median_stars_per_bin": 12.5
+    },
+    "tau0.001_o1_nb3": {
+     "ptp_pct": 0.6343615624549326,
+     "ptp_mag": 0.006865739298310912,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.001_o1_nb8": {
+     "ptp_pct": 2.558033081278399,
+     "ptp_mag": 0.027424207744322412,
+     "median_stars_per_bin": 12.5
+    },
+    "tau0.001_o2_nb3": {
+     "ptp_pct": 1.1553555931788972,
+     "ptp_mag": 0.012472202764394508,
+     "median_stars_per_bin": 87.0
+    },
+    "tau0.001_o2_nb8": {
+     "ptp_pct": 2.9364285341031193,
+     "ptp_mag": 0.03142273990877843,
+     "median_stars_per_bin": 12.5
+    }
+   },
+   "sigma_z_pct": 0.8925785230837091,
+   "before_nb3": {
+    "ptp_pct": 0.42055708486608,
+    "ptp_mag": 0.004556565753861746,
+    "median_stars_per_bin": 87.0,
+    "noise_floor_pct": 0.0953153088024905
+   },
+   "before_nb8": {
+    "ptp_pct": 2.5552715213004618,
+    "ptp_mag": 0.02739497194554611,
+    "median_stars_per_bin": 12.5,
+    "noise_floor_pct": 0.25165541355613996
+   },
+   "pixel_applied": {
+    "tau": 0.005,
+    "order": 1,
+    "n": 793,
+    "ptp_nb3_pct": 0.6423168058357076,
+    "ptp_nb8_pct": 2.518926060280724
+   }
+  }
+ ],
+ "taus": [
+  0.02,
+  0.005,
+  0.001
+ ],
+ "elapsed_s": 182.06289148330688
+}

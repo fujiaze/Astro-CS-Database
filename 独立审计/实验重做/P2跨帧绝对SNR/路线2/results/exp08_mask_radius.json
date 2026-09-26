@@ -1,0 +1,72 @@
+{
+  "seed": 20260926,
+  "r_local_monotone_in_F": true,
+  "r_local_monotone_in_FWHM": true,
+  "r_local_at_F1e5_fwhm3": 17.596292360505753,
+  "r_local_at_F1e5_gauss": 5.664253629896783,
+  "armA_adaptive_512_80": {
+    "sigma_hat": 4.992306342885467,
+    "rel_bias": -0.001538731422906614,
+    "n_sky_used": 253583,
+    "sky_budget_violation": false,
+    "r_median": 5.253557804587192,
+    "r_max_used": 10.37032572987293
+  },
+  "negative_control_fixed2_Fmax1e6": {
+    "sigma_hat": 5.021065997396064,
+    "rel_bias": 0.004213199479212726,
+    "n_sky_used": 261209,
+    "sky_budget_violation": false,
+    "r_median": 2.0,
+    "r_max_used": 2.0
+  },
+  "negative_control_fixed60_256_50": {
+    "sigma_hat": 5.049429842640372,
+    "rel_bias": 0.00988596852807433,
+    "n_sky_used": 2656,
+    "sky_budget_violation": true,
+    "r_median": 60.0,
+    "r_max_used": 60.0
+  },
+  "armA_adaptive_256_50": {
+    "sigma_hat": 5.043489728513367,
+    "rel_bias": 0.00869794570267346,
+    "n_sky_used": 60406,
+    "sky_budget_violation": false,
+    "r_median": 5.478102513527783,
+    "r_max_used": 9.420304165565065
+  },
+  "negative_control_fixed2_dense_256_200_Fmax1e6": {
+    "sigma_hat": 5.400547686005794,
+    "rel_bias": 0.08010953720115888,
+    "n_sky_used": 62219,
+    "sky_budget_violation": false,
+    "r_median": 2.0,
+    "r_max_used": 2.0
+  },
+  "armA_adaptive_dense_256_200_Fmax1e6": {
+    "sigma_hat": 5.048903866339308,
+    "rel_bias": 0.009780773267861642,
+    "n_sky_used": 47257,
+    "sky_budget_violation": false,
+    "r_median": 5.494335306822446,
+    "r_max_used": 15.057678213233254
+  },
+  "armA_12seed_rel_bias": {
+    "values": [
+      0.002560125043961081,
+      -0.002925371952042566,
+      -0.0005749780033716956,
+      -0.003072718367127303,
+      -0.001963482299871977,
+      0.0016853001629244524,
+      0.002491699545831505,
+      0.0038075635900773896,
+      0.0018683892507138644,
+      0.003948313645046664,
+      -0.0016699702066862443,
+      0.0017584979633959996
+    ],
+    "max_abs": 0.003948313645046664
+  }
+}

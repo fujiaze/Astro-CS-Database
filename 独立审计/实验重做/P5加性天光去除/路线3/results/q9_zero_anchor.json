@@ -1,0 +1,55 @@
+{
+  "seed": 20260926,
+  "lambda0": 0.001,
+  "n_frames": 5,
+  "reps": 2000000,
+  "rows": [
+    {
+      "case": "share_weight_SigmaW=1",
+      "SigmaW": 1.0,
+      "rho_theory": 0.9990009990009991,
+      "mean_est": 0.9997798005833686,
+      "bias_theory": -0.0009990009990008542,
+      "bias_measured": -0.00022019941663142806,
+      "rel_bias": -0.00022019941663142806
+    },
+    {
+      "case": "share_weight_per-obs_SigmaW=0.2",
+      "SigmaW": 0.2,
+      "rho_theory": 0.9950248756218906,
+      "mean_est": 0.9954871258574891,
+      "bias_theory": -0.00497512437810943,
+      "bias_measured": -0.004512874142510892,
+      "rel_bias": -0.004512874142510892
+    },
+    {
+      "case": "absolute_ivar_SigmaW=1e-24",
+      "SigmaW": 1e-24,
+      "rho_theory": 1e-21,
+      "mean_est": 9.993467626803518e-22,
+      "bias_theory": -1.0,
+      "bias_measured": -1.0,
+      "rel_bias": -1.0
+    }
+  ],
+  "negative_zero_effect": {
+    "mean_est": -0.0009560259034727549,
+    "ok": true
+  },
+  "constant_field_invariant": {
+    "mean_c_f": [
+      -0.000930145427409879,
+      0.000420424874369539,
+      -0.0005614716407415749,
+      -0.000785032181396136,
+      -0.000359209241628624
+    ],
+    "max_abs_mean": 0.000930145427409879,
+    "note": "E[c_f]=0（期望归零）; 噪声实现的 c_f 有收缩后残余, 属估计噪声非系统偏置"
+  },
+  "conclusion": {
+    "share_weight_rel_bias": -0.00022019941663142806,
+    "absolute_ivar_rel_bias": -1.0,
+    "claim": "lambda0=1e-3 仅在份额式权重(Σw≈1)下是'弱'锚(偏置 0.1%); 在绝对 ivar 权重面(Σw~1e-24)下偏置 ~100% => 改正场归零。该常数的科学含义必须与权重口径绑定声明。"
+  }
+}

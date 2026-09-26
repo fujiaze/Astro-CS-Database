@@ -1,0 +1,117 @@
+{
+  "seed": 20260926,
+  "grid": 128,
+  "patch": 17,
+  "cases": [
+    {
+      "shift": [
+        0.31,
+        0.47
+      ],
+      "pixfrac": 0.05,
+      "sigma": 1.0,
+      "reps": 6000,
+      "var_median": 0.00524888774500471,
+      "var_mean": 0.0033843071597334067,
+      "sigma_bg": 0.9949841821970858,
+      "k_corr_measured": 0.9754677088529987,
+      "k_mean_measured": 0.987950675045387,
+      "rho_bar": -7.605698122665501e-05,
+      "k_median_exch_arcsin_1+(N-1)rho_s": 0.9860537989729221,
+      "n_retained": 289
+    },
+    {
+      "shift": [
+        0.31,
+        0.47
+      ],
+      "pixfrac": 0.4,
+      "sigma": 1.0,
+      "reps": 6000,
+      "var_median": 0.0043288877580700495,
+      "var_mean": 0.0032728188874148866,
+      "sigma_bg": 0.6921792736337977,
+      "k_corr_measured": 1.6623294901890902,
+      "k_mean_measured": 1.9741612995726376,
+      "rho_bar": 0.003287986621488324,
+      "k_median_exch_arcsin_1+(N-1)rho_s": 1.6271858321521184,
+      "n_retained": 289
+    },
+    {
+      "shift": [
+        0.31,
+        0.47
+      ],
+      "pixfrac": 0.8,
+      "sigma": 1.0,
+      "reps": 6000,
+      "var_median": 0.00390669139383372,
+      "var_mean": 0.0032022651033862246,
+      "sigma_bg": 0.5501006807755568,
+      "k_corr_measured": 2.375213793822359,
+      "k_mean_measured": 3.0582343402734855,
+      "rho_bar": 0.00696840389499155,
+      "k_median_exch_arcsin_1+(N-1)rho_s": 2.3128829289835338,
+      "n_retained": 289
+    },
+    {
+      "shift": [
+        0.31,
+        0.47
+      ],
+      "pixfrac": 1.0,
+      "sigma": 1.0,
+      "reps": 6000,
+      "var_median": 0.0038325824656283056,
+      "var_mean": 0.0031936576724688557,
+      "sigma_bg": 0.5306214391753125,
+      "k_corr_measured": 2.5043780441714523,
+      "k_mean_measured": 3.2780578889096903,
+      "rho_bar": 0.00770196383786386,
+      "k_median_exch_arcsin_1+(N-1)rho_s": 2.453287599786429,
+      "n_retained": 289
+    },
+    {
+      "shift": [
+        0.0,
+        0.0
+      ],
+      "pixfrac": 1.0,
+      "sigma": 1.0,
+      "reps": 6000,
+      "var_median": 0.0052488877450047105,
+      "var_mean": 0.0033843071597334067,
+      "sigma_bg": 0.994984182197086,
+      "k_corr_measured": 0.9754677088529986,
+      "k_mean_measured": 0.9879506750453868,
+      "rho_bar": -7.605698122665501e-05,
+      "k_median_exch_arcsin_1+(N-1)rho_s": 0.9860537989729221,
+      "n_retained": 289
+    },
+    {
+      "shift": [
+        0.31,
+        0.47
+      ],
+      "pixfrac": 0.8,
+      "sigma": 10.0,
+      "reps": 800,
+      "var_median": 0.3791788221569768,
+      "var_mean": 0.31780042149005916,
+      "sigma_bg": 5.4896711278612855,
+      "k_corr_measured": 2.3148848006609,
+      "k_mean_measured": 3.0476118677932886,
+      "rho_bar": 0.006893089319357899,
+      "k_median_exch_arcsin_1+(N-1)rho_s": 2.2996047228849283,
+      "n_retained": 289
+    }
+  ],
+  "negative_ok": true,
+  "scale_invariance": {
+    "k_sigma1": 2.375213793822359,
+    "k_sigma10": 2.3148848006609,
+    "abs_diff": 0.06032899316145901,
+    "note": "MC 波动量级 ~1/sqrt(reps)"
+  },
+  "monotone_in_pixfrac": true
+}

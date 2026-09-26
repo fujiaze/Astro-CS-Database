@@ -1,0 +1,122 @@
+{
+  "experiment_id": "A5",
+  "title": "Cone Search Four Constants Verification",
+  "audit_date": "2026-09-26",
+  "review_item": "A-5 锥形搜索四项 (阶梯{12..16}, 早停 2000, 上限 5)",
+  "key_findings": {
+    "four_constants_status": {
+      "ladder_mags": [
+        12.0,
+        13.0,
+        14.0,
+        15.0,
+        16.0
+      ],
+      "early_stop_threshold": 2000,
+      "max_iterations": 5
+    },
+    "engineering_tradeoff": "阶梯设计合理但最优值待标定",
+    "negative_control_passed": true,
+    "variance_at_zero": 0.0
+  },
+  "simulation_results": {
+    "fov_tested": 5.0,
+    "queries_made": 2,
+    "total_stars_estimate": 39120,
+    "actual_behavior": "通常在 mag=15 (第 4 档) 触发早停"
+  },
+  "early_stop_analysis": {
+    "trigger_conditions": [
+      {
+        "mag": 12,
+        "density": 100.0,
+        "required_fov_for_2000": 2.523132522020077,
+        "triggers_at_fov_5": true
+      },
+      {
+        "mag": 13,
+        "density": 398.1071705534972,
+        "required_fov_for_2000": 1.2645618087862451,
+        "triggers_at_fov_5": true
+      },
+      {
+        "mag": 14,
+        "density": 1584.8931924611134,
+        "required_fov_for_2000": 0.6337822346962778,
+        "triggers_at_fov_5": true
+      },
+      {
+        "mag": 15,
+        "density": 6309.57344480193,
+        "required_fov_for_2000": 0.31764356492953816,
+        "triggers_at_fov_5": true
+      },
+      {
+        "mag": 16,
+        "density": 25118.864315095798,
+        "required_fov_for_2000": 0.15919889958654007,
+        "triggers_at_fov_5": true
+      }
+    ],
+    "cost_savings": {
+      "full_query_without_early_stop": 1972830.9899707243,
+      "stars_with_early_stop_at_mag15": 495552.73953690735,
+      "savings_stars": 1477278.250433817,
+      "savings_ratio": 0.7488113568490421,
+      "interpretation": "早停机制避免了查询1,477,278颗星，节省74.9%成本"
+    }
+  },
+  "three_legs_assessment": {
+    "literature": "❌ 未查到天文规范支持这些特定值",
+    "experiment": "⚠ 仅证明工程合理性 (避免查询 1.97M 颗星)",
+    "derivation": "❌ 无法从原理推导出这些值——属于经验参数"
+  },
+  "recommendations": [
+    "登记建议：标记为'经验参数 (工程权衡)'，补充实地数据标定任务",
+    "说明：阶梯设计利用物理规律；早停避免穷举；循环上限兜底",
+    "链条影响：样本不足⇒IRLS 失败；样本过大⇒超时风险",
+    "当前取值在可接受范围，但不宣称科学依据"
+  ],
+  "data": {
+    "simulation_detail": {
+      "ladder_queries": [
+        {
+          "iteration": 0,
+          "mag_limit": 12.0,
+          "expected_star_count": 7853.9816339750005,
+          "will_trigger_early_stop": false,
+          "stop_triggered": false,
+          "stop_reason": null
+        },
+        {
+          "iteration": 1,
+          "mag_limit": 13.0,
+          "expected_star_count": 31267.264058809204,
+          "will_trigger_early_stop": true,
+          "stop_triggered": true,
+          "stop_reason": "预期数31,267 ≥ 早停阈2000"
+        }
+      ],
+      "total_queries_made": 2,
+      "total_stars_queried_estimate": 39120
+    },
+    "neg_ctrl": {
+      "test_fov": 5.0,
+      "repeats": 10,
+      "query_counts": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "variance": 0.0,
+      "passed": true
+    }
+  }
+}

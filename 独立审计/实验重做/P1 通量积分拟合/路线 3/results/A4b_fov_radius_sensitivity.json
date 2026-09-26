@@ -1,0 +1,90 @@
+{
+  "test_summary": {
+    "total_tests": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "results": [
+    {
+      "description": "Normal range (no clamp)",
+      "input_deg": 3.0,
+      "actual_output_deg": 3.0,
+      "expected_output_deg": 3.0,
+      "clamped": false,
+      "expected_clamped": false,
+      "passed": true
+    },
+    {
+      "description": "Normal range (no clamp)",
+      "input_deg": 9.5,
+      "actual_output_deg": 9.5,
+      "expected_output_deg": 9.5,
+      "clamped": false,
+      "expected_clamped": false,
+      "passed": true
+    },
+    {
+      "description": "Edge case that disproves unconditional claim",
+      "input_deg": 0.5,
+      "actual_output_deg": 0.5,
+      "expected_output_deg": 0.5,
+      "clamped": false,
+      "expected_clamped": false,
+      "passed": true
+    },
+    {
+      "description": "Above upper bound",
+      "input_deg": 35.0,
+      "actual_output_deg": 10.0,
+      "expected_output_deg": 10.0,
+      "clamped": true,
+      "expected_clamped": true,
+      "passed": true
+    },
+    {
+      "description": "Zero value",
+      "input_deg": 0.0,
+      "actual_output_deg": 1.0,
+      "expected_output_deg": 1.0,
+      "clamped": true,
+      "expected_clamped": true,
+      "passed": true
+    },
+    {
+      "description": "At boundary",
+      "input_deg": 30.0,
+      "actual_output_deg": 10.0,
+      "expected_output_deg": 10.0,
+      "clamped": true,
+      "expected_clamped": true,
+      "passed": true
+    },
+    {
+      "description": "Negative value",
+      "input_deg": -1.0,
+      "actual_output_deg": 1.0,
+      "expected_output_deg": 1.0,
+      "clamped": true,
+      "expected_clamped": true,
+      "passed": true
+    },
+    {
+      "description": "Just below threshold",
+      "input_deg": 29.9,
+      "actual_output_deg": 29.9,
+      "expected_output_deg": 29.9,
+      "clamped": false,
+      "expected_clamped": false,
+      "passed": true
+    }
+  ],
+  "negative_control": {
+    "variance": 0.0,
+    "passed": true
+  },
+  "key_findings": {
+    "hallucination_anchor_confirmed": false,
+    "conditional_clamping_verified": true,
+    "sample_growth_per_degree_squared": "quadratic (\u03c0\u00b7r\u00b2)"
+  }
+}

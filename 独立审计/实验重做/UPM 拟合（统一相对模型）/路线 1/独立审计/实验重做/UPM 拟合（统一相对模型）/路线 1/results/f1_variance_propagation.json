@@ -1,0 +1,112 @@
+{
+  "experiment": "F1 UPM variance propagation",
+  "fusion_aspect": "UPM covariance \u2192 mosaic variance budget",
+  "parameters": {
+    "n_frames": 10,
+    "n_pixels": 1000,
+    "seed": 42,
+    "sigma_noise_input": 10.0,
+    "k_corr": 1.4
+  },
+  "steps": [
+    {
+      "name": "synthetic_data_generation",
+      "B_true_range": [
+        250.00006180857014,
+        349.99993819142986
+      ],
+      "delta_k_range": [
+        [
+          -7.50917289963998,
+          2.49080237694725
+        ],
+        [
+          -2.1284213726567307,
+          7.871553903930499
+        ],
+        [
+          1.0696795893504634,
+          11.069654865937693
+        ],
+        [
+          -12.627099961755622,
+          -2.6271246851683934
+        ],
+        [
+          -7.664008863661862,
+          2.3359664129253677
+        ],
+        [
+          -3.6153710347582697,
+          6.38460424182896
+        ],
+        [
+          -4.731285334070827,
+          5.268689942516403
+        ],
+        [
+          -6.1416933157479585,
+          3.858281960839271
+        ],
+        [
+          -14.589756890179405,
+          -4.5897816135921765
+        ],
+        [
+          -3.1949079713933424,
+          6.805067305193887
+        ]
+      ],
+      "status": "complete"
+    },
+    {
+      "name": "upm_fit",
+      "M_fit": 271.66278496659066,
+      "delta_k_fits": [
+        26.052796094843785,
+        31.775401903451392,
+        34.06477690690648,
+        20.524351743854474,
+        25.557851581538753,
+        29.242437530690783,
+        28.10806881425867,
+        27.331006410587214,
+        18.997702230416923,
+        30.00524832170844
+      ],
+      "covariance_trace": 999999.9707010753,
+      "converged": 1,
+      "status": "complete"
+    },
+    {
+      "name": "variance_propagation",
+      "predicted_var_mean": 90919.08831993249,
+      "predicted_var_std": 2.9103830456733704e-11,
+      "expected_in_uniform_coverage": "< 5% error",
+      "expected_in_edge_coverage": "< 15% error",
+      "status": "complete"
+    },
+    {
+      "name": "empirical_residual_computation",
+      "empirical_var": 1368.1691725576925,
+      "status": "complete"
+    }
+  ],
+  "conclusion": {
+    "hypothesis": "UPM parameter covariance correctly propagates to mosaic variance",
+    "pred_vs_empirical": {
+      "predicted_mean": 90919.08831993249,
+      "empirical": 1368.1691725576925,
+      "ratio": 66.45310400465016,
+      "error_percent": 6545.310400465016
+    },
+    "tolerance_check": {
+      "uniform_coverage_target": "< 5% error",
+      "edge_coverage_target": "< 15% error",
+      "actual_error": "6545.31%",
+      "pass_uniform": false,
+      "pass_edge": false
+    },
+    "verdict": "FAIL"
+  }
+}

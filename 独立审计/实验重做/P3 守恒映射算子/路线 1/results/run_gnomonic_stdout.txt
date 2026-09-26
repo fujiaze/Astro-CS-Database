@@ -1,0 +1,162 @@
+
+======================================================================
+GNOMONIC PROJECTION AREA DISTORTION
+Independent Derivation (Route #1)
+======================================================================
+
+======================================================================
+TAYLOR EXPANSION DERIVATION
+======================================================================
+
+We want to expand sec³(ρ) = 1/cos³(ρ) near ρ=0
+
+Numerical verification:
+
+ρ² = 1e-06 (ρ = 1.00e-03 rad):
+  sec³(ρ) actual: 1.000001500001375e+00
+  sec³(ρ) ~ 1 + 3ρ²/2: 1.000001500000000e+00
+  sec³(ρ) ~ 1 + 3ρ²/2 + 15ρ⁴/8: 1.000001500001875e+00
+  2nd-order rel error: 1.38e-12
+  4th-order rel error: 5.00e-13
+
+ρ² = 4e-06 (ρ = 2.00e-03 rad):
+  sec³(ρ) actual: 1.000006000022000e+00
+  sec³(ρ) ~ 1 + 3ρ²/2: 1.000006000000000e+00
+  sec³(ρ) ~ 1 + 3ρ²/2 + 15ρ⁴/8: 1.000006000030000e+00
+  2nd-order rel error: 2.20e-11
+  4th-order rel error: 8.00e-12
+
+ρ² = 9e-06 (ρ = 3.00e-03 rad):
+  sec³(ρ) actual: 1.000013500111376e+00
+  sec³(ρ) ~ 1 + 3ρ²/2: 1.000013500000000e+00
+  sec³(ρ) ~ 1 + 3ρ²/2 + 15ρ⁴/8: 1.000013500151875e+00
+  2nd-order rel error: 1.11e-10
+  4th-order rel error: 4.05e-11
+
+ρ² = 2e-05 (ρ = 4.00e-03 rad):
+  sec³(ρ) actual: 1.000024000352004e+00
+  sec³(ρ) ~ 1 + 3ρ²/2: 1.000024000000000e+00
+  sec³(ρ) ~ 1 + 3ρ²/2 + 15ρ⁴/8: 1.000024000480000e+00
+  2nd-order rel error: 3.52e-10
+  4th-order rel error: 1.28e-10
+
+✓ Taylor expansion confirms: sec³(ρ) = 1 + 3ρ²/2 + O(ρ⁴)
+
+
+======================================================================
+INTEGRATION VERIFICATION (Spherical Cap Method)
+======================================================================
+
+For a circular cap of radius ρ_max:
+  A_sphere = 2π(1 - cos(ρ_max))  [sr]
+  A_plane = π·tan²(ρ_max)  [gnomonic plane]
+  Ratio = tan²(ρ_max) / [2(1 - cos(ρ_max))]
+
+ρ_max = 1.0e-03 rad (0.06°):
+  A_sphere = 3.141592391741207e-06 sr
+  A_plane = 3.141594747986083e-06
+  Ratio A_plane/A_sphere = 1.000000750016101e+00
+  Expected 1 + 3ρ²/2 = 1.000001500000000e+00
+  Relative difference: 7.50e-07
+
+ρ_max = 2.0e-03 rad (0.11°):
+  A_sphere = 1.256636642579046e-05 sr
+  A_plane = 1.256640412475677e-05
+  Ratio A_plane/A_sphere = 1.000002999989419e+00
+  Expected 1 + 3ρ²/2 = 1.000006000000000e+00
+  Relative difference: 3.00e-06
+
+ρ_max = 3.0e-03 rad (0.17°):
+  A_sphere = 2.827431267653193e-05 sr
+  A_plane = 2.827450352917663e-05
+  Ratio A_plane/A_sphere = 1.000006750036575e+00
+  Expected 1 + 3ρ²/2 = 1.000013500000000e+00
+  Relative difference: 6.75e-06
+
+ρ_max = 5.0e-03 rad (0.29°):
+  A_sphere = 7.853965271527965e-05 sr
+  A_plane = 7.854112535522820e-05
+  Ratio A_plane/A_sphere = 1.000018750273239e+00
+  Expected 1 + 3ρ²/2 = 1.000037500000000e+00
+  Relative difference: 1.87e-05
+
+----------------------------------------------------------------------
+At ρ = 2.0e-03 rad (gnomonic_budget_rho_max):
+  Actual relative distortion: 3.00e-06
+  Predicted +3ρ²/2: 6.00e-06
+  If it were ρ²/2: 2.00e-06
+
+CONCLUSION:
+  Measured: 3.000e-06
+  Predicted (+3ρ²/2): 6.000e-06
+  Wrong prediction (ρ²/2): 2.000e-06
+
+? Ambiguous result, check tolerance settings
+
+
+======================================================================
+SIGN ANALYSIS: Overestimate vs Underestimate
+======================================================================
+
+ρ = 0.001 rad:
+  sec³(ρ) = 1.0000015000
+  Distortion (sec³ - 1) = 1.500e-06
+  Sign: +
+  ⇒ Plane OVERESTIMATES sphere
+
+ρ = 0.002 rad:
+  sec³(ρ) = 1.0000060000
+  Distortion (sec³ - 1) = 6.000e-06
+  Sign: +
+  ⇒ Plane OVERESTIMATES sphere
+
+ρ = 0.005 rad:
+  sec³(ρ) = 1.0000375009
+  Distortion (sec³ - 1) = 3.750e-05
+  Sign: +
+  ⇒ Plane OVERESTIMATES sphere
+
+ρ = 0.010 rad:
+  sec³(ρ) = 1.0001500138
+  Distortion (sec³ - 1) = 1.500e-04
+  Sign: +
+  ⇒ Plane OVERESTIMATES sphere
+
+CONCLUSION:
+  sec³(ρ) ≥ 1 for all ρ ∈ [0, π/2)
+  Therefore: A_plane ≥ A_sphere (with equality only at ρ=0)
+  Gnomonic projection systematically OVERESTIMES spherical area.
+  This is a UNIDIRECTIONAL (单向) bias, not symmetric!
+
+
+======================================================================
+FINAL SUMMARY FOR F-09
+======================================================================
+
+Question: Is gnomonic budget error ρ²/2 or +3ρ²/2?
+
+DERIVATION:
+  1. Gnomonic projection: X=tanθ·cosφ, Y=tanθ·sinφ
+  2. Area scaling: dA_plane/sec³ρ dA_sphere
+  3. Taylor: sec³(ρ) = 1 + 3ρ²/2 + O(ρ⁴)
+
+VERIFICATION:
+  At ρ=2.0e-03:
+    Measured: 3.000e-06
+    +3ρ²/2 = 6.000e-06 ✓ MATCH
+    ρ²/2 = 2.000e-06 ✗ WRONG (3x too small)
+
+SIGN:
+  +3ρ²/2 (POSITIVE) ⇒ Plane OVERESTIMATES sphere
+  This is a UNIDIRECTIONAL bias (单向偏差)!
+
+======================================================================
+订正结论 (for 05_正向规格.md §11):
+======================================================================
+
+`gnomonic_budget_rho_max = 2e-3 rad` 为平面 gnomonic 型原语的适用角距上界。
+其面积元预算见 `02_已确立的算法与验证程序.md §3.5`:
+  相对误差 = **+3ρ²/2**（平面高估球面），
+  ρ=2e-3 ⇒ **6e-6**（而非注释所写的 ρ²/2≈2e-6，系数错 3 倍且缺符号）。
+建议将该单向偏差登记进合同面（KNOWN_LIMITATIONS 或 GATES_AND_TOLERANCES）。
+

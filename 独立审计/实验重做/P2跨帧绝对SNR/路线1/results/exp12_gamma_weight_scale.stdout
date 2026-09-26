@@ -1,0 +1,17 @@
+{
+ "seed": 20260926,
+ "gamma2_identity": {
+  "max_rel_dev_w_over_ivar": 4.440892098500626e-16,
+  "verdict": "gamma=2 makes w = 1/sigma_F^2 EXACTLY (identity, not calibration)"
+ },
+ "gamma1_distortion": {
+  "residual_factor_mean": 1.238053075101193,
+  "residual_factor_min": 0.3162697227977329,
+  "residual_factor_max": 3.1615648279813455,
+  "verdict": "gamma=1 leaves a factor g_k in the weight => cross-frame weight ratios distorted by up to ~x3 over the g range scanned"
+ },
+ "null_g1_any_gamma": {
+  "max_rel_dev": 0.0
+ },
+ "conclusion": "gamma=2 follows from the pairing identity (alpha=2, beta=1, delta=1 already imply it); the 'missing calibration record' is satisfied by this derivation + numeric verification at 1e-15."
+}

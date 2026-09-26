@@ -1,0 +1,13 @@
+{
+  "experiment": "Gnomonic projection area distortion",
+  "objective": "Verify coefficient is +3/2 (not 1/2)",
+  "rho_values_tested": 10,
+  "rho_range": [
+    1e-06,
+    0.01
+  ],
+  "analytic_coefficient": 1.5,
+  "incorrect_claim_in_05": 0.5,
+  "verdict": "Coefficient +3/2 CONFIRMED",
+  "correction_required": "Change `\u03c1\u00b2/2` to `+3\u03c1\u00b2/2` in 05 \u00a711"
+}

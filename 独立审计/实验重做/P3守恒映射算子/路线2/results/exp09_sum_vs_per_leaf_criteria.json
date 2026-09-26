@@ -1,0 +1,106 @@
+{
+  "n_leaf": 2048,
+  "seed": 20260927,
+  "results": [
+    {
+      "config": "random_pair",
+      "type": "T1_swap",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.7792957994962038,
+      "separation_orders": 15.289642344014856
+    },
+    {
+      "config": "random_pair",
+      "type": "T2_antisym",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.8999999999999999,
+      "separation_orders": 15.352182518111363
+    },
+    {
+      "config": "random_pair",
+      "type": "T3_global",
+      "sum_dev_naive": 2.220446049250313e-16,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.30163681971048306,
+      "separation_orders": 14.877424361854825
+    },
+    {
+      "config": "polar_like",
+      "type": "T1_swap",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.703642864388005,
+      "separation_orders": 15.245292296535565
+    },
+    {
+      "config": "polar_like",
+      "type": "T2_antisym",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.8999999999999999,
+      "separation_orders": 15.352182518111363
+    },
+    {
+      "config": "polar_like",
+      "type": "T3_global",
+      "sum_dev_naive": 2.220446049250313e-16,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.3026191628336442,
+      "separation_orders": 14.878836434174822
+    },
+    {
+      "config": "adjacent",
+      "type": "T1_swap",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 2.0169317939807057,
+      "separation_orders": 15.702631220717892
+    },
+    {
+      "config": "adjacent",
+      "type": "T2_antisym",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.9000000000000001,
+      "separation_orders": 15.352182518111363
+    },
+    {
+      "config": "adjacent",
+      "type": "T3_global",
+      "sum_dev_naive": 2.220446049250313e-16,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.3028816283697926,
+      "separation_orders": 14.87921294017724
+    },
+    {
+      "config": "all_small",
+      "type": "T1_swap",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.703642864388005,
+      "separation_orders": 15.245292296535565
+    },
+    {
+      "config": "all_small",
+      "type": "T2_antisym",
+      "sum_dev_naive": 0.0,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.8999999999999999,
+      "separation_orders": 15.352182518111363
+    },
+    {
+      "config": "all_small",
+      "type": "T3_global",
+      "sum_dev_naive": 2.220446049250313e-16,
+      "sum_dev_kahan": 0.0,
+      "per_leaf_max_rel": 0.3135201451309113,
+      "separation_orders": 14.894205460180421
+    }
+  ],
+  "min_separation_orders": 14.877424361854825,
+  "separation_note": "denominator floored at the double summation floor 4e-16: several configurations give an EXACT 0.0 sum deviation, i.e. the separation is formally infinite; the reported value is the conservative floor-based one.",
+  "conclusion": "sum-type criteria stay at the double summation floor (~1e-16) under EXACT total-flux-conserving corruption while per-leaf criteria report O(1e-1..1); separation >= 14 orders => sum-type checks have no leaf-level evidence value; per-leaf (or leaf-binned) criteria are required.",
+  "verdict": "PASS"
+}

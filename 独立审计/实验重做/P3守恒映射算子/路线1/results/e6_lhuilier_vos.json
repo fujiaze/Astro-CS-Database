@@ -1,0 +1,38 @@
+{
+ "seed": 20050709,
+ "non_normalized_divergence": {
+  "lambda": 1.064,
+  "n_small_domain": 1963,
+  "vos_rel_shift_median_small_domain": 0.11886082278342144,
+  "vos_rel_shift_max": 769.9823051063796,
+  "lhuilier_rel_shift_max": 2.978908291985819e-07,
+  "expected_small_triangle_shift": 0.09597018575671123,
+  "verdict": "FAILED"
+ },
+ "hemisphere_domain": {
+  "n": 50000,
+  "n_with_side_ge_half_circle": 41529,
+  "vos_finite_on_those": 41529,
+  "note": "documented behavior: max_ang >= pi/2 - 1e-12 must fail explicitly (NaN) per 05 Sec.3.5"
+ },
+ "triangle_cross_check": {
+  "random": {
+   "n": 200000,
+   "n_valid": 166794,
+   "max_rel_diff": 6.657511018785032e-05,
+   "median_rel_diff": 8.109494326466755e-16
+  },
+  "tiny": {
+   "n": 50000,
+   "n_valid": 50000,
+   "max_rel_diff": 1.0,
+   "median_rel_diff": 2.9589076103350052e-09
+  },
+  "near_hemisphere": {
+   "n": 50000,
+   "n_valid": 37516,
+   "max_rel_diff": 1.0,
+   "median_rel_diff": 8.908607896381897e-11
+  }
+ }
+}

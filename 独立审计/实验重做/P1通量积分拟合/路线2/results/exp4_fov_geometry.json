@@ -1,0 +1,83 @@
+{
+  "seed": 20260926,
+  "S5_halfdiagonal_identity": {
+    "pixel_edge": {
+      "max_abs_dev_deg_pixel_edge": 0.0,
+      "is_zero_pixel_edge": true,
+      "max_abs_dev_deg_pixel_center": 0.0007057868790587563,
+      "subpixel_convention_gap_px": "see per-scale note"
+    },
+    "note": "formula exact under pixel-edge extent convention; pixel-center convention differs by <= scale*0.5*sqrt(2) per axis, i.e. sub-pixel"
+  },
+  "S5_buffer_margin": {
+    "1in_px_3000x3000": {
+      "r_halfdiag_deg": 0.5892556509887895,
+      "buffer_margin_deg": 0.09820927516479823,
+      "margin_in_px": 353.5533905932736
+    },
+    "2.8e-4deg_4096x4096": {
+      "r_halfdiag_deg": 0.8109666252072276,
+      "buffer_margin_deg": 0.13516110420120458,
+      "margin_in_px": 482.71822929001644
+    },
+    "0.5in_px_2000x1500": {
+      "r_halfdiag_deg": 0.1736111111111111,
+      "buffer_margin_deg": 0.02893518518518518,
+      "margin_in_px": 208.3333333333333
+    }
+  },
+  "S5_clamp_window_counts": {
+    "fov=0.5": {
+      "n_gaia_skyavg": 546.7552464120442,
+      "spectra_bytes_skyavg": 187537.04951933117,
+      "old_code_effective_fov": 0.5,
+      "new_spec_effective_fov": 1.0
+    },
+    "fov=1.0": {
+      "n_gaia_skyavg": 2187.020985648177,
+      "spectra_bytes_skyavg": 750148.1980773247,
+      "old_code_effective_fov": 1.0,
+      "new_spec_effective_fov": 1.0
+    },
+    "fov=2.0": {
+      "n_gaia_skyavg": 8748.083942592708,
+      "spectra_bytes_skyavg": 3000592.7923092986,
+      "old_code_effective_fov": 2.0,
+      "new_spec_effective_fov": 2.0
+    },
+    "fov=10.0": {
+      "n_gaia_skyavg": 218702.09856481772,
+      "spectra_bytes_skyavg": 75014819.80773248,
+      "old_code_effective_fov": 10.0,
+      "new_spec_effective_fov": 10.0
+    },
+    "fov=20.0": {
+      "n_gaia_skyavg": 874808.3942592709,
+      "spectra_bytes_skyavg": 300059279.2309299,
+      "old_code_effective_fov": 20.0,
+      "new_spec_effective_fov": 10.0
+    },
+    "fov=30.0": {
+      "n_gaia_skyavg": 1968318.8870833593,
+      "spectra_bytes_skyavg": 675133378.2695923,
+      "old_code_effective_fov": 10.0,
+      "new_spec_effective_fov": 10.0
+    }
+  },
+  "S5_legacy_conditional_window_leak": {
+    "fov20_stays_unclamped_in_legacy": true,
+    "cost_ratio_fov20_vs_clamped10": 4.0,
+    "cost_ratio_fov30_vs_clamped10": 9.0
+  },
+  "S5_lower_clamp_rescue": {
+    "n_at_0.5deg": 546.7552464120442,
+    "n_at_1.0deg": 2187.020985648177,
+    "pool_ratio": 4.0,
+    "n_at_1.0deg_vs_2000_threshold": 1.0935104928240884
+  },
+  "S5_no_effect_negative": {
+    "true_r": 2.0,
+    "clamped_r": 2.4,
+    "no_effect_metric_r_change_deg": 0.0
+  }
+}

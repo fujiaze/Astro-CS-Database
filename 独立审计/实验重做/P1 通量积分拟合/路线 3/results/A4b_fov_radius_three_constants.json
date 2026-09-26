@@ -1,0 +1,1776 @@
+{
+  "experiment_id": "A4b",
+  "title": "FOV Radius Three Constants Verification",
+  "audit_date": "2026-09-26",
+  "review_item": "A-4b FOV 半径三项 (缓冲 1.2, 钳位界 1.0/10.0)",
+  "key_findings": {
+    "conditional_clamping": "实际是条件钳位 (fov<=0 或 fov>=30), 不是无条件钳位",
+    "hallucination_anchor": true,
+    "three_constants_status": {
+      "buffer_factor_1_2": "项目中定义但未明确来源",
+      "clamp_lower_bound_1_0": "条件钳位下界",
+      "clamp_upper_bound_10_0": "条件钳位上界"
+    },
+    "negative_control_passed": true,
+    "variance_at_zero": 0.0
+  },
+  "scan_results_summary": {
+    "total_scans": 211,
+    "range_covered": "-5.0° to 100.0°",
+    "key_boundary_cases_detected": 1
+  },
+  "hallucination_evidence": [
+    {
+      "input": 0.5,
+      "document_claim": 1.0,
+      "actual_code": 0.5,
+      "reason": "小 FOV=0.5°, 但 >0 所以不触发"
+    }
+  ],
+  "recommendations": [
+    "立即订正 05:删除'无条件钳位'说法，改为'条件钳位：只在 fov≤0 或 fov≥30 时钳位到 [1.0, 10.0]'",
+    "三腿状态评估：文献❌ (未查到天文规范)、实验⚠(仅证明合理性)、推导❌ (无法从原理推出)",
+    "登记建议：标记为'项目约定值 (待标定)'，不宣称科学依据"
+  ],
+  "chain_impact": {
+    "too_small_fov": "参考星不足 ⇒ IRLS 失败",
+    "too_large_fov": "Gaia 查询超时 ⇒ 工程风险",
+    "current_design_purpose": "平衡科学有效性 vs 工程成本"
+  },
+  "data": {
+    "full_scan_results": [
+      {
+        "fov_input": -5.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -4.5,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -4.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -3.5,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -3.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -2.5,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -2.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -1.5,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -1.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": -0.5,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 0.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": true,
+        "clamp_reason": "≤0°触发下界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 0.5,
+        "fov_output": 0.5,
+        "expected_stars": 785.3981633975001,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 1.0,
+        "fov_output": 1.0,
+        "expected_stars": 3141.5926535900003,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 1.5,
+        "fov_output": 1.5,
+        "expected_stars": 7068.5834705775,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 2.0,
+        "fov_output": 2.0,
+        "expected_stars": 12566.370614360001,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 2.5,
+        "fov_output": 2.5,
+        "expected_stars": 19634.9540849375,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 3.0,
+        "fov_output": 3.0,
+        "expected_stars": 28274.33388231,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 3.5,
+        "fov_output": 3.5,
+        "expected_stars": 38484.510006477496,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 4.0,
+        "fov_output": 4.0,
+        "expected_stars": 50265.482457440005,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 4.5,
+        "fov_output": 4.5,
+        "expected_stars": 63617.2512351975,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 5.0,
+        "fov_output": 5.0,
+        "expected_stars": 78539.81633975,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 5.5,
+        "fov_output": 5.5,
+        "expected_stars": 95033.1777710975,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 6.0,
+        "fov_output": 6.0,
+        "expected_stars": 113097.33552924,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 6.5,
+        "fov_output": 6.5,
+        "expected_stars": 132732.28961417748,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 7.0,
+        "fov_output": 7.0,
+        "expected_stars": 153938.04002590998,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 7.5,
+        "fov_output": 7.5,
+        "expected_stars": 176714.58676443752,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 8.0,
+        "fov_output": 8.0,
+        "expected_stars": 201061.92982976002,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 8.5,
+        "fov_output": 8.5,
+        "expected_stars": 226980.0692218775,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 9.0,
+        "fov_output": 9.0,
+        "expected_stars": 254469.00494079,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 9.5,
+        "fov_output": 9.5,
+        "expected_stars": 283528.73698649753,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 10.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 10.5,
+        "fov_output": 10.5,
+        "expected_stars": 346360.59005829756,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 11.0,
+        "fov_output": 11.0,
+        "expected_stars": 380132.71108439,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 11.5,
+        "fov_output": 11.5,
+        "expected_stars": 415475.6284372775,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 12.0,
+        "fov_output": 12.0,
+        "expected_stars": 452389.34211696,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 12.5,
+        "fov_output": 12.5,
+        "expected_stars": 490873.8521234375,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 13.0,
+        "fov_output": 13.0,
+        "expected_stars": 530929.1584567099,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 13.5,
+        "fov_output": 13.5,
+        "expected_stars": 572555.2611167775,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 14.0,
+        "fov_output": 14.0,
+        "expected_stars": 615752.1601036399,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 14.5,
+        "fov_output": 14.5,
+        "expected_stars": 660519.8554172976,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 15.0,
+        "fov_output": 15.0,
+        "expected_stars": 706858.3470577501,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 15.5,
+        "fov_output": 15.5,
+        "expected_stars": 754767.6350249975,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 16.0,
+        "fov_output": 16.0,
+        "expected_stars": 804247.7193190401,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 16.5,
+        "fov_output": 16.5,
+        "expected_stars": 855298.5999398775,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 17.0,
+        "fov_output": 17.0,
+        "expected_stars": 907920.27688751,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 17.5,
+        "fov_output": 17.5,
+        "expected_stars": 962112.7501619374,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 18.0,
+        "fov_output": 18.0,
+        "expected_stars": 1017876.01976316,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 18.5,
+        "fov_output": 18.5,
+        "expected_stars": 1075210.0856911775,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 19.0,
+        "fov_output": 19.0,
+        "expected_stars": 1134114.9479459901,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 19.5,
+        "fov_output": 19.5,
+        "expected_stars": 1194590.6065275976,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 20.0,
+        "fov_output": 20.0,
+        "expected_stars": 1256637.061436,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 20.5,
+        "fov_output": 20.5,
+        "expected_stars": 1320254.3126711976,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 21.0,
+        "fov_output": 21.0,
+        "expected_stars": 1385442.3602331902,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 21.5,
+        "fov_output": 21.5,
+        "expected_stars": 1452201.2041219776,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 22.0,
+        "fov_output": 22.0,
+        "expected_stars": 1520530.84433756,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 22.5,
+        "fov_output": 22.5,
+        "expected_stars": 1590431.2808799376,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 23.0,
+        "fov_output": 23.0,
+        "expected_stars": 1661902.51374911,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 23.5,
+        "fov_output": 23.5,
+        "expected_stars": 1734944.5429450774,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 24.0,
+        "fov_output": 24.0,
+        "expected_stars": 1809557.36846784,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 24.5,
+        "fov_output": 24.5,
+        "expected_stars": 1885740.9903173975,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 25.0,
+        "fov_output": 25.0,
+        "expected_stars": 1963495.40849375,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 25.5,
+        "fov_output": 25.5,
+        "expected_stars": 2042820.6229968977,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 26.0,
+        "fov_output": 26.0,
+        "expected_stars": 2123716.6338268397,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 26.5,
+        "fov_output": 26.5,
+        "expected_stars": 2206183.440983577,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 27.0,
+        "fov_output": 27.0,
+        "expected_stars": 2290221.04446711,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 27.5,
+        "fov_output": 27.5,
+        "expected_stars": 2375829.444277438,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 28.0,
+        "fov_output": 28.0,
+        "expected_stars": 2463008.6404145597,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 28.5,
+        "fov_output": 28.5,
+        "expected_stars": 2551758.632878477,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 29.0,
+        "fov_output": 29.0,
+        "expected_stars": 2642079.4216691903,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 29.5,
+        "fov_output": 29.5,
+        "expected_stars": 2733971.0067866975,
+        "triggered_clamp": false,
+        "clamp_reason": "无钳位 (正常范围)",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 30.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 30.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 31.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 31.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 32.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 32.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 33.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 33.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 34.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 34.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 35.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 35.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 36.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 36.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 37.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 37.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 38.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 38.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 39.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 39.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 40.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 40.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 41.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 41.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 42.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 42.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 43.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 43.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 44.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 44.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 45.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 45.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 46.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 46.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 47.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 47.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 48.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 48.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 49.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 49.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 50.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 50.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 51.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 51.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 52.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 52.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 53.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 53.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 54.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 54.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 55.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 55.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 56.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 56.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 57.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 57.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 58.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 58.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 59.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 59.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 60.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 60.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 61.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 61.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 62.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 62.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 63.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 63.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 64.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 64.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 65.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 65.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 66.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 66.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 67.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 67.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 68.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 68.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 69.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 69.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 70.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 70.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 71.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 71.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 72.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 72.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 73.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 73.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 74.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 74.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 75.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 75.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 76.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 76.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 77.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 77.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 78.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 78.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 79.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 79.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 80.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 80.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 81.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 81.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 82.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 82.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 83.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 83.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 84.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 84.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 85.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 85.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 86.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 86.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 87.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 87.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 88.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 88.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 89.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 89.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 90.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 90.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 91.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 91.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 92.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 92.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 93.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 93.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 94.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 94.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 95.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 95.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 96.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 96.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 97.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 97.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 98.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 98.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 99.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 99.5,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      },
+      {
+        "fov_input": 100.0,
+        "fov_output": 10.0,
+        "expected_stars": 314159.265359,
+        "triggered_clamp": true,
+        "clamp_reason": "≥30°触发上界钳位",
+        "matches_document_claim": true
+      }
+    ],
+    "negative_control": {
+      "test_fov": 5.0,
+      "repeats": 10,
+      "outputs": [
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0,
+        5.0
+      ],
+      "variance": 0.0,
+      "passed": true
+    },
+    "document_comparison": [
+      {
+        "input": 5.0,
+        "description": "典型 FOV=5°, 在有效范围内"
+      },
+      {
+        "input": 0.5,
+        "description": "小 FOV=0.5°, 但 >0 所以不触发"
+      },
+      {
+        "input": -1.0,
+        "description": "负 FOV=-1°, 应被修正"
+      },
+      {
+        "input": 35.0,
+        "description": "大 FOV=35°, 超过 30°上限"
+      },
+      {
+        "input": 1.0,
+        "description": "下边界恰好 1.0°"
+      },
+      {
+        "input": 10.0,
+        "description": "上边界恰好 10.0°"
+      }
+    ]
+  }
+}

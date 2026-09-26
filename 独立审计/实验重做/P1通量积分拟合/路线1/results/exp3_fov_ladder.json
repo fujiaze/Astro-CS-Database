@@ -1,0 +1,165 @@
+{
+  "seed": 20260928,
+  "S5_fov_configs": [
+    {
+      "config": "long-focal small-sensor",
+      "pixel_scale_arcsec": 0.3,
+      "W": 9576,
+      "H": 6388,
+      "fov_natural_deg": 0.575556947660264,
+      "fov_clamped_deg": 1.0,
+      "was_clamped": true,
+      "star_count_ratio_vs_natural": 3.0187239370922097
+    },
+    {
+      "config": "rc-astrograph aps-c",
+      "pixel_scale_arcsec": 0.9,
+      "W": 6248,
+      "H": 4168,
+      "fov_natural_deg": 1.126596147694461,
+      "fov_clamped_deg": 1.126596147694461,
+      "was_clamped": false,
+      "star_count_ratio_vs_natural": 1.0
+    },
+    {
+      "config": "fast-newton qhy600",
+      "pixel_scale_arcsec": 1.2,
+      "W": 9576,
+      "H": 6388,
+      "fov_natural_deg": 2.302227790641056,
+      "fov_clamped_deg": 2.302227790641056,
+      "was_clamped": false,
+      "star_count_ratio_vs_natural": 1.0
+    },
+    {
+      "config": "guidescope small-cam",
+      "pixel_scale_arcsec": 3.0,
+      "W": 3000,
+      "H": 2000,
+      "fov_natural_deg": 1.8027756377319948,
+      "fov_clamped_deg": 1.8027756377319948,
+      "was_clamped": false,
+      "star_count_ratio_vs_natural": 1.0
+    },
+    {
+      "config": "telephoto dslr",
+      "pixel_scale_arcsec": 4.5,
+      "W": 6000,
+      "H": 4000,
+      "fov_natural_deg": 5.4083269131959835,
+      "fov_clamped_deg": 5.4083269131959835,
+      "was_clamped": false,
+      "star_count_ratio_vs_natural": 1.0
+    },
+    {
+      "config": "ultra-wide lens",
+      "pixel_scale_arcsec": 10.0,
+      "W": 6000,
+      "H": 4000,
+      "fov_natural_deg": 12.018504251546632,
+      "fov_clamped_deg": 10.0,
+      "was_clamped": true,
+      "star_count_ratio_vs_natural": 0.6923076923076922
+    }
+  ],
+  "S5_buffer_gain_area": 1.44,
+  "S5_cone_poisson": {
+    "fov_deg": 1.0,
+    "rho_per_deg2": 820.0,
+    "mean_n": 2573.8895,
+    "sd_n": 50.704504367280485,
+    "p_n_below_3": 0.0
+  },
+  "S5_b12_hazard": {
+    "scenario": "cd singular -> pixel_scale=0 -> fov clamped 1.0 -> search proceeds on positionally wrong stars",
+    "n_mismatch_pairs": 500,
+    "prefilter_keep_frac": 0.588,
+    "location_from_mismatch_dex": -0.14596829607501965,
+    "scale_bias_dex": -0.14596829607501965,
+    "note": "\u9519\u914d\u5b9a\u4f4d\u4e0b location \u7cfb\u7edf\u504f\u79fb ~O(0.1 dex)\uff0c\u4e14 |r_consistent|>=3 \u95e8\u53ef\u88ab\u6ee1\u8db3 \u21d2 \u62df\u5408\u7167\u5e38\u51fa\u6807\u5ea6"
+  },
+  "S6_ladder_sweep": [
+    {
+      "sky_density_factor": 0.2,
+      "rounds_used": 5,
+      "mag_max_reached": 16.0,
+      "n_gaia": 148,
+      "early_stop_hit": false,
+      "sigma_zp_stat_mag": 0.003698977214370539,
+      "queries_saved_vs_always_max": 0,
+      "note": "\u62e5\u6324\u573a n_gaia \u53ef\u8fdc\u8d85 10000 \u21d2 \u4ee3\u7801\u6ce8\u91ca\u5ba3\u79f0\u7684'\u4e0a\u754c 10000'\u4ece\u672a\u5b9e\u73b0\uff0801/C5\uff09"
+    },
+    {
+      "sky_density_factor": 1.0,
+      "rounds_used": 5,
+      "mag_max_reached": 16.0,
+      "n_gaia": 793,
+      "early_stop_hit": false,
+      "sigma_zp_stat_mag": 0.0015979968545139786,
+      "queries_saved_vs_always_max": 0,
+      "note": "\u62e5\u6324\u573a n_gaia \u53ef\u8fdc\u8d85 10000 \u21d2 \u4ee3\u7801\u6ce8\u91ca\u5ba3\u79f0\u7684'\u4e0a\u754c 10000'\u4ece\u672a\u5b9e\u73b0\uff0801/C5\uff09"
+    },
+    {
+      "sky_density_factor": 5.0,
+      "rounds_used": 5,
+      "mag_max_reached": 16.0,
+      "n_gaia": 4062,
+      "early_stop_hit": true,
+      "sigma_zp_stat_mag": 0.0007060615377752522,
+      "queries_saved_vs_always_max": 0,
+      "note": "\u62e5\u6324\u573a n_gaia \u53ef\u8fdc\u8d85 10000 \u21d2 \u4ee3\u7801\u6ce8\u91ca\u5ba3\u79f0\u7684'\u4e0a\u754c 10000'\u4ece\u672a\u5b9e\u73b0\uff0801/C5\uff09"
+    },
+    {
+      "sky_density_factor": 25.0,
+      "rounds_used": 3,
+      "mag_max_reached": 14.0,
+      "n_gaia": 3903,
+      "early_stop_hit": true,
+      "sigma_zp_stat_mag": 0.0007202997070301587,
+      "queries_saved_vs_always_max": 2,
+      "note": "\u62e5\u6324\u573a n_gaia \u53ef\u8fdc\u8d85 10000 \u21d2 \u4ee3\u7801\u6ce8\u91ca\u5ba3\u79f0\u7684'\u4e0a\u754c 10000'\u4ece\u672a\u5b9e\u73b0\uff0801/C5\uff09"
+    }
+  ],
+  "S6_negative_empty_field": {
+    "n_gaia": 0,
+    "expected_NO_DATA": true
+  },
+  "S6_sigma_zp_at_early_stop_mag": 0.0010062305898749053,
+  "S11_cap_curve": [
+    {
+      "n_stars": 100,
+      "sigma_zp_stat_mag": 0.0045,
+      "gain_vs_5000": 0.1414213562373095
+    },
+    {
+      "n_stars": 300,
+      "sigma_zp_stat_mag": 0.0025980762113533154,
+      "gain_vs_5000": 0.24494897427831785
+    },
+    {
+      "n_stars": 1000,
+      "sigma_zp_stat_mag": 0.0014230249470757706,
+      "gain_vs_5000": 0.447213595499958
+    },
+    {
+      "n_stars": 3000,
+      "sigma_zp_stat_mag": 0.0008215838362577491,
+      "gain_vs_5000": 0.7745966692414834
+    },
+    {
+      "n_stars": 5000,
+      "sigma_zp_stat_mag": 0.0006363961030678928,
+      "gain_vs_5000": 1.0
+    },
+    {
+      "n_stars": 10000,
+      "sigma_zp_stat_mag": 0.00045,
+      "gain_vs_5000": 1.4142135623730951
+    },
+    {
+      "n_stars": 20000,
+      "sigma_zp_stat_mag": 0.0003181980515339464,
+      "gain_vs_5000": 2.0
+    }
+  ]
+}

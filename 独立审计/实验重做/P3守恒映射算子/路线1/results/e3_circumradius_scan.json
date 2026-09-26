@@ -1,0 +1,34 @@
+{
+ "seed": 20050709,
+ "per_n": {
+  "4": {
+   "max_circumradius_over_hp_res": 1.13233434346079,
+   "worst_dec_deg": 73.40215786413343
+  },
+  "8": {
+   "max_circumradius_over_hp_res": 1.1293609657360082,
+   "worst_dec_deg": 81.72287092944418
+  },
+  "16": {
+   "max_circumradius_over_hp_res": 1.1286241846388554,
+   "worst_dec_deg": 85.86413541293304
+  },
+  "32": {
+   "max_circumradius_over_hp_res": 1.1284403945526646,
+   "worst_dec_deg": 87.93240445758317
+  },
+  "64": {
+   "max_circumradius_over_hp_res": 1.1283944722782178,
+   "worst_dec_deg": 88.96624429955156
+  }
+ },
+ "lonlat_contrast": {
+  "4": 0.9521379773793716,
+  "8": 1.1421882701443566,
+  "16": 3.125355777085225
+ },
+ "monotone_increasing": false,
+ "max_measured": 1.13233434346079,
+ "headroom_1p25_vs_measured": 0.10391423453569781,
+ "classification": "structural safety buffer (exempt from three-leg requirement): soft upper bound for candidate completeness; does not enter published signal/variance; zero-miss enforced by candidate oracle"
+}

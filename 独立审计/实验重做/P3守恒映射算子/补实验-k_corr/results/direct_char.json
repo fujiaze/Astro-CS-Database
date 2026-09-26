@@ -1,0 +1,31 @@
+{
+ "group": "direct_characterization_iid_gaussian",
+ "seed": 20260816,
+ "nmc": 400000,
+ "rows": [
+  {
+   "n": 5,
+   "var_median": 0.2862787569604886,
+   "asymptotic": 0.3141592653589793,
+   "var_over_asymptotic": 0.911253585449302,
+   "median_MAD_scale": 0.7460866525726195,
+   "k_gauss": 1.6370453440780806
+  },
+  {
+   "n": 9,
+   "var_median": 0.16557892675965855,
+   "asymptotic": 0.17453292519943295,
+   "var_over_asymptotic": 0.9486973679634203,
+   "median_MAD_scale": 0.8692836020755748,
+   "k_gauss": 1.2554653214583547
+  },
+  {
+   "n": 25,
+   "var_median": 0.06173506929854891,
+   "asymptotic": 0.06283185307179587,
+   "var_over_asymptotic": 0.9825441440984767,
+   "median_MAD_scale": 0.9553512607543817,
+   "k_gauss": 1.0765294361633595
+  }
+ ]
+}

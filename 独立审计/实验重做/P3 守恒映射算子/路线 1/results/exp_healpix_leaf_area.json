@@ -1,0 +1,79 @@
+{
+  "experiment": "healpix_leaf_area_verification",
+  "author": "Independent Research Route #1 (P3 Conservation Mapping)",
+  "date": "2026-09-26",
+  "reference_dois": [
+    "10.1086/427976"
+  ],
+  "sections": {
+    "derivation_check": {
+      "16": {
+        "nside": 16,
+        "pixels_per_face": 256,
+        "total_pixels": 3072,
+        "analytical_area": 0.0040906154343617095,
+        "formula_verification": "passed"
+      },
+      "64": {
+        "nside": 64,
+        "pixels_per_face": 4096,
+        "total_pixels": 49152,
+        "analytical_area": 0.00025566346464760684,
+        "formula_verification": "passed"
+      },
+      "256": {
+        "nside": 256,
+        "pixels_per_face": 65536,
+        "total_pixels": 786432,
+        "analytical_area": 1.5978966540475428e-05,
+        "formula_verification": "passed"
+      },
+      "1024": {
+        "nside": 1024,
+        "pixels_per_face": 1048576,
+        "total_pixels": 12582912,
+        "analytical_area": 9.986854087797142e-07,
+        "formula_verification": "passed"
+      }
+    },
+    "numerical_precision": {
+      "16": {
+        "computation_1": 0.0040906154343617095,
+        "computation_2": 0.0040906154343617095,
+        "computation_3": 0.0040906154343617095,
+        "max_relative_diff": 0.0,
+        "precision_test": "passed"
+      },
+      "64": {
+        "computation_1": 0.00025566346464760684,
+        "computation_2": 0.00025566346464760684,
+        "computation_3": 0.00025566346464760684,
+        "max_relative_diff": 0.0,
+        "precision_test": "passed"
+      },
+      "256": {
+        "computation_1": 1.5978966540475428e-05,
+        "computation_2": 1.5978966540475428e-05,
+        "computation_3": 1.5978966540475428e-05,
+        "max_relative_diff": 0.0,
+        "precision_test": "passed"
+      },
+      "1024": {
+        "computation_1": 9.986854087797142e-07,
+        "computation_2": 9.986854087797142e-07,
+        "computation_3": 9.986854087797142e-07,
+        "max_relative_diff": 0.0,
+        "precision_test": "passed"
+      }
+    },
+    "negative_control_planar_limit": {
+      "nside": 1024,
+      "analytical_area": 9.986854087797142e-07,
+      "characteristic_angle_rad": 0.0009993424882289927,
+      "characteristic_angle_arcsec": 206.12918470904435,
+      "correction_factor": 1.0000003328951363,
+      "relative_deviation": 3.328951362745396e-07,
+      "test": "failed"
+    }
+  }
+}

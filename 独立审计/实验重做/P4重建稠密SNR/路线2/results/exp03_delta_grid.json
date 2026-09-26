@@ -1,0 +1,113 @@
+{
+  "seed": 20260928,
+  "scenario": "2048^2 px, bilinear-on-grid reconstruction of variance plane, control noise 0.5%",
+  "rows": [
+    {
+      "tag": "flat+noise",
+      "q2": 0.0,
+      "delta_px": 16,
+      "rmse_rel": 0.0037293007836766553
+    },
+    {
+      "tag": "flat+noise",
+      "q2": 0.0,
+      "delta_px": 32,
+      "rmse_rel": 0.003474693534429085
+    },
+    {
+      "tag": "flat+noise",
+      "q2": 0.0,
+      "delta_px": 64,
+      "rmse_rel": 0.0034728604441716126
+    },
+    {
+      "tag": "flat+noise",
+      "q2": 0.0,
+      "delta_px": 128,
+      "rmse_rel": 0.00343151058526328
+    },
+    {
+      "tag": "flat+noise",
+      "q2": 0.0,
+      "delta_px": 256,
+      "rmse_rel": 0.003650825062207877
+    },
+    {
+      "tag": "curved+noise",
+      "q2": 3e-05,
+      "delta_px": 16,
+      "rmse_rel": 0.0037593650703139584
+    },
+    {
+      "tag": "curved+noise",
+      "q2": 3e-05,
+      "delta_px": 32,
+      "rmse_rel": 0.0033292057599893163
+    },
+    {
+      "tag": "curved+noise",
+      "q2": 3e-05,
+      "delta_px": 64,
+      "rmse_rel": 0.003246693521023012
+    },
+    {
+      "tag": "curved+noise",
+      "q2": 3e-05,
+      "delta_px": 128,
+      "rmse_rel": 0.0032795752881852247
+    },
+    {
+      "tag": "curved+noise",
+      "q2": 3e-05,
+      "delta_px": 256,
+      "rmse_rel": 0.0060429692987991335
+    },
+    {
+      "tag": "curved+bias_only",
+      "q2": 3e-05,
+      "delta_px": 16,
+      "rmse_rel": 1.7460410072837034e-05
+    },
+    {
+      "tag": "curved+bias_only",
+      "q2": 3e-05,
+      "delta_px": 32,
+      "rmse_rel": 7.226883915383845e-05
+    },
+    {
+      "tag": "curved+bias_only",
+      "q2": 3e-05,
+      "delta_px": 64,
+      "rmse_rel": 0.0002918372082824552
+    },
+    {
+      "tag": "curved+bias_only",
+      "q2": 3e-05,
+      "delta_px": 128,
+      "rmse_rel": 0.0011854033582401513
+    },
+    {
+      "tag": "curved+bias_only",
+      "q2": 3e-05,
+      "delta_px": 256,
+      "rmse_rel": 0.004885803278843965
+    }
+  ],
+  "delta_dependency_metric_flat_truth": 1.0867810811052845,
+  "delta_dependency_metric_curved_truth": 1.8612687830464,
+  "bias_only_growth_256_over_16": 279.82179447461857,
+  "bias_only_scaling_128_over_64": 4.061865055578712,
+  "interpolation_bias_theory_rel": {
+    "16": 3.84e-05,
+    "32": 0.0001536,
+    "64": 0.0006144,
+    "128": 0.0024576,
+    "256": 0.0098304
+  },
+  "negative_control_verdict": "PASS",
+  "conclusions": [
+    "\u66f2\u7387=0\uff08\u8d1f\u4f8b\uff0c\u5185\u57df\u6c42\u503c\uff09\u65f6 RMSE \u4e0e Delta \u65e0\u5173\uff08max/min=1.087~1\uff09\u21d2 Delta \u4e0d\u8fdb\u5165\u7269\u7406\u6a21\u578b\uff0c\u53ea\u51b3\u5b9a\u91c7\u6837\u5bc6\u5ea6\uff1b",
+    "q2=3e-5 \u65f6\u786e\u5b9a\u6027\u63d2\u503c\u504f\u7f6e\u968f Delta \u5448 ~Delta^2 \u589e\u957f\uff08\u96f6\u566a\u58f0\u884c 128/64=4.06\uff0c\u7406\u8bba 4\uff1b256/16=280\uff0c\u7406\u8bba 256\uff09\u21d2 \u6548\u5e94\u5e45\u5ea6\u7531\u573a\u666f\u66f2\u7387\u51b3\u5b9a\uff0c\u5c5e\u786e\u5b9a\u6027\u63d2\u503c\u8bef\u5dee\u800c\u975e\u7269\u7406\u53c2\u6570\uff1b",
+    "\u7ed3\u8bba\uff1aDelta=64 \u662f\u7ed3\u6784\u6027/\u5de5\u7a0b\u53c2\u6570\uff08\u91c7\u6837\u5bc6\u5ea6+\u5b58\u50a8\uff0c\u8d1f\u8d23\u4eba\u88c1\u51b3\u8bb0\u5f55\u4e8e schema:466\uff09\uff0c\u4e0d\u662f\u79d1\u5b66\u91cf\uff0c\u8c41\u514d\u4e09\u817f\uff1b\u767b\u8bb0\u9762\u5e94\u4e3a config_hash \u800c\u975e\u79d1\u5b66\u5e38\u6570\u8868\u3002"
+  ]
+}

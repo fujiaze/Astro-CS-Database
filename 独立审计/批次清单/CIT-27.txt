@@ -1,0 +1,9 @@
+# 批次 CIT-27｜6 条未核引用（池重建版；A=存在性未核，全套三字段并核该标识全部位点；B=存在性已在 CIT-01..12 核过，仅补该位点的关联性/版本）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 池重建口径（确定命令可复现）：五类标识（DOI/arXiv/学术URL/Bibcode/作者年），git show c8f64e9a:<file> 逐行扫描跟踪集，排除 独立审计/ site/ artifacts/ lib/third_party/ testdata/ eng/；旧台账正本（整改/out/文献台账.csv）不在包内，编号自 233 续起
+# 列：序号	优先级	类	引用件	类型	位点
+317	P-1	A	作者年 Zackay & Ofek 2017	作者年	docs/science/SCIENCE_SCOPE.md
+318	P-1	A	Bibcode 2006ASPC..351..112B	Bibcode	docs/research/PHOTOMETRY_RESEARCH_PACK.md
+319	P-2	B	DOI DOI 10.1145/103162.103163	DOI	docs/algorithms/ACR_EQUIVALENCE.md:78
+320	P-2	B	DOI DOI 10.1145/103162.103163	DOI	docs/references/SCIENTIFIC_REFERENCES.md:113
+321	P-2	B	DOI DOI 10.1145/103162.103163	DOI	docs/science/ACR_EQUIVALENCE.md:172
+322	P-2	B	DOI DOI 10.1080/01621459.1993.10476408	DOI	docs/algorithms/CALIBRATION_ALGORITHMS.md:624

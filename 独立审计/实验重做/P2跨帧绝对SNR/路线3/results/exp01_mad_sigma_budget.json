@@ -1,0 +1,59 @@
+{
+ "experiment": "P2-route3 EXP-01 MAD->sigma / sky budget / 5sigma clip",
+ "seed": 20260926,
+ "theory": {
+  "Phi_inv_075": 0.6744897501960816,
+  "kappa_closed_form": 1.4826022185056023,
+  "kappa_frozen_literal": 1.482602218505602,
+  "kappa_rel_diff": 1.49766810108272e-16,
+  "c_known_center_asymptotic": 1.1663872874444214
+ },
+ "H1_kappa": {
+  "n64": {
+   "mean_rel_bias": -0.012253674724707175,
+   "c_measured_sqrt_n": 1.1676163482777422
+  },
+  "n1024": {
+   "mean_rel_bias": -0.001073012412249108,
+   "c_measured_sqrt_n": 1.16941711424877
+  },
+  "n9216": {
+   "mean_rel_bias": -0.00016044399330927828,
+   "c_measured_sqrt_n": 1.1868490151587985
+  },
+  "n1024_known_center": {
+   "mean_rel_bias": -0.0006947899381734013,
+   "c_measured_sqrt_n": 1.1636481257393265
+  },
+  "negative_sigma0": {
+   "sigma_hat_max": 0.0,
+   "metric_is_zero": true
+  }
+ },
+ "H2_budget": {
+  "asymptotic_c_known_center_closed": 1.1663872874444214,
+  "asymptotic_c_if_ARE_037": 1.162476387438193,
+  "claim_1152": 1.152,
+  "claim_1144": 1.144,
+  "n9216": {
+   "c_pooled_mad": 1.1483987228714068,
+   "c_median_of_patch_vars": 1.4488817141966417
+  },
+  "n1024": {
+   "c_pooled_mad": 1.1646330812194798,
+   "c_median_of_patch_vars": 1.4079833151603145
+  },
+  "implied_n_sky_at_eps0015": {
+   "c_1152x125": 9264.93372655473,
+   "c_1144x125": 9136.700895752201,
+   "c_measured9216_poolx125": 9207.09789028389
+  }
+ },
+ "H3_clip": {
+  "fp_per_px_theory": 5.733031436250258e-07,
+  "expected_clip_per_64px_patch": 3.669140119200165e-05,
+  "mc_frames_with_any_clip": 2,
+  "mc_frames_total": 2000,
+  "mc_clip_rate_per_px": 1.5625e-05
+ }
+}

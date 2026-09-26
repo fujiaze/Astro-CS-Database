@@ -1,0 +1,41 @@
+{
+ "seed": 20260926,
+ "our_slope": {
+  "bright": {
+   "S_src_e": 10000.0,
+   "slope_1e3_to_1e6": -0.34316133794258996,
+   "slope_1e4_to_1e6": -0.43733979040220794,
+   "slope_full_range": -0.13798581854784078,
+   "endpoint_snr": [
+    99.49633095389068,
+    9.949876883410429
+   ],
+   "monotone_decreasing": true,
+   "legacy_ratio_last_over_first": 10.099237548588308
+  },
+  "faint": {
+   "S_src_e": 100.0,
+   "slope_1e3_to_1e6": -0.4915801777423788,
+   "slope_1e4_to_1e6": -0.49839096759911716,
+   "slope_full_range": -0.3294622798740162,
+   "endpoint_snr": [
+    7.04469953676347,
+    0.09998997650725754
+   ],
+   "monotone_decreasing": true,
+   "legacy_ratio_last_over_first": 140.54520880676313
+  }
+ },
+ "repo_claims": {
+  "bright_slope": -0.4879,
+  "faint_slope": -0.4972,
+  "endpoint_ratio_bright_pct": 2.11,
+  "endpoint_ratio_faint_pct": 1.07,
+  "note": "repo slopes are fitted on simulated frames with their own source levels; -0.5 is the asymptotic attractor"
+ },
+ "negative_control_frozen_sigma": {
+  "slope": 0.0,
+  "snr_rises_instead_of_falls": true,
+  "metric_slopes_violate_monotone_to_zero": true
+ }
+}

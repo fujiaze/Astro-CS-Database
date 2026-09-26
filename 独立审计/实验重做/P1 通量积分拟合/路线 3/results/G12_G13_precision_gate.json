@@ -1,0 +1,33 @@
+{
+  "experiment_id": "G12_G13_precision_gate",
+  "purpose": "\u6838\u67e5 G-12/G-13 \u03c3_floor/\u03c3_ceiling \u7684\u5b9e\u73b0\u72b6\u6001",
+  "code_search_results": {
+    "search_pattern": [
+      "sigma_floor",
+      "sigma_ceiling",
+      "precision_gate"
+    ],
+    "found_in_files": [],
+    "implementation_status": null,
+    "details": []
+  },
+  "doc_search_results": {
+    "docs_paths": [
+      "docs/science/PHOTOMETRY.md",
+      "docs/algorithms/*.md",
+      "docs/plugins/algorithms_phase1/*.md"
+    ],
+    "findings": []
+  },
+  "conclusion": {
+    "implemented": false,
+    "reason": "\u4ee3\u7801\u641c\u7d22\u672a\u53d1\u73b0\u4efb\u4f55\u5339\u914d",
+    "reference": "01/W0-7: \u5224\u636e\u5c1a\u672a\u5728\u4ee3\u7801\u4e2d\u751f\u6548",
+    "recommendation": "\u4ece 05 \u6b63\u5411\u89c4\u683c\u4e2d\u79fb\u9664\u6216\u660e\u786e\u5176\u5b9e\u73b0\u72b6\u6001"
+  },
+  "negative_case": {
+    "description": "\u771f\u503c\u65e0\u6548\u6548\u5e94\uff1a\u82e5\u53c2\u6570\u672a\u5b9e\u73b0\uff0c\u5219\u4e0d\u5e94\u51fa\u73b0\u5728\u89c4\u8303\u4e2d",
+    "passed": true,
+    "note": "\u53c2\u6570\u786e\u5b9e\u4e0d\u5b58\u5728\u4e8e\u4ee3\u7801\u4e2d\uff0c\u7b26\u5408\"\u5224\u636e\u5c1a\u672a\u751f\u6548\"\u7684\u72b6\u6001"
+  }
+}

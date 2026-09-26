@@ -1,0 +1,20 @@
+E4 flux conservation + pixfrac numbers + quantization bound (seed=20050709)
+
+  pf   theta[as]  max|S/B0-1|   conserv_res   S_cov/B0    1/pf^2    cov_den_matches
+  1.0    2.0   4.44e-16     -1.17e-14     1.000000  1.000000  True
+  1.0  300.0   4.44e-16     6.66e-15     1.000000  1.000000  True
+  0.8    2.0   4.44e-16     -5.22e-15     1.562500  1.562500  True
+  0.8  300.0   3.33e-16     3.33e-15     1.562500  1.562500  True
+  0.6    2.0   4.44e-16     -6.33e-15     2.777778  2.777778  True
+  0.6  300.0   4.44e-16     7.77e-15     2.777778  2.777778  True
+  0.5    2.0   4.44e-16     -1.03e-14     4.000000  4.000000  True
+  0.5  300.0   4.44e-16     3.77e-15     4.000000  4.000000  True
+
+[NEGATIVE CONTROL no-effect] max|S/B0-1| = 4.44e-16 (metric zero (float noise) when the field is exactly constant: the conservation and surface-brightness identities carry no spurious effect)
+[VARIANCE LAW] ratio in [9.000000, 9.000000], expected 9.0
+[PIXFRAC BACKGROUNDS pf=0.8] 1/pf^2-1=0.562500  1/pf^4-1=1.44140625  2.5log10(1/pf^2)=0.48455 mag
+[QUANTIZATION] N=1025 samples
+  compensation convention (sig = S*255S/q): strict |r|<=0.5/q holds = True (max violation 1.86e-17)
+  inverse direction (sig = S*q/255S):     strict |r|<=0.5/q holds = False (max violation 5.00e-01)
+  worst case: S=0.00196078 r=-0.500000 (bound 0.500000) ; r(1/510)=-0.5000 ; clamp S=1.3: r=-0.00
+  inverse-direction max r near S=0.5/255+ boundary: -0.4950 (vs strict 0.5 => violates)

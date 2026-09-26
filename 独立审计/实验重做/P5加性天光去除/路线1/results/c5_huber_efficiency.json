@@ -1,0 +1,51 @@
+{
+  "seed": 20260321,
+  "n_obs": 100,
+  "nmc": 40000,
+  "theta_true": 0.0,
+  "efficiency_vs_delta": {
+    "0.5": {
+      "efficiency": 0.7907729948329091
+    },
+    "0.8": {
+      "efficiency": 0.864179159904184
+    },
+    "1.0": {
+      "efficiency": 0.9020220478434038
+    },
+    "1.2": {
+      "efficiency": 0.9314859683743014
+    },
+    "1.345": {
+      "efficiency": 0.9480410692963475
+    },
+    "1.5": {
+      "efficiency": 0.9624555122557586
+    },
+    "2.0": {
+      "efficiency": 0.9892033873986535
+    },
+    "3.0": {
+      "efficiency": 0.9994681010387843
+    }
+  },
+  "delta_1p345_efficiency": 0.9480410692963475,
+  "delta_at_95pct_efficiency": 1.3660645850083228,
+  "sigma_floor_dominated": {
+    "var_huber_with_floor": 0.015638664641265,
+    "var_huber_correct_scale": 0.0105963772271648,
+    "efficiency_loss_factor": 0.677575577597888,
+    "behaviour": "z = r/1e-3 \u5168\u90e8\u843d L1 \u533a => \u4f30\u8ba1\u91cf\u9000\u5316\u4e3a median (\u9ad8\u65af\u4e0b\u6548\u7387 2/pi ~ 0.637)",
+    "var_median_reference": 0.01563867645259794
+  },
+  "infinite_uncertainty_closed_form": {
+    "sigma_eff": Infinity,
+    "z": 0.0,
+    "huber_w": 1.0,
+    "claim": "\u5b8c\u5168\u4e0d\u786e\u5b9a\u7684\u89c2\u6d4b\u83b7\u5f97\u6ee1\u6743\u91cd (D-04), \u6743\u91cd\u9762\u65e0\u6cd5\u964d\u6743 \u2014\u2014 \u95ed\u5f0f\u4e8b\u5b9e, \u975e\u968f\u673a\u7ed3\u8bba"
+  },
+  "symmetry_null": {
+    "mean_est": 0.0005162344276561576,
+    "abs_mean_over_std": 0.00501496907123378
+  }
+}

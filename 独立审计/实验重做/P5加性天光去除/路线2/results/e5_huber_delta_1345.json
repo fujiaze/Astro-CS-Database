@@ -1,0 +1,26 @@
+{
+ "seed": 20250926,
+ "delta": 1.345,
+ "analytic": {
+  "delta_at_95pct_eff": 1.344997508512042,
+  "eff_at_1.345": 0.9500002597028668,
+  "doc_claim": 1.345,
+  "abs_err": 2.491487957945182e-06
+ },
+ "mc": {
+  "R": 20000,
+  "n_per_est": 50,
+  "asym_var_gaussian": 1.0518718351419858,
+  "efficiency_gaussian": 0.9506861640277839,
+  "asym_var_contaminated": 1.3894287469863664,
+  "efficiency_contaminated_vs_mean": 2.5190208620567307,
+  "asym_var_contaminated_floor_10x": 3.3730853763709296,
+  "efficiency_contaminated_floor_10x": 1.037625677819521
+ },
+ "negative": {
+  "mean_bias": -0.00031448279793031735,
+  "huber_bias": -0.00039799519932892083,
+  "bias_diff_abs": 8.351240139860348e-05,
+  "note": "no-effect metric = |bias difference|; expected ~0 (1/sqrt(R*n))"
+ }
+}

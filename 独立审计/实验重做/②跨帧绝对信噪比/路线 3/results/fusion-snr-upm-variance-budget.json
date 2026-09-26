@@ -1,0 +1,61 @@
+{
+  "experiment_id": "fusion-snr-upm-variance-budget",
+  "timestamp": "2026-09-26T16:15:00Z",
+  "seed": 42,
+  "parameters": {
+    "error_amplitudes": [
+      1e-06,
+      1e-05,
+      0.0001,
+      0.001
+    ],
+    "repetitions": 100,
+    "upm_grid_size": "8x8"
+  },
+  "reference_snr_f": 79.91136704918203,
+  "results": {
+    "epsilon_1e-06": {
+      "mean_relative_difference": -3.4928131478162777e-09,
+      "std_relative_difference": 7.238450606232573e-08,
+      "min_relative_difference": -2.1055580662882856e-07,
+      "max_relative_difference": 1.53319636622989e-07,
+      "sample_size": 100
+    },
+    "epsilon_1e-05": {
+      "mean_relative_difference": -3.49745476303381e-08,
+      "std_relative_difference": 7.238447056523028e-07,
+      "min_relative_difference": -2.105614552180145e-06,
+      "max_relative_difference": 1.5331289377580765e-06,
+      "sample_size": 100
+    },
+    "epsilon_1e-04": {
+      "mean_relative_difference": -3.543871373946402e-07,
+      "std_relative_difference": 7.238411754875922e-06,
+      "min_relative_difference": -2.106179458775686e-05,
+      "max_relative_difference": 1.53245469033146e-05,
+      "sample_size": 100
+    },
+    "epsilon_1e-03": {
+      "mean_relative_difference": -4.008077176968562e-06,
+      "std_relative_difference": 7.238078124155355e-05,
+      "min_relative_difference": -0.00021118334245716743,
+      "max_relative_difference": 0.00015257159906000676,
+      "sample_size": 100
+    },
+    "regression_slope": {
+      "value": -0.004021991304215827,
+      "interpretation": "SNR \u76f8\u5bf9\u504f\u5dee\u968f UPM \u91cd\u5efa\u8bef\u5dee\u7684\u589e\u957f\u7387 = -0.00"
+    }
+  },
+  "conclusion": "UPM \u91cd\u5efa\u8bef\u5dee\u22641e-06\u65f6\uff0c\u5bf9 SNR \u7684\u5f71\u54cd\u2264-0.00%\uff0c\u53ef\u5ffd\u7565\uff1b>1e-03\u65f6\u9700\u5f15\u5165\u4fee\u6b63\u9879\u3002",
+  "oracle_comparison": {
+    "expected_direction": "linear_growth",
+    "actual_direction": "proportional_to_epsilon",
+    "matched": true
+  },
+  "affected_modules": [
+    "upm_fit_phase2",
+    "snr_calculation"
+  ],
+  "recommendation": "\u5efa\u8bae UPM \u6c42\u89e3\u7cbe\u5ea6\u81f3\u5c11\u8fbe\u5230\u03b5\u22641e-5\uff0c\u5426\u5219\u9700\u5728 SNR \u8ba1\u7b97\u4e2d\u5f15\u5165\u65b9\u5dee\u9884\u7b97\u4fee\u6b63\u9879\u3002\u5f53\u524d\u751f\u4ea7\u94fe\u672a\u62a5\u544a correlation_approx_error_available\uff0c\u5b58\u5728\u6f0f\u62a5\u98ce\u9669\u3002"
+}

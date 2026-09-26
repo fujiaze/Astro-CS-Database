@@ -1,0 +1,79 @@
+{
+  "section": "A-4b FOV Buffer Constants",
+  "seed": 20260926,
+  "constants_under_test": {
+    "buffer_coefficient": 1.2,
+    "clamp_lower_deg": 1.0,
+    "clamp_upper_deg": 10.0
+  },
+  "test_cases": [
+    {
+      "name": "Narrow_FOV",
+      "pixel_scale_arcsec": 100.0,
+      "width_px": 4096,
+      "height_px": 4096,
+      "fov_raw_deg": 0.2896309375740099,
+      "fov_clamped_deg": 1.0,
+      "clamped": true,
+      "direction": "lower"
+    },
+    {
+      "name": "Medium_FOV",
+      "pixel_scale_arcsec": 500.0,
+      "width_px": 6144,
+      "height_px": 6144,
+      "fov_raw_deg": 2.172232031805074,
+      "fov_clamped_deg": 2.172232031805074,
+      "clamped": false,
+      "direction": null
+    },
+    {
+      "name": "Wide_FOV",
+      "pixel_scale_arcsec": 2000.0,
+      "width_px": 8192,
+      "height_px": 8192,
+      "fov_raw_deg": 11.585237502960396,
+      "fov_clamped_deg": 10.0,
+      "clamped": true,
+      "direction": "upper"
+    }
+  ],
+  "negative_control": [
+    {
+      "buffer_coef": 1.0,
+      "fov_radius_deg": 2.172232031805074
+    },
+    {
+      "buffer_coef": 1.2,
+      "fov_radius_deg": 2.6066784381660884
+    },
+    {
+      "buffer_coef": 1.5,
+      "fov_radius_deg": 3.258348047707611
+    },
+    {
+      "buffer_coef": 2.0,
+      "fov_radius_deg": 4.344464063610148
+    }
+  ],
+  "threshold_analysis": {
+    "Narrow_FOV": {
+      "diagonal_pixels": 5792.618751480198,
+      "lower_bound_trigger_arcsec_per_px": 287.72248583436993,
+      "upper_bound_trigger_arcsec_per_px": 2877.2248583436995
+    },
+    "Medium_FOV": {
+      "diagonal_pixels": 8688.928127220295,
+      "lower_bound_trigger_arcsec_per_px": 191.8149905562466,
+      "upper_bound_trigger_arcsec_per_px": 1918.1499055624663
+    },
+    "Wide_FOV": {
+      "diagonal_pixels": 11585.237502960395,
+      "lower_bound_trigger_arcsec_per_px": 143.86124291718497,
+      "upper_bound_trigger_arcsec_per_px": 1438.6124291718497
+    }
+  },
+  "nature_of_constants": "Engineering safety margins for astrometric matching coverage",
+  "literature_status": "UNRESOLVED - Project-specific engineering parameters",
+  "experimental_verdict": "Constants serve as fallback bounds balancing completeness vs cost"
+}

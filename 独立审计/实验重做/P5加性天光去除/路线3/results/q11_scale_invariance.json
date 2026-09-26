@@ -1,0 +1,65 @@
+{
+  "seed": 20260926,
+  "scale_obs": 52629290000000.0,
+  "sigma_floor_regimes": [
+    {
+      "case": "production_surface_brightness",
+      "uncertainty": 430000000000.0,
+      "residual": 100000000000.0,
+      "sigma_eff": 430000000000.0,
+      "z": 0.23255813953488372,
+      "huber_w": 1.0,
+      "floor_active": false
+    },
+    {
+      "case": "uncertainty_inf",
+      "uncertainty": Infinity,
+      "residual": 100000000000.0,
+      "sigma_eff": Infinity,
+      "z": 0.0,
+      "huber_w": 1.0,
+      "floor_active": false
+    },
+    {
+      "case": "tiny_alpha2_scale",
+      "uncertainty": 1e-30,
+      "residual": 1e-29,
+      "sigma_eff": 0.001,
+      "z": 9.999999999999999e-27,
+      "huber_w": 1.0,
+      "floor_active": true
+    }
+  ],
+  "floor_dead_production": true,
+  "inf_gains_full_weight": true,
+  "floor_dead_tiny_scale": true,
+  "relative_floor_active": {
+    "floor_rel": 52629290000.0,
+    "z_example": 1.9000826345937785,
+    "huber_w": 0.7078639505,
+    "in_delta_region": false
+  },
+  "absolute_tolerance": {
+    "ulp_at_scale": 0.0078125,
+    "abs_tol_over_ulp": 0.000128,
+    "unreachable": true,
+    "d54_recorded_ratio": 8.557e-05
+  },
+  "convergence_demo": {
+    "max_dM_at_rel_improve_1e-9": 52629.29,
+    "abs_gate_fires": false,
+    "rel_gate_fires": true
+  },
+  "unit_scale_equivalence": {
+    "scale": 1.0,
+    "ulp": 2.220446049250313e-16,
+    "abs_tol_1e-6_reachable": true,
+    "claim": "绝对 1e-6 只在观测尺度 ≈1 时与相对判据等价（PHASE2_UPM §5 已声明）"
+  },
+  "negative_zero_correction": {
+    "max_dM": 0.0,
+    "abs_gate": true,
+    "rel_gate": true,
+    "note": "真值无效应 => max_dM=0, 两判据一致归零"
+  }
+}

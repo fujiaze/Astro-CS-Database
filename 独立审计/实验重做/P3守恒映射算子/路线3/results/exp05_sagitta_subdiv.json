@@ -1,0 +1,91 @@
+{
+ "exp": "exp05_sagitta_subdiv",
+ "seed": 20260926,
+ "N32": {
+  "N": 32,
+  "cap_chart_max": 0.06383358114554265,
+  "cap_phiz_max": 0.2171792913734317,
+  "belt_chart_max": 0.004981619026075638,
+  "belt_phiz_max": 0.004981619026075638,
+  "belt_chart_median": 0.0019999413516890163,
+  "meridian_max": 1.6495413494265074e-14
+ },
+ "cap_scale": {
+  "N32": 0.06383358114554265,
+  "N256": 0.06393115552451645,
+  "N1024": 0.0639326071655844,
+  "note": "chart-curve convention"
+ },
+ "subdivision": [
+  {
+   "depth": 0,
+   "n_seg": 1,
+   "max_sag_hp_res": 0.06299526470752329
+  },
+  {
+   "depth": 1,
+   "n_seg": 2,
+   "max_sag_hp_res": 0.017253013740058977
+  },
+  {
+   "depth": 2,
+   "n_seg": 4,
+   "max_sag_hp_res": 0.004514549781466973
+  },
+  {
+   "depth": 3,
+   "n_seg": 8,
+   "max_sag_hp_res": 0.0011546962421515301
+  },
+  {
+   "depth": 4,
+   "n_seg": 16,
+   "max_sag_hp_res": 0.00029198622139908455
+  },
+  {
+   "depth": 5,
+   "n_seg": 32,
+   "max_sag_hp_res": 7.341384187240406e-05
+  },
+  {
+   "depth": 6,
+   "n_seg": 64,
+   "max_sag_hp_res": 1.8405817486739e-05
+  },
+  {
+   "depth": 7,
+   "n_seg": 128,
+   "max_sag_hp_res": 4.608010951403907e-06
+  },
+  {
+   "depth": 8,
+   "n_seg": 256,
+   "max_sag_hp_res": 1.152823061559712e-06
+  },
+  {
+   "depth": 9,
+   "n_seg": 512,
+   "max_sag_hp_res": 2.883083589610105e-07
+  },
+  {
+   "depth": 10,
+   "n_seg": 1024,
+   "max_sag_hp_res": 7.208983565368636e-08
+  }
+ ],
+ "fraction": {
+  "N1024_total": 240000,
+  "frac_over_chart": 0.9650083333333334,
+  "frac_over_phiz": 0.9934625
+ },
+ "verdict": {
+  "cap_max_scale_invariant": true,
+  "subdivision_ratio4": true,
+  "depth_needed": 7.971477883130776,
+  "residual_at_depth8": 1.152823061559712e-06,
+  "depth8_over_budget": true,
+  "meridian_zero": false,
+  "frac_over_chart": 0.9650083333333334,
+  "frac_over_phiz": 0.9934625
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "group": "G3b_high_precision_N5_identity",
+ "rows": [
+  {
+   "seed": 996001,
+   "nmc": 40000,
+   "N": 5,
+   "k_corr": 1.6324590180513965,
+   "sigma_bg": 7.449909544666572
+  },
+  {
+   "seed": 996002,
+   "nmc": 40000,
+   "N": 5,
+   "k_corr": 1.6261999759012344,
+   "sigma_bg": 7.485110725097336
+  },
+  {
+   "seed": 996003,
+   "nmc": 40000,
+   "N": 5,
+   "k_corr": 1.642928649988097,
+   "sigma_bg": 7.42364026205324
+  }
+ ],
+ "direct_characterization": {
+  "Var_median_asympt_ratio": 0.9113,
+  "med_MAD_over_sigma": 0.7461,
+  "k_gauss5_direct": 1.637
+ },
+ "k_mean": 1.6338625479802424
+}

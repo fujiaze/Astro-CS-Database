@@ -1,0 +1,51 @@
+{
+  "seed": 20260926,
+  "setup": {
+    "n_stars": 300,
+    "scatter_dex": 0.02,
+    "order": 2,
+    "field_shape": "A*(x^2-0.3y^2) on [-1,1]^2"
+  },
+  "S8_amplitude_sweep": {
+    "A=0.00": {
+      "median_max_abs_log10m_dex": 0.007997357754196015,
+      "p90_max_abs_log10m_dex": 0.013406490030778822,
+      "bound_1.0dex_binding": false
+    },
+    "A=0.03": {
+      "median_max_abs_log10m_dex": 0.03398195855814296,
+      "p90_max_abs_log10m_dex": 0.03866283042817366,
+      "bound_1.0dex_binding": false
+    },
+    "A=0.05": {
+      "median_max_abs_log10m_dex": 0.055445305324808764,
+      "p90_max_abs_log10m_dex": 0.05977067346483671,
+      "bound_1.0dex_binding": false
+    },
+    "A=0.10": {
+      "median_max_abs_log10m_dex": 0.10951709152469355,
+      "p90_max_abs_log10m_dex": 0.11443644927862691,
+      "bound_1.0dex_binding": false
+    },
+    "A=0.30": {
+      "median_max_abs_log10m_dex": 0.4613618436416761,
+      "p90_max_abs_log10m_dex": 0.5039281650609638,
+      "bound_1.0dex_binding": false
+    },
+    "A=1.00": {
+      "median_max_abs_log10m_dex": 1.578401439712457,
+      "p90_max_abs_log10m_dex": 1.6652274068255872,
+      "bound_1.0dex_binding": true
+    },
+    "A=1.50": {
+      "median_max_abs_log10m_dex": 2.447805151752518,
+      "p90_max_abs_log10m_dex": 2.4901540790231067,
+      "bound_1.0dex_binding": true
+    }
+  },
+  "S8_reading": {
+    "documented_real_scale_dex": 0.1,
+    "bound_vs_documented_scale_ratio": 10.0,
+    "non_binding_for_documented_scale": true
+  }
+}

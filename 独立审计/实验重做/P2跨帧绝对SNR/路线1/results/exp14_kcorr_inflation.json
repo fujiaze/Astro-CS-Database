@@ -1,0 +1,125 @@
+{
+ "seed": 20260926,
+ "pi_over_2": 1.5707963267948966,
+ "mc": [
+  {
+   "n_ret": 3,
+   "rho": 0.0,
+   "var": 0.44876881533994945,
+   "iid_median_var": 0.5235987755982988,
+   "inflation_vs_asymptotic_iid": 0.8570853032021634,
+   "ratio_vs_iid_same_n": 1.0,
+   "law_1_plus_(n-1)rho": 1.0
+  },
+  {
+   "n_ret": 3,
+   "rho": 0.1,
+   "var": 0.503693983705838,
+   "iid_median_var": 0.5235987755982988,
+   "inflation_vs_asymptotic_iid": 0.9619846477491925,
+   "ratio_vs_iid_same_n": 1.1223907867222944,
+   "law_1_plus_(n-1)rho": 1.2
+  },
+  {
+   "n_ret": 3,
+   "rho": 0.19,
+   "var": 0.5533172282306145,
+   "iid_median_var": 0.5235987755982988,
+   "inflation_vs_asymptotic_iid": 1.0567580636497047,
+   "ratio_vs_iid_same_n": 1.2329671967323932,
+   "law_1_plus_(n-1)rho": 1.38
+  },
+  {
+   "n_ret": 3,
+   "rho": 0.194,
+   "var": 0.5555237507458267,
+   "iid_median_var": 0.5235987755982988,
+   "inflation_vs_asymptotic_iid": 1.0609722112337798,
+   "ratio_vs_iid_same_n": 1.2378840323942935,
+   "law_1_plus_(n-1)rho": 1.388
+  },
+  {
+   "n_ret": 5,
+   "rho": 0.0,
+   "var": 0.2854861250445192,
+   "iid_median_var": 0.3141592653589793,
+   "inflation_vs_asymptotic_iid": 0.9087305596997234,
+   "ratio_vs_iid_same_n": 1.0,
+   "law_1_plus_(n-1)rho": 1.0
+  },
+  {
+   "n_ret": 5,
+   "rho": 0.1,
+   "var": 0.357055145303012,
+   "iid_median_var": 0.3141592653589793,
+   "inflation_vs_asymptotic_iid": 1.1365418266273861,
+   "ratio_vs_iid_same_n": 1.250691763907378,
+   "law_1_plus_(n-1)rho": 1.4
+  },
+  {
+   "n_ret": 5,
+   "rho": 0.19,
+   "var": 0.42134420308988424,
+   "iid_median_var": 0.3141592653589793,
+   "inflation_vs_asymptotic_iid": 1.3411802532974104,
+   "ratio_vs_iid_same_n": 1.4758832956389005,
+   "law_1_plus_(n-1)rho": 1.76
+  },
+  {
+   "n_ret": 5,
+   "rho": 0.194,
+   "var": 0.4242008198328793,
+   "iid_median_var": 0.3141592653589793,
+   "inflation_vs_asymptotic_iid": 1.350273146800745,
+   "ratio_vs_iid_same_n": 1.485889444773292,
+   "law_1_plus_(n-1)rho": 1.776
+  },
+  {
+   "n_ret": 9,
+   "rho": 0.0,
+   "var": 0.16641829758535961,
+   "iid_median_var": 0.17453292519943295,
+   "inflation_vs_asymptotic_iid": 0.9535066085393284,
+   "ratio_vs_iid_same_n": 1.0,
+   "law_1_plus_(n-1)rho": 1.0
+  },
+  {
+   "n_ret": 9,
+   "rho": 0.1,
+   "var": 0.24978007605085448,
+   "iid_median_var": 0.17453292519943295,
+   "inflation_vs_asymptotic_iid": 1.4311344164170692,
+   "ratio_vs_iid_same_n": 1.500917144779328,
+   "law_1_plus_(n-1)rho": 1.8
+  },
+  {
+   "n_ret": 9,
+   "rho": 0.19,
+   "var": 0.32474794725214245,
+   "iid_median_var": 0.17453292519943295,
+   "inflation_vs_asymptotic_iid": 1.8606686783084843,
+   "ratio_vs_iid_same_n": 1.9513956816291314,
+   "law_1_plus_(n-1)rho": 2.52
+  },
+  {
+   "n_ret": 9,
+   "rho": 0.194,
+   "var": 0.3280795361207719,
+   "iid_median_var": 0.17453292519943295,
+   "inflation_vs_asymptotic_iid": 1.8797572764330075,
+   "ratio_vs_iid_same_n": 1.9714150479906976,
+   "law_1_plus_(n-1)rho": 2.552
+  }
+ ],
+ "mc_note": "Var(median of n_ret exchangeable normals) inflates with rho; the exact inflation at small n_ret is BELOW the asymptotic law 1+(n-1)rho (the exact iid median variance at n=3 is 0.4487, not (pi/2)/3 = 0.5236). k_corr = 1.3883 therefore admits two readings: the asymptotic law at rho_bar = 0.194 (n_ret=3), or a direct calibration at some n_ret; the original calibration grid is not reconstructable from the registered material.",
+ "inversion": {
+  "k_corr_calib": 1.3883,
+  "n_ret_3_implied_rho": 0.19415,
+  "rho_0.19_implied_n_ret": 3.0436842105263158,
+  "status": "UNRESOLVED: original calibration grid not in registered material"
+ },
+ "null_rho0": {
+  "ratio_vs_iid_same_n_n3": 1.0,
+  "expected": 1.0
+ }
+}

@@ -1,0 +1,74 @@
+{
+  "experiment_id": "C6_gaia_query_cost",
+  "seed": 42,
+  "fov_diag_deg": 0.5,
+  "contract_domain": {
+    "star_detection": {
+      "min": 20000,
+      "max": 50000,
+      "default": 20000
+    },
+    "psf_max_stars_default": 5000
+  },
+  "cost_analysis_results": [
+    {
+      "max_stars": 1000,
+      "gaia_query_ms": 7.0,
+      "psf_fit_ms": 250.0,
+      "total_ms": 257.0,
+      "stability_factor": 1.01,
+      "convergence_prob": 0.998,
+      "info_value": 1.0
+    },
+    {
+      "max_stars": 2000,
+      "gaia_query_ms": 9.0,
+      "psf_fit_ms": 500.0,
+      "total_ms": 509.0,
+      "stability_factor": 1.02,
+      "convergence_prob": 0.996,
+      "info_value": 1.741
+    },
+    {
+      "max_stars": 5000,
+      "gaia_query_ms": 15.0,
+      "psf_fit_ms": 1250.0,
+      "total_ms": 1265.0,
+      "stability_factor": 1.05,
+      "convergence_prob": 0.99,
+      "info_value": 3.624
+    },
+    {
+      "max_stars": 10000,
+      "gaia_query_ms": 25.0,
+      "psf_fit_ms": 2500.0,
+      "total_ms": 2525.0,
+      "stability_factor": 1.1,
+      "convergence_prob": 0.98,
+      "info_value": 6.31
+    },
+    {
+      "max_stars": 20000,
+      "gaia_query_ms": 45.0,
+      "psf_fit_ms": 5000.0,
+      "total_ms": 5045.0,
+      "stability_factor": 1.2,
+      "convergence_prob": 0.96,
+      "info_value": 10.986
+    },
+    {
+      "max_stars": 50000,
+      "gaia_query_ms": 105.0,
+      "psf_fit_ms": 12500.0,
+      "total_ms": 12605.0,
+      "stability_factor": 1.5,
+      "convergence_prob": 0.95,
+      "info_value": 22.865
+    }
+  ],
+  "conclusions": {
+    "default_rationale": "5000 \u9897\u8986\u76d6 >95% HST/FWCS \u6709\u6548\u661f\u6570\uff0c\u8fb9\u9645\u6536\u76ca\u9012\u51cf",
+    "contract_guidance": "star_detection \u6709\u5408\u540c\u57df [20000,50000]; psf.max_stars \u65e0\u786c\u7ea6\u675f\u4f46\u5efa\u8bae 5000",
+    "negative_case_passed": true
+  }
+}

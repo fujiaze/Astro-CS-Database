@@ -1,0 +1,64 @@
+{
+ "seed": 20260926,
+ "H4a": {
+  "scale_ratio_actual": 0.4265795188015927,
+  "scale_ratio_expected_1_over_k": 0.42657951880159267,
+  "sigma_rel_diff": 1.7770519790092175e-15,
+  "keep_mask_identical": true,
+  "pass": true
+ },
+ "H4b_clean": {
+  "k_photo_by_width": {
+   "0.5": 1.0,
+   "1.0": 1.0,
+   "2.0": 1.0,
+   "3.0": 1.0,
+   "6.0": 1.0,
+   "100.0": 1.0
+  },
+  "max_dev_from_w3": 0.0,
+  "criterion": "真值无效应 ⇒ 全部窗宽给出同一 k_photo(偏差=0)",
+  "pass": true
+ },
+ "H4b_contaminated": {
+  "table": {
+   "0.5": {
+    "k_bias_dex": 1.4156620971927961e-05,
+    "sigma": 0.014960669865844075,
+    "n_kept": 347
+   },
+   "1.0": {
+    "k_bias_dex": 2.0872668429041304e-05,
+    "sigma": 0.014960669865844075,
+    "n_kept": 354
+   },
+   "2.0": {
+    "k_bias_dex": 3.141333162777059e-05,
+    "sigma": 0.01501514643410977,
+    "n_kept": 368
+   },
+   "3.0": {
+    "k_bias_dex": 4.616827054002334e-05,
+    "sigma": 0.01501514643410977,
+    "n_kept": 378
+   },
+   "6.0": {
+    "k_bias_dex": 7.621396008874742e-05,
+    "sigma": 0.01501514643410977,
+    "n_kept": 400
+   },
+   "100.0": {
+    "k_bias_dex": 7.621396008874742e-05,
+    "sigma": 0.01501514643410977,
+    "n_kept": 400
+   }
+  },
+  "note": "错配幅度 >1.2 dex 者 >6 mag ⇒ 3.0 窗先剔; ≤1.2 dex 者由 IRLS 截断",
+  "pass": true
+ },
+ "verdict": {
+  "H4a": true,
+  "H4b_clean": true,
+  "H4b_contaminated": true
+ }
+}

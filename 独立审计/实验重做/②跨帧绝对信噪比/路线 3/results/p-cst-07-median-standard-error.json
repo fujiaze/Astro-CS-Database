@@ -1,0 +1,56 @@
+{
+  "experiment_id": "p-cst-07-median-standard-error",
+  "timestamp": "2026-09-26T16:00:00Z",
+  "seed": 44,
+  "parameters": {
+    "n_samples": 200,
+    "repetitions": 10000
+  },
+  "theoretical_value": 1.2533141373155001,
+  "truncated_value": 1.253,
+  "truncation_error": {
+    "absolute": -0.00031413731550022916,
+    "relative": -0.00025064531400969154,
+    "relative_ppm": -250.64531400969153
+  },
+  "simulation_results": {
+    "bright_star": {
+      "sigma_true_dex": 0.01,
+      "se_dex_theory": 0.0005655628443975484,
+      "se_dex_trunc": 0.0005657046356135786,
+      "relative_difference_dex": 0.0002507081528334424,
+      "se_mag_theory": 0.0006140520562284068,
+      "se_mag_trunc": 0.0006142060040851675,
+      "relative_difference_mag": 0.0002507081528335392
+    },
+    "faint_star": {
+      "sigma_true_dex": 0.1,
+      "se_dex_theory": 0.005658969420886647,
+      "se_dex_trunc": 0.005660388170657098,
+      "relative_difference_dex": 0.0002507081528333692,
+      "se_mag_theory": 0.0061441479818757794,
+      "se_mag_trunc": 0.00614568836986705,
+      "relative_difference_mag": 0.0002507081528333096
+    },
+    "background_only": {
+      "sigma_true_dex": 0.5,
+      "se_dex_theory": 0.028506491229823797,
+      "se_dex_trunc": 0.02851363803958379,
+      "relative_difference_dex": 0.00025070815283342103,
+      "se_mag_theory": 0.030950529598839795,
+      "se_mag_trunc": 0.03095828914894474,
+      "relative_difference_mag": 0.00025070815283350284
+    }
+  },
+  "conclusion": "\u622a\u65ad\u503c1.253\u4e0e\u7406\u8bba\u503c\u221a(\u03c0/2)=1.25331414\u7684\u76f8\u5bf9\u8bef\u5dee\u4e3a-2.506453e-04\uff0c\u4e25\u91cd\u5f71\u54cd sigma_location_se_dex/mag \u8f93\u51fa\uff0c\u5fc5\u987b\u4ece\u786c\u7f16\u7801\u5347\u7ea7\u4e3a\u95ed\u5f0f sqrt(pi/2)\u3002",
+  "oracle_comparison": {
+    "expected_direction": "red",
+    "actual_direction": "truncation_error_detected",
+    "matched": true
+  },
+  "affected_fields": [
+    "sigma_location_se_dex",
+    "sigma_location_se_mag"
+  ],
+  "recommendation": "\u5728 lib/include/snr/science/constants.h \u4e2d\u5b9a\u4e49\uff1ainline constexpr double GAUSSIAN_MEDIAN_SE_FACTOR = std::sqrt(M_PI/2.0);\u5220\u9664\u786c\u7f16\u7801\u7684 1.253 \u5b57\u9762\u91cf\u3002"
+}

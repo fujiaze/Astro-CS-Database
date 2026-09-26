@@ -1,0 +1,122 @@
+{
+  "seed": 20260929,
+  "true_field": "0.10*(0.5x^2+0.3xy-0.4y^2)+0.05x  [dex]",
+  "S12_order_sweep": [
+    {
+      "N": 20,
+      "order0_rms_dex": 0.022981000690172535,
+      "order1_rms_dex": 0.022981000690172535,
+      "order2_rms_dex": 0.010129642767520418,
+      "order3_rms_dex": 0.013810536675590948
+    },
+    {
+      "N": 50,
+      "order0_rms_dex": 0.02313000529245573,
+      "order1_rms_dex": 0.02313000529245573,
+      "order2_rms_dex": 0.005660143541583759,
+      "order3_rms_dex": 0.007643193988914366
+    },
+    {
+      "N": 100,
+      "order0_rms_dex": 0.022957625575732204,
+      "order1_rms_dex": 0.022957625575732204,
+      "order2_rms_dex": 0.0026335145985627558,
+      "order3_rms_dex": 0.003566502153994082
+    },
+    {
+      "N": 200,
+      "order0_rms_dex": 0.02311873415778881,
+      "order1_rms_dex": 0.02311873415778881,
+      "order2_rms_dex": 0.0035539004184975097,
+      "order3_rms_dex": 0.004888923703810615
+    },
+    {
+      "N": 500,
+      "order0_rms_dex": 0.022758810332140573,
+      "order1_rms_dex": 0.022758810332140573,
+      "order2_rms_dex": 0.002225497713737426,
+      "order3_rms_dex": 0.0022587460228369128
+    },
+    {
+      "N": 2000,
+      "order0_rms_dex": 0.022644763039356173,
+      "order1_rms_dex": 0.022644763039356173,
+      "order2_rms_dex": 0.0005970579714933571,
+      "order3_rms_dex": 0.0008372242355368467
+    }
+  ],
+  "S12_negative_flat_field": [
+    {
+      "N": 200,
+      "max_abs_log10m_dex": 0.009325286490701242,
+      "rms_dex": 0.0030105393976419775
+    },
+    {
+      "N": 2000,
+      "max_abs_log10m_dex": 0.0010645635273228348,
+      "rms_dex": 0.0006464366523810028
+    }
+  ],
+  "S9_amplitude_bound": [
+    {
+      "field_amplitude_dex": 0.1,
+      "max_abs_log10m_dex": 0.05541889097448501,
+      "bound_1.0dex_binds": false
+    },
+    {
+      "field_amplitude_dex": 2.0,
+      "max_abs_log10m_dex": 1.1098845277165572,
+      "bound_1.0dex_binds": true
+    }
+  ],
+  "S12b_gate_statistics": [
+    {
+      "order": 1,
+      "N": 25,
+      "n_terms": 3,
+      "min_N_gate": 50,
+      "se_amplitude_dex": 0.006304557518366068,
+      "amp_snr_for_0.1dex_field": 15.86154138632027
+    },
+    {
+      "order": 1,
+      "N": 50,
+      "n_terms": 3,
+      "min_N_gate": 50,
+      "se_amplitude_dex": 0.004130585355016105,
+      "amp_snr_for_0.1dex_field": 24.209643768421802
+    },
+    {
+      "order": 1,
+      "N": 200,
+      "n_terms": 3,
+      "min_N_gate": 50,
+      "se_amplitude_dex": 0.002123777326085742,
+      "amp_snr_for_0.1dex_field": 47.08591563330532
+    },
+    {
+      "order": 2,
+      "N": 100,
+      "n_terms": 6,
+      "min_N_gate": 200,
+      "se_amplitude_dex": 0.0030779510939615406,
+      "amp_snr_for_0.1dex_field": 32.48914519668113
+    },
+    {
+      "order": 2,
+      "N": 200,
+      "n_terms": 6,
+      "min_N_gate": 200,
+      "se_amplitude_dex": 0.0027717520084925783,
+      "amp_snr_for_0.1dex_field": 36.07826374567513
+    },
+    {
+      "order": 2,
+      "N": 800,
+      "n_terms": 6,
+      "min_N_gate": 200,
+      "se_amplitude_dex": 0.0013532230525073032,
+      "amp_snr_for_0.1dex_field": 73.89764740906253
+    }
+  ]
+}

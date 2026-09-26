@@ -1,0 +1,29 @@
+{
+  "seed": 20260926,
+  "n_obs": 60,
+  "n_params": 10,
+  "rank": 7,
+  "reps": 4000,
+  "eq8_check": {
+    "trace_hat": 6.999999999999999,
+    "rank": 7,
+    "abs_diff": 8.881784197001252e-16
+  },
+  "rank_deficient": {
+    "case": "rank_deficient",
+    "mean_chi2_over_sigma2": 52.907030024834434,
+    "theory_n_minus_r": 53,
+    "ratio_dof_n_minus_r_eff": 0.998245849525178,
+    "ratio_dof_n_minus_params": 1.0581406004966887,
+    "chi2red_bias_nparams_vs_neff": 1.06
+  },
+  "full_rank_negative": {
+    "case": "full_rank_negative",
+    "mean_chi2_over_sigma2": 49.873286171144905,
+    "theory_n_minus_r": 50,
+    "ratio_dof_n_minus_r_eff": 0.9974657234228981,
+    "ratio_dof_n_minus_params": 0.9974657234228981,
+    "chi2red_bias_nparams_vs_neff": 1.0
+  },
+  "negative_ok": true
+}

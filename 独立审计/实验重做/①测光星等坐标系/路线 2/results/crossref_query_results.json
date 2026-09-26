@@ -1,0 +1,22 @@
+{
+  "10.1051/0004-6361/201629277": {
+    "status": "UNRESOLVED",
+    "error": "API call failed after retries"
+  },
+  "10.1051/0004-6361/202346259": {
+    "status": "RESOLVED",
+    "title": "The dark neutral medium is (mostly) molecular hydrogen",
+    "authors": "H. Liszt, M. Gerin",
+    "year": 2023,
+    "journal": "Astronomy &amp; Astrophysics",
+    "points_relevant": []
+  },
+  "10.1051/0004-6361/202245168": {
+    "status": "RESOLVED",
+    "title": "The miniJPAS survey: AGN and host galaxy coevolution of X-ray-selected sources",
+    "authors": "I. E. López, M. Brusa, S. Bonoli",
+    "year": 2023,
+    "journal": "Astronomy &amp; Astrophysics",
+    "points_relevant": []
+  }
+}

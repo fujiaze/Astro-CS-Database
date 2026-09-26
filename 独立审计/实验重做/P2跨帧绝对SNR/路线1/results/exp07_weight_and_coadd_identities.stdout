@@ -1,0 +1,21 @@
+{
+ "seed": 20260926,
+ "machine_eps": 2.220446049250313e-16,
+ "identity_w_snr2_over_fref2": {
+  "max_rel_dev": 5.561195462496615e-16,
+  "p99_rel_dev": 3.5916226046423487e-16,
+  "ulp_bound_2p22e_16": 2.220446049250313e-16,
+  "archived_v4_max_dev": 3.01e-16,
+  "within_4_ulp": true
+ },
+ "negative_control_missing_fref2": {
+  "max_rel_dev": 99998.09879388708,
+  "o1_detected": true
+ },
+ "identity_snr_comb_squared": {
+  "K": 8,
+  "max_rel_resid": 3.1082052488247e-16,
+  "p99_rel_resid": 2.6482524357247235e-16,
+  "within_4_ulp": true
+ }
+}

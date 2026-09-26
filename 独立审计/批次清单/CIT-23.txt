@@ -1,0 +1,9 @@
+# 批次 CIT-23｜6 条未核引用（池重建版；A=存在性未核，全套三字段并核该标识全部位点；B=存在性已在 CIT-01..12 核过，仅补该位点的关联性/版本）｜判据见 独立审计/派单规程/DISPATCH-CIT-PREAMBLE.md
+# 池重建口径（确定命令可复现）：五类标识（DOI/arXiv/学术URL/Bibcode/作者年），git show c8f64e9a:<file> 逐行扫描跟踪集，排除 独立审计/ site/ artifacts/ lib/third_party/ testdata/ eng/；旧台账正本（整改/out/文献台账.csv）不在包内，编号自 233 续起
+# 列：序号	优先级	类	引用件	类型	位点
+293	P-1	A	arXiv arXiv 2006.12417	arXiv	docs/research/CCD_LINEAR_DEFECT_LITERATURE.md
+294	P-1	A	arXiv arXiv 1601.07182	arXiv	docs/research/CCD_LINEAR_DEFECT_LITERATURE.md
+295	P-1	A	arXiv arXiv astro-ph/0501144	arXiv	docs/research/CCD_LINEAR_DEFECT_LITERATURE.md
+296	P-1	A	arXiv arXiv 2312.03064	arXiv	docs/research/CCD_LINEAR_DEFECT_LITERATURE.md
+297	P-1	A	arXiv arXiv astro-ph/0006396	arXiv	docs/research/CCD_LINEAR_DEFECT_LITERATURE.md
+298	P-1	A	arXiv arXiv 1101.1559	arXiv	docs/research/CCD_LINEAR_DEFECT_LITERATURE.md

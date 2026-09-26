@@ -1,0 +1,55 @@
+{
+ "seed": 20260926,
+ "phi_inv_3_4": 0.6744897501960816,
+ "code_constant": 0.6744897501960817,
+ "abs_diff": 1.1102230246251565e-16,
+ "rel_diff": 1.6460191193452567e-16,
+ "reciprocal": 1.482602218505602,
+ "H2a_pass": true,
+ "E_MAD_table": {
+  "3": {
+   "E_MAD_over_sigma": 0.4521306884131028,
+   "sigma_hat_bias_factor": 0.6703299616957312,
+   "se_of_mean": 0.0008340513721005448
+  },
+  "5": {
+   "E_MAD_over_sigma": 0.5561153392826372,
+   "sigma_hat_bias_factor": 0.8244978357654335,
+   "se_of_mean": 0.0007277275823278078
+  },
+  "10": {
+   "E_MAD_over_sigma": 0.6153786238461798,
+   "sigma_hat_bias_factor": 0.9123617129352705,
+   "se_of_mean": 0.0005099482462937792
+  },
+  "20": {
+   "E_MAD_over_sigma": 0.6466285005394715,
+   "sigma_hat_bias_factor": 0.9586928494487713,
+   "se_of_mean": 0.00037773141449541365
+  },
+  "30": {
+   "E_MAD_over_sigma": 0.6564267138961791,
+   "sigma_hat_bias_factor": 0.9732197023088173,
+   "se_of_mean": 0.0003128255121138647
+  },
+  "100": {
+   "E_MAD_over_sigma": 0.6692743030307545,
+   "sigma_hat_bias_factor": 0.9922675664621872,
+   "se_of_mean": 0.0001746974840894767
+  }
+ },
+ "n3_deficit_factor": 1.4918026302603329,
+ "H2b_pass": true,
+ "negative_zero_check": {
+  "metric": "sigma_hat_on_constant_data",
+  "max_value": 0.0,
+  "criterion": "真值无散度 ⇒ σ̂=0(归零)",
+  "pass": true
+ },
+ "c_over_madscale": 6.945991393698745,
+ "verdict": {
+  "H2a_pass": true,
+  "H2b_pass": true,
+  "detail": "Φ⁻¹(3/4)=0.6744897501960816; n=3 缺损因子=1.492 (02 断言 ≈1.49); c·S 闭式系数=6.945991 (02 记 6.945)"
+ }
+}

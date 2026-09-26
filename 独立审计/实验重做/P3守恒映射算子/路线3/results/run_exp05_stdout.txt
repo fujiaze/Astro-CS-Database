@@ -1,0 +1,6 @@
+N=32: {"N": 32, "cap_chart_max": 0.06383358114554265, "cap_phiz_max": 0.2171792913734317, "belt_chart_max": 0.004981619026075638, "belt_phiz_max": 0.004981619026075638, "belt_chart_median": 0.0019999413516890163, "meridian_max": 1.6495413494265074e-14}
+cap_max chart-curve: N32=0.063834 N256=0.063931 N1024=0.063933
+subdivision ratios: ['3.651', '3.822', '3.910', '3.955', '3.977', '3.989', '3.994', '3.997', '3.999', '3.999']
+sag0=6.299526e-02 depth_needed=7.971 residual_at_depth8=1.152823e-06
+frac>1e-6 @N=1024 random 60000 leaves: chart=0.9650 phiz=0.9935
+VERDICT: {"cap_max_scale_invariant": true, "subdivision_ratio4": true, "depth_needed": 7.971477883130776, "residual_at_depth8": 1.152823061559712e-06, "depth8_over_budget": true, "meridian_zero": false, "frac_over_chart": 0.9650083333333334, "frac_over_phiz": 0.9934625}

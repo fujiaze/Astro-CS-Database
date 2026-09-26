@@ -1,0 +1,166 @@
+{
+  "seed": 20260926,
+  "grid": 256,
+  "delta": 32,
+  "gain_e_per_adu": 1.3,
+  "n_cells": 8,
+  "arms": {
+    "A_full": {
+      "max_abs_dev_vs_T": 1.3547250521236123,
+      "rmse_dex_vs_T": 0.005835122218018034,
+      "E_stacking": 0.0007187574990130674,
+      "dynrange_T": [
+        15.389799108756723,
+        20.451262163847158
+      ],
+      "dynrange_recon": [
+        15.56370994077333,
+        20.451262163847158
+      ],
+      "dr_ratio_preserved": 0.9888258755349199,
+      "stack_usecase": {
+        "mu_hat_rel_err": 0.004461827149566444,
+        "E": 0.0007428586360647138
+      }
+    },
+    "A_bglimit": {
+      "max_abs_dev_vs_T": 2.099150035567302,
+      "rmse_dex_vs_T": 0.00967134200330187,
+      "E_stacking": 0.001667139877279178,
+      "dynrange_T": [
+        15.389799108756723,
+        20.451262163847158
+      ],
+      "dynrange_recon": [
+        15.931377612206738,
+        20.457167402311182
+      ],
+      "dr_ratio_preserved": 0.9662844758434729,
+      "stack_usecase": {
+        "mu_hat_rel_err": 0.004364556834386857,
+        "E": 0.0016841646858138937
+      }
+    },
+    "A_zerosource": {
+      "max_abs_dev_vs_T": 0.5851137000355848,
+      "full_equals_bglim_max_abs_dev": 0.0,
+      "benefit_collapsed": true,
+      "E_full": 0.0003346823811962718,
+      "E_bglim": 0.0003346823811962718
+    },
+    "A_frame_recon": {
+      "frame_scalar_snr": 17.595298068713696,
+      "rmse_dex_vs_T": 0.029539302137796916,
+      "E_stacking": 0.018130822393378265,
+      "dynrange_T": [
+        15.389799108756723,
+        20.451262163847158
+      ],
+      "dynrange_recon": [
+        17.595298068713696,
+        17.595298068713696
+      ],
+      "dr_ratio_preserved": 0.7525109690277275,
+      "stack_usecase": {
+        "mu_hat_rel_err": 0.004506783854692831,
+        "E": 0.018407171910647335
+      },
+      "note": "frame_reconstruct caliber: constant tiled field (reconstruction manner, same weight formula)"
+    },
+    "extreme_A_full": {
+      "max_abs_dev_vs_T": 8.974040188973044,
+      "rmse_dex_vs_T": 0.055821149048421566,
+      "E_stacking": 0.03671565639163088,
+      "dynrange_T": [
+        5.638721985004026,
+        20.45585027200655
+      ],
+      "dynrange_recon": [
+        5.638721985004026,
+        20.45585027200655
+      ],
+      "dr_ratio_preserved": 1.0,
+      "stack_usecase": {
+        "mu_hat_rel_err": 0.0004608320248378206,
+        "E": 0.030157667759657336
+      }
+    },
+    "extreme_A_bglimit": {
+      "max_abs_dev_vs_T": 13.59196393537028,
+      "rmse_dex_vs_T": 0.13292106071503657,
+      "E_stacking": 0.4325832212105041,
+      "dynrange_T": [
+        5.638721985004026,
+        20.45585027200655
+      ],
+      "dynrange_recon": [
+        15.931377612206738,
+        20.457167402311182
+      ],
+      "dr_ratio_preserved": 0.3539609187316403,
+      "stack_usecase": {
+        "mu_hat_rel_err": 0.00017757414888475154,
+        "E": 0.38046468471678185
+      }
+    },
+    "extreme_A_zerosource": {
+      "max_abs_dev_vs_T": 0.5851137000355848,
+      "full_equals_bglim_max_abs_dev": 0.0,
+      "benefit_collapsed": true,
+      "E_full": 0.0003346823811962718,
+      "E_bglim": 0.0003346823811962718
+    },
+    "extreme_A_frame_recon": {
+      "frame_scalar_snr": 17.085181215240098,
+      "rmse_dex_vs_T": 0.12577007882109664,
+      "E_stacking": 0.4077712806274765,
+      "dynrange_T": [
+        5.638721985004026,
+        20.45585027200655
+      ],
+      "dynrange_recon": [
+        17.085181215240098,
+        17.085181215240098
+      ],
+      "dr_ratio_preserved": 0.2756532683816381,
+      "stack_usecase": {
+        "mu_hat_rel_err": 0.00016683635637004812,
+        "E": 0.36289736276360673
+      },
+      "note": "frame_reconstruct caliber: constant tiled field (reconstruction manner, same weight formula)"
+    }
+  },
+  "extreme_contrast_note": "extreme_* arms: 4-dex cell-SNR contrast pushes linear-space interpolation to its representation limit; numbers are boundary findings, not gates",
+  "representation_boundary": {
+    "note": "pointwise PSF-scale SNR deviates from the cell-aggregated target by this much; the sparse control grid does NOT represent this component (validity domain: fields smooth on scale >= Delta)",
+    "median_dex": 3.793375686100156,
+    "p99_dex": 5.655249280058571
+  },
+  "sky_fit_twofaces": {
+    "snr_weight_median_at_sky": 17.680445811322677,
+    "true_bg_ivar": {
+      "b0_rel_err": 0.0027716500537522393,
+      "plane_rmse_adu": 0.08773119849471878
+    },
+    "snr_weight": {
+      "b0_rel_err": 0.0020101519466279028,
+      "plane_rmse_adu": 0.09344630850134109
+    }
+  },
+  "oracle_information_test": {
+    "E_oracle_full": 2.220446049250313e-16,
+    "E_oracle_bglim": 0.0013138080225107984,
+    "E_equal": 0.01780170013321558
+  },
+  "gates": {
+    "no_source_benefit_collapses": true,
+    "full_beats_bglimit_efficiency": true,
+    "full_beats_frame_recon_rmse": true,
+    "brightness_structure_carried": true,
+    "sky_fit_snr_weight_tracks_bg_ivar": true,
+    "oracle_full_is_optimal": true,
+    "oracle_bglim_suboptimal": true
+  },
+  "all_gates_pass": true,
+  "runtime_s": 2.706840753555298
+}

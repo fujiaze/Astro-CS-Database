@@ -1,0 +1,7 @@
+theta=300 nside=512: {"max_abs_pixel_completeness": 6.602718372050731e-12, "global_sum_minus": 8.215650382226158e-15, "n_leaves_touched": 344}
+delta theta2: {"k_minus_1_clip": 1.085043166426658e-11, "k_minus_1_vos": 9.831468972265611e-12, "k_minus_1_gauss": 8.461009670668318e-12, "closed_form": 8.461594994075235e-12}
+delta theta300: {"k_minus_1_clip": 1.9025076580803102e-07, "k_minus_1_vos": 1.9025075737033603e-07, "k_minus_1_gauss": 1.9038578646934923e-07, "closed_form": 1.903858873666928e-07}
+injection: {"pair_metric": 0.09969999999999996, "expected": 0.0996836838, "global_sum_minus": 8.215650382226158e-15}
+mean estimator: {"max_abs_Sp_over_B0_minus_1": 4.440892098500626e-16, "n_leaves": 344}
+control points worst ang/hp_res = 0.5941130519536549
+VERDICT: {"conservation": true, "delta_theta2_ok": true, "delta_theta300_ok": true, "pf2_deficit_visible": true, "injection_red": true, "injection_sum_green": true, "mean_estimator_zero": true, "control_points": true, "elapsed_s": 54.36894249916077}
