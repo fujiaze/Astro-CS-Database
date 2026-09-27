@@ -591,7 +591,7 @@ add_library(astrocs_calibration STATIC
   lib/algorithms/calibration/src/master_generator.cpp
   lib/algorithms/calibration/src/cosmetic_corrector.cpp
   # RELEASE-02 FIX-P1 (P1-1): apply_photometry（I_photo = k_photo·I_cal,
-  # 02_FROZEN_STAGE1_HISS_SPEC §7 历史锚 / docs/algorithms/CALIBRATION_ALGORITHMS.md §3.6）
+  # 02_FROZEN_STAGE1_HISS_SPEC §7 历史锚 / docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.6）
   # 此前只在测试 target 编译、生产零调用者 ⇒ Phase1 测光归一化从未应用到像素。
   # 编入生产库后由 Phase1 photometry 节点调用（p1_op_photometry）。
   lib/algorithms/calibration/src/photometry_apply.cpp
@@ -874,7 +874,7 @@ target_include_directories(astrocs_p1_dpsf PUBLIC
 target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
 
 # P1-001: sdet 生产实现（lib/algorithms/star_detection 9 TU, ipv detector_handle;
-# 规范权威源 = docs/algorithms/STAR_DETECTION_ALGORITHMS.md:8「唯一权威生产源」,
+# 规范权威源 = docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:8「唯一权威生产源」,
 # 生产检测器切换属 D-04 裁决面）
 # ⚠ 2026-09-20 订正（V5 分片 5 / R-8）: 上段旧文「star-psf 检测的真实来源; …
 #   wrapper_phase1 仅为薄包装, 真实检测在此」**已作废/失实**（依据 GAP_AUDIT §9.48②
@@ -1044,19 +1044,19 @@ add_library(astrocs_module_adapters STATIC
   lib/infrastructure/scheduler/src/module_adapters.cpp
   # RELEASE-02 权重链（weight-chain-report §6）: HiPS 头帧级 SNR → 逆方差权重
   # （w = SNR²/F_ref²; 纯 FP64 + std, 无第三方依赖）。直接编入本 target ——
-  # 不链 astrocs_v6_phase2_integrate: 后者重复编译 upm/rejection/sampler/
+  # 不链 astrocs_phase2_integrate: 后者重复编译 upm/rejection/sampler/
   # coverage, 与本 target 已链的 astrocs_phase2 产生重复符号。
-  lib/algorithms/integration/v6/src/weight_chain.cpp
+  lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp
   # RELEASE-02 P2b: 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
-  lib/algorithms/integration/v6/src/variance_propagation.cpp)
+  lib/algorithms/integration/phase2_integrate/src/variance_propagation.cpp)
 # B2-A10(宪章 §4.3): 节点 manifest 自报 module build ID = module_id@软件版本;
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(astrocs_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party
   ${CMAKE_CURRENT_BINARY_DIR}
-  # RELEASE-02 权重链公共头 (astrocs/v6/weight_chain.h)
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/v6/include)
+  # RELEASE-02 权重链公共头 (astrocs/weight_chain.h)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/phase2_integrate/include)
 # P1-001 (attempt 2): drizzle 节点唯一真实入口 hp_drizzle_run_phase1_hips(astrocs_drizzle 静态库
 # 直链) + 口径更新: star-psf→dpsf_fit_batch_f64(astrocs_p1_dpsf) /
 # wcs→ipv 求解器链(astrocs_p1_ipv, 含 gaia_client; 生产源零 diff 只读编译)。
@@ -1103,7 +1103,7 @@ add_subdirectory(lib/algorithms/projection)
 # Wave 5/7/8 交付的 V6 库（产品 IO、Phase3 重采样传播、Phase1 产品装配、
 # Phase2 三模式集成）。各子目录自带 if(NOT TARGET ...) 守卫，既支持独立
 # cmake -S <dir> 自包含构建，也可被根构建复用；此处为唯一注册点。
-add_subdirectory(lib/infrastructure/aio/v6)
+add_subdirectory(lib/infrastructure/aio/product_io)
 # W4-A9 批次 2: resample 模块 (含迁入的 p3_resample.{h,cpp}; 声明见
 # lib/algorithms/resample/CMakeLists.txt 的 astrocs_p3_rsmp)。
 # 注意: 同一源目录只允许 add_subdirectory 一次 (重复即 CMake 二进制目录冲突)。
@@ -1113,8 +1113,8 @@ add_subdirectory(lib/algorithms/resample)
 # astrocs_phase3_session 的 target_link_libraries 引用 —— 同名 target 属前向
 # 引用, 由 CMake 生成期解析, 注册点与本文件内位置先后无关)。
 add_subdirectory(lib/algorithms/fits_output)
-add_subdirectory(lib/algorithms/integration/v6_phase1)
-add_subdirectory(lib/algorithms/integration/v6)
+add_subdirectory(lib/algorithms/integration/phase1_product)
+add_subdirectory(lib/algorithms/integration/phase2_integrate)
 
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
@@ -1136,21 +1136,21 @@ if(ASTROCS_BUILD_TESTS)
   add_subdirectory(lib/algorithms/coverage)
 
   # ── V6 (AR-033 / C-004.4): V6 测试目标统一注册 ────────────────────────
-  # eng/tests/unit/v6_*: Wave 5 共址单元测试（9 个）；eng/tests/integration/v6_{p1,p2,p3}:
-  # Wave 7/8 产品链集成；eng/tests/system/v6_runtime: Wave 9 运行面。
+  # eng/tests/unit/{aio,p1_cal,p1_drz,p1_psfw,p2_*,p3_*}: Wave 5 共址单元测试（9 个）；eng/tests/integration/{p1_integrate,p2_integrate,p3_export}:
+  # Wave 7/8 产品链集成；eng/tests/system/runtime: Wave 9 运行面。
   # 均只依赖上方已定义的 V6 库目标与 astrocs_phase2，故置于 lib/algorithms/coverage 之后。
-  add_subdirectory(eng/tests/unit/v6_aio v6_aio)
-  add_subdirectory(eng/tests/unit/v6_p1_cal v6_p1_cal)
-  add_subdirectory(eng/tests/unit/v6_p1_drz v6_p1_drz)
-  add_subdirectory(eng/tests/unit/v6_p1_psfw v6_p1_psfw)
-  add_subdirectory(eng/tests/unit/v6_p2_rej v6_p2_rej)
-  add_subdirectory(eng/tests/unit/v6_p2_samp v6_p2_samp)
-  add_subdirectory(eng/tests/unit/v6_p2_upm v6_p2_upm)
-  add_subdirectory(eng/tests/unit/v6_p2_sky v6_p2_sky)
+  add_subdirectory(eng/tests/unit/aio aio)
+  add_subdirectory(eng/tests/unit/p1_cal p1_cal)
+  add_subdirectory(eng/tests/unit/p1_drz p1_drz)
+  add_subdirectory(eng/tests/unit/p1_psfw p1_psfw)
+  add_subdirectory(eng/tests/unit/p2_rej p2_rej)
+  add_subdirectory(eng/tests/unit/p2_samp p2_samp)
+  add_subdirectory(eng/tests/unit/p2_upm p2_upm)
+  add_subdirectory(eng/tests/unit/p2_sky p2_sky)
   # SCI-502 FIX-3：天光面 κ 可观测 + 粗糙度自适应红/绿双向
-  add_subdirectory(eng/tests/unit/v6_p2_sky_kappa v6_p2_sky_kappa)
+  add_subdirectory(eng/tests/unit/p2_sky_kappa p2_sky_kappa)
   # UPM-KAPPA-UNIFY-01：唯一可辨识性判据（正/负例 + 尺度不变 + Oracle）
-  add_subdirectory(eng/tests/unit/v6_p2_identifiability v6_p2_identifiability)
+  add_subdirectory(eng/tests/unit/p2_identifiability p2_identifiability)
   # UPM-KAPPA-UNIFY-01 证据探针：真实 M42 上天光面侧的判据读数 / λ 扫描 / 解差异
   # （只链 astrocs_phase2，不碰编排面；按需构建，不进默认目标）。
   add_executable(m42_criterion_probe
@@ -1158,12 +1158,12 @@ if(ASTROCS_BUILD_TESTS)
   target_link_libraries(m42_criterion_probe PRIVATE astrocs_phase2)
   set_property(TARGET m42_criterion_probe PROPERTY CXX_STANDARD 17)
   set_target_properties(m42_criterion_probe PROPERTIES EXCLUDE_FROM_ALL TRUE)
-  add_subdirectory(eng/tests/unit/v6_p3_proj v6_p3_proj)
-  add_subdirectory(eng/tests/unit/v6_p3_rsmp v6_p3_rsmp)
-  add_subdirectory(eng/tests/integration/v6_p1 v6_p1_integration)
-  add_subdirectory(eng/tests/integration/v6_p2 v6_p2_integration)
-  add_subdirectory(eng/tests/integration/v6_p3 v6_p3_integration)
-  add_subdirectory(eng/tests/system/v6_runtime v6_runtime)
+  add_subdirectory(eng/tests/unit/p3_proj p3_proj)
+  add_subdirectory(eng/tests/unit/p3_rsmp p3_rsmp)
+  add_subdirectory(eng/tests/integration/p1_integrate p1_integration)
+  add_subdirectory(eng/tests/integration/p2_integrate p2_integration)
+  add_subdirectory(eng/tests/integration/p3_export p3_integration)
+  add_subdirectory(eng/tests/system/runtime runtime)
 endif()
 
 # ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──
