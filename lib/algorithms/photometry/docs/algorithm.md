@@ -130,7 +130,7 @@ m_syn,i = -2.5 × log10(F_syn,i) + C
 
 其中 C 为任意常数（在比值计算中消去，无需确定）。**绝对合成星等零点**由生产按
 `ZP_syn = median_i(magG_i + 2.5·log10 F_syn,i)`（`frame_photometry_fit.cpp:183-245`）给出，
-散度 `1.4826·MAD` 即该通带相对 Gaia G 的**色项散度**（`zero_point_scatter_mag`）。
+散度 `1.482602218505602·MAD` 即该通带相对 Gaia G 的**色项散度**（`zero_point_scatter_mag`）。
 
 ### 3.5 数据来源
 

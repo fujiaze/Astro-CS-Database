@@ -177,7 +177,8 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
 ## 10. 构建 / 测试命令、已知限制、未实现项
 
 - 构建（现状，Linux/MinGW 通道）：`make -C lib/algorithms/psf` → `dynamic_psf.dll`
-  （Makefile:3-5，`g++ -shared -fopenmp -O2 -march=native -std=c++17`）。
+  （Makefile:3-5，`g++ -O2 -Wall -std=c++17 -fopenmp`＋`-shared -lm -fopenmp`；
+  本文件已按 ISA-001 移除 `-march=native`——ISA 姿态由根构建图与机器 profile 决定）。
   未编入根 CMake（根 CMakeLists.txt 无 dynamic_psf 目标）——迁移后 CMake 集成归
   P1-PSF-IMPL。生产加载：dll_loader.cpp:39,53（`lib/algorithms/psf/dynamic_psf.dll`），
   PSF 为必需 stage（orchestrator.cpp:2071-2075，DLL 未加载→退出码 2）；

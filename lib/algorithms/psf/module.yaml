@@ -16,7 +16,7 @@
 # "lib/algorithms/psf"、depends_on_int=P1-STAR-INT、科学专项=known Gaussian/Moffat
 # parameters;covariance;degenerate/saturated sources;fit failure semantics。
 # dll_target=astrocs_p1_psf.dll 为迁移目标合同值（尚未存在）。现状构建=
-# lib/algorithms/psf/Makefile:3-5（g++ -shared -fopenmp -O2 -march=native →
+# lib/algorithms/psf/Makefile:3-5（g++ -O2 -Wall -std=c++17 -fopenmp + -shared -lm -fopenmp →
 # dynamic_psf.dll）+ lib/infrastructure/pipeline/orchestrator/cpp/src/dll_loader.cpp:39,53（ModuleId::PSF
 # → lib/algorithms/psf/dynamic_psf.dll 显式加载；PSF 为必需 stage，
 # orchestrator.cpp:2071-2075，DLL 未加载退出码 2）；未编入根 CMake 主构建

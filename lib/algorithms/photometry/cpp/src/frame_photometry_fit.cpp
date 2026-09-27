@@ -289,7 +289,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
                         : 0.5 * (zdev[zn / 2 - 1] + zdev[zn / 2]);
                     out.zero_point_mag = zmed;
                     out.zero_point_n_stars = static_cast<int>(zn);
-                    out.zero_point_scatter_mag = 1.4826 * zmad;
+                    out.zero_point_scatter_mag = 1.482602218505602 * zmad;
                     out.zero_point_valid = true;
                 }
             }

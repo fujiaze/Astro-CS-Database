@@ -139,7 +139,7 @@ struct FramePhotFitResult {
   bool zero_point_valid = false;
   double zero_point_mag = 0.0;          // ZP_syn [mag]
   int zero_point_n_stars = 0;           // 参与中位数的锥形搜索星数
-  double zero_point_scatter_mag = 0.0;  // 1.4826*MAD(ZP_i) [mag]（星族 SED 散布）
+  double zero_point_scatter_mag = 0.0;  // 1.482602218505602*MAD(ZP_i) [mag]（星族 SED 散布）
   // ── 通带身份自述（PASSBAND-IDENTITY-GATE-01）─────────────────────────────
   // 「实际用于合成 F_syn 的那条曲线是谁」的机器可读记录：由**曲线对象自身**的
   // 自述字段 + 实际数组算出（不是把请求名回抄一遍）。调用方必须把它落进
