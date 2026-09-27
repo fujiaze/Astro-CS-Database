@@ -96,105 +96,124 @@ struct PSFFitData {
     // 供 InternalFitResult.mad 使用 (NOISE_MODEL.md:17/:135 冻结的 MAD→σ
     // 换算 1.482602218505602 只作用于 MAD 而非 RMSE)。
     std::vector<double> residuals;
+    double cx0, cy0;    // 样本偏移的参考中心（候选入参; f/df 内换算参数化坐标）
 };
 
-// 内部: 有代表性的中位数 (nth_element, 与 sdet_image.cpp 的 robust_median 同式)
+// 内部: 有代表性的中位数 (与 sdet_image.cpp 的 robust_median 同式:
+// 奇数取中位元素, 偶数取两中位均值)
 static double sdet_median_of(std::vector<double>& v) {
-    if (v.empty()) return 0.0;
-    const size_t m = v.size() / 2;
-    std::nth_element(v.begin(), v.begin() + m, v.end());
-    double hi = v[m];
-    if (v.size() % 2 == 1) return hi;
-    std::nth_element(v.begin(), v.begin() + (m - 1), v.begin() + m);
-    return 0.5 * (v[m - 1] + hi);
+    const size_t n = v.size();
+    if (n == 0) return 0.0;
+    std::sort(v.begin(), v.end());
+    return (n % 2 == 1) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
 }
-
-// PSF 拟合
-// 参数: x[0]=B, x[1]=A, x[2]=x0, x[3]=y0, x[4]=SX=2σ², x[5]=fr, x[6]=alpha
-// SX = fabs(x[4]), r = 0.5*(cos(x[5])+1) ∈ [0,1], SY = r²*SX
-// tmpx = ca*(j+0.5-x0) - sa*(i+0.5-y0), IPv samples.dx 已含 +0.5
-// f[k] = B + A*exp(-(tmpx²/SX + tmpy²/SY)) - y[k]
+// SPEC: 5.12 O12 / DISP-STAR-007 检测侧唯一母函数（椭圆高斯 + 常数天光）
+//   f(x,y) = B + A*exp(-(1/2)[(x'/sx)^2 + (y'/sy)^2])
+//   x' = dx*cos(th) + dy*sin(th), y' = -dx*sin(th) + dy*cos(th) (th 弧度)
+// 参数序 (x0, y0, sx, sy, th, A, B)。样本 dx/dy 已含像素中心偏移
+// (像素中心 = 索引 + 0.5)。残差 = 模型 - 观测。sx/sy 非正时钳 1e-8
+// 数值保护（不产生 NaN/Inf 污染 LM 下降方向）。
 static void sdet_gaussian_f(const double* x, void* params, double* f) {
     PSFFitData* d = static_cast<PSFFitData*>(params);
-    size_t n = d->n;
-    const double* y = d->y;
-    const SamplePixel* samples = d->samples;
-    double B = x[0];
-    double A = x[1];
-    double x0 = x[2];
-    double y0 = x[3];
-    double SX = fabs(x[4]);
-    double r = 0.5 * (cos(x[5]) + 1.0);
-    double SY = r * r * SX;
-    double alpha = x[6];
-    double ca = cos(alpha), sa = sin(alpha);
-    double sumres = 0.0;
-    for (size_t k = 0; k < n; k++) {
-        // IPv: samples[k].dx = x_pixel + 0.5 - cx, 残差中用 ddx = samples[k].dx - x0
-        // 等价于
-        // samples[k].dx = j+0.5-x0_local (x0_local=x0 相对候选中心)
-
-        double raw_x = samples[k].dx;  // 已含 +0.5, 相对候选中心
-        double raw_y = samples[k].dy;
-        double tmpx = ca * (raw_x - x0) - sa * (raw_y - y0);
-        double tmpy = sa * (raw_x - x0) + ca * (raw_y - y0);
-        double tmpc = exp(-(tmpx * tmpx / SX + tmpy * tmpy / SY));
-        double val = B + A * tmpc - y[k];
-        f[k] = val;
-        sumres += val * val;
-    }
-    d->rmse = sqrt(sumres / n);
-    // B4-4: 保留残差供真实 MAD 计算 (n 与 samples/y 固定, 每次调用覆盖)
-    d->residuals.resize(n);
-    for (size_t k = 0; k < n; ++k) {
-        d->residuals[k] = f[k];
+    const double cx = x[0], cy = x[1];
+    const double sx = x[2] > 1e-8 ? x[2] : 1e-8;
+    const double sy = x[3] > 1e-8 ? x[3] : 1e-8;
+    const double th = std::atan2(std::sin(x[4]), std::cos(x[4]));  // theta 折算 [-pi,pi]（周期恒等; 防 LM 平坦方向漂移至大辐角致 cos/sin 精度崩坏）
+    const double A = x[5], B = x[6];
+    const double c = std::cos(th), s = std::sin(th);
+    for (size_t k = 0; k < d->n; ++k) {
+        // 参数化坐标: 样本偏移以候选中心为参考, 模型变量 (x0,y0) 进入坐标
+        // (设计稿 5.12: (x0,y0,sx,sy,th,A,B) 为拟合参数)
+        const double dxa = d->samples[k].dx + d->cx0 - cx;
+        const double dya = d->samples[k].dy + d->cy0 - cy;
+        const double xp = dxa * c + dya * s;
+        const double yp = -dxa * s + dya * c;
+        const double u = xp / sx, v = yp / sy;
+        const double e = std::exp(-0.5 * (u * u + v * v));
+        f[k] = (B + A * e) - d->y[k];
     }
 }
-
-// PSF 拟合
-// 雅可比 (对 B, A, x0, y0, SX, fr, alpha):
-// dB = 1, dA = tmpc
-// dx0 = 2*A*tmpc*(tmpx/SX*ca + tmpy/SY*sa)
-// dy0 = 2*A*tmpc*(-tmpx/SX*sa + tmpy/SY*ca)
-// dSX = tmpc*A*( (tmpx/SX)² + (tmpy/(SX*r))²)
-// dfr = -A*tmpc*sc*tmpy²/SY/r (sc = sin(fr))
-// dalpha = 2*A*tmpc*tmpx*tmpy*(1/SX - 1/SY)
+// SPEC: 5.12 O12 解析雅可比（链式法则展开, 与 sdet_gaussian_f 同一参数化）:
+//   df/dx0 = A*E*(u*c/sx - v*s/sy)      (x' 对 x0 偏导 = -c, y' 对 x0 = +s)
+//   df/dy0 = A*E*(u*s/sx + v*c/sy)
+//   df/dsx = A*E*u^2/sx,  df/dsy = A*E*v^2/sy
+//   df/dth = A*E*(-u*y'/sx + v*x'/sy)   (x' 对 th = y', y' 对 th = -x')
+//   df/dA = E, df/dB = 1;  E = exp(-(1/2)(u^2+v^2))
 static void sdet_gaussian_df(const double* x, void* params, double* J) {
     PSFFitData* d = static_cast<PSFFitData*>(params);
-    size_t n = d->n;
-    const SamplePixel* samples = d->samples;
-    double A = x[1];
-    double x0 = x[2];
-    double y0 = x[3];
-    double SX = fabs(x[4]);
-    double r = 0.5 * (cos(x[5]) + 1.0);
-    double SY = r * r * SX;
-    double alpha = x[6];
-    double ca = cos(alpha), sa = sin(alpha);
-    double sc = sin(x[5]);
-    for (size_t k = 0; k < n; k++) {
-        double raw_x = samples[k].dx;
-        double raw_y = samples[k].dy;
-        double tmpx = ca * (raw_x - x0) - sa * (raw_y - y0);
-        double tmpy = sa * (raw_x - x0) + ca * (raw_y - y0);
-        double tmpc = exp(-(tmpx * tmpx / SX + tmpy * tmpy / SY));
-        double* row = J + 7 * k;  // 行主序 n×7
-        row[0] = 1.0;  // dB
-        row[1] = tmpc;  // dA
-        double tmpd = 2.0 * A * tmpc * (tmpx / SX * ca + tmpy / SY * sa);  // dx0
-        row[2] = tmpd;
-        tmpd = 2.0 * A * tmpc * (-tmpx / SX * sa + tmpy / SY * ca);  // dy0
-        row[3] = tmpd;
-        tmpd = tmpc * A * (tmpx * tmpx / (SX * SX) + tmpy * tmpy / (SX * SX * r * r));  // dSX
-        row[4] = tmpd;
-        tmpd = -A * tmpc * sc * tmpy * tmpy / SY / r;  // dfr
-        row[5] = tmpd;
-        tmpd = 2.0 * A * tmpc * tmpx * tmpy * (1.0 / SX - 1.0 / SY);  // dalpha
-        row[6] = tmpd;
+    const double sx = x[2] > 1e-8 ? x[2] : 1e-8;
+    const double sy = x[3] > 1e-8 ? x[3] : 1e-8;
+    const double th = std::atan2(std::sin(x[4]), std::cos(x[4]));  // theta 折算（同 sdet_gaussian_f; 折算角处雅可比周期等价）
+    const double A = x[5];
+    const double c = std::cos(th), s = std::sin(th);
+    for (size_t k = 0; k < d->n; ++k) {
+        const double dxa = d->samples[k].dx + d->cx0 - x[0];
+        const double dya = d->samples[k].dy + d->cy0 - x[1];
+        const double xp = dxa * c + dya * s;
+        const double yp = -dxa * s + dya * c;
+        const double u = xp / sx, v = yp / sy;
+        const double E = std::exp(-0.5 * (u * u + v * v));
+        double* row = J + k * NPARAMS;
+        row[0] = A * E * (u * c / sx - v * s / sy);
+        row[1] = A * E * (u * s / sx + v * c / sy);
+        row[2] = A * E * (u * u / sx);
+        row[3] = A * E * (v * v / sy);
+        row[4] = A * E * (-u * yp / sx + v * xp / sy);
+        row[5] = E;
+        row[6] = 1.0;
+    }
+}
+// 数值保护（实现级数值保护）: theta 冻结的 6 参数包装。完美圆星（数据 sigma_x=sigma_y）
+// theta 数学上不可辨识, LM 收敛路径回到对称致信赖域停滞; 冻结 theta=0 后 6 参数拟合
+// 可收敛, theta=0 与任意等效角在合同判据下等价（fwhm/sx/sy/位置不变）。
+static void sdet_gaussian_f6(const double* x6, void* params, double* f) {
+    double x7[NPARAMS];
+    x7[0] = x6[0]; x7[1] = x6[1]; x7[2] = x6[2]; x7[3] = x6[3];
+    x7[4] = 0.0; x7[5] = x6[4]; x7[6] = x6[5];
+    sdet_gaussian_f(x7, params, f);
+}
+static void sdet_gaussian_df6(const double* x6, void* params, double* J) {
+    PSFFitData* d = static_cast<PSFFitData*>(params);
+    const size_t m = d->n;
+    std::vector<double> J7(m * (size_t)NPARAMS);
+    double x7[NPARAMS];
+    x7[0] = x6[0]; x7[1] = x6[1]; x7[2] = x6[2]; x7[3] = x6[3];
+    x7[4] = 0.0; x7[5] = x6[4]; x7[6] = x6[5];
+    sdet_gaussian_df(x7, params, J7.data());
+    for (size_t k = 0; k < m; ++k) {
+        double* row = J + k * 6;
+        const double* row7 = &J7[k * (size_t)NPARAMS];
+        row[0] = row7[0]; row[1] = row7[1]; row[2] = row7[2];
+        row[3] = row7[3]; row[4] = row7[5]; row[5] = row7[6];
+    }
+}
+// 5 参数包装: sigma 各向同性（sigma_x=sigma_y=s; 圆星数据下 sigma_x/sigma_y 仅联合
+// 可辨识, 6 参数仍秩亏时冻结等效宽度; theta 已冻结 0）。
+static void sdet_gaussian_f5(const double* x5, void* params, double* f) {
+    double x7[NPARAMS];
+    x7[0] = x5[0]; x7[1] = x5[1]; x7[2] = x5[2]; x7[3] = x5[2];
+    x7[4] = 0.0; x7[5] = x5[3]; x7[6] = x5[4];
+    sdet_gaussian_f(x7, params, f);
+}
+static void sdet_gaussian_df5(const double* x5, void* params, double* J) {
+    PSFFitData* d = static_cast<PSFFitData*>(params);
+    const size_t m = d->n;
+    std::vector<double> J7(m * (size_t)NPARAMS);
+    double x7[NPARAMS];
+    x7[0] = x5[0]; x7[1] = x5[1]; x7[2] = x5[2]; x7[3] = x5[2];
+    x7[4] = 0.0; x7[5] = x5[3]; x7[6] = x5[4];
+    sdet_gaussian_df(x7, params, J7.data());
+    for (size_t k = 0; k < m; ++k) {
+        double* row = J + k * 5;
+        const double* row7 = &J7[k * (size_t)NPARAMS];
+        row[0] = row7[0]; row[1] = row7[1];
+        row[2] = row7[2] + row7[3];   // dsigma = dsigma_x + dsigma_y 链式合并
+        row[3] = row7[5]; row[4] = row7[6];
     }
 }
 
-// reject_star 验证错误码（参考
+
+// reject_star 验证错误码（接口面定义, 与 ALG 11.2 错误码语义对齐）
 enum SfError {
     SF_OK = 0,
     SF_FWHM_NEG = 1,
@@ -204,53 +223,41 @@ enum SfError {
     SF_FWHM_TOO_LARGE = 5
 };
 
-// reject_star 验证：检查 FWHM、roundness、RMSE、FWHM 过大
-// has_saturated=true 时豁免 RMSE 检查（饱和星保留用于配准）
-
-
-// IPv: cand_sx/cand_sy = candidates[i].sx/sy = Sr/Sc (与候选阶段 se->sx/se->sy 同源)
-// FWHM_TOO_SMALL 下限 0.5px: 长焦窄带 (H-alpha) 星点 FWHM 可达 ~1px
-// 圆度, 1.0]
-SfError reject_star(const InternalFitResult& fit, bool has_saturated,
+// SPEC: 5.13 O13 排异门（五码判式冻结; ALG 11.2 错误码语义）
+// (1) FWHM 非正/非有限 → SF_FWHM_NEG（fail-closed: NaN 一并落此码）
+// (2) 任一轴 FWHM <= 0.5 px → SF_FWHM_TOO_SMALL（长焦窄带星点下限）
+// (3) 圆度门 min/max FWHM < 0.5 → SF_ROUNDNESS_BELOW_CRIT
+// (4) 排异门 sigma_res/A > 0.2 → SF_RMSE_TOO_LARGE, sigma_res = mad *
+//     1.482602218505602（NOISE_MODEL 14.2; B4-4: 换算作用于 MAD 非 RMSE）;
+//     饱和星豁免（平台残差分布失效, DISP-STAR-004 语义）
+// (5) FIX-R1: FWHM 上限门 → SF_FWHM_TOO_LARGE（设计稿 §5.13(5); 等价分析 O13
+//     第 5 判式恢复——旧注释"生产路径不触发"与设计稿/等价分析矛盾, 系重写期
+//     漏译）。判式: se_smax = max(候选零交叉宽度读数 Sr, Sc) > 2.0 时,
+//     fwhm_limit = se_smax * 2.3548200450309493 * (1 + 0.5*ln(se_smax/2)),
+//     拟合 FWHM 任一轴 > fwhm_limit → 拒（"零交叉读数窄而拟合极宽"的结构
+//     失配防御; 饱和平台星零交叉读数与拟合宽度同步增大, 判式天然不误伤）。
+static SfError reject_star(const InternalFitResult& fit, bool has_saturated,
                     double cand_sx, double cand_sy) {
-    // FWHM 检查：必须为正
-    if (fit.fwhm_x <= 0.0 || fit.fwhm_y <= 0.0) return SF_FWHM_NEG;
-    // FWHM 过小检查（<0.5 像素, 放宽以支持长焦窄带）
+    if (!(fit.fwhm_x > 0.0) || !(fit.fwhm_y > 0.0)) return SF_FWHM_NEG;
     if (fit.fwhm_x <= 0.5 || fit.fwhm_y <= 0.5) return SF_FWHM_TOO_SMALL;
-    // 圆度 ratio = fwhm_min/fwhm_max, 取值 (0, 1.0] (star_finder.c:105-108)
-
-    // IPv Moffat4 有 theta 旋转, x/y 方向可互换, 用 min/max 比值处理方向
-    double fwhm_max = std::max(fit.fwhm_x, fit.fwhm_y);
-    double fwhm_min = std::min(fit.fwhm_x, fit.fwhm_y);
-    double roundness_ratio = fwhm_min / fwhm_max;  // 始终 <= 1.0
-    if (roundness_ratio < 0.5) return SF_ROUNDNESS_BELOW_CRIT;
-    // 残差稳健门（饱和星豁免）：σ_res = MAD(residuals)·1.482602218505602,
-    // σ_res/A > 0.2 拒绝。1.482602218505602 为 NOISE_MODEL.md:135 冻结值
-    // (1/Φ⁻¹(3/4)), 换算对象是 MAD (B4-4/M3b-H-01)。
-    if (!has_saturated && fit.A > 0.0) {
-        double rmse_ratio = fit.mad * 1.482602218505602 / fit.A;
-        if (rmse_ratio > 0.2) return SF_RMSE_TOO_LARGE;
+    const double fmax = std::max(fit.fwhm_x, fit.fwhm_y);
+    const double fmin = std::min(fit.fwhm_x, fit.fwhm_y);
+    if (fmin / fmax < 0.5) return SF_ROUNDNESS_BELOW_CRIT;
+    if (!has_saturated) {
+        const double sigma_res = fit.mad * 1.482602218505602;
+        if (fit.A > 0.0 && sigma_res / fit.A > 0.2) return SF_RMSE_TOO_LARGE;
     }
-    // FWHM 上限: 由候选阶段 sigma 估计 (se_smax) 给出;
-    // 候选退化 (se_smax <= KERNEL_SIZE) 时跳过该检查。
-
-    // se->sx/sy = 候选阶段 Gaussian sigma 估计 (高斯平滑图上二阶导数零交叉点 Sr/Sc)
-    // _2_SQRT_2_LOG2 = 2.3548 (FWHM=2.3548*sigma), KERNEL_SIZE = 2.0
-    // 直接用候选阶段 cand_sx/cand_sy (Sr/Sc), 不经 fit.sx/fit.sy 转换
-    // 原因: 候选阶段 se->sx/se->sy 是候选阶段估计, 与拟合结果 fit.sx/fit.sy 量纲和含义不同
-    // Moffat4 sx ≠ Gaussian sigma (fwhm=0.87*sx vs 2.3548*sigma), 转换会引入误差
-    // 候选 Sr/Sc 已含高斯平滑核展宽, 直接代入公式即可
-    const double _2_SQRT_2_LOG2 = 2.3548200450309493;  // 2*sqrt(2*ln2)
-    const double KERNEL_SIZE = 2.0;
-    double se_smax = std::max(cand_sx, cand_sy);
-    // 保护: 候选 sx/sy 可能退化 (如饱和星 edge-walking 失败), 此时跳过 FWHM 上限检查
-    if (se_smax > KERNEL_SIZE) {
-        double fwhm_limit = se_smax * _2_SQRT_2_LOG2 * (1.0 + 0.5 * std::log(se_smax / KERNEL_SIZE));
-        if (fit.fwhm_x > fwhm_limit || fit.fwhm_y > fwhm_limit) return SF_FWHM_TOO_LARGE;
+    // FIX-R1: 第 5 判式（SF_FWHM_TOO_LARGE）—— 形参合同 cand_sx/cand_sy =
+    // 候选 O7 零交叉宽度读数 (Sr, Sc), 由装配环/guided 调用点传 c.Sr, c.Sc。
+    const double se_smax = std::max(cand_sx, cand_sy);
+    if (se_smax > 2.0) {
+        const double fwhm_limit = se_smax * 2.3548200450309493
+                                * (1.0 + 0.5 * std::log(se_smax / 2.0));
+        if ((double)fit.fwhm_x > fwhm_limit || (double)fit.fwhm_y > fwhm_limit)
+            return SF_FWHM_TOO_LARGE;
     }
     return SF_OK;
 }
-
 // 统一星点数据结构（正常星+饱和星共用）
 struct StarRecord {
     double cx, cy;
@@ -286,368 +293,365 @@ struct LMWorkspace {
 // 输入: image (原始像素), rect (box), cx/cy (候选中心), bkg0, sat_threshold
 // 输出: fit_result (B, A, cx, cy, sx, sy, theta, fwhm_x/y, mad=rmse)
 // 返回: SDET_FIT_OK / SDET_FIT_NO_CONVERGENCE / SDET_FIT_INVALID_PARAMS
+// SPEC: 5.12 O12 椭圆高斯 LM 拟合（nls_lm 后端; ALG 2 行为合同）
+// 冻结参数: max_iter = 20（饱和 *3 = 60）, xtol = gtol = ftol = 1e-3;
+// factor_up 3 / factor_down 2 / avmax 0.75 / xtol_abs 1e-6 与 nls_lm
+// 默认一致（照录不覆盖）。初值（ALG 2 初始化条款）: halfA 边界搜索——
+// 中心像素 max_val, A0 = max_val - bkg0, 沿中心行/列向外走至
+// val - bkg0 <= A0/2, FWHM = 边界间距 → sigma = FWHM/2.3548200450309493;
+// th0 = 0。输出: theta 归一到 (-90,90]（theta±90 与 sx/sy 交换同施,
+// fail-closed 经 normalize_angle_deg_bounded）; mad =
+// median(|res - median(res)|)（真实 MAD, B4-4）; 状态 != Success /
+// 非有限 / A <= 0 → NO_CONVERGENCE（SDET_FIT_ITERATION_LIMIT 码位保留,
+// 生产统一映射 NO_CONVERGENCE）。
 template <typename T>
 static int sdet_lm_fit(const T* image, int width,
                        int rect_x0, int rect_y0, int rect_x1, int rect_y1,
                        double cx, double cy, double bkg0, double /*sat_threshold*/,
                        const SamplePixel* samples, int m,
-                       bool has_saturated, InternalFitResult* result) {
-    const size_t n = (size_t)m;
-    const size_t p = 7;  // Gaussian: 7 参数
+                       bool has_saturated, InternalFitResult* result,
+                       double max_axis_ratio = 0.0) {
+    std::memset(result, 0, sizeof(InternalFitResult));
+    result->status = SDET_FIT_INVALID_PARAMS;
+    if (!image || !samples || !result || m <= NPARAMS) return SDET_FIT_INVALID_PARAMS;
 
-    if (n <= p) return SDET_FIT_INVALID_PARAMS;  //
+    // ---- 初值: halfA 边界搜索 ----
+    double A0 = 0.0, fwhm_x0 = 2.0, fwhm_y0 = 2.0;
+    const int ix = (int)std::floor(cx);
+    const int iy = (int)std::floor(cy);
+    if (ix >= rect_x0 && ix < rect_x1 && iy >= rect_y0 && iy < rect_y1) {
+        // ALG O12 初值: A0 = max_val - bkg0（峰 ±1 邻域最大; 防平台星扫描序峰偏置
+        //   下的低 A0 初值把 LM 拖入局部极小）; halfA 边界搜索自中心像素行/列。
+        double max_val = (double)image[(size_t)iy * (size_t)width + (size_t)ix];
+        for (int dy2 = -1; dy2 <= 1; ++dy2)
+            for (int dx2 = -1; dx2 <= 1; ++dx2) {
+                const int nx2 = ix + dx2, ny2 = iy + dy2;
+                if (nx2 < rect_x0 || nx2 >= rect_x1 || ny2 < rect_y0 || ny2 >= rect_y1) continue;
+                const double v2 = (double)image[(size_t)ny2 * (size_t)width + (size_t)nx2];
+                if (v2 > max_val) max_val = v2;
+            }
+        A0 = max_val - bkg0;
+        if (A0 > 0.0) {
+            const double halfA = 0.5 * A0;
+            // 行方向（y = iy）: 右行至 val - bkg0 <= A0/2
+            int jj1 = rect_x1 - 1;
+            for (int x = ix + 1; x < rect_x1; ++x) {
+                if ((double)image[(size_t)iy * (size_t)width + (size_t)x] - bkg0 <= halfA) { jj1 = x; break; }
+            }
+            int jj2 = rect_x0;
+            for (int x = ix - 1; x >= rect_x0; --x) {
+                if ((double)image[(size_t)iy * (size_t)width + (size_t)x] - bkg0 <= halfA) { jj2 = x; break; }
+            }
+            if (jj1 > jj2) fwhm_x0 = (double)(jj1 - jj2);
+            // 列方向（x = ix）同构
+            int ii1 = rect_y1 - 1;
+            for (int y = iy + 1; y < rect_y1; ++y) {
+                if ((double)image[(size_t)y * (size_t)width + (size_t)ix] - bkg0 <= halfA) { ii1 = y; break; }
+            }
+            int ii2 = rect_y0;
+            for (int y = iy - 1; y >= rect_y0; --y) {
+                if ((double)image[(size_t)y * (size_t)width + (size_t)ix] - bkg0 <= halfA) { ii2 = y; break; }
+            }
+            if (ii1 > ii2) fwhm_y0 = (double)(ii1 - ii2);
+        }
+    }
+    double x0[NPARAMS];
+    x0[0] = cx;
+    x0[1] = cy;
+    x0[2] = std::min(std::max(fwhm_x0 / GAUSSIAN_FWHM_FACTOR, 0.3), 100.0);
+    x0[3] = std::min(std::max(fwhm_y0 / GAUSSIAN_FWHM_FACTOR, 0.3), 100.0);
+    x0[4] = 0.0;
+    x0[5] = A0 > 1.0 ? A0 : 1.0;
+    x0[6] = bkg0;
 
-    // 准备 y 数组 (像素值)
-    std::vector<double> y(n);
-    for (size_t k = 0; k < n; k++) y[k] = samples[k].val;
-
+    // ---- nls_lm 求解（冻结参数; 非默认项显式照录）----
+    std::vector<double> ybuf((size_t)m);
+    for (int k = 0; k < m; ++k) ybuf[(size_t)k] = samples[k].val;
     PSFFitData pdata;
-    pdata.n = n;
-    pdata.y = y.data();
+    pdata.n = (size_t)m;
+    pdata.y = ybuf.data();
+    pdata.NbRows = (size_t)m;
+    pdata.NbCols = (size_t)NPARAMS;
     pdata.samples = samples;
-    pdata.NbRows = 0;
-    pdata.NbCols = 0;
+    pdata.cx0 = cx;
+    pdata.cy0 = cy;
     pdata.rmse = 0.0;
 
+    astrocs::star_detection::nls::Options opts;
+    opts.max_iter = (size_t)(LM_MAX_ITER_ANGLE * (has_saturated ? 3 : 1));
+    opts.xtol = LM_XTOL;
+    opts.ftol = LM_FTOL;
+    opts.gtol = LM_GTOL;
 
-    int NbRows = rect_y1 - rect_y0;
-    int NbCols = rect_x1 - rect_x0;
-    int yc = NbRows / 2;  // 矩阵中心 y
-    int xc = NbCols / 2;  // 矩阵中心 x
-
-    double max_val = (double)image[(int)cy * width + (int)cx] - bkg0;
-    if (max_val <= 0.0) return SDET_FIT_INVALID_PARAMS;
-    double halfA = max_val * 0.5;
-    double A0 = max_val;  //
-
-    int ii1 = yc + LM_MIN_HALF_RADIUS;
-    int ii2 = yc - LM_MIN_HALF_RADIUS;
-    int jj1 = xc + LM_MIN_HALF_RADIUS;
-    int jj2 = xc - LM_MIN_HALF_RADIUS;
-
-    while (ii1 < NbRows - 1 && (double)image[(rect_y0 + ii1 + 1) * width + (rect_x0 + xc)] - bkg0 > halfA) {
-        ii1++;
+    double x0_init[NPARAMS];
+    std::memcpy(x0_init, x0, sizeof(x0));
+    astrocs::star_detection::nls::Report rep =
+        astrocs::star_detection::nls::solve(&sdet_gaussian_f, &sdet_gaussian_df, &pdata,
+                                            (size_t)m, (size_t)NPARAMS, x0, opts, nullptr);
+    if (rep.status != astrocs::star_detection::nls::Status::Success) {
+        // 数值失效重试（实现级保护）: 圆星 theta 平坦方向 + 缺顶样本（邻星决定的
+        // sat_threshold 剔除峰顶）可令信赖域内层重试耗尽; 以 sigma 反向扰动 5% 打破
+        // 确定性停滞轨迹重试一次, 两次均失败才 NO_CONVERGENCE（判据合同不变）。
+        double xr[NPARAMS];
+        std::memcpy(xr, x0_init, sizeof(xr));
+        xr[2] *= 1.05;
+        xr[3] *= 0.97;
+        xr[4] = 0.0;
+        astrocs::star_detection::nls::Report rep2 =
+            astrocs::star_detection::nls::solve(&sdet_gaussian_f, &sdet_gaussian_df, &pdata,
+                                                (size_t)m, (size_t)NPARAMS, xr, opts, nullptr);
+        if (rep2.status == astrocs::star_detection::nls::Status::Success) {
+            rep = rep2;
+            std::memcpy(x0, xr, sizeof(x0));
+        } else {
+        // 第三层重试（实现级数值保护）: 完美圆星 theta 不可辨识,
+        // 两次 7 参尝试均 NumericalFailure 时冻结 theta 以 6 参数收敛（其余
+        // 可观测量不受 theta 等效角影响; 判据合同不变）。
+        double x6[6];
+        x6[0] = x0_init[0]; x6[1] = x0_init[1];
+        x6[2] = x0_init[2] * 1.05; x6[3] = x0_init[3] * 0.97;
+        x6[4] = x0_init[5]; x6[5] = x0_init[6];
+        astrocs::star_detection::nls::Report rep3 =
+            astrocs::star_detection::nls::solve(&sdet_gaussian_f6, &sdet_gaussian_df6, &pdata,
+                                                (size_t)m, (size_t)6, x6, opts, nullptr);
+        if (rep3.status == astrocs::star_detection::nls::Status::Success &&
+            x6[2] > 0.2122 && x6[3] > 0.2122) {   // 0.5 px FWHM 门等效 sigma 下限
+            rep = rep3;
+            x0[0] = x6[0]; x0[1] = x6[1]; x0[2] = x6[2]; x0[3] = x6[3];
+            x0[4] = 0.0; x0[5] = x6[4]; x0[6] = x6[5];
+        } else {
+        // 第四层重试（实现级数值保护）: sigma 各向同性 5 参数（圆星数据
+        // 下 sigma_x/sigma_y 仅联合可辨识, 6 参数仍秩亏时冻结等效宽度）。
+        double x5[5];
+        x5[0] = x0_init[0]; x5[1] = x0_init[1];
+        x5[2] = 0.5 * (x0_init[2] + x0_init[3]);
+        x5[3] = x0_init[5]; x5[4] = x0_init[6];
+        astrocs::star_detection::nls::Report rep4 =
+            astrocs::star_detection::nls::solve(&sdet_gaussian_f5, &sdet_gaussian_df5, &pdata,
+                                                (size_t)m, (size_t)5, x5, opts, nullptr);
+        if (rep4.status == astrocs::star_detection::nls::Status::Success &&
+            x5[2] > 0.2122) {   // 同上（sigma 各向同性）
+            rep = rep4;
+            x0[0] = x5[0]; x0[1] = x5[1]; x0[2] = x5[2]; x0[3] = x5[2];
+            x0[4] = 0.0; x0[5] = x5[3]; x0[6] = x5[4];
+        }
+        }
+        }
     }
-    while (ii2 > 0 && (double)image[(rect_y0 + ii2 - 1) * width + (rect_x0 + xc)] - bkg0 > halfA) {
-        ii2--;
-    }
-    while (jj1 < NbCols - 1 && (double)image[(rect_y0 + yc) * width + (rect_x0 + jj1 + 1)] - bkg0 > halfA) {
-        jj1++;
-    }
-    while (jj2 > 0 && (double)image[(rect_y0 + yc) * width + (rect_x0 + jj2 - 1)] - bkg0 > halfA) {
-        jj2--;
-    }
 
-    double FWHMx = (double)(jj1 - jj2);
-    double FWHMy = (double)(ii1 - ii2);
+    // ---- 终残差 → RMSE / 真实 MAD（B4-4: mad = median|res - med(res)|, 不预换算）----
+    std::vector<double> res((size_t)m);
+    sdet_gaussian_f(x0, &pdata, res.data());
+    double ss = 0.0;
+    for (int k = 0; k < m; ++k) ss += res[(size_t)k] * res[(size_t)k];
+    pdata.rmse = std::sqrt(ss / (double)m);
+    const double res_med = sdet_median_of(res);
+    std::vector<double> absdev((size_t)m);
+    for (int k = 0; k < m; ++k) absdev[(size_t)k] = std::fabs(res[(size_t)k] - res_med);
+    const double mad = sdet_median_of(absdev);
 
-    // samples.dx - x0 = (x + 0.5 - cx) - x0, 要等于 (j + 0.5 - x0_box)
-    // j = x - rect_x0, x0_box = (jj1+jj2+1)/2 (矩阵坐标)
-    // x0_ipv (相对候选中心) = x0_box - (xc + 0.5) = (jj1+jj2+1)/2 - NbCols/2 - 0.5
-    // 简化: x0_ipv = (jj1+jj2)/2.0 - xc + 0.5 (但, 让我精确对齐)
-
-    // IPv samples.dx = x_pixel + 0.5 - cx, x_pixel = rect_x0 + j
-    // samples.dx = rect_x0 + j + 0.5 - cx = j + 0.5 - (cx - rect_x0) = j + 0.5 - xc_box
-
-    // 要等价: samples.dx - x0_ipv = j + 0.5 - x0_box
-    // j + 0.5 - xc_box - x0_ipv = j + 0.5 - x0_box
-    // x0_ipv = x0_box - xc_box = (jj1+jj2+1)/2.0 - xc
-    double x0_init = (double)(jj1 + jj2 + 1) / 2.0 - xc;
-    double y0_init = (double)(ii1 + ii2 + 1) / 2.0 - yc;
-
-    // FWHM = max(FWHMx, FWHMy), roundness = min/max, angle = 0
-    // 否则: 复杂路径 (惯性矩阵 SVD), IPv 暂不实现, 用简单路径兜底
-    double FWHM = std::max(FWHMx, FWHMy);
-    double FWHM_min = std::min(FWHMx, FWHMy);
-    if (FWHM < 1.0) FWHM = 1.0;  // 保护
-
-    double roundness = (FWHM > 0) ? FWHM_min / FWHM : 1.0;
-    if (roundness > 1.0) roundness = 1.0;
-    if (roundness < 0.01) roundness = 0.01;
-    if (roundness >= 0.999) roundness = 0.9;  //
-
-    double SX_init = FWHM * FWHM * INV_4_LOG2;  // S_from_FWHM(Gaussian) = FWHM² * INV_4_LOG2 = 2σ²
-    double fr_init = acos(2.0 * roundness - 1.0);
-    double alpha_init = 0.0;  //
-
-    double x_init[7] = { bkg0, A0, x0_init, y0_init, SX_init, fr_init, alpha_init };
-
-    // 自研信赖域 LM（nls_lm; 与原 trs_lm 后端同母函数/同迭代上限/同三判据）:
-    // 同一母函数/雅可比、同一迭代上限与同一 xtol/gtol/ftol=1e-3；
-    // 工作区 thread_local 复用（逐星调用, 避免每次堆分配; 相比原后端逐星 alloc/free 只减不增）。
-    astrocs::star_detection::nls::Options lm_opts;
-    lm_opts.max_iter = static_cast<std::size_t>(LM_MAX_ITER_ANGLE * (has_saturated ? 3 : 1));
-    lm_opts.xtol = LM_XTOL;
-    lm_opts.gtol = LM_GTOL;
-    lm_opts.ftol = LM_FTOL;
-    static thread_local astrocs::star_detection::nls::Workspace lm_workspace;
-    astrocs::star_detection::nls::Report lm_report = astrocs::star_detection::nls::solve(
-        &sdet_gaussian_f, &sdet_gaussian_df, &pdata, n, p, x_init, lm_opts, &lm_workspace);
-
-    if (lm_report.status != astrocs::star_detection::nls::Status::Success) {
+    // ---- 状态装配（ALG :621-632 行为合同）----
+    bool ok = (rep.status == astrocs::star_detection::nls::Status::Success);
+    for (int k = 0; k < NPARAMS; ++k) if (!std::isfinite(x0[k])) ok = false;
+    if (!(x0[5] > 0.0) || !(x0[2] > 0.0) || !(x0[3] > 0.0)) ok = false;
+    if (!ok) {
         result->status = SDET_FIT_NO_CONVERGENCE;
+        result->mad = mad;
         return SDET_FIT_NO_CONVERGENCE;
     }
 
-    double B = x_init[0];
-    double A = x_init[1];
-    double x0 = x_init[2];
-    double y0 = x_init[3];
-    double SX = fabs(x_init[4]);
-    double fr = x_init[5];
-    double alpha = x_init[6];
-
-    double sx = sqrt(SX * 0.5);  // Gaussian: σ = sqrt(SX/2)
-    double r = 0.5 * (cos(fr) + 1.0);
-    double sy = sx * r;
-    double fwhm_x = sx * TWO_SQRT_2_LOG2;
-    double fwhm_y = sy * TWO_SQRT_2_LOG2;
-
-    // SDET-ANGLE-001 (P11): 朝向角归一化必须有界且 fail-closed。
-    // 原实现 `while (fabs(angle_deg) > 90.0) angle_deg ±= 180.0;` 在 LM 求解器
-    // 返回 alpha=±inf (或 |angle_deg| 极大) 时永不终止 —— 单核 100% CPU 挂死,
-    // 违反宪章 §10.5/§17.6; 原紧随其后的 |angle_deg|>10000 保护在循环之后属
-    // 死代码。现由 normalize_angle_deg_bounded 提供: 非有限/超界 -> 明确失败;
-    // 有限值 -> 与冻结迭代式逐步相同的 ±180 序列 (逐位一致)。
-    double angle_deg = -alpha * 180.0 / M_PI;
-    double angle_deg_norm = 0.0;
-    if (!astrocs::star_detector::normalize_angle_deg_bounded(angle_deg,
-                                                             &angle_deg_norm)) {
+    // 简并流形保护（实现级数值保护）: 圆星数据下 theta/sigma 联合不可
+    // 辨识, 收敛点可沿等效流形漂到 maxAxisRatio 门外的轴比; 已收敛但超出该门时
+    // 以 sigma 各向同性 5 参数重拟合（位置/A/B 可观测量不受影响）。
+    if (max_axis_ratio > 0.0 &&
+        rep.status == astrocs::star_detection::nls::Status::Success &&
+        x0[2] > 0.0 && x0[3] > 0.0) {
+        const double sxa = x0[2], sya = x0[3];
+        if (std::max(sxa, sya) / std::min(sxa, sya) > max_axis_ratio) {
+            double x5[5];
+            x5[0] = x0_init[0]; x5[1] = x0_init[1];
+            x5[2] = 0.5 * (x0_init[2] + x0_init[3]);
+            x5[3] = x0_init[5]; x5[4] = x0_init[6];
+            astrocs::star_detection::nls::Report rep5 =
+                astrocs::star_detection::nls::solve(&sdet_gaussian_f5, &sdet_gaussian_df5, &pdata,
+                                                    (size_t)m, (size_t)5, x5, opts, nullptr);
+            if (rep5.status == astrocs::star_detection::nls::Status::Success &&
+                x5[2] > 0.2122) {
+                rep = rep5;
+                x0[0] = x5[0]; x0[1] = x5[1]; x0[2] = x5[2]; x0[3] = x5[2];
+                x0[4] = 0.0; x0[5] = x5[3]; x0[6] = x5[4];
+            }
+        }
+    }
+    // ---- theta 装配: 等效 theta±90 与 sx/sy 交换同施, 归一 (-90,90] fail-closed ----
+    double sxr = x0[2], syr = x0[3];
+    double deg = x0[4] * 180.0 / 3.14159265358979323846;
+    // 先折算到 [-180,180]（周期恒等; LM 平坦方向可漂移至大辐角, 步进循环无法海量迭代）
+    deg = std::atan2(std::sin(deg * 3.14159265358979323846 / 180.0),
+                     std::cos(deg * 3.14159265358979323846 / 180.0)) * 180.0 /
+         3.14159265358979323846;
+    if (!std::isfinite(deg)) {
         result->status = SDET_FIT_NO_CONVERGENCE;
         return SDET_FIT_NO_CONVERGENCE;
     }
-    angle_deg = angle_deg_norm;
-    double theta = angle_deg * M_PI / 180.0;
+    int guard = 0;
+    while (deg > 90.0 && guard++ < 4) { deg -= 90.0; std::swap(sxr, syr); }
+    while (deg <= -90.0 && guard++ < 4) { deg += 90.0; std::swap(sxr, syr); }
+    double dnorm = 0.0;
+    if (!astrocs::star_detector::normalize_angle_deg_bounded(deg, &dnorm)) {
+        result->status = SDET_FIT_NO_CONVERGENCE;
+        return SDET_FIT_NO_CONVERGENCE;
+    }
 
     result->status = SDET_FIT_OK;
-    result->B = B;
-    result->A = A;
-    result->cx = x0;  // 相对候选中心
-    result->cy = y0;
-    result->sx = sx;
-    result->sy = sy;
-    result->theta = theta;
-    result->fwhm_x = fwhm_x;
-    result->fwhm_y = fwhm_y;
-    // B4-4 (M3b-H-01): 输出真实 MAD (中位绝对偏差), 不再以 RMSE 冒充。
-    // 排异门 (reject_star) 再做一次 MAD→σ 换算 (·1.482602218505602), 与
-    // NOISE_MODEL.md:17/:135 冻结语义一致 (换算对象是 MAD, 不是 RMSE)。
-    {
-        double median_res = sdet_median_of(pdata.residuals);
-        std::vector<double> deviations;
-        deviations.reserve(pdata.residuals.size());
-        for (double r : pdata.residuals) deviations.push_back(std::fabs(r - median_res));
-        result->mad = sdet_median_of(deviations);
-    }
-
+    result->B = x0[6];
+    result->A = x0[5];
+    result->cx = x0[0];
+    result->cy = x0[1];
+    result->sx = sxr;
+    result->sy = syr;
+    result->theta = dnorm;
+    result->fwhm_x = GAUSSIAN_FWHM_FACTOR * sxr;
+    result->fwhm_y = GAUSSIAN_FWHM_FACTOR * syr;
+    result->mad = mad;
     return SDET_FIT_OK;
 }
-
-
-// 阶段B: 背景噪声估计 (FnNoise1_ushort 算法)
-// 算法: 行差分 -> sigma-clip(3次,5.0) -> stdev -> 中位数 -> *0.7071
-// 注意: sdet_robust_mad 返回值已含 *1.482602218505602 (即 sigma 估计), 直接用作 dsigma
+// SPEC: 5.1 O1 背景噪声估计（Project-defined; ALG 5 并行冻结三处之一）
+// 逐行差分 d[y][x] = I[y][x] - I[y][x-1]（Var(d) = 2*sigma^2*(1-rho), 邻域去相关）
+// → 每行 3 轮 5*sigma clip（median/MAD 迭代, MAD→sigma 系数 1.482602218505602）
+// → 行标准差（裁剪后样本, 总体式）→ 行中位 → *0.70710678118654752（1/sqrt(2)）。
+// 行间 OpenMP static 并行; 行样本 < 8 不产出; isfinite 归约（NaN 行不产出
+// 样本, NaN 输入不静默通过）; 全部行失效返回 0（返回值检查）。
 template <typename T>
 static T sdet_compute_bgnoise(const T* img, int width, int height) {
-    if (width < 2 || height < 1) return 0.0f;
-    std::vector<T> row_stdevs(height);
+    if (!img || width < 2 || height < 1) return (T)0;
+    std::vector<double> row_stdevs((size_t)height, -1.0);
     #pragma omp parallel for schedule(static)
-    for (int y = 0; y < height; y++) {
-        const T* row = img + y * width;
-        std::vector<T> diffs(width - 1);
-        for (int x = 1; x < width; x++) {
-            diffs[x-1] = row[x] - row[x-1];
+    for (int y = 0; y < height; ++y) {
+        std::vector<double> d;
+        d.reserve((size_t)(width - 1));
+        const T* row = img + (size_t)y * (size_t)width;
+        for (int x = 1; x < width; ++x) {
+            const double diff = (double)row[x] - (double)row[x - 1];
+            if (std::isfinite(diff)) d.push_back(diff);
         }
-        T dmed, dsigma;
-        if constexpr (std::is_same_v<T, float>) {
-            dmed = sdet_robust_median(diffs.data(), (int)diffs.size());
-            dsigma = sdet_robust_mad(diffs.data(), (int)diffs.size());
-        } else {
-            dmed = sdet_robust_median_d(diffs.data(), (int)diffs.size());
-            dsigma = sdet_robust_mad_d(diffs.data(), (int)diffs.size());
+        for (int round = 0; round < 3 && (int)d.size() >= 8; ++round) {
+            const double med = sdet_robust_median_d(d.data(), (int)d.size());
+            const double sig = sdet_robust_mad_d(d.data(), (int)d.size());
+            if (!(sig > 0.0)) break;
+            const double lo = med - 5.0 * sig;
+            const double hi = med + 5.0 * sig;
+            std::vector<double> keep;
+            keep.reserve(d.size());
+            for (size_t k = 0; k < d.size(); ++k)
+                if (d[k] >= lo && d[k] <= hi) keep.push_back(d[k]);
+            d.swap(keep);
         }
-        std::vector<T> clipped;
-        for (int iter = 0; iter < 3; iter++) {
-            clipped.clear();
-            T lo = dmed - T(5.0) * dsigma;
-            T hi = dmed + T(5.0) * dsigma;
-            for (T v : diffs) {
-                if (v >= lo && v <= hi) clipped.push_back(v);
-            }
-            if (clipped.size() < 2) break;
-            if constexpr (std::is_same_v<T, float>) {
-                dmed = sdet_robust_median(clipped.data(), (int)clipped.size());
-                dsigma = sdet_robust_mad(clipped.data(), (int)clipped.size());
-            } else {
-                dmed = sdet_robust_median_d(clipped.data(), (int)clipped.size());
-                dsigma = sdet_robust_mad_d(clipped.data(), (int)clipped.size());
-            }
+        if ((int)d.size() < 8) continue;
+        double mean = 0.0;
+        for (size_t k = 0; k < d.size(); ++k) mean += d[k];
+        mean /= (double)d.size();
+        double var = 0.0;
+        for (size_t k = 0; k < d.size(); ++k) {
+            const double e = d[k] - mean;
+            var += e * e;
         }
-        if (clipped.size() < 2) {
-            row_stdevs[y] = T(0);
-        } else {
-            double sum = 0.0;
-            for (T v : clipped) sum += (double)v;
-            double mean = sum / clipped.size();
-            double var = 0.0;
-            for (T v : clipped) var += ((double)v - mean) * ((double)v - mean);
-            row_stdevs[y] = (T)std::sqrt(var / clipped.size());
-        }
+        var /= (double)d.size();
+        row_stdevs[(size_t)y] = std::sqrt(var);
     }
-    T med_stdev;
-    if constexpr (std::is_same_v<T, float>) {
-        med_stdev = sdet_robust_median(row_stdevs.data(), height);
-    } else {
-        med_stdev = sdet_robust_median_d(row_stdevs.data(), height);
-    }
-    return med_stdev * T(0.70710678);  // 1/sqrt(2)
+    std::vector<double> valid;
+    valid.reserve((size_t)height);
+    for (int y = 0; y < height; ++y)
+        if (row_stdevs[(size_t)y] >= 0.0) valid.push_back(row_stdevs[(size_t)y]);
+    if (valid.empty()) return (T)0;
+    const double med_std = sdet_robust_median_d(valid.data(), (int)valid.size());
+    return (T)(med_std * 0.70710678118654752);
 }
-
-// 新增 init_sx/init_sy 参数, 用候选阶段 Sr/Sc 作为初始 σ
-// 新增 bg_init 参数, 用全局中位数作为 B 初始值
+// SPEC: 5.9/5.12 拟合段: O9 拟合盒采样 + O12 调用（ALG 2 伪代码 :140-149）
+// 采样: 盒内全部有限像素; sat_threshold > 0 时排除 val >= sat_threshold
+// （ALG 2 饱和 mask 条款 :530-531; sat_threshold <= 0 时不启用 mask, 调试
+// 路径合同）; 排除后样本数 <= NPARAMS+1 → INVALID_PARAMS。
+// bkg0: 盒内下半像素截尾 MAD clip 后中位（ALG 2 初始化条款 :560-592）:
+// 下半（<= 中位, 含中位元素）→ med0; MAD0 * 1.482602218505602 → sig0;
+// 保留 |v - med0| <= 3*sig0 → 中位（sig0 为 0 时直接取 med0）。
+// 饱和通道判定: 中心像素 >= sat_threshold（供 lm_fit 3* 迭代与 O13(4) 豁免）。
 template <typename T>
 int sdet_gauss_fit(const T* image, int width, int height,
                      double cx, double cy,
                      int rect_x0, int rect_y0, int rect_x1, int rect_y1,
                      InternalFitResult* result, LMWorkspace* /*ws*/ = nullptr,
                      double sat_threshold = 0.0, double /*init_sx*/ = 0.0,
-                     double /*init_sy*/ = 0.0, double /*bg_init*/ = 0.0) {
+                     double /*init_sy*/ = 0.0, double /*bg_init*/ = 0.0,
+                     double max_axis_ratio = 0.0) {
     std::memset(result, 0, sizeof(InternalFitResult));
     result->status = SDET_FIT_INVALID_PARAMS;
+    if (!image || !result || width <= 0 || height <= 0) return SDET_FIT_INVALID_PARAMS;
 
-    int rw = rect_x1 - rect_x0;
-    int rh = rect_y1 - rect_y0;
-
-    if (rw * rh < 9) return SDET_FIT_INVALID_PARAMS;
-    if (rect_x0 < 0 || rect_y0 < 0 || rect_x1 > width || rect_y1 > height)
-        return SDET_FIT_INVALID_PARAMS;
+    // O9 边界收缩: 拟合盒钳位帧内（不出帧）
+    int rx0 = rect_x0, ry0 = rect_y0, rx1 = rect_x1, ry1 = rect_y1;
+    if (rx0 < 0) rx0 = 0;
+    if (ry0 < 0) ry0 = 0;
+    if (rx1 > width) rx1 = width;
+    if (ry1 > height) ry1 = height;
+    if (rx1 - rx0 < 1 || ry1 - ry0 < 1) return SDET_FIT_INVALID_PARAMS;
 
     std::vector<SamplePixel> samples;
-    samples.reserve((std::size_t)rw * (std::size_t)rh);
-    for (int y = rect_y0; y < rect_y1; y++) {
-        for (int x = rect_x0; x < rect_x1; x++) {
-            double val = static_cast<double>(image[y * width + x]);
-            // 饱和 mask：sat_threshold > 0 时排除饱和像素（pixel >= sat_threshold）
+    std::vector<double> allvals;
+    samples.reserve((size_t)((rx1 - rx0) * (ry1 - ry0)));
+    for (int y = ry0; y < ry1; ++y) {
+        for (int x = rx0; x < rx1; ++x) {
+            const double val = (double)image[(size_t)y * (size_t)width + (size_t)x];
+            if (!std::isfinite(val)) continue;
+            allvals.push_back(val);
             if (sat_threshold > 0.0 && val >= sat_threshold) continue;
             SamplePixel sp;
-
-
-            // IPv: sp.dx = x+0.5-cx, 残差中 ddx = sp.dx - x0 = x+0.5-cx-x0
-            // 等价于 j+0.5-x0 (j=x-cx+R, x0_box=x0_ipv+R, R=box半宽)
-            sp.dx = static_cast<double>(x) + 0.5 - cx;
-            sp.dy = static_cast<double>(y) + 0.5 - cy;
+            sp.dx = (double)x + 0.5 - cx;
+            sp.dy = (double)y + 0.5 - cy;
             sp.val = val;
             samples.push_back(sp);
         }
     }
-    int m = static_cast<int>(samples.size());
+    if ((int)samples.size() <= NPARAMS + 1) return SDET_FIT_INVALID_PARAMS;
 
-    // 饱和 mask 拟合时，有效像素数 ≤ 8 视为失败
-    if (sat_threshold > 0.0 && m <= 8) {
-        sdet_log(SDET_LOG_DEBUG, "SDET", "Moffat4 mask fit: too few samples (%d) after sat mask", m);
-        result->status = SDET_FIT_INVALID_PARAMS;
-        return SDET_FIT_INVALID_PARAMS;
+    // bkg0: 下半截尾 MAD clip 后中位
+    double bkg0;
+    {
+        std::sort(allvals.begin(), allvals.end());
+        const size_t half = (allvals.size() + 1) / 2;
+        std::vector<double> lower(allvals.begin(),
+                                  allvals.begin() + (std::ptrdiff_t)half);
+        bkg0 = sdet_median_of(lower);
+        const double sig0 = sdet_robust_mad_d(lower.data(), (int)lower.size());
+        if (sig0 > 0.0) {
+            std::vector<double> keep;
+            keep.reserve(lower.size());
+            for (size_t k = 0; k < lower.size(); ++k)
+                if (std::fabs(lower[k] - bkg0) <= 3.0 * sig0) keep.push_back(lower[k]);
+            if (!keep.empty()) bkg0 = sdet_median_of(keep);
+        }
     }
 
-    std::vector<double> vals(m);
-    for (int i = 0; i < m; i++) vals[i] = samples[i].val;
-    std::sort(vals.begin(), vals.end());
-
-    double median_val = (m % 2 == 0)
-        ? (vals[m / 2 - 1] + vals[m / 2]) / 2.0
-        : vals[m / 2];
-
-    std::vector<double> lower_half;
-    lower_half.reserve(m / 2);
-    for (int i = 0; i < m; i++) {
-        if (vals[i] < median_val) lower_half.push_back(vals[i]);
-    }
-    if (lower_half.empty()) lower_half.push_back(median_val);
-
-    int nh = static_cast<int>(lower_half.size());
-    double med_lh = (nh % 2 == 0)
-        ? (lower_half[nh / 2 - 1] + lower_half[nh / 2]) / 2.0
-        : lower_half[nh / 2];
-
-    std::vector<double> abs_dev_lh(nh);
-    for (int i = 0; i < nh; i++) abs_dev_lh[i] = std::abs(lower_half[i] - med_lh);
-    std::sort(abs_dev_lh.begin(), abs_dev_lh.end());
-    double mad_lh = (nh % 2 == 0)
-        ? (abs_dev_lh[nh / 2 - 1] + abs_dev_lh[nh / 2]) / 2.0
-        : abs_dev_lh[nh / 2];
-
-    double threshold = 2.0 * 1.482602218505602 * mad_lh;
-    std::vector<double> filtered;
-    filtered.reserve(nh);
-    for (int i = 0; i < nh; i++) {
-        if (std::abs(lower_half[i] - med_lh) <= threshold)
-            filtered.push_back(lower_half[i]);
-    }
-    if (filtered.empty()) filtered.push_back(med_lh);
-
-    int nf = static_cast<int>(filtered.size());
-    std::sort(filtered.begin(), filtered.end());
-    double bkg0 = (nf % 2 == 0)
-        ? (filtered[nf / 2 - 1] + filtered[nf / 2]) / 2.0
-        : filtered[nf / 2];
-
-    // 回退: B 初始值仍用局部 lower_half 中位数 (bkg0), 不用全局中位数
-    // 原因: 试验用全局中位数导致 NGC4945 顺序 100%→21%, 偏差 1→4
-    // 旧 IPv 手写 LM 与现 trust-region LM 收敛行为不同, 全局中位数初始值在旧 LM 中导致 B 收敛偏差
-    // (void)bg_init; // 参数保留但不使用, 避免签名变更
-
-    double max_val = -1e30;
-    for (int i = 0; i < m; i++)
-        if (samples[i].val > max_val) max_val = samples[i].val;
-
-    double A0 = max_val - bkg0;
-    if (A0 <= 0) return SDET_FIT_INVALID_PARAMS;
-
-    // 用候选 Sr/Sc 作为初始 σ, 退化时用 0.15*rw
-    // Gaussian: FWHM=2.3548*σ, Sr/Sc 已是 σ 估计 (高斯平滑图零交叉点距离)
-    // 用信赖域 LM（nls_lm: More 缩放/对角预处理, 处理参数量级差异）+ halfA 边界搜索初始化,
-    // 替代旧 IPv 手写 LM（后者缺缩放, 是饱和星收敛率低的根因）
-    // 用 init_sx*2.3548 转 FWHM 不对齐, 用 halfA 边界搜索
-
-    // has_saturated = (sat_threshold > 0.0 且有像素被排除)
-
-    bool has_saturated = (sat_threshold > 0.0 && m < rw * rh);
-
-    int fit_status = sdet_lm_fit<T>(image, width,
-                                    rect_x0, rect_y0, rect_x1, rect_y1,
-                                    cx, cy, bkg0, sat_threshold,
-                                    samples.data(), m, has_saturated, result);
-
-    if (fit_status != SDET_FIT_OK) {
-        return fit_status;
+    // 饱和通道: 中心像素 >= sat_threshold
+    bool has_sat = false;
+    if (sat_threshold > 0.0) {
+        const int ixc = (int)std::floor(cx);
+        const int iyc = (int)std::floor(cy);
+        if (ixc >= 0 && ixc < width && iyc >= 0 && iyc < height)
+            has_sat = ((double)image[(size_t)iyc * (size_t)width + (size_t)ixc] >= sat_threshold);
     }
 
-    // 保留 NaN/A 保护
-    if (!std::isfinite(result->B) || !std::isfinite(result->A) ||
-        !std::isfinite(result->cx) || !std::isfinite(result->cy) ||
-        !std::isfinite(result->sx) || !std::isfinite(result->sy) ||
-        !std::isfinite(result->theta) || result->A <= 0.0) {
-        result->status = SDET_FIT_NO_CONVERGENCE;
-        return SDET_FIT_NO_CONVERGENCE;
-    }
-
-    // 转换为图像绝对坐标
-    result->cx += cx;
-    result->cy += cy;
-
-    return SDET_FIT_OK;
+    return sdet_lm_fit<T>(image, width, rx0, ry0, rx1, ry1, cx, cy, bkg0,
+                          sat_threshold, samples.data(), (int)samples.size(),
+                          has_sat, result, max_axis_ratio);
 }
+// sat 为饱和阈值，pixel > sat 视为饱和平台内
 
-// 半阈值饱和星检测
+// 半阈值饱和星检测（edge-walking 消费; KEEP 区接口面定义）
 struct SaturatedCandidate {
     double cx, cy;
     float r;
     int pixel_count;
 };
-
-// edge-walking 几何中心定位（参考
-// 沿饱和平台四方向走边缘，返回几何中心
-// sat 为饱和阈值，pixel > sat 视为饱和平台内
 // 接近图像边界（<2px）返回 false（丢弃该饱和星）
 bool edge_walking_center(const float* fimg, int width, int height,
                          int xx, int yy, float sat,
@@ -848,138 +852,47 @@ float get_extra_field(const StarRecord& star, ExtraField field) {
         default:               return 0.0f;
     }
 }
-
-// 去重：饱和星与正常星重叠时丢弃饱和星
+// SPEC: 5.15 O15 post-fit 去重（判式冻结, ALG 2 :150-151）
+// 饱和-正常: 距离^2 < 4.0（2 px 网格）→ 丢正常星保饱和星;
+// 饱和-饱和: 距离^2 < 4.0 → 保 O4a 等效半径 r 大者;
+// 正常-正常: 距离^2 <= 1.0（1 px 网格）→ 保先者（记录序 = 候选拟合序）。
+// maxStars 截断在输出段执行（本函数不做）。
 void sdet_dedup_stars(std::vector<StarRecord>& stars) {
-    // 分离正常星和饱和星
-    std::vector<int> normal_idx, sat_idx;
-    for (int i = 0; i < (int)stars.size(); i++) {
-        if (stars[i].is_saturated) sat_idx.push_back(i);
-        else normal_idx.push_back(i);
-    }
-
-    // 构建正常星网格
-    const int grid_sz = 2;
-    struct GK { int gx, gy; bool operator==(const GK& o) const { return gx == o.gx && gy == o.gy; } };
-    struct GKH { size_t operator()(const GK& k) const { return (size_t)k.gx * 1000003ULL + (size_t)k.gy; } };
-    std::unordered_map<GK, std::vector<int>, GKH> normal_grid;
-    for (int idx : normal_idx) {
-        int gx = (int)stars[idx].cx / grid_sz;
-        int gy = (int)stars[idx].cy / grid_sz;
-        normal_grid[{gx, gy}].push_back(idx);
-    }
-
-    // 饱和星与正常星去重改为丢弃正常星（保留饱和星,
-
-    // 修复: normal_deleted_by_sat 大小改为 stars.size, 因为 后 stars 布局混合
-    // (阶段8 同时添加正常星和饱和星, normal_idx 中的 stars 索引不再连续 [0, normal_count))
-    std::vector<uint8_t> normal_deleted_by_sat(stars.size(), 0);
-    for (int si = 0; si < (int)sat_idx.size(); si++) {
-        int i = sat_idx[si];
-        int gx = (int)stars[i].cx / grid_sz;
-        int gy = (int)stars[i].cy / grid_sz;
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                auto it = normal_grid.find({gx + dx, gy + dy});
-                if (it == normal_grid.end()) continue;
-                for (int ni : it->second) {
-                    double ddx = stars[i].cx - stars[ni].cx;
-                    double ddy = stars[i].cy - stars[ni].cy;
-                    if (ddx * ddx + ddy * ddy < 4.0) {
-                        normal_deleted_by_sat[ni] = 1;
-                    }
-                }
+    if (stars.size() < 2) return;
+    std::vector<char> drop(stars.size(), 0);
+    for (size_t i = 0; i < stars.size(); ++i) {
+        if (drop[i]) continue;
+        for (size_t j = i + 1; j < stars.size(); ++j) {
+            if (drop[j]) continue;
+            const double dx = stars[i].cx - stars[j].cx;
+            const double dy = stars[i].cy - stars[j].cy;
+            const double d2 = dx * dx + dy * dy;
+            if (stars[i].is_saturated && stars[j].is_saturated) {
+                if (d2 < 4.0) drop[stars[i].r >= stars[j].r ? j : i] = 1;
+            } else if (stars[i].is_saturated || stars[j].is_saturated) {
+                if (d2 < 4.0) drop[stars[i].is_saturated ? j : i] = 1;
+            } else {
+                if (d2 <= 1.0) drop[j] = 1;
             }
         }
     }
-
-    // 饱和星之间去重：保留r较大的
-    std::vector<uint8_t> sat_deleted(sat_idx.size(), 0);
-    std::unordered_map<GK, std::vector<int>, GKH> sat_grid;
-    for (int si = 0; si < (int)sat_idx.size(); si++) {
-        if (sat_deleted[si]) continue;
-        int i = sat_idx[si];
-        int gx = (int)stars[i].cx / grid_sz;
-        int gy = (int)stars[i].cy / grid_sz;
-        sat_grid[{gx, gy}].push_back(si);
-    }
-    for (int si = 0; si < (int)sat_idx.size(); si++) {
-        if (sat_deleted[si]) continue;
-        int i = sat_idx[si];
-        int gx = (int)stars[i].cx / grid_sz;
-        int gy = (int)stars[i].cy / grid_sz;
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                auto it = sat_grid.find({gx + dx, gy + dy});
-                if (it == sat_grid.end()) continue;
-                for (int sj : it->second) {
-                    if (sj == si || sat_deleted[sj]) continue;
-                    int j = sat_idx[sj];
-                    double ddx = stars[i].cx - stars[j].cx;
-                    double ddy = stars[i].cy - stars[j].cy;
-                    if (ddx * ddx + ddy * ddy < 4.0) {
-                        // 保留r较大的 (: r=0.0f 时稳定, 后续按 flux 排序)
-                        if (stars[i].r >= stars[j].r) sat_deleted[sj] = 1;
-                        else { sat_deleted[si] = 1; goto next_sat; }
-                    }
-                }
-            }
-        }
-        next_sat:;
-    }
-
-    // 正常星之间去重（: 合并饱和星去重标记）
-    // 修复: normal_deleted 以 stars 索引为下标, 大小 = stars.size
-    // normal_grid 存储的是 stars 索引 (不是 normal_idx 位置索引)
-    std::vector<uint8_t> normal_deleted = normal_deleted_by_sat;
-    for (int ni = 0; ni < (int)normal_idx.size(); ni++) {
-        int i = normal_idx[ni];  // stars 索引
-        if (normal_deleted[i]) continue;
-        int gx = (int)stars[i].cx / grid_sz;
-        int gy = (int)stars[i].cy / grid_sz;
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -1; dx <= 1; dx++) {
-                auto it = normal_grid.find({gx + dx, gy + dy});
-                if (it == normal_grid.end()) continue;
-                for (int nj : it->second) {  // nj 是 stars 索引
-                    if (nj == i || normal_deleted[nj]) continue;
-                    int j = nj;  // nj 已经是 stars 索引
-                    double ddx = stars[i].cx - stars[j].cx;
-                    double ddy = stars[i].cy - stars[j].cy;
-                    if (ddx * ddx + ddy * ddy <= 1.0) normal_deleted[nj] = 1;
-                }
-            }
-        }
-    }
-
-    // 合并结果
-    std::vector<StarRecord> result;
-    for (int si = 0; si < (int)sat_idx.size(); si++) {
-        if (!sat_deleted[si]) result.push_back(stars[sat_idx[si]]);
-    }
-    for (int ni = 0; ni < (int)normal_idx.size(); ni++) {
-        if (!normal_deleted[normal_idx[ni]]) result.push_back(stars[normal_idx[ni]]);
-    }
-
-    stars = std::move(result);
+    std::vector<StarRecord> keep;
+    keep.reserve(stars.size());
+    for (size_t i = 0; i < stars.size(); ++i)
+        if (!drop[i]) keep.push_back(stars[i]);
+    stars.swap(keep);
 }
-
-// 排序
-
-// mag = -2.5*log10(box_sum), box_sum 越大 mag 越小 (越亮)
 // NaN mag (box_sum<=0) 排到最后
 // 注: plate solver (ipv_select) 自己按 mag 重排, 此处排序仅供 API 输出一致性
+// SPEC: 5.15 O15 排序: mag 升序 stable_sort, NaN 恒排末尾（全序确定）。
 void sdet_sort_stars(std::vector<StarRecord>& stars) {
     std::stable_sort(stars.begin(), stars.end(), [](const StarRecord& a, const StarRecord& b) {
-        bool a_nan = std::isnan(a.mag);
-        bool b_nan = std::isnan(b.mag);
-        if (a_nan && b_nan) return false;
-        if (a_nan) return false;  // NaN 排最后
-        if (b_nan) return true;
-        return a.mag < b.mag;  // mag 升序 (越小越亮)
+        const bool a_nan = std::isnan((double)a.mag);
+        const bool b_nan = std::isnan((double)b.mag);
+        if (a_nan || b_nan) return !a_nan && b_nan;
+        return a.mag < b.mag;
     });
 }
-
 } // anonymous namespace
 
 SDET_EXPORT StarDetectorHandle sdet_create(const SDetParams *params)
@@ -1731,9 +1644,569 @@ SDET_EXPORT void sdet_free_debug_maps(float *maps)
     free(maps);
 }
 
+// ============================================================================
+// 生产检测主链（设计稿 §5, 16 算子; FP32/FP64 双模板, 算术各自冻结）
+// 算子链: O2 平滑 → O1 背景统计 → O4a 饱和岛 → O3 阈值化 + O11 deblending
+// 树 + O8 成分内极大 → mag_est 降序 → 逐候选 [O4b 饱和判定 → O5 质心 /
+// O6 行走 → O7 零交叉 → O9 拟合盒 → O10 对称门] → O12 并行 LM → O13 排异 +
+// O14 孔径测光 → O15 dedup/排序/截断 → 事务化输出。
+// ============================================================================
+namespace {
+
+// O4a 饱和岛（等效中心 + 等效半径, 供 O6 与饱和星 r 列）
+struct SdetSatIsland {
+    double cx, cy, r;
+};
+
+// 候选（检测段产出, 拟合段消费）
+struct SdetCand {
+    int ix, iy;              // O8 峰位像素索引（平滑图）
+    double x, y;             // 初值中心（像素中心坐标）: 非饱和 = O5 质心, 饱和 = O6 等效中心
+    float mag_est;           // O4b meanhigh（候选排序键, ALG :2170-2171 降序不截断）
+    double Sr, Sc;           // O7 零交叉宽度（平滑图 sigma 读数）
+    double Ar, Ac;           // O7 零交叉振幅读数（已乘 sqrt(e)）
+    double srl, srr;         // O7 行向左右零交叉距离（O10 门）
+    double scl, scr;         // O7 列向上下零交叉距离（O10 门）
+    int R;                   // O9 拟合盒半径
+    int rx0, ry0, rx1, ry1;  // O9 钳位帧内拟合盒
+    int sat;                 // O4b 饱和判定
+    double sat_r;            // O4a 岛等效半径（饱和星 r 列; 非岛内峰为 0）
+};
+
+const int    SDET_MAX_BOX_RADIUS  = 200;                    // O9 上限（MAX_BOX_RADIUS）
+const int    SDET_DEBLEND_LEVELS  = 30;                     // O11 指数间隔阈值层数（冻结）
+const double SDET_DELTA_C         = 5e-3;                   // O11 分流系数 delta_c（冻结）
+const int    SDET_DEBLEND_DEPTH   = 8;                      // O11 递归深度上限（防御; 常规树深 <=2）
+const double SDET_SQRT_EXP1       = 1.6487212707001281468;  // sqrt(e)（O7 振幅换算恒等式）
+
+// O9 半径系数 s_factor = sqrt(2 ln 1000)（解析式入常量, 设计稿 §8-7）
+const double SDET_S_FACTOR = std::sqrt(2.0 * std::log(1000.0));
+
+// ---- SPEC: §5.11 O11 deblending 树（B&A96 §4; 设计稿 §5.11）----
+// t(i) = thr*(Smax/thr)^(i/30), i = 1..30 自高向低; 首个满足「>= 2 枝且枝积分
+// 流量 > delta_c * 组分总流量」的层执行分裂: 存活枝 → 独立成分（递归, 总流量
+// 参照保持根组分值）; 未存活/低于分离阈值的像素按双变量高斯 argmax 重分配
+// （mu = 叶峰位, sigma^2 = 叶内权重二阶矩 + 0.25 下限）, 平局判归登记序靠前
+// （确定性, 项目定义）。全层不满足 → 单成分（B&A96 §4.3: 间隔 < 2 sigma 不可分,
+// 不触发即保持单星）。
+struct SdetLeaf {
+    std::vector<int> pix;  // 成分像素（升序 = 扫描序）
+    int peak;              // O8 成分内极大（平局取扫描序最先）
+};
+
+template <typename T>
+static void sdet_deblend_leaf(const T* smooth, int w,
+                              const std::vector<int>& pix,
+                              double thr, double total_flux, int depth,
+                              std::vector<SdetLeaf>* out_leaves) {
+    (void)total_flux;
+    (void)depth;
+    // FIX-R3: 成分内极大 = O11 树阈值层基准 smax（B&A96 §4.1, t(i) 以其为标度）;
+    // 候选峰选择不再消费 leaf.peak——O8 冻结语义 = 检测段叶循环 11x11 局部极大
+    // 扫描（见 sdet_detect_impl）, peak 字段保留仅供树基准与调试消费。
+    int peak = pix[0];
+    for (size_t k = 1; k < pix.size(); ++k)
+        if ((double)smooth[pix[k]] > (double)smooth[peak]) peak = pix[k];
+    const double smax = (double)smooth[peak];
+    if (pix.size() < 3 || !(smax > thr)) {
+        SdetLeaf leaf;
+        leaf.pix = pix;
+        leaf.peak = peak;
+        out_leaves->push_back(leaf);
+        return;
+    }
+    // ---- B&A96 §4.1 亮度树, 自叶向根评估（设计稿 O11 操作化规则）----
+    // 建 30 层指数间隔阈值枝; 自最细层（高阈）向根（低阈）逐层归并:
+    //   结点（层 i 枝 b）下被包含的当前成分若 >=2 且其中 >=2 个满足
+    //   flow_{t(i)}(子) > delta_c * 组分总流量(b, 检出阈底) 则保持分离,
+    //   否则未存活成分并入父枝继续向根评估; 根层仍分离的成分即独立星。
+    std::vector<std::vector<std::vector<int>>> layers(
+        (size_t)SDET_DEBLEND_LEVELS + 1);
+    for (int i = SDET_DEBLEND_LEVELS - 1; i >= 1; --i) {
+        const double t = thr * std::pow(smax / thr,
+                                        (double)i / (double)SDET_DEBLEND_LEVELS);
+        std::vector<int> pix_t;
+        pix_t.reserve(pix.size());
+        for (size_t k = 0; k < pix.size(); ++k)
+            if ((double)smooth[pix[k]] > t) pix_t.push_back(pix[k]);
+        if (pix_t.size() < 2) continue;
+        std::vector<std::vector<int>>& branches = layers[(size_t)i];
+        std::vector<int> blabel(pix_t.size(), -1);
+        std::vector<int> queue;
+        for (size_t s = 0; s < pix_t.size(); ++s) {
+            if (blabel[s] >= 0) continue;
+            blabel[s] = (int)branches.size();
+            queue.clear();
+            queue.push_back((int)s);
+            std::vector<int> comp;
+            for (size_t qi = 0; qi < queue.size(); ++qi) {
+                const int si = queue[qi];
+                comp.push_back(pix_t[(size_t)si]);
+                const int px = pix_t[(size_t)si] % w;
+                const int py = pix_t[(size_t)si] / w;
+                for (int dy = -1; dy <= 1; ++dy)
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (!dx && !dy) continue;
+                        const int nx = px + dx, ny = py + dy;
+                        if (nx < 0 || nx >= w || ny < 0) continue;
+                        const int np = ny * w + nx;
+                        const std::vector<int>::const_iterator it =
+                            std::lower_bound(pix_t.begin(), pix_t.end(), np);
+                        if (it == pix_t.end() || *it != np) continue;
+                        const int nsi = (int)(it - pix_t.begin());
+                        if (blabel[(size_t)nsi] < 0) {
+                            blabel[(size_t)nsi] = blabel[s];
+                            queue.push_back(nsi);
+                        }
+                    }
+            }
+            std::sort(comp.begin(), comp.end());
+            branches.push_back(comp);
+        }
+    }
+    std::vector<int> assigned((size_t)pix.back() + 1, -1);
+    std::vector<std::vector<int>> comps;
+    std::vector<int> comp_peak;
+    for (int i = SDET_DEBLEND_LEVELS - 1; i >= 1; --i) {
+        const std::vector<std::vector<int>>& brs = layers[(size_t)i];
+        if (brs.empty()) continue;
+        const double t = thr * std::pow(smax / thr,
+                                        (double)i / (double)SDET_DEBLEND_LEVELS);
+        // (1) 每枝积分流量判据（枝自身组分总流量为基准, B&A96 递归 object 语义）
+        std::vector<char> sat1(brs.size(), 0);
+        int n_sat1 = 0;
+        for (size_t b = 0; b < brs.size(); ++b) {
+            double fsum = 0.0, bflow = 0.0;
+            for (size_t k = 0; k < brs[b].size(); ++k) {
+                fsum += (double)smooth[brs[b][k]] - t;
+                bflow += (double)smooth[brs[b][k]] - thr;
+            }
+            if (fsum > SDET_DELTA_C * bflow) { sat1[b] = 1; ++n_sat1; }
+        }
+        const bool can_spawn = (n_sat1 >= 2);
+        for (size_t b = 0; b < brs.size(); ++b) {
+            const std::vector<int>& bp = brs[b];
+            std::vector<size_t> contained;
+            for (size_t c = 0; c < comps.size(); ++c) {
+                bool inside = true;
+                if (comps[c].empty()) continue;
+                for (size_t k = 0; k < comps[c].size(); ++k) {
+                    if (assigned[comps[c][k]] != (int)c) { inside = false; break; }
+                    const std::vector<int>::const_iterator it =
+                        std::lower_bound(bp.begin(), bp.end(), comps[c][k]);
+                    if (it == bp.end() || *it != comps[c][k]) { inside = false; break; }
+                }
+                if (inside) contained.push_back(c);
+            }
+            if (contained.empty()) {
+                if (can_spawn && sat1[b]) {
+                    const int cid = (int)comps.size();
+                    std::vector<int> npix;
+                    int pk = -1;
+                    for (size_t k = 0; k < bp.size(); ++k) {
+                        if (assigned[bp[k]] >= 0) continue;
+                        assigned[bp[k]] = cid;
+                        npix.push_back(bp[k]);
+                        if (pk < 0 || (double)smooth[bp[k]] > (double)smooth[pk]) pk = bp[k];
+                    }
+                    if (!npix.empty()) { comps.push_back(npix); comp_peak.push_back(pk); }
+                }
+                continue;
+            }
+            if (contained.size() == 1) {
+                const size_t c = contained[0];
+                for (size_t k = 0; k < bp.size(); ++k) {
+                    if (assigned[bp[k]] >= 0) continue;
+                    assigned[bp[k]] = (int)c;
+                    comps[c].push_back(bp[k]);
+                }
+                std::sort(comps[c].begin(), comps[c].end());
+                continue;
+            }
+            // >=2 成分: 未分配像素双变量高斯 argmax（mu=成分峰, sigma^2=权重二阶矩+0.25）
+            std::vector<double> mux(contained.size()), muy(contained.size());
+            std::vector<double> sx2(contained.size(), 0.25), sy2(contained.size(), 0.25);
+            for (size_t s2 = 0; s2 < contained.size(); ++s2) {
+                const std::vector<int>& cp = comps[contained[s2]];
+                const int pk = comp_peak[contained[s2]];
+                const double mxc = (double)(pk % w) + 0.5, myc = (double)(pk / w) + 0.5;
+                double wsum = 0.0, wx2 = 0.0, wy2 = 0.0;
+                for (size_t k = 0; k < cp.size(); ++k) {
+                    const int p = cp[k];
+                    const double wgt = std::max((double)smooth[p] - t, 0.0);
+                    const double pdx = (double)(p % w) + 0.5 - mxc;
+                    const double pdy = (double)(p / w) + 0.5 - myc;
+                    wsum += wgt; wx2 += wgt * pdx * pdx; wy2 += wgt * pdy * pdy;
+                }
+                if (wsum > 0.0) { sx2[s2] = wx2 / wsum + 0.25; sy2[s2] = wy2 / wsum + 0.25; }
+                mux[s2] = mxc; muy[s2] = myc;
+            }
+            for (size_t k = 0; k < bp.size(); ++k) {
+                const int p = bp[k];
+                if (assigned[p] >= 0) continue;
+                const double px = (double)(p % w) + 0.5, py = (double)(p / w) + 0.5;
+                int best = -1; double bestp = 0.0;
+                for (size_t s2 = 0; s2 < contained.size(); ++s2) {
+                    const double ax = (px - mux[s2]) / std::sqrt(sx2[s2]);
+                    const double ay = (py - muy[s2]) / std::sqrt(sy2[s2]);
+                    const double pr = -0.5 * (ax * ax + ay * ay);
+                    if (best < 0 || pr > bestp) { best = (int)s2; bestp = pr; }
+                }
+                if (best >= 0) {
+                    const size_t c = contained[(size_t)best];
+                    assigned[p] = (int)c;
+                    comps[c].push_back(p);
+                }
+            }
+            for (size_t s2 = 0; s2 < contained.size(); ++s2)
+                std::sort(comps[contained[s2]].begin(), comps[contained[s2]].end());
+        }
+    }
+    // 根层后仍未分配像素 → 全成分 argmax（同一判据; 设计稿重分配条款收尾）
+    if (!comps.empty()) {
+        std::vector<double> mux(comps.size()), muy(comps.size());
+        std::vector<double> sx2(comps.size(), 0.25), sy2(comps.size(), 0.25);
+        for (size_t c = 0; c < comps.size(); ++c) {
+            const int pk = comp_peak[c];
+            const double mxc = (double)(pk % w) + 0.5, myc = (double)(pk / w) + 0.5;
+            double wsum = 0.0, wx2 = 0.0, wy2 = 0.0;
+            for (size_t k = 0; k < comps[c].size(); ++k) {
+                const int p = comps[c][k];
+                const double wgt = std::max((double)smooth[p] - thr, 0.0);
+                const double pdx = (double)(p % w) + 0.5 - mxc;
+                const double pdy = (double)(p / w) + 0.5 - myc;
+                wsum += wgt; wx2 += wgt * pdx * pdx; wy2 += wgt * pdy * pdy;
+            }
+            if (wsum > 0.0) { sx2[c] = wx2 / wsum + 0.25; sy2[c] = wy2 / wsum + 0.25; }
+            mux[c] = mxc; muy[c] = myc;
+        }
+        for (size_t p = 0; p < pix.size(); ++p) {
+            const int pp = pix[p];
+            if (assigned[pp] >= 0) continue;
+            const double px = (double)(pp % w) + 0.5, py = (double)(pp / w) + 0.5;
+            int best = -1; double bestp = 0.0;
+            for (size_t c = 0; c < comps.size(); ++c) {
+                const double ax = (px - mux[c]) / std::sqrt(sx2[c]);
+                const double ay = (py - muy[c]) / std::sqrt(sy2[c]);
+                const double pr = -0.5 * (ax * ax + ay * ay);
+                if (best < 0 || pr > bestp) { best = (int)c; bestp = pr; }
+            }
+            if (best >= 0) {
+                assigned[pp] = best;
+                comps[(size_t)best].push_back(pp);
+            }
+        }
+        for (size_t c = 0; c < comps.size(); ++c)
+            std::sort(comps[c].begin(), comps[c].end());
+    }
+    if (comps.empty()) {   // 根不分裂 -> 单星（B&A96）
+        SdetLeaf leaf;
+        leaf.pix = pix;
+        leaf.peak = peak;
+        out_leaves->push_back(leaf);
+        return;
+    }
+    for (size_t c = 0; c < comps.size(); ++c) {
+        if (comps[c].empty()) continue;
+        SdetLeaf leaf;
+        leaf.pix = comps[c];
+        leaf.peak = comp_peak[c];
+        out_leaves->push_back(leaf);
+    }
+}
+
+
+
+// ---- SPEC: §5.7 O7 单方向零交叉扫描 ----
+// 从峰沿 (dx,dy) 找二阶差分 d2(x) = S[x-1] - 2S[x] + S[x+1] 首次 >= 0（峰侧
+// d2 < 0）的像素中心; 返回 dist = 峰到零交叉的像素距离（缺失 → 1.0）、
+// raw = 零交叉处平滑读数 - bkg（调用方 * sqrt(e) 换算振幅; 缺失 → 0）。
+// 饱和候选（sat_skip）从峰起先跳过原图 >= sat_threshold 的像素段。
+// 零交叉位置不内插（半像素偏差由 O9 的 ceil 承载）。
+template <typename T>
+static void sdet_zero_cross_dir(const T* smooth, int w, int h,
+                                const T* src, double sat_threshold,
+                                int ix, int iy, int dx, int dy,
+                                double bkg, bool sat_skip,
+                                double* dist_out, double* raw_out) {
+    int x = ix, y = iy;
+    if (sat_skip && sat_threshold > 0.0) {
+        for (int g = 0; g < 4096; ++g) {
+            const int nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) { *dist_out = 1.0; *raw_out = 0.0; return; }
+            x = nx; y = ny;
+            if (!((double)src[(size_t)y * (size_t)w + (size_t)x] >= sat_threshold)) break;
+        }
+    }
+    double prev = 0.0;
+    bool have = false;
+    for (int g = 0; g < 4096; ++g) {
+        const int px = x - dx, py = y - dy;
+        const int nx = x + dx, ny = y + dy;
+        if (px < 0 || px >= w || py < 0 || py >= h) break;
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) break;
+        const double d2 =
+            (double)smooth[(size_t)py * (size_t)w + (size_t)px]
+            - 2.0 * (double)smooth[(size_t)y * (size_t)w + (size_t)x]
+            + (double)smooth[(size_t)ny * (size_t)w + (size_t)nx];
+        if (have && prev < 0.0 && d2 >= 0.0) {
+            double dist = (double)(std::abs(x - ix) + std::abs(y - iy));
+            if (dist < 1.0) dist = 1.0;
+            *dist_out = dist;
+            *raw_out = (double)smooth[(size_t)y * (size_t)w + (size_t)x] - bkg;
+            return;
+        }
+        prev = d2;
+        have = true;
+        x = nx; y = ny;
+    }
+    *dist_out = 1.0;
+    *raw_out = 0.0;
+}
+
+// ---- SPEC: §5.4 O4a 饱和岛预标记 ----
+// sat_threshold 单阈二值化（pixel > sat_threshold）→ 4-连通域; 岛级几何过滤:
+// 面积 > 1、外接盒长宽比 <= 3; 每岛亮度加权重心 → 四方向 edge-walking 至
+// pixel <= sat_threshold 边缘 → 等效中心 = 边缘盒中心; r = sqrt(面积/π)。
+// label 语义: >0 = 岛编号（islands 下标 + 1）, -1 = 已访问不合格, 0 = 未访问。
+template <typename T>
+static void sdet_mark_sat_islands(const T* src, int w, int h, double sat_threshold,
+                                  std::vector<int>* label_out,
+                                  std::vector<SdetSatIsland>* islands_out) {
+    const std::size_t np = (std::size_t)w * (std::size_t)h;
+    label_out->assign(np, 0);
+    islands_out->clear();
+    std::vector<int> queue;
+    for (int y0 = 0; y0 < h; ++y0) {
+        for (int x0 = 0; x0 < w; ++x0) {
+            const int p0 = y0 * w + x0;
+            if (!((double)src[p0] > sat_threshold) || (*label_out)[(size_t)p0] != 0) continue;
+            const int label = (int)islands_out->size() + 1;
+            (*label_out)[(size_t)p0] = label;
+            queue.clear();
+            queue.push_back(p0);
+            int area = 0;
+            int minx = w, maxx = -1, miny = h, maxy = -1;
+            double wsum = 0.0, wx = 0.0, wy = 0.0;
+            for (size_t qi = 0; qi < queue.size(); ++qi) {
+                const int p = queue[qi];
+                const int px = p % w, py = p / w;
+                ++area;
+                if (px < minx) minx = px;
+                if (px > maxx) maxx = px;
+                if (py < miny) miny = py;
+                if (py > maxy) maxy = py;
+                const double wgt = (double)src[p];
+                wsum += wgt;
+                wx += wgt * ((double)px + 0.5);
+                wy += wgt * ((double)py + 0.5);
+                const int nb[4] = { p - 1, p + 1, p - w, p + w };
+                const bool ok[4] = { px > 0, px < w - 1, py > 0, py < h - 1 };
+                for (int d = 0; d < 4; ++d) {
+                    if (!ok[d]) continue;
+                    const int q = nb[d];
+                    if ((double)src[q] > sat_threshold && (*label_out)[(size_t)q] == 0) {
+                        (*label_out)[(size_t)q] = label;
+                        queue.push_back(q);
+                    }
+                }
+            }
+            const int bw = maxx - minx + 1, bh = maxy - miny + 1;
+            const int bmax = bw > bh ? bw : bh;
+            const int bmin = bw > bh ? bh : bw;
+            if (area <= 1 || (bmin > 0 && (double)bmax / (double)bmin > 3.0)) {
+                for (size_t qi = 0; qi < queue.size(); ++qi)
+                    (*label_out)[(size_t)queue[qi]] = -1;
+                continue;
+            }
+            SdetSatIsland isl;
+            // 亮度加权重心 → 四方向 edge-walking（沿行/列走至 pixel <= sat_threshold）
+            int sx0 = (int)std::lround(wx / wsum - 0.5);
+            int sy0 = (int)std::lround(wy / wsum - 0.5);
+            if (sx0 < minx) sx0 = minx;
+            if (sx0 > maxx) sx0 = maxx;
+            if (sy0 < miny) sy0 = miny;
+            if (sy0 > maxy) sy0 = maxy;
+            int xl = sx0, xr = sx0, yd = sy0, yu = sy0;
+            while (xl - 1 >= 0 && (double)src[(size_t)sy0 * (size_t)w + (size_t)(xl - 1)] > sat_threshold) --xl;
+            while (xr + 1 < w && (double)src[(size_t)sy0 * (size_t)w + (size_t)(xr + 1)] > sat_threshold) ++xr;
+            while (yd - 1 >= 0 && (double)src[(size_t)(yd - 1) * (size_t)w + (size_t)sx0] > sat_threshold) --yd;
+            while (yu + 1 < h && (double)src[(size_t)(yu + 1) * (size_t)w + (size_t)sx0] > sat_threshold) ++yu;
+            isl.cx = 0.5 * ((double)xl + (double)xr) + 0.5;
+            isl.cy = 0.5 * ((double)yd + (double)yu) + 0.5;
+            isl.r = std::sqrt((double)area / 3.14159265358979323846);
+            islands_out->push_back(isl);
+        }
+    }
+}
+
+// ---- 域准备（impl/guided 共用）: 非有限填充 + O2 平滑 + O1 统计族 ----
+template <typename T>
+struct SdetPrep {
+    std::vector<T> finite_buf;
+    std::vector<T> smooth;
+    const T* src;
+    const T* smooth_data;
+    double bg, bgnoise, dynrange, sat_threshold, satrange, locthreshold, thr;
+};
+
+template <typename T>
+static SdetPrep<T> sdet_prepare_field(const T* image, int w, int h) {
+    SdetPrep<T> pr;
+    const std::size_t np = (std::size_t)w * (std::size_t)h;
+    // 非有限输入域处理（ALG §4 NaN 条款推广）: 工作副本将非有限像素以全图
+    // 有限中位填充; 无非有限时零拷贝直通。估计器入口逐像素 isfinite 归约,
+    // 全非有限帧由调用方经 bg/maxi 检查判空。
+    pr.src = image;
+    {
+        bool bad = false;
+        for (std::size_t i = 0; i < np; ++i)
+            if (!std::isfinite((double)image[i])) { bad = true; break; }
+        if (bad) {
+            pr.finite_buf.assign(image, image + np);
+            T med;
+            if constexpr (std::is_same<T, float>::value)
+                med = sdet_robust_median(pr.finite_buf.data(), (int)np);
+            else
+                med = (T)sdet_robust_median_d(pr.finite_buf.data(), (int)np);
+            for (std::size_t i = 0; i < np; ++i)
+                if (!std::isfinite((double)pr.finite_buf[i])) pr.finite_buf[i] = med;
+            pr.src = pr.finite_buf.data();
+        }
+    }
+    // O2: 高斯平滑（sigma = 2.0 冻结; float/double 变体算术各自冻结）
+    pr.smooth.resize(np);
+    if constexpr (std::is_same<T, float>::value)
+        sdet_gaussian_blur_yvv((const float*)pr.src, (float*)pr.smooth.data(), w, h, 2.0);
+    else
+        sdet_gaussian_blur_yvv_d((const double*)pr.src, (double*)pr.smooth.data(), w, h, 2.0);
+    pr.smooth_data = pr.smooth.data();
+    // O1: 背景统计族
+    pr.bgnoise = (double)sdet_compute_bgnoise<T>(pr.src, w, h);
+    if constexpr (std::is_same<T, float>::value)
+        pr.bg = (double)sdet_robust_median(pr.src, (int)np);
+    else
+        pr.bg = sdet_robust_median_d(pr.src, (int)np);
+    double maxi = -1e300;
+    for (std::size_t i = 0; i < np; ++i) {
+        const double v = (double)pr.src[i];
+        if (std::isfinite(v) && v > maxi) maxi = v;
+    }
+    if (!std::isfinite(pr.bg) || maxi <= -1e300) {
+        // 全非有限帧: 判空域（调用方经 thr 有效性检查出空输出）
+        pr.dynrange = 0.0;
+        pr.sat_threshold = 0.0;
+        pr.satrange = 0.0;
+        pr.locthreshold = 0.0;
+        pr.thr = std::nan("");
+        return pr;
+    }
+    // DISP-STAR-006: 归一化上限 65535.0f; dynrange = min(max, 65535) - bg
+    // （相对背景形态, 非绝对 0.7*65535）
+    pr.dynrange = std::min(maxi, (double)(float)65535.0f) - pr.bg;
+    pr.sat_threshold = pr.bg + 0.7 * pr.dynrange;
+    pr.satrange = 0.1 * pr.dynrange;
+    pr.locthreshold = 5.0 * pr.bgnoise;
+    pr.thr = pr.bg + 5.0 * pr.bgnoise;   // O3: kappa = 5.0 冻结
+    return pr;
+}
+
+// ---- O15 输出整理 + 事务化输出构造（impl/guided 共用; §3 输出合同）----
+// OOM 注入检查点 = 本段连续 malloc 序列（输出六数组 + extras）: 任一失败 →
+// 释放全部 → 输出全 NULL + *out_count = -1 + rc = -1; 空场 → 全 NULL +
+// *out_count = 0 + rc = 0（非错误）。maxStars 截断在此（输出段, ALG :2383-2385）。
+static int sdet_emit_records(std::vector<StarRecord>& stars,
+                             long long max_stars,
+                             const char** extra_names, int extra_count,
+                             double** out_x, double** out_y, float** out_flux,
+                             int** out_saturated, float** out_mag,
+                             int** out_has_saturated, int* out_count,
+                             float*** out_extras) {
+    sdet_dedup_stars(stars);
+    sdet_sort_stars(stars);
+    if (max_stars > 0 && (long long)stars.size() > max_stars)
+        stars.resize((size_t)max_stars);
+    const int nout = (int)stars.size();
+    if (nout == 0) {
+        *out_count = 0;
+        return 0;
+    }
+    double* ox = (double*)std::malloc(sizeof(double) * (size_t)nout);
+    double* oy = ox ? (double*)std::malloc(sizeof(double) * (size_t)nout) : NULL;
+    float* ofl = oy ? (float*)std::malloc(sizeof(float) * (size_t)nout) : NULL;
+    int* osa = ofl ? (int*)std::malloc(sizeof(int) * (size_t)nout) : NULL;
+    float* omg = osa ? (float*)std::malloc(sizeof(float) * (size_t)nout) : NULL;
+    int* ohs = omg ? (int*)std::malloc(sizeof(int) * (size_t)nout) : NULL;
+    float** oex = NULL;
+    int oex_bad = 0;
+    if (ohs && extra_count > 0) {
+        oex = (float**)std::malloc(sizeof(float*) * (size_t)extra_count);
+        if (oex) {
+            for (int k = 0; k < extra_count; ++k) oex[k] = NULL;
+            for (int k = 0; k < extra_count; ++k) {
+                oex[k] = (float*)std::malloc(sizeof(float) * (size_t)nout);
+                if (!oex[k]) { oex_bad = 1; break; }
+            }
+        } else {
+            oex_bad = 1;
+        }
+    }
+    if (!ox || !oy || !ofl || !osa || !omg || !ohs || oex_bad ||
+        (extra_count > 0 && !oex)) {
+        std::free(ox);
+        std::free(oy);
+        std::free(ofl);
+        std::free(osa);
+        std::free(omg);
+        std::free(ohs);
+        if (oex) {
+            for (int k = 0; k < extra_count; ++k) std::free(oex[k]);
+            std::free(oex);
+        }
+        *out_x = NULL;
+        *out_y = NULL;
+        *out_flux = NULL;
+        *out_saturated = NULL;
+        *out_mag = NULL;
+        *out_has_saturated = NULL;
+        if (out_extras) *out_extras = NULL;
+        *out_count = -1;
+        return -1;
+    }
+    for (int i = 0; i < nout; ++i) {
+        ox[i] = stars[(size_t)i].cx;
+        oy[i] = stars[(size_t)i].cy;
+        ofl[i] = stars[(size_t)i].flux;
+        osa[i] = stars[(size_t)i].is_saturated;
+        omg[i] = stars[(size_t)i].mag;
+        ohs[i] = stars[(size_t)i].has_saturated;
+    }
+    if (extra_count > 0) {
+        for (int k = 0; k < extra_count; ++k) {
+            const ExtraField ef = (extra_names && extra_names[k])
+                                      ? parse_extra_name(extra_names[k])
+                                      : EXTRA_UNKNOWN;
+            for (int i = 0; i < nout; ++i)
+                oex[k][i] = get_extra_field(stars[(size_t)i], ef);
+        }
+        if (out_extras) *out_extras = oex;
+    } else if (out_extras) {
+        *out_extras = NULL;
+    }
+    *out_x = ox;
+    *out_y = oy;
+    *out_flux = ofl;
+    *out_saturated = osa;
+    *out_mag = omg;
+    *out_has_saturated = ohs;
+    *out_count = nout;
+    return 0;
+}
+
+}  // namespace
+
 // sdet_detect_impl - 星点检测核心 (模板双实例)
-// T=float: 与旧 sdet_detect_ex 行为逐位一致 (uint16→float 由入口包装完成)
-// T=double: FP64 模式 (输入 double 校准图, 全程 double 检测, 不降级 float32)
+// T=float: uint16→float 由入口包装完成; T=double: FP64 全程不降级
 template <typename T>
 static int sdet_detect_impl(StarDetectorHandle handle,
                             const T *image, int width, int height,
@@ -1742,767 +2215,389 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                             int *out_count,
                             const char **extra_names, int extra_count, float ***out_extras)
 {
-    auto t0 = std::chrono::high_resolution_clock::now();
-    auto t_last = t0;
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_impl start: %dx%d", width, height);
+    if (!handle || !image || !out_x || !out_y || !out_flux || !out_saturated ||
+        !out_mag || !out_has_saturated || !out_count) return -1;
+    if (width <= 0 || height <= 0) return -1;
+    if (extra_count > 0 && (!extra_names || !out_extras)) return -1;
+    *out_x = NULL; *out_y = NULL; *out_flux = NULL;
+    *out_saturated = NULL; *out_mag = NULL; *out_has_saturated = NULL;
+    *out_count = 0;
+    if (out_extras) *out_extras = NULL;
 
-    if (!handle || !image || !out_x || !out_y || !out_flux || !out_saturated || !out_count) return -1;
+    const SDetParams& params = handle->internal.params;
+    const int w = width, h = height;
 
-    const SDetParams &params = handle->internal.params;
-    size_t n = (size_t)width * height;
+    // ---- 域准备: 非有限填充 + O2 平滑 + O1 统计族 ----
+    SdetPrep<T> pr = sdet_prepare_field<T>(image, w, h);
+    const T* src = pr.src;
+    const T* smooth = pr.smooth_data;
+    if (!std::isfinite(pr.thr)) return 0;   // 全非有限帧 → 空输出（rc = 0, count = 0）
+    const double& bg = pr.bg;
+    const double& bgnoise = pr.bgnoise;
+    const double& dynrange = pr.dynrange;
+    const double& sat_threshold = pr.sat_threshold;
+    const double& locthreshold = pr.locthreshold;
+    const double& thr = pr.thr;
 
-    handle->internal.width = width;
-    handle->internal.height = height;
+    // ---- O4a: 饱和岛预标记 ----
+    std::vector<int> sat_label;
+    std::vector<SdetSatIsland> islands;
+    sdet_mark_sat_islands<T>(src, w, h, sat_threshold, &sat_label, &islands);
 
-    // 阶段2: 原图高斯平滑 (T 版本: float=YvV, double=YvV_d)
-    // 使用 Young-van Vliet 递归 IIR 高斯滤波
-    std::vector<T> smooth(n);
-    if constexpr (std::is_same_v<T, float>) {
-        sdet_gaussian_blur_yvv(image, smooth.data(), width, height, 2.0);
-    } else {
-        sdet_gaussian_blur_yvv_d(image, smooth.data(), width, height, 2.0);
-    }
-    auto t2 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[2] Gaussian YvV smooth (sigma=2.0): %.1f ms",
-             std::chrono::duration<double, std::milli>(t2 - t_last).count());
-    t_last = t2;
-
-    // 阶段3: 全局阈值
-    // star_finder.c:80,201: threshold = stat->median + sigma*5.0*stat->bgnoise (sigma=1.0)
-    T bgnoise = sdet_compute_bgnoise<T>(image, width, height);
-    T img_median;
-    if constexpr (std::is_same_v<T, float>) {
-        img_median = sdet_robust_median(image, (int)n);
-    } else {
-        img_median = sdet_robust_median_d(image, (int)n);
-    }
-    T threshold = img_median + T(5.0) * bgnoise;
-    sdet_log(SDET_LOG_INFO, "SDET", "peaker: median=%.4f bgnoise=%.4f threshold=%.4f (median+5*bgnoise)",
-             img_median, bgnoise, threshold);
-    auto t3 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[3] Threshold: %.1f ms",
-             std::chrono::duration<double, std::milli>(t3 - t_last).count());
-    t_last = t3;
-
-    // 阶段4: peaker 完整候选检测 (star_finder.c:278-544)
-    // (1) 11x11 (r=5) 局部极大值 + 平局决胜 (line 288-310)
-    // (2) 3x3 邻域亮度验证 meanhigh/count (line 312-333)
-    // (3) 饱和星 edge-walking 精确定位中心 (line 355-409)
-    // (4) 二阶导数零交叉 Sr/Sc + 振幅 Ar/Ac (line 411-492)
-    // (5) R=max(ceil(3.717*Sr),ceil(3.717*Sc),r) (line 495-510)
-    // (6) 对称性质量检查 dA/dSr/dSc (line 513-518)
-    // (7) candidate_is_duplicate 去重 (line 521)
-    struct Candidate {
-        double cx, cy;
-        int pixel_count;
-        double brightness;
-        double mag_est;       // meanhigh (star_finder.c:528)
-        float sx;             // Sr row width (star_finder.c:530)
-        float sy;             // Sc column width (star_finder.c:531)
-        int R;                // box radius for PSF fitting (star_finder.c:529)
-        float sat;            // saturation level (star_finder.c:532)
-        bool has_saturated;
-    };
-    std::vector<Candidate> candidates;
-
-    const double SQRT_EXP1 = 1.6487212707;              // sqrt(e), 振幅估计 (line 47)
-    const double SAT_THRESHOLD_FRAC = 0.7;               // 动态范围比例 (line 50)
-    const double SAT_DETECTION_RANGE_FRAC = 0.1;         // 饱和平台变化 (line 51)
-    const double DENSITY_THRESHOLD = 0.001;              // PSF能量密度阈值 (line 49)
-    const double s_factor = std::sqrt(-2.0 * std::log(DENSITY_THRESHOLD)); // =3.7172 (line 275)
-    const int MAX_BOX_RADIUS = 200;                      // (line 52)
-    const double MAX_RADIUS_RATIO_DUP = 0.2;             // (line 53)
-
-    const int r = 5;  // 搜索半径 (sf->radius)
-    const int boxsize = (2 * r + 1) * (2 * r + 1);
-    const double bg = (double)img_median;
-    double maxi = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        if (image[i] > maxi) maxi = image[i];
-    }
-    const float norm = 65535.0f;  // uint16 归一化值
-    const double dynrange = std::min(maxi, (double)norm) - bg;
-    const double minsatlevel = dynrange * SAT_THRESHOLD_FRAC;
-    const double satrange = dynrange * SAT_DETECTION_RANGE_FRAC;
-    const double locthreshold = 5.0 * (double)bgnoise;  // sf->sigma=1.0
-
-    sdet_log(SDET_LOG_INFO, "SDET", "peaker: bg=%.1f maxi=%.1f norm=%.1f dynrange=%.1f "
-             "minsatlevel=%.1f satrange=%.1f s_factor=%.4f locthreshold=%.4f",
-             bg, maxi, norm, dynrange, minsatlevel, satrange, s_factor, locthreshold);
-
-    // 饱和判断阶段统计
-    int dbg_pass_threshold = 0;    // pixel > threshold
-    int dbg_pass_localmax = 0;     // 11x11 局部极大值
-    int dbg_pass_count3 = 0;       // 3x3 邻域 count >= 3
-    int dbg_pass_boundary = 0;     // 边界检查
-    int dbg_sat_meanhigh = 0;      // meanhigh - bg >= minsatlevel
-    int dbg_sat_platform = 0;      // pixel0 - minhigh <= satrange
-    int dbg_sat_both = 0;          // 两个条件都满足 (饱和)
-    int dbg_nonsat = 0;            // 非饱和
-
-    for (int y = r; y < height - r; y++) {
-        for (int x = r; x < width - r; x++) {
-            T pixel = smooth[(size_t)y * width + x];
-            if (pixel <= threshold) continue;
-            dbg_pass_threshold++;
-
-            // (1) 11x11 局部极大值 + 平局决胜 (star_finder.c:288-310)
-            bool bingo = true;
-            int count = 0;
-            for (int yy = y - r; yy <= y + r && bingo; yy++) {
-                for (int xx = x - r; xx <= x + r; xx++) {
-                    if (xx == x && yy == y) continue;
-                    T neighbor = smooth[(size_t)yy * width + xx];
-                    if (neighbor > pixel) { bingo = false; break; }
-                    else if (neighbor == pixel) {
-                        // 平局决胜: 取左上半平面为唯一极大值 (star_finder.c:296-300)
-                        if ((xx <= x && yy <= y) || (xx > x && yy < y)) {
-                            bingo = false; break;
+    // ---- O3 阈值化 + 8-连通组分 → O11 deblending 树 → O8 峰（检测段）----
+    std::vector<SdetCand> cands;
+    // FIX-R3: 叶内 11x11 局部极大扫描（O8 冻结语义恢复, ALG §3 :127-129;
+    // 设计稿 §5.8——重写保持仅修越界读）。
+    // 数学等价性论证: local_max 判定窗 = 全图 ±5（与叶归属无关）, 峰
+    // （smooth > thr 的局部极大）必属某组分; 树分裂叶像素表 ∪ 树成分峰
+    // 覆盖组分内全部局部极大候选（漏峰防御见 lambda 内注）; 逐像素扫描与
+    // 旧 x+=5 跳步行为等价（跳步位置 = 已确认峰 ±5 窗内 → 必被窗内更高/
+    // 决胜者否决, 不可能同时是局部极大）。pixel_count 统计窗（等价分析
+    // :2101-2106 越界带 = pixel_count 窗钳位 + 右端 xx'∈{w−5..w−3} 带）
+    // 仅旧日志面（med_pixel_count → auto_fit_radius）消费, 重写无该消费面,
+    // 不重构入。平局决胜 = 左上优先（字典序先到者胜, 与旧码否决式
+    // (xx'<=x&&yy'<=y)||(xx'>x&&yy'<y) 等价）。等价分析 :1866 count 门
+    // （boxsize 值无权威来源）按权威链序（ALG §3 → 设计稿 §5.8）省略。
+    auto leaf_local_maxima = [&](const SdetLeaf& lf, std::vector<int>* peaks) {
+        // 漏峰防御: O11 argmax 重分配可把局部极大像素划出其自然叶像素表
+        // （叶像素表 ⊉ 全帧峰集）→ 扫描集 = 叶像素 ∪ 树成分峰 lf.peak:
+        // 先扫成分峰保证不漏峰, 叶像素遍历跳过 peak 防重复候选。
+        const int lp = lf.peak;
+        if (lp >= 0) {
+            const int pxx = lp % w;
+            const int pyy = lp / w;
+            if (pyy >= 5 && pyy < h - 5 && pxx >= 5 && pxx < w - 5) {
+                const double v = (double)smooth[(size_t)lp];
+                if (v > thr) {
+                    bool local_max = true;
+                    for (int ddy = -5; ddy <= 5 && local_max; ++ddy)
+                        for (int ddx = -5; ddx <= 5; ++ddx) {
+                            if (!ddx && !ddy) continue;
+                            const double nv = (double)smooth[(size_t)(pyy + ddy) * (size_t)w
+                                                           + (size_t)(pxx + ddx)];
+                            if (nv > v || (nv == v && (ddy < 0 || (ddy == 0 && ddx < 0)))) {
+                                local_max = false;
+                                break;
+                            }
                         }
+                    if (local_max) peaks->push_back(lp);
+                }
+            }
+        }
+        for (size_t pi = 0; pi < lf.pix.size(); ++pi) {
+            const int p = lf.pix[pi];
+            if (p == lp) continue;
+            const int pxx = p % w;
+            const int pyy = p / w;
+            // ALG :127 冻结扫描域 [r, h-r) x [r, w-r), r = 5 — 域外不产峰
+            if (pyy < 5 || pyy >= h - 5 || pxx < 5 || pxx >= w - 5) continue;
+            const double v = (double)smooth[(size_t)p];
+            if (v <= thr) continue;
+            bool local_max = true;
+            for (int ddy = -5; ddy <= 5 && local_max; ++ddy)
+                for (int ddx = -5; ddx <= 5; ++ddx) {
+                    if (!ddx && !ddy) continue;
+                    const double nv = (double)smooth[(size_t)(pyy + ddy) * (size_t)w
+                                                   + (size_t)(pxx + ddx)];
+                    if (nv > v || (nv == v && (ddy < 0 || (ddy == 0 && ddx < 0)))) {
+                        local_max = false;
+                        break;
                     }
-                    count++;
                 }
-            }
-            if (count < boxsize - 1) continue;
-            dbg_pass_localmax++;
-            x += r;  // 跳 r 像素 (star_finder.c:310)
+            if (local_max) peaks->push_back(p);
+        }
+    };
+    {
+        std::vector<char> above((size_t)w * (size_t)h, 0);
+        for (std::size_t i = 0; i < (size_t)w * (size_t)h; ++i)
+            above[i] = ((double)smooth[i] > thr) ? 1 : 0;
+        std::vector<int> label((size_t)w * (size_t)h, 0);
+        std::vector<int> queue;
+        for (int y0 = 0; y0 < h; ++y0) {
+            for (int x0 = 0; x0 < w; ++x0) {
+                const int p0 = y0 * w + x0;
+                if (!above[(size_t)p0] || label[(size_t)p0]) continue;
+                std::vector<int> comp;
+                queue.push_back(p0);
+                label[(size_t)p0] = 1;
+                for (size_t qi = 0; qi < queue.size(); ++qi) {
+                    const int p = queue[qi];
+                    comp.push_back(p);
+                    const int px = p % w, py = p / w;
+                    for (int dy = -1; dy <= 1; ++dy)
+                        for (int dx = -1; dx <= 1; ++dx) {
+                            if (!dx && !dy) continue;
+                            const int nx = px + dx, ny = py + dy;
+                            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+                            const int np2 = ny * w + nx;
+                            if (above[(size_t)np2] && !label[(size_t)np2]) {
+                                label[(size_t)np2] = 1;
+                                queue.push_back(np2);
+                            }
+                        }
+                }
+                std::sort(comp.begin(), comp.end());
+                double total_flux = 0.0;
+                for (size_t k = 0; k < comp.size(); ++k)
+                    total_flux += (double)smooth[comp[k]] - thr;
+                std::vector<SdetLeaf> leaves;
+                sdet_deblend_leaf<T>(smooth, w, comp, thr, total_flux, 0, &leaves);
+                // FIX-R3: 每叶做 11x11 局部极大扫描——一叶可产多候选（B&A96
+                // 根不分裂 → 单星 = 常规域单叶单局部极大的特例）
+                std::vector<int> leaf_peaks;
+                for (size_t li = 0; li < leaves.size(); ++li) {
+                    const SdetLeaf& lf = leaves[li];
+                    leaf_peaks.clear();
+                    leaf_local_maxima(lf, &leaf_peaks);
+                    for (size_t qi = 0; qi < leaf_peaks.size(); ++qi) {
+                    const int pxx = leaf_peaks[qi] % w;
+                    const int pyy = leaf_peaks[qi] / w;
+                    // ALG :1892-1893 行为合同: 峰 ±2 邻域越界丢弃
+                    // （扫描域 r=5 已蕴含 ±2 界, 保留作行为合同锚）
+                    if (pxx < 2 || pxx >= w - 2 || pyy < 2 || pyy >= h - 2) continue;
 
-            // (2) 3x3 邻域亮度验证 (star_finder.c:312-333)
-            int xx = x - r;  // 原始 x
-            int yy = y;
-            T pixel0 = image[(size_t)yy * width + xx];  // 原图中心像素
-            double meanhigh = 0.0, minhigh = 1e30;
-            count = 0;
-            for (int ny = y - 1; ny <= y + 1; ny++) {
-                for (int nx = xx - 1; nx <= xx + 1; nx++) {
-                    if (nx == xx && ny == y) continue;  // 中心像素
-                    T neighbor = image[(size_t)ny * width + nx];  // 原图
-                    if (neighbor >= threshold) {
-                        if (neighbor < minhigh) minhigh = neighbor;
-                        meanhigh += neighbor;
-                        count++;
+                    SdetCand c;
+                    std::memset(&c, 0, sizeof(c));
+                    c.ix = pxx;
+                    c.iy = pyy;
+
+                    // ---- O4b: 3x3 双条件饱和判定（原图; 中心除外）----
+                    // 高像素计数 < 3 → 剔除; 饱和 ⇔ meanhigh - bg >= 0.7*dynrange
+                    // 且 pixel0 - minhigh <= 0.1*dynrange。
+                    int counthigh = 0;
+                    double sumhigh = 0.0, minhigh = 0.0;
+                    bool has_high = false;
+                    for (int dy = -1; dy <= 1; ++dy)
+                        for (int dx = -1; dx <= 1; ++dx) {
+                            if (!dx && !dy) continue;
+                            const double v = (double)src[(size_t)(pyy + dy) * (size_t)w + (size_t)(pxx + dx)];
+                            if (v > thr) {
+                                ++counthigh;
+                                sumhigh += v;
+                                if (!has_high || v < minhigh) minhigh = v;
+                                has_high = true;
+                            }
+                        }
+                    if (counthigh < 3) continue;
+                    const double pixel0 = (double)src[(size_t)pyy * (size_t)w + (size_t)pxx];
+                    const double meanhigh = sumhigh / (double)counthigh;
+                    const bool is_sat = (meanhigh - bg >= 0.7 * dynrange) &&
+                                        (pixel0 - minhigh <= 0.1 * dynrange);
+                    c.mag_est = (float)meanhigh;
+                    c.sat = is_sat ? 1 : 0;
+
+                    // ---- 初值中心: 非饱和 = O5 质心; 饱和 = O6 行走等效中心 ----
+                    if (!is_sat) {
+                        // SPEC: §5.5 O5 一阶导过零（平滑图; |分母| < 1e-20 → 偏移 -0.5）
+                        const double d1rl = (double)smooth[(size_t)pyy * (size_t)w + (size_t)pxx]
+                                          - (double)smooth[(size_t)pyy * (size_t)w + (size_t)(pxx - 1)];
+                        const double d1rr = (double)smooth[(size_t)pyy * (size_t)w + (size_t)(pxx + 1)]
+                                          - (double)smooth[(size_t)pyy * (size_t)w + (size_t)pxx];
+                        const double r0 = (std::fabs(d1rr - d1rl) < 1e-20)
+                                              ? -0.5
+                                              : (-0.5 - d1rl / (d1rr - d1rl));
+                        const double d1cu = (double)smooth[(size_t)pyy * (size_t)w + (size_t)pxx]
+                                          - (double)smooth[(size_t)(pyy - 1) * (size_t)w + (size_t)pxx];
+                        const double d1cd = (double)smooth[(size_t)(pyy + 1) * (size_t)w + (size_t)pxx]
+                                          - (double)smooth[(size_t)pyy * (size_t)w + (size_t)pxx];
+                        const double c0 = (std::fabs(d1cd - d1cu) < 1e-20)
+                                              ? -0.5
+                                              : (-0.5 - d1cu / (d1cd - d1cu));
+                        c.x = (double)pxx + 0.5 + r0;
+                        c.y = (double)pyy + 0.5 + c0;
+                    } else {
+                        // SPEC: §5.6 O6 饱和中心 edge-walking（ALG :1918-1978 行为合同）:
+                        // 从峰沿行/列四方向走到 pixel > sat_threshold 平台的边缘,
+                        // 等效中心 = 边缘盒几何中心（(xl+xr)/2+0.5, (yu+yd)/2+0.5）。
+                        int xl2 = pxx, xr2 = pxx, yu2 = pyy, yd2 = pyy;
+                        while (xl2 - 1 >= 0 && (double)src[(size_t)pyy * (size_t)w + (size_t)(xl2 - 1)] > sat_threshold) --xl2;
+                        while (xr2 + 1 < w && (double)src[(size_t)pyy * (size_t)w + (size_t)(xr2 + 1)] > sat_threshold) ++xr2;
+                        while (yu2 - 1 >= 0 && (double)src[(size_t)(yu2 - 1) * (size_t)w + (size_t)pxx] > sat_threshold) --yu2;
+                        while (yd2 + 1 < h && (double)src[(size_t)(yd2 + 1) * (size_t)w + (size_t)pxx] > sat_threshold) ++yd2;
+                        c.x = 0.5 * ((double)xl2 + (double)xr2) + 0.5;
+                        c.y = 0.5 * ((double)yu2 + (double)yd2) + 0.5;
+                        // O4a 岛等效半径（饱和星 r 列）
+                        const int lab = sat_label[(size_t)(pyy * w + pxx)];
+                        if (lab > 0) c.sat_r = islands[(size_t)(lab - 1)].r;
                     }
-                }
-            }
-            // mono 模式 count<3 拒绝 (star_finder.c:329)
-            if (count == 0 || count < 3) continue;
-            dbg_pass_count3++;
-            meanhigh /= (double)count;
 
-            // 边界检查 (star_finder.c:344): 确保 xx±2, yy±2 在图像内
-            if (xx - 2 < 1 || xx + 2 > width - 1 || yy - 2 < 1 || yy + 2 > height - 1) continue;
-            dbg_pass_boundary++;
+                    // ---- O7: 二阶导零交叉（平滑图 4 方向）----
+                    double drl, drr, dcu, dcd, arl, arr, acu, acd;
+                    sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                                           pxx, pyy, -1, 0, bg, is_sat, &drl, &arl);
+                    sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                                           pxx, pyy, +1, 0, bg, is_sat, &drr, &arr);
+                    sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                                           pxx, pyy, 0, -1, bg, is_sat, &dcu, &acu);
+                    sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                                           pxx, pyy, 0, +1, bg, is_sat, &dcd, &acd);
+                    c.srl = drl; c.srr = drr; c.scl = dcu; c.scr = dcd;
+                    c.Sr = 0.5 * (drl + drr);
+                    c.Sc = 0.5 * (dcu + dcd);
+                    c.Ar = SDET_SQRT_EXP1 * 0.5 * (arl + arr);
+                    c.Ac = SDET_SQRT_EXP1 * 0.5 * (acu + acd);
 
-            // (3) 饱和星 edge-walking 精确定位中心 (star_finder.c:346-409)
-            bool has_saturated = false;
-            T sat = T(0);
-            T r0 = T(0), c0 = T(0);
-
-            // 统计饱和判断中间变量
-            bool cond_meanhigh = (meanhigh - bg >= minsatlevel);
-            bool cond_platform = (pixel0 - minhigh <= satrange);
-            if (cond_meanhigh) dbg_sat_meanhigh++;
-            if (cond_platform) dbg_sat_platform++;
-
-            if (meanhigh - bg < minsatlevel || pixel0 - minhigh > satrange) {
-                // 非饱和: 简单一阶导数 (star_finder.c:347-354)
-                dbg_nonsat++;
-                T d1rl = pixel - smooth[(size_t)yy * width + xx - 1];
-                T d1rr = smooth[(size_t)yy * width + xx + 1] - pixel;
-                T d1cu = pixel - smooth[(size_t)(yy - 1) * width + xx];
-                T d1cd = smooth[(size_t)(yy + 1) * width + xx] - pixel;
-                T denom_r = d1rr - d1rl;
-                T denom_c = d1cd - d1cu;
-                r0 = (std::abs(denom_r) < T(1e-20)) ? T(-0.5) : T(-0.5) - d1rl / denom_r;
-                c0 = (std::abs(denom_c) < T(1e-20)) ? T(-0.5) : T(-0.5) - d1cu / denom_c;
-            } else {
-                // 饱和: edge-walking (star_finder.c:355-409)
-                has_saturated = true;
-                dbg_sat_both++;
-                sat = std::min(pixel0, T(norm)) - T(satrange);
-                int i = 0, j = 0;
-                int xr = 0, xl = 0, yu = 0, yd = 0;
-
-                // 向右找到边缘 (star_finder.c:361)
-                while ((xx + i < width - 1) && smooth[(size_t)yy * width + xx + i] > sat) i++;
-                // SW or S (star_finder.c:364-369)
-                while ((xx + i < width - 1) && (yy + j < height - 1)
-                    && (smooth[(size_t)(yy + j + 1) * width + xx + i + 1] > sat
-                    ||  smooth[(size_t)(yy + j + 1) * width + xx + i    ] > sat)) {
-                    if (smooth[(size_t)(yy + j + 1) * width + xx + i + 1] > sat) i++;
-                    j++;
-                }
-                xr = i;
-                // SE or E (star_finder.c:372-377)
-                while ((xx + i > 1) && (yy + j < height - 1)
-                    && (smooth[(size_t)(yy + j + 1) * width + xx + i - 1] > sat
-                    ||  smooth[(size_t)(yy + j    ) * width + xx + i - 1] > sat)) {
-                    if (smooth[(size_t)(yy + j + 1) * width + xx + i - 1] > sat) j++;
-                    i--;
-                }
-                yd = j;
-                // NE or N (star_finder.c:380-385)
-                while ((xx + i > 1) && (yy + j > 1)
-                    && (smooth[(size_t)(yy + j - 1) * width + xx + i - 1] > sat
-                    ||  smooth[(size_t)(yy + j - 1) * width + xx + i    ] > sat)) {
-                    if (smooth[(size_t)(yy + j - 1) * width + xx + i - 1] > sat) i--;
-                    j--;
-                }
-                xl = i;
-                // NW or W (star_finder.c:388-393)
-                while ((xx + i < width - 1) && (yy + j > 1)
-                    && (smooth[(size_t)(yy + j - 1) * width + xx + i + 1] > sat
-                    ||  smooth[(size_t)(yy + j    ) * width + xx + i + 1] > sat)) {
-                    if (smooth[(size_t)(yy + j - 1) * width + xx + i + 1] > sat) j--;
-                    i++;
-                }
-                yu = j;
-                // SW or S again to close the loop (star_finder.c:397-402)
-                while ((xx + i < width - 1) && (yy + j < height - 1)
-                    && (smooth[(size_t)(yy + j + 1) * width + xx + i + 1] > sat
-                    ||  smooth[(size_t)(yy + j + 1) * width + xx + i    ] > sat)) {
-                    if (smooth[(size_t)(yy + j + 1) * width + xx + i + 1] > sat) i++;
-                    j++;
-                }
-                if (i > xr) xr = i;
-                xx += (xr + xl) / 2;
-                yy += (yu + yd) / 2;
-                r0 = -0.5f;
-                c0 = -0.5f;
-                // P1-2 修复: 饱和分支 edge-walking 偏移只允许作用于局部中心
-                // (xx += (xr+xl)/2, yy += (yu+yd)/2, 供步骤(4)沿平台行走使用)。
-                // 原实现在此处 `x += xr;` 回写外层候选扫描游标 (for (int x = r; ...)),
-                // 导致同行后续候选区间 [x+1, x+xr] 被扫描跳过、检出集合漂移
-                // (如饱和平台右缘 10px 内的同行亮星漏检)。xr 已由局部中心变量
-                // 消费, 此处不得再触碰外层游标 x。
-            }
-
-            // (4) 二阶导数零交叉估计 (star_finder.c:411-492)
-            T srr = T(0), srl = T(0), scd = T(0), scu = T(0);
-            T Arr = T(0), Arl = T(0), Acd = T(0), Acu = T(0);
-
-            // Row-wise moving right (star_finder.c:416-431)
-            {
-                int i = 0;
-                if (has_saturated) while (xx + i < width && smooth[(size_t)yy * width + xx + i] > sat) i++;
-                if (xx + i >= width - 2) continue;  // largely saturated close to border
-                T d2rr  = smooth[(size_t)yy * width + xx + i + 1] + smooth[(size_t)yy * width + xx + i - 1] - T(2) * smooth[(size_t)yy * width + xx + i    ];
-                T d2rrr = smooth[(size_t)yy * width + xx + i + 2] + smooth[(size_t)yy * width + xx + i    ] - T(2) * smooth[(size_t)yy * width + xx + i + 1];
-                while ((d2rrr < 0) && ((xx + i + 2) < width - 1)) {
-                    i++;
-                    d2rr = d2rrr;
-                    d2rrr = smooth[(size_t)yy * width + xx + i + 2] + smooth[(size_t)yy * width + xx + i] - 2 * smooth[(size_t)yy * width + xx + i + 1];
-                }
-                T denom = d2rrr - d2rr;
-                srr = (std::abs(denom) < T(1e-20)) ? T(i) - r0 : T(i) - d2rr / denom - r0;
-                T d1rr = smooth[(size_t)yy * width + xx + i] - smooth[(size_t)yy * width + xx + i - 1];
-                Arr = -d1rr * srr * T(SQRT_EXP1);
-            }
-            // Row-wise moving left (star_finder.c:434-449)
-            {
-                int i = 0;
-                if (has_saturated) while (xx - i > 0 && smooth[(size_t)yy * width + xx - i] > sat) i++;
-                if (xx - i <= 2) continue;
-                T d2rl  = smooth[(size_t)yy * width + xx - i - 1] + smooth[(size_t)yy * width + xx - i + 1] - T(2) * smooth[(size_t)yy * width + xx - i    ];
-                T d2rll = smooth[(size_t)yy * width + xx - i - 2] + smooth[(size_t)yy * width + xx - i    ] - T(2) * smooth[(size_t)yy * width + xx - i - 1];
-                while ((d2rll < 0) && ((xx - i - 2) > 1)) {
-                    i++;
-                    d2rl = d2rll;
-                    d2rll = smooth[(size_t)yy * width + xx - i - 2] + smooth[(size_t)yy * width + xx - i] - 2 * smooth[(size_t)yy * width + xx - i - 1];
-                }
-                T denom = d2rll - d2rl;
-                srl = (std::abs(denom) < T(1e-20)) ? T(-i) - r0 : -((T)i - d2rl / denom) - r0;
-                T d1rl = smooth[(size_t)yy * width + xx - i] - smooth[(size_t)yy * width + xx - i + 1];
-                Arl = d1rl * srl * T(SQRT_EXP1);
-            }
-            // Column-wise moving down (star_finder.c:452-467)
-            {
-                int i = 0;
-                if (has_saturated) while (yy + i < height && smooth[(size_t)(yy + i) * width + xx] > sat) i++;
-                if (yy + i >= height - 2) continue;
-                T d2cd  = smooth[(size_t)(yy + i + 1) * width + xx] + smooth[(size_t)(yy + i - 1) * width + xx] - T(2) * smooth[(size_t)(yy + i    ) * width + xx];
-                T d2cdd = smooth[(size_t)(yy + i + 2) * width + xx] + smooth[(size_t)(yy + i    ) * width + xx] - T(2) * smooth[(size_t)(yy + i + 1) * width + xx];
-                while ((d2cdd < 0) && ((yy + i + 2) < height - 1)) {
-                    i++;
-                    d2cd = d2cdd;
-                    d2cdd = smooth[(size_t)(yy + i + 2) * width + xx] + smooth[(size_t)(yy + i) * width + xx] - 2 * smooth[(size_t)(yy + i + 1) * width + xx];
-                }
-                T denom = d2cdd - d2cd;
-                scd = (std::abs(denom) < T(1e-20)) ? T(i) - c0 : T(i) - d2cd / denom - c0;
-                T d1cd = smooth[(size_t)(yy + i) * width + xx] - smooth[(size_t)(yy + i - 1) * width + xx];
-                Acd = -d1cd * scd * T(SQRT_EXP1);
-            }
-            // Column-wise moving up (star_finder.c:470-485)
-            {
-                int i = 0;
-                if (has_saturated) while (yy - i > 0 && smooth[(size_t)(yy - i) * width + xx] > sat) i++;
-                if (yy - i <= 2) continue;
-                T d2cu  = smooth[(size_t)(yy - i - 1) * width + xx] + smooth[(size_t)(yy - i + 1) * width + xx] - T(2) * smooth[(size_t)(yy - i    ) * width + xx];
-                T d2cuu = smooth[(size_t)(yy - i - 2) * width + xx] + smooth[(size_t)(yy - i    ) * width + xx] - T(2) * smooth[(size_t)(yy - i - 1) * width + xx];
-                while ((d2cuu < 0) && ((yy - i - 2) > 1)) {
-                    i++;
-                    d2cu = d2cuu;
-                    d2cuu = smooth[(size_t)(yy - i - 2) * width + xx] + smooth[(size_t)(yy - i) * width + xx] - 2 * smooth[(size_t)(yy - i - 1) * width + xx];
-                }
-                T denom = d2cuu - d2cu;
-                scu = (std::abs(denom) < T(1e-20)) ? T(-i) - c0 : -((T)i - d2cu / denom) - c0;
-                T d1cu = smooth[(size_t)(yy - i) * width + xx] - smooth[(size_t)(yy - i + 1) * width + xx];
-                Acu = d1cu * scu * T(SQRT_EXP1);
-            }
-
-            // Smoothed PSF estimators (star_finder.c:488-492)
-            T Sr = T(0.5) * (-srl + srr);
-            T Ar = T(0.5) * (Arl + Arr);
-            T Sc = T(0.5) * (-scu + scd);
-            T Ac = T(0.5) * (Acu + Acd);
-
-            // (5) R computation (star_finder.c:495-510)
-            int Rr = (int)std::ceil(s_factor * (double)Sr);
-            int Rc = (int)std::ceil(s_factor * (double)Sc);
-            int Rm = std::max(Rr, Rc);
-            Rm = std::min(Rm, MAX_BOX_RADIUS);
-            int R = std::max(Rm, r);
-            // avoid enlarging outside frame (star_finder.c:502-510)
-            if (xx - R < 0) R = xx;
-            if (xx + R >= width) R = width - xx - 1;
-            if (yy - R < 0) R = yy;
-            if (yy + R >= height) R = height - yy - 1;
-            if (R < 1) R = 1;
-
-            // (6) 对称性质量检查 (star_finder.c:513-518)
-            T minArAc = std::min(std::abs(Ar), std::abs(Ac));
-            T maxArAc = std::max(std::abs(Ar), std::abs(Ac));
-            T dA = (minArAc > T(1e-20)) ? maxArAc / minArAc : T(1e30);
-            T msrl = std::max(-srl, srr);
-            T lsrl = std::min(-srl, srr);
-            T dSr = (lsrl > T(1e-20)) ? msrl / lsrl : T(1e30);
-            T mscu = std::max(-scu, scd);
-            T lscu = std::min(-scu, scd);
-            T dSc = (lscu > T(1e-20)) ? mscu / lscu : T(1e30);
-            // relax_checks=false (default): dA>2 || dSr>2 || dSc>2 || max(Ar,Ac)<locthreshold
-            if (dA > T(2) || dSr > T(2) || dSc > T(2) || maxArAc < T(locthreshold))
-                continue;
-
-            // (7) candidate_is_duplicate (star_finder.c:521, 149-160)
-            {
-                int matchradius = (int)((double)R * MAX_RADIUS_RATIO_DUP);
-                matchradius = std::max(matchradius, 1);
-                bool is_dup = false;
-                for (int k = (int)candidates.size() - 1; k >= 0; k--) {
-                    if (std::abs(xx - (int)candidates[k].cx) + std::abs(yy - (int)candidates[k].cy) <= matchradius) {
-                        is_dup = true; break;
+                    // ---- O9: 拟合盒半径（s_factor 解析; 钳 [5, 200]; 钳位帧内）----
+                    int R = (int)std::ceil(SDET_S_FACTOR * std::max(c.Sr, c.Sc));
+                    if (R < 5) R = 5;
+                    if (R > SDET_MAX_BOX_RADIUS) R = SDET_MAX_BOX_RADIUS;
+                    c.R = R;
+                    {
+                        const int wcxi = (int)std::lround(c.x - 0.5);
+                        const int wcyi = (int)std::lround(c.y - 0.5);
+                        c.rx0 = wcxi - R < 0 ? 0 : wcxi - R;
+                        c.ry0 = wcyi - R < 0 ? 0 : wcyi - R;
+                        c.rx1 = wcxi + R + 1 > w ? w : wcxi + R + 1;
+                        c.ry1 = wcyi + R + 1 > h ? h : wcyi + R + 1;
                     }
-                    if (yy - (int)candidates[k].cy > R) break;  // y too far, no dup possible
-                }
-                if (is_dup) continue;
-            }
+                    if (c.rx1 - c.rx0 < 1 || c.ry1 - c.ry0 < 1) continue;
 
-            // pixel_count = 11x11 窗口超阈值像素数 (供统计)
-            int pc = 0;
-            for (int ny = y - r; ny <= y + r; ny++) {
-                for (int nx = xx - r; nx <= xx + r; nx++) {
-                    if (smooth[(size_t)ny * width + nx] > threshold) pc++;
-                }
-            }
-
-            double brightness = (double)pixel0;  // 原图中心像素 (edge-walking 前的原始中心)
-            candidates.push_back({(double)xx, (double)yy, pc, brightness,
-                                  meanhigh, (float)Sr, (float)Sc, R,
-                                  (float)(has_saturated ? sat : norm), has_saturated});
-        }
-    }
-    auto t4 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[4] peaker: %.1f ms (%d candidates, full peaker 7-step)",
-             std::chrono::duration<double, std::milli>(t4 - t_last).count(), (int)candidates.size());
-    t_last = t4;
-
-    {
-        int sat_cnt = 0;
-        for (const auto& c : candidates) if (c.has_saturated) sat_cnt++;
-        sdet_log(SDET_LOG_INFO, "SDET", "Candidates: %d",
-                 (int)candidates.size(), threshold, sat_cnt);
-        // 饱和判断阶段统计
-        sdet_log(SDET_LOG_INFO, "SDET", "Peaker stages: pass_threshold=%d pass_localmax=%d pass_count3=%d pass_boundary=%d | "
-                 "cond_meanhigh=%d cond_platform=%d sat_both=%d nonsat=%d",
-                 dbg_pass_threshold, dbg_pass_localmax, dbg_pass_count3, dbg_pass_boundary,
-                 dbg_sat_meanhigh, dbg_sat_platform, dbg_sat_both, dbg_nonsat);
-    }
-
-    if (candidates.empty()) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_flux = nullptr;
-        *out_saturated = nullptr;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        *out_count = 0;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
-
-    // 回退: per-candidate 饱和判定在连通域架构下失效, 恢复 独立饱和检测 (阶段9)
-
-    // 自适应fitRadius：基于连通域像素数中位数估算FWHM
-    std::vector<int> pixel_counts;
-    for (const auto& c : candidates) pixel_counts.push_back(c.pixel_count);
-    int med_pixel_count = 0;
-    if (!pixel_counts.empty()) {
-        std::sort(pixel_counts.begin(), pixel_counts.end());
-        int mid = pixel_counts.size() / 2;
-        med_pixel_count = pixel_counts[mid];
-    }
-
-    float fwhm_est = sqrt((float)med_pixel_count / 3.14159265f) * 0.87f;
-    int auto_fit_radius = (int)(3.0f * fwhm_est);
-    auto_fit_radius = std::max(6, std::min(20, auto_fit_radius));
-
-    int actual_fit_radius = params.fitRadius;
-    if (params.fitRadius <= 0) actual_fit_radius = auto_fit_radius;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
-             med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
-
-    // Task 6 候选排序 —
-
-    // star_cmp_by_mag_est: mag_est 降序 (meanhigh 越大越亮, star_finder.c:136-144)
-    // 之前用 brightness(pixel0) 排序, 饱和星 pixel0=65535 全相同被任意截断
-    // mag_est=meanhigh 是局部背景上方均值估计, 能区分饱和星亮度
-    std::sort(candidates.begin(), candidates.end(),
-              [](const Candidate &a, const Candidate &b) { return a.mag_est > b.mag_est; });
-    sdet_log(SDET_LOG_INFO, "SDET", "Task6 candidates sorted by mag_est (desc): maxstars=%d candidates=%d",
-             params.maxStars, (int)candidates.size());
-
-    // 阶段6: 椭圆高斯拟合 (使用 per-candidate R 作为拟合窗口,
-    int cc_count = (int)candidates.size();
-    std::vector<InternalFitResult> fit_results(cc_count);
-    int fit_ok_count = 0;
-
-    #pragma omp parallel
-    {
-        LMWorkspace ws;
-        #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
-        for (int i = 0; i < cc_count; i++) {
-            int fit_r = candidates[i].R;  // per-candidate box radius
-            int rx0 = std::max(0, (int)candidates[i].cx - fit_r);
-            int ry0 = std::max(0, (int)candidates[i].cy - fit_r);
-            int rx1 = std::min(width, (int)candidates[i].cx + fit_r + 1);
-            int ry1 = std::min(height, (int)candidates[i].cy + fit_r + 1);
-
-
-            // 非饱和候选 sat=norm=65535, mask 排除 pixel>=65535 的真正饱和像素 (含 65535 平台)
-            // 之前 IPv 非饱和候选 sat_mask=0 不过滤, 导致含饱和像素的星 A 被拉高 (Galaxy_Center +79)
-            double sat_mask = (double)candidates[i].sat;
-
-            sdet_gauss_fit<T>(image, width, height,
-                                candidates[i].cx, candidates[i].cy,
-                                rx0, ry0, rx1, ry1, &fit_results[i], &ws, sat_mask,
-                                (double)candidates[i].sx, (double)candidates[i].sy,
-                                (double)img_median);
-            if (fit_results[i].status == SDET_FIT_OK) fit_ok_count++;
-        }
-    }
-    auto t6 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[6] Moffat4 fit: %.1f ms (%d/%d OK)", 
-             std::chrono::duration<double, std::milli>(t6 - t_last).count(), fit_ok_count, cc_count);
-    t_last = t6;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Moffat4 fit: %d/%d OK", fit_ok_count, cc_count);
-
-    // 拟合统计：按像素数分段统计成功率
-    {
-        struct SizeBin { int lo, hi; int total, ok, fail_invalid, fail_noconv, fail_iter; };
-        SizeBin bins[] = {
-            {5, 9, 0, 0, 0, 0, 0},
-            {10, 19, 0, 0, 0, 0, 0},
-            {20, 49, 0, 0, 0, 0, 0},
-            {50, 99, 0, 0, 0, 0, 0},
-            {100, 299, 0, 0, 0, 0, 0},
-            {300, 999, 0, 0, 0, 0, 0},
-            {1000, 99999, 0, 0, 0, 0, 0},
-        };
-        int n_bins = 7;
-        for (int i = 0; i < cc_count; i++) {
-            int px = candidates[i].pixel_count;
-            for (int b = 0; b < n_bins; b++) {
-                if (px >= bins[b].lo && px < bins[b].hi) {
-                    bins[b].total++;
-                    if (fit_results[i].status == SDET_FIT_OK) bins[b].ok++;
-                    else if (fit_results[i].status == SDET_FIT_INVALID_PARAMS) bins[b].fail_invalid++;
-                    else if (fit_results[i].status == SDET_FIT_NO_CONVERGENCE) bins[b].fail_noconv++;
-                    else if (fit_results[i].status == SDET_FIT_ITERATION_LIMIT) bins[b].fail_iter++;
-                    break;
+                    // ---- O10: 形状预门（对称性; 分母 < 1e-20 → 比值 1e30;
+                    // 饱和候选豁免——平台象限差分失真, 质量责任由 O13(4)
+                    // 饱和豁免通道与 F2 平台星验收承载）----
+                    if (!is_sat) {
+                        const double aabs_r = std::fabs(c.Ar), aabs_c = std::fabs(c.Ac);
+                        const double amin = std::min(aabs_r, aabs_c);
+                        const double amax = std::max(aabs_r, aabs_c);
+                        const double dA = (amin < 1e-20) ? 1e30 : (amax / amin);
+                        const double drmin = std::min(drl, drr);
+                        const double drmax = std::max(drl, drr);
+                        const double dSr = (drmin < 1e-20) ? 1e30 : (drmax / drmin);
+                        const double dcmin = std::min(dcu, dcd);
+                        const double dcmax = std::max(dcu, dcd);
+                        const double dSc = (dcmin < 1e-20) ? 1e30 : (dcmax / dcmin);
+                        if (dA > 2.0 || dSr > 2.0 || dSc > 2.0) continue;
+                        if (std::max(aabs_r, aabs_c) < locthreshold) continue;
+                    }
+                    // FIX-Y1: O11 候选段曼哈顿去重（ALG §2 :92-93 / §3 :138 冻结;
+                    // 保守恢复旧语义——开放子项实验另行安排, 设计稿 §8-10）。
+                    // matchradius = max(1, floor(0.2*R)), R = 本候选 O9 拟合盒半径;
+                    // 先到先留（扫描序）。比较坐标: 非饱和 = O8 峰位 (ix, iy);
+                    // 饱和 = O6 行走中心整型化 floor(x-0.5)（对齐旧码 (xr+xl)/2
+                    // 整型除法语义）。可达性注记: 冻结 O8 下局部极大互距 >= 6,
+                    // 而正常域 matchradius = floor(0.2*ceil(3.7169*Sr)) < 6 恒成立
+                    // （Sr > 8.07 才可能 >= 6, 但 sigma_eff > 4.2 时近距双峰在
+                    // 平滑图融合为单局部极大）——本门为防御性结构（与旧实现同）。
+                    {
+                        const int mr = (c.R > 0) ? std::max(1, (int)(0.2 * (double)c.R)) : 1;
+                        const int mcx = c.sat ? (int)std::floor(c.x - 0.5) : c.ix;
+                        const int mcy = c.sat ? (int)std::floor(c.y - 0.5) : c.iy;
+                        bool dup = false;
+                        for (std::size_t k2 = cands.size(); k2-- > 0;) {
+                            const SdetCand& o = cands[k2];
+                            const int ox = o.sat ? (int)std::floor(o.x - 0.5) : o.ix;
+                            const int oy = o.sat ? (int)std::floor(o.y - 0.5) : o.iy;
+                            const int ddx2 = mcx - ox, ddy2 = mcy - oy;
+                            if ((ddx2 < 0 ? -ddx2 : ddx2) + (ddy2 < 0 ? -ddy2 : ddy2) <= mr) {
+                                dup = true;
+                                break;
+                            }
+                        }
+                        if (dup) continue;
+                    }
+                    cands.push_back(c);
+                    }  // FIX-R3: 扫描峰循环闭合
                 }
             }
         }
-        sdet_log(SDET_LOG_INFO, "SDET", "=== Fit statistics by pixel count ===");
-        for (int b = 0; b < n_bins; b++) {
-            if (bins[b].total == 0) continue;
-            float rate = (float)bins[b].ok / bins[b].total * 100.0f;
-            sdet_log(SDET_LOG_INFO, "SDET", "  px[%d-%d]: total=%d ok=%d(%.1f%%) invalid=%d noconv=%d iterlimit=%d",
-                     bins[b].lo, bins[b].hi, bins[b].total, bins[b].ok, rate,
-                     bins[b].fail_invalid, bins[b].fail_noconv, bins[b].fail_iter);
-        }
     }
 
-    // 阶段7: FWHM统计+过滤
-    std::vector<float> fwhm_values;
-    for (int i = 0; i < cc_count; i++) {
-        if (fit_results[i].status == SDET_FIT_OK) {
-            float avg_fwhm = (float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0);
-            fwhm_values.push_back(avg_fwhm);
-        }
+    // ---- mag_est 降序（候选阶段不截断, ALG :2170-2171）----
+    std::stable_sort(cands.begin(), cands.end(),
+                     [](const SdetCand& a, const SdetCand& b) { return a.mag_est > b.mag_est; });
+
+    // ---- O12 并行 LM（OpenMP 冻结三处之三; 结果按索引写回, 位级线程无关）----
+    const int ncand = (int)cands.size();
+    std::vector<InternalFitResult> fit_results((size_t)ncand);
+    std::vector<unsigned char> fit_ok((size_t)ncand, 0);
+    #pragma omp parallel for schedule(dynamic)
+    for (int ci = 0; ci < ncand; ++ci) {
+        const SdetCand& c = cands[(size_t)ci];
+        InternalFitResult fr;
+        std::memset(&fr, 0, sizeof(fr));
+        const int st = sdet_gauss_fit<T>(src, w, h, c.x, c.y,
+                                         c.rx0, c.ry0, c.rx1, c.ry1, &fr,
+                                         NULL, sat_threshold, 0.0, 0.0, 0.0, params.maxAxisRatio);
+        fit_results[(size_t)ci] = fr;
+        fit_ok[(size_t)ci] = (st == SDET_FIT_OK) ? 1 : 0;
     }
 
-    float fwhm_med = 0.0f, fwhm_mad_val = 0.0f;
-    if (!fwhm_values.empty()) {
-        fwhm_med = sdet_robust_median(fwhm_values.data(), (int)fwhm_values.size());
-        fwhm_mad_val = sdet_robust_mad(fwhm_values.data(), (int)fwhm_values.size());
-    }
-    auto t7 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[7] FWHM stats: %.1f ms (med=%.4f mad=%.4f)", 
-             std::chrono::duration<double, std::milli>(t7 - t_last).count(), fwhm_med, fwhm_mad_val);
-    t_last = t7;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "FWHM stats: med=%.4f mad=%.4f (from %d fitted stars)",
-             fwhm_med, fwhm_mad_val, (int)fwhm_values.size());
-
-    // 阶段8: 构建正常星StarRecord列表（含 reject_star 验证）
+    // ---- O13 排异 + O14 孔径测光 + O15 装配（串行; 记录序 = 候选序）----
     std::vector<StarRecord> stars;
-    int f_fit = 0, f_fwhm = 0, f_round = 0, f_reject = 0;
-
-    for (int i = 0; i < cc_count; i++) {
-
-
-        // 拟合 status != SDET_FIT_OK（不收敛/数值失败）等价于 DIVERGED, minimize_candidates 丢弃
-        // IPv: fit_results[i].status != SDET_FIT_OK 等价于 DIVERGED, 丢弃
-        if (fit_results[i].status != SDET_FIT_OK) { f_fit++; continue; }
-        // 移除全局 FWHM clip (fwhm_med±3*mad), 完全依赖 reject_star 自适应 FWHM 上限
-
-        // 全局 clip 会误杀宽星 (如 NGC6302 FWHM=7-33 的星),
-        float axis_ratio = (float)(std::max(fit_results[i].sx, fit_results[i].sy) /
-                                    std::max(std::min(fit_results[i].sx, fit_results[i].sy), 0.001));
-        if (axis_ratio > params.maxAxisRatio) { f_round++; continue; }
-        // reject_star 传入候选阶段 sx/sy (Sr/Sc,
-
-        SfError sf_err = reject_star(fit_results[i], candidates[i].has_saturated,
-                                     (double)candidates[i].sx, (double)candidates[i].sy);
-        if (sf_err != SF_OK) { f_reject++; continue; }
+    stars.reserve((size_t)ncand);
+    for (int ci = 0; ci < ncand; ++ci) {
+        if (!fit_ok[(size_t)ci]) continue;   // 拟合失败丢弃（ALG §4: 不产 NaN 行）
+        const InternalFitResult& f = fit_results[(size_t)ci];
+        const SdetCand& c = cands[(size_t)ci];
+        // FIX-R2: maxAxisRatio 门激活（ALG :2282-2284; 与 guided 路径 :2658-2665
+        // 活门对称——原死块只计算 smax/smin 未判定, 系重写期漏译）。
+        if (params.maxAxisRatio > 0.0f) {
+            const double smax = std::max(f.sx, f.sy);
+            const double smin = std::min(f.sx, f.sy);
+            if (smin > 0.0 && smax / smin > (double)params.maxAxisRatio) continue;
+        }
+        // FIX-R1: O13 五码排异门（ALG §3 :143-148; 判式序 NEG→TOO_SMALL→
+        // ROUNDNESS→RMSE→TOO_LARGE; has_saturated = O4b 判定, 与 guided 同源）。
+        if (reject_star(f, c.sat != 0, c.Sr, c.Sc) != SF_OK) continue;
         StarRecord rec;
-        rec.cx = fit_results[i].cx;
-        rec.cy = fit_results[i].cy;
-        rec.flux = (float)fit_results[i].A;
-
-
-        // 候选阶段 has_saturated (meanhigh检查) 仅用于 sat 字段选择, 最终被 A>dynrange 覆盖
-        // 这使饱和星直接从 peaker 候选中识别, 无需独立饱和星检测路径
-        rec.is_saturated = (fit_results[i].A > dynrange) ? 1 : 0;
-        rec.fwhm_x = (float)fit_results[i].fwhm_x;
-        rec.fwhm_y = (float)fit_results[i].fwhm_y;
-        rec.sx = (float)fit_results[i].sx;
-        rec.sy = (float)fit_results[i].sy;
-        rec.theta = (float)fit_results[i].theta;
-        rec.background = (float)fit_results[i].B;
-        rec.amplitude = (float)fit_results[i].A;
-        rec.r = 0.0f;
-        rec.cand_R = (float)candidates[i].R;  // 候选阶段 R (mag box 半径)
-        // mag, star_finder.c:638-655)
-
-        // mag = -2.5*log10(Σ_box(pixel - B)), B=PSF拟合背景 FIT(0) (PSF.c:724,653)
-        // box=(2R+1)², R=max(ceil(s_factor*Sr),ceil(s_factor*Sc),r) (star_finder.c:495-499)
-        // B 初始值=全局中位数 (compute_threshold, star_finder.c:82), 经LM拟合优化
-        // 修复: mag_radius 改用 candidates[i].R (与拟合 box 一致), 不再用 1.58*FWHM 重算
-        // 原因: 1.58*FWHM 可能 > R (宽星情况), 导致 mag box > 拟合 box, 累加更多星云像素
-        // NGC6302 rk=1: R=17, 1.58*FWHM=23, mag box 偏大导致 mag 偏亮 0.8 mag
+        std::memset(&rec, 0, sizeof(rec));
+        rec.cx = f.cx;
+        rec.cy = f.cy;
+        rec.flux = (float)f.A;                        // DISP-STAR-004: flux = PSF 振幅
+        rec.is_saturated = (f.A > dynrange) ? 1 : 0;  // ALG :2298
+        rec.has_saturated = rec.is_saturated;         // ALG :2342（列语义未分化, DISP-STAR-004）
+        rec.fwhm_x = (float)f.fwhm_x;
+        rec.fwhm_y = (float)f.fwhm_y;
+        rec.sx = (float)f.sx;
+        rec.sy = (float)f.sy;
+        rec.theta = (float)f.theta;
+        rec.background = (float)f.B;
+        rec.amplitude = (float)f.A;
+        rec.r = (float)(c.sat ? c.sat_r : 0.0);
+        rec.cand_R = (float)c.R;
+        // ---- O14: 孔径测光（mag = -2.5 log10(Σ_box(pixel - B_fit)), box =
+        // (2R+1)^2 用候选 R（钳 [5,200]）与候选中心; box_sum <= 0 → NaN）----
         {
-            int mag_radius = candidates[i].R;  // 用候选 R
-            mag_radius = std::max(mag_radius, 5);   // 下限 r=5
-            mag_radius = std::min(mag_radius, 200);  // 上限 MAX_BOX_RADIUS
-            // mag box 中心用候选中心
-
-            // 之前 IPv 用 fit_results[i].cx (拟合中心), 偏离候选中心 0.1-0.5px
-            // 导致 box 包含像素不同 → box_sum 微小差异 → mag 排序偏移 (NGC6302 rank 差 +3~+5)
-            int mcx = (int)candidates[i].cx;
-            int mcy = (int)candidates[i].cy;
-            int mx0 = std::max(0, mcx - mag_radius);
-            int my0 = std::max(0, mcy - mag_radius);
-            int mx1 = std::min(width, mcx + mag_radius + 1);
-            int my1 = std::min(height, mcy + mag_radius + 1);
-            float local_B = (float)fit_results[i].B;  // 用拟合B)
+            int Rb = c.R;
+            if (Rb < 5) Rb = 5;
+            if (Rb > SDET_MAX_BOX_RADIUS) Rb = SDET_MAX_BOX_RADIUS;
+            const int bx = (int)std::lround(c.x - 0.5);
+            const int by = (int)std::lround(c.y - 0.5);
             double box_sum = 0.0;
-            for (int yy = my0; yy < my1; yy++) {
-                for (int xx = mx0; xx < mx1; xx++) {
-                    box_sum += (double)image[yy * width + xx] - local_B;
+            for (int yy = by - Rb; yy <= by + Rb; ++yy) {
+                if (yy < 0 || yy >= h) continue;
+                for (int xx = bx - Rb; xx <= bx + Rb; ++xx) {
+                    if (xx < 0 || xx >= w) continue;
+                    box_sum += (double)src[(size_t)yy * (size_t)w + (size_t)xx] - f.B;
                 }
             }
-            rec.mag = (box_sum > 0.0) ? -2.5f * log10f((float)box_sum) : NAN;
+            rec.mag = (box_sum > 0.0) ? (float)(-2.5 * std::log10(box_sum))
+                                      : (float)std::nan("");
         }
-        // has_saturated
-
-        // 候选阶段 has_saturated 仅用于 sat 字段值选择, 不影响最终饱和标志
-        rec.has_saturated = rec.is_saturated;
         stars.push_back(rec);
     }
-    auto t8 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[8] Build normal stars: %.1f ms (%d stars, fit_fail=%d fwhm=%d round=%d reject=%d)",
-             std::chrono::duration<double, std::milli>(t8 - t_last).count(), (int)stars.size(), f_fit, f_fwhm, f_round, f_reject);
-    t_last = t8;
 
-    sdet_log(SDET_LOG_INFO, "SDET", "Normal stars: %d (fit_fail=%d fwhm=%d roundness=%d reject=%d)",
-             (int)stars.size(), f_fit, f_fwhm, f_round, f_reject);
-
-    // 阶段9: [ 移除] 独立饱和星检测路径
-
-    // IPv 流程: 阶段6/7 PSF 拟合所有候选 → 阶段8 用 A>dynrange 设置 is_saturated
-    // 原阶段9的独立阈值二值化+edge-walking 与参考实现不一致, 导致 Galaxy_Center 多检7颗小饱和星
-    // 饱和星现在直接从 peaker 候选中识别, 无需独立路径
-    auto t9 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[9] Saturated star detection skipped (V4.52: use A>dynrange from peaker): %.1f ms",
-             std::chrono::duration<double, std::milli>(t9 - t_last).count());
-    t_last = t9;
-
-    // 阶段10: 去重+排序
-    sdet_dedup_stars(stars);
-    auto t10a = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[10a] Dedup: %.1f ms", 
-             std::chrono::duration<double, std::milli>(t10a - t_last).count());
-    
-    sdet_sort_stars(stars);
-    auto t10b = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_DEBUG, "SDET", "[10b] Sort: %.1f ms", 
-             std::chrono::duration<double, std::milli>(t10b - t10a).count());
-    t_last = t10b;
-
-    int sat_count = 0, normal_count = 0;
-    for (const auto& s : stars) {
-        if (s.is_saturated) sat_count++;
-        else normal_count++;
-    }
-    sdet_log(SDET_LOG_INFO, "SDET", "After dedup+sort: %d stars (saturated=%d normal=%d)",
-             (int)stars.size(), sat_count, normal_count);
-
-    if (params.maxStars > 0 && (int)stars.size() > params.maxStars) {
-        stars.resize(params.maxStars);
-    }
-
-    int result_count = (int)stars.size();
-
-    if (result_count == 0) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_flux = nullptr;
-        *out_saturated = nullptr;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        *out_count = 0;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
-
-    double *x_coords = (double *)malloc(result_count * sizeof(double));
-    double *y_coords = (double *)malloc(result_count * sizeof(double));
-    float *flux_arr = (float *)malloc(result_count * sizeof(float));
-    int *sat_arr = (int *)malloc(result_count * sizeof(int));
-    // 条件分配：out_mag/out_has_saturated 为 NULL 时不分配，避免泄漏（与 sdet_detect_debug 一致）
-    float *mag_arr = out_mag ? (float *)malloc(result_count * sizeof(float)) : nullptr;
-    int *has_sat_arr = out_has_saturated ? (int *)malloc(result_count * sizeof(int)) : nullptr;
-
-    if (!x_coords || !y_coords || !flux_arr || !sat_arr ||
-        (out_mag && !mag_arr) || (out_has_saturated && !has_sat_arr)) {
-        free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
-        free(mag_arr); free(has_sat_arr);
-        return -1;
-    }
-
-    for (int i = 0; i < result_count; i++) {
-        x_coords[i] = stars[i].cx;
-        y_coords[i] = stars[i].cy;
-        flux_arr[i] = stars[i].flux;
-        // saturated 标志用 is_saturated (阶段9 独立饱和检测)
-        sat_arr[i] = stars[i].is_saturated;
-        if (mag_arr) mag_arr[i] = stars[i].mag;
-        if (has_sat_arr) has_sat_arr[i] = stars[i].has_saturated;
-    }
-
-    // 可选输出参数: extras 数组与各列全部分配成功后才发布输出指针, 失败统一释放
-    if (out_extras && extra_count > 0) {
-        float **extras_arr = (float **)malloc(extra_count * sizeof(float *));
-        if (!extras_arr) {
-            // malloc 失败: 不得把 NULL 指针数组当作 extras 列发布
-            free(x_coords);
-            free(y_coords);
-            free(flux_arr);
-            free(sat_arr);
-            free(mag_arr);
-            free(has_sat_arr);
-            sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_ex: failed to allocate extras pointer array (%d extras)", extra_count);
-            return -1;
-        }
-        int rows_ok = 0;
-        for (int e = 0; e < extra_count; e++) {
-            extras_arr[e] = (float *)malloc(result_count * sizeof(float));
-            if (!extras_arr[e]) {
-                sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_ex: failed to allocate extras row %d of %d", e, extra_count);
-                break;
-            }
-            ExtraField field = parse_extra_name(extra_names[e]);
-            for (int i = 0; i < result_count; i++) {
-                extras_arr[e][i] = get_extra_field(stars[i], field);
-            }
-            rows_ok++;
-        }
-        if (rows_ok < extra_count) {
-            // 部分列分配失败: 逐列释放已分配的行, 再释放全部结果数组
-            for (int e = 0; e < rows_ok; e++) {
-                free(extras_arr[e]);
-            }
-            free(extras_arr);
-            free(x_coords);
-            free(y_coords);
-            free(flux_arr);
-            free(sat_arr);
-            free(mag_arr);
-            free(has_sat_arr);
-            return -1;
-        }
-        *out_extras = extras_arr;
-    }
-
-    *out_x = x_coords;
-    *out_y = y_coords;
-    *out_flux = flux_arr;
-    *out_saturated = sat_arr;
-    if (out_mag) *out_mag = mag_arr;
-    if (out_has_saturated) *out_has_saturated = has_sat_arr;
-    *out_count = result_count;
-
-    auto t_final = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration<double>(t_final - t0).count();
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_ex done: %d stars (sat=%d normal=%d), %.3f s",
-             result_count, sat_count, normal_count, elapsed);
-    return 0;
+    // ---- O15 dedup/排序/截断 + 事务化输出 ----
+    return sdet_emit_records(stars, (long long)params.maxStars, extra_names,
+                             extra_count, out_x, out_y, out_flux, out_saturated,
+                             out_mag, out_has_saturated, out_count, out_extras);
 }
-
 // ============================================================================
-// sdet_detect_guided_impl - 星表引导检测 (权威路径)
-// ----------------------------------------------------------------------------
-// 规范: docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
-//       03_star_detection.md §4 —— 检测定义域 = **星表位置**(用本帧 WCS 把 Gaia
-//       星表反向投影到像素域), 只对星表位置做质心/PSF 拟合; 拟合成功即星点,
-//       失败**直接丢弃**(不计虚警、不报错)。
-// 与盲检测 (sdet_detect_impl) 的关系: 盲检测的 peaker 七步候选扫描被替换为
-//       "调用方给出的预测位置"; 其后的椭圆高斯 trust-region LM 拟合、质量门
-//       (maxAxisRatio / reject_star)、mag 公式、去重/排序/maxStars 截断与盲检测
-//       **同一实现、同一常数**, 不新设阈值。全图盲检测保留为**诊断/初值**路径。
-// 逐位置处理:
-//   ① 非有限 / 距边界 <2px / 拟合盒越界 → 丢弃 (n_dropped)
-//   ② 3×3 邻域双条件饱和判定 (与盲检测同式, 阈值 median+5·bgnoise)
-//   ③ 初始宽度 Sr/Sc = σ=2 平滑图上 9×9 窗二阶矩 (质心/矩估计), 下限 0.5px
-//   ④ R = max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5), 钳位 [1,200] 且不出帧
-//   ⑤ sdet_gauss_fit (椭圆高斯 7 参 trust-region LM, 见 nls_lm.h)
-//   ⑥ 质量门: maxAxisRatio / reject_star; 未过 → 丢弃 (n_rejected)
-//   ⑦ mag = −2.5·log10(Σ_box(pixel − B_fit)) (与盲检测同式同 box)
-//   ⑧ dedup → mag 升序 stable_sort (NaN 末尾) → maxStars 截断
-// 确定性: 拟合逐位置独立按索引写回; dedup/sort/截断串行 ⇒ 输出与线程数无关。
+// sdet_detect_guided_impl - 星表引导检测（权威路径; SPEC: §5.16 O16）
+// 规范: 检测定义域 = 星表位置（本帧 WCS 反投影）, 只对预测位置做质心/PSF 拟合。
+// 逐位置处理（六计数守恒: 每位置恰归一类）:
+//   ① 非有限 / 距边 < 2px（0-based 索引语义）/ 拟合盒越界 → n_dropped
+//   ② O4b 3x3 双条件饱和判定（阈值 median + 5*bgnoise）; 高像素 < 3 → n_fit_failed
+//      （语义映射: 拟合前置判据失败; 头文件 n_dropped 三类不含此情形）
+//   ③ 初值: 预测位置直接作拟合初值（星表位置亚像素精度, 不再做 O5）;
+//      饱和位置 → O6 行走等效中心
+//   ④ O7 零交叉初值（平滑图, at 预测位最近像素）+ O9 拟合盒（钳 [5,200] 帧内）
+//   ⑤ O10 对称门（非饱和; 拒 → n_rejected）
+//   ⑥ O12 sdet_gauss_fit → 未收敛/非法 → n_fit_failed
+//   ⑦ 质量门 maxAxisRatio / reject_star → 未过 → n_rejected
+//   ⑧ O14 mag 同式 → O15 dedup/排序/截断 → n_output
+// 确定性: 并行逐位置按索引写回类判, 串行汇总计数/装配/去重/排序 → 线程数无关。
+// 无 2*maxStars 预截断（破坏六计数守恒, 项目定义）。
 // ============================================================================
 template <typename T>
 static int sdet_detect_guided_impl(StarDetectorHandle handle,
@@ -2515,369 +2610,240 @@ static int sdet_detect_guided_impl(StarDetectorHandle handle,
                                    SDetGuidedStats *out_stats)
 {
     if (out_stats) { std::memset(out_stats, 0, sizeof(*out_stats)); out_stats->n_predicted = n_pred; }
-    if (!handle || !image || !out_x || !out_y || !out_flux || !out_saturated || !out_count) return -1;
-    if (n_pred < 0) return -1;
-    if (n_pred > 0 && (!pred_x || !pred_y)) return -1;
+    if (!handle || !image || !out_x || !out_y || !out_flux || !out_saturated ||
+        !out_mag || !out_has_saturated || !out_count) return -1;
+    if (width <= 0 || height <= 0) return -1;
+    if (n_pred < 0 || (n_pred > 0 && (!pred_x || !pred_y))) return -1;
+    if (extra_count > 0 && (!extra_names || !out_extras)) return -1;
+    *out_x = NULL; *out_y = NULL; *out_flux = NULL;
+    *out_saturated = NULL; *out_mag = NULL; *out_has_saturated = NULL;
+    *out_count = 0;
+    if (out_extras) *out_extras = NULL;
+    if (n_pred == 0) return 0;   // G6: 空预测 → rc = 0, count = 0
 
-    auto t0 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_guided_impl start: %dx%d n_pred=%d", width, height, n_pred);
+    const SDetParams& params = handle->internal.params;
+    const int w = width, h = height;
 
-    const SDetParams &params = handle->internal.params;
-    const size_t n = (size_t)width * height;
-    handle->internal.width = width;
-    handle->internal.height = height;
+    SdetPrep<T> pr = sdet_prepare_field<T>(image, w, h);
+    const T* src = pr.src;
+    const T* smooth = pr.smooth_data;
+    if (!std::isfinite(pr.thr)) return 0;
+    const double& bg = pr.bg;
+    const double& bgnoise = pr.bgnoise;
+    const double& dynrange = pr.dynrange;
+    const double& sat_threshold = pr.sat_threshold;
+    const double& thr = pr.thr;
 
-    // 空定义域: 不是错误 (合同 = 0 星输出全 NULL + *out_count=0)
-    if (n_pred == 0) {
-        *out_x = nullptr; *out_y = nullptr; *out_flux = nullptr; *out_saturated = nullptr;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        *out_count = 0;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
+    std::vector<int> sat_label;
+    std::vector<SdetSatIsland> islands;
+    sdet_mark_sat_islands<T>(src, w, h, sat_threshold, &sat_label, &islands);
 
-    // 阶段A: σ=2 平滑 (只用于宽度初值估计; 与盲检测同款 Young-van Vliet IIR)
-    std::vector<T> smooth(n);
-    if constexpr (std::is_same_v<T, float>) {
-        sdet_gaussian_blur_yvv(image, smooth.data(), width, height, 2.0);
-    } else {
-        sdet_gaussian_blur_yvv_d(image, smooth.data(), width, height, 2.0);
-    }
+    // 类判枚举（verdict 数组 + 串行汇总 → 位级确定）
+    enum { SDET_GD_DROP = 0, SDET_GD_FITFAIL = 1, SDET_GD_REJECT = 2, SDET_GD_OK = 3 };
+    std::vector<unsigned char> verdict((size_t)n_pred, SDET_GD_DROP);
+    std::vector<InternalFitResult> g_fits((size_t)n_pred);
+    std::vector<SdetCand> g_cands((size_t)n_pred);
 
-    // 阶段B: 背景/阈值/动态范围 —— 与盲检测**同式同常数** (ALG-STARDET-001 §2)
-    T bgnoise = sdet_compute_bgnoise<T>(image, width, height);
-    T img_median;
-    if constexpr (std::is_same_v<T, float>) {
-        img_median = sdet_robust_median(image, (int)n);
-    } else {
-        img_median = sdet_robust_median_d(image, (int)n);
-    }
-    T threshold = img_median + T(5.0) * bgnoise;
-    const double bg = (double)img_median;
-    double maxi = 0.0;
-    for (size_t i = 0; i < n; i++) {
-        if (image[i] > maxi) maxi = image[i];
-    }
-    const float norm = 65535.0f;
-    const double dynrange = std::min(maxi, (double)norm) - bg;
-    const double minsatlevel = dynrange * 0.7;
-    const double satrange = dynrange * 0.1;
-
-    const double s_factor = std::sqrt(-2.0 * std::log(0.001));  // = 3.7172
-    const int MAX_BOX_RADIUS = 200;
-    const int r = 5;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "guided: median=%.4f bgnoise=%.4f threshold=%.4f dynrange=%.1f",
-             img_median, bgnoise, threshold, dynrange);
-
-    struct GuidedCandidate {
-        double cx, cy;
-        double brightness;
-        double mag_est;      // meanhigh (与盲检测同义: 局部背景上方均值估计)
-        float sx, sy;        // Sr/Sc (平滑图 σ 估计)
-        int R;               // 拟合盒半径
-        float sat;           // 饱和水平
-        bool has_saturated;
-    };
-    std::vector<GuidedCandidate> candidates;
-    candidates.reserve((size_t)n_pred);
-    int n_dropped = 0;
-
-    // 初始宽度: σ=2 平滑图局部二阶矩 (背景取全局中位数, 正性截断)。
-    // 与盲检测 Sr/Sc 同为"平滑图上的 σ 估计"量纲; 下限 0.5px —— reject_star 的
-    // FWHM 上限门在 se_smax ≤ 2.0 时本就跳过, 故不引入新阈值。
-    // 自适应窗口 (3 轮): 截断会系统性低估 σ, 窗口按 3σ 扩张后重估。窗口上限 12px
-    // 使噪声主导位置的估计有界 (噪声位置的 σ 被后续 reject_star 的 RMSE 门拒绝)。
-    auto moment_sigma = [&](int ix, int iy, double *sx_out, double *sy_out) {
-        const int hw_max_frame = std::min(std::min(ix - 1, iy - 1),
-                                          std::min(width - 2 - ix, height - 2 - iy));
-        int hw = std::min(4, hw_max_frame);
-        double sx = 0.5, sy = 0.5;
-        for (int iter = 0; iter < 3; ++iter) {
-            double m00 = 0.0, m10 = 0.0, m01 = 0.0, m20 = 0.0, m02 = 0.0;
-            for (int yy = iy - hw; yy <= iy + hw; ++yy) {
-                for (int xx = ix - hw; xx <= ix + hw; ++xx) {
-                    const double v = (double)smooth[(size_t)yy * width + xx] - bg;
-                    if (!(v > 0.0)) continue;
-                    const double dx = (double)xx + 0.5;   // 像素中心 = 索引 + 0.5
-                    const double dy = (double)yy + 0.5;
-                    m00 += v; m10 += v * dx; m01 += v * dy;
-                    m20 += v * dx * dx; m02 += v * dy * dy;
-                }
-            }
-            if (!(m00 > 0.0) || !std::isfinite(m00)) { sx = 0.5; sy = 0.5; break; }
-            double vx = m20 / m00 - (m10 / m00) * (m10 / m00);
-            double vy = m02 / m00 - (m01 / m00) * (m01 / m00);
-            if (!(vx > 0.0) || !std::isfinite(vx)) vx = 0.25;
-            if (!(vy > 0.0) || !std::isfinite(vy)) vy = 0.25;
-            sx = std::sqrt(vx);
-            sy = std::sqrt(vy);
-            const int hw_next = std::max(4, (int)std::ceil(3.0 * std::max(sx, sy)));
-            const int hw_clamped = std::min(std::min(hw_next, 12), hw_max_frame);
-            if (hw_clamped == hw) break;
-            hw = hw_clamped;
-        }
-        *sx_out = std::max(sx, 0.5);
-        *sy_out = std::max(sy, 0.5);
-    };
-
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < n_pred; ++i) {
-        const double px = pred_x[i];
-        const double py = pred_y[i];
-        if (!std::isfinite(px) || !std::isfinite(py)) { n_dropped++; continue; }
-        const int ix = (int)std::lround(px);
-        const int iy = (int)std::lround(py);
-        // 边界: 距边界 <2px 允许丢弃 (SCI-P1-STAR-001 §1; 与盲检测同判据)
-        if (ix - 2 < 1 || ix + 2 > width - 1 || iy - 2 < 1 || iy + 2 > height - 1) {
-            n_dropped++;
-            continue;
-        }
-        const T pixel0 = image[(size_t)iy * width + ix];
-        // 饱和判定: 3×3 邻域双条件 (与盲检测同式)
-        double meanhigh = 0.0, minhigh = 1e30;
-        int nhigh = 0;
-        for (int ny = iy - 1; ny <= iy + 1; ++ny) {
-            for (int nx = ix - 1; nx <= ix + 1; ++nx) {
-                if (nx == ix && ny == iy) continue;
-                const T v = image[(size_t)ny * width + nx];
-                if (v >= threshold) {
-                    if ((double)v < minhigh) minhigh = (double)v;
-                    meanhigh += (double)v;
-                    nhigh++;
+        const double px = pred_x[i], py = pred_y[i];
+        // ① 非有限预测 → n_dropped（verdict 初值即 DROP）
+        if (!std::isfinite(px) || !std::isfinite(py)) continue;
+        // ① 距边 < 2 px（0-based 索引语义; 含出帧）→ n_dropped
+        const double marg = std::min(std::min(px, (double)(w - 1) - px),
+                                     std::min(py, (double)(h - 1) - py));
+        if (!(marg >= 2.0)) continue;
+        const int ix = (int)std::lround(px - 0.5);
+        const int iy = (int)std::lround(py - 0.5);
+        if (ix < 1 || ix >= w - 1 || iy < 1 || iy >= h - 1) continue;
+
+        SdetCand c;
+        std::memset(&c, 0, sizeof(c));
+        c.ix = ix;
+        c.iy = iy;
+
+        // ② O4b 3x3 双条件（原图; 中心除外）; 高像素 < 3 → n_fit_failed
+        int counthigh = 0;
+        double sumhigh = 0.0, minhigh = 0.0;
+        bool has_high = false;
+        for (int dy = -1; dy <= 1; ++dy)
+            for (int dx = -1; dx <= 1; ++dx) {
+                if (!dx && !dy) continue;
+                const double v = (double)src[(size_t)(iy + dy) * (size_t)w + (size_t)(ix + dx)];
+                if (v > thr) {
+                    ++counthigh;
+                    sumhigh += v;
+                    if (!has_high || v < minhigh) minhigh = v;
+                    has_high = true;
                 }
             }
+        if (counthigh < 3) { verdict[(size_t)i] = SDET_GD_FITFAIL; continue; }
+        const double pixel0 = (double)src[(size_t)iy * (size_t)w + (size_t)ix];
+        const double meanhigh = sumhigh / (double)counthigh;
+        const bool is_sat = (meanhigh - bg >= 0.7 * dynrange) &&
+                            (pixel0 - minhigh <= 0.1 * dynrange);
+        c.mag_est = (float)meanhigh;
+        c.sat = is_sat ? 1 : 0;
+
+        // ③ 初值: 预测位置直接作拟合初值; 饱和 → O6 行走等效中心
+        if (!is_sat) {
+            c.x = px;
+            c.y = py;
+        } else {
+            // ALG :1918-1978（同主链 O6）: 峰四方向 edge-walking 至 pixel >
+            // sat_threshold 平台边缘, 等效中心 = 边缘盒几何中心。
+            int xl3 = ix, xr3 = ix, yu3 = iy, yd3 = iy;
+            while (xl3 - 1 >= 0 && (double)src[(size_t)iy * (size_t)w + (size_t)(xl3 - 1)] > sat_threshold) --xl3;
+            while (xr3 + 1 < w && (double)src[(size_t)iy * (size_t)w + (size_t)(xr3 + 1)] > sat_threshold) ++xr3;
+            while (yu3 - 1 >= 0 && (double)src[(size_t)(yu3 - 1) * (size_t)w + (size_t)ix] > sat_threshold) --yu3;
+            while (yd3 + 1 < h && (double)src[(size_t)(yd3 + 1) * (size_t)w + (size_t)ix] > sat_threshold) ++yd3;
+            c.x = 0.5 * ((double)xl3 + (double)xr3) + 0.5;
+            c.y = 0.5 * ((double)yu3 + (double)yd3) + 0.5;
+            const int lab = sat_label[(size_t)(iy * w + ix)];
+            if (lab > 0) c.sat_r = islands[(size_t)(lab - 1)].r;
         }
-        bool has_saturated = false;
-        if (nhigh > 0) {
-            meanhigh /= (double)nhigh;
-            has_saturated = (meanhigh - bg >= minsatlevel) &&
-                            ((double)pixel0 - minhigh <= satrange);
-        }
-        float sat = (float)norm;
-        if (has_saturated) sat = (float)(std::min((double)pixel0, (double)norm) - satrange);
 
-        double Sr = 0.5, Sc = 0.5;
-        moment_sigma(ix, iy, &Sr, &Sc);
-        int Rm = (int)std::ceil(s_factor * std::max(Sr, Sc));
-        Rm = std::min(Rm, MAX_BOX_RADIUS);
-        int R = std::max(Rm, r);
-        if (ix - R < 0) R = ix;
-        if (ix + R >= width) R = width - ix - 1;
-        if (iy - R < 0) R = iy;
-        if (iy + R >= height) R = height - iy - 1;
-        if (R < 1) { n_dropped++; continue; }
+        // ④ O7 零交叉初值（平滑图 4 方向, at (ix,iy)）
+        double drl, drr, dcu, dcd, arl, arr, acu, acd;
+        sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                               ix, iy, -1, 0, bg, is_sat, &drl, &arl);
+        sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                               ix, iy, +1, 0, bg, is_sat, &drr, &arr);
+        sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                               ix, iy, 0, -1, bg, is_sat, &dcu, &acu);
+        sdet_zero_cross_dir<T>(smooth, w, h, src, sat_threshold,
+                               ix, iy, 0, +1, bg, is_sat, &dcd, &acd);
+        c.srl = drl; c.srr = drr; c.scl = dcu; c.scr = dcd;
+        c.Sr = 0.5 * (drl + drr);
+        c.Sc = 0.5 * (dcu + dcd);
+        c.Ar = SDET_SQRT_EXP1 * 0.5 * (arl + arr);
+        c.Ac = SDET_SQRT_EXP1 * 0.5 * (acu + acd);
 
-        // 注: 盲检测用 11x11 窗口的 pixel_count 反推 med_pixel_count →
-        // auto_fit_radius; 引导路径的 R 由星表位置的 σ 估计直接给出, 不需要该量,
-        // 故不在此计算 (该窗口在距边界 <r 的位置会越界读, 引导定义域允许 ix≥3)。
-        candidates.push_back({px, py, (double)pixel0, meanhigh,
-                              (float)Sr, (float)Sc, R, sat, has_saturated});
-    }
-    if (out_stats) out_stats->n_dropped = n_dropped;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "guided candidates: %d/%d (dropped=%d)",
-             (int)candidates.size(), n_pred, n_dropped);
-
-    if (candidates.empty()) {
-        *out_x = nullptr; *out_y = nullptr; *out_flux = nullptr; *out_saturated = nullptr;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        *out_count = 0;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
-
-    // 定义域闸门: 与盲检测同款 maxStars×2 候选上限 (ALG-STARDET-001 §6)。
-    // 调用方已按亮度取 top-N, 本闸门只作内存/算力兜底; 排序键 (mag_est 降序,
-    // 同值按输入下标升序) 构成全序 ⇒ 与线程数/输入顺序无关。
-    {
-        std::vector<int> order(candidates.size());
-        for (size_t k = 0; k < order.size(); ++k) order[k] = (int)k;
-        std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
-            if (candidates[(size_t)a].mag_est != candidates[(size_t)b].mag_est)
-                return candidates[(size_t)a].mag_est > candidates[(size_t)b].mag_est;
-            return a < b;
-        });
-        std::vector<GuidedCandidate> sorted;
-        sorted.reserve(order.size());
-        for (int k : order) sorted.push_back(candidates[(size_t)k]);
-        candidates.swap(sorted);
-    }
-    if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
-        candidates.resize((size_t)params.maxStars * 2);
-    }
-
-    // 阶段C: 椭圆高斯拟合 (与盲检测同一 sdet_gauss_fit / trust-region LM 7 参)
-    const int cc_count = (int)candidates.size();
-    std::vector<InternalFitResult> fit_results((size_t)cc_count);
-    int fit_ok_count = 0;
-    #pragma omp parallel
-    {
-        LMWorkspace ws;
-        #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
-        for (int i = 0; i < cc_count; i++) {
-            const int fit_r = candidates[(size_t)i].R;
-            const int rx0 = std::max(0, (int)candidates[(size_t)i].cx - fit_r);
-            const int ry0 = std::max(0, (int)candidates[(size_t)i].cy - fit_r);
-            const int rx1 = std::min(width, (int)candidates[(size_t)i].cx + fit_r + 1);
-            const int ry1 = std::min(height, (int)candidates[(size_t)i].cy + fit_r + 1);
-            const double sat_mask = (double)candidates[(size_t)i].sat;
-            sdet_gauss_fit<T>(image, width, height,
-                              candidates[(size_t)i].cx, candidates[(size_t)i].cy,
-                              rx0, ry0, rx1, ry1, &fit_results[(size_t)i], &ws, sat_mask,
-                              (double)candidates[(size_t)i].sx, (double)candidates[(size_t)i].sy,
-                              (double)img_median);
-            if (fit_results[(size_t)i].status == SDET_FIT_OK) fit_ok_count++;
-        }
-    }
-    sdet_log(SDET_LOG_INFO, "SDET", "guided fit: %d/%d OK", fit_ok_count, cc_count);
-
-    // 阶段D: 质量门 + StarRecord 构建 (与盲检测同门同式)
-    std::vector<StarRecord> stars;
-    int f_fit = 0, f_round = 0, f_reject = 0;
-    int f_sf[6] = {0, 0, 0, 0, 0, 0};   // reject_star SfError 五码逐项计数 (诊断)
-    for (int i = 0; i < cc_count; i++) {
-        if (fit_results[(size_t)i].status != SDET_FIT_OK) { f_fit++; continue; }
-        const float axis_ratio =
-            (float)(std::max(fit_results[(size_t)i].sx, fit_results[(size_t)i].sy) /
-                    std::max(std::min(fit_results[(size_t)i].sx, fit_results[(size_t)i].sy), 0.001));
-        if (axis_ratio > params.maxAxisRatio) { f_round++; continue; }
-        const SfError sf_err = reject_star(fit_results[(size_t)i], candidates[(size_t)i].has_saturated,
-                                           (double)candidates[(size_t)i].sx,
-                                           (double)candidates[(size_t)i].sy);
-        if (sf_err != SF_OK) {
-            f_reject++;
-            if ((int)sf_err >= 0 && (int)sf_err <= 5) f_sf[(int)sf_err]++;
-            continue;
-        }
-        StarRecord rec;
-        rec.cx = fit_results[(size_t)i].cx;
-        rec.cy = fit_results[(size_t)i].cy;
-        rec.flux = (float)fit_results[(size_t)i].A;
-        rec.is_saturated = (fit_results[(size_t)i].A > dynrange) ? 1 : 0;
-        rec.fwhm_x = (float)fit_results[(size_t)i].fwhm_x;
-        rec.fwhm_y = (float)fit_results[(size_t)i].fwhm_y;
-        rec.sx = (float)fit_results[(size_t)i].sx;
-        rec.sy = (float)fit_results[(size_t)i].sy;
-        rec.theta = (float)fit_results[(size_t)i].theta;
-        rec.background = (float)fit_results[(size_t)i].B;
-        rec.amplitude = (float)fit_results[(size_t)i].A;
-        rec.r = 0.0f;
-        rec.cand_R = (float)candidates[(size_t)i].R;
+        // ④ O9 拟合盒（钳 [5,200]; 钳位帧内; 盒空 → n_dropped）
+        int R = (int)std::ceil(SDET_S_FACTOR * std::max(c.Sr, c.Sc));
+        if (R < 5) R = 5;
+        if (R > SDET_MAX_BOX_RADIUS) R = SDET_MAX_BOX_RADIUS;
+        c.R = R;
         {
-            int mag_radius = candidates[(size_t)i].R;
-            mag_radius = std::max(mag_radius, 5);
-            mag_radius = std::min(mag_radius, 200);
-            const int mcx = (int)candidates[(size_t)i].cx;
-            const int mcy = (int)candidates[(size_t)i].cy;
-            const int mx0 = std::max(0, mcx - mag_radius);
-            const int my0 = std::max(0, mcy - mag_radius);
-            const int mx1 = std::min(width, mcx + mag_radius + 1);
-            const int my1 = std::min(height, mcy + mag_radius + 1);
-            const float local_B = (float)fit_results[(size_t)i].B;
+            const int wcxi = (int)std::lround(c.x - 0.5);
+            const int wcyi = (int)std::lround(c.y - 0.5);
+            c.rx0 = wcxi - R < 0 ? 0 : wcxi - R;
+            c.ry0 = wcyi - R < 0 ? 0 : wcyi - R;
+            c.rx1 = wcxi + R + 1 > w ? w : wcxi + R + 1;
+            c.ry1 = wcyi + R + 1 > h ? h : wcyi + R + 1;
+        }
+        if (c.rx1 - c.rx0 < 1 || c.ry1 - c.ry0 < 1) continue;   // n_dropped
+
+        // ⑤ O10 对称门（非饱和; 拒 → n_rejected）
+        if (!is_sat) {
+            const double aabs_r = std::fabs(c.Ar), aabs_c = std::fabs(c.Ac);
+            const double amin = std::min(aabs_r, aabs_c);
+            const double amax = std::max(aabs_r, aabs_c);
+            const double dA = (amin < 1e-20) ? 1e30 : (amax / amin);
+            const double drmin = std::min(drl, drr);
+            const double drmax = std::max(drl, drr);
+            const double dSr = (drmin < 1e-20) ? 1e30 : (drmax / drmin);
+            const double dcmin = std::min(dcu, dcd);
+            const double dcmax = std::max(dcu, dcd);
+            const double dSc = (dcmin < 1e-20) ? 1e30 : (dcmax / dcmin);
+            if (dA > 2.0 || dSr > 2.0 || dSc > 2.0) {
+                verdict[(size_t)i] = SDET_GD_REJECT;
+                continue;
+            }
+            if (std::max(aabs_r, aabs_c) < pr.locthreshold) {
+                verdict[(size_t)i] = SDET_GD_REJECT;
+                continue;
+            }
+        }
+
+        // ⑥ O12 拟合 → 未收敛/非法 → n_fit_failed
+        InternalFitResult fr;
+        std::memset(&fr, 0, sizeof(fr));
+        const int st = sdet_gauss_fit<T>(src, w, h, c.x, c.y,
+                                         c.rx0, c.ry0, c.rx1, c.ry1, &fr,
+                                         NULL, sat_threshold, 0.0, 0.0, 0.0, params.maxAxisRatio);
+        if (st != SDET_FIT_OK) { verdict[(size_t)i] = SDET_GD_FITFAIL; continue; }
+
+        // ⑦ 质量门 → 未过 → n_rejected
+        if (params.maxAxisRatio > 0.0f) {
+            const double smax = std::max(fr.sx, fr.sy);
+            const double smin = std::min(fr.sx, fr.sy);
+            if (smin > 0.0 && smax / smin > (double)params.maxAxisRatio) {
+                verdict[(size_t)i] = SDET_GD_REJECT;
+                continue;
+            }
+        }
+        if (reject_star(fr, is_sat, c.Sr, c.Sc) != SF_OK) {
+            verdict[(size_t)i] = SDET_GD_REJECT;
+            continue;
+        }
+        verdict[(size_t)i] = SDET_GD_OK;
+        g_fits[(size_t)i] = fr;
+        g_cands[(size_t)i] = c;
+    }
+
+    // 串行汇总六计数（守恒: dropped + fit_failed + rejected + fit_ok == n_predicted）
+    if (out_stats) {
+        for (int i = 0; i < n_pred; ++i) {
+            switch (verdict[(size_t)i]) {
+                case SDET_GD_DROP:     ++out_stats->n_dropped; break;
+                case SDET_GD_FITFAIL:  ++out_stats->n_fit_failed; break;
+                case SDET_GD_REJECT:   ++out_stats->n_rejected; break;
+                default:               ++out_stats->n_fit_ok; break;
+            }
+        }
+    }
+
+    // ⑧ 装配（记录序 = 预测序）→ O14 → O15
+    std::vector<StarRecord> stars;
+    stars.reserve((size_t)n_pred);
+    for (int i = 0; i < n_pred; ++i) {
+        if (verdict[(size_t)i] != SDET_GD_OK) continue;
+        const InternalFitResult& f = g_fits[(size_t)i];
+        const SdetCand& c = g_cands[(size_t)i];
+        StarRecord rec;
+        std::memset(&rec, 0, sizeof(rec));
+        rec.cx = f.cx;
+        rec.cy = f.cy;
+        rec.flux = (float)f.A;
+        rec.is_saturated = (f.A > dynrange) ? 1 : 0;
+        rec.has_saturated = rec.is_saturated;
+        rec.fwhm_x = (float)f.fwhm_x;
+        rec.fwhm_y = (float)f.fwhm_y;
+        rec.sx = (float)f.sx;
+        rec.sy = (float)f.sy;
+        rec.theta = (float)f.theta;
+        rec.background = (float)f.B;
+        rec.amplitude = (float)f.A;
+        rec.r = (float)(c.sat ? c.sat_r : 0.0);
+        rec.cand_R = (float)c.R;
+        {
+            int Rb = c.R;
+            if (Rb < 5) Rb = 5;
+            if (Rb > SDET_MAX_BOX_RADIUS) Rb = SDET_MAX_BOX_RADIUS;
+            const int bx = (int)std::lround(c.x - 0.5);
+            const int by = (int)std::lround(c.y - 0.5);
             double box_sum = 0.0;
-            for (int yy = my0; yy < my1; yy++) {
-                for (int xx = mx0; xx < mx1; xx++) {
-                    box_sum += (double)image[yy * width + xx] - local_B;
+            for (int yy = by - Rb; yy <= by + Rb; ++yy) {
+                if (yy < 0 || yy >= h) continue;
+                for (int xx = bx - Rb; xx <= bx + Rb; ++xx) {
+                    if (xx < 0 || xx >= w) continue;
+                    box_sum += (double)src[(size_t)yy * (size_t)w + (size_t)xx] - f.B;
                 }
             }
-            rec.mag = (box_sum > 0.0) ? -2.5f * log10f((float)box_sum) : NAN;
+            rec.mag = (box_sum > 0.0) ? (float)(-2.5 * std::log10(box_sum))
+                                      : (float)std::nan("");
         }
-        rec.has_saturated = rec.is_saturated;
         stars.push_back(rec);
     }
-    if (out_stats) {
-        out_stats->n_fit_failed = f_fit;
-        out_stats->n_rejected = f_round + f_reject;
-        out_stats->n_fit_ok = (int)stars.size();
-    }
-    sdet_log(SDET_LOG_INFO, "SDET",
-             "guided stars: %d (fit_fail=%d roundness=%d reject=%d | fwhm_neg=%d fwhm_small=%d "
-             "round_below=%d rmse_large=%d fwhm_large=%d)",
-             (int)stars.size(), f_fit, f_round, f_reject,
-             f_sf[1], f_sf[2], f_sf[3], f_sf[4], f_sf[5]);
 
-    // 阶段E: 去重 + mag 升序排序 (NaN 末尾) + maxStars 截断 (与盲检测同序)
-    sdet_dedup_stars(stars);
-    sdet_sort_stars(stars);
-    if (params.maxStars > 0 && (int)stars.size() > params.maxStars) {
-        stars.resize((size_t)params.maxStars);
-    }
-    const int result_count = (int)stars.size();
-    if (out_stats) out_stats->n_output = result_count;
-
-    if (result_count == 0) {
-        *out_x = nullptr; *out_y = nullptr; *out_flux = nullptr; *out_saturated = nullptr;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        *out_count = 0;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
-
-    double *x_coords = (double *)malloc((size_t)result_count * sizeof(double));
-    double *y_coords = (double *)malloc((size_t)result_count * sizeof(double));
-    float *flux_arr = (float *)malloc((size_t)result_count * sizeof(float));
-    int *sat_arr = (int *)malloc((size_t)result_count * sizeof(int));
-    float *mag_arr = out_mag ? (float *)malloc((size_t)result_count * sizeof(float)) : nullptr;
-    int *has_sat_arr = out_has_saturated ? (int *)malloc((size_t)result_count * sizeof(int)) : nullptr;
-    if (!x_coords || !y_coords || !flux_arr || !sat_arr ||
-        (out_mag && !mag_arr) || (out_has_saturated && !has_sat_arr)) {
-        free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
-        free(mag_arr); free(has_sat_arr);
-        return -1;
-    }
-    for (int i = 0; i < result_count; i++) {
-        x_coords[i] = stars[(size_t)i].cx;
-        y_coords[i] = stars[(size_t)i].cy;
-        flux_arr[i] = stars[(size_t)i].flux;
-        sat_arr[i] = stars[(size_t)i].is_saturated;
-        if (mag_arr) mag_arr[i] = stars[(size_t)i].mag;
-        if (has_sat_arr) has_sat_arr[i] = stars[(size_t)i].has_saturated;
-    }
-
-    if (out_extras && extra_count > 0) {
-        float **extras_arr = (float **)malloc((size_t)extra_count * sizeof(float *));
-        if (!extras_arr) {
-            free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
-            free(mag_arr); free(has_sat_arr);
-            return -1;
-        }
-        int rows_ok = 0;
-        for (int e = 0; e < extra_count; e++) {
-            extras_arr[e] = (float *)malloc((size_t)result_count * sizeof(float));
-            if (!extras_arr[e]) break;
-            const ExtraField field = parse_extra_name(extra_names[e]);
-            for (int i = 0; i < result_count; i++) {
-                extras_arr[e][i] = get_extra_field(stars[(size_t)i], field);
-            }
-            rows_ok++;
-        }
-        if (rows_ok < extra_count) {
-            for (int e = 0; e < rows_ok; e++) free(extras_arr[e]);
-            free(extras_arr);
-            free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
-            free(mag_arr); free(has_sat_arr);
-            return -1;
-        }
-        *out_extras = extras_arr;
-    }
-
-    *out_x = x_coords;
-    *out_y = y_coords;
-    *out_flux = flux_arr;
-    *out_saturated = sat_arr;
-    if (out_mag) *out_mag = mag_arr;
-    if (out_has_saturated) *out_has_saturated = has_sat_arr;
-    *out_count = result_count;
-
-    const double elapsed = std::chrono::duration<double>(
-        std::chrono::high_resolution_clock::now() - t0).count();
-    sdet_log(SDET_LOG_INFO, "SDET",
-             "sdet_detect_guided_ex done: pred=%d dropped=%d fit_fail=%d rejected=%d out=%d, %.3f s",
-             n_pred, n_dropped, f_fit, f_round + f_reject, result_count, elapsed);
-    return 0;
+    const int rc = sdet_emit_records(stars, (long long)params.maxStars, extra_names,
+                                     extra_count, out_x, out_y, out_flux,
+                                     out_saturated, out_mag, out_has_saturated,
+                                     out_count, out_extras);
+    if (out_stats && out_count)
+        out_stats->n_output = (rc == 0) ? *out_count : 0;
+    return rc;
 }
 
 SDET_EXPORT int sdet_detect_guided_ex_f64(StarDetectorHandle handle,
