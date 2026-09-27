@@ -94,7 +94,7 @@ CCD/CMOS标准校准模块，包含主帧生成、图像校准（含暗场优化
   - 无暗场优化: `Calibrated = (Light - Dark) / Flat`（Dark 已含 Bias，直接减）
   - 有暗场优化: `Calibrated = (Light - Bias - K*(Dark - Bias)) / Flat`（需提取纯暗电流）
 - **坏点修复策略（v4: 采用AstroStack3方案）**: Dark/Bias 主帧保留坏点（校准扣除），但用 Dark 全局统计检测热像素位置 + Bias 全局统计检测冷像素位置（缺陷图），Light 局部统计检测默认关闭（避免星点核心被误判），`filter_by_structure_size` 连通区域过滤排除星点
-- **标准校准流程文档**: [CALIBRATION_PROCESS.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/calibration/CALIBRATION_PROCESS.md)
+- **标准校准流程文档**: [CALIBRATION_PROCESS.md](CALIBRATION_PROCESS.md)
 
 ## 数据源
 - 主校准帧: testdata/Galaxy_Center_T4 全链路测试数据/calibration files/ (XISF格式)

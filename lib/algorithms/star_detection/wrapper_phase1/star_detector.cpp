@@ -39,12 +39,12 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //                :4267 p1_op_noise 读作 cfg.sigma_sky_adu → 帧 SNR/深度 → drizzle → HiCS
 //                ASTROCS_FRAME_SNR。删除它 = 改产品数值，违反数值等价前置。
 //             ② 增益成立（合成星场，固定 seed=20260919，n=210 帧池化，C++ 探针直调生产实现
-//                270/270 帧 σ 逐位一致）：相对冻结式 1.4826·MAD 的 mean|rel err| 增益
+//                270/270 帧 σ 逐位一致）：相对冻结式 1.482602218505602·MAD 的 mean|rel err| 增益
 //                **+78.47%**（bootstrap 95% CI [+76.58%, +80.40%]）；偏差 +0.774%（星场）/
 //                −1.401%（纯噪声，与 ±3σ 截断高斯解析值 −1.346% 差 0.06pp ⇒ 定义性低偏）。
 //                注：GAP_AUDIT/TASK_LIST 记的「增益 +71.8%」**未复现**且全仓查无出处，
 //                应以本实验口径为准（订正归 DOC-402）。
-//             ③ 未改写成 1.4826·MAD：那正是本实验的基线（星场下差 78%）。
+//             ③ 未改写成 1.482602218505602·MAD：那正是本实验的基线（星场下差 78%）。
 // STATUS:     在役生产（非退役件）；本块登记的是「为什么它不是待删死代码」与已发现缺陷。
 //             **已知缺陷（本轮新发现；CLEAN-401 已按 fail-closed 修，见本函数 :107-110）**：
 //             原 NaN 输入非 fail-closed ——
@@ -65,12 +65,12 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //             ① 若 FIX 域另行改造 NaN 处置 ⇒ 同步本块「已知缺陷」段（当前状态：已修）；
 //             ② 若 DOC-402 把 docs/science/NOISE_MODEL.md 的 σ 口径改为裁剪后 RMS ⇒ 本块
 //                的「增益 vs MAD」对照口径同步更新；
-//             ③ 若将来决定统一 σ 口径（改调 1.4826·MAD）⇒ 必须先做数值等价验证并同步
+//             ③ 若将来决定统一 σ 口径（改调 1.482602218505602·MAD）⇒ 必须先做数值等价验证并同步
 //                p1_sources.json / p1_snr 的容差与基线，不得直接替换。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§3（科学代码红线）；
 //             RELEASE-04 GAP_AUDIT G2-3（包已出库）；
 //             实验证据 run/CLEAN-401/third_sigma/{README.md,verify.log,results/metrics.json}；
-//             docs/science/NOISE_MODEL.md:46（冻结的 σ_bg=1.4826·MAD 仍是注册口径，未改）。
+//             docs/science/NOISE_MODEL.md:46（冻结的 σ_bg=1.482602218505602·MAD 仍是注册口径，未改）。
 // ──────────────────────────────────────────────────────────────────────
 bool StarDetector::estimate_background(const float* image, int w, int h,
                                        double* bg, double* sigma) {

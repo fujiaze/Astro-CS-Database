@@ -125,8 +125,8 @@ struct SpatialGainField {
   int coverage_blocks = 0;
   // 残差
   double sigma_global_dex = 0.0;   // 阶段 2 的逐星散度（输入回填，dex）
-  double tukey_scale_dex = 0.0;    // 阶段 3 固定尺度 S（MAD(r−L)/0.6745）
-  double sigma_spatial_dex = 0.0;  // 空间拟合后逐星残差 MAD/0.6745
+  double tukey_scale_dex = 0.0;    // 阶段 3 固定尺度 S（MAD(r−L)/0.6744897501960817）
+  double sigma_spatial_dex = 0.0;  // 空间拟合后逐星残差 MAD/0.6744897501960817
   double field_ptp_dex = 0.0;      // 拟合场 log10 m 在视场上的峰峰值
   double field_rms_dex = 0.0;      // 拟合场 log10 m 在视场上的 RMS（含规范均值）
   // 解析噪声底（加权最小二乘系数协方差投影到视场）:

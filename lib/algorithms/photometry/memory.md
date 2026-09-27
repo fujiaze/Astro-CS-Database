@@ -108,14 +108,14 @@
 
 ## 详细开发记录（历史归档）
 
-> 根目录索引: [memory.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/memory.md)
+> 根目录索引: [memory.md](../../../memory.md)
 
 ## 模块概览
 
 - **模块名称**: photometric_calib
 - **功能**: 鲁棒流量校准，消除空间缓变梯度（残留渐晕、月光、光害、大气消光、大气辉光），输出与 Gaia DR3/SP 星表系统一致的校正图像
-- **算法依据**: [docs/algorithm.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/photometry/docs/algorithm.md)
-- **架构依据**: [docs/architecture.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/photometry/docs/architecture.md)
+- **算法依据**: [docs/algorithm.md](docs/algorithm.md)
+- **架构依据**: [docs/architecture.md](docs/architecture.md)
 - **历史仓库**: https://github.com/fujiaze/Robust-Flux-Calibration (v1.0 Python版, 2026-07-12, 已被Flux-calibration取代)
 
 ## 目录结构
@@ -256,7 +256,7 @@ lib/algorithms/photometry/
 - **功能**: 将 Gaia 参考星与图像 PSF 拟合星空间匹配, 为每颗匹配星计算合成流量 F_syn, 生成 StarMatch 列表供梯度拟合器使用
 - **数据结构**: `GaiaStarPy`(ra/dec/mag_g/mag_bp/mag_rp/source_id), `StarMatch`(x/y/f_instr/b_local/f_syn/gaia_g_mag/gaia_id/bp_rp)
 - **API**:
-  - `match(wcs, gaia_stars, psf_results, match_radius_px=3.0) -> list[StarMatch]` - 匹配+合成流量
+  - `match(wcs, gaia_stars, psf_results, match_radius_px=3.0) -> list` - 匹配+合成流量
   - `clean_outliers(matches, outlier_sigma=3.0) -> (cleaned, n_excluded)` - MAD稳健裁剪
   - `match_and_clean(...) -> (cleaned, n_excluded)` 一站式; `to_arrays(matches) -> dict` 转numpy数组
 - **算法**:
@@ -282,7 +282,7 @@ lib/algorithms/photometry/
 **新建** `lib/algorithms/photometry/cpp/include/log_macros.h`：
 - 定义 `LOG_INFO` / `LOG_DEBUG` / `LOG_ERROR` 宏
 - **`LOG_DEBUG` 默认编译时不启用**（宏展开为 `((void)0)`），可通过定义 `PC_ENABLE_DEBUG` 启用
-- `LOG_INFO` / `LOG_ERROR` 输出到 stderr，自动加 `[INFO]` / `[ERROR]` 前缀和 `\n` 后缀
+- `LOG_INFO` / `LOG_ERROR` 输出到 stderr，自动加 `` / `` 前缀和 `\n` 后缀
 
 **修改** 3 个 C++ 文件：
 - `spectrum_integrator.cpp`：`compute_f_syn` 末尾的循环内 fprintf 改为 LOG_DEBUG（错误路径上 6 个 fprintf 保留原样）

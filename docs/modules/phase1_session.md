@@ -9,8 +9,9 @@
 > DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION（PUBLIC_API）；
 > 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md，FROZEN）；不设
 > 独立 DLL（MODULE_MIGRATION_MATRIX 无 P1-SESSION 行）。registry 关系：
-> 五函数经 P1Api（lib/infrastructure/scheduler/src/module_adapters.cpp:755-762）被 8 个
-> Phase1 descriptor 工厂委托（:728-735/:755-770）。
+> 五函数经 P1Api（lib/infrastructure/scheduler/src/module_adapters.cpp:1193）被 8 个
+> Phase1 descriptor 工厂委托（p1_nodes 表＋register_factory，:15462-15478；make_p1_node_module
+> 定义 :13265）。
 
 ## 职责
 

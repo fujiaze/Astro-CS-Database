@@ -268,7 +268,7 @@ make clean    # 清理产物
 
 #### Python 绑定
 - `ipv_solver.py` 新增 `to_astropy_wcs(result)` 函数：构造 astropy.wcs.WCS（含 Sip 对象）
-  - SIP order>0 时 ctype=`["RA---TAN-SIP", "DEC--TAN-SIP"]`
+  - SIP order>0 时 ctype=``
 
 #### build_wcs 集成
 - `ipv_wcs.cpp` step 5 替换硬编码 order=0，调用 `fit_sip()`
@@ -602,7 +602,7 @@ sip_a = np.array(list(result.sip_a)[:((order + 1) * (order + 2)) // 2])
 sip_a = sip_a.reshape((order + 1, order + 1))  # ValueError!
 ```
 
-**修复**: 改用 `A[i*6+j]` 索引逐个填充零矩阵
+**修复**: 改用 `A` 索引逐个填充零矩阵
 ```python
 sip_a = np.zeros((order + 1, order + 1))
 for i in range(order + 1):
@@ -689,7 +689,7 @@ lib/algorithms/platesolve/cpp/ipv/
 
 ### 2. Spec 与 Task 概览
 
-- **Spec**: [.trae/specs/improve-plate-solve-precision-speed/](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/.trae/specs/improve-plate-solve-precision-speed/)
+- **Spec**: `.trae/specs/improve-plate-solve-precision-speed/`
 - **Phase A** (Task 1-3): Siril CLI 基线 + IPv V4.66+V4.24 基线 + 失败帧分析
 - **Phase B** (Task 4-8 + V4.26 order fallback): 算法对齐 Siril (order=3, SIP order=3, 高阶重匹配, atRecalcTrans 二轮精化)
 - **Phase C** (Task 9-11): 790 帧全量精度测试 + WCS 数值一致性 + 成功率验证
@@ -730,7 +730,7 @@ lib/algorithms/platesolve/cpp/ipv/
   - 预分配 `proj_xi` / `proj_eta` / `proj_valid` 数组
   - `std::vector<char>` 替代 `std::vector<bool>` (避免位竞争)
   - 1×FOV 和 1.5×FOV 过滤循环复用缓存投影
-- Step 10 W 向量构建 (line 823-845): 复用 `proj_xi[idx]` / `proj_eta[idx]` (消除 2/3 重复投影)
+- Step 10 W 向量构建 (line 823-845): 复用 `proj_xi` / `proj_eta` (消除 2/3 重复投影)
 
 **Task 13 — triangle_match 并行化** (ipv_triangle.cpp):
 - stars_to_triangles (line 176-255):
@@ -738,7 +738,7 @@ lib/algorithms/platesolve/cpp/ipv/
   - 线程局部 `std::vector<Triangle>` per thread, 末尾合并
   - 保留 `ba > 0.9` 剪枝
 - make_vote_matrix (line 271-393):
-  - 线程局部 1D flatten 数组 `local_votes[tid]` (numA×numB)
+  - 线程局部 1D flatten 数组 `local_votes` (numA×numB)
   - `#pragma omp for schedule(dynamic, 64)` 外层 j 循环
   - 1D 索引 `idx = a * numB + b` 提升缓存命中
   - 合并用 `#pragma omp parallel for collapse(2)`
@@ -842,11 +842,11 @@ lib/algorithms/platesolve/cpp/ipv/
 
 ### 9. 测试结果文件
 
-- [v425_790/summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v425_790/summary.json): 97.34%, RMS 0.487", 1.720s
-- [v426_790/summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v426_790/summary.json): 97.59%, RMS 0.487", 1.744s
-- [v427_5frame/summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v427_5frame/summary.json): 100%, RMS 0.338", 0.99s
-- [v427_790/summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v427_790/summary.json): 97.59%, RMS 0.487", 1.250s
-- [siril_baseline_790/summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/siril_baseline_790/summary.json): 97.59%, RMS 40.28", 1.495s
+- `lib/algorithms/platesolve/logs/siril_compare/v425_790/summary.json`: 97.34%, RMS 0.487", 1.720s
+- `lib/algorithms/platesolve/logs/siril_compare/v426_790/summary.json`: 97.59%, RMS 0.487", 1.744s
+- `lib/algorithms/platesolve/logs/siril_compare/v427_5frame/summary.json`: 100%, RMS 0.338", 0.99s
+- `lib/algorithms/platesolve/logs/siril_compare/v427_790/summary.json`: 97.59%, RMS 0.487", 1.250s
+- `lib/algorithms/platesolve/logs/siril_compare/siril_baseline_790/summary.json`: 97.59%, RMS 40.28", 1.495s
 
 ### 10. 结论
 
@@ -855,7 +855,7 @@ V4.25-V4.27 全部 18 Task 完成并通过验收:
 - **速度比 Siril 快 16%**: 1.250s vs 1.495s (中位), 1011s vs 1237s (总耗时)
 - **零崩溃**: 0 异常 / 0 崩溃 (V4.22 memset 修复 + V4.24 memmove 修复 + V4.27 OpenMP 安全)
 
-**Spec 完成**: [.trae/specs/improve-plate-solve-precision-speed/](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/.trae/specs/improve-plate-solve-precision-speed/) 全部 18 Task 完成 (Phase A-F)
+**Spec 完成**: `.trae/specs/improve-plate-solve-precision-speed/` 全部 18 Task 完成 (Phase A-F)
 
 
 ---
@@ -890,13 +890,13 @@ V4.25-V4.27 全部 18 Task 完成并通过验收:
 
 #### 3.1 wcs_check 像素阈值 (Phase A Task 1)
 
-- **修改文件**: [run_ipv_baseline.py](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/python/siril_compare/run_ipv_baseline.py) validate_wcs 函数 + [run_siril_baseline.py](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/python/siril_compare/run_siril_baseline.py) compute_rms_arcsec 函数
+- **修改文件**: `lib/algorithms/platesolve/python/siril_compare/run_ipv_baseline.py` validate_wcs 函数 + `lib/algorithms/platesolve/python/siril_compare/run_siril_baseline.py` compute_rms_arcsec 函数
 - **变更**: wcs_check 阈值从固定 600" 改为像素阈值 250px (FOV 自适应) + RMS<3" + n_pairs≥10 双重校验
 - **原因**: 固定 600" 阈值对窄 FOV 过松, 对宽 FOV 过严; 像素阈值随 FOV 自适应更合理
 
 #### 3.2 iter_trans sigma-clip 修复 (Phase B Task 5)
 
-- **修改文件**: [ipv_itertrans.cpp](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp)
+- **修改文件**: [ipv_itertrans.cpp](src/ipv_itertrans.cpp)
 - **根因**: 5 帧 RMS>2" (Galaxy_Center mosaic Blue wide FOV), iter_trans 阶段 sigma(35%) 被 5-50" 中等错配拉大 (7.91-139.06 角秒²), 相对阈值 10*sigma (8.94-37.28") 远大于 tol=5" → 无法清除中等错配
 - **修复 (双保险, surgical ~40 行)**:
   1. **tol 预过滤** (行 488-519): 第一次迭代时, 绝对剔除后用 tolerance 预过滤 (条件: 剩余 ≥ required_pairs), 防止 sigma(35%) 被中等错配拉大
@@ -904,13 +904,13 @@ V4.25-V4.27 全部 18 Task 完成并通过验收:
 
 #### 3.3 Gaia 缓存预热 (Phase C Task 6.1)
 
-- **修改文件**: [run_ipv_baseline.py](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/python/siril_compare/run_ipv_baseline.py)
+- **修改文件**: `lib/algorithms/platesolve/python/siril_compare/run_ipv_baseline.py`
 - **新增**: `warmup_gaia_cache()` 函数, 正式运行前对每个 unique object 触发一次 cone_search 预热 block_cache
 - **效果**: 4 个 object 预热 15.1s, Victory_Nebula 冷缓存 11.32s 转移到预热阶段; 预热 mag 改为动态计算 (与 solver 一致)
 
 #### 3.4 编译优化 (Phase C Task 6.4)
 
-- **修改文件**: [build.ps1](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/build.ps1)
+- **修改文件**: [build.ps1](build.ps1)
 - **CXXFLAGS**: `-O2` → `-O3 -ffast-math -funroll-loops` (保留 `-fopenmp`)
 - **产物**: ipv_solver.dll 609KB → 751KB (循环展开)
 - **精度验证**: 5 帧 0 回归, -ffast-math 对 SVD/IRLS 数值稳定性无影响
@@ -980,13 +980,13 @@ V4.25-V4.27 全部 18 Task 完成并通过验收:
 
 ### 9. 测试结果文件
 
-- [v428_790/summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_790/summary.json): 99.87%, RMS 0.489", 1.199s
-- [v428_phaseB_5frames/verify_5frames_summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_phaseB_5frames/verify_5frames_summary.json): 5/5 改善
-- [v428_phaseB_20frames/verify_20frames_summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_phaseB_20frames/verify_20frames_summary.json): 5/5 改善 + 15/15 无回归
-- [v428_phaseC_precision_verify/precision_verify_summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_phaseC_precision_verify/precision_verify_summary.json): 0 回归
-- [v428_phaseC_speed_verify/speed_verify_summary.json](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_phaseC_speed_verify/speed_verify_summary.json): 中位 -7.4%
-- [v428_diag_precision.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_diag_precision.md): 精度诊断报告
-- [v428_diag_speed.md](file:///F:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/logs/siril_compare/v428_diag_speed.md): 速度诊断报告
+- `lib/algorithms/platesolve/logs/siril_compare/v428_790/summary.json`: 99.87%, RMS 0.489", 1.199s
+- `lib/algorithms/platesolve/logs/siril_compare/v428_phaseB_5frames/verify_5frames_summary.json`: 5/5 改善
+- `lib/algorithms/platesolve/logs/siril_compare/v428_phaseB_20frames/verify_20frames_summary.json`: 5/5 改善 + 15/15 无回归
+- `lib/algorithms/platesolve/logs/siril_compare/v428_phaseC_precision_verify/precision_verify_summary.json`: 0 回归
+- `lib/algorithms/platesolve/logs/siril_compare/v428_phaseC_speed_verify/speed_verify_summary.json`: 中位 -7.4%
+- `lib/algorithms/platesolve/logs/siril_compare/v428_diag_precision.md`: 精度诊断报告
+- `lib/algorithms/platesolve/logs/siril_compare/v428_diag_speed.md`: 速度诊断报告
 
 ### 10. 结论
 
