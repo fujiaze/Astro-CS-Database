@@ -24,7 +24,7 @@ ACSD = 天文 CCD/CMOS 校准数据库；三个**独立**命令 `normalize`/`mos
 跨帧绝对 SNR(SCI-B)、加性天光无接缝(SCI-C)。
 
 权威顺序（AGENTS §1.1）：`docs/ASTROCS_DESIGN.md` → `docs/design/` → `docs/plugins/` →
-`docs/science/`+`docs/algorithms/`（只读权威）→ `docs/contracts/` → `ENGINEERING_SPEC.md` →
+`docs/science/`+`docs/science/algorithms/`（只读权威）→ `docs/contracts/` → `ENGINEERING_SPEC.md` →
 `ACCEPTANCE_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/`。
 **权威链胜过控制包任务文字。**
 

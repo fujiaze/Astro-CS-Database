@@ -66,7 +66,7 @@
 
 ## 追加登记
 
-- **D-17（ACCEPT-501 指出、本轮未修）**：① 四个新调度器（ARCH-502/503/504/505）目前**只在库与测试中存在，生产路径零引用**——即「已实现且自证正确」但**尚未接线**，`ARCH-505` 的迁移被 OQ-9 阻塞，故三命令当前仍走原 Session 路径；② `docs/algorithms/07_noise_snr.md` §4.2a 第 4 条的 `sigma_sky_source` 声明缺失 fail-closed 未在 `snr_science.cpp:177-182` 实现（D-12 的同源项，A 线域）；③ `PHOTOMETRY.md` §16.5 的 n≥100 适用域仍未落地（同 D-13）；④ ACCEPT-501 报告指出 `eng/ci/known_failures_baseline.json` 的 `source_commit` 需随提交刷新（本轮已由 b2876888 刷过一次，后续每次提交后需再刷）。
+- **D-17（ACCEPT-501 指出、本轮未修）**：① 四个新调度器（ARCH-502/503/504/505）目前**只在库与测试中存在，生产路径零引用**——即「已实现且自证正确」但**尚未接线**，`ARCH-505` 的迁移被 OQ-9 阻塞，故三命令当前仍走原 Session 路径；② `docs/science/algorithms/07_noise_snr.md` §4.2a 第 4 条的 `sigma_sky_source` 声明缺失 fail-closed 未在 `snr_science.cpp:177-182` 实现（D-12 的同源项，A 线域）；③ `PHOTOMETRY.md` §16.5 的 n≥100 适用域仍未落地（同 D-13）；④ ACCEPT-501 报告指出 `eng/ci/known_failures_baseline.json` 的 `source_commit` 需随提交刷新（本轮已由 b2876888 刷过一次，后续每次提交后需再刷）。
 - **D-18（本轮已修，留痕）**：ACCEPT-501 抓到的 export_stream 数据竞争（P-1）与三个自测步骤 missing_output（P-2）**已修并复验**：竞争修后 export_stream 连跑 40/40 PASS；自测步骤补 `--json-out`；`run/ci/build-gcc-release` 重建后 `mosaic_window`/`block_flow` 两个 ctest 目标 PASS。空断言门盲区（正则漏 `CHECK(1,"msg")`、不扫 `.c`）已修，修后立刻抓到 3 处恒真断言并改为**每节点** destroy 实际计数断言（改后该断言具备判别力：循环累积时实测判红）。
 
 结论：本包**未完成**，不进入 FIN。已完成的确定成果 = 阶段 1 科学闭环（DOC-501/502、SCI-501..506）、CONTRACT-501、ARCH-501..504、E2E-501、GATE-501/502，以及 ACCEPT-501 独立复核与其 3 条 BLOCKER 的闭环。**未完成**：ARCH-505 迁移（阻塞于 OQ-9）、CLEAN-501、PERF-501、BLD-501（Windows 腿）、VIS-501（M42 组阻塞于 OQ-10）、REPORT-501。
