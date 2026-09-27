@@ -241,8 +241,6 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1738-2483
 | sdet_detect_ex（FP32 入口） | :2907-2925 | uint16→float 转换后 impl<float> |
 | sdet_detect_ex_f64（FP64 入口） | :2932-2944 | impl<double> 全程双精度 |
 | sdet_create / sdet_destroy | :985-1021 | 句柄生命周期（默认参数 :993-1003） |
-| sdet_detect（旧 CC 入口） | :1023-1317 | 旧结构图路径（非生产，DISP-STAR-005） |
-| sdet_detect_debug | :1318 | 诊断入口（CC 路径+平滑图导出） |
 | edge_walking_center | :652-699 | 独立饱和中心实现（debug 路径） |
 | sdet_detect_saturated_stars | :701-806 | 半阈值 CC 饱和检测（debug 路径） |
 | get_extra_field / parse_extra_name | :809-850 | extras 列解析 |
@@ -293,9 +291,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 - DISP-STAR-004 饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
   :2293 `rec.flux = (float)fit_results[i].A` vs :2337 `rec.mag = (box_sum > 0.0) ? -2.5f*log10f(box_sum) : NAN`（段 :2316-2337））；has_saturated 恒等于 is_saturated（:2342），列语义
   未分化（star_det v1 [5] 列承接归 P1-STAR-INT）。
-- DISP-STAR-005 双实现并存: 生产 impl（peaker 路径）与旧 sdet_detect/
-  sdet_detect_debug（CC 结构图路径 :1023-1317/:1318）行为漂移（候选过滤
-  ≤4 vs peaker 七步、dedup 半径/网格不同）；维护歧义，去留归 P1-STAR-IMPL。
+- DISP-STAR-005 旧 CC 结构图路径（sdet_detect/sdet_detect_debug）已按净室重写裁决删除，检测为单实现路径（O1-O16），本项消解。
 - DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧生产内核为椭圆高斯
   （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4
   （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，

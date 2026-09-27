@@ -51,10 +51,8 @@ include_directories(${P1STAR_DIR}/../../../../infrastructure/aio/src)
 set(SDET_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
 set(SDET_SRC
   ${SDET_SRC_DIR}/sdet_api.cpp
-  ${SDET_SRC_DIR}/sdet_detector.cpp
   ${SDET_SRC_DIR}/sdet_image.cpp
   ${SDET_SRC_DIR}/sdet_log.cpp
-  ${SDET_SRC_DIR}/sdet_background.cpp
   # GSL-REPLACE-01: 拟合后端 = 仓内自研信赖域 LM（无外部依赖; 禁止重新引入 GSL）
   ${SDET_SRC_DIR}/nls_lm.cpp)
 
@@ -166,7 +164,7 @@ set_tests_properties(p1star_selfcheck PROPERTIES
 # 被测面: sdet_image.cpp (sdet_robust_mad/_d) + sdet_api.cpp (InternalFitResult.mad)
 # ----------------------------------------------------------------------------
 # 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 全量生产 TU 集 (sdet_api 依赖
-# sdet_log/sdet_detector/sdet_background 的符号, 只挑两三个 TU 会链接失败;
+# 链接须整库 TU 集（sdet_api/sdet_image/sdet_log/nls_lm）, 挑部分 TU 会链接失败;
 # 直接复用本文件既有变量, 避免另立生产 target)。
 add_executable(p1star_mad_check_test
   ${P1STAR_DIR}/p1star_mad_check.cpp
@@ -260,3 +258,27 @@ set_tests_properties(p1stardet_node_gate PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
   TIMEOUT 900
   PASS_REGULAR_EXPRESSION "P1STARDET NODE GATE PASS")
+# ----------------------------------------------------------------------------
+# REVIEW-stage3-SDet R1/R2/R3 共址回归锁: p1star_reject_gate —
+#   R1 O13 五码排异门装配环 + reject_star 第 5 判式 (SF_FWHM_TOO_LARGE);
+#   R2 装配环 maxAxisRatio 门激活 (ALG :2282-2284);
+#   R3 O8 冻结语义 (ALG §3 :127-129 11x11 局部极大扫描)。
+# 9 构造 (4 负例修复前出星 / 3 行为锁改构必红 / 2 绿例锚), 判据见测试抬头。
+# 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 全量生产 TU 集。
+# ----------------------------------------------------------------------------
+add_executable(p1star_reject_gate_test
+  ${P1STAR_DIR}/p1star_reject_gate_test.cpp
+  ${SDET_SRC})
+target_include_directories(p1star_reject_gate_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${SDET_SRC_DIR}
+  ${P1STAR_DIR})
+target_link_libraries(p1star_reject_gate_test PRIVATE ${SDET_FIT_LINK})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(p1star_reject_gate_test PRIVATE OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME p1star_reject_gate COMMAND p1star_reject_gate_test)
+set_tests_properties(p1star_reject_gate PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  ENVIRONMENT "OMP_NUM_THREADS=1"
+  TIMEOUT 120)

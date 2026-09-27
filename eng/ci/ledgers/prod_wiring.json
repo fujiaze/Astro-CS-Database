@@ -69,21 +69,21 @@
       "evidence": "eng/packaging/config/defaults.json"
     },
     {
-      "id": "degenerate_arg:sdet_detect_ex:11",
+      "id": "nullable_source:sdet_detect_ex:11",
       "kind": "designed_nullable_param",
       "reason": "形参 extra_names 按设计可空：仅在 extra_count>0 时才被解引用；调用点传 nullptr 是合同允许的默认路径，不是能力被禁用",
       "owner": "前台（sdet API 合同）",
       "exit_condition": "若合同改为必需，则调用点必须供源并删除本登记",
-      "authority": "lib/algorithms/star_detection/src/sdet_api.cpp:2441,2447（extra_count>0 守卫）；头文件 sdet API 声明的 extra_names/extra_count 成对语义",
+      "authority": "lib/algorithms/star_detection/src/sdet_api.cpp:1543,1580（extra_count>0 守卫）（extra_count>0 守卫）；头文件 sdet API 声明的 extra_names/extra_count 成对语义",
       "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp"
     },
     {
-      "id": "degenerate_arg:sdet_detect_ex_f64:11",
+      "id": "nullable_source:sdet_detect_ex_f64:11",
       "kind": "designed_nullable_param",
       "reason": "同上（f64 变体）",
       "owner": "前台（sdet API 合同）",
       "exit_condition": "同上",
-      "authority": "lib/algorithms/star_detection/src/sdet_api.cpp:2441,2447",
+      "authority": "lib/algorithms/star_detection/src/sdet_api.cpp:1543,1580（extra_count>0 守卫）",
       "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp"
     },
     {

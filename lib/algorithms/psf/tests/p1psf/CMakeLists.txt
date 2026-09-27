@@ -115,10 +115,8 @@ set(P1PSF_GATE_ORCH_INC
 # fail-fast 段已整段摘除: Windows 无 GSL 来源, 且其为 GPL 族（禁止重新引入）。
 set(P1PSF_GATE_SDET_SRC
   ${P1PSF_GATE_SDET_DIR}/src/sdet_api.cpp
-  ${P1PSF_GATE_SDET_DIR}/src/sdet_detector.cpp
   ${P1PSF_GATE_SDET_DIR}/src/sdet_image.cpp
   ${P1PSF_GATE_SDET_DIR}/src/sdet_log.cpp
-  ${P1PSF_GATE_SDET_DIR}/src/sdet_background.cpp
   ${P1PSF_GATE_SDET_DIR}/src/nls_lm.cpp)
 add_executable(p1psf_centroid_gate_test
   ${P1PSF_DIR}/p1psf_centroid_gate.cpp

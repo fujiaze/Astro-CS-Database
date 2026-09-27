@@ -206,10 +206,6 @@
     "unreachable:manifest.source_symbols:p3_sampler_open",
     "unreachable:manifest.source_symbols:pc_calibrate_simple",
     "unreachable:manifest.source_symbols:pc_calibrate_simple_f64",
-    "unreachable:manifest.source_symbols:sdet_detect",
-    "unreachable:manifest.source_symbols:sdet_detect_debug",
-    "unreachable:manifest.source_symbols:sdet_free_coords",
-    "unreachable:manifest.source_symbols:sdet_free_debug_maps",
     "unreachable:manifest.source_symbols:snr_noise_gain_variance",
     "unreachable:manifest.source_symbols:snr_noise_scale_law"
   ],

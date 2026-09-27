@@ -886,15 +886,12 @@ target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
 #   · sdet（本 target）= 1,473 条 / 纯度 45.553%（中位 1.1 px）/ 完备性 44.4%,
 #     当前被 wcs-platesolve 节点使用（同文件 :2864 sdet_create, sp.maxStars=2000）。
 #   ⇒ 交付源 99.67%（344,808 条）无 sdet 对应; 下游已污染（`p1_snr.json`
-#   n_snr_input=345,960, 参考通量中位建立在非星结构上）。本 target 的编译面**不变**
-#   （下方 add_library 原样）; 「生产检测器权威源」择一归 D-04
-#   （GAP_AUDIT §9.67 前台须执行 #3 登记为已裁决, 落地另行）。
+#   n_snr_input=345,960, 参考通量中位建立在非星结构上）；生产检测器权威源取择
+#   已在星检测净室重写（DISP-STAR-005 旧路径删除）中收口。
 add_library(astrocs_p1_sdet STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_api.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_detector.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_image.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_log.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_background.cpp
   # GSL-REPLACE-01: 自研信赖域 LM 求解器（替代外部 GSL gsl_multifit_nlinear）
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/nls_lm.cpp)
 target_include_directories(astrocs_p1_sdet PUBLIC

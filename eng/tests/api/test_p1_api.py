@@ -9,7 +9,7 @@ HEADERS = {
     "astro_calibration.h": ["ac_generate_master_bias", "ac_generate_master_dark", "ac_generate_master_flat",
                             "ac_calibrate_frame", "ac_correct_frame", "ac_calibrate_frame_f64",
                             "ac_set_num_threads", "ac_version"],
-    "star_detector.h": ["sdet_detect", "sdet_detect_ex", "sdet_destroy", "sdet_free_coords"],
+    "star_detector.h": ["sdet_detect_ex", "sdet_destroy"],
     "dynamic_psf.h": ["dpsf_fit", "dpsf_fit_batch", "dpsf_fit_batch_f", "dpsf_free_results"],
     "ipv_api.h": ["ipv_solve_create", "ipv_solve_destroy", "ipv_solve", "ipv_solve_from_memory"],
     "photometric_calib.h": ["pc_calibrate_simple"],
