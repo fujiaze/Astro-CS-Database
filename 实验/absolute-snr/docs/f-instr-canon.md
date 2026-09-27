@@ -449,7 +449,7 @@ accept_mag     = 0.02      # exp5: |PSF 总通量偏差| <= 0.02 mag
 | 2 | `lib/infrastructure/scheduler/src/module_adapters.cpp:3234-3245` | `pfl` 来源从 `p1_sources[].flux` 改为 `p1_psf.json` 的 `flux`（需把 PSF 行按 `star_id` 映射到检测序，`psf_status` 由 `p1_psf` 行存在性给出） | **~30 行**（映射逻辑是主要工作量） |
 | 3 | `lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp:99` 附近 | 输入校验：`psf_flux` 语义变更后更新注释与断言（不改变量名，ABI 不变） | **~5 行** |
 | 4 | `lib/infrastructure/scheduler/src/module_adapters.cpp:3276` | `P1_PHOT_MAX_SPREAD_DEX` 0.5 → 0.02（按 §2.5 判据 (b)） | **1 行 + 文档** |
-| 5 | `docs/algorithms/STAR_PSF_ALGORITHMS.md` / `docs/algorithms/PHOTOMETRIC_FIT.md` | 记录 `p1_psf.json` 新增列与 `F_instr` 口径（**走文档变更 claim**） | **~40 行** |
+| 5 | `docs/science/algorithms/STAR_PSF_ALGORITHMS.md` / `docs/science/algorithms/PHOTOMETRIC_FIT.md` | 记录 `p1_psf.json` 新增列与 `F_instr` 口径（**走文档变更 claim**） | **~40 行** |
 | 6 | 测试 | 新增 Oracle：注入已知 `flux` 的解析 Moffat4 场 ⇒ `p1_psf.json.flux` 复算一致（`rtol 1e-9`）；负例：seeing 扫描下 `F_instr` 不变（本工作项 `exp3` 可直接改造为 C++ 测试的判据模板） | **~150 行** |
 | | | **合计** | **~5 个文件、~240 行（含测试）**；生产代码约 **~46 行** |
 

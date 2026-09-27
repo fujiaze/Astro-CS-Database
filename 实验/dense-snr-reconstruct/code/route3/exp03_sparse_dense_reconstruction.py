@@ -24,7 +24,8 @@ import json
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp03_sparse_dense_reconstruction.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route3", "exp03_sparse_dense_reconstruction.json")
 SIZE = 1024
 
 

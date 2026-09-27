@@ -35,7 +35,7 @@ python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_variance_
 python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_realbase_consistency.py   # 真实底传输回归判据
 ```
 
-前置：先建掩膜与场景帧（见 `reports/RELEASE-02/m16-scene.md` §7 复跑清单）。
+前置：先建掩膜与场景帧（见 RELEASE-02 m16-scene.md §7 复跑清单；该报告已退役，见仓库 git 历史）。
 
 ## 复用关系（**不另起炉灶**）
 

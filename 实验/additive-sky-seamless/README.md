@@ -166,7 +166,7 @@ testdata M42 M1 T3 Red 4 帧（WCS + FFT 相位相关对齐）；生产代码静
 | M6 | 高频分量对**电平**接缝的贡献（同 seed 扫描） | max|Δseam| 2.14 e⁻ < 50% 基线 17.50 e⁻（原 Spearman 判据实测 ρ=0.50 **不成立**，见 §11） |
 
 **历史 1.56× 的机制量化**：来源 = Phase1 未施加的乘性归一（`photometry_applied=false`,
-`photscal=1.0`；见 `run/CLEAN-402/backup/reports/RELEASE-02/c-delta-ruling.md` §1.2）。
+`photscal=1.0`；见 RELEASE-02 c-delta-ruling.md §1.2，原备份指针随 run/ 与 reports/ 清退，见仓库 git 历史）。
 幅度 = 帧间乘性比偏离 1 达 0.560；空间频率 = 低阶（多项式，Phase1 可完全吸收）
 + 基外高频（Phase1 不可吸收，1%@24 px 量级）；对纯加性 UPM 的影响 = 接缝 4.33×。
 

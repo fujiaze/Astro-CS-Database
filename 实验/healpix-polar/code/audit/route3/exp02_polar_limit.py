@@ -6,6 +6,7 @@
 # Negative control: equatorial-band pixels of the same model must sit at ~1e-8 level, i.e. the
 # metric is zero where the effect is absent (localization, non-degenerate metric).
 import json
+import os
 import numpy as np
 from exp01_leaf_area import pixel_corners, to_vec, vos_quad, ring_layout
 
@@ -59,7 +60,7 @@ def main():
         count16=bool(all(r["n_abs_rel_gt_1pct"] == 16 for r in out["rows"][-4:])),
         belt_o1_over_N2=[float(x) for x in b])
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp02_polar_limit.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp02_polar_limit.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

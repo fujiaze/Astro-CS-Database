@@ -2,7 +2,7 @@
 
 **身份**：三路独立科学研究路线之第 2 路。独立取证，不与另两路通信。
 **对象**：科学性对抗审查（审查-05-①-科学性-1 / -2 / -3 与 -2-SUMMARY）判定的本模块（P1 通量积分拟合 = ①测光星等坐标系）三腿缺失项与锚修复项。
-**权威正本**：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001）、`docs/algorithms/PHOTOMETRIC_FIT.md`、`docs/algorithms/NOISE_ESTIMATION.md`。
+**权威正本**：`docs/science/PHOTOMETRY.md`（SCI-PHOT-001）、`docs/science/algorithms/PHOTOMETRIC_FIT.md`、`docs/science/algorithms/NOISE_ESTIMATION.md`。
 **方法**：每项三腿补齐——A 文献腿（一手 DOI / 官方文档 / 开源实现逐字核验，见 refs.md）；B 实验腿（纯 numpy 合成实验，固定 seed=20260926，单次 ≤5 分钟 CPU，含"真值无效应⇒度量归零"负例）；C 可复现代码（`code/`，结果落 `results/`）。
 
 ---

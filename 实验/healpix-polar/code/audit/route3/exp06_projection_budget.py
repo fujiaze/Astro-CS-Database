@@ -10,6 +10,7 @@
 #     tangent half-side). At the code threshold max_angular_radius_for_tan = 1e-3 rad the
 #     deviation is ~5e-7 rad (the "delta < 4e-8" comment at spherical_overlap.cpp:1002 is wrong).
 import json, os, sys
+import os
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from exp03_weight_conservation import tan_to_vec, quad_area
@@ -86,7 +87,7 @@ def main():
         ortho_dev_at_1e3=h1e3["max_dev_rad"],
         comment_4e8_is_wrong=bool(h1e3["max_dev_rad"] > 4e-8))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp06_projection_budget.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp06_projection_budget.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

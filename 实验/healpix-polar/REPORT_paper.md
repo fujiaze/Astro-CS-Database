@@ -80,7 +80,7 @@ P3 是链上唯一同时接触"通量守恒"与"球面度量"的环节：
 
 **近似投影支。** gnomonic 支的逐点面积元律 dA_plane = dA_sphere·sec³ρ 精确成立，逐点预算 +3ρ²/2；对整个 drop 的偏差依赖几何，落在 [0.5, 1.5]·ρ_max² 区间（居中 +0.5、偏置 +1.4、圆盘级 +0.75），符号恒正 [实验:route1/e5_projection_budgets.py][实验:route2/exp05_projection_budgets.py]；路线3 给出全段精确闭合 ratio − 1 = (1+ρ_c²)^{3/2} − 1 + θ²/4 + O(ρ²θ²)（残差 ≤1.4e-8）[实验:route3/exp06_projection_budget.py]。按 A-P3-03 统一表述：逐点写 +3ρ²/2，drop 级写区间，不再使用"系数错 3 倍"的单常数表述。切平面正交支单向下偏，按生产实现的 θ_max 约定为 −θ_max²/2（θ_max=1e-3 ⇒ −5.0e-7，200 例全负）[实验:route2/exp05_projection_budgets.py]；路线1 以不同 θ 约定实测 −0.2512·θ²（A-P3-02/04，约定依赖，方向一致），代码注释 "<4e-8" 确认错误并须订正。
 
-**尺度常数。** HEALPIX_SCALE_PER_NSIDE_ARCSEC = √(π/3)·(180/π)·3600 = 211076.28514206142″，与逐 N 公式换算 0 ulp 恒等；传播值 211034.6 相对差 −1.97e-4，在 nside 决策窗 (105517.3, 105538.14]（宽 20.84″）内把分辨率决策翻转一档（2 倍分辨率）[实验:route3/exp08_scale_constant.py][实验:route1/e1_leaf_area_and_scale.py 第6节]。禁抄值 5 处残留清单已在审计中登记清除（A-P3-09）。
+**尺度常数。** HEALPIX_SCALE_PER_NSIDE_ARCSEC = √(π/3)·(180/π)·3600 = 211076.28514206142″，与逐 N 公式换算 0 ulp 恒等；传播值 211034.6 相对差 −1.97e-4，在 nside 决策窗 (105517.3, 105538.14]（宽 20.84″）内把分辨率决策翻转一档（2 倍分辨率）[实验:route3/exp08_scale_constant.py][实验:route1/e1_leaf_area_and_scale.py 第6节]。禁抄值残留清单已按 A-P3-09 处置：6 处（orchestrator.cpp:180/181/198、module_adapters.cpp:7603、hp_drizzle_api.h:114、drizzle/README.md:93）的注释/文档面已订正为 ≈211076.3，与实现公式及 drizzle_engine.cpp 注释同口径。
 
 ### 3.3 工程封装常数
 
@@ -154,4 +154,4 @@ UNRESOLVED 事项均不进入正文结论，已按台账 §4.2 登记或置于�
 5. Calabretta, M. R., & Greisen, E. W. 2002, A&A 395, 1077. DOI [10.1051/0004-6361:20021327](https://doi.org/10.1051/0004-6361:20021327)；arXiv:[astro-ph/0207413](https://arxiv.org/abs/astro-ph/0207413).（TAN 式(54)/(55)）
 6. Calabretta, M. R., & Roukema, B. D. 2007, MNRAS 381, 865. DOI [10.1111/j.1365-2966.2007.12297.x](https://doi.org/10.1111/j.1365-2966.2007.12297.x).（HPX 支参照）
 7. Fernique, P., et al. 2015, MOC — HEALPix Multi-Order Coverage Map Version 1.0, IVOA Recommendation. arXiv:[1505.02937](https://arxiv.org/abs/1505.02937).（chart 原生路径同构对照，EXP-07）
-8. 项目内权威文档：docs/algorithms/DRIZZLE_GEOMETRY.md；独立审计/实验重做/总编对账/分歧台账.md（D-01/D-02/D-03/D-08/D-09/D-11、A-P3-01…12 裁决）。
+8. 项目内权威文档：docs/science/algorithms/DRIZZLE_GEOMETRY.md；独立审计/实验重做/总编对账/分歧台账.md（D-01/D-02/D-03/D-08/D-09/D-11、A-P3-01…12 裁决）。

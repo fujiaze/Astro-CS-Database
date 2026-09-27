@@ -219,8 +219,8 @@ sha256sum -c 实验/m42-realdata/results/SNAPSHOT.sha256
 | E 的定义与参考值 | `实验/absolute-snr/code/exp05/exp05_common.py:393-408`、`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`results/exp06_e1_analytic.json` |
 | 权威接缝判据本体 | `实验/additive-sky-seamless/code/sci_c_common.py:356-411` |
 | 纯加性天光模型与"保留背景" | `docs/science/PHASE2_UPM.md:9-10`、`:186-190`、`docs/ASTROCS_DESIGN.md:139-145` |
-| FP64 通量闭合门 1e-6 | `docs/algorithms/DRIZZLE_GEOMETRY.md:235-237` |
-| 构造闭合与 `w_jp = a_jp/A_pixel` | `docs/ASTROCS_DESIGN.md:147-159`、`docs/algorithms/DRIZZLE_GEOMETRY.md:41-57` |
+| FP64 通量闭合门 1e-6 | `docs/science/algorithms/DRIZZLE_GEOMETRY.md:235-237` |
+| 构造闭合与 `w_jp = a_jp/A_pixel` | `docs/ASTROCS_DESIGN.md:147-159`、`docs/science/algorithms/DRIZZLE_GEOMETRY.md:41-57` |
 | 逐样本掩码为唯一可判据载体 | `lib/infrastructure/scheduler/src/module_adapters.cpp:8960-8962` |
 | EXP-07 缺陷域与阈值 | `实验/healpix-polar/docs/EXP-07-POLAR.md:412`、`:650-657`、`:670-673`、`:677` |
 | HEALPix 公式 | `lib/algorithms/shared/healpix/healpix_core.cpp:155-226`（源自 astrometry.net `healpix.c`，BSD-3） |

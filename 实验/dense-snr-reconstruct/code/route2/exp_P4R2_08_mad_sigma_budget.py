@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 SEED = 20261003
-RESULTS = Path(__file__).resolve().parent.parent / "results"
+RESULTS = Path(__file__).resolve().parent.parent / "results" / "route2"
 rng = np.random.default_rng(SEED)
 
 # ---------- A: Phi^{-1}(3/4) ----------

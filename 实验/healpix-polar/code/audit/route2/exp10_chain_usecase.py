@@ -19,6 +19,7 @@ Seed       : 20260927 (frame noise + query directions).
 Runtime    : < 60 s.
 """
 import json
+import os
 import sys
 import numpy as np
 
@@ -235,7 +236,7 @@ def main():
           and len(ctrl_snr) > 4)
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
-    with open("results/exp10_chain_usecase.json", "w") as fh:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp10_chain_usecase.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 
 

@@ -16,6 +16,7 @@ Seed       : none (deterministic).
 Runtime    : < 60 s.
 """
 import json
+import os
 import sys
 import numpy as np
 
@@ -109,7 +110,7 @@ def main():
           and abs(res["per_N"][-1]["worst_rel_chord"]) / floor > 1000)
     res["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(res, indent=2))
-    with open("results/exp02_polar_pixel.json", "w") as fh:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp02_polar_pixel.json"), "w") as fh:
         json.dump(res, fh, indent=2)
 
 

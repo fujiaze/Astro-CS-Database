@@ -323,7 +323,7 @@ ninja -C build cone-search-test
 
 ### 8.1 原始文献
 
-1. **Gaia DR3 Documentation** (Brown et al. 2023, A&A 674, A2)
+1. **Gaia DR3** (Gaia Collaboration, Vallenari et al. 2023, A&A 674, A1；<!-- 订正: P-018 -->DR3 主文题录按正本署名订正，Brown et al. 为 DR3 文档页署名非论文署名)
    - §8.1.1 Fig. 27: 重标度因子定义
    - 表 B.3: 极坐标转换公式
    
@@ -509,7 +509,7 @@ ninja -C build cone-search-test
 
 ## 参考文献
 
-[1] Brown, A. G. A., et al. (2023). "Gaia Data Release 3". *A&A* 674, A2.  
+[1] Gaia Collaboration, Vallenari, A., et al. (2023). "Gaia Data Release 3". *A&A* 674, A1.（订正: P-018 题录按正本署名）  
 [2] Montegriffo, P., et al. (2023). "The Gaia XP calibration". *A&A* 674, A33.  
 [3] STScI (2024). "HST Exposure Time Calculator Manual".  
 [4] Hoaglin, D. C., et al. (1983). "Understanding Robust and Exploratory Data Analysis". Wiley.  

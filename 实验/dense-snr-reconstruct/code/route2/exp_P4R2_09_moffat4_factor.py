@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-RESULTS = Path(__file__).resolve().parent.parent / "results"
+RESULTS = Path(__file__).resolve().parent.parent / "results" / "route2"
 REGISTERED = 1.230310
 
 # 解析值

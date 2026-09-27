@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SNR-DESIGN EXP-1: imperfect-weight efficiency penalty + residual-maker variance.
 
-Two independent, falsifiable claims used by reports/RELEASE-02/snr-propagation-design.md:
+Two independent, falsifiable claims used by RELEASE-02 snr-propagation-design.md (report retired; see repo git history):
 
 (C1) WEIGHT-EFFICIENCY PENALTY.
      For an inverse-variance combination F_hat = sum_i w_i x_i / sum_i w_i with

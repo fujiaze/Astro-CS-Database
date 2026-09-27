@@ -16,9 +16,10 @@ Hypotheses:
       (tan(s/2) blow-up); VOS stays robust. Quantified, not hidden.
 
 Run: python3 e6_lhuilier_vos.py        (seed fixed, seconds)
-Output: ../results/e6_lhuilier_vos.{json,txt}
+Output: results/audit/route1/e6_lhuilier_vos.{json,txt}
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -135,7 +136,7 @@ OUT["hemisphere_domain"] = {
 
 OUT["triangle_cross_check"] = res
 
-with open("../results/e6_lhuilier_vos.json", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e6_lhuilier_vos.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 L = ["E6 VOS x l'Huilier cross-check (seed=%d)" % SEED, ""]
@@ -153,6 +154,6 @@ L.append("[DOMAIN] triangles with side >= pi/2-1e-12: %d/%d (documented explicit
 L.append("[HONEST BOUNDARY] l'Huilier conditioning: arccos cancellation (tiny triangles) and")
 L.append("  tan(s/2) blow-up (near-hemisphere) degrade its relative accuracy; VOS (atan2 form) robust.")
 txt = "\n".join(L)
-with open("../results/e6_lhuilier_vos.txt", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e6_lhuilier_vos.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

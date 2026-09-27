@@ -1,7 +1,7 @@
 # EXP-07-POLAR 上呈摘要（≤1 页）
 
 **课题**：HEALPix drizzle 的极区面积交叠——极点为什么破门、正确算法、代价、全天 1e-6 是否达成。
-**门禁**：FP64 通量闭合 `|Σa − A_drop|/A_drop < 1e-6`（`docs/algorithms/DRIZZLE_GEOMETRY.md:236`）。
+**门禁**：FP64 通量闭合 `|Σa − A_drop|/A_drop < 1e-6`（`docs/science/algorithms/DRIZZLE_GEOMETRY.md:236`）。
 **口径**：nside=2²¹、0.2″/px、pixfrac=1、m=1、极点 ±8 px / 0.5 px 网格 1089 配置；全部为自包含探针，未跑产品二进制、未改生产代码。
 
 ## 1. 极点破门根因（三条独立，缺一不可）

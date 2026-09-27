@@ -15,7 +15,8 @@ import json
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp04_idw_parameters.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route3", "exp04_idw_parameters.json")
 SIZE = 512
 
 

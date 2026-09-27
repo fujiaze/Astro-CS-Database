@@ -27,7 +27,7 @@
         "docs/development/CONFIG_SCHEMA.md:26",
         "lib/algorithms/coverage/src/stage2_common.cpp（rj.value(\"underdetermined_n\", 0u) 与 p2_reject_plan_resolve 委托分支）",
         "lib/algorithms/coverage/include/astro/phase2/rejection.h:230-234（0 = 按 profile 默认）",
-        "reports/RELEASE-02/conformance/CONFORM-SWEEP-3.json :: CONFORM-SWEEP-3-008"
+        "RELEASE-02 conformance CONFORM-SWEEP-3.json :: CONFORM-SWEEP-3-008（报告已退役，见仓库 git 历史）"
       ]
     }
   ]

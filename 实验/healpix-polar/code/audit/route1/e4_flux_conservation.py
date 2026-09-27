@@ -33,9 +33,10 @@ Geometry: local gnomonic (TAN) patch = affine limit where A_drop = pf^2 * A_pixe
   (sumFlux, sumNorm, sumArea, sumVar) accumulators. Seeds fixed; runtime seconds.
 
 Run: python3 e4_flux_conservation.py
-Output: ../results/e4_flux_conservation.{json,txt}
+Output: results/audit/route1/e4_flux_conservation.{json,txt}
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -176,7 +177,7 @@ q_f = np.floor(255.0 * S_fine + 0.5).astype(np.int64)
 out6["inv_max_r_near_half_count_boundary"] = float(np.max(255.0 * S_fine / q_f - 1.0))
 OUT["quantization"] = out6
 
-with open("../results/e4_flux_conservation.json", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e4_flux_conservation.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 L = ["E4 flux conservation + pixfrac numbers + quantization bound (seed=%d)" % SEED, ""]
@@ -205,6 +206,6 @@ L.append("  worst case: S=%.6g r=%+.6f (bound %.6f) ; r(1/510)=%+.4f ; clamp S=1
 L.append("  inverse-direction max r near S=0.5/255+ boundary: %.4f (vs strict 0.5 => violates)"
          % q6["inv_max_r_near_half_count_boundary"])
 txt = "\n".join(L)
-with open("../results/e4_flux_conservation.txt", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e4_flux_conservation.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

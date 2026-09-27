@@ -12,7 +12,7 @@
 #           control_median_mc_test.cpp 同基；各实验组独立偏移见各脚本头）
 #
 # 依赖：Python >= 3.10 + numpy；单脚本 CPU <= 5 分钟（exp05_sagitta_subdiv.py 约 4 分钟）；
-#       全部脚本不 import 仓库任何模块、不联网、不写 results/（只打印 JSON）。
+#       全部脚本不 import 仓库任何模块、不联网；各实验 JSON 以脚本自身位置锚定落 results/audit/<路线>/，与既有存档逐位可对照。
 # 既有结果存档于 results/audit/<路线>/（与本脚本输出逐位可对照）。
 # ============================================================================
 set -u

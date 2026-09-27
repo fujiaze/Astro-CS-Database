@@ -16,9 +16,10 @@ Method: ring-order construction of cell corners as in E2; boundary sampled dense
   (corners + 8 points per edge); vectorized; N in {4,...,64}. Pure numpy, deterministic.
 
 Run: python3 e3_circumradius_scan.py
-Output: ../results/e3_circumradius_scan.{json,txt}
+Output: results/audit/route1/e3_circumradius_scan.{json,txt}
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -155,7 +156,7 @@ out["classification"] = ("structural safety buffer (exempt from three-leg requir
                          "bound for candidate completeness; does not enter published signal/variance; "
                          "zero-miss enforced by candidate oracle")
 
-with open("../results/e3_circumradius_scan.json", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e3_circumradius_scan.json"), "w") as fh:
     json.dump(out, fh, indent=1)
 lines = ["E3 HP_CIRCUMRADIUS_FACTOR scan (seed=%d)" % SEED, ""]
 for N in sorted(out["per_n"], key=int):
@@ -167,6 +168,6 @@ for N, v in out["lonlat_contrast"].items():
     lines.append("  lon-lat grid contrast N=%s: %.4f" % (N, v))
 lines.append("  classification: " + out["classification"])
 txt = "\n".join(lines)
-with open("../results/e3_circumradius_scan.txt", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e3_circumradius_scan.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

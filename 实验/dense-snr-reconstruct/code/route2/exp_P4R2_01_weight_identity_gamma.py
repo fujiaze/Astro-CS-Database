@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 SEED = 20260926
-RESULTS = Path(__file__).resolve().parent.parent / "results"
+RESULTS = Path(__file__).resolve().parent.parent / "results" / "route2"
 RESULTS.mkdir(parents=True, exist_ok=True)
 
 rng = np.random.default_rng(SEED)

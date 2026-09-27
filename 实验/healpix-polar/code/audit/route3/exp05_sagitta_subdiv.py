@@ -8,6 +8,7 @@
 # Claims tested: sagitta >> 1e-6*hp_res budget; scale invariance in N; ~4x shrink per subdivision;
 #   depth needed ~ 8.15; depth-8 residual ~ 1.2e-6*hp_res; meridian edges give exactly 0 (negative control).
 import json, os, sys
+import os
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from edge_geom import sample_edge, to_vec, wrap_pi
@@ -162,7 +163,7 @@ def main():
         meridian_zero=bool(row["meridian_max"] < 1e-15),
         frac_over_chart=oc/tot, frac_over_phiz=oz/tot)
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp05_sagitta_subdiv.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp05_sagitta_subdiv.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

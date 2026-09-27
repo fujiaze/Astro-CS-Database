@@ -226,7 +226,7 @@
 ### C4-G1 逐 leaf 覆盖重数守恒（**零容差，全量**）
 
 - **规范**：`docs/ASTROCS_DESIGN.md:147-159`（构造闭合）、
-  `docs/algorithms/DRIZZLE_GEOMETRY.md:41-57`（`w_jp = a_jp/A_pixel`、`D_p = Σ_j a_jp`）、
+  `docs/science/algorithms/DRIZZLE_GEOMETRY.md:41-57`（`w_jp = a_jp/A_pixel`、`D_p = Σ_j a_jp`）、
   `:235-237`（FP64 闭合 <1e-6 冻结门）、
   `lib/infrastructure/scheduler/src/module_adapters.cpp:8960-8962`（`p2_rejection_sample_mask.bin`
   是"完备划分的唯一可判据载体"）、`lib/algorithms/coverage/src/integrate.cpp:51-61`（`n_used` 资格）。

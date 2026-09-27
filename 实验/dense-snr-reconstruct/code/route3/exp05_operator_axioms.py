@@ -18,7 +18,8 @@ import json
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp05_operator_axioms.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route3", "exp05_operator_axioms.json")
 
 
 def spline_reconstruct(centers, vals, xs, ys, clamp=True):

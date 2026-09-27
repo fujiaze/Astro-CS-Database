@@ -7,6 +7,7 @@
 # (iii) cyclic-order reversal gives identical |area|, crossing order does not.
 # Seed policy: no stochastic sampling is needed; grid is deterministic (seed printed for record).
 import json, sys
+import os
 import numpy as np
 
 SEED = 20260926
@@ -123,7 +124,7 @@ def main():
                           sum_closure_le_1e12=bool(max(abs(r['sum_res']) for r in out['rows']) <= 1e-12),
                           mean_le_1e12=bool(max(abs(r['mean_res']) for r in out['rows']) <= 1e-12))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp01_leaf_area.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp01_leaf_area.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

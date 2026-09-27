@@ -28,7 +28,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mc_kcorr as m  # noqa: E402
 
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results")
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "kcorr")
 os.makedirs(OUT, exist_ok=True)
 
 SEED_IID = 990001          # 形状臂独立流(写死)

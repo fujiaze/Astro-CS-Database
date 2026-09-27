@@ -16,6 +16,7 @@ Seed       : none (deterministic).
 Runtime    : < 10 s.
 """
 import json
+import os
 import sys
 import numpy as np
 
@@ -176,7 +177,7 @@ def main():
           and abs(out["fixture"]["total_flux_conservation_rel"]) < 1e-12)
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
-    with open("results/exp03_flux_conservation.json", "w") as fh:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp03_flux_conservation.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 
 

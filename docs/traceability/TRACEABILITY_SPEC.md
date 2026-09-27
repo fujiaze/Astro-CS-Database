@@ -106,7 +106,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
      （SRC `MISSING` 时 TEST 必须 `MISSING`；“有测试无实现”即判红）；
   2. **承载层引用**：API `VERIFIED` 的行应能通过 API 注册表/API_CONTRACTS.csv
      找到对应 ID（由扩展检查给出具体缺失，不崩溃）；
-  3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `reports/`、`artifacts/`
+  3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `reports/`（发行包内）、`artifacts/`
      、`returns/` 或 TASK_STATE evidence_refs 中解析（同 2 语义）；
   4. 一行内“下层 VERIFIED 而上层同链 MISSING”即科学链断裂、判红
      （SCI MISSING 但 ALG VERIFIED 之类）→ 判 `CHAIN_BREAK`（给出 module_id 与层）。

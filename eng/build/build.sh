@@ -7,7 +7,7 @@
 #   3) 从仓库根运行 phase2 测试套件 (stage2_exe() 用相对路径, 须仓库根 CWD);
 #   4) 输出汇总并返回 0/非 0。
 # 说明: 仅覆盖 CMake 模块 (phase2); drizzle/browser_qt/orchestrator 尚无统一 CMake 入口 (见
-#   reports/REAUDIT_V3/v3_exec/G5_linux_prebuild_baseline.md 的 BLD-001 缺口)。
+#   REAUDIT_V3/v3_exec/G5_linux_prebuild_baseline.md 的 BLD-001 缺口；该报告已退役，见仓库 git 历史)。
 
 set -uo pipefail
 

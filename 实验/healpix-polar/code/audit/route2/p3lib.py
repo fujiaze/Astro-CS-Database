@@ -18,6 +18,7 @@ Chart conventions
   Jacobian |d(z,phi)/d(u,v)| = pi/3 identically on every branch.
 """
 import numpy as np
+import os
 
 
 # ---------------------------------------------------------------- HEALPix chart

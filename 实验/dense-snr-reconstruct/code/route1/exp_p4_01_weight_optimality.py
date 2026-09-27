@@ -20,7 +20,8 @@ import json, time
 import numpy as np
 
 SEED = 20260926
-OUT = "../results/exp_p4_01_weight_optimality.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route1", "exp_p4_01_weight_optimality.json")
 
 
 def emp_var(w_fun, v, n_trials, rng, mu_true=100.0):

@@ -16,7 +16,7 @@ CHECKS = [
     ("05: '11_upm.md §4.2 = 节点密度约束'", "docs/plugins/algorithms_phase2/11_upm.md", r"### 4\.2 [^\n]*"),
     ("05: sky_spline.cpp::refine_nodes_adaptive 存在", "lib/algorithms/coverage/src", r"refine_nodes_adaptive"),
     ("05: PHASE2_UPM.md §6 = lambda_bend 弯曲能 [0.01,0.1]", "docs/science/PHASE2_UPM.md", r"lambda_bend|弯曲能"),
-    ("05: PHASE2_UPM_IMPL.md §6.3 数值稳定性", "docs/algorithms/PHASE2_UPM_IMPL.md", r"^### 6\.3|^## 6 "),
+    ("05: PHASE2_UPM_IMPL.md §6.3 数值稳定性", "docs/science/algorithms/PHASE2_UPM_IMPL.md", r"^### 6\.3|^## 6 "),
     ("05: REJECTION.md §5.2 留痕图景", "docs/science/REJECTION.md", r"^### 5\.2"),
     ("05: docs/ASTROCS_DESIGN.md §2.3 平滑性要求", "docs/ASTROCS_DESIGN.md", r"^### 2\.3 [^\n]*"),
     ("05: sky_corrections.jsonl 产品 schema", "docs", r"sky_corrections\.jsonl"),

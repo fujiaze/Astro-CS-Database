@@ -2465,7 +2465,7 @@
       "cls": "runtime_gate",
       "owner": "DATA-DESIGN-001(G-PARAMETER-EFFECTIVENESS) / RUNTIME-CI-001",
       "status": "OPEN",
-      "anchor": "reports/v6/review-audit/03 AR-048"
+      "anchor": "artifacts/evidence/v6/review-audit/03_缺陷账本_重开清单.md AR-048"
     },
     {
       "id": "DI-06",

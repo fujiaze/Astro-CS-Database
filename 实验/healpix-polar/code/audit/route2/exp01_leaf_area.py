@@ -11,6 +11,7 @@ Seed       : none needed (fully deterministic).
 Runtime    : < 5 s.
 """
 import json
+import os
 import sys
 import numpy as np
 
@@ -66,7 +67,7 @@ def main():
           and res["negative_control"]["metric_wrong_candidate"] > 0.2)
     res["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(res, indent=2))
-    with open("results/exp01_leaf_area.json", "w") as fh:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp01_leaf_area.json"), "w") as fh:
         json.dump(res, fh, indent=2)
 
 

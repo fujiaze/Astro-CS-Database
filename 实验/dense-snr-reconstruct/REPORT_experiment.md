@@ -79,4 +79,4 @@ python3 code/route2/exp_P4R2_02_idw_params.py
 python3 code/route3/exp03_sparse_dense_reconstruction.py
 ```
 
-依赖：Python3 + numpy（stdlib json），无仓库内 import、无网络、无时间/环境随机源。脚本输出路径指向各 route 的 results/（本单元内同名目录）；若在审计原目录重跑则输出到原 results/，两者逐字段同构。
+依赖：Python3 + numpy（stdlib json），无仓库内 import、无网络、无时间/环境随机源。脚本输出以脚本自身位置锚定，统一落本单元 results/route1/、results/route2/、results/route3/（与运行时工作目录无关），输出与 results/ 存档逐字段同构。

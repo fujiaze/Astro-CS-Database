@@ -42,7 +42,7 @@ python3 synth_gain.py --quick    # 40 MC/配置, 约 100 s
 | `scenes/m16_*.json` | 4 个 M16 场景配方：亮星云核心（F657N）/ 一般星场（F502N）/ 极暗低 SNR（F673N）/ 三波段同天区 |
 
 对接方式：`data/synthetic/generate.py` 按场景配方的 `renderer` 键派发（`"render"` → `render.py`；`"m16_scene"` → `m16_scene.py`）。
-索引与统计：`实验/shared/data/real/m16_scene_index.json`；报告：`reports/RELEASE-02/m16-scene.md`。
+索引与统计：`实验/shared/data/real/m16_scene_index.json`；报告：RELEASE-02 m16-scene.md（已退役，见仓库 git 历史）。
 
 **诚实边界（drz 合成品）**：三帧 `NDRIZIM=32` 的 drizzle 合成品，噪声已被压低并**相关化**，
 **不是**独立泊松样本 ⇒ 只能当**结构模板**；本接口生成的是**逐像素独立**噪声，

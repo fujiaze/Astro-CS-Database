@@ -77,7 +77,7 @@ def main():
          "MEASURED: RMSE(log SNR) 0.092 (64 px pitch) .. 0.230 (1024 px) "
          "on a real M42 frame (EXP-2/EXP-3)"),
         ("upm_parameter_covariance", 0.0,
-         "reports/RELEASE-02/unc-prop-audit.md 2.2/2.3: J_out C_theta J_out^T "
+         "RELEASE-02 unc-prop-audit.md 2.2/2.3 (report retired; see repo git history): J_out C_theta J_out^T "
          "= 0.46..333 ADU^2 vs raw sigma^2 = 6.76 ADU^2 => +7%..+4900% in "
          "VARIANCE, i.e. +3.4%..+2200% in sigma, condition-number dependent"),
         ("multiplicative_normalization_g", 0.0,

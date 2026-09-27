@@ -26,9 +26,10 @@ Method (pure numpy, deterministic, seed fixed):
 
 Seed: 20050709 (corner construction is deterministic; seed fixed for the record).
 Run:  python3 e2_polar_pixel_limit.py        (a few minutes at N=256; vectorized VOS)
-Output: ../results/e2_polar_pixel_limit.{json,txt}
+Output: results/audit/route1/e2_polar_pixel_limit.{json,txt}
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -216,7 +217,7 @@ for N, f, i0, j0 in [(64, 4, 32, 32), (128, 5, 70, 20)]:
                "richsonson_residual": (a2K - aK) / A_t})
 out["negative_control_true_curve"] = tc
 
-with open("../results/e2_polar_pixel_limit.json", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e2_polar_pixel_limit.json"), "w") as fh:
     json.dump(out, fh, indent=1)
 
 lines = ["E2 polar-pixel closed-form deficit  (seed=%d)" % SEED, ""]
@@ -239,6 +240,6 @@ for r in tc:
     lines.append("  N=%-4d K=64 rel dev = %.3e ; Richardson residual = %.3e"
                  % (r["nside"], r["true_curve_rel_dev_K64"], r["richsonson_residual"]))
 txt = "\n".join(lines)
-with open("../results/e2_polar_pixel_limit.txt", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e2_polar_pixel_limit.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

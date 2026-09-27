@@ -23,6 +23,7 @@ Seed       : 20260927.
 Runtime    : < 20 s.
 """
 import json
+import os
 import sys
 import numpy as np
 
@@ -116,7 +117,7 @@ def main():
     ok = out["min_separation_orders"] >= 14.0
     out["verdict"] = "PASS" if ok else "FAIL"
     print(json.dumps(out, indent=2))
-    with open("results/exp09_sum_vs_per_leaf_criteria.json", "w") as fh:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route2", "exp09_sum_vs_per_leaf_criteria.json"), "w") as fh:
         json.dump(out, fh, indent=2)
 
 

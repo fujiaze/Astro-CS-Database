@@ -32,7 +32,7 @@
   - `docs/contracts/DATA_SEMANTICS.md` 的逐符号表漂移（实测 35 条）本门**当前不判**
     （L3 作用域未扩），见模块常量注释与 DOC-DRIFT-FIX-01 回执的「发现但未改」；
   - 散文正文里不带文件列的裸行号（如 `# :555` 代码注释式锚）**无法在无符号绑定的
-    前提下自动核对**，本门不计入判据，清单见 reports/RELEASE-02/guard-tools-fix.md。
+    前提下自动核对**，本门不计入判据，清单见 RELEASE-02 guard-tools-fix.md（已退役，见仓库 git 历史）。
 
 用法
   python3 eng/tools/doccheck/check_alg_line_anchors.py [--root .] [--json-out F]

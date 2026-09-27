@@ -14,7 +14,8 @@ import json
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp01_weight_identity.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route3", "exp01_weight_identity.json")
 
 
 def main():

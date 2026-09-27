@@ -31,7 +31,8 @@ import json, time
 import numpy as np
 
 SEED = 20260926
-OUT = "../results/exp_p4_02_interpolators.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route1", "exp_p4_02_interpolators.json")
 
 FRAME = 512
 DELTA_LIST = [16, 32, 64, 128]
