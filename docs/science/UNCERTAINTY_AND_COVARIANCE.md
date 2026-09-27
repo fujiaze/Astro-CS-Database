@@ -33,7 +33,7 @@ nside=512 合成帧相邻像素 mean|ρ|≈0.19、max|ρ|≈0.57。
 
 ## UPM control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
 
-(本节公式隶属 Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于 `lib/algorithms/noise_snr` 的 `NoiseWeightModelV1`；后者仅提供 σ_bg，经 sampler 阶段乘 k_corr 缩放，且 k_corr = N_retained/N_eff ≥ 1，见 SCI-UPM §5/§6)
+(本节公式隶属 Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于 `lib/algorithms/noise_snr` 的 `NoiseWeightModelV1`；后者仅提供 σ_bg，经 sampler 阶段乘 k_corr 缩放，且 k_corr = N_retained/N_eff、定义域 1 < k_corr，见 SCI-UPM §5/§6)
 
 UPM 的 control estimator 是 background-clean patch **median**，其方差
 不是单 leaf 像素方差：
@@ -45,7 +45,7 @@ control_ivar     = 1 / control_variance
 
 - 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；**适用域（必须与 `sigma_bg` 的前提一致）**：样本独立同分布且 patch 内**无未分辨空间结构**。`sigma_bg` 来自 8×8 patch 的稳健尺度，其前提是背景在 patch 尺度局部平稳（`docs/science/SCIENCE_SCOPE.md` §假设的 `γ = dlog(patch 方差)/dlog(patch 中位信号) ≈ 1` 判据）。前提被违反时 `sigma_bg` 量的是空间结构而非随机分量，`control_variance` 与 `control_ivar` **一并失真** ⇒ 该 patch 的噪声场必须显式降级并登记 `degraded_reason`；消费口径 = 降级后的噪声场；
   **量纲**：`sigma_bg` 为**面亮度 ADU·sr⁻¹**（PHASE2_UPM §3 写盘 BUNIT 冻结集 {ADU/sr, ADU²/sr², sr²/ADU²}，裸 ADU 判红），`N_retained` 无量纲计数，`k_corr` 无量纲 ⇒ `control_variance` 单位 **(ADU·sr⁻¹)²**、`control_ivar` 单位 **(ADU·sr⁻¹)⁻²**；
-- k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained。
+- k_corr 表征 `N_eff < N_retained` 的总量：主要来自有限 N 中位数估计器偏置（k_gauss），其余来自 drizzle 输出像素相关的几何因子（k_geo），构成见下行两因子式。
   **k_corr = k_gauss(N_retained) × k_geo(几何)**（k_gauss = 有限 N 估计器偏置、**主导因子**；
   k_geo = drizzle 输出像素相关的纯几何因子；非高斯边际形状效应 ≤±5%（N≥9），只作附带可忽略性说明，不进入公式面。k_gauss 表
   （照抄 P3 正本 DERIVATIONS-P3 §D8 全表：N=5→1.637、9→1.316、17→1.144、25→1.083、49→1.046、≥121→≈1.00）与 k_geo 域
@@ -116,7 +116,7 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
 - **实现口径（正向约束）**：`propagate_covariance(op, c_in)` 按一般式 `C_y = R C_x Rᵀ` 计算，
   **不假定 `C_in` 对角**（`lib/algorithms/resample/p3_rsmp_covariance.cpp:22-45`）；输出只取对角线作为
   `variance` 产品（`p3_rsmp_propagation.cpp:101,108`）。**完整 `C_x` 是生产输入路径**，对角 `C_in` 只作
-  阴性对照（`lib/phase3_session/p3_v6_export.h:129-132`）。
+  阴性对照（`lib/phase3_session/p3_export.h:129-132`）。
   ⇒ 本文件主式与实现同式；产品面仍只发布对角 `variance`，**使用该 variance 做孔径/测量误差时**
   必须显式加入协方差项（本文件「对使用的约束」同款边界）。
 - 输入选择：输入 HiPS 含 variance/ 子产品则 u=variance；否则含 ivar/ 则
