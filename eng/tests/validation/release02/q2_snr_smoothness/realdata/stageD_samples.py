@@ -83,7 +83,7 @@ for tag, path in (('bitref_16w', L4 + '/bitref_16w/p2_samples.json'),
         iv  = np.array([float(obs[i]['ivar']) for i in idx], dtype=np.float64)
         fin = np.isfinite(val)
         med = float(np.median(val[fin])) if fin.any() else None
-        mad = float(1.4826 * np.median(np.abs(val[fin] - np.median(val[fin])))) if fin.any() else None
+        mad = float(1.482602218505602 * np.median(np.abs(val[fin] - np.median(val[fin])))) if fin.any() else None
         frames[str(fid)] = dict(frame_id=int(fid), n_samples=int(idx.size),
                                 value_median=med, value_mad=mad,
                                 value_mean=float(np.nanmean(val)) if fin.any() else None,

@@ -17,7 +17,7 @@
   4. 活动替代: 无。科学/架构证据改由 reports/** 承载; 版本与提交信息由 git 历史承担(设计 §12);
   复原命令 (内容未丢): git show 01754fab8618:eng/tools/make_rev2_capsule.py
   退役后行为: 任意调用打印 MAKE_REV2_CAPSULE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2 与 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md。
+  登记见 docs/ci/01_CHECKS.md §2.2 与 artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md。
 """
 from __future__ import annotations
 
@@ -143,7 +143,7 @@ RETIRED_NOTICE = (
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: artifacts/evidence/prerelease-v5/tables/*.csv 与 artifacts/evidence/prerelease-v5/capsules/。\n"
     "  复原命令: git show 01754fab8618:eng/tools/make_rev2_capsule.py\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2 / reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md"
+    "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
 )
 
 

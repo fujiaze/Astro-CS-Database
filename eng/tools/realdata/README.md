@@ -1,7 +1,6 @@
-# eng/tools/realdata — 真实数据审计与匹配工具（REAL-000）
+# eng/tools/realdata — 真实数据审计与匹配工具
 
-真实数据验收（`工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/04_OWNER_DECISIONS_20260910.md`）
-前置工具：数据盘点、对账、索引升级校验与确定性校准匹配计划。本目录工具
+真实数据验收前置工具：数据盘点、对账、索引升级校验与确定性校准匹配计划。本目录工具
 **只读 testdata/ 与 GaiaDR3*/GaiaDR3SP/**，产物一律写 `run/realdata/`。
 
 ## match_plan.py
@@ -29,7 +28,7 @@ python3 eng/tools/realdata/match_plan.py plan --testdata testdata \
 | `sha256_spotsample.txt` | 10 条抽验记录（供 `sha256sum` 独立复核） |
 | `logs/` | 全部命令日志（timeout 执行） |
 
-## 冻结匹配规则（修改须走 REAL-000 变更流程）
+## 冻结匹配规则（修改须走变更流程）
 
 1. **匹配键顺序**：望远镜目录 → sensor 尺寸/binning → 曝光 → 滤镜；
 2. **滤镜归一**：casefold + 去分隔符（`OIII == Oiii`）；**不改数据文件名**；

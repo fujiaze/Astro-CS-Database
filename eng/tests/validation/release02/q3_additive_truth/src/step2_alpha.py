@@ -21,7 +21,7 @@ def pair_report(fA, fB, step=24, tag=''):
     vA, vB = S['vA'], S['vB']
     L = 0.5 * (vA + vB); d = vA - vB
     # clip extreme pixels (cosmic rays / hot / saturated) robustly
-    k = (np.abs(d - np.median(d)) < 8 * 1.4826 * np.median(np.abs(d - np.median(d))) + 1e-9)
+    k = (np.abs(d - np.median(d)) < 8 * 1.482602218505602 * np.median(np.abs(d - np.median(d))) + 1e-9)
     L2, d2 = L[k], d[k]
     g = C.regress_alpha(L2, d2, nb=40)
     # local (patch) alpha

@@ -32,7 +32,7 @@ def robust_fit(xs, ys, n_iter=4, nsig=2.5):
     for _ in range(n_iter):
         a = np.polyfit(xs, ys, 1)
         r = ys - np.polyval(a, xs)
-        s = 1.4826 * np.median(np.abs(r - np.median(r)))
+        s = 1.482602218505602 * np.median(np.abs(r - np.median(r)))
         if s <= 0:
             break
         keep = np.abs(r - np.median(r)) < nsig * s

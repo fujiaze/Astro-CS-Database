@@ -30,7 +30,7 @@ def pair_wcs(fA, fB, snr_min=50.0):
     s1, *_ = np.linalg.lstsq(M1, lr, rcond=None)
     s2, *_ = np.linalg.lstsq(M2, lr, rcond=None)
     return dict(n=int(n), n_used=int(len(r)), med=float(np.median(r)),
-                logmad=float(1.4826 * np.median(np.abs(lr - np.median(lr)))),
+                logmad=float(1.482602218505602 * np.median(np.abs(lr - np.median(lr)))),
                 s_u=float(s1[1]), s_v=float(s1[2]), r2c=float(s2[3]),
                 rms0=float(np.std(lr)), rms1=float(np.std(lr - M1 @ s1)),
                 rms2=float(np.std(lr - M2 @ s2)),

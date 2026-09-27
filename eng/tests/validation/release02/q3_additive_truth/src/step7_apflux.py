@@ -51,7 +51,7 @@ def pair_apflux(fA, fB, snr_min=50.0):
     M2 = np.vstack([np.ones_like(u_), u_, v_, R ** 2]).T
     sol2, *_ = np.linalg.lstsq(M2, lr, rcond=None)
     return dict(n=int(g.sum()), med=float(np.median(r)),
-                logmad=float(1.4826 * np.median(np.abs(lr - np.median(lr)))),
+                logmad=float(1.482602218505602 * np.median(np.abs(lr - np.median(lr)))),
                 su=float(sol[1]), sv=float(sol[2]),
                 r2coef=float(sol2[3]),
                 rms0=float(np.std(lr)), rms1=float(np.std(lr - M @ sol)),

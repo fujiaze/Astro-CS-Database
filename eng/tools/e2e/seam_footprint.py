@@ -268,7 +268,7 @@ def mad(x):
     if x.size < 3:
         return None
     m = np.median(x)
-    return float(1.4826 * np.median(np.abs(x - m)))
+    return float(1.482602218505602 * np.median(np.abs(x - m)))
 
 
 def _ctrl_at(img, ex, ey, nxv, nyv, s, off, d):

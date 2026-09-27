@@ -50,7 +50,7 @@ def robust_fit(A,z,sig,nrounds=5,kclip=3.0):
         w=1.0/np.maximum(sig[m],1e-30)
         c,*_=np.linalg.lstsq(A[m]*w[:,None],z[m]*w,rcond=None)
         r=z-A@c; rm=r[m]
-        sc=1.4826*np.median(np.abs(rm-np.median(rm)))
+        sc=1.482602218505602*np.median(np.abs(rm-np.median(rm)))
         if sc<=0: break
         m=np.abs(r)<kclip*sc
         if m.sum()<A.shape[1]+2: break

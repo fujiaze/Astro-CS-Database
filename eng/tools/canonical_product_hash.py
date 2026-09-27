@@ -40,7 +40,7 @@ ACSD 产物里存在**合法但易变**的元数据：
   'upwcsver','pywcsver','history','prod_ver','rulefile']；
   romancal conftest.py ignore_metadata_paths（"always variable values.
   These include versions, dates, logs, etc."）。
-* 部署内既有裁决: eng/tools/quality/compare_products.py（P26 T3, 负责人裁决 4）已把
+* 部署内既有口径: eng/tools/quality/compare_products.py 已把
   hips_creation_date/hips_update_date/hips_release_date + created_utc/generated_utc/
   timestamp_utc/run_id/started_utc/ended_utc 列为墙钟字段, 把 FITS
   DATE/RUNID/CHECKSUM/DATASUM 列为头忽略项, 并明确**不忽略** DATE-OBS。本 spec v1 的
@@ -176,25 +176,25 @@ EXCLUDED_JSON_KEYS: List[Dict[str, str]] = [
         "key": "hips_update_date",
         "category": "wall_clock",
         "reason": "IVOA HiPS properties 的更新日期; 部署内既有墙钟清单已登记。",
-        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT",
     },
     {
         "key": "generated_utc",
         "category": "wall_clock",
         "reason": "报告/溯源面通用生成时刻。",
-        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT",
     },
     {
         "key": "timestamp_utc",
         "category": "wall_clock",
         "reason": "报告/溯源面通用时刻戳。",
-        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT",
     },
     {
         "key": "ended_utc",
         "category": "wall_clock",
         "reason": "节点/运行结束时刻（compare_products 用 ended_utc, 本仓节点 trace 用 finished_utc, 两者同义）。",
-        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+        "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT",
     },
     {
         "key": "hips_release_date",
@@ -232,7 +232,7 @@ EXCLUDED_PROPERTIES_KEYS: List[Dict[str, str]] = [
      "reason": "同 JSON 侧。", "evidence": "IVOA HiPS 1.0 properties 键"},
     {"key": "hips_update_date", "category": "wall_clock",
      "reason": "同 JSON 侧。",
-     "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）"},
+     "evidence": "eng/tools/quality/compare_products.py CLOCK_KEYS_TEXT"},
 ]
 
 # 不参与卡片比较的 FITS 结构卡（非内容关键字）

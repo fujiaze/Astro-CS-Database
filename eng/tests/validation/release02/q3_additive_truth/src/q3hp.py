@@ -31,7 +31,7 @@ def hp_alpha(xA, yA, d, L, win=256, clip=5.0, iters=2):
     alpha = float(np.sum(dd * LL) / np.sum(LL * LL))
     for _ in range(iters):
         res = dd - alpha * LL
-        s = 1.4826 * np.median(np.abs(res - np.median(res)))
+        s = 1.482602218505602 * np.median(np.abs(res - np.median(res)))
         if s <= 0: break
         kk = np.abs(res) < clip * s
         alpha = float(np.sum(dd[kk] * LL[kk]) / np.sum(LL[kk] ** 2))
