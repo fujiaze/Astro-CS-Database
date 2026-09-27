@@ -38,7 +38,7 @@ A_NEA,k = 1 / ΣP_k,p²
 
 PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质量估计器：PSF 总 flux 表示总 signal，mean PSF flux 表示 signal concentration，分母结合稳健 noise 与稳健 mean background；归一常数把典型数值调到实用范围。其 PSF SNR 则采用 ratio-of-powers，并被建议用于只追求集成图像 SNR 的权重。
 
-> **PixInsight 官方公式（2026-09-17 核对；GitLab `Reference-Documentation/docs/ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc` master，与官网 `https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html` 式号一致）**
+> **PixInsight 官方公式（已核对；GitLab `Reference-Documentation/docs/ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc` master，与官网 `https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html` 式号一致）**
 > - PSFSW（式[16]）：`w_PSF = c1·(Σ_{j=1}^n f_j)·(Σ_{j=1}^n f̄_j) / (c2·σ_n·M*)`。`f_j` 为 FWTM 椭圆孔径内逐像素减局部背景之和（式[7]，**不使用拟合振幅 A**，故称 hybrid PSF/aperture photometry）；`f̄_j=f_j/(π·r_x·r_y)` 为 mean PSF flux（式[8]，信号集中度）；`M*=median(R*)` 为 MMT 残差（式[12]）的中位数（式[13]，默认尺度 256 px）；`σ_n` 为 MRS 或 `N*` 噪声估计（文章称默认 MRS）。
 > - PSFSNR（式[18]）：`SNR_PSF = c3·(Σ_{j=1}^n f_j)²/(c4·σ_n²)`。**分子是 (Σf_j)²，不是 √(Σf_j²)**；官方元数据里 `PSFFluxPower=Σf_j²` 标注 “Currently not used, reserved for future extensions”。**未独立核验**：该串在 `02-PSF_Flux_Weighting_Algorithms.pidoc` 全文（25471 字符）中**不存在**，应在 PCL 头文件侧，需补一手锚点后才可引用。
 > - 标准 SNR（式[20]）：`SNR=σ²/σ_n²`（全局尺度估计/噪声方差；官方明确指出它受背景梯度与天光正向影响）。

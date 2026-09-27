@@ -259,7 +259,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 
 - 入口级: 0=成功（含 0 星）；−1=参数无效/内存分配失败
   （:1749/:2409-2414/:2914/:2939）。
-- 拟合级 SDET_FIT_*: OK/INVALID_PARAMS/NO_CONVERGENCE（:66-69/:621-632）；
+- 拟合级 SDET_FIT_* 四码全列: OK/INVALID_PARAMS/NO_CONVERGENCE/ITERATION_LIMIT（:66-69/:621-632）；
   reject_star SfError 五码 SF_OK/SF_FWHM_NEG/SF_FWHM_TOO_SMALL/
   SF_ROUNDNESS_BELOW_CRIT/SF_RMSE_TOO_LARGE/SF_FWHM_TOO_LARGE（:198-205）。
 - 编排级: 检测失败或 0 星 → 退出码 STAR_DETECT_FAILED
@@ -291,7 +291,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   platesolve.* 传参（orchestrator.cpp:1591-1607）部分字段无效；fwhmClipSigma
   生产路径半失效。
 - DISP-STAR-004 饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
-  :2293 vs :2316-2338）；has_saturated 恒等于 is_saturated（:2342），列语义
+  :2293 `rec.flux = (float)fit_results[i].A` vs :2337 `rec.mag = (box_sum > 0.0) ? -2.5f*log10f(box_sum) : NAN`（段 :2316-2337））；has_saturated 恒等于 is_saturated（:2342），列语义
   未分化（star_det v1 [5] 列承接归 P1-STAR-INT）。
 - DISP-STAR-005 双实现并存: 生产 impl（peaker 路径）与旧 sdet_detect/
   sdet_detect_debug（CC 结构图路径 :1023-1317/:1318）行为漂移（候选过滤

@@ -322,7 +322,7 @@ large_scale 结构生长:
   本层 `percentile` 判据与 `:31-44` 逐式等价（§8a）。**行为/数值对照，不复制 GPL 代码**。
 - **档界对照（可核验形式）**：PixInsight WBPP **2.5.9** `WeightedBatchPreprocessing-engine.js:1421-1429`
   `bestRejectionMethod()`（官方更新包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`；非学术软件来源；`PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED`）。
-  **仓内旧引文 `BPP-FrameGroup.js:1304-1312` 已作废**：该文件名不存在于任何官方 WBPP 包，
+  **仓内既有引文 `BPP-FrameGroup.js:1304-1312` 查无实据**：该文件名不存在于任何官方 WBPP 包，
   且其正文所称的 `n > 15 → LinearFit` 在 1.4.2–2.5.9 的任何版本都不成立（2.4.0+ 为 ESD，≤2.3.x 为 `n<25 → LinearFit`）。
 - **percentile 判据的适用域**：等效显著性随 `|median|/s` 线性漂移（§8a），真实天光电平下退化为惰性、近零天光下退化为过拒；判据带定义与冻结阈值以 §5/§8a 为准。
 
