@@ -11,7 +11,7 @@
 ## 1 语义要求（semantic anchors，公式锚见 ALG-STARDET-001 §2/§11.1）
 
 - subpixel centroid: 亚像素质心为连续估计（一阶导零交叉 / 二阶导零交叉 /
-  椭圆高斯 GSL-LM 中心），不引入 0.5px 网格量化损失；合成场验收容差
+  椭圆高斯自研信赖域 LM（nls_lm）中心），不引入 0.5px 网格量化损失；合成场验收容差
   |Δc|≤0.3 px（SNR≥20）见 ALG-STARDET-001 §11.4 F1；SNR 定义（SNR_peak）
   见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（G-P1-CENTROID-SCI 行）。
 - completeness / false positive (synthetic fields): 完备性与虚警由合成星场
@@ -111,7 +111,7 @@
 
 ## 3 基线选择与验收语义
 
-- 基线算法=peaker 七步候选 + 椭圆高斯 GSL trust-region LM 拟合
+- 基线算法=peaker 七步候选 + 椭圆高斯自研信赖域 LM（nls_lm）拟合
   （7 参数，`fwhm=2.3548·sx`；高斯拟合 Moffat4 真星质心无偏 median 0.0047 px，
   但 FWHM 报值/真值=1.086、解析流量比=0.902；生产路径
   `sdet_detect_impl`，`sdet_api.cpp:1599-2353`）。

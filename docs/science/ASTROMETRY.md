@@ -262,7 +262,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 > 本节只补出处与参考实现，不改动 §5/§5a/§11a 任何公式、常数与容差。
 
-- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-6361:20021326，arXiv:astro-ph/0207407 逐字核验）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）；参考像素（world==CRVAL）在 1-based `p = CRPIX`（连续中心 `x_c = CRPIX − 0.5`）。**据此，本文件 §5a 的桥接口径为**：求解器拟合自变量是 sdet 半整数像素中心 `det_x = i+0.5`，`u = det_x − w/2 = p − CRPIX` 即 Paper I 的 `q`，迭代反演 `x = u + CRPIX = p` 已是 1-based FITS；`ipv_wcs.h:43,57-60,70-71` 的注释与 §5a 一致。
+- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-6361:20021326，arXiv:astro-ph/0207407 逐字核验）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）；参考像素（world==CRVAL）在 1-based `p = CRPIX`（连续中心 `x_c = CRPIX − 0.5`）。**据此，本文件 §5a 的桥接口径为**：求解器拟合自变量是 sdet 半整数像素中心 `det_x = i+0.5`，`u = det_x − w/2 = p − CRPIX` 即 Paper I 的 `q`，迭代反演 `x = u + CRPIX = p` 已是 1-based FITS；`ipv_wcs.h:43,57-60,70-71` 把该输出注释为 0-based，而 `ipv_wcs.cpp:945-946` 的 `out.x = u + crpix` 按 Paper I §2.1.1 即 1-based `p`——注释属标签错误（与 §5a 同一判读）。
 - **TAN 投影与 celestial↔native 旋转/LONPOLE**：Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1。
 - **SIP A/B/AP/BP 约定**：Shupe, D. L. et al. 2005, ASP Conf. Ser. 347, 491（bibcode 2005ASPC..347..491S）。**核验状态**：bibcode 级。
 - **可执行标准与独立 Oracle**：WCSLIB（LGPL-3.0，官方 https://www.atnf.csiro.au/people/mcalabre/WCS/ ；镜像 Punzo/wcslib SPDX=LGPL-3.0）；astropy.wcs（BSD-3-Clause，https://github.com/astropy/astropy）≥7.0.1；ERFA（BSD-3-Clause 类，liberfa/erfa）。
