@@ -3,20 +3,20 @@
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
 > ⚠ **原子性覆盖与产物落点**：
-> ① **原子性覆盖全部产品（含 HiPS tile）是最高设计 §9 的强制条款**；HiPS tile 当前的非原子路径
->    属**已登记的待修缺口**（见下），**「原子发布已全覆盖」以缺口闭合为条件**；
+> ① **原子性覆盖全部产品（含 HiPS tile）是最高设计 §9 的强制条款**；HiPS tile 写路径统一经
+>    `write_fits_atomic`（临时文件 → 内容 → CHECKSUM 校验 → 原子改名，见下），**原子发布覆盖全部产品**；
 > ② **产物落点**：产品**只落块级 `output_dir`**；`run/` 只放**临时产物与日志**
 >    （最高设计 §9；`run/` 定位为临时产物与日志目录）。
 
 - science product 写盘协议：temp write → validate → atomic promote（最高设计 §9）。
 - UPM sparse 模型：aio_upm_write_sparse 已于 V19R6R2 改为 temp+rename（lib/infrastructure/aio/src/aio_upm.cpp:60-97 temp write → validate → atomic promote，F-V19R2-IO-001 已修复）。
-- ⚠ **待修缺口登记（R13，未闭合）——HiPS tile 非原子**：
-  现状 = `remove → fits_create → write_chksum → close`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:330/:399`
-  的 `std::remove`），partial-file 策略：abort 尽力清理、finalize verify（失败清理 temp/partial，
-  交付前 verify CHECKCODE/CHECKDATASUM）；**不是** temp+rename 原子发布。
-  **闭合判据** = tile 走「临时区 → 校验 → 哈希 → 原子改名」且负例可红。
-  **未闭合期间**本行保持「缺口」语义：HiPS tile 原子发布的文档表述限于缺口闭合之后
-  （最高设计 §9「本期例外（如实登记）」）。
+- **HiPS tile 原子发布**：tile 写统一入口 `write_fits_image` → `write_fits_atomic`
+  （`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:630/:539`：同目录临时文件 → 内容写出 →
+  CHECKSUM 校验 → fsync → 原子 rename → 父目录 fsync），全部 tile 写调用点
+  （`aio_hips_writer.cpp:1018/:1028/:1082/:1092/:1369/:1377/:1585/:1595/:1747`）与 MOC 写（:657）
+  自动经该路径；失败分类（ENOSPC/写失败）在清理前完成（`aio_disk_full.h` 语义）；
+  负例可红：`lib/infrastructure/aio/tests/test_hips_atomic_publish.cpp`
+  （`tile_diskfull` / `tile_write_fail` 注入）。
 - ⚠ **待修缺口登记（R13 关联，未闭合）——阶段二直写无暂存区**：
   阶段二马赛克当前直写输出目录、无 staging（`docs/modules/registry/astrocs.phase2.write.md` §已知限制）；
 - dense cache：固定 512B 头部 + 二进制块 + streaming checksum；打开校验

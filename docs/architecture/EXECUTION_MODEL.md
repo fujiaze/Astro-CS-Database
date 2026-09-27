@@ -47,9 +47,9 @@
 
 | 项 | 语义 |
 |---|---|
-| Orchestrator cancel | atomic flag `CANCELLED=10`, 流水线中断检查点 |
+| Orchestrator cancel | atomic flag `CANCELLED=9`（用户取消或超时；唯一源 `lib/infrastructure/cli/exit_codes.h`）, 流水线中断检查点 |
 | Stage2 signal | handler 设置取消标志, 当前 block 完成即退 |
-| Timeout | stage 配置 timeout_ms, 超时返 `TIMEOUT=9` |
+| Timeout | stage 配置 timeout_ms, 超时返 `CANCELLED=9`（唯一源不设独立超时码，取消与超时同码） |
 | Exception传播 | C ABI 边界捕获转返回码, 无异常跨 DLL |
 
 ## 5 CPU/GPU 内存驻留与回退
@@ -95,8 +95,8 @@
 
 ## 在役生产/CI 面（状态词取自 DORMANT 面之外）
 
-- `lib/infrastructure/cli/v6_runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `acsd`** ⇒ **在役生产**。
-- `lib/infrastructure/cli/v6_mode_gate.h`：同链 include ⇒ **在役生产**。
-- `lib/infrastructure/scheduler/v6_budget.py`：由 `eng/tools/v6/check_v6_runtime_closure.py` 调用其 `selftest`、`eng/tools/v6/v6_runtime_oracle.py` 锚定 ⇒ **在役 CI 面**。
+- `lib/infrastructure/cli/runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `acsd`** ⇒ **在役生产**。
+- `lib/infrastructure/cli/mode_gate.h`：同链 include ⇒ **在役生产**。
+- `lib/infrastructure/scheduler/budget.py`：由 `eng/tools/quality/check_runtime_closure.py` 调用其 `selftest`、`eng/tools/quality/runtime_oracle.py` 锚定 ⇒ **在役 CI 面**。
 - 上述三者与本节开头的 `DORMANT` 面（ACR/CUDA/GPU、Qt 浏览器、orchestrator）**分属不同类别**，两者各列一张表。
 

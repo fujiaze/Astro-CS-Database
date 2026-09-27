@@ -1,10 +1,9 @@
-> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
 # 基线比较矩阵（QA-MATRIX-001）
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器规格：`reports/v6/qa-design/data/baseline_matrix.json`；渲染块由 `render_docs.py` 机械写入，`check_docs.py` 校验逐字一致。
+- 机器规格：`artifacts/evidence/v6/qa-design/data/baseline_matrix.json`；渲染块由 `render_docs.py` 机械写入，`check_docs.py` 校验逐字一致。
 - 上位锚：`FZ-MODE-PRODUCTION`/`FZ-MODE-BASELINE`/`FZ-MODE-DEFERRED`、`ADJ-S1`、`ADJ-P2-01/02/03`、
   `PSF_SIGNAL_WEIGHT.md` §4/§7、`DESIGN-P2-001` §6.3、控制器 C-004.1。
 

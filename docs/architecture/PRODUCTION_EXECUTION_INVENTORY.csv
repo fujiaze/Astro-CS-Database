@@ -24,8 +24,8 @@ exe_target,p1drz_perf_test,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CM
 exe_target,p1drz_selfcheck_test,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:65,
 exe_target,p1drz_disp009_gate,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:85,
 exe_target,p1drz_thread_probe,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:99,
-exe_target,weight_chain_selfcheck,lib/algorithms/integration/v6/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/v6/oracle/CMakeLists.txt:12,
-exe_target,recon_dump,lib/algorithms/integration/v6/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/v6/oracle/CMakeLists.txt:25,
+exe_target,weight_chain_selfcheck,lib/algorithms/integration/phase2_integrate/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/phase2_integrate/oracle/CMakeLists.txt:12,
+exe_target,recon_dump,lib/algorithms/integration/phase2_integrate/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/phase2_integrate/oracle/CMakeLists.txt:25,
 exe_target,p1noise_tests,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:75,
 exe_target,p1noise_perf_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:106,
 exe_target,p1noise_selfcheck_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:115,
@@ -214,7 +214,7 @@ exe_target,p2002_unc_rej_prov_test,eng/tests/unit/CMakeLists.txt,test,no,-,非�
 exe_target,p2_block_plan_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:803,非发布目标
 exe_target,p2_ir_facade_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:821,非发布目标
 exe_target,p2_output_semantics_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:815,非发布目标
-exe_target,p2_rej_v6_test,eng/tests/unit/v6_p2_rej/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_rej/CMakeLists.txt:14,非发布目标
+exe_target,p2_rej_test,eng/tests/unit/p2_rej/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_rej/CMakeLists.txt:14,非发布目标
 exe_target,p2_rejection_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:809,非发布目标
 exe_target,p2_seam_gate_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:825,非发布目标
 exe_target,p2_upm_synthetic_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:799,非发布目标
@@ -249,27 +249,27 @@ exe_target,rt007_artifact_store_test,eng/tests/unit/CMakeLists.txt,test,no,-,非
 exe_target,rt008_runtime_client_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:160,非发布目标
 exe_target,rt009_node_trace_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:169,非发布目标
 exe_target,test_photometry_apply_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:886,非发布目标
-exe_target,v6_aio_test,eng/tests/unit/v6_aio/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_aio/CMakeLists.txt:23,非发布目标
-exe_target,v6_p1_cal_covariance_test,eng/tests/unit/v6_p1_cal/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p1_cal/CMakeLists.txt:26,非发布目标
-exe_target,v6_p1_drz_test,eng/tests/unit/v6_p1_drz/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p1_drz/CMakeLists.txt:24,非发布目标
-exe_target,v6_p1_integrate_test,eng/tests/integration/v6_p1/CMakeLists.txt,test,no,-,非发布目标,eng/tests/integration/v6_p1/CMakeLists.txt:19,非发布目标
-exe_target,v6_p1_psfw_tests,eng/tests/unit/v6_p1_psfw/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p1_psfw/CMakeLists.txt:30,非发布目标
-exe_target,v6_p2_identifiability_test,eng/tests/unit/v6_p2_identifiability/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_identifiability/CMakeLists.txt:2,非发布目标
-exe_target,v6_p2_integrate_test,eng/tests/integration/v6_p2/CMakeLists.txt,test,no,-,非发布目标,eng/tests/integration/v6_p2/CMakeLists.txt:19,非发布目标
-exe_target,v6_p2_samp_test,eng/tests/unit/v6_p2_samp/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_samp/CMakeLists.txt:25,非发布目标
-exe_target,v6_p2_sky_geometry_test,eng/tests/unit/v6_p2_sky/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_sky/CMakeLists.txt:53,非发布目标
-exe_target,v6_p2_sky_kappa_test,eng/tests/unit/v6_p2_sky_kappa/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_sky_kappa/CMakeLists.txt:2,非发布目标
-exe_target,v6_p2_sky_node_adapt_test,eng/tests/unit/v6_p2_sky/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_sky/CMakeLists.txt:27,非发布目标
-exe_target,v6_p2_sky_test,eng/tests/unit/v6_p2_sky/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_sky/CMakeLists.txt:4,非发布目标
-exe_target,v6_p2_upm_geo_diag_test,eng/tests/unit/v6_p2_upm/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_upm/CMakeLists.txt:42,非发布目标
-exe_target,v6_p2_upm_ma_test,eng/tests/unit/v6_p2_upm/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p2_upm/CMakeLists.txt:18,非发布目标
-exe_target,v6_p3_export_test,eng/tests/integration/v6_p3/CMakeLists.txt,test,no,-,非发布目标,eng/tests/integration/v6_p3/CMakeLists.txt:34,非发布目标
-exe_target,v6_p3_proj_legacy_probe,eng/tests/unit/v6_p3_proj/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p3_proj/CMakeLists.txt:46,非发布目标
-exe_target,v6_p3_proj_probe,eng/tests/unit/v6_p3_proj/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p3_proj/CMakeLists.txt:23,非发布目标
-exe_target,v6_p3_proj_test,eng/tests/unit/v6_p3_proj/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/v6_p3_proj/CMakeLists.txt:14,非发布目标
-exe_target,v6_runtime_contract_test,eng/tests/system/v6_runtime/CMakeLists.txt,test,no,-,非发布目标,eng/tests/system/v6_runtime/CMakeLists.txt:16,非发布目标
-exe_target,v6_runtime_determinism_test,eng/tests/system/v6_runtime/CMakeLists.txt,test,no,-,非发布目标,eng/tests/system/v6_runtime/CMakeLists.txt:27,非发布目标
-exe_target,v6_runtime_resource_record_test,eng/tests/system/v6_runtime/CMakeLists.txt,test,no,-,非发布目标,eng/tests/system/v6_runtime/CMakeLists.txt:33,非发布目标
+exe_target,aio_test,eng/tests/unit/aio/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/aio/CMakeLists.txt:23,非发布目标
+exe_target,p1_cal_covariance_test,eng/tests/unit/p1_cal/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p1_cal/CMakeLists.txt:26,非发布目标
+exe_target,p1_drz_test,eng/tests/unit/p1_drz/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p1_drz/CMakeLists.txt:24,非发布目标
+exe_target,p1_integrate_test,eng/tests/integration/p1_integrate/CMakeLists.txt,test,no,-,非发布目标,eng/tests/integration/p1_integrate/CMakeLists.txt:19,非发布目标
+exe_target,p1_psfw_tests,eng/tests/unit/p1_psfw/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p1_psfw/CMakeLists.txt:30,非发布目标
+exe_target,p2_identifiability_test,eng/tests/unit/p2_identifiability/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_identifiability/CMakeLists.txt:2,非发布目标
+exe_target,p2_integrate_test,eng/tests/integration/p2_integrate/CMakeLists.txt,test,no,-,非发布目标,eng/tests/integration/p2_integrate/CMakeLists.txt:19,非发布目标
+exe_target,p2_samp_test,eng/tests/unit/p2_samp/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_samp/CMakeLists.txt:25,非发布目标
+exe_target,p2_sky_geometry_test,eng/tests/unit/p2_sky/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_sky/CMakeLists.txt:53,非发布目标
+exe_target,p2_sky_kappa_test,eng/tests/unit/p2_sky_kappa/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_sky_kappa/CMakeLists.txt:2,非发布目标
+exe_target,p2_sky_node_adapt_test,eng/tests/unit/p2_sky/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_sky/CMakeLists.txt:27,非发布目标
+exe_target,p2_sky_test,eng/tests/unit/p2_sky/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_sky/CMakeLists.txt:4,非发布目标
+exe_target,p2_upm_geo_diag_test,eng/tests/unit/p2_upm/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_upm/CMakeLists.txt:42,非发布目标
+exe_target,p2_upm_ma_test,eng/tests/unit/p2_upm/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p2_upm/CMakeLists.txt:18,非发布目标
+exe_target,p3_export_test,eng/tests/integration/p3_export/CMakeLists.txt,test,no,-,非发布目标,eng/tests/integration/p3_export/CMakeLists.txt:34,非发布目标
+exe_target,p3_proj_legacy_probe,eng/tests/unit/p3_proj/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p3_proj/CMakeLists.txt:46,非发布目标
+exe_target,p3_proj_probe,eng/tests/unit/p3_proj/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p3_proj/CMakeLists.txt:23,非发布目标
+exe_target,p3_proj_test,eng/tests/unit/p3_proj/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/p3_proj/CMakeLists.txt:14,非发布目标
+exe_target,runtime_contract_test,eng/tests/system/runtime/CMakeLists.txt,test,no,-,非发布目标,eng/tests/system/runtime/CMakeLists.txt:16,非发布目标
+exe_target,runtime_determinism_test,eng/tests/system/runtime/CMakeLists.txt,test,no,-,非发布目标,eng/tests/system/runtime/CMakeLists.txt:27,非发布目标
+exe_target,runtime_resource_record_test,eng/tests/system/runtime/CMakeLists.txt,test,no,-,非发布目标,eng/tests/system/runtime/CMakeLists.txt:33,非发布目标
 exe_target,variance_floor_test,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:1588,非发布目标
 exe_target,w34_aio_dataflow_fuzz,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:1711,非发布目标
 exe_target,w34_aio_hiss_benchmark,eng/tests/unit/CMakeLists.txt,test,no,-,非发布目标,eng/tests/unit/CMakeLists.txt:1740,非发布目标
@@ -350,9 +350,9 @@ thread_creation,Base::n_thread_build_ = std::max(std::thread::hardware_concu,lib
 thread_creation,fut_ = std::async(,lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp:3883,production,yes,-,std::async,lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp:3883,
 thread_creation,"std::thread t1(worker, specA, refA, 20);",lib/algorithms/drizzle/healpix_drizzle/tests/concurrency_cache_test.cpp:136,test,no,-,std::thread 显式创建,lib/algorithms/drizzle/healpix_drizzle/tests/concurrency_cache_test.cpp:136,
 thread_creation,"std::thread t2(worker, specB, refB, 20);",lib/algorithms/drizzle/healpix_drizzle/tests/concurrency_cache_test.cpp:137,test,no,-,std::thread 显式创建,lib/algorithms/drizzle/healpix_drizzle/tests/concurrency_cache_test.cpp:137,
-thread_creation,std::thread::hardware_concurrency());,lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp:454,production,yes,-,std::async,lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp:454,
-thread_creation,const unsigned hw = std::thread::hardware_concurrency();,lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp:477,production,yes,-,std::async,lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp:477,
-thread_creation,std::vector<std::thread> th;,lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp:479,production,yes,-,std::async,lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp:479,
+thread_creation,std::thread::hardware_concurrency());,lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp:454,production,yes,-,std::async,lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp:454,
+thread_creation,const unsigned hw = std::thread::hardware_concurrency();,lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp:477,production,yes,-,std::async,lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp:477,
+thread_creation,std::vector<std::thread> th;,lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp:479,production,yes,-,std::async,lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp:479,
 thread_creation,//     一个）；模块/节点不得自建私有永久线程池（std::thread 私建池 → 静态扫描拒绝）。,lib/include/astrocs/core/executor.h:6,production,yes,-,std::thread 显式创建,lib/include/astrocs/core/executor.h:6,
 thread_creation,unsigned n = std::thread::hardware_concurrency();,lib/infrastructure/acr/core/runtime.cpp:74,production,yes,-,std::async,lib/infrastructure/acr/core/runtime.cpp:74,
 thread_creation,"e.cpu = ""cpu-hw-"" + std::to_string(std::thread::hardware_con",lib/infrastructure/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:222,production,yes,-,std::async,lib/infrastructure/acr/examples/weighted_integration/weighted_integration_benchmark.cpp:222,
@@ -470,7 +470,7 @@ lock,hiss_codec.cpp,lib/infrastructure/aio/src/hiss_codec.cpp,production,yes,Pha
 lock,memory_report.h,lib/infrastructure/cli/memory_report.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/cli/memory_report.h (4 sites),
 lock,resource_recorder.h,lib/infrastructure/cli/resource_recorder.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/cli/resource_recorder.h (11 sites),
 lock,runtime_client.cpp,lib/infrastructure/cli/runtime_client.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/cli/runtime_client.cpp (7 sites),
-lock,v6_runtime_contract.h,lib/infrastructure/cli/v6_runtime_contract.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/cli/v6_runtime_contract.h (10 sites),
+lock,runtime_contract.h,lib/infrastructure/cli/runtime_contract.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/cli/runtime_contract.h (10 sites),
 lock,gaia_client.c,lib/infrastructure/gaia_xpsd_client/src/gaia_client.c,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/gaia_xpsd_client/src/gaia_client.c (2 sites),
 lock,browser_backend.cpp,lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.cpp (13 sites),
 lock,browser_backend.h,lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.h (1 sites),
@@ -548,8 +548,8 @@ io_writer,p2hips_unc_prov_test.cpp,lib/infrastructure/aio/tests/p2hips/p2hips_un
 io_writer,pipeline_frame_contract_test.cpp,lib/infrastructure/aio/tests/pipeline_frame_contract_test.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/pipeline_frame_contract_test.cpp,
 io_writer,test_hips_atomic_publish.cpp,lib/infrastructure/aio/tests/test_hips_atomic_publish.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/test_hips_atomic_publish.cpp,
 io_writer,test_p1_io_hardening.cpp,lib/infrastructure/aio/tests/test_p1_io_hardening.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/tests/test_p1_io_hardening.cpp,
-io_writer,v6_atomic_publish.h,lib/infrastructure/aio/v6/include/astro/aio/v6_atomic_publish.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/v6/include/astro/aio/v6_atomic_publish.h,
-io_writer,v6_atomic_publish.cpp,lib/infrastructure/aio/v6/src/v6_atomic_publish.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/v6/src/v6_atomic_publish.cpp,
+io_writer,atomic_publish.h,lib/infrastructure/aio/product_io/include/astro/aio/atomic_publish.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/product_io/include/astro/aio/atomic_publish.h,
+io_writer,atomic_publish.cpp,lib/infrastructure/aio/product_io/src/atomic_publish.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/aio/product_io/src/atomic_publish.cpp,
 io_writer,runtime_client.cpp,lib/infrastructure/cli/runtime_client.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/cli/runtime_client.cpp,
 io_writer,checkpoint.h,lib/infrastructure/pipeline/orchestrator/cpp/include/checkpoint.h,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/pipeline/orchestrator/cpp/include/checkpoint.h,
 io_writer,checkpoint.cpp,lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp,
@@ -559,4 +559,4 @@ io_writer,test_checkpoint.cpp,lib/infrastructure/pipeline/orchestrator/cpp/tests
 io_writer,block_flow.cpp,lib/infrastructure/scheduler/src/block_flow.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/scheduler/src/block_flow.cpp,
 io_writer,module_adapters.cpp,lib/infrastructure/scheduler/src/module_adapters.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/infrastructure/scheduler/src/module_adapters.cpp,
 io_writer,p1_session.cpp,lib/phase1_session/p1_session.cpp,production,yes,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/phase1_session/p1_session.cpp,
-io_writer,p3_v6_export.cpp,lib/phase3_session/p3_v6_export.cpp,test,no,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/phase3_session/p3_v6_export.cpp,CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06：v6 导出实现未接入生产命名块管线；仅由 eng/tests/integration/v6_p3 的 v6_p3_export_test 编译；不在生产入口 acsd 的传递闭包内（判据 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH E3）；待 CLEAN-401 退役处置
+io_writer,p3_export.cpp,lib/phase3_session/p3_export.cpp,test,no,Phase1/2/3,aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md,lib/phase3_session/p3_export.cpp,CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06：v6 导出实现未接入生产命名块管线；仅由 eng/tests/integration/p3_export 的 p3_export_test 编译；不在生产入口 acsd 的传递闭包内（判据 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH E3）；待 CLEAN-401 退役处置

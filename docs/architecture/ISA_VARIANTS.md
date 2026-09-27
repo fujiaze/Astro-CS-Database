@@ -66,7 +66,7 @@
 | drizzle-accumulate | 2 555 247 | 3 129 703 | −22.5% | −14.0% | NOT_SHIPPED(变体更慢) |
 
 - **判定**: AVX512 在受控热点上**(a)** 无超越 AVX2+FMA 的收益(hips 同档 +29.5% vs +28.3%; calibration +3.8% 反而远低), **(b)** AVX512F 存在已知 downclock/功耗-频率风险(WIN-003 亦需检查)。按 05 §3 "capability 与热点对应; 无机械指令集堆砌" → 登记 **NOT_SHIPPED**(完整测量在案, 非空判定)。
-- 完整性: 测量工件 `artifacts/evidence/prerelease-v5/ISA-004/MEASUREMENTS.csv`。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
+- 完整性: 复测数值以本节表格为准（同树在案测量工件为 ISA-001/002/003 三批，属 AVX2 域）。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
 
 ## 2 变体注册(05 §5 capability)
 

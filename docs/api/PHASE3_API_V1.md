@@ -41,12 +41,18 @@ acs_status p3_session_destroy(acs_handle);
 | projection≠TAN | ACS_ERR_UNSUPPORTED |
 | frame≠ICRS 恒等(galactic/ecliptic) | ACS_ERR_UNSUPPORTED |
 | 多通道/RGBA、JPEG/PNG lossy tile、int+BLANK | ACS_ERR_UNSUPPORTED |
-| variance/weight/ivar/flux-per-pixel 输入模式 | ACS_ERR_UNSUPPORTED |
+| weight/support tile、flux-per-pixel 输入模式 | ACS_ERR_UNSUPPORTED |
 | properties 非法/缺键 | ACS_ERR_PARAM |
 | abs(dec)>85°(距极点<5°)/输出跨 TAN 半球/W/H 越界 | ACS_ERR_PARAM |
 | tile 文件缺失 | **非错误**:coverage=0+provenance.missing(SCI-P3 §8) |
 | tile 内 NaN | 非错误:S=NaN+C=1(§8) |
 | IO/运行失败 | ACS_ERR_IO/安全中止(ARCH-P3 §4) |
+
+- variance/ivar 子产品输入**不属拒绝项**（SCI-P3 §9a-10 / DATA-P3-UNC-001）：输入 HiPS 含
+  variance/ivar 时必须显式消费传播，输出 `VARIANCE`/`IVAR` 扩展 HDU；两者皆无时显式
+  `unavailable`（禁静默）。实现锚：`lib/algorithms/resample/p3_resample.cpp:474`
+  （`p3_uncertainty_open` / `p3_uncertainty_propagate`）、`lib/phase3_session/p3_export.cpp:624-625`
+  （`VARIANCE` HDU 写出）。
 
 ## 5 逐条追溯
 

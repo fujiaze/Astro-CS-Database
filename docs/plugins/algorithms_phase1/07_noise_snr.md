@@ -135,14 +135,13 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 
 - **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:767-770` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:876`）链入主程序。
 - 模型定义、参数语义、稳健噪声估计与掩膜规则的正本见 `docs/science/NOISE_MODEL.md`；本文件只登记插件侧接口与接线事实，不复制公式。
-- **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序，但生产调度路径（`module_adapters.cpp`）尚未挂 `variance` 块 ⇒ `hp_drizzle_api.cpp:1024` 读不到 ⇒ `astro_sphere_sink.cpp:306–327` 不产出 variance/ivar 子产品面 ⇒ `p2_integrated.json` 报 `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）。
-- **接入义务**：把 `orchestrator` 的逐像素方差接线（`orchestrator.cpp:4694-4839`）搬进 `scheduler`，使生产产出逐像素 `variance`/`ivar` 产品面；接入并验证后删除 `lib/infrastructure/pipeline/orchestrator/cpp/` 与 v6 家族（最高设计 §8.2）。
+- **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产调度路径**已挂** `variance` 帧内命名块——`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`（`module_adapters.cpp:8154-8158`），引擎侧 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，`true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status`/`var_reason`）；口径正本 = `08_drizzle.md` §7。
 - **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一像素必须落在两态之一 —— **可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`；**不可用** `variance=0 ∧ ivar=0`。
   平面预测 ≤ 0、或生效 floor / 输出值在 float32 中不可表示（下溢为 0 / 上溢为非有限）的像素取不可用态；不可用方差的落盘值 = 显式不可用态本身——
   floor clamp 会把「模型在此处失效」发布成 `ivar=1/floor` 的极大权重；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。
   正本 = `docs/science/NOISE_MODEL.md` §5/§7/§9 与 `docs/contracts/DATA_SEMANTICS.md` §4a 三态表；
   门 = `ctest -R p1noise_negative`（`n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`）+ `ctest -R p1noise_selfcheck`（证明判据能红，非恒真）。
-- **影响面（诚实）**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；**影响**逐像素**不确定度产品面**。凡「逐像素方差/不确定度已传播到产品」的主张，**只能引用 A 的插件路径证据**，**生产路径的产出主张以接线完成为前提**。
+- **影响面**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；逐像素**不确定度产品面**由生产调度路径经 A 的插件路径产出（接线在场：`module_adapters.cpp:8154-8158`）。凡「逐像素方差/不确定度已传播到产品」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据。
 - **行号说明**：本节的 `文件:行` 以符号名/文件名核对为准；工作树并发改动会使行号漂移。
 
 ### 4.4a 背景方差面的自适应拟合与 §5d 审计面
@@ -249,7 +248,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **加性背景平移不改变信号项**（注入恒定背景偏置，测光信号不变）；**天光散粒噪声增强时 `σ_n` 增大、帧级 SNR 按理论下降**；**单调性负例**：固定源通量、天光 `B` 增大 ⇒ SNR 单调下降，`B→∞` 时 `SNR→0`；
 - **注入-回收**：已知真值 `F_s` + 已知天光 + 已知噪声 ⇒ 回收 SNR = `F_s/σ_F`（三条路径各一组；不满足者判红）；
 - 稀疏层：启用/不启用输出结构正确，稀疏层值可重建验证；**三路径精度与存储量对比**：`dense` / `sparse_reconstruct` / `frame_reconstruct` 同输入重建稠密 SNR，报告精度差与存储量；无稀疏层而路径为 `sparse_reconstruct` 时实际路径须被显式记录（负例：静默降级判红）；
-- **重建算子 Oracle（能红能绿，`lib/algorithms/integration/v6/oracle/`）**：① 正例——默认算子与独立复算的自然样条+钳制逐点一致、控制点自身复现残差 ~0、预置路径与单次调用逐位一致、1/8 worker 求值逐位一致；② 与实验单元 EXP-04 的算子实现逐像素对拍（容差 1e-12）；③ 负例注入——移除值域钳制 ⇒ 病态网格 E 由 1.007 爆到 1.44e4 判红；把 mesh 滤波档改成全局默认 ⇒ 默认目标域上默认档与滤波档持平（比值 9.26× → 1.00×）判红；移除 cell 中心几何门 ⇒ 角点锚定网格被接受判红；同时移除钳制与正值守卫 ⇒ 重建场出现负 σ（min = −0.2627）判红；
+- **重建算子 Oracle（能红能绿，`lib/algorithms/integration/phase2_integrate/oracle/`）**：① 正例——默认算子与独立复算的自然样条+钳制逐点一致、控制点自身复现残差 ~0、预置路径与单次调用逐位一致、1/8 worker 求值逐位一致；② 与实验单元 EXP-04 的算子实现逐像素对拍（容差 1e-12）；③ 负例注入——移除值域钳制 ⇒ 病态网格 E 由 1.007 爆到 1.44e4 判红；把 mesh 滤波档改成全局默认 ⇒ 默认目标域上默认档与滤波档持平（比值 9.26× → 1.00×）判红；移除 cell 中心几何门 ⇒ 角点锚定网格被接受判红；同时移除钳制与正值守卫 ⇒ 重建场出现负 σ（min = −0.2627）判红；
 - **稀疏层绝对语义判据（能红能绿）**：① 绿——控制点自身复现：在节点坐标处重建值 == 落盘控制点值（残差 ~0），且与帧级标量**无关**（同层配不同帧级标量，重建结果逐位相同）；② 红——按相对值解释：取 `SNR(x,y) = frame_snr × v(x,y)/median(v)` 时，节点重建值 ≠ 落盘值（除非 `frame_snr == median(v)`），该差异必须被判红；③ 红——schema 层：`sparse_snr_semantics` 声明为相对语义或缺失 ⇒ 合同测试判红；
 - 点源/面亮度口径分离：把面亮度 SNR 当帧级 SNR 使用必须判红；
 - **逐帧 `F_ref,k` 独立性负例**：人为要求组内 `F_ref` 相等（组间硬闸门）⇒ 必须判红——不同指向/不同光学系统的帧合法地有不同 `F_ref,k`；`w_k = SNR_k²/F_ref,k²` 的配对性**只在同一帧内**成立；

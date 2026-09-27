@@ -92,7 +92,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `ENGINEERING_SPEC.md` §10；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
 | MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/astrocs.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
-| CLI 薄命令面（validate/plan/inspect） | `INSTALLED` | `cli/parser.cpp` kRules（9 条新命令）；`build/cli/astrocs --help` 实测；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS（CLI-001 `026717fd`） |
+| CLI 薄命令面（normalize/mosaic/export + doctor/benchmark） | `INSTALLED` | `command_tree.h` 唯一命令树（golden = `docs/api/CLI_PROTOCOL_V1.md` §1；`eng/tests/cli/test_cli_protocol.py` test_01/test_07） |
 | 三 Phase 隔离（三个独立命令，一次调用只驱动一个阶段） | `IMPLEMENTED` | `normalize`/`mosaic`/`export` 各拉起本阶段调度器（`ASTROCS_DESIGN.md` §1.2/§8.1）；`run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002）；DATA-002 磁盘交换合同冻结 |
 | 结构化日志合同 | `CONTRACT_READY` | LOG-001（schema/JSONL 契约） |
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
@@ -137,7 +137,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 节点化与运行时: IMPLEMENTED（三 Phase 节点化 `ASTROCS_DESIGN.md` §3.2/§4.2/§5.2、RT 唯一 executor + 资源门）
 Phase3 投影:    IMPLEMENTED（TAN/SIN/CAR/AIT registry v1 + Oracle + 故障注入）
 安装面:         INSTALLED（Linux 技术预览：5 科学模块 + noop / 10 units / 安全 loader）
-CLI 命令面:     INSTALLED（phase1/2/3 × validate|plan|inspect；run --phases 已删除）
+CLI 命令面:     INSTALLED（normalize/mosaic/export + doctor/benchmark；独立 validate/plan/inspect/verify 无载体, 调用 rc=2）
 发布执行面:     NOT_VERIFIED（Windows MSVC/DLL 安装树复验/32R）
 真实数据面:     NOT_VERIFIED（FINAL_REAL_DATA_VALIDATION=PENDING）
 科学扩展面:     NOT_IMPLEMENTED（healpix_interp4、Phase3 流式 FITS 接入）

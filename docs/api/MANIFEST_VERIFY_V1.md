@@ -18,7 +18,7 @@
 ```
 
 validate 校验序(错误码确定, 不猜测): JSON 语法(3)→顶层对象+schema_version=="1"(3)→inputs 四键存在且为字符串数组、路径非空且文件存在(3)→output_dir 存在(3)。已知键白名单外键→3(防拼写静默忽略)。schema_version≠"1"→2(参数/配置错, 与输入缺失区分)。
-cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","cpu_signature":"<hw hash>","kernels":{...}}`): validate 仅做 kind/schema_version/结构检查(3);**stale 判定=profile.cpu_signature ≠ 本机 signature → 报 5(backend/CPU 特征)**（见 §3 校验序）。
+cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profile.schema.json`**（CFG-001 单文件双分支：legacy_v1 `schema_version=1` + profile_v2 `schema=astrocs.cpu-profile/v2`；`x-astrocs-writer` 声明生产者仅 `benchmark`）；校验 oracle = `eng/tools/validate_cpu_profile.py`（schema 最小校验 + stale 判定，消费面 `eng/tests/backend/test_cpu_profile.py`）；无/失配 profile → 回落 generic(baseline) + 动态多线程，不阻塞（`profile_store.h:7-8,32`）。CLI 侧运行时校验入口 `lib/infrastructure/cli/parser.cpp:681`（`validate_cpu_profile`）当前无生产调用方——消费链接线缺口已在死键台账（`eng/ci/ledgers/dead_config_keys.json`）与开放项清单登记在案，处置排期随该登记推进。
 
 ## 2 run_manifest.json v1(run 结束原子写, ARCH-002 §5)
 
@@ -67,15 +67,29 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
   `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
   `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
 
-## 3 verify 合同(acsd verify --run-manifest --json)
+## 3 manifest verify 合同(acsd doctor --json --run-manifest <manifest.json>)
 
-校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→astrocs_version 与本机一致(5, 版本不同不可 verify)→重算 eng/packaging/config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`。
+独立 `verify` 命令不在命令面上（CLI-001 唯一命令树；verify* 为已删别名 → rc=2，负例锁定于
+`eng/tests/cli/test_cli_protocol.py` test_03）。manifest verify 的现行载体 = **`doctor` 的机器旗标
+`--run-manifest`**（`lib/infrastructure/cli/commands.cpp:2293` → `cmd_verify` :2136）。
+校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→astrocs_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`（stdout 恰一个 JSON 文档）。
 
-## 4 show-effective 合同
+## 4 config/profile 分离校验落点
 
-`--config --cpu-profile --json`: 两者分别 validate(错误码同 §1)→profile stale(5)→输出 `{schema_version:"1", config:<原文>, cpu_profile:<原文>, effective:{phases:[...], profile_signature:...}}`。人类模式无 --json 时拒绝(2；该命令固定 --json)。
+config 与 cpu profile 的分离校验由 `normalize|mosaic|export` 运行前预检
+（`lib/infrastructure/cli/subcommand.h` `precheck_config`）与 `doctor --json` 承接
+（现行校验入口声明：`lib/infrastructure/cli/commands.cpp:2235`）；独立 `show-effective` 命令
+无载体（CLI-001 唯一命令树，调用 rc=2）。
 
 ## 5 落点映射与测试
 
-- 实现: lib/infrastructure/cli/main.cpp(cmd_config_validate 强化/cmd_show_effective/cmd_verify/cmd_run 收尾写 manifest);golden: eng/tests/cli/test_cli_protocol.py 追加 mutation 组(schema_version 篡改/未知键/路径不存在/hash 篡改/stale profile/status incomplete/版本不一致), 每组断言退出码。
-- hash 工具: cli 内 sha256 实现(CRYPTO 公共层 lib/algorithms/shared/crypto 已有 sha256, 链接复用; CLI 侧封装 file_sha256)。
+- manifest 原子写: `lib/infrastructure/cli/commands.cpp:331` `write_run_manifest`
+  （tmp+rename；stub/not-wired/cancelled 恒 `incomplete`）；provenance 子对象 =
+  `commands.cpp:230`（构建期指纹锚 :76）；artifact 规范化哈希 = `commands.cpp:31/:182`。
+- config 校验: `lib/infrastructure/cli/parser.cpp:559` `validate_config_full`
+  （V1 顶层形态 → exit 3，与运行前预检同源）。
+- manifest verify: `acsd doctor --json --run-manifest`（§3，`cmd_verify`）。
+- hash 工具: CRYPTO 公共层 `lib/algorithms/shared/crypto` sha256（CLI 侧封装 `file_sha256`，
+  `commands.cpp:416/:496/:507` 在役调用）。
+- golden: `eng/tests/cli/test_cli_protocol.py`（schema_version 篡改→2 / 未知键 / 路径不存在 /
+  manifest verify 全组 test_01..test_06 / 独立 verify 命令保持删除 test_07），每组断言退出码。
