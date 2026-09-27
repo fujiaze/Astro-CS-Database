@@ -1,4 +1,4 @@
-// lib/algorithms/coverage/tests/synthetic_gate.cpp — Phase2 合成 Gate（W4/W7/W5/W6/W8/W9 子集）
+// lib/algorithms/coverage/tests/synthetic_gate.cpp — Phase2 合成 Gate
 //
 // 覆盖：
 // S0 identity：无额外 gradient 时 UPM 校准不改变信号；
@@ -312,7 +312,7 @@ TEST(Phase2UpmParallel, OneTvsTwoTDetermine) {
     // compute_raw 的 per-control 求和按 worker 连续切片分块、再按 worker 序合并，
     // 与串行索引序的结合顺序不同（FP 加法非结合）⇒ 当同一 control 各帧 ivar
     // 不相等时 model_hash 会不同、C 值差可达 ~1 ulp（SCI-FIX-WEIGHT 证据
-    // run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/logs/probe_1t2t.log：
+    // probe_1t2t.log 取证：
     // ΔC_max=2.22e-15 ≈ 1 ulp @10 ADU）。同 worker 数重复仍是位精确 + hash
     // exact（下方 CON-009，构造保证）。容差来源：docs/science/PHASE2_UPM.md §9。
     std::uint64_t ipix[1] = {0};
@@ -524,7 +524,7 @@ TEST(Phase2Upm, S2LowSnrDoesNotPullHighSnr) {
     p2_upm_close(model);
 }
 
-// ===== FIX-UPMSCALE 回归（RELEASE-02）=====
+// ===== FIX-UPMSCALE 回归=====
 // 生产 control_ivar 尺度（~5.6e-22，uncertainty ~4.2e10）下，per-control
 // 归一化判据必须是尺度无关的「Σ_cell w_UPM > 0 且有限」。旧的绝对门
 // sums > 1e-12 会把生产尺度权重整体清零 ⇒ C 场恒 0、p2_upm_fit 空操作、
@@ -3687,7 +3687,7 @@ TEST(Phase2Acr, G9WinsorizedCpuRoute) {
 }
 
 
-// W10 鲁棒性：损坏/边界输入
+// 鲁棒性：损坏/边界输入
 TEST(Phase2Robust, NanInputRejected) {
     std::vector<double> vals{10.0, std::nan(""), 11.0, 50.0};
     std::vector<std::uint8_t> acc(vals.size(), 0);
@@ -3727,7 +3727,7 @@ TEST(Phase2Robust, AllRejectedIntegrationHandled) {
     EXPECT_EQ(out.signal, 0.0);
 }
 
-// W3 真实 HiPS：coverage union（Phase1 冻结产物只读输入）
+// 真实 HiPS：coverage union（Phase1 冻结产物只读输入）
 TEST(Phase2Coverage, RealHipsUnion) {
     const std::string base = phase1_fixture_root();
     const std::string t2 = base + "/T2_v3.hips/signal/properties";
@@ -3764,7 +3764,7 @@ TEST(Phase2Coverage, RealHipsUnion) {
     p2_coverage_free(&cov);
 }
 
-// W3 真实 HiPS：filter 不一致必须拒绝
+// 真实 HiPS：filter 不一致必须拒绝
 TEST(Phase2Coverage, FilterMismatchRejected) {
     const std::string base = phase1_fixture_root();
     const std::string t2 = base + "/T2_v3.hips/signal/properties";
@@ -3777,7 +3777,7 @@ TEST(Phase2Coverage, FilterMismatchRejected) {
     ASSERT_NE(p2_coverage_build(bad, 1, &cov), 0);
 }
 
-// W4 真实 HiPS：控制点采样（AIO 读取 signal/support/snr）
+// 真实 HiPS：控制点采样（AIO 读取 signal/support/snr）
 // 改用已知重叠的 t4_crop_v3 × t4_full_v3_final（T2×T3 不同天区，
 // leaf tile 零交集导致 n_obs=0——数据漂移，非代码问题）。
 TEST(Phase2Sampler, RealHipsControlSampling) {
@@ -5869,16 +5869,16 @@ TEST(Phase2Upm, UpmUnknownFrameRejected) {
 }
 
 // ===========================================================================
-// RELEASE-02 P2a（接缝修复）判别力 Gate
+// P2a（接缝修复）判别力 Gate
 // ---------------------------------------------------------------------------
-// 场景与 run/RELEASE-02/fix-p2a/p2a_oracle.cpp 同构（生产尺度）：
+// 场景与生产 oracle 同构（生产尺度）：
 //   sky~1e13 ADU，control_ivar~6.25e-22（=1/(4e10)^2），3 帧按 gx 列覆盖
 //   （f0:gx<4 / f1:2<=gx<6 / f2:gx>=4 ⇒ 覆盖子集在 gx=1|2,3|4,5|6 突变）。
 // 覆盖：
 //  (1) P2a-3：生产尺度下绝对 tolerance=1e-6 不可达（converged=0，跑满
 //      max_iterations）；相对 tolerance=1e-3（tolerance_relative=1）可达。
 //  (2) P2a-2/P2a-4：full_frame+final_gauge 求解保留分量 gauge（参考帧 C≡0）。
-//  (3) legacy 默认（cfg{}）逐位不变：4 个新字段取 W2 冻结基线。
+//  (3) legacy 默认（cfg{}）逐位不变：4 个新字段取 冻结基线。
 // ===========================================================================
 namespace {
 std::uint64_t p2a_leaf(std::uint64_t tile, int x, int y) {
@@ -5997,7 +5997,7 @@ TEST(Phase2Upm, Release02P2aConvergenceRelativeAtProductionScale) {
 }
 
 // ===========================================================================
-// RELEASE-02 FIX-REGRESS：退化场景（单 control / 无重叠）判别力 Gate
+// FIX-REGRESS：退化场景（单 control / 无重叠）判别力 Gate
 // ---------------------------------------------------------------------------
 // 场景：8×8 tile 的 64 个几何 control 中，只有 63 个有 ≥2 帧观测；角 cell
 // (gx=7,gy=7) 无任何观测（单帧区/无覆盖）。λs=0（生产缺省）时该节点

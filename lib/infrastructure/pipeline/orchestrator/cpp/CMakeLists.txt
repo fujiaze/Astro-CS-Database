@@ -14,7 +14,7 @@
 #   取消=request_cancel/SIGINT、checkpoint=checkpoint.cpp）⇒ 职责家 = scheduler/**；
 #   物理位 = ARCH-001 迁移清单 #15（lib/orchestrator → lib/infrastructure/pipeline/orchestrator，
 #   该条依据写的是「7.1 infrastructure/pipeline（typed DAG 编排）」）⇒ 位置与职责冲突，
-#   登记 ORCH-HOME-01 交前台裁决（目录搬迁 = git mv，非本任务权限）。
+#   登记 ORCH-HOME-01 另行处置（目录搬迁 = git mv，非本任务权限）。
 #   本 target 名取 MODULE_MAP 的 infrastructure 约定（docs/modules/MODULE_MAP.yaml
 #   conventions: target_infrastructure = astrocs_infra_<id>），id = orchestrator
 #   （模块文档 docs/modules/orchestrator.md），**不写死 pipeline 或 scheduler 任意一侧**。
@@ -91,7 +91,7 @@ endif()
 # docs/ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
 # 本可执行是 docs/modules/orchestrator.md 记载的 legacy「stage1.json 入口」，
 # 仅用于共址冒烟测试与诊断，**不 install、不进产品 manifest**。其退场与否
-# （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分交前台裁决。
+# （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分另行处置。
 add_executable(orchestrator_legacy_cli src/main.cpp)
 target_link_libraries(orchestrator_legacy_cli PRIVATE astrocs_infra_orchestrator)
 

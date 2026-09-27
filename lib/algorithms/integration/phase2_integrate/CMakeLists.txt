@@ -1,7 +1,7 @@
 # ============================================================================
 # ACSD V6 Phase2 三模式产品链集成库 (P2-INTEGRATE-001, Wave 8)
 # 写域: lib/algorithms/integration/phase2_integrate/。本层只"接线" Wave 5/7 生产源，不复制科学公式。
-# 根/公共 CMakeLists 的注册归 RUNTIME-CI-001/W9 (C-004.4)；本文件自包含可独立
+# 根/公共 CMakeLists 的注册归 RUNTIME-CI-001 (C-004.4)；本文件自包含可独立
 # 构建（cmake -S lib/algorithms/integration/phase2_integrate -B <build>），也可被上层 add_subdirectory 复用。
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
@@ -25,7 +25,7 @@ if(NOT TARGET astrocs_phase2_integrate)
   add_library(astrocs_phase2_integrate STATIC
     src/phase2_integrate.cpp
     src/weight_chain.cpp
-    # RELEASE-02 P2b: 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
+    # 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
     src/variance_propagation.cpp
     "${P2_REPO}/lib/algorithms/coverage/src/upm.cpp"
     # UPM-KAPPA-UNIFY-01：唯一可辨识性判据（upm.cpp 依赖它，必须同 target 编译）

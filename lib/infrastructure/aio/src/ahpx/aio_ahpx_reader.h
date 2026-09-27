@@ -16,7 +16,7 @@ namespace aio::ahpx {
 // 数据面见 aio_ahpx_format.h (变更 AHPX-WEIGHT-RETIRE-20260920): 只读
 // "pixel" 与 "snr" 两类块, 本格式不承载任何权重。
 //
-// 旧格式显式拒绝: 头 JSON 携带已作废的 "weight" 字段 (权重模式载体) 或存在
+// 旧格式显式拒绝: 头 JSON 携带 "weight" 字段 (权重模式载体) 或存在
 // 同名数据块时, open() 返回 false 且 getRejectReason() 给出原因 — 禁静默忽略。
 //
 // 用法:
@@ -33,7 +33,7 @@ public:
     ~AhpxReader();
 
     // 打开文件, 解析头. 成功返回 true
-    // 旧格式 (含已作废 weight 字段/块) ⇒ 返回 false, 原因见 getRejectReason()
+    // 旧格式 (含 weight 字段/块) ⇒ 返回 false, 原因见 getRejectReason()
     bool open(const std::string& path);
 
     // 获取 JSON 头 (已解压). open 成功后有效

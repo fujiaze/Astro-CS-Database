@@ -42,7 +42,7 @@
 - 单位：`signal_sb=ADU/sr`、`pixel_variance_in=ADU^2`、`sb_variance_out=ADU^2/sr^2`、
   `sb_ivar_out=sr^2/ADU^2`、`W_info=ADU^-2`、`Q=ADU^-1`、`flux=ADU`、`psfsw=1`。
 - BUNIT 量纲可判 + **二次律** `variance = signal^2`、`ivar = 1/variance`。
-- 权重词表单源（W6 canonical）：`weight.kind="psfsw_robust_weight"`、`units="1"`、
+- 权重词表单源（canonical）：`weight.kind="psfsw_robust_weight"`、`units="1"`、
   `group_normalized=true`、`normalization.scope="group"`、`median_target=1.0`、
   `constants_version="PSFSW-COMPOSITE-V1"`。**禁**写成 `ivar`/`Fisher`/`1/W`。
 - **OI-01（OPEN）**：Phase1 单帧无法形成帧组 → 只出四分量 + **未归一 Wt** +

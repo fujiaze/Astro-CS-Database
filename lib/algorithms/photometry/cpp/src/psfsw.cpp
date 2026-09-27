@@ -664,7 +664,7 @@ const std::vector<std::string>& forbidden_weight_source_aliases() {
 
 /* ── FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 的显式拒绝说明（单一事实源） ──
  * WHAT:  weight_mode token "psfsw_robust" 是**退役对象** psfsw_robust_weight 的声明面。
- * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是
+ * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是
  *        绝对标定。」⇒ docs/ASTROCS_DESIGN.md §3.1：权重只能来自纯净信号与噪声
  *        之比（逆方差），任何使偏差随帧而变的量（含 PSF 拟合质量代理）不得进入科学
  *        叠加权重；docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 +
@@ -742,8 +742,8 @@ RecordValidation validate_psfsw_record(const PsfswRecord& rec) {
      *   psfsw_robust_weight 是**退役对象** ⇒ 本记录族（历史 psfsw 记录）的唯一合法
      *   身份就是退役 token "psfsw_robust"：能识别并给迁移提示
      *   （is_retired_weight_mode_token / retired_weight_mode_reject_reason）。
-     *   权重只有一个口径，不存在"生产权重口径集合" ⇒ 声明任何其它值（含曾经被当作
-     *   生产口径的 token 与未知值）都是记录族身份不符 ⇒ G01。
+     *   权重只有一个口径，不存在"生产权重口径集合" ⇒ 声明任何其它值（含退役 token
+     *   与未知值）都是记录族身份不符 ⇒ G01。
      *   legacy 整数取值（尤其 0）由 G21 单独判，避免同一违例重复归因。
      *   能红能绿：让任何一个非退役 token 通过本门，本判据立即转红。 */
     if (!is_legacy_integer_mode(rec.weight_mode) &&

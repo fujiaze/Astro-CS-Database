@@ -440,11 +440,11 @@ bool write_moc_fits_raw(const std::string& path,
 }
 
 // ---------------------------------------------------------------------------
-// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1:
+// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」:
 // 每个 tile/元数据 FITS 走「本次运行私有临时文件 → 哈希校验 → fsync →
 // 原子 rename」。修复前 write_fits_image 先 std::remove(final) 再
 // fits_create_file(final) **直写正式路径** ⇒ 中途 kill / ENOSPC / 校验失败
-// 都会在正式目录留下截断的半成品 tile (GAP_AUDIT G3-1 现状)。
+// 都会在正式目录留下截断的半成品 tile。
 //   * 临时名 = <final>.tmp.<pid>.<seq> (与目标同目录 ⇒ rename 不跨文件系统,
 //     内核原子; 复用 aio_atomic_file.h 的 AIO-001 原语, 不另造机制);
 //   * 哈希校验 = 重开临时文件独立跑 fits_verify_chksum (DATASUM/CHECKSUM 由
@@ -697,7 +697,7 @@ bool write_properties(const std::string& path,
 // ---------------------------------------------------------------------------
 // hierarchy 累加器 (MEM-DESIGN-01: 稀疏分块 + 按需通道 + 完备即流式写出)
 // ---------------------------------------------------------------------------
-// GAP_AUDIT G3-3 / DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
+// DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
 // **恒在 f64 累加器**进行 (docs/ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
 // (bitpix −32/−64) 只在写出时量化一次 (finalize_hierarchy 的 (float)sig 截断)。
 // 修复前 f32 产品走 float 累加 (sumFluxF/sumAreaF/sumVarF): 每步 partial sum 舍入
@@ -894,7 +894,7 @@ struct AioHipsProductSet {
     bool drizzle_prov_set = false;
     double drizzle_pixfrac = 0.0;
     double drizzle_scale_arcsec = 0.0;
-    // RELEASE-02 SD-15 帧级未加权通量型 SNR 键（默认未设置 → properties 不写）
+    // 帧级未加权通量型 SNR 键（默认未设置 → properties 不写）
     bool frame_snr_set = false;
     double frame_snr = 0.0;        // F_ref/σ_F（信噪比, 非权重）
     double reference_flux = 0.0;   // 组内公共 F_ref
@@ -903,7 +903,7 @@ struct AioHipsProductSet {
     bool prov_set = false;
     std::string prov_manifest_hash, prov_model_hash, prov_reject_profile;
     int prov_uncertainty_available = 0;
-    // §9.73 A44: 旧「权重模式」成员 prov_weight_mode 已删除
+    // 旧「权重模式」成员 prov_weight_mode 已删除
     // (全程只有 SNR, provenance 不承载权重模式; 见 aio_hips.h 四键通道注释)。
     // DATA-UNC-001 §30.2 诊断统计平面: 各通道是否真的写过 tile
     // （写 0 个 tile 的通道不 finalize, 禁空目录/空占位冒充产品）
@@ -1873,7 +1873,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         std::snprintf(sc, sizeof(sc), "%.4f", ps->drizzle_scale_arcsec);
         kv.push_back({"ASTROCS_DRIZZLE_SCALE_ARCSEC", sc});
     }
-    // RELEASE-02 SD-15: 帧级未加权通量型 SNR（F_ref/σ_F）与公共参考通量 F_ref。
+    // 帧级未加权通量型 SNR（F_ref/σ_F）与公共参考通量 F_ref。
     // 唯一消费者 = Phase2 权重链（w = SNR²/F_ref² = 1/σ_F²; weight-chain-report
     // §6）。全或无: setter 未调用 → 两键整体不写。%.17g 保证 double round-trip
     // 精确（逐帧 F_ref 一致性门 rtol 1e-9 依赖此精度）。
@@ -1900,7 +1900,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     if (is_diag)
         kv.push_back({"astrocs_diag_dtype", value_dtype ? value_dtype : "int32"});
     // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键 (原五键
-    // 中的旧「权重模式」键已按 §9.73 A44 删除, 见 aio_hips.h)。
+    // 中的旧「权重模式」键已删除, 见 aio_hips.h)。
     // 全或无 (§30.3 冻结键名): prov_set=false → 四键整体不写 (legacy 面不变);
     // prov_set=true → 四键齐备, 禁静默缺键 (注入面 ASTROCS_HIPS_PROV_FAULT=
     // missing_key 故意漏写一键, 用于证明"缺键"断言有判别力)。
@@ -2153,7 +2153,7 @@ int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
     }
 }
 
-// ── RELEASE-02 SD-15 帧级 SNR setter（ASTROCS_FRAME_SNR/REFERENCE_FLUX）─────
+// ── 帧级 SNR setter（ASTROCS_FRAME_SNR/REFERENCE_FLUX）─────
 // 全或无 + 禁伪造: 任一参数非有限/≤0 → 返回非 0 且不置 frame_snr_set。
 int aio_hips_set_frame_snr(AioHipsProductSet* ps, double frame_snr,
                            double reference_flux)  {
@@ -2189,7 +2189,7 @@ int aio_hips_set_frame_snr(AioHipsProductSet* ps, double frame_snr,
 // 全或无: 参数任一不合法 → 返回非 0 且不置 prov_set (调用方得不到半套 provenance)。
 // 值语义校验面向"禁伪造": 两个 hash 必须 64 hex (§20.3 sha256 十六进制形态),
 // reject_profile 非空, uncertainty_available ∈ {0,1}。
-// §9.73 A44: 旧「权重模式」形参与其 0/1/2 值域校验已删除。
+// 旧「权重模式」形参与其 0/1/2 值域校验已删除。
 static bool is_sha256_hex(const char* s) {
     if (!s) return false;
     size_t n = 0;
@@ -2420,7 +2420,7 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                                  ? ps->leaf_ipix_list.size() : 0));
                 // DATA-UNC-001 §30.3: provenance 四键与 properties 双写
                 // (JSON 键同名小写; 调用方 schema 见 DATA-P2-PROV-001)
-                // §9.73 A44: 旧「权重模式」JSON 键已删除 (四键 → 四键)。
+                // 旧「权重模式」JSON 键已删除 (四键 → 四键)。
                 if (ps->prov_set) {
                     const bool inj_drift =
                         fault_injected("ASTROCS_HIPS_PROV_FAULT", "value_drift");
@@ -2542,7 +2542,7 @@ bool json_scalar(const std::string& doc, const std::string& key, std::string* ou
     return true;
 }
 
-// §9.73 A44: 旧「权重模式」键已从四键表删除 (原 5 → 4)。
+// 旧「权重模式」键已从四键表删除 (原 5 → 4)。
 const char* const kProvKeys[4] = {
     "ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
     "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_REJECT_PROFILE"};
@@ -2746,7 +2746,7 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
                 }
             }
             out->manifest_keys_present = mkeys;
-            // §9.73 A44: 双写面键数 = 4 (原五键中的「权重模式」键已删除;
+            // 双写面键数 = 4 (原五键中的「权重模式」键已删除;
             // properties 侧同口径见 kProvKeys[4] 与 != 4 断言)。
             if (mkeys != 4) {
                 set_error("verify: manifest.json provenance 块不完整 (present=" +

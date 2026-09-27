@@ -38,12 +38,12 @@ inline const std::set<std::string>& boolean_flags() {
         "--help", "-h",   // §6.2: 子命令帮助与字段说明
         "-y", "--yes",    // §6.3: 跳过运行确认
         "-force",         // §6.3: 越过可强制项（缺失校准帧等）
-        // §9.74 裁决 7-a 定案 1（docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，
+        // （docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，
         // 不再需要旗标开启；本旗标保留接受（等价默认行为，不再是开启开关）。
         "--events-jsonl",
-        // §9.74 裁决 10（docs/ASTROCS_DESIGN §3.5/§6.3）：一般性资源超限门（内存/CPU/线程）
+        // （docs/ASTROCS_DESIGN §3.5/§6.3）：一般性资源超限门（内存/CPU/线程）
         // 已取消 ⇒ 本旗标保留接受但**不再**改变裁决（恒 record-only，无 rc=10 路径）；
-        // 登记为「历史复现开关，已随 §9.74 裁决 10 退役」。消费者见 commands.cpp。
+        // 登记为「历史复现开关，已退役」。消费者见 commands.cpp。
         "--strict-resource-gate",
     };
     return k;
@@ -64,7 +64,7 @@ inline const std::set<std::string>& value_flags() {
         // §8/21_observability §8.4: 资源门 enforce 语义显式写法
         // （accept|record|record-only|strict|enforce）；消费者见 commands.cpp。
         "--on-resource-gate",
-        // G3-11: verify 能力的命令树落位 —— §7.1/§6.2 唯一命令树**没有**
+        // verify 能力的命令树落位 —— §7.1/§6.2 唯一命令树**没有**
         // 独立 verify 命令（verify* 属已删别名 → rc=2，见 parser.cpp:36、129），
         // 故 verify 作为 **doctor 的机器旗标** --run-manifest <manifest.json>
         // 提供（doctor --json --run-manifest <p>：manifest→status→version→输入
@@ -103,7 +103,7 @@ inline const std::vector<CommandDesc>& commands() {
         // （help_text 里带 "-" 前缀的只保留 --version，避免把可选旗标行混进命令树）。
         {"--help",    false, {}},
         {"-h",        false, {}},
-        // G3-11: doctor 承载 verify 能力（--run-manifest 机器旗标，
+        // doctor 承载 verify 能力（--run-manifest 机器旗标，
         // 见 value_flags() 注释）；help 行仍由 help_usage() 生成为
         // 「acsd doctor [--json]」⇒ §7.1 命令树与 help golden 不变。
         {"doctor",    true, {"--json", "--run-manifest"}},

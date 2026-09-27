@@ -109,5 +109,5 @@
   （median 0.107658 px）。
 - **可执行门**：`eng/tools/astrometry/closure_metric.py`（ctest
   `p1wcs_closure_metric_gate`：容差 0 px + 7 类负例注入必红）；记录落
-  `run/PROJECT-GOVERNANCE-01/E2E-FIX-001/out/rec_*`。
+  run 取证输出 `rec_*`。
 

@@ -1,12 +1,11 @@
 # ----------------------------------------------------------------------------
-# AIO 顶层测试注册（RELEASE-01 / TST-001 欠账修复）
+# AIO 顶层测试注册
 #
 # 背景: lib/infrastructure/aio/tests/ 顶层原有 20 个测试源文件**零 CMake 注册**
 # （该目录此前无 CMakeLists.txt；仅 p1hips/p2hips/abi 三个子目录被注册），
 # 即这些测试从未被编译、从未在 ctest 中运行 —— 属 TST-001 登记的「测试零注册」缺陷。
 #
-# 本文件只注册**已逐条独立复跑通过**的用例（前台 ad hoc 构建 + 运行，证据见
-# RELEASE-01 tests TST-001-report.md（已退役，见仓库 git 历史）与 工程控制/RELEASE-01/GAP_AUDIT.md §7.9）：
+# 本文件只注册**已逐条独立复跑通过**的用例（前台 ad hoc 构建 + 运行复跑记录）：
 #   test_checksum        49 PASS / 0 FAIL（含 CRC32C Castagnoli 标准向量）
 #   test_tile_model      67 PASS / 0 FAIL
 #   test_transform       75 PASS / 0 FAIL / 2 SKIP（可选依赖缺失）
@@ -28,7 +27,7 @@ foreach(_t checksum tile_model transform query_pixel precision_dual)
 endforeach()
 
 # ----------------------------------------------------------------------------
-# FIX-401（docs/ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1）:
+# 原子发布验证面（docs/ASTROCS_DESIGN §10「I/O 与原子产品」）:
 # HiPS tile 原子发布 + 完成清单 fail-closed 验证面。
 #   被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（每 tile 私有临时
 #   文件 → DATASUM/CHECKSUM 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后

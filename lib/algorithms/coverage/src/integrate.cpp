@@ -1,4 +1,4 @@
-// lib/algorithms/coverage/src/integrate.cpp — Phase2 W8 加权叠加（ 冻结语义）
+// lib/algorithms/coverage/src/integrate.cpp — Phase2 加权叠加（ 冻结语义）
 #include "astro/phase2/integrate.h"
 
 #include <algorithm>

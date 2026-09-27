@@ -81,7 +81,7 @@ target_link_libraries(astrocs_catalog_gaia PRIVATE Threads::Threads)
 # CMake 的 if(ENV{<name>}) 会把环境变量的**值再当变量名解引用**, 值 "zs.lib"
 # 未定义为 CMake 变量 ⇒ 判 FALSE, 该分支恒为死分支。CI-WIN-001 本地实证:
 # 根 astrocs_cfitsio 段正是 if(ENV{ACS_ZLIB_LIB}) 写法 (该段能过仅因其后
-# find_library 的 NAMES 里含 zs, 属侥幸命中, 已登记 finding 交前台裁决)。
+# find_library 的 NAMES 里含 zs, 属侥幸命中, 已登记 finding)。
 if(NOT TARGET ZLIB::ZLIB)
     set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH
         "zlib install root (lib/include/zlib.h + lib); MSVC hosted runner 经 vcpkg 注入 env")

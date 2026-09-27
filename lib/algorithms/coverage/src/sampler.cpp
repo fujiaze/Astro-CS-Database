@@ -1,4 +1,4 @@
-// lib/algorithms/coverage/src/sampler.cpp — Phase2 W4 稀疏光度控制点采样器
+// lib/algorithms/coverage/src/sampler.cpp — Phase2 稀疏光度控制点采样器
 //
 // 语义（冻结；权威 = docs/science/algorithms/PHASE2_SAMPLER.md 与
 // docs/plugins/algorithms_phase2/10_sampling.md）：
@@ -1100,7 +1100,7 @@ static int p2_sample_controls_impl(
             o.dec_deg = cs.dec;
             o.value = cs.m[fi];
             o.uncertainty = cs.unc[fi];
-            // P2b-3（RELEASE-02）: snr=0 stub 修正。局部 catalogue SNR 不可用时
+            // P2b-3: snr=0 stub 修正。局部 catalogue SNR 不可用时
             // 如实写该 control 点自身信噪比 |value|/uncertainty（点 SNR），
             // 不再写 0；snr_available 仍如实标记 catalogue 可用性（0=无局部星点，
             // 见 upm.h:51-54），本字段不参与 science 权重（SCI-UPM-WEIGHT-001）。
@@ -1114,7 +1114,7 @@ static int p2_sample_controls_impl(
             // 统计方差/逆方差（patch median；含 Drizzle 协方差 k_corr）。
             o.control_variance = cs.cvar[fi];
             o.control_ivar = cs.civar[fi];
-            // P2b-3（RELEASE-02）: ivar=0 stub 修正。帧 ivar 产品可用时用其
+            // P2b-3: ivar=0 stub 修正。帧 ivar 产品可用时用其
             // 单 leaf 值；缺失时改用该观测的**有效逆方差** 1/uncertainty²
             // (= control_ivar = 1/control_variance，控制估计器方差)，不再写 0。
             // science 权重仍只认 control_ivar（upm.h:40-47 / SCI-UPM-WEIGHT-001）；

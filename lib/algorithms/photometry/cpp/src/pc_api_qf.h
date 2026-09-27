@@ -3,7 +3,7 @@
 // ============================================================================
 // pc_api_qf.h - 质量位感知的测光定标入口（**非 C ABI 导出**）
 //
-// 背景（RELEASE-02 FIX-P1 / P1-2）:
+// 背景（FIX-P1 / P1-2）:
 //   冻结的 6 个 PC_API 导出（photometric_calib.h）不携带逐星质量位，故
 //   pc_api.cpp 内部一律以 quality_flags=nullptr 调 cleanAndScale ⇒
 //   star_matcher.cpp:428-438 的 SCI-PHOT-001 §4/§10 饱和/质量位有效域过滤

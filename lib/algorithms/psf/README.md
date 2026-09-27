@@ -205,7 +205,7 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
 （实际序 B,A,x0,y0,sx,sy,theta，β 固定为 4 不可拟合），以本 README r1 为准；
 历史细节归本目录 `memory.md`（ARCHIVED_NON_NORMATIVE）。
 
-## 12. PSF-FAST-001 / 精确路径 INACTIVE（P2 性能批，2026-09-14 负责人裁决）
+## 12. PSF-FAST-001 / 精确路径 INACTIVE（P2 性能批）
 
 **生产路径 = FAST（唯一启用模式）**。节点 `p1_op_star_psf`（lib/infrastructure/scheduler/src/
 module_adapters.cpp）先做**全量**星点检测（DATA-P1-SOURCES 与下游孔径测光

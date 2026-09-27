@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
+// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」:
 // 文件打开机制一律经 aio 唯一实现 (aio_fopen_utf8, lib/infrastructure/aio/src)。
 #include "aio_util.h"
 

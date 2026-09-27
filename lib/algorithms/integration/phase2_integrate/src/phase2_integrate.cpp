@@ -192,7 +192,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
 /* ── FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 的显式拒绝说明（单一事实源） ──
  * WHAT:  产品校验面（open_phase2_product）使用的拒绝说明：旧产品若声明退役对象
  *        psfsw_robust_weight，必须可诊断地拒绝，不得静默接受。
- * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
+ * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
  *        标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重 psfsw_robust_weight
  *        **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
  *        之比……任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；

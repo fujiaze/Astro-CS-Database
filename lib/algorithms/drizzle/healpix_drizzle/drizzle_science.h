@@ -108,7 +108,7 @@ UnitDimension inverse_dimension(UnitDimension d);
 // 门 G-STRUCT-UNIT-LAW: variance == signal^2 且 ivar == 1/variance。
 bool unit_law_holds(UnitId signal, UnitId variance, UnitId ivar);
 
-// ── 退役对象显式拒绝（PSFSW-RETIRE-01；负责人裁决）────────────────────────
+// ── 退役对象显式拒绝（PSFSW-RETIRE-01）────────────────────────
 // psfsw_robust_weight **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1（权重只能来自纯净
 // 信号与噪声之比的逆方差，跨帧绝对标定，不基于参考帧；PSF 拟合质量代理只作诊断）、
 // docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。

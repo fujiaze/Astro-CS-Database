@@ -3,8 +3,8 @@
 // 职责: 把 Linux 生产路径 (LIBS 节点 astrocs.phase1.noise-snr → NoiseModel::estimate)
 //       的 SNR 输出从"整帧标量"改为**逐源科学 SNR** + 帧级 5sigma 深度。
 //
-// 唯一权威实现: lib/algorithms/noise_snr/cpp/src/snr_science.cpp (P5-SNR, 负责人授权
-// 2026-09-14)。本文件**只做聚合**, 不含任何本地科学公式副本; 逐源 SNR 一律调用
+// 唯一权威实现: lib/algorithms/noise_snr/cpp/src/snr_science.cpp (P5-SNR)
+// 本文件**只做聚合**, 不含任何本地科学公式副本; 逐源 SNR 一律调用
 // snr_source_snr_f64, 帧级深度一律 snr_frame_depth_f64, 零点标准误一律
 // snr_calib_zero_point_standard_error。
 //

@@ -157,7 +157,7 @@ P2_API int p2_deterministic_reduction_order(
 // forbidden.weight_source_tokens（另含 psfsw_robust_weight/psfsw 等）；
 // 任一命中 → rc=1 + 原因（token 名）。token==NULL/空串跳过。
 // 本函数只做拒绝，不产生权重，也不重排/改写词表。
-// 注（退役对象拒绝面）：集合里的 psfsw_robust_weight/psfsw 自 2026-09 负责人裁决
+// 注（退役对象拒绝面）：集合里的 psfsw_robust_weight/psfsw 自此
 // 起不再表示"在役的相对复合权重"，而是**退役对象的显式拒绝面**——旧产品若把该
 // 对象写进 weight.sources/variance_from，必须在此判红（不得静默接受）。该两 token
 // 因此不得按"残留清理"删除。依据 docs/ASTROCS_DESIGN.md §3.1（订正后）+

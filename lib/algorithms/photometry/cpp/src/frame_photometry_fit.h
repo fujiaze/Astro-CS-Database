@@ -94,7 +94,7 @@ inline constexpr int kMinFitStars = 3;
 //   kFrame       : 本帧数据/拟合自身的判决 —— 无 PSF 星、NO_DATA（§4 求解前提
 //                  |r_consistent|>=3 不成立）、非物理标度。**只该帧 fail**：
 //                  同一批输入里的其他帧照常拟合与施加（帧间独立，SCI-PHOT-001
-//                  §1/§16.5；负责人裁决「拟合失败这帧报 error/fail，不阻塞其他帧」）。
+//                  §1/§16.5；「拟合失败这帧报 error/fail，不阻塞其他帧」）。
 //   kEnvironment : 运行环境/配置问题 —— 配置缺项（gaia_data_dir / filter /
 //                  filters_json）、响应曲线文件不可读、星表目录不可打开、
 //                  光谱参数不可得、冻结 C 入口自身 rc!=0（含锥形搜索失败）。

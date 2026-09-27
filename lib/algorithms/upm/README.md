@@ -197,7 +197,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 
 ## 追加：V6 目标态乘法/加性分离（IMPL-P2-UPM-001，2026-09-15）
 
-> 本节由 W5 任务 \`IMPL-P2-UPM-001\` 追加；不改写上文 P2-UPM-DOC 历史文本。
+> 本节由任务 \`IMPL-P2-UPM-001\` 追加；不改写上文 P2-UPM-DOC 历史文本。
 
 - V6 目标态在既有加性 UPM 之外新增\*\*乘法/加性分离\*\*求解面：
   \`y_k(p) = g_k*s(p) + b_k\`（\`ALG-P2S-UPM.1\`），公共 API 见

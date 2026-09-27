@@ -36,7 +36,7 @@ namespace {
 CheckState g_cs;
 
 // ---------------------------------------------------------------------------
-// O7 (FIX-403 / GAP_AUDIT G3-3 / DISP-HIPS-009) 深层级 hierarchy 累加 oracle
+// O7 (DISP-HIPS-009) 深层级 hierarchy 累加 oracle
 // ---------------------------------------------------------------------------
 // 判别面构造 (为什么这样取参数):
 //   hierarchy 父 cell 的累加次数 = 4^dk (dk = K−k), 与叶 tile 数无关 —— 单个
@@ -687,7 +687,7 @@ int test_oracle() {
         }
     }
 
-    // --- O7 (FIX-403): 深层级 hierarchy f64 累加 oracle dk=1..10 + 负例保护
+    // --- O7: 深层级 hierarchy f64 累加 oracle dk=1..10 + 负例保护
     //   修复前: f32 产品走 float 累加器 ⇒ dk 越大偏差越大 (dk=9 实测 2.5e-3);
     //   修复后: 累加恒在 f64, 落盘按声明位深量化一次 ⇒ 偏差只剩 f32 存储舍入。
     //   合同容差 (HIPS_WRITER.md §9 冻结): hierarchy 通路 rtol=1e-6。
@@ -707,10 +707,10 @@ int test_oracle() {
         long rss1 = -1;
         const bool wok = o7_write_product(dir, tiles, err, &rss1);
         P1HIPS_CHECK_MSG(cs, wok, "o7_write", "产品写出失败: %s", err.c_str());
-        // 内存增量评估 (FIX-403 步骤 3): 累加器按"每被填充祖先 cell 一整张
+        // 内存增量评估: 累加器按"每被填充祖先 cell 一整张
         // 512×512"分配 ⇒ f32→f64 增量 = 每 cell 3 通道 × 262144 × 4 B = +3.146 MB。
         // 本 fixture 被填充祖先 cell = K = 10 (每层 A=0 一个) ⇒ +31.5 MB。
-        // 实测与产品级外推见 run/FIX-403/REPORT.md §2 (如实登记: 该增量与
+        // 实测与产品级外推 (如实登记: 该增量与
         // "覆盖区叶级稠密面"同量级偏大, 只在"全天空叶级稠密面"口径下远小于)。
         // 内存判据 (MEM-DESIGN-01 稀疏化后重写解析模型; 见 run/MEM-DESIGN-01/REPORT.md):
         //   fixture 结构: K=10, 2 个叶 tile (parent 0/1) 同属每层 A=0; 层 k 的 dk=10-k,

@@ -280,7 +280,7 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
         snap = records_;
     }
     // resource_timeseries.csv
-    // GATE-FIX-RES(R-4 D-15): 命名统一为下划线 resource_timeseries.csv（与
+    // GATE-FIX-RES: 命名统一为下划线 resource_timeseries.csv（与
     // eng/ci/root_manifest.json、eng/tests/cli/cli_test_hygiene.py 的既有机器判据一致；
     // eng/ci/** 侧的同步登记在 CI-003）。
     {
@@ -304,7 +304,7 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
                          r.threads, r.active_compute_threads,
                          r.per_thread_cpu_max_pct, r.per_thread_cpu_sum_pct, r.io_wait_pct);
         }
-        // §9.74 裁决 10 运行期臂: fclose 的失败（磁盘满/写盘失败）必须上报 —— 旧实现
+        // 运行期臂: fclose 的失败（磁盘满/写盘失败）必须上报 —— 旧实现
         // 忽略 fprintf/fclose 返回值 ⇒ 磁盘满时静默留下截断 CSV 且 write_all 仍返回 true
         // （fail-open）。写失败由调用方经 disk_gate.h 归类 → error + exit 10。
         if (std::fclose(f) != 0) return false;

@@ -1,11 +1,11 @@
 // ============================================================================
-// test_hips_atomic_publish.cpp — FIX-401 验证面 (独立于实现者)
+// test_hips_atomic_publish.cpp — 原子发布验证面 (独立于实现者)
 //
 // 被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp (每 tile 私有临时
 // 文件 → 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后落完成清单) +
 // aio_hips_reader.cpp (无完成清单 ⇒ 消费者拒绝, fail-closed)。
 //
-// 权威: docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
+// 权威: docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」。
 //
 // 用例 (每条都能红能绿, 无恒 PASS 占位):
 //   A1 publish_ok            正常发布: 清单齐备 + 每 tile DATASUM/CHECKSUM 校验通过
@@ -48,7 +48,7 @@
 
 #include "aio_hips.h"
 #include "aio_hips_reader.h"
-#include "aio_disk_full.h"   // FIX-401: 磁盘满失败瞬间分类 (A6 判别力锚点)
+#include "aio_disk_full.h"   // 磁盘满失败瞬间分类 (判别力锚点)
 
 namespace fs = std::filesystem;
 
@@ -572,7 +572,7 @@ static void case_frame_level_attribution() {
 }
 
 int main() {
-    std::printf("FIX-401 aio HiPS atomic publish / completion-manifest tests\n");
+    std::printf("aio HiPS atomic publish / completion-manifest tests\n");
     case_publish_ok();
     case_consumer_rejects_without_manifest();
     case_kill_mid_write();

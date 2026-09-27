@@ -54,7 +54,7 @@ set_tests_properties(orchestrator_legacy_cli_validate PROPERTIES
 # 最小链路 = 真实 run_stage_snr + 真实 DllLoader + 真实 PipelineFrame(AIO) +
 # 生产噪声模块源(noise_model.cpp, 零改动) 作为 snr_estimator 模块；
 # 断言 header SATURATE/DATAMAX 的解析结果真的进入 SnrNoiseModelConfig 并改变
-# 模块运行结果。SAT-001 的 W3 是源级正则断言，本门是可执行级升级。
+# 模块运行结果。SAT-001 当时是源级正则断言，本门是可执行级升级。
 # AIO 模块夹具 = 生产源 aio_pipeline.cpp + aio_log.cpp（帧容器本体，零改动）。
 add_library(orchestrator_gate_module_aio SHARED
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_pipeline.cpp

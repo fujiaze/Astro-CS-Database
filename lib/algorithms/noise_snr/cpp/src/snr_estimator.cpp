@@ -1,6 +1,6 @@
 // snr_estimator.cpp - SNR 估算模块实现
 //
-// P5-SNR (2026-09-14, 负责人授权): SNR 科学修正。
+// P5-SNR: SNR 科学修正。
 //   * 逐源控制点值: 旧退休量 (A-B)/residual_scale (SNR-008) ->
 //     Horne 1986 最优提取 SNR_F = F*sqrt(sum_i P_i^2)/sigma_pix (snr_science.cpp)。
 //   * 帧级量: 旧全帧常数 snr_phot=1/(ln10*sigma_residual) (与真值之比跨 3 个数量级,
@@ -53,7 +53,7 @@ double medianValue(std::vector<double>& v) {
     return med;
 }
 
-// P5-SNR (2026-09-14, 负责人授权): 逐源科学 SNR —— Horne 1986 最优提取。
+// P5-SNR: 逐源科学 SNR —— Horne 1986 最优提取。
 // 输入为 PSF 块的一行 [status,B,flux,cx,cy,fwhm,A,mad(residual_scale),ecc]:
 //   F              = flux [ADU] (缺失/非正时用 Moffat4 beta=4 解析积分 2*pi*A*sigma^2/3 兜底)
 //   sigma_px       = fwhm / 1.230310                      [SCI-PSF FWHM=1.230310*sigma]

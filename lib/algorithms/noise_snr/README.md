@@ -193,10 +193,10 @@ p1_noise_test.cpp :312-316）去留由 P1-NOISE-IMPL 决定并登记其
 TASK_RESULT。迁移不得改变 ALG-NOISE-001..003 公式语义与 DATA-P1-NOISE
 数据语义（SCI-NOISE-001..015 未变更前）。本 README/合同只描述现状，
 禁止声明 IMPLEMENTED（落码验收后由 IMPL 任务更新）。
-## 11. P5-SNR 逐源 SNR 科学修正（2026-09-14，负责人授权）
+## 11. P5-SNR 逐源 SNR 科学修正
 
-> 授权：负责人 2026-09-14 明示批准修改冻结/科学文档（原引当时有效的 `ASTROCS_PROJECT_CONSTITUTION`
-> §1.2 变更流程由负责人放行；该宪章已废止，现行流程 = `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md`）。依据：`run/release-rescue/science-phot/
+> 修改冻结/科学文档按现行变更流程执行（
+> 流程 = `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md`）。依据：`
 > PHOTOMETRY_LITERATURE_REVIEW.md` §C.3（SNR 模型正确形式）与 §D.2 S4。
 
 **唯一定义式（本模块权威，snr_science.cpp）**

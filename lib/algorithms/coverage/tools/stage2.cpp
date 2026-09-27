@@ -1,4 +1,4 @@
-// lib/algorithms/coverage/tools/stage2.cpp — Phase2 正式入口（W8 完整 CPU 链闭合）
+// lib/algorithms/coverage/tools/stage2.cpp — Phase2 正式入口（完整 CPU 链闭合）
 //
 // 用法：astrocs-stage2 <stage2.json>（唯一参数，禁止长串 CLI 科学参数）
 //
@@ -59,7 +59,7 @@ extern "C" {
 namespace {
 
 // ACR 调用缓冲里「权重口径」标量槽（offset 7）的冻结取值。
-// §9.73 裁决 A44 删除 legacy 整数权重模式域后，生产只剩一条权重口径（逐样本
+// 删除 legacy 整数权重模式域后，生产只剩一条权重口径（逐样本
 // 逆方差，原 weight_mode=2）⇒ 该槽固定为 ivar 语义。acr_kernels.cpp 读到该值
 // 即 throw（TRACEABILITY ACR-IVAR-001：cell-ivar 与逐像素 ivar 不等价，ivar
 // science 模式必须走 CPU canonical path）⇒ 链路 fail-closed，不会静默回落到
@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
         return s;
     };
 
-    // ---- W3 DISCOVER / VALIDATE / COVERAGE UNION ----
+    // ---- DISCOVER / VALIDATE / COVERAGE UNION ----
     std::vector<const char*> paths;
     for (const auto& p : cfg.hips) paths.push_back(p.c_str());
     P2CoverageResult cov{};
@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
     for (std::size_t i = 0; i < cfg.hips.size(); ++i)
         frame_snr_by_id[frame_id_cache[i]] = frame_snr[i];
 
-    // ---- W4 CONTROL SAMPLE ----
+    // ---- CONTROL SAMPLE ----
     P2SamplerConfig sccfg{};
     sccfg.control_grid_per_tile = cfg.control_grid_per_tile;
     sccfg.patch_radius_leaf = cfg.patch_radius_leaf;
@@ -384,7 +384,7 @@ int main(int argc, char** argv) {
         " / " + std::to_string(n_obs)); log_flush();
     // 局部 SNR 质量场：PSF_SIGNAL_WEIGHT.md §7a 定案 —— stage2 的 local_snr /
     // frame_snr_medians 是**相对质量权重场**（改名 quality_weight），只作诊断。
-    // §9.73 裁决 A44 后它**不再进入任何权重面**：原 weight_mode=0 的
+    // 它**不再进入任何权重面**：原 weight_mode=0 的
     // support×snr²（无量纲、非信号/噪声之比）已删除（docs/ASTROCS_DESIGN.md
     // §3.1:173「权重只能来自纯净信号与噪声之比」；§3.1:175「没有可选择项」）
     // ⇒ 原 local_snr_map 的构造与其权重消费点一并删除，不留"建了不用"的死面。
@@ -418,10 +418,10 @@ int main(int argc, char** argv) {
     }
     log("local snr unavailable controls (fallback to frame median): " +
         std::to_string(local_snr_unavailable)); log_flush();
-    log("[pre_upm] local_ivar_map=" + std::to_string(local_ivar_map.size()) + " (局部 SNR 质量场不进入权重面, §9.73 A44)"); log_flush();
+    log("[pre_upm] local_ivar_map=" + std::to_string(local_ivar_map.size()) + " (局部 SNR 质量场不进入权重面)"); log_flush();
     log("[pre_upm] frame_snr_by_id=" + std::to_string(frame_snr_by_id.size()) + " obs=" + std::to_string(obs.size()) + " ctrl_nodes=" + std::to_string(ctrl_nodes.size())); log_flush();
 
-    // ---- W4 UPM FIT ----
+    // ---- UPM FIT ----
     // 生产共享 UPM 配置构造（与 gate 测试同一 path）
     log("[upm_fit] enter input_manifest_hash=" + input_manifest_hash + " obs=" + std::to_string(obs.size()) + " ctrl=" + std::to_string(ctrl_nodes.size())); log_flush();
     P2UpmBuildConfig mcfg =
@@ -448,7 +448,7 @@ int main(int argc, char** argv) {
     // estimator：value=patch median，variance=control_variance，点 SNR=|value|/σ）。
     // b_k(x)=B_ref(x)+δ_k(x) 稀疏样条联合拟合；g_k 由 v6 UPM MA 求解器估计。
     // FIX-GK 方案 B：施加的是 δ_k=b_k−B_ref（归一化到公共面 B_ref），
-    // 不是整个 b_k。任一失败都显式降级（保留 RELEASE-01 纯加性 C 场 / g=1）
+    // 不是整个 b_k。任一失败都显式降级（保持纯加性 C 场 / g=1 行为）
     // 并记日志，不静默。
     std::unique_ptr<void, void (*)(void*)> sky_guard(nullptr, &p2_sky_plane_close);
     std::map<std::uint64_t, double> frame_gain;
@@ -481,7 +481,7 @@ int main(int argc, char** argv) {
             spc.weight_mode = cfg.sky_plane_weight_mode;
             // 唯一判据阈值 τ（FZ-AP2S-RANK-RTOL）。已退休：roughness_penalty。
             spc.rank_rtol = cfg.sky_plane_rank_rtol;
-            // W4 同源：内存护栏必须容纳规则区间内实际可达的最细网格
+            // 与采样器同源：内存护栏必须容纳规则区间内实际可达的最细网格
             // （M42 实测 h=0.0376 度 ⇒ 4814 个节点）。
             spc.max_nodes = cfg.sky_plane_max_nodes;
             // 输入几何：显式给出优先，否则由 control 观测集自行导出。
@@ -671,7 +671,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // ---- W4 UPM PERSIST (diagnostics) ----
+    // ---- UPM PERSIST (diagnostics) ----
     std::string model_path;
     if (cfg.diagnostics) {
         log("[upm_persist] enter diagnostics=true, out=" + cfg.out_hips); log_flush();
@@ -726,7 +726,7 @@ int main(int argc, char** argv) {
     mark("upm_persist");
     log("[block_plan] enter"); log_flush();
 
-    // ---- W6 BLOCK PLAN（tile 级；报告峰值估算） ----
+    // ---- BLOCK PLAN（tile 级；报告峰值估算） ----
     P2BlockPlannerInput bp{};
     bp.output_pixels = 512ull * 512ull;
     bp.covering_frames = cov.n_inputs;
@@ -748,7 +748,7 @@ int main(int argc, char** argv) {
         " bytes micro_chunk=" + std::to_string(plan.micro_chunk_required)); log_flush();
     mark("block_plan");
 
-    // ---- W8 REJECT + INTEGRATE + HIPS WRITE ----
+    // ---- REJECT + INTEGRATE + HIPS WRITE ----
     const int nside = 1 << (target_order + 9);
     const std::uint64_t n_leaf = 512ull * 512ull;
     const double A_cell =
@@ -773,12 +773,12 @@ int main(int argc, char** argv) {
             return 6;
         }
     }
-    // ivar 产品 —— §9.73 裁决 A44 后**唯一**权重口径（逐样本逆方差）。
+    // ivar 产品 ——**唯一**权重口径（逐样本逆方差）。
     // docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
     // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的口径」。
     // 整个 ivar 产品缺失时默认
     // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
-    // （§9.73 裁决 A44：原 legacy_allow_weight_fallback=true 降级分支已删除。）
+    // （原 legacy_allow_weight_fallback=true 降级分支已删除。）
     std::vector<AioHipsDataset*> ivr(cfg.hips.size(), nullptr);
     std::uint64_t ivar_product_missing = 0;
     for (std::size_t i = 0; i < cfg.hips.size(); ++i) {
@@ -790,14 +790,14 @@ int main(int argc, char** argv) {
         }
     }
     if (ivar_product_missing > 0) {
-        // §9.73 裁决 A44（同批清理）：原 legacy_allow_weight_fallback=true 的
+        // 原 legacy_allow_weight_fallback=true 的
         // support 降级分支已删除 —— support 是无量纲几何量，不是信号/噪声之比
         // （docs/ASTROCS_DESIGN.md §3.1:173），且「没有可选择项」（§3.1:175）。
         // ⇒ ivar 产品缺失**恒** fail-closed：拒绝在非逆方差语义下冒充 ivar coadd。
         log("weight_policy=ivar 且 ivar 产品缺失 " +
             std::to_string(ivar_product_missing) + " 帧 → 显式科学错误；"
             "拒绝继续，防止在非逆方差语义下冒充 ivar coadd "
-            "(legacy_allow_weight_fallback 已按 §9.73 A44 删除)");
+            "(legacy_allow_weight_fallback 已删除)");
         for (std::size_t i = 0; i < ivr.size(); ++i)
             if (ivr[i]) aio_hips_close(ivr[i]);
         p2_upm_close(model);
@@ -831,7 +831,7 @@ int main(int argc, char** argv) {
 
     std::atomic<std::uint64_t> total_pixels{0}, total_rejected{0}, total_fallback{0};
     std::uint64_t large_scale_grown = 0;   // grow 新增拒绝样本数
-    std::atomic<std::uint64_t> dbg_reject_px{0}, dbg_fallback_px{0}, dbg_zero_px{0};  // §9.73 A44: 原 ivar_tile_fallback_px 降级计数随降级分支删除
+    std::atomic<std::uint64_t> dbg_reject_px{0}, dbg_fallback_px{0}, dbg_zero_px{0};  // 原 ivar_tile_fallback_px 降级计数随降级分支删除
     std::atomic<std::uint64_t> underdetermined_px{0};  // REJECTION_UNDERDETERMINED
     std::atomic<std::uint64_t> px_depth_0{0};  // mutually exclusive depth 诊断
     std::map<std::uint32_t, std::uint64_t> reject_hist;  // 每像素拒绝样本数分布
@@ -1103,7 +1103,7 @@ int main(int argc, char** argv) {
 
         if (use_acr_block) {
             const int grid = 8;
-            // §9.73 裁决 A44：唯一权重口径 = compact per-cell ivar (buffer3=ivar)。
+            // 唯一权重口径 = compact per-cell ivar (buffer3=ivar)。
             // 原 weight_mode=0 的 per-cell SNR 分支（support×snr² 的 ACR 形态）已删除。
             std::vector<float> weight_compact(depth * grid * grid);
             for (std::uint32_t s = 0; s < depth; ++s) {
@@ -1360,7 +1360,7 @@ int main(int argc, char** argv) {
                     fail = 1;
                     return;
                 }
-                // §9.73 裁决 A44：唯一权重口径 = 逐样本 ivar（逆方差）。
+                // 唯一权重口径 = 逐样本 ivar（逆方差）。
                 // 原 weight_mode==0（support×snr²，无量纲、非信号/噪声之比）与
                 // weight_mode==1（等权）两条可选分支已删除（docs/ASTROCS_DESIGN.md
                 // §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。
@@ -1374,7 +1374,7 @@ int main(int argc, char** argv) {
                     } else if (orig < depth && ivr[frames[orig]] != nullptr) {
                         // M4-C-03: 帧本应有 ivar 产品（ivr 已打开）但本 tile
                         // 读失败——禁止静默用 support（无量纲）冒充 ivar。
-                        // §9.73 裁决 A44：原 legacy_allow_weight_fallback 放行分支
+                        // 原 legacy_allow_weight_fallback 放行分支
                         // 已删除 ⇒ 恒 fail-closed。
                         fail = 2;
                         return;
@@ -1614,7 +1614,7 @@ int main(int argc, char** argv) {
                     p2_upm_close(model);
                     return 6;
                 }
-                // §9.73 裁决 A44：唯一权重口径 = 逐像素 ivar（帧 ivar 产品）;
+                // 唯一权重口径 = 逐像素 ivar（帧 ivar 产品）;
                 // 产品缺失 → support (几何可靠性, 不伪造 ivar)。原 mode 0
                 // (support×snr²) 与 mode 1 (equal) 两条可选分支已删除
                 // （docs/ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
@@ -1632,7 +1632,7 @@ int main(int argc, char** argv) {
                             ++local_ivar_used;
                         } else if (orig < depth && ivr[frames[orig]] != nullptr) {
                             // M4-C-03: 帧本应有 ivar 产品但本 tile 读失败。
-                            // §9.73 裁决 A44：原 legacy 放行分支已删除 ⇒ 恒 fail-closed。
+                            // 原 legacy 放行分支已删除 ⇒ 恒 fail-closed。
                             log("M4-C-03 ivar tile read failed: frame=" +
                                 std::to_string(frames[orig]) + " → fail-closed");
                             p2_upm_close(model);
@@ -1643,7 +1643,7 @@ int main(int argc, char** argv) {
                         }
                     }
                 }
-                // §9.73 裁决 A44：原 weight_mode==0（support×snr²，无量纲、非信号/
+                // 原 weight_mode==0（support×snr²，无量纲、非信号/
                 // 噪声之比）与 weight_mode==1（等权）两条可选分支已删除
                 // （docs/ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
                 // SNR lookup 后统一校验候选权重（非 finite/负 → fatal；诊断透出首 tile/像素）
@@ -1975,13 +1975,13 @@ int main(int argc, char** argv) {
         diag["large_scale_grown_samples"] = large_scale_grown;
         diag["integrated_pixels"] = px_integrated.load();
         diag["quality_fallback_unknown"] = quality_unknown;
-        // §9.73 裁决 A44：原 local_snr_used / frame_snr_median_fallback /
+        // 原 local_snr_used / frame_snr_median_fallback /
         // weight_mode 三个诊断键随 legacy 整数权重模式域一并删除 —— 它们报的是
         // 已废除的 support×snr² / 等权口径的像素计数与模式号；保留会变成恒 0/
         // 恒常量的退化诊断（ENGINEERING_SPEC §8 判据不得退化）。
         diag["local_ivar_used"] = local_ivar_used;
         diag["ivar_product_missing"] = ivar_product_missing;
-        // §9.73 裁决 A44：legacy_allow_weight_fallback 与
+        // legacy_allow_weight_fallback 与
         // ivar_tile_read_fallback_pixels 两个诊断键随降级分支一并删除 ——
         // 降级面已不存在，保留会成恒 false / 恒 0 的退化诊断（ENGINEERING_SPEC §8）。
         diag["local_snr_unavailable_controls"] = local_snr_unavailable;

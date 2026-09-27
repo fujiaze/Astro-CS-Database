@@ -3,7 +3,7 @@
 // 面亮度归一分母 N_p = Σ_j w_jp·A_pixel,j)
 // ----------------------------------------------------------------------------
 // 合同锚:
-//   * SCI-DRZ-001 §5 (docs/science/DRIZZLE.md, 负责人裁决口径):
+//   * SCI-DRZ-001 §5 (docs/science/DRIZZLE.md):
 //     w_jp = a_jp/A_drop,j (F&H 2002 §7.2 式(7) 下方 "fractional area overlap of
 //     **the drop**"; drizzlepac cdrizzlebox.c dover/=jaco),
 //     F_p = Σ_j x_j·w_jp, D_p = Σ_j a_jp, N_p = Σ_j w_jp·A_pixel,j,
@@ -12,7 +12,7 @@
 //     对全部 pixfrac∈(0,1] 成立);
 //   * SCI-DRZ-001 §10 不可接受变化: "将 S_p 的**分母**取覆盖面积 D_p=Σ_j a_jp
 //     而非面亮度归一分母 N_p"(pixfrac<1 偏 1/pixfrac²) — 本门即该条的回归锁;
-//   * ALG-DRZ-001 §10 DISP-DRZ-009 (历史缺陷登记) + DRZ-FLUX-FIX-01 (口径订正).
+//   * ALG-DRZ-001 §10 DISP-DRZ-009 (登记缺陷) + DRZ-FLUX-FIX-01 (口径订正).
 //
 // 缺陷口径 (历史, 实测): 核取 drop 分数交叠 a_jp/A_drop,j **而分母取覆盖面积
 // Σ a_jp** ⇒ S_p = B0/pixfrac², 与解析式 1/pf²−1 逐位吻合

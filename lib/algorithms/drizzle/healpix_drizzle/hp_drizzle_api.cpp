@@ -1288,7 +1288,7 @@ try {
     result->nested           = stats.nested ? 1 : 0;
     result->pixfrac          = config.pixfrac;
     result->elapsed_sec      = stats.elapsedSec;
-    // G3-5: 样本级掩膜强制计数（DATA-002 §2a；禁静默剔除）
+    // 样本级掩膜强制计数（DATA-002 §2a；禁静默剔除）
     result->n_rejected_nonfinite          = stats.n_rejected_nonfinite;
     result->n_rejected_nonfinite_value    = stats.n_rejected_nonfinite_value;
     result->n_rejected_nonfinite_variance = stats.n_rejected_nonfinite_variance;

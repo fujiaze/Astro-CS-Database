@@ -84,13 +84,12 @@ enum P2RejectionMethod {
 // ACSD 自有「按逐输出像素几何 N」内置映射。**档界取自 WBPP 2.5.9
 // bestRejectionMethod()**（WeightedBatchPreprocessing-engine.js:1421-1429，
 // 包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：N<6 → percentile；
-// **N ≥ 6 → winsorized_sigma**（M3：原 N≥16 → linear_fit 档改投；WBPP 该档
-// N>15 为 Rejection_ESD，本表两者都不取，偏离依据见 docs/science/REJECTION.md §5，
-// 实测见 run/REJECT-DOCFIX-01/REPORT.md）；
+// **N ≥ 6 → winsorized_sigma**（原 N≥16 → linear_fit 档改投；WBPP 该档
+// N>15 为 Rejection_ESD，本表两者都不取，偏离依据见 docs/science/REJECTION.md §5）；
 // 逐像素粒度是 ACSD 自定扩展。原四档表（n≤3 不排异 /
-// 4–7 percentile / 8–15 winsorized / ≥16 linear）**作废**。
+// 4–7 percentile / 8–15 winsorized / ≥16 linear）已由现行档位替换。
 // 「N<6 档的下界是否含 N≤3」是**单一显式决策点**
-// （rejection.cpp 的 kPixelSmallNPolicy；待 EXP-204 定案，查询见
+// （rejection.cpp 的 kPixelSmallNPolicy；查询见
 // p2_rejection_percentile_band_min_n）。独立命名，不改变 wbpp_2_9_1 /
 // astrocs_adaptive 的冻结 AUTO 路由。
 #define P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL "astrocs_adaptive_pixel"
@@ -258,13 +257,13 @@ typedef struct {
 // astrocs_adaptive → ACSD 自有策略：允许按 tile nominal geometric depth
 // 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
 // astrocs_adaptive_pixel → ACSD 自有「按逐输出像素几何 N」内置映射
-// （档界取自 WBPP 2.5.9：N<6 percentile；**N≥6 winsorized**（M3 裁决
-// 2026-09-25：原 N≥16 → linear_fit 档改投，该档既不取 WBPP 2.4.0+ 的
+// （档界取自 WBPP 2.5.9：N<6 percentile；**N≥6 winsorized**（
+// 原 N≥16 → linear_fit 档改投，该档既不取 WBPP 2.4.0+ 的
 // ESD、也不取 ≤2.3.x 的 linear_fit，依据见 docs/science/REJECTION.md §5）；
-// 原四档表作废）。AUTO 路由**禁止**产出 min/max 与
+// 原四档表已由现行档位替换）。AUTO 路由**禁止**产出 min/max 与
 // NoRejection（WBPP 2.5.9 engine.js:1349-1412）⇒ 命中即 fail-closed（返回非 0）。
 // 「N<6 档的下界是否含 N≤3」= 单一显式决策点
-// （p2_rejection_percentile_band_min_n 可查询；EXP-204 定案后一处改）。
+// （p2_rejection_percentile_band_min_n 可查询；改判只改一处）。
 // extreme_value_clip_prior_sigma 保留为**显式 opt-in**，不出现在该映射中。
 // err 仅作日志文本；返回 0=OK，非 0=非法参数（err 填充原因）。
 //
@@ -281,9 +280,8 @@ P2_API const char* p2_rejection_semantic_id(int method);
 // enum class PixelSmallNPolicy / kPixelSmallNPolicy）。
 // 返回「N<6 → percentile」档的**下界（含）**：
 //   1 = 档含 N≤3（WBPP 档界的对称读法，当前实现）；
-//   4 = N≤3 走保守 none（EXP-204 若定案「保留不排异」时的取值）。
+//   4 = N≤3 走保守 none（保守读法的取值）。
 // 用途：provenance 如实记录小 N 策略 + 测试锁定路由表下界。
-// 待定科学问题见 工程控制/RELEASE-03/tasks/EXP-204.md。
 P2_API std::uint32_t p2_rejection_percentile_band_min_n(void);
 
 // ---- 逐 stack（逐输出像素/块）按几何 n 解析（FIX-REJ / DESIGN §4.5） ----
@@ -413,7 +411,7 @@ P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
 // AUTO（在本函数内于 planning 层解析，kernel 永不见 AUTO）。resolved_plan
 // 可空；非空时回填解析结果（provenance）。返回 0=OK（out->status 表达
 // 科学状态）；非 0=参数非法（err 填充原因）。
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_reject_stack_resolve_ex 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_reject_stack_resolve_ex 全仓零消费者声明已撤下。 */
 
 // 大尺度 grow 后处理（生产 stage2 唯一调用点）。
 // low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。

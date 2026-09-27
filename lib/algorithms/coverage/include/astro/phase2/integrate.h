@@ -2,13 +2,13 @@
 //
 // Phase2 W8：SNR/support/quality 加权叠加 + HiPS mosaic tile 输出。
 //
-// 语义（W8 冻结 + 零权重合同，INTEGRATION_ZERO_WEIGHT_CONTRACT）：
+// 语义（冻结 + 零权重合同，INTEGRATION_ZERO_WEIGHT_CONTRACT）：
 // - 输入为同一输出像素的 UPM-calibrated **accepted** 样本栈；
 // - 权重策略（与 UPM observation weight 严格分开命名）：
 // **单一权重口径** —— 唯一生产策略 = 调用方构造的**逐样本逆方差**权重
 // w = SNR²/F_ref² = 1/σ_F²（ivar 产品，或 ivar 缺失时的帧级 SNR 逆方差链），
 // 构造后先经 p2_validate_candidate_weights。
-// §9.73 裁决 A44（同批清理）：原 stack.support_x_snr2.v1（weight_mode=0，
+// 原 stack.support_x_snr2.v1（weight_mode=0，
 // weights = support × SNR²）与 stack.equal.v1（weight_mode=1 → 等权）两个
 // **可选口径**及其 weight_mode 选择键**已删除** —— support 是无量纲几何量、
 // equal 是等权，二者都不是信号/噪声之比（docs/ASTROCS_DESIGN.md §3.1:173/175；

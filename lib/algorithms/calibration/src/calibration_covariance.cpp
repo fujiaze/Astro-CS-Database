@@ -51,7 +51,7 @@ bool is_allowed_variance_from(const std::string& v) {
          v == "actual_combination_coefficients";
 }
 
-/* 退役对象（PSFSW-RETIRE-01；负责人裁决「只要纯净信号/噪声的信噪比……绝对标定」）：
+/* 退役对象（PSFSW-RETIRE-01；口径「只要纯净信号/噪声的信噪比……绝对标定」）：
  * psfsw_robust_weight **不是现行对象**（docs/ASTROCS_DESIGN.md §3.1 订正后；
  * docs/design/UNIFIED_MODEL.md:58；统一对象 14→13，CHG-2026-09-20-PSFSW-RETIRE）。
  * 旧产品若在 variance_from 声明该对象 ⇒ 显式拒绝 + 迁移提示，不得静默接受，

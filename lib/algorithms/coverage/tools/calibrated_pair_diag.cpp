@@ -135,7 +135,7 @@ struct PairStats {
         const double c_int_med = median_of(c_int);
 
         // 判据地板必须无量纲（SCI-UPM-CONV-001「禁绝对容差」；PHASE2_UPM §5 /
-        // §16.3 FIX-1：绝对容差换尺度即失效）：flr = 1e-5 + 5% × raw 场自身尺度。
+        // §16.3：绝对容差换尺度即失效）：flr = 1e-5 + 5% × raw 场自身尺度。
         const double flr = kSmallFloor + 0.05 * std::max(lf_r.p95_abs, rsigma);
         const bool med_ok = cmed_abs <= rmed_abs + flr;
         const bool lf_ok = lf_c.p95_abs <= lf_r.p95_abs * 1.05 + flr;

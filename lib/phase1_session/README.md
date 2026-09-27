@@ -46,7 +46,7 @@ lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表一致）�
 lib/algorithms/star_detection 的 sdet；sdet 只被 wcs-platesolve 节点使用 →
 star_det v1 [N,6] → lib/algorithms/psf Moffat4 FP64 批量 PSF 拟合，
 DATA-P1-PSF 携 psf_params:FLOAT64[N,9]；P1-001 attempt 2 口径更新；
-P2/PSF-FAST-001（负责人裁决 2026-09-14）起**只对最亮 `psf.max_stars`
+P2/PSF-FAST-001 起**只对最亮 `psf.max_stars`
 颗拟合**（默认 5000），全量精确路径保留但 inactive），
 wcs-platesolve→`ipv_solve_from_memory_with_callback_d`（lib/algorithms/platesolve
 ipv 真实求解器链：sdet+gaia_client 句柄注入 → FP64 解算 → CD/CRVAL/

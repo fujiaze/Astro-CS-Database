@@ -4,9 +4,9 @@
 //   * docs/ASTROCS_DESIGN.md §3.5「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
 //     运行中写盘失败/磁盘满 ⇒ 报错（fail-closed）；内存 / CPU / 线程不设门」；
 //   * docs/ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
-//   * GAP_AUDIT.md（RELEASE-02）§9.74 裁决 10（负责人逐字：「不应该有资源超限（除非存储不足）。
-//     那个问题直接在跑前报 warn，写入磁盘满了报错……只考虑磁盘写满这一个问题」）；
-//   * GAP_AUDIT.md（RELEASE-03）§4.3 Q6（运行事件流唯一 schema = protocol.h/jsonl.h）。
+//   * 资源门口径：「不应该有资源超限（除非存储不足）。
+//     跑前报 warn，写入磁盘满了报错——只考虑磁盘写满这一个问题）；
+//   * 运行事件流唯一 schema = protocol.h/jsonl.h。
 //
 // 纪律：
 //   1) 本模块**不设**任何内存/CPU/线程门；exit 10 只由 write_failure_is_resource_exit() 判定；
@@ -129,7 +129,7 @@ inline uint64_t path_bytes_bounded(const std::string& raw, DiskEstimate* est) {
     return 0;   // 不存在/其它类型：预检面另由 input_path_errors 报 error（本模块不重复报）
 }
 
-// 一次运行的磁盘预估作用域（一块 = 一次运行 = 一个 output_dir；§9.68/§9.71 裁决 2）
+// 一次运行的磁盘预估作用域（一块 = 一次运行 = 一个 output_dir）
 struct DiskScope {
     std::string output_dir;
     DiskEstimate est;

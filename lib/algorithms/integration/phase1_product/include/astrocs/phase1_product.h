@@ -29,7 +29,7 @@
  *   FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE : 诊断量不得进权重面
  *   FZ-PROV-MINIMAL-SET / FZ-PROV-SHARED-SYSTEMATIC / FZ-PROV-KCORR
  *   FZ-MODE-PRODUCTION {point_information, surface_gls}
- *                      （原集合里的 psfsw_robust 已按负责人裁决退役）
+ *                      （原集合里的 psfsw_robust 已退役）
  *   FZ-MODE-RETIRED    psfsw_robust_weight 不是现行对象 ⇒ 显式拒绝 + 迁移提示：
  *                      Phase2 消费面 consume_phase1_group_for_psfsw **整体退役**（无条件
  *                      fail-closed，不产出 w_psfsw）；open_phase1_product 对仍携带退役
@@ -41,7 +41,7 @@
  *                 组内 median=1 归一归 Phase2（fail-closed 登记）。
  *   C-004.2 / P33 撤销: 帧级 median(SNR_F) 系数不得接入权重面（本层不引用）。
  *
- * 权词表单源（W6 canonical，禁第三套）——**仅适用于仍携带退役声明的旧产品**:
+ * 权词表单源（canonical，禁第三套）——**仅适用于仍携带退役声明的旧产品**:
  *   weight.{kind,units,group_normalized,normalization.scope,
  *           normalization.median_target,normalization.constants_version,
  *           weight_value}

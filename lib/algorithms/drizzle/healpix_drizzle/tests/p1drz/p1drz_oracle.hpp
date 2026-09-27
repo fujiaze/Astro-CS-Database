@@ -289,11 +289,11 @@ inline VarOracle oracle_variance_const(const std::vector<LeafRec>& leafs,
 
 // ---------------------------------------------------------------------------
 // Oracle O8: FIX-DRZ-E NaN/Inf 污染 leaf 集合断言 (DRIZZLE.md:96 传播)
-//   （FIX-405 G3-5 反转后的现行冻结口径）注入像素 {NaN, +Inf, -Inf} 必须被
+//   （现行冻结口径）注入像素 {NaN, +Inf, -Inf} 必须被
 //   **样本级掩膜**（不得污染任何 leaf），且被剔除样本数必须**强制暴露**。
 // 权威 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
-//   （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案；唯一口径）:
-//   样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数。原「正面传播」断言已作废。
+//   （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN；唯一口径）:
+//   样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数。「正面传播」断言已由本口径替换。
 // 本 oracle 独立重实现（不调用被测函数）：leaf 集合由测试侧几何超采样给出，
 // 非有限性由输出逐 leaf 扫描给出，计数由被测 stats 给出（三源互校）。
 // ---------------------------------------------------------------------------

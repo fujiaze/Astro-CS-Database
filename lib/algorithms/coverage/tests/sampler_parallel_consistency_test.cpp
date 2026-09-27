@@ -119,13 +119,13 @@ void remove_test_dir(const std::string& dir) {
 // support_tiles：前 N 个 order-0 tile 带 support（kArea），其余 tile 的 support 全 0
 // —— tile 仍在文件里（coverage 的 tile 集合不变），但该帧在这些 tile 上
 // patch 有效样本 = 0 < min_samples ⇒ pass1 产生 insufficient_support 拒绝对
-// （FIX-210 D2 门的非退化输入：全覆盖 fixture 的 insuff 恒 0，门会退化成空门）。
+// （诊断计数一致性门的非退化输入：全覆盖 fixture 的 insuff 恒 0，门会退化成空门）。
 // spike_grid：>0 时在 x%64==32 ∧ y%64==32 的像素写亮异常值（每 patch 恰 1 个）。
-// 用途 = FIX-405 / DISP-P2SMP-002 门：亮端 clipping 必剔除该像素 ⇒
+// 用途 = DISP-P2SMP-002 门：亮端 clipping 必剔除该像素 ⇒
 // n_retained = n_total-1 < 1.0·n_total（background_min_retained_fraction=1.0）
 // ⇒ 第二遍置 reason=2；另一帧保持 clean ⇒ nclean=1 ⇒ 第三遍可达。
 // spike_period: 亮斑注入步长（像素）。默认 64 = 稀疏亮点（旧调用方不变）；
-// FIX-405 的 retained 拒绝用例需要"每个 5×5 patch 内必有亮点" ⇒ 传 8。
+// retained 拒绝用例需要"每个 5×5 patch 内必有亮点" ⇒ 传 8。
 bool make_synth_frame(const std::string& path, float flux,
                       std::uint64_t support_tiles = 12,
                       float spike_value = 0.0f,
@@ -261,14 +261,13 @@ TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
 }
 
 // =====================================================================
-// FIX-210 D2：诊断计数在 1 worker 与 N worker 下必须**逐位一致**
+// 诊断计数在 1 worker 与 N worker 下必须**逐位一致**
 // （docs/ASTROCS_DESIGN §8「并行开关不得改变科学数值；输出不得依赖线程调度」）。
 //
 // 根因（本任务定位）：pass1_cell() 入口 "cv = 0; ci = 0;" 把调用方传入的
 // 计数器清零；串行路径每 cell 用新局部量接收后立即累加（正确），而并行 worker
 // 把**同一个** cv/ci 复用为跨 cell 累加器 ⇒ 每个 worker 只剩最后一个 cell 的
-// 计数（真实 testdata 实测 insuff 4214 vs 322；证据见
-// run/RELEASE-03/fix/FIX-210/RECEIPT.md）。全覆盖 fixture 的 insuff 恒 0，
+// 计数（真实 testdata 实测 insuff 4214 vs 322）。全覆盖 fixture 的 insuff 恒 0，
 // 故既有 SyntheticFixtureBitwiseDeterminism 门对该缺陷是空门。
 //
 // 断言：
@@ -330,7 +329,7 @@ TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
     EXPECT_EQ(s1.candidate_observations, sN.candidate_observations);
     EXPECT_EQ(s1.accepted_observations, sN.accepted_observations);
     EXPECT_EQ(s1.rejected_insufficient_support, sN.rejected_insufficient_support)
-        << "insufficient_support 计数随 worker 数变化（FIX-210 D2 回归）";
+        << "insufficient_support 计数随 worker 数变化（回归）";
     EXPECT_EQ(s1.rejected_insufficient_retained, sN.rejected_insufficient_retained);
     EXPECT_EQ(s1.rejected_bright_tolerance, sN.rejected_bright_tolerance);
     EXPECT_EQ(s1.rejected_high_contamination, sN.rejected_high_contamination);
@@ -342,8 +341,7 @@ TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
     // ③ 计数恒等式（1 与 N 都必须精确成立）。
     // 注：本 fixture 的 retained 计数为 0 ⇒ 不受已登记缺陷 DISP-P2SMP-002
     // （第三遍对 reason==2 重复 ++rejected_insufficient_retained，
-    // docs/science/algorithms/PHASE2_SAMPLER.md §11.2）影响；该缺陷整改归 P2-SAMP-IMPL，
-    // 不在 FIX-210 范围。
+    // docs/science/algorithms/PHASE2_SAMPLER.md §11.2）影响；该缺陷整改另行登记，
     ASSERT_EQ(0u, s1.rejected_insufficient_retained)
         << "fixture 触发了 DISP-P2SMP-002 双计数面 ⇒ 恒等式断言需先处置该登记缺陷";
     auto identity_gap = [](const P2SampleStats& s) -> long long {
@@ -368,7 +366,7 @@ TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
 }
 
 // =====================================================================
-// FIX-405 / DISP-P2SMP-002：rejected_insufficient_retained **恰好计一次**
+// DISP-P2SMP-002：rejected_insufficient_retained **恰好计一次**
 //
 // 缺陷（登记项 DISP-P2SMP-002，本轮修复）：第二遍在置 reason=2 的同一分支内
 // 已 ++rejected_insufficient_retained（sampler.cpp 第二遍），第三遍又对

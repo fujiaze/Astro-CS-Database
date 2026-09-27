@@ -276,9 +276,9 @@ typedef struct {
     int nrej_present, nused_present;
     int nrej_declared, nused_declared;   // manifest.json products 声明
     int n_nrej_tiles, n_nused_tiles;
-    int prov_keys_present;          // 0..4 (signal/properties; A44: 原 0..5)
+    int prov_keys_present;          // 0..4 (signal/properties; 原 0..5)
     int uncertainty_available;      // -1 未登记 / 0 false / 1 true
-    int manifest_keys_present;      // 0..4 (manifest.json provenance 块; A44: 原 0..5)
+    int manifest_keys_present;      // 0..4 (manifest.json provenance 块; 原 0..5)
     int diag_negative_pixels;       // 诊断平面负值像素计数 (V5)
     int unreadable_tiles;           // 声明/存在的子产品中不可读的 tile 数 (V4)
     int value_mismatch;             // properties↔manifest 值分叉计数 (V6)
@@ -301,7 +301,7 @@ AIO_HIPS_EXPORT int aio_hips_set_drizzle_provenance(
     AioHipsProductSet* ps, double pixfrac, double scale_arcsec);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RELEASE-02 SD-15 帧级 SNR 键通道（键名冻结: ASTROCS_FRAME_SNR /
+// 帧级 SNR 键通道（键名冻结: ASTROCS_FRAME_SNR /
 // ASTROCS_REFERENCE_FLUX）:
 //   ASTROCS_FRAME_SNR      = 帧级**未加权通量型**信噪比 SNR_k = F_ref/σ_F
 //                            （docs/ASTROCS_DESIGN §3.4 / 07_noise_snr.md §4.1;

@@ -31,11 +31,11 @@
 namespace {
 
 static std::unordered_map<const NoiseWeightModelV1*, double> g_model_floor;
-// G3-6: variance_floor 钳位触发计数（build 期间被 floor 抬升的数值个数:
+// variance_floor 钳位触发计数（build 期间被 floor 抬升的数值个数:
 // 全局兜底 + 逐控制点）。0 = 未触发。注册表与 g_model_floor 同生命周期。
 static std::unordered_map<const NoiseWeightModelV1*, int64_t> g_model_floor_clamp;
 
-// ── PERF-P1 (RELEASE-05): 注册表线程安全 ─────────────────────────────────────
+// ── PERF-P1: 注册表线程安全 ─────────────────────────────────────
 // 上述两个注册表是**按模型指针键控的进程级 map**。生产 P1 节点在帧级并行下会由
 // 多个 worker **并发**调用 snr_noise_model_v1[_f64]（build）/ _fill（读 floor）/
 // _free（erase）：noise-snr 节点逐帧建模型，drizzle 节点逐帧建模型并 fill 逐像素
@@ -797,7 +797,7 @@ int noise_model_impl(const T* data, int h, int w,
     std::memset(out_model, 0, sizeof(NoiseWeightModelV1));
     out_model->struct_size = (uint32_t)sizeof(NoiseWeightModelV1);
     out_model->abi_version = SNR_NOISE_MODEL_ABI_VERSION;
-    // G3-6 (钳位 fail-open → fail-closed): variance_floor 是**保护下限**,
+    // 钳位 fail-open → fail-closed: variance_floor 是**保护下限**,
     // 不是可选项。NaN/≤0 的 floor 会让 std::max(x, floor) 静默失效
     // （NaN 比较恒 false ⇒ 返回 x; ≤0 ⇒ 等于不设防），并使 fill 侧注册表
     // 判据 it->second > 0 落空 → 静默回退 1e-12（配置被无声忽略）。
@@ -1035,7 +1035,7 @@ int noise_model_impl(const T* data, int h, int w,
     if (!patch_var.empty()) {
         std::vector<double> vc = patch_var;
         const double vmed = robust_median(vc);
-        // G3-6: 钳位触发即计数（不改变数值, 只把静默钳位变为可登记状态）
+        // 钳位触发即计数（不改变数值, 只把静默钳位变为可登记状态）
         if (vmed < c.variance_floor) ++clamp_count;
         out_model->variance_bg_global = std::max(vmed, c.variance_floor);
         out_model->sigma_bg_global = std::sqrt(out_model->variance_bg_global);
@@ -1186,7 +1186,7 @@ SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
     out->sigma_logflux_dex = sigma_logflux_dex;
     out->sigma_mag         = 2.5 * sigma_logflux_dex;
     out->sigma_cal_rel     = kLn10 * sigma_logflux_dex;
-    // P5-SNR 订正 (2026-09-14, 负责人授权; PHOTOMETRY_LITERATURE_REVIEW §C.2.2):
+    // P5-SNR 订正 (PHOTOMETRY_LITERATURE_REVIEW §C.2.2):
     // sigma_residual 是逐星定标散度, 不是零点误差。高斯下 median 的标准误
     // sigma_kappa,stat ~ 1.253*sigma_residual/sqrt(N_eff); 旧实现未除 sqrt(N),
     // N=200 时把零点误差高估约 11 倍。
@@ -1318,7 +1318,7 @@ namespace {
 
 
 // 最小二乘平面填充内核（variance field， 冻结；float 输出）
-// G3-6: 返回 0=成功, SNR_FLOOR_UNBOUND=floor 未绑定/非法 (fail-closed)。
+// 返回 0=成功, SNR_FLOOR_UNBOUND=floor 未绑定/非法 (fail-closed)。
 // 原签名 void + 入口恒 return 0 会把显式拒绝码静默吞掉。
 int fill_impl(const NoiseWeightModelV1* m, int h, int w,
               float* out_variance, float* out_ivar) {
@@ -1349,7 +1349,7 @@ int fill_impl(const NoiseWeightModelV1* m, int h, int w,
                 return 0;
             }
         }
-        // W1-NOISE-002 / G3-6: floor 传播只经内部注册表（按模型指针键控）。
+        // W1-NOISE-002: floor 传播只经内部注册表（按模型指针键控）。
         // **fail-closed**: 模型未绑定 floor（或绑定值非法）时显式拒绝
         // （SNR_FLOOR_UNBOUND），不再静默回退 1e-12 —— 后者会让配置的
         // variance_floor 在生产 fill 路径上被无声忽略。
@@ -1416,7 +1416,7 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
     if (!out_variance && !out_ivar) return 3;
     // ABI fail-closed: 模型必须由本版本 build 产出 (无头部 = 旧/手工拼装 ⇒ 拒绝)
     if (snr_noise_model_v1_abi_check_model(model) != 0) return SNR_ABI_MISMATCH;
-    // G3-6: fill_impl 的显式拒绝码 (SNR_FLOOR_UNBOUND) 必须原样上抛 ——
+    // fill_impl 的显式拒绝码 (SNR_FLOOR_UNBOUND) 必须原样上抛 ——
     // 原实现丢弃返回值恒 return 0, 会把 fail-closed 门静默吞掉。
     int frc = 0;
     try { frc = fill_impl(model, h, w, out_variance, out_ivar); }
@@ -1425,7 +1425,7 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
     return frc;
 }
 
-// G3-6: 显式绑定 variance_floor（与 build 内部登记同一注册表）。
+// 显式绑定 variance_floor（与 build 内部登记同一注册表）。
 // floor 必须有限且 > 0 ⇒ 否则 SNR_FLOOR_UNBOUND(-10) 显式拒绝（禁静默通过）。
 SNR_API int snr_noise_model_v1_bind_variance_floor(NoiseWeightModelV1* model,
                                                    double floor_var) {
@@ -1436,7 +1436,7 @@ SNR_API int snr_noise_model_v1_bind_variance_floor(NoiseWeightModelV1* model,
     return 0;
 }
 
-// G3-6: 钳位触发计数（build 期间被 floor 抬升的数值个数; 0 = 未触发）。
+// 钳位触发计数（build 期间被 floor 抬升的数值个数; 0 = 未触发）。
 // 未注册模型返回 -1（显式"未知", 不冒充 0）。
 SNR_API int64_t snr_noise_model_v1_floor_clamp_count(
     const NoiseWeightModelV1* model) {

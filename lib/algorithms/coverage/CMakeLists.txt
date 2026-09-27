@@ -68,7 +68,7 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infra
 # CLEAN-403: sky_plane.cpp 的文件读写经 aio 机制原语 (aio_atomic_file.h /
 # aio_file_io.h, header-only) ⇒ compatibility 目标同样需要 aio/src include 面。
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/src)
-# RELEASE-02 性能探针头面 (ASTROCS_PROBES 默认 OFF; 未定义时 astrocs/probe.h 的宏
+# 性能探针头面 (ASTROCS_PROBES 默认 OFF; 未定义时 astrocs/probe.h 的宏
 # 全部为空语句)。独立 configure 不走根图 astrocs_probes target, 故此处显式登记。
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/observability/probes/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algorithms/shared)
@@ -150,7 +150,7 @@ if(GTest_FOUND)
     add_executable(phase2_rej_nonfinite_weights tests/rejection_nonfinite_weights_test.cpp)
     target_link_libraries(phase2_rej_nonfinite_weights PRIVATE phase2 GTest::gtest_main)
 
-    # ── PSFSW-RETIRE-01（负责人裁决）：退役对象负例门（能红能绿） ──────────
+    # ── PSFSW-RETIRE-01：退役对象负例门（能红能绿） ──────────
     # ① 生产模式门 + 运行面路由：psfsw_robust 必须显式拒绝（不得静默接受）。
     add_executable(phase2_coverage_mode_retire tests/weight_mode_retire_negative_test.cpp)
     target_include_directories(phase2_coverage_mode_retire PRIVATE

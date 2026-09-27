@@ -30,7 +30,7 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 // ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
 // WHAT:       StarDetector::estimate_background 的第三 σ 估计器（:67 的裁剪后 RMS，
 //             即 StarCatalog::noise_sigma）；同函数另有 σ① 原始 MAD（:50）与 σ②
-//             1.482602218505602·MAD（:51，仅用于 3σ 裁剪）。GAP_AUDIT G2-3 点名项。
+//             1.482602218505602·MAD（:51，仅用于 3σ 裁剪）。
 // WHY-KEPT:   经 CLEAN-401 合成实验裁决为**保留**（不是退役、不是死代码）：
 //             ① 生产可达 100%：module_adapters.cpp:10573 注册表 → :8882 execute →
 //                :8884 p1_op_star_psf → :2329 impl → :2114 StarDetector(5.0) → :2126 detect()
@@ -42,11 +42,9 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //                270/270 帧 σ 逐位一致）：相对冻结式 1.482602218505602·MAD 的 mean|rel err| 增益
 //                **+78.47%**（bootstrap 95% CI [+76.58%, +80.40%]）；偏差 +0.774%（星场）/
 //                −1.401%（纯噪声，与 ±3σ 截断高斯解析值 −1.346% 差 0.06pp ⇒ 定义性低偏）。
-//                注：GAP_AUDIT/TASK_LIST 记的「增益 +71.8%」**未复现**且全仓查无出处，
-//                应以本实验口径为准（订正归 DOC-402）。
 //             ③ 未改写成 1.482602218505602·MAD：那正是本实验的基线（星场下差 78%）。
 // STATUS:     在役生产（非退役件）；本块登记的是「为什么它不是待删死代码」与已发现缺陷。
-//             **已知缺陷（本轮新发现；CLEAN-401 已按 fail-closed 修，见本函数 :107-110）**：
+//             **已知缺陷（CLEAN-401 已按 fail-closed 修，见本函数 :107-110）**：
 //             原 NaN 输入非 fail-closed ——
 //             nth_element 遇 NaN 破坏严格弱序（UB）+ :68 的 `*sigma < 1e-9` 挡不住 NaN +
 //             阈值退化为 ≈bg ⇒ 2% NaN 帧产生 6844 个假源（含 239 个非有限字段），
@@ -61,15 +59,14 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //             逐位结果不变（转换循环的数值路径未改）。
 //             回归锁定：eng/tests/unit/p1_stars_test.cpp 的 noise_sigma 组（NaN ⇒ 必败；
 //             25 星 |σ/σ_true−1| ≤ 2%；纯噪声 −3% ≤ bias ≤ 0%）。
-// EXIT:       本块无删除条件（该项裁决为保留）。仅当出现下列情形时改写：
-//             ① 若 FIX 域另行改造 NaN 处置 ⇒ 同步本块「已知缺陷」段（当前状态：已修）；
-//             ② 若 DOC-402 把 docs/science/NOISE_MODEL.md 的 σ 口径改为裁剪后 RMS ⇒ 本块
+// EXIT:       本块无删除条件（该项保留）。仅当出现下列情形时改写：
+//             ① 若后续改造 NaN 处置 ⇒ 同步本块「已知缺陷」段（当前状态：已修）；
+//             ② 若 docs/science/NOISE_MODEL.md 的 σ 口径改为裁剪后 RMS ⇒ 本块
 //                的「增益 vs MAD」对照口径同步更新；
 //             ③ 若将来决定统一 σ 口径（改调 1.482602218505602·MAD）⇒ 必须先做数值等价验证并同步
 //                p1_sources.json / p1_snr 的容差与基线，不得直接替换。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§3（科学代码红线）；
-//             RELEASE-04 GAP_AUDIT G2-3（包已出库）；
-//             实验证据 run/CLEAN-401/third_sigma/{README.md,verify.log,results/metrics.json}；
+//             实验证据：CLEAN-401 第三 σ 合成实验（README/verify.log/metrics.json）；
 //             docs/science/NOISE_MODEL.md:46（冻结的 σ_bg=1.482602218505602·MAD 仍是注册口径，未改）。
 // ──────────────────────────────────────────────────────────────────────
 bool StarDetector::estimate_background(const float* image, int w, int h,

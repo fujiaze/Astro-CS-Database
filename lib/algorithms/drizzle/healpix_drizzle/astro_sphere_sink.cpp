@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
+// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」:
 // 整文件读取机制经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 
@@ -41,7 +41,7 @@ uint32_t phase1_tile_depth(uint32_t nside) {
     return (uint32_t)d;
 }
 
-// RELEASE-02 SD-15: 由 light 基名派生 frame_key（与 module_adapters
+// 由 light 基名派生 frame_key（与 module_adapters
 // p1_frame_key 同口径: 去扩展名 + 字符白名单 alnum/_/-/. → '_'; 空/./.. → "frame"）。
 // 输入为 p1_snr.json 的 file 字段（cleaned_<base>/calibrated_<base>/<base>）。
 std::string phase1_stem_key(const std::string& base_in) {
@@ -341,12 +341,12 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     //       writer 判定（有覆盖∧方差可用 → vnum/area²；有覆盖∧方差不可用 →
     //       0/0 显式不可用，§4a:49；无覆盖 → NaN）。
     //       **「整帧方差不可用」也必须产出 variance/ivar 子产品**（全 0/0）：
-    //       不产会让阶段二 ivar_product_missing>0 ⇒ rc=7（A44 已删除 legacy
+    //       不产会让阶段二 ivar_product_missing>0 ⇒ rc=7（已删除 legacy
     //       fallback），把「像素级不可用」升级为「产品级拒绝」。
     //   0 ⇒ 无方差输入，只写 signal+support（与旧 writer 逐字节等价）。
     // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ASTROCS_IVAR_FAULT=
     // no_variance_flags 模拟「帧已带方差却不请求 variance/ivar 产品位」
-    // 缺陷 → IVAR-001 门必然判红（见 run/PROJECT-GOVERNANCE-01/IVAR-001）。
+    // 缺陷 → IVAR-001 门必然判红（见 IVAR-001 登记）。
     {
         const char* sink_fault = std::getenv("ASTROCS_IVAR_FAULT");
         if (sink_fault && std::string(sink_fault) == "no_variance_flags")
@@ -371,7 +371,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         return false;
     }
 
-    // ── RELEASE-02 SD-15: 帧级未加权通量型 SNR → HiPS properties ──────────
+    // ── 帧级未加权通量型 SNR → HiPS properties ──────────
     // 值来源 = 上游 snr 节点产物 <output_dir>/p1_snr.json 的该帧
     // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; docs/ASTROCS_DESIGN §3.4 /
     // 07_noise_snr.md §4.1）。本帧产品目录 = hips_dir（= <output_dir>/<frame_key>）
@@ -395,7 +395,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                         nlohmann::json::parse(snr_json_text);
                     if (sj.is_object() && sj.contains("frames") &&
                         sj["frames"].is_array()) {
-                        // P2b-4（RELEASE-02）: 写侧**组内公共 F_ref** 闸门。
+                        // P2b-4: 写侧**组内公共 F_ref** 闸门。
                         // p1_snr.json 逐帧 snr_reference.flux_adu 必须组内公共
                         // （相对容差 1e-9）；逐帧 F_ref 会丢掉帧间标度 a_f² 并使
                         // Phase2 权重链 fail-closed（WEIGHT-SCI-001 配对性定理:

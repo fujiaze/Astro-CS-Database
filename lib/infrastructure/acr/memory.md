@@ -69,8 +69,7 @@
 
 ### 2026-08-05 聚焦版控制包（SHA 56f74f2e...eac14，08 号计划）
 
-**执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（控制包 8；仓库内副本
-`工程控制/docs/ACR_FOCUSED_CONTROL_PACKAGE/`）。旧 20—26 号计划全部失效。
+**执行入口**：`08_CURRENT_EXECUTION_PLAN.md`（控制包 8）。
 
 **定位收缩**：ACR 是积分/Drizzle 类重负载逐像素算法的 CPU+GPU 动态混合
 分块与数据驻留优化层。不做通用硬件画像、不扩展无关 gather/branch/全部
@@ -144,8 +143,7 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
 
 ### 2026-08-05 25 号计划执行（控制包 SHA 755278bf...5f98）
 
-**执行入口**：`25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部
-控制包 6；仓库内副本 `工程控制/docs/ACR_25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`）。
+**执行入口**：`25_SECOND_FIX_IMPLEMENTATION_REVIEW_CORRECTION_PLAN.md`（外部控制包 6）。
 
 **用户方向（2026-08-05）**：不再实现 CPU/GPU 50/80/95/100 利用率精确闭环
 （Windows 无软限制系统 API），需求移除；只保留 RAM/VRAM 容量预算与反压；
@@ -311,7 +309,7 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
    - Persistence.ProfileReload 修复 TIMEOUT（最小合法 profile 循环，1.4s）；
    - MSVC /fsanitize=address 验证程序（真实 shared_work_pool.cpp +
      kernel_registry.cpp）：1000 轮压力无 ASan 错误、故意 UAF 被检出；
-8. **§7 Evidence 清理**（7c67328）：删除仓库内旧 Evidence（工程控制/evidence/acr/），
+8. **§7 Evidence 清理**（7c67328）：删除仓库内旧 Evidence，
    改为仓库外生成（run/evidence/）。
 
 **测试结果（2026-08-04 全量）**：623/623 通过（8 项 SanitizerActual 在 MinGW 构建

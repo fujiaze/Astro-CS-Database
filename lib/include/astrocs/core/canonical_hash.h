@@ -16,7 +16,7 @@
 // 明确**不排除**: DATE-OBS(观测时刻)/BUNIT/CRPIX/CRVAL/CD/CTYPE/SIP/像素数据 等。
 //
 // 依据与外部标准引用见 spec 文档与工具头注释; 部署内既有裁决
-// eng/tools/quality/compare_products.py（P26 T3, 负责人裁决 4）的墙钟清单与本清单一致。
+// eng/tools/quality/compare_products.py 的墙钟清单与本清单一致。
 #pragma once
 
 #include <string>

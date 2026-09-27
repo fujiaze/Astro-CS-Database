@@ -1,9 +1,9 @@
 // ============================================================================
 // drizzle_nonfinite_test.cpp — 非有限样本处置合同测试
-//   （FIX-405 G3-5 反转；原 P1-DRZ-NONFINITE「不掩膜/传播」断言已作废）
+//   （样本级掩膜口径；原 P1-DRZ-NONFINITE「不掩膜/传播」断言已替换）
 //
 // 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
-// §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案）:
+// §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN）:
 //   合格样本 = isfinite(x_j) ∧ isfinite(V_j) ∧ V_j > 0；
 //   不合格样本 → 样本级掩膜（从 F_p/D_p/Var_p 三项一并剔除 ⇒ 重归一）;
 //   仅 D_p = 0 时输出 signal = NaN ∧ support ≤ 0（覆盖级 NaN）;

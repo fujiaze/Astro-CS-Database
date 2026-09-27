@@ -71,7 +71,7 @@ const char* kModelHash =
     "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
 const char* kProfile = "wbpp_2_9_1";
 
-// FIX-201 / §9.73 A44: 旧「权重模式」provenance 键已删除 (5 → 4 键)。
+// 旧「权重模式」provenance 键已删除 (5 → 4 键)。
 const char* kKeys[4] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
                         "ASTROCS_UNCERTAINTY_AVAILABLE",
                         "ASTROCS_REJECT_PROFILE"};
@@ -261,15 +261,15 @@ void units_provenance_keys() {
               "manifest.json products 声明 nrej/nused");
     P2H_CHECK(contains(man, kManifestHash) && contains(man, kModelHash),
               "manifest.json 含真实 hash 值 (非占位)");
-    // FIX-201 / §9.73 A44 收窄锁: 权重模式族键在双写两面都必须**缺席**
+    // 收窄锁: 权重模式族键在双写两面都必须**缺席**
     // (原断言把旧键当契约, 与最高设计 §2.1「全程只有 SNR」相反)。
     for (const char* sub : {"signal", "support"}) {
         const std::string props = read_file(std::string(base) + "/" + sub + "/properties");
         P2H_CHECK(props.find("WEIGHT") == std::string::npos,
-                  (std::string(sub) + ": properties 禁出现权重模式键 (§9.73 A44)").c_str());
+                  (std::string(sub) + ": properties 禁出现权重模式键").c_str());
     }
     P2H_CHECK(man.find("weight") == std::string::npos,
-              "manifest.json provenance 禁出现权重模式键 (§9.73 A44)");
+              "manifest.json provenance 禁出现权重模式键");
     fs::remove_all(base, ec);
 }
 
@@ -475,7 +475,7 @@ void negative_provenance_params() {
     P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 7,
                                       kProfile) != 0,
               "N2: 非法 uncertainty_available (非 0/1) → 拒绝");
-    // FIX-201 / §9.73 A44: 原「非法 weight_mode (非 0/1/2) → 拒绝」用例的
+    // 原「非法 weight_mode (非 0/1/2) → 拒绝」用例的
     // 形参已删除 (全程只有 SNR, 不存在权重模式)。其判别力由 units_provenance_keys
     // 的反向锁承接: 合法四键 setter rc==0 且 properties/manifest **零**权重模式键。
     P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, "") != 0,

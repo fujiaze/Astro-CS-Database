@@ -1,4 +1,4 @@
-# 性能探针框架 (RELEASE-02)
+# 性能探针框架
 
 单一开关、两层控制，关闭时零开销，开启时线程本地批量写 JSONL。
 
@@ -17,7 +17,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DASTROCS_PROBES=ON
 ninja -C build
 
 # 2) 运行期打开输出（不设则不产出）
-ASTROCS_PROBE_LOG=run/RELEASE-02/probe/probe.jsonl build/acsd normalize --json cfg.json -y
+ASTROCS_PROBE_LOG=run/probe/probe.jsonl build/acsd normalize --json cfg.json -y
 ```
 
 ## API
@@ -61,4 +61,4 @@ ASTROCS_PROBE_FLUSH();                                 // 手动 flush（可选�
 ## 系统监视器
 
 `eng/tools/l4_rebuild/sysmon.py` 与程序同步启动，从 `/proc` 采样整机/进程树利用率写 CSV，
-无第三方依赖。见 RELEASE-02 probe-report.md（该报告已退役，见仓库 git 历史）。
+无第三方依赖。
