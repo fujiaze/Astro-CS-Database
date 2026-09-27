@@ -32,13 +32,13 @@
 
 | 名称 | 定义式 | 单位 | 计算面（列/来源） |
 |---|---|---|---|
-| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:451` 的 `sdet_compute_bgnoise`<!-- 订正: 检查-科学性 Y-3f 行漂移——原锚 :458-476。旧对照：sdet_api.cpp:458-476 -->）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad·1.482602218505602`（star_measurements 列 [4]/[10]） |
+| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:451` 的 `sdet_compute_bgnoise`，函数体 :450-504）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad·1.482602218505602`（star_measurements 列 [4]/[10]） |
 | `SNR_phot` | `F / sigma_F`（Horne 1986） | 无量纲 | 测光域（DATA-P1-SNR §13.4），**与本表门无关**，列此仅作区分 |
 | `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_sources.json` 的 `sources[].snr`）：`peak` = **未平滑原图**上检出像素峰值、`background`/`noise_sigma` = 该帧背景与背景 RMS；实现 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:240`（`s.snr = (peak − cat.background) / cat.noise_sigma`）。**与 `SNR_peak` 不同源**：`SNR_peak` 用椭圆高斯拟合振幅 `A_fit`（检测侧 `flux` 列），`SNR_det` 用原始峰值 ⇒ 两列**各自具名**；凡门写「SNR>x」必须点名用哪一行 |
 
 **SNR_peak 的定义敏感性（必须随门一起读）**：全局检测阈值是
 `threshold = median(img) + 5.0·bgnoise`（`sdet_api.cpp:1779`，阈值语义锚 = `:1771` 的 star_finder.c 注释行），作用于
-**σ=2 平滑后**的图像（`sdet_api.cpp:1761` 的 `sdet_gaussian_blur_yvv(..., 2.0)`<!-- 订正: 检查-科学性 Y-3f 行漂移——原锚 :1790/:1782/:1770-1773，实况 :1779（threshold 赋值）/:1771（注释）/:1761（blur 调用）、bgnoise 计算 :1770。旧对照：sdet_api.cpp:1790，:1782，:1770-1773 -->） ⇒ 同一合成场在不同「峰值 SNR」下可检出性差异极大：
+**σ=2 平滑后**的图像（`sdet_api.cpp:1761` 的 `sdet_gaussian_blur_yvv(..., 2.0)`；bgnoise 计算面 = `sdet_compute_bgnoise` :450-504，impl 调用点 :1772） ⇒ 同一合成场在不同「峰值 SNR」下可检出性差异极大：
 R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 `SNR_peak=50` 检出 **36/40**、`SNR_peak=300` 检出 36/40。
 ⇒ 任何门若写「SNR≥x」，必须同时写 `SNR_peak`（本节定义）与 `x` 的取值域，
@@ -68,7 +68,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 | G-P1-WCS-BRIDGE-GLOBAL | 同一 STD-F1 桥接量在**全尺度**上的保守门：密集域 roundtrip max < 1e-6 px | 导出边界（`lib/algorithms/projection/p3_wcs.cpp`），任意帧尺度 | max | n/a | <1e-6 px（**全域保守门**，无尺度下限；判据力弱） | 推导：保守性下界 s ≥ 1.79e-3″/px（实测常数）/ 2.93e-3″/px（设计常数，= C_env·u·sec²Δ/s_rad ≤ tol）⇒ 覆盖所有真实仪器（比最细的真实像素尺度还小 1–2 个量级）；代价：0.18″/px 处相对包络余量 101×、相对实测 410× ⇒ 1e-7 量级缺陷会被放过。**与 G-P1-WCS-BRIDGE 是两个不同用途的门，不合并为一个数**。来源：SCI-WCS-001 §11 STD-F1（`docs/science/ASTROMETRY.md:188`） | ctest:p3_wcs; ctest:p3_projection_registry | Y |
 | G-P1-WCS-RT-ITER | 迭代反演路径（`wcs_sky_to_pixel_iterative`，τ = 1e-9 px）在**独立密集域**（中心 90% + 四边/四角 + 1200 固定 seed 随机点，1024²）上的自洽往返 `max‖(x,y)−F_oracle⁻¹(F_oracle(x,y))‖` | P1 ipv 反演路径（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp`）；**独立密集域**（中心 90% + 四边/四角 + 1200 固定 seed 随机点），独立 oracle 前向锚 + 生产反演（不含拟合误差） | max | n/a | 1e-8 px（= κ_iter·τ，κ_iter = 10；τ 写进合同） | 推导：迭代反演地板 = 收敛容差 τ（实测 3.30e-10 / 1.66e-9 / 2.91e-9 px 三档畸变，最坏 = 2.91e-9 px = 2.9·τ ⇒ 余量 3.4×）；τ↓1000× 仅使误差↓4.23× ⇒ 另有 ~4e-10 px 的 FP64/迭代结构地板，故取 κ_iter=10 而非 1。**分层理由**：全链门 1e-4 px（G-P1-WCS-RT）对迭代路径过松 4 个量级 ⇒ 迭代路径必须另设紧门（本行）。**测法**：独立 oracle 前向锚 + 生产反演（不含拟合误差），在中心 90% + 四边/四角 + 1200 固定 seed 随机点的 1024² 密集域上逐点算自洽往返取 max；三档畸变各跑一遍取最坏。**负对照**：τ↓1000× 只使误差↓4.23× ⇒ 存在 ~4e-10 px 的 FP64/迭代结构地板，故地板**不是**由 τ 单独决定，κ_iter=10 而非 1 由此实测推出。 | ctest:p1wcs_apbp | Y |
 | G-P1-WCS-RT-APBP | APx/BPx 多项式逆**一步直加表示残差** `max‖UV + APx(UV) − u*‖`（u* = 独立 oracle 反演） | P1 SIP 多项式逆路径；**合成畸变场** fixture（FIX-WCS-F 三档，边缘畸变预算 18.4/91.8/183.6 px），中心 90% 网格 | max | n/a | ≤ 10% × 边缘畸变预算（px）；**表示门，不是 FP64 地板门** | 推导：多项式表示残差随畸变预算陡增（实测 low 1.9e-4% / mid 0.036% / high 1.89% ⇒ 最坏档余量 5.3×）；~184 px 畸变下多项式逆**根本达不到 1e-4 px**（实测 3.46 px）⇒ 必须与 τ 门分开登记。真值无效应⇒归零：零畸变 fixture 残差 2.61e-11 px（比 high 档小 1.3e11×）；等价缺陷（APx 清零）⇒ 202.2 px 必红 | ctest:p1wcs_apbp | Y |
-| G-P1-CENTROID-BRANCH-ORDER | `star_measurements` 写端契约：PSF 支路**恒等**（dpsf 输出即 index-is-center）、fallback 支路 `−0.5`（sdet 连续系）；读端统一 `+0.5` | 契约函数级（`star_coord_contract.h`）+ 端到端（G-P1-CENTROID-1） | 精确 / max | n/a | 精确相等（fallback 输出 − sdet 原始坐标 = 0） | 解析：DATA-P1-STAR §17.2 + dpsf 采样式 dpsf_psf.cpp:295 / sdet 采样式 sdet_api.cpp:127-131（R-3 §3.1/§3.4 实测） | ctest:p1psf_centroid_gate | Y |
+| G-P1-CENTROID-BRANCH-ORDER | `star_measurements` 写端契约：PSF 支路**恒等**（dpsf 输出即 index-is-center）、fallback 支路 `−0.5`（sdet 连续系）；读端统一 `+0.5` | 契约函数级（`star_coord_contract.h`）+ 端到端（G-P1-CENTROID-1） | 精确 / max | n/a | 精确相等（fallback 输出 − sdet 原始坐标 = 0） | 解析：DATA-P1-STAR §17.2 + dpsf 采样式 dpsf_psf.cpp:295 / sdet 采样式 sdet_api.cpp:132-145（R-3 §3.1/§3.4 实测） | ctest:p1psf_centroid_gate | Y |
 
 ## 4 诊断脚本（**不是门**，R1/R2 约束下只作诊断）
 
