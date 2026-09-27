@@ -31,7 +31,7 @@
       "command": "python3 eng/tests/testkit/examples/property_invariant.py",
       "expected_exit": 0,
       "seed": 20260902,
-      "tolerance_source": "docs/algorithms/HEALPIX_MAPPING.md（示例 property：幂等不变量，seed 固定）",
+      "tolerance_source": "docs/science/algorithms/HEALPIX_MAPPING.md（示例 property：幂等不变量，seed 固定）",
       "oracle": "property invariant: double(round(x)) == round(x)（不变量自证，非生产实现）",
       "expectation_source": "PROPERTY_INVARIANT",
       "current_commit": "2a8676bf7546a34af0468d5086e4edd54182a008",

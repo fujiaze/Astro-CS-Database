@@ -10,7 +10,7 @@
 > `lib/infrastructure/scheduler/src/module_adapters.cpp`（P2Api :711-720 工厂委托）与
 > `lib/infrastructure/cli/runtime_client.cpp`（:28 passthrough 不自动补 output_dir、:51
 > phase2 config 直通）、`lib/infrastructure/cli/parser.cpp`（:344 output_dir 必填校验）。
-> 装配算法权威=ALG-P2-SESSION-001（docs/algorithms/PHASE2_SESSION.md）。
+> 装配算法权威=ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md）。
 
 ## 身份与合同
 
@@ -25,7 +25,7 @@
 - 合同链：SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001（docs/science/
   PHASE2_UPM.md、INTEGRATION.md、REJECTION.md，均 FROZEN，共享引用
   不改动；本任务零 SCI 改动）→ ALG-P2-SESSION-001
-  （docs/algorithms/PHASE2_SESSION.md）→ DATA-P2-SESSION
+  （docs/science/algorithms/PHASE2_SESSION.md）→ DATA-P2-SESSION
   （DATA_SEMANTICS §24）/ API-P2-SESSION-001（PUBLIC_API「Phase2
   装配会话 C API」节）→ TEST-P2-SESSION-001（可执行测试 MISSING，
   P2-SESSION-DOC 登记归 P2-SESSION-TEST，不冒认；设计冻结面=

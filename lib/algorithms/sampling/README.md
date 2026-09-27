@@ -26,8 +26,8 @@
   2026-08-23，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
   SCI-UPM-PERSIST-001，页头明示模块 "phase2 (upm/sampler)"；descriptor
   占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明于
-  docs/algorithms/PHASE2_SAMPLER.md §11.4，占位 ID 不入合同）
-  → ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，兼承接
+  docs/science/algorithms/PHASE2_SAMPLER.md §11.4，占位 ID 不入合同）
+  → ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，兼承接
   ALG-UPM-CONTROL-IVAR-001 方差子面）
   → DATA-P2-SMP（DATA_SEMANTICS §23）/ API-P2-SMP-001
   （PUBLIC_API Phase2 sampling 公共消费面节）→
@@ -107,7 +107,7 @@ WireProductionStage2PerFrameIvar :223。
 - README/module.yaml/memory.md：`lib/algorithms/sampling/`（本目录）
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106
   2026-08-23，零改动）
-- ALG：docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）
+- ALG：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）
 - DATA：docs/contracts/DATA_SEMANTICS.md §23（DATA-P2-SMP）
 - API：docs/contracts/PUBLIC_API.md API-P2-SMP-001；
   API-P2-001（编排层既有）

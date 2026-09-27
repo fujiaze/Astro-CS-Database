@@ -235,7 +235,7 @@ inline FixStarF fix_star_f_f6_anchor() {
 // ============================================================================
 // FIX-STAR-H (F1-TB) — 过渡带真星召回场
 // ----------------------------------------------------------------------------
-// 合同锚: docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4 F1「判据式 + 判据
+// 合同锚: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4 F1「判据式 + 判据
 // 非退化要求」; docs/science/STAR_DETECTION.md §1 completeness 条。
 //
 // 存在理由: FIX-STAR-A 的真星 SNR_peak 只落在 [6.7,9.2) ∪ [32.5,45) ∪

@@ -4,7 +4,7 @@
 
 权威链（`ASTROCS_DESIGN.md` §0，唯一）：`ASTROCS_DESIGN.md` → `AGENTS.md` →
 `ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/` → `docs/plugins/`；
-另立 `docs/science/`（公式权威）、`docs/algorithms/`（推导权威）、
+另立 `docs/science/`（公式权威）、`docs/science/algorithms/`（推导权威）、
 `docs/design/UNIFIED_MODEL.md`（数据对象与三类配置分离）。与其他文档冲突时以
 `ASTROCS_DESIGN.md` 为准。
 
@@ -13,7 +13,7 @@ L0 最高设计/纪律   ASTROCS_DESIGN.md / AGENTS.md / ENGINEERING_SPEC.md / C
 L0 项目入口        README.md / docs/owner/RELEASE_STATUS.md / docs/KNOWN_LIMITATIONS.md /
                    docs/DEVELOPER_GUIDE.md / memory.md
 L1 科学规范        docs/science/*.md（定义/公式/变量/单位/假设/域/误差/ID；权威）
-L2 算法规范        docs/algorithms/*.md（输入/输出/前后置/不变量/伪代码/复杂度/oracle；权威）
+L2 算法规范        docs/science/algorithms/*.md（输入/输出/前后置/不变量/伪代码/复杂度/oracle；权威）
 L3 数据与设计      docs/design/UNIFIED_MODEL.md / docs/contracts/*.md / docs/interfaces/** /
                    docs/api/*.md（CLI 协议与 Phase API）/ docs/architecture/*.md
 L4 CI 与插件       docs/ci/**（怎么查、哪些是门禁）/ docs/plugins/**（模块规范）

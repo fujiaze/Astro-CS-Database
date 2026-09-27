@@ -91,7 +91,7 @@
   (i) **样本级 support**（本层输入 `support[i]`，域 (0,1]，几何覆盖支撑）——
   本层只对它做 canonical max 归约；
   (ii) **发布 support**（HiPS support 层的钳后发布值 `a/A_cell`）——**流向单向：只从本层输出，不**
-  当作归约权重或置信度（`docs/algorithms/PHASE2_MOSAIC_WRITE.md` §7 红线）。
+  当作归约权重或置信度（`docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` §7 红线）。
   本层输出 `P2PixelResult.support` 属 (i) 的归约结果，下游写盘时再转成 (ii)。
 
 ## 8 极端/退化条件

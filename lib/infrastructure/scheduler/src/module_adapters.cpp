@@ -5265,7 +5265,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   if (!p1_write_text(out_path, flux_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   // ── RELEASE-02 FIX-P1 (P1-1): 取 k_photo 并真正施加 I_photo = k_photo·I_cal ──
-  // 规范依据: docs/algorithms/CALIBRATION_ALGORITHMS.md §3.6 /
+  // 规范依据: docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.6 /
   //   docs/science/PHOTOMETRY.md (SCI-PHOT-001 FROZEN):
   //   k_photo = scale = 10^(-location), location = Tukey-IRLS(r_i) (c=4.685)。
   //
@@ -6359,7 +6359,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
 // ── NOISE-MODEL-CANON-002（负责人 §9.67 定案 2「逐像素方差接入」+ docs/ASTROCS_DESIGN
 //    §8.2:526-527「阶段内：命名块内存管线与块生命周期」）────────────────────────────────────
 // A（snr_noise_model_v1 / _f64 / _fill；docs/science/NOISE_MODEL.md:71/165 与
-// docs/algorithms/NOISE_ESTIMATION.md §13.1:120「生产符号唯一源」）的**调用侧配置
+// docs/science/algorithms/NOISE_ESTIMATION.md §13.1:120「生产符号唯一源」）的**调用侧配置
 // 推导**共用面。两个消费点必须同源，禁止第二份策略副本（自适应 patch 网格 / 掩膜
 // 半径上界 / 天空与 patch 预算 / 饱和电平解析 / 逐星掩膜四路输入）：
 //   ① p1_op_noise   —— 帧级标量 + noise_* 诊断（写 p1_snr.json）
@@ -9555,7 +9555,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   uc.huber_delta = 1.345;
   uc.max_iterations = 100;
   // CONFORM-FIX-B-001（合规回退）：FZ-UPM-CONVERGENCE 冻结
-  // tol=1e-6（docs/algorithms/GATES_AND_TOLERANCES.md，
+  // tol=1e-6（docs/science/algorithms/GATES_AND_TOLERANCES.md，
   // 明文「改动 tol/σ_floor → rc!=0」），PHASE2_UPM_IMPL.md:379/:400-401 与
   // DATA_SEMANTICS:1874 同值且标注「冻结面，任何修改必须走 SCI/合同变更」。
   // 上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）
@@ -9597,7 +9597,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // CONFORM-FIX-B-009：与 stage2 工具同一「smoothing」键语义
   // （CONFIG_SCHEMA.md:19 smoothing(auto→0.1)；"auto" 的解析值单一来源 =
   // P2_SMOOTHING_LAMBDA_AUTO）。缺键保持 upm.h:75 的编译期默认 0.0 ——
-  // 该默认属 docs/algorithms/PHASE2_UPM_IMPL.md §13「冻结面」，改动须走
+  // 该默认属 docs/science/algorithms/PHASE2_UPM_IMPL.md §13「冻结面」，改动须走
   // SCI/合同变更；与负责人裁决 GAP_AUDIT §9.39 A5「λ 不能为 0」的冲突已
   // 登记上呈（生产 λ 取值归 SMOOTH-LAMBDA 分片），本节点不擅自改冻结默认。
   {

@@ -65,7 +65,7 @@ eng/tests/testkit/
 | `command` | 是 | string | 运行命令（可含 `{root}` 占位） |
 | `expected_exit` | 是 | int | 期望退出码（0=PASS） |
 | `seed` | 条件 | int | 随机性测试必填；固定 seed 可复现（0/None=无随机） |
-| `tolerance_source` | 是 | string | 容差来源引用：`docs/science/<file>` / `docs/algorithms/<file>` / `ORACLE:<id>`；禁止"跑后调阈值" |
+| `tolerance_source` | 是 | string | 容差来源引用：`docs/science/<file>` / `docs/science/algorithms/<file>` / `ORACLE:<id>`；禁止"跑后调阈值" |
 | `oracle` | 条件 | string | type∈{oracle,properties,performance} 建议填：独立参考来源（解析解/朴素高精度/隔离库），**禁止生产 symbol** |
 | `expectation_source` | 是 | enum：`INDEPENDENT_ORACLE/PROPERTY_INVARIANT/PRE_FROZEN_VALUES/FIXTURE_HASH/MISSING` | 期望来源类别；`MISSING` 时检查器 WARN（关键证据禁止） |
 | `current_commit` | 是 | 40 hex | 测试所针对的提交（由 run 时注入/校验） |

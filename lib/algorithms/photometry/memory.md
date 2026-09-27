@@ -394,7 +394,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   gaia_client.dll 预加载（:271-281）；photo_stats KV 块
   （N_MATCHED/SCALE_FACTOR/SIGMA_RESIDUAL + PhotometricDiag 17 字段，
   orchestrator.cpp:2902-2935）。
-- 核心实现锚（详见 docs/algorithms/PHOTOMETRIC_FIT.md §13.1）：star_matcher
+- 核心实现锚（详见 docs/science/algorithms/PHOTOMETRIC_FIT.md §13.1）：star_matcher
   matchWithKdTree（:185-333，双向互最近邻唯一配对）/cleanAndScale
   （:378-605，星等预过滤 + IRLS Tukey c=4.685 + scale=10^(−location) +
   sigma_residual=MAD/0.6744897501960817）；spectrum_integrator
@@ -426,7 +426,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   失实修正——暴力最近邻 3px/scale=median/MAD 清洗/0.1nm 网格与实测
   双向 KD-tree 2.0px/IRLS scale/1.0nm 网格不符）+ module.yaml 新建
   （11 号标准 §4 全必填，entrypoint=MISSING）+ 本段追加。
-- docs/algorithms/PHOTOMETRIC_FIT.md §13 冻结增补（ALG-PHOT-001..002 逐
+- docs/science/algorithms/PHOTOMETRIC_FIT.md §13 冻结增补（ALG-PHOT-001..002 逐
   符号源码锚定 + §13.2 实现事实修订 + §13.3 DISP-PHOT-001..009 +
   §13.4 TEST-PHOT-DESIGN-001 冻结容差 + §13.5 legacy 通道与迁移旧符号）；
   docs/contracts/DATA_SEMANTICS.md §14（DATA-P1-PHOT）；docs/contracts/

@@ -2,9 +2,9 @@
 """P3-001 独立投影 Oracle — 版本化 projection registry 与冻结四投影
 (TAN/SIN/CAR/AIT) Python 侧对拍面 (eng/tests/backend)。
 
-合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/algorithms/PHASE3_PROJ_IMPL.md,
+合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/science/algorithms/PHASE3_PROJ_IMPL.md,
 P3-001 新 claim) + SCI-P3-001 (FROZEN) + 宪章 §7.3/§18.1 (首批四投影 registry 冻结)
-+ docs/algorithms/GATES_AND_TOLERANCES.md §3 G-P1-WCS-BRIDGE（紧门 1e-8 px，
++ docs/science/algorithms/GATES_AND_TOLERANCES.md §3 G-P1-WCS-BRIDGE（紧门 1e-8 px，
 适用域 scale ≥ 0.9″/px）/ G-P1-WCS-BRIDGE-GLOBAL（全域保守门 1e-6 px）。
 
 往返容差**不硬编**: driver 额外编译生产注册表 p3_wcs.cpp 并打印 CONTRACT 行

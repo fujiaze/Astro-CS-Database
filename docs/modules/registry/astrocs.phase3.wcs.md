@@ -34,7 +34,7 @@ downstream: [TEST-P3-WCS-001]
   同批迁入共址测试 eng/tests/p3wcs/**（ctest p3_wcs）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007）→ ALG-P3-PROJ-IMPL-001
-  （docs/algorithms/PHASE3_PROJ_IMPL.md，兼承接 ALG-P3-002 本域
+  （docs/science/algorithms/PHASE3_PROJ_IMPL.md，兼承接 ALG-P3-002 本域
   子面 G1/G2）→ DATA-P3-WCS（DATA_SEMANTICS §28）+ API-P3-PROJ-001
   （PUBLIC_API.md Phase3 投影公共消费面节）→ TEST-P3-WCS-001
   （登记面=TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED，见 §9 双重
@@ -124,7 +124,7 @@ downstream: [TEST-P3-WCS-001]
   单一事实源 `p3_wcs_applicability()`））—— **适用域 `scale ≥ min_scale_arcsec = 0.9″/px`**，
   低于该尺度紧门不适用（报「超出适用域」而非判红），退回**全域保守门** 1e-6 px
   （`roundtrip_tol_global_px`）；机器可读判定 = `p3_wcs_roundtrip_gate()`；FOV≤20° 适用域
-  （SCI §9a-12）。门表事实源 = `docs/algorithms/GATES_AND_TOLERANCES.md` §3
+  （SCI §9a-12）。门表事实源 = `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3
   （G-P1-WCS-BRIDGE / -GLOBAL / -RT-ITER / -RT-APBP）。
 
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
@@ -170,8 +170,8 @@ downstream: [TEST-P3-WCS-001]
 ## 10 合同链接
 
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN）
-- ALG: docs/algorithms/PHASE3_PROJ_IMPL.md；承接:
-  docs/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，
+- ALG: docs/science/algorithms/PHASE3_PROJ_IMPL.md；承接:
+  docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，
   零改动）
 - DATA: docs/contracts/DATA_SEMANTICS.md §28
 - API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001 节）

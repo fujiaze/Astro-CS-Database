@@ -30,8 +30,8 @@
 - 合同链：SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN
   V5 SCI-007 2026-08-28，集合 SCI-P3-001..020；descriptor 占位
   SCI-P3-WR-001 不入合同，映射声明 SCI-P3-WR-001⇒SCI-P3-001 于
-  docs/algorithms/PHASE3_FITS_IMPL.md §映射节）
-  → ALG-P3-FITS-IMPL-001（docs/algorithms/PHASE3_FITS_IMPL.md，
+  docs/science/algorithms/PHASE3_FITS_IMPL.md §映射节）
+  → ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，
   P3-FITS-DOC 新建；兼承接既有 ALG-P3-002（输出 WCS，PHASE3_RESAMPLE
   G1/G2）与 ALG-P3-004（FITS 写，G5）的施工规格本域子面）
   → DATA-P3-FITS（DATA_SEMANTICS §27）/ API-P3-FITS-001（PUBLIC_API
@@ -107,14 +107,14 @@
   HISTORY 的 manifest 字段写空——SCI-P3-001 §9a-11 要求 manifest hash
   必写，接线归 P3-FITS-IMPL。**节点路径已闭合**：`module_adapters.cpp`
   的 `p3_op_writer` 计算 `input_manifest_hash` 并写入；两条路径各自成立，
-  docs/algorithms/PHASE3_FITS_IMPL.md「B2-A9/A10 已闭合」不否定本行。
+  docs/science/algorithms/PHASE3_FITS_IMPL.md「B2-A9/A10 已闭合」不否定本行。
   session 内核 WCS 一致性由写路径单点保证：verify 已按 B2-A9 读回
   CTYPE/CRPIX/CRVAL/CD 对拍（原记「(void)wcs」口径已取消——2026-09-16
   实测 `grep -c '(void)wcs' lib/algorithms/fits_output/p3_output.cpp` = 0）。
 
 ## 关联文档
 
-- 合同权威：docs/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
+- 合同权威：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
 - 数据语义：docs/contracts/DATA_SEMANTICS.md §27（DATA-P3-FITS）
 - API 面：docs/contracts/PUBLIC_API.md「Phase3 FITS 写出公共消费面
   （API-P3-FITS-001）」

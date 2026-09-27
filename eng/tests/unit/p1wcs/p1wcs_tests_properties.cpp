@@ -1,6 +1,6 @@
 // P1-WCS-TEST · properties 组 (F5 确定性 + 结构性质)
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 F5 + §5c 禁令 (禁止跨线程
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 F5 + §5c 禁令 (禁止跨线程
 // 浮点重结合)。冻结设计: "同输入同线程数 3 次运行 IpvWcsResult bitwise
 // 一致; 线程 1/2/4 下 bitwise 一致 (投票归并为整数求和、拟合单线程, 无跨
 // 线程浮点重结合); 若实测违背, P1-WCS-TEST 如实登记不得放宽语义"。

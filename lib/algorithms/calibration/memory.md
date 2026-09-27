@@ -5,7 +5,7 @@
 - 任务: P1-CAL-DOC（SA-P1-C14，依赖 GOV-001/ARC-001/DATA-001/DOC-001 已 CLOSED）。
   模块定位依据: MODULE_MIGRATION_MATRIX.csv P1-CAL 行 → lib/algorithms/calibration
   （astrocs.p1.calibration / astrocs_p1_calibration.dll 目标）。
-- 产物: docs/algorithms/CALIBRATION_ALGORITHMS.md 重写为 ALG-CAL-001..006
+- 产物: docs/science/algorithms/CALIBRATION_ALGORITHMS.md 重写为 ALG-CAL-001..006
   （逐公式源码锚定 + TEST-CAL-DESIGN-001 设计与冻结容差 rtol=1e-6/atol=1e-7）；
   docs/contracts/DATA_SEMANTICS.md §9（DATA-P1-CAL）；docs/contracts/
   PUBLIC_API.md（API-CAL-001，12 导出符号 + 缺陷清单）；docs/modules/

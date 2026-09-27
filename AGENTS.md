@@ -7,7 +7,7 @@
 接受任何任务前，按以下顺序读文档：
 
 1. `docs/ASTROCS_DESIGN.md` —— 项目是什么、做到什么、CLI/架构/验收（最高权威），先通读与任务相关的章节；
-2. 沿该章节末尾的**索引指针**逐层下钻：`docs/design/`（数据对象与设计细节）→ `docs/plugins/`（涉及模块的工作细节）→ `docs/science/` 与 `docs/algorithms/`（公式与推导，只读权威，不改）；
+2. 沿该章节末尾的**索引指针**逐层下钻：`docs/design/`（数据对象与设计细节）→ `docs/plugins/`（涉及模块的工作细节）→ `docs/science/` 与 `docs/science/algorithms/`（公式与推导，只读权威，不改）；
 3. `docs/contracts/` —— 涉及的 schema 与数据合同；
 4. `ENGINEERING_SPEC.md` —— 代码/测试/提交/CI 规则；
 5. `ACCEPTANCE_SPEC.md` —— 四层验收标准与预览版发布门；
@@ -105,7 +105,7 @@ flowchart LR
 ## 5. 科学工作纪律
 
 - **五个创新点是 alpha 前必须跑通的核心算法**（最高设计 §2、§12.3）：测光星等坐标系（SCI-A）、绝对 SNR 传递链（SCI-B）、平面到球面通量守恒映射算子（ALG-DRZ）、重建稠密 SNR（SCI-B 的稠密重建条款独立成点）、加性天光与无接缝（SCI-C），各自以独立实验单元呈现，必须有论文、开源代码、三类实验数据相互佐证；五组论文按 P1–P5 组织，语言参照所引文献的写作方式。
-- 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差按 `docs/science/`、`docs/algorithms/` 执行，改动走变更流程（见 §8）。
+- 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差按 `docs/science/`、`docs/science/algorithms/` 执行，改动走变更流程（见 §8）。
 - 实验数据三类齐备：HST 真实信号模板 + 完整物理前向仿真、纯解析代数合成（含"真值无效应⇒归零"负例）、testdata 真实数据（最高设计 §12.2）。
 - 判据必须非退化：真值无效应时度量归零或判红；恒真门没有证据资格。
 - 实验单元自包含：报告（假说/方法/数据/结果/结论/诚实边界/复现命令/佐证来源）、固定 seed 的 code、results、data；结论经独立子代理多轮审稿。
@@ -166,7 +166,7 @@ run/                   临时产物/日志（gitignore，不入库）；日志�
 - 一个 commit = 一个明确目的；验证后立即提交；提交消息写清"做了什么 + 依据哪条权威条款"，不写流水账与任务编号长串；
 - SubAgent 零 git 写权限；前台按序串行提交；每次 push 后 fetch 核对三 SHA 一致（HEAD=main=origin/main）。
 
-**科学疑义查证流程**：实现、测试现象与 `docs/science/` / `docs/algorithms/` 对不上，或怀疑科学文档本身有误时：
+**科学疑义查证流程**：实现、测试现象与 `docs/science/` / `docs/science/algorithms/` 对不上，或怀疑科学文档本身有误时：
 
 ```mermaid
 flowchart TD

@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：科学公式、定义、适用域、判据口径与不确定度传播规则（SCI-* 条款）。
-- 不放：算法推导与实现锚定（在 docs/algorithms/）；模块工作细节（在 docs/plugins/）；文献与一手查证（在 docs/references/ 与 docs/research/）；工程门与容差表（在 docs/algorithms/GATES_AND_TOLERANCES.md）。
+- 不放：算法推导与实现锚定（在 docs/science/algorithms/）；模块工作细节（在 docs/plugins/）；文献与一手查证（在 docs/references/ 与 docs/research/）；工程门与容差表（在 docs/science/algorithms/GATES_AND_TOLERANCES.md）。
 
 ## 内容
 

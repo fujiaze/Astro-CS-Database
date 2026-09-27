@@ -17,11 +17,11 @@
 //     §7「确定性不变量」(相同输入顺序改变不改变 cal; 逐像素独立算术,
 //     无跨像素归约) 与 §8 极端/退化条件 —— P2 的 1/N worker bitwise 一致性
 //     断言的科学层来源。
-//   ALG-CAL-001..006 — docs/algorithms/CALIBRATION_ALGORITHMS.md:
+//   ALG-CAL-001..006 — docs/science/algorithms/CALIBRATION_ALGORITHMS.md:
 //     §6「输出 bitwise 与线程数无关 (schedule(static) 行块划分不影响单像素
 //     算术)」—— P2 上位; §7 边界/invalid/退化表 (AC_ERR_PARAM、out 不写、
 //     σ≤0 禁用) —— P4/P5/P7 参数域断言上位。
-//   ALG-COS-001..005 — docs/algorithms/COSMETIC_ALGORITHMS.md §6
+//   ALG-COS-001..005 — docs/science/algorithms/COSMETIC_ALGORITHMS.md §6
 //     (复杂度/确定性/并行归约汇总) —— 本组 config 内 cosmetic 段上位。
 //   装配层契约 (非 SCI/ALG, 本层无算法公式, 见 lib/phase1_session/module.yaml):
 //     API-P1-SESSION (docs/contracts/PUBLIC_API.md「Phase1 装配会话」节)、

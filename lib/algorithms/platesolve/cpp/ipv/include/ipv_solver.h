@@ -63,7 +63,7 @@ IterativeReprojectResult iterative_reproject(
 // extract_wcs_sip: 从 TRANS 提取 WCS + SIP (U→W, 角秒)
 //
 // 流程 (与 lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp 实现一致, 见
-// docs/algorithms/PLATESOLVE.md Invariants):
+// docs/science/algorithms/PLATESOLVE.md Invariants):
 // 1. CD 矩阵: trans 线性项 / 3600 (度/像素), 直接提取
 // TRANS: U(像素)→W(角秒), 线性项单位=角秒/像素; cd_inv=inv(线性项)(像素/角秒)
 // 2. CRVAL = 收敛后中心 (ra0, dec0)
@@ -233,7 +233,7 @@ public:
     //
     // 用途: 在 solve_* 之后调用, 获取求解器内部最终 inlier 对应关系,
     // 避免外部诊断工具用 kd-tree 重新匹配导致误配。
-    // 详见 docs/algorithms/PLATESOLVE.md（IPV 解算）与 docs/contracts/PUBLIC_API.md（ipv_* C API）
+    // 详见 docs/science/algorithms/PLATESOLVE.md（IPV 解算）与 docs/contracts/PUBLIC_API.md（ipv_* C API）
     // ========================================================================
 
     // 获取最后一次成功求解的 inlier 数量

@@ -1407,7 +1407,7 @@ add_test(NAME ahpx_hips_format COMMAND ahpx_hips_format_test)
 # ----------------------------------------------------------------------------
 # P3-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — 版本化 projection registry 与
 # 冻结四投影 (TAN/SIN/CAR/AIT) 验证面
-# 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/algorithms/PHASE3_PROJ_IMPL.md) +
+# 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/science/algorithms/PHASE3_PROJ_IMPL.md) +
 # SCI-P3-001 (FROZEN, TAN 容差/守卫零改动) + 宪章 §7.3/§18.1 (首批四投影
 # registry 冻结; 新增投影须经 registry 注册并附独立往返 Oracle)。
 # 被测面: lib/algorithms/projection/p3_projection.cpp (registry v1 冻结表 + 四投影

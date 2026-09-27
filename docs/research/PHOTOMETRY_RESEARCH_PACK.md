@@ -11,7 +11,7 @@
 ## 1. 本包用途与边界
 
 - **用途**：为「把单帧图像校准到测光星等坐标系」这条链（Gaia DR3 XP 逆映射定位 → 星点测光 → 光谱×QE×透过率正向合成 → 拟合标定 → 落到像素 → 星等表达）提供**可核验的一手出处**与开源对照，使方法学不建立在对商业软件或二手转述的依赖上。
-- **不是**：不定义 Astro Celestial Sphere Database（ACSD） 的公式、容差与门限（那是 `docs/science/` 与 `docs/algorithms/` 的权威）；不复制任何 GPL 代码；不给出实验数值（数值属 SCI-401）。
+- **不是**：不定义 Astro Celestial Sphere Database（ACSD） 的公式、容差与门限（那是 `docs/science/` 与 `docs/science/algorithms/` 的权威）；不复制任何 GPL 代码；不给出实验数值（数值属 SCI-401）。
 
 ## 2. 核验口径与标记
 

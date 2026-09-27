@@ -76,6 +76,6 @@
   PUBLIC_API 尾部 API-P2-INT-001 消费面节；DOCUMENT_INDEX.yaml
   PHASE2_INTEGRATION.md/phase2_int.md/registry integrate 三处登记；
   docs/modules/phase2_int.md 新模块页。
-- 需前台 git add 的新文件（未跟踪）: docs/algorithms/
+- 需前台 git add 的新文件（未跟踪）: docs/science/algorithms/
   PHASE2_INTEGRATION.md、docs/modules/phase2_int.md、lib/algorithms/integration/
   （三件套）。

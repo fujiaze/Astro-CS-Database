@@ -37,11 +37,11 @@
   V5 SCI-007 2026-08-28，集合 SCI-P3-001..020；descriptor 占位
   SCI-P3-WR-001 不入合同，映射声明于 PHASE3_FITS_IMPL.md §映射节，
   照 P2-REJ/P2-COV 先例）；
-  ALG=ALG-P3-FITS-IMPL-001（docs/algorithms/PHASE3_FITS_IMPL.md
+  ALG=ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md
   新建，兼承接既有 ALG-P3-002（输出 WCS G1/G2）与 ALG-P3-004
   （FITS 写 G5）本域子面；ID 风格与 ALG-P2-UPM-IMPL-001 同族，
   取 -IMPL-1 避免与占位冲突；既有 ALG-P3-001..004 登记于
-  docs/algorithms/PHASE3_RESAMPLE.md 头部范围声明，ALG-P3-002/004
+  docs/science/algorithms/PHASE3_RESAMPLE.md 头部范围声明，ALG-P3-002/004
   以独立条目入 INDEX.yaml）；
   DATA=DATA-P3-FITS（descriptor/matrix 现值沿用；承载=
   DATA_SEMANTICS.md §27 新建）；
@@ -151,7 +151,7 @@
   modules=30 errors=0 warns=4（基线 warns=4 均为存量 EVID/API
   authority WARN，本任务新增 WARN 计数须持平=4）；pytest
   eng/tests/traceability 9 passed；contract graph 80→86（+6 条目）；
-  doccheck 修复存量缺口 docs/algorithms/PHASE2_UPM_IMPL.md 未登
+  doccheck 修复存量缺口 docs/science/algorithms/PHASE2_UPM_IMPL.md 未登
   DOCUMENT_INDEX（UPM-DOC 漏登，机械补登条目不改动文件内容——照
   P2-SAMP e654d4c2 补登先例）+ 本任务新文件登记 → verdict
   DOC_INDEX_PASS；selfcheck ALL PASS。

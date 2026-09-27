@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：单个模块的工作细节（职责、输入输出、边界、与相邻模块的分工）。
-- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/algorithms/）；架构与合同（在 docs/architecture/、docs/contracts/）。
+- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/science/algorithms/）；架构与合同（在 docs/architecture/、docs/contracts/）。
 
 ## 内容
 

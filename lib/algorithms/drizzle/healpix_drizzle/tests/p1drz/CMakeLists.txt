@@ -2,7 +2,7 @@
 # P1-DRZ-TEST (TEST-P1-DRZ-001) — lib/algorithms/drizzle/healpix_drizzle 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-DRZ-TEST (SA-P1D-T, queue 37, lock-P1-DRZ; 依赖 P1-DRZ-DOC
-# 闭环)。合同锚: docs/algorithms/DRIZZLE_GEOMETRY.md §9 TEST-DRZ-DESIGN-001
+# 闭环)。合同锚: docs/science/algorithms/DRIZZLE_GEOMETRY.md §9 TEST-DRZ-DESIGN-001
 # (P1-DRZ-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-DRZ (MOD
 # astrocs.p1.drizzle); SCI-DRZ-001 (docs/science/DRIZZLE.md §5/§7/§8)。
 #

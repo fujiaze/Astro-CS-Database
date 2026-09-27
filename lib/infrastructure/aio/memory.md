@@ -286,7 +286,7 @@
     `aio_hips_set_provenance`/`aio_hips_write_diag_tile` ⇒ Phase2 写节点产品
     面仍无五键、无 nrej/nused 子产品（`p2_final.json.pending_contracts` 文本随之
     过期）。AIO 侧通道已具备，接线为调用点 2~3 行改动，须 lib/infrastructure/scheduler 写域任务执行。
-  - `F-SCI-F3-001-02`（P2, docs/contracts）：`docs/algorithms/HIPS_WRITER.md:44`
+  - `F-SCI-F3-001-02`（P2, docs/contracts）：`docs/science/algorithms/HIPS_WRITER.md:44`
     与 `docs/contracts/DATA_SEMANTICS.md:307`/`PUBLIC_API.md:324` 的产品位清单
     仍是 {1,2,4,8,16}/ALL_V19（未含 32/64 与 ALL_V20）；
     `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` 的

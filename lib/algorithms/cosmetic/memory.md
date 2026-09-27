@@ -34,7 +34,7 @@ lib/algorithms/cosmetic/ 是 astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll 的
 ### 2026-09-07 P1-COS-DOC 冻结合同与 README（W1, SA-P1-COS）
 - 任务: P1-COS-DOC（依赖 GOV-001/ARC-001/DATA-001/DOC-001 CLOSED；
   与 P1-CAL-DOC 产物共存）。
-- 产物: 新建 docs/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005
+- 产物: 新建 docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005
   逐公式源码锚定 + TEST-COS-DESIGN-001 测试设计与冻结容差
   rtol=1e-6/atol=1e-7 + DISP-COS-001..011 缺陷清单）；
   docs/contracts/DATA_SEMANTICS.md §10（DATA-P1-COS）；docs/contracts/

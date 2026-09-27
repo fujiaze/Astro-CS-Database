@@ -6,7 +6,7 @@
 
 - 放：跨算法模块复用的基础实现——sha256 哈希、HEALPix 核心、标量与精度上下文公共头、Windows 目录遍历兼容头，以及共址测试。
 - 不放：属于单一算法模块的实现（在 lib/algorithms/ 的各并联模块目录）；工程基建（lib/infrastructure/）。
-- 不放：科学公式正本（docs/science/、docs/algorithms/）；本目录只提供数值实现。
+- 不放：科学公式正本（docs/science/、docs/science/algorithms/）；本目录只提供数值实现。
 
 ## 内容
 

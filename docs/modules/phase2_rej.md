@@ -15,7 +15,7 @@ downstream: [TEST-P2-REJ-001]
 > 合同三件套落位 `lib/algorithms/rejection/`
 > （README/module.yaml/memory.md，按 `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/`
 > 先例新建；`lib/algorithms/coverage/` 一目录一套已被 P2-COV 占用，不可覆盖）；
-> 合同权威=三件套 + docs/algorithms/PHASE2_REJECTION.md
+> 合同权威=三件套 + docs/science/algorithms/PHASE2_REJECTION.md
 > （ALG-P2-REJ-001，CONTRACT_READY）。descriptor 词汇
 > module_id=astrocs.phase2.reject（module_adapters.cpp:700-717，
 > 注册 :785）为编排层占位，由 P2-XX-INT 对齐 astrocs.p2.rejection
@@ -179,7 +179,7 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 - registry 页：docs/modules/registry/astrocs.phase2.reject.md
 - SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN，零改动；
   descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射声明=ALG §11.5）
-- ALG：docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）；
+- ALG：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）；
   DATA：DATA_SEMANTICS §22（DATA-P2-REJ）；API：API-P2-REJ-001
   （PUBLIC_API.md）+ 编排层 API-P2-001（FROZEN）
 

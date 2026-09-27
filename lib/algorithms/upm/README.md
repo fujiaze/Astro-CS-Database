@@ -33,9 +33,9 @@
   2026-08-23，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
   SCI-UPM-PERSIST-001，页头明示模块 "phase2 (upm/sampler)"；
   descriptor 占位 SCI-P2-UPM-001/002⇒SCI-UPM-001 映射声明于
-  docs/algorithms/PHASE2_UPM_IMPL.md §映射节，占位 ID 不入合同）
-  → ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
-  P2-UPM-DOC 新建，兼承接 ALG-UPM-001 权威推导（docs/algorithms/
+  docs/science/algorithms/PHASE2_UPM_IMPL.md §映射节，占位 ID 不入合同）
+  → ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
+  P2-UPM-DOC 新建，兼承接 ALG-UPM-001 权威推导（docs/science/algorithms/
   UPM_SOLVER.md）与 ALG-UPM-CONTROL-IVAR-001 control-ivar 权重子面）
   → DATA-P2-UPM（DATA_SEMANTICS §25，fit 侧）+ DATA-P2-COR
   （DATA_SEMANTICS §26，apply 侧 corrected 输出）/
@@ -173,8 +173,8 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 - README/module.yaml/memory.md：`lib/algorithms/upm/`（本目录）
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106
   2026-08-23，零改动）
-- ALG：docs/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，
-  P2-UPM-DOC 新建）；承接 docs/algorithms/UPM_SOLVER.md
+- ALG：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，
+  P2-UPM-DOC 新建）；承接 docs/science/algorithms/UPM_SOLVER.md
   （ALG-UPM-001）
 - DATA：docs/contracts/DATA_SEMANTICS.md §25（DATA-P2-UPM）/
   §26（DATA-P2-COR）

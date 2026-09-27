@@ -74,9 +74,9 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - SCI: SCI-P2-COV-001 ⇒ 既有 FROZEN 共享 SCI（SCI-UPM-001
   docs/science/PHASE2_UPM.md / SCI-INT-001 docs/science/INTEGRATION.md /
   SCI-SCOPE-001 docs/science/SCIENCE_SCOPE.md；共享 SCI 不改动，状态
-  声明 = docs/algorithms/PHASE2_COVERAGE.md §11.5，P1-WCS-DOC
+  声明 = docs/science/algorithms/PHASE2_COVERAGE.md §11.5，P1-WCS-DOC
   SCI-WCS-001=共享 ASTROMETRY.md 先例）。
-- ALG: **ALG-COV-001**（docs/algorithms/PHASE2_COVERAGE.md，§2 逐公式
+- ALG: **ALG-COV-001**（docs/science/algorithms/PHASE2_COVERAGE.md，§2 逐公式
   源码行号锚定 + §11.4 TEST-COV-DESIGN-001 冻结容差 + §11.3
   DISP-COV-001..005）。
 - DATA: **DATA-COV-001**（docs/contracts/DATA_SEMANTICS.md §19）。
@@ -84,7 +84,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   C API）+ 编排级 **API-P2-001**（docs/api/PHASE2_API_V1.md，FROZEN，
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
-  host_executor_lease 合同值依据 docs/algorithms/PHASE2_COVERAGE.md）。
+  host_executor_lease 合同值依据 docs/science/algorithms/PHASE2_COVERAGE.md）。
 - MOD: docs/modules/registry/astrocs.phase2.coverage.md（本模块 registry
   合同页）+ docs/modules/phase2.md（legacy 诊断页事实修订）。
 
@@ -138,7 +138,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 ## 9. oracle/property/boundary/performance/容差来源
 
-- TEST-COV-DESIGN-001（docs/algorithms/PHASE2_COVERAGE.md §11.4，
+- TEST-COV-DESIGN-001（docs/science/algorithms/PHASE2_COVERAGE.md §11.4，
   唯一权威）：F1 astropy 独立 union oracle（bitwise 相等，无浮点
   容差）→ F6 确定性/资源；可执行 TEST-P2-COV-001 由 P2-COV-TEST
   落地（EVIDENCE 届时落 EVID-*）。
@@ -185,7 +185,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 
 - module.yaml: lib/algorithms/coverage/module.yaml（CONTRACT_READY）。
 - memory: lib/algorithms/coverage/memory.md（合同冻结追加段见文末）。
-- ALG: docs/algorithms/PHASE2_COVERAGE.md；DATA:
+- ALG: docs/science/algorithms/PHASE2_COVERAGE.md；DATA:
   docs/contracts/DATA_SEMANTICS.md#§19；API:
   docs/contracts/PUBLIC_API.md#API-COV-001；编排 API:
   docs/api/PHASE2_API_V1.md；registry:

@@ -51,7 +51,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [`docs/ci/CI_SPEC.md`](docs/ci/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
 | [`docs/plugins/00_INDEX.md`](docs/plugins/00_INDEX.md) | 逐模块工作细节 |
 
-与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/algorithms/`（算法推导与符号表）、
+与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/science/algorithms/`（算法推导与符号表）、
 `docs/design/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/contracts/`（合同说明，与 `eng/contracts/`
 机器 schema 双向对应）；科学佐证纪律见 `docs/DOCUMENT_GOVERNANCE.md`。
 
@@ -59,7 +59,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 |---|---|
 | 数据对象、三类配置、逐阶段详细设计 | `docs/design/` |
 | 科学定义式、单位、适用域 | `docs/science/` |
-| 算法推导、符号表、算法级边界 | `docs/algorithms/` |
+| 算法推导、符号表、算法级边界 | `docs/science/algorithms/` |
 | 产品字段、键集、值域（文档侧） | `docs/contracts/` |
 | 机器校验 schema（机器侧唯一事实源） | `eng/contracts/` |
 | 模块工作细节 | `docs/plugins/`、`docs/modules/` |

@@ -4,7 +4,7 @@
 
 口径定义（唯一事实源，不得在别处重述数值）：
   docs/science/ASTROMETRY.md §11a（SCI-WCS-001）
-  docs/algorithms/GATES_AND_TOLERANCES.md §3（门行 G-P1-WCS-CLOSURE /
+  docs/science/algorithms/GATES_AND_TOLERANCES.md §3（门行 G-P1-WCS-CLOSURE /
   G-P1-WCS-CLOSURE-REPRO）与 §2（SNR_det 定义行）。
 
 量的语义：检出星经 WCS 前向映射后的天球位置，与其在星表中 1-最近邻星的真实

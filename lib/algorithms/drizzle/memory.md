@@ -18,7 +18,7 @@
 - 本目录三件套：README.md（模块合同 10 节）、module.yaml（11 号标准
   §4 manifest，module_status=CONTRACT_READY，entrypoint=MISSING）、
   memory.md（本文件）。
-- docs/algorithms/DRIZZLE_GEOMETRY.md 重写：ALG-DRZ-001 逐公式源码锚定
+- docs/science/algorithms/DRIZZLE_GEOMETRY.md 重写：ALG-DRZ-001 逐公式源码锚定
   + TEST-DRZ-DESIGN-001（§9）+ DISP-DRZ-001..008（§10）。
 - docs/contracts/DATA_SEMANTICS.md 追加 §11（DATA-P1-DRZ）。
 - docs/contracts/PUBLIC_API.md 追加 API-DRZ-001 节。

@@ -926,13 +926,13 @@ def run_legacy(argv: list[str] | None = None) -> int:
         "不验证估计器或实测资源")
 
     # F-024 algorithm docs absent from audit (control 包视角)
-    # 审核快照缺 docs/algorithms/*；且合同索引 ALG-P3-001 仍 DRAFT，未达 ACTIVE。
+    # 审核快照缺 docs/science/algorithms/*；且合同索引 ALG-P3-001 仍 DRAFT，未达 ACTIVE。
     alg_dir = root / "docs" / "algorithms"
     alg_mds = sorted(alg_dir.glob("*.md")) if alg_dir.is_dir() else []
     index_yaml = read(root, "docs/contracts/INDEX.yaml")
     draft_alg = "status: DRAFT" in index_yaml and "ALG-P3-001" in index_yaml
     add("F-024", "P1", draft_alg or len(alg_mds) < 5,
-        "grep -n 'ALG-P3-001\\|status: DRAFT' docs/contracts/INDEX.yaml; ls docs/algorithms/*.md",
+        "grep -n 'ALG-P3-001\\|status: DRAFT' docs/contracts/INDEX.yaml; ls docs/science/algorithms/*.md",
         [f"docs/algorithms 现有 {len(alg_mds)} 份",
          "ALG-P3-001 状态 DRAFT（审核指出 15 个 ALG/MOD 引用路径在快照缺失、Phase3 ALG 仍 DRAFT）" if draft_alg else "ALG-P3-001 已 ACTIVE"],
         "合同图不完整：Phase3 ALG 仍 DRAFT，审核快照缺算法文档")

@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：跨阶段共享的合同条款正文与机读登记（索引、注册表、锚 JSON）。
-- 不放：科学公式与算法推导（在 docs/science/ 与 docs/algorithms/）；架构叙述（在 docs/architecture/）；机器校验用 schema 正本（在 eng/contracts/）。
+- 不放：科学公式与算法推导（在 docs/science/ 与 docs/science/algorithms/）；架构叙述（在 docs/architecture/）；机器校验用 schema 正本（在 eng/contracts/）。
 
 ## 内容
 

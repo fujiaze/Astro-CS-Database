@@ -63,7 +63,7 @@ api_contracts:
   - API-P2-INT-001
 doc_links:
   sci: docs/science/INTEGRATION.md
-  alg: docs/algorithms/PHASE2_INTEGRATION.md
+  alg: docs/science/algorithms/PHASE2_INTEGRATION.md
   data: docs/contracts/DATA_SEMANTICS.md#§21
   api: docs/contracts/PUBLIC_API.md#API-P2-INT-001
 contract_ids:

@@ -309,7 +309,7 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   (i) **coverage frame_id**（本模块，路径基名截断，64 B 上限）：仅作本模块输入
   登记与 union 分组键，**不保证跨 run 稳定**、**不保证唯一**；
   (ii) **sampler/UPM frame_id**（内容 SHA-256 truncated-64，
-  `docs/algorithms/PHASE2_SAMPLER.md` §5.6 / DATA-FRAME-ID-001）：唯一持久化绑定键
+  `docs/science/algorithms/PHASE2_SAMPLER.md` §5.6 / DATA-FRAME-ID-001）：唯一持久化绑定键
   （manifest / UPM `parameter_rows ↔ frame_id`）。两者同名不同物：任何跨模块引用
   frame_id 的地方**必须**写明是哪一种；把 (i) 当 (ii) 使用会使持久化绑定在
   重命名/换根目录后失效。

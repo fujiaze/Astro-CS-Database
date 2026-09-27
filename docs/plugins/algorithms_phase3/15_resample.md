@@ -34,7 +34,7 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `sampler` | `bilinear` | —— | 重采样核（权威名 `sampler`，取值 `nearest|bilinear`，见 `docs/algorithms/PHASE3_RESAMPLE.md`） |
+| `sampler` | `bilinear` | —— | 重采样核（权威名 `sampler`，取值 `nearest|bilinear`，见 `docs/science/algorithms/PHASE3_RESAMPLE.md`） |
 | `correlation_output` | true | —— | 是否输出相关核 |
 | `order_limits` | —— | —— | 输入 order 选择约束（Nyquist） |
 

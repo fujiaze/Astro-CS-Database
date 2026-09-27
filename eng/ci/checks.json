@@ -9457,7 +9457,7 @@
       "waivable": false,
       "changed_paths": [
         "eng/tools/astrometry/**",
-        "docs/algorithms/GATES_AND_TOLERANCES.md"
+        "docs/science/algorithms/GATES_AND_TOLERANCES.md"
       ],
       "requires_monitor": false,
       "steps": [
@@ -9747,7 +9747,7 @@
         "eng/ci/ledgers/spec_named_impl_gaps.json",
         "eng/ci/check_spec_named_impl.py",
         "CMakeLists.txt",
-        "docs/algorithms/**",
+        "docs/science/algorithms/**",
         "docs/architecture/**",
         "lib/**"
       ],
@@ -9780,7 +9780,7 @@
             "eng/ci/ledgers/spec_named_impl_gaps.json",
             "eng/ci/check_spec_named_impl.py",
             "CMakeLists.txt",
-            "docs/algorithms/**",
+            "docs/science/algorithms/**",
             "docs/architecture/**",
             "lib/**"
           ],
@@ -13005,7 +13005,7 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "docs/algorithms/GATES_AND_TOLERANCES.md",
+        "docs/science/algorithms/GATES_AND_TOLERANCES.md",
         "docs/DOCUMENT_INDEX.yaml"
       ],
       "requires_monitor": false

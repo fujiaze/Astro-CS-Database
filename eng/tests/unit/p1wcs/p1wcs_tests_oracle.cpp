@@ -1,6 +1,6 @@
 // P1-WCS-TEST · oracle 组 (期望值非被测函数生成 — 模板 <prefix>-TEST §3 验收)
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §8 (Oracle) + §11.4 F2 (SIP 场
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §8 (Oracle) + §11.4 F2 (SIP 场
 // oracle, astropy 语义隔离实现: |Δ|≤1e-4 px 于中心 90% 区域, 冻结不放宽)。
 // 独立性: 本组期望值全部由 p1wcs_oracle.hpp 推导 (球面三角闭式解/Cramer
 // 法则/inv(M)·q 映射/固定点逆解), 不调用 iter_trans_solve/extract_wcs_sip

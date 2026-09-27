@@ -8,7 +8,7 @@
 > FROZEN，零改动；矩阵行 science_id 引用的
 > SCI-P3-RES-001 为 MISSING 占位，本域全部科学内容映射声明为
 > SCI-P3-001，见 §5）。承接既有 ALG-P3-003 本域子面（G3/G4 施工规格，
-> docs/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
+> docs/science/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/resample/p3_resample.h（201 行，唯一权威签名头）+
@@ -132,7 +132,7 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
   FROZEN）为唯一权威，映射关系
   `SCI-P3-RES-001 ⇒ SCI-P3-001`；矩阵行 id 占位保持原样（
   占位词汇与权威文档分离），由 SCI 层统一改名，本域不改 docs/science/。
-- ALG 层: docs/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 施工规格）
+- ALG 层: docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 施工规格）
   §2 的 **G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
   其全部公式（零改动，§6 给出等价性核对）。G1/G2（投影）属
   ALG-P3-PROJ-IMPL-001，G5（FITS 写）属 writer 域，不在本合同。
@@ -403,7 +403,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 - 本任务对 docs/science/PHASE3_HIPS_TO_FITS.md 零改动（git status
   验证）；全部科学公式/容差/拒绝清单以 SCI-P3-001 FROZEN V5 为准。
-- ALG 层: docs/algorithms/PHASE3_RESAMPLE.md 仅做表述级修订
+- ALG 层: docs/science/algorithms/PHASE3_RESAMPLE.md 仅做表述级修订
   （tile cache 逐出表述、实现锚补记、§3 伪代码与 G4/§4 口径对齐），G1-G5 公式零改动。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

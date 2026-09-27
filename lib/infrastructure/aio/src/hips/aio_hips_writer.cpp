@@ -1188,7 +1188,7 @@ AioHipsProductSet* aio_hips_product_begin(
         // 上界 2^29(实现域): NESTED 计数 Npix=12·nside² 在 nside=2^29 时为 12·2^58
         // < 2^63(uint64 域内); nside>2^29 时该积将溢出/越出可寻址 tile 域, 且
         // tile_order=leaf_order-9 亦超出 MOC 阶实际可用范围 ⇒ 与非法 nside 同类拒绝。
-        // 依据: docs/algorithms/HIPS_WRITER.md §1(1a) "叶级 nside=2^K>=512";
+        // 依据: docs/science/algorithms/HIPS_WRITER.md §1(1a) "叶级 nside=2^K>=512";
         //       API-HIPS-001 契约 aio_hips.h:101 "nside - 叶级 NSIDE (2 的幂, >= 512)";
         //       §9 负面矩阵"nside<512"(扩展到非 2 的幂/越上界同类非法输入);
         //       docs/ASTROCS_DESIGN.md 附录 B IVOA HiPS 1.0 / Górski 2005 (Npix=12·nside²)。

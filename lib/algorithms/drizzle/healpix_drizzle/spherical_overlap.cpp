@@ -1,6 +1,6 @@
 // ============================================================================
 // 球面 HEALPix 重叠计算模块实现 (WP-D 步骤3-4)
-// 文档锚点: docs/algorithms/DRIZZLE_GEOMETRY.md § bounded target-ipix geometry cache
+// 文档锚点: docs/science/algorithms/DRIZZLE_GEOMETRY.md § bounded target-ipix geometry cache
 // ALG-DRZ-GEOM-CACHE-001: TargetGeomCache LRU 8192 线程私有 run generation 切换清空
 //
 // 替换 drizzle_engine.cpp 中的局部切平面近似 + 人工 HEALPix 菱形近似,
@@ -1870,7 +1870,7 @@ template void query_candidate_pixels_fast<double>(
 // 生产路径在该情形下**直接复用 drop_area** (不调用本函数) 以保证逐位不变。
 // 定义置于文件末尾: 依赖上方 static planar_polygon_area_n, 且**不位移**任何
 // 既有行号 (docs/algorithms/anchors/anchor_contract.json 的 DRZ-MAXANGLE 绑定
-// 以文档行锚校验 drop_area 所在行, 见 docs/algorithms/DRIZZLE_GEOMETRY.md §10)。
+// 以文档行锚校验 drop_area 所在行, 见 docs/science/algorithms/DRIZZLE_GEOMETRY.md §10)。
 // ============================================================================
 double polygon_area_consistent(const Vec3* vertices, int n) {
     if (vertices == nullptr || n < 3) return 0.0;

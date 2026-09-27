@@ -4,7 +4,7 @@
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §11
 // - lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md (Tile 几何冻结接口)
-// - docs/algorithms/HIPS_WRITER.md (Tile 父子模型)
+// - docs/science/algorithms/HIPS_WRITER.md (Tile 父子模型)
 //
 // 实现要点:
 // 1. depth = min(9, log2(NSIDE/16)) — 满 Tile 最多 4^9=262144 叶像素

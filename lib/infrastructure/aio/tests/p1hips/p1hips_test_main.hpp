@@ -1,7 +1,7 @@
 // P1-HIPS-TEST · 测试执行器框架 (单执行器 + 单测组注册 + 故障注入)
 //
 // 控制包任务: P1-HIPS-TEST (SA-P1H-T, queue 39, lock-P1-HIPS; 依赖
-// P1-HIPS-DOC 闭环)。合同锚: docs/algorithms/HIPS_WRITER.md §9
+// P1-HIPS-DOC 闭环)。合同锚: docs/science/algorithms/HIPS_WRITER.md §9
 // TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结, 2026-09-07); 矩阵行 P1-HIPS
 // (MOD astrocs.phase1.hips-writer, TEST-P1-HIPS-001); 模块登记页
 // docs/modules/registry/astrocs.phase1.hips-writer.md。

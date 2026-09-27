@@ -1,6 +1,6 @@
 // P1-WCS-TEST · FIX-WCS-A..E 合成 fixture generator
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001
 // (P1-WCS-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-WCS (MOD
 // astrocs.p1.plate_solve, TEST-WCS-001/INV/FAIL)。
 //

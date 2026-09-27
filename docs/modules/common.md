@@ -49,7 +49,7 @@
 
 ## Science IDs
 
-SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；详见 `docs/science/DRIZZLE.md` / `PHASE2_UPM.md` / `docs/contracts/DATA_SEMANTICS.md` §5 + `docs/algorithms/HEALPIX_MAPPING.md` B4-01。
+SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；详见 `docs/science/DRIZZLE.md` / `PHASE2_UPM.md` / `docs/contracts/DATA_SEMANTICS.md` §5 + `docs/science/algorithms/HEALPIX_MAPPING.md` B4-01。
 
 ## Tests
 

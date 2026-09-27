@@ -1,6 +1,6 @@
 /* B4-13 缓存键/并发精细化锚点（不改算法/并发，仅文档化）：
  * - Cache key（精确匹配）: ra/dec/radius/mag_low/mag_high (double逐位) + db_type/file_count (dataset identity) + version=GAIA_CACHE_VERSION(2) — 见 lib/infrastructure/gaia_xpsd_client/src/gaia_client.c:112-128 (QueryCacheEntry) / 427-472 (query_cache_lookup) / 74-75 (GAIA_CACHE_VERSION)；不做量化舍入，命中即同一查询精确重复。
- * - 容量/生命周期: QueryCache 64条 (QUERY_CACHE_CAPACITY) + 总字节上限 QUERY_CACHE_MAX_BYTES = 64×200000×3×sizeof(double) = 307,200,000 B（模块 plan 合同值 kQueryCacheCap, 见 module_entry.c）/ TTL 60s (QUERY_CACHE_TTL_SEC)，事务性替换（先全分配成功再释放旧条目）+ 版本/过期校验失效 + 超限按 LRU (last_access) 淘汰；BlockCache 8192槽/文件 (BLOCK_CACHE_CAPACITY, 2^n) / **客户端级总预算** 4GB (BLOCK_CACHE_MAX_MEMORY, 由 GaiaClient.block_budget 在所有 XPSD 文件间共享) + 内存压力淘汰1/4 LRU — 见 lib/infrastructure/gaia_xpsd_client/src/gaia_client.c 缓存配置/解压块缓存函数/查询结果缓存函数；契约见 docs/algorithms/GAIA_QUERY.md Postconditions/Invariants/并行模型 与 docs/architecture/CACHE_POLICY.md Gaia查询缓存行。
+ * - 容量/生命周期: QueryCache 64条 (QUERY_CACHE_CAPACITY) + 总字节上限 QUERY_CACHE_MAX_BYTES = 64×200000×3×sizeof(double) = 307,200,000 B（模块 plan 合同值 kQueryCacheCap, 见 module_entry.c）/ TTL 60s (QUERY_CACHE_TTL_SEC)，事务性替换（先全分配成功再释放旧条目）+ 版本/过期校验失效 + 超限按 LRU (last_access) 淘汰；BlockCache 8192槽/文件 (BLOCK_CACHE_CAPACITY, 2^n) / **客户端级总预算** 4GB (BLOCK_CACHE_MAX_MEMORY, 由 GaiaClient.block_budget 在所有 XPSD 文件间共享) + 内存压力淘汰1/4 LRU — 见 lib/infrastructure/gaia_xpsd_client/src/gaia_client.c 缓存配置/解压块缓存函数/查询结果缓存函数；契约见 docs/science/algorithms/GAIA_QUERY.md Postconditions/Invariants/并行模型 与 docs/architecture/CACHE_POLICY.md Gaia查询缓存行。
  * - 并发/线程安全: GaiaClient.cache_lock 互斥（Win32 CRITICAL_SECTION / POSIX pthread_mutex_t, cache_lock/cache_unlock）包裹 query_cache_lookup/insert — 查询串行+缓存互斥，符合 docs/architecture/THREADING_MODEL.md「cache必须线程安全或单线程互斥访问」、docs/architecture/ERROR_MODEL.md 归类与 docs/architecture/OWNERSHIP_AND_LIFETIME.md 生命周期；极区剪枝见下 — thread-safe。
  */
 /* GAIA_QUERY RA 环绕与极区保守剪枝锚点（B4-12，与 B2-06 对齐，不改算法）：
@@ -12,8 +12,8 @@
  *   C=π/2 / C45=π/(2√2)，平面盘 B(q,C·radius) 不相交则拒绝，false_negative=0）；
  *   跨 ±45° 边界或 θ_q+radius>90° 时保守不剪枝。
  * - 坐标契约: J2000，与 lib/algorithms/platesolve 共享 TAN/SIP 坐标约定
- *  （见 docs/algorithms/PLATESOLVE.md 数值风险段 / docs/science/ASTROMETRY.md
- *   失效条件 / docs/algorithms/GAIA_QUERY.md 数值风险段），无分叉；
+ *  （见 docs/science/algorithms/PLATESOLVE.md 数值风险段 / docs/science/ASTROMETRY.md
+ *   失效条件 / docs/science/algorithms/GAIA_QUERY.md 数值风险段），无分叉；
  *   锥形查询为球面角距判定（Haversine 余弦定理），与 SIP 畸变几何正交、
  *   SIP 仅由 plate_solve 侧 WCS 前向/逆向处理（SCI-AST-001）。
  */

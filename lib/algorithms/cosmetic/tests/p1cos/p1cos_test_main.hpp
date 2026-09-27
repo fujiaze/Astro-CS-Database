@@ -1,7 +1,7 @@
 // P1-COS-TEST · 测试执行器框架 (单执行器 + 单测组注册 + 故障注入)
 //
 // 控制包任务: P1-COS-TEST (SA-P1O-T, queue 34, lock-P1-COS; 依赖 P1-COS-DOC 闭环)
-// 合同锚: docs/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
+// 合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
 //        (P1-COS-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-COS (MOD
 //        astrocs.p1.cosmetic, TEST-P1-COS-001)。
 //

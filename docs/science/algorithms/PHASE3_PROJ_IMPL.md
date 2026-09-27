@@ -7,7 +7,7 @@
 
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 同步口径见 §14）；承接 ALG-P3-002 本域子面
-> （G1/G2 施工规格，docs/algorithms/PHASE3_RESAMPLE.md）。
+> （G1/G2 施工规格，docs/science/algorithms/PHASE3_RESAMPLE.md）。
 > **本域现行口径**：§15 依据 = `ASTROCS_DESIGN.md` §5.3 八投影 +
 > registry v3（CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ v1 偏差表；
 > §14 = 以独立证据判定、不预设谁为准。订正原则见 `ENGINEERING_SPEC.md` §3。
@@ -142,7 +142,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
   映射连续定义、TAN-only↔§9a-3、极点拒/半球↔§4+§9a-6、roundtrip
   容差↔§7 不变量（<1e-8 px FP64，生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））与 §9a-12、FOV≤20°/中心距极点
   ≥5°↔§9a-12；descriptor 占位 ID 不入合同，由 P3-PROJ-INT 对齐。
-- ALG-P3-002（docs/algorithms/PHASE3_RESAMPLE.md §2 施工规格，
+- ALG-P3-002（docs/science/algorithms/PHASE3_RESAMPLE.md §2 施工规格，
   DERIVED V5 ALG-007）: 本域子面=**G1（输出 WCS 构造）+G2（反向
   映射）**，实现承接于 p3_wcs.cpp（§6/§7）；G3/G4/G5 属重采样/写出
   域（ALG-P3-003/004→ALG-P3-FITS-IMPL-001），非本合同。既有
@@ -255,7 +255,7 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 独立不变量 + §9a-12 冻结。**适用域**：`scale ≥ min_scale_arcsec = 0.9″/px`
 （覆盖仓内最小真实尺度 0.9586″/px）；低于该尺度时紧门**不适用**（报「超出适用域」，
 **不判红**——判红会误拒），退回**全域保守门 1e-6 px**（SCI-WCS-001 §11 STD-F1）。
-门值/适用域/证据 = 门表 `docs/algorithms/GATES_AND_TOLERANCES.md` §3 的
+门值/适用域/证据 = 门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 的
 G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 `run/GATE-DERIVE-01/REPORT.md`（TAN 闭式截断项恒等于 0 ⇒ 误差 100% 来自 FP64 舍入）。
 解析oracle回归现状由
@@ -387,7 +387,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001）的 TAN 面（§5 G1/G2、
   §9a-3 TAN-only、§7 容差）仍为 alpha 会话冻结口径，本文件与其一致。
 - **订正原则（`ENGINEERING_SPEC.md` §3）**：`docs/science/**` 与
-  `docs/algorithms/**` 必须科学正确。当独立证据（外部标准/文献/可复跑实验）
+  `docs/science/algorithms/**` 必须科学正确。当独立证据（外部标准/文献/可复跑实验）
   证明文档与标准或事实不符时，**订正文档是义务**；反之文档已被证明正确而
   实现不符时，改实现。**权威方向 = 从 SCI 到实现**：不接受「以代码为准」式权威
   倒置表述；「文档已冻结」只表取值的当前状态，已知错误照改。

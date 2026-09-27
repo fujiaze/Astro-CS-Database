@@ -1601,7 +1601,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/UPM_SOLVER.md",
+        "file": "docs/science/algorithms/UPM_SOLVER.md",
         "kind": "substring",
         "locator": "FZ-AP2S-RANK-RTOL",
         "contains": "1e-10",
@@ -1626,7 +1626,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/UPM_SOLVER.md",
+        "file": "docs/science/algorithms/UPM_SOLVER.md",
         "kind": "substring",
         "locator": "FZ-AP2S-KAPPA-MAX",
         "contains": "1e6",
@@ -1651,7 +1651,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/UPM_SOLVER.md",
+        "file": "docs/science/algorithms/UPM_SOLVER.md",
         "kind": "substring",
         "locator": "FZ-AP2S-UPM-MINFRAMES",
         "contains": "2",
@@ -1676,7 +1676,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/UPM_SOLVER.md",
+        "file": "docs/science/algorithms/UPM_SOLVER.md",
         "kind": "substring",
         "locator": "FZ-AP2S-IDENT-RTOL",
         "contains": "1e-9",
@@ -1751,7 +1751,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/PHASE2_REJECTION.md",
+        "file": "docs/science/algorithms/PHASE2_REJECTION.md",
         "kind": "substring",
         "locator": "FZ-AP2S-REJ-CALIB-BINMIN",
         "contains": "50",
@@ -1776,7 +1776,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/PHASE2_REJECTION.md",
+        "file": "docs/science/algorithms/PHASE2_REJECTION.md",
         "kind": "substring",
         "locator": "FZ-AP2S-REJ-CALIB-ABS",
         "contains": "0.10",
@@ -1801,7 +1801,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/algorithms/PHASE2_REJECTION.md",
+        "file": "docs/science/algorithms/PHASE2_REJECTION.md",
         "kind": "substring",
         "locator": "FZ-AP2S-REJ-BSS-MIN",
         "contains": "0.10",
@@ -1826,7 +1826,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/algorithms/PHASE2_REJECTION.md",
+        "file": "docs/science/algorithms/PHASE2_REJECTION.md",
         "kind": "substring",
         "locator": "sigma 4.0/3.0/8iter",
         "contains": "large_scale min_structure 8/low 2/high 2",
@@ -1851,7 +1851,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/algorithms/UPM_SOLVER.md",
+        "file": "docs/science/algorithms/UPM_SOLVER.md",
         "kind": "substring",
         "locator": "Huber `δ=1.345`",
         "contains": "tol=1e-6",
@@ -4121,7 +4121,7 @@
       },
       {
         "retired": "ALG-P2-SURF-GLS.md",
-        "current": "docs/algorithms/UPM_SOLVER.md"
+        "current": "docs/science/algorithms/UPM_SOLVER.md"
       },
       {
         "retired": "ALG-P2-SURF-PIXIVAR-GATE.md",
@@ -4129,11 +4129,11 @@
       },
       {
         "retired": "ALG-P2-SURF-REJECTION.md",
-        "current": "docs/algorithms/PHASE2_REJECTION.md"
+        "current": "docs/science/algorithms/PHASE2_REJECTION.md"
       },
       {
         "retired": "ALG-P2-SURF-UPM.md",
-        "current": "docs/algorithms/UPM_SOLVER.md"
+        "current": "docs/science/algorithms/UPM_SOLVER.md"
       },
       {
         "retired": "ALG-P3-001_VERIFICATION.md",

@@ -13,7 +13,7 @@ downstream: [TEST-HIPS-DESIGN-001]
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
 
 > 本页为 HiPS writer 模块合同登记页。事实源：lib/algorithms/drizzle/hips/README.md、module.yaml、
-> docs/algorithms/HIPS_WRITER.md、docs/contracts/DATA_SEMANTICS.md §12、
+> docs/science/algorithms/HIPS_WRITER.md、docs/contracts/DATA_SEMANTICS.md §12、
 > docs/contracts/PUBLIC_API.md API-HIPS-001、
 > docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-hips-writer 行。
 

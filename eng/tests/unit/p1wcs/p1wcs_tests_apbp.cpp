@@ -1,6 +1,6 @@
 // P1-WCS-TEST · apbp 组 (WCS-003: AP/BP 布局扩展 + 消费方迭代式反演冻结门)
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 F2 (SIP 前向/逆向 roundtrip
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 F2 (SIP 前向/逆向 roundtrip
 // |Δ|≤1e-4 px, 冻结不放宽); owner 裁决 1 选 B (2026-09-09): AP/BP 布局扩展
 // + 消费方迭代式反演, 恢复冻结门, 不接受缩小 fixture 畸变量级。
 // **分层门**（GATE-WCS-01 裁决 2; 依据 run/GATE-DERIVE-01/REPORT.md §5.4/§6.3）:

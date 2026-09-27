@@ -17,7 +17,7 @@ downstream: [TEST-P2-INT-001]
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
 > astrocs.phase2.coverage.md）。frontmatter 的 source_commit/upstream/
 > downstream 为 registry 生成词，保持不动；合同权威=lib/algorithms/integration/
-> 三件套 + docs/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）。
+> 三件套 + docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）。
 > descriptor 词汇（本节标题 module_id=astrocs.phase2.integrate、端口
 > 表、坐标 PIXEL）为编排层占位（module_adapters.cpp:719-737
 > p2_integrate_descriptor，注册 :785），由 P2-XX-INT 对齐

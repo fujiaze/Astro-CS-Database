@@ -34,7 +34,7 @@ downstream: [TEST-P3-WR-001]
   p3_output.h（166 行）+ WCS 关键字源 p3_wcs.h（166 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007）→ ALG-P3-FITS-IMPL-001
-  （docs/algorithms/PHASE3_FITS_IMPL.md，兼承接 ALG-P3-002/004 本域
+  （docs/science/algorithms/PHASE3_FITS_IMPL.md，兼承接 ALG-P3-002/004 本域
   子面）→ DATA-P3-FITS（DATA_SEMANTICS §27）+ API-P3-FITS-001
   （PUBLIC_API.md Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001
   （登记面=TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED，见 §9 双重

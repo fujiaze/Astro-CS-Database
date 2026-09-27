@@ -62,7 +62,7 @@ finalize 层，covered_area≤0 → variance NaN）。
 ## Science IDs
 
 SCI-DRZ-001/014/015/016（docs/science/DRIZZLE.md，FROZEN）；
-ALG-DRZ-001（docs/algorithms/DRIZZLE_GEOMETRY.md，含 TEST-DRZ-
+ALG-DRZ-001（docs/science/algorithms/DRIZZLE_GEOMETRY.md，含 TEST-DRZ-
 DESIGN-001 与 DISP-DRZ-001..008）；DATA-P1-DRZ；API-DRZ-001；
 MOD-astrocs-phase1-drizzle（lib/algorithms/drizzle/module.yaml）。
 
@@ -81,7 +81,7 @@ false_negative=0）；计数 METRIC-P1-DRZ-CANDIDATES 等
   geometry_cache_hits / geometry_cache_misses（DrizzleStats +
   [ops] 行）；
 - 科学等价：candidate oracle 9003/0、freeze 42/42、UPMW-005 MC
-  k_corr=1.3883 不变（标定几何专属单次 MC 实测，见 D-08）；详见 docs/algorithms/DRIZZLE_GEOMETRY.md。
+  k_corr=1.3883 不变（标定几何专属单次 MC 实测，见 D-08）；详见 docs/science/algorithms/DRIZZLE_GEOMETRY.md。
 
 ## Tests
 

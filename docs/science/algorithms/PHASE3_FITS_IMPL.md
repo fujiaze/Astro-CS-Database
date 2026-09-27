@@ -6,7 +6,7 @@
 > 逐符号源码行号锚定 + 冻结容差 + 现状缺陷登记。科学语义权威=SCI-P3-001
 > （docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 集合 SCI-P3-001..020，零改动）；推导级算法权威=ALG-P3-001..004
-> （docs/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本域不改动其
+> （docs/science/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本域不改动其
 > 公式；G1/G2 WCS 构造与 G5 FITS 写公式的本域实现子面由本文档承接）。
 > 模块: lib/algorithms/fits_output/p3_output.cpp（1082 行）+ 唯一权威签名头
 > lib/algorithms/fits_output/p3_output.h（166 行）+ WCS 关键字源
@@ -335,7 +335,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   全域保守门 `roundtrip_tol_global_px = 1e-6 px`（覆盖全部真实仪器尺度，
   代价是判别力弱）、`max_fov_deg = 20°`、`max_abs_crval_dec_deg = 85°`、
   `envelope_c_env = 128`（解析包络设计常数，实测 max 78）。门值/适用域/推导
-  以 `docs/algorithms/GATES_AND_TOLERANCES.md` §3 与 `run/GATE-DERIVE-01/REPORT.md`
+  以 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 与 `run/GATE-DERIVE-01/REPORT.md`
   为准。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
   它只用于"是否触发人工复核"，**合同容差 = §3 门值**；
   常数场 0（bilinear 权重和=1 构造保证）；
@@ -417,7 +417,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   csv :20 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
   手写页 + docs/modules/phase3_fits.md。
-- 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/algorithms/
+- 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/science/algorithms/
   PHASE3_RESAMPLE.md（公式/容差零改动）、lib/ 生产源、third_party/
   cfitsio、eng/ci/、eng/tools/、eng/tests/ 本任务零触碰；发现的实现偏差全部
   登记（§14）不反向修改 SCI（模板红线）。

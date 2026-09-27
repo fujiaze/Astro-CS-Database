@@ -2,7 +2,7 @@
 # P1-PHOT-TEST (TEST-P1-PHOT-001) — lib/algorithms/photometry 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-PHOT-TEST (lock-P1-PHOT; 依赖 P1-PHOT-DOC 闭环)。合同锚:
-# docs/algorithms/PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC
+# docs/science/algorithms/PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC
 # 冻结, 2026-09-07); docs/science/PHOTOMETRY.md §11 (SCI-PHOT-001 FROZEN);
 # 矩阵行 P1-PHOT (MOD-astrocs-phase1-photometry, API-PHOT-001 六导出)。
 #

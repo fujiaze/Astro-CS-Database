@@ -14,7 +14,7 @@
  *     acs_kernel_desc_v1 / run_kernel 签名; ABI-001);
  *   - lib/include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
  *   - lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h (CPU-001 os_safe 平面);
- *   - ALG-001/002/004/005/006/008/009/P3-002 离散公式 (docs/algorithms/);
+ *   - ALG-001/002/004/005/006/008/009/P3-002 离散公式 (docs/science/algorithms/);
  *   - 12 个已注册 kernel 的算法/序与 lib/infrastructure/benchmark/backend_host/baseline_kernels_impl.inc
  *     (ABI-003 冻结实现) 逐位一致 —— 本 provider 是 legacy baseline backend
  *     的正式 provider 形态迁移 (CPU-002), 不改变科学值语义。

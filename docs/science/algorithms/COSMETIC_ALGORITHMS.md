@@ -410,7 +410,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   CONTRACT_READY；lib/algorithms/cosmetic/README.md 实现事实）。
 - TEST: TEST-COS-DESIGN-001（本文档 §9）；可执行 TEST-P1-COS-001 由
   P1-COS-TEST 建立。
-- 摘要引用: ALG-CAL-004（docs/algorithms/CALIBRATION_ALGORITHMS.md §3.4，
+- 摘要引用: ALG-CAL-004（docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.4，
   P1-CAL 合同视角同一实现）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

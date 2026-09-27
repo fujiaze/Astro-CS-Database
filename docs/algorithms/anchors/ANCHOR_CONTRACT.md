@@ -11,7 +11,7 @@
 ## 1 适用范围
 
 作用域 = `anchor_contract.json.doc_globs` 命中的全部 Markdown，现为 **`docs/**/*.md`**
-（DOC-DRIFT-FIX-01 由 `docs/science/*.md` + `docs/algorithms/*.md` 扩到全 docs 面；
+（DOC-DRIFT-FIX-01 由 `docs/science/*.md` + `docs/science/algorithms/*.md` 扩到全 docs 面；
 旧作用域只覆盖两目录，`docs/contracts/**`、`docs/modules/**` 的行数锚与边界锚长期无门）。
 锚形态：
 
@@ -122,22 +122,22 @@ C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须
 
 **已订正的漂移锚（按文档）**：
 
-- `docs/algorithms/PHASE3_FITS_IMPL.md`：`p3_output.cpp` 关键字块整体下移（CTYPE1/2、
+- `docs/science/algorithms/PHASE3_FITS_IMPL.md`：`p3_output.cpp` 关键字块整体下移（CTYPE1/2、
   CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BSCALE/BZERO、BUNIT、HIPSID..SWVER
   共 8 组）＋ `p3_session.cpp` 的 hardware_concurrency / std::thread ＋
   `cfitsio_io_mutex`（并订正文件名 mutex.h → aio_cfitsio_mutex.h）。
-- `docs/algorithms/PLATESOLVE.md`：`ipv_entry.cpp` C API 13 个锚整体 +29 行
+- `docs/science/algorithms/PLATESOLVE.md`：`ipv_entry.cpp` C API 13 个锚整体 +29 行
   （`ipv_api.h` 侧锚核对无误，未改）。
 - `docs/science/REJECTION.md`：`rejection.h` 状态枚举三行 +1/+1/+2。
 - `docs/science/CALIBRATION.md`：`calibrator.cpp:84` → `:86`（文档原文即引述该 if）。
-- `docs/algorithms/NOISE_ESTIMATION.md`：`snr_estimator.h:107` → `:112`、
+- `docs/science/algorithms/NOISE_ESTIMATION.md`：`snr_estimator.h:107` → `:112`、
   `default_config :312` → `:333`、`CMakeLists.txt:435-438` → `:490-493`、
   `:513` → `:556`、`noise_model.cpp:179-200` → `:179-204`。
-- `docs/algorithms/CALIBRATION_ALGORITHMS.md` / `COSMETIC_ALGORITHMS.md`：
+- `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` / `COSMETIC_ALGORITHMS.md`：
   `CMakeLists.txt:321-333` → `:373-380`（`astrocs_calibration` 目标）。
-- `docs/algorithms/PHASE3_RSMP_IMPL.md`：`module_adapters.cpp:425-439` → `:498`
+- `docs/science/algorithms/PHASE3_RSMP_IMPL.md`：`module_adapters.cpp:425-439` → `:498`
   （`p3_resample2_descriptor`）。
-- `docs/algorithms/DRIZZLE_GEOMETRY.md`：DISP-DRZ-001 双方锚由 `api.cpp:88-92`
+- `docs/science/algorithms/DRIZZLE_GEOMETRY.md`：DISP-DRZ-001 双方锚由 `api.cpp:88-92`
   订正为 `hp_drizzle_api.cpp:98-103`。
 
 ## 7 DOC-DRIFT-FIX-01：作用域扩展与新增判据的实测结果

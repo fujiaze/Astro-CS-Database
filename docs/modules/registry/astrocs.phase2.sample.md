@@ -21,7 +21,7 @@ downstream: [TEST-P2-SMP-001]
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
 > frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
 > 保持不动；合同权威=lib/algorithms/sampling/ 三件套 +
-> docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）。descriptor
+> docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.sample、端口表、坐标
 > PIXEL）为编排层占位（module_adapters.cpp:642-654
 > p2_sample_descriptor），由 P2-XX-INT 对齐 astrocs.p2.sampling
@@ -166,6 +166,6 @@ DISP-P2SMP-001..005（上节，登记不改码）；本页旧派生内容
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG
   §11.4）
-- ALG：docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；
+- ALG：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；
   DATA：DATA_SEMANTICS §23（DATA-P2-SMP）；API：API-P2-SMP-001
   （PUBLIC_API.md）+ 编排层 API-P2-001（FROZEN）

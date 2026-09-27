@@ -16,7 +16,7 @@ downstream: [TEST-P2-SMP-001]
 > `lib/algorithms/sampling/`（README/module.yaml/memory.md，按
 > `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 一目录
 > 一套已被 P2-COV 占用，不可覆盖）；合同权威=三件套 +
-> docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
+> docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
 > CONTRACT_READY）。descriptor 词汇 module_id=astrocs.phase2.sample
 > （module_adapters.cpp:642-654）为编排层占位，由 P2-XX-INT 对齐
 > astrocs.p2.sampling（MODULE_MIGRATION_MATRIX P2-SAMP 行）；冻结依据 = 该矩阵行本身，本页 descriptor 词汇只作对齐说明，以免
@@ -194,6 +194,6 @@ lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG
   §11.4）
-- ALG：docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；
+- ALG：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；
   DATA：DATA_SEMANTICS §23（DATA-P2-SMP）；API：API-P2-SMP-001
   （PUBLIC_API.md）+ 编排层 API-P2-001（FROZEN）

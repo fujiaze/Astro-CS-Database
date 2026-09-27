@@ -2,7 +2,7 @@
 // P1-PSF-TEST · 固定 seed fixture generator (FIX-PSF-A..F)
 // ----------------------------------------------------------------------------
 // 控制包任务: P1-PSF-TEST (queue 45, lock-P1-PSF; 依赖 P1-PSF-DOC 闭环)。
-// 合同锚: docs/algorithms/STAR_PSF_ALGORITHMS.md §11 TEST-PSF-DESIGN-001;
+// 合同锚: docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11 TEST-PSF-DESIGN-001;
 // lib/algorithms/psf/README.md (P1-PSF-DOC 冻结合同, 2026-09-08)。
 //
 // splitmix64 固定 seed 谱系 (对齐 p1cal/p1cos/p1drz/p1hips): 所有伪随机量

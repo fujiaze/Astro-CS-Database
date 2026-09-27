@@ -15,7 +15,7 @@
 //
 // 单位/约定（权威=docs/science、docs/algorithms、lib/phase* 实现与 api 文档，勿臆测）：
 //   - 图像/输出平面尺寸一律像素(px)；角尺度 deg/px；HiPS order=properties hips_order
-//     （0..20，docs/algorithms/HEALPIX_MAPPING.md + p3 hips_properties.h kMaxOrder=20）；
+//     （0..20，docs/science/algorithms/HEALPIX_MAPPING.md + p3 hips_properties.h kMaxOrder=20）；
 //   - tile 宽 W=512（lib/phase3_session/hips_properties.h kHipsTileWidth=512；P2
 //     coverage.cpp 同样拒绝 tw!=512）；
 //   - 每 tile FITS float 像素数 = W*W，字节 = W*W*4（f32 输入，SCALE 输入单精度）；

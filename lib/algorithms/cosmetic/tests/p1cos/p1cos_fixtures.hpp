@@ -1,6 +1,6 @@
 // P1-COS-TEST · FIX-COS-A..F 合成 fixture generator
 //
-// 合同锚: docs/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
+// 合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
 // (P1-COS-DOC 冻结, 2026-09-07, wave W1); 上游 SCI-CAL-001 (§2 参数表 /
 // §6 坏点稀疏假设 / §9a mask 极性 1=坏点 / §11 oracle 容差标度)。
 //

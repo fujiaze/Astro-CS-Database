@@ -9,7 +9,7 @@
 > 本文件为遗留设计稿，**不得作为权威**；其中物理推导与数值多处失实：`F_syn` **不等于**
 > 未衰减仪器流量；生产积分网格为 **1.0 nm**（原文 `0.1 nm` 失实）；合成测光精度**不由
 > Akima 插值决定**（主项为通带/大气未建模项）。现行权威为 `docs/science/PHOTOMETRY.md`
-> （SCI-PHOT-001）+ `docs/algorithms/PHOTOMETRIC_FIT.md` §13 +
+> （SCI-PHOT-001）+ `docs/science/algorithms/PHOTOMETRIC_FIT.md` §13 +
 > `lib/algorithms/photometry/README.md` r1（CONTRACT_READY）。
 > <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S9) -->
 
@@ -344,7 +344,7 @@ I_cal(x, y) = (I(x, y) - S(x, y)) / M(x, y)
 校正后图像乘以全局缩放因子，使所有 Gaia 参考星的平均校正通量等于其平均合成通量：
 
 ```
-scale = median(F_syn,i / F_cal,i)  # [ARCHIVED/失实] 现行实现为 IRLS/Tukey 稳健 location 后 scale=10^(−location)（docs/algorithms/PHOTOMETRIC_FIT.md §2 F6；lib/algorithms/photometry/README.md §4）
+scale = median(F_syn,i / F_cal,i)  # [ARCHIVED/失实] 现行实现为 IRLS/Tukey 稳健 location 后 scale=10^(−location)（docs/science/algorithms/PHOTOMETRIC_FIT.md §2 F6；lib/algorithms/photometry/README.md §4）
 I_final(x, y) = I_cal(x, y) × scale
 ```
 

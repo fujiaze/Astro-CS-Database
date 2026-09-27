@@ -243,7 +243,7 @@
       "finding_id": "F-024",
       "severity": "P1",
       "status": "REPRODUCED",
-      "minimal_command": "grep -n 'ALG-P3-001\\|status: DRAFT' docs/contracts/INDEX.yaml; ls docs/algorithms/*.md",
+      "minimal_command": "grep -n 'ALG-P3-001\\|status: DRAFT' docs/contracts/INDEX.yaml; ls docs/science/algorithms/*.md",
       "evidence": [
         "docs/algorithms 现有 27 份",
         "ALG-P3-001 状态 DRAFT（审核指出 15 个 ALG/MOD 引用路径在快照缺失、Phase3 ALG 仍 DRAFT）"

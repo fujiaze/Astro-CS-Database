@@ -1,6 +1,6 @@
 // P1-COS-TEST · 独立 oracle
 //
-// 合同锚: docs/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
+// 合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
 // (P1-COS-DOC 冻结, 2026-09-07, wave W1); 容差标度 SCI-CAL-001 §11。
 //
 // 独立性规则 (模板 <prefix>-TEST §3): oracle 不调用被测函数、不复制同一实现。

@@ -7,7 +7,7 @@
 // 修复: realloc 返回值立即回写 sc->stars (单一所有权); spectra 失败仅
 // 返回, capacity 不提升, 下次 push 自动重试。
 //
-// 方法: #include 源码 + GAIA_ALLOC_TEST 包装 (docs/algorithms/GAIA_QUERY.md
+// 方法: #include 源码 + GAIA_ALLOC_TEST 包装 (docs/science/algorithms/GAIA_QUERY.md
 // §5 冻结测试设计), 注入第 N 次 realloc 失败; ASAN 捕获 double free。
 //
 // 编译 (ASAN):

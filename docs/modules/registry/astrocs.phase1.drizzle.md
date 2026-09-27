@@ -19,7 +19,7 @@ downstream: [TEST-DRZ-DESIGN-001]
 > ALG-DRZ-001/TEST-DRZ-DESIGN-001（与 docs/traceability/
 > TRACEABILITY_MATRIX.json P1-DRZ 行、lib/algorithms/drizzle/module.yaml 一致；
 > 旧 ID 不存在于任何权威文档）。事实源：lib/algorithms/drizzle/README.md、
-> docs/algorithms/DRIZZLE_GEOMETRY.md、
+> docs/science/algorithms/DRIZZLE_GEOMETRY.md、
 > run/local/agent_p1_drz_doc/source_facts.md（行号实测底稿）。
 
 ## 职责与明确非职责

@@ -18,10 +18,10 @@
       望远镜 sensor 声明一致，错配 UNMATCHED(SENSOR_MISMATCH)；
   (3) 曝光 —— dark 优先精确相等（容差 EXPOSURE_TOL_S）；缺失时按冻结策略
       线性缩放：K = t_light / t_dark（docs/science/CALIBRATION.md:57,90），
-      K 必须落在 (0, K_MAX]，K_MAX=10（docs/algorithms/
+      K 必须落在 (0, K_MAX]，K_MAX=10（docs/science/algorithms/
       CALIBRATION_ALGORITHMS.md:158 K_OUT_OF_RANGE 定义 k<=0 或 >10）；
       strategy 码 EXACT_MATCH / SCALE_OPTIMAL（OPTIMAL 估计器 fallback
-      EXPOSURE_RATIO，docs/algorithms/CALIBRATION_ALGORITHMS.md:158,292；
+      EXPOSURE_RATIO，docs/science/algorithms/CALIBRATION_ALGORITHMS.md:158,292；
       phase_config.dark_optimization=true 显式开启，逐帧记录 K）；
       K 超界 UNMATCHED(NO_MASTER_DARK_BEYOND_POLICY)，无任何 dark 母版
       UNMATCHED(NO_MASTER_DARK)；
@@ -602,7 +602,7 @@ def cmd_plan(args) -> int:
                 "exact": f"{STRATEGY_EXACT} (|t_light-t_dark|<={EXPOSURE_TOL_S}s, K=1.0)",
                 "scaled": f"{STRATEGY_SCALE}: K=t_light/t_dark 线性缩放 "
                           "(docs/science/CALIBRATION.md:57,90)；估计器 OPTIMAL "
-                          "fallback EXPOSURE_RATIO (docs/algorithms/"
+                          "fallback EXPOSURE_RATIO (docs/science/algorithms/"
                           "CALIBRATION_ALGORITHMS.md:158,292)，"
                           "phase_config.dark_optimization=true 显式开启，逐帧记录 K",
                 "K_domain": f"(0, {K_MAX:g}] (K_OUT_OF_RANGE 语义)",
@@ -712,7 +712,7 @@ def write_summary_md(plan, path, masters_by_tel, sensor_by_tel, gaps):
         "3. dark 策略：精确曝光优先（容差 ≤0.01s，K=1.0）；缺失时按 "
         "`docs/science/CALIBRATION.md:57,90` 线性缩放 K=t_light/t_dark，",
         "   估计器 `OPTIMAL` fallback `EXPOSURE_RATIO`"
-        "（`docs/algorithms/CALIBRATION_ALGORITHMS.md:158,292`），",
+        "（`docs/science/algorithms/CALIBRATION_ALGORITHMS.md:158,292`），",
         "   `phase_config.dark_optimization=true` 显式开启并逐帧记录 K；"
         f"K 域 (0, {K_MAX:g}]，越界 → `{REASON_NO_DARK_BEYOND_POLICY}`；",
         "4. flat 策略：滤镜归一精确匹配；缺失 → `NO_<FILTER>_FLAT`（如 "

@@ -21,7 +21,7 @@
 > lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp（P1-DRZ 域资产，
 > 本模块仅作库消费者引用，不重归属）。权威合同链：SCI-UPM-001（w_UPM）+
 > SCI-INT-001（signal/sup_max）+ SCI-REJ-001（排异判据）共享 FROZEN SCI
-> （零 SCI 改动）→ ALG-P2-HIPS-001..004（docs/algorithms/
+> （零 SCI 改动）→ ALG-P2-HIPS-001..004（docs/science/algorithms/
 > PHASE2_MOSAIC_WRITE.md，P2-HIPS-DOC 冻结）→ DATA-P2-HIPS
 > （DATA_SEMANTICS §20）/ API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write
 > 节）→ TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，

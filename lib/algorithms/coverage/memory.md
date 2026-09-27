@@ -175,7 +175,7 @@ photometric scale、新 runtime I/O DLL。
   （不改码），仅文档/manifest 落位。
 - 产物：README.md r1 重写（原 42 行构建说明保留 §13）+ module.yaml
   （CONTRACT_READY，entrypoint=MISSING）+ 本段；ALG-COV-001=
-  docs/algorithms/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
+  docs/science/algorithms/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
   DISP-COV-001..005 + §11.4 TEST-COV-DESIGN-001）；DATA-COV-001=
   DATA_SEMANTICS.md §19；API-COV-001=PUBLIC_API.md；registry 页
   docs/modules/registry/astrocs.phase2.coverage.md 事实修订 + 矩阵行

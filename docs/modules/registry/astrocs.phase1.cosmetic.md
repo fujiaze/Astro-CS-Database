@@ -25,7 +25,7 @@ downstream: [TEST-P1-COS-001]
 
 Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责:
 坏点检测/修复（热/冷像素全局阈值检测 + 8 连通结构过滤 + 中值/IDW
-插值），ALG-COS-001..005（docs/algorithms/COSMETIC_ALGORITHMS.md，
+插值），ALG-COS-001..005（docs/science/algorithms/COSMETIC_ALGORITHMS.md，
 CONTRACT_READY）。不做: master 生成/校准算术
 （P1-CAL）、FITS 读写（astro_image_io）、参数接线决策（调用方）——
 现状生产调用 p1_session.cpp:294-307 未接线母版（检测全禁用、恒等
@@ -81,7 +81,7 @@ rc!=AC_OK）。无日志（cosmetic 路径零 stderr）。取消=帧粒度（ses
 
 ## 独立 synthetic 验证命令与容差
 
-TEST-COS-DESIGN-001（docs/algorithms/COSMETIC_ALGORITHMS.md §9: 合成
+TEST-COS-DESIGN-001（docs/science/algorithms/COSMETIC_ALGORITHMS.md §9: 合成
 fixture FIX-COS-A..F、NumPy oracle rtol=1e-6/atol=1e-7、解析解
 bitwise、I1-I6 不变量）；可执行 TEST-P1-COS-001 由 P1-COS-TEST 建立
 （逐任务 TASK_RESULT 证据）。

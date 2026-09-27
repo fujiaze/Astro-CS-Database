@@ -10,7 +10,7 @@
 > （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
 > SCI-REJ-001 映射声明见 §11.5）。共享 L2: ALG-REJ-001
-> （docs/algorithms/REJECTION_ALGORITHMS.md，DERIVED，零改动，语义
+> （docs/science/algorithms/REJECTION_ALGORITHMS.md，DERIVED，零改动，语义
 > 承接见 §12）。DATA: DATA-P2-REJ（DATA_SEMANTICS §22）。API:
 > API-P2-REJ-001（PUBLIC_API.md）。TEST: TEST-P2-REJ-001（设计冻结
 > 面=本文档 §11.4；可执行落地归 P2-REJ-TEST）。迁移目标
@@ -700,7 +700,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   不在此重复定义，两处冲突时以 docs/science/ 为准并回改本文档
   （方向 = 从 docs/science/ 到本文档）。
 - descriptor 占位 alg_id=ALG-P2-REJ-001 恰与本文件 ID 同名——以
-  本文件（docs/algorithms/PHASE2_REJECTION.md）为该 ID 的唯一
+  本文件（docs/science/algorithms/PHASE2_REJECTION.md）为该 ID 的唯一
   权威页；descriptor 占位 data_id=DATA-P2-REJ 与 DATA_SEMANTICS
   §22 同名对齐；api_id=API-P2-001（编排层词汇）的 kernel 消费面
   细化=API-P2-REJ-001（PUBLIC_API.md），两 ID 并存（API-P2-001
@@ -712,7 +712,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - `ALG-P2-REJ-001` = 本文档整体（逐符号锚 §3/§5；矩阵 P2-REJ 行
   algorithm_id）。
 - `ALG-REJ-001..008`（SCI §12；共享层 ALG 词汇，
-  docs/algorithms/REJECTION_ALGORITHMS.md 承载，DERIVED 零改动）
+  docs/science/algorithms/REJECTION_ALGORITHMS.md 承载，DERIVED 零改动）
   ⇒ 本文档 §5: ALG-REJ-001 None（F4 前置 none :1465-1467）；
   ALG-REJ-002 Sigma/robust_mad（F4）；ALG-REJ-003 Winsorized
   （F5）；ALG-REJ-004 AveragedSigma（F6）；ALG-REJ-005 LinearFit

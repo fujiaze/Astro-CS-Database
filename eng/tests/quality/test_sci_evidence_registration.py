@@ -72,7 +72,7 @@ WATCHED = {
     },
 }
 
-DOC_GLOBS = ("docs/science/*.md", "docs/algorithms/*.md")
+DOC_GLOBS = ("docs/science/*.md", "docs/science/algorithms/*.md")
 MISSING_MARKERS = ("未注册", "MISSING", "构建孤儿", "tracked-but-unbuilt")
 PROXIMITY = 40
 CI_REGISTRY_FILES = ("eng/ci/checks.json", "eng/ci/ctest_baseline.json")

@@ -3,7 +3,7 @@
 //
 // 修复点: gaia_client.c block_cache —— match 类查询并行轴=坐标, 多线程
 // 并发 lookup(写 last_access)/insert(淘汰 free + memcpy/哈希结构写),
-// 违反 docs/algorithms/GAIA_QUERY.md §4 单写者前提 => 数据竞争/UAF。
+// 违反 docs/science/algorithms/GAIA_QUERY.md §4 单写者前提 => 数据竞争/UAF。
 // 修复: per-file 锁 (bc_lock) + insert 返回缓存权威副本。
 //
 // 本测试: 自包含生成最小 XPSD fixture (Equirectangular, DR3 无光谱,

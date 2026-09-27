@@ -1,6 +1,6 @@
 // P1-NOISE-TEST · 独立 oracle
 //
-// 合同锚: docs/algorithms/NOISE_ESTIMATION.md §13.4 TEST-NOISE-DESIGN-001
+// 合同锚: docs/science/algorithms/NOISE_ESTIMATION.md §13.4 TEST-NOISE-DESIGN-001
 // (P1-NOISE-DOC 冻结, 2026-09-07, wave W1); 上游 SCI-NOISE-001..015
 // (NOISE_MODEL.md FROZEN T104, 冻结容差: σ 5% SNR-004 / 平面场 10% SNR-006 /
 // Poisson 诊断交叉 5% SNR-005 / NumPy 参考复算 rtol 1e-9 SCI §11)。

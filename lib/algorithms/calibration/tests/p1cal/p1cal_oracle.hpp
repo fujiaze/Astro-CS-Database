@@ -1,6 +1,6 @@
 // P1-CAL-TEST · 独立 oracle
 //
-// 合同锚: docs/algorithms/CALIBRATION_ALGORITHMS.md §9.1 (TEST-CAL-DESIGN-001)。
+// 合同锚: docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9.1 (TEST-CAL-DESIGN-001)。
 //
 // 独立性规则 (模板 <prefix>-TEST §3): oracle 不调用被测函数、不复制同一实现。
 // 推导路径:

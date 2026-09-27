@@ -92,7 +92,7 @@ int read_omp_env_threads() {
     return std::atoi(t);
 }
 
-// ---- F1-TB 过渡带判据 (docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4 F1) --
+// ---- F1-TB 过渡带判据 (docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4 F1) --
 // 分区逐星按逐档实测 99% 召回阈表 (p1star_fixtures.hpp F1TB_THR99):
 //   POS   SNR_peak ≥ thr99(σ)         判据声明在域内 ⇒ 必须召回 ≥99%
 //   TB    10 ≤ SNR_peak < thr99(σ)    过渡带负例 ⇒ 必须存在且必须判红

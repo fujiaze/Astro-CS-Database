@@ -1,7 +1,7 @@
 // ============================================================================
 // p1star_test_main.hpp — P1-STAR-TEST 执行器框架 (p1cal/p1cos/p1drz 同谱系)
 // ----------------------------------------------------------------------------
-// 合同锚: docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4
+// 合同锚: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4
 // TEST-STAR-DESIGN-001 (P1-STAR-DOC 冻结); ALG-STARDET-001 §2/§11.1。
 // 控制包任务: P1-STAR-TEST (SA-P1ST-T, queue 49, lock-P1-STAR)。
 //

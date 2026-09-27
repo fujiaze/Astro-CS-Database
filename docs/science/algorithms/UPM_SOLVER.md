@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
 
 > ID: ALG-UPM-001  范围: ALG-UPM-001..003  上游 SCI: SCI-UPM-001  状态: DERIVED  模块: phase2/upm
-> 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/algorithms/PHASE2_UPM_IMPL.md)
+> 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/PHASE2_UPM_IMPL.md)
 
 ## 1 上游 SCI 与输入输出
 
@@ -90,7 +90,7 @@ function p2_upm_build(observations, cfg):
 
 - API: upm.h: p2_upm_build/calibrate_block/raw_weight; API 面=API-P2-UPM-001 (PUBLIC_API.md 尚未落页, 登记于 ALG-P2-UPM-IMPL-001 §16/§17)
 - TST: PR-UPM-001..010, UPMW-001..007; TEST-P2-UPM-001/002 设计冻结=ALG-P2-UPM-IMPL-001 §12
-- 实现级合同: docs/algorithms/PHASE2_UPM_IMPL.md (ALG-P2-UPM-IMPL-001, 逐符号锚/DISP 登记/DISP-P2UPM-001..004)
+- 实现级合同: docs/science/algorithms/PHASE2_UPM_IMPL.md (ALG-P2-UPM-IMPL-001, 逐符号锚/DISP 登记/DISP-P2UPM-001..004)
 
 ## 11 数据布局
 

@@ -322,7 +322,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
   天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
   **G-P1-WCS-CLOSURE**，其阈值需另行标定；该门与 F1 量测域不同，两者**各自独立出证，不
-  互为证据**。门表见 `docs/algorithms/GATES_AND_TOLERANCES.md`。
+  互为证据**。门表见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`。
 - F2 SIP 场 oracle（注入已知 A/B，order=2）：astropy WCS（隔离 test-only
   oracle，§5 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
   值，不放宽）；AP/BP 逆向一致性 roundtrip 同容差。

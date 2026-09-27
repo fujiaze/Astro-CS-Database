@@ -2,7 +2,7 @@
 # P1-CAL-TEST (TEST-P1-CAL-001) — lib/algorithms/calibration 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-CAL-TEST (SA-P1C-T, queue 31, lock-P1-CAL; 依赖 P1-CAL-DOC 闭环)
-# 合同锚: docs/algorithms/CALIBRATION_ALGORITHMS.md §9 TEST-CAL-DESIGN-001
+# 合同锚: docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9 TEST-CAL-DESIGN-001
 #        (P1-CAL-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-CAL (MOD
 #        astrocs.p1.calibration, TEST-P1-CAL-001)。
 #

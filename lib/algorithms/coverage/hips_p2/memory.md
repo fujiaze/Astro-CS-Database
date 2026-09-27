@@ -21,7 +21,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   三件套，无源码；astrocs_p2_hips_writer.dll 落码归 P2-HIPS-IMPL）。
 - lib/infrastructure/aio/healpix_db 侧生产参与仅 astro_sphere_sink.cpp（P1 写通道），
   引用不重归属。
-- ID 方案：ALG-P2-HIPS-001..004（新文档 docs/algorithms/
+- ID 方案：ALG-P2-HIPS-001..004（新文档 docs/science/algorithms/
   PHASE2_MOSAIC_WRITE.md）；DATA-P2-HIPS（DATA_SEMANTICS §20 追加）；
   API-P2-HIPS-001（PUBLIC_API 新节）；TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，COV 先例；
   可执行测试 MISSING 归 P2-HIPS-TEST）；
@@ -64,7 +64,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 
 ## 本任务交付与验收（执行后回填 rc）
 
-- 交付：lib/algorithms/coverage/hips_p2/ 三件套（本目录）；docs/algorithms/
+- 交付：lib/algorithms/coverage/hips_p2/ 三件套（本目录）；docs/science/algorithms/
   PHASE2_MOSAIC_WRITE.md（ALG-P2-HIPS-001..004 + DISP-P2HIPS-001..004）；
   DATA_SEMANTICS §20 DATA-P2-HIPS；PUBLIC_API API-P2-HIPS-001 节；
   registry 页 astrocs.phase2.write.md 重写；INDEX.yaml 新增 4 ID 条目

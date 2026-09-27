@@ -1,6 +1,6 @@
 // P1-COS-TEST · 单元/性质/负面/cosmetic 测试组 (单执行器 core)
 //
-// 合同锚: docs/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
+// 合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9 TEST-COS-DESIGN-001
 // (P1-COS-DOC 冻结, 2026-09-07, wave W1) + §1-§4 ALG-COS-001..005 +
 // §10 DISP-COS-002/003/004/011 现状行为断言; SCI-CAL-001 §9a/§11。
 //

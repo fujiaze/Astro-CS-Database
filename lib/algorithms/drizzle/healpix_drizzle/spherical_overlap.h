@@ -4,7 +4,7 @@
 // ============================================================================
 // 球面 HEALPix 重叠计算模块 (WP-D 步骤3-4)
 // Trace: SCI-DRZ-001 / ALG-DRZ-001（docs/science/DRIZZLE.md,
-// docs/algorithms/DRIZZLE_GEOMETRY.md, TRACEABILITY MOD-astrocs-phase1-drizzle）。
+// docs/science/algorithms/DRIZZLE_GEOMETRY.md, TRACEABILITY MOD-astrocs-phase1-drizzle）。
 //
 // 用途:
 // 替换 drizzle_engine.cpp 中的局部切平面近似 + 人工 HEALPix 菱形近似,

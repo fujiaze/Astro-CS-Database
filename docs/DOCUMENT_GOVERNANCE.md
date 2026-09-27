@@ -15,7 +15,7 @@ docs/
 │   ├── *.md                 共享科学文档（现 docs/science/ 17 件平移）
 │   ├── innovations/         五创新点 P1–P5（现散在 science/algorithms 的核心推导归队）
 │   └── algorithms/          其他算法的科学推导（校准/platesolve/cosmetic/star_detection…；
-│                            现 docs/algorithms/ 28 件整体迁入；每篇必须挂文献+开源仓佐证）
+│                            现 docs/science/algorithms/ 28 件整体迁入；每篇必须挂文献+开源仓佐证）
 ├── engineering/             ★ 工程线一级文档（CLI 合同、调度、AIO、基准、观测性…）
 │   └── *.md                 一级工程文档（首批自现有合同/规范晋升，见映射表 needs-lead 项）
 └── detail/                  细节设计（联系一级文档准确性与底层实现的桥梁；唯一桥梁，不另立权威）

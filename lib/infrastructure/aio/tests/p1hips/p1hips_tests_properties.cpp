@@ -7,7 +7,7 @@
 // 确定性 (模块页: tile 字节随输入与写序可复现, 1/2/4 worker 位级一致)。
 //
 // SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
-//   ALG-HIPS-001..005 — docs/algorithms/HIPS_WRITER.md: 本组逐条不变量的
+//   ALG-HIPS-001..005 — docs/science/algorithms/HIPS_WRITER.md: 本组逐条不变量的
 //     上位算法 —— (5a) MOC UNIQ 与 moc_sky_fraction (I5/I6)、
 //     (4b)(4c) hierarchy 逐阶聚合与落盘归一 (I7)、
 //     (2b) 叶级归一 signal=flux/area / support=min(area/A_cell,1) 与
@@ -438,7 +438,7 @@ int test_properties() {
     //     归约顺序按帧 ID/块 ID/窗口 ID/像素序固定; 跨 worker 无共享浮点累加器;
     //     异步与工作窃取只改变执行顺序, 不改变结合顺序」+ §6:71「归约顺序随
     //     worker 数变化(共享浮点累加器/动态归约序) ⇒ 判红」;
-    //   docs/algorithms/HIPS_WRITER.md §9「f64 通路逐像素 bitwise(同序确定性)」;
+    //   docs/science/algorithms/HIPS_WRITER.md §9「f64 通路逐像素 bitwise(同序确定性)」;
     //   docs/contracts/DATA_SEMANTICS.md §12.3:414「astrocs_covered_sky_fraction
     //     = covered_area_sr/4π」(契约键, 归约须与到达序无关)。
     //

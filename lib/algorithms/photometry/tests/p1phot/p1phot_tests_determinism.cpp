@@ -1,7 +1,7 @@
 // P1-PHOT-TEST · determinism 组 —— 到达顺序不变性 + 线程数扫描
 // ---------------------------------------------------------------------------
 // 规范依据 (逐条可查):
-//   * docs/algorithms/PHOTOMETRIC_FIT.md §5「确定性与归约」:
+//   * docs/science/algorithms/PHOTOMETRIC_FIT.md §5「确定性与归约」:
 //       "排序 median/MAD 确定性；IRLS 按 r 索引固定顺序加权和，无跨样本归约。"
 //   * 同 §5c「SIMD 安全与取消点」:
 //       "IRLS 加权均值 Σw·r/Σw 为**固定样本序归约**(FP64, 禁重结合)——

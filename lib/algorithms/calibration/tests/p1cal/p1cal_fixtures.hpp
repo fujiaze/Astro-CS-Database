@@ -1,16 +1,16 @@
 // P1-CAL-TEST · FIX-CAL-A..F 合成 fixture generator
 //
-// 合同锚: docs/algorithms/CALIBRATION_ALGORITHMS.md §9 TEST-CAL-DESIGN-001
+// 合同锚: docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9 TEST-CAL-DESIGN-001
 // (P1-CAL-DOC 冻结, 2026-09-07, wave W1)。
 //
 // SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
 //   SCI-CAL-001 — docs/science/CALIBRATION.md (FROZEN T100, 2026-08-23):
 //     §7 独立不变量 (常量场/空平场/幂等归一/确定性), §8 极端/退化条件,
 //     §11 验证 Oracle。
-//   ALG-CAL-001..006 — docs/algorithms/CALIBRATION_ALGORITHMS.md:
+//   ALG-CAL-001..006 — docs/science/algorithms/CALIBRATION_ALGORITHMS.md:
 //     §6 确定性与归约, §7 边界/invalid/退化行为,
 //     §9 TEST-CAL-DESIGN-001 (本文件 FIX-CAL-A..F 的冻结设计)。
-//   ALG-COS-001..005 — docs/algorithms/COSMETIC_ALGORITHMS.md:
+//   ALG-COS-001..005 — docs/science/algorithms/COSMETIC_ALGORITHMS.md:
 //     FIX-CAL-E cosmetic 素材的上位检测/结构过滤/修复算法 (该文 §0 载明
 //     与 ALG-CAL-004 描述同一现行生产实现)。
 // fixture 只生成"输入侧"素材; 期望值一律由 oracle 独立推导, 不经被测函数。

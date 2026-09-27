@@ -47,7 +47,7 @@ PLATESOLVE_FAILED；BLOCK_MISSING（必需块缺失）；CD 退化坍缩按失�
 ## Science IDs
 
 SCI-WCS-001（docs/science/ASTROMETRY.md，FROZEN）；ALG-WCS-001
-（docs/algorithms/PLATESOLVE.md §11 逐符号锚 + DISP-WCS-001..006 +
+（docs/science/algorithms/PLATESOLVE.md §11 逐符号锚 + DISP-WCS-001..006 +
 TEST-WCS-DESIGN-001 冻结容差）。
 
 ## Tests

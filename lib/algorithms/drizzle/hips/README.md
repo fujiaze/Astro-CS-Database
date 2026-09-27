@@ -99,7 +99,7 @@ covered_area≤0 或非有限 → signal=NaN、support=0（:476-485）；varianc
 | 层 | ID | 权威文档 |
 |---|---|---|
 | SCI | SCI-DRZ-001（共享引用，不改 SCI） | docs/science/DRIZZLE.md（FROZEN T105 2026-08-23；:130 实现锚 aio_hips_writer finalize_tile；:145 support=D_p 归一语义）；产品语义另见 docs/science/SCIENCE_SCOPE.md:9-10 与读侧消费合同 SCI-P3-001 |
-| ALG | ALG-HIPS-001..005 | docs/algorithms/HIPS_WRITER.md（逐公式源码锚定 + DISP-HIPS-001..012） |
+| ALG | ALG-HIPS-001..005 | docs/science/algorithms/HIPS_WRITER.md（逐公式源码锚定 + DISP-HIPS-001..012） |
 | DATA | DATA-P1-HIPS | docs/contracts/DATA_SEMANTICS.md §12（上游 DATA-P1-DRZ §11；产品位/ivar 语义 §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001；帧身份 §5） |
 | API | API-HIPS-001 | docs/contracts/PUBLIC_API.md（aio_hips.h 9 符号现状 C API；编排级经 API-P1-007 hp_drizzle_run_hips 间接到达） |
 | ARCH/MOD/SRC | ARCH-001 / MOD-astrocs-phase1-hips-writer / SRC-HIPS-001 | docs/traceability/TRACEABILITY_MATRIX.json；SRC 锚 aio_hips.h::9 符号 |

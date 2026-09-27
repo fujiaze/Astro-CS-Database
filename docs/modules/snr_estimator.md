@@ -49,5 +49,5 @@ lib/algorithms/noise_snr/cpp/。
 > 本页为 ACTIVE_INFORMATIVE 摘要。模块合同权威 = `lib/algorithms/noise_snr/README.md`（r1，
 > CONTRACT_READY）+ `lib/algorithms/noise_snr/module.yaml`（MOD-astrocs-phase1-
 > noise-snr），逐符号源码锚定与 DISP-NOISE-001..009 登记
-> 见 `docs/algorithms/NOISE_ESTIMATION.md` §13；冲突时以冻结合同为准。
+> 见 `docs/science/algorithms/NOISE_ESTIMATION.md` §13；冲突时以冻结合同为准。
 > **噪声模型 A 为唯一生产模型**；噪声 σ 来源 = 局部 patch + 星点掩膜 + 饱和过滤。

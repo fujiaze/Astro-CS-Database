@@ -6,14 +6,14 @@
 > 性质: 本页是 Phase1 星点检测的 SCI 冻结层落点，声明共享 SCI（PSF / PHOTOMETRY /
 > ASTROMETRY，`docs/science/` 既有文档）的语义映射与 matrix 指向，格式沿用
 > `STAR_PSF_ALGORITHMS` §11.5 先例。
-> ALG 权威: ALG-STARDET-001（docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11）。
+> ALG 权威: ALG-STARDET-001（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11）。
 
 ## 1 语义要求（semantic anchors，公式锚见 ALG-STARDET-001 §2/§11.1）
 
 - subpixel centroid: 亚像素质心为连续估计（一阶导零交叉 / 二阶导零交叉 /
   椭圆高斯 GSL-LM 中心），不引入 0.5px 网格量化损失；合成场验收容差
   |Δc|≤0.3 px（SNR≥20）见 ALG-STARDET-001 §11.4 F1；SNR 定义（SNR_peak）
-  见 `docs/algorithms/GATES_AND_TOLERANCES.md`（G-P1-CENTROID-SCI 行）。
+  见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（G-P1-CENTROID-SCI 行）。
 - completeness / false positive (synthetic fields): 完备性与虚警由合成星场
   验收。**召回域按 PSF 宽度分档冻结，判据 = 逐档 99% 召回阈表**（本仓实测，
   生产 `sdet_detect_ex_f64`，默认参数，256² 单星居中，**峰值对齐像素中心**，
@@ -155,7 +155,7 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 一致；本节为 checker（check_science_units.py）声明本页物理量与单位完备性，
 不改任何既有语义。
 
-> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门的阈值一律取自该表）。
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门的阈值一律取自该表）。
 
 ## 6 参考文献与参考代码库（含许可证）
 
@@ -165,7 +165,7 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 - **质心估计（一阶矩/导数零交叉）**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）centroid_sources 的 1D Gaussian / quadratic / com 估计器。
 - **椭圆高斯 LM 拟合**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105；实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - **IIR 递归高斯平滑**：Young, I. T. & van Vliet, L. J. 1995, Signal Processing 44, 139。**核验状态**：文章级。
-- **SNR_peak 与门**：docs/algorithms/GATES_AND_TOLERANCES.md §2（本域唯一 SNR 定义）与 §3 门表。
+- **SNR_peak 与门**：docs/science/algorithms/GATES_AND_TOLERANCES.md §2（本域唯一 SNR 定义）与 §3 门表。
 - **饱和/边缘处理**：无直接文献，Project-defined（ALG-STARDET-001 §2）；对照见 Stetson 1987 与 IRAF/DAOPHOT（IRAF/NOAO 许可，非 OSI）。
 - **与 PSF 侧的模型差**：检测侧椭圆高斯 FWHM=2.3548·σ 与 PSF 侧 Moffat4 FWHM=1.230310·σ 相差 1.9140×（DISP-STAR-007），两列不可跨块比较；Moffat 出处见 Moffat 1969, A&A 3, 455 与 docs/science/PSF.md §14。
 

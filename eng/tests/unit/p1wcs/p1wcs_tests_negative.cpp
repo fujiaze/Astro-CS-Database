@@ -1,6 +1,6 @@
 // P1-WCS-TEST · negative 组 (F4 失败语义负例 + 缺陷行为锚)
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 F4 + §11.3 DISP-WCS-001..006
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 F4 + §11.3 DISP-WCS-001..006
 // (登记不改码)。失败-置信度语义冻结: CD det 退化必须以 success=0 呈现,
 // 禁止坍缩值冒充解 (DISP-WCS-001 核心语义, 本组在 iter_trans 内核路径
 // 直接验收)。

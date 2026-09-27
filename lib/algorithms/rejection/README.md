@@ -25,8 +25,8 @@
 - 合同链：SCI-REJ-001（docs/science/REJECTION.md，FROZEN T107
   2026-08-23，集合 SCI-REJ-001..008，legacy RJ-001..008；descriptor
   占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射声明于
-  docs/algorithms/PHASE2_REJECTION.md §11.5，占位 ID 不入合同）
-  → ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md）
+  docs/science/algorithms/PHASE2_REJECTION.md §11.5，占位 ID 不入合同）
+  → ALG-P2-REJ-001（docs/science/algorithms/PHASE2_REJECTION.md）
   → DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
   （PUBLIC_API Phase2 rejection 公共消费面节）→
   TEST-P2-REJ-001（登记面=设计冻结 VERIFIED，承载于
@@ -105,7 +105,7 @@ eng/tests/unit/p2_rejection_test.cpp（P2-005）。
 - README/module.yaml/memory.md：`lib/algorithms/rejection/`（本目录）
 - SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN T107
   2026-08-23，零改动）
-- ALG：docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）
+- ALG：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）
 - DATA：docs/contracts/DATA_SEMANTICS.md §22（DATA-P2-REJ）
 - API：docs/contracts/PUBLIC_API.md API-P2-REJ-001；
   API-P2-001（编排层既有）

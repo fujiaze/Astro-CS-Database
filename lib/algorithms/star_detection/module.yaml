@@ -30,7 +30,7 @@
 # :2042-2044 候选拟合 dynamic + reduction(+:fit_ok_count)，逐候选独立按索引写回，
 # dedup/sort/maxStars 截断串行 :2224-2242，输出 bitwise 与线程数无关），无取消
 # 检查点，ThreadBudget 接线为迁移整改点（见 docs/contracts/PUBLIC_API.md
-# API-STAR-001 与 docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.3
+# API-STAR-001 与 docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.3
 # DISP-STAR-001..005）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID（lib/infrastructure/scheduler/src/
 # module_adapters.cpp:430-448 p1_star_psf_descriptor：module_id=
@@ -69,7 +69,7 @@ api_contracts:
   - API-STAR-001
 doc_links:
   sci: docs/science/STAR_DETECTION.md
-  alg: docs/algorithms/STAR_DETECTION_ALGORITHMS.md#§11
+  alg: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11
   data: docs/contracts/DATA_SEMANTICS.md#§17
   api: docs/contracts/PUBLIC_API.md#API-STAR-001
 contract_ids:
@@ -164,12 +164,12 @@ notes: >-
   :24-25,191-192）；布局 B=生产编排块序
   (status,B,flux,cx,cy,fwhm,A,mad,eccentricity)（FLOAT64，orchestrator.cpp
   :2428-2464，snr_estimator.h:57-75 同序消费）——两布局列位置完全不同，
-  严禁互解；双布局权威消歧表=docs/algorithms/STAR_PSF_ALGORITHMS.md §1.1/§1.2，
+  严禁互解；双布局权威消歧表=docs/science/algorithms/STAR_PSF_ALGORITHMS.md §1.1/§1.2，
   生产布局逐列 dtype/invalid=DATA_SEMANTICS §15 生产表。
   编排一帧一次权威检测
   （API-P1-003），PLATESOLVE 禁重检测（:1748-1755）。
   禁止声明 IMPLEMENTED（迁移落码未发生）。
   门与容差：本域门表的量测域/统计量/SNR 定义/阈值来源见
-  docs/algorithms/GATES_AND_TOLERANCES.md（F-2 冻结门表；门不得引用表外阈值）；
+  docs/science/algorithms/GATES_AND_TOLERANCES.md（F-2 冻结门表；门不得引用表外阈值）；
   检测侧椭圆高斯 / PSF 侧椭圆 Moffat4 双母函数登记 DISP-STAR-007
   （STAR_DETECTION_ALGORITHMS.md §11.3，fwhm/flux 列禁止跨块比较）。

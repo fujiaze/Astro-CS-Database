@@ -38,16 +38,16 @@ def rule_design_root(rel, text):
     return t3, n
 
 def rule_algorithms_science(rel, text):
-    """批次2: docs/algorithms/ → docs/science/algorithms/（anchors 子树除外）；
-    相对链接深度自适应（../algorithms/ 与 ../../algorithms/）；被迁文件内部 ../science 链降一级。"""
+    """批次2: docs/science/algorithms/ → docs/science/algorithms/（anchors 子树除外）；
+    相对链接深度自适应（../science/algorithms/ 与 ../../science/algorithms/）；被迁文件内部 ../science 链降一级。"""
     n0 = text.count("science/algorithms")
     # 全局绝对形态（排除 anchors 与已有 science/ 前缀）
-    t = re.sub(r"docs/algorithms/(?!anchors)", "docs/science/algorithms/", text)
-    # 相对链接：../algorithms/ → ../science/algorithms/（docs 二级目录发起）
+    t = re.sub(r"docs/science/algorithms/(?!anchors)", "docs/science/algorithms/", text)
+    # 相对链接：../science/algorithms/ → ../science/algorithms/（docs 二级目录发起）
     t = re.sub(r"(?<![\w/])\.\./algorithms/(?!anchors)", "../science/algorithms/", t)
     t = re.sub(r"(?<![\w/])\.\./\.\./algorithms/(?!anchors)", "../../science/algorithms/", t)
-    # 被迁文件内部：从 docs/algorithms/X.md 发起的 ../science/Y.md 链 → 新位置应为 ../Y.md
-    if rel.startswith("docs/algorithms/"):
+    # 被迁文件内部：从 docs/science/algorithms/X.md 发起的 ../science/Y.md 链 → 新位置应为 ../Y.md
+    if rel.startswith("docs/science/algorithms/"):
         t = re.sub(r"(?<![\w/])\.\./science/", "../", t)
     n = t.count("science/algorithms") - n0
     return t, n

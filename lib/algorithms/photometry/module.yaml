@@ -33,7 +33,7 @@
 # star_matcher 匹配与 IRLS 单线程），科学结果 bitwise 与线程数无关，但
 # ThreadLease/omp_set_num_threads 无接线（迁移整改点，见
 # docs/contracts/PUBLIC_API.md API-PHOT-001 与
-# docs/algorithms/PHOTOMETRIC_FIT.md §13.3 DISP-PHOT-001..009）。
+# docs/science/algorithms/PHOTOMETRIC_FIT.md §13.3 DISP-PHOT-001..009）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:469-486 p1_photometry_descriptor 的
 # SCI-P1-PHOT-001/ALG-002/DATA-P1-FLUX/API-P1-005/TEST-P1-PHOT-001）由
@@ -71,7 +71,7 @@ api_contracts:
   - API-PHOT-001
 doc_links:
   sci: docs/science/PHOTOMETRY.md
-  alg: docs/algorithms/PHOTOMETRIC_FIT.md#§13
+  alg: docs/science/algorithms/PHOTOMETRIC_FIT.md#§13
   data: docs/contracts/DATA_SEMANTICS.md#§14
   api: docs/contracts/PUBLIC_API.md#API-PHOT-001
 contract_ids:

@@ -7,7 +7,7 @@
 //     禁止声称支持」(当前登记: 仅 TAN 已实现); 每种投影必须声明适用域
 //     (含 TAN 的 |dec|≤85°、FOV≤20°、手性 det(CD)<0、CRPIX 用 FITS 1-based
 //     像素中心、往返误差 < 声明容差（TAN: 1e-8 px, Oracle 冻结）), 违反 ⇒ 拒绝。
-//   * docs/algorithms/PHASE3_PROJ_IMPL.md §15.1/§15.5: v6 内核 registry
+//   * docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.1/§15.5: v6 内核 registry
 //     (p3_proj_v6.h/.cpp, kProjectionRegistryVersion=3) 已实现 4/8
 //     (TAN/SIN/CAR/AIT), 但**会话/产品面收窄为仅 TAN**; 内核行不是产品声明。
 //

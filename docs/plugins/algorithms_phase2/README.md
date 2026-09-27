@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：coverage、采样、UPM、排异、集成五个模块的职责、输入输出与边界。
-- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/algorithms/）；阶段详细设计（在 docs/design/PHASE2_DETAILED_DESIGN.md）。
+- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/science/algorithms/）；阶段详细设计（在 docs/design/PHASE2_DETAILED_DESIGN.md）。
 - 说明：phase2 仅为文档分组的内部指代，代码中算法模块并联放置。
 
 ## 内容

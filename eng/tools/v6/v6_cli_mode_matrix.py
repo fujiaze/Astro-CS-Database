@@ -49,7 +49,7 @@ FZ-P3-MODES）的拒绝理由。正例无法在无真实输入时 rc=0（会话�
     注（§9.73 裁决 A44）：该注释里的「baseline 登记」指函数**存在且只做 fail-closed
     判定**；实现里对 equal / pixel_ivar 开 kBaseline(rc=0) 例外的部分已删除 —— 例外与
     v6_runtime_contract.h 自身冻结说明「全部 token 一律 fail-closed 拒绝（rc=2）」不一致。
-  * docs/algorithms/PLATESOLVE.md（相邻口径复核）：全文无 mode / 权重模式条款
+  * docs/science/algorithms/PLATESOLVE.md（相邻口径复核）：全文无 mode / 权重模式条款
     ⇒ 不构成第二权威，不改变上述判定。
 
 ## 驱动面：为什么每条运行用例都带 -force（docs/ASTROCS_DESIGN.md §4.5）
