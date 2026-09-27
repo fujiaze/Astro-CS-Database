@@ -354,7 +354,7 @@ def header_region(lines: list, max_lines: int = 25) -> list:
 
 
 def has_upstream_header(text: str) -> bool:
-    return any(("上游" in ln and "docs/ASTROCS_DESIGN.md" in ln)
+    return any(("上游" in ln and "ASTROCS_DESIGN.md" in ln)
                for ln in header_region(text.splitlines()))
 
 
@@ -466,7 +466,8 @@ def run_checks(root: str, strict: bool) -> tuple:
     if tracked:
         docfiles = [p for p in tracked_all
                     if p.startswith("docs/") and p.endswith((".md", ".rst", ".txt", ".yaml", ".yml"))
-                    and p != INDEX_PATH]
+                    and p != INDEX_PATH
+                    and os.path.basename(p) != "README.md"]  # 目录 README=招牌件，按「每目录必有 README」治理，不入规范索引面
         uncovered = [p for p in docfiles if not _covered(p, covered_paths)]
         results.append(check("docs_fully_covered", not uncovered,
                              ("未覆盖=" + repr(uncovered[:10]) + " 共" + str(len(uncovered)))
@@ -499,6 +500,8 @@ def run_checks(root: str, strict: bool) -> tuple:
     status_map = index_status_map(doc_index)
     subordinate = [p for p in tracked_all
                    if p.startswith("docs/") and p.endswith(".md")
+                   and p not in ROOT_DOCS
+                   and os.path.basename(p) != "README.md"  # 目录 README=招牌件，不要求上游抬头
                    and status_of(p, status_map).startswith("ACTIVE_")]
     unregistered = [p for p in subordinate if not _covered(p, covered_paths)]
     missing_header = [p for p in subordinate
@@ -585,7 +588,8 @@ def run_checks(root: str, strict: bool) -> tuple:
     pack_prefix = CURRENT_CONTROL_PACK + "/"
     allowed_prefixes = (pack_prefix,) + tuple(x + "/" for x in ARCHIVED_CONTROL_PACKS)
     leftover = [p for p in tracked_all
-                if p.startswith("工程控制/") and not p.startswith(allowed_prefixes)]
+                if p.startswith("工程控制/") and p != "工程控制/README.md"
+                and not p.startswith(allowed_prefixes)]  # 目录 README=招牌件，非控制包残留
     # 白名单条目必须自带 SUMMARY.md（收口证明），否则仍判红
     for ap in ARCHIVED_CONTROL_PACKS:
         present = any(t.startswith(ap + "/") for t in tracked_all)
@@ -839,6 +843,8 @@ ROOT_DOC_FILES = {
 BASE_INDEX = (
     "doc_index:\n"
     "  active:\n"
+    "    - path: \"docs/ASTROCS_DESIGN.md\"\n"
+    "      status: ACTIVE_NORMATIVE\n"
     "    - path: \"docs/owner\"\n"
     "      status: ACTIVE_NORMATIVE\n"
     "    - path: \"docs/ci/01_CHECKS.md\"\n"

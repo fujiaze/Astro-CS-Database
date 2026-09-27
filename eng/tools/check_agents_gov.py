@@ -332,10 +332,11 @@ def check_unique_authority(root: str, v: list, notes: dict) -> None:
                 continue
             if not SELF_AUTHORITY_RE.search(line):
                 continue
-            # 唯一行内豁免：逐字点名现行最高设计 docs/ASTROCS_DESIGN.md。
+            # 唯一行内豁免：逐字点名现行最高设计（裸名或 docs/ 前缀均认可——
+            # 根文档指针用 docs/ 前缀，docs 内部按迁移规则保持裸名，二者同义）。
             # 「本文/本文件/本报告」等自指措辞不再豁免（CI-003-E；R-6 §3.6 实测该豁免
             # 吃掉了最常见的中文自称写法「本文档是唯一最高权威」）。
-            if "docs/ASTROCS_DESIGN.md" in line:
+            if "ASTROCS_DESIGN.md" in line:
                 continue
             v.append({"check": "single_authority_entry",
                       "detail": "%s:%d 以非最高权威文档自称唯一最高: %s"
@@ -631,8 +632,10 @@ def self_test() -> int:
         # N5：扫描面为空 ⇒ fail-closed 判红（ENGINEERING_SPEC §8）
         n5 = os.path.join(tmp, "n5-empty-face")
         _mini_repo(n5)
-        for rel in ("README.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md"):
-            os.remove(os.path.join(n5, rel))
+        for root, _dirs, files in os.walk(n5):
+            for f in files:
+                if f.endswith(".md"):
+                    os.remove(os.path.join(root, f))
         case("N5 唯一权威扫描面为空 ⇒ fail-closed", "fail", n5,
              "unique_authority_scan_empty")
 

@@ -38,6 +38,15 @@ doc_index:
   base_product_version: "0.1.0-alpha.1"
   coverage: "docs/**（含 docs/validation/v6/** 活动设计档案）+ 仓库根治理文档（ENGINEERING_SPEC §7）"
   active:
+    - path: "docs/research/CCD_LINEAR_DEFECT_LITERATURE.md"
+      status: ACTIVE_INFORMATIVE
+      duty: CCD/CMOS 线性缺陷检测与修复的一手文献证据件（逐条原文位置+摘录）
+      upstream: "docs/ASTROCS_DESIGN.md §4、§12.2"
+    - path: "docs/DOCUMENT_GOVERNANCE.md"
+      status: ACTIVE_NORMATIVE
+      duty: 文档治理规范（分层权威、命名、上游抬头、正向设计纪律、科学佐证三支撑）
+      upstream: "docs/ASTROCS_DESIGN.md §0.2、§0.3"
+      notes: 与 eng/tools/doccheck/check_doc_index.py、check_doc_hygiene.py 判据同源
     - path: "docs/ASTROCS_DESIGN.md"
       status: ACTIVE_NORMATIVE
       duty: "最高设计（Design Authority）：是什么/做到什么/顶层架构/CLI/发行/验收"
