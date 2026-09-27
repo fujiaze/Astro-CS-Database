@@ -17,11 +17,11 @@
 - **输入**：命令行参数 + `--json` 挂载的 phase_config。
 - **输出**：stdout 机器 JSON（`--json` 时恰一个 JSON 文档）、JSONL 事件、退出码；运行产物落 `output_dir`；
 - **运行日志**：每次运行（含失败与取消）落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（摘要），并在 run manifest 的 `log_artifacts[]` 登记；stdout 无日志污染。
-- 参考：`eng/contracts/schemas/cli_output.schema.json`、`eng/contracts/schemas/events.schema.json`。
+- 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`（JSONL 事件面唯一 schema）、`docs/api/CLI_PROTOCOL_V1.md` §4（stdout 机器 JSON 与事件协议权威）。
 
 ## 4. 算法与公式要点
 
-- 命令树（唯一）见最高设计 §6.2：`help / --version / doctor / benchmark / normalize|mosaic|export --json|--template|--help`；
+- 命令树（唯一）见最高设计 §7.1：`help / --version / doctor / benchmark / normalize|mosaic|export --json|--template|--help`；
 - 三个命令直接以命令名调用（`normalize` / `mosaic` / `export`），是平级独立命令；`phase1|2|3` 仅为内部命名；
 - **运行前预检（检查页面）**：见最高设计 §4.5——三档（🟢 correct / 🟠 warn 不阻塞 / 🔴 error 阻塞），三档都显示完整检查页面；**无 error 时（correct 与 warn）都需用户输入 `yes` 确认才运行**，`-y`/`-yes` 跳过确认；存在 error 时 `-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤直接运行（后果由用户承担）；
 - `benchmark` 直接输出 profile 到**安装目录**（自动生成/更新），后续运行时自动读取；

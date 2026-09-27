@@ -25,7 +25,7 @@
   - **`frame_snr`**：帧级 SNR，**写入 HiPS 文件头**；语义 = **点源（PSF）信号 SNR**（纯信号/噪声，红线见 §4.1）；与 `sparse_snr_layer` 是**相互独立**的两个对象，**不作**稀疏层的尺度基准；
   - **`sparse_snr_layer`**（`sparse_snr_layer=true` 时）：帧内稀疏控制点 SNR 层，作为标准层插入 HiPS 文件内；控制点值 = 该点的**绝对**通量型 SNR `F_ref/σ_F(x,y)`（与帧级 SNR 同口径、同逐帧参考通量 `F_ref`，无量纲），消费时由控制点**直接重建**为稠密 SNR 场；**默认产出**（默认稀疏路径，§4.2）。
   - **不输出**：Phase2/Phase3 产物不含 SNR 面/块；Phase2 只在集成中现场消费本模块产出的单帧 SNR 换算逆方差权重，不复用本模块的 SNR 产物。
-- 参考：`eng/contracts/schemas/noise_snr_output.schema.json`。
+- 参考：`docs/contracts/DATA_SEMANTICS.md` §13（DATA-P1-NOISE：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -133,7 +133,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 
 ### 4.4 噪声模型：A 为唯一生产模型
 
-- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:767-770` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:876`）链入主程序。
+- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:807` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:920-921`）链入主程序。
 - 模型定义、参数语义、稳健噪声估计与掩膜规则的正本见 `docs/science/NOISE_MODEL.md`；本文件只登记插件侧接口与接线事实，不复制公式。
 - **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产调度路径**已挂** `variance` 帧内命名块——`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`（`module_adapters.cpp:8154-8158`），引擎侧 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，`true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status`/`var_reason`）；口径正本 = `08_drizzle.md` §7。
 - **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一像素必须落在两态之一 —— **可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`；**不可用** `variance=0 ∧ ivar=0`。

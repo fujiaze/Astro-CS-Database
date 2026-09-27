@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.3（星表只解析**本地**星表文件，离线、零网络）、§8.1（`gaia_xpsd_client/` 本地星表解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
+- 最高设计 `ASTROCS_DESIGN.md` §3.3（星表只解析**本地**星表文件，离线、零网络）、§8.4（`gaia_xpsd_client/` 本地星表解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
 - `docs/science/algorithms/GAIA_QUERY.md`（缓存契约/复杂度/并发模型/不变量正本）
 - `docs/architecture/CACHE_POLICY.md`（Gaia 查询缓存行）
 - `docs/plugins/algorithms_phase1/05_platesolve.md`（消费方）
@@ -25,7 +25,7 @@
 
 ### 4.1 查询键与两级内存缓存
 
-- 缓存键**精确匹配**（不做量化舍入）：`ra`/`dec`/`radius_deg`/`mag_low`/`mag_high`（double 逐位）+ 数据集身份（`db_type`/`file_count`）+ 缓存键版本 `GAIA_CACHE_VERSION=2`；命中 = 同一查询精确重复（正本：`GAIA_QUERY.md` §缓存行；`lib/infrastructure/gaia_xpsd_client/src/gaia_client.c:112-134/:427-472/:220-222`）；
+- 缓存键**精确匹配**（不做量化舍入）：`ra`/`dec`/`radius_deg`/`mag_low`/`mag_high`（double 逐位）+ 数据集身份（`db_type`/`file_count`）+ 缓存键版本 `GAIA_CACHE_VERSION=2`；命中 = 同一查询精确重复（正本：`GAIA_QUERY.md` §2.9 汇总表「缓存」行；实现 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c:819-905` 的 `query_cache_lookup`/`query_cache_insert` 与 `:220-224` 的 `GAIA_CACHE_VERSION=2`）；
 - 两级缓存均为**进程内存**实现：
   - **查询缓存 QueryCache**：64 条（`QUERY_CACHE_CAPACITY`），TTL 60 s，总字节上限 307,200,000 B，超限按 LRU（last_access）淘汰，事务性替换（先全分配成功再释放旧条目）+ 版本/过期校验失效；
   - **块缓存 BlockCache**：8192 槽/文件（2^n），模块级总预算 4 GB（`BLOCK_CACHE_MAX_MEMORY`，全部 XPSD 文件共享），内存压力淘汰 1/4 LRU；XPSD 文件 mmap 只读，块按需解压缓存（解压 O(B)、命中 O(1)）；
@@ -58,7 +58,7 @@
 ## 6. 接口/ABI
 
 - 模块导出面 = `astrocs_module_query_v1`（12 个 legacy 符号经 `-DGAIA_EXPORT=` 本地化；ABI-006）；
-- 生命周期 = `lifecycle_v1.h` 冻结时序（`module_entry.c:11`）：query → describe/validate_config/plan → execute；
+- 生命周期 = `lifecycle_v1.h` 冻结时序（`module_entry.c:12-13`）：query → describe/validate_config/plan → execute；
 - platesolve 经本模块获取匹配输入；查询缓存跨查询复用。
 
 ## 7. 错误与边界

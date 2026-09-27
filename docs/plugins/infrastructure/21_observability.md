@@ -1,6 +1,6 @@
 # 插件文档：observability（可观测性）
 
-> 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志）、§8.1（顶层结构）
+> 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志）、§8.4（顶层结构）
 
 ## 1. 职责与边界
 
@@ -11,14 +11,14 @@
 
 - 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§7.3（错误传播与运行日志）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
 - `docs/design/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`（日志行/落点/降级/退出码映射合同）
-- `eng/contracts/schemas/events.schema.json`
+- `eng/contracts/schemas/jsonl_event_v1.schema.json`（运行事件流唯一 schema）
 - `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
 
 ## 3. 输入/输出数据合同
 
 - **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、run-graph.json、resource_timeseries.csv、resource_summary.json、worker_balance.csv；
 - **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `astrocs.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §4）。
-- 参考：`eng/contracts/schemas/events.schema.json`、`run_*.schema.json`、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
+- 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`、`eng/contracts/schemas/run_manifest.schema.json`、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -45,7 +45,7 @@
 - 日志/事件写入失败 → 记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）；**故障一律按上述退出码上行**（"换一路日志继续跑"不在处置面内）；
 - 日志目录解析失败 → exit 2（ARGS）；目录创建失败 → exit 7（IO）；收尾 fsync 失败 → exit 7；哈希或 manifest 登记失败 → exit 8（INTEGRITY）；
 - 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6）；
-- 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = LOG-001 §5）。
+- 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §8，沿用 LOG-001 §5/§6）。
 
 ## 8. 重计算负载资源门（G-RES-01）
 
@@ -98,7 +98,7 @@
 
 ### 8.4 record / enforce 划分与判定点
 
-- **程序内恒 record_only**（`ASTROCS_DESIGN.md` §3.5「资源门只管磁盘…内存、CPU、线程不设门」；§9.74 裁决 10）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变裁决**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
+- **程序内恒 record_only**（`ASTROCS_DESIGN.md` §4.5「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变裁决**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
 - **唯一判定点 = CI 重计算检查（`CHK-RESOURCE` 的 `RESOURCE-GATE-REAL` 步骤）+ 发布验收**，以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
 - **exit 10（RESOURCE）** 的充分条件：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于 CI 判定点**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。
 

@@ -15,7 +15,7 @@ docs/plugins/
 └── infrastructure/             基建模块（7 篇）
 ```
 
-**代码落位**：所有科学算法模块在 `lib/algorithms/` 下**并联放置**；`phase1/2/3` 是设计层面的内部指代，代码目录统一为 `lib/algorithms/` 平铺 + `lib/infrastructure/cli/{normalize,mosaic,export}`，引用对应算法模块。（见最高设计 §7.1/§8.1）
+**代码落位**：所有科学算法模块在 `lib/algorithms/` 下**并联放置**；`phase1/2/3` 是设计层面的内部指代，代码目录统一为 `lib/algorithms/` 平铺 + `lib/infrastructure/cli/{normalize,mosaic,export}`，引用对应算法模块。（见最高设计 §7.1/§8.4）
 
 ---
 

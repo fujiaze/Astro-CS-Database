@@ -10,7 +10,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §8.1（顶层结构：aio 是文件级唯一 I/O 边界）、§10（I/O 与原子产品）
+- 最高设计 `ASTROCS_DESIGN.md` §8.4（顶层结构：aio 模块位）、§10（I/O 与原子产品：aio 是文件级唯一 I/O 边界）
 - FITS Standard、IVOA HiPS 1.0
 
 ## 3. 输入/输出数据合同
