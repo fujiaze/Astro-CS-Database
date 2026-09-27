@@ -89,204 +89,97 @@ void sdet_gaussian_filter_separable(const float* src, float* dst, int w, int h, 
     }
 }
 
+// ============================================================================
+// SPEC: 5.2 O2 Gaussian smoothing (YvV recursive IIR)
+// Origin: Young & van Vliet 1995, Signal Processing 44(2), 139-151 (8-4);
+// boundary: Triggs & Sdika 2006, IEEE TSP 54(6), 2365-2367 (8-4).
+// Coefficients frozen per design 5.2: q piecewise, b0..b3 polynomials,
+// B = 1 - (b1+b2+b3)/b0 then b_i <- b_i/b0; q^2 term = 1.4281 (behavioral
+// freeze anchor, 8-1). Forward constant-signal seed (T&S06 boundary) +
+// reverse end-mirror. float/double variants frozen separately.
+// Pass-through: sigma<=0.5 or W<4 or H<4. Production sigma=2.0 (frozen).
+// ============================================================================
+namespace {
+
+template <typename F>
+inline void sdet_yvv_coeffs(double sigma, F* B, F* b1, F* b2, F* b3) {
+    double q;
+    if (sigma < 2.5) {
+        q = 3.97156 - 4.14554 * std::sqrt(1.0 - 0.26891 * sigma);
+    } else {
+        q = 0.98711 * sigma - 0.96330;
+    }
+    const double q2 = q * q;
+    const double q3 = q2 * q;
+    const double b0 = 1.57825 + 2.44413 * q + 1.4281 * q2 + 0.422205 * q3;
+    const double r1 = 2.44413 * q + 2.85619 * q2 + 1.26661 * q3;
+    const double r2 = -(1.4281 * q2 + 1.26661 * q3);
+    const double r3 = 0.422205 * q3;
+    *B  = (F)(1.0 - (r1 + r2 + r3) / b0);
+    *b1 = (F)(r1 / b0);
+    *b2 = (F)(r2 / b0);
+    *b3 = (F)(r3 / b0);
+}
+
+// One-line 1D bidirectional recursion (in place).
+// Forward:  w(n) = B*x(n) + b1*w(n-1) + b2*w(n-2) + b3*w(n-3),
+//           seed w(-1)=w(-2)=w(-3)=x(0) (constant signal, T&S06 boundary).
+// Reverse:  same coefficients in reverse order,
+//           seed o(N)=o(N+1)=o(N+2)=w(N-1) (end mirror). DC gain = 1.
+template <typename F>
+inline void sdet_yvv_pass(F* b, int n, F B, F b1, F b2, F b3) {
+    if (n <= 0) return;
+    {
+        F w1 = b[0], w2 = b[0], w3 = b[0];
+        for (int i = 0; i < n; ++i) {
+            const F v = B * b[i] + b1 * w1 + b2 * w2 + b3 * w3;
+            w3 = w2; w2 = w1; w1 = v;
+            b[i] = v;
+        }
+    }
+    {
+        F o1 = b[n - 1], o2 = b[n - 1], o3 = b[n - 1];
+        for (int i = n - 1; i >= 0; --i) {
+            const F v = B * b[i] + b1 * o1 + b2 * o2 + b3 * o3;
+            o3 = o2; o2 = o1; o1 = v;
+            b[i] = v;
+        }
+    }
+}
+
+template <typename F>
+static void sdet_yvv_blur_impl(const F* src, F* dst, int w, int h, double sigma) {
+    const std::size_t np = (std::size_t)w * (std::size_t)h;
+    if (sigma <= 0.5 || w < 4 || h < 4) {  // SPEC: 5.2 pass-through domain
+        std::memcpy(dst, src, np * sizeof(F));
+        return;
+    }
+    F B, b1, b2, b3;
+    sdet_yvv_coeffs<F>(sigma, &B, &b1, &b2, &b3);
+    const int mline = w > h ? w : h;
+    std::vector<F> line((std::size_t)mline);
+    for (int y = 0; y < h; ++y) {
+        std::memcpy(line.data(), src + (std::size_t)y * w, (std::size_t)w * sizeof(F));
+        sdet_yvv_pass(line.data(), w, B, b1, b2, b3);
+        std::memcpy(dst + (std::size_t)y * w, line.data(), (std::size_t)w * sizeof(F));
+    }
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; ++y) line[(std::size_t)y] = dst[(std::size_t)y * w + x];
+        sdet_yvv_pass(line.data(), h, B, b1, b2, b3);
+        for (int y = 0; y < h; ++y) dst[(std::size_t)y * w + x] = line[(std::size_t)y];
+    }
+}
+
+}  // namespace
+
 void sdet_gaussian_blur_yvv(const float* src, float* dst, int w, int h, double sigma) {
-    if (sigma <= 0.5 || w < 4 || h < 4) {
-        sdet_gaussian_filter_separable(src, dst, w, h, sigma);
-        return;
-    }
-
-    // === calculateYvVFactors (gauss.cc:139-171) ===
-    double q;
-    if (sigma < 2.5) {
-        q = 3.97156 - 4.14554 * std::sqrt(1.0 - 0.26891 * sigma);
-    } else {
-        q = 0.98711 * sigma - 0.96330;
-    }
-    double b0 = 1.57825 + 2.44413 * q + 1.4281 * q * q + 0.422205 * q * q * q;
-    double b1 = 2.44413 * q + 2.85619 * q * q + 1.26661 * q * q * q;
-    double b2 = -1.4281 * q * q - 1.26661 * q * q * q;
-    double b3 = 0.422205 * q * q * q;
-    double B = 1.0 - (b1 + b2 + b3) / b0;
-    b1 /= b0;
-    b2 /= b0;
-    b3 /= b0;
-
-    // Triggs-Sdika 边界条件矩阵 M
-    double M[3][3];
-    M[0][0] = -b3 * b1 + 1.0 - b3 * b3 - b2;
-    M[0][1] = (b3 + b1) * (b2 + b3 * b1);
-    M[0][2] = b3 * (b1 + b3 * b2);
-    M[1][0] = b1 + b3 * b2;
-    M[1][1] = -(b2 - 1.0) * (b2 + b3 * b1);
-    M[1][2] = -(b3 * b1 + b3 * b3 + b2 - 1.0) * b3;
-    M[2][0] = b3 * b1 + b2 + b1 * b1 - b2 * b2;
-    M[2][1] = b1 * b2 + b3 * b2 * b2 - b1 * b3 * b3 - b3 * b3 * b3 - b3 * b2 + b3;
-    M[2][2] = b3 * (b1 + b3 * b2);
-
-    // M 归一化 (gaussHorizontalSse/gaussVerticalSse: gauss.cc:603-607)
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            M[i][j] *= (1.0 + b2 + (b1 - b3) * b3);
-            M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
-        }
-    }
-
-    const float Bf = (float)B, b1f = (float)b1, b2f = (float)b2, b3f = (float)b3;
-    float Mf[3][3];
-    for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++)
-            Mf[i][j] = (float)M[i][j];
-
-    std::vector<float> tmp((size_t)w * h);
-
-    // === 水平方向前向+反向递归 (gaussHorizontalSse 标量: gauss.cc:683-707) ===
-    #pragma omp parallel for schedule(static)
-    for (int y = 0; y < h; y++) {
-        const float* srow = src + (size_t)y * w;
-        float* trow = tmp.data() + (size_t)y * w;
-
-        trow[0] = srow[0] * (Bf + b1f + b2f + b3f);
-        trow[1] = Bf * srow[1] + b1f * trow[0] + srow[0] * (b2f + b3f);
-        trow[2] = Bf * srow[2] + b1f * trow[1] + b2f * trow[0] + b3f * srow[0];
-        for (int x = 3; x < w; x++) {
-            trow[x] = Bf * srow[x] + b1f * trow[x - 1] + b2f * trow[x - 2] + b3f * trow[x - 3];
-        }
-
-        float sW = srow[w - 1];
-        float temp2Wm1 = sW + Mf[0][0] * (trow[w - 1] - sW) + Mf[0][1] * (trow[w - 2] - sW) + Mf[0][2] * (trow[w - 3] - sW);
-        float temp2W   = sW + Mf[1][0] * (trow[w - 1] - sW) + Mf[1][1] * (trow[w - 2] - sW) + Mf[1][2] * (trow[w - 3] - sW);
-        float temp2Wp1 = sW + Mf[2][0] * (trow[w - 1] - sW) + Mf[2][1] * (trow[w - 2] - sW) + Mf[2][2] * (trow[w - 3] - sW);
-
-        trow[w - 1] = temp2Wm1;
-        trow[w - 2] = Bf * trow[w - 2] + b1f * trow[w - 1] + b2f * temp2W + b3f * temp2Wp1;
-        trow[w - 3] = Bf * trow[w - 3] + b1f * trow[w - 2] + b2f * trow[w - 1] + b3f * temp2W;
-
-        for (int x = w - 4; x >= 0; x--) {
-            trow[x] = Bf * trow[x] + b1f * trow[x + 1] + b2f * trow[x + 2] + b3f * trow[x + 3];
-        }
-    }
-
-    // === 垂直方向前向+反向递归 (gaussVerticalSse 标量: gauss.cc:872-897) ===
-    #pragma omp parallel for schedule(static)
-    for (int x = 0; x < w; x++) {
-        dst[0 * w + x] = tmp[0 * w + x] * (Bf + b1f + b2f + b3f);
-        dst[1 * w + x] = Bf * tmp[1 * w + x] + b1f * dst[0 * w + x] + tmp[0 * w + x] * (b2f + b3f);
-        dst[2 * w + x] = Bf * tmp[2 * w + x] + b1f * dst[1 * w + x] + b2f * dst[0 * w + x] + b3f * tmp[0 * w + x];
-        for (int y = 3; y < h; y++) {
-            dst[(size_t)y * w + x] = Bf * tmp[(size_t)y * w + x] + b1f * dst[(size_t)(y - 1) * w + x] + b2f * dst[(size_t)(y - 2) * w + x] + b3f * dst[(size_t)(y - 3) * w + x];
-        }
-
-        float sH = tmp[(size_t)(h - 1) * w + x];
-        float temp2Hm1 = sH + Mf[0][0] * (dst[(size_t)(h - 1) * w + x] - sH) + Mf[0][1] * (dst[(size_t)(h - 2) * w + x] - sH) + Mf[0][2] * (dst[(size_t)(h - 3) * w + x] - sH);
-        float temp2H   = sH + Mf[1][0] * (dst[(size_t)(h - 1) * w + x] - sH) + Mf[1][1] * (dst[(size_t)(h - 2) * w + x] - sH) + Mf[1][2] * (dst[(size_t)(h - 3) * w + x] - sH);
-        float temp2Hp1 = sH + Mf[2][0] * (dst[(size_t)(h - 1) * w + x] - sH) + Mf[2][1] * (dst[(size_t)(h - 2) * w + x] - sH) + Mf[2][2] * (dst[(size_t)(h - 3) * w + x] - sH);
-
-        dst[(size_t)(h - 1) * w + x] = temp2Hm1;
-        dst[(size_t)(h - 2) * w + x] = Bf * dst[(size_t)(h - 2) * w + x] + b1f * dst[(size_t)(h - 1) * w + x] + b2f * temp2H + b3f * temp2Hp1;
-        dst[(size_t)(h - 3) * w + x] = Bf * dst[(size_t)(h - 3) * w + x] + b1f * dst[(size_t)(h - 2) * w + x] + b2f * dst[(size_t)(h - 1) * w + x] + b3f * temp2H;
-
-        for (int y = h - 4; y >= 0; y--) {
-            dst[(size_t)y * w + x] = Bf * dst[(size_t)y * w + x] + b1f * dst[(size_t)(y + 1) * w + x] + b2f * dst[(size_t)(y + 2) * w + x] + b3f * dst[(size_t)(y + 3) * w + x];
-        }
-    }
+    sdet_yvv_blur_impl<float>(src, dst, w, h, sigma);
 }
 
-// ============================================================================
-// sdet_gaussian_blur_yvv_d - FP64 变体 (, PREC-108): double 图像, 无 float 降级
-// 与 float 版逻辑一致, 系数/缓冲/递归全部 double
-// ============================================================================
+// FP64 variant - double image, no float downgrade
 void sdet_gaussian_blur_yvv_d(const double* src, double* dst, int w, int h, double sigma) {
-    if (sigma <= 0.5 || w < 4 || h < 4) {
-        // 退化路径: 直接复制 (浮点高斯在该参数下近似恒等)
-        for (int64_t i = 0; i < (int64_t)w * h; i++) dst[i] = src[i];
-        return;
-    }
-
-    double q;
-    if (sigma < 2.5) {
-        q = 3.97156 - 4.14554 * std::sqrt(1.0 - 0.26891 * sigma);
-    } else {
-        q = 0.98711 * sigma - 0.96330;
-    }
-    double b0 = 1.57825 + 2.44413 * q + 1.4281 * q * q + 0.422205 * q * q * q;
-    double b1 = 2.44413 * q + 2.85619 * q * q + 1.26661 * q * q * q;
-    double b2 = -1.4281 * q * q - 1.26661 * q * q * q;
-    double b3 = 0.422205 * q * q * q;
-    double B = 1.0 - (b1 + b2 + b3) / b0;
-    b1 /= b0;
-    b2 /= b0;
-    b3 /= b0;
-
-    double M[3][3];
-    M[0][0] = -b3 * b1 + 1.0 - b3 * b3 - b2;
-    M[0][1] = (b3 + b1) * (b2 + b3 * b1);
-    M[0][2] = b3 * (b1 + b3 * b2);
-    M[1][0] = b1 + b3 * b2;
-    M[1][1] = -(b2 - 1.0) * (b2 + b3 * b1);
-    M[1][2] = -(b3 * b1 + b3 * b3 + b2 - 1.0) * b3;
-    M[2][0] = b3 * b1 + b2 + b1 * b1 - b2 * b2;
-    M[2][1] = b1 * b2 + b3 * b2 * b2 - b1 * b3 * b3 - b3 * b3 * b3 - b3 * b2 + b3;
-    M[2][2] = b3 * (b1 + b3 * b2);
-
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            M[i][j] *= (1.0 + b2 + (b1 - b3) * b3);
-            M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
-        }
-    }
-
-    std::vector<double> tmp((size_t)w * h);
-
-    #pragma omp parallel for schedule(static)
-    for (int y = 0; y < h; y++) {
-        const double* srow = src + (size_t)y * w;
-        double* trow = tmp.data() + (size_t)y * w;
-
-        trow[0] = srow[0] * (B + b1 + b2 + b3);
-        trow[1] = B * srow[1] + b1 * trow[0] + srow[0] * (b2 + b3);
-        trow[2] = B * srow[2] + b1 * trow[1] + b2 * trow[0] + b3 * srow[0];
-        for (int x = 3; x < w; x++) {
-            trow[x] = B * srow[x] + b1 * trow[x - 1] + b2 * trow[x - 2] + b3 * trow[x - 3];
-        }
-
-        double sW = srow[w - 1];
-        double temp2Wm1 = sW + M[0][0] * (trow[w - 1] - sW) + M[0][1] * (trow[w - 2] - sW) + M[0][2] * (trow[w - 3] - sW);
-        double temp2W   = sW + M[1][0] * (trow[w - 1] - sW) + M[1][1] * (trow[w - 2] - sW) + M[1][2] * (trow[w - 3] - sW);
-        double temp2Wp1 = sW + M[2][0] * (trow[w - 1] - sW) + M[2][1] * (trow[w - 2] - sW) + M[2][2] * (trow[w - 3] - sW);
-
-        trow[w - 1] = temp2Wm1;
-        trow[w - 2] = B * trow[w - 2] + b1 * trow[w - 1] + b2 * temp2W + b3 * temp2Wp1;
-        trow[w - 3] = B * trow[w - 3] + b1 * trow[w - 2] + b2 * trow[w - 1] + b3 * temp2W;
-
-        for (int x = w - 4; x >= 0; x--) {
-            trow[x] = B * trow[x] + b1 * trow[x + 1] + b2 * trow[x + 2] + b3 * trow[x + 3];
-        }
-    }
-
-    #pragma omp parallel for schedule(static)
-    for (int x = 0; x < w; x++) {
-        dst[0 * w + x] = tmp[0 * w + x] * (B + b1 + b2 + b3);
-        dst[1 * w + x] = B * tmp[1 * w + x] + b1 * dst[0 * w + x] + tmp[0 * w + x] * (b2 + b3);
-        dst[2 * w + x] = B * tmp[2 * w + x] + b1 * dst[1 * w + x] + b2 * dst[0 * w + x] + b3 * tmp[0 * w + x];
-        for (int y = 3; y < h; y++) {
-            dst[(size_t)y * w + x] = B * tmp[(size_t)y * w + x] + b1 * dst[(size_t)(y - 1) * w + x] + b2 * dst[(size_t)(y - 2) * w + x] + b3 * dst[(size_t)(y - 3) * w + x];
-        }
-
-        double sH = tmp[(size_t)(h - 1) * w + x];
-        double temp2Hm1 = sH + M[0][0] * (dst[(size_t)(h - 1) * w + x] - sH) + M[0][1] * (dst[(size_t)(h - 2) * w + x] - sH) + M[0][2] * (dst[(size_t)(h - 3) * w + x] - sH);
-        double temp2H   = sH + M[1][0] * (dst[(size_t)(h - 1) * w + x] - sH) + M[1][1] * (dst[(size_t)(h - 2) * w + x] - sH) + M[1][2] * (dst[(size_t)(h - 3) * w + x] - sH);
-        double temp2Hp1 = sH + M[2][0] * (dst[(size_t)(h - 1) * w + x] - sH) + M[2][1] * (dst[(size_t)(h - 2) * w + x] - sH) + M[2][2] * (dst[(size_t)(h - 3) * w + x] - sH);
-
-        dst[(size_t)(h - 1) * w + x] = temp2Hm1;
-        dst[(size_t)(h - 2) * w + x] = B * dst[(size_t)(h - 2) * w + x] + b1 * dst[(size_t)(h - 1) * w + x] + b2 * temp2H + b3 * temp2Hp1;
-        dst[(size_t)(h - 3) * w + x] = B * dst[(size_t)(h - 3) * w + x] + b1 * dst[(size_t)(h - 2) * w + x] + b2 * dst[(size_t)(h - 1) * w + x] + b3 * temp2H;
-
-        for (int y = h - 4; y >= 0; y--) {
-            dst[(size_t)y * w + x] = B * dst[(size_t)y * w + x] + b1 * dst[(size_t)(y + 1) * w + x] + b2 * dst[(size_t)(y + 2) * w + x] + b3 * dst[(size_t)(y + 3) * w + x];
-        }
-    }
+    sdet_yvv_blur_impl<double>(src, dst, w, h, sigma);
 }
-
 void sdet_median_filter_3x3(const float* src, float* dst, int w, int h) {
     #pragma omp parallel for schedule(static)
     for (int y = 0; y < h; y++) {
@@ -468,62 +361,72 @@ void sdet_local_maxima_map(const float* src, float* dst, int w, int h, int radiu
     }
 }
 
+// ============================================================================
+// SPEC: 5.1 O1 background statistics family (Project-defined;
+//       MAD semantics NOISE_MODEL.md 14.2)
+// robust_median/_d: robust median. Per-pixel isfinite reduction at entry
+//   (NaN/Inf never enter the sample) - ALG background-sigma NaN clause:
+//   fail-open closed, NaN input is not silently passed; all-non-finite
+//   input returns 0 (return-value check).
+// robust_mad/_d: MAD(|x - median|) * 1.482602218505602. B4-4 regression lock
+//   semantics: the MAD-to-sigma conversion applies to MAD, not to RMSE;
+//   15-digit frozen constant (not the 4-digit truncation).
+// Median rule: odd n takes the middle element, even n averages the two
+// middle elements (NOISE_MODEL convention).
+// ============================================================================
+namespace {
+
+template <typename F>
+inline F sdet_sorted_median(std::vector<F>* v) {
+    const std::size_t n = v->size();
+    if (n == 0) return (F)0;
+    std::sort(v->begin(), v->end());
+    if (n % 2 == 1) return (*v)[n / 2];
+    return (F)(0.5 * ((double)(*v)[n / 2 - 1] + (double)(*v)[n / 2]));
+}
+
+template <typename F>
+inline F sdet_median_of_finite(const F* data, int n) {
+    if (!data || n <= 0) return (F)0;
+    std::vector<F> v;
+    v.reserve((std::size_t)n);
+    for (int i = 0; i < n; ++i)
+        if (std::isfinite((double)data[i])) v.push_back(data[i]);
+    return sdet_sorted_median<F>(&v);
+}
+
+template <typename F>
+inline F sdet_mad_sigma_impl(const F* data, int n) {
+    if (!data || n <= 0) return (F)0;
+    std::vector<F> v;
+    v.reserve((std::size_t)n);
+    for (int i = 0; i < n; ++i)
+        if (std::isfinite((double)data[i])) v.push_back(data[i]);
+    if (v.empty()) return (F)0;
+    const F med = sdet_sorted_median<F>(&v);
+    for (std::size_t i = 0; i < v.size(); ++i)
+        v[i] = (F)std::fabs((double)v[i] - (double)med);
+    const F mad = sdet_sorted_median<F>(&v);
+    return (F)((double)mad * 1.482602218505602);
+}
+
+}  // namespace
+
 float sdet_robust_median(const float* data, int n) {
-    if (n <= 0) return 0.0f;
-    std::vector<float> tmp(data, data + n);
-    std::nth_element(tmp.begin(), tmp.begin() + n / 2, tmp.end());
-    if (n % 2 == 0) {
-        float a;
-        float b = tmp[n / 2];
-        std::nth_element(tmp.begin(), tmp.begin() + n / 2 - 1, tmp.begin() + n / 2);
-        a = tmp[n / 2 - 1];
-        return (a + b) * 0.5f;
-    }
-    return tmp[n / 2];
+    return sdet_median_of_finite<float>(data, n);
 }
 
 float sdet_robust_mad(const float* data, int n) {
-    if (n <= 0) return 0.0f;
-    float med = sdet_robust_median(data, n);
-    std::vector<float> deviations(n);
-    for (int i = 0; i < n; i++) {
-        deviations[i] = std::fabs(data[i] - med);
-    }
-    float mad = sdet_robust_median(deviations.data(), n);
-    // MAD→σ 换算: NOISE_MODEL.md:135 冻结 1.482602218505602 = 1/Φ⁻¹(3/4)
-    // (B4-4/M3b-H-01 位数纪律: 常数位数统一到 NOISE_MODEL 冻结值)。
-    return mad * 1.482602218505602f;
+    return sdet_mad_sigma_impl<float>(data, n);
 }
 
-// ============================================================================
-// sdet_robust_median_d / sdet_robust_mad_d - FP64 变体 (, PREC-108)
-// ============================================================================
 double sdet_robust_median_d(const double* data, int n) {
-    if (n <= 0) return 0.0;
-    std::vector<double> tmp(data, data + n);
-    std::nth_element(tmp.begin(), tmp.begin() + n / 2, tmp.end());
-    if (n % 2 == 0) {
-        double a;
-        double b = tmp[n / 2];
-        std::nth_element(tmp.begin(), tmp.begin() + n / 2 - 1, tmp.begin() + n / 2);
-        a = tmp[n / 2 - 1];
-        return (a + b) * 0.5;
-    }
-    return tmp[n / 2];
+    return sdet_median_of_finite<double>(data, n);
 }
 
 double sdet_robust_mad_d(const double* data, int n) {
-    if (n <= 0) return 0.0;
-    double med = sdet_robust_median_d(data, n);
-    std::vector<double> deviations(n);
-    for (int i = 0; i < n; i++) {
-        deviations[i] = std::fabs(data[i] - med);
-    }
-    double mad = sdet_robust_median_d(deviations.data(), n);
-    // MAD→σ 换算: NOISE_MODEL.md:135 冻结 1.482602218505602 = 1/Φ⁻¹(3/4)
-    return mad * 1.482602218505602;
+    return sdet_mad_sigma_impl<double>(data, n);
 }
-
 void sdet_downsample(const float* src, int sw, int sh, float* dst, int dw, int dh) {
     float x_ratio = (float)sw / (float)dw;
     float y_ratio = (float)sh / (float)dh;

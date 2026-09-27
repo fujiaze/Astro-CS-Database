@@ -308,6 +308,16 @@ Report solve(ResidualFn residual, JacobianFn jacobian, void* ctx,
             D[j] = std::sqrt(s);
             if (!(D[j] > 0.0) || !std::isfinite(D[j])) D[j] = 1.0;  // 零列: 退化为绝对缩放
         }
+        // 近零列保护（MINPACK diag 保护的相对化推广）: 圆星噪声实现可给 theta
+        // 列留 1e-3 级残梯度, More 缩放按 1/D 放大后该方向步恒被增益比拒绝
+        // （chi2 沿近零列中性）, 内层重试耗尽 -> NumericalFailure。钳制到列最大
+        // 尺度使停滞方向与其它参数协调步进; 精确零列（D=0 -> 1）行为不变
+        // （p1star_nls_lm [5] 合同: 秩亏不导致失败）。
+        double dmax = 0.0;
+        for (std::size_t j2 = 0; j2 < p; ++j2) dmax = std::max(dmax, D[j2]);
+        for (std::size_t j2 = 0; j2 < p; ++j2) {
+            if (D[j2] < 1e-10 * dmax) D[j2] = dmax;
+        }
 
         // ---- 正规方程 A = JᵀJ, g = Jᵀf ----
         for (std::size_t i = 0; i < p; ++i) {
