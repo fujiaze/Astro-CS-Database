@@ -139,7 +139,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 | 项目 | 许可 | 关联 |
 |---|---|---|
-| [Siril](https://gitlab.com/free-astro/siril) | GPL-3.0 | 校准/cosmetic/platesolve 对照实现 |
+| [Siril](https://gitlab.com/free-astro/siril) | GPL-3.0 | 校准/cosmetic/platesolve 对照实现；星检测算法逻辑学习参考（仅学习其算法逻辑，未直接使用其代码） |
 | [SourceExtractor](https://github.com/astromatic/sextractor) | LGPL-3.0 | 星检测与测光基准 |
 | [SWarp](https://github.com/astromatic/swarp) | GPL-3.0 | 重采样与叠加语义锚 |
 | [SCAMP](https://github.com/astromatic/scamp) | GPL-3.0 | 天测标定对照 |
