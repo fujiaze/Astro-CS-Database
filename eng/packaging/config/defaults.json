@@ -1,17 +1,15 @@
 {
   "defaults_schema": "astrocs.config-defaults/v1",
   "defaults_id": "config.defaults",
-  "task": "CFG-001",
   "authority": {
     "design": "docs/ASTROCS_DESIGN.md §3.3（程序根 eng/packaging/config/：defaults.json 放暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层密度等）",
     "preflight": "docs/ASTROCS_DESIGN.md §3.5（预检三级：容差等判定基准来自 eng/packaging/config/defaults.json）",
-    "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/science/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
-    "owner_rulings": "工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md「负责人补充裁决（2026-09-16 第二轮）」"
+    "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/science/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造。"
   },
   "field_count": 59,
   "registry_ref": {
     "path": "eng/packaging/config/config_registry.json",
-    "scope": "W5-CFG-002（CFG-002）登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
+    "scope": "登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
     "relation": "本文件 fields[] 只登记科学参数默认值（source 限 docs/science|docs/algorithms，见 authority.transcription_rule）；plugin 级/运行时旋钮的默认值不在 fields[] 内登记，由该登记册承载并逐行给出归属与缺口，二者不得互相复制数值。"
   },
   "fields": [
@@ -24,7 +22,7 @@
       "source": "负责人裁决 2026-09-16（值为 5 s）；待落 docs/science/CALIBRATION.md（SCI-RES-01/R-004 落文档；定义归 SCI-RES-01/R-003）",
       "source_ref": null,
       "pending_task": null,
-      "note": "docs/science/CALIBRATION.md:19,21 只给出 K=t_light/t_dark 语义与 t_light/t_dark 符号，文档内无容差数值；本值来自负责人裁决，按裁决不得标 pending_authority。"
+      "note": "docs/science/CALIBRATION.md:19,21 只给出 K=t_light/t_dark 语义与 t_light/t_dark 符号，文档内无容差数值；本值无文档数值权威（owner_adjudicated 状态），不标 pending_authority。"
     },
     {
       "key": "calibration.master_flat_median_range",
@@ -290,7 +288,7 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 115
@@ -304,7 +302,7 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -318,7 +316,7 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -332,7 +330,7 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -346,7 +344,7 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -360,7 +358,7 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -374,7 +372,7 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -388,7 +386,7 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -402,7 +400,7 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
+      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
         "line": 68
@@ -646,7 +644,7 @@
         "line": 24
       },
       "pending_task": null,
-      "note": "行号锚由 W5-CFG-002 重锚（原 :100 在文档重排后落到无关段落，数值零改动）：:116 记保守取整 1.4；:131/:169 记 MC k_corr≈1.3883（control_median_mc_test 未注册/MISSING，不可复跑）。"
+      "note": "行号锚（文档重排后重锚，数值零改动）：:116 记保守取整 1.4；:131/:169 记 MC k_corr≈1.3883（control_median_mc_test 未注册/MISSING，不可复跑）。"
     },
     {
       "key": "hips.tile_width",
@@ -660,7 +658,7 @@
         "line": 17
       },
       "pending_task": null,
-      "note": "行号锚由 W5-CFG-002 重锚（原 :27 在文档重排后落到无关段落，数值零改动）：:130 记 properties 必需键 hips_tile_width（2 的幂，默认 512）；:63/:66-68 记 W=512 支持子集收窄。"
+      "note": "行号锚（文档重排后重锚，数值零改动）：:130 记 properties 必需键 hips_tile_width（2 的幂，默认 512）；:63/:66-68 记 W=512 支持子集收窄。"
     },
     {
       "key": "drizzle.pixfrac",
@@ -684,27 +682,27 @@
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
-      "pending_task": "SCI-RES-01/R-001（稀疏帧内 SNR 层控制点密度）+ 负责人批准",
-      "note": "docs/ASTROCS_DESIGN.md §3.3 点名 defaults.json 应含「稀疏层密度」；docs/science/** 与 docs/science/algorithms/** 全库检索无数值（GAP-024）。按裁决以 pending_authority 占位，禁止编造。**与 sparse_snr.spacing_px 不是同一字段**：本键单位「点/度²」（插件文档 07_noise_snr.md:113 的按面积密度表述，数值仍无 SCI/ALG 权威 ⇒ 保持 pending，本分片不改其状态、不改其 value/source）；负责人 2026-09-19 已裁决的稀疏层密度以**像素域控制点间隔**承载 = sparse_snr.spacing_px = 64 px（GAP_AUDIT §9.45，复用 Phase2 UPM 8×8/tile 控制网格）。文档侧单位/字段订正与 R-001 收口建议见 reports/RELEASE-02/snr-config-land.md §5。"
+      "pending_task": "SCI-RES-01/R-001（稀疏帧内 SNR 层控制点密度）",
+      "note": "docs/ASTROCS_DESIGN.md §3.3 点名 defaults.json 应含「稀疏层密度」；docs/science/** 与 docs/science/algorithms/** 全库检索无数值，以 pending_authority 占位，禁止编造。**与 sparse_snr.spacing_px 不是同一字段**：本键单位「点/度²」（插件文档 07_noise_snr.md:113 的按面积密度表述，数值仍无 SCI/ALG 权威 ⇒ 保持 pending）。稀疏层密度以**像素域控制点间隔**承载 = sparse_snr.spacing_px = 64 px（复用 Phase2 UPM 8×8/tile 控制网格）。"
     },
     {
       "key": "sparse_snr.spacing_px",
       "value": 64,
       "unit": "px",
-      "constraint": ">= 1（整数）；稀疏层控制点间隔 Δ（px）——负责人 §9.45「稀疏层密度」的像素域表述：默认 64 = hips.tile_width / 8 = 512 / 8（复用 Phase2 UPM 的 8×8/tile 控制网格，二者同一套几何）；实测 SNR 场相关长度 ℓ = 40.4–57.9 px 区间 ⇒ Δ/ℓ ≈ 1.1–1.6（够密）。（2026-09-20 订正：原写「ℓ = 48 px ⇒ Δ/ℓ = 1.33 近临界采样」——ℓ 单点值已作废，§9.48 更正表判「应写 40.4–57.9px 区间」；同步 docs/plugins/algorithms_phase1/07_noise_snr.md:138）",
+      "constraint": ">= 1（整数）；稀疏层控制点间隔 Δ（px）：默认 64 = hips.tile_width / 8 = 512 / 8（复用 Phase2 UPM 的 8×8/tile 控制网格，二者同一套几何）；实测 SNR 场相关长度 ℓ = 40.4–57.9 px 区间 ⇒ Δ/ℓ ≈ 1.1–1.6（够密）。",
       "authority_status": "owner_adjudicated",
-      "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.45：「64 可以了，够密且占用空间可控」——稀疏 SNR 层默认密度 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格）",
+      "source": "稀疏 SNR 层默认密度 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格（实测够密且占用空间可控）",
       "source_ref": null,
       "pending_task": null,
-      "note": "承载字段 = phase_config normalize 的块级 sparse_snr_spacing_px（eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px；§9.68 多块形态后逐帧形态退役，键面不变）。两处同值 64（schema default / 本键）；eng/packaging/config/templates/normalize.phase_config.json 自 §9.68 起与 --template 同源、只列必填骨架 + drizzle/wcs/filter_passband（不再逐键列可选键），故本键不再出现在模板里。authority_status=owner_adjudicated 的依据同 calibration.dark_light_exposure_tolerance：§9.45 为负责人逐字裁决，数值不得由 Agent 另定，亦不得标 pending_authority。"
+      "note": "承载字段 = phase_config normalize 的块级 sparse_snr_spacing_px（eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px；多块形态收口后逐帧形态退役，键面不变）。两处同值 64（schema default / 本键）；eng/packaging/config/templates/normalize.phase_config.json 自多块形态收口起与 --template 同源、只列必填骨架 + drizzle/wcs/filter_passband（不再逐键列可选键），故本键不再出现在模板里。authority_status=owner_adjudicated 的依据同 calibration.dark_light_exposure_tolerance：数值不得由 Agent 另定，亦不得标 pending_authority。"
     },
     {
       "key": "snr.path",
       "value": "sparse_reconstruct",
       "unit": "1",
-      "constraint": "枚举 token ∈ {dense, sparse_reconstruct, frame_reconstruct}；默认 sparse_reconstruct = Phase2 默认消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR（负责人 2026-09-19 裁决 GAP_AUDIT §9.46：马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）。三条路径全部保留供论文精度对比；SP-0（实测 Var_p 比值）为诊断量、不作默认开关。承载字段 = phase_config mosaic 的 snr_path（值域唯一事实源 = eng/contracts/schemas/phase_config_mosaic.schema.json）",
+      "constraint": "枚举 token ∈ {dense, sparse_reconstruct, frame_reconstruct}；默认 sparse_reconstruct = Phase2 默认消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR（马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）。三条路径全部保留供论文精度对比；SP-0（实测 Var_p 比值）为诊断量、不作默认开关。承载字段 = phase_config mosaic 的 snr_path（值域唯一事实源 = eng/contracts/schemas/phase_config_mosaic.schema.json）",
       "authority_status": "owner_adjudicated",
-      "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.46：Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量）；docs/plugins/algorithms_phase1/07_noise_snr.md:186（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出）",
+      "source": "Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量；docs/plugins/algorithms_phase1/07_noise_snr.md:186（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出）",
       "source_ref": {
         "path": "docs/plugins/algorithms_phase1/07_noise_snr.md",
         "line": 186
@@ -715,7 +713,7 @@
         "schema": "eng/contracts/schemas/phase_config_mosaic.schema.json",
         "pointer": "#/$defs/mosaic_config/properties/snr_path"
       },
-      "note": "键名依据：docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面；**2026-09-20 订正**：原写「§3.3:124」——§3.3 经 §9.56 裁决 4/§9.68 收口后为 CLI 平铺键集、**已不含 snr_path**，该行锚悬空）与 docs/design/UNIFIED_MODEL.md:46、docs/plugins/algorithms_phase1/07_noise_snr.md:114 均写 snr_path；change-claim FIX-SCI-SNR-CANON-001 §3.2/§4.1 表中的 algorithm_snr_path 为未落地的命名提议，按「与根设计/docs/ASTROCS_DESIGN §3.3 一致」统一为 snr_path（依据见 reports/RELEASE-02/snr-config-land.md §4）。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门 CFG002-03 断言 token ∈ snr_path enum）。"
+      "note": "键名依据：docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/design/UNIFIED_MODEL.md:46、docs/plugins/algorithms_phase1/07_noise_snr.md:114 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
     },
     {
       "key": "scalar_gate.rd",
@@ -725,8 +723,8 @@
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
-      "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）+ 负责人批准",
-      "note": "docs/ASTROCS_DESIGN.md §3.3 点名「标量门」；docs/science/** 与 docs/science/algorithms/** 无数值（GAP-024）。标量门失败须自动升级空间模型（07_noise_snr.md:76），阈值未定前不得编造。"
+      "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）",
+      "note": "docs/ASTROCS_DESIGN.md §3.3 点名「标量门」；docs/science/** 与 docs/science/algorithms/** 无数值。标量门失败须自动升级空间模型（07_noise_snr.md:76），阈值未定前不得编造。"
     },
     {
       "key": "scalar_gate.trend",
@@ -736,7 +734,7 @@
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
-      "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）+ 负责人批准",
+      "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）",
       "note": "同上；字段名取自 docs/plugins/algorithms_phase1/07_noise_snr.md:62（scalar_gate_trend）。"
     },
     {
@@ -745,7 +743,7 @@
       "unit": "path",
       "constraint": "Gaia 外部只读星表根目录（内含 gaia/GaiaDR3/ 与 gaia/GaiaDR3SP/ 的 xpsd 光谱库）。默认值 gaia 相对仓库根解析；用户可在本地覆盖文件 eng/packaging/config/local.paths.json 里写绝对路径（该文件不入库），以适配各自的磁盘布局。只读引用，不入仓库、不随发布包分发。",
       "authority_status": "owner_adjudicated",
-      "source": "负责人直接指令 2026-09-21（gaia 数据库单独放根目录 gaia/；具体绝对位置写入 config 供用户手动配置）",
+      "source": "gaia 数据库单独放根目录 gaia/（具体绝对位置写入 config 供用户手动配置）",
       "source_ref": null,
       "pending_task": null,
       "note": "绝对路径不入库（AGENTS.md §3 禁写死服务器绝对路径）；本键只承载默认相对位置与覆盖机制。"
