@@ -21,7 +21,7 @@
   - **HiPS 文件**：signal、pixel variance/ivar、support、coverage/validity、drizzle correlation/transfer 描述、PSF 模型、photometric response、point_information map、psfsw、depth、**帧级 SNR（信噪比）写入文件头**、**[稀疏帧内 SNR 层（控制点存绝对 SNR）作为标准层]**、source catalog、manifest；
   - **结构化 JSON**：输出路径信息，符合 Phase2 输入格式；逐帧产品清单 `p1_products.json` 额外登记落盘形态（`storage_form`）、产品级索引路径（`index_path`）与指纹（`index_sha256` / `archive_sha256`），运行级登记 `coverage_index`（`path` / `sha256` / `n_frames` / `n_blocks`）；
   - **落盘形态**：由输入配置键 `storage_form` 选定——默认 `archive`（`<name>.hips.zst`，整包 tar + 逐成员 zstd 帧），可显式切 `bare`（`<name>.hips/`）；键缺失或留空 ⇒ 取默认并报 warn（不静默取默认）。两形态都写产品级索引，运行级写覆盖索引；归档内 `properties` 与裸形态逐字节一致。
-- 参考：`eng/contracts/schemas/hips_product.schema.json`、`eng/contracts/schemas/manifest.schema.json`。
+- 参考：`eng/contracts/schemas/hips_storage_form.schema.json`（落盘形态与索引字段词表）、`eng/contracts/schemas/run_manifest.schema.json`、`docs/contracts/DATA_SEMANTICS.md` §11（DATA-P1-DRZ：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -66,7 +66,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - 相关噪声不存描述 → variance 完备性的宣称以该描述在盘为前提；
 - 缺 tile/非有限 → validity 标记，不以零填充；
 - **无覆盖/无数据 = NaN**（与支撑度 ≤0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用**样本级掩膜**：被掩除的样本不参与该输出像素，剩余样本权重**重归一**；整个输出像素无有效覆盖则置 NaN（**覆盖级 NaN**）并**强制计数**（最高设计 §5.5/§10，规则见 `docs/science/DRIZZLE.md`）；
-- **逐像素方差/ivar 产品面**：生产调度路径**已挂** `variance` 帧内命名块 —— `lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`；登记面 = `DATA-P1-DRZ` §11.1:295「variance 面（可选，帧内块）float32，ADU²」。引擎侧 `sumVarNum += v·w²`（`w = a_jp/A_pixel,j`），sink/writer finalize 出 V19 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（`true` ⇒ variance|ivar 位同时置位，`false` ⇒ 两位均不置位，禁占位子产品），**由磁盘事实给出，禁硬编码**。
+- **逐像素方差/ivar 产品面**：生产调度路径**已挂** `variance` 帧内命名块 —— `lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`；登记面 = `DATA-P1-DRZ` §11.1:380「"variance" 块（可选，帧内块）float32，ADU²」。引擎侧 `sumVarNum += v·w²`（`w = a_jp/A_pixel,j`），sink/writer finalize 出 V19 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（`true` ⇒ variance|ivar 位同时置位，`false` ⇒ 两位均不置位，禁占位子产品），**由磁盘事实给出，禁硬编码**。
   **显式降级（非静默，带 `var_status`/`var_reason`）**：noise model 退化（rc=1）⇒ `skipped_degenerate_empty_support`；填充面含非有限/非正值 ⇒ `skipped_fill_failed`（全零方差面会让引擎整像素 `varianceValue<=0 ⇒ continue`，抹掉 signal/support，故 fail-closed）。凡「逐像素方差已由生产路径产出」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据；旧表述「生产调度路径不挂 `variance` 块 ⇒ `has_variance=0` ⇒ `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）」与工作区现状**不符，查无实据**；双实现分裂见 `07_noise_snr.md` §4.4。
 
 ## 8. 测试与 Oracle

@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §5.1-§5.4（输出不带权重、投影到平面、WCS 直接计算生成）、§9（原子提交）
+- 最高设计 `ASTROCS_DESIGN.md` §6.2（export 流程：投影到平面、WCS 直接计算生成）、§6.3（输出模式显式声明）、§10（I/O 与原子产品：输出不带权重、原子提交）
 - `docs/design/PHASE3_DETAILED_DESIGN.md` §5-§6
 - FITS Standard（外部标准）
 

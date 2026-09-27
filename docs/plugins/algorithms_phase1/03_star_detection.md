@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：星表引导检测细则）、§4.2（节点流程：星表引导检测与 WCS 解算）与 §2.1（创新点一：测光校准到测光星等坐标系，星点位置由星表逆映射获得）；硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/science/algorithms/GATES_AND_TOLERANCES.md:39`。
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：星表引导检测细则）、§4.2（节点流程：星表引导检测与 WCS 解算）与 §2.1（创新点一：测光校准到测光星等坐标系，星点位置由星表逆映射获得）；硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:65`、`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:50-51`、`docs/science/algorithms/GATES_AND_TOLERANCES.md:39-40`。
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
 
@@ -18,12 +18,12 @@
 - **输入**：定标+cosmetic 后信号、variance/ivar、validity、背景模型（若已有）、配置。
 - **输出**：source catalog（源 ID、像素坐标、天球坐标、质心/矩、局部 SNR、flags）+ selection function/completeness 参数。
 - 检测、PSF、WCS、测光、SNR 的 source row 绑定同一 `frame_id/source_id`。
-- 参考：`eng/contracts/schemas/source_catalog.schema.json`。
+- 参考：`docs/contracts/DATA_SEMANTICS.md` §17（DATA-P1-STAR：源目录行结构与合同域正本）。
 
 ## 4. 算法与公式要点
 
 - **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用**本帧已解出的权威 WCS**把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取上限（规模由配置键 `star_detection.max_stars` 与星表查询口径导出，本行不复制数值；数值/合同域正本 = 本文件 §5.1 表与 `eng/contracts/schemas/phase_config_normalize.schema.json`），极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务非权威的诊断/初值用途。
-- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于全图盲检测路径**（全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品，最高设计 §4.2）。**权威 WCS** 由 `platesolve` 节点产出（其近似指向由 `wcs.init_source` 给出），节点序上**先于**星表引导检测：解算节点按帧自读校准后像素自行检测与匹配，不消费检测产物；引导检测再以该权威 WCS 作逆投影先验（见 §5.1）。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
+- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1872`（`pr.thr = pr.bg + 5.0 * pr.bgnoise`））——**仅适用于全图盲检测路径**（全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品，最高设计 §4.2）。**权威 WCS** 由 `platesolve` 节点产出（其近似指向由 `wcs.init_source` 给出），节点序上**先于**星表引导检测：解算节点按帧自读校准后像素自行检测与匹配，不消费检测产物；引导检测再以该权威 WCS 作逆投影先验（见 §5.1）。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。

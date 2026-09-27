@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 §3.6（硬约束：测光）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（观测模型）
+- 最高设计 §4.6（硬约束：测光）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（观测模型）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §7（测光）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（通量方差）
 
@@ -17,7 +17,7 @@
 
 - **输入**：定标信号、variance/ivar、validity、PSF 模型、WCS、检测目录、配置。
 - **输出**：源通量 `F`、通量方差 `Var(F)`、`a_k`（光度响应）及其不确定度、颜色项、有效域、测光 flags。
-- 参考：`eng/contracts/schemas/photometry_output.schema.json`。
+- 参考：`docs/contracts/DATA_SEMANTICS.md` §14（DATA-P1-PHOT：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 

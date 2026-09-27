@@ -16,7 +16,7 @@
 
 - **输入**：归一化产品组、预测残差方差（含 Phase1 噪声 + UPM 参数不确定度）、validity、配置。
 - **输出**：rejection mask、count、reason 分类、probability、方法版本。
-- 参考：`eng/contracts/schemas/rejection_output.schema.json`。
+- 参考：`eng/contracts/schemas/unified/rejection.schema.json`（rejection 对象 canonical schema）。
 
 ## 4. 算法与公式要点
 
@@ -69,7 +69,7 @@
 
 > `N ≥ 16` 档取 winsorized sigma clipping，
 > 即生产档 `astrocs_adaptive_pixel` 的档位表由四档收成三档（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）。
-> **依据（生产 kernel 受控评估，`run/REJECT-DOCFIX-01/REPORT.md`）**：linear fit 在 `N ≥ 16` 档的
+> **依据（生产 kernel 受控评估，`docs/science/REJECTION.md` §5）**：linear fit 在 `N ≥ 16` 档的
 > 等效上阈实测仅 **≈2.1–2.4·σ_robust**（名义 3.5·σ_fit，因秩轴拟合的 σ 被序统计量间距压小），
 > 导致**干净像素过拒 12.200% → 0.067%**、显著点漏检 **3.92% → 1.44%**、
 > `N≥16` 可测残余 >2.5σ 的像素 **27/1175 → 0/1175**；该档占全图 **13.14%** 像素。
