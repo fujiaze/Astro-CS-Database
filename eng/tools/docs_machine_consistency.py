@@ -115,6 +115,7 @@ BENIGN_SURFACES = [
      "Python 侧显示/回归脚本（非 ABI 交付面）"),
     (re.compile(r"^lib/algorithms/coverage/tools/"), "覆盖域诊断工具（非交付面）"),
     (re.compile(r"^reports/"), "审计报告与历史证据（非活动规范文本）"),
+    (re.compile(r"^artifacts/evidence/"), "审计/验收时点证据快照（audit-2026-01、v19r7-quality 等；含 FIX_LEDGER 修复台账与 OWNER_DECISIONS 裁决存档，历史记录不改写，非活动规范文本）"),
     (re.compile(r"^工程控制/"), "控制包任务卡与账本（过程记录，非活动规范文本）"),
     (re.compile(r"^eng/tests/unit/p2_rej/oracle_expected\.inc$"),
      "数值 oracle 期望表（数据数组，非常数写法；W4-A6 / M7-T-102 归其域）"),

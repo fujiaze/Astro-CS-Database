@@ -46,7 +46,7 @@ def stretch_to_uint8(arr, mode: str, lo_pct: float, hi_pct: float):
         # 自动：中位数背景 + MAD 缩放，近似 zscale
         med = float(np.median(vals))
         mad = float(np.median(np.abs(vals - med))) or (hi - lo) / 6.0
-        z1, z2 = med - 2.5 * 1.4826 * mad, med + 8.0 * 1.4826 * mad
+        z1, z2 = med - 2.5 * 1.482602218505602 * mad, med + 8.0 * 1.482602218505602 * mad
         x = (arr.astype(np.float64) - z1) / (z2 - z1) if z2 > z1 else x
         x = np.arcsinh(np.clip(x, 0.0, None) * 10.0) / math.asinh(10.0)
     else:

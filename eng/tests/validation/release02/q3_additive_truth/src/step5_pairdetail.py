@@ -62,7 +62,7 @@ def star_spatial(m, blocks=8):
             if k.sum() > 5: bmap[i, j] = float(np.median(r[k]))
     out['block_map'] = bmap.tolist(); out['block_cnt'] = bcnt.tolist()
     out['med'] = float(np.median(r)); out['n'] = int(len(r))
-    out['logmad'] = float(1.4826 * np.median(np.abs(lr - np.median(lr))))
+    out['logmad'] = float(1.482602218505602 * np.median(np.abs(lr - np.median(lr))))
     return out
 
 def analyse_pair(fA, fB, step=24, snr=50.0, tag=''):

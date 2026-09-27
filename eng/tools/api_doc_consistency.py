@@ -25,20 +25,15 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-EXPECTED_FREEZE = "PASS"       # V17 G10 Round6 clean-tree 终验已通过
+EXPECTED_FREEZE = "PASS"       # clean-tree 终验已通过
 
-# ── 扫描面（LINUXMAIN-PATH-01 B3）：由权威来源派生 + fail-closed 锚存活 ──────────
-# 原实现手抄 [docs, reports, docs_snapshot]，其中 reports/ 与 docs_snapshot/ 已随根目录
-# 整合退役，collect_text() 的 `if not d.exists(): continue` 把它们**静默**跳过 ⇒
-# 名义 3 目录、实际只剩 docs，而 PASS/FAIL 文案照旧宣称覆盖了 reports。
-# 权威来源:
+# ── 扫描面：由权威来源派生 + fail-closed 锚存活 ──────────
+# 禁止手抄目录清单：手抄路径退役后会被 `if not d.exists(): continue` 静默跳过，
+# 名义覆盖与实际覆盖脱节。权威来源:
 #   docs/              —— ENGINEERING_SPEC §8「仓库长期维护一套自解释文档集」，
 #                         docs/DOCUMENT_INDEX.yaml 是唯一索引地图；
-#   artifacts/evidence —— ENGINEERING_SPEC §7「artifacts/（证据与产物，含证据锚
-#                         artifacts/evidence/**）」，是 reports/ 退役后的报告/证据落位。
-#   docs_snapshot/     —— 从来不是仓库根：它是 build_v19r{2,3,4}_package.py 在临时
-#                         暂存区里造的打包快照目录名（见其源码 TMP/docs_snapshot），
-#                         故从扫描面移除（记录于此，非静默删除）。
+#   artifacts/evidence —— ENGINEERING_SPEC §7 的证据与产物落位。
+#   docs_snapshot/     —— 打包快照目录名，从来不是仓库根，故从扫描面移除（记录于此，非静默删除）。
 # 任一扫描目录不存在 ⇒ ANCHOR_STALE + exit 2（禁止静默跳过）。
 SCAN_DIRS = [ROOT / "docs", ROOT / "artifacts" / "evidence"]
 OUT = ROOT / "run" / "temp" / "p2_v17_evidence" / "api_doc_consistency.json"
@@ -116,13 +111,9 @@ def main():
                          "unannotated_mentions": hits})
 
     # ---- 1b. new public APIs present ----
-    # api_inventory.md 已随报告版本化迁移 (reports/api_inventory.md →
-    # reports/v17/api_inventory.md)；候选列表 + reports/v*/api_inventory.md
-    # 兜底 (存在多个时取字典序最后一个 = 最新版本)。
-    # LINUXMAIN-PATH-01 B3: reports/ 已退役（reports/ -> artifacts/evidence/）。
-    # 候选面由"文档集 + 证据锚"派生，不再手抄 reports/ 死路径。候选只有两种**已登记**形态:
-    #   ① api_inventory.md  —— 历史名（reports/v17/api_inventory.md 已随 reports/ 退役,
-    #                          树内无同名后继）;
+    # 候选列表兜底 (存在多个时取字典序最后一个 = 最新版本)。
+    # 候选面由"文档集 + 证据锚"派生，不手抄死路径。候选只有两种**已登记**形态:
+    #   ① api_inventory.md  —— 历史名（树内无同名后继）;
     #   ② api_inventory.csv —— 现行 API 清单真身 docs/architecture/api_inventory.csv
     #                          （449 行, 列 symbol/header/signature/export）。
     inv_candidates = []

@@ -6,9 +6,9 @@
 可执行负例面 + docs/DOCUMENT_INDEX.yaml 抬头 §(b)(c) DOC-001 收敛记录）：
 
   旧口径（已废止）：REVIEW.md + docs/review/{SCIENCE,PIPELINE,ARCHITECTURE,
-  RELEASE_STATUS,CHANGE_REVIEW}_OVERVIEW.md。根 REVIEW.md 已由 ROOT-007 删除且
+  RELEASE_STATUS,CHANGE_REVIEW}_OVERVIEW.md。根 REVIEW.md 已删除且
   不再索引 ⇒ 继续要求它存在即 false-red；docs/review/** 是旧轮次副本，
-  DOC-001 已声明「负责人文档活动版本唯一 = docs/owner/**」。
+  文档活动版本唯一 = docs/owner/**（已登记）。
 
   现行口径（本文件判据面，全部实测存在且受 git 跟踪）：
     A. 现行 L0 文档集 = docs/owner/**（4 份 L0 汇总层，ACTIVE_NORMATIVE）：
@@ -179,7 +179,7 @@ def run_checks(root: str, strict: bool) -> list[dict]:
                          "旧权威回归（正文头声明 ACTIVE_*，重主张权威）=" + repr(reasserting)
                          if reasserting else "docs/review 内无重新主张权威的副本"))
     # 未声明归档的旧副本 = 残留重份（report 项；--strict 下升为 P0 判红）。
-    # 处置依据：CI-003 任务书「旧权威回归必红」+ 前台裁决口径（2026-09-16）：
+    # 处置依据：CI-003 任务书「旧权威回归必红」+ 既定口径：
     #   残留重份仅作报告输出，不使注册门恒红；正文重主张权威（上一项）恒红。
     if undeclared and strict:
         results.append(check("retired_l0_declared_archived", False,

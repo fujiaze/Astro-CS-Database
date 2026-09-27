@@ -42,6 +42,6 @@ for fid in sorted(fr):
     v=np.array([float(o['value']) for o in fr[fid]])
     cv=np.array([float(o['control_variance']) for o in fr[fid]])
     ci=np.array([float(o['control_ivar']) for o in fr[fid]])
-    med=float(np.median(v)); mad=float(1.4826*np.median(np.abs(v-med)))
+    med=float(np.median(v)); mad=float(1.482602218505602*np.median(np.abs(v-med)))
     print('%22d %8d %14.6g %14.4g %14.6g %12.4g'%(fid,len(v),med,mad,float(np.median(cv)),float(np.median(ci))))
 print('total frames',len(fr),'total samples',sum(len(x) for x in fr.values()))

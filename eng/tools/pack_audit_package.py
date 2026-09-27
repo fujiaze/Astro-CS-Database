@@ -20,7 +20,7 @@
   复原命令 (内容未丢): git show 01754fab8618:eng/tools/pack_audit_package.py
   退役后行为: 运行本文件打印 PACK_AUDIT_PACKAGE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿);
      作为模块 import 时不受影响(allowed/denied 语义不变)。
-  登记见 docs/ci/01_CHECKS.md §2.2 与 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md。
+  登记见 docs/ci/01_CHECKS.md §2.2 与 artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md。
 """
 from __future__ import annotations
 
@@ -123,7 +123,7 @@ RETIRED_NOTICE = (
     "  仍在使用（不退役）: 本模块的 allowed()/denied()/EXCLUDE_EXT 是 CHK-SECRET-HYGIENE 的白名单真源，"
     "import 语义不变。\n"
     "  复原命令: git show 01754fab8618:eng/tools/pack_audit_package.py\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2 / reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md"
+    "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
 )
 
 

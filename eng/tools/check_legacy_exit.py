@@ -39,13 +39,13 @@ PROD_SCAN_ROOTS = ("lib", "cli")
 ACR_KERNEL_DEFINER = "acr_kernels.cpp"
 NON_PROD_SEGMENTS = ("/tests/", "/tools/", "/testdata/", "/fixtures/", "/benchmarks/")
 
-# ── LEG-002 链接闭包 / 安装面判据（ECP-ORCH-LEG002，W4-A3 实施）─────────────────
+# ── LEG-002 链接闭包 / 安装面判据（ECP-ORCH-LEG002）─────────────────
 # 事由：原第 2 臂是**纯词面子串**（`if "orchestrator" in cmake`），连注释都命中；
 # 而政策自述的四条实质规则是「无 canonical caller、链接符号、文档入口、**安装产物**」
 # —— 即判「是否进产品交付面」，不是判「是否被编译」。ORCH-001 为让 SAT-001/MASK-002
 # 的代码真被编译而接线 add_subdirectory（不进 acsd 链接闭包、不进安装树、不进
 # 产品 manifest），词面臂把「编译」等同于「生产引用」⇒ 判红，但四条实质规则实测三条
-# PASS、第 2 条实质亦 PASS（见 run/PROJECT-GOVERNANCE-01/ORCH-001/LEG-002-裁决请求.md §3）。
+# PASS、第 2 条实质亦 PASS。
 # 新判据（双向）：
 #   红 = orchestrator 目录出现在 ① acsd 链接闭包 ② install 白名单/产品 manifest
 #        ③ 生产符号面（原第 1 臂保留）

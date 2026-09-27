@@ -16,9 +16,9 @@ MODULES = [
     ("lib/algorithms/star_detection/wrapper_phase1/README.md", ["star_detector.h", "star_detector.cpp", "p1_stars_test.cpp"]),
     ("lib/algorithms/platesolve/wrapper_phase1/README.md",     ["wcs_tan.h", "wcs_tan.cpp", "p1_wcs_phot_test.cpp"]),
     ("lib/algorithms/photometry/wrapper_phase1/README.md",     ["photometer.h", "photometer.cpp", "p1_wcs_phot_test.cpp"]),
-    # 2026-09-20 订正（CHK-MODULE-MANIFEST / MODULE-READMES 悬空引用）：
+    # 期望引用订正（CHK-MODULE-MANIFEST / MODULE-READMES 悬空引用）：
     # 期望引用原为 noise_model.{h,cpp}，该二文件已不存在（NOISE-MODEL-CANON-001，
-    # 负责人 §9.67 定案 3「选对的那一套」：旧 noise_model.cpp 是
+    # 「选对的那一套」口径：旧 noise_model.cpp 是
     # lib/algorithms/noise_snr/cpp/src/noise_model.cpp 的退化子集，已退役）。
     # 现行文件为 snr_frame_science.{h,cpp}（CMakeLists.txt:618-640 同口径）。
     ("lib/algorithms/noise_snr/wrapper_phase1/README.md",      ["snr_frame_science.h", "snr_frame_science.cpp", "p1_noise_test.cpp"]),
@@ -26,7 +26,7 @@ MODULES = [
 ]
 
 def check_registry_anchors(errors):
-    """DOC-003 增补（一页纸 S1-2「红灯被改写成绿灯」）：
+    """DOC-003 增补（「红灯被改写成绿灯」缺口）：
 
     registry 生成页的生成依据锚 + 声明面内的无锚结论字面量 + 产物脚本里写死的绿结论。
     判据全部落在 eng/tools/quality/check_conclusion_anchors.py（带 --self-test 正负例）。

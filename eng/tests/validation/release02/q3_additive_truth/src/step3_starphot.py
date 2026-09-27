@@ -15,7 +15,7 @@ def star_ratio(fA, fB, snr_min=50.0, rad=3.0, refine=True):
     r = fa / fb
     good = np.isfinite(r) & (r > 0) & (fa > 0) & (fb > 0)
     rr = r[good]
-    med = float(np.median(rr)); mad = float(1.4826 * np.median(np.abs(rr - med)))
+    med = float(np.median(rr)); mad = float(1.482602218505602 * np.median(np.abs(rr - med)))
     m = {kk: (np.asarray(vv)[good] if isinstance(vv, np.ndarray) and np.asarray(vv).shape[:1] == good.shape else vv)
          for kk, vv in m.items()}
     return dict(m=m, r=rr, med=med, mad=mad, n=int(good.sum()))

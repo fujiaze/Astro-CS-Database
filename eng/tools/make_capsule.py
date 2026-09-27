@@ -14,7 +14,7 @@
      故**不删文件**(AGENTS.md §5 与任务卡禁止删本体)。
   复原命令 (内容未丢): git show 01754fab8618:eng/tools/make_capsule.py
   退役后行为: 任意调用打印 MAKE_CAPSULE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2 与 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md。
+  登记见 docs/ci/01_CHECKS.md §2.2 与 artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md。
 """
 import json, os, subprocess, sys, hashlib, zipfile, datetime
 
@@ -31,7 +31,7 @@ RETIRED_NOTICE = (
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: 输出目录 artifacts/evidence/prerelease-v5/capsules/ 随 artifacts/ 删除。\n"
     "  复原命令: git show 01754fab8618:eng/tools/make_capsule.py\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2 / reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md"
+    "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
 )
 
 

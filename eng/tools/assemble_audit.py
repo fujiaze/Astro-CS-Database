@@ -17,7 +17,7 @@
      (打包/白名单/哈希/版本/provenance); 证据留档走 reports/**, 不再回写构建产物目录。
   复原命令 (内容未丢): git show 01754fab8618:eng/tools/assemble_audit.py
   退役后行为: 无参调用打印 ASSEMBLE_AUDIT_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2 与 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md。
+  登记见 docs/ci/01_CHECKS.md §2.2 与 artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md。
 """
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ RETIRED_NOTICE = (
     "  输入已不存在: 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/ "
     "与 artifacts/evidence/prerelease-v5/tables/。\n"
     "  复原命令: git show 01754fab8618:eng/tools/assemble_audit.py\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2 / reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md"
+    "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
 )
 
 

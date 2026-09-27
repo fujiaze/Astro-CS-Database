@@ -12,7 +12,7 @@
 
 依据：AGENTS.md §5（不读取/打印凭据；只做路径判定与条目名统计）、
 ENGINEERING_SPEC §7/§8（根白名单；检查必须能红能绿、不允许静默坏掉）、
-ROOT-006 任务卡与 reports/PROJECT-GOVERNANCE-01/security/SECURITY_NOTE.md。
+ROOT-006 任务卡与 artifacts/evidence/governance-01/security/EXPOSURE_NOTE.md（原引 reports/ 侧 SECURITY_NOTE.md 路径经 git 考古确认从未入库，相关内容见仓库 git 历史）。
 
 本测试**不读取任何被拒文件的内容**，只断言路径判定与 zip 条目名。
 """

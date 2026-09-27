@@ -29,7 +29,7 @@ def pair_stats(fA, fB, snr_min=50.0):
     if len(r) < 25:
         return None
     lr = np.log(r)
-    med = float(np.median(r)); mad = float(1.4826 * np.median(np.abs(lr - np.median(lr))))
+    med = float(np.median(r)); mad = float(1.482602218505602 * np.median(np.abs(lr - np.median(lr))))
     # spatial linear model of log r
     u_ = (xa - 2048.0) / 2048.0; v_ = (ya - 2048.0) / 2048.0
     M = np.vstack([np.ones_like(u_), u_, v_]).T
