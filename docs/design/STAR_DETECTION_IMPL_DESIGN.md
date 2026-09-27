@@ -1,7 +1,7 @@
 # 星检测模块入库级实现细节设计（净室②段：逐算子论文锚定规格）
 
 > **实施防错清单（权威级，重写以本清单为准）**：正文下列 13 处文本与权威链 ALG §2 不一致，实施按本清单、判定依据＝等价分析件 run/全仓-01/spec/sdet_equiv_analysis.md §3：
-> ① §5.1 裁剪轮数：**3 轮** 5σ（非 5 轮）；② §5.2-4 直通域：sigma>0.5 且 w<4 的 float 路径实走 separable 卷积（生产不可达，两变体统一直通）；③ §5.3 阈值式含 median 基线：threshold = median + 5.0·bgnoise（κ=5.0 为未平滑原图噪声倍数）；④ §5.5 不新增独立诊断列（输出合同 §3-3 冻结）；⑤ §5.6/§5.12 按 ALG：平台边界绕行盒中心、饱和候选进 mask-LM 且迭代上限 ×3（「饱和星不进常规拟合」作废）；⑥ §5.8 越界带精确域＝pixel_count 窗＋右端 xx'∈{w−5..w−3}；⑦ §5.9/§8-7 常量取 double 全精度解析值，禁 3.71692 短字面量；⑧ §5.10 为四方向零交叉估计量比值（非象限差分）；⑨ §5.13 保留 maxAxisRatio 门；⑩ §5.14 单孔径 (2R+1)²、扣拟合 B_fit；⑪ §5.15 排序＝mag 升序、dedup 保先者；⑫ §5.16 实际导出名 sdet_detect_guided_ex_f64；⑬ §5.11/§5.15 盲检测排序为非稳定 sort＝有意收紧点（平局次序/dedup 保留者即行为的一部分）。
+> ① §5.1 裁剪轮数：**3 轮** 5σ（非 5 轮）；② §5.2-4 直通域：sigma>0.5 且 w<4 的 float 路径实走 separable 卷积（生产不可达，两变体统一直通）；③ §5.3 阈值式含 median 基线：threshold = median + 5.0·bgnoise（κ=5.0 为未平滑原图噪声倍数）；④ §5.5 不新增独立诊断列（输出合同 §3-3 冻结）；⑤ §5.6/§5.12 按 ALG：平台边界绕行盒中心、饱和候选进 mask-LM 且迭代上限 ×3（「饱和星不进常规拟合」作废）；⑥ §5.8 越界带精确域＝pixel_count 窗＋右端 xx'∈{w−5..w−3}；⑦ §5.9/§8-7 常量取 double 全精度解析值，禁 3.71692 短字面量；⑧ §5.10 为四方向零交叉估计量比值（非象限差分）；⑨ §5.13 保留 maxAxisRatio 门；⑩ §5.14 单孔径 (2R+1)²、扣拟合 B_fit；⑪ §5.15 排序＝mag 升序、dedup 保先者；⑫ §5.16 实际导出名 sdet_detect_guided_ex_f64；⑬ §5.11/§5.15 盲检测排序取 std::stable_sort（平局保登记序、dedup 保先者——序即行为的一部分；旧实现非稳定序，实现统一为稳定序属确定性收紧）。⑭ §5.7/§5.12 O7 读数只作门消费，LM (σ,σ,A) 初值＝halfA 边界搜索（ALG 权威；D3-R1 订正）。
 
 上游权威：本设计只消费 `docs/ASTROCS_DESIGN.md`（§2 科学链、§4 验收）与
 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md`（算法推导与冻结定义，下称 ALG），
@@ -15,10 +15,10 @@
 
 ### 1.1 模块范围
 
-- `lib/algorithms/star_detection/`：导出接口 `include/star_detector.h`（10 个导出函数 + `SDetParams` 9 字段
-  + `SDetGuidedStats` 6 计数），实现 `src/sdet_api.cpp`（2288 行）、`src/sdet_image.cpp`（平滑/统计），
+- `lib/algorithms/star_detection/`：导出接口 `include/star_detector.h`（6 个导出函数 + `SDetParams` 9 字段
+  + `SDetGuidedStats` 6 计数），实现 `src/sdet_api.cpp`（2287 行）、`src/sdet_image.cpp`（平滑/统计），
   求解器 `src/nls_lm.h`。
-- 生产入口：`detect_stars` 主路径（自动/引导两模式）与 `detect_stars_guided`（星表引导）。
+- 生产入口：`sdet_detect_ex` / `sdet_detect_ex_f64`（自动模式）与 `sdet_detect_guided_ex_f64`（星表引导）；旧 `detect_stars` 命名随旧 CC 路径删除作废。
 - 单通道生产域：灰度单通道图像，float 像素，归一化上界 65535（DISP-STAR-006）。
 
 ### 1.2 证据边界（净室纪律）
@@ -32,7 +32,7 @@
 
 现行实现内与星检测直接相关的算子族盘点为 O1–O16（§5 逐项给规格）：
 O1 背景噪声统计、O2 高斯平滑、O3 检测阈值、O4 饱和预标记、O5 质心、O6 饱和中心行走、
-O7 宽度/振幅初值、O8 局部极大扫描、O9 拟合盒、O10 形状预门、O11 多星去重、O12 椭圆高斯 LM 拟合、
+O7 宽度/振幅门读数、O8 局部极大扫描、O9 拟合盒、O10 形状预门、O11 多星去重、O12 椭圆高斯 LM 拟合、
 O13 排异门、O14 孔径测光、O15 输出整理、O16 星表引导检测。
 
 ---
@@ -65,7 +65,7 @@ O13 排异门、O14 孔径测光、O15 输出整理、O16 星表引导检测。
 2. **DISP-STAR-007（拟合母函数唯一）**：检测侧拟合母函数**唯一**为椭圆高斯
    A·exp(−½[(x'/σx)² + (y'/σy)²]) + B（主轴角 θ 旋转坐标系）。
    不引入 Moffat / Lorentzian / 双高斯备选；模型选择不进入拟合回路。
-3. **输出合同**：`detect_stars` 输出序列 = 拟合后去重（post-fit dedup）→ 按 SNR 降序 stable 排序
+3. **输出合同**：检测输出序列 = 拟合后去重（post-fit dedup）→ 按 mag 升序 stable 排序（防错⑪；单帧域与 SNR 序等价）
    → NaN 质量参数置尾 → 上限截断。合同字段与序语义冻结；重写不改变字段名、类型、排序稳定性
    与 NaN 置尾规则。
 
@@ -191,11 +191,11 @@ float 定标帧上 dynrange 退化为「帧自身 max 与 65535 的较小者减�
 未饱和邻域重心，作为饱和星的等效中心。饱和星不进 LM 拟合的常规通道（见 O7/O12），
 其参数由等效中心 + 邻域统计给出。文献无出处。
 
-### 5.7 O7 宽度/振幅初值（二阶导） —— [Project-defined：文献无出处，引用时不注文献出处]
+### 5.7 O7 宽度/振幅门读数（二阶导） —— [Project-defined：文献无出处，引用时不注文献出处]
 
 现行构造（重写保持）：峰位处沿 x/y 取平滑图二阶差分，由 ∂xxS = S''max 与高斯
 S ∝ exp(−x²/2σx²) 的 √e 恒等式（S(x=σx) = S(0)/√e ⇒ σx = √(−S(0)/S''max(0))）
-解析得到 (σx, σy, A) 初值。恒等式为解析事实，构造本身不注文献出处。
+解析得到 (σx, σy, A) 门读数，供 O9 拟合盒、O10 形状预门与 O13 五码门消费。**O12 的 (σx, σy, A) 初值不走本恒等式**——按 ALG（初始化＝halfA 边界搜索）由拟合器自求；中心初值相对候选中心（O5/O6 产出）零偏移。恒等式为解析事实，构造本身不注文献出处。（防错⑭：本条订正旧文「产出 LM 初值」的断言。）
 
 ### 5.8 O8 局部极大扫描 —— [论文锚定]
 
@@ -268,7 +268,7 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   Madsen, Nielsen & Tingleff 2004, IMM-DTU Lecture Note — §3 教材式流程；
   MINPACK-1 lmder/lmpar 结构）。实现为仓库内 `nls_lm.h`（谱系已核，重写不改）。
 - 冻结参数：20 迭代上限、饱和 3×、xtol = gtol = ftol = 1e-3、λ 上调 ×3 / 下调 ÷2、avmax = 0.75。
-- 输入：O9 拟合盒、O5/O7 初值；饱和星走 O6 通道不进常规拟合。
+- 输入：O9 拟合盒、O5 中心参考；σ/A 初值＝halfA 边界搜索（ALG）；饱和星走 O6 通道不进常规拟合。
 
 ### 5.13 O13 排异门（五码） —— [Project-defined：文献无出处，引用时不注文献出处]
 
@@ -293,7 +293,7 @@ Kron 自适应孔径列为谱系化备置（§6.4），不在本次重写实施�
 ### 5.16 O16 星表引导检测 —— [Project-defined：文献无出处，引用时不注文献出处]
 
 现行构造（重写保持）：`detect_stars_guided` 以外部星表位置为预测中心，在预测窗内执行
-O3–O13 主链，`SDetGuidedStats` 六计数
+O1/O2、O4b、O6/O7、O9/O10、O12/O13 链（跳过 O3 连通域、O5、O8、O11——候选直接来自星表位置），`SDetGuidedStats` 六计数
 （n_predicted / n_dropped / n_fit_failed / n_rejected / n_fit_ok / n_output）逐语义冻结。
 文献无出处。
 
@@ -346,7 +346,7 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 | O4 饱和预标记 | Project-defined | O4a 单阈岛标记 + O4b 3×3 双条件（0.7/0.1·dynrange 相对式） | 否 |
 | O5 质心 | Project-defined | 一阶导过零内插 | 否 |
 | O6 饱和中心行走 | Project-defined | 饱和岛梯度行走 | 否 |
-| O7 宽度/振幅初值 | Project-defined | √e 恒等式二阶导 | 否 |
+| O7 宽度/振幅门读数 | Project-defined | √e 恒等式二阶导（供 O9/O10/O13；LM 初值＝halfA） | 否 |
 | O8 局部极大扫描 | 论文锚定 | Stetson 1987 §II FIND 构造 + 项目参数 | 否（越界读修复不触标定域） |
 | O9 拟合盒 R | Project-defined | 99.9% 能量半径 + 钳位 200 | 否 |
 | O10 形状预门 | Project-defined（保留） | 对称性三统计；DAOFIND 门备置 §6.3 | 切换则移动（故不切换） |
@@ -401,7 +401,7 @@ OCR 未复得显式公式，按 DAOPHOT 语义补全 round = 2(hx − hy)/(hx + 
 
 ### §8-9 nls_lm 近零列钳制（实现级保护登记）
 
-净室规格 §4.1 原列 nls_lm 为「保留不改」；实现按 MINPACK diag 保护推广引入近零列钳制（D[j] < 1e-10·dmax 时钳至该下限），保 p1star_nls_lm 秩亏合同不回归。本条为登记性扩权：钳制仅作用于数值下溢防护域，不改变收敛判据与迭代语义。审查记录 run/全仓-01/review/review-stage3-sdet.md Y2。
+净室规格 §4.1 原列 nls_lm 为「保留不改」；实现按 MINPACK diag 保护推广引入近零列钳制（D[j] < 1e-10·dmax 时钳至 dmax，保留相对量级供信赖域缩放），保 p1star_nls_lm 秩亏合同不回归。本条为登记性扩权：钳制仅作用于数值下溢防护域，不改变收敛判据与迭代语义。审查记录 run/全仓-01/review/review-stage3-sdet.md Y2。
 
 ### §8-10 O11 候选段曼哈顿去重（保守保留，开放子项待实验）
 

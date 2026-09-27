@@ -1128,7 +1128,7 @@ const char* p2_rejection_semantic_id(int method) {
 //     （含 N ≤ 3；N = 0 为 void 像素占位）。若改采对称读法 ⇒ 只改下面 1 行。
 //   最终映射表（逐像素按几何 N）：
 //     1 ≤ N ≤ 3 → none / 4 ≤ N ≤ 5 → percentile /
-//     6 ≤ N ≤ 15（或 BIAS/DARK 类帧）→ winsorized_sigma / N ≥ 16 → linear_fit；
+//     6 ≤ N ≤ 15（或 BIAS/DARK 类帧）→ winsorized_sigma / N ≥ 16 → winsorized_sigma（REJECTION.md §5 改投）；
 //     N = 0（void 像素占位，无候选栈）→ percentile（永不进 kernel）。
 // 说明（不掩盖、不静默）：
 //   * 本决策点决定**路由表**（provenance 里记录的 method）；
