@@ -15,9 +15,9 @@
 
 ## 已知审计点
 
-- p2_upm_open 失败路径已统一 delete（V19R2 PR#1 门禁修复）。
-- dense cache 句柄 AioUpmDense 单出口释放（unique_ptr guard，见 lib/infrastructure/aio/src/aio_upm.cpp:~448 unique_ptr guard；实现 lib/infrastructure/aio/src/aio_upm.cpp:283 std::unique_ptr<AioUpmDense> guard(d) 单出口释放）。
-- aio_upm_read_all_dynamic 返回 delete[] 由调用方负责（lib/infrastructure/aio/include/aio_upm.h:61；实现 lib/infrastructure/aio/src/aio_upm.cpp:163 new char[]）。
+- p2_upm_open 失败路径统一 delete。
+- dense cache 句柄 AioUpmDense 单出口释放（`lib/infrastructure/aio/src/aio_upm.cpp:298` `std::unique_ptr<AioUpmDense> guard(d)`，所有路径释放）。
+- aio_upm_read_all_dynamic 返回 delete[] 由调用方负责（声明 `lib/infrastructure/aio/include/aio_upm.h:75`；实现 `lib/infrastructure/aio/src/aio_upm.cpp:176` `new char[]`）。
 
 ## 契约
 

@@ -39,7 +39,7 @@
   成正比、与总图大小无关」)。
   `sub_block_px` 默认 256、值域 [16,1024](内存守卫); `queue_depth` 默认 4、值域 [1,64];
   `max_tiles` 默认 `min(1024, ceil(W_out·H_out/W²)+16)` 且配置可降不可升超物理内存守卫
-  (07 资源门联动); 超出→诊断事件+`rc=MEM_BUDGET`(不静默换页)。
+  (资源门联动, 见 `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`); 超出→诊断事件+`rc=MEM_BUDGET`(不静默换页)。
 - 中间产物 `p3_resampled.bin` 由子块**位置写**装配(平面 = 行主序连续区, 子块行区间互不重叠
   ⇒ 与写出顺序、worker 数无关), 全部子块成功后才 fsync + 原子 rename(失败不留半成品)。
 - 独立重开 verify 同样按子块读回对拍(尺寸/WCS 关键字/HDU 面/逐像素/NaN 同态/COVERAGE 掩码)。

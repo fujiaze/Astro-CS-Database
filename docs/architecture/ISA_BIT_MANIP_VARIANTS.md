@@ -2,8 +2,8 @@
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> ID: ARCH-ISA-005  状态: 结论 NOT_APPLICABLE  上游: ISA-004/05 §1-3  下游: WIN-003/manifest
-> 依据(03 §91): "只评估整数/位操作热点；VNNI 等与算法无关则写 NOT_APPLICABLE 证据，不写空 DLL；capability 与热点对应；无机械指令集堆砌"。
+> ID: ARCH-ISA-005  状态: 结论 NOT_APPLICABLE  上游: ISA-004  下游: WIN-003/manifest
+> 依据: "只评估整数/位操作热点；VNNI 等与算法无关则写 NOT_APPLICABLE 证据，不写空 DLL；capability 与热点对应；无机械指令集堆砌"。
 
 ## 1 整数/位操作热点审计(12 ABI-003 kernel)
 
@@ -25,7 +25,7 @@
 
 ## 2 实证(机器证据, 非只读断言)
 
-以 `-mbmi2 -mpopcnt` 编译同一 baseline 源码为变体 DSO, 反汇编(03 §91 要求"写证据"):
+以 `-mbmi2 -mpopcnt` 编译同一 baseline 源码为变体 DSO, 反汇编（要求"写证据"）:
 
 - **变体 DSO 反汇编含 BMI2/POPCNT 专用指令数 = 0**(无 mulx/rorx/blsr/blsmsk/tzcnt/lzcnt/popcnt/pdep/pext)。
 - 即工具链在 kernel 集中**未发现任何可加速的位操作**——变体与 baseline 指令层面一致。
@@ -33,10 +33,10 @@
 
 ## 3 结论
 
-- 本 kernel 集**无整数/位操作热点**适用于 BMI2/POPCNT。按 03 §91 → 登记 **NOT_APPLICABLE**, **不写空 DLL**(不创建位操作变体文件入库)。
-- 测噪验证: 变体 DSO 仅作为瞬时测量工件(/tmp), **不 SHPI/不入 manifest**。
+- 本 kernel 集**无整数/位操作热点**适用于 BMI2/POPCNT。→ 登记 **NOT_APPLICABLE**, **不写空 DLL**(不创建位操作变体文件入库)。
+- 测噪验证: 变体 DSO 仅作为瞬时测量工件(/tmp), **不 SHIP/不入 manifest**。
 - 若未来引入整数/位密集型 kernel(如 binarization/高位计数), 需重新评估(当前无)。
 
 ## 4 完整性
-- 测量工件: artifacts/evidence/prerelease-v5/ISA-005/MEASUREMENTS.csv(含 bmi2_popcnt_instruction_count=0 证据列)。
+- 测量工件: 变体 DSO 为 /tmp 瞬时测量工件, 未入库（同树在案测量工件为 ISA-001/002/003 三批, 见 `ISA_VARIANTS.md` §1.6）; 反汇编证据（BMI2/POPCNT 专用指令数=0）随测量轮记录保存。
 - 与 preflight/ABI-002 关系: 未新增变体 → 无新 manifest 行, 无预检负担。

@@ -20,14 +20,14 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 - 图与 trace 的 DLL hash、artifact hash 一致（从 trace 事件真实字段取；
   观测缺失留空，字段值只来自 trace 事件）；
 - 每次生成写 generator 版本、source SHA、输入文件 hash；DOT/JSON 是可审计
-  事实，SVG 是派生展示物（policy §2.5）；
+  事实，SVG 是派生展示物；
 - Doxygen/Graphviz 仅生成文档，不改变产品执行 → `scientific_change` 恒 false。
 
 **边界**：本任务不改科学公式/运行调度；只读消费 `lib/infrastructure/pipeline` 产物
 （不 import 修改）；不实现真实 Graphviz 布局（主机无已登记 dot 时不假装
 调用成功——DOT 文本 + 最小合法 SVG 直出，见 §4）。
 
-## 2. 两类图分开（policy §1）
+## 2. 两类图分开
 
 | 图 | 来源 | 表示 | 取值来源 |
 |---|---|---|---|
@@ -41,7 +41,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 
 ## 3. 固定生成链与可审计头
 
-生成链（policy §2）：trace JSONL +（可选）plan → `graph-runtime.json` +
+生成链：trace JSONL +（可选）plan → `graph-runtime.json` +
 `graph-runtime.dot`（+ `--svg` 时 `graph-runtime.svg`）。每张图含：
 
 - `generator.tool/version`（`eng/tools/graph/render_run_graph.py` v1.0.0）；
@@ -61,7 +61,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 
 **调用面 = 零外部二进制**（代码中无 subprocess，不假装调用 dot 成功）；
 无 dot 不报错也不把缺 SVG 当 PASS 阻碍——DOT/JSON 已生成即满足工具职责
-（policy §4：工具不可用不能把缺图标记 PASS；只要 DOT/JSON 已生成，其他不
+（工具不可用不能把缺图标记 PASS；只要 DOT/JSON 已生成，其他不
 依赖 SVG 的任务继续）。未来若控制节点登记固定版本 Graphviz，可把 DOT 交给
 该 dot 渲染 SVG，替换本工具的直出展示物（审计事实不变）。
 
@@ -138,15 +138,14 @@ hash 等观测字段一律只来自 trace 事件。
 
 ## 8. 旧手绘图不再作为规范来源
 
-`evidence/**` 下的 `*.dot`（如 `v6_1_rework` PROD_REACHABILITY）是**一次性手写产物**
-（归档性质，非当前规范来源）。运行图规范来源：
+`evidence/**` 下的一次性手写 `*.dot` 产物（历史归档件）**不作当前规范来源**。运行图规范来源：
 
 - 运行图规范来源 = `eng/tools/graph/render_run_graph.py` 从**当前提交**可复现
   生成的 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）；
 - 静态架构示意图（`docs/architecture/DATA_FLOW.md` 等 ASCII 流程、ARCH-001
   mermaid、历史 evidence DOT）是**信息性视图**，不作运行事实规范来源；
 - 文档维护：变更运行图语义必须改本工具 + 本合同 + 重跑验证；证据面只用重跑
-  生成的图作证**（标准 14 §5）。
+  生成的图作证**。
 
 ## 9. 验收（LOG-003）
 
@@ -169,5 +168,3 @@ hash 等观测字段一律只来自 trace 事件。
 - RT-001：`lib/infrastructure/pipeline/typed_dag.py`、
   `lib/infrastructure/pipeline/typed_dag.schema.json`
 - LOG-002：`docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`
-- 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §5、
-  `23_GRAPH_AND_DOC_TOOL_POLICY.md`

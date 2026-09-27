@@ -21,6 +21,9 @@
 - `CACHE_POLICY.md` / `COMPATIBILITY_POLICY.md` —— 缓存与兼容性策略。
 - `CPU_BACKEND_ARCH.md` / `ISA_VARIANTS.md` / `ISA_BIT_MANIP_VARIANTS.md` —— CPU 后端架构与 ISA 变体台账。
 - `PERFORMANCE_MODEL.md` —— 性能模型。
+
+## 机读清单与子目录
+
 - `api_inventory.csv` / `execution_inventory.csv` —— API 面与执行面的机读清单。
 - `production_call_paths_stage1.csv` / `production_call_paths_stage2.csv` / `PRODUCTION_EXECUTION_INVENTORY.csv` —— 生产调用路径与执行清单。
 - `doc_symbol_namespaces.json` —— 文档符号命名空间登记。

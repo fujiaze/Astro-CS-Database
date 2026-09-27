@@ -1,7 +1,7 @@
 # Secure Module Loader (ABI-003)
 
 > ID: DOC-ARCH-ABI-003 · 状态: FROZEN (ABI-003)
-> 上游: `ASTROCS_DESIGN.md` §7.3（版本化 C ABI/DLL 边界）/ `docs/standards/C_ABI_STANDARD.md`
+> 上游: `ASTROCS_DESIGN.md` §8.5（模块与 ABI）/ `docs/standards/C_ABI_STANDARD.md`
 >       / `docs/contracts/ARCH-001.md`（ARC-001 DLL 边界）
 > 下游: ABI-004 动态 registry、ABI-005 conformance 探针、CLI-001 modules/doctor
 > 实现: lib/infrastructure/pipeline/module_loader/（secure_loader.h + secure_loader.c）
@@ -15,7 +15,7 @@
 Linux 仅从 product manifest 的绝对 canonical path `dlopen`。加载前后校验
 路径、hash、module ID、ABI/build ID。
 
-验收（依据=`ASTROCS_DESIGN.md` §7.3/§8 + 本文件）:
+验收（依据=`ASTROCS_DESIGN.md` §8.5/§8 + 本文件）:
 1. 当前目录/PATH DLL 劫持拒绝 —— 相对路径入参即拒; 只认 manifest 绝对路径;
 2. symlink escape 拒绝 —— canonical 不一致 + allowed_root 越界均拒;
 3. hash mismatch 拒绝 —— manifest sha256 与实际文件不符;

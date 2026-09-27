@@ -31,7 +31,7 @@
 
 ## 4 并发正确性合同(承接旧锚点)
 
-- 浮点归约顺序冻结(THREADING_MODEL.md §确定性锚点全部有效: upm.cpp:495/sampler 串行/drizzle_engine.cpp:1662,1751,1834,1843);tile 合并=thread-local 累加后 **t=1..num_threads 固定序串行合并**(与线程数无关的确定性: 结果序列由 budget 快照唯一化)。
+- 浮点归约顺序冻结(THREADING_MODEL.md §确定性锚点全部有效: coverage/src/upm.cpp:605/sampler.cpp:924-954 固定槽位/drizzle_engine.cpp:1923,2270,2279);tile 合并=thread-local 累加后 **t=1..num_threads 固定序串行合并**(与线程数无关的确定性: 结果序列由 budget 快照唯一化)。
 - 计数器: atomic 或 thread-local 聚合;cache(UPM dense/Gaia/tile)线程安全或单线程互斥;无裸 data race。
 - ACR 与浏览器层**dormant/not-shipped**(ACR 不接入;browser 为 tool 分类)。
 
@@ -44,5 +44,5 @@
 
 ## 6 关联
 
-- 文档: THREADING_MODEL.md(分层+锚点)/EXECUTION_MODEL.md/ASYNC_IO_CONTRACT.md/OWNERSHIP_AND_LIFETIME.md/07_RESOURCE_MONITOR
+- 文档: THREADING_MODEL.md(分层+锚点)/EXECUTION_MODEL.md/ASYNC_IO_CONTRACT.md/OWNERSHIP_AND_LIFETIME.md/observability/RESOURCE_MONITORING_CONTRACT.md
 - 任务: ARCH-004(本文件)/BENCH-003(候选不含硬编码 core count)/BENCH-004/ABI-001(host budget callback)

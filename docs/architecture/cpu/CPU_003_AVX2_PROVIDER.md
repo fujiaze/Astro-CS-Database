@@ -1,12 +1,12 @@
 # CPU AVX2/FMA provider（热点 kernel 后端）(CPU-003)
 
 > ID: DOC-ARCH-CPU-003 · 状态: FROZEN (CPU-003)
-> 上游: `ASTROCS_DESIGN.md` §8 · `ENGINEERING_SPEC.md` §10 ·
+> 上游: `ASTROCS_DESIGN.md` §9 · `ENGINEERING_SPEC.md` §10 ·
 >       docs/architecture/CPU_BACKEND_ARCH.md
 >       （ARCH-BACKEND-001 §1/§5/§6）· CPU_001_CAPABILITY_PROBE.md（CPU-001 os_safe 平面）·
 >       baseline provider 合同（CPU-002, baseline_provider_v1.h）
 > 下游: CPU-004 AVX-512 provider、CPU-005 逐 kernel 路由（以 kernel_id 选 provider）
-> 实现: lib/infrastructure/benchmark/cpu/avx2/（avx2_provider_v1.h + avx2_provider.cpp；target 单独
+> 实现: lib/infrastructure/benchmark/cpu/avx2/（include/astrocs/cpu/avx2_provider_v1.h + src/avx2_provider.cpp；target 单独
 >       `-mavx2 -mfma`；Windows `/arch:AVX2`）
 > 测试: eng/tests/cpu/avx2/（gate stub 负测 + handshake + so_load + 对照 oracle runner）
 > profile 台账: docs/architecture/ISA_VARIANTS.md（ISA-001/003 实测）·
@@ -18,7 +18,7 @@ CPU-003 建立 AMD64 **AVX2/FMA provider**：只迁移 profile 指定的热点 k
 target 单独 `/arch:AVX2`（Linux `-mavx2 -mfma`）；函数入口由 provider 表查询，
 不复制科学模块；其余 kernel 回落 baseline。
 
-验收项（04_CPU_RESOURCE_TASKS.md CPU-003）：
+验收项（CPU-003）：
 1. 非支持 CPU 不加载：`required=(AVX|AVX2|FMA) ⊆ os_safe` 失败 → 拒绝；
 2. CPUID/XGETBV negative：硬件缺 AVX2/FMA / OS 不保存 YMM → 拒绝（模拟负测）；
 3. baseline 对照容差：热点输出与 baseline 相对差 ≤ 2e-4（ALG oracle 同规）；
@@ -54,7 +54,7 @@ CPU-004 域另行验证）。
 12-kernel baseline 世界里的其余 10 个 kernel）返回 `ACS_ERR_UNSUPPORTED`；
 host 按 kernel_id 粒度在 provider 间逐 kernel 选路（CPU-005 语义），未注册
 kernel 自动回落 baseline —— 高级 provider 不复制/不重复实现科学 kernel，
-防三份科学算法漂移（02 §10.1 / 15 §1 / 约束 §C4）。
+防三份科学算法漂移。
 
 测试证据：
 - `NONHOT_AVX2 NOT_FOUND`：`noise-snr-reductions` 在 avx2 表查不到
@@ -82,7 +82,7 @@ gate 测试法）；正测经真实 CPUID/XGETBV（本机 Xeon Gold 6148 含 AVX
 
 加载成功后才提供 kernel 服务；`self_test` 失败 / ABI 失配另按 ABI-002 拒绝。
 编译隔离：本 provider TU 仅以 `-mavx2 -mfma` 编译（§8 反汇编证据），
-`-mavx*` 不作用于 baseline/主 CLI（15 §6 / 约束 §C5）。
+`-mavx*` 不作用于 baseline/主 CLI。
 
 ## 5. 函数入口由 provider 表查询
 
@@ -107,7 +107,7 @@ budget 1 vs 4 逐位相同）；FMA 只减少中间舍入次数，**不改变归
 可能引入每元素 ≤ 数十 ULP 的舍入差（校准实测 max_ulp=89，对应
 max_rel=4.47e-06）。科学值语义零变更（scientific_change=false）。
 
-## 7. 容差冻结（15 §6 / 约束 §E3）
+## 7. 容差冻结
 
 - **baseline 对照容差 = 2e-4 相对**（`|a−b|/max(1,|b|) ≤ 2e-4`），与 CPU-002
   科学 oracle（Python f64 参考实现, test_abi_kernels 同规）同数量级 ——
@@ -129,8 +129,8 @@ baseline provider TU (无 -mavx*)  objdump: 0 处 ymm/vfmadd/vfnmadd
 ```
 
 即：AVX2/FMA 指令只存在于 avx2 provider 目标；baseline/主 CLI 零 AVX 污染
-（15 §6 / CPU_BACKEND_ARCH §2）。本 provider 无全局 SIMD 静态初始化
-（全局对象仅 POD/字符串表；query 前不执行任何 AVX 指令，12 §7）。
+（CPU_BACKEND_ARCH §2）。本 provider 无全局 SIMD 静态初始化
+（全局对象仅 POD/字符串表；query 前不执行任何 AVX 指令）。
 
 ## 9. 测试证据
 

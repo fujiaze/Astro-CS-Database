@@ -1,4 +1,4 @@
-# Astro Celestial Sphere Database（ACSD） Architecture (V5 单一 CLI 冻结版)
+# Astro Celestial Sphere Database（ACSD） Architecture (单一 CLI 冻结版)
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
@@ -10,7 +10,7 @@ ACSD 是天文 CCD 图像校准-标准化-重投影系统，发布物为**每平
 
 - **唯一生产 exe**：`acsd`（Windows 交付名 `acsd.exe`；单一 target，安装策略见 CLI-001）。
 - **被取代的旧入口（迁移冻结）**：`orchestrator.exe`（Phase1 编排 exe）、`astrocs-stage2`（Phase2 CLI）、`healpix_browser_qt`/`browser_cli`（浏览器工具）——**不再构建为发布目标**，其能力迁移如下：orchestrator 的 DllLoader/stage 编排→CLI 内嵌 pipeline driver（API-003/004 直接函数调用，无进程边界）；astrocs-stage2 的参数面→CLI 命令树（API-002 schema v1）；browser→保留源码为 tool 分类（不进发布安装规则，PRODUCTION_EXECUTION_INVENTORY exe_target=tool）。
-- ACR 不接入（V5）：生产为纯 CPU 自适应 backend；`acr_route` 仅存配置守卫（ARCH-001 清单 24 处，`!=cpu/auto` 显式拒）。
+- ACR 不接入：生产为纯 CPU 自适应 backend；`acr_route` 仅存配置守卫，非 cpu 值显式拒或回退 cpu（ACR 隔离条款见 `docs/contracts/ARCH-001.md` §6）。
 
 ## 2 分层与组件图
 
@@ -38,7 +38,7 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 
 - **配置**：科学 config（用户，schema 校验）与 CPU profile（benchmark 产物，逐内核）**分离**（CLI-003）；profile 缺失→baseline 后端+动态 worker（保守合法）。
 - **manifest**：每次 run 生成 run manifest（版本/输入 hash/参数/软件版本/manifest hash），输出原子落盘（tmp+rename，IO_AND_ATOMICITY.md）；Phase3 额外写 provenance 到 FITS HISTORY（ALG-P3-004）。
-- **artifact**：**产品只落块级 `output_dir`**（最高设计 §9）；`run/` **只放临时产物与日志**（**不是**「唯一运行输出目录」）；失败/取消的 artifact 不落盘（帧/行带/整文件原子单元，见 ARCH-001 清单 thread_model 列）；verify 子命令复算 hash 判定 stale。
+- **artifact**：**产品只落块级 `output_dir`**（最高设计 §10）；`run/` **只放临时产物与日志**（**不是**「唯一运行输出目录」）；失败/取消的 artifact 不落盘（帧/行带/整文件原子单元，见 `PRODUCTION_EXECUTION_INVENTORY.csv` `thread_model` 列）；verify 子命令复算 hash 判定 stale。
 
 ## 5 错误/取消/恢复
 
@@ -54,7 +54,7 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 ## 7 不变量（机器可验）
 
 1. 唯一生产入口=acsd；文档内"正式运行入口"表述唯一（测试断言）。
-2. lib/ 唯一源码目录；**产品落块级 `output_dir`，`run/` 只放临时产物与日志**（最高设计 §9）；testdata/ 只读。
+2. lib/ 唯一源码目录；**产品落块级 `output_dir`，`run/` 只放临时产物与日志**（最高设计 §10）；testdata/ 只读。
 3. I/O 唯一入口 astro_image_io；healpix_core/sha256 单源（B4-01）。
 4. 科学语义唯一实现，oracle/reference 并存不重复 active path。
 5. 唯一 CLI 入口在进程内（in-process）按命令拉起对应阶段的调度器：一次调用只驱动一个阶段，三个阶段各自实例化调度器与内存管线，无跨阶段进程边界。

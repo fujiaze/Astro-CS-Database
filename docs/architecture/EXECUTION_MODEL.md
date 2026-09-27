@@ -7,7 +7,7 @@
 > ⚠ **休眠面一律标 `DORMANT`，与生产执行层分列**：
 > 本文件的 **ACR / CUDA / GPU 行与 §2/§5 的 H2D/D2H、GPU buffer、GPU fallback 全部标
 > `DORMANT`**（保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**，
-> 最高设计 §8/§1.3）；**浏览器（Qt）标「工具分类（非发布）」**（最高设计 §7.1/§10.1：
+> 最高设计 §1.4）；**浏览器（Qt）标「工具分类（非发布）」**（最高设计 §7.1/§10：
 > HiPS Browser 不进产品 manifest）；**orchestrator 标「历史保留」**（最高设计 §7.1：
 > 接入后删除）。上述三类**均不是生产执行层**，发布/性能结论只引用生产层行。
 
@@ -15,12 +15,12 @@
 
 | 路径 | 调用线程 | 切分单位 | 最大并发 | 调度器 | 同步点 | 证据 |
 |---|---|---|---|---|---|---|
-| Stage1 calibrate | calibrator thread | per-tile OpenMP | 16 | OpenMP parallel for | tile barrier | `calibrator.cpp: OpenMP 16` |
+| Stage1 calibrate | calibrator thread | per-tile OpenMP | 16 | OpenMP parallel for | tile barrier | `calibrator.cpp` `#pragma omp parallel for`（:94/:126/:134） |
 | Stage1 drizzle | drizzle worker | per-source-pixel candidate | n_threads | OpenMP + cache | tile merge serial | `drizzle_engine.cpp:1662 reduction` |
 | Stage2 sampler | stage2 worker pool | per-control-cell (64 per tile) | budget.max_workers（Runtime lease；1 = 串行 reference） | std::thread pool（无 OpenMP 条件） | cell barrier | `sampler.cpp:924-954`（`cfg.cpu_workers = budget.max_workers`，`next_c.fetch_add(1)` 动态取 cell） |
 | Stage2 UPM solve | stage2 main | full graph | 1 | serial | — | `upm.cpp Huber IRLS` |
 | Stage2 block/reject/integrate | block worker | per-pixel candidate stack | n_threads | OpenMP per-pixel | pixel barrier | `rejection.cpp/integrate.cpp` |
-| ~~ACR Dispatcher~~ **DORMANT** | — | — | — | — | — | 保留源码与隔离测试，**不进生产**（最高设计 §8）；原行：acr thread / per-tile chunk (px) / auto / Dispatcher::decide / mixed merge / `acr_kernels.cpp` |
+| ~~ACR Dispatcher~~ **DORMANT** | — | — | — | — | — | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；原行：acr thread / per-tile chunk (px) / auto / Dispatcher::decide / mixed merge / `acr_kernels.cpp` |
 
 见 `THREADING_MODEL.md` 确定性锚点 ARC-004。
 
@@ -29,9 +29,9 @@
 | 项 | 模式 | 细节 |
 |---|---|---|
 | HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
-| HiPS read | 并发只读（无进程级锁） | **读路径线程模型**：读路径无进程级共享可变状态；每个 `fitsfile*` 为单线程私有、生命周期不跨线程转移（每次调用各自 open→read→close，句柄只在该调用栈帧）；并发安全由 cfitsio `_REENTRANT` 构建保证（`FptrTable`/错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开 `fits_already_open` 直接返回、不复用句柄，`cfileio.c:1544`）。机器判据 `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK` |
+| HiPS read | 并发只读（无进程级锁） | **读路径线程模型**：读路径无进程级共享可变状态；每个 `fitsfile*` 为单线程私有、生命周期不跨线程转移（每次调用各自 open→read→close，句柄只在该调用栈帧）；并发安全由 cfitsio `_REENTRANT` 构建保证（`FptrTable`/错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开 `fits_already_open` 直接返回、不复用句柄，`cfileio.c:1544`）。机器判据 `eng/tools/quality/contracts/check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK` |
 | ~~ACR H2D/D2H~~ **DORMANT** | — | 保留源码与隔离测试，**不进生产**；原行：async via CUDA stream / `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
-| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，最高设计 §8） |
+| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，CPU_BACKEND_ARCH §6） |
 
 ## 3 锁/原子与 I/O 串行
 
@@ -57,9 +57,9 @@
 | 项 | 语义 |
 |---|---|
 | CPU buffers | `BufferBinding` caller-owned, `free` via aio_hio_free |
-| ~~GPU buffers~~ **DORMANT** | 保留源码与隔离测试，**不进生产**（最高设计 §8）；原行：`cuda_buffer` device alloc, residency via ResidencyManager |
+| ~~GPU buffers~~ **DORMANT** | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；原行：`cuda_buffer` device alloc, residency via ResidencyManager |
 | ~~H2D/D2H~~ **DORMANT** | 同上；原行：per-chunk async stream, timed via bridge loader |
-| Fallback | **生产 fallback = 无 cpu_profile → baseline 后端 + 动态 worker**（最高设计 §8）。~~原「GPU OOM/无画像 → CPU OpenMP per-pixel」面 DORMANT~~ |
+| Fallback | **生产 fallback = 无 cpu_profile → baseline 后端 + 动态 worker**（CPU_BACKEND_ARCH §6）。~~原「GPU OOM/无画像 → CPU OpenMP per-pixel」面 DORMANT~~ |
 
 ## 6 确定性与嵌套并行限制
 
@@ -74,7 +74,7 @@
 | 错误 | 传播 |
 |---|---|
 | C ABI 返回码 | 0=OK 非0=失败, err缓冲仅日志 |
-| ~~ACR error~~ **DORMANT** | 保留源码与隔离测试，**不进生产**；生产错误面见 `docs/architecture/ERROR_MODEL.md`（唯一源 `lib/infrastructure/cli/exit_codes.h`） |
+| ~~ACR error~~ **DORMANT** | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；生产错误面见 `docs/architecture/ERROR_MODEL.md`（唯一源 `lib/infrastructure/cli/exit_codes.h`） |
 | Invalid/UNDERDETERMINED | per-pixel status, 不抛异常 |
 
 ## 8 ARC-EXEC 契约 ID 映射
@@ -85,7 +85,7 @@
 | ARC-EXEC-002 | Stage2 sampler 并发只读（无进程级锁；句柄单线程私有、不跨线程转移；Runtime lease 定 worker 数） |
 | ARC-EXEC-003 | Stage2 UPM serial solve |
 | ARC-EXEC-004 | Phase2 block/reject/integrate per-pixel parallel |
-| ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §8） |
+| ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §1.4） |
 | ARC-EXEC-006 | HiPS async I/O transaction |
 | ARC-EXEC-007 | Orchestrator cancel/timeout propagation |
 

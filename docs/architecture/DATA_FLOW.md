@@ -21,7 +21,7 @@ FITS/XISF 亮场 + 母版
 ```
 
 - 入口 = 唯一 CLI 的 `normalize` 子命令（最高设计 §7.1 命令树）。
-- 阶段内节点之间**传内存块**（`PipelineFrame` 命名块），**不落中间文件**（最高设计 §8.1:502 / §8.2:526-527）；
+- 阶段内节点之间**传内存块**（`PipelineFrame` 命名块），**不落中间文件**（最高设计 §8.1:575 / §8.2:600-601）；
   当前生产实现仍用磁盘 JSON/FITS 传递，属**现行设计缺口**（生产节点覆盖率 **1/20**、相邻节点传块 **0**）。
 
 ## Phase2（mosaic：多帧统一模型）
@@ -34,7 +34,7 @@ FITS/XISF 亮场 + 母版
   → upm persist（sparse JSON via aio_upm；dense cache 可选）
   → block plan / upm apply（每帧 frame_id → δ_k(frame, leaf)；**默认只扣偏差、保留公共天光面**）
   → rejection（**逐像素按几何可贡献帧数 N 自动选择**：`1≤N≤3` none / `4≤N≤5` percentile /
-      `N≥6` winsorized（M3：原 `N≥16` linear fit 档改投）；映射表见 `ASTROCS_DESIGN.md` §5.5；
+      `N≥6` winsorized；`N≥16` 档取 winsorized，`linear_fit` 保留为合法显式方法；映射表见 `ASTROCS_DESIGN.md` §5.5；
       禁 min/max —— 表落 `docs/plugins/algorithms_phase2/12_rejection.md` §9，**只引用**）
   → integration（加权均值 + support reducer）
   → 产品验证 → 原子发布马赛克 HiPS + verify
