@@ -10,7 +10,6 @@
  */
 
 #include "../include/star_detector.h"
-#include "sdet_detector.h"
 #include "sdet_image.h"
 #include "sdet_log.h"
 #include "sdet_angle_guard.h"   // SDET-ANGLE-001: 有界/fail-closed 朝向角归一化
@@ -52,6 +51,77 @@
 #define INV_4_LOG2 0.36067376022224075
 
 #define TWO_SQRT_2_LOG2 2.3548200450309493
+
+// FIX-P174: 原语收编——旧 sdet_detector.h 的类型与连通域原语迁入本文件（O4a 饱和岛消费；SPEC: ALG §3 8-连通语义）
+struct ConnectedComponent {
+    int x0, y0, x1, y1;
+    int count;
+    std::vector<int> px;
+    std::vector<int> py;
+};
+
+struct StarDetectorInternal {
+    SDetParams params;
+    int width = 0, height = 0;
+    float* raw_detail = nullptr;
+};
+
+// 8-连通标记（BFS，扫描序发现；binary_map 非 0 视为前景）
+static int sdet_find_connected_components(const float* binary_map, int w, int h,
+                                          ConnectedComponent** out_components, int* out_count) {
+    if (!binary_map || w <= 0 || h <= 0 || !out_components || !out_count) return -1;
+    std::vector<char> visited(static_cast<size_t>(w) * h, 0);
+    std::vector<ConnectedComponent> comps;
+    std::vector<int> stack;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            const size_t idx = static_cast<size_t>(y) * w + x;
+            if (binary_map[idx] == 0.0f || visited[idx]) continue;
+            ConnectedComponent c{x, y, x, y, 0, {}, {}};
+            stack.clear();
+            stack.push_back(static_cast<int>(idx));
+            visited[idx] = 1;
+            while (!stack.empty()) {
+                const int cur = stack.back();
+                stack.pop_back();
+                const int cy = cur / w, cx = cur - cy * w;
+                c.px.push_back(cx);
+                c.py.push_back(cy);
+                ++c.count;
+                if (cx < c.x0) c.x0 = cx;
+                if (cx > c.x1) c.x1 = cx;
+                if (cy < c.y0) c.y0 = cy;
+                if (cy > c.y1) c.y1 = cy;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if (dx == 0 && dy == 0) continue;
+                        const int nx = cx + dx, ny = cy + dy;
+                        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+                        const size_t nidx = static_cast<size_t>(ny) * w + nx;
+                        if (binary_map[nidx] != 0.0f && !visited[nidx]) {
+                            visited[nidx] = 1;
+                            stack.push_back(static_cast<int>(nidx));
+                        }
+                    }
+                }
+            }
+            comps.push_back(std::move(c));
+        }
+    }
+    *out_count = static_cast<int>(comps.size());
+    *out_components = new ConnectedComponent[comps.size()];
+    for (size_t i = 0; i < comps.size(); ++i) (*out_components)[i] = std::move(comps[i]);
+    return 0;
+}
+
+static void sdet_free_connected_components(ConnectedComponent* components, int count) {
+    if (!components) return;
+    for (int i = 0; i < count; ++i) {
+        components[i].px.clear();
+        components[i].py.clear();
+    }
+    delete[] components;
+}
 
 struct StarDetectorHandle_s {
     StarDetectorInternal internal;
@@ -931,717 +1001,6 @@ SDET_EXPORT void sdet_destroy(StarDetectorHandle handle)
     delete[] handle->internal.raw_detail;
     sdet_log(SDET_LOG_INFO, "SDET", "StarDetector destroyed");
     free(handle);
-}
-
-SDET_EXPORT int sdet_detect(StarDetectorHandle handle,
-                             const uint16_t *image, int width, int height,
-                             double **out_x, double **out_y, int *out_count)
-{
-    auto t0 = std::chrono::high_resolution_clock::now();
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect start: %dx%d", width, height);
-
-    if (!handle || !image || !out_x || !out_y || !out_count) return -1;
-
-    const SDetParams &params = handle->internal.params;
-    size_t n = (size_t)width * height;
-
-    std::vector<float> fimg(n);
-    #pragma omp parallel for schedule(static)
-    for (int i = 0; i < (int)n; i++) {
-        fimg[i] = static_cast<float>(image[i]);
-    }
-
-    handle->internal.width = width;
-    handle->internal.height = height;
-
-    std::vector<float> map(n);
-    sdet_get_structure_map(&handle->internal, fimg.data(), width, height, map.data());
-
-    float *raw_detail = handle->internal.raw_detail;
-    handle->internal.raw_detail = nullptr;
-
-    std::vector<float> binary(n, 0.0f);
-    if (raw_detail) {
-        for (size_t i = 0; i < n; i++) {
-            if (raw_detail[i] > 0.0f) binary[i] = 1.0f;
-        }
-        delete[] raw_detail;
-    }
-
-    ConnectedComponent *components = nullptr;
-    int comp_count = 0;
-    if (sdet_find_connected_components(binary.data(), width, height, &components, &comp_count) < 0) {
-        // 连通域数组 malloc 失败: 不得把"0 颗星"伪造为成功结果
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect: connected component allocation failed");
-        return -1;
-    }
-
-    struct Candidate { double cx, cy; int pixel_count; double brightness; };
-    std::vector<Candidate> candidates;
-    for (int i = 0; i < comp_count; i++) {
-        if (components[i].count <= 4) continue;
-        int bw = components[i].x1 - components[i].x0 + 1;
-        int bh = components[i].y1 - components[i].y0 + 1;
-        if (bw < 2 || bh < 2) continue;
-        float ar = (float)std::max(bw, bh) / std::max(std::min(bw, bh), 1);
-        if (ar > 2.0f) continue;
-        double sum_wx = 0, sum_wy = 0, sum_w = 0;
-        for (int j = 0; j < components[i].count; j++) {
-            const std::size_t idx =
-                (std::size_t)components[i].py[j] * (std::size_t)width +
-                (std::size_t)components[i].px[j];
-            float val = fimg[idx];
-            sum_wx += (double)components[i].px[j] * val;
-            sum_wy += (double)components[i].py[j] * val;
-            sum_w += val;
-        }
-        double cx = (sum_w > 0) ? sum_wx / sum_w : (components[i].x0 + components[i].x1) / 2.0;
-        double cy = (sum_w > 0) ? sum_wy / sum_w : (components[i].y0 + components[i].y1) / 2.0;
-        candidates.push_back({cx, cy, components[i].count, sum_w});
-    }
-    sdet_free_connected_components(components, comp_count);
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Candidates: %d (from %d connected components, filtered single-pixel)",
-             (int)candidates.size(), comp_count);
-
-    if (candidates.empty()) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_count = 0;
-        return 0;
-    }
-
-    // 自适应fitRadius：基于连通域像素数中位数估算FWHM
-    std::vector<int> pixel_counts;
-    for (const auto& c : candidates) pixel_counts.push_back(c.pixel_count);
-    int med_pixel_count = 0;
-    if (!pixel_counts.empty()) {
-        std::sort(pixel_counts.begin(), pixel_counts.end());
-        int mid = pixel_counts.size() / 2;
-        med_pixel_count = pixel_counts[mid];
-    }
-    
-    // FWHM估算：连通域像素数 -> 等效半径 -> FWHM (Moffat4因子0.87)
-    float fwhm_est = sqrt((float)med_pixel_count / 3.14159265f) * 0.87f;
-    int auto_fit_radius = (int)(3.0f * fwhm_est);
-    auto_fit_radius = std::max(6, std::min(20, auto_fit_radius));
-    
-    int actual_fit_radius = params.fitRadius;
-    if (params.fitRadius <= 0) { // fitRadius=0表示自动模式
-        actual_fit_radius = auto_fit_radius;
-    }
-    
-    sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
-             med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
-
-    if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
-        std::sort(candidates.begin(), candidates.end(),
-                  [](const Candidate &a, const Candidate &b) { return a.brightness > b.brightness; });
-        candidates.resize(params.maxStars * 2);
-    }
-
-    int cc_count = (int)candidates.size();
-    std::vector<InternalFitResult> fit_results(cc_count);
-    int fit_ok_count = 0;
-
-    #pragma omp parallel
-    {
-        LMWorkspace ws;
-        #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
-        for (int i = 0; i < cc_count; i++) {
-            int rx0 = std::max(0, (int)candidates[i].cx - actual_fit_radius);
-            int ry0 = std::max(0, (int)candidates[i].cy - actual_fit_radius);
-            int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
-            int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
-
-            sdet_gauss_fit(fimg.data(), width, height,
-                             candidates[i].cx, candidates[i].cy,
-                             rx0, ry0, rx1, ry1, &fit_results[i], &ws);
-            if (fit_results[i].status == SDET_FIT_OK) fit_ok_count++;
-        }
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Moffat4 fit: %d/%d OK", fit_ok_count, cc_count);
-
-    // 拟合统计：按像素数分段统计成功率
-    {
-        struct SizeBin { int lo, hi; int total, ok, fail_invalid, fail_noconv, fail_iter; };
-        SizeBin bins[] = {
-            {5, 9, 0, 0, 0, 0, 0},
-            {10, 19, 0, 0, 0, 0, 0},
-            {20, 49, 0, 0, 0, 0, 0},
-            {50, 99, 0, 0, 0, 0, 0},
-            {100, 299, 0, 0, 0, 0, 0},
-            {300, 999, 0, 0, 0, 0, 0},
-            {1000, 99999, 0, 0, 0, 0, 0},
-        };
-        int n_bins = 7;
-        for (int i = 0; i < cc_count; i++) {
-            int px = candidates[i].pixel_count;
-            for (int b = 0; b < n_bins; b++) {
-                if (px >= bins[b].lo && px < bins[b].hi) {
-                    bins[b].total++;
-                    if (fit_results[i].status == SDET_FIT_OK) bins[b].ok++;
-                    else if (fit_results[i].status == SDET_FIT_INVALID_PARAMS) bins[b].fail_invalid++;
-                    else if (fit_results[i].status == SDET_FIT_NO_CONVERGENCE) bins[b].fail_noconv++;
-                    else if (fit_results[i].status == SDET_FIT_ITERATION_LIMIT) bins[b].fail_iter++;
-                    break;
-                }
-            }
-        }
-        sdet_log(SDET_LOG_INFO, "SDET", "=== Fit statistics by pixel count ===");
-        for (int b = 0; b < n_bins; b++) {
-            if (bins[b].total == 0) continue;
-            float rate = (float)bins[b].ok / bins[b].total * 100.0f;
-            sdet_log(SDET_LOG_INFO, "SDET", "  px[%d-%d]: total=%d ok=%d(%.1f%%) invalid=%d noconv=%d iterlimit=%d",
-                     bins[b].lo, bins[b].hi, bins[b].total, bins[b].ok, rate,
-                     bins[b].fail_invalid, bins[b].fail_noconv, bins[b].fail_iter);
-        }
-    }
-
-    std::vector<float> fwhm_values;
-    for (int i = 0; i < cc_count; i++) {
-        if (fit_results[i].status == SDET_FIT_OK) {
-            float avg_fwhm = (float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0);
-            fwhm_values.push_back(avg_fwhm);
-        }
-    }
-
-    float fwhm_med = 0.0f, fwhm_mad_val = 0.0f;
-    if (!fwhm_values.empty()) {
-        fwhm_med = sdet_robust_median(fwhm_values.data(), (int)fwhm_values.size());
-        fwhm_mad_val = sdet_robust_mad(fwhm_values.data(), (int)fwhm_values.size());
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "FWHM stats: med=%.4f mad=%.4f (from %d fitted stars)",
-             fwhm_med, fwhm_mad_val, (int)fwhm_values.size());
-
-    struct StarInfo { double cx, cy; float amp; };
-    std::vector<StarInfo> stars;
-    int f_fit = 0, f_fwhm = 0, f_round = 0;
-
-    for (int i = 0; i < cc_count; i++) {
-        if (fit_results[i].status != SDET_FIT_OK) { f_fit++; continue; }
-        float avg_fwhm = (float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0);
-        if (fwhm_mad_val > 0.0f) {
-            float fwhm_lo = fwhm_med - params.fwhmClipSigma * fwhm_mad_val;
-            if (avg_fwhm < fwhm_lo) { f_fwhm++; continue; }
-        }
-        float axis_ratio = (float)(std::max(fit_results[i].sx, fit_results[i].sy) /
-                                    std::max(std::min(fit_results[i].sx, fit_results[i].sy), 0.001));
-        if (axis_ratio > params.maxAxisRatio) { f_round++; continue; }
-        stars.push_back({fit_results[i].cx, fit_results[i].cy, (float)fit_results[i].A});
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Post-fit filters: %d/%d passed (fit_fail=%d fwhm=%d roundness=%d)",
-             (int)stars.size(), cc_count, f_fit, f_fwhm, f_round);
-
-    if (stars.empty()) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_count = 0;
-        return 0;
-    }
-
-    std::sort(stars.begin(), stars.end(), [](const StarInfo &a, const StarInfo &b) { return a.amp > b.amp; });
-
-    {
-        const int grid_sz = 2;
-        struct GK { int gx, gy; bool operator==(const GK& o) const { return gx == o.gx && gy == o.gy; } };
-        struct GKH { size_t operator()(const GK& k) const { return (size_t)k.gx * 1000003ULL + (size_t)k.gy; } };
-        std::unordered_map<GK, std::vector<int>, GKH> grid;
-        for (int i = 0; i < (int)stars.size(); i++) {
-            int gx = (int)stars[i].cx / grid_sz;
-            int gy = (int)stars[i].cy / grid_sz;
-            grid[{gx, gy}].push_back(i);
-        }
-        std::vector<uint8_t> deleted(stars.size(), 0);
-        for (int i = 0; i < (int)stars.size(); i++) {
-            if (deleted[i]) continue;
-            int gx = (int)stars[i].cx / grid_sz;
-            int gy = (int)stars[i].cy / grid_sz;
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    auto it = grid.find({gx + dx, gy + dy});
-                    if (it == grid.end()) continue;
-                    for (int j : it->second) {
-                        if (j == i || deleted[j]) continue;
-                        double ddx = stars[i].cx - stars[j].cx;
-                        double ddy = stars[i].cy - stars[j].cy;
-                        if (ddx * ddx + ddy * ddy <= 1.0) deleted[j] = 1;
-                    }
-                }
-            }
-        }
-        int j = 0;
-        for (int i = 0; i < (int)stars.size(); i++) {
-            if (!deleted[i]) {
-                if (j != i) stars[j] = stars[i];
-                j++;
-            }
-        }
-        stars.resize(j);
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "After dedup: %d stars", (int)stars.size());
-
-    if (params.maxStars > 0 && (int)stars.size() > params.maxStars) {
-        stars.resize(params.maxStars);
-    }
-
-    int result_count = (int)stars.size();
-
-    if (result_count == 0) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_count = 0;
-        return 0;
-    }
-
-    double *x_coords = (double *)malloc(result_count * sizeof(double));
-    double *y_coords = (double *)malloc(result_count * sizeof(double));
-    if (!x_coords || !y_coords) {
-        // malloc 失败: 统一释放已分配数组并报错, 不得泄漏 (free(NULL) 安全)
-        free(x_coords);
-        free(y_coords);
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect: failed to allocate output arrays for %d stars", result_count);
-        return -1;
-    }
-
-    for (int i = 0; i < result_count; i++) {
-        x_coords[i] = stars[i].cx;
-        y_coords[i] = stars[i].cy;
-    }
-
-    *out_x = x_coords;
-    *out_y = y_coords;
-    *out_count = result_count;
-
-    auto t1 = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration<double>(t1 - t0).count();
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect done: %d stars, %.3f s", result_count, elapsed);
-    return 0;
-}
-
-SDET_EXPORT void sdet_free_coords(double *coords)
-{
-    free(coords);
-}
-
-SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle,
-                                   const uint16_t *image, int width, int height,
-                                   double **out_x, double **out_y, int *out_count,
-                                   float **out_mag, int **out_has_saturated,
-                                   float **out_detail, float **out_smap, float **out_binary,
-                                   const char **extra_names, int extra_count, float ***out_extras)
-{
-    if (!handle || !image || !out_x || !out_y || !out_count) return -1;
-
-    const SDetParams &params = handle->internal.params;
-    size_t n = (size_t)width * height;
-
-    std::vector<float> fimg(n);
-    #pragma omp parallel for schedule(static)
-    for (int i = 0; i < (int)n; i++) {
-        fimg[i] = static_cast<float>(image[i]);
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_debug start: %dx%d", width, height);
-
-    handle->internal.width = width;
-    handle->internal.height = height;
-
-    std::vector<float> map(n);
-    sdet_get_structure_map(&handle->internal, fimg.data(), width, height, map.data());
-
-    float *raw_detail = handle->internal.raw_detail;
-    handle->internal.raw_detail = nullptr;
-
-    float *detail_out = (float *)malloc(n * sizeof(float));
-    if (!detail_out) {
-        // malloc 失败: memset/memcpy 到 NULL 是 UB, 走统一错误路径
-        delete[] raw_detail;
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate detail map (%dx%d)", width, height);
-        return -1;
-    }
-    if (raw_detail) {
-        std::memcpy(detail_out, raw_detail, n * sizeof(float));
-    } else {
-        std::memset(detail_out, 0, n * sizeof(float));
-    }
-
-    std::vector<float> binary(n, 0.0f);
-    if (raw_detail) {
-        for (size_t i = 0; i < n; i++) {
-            if (raw_detail[i] > 0.0f) binary[i] = 1.0f;
-        }
-        delete[] raw_detail;
-    }
-
-    float *smap_out = (float *)malloc(n * sizeof(float));
-    float *binary_out = (float *)malloc(n * sizeof(float));
-    if (!smap_out || !binary_out) {
-        // malloc 失败: memcpy 到 NULL 是 UB, 释放已分配的图再报错
-        // (raw_detail 已在上面 delete[], 此处无需再处理)
-        free(detail_out);
-        free(smap_out);
-        free(binary_out);
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate smap/binary map (%dx%d)", width, height);
-        return -1;
-    }
-    std::memcpy(smap_out, binary.data(), n * sizeof(float));
-    std::memcpy(binary_out, binary.data(), n * sizeof(float));
-
-    *out_detail = detail_out;
-    *out_smap = smap_out;
-    *out_binary = binary_out;
-
-    // 正常星检测：细节层>0二值化→连通域→Moffat4拟合
-    ConnectedComponent *components = nullptr;
-    int comp_count = 0;
-    if (sdet_find_connected_components(binary.data(), width, height, &components, &comp_count) < 0) {
-        // 连通域数组 malloc 失败: 释放已分配的调试图并置空输出, 不得伪造"0 颗星"成功结果
-        free(detail_out);
-        free(smap_out);
-        free(binary_out);
-        *out_detail = nullptr;
-        *out_smap = nullptr;
-        *out_binary = nullptr;
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: connected component allocation failed");
-        return -1;
-    }
-
-    struct Candidate { double cx, cy; int pixel_count; double brightness; };
-    std::vector<Candidate> candidates;
-    for (int i = 0; i < comp_count; i++) {
-        if (components[i].count <= 2) continue;
-        int bw = components[i].x1 - components[i].x0 + 1;
-        int bh = components[i].y1 - components[i].y0 + 1;
-        if (bw < 2 || bh < 2) continue;
-        float ar = (float)std::max(bw, bh) / std::max(std::min(bw, bh), 1);
-        if (ar > 3.0f) continue;
-        double sum_wx = 0, sum_wy = 0, sum_w = 0;
-        for (int j = 0; j < components[i].count; j++) {
-            const std::size_t idx =
-                (std::size_t)components[i].py[j] * (std::size_t)width +
-                (std::size_t)components[i].px[j];
-            float val = fimg[idx];
-            sum_wx += (double)components[i].px[j] * val;
-            sum_wy += (double)components[i].py[j] * val;
-            sum_w += val;
-        }
-        double cx = (sum_w > 0) ? sum_wx / sum_w : (components[i].x0 + components[i].x1) / 2.0;
-        double cy = (sum_w > 0) ? sum_wy / sum_w : (components[i].y0 + components[i].y1) / 2.0;
-        candidates.push_back({cx, cy, components[i].count, sum_w});
-    }
-    sdet_free_connected_components(components, comp_count);
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Debug candidates: %d (from %d connected components, filtered ≤4px+2x2+ar≤3)",
-             (int)candidates.size(), comp_count);
-
-    if (candidates.empty()) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_count = 0;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
-
-    // 自适应fitRadius：基于连通域像素数中位数估算FWHM
-    std::vector<int> pixel_counts;
-    for (const auto& c : candidates) pixel_counts.push_back(c.pixel_count);
-    int med_pixel_count = 0;
-    if (!pixel_counts.empty()) {
-        std::sort(pixel_counts.begin(), pixel_counts.end());
-        int mid = pixel_counts.size() / 2;
-        med_pixel_count = pixel_counts[mid];
-    }
-
-    float fwhm_est = sqrt((float)med_pixel_count / 3.14159265f) * 0.87f;
-    int auto_fit_radius = (int)(3.0f * fwhm_est);
-    auto_fit_radius = std::max(6, std::min(20, auto_fit_radius));
-
-    int actual_fit_radius = params.fitRadius;
-    if (params.fitRadius <= 0) actual_fit_radius = auto_fit_radius;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Auto fitRadius: med_pixels=%d fwhm_est=%.2f auto_radius=%d actual=%d",
-             med_pixel_count, fwhm_est, auto_fit_radius, actual_fit_radius);
-
-    if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
-        std::sort(candidates.begin(), candidates.end(),
-                  [](const Candidate &a, const Candidate &b) { return a.brightness > b.brightness; });
-        candidates.resize(params.maxStars * 2);
-    }
-
-    int cc_count = (int)candidates.size();
-    std::vector<InternalFitResult> fit_results(cc_count);
-    int fit_ok_count = 0;
-
-    #pragma omp parallel
-    {
-        LMWorkspace ws;
-        #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
-        for (int i = 0; i < cc_count; i++) {
-            int rx0 = std::max(0, (int)candidates[i].cx - actual_fit_radius);
-            int ry0 = std::max(0, (int)candidates[i].cy - actual_fit_radius);
-            int rx1 = std::min(width, (int)candidates[i].cx + actual_fit_radius + 1);
-            int ry1 = std::min(height, (int)candidates[i].cy + actual_fit_radius + 1);
-            sdet_gauss_fit(fimg.data(), width, height,
-                             candidates[i].cx, candidates[i].cy,
-                             rx0, ry0, rx1, ry1, &fit_results[i], &ws);
-            if (fit_results[i].status == SDET_FIT_OK) fit_ok_count++;
-        }
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Debug Moffat4 fit: %d/%d OK", fit_ok_count, cc_count);
-
-    std::vector<float> fwhm_values;
-    for (int i = 0; i < cc_count; i++) {
-        if (fit_results[i].status == SDET_FIT_OK) {
-            float avg_fwhm = (float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0);
-            fwhm_values.push_back(avg_fwhm);
-        }
-    }
-
-    float fwhm_med = 0.0f, fwhm_mad_val = 0.0f;
-    if (!fwhm_values.empty()) {
-        fwhm_med = sdet_robust_median(fwhm_values.data(), (int)fwhm_values.size());
-        fwhm_mad_val = sdet_robust_mad(fwhm_values.data(), (int)fwhm_values.size());
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Debug FWHM: med=%.4f mad=%.4f (%d fitted)",
-             fwhm_med, fwhm_mad_val, (int)fwhm_values.size());
-
-    // 构建正常星StarRecord列表（含 reject_star 验证）
-    std::vector<StarRecord> stars;
-    int f_fit = 0, f_fwhm = 0, f_round = 0, f_reject = 0;
-
-    for (int i = 0; i < cc_count; i++) {
-        if (fit_results[i].status != SDET_FIT_OK) { f_fit++; continue; }
-        float avg_fwhm = (float)((fit_results[i].fwhm_x + fit_results[i].fwhm_y) / 2.0);
-        if (fwhm_mad_val > 0.0f) {
-            float lo = fwhm_med - params.fwhmClipSigma * fwhm_mad_val;
-            float hi = fwhm_med + params.fwhmClipSigma * fwhm_mad_val;
-            if (avg_fwhm < lo || avg_fwhm > hi) { f_fwhm++; continue; }
-        }
-        float ar = (float)(std::max(fit_results[i].sx, fit_results[i].sy) /
-                            std::max(std::min(fit_results[i].sx, fit_results[i].sy), 0.001));
-        if (ar > params.maxAxisRatio) { f_round++; continue; }
-        // reject_star 验证（非饱和星）— legacy 路径无候选 sx/sy, 用 fit.sx/fit.sy 近似
-        SfError sf_err = reject_star(fit_results[i], false,
-                                     fit_results[i].sx, fit_results[i].sy);
-        if (sf_err != SF_OK) { f_reject++; continue; }
-        StarRecord rec;
-        rec.cx = fit_results[i].cx;
-        rec.cy = fit_results[i].cy;
-        rec.flux = (float)fit_results[i].A;
-        rec.is_saturated = 0;
-        rec.fwhm_x = (float)fit_results[i].fwhm_x;
-        rec.fwhm_y = (float)fit_results[i].fwhm_y;
-        rec.sx = (float)fit_results[i].sx;
-        rec.sy = (float)fit_results[i].sy;
-        rec.theta = (float)fit_results[i].theta;
-        rec.background = (float)fit_results[i].B;
-        rec.amplitude = (float)fit_results[i].A;
-        rec.r = 0.0f;
-        rec.cand_R = 0.0f;
-        rec.mag = (fit_results[i].A > 0.0) ? -2.5f * log10f((float)fit_results[i].A) : NAN;
-        rec.has_saturated = 0;
-        stars.push_back(rec);
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Debug normal stars: %d (fit_fail=%d fwhm=%d roundness=%d reject=%d)",
-             (int)stars.size(), f_fit, f_fwhm, f_round, f_reject);
-
-    // 饱和星检测（阈值 70% + edge-walking 中心）
-    std::vector<SaturatedCandidate> sat_candidates;
-    float sat_threshold = 0.0f;
-    float img_median = 0.0f;  // 接收全局中位数背景
-    if (!sdet_detect_saturated_stars(fimg.data(), width, height, sat_candidates, sat_threshold, img_median)) {
-        // 分配失败: 先释放已生成的调试输出缓冲再报错, 不得把"0 颗饱和星"伪造为成功结果
-        free(detail_out);
-        free(smap_out);
-        free(binary_out);
-        *out_detail = nullptr;
-        *out_smap = nullptr;
-        *out_binary = nullptr;
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_count = 0;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        if (out_extras) *out_extras = nullptr;
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: saturated star detection failed (allocation failure)");
-        return -1;
-    }
-
-    // 饱和星 PSF mask 拟合
-    int sat_fit_ok = 0, sat_fit_fail = 0;
-    for (const auto& sc : sat_candidates) {
-        StarRecord rec;
-        rec.cx = sc.cx;
-        rec.cy = sc.cy;
-        rec.is_saturated = 1;
-        rec.has_saturated = 1;
-        rec.r = sc.r;
-
-        // PSF mask 拟合：传入 sat_threshold 排除饱和像素
-        int rx0 = std::max(0, (int)sc.cx - actual_fit_radius);
-        int ry0 = std::max(0, (int)sc.cy - actual_fit_radius);
-        int rx1 = std::min(width, (int)sc.cx + actual_fit_radius + 1);
-        int ry1 = std::min(height, (int)sc.cy + actual_fit_radius + 1);
-
-        InternalFitResult sat_fit;
-        sdet_gauss_fit(fimg.data(), width, height, sc.cx, sc.cy,
-                         rx0, ry0, rx1, ry1, &sat_fit, nullptr, (double)sat_threshold);
-
-        if (sat_fit.status == SDET_FIT_OK) {
-            // PSF 拟合成功
-            rec.flux = (float)sat_fit.A;
-            rec.fwhm_x = (float)sat_fit.fwhm_x;
-            rec.fwhm_y = (float)sat_fit.fwhm_y;
-            rec.sx = (float)sat_fit.sx;
-            rec.sy = (float)sat_fit.sy;
-            rec.theta = (float)sat_fit.theta;
-            rec.background = (float)sat_fit.B;
-            rec.amplitude = (float)sat_fit.A;
-            rec.mag = (sat_fit.A > 0.0) ? -2.5f * log10f((float)sat_fit.A) : NAN;
-            sat_fit_ok++;
-        } else {
-            // 拟合失败，退回 edge-walking 中心，mag=NaN
-            rec.flux = 0.0f;
-            rec.fwhm_x = 0.0f;
-            rec.fwhm_y = 0.0f;
-            rec.sx = 0.0f;
-            rec.sy = 0.0f;
-            rec.theta = 0.0f;
-            rec.background = 0.0f;
-            rec.amplitude = 0.0f;
-            rec.mag = NAN;
-            sat_fit_fail++;
-        }
-        stars.push_back(rec);
-    }
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Debug saturated stars: %d (PSF fit ok=%d fail=%d)",
-             (int)sat_candidates.size(), sat_fit_ok, sat_fit_fail);
-
-    // 去重+排序
-    sdet_dedup_stars(stars);
-    sdet_sort_stars(stars);
-
-    sdet_log(SDET_LOG_INFO, "SDET", "Debug after dedup+sort: %d stars", (int)stars.size());
-
-    if (params.maxStars > 0 && (int)stars.size() > params.maxStars) {
-        stars.resize(params.maxStars);
-    }
-
-    int result_count = (int)stars.size();
-
-    if (result_count == 0) {
-        *out_x = nullptr;
-        *out_y = nullptr;
-        *out_count = 0;
-        if (out_mag) *out_mag = nullptr;
-        if (out_has_saturated) *out_has_saturated = nullptr;
-        if (out_extras && extra_count > 0) *out_extras = nullptr;
-        return 0;
-    }
-
-    double *x_coords = (double *)malloc(result_count * sizeof(double));
-    double *y_coords = (double *)malloc(result_count * sizeof(double));
-    float *mag_arr = out_mag ? (float *)malloc(result_count * sizeof(float)) : nullptr;
-    int *has_sat_arr = out_has_saturated ? (int *)malloc(result_count * sizeof(int)) : nullptr;
-    if (!x_coords || !y_coords ||
-        (out_mag && !mag_arr) || (out_has_saturated && !has_sat_arr)) {
-        // malloc 失败: 写入 NULL 数组是 UB, 统一释放已分配资源并报错
-        free(x_coords);
-        free(y_coords);
-        free(mag_arr);
-        free(has_sat_arr);
-        free(detail_out);
-        free(smap_out);
-        free(binary_out);
-        *out_detail = nullptr;
-        *out_smap = nullptr;
-        *out_binary = nullptr;
-        sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate result arrays for %d stars", result_count);
-        return -1;
-    }
-
-    for (int i = 0; i < result_count; i++) {
-        x_coords[i] = stars[i].cx;
-        y_coords[i] = stars[i].cy;
-        if (mag_arr) mag_arr[i] = stars[i].mag;
-        if (has_sat_arr) has_sat_arr[i] = stars[i].has_saturated;
-    }
-
-    // 可选输出参数: extras 数组与各列全部分配成功后才发布输出指针, 失败统一释放
-    if (out_extras && extra_count > 0) {
-        float **extras_arr = (float **)malloc(extra_count * sizeof(float *));
-        if (!extras_arr) {
-            free(x_coords);
-            free(y_coords);
-            free(mag_arr);
-            free(has_sat_arr);
-            free(detail_out);
-            free(smap_out);
-            free(binary_out);
-            *out_detail = nullptr;
-            *out_smap = nullptr;
-            *out_binary = nullptr;
-            sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate extras pointer array (%d extras)", extra_count);
-            return -1;
-        }
-        int rows_ok = 0;
-        for (int e = 0; e < extra_count; e++) {
-            extras_arr[e] = (float *)malloc(result_count * sizeof(float));
-            if (!extras_arr[e]) {
-                sdet_log(SDET_LOG_ERROR, "SDET", "sdet_detect_debug: failed to allocate extras row %d of %d", e, extra_count);
-                break;
-            }
-            ExtraField field = parse_extra_name(extra_names[e]);
-            for (int i = 0; i < result_count; i++) {
-                extras_arr[e][i] = get_extra_field(stars[i], field);
-            }
-            rows_ok++;
-        }
-        if (rows_ok < extra_count) {
-            // 部分列分配失败: 逐列释放已分配的行, 防止泄漏
-            for (int e = 0; e < rows_ok; e++) {
-                free(extras_arr[e]);
-            }
-            free(extras_arr);
-            free(x_coords);
-            free(y_coords);
-            free(mag_arr);
-            free(has_sat_arr);
-            free(detail_out);
-            free(smap_out);
-            free(binary_out);
-            *out_detail = nullptr;
-            *out_smap = nullptr;
-            *out_binary = nullptr;
-            return -1;
-        }
-        *out_extras = extras_arr;
-    }
-
-    *out_x = x_coords;
-    *out_y = y_coords;
-    if (out_mag) *out_mag = mag_arr;
-    if (out_has_saturated) *out_has_saturated = has_sat_arr;
-    *out_count = result_count;
-
-    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_debug done: %d stars", result_count);
-    return 0;
-}
-
-SDET_EXPORT void sdet_free_debug_maps(float *maps)
-{
-    free(maps);
 }
 
 // ============================================================================

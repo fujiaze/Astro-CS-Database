@@ -16,7 +16,7 @@
 ### 1.1 模块范围
 
 - `lib/algorithms/star_detection/`：导出接口 `include/star_detector.h`（10 个导出函数 + `SDetParams` 9 字段
-  + `SDetGuidedStats` 6 计数），实现 `src/sdet_api.cpp`（2639 行）、`src/sdet_image.cpp`（平滑/统计），
+  + `SDetGuidedStats` 6 计数），实现 `src/sdet_api.cpp`（2288 行）、`src/sdet_image.cpp`（平滑/统计），
   求解器 `src/nls_lm.h`。
 - 生产入口：`detect_stars` 主路径（自动/引导两模式）与 `detect_stars_guided`（星表引导）。
 - 单通道生产域：灰度单通道图像，float 像素，归一化上界 65535（DISP-STAR-006）。
