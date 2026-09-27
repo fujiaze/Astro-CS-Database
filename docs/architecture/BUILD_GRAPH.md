@@ -34,7 +34,7 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 | astrocs_hips | add_library | CMakeLists.txt | 11 | c417-1ccb-f83e |
 | astrocs_hips_properties | add_library | CMakeLists.txt | 1 | e540-501d-bac6 |
 | astrocs_identifiability | add_library | CMakeLists.txt | 1 | 8c32-1b51-d415 |
-| astrocs_module_adapters | add_library | CMakeLists.txt | 3 | 5f34-5c8a-c1c5 |
+| astrocs_module_adapters | add_library | CMakeLists.txt | 3 | 1dab-024e-54ba |
 | astrocs_p1_dpsf | add_library | CMakeLists.txt | 3 | bd4b-5760-44b7 |
 | astrocs_p1_ipv | add_library | CMakeLists.txt | 14 | bf86-f77b-497a |
 | astrocs_p1_sdet | add_library | CMakeLists.txt | 6 | 64f6-d6c1-554b |

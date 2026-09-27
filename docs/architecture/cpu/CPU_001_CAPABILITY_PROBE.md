@@ -1,8 +1,7 @@
 # CPU 能力探测与安全矩阵 (CPU-001)
 
 > ID: DOC-ARCH-CPU-001 · 状态: FROZEN (CPU-001)
-> 上游: `ASTROCS_DESIGN.md` §8（CPU 后端与资源）/ `ENGINEERING_SPEC.md` §10（资源与性能）
->       / 03_TARGET_PRODUCT_AND_ARCHITECTURE.md（lib/infrastructure/benchmark/cpu 目标树）
+> 上游: `ASTROCS_DESIGN.md` §9（CPU 后端与资源）/ `ENGINEERING_SPEC.md` §10（资源与性能）
 > 下游: CPU-002 baseline、CPU-003 AVX2/FMA、CPU-004 AVX-512、CPU-005 路由
 > 实现: lib/infrastructure/benchmark/cpu/common/（capability_v1.h + capability_detect.c）
 > 测试: eng/tests/cpu/dispatch/（probe + feature matrix 模拟负测 + schema 校验）
@@ -13,7 +12,7 @@
 XGETBV 检查；**区分“硬件支持”(hw) 与“OS 可安全执行”(os_safe)**。能力探测
 必须先于任何高级 provider 调用（不调用高级 provider 后才检测）。
 
-验收项（04_CPU_RESOURCE_TASKS.md CPU-001）：
+验收项（CPU-001）：
 1. 模拟 feature matrix（合成 CPUID/XCR0 输入跑判定引擎）→ 本机实测 + 模拟双证据；
 2. 缺 AVX / 缺 OS state / 缺子集 → 拒绝（负测）；
 3. Windows / Linux 输出同一 JSON schema（`cpu_capability.schema.json` 唯一事实源）；
@@ -21,7 +20,7 @@ XGETBV 检查；**区分“硬件支持”(hw) 与“OS 可安全执行”(os_sa
 
 ## 2. 探测序与信任边界
 
-加载/执行高级 ISA 前固定顺序（15 §2 原文语义）：
+加载/执行高级 ISA 前固定顺序：
 
 ```text
 CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → (CPU-002+) DLL ABI/hash
@@ -33,7 +32,7 @@ CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → (CPU-002+) DLL ABI/ha
 - **provider 加载判定只使用 os_safe**：硬件支持但 OS 不保存对应寄存器 → 拒绝
   （不在 os_safe → `acs_cap_os_safe_satisfies_v1(required)` 返回 0）。
 - AVX-512 至少检查所需 F/CD/BW/DQ/VL 子集与 XCR0 opmask/ZMM 状态；**不能只看
-  一个 `AVX512F`**（C §C6 / 15 §2 / CPU-004 验收“缺任何子集/OS ZMM state 拒绝”）。
+  一个 `AVX512F`**（CPU-004 验收“缺任何子集/OS ZMM state 拒绝”）。
 
 探测实现自身只执行 SSE2 可执行指令 + cpuid + xgetbv；XGETBV 仅在 OSXSAVE=1
 后执行 → 探测永不触发非法指令。本层不读取逻辑核数、affinity、cgroup（CPU-008）。

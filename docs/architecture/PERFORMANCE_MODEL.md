@@ -12,141 +12,78 @@
 - 已知性能基线见 docs/performance/BASELINE.md；benchmark 指标挂
   METRIC-* ID（S2 注册）；G-QA 阈值 <5% 回归。
 
-## PERF-501 编排参数标定（探针驱动，2026-09-23）
+## 1 编排参数标定（探针驱动）
 
 > 权威：`docs/contracts/SCHEDULER_CONTRACT.md` §3「编排参数（窗口大小、预取深度、帧并发度、
-> 工作窃取策略）的最终取值由 PERF-501 基于探针实测数据确定」；`ASTROCS_DESIGN.md` §9（探针驱动优化）。
-> 并行轴语义见 `docs/architecture/THREADING_MODEL.md` §并行轴分配；
-> 完整证据索引见 `run/PERF-501/EVIDENCE.md`（不入库）。
+> 工作窃取策略）的最终取值由探针基于实测数据确定」；`ASTROCS_DESIGN.md` §9（探针驱动优化）。
+> 并行轴语义见 `docs/architecture/THREADING_MODEL.md` §并行轴分配。
 
-### 1 实测根因（一手证据）
+### 1.1 实测根因（一手证据）
 
-M42 T2（16 帧 4096²，`run/RELEASE-05/vis/out/m42_p1_t2/resource_timeseries.csv`）的 CPU 曲线
+M42 T2（16 帧 4096²，资源时序 `resource_timeseries.csv`）的 CPU 曲线
 **全程钉在 202%**：4053 个样本中 77.8% 落在 200–299% 桶，`per_thread_cpu_max_pct = 102`
 （只有 ~2 条线程在算），而 `workers_peak = granted_workers = 16`。即 **16 核预算只用了 2 核**。
 
-归因（`run/PERF-501/logs/*.child.stderr` 的 `[lease]` / `[p1cap]` 行，均为实测）：
+归因（探针日志 `[lease]` / `[p1cap]` 行，均为实测）：
 
 | 量 | 值 | 来源 |
 |---|---|---|
 | Runtime lease（预算权威） | `cap=16` | `[lease] astrocs.phase1.drizzle host_workers=16 acquired=1 cap=16` |
 | 内存闸门 `p1_memory_cap` | `2` | `[p1cap] frame_workers node=drz lease=16 memory_cap=2` |
 | 帧级宽度 `p1_frame_workers` | `2` | 同上 `frame_workers=2` |
-| 帧内 OpenMP（修复前） | `1` | `p1_parallel_for` 旧式 `(n>=workers)?1:...`，n=16≥2 |
+| 帧内 OpenMP 度（无轴分配时） | `1` | `p1_parallel_for` 朴素实现 `(n>=workers)?1:...`，n=16≥2 |
 
-⇒ 实际并行宽度 = 2×1 = **2**。节点瀑布（2 帧冒烟，`run/PERF-501/evidence/before_w16_2f/`）：
-calibration 3.23 s / cosmetic 0.0001 s / wcs 6.12 s / star-psf 14.06 s / photometry 1.37 s /
-noise-snr 3.66 s / **drizzle 240.30 s（89.4%）** / writer 0.07 s = 268.8 s。
+⇒ 实际并行宽度 = 2×1 = **2**。2 帧冒烟节点瀑布实测：calibration 3.23 s / cosmetic 0.0001 s /
+wcs 6.12 s / star-psf 14.06 s / photometry 1.37 s / noise-snr 3.66 s /
+**drizzle 240.30 s（89.4%）** / writer 0.07 s = 268.8 s。
 **drizzle 是绝对关键路径，且它以 2 条线程运行。**
 
-### 2 冻结参数（本次改动）
+### 1.2 冻结参数
 
 | 参数 | 值 | 落点 | 依据 |
 |---|---|---|---|
-| 帧内 OpenMP 度 | `max(1, thread_budget / min(n, frame_workers))` | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 帧级被内存压低时把剩余预算转给帧内轴；帧级未压低时退化为 1（与历史逐位相同） |
-| `kP1FrameBytesPerPixel` | **116.0**（PERF-501 期间为 358.0；P1-CONCURRENCY-CALIB-01 重标定，见 §4.1/§5） | 同上 | 同二进制实测**边际 99.68 B/px、base 0.143 GB**（§5.1）；原「抬帧并发会改变 HiPS 产品」已证伪（§4.1）。116.0 使 4096² 帧在 `A ≥ 20.76 GB` 时得 `F=8` ⇒ `W_eff = 8×2 = 16` |
-| `kP1FrameMemSafetyFrac` | 0.75（不变） | 同上 | 留基础占用与运行波动 |
-| 内存预算百分比 | 95（不变） | `eng/packaging/config/runtime_resources.json` | 单一来源；24.6 GB 机器 MemAvailable 20.77 GB ⇒ 准入预算 19.73 GB |
+| 帧内 OpenMP 度 | `max(1, thread_budget / min(n, frame_workers))` | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 帧级被内存压低时把剩余预算转给帧内轴；帧级未压低时退化为 1 |
+| `kP1FrameBytesPerPixel` | **116.0** | 同上 | 同二进制实测**边际 99.68 B/px、base 0.143 GB**（§2）；116.0 使 4096² 帧在 `A ≥ 20.76 GB` 时得 `F=8` ⇒ `W_eff = 8×2 = 16` |
+| `kP1FrameMemSafetyFrac` | 0.75 | 同上 | 留基础占用与运行波动 |
+| 内存预算百分比 | 95 | `eng/packaging/config/runtime_resources.json` | 单一来源；24.6 GB 机器 MemAvailable 20.77 GB ⇒ 准入预算 19.73 GB |
 
-### 3 前后对照（同一输入、同一注册表、同一代码基线，仅差本次改动）
+### 1.3 逐位一致性（帧内轴不进数值路径）
 
-| 用例 | 修复前 | 修复后 | 加速 | 证据 |
-|---|---|---|---|---|
-| 2 帧冒烟总墙钟 | 280.6 s | 167.5 s | 1.67× | `run/PERF-501/logs/{before,after}_w16_2f.load` |
-| 2 帧冒烟 drizzle 节点 | 240.30 s | 146.28 s | 1.64× | `run/PERF-501/evidence/*/node_waterfall.md` |
-| 2 帧冒烟 star-psf 节点 | 14.06 s | 4.02 s | 3.50× | 同上 |
-| 2 帧冒烟 wcs 节点 | 6.12 s | 4.87 s | 1.26× | 同上 |
-| 2 帧冒烟 CPU 均值 / p50 | 184.5% / 198.2% | 325.8% / 385.6% | 1.77× / 1.95× | `run/PERF-501/{before,after}_w16_2f.monitor.json` |
-| 2 帧冒烟峰值 RSS | 3.34 GB | 3.47 GB | +0.13 GB | 同上 |
-| M42 T2 16 帧（**仅本次改动**，358 B/px） | 2026.5 s | **1612.2 s** | **1.26×** | `run/RELEASE-05/vis/out/m42_p1_t2/` vs `run/PERF-501/t2_16f_fixA.monitor.json` |
-| M42 T2 16 帧 CPU 均值 / p50（仅本次改动） | 190.2% / 202.0% | **304.3% / 387.0%** | 1.60× / 1.92× | 同上 |
-| M42 T2 16 帧峰值 RSS（仅本次改动） | 3.47 GB | 3.56 GB | +0.09 GB | 同上 |
-| ~~M42 T2 16 帧（叠加试标定 200 B/px，**未采纳**）~~ **该行查无实据** | — | — | — | `t2_16f_after` 用的是**错通带曲线**（53 点 / 420–524 nm，整幅测光刻度错 ×2.457905）；"未采纳"的依据（与 `t2_16f_fixA` 的 8769/11820 DATASUM 差异）是**跨二进制+跨曲线**对照，已被 P1-CONCURRENCY-CALIB-01 证伪（§4.1） |
-
-**逐位一致性（本次改动在帧并发=2 下的 A/B）**：`before_w16_2f`（旧代码，inner=1）与
-`after_w16_2f`（新代码，inner=8）—— 两者帧并发均为 2、lease 均为 16：
-
-| 类型 | 共有 | 逐字节相同 | 不同 |
-|---|---|---|---|
-| `.fits` | 1464 | **1464** | 0 |
-| 目录/星表类 JSON（`p1_sources` / `p1_flux` / `p1_phot` / `p1_snr` / `p1_psf` / `p1_products`） | 6 | **6** | 0 |
-| 遥测与路径类（`alloc_*` / `resource_*` / `worker_balance` / `graph/*` / `p1_final` / HiPS `properties`） | — | — | 仅差 output_dir 路径串 / 时间戳 / run_id |
-
+帧内 OpenMP 轴的同帧并发 A/B 对照（帧并发=2、lease=16 恒定，仅帧内轴宽度不同）：
+全部 `.fits`（1464/1464）与目录/星表类 JSON（`p1_sources` / `p1_flux` / `p1_phot` /
+`p1_snr` / `p1_psf` / `p1_products`，6/6）**逐字节相同**；遥测与路径类工件
+（`alloc_*` / `resource_*` / `worker_balance` / `graph/*` / `p1_final` / HiPS `properties`）
+仅差 output_dir 路径串 / 时间戳 / run_id。
 ⇒ 帧内 OpenMP 轴对全部科学产物**逐位中性**（与 `p1drz` 的 P15a DRIZZLE-DET-001
 「1..16 线程预算逐位恒等」一致）。
 
-### 4 未采纳项与剩余上限（发现但未改）
-
-1. ~~**抬帧并发（`kP1FrameBytesPerPixel` 358 → 200）本次不采纳。**~~
-   **该拒收理由已被 P1-CONCURRENCY-CALIB-01 证伪（2026-09-23）；本值已重标定为 116.0（见 §5）。**
-   原理由「抬帧并发会改变 HiPS 产品」的全部证据是 `t2_16f_fixA` vs `t2_16f_after` 的
-   8769/11820 个 FITS DATASUM 变化。逐条复核（`run/P1-CONCURRENCY-CALIB-01/REPORT.md` §3.3）：
-
-   - **两跑不是同一二进制、且通带曲线不同**：`t2_16f_after`（11:43，`d7ef4d8b`）用**错**曲线
-     （53 点 / 420–524 nm，日志 32 行），`t2_16f_fixA`（12:55，`37a09c81`）用**对**曲线
-     （Baader R，73 点 / 572–716 nm，日志 32 行）；两跑跨过 12:10:17 的通带解析修复。
-   - **差异就是整幅测光刻度**：`k_photo` 2.3846837130250378e-17 vs 5.861326179975242e-17
-     （**×2.457905**）；signal tile 逐像素 A/B 比值 min=2.457904876 / p50=2.457905071 /
-     max=2.457905258 ⇒ 恰为该刻度比。**留给帧并发的残差为 0。**
-   - **量级签名排除"归约序"**：原证据自己记录的抽样是 `variance/Norder9` 整幅 ~1e9 → ~1e-11
-     （≈1e20 相对差）；浮点重结合只能产生 ~1e-16 相对差，相差 20 个数量级。
-   - **机制在代码上不存在**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:771-777`
-     记载 HIPS-DETERMINISM-01 已证「生产实现的 z 映射按 `s` 互斥，该形态不存在」
-     （祖先归约是**互不相交的散射**，每个祖先像素恰被一个叶 tile 写一次 ⇒ 无第二个加数）；
-     `lib/infrastructure/scheduler/src/module_adapters.cpp:6203-6206` 记载**跨帧零浮点归约**。
-     PERF-PROFILE-01 §9.3 的 `AncestorAcc` 预警是**假设**，已被证伪。
-   - **原计数自相矛盾**：同一结论在 `run/PERF-501/EVIDENCE.md` §2 表（3051/11820）、
-     同文件 §2.2（8769/11820）、本文件旧版（5846/11820）、`analysis/difflist.txt`
-     （5846 行，且只含 ivar+variance、无 signal）四处给出四个不同数。
-   - **同二进制受控扫描的直接反证**：8 帧 4096²、`inner_omp` 恒 1、只变 `in_flight`（1/2/4/8）
-     ⇒ **FITS 差异 0**（含全部 HiPS 层级与 calibrated/photoapplied 科学帧），
-     逐帧 `p1_stack.json`/`p1_wcs.json` 亦逐字节相同。
-     （PERF-501 里被当作"帧并发"证据的 `w02_2f`/`w04_2f` 实际 `in_flight` **都是 2**
-     —— `n_units=2`、`frame_workers` 2 vs 4 ⇒ 只差了 `inner_omp`。）
-2. **并行宽度的剩余天花板 = 8 条线程**（不是 16）。`drizzle_engine.cpp` 的
-   `static constexpr int kScratchPoolCap = 2;` ⇒ `kScratchPool = min(num_threads, 2)`：
-   **drizzle 每帧同时只有 2 条线程能持有 scratch map**，其余 OMP 线程在池上等待。
-   该上限是 PERF-MEM-FIX-01（F1）为压峰值内存所设（每份 scratch ≈ 每 stripe 触达 tile 数 × 8 MiB）。
-   本次修复后实测 CPU p50 = 385.6%（2 帧 × 2 有效线程）；即使把帧并发抬到 4，也只有 8 条有效线程。
-   ⇒ 要把 Phase1 推到 G-RES-01 的 85% 均值门，下一步必须动 `kScratchPoolCap`（或改帧内分块），
-   并按「每 +1 份 scratch 的实测 RSS 增量」重新标定内存闸门。
-   **P1-PARALLEL-AXIS-REDESIGN-01 已动**：`kScratchPoolCap` 由常量 2 改为**派生值
-   `num_threads`**（见 §6 末尾的定理由来）。在当前标定形态（`I = 2`）下它是 **no-op**；
-   它修复的是 `I > 2` 的形态（例：`n = 2` 帧 ⇒ `F=2, I=8`，`W_eff` 由 `2×min(8,2)=4`
-   抬到 `2×8=16`，**4×**）。**CPU p50 并未因此达到 1600%**：同二进制四档实测最高
-   1320.9%（`W_eff=16`、8 帧 × 2 线程）；压帧级并发只会更低（1 帧独占 = 98.9%）——
-   真正的天花板是**每帧不可并行的串行段**与**内核效率随宽度衰减**，不是 K。
-3. **`wcs-platesolve` 无帧级并行**（节点内串行 over frames），2 帧冒烟占 3.0%、16 帧 T2 占 3.7%；
-   随帧数增长会线性变重，是下一步的次级目标。
-4. **HiPS 写出（`hips_write`）在同一帧内与 `drizzle_run` 串行**：16 帧 T2 实测
-   `drizzle_profile` 每帧 `drizzle_run≈109 s + hips_write≈34 s`，写出占 drizzle 节点 24%。
-### 5 有效并行宽度的可复核推导（G-RES-01 ④⑤⑥ 未达标的量化边界）
+## 2 有效并行宽度的可复核推导（G-RES-01 ④⑤⑥ 边界）
 
 **符号**：`A` = 运行时 `MemAvailable`；`P` = 单帧像素数；`B` = `kP1FrameBytesPerPixel`；
-`L` = lease（观测到的 `granted_workers`）；`K` = `kScratchPoolCap`；`F` = 帧级并发；
-`I` = 帧内 OpenMP 度；`W_eff` = 同时真正在算的线程数。
+`L` = lease（观测到的 `granted_workers`）；`K` = scratch 池上限（`drizzle_engine.cpp` 的 `kScratchPoolCap`，派生规则见 §3）；
+`F` = 帧级并发；`I` = 帧内 OpenMP 度；`W_eff` = 同时真正在算的线程数。
 
 ```
 F     = min(L, floor(0.75·A / (P·B)))      // p1_frame_workers（内存闸门）
-I     = max(1, L / min(n, F))              // PERF-501 冻结公式
+I     = max(1, L / min(n, F))              // 冻结公式
 W_eff = F × min(I, K)                      // drizzle 节点；K 为每帧 scratch 槽上限
 ```
 
 本机实测输入：`A = 20,773,257,216 B`、`P = 4096² = 16,777,216`、`L = 16`。
 
-**实测内存模型**（P1-CONCURRENCY-CALIB-01；同一二进制 `build_source_digest=f86d60e2…`、
-同场 8 帧 4096²/FP64/auto nside、`inner_omp` 恒 1、只变 `in_flight`、峰值 RSS 由**外部**
-采样 `/proc/<pid>/status` VmHWM）：`RSS(F) = 0.143 GB + F × 1.6724 GB`
-⇒ **边际 99.68 B/px、base 0.143 GB**，拟合残差 ≤ ±2.5%（F=1/2/4/8 四个实测点，
-F=2 与 F=8 各有两次重复：3.576/3.580 GB、13.555/13.325 GB）。
+**实测内存模型**（同一二进制、同场 8 帧 4096²/FP64/auto nside、`inner_omp` 恒 1、
+只变 `in_flight`、峰值 RSS 由**外部**采样 `/proc/<pid>/status` VmHWM）：
+`RSS(F) = 0.143 GB + F × 1.6724 GB` ⇒ **边际 99.68 B/px、base 0.143 GB**，
+拟合残差 ≤ ±2.5%（F=1/2/4/8 四个实测点，F=2 与 F=8 各有两次重复：3.576/3.580 GB、
+13.555/13.325 GB）。
 
 | B (B/px) | A=20.77 GB 下 F | I | `min(I,K)` | **W_eff** | 需求 RSS (GB) | 0.75A (GB) | 安全? | 实测墙钟 (s) | 性质 |
 |---|---|---|---|---|---|---|---|---|---|
-| 358（旧值） | 2 | 8 | 2 | **4** | 3.49 | 15.58 | OK | 367.2（F=2 档实测） | 实测 |
+| 358 | 2 | 8 | 2 | **4** | 3.49 | 15.58 | OK | 367.2（F=2 档实测） | 实测 |
 | 200 | 4 | 4 | 2 | **8** | 6.83 | 15.58 | OK | 423.3（F=4 档实测） | 实测 |
-| **116.0（新值）** | **8** | **2** | **2** | **16** | **13.94** | 15.58 | OK（余量 10.5%） | **421.0**（目标配置实测） | 实测 |
+| **116.0（现行标定值）** | **8** | **2** | **2** | **16** | **13.94** | 15.58 | OK（余量 10.5%） | **421.0**（目标配置实测） | 实测 |
 | 103.0 | 9 | 1 | 1 | **9（死区）** | 15.20 | 15.58 | OK 但 W_eff 掉回 9 | 推导 | 推导 |
-| 80.0 | 11–12 | 1 | 1 | 11–12（死区） | 18.5–20.2 | 15.58 | **超预算** | 未测（不安全，未采纳） | 推导 |
+| 80.0 | 11–12 | 1 | 1 | 11–12（死区） | 18.5–20.2 | 15.58 | **超预算** | 未测（不安全，不采纳） | 推导 |
 
 **关键：`W_eff(F)` 在 `F > L/2` 处非单调 ⇒ "B 越小越好"不成立。**
 `I = max(1, L / in_flight)` 是整数除法，故 `F` 一越过 `L/2`，`I` 就掉到 1：
@@ -156,89 +93,57 @@ F=2 与 F=8 各有两次重复：3.576/3.580 GB、13.555/13.325 GB）。
 
 **同帧集 8 帧的实测墙钟（唯一变量 = `W_eff`）**：`W_eff`=2 → **1510.6 s**、
 4 → **783.5 s**、8 → **509.2 s**、**16 → 421.0 s**。
-⇒ 新值（`W_eff`=16）相对旧值（`W_eff`=4）为 **1.86×**。
+⇒ `W_eff`=16 相对 `W_eff`=4 为 **1.86×**。
 
-**要到 `W_eff = 16` 的两条路**：
+**第二条硬边界：内核并行效率随宽度衰减。** 实测每帧 `drizzle_run`（同一日志口径）：
 
-1. 抬 `K`：`K=4` 时 `B=200, F=4, I=4` ⇒ `W_eff = 16`。内存代价按 PERF-MEM-FIX-01 §3 的
-   「每份额外 scratch ≈ 0.2–0.3 GB」投影：`4 × (1.8 + 2×0.25) ≈ 9.2 GB` = P1 子预算
-   （15.58 GB）的 59% ⇒ 有余量（该 0.2–0.3 GB/槽当时是投影值；本轮实测帧内轴
-   `inner_omp` 1→8（2 帧在飞）峰值 3.576 → 3.825 GB，即 **+0.249 GB**，落在该投影区间内）。
-2. **压 `B` 到 116.0（本轮已采纳）**：`F = 8, I = 2, W_eff = 8×2 = 16`。
-   目标配置（`lease=16, F=8, inner=2`）**实测峰值 13.940 GB** = 0.75A 的 89.5%。
-   原阻塞项（§4.1 的 HiPS 归并序）**已证伪**，故不再阻塞。
-
-**第二条（更硬的）边界：内核并行效率随宽度衰减。** 实测每帧 `drizzle_run`（同一日志口径）：
-
-| 配置 | 每帧工作线程 | 在飞帧数 | 总工作线程 | `drizzle_run` 每帧 (s) |
+| 档位 | 每帧工作线程 | 在飞帧数 | 总工作线程 | `drizzle_run` 每帧 (s) |
 |---|---|---|---|---|
-| `before_w16_2f` | 1 | 2 | 2 | 199.6 |
-| `after_w16_2f` | 2 | 2 | 4 | 109.2 |
-| `t2_16f_fixA` | 2 | 2 | 4 | 124.7 |
-| ~~`t2_16f_after`~~（**错通带曲线跑，数据不可用于本表**） | 2 | 4 | 8 | 166.0 |
+| 帧内轴=1 | 1 | 2 | 2 | 199.6 |
+| 帧内轴=2 | 2 | 2 | 4 | 109.2 |
+| 帧内轴=2（T2 全帧集） | 2 | 2 | 4 | 124.7 |
 
 ⇒ 2 → 4 条工作线程：每帧 199.6 → 109.2 s（**1.83×，91% 效率**）；
-4 → 8 条工作线程：每帧 109.2 → 166.0 s，节点级净收益只有 **1.42×（1.46×/2，73% 效率）**，
-且**每帧时间反而变长**。⇒ 该内核在 ~4 条并发 stripe 之后进入收益递减区。
-（注：两次 16 帧运行的外部负载不同——`t2_16f_after` 期间 loadavg 9–13，`t2_16f_fixA` 期间 4–9——
-故 4→8 的 73% 是**受污染的保守估计**，需在静默机上复测；但趋势与 PERF-MEM-FIX-01 §3 的
-「K=2 使 drizzle 由 ≈40 s/帧升到 167.3 s/帧（×4.2）」一致。）
+>4 条并发 stripe 后进入收益递减区，且机器级负载噪声会污染更高档位的测量
+（须在静默机上复测）。每帧都存在**不可并行的串行段**（FITS 读、`hips_write`、
+星表查询、`wcs-platesolve` 无帧级并行），见 `THREADING_MODEL.md`。
 
 **分类结论**：
 
-| 类别 | 条目 | 依据 |
-|---|---|---|
-| **当前实现的结构限制（可改）** | ① `K = 2` 是**策略值**不是物理值（见 §6）；② ~~`B = 358` 是 `K = 16` 时代的标定，与 `K = 2` 耦合后偏保守 3.3×~~ → **已重标定为 116.0**（实测边际 99.68 B/px，旧值保守 **3.59×**；见 §5）；③ 帧级并发受内存闸门限制（`B=116` 后本机 `F` 由 2 → 8）；④ ~~HiPS hierarchy 归并序（正确性缺陷，阻塞 ②）~~ → **已证伪，不成立**（§4.1）；⑤ `hips_write` 在帧内与 `drizzle_run` **串行**，占 drizzle 帧时 28–30%（`t2_16f_fixA`：49.6 s / 174.3 s）；⑥ `wcs-platesolve` 无帧级并行（占 2.9–3.7%）；⑦ `inner_omp = max(1, L/F)` 的整数除法使 `W_eff(F)` 在 `F > L/2` 非单调（`F∈[9,15]` 死区，见 §5） | §6、§4、§5、日志 `[drizzle_profile]`、`[nodetrace]` |
-| **物理/算法限制（调度参数不可改）** | ① drizzle 内核并行效率随宽度衰减（4→8 工作线程仅 1.46×）；② 每帧**不可压缩的输出本体**：PERF-MEM-FIX-01 §3 实测 canonical 累加器 ≈2.36 GB（T4 配置 275 tile × 262144 leaf × 32 B），该值不随 `K` 变；③ 机器只有 16 逻辑核 / 8 物理核 / 24.6 GB / 无 swap ⇒ `W_eff ≤ 16`，而 85% 均值门要求 `W_eff ≥ 13.6` 且内核效率 ≥85% | PERF-MEM-FIX-01 §3、本表 |
+| 类别 | 条目 |
+|---|---|
+| **当前实现的结构限制（可改）** | ① `K` 是**策略值**不是物理值（派生规则见 §3）；② `B` 标定值随实测内存模型更新（现行 116.0，实测边际 99.68 B/px、base 0.143 GB）；③ 帧级并发受内存闸门限制（`B=116` 后本机 `F` = 8）；④ `hips_write` 在帧内与 `drizzle_run` **串行**，占 drizzle 帧时 24–30%；⑤ `wcs-platesolve` 无帧级并行（占 2.9–3.7%）；⑥ `inner_omp = max(1, L/F)` 的整数除法使 `W_eff(F)` 在 `F > L/2` 非单调（`F∈[9,15]` 死区） |
+| **物理/算法限制（调度参数不可改）** | ① drizzle 内核并行效率随宽度衰减（>4 stripe 收益递减）；② 每帧**不可压缩的输出本体**：canonical 累加器 ≈2.36 GB（275 tile × 262144 leaf × 32 B），该值不随 `K` 变；③ 机器只有 16 逻辑核 / 8 物理核 / 24.6 GB / 无 swap ⇒ `W_eff ≤ 16`，而 85% 均值门要求 `W_eff ≥ 13.6` 且内核效率 ≥85% |
 
-**结论（P1-CONCURRENCY-CALIB-01 修订）**：把 `B` 由 358 重标定为 **116.0** 后，
-本机（A ≈ 20.8–21.5 GB）`F` 由 2 → 8、`W_eff` 由 4 → **16**，
-同帧集 8 帧墙钟 **783.5 s → 421.0 s（1.86×，实测）**，且全部科学产品**逐字节不变**。
-原判据「④ 的上限 ≈ 0.40」建立在 `W_eff = 4` 之上，`W_eff = 16` 后须重测
-（预期上限随宽度提升，但内核效率在 >4 stripe 处的衰减仍是硬边界 —— 见上表）。
-**85% 均值门是否可达，须在 `W_eff = 16` 下重测利用率，本轮未测。**
-剩余可达路径 = 抬 `K`（一行，须实测内存）+ 让 `hips_write` 与 `drizzle_run` 重叠
+**结论**：现行标定（`B = 116.0`）下本机（A ≈ 20.8–21.5 GB）`F = 8`、`W_eff = **16**`，
+同帧集 8 帧墙钟 **421.0 s**（较 `W_eff = 4` 档 783.5 s 为 1.86×），且全部科学产品**逐字节不变**。
+内核效率在 >4 stripe 处的衰减是硬边界；85% 均值门是否可达，须在 `W_eff = 16` 下
+实测利用率判定。剩余可达路径 = 让 `hips_write` 与 `drizzle_run` 重叠
 + 改善内核在 >4 stripe 时的效率；后两项属算法开发，不属编排参数标定。
 
-### 6 `kScratchPoolCap = 2` 的来历（回答「是推出来的还是拍出来的」）
+## 3 scratch 池上限的派生（`K = num_threads`）
 
-**结论：不是物理约束推出来的，是 PERF-MEM-FIX-01 明确标注的「本轮交付值」策略选择。**
-
-依据 PERF-MEM-FIX-01 报告（运行域临时件，未入库）§3 摘录：
-
-- §3「代价（诚实边界）」原文：**「K=4 未实测；按『每份额外 scratch ≈ 0.2-0.3 GB、累加并行度翻倍』
-  投影：峰值 ≈ 4.2-4.5 GB、drizzle ≈ 85 s/帧。切换只需把 `kScratchPoolCap` 改为 4（一行）。」**
-- 同节实测：`K = 16`（旧值）在生产规模「32 帧帧串行、每帧 16 线程」下峰值 **22.3 GB**、
-  8 GB 地址空间处 `std::bad_alloc`（RC=134，RSS 6.84 GB）；`K = 2` 后峰值 **3.93 GB** 且完成。
-- 同节实测的**唯一硬地板**：`canonical 累加器 275 tile × 262144 leaf × 32 B ≈ 2.36 GB`
-  「是不可再压的输出本体」——**这个量不随 `K` 变**，`K` 只决定同时在飞的 stripe 数。
-- 代码注释（`drizzle_engine.cpp`）自述取 2 的理由是「**保留『一份在累加、一份在归约』的重叠**」，
-  即 `K = 2` 是「能维持流水线重叠的最小值」，不是「内存能承受的最大值」。
-
-⇒ `K = 2` 属**当前实现的结构限制（可改）**，不属物理上限；抬它是一行改动，代价是每份额外
-scratch 的实测 RSS 增量（**该增量本身尚未实测**，PERF-MEM-FIX-01 只给了 0.2–0.3 GB 的投影）。
-
-**定案（P1-PARALLEL-AXIS-REDESIGN-01）：`K = num_threads`（派生，不再硬钉 2）。**
-
-定理：`W_eff = in_flight × min(inner_omp, K)`（§5）⇒ 要 `W_eff` 达到帧内轴宽度必须
+`kScratchPoolCap` 取**派生值 `num_threads`**，不硬钉。定理（§2 记号）：
+`W_eff = in_flight × min(inner_omp, K)` ⇒ 要 `W_eff` 达到帧内轴宽度必须
 `K ≥ inner_omp`；而 `K = inner_omp = num_threads` 时同时在飞的 scratch 份数
 `= in_flight × inner_omp ≤ lease`（`THREADING_MODEL.md`「并行轴分配」的轴不变式）
-⇒ **`K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关**。
-旧值 2 的前提（帧内宽度不受 lease 约束、每帧线程数 = 进程默认）已被 PERF-501 的轴分配取代
-⇒ 补丁不再必要，且 `K < inner_omp` 会让多余线程在池上空等（§4 第 2 条实测 385.6%）。
-**在当前标定形态（`I = 2`）下该改动是 no-op**；它修复的是 `I > 2` 的形态
-（例：`n = 2` 帧 ⇒ `F=2, I=8`，`W_eff` 由 `2×min(8,2)=4` 抬到 `2×8=16`，**4×**）。
+⇒ **`K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关**；
+`K < inner_omp` 会让多余线程在池上空等（实测 `W_eff=4` 档 CPU p50 仅 385.6%）。
+在当前标定形态（`I = 2`）下 `K = num_threads` 与 `K = 2` 等价（no-op）；
+它保证 `I > 2` 的形态可达满宽（例：`n = 2` 帧 ⇒ `F=2, I=8`，`W_eff` = 2×min(8,2)=4
+抬到 2×8=16，**4×**）。
 
-**「K 不进数值路径」已由实测证实（非只引注释）**：改动后的二进制上，既有回归锁
+**「K 不进数值路径」由实测证实（非只引注释）**：既有回归锁
 `p1drz_merge_pipeline_lock` **PASS**（256×1024 高瘦帧 / 64 stripe / FP32+FP64 /
 `taskset` 预算 1,2,4,8,16 / 每预算两轮重复，要求逐 leaf 转储 `.canon` 与 `.norm.hiss`
-sha256 完全一致 —— 该锁在 16 核档下直接比较 `K=2`（旧）与 `K=16`（新）两条路径）；
-另在同二进制四档轴形态 A/B 下全部产品**逐位相同**
-（`run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md` §6）。
+sha256 完全一致 —— 该锁在 16 核档下直接比较 `K=2` 与 `K=num_threads` 两条路径）；
+另在同二进制四档轴形态 A/B 下全部产品**逐位相同**。
+内存代价投影：每份额外 scratch ≈ 0.2–0.3 GB（实测帧内轴 `inner_omp` 1→8，
+2 帧在飞，峰值 3.576 → 3.825 GB，**+0.249 GB**，落在投影区间内）。
 
-**同轮被否决的形态**：「内存闸门咬住时 `frame_workers = 1`（一帧独占整个预算）」实测
-**墙钟 583.7 s vs 现状 390.7 s（慢 1.49×）**、CPU p50 **98.9%**（≈单核）、峰值 RSS 3.57 GB
-（省 74.7%）。⇒ 内存大胜但**用核换内存**，且制造了它本要消除的「单核」症状；
-四档产品逐位相同 ⇒ 按墙钟选型，**保留既有「帧轴优先摊开」分配**。
-另：本机 `W_eff=16` 下实测 CPU p50 最高 **1320.9%**（非 1600%），
-85% 均值门是否可达**仍未测**。详见该报告 §3/§7。
+## 4 关联锚
+
+- 编排参数语义与轴分配不变式：`docs/architecture/THREADING_MODEL.md`。
+- 跨帧零浮点归约（帧结果按下标写各自槽位、join 后帧序归约）：`lib/infrastructure/scheduler/src/module_adapters.cpp:2218`（代码侧记载）。
+- 生产实现的 z 映射按 `s` 互斥、祖先归约是互不相交的散射（不存在跨瓦片求和形态）：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:771-777`（确定性注入面注释）。
+- 性能基线与测量工件：`docs/performance/BASELINE.md`。

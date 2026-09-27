@@ -23,7 +23,7 @@ P2.HIPS_WRITE。
 
 ## 进程退出码（唯一源）
 
-> **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（11 码，与最高设计 §6.3 同源）：
+> **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（11 码，与最高设计 §7.2 同源）：
 >
 > ```text
 > OK=0  ARGS=2  INPUT=3  SCIENCE=4  BACKEND=5  COMPUTE=6
@@ -31,7 +31,7 @@ P2.HIPS_WRITE。
 > ```
 >
 > 凡需要退出码数值处**一律引用该头文件**；本文档与任何下级文档的数值表只有这一套
-> （最高设计 §6.3：码值与含义只有一份）。
+> （最高设计 §7.2：码值与含义只有一份）。
 
 模块特定非进程退出码（JSONL error.numeric_code，20-29）：
 
@@ -51,4 +51,4 @@ P1.PHOTOMETRIC/P1.NOISE/P1.DRIZZLE/P1.HIPS_WRITE/P2.*。
 
 ERR-* 族（S2 注册，含 ERR-P2-UPM-001 畸形模型）。
 
-ERR-P2-UPM-001 见 `lib/algorithms/coverage/src/upm.cpp:~890` frames 唯一/类型/C 行数校验。
+ERR-P2-UPM-001 见 `lib/algorithms/coverage/src/upm.cpp`:1606-1619 frames 非数组/唯一/重复校验。

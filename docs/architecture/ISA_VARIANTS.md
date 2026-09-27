@@ -1,9 +1,9 @@
-# ISA 变体决策台账 (ISA-001..004 冻结 — V5)
+# ISA 变体决策台账 (ISA-001..004 冻结)
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> ID: ARCH-ISA-001  状态: FROZEN  上游: ABI-003/05 §1-2  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
-> 原则(05 §1): 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv)。
+> ID: ARCH-ISA-001  状态: FROZEN  上游: ABI-003  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
+> 原则: 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv)。
 
 ## 0 ISA-002 补充测量与决策(vm-bj, AVX(无 FMA)变体)
 
@@ -65,19 +65,19 @@
 | hips-bulk-transform | 16 931 481 | 11 933 586 | +29.5% | +28.3% | **NOT_SHIPPED**(≈avx2 同档, 无额外收益) |
 | drizzle-accumulate | 2 555 247 | 3 129 703 | −22.5% | −14.0% | NOT_SHIPPED(变体更慢) |
 
-- **判定**: AVX512 在受控热点上**(a)** 无超越 AVX2+FMA 的收益(hips 同档 +29.5% vs +28.3%; calibration +3.8% 反而远低), **(b)** AVX512F 存在已知 downclock/功耗-频率风险(WIN-003 亦需检查)。按 05 §3 "capability 与热点对应; 无机械指令集堆砌" → 登记 **NOT_SHIPPED**(完整测量在案, 非空判定)。
+- **判定**: AVX512 在受控热点上**(a)** 无超越 AVX2+FMA 的收益(hips 同档 +29.5% vs +28.3%; calibration +3.8% 反而远低), **(b)** AVX512F 存在已知 downclock/功耗-频率风险(WIN-003 亦需检查)。"capability 与热点对应; 无机械指令集堆砌" → 登记 **NOT_SHIPPED**(完整测量在案, 非空判定)。
 - 完整性: 复测数值以本节表格为准（同树在案测量工件为 ISA-001/002/003 三批，属 AVX2 域：`artifacts/evidence/prerelease-v5/ISA-001`、`artifacts/evidence/prerelease-v5/ISA-002`、`artifacts/evidence/prerelease-v5/ISA-003`）。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
 
-## 2 变体注册(05 §5 capability)
+## 2 变体注册(capability)
 
 - `lib/infrastructure/benchmark/backend_host/avx2_backend.cpp` → `avx2_backend.so`(DSO, manifest: required=avx2+fma, sha256 实测入 backends.manifest.json); 预检(ABI-002)保证: 不支持 ISA 的主机绝不加载/执行。
 - 逐 kernel 选路(BENCH-005): calibration/hips→avx2 变体; drizzle-accumulate→**保持 baseline**(变体更慢); 其余→baseline。错误变体绝不入候选(hash/ABI/ISA 预检+逐 kernel Oracle)。
 - variant Oracle: 与 baseline 同公式同序(共享源)→输出允许 FMA 舍入差(容差 2e-4 相对, 与 Python 参考比对); 值语义不变。
 
-## 3 ISA 污染防线(05 §2)
+## 3 ISA 污染防线
 
 - 主 CLI/baseline TU: 无 -march/-mavx 旗标(测试断言), opcode scanner 禁 VEX/ymm/zmm(test_abi_kernels::test_04)。
-- 变体 TU: 整 TU 局部旗标(-mavx2 -mfma)→反汇编必须含 VEX(test_isa_variants::test_02, 变体"真变体"证明)。
+- 变体 TU: 整 TU 局部旗标(-mavx2 -mfma)→反汇编必须含 VEX(test_isa_variants::test_01, 变体"真变体"证明)。
 - Windows 变体(/arch:AVX2)随 WIN/FAT 域同流程登记。
 
 ## 4 与 ABI-003 oracle 的关系

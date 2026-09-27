@@ -72,10 +72,9 @@
   - cancel 唤醒阻塞者并传播错误；
   - 读取失败/写入失败传导；
   - 多 worker 并发消费确定性。
-- 已完成：`phase2_async_io` 以上全部通过（见 `lib/algorithms/coverage/tests/async_io_test.cpp`），
-  含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、
-  `WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`、
-  `MultiConsumerProcessesEachItemExactlyOnce`、`CancelWakesBothBlockedSidesNoDeadlock`。
+- 已完成：`phase2_async_io` 以上全部通过（见 `lib/algorithms/coverage/tests/async_io_test.cpp`，
+  8 用例），含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、
+  `WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`。
 - 队列基座测试覆盖容量推导、roundtrip、close/drain、backpressure、cancel/error。
 
 ## 9. Reader 线程安全与生产接入结论

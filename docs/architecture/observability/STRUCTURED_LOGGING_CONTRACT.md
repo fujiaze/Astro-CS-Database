@@ -4,7 +4,7 @@
 
 > 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（JSON Schema v1）、
 > `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`eng/tools/monitoring/check_log_contract.py`（检查器）。
-> 本文档是视图；字段定义与验收以 schema/检查器为权威（16 标准：JSON/JSONL 输出为真相）。
+> 本文档是视图；字段定义与验收以 schema/检查器为权威（JSON/JSONL 输出为真相）。
 
 ## 1. 目的与边界
 

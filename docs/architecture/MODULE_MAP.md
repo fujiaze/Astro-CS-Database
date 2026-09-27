@@ -21,7 +21,7 @@
 | p1 cosmetic | `lib/algorithms/cosmetic` | INSTALLED | `modules/astrocs_p1_cosmetic.so` | unit `MOD-P1-COS`；`src/module_entry.cpp`；实测装配 PASS |
 | p1 hips_writer | `lib/algorithms/drizzle/hips` | INSTALLED | `modules/astrocs_p1_hips_writer.so` | unit `MOD-P1-HIPSW`；`src/module_entry.cpp`；实测装配 PASS |
 | cpu baseline provider | `lib/infrastructure/benchmark/backend_host` | INSTALLED | `providers/astrocs_cpu_baseline.so` | unit `PROV-CPU-BASELINE`；`baseline_backend.cpp`/`backend_loader.cpp` |
-| CLI 平台单元 | `lib/infrastructure/cli/` | INSTALLED | `acsd` | unit `PLATFORM-CLI`；`lib/infrastructure/cli/parser.cpp` kRules 12 条 phase 命令；`eng/tests/cli/test_cli001_vpi.py` 15/15 实测 |
+| CLI 平台单元 | `lib/infrastructure/cli/` | INSTALLED | `acsd` | unit `PLATFORM-CLI`；`parser.cpp` kRuleViews 镜像命令树（`command_tree.h`）；`eng/tests/cli/test_cli001_vpi.py` 15/15 |
 | runtime / io 平台单元 | `lib/infrastructure/scheduler`、`lib/infrastructure/aio/io` | INSTALLED（骨架） | `libacsd_runtime.so`、`libacsd_io.so` | units `PLATFORM-RUNTIME`/`PLATFORM-IO` 状态 = SKELETON（不冒认实现完成度） |
 
 > 安装面唯一源：`eng/cmake/install_layout.cmake`（:104-105 五科学模块 SHARED + `$ORIGIN`
@@ -56,10 +56,10 @@
   - `eng/packaging/verify_install_tree.py`（安装树产品清单核对）。
 - **退出条件**（满足任一条即删除本声明与 `CHK-PROD-WIRING` 台账中的对应豁免）：
   1. ABI-004 / RT-002（`eng/packaging/astrocs.product.json` 自述「宿主接线归
-     RT-002/WIN-*」）落地**运行期**宿主接线，即三个命令在启动预检里经
+     平台运行时工单」）落地**运行期**宿主接线，即三个命令在启动预检里经
      `acs_registry_open_v1` 装载安装树模块，且失败按退出码 5 fail-closed；
   2. 或按 CLI-001 先例**恢复/新增**一条用户可见的模块面命令，使该通道有生产入口；
-  3. 或经裁决**收缩声明面**：从 `module.yaml`/`*.integration.json` 撤下
+  3. 或经变更流程**收缩声明面**：从 `module.yaml`/`*.integration.json` 撤下
      `entrypoint`/`unique_entry`/`operations[].entry` 的九操作声明。
 
 相邻已登记事实：`eng/packaging/astrocs.product.json` 的 note 已自述
@@ -70,8 +70,8 @@ PLATFORM-RUNTIME/IO 仍为 SKELETON 且「不伪装实现完成」；
 
 | 模块 | 路径 | 交付状态 | 职责 | 证据锚 |
 | --- | --- | --- | --- | --- |
-| Runtime / 唯一 executor | `lib/infrastructure/scheduler` | IMPLEMENTED | typed DAG 调度、ThreadBudget 租约、进程唯一 worker 池 | `lib/infrastructure/scheduler/src/executor_runtime.h`、`lib/infrastructure/scheduler/src/module_adapters.cpp`:3777-3793；ctest `rt001_unique_executor` 实测 PASS |
-| 模块注册表（三 Phase 节点） | `lib/infrastructure/scheduler` | IMPLEMENTED | P1 八节点 / P2 七节点 / P3 五节点，各绑唯一真实 operation（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2；原引「宪章 §F.1」已废止） | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 实测 |
+| Runtime / 唯一 executor | `lib/infrastructure/scheduler` | IMPLEMENTED | typed DAG 调度、ThreadBudget 租约、进程唯一 worker 池 | `lib/infrastructure/scheduler/src/executor_runtime.h`、`lib/infrastructure/scheduler/src/module_adapters.cpp`:288-296；ctest `rt001_unique_executor` 实测 PASS |
+| 模块注册表（三 Phase 节点） | `lib/infrastructure/scheduler` | IMPLEMENTED | P1 八节点 / P2 七节点 / P3 五节点，各绑唯一真实 operation（`ASTROCS_DESIGN.md` §4.2/§5.2/§6.2） | `lib/infrastructure/scheduler/src/module_adapters.cpp`:15461/:15483/:15511；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 实测 |
 | Phase1 会话 | `lib/phase1_session` | IMPLEMENTED | `io_read → calibrate → cosmetic → io_write` | `lib/phase1_session/p1_session.cpp`（`manifest["stages"]`）；unit `entrypoint: p1_session_run` |
 | Phase1 科学内核 | `lib/phase1` | IMPLEMENTED | noise / photometry / stars / wcs 子目录内核 | `lib/phase1` 下 noise/photometry/stars/wcs 子目录 |
 | Phase2 会话 | `lib/phase2_session` | IMPLEMENTED | 七节点链组装（coverage→sample→upm→reject→integrate→write） | `lib/phase2_session/p2_session.cpp`；ctest `p2001_real_nodes` 实测 |
@@ -79,7 +79,7 @@ PLATFORM-RUNTIME/IO 仍为 SKELETON 且「不伪装实现完成」；
 | Phase3 会话 | `lib/phase3_session` | IMPLEMENTED | properties / WCS（TAN）/ nearest+bilinear 重采样 / CFITSIO 原子写 / verify | `lib/phase3_session` 的 p3_session/p3_wcs/p3_resample/p3_output 四源文件；ctest `p3002_real_nodes`/`p3002_uncertainty` 实测 |
 | 三阶段产品交换 | `lib/infrastructure/aio/runtime/artifact_store` | CONTRACT_READY | 跨 Phase 仅磁盘产品交换（role↔type 强绑定） | `eng/contracts/data/phase_product_exchange.schema.json` + `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` |
 | 结构化日志 | `lib/infrastructure/observability/logging` | CONTRACT_READY | JSONL 事件合同 | LOG-001 schema/契约 |
-| 监控与资源门 | `eng/tools/monitoring` | IMPLEMENTED | 冻结阈值判定（现行 = `ASTROCS_DESIGN.md` §8 + `eng/contracts/resource_gate_v1.json`；原引「宪章 §10.5/§18.2」已废止） | `eng/tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `eng/tests/monitoring` |
+| 监控与资源门 | `eng/tools/monitoring` | IMPLEMENTED | 冻结阈值判定（`ASTROCS_DESIGN.md` §8 + `eng/contracts/resource_gate_v1.json`） | `eng/tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `eng/tests/monitoring` |
 | AIO 图像 I/O | `lib/infrastructure/aio` | IMPLEMENTED | FITS/XISF/HiPS 读写、唯一 AIO C ABI v1 | `lib/infrastructure/aio/src/aio_abi.cpp`（编入生产 target `astrocs_aio`，MOD-001 实测握手 abi=1/status_count=71） |
 | HEALPix / Drizzle 内核 | `lib/infrastructure/aio/healpix_db` | IMPLEMENTED | `healpix_drizzle`（生产）+ `healpix_io`；`archive/` 归档目录与 `healpix_browser_qt` 不重建 | `lib/algorithms/drizzle/healpix_drizzle`、`lib/infrastructure/aio/healpix_db/archive` |
 | 公共工具 | `lib/algorithms/shared` | IMPLEMENTED | HEALPix core / SHA-256 / compute traits（header-only + 静态） | `lib/algorithms/shared` |
@@ -88,22 +88,22 @@ PLATFORM-RUNTIME/IO 仍为 SKELETON 且「不伪装实现完成」；
 
 | 迁移目标 | 路径 | 交付状态 | 现状与去向 |
 | --- | --- | --- | --- |
-| p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | **设计冻结 8 种投影**（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计 §5.3）；**已实现并可作为产品声明的以实际注册表为准**（`lib/algorithms/projection/p3_projection.cpp` registry，行锚以该注册表为准），未实现项报「不支持」（最高设计 §5.3）；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
-| p3 resample | `lib/algorithms/resample` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_resample.dll`；生产实现在 `lib/algorithms/resample/p3_resample.cpp`（W4-A3 改绑：原 `lib/phase3_session/` 路径已随投影/重采样迁出删除）；顶层占位 descriptor `astrocs.phase3.resample` 归 P3-RSMP-INT（DEFERRED） |
+| p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | **设计冻结 8 种投影**（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计 §6.3）；**已实现并可作为产品声明的以实际注册表为准**（`lib/algorithms/projection/p3_projection.cpp` registry，行锚以该注册表为准），未实现项报「不支持」（最高设计 §6.3）；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
+| p3 resample | `lib/algorithms/resample` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_resample.dll`；生产实现在 `lib/algorithms/resample/p3_resample.cpp`；顶层占位 descriptor `astrocs.phase3.resample` 归 P3-RSMP-INT（DEFERRED） |
 | p3 fits | `lib/algorithms/fits_output` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_fits.dll`；生产实现在 `lib/algorithms/fits_output/p3_output.cpp`；流式 FITS 接入 NOT_IMPLEMENTED |
 | phase2 upm / samp / rej / int | `lib/algorithms/upm`、`lib/algorithms/sampling`、`lib/algorithms/rejection`、`lib/algorithms/integration` | CONTRACT_READY（合同目录） | 生产实现在 `lib/algorithms/coverage`（节点化已 IMPLEMENTED）；独立 DLL 化为迁移目标 |
 | hips_p2 | `lib/algorithms/coverage/hips_p2` | CONTRACT_READY（合同目录） | Phase2 HiPS 写出目标；生产路径在 `lib/infrastructure/aio` + `lib/algorithms/coverage` |
-| plate_solve / photometric_calib / star_detector / dynamic_psf | `lib/algorithms/platesolve`、`lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf` | IMPLEMENTED（节点内核） | 已作为 Phase1 节点唯一真实 operation 接入（`module_adapters.cpp`:4257）；独立 DLL 化未做（`entrypoint: MISSING` 属实） |
+| plate_solve / photometric_calib / star_detector / dynamic_psf | `lib/algorithms/platesolve`、`lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf` | IMPLEMENTED（节点内核） | 已作为 Phase1 节点唯一真实 operation 接入（`module_adapters.cpp`:15461）；独立 DLL 化未做（`entrypoint: MISSING` 属实） |
 
 ## 4. 非交付面
 
 | 目录 | 状态 | 说明 |
 | --- | --- | --- |
-| `lib/infrastructure/acr` | DORMANT | 异构计算抽象；根 `CMakeLists.txt`:17 ACR 默认 OFF，生产 target 不链；保留源码与隔离测试 |
+| `lib/infrastructure/acr` | DORMANT | 异构计算抽象；根 `CMakeLists.txt`:18 ACR 默认 OFF，生产 target 不链；保留源码与隔离测试 |
 | `lib/infrastructure/pipeline/orchestrator` | 历史保留 | Phase1 编排已并入 CLI pipeline driver，无独立 exe |
 | `lib/infrastructure/hips_browser/healpix_browser_qt` | 工具分类（非发布） | HiPS 浏览器（optional，不入 product manifest） |
 | `lib/algorithms/noise_snr` | 不在根构建图（如实） | 已摘出 `add_subdirectory`；`eng/tests/unit` 门卫为 `if(EXISTS)`/`if(TARGET)`，收编后自动恢复 |
-| `aio_pipeline_engine` 越权编排 | 保留中（DEFERRED） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记，LEG-003 迁移 |
+| `aio_pipeline_engine` 越权编排 | 保留中（DEFERRED） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记 |
 
 ## 5. 每模块详细文档
 

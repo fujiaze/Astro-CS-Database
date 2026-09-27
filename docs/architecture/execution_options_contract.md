@@ -7,10 +7,10 @@
 > 传播与关闭顺序必须明确。
 
 > ⚠ **预算唯一来源**：worker 数**只**来自 benchmark
-> 生成的机器 profile 与全局预算对象（最高设计 §8）；默认值一律取自 profile。
+> 生成的机器 profile 与全局预算对象（最高设计 §1.4）；默认值一律取自 profile。
 > 合法来源 = benchmark 生成的机器 profile（安装目录）+ 全局预算对象
 > （可用 CPU = 亲和性 ∩ cgroup ∩ Job Object 的交集）。
-> GPU 路由开关与第二个可执行入口**不在合同面内**（最高设计 §6.2/§8）；
+> GPU 路由开关与第二个可执行入口**不在合同面内**（最高设计 §1.4）；
 > 配置 schema 与 CLI **不含** `gpu_route`，也不提供兼容别名。
 > `ExecutionOptions` 只承载调用方从预算对象借到的值。
 
@@ -26,7 +26,7 @@
 | `memory_budget_bytes` | uint64 | 0 | 内存预算字节；0 => 由 `memory_limit_mb` 决定 |
 
 **worker 数唯一来源**：benchmark 生成的机器 profile（安装目录）+ 全局预算对象
-（可用 CPU = 亲和性 ∩ cgroup ∩ Job Object 的交集，最高设计 §8）。
+（可用 CPU = 亲和性 ∩ cgroup ∩ Job Object 的交集，最高设计 §9）。
 `ExecutionOptions` **不是** worker 数的第二来源，只承载调用方从预算对象借到的值。
 
 ## 配置
@@ -45,12 +45,13 @@
 ```
 
 约束：`cpu_workers/io_workers` 属于 [0,1024]（`0` = auto ⇒ 由 profile 与预算对象决定）。
-违反即 `p2_stage2_parse_config` 返回 false（带错误信息）。schema 见
-`eng/contracts/schemas/phase_config_*.schema.json` 的 `config` 段（生产配置 schema）。
+违反即 `p2_stage2_parse_config` 返回 false（带错误信息）。约束的机器校验在
+`lib/algorithms/coverage/src/stage2_common.cpp`（0..1024）与 `lib/algorithms/coverage/tools/stage2.cpp`（CLI 1..1024）；
+phase_config schema 不承载 execution 键（硬件字段禁令，见 phase_config_mosaic.schema.json description）。
 
 ## CLI 覆盖
 
-**唯一 CLI 入口 = `acsd`**（`normalize` / `mosaic` / `export` 三个子命令，最高设计 §6.2）。
+**唯一 CLI 入口 = `acsd`**（`normalize` / `mosaic` / `export` 三个子命令，最高设计 §7.1）。
 `mosaic` 子命令接受同名字段的 CLI 覆盖（**键名以命令行实际认的键为准**）：
 `--cpu-workers N` / `--io-workers N` / `--deterministic 0|1`。
 **不存在** `--gpu-route`。
@@ -61,7 +62,7 @@
   `effective_io_workers(exec)` 返回生效值。
 - 嵌套模块复用该预算（如再 `omp_set_num_threads(hc)` 属新建等规模线程池）。
 - 异步队列容量由 `memory_budget_bytes` 推导（见 CON-008 异步 I/O 合同）。
-- GPU 路由开关与第二个可执行入口**不在合同面内**（最高设计 §8）。
+- GPU 路由开关与第二个可执行入口**不在合同面内**（最高设计 §1.4）。
 - **代码侧现状（登记）**：`execution_options.h` 仍含 `gpu_route`（:18/:43）与
   `hardware_concurrency` 默认（:16/:24/:38）；文档与合同侧不承认这些键。
 
