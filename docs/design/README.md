@@ -15,6 +15,7 @@
 - `UNIFIED_MODEL.md` —— 统一线性观测模型、数据对象表与三类配置的正本。
 - `PRODUCT_STORAGE_FORM.md` —— 产品落盘形态设计：裸 HiPS 与归档包的定义、判据、索引分层与哈希口径。
 - `LOG_AND_ERROR_SYSTEM.md` —— 日志与错误系统设计：层次架构、数据对象、落点与生命周期。
+- `STAR_DETECTION_IMPL_DESIGN.md` —— 星检测模块入库级实现细节设计：逐算子论文锚定规格、召回阈表验收线与重写边界。
 
 ## 上游
 

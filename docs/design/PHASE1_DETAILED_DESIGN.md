@@ -60,7 +60,7 @@ ingest → calibration → cosmetic/validity → background/noise
 **单帧拟合失败**不属降级，按帧级失败上报，见下）；
 ⑤ **施加的可核对性不因合并而降低**：provenance `p1_phot.json`（`DATA-P1-PHOTPROV-001`）必须记 `photometry_applied` /
 `photscal` / `photscales`（逐帧 `k_photo`）/ `photoapplied_artifacts`（施加后产物路径），使「k 确实乘进了像素」
-可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `run/RULING-DOC-01/REPORT.md` 裁决 B）。
+可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` §3.6；语义正本 = `ASTROCS_DESIGN.md` §4.2）。
 
 **测光失败的失败语义（帧级 vs 全局，两种作用域各自具名）**：
 
@@ -77,7 +77,7 @@ ingest → calibration → cosmetic/validity → background/noise
   不把整批帧逐帧判 fail。
 - **运行级判红**：产品基数按 `ASTROCS_DESIGN.md` §4.4「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
   跳过或失败都显式判红」——`write_hips` 对失败帧上抛 `SCIENCE_PRECONDITION`（退出码 4，`ASTROCS_DESIGN.md` §7.2）
-  且**不发布** `p1_products.json`（P0-21：不产出部分产品却报成功）；其他帧已写出的产物保留在磁盘上作为证据。
+  且**不发布** `p1_products.json`（不产出部分产品却报成功）；其他帧已写出的产物保留在磁盘上作为证据。
 - **组级摘要与逐帧真相**：`photometry_applied=true` 只表示「至少一帧已施加」（`pixel_scaling` 取
   `applied`/`partial`/`none`）；逐帧真相只在 `frames[]`。下游 `drizzle_stack` 按 `frames[]` 逐帧选择输入面
   （已施加帧必须消费 `photoapplied_<base>`，失败帧显式跳过并在 manifest 记 `skipped_frames`/`n_frames_skipped`），
@@ -109,7 +109,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景，背景校正与 UPM 各占一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md:18-19`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md:65`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型
