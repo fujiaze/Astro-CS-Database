@@ -183,8 +183,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   `calibration.master_flat_median_range`）判定：中位数落在区间内即视为已归一；区间外**必须**
   显式声明 `master_flat_normalize="median"`（等价于 §5 `flat_norm` 的 `flat/median(flat)`，
   对已归一平场幂等，§7）才允许消费；既不归一又不落区间的整帧**拒绝**（整帧 `1/median` 缩放路径 = 关闭）；
-- **坏点分两种形态，可分性判据不同（订正：原文"坏点稀疏且与天体源不混淆
-  （连通域大小过滤可分离）"把"稀疏"当成了全局前提——该前提**只对①成立，对②被证伪**）**：
+- **坏点分两种形态，可分性判据不同（"坏点稀疏且与天体源不混淆"的前提**只对①成立，对②不成立**）**：
   - **① 稀疏点状缺陷**（热/冷像素、宇宙线斑点）：**连通域大小过滤可用**，但其口径是
     "尺寸上界 + 幅度判据并用"，**不是"尺寸分布不重叠"**。
     量化口径（同一把尺：8 连通、阈值 = 帧内 `median ± 5·MAD`；来源
@@ -255,7 +254,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 - `ε` = 容许分数（**无量纲**：容许的 `|K·Δb|` 占亮场稳健尺度 `σ_frame` 的份额）。
   **登记状态**：`eng/packaging/config/defaults.json` 的 `fields[]` 内**没有**承载 `ε` 的项
   （calibration 键只有 s 量纲的曝光容差与无量纲的平场判定带）⇒ `ε` 的数值面**未冻结**，
-  须由负责人裁决后登记；在登记前，本判据**只能**给出"给定 `ε` 下的判定"；**只有登记完成后才**
+  须登记冻结后使用；在登记前，本判据**只能**给出"给定 `ε` 下的判定"；**只有登记完成后才**
   "已按冻结默认值判定"。**适用域的另一半**：`ε` 是"容许份额"，因此
   `|Δb| > ε·σ_frame` 时 `Δt_max < 0`——即**连 `Δt = 0` 都不满足判据**，
   该情形必须显式登记为"该组母版按本判据不合格"，而不是取一个更大的 `ε` 使之通过。
@@ -392,7 +391,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
       `calibration.master_flat_median_range`（无量纲、平场归一化判定带）；
       **s 量纲的键与 ADU 量纲的一致性容差各自具名**。当前生产门脚本按每例
       1e-2..3e-2 的相对差判定（`eng/tools/quality/check_master_unit_guard.py:287,297,351,391,405`），
-      该数值**未登记**，属待裁决项：本判据的数值面在登记前，冻结主张的成立条件 = 登记完成。
+      该数值**未登记**，属待定项：本判据的数值面在登记前，冻结主张的成立条件 = 登记完成。
       T2 NGC1727（曝光 600 s）逐像素 oracle `median[(raw−bias−K·(dark−bias))/flat_norm]` =
       **436.2 ADU**，现行错误实现 7048.6 ADU ⇒ **16.2×**；T4（曝光 180 s）361.2 vs 3650.4 ADU ⇒ 10.1×）；
       ② 母版本就 ADU（观测中位数 > 1）+ 平场本就归一（`median(flat)` ∈ 带内）+ 约定已声明
@@ -441,7 +440,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 6. **XISF Version 1.0 Specification**（PixInsight/Pleiades Astrophoto；<http://pixinsight.com/xisf/xisf-1.0.xsd> 为随规范发布的 XML Schema）：**§11.5.1「Mandatory Image Attributes」**——"This attribute shall be specified for all Image elements serializing floating point real pixel data. … The bounds attribute defines the representable range of a real or integer image … `lower` … the black point … `upper` … the white point"；**§8.5.5「Representable Range」**——"There is no default representable range for real images whose pixel samples are encoded as floating point scalars, so in these cases the representable range must be declared explicitly"，且该节把可表示域定义为"可在显示设备上表示的像素样本值范围"；整数图像默认可表示域 `[0, 2ⁿ−1]`。`FITSKeyword`（§11.6）只是 FITS 兼容元数据层：**像素样本域的规范力来自 §8.5.5/§11.5.1 的 `bounds`，不来自 `FITSKeyword`**（§11.6 允许把 `BUNIT` 存为 FITS 关键字，故本条只限定其规范力，不限定其可存性）。**据此冻结：XISF 浮点 `bounds="0:1"` 是渲染可表示域，不是 ADU；ADU 换算因子必须由调用方声明。**
 7. **PCL（PixInsight Class Library）参考实现 `src/pcl/XISFReader.cpp`**（<https://gitlab.com/pixinsight/PCL/-/raw/master/src/pcl/XISFReader.cpp>）：`NormalizeSamples`/`NORMALIZE_FLOAT_IMAGE` 把文件可表示域线性映射到目标类型域——浮点目标 `*i=(*i−lower)/range`（→[0,1]），整数目标 `*i=(*i−lower)·MaxSampleValue/range`（→[0,2ⁿ−1]）；`UInt16` 的 `MaxSampleValue()=65535`。同一物理数据在 Float32 [0,1] 与 UInt16 [0,65535] 两种表示间的换算因子即 **65535**。**据此冻结：XISF Float32 `bounds="0:1"` 母版换算到 16 位 ADU 的声明因子取 65535（声明制，非推断制）。**
 8. **FITS Standard 4.0 §4.4.2.5**（`BSCALE`/`BZERO`：Eq. 3 "physical value = BZERO + BSCALE × array value."；16 位相机的 `BZERO=32768` 见同节 BLANK 段 "…by setting BZERO = 32768 and BSCALE = 1" 与 Table 11，属**存储约定**（把有符号 16 位字段当无符号用），**不是**标准强制值；3.0 版同节 PDF p.19）。本仓真实亮场（T2/T4）实测 `BITPIX=16, BZERO=32768`，读入域 [0,65535] ADU——这就是亮场一侧的"ADU 域"定义。**前置条件**：该 [0,65535] 结论依赖 `BSCALE=1 ∧ BZERO=32768` 同时成立；其他位深或关键字组合下读入域随之改变；其他组合的读入域须重新判定。
-9. IRAF `ccdproc`/`zerocombine` 家族（NOAO/IRAF：zero → dark → flat 的经典归约顺序，dark 帧先在 zero 校正后合并）。**本次核验状态**：`iraf.net` 帮助页对本节点返回 403（Cloudflare 人机校验），**未能逐字取原文**；因此本文只按 ccdproc 文档中明示的 IRAF 等价关系（"Those transitioning from IRAF to ccdproc … BIASSEC and TRIMSEC conventions"）与经典实践引用，不作为冻结判据的唯一来源（冻结判据以第 4、5 条为准）。
+9. IRAF `ccdred` 家族（NOAO/IRAF：zero → dark → flat 的经典归约顺序，dark 帧先在 zero 校正后合并）。**源码级佐证（上游官方源码树 `iraf-community/iraf@b80c8df1` 本地完整镜像逐字核验）**：`noao/imred/ccdred/zerocombine.cl`——zero 档组合任务，缺省 `combine="average"`、`reject="minmax"`、`nlow=0`/`nhigh=1`、`scale="none"`；`noao/imred/ccdred/darkcombine.cl`——dark 档组合任务，缺省 `reject="minmax"`、`scale="exposure"`（dark 按曝光时长缩放）且 `process=yes`（合并前先过 `ccdproc`，即先做 zero 校正，印证「dark 先在 zero 校正后合并」）；两任务共用 `noao/imred/ccdred/combine.par` 参数文件（`combine=average`、`reject` 值域 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`、`lsigma=3.`/`hsigma=3.`、`nlow=1`/`nhigh=1`、`nkeep=1`、`mclip=yes`、`sigscale=0.1`、`pclip=-0.5`）；坏像元掩膜任务参数文件 `noao/imred/ccdred/ccdmask.par`（`ncmed=7`、`ncsig=15`、`lsigma=6.`/`hsigma=6.`、`ngood=5`）。本仓母版约定的冻结判据以第 4、5 条为准，IRAF 家族为经典顺序、dark 曝光缩放与坏像元掩膜语义的源码级佐证。
 
 ## 14a 参考文献与参考代码库（含许可证）
 
@@ -462,23 +461,22 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   arXiv:2209.12268）或 Park, Kim & Wang 2020（DOI 10.1080/03610918.2019.1699114）。
   **核验状态**：卷页与摘要逐字已核；R&C 正文（付费墙，Unpaywall `is_oa=false`、出版商 403）
   **未能取到**，上列"研究 S_n/Q_n"结论来自其摘要逐字 + 二次文献（Akinshin）明述。
-- **flat-field 像素响应与低频边界**：HST ACS Data Handbook §4.4；IRAF ccdproc/zerocombine 归约顺序（IRAF/NOAO 许可，非 OSI 开源）。
+- **flat-field 像素响应与低频边界**：HST ACS Data Handbook §4.4；IRAF ccdred 家族归约顺序（IRAF/NOAO 许可，非 OSI 开源）。
 - **FITS BSCALE/BZERO 与伪无符号**：FITS Standard 4.0 §4.4.2.5（Eq. 3 + BLANK 段 + Table 11）；CFITSIO（CFITSIO 宽松许可，NASA/HEASARC）作独立读取器 Oracle。
 - **XISF bounds 与 65535 换算**：XISF 1.0 Spec（PixInsight；PCL 为自定义 source-available 许可，https://gitlab.com/pixinsight/PCL）。**只作声明制换算因子的取证来源，不复制**。
 - **母版方差传播（当前缺口，登记 UNRESOLVED）**：本层 §9 的冻结口径是
   **不传播母版方差至 `cal`**：`cal` 只承载校准后的信号值，其不确定度由
   `snr_estimator` 独立估计（§1 非目标、§9a variance 传播）。**项目内不存在**
   要求 master calibration 参数不确定度进入 variance/covariance 的冻结条文——
-  该要求曾被归到 `docs/design/UNIFIED_MODEL.md §6`，但该文件当前只有 §1–§3
-  且无此条文（引用不成立）。⇒ 现状是**口径缺口而非条文冲突**：母版由有限
+  `docs/design/UNIFIED_MODEL.md`（§1–§3）无此条文。⇒ 现状是**口径缺口而非条文冲突**：母版由有限
   帧数合并产生，其自身不确定度（`σ²/N_master`）与**与科学帧共享的相关系统项**
   （平场形状误差、暗电流标度误差）在 `cal` 面与下游 variance 中都未建模，
   下游据此得到的 SNR 在母版主导的系统项上偏乐观。
   **适用域**：该缺口在"母版帧数少 / 平场形状误差大"时影响显著；在母版帧数
   充足且平场形状良好的数据上可忽略。建模方案（低秩 covariance/provenance）
-  **无项目内冻结公式**，属待裁决项；定论面 = 待裁决项登记。
+  **无项目内冻结公式**，属待定项；结论面 = 待定项登记。
   可对照 ccdproc / LSST ip_isr（二者同样不传播母版方差，属行业普遍简化）
-  与 Howell 2006 Ch.4 的校准误差预算讨论。**证据面不足，定论面 = 待裁决项登记。**
+  与 Howell 2006 Ch.4 的校准误差预算讨论。**证据面不足，结论面 = 待定项登记。**
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
