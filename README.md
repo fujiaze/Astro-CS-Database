@@ -102,8 +102,15 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 - k-vector 范围搜索：Mortari 1999, J. Astronaut. Sci.（候选出处，佐证充实中）
 
 **检测与测光**
-- SourceExtractor：Bertin & Arnouts 1996, A&AS 117, 393，[DOI 10.1086/133849](https://doi.org/10.1086/133849)
-- DAOPHOT：Stetson 1987, PASP 99, 191，[DOI 10.1086/131877](https://doi.org/10.1086/131877)
+- SourceExtractor：Bertin & Arnouts 1996, A&AS 117, 393，[DOI 10.1051/aas:1996164](https://doi.org/10.1051/aas:1996164)
+- DAOPHOT：Stetson 1987, PASP 99, 191，[DOI 10.1086/131977](https://doi.org/10.1086/131977)
+
+- Schechter, Mateo & Saha 1993（CCD 增益与读噪声标定），[DOI 10.1086/133316](https://doi.org/10.1086/133316)
+- Horne 1986（最优提取），[DOI 10.1086/131801](https://doi.org/10.1086/131801)
+- Naylor 1998（加权测光与不确定度），[DOI 10.1046/j.1365-8711.1998.01314.x](https://doi.org/10.1046/j.1365-8711.1998.01314.x)
+- Zackay & Ofek 2017（How to coadd images? I/II），[arXiv:1512.06872](https://arxiv.org/abs/1512.06872)、[arXiv:1512.06879](https://arxiv.org/abs/1512.06879)
+- Mighell 1998（星像 peaker 谱系，KPNO）
+- Siril：[arXiv:2408.03346](https://arxiv.org/abs/2408.03346)
 
 **校准与宇宙线**
 - L.A.Cosmic：van Dokkum 2001, PASP 113, 1420，[arXiv:astro-ph/0108003](https://arxiv.org/abs/astro-ph/0108003)
@@ -117,6 +124,10 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 - 中位数/MAD 数值口径：Akinshin 2022，[arXiv:2207.12005](https://arxiv.org/abs/2207.12005)
 - 求和数值误差：Baumer 2017，[arXiv:1706.07400](https://arxiv.org/abs/1706.07400)
 - Ipatov 2006，[arXiv:astro-ph/0610931](https://arxiv.org/abs/astro-ph/0610931)
+
+- Clopper & Pearson 1934（二项置信区间），[DOI 10.1093/biomet/26.4.404](https://doi.org/10.1093/biomet/26.4.404)
+- Young & van Vliet 1995（递归高斯滤波），[DOI 10.1016/0165-1684(95)00020-E](https://doi.org/10.1016/0165-1684(95)00020-E)
+- Levenberg 1944 / Marquardt 1963 / Moré 1978（LM 优化族）
 
 **PROSAC 采样**：Chum & Matas 2005，[DOI 10.1109/CVPR.2005.221](https://doi.org/10.1109/CVPR.2005.221)
 
@@ -137,7 +148,8 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [ccdproc](https://github.com/astropy/ccdproc) | BSD-3 | 图像校准流程对照 |
 | [astroscrappy](https://github.com/astropy/astroscrappy) | BSD-3 | L.A.Cosmic 移植（宇宙线 oracle 候选） |
 | [photutils](https://github.com/astropy/photutils) | BSD-3 | 孔径/PSF 测光对照 |
-| [IRAF/NOAO ccdred](https://github.com/IRAF-community/iraf) | 非 OSI | 校准组合参数锚（ccdmask/zerocombine/darkcombine） |
+| [IRAF/NOAO ccdred + DAOPHOT/DAOFIND](https://github.com/IRAF-community/iraf) | 非 OSI | 校准组合与星检测参数锚（ccdmask/zerocombine/darkcombine/findpars） |
+| [DoPHOT 镜像](https://github.com/) | 存疑（仅对照，不派生） | PSF 测光谱系对照 |
 | [LSST ip_isr](https://github.com/lsst/ip_isr) | GPL-3.0 | ISR 与方差传播对照 |
 | [hstcal (calacs)](https://github.com/spacetelescope/hstcal) | BSD-3 | HST 校准链对照 |
 | [WCSLIB](https://www.atnf.csiro.au/people/mcalabre/WCS/) | LGPL-3.0 | WCS 参考实现 |
