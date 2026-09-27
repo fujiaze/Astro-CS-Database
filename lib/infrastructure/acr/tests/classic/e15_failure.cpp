@@ -1,7 +1,8 @@
 // lib/infrastructure/acr/tests/classic/e15_failure.cpp — E15 Failure and Fallback
 // 验证能力：backend 缺失 / device lost / 取消 / 异常传播
 // 扩展（规范 E20 故障和回退）：
-// - 分配失败/OOM 模拟 / 混合调度异常 chunk
+// - 分配失败/OOM 真注入（超限分配必然抛出，catch 后验证 runtime 恢复）
+// - 混合调度异常 chunk
 // 用 parallel_for 异常 kernel 验证 KernelFailed。
 #include "classic_common.hpp"
 
@@ -12,6 +13,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <limits>
 #include <string>
 
 #include "astro/compute/acr.hpp"
@@ -22,26 +24,38 @@ using namespace astro::compute::scheduler;
 
 namespace {
 
-// 取消正在执行的 kernel（同步模式下 kernel 已完成，cancel 设置标志）
+// 取消语义：cancel-before-wait 相（真竞态窗口：cancel 抢在终态前到达）
+// + wait-then-cancel 相（已终态 kernel 的取消标志仍须置位）。
+// 同步 CPU 调度下 kernel 总会执行完；本 case 锁定的是取消标志置位与
+// 终态收敛这两个可红可绿的语义面。
 CaseResult run_cancel_kernel(const std::string& case_id) {
     std::atomic<int> cnt{0};
+    // 相 1：cancel 先于 wait。
     Event ev = parallel_for(KernelId::Custom, Range1D{0, 1000},
         [&cnt](std::size_t) { cnt.fetch_add(1, std::memory_order_relaxed); });
-    ev.wait();
     ev.cancel();
+    ev.wait();
+    bool ok = ev.cancelled() && ev.ready();
+
+    // 相 2：wait 后 cancel（已 Done kernel 的取消标志仍须置位）。
+    Event ev2 = parallel_for(KernelId::Custom, Range1D{0, 1000},
+        [&cnt](std::size_t) { cnt.fetch_add(1, std::memory_order_relaxed); });
+    ev2.wait();
+    ev2.cancel();
+    ok = ok && ev2.cancelled() && (cnt.load() == 2000);
 
     auto tm = measure_timing([&] {
         Event e = parallel_for(KernelId::Custom, Range1D{0, 1000}, [](std::size_t) {});
+        e.cancel();
         e.wait();
         e.cancel();
     }, 5);
 
     ErrorStats err;
-    bool ok = ev.cancelled() && (cnt.load() == 1000);
     if (!ok) err.max_abs = 1.0;
     return make_result("E15", case_id, "integer", 1000, ok, err, tm,
                        ok ? "PASS" : "FAIL",
-                       ok ? "" : "cancel kernel failed",
+                       ok ? "" : "cancel flag/state semantics broken",
                        "cpu", "cpu");
 }
 
@@ -64,25 +78,46 @@ CaseResult run_kernel_exception(const std::string& case_id) {
                        "cpu", "cpu");
 }
 
-// 分配失败/OOM 模拟：尝试分配超大 Buffer，验证不崩溃
+// 分配失败/OOM 真注入：超限分配（size_max/2 个 float ≈ 2^63 字节）在任何
+// 主机上都无法满足 ⇒ operator new 必然抛出。断言：
+//   a) 故障被观察到（异常确实抛出并被捕获——静默截断/吞异常 = 红）；
+//   b) 故障后 runtime 恢复（小分配成功 + parallel_for 结果正确）。
 CaseResult run_allocation_failure(const std::string& case_id) {
+    double probe = -1.0;  // 0 = 故障观察到且 runtime 恢复
     auto tm = measure_timing([&] {
-        // 尝试分配超大 Buffer（模拟 OOM 场景）
-        // 不实际分配 petabyte 级内存，用 try-catch 验证异常安全
+        bool failure_observed = false;
         try {
-            // 分配 1GB Buffer 验证正常路径
-            Buffer<float> b(256 * 1024 * 1024, 0.0f);  // 1GB
-            b[0] = 1.0f;
+            Buffer<float> b(std::numeric_limits<std::size_t>::max() / 2, 0.0f);
+            (void)b;  // 走到这里 = 超限分配"成功"（静默截断），判红。
+        } catch (const std::bad_alloc&) {
+            failure_observed = true;
+        } catch (const std::length_error&) {
+            failure_observed = true;
         } catch (...) {
-            // 分配失败不崩溃即 ok
+            failure_observed = true;
         }
+        // 故障后恢复：小分配 + kernel 正确执行。
+        bool recovered = false;
+        try {
+            Buffer<float> small(1024, 0.0f);
+            small[0] = 1.0f;
+            std::atomic<int> sum{0};
+            Event ev = parallel_for(KernelId::Custom, Range1D{0, 100},
+                [&sum](std::size_t) { sum.fetch_add(1, std::memory_order_relaxed); });
+            ev.wait();
+            recovered = (small[0] == 1.0f) && (sum.load() == 100);
+        } catch (...) {
+            recovered = false;
+        }
+        probe = (failure_observed && recovered) ? 0.0 : 1.0;
     }, 1);
 
     ErrorStats err;
-    bool ok = true;  // 不崩溃即 ok
+    bool ok = (probe == 0.0);
+    if (!ok) err.max_abs = 1.0;
     return make_result("E15", case_id, "integer", 1, ok, err, tm,
                        ok ? "PASS" : "FAIL",
-                       ok ? "" : "allocation failure crash",
+                       ok ? "" : "allocation failure not observed or runtime not recovered",
                        "cpu", "cpu");
 }
 

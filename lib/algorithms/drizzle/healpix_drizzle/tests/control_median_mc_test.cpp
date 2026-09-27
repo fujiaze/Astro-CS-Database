@@ -11,9 +11,17 @@
 // 1) 对固定 WCS/几何生成 NMC 个独立高斯噪声实现并逐帧 drizzle；
 // 2) 每实现计算固定 patch 的 median、N_retained、MAD 尺度；
 // 3) 跨实现求 Var(median) 经验值，除以独立 Gaussian 基线
-// (π/2)·sigma²/N_retained 得 k_corr；
-// 4) 冻结值写入 lib/algorithms/coverage/src/sampler.cpp kControlCorrDefault；
-// UPMW-005 断言 |k_corr_frozen − k_corr_empirical| 在容差内。
+//    (π/2)·sigma²/N_retained 得 k_corr；
+// 4) 断言（非退化判据，判据有牙，红绿两面自测先行）：
+//    a) 测量链非退化：var_emp > 0、baseline > 0、k_corr 有限且 > 0；
+//    b) 科学合理区间 [0.98, 2.0]（Drizzle 协方差使 N_eff < N_retained
+//       且不发散）；
+//    c) 声明几何（源 300"/px、nside=512→412.26"/px、pixfrac=0.8）
+//       MC 实测带 [1.27, 1.43]（DATA_SEMANTICS control_k_corr 行；
+//       在册实测 1.3883，受控复现 1.3445±0.0416）。
+//    代码默认 kControlCorrDefault=1.4 的角色是实现记录与查表域外回退值
+//    （D-08：逐帧两因子查表 k_gauss × k_geo 优先于常数），本测试不做
+//    |1.4 − k_corr_empirical| 容差断言。
 //
 // 编译（PowerShell）：
 // cd lib\healpix_db\healpix_drizzle\tests
@@ -43,6 +51,9 @@ constexpr int W = 20, H = 20;
 constexpr int NSIDE = 512;
 constexpr double SKY = 1000.0;
 constexpr double SIGMA = 10.0;
+// 判据（DATA_SEMANTICS control_k_corr 行，D-08 口径）：
+const double K_SCI_LO = 0.98, K_SCI_HI = 2.0;    // 科学合理区间
+const double K_BAND_LO = 1.27, K_BAND_HI = 1.43; // 声明几何 MC 实测带
 
 void setup_wcs(FitsImage& im) {
     im.width = W;
@@ -85,9 +96,48 @@ double median_of(std::vector<double> v) {
     return 0.5 * (a + b);
 }
 
+// 非退化判据（返回 0 = 通过，1 = 判红）。
+int judge(double k_corr, double var_emp, double baseline) {
+    if (!std::isfinite(var_emp) || !(var_emp > 0.0)) return 1;
+    if (!std::isfinite(baseline) || !(baseline > 0.0)) return 1;
+    if (!std::isfinite(k_corr) || !(k_corr > 0.0)) return 1;
+    if (!(k_corr >= K_SCI_LO && k_corr <= K_SCI_HI)) return 1;
+    if (!(k_corr >= K_BAND_LO && k_corr <= K_BAND_HI)) return 1;
+    return 0;
+}
+
+// judge 的红绿两面自测（判据非退化的机器证据）。
+int judge_selftest() {
+    const double nan_v = std::nan("");
+    struct Case { const char* name; double k, v, b; int expect; };
+    const Case cases[] = {
+        {"k-below-band", 1.10, 1.0, 1.0, 1},      // 带下截外（>0.98 但 <1.27）
+        {"k-above-band", 1.60, 1.0, 1.0, 1},      // 带上截外（<2.0 但 >1.43）
+        {"k-below-sci", 0.90, 1.0, 1.0, 1},       // 科学区间下外
+        {"k-above-sci", 2.50, 1.0, 1.0, 1},       // 科学区间上外
+        {"zero-var", 1.35, 0.0, 1.0, 1},          // 测量退化
+        {"zero-baseline", 1.35, 1.0, 0.0, 1},     // 基线退化
+        {"k-nan", nan_v, 1.0, 1.0, 1},            // 非有限
+        {"in-band", 1.3883, 1.0, 1.0, 0},         // 在册实测值 → 绿
+        {"in-band-repro", 1.3445, 1.0, 1.0, 0},   // 受控复现中心 → 绿
+    };
+    for (const auto& c : cases) {
+        const int got = judge(c.k, c.v, c.b);
+        if (got != c.expect) {
+            std::printf("[NEG-FAIL] judge(%s) expect=%d got=%d\n",
+                        c.name, c.expect, got);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 }  // namespace
 
 int main() {
+    if (judge_selftest() != 0) return 1;
+    std::printf("[NEG] judge 红绿两面自测通过（7 负例判红 + 2 正例判绿）\n");
+
     const int NMC = 2000;
     const double pi = 3.14159265358979323846;
 
@@ -116,8 +166,17 @@ int main() {
             }
             break;
         }
+        // patch 统计口径 = sumFlux/sumArea 通量比（pixfrac=0.8 时与面亮度
+        // 口径 sumFlux/sumNorm 不同；与在册校准证据同口径，量纲不必等于
+        // SKY）。truth 基准判非退化：非空、有限、正。
+        const double truth_med =
+            patch.empty() ? 0.0 : median_of(patch);
         std::printf("truth_patch_median=%.4f (SKY=%.0f)\n",
-                    patch.empty() ? -1.0 : median_of(patch), (double)SKY);
+                    truth_med, (double)SKY);
+        if (!std::isfinite(truth_med) || !(truth_med > 0.0)) {
+            std::printf("[FAIL] truth patch median 退化（空/非有限/非正）\n");
+            return 1;
+        }
     }
 
     // 单次 drizzle 的固定 patch：tile 内所有 touched leaf（support>0）。
@@ -209,16 +268,17 @@ int main() {
                 var_emp, baseline);
     std::printf("k_corr=%.4f  N_eff=%.1f  (%.2fs)\n",
                 k_corr, n_eff, dt);
-    std::printf("k_corr_empirical = %.4f\n", k_corr);
 
-    // 科学合理性门：Drizzle 协方差使 N_eff < N_retained → k_corr >= 1；
-    // 且不会发散（k_corr < 2.0，20×20/512 采样下足迹重叠有限）。
-    int fail = 0;
-    if (!(k_corr >= 0.98 && k_corr <= 2.0)) {
-        std::printf("[FAIL] k_corr 超出科学合理区间 [0.98, 2.0]\n");
-        ++fail;
+    // 非退化判据门（judge；红 = 测量链退化或超声明带，与 D-08 口径一致）。
+    const int jd = judge(k_corr, var_emp, baseline);
+    if (jd != 0) {
+        std::printf("[FAIL] k_corr=%.4f 超出科学合理区间 [%.2f, %.2f] "
+                    "或声明几何 MC 实测带 [%.2f, %.2f]，或测量退化\n",
+                    k_corr, K_SCI_LO, K_SCI_HI, K_BAND_LO, K_BAND_HI);
+        return 1;
     }
-    if (fail == 0)
-        std::printf("[PASS] k_corr 科学合理，可用作 sampler 冻结值\n");
-    return fail;
+    std::printf("[PASS] k_corr=%.4f 落在声明几何 MC 实测带 [%.2f, %.2f]："
+                "作为标定几何专属实测证据（代码默认 1.4 为实现记录，"
+                "逐帧查表优先，D-08）\n", k_corr, K_BAND_LO, K_BAND_HI);
+    return 0;
 }

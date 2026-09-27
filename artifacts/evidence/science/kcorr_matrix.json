@@ -1,0 +1,19 @@
+{
+  "task": "kcorr-matrix",
+  "nmc": 1000,
+  "nside": 512,
+  "sky_e": 1000,
+  "sigma_e": 10,
+  "cells": [
+    {"pixfrac": 0.5, "scale_arcsec": 300, "k_corr": 1.21122, "n_retained": 237, "n_eff": 195.67},
+    {"pixfrac": 0.5, "scale_arcsec": 600, "k_corr": 2.39578, "n_retained": 876, "n_eff": 365.643},
+    {"pixfrac": 0.8, "scale_arcsec": 300, "k_corr": 1.3924, "n_retained": 251, "n_eff": 180.265},
+    {"pixfrac": 0.8, "scale_arcsec": 600, "k_corr": 2.89711, "n_retained": 919, "n_eff": 317.213},
+    {"pixfrac": 1, "scale_arcsec": 300, "k_corr": 1.49795, "n_retained": 252, "n_eff": 168.23},
+    {"pixfrac": 1, "scale_arcsec": 600, "k_corr": 3.20344, "n_retained": 932, "n_eff": 290.937}
+  ],
+  "baseline": {"pixfrac": 0.8, "scale_arcsec": 300.0, "k_corr": 1.3924},
+  "max_rel_dev": 1.30066,
+  "verdict": "B",
+  "non_degeneracy": {"judge_selftest": "6 negative red + 1 positive green", "cells_required": 6, "k_positive_finite_required": true}
+}
