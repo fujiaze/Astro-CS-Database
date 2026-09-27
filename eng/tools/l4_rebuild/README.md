@@ -1,0 +1,24 @@
+# l4_rebuild
+
+L4 视觉验收层的重建运行与性能剖析工具集：带计时执行、系统利用率采样、逐阶段对齐与热点分析。
+
+## 职责边界
+
+- 放：计时执行器、系统监视、阶段剖析、热点诊断、产品合并与 FITS 渲染辅助脚本。
+- 不放：验收判据与门禁（在 `ACCEPTANCE_SPEC.md` 与 `eng/ci/checks.json`）、科学参数定义、运行产物本身。
+
+## 内容
+
+- `run_timed.sh` —— 带计时与逐阶段剖析的执行器：逐步采集 wall/user/sys/maxrss、事件流、资源遥测与系统利用率时间序列；只观测不改科学参数，不写死线程数。
+- `sysmon.py` —— 与目标程序同步启动的系统性能监视器：按固定间隔采样整机与进程树的 CPU、内存、IO、负载写 CSV，纯 `/proc` 无第三方依赖。
+- `stage_profile.py` —— 把事件流与资源时间序列按时间对齐，产出逐阶段 wall、CPU、RSS 峰值、io_wait 与 workers 表。
+- `stage_cpu.py` —— 阶段级 CPU 采样区间对齐：按事件结束时刻与耗时推算真实起止区间。
+- `hotspots.py` —— 读计时与遥测排序热点、指出单线程瓶颈，只做诊断不改参数。
+- `merge_products.py` —— 合并各 normalize 产出的产品清单，产品数不足即判红，输出马赛克配置。
+- `render_fits.py` —— FITS 到 PNG 渲染：asinh 拉伸加百分位黑白点，支持并排网格。
+- `__pycache__/` —— Python 字节码缓存，不入库。
+
+## 上游
+
+- 本目录工具未注册于 `eng/ci/checks.json`（按需执行的重建与诊断工具）。
+- 本目录在 `docs/ci/` 无逐项对应篇；运行证据落位规范见 `docs/ci/04_ARTIFACTS.md`，门禁总则见 `docs/ci/CI_SPEC.md`。
