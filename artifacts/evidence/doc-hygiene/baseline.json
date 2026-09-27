@@ -1,6 +1,9 @@
 {
  "d3": {
   "D3a_date": {
+   "docs/DOCUMENT_GOVERNANCE.md": [
+    "eb02db3a6b675db0"
+   ],
    "docs/DOCUMENT_INDEX.yaml": [
     "028cf3efcb239000",
     "08ba683ddbd0baae",
@@ -54,17 +57,6 @@
     "b22c4e84196ecc85",
     "ba95c20a5b50f6b9",
     "bd9dcb69782f2194"
-   ],
-   "docs/algorithms/PHASE3_RSMP_IMPL.md": [
-    "0d27a562bf91d9e0"
-   ],
-   "docs/api/CLI_PROTOCOL_V1.md": [
-    "40603a4cae807099"
-   ],
-   "docs/architecture/PERFORMANCE_MODEL.md": [
-    "5e657b3a52f8d03d",
-    "99eff5ebbef2a7ed",
-    "a8d5b29d1288b538"
    ],
    "docs/contracts/ARCH-001.md": [
     "4d4b24dcc0fbf435"
@@ -124,12 +116,12 @@
    "docs/contracts/UNIFIED_OBJECTS.md": [
     "26836bc6085a57cc",
     "2ee57259d2d739b2",
+    "3326a88a2b968fda",
     "3cfc8e6791f698f7",
     "6cf6f0fa64ce1cd9",
     "82187ed98ac9b2d4",
     "b2a55c308781fe1c",
-    "e5a758a6a80e9fd8",
-    "e95573a0ec039048",
+    "ddf71a67823c53be",
     "f1b6b25e0c557bf1"
    ],
    "docs/contracts/unified_object_registry.json": [
@@ -155,48 +147,21 @@
     "41492d6c59e6a76c"
    ],
    "docs/modules/MODULE_MAP.yaml": [
-    "6ef6452e606c6711",
-    "7e1129fee01046f2",
-    "b460ad8347f6baea",
-    "cc728652edc07f76"
+    "6be8bf29011bb639",
+    "b19023b5abad54bc"
    ],
    "docs/owner/PIPELINE_OVERVIEW.md": [
     "3645dd5d72e540d6"
    ],
    "docs/owner/SCIENCE_OVERVIEW.md": [
-    "4a281a30c3bda683",
     "5f65d18cf2617cb6"
    ],
-   "docs/science/PHASE2_UPM.md": [
-    "225e0727eb796f65"
-   ],
-   "docs/science/PHOTOMETRY.md": [
-    "901fffe5cff132d3"
-   ],
-   "docs/science/PSF_SIGNAL_WEIGHT.md": [
-    "36c7866011a2ba3a"
+   "docs/science/algorithms/PHASE3_RSMP_IMPL.md": [
+    "0d27a562bf91d9e0"
    ],
    "docs/standards/STANDARDS_REGISTRY.md": [
     "7f780c923753d993",
     "d71d607cadb83a11"
-   ],
-   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": [
-    "cfdc5ee033ce024c"
-   ],
-   "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md": [
-    "cfdc5ee033ce024c"
-   ],
-   "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md": [
-    "ca0df050a83adafb"
-   ],
-   "docs/validation/v6/P0_GATE_FAMILY.md": [
-    "cfdc5ee033ce024c"
-   ],
-   "docs/validation/v6/QA_MATRIX.md": [
-    "ca0df050a83adafb"
-   ],
-   "docs/validation/v6/README.md": [
-    "cfdc5ee033ce024c"
    ]
   },
   "D3b_proc_id": {
@@ -206,18 +171,11 @@
    "docs/VERSIONING.md": [
     "a5433b557799dfca"
    ],
-   "docs/algorithms/DRIZZLE_GEOMETRY.md": [
-    "3f81e5edb17d57d2",
-    "b15e315a93ba0c4b"
-   ],
-   "docs/algorithms/PHASE2_UPM_IMPL.md": [
-    "48588b830754fef6"
-   ],
    "docs/algorithms/anchors/ANCHOR_CONTRACT.md": [
     "70513d260b6f33d6",
+    "7b2b98c37bd4c6e8",
     "9199b6f19c8dc91e",
-    "c1841a734960eb5e",
-    "eab6d30783cd0f17"
+    "c1841a734960eb5e"
    ],
    "docs/algorithms/anchors/unresolved_registry.json": [
     "32dc1989dab66215",
@@ -227,30 +185,6 @@
    ],
    "docs/api/CLI_PROTOCOL_V1.md": [
     "6e16841404a62a78"
-   ],
-   "docs/architecture/PERFORMANCE_MODEL.md": [
-    "0416a7bcb9d90993",
-    "2c951ba62304226c",
-    "2c951ba62304226c",
-    "4a83106ab244fdb5",
-    "5e657b3a52f8d03d",
-    "74b1fcca4abb3f45",
-    "89a67367f5c379c7",
-    "970c613204ba2442",
-    "a8d5b29d1288b538",
-    "a9f896de63e80e32",
-    "d0dd902ac38ac62c",
-    "d72460e6a54f0c42",
-    "dd9b8e3607403743",
-    "eec1f14515e73efd",
-    "f3c7672ad78d82dc",
-    "f8acc29952dec37e"
-   ],
-   "docs/architecture/THREADING_MODEL.md": [
-    "2678fc7473342236",
-    "af5327f477d22980",
-    "d8b578e3bbd6490c",
-    "f79cbaa6db194897"
    ],
    "docs/architecture/abi/ABI_003_SECURE_LOADER.md": [
     "00c12e9d1066ea25"
@@ -262,8 +196,12 @@
     "eb8ea6306c142ff3"
    ],
    "docs/contracts/CONFIG_CONTRACT.md": [
-    "2b82d30eee988928",
+    "5a16bdd3db4647d2",
+    "63f4e876bf09cd6e",
+    "8cac6cf5e15ceefe",
     "c914fbe739101148",
+    "eaeba0157b6bd46e",
+    "f531afa1cf8471a1",
     "fda85a37ed413a4b"
    ],
    "docs/contracts/DATA_ARTIFACTS.md": [
@@ -308,17 +246,24 @@
     "d252af5e6c4521ce"
    ],
    "docs/science/ASTROMETRY.md": [
-    "2adcada9058e01ef",
-    "491f9817f993a6c3"
+    "d0737ca9586daa92",
+    "f4a6fd3ca914073f"
    ],
    "docs/science/PHASE2_UPM.md": [
     "5857dc797bd2c9c2",
-    "5857dc797bd2c9c2"
+    "5857dc797bd2c9c2",
+    "cdbb7ea74bd8ff97"
    ],
    "docs/science/PHOTOMETRY.md": [
     "4d1e6194b343f2b5",
-    "929f9e5cdeb4de80",
-    "efa6b988e6ed5870"
+    "929f9e5cdeb4de80"
+   ],
+   "docs/science/algorithms/DRIZZLE_GEOMETRY.md": [
+    "3f81e5edb17d57d2",
+    "9fb9f4434442879b"
+   ],
+   "docs/science/algorithms/PHASE2_UPM_IMPL.md": [
+    "48588b830754fef6"
    ],
    "docs/traceability/traceability_warn_baseline.json": [
     "b8f16a326d85835b",
@@ -330,13 +275,6 @@
    ]
   },
   "D3c_run_path": {
-   "docs/algorithms/DRIZZLE_GEOMETRY.md": [
-    "3f81e5edb17d57d2",
-    "b15e315a93ba0c4b"
-   ],
-   "docs/algorithms/PHASE3_RSMP_IMPL.md": [
-    "602615ed2d61bc6c"
-   ],
    "docs/algorithms/anchors/anchor_contract.json": [
     "1f6e1e915014c6c2"
    ],
@@ -383,6 +321,13 @@
    "docs/modules/registry/astrocs.phase2.write.md": [
     "abcaad924c522913"
    ],
+   "docs/science/algorithms/DRIZZLE_GEOMETRY.md": [
+    "3f81e5edb17d57d2",
+    "9fb9f4434442879b"
+   ],
+   "docs/science/algorithms/PHASE3_RSMP_IMPL.md": [
+    "602615ed2d61bc6c"
+   ],
    "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md": [
     "9436da4ce64d64cf"
    ]
@@ -394,22 +339,13 @@
     "7c3b53fe98d3338a",
     "c713b079a00a787f"
    ],
-   "docs/algorithms/CALIBRATION_ALGORITHMS.md": [
-    "ed39f15b2dadc149"
-   ],
-   "docs/algorithms/GAIA_QUERY.md": [
-    "bfa6fd01d11235ec"
-   ],
-   "docs/algorithms/STAR_PSF_ALGORITHMS.md": [
-    "328b7625a487a1a5"
-   ],
    "docs/contracts/config_separation_anchors.json": [
     "6bd6399762090c08"
    ],
    "docs/contracts/unified_object_registry.json": [
     "6bd6399762090c08",
     "9d7164efb985d8af",
-    "a8f773d113b6476d",
+    "ceaa365f11997100",
     "eb903430c2eb58b2"
    ],
    "docs/modules/calibration.md": [
@@ -512,6 +448,15 @@
    "docs/quality/complexity_baseline_v1.md": [
     "56f12c1e48d57f93"
    ],
+   "docs/science/algorithms/CALIBRATION_ALGORITHMS.md": [
+    "ed39f15b2dadc149"
+   ],
+   "docs/science/algorithms/GAIA_QUERY.md": [
+    "bfa6fd01d11235ec"
+   ],
+   "docs/science/algorithms/STAR_PSF_ALGORITHMS.md": [
+    "328b7625a487a1a5"
+   ],
    "docs/traceability/TRACEABILITY_MATRIX.json": [
     "ebe1100f85c608d6"
    ],
@@ -524,20 +469,6 @@
     "a0796c06d0efae0d",
     "d49f56b8c6653b78"
    ],
-   "docs/algorithms/COSMETIC_ALGORITHMS.md": [
-    "e73604faf0139034"
-   ],
-   "docs/algorithms/PHASE2_SESSION.md": [
-    "115c4ad9c9217f38",
-    "17ed8b334bce9da4",
-    "9be519231a0b98f3"
-   ],
-   "docs/algorithms/PHASE3_PROJ_IMPL.md": [
-    "500c9fd7f2cc4f6f"
-   ],
-   "docs/algorithms/PHOTOMETRIC_FIT.md": [
-    "c0cb92c2cfc3d1bc"
-   ],
    "docs/algorithms/anchors/ANCHOR_CONTRACT.md": [
     "9f994430ef4e29ab"
    ],
@@ -549,19 +480,11 @@
     "1eb4647dae2cdf68",
     "1eb4647dae2cdf68"
    ],
-   "docs/architecture/IO_AND_ATOMICITY.md": [
-    "eb11e6edeba8cd43"
-   ],
-   "docs/architecture/PERFORMANCE_MODEL.md": [
-    "0f0c3a87e89120c6",
-    "f8acc29952dec37e"
-   ],
    "docs/architecture/THREADING_MODEL.md": [
     "4f261347de2c300d"
    ],
    "docs/ci/01_CHECKS.md": [
-    "4035e41d53d0b566",
-    "e600bd8200f1ee67"
+    "4035e41d53d0b566"
    ],
    "docs/ci/CI_SPEC.md": [
     "9b3d1f86b63dbbf8"
@@ -572,7 +495,8 @@
    ],
    "docs/contracts/DATA_SEMANTICS.md": [
     "27607734645ac36d",
-    "a582692df465722f"
+    "a582692df465722f",
+    "a7622aff656f2284"
    ],
    "docs/contracts/INDEX.yaml": [
     "19ba9ad25859c762"
@@ -585,13 +509,13 @@
     "850ed3d9308f1c19"
    ],
    "docs/contracts/PUBLIC_API.md": [
-    "7d5523604c6bb8ae"
+    "a0930aa7343c019e"
    ],
    "docs/design/PRODUCT_STORAGE_FORM.md": [
     "cfbd9c34109c78fa"
    ],
-   "docs/modules/MODULE_MAP.yaml": [
-    "7e1129fee01046f2"
+   "docs/design/STAR_DETECTION_IMPL_DESIGN.md": [
+    "7c48621adef893a6"
    ],
    "docs/modules/phase2.md": [
     "db650b8994881faf"
@@ -606,7 +530,7 @@
     "d1f9de11d106cb0a"
    ],
    "docs/plugins/algorithms_phase1/07_noise_snr.md": [
-    "8a1051fc44862fb0"
+    "8b9b494e73924b60"
    ],
    "docs/science/ASTROMETRY.md": [
     "d060b791101885c7"
@@ -628,42 +552,35 @@
     "3eae782d9dad2db3",
     "b0ed99b6d18c9e2c"
    ],
+   "docs/science/algorithms/COSMETIC_ALGORITHMS.md": [
+    "e73604faf0139034"
+   ],
+   "docs/science/algorithms/PHASE2_SESSION.md": [
+    "115c4ad9c9217f38",
+    "17ed8b334bce9da4",
+    "9be519231a0b98f3"
+   ],
+   "docs/science/algorithms/PHASE3_PROJ_IMPL.md": [
+    "500c9fd7f2cc4f6f"
+   ],
+   "docs/science/algorithms/PHOTOMETRIC_FIT.md": [
+    "c0cb92c2cfc3d1bc"
+   ],
    "docs/standards/STANDARDS_REGISTRY.md": [
     "5826a54ca4d3811d",
     "604df3e8dc00ba9e"
-   ],
-   "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": [
-    "cfdc5ee033ce024c"
-   ],
-   "docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md": [
-    "cfdc5ee033ce024c"
-   ],
-   "docs/validation/v6/ORACLE_AND_ZERO_CASE_POLICY.md": [
-    "ca0df050a83adafb"
-   ],
-   "docs/validation/v6/P0_GATE_FAMILY.md": [
-    "cfdc5ee033ce024c"
-   ],
-   "docs/validation/v6/QA_MATRIX.md": [
-    "ca0df050a83adafb"
-   ],
-   "docs/validation/v6/README.md": [
-    "cfdc5ee033ce024c"
    ]
   },
   "D3f_owner_quote": {
    "AGENTS.md": [
     "1d3726a808fb4e20"
    ],
+   "docs/DOCUMENT_GOVERNANCE.md": [
+    "0ecc633d3f5592ee",
+    "e7b44c15b331aa98"
+   ],
    "docs/KNOWN_LIMITATIONS.md": [
     "acbffd059ff633cb"
-   ],
-   "docs/api/CLI_PROTOCOL_V1.md": [
-    "40603a4cae807099"
-   ],
-   "docs/architecture/PERFORMANCE_MODEL.md": [
-    "1b90a24e9b864f86",
-    "74b1fcca4abb3f45"
    ],
    "docs/ci/01_CHECKS.md": [
     "02526146e39905e7"
@@ -698,16 +615,6 @@
     "eb98796d85d386b6",
     "eb98796d85d386b6"
    ],
-   "docs/modules/MODULE_MAP.yaml": [
-    "3be1471385879a90",
-    "4f16a0a72c38c81a"
-   ],
-   "docs/owner/RELEASE_STATUS.md": [
-    "7384879b8306ac9c"
-   ],
-   "docs/science/CALIBRATION.md": [
-    "82228ea9f2c560c2"
-   ],
    "docs/standards/RELEASE_STANDARD.md": [
     "50cd4551099798fa"
    ],
@@ -716,37 +623,20 @@
    ],
    "docs/validation/v6/P0_GATE_FAMILY.md": [
     "2c2f3f9336480633"
-   ],
-   "docs/validation/v6/QA_MATRIX.md": [
-    "8e5265cb800a2665",
-    "df8f12bacda41fae"
    ]
   },
   "D3g_strikethrough": {
-   "docs/algorithms/PHASE2_COVERAGE.md": [
-    "2e8ac9344c9af0aa"
-   ],
    "docs/architecture/CACHE_POLICY.md": [
-    "18e1d82c9b9b65f9"
+    "35a8b7b77e817d9d"
    ],
    "docs/architecture/EXECUTION_MODEL.md": [
     "160bb88aba22e70d",
-    "1ae8552b77146c84",
-    "6f1a23d8466ea19a",
-    "8c6aecb741cf7256",
+    "32cc0b589a07e457",
+    "3e7e60b32b9e01d1",
+    "4c4b9fec1fa0edb5",
+    "7884b885015325bd",
     "91f68320452c717f",
-    "ac0d4eee48628071",
-    "f44c24aa356d3863"
-   ],
-   "docs/architecture/PERFORMANCE_MODEL.md": [
-    "256fb1118bcc8161",
-    "5156a258e2fc273a",
-    "970c613204ba2442",
-    "aaab01139c84fdd1"
-   ],
-   "docs/architecture/THREADING_MODEL.md": [
-    "6ccc0d00d819b55f",
-    "be8daddb5cbd790c"
+    "f28f224344ed16c6"
    ],
    "docs/contracts/CONFIG_CONTRACT.md": [
     "6f0c778fe30138c8",
@@ -758,20 +648,20 @@
     "101e968e3bed6137",
     "1ec9b6405e430a35",
     "2a2c5e4597520989",
-    "636fe46dcd97792a",
-    "747b408c672dd843",
+    "6a5558dc0fc87345",
+    "774da091d2c32f3f",
     "8800533c12c699fc",
     "886a6a12df51059c",
     "8fd2fda7b81840cf",
     "ba1c20695da8cbfd",
     "bde4f35d13e46d54",
+    "d7c900a27c628fe0",
     "ef3b1b59695eec5a",
-    "f16be52d222b16be",
-    "fc4788a93b8247d8"
+    "f16be52d222b16be"
    ],
    "docs/contracts/PUBLIC_API.md": [
     "05e77a65a31dcb36",
-    "15ffb3bf39566f02",
+    "1d19542ca7202791",
     "2b951f728b6ee09f",
     "4e37134052beab2e",
     "63d9d40321c37971",
@@ -783,11 +673,44 @@
    "docs/contracts/UNIFIED_OBJECTS.md": [
     "c81a03a1f844a880"
    ],
-   "docs/owner/SCIENCE_OVERVIEW.md": [
-    "4a281a30c3bda683"
-   ],
    "docs/plugins/algorithms_phase1/06_photometry.md": [
     "e849ea9dd504bf41"
+   ],
+   "docs/science/algorithms/PHASE2_COVERAGE.md": [
+    "2e8ac9344c9af0aa"
+   ]
+  },
+  "D3h_prohibition": {
+   "docs/DOCUMENT_GOVERNANCE.md": [
+    "3efb6302efc8bd82",
+    "a3e74fa1a4f3dc88",
+    "e7b44c15b331aa98"
+   ],
+   "docs/TRACEABILITY.csv": [
+    "81edf4ab073c6173"
+   ],
+   "docs/api/CLI_PROTOCOL_V1.md": [
+    "bc5daeac28b01397"
+   ],
+   "docs/contracts/CONFIG_CONTRACT.md": [
+    "5817c8ede91f2c9a"
+   ],
+   "docs/design/STAR_DETECTION_IMPL_DESIGN.md": [
+    "0c8e57aaa9083887",
+    "7c48621adef893a6",
+    "92d4156b86176deb"
+   ],
+   "docs/development/CONFIG_SCHEMA.md": [
+    "47e292a4334fb50a"
+   ],
+   "docs/plugins/algorithms_phase2/11_upm.md": [
+    "c784dd75c42409ca"
+   ],
+   "docs/science/algorithms/DRIZZLE_GEOMETRY.md": [
+    "dc35982a740479ef"
+   ],
+   "docs/validation/v6/QA_MATRIX.md": [
+    "a13364dd295d9257"
    ]
   }
  },
@@ -804,7 +727,7 @@
  "d4": {
   "D4a_process_paragraph": {
    "docs/algorithms/anchors/unresolved_registry.json": 1,
-   "docs/architecture/PERFORMANCE_MODEL.md": 2,
+   "docs/contracts/CONFIG_CONTRACT.md": 1,
    "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md": 1,
    "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md": 1,
    "docs/science/PHASE2_UPM.md": 1,
@@ -813,35 +736,17 @@
   "D4d_cell_wall": {
    "ACCEPTANCE_SPEC.md": 7,
    "docs/GLOSSARY.md": 1,
-   "docs/algorithms/CALIBRATION_ALGORITHMS.md": 10,
-   "docs/algorithms/COSMETIC_ALGORITHMS.md": 3,
-   "docs/algorithms/DRIZZLE_GEOMETRY.md": 6,
-   "docs/algorithms/GATES_AND_TOLERANCES.md": 18,
-   "docs/algorithms/HIPS_WRITER.md": 10,
-   "docs/algorithms/NOISE_ESTIMATION.md": 12,
-   "docs/algorithms/PHASE2_INTEGRATION.md": 1,
-   "docs/algorithms/PHASE2_MOSAIC_WRITE.md": 8,
-   "docs/algorithms/PHASE2_REJECTION.md": 3,
-   "docs/algorithms/PHASE2_SAMPLER.md": 9,
-   "docs/algorithms/PHASE2_SESSION.md": 8,
-   "docs/algorithms/PHASE2_UPM_IMPL.md": 4,
-   "docs/algorithms/PHASE3_FITS_IMPL.md": 2,
-   "docs/algorithms/PHASE3_PROJ_IMPL.md": 6,
-   "docs/algorithms/PHASE3_RSMP_IMPL.md": 3,
-   "docs/algorithms/PHOTOMETRIC_FIT.md": 1,
-   "docs/algorithms/PLATESOLVE.md": 2,
-   "docs/algorithms/STAR_PSF_ALGORITHMS.md": 1,
    "docs/api/PHASE3_API_V1.md": 1,
    "docs/architecture/CACHE_POLICY.md": 1,
    "docs/architecture/EXECUTION_MODEL.md": 2,
    "docs/architecture/MODULE_MAP.md": 14,
-   "docs/architecture/PERFORMANCE_MODEL.md": 4,
+   "docs/architecture/PERFORMANCE_MODEL.md": 2,
    "docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md": 1,
    "docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md": 1,
    "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md": 2,
    "docs/ci/01_CHECKS.md": 56,
    "docs/contracts/API-001.md": 1,
-   "docs/contracts/CONFIG_CONTRACT.md": 17,
+   "docs/contracts/CONFIG_CONTRACT.md": 18,
    "docs/contracts/DATA_ARTIFACTS.md": 32,
    "docs/contracts/DATA_SEMANTICS.md": 67,
    "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md": 2,
@@ -858,55 +763,51 @@
    "docs/operations/TOOLCHAIN_AGENT_HOST.md": 1,
    "docs/owner/ARCHITECTURE_OVERVIEW.md": 6,
    "docs/owner/PIPELINE_OVERVIEW.md": 1,
-   "docs/owner/RELEASE_STATUS.md": 10,
+   "docs/owner/RELEASE_STATUS.md": 8,
    "docs/owner/SCIENCE_OVERVIEW.md": 9,
    "docs/plugins/algorithms_phase1/03_star_detection.md": 3,
-   "docs/plugins/algorithms_phase1/07_noise_snr.md": 2,
+   "docs/plugins/algorithms_phase1/07_noise_snr.md": 3,
    "docs/plugins/algorithms_phase2/11_upm.md": 3,
    "docs/science/ASTROMETRY.md": 3,
    "docs/science/CONTROL_WEIGHT_SNR.md": 2,
    "docs/science/DRIZZLE.md": 2,
    "docs/science/NOISE_MODEL.md": 4,
-   "docs/science/PHASE2_UPM.md": 4,
+   "docs/science/PHASE2_UPM.md": 5,
    "docs/science/PHASE3_HIPS_TO_FITS.md": 2,
    "docs/science/PHOTOMETRY.md": 13,
-   "docs/standards/STANDARDS_REGISTRY.md": 33,
+   "docs/science/algorithms/CALIBRATION_ALGORITHMS.md": 10,
+   "docs/science/algorithms/COSMETIC_ALGORITHMS.md": 3,
+   "docs/science/algorithms/DRIZZLE_GEOMETRY.md": 6,
+   "docs/science/algorithms/GATES_AND_TOLERANCES.md": 18,
+   "docs/science/algorithms/HIPS_WRITER.md": 10,
+   "docs/science/algorithms/NOISE_ESTIMATION.md": 12,
+   "docs/science/algorithms/PHASE2_INTEGRATION.md": 1,
+   "docs/science/algorithms/PHASE2_MOSAIC_WRITE.md": 8,
+   "docs/science/algorithms/PHASE2_REJECTION.md": 3,
+   "docs/science/algorithms/PHASE2_SAMPLER.md": 10,
+   "docs/science/algorithms/PHASE2_SESSION.md": 8,
+   "docs/science/algorithms/PHASE2_UPM_IMPL.md": 4,
+   "docs/science/algorithms/PHASE3_FITS_IMPL.md": 2,
+   "docs/science/algorithms/PHASE3_PROJ_IMPL.md": 6,
+   "docs/science/algorithms/PHASE3_RSMP_IMPL.md": 3,
+   "docs/science/algorithms/PHOTOMETRIC_FIT.md": 1,
+   "docs/science/algorithms/PLATESOLVE.md": 3,
+   "docs/science/algorithms/STAR_PSF_ALGORITHMS.md": 1,
+   "docs/standards/STANDARDS_REGISTRY.md": 37,
    "docs/validation/v6/BASELINE_COMPARISON_MATRIX.md": 4,
    "docs/validation/v6/QA_MATRIX.md": 41
   },
   "D4e_paragraph_len": {
    "ACCEPTANCE_SPEC.md": 1,
    "AGENTS.md": 1,
-   "ASTROCS_DESIGN.md": 2,
    "DEPENDENCIES.md": 1,
    "ENGINEERING_SPEC.md": 1,
    "README.md": 2,
+   "docs/ASTROCS_DESIGN.md": 2,
    "docs/DOCUMENT_INDEX.yaml": 2,
    "docs/GLOSSARY.md": 1,
    "docs/TRACEABILITY.csv": 1,
    "docs/TROUBLESHOOTING.md": 1,
-   "docs/algorithms/CALIBRATION_ALGORITHMS.md": 9,
-   "docs/algorithms/COSMETIC_ALGORITHMS.md": 11,
-   "docs/algorithms/DRIZZLE_GEOMETRY.md": 10,
-   "docs/algorithms/GAIA_QUERY.md": 2,
-   "docs/algorithms/GATES_AND_TOLERANCES.md": 1,
-   "docs/algorithms/HIPS_WRITER.md": 10,
-   "docs/algorithms/NOISE_ESTIMATION.md": 2,
-   "docs/algorithms/PHASE2_COVERAGE.md": 10,
-   "docs/algorithms/PHASE2_INTEGRATION.md": 8,
-   "docs/algorithms/PHASE2_MOSAIC_WRITE.md": 11,
-   "docs/algorithms/PHASE2_REJECTION.md": 16,
-   "docs/algorithms/PHASE2_SAMPLER.md": 13,
-   "docs/algorithms/PHASE2_SESSION.md": 8,
-   "docs/algorithms/PHASE2_UPM_IMPL.md": 9,
-   "docs/algorithms/PHASE3_FITS_IMPL.md": 11,
-   "docs/algorithms/PHASE3_PROJ_IMPL.md": 14,
-   "docs/algorithms/PHASE3_RSMP_IMPL.md": 7,
-   "docs/algorithms/PHOTOMETRIC_FIT.md": 4,
-   "docs/algorithms/PLATESOLVE.md": 9,
-   "docs/algorithms/REJECTION_ALGORITHMS.md": 3,
-   "docs/algorithms/STAR_DETECTION_ALGORITHMS.md": 6,
-   "docs/algorithms/STAR_PSF_ALGORITHMS.md": 2,
    "docs/algorithms/anchors/ANCHOR_CONTRACT.md": 2,
    "docs/algorithms/anchors/anchor_contract.json": 1,
    "docs/algorithms/anchors/unresolved_registry.json": 1,
@@ -915,7 +816,6 @@
    "docs/architecture/ASYNC_IO_CONTRACT.md": 2,
    "docs/architecture/IO_AND_ATOMICITY.md": 1,
    "docs/architecture/MODULE_MAP.md": 2,
-   "docs/architecture/PERFORMANCE_MODEL.md": 1,
    "docs/architecture/PHASE3_MODULE_ARCH.md": 1,
    "docs/architecture/PIPELINE.md": 1,
    "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv": 1,
@@ -932,22 +832,25 @@
    "docs/contracts/API-001.md": 1,
    "docs/contracts/API_CONTRACTS.csv": 1,
    "docs/contracts/CONFIG_CONTRACT.md": 4,
-   "docs/contracts/DATA_ARTIFACTS.md": 3,
+   "docs/contracts/DATA_ARTIFACTS.md": 4,
    "docs/contracts/DATA_SEMANTICS.md": 60,
    "docs/contracts/INDEX.yaml": 7,
    "docs/contracts/PUBLIC_API.md": 46,
+   "docs/contracts/README.md": 1,
    "docs/contracts/SCHEDULER_CONTRACT.md": 1,
    "docs/contracts/TEST_MATRIX.md": 1,
    "docs/contracts/UNIFIED_OBJECTS.md": 2,
    "docs/contracts/config_separation_anchors.json": 1,
    "docs/contracts/unified_object_registry.json": 1,
    "docs/design/PHASE1_DETAILED_DESIGN.md": 2,
+   "docs/design/STAR_DETECTION_IMPL_DESIGN.md": 4,
    "docs/design/UNIFIED_MODEL.md": 1,
    "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md": 2,
    "docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md": 1,
    "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md": 3,
    "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md": 1,
    "docs/modules/MODULE_MAP.yaml": 4,
+   "docs/modules/README.md": 1,
    "docs/modules/calibration.md": 1,
    "docs/modules/hips_p2.md": 1,
    "docs/modules/orchestrator.md": 1,
@@ -998,12 +901,38 @@
    "docs/science/PHOTOMETRY.md": 3,
    "docs/science/PSF.md": 3,
    "docs/science/PSF_SIGNAL_WEIGHT.md": 1,
+   "docs/science/README.md": 1,
    "docs/science/REJECTION.md": 5,
    "docs/science/SCIENCE_SCOPE.md": 2,
    "docs/science/STAR_DETECTION.md": 2,
-   "docs/science/UNCERTAINTY_AND_COVARIANCE.md": 1,
+   "docs/science/UNCERTAINTY_AND_COVARIANCE.md": 2,
+   "docs/science/algorithms/CALIBRATION_ALGORITHMS.md": 9,
+   "docs/science/algorithms/COSMETIC_ALGORITHMS.md": 11,
+   "docs/science/algorithms/DRIZZLE_GEOMETRY.md": 10,
+   "docs/science/algorithms/GAIA_QUERY.md": 2,
+   "docs/science/algorithms/GATES_AND_TOLERANCES.md": 1,
+   "docs/science/algorithms/HIPS_WRITER.md": 10,
+   "docs/science/algorithms/NOISE_ESTIMATION.md": 2,
+   "docs/science/algorithms/PHASE2_COVERAGE.md": 10,
+   "docs/science/algorithms/PHASE2_INTEGRATION.md": 8,
+   "docs/science/algorithms/PHASE2_MOSAIC_WRITE.md": 11,
+   "docs/science/algorithms/PHASE2_REJECTION.md": 16,
+   "docs/science/algorithms/PHASE2_SAMPLER.md": 13,
+   "docs/science/algorithms/PHASE2_SESSION.md": 8,
+   "docs/science/algorithms/PHASE2_UPM_IMPL.md": 9,
+   "docs/science/algorithms/PHASE3_FITS_IMPL.md": 11,
+   "docs/science/algorithms/PHASE3_PROJ_IMPL.md": 14,
+   "docs/science/algorithms/PHASE3_RSMP_IMPL.md": 7,
+   "docs/science/algorithms/PHOTOMETRIC_FIT.md": 4,
+   "docs/science/algorithms/PLATESOLVE.md": 9,
+   "docs/science/algorithms/README.md": 1,
+   "docs/science/algorithms/REJECTION_ALGORITHMS.md": 3,
+   "docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md": 6,
+   "docs/science/algorithms/STAR_PSF_ALGORITHMS.md": 2,
+   "docs/science/algorithms/UPM_SOLVER.md": 1,
    "docs/standards/CODE_STANDARD.md": 1,
    "docs/standards/NUMERIC_STANDARD.md": 1,
+   "docs/standards/README.md": 1,
    "docs/standards/STANDARDS_REGISTRY.md": 3,
    "docs/traceability/TRACEABILITY_MATRIX.csv": 1,
    "docs/traceability/TRACEABILITY_MATRIX.json": 1,
