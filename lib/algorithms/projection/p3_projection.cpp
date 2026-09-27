@@ -1,6 +1,6 @@
 // lib/algorithms/projection/p3_projection.cpp — legacy registry v1 实现（TAN/SIN/CAR/AIT）
 // P3-001；⚠ **RETIRED（SCI-FIX-PROJ 2026-09-16）**：唯一在役 registry = v6 线
-// p3_proj_v6.cpp（v3）。本文件仅为历史测试面与 legacy 偏差对照证据门保留，
+// p3_proj.cpp（v3）。本文件仅为历史测试面与 legacy 偏差对照证据门保留，
 // 行为冻结不变（四项偏差 D1..D4 见 p3_projection.h 头注与 ALG-P3-PROJ-IMPL-001 §15.9）。
 //
 // 数学冻结口径:

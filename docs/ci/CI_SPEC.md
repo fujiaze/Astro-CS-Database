@@ -210,8 +210,7 @@ flowchart TD
 | 1 | 计算区间平均利用率 ≥ 0.85 | `avg_utilization_ge_min` |
 | 2 | 样本利用率 p50 ≥ 0.90 | `p50_utilization_ge_min` |
 | 3 | 单样本利用率 ≥0.85 的样本占比 ≥ 0.70 | `sample_pass_fraction_ge_min` |
-| 4 | 无连续 ≥10s 且利用率 <60% 的低利用窗（**无就绪积压同样<｜｜begin▁of▁sentence｜｜>
-违规**：串行/停顿与 CPU 饥饿同属性能缺陷） | `no_low_utilization_window` |
+| 4 | 无连续 ≥10s 且利用率 <60% 的低利用窗（**无就绪积压同样计违规**：串行/停顿与 CPU 饥饿同属性能缺陷） | `no_low_utilization_window` |
 
 - 裁决面：`eng/ci/l2_frozen_gate.py::adjudicate` + `eng/ci/check_frozen_gate.py`；
   任一判据违规 ⇒ `verdict=red`（生产侧 `run_monitored` 的

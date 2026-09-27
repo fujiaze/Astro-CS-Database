@@ -98,9 +98,9 @@
                                          // 单一来源（stage2 工具与 node chain 同语义）
 #include "healpix/healpix_core.h"  // fits_index_to_nested_local (NESTED LUT 单一权威)
 // RELEASE-02 权重链: HiPS 头帧级 SNR → 逆方差权重 (w = SNR²/F_ref²)。
-#include "astrocs/v6/weight_chain.h"
+#include "astrocs/weight_chain.h"
 // RELEASE-02 P2b: 残差制造者 PΣPᵀ 归一化方差传播（variance_propagation.h）
-#include "astrocs/v6/variance_propagation.h"
+#include "astrocs/variance_propagation.h"
 #include "crypto/sha256.h"         // astrocs::crypto::sha256_hex (input_manifest_hash)
 #include "astrocs/probe.h"         // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
@@ -7600,7 +7600,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // P17-NSIDE: 采样率 provenance 判定口径（nside 来源 + 决策依据 + 合规判定）。
   const std::string nside_mode_out = auto_nside ? "1x_to_2x_drizzle" : "explicit";
   const double HEALPIX_SCALE_PER_NSIDE_ARCSEC =
-      std::sqrt(M_PI / 3.0) * (180.0 / M_PI) * 3600.0;  // ≈ 211034.6 "/nside
+      std::sqrt(M_PI / 3.0) * (180.0 / M_PI) * 3600.0;  // ≈ 211076.3 "/nside
   // ── P0-21 §3.4: 逐帧 drizzle 循环 ─────────────────────────────────────
   // 每帧: 读定标帧 → 该帧 WCS（<frame_dir>/p1_wcs.json, 回退 config.wcs）→
   // 真实 drizzle → 直写 output_dir/<frame_key>/ 标准 HiPS + 该帧 p1_stack.json。

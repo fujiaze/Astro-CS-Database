@@ -10,7 +10,7 @@
 #     「projection」行迁入本模块 (WCS 属投影域)。C++17 命名空间
 #     astrocs::phase3 与公共符号名保持不变 (架构重构不改科学语义,
 #     ENGINEERING_SPEC §3)。
-#   p3_projection.cpp / p3_proj_v6.cpp 的 target 声明归 P3-002 线 (本批次未动)。
+#   p3_projection.cpp / p3_proj.cpp 的 target 声明归 P3-002 线 (本批次未动)。
 if(NOT TARGET astrocs_p3_projection_wcs)
   # FIX-205: 产品声明注册表 p3_projection_registry.h 为 header-only(inline),
   # p3_wcs.cpp 直接包含 —— 请求面门(p3_wcs_validate_request)与构造面门

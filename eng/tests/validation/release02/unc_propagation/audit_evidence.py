@@ -36,7 +36,7 @@ def grep(pattern, path, label):
 grep(r"p2_sky_plane_eval_delta_block", "lib/infrastructure/scheduler/src/module_adapters.cpp", "upm-apply applies delta (value only)")
 grep(r"out_v\[static_cast<size_t>\(k\)\] -= dvals", "lib/infrastructure/scheduler/src/module_adapters.cpp", "upm-apply: corrected -= delta (value only)")
 grep(r"local_ivar_map\.find|local_snr_map\.find|snr_v = frame_snr", "lib/algorithms/coverage/tools/stage2.cpp", "stage2 weight sources (gain-independent)")
-grep(r"p2_upm_ma_param_cov", "lib/algorithms/integration/v6/src/phase2_integrate.cpp", "param cov in v6 diagnostic route")
+grep(r"p2_upm_ma_param_cov", "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp", "param cov in v6 diagnostic route")
 grep(r"p2_upm_ma_param_cov|p2_upm_ma_c_out", "lib/algorithms/coverage/tools/stage2.cpp", "param cov in reference path")
 grep(r"p2_upm_build_geo", "lib/infrastructure/scheduler/src/module_adapters.cpp", "production builds W2 model only (no cov API)")
 grep(r"out_v\[i\] /= gain", "lib/algorithms/coverage/tools/stage2.cpp", "stage2: corrected /= g_k (value only)")

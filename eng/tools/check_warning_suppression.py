@@ -82,7 +82,7 @@ PROD_DIRS = [
 # 为什么不用 rglob 全遍历: run/ 与 build/ 是 gitignore 的临时/构建区 (AGENTS.md §7),
 #   里面残留大量一次性夹具 —— 实测真仓库 rglob 得 111 个 CMakeLists.txt, 其中 31 个
 #   落在 build/|run/ 下 (如 run/<task>/**/CMakeLists.txt, 含 sextractor 源码树与
-#   v6_aio 变异夹具)。os.walk 在**遍历时**剪枝, 0.02 s 完成且不进入 >13 GB 的 run/ 产物。
+#   aio 变异夹具)。os.walk 在**遍历时**剪枝, 0.02 s 完成且不进入 >13 GB 的 run/ 产物。
 # 排除面 (每个条目都有规范依据, 不是凭印象挑的):
 #   run/    ENGINEERING_SPEC §7「run/（gitignore：临时产物/日志；自清理机制见
 #           eng/tools/run_gc.py 与 eng/tools/round_start.sh）」+ AGENTS.md §7:

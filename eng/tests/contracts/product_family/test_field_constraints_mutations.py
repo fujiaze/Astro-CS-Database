@@ -7,7 +7,7 @@
 覆盖面（DOC-CONTRACT-MERGE-02 自解释合并后）：
   * 产品族记录级 $defs（units/signal/covariance/psf/effective-psf/point-information/
     weight-mode/psfsw/provenance/phase3）；
-  * 机器登记表 eng/contracts/data/v6_clause_registry_v1.json（条款/单位表/词表/迁移映射）；
+  * 机器登记表 eng/contracts/data/clause_registry.json（条款/单位表/词表/迁移映射）；
   * canonical 对象层 allOf 门（BUNIT 量纲可判、对角⇒相关核、k_corr!=1、禁止键守卫）。
 """
 import copy, json, os, pathlib, shutil, sys, tempfile, unittest
@@ -21,12 +21,12 @@ sys.path.insert(0, str(HERE))
 import field_constraints_oracle as oracle_mod  # noqa: E402
 
 PF = "eng/contracts/schemas/product_family_field_constraints.schema.json"
-REG = "eng/contracts/data/v6_clause_registry_v1.json"
+REG = "eng/contracts/data/clause_registry.json"
 U_SIGNAL = "eng/contracts/schemas/unified/signal.schema.json"
 U_VARIANCE = "eng/contracts/schemas/unified/variance.schema.json"
 U_PROV = "eng/contracts/schemas/unified/provenance.schema.json"
-EX_PSFSW = "eng/contracts/data/examples/v6/psfsw.example.json"
-EX_PROV = "eng/contracts/data/examples/v6/provenance.example.json"
+EX_PSFSW = "eng/contracts/data/examples/psfsw.example.json"
+EX_PROV = "eng/contracts/data/examples/provenance.example.json"
 DOC_DS = "docs/contracts/DATA_SEMANTICS.md"
 DOC_PA = "docs/contracts/PUBLIC_API.md"
 

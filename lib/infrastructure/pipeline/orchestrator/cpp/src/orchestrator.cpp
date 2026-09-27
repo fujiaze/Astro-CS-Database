@@ -177,8 +177,8 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     // 正确公式 (与 drizzle_engine.cpp 一致, 禁止魔数 210960/1186.18):
     // HEALPix 像素面积 = 4π / (12 * nside²) sr = π / (3 * nside²) sr
     // 特征线性尺度 = sqrt(像素面积) = sqrt(π/3) / nside rad
-    // 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211034.6 / nside arcsec
-    // 反推: nside ≈ 211034.6 / target_resolution_arcsec
+    // 转角秒: sqrt(π/3) / nside * (180/π) * 3600 ≈ 211076.3 / nside arcsec
+    // 反推: nside ≈ 211076.3 / target_resolution_arcsec
     double drizzle_factor = 1.5;  // 默认 1x_to_2x_drizzle
     if (strategy == "fixed" || strategy == "1x") {
         drizzle_factor = 1.0;
@@ -195,7 +195,7 @@ int calculate_nside(double cd11, double cd12, double cd21, double cd22,
     // 标准C++不保证 M_PI 宏存在, 用 std::acos(-1.0) 派生 π (与 drizzle_engine.cpp 一致)
     const double PI = std::acos(-1.0);
     const double HEALPIX_SCALE_PER_NSIDE_ARCSEC =
-        std::sqrt(PI / 3.0) * (180.0 / PI) * 3600.0;  // ≈ 211034.6
+        std::sqrt(PI / 3.0) * (180.0 / PI) * 3600.0;  // ≈ 211076.3
     double nside_target = HEALPIX_SCALE_PER_NSIDE_ARCSEC / target_resolution_arcsec;
 
     // 4. 找到不小于 nside_target 的最小 2 的幂次方

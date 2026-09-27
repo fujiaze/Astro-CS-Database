@@ -378,7 +378,7 @@ namespace {
 //             docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
 //             统一对象退役登记 eng/contracts/data/unified_object_compatibility_map_v1.json:133-143。
 // STATUS:     生产可达的合同门：p2_weight_source_token_reject
-//             由 lib/algorithms/integration/v6/src/phase2_integrate.cpp 调用，
+//             由 lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp 调用，
 //             并在 coverage target 内编译。
 // EXIT:       无（拒绝面必须保留）。
 // AUTHORITY:  docs/ASTROCS_DESIGN.md §3.1；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
@@ -386,7 +386,7 @@ namespace {
 //             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────
 // 冻结 forbidden.weight_source_tokens（大小写不敏感全等匹配）。
-// 语义源 = eng/contracts/data/v6_clause_registry_v1.json；
+// 语义源 = eng/contracts/data/clause_registry.json；
 // 其中 psfsw_robust_weight/psfsw 两项按退役对象拒绝面保留（见上）。
 const char* const kForbiddenWeightSourceTokens[] = {
     "median_source_snr", "median_snr", "source_snr_median", "med_source_snr",

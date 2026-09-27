@@ -110,7 +110,7 @@
   * 帧级标量降级门（FZ-DEGRADE-SCALAR）：`p2_scalar_degrade_gate`（空间
     残差/趋势门 + 功率损失门双过 + 摘要完整；阈值属 SO-07
     PENDING_OWNER_SIGNOFF，未声明即 fail-closed，不自行定值）。
-  共址测试 `eng/tests/unit/v6_p2_samp/`（10 ctest / 9 用例，正例+负例+逐位
+  共址测试 `eng/tests/unit/p2_samp/`（10 ctest / 9 用例，正例+负例+逐位
   确定性）。独立 Oracle 与结构门 `run/v6/p2-samp/oracle/check_spec.py`
   （98 checks PASS，不与冻结 JSON 逐项一致即红）；负向 mutation
   `run/v6/p2-samp/oracle/run_mutations.py`（8 注入全红 + 正向控制）。

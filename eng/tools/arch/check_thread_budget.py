@@ -208,7 +208,7 @@ REGISTERED = {
     "lib/phase3_session/p3_session.cpp":
         "Session 期池 x1: docs/ASTROCS_DESIGN §7.3 禁 Session 型模块 -> 该目录为 INT-001 删除对象(ARCH-001 DEFERRED)",
     # ── 独立 Oracle / 自查 harness（非生产路径）──
-    "lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp":
+    "lib/algorithms/integration/phase2_integrate/oracle/weight_chain_selfcheck.cpp":
         "权重链独立合成 Oracle 的 1/N worker 逐位一致自查(ENGINEERING_SPEC §9 自查自修): "
         "线程数 = std::thread::hardware_concurrency() 夹紧 [2,8](非编译期字面量); 池在作用域内创建、"
         "作用域内 join 回收, 无 detach/无常驻线程 ⇒ per-call 池; 该文件**不在根构建图内**"

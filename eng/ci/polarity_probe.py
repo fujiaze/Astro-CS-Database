@@ -169,7 +169,7 @@ FACE = {
  "CHK-INVARIANT": ("P0", "不变量 target 注入违反 ⇒ 必须非 0", "需 ctest 构建树"),
  "CHK-SYNTH-P1": ("P0", "合成链注入坏帧 ⇒ 必须非 0", "需 ctest + 合成夹具"),
  "CHK-SYNTH-P2": ("P0", "同上（含 v6 CLI 模式矩阵）", "需构建产物 acsd + 夹具"),
- "CHK-SYNTH-P3": ("P0", "同上（v6_p3_rsmp_mutation_driver）", "该 ctest 目标当前缺失（build/ 未注册）"),
+ "CHK-SYNTH-P3": ("P0", "同上（p3_rsmp_mutation_driver）", "该 ctest 目标当前缺失（build/ 未注册）"),
  "CHK-NWORKER": ("P0", "1 vs N worker 注入非确定性 ⇒ 必须非 0", "需运行时确定性驱动 + 多 worker"),
  "CHK-SANITIZER": ("P1", "副本注入越界 ⇒ ASan/UBSan 必须非 0", "需 clang sanitizer 重建（2400s 级）"),
  "CHK-COVERAGE": ("P2", "报告项：无阈值/无红判据", "R-6 判定无判据门；已在 §2 标 P2（不阻塞），补阈值属另立任务"),

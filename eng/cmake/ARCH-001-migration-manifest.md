@@ -36,7 +36,7 @@
 | 26 | `lib/phase1/photometry` | `lib/algorithms/photometry/wrapper_phase1` | **DONE** | Phase1 薄包装 |
 | 27 | `lib/phase1/stars` | `lib/algorithms/star_detection/wrapper_phase1` | **DONE** | Phase1 薄包装 |
 | 28 | `lib/phase1/wcs` | `lib/algorithms/platesolve/wrapper_phase1` | **DONE** | Phase1 薄包装 |
-| 29 | `lib/phase1/v6` | `lib/algorithms/integration/v6_phase1` | **DONE** | V6 Phase1 单帧产品装配库（接线层） |
+| 29 | `lib/phase1/v6` | `lib/algorithms/integration/phase1_product` | **DONE** | V6 Phase1 单帧产品装配库（接线层） |
 | 30 | `lib/phase1/tests` | `lib/algorithms/photometry/wrapper_phase1/tests` | **DONE** | P1-001 共址测试（p1phot） |
 | 31 | `lib/phase2` | `lib/algorithms/coverage` | **DONE** | MODULE_MAP: coverage legacy_paths=[lib/phase2]；目录内 upm/rejection/sampling/integration 生产源拆分属架构性边界 -> INT-001 |
 | 32 | `lib/acr` | `lib/infrastructure/acr` | **DONE** | 7.1 infrastructure/acr（DORMANT） |

@@ -90,7 +90,7 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 - **pixfrac**：`half=0.5·pixfrac` 半宽四角收缩（:1303）；(0,1] 严格校验。
   API 文件通道接受 pixfrac=0.0（api.cpp:191 `<0.0` 才拒）而引擎层拒绝
   ——两层边界口径差（DISP-DRZ-003）。
-- **auto nside**：最小 2 次幂 ≥ 211034.6/finest_arcsec，钳位
+- **auto nside**：最小 2 次幂 ≥ 211076.3/finest_arcsec，钳位
   [16, 2^22]（drizzle_engine.cpp:624-710）。
 - **NaN/Inf**：值像素非有限 → 主循环静默 continue（:1712），不进累加器、
   无计数暴露（与 DRIZZLE.md:96 "不掩膜传播 NaN" 不符——DISP-DRZ-004）；

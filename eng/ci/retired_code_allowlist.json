@@ -20,7 +20,7 @@
    "reason": "复核为文件头契约/断言说明块（含公式引用），非被注释掉的旧逻辑"
   },
   {
-   "pattern": "lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h",
+   "pattern": "lib/algorithms/integration/phase2_integrate/include/astrocs/phase2_integrate.h",
    "rule": "R1",
    "reason": "复核为文件头契约说明块（引用实现锚名），非被注释掉的旧逻辑"
   },

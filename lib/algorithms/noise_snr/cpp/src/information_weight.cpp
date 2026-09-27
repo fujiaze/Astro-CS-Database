@@ -1,7 +1,7 @@
 /* information_weight.cpp - W_info / Q / F_hat 实现 (IMPL-P1-PSFW-001)
  * 合同锚见 information_weight.h。纯 std + libm; 无 session 接线。
  * 数值算法: 对角闭式 / Cholesky 解 / Woodbury 低秩; 均为冻结 §3.4 列出的路径。 */
-#include "astrocs/v6/information_weight.h"
+#include "astrocs/information_weight.h"
 
 #include <cmath>
 #include <vector>

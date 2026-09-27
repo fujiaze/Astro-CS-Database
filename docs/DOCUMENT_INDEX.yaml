@@ -632,7 +632,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "对外 API 合同（API-* 条款）"
       upstream: "docs/ASTROCS_DESIGN.md §7（CLI 合同）、§8.4（模块与 ABI）"
-      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/data/v6_clause_registry_v1.json、docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/CALIBRATION_ALGORITHMS.md 等 91 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/data/clause_registry.json、docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/CALIBRATION_ALGORITHMS.md 等 91 处"
       notes: "P1-WCS-DOC (2026-09-07) 追加 API-WCS-001: WCS 求解 C API 12 导出符号锚(ipv_api.h/ipv_entry.cpp)+IpvWcsResult 内存所有权+失败-置信度语义(DISP-WCS-001 退化禁冒充解)+生产调用方 run_stage_platesolve; P2-COV-DOC (2026-09-07) 追加 API-COV-001: p2_coverage_build/p2_coverage_free 2 导出符号锚(coverage.h:52/:56)+两阶段容量协议+调用方所有权(纯 memset 释放)+生产调用方 p2_session coverage 阶段"
     - path: "docs/contracts/RT-001.md"
       status: ACTIVE_NORMATIVE
@@ -1295,7 +1295,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "ACR 等价性的科学边界（生产不可达）"
       upstream: "docs/ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv、docs/contracts/INDEX.yaml、eng/contracts/data/v6_clause_registry_v1.json 等 7 处"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv、docs/contracts/INDEX.yaml、eng/contracts/data/clause_registry.json 等 7 处"
     - path: "docs/science/ASTROMETRY.md"
       status: ACTIVE_NORMATIVE
       duty: "WCS/SIP 天测科学公式与外部闭环口径"
@@ -1372,7 +1372,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "不确定度与协方差传播的唯一科学口径"
       upstream: "docs/ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）、§3.1（数据对象）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/DATA_SEMANTICS.md、eng/contracts/data/v6_clause_registry_v1.json 等 20 处"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/DATA_SEMANTICS.md、eng/contracts/data/clause_registry.json 等 20 处"
     - path: "docs/science/UNIFIED_SCIENCE_MODEL.md"
       status: ACTIVE_NORMATIVE
       duty: "跨阶段统一科学模型（量纲/信号/方差语义总纲）"
@@ -1504,7 +1504,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "独立 Oracle、零用例即红与负向 mutation 政策（QA-MATRIX-001）"
       upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/unit/v6_p3_rsmp/p3_rsmp_oracle.h"
+      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/unit/p3_rsmp/p3_rsmp_oracle.h"
     - path: "docs/validation/v6/P0_GATE_FAMILY.md"
       status: ACTIVE_NORMATIVE
       duty: "P0 门族：历史根因 R1/R2/R4/R5/R10 与 785 合并层账本（QA-MATRIX-001）"
@@ -1514,7 +1514,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "QA-MATRIX-001 科学 QA 矩阵（解析 / Monte Carlo / 注入源 / 真实数据 / 负向 mutation / 基线比较）"
       upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、eng/contracts/data/v6_clause_registry_v1.json、docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md"
+      downstream: "docs/DOCUMENT_INDEX.yaml、eng/contracts/data/clause_registry.json、docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md"
     - path: "docs/validation/v6/README.md"
       status: ACTIVE_NORMATIVE
       duty: "docs/validation/v6 索引（QA-MATRIX-001）"

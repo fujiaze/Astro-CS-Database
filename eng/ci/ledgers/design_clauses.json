@@ -137,14 +137,14 @@
       "production_anchor": [
         "lib/infrastructure/scheduler/src/normalize_workflow.cpp:480",
         "lib/infrastructure/scheduler/src/mosaic_window.cpp:282",
-        "eng/tools/v6/v6_numeric_equiv.py:37"
+        "eng/tools/quality/numeric_equiv.py:37"
       ],
       "anchor_tokens": {
         "lib/infrastructure/scheduler/src/normalize_workflow.cpp:480": "归约顺序冻结：按 frame_id 升序输出",
         "lib/infrastructure/scheduler/src/mosaic_window.cpp:282": "归约顺序冻结：窗口 ID 升序",
-        "eng/tools/v6/v6_numeric_equiv.py:37": "\"float32\": {\"rtol\": 5e-6"
+        "eng/tools/quality/numeric_equiv.py:37": "\"float32\": {\"rtol\": 5e-6"
       },
-      "assertion": "归约顺序由构造冻结（normalize_workflow.cpp:480 按 frame_id 升序输出、mosaic_window.cpp:282 按窗口 ID 升序输出，均与 worker 数无关）；判据面 = v6_numeric_equiv.py:36-38 事前冻结的浮点容差表（fp64 rtol=1e-12 / fp32 rtol=5e-6，NaN/Inf 位置必须精确一致，不比较数值），CHK-NWORKER 与 CHK-NWORKER-TOLERANCE 两道门分别断言 1/N 等价与比较器本身非退化。",
+      "assertion": "归约顺序由构造冻结（normalize_workflow.cpp:480 按 frame_id 升序输出、mosaic_window.cpp:282 按窗口 ID 升序输出，均与 worker 数无关）；判据面 = numeric_equiv.py:36-38 事前冻结的浮点容差表（fp64 rtol=1e-12 / fp32 rtol=5e-6，NaN/Inf 位置必须精确一致，不比较数值），CHK-NWORKER 与 CHK-NWORKER-TOLERANCE 两道门分别断言 1/N 等价与比较器本身非退化。",
       "reason": "",
       "exit_condition": ""
     },
@@ -167,10 +167,10 @@
       "requirement": "实际 SNR 由所选口径直接给出：dense 用 Phase1 稠密面、sparse_reconstruct 用稀疏绝对 SNR 控制点重建、frame_reconstruct 用帧级标量；三者都产出同一物理量 SNR = F_ref/σ_F 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 w = 1/σ² = SNR²/F_ref²（F_ref 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权。",
       "status": "wired",
       "production_anchor": [
-        "lib/algorithms/integration/v6/src/weight_chain.cpp:761"
+        "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:761"
       ],
       "anchor_tokens": {
-        "lib/algorithms/integration/v6/src/weight_chain.cpp:761": "w = SNR²/F_ref²·g_k² undefined"
+        "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:761": "w = SNR²/F_ref²·g_k² undefined"
       },
       "assertion": "weight_chain.cpp:761 在换算叠加权重时以 w = SNR^2/F_ref^2*g_k^2 现场求逆方差，并对非有限/非正结果 fail-closed（明文 no silent g=1 fallback）；:676 与 :84-88 校验 reference_flux F_ref 有限且 > 0、SNR 为 flux 型（F_ref/sigma_F），不是用 SNR 直接加权。",
       "reason": "",
@@ -199,10 +199,10 @@
       "requirement": "稀疏重建算子按冻结词表显式声明（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 docs/plugins/algorithms_phase1/07_noise_snr.md §4.5。",
       "status": "wired",
       "production_anchor": [
-        "lib/algorithms/integration/v6/src/weight_chain.cpp:144"
+        "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:144"
       ],
       "anchor_tokens": {
-        "lib/algorithms/integration/v6/src/weight_chain.cpp:144": "natural_bicubic_spline_clip_mesh_median_v1"
+        "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:144": "natural_bicubic_spline_clip_mesh_median_v1"
       },
       "assertion": "重建算子标识取自唯一词表点：weight_chain.cpp:144 返回 natural_bicubic_spline_clip_mesh_median_v1（自然边界双三次样条 + 钳制 + 3x3 mesh 中值前置滤波）；:384-401 对层里声明的 reconstruction_operator 做冻结词表校验，未登记算子显式报 unknown reconstruction_operator token，不静默回退。",
       "reason": "",
@@ -481,7 +481,7 @@
       "production_anchor": [],
       "anchor_tokens": {},
       "assertion": "",
-      "reason": "八投影的注册表与「未实现显式报不支持」的代码都在盘上（lib/algorithms/projection/p3_projection.cpp:281 registry_table / :327 返回 P3_PROJ_UNSUPPORTED / p3_projection.h:47 定义该状态），但该文件不在任何 CMake 源列表：lib/algorithms/projection/CMakeLists.txt 的 add_library(astrocs_p3_projection_wcs ...) 只编译 p3_wcs.cpp，并明文写「p3_projection.cpp / p3_proj_v6.cpp 的 target 声明归 P3-002 线（本批次未动）」；该模块 module.yaml 自认状态 CONTRACT_READY。p3_projection_registry_find/_table 的调用点只有模块内部与 eng/tests/unit/p3_projection_test.cpp（grep 实测）⇒ 它不是生产实现面。",
+      "reason": "八投影的注册表与「未实现显式报不支持」的代码都在盘上（lib/algorithms/projection/p3_projection.cpp:281 registry_table / :327 返回 P3_PROJ_UNSUPPORTED / p3_projection.h:47 定义该状态），但该文件不在任何 CMake 源列表：lib/algorithms/projection/CMakeLists.txt 的 add_library(astrocs_p3_projection_wcs ...) 只编译 p3_wcs.cpp，并明文写「p3_projection.cpp / p3_proj.cpp 的 target 声明归 P3-002 线（本批次未动）」；该模块 module.yaml 自认状态 CONTRACT_READY。p3_projection_registry_find/_table 的调用点只有模块内部与 eng/tests/unit/p3_projection_test.cpp（grep 实测）⇒ 它不是生产实现面。",
       "exit_condition": "投影注册表进入某个生产 target 的源列表并可从生产 CLI 路径到达（p3_projection.cpp 出现在 lib/algorithms/projection/CMakeLists.txt 的 add_library 源列表且 p3_projection_registry_find 有非测试调用点），届时给出 production_anchor 与 assertion 并改 wired。"
     },
     {
@@ -621,14 +621,14 @@
       "requirement": "容差在写测试前冻结（口径见 §9），NaN/Inf/缺失出现的位置与语义必须精确一致（docs/contracts/TEST_MATRIX.md §2）；受影响验证范围由机器从改动集算出，只扩大不缩小。",
       "status": "wired",
       "production_anchor": [
-        "eng/tools/v6/v6_numeric_equiv.py:36",
+        "eng/tools/quality/numeric_equiv.py:36",
         "eng/tools/quality/check_impact_map.py:3"
       ],
       "anchor_tokens": {
-        "eng/tools/v6/v6_numeric_equiv.py:36": "\"float64\": {\"rtol\": 1e-12",
+        "eng/tools/quality/numeric_equiv.py:36": "\"float64\": {\"rtol\": 1e-12",
         "eng/tools/quality/check_impact_map.py:3": "changed-path -> checks"
       },
-      "assertion": "容差在写测试前冻结且有唯一实现面：v6_numeric_equiv.py:10-11/:36-38 冻结 fp64 rtol=1e-12、fp32 rtol=5e-6 与 NaN/Inf/缺失位置必须精确一致（禁止只比较 finite 像素），CHK-NWORKER-TOLERANCE 以自检断言该比较器非退化；「受影响验证范围由机器从改动集算出、只扩大不缩小」的落点 = eng/tools/quality/check_impact_map.py 与 eng/ci/impact_map.json（CHK-IMPACT-MAP 族，changed-path -> checks 映射）。",
+      "assertion": "容差在写测试前冻结且有唯一实现面：numeric_equiv.py:10-11/:36-38 冻结 fp64 rtol=1e-12、fp32 rtol=5e-6 与 NaN/Inf/缺失位置必须精确一致（禁止只比较 finite 像素），CHK-NWORKER-TOLERANCE 以自检断言该比较器非退化；「受影响验证范围由机器从改动集算出、只扩大不缩小」的落点 = eng/tools/quality/check_impact_map.py 与 eng/ci/impact_map.json（CHK-IMPACT-MAP 族，changed-path -> checks 映射）。",
       "reason": "",
       "exit_condition": ""
     },

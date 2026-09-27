@@ -111,7 +111,7 @@ HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
 //
 // 语义 (负责人裁定): nside 缺省 (0/空/未给出) => 自动; 依据帧内 WCS/SIP 的
 // 最细局部输入像素尺度 finest (自适应四叉树 + 3D 切向量 Jacobian), 取最小
-// 2 次幂 NSIDE 使 HEALPix 特征尺度 hp_res = 211034.6/nside <= finest
+// 2 次幂 NSIDE 使 HEALPix 特征尺度 hp_res = 211076.3/nside <= finest
 // => 线性过采样倍率 finest/hp_res ∈ [1, 2); nside 钳位 [16, 2^22]。
 //
 // frame: 输入帧 (需含 "data" 块 [H,W] 与 "header" KV WCS/SIP; 与 hp_drizzle_run

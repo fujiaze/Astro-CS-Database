@@ -38,7 +38,7 @@
      （避免单点恒真：单次无噪声拟合几乎精确，噪声面才检验统计意义下的域）；
   3) 负例注入：合成谱的 β 改为 3.9 而拟合模型仍按 β=4 → 必须被 FWHM>1% 或位置超差检出。
 
-依赖: numpy + scipy（仓内既有依赖，见 eng/tests/unit/v6_p2_upm/oracle/upm_ma_oracle.py 等 3 处）；
+依赖: numpy + scipy（仓内既有依赖，见 eng/tests/unit/p2_upm/oracle/upm_ma_oracle.py 等 3 处）；
       无网络、无编译、无 ctest、不写任何文件、不依赖 build/。
 退出码（脚本形态）: 0 = 命中期望；1 = 断言失败/负例未被检出；3 = 依赖缺失。
 """

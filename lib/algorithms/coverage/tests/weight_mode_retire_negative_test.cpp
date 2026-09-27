@@ -24,7 +24,7 @@
 #include <string>
 
 #include "astro/phase2/coverage.h"
-#include "v6_runtime_contract.h"
+#include "runtime_contract.h"
 
 namespace {
 

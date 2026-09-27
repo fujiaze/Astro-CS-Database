@@ -422,12 +422,12 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   `TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA`。registry 导出该集合
   （`registry_frozen_set()` / `registry_is_frozen_code()`），表内 code 必须属于
   该集合（`registry_selfcheck()` 强制；不属于 → 自检失败）。
-- **在役 registry = v6 线** `lib/algorithms/projection/p3_proj_v6.h/.cpp`，
+- **在役 registry = 现行实现** `lib/algorithms/projection/p3_proj.h/.cpp`，
   `kProjectionRegistryVersion = 3`。
 - **v1 线**（`lib/algorithms/projection/p3_projection.h/.cpp`，
   `kP3ProjectionRegistryVersion = 1`，`kP3ProjectionRegistryRetired = true`）
   **RETIRED**：仅保留偏差对照证据门（§15.9 + `ctest
-  v6_p3_proj_legacy_deviation`），引用面限于偏差对照证据门；其行为冻结、取值固定
+  p3_proj_legacy_deviation`），引用面限于偏差对照证据门；其行为冻结、取值固定
   （偏差集合只减不增，任何变化须复核并更新 §15.9）。
 - **实现状态（如实）**：v3 已实现 4/8（TAN/SIN/CAR/AIT）；`STG/MOL/CEA/ZEA`
   未实现——`registry_find()` 返回 nullptr（fail-closed，无 fallback），
@@ -557,8 +557,8 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     δ0≠0 进入映射；δ0≡0 对 CRVAL2 缺陷零区分力）与 **CRPIX↔CRVAL 定义性
     不变量**（pix2world(CRPIX)==CRVAL，Paper I §2.1.1）。
 - 可执行面（v3 现状）:
-  - `eng/tests/unit/v6_p3_proj/v6_p3_proj_test.cpp`（ctest: v6_p3_proj_units /
-    v6_p3_proj_fault_*）: T1 registry 完整性（版本=3/已实现 4 行/冻结集合 8 行
+  - `eng/tests/unit/p3_proj/p3_proj_test.cpp`（ctest: p3_proj_units /
+    p3_proj_fault_*）: T1 registry 完整性（版本=3/已实现 4 行/冻结集合 8 行
     且 code 顺序/DESIGN 集合成员判定/函数指针/selfcheck=0/未知码 nullptr 无
     fallback）；T2 往返；T4 3D 向量独立解析解（TAN/SIN）+ CAR dec=+Y/AIT γ=√2
     独立式；T5 G1 CD 精确断言；T6 负面清单（未知码/parity 非法/|dec|=85.1/
@@ -567,24 +567,24 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     T7 CTYPE 关键词面；T8 确定性；T9 1/N worker；
     **T-H（v3 新增）CRVAL2 进映射**：CAR/AIT dec0∈{±30,+60,−45} 的
     `pix2world(CRPIX)==CRVAL` 与「dec ≠ 平面 Y」区分性断言。
-  - `eng/tests/unit/v6_p3_proj/p3_proj_wcs_oracle.py`（pytest 面，ctest
-    v6_p3_proj_wcs_oracle）: astropy 独立实现逐点绝对对拍（14 条用例，含 6 条
+  - `eng/tests/unit/p3_proj/p3_proj_wcs_oracle.py`（pytest 面，ctest
+    p3_proj_wcs_oracle）: astropy 独立实现逐点绝对对拍（14 条用例，含 6 条
     dec0≠0）+ 逐像素 Ω 盈余 + CRPIX↔CRVAL 不变量 + **AIT 椭圆域 A≤1 判据**；
     CAR 解析纬度带判据限定 `|CRVAL2|≤1e-9`（倾斜 CAR 的行不是天球纬度带，
     否则对任何正确实现都误判，R-1 §4-B）。
-  - `eng/tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py`（ctest
-    v6_p3_proj_legacy_deviation）: **v1 偏差表门**（§15.9 四项），
+  - `eng/tests/unit/p3_proj/p3_proj_legacy_deviation.py`（ctest
+    p3_proj_legacy_deviation）: **v1 偏差表门**（§15.9 四项），
     v1 已 RETIRED ⇒ 表内偏差必须仍复现（缺失即红，须复核），表外新偏差亦红。
 - 故障注入（必败面，测试级注入、生产源零 getenv）:
-  `ASTROCS_P3PROJ_V6_FAULT=const_omega|legacy_car|legacy_ait|swap_norm|naive_wrap`
+  `ASTROCS_P3PROJ_FAULT=const_omega|legacy_car|legacy_ait|swap_norm|naive_wrap`
   注入等价缺陷，注入模式断言必败并报告捕获（FAULT-EFFECT-CONFIRMED）。
 - 验收级 oracle 升级（WCSLIB 独立实现，§12 T6）仍归 P3-PROJ-TEST，本层不冒认；
   v3 已把「绝对对拍 + dec0≠0 + CRPIX 不变量」落到 Oracle 可执行面。
 
 ### 15.7 构建挂载与越界登记
 
-- 测试挂载仅动 `eng/tests/unit/CMakeLists.txt` / `eng/tests/unit/v6_p3_proj/CMakeLists.txt`
-  （add_executable 直编 p3_proj_v6.cpp 等，先例 aio_abi_tests 同构）；
+- 测试挂载仅动 `eng/tests/unit/CMakeLists.txt` / `eng/tests/unit/p3_proj/CMakeLists.txt`
+  （add_executable 直编 p3_proj.cpp 等，先例 aio_abi_tests 同构）；
   根 CMakeLists.txt / lib/phase3_session 零改动——生产构建挂载
   （astrocs_p3_projection.dll target/adapter 接线/会话消费）归
   P3-PROJ-IMPL/P3-002（白名单外），本层 out_of_scope_entries=0。
@@ -612,9 +612,9 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 ### 15.9 v1 偏差表（RETIRED 冻结对照）
 
 > v1 = `lib/algorithms/projection/p3_projection.h/.cpp`（RETIRED）。四项偏差
-> 均由 `eng/tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py` 以 `LEGACY_DEVIATION_TABLE`
+> 均由 `eng/tests/unit/p3_proj/p3_proj_legacy_deviation.py` 以 `LEGACY_DEVIATION_TABLE`
 > 断言「仍然复现」；修好 v1 或偏差消失 ⇒ 该门转红（须复核并更新本表）。
-> 实测（ctest v6_p3_proj_legacy_deviation，rc=0）:
+> 实测（ctest p3_proj_legacy_deviation，rc=0）:
 > D1 = 60°（=|CRVAL2|）; D2 = 345600″; D3 = 94885″; D4 = 63.3°。
 
 | # | 偏差 | 判据 | 状态 |
@@ -637,7 +637,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
 | C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
-| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_v6_export.cpp` **未进构建**（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§5.3 生效与否以接线实测为准） |
+| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§5.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
@@ -646,7 +646,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 - **判据冻结**：`ALIGNMENT-5.3.md` §1 结论表 + E09 `results/PREREGISTRATION.sha256`（`562d9f74…`，冻结于 2026-09-20T08:39:28Z，跑后未改）。
 - **负例（判据非退化）**：FLUX-IN 支同二进制下 `R_cross = 4.0`、`T ≈ −1`；面积标度错注入 `T = −0.75` ⇒ 判据能红能绿。
-- **不在本节范围（已知偏差，现行）**：v6 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用），随 v6 家族失效而消失；入库复现门 `eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py` 修好即转红。
+- **不在本节范围（已知偏差，现行）**：现行 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用），随 v6 家族失效而消失；入库复现门 `eng/tests/unit/p3_proj/sin_roundtrip_gate.py` 修好即转红。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

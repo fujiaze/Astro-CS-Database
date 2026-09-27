@@ -8,7 +8,7 @@
 //     (含 TAN 的 |dec|≤85°、FOV≤20°、手性 det(CD)<0、CRPIX 用 FITS 1-based
 //     像素中心、往返误差 < 声明容差（TAN: 1e-8 px, Oracle 冻结）), 违反 ⇒ 拒绝。
 //   * docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.1/§15.5: v6 内核 registry
-//     (p3_proj_v6.h/.cpp, kProjectionRegistryVersion=3) 已实现 4/8
+//     (p3_proj.h/.cpp, kProjectionRegistryVersion=3) 已实现 4/8
 //     (TAN/SIN/CAR/AIT), 但**会话/产品面收窄为仅 TAN**; 内核行不是产品声明。
 //
 // 三层集合（本文件是唯一权威; 机器判据见 p3_proj_registry_selfcheck 与共址测试
@@ -96,9 +96,9 @@ inline const P3ProjFrozenEntry* p3_proj_frozen_table(int* count) {
 // ⇒ 判定为**实现条件数缺陷**（非双精度固有极限），但**不是产品声明**（SIN 行 =
 // kKernelOnly），故不影响本表产品声明集与 TAN 容差合同。
 // 复现门（durable，入库）:
-// eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py —— 编译真实内核实测投影中心邻域最大往返误差：
+// eng/tests/unit/p3_proj/sin_roundtrip_gate.py —— 编译真实内核实测投影中心邻域最大往返误差：
 // 偏差仍复现 ⇒ rc 0（本段登记成立）；内核被修好 ⇒ rc 1（修好即转红），强制同步本段与
-// p3_proj_v6.h/.cpp 的 ENGINEERING_SPEC §2 保留注释块之已知缺陷登记。CLEAN-401 实测（2026-09-21，
+// p3_proj.h/.cpp 的 ENGINEERING_SPEC §2 保留注释块之已知缺陷登记。CLEAN-401 实测（2026-09-21，
 // 中心邻域 0.25 px 步长密扫）：worst 7.39e-5 px @0.5″/px、4.40e-3 px @0.05″/px —— 与
 // 独立复核报告同量级且更大，印证「误差无上界」结论（证据 run/CLEAN-401/evidence/
 // sin_roundtrip_gate.json）。

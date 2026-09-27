@@ -2631,9 +2631,9 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
 // STATUS:     非产品目标态、仍是生产可达的合同门（reject_outliers 节点的权重来源守卫）。
 // EXIT:       与 coverage.cpp:376 同批删除：DOC-402 整体退役 frozen 的
 //             forbidden.weight_source_tokens 段并留 A44 痕后，同提交收缩本表与
-//             eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp 的对应断言。
+//             eng/tests/unit/p2_samp/p2_samp_test.cpp 的对应断言。
 // AUTHORITY:  ENGINEERING_SPEC.md §2 / §3；RELEASE-04 GAP_AUDIT G2-2（包已出库）；
-//             eng/contracts/data/v6_clause_registry_v1.json:196-197。
+//             eng/contracts/data/clause_registry.json:196-197。
 // ──────────────────────────────────────────────────────────────────────
     // 禁止 token（FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE /
     // FZ-MODE-DEFERRED / ALG-P2S-REJ.3 probability 非权重）。

@@ -92,7 +92,7 @@
       ]
     },
     {
-      "path": "eng/tests/integration/v6_p1/v6_p1_integrate_test.cpp",
+      "path": "eng/tests/integration/p1_integrate/p1_integrate_test.cpp",
       "hits": 17,
       "rules": {
         "cxx-stream": 5,
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "path": "eng/tests/integration/v6_p2/v6_p2_integrate_test.cpp",
+      "path": "eng/tests/integration/p2_integrate/p2_integrate_test.cpp",
       "hits": 17,
       "rules": {
         "cxx-stream": 5,
@@ -138,7 +138,7 @@
       ]
     },
     {
-      "path": "eng/tests/integration/v6_p3/p3_v6_export_e2e_test.cpp",
+      "path": "eng/tests/integration/p3_export/p3_export_e2e_test.cpp",
       "hits": 4,
       "rules": {
         "cxx-stream": 2,
@@ -154,7 +154,7 @@
       ]
     },
     {
-      "path": "eng/tests/system/v6_runtime/v6_runtime_resource_record_test.cpp",
+      "path": "eng/tests/system/runtime/runtime_resource_record_test.cpp",
       "hits": 3,
       "rules": {
         "cxx-stream": 2,
@@ -998,7 +998,7 @@
       ]
     },
     {
-      "path": "eng/tests/unit/v6_aio/v6_aio_test.cpp",
+      "path": "eng/tests/unit/aio/aio_test.cpp",
       "hits": 28,
       "rules": {
         "cxx-stream": 4,
@@ -1017,7 +1017,7 @@
       ]
     },
     {
-      "path": "eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
+      "path": "eng/tests/unit/p2_samp/p2_samp_test.cpp",
       "hits": 1,
       "rules": {
         "fopen": 1
@@ -1030,7 +1030,7 @@
       ]
     },
     {
-      "path": "eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
+      "path": "eng/tests/unit/p2_sky/p2_sky_test.cpp",
       "hits": 3,
       "rules": {
         "fopen": 1,
@@ -1257,7 +1257,7 @@
       ]
     },
     {
-      "path": "lib/algorithms/integration/v6/oracle/recon_dump.cpp",
+      "path": "lib/algorithms/integration/phase2_integrate/oracle/recon_dump.cpp",
       "hits": 4,
       "rules": {
         "cxx-stream": 4
@@ -1775,7 +1775,7 @@
       ]
     },
     {
-      "path": "lib/infrastructure/cli/v6_mode_gate.h",
+      "path": "lib/infrastructure/cli/mode_gate.h",
       "hits": 2,
       "rules": {
         "cxx-stream": 2
@@ -2284,7 +2284,7 @@
       ]
     },
     {
-      "path": "lib/phase3_session/p3_v6_export.cpp",
+      "path": "lib/phase3_session/p3_export.cpp",
       "hits": 5,
       "rules": {
         "cxx-stream": 3,

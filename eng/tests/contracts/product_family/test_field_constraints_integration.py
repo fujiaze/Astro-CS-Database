@@ -17,7 +17,7 @@ import jsonschema_min as jm  # noqa: E402
 
 EXAMPLES = REPO / "eng/contracts/data/examples/v6"
 PF = REPO / "eng/contracts/schemas/product_family_field_constraints.schema.json"
-REG = REPO / "eng/contracts/data/v6_clause_registry_v1.json"
+REG = REPO / "eng/contracts/data/clause_registry.json"
 UNIFIED = REPO / "eng/contracts/schemas/unified"
 
 TARGETS = {
@@ -56,7 +56,7 @@ class TestFieldConstraintsOracle(unittest.TestCase):
         self.assertNotIn("import gen_data_dictionary", src)
         self.assertNotIn("import gen_production_schemas", src)
         self.assertNotIn("subprocess", src)
-        self.assertIn("v6_clause_registry_v1.json", src)
+        self.assertIn("clause_registry.json", src)
         self.assertIn("product_family_field_constraints.schema.json", src)
 
     def test_product_family_schema_is_not_an_object_contract(self):

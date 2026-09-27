@@ -12,7 +12,7 @@
 | 1 | 平均 CPU 利用率 | ≥ 0.85 | red |
 | 2 | 利用率 p50 | ≥ 0.90 | red |
 | 3 | 达标样本占比（利用率 ≥ 0.85 的采样窗比例） | ≥ 0.70 | red |
-| 4 | 无「连续 ≥142 s 低利用窗且无积压」 | 无 | red |
+| 4 | 无「连续 ≥10 s 且利用率 <60% 的低利用窗」（无就绪积压同样计违规） | 无 | red |
 
 - **enforcement = fail-closed**：任一判据违规 ⇒ `verdict=red`；违规一律由 fail-closed 判红，`record_and_justify` 只用于无违规样本（GATE-501 须把 L2 门从 record_and_justify 改为 fail-closed，并用 RELEASE-04 归档违规数据回放证明改前绿、改后红）；
 - 判据阈值本身**保持事前冻结值**；如确有硬件/算法上限 ⇒ 给证据化上限并登记到未决问题台账（随审核包交付），不 waiver。

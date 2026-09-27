@@ -19,11 +19,13 @@
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
 > 记录证据与影响面）；文档已被证明正确而实现不符时改实现。
 >
-> **行号锚声明**：跨边界结构 ABI 头/校验、共用 `fmt_sky_fraction`、未钳制面积
-> 归约与钳制计数使 `aio_hips_writer.cpp` 行号整体推移（+57 起，最大约 +147）。
-> 本文件 §4 (4b)(4c)、§5 (5a)(5b)、§9 的锚已按修订后行号重标；§1–§3 与 §10 DISP
-> 表的裸 `:NNN` 以**符号名**为准。`docs/algorithms/anchors/anchor_contract.json`
-> 未对 aio 文件声明 symbol binding，故 C4 机器门不覆盖此漂移。
+> **行号锚声明**：`aio_hips_writer.cpp` 经原子写与流式 hierarchy 重构后行号整体推移
+> （主函数漂移约 +710…+1228），函数内部结构亦有多处重排（如 write_moc_fits 分层出
+> write_moc_fits_raw、finalize_hierarchy 分层出 write_hierarchy_cell）。本文件 §1–§5 的
+> **主源码锚（各「源码锚」行的函数行域）已按现行源码实测重标**；各小节内的子行锚
+> 与 §10 DISP 表裸 `:NNN` 尚未逐一重测，读法以**符号名与语义**为准。
+> `docs/algorithms/anchors/anchor_contract.json` 未对 aio 文件声明 symbol binding，
+> 故 C4 机器门不覆盖此漂移；子锚批量重标归全库重锚工程。
 
 ## 0. 范围界定
 
@@ -37,7 +39,7 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
 
 ## 1. ALG-HIPS-001 — 产品生命周期与叶级几何基数
 
-**源码锚**: aio_hips_writer.cpp `aio_hips_product_begin` :386-422。
+**源码锚**: aio_hips_writer.cpp `aio_hips_product_begin` :1165-1260。
 
 - (1a) 叶级阶 K 与 tile 阶：`leaf_order = ilog2(nside)`（:411），
   `tile_order = leaf_order − 9`（:412，tile 宽恒 512=2^9），叶级
@@ -64,7 +66,7 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
 
 ## 2. ALG-HIPS-002 — 叶级 tile 信号/支撑归一与 FITS 写出
 
-**源码锚**: aio_hips_writer.cpp `aio_hips_write_signal_support_tile` :424-562
+**源码锚**: aio_hips_writer.cpp `aio_hips_write_signal_support_tile` :1262-1468
 （视图校验 :428-437；缓冲 :442-456；NESTED→FITS 序 :463-465；归一 :476-479；
 无效规则 :481-485；FITS 写 :503-521；MOC/面积登记 :528-532）。
 
@@ -111,7 +113,7 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
 
 ## 3. ALG-HIPS-003 — 方差/逆方差产品
 
-**源码锚**: aio_hips_writer.cpp `aio_hips_write_variance_tile` :571-692
+**源码锚**: aio_hips_writer.cpp `aio_hips_write_variance_tile` :1481-1659
 （参数校验 :573-584；缓冲 :590-600；主循环 :607-628；全无效 :629-632；
 FITS 写 :641-658；hierarchy 登记 :663-679）。SCI 锚：SCI-DRZ-001 :130
 （finalize_tile 方差传播，方差分子已由 P1-DRZ 链生产，本模块只做除法归一）；
@@ -136,9 +138,10 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 
 ## 4. ALG-HIPS-004 — hierarchy 低阶 tile 聚合
 
-**源码锚**: aio_hips_writer.cpp 叶级同步累加 :536-557 与 variance 同构段
-:663-679（AncestorAcc :297-333）；finalize 落盘 `finalize_hierarchy`
-:791-885（逐层循环 :797-799，:830-880 写各阶 FITS）。IVOA HiPS hierarchy
+**源码锚**: aio_hips_writer.cpp 叶级同步累加（signal tile 内与 variance tile 内
+同构段，`leaf_ipix_list.push_back` :1388/:1756）（AncestorAcc :780 起，
+add_var :840）；finalize 落盘 `finalize_hierarchy` :1972-1982
+（逐层循环内经 `write_hierarchy_cell` :976 写各阶 FITS，流式写出共用同一函数）。IVOA HiPS hierarchy
 （上采样满足任意浏览器）的写出侧实现合同；SCI 层零覆盖（读侧 SCI-P3-001
 只规定消费），按实现+IVOA 语义登记。
 
@@ -187,11 +190,11 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 
 ## 5. ALG-HIPS-005 — MOC、properties、SNR 产品与 manifest 收尾
 
-**源码锚**: aio_hips_writer.cpp `write_moc_fits` :243-283、
-`write_properties` :285-293、`finalize_image_product` :697-789、
-`finalize_hierarchy` :791-885、`finalize_snr_product` :887-1005、
-`aio_hips_set_drizzle_provenance` :1007-1016、`aio_hips_finalize`
-:1018-1131、`aio_hips_abort` :1133-1137。
+**源码锚**: aio_hips_writer.cpp `write_moc_fits` :652-665（原子包装，
+raw 体 :396）、`write_properties` :673-695、`finalize_image_product` :1816-1967、
+`finalize_hierarchy` :1972-1982、`finalize_snr_product` :1985-2115、
+`aio_hips_set_drizzle_provenance` :2118-2154、`aio_hips_finalize`
+:2246-2458、`aio_hips_abort` :2468-2483。
 
 - (5a) MOC：叶级 moc_cells（2^K cell）→ **UNIQ 编码
   `uniq = 4·4^moc_order + (c >> 2·(tile_order−moc_order))`**（:781-785，

@@ -186,7 +186,7 @@
 | `CHK-NO-WEIGHT-MODE-CODE` | KEPT | `CHK-NO-WEIGHT-MODE-CODE` | extension | P0 | 并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项 |
 | `CHK-NO-WEIGHT-MODE-CODE-SELFTEST` | KEPT | `CHK-NO-WEIGHT-MODE-CODE-SELFTEST` | extension | P0 | 并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项 |
 | `CHK-NO-WEIGHT-MODE-SELFTEST` | KEPT | `CHK-NO-WEIGHT-MODE-SELFTEST` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
-| `CHK-NWORKER-TOLERANCE` | KEPT | `CHK-NWORKER-TOLERANCE` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/v6/v6_numeric_equiv.py --self-test |
+| `CHK-NWORKER-TOLERANCE` | KEPT | `CHK-NWORKER-TOLERANCE` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/quality/numeric_equiv.py --self-test |
 | `CHK-PATH-DOMAIN-ANCHORS` | KEPT | `CHK-PATH-DOMAIN-ANCHORS` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-PHOTOMETRY-APPLY-SELFTEST` | KEPT | `CHK-PHOTOMETRY-APPLY-SELFTEST` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 B（合并 photometry 与施加为一步，须保留像素级可核对判据） |
 | `CHK-PROD-SCALE` | KEPT | `CHK-PROD-SCALE` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |

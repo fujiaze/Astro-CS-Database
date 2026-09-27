@@ -10,8 +10,8 @@
  *           σ² = 1.78725e21（control_variance 中位）；N = 49（L4 帧数）。
  * 构建: 见 build_oracle.sh（g++，链接 variance_propagation.cpp + weight_chain.cpp）。
  */
-#include "astrocs/v6/variance_propagation.h"
-#include "astrocs/v6/weight_chain.h"
+#include "astrocs/variance_propagation.h"
+#include "astrocs/weight_chain.h"
 
 #include <algorithm>
 #include <cmath>

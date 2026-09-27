@@ -74,7 +74,7 @@ Bunit bunit_mul(const Bunit& a, const Bunit& b);
 Bunit bunit_square(const Bunit& a);
 Bunit bunit_inverse(const Bunit& a);
 
-// 冻结单位表（eng/contracts/data/v6_clause_registry_v1.json units_table）。
+// 冻结单位表（eng/contracts/data/clause_registry.json units_table）。
 namespace units {
 extern const Bunit signal_sb;          // ADU/sr
 extern const Bunit pixel_variance_in;  // ADU^2

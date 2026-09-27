@@ -13,10 +13,10 @@ target_link_libraries(p3_wcs_test PRIVATE astrocs_p3_projection_wcs astrocs_comm
 add_test(NAME p3_wcs COMMAND p3_wcs_test)
 # FIX-205: 投影产品声明注册表 + 显式「不支持」 + 适用域 + 机器判据
 # （声明集 == 实现集 == 实际可运行集; 8 冻结码逐一黑盒实跑探针）。
-# p3_proj_v6.cpp 一并编入以做跨注册表一致检查（内核行不得冒充产品声明）。
+# p3_proj.cpp 一并编入以做跨注册表一致检查（内核行不得冒充产品声明）。
 add_executable(p3_projection_registry_test
   p3_projection_registry_test.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../p3_proj_v6.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../p3_proj.cpp)
 target_include_directories(p3_projection_registry_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 target_link_libraries(p3_projection_registry_test PRIVATE

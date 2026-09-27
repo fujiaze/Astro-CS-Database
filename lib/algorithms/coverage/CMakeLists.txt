@@ -166,8 +166,8 @@ if(GTest_FOUND)
     #    注：本任务写域不含 eng/tests/**，故负例登记在 coverage 模块共址测试位。
     add_executable(p3_rsmp_retired_object_negative
         tests/retired_object_reject_negative_test.cpp
-        ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp
-        ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/src/v6_calibration_covariance.cpp)
+        ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle/drizzle_science.cpp
+        ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/src/calibration_covariance.cpp)
     target_include_directories(p3_rsmp_retired_object_negative PRIVATE
         ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle
         ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/include)

@@ -3,7 +3,7 @@
 
 独立性声明：本 Oracle 以现行合同文档与登记表为语义真值，对照**生产 artifact** 逐条核对：
   * 语义权威：docs/contracts/DATA_SEMANTICS.md §31（§31.1–§31.10）与 §28.6；
-  * 机器登记表：eng/contracts/data/v6_clause_registry_v1.json；
+  * 机器登记表：eng/contracts/data/clause_registry.json；
   * 产品族记录级字段门：eng/contracts/schemas/product_family_field_constraints.schema.json（$defs 逐件）；
   * canonical 对象级字段门：eng/contracts/schemas/unified/*.schema.json 的 allOf。
 它不复用任何生成器的结论，也不 import 生产实现。
@@ -22,7 +22,7 @@ jm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(jm)
 
 PF_REL = "eng/contracts/schemas/product_family_field_constraints.schema.json"
-REG_REL = "eng/contracts/data/v6_clause_registry_v1.json"
+REG_REL = "eng/contracts/data/clause_registry.json"
 DS_REL = "docs/contracts/DATA_SEMANTICS.md"
 PA_REL = "docs/contracts/PUBLIC_API.md"
 U_DIR = "eng/contracts/schemas/unified"
@@ -72,8 +72,8 @@ VALIDITY_REASONS = {"no_common_star_set", "background_nonpositive_undefined_tran
                     "insufficient_valid_stars", "selection_bias_gate_failed",
                     "spatial_nonuniformity_gate_failed"}
 # FZ-WEIGHT-SINGLE-PATH：权重只有一个口径，没有可选择项。本集合是**数据对象合同层**
-# 的登记面（与 eng/contracts/data/v6_clause_registry_v1.json 的 weight_modes 同源），
-# 运行时**不得**据此放行任何 --mode token（见 lib/infrastructure/cli/v6_runtime_contract.h
+# 的登记面（与 eng/contracts/data/clause_registry.json 的 weight_modes 同源），
+# 运行时**不得**据此放行任何 --mode token（见 lib/infrastructure/cli/runtime_contract.h
 # 的 route_phase2_weight_token：全部 token fail-closed）。
 # psfsw_robust 是**退役对象** psfsw_robust_weight 的声明 token ⇒ 必须仍能被
 # **识别为退役/迁移情形**（不得静默接受、不得当作未知值草率处理）。
@@ -621,7 +621,7 @@ class Oracle:
         d = self.registry()["concentration_unit_authority"]
         s = self.schema("psfsw")
         pat = s["properties"]["components"]["properties"]["concentration"]["allOf"][1]["properties"]["units"]["pattern"]
-        ex = self.j("eng/contracts/data/examples/v6/psfsw.example.json")
+        ex = self.j("eng/contracts/data/examples/psfsw.example.json")
         ok = (d["authoritative_unit"] == "component_flux_unit/px^2"
               and d["a_nea_unit"] == "px^2"
               and d["registered_text_error"]["as_written"] == "ADU/px"
@@ -666,7 +666,7 @@ class Oracle:
                  "provenance.example.json": "provenance", "covariance.example.json": "covariance",
                  "signal.example.json": "signal", "effective-psf.example.json": "effective_psf"}
         for ex, key in EXAMPLE_TARGET.items():
-            doc = self.j("eng/contracts/data/examples/v6/" + ex)
+            doc = self.j("eng/contracts/data/examples/" + ex)
             errs = jm.validate(doc, self.schema(key))
             if errs:
                 bad.append("%s schema: %s" % (ex, errs[:2]))
@@ -703,11 +703,11 @@ class Oracle:
         pv = self.schema("provenance")
         cov = self.schema("covariance")
         sig = self.schema("signal")
-        base_ps = self.j("eng/contracts/data/examples/v6/psfsw.example.json")
-        base_wm = self.j("eng/contracts/data/examples/v6/weight-mode.example.json")
-        base_pv = self.j("eng/contracts/data/examples/v6/provenance.example.json")
-        base_cov = self.j("eng/contracts/data/examples/v6/covariance.example.json")
-        base_sig = self.j("eng/contracts/data/examples/v6/signal.example.json")
+        base_ps = self.j("eng/contracts/data/examples/psfsw.example.json")
+        base_wm = self.j("eng/contracts/data/examples/weight-mode.example.json")
+        base_pv = self.j("eng/contracts/data/examples/provenance.example.json")
+        base_cov = self.j("eng/contracts/data/examples/covariance.example.json")
+        base_sig = self.j("eng/contracts/data/examples/signal.example.json")
 
         def clone(d):
             return json.loads(json.dumps(d))
@@ -817,30 +817,30 @@ class Oracle:
         not_rejected = []
         for tag, key, ex, muts in specs:
             sch = self.schema(key)
-            base = self.j("eng/contracts/data/examples/v6/" + ex)
+            base = self.j("eng/contracts/data/examples/" + ex)
             for dotted, val in muts:
                 m = clone(base)
                 set_path(m, dotted, val)
                 if jm.is_valid(m, sch):
                     not_rejected.append("%s:%s=%r" % (tag, dotted, val))
-        m = clone(self.j("eng/contracts/data/examples/v6/signal.example.json"))
+        m = clone(self.j("eng/contracts/data/examples/signal.example.json"))
         m["pixel_semantics"] = "surface_brightness"; m["pixel_area_power"] = -4
         if jm.is_valid(m, self.schema("signal")):
             not_rejected.append("signal:pixel_area_power mismatch")
-        m = clone(self.j("eng/contracts/data/examples/v6/provenance.example.json"))
+        m = clone(self.j("eng/contracts/data/examples/provenance.example.json"))
         del m["k_corr"]
         if jm.is_valid(m, self.schema("provenance")):
             not_rejected.append("provenance:missing k_corr")
-        m = clone(self.j("eng/contracts/data/examples/v6/effective-psf.example.json"))
+        m = clone(self.j("eng/contracts/data/examples/effective-psf.example.json"))
         del m["effective_psf_id"]
         if jm.is_valid(m, self.schema("effective_psf")):
             not_rejected.append("effective-psf:missing id")
-        m = clone(self.j("eng/contracts/data/examples/v6/provenance.example.json"))
+        m = clone(self.j("eng/contracts/data/examples/provenance.example.json"))
         m["units"] = {"bunit": "ADU", "pixel_semantics": "integrated_flux",
                       "pixel_area_power": 0, "target_pixel_area": 1.0}
         if jm.is_valid(m, self.schema("provenance")):
             not_rejected.append("provenance:bunit unjudgeable")
-        m = clone(self.j("eng/contracts/data/examples/v6/covariance.example.json"))
+        m = clone(self.j("eng/contracts/data/examples/covariance.example.json"))
         m["representation"] = "diagonal_variance"; del m["correlation_kernel"]
         if jm.is_valid(m, self.schema("covariance")):
             not_rejected.append("covariance:diagonal without kernel")

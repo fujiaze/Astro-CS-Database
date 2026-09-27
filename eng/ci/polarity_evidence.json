@@ -563,7 +563,7 @@
         [
           "sh",
           "-c",
-          "同上（v6_p3_rsmp_mutation_driver）"
+          "同上（p3_rsmp_mutation_driver）"
         ],
         1,
         "manual"

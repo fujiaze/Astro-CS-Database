@@ -172,9 +172,9 @@ io_files = sorted({l.split(":")[0] for l in rg(r"aio_frame_add_block|aio_write|f
 # SNI-S4-P3X-06 台账承载 —— 一旦文件被接进生产闭包，该台账即 stale，
 # CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 判红，强制删掉本登记项（登记项不得成为免检区）。
 PRODUCTION_UNREACHABLE = {
-    "lib/phase3_session/p3_v6_export.cpp":
+    "lib/phase3_session/p3_export.cpp":
         "CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06：v6 导出实现未接入生产命名块管线；"
-        "仅由 eng/tests/integration/v6_p3 的 v6_p3_export_test 编译；"
+        "仅由 eng/tests/integration/p3_export 的 p3_export_test 编译；"
         "不在生产入口 acsd 的传递闭包内（判据 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH E3）；"
         "待 CLEAN-401 退役处置",
 }

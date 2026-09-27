@@ -15,7 +15,7 @@
 - infrastructure/ —— 工程基建：cli/（normalize/mosaic/export 三个子命令薄入口）、pipeline/（命名块与 typed DAG）、scheduler/（三阶段调度器）、aio/（FITS/HiPS/manifest 唯一 I/O）、benchmark/、observability/、gaia_xpsd_client/、acr/、hips_browser/。
 - phase1_session/ —— normalize 阶段装配会话与端口表（p1_session.cpp/.h、module.yaml、memory.md、tests/）。
 - phase2_session/ —— mosaic 阶段装配会话（p2_session.cpp/.h、module.yaml、memory.md）。
-- phase3_session/ —— export 阶段装配会话与导出接口（p3_session.cpp/.h、p3_v6_export.cpp/.h）。
+- phase3_session/ —— export 阶段装配会话与导出接口（p3_session.cpp/.h、p3_export.cpp/.h）。
 - include/ —— 对外公共头（astrocs/）。
 - third_party/ —— 随仓第三方依赖（nlohmann）。
 

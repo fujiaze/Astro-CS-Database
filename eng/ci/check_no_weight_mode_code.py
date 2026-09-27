@@ -79,7 +79,7 @@ REJECTION_ANCHORS = (
     ("lib/algorithms/coverage/src/coverage.cpp",
      ("psfsw_robust_weight", "FZ-MODE-RETIRED"),
      "禁止权重来源词表里的退役对象 token + 显式拒绝理由"),
-    ("lib/algorithms/integration/v6/src/phase2_integrate.cpp",
+    ("lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
      ("is_retired_weight_mode_token", "FZ-MODE-RETIRED"),
      "产品校验面的退役对象识别 + 显式拒绝理由"),
     ("lib/algorithms/photometry/cpp/src/psfsw.cpp",
@@ -89,11 +89,11 @@ REJECTION_ANCHORS = (
 
 # ── C3 单一口径的逆方差链路（必须同时存活）────────────────────────────────────
 CHAIN_ANCHORS = (
-    ("lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h",
+    ("lib/algorithms/integration/phase2_integrate/include/astrocs/weight_chain.h",
      ("SparseSnrReconstructor", "reconstruct_sparse_snr",
       "compute_inverse_variance_weights", "weight_from_snr"),
      "稀疏控制点重建器 + 逆方差权重链 API"),
-    ("lib/algorithms/integration/v6/src/weight_chain.cpp",
+    ("lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
      ("SparseSnrReconstructor::eval", "compute_inverse_variance_weights",
       "weight_from_snr"),
      "重建器与逆方差权重链实现"),
@@ -101,7 +101,7 @@ CHAIN_ANCHORS = (
      ("compute_inverse_variance_weights", "AIO_HIPS_RD_IVAR",
       "稀疏 SNR 层尚未接入生产数据面"),
      "生产集成调用点：逐样本 ivar 优先，缺 ivar 时走 SNR → 逆方差链"),
-    ("lib/algorithms/integration/v6/src/phase2_integrate.cpp",
+    ("lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp",
      ("p2_weight_source_token_reject", "FZ-WEIGHT-SINGLE-PATH"),
      "集成层的权重来源门 + 单一权重口径锚"),
 )
@@ -187,12 +187,12 @@ def evaluate(root):
 
 # ────────────────────────────────────────────────────────── self-test（能红能绿）────
 _SELFTEST_LIB = {
-    "lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h":
+    "lib/algorithms/integration/phase2_integrate/include/astrocs/weight_chain.h":
         "struct SparseSnrReconstructor { double eval(double, double, double*, void*, void*); };\n"
         "bool reconstruct_sparse_snr(const void*, double, double, double*, void*, void*);\n"
         "void compute_inverse_variance_weights();\n"
         "bool weight_from_snr(double, double, double*, void*);\n",
-    "lib/algorithms/integration/v6/src/weight_chain.cpp":
+    "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp":
         "double SparseSnrReconstructor::eval(double a, double b, double* c, void* d, void* e) { return 0; }\n"
         "void compute_inverse_variance_weights() {}\n"
         "bool weight_from_snr(double, double, double*, void*) { return true; }\n",
@@ -201,7 +201,7 @@ _SELFTEST_LIB = {
         "void f() { compute_inverse_variance_weights(); }\n"
         "const char* k = \"AIO_HIPS_RD_IVAR\";\n"
         "// 稀疏 SNR 层尚未接入生产数据面\n",
-    "lib/algorithms/integration/v6/src/phase2_integrate.cpp":
+    "lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp":
         "void p2_weight_source_token_reject();\n"
         "const char* a = \"FZ-WEIGHT-SINGLE-PATH\";\n"
         "bool is_retired_weight_mode_token(const char*) { return false; }\n"
@@ -242,7 +242,7 @@ def self_test():
         # 负例 1（红）：注入模式选择机制
         bad_root = os.path.join(tmp, "bad_enum")
         files = dict(_SELFTEST_LIB)
-        files["lib/algorithms/integration/v6/src/phase2_integrate.cpp"] += (
+        files["lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp"] += (
             "enum class WeightMode : int { kPointInformation = 0, kSurfaceGls = 1 };\n"
             "int route_weight_mode(const char*, void*, char*, unsigned long) { return 0; }\n"
             "int p2_weight_mode_check(const char*, char*, unsigned long) { return 0; }\n"
@@ -255,7 +255,7 @@ def self_test():
         # 负例 2（红）：拆除逆方差链路（重建器被删）
         broken_root = os.path.join(tmp, "bad_chain")
         files = dict(_SELFTEST_LIB)
-        files["lib/algorithms/integration/v6/src/weight_chain.cpp"] = (
+        files["lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp"] = (
             "void compute_inverse_variance_weights() {}\n"
             "bool weight_from_snr(double, double, double*, void*) { return true; }\n")
         _write_tree(broken_root, files)

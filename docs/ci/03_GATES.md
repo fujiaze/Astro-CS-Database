@@ -36,7 +36,7 @@
 | CHK-COVERAGE / GLOSSARY-DOCS | P2 | 否 | —— |
 
 **RESERVED（文档曾承诺但无实现，不进本表）**：`CHK-FMT`、`CHK-DUAL-TOL`、`CHK-AGENT-HARD-RULES`
-（语义继任者 `AGENTS-GOV`）。逐条依据与重新注册前置条件见 `01_CHECKS.md §2.3`；机器可读面见
+（语义继任者 `AGENTS-GOV`）。逐条依据与重新注册前置条件见 `01_CHECKS.md §2.1`（RESERVED 表）；机器可读面见
 `eng/ci/id_migration_map.json::reserved_targets`。**保留一个不存在的 P0 门 = 把假绿写进本表。**
 
 ## 4. 判据边界

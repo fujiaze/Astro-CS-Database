@@ -86,9 +86,9 @@ V6 合同层的语义已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` **自解释合并
 |---|---|---|---|
 | canonical 对象级判据（BUNIT 量纲可判、`k_corr != 1`、对角表示 ⇒ 必带相关核/算子描述、`W_info` 单位锚、`validity.reason` 白名单、模糊字段名禁令） | `eng/contracts/schemas/unified/*.schema.json` 的 `allOf` | object_contract | CHG-2026-09-22-V6-CONTRACT-MERGE |
 | 产品族记录级判据（`units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录的字段级约束） | `eng/contracts/schemas/product_family_field_constraints.schema.json`（`$defs` 逐件） | product_family_field_constraints（**非对象**合同，**不**定义对象判别字段） | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 条款注册表 / 单位表 / 词表 / 迁移映射 / 待签与开放项登记 | `eng/contracts/data/v6_clause_registry_v1.json` | machine_registration_table | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 条款注册表 / 单位表 / 词表 / 迁移映射 / 待签与开放项登记 | `eng/contracts/data/clause_registry.json` | machine_registration_table | CHG-2026-09-22-V6-CONTRACT-MERGE |
 | 条款注册表、签字项与开放项的**正文承载页** | `docs/contracts/DATA_SEMANTICS.md` §31.10（+ §31.1–§31.9、§28.6） | human_readable_contract | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 产品族正例 | `eng/contracts/data/examples/v6/` | positive_fixtures | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 产品族正例 | `eng/contracts/data/examples/` | positive_fixtures | CHG-2026-09-22-V6-CONTRACT-MERGE |
 | 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/` | verification | CHG-2026-09-22-V6-CONTRACT-MERGE |
 | 共享校验器 | `eng/tests/common/jsonschema_min.py` | shared_validator | CHG-2026-09-22-V6-CONTRACT-MERGE |
 
@@ -117,7 +117,7 @@ V6 合同层的语义已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` **自解释合并
   - **默认档的适用域（正向约束）**：`natural_bicubic_spline_clip_v1` 的适用域 = **地面 seeing-limited 与一般情形**。在 HST 类高对比域上，其 Δ*（E 首次劣于帧级臂的最小控制点间隔）实测 **32 px**，生产 Δ=64 落在失效区内（劣 2.6 倍）⇒ 该域**必须**显式改用 `..._mesh_median_v1`（Δ* = 128 px，Δ=64 在其有效区内）。默认档是**回退**，不是「域无关的安全选择」；未声明域时取默认档属**显式降级**，必须随层入 manifest 可追溯。
 - **几何**：控制点坐标是像素中心坐标；规则网格下节点落在**所属 Δ×Δ cell 的中心**（cell i 覆盖 `[origin_x + i·Δ, origin_x + (i+1)·Δ − 1]`）。把节点当 cell 角点会使重建场整体平移半个 cell（Δ=64 时 31.5 px）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。
   - **与 Phase2 UPM 控制网格的关系（强制，同一约定）**：默认 Δ = `hips.tile_width / 8 = 512 / 8 = 64` px 复用 Phase2 UPM 的 8×8/tile 控制网格 ⇒ **两处必须是同一套几何约定**：节点 = 所属 cell 的**中心**、cell 编号自 `origin` 起、`origin` 缺省 0、层定义域 = cell 并集。稀疏层一侧的约定按本行；UPM 一侧按 `DATA_SEMANTICS.md` §25.1（控制点几何）——**两处不一致即 fail-closed**：同一套几何约定在两处逐项相同，换算不在消费侧发生。
-- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5。合同机器门：`eng/tests/contracts/test_unified_object_contract.py`（对象级）与 `lib/algorithms/integration/v6/oracle/recon_contract_gate.py`（本次新增声明面）。
+- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5。合同机器门：`eng/tests/contracts/test_unified_object_contract.py`（对象级）与 `lib/algorithms/integration/phase2_integrate/oracle/recon_contract_gate.py`（本次新增声明面）。
 
 ## 4a. 旧合同 ID → 统一对象映射（MODULE_MAP 引用面，负责人裁决）
 

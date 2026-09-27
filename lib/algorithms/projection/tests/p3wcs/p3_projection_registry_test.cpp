@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "p3_proj_v6.h"
+#include "p3_proj.h"
 #include "p3_wcs.h"
 
 namespace {

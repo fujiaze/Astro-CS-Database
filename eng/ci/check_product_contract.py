@@ -69,7 +69,7 @@ INVALID_POLICIES = ("nan_or_support_le_0",)
 # DATA-002 §2a：units 非空且取实义字符串（占位/空串/首尾空白一律拒绝）。
 PLACEHOLDER_UNITS = {"", "-", "n/a", "na", "none", "null", "tbd", "todo", "placeholder", "?"}
 
-# ── 幂次表：既有落盘事实面，又必须与 V6 冻结值自洽（见 power_defaults_match_v6_frozen 用例） ──
+# ── 幂次表：既有落盘事实面，又必须与冻结值自洽（见 power_defaults_match_frozen 用例） ──
 # pixel_area_power 的定义（本项目单位串约定）：BUNIT ∝ A_pix^(p/2)，A_pix ∝ sr
 #   ⇒ p = 2 × (units 中 sr 的指数)。
 # 例：ADU/sr → -2（面亮度 signal）；ADU^2/sr^2 → -4（面亮度 variance）；
@@ -645,7 +645,7 @@ def self_test(json_out: str = "") -> int:
         drift.append("sb_ivar_out")
     if POWER_DEFAULTS["integrated_flux"]["signal"] != frozen["flux"]["const"]:
         drift.append("flux")
-    rec("power_defaults_match_v6_frozen", True, ["drift: %s" % drift] if drift else [],
+    rec("power_defaults_match_frozen", True, ["drift: %s" % drift] if drift else [],
         "本门幂次表 == product_family_field_constraints#/$defs/units.bunit_semantics")
 
     rec("exchange_conforming_clean", True, check_exchange_doc(base, jm, exchange_schema))
