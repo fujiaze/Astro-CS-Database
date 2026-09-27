@@ -33,19 +33,19 @@ MIN_EXPECTED_FILTERS = 45   # 编制时实测条数；少于该数说明转录�
 
 # 负责人实测指认的权威锚点（仍须逐条核对原文）——(字段, 文件, 行, 该行必须出现的 token)
 KEY_ANCHORS = [
-    ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", 21, "5.0"),
+    ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", 65, "5.0"),
     ("psf.default_model", "docs/science/PSF.md", 9, "Moffat4"),
-    ("psf.moffat_beta", "docs/science/PSF.md", 94, "4"),
-    ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", 86, "rmax"),
-    ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 23, "1e-12"),
-    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 68, "4.0/3.0/8"),
-    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 30, "3.0 mag"),
+    ("psf.moffat_beta", "docs/science/PSF.md", 23, "4"),
+    ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", 28, "rmax"),
+    ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 30, "1e-12"),
+    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 115, "4.0/3.0/8"),
+    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 34, "3.0 mag"),
     # §9.73 裁决 A44（不存在「权重模式」）：weight.default_mode 组与
     # phase_config_mosaic 的 algorithm_weight_mode 已同批注销（eng/packaging/config/defaults.json
     # field_count 53→52；config_registry.json 登记注销），故此处不再登记其权威锚点。
-    ("precision.default", "docs/science/SCIENCE_SCOPE.md", 56, "FP64"),
+    ("precision.default", "docs/science/SCIENCE_SCOPE.md", 92, "FP64"),
     ("upm.k_corr", "docs/science/PHASE2_UPM.md", 24, "1.4"),
-    ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 41, "512"),
+    ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 17, "512"),
     ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 35, "pixfrac"),
 ]
 PENDING_EXPECTED = {

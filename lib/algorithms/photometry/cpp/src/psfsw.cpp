@@ -1,6 +1,6 @@
 /* psfsw.cpp - PSFSW 四分量/共同星集/复合/validity-depth/记录门实现 (IMPL-P1-PSFW-001)
  * 合同锚见 psfsw.h。纯 std + libm; 不接线 session。 */
-#include "astrocs/v6/psfsw.h"
+#include "astrocs/psfsw.h"
 
 #include <algorithm>
 #include <cmath>
@@ -647,7 +647,7 @@ const std::vector<std::string>& forbidden_psfsw_product_keys() {
     static const std::vector<std::string> keys = {
         "ivar", "inverse_variance", "variance", "var", "sigma", "sigma2",
         "fisher", "fisher_information", "information", "w_info", "w_psf",
-        /* 扩展守卫 (eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary §3 登记) */
+        /* 扩展守卫 (eng/contracts/data/clause_registry.json#weight_vocabulary §3 登记) */
         "snr", "snr2", "support", "coverage"};
     return keys;
 }

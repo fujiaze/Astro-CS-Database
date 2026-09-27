@@ -12,7 +12,7 @@
 
 - unit/ —— C++ 单元测试（算法、AIO、管线、块流等）。
 - contracts/ —— 合同负例与统一对象合同测试。
-- integration/ —— 分阶段集成测试（v6_p1、v6_p2、v6_p3）。
+- integration/ —— 分阶段集成测试（p1_integrate、p2_integrate、p3_export）。
 - oracle/ —— 科学 Oracle（gaia_oracle.py 等）。
 - sciencelint/ —— 科学口径一致性检查测试。
 - traceability/ —— 追溯矩阵与追溯性测试。

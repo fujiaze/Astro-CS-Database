@@ -18,7 +18,8 @@
 
 ## 2. 检查项清单
 
-| ID | 类别 | 名称 | 命令/入口 | 门禁 ||---|---|---|---|---|
+| ID | 类别 | 名称 | 命令/入口 | 门禁 |
+|---|---|---|---|---|
 | CHK-BUILD-LINUX | 构建 | Linux Release 构建 | `python3 eng/ci/run_checks.py --check CHK-BUILD-LINUX --quiet` | P0 |
 | CHK-BUILD-WIN | 构建 | Windows Release 构建 | `python3 eng/ci/run_checks.py --check CHK-BUILD-WIN --quiet` | P0 |
 | CHK-WARN | 静态 | 编译警告 | `python3 eng/ci/run_checks.py --check CHK-WARN --quiet` | P0 |
@@ -30,6 +31,8 @@
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | `python3 eng/ci/run_checks.py --check CHK-DANGLING --quiet` | P1 |
 | DOC-INDEX | 文档一致性 | 双向层级索引闭合（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed；跨域未修项台账 `eng/tools/doccheck/dangling_ledger.json` 只减不增） | `python3 eng/tools/doccheck/check_doc_index.py --strict` | P0 |
 | DOC-INDEX-SELFTEST | 文档一致性 | 上项的可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失各自判红） | `python3 eng/tools/doccheck/check_doc_index.py --self-test` | P0 |
+| CHK-DOCS-MACHINE-CONSISTENCY | 文档一致性 | 文档机器一致性扫描（判据面 `docs/**` + `lib/**`，报告落 `run/ci/docs-machine-consistency/docs_consistency.json`） | `python3 eng/tools/docs_machine_consistency.py --json-out run/ci/docs-machine-consistency/docs_consistency.json --quiet` | P0 |
+| CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST | 文档一致性 | 上项的可执行正/负例面（`--self-test`） | `python3 eng/tools/docs_machine_consistency.py --self-test` | P0 |
 | ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚（扫描面 `docs/**/*.md`，与上项同面）+ `docs/science/algorithms/*.md` 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；空行判据归上项 C6，本项不重复；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
 | CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 的判红面 = 负责人裁决逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1 编号表双向一致、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py --json-out run/ci/doc-hygiene/doc_hygiene.json` | P0 |
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
@@ -49,8 +52,10 @@
 | CHK-SYNTH-P2 | 科学 | mosaic 合成全链 | `python3 eng/ci/run_checks.py --check CHK-SYNTH-P2 --quiet` | P0 |
 | CHK-SYNTH-P3 | 科学 | export 合成全链 | `python3 eng/ci/run_checks.py --check CHK-SYNTH-P3 --quiet` | P0 |
 | CHK-ISA-EQ | 科学 | baseline/AVX2/AVX-512 等价 | `python3 eng/ci/run_checks.py --check CHK-ISA-EQ --quiet` | P1 |
+| CHK-ISA-SAME-SOURCE | 科学 | ISA 单一来源（`isa_sites.json` ↔ 构建面 ↔ backend_host/cpu 源逐点一致；含 self-test 与 fault-inject 负例面） | `python3 eng/ci/run_checks.py --check CHK-ISA-SAME-SOURCE --quiet` | P1 |
+| CHK-DRZ-PF-AREA-S1 | 科学 | drizzle per-frame subblock（`drizzle_pf_sb_*`）ctest 判据面 | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target drizzle_pf_sb.* --output run/ci/ctest/drizzle_pf_sb.json` | P0 |
 | CHK-NWORKER | 科学 | 1 vs N worker 数值等价（判据 = 事前冻结的浮点容差，非逐位一致；口径见 `docs/contracts/SCHEDULER_CONTRACT.md` §2.1） | `python3 eng/ci/run_checks.py --check CHK-NWORKER --quiet` | P0 |
-| CHK-NWORKER-TOLERANCE | 科学 | 1/N worker 数值等价的**判据非退化面**：分层容差比较器自检（float64 用 `rtol=1e-12`；float32 产品用 `rtol=5e-6`；整型/掩码/索引/计数/端口逐位；NaN/Inf **位置**必须精确一致；易变卡 `DATE/CHECKSUM/DATASUM/CHECKVER` 除外）；**负例**：扰动一个浮点载荷必须被检出 | `python3 eng/tools/v6/v6_numeric_equiv.py --self-test --json-out run/ci/nworker-tolerance/selftest.json` | P0 |
+| CHK-NWORKER-TOLERANCE | 科学 | 1/N worker 数值等价的**判据非退化面**：分层容差比较器自检（float64 用 `rtol=1e-12`；float32 产品用 `rtol=5e-6`；整型/掩码/索引/计数/端口逐位；NaN/Inf **位置**必须精确一致；易变卡 `DATE/CHECKSUM/DATASUM/CHECKVER` 除外）；**负例**：扰动一个浮点载荷必须被检出 | `python3 eng/tools/quality/numeric_equiv.py --self-test --json-out run/ci/nworker-tolerance/selftest.json` | P0 |
 | CHK-PHOTOMETRY-APPLY-SELFTEST | 科学 | 测光归一化**施加到像素**的像素级复算判据（裁决 B）：判据必须**尺度相关**（`max(rtol·| `python3 eng/tools/quality/check_photometry_apply.py --self-test --workdir run/ci/photometry-apply --json-out run/ci/photometry-apply/selftest.json` |, 2·float32 ULP)`），绝对窗口在真实 `k≈1e-17` 量级会把「乘两次」判绿；判别力证明 = `k·I` 绿、漏乘 / `k²·I` / 半帧施加全红 | `python3 eng/tools/quality/check_photometry_apply.py --self-test`（**自给自足**：未给 `--calibrated` 时自行合成夹具——仓库约定 FITS 不入库，门的输入一律取自行合成夹具） | P0 |
 | CHK-RUN-MANIFEST-SCHEMA | 合同 | 真实产出 run manifest 对**两份冻结合同**的符合性：T1 = `docs/api/MANIFEST_VERIFY_V1.md`（CLI-003）§2/§2.1 严格符合（必填、类型、`provenance.source_sha` 40-hex、未登记顶层键判红）；T2 = `eng/contracts/schemas/run_manifest.schema.json`（CFG-001）**偏差棘轮**（与 `eng/ci/ledgers/run_manifest_schema_deviations.json` 逐项比对，新增或陈旧偏差判红）；**负例**：缺必填 / 未登记键 / 类型错 / 新增 CFG-001 偏差逐一判红 | `python3 eng/ci/check_run_manifest_schema.py --json-out run/ci/run-manifest/schema.json` | P0 |
 | CHK-RUN-MANIFEST-SCHEMA-SELFTEST | 合同 | 上项的**可执行负例面**（11 例正/负例：CLI-003 必填/类型/未登记键/kind/provenance 缺失与坏 sha、CFG-001 偏差子集与「能检出」两类） | `python3 eng/ci/check_run_manifest_schema.py --self-test --json-out run/ci/run-manifest/selftest.json` | P0 |
@@ -60,6 +65,7 @@
 | CHK-SANITIZER | 资源 | ASan/UBSan | `python3 eng/ci/run_checks.py --check CHK-SANITIZER --quiet` | P1 |
 | CHK-COVERAGE | 资源 | 覆盖率报告 | `python3 eng/ci/run_checks.py --check CHK-COVERAGE --quiet` | P2（报告） |
 | CHK-RESOURCE | 资源 | 内存/线程/利用率门禁 | `python3 eng/ci/run_checks.py --check CHK-RESOURCE --quiet` | P0 |
+| CHK-BUDGET-SINGLE-SOURCE | 资源 | 内存/线程预算单一来源（`budget_sources.json` ↔ `runtime_resources.json` ↔ module_adapters/memory_budget 读取式逐值一致；含 self-test 与 fault-inject 负例面） | `python3 eng/ci/run_checks.py --check CHK-BUDGET-SINGLE-SOURCE --quiet` | P0 |
 | CHK-PACKAGE | 打包 | 发布候选打包/白名单/哈希/版本/provenance | `python3 eng/ci/run_checks.py --check CHK-PACKAGE --quiet` | P0 |
 | CHK-PKG-CONSISTENCY | 打包 | 产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证（含 -NEG 负例面） | `python3 eng/ci/run_checks.py --check CHK-PKG-CONSISTENCY --quiet` | P0 |
 | CHK-SECRET-HYGIENE | 安全 | 凭据/密钥卫生（tracked 全域扫描） | `python3 eng/tools/quality/check_secret_hygiene.py --scope tracked --json-out run/ci/secret-hygiene/secret_hygiene.json` | P0 |
@@ -68,6 +74,8 @@
 | ENG-CONSTRAINTS | 治理 | 工程约束（§7 目录规范 / 根条目白名单 / 旧权威回归） | `python3 eng/tools/doccheck/check_engineering_constraints.py` | P0 |
 | CHK-RETIRED-CODE | 治理 | 历史实现处置（ENGINEERING_SPEC §2：R1 注释旧逻辑 / R2 保留件注释块 / R3 注释块字段完整性 / R4 生产可达性报表 / R5 锚存活；台账 `eng/ci/retired_code_allowlist.json`） | `python3 eng/ci/check_retired_code.py --json-out run/ci/retired-code/retired_code.json` | P0 |
 | CHK-RETIRED-CODE-SELFTEST | 治理 | 上项的可执行负例面（9 例 fault-inject） | `python3 eng/ci/check_retired_code.py --self-test` | P0 |
+| CHK-PROD-WIRING | 治理 | 生产接线核对（扫描面 `eng/**`、`lib/**`、`CMakeLists.txt`、`docs/**`） | `python3 eng/ci/run_checks.py --check CHK-PROD-WIRING --quiet` | P0 |
+| CHK-TRUTHFUL-CONCLUSION | 治理 | 结论真实性门（结论词汇/权威面/覆盖声明/快照逐项核；含 self-test 与 fault-inject all 负例面） | `python3 eng/ci/run_checks.py --check CHK-TRUTHFUL-CONCLUSION --quiet` | P0 |
 | VERSION-CONSISTENCY | 文档一致性 | 版本注入链单一真源 + 现行活动文档集完整性 | `python3 eng/ci/check_version.py`（缺省 expected = 根 `VERSION`，不写死字面量） | P1 |
 | VERSION-NAMESPACES | 文档一致性 | 版本命名空间一致性（陈旧版本号） | `python3 eng/tools/doccheck/check_version_namespaces.py` | P1 |
 | DOC-L0 | 文档一致性 | L0 现行文档集（docs/owner/**）与索引 active 登记完整性 | `python3 eng/tools/check_l0_docs.py` | P1 |
@@ -162,6 +170,7 @@
 | CHK-PRODUCT-CONTRACT | 合同 | 产品级 schema 符合性：交换对象文档在场、平面语义显式声明、逐面幂次与 V6 冻结默认一致 | `eng/ci/check_product_contract.py` | P0 |
 | CHK-CITE-CLAIM-MARK-CONSISTENCY | 文档一致性 | 同一文献条目的「已核实」与「未打开原文」声明并存即红，判词带两侧 文件:行 | `eng/ci/check_cite_claim_mark_consistency.py` | P0 |
 | CHK-DOC-UNVERIFIED-CITE | 文档一致性 | 被未核实清单点名的件出现在 `docs/science/**` 出处列即红，判词带两侧 文件:行 | `eng/ci/check_doc_unverified_cite.py` | P0 |
+| SPEC-POLARITY-CONSIST-01 | 文档一致性 | 验收判据关键词 ↔ 最高设计冻结语句口径一致门（P1 冻结语句在场 / P2 反义判红 / P3 规模数字解析到配置键 / P4 配置真值逐键复算；缺输入或扫描面为空判红） | `python3 eng/ci/run_checks.py --check SPEC-POLARITY-CONSIST-01 --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
 
@@ -227,7 +236,7 @@
 | `eng/ci/checks.json` 的结构与命令路径锚 | `CHK-REGISTRY-VALIDATE`（R1–R15） | 在册 |
 | `eng/ci/mutation_gates.json` 的 driver/registration/evidence | `CHK-MUTATION-GATES`（`gone_artifacts` 棘轮） | 在册 |
 | `eng/ci/ctest_baseline.json` 的冻结目标 | `CHK-CTEST-REGISTRATION` C5（维护面 `--write-baseline`） | 在册 |
-| `eng/contracts/**` 与 `eng/ci/**` 登记 JSON 的**活引用路径** | `CHK-REGISTRATION-ANCHORS` | **实现已落地，注册项待写入** |
+| `eng/contracts/**` 与 `eng/ci/**` 登记 JSON 的**活引用路径** | `CHK-REGISTRATION-ANCHORS` | 在册（实现 `eng/ci/check_registration_anchors.py`，注册项 profiles fast/linux-main/windows-main、waivable=false） |
 
 **口径一致性（SPEC-POLARITY-CONSIST-01）**：
 `eng/tools/doccheck/check_spec_polarity_consistency.py` 比对**验收判据的关键词 ↔ 最高设计的冻结语句**：
@@ -236,7 +245,7 @@ P2 反义判红（星等落盘/星等即数据形态、稀疏控制点层写成�
 P3 体积/规模类数字必须在本段内解析到配置键（反引号 dotted key）或推导式；
 P4 配置真值复算（`star_detection.max_stars` / `photometry.fit.max_stars` / `snr.max_sources` 逐键核对活载体：schema 属性、config_registry 登记键、module_adapters.cpp 读取式，并逐位比文档声明的默认值与合同域）。
 缺输入 / 寄存器为空 / 扫描面为空一律判红（fail-closed）；含 `--self-test`（12 例：2 绿 + 10 红）。
-**注册项待写入**：按本文 §4「新增检查项流程」第 1 步，登记 ID `SPEC-POLARITY-CONSIST-01`（命令 `python3 eng/tools/doccheck/check_spec_polarity_consistency.py --json-out run/ci/spec-polarity/gate.json`，P0、waivable=false、changed_paths 含 `ASTROCS_DESIGN.md`/`ACCEPTANCE_SPEC.md`/`docs/**`/`eng/contracts/**`/`eng/packaging/config/**`）；`eng/ci/checks.json` 属本任务文件域之外（并发轮次占用），故本轮只落地实现 + 自检 + 本行登记说明。
+**注册项在册**：ID `SPEC-POLARITY-CONSIST-01` 按 §4「新增检查项流程」登记于 `eng/ci/checks.json`（命令 `python3 eng/ci/run_checks.py --check SPEC-POLARITY-CONSIST-01 --quiet`，步骤含 `--json-out run/ci/spec-polarity/gate.json` 与 `--self-test`，profiles fast/linux-main、waivable=false、changed_paths 含 `ASTROCS_DESIGN.md`/`ACCEPTANCE_SPEC.md`/`docs/**`/`eng/contracts/**`/`eng/packaging/config/**`）。
 
 `CHK-REGISTRATION-ANCHORS` = `eng/ci/check_registration_anchors.py`：R1 合同登记 JSON 的活引用
 （`path`/`doc_ref`/`implementations`/`entries` 等白名单键）必须存在；R2 登记册的对象一律落正式面（

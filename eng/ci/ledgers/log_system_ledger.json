@@ -179,7 +179,7 @@
       },
       {
         "id": "LSW-014",
-        "file": "lib/infrastructure/cli/v6_mode_gate.h",
+        "file": "lib/infrastructure/cli/mode_gate.h",
         "symbol": "mode_gate",
         "key": "catch#1",
         "anchor": "catch",

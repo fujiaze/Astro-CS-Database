@@ -13,7 +13,7 @@
       stage2.cpp:1300  snr_v = frame_snr[frames[orig]];
       stage2.cpp:1587  const auto sit = local_snr_map.find(key);
       stage2.cpp:1593  snr_v = frame_snr[frames[orig]];
-  param cov in v6 diagnostic route               lib/algorithms/integration/v6/src/phase2_integrate.cpp -> 2 hit(s)
+  param cov in v6 diagnostic route               lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp -> 2 hit(s)
       phase2_integrate.cpp:1649  const int pc_rc = p2_upm_ma_param_cov(model, Ctheta.data(), np);
       phase2_integrate.cpp:1650  if (pc_rc != 0) { r.error = "p2_upm_ma_param_cov rc=" + std::to_string(pc_rc); p2_upm_ma_close(model); return 
   param cov in reference path                    lib/algorithms/coverage/tools/stage2.cpp -> 0 hit(s)

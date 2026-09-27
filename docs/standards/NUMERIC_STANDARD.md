@@ -105,7 +105,8 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
     **`n_rejected_nonfinite`**（值非有限 / 方差非有限 / 权重非正，分类计数）；
     计数为 0 与「字段缺失」**必须可区分**。
   - NaN 只作无效标记出现，合法产品只含有效值。
-    与此相反的 `DISP-DRZ-004`「NaN 经 `F_p` 传播、不掩膜」为 **TRACKED/OPEN** 偏差，
+    与此相反的 `DISP-DRZ-004`「NaN 经 `F_p` 传播、不掩膜」状态为 **CLOSED**（唯一口径 =
+    rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数），
     见 `docs/standards/STANDARDS_REGISTRY.md` D.drizzle 偏差表与 §3 索引。
   - **本文件不复制第二套**：三处（本文件、DATA-002 §2a、STANDARDS_REGISTRY D.drizzle）
     必须逐字同口径；如有分歧以 DATA-002 §2a 的 `invalid_handling` 块为准。

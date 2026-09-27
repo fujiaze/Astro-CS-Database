@@ -19,9 +19,9 @@
 #include <string>
 #include <vector>
 
-#include "astrocs/calibration/v6_calibration_covariance.h"
+#include "astrocs/calibration/calibration_covariance.h"
 #include "p3_rsmp.h"
-#include "v6_drizzle_science.h"
+#include "drizzle_science.h"
 
 namespace {
 

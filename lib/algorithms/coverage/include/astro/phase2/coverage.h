@@ -82,7 +82,7 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 //                              权重面；
 //   DESIGN-P2 §8             : 分块/并行只改执行，不改归约次序；跨 tile
 //                              边界状态有确定边界协议；缺失不得静默零填。
-// 语义源：eng/contracts/data/v6_clause_registry_v1.json
+// 语义源：eng/contracts/data/clause_registry.json
 //         （forbidden.weight_source_tokens）
 //         + docs/ASTROCS_DESIGN.md §3.1（权重判据）与
 //         docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径；退役对象的拒绝面见

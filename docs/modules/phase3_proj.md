@@ -79,7 +79,7 @@ module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码
   **显式返回 `P3_WCS_UNSUPPORTED`**（含请求码 + 原因 + 已支持清单），
   `p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生 `P3_WCS_UNSUPPORTED`。
-  在役 registry = `p3_proj_v6.cpp`（v3）。
+  在役 registry = `p3_proj.cpp`（v3）。
 - DLL/入口未建；WCSLIB 验收 oracle 归 P3-PROJ-TEST。
 - 本域无 DISP 缺陷登记；详见 ALG-P3-PROJ-IMPL-001 §11/§13。
 

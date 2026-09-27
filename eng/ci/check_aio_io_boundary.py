@@ -78,7 +78,7 @@ CLEAN-403（棘轮收口；fail-closed）
   C1 PRODUCTION-RESIDUAL 类别命中数 = 0（生产路径直连 I/O 一律经 aio）。
      类别由 classify() 决定；**非生产/诊断面**按 docs/ASTROCS_DESIGN §9「必须删除或
      明确降级为非生产/诊断并登记」逐条降级登记（如 lib/algorithms/coverage/tools/
-     与 lib/algorithms/integration/v6/oracle/recon_dump.cpp 的 DEV-TOOL）。降级
+     与 lib/algorithms/integration/phase2_integrate/oracle/recon_dump.cpp 的 DEV-TOOL）。降级
      必须逐条给理由与归属，且台账命中数受棘轮约束（只减不增）。
      分类序: 测试面（路径含 eng/tests/ 或 test/ 目录）→ 各登记类别 → 生产兜底。
   C2 TEST-HARNESS 白名单与实际**一一对应**（文件 + 函数 + 理由）:
@@ -217,10 +217,10 @@ CATEGORY_RULES = (
     ("lib/phase1_session/", "PRODUCTION-RESIDUAL",
      "生产面（阶段一会话）直探路径；CLEAN-403 已收口 ⇒ 新增即红",
      "CLEAN-403（已收口；新增越界须经 aio）"),
-    # CLEAN-403: p3_v6_export 是**退役实现**（CLEAN-401 结论：CMakeLists 命中 0、
+    # CLEAN-403: p3_export 是**退役实现**（CLEAN-401 结论：CMakeLists 命中 0、
     # 产品不链接、SNI-S4-P3X-06 登记；删除被 eng/ci/checks.json 的 ctest_targets 阻塞，
     # 见 run/CLEAN-401/RECEIPT.md §1/§4）。分类按退役件登记，不按生产面。
-    ("lib/phase3_session/p3_v6_export.", "RETIRED-PENDING",
+    ("lib/phase3_session/p3_export.", "RETIRED-PENDING",
      "退役实现（生产不可达；CLEAN-401 保留+注释块，删除被 ctest_targets 注册阻塞）",
      "CLEAN-401 §4（解锁后随删除归零）"),
     ("lib/phase3_session/", "PRODUCTION-RESIDUAL",
@@ -242,13 +242,13 @@ CATEGORY_RULES = (
      "开发/诊断命令行工具（非三命令生产路径）", "无（工具面）"),
     # 2026-09-23 FAST-RED-A-01：稀疏重建算子的**对照实验 dump harness**。证据：
     # 文件头自述「对照实验用，非生产路径」；其 CMakeLists 为**独立构建**
-    # （cmake -S lib/algorithms/integration/v6/oracle -B <build>），不进根构建
+    # （cmake -S lib/algorithms/integration/phase2_integrate/oracle -B <build>），不进根构建
     # （根 CMakeLists 无 add_subdirectory）、不注册 ctest；唯一消费者是
     # oracle/recon_exp04_parity.py 与实验单元 EXP-04 的 Python 算子对拍。
     # 按 docs/ASTROCS_DESIGN §9「必须删除或**明确降级为非生产/诊断并登记**」降级登记为
     # DEV-TOOL（与 lib/algorithms/coverage/tools/ 同口径）。**只登记这一个文件**，
     # 不放行整目录 ⇒ 该目录内新增文件仍按 lib/algorithms/ 兜底判 PRODUCTION-RESIDUAL。
-    ("lib/algorithms/integration/v6/oracle/recon_dump.cpp", "DEV-TOOL",
+    ("lib/algorithms/integration/phase2_integrate/oracle/recon_dump.cpp", "DEV-TOOL",
      "稀疏重建算子对照实验 dump harness（非生产路径：独立构建、不进根构建/ctest；"
      "唯一消费者 = oracle/recon_exp04_parity.py + 实验单元 EXP-04）",
      "无（实验/诊断面）"),

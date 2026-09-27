@@ -109,7 +109,7 @@
     - **归属/去向**：合同 schema 面 + 门禁判据面（须可红可绿：注入悬空路径必须判红）；补 schema 与改引用二选一，且**补门判据**「文档中形如 `eng/contracts/**.schema.json` 或 `schemas/*.schema.json` 的路径必须存在」属门禁面变更——待裁决。
 
 40. **`PHASE3_HIPS_TO_FITS §16` 与 `PHASE3_PROJ_IMPL §16` 的 C4/C5 登记面已被反证**
-    - **现象**：两处 §16 C4 称「§5.3 输入语义守卫在生产 export 路径**未生效（守卫未接线）**…守卫内核 `p3_rsmp_units.cpp` 与会话接线层 `p3_v6_export.cpp` 未进构建」；C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」。**已过期的一半**：`lib/algorithms/resample/CMakeLists.txt` 已把 `p3_rsmp_units.cpp` 编入 `astrocs_p3_rsmp`；`module_adapters.cpp#p3n_guard_input_units` 已被生产 IR 节点链 properties/resample2/writer 调用（`#resolve_bunit` + 冻结串 `kP3BunitSurfaceBrightness`，缺 BUNIT/不可判 → fail-closed）；`#p3_op_writer` 强制 `p3_resampled.json#bunit` 校验。**仍然成立的一半**：`p3_v6_export.cpp` 仍未进构建（`grep -c p3_v6_export CMakeLists.txt` = 0，文件抬头自述「未接入生产」），该半已由 `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06` 登记。
+    - **现象**：两处 §16 C4 称「§5.3 输入语义守卫在生产 export 路径**未生效（守卫未接线）**…守卫内核 `p3_rsmp_units.cpp` 与会话接线层 `p3_export.cpp` 未进构建」；C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」。**已过期的一半**：`lib/algorithms/resample/CMakeLists.txt` 已把 `p3_rsmp_units.cpp` 编入 `astrocs_p3_rsmp`；`module_adapters.cpp#p3n_guard_input_units` 已被生产 IR 节点链 properties/resample2/writer 调用（`#resolve_bunit` + 冻结串 `kP3BunitSurfaceBrightness`，缺 BUNIT/不可判 → fail-closed）；`#p3_op_writer` 强制 `p3_resampled.json#bunit` 校验。**仍然成立的一半**：`p3_export.cpp` 仍未进构建（`grep -c p3_export CMakeLists.txt` = 0，文件抬头自述「未接入生产」），该半已由 `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06` 登记。
     - **规范依据**：`ASTROCS_DESIGN.md §0.2`（同一主题只有一份正本）、`§12.5`；`ENGINEERING_SPEC.md §8`「文档集随代码持续维护更新，保持自解释」。
     - **归属/去向**：订正 §16（两处，两文档「同一实验单元只有一套文字」），必须按「生产链已接线 / v6 shell 仍未接线」**分开陈述**，文字逐段保留；登记面已由 `SNI-S4-P3X-06` 承载。
 
@@ -120,14 +120,14 @@
     - **归属/去向**：接线任务必须同时补 `P3WcsApplicability` 行（往返紧门 + 全局门 + `min_scale`），否则 `p3_proj_probe` 永远 UNSUPPORTED。
 
 42. **v6 T2 往返判据对 SIN 缺陷零区分力 + 文档 §15.6 与实现值不一致**
-    - **现象**：`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.6` 写「每投影 pixel→world→pixel **< 1e-8 px**」，实现是 `eng/tests/unit/v6_p3_proj/v6_p3_proj_test.cpp` 的 `kRoundtripTolPx = 1e-6`（`p3_proj_wcs_oracle.py::roundtrip_tol_px` 对非 TAN 取 `contract["global"]` = 1e-6）⇒ **文档值与实现值不符**。T2 用例表给 SIN 的尺度是 0.02 deg/px = 72″/px，该尺度下 SIN 误差 2.1e-9 px ⇒ **判据恒绿**，对 world→pixel 条件数缺陷零区分力（该缺陷由反向门 `sin_roundtrip_gate.py` 承担，§16 已登记）。
+    - **现象**：`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.6` 写「每投影 pixel→world→pixel **< 1e-8 px**」，实现是 `eng/tests/unit/p3_proj/p3_proj_test.cpp` 的 `kRoundtripTolPx = 1e-6`（`p3_proj_wcs_oracle.py::roundtrip_tol_px` 对非 TAN 取 `contract["global"]` = 1e-6）⇒ **文档值与实现值不符**。T2 用例表给 SIN 的尺度是 0.02 deg/px = 72″/px，该尺度下 SIN 误差 2.1e-9 px ⇒ **判据恒绿**，对 world→pixel 条件数缺陷零区分力（该缺陷由反向门 `sin_roundtrip_gate.py` 承担，§16 已登记）。
     - **规范依据**：`AGENTS.md §5`「判据必须非退化」；`ASTROCS_DESIGN.md §5.3`；`ENGINEERING_SPEC.md §8`（文档随代码维护）。
     - **归属/去向**：§15.6 改为实测门值并注明「T2 不覆盖 world→pixel 条件数缺陷，后者由反向门承担」；若要 T2 具备区分力，需把 SIN 用例尺度压到 ≤0.9″/px 并配尺度感知门（判据面变更）。
 
 43. **AIT 可构造域（表述已订正，守卫不动）**
     - **现行口径**：`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.3/§15.5` 的 AIT 可构造域 = **内接矩形族**，上限 **229.24°×114.56°**（面积 8.000 sr = 4π 的 **63.7%**，与解析最优 2ab = 8 rad² 吻合）；**全天空（360°×180°）不可构造**——四角守卫下 360×180 帧四角 A = xp²/4 + yp² = **1.994 > 1** ⇒ 必判 HEMISPHERE（720×360 → 1.997）。性质：**数学上不可达**——椭圆内接矩形四角恒在椭圆上（A=1），覆盖整个椭圆的矩形四角恒在椭圆外（A=2>1）。
     - **规范依据**：`ASTROCS_DESIGN.md §6.3`；`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.1/§15.3/§15.5`；`ENGINEERING_SPEC.md §3`（文档与事实不符时订正文档是义务）。
-    - **归属/去向**：`lib/algorithms/projection/` 的 fail-closed 四角守卫**保持不动**；`p3_proj_v6.h` 头注「全天空展示」属内核注释，随接线任务一并订正。影响面为内核-only，不影响产品声明集。
+    - **归属/去向**：`lib/algorithms/projection/` 的 fail-closed 四角守卫**保持不动**；`p3_proj.h` 头注「全天空展示」属内核注释，随接线任务一并订正。影响面为内核-only，不影响产品声明集。
 
 44. **球面 S-H 的逐源像素闭合散布无逐像素门覆盖**
     - **现象**：Σ_p a_jp 应恒等于 A_drop（与裁剪实现无关的解析恒等式）。球面 S-H 路径实测闭合散布：1.00″/px（nside=2^18）max **+1.72e-06** / min −1.54e-06 / **σ=1.04e-06**；0.30″/px max +3.14e-05 / σ=1.22e-05；而独立平面精确算法（顶点枚举，完全不同的算法）闭合误差 **2.7e-16**（机器精度）。归因：球面 S-H 用相邻单位向量叉积重建大圆的条件数限制（近平行平面交点误差 ~1e-11 rad ÷ drop 角尺度 θ），`lib/algorithms/drizzle/` 下 `spherical_overlap.cpp` 既有注释已识别该机制。**性质：散布而非系统偏置**（16 像素 mean≈0）⇒ **帧级**通量闭合仍很好（实测 2.4e-08 @pf=1，远优于冻结 FP64 <1e-6 门），**但逐源像素的乘性随机误差 σ≈1.0e-6 @1″/px 不被任何现有门覆盖**（现有门是帧级/逐叶级）。
@@ -153,5 +153,5 @@
     - **死配置键 `algorithm_rejection_method` / `reject`** → `eng/ci/ledgers/dead_config_keys.json#dead_config_key:algorithm_rejection_method` 与 `#dead_config_key:reject`。
     - **整阶段 Session 仍注册在生产注册表** → `eng/ci/ledgers/registry_ir_parity.json#registered_not_in_ir:astrocs.phase2.resample`。
     - **占位注册行 `astrocs.phase3.resample`** → `eng/ci/ledgers/registry_ir_parity.json#registered_not_in_ir:astrocs.phase3.resample` 与 `eng/contracts/block_flow/conformance_deviations.json#BFD-C1`（同一事实的端口面双登记）。
-    - **v6 shell `p3_v6_export.cpp` 未进构建（第 40 条的一半）** → `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06`。
+    - **v6 shell `p3_export.cpp` 未进构建（第 40 条的一半）** → `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06`。
     - **同族已在控制包差距清单登记、本节不另立条目**：命名块内存管线未落地、三阶段无独立调度器、块生命周期未实现、性能探针不成体系、L2 性能门恒真、空断言/恒真测试普查、docs/contracts ↔ eng/contracts 双向对应无机器校验；以及控制包未决问题清单的「端口声明 vs 真实数据流」与 OQ-10 两条。

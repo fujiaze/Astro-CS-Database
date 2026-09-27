@@ -4,10 +4,10 @@ cd "/workspace/Astro CS Database"
 export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
 D=run/RELEASE-02/fix-p2b
 g++ -std=gnu++17 -O2 -Wall -Wextra -Wpedantic \
-  -Ilib/algorithms/integration/v6/include \
+  -Ilib/algorithms/integration/phase2_integrate/include \
   "$D/variance_oracle.cpp" \
-  lib/algorithms/integration/v6/src/variance_propagation.cpp \
-  lib/algorithms/integration/v6/src/weight_chain.cpp \
+  lib/algorithms/integration/phase2_integrate/src/variance_propagation.cpp \
+  lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp \
   -o "$D/variance_oracle" -lm > "$D/oracle_build.log" 2>&1
 RC=$?
 echo "build_rc=$RC"

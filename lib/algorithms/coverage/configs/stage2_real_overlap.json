@@ -34,7 +34,7 @@
     }
   },
   "output": {
-    "hips": "run/phase2/v6/real_overlap.mosaic.hips"
+    "hips": "run/phase2/real_overlap.mosaic.hips"
   },
   "diagnostics": {
     "enabled": true

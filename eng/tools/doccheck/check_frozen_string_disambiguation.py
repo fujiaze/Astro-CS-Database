@@ -23,8 +23,8 @@ import argparse, json, os, sys
 FROZEN = "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"
 UNIT_FORM = "BUNIT(variance) = BUNIT(signal)^2"
 SCHEMA_REL = "eng/contracts/schemas/product_family_field_constraints.schema.json"
-REG_REL = "eng/contracts/data/v6_clause_registry_v1.json"
-EX_REL = "eng/contracts/data/examples/v6/units.example.json"
+REG_REL = "eng/contracts/data/clause_registry.json"
+EX_REL = "eng/contracts/data/examples/units.example.json"
 DS_REL = "docs/contracts/DATA_SEMANTICS.md"
 # 数值层反例的关键片段（三者任一在文即可，容忍措辞微调）
 COUNTEREXAMPLE_MARKERS = ["信号趋零时方差不趋零", "与信号无关", "1/12 DN^2"]

@@ -90,7 +90,7 @@
 - 任务: IMPL-P2-REJ-001（wave 5，depends_on CONTRACT-FREEZE-001）。只改
   write_scope：`lib/algorithms/coverage/src/rejection.cpp`、
   `lib/algorithms/coverage/include/astro/phase2/rejection.h`、`lib/algorithms/rejection/`、
-  `eng/tests/unit/v6_p2_rej/`；未改 docs/、eng/ci/、根/测试公共 CMakeLists。
+  `eng/tests/unit/p2_rej/`；未改 docs/、eng/ci/、根/测试公共 CMakeLists。
 - 新增接口（头 `rejection.h`；实现 `rejection.cpp` 末尾 V6 段）:
   - `p2_reject_classify`：按预测残差方差
     `sigma_eff^2 = sigma_phase1^2 + J C_theta J^T` 的阈值判定；
@@ -110,8 +110,8 @@
   `sigma_eff^2<=0` → `INVALID_INPUT`；`method=AUTO` → `INVALID_METHOD`；
   继承阈值或 profile 常量被改 / PERCENTILE×norm≠MEDIAN_CENTER /
   RCR×norm≠NONE → `INVALID_CONFIGURATION`；空栈 → `MIN_SAMPLES`。
-- 证据: `eng/tests/unit/v6_p2_rej/`（`oracle_rej.py` 独立 Oracle +
-  `oracle_expected.inc` + `p2_rej_v6_test.cpp` 六组 + 自注册 CMakeLists）；
+- 证据: `eng/tests/unit/p2_rej/`（`oracle_rej.py` 独立 Oracle +
+  `oracle_expected.inc` + `p2_rej_test.cpp` 六组 + 自注册 CMakeLists）；
   12 条负向 mutation 全部被检出；shadow ctest 6/6 PASS；生产 flags
   (`-O3 -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion`) 编译零告警。
 - 未决: 校准门数值仍 PENDING_OWNER_SIGNOFF(SO-07)，按文档值 fail-closed

@@ -160,7 +160,7 @@ def main():
     # 187 份文档 × 全树遍历 ⇒ 单跑 4 分钟，CI 120s timeout 直接判 TIMEOUT。
     # 判定面只需要"文档可能引用的仓库文件"，排除重型产物目录后同判据更快。
     # 注意：`run/` 与 `reports/` **必须保留**在遍历面内 —— 文档常把运行产物写成
-    # 任务目录相对路径（如 `spec/x.json` → `run/v6/<task>/spec/x.json`），
+    # 任务目录相对路径（如 `spec/x.json` → `run/quality/<task>/spec/x.json`），
     # 下方"按 / 后缀唯一匹配"的兜底解析需要它们。只剪真正体量巨大的目录。
     _skip = (".git", "build", "问题扫描", "__pycache__", "AstroCS.wiki",
              "GaiaDR3", "GaiaDR3SP")

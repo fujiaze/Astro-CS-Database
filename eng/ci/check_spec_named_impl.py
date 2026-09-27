@@ -16,9 +16,9 @@
   - S2-NS-01：ALG-NOISE（docs/science/algorithms/NOISE_ESTIMATION.md:120）写「生产符号唯一源 =
     lib/algorithms/noise_snr/cpp/src/noise_model.cpp」，但该模块子图因根
     CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 被注释而不在构建图；
-  - S4-P3X-06/P3X-12：p3_v6_export.cpp 被
+  - S4-P3X-06/P3X-12：p3_export.cpp 被
     docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 标 production=yes，实际只被
-    eng/tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES 等四条 FROZEN 合同在生产运行面无载体。
+    eng/tests/integration/p3_export 编译 ⇒ FZ-P3-MODES 等四条 FROZEN 合同在生产运行面无载体。
 
 判据（登记表 = eng/ci/spec_named_impls.json；每条含 spec/named/kind/owner/exit_condition）
   E1 anchor_alive（fail-closed rc=2）：每条登记的 spec 文档存在，且其 quote 逐字出现

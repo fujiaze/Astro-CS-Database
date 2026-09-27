@@ -23,7 +23,7 @@ G1 (ALG-P3-002) 输出 WCS 构造 (FITS 1-based, CD-only):
 G2 (ALG-P3-002) 反向映射 (逐输出像素 (x,y), 1-based→中间平面):
   (iwc1,iwc2) = CD · ((x+1)−CRPIX1, (y+1)−CRPIX2)   # deg 偏移；Paper I §2.1.1: 中间坐标 = CD·(p−CRPIX)
   world = proj^{-1}(iwc; CRVAL) → (RA,Dec)∈[0,360)×[−90,90]
-  # 中间坐标 = CD·δp（Paper I §2.1.1）；实现锚 p3_proj_v6.cpp pix_to_plane / p3_wcs.cpp
+  # 中间坐标 = CD·δp（Paper I §2.1.1）；实现锚 p3_proj.cpp pix_to_plane / p3_wcs.cpp
   TAN 参考点含 CRVAL2（θ0=CRVAL2，Paper II §2.2；CRPIX 处 world == CRVAL）
   gnomonic: (ξ,η)=atan2 形式; 球面角差按 RA wrap 归一
 

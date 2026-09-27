@@ -1616,7 +1616,7 @@
       "target": "CHK-NWORKER-TOLERANCE",
       "kind": "extension",
       "grade": "P0",
-      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/v6/v6_numeric_equiv.py --self-test"
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/quality/numeric_equiv.py --self-test"
     },
     {
       "old_id": "CHK-PHOTOMETRY-APPLY-SELFTEST",

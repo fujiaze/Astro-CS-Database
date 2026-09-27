@@ -487,7 +487,7 @@
       "role": "projection_registry_contract",
       "owner": "SCI-FIX-PROJ(W4)",
       "object_class": null,
-      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §5.3 八投影 + docs/science/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj_v6.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
+      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §5.3 八投影 + docs/science/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
     },
     {
       "file": "eng/contracts/schemas/dual_line_file_domain.schema.json",
@@ -565,7 +565,7 @@
           "eng/contracts/schemas/unified/examples/psfsw_robust_weight.example.json"
         ],
         "rejection": "旧产品声明 unified_object=psfsw_robust_weight ⇒ 显式拒绝（无 canonical schema；端口合同 enum 判红），处置只有具名拒绝这一条",
-        "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary），不构成 canonical 对象。完整记录见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
+        "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（eng/contracts/data/clause_registry.json#weight_vocabulary），不构成 canonical 对象。完整记录见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
       }
     },
     "policy": "eng/contracts/schemas/ 是唯一事实源；旧路径（eng/contracts/data/**、已出库的 v6 字段级 schema、合同变体根文件）只保留兼容期映射与产品族专用投影，canonical 等价定义只有 eng/contracts/schemas/unified/ 一份；对象身份/单位/无效值/精度/可否作权重一律以 eng/contracts/schemas/unified/ 为准。",

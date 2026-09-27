@@ -1091,8 +1091,8 @@
       "heavy": true,
       "mutates_workspace": true,
       "outputs": [
-        "run/v6/ctest/integration.json",
-        "run/v6/runtime-closure/mutations_ci.json"
+        "run/quality/ctest/integration.json",
+        "run/quality/runtime-closure/mutations_ci.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -1110,23 +1110,23 @@
         "eng/tests/contracts/**",
         "eng/tests/integration/**",
         "eng/tests/traceability/**",
-        "eng/tools/v6/**"
+        "eng/tools/quality/**"
       ],
       "requires_monitor": true,
       "ctest_targets": [
-        "v6_p1_group",
-        "v6_p1_halfproduct",
-        "v6_p1_negative",
-        "v6_p1_positive",
-        "v6_p1_schema_oracle",
-        "v6_p2_halfproduct",
-        "v6_p2_negative",
-        "v6_p2_oracle",
-        "v6_p2_singlepath",
-        "v6_p2_write",
-        "v6_p3_export_negative",
-        "v6_p3_export_oracle",
-        "v6_p3_export_positive",
+        "p1_group",
+        "p1_halfproduct",
+        "p1_negative",
+        "p1_positive",
+        "p1_schema_oracle",
+        "p2_halfproduct",
+        "p2_negative",
+        "p2_oracle",
+        "p2_singlepath",
+        "p2_write",
+        "p3_export_negative",
+        "p3_export_oracle",
+        "p3_export_positive",
         "orchestrator_logger_units",
         "orchestrator_checkpoint_units",
         "orchestrator_cli_integration",
@@ -1135,7 +1135,7 @@
         "orchestrator_saturation_wiring_gate"
       ],
       "dirty_ignore_prefixes": [
-        "run/v6/"
+        "run/quality/"
       ],
       "steps": [
         {
@@ -1288,27 +1288,27 @@
           "platform": "any",
           "command": [
             "python3",
-            "eng/tools/v6/check_v6_runtime_closure.py",
+            "eng/tools/quality/check_runtime_closure.py",
             "mutations",
             "--json-out",
-            "run/v6/runtime-closure/mutations_ci.json"
+            "run/quality/runtime-closure/mutations_ci.json"
           ],
           "timeout_seconds": 900,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/v6/runtime-closure/mutations_ci.json"
+            "run/quality/runtime-closure/mutations_ci.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/cli/**",
             "lib/infrastructure/**",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": false,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "python3"
@@ -1329,77 +1329,77 @@
             "run/ci/monitor/V6-CTEST-INTEGRATION.json",
             "--",
             "python3",
-            "eng/tools/v6/v6_ctest_driver.py",
+            "eng/tools/quality/ctest_driver.py",
             "--group",
             "integration",
             "--build-dir",
             "run/ci/build-gcc-release",
             "--output",
-            "run/v6/ctest/integration.json",
+            "run/quality/ctest/integration.json",
             "--expect",
-            "v6_p1_positive",
+            "p1_positive",
             "--expect",
-            "v6_p1_group",
+            "p1_group",
             "--expect",
-            "v6_p1_negative",
+            "p1_negative",
             "--expect",
-            "v6_p1_halfproduct",
+            "p1_halfproduct",
             "--expect",
-            "v6_p1_schema_oracle",
+            "p1_schema_oracle",
             "--expect",
-            "v6_p2_singlepath",
+            "p2_singlepath",
             "--expect",
-            "v6_p2_write",
+            "p2_write",
             "--expect",
-            "v6_p2_negative",
+            "p2_negative",
             "--expect",
-            "v6_p2_halfproduct",
+            "p2_halfproduct",
             "--expect",
-            "v6_p2_oracle",
+            "p2_oracle",
             "--expect",
-            "v6_p3_export_positive",
+            "p3_export_positive",
             "--expect",
-            "v6_p3_export_negative",
+            "p3_export_negative",
             "--expect",
-            "v6_p3_export_oracle"
+            "p3_export_oracle"
           ],
           "timeout_seconds": 7200,
           "heavy": true,
           "mutates_workspace": true,
           "outputs": [
             "run/ci/monitor/V6-CTEST-INTEGRATION.json",
-            "run/v6/ctest/integration.json"
+            "run/quality/ctest/integration.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/**",
             "eng/tests/integration/**",
             "CMakeLists.txt",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": true,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "cmake",
             "python3"
           ],
           "ctest_targets": [
-            "v6_p1_positive",
-            "v6_p1_group",
-            "v6_p1_negative",
-            "v6_p1_halfproduct",
-            "v6_p1_schema_oracle",
-            "v6_p2_singlepath",
-            "v6_p2_write",
-            "v6_p2_negative",
-            "v6_p2_halfproduct",
-            "v6_p2_oracle",
-            "v6_p3_export_positive",
-            "v6_p3_export_negative",
-            "v6_p3_export_oracle"
+            "p1_positive",
+            "p1_group",
+            "p1_negative",
+            "p1_halfproduct",
+            "p1_schema_oracle",
+            "p2_singlepath",
+            "p2_write",
+            "p2_negative",
+            "p2_halfproduct",
+            "p2_oracle",
+            "p3_export_positive",
+            "p3_export_negative",
+            "p3_export_oracle"
           ]
         },
         {
@@ -2558,7 +2558,7 @@
         "run/ci/ctest/aio_query_pixel.json",
         "run/ci/ctest/aio_tile_model.json",
         "run/ci/ctest/aio_transform.json",
-        "run/v6/ctest/unit.json"
+        "run/quality/ctest/unit.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -2591,7 +2591,7 @@
         "eng/tests/unit/**",
         "eng/tests/version/**",
         "eng/tools/check_version_consistency.py",
-        "eng/tools/v6/**"
+        "eng/tools/quality/**"
       ],
       "requires_monitor": true,
       "ctest_targets": [
@@ -2602,16 +2602,16 @@
         "aio_tile_model",
         "aio_transform",
         "fix402_phase3_semantic_guard",
-        "p2_rej_v6_*",
-        "v6_aio_*",
-        "v6_p1_cal_*",
-        "v6_p1_drz_*",
-        "v6_p1_psfw_*",
-        "v6_p2_samp_*",
-        "v6_p2_upm_*",
-        "v6_p3_proj_*",
-        "v6_p3_rsmp_*",
-        "v6_runtime_*",
+        "p2_rej_*",
+        "aio_*",
+        "p1_cal_*",
+        "p1_drz_*",
+        "p1_psfw_*",
+        "p2_samp_*",
+        "p2_upm_*",
+        "p3_proj_*",
+        "p3_rsmp_*",
+        "runtime_*",
         "w34_*",
         "memory_pressure*",
         "p1snr_*",
@@ -3508,68 +3508,68 @@
             "run/ci/monitor/V6-CTEST-UNIT.json",
             "--",
             "python3",
-            "eng/tools/v6/v6_ctest_driver.py",
+            "eng/tools/quality/ctest_driver.py",
             "--group",
             "unit",
             "--build-dir",
             "run/ci/build-gcc-release",
             "--output",
-            "run/v6/ctest/unit.json",
+            "run/quality/ctest/unit.json",
             "--expect-glob",
-            "v6_aio_*",
+            "aio_*",
             "--expect-glob",
-            "v6_p1_cal_*",
+            "p1_cal_*",
             "--expect-glob",
-            "v6_p1_drz_*",
+            "p1_drz_*",
             "--expect-glob",
-            "v6_p1_psfw_*",
+            "p1_psfw_*",
             "--expect-glob",
-            "p2_rej_v6_*",
+            "p2_rej_*",
             "--expect-glob",
-            "v6_p2_samp_*",
+            "p2_samp_*",
             "--expect-glob",
-            "v6_p2_upm_*",
+            "p2_upm_*",
             "--expect-glob",
-            "v6_p3_proj_*",
+            "p3_proj_*",
             "--expect-glob",
-            "v6_p3_rsmp_*",
+            "p3_rsmp_*",
             "--expect-glob",
-            "v6_runtime_*"
+            "runtime_*"
           ],
           "timeout_seconds": 7200,
           "heavy": true,
           "mutates_workspace": true,
           "outputs": [
             "run/ci/monitor/V6-CTEST-UNIT.json",
-            "run/v6/ctest/unit.json"
+            "run/quality/ctest/unit.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/**",
             "eng/tests/unit/**",
             "CMakeLists.txt",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": true,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "cmake",
             "python3"
           ],
           "ctest_targets": [
-            "v6_aio_*",
-            "v6_p1_cal_*",
-            "v6_p1_drz_*",
-            "v6_p1_psfw_*",
-            "p2_rej_v6_*",
-            "v6_p2_samp_*",
-            "v6_p2_upm_*",
-            "v6_p3_proj_*",
-            "v6_p3_rsmp_*",
-            "v6_runtime_*"
+            "aio_*",
+            "p1_cal_*",
+            "p1_drz_*",
+            "p1_psfw_*",
+            "p2_rej_*",
+            "p2_samp_*",
+            "p2_upm_*",
+            "p3_proj_*",
+            "p3_rsmp_*",
+            "runtime_*"
           ]
         },
         {
@@ -3670,9 +3670,9 @@
         "run/ci/ctest/p1wcs_apbp.json",
         "run/ci/ctest/p1wcs_astropy_cross.json",
         "run/ci/ctest/p1wcs_std_f1_bridge_cross.json",
-        "run/v6/runtime-closure/closure.json",
-        "run/v6/runtime-closure/mutations.json",
-        "run/v6/runtime-closure/oracle.json"
+        "run/quality/runtime-closure/closure.json",
+        "run/quality/runtime-closure/mutations.json",
+        "run/quality/runtime-closure/oracle.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -3686,8 +3686,8 @@
         "lib/infrastructure/**",
         "eng/tests/**",
         "eng/tests/cpu/baseline/**",
-        "eng/tests/system/v6_runtime/**",
-        "eng/tools/v6/**"
+        "eng/tests/system/runtime/**",
+        "eng/tools/quality/**"
       ],
       "requires_monitor": false,
       "ctest_targets": [
@@ -3708,7 +3708,7 @@
         "variance_floor"
       ],
       "dirty_ignore_prefixes": [
-        "run/v6/"
+        "run/quality/"
       ],
       "steps": [
         {
@@ -3743,34 +3743,34 @@
           "platform": "any",
           "command": [
             "python3",
-            "eng/tools/v6/check_v6_runtime_closure.py",
+            "eng/tools/quality/check_runtime_closure.py",
             "closure",
             "--json-out",
-            "run/v6/runtime-closure/closure.json",
+            "run/quality/runtime-closure/closure.json",
             "--oracle-out",
-            "run/v6/runtime-closure/oracle.json",
+            "run/quality/runtime-closure/oracle.json",
             "--mutations-out",
-            "run/v6/runtime-closure/mutations.json"
+            "run/quality/runtime-closure/mutations.json"
           ],
           "timeout_seconds": 900,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/v6/runtime-closure/closure.json",
-            "run/v6/runtime-closure/oracle.json",
-            "run/v6/runtime-closure/mutations.json"
+            "run/quality/runtime-closure/closure.json",
+            "run/quality/runtime-closure/oracle.json",
+            "run/quality/runtime-closure/mutations.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/cli/**",
             "lib/infrastructure/**",
-            "eng/tools/v6/**",
-            "eng/tests/system/v6_runtime/**",
+            "eng/tools/quality/**",
+            "eng/tests/system/runtime/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": false,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "python3"
@@ -6823,8 +6823,8 @@
         "run/ci/ctest/p2001_real_nodes.json",
         "run/ci/ctest/p2002_unc_rej_prov.json",
         "run/ci/ctest/phase2_gates.json",
-        "run/v6/cli-matrix/matrix.json",
-        "run/v6/runtime-closure/cli_mode.json"
+        "run/quality/cli-matrix/matrix.json",
+        "run/quality/runtime-closure/cli_mode.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -6836,7 +6836,7 @@
         "lib/algorithms/drizzle/**",
         "lib/infrastructure/**",
         "eng/tests/**",
-        "eng/tools/v6/**"
+        "eng/tools/quality/**"
       ],
       "requires_monitor": false,
       "ctest_targets": [
@@ -6845,7 +6845,7 @@
         "p2002_unc_rej_prov"
       ],
       "dirty_ignore_prefixes": [
-        "run/v6/"
+        "run/quality/"
       ],
       "steps": [
         {
@@ -6994,21 +6994,21 @@
           "platform": "any",
           "command": [
             "python3",
-            "eng/tools/v6/check_v6_runtime_closure.py",
+            "eng/tools/quality/check_runtime_closure.py",
             "cli-mode",
             "--json-out",
-            "run/v6/runtime-closure/cli_mode.json"
+            "run/quality/runtime-closure/cli_mode.json"
           ],
           "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/v6/runtime-closure/cli_mode.json"
+            "run/quality/runtime-closure/cli_mode.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/cli/**",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": false,
@@ -7024,29 +7024,29 @@
           "platform": "linux",
           "command": [
             "python3",
-            "eng/tools/v6/v6_cli_mode_matrix.py",
+            "eng/tools/quality/cli_mode_matrix.py",
             "--cli-bin",
             "run/ci/build-gcc-release/acsd",
             "--work",
-            "run/v6/cli-matrix",
+            "run/quality/cli-matrix",
             "--json-out",
-            "run/v6/cli-matrix/matrix.json"
+            "run/quality/cli-matrix/matrix.json"
           ],
           "timeout_seconds": 1200,
           "heavy": false,
           "mutates_workspace": true,
           "outputs": [
-            "run/v6/cli-matrix/matrix.json"
+            "run/quality/cli-matrix/matrix.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/cli/**",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": false,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "python3"
@@ -7411,7 +7411,7 @@
       "outputs": [
         "run/ci/ctest/p1drz_taskset_invariance.json",
         "run/ci/ctest/p1snr_linux_all.json",
-        "run/v6/determinism/determinism.json"
+        "run/quality/determinism/determinism.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -7421,18 +7421,18 @@
         "lib/**",
         "eng/tests/**",
         "eng/tests/integration/**",
-        "eng/tools/v6/**"
+        "eng/tools/quality/**"
       ],
       "requires_monitor": true,
       "ctest_targets": [
         "p1drz_taskset_invariance",
         "p1snr_linux_*",
-        "v6_p1_*",
-        "v6_p2_*",
-        "v6_p3_export_*"
+        "p1_*",
+        "p2_*",
+        "p3_export_*"
       ],
       "dirty_ignore_prefixes": [
-        "run/v6/"
+        "run/quality/"
       ],
       "steps": [
         {
@@ -7451,39 +7451,39 @@
             "run/ci/monitor/V6-DETERMINISM.json",
             "--",
             "python3",
-            "eng/tools/v6/v6_determinism_driver.py",
+            "eng/tools/quality/determinism_driver.py",
             "--budgets",
             "1,2,4,8",
             "--json-out",
-            "run/v6/determinism/determinism.json"
+            "run/quality/determinism/determinism.json"
           ],
           "timeout_seconds": 7200,
           "heavy": true,
           "mutates_workspace": true,
           "outputs": [
             "run/ci/monitor/V6-DETERMINISM.json",
-            "run/v6/determinism/determinism.json"
+            "run/quality/determinism/determinism.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/cli/**",
             "lib/**",
             "eng/tests/integration/**",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": true,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "cmake",
             "python3"
           ],
           "ctest_targets": [
-            "v6_p1_*",
-            "v6_p2_*",
-            "v6_p3_export_*"
+            "p1_*",
+            "p2_*",
+            "p3_export_*"
           ]
         },
         {
@@ -7568,7 +7568,7 @@
       "platform": "any",
       "command": [
         "python3",
-        "eng/tools/v6/v6_numeric_equiv.py",
+        "eng/tools/quality/numeric_equiv.py",
         "--self-test",
         "--json-out",
         "run/ci/nworker-tolerance/selftest.json"
@@ -7581,7 +7581,7 @@
       ],
       "waivable": false,
       "changed_paths": [
-        "eng/tools/v6/**",
+        "eng/tools/quality/**",
         "eng/ci/checks.json",
         "docs/contracts/SCHEDULER_CONTRACT.md",
         "docs/contracts/TEST_MATRIX.md"
@@ -8013,8 +8013,8 @@
         "run/ci/ctest/mon004_enforcement.json",
         "run/ci/ctest/resource_monitor_quality.json",
         "run/ci/ctest/rt001_unique_executor.json",
-        "run/v6/runtime-closure/resource_gate.json",
-        "run/v6/runtime-closure/resource_gate_oracle.json"
+        "run/quality/runtime-closure/resource_gate.json",
+        "run/quality/runtime-closure/resource_gate_oracle.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -8030,7 +8030,7 @@
         "eng/tests/**",
         "eng/tools/quality/**",
         "eng/tools/quality/check_serial_heavy.py",
-        "eng/tools/v6/**"
+        "eng/tools/quality/**"
       ],
       "requires_monitor": false,
       "ctest_targets": [
@@ -8040,7 +8040,7 @@
         "rt001_unique_executor"
       ],
       "dirty_ignore_prefixes": [
-        "run/v6/"
+        "run/quality/"
       ],
       "steps": [
         {
@@ -8145,30 +8145,30 @@
           "platform": "any",
           "command": [
             "python3",
-            "eng/tools/v6/check_v6_runtime_closure.py",
+            "eng/tools/quality/check_runtime_closure.py",
             "resource-gate",
             "--json-out",
-            "run/v6/runtime-closure/resource_gate.json",
+            "run/quality/runtime-closure/resource_gate.json",
             "--oracle-out",
-            "run/v6/runtime-closure/resource_gate_oracle.json"
+            "run/quality/runtime-closure/resource_gate_oracle.json"
           ],
           "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/v6/runtime-closure/resource_gate.json",
-            "run/v6/runtime-closure/resource_gate_oracle.json"
+            "run/quality/runtime-closure/resource_gate.json",
+            "run/quality/runtime-closure/resource_gate_oracle.json"
           ],
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/cli/**",
             "lib/infrastructure/**",
-            "eng/tools/v6/**",
+            "eng/tools/quality/**",
             "eng/ci/checks.json"
           ],
           "requires_monitor": false,
           "dirty_ignore_prefixes": [
-            "run/v6/"
+            "run/quality/"
           ],
           "prerequisite_tools": [
             "python3"
@@ -10005,8 +10005,8 @@
       "waivable": false,
       "changed_paths": [
         "lib/algorithms/drizzle/**",
-        "lib/algorithms/integration/v6_phase1/**",
-        "eng/tests/unit/v6_p1_drz/**",
+        "lib/algorithms/integration/phase1_product/**",
+        "eng/tests/unit/p1_drz/**",
         "CMakeLists.txt"
       ],
       "requires_monitor": false,
@@ -10794,7 +10794,7 @@
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [
-        "run/ci/ctest/v6_p2_sky_kappa.json"
+        "run/ci/ctest/p2_sky_kappa.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -10805,7 +10805,7 @@
       ],
       "requires_monitor": false,
       "ctest_targets": [
-        "v6_p2_sky_kappa"
+        "p2_sky_kappa"
       ],
       "steps": [
         {
@@ -10821,15 +10821,15 @@
             "--build-dir",
             "run/ci/build-gcc-release",
             "--target",
-            "v6_p2_sky_kappa",
+            "p2_sky_kappa",
             "--output",
-            "run/ci/ctest/v6_p2_sky_kappa.json"
+            "run/ci/ctest/p2_sky_kappa.json"
           ],
           "timeout_seconds": 900,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/ci/ctest/v6_p2_sky_kappa.json"
+            "run/ci/ctest/p2_sky_kappa.json"
           ],
           "waivable": false,
           "changed_paths": [
@@ -10840,7 +10840,7 @@
           ],
           "requires_monitor": false,
           "ctest_targets": [
-            "v6_p2_sky_kappa"
+            "p2_sky_kappa"
           ]
         }
       ],

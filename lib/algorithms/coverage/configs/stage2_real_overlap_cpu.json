@@ -35,7 +35,7 @@
     "acr_route": "cpu"
   },
   "output": {
-    "hips": "run/phase2/v6/real_overlap_cpu.mosaic.hips"
+    "hips": "run/phase2/real_overlap_cpu.mosaic.hips"
   },
   "diagnostics": {
     "enabled": true

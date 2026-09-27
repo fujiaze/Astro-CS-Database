@@ -64,7 +64,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "astrocs/core/memory_budget.h"  // 内存静态预算来源解析（§8.3）
 #include "aio_sysinfo.h"                 // 可用内存唯一探测实现（aio 边界）
 #include "aio_file_io.h"                 // 文件读取唯一机制原语（aio 边界）
-#include "v6_runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
+#include "runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -80,7 +80,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 
 #include "cli_common.h"
 #include "runtime_client.h"
-#include "v6_mode_gate.h"   // RUNTIME-CI-001: V6 显式模式路由门
+#include "mode_gate.h"   // RUNTIME-CI-001: V6 显式模式路由门
 
 // CLI-001: 三个平级用户命令（normalize/mosaic/export）的入口实现在
 // lib/infrastructure/cli/**；本文件是它们背后的会话层（执行/校验/计划/检视）。

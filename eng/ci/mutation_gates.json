@@ -14,23 +14,23 @@
   },
   "gates": [
     {
-      "id": "v6_aio_impl_mutations",
+      "id": "aio_impl_mutations",
       "approximation": "AIO v6 产品 I/O（atomic publish / provenance / properties 校验）",
       "in_ctest": true,
       "default_on": true,
-      "ctest_name": "v6_aio_impl_mutations",
-      "driver": "eng/tests/unit/v6_aio/mutations/mutate_and_check.py",
-      "registration": "eng/tests/unit/v6_aio/CMakeLists.txt:55-58",
-      "evidence": "build/v6_aio/CTestTestfile.cmake:23-24（LABELS v6_aio_slow, TIMEOUT 2400）"
+      "ctest_name": "aio_impl_mutations",
+      "driver": "eng/tests/unit/aio/mutations/mutate_and_check.py",
+      "registration": "eng/tests/unit/aio/CMakeLists.txt:55-58",
+      "evidence": "build/v6_aio/CTestTestfile.cmake:23-24（LABELS aio_slow, TIMEOUT 2400）"
     },
     {
-      "id": "v6_p3_rsmp_mutation_driver",
+      "id": "p3_rsmp_mutation_driver",
       "approximation": "P3 重采样 C_out=R C_in Rᵀ / 插值边界",
       "in_ctest": false,
       "default_on": false,
-      "ctest_name": "v6_p3_rsmp_mutation_driver",
-      "driver": "eng/tests/unit/v6_p3_rsmp/run_mutations.py",
-      "registration": "eng/tests/unit/v6_p3_rsmp/CMakeLists.txt:43-50（option(V6_P3RSMP_ENABLE_MUTATION_DRIVER ... OFF)）",
+      "ctest_name": "p3_rsmp_mutation_driver",
+      "driver": "eng/tests/unit/p3_rsmp/run_mutations.py",
+      "registration": "eng/tests/unit/p3_rsmp/CMakeLists.txt:43-50（option(P3RSMP_ENABLE_MUTATION_DRIVER ... OFF)）",
       "reason": "默认 OFF，不进 ctest 默认面；20 条注入只在手动 ON 或 run/ 脚本下执行。",
       "evidence": "run/v6/p3-rsmp/mutation_summary.json（历史运行）",
       "gone_artifacts": {
@@ -42,7 +42,7 @@
       "approximation": "V6 运行时闭包（模块可达性 / 路由 / 契约）",
       "in_ctest": false,
       "default_on": true,
-      "driver": "eng/tools/v6/check_v6_runtime_closure.py mutations",
+      "driver": "eng/tools/quality/check_runtime_closure.py mutations",
       "registration": "eng/ci/checks.json:V6-NEGATIVE-MUTATION",
       "result": "detected=11/11 clean=PASS",
       "evidence": "run/v6/runtime-closure/mutations_ci.json"
@@ -122,13 +122,13 @@
       "approximation": "P1 PSF 权重 sigma_F=1/sqrt(W)",
       "in_ctest": false,
       "default_on": false,
-      "driver": "eng/tests/unit/v6_p1_psfw/p1psfw_tests_oracle.cpp（ASTROCS_P1PSFW_FAULT 故障注入）",
-      "registration": "v6_p1_psfw_selfcheck（ctest）内的 fault-injection 自检",
+      "driver": "eng/tests/unit/p1_psfw/p1psfw_tests_oracle.cpp（ASTROCS_P1PSFW_FAULT 故障注入）",
+      "registration": "p1_psfw_selfcheck（ctest）内的 fault-injection 自检",
       "reason": "以故障注入而非独立 mutation driver 形式进 ctest selfcheck；另 run/v6/IMPL-P1-PSFW-001/{mutants,summary.json} 为历史一次性证据。"
     }
   ],
   "open_items": [
-    "把关键 mutation driver（v6_p3_rsmp / p2-samp / REJ / DRZ）纳入 ctest 或 CI 检查（§11.1 DIVERGENT 未闭合）—— 注：原引的 docs/ASTROCS_DESIGN §11.1 已不存在，该 DIVERGENT 归属需重新落锚。",
+    "把关键 mutation driver（p3_rsmp / p2-samp / REJ / DRZ）纳入 ctest 或 CI 检查（§11.1 DIVERGENT 未闭合）—— 注：原引的 docs/ASTROCS_DESIGN §11.1 已不存在，该 DIVERGENT 归属需重新落锚。",
     "「近似 ↔ mutation 门」双向登记已由 eng/ci/check_mutation_gates.py 机器校验（A1 结构 / A2 design_claim 锚存活 / A3 登记项仍有对象 + gone_artifacts 棘轮）；该 checker 需在 eng/ci/checks.json 注册后才进入 CI 面。"
   ],
   "design_claim_history": "原引用 docs/ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中整条不存在（docs/ASTROCS_DESIGN.md 770 行、§11 = 双平台发行与安装:651、全文零 mutation）⇒ 该锚已死，由 eng/ci/check_mutation_gates.py 的 A2 判据点名。本文件登记的实况口径不变，改引 ENGINEERING_SPEC §10 的「能红能绿」要求作为现行规范依据。"

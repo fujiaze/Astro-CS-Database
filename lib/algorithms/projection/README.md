@@ -5,7 +5,7 @@
 > lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
 > 目录先例新建。**SCI-FIX-PROJ 增补（2026-09-16）**：投影集合权威 =
 > docs/ASTROCS_DESIGN.md §5.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
-> **在役 registry = v6 线 p3_proj_v6.h/.cpp（kProjectionRegistryVersion=3）**
+> **在役 registry = v6 线 p3_proj.h/.cpp（kProjectionRegistryVersion=3）**
 > ——CAR/AIT 按 Calabretta & Greisen (2002) Paper II §2.2 三 Euler 角把
 > CRVAL2（含 LONPOLE 默认 0/180）纳入映射、AIT 椭圆域 A≤1、CAR native 极行
 > |θ|≥90° fail-closed；冻结集合经 registry_frozen_set() 导出（表内 code 必须

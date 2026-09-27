@@ -211,7 +211,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 - 上文 "不处理乘性尺度差（已撤销，SCI-UPM 非目标）" 为 V5/历史加性
   模型口径；V6 以 \`ALG-P2S-UPM.1\` 取代（只登记，详见
   \`lib/algorithms/upm/memory.md\` 的 V6 追加节）。
-- 共址测试：\`eng/tests/unit/v6_p2_upm/\`（5 个 ctest 用例 + 负向 fail-closed
+- 共址测试：\`eng/tests/unit/p2_upm/\`（5 个 ctest 用例 + 负向 fail-closed
   门 + 独立 NumPy Oracle 锚 + 6 条冻结 mutation 全红）；证据
   \`run/v6/IMPL-P2-UPM-001/\`。
 - 开放项（只登记不裁决）：DI-04（k_corr 标定/MC 复跑，OPEN）、

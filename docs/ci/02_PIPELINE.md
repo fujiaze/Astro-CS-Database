@@ -9,12 +9,13 @@
 | 事件 | 范围 | 说明 |
 |---|---|---|
 | 本地 / agent 默认运行 | `changed`（增量） | 无参数即增量：只跑与改动集相交的检查 |
-| `pull_request` | `changed`（增量） | 与本地默认同口径，PR 内快速反馈 |
-| `push` 到 `main` | `full`（显式 `--all`） | 合并后整档全量，杜绝"增量假绿"进入 main |
-| `workflow_dispatch` | 手动 | 触发者显式给 `--all` / `--changed` / `--check` |
-| `schedule` | 每日一次 `full` | 兜底：即使无提交也复跑整档 |
+| `push` 到 `main` | profile 全档 | 合并后整档全量：`ci-linux.yml` 跑 `python3 eng/ci/run.py --profile linux-main`、`ci-windows.yml` 跑 `--profile windows-main`，杜绝"增量假绿"进入 main |
+| `workflow_dispatch` | 手动 | `ci-linux.yml` 提供 `profile` 选择（`linux-main` / `linux-deep`，默认 `linux-main`）；`ci-windows.yml` 固定 `windows-main` |
+| `schedule` | 每日一次全档 | `ci-linux.yml` cron `17 19 * * *`（UTC）复跑整档，兜底无提交日 |
 | 提交前（本地 / agent） | `fast` + `integration` 两档 | `fast` 只含秒级一致性门；真起子进程 / 真跑 CLI / 真实测量窗的步骤在 `integration` 档，**必须另跑** |
 | 负责人触发 `prerelease` | `--profile prerelease` | 真实数据 E2E / L2 性能 / sanitizer / coverage / nwoker / invariant；带输入指纹缓存，指纹命中即复用归档 |
+
+- 两平台 workflow 的 `on:` 面只含 `push`（`main`）、`workflow_dispatch`、`schedule`，均未配置 `pull_request` 触发；合并前验证由提交前本地 / agent 运行（`fast` + `integration` 两档）承担。
 
 - 增量档 fail-closed 三条（未覆盖路径判红 / 敏感面强制升级全量 / 空选择判红）见 `CI_SPEC.md §2.4`；
 - 结果 JSON 顶层 `scope` 必须如实反映本轮范围（`full` / `changed` / `explicit`）；
@@ -22,35 +23,21 @@
 
 ## 2. Job 结构
 
-```mermaid
-flowchart TD
-    J1["build-linux (ubuntu-latest)"] --> J3["static+doc+contract"]
-    J2["build-windows (windows-latest)"] --> J3
-    J3 --> J4["unit+module"]
-    J4 --> J5["synthetic-science"]
-    J5 --> J6["gates-report"]
-    J6 --> J7["package-candidates"]
-    J7 --> J8["留存 artifacts"]
-```
+两平台各一个独立 workflow、各一个 job，无 `needs` 依赖链；检查项的编排由
+`eng/ci/run.py --profile <profile>` 在 job 内完成（profile → 检查集见 `eng/ci/checks.json`）。
 
-| Job | 内容 | 依赖 |
-|---|---|---|
-| build-linux | Linux Release 构建 + 安装树 + 打包 | 无 |
-| build-windows | Windows Release 构建 + 安装树 + 打包 | 无 |
-| static+doc+contract | CHK-WARN/STATIC、文档一致性（含 AGENTS-GOV / ENG-CONSTRAINTS / VERSION-CONSISTENCY / STD-REG / CHK-REGISTRY-DOC-SYNC）、ABI、schema | 两个 build |
-| unit+module | 单元、Oracle、不变量、负例 | static 通过 |
-| synthetic-science | 三阶段合成全链、ISA 等价、N worker | unit 通过 |
-| gates-report | 汇总所有检查结果，生成门禁报告 | synthetic 通过 |
-| package-candidates | 发布候选打包 + 白名单 + 哈希 + provenance | gates 通过 |
-| prerelease（手动、一次性） | 真实数据 E2E、L2 性能、sanitizer、coverage、nwoker/invariant；输入指纹命中即复用归档 | 负责人触发 |
+| Workflow | Job（依赖） | 内容 | 证据锚 |
+|---|---|---|---|
+| `ci-linux.yml` | `linux`（无依赖，单 job，ubuntu） | `python3 eng/ci/run.py --profile linux-main`（`workflow_dispatch` 可选 `linux-deep`）；失败路径调 `eng/ci/wf_step.py --step LINUX-BOOTSTRAP-DIAG` | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
+| `ci-windows.yml` | `windows`（无依赖，单 job，windows-2022） | `python eng/ci/run.py --profile windows-main`（MSVC 测试 + 打包候选）；失败路径调 `eng/ci/wf_step.py --step WINDOWS-BOOTSTRAP-DIAG` | `astrocs-windows-candidate-<sha>` ← `artifacts/candidate/`（success）；`windows-ci-<sha>` ← `artifacts/ci/`（always） |
 
 增量档不跑整条链：只执行与改动集相交的检查（`CI_SPEC.md §2.3`），构建/测试 target 由构建图反查得出；
-任一 fail-closed 条件命中即判红，不进入后续 job。
+任一 fail-closed 条件命中即判红。
 
 ## 3. 并行与超时
 
-- build-linux / build-windows 并行；
-- 每 job 设 timeout：build 30 min、测试 45 min、打包 15 min；
+- `ci-linux.yml` 与 `ci-windows.yml` 是两个独立 workflow，各自触发、互不依赖；
+- 每 workflow 单 job，`timeout-minutes: 330`（`ci-linux.yml` / `ci-windows.yml` 一致）；
 - **每 step 的 timeout 上界 = max(60, 3 × 最近一次实测墙钟)**，硬上限 3600 s（`prerelease` 重步骤 10800 s）；
   逐项改前/改后数值见 `eng/ci/checks.json` 与 `run/CI-INCREMENTAL/EVIDENCE.md`；
 - **增量档总预算**：`--budget-seconds`（默认 120 s），实际耗时超出即判红并提示"应拆分"；
@@ -76,4 +63,4 @@ flowchart TD
 
 ## 7. 产物（见 04_ARTIFACTS.md）
 
-每次 CI 留存：Linux tar.gz、Windows zip、测试结果、检查报告、日志、门禁摘要。
+每次 CI 留存 artifact：`linux-ci-<sha>` 与 `windows-ci-<sha>`（`artifacts/ci/`）、`astrocs-windows-candidate-<sha>`（`artifacts/candidate/`），retention 14 天；留存面明细见 04_ARTIFACTS.md。

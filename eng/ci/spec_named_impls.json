@@ -6,7 +6,7 @@
   "defect_classes": [
     "S1-002：规范点名 sdet_api.cpp，生产 star-psf 节点跑 wrapper_phase1::StarDetector",
     "S2-NS-01：规范点名 noise_model.cpp，模块子图因根 CMakeLists.txt:240 注释不在构建图",
-    "S4-P3X-06/P3X-12：p3_v6_export.cpp 未编入生产 target，清单却标 production=yes"
+    "S4-P3X-06/P3X-12：p3_export.cpp 未编入生产 target，清单却标 production=yes"
   ],
   "entries": [
     {
@@ -72,11 +72,11 @@
         "quote": "运行期缺键即 REJECT"
       },
       "named": {
-        "file": "lib/phase3_session/p3_v6_export.cpp",
-        "symbol": "p3_v6_export"
+        "file": "lib/phase3_session/p3_export.cpp",
+        "symbol": "p3_export"
       },
       "owner": "Phase3 export 域主（前台裁决接线面）",
-      "exit_condition": "把 p3_v6_export.cpp 编入生产 target（astrocs_phase3_session 或其新增库）并链入 acsd，使 FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 在生产运行面有载体"
+      "exit_condition": "把 p3_export.cpp 编入生产 target（astrocs_phase3_session 或其新增库）并链入 acsd，使 FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 在生产运行面有载体"
     },
     {
       "id": "SNI-S4-P3X-12",
@@ -87,7 +87,7 @@
         "loc": "90"
       },
       "named": {
-        "file": "lib/phase3_session/p3_v6_export.cpp"
+        "file": "lib/phase3_session/p3_export.cpp"
       },
       "owner": "Phase3 export 域主（清单更正或完成接线）",
       "exit_condition": "更正 docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 的 classification/production_reachable，或按 P3X-06 完成接线后清单声明成立"

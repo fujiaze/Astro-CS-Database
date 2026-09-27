@@ -59,7 +59,7 @@
 //     于是**任何** H（包括精确秩亏的）只要 λ 够大就能过任何有限门。
 //     可执行的见证：H = [[1,1],[1,1]]（rank 1）配 λ = 1e-9 ⇒
 //     κ(H+λI) = 2e9 < 1/1e-10，旧天光面门判绿，而本判据判红——见
-//     eng/tests/unit/v6_p2_sky_kappa/v6_p2_sky_kappa_test.cpp B9-B11。
+//     eng/tests/unit/p2_sky_kappa/p2_sky_kappa_test.cpp B9-B11。
 //   · 奇异半正定 P（天光面的二阶差分模板 P = DᵀD，其零空间非空）：
 //     κ(H + λP) 不再单调趋 1，而是随 λ 先降后升——但它**仍然随 λ 大幅摆动**
 //     （实测量级见 run/UPM-KAPPA-UNIFY-01/REPORT.md），且沿 range(P) 的方向上
@@ -102,10 +102,10 @@
 // ---------------------------------------------------------------------------
 // 怎么证伪它（本判据自带可红可绿的可执行反例）
 // ---------------------------------------------------------------------------
-//   eng/tests/unit/v6_p2_identifiability/  —— 正例/负例/尺度不变/独立 Jacobi Oracle 对拍
-//   eng/tests/unit/v6_p2_sky_kappa/        —— 天光面侧接线 + 旧恒真门的可买绿见证
-//   eng/tests/unit/v6_p2_sky/              —— 自适应回路单旋钮（放粗/细化）双向
-//   eng/tests/unit/v6_p2_upm/              —— UPM/GLS 侧接线 + 旧绝对常数门的反例
+//   eng/tests/unit/p2_identifiability/  —— 正例/负例/尺度不变/独立 Jacobi Oracle 对拍
+//   eng/tests/unit/p2_sky_kappa/        —— 天光面侧接线 + 旧恒真门的可买绿见证
+//   eng/tests/unit/p2_sky/              —— 自适应回路单旋钮（放粗/细化）双向
+//   eng/tests/unit/p2_upm/              —— UPM/GLS 侧接线 + 旧绝对常数门的反例
 #pragma once
 
 #include <cstddef>

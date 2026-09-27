@@ -17,5 +17,5 @@ check() {
 }
 check "CMakeFiles/astrocs_phase2.dir/lib/algorithms/coverage/src/sampler.cpp.o" lib/algorithms/coverage/src/sampler.cpp
 check "CMakeFiles/astrocs_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp.o" lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp
-check "lib/algorithms/integration/v6/CMakeFiles/astrocs_v6_phase2_integrate.dir/src/weight_chain.cpp.o" lib/algorithms/integration/v6/src/weight_chain.cpp
-check "lib/algorithms/integration/v6/CMakeFiles/astrocs_v6_phase2_integrate.dir/src/phase2_integrate.cpp.o" lib/algorithms/integration/v6/src/phase2_integrate.cpp
+check "lib/algorithms/integration/phase2_integrate/CMakeFiles/astrocs_phase2_integrate.dir/src/weight_chain.cpp.o" lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp
+check "lib/algorithms/integration/phase2_integrate/CMakeFiles/astrocs_phase2_integrate.dir/src/phase2_integrate.cpp.o" lib/algorithms/integration/phase2_integrate/src/phase2_integrate.cpp

@@ -52,7 +52,7 @@
       "source": "docs/science/STAR_DETECTION.md:21（threshold = median(img) + 5.0·bgnoise，5σ 语义）",
       "source_ref": {
         "path": "docs/science/STAR_DETECTION.md",
-        "line": 21
+        "line": 65
       },
       "pending_task": null,
       "note": ""
@@ -80,7 +80,7 @@
       "source": "docs/science/PSF.md:94（改变 Moffat β≠4 或 FWHM_FACTOR 而无 SCI 变更）",
       "source_ref": {
         "path": "docs/science/PSF.md",
-        "line": 94
+        "line": 23
       },
       "pending_task": null,
       "note": ""
@@ -111,7 +111,7 @@
       "source": "docs/science/NOISE_MODEL.md:86（§5a `rmax = max(1,r0)·max(1,scale) = 60 px  # 硬上界`，claim SC-007）；拆分 r0=10/scale=6 见 docs/science/algorithms/NOISE_ESTIMATION.md:134（实现锚，非权威）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 86
+        "line": 28
       },
       "pending_task": null,
       "note": "**上界语义，非操作默认值**：实际半径由 §5a 逐星导出（F_i/FWHM_i/σ_bg 与天空预算），本键只定义 cap。MASK-001 §1.4 证明旧 source_ref（ALG:134 ↔ noise_model.cpp:376-377 ↔ 本文件）为循环引用，此次改指 SCI §5a 实际陈述行消除该环。"
@@ -209,7 +209,7 @@
       "source": "docs/science/NOISE_MODEL.md:23（§2 variance_floor 方差下界 1e-12）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 23
+        "line": 30
       },
       "pending_task": null,
       "note": "同文件 :125（§9 variance_floor=1e-12 保证 ivar 有限）、:29（§3 单位 ADU²）。行锚 +6（claim SC-007，§2 符号表新增 6 行）。"
@@ -293,7 +293,7 @@
       "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8；REJECT-DOCFIX-01 重锚，原 :68 已漂移）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 115
       },
       "pending_task": null,
       "note": "verbatim='sigma/winsorized/averaged 4.0/3.0/8'；三元组记为 (lower_sigma, upper_sigma, max_iterations)，三方法共用，按文档自身引用的冻结锚点 rejection.cpp:1053-1062 逐项核对。"
@@ -545,7 +545,7 @@
       "source": "docs/science/PHOTOMETRY.md:30（mag_tolerance 星等一致性阈 3.0 mag）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 30
+        "line": 34
       },
       "pending_task": null,
       "note": "docs/science/algorithms/PHOTOMETRIC_FIT.md:20（F7 同一 3.0 mag）。"
@@ -629,7 +629,7 @@
       "source": "docs/science/SCIENCE_SCOPE.md:56（默认 FP64 科学计算）",
       "source_ref": {
         "path": "docs/science/SCIENCE_SCOPE.md",
-        "line": 56
+        "line": 92
       },
       "pending_task": null,
       "note": "docs/ASTROCS_DESIGN.md §3.3 的 JSON 示例写 fp32，属示例取值；默认值以本条为准（SCIENCE_SCOPE 为科学权威）。"
@@ -657,7 +657,7 @@
       "source": "docs/science/PHASE3_HIPS_TO_FITS.md:41（hips_tile_width tile 宽 W 默认 512=2⁹）",
       "source_ref": {
         "path": "docs/science/PHASE3_HIPS_TO_FITS.md",
-        "line": 41
+        "line": 17
       },
       "pending_task": null,
       "note": "行号锚由 W5-CFG-002 重锚（原 :27 在文档重排后落到无关段落，数值零改动）：:130 记 properties 必需键 hips_tile_width（2 的幂，默认 512）；:63/:66-68 记 W=512 支持子集收窄。"
