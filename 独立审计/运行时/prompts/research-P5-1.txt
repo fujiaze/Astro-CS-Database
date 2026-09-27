@@ -3,7 +3,7 @@
 输入（先读）：
 1. UPM 模块暂无独立科学审查成稿——以 独立审计/08_修复包/③加性天光无缝/01_缺陷清单.md 与 04_二次核对.md 中科学量条目、docs/science/PHASE2_UPM.md 的常数/阈值（如接缝判据门槛 1e-2、方差比诊断量、稀疏采样点噪声逆方差权重）为缺口清单来源，逐个做三腿核查并补缺；若同目录还有 -2 或 SUMMARY 件也读）——提取本模块的三腿缺失项与锚修复项清单；
 2. docs/science/PHASE2_UPM.md 与 docs/plugins/algorithms_phase2/11_upm.md（UPM 与接缝判据正本）（理论推导腿的权威来源，引用其式子编号）；
-3. ASTROCS_DESIGN.md §12.2 与 docs/science/、docs/algorithms/ 相关节（实验三类数据的适用性规则）。
+3. docs/ASTROCS_DESIGN.md §12.2 与 docs/science/、docs/algorithms/ 相关节（实验三类数据的适用性规则）。
 对清单里的每一项，产出四件套：
 A. 文献腿：真实核验——curl api.crossref.org/works/<DOI> 或 export.arxiv.org/api/query（arXiv 调用间隔 sleep 3，429 退避 20s，403 重试一次）；记录 DOI/arXiv 号、题名、作者、年份与回包要点；**解析不到就记 UNRESOLVED，绝不编造文献**。
 B. 实验腿：按数据适用性选型——解析代数合成（必须含"真值无效应⇒度量归零"负例）/ 纯合成物理前向 / HST 模板风格信号；固定 seed；单次实验 CPU ≤ 5 分钟，纯 Python＋numpy，不 import 仓库内任何 Python，不跑 eng/** 任何脚本，不碰构建。

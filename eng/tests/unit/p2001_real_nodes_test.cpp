@@ -484,7 +484,7 @@ static void test_ivar_chain_real_operation() {
   json man_int = run_node(reg, "astrocs.phase2.integrate", ivar_cfg(fx), ctx2);
   CHECK(man_int.value("operation", "") == "integrate_frames");
   CHECK(man_int.value("entry", "") == "astrocs_phase2_integrate_v1");
-  // FIX-405 G3-12（ASTROCS_DESIGN §3.1）: 产物/manifest 不再承载「权重模式」键;
+  // FIX-405 G3-12（docs/ASTROCS_DESIGN §3.1）: 产物/manifest 不再承载「权重模式」键;
   // 方差面状态由语义键如实表达（非退化: 替代键必须在位）。
   CHECK(man_int.find("weight_mode") == man_int.end());
   CHECK(man_int.value("weight_basis", std::string()) == "per_sample_ivar");
@@ -606,7 +606,7 @@ static void test_ivar_chain_real_operation() {
     CHECK(fin["provenance"].value("ASTROCS_INPUT_MANIFEST_HASH", "").size() == 64);
     CHECK(fin["provenance"].value("ASTROCS_MODEL_HASH", "").size() == 64);
     CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "true");
-    // A44（GAP_AUDIT §9.73 / ASTROCS_DESIGN §2.1）：全程只有 SNR，不存在
+    // A44（GAP_AUDIT §9.73 / docs/ASTROCS_DESIGN §2.1）：全程只有 SNR，不存在
     // 「权重模式」⇒ 原 ASTROCS_WEIGHT_MODE 契约断言已删（键已不存在）。
     // ── AUDIT-PERSIST-01: §7a 审计块必须能从**产品**里读出来 ──────────────
     // 依据 docs/science/PHASE2_UPM.md §7a:190-192（节点间距的逐次尝试与生效值必须
@@ -1088,7 +1088,7 @@ static void test_determinism() {
     CHECK_MSG(ff.ok(), ff.ok() ? "" : ff.error().message().c_str());
     const std::string intj = read_file(fx.out + "/p2_integrated.json");
     const std::string finj = read_file(fx.out + "/p2_final.json");
-    // FIX-405 G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
+    // FIX-405 G3-12（docs/ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
     // 真实 Phase2 产物不得再承载 weight_mode 键；方差面状态由语义键承接
     // （非退化：替代键必须同时在位，缺键 fail-closed 面不因删键而消失）。
     // BLD-401 空断言充数修复（AGENTS.md §9）：产物文件缺失 ⇒ intj/finj 为空 ⇒

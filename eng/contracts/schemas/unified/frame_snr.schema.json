@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "frame_snr",
     "canonical_file": "eng/contracts/schemas/unified/frame_snr.schema.json",
-    "authority": "docs/design/UNIFIED_MODEL.md §2；ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/design/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算",
     "weight_eligible": false
   },

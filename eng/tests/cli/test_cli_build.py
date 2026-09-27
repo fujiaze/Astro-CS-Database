@@ -83,7 +83,7 @@ def _repo_version():
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
         return fh.read().strip()
 
-# CLI-001: help golden = ASTROCS_DESIGN §6.2 唯一命令树（逐行对照）。
+# CLI-001: help golden = docs/ASTROCS_DESIGN §6.2 唯一命令树（逐行对照）。
 # 旧命令（phase1/2/3、config *、modules *、selftest、test synthetic、verify*、
 # drizzle、benchmark cpu|verify-profile、hardware inspect）不得出现在 help 里。
 EXPECTED_HELP_LINES = [

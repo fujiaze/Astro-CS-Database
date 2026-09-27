@@ -309,7 +309,7 @@ v(D07 + ":118", NA, "—（Pipeline IR 版本标识串）", "④ 待确认（版
   "pipeline_block.schema.json 不含 version 常量 ⇒ 该版本串无合同约束点，属版本治理缺口非科学常数。",
   unit="—", coord="—", prec="—", fin="IR 标识")
 v(D05 + ":157", NA, "—（文案里的 §9.68 条款号）", NA, "注释/文案",
-  "机械层『现行值 9.68』作废：input_lights 字段说明里引 ASTROCS_DESIGN §9.68，不是数值。",
+  "机械层『现行值 9.68』作废：input_lights 字段说明里引 docs/ASTROCS_DESIGN §9.68，不是数值。",
   unit="—", coord="—", prec="—", fin="文案")
 v(D05 + ":181", "A 负责人裁决 + ① 契约侧登记（但本侧取值相反）",
   "唯一数值源 eng/packaging/config/defaults.json:666-667 drizzle.pixfrac=0.8"
@@ -364,9 +364,9 @@ v(D05 + ":380", NA, "—（--help 文案里的 §9.68）", NA, "文案",
   "机械值 9.68 作废。", unit="—", coord="—", prec="—", fin="文案")
 for k in (":149", ":175", ":177"):
     v(D06 + k, NA, "—（error 文案里的『§3.5』条款号）", NA, "预检文案",
-      "机械值 3.5 作废。这里的 §3.5 指 ASTROCS_DESIGN.md §3.5（现行权威，非已废止宪章）✓。",
+      "机械值 3.5 作废。这里的 §3.5 指 docs/ASTROCS_DESIGN.md §3.5（现行权威，非已废止宪章）✓。",
       unit="—", coord="—", prec="—", fin="文案")
-v(D04 + ":115", NA, "—（拒绝消息串里的『ASTROCS_DESIGN.md 3.1』条款号）", NA, "拒绝文案",
+v(D04 + ":115", NA, "—（拒绝消息串里的『docs/ASTROCS_DESIGN.md 3.1』条款号）", NA, "拒绝文案",
   "机械值 3.1 作废：非数值常数。该消息把条款号写成裸文本『3.1』而非『§3.1』，"
   "与仓内其余引用格式不一（低危，登记）。", unit="—", coord="—", prec="—", fin="文案")
 v(D04 + ":122", NA, "—（拒绝消息里的控制项编号 C-004.1）", NA, "拒绝文案",

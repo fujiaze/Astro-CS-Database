@@ -16,7 +16,7 @@ body = r"""
 |---|---|---|---|---|---|---|---|
 | :1196（格 4 已列，此处按族补录） | `p1_session_run(h,c,0)` | 0 | 预读深度 | 待确认 | 见 CR-240-13 | — | CONFIRMED |
 | :1265 | `aio_file::read_head(path, 6, &magic)` | 6 | FITS 主头魔数 "SIMPLE" 长度 | 结构性不适用 | 定义长度（FITS 主头首卡前 6 字节恒为 `SIMPLE`） | — | CONFIRMED |
-| :1272,:1293 | `100ull * 2880ull`（两处同值，合并） | 288000 B | 主头扫描读入上界（100 块） | 待确认 | 条文面零提及（检索式：`git grep -n "288 KB\|100 块\|主头上界" -- docs ASTROCS_DESIGN.md` 零命中；仅 :1270/:1291 注释自述同一数）。超过此上界的主头判 `return 0` ⇒ 整帧被 `p1_image_sane` 判不可读 | 保守方向＝**提高**上界或在超界时报"主头过长"具名错误而非 0；影响范围＝所有 BITPIX 主头超 288 KB 的输入（含大量 SIP/COMMENT 卡的历史归档件） | PARTIAL（未取证现网输入是否可能超界） |
+| :1272,:1293 | `100ull * 2880ull`（两处同值，合并） | 288000 B | 主头扫描读入上界（100 块） | 待确认 | 条文面零提及（检索式：`git grep -n "288 KB\|100 块\|主头上界" -- docs docs/ASTROCS_DESIGN.md` 零命中；仅 :1270/:1291 注释自述同一数）。超过此上界的主头判 `return 0` ⇒ 整帧被 `p1_image_sane` 判不可读 | 保守方向＝**提高**上界或在超界时报"主头过长"具名错误而非 0；影响范围＝所有 BITPIX 主头超 288 KB 的输入（含大量 SIP/COMMENT 卡的历史归档件） | PARTIAL（未取证现网输入是否可能超界） |
 | :1273,:1275,:1279,:1282,:1309,:1311,:1346 | `2880ull`（块大小，7 处同值合并） | 2880 | FITS 逻辑记录长度 | 文献值 | FITS 标准（Heidt et al., `AFUV` 3.0 §2.1/`FITS` 强制 2880 B 块）；`docs/contracts/DATA_SEMANTICS.md` 亦以 2880 为块口径。非科学量、属格式定义常数 | — | CONFIRMED |
 | :1276,:1312 | `i < 36`、`blk + i * 80` | 36, 80 | 每块 36 张 80 字节卡 | 文献值 | FITS 标准 2880/80=36，卡宽 80 字节 ⇒ 格式定义常数，`结构性` 与 `文献值` 双成立，按文献值登记 | — | CONFIRMED |
 | :1298,:1300 | `c[8] != '='`、`memcpy(val, c + 10, 70)` | 8, 10, 70, 71 | FITS 固定格式卡的值起始列与取值窗 | 文献值 | FITS 标准：列 9（0-based 8）为 `=`，值区自列 11 起（0-based 10）至列 80 ⇒ 70 字节；`val[71]`/`val[70]='\0'` 为缓冲尺寸。我复算过窗不越卡尾（10+70=80） | — | CONFIRMED |
@@ -28,7 +28,7 @@ body = r"""
 | :1346 | 非 FITS 分支的 `header = 2880ull` | 2880 | 非 FITS 文件头长的"保守下界" | 待确认 | 注释 :1344 自述"单块保守下界, 与旧实现同口径"；条文面零提及（检索式：`git grep -n "2880" -- docs/contracts` 命中的都是 FITS 产品条款，不覆盖 XISF 输入头长）。XISF 主头通常远大于 2880 B，且压缩数据使 `size >= header+raw` 根本不成立 ⇒ 对非 FITS 输入此判据既不保守也不充分 | 保守方向＝非 FITS 输入不走该判据而改走 aio 自身的完整性标志；影响范围＝XISF 亮场的截断检测 | PARTIAL（现网 testdata 以 FITS 为主，未证实 XISF 路径可达） |
 | :1364-1366,:1371,:1377-1391 | config 取值的类型回退分支（`p1_flag`/`p1_num`/`p1_int`） | — | 错型/缺键时回退调用方给的默认值 | 见 CR-240-15 | 待确认 | 保守方向＝错型即 PARAM 拒绝；影响范围＝P1 全部节点的全部数值/开关键 | CONFIRMED（行为已按原文核清） |
 | :1380,:1385,:1389 | `INT64_C(-2147483648)`/`2147483647`/`UINT64_C(2147483647)` | int32 边界 | 宽整型收窄到 `int` 的界检查 | 结构性不适用 | 32 位 int 值域定义常数；越界回退 dflt（方向：回退值本身见 CR-240-15） | — | CONFIRMED |
-| :1418 | `out = "frame"` | "frame" | frame_key 净化后为空/`.`/`..` 时的兜底目录名 | 待确认 | `ASTROCS_DESIGN §3.4`「输出基数」（:1401 引用）要求每帧一目录；兜底成同一个 `"frame"` 会把多帧并入一个目录。方向：**放行**——但同块的重复 key 由 :1428 的唯一性门拦下（该门自身有 CR-240-17 的缺口） | 保守方向＝空/退化 key 直接 fail-closed 具名报错，不给公共兜底名；影响范围＝文件名全为非白名单字符的输入（如中文/空格命名） | PARTIAL |
+| :1418 | `out = "frame"` | "frame" | frame_key 净化后为空/`.`/`..` 时的兜底目录名 | 待确认 | `docs/ASTROCS_DESIGN §3.4`「输出基数」（:1401 引用）要求每帧一目录；兜底成同一个 `"frame"` 会把多帧并入一个目录。方向：**放行**——但同块的重复 key 由 :1428 的唯一性门拦下（该门自身有 CR-240-17 的缺口） | 保守方向＝空/退化 key 直接 fail-closed 具名报错，不给公共兜底名；影响范围＝文件名全为非白名单字符的输入（如中文/空格命名） | PARTIAL |
 | :1423,:1499,:1507,:1519 | `doc.value("output_dir", std::string("."))`（4 处同值合并） | "." | output_dir 缺键时落到进程 CWD | 见 CR-240-14 | 待确认 | 保守方向＝缺 output_dir 即 PARAM 拒绝；影响范围＝所有 P1 节点产物落位 | CONFIRMED |
 | :1454 | `static std::atomic<uint64_t> seq{0}` | 0 | 临时文件序号起点 | 结构性不适用 | 计数起点，非科学量 | — | CONFIRMED |
 | :1484-1485 | `im.p->bits_per_sample = 32; im.p->float_sample = 1;` | 32, 1 | 写出前把样本格式归一为 FP32 | 见 CR-240-18 | 产品面登记 `scalar=f32`（`module_ports.registry.json` 的 `p1_calibrated`/`p1_cleaned`/`p1_photoapplied` 均 f32）⇒ 目标值本身有据；**改的方式与副作用**才是问题 | 保守方向＝经公共 setter 或新建句柄，不改 caller 句柄；影响范围＝所有 P1 像素产品 + 同一句柄的后续判据 | CONFIRMED |
@@ -38,7 +38,7 @@ body = r"""
 ### CR-240-14 · 四个落位助手把 `output_dir` 的缺省兜底写成 `"."`，与配置合同"不得以进程 CWD 作隐式缺省"的条文直接相反
 - 轴：C（主轴）/ D
 - 位点：`:1423` `return doc.value("output_dir", std::string(".")) + "/" + p1_frame_key(light);`（`p1_frame_dir`）；同族 `:1499`（`p1_calibrated_path`）、`:1507`（`p1_cosmetic_path`）、`:1519`（`p1_badcol_path`）
-- 上位依据：`eng/contracts/schemas/phase_config_normalize.schema.json` 的 `$defs.output_dir.description` 原文："运行产物唯一落点；**不得以进程 CWD 作隐式缺省（ASTROCS_DESIGN.md §6.3）**。多块形态下是块级必填"；同文件把 `output_dir` 列入 `$defs/normalize_block.required` 与 `else.required`（mosaic/export 两个 schema 同样各 3 处 required）。`AGENTS.md §6` 硬禁令"不把运行产物散落根目录：一切输出落 output_dir 或 `run/`"。
+- 上位依据：`eng/contracts/schemas/phase_config_normalize.schema.json` 的 `$defs.output_dir.description` 原文："运行产物唯一落点；**不得以进程 CWD 作隐式缺省（docs/ASTROCS_DESIGN.md §6.3）**。多块形态下是块级必填"；同文件把 `output_dir` 列入 `$defs/normalize_block.required` 与 `else.required`（mosaic/export 两个 schema 同样各 3 处 required）。`AGENTS.md §6` 硬禁令"不把运行产物散落根目录：一切输出落 output_dir 或 `run/`"。
 - 现状：CLI 面（schema）确实必填，但生产中枢这四个助手仍带 `"."` 兜底；一旦 `output_dir` 不在 doc 里（非 CLI 入口、或配置块被上层重排后丢键），四个函数一律返回 `"./calibrated_x.fits"` 一类路径，写盘与读回都照常进行。
 - 差在哪：判据方向＝**放行**（缺键不报错，改用一个能跑通但落点错误的目录）。合同要求的形态是"缺 output_dir 即拒绝"，代码形态是"缺 output_dir 即 CWD"，两侧相反；而且这个默认值在配置合同面没有登记位（不是 profile/默认配置，是源码字面）。
 - 后果：产品可能写进进程当前目录（服务上下文里即 DSH/守护进程工作目录），`run manifest` 与 `p1_products.json` 里的路径与实际落点仍自洽 ⇒ 交付时找不到产物或产物覆盖上一轮同名文件；`AGENTS §6` 的"产物不散落根目录"主张在此不成立。
@@ -86,7 +86,7 @@ body = r"""
     for (const auto& l : doc["input_lights"]) {
       if (!l.is_string()) continue;
   ```
-- 上位依据：`:1401-1404` 自述"P0-21: 一组进一组出（ASTROCS_DESIGN §3.4「输出基数」）……同块内重复 key ⇒ fail-closed（两帧共用目录会互相覆盖产品与中间产物, 属'静默丢弃'）"；`:1426-1427`"任何按帧派生落位的操作器（wcs/drizzle/writer）必须先过此门"。
+- 上位依据：`:1401-1404` 自述"P0-21: 一组进一组出（docs/ASTROCS_DESIGN §3.4「输出基数」）……同块内重复 key ⇒ fail-closed（两帧共用目录会互相覆盖产品与中间产物, 属'静默丢弃'）"；`:1426-1427`"任何按帧派生落位的操作器（wcs/drizzle/writer）必须先过此门"。
 - 现状：门只覆盖"字符串元素且 key 相同"这一种冲突。三种形态整体放行：①`input_lights` 缺键或非数组 ⇒ 立即 `success()`；②数组里**非字符串**元素被 `continue` 跳过，不参与查重（两帧以对象形式给出、指向同一基名时门看不见）；③查重按 `p1_frame_key()` 之后的名字，而 `:1418` 的兜底 `"frame"` 会把多个"净化后为空/./.."的输入并成同一个 key——这一支门**能**拦（值相同），但拦下后报的也是 collision，而非"退化名"这一真因。
 - 差在哪：判据方向＝放行（门的"通过"包含"我什么都没查"）。合同语句是"必须先过此门"，而门自身可在缺结构时自证通过。
 - 后果：`§3.4 输出基数`主张（每帧一个 HiPS 目录）在畸形配置下失去守卫；非字符串元素路径还会与后续各 `p1_op_*` 自己的 `is_string()` 判定耦合——那些判定若也 `continue`，则该帧被**静默跳过**（产品数少于输入数而运行报成功），这一点在 :1500 之后，须合并定案。
@@ -109,10 +109,10 @@ body = r"""
   if (aio_write_fits(im.p, staging.c_str()) != 0) { ... }
   if (!p1_atomic_publish(staging, final_path, err)) return false;
   ```
-- 上位依据：`ASTROCS_DESIGN.md:688`「所有产品（含 HiPS tile）走：本次运行私有临时区 → 校验 → **fsync** → 算哈希 → 原子改名发布 → 最后落完成清单；……正式目录只出现完整产品」；`docs/contracts/PUBLIC_API.md:1914`「→ close → **fsync(fd)** → rename（R10-C 冻结序，:221-273）」；`docs/contracts/DATA_SEMANTICS.md:2413`「发布协议冻结（R10-C）：fits_flush_file → close → fsync(fd) → …」。同仓另一面已按此实现：`lib/infrastructure/aio/src/aio_atomic_file.h:102-148` 的 `write_file_atomic` 顺序是 fwrite → fflush → **fsync(fileno)** → fclose → `atomic_replace`。
+- 上位依据：`docs/ASTROCS_DESIGN.md:688`「所有产品（含 HiPS tile）走：本次运行私有临时区 → 校验 → **fsync** → 算哈希 → 原子改名发布 → 最后落完成清单；……正式目录只出现完整产品」；`docs/contracts/PUBLIC_API.md:1914`「→ close → **fsync(fd)** → rename（R10-C 冻结序，:221-273）」；`docs/contracts/DATA_SEMANTICS.md:2413`「发布协议冻结（R10-C）：fits_flush_file → close → fsync(fd) → …」。同仓另一面已按此实现：`lib/infrastructure/aio/src/aio_atomic_file.h:102-148` 的 `write_file_atomic` 顺序是 fwrite → fflush → **fsync(fileno)** → fclose → `atomic_replace`。
 - 现状：FITS 产品走的是本文件自建的"临时文件 + rename"路径：`aio_write_fits` 把 staging 写完关闭（`lib/infrastructure/aio/src/aio_fits.cpp` 的写路径**无 fsync**，`git grep -n "fsync" -- lib/infrastructure/aio/src/aio_api.cpp` 亦零命中），随后立刻 rename，rename 之后才 `fsync_parent_dir`（只同步目录项，且 `aio_atomic_file.h:605` 是 `void` 函数、内部 `(void)fsync_path(...)` 连返回码都不出）。aio 另有同语义且带 fsync 的流式原语 `write_file_atomic_stream`（`aio_atomic_file.h:149-197`，注释："与 write_file_atomic 同语义, 供内容由多次 fprintf/fwrite 生成的场景使用"），FITS 面没用。
 - 差在哪：冻结序要求"数据先落盘再改名"，这里是"改名后才碰目录"。后果方向＝**放行**：崩溃/断电窗口内 `final_path` 可以是一个已改名但数据页未落盘的文件（长度对、内容为 0 或部分），而登记面（:1493 之后各 op 的 manifest/产物清单）仍把它当完整产品。`fsync_parent_dir` 的失败又完全不进 `err`（与 :1468 的 `*err = "atomic publish failed"` 形成对照）。同族小洞：`:1469` `aio_fs::remove(staging)` 的返回值被吞（`aio_fs::remove` 本身是 `void`，:190-192），清理失败不可见。
-- 后果：`ASTROCS_DESIGN §688` 的"正式目录只出现完整产品"、`:533` 的"收尾 fsync + 算哈希 + 原子发布"对**像素产品**不成立；HiPS/FITS 产品的 `sha256` 登记可能在重启后与磁盘内容不一致。JSON 侧（`aio_fs::write_atomic`）反而正确 ⇒ 同一运行里两类产品的发布保证不同级。
+- 后果：`docs/ASTROCS_DESIGN §688` 的"正式目录只出现完整产品"、`:533` 的"收尾 fsync + 算哈希 + 原子发布"对**像素产品**不成立；HiPS/FITS 产品的 `sha256` 登记可能在重启后与磁盘内容不一致。JSON 侧（`aio_fs::write_atomic`）反而正确 ⇒ 同一运行里两类产品的发布保证不同级。
 - 定级：**S1**，触发路径逐跳：`lib/infrastructure/cli/commands.cpp:1721`（normalize）→ `lib/infrastructure/scheduler/src/runtime.cpp:284`（`m.value()->execute(ctx)`）→ `module_adapters.cpp:15461-15468`（`p1_nodes[]` 的 cal/cos 等真实节点）→ `module_adapters.cpp:2995`（`p1_write_fits_atomic(im, out_path, &werr)`，cosmetic 产物；另 :2596/:3017/:3033/:6084）→ `module_adapters.cpp:1488`（`aio_write_fits`，无 fsync）→ `module_adapters.cpp:1467`（rename）→ `module_adapters.cpp:1472`（只同步目录）。其中 :2995/:15461 属本文件其它行段（CR-24x），本条以逐行引用取证；若其上下文另有 fsync，**须与 CR-240…CR-250 合并定案**后调级。
 - 怎么算修好：①`p1_write_fits_atomic` 改为"aio 侧提供 `aio_write_fits_fsync`（写完 close 后 `fsync(fd)` 再返回）"或让本函数走 `aio_atomic::write_file_atomic_stream` 同语义序；②`p1_atomic_publish` 增加 `bool fsynced_data` 前置条件并在失败时填 `*err`；③`fsync_parent_dir` 改为返回 int（aio 面）并把失败并进产品错误；④同批给发布序补一条可执行判据（现有门只看 `data > UINT64_MAX - header` 一类，不看 fsync），例如按 `strace`/ETW 断言 rename 前有 fsync 调用——否则"改对反而判红"的风险在别处（没有门守这条）。
 - 置信：CONFIRMED（三处冻结序条文逐字引用；aio 写路径 fsync 缺失以检索式确认：`git grep -n "fsync" -- lib/infrastructure/aio/src/aio_fits.cpp lib/infrastructure/aio/src/aio_api.cpp` 仅 `aio_atomic_file.h` 命中）
@@ -120,7 +120,7 @@ body = r"""
 ### CR-240-19 · 写出前用 `const` 引用改调用方句柄内部字段：aio 私有结构被生产中枢直接写入，且该改动能反噬同一句柄的完整性判据
 - 轴：D（主轴）/ R
 - 位点：`:1483-1486`（`im.p->bits_per_sample = 32; im.p->float_sample = 1;`）＋ `:67`（`#include "aio_fits.h"  // AIOImageData 完整布局: 写出前归一化样本格式为 FP32`）
-- 上位依据：`ASTROCS_DESIGN.md §10`「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」（本文件 :170-172 据此建 `aio_fs` 薄转发层，并声明"机制唯一实现在 lib/infrastructure/aio/src/**"）；aio 公共面 `lib/infrastructure/aio/include/astro_image_io.h:117-128` 只提供 `aio_get_options`/`aio_get_metadata` 等**只读**访问器与 `aio_free_image_data`，**没有任何样本格式 setter**；`AIOImageData` 的完整定义在私有头 `lib/infrastructure/aio/src/aio_fits.h:15-28`。
+- 上位依据：`docs/ASTROCS_DESIGN.md §10`「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」（本文件 :170-172 据此建 `aio_fs` 薄转发层，并声明"机制唯一实现在 lib/infrastructure/aio/src/**"）；aio 公共面 `lib/infrastructure/aio/include/astro_image_io.h:117-128` 只提供 `aio_get_options`/`aio_get_metadata` 等**只读**访问器与 `aio_free_image_data`，**没有任何样本格式 setter**；`AIOImageData` 的完整定义在私有头 `lib/infrastructure/aio/src/aio_fits.h:15-28`。
 - 现状：本文件包含 aio 的 **src 私有头**，直接改 `AIOImageData` 的两个 int 字段，作用对象是 caller 持有的句柄（`p1_write_fits_atomic` 形参是 `const P1Image&`，`const` 只约束指针本身，句柄内容被就地改了）。修的方向是对的——`aio_fits.cpp:1109` 的写出分支确实是 `image->bits_per_sample > 0 && !image->float_sample ? 16 : -32`，所以改成 32/1 才会写 BITPIX=-32；我复算过该三元式与 :1477-1480 记述的旧缺陷（int16 回绕、cal 产物与源相关性 0.065）一致。
 - 差在哪：两点。①边界方向倒了：为了让写出面用对格式，改的是**上游模块的内部表示**，且经私有头，等于把 aio 的结构体字段名变成 scheduler 的编译期依赖（aio 侧同一 struct 里已经并存第二套表示 `uint8_t dtype`，0=FP32/1=FP64，:1056 起的写路径正是用 `dtype` 拒绝 FP64 ⇒ 两套字段的职责边界只体现在 aio 的私有实现里）。②副作用可回吃：同一句柄若在某次写之后又被 `p1_image_sane(im, 源路径)` 判完整性（:1336 `bpp = bits_per_sample/8`），位深已被改成 4 B/px，而源文件是 2 B/px ⇒ `need` 翻倍 ⇒ 合法文件被判"不可读"。方向＝保守（误判为红），但误判原因是被自己改过的字段。是否真的发生取决于调用序，均在 :1500 之后 ⇒ **须与 CR-240…CR-250 合并定案**。
 - 后果：短期无错值；结构性后果是 aio 的"唯一 I/O 边界"变成"唯一 I/O 边界＋可被外部改写的内部状态"，任何 aio 侧重构（把格式决策收敛到 `dtype` 或加 setter）都可能让 :1484-1485 静默失效，退化回"按源格式写 int16 并回绕"的损坏产品，而这条退化没有任何编译期或门检。

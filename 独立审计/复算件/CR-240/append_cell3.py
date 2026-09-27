@@ -65,7 +65,7 @@ body = r"""
 ### CR-240-09 · 执行类校验是单向的：descriptor 说 `cpu_heavy` 而 IR 说不 heavy 才判红，反向（io 节点被 IR 当重节点派发）无判据
 - 轴：R（主轴）/ C
 - 位点：`:816` `d.execution_class = "io";`（`p3_writer_descriptor`）与 `:834-835` `d.execution_class = "io";   // 读回校验非计算 heavy(heavy+serial 资源门禁止)`＋`d.parallel_ok = false;`
-- 上位依据：`lib/include/astrocs/core/module.h:35` `execution_class;  // cpu_heavy | io | light`；`lib/infrastructure/scheduler/src/module.cpp:50-53`「heavy+serial 拒绝（RT-005: cpu_heavy 必须 parallel_ok）」；`docs/contracts/RT-001.md:26`（descriptor 的执行模型属冻结接口）。条文面对"IR 侧 resource_class 必须与 descriptor 一致"零提及（检索式：`git grep -n "resource_class" -- docs/contracts ASTROCS_DESIGN.md` 本段未取证，属合并待办）。
+- 上位依据：`lib/include/astrocs/core/module.h:35` `execution_class;  // cpu_heavy | io | light`；`lib/infrastructure/scheduler/src/module.cpp:50-53`「heavy+serial 拒绝（RT-005: cpu_heavy 必须 parallel_ok）」；`docs/contracts/RT-001.md:26`（descriptor 的执行模型属冻结接口）。条文面对"IR 侧 resource_class 必须与 descriptor 一致"零提及（检索式：`git grep -n "resource_class" -- docs/contracts docs/ASTROCS_DESIGN.md` 本段未取证，属合并待办）。
 - 现状：唯一比对点 `lib/infrastructure/scheduler/src/pipeline.cpp:210-215`：`if (desc->execution_class == "cpu_heavy" && n.resource_class != "cpu_heavy") issues.push_back(SERIAL_HEAVY);` ⇒ 只判"descriptor heavy、IR 不 heavy"一个方向；descriptor 为 `io`/`light` 而 IR 写 `cpu_heavy` 时不产生任何 issue，而 `runtime.cpp:176` 起就把 `spec.resource_class = n.resource_class` 交给调度器决定租约与池。
 - 差在哪：判据方向没钉全。漏判一侧的后果是 io 型节点（writer/verify）被当作重计算节点占用 heavy 租约份额，反向不报 ⇒ 资源观测面（宪章 §10.5 利用率、P7 份额均分）与实际负载不再对应；这不是"保守"，因为另一节点会被饿成 `cap=1`（本文件 :599 的降级即在此发生），方向偏**放行**。
 - 后果：写手/校验节点被登记为 heavy 时，同批在途节点的租约份额被压小（`context.cpp:236-237` 按 `dispatch_budget_hint()` 收缩），出现"科学节点静默单线程"，同时 trace 里 `workers=1` 看起来像代码退化——误导排障方向。

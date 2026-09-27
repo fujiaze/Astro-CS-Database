@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "rejection",
     "canonical_file": "eng/contracts/schemas/unified/rejection.schema.json",
-    "authority": "docs/design/UNIFIED_MODEL.md §2；ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/design/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "门/概率，不是 coverage",
     "weight_eligible": false
   },

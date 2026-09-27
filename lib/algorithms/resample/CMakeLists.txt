@@ -10,7 +10,7 @@
 #
 # 迁移沿革 (W4-A9 批次 2 → W8/批次 4):
 #   批次 2 (2026-09-17): p3_resample.{h,cpp} 文件由 lib/phase3_session/ 迁入本目录
-#     (ASTROCS_DESIGN §7.1「resample」行), 但编译单元暂留 astrocs_phase3_session ——
+#     (docs/ASTROCS_DESIGN §7.1「resample」行), 但编译单元暂留 astrocs_phase3_session ——
 #     该源依赖 hips_properties_parse/hips_product_validate (时在会话库内) 与
 #     aio_hips_* (astrocs_hips), 直接并入本库会成 astrocs_p3_rsmp ⇄ astrocs_phase3_session 环。
 #   批次 4 (W8): 解析器已独立成库 astrocs_hips_properties (根 CMakeLists.txt 声明, 源在

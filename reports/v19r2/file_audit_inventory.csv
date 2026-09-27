@@ -9,7 +9,7 @@ path,type,shipping_target,module,production_or_test,loc,owner_doc,science_ids,al
 .gitignore,root,no,root,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
 ACCEPTANCE_SPEC.md,aux,no,ACCEPTANCE_SPEC.md,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
 AGENTS.md,root,no,root,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
-ASTROCS_DESIGN.md,aux,no,ASTROCS_DESIGN.md,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
+docs/ASTROCS_DESIGN.md,aux,no,docs/ASTROCS_DESIGN.md,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
 CMakeLists.txt,aux,no,CMakeLists.txt,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
 CMakePresets.json,aux,no,CMakePresets.json,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,
 CONTROL_PACK_SPEC.md,aux,no,CONTROL_PACK_SPEC.md,production,0,,,,,PENDING,0,0,0,0,,,,,,,,,,,,

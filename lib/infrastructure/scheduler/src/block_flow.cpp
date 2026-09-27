@@ -1,5 +1,5 @@
 // ACSD Core — ARCH-505 阶段块流执行器实现
-// 依据：ASTROCS_DESIGN.md §8.2/§8.3；CONTRACT-501 PIPELINE_BLOCK_CONTRACT
+// 依据：docs/ASTROCS_DESIGN.md §8.2/§8.3；CONTRACT-501 PIPELINE_BLOCK_CONTRACT
 #include "astrocs/core/block_flow.h"
 
 #include <algorithm>

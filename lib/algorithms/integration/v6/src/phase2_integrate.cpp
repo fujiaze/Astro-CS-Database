@@ -14,7 +14,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写与 FITS
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写与 FITS
 // 平面读取一律经 aio 唯一实现 (aio_file::read_all / aio_atomic::write_file_atomic),
 // 本 TU 不自持 fstream 通道。
 #include "aio_atomic_file.h"
@@ -194,7 +194,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
  *        psfsw_robust_weight，必须可诊断地拒绝，不得静默接受。
  * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
  *        标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重 psfsw_robust_weight
- *        **不是现行对象**：ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
+ *        **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
  *        之比……任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
  *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径）。
@@ -203,7 +203,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
  *        PSF 质量代理（FWHM/残差尺度）只作诊断。 */
 const char* kRetiredWeightModeRejectReason =
     "FZ-MODE-RETIRED: product declares 'psfsw_robust' - psfsw_robust_weight is not "
-    "a current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+    "a current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
     "there is no selectable weight mode: Phase2 reconstructs the dense SNR field and "
     "derives inverse-variance weights w = SNR^2/F_ref^2 = 1/sigma_F^2; "
     "PSF quality proxies (FWHM/residual) are diagnostics only; "

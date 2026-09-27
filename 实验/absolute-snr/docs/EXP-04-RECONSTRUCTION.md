@@ -2,7 +2,7 @@
 
 > 实验单元：`实验/absolute-snr/`（SCI-B 绝对 SNR 传递链）
 > 任务单元：**SCI-B-EXP-04**
-> 权威链：`AGENTS.md` §5（科学纪律）→ `ASTROCS_DESIGN.md` §5.3 → `docs/design/UNIFIED_MODEL.md:46`（**判据 SP-0**）
+> 权威链：`AGENTS.md` §5（科学纪律）→ `docs/ASTROCS_DESIGN.md` §5.3 → `docs/design/UNIFIED_MODEL.md:46`（**判据 SP-0**）
 > → `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5 → `docs/plugins/algorithms_phase2/13_integration.md:19-41`
 > 判据正本：`docs/science/CONTROL_WEIGHT_SNR.md` §8b（`E = Var_w/Var_opt − 1`）
 > 固定 seed：`20260921`｜复现：`bash 实验/absolute-snr/code/exp04/run_all.sh`
@@ -124,7 +124,7 @@ SExtractor `backsig` 语义，`back.c:846`）、`frame_global_mad`（整帧未�
   （`weight_chain.h:90-98`）；查询点越出定义域 ⇒ `out_of_domain=true` + **fail-closed
   （不外推、不回退帧级）**（`:233-237`）；域内**先钳到节点范围再求值**（`:239-240`）；
   另有控制点自身复现自检 `node_reproduction_max_abs`（`weight_chain.h:105`）。
-- **文档事实**：`07_noise_snr.md` §4.5 只说"重建算子返回预测方差"；`ASTROCS_DESIGN.md`
+- **文档事实**：`07_noise_snr.md` §4.5 只说"重建算子返回预测方差"；`docs/ASTROCS_DESIGN.md`
   §5.3 只说"稀疏控制点插值重建"；`UNIFIED_MODEL.md:46` 只说"Phase2 由它重建稠密 SNR"。
   **算法名在整个文档集中不存在** ⇒ 本任务的空白点（`07_noise_snr.md:141` 亦自记为登记项）。
 - **v6 家族的去留**：`07_noise_snr.md` §4.4（`:131`）明示该家族在 orchestrator 接线搬入

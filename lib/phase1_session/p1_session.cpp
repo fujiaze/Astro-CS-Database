@@ -23,7 +23,7 @@ extern "C" {
 #include "astro_image_io.h"
 #include "astrocs/probe.h"  // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 产物存在性探测
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 产物存在性探测
 // 经 aio 机制原语 (aio_atomic::path_exists), 本 TU 不再直用 std::filesystem。
 #include "aio_atomic_file.h"
 

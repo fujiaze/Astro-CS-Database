@@ -1,6 +1,6 @@
 # reverse_verify 定案结论 · SCI-B（帧级 SNR / 星点通量口径 / SNR 传播设计）
 
-> 上游：ASTROCS_DESIGN.md §2.2 / §4.4 / §5.3 / §12.3；`ENGINEERING_SPEC.md §9`
+> 上游：docs/ASTROCS_DESIGN.md §2.2 / §4.4 / §5.3 / §12.3；`ENGINEERING_SPEC.md §9`
 > 来源：`reverse_verify/docs/{frame-snr-canon,f-instr-canon,snr-propagation-design}.md`
 > （2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/absolute-snr/docs/`）。本文件只登记**现行结论**。
 

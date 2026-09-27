@@ -21,7 +21,7 @@ print('待判位点 %d' % len(src))
 DOCF = []
 for f in subprocess.run(['git', '-c', 'core.quotePath=false', '-C', str(REPO), 'ls-files', '--',
                          'docs/science', 'docs/algorithms', 'docs/contracts', 'docs/design',
-                         'docs/ci', 'ASTROCS_DESIGN.md', 'ACCEPTANCE_SPEC.md', 'ENGINEERING_SPEC.md'],
+                         'docs/ci', 'docs/ASTROCS_DESIGN.md', 'ACCEPTANCE_SPEC.md', 'ENGINEERING_SPEC.md'],
                         capture_output=True, text=True, encoding='utf-8', errors='replace').stdout.splitlines():
     if f.endswith(('.md', '.csv', '.json', '.yaml')):
         try:

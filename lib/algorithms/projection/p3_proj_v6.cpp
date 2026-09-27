@@ -28,7 +28,7 @@
 //             p3_projection_registry_test.cpp、eng/tests/unit/v6_p3_proj/**、
 //             eng/tests/integration/v6_p3/**，以及 eng/ci/checks.json 的 v6_p3_proj_* ctest_targets
 //             （DOC-403 文件域）。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
 //             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记」；
 //             RELEASE-04 GAP_AUDIT G3-6 / G2-1（包已出库）。

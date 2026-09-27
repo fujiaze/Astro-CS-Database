@@ -20,17 +20,17 @@
 | `lib/algorithms/coverage/src/rejection.cpp` | — | （见 §2 依据） | （见 §3 改法对应步骤） | AUD-101-DB-11.md×1、AUD-202-SNR核验.md×1 | DB13·W3[PASS/P1] | 入库 |
 | `docs/traceability/TRACEABILITY_MATRIX.json` | — | （见 §2 依据） | （见 §3 改法对应步骤） | AUD-101-DB-13.md×7、AUD-101-DB-11.md×1、AUD-101-DB01.md×1 | DB13·W3[PASS/P1] | 入库 |
 | `docs/traceability/TRACEABILITY_MATRIX.csv` | — | （见 §2 依据） | （见 §3 改法对应步骤） | AUD-101-DB-13.md×3、AUD-101-DB-09.md×2、AUD-101-DB-11.md×2 | DB13·W3[PASS/P1] | 入库 |
-| `ASTROCS_DESIGN.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 11 条 D3 主张） | — | — | 入库 |
+| `docs/ASTROCS_DESIGN.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 11 条 D3 主张） | — | — | 入库 |
 
 ## 2 依据
 
-「复核-DB13」W3（判定：确认，范围与严重度上修：对侧 7 处而非成稿的 2 处，含现行合同 `PUBLIC_API.md:1376-1378`、两份模块页、`PHASE2_REJECTION.md:90` 同文件自我否定、`rejection.cpp:1129-1131` 注释与代码互否）；唯一正本 = `12_rejection.md` §9 三档（`ASTROCS_DESIGN.md:422` 点名并自证「本节不复制档界与取值」），现行代码走三档 ⇒ 口径不需裁决。
+「复核-DB13」W3（判定：确认，范围与严重度上修：对侧 7 处而非成稿的 2 处，含现行合同 `PUBLIC_API.md:1376-1378`、两份模块页、`PHASE2_REJECTION.md:90` 同文件自我否定、`rejection.cpp:1129-1131` 注释与代码互否）；唯一正本 = `12_rejection.md` §9 三档（`docs/ASTROCS_DESIGN.md:422` 点名并自证「本节不复制档界与取值」），现行代码走三档 ⇒ 口径不需裁决。
 
 ## 3 改法（具体动作，动词开头）
 
 1. 按正本跟改 7 处对侧口径（文档 + 合同 + 模块页 + 注释）
 2. 修 `p2002_unc_rej_prov_test.cpp:550-551` 的相反断言（系 M3 提交 `139a2bc4` 漏改），使其与 `p2_rejection_test.cpp:212-218` 对同一 profile 同一入口一致
-3. 订正成稿给出的 `ASTROCS_DESIGN.md:420 → :422` 锚（`:420` 实为「路由依据 N = 该输出像素的几何可贡献帧数」）
+3. 订正成稿给出的 `docs/ASTROCS_DESIGN.md:420 → :422` 锚（`:420` 实为「路由依据 N = 该输出像素的几何可贡献帧数」）
 4. 登记实跑前置（本只读阶段禁跑）：`python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 4 -- ctest --test-dir build -R ^(p2002_unc_rej_prov|p2_rejection)$ --output-on-failure`
 
 ## 4 文件域（本任务允许触碰的路径集合）
@@ -48,7 +48,7 @@ eng/tests/unit/p2002_unc_rej_prov_test.cpp
 lib/algorithms/coverage/src/rejection.cpp
 docs/traceability/TRACEABILITY_MATRIX.json
 docs/traceability/TRACEABILITY_MATRIX.csv
-ASTROCS_DESIGN.md
+docs/ASTROCS_DESIGN.md
 ```
 
 不改：上述之外的任何 `lib/`、`eng/`、`docs/`、`实验/`、`工程控制/` 路径；不顺手改科学公式、默认容差、SCI/ALG 冻结定义（AGENTS.md §6）。
@@ -58,7 +58,7 @@ ASTROCS_DESIGN.md
 - 顺序 / 前置：
   - 无前置（口径六面单向，第②层已定案，不上呈）
 - 必须同批 / 文件域互斥（详表见总览 §5）：
-  - `PUBLIC_API.md` 由 T27/T28/T36 共改 ⇒ 同批；`ASTROCS_DESIGN.md` 由 T00/T20/T21/T27 共改 ⇒ 见冲突表
+  - `PUBLIC_API.md` 由 T27/T28/T36 共改 ⇒ 同批；`docs/ASTROCS_DESIGN.md` 由 T00/T20/T21/T27 共改 ⇒ 见冲突表
 
 ## 6 完成判据（可红可绿：注入下列之一它必须红）
 
@@ -92,5 +92,5 @@ ASTROCS_DESIGN.md
 | `lib/algorithms/coverage/src/rejection.cpp` | AUD-101-DB-11.md:416;AUD-202-SNR核验.md:411 | DB13·W3：确认（范围与严重度上修） |
 | `docs/traceability/TRACEABILITY_MATRIX.json` | AUD-101-DB-11.md:450;AUD-101-DB-13.md:117;AUD-101-DB-13.md:355;AUD-101-DB-13.md:79;AUD-101-DB-13.md:84;AUD-101-DB-13.md:88;AUD-101-DB-13.md:92;AUD-101-DB-13.md:93;AUD-101-DB01.md:653 | DB13·W3：确认（范围与严重度上修） |
 | `docs/traceability/TRACEABILITY_MATRIX.csv` | AUD-101-DB-09.md:181;AUD-101-DB-09.md:252;AUD-101-DB-11.md:165;AUD-101-DB-11.md:166;AUD-101-DB-13.md:354;AUD-101-DB-13.md:70;AUD-101-DB-13.md:74 | DB13·W3：确认（范围与严重度上修） |
-| `ASTROCS_DESIGN.md` | — | — |
+| `docs/ASTROCS_DESIGN.md` | — | — |
 

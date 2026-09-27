@@ -13,7 +13,7 @@
         (module_adapters.cpp:11534 in.sparse = nullptr)
         frame_snr = F_ref/sigma_F(F_ref) —— 参考轮廓 + 固定 F_ref 的一个数。
 
-最优权重（本仓权威口径 ASTROCS_DESIGN §2.2 / CONTROL_WEIGHT_SNR §2a /
+最优权重（本仓权威口径 docs/ASTROCS_DESIGN §2.2 / CONTROL_WEIGHT_SNR §2a /
 NOISE_MODEL §5c）：sigma_w^2(x,y) = sigma_bg^2(x,y) + S_src(x,y)/g
 => 过权倍数 R(x,y) = w_used/w_opt = 1 + S_src/(g*sigma_bg^2)
    以"该像素源信号对背景 rms 的比" u = S_src/sigma_bg 表达：

@@ -11,7 +11,7 @@ Checks (V6.1 架构, 替代旧 OpenMP 宏/ACR CUDA 检查):
 - **AIO 读路径线程模型 (PERF-401 取代 EXEC-NO-AIO-SERIAL)**: 旧不变式
   「aio 读由 cfitsio_io_mutex / g_aio_mu 进程级锁串行化」已被取代 —— 规范出处
   docs/architecture/EXECUTION_MODEL.md §2/§3 + §8 ARC-EXEC-002，依据
-  ASTROCS_DESIGN.md §9（串行 I/O 与控制面单线程 / 编排连续性）与
+  docs/ASTROCS_DESIGN.md §9（串行 I/O 与控制面单线程 / 编排连续性）与
   ACCEPTANCE_SPEC.md §4（无单线程跑满全程、无连续 ≥10 s 低利用窗）。
   新不变式（更强、可机器判定）:
     (a) EXEC-AIO-READ-GLOBAL-LOCK   四个 tile 读函数体内零锁获取原语;

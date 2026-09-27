@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """§6.2 唯一命令面行为测试（原 V7 统一命令面骨架契约文件，按 CLI-001 新树同步）。
 
-权威: ASTROCS_DESIGN §6.2（命令树只有 normalize/mosaic/export ×(--json|--template|
+权威: docs/ASTROCS_DESIGN §6.2（命令树只有 normalize/mosaic/export ×(--json|--template|
 --help) + help/--version/doctor/benchmark；phase 仅内部指代）、docs/api/CLI_PROTOCOL_V1.md §1。
 
 退役登记（旧 surface 已被 CLI-001 删除，依据 §6.2 唯一命令树 + CLI-001 rc 矩阵；

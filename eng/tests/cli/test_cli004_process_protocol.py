@@ -211,7 +211,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
                          "预检阻断不得写 manifest")
         # 1b. 输入文件缺失 → 预检 rc=3（写盘前阻断）：无事件流、无 manifest。
         #     2026-09-18 预检 fail-closed 修复后，路径不存在/不可读在 precheck_config
-        #     阶段即判 error（ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122），-y 不可越；
+        #     阶段即判 error（docs/ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122），-y 不可越；
         #     旧断言（完整事件流 + incomplete manifest）固化的是修复前 fail-open 行为。
         out = os.path.join(self.tmp, "o1"); os.makedirs(out)
         cfg = self._cfg(out, [os.path.join(self.data, "does_not_exist.fits")])

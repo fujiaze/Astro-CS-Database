@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "source_snr",
     "canonical_file": "eng/contracts/schemas/unified/source_snr.schema.json",
-    "authority": "docs/design/UNIFIED_MODEL.md §2；ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/design/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "不直接作帧权重",
     "weight_eligible": false
   },

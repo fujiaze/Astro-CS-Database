@@ -3,7 +3,7 @@
 """check_conclusion_truth.py —— 结论真实性门（一页纸 S2-B：状态词与覆盖度结论失真）。
 
 权威依据
-  - ASTROCS_DESIGN.md 12.5 状态阶梯（唯一口径）—— 状态词的**唯一**词汇来源；
+  - docs/ASTROCS_DESIGN.md 12.5 状态阶梯（唯一口径）—— 状态词的**唯一**词汇来源；
   - docs/ci/01_CHECKS.md 1（eng/ci/checks.json 唯一注册表）；
   - ENGINEERING_SPEC.md 8（fail-closed；每项能绿能红）；
   - AGENTS.md 6（不用 waiver 盖红灯）。
@@ -15,7 +15,7 @@
   4. 某门在 checks.json 零登记而对外快照停在旧版本。
 
 四条判据（对应 S2-B「判完成」）
-  T1 vocab     ：状态词只取阶梯内词汇（阶梯**逐字**解析自 ASTROCS_DESIGN.md 12.5，
+  T1 vocab     ：状态词只取阶梯内词汇（阶梯**逐字**解析自 docs/ASTROCS_DESIGN.md 12.5，
                  registry 里的快照必须与解析结果相等 ⇒ 词汇表无法单方面漂移）；越词即红。
   T2 surface   ：豁免/权威引用必须解析到**真实载体**；登记的别名（如 waivers.json）
                  出现在在役面即红；载体文件缺失、不可解析或零引用同样红。
@@ -50,7 +50,7 @@ SURF = "eng/tools/quality/authority_surfaces.json"
 CLAIMS = "eng/tools/quality/coverage_claims.json"
 SNAPS = "eng/tools/quality/conclusion_snapshots.json"
 CHECKS = "eng/ci/checks.json"
-DESIGN = "ASTROCS_DESIGN.md"
+DESIGN = "docs/ASTROCS_DESIGN.md"
 LADDER_HEAD = "### 12.5 状态阶梯"
 UPPER = re.compile(r"^[A-Z][A-Z0-9_]{1,}$")
 # 规则表自身（词汇表/别名表/claims/快照）与门的负例夹具必然包含被禁字面量，
@@ -90,7 +90,7 @@ def _ptr(doc, ptr):
 
 # ── T1 状态词阶梯 ────────────────────────────────────────────────────────────
 def parse_ladder(root):
-    """从 ASTROCS_DESIGN.md 12.5 表格逐字解析状态词。缺节即红（fail-closed）。"""
+    """从 docs/ASTROCS_DESIGN.md 12.5 表格逐字解析状态词。缺节即红（fail-closed）。"""
     p = os.path.join(root, DESIGN)
     if not os.path.isfile(p):
         return [], ["%s 缺失 ⇒ 状态阶梯唯一口径不可解析（fail-closed）" % DESIGN]

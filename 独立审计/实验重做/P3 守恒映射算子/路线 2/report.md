@@ -2,7 +2,7 @@
 
 **道路声明**: 本为三路独立审查之一（Reviewer #2），与另两路互不通信、独立取证。  
 **审查对象**: `独立审计/08_修复包/④面积交叠与分配/05_正向规格.md` (P3 相关项)  
-**参照权威**: `ASTROCS_DESIGN.md §12.2, §2.3` + `docs/algorithms/DRIZZLE_GEOMETRY.md` + `独立审计/证据/审查 -05-④ - 科学性 -2.md` + `-3.md`  
+**参照权威**: `docs/ASTROCS_DESIGN.md §12.2, §2.3` + `docs/algorithms/DRIZZLE_GEOMETRY.md` + `独立审计/证据/审查 -05-④ - 科学性 -2.md` + `-3.md`  
 **随机起始 ID**: PATH-β9f2d8a1  
 
 ---
@@ -137,7 +137,7 @@ S_p = F_p / N_p             (面亮度估计，N_p = Σ_j w_jp·A_pixel,j)
 
 #### C. 理论腿：权威文档锚  
 `docs/algorithms/DRIZZLE_GEOMETRY.md §3` 引用该公式并实测验证  
-`ASTROCS_DESIGN.md §12.2` 确认 HEALPix 等面积属性  
+`docs/ASTROCS_DESIGN.md §12.2` 确认 HEALPix 等面积属性  
 
 #### D. 订正意见（可直接粘贴到 05）  
 ```markdown

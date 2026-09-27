@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "authority": "eng/packaging/config/runtime_resources.json（自称并登记为唯一预算来源）；AGENTS.md §6（不硬编码线程/ISA/block）；ASTROCS_DESIGN.md §3.5 / §12.5；docs/ci/03_GATES.md",
+  "authority": "eng/packaging/config/runtime_resources.json（自称并登记为唯一预算来源）；AGENTS.md §6（不硬编码线程/ISA/block）；docs/ASTROCS_DESIGN.md §3.5 / §12.5；docs/ci/03_GATES.md",
   "single_source": {
     "path": "eng/packaging/config/runtime_resources.json",
     "claim_marker": "唯一预算来源",

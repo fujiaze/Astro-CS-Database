@@ -5,7 +5,7 @@
 权威：
   * ENGINEERING_SPEC.md §7 —— 仓库根固定条目白名单；「任何新产物必须落位到
     对应目录，禁止散落根目录」「确需新增根目录条目，先登记并获得负责人确认」；
-  * ASTROCS_DESIGN.md §6.3 —— 运行产物只落配置 output_dir，不得以进程 CWD
+  * docs/ASTROCS_DESIGN.md §6.3 —— 运行产物只落配置 output_dir，不得以进程 CWD
     作隐式缺省写出；
   * eng/ci/root_manifest.json —— §7 白名单的机器可读落盘（逐条对照，禁止更宽）。
 
@@ -73,7 +73,7 @@ def check(root: pathlib.Path, manifest: dict) -> dict:
         if _matches(name, runtime_pats):
             violations.append({
                 "path": name, "reason": "runtime_product_at_root",
-                "detail": "运行产物落根（ASTROCS_DESIGN §6.3 / ENGINEERING_SPEC §7 禁止；"
+                "detail": "运行产物落根（docs/ASTROCS_DESIGN §6.3 / ENGINEERING_SPEC §7 禁止；"
                           "CLI 产物只落 output_dir）",
             })
             continue

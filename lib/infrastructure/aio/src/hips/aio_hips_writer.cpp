@@ -57,7 +57,7 @@ thread_local std::string g_hips_error;
 void set_error(const std::string& msg) { g_hips_error = msg; }
 
 // ---------------------------------------------------------------------------
-// C 边界 ABI 前置校验 (ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1: 版本化 C ABI;
+// C 边界 ABI 前置校验 (docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1: 版本化 C ABI;
 // V11-N-01): struct_size/abi_version 必须与调用方编译期布局逐字段一致, 不一致
 // 即 fail-closed (返回 AIO_HIPS_ABI_MISMATCH) + 结构化诊断 —— 永远不按盲步长
 // 读取调用方缓冲区。数组形态 (snr_points/tiles) 由调用方逐元素校验。
@@ -440,7 +440,7 @@ bool write_moc_fits_raw(const std::string& path,
 }
 
 // ---------------------------------------------------------------------------
-// ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1:
+// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1:
 // 每个 tile/元数据 FITS 走「本次运行私有临时文件 → 哈希校验 → fsync →
 // 原子 rename」。修复前 write_fits_image 先 std::remove(final) 再
 // fits_create_file(final) **直写正式路径** ⇒ 中途 kill / ENOSPC / 校验失败
@@ -666,7 +666,7 @@ bool write_moc_fits(const std::string& path,
 
 // properties 写出 (IVOA HiPS + ASTROCS_* provenance 唯一文本载体)。
 // M9-G-6/AIO-001: 原实现 fopen 失败即静默 return、fprintf/fclose 不查, 且直写正式路径
-// —— 违反 ASTROCS_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
+// —— 违反 docs/ASTROCS_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
 // ENGINEERING_SPEC §9(错误须经统一状态码传播)。改为: 同目录临时文件 → fflush →
 // fsync → 原子 rename (aio_atomic_file.h), 任一环节失败清理临时文件并返回 false,
 // 由调用方按子产品错误码 (-3..-8) 上报。
@@ -698,14 +698,14 @@ bool write_properties(const std::string& path,
 // hierarchy 累加器 (MEM-DESIGN-01: 稀疏分块 + 按需通道 + 完备即流式写出)
 // ---------------------------------------------------------------------------
 // GAP_AUDIT G3-3 / DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
-// **恒在 f64 累加器**进行 (ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
+// **恒在 f64 累加器**进行 (docs/ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
 // (bitpix −32/−64) 只在写出时量化一次 (finalize_hierarchy 的 (float)sig 截断)。
 // 修复前 f32 产品走 float 累加 (sumFluxF/sumAreaF/sumVarF): 每步 partial sum 舍入
 // 到 float, 误差随层级加深累积 —— dk=9 实测偏差 2.5e-3 (合成) / 3.95e-4 (真实),
 // 超 HIPS_WRITER.md §9 冻结容差 rtol=1e-6。修法即该文 DISP-HIPS-009 处置建议
 // "f32 产品仍用 double 累加 (存储时再截断)"。
 //
-// MEM-DESIGN-01 (内存结构优化; 权威: ASTROCS_DESIGN §8.3 静态预算/内存占用永不
+// MEM-DESIGN-01 (内存结构优化; 权威: docs/ASTROCS_DESIGN §8.3 静态预算/内存占用永不
 // 越界 + §3.3 精度口径; 实测见 run/MEM-DESIGN-01/REPORT.md):
 //
 // (A) 稀疏分块 —— 每祖先 cell 的 512×512 面按 64×64 子块**惰性分配**: 没有数据
@@ -1184,14 +1184,14 @@ AioHipsProductSet* aio_hips_product_begin(
         // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
         // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
         // (如 600) 会被静默夹逼到 2^9 并据此写出与调用方声明不一致的 NSIDE/
-        // A_cell/leaf_order 产品 —— 属 ASTROCS_DESIGN §9 禁止的"看似完整产品"。
+        // A_cell/leaf_order 产品 —— 属 docs/ASTROCS_DESIGN §9 禁止的"看似完整产品"。
         // 上界 2^29(实现域): NESTED 计数 Npix=12·nside² 在 nside=2^29 时为 12·2^58
         // < 2^63(uint64 域内); nside>2^29 时该积将溢出/越出可寻址 tile 域, 且
         // tile_order=leaf_order-9 亦超出 MOC 阶实际可用范围 ⇒ 与非法 nside 同类拒绝。
         // 依据: docs/algorithms/HIPS_WRITER.md §1(1a) "叶级 nside=2^K>=512";
         //       API-HIPS-001 契约 aio_hips.h:101 "nside - 叶级 NSIDE (2 的幂, >= 512)";
         //       §9 负面矩阵"nside<512"(扩展到非 2 的幂/越上界同类非法输入);
-        //       ASTROCS_DESIGN.md 附录 B IVOA HiPS 1.0 / Górski 2005 (Npix=12·nside²)。
+        //       docs/ASTROCS_DESIGN.md 附录 B IVOA HiPS 1.0 / Górski 2005 (Npix=12·nside²)。
         const bool nside_is_pow2 = (nside & (nside - 1u)) == 0u;
         if (!out_dir || !*out_dir || nside < 512 ||
             nside > (1u << 29) || !nside_is_pow2 || tile_width != 512 ||

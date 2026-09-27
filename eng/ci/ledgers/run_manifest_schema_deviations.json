@@ -139,7 +139,7 @@
     },
     "provenance": {
       "kind": "extra_property",
-      "authority": "CLI-003 §2.1（additive 扩展）+ ASTROCS_DESIGN.md §10 manifest 必记项",
+      "authority": "CLI-003 §2.1（additive 扩展）+ docs/ASTROCS_DESIGN.md §10 manifest 必记项",
       "disposition": "补进 schema"
     },
     "schema_version": {

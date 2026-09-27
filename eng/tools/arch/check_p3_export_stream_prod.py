@@ -10,7 +10,7 @@ fits_write_pix」，而 ARCH-504 的 ExportStreamScheduler **只被组件级单�
 
 规范依据
 --------
-- ASTROCS_DESIGN.md §8.3 调度器表 export 行: 「子块流式: 读子块 → 投影重采样 →
+- docs/ASTROCS_DESIGN.md §8.3 调度器表 export 行: 「子块流式: 读子块 → 投影重采样 →
   写 FITS，有界队列 + 背压，不整幅驻留；内存占用与子块大小成正比、与总图大小无关」;
 - docs/contracts/SCHEDULER_CONTRACT.md §2 export 行（同文，FROZEN）;
 - AGENTS.md §9: 「门禁/判据本身不合理时改进门禁本身，配可执行正例/负例与 --self-test」。
@@ -156,7 +156,7 @@ def main():
     if ok:
         if not args.quiet:
             print("CHK-P3-EXPORT-STREAM-PROD PASS: 生产 phase3 writer 节点经 "
-                  "ExportStreamScheduler 子块流式执行（ASTROCS_DESIGN §8.3 export 行）")
+                  "ExportStreamScheduler 子块流式执行（docs/ASTROCS_DESIGN §8.3 export 行）")
         return 0
     for f in fails:
         print("CHK-P3-EXPORT-STREAM-PROD FAIL: %s" % f, file=sys.stderr)

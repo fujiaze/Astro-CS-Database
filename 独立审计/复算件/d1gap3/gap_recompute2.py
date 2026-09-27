@@ -31,7 +31,7 @@ for p in t1:
     print("   ", p)
 
 # self-proving control: a path known to be registered must hit
-ctrl = "ASTROCS_DESIGN.md"
+ctrl = "docs/ASTROCS_DESIGN.md"
 print("   control hit for", ctrl, ":", ctrl in blob)
 
 # ---- T2 basename containment ----

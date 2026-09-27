@@ -1298,7 +1298,7 @@
         "desc": "corrected 样本电平 / 帧自身天光电平 > 0.3（保留公共天光平面，非全减背景）",
         "value": 0.5245039925539726,
         "ok": true,
-        "source": "ASTROCS_DESIGN.md:143（保留公共天光平面，多退少补）",
+        "source": "docs/ASTROCS_DESIGN.md:143（保留公共天光平面，多退少补）",
         "level": "data",
         "note": "中位比 1.1336，n=49"
       },

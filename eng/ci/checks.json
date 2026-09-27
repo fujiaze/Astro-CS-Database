@@ -1698,7 +1698,7 @@
         "eng/tests/**",
         "eng/ci/**",
         "eng/packaging/config/**",
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "AGENTS.md",
         "ENGINEERING_SPEC.md",
         "CONTROL_PACK_SPEC.md",
@@ -1757,7 +1757,7 @@
         "docs/DOCUMENT_INDEX.yaml",
         "eng/tools/doccheck/**",
         "artifacts/evidence/known-limitations-ledger/**",
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "AGENTS.md",
         "ENGINEERING_SPEC.md",
         "ACCEPTANCE_SPEC.md"
@@ -1812,7 +1812,7 @@
         "eng/tools/**",
         "eng/contracts/**",
         "lib/**",
-        "ASTROCS_DESIGN.md"
+        "docs/ASTROCS_DESIGN.md"
       ],
       "requires_monitor": false
     },
@@ -1839,7 +1839,7 @@
         "eng/tools/**",
         "eng/contracts/**",
         "lib/**",
-        "ASTROCS_DESIGN.md"
+        "docs/ASTROCS_DESIGN.md"
       ],
       "requires_monitor": false
     },
@@ -1864,7 +1864,7 @@
         "eng/tools/**",
         "eng/contracts/**",
         "lib/**",
-        "ASTROCS_DESIGN.md"
+        "docs/ASTROCS_DESIGN.md"
       ],
       "requires_monitor": false
     },
@@ -1891,7 +1891,7 @@
         "eng/tools/**",
         "eng/contracts/**",
         "lib/**",
-        "ASTROCS_DESIGN.md"
+        "docs/ASTROCS_DESIGN.md"
       ],
       "requires_monitor": false
     },
@@ -1927,7 +1927,7 @@
         "eng/tools/docs_machine_consistency.py",
         "eng/tools/doccheck/doc_hygiene_exempt.json",
         "eng/ci/exemptions.json",
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "artifacts/evidence/truthful-conclusion-01/**",
         "artifacts/evidence/v19r7-quality/**"
       ],
@@ -1963,7 +1963,7 @@
             "eng/tools/docs_machine_consistency.py",
             "eng/tools/doccheck/doc_hygiene_exempt.json",
             "eng/ci/exemptions.json",
-            "ASTROCS_DESIGN.md",
+            "docs/ASTROCS_DESIGN.md",
             "artifacts/evidence/truthful-conclusion-01/**",
             "artifacts/evidence/v19r7-quality/**"
           ],
@@ -4426,7 +4426,7 @@
           "changed_paths": [
             "eng/ci/check_design_clause_wiring.py",
             "eng/ci/ledgers/design_clauses.json",
-            "ASTROCS_DESIGN.md"
+            "docs/ASTROCS_DESIGN.md"
           ],
           "requires_monitor": false
         },
@@ -4454,7 +4454,7 @@
           "changed_paths": [
             "eng/ci/check_design_clause_wiring.py",
             "eng/ci/ledgers/design_clauses.json",
-            "ASTROCS_DESIGN.md"
+            "docs/ASTROCS_DESIGN.md"
           ],
           "requires_monitor": false
         },
@@ -8723,7 +8723,7 @@
       "changed_paths": [
         "AGENTS.md",
         "memory.md",
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "README.md",
         "ENGINEERING_SPEC.md",
         "CONTROL_PACK_SPEC.md",
@@ -8756,7 +8756,7 @@
         "README.md",
         "AGENTS.md",
         "CONTROL_PACK_SPEC.md",
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "docs/**",
         "eng/tools/**"
       ],
@@ -12764,7 +12764,7 @@
       "changed_paths": [
         "eng/ci/mutation_gates.json",
         "eng/ci/check_mutation_gates.py",
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "ENGINEERING_SPEC.md"
       ],
       "requires_monitor": false
@@ -13743,7 +13743,7 @@
       ],
       "waivable": false,
       "changed_paths": [
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "ACCEPTANCE_SPEC.md",
         "docs/**",
         "eng/contracts/**",

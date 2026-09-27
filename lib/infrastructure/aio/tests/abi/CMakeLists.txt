@@ -1,5 +1,5 @@
 # ============================================================================
-# AIO HiPS 跨边界结构 ABI 布局锁 (V11-N-01; ASTROCS_DESIGN §7.3)
+# AIO HiPS 跨边界结构 ABI 布局锁 (V11-N-01; docs/ASTROCS_DESIGN §7.3)
 # ----------------------------------------------------------------------------
 #   A) aio_abi_layout_probe (只 include aio_hips.h, 无 windows.h/不链接生产库)
 #      输出 4 个跨边界结构的 sizeof/alignof/逐字段 offsetof JSON;

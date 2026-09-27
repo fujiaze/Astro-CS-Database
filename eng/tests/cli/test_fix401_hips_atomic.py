@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """FIX-401 CLI 验收: HiPS tile 原子发布 + Phase2 暂存区 (端到端)。
 
-权威: ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
+权威: docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
 
 方法 (外部视角, 不调用库内部实现):
   * 合成全链: 真 CLI normalize (Phase1 逐帧 HiPS) → 真 CLI mosaic (Phase2 天球

@@ -1,7 +1,7 @@
 path,lines,h1,meta_block,frontmatter,upstream_pointer,dates,task_ids,commit_sha,sha256,history_narrative,dangling_links,unregistered_index,unreadable
 ACCEPTANCE_SPEC.md,292,验收规范（Acceptance）,False,False,True,[],[],[],True,[121],['artifacts/acceptance/ACCEPTANCE_REPORT.md'],,
 AGENTS.md,237,AGENTS.md — Astro Celestial Sphere Database（ACSD） 机器干活手册,False,False,True,[],[],[],False,[],[],,
-ASTROCS_DESIGN.md,826,Astro Celestial Sphere Database（ACSD） 最高设计（Design Authority）,False,False,True,[],[],[],False,[],[],,
+docs/ASTROCS_DESIGN.md,826,Astro Celestial Sphere Database（ACSD） 最高设计（Design Authority）,False,False,True,[],[],[],False,[],[],,
 CONTROL_PACK_SPEC.md,224,Astro Celestial Sphere Database（ACSD） 控制包规范（Control Pack Specification）,False,False,True,[],['RELEASE-04'],[],False,[66],[],,
 DEPENDENCIES.md,87,DEPENDENCIES.md — 工具链版本锁定 (QA-005 / BLD-001),False,False,True,[],[],[],False,[],[],,
 ENGINEERING_SPEC.md,272,Astro Celestial Sphere Database（ACSD） 工程规范（Engineering Specification）,False,False,False,[],[],[],True,[160],[],,

@@ -2,7 +2,7 @@
 """SCI-A 实验单元 · 公共数值核心（ACSD 测光校准到测光星等坐标系）
 
 权威依据（只读，不在本实验内改动）：
-  - ASTROCS_DESIGN.md §2.1 / §4.2 / §4.4 / §12.1-12.3
+  - docs/ASTROCS_DESIGN.md §2.1 / §4.2 / §4.4 / §12.1-12.3
   - ACCEPTANCE_SPEC.md §2.1（SCI-A 判据表）
   - docs/science/PHOTOMETRY.md (SCI-PHOT-001)：IRLS/Tukey 零点估计、sigma_residual 定义
   - docs/plugins/algorithms_phase1/06_photometry.md §4.1：测光一致性双边界判据形态

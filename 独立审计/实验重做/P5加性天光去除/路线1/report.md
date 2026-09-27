@@ -357,7 +357,7 @@ per-(frame,cell) 定解域内不可检验——正本 §16.2 第 4 条）；本�
 
 **复现**：python3 "独立审计/实验重做/P5加性天光去除/路线1/code/c7_share_vs_abs_weight.py"
 
-**佐证**：正本内部（PHASE2_UPM §5、ASTROCS_DESIGN.md:409"采样点权重取噪声逆方差非 SNR²"）；
+**佐证**：正本内部（PHASE2_UPM §5、docs/ASTROCS_DESIGN.md:409"采样点权重取噪声逆方差非 SNR²"）；
 外部先例（相对定标联合解）：Padmanabhan et al. 2008, ApJ 674, 1217（**arXiv:astro-ph/0703454**，
 注意 0805.2366 是 LSST 综述，refs.md L5 订正）。
 
@@ -461,7 +461,7 @@ scale=1 时相对/绝对判据等价性 1000 样本对照；FP 非结合——40
 | condition_number_max = 1e12 | 零命中；且与正本 §7a"不存在绝对条件数上限，唯一判决 τ=rank_rtol"直接冲突 |
 | support_min = 0.2 | 真实默认 support_threshold = 0.0（rejection.h:320/356、stage2.cpp:1350）|
 | rel_step_max = 0.1（接缝门 10%）| 正本门 = 1e-2（PHASE2_UPM :295、11_upm §4.1），05 的 10% 与正本冲突 10 倍 |
-| ASTROCS_DESIGN.md §2.3（平滑性要求）| §2.3 = P3 创新点小节（:208）；接缝设计语在 §2.5（P5）——锚存在但张冠李戴 |
+| docs/ASTROCS_DESIGN.md §2.3（平滑性要求）| §2.3 = P3 创新点小节（:208）；接缝设计语在 §2.5（P5）——锚存在但张冠李戴 |
 
 **证实（05 的值在仓库真实存在）——3 项**：quality_factor 无 flags 基准 0.5（upm.cpp:228-230，
 "if (flags==0u) return 0.5"）；min_samples 默认 5（sampler.h:37）；sigma_floor=1e-3（upm.cpp:273）。

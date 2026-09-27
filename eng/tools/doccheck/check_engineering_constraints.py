@@ -17,13 +17,13 @@
       CI-003-E 收紧：悬空登记的唯一豁免 = **显式声明的归档迁移**
       （同名 + 声明的目标真实存在 + 若声明 sha256 则内容哈希必须一致）；
       旧判据「docs/archive 或 run/archive 下有同名文件即豁免」过宽（R-6 §3.6）；
-  [6] `README.md` 权威入口：必须指向现行文档集（ASTROCS_DESIGN / AGENTS /
+  [6] `README.md` 权威入口：必须指向现行文档集（docs/ASTROCS_DESIGN / AGENTS /
       ENGINEERING_SPEC / CONTROL_PACK_SPEC / docs/ci / docs/plugins /
       docs/design/UNIFIED_MODEL），且不得把已删除的旧治理对象写成上位权威；
   [7] 旧权威回归红灯：根权威面 + 工具面出现「旧文本 + 权威/必读/冻结」绑定即红；
-  [8] 唯一权威入口：除 `ASTROCS_DESIGN.md` 的 §0 之外，活动文档不得自称
+  [8] 唯一权威入口：除 `docs/ASTROCS_DESIGN.md` 的 §0 之外，活动文档不得自称
       "唯一最高权威/约束"（`docs/archive/**` 与带 ARCHIVED_NON_NORMATIVE 者豁免；
-      **唯一行内豁免 = 逐字点名 ASTROCS_DESIGN.md**——「本文/本文件/本文档」等自指
+      **唯一行内豁免 = 逐字点名 docs/ASTROCS_DESIGN.md**——「本文/本文件/本文档」等自指
       措辞不再豁免，R-6 §3.6 实测该豁免吃掉了最常见的中文自称写法）。
       扫描面读不到任何文件时 fail-closed 判红 unique_authority_scan_empty（§8）。
 
@@ -66,7 +66,7 @@ REQUIRED_SECTIONS = {
     8: "机器一致性检查（能红能绿）",
 }
 README_AUTHORITY = [
-    "ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
+    "docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
     "docs/ci/", "docs/plugins/", "docs/design/UNIFIED_MODEL.md",
 ]
 LEGACY_TOKENS = ["ASTROCS_PROJECT_CONSTITUTION.md", "AstroCS_ENGINEERING_CONSTRAINTS.md",
@@ -370,7 +370,7 @@ def run_check(root: str):
 
     # [7] 旧权威回归红灯（根权威面 + 工具面 + 根下被重建的旧权威对象本体）
     for rel in ("README.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
-                "memory.md", "ASTROCS_DESIGN.md", "eng/tools/check_agents_gov.py",
+                "memory.md", "docs/ASTROCS_DESIGN.md", "eng/tools/check_agents_gov.py",
                 "eng/tools/doccheck/check_engineering_constraints.py"):
         p = os.path.join(root, rel)
         if os.path.isfile(p):
@@ -404,7 +404,7 @@ def run_check(root: str):
             continue
         t = read(p)
         scanned += 1
-        if rel == "ASTROCS_DESIGN.md":
+        if rel == "docs/ASTROCS_DESIGN.md":
             continue
         # CI-003-B（2026-09-16）：豁免粒度由「整文件」改为「行级」（与 AGENTS-GOV 同步）。
         # 旧判据只看文件内**是否提到** ARCHIVED_NON_NORMATIVE，不看是否**自称归档**
@@ -412,9 +412,9 @@ def run_check(root: str):
         for i, line in enumerate(t.splitlines(), 1):
             if any(m in line for m in NON_BINDING_MARKERS):
                 continue
-            # 唯一行内豁免：逐字点名现行最高设计 ASTROCS_DESIGN.md（CI-003-E；
+            # 唯一行内豁免：逐字点名现行最高设计 docs/ASTROCS_DESIGN.md（CI-003-E；
             # 「本文/本文件/本文档/本报告」等自指措辞不再豁免）。
-            if SELF_AUTHORITY_RE.search(line) and "ASTROCS_DESIGN.md" not in line:
+            if SELF_AUTHORITY_RE.search(line) and "docs/ASTROCS_DESIGN.md" not in line:
                 violations.append({"check": "single_authority_entry",
                                   "detail": "%s:%d 以非最高权威文档自称唯一最高: %s"
                                   % (rel, i, line.strip()[:120])})
@@ -464,7 +464,7 @@ SELFTEST_SPEC = """# ENGINEERING_SPEC（mini-repo 夹具）
 
 ```text
 仓库根固定条目：
-README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
+README.md / AGENTS.md / docs/ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
 CONTROL_PACK_SPEC.md / memory.md / CMakeLists.txt
 
 lib/
@@ -484,7 +484,7 @@ SELFTEST_README = """# README（mini-repo 夹具）
 
 权威入口（现行文档集）：
 
-- ASTROCS_DESIGN.md（最高设计）
+- docs/ASTROCS_DESIGN.md（最高设计）
 - AGENTS.md（干活纪律）
 - ENGINEERING_SPEC.md（工程规范）
 - CONTROL_PACK_SPEC.md（控制包规范）
@@ -493,7 +493,7 @@ SELFTEST_README = """# README（mini-repo 夹具）
 - docs/design/UNIFIED_MODEL.md（统一数据模型）
 """
 
-SELFTEST_FILES = ["README.md", "AGENTS.md", "ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md",
+SELFTEST_FILES = ["README.md", "AGENTS.md", "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md",
                   "CONTROL_PACK_SPEC.md", "memory.md", "CMakeLists.txt"]
 # 2026-09-21 根目录整合：夹具根目录同步为整合后布局（tools/ci → eng/，
 # 并补上 §7 显式登记的 CJK 目录 实验/）。
@@ -544,7 +544,7 @@ def _mini_repo(base: str, manifest: dict = None) -> None:
     _write(os.path.join(base, SPEC), SELFTEST_SPEC)
     _write(os.path.join(base, "README.md"), SELFTEST_README)
     _write(os.path.join(base, "AGENTS.md"), "# AGENTS（mini-repo 夹具）\n\n- 只 main 开发。\n")
-    _write(os.path.join(base, "ASTROCS_DESIGN.md"), "# ASTROCS_DESIGN（mini-repo 夹具）\n")
+    _write(os.path.join(base, "docs/ASTROCS_DESIGN.md"), "# docs/ASTROCS_DESIGN（mini-repo 夹具）\n")
     _write(os.path.join(base, "CONTROL_PACK_SPEC.md"), "# CONTROL_PACK_SPEC（mini-repo 夹具）\n")
     _write(os.path.join(base, "memory.md"), "# memory（mini-repo 夹具）\n")
     _write(os.path.join(base, "CMakeLists.txt"), "# mini-repo 夹具\n")

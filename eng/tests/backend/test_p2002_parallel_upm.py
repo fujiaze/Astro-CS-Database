@@ -89,7 +89,7 @@ class TestP2002ParallelUpm(unittest.TestCase):
 
     def _run_upm(self, workers, out_dir, save_path):
         cfg = self._make_cfg(workers, out_dir, save_path)
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式)。
         return subprocess.run([EXE, "mosaic", "--json", cfg, "--events-jsonl", "-y"],
                               capture_output=True, text=True,

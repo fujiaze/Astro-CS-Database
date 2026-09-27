@@ -5,7 +5,7 @@
 // aio_sparse_punch.h - 裸形态体积削减「文件系统打洞」机制原语 (header-only; aio 唯一实现)
 //
 // 依据:
-// - ASTROCS_DESIGN.md §10「I/O 与原子产品」(裸形态体积削减两种机制的分工);
+// - docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」(裸形态体积削减两种机制的分工);
 // - docs/design/PRODUCT_STORAGE_FORM.md §9.1 (何时 / 对谁 / 失败怎么办 / 如何验证);
 // - docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 (冻结规则 + 判据);
 // - ENGINEERING_SPEC.md §11 (打洞在 fsync 之后、算哈希与原子发布之前完成)。

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """SCI-A · 完整物理前向仿真（电子域 Poisson → 读出 Gaussian → 增益/饱和/量化 → 平场/天空梯度）
 
-严格按 ASTROCS_DESIGN.md §12.2 / ACCEPTANCE_SPEC.md §3 的三类数据第 1 类：
+严格按 docs/ASTROCS_DESIGN.md §12.2 / ACCEPTANCE_SPEC.md §3 的三类数据第 1 类：
   源、天光、暗流在电子域做 Poisson；读出噪声在电子域做 Gaussian；
   电子→ADU 经过增益、饱和与量化；加入平场乘性空间响应 m(x,y) 与天空梯度。
 禁止用"算术加常数天光"代替散粒噪声物理过程 —— 本模块天光一律进 Poisson。

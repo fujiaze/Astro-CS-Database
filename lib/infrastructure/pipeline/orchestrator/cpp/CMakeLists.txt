@@ -6,9 +6,9 @@
 # SAT-001（claim SC-008 饱和电平解析）与 MASK-002（claim SC-007 逐星掩膜输入）
 # 在 orchestrator.cpp 里的改动从未被编译过。
 #
-# 归属判定（逐字依据见 ASTROCS_DESIGN.md §7.1）：
-#   ASTROCS_DESIGN.md:373 「scheduler/  注册、资源预算、执行、取消、checkpoint」
-#   ASTROCS_DESIGN.md:374 「pipeline/   typed DAG、artifact、内存/数据管线」
+# 归属判定（逐字依据见 docs/ASTROCS_DESIGN.md §7.1）：
+#   docs/ASTROCS_DESIGN.md:373 「scheduler/  注册、资源预算、执行、取消、checkpoint」
+#   docs/ASTROCS_DESIGN.md:374 「pipeline/   typed DAG、artifact、内存/数据管线」
 #   本目录 7 个编译单元的职责面逐条落在 :373 的五个词上（注册=dll_loader、
 #   资源预算=admission_controller/resource_monitor、执行=run_stage_*、
 #   取消=request_cancel/SIGINT、checkpoint=checkpoint.cpp）⇒ 职责家 = scheduler/**；
@@ -88,7 +88,7 @@ if(NOT MSVC)
 endif()
 
 # ── 3) legacy CLI 入口（非产品；不进 install 白名单）──
-# ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
+# docs/ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
 # 本可执行是 docs/modules/orchestrator.md 记载的 legacy「stage1.json 入口」，
 # 仅用于共址冒烟测试与诊断，**不 install、不进产品 manifest**。其退场与否
 # （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分交前台裁决。

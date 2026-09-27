@@ -3,7 +3,7 @@
   "ledger_id": "log-system",
   "purpose": "CHK-LOG-SYS 的**显式登记面**（不是豁免）：承载生产收敛面吞错点、条件回退点与硬编码日志落点的已确证条目。条目只减不增；删条目即恢复判红（不得用本台账把门禁改绿）。",
   "authority": {
-    "design": "ASTROCS_DESIGN.md §7.3（错误传播与运行日志）",
+    "design": "docs/ASTROCS_DESIGN.md §7.3（错误传播与运行日志）",
     "detail": "docs/design/LOG_AND_ERROR_SYSTEM.md",
     "contract": "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
     "checker": "eng/tools/quality/check_log_system.py（CHK-LOG-SYS）"

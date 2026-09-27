@@ -22,7 +22,7 @@
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
 //             ③ 把 PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
 //             ④ 删除 eng/tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             RELEASE-04 GAP_AUDIT G2-1/G3-2（包已出库）；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────

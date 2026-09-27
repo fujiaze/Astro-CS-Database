@@ -19,7 +19,7 @@
  *   FZ-UNIT-FLUX       flux (F_hat)        = ADU
  *   FZ-UNIT-PSFSW      psfsw_robust_weight = 1 —— **已退役**（FZ-MODE-RETIRED），
  *                      产品**不再写出**该单位项（PSFSW-RETIRE-03 合同收口）：
- *                      产品/消费者声明它走显式拒绝 + 迁移提示（ASTROCS_DESIGN.md §3.1；
+ *                      产品/消费者声明它走显式拒绝 + 迁移提示（docs/ASTROCS_DESIGN.md §3.1；
  *                      UNIFIED_MODEL.md:58），不静默接受。单位串仅为历史产品可判而保留
  *                      在 units_frozen_ok（不构成接受依据）。
  *   FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC : BUNIT 量纲可判 + variance=signal^2
@@ -219,7 +219,7 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir);
 
 /* ── Phase2 消费面：psfsw 组内归一权重（**已整体退役**） ──
  * FZ-MODE-RETIRED（PSFSW-RETIRE-03）：本面的唯一产物就是退役对象 psfsw_robust_weight
- * 的组内归一权重 w_psfsw（PSF 拟合质量代理的复合权重），ASTROCS_DESIGN.md §3.1 明确
+ * 的组内归一权重 w_psfsw（PSF 拟合质量代理的复合权重），docs/ASTROCS_DESIGN.md §3.1 明确
  * 这类量不得进入科学叠加权重 ⇒ **无条件 fail-closed**（ok=false，error 含
  * FZ-MODE-RETIRED + 对象名 + 允许的权重对象 + 迁移提示），不静默接受、不产出 w_psfsw。
  * 保留该符号只为"旧产品声明退役对象"这一情形可判、理由可诊断（不是接受面）。 */

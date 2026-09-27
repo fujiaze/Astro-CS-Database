@@ -2,7 +2,7 @@
 """并行确定性判据：逐字节相同优先，不同时按冻结容差做逐文件数值等价比对。
 
 依据（权威链）:
-  * ASTROCS_DESIGN.md §8.3 不变量 / §9（CPU 后端与资源）——「1 worker 与 N worker 的等价判据
+  * docs/ASTROCS_DESIGN.md §8.3 不变量 / §9（CPU 后端与资源）——「1 worker 与 N worker 的等价判据
     是事前冻结的浮点容差，不是逐位一致」；
   * docs/contracts/SCHEDULER_CONTRACT.md §2.1（并行确定性口径，冻结）；
   * docs/contracts/TEST_MATRIX.md §2（通用容差规则）：

@@ -192,7 +192,7 @@ class TestP2003SeamOracle(unittest.TestCase):
         cfg_path = os.path.join(cls.tmp, "cfg.json")
         with open(cfg_path, "w") as f:
             json.dump(cfg, f)
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2),
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2),
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式); 判据不变。
         r3 = subprocess.run([EXE, "mosaic", "--json", cfg_path, "--events-jsonl", "-y"],
                             capture_output=True, text=True,

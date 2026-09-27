@@ -102,7 +102,7 @@
 
 ```text
 仓库根固定条目（含无扩展名文件 VERSION——产品版本唯一事实源，见本节末版本条款与最高设计 §13）：
-README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
+README.md / AGENTS.md / docs/ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
 CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / DEPENDENCIES.md / memory.md /
 CMakeLists.txt / CMakePresets.json / eng/build/build.sh / eng/build/toolchain.ps1 /
 .clang-format / .editorconfig / .gitignore / .gitattributes / .github/
@@ -151,7 +151,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 
 仓库长期维护一套自解释文档集，随代码持续更新：
 
-- **根文档**：ASTROCS_DESIGN（最高设计）、AGENTS、ENGINEERING_SPEC、CONTROL_PACK_SPEC、ACCEPTANCE_SPEC；
+- **根文档**：docs/ASTROCS_DESIGN（最高设计）、AGENTS、ENGINEERING_SPEC、CONTROL_PACK_SPEC、ACCEPTANCE_SPEC；
 - **docs/**：science（公式权威）、algorithms（推导权威）、plugins（模块工作细节）、design（数据对象与设计）、architecture、interfaces、standards、modules、contracts、development、validation、ci、research、references、api；
 - `docs/DOCUMENT_INDEX.yaml` 是唯一索引地图。
 
@@ -234,7 +234,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 
 | 文档 | 关系 |
 |---|---|
-| ASTROCS_DESIGN.md | 一切条款的上位来源 |
+| docs/ASTROCS_DESIGN.md | 一切条款的上位来源 |
 | AGENTS.md | 干活纪律（本文的可执行补充） |
 | CONTROL_PACK_SPEC.md | 任务拆分与验收如何引用本文规则 |
 | ACCEPTANCE_SPEC.md | 四层验收与发布门 |
@@ -256,7 +256,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 |---|---|---|---|
 | 1 | C/C++ include 与符号 | 公共头目录 `astrocs/`、`#include <astrocs/…>`、`namespace astrocs`、`astrocs::`、`astrocs_*.dll/.so/.a` | 编译/链接面直接断链 |
 | 2 | 合同 / 注册表 / 模块 ID | schema 注解键 `x-astrocs*`；点分、连字符与斜杠 ID：`astrocs.*`、`MOD-astrocs-*`、`astrocs-*`、`astrocs/<x>/vN`；`astrocs*` 台账 schema id | schema 锚、注册表与产品清单按字面匹配，改名即断链 |
-| 3 | 环境变量 / CMake 选项 / 根文档名 | `ASTROCS_*`、`ASTROCS_DESIGN.md`，及历史轮次 ID `ASTROCS-*` | 构建入口按字面读取；根文档名是全仓行号锚的宿主 |
+| 3 | 环境变量 / CMake 选项 / 根文档名 | `ASTROCS_*`、`docs/ASTROCS_DESIGN.md`，及历史轮次 ID `ASTROCS-*` | 构建入口按字面读取；根文档名是全仓行号锚的宿主 |
 | 4 | 可执行 / target / CLI 名 | `astrocs`、`astrocs.exe`、`astrocs-cli`、CI artifact 前缀 `astrocs-windows-candidate-` | 构建 target、CI 选择器与单测断言 | 
 | 5 | CI workflow 名 | `AstroCS Linux CI` / `AstroCS Windows CI` / `AstroCS Fatduck Validation` | `workflow_run.workflows` 与 CI 选择器按名精确匹配 |
 | 6 | CI 候选产物成员名 | `AstroCS-candidate.zip` 及其落盘路径 | 常量、`require_outputs`、工作流绑定与单测 |

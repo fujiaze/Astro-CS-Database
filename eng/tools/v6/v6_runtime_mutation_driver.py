@@ -58,7 +58,7 @@ MUTATIONS = [
     ("aggregate-pipeline-entry", "lib/infrastructure/cli/command_tree.h",
      '        {"benchmark", true, {}},',
      '        {"benchmark", true, {}},\n        {"pipeline", true, {"--config"}},'),
-    # W4-A3 改绑：phase2 阶段的用户命令名 = mosaic（ASTROCS_DESIGN §2:317）；
+    # W4-A3 改绑：phase2 阶段的用户命令名 = mosaic（docs/ASTROCS_DESIGN §2:317）；
     # R2 现读 command_tree.h，故注入点随之改到 mosaic 的旗标表。
     #
     # RELEASE-02 改绑（2026-09-19，GATE-RED-FIX）：**语义不变**，仍注入

@@ -7,7 +7,7 @@
   B) 完整合成运行 ≥10s 且科学(输出 FITS 有效)/资源(workers≥2, cpu 高)/trace(事件链)同时过;
   C) SCI/ALG/MOD 状态标记: 原载体 = 控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv,
      该台账已退役(evidence/ 不在树内); 现行载体 = docs/traceability/
-     TRACEABILITY_MATRIX.json(状态现场计算, ASTROCS_DESIGN §12.5) + 本文件
+     TRACEABILITY_MATRIX.json(状态现场计算, docs/ASTROCS_DESIGN §12.5) + 本文件
      test_01..test_04 的实测证据。原 test_05 已删除(依据见文件尾注)。
 
 CLI-002 迁移注记 (commit de2d6d7f):
@@ -52,7 +52,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
         assert os.path.isdir(cls.hips)
         cls.big = os.path.join(cls.tmp, "big")
         os.makedirs(cls.big, exist_ok=True)
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
         # 现行等价命令 = export --json <cfg>, 平铺会话配置形态(session_commands.h)。
         cfg = {"schema_version": "1",
                "source": {"hips_dir": cls.hips},
@@ -153,7 +153,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
 #   2) 判据退化 —— 审计 V15-N-12 已登记(artifacts/evidence/audit-2026-01/FIX_LEDGER.csv:709,
 #      OPEN): 该用例"只查 task_id 列含 P3-006、完全不查状态列" ⇒ 即使台账在树内, 它也
 #      **从不**能对"状态 IMPLEMENTED 回归"判红 = 恒真门, 无证据资格(AGENTS §5);
-#   3) 规范已改口径 —— ASTROCS_DESIGN §12.5 状态阶梯: "状态由检查与验收现场计算,
+#   3) 规范已改口径 —— docs/ASTROCS_DESIGN §12.5 状态阶梯: "状态由检查与验收现场计算,
 #      登记表不预写状态"; 台账式状态标记已被设计废止, 重钉等于复活废止载体。
 # 现在由谁守(名字+行号):
 #   (a) docs/traceability/TRACEABILITY_MATRIX.json:555 起 phase3 模块行(MOD-astrocs-phase3-

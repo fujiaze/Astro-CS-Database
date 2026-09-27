@@ -11,7 +11,7 @@
 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` | — | 稀疏控制点存 `F_ref/σ_F(x,y)`（合同 const 语义），由 `sparse_reconstruct` 重建稠密 SNR 场 | 准确形态是：**合同对象 `sparse_snr_layer` 在 `lib/**` 零生产者**（`git grep -c "sparse_snr" -- lib` 共 25 处命中，全为消费侧结构体/重建器/自检与合同门夹具/CLI 键表，无一处写产品；`eng/ci/ledgers/dead_config_keys.json:110` 自证）；生产里写逐源 SNR 的是**另一个在册对象**（同对象另有 3 条 D3 主张） | AUD-202-SNR核验.md×1、AUD-204-面积交叠核验.md×1 | — | 入库 |
 | `docs/contracts/DATA_SEMANTICS.md` | — | 同一份文档体系对**同一符号**给两种分母：代码与 FROZEN 正本 `docs/science/DRIZZLE.md:44-50` 为 `w_jp = a_jp/A_drop,j`（其 §10 禁止项逐字写着"把核权重写回 `a_jp/A_pixel,j`（FZ-COND-FLUX-CONSERV 判红）"）；而 `DATA_SEMA | 唯一实现口径是 `a_jp/A_drop`；`w'_jp = a_jp/A_pixel` 只作为**等价参数化**成立，且必须同时换分母（`N'_p = Σ w'·A_pixel = D_p`）。等价性已独立复核：发布 `S_p` 与 `variance_p` 对两种参数化**不变**（分子分母各乘 `pf⁴` 相消）；但 `Σ_p w_jp = 1`（⇒ `Σ_p F_p = Σ_j x_j`、（同对象另有 1 条 D3 主张） | AUD-101-DA02-算法推导.md×9、AUD-101-DB01.md×9、AUD-101-DB-06-07.md×5、D9-工单对账.md×5、AUD-101-DB-11.md×4、AUD-101-DB-04.md×3、AUD-101-DB-10-补.md×3、AUD-101-DA01-根规范与科学.md×2、AUD-101-DB-03.md×2、AUD-204-面积交叠核验.md×2、AUD-101-DB-13.md×1、AUD-402-判读-BD1.md×1、AUD-403-注释与README.md×1 | DB13·W1[PASS] DB13·W4[PASS/P1] 合同层·W1[PASS] | 入库 |
 | `docs/algorithms/DRIZZLE_GEOMETRY.md` | — | 生产面积算法唯一命名 = 球面逐边裁剪 ＋ "Van Oosterom & Strackee 扇形三角剖分" | 该文献在台账已判 `关联错`；按"平面三角形立体角公式"用于球面三角面积看似正确用法，但与判错面不同 ⇒ 适用性未复核（同对象另有 3 条 D3 主张） | D9-工单对账.md×8、AUD-204-面积交叠核验.md×4、AUD-301-文献复算-旧判批.md×3、AUD-101-DA01-根规范与科学.md×2、AUD-101-DA02-算法推导.md×2、AUD-101-DB-03.md×2、AUD-101-DB-17.md×1、AUD-101-DB01.md×1、AUD-301-文献池P1.md×1 | AUD204·W1[PASS] AUD204·W2[PASS] | 入库 |
-| `ASTROCS_DESIGN.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 11 条 D3 主张） | — | — | 入库 |
+| `docs/ASTROCS_DESIGN.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 11 条 D3 主张） | — | — | 入库 |
 | `docs/science/DRIZZLE.md` | — | （见 §2 依据） | （同对象另有 2 条 D3 主张） | AUD-101-DB01.md×11、D9-工单对账.md×9、AUD-101-DA02-算法推导.md×7、AUD-101-DA01-根规范与科学.md×6、AUD-301-文献池P1.md×6、AUD-101-DB-10-补.md×5、AUD-204-面积交叠核验.md×4、AUD-301-文献复算-旧判批.md×4、D9-工单对账-补.md×3、AUD-101-DB-03.md×2、AUD-101-DB02.md×1、AUD-402-判读-BD1.md×1 | AUD204·W2[PASS] | 入库 |
 | `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` | — | （见 §2 依据） | （同对象另有 1 条 D3 主张） | AUD-204-面积交叠核验.md×2、AUD-301-文献复算-旧判批.md×2 | — | 入库 |
 | `docs/KNOWN_LIMITATIONS.md` | — | 生产 leaf = 整数格点四角的**大圆弦四边形**（`nside≥256 ⇒ nb=4`；`9≤nside<256` 亦只 4 角；生产 nside 钳位 `[16, 2²²]` 内**无任何路径**用真曲线边界）；冻结预算 `arc-chord 1e-6·hp_res`；`subdivide_healpix_edge` 注释自述"对 | 冻结预算被违反 **2–5 个数量级**且是**全天空现象**：矢高 max `8.094e−2·hp_res`（极冠，尺度不变）、`6.587e−4`（缝带）、`1.443e−4`（赤道），99.55% 的边超阈；逐叶面积误差 **−9.97%…+0.54%**（两路独立实现同值）且**不随 nside 收缩**；`:558-562` 另自述旧口径 `hp_res·1e-12` 对非大圆弧边"永 | AUD-101-DB-04.md×8、AUD-101-DB-11.md×7、AUD-101-DA01-根规范与科学.md×3、AUD-101-DB01.md×3、D9-工单对账.md×2、AUD-101-D1残余.md×1、AUD-101-DB-19.md×1、AUD-402-判读-A1.md×1、AUD-402-判读-A2.md×1、D9-工单对账-补.md×1 | AUD204·W2[PASS] 负责人面与索引·V1[PASS] | 入库 |
@@ -24,7 +24,7 @@
 
 ## 3 改法（具体动作，动词开头）
 
-1. 定案核权重分母（`A_drop` 或 `A_pixel`），并在 `DATA_SEMANTICS.md:47`、`DRIZZLE_GEOMETRY.md:337-346`、`ASTROCS_DESIGN.md:209` 与 `drizzle_engine.cpp:1617` 四处写同名量与同一选择
+1. 定案核权重分母（`A_drop` 或 `A_pixel`），并在 `DATA_SEMANTICS.md:47`、`DRIZZLE_GEOMETRY.md:337-346`、`docs/ASTROCS_DESIGN.md:209` 与 `drizzle_engine.cpp:1617` 四处写同名量与同一选择
 2. 把 `k = pixfrac²` 改写为 `pf²·(1+⟨δ⟩)`，点名旧 `flux_conservation_factor = pf²` 已作废，「通量守恒」一律带量名
 3. 面积口径改用真曲线边界（现成件 `subdivide_healpix_edge`，调用点从 `nb=4/samples=1` 接回）；或至少对极冠/face 角点邻域启用细分并保证共享边两侧采样一致
 4. 同批登记代价：从极冠边偏差 `0.0809·hp_res` 起算逐层 ÷4，降到自身阈值 `1e-6·hp_res` 需 `d > log(8.09e4)/log(4) = 8.15` 层，而 `HP_ADAPTIVE_MAX_DEPTH = 8` ⇒ 极点邻边触底截断（残差 `1.234e-6·hp_res`，超阈 23%）、每边 256 段 = 1024 顶点/像素
@@ -37,7 +37,7 @@
 lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp
 docs/contracts/DATA_SEMANTICS.md
 docs/algorithms/DRIZZLE_GEOMETRY.md
-ASTROCS_DESIGN.md
+docs/ASTROCS_DESIGN.md
 docs/science/DRIZZLE.md
 lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp
 docs/KNOWN_LIMITATIONS.md
@@ -80,7 +80,7 @@ docs/algorithms/DRIZZLE_ALGORITHMS.md
 | `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` | AUD-202-SNR核验.md:127;AUD-204-面积交叠核验.md:146 | — |
 | `docs/contracts/DATA_SEMANTICS.md` | AUD-101-DA01-根规范与科学.md:359;AUD-101-DA01-根规范与科学.md:607;AUD-101-DA02-算法推导.md:1052;AUD-101-DA02-算法推导.md:1055;AUD-101-DA02-算法推导.md:1323;AUD-101-DA02-算法推导.md:1750;AUD-101-DA02-算法推导.md:2134;AUD-101-DA02-算法推导.md:2204;AUD-101-DA02-算法推导.md:450;AUD-101-DA02-算法推导.md:772;AUD-101-DA02-算法推导.md:803;AUD-101-DB-03.md:38… | DB13·W1：确认 ‖ DB13·W4：确认（可结案，不必上呈） ‖ 合同层·W1：确认（但成稿的事实面不完整——冲突不是"说明层 vs 机器层"，而是"机器层内部两个事实源同名互斥"） |
 | `docs/algorithms/DRIZZLE_GEOMETRY.md` | AUD-101-DA01-根规范与科学.md:103;AUD-101-DA01-根规范与科学.md:470;AUD-101-DA02-算法推导.md:1527;AUD-101-DA02-算法推导.md:250;AUD-101-DB-03.md:511;AUD-101-DB-03.md:521;AUD-101-DB-17.md:296;AUD-101-DB01.md:724;AUD-204-面积交叠核验.md:115;AUD-204-面积交叠核验.md:147;AUD-204-面积交叠核验.md:6;AUD-204-面积交叠核验.md:66… | AUD204·W1：确认（并订正成稿两处口径） ‖ AUD204·W2：降级（成稿的两处口径混用；平台量级不可当作几何事实；但另有更大的真实预算违反） |
-| `ASTROCS_DESIGN.md` | — | — |
+| `docs/ASTROCS_DESIGN.md` | — | — |
 | `docs/science/DRIZZLE.md` | AUD-101-DA01-根规范与科学.md:321;AUD-101-DA01-根规范与科学.md:459;AUD-101-DA01-根规范与科学.md:463;AUD-101-DA01-根规范与科学.md:65;AUD-101-DA01-根规范与科学.md:680;AUD-101-DA01-根规范与科学.md:731;AUD-101-DA02-算法推导.md:1534;AUD-101-DA02-算法推导.md:1542;AUD-101-DA02-算法推导.md:1595;AUD-101-DA02-算法推导.md:1622;AUD-101-DA02-算法推导.md:1802;AUD-101-DA02-算法推导.md:484… | AUD204·W2：降级（成稿的两处口径混用；平台量级不可当作几何事实；但另有更大的真实预算违反） |
 | `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` | AUD-204-面积交叠核验.md:30;AUD-204-面积交叠核验.md:93;AUD-301-文献复算-旧判批.md:280;AUD-301-文献复算-旧判批.md:359 | — |
 | `docs/KNOWN_LIMITATIONS.md` | AUD-101-D1残余.md:264;AUD-101-DA01-根规范与科学.md:685;AUD-101-DA01-根规范与科学.md:690;AUD-101-DA01-根规范与科学.md:703;AUD-101-DB-04.md:130;AUD-101-DB-04.md:137;AUD-101-DB-04.md:149;AUD-101-DB-04.md:331;AUD-101-DB-04.md:428;AUD-101-DB-04.md:506;AUD-101-DB-04.md:570;AUD-101-DB-04.md:571… | AUD204·W2：降级（成稿的两处口径混用；平台量级不可当作几何事实；但另有更大的真实预算违反） ‖ 负责人面与索引·V1：降级**（"加判据"与"发布结论越界"成立；"自造状态词百级传染"与"闭环"两处口径不成立，需按我实测重写； |

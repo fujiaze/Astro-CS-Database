@@ -20,13 +20,13 @@
 20	backend_table.in; baseline_kernels.h:33-42; in0..in; baseline_kernels_impl.in; docs/science/NOISE_MODEL.md:283; docs/sci
 21	articles.adsabs.h; docs/science/NOISE_MODEL.md:80; docs/algorithms/NOISE_ESTIMATION.md:27; docs/contracts/DATA_SEMANTICS
 22	docs/validation/v6/QA_MATRIX.md:69-74; docs/validation/v6/README.md:13; ORACLE_AND_ZERO_CASE_POLICY.md; docs/validation/
-23	docs/validation/v6/QA_MATRIX.md:28; ASTROCS_PROJECT_CONSTITUTION.md; ASTROCS_DESIGN.md; docs/ci/03_GATES.md; docs/DOCUME
+23	docs/validation/v6/QA_MATRIX.md:28; ASTROCS_PROJECT_CONSTITUTION.md; docs/ASTROCS_DESIGN.md; docs/ci/03_GATES.md; docs/DOCUME
 24	lib/algorithms/calibration/V6_CALIBRATION_COVARIANCE.md:13; docs/science/PSF_SIGNAL_WEIGHT.md:100; docs/contracts/DATA_S
 25	lib/algorithms/calibration/V6_CALIBRATION_COVARIANCE.md:8; eng/contracts/data/v6_clause_registry_v1.json:2495-2502; v6_c
 26	lib/algorithms/platesolve/IPV_PIPELINE.md:113-128; lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:358-372; cpp/ipv
 27	lib/algorithms/platesolve/IPV_PIPELINE.md:88-93; lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:1117-1125; src/ipv
 28	lib/algorithms/star_detection/src/sdet_detector.cpp:88; lib/algorithms/star_detection/src/sdet_api.cpp:308-309; lib/algo
-29	lib/algorithms/star_detection/src/sdet_detector.cpp; ASTROCS_DESIGN.md; AGENTS.md
+29	lib/algorithms/star_detection/src/sdet_detector.cpp; docs/ASTROCS_DESIGN.md; AGENTS.md
 30	lib/infrastructure/aio/src/aio_fits.cpp:1154-1158; CMakeLists.txt:504; aio_api.cpp:232; CMakeLists.txt:527-530; CMakeLis
 31	lib/infrastructure/aio/src/aio_fits.cpp:1090; lib/infrastructure/aio/src/aio_api.cpp:232; lib/infrastructure/aio/include
 32	lib/infrastructure/benchmark/backend_host/avx512_backend.cpp:2; CMakeLists.txt:694; cpu_features.h; cpu_features.h:12-17
@@ -39,7 +39,7 @@
 39	docs/algorithms/DRIZZLE_GEOMETRY.md:390 ;; docs/references/SCIENTIFIC_REFERENCES.md:115 ;; docs/references/SCIENTIFIC_RE
 40	实验/additive-sky-seamless/results/evidence_code.json:376 ;; 实验/additive-sky-seamless/results/evidence_code.json:389 ;; 实验
 41	.../CMakeLists.txt; cmake/cfitsioConfig.c; eng/cmake/cfitsioConfig.c; lib/infrastructure/aio/third_party/cfitsio/cmake/c
-42	ASTROCS_DESIGN.md:758; ACCEPTANCE_SPEC.md; AGENTS.md; RELEASE-05/OPEN_QUESTIONS.md:74-152; ACCEPTANCE.md:20; docs/KNOWN_
+42	docs/ASTROCS_DESIGN.md:758; ACCEPTANCE_SPEC.md; AGENTS.md; RELEASE-05/OPEN_QUESTIONS.md:74-152; ACCEPTANCE.md:20; docs/KNOWN_
 43	_work/D5b/p10_entries.py; docs/research/PHOTOMETRY_RESEARCH_PACK.md:18; run/DOC-404/verify_refs.py; verify_oss.py; verif
 44	_work/l1/graph_scan.py; CMakeLists.txt; lib/algorithms/coverage/CMakeLists.txt:12; lib/algorithms/integration/v6/CMakeLi
 45	../_work/q209_census2.py; ../_work/q209/census/census.json; eng/ci/checks.json; eng/ci/run_checks.py; resource_monitor.p
@@ -78,7 +78,7 @@
 78	docs/architecture/PERFORMANCE_MODEL.md:178; THREADING_MODEL.md:91-108
 79	docs/architecture/THREAD_BUDGET_ARCH.md:34; docs/architecture/EXECUTION_MODEL.md:18; eng/tools/arch/check_thread_budget.
 80	/stage2_common.h:140; docs/architecture/production_call_paths_stage2.c; docs/architecture/execution_inventory.c
-81	ASTROCS_DESIGN.md:746; AGENTS.md; docs/ci/03_GATES.md:13-19; docs/ci/02_PIPELINE.md:69
+81	docs/ASTROCS_DESIGN.md:746; AGENTS.md; docs/ci/03_GATES.md:13-19; docs/ci/02_PIPELINE.md:69
 82	docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
 83	docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md:100-102
 84	docs/modules/hips_p2.md:28-29

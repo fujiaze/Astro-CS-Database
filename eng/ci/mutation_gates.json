@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "purpose": "RELEASE-02 CI-HYGIENE｜变异测试覆盖面实况登记（不虚报）。原引 ASTROCS_DESIGN §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中不存在（见 design_claim_history）；本文件登记 2026-09-18 实测的实际覆盖面：默认 ctest 仅 1 条 mutation 类用例，其余为 Python CI 门 / Python unittest / 默认关闭的 ctest 选项 / run/ 一次性脚本。",
+  "purpose": "RELEASE-02 CI-HYGIENE｜变异测试覆盖面实况登记（不虚报）。原引 docs/ASTROCS_DESIGN §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中不存在（见 design_claim_history）；本文件登记 2026-09-18 实测的实际覆盖面：默认 ctest 仅 1 条 mutation 类用例，其余为 Python CI 门 / Python unittest / 默认关闭的 ctest 选项 / run/ 一次性脚本。",
   "measured_utc": "2026-09-18",
   "measured_by": "RELEASE-02 CI-HYGIENE",
   "design_claim": "ENGINEERING_SPEC.md §10「每项检查有正例与负例（能红能绿）」",
@@ -128,8 +128,8 @@
     }
   ],
   "open_items": [
-    "把关键 mutation driver（v6_p3_rsmp / p2-samp / REJ / DRZ）纳入 ctest 或 CI 检查（§11.1 DIVERGENT 未闭合）—— 注：原引的 ASTROCS_DESIGN §11.1 已不存在，该 DIVERGENT 归属需重新落锚。",
+    "把关键 mutation driver（v6_p3_rsmp / p2-samp / REJ / DRZ）纳入 ctest 或 CI 检查（§11.1 DIVERGENT 未闭合）—— 注：原引的 docs/ASTROCS_DESIGN §11.1 已不存在，该 DIVERGENT 归属需重新落锚。",
     "「近似 ↔ mutation 门」双向登记已由 eng/ci/check_mutation_gates.py 机器校验（A1 结构 / A2 design_claim 锚存活 / A3 登记项仍有对象 + gone_artifacts 棘轮）；该 checker 需在 eng/ci/checks.json 注册后才进入 CI 面。"
   ],
-  "design_claim_history": "原引用 ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中整条不存在（ASTROCS_DESIGN.md 770 行、§11 = 双平台发行与安装:651、全文零 mutation）⇒ 该锚已死，由 eng/ci/check_mutation_gates.py 的 A2 判据点名。本文件登记的实况口径不变，改引 ENGINEERING_SPEC §10 的「能红能绿」要求作为现行规范依据。"
+  "design_claim_history": "原引用 docs/ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门能红」在现行设计文档中整条不存在（docs/ASTROCS_DESIGN.md 770 行、§11 = 双平台发行与安装:651、全文零 mutation）⇒ 该锚已死，由 eng/ci/check_mutation_gates.py 的 A2 判据点名。本文件登记的实况口径不变，改引 ENGINEERING_SPEC §10 的「能红能绿」要求作为现行规范依据。"
 }

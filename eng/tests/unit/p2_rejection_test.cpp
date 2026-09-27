@@ -2,7 +2,7 @@
 // FIX-204（§9.71 裁决 3）：逐像素按几何 N 自动选择 —— WBPP 实测表
 //   N<6 → percentile / 6≤N≤15 → winsorized / N>15 → linear fit；
 //   禁止 min/max（含 NoRejection）；显式指定合法性窗口只告警不硬阻断。
-// 权威：ASTROCS_DESIGN.md §4.5（下半节）；一手实测出处
+// 权威：docs/ASTROCS_DESIGN.md §4.5（下半节）；一手实测出处
 //   = WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429
 //   （bestRejectionMethod，包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）、
 //   :1349-1412（rejectionIsGood 合法性窗口与明文拒绝 NoRejection/MinMax/CCDClip）。

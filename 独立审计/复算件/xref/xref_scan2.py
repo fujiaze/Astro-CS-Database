@@ -23,7 +23,7 @@ PKG_FILES = {'00_总目录.md'}
 TARGET_DOCS = {'01_文档/目标文档架构.md', '01_文档/迁移合并清单.md', '01_文档/索引重建规格.md'}
 REPO_ROOTS = ('lib/', 'eng/', 'docs/', '实验/', 'testdata/', 'artifacts/', '工程控制/', 'run/',
               'gaia/', 'vendor/', 'site/')
-ROOT_FILES = ('ASTROCS_DESIGN.md', 'ENGINEERING_SPEC.md', 'ACCEPTANCE_SPEC.md', 'CONTROL_PACK_SPEC.md',
+ROOT_FILES = ('docs/ASTROCS_DESIGN.md', 'ENGINEERING_SPEC.md', 'ACCEPTANCE_SPEC.md', 'CONTROL_PACK_SPEC.md',
               'README.md', 'VERSION', 'AGENTS.md', 'CMakeLists.txt', '.gitignore')
 EXT = ('.md', '.csv', '.yaml', '.yml', '.json', '.py', '.cpp', '.h', '.hpp', '.txt',
        '.cmake', '.sh', '.in', '.bib', '.tex', '.c', '.hh', '.list', '.toml', '.ps1')

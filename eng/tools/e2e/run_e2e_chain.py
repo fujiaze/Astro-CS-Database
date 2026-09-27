@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """E2E-501 三命令真实数据全链驱动（可复跑、出机器可读证据）。
 
-权威：ASTROCS_DESIGN §6.1（三命令串行 + 阶段间只走磁盘产品 + manifest 链）、§6.2（预检矩阵）、
+权威：docs/ASTROCS_DESIGN §6.1（三命令串行 + 阶段间只走磁盘产品 + manifest 链）、§6.2（预检矩阵）、
       §4（退出码）；ENGINEERING_SPEC §7（目录纪律）。
 
 流程（每一步都有判据，fail-closed）：

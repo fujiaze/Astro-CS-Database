@@ -14,8 +14,8 @@
   open_items 第 2 条自述「建立『近似 ↔ mutation 门』双向登记并由机器门校验
   （本文件是人工登记，尚无 checker）」。实测（run/DEFECT-REPRO-01）：
     * 全仓**零机器消费方**（grep 命中只在 run/ 与历史审计件里）⇒ 孤儿登记；
-    * design_claim 引的 "ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门
-      能红」" 在现行设计文档里**整条不存在**：ASTROCS_DESIGN.md 共 770 行，§11 是
+    * design_claim 引的 "docs/ASTROCS_DESIGN.md §11.1:565「每个近似有 mutation 证明门
+      能红」" 在现行设计文档里**整条不存在**：docs/ASTROCS_DESIGN.md 共 770 行，§11 是
       「双平台发行与安装」（:651），全文零 "mutation" ⇒ 锚已死；
     * 21 条路径形态 token 中 10 条 GONE（run/v6/** 已被 eng/tools/run_gc.py 回收；
       eng/tests/contracts/product_family/evidence/mutations.json 从未入库）。

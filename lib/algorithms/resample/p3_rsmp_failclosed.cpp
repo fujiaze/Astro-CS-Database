@@ -33,7 +33,7 @@ bool is_retired_canonical_weight_object(const std::string& token) {
 std::string retired_object_reject_detail(const std::string& token) {
   if (!is_retired_canonical_weight_object(token)) return std::string();
   return "retired_canonical_object=" + token +
-         " (not a current object: ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+         " (not a current object: docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
          "migration: variance_from=actual_combination_coefficients with "
          "C_out=R C_in R^T; frame weights are derived in Phase2 from frame SNR "
          "(1/sigma_F^2), not carried as a product";

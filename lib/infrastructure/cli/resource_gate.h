@@ -1,7 +1,7 @@
 // acsd 资源利用率**观测/判定** (MON-003) — 07 §3/§4/§5 分类+公式+first-10s 诊断+诊断分类
 // ABI 冻结(v1)不改公共 API; 本模块纯 CLI 侧判定。硬编码禁令: 线程数/cpus 由调用方注入。
 //
-// §9.74 裁决 10（ASTROCS_DESIGN §3.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
+// §9.74 裁决 10（docs/ASTROCS_DESIGN §3.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
 // 判定结果只作**记录**（resource/resource_gate 事件 + 资源产物），**不产生任何退出码**；
 // 唯一资源门 = 磁盘门（lib/infrastructure/cli/disk_gate.h，exit 10 = 磁盘写满/写盘失败）。
 //
@@ -249,7 +249,7 @@ inline bool gate_workload_above_floor(const GateConfig& g) {
 // 门禁处置(记录与裁决分离):
 //   RecordOnly —— **唯一**处置。资源判据只记录/报告(resource_gate 事件 severity=warning),
 //                 不改变进程退出码。
-//   Enforced   —— **已退役**(§9.74 裁决 10 + ASTROCS_DESIGN §3.5/§6.3: 一般性资源超限门
+//   Enforced   —— **已退役**(§9.74 裁决 10 + docs/ASTROCS_DESIGN §3.5/§6.3: 一般性资源超限门
 //                 已取消，内存/CPU/线程不设门)。枚举值保留以免破坏既有 ABI/测试引用，
 //                 但 gate_enforcement() 恒返回 RecordOnly —— CLI 面**不存在**由 CPU/内存
 //                 判据产生 rc=10 的路径（exit 10 只属磁盘写满/写盘失败，见 disk_gate.h）。

@@ -122,7 +122,7 @@ def section_A():
         note="纯电平阶跃：方差比几乎不变(Δ=%.3g)、有符号台阶大幅变(Δ=%.3g) ⇒ 方差比对电平失明"
              % (vr1 - vr0, r4 - r3))
     # A5 门读电平(boundary-only) vs 实验 off-locus excess 对"公共缓变天光梯度"的差别：
-    #    设计说天光是缓变场（ASTROCS_DESIGN §2.2）。一条**平滑**强梯度（非孤立阶跃）
+    #    设计说天光是缓变场（docs/ASTROCS_DESIGN §2.2）。一条**平滑**强梯度（非孤立阶跃）
     #    压在帧边界上：生产 boundary-only 读入 2d·∂I/∂n，实验 excess 用邻域对照线扣掉它。
     struct = np.broadcast_to(base, (H, W)).copy() + rng2.normal(0, 1.0, (H, W))
     ramp = 3.0 * np.arange(W)[None, :]          # 平滑斜坡 3 ADU/px（无孤立阶跃）

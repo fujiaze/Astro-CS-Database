@@ -5,7 +5,7 @@
 // aio_atomic_file.h - AIO 统一"临时文件 + fsync + 原子 rename"落盘原语 (header-only)
 //
 // 依据:
-// - ASTROCS_DESIGN.md §9: 所有产品 = 临时文件/目录 + 校验 + fsync + 原子 rename 提交;
+// - docs/ASTROCS_DESIGN.md §9: 所有产品 = 临时文件/目录 + 校验 + fsync + 原子 rename 提交;
 //   失败/取消不得留下可被误认为正式产品的半成品。
 // - ENGINEERING_SPEC.md §9: 输出临时文件 + 原子提交; 错误通过统一状态码+结构化诊断传播。
 // - docs/plugins/infrastructure/17_aio.md §4: 写 = 分层写 + flush/close/fsync + checksum
@@ -201,7 +201,7 @@ inline int write_file_atomic_stream(const std::string& final_path,
 // ============================================================================
 // 追加写句柄 (日志/诊断面; aio 唯一实现) — CLEAN-403 补能力
 // ----------------------------------------------------------------------------
-// 依据: ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」。
+// 依据: docs/ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」。
 // 语义: 打开 <path> 追加 (不存在则创建; 父目录由调用方经 make_dirs 建) →
 //       多次 append_write → append_close (flush + close)。调用方只持有**不透明
 //       句柄**, 不接触 FILE*, 本仓无第二处追加写实现。
@@ -281,7 +281,7 @@ inline int append_close(AppendSink* s) {
 // ============================================================================
 // 文件系统机制原语 (aio 唯一实现)
 // ----------------------------------------------------------------------------
-// 依据: ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5
+// 依据: docs/ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5
 //       (负责人逐字:「全部走 aio……没有其他需要读写的地方了」)+ 机器判据
 //       「全仓文件打开/流式读写/文件系统写操作, 除 aio 内部外应为 0」。
 // 纪律: 调用方 (算法/基建) **禁止**再自行 mkdir/stat/opendir/unlink/rmdir/

@@ -12,7 +12,7 @@ import hashlib, math, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "phase3_session")
-# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1)
+# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (docs/ASTROCS_DESIGN §7.1)
 PROJ = os.path.join(REPO, "lib", "algorithms", "projection")
 # W4-A9 批次 3: p3_output.cpp 迁 lib/algorithms/fits_output/ (同 §7.1「fits_output」)
 FITS = os.path.join(REPO, "lib", "algorithms", "fits_output")

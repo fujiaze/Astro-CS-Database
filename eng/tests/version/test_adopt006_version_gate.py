@@ -116,7 +116,7 @@ def make_absence_tree(dst):
         full = os.path.join(dst, rel)
         os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, "w", encoding="utf-8") as f:
-            f.write("# t\n\n版本信息面: 无 (alpha 阶段之前, ASTROCS_DESIGN §13)\n")
+            f.write("# t\n\n版本信息面: 无 (alpha 阶段之前, docs/ASTROCS_DESIGN §13)\n")
     for d in cv.DOC_SET_DIRS:
         full = os.path.join(dst, d)
         os.makedirs(full, exist_ok=True)

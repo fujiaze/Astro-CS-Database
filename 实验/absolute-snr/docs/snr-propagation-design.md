@@ -504,7 +504,7 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 
 > **【订正记录（SNR-DESIGN-01，负责人裁决）】数值语义冻结为 (a)：控制点直接存绝对通量型 SNR。**
 > 权威落点已改为：`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5/§4.6、
-> `docs/design/UNIFIED_MODEL.md` §2、`ASTROCS_DESIGN.md` §2.2/§3.1/§4.4/§5.3，
+> `docs/design/UNIFIED_MODEL.md` §2、`docs/ASTROCS_DESIGN.md` §2.2/§3.1/§4.4/§5.3，
 > 并由 `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 的
 > `sparse_snr_semantics = "absolute_flux_type_snr"` 机器冻结。
 > 裁决理由：去掉「除以帧级 → 再乘帧级」的往返（少一次除法 + 一次乘法，并免去"中位归一"这一额外约定），

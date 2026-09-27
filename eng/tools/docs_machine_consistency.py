@@ -8,7 +8,7 @@
         现断言「**不得**含 legacy token 解析 ∧ **必须**含 `in.contains("weight_mode")`
         具名 fail-closed 拒绝面 ∧ 必须引用 §9.73」。反转理由：A44 删除 legacy 整数
         权重模式域后，原断言要求 stage2_common.cpp **保留**该域解析 —— 那是把已废除
-        的域钉成合法规格（ASTROCS_DESIGN.md §3.1:175「没有可选择项」）。）
+        的域钉成合法规格（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」）。）
   2. frame_id_contract_exact        — DATA-FRAME-ID-001：SHA-256 truncate，无 FNV/路径派生残留
   3. error_taxonomy_exit_codes      — ERROR_MODEL 退出码全集合 ↔ orchestrator.h 枚举
   4. integration_status_full_set    — INTEGRATION_ALGORITHMS ↔ integrate.h（P2_INTEGRATE_*）

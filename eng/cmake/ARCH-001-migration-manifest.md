@@ -1,6 +1,6 @@
 # ARCH-001 迁移清单（旧路径 -> 新路径 -> 状态 -> 等价性证据 -> 同步义务）
 
-> 权威：ASTROCS_DESIGN.md 7.1（顶层结构唯一）/7.3（模块与 DLL-SO 边界）；ENGINEERING_SPEC.md 3（迁移必须等价）/4/7。
+> 权威：docs/ASTROCS_DESIGN.md 7.1（顶层结构唯一）/7.3（模块与 DLL-SO 边界）；ENGINEERING_SPEC.md 3（迁移必须等价）/4/7。
 > 生成：run/PROJECT-GOVERNANCE-01/ARCH-001/gen_final_manifest.py（可复跑）；状态由 moves.json 现场计算，禁止手改。
 > 当前 HEAD：`8f0a4c6bf24ffd7346a8c2c3fd8dc0e4407ee6d0`（开工基线 01db973b020957bce9eadd32785216d161b9d093）。
 

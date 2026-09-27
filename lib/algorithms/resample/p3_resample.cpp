@@ -37,7 +37,7 @@
 #include "aio_hips_reader.h"
 #include "hips_properties.h"
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
 // 的整文件读取经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 FILE*。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"

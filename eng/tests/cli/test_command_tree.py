@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI-001: 唯一命令树（ASTROCS_DESIGN §6.1/§6.2、§1.2）行为测试。
+"""CLI-001: 唯一命令树（docs/ASTROCS_DESIGN §6.1/§6.2、§1.2）行为测试。
 
 被测对象 = 真实产品二进制（根 CMakeLists.txt 的 acsd target）：
 优先 `build/acsd`，可用 ASTROCS_CLI_BIN 覆盖；不存在则跳过（不伪绿）。
@@ -200,7 +200,7 @@ class TestCommandTree(unittest.TestCase):
                                         f"{cmd} 预检阻断仍写了 complete manifest")
 
     # ── FIX-203: 提升键落地（合同声明键 → CLI 键面） ──
-    # 权威：ASTROCS_DESIGN §3.3「键名一律以命令行实际认的键为准」（三命令通用输入合同）；
+    # 权威：docs/ASTROCS_DESIGN §3.3「键名一律以命令行实际认的键为准」（三命令通用输入合同）；
     # GAP_AUDIT G05（snr_path 不在 CLI 白名单）/ N03（export 几何键）。
     # 断言四件：① --template 含新键且 --help 同源列出；② 模板能被自身 --json 接受
     # （无 unknown key；预检按输入缺失照常阻断——新键不得成为 unknown key 退出 3 的理由）；
@@ -287,7 +287,7 @@ class TestCommandTree(unittest.TestCase):
     def test_10_precision_key_is_not_reinvented(self):
         """FIX-203 禁止项：不得新造同义键——precision(fp32/fp64) 不得进 CLI 键面。
 
-        精度口径（ASTROCS_DESIGN §3.3:256）：阶段一 = drizzle.precision_mode(0/1)，
+        精度口径（docs/ASTROCS_DESIGN §3.3:256）：阶段一 = drizzle.precision_mode(0/1)，
         阶段二/三 = 位深键 bitpix(-32/-64)。故配置里出现 precision 必须按 unknown key
         拒绝（rc=3），而不是被静默接受。
         """
@@ -303,7 +303,7 @@ class TestCommandTree(unittest.TestCase):
                              f"{cmd} 不得接受 precision 同义键（rc={r.returncode}）")
             self.assertIn("unknown key", r.stderr)
             self.assertIn("precision", r.stderr)
-        # 既有精度载体必须在键面上（复用、非新造；ASTROCS_DESIGN §3.3:256）：
+        # 既有精度载体必须在键面上（复用、非新造；docs/ASTROCS_DESIGN §3.3:256）：
         #   阶段一 drizzle.precision_mode(0/1)、阶段三 bitpix(-32/-64)。
         # 阶段二（mosaic）当前无被消费的精度键（实测登记于 eng/ci/ledgers/dead_config_keys.json
         # 的 dead_config_key:precision 残留缺口），故此处不断言 mosaic 载体。

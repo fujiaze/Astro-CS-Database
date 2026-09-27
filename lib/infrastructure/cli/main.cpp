@@ -1,6 +1,6 @@
 // acsd CLI — 单一用户入口 (V5, CLI-002)
 // 统一 parser + JSON/JSONL writer + 退出码映射 + 协作取消 + crash boundary。
-// 命令树唯一权威: ASTROCS_DESIGN §6.2（落在 lib/infrastructure/cli/command_tree.h）；
+// 命令树唯一权威: docs/ASTROCS_DESIGN §6.2（落在 lib/infrastructure/cli/command_tree.h）；
 // 协议/退出码唯一权威: 控制包 04 + docs/api/CLI_PROTOCOL_V1.md。
 // Windows Unicode: wmain → UTF-16 argv 转 UTF-8, 文件经 std::filesystem::u8path 打开。
 //

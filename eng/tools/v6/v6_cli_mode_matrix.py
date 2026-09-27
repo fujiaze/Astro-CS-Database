@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RUNTIME-CI-001 CLI 模式路由矩阵（真实二进制端到端；CLI-001 命令树对齐版）。
 
-对已构建的 acsd 二进制跑冻结模式路由矩阵。命令面 = ASTROCS_DESIGN §7.1 唯一
+对已构建的 acsd 二进制跑冻结模式路由矩阵。命令面 = docs/ASTROCS_DESIGN §7.1 唯一
 命令树（normalize|mosaic|export (--json <cfg>|--template|--help) + help + --version
 + doctor + benchmark）；'phase1|2|3 <op>' 用户命令与 '--config' 旗标已随 CLI-001
 删除（lib/infrastructure/cli/parser.cpp:31-33/39-43 一律 unknown command/flag → 2），
@@ -26,10 +26,10 @@ FZ-P3-MODES）的拒绝理由。正例无法在无真实输入时 rc=0（会话�
 
 ## 规范依据（本矩阵守的是「CLI 面不存在权重模式选择机制」这条裁决面）
 
-  * ASTROCS_DESIGN.md §3.1：「全程只有 SNR，没有『权重模式』这个概念」——权重是
+  * docs/ASTROCS_DESIGN.md §3.1：「全程只有 SNR，没有『权重模式』这个概念」——权重是
     Phase2 集成时按天球像素对应的输入帧集合**现场算出的派生量**；Phase1/Phase3
     不产生、不消费权重。
-  * ASTROCS_DESIGN.md §7.1（唯一命令树）：公开面只有
+  * docs/ASTROCS_DESIGN.md §7.1（唯一命令树）：公开面只有
     mosaic --json <config.json> / --template / --help；--mode / --export-mode 是
     **不写进 help 的内部旗标**（command_tree.h value_flags()），其唯一职责是
     fail-closed 拒绝，不是提供选择。
@@ -52,7 +52,7 @@ FZ-P3-MODES）的拒绝理由。正例无法在无真实输入时 rc=0（会话�
   * docs/algorithms/PLATESOLVE.md（相邻口径复核）：全文无 mode / 权重模式条款
     ⇒ 不构成第二权威，不改变上述判定。
 
-## 驱动面：为什么每条运行用例都带 -force（ASTROCS_DESIGN.md §4.5）
+## 驱动面：为什么每条运行用例都带 -force（docs/ASTROCS_DESIGN.md §4.5）
 
 本矩阵的配置**故意**指向不存在的 x.hips（不依赖任何真实数据即可判定模式门）。
 §4.5 运行前预检：「🔴 error：文件找不到、路径错误… error 阻塞运行…**存在 error 时
@@ -78,7 +78,7 @@ import pathlib
 import subprocess
 import sys
 
-# ── 驱动开关（ASTROCS_DESIGN.md §4.5）────────────────────────────────────────
+# ── 驱动开关（docs/ASTROCS_DESIGN.md §4.5）────────────────────────────────────────
 # §4.5 明文：「存在 error 时 -y / -yes 不能越过；-force 跳过整个检查步骤直接运行」。
 # 本矩阵的配置故意指向不存在的输入 ⇒ 预检必出 error ⇒ 不带 -force 时进程在预检就
 # 返回 3，永远到不了 v6cli::mode_gate（2026-09-22 现场 20/24 全是这个形态）。
@@ -90,7 +90,7 @@ FORCE = ["-force"]
 # §9.73 裁决 A44 后 equal / pixel_ivar 也并入拒绝面：原「documented baseline」放行面的
 # 唯一理由是「它们是 route_legacy_weight_mode_int 的映射目标登记」；整数路由删除后该
 # 理由消失，且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归
-# fail-closed（ASTROCS_DESIGN.md §3.1:175「没有可选择项」；
+# fail-closed（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；
 # docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、口径配置项或
 # 口径产物」）。本清单与 v6_runtime_contract.h 自身冻结说明「全部 token 一律
 # fail-closed 拒绝（rc=2）」逐字同面（原实现给这两个 token 开例外，与该说明不一致）。
@@ -133,7 +133,7 @@ RETIRED_CASES = [
         "replacement": "mosaic --json <cfg> --mode 0 -force -y  → rc=2 + FZ-FIELD-WEIGHTMODE",
         "reason": "--config 旗标随 CLI-001 从命令树删除；v6_mode_gate.h 的 "
                   "config.weight_mode 分支（读 p.values['--config']）已无 CLI 可达面。",
-        "authority": "ASTROCS_DESIGN §3.1/§4.5/§7.1；docs/science/PSF_SIGNAL_WEIGHT.md §4；"
+        "authority": "docs/ASTROCS_DESIGN §3.1/§4.5/§7.1；docs/science/PSF_SIGNAL_WEIGHT.md §4；"
                      "lib/infrastructure/cli/parser.cpp:31-33,39-43（CLI-001）；"
                      "docs/ci/01_CHECKS.md §2.1（部分退役须改注册绑定）",
     },
@@ -146,7 +146,7 @@ RETIRED_CASES = [
                   "面随之删除：equal / pixel_ivar 的 baseline 放行面其唯一理由是「整数路由的"
                   "映射目标登记」，整数路由删除后理由消失 ⇒ 二者与其余 token 同归 fail-closed"
                   "（本矩阵 REJECT_P2 已并入）。",
-        "authority": "ASTROCS_DESIGN §3.1:171/175、§4.5、§7.1；"
+        "authority": "docs/ASTROCS_DESIGN §3.1:171/175、§4.5、§7.1；"
                      "docs/science/PSF_SIGNAL_WEIGHT.md §4:72；"
                      "lib/infrastructure/cli/parser.cpp:31-33,39-43（CLI-001）；"
                      "lib/infrastructure/cli/v6_runtime_contract.h（FZ-WEIGHT-SINGLE-PATH）；"
@@ -277,7 +277,7 @@ def run_matrix(binary, work, json_out=""):
         "schema": "astrocs.v6.cli-mode-matrix/v1",
         "cli_bin": str(binary),
         "cli_tree": "normalize|mosaic|export (--json <cfg>|--template|--help) + help + "
-                    "--version + doctor + benchmark (ASTROCS_DESIGN §7.1)",
+                    "--version + doctor + benchmark (docs/ASTROCS_DESIGN §7.1)",
         "driver_flags": list(FORCE),
         "cases": cases,
         "counts": {"total": len(cases), "reject": rejects, "admit": admits,

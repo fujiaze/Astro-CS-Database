@@ -226,7 +226,7 @@ std::string node_config(const NodeFixture& fx) {
   "sub_block_px": %d,
   "output_dir": "%s"
 })",
-                // P3-STREAM-01: 调度单元 = 输出子块（ASTROCS_DESIGN §8.3 export 行）。
+                // P3-STREAM-01: 调度单元 = 输出子块（docs/ASTROCS_DESIGN §8.3 export 行）。
                 // 本夹具 16×16，默认 sub_block_px=256 只产生 1 个子块 ⇒ 退化为串行、
                 // work unit 不可观测；取 4 ⇒ 16 个子块，RT-001「工作单元必须走唯一共享
                 // 执行器」才可判（1 vs 4 worker 逐位一致判据不变）。

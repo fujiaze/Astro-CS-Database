@@ -28,7 +28,7 @@ foreach(_t checksum tile_model transform query_pixel precision_dual)
 endforeach()
 
 # ----------------------------------------------------------------------------
-# FIX-401（ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1）:
+# FIX-401（docs/ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1）:
 # HiPS tile 原子发布 + 完成清单 fail-closed 验证面。
 #   被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（每 tile 私有临时
 #   文件 → DATASUM/CHECKSUM 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后

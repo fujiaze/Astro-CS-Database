@@ -16,7 +16,7 @@ out = {"tools": {"numpy": np.__version__, "astropy_healpix": _ah.__version__}}
 
 
 def zphi(face, u_, v_):
-    """(u,v)->(z=sin dec, phi)：ASTROCS_DESIGN §2.4 的等面积卡，face 0-3 北、4-7 赤道、8-11 南。"""
+    """(u,v)->(z=sin dec, phi)：docs/ASTROCS_DESIGN §2.4 的等面积卡，face 0-3 北、4-7 赤道、8-11 南。"""
     if face <= 3:
         if u_ + v_ <= 1.0:
             return (2.0 / 3.0) * (u_ + v_), 0.25 * PI * (u_ - v_ + 1.0 + 2.0 * face)

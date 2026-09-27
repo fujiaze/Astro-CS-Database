@@ -3,8 +3,8 @@
 """check_config_contracts.py — T403 config contracts checker（§9.73 A44 后判据反转）
 
 权威依据
-  - ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
-  - ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
+  - docs/ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
+  - docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
   - docs/science/PSF_SIGNAL_WEIGHT.md §4:72「**没有可选择的口径**：不存在口径选择键、
     口径枚举、口径配置项或口径产物」；
   - 工程控制 GAP_AUDIT §9.73 裁决 A44（负责人 2026-09-20）；

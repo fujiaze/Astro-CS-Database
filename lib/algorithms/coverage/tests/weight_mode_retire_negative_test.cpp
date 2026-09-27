@@ -7,7 +7,7 @@
 // **不是现行对象**，退役。
 //
 // 依据（权威，只读）：
-//   ASTROCS_DESIGN.md §3.1（订正后）：权重只能来自纯净信号与噪声之比（SNR 逆方差）；
+//   docs/ASTROCS_DESIGN.md §3.1（订正后）：权重只能来自纯净信号与噪声之比（SNR 逆方差）；
 //     跨帧可用、不基于参考帧、绝对标定；PSF 拟合质量代理只作诊断。
 //   docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（§4 为单一权重口径：阶段1 稀疏 SNR 控制点
 //     → 阶段2 重建稠密 SNR 面 → 逆方差定权 → 叠加；无模式选择）。
@@ -120,7 +120,7 @@ TEST(PsfswRetire, RuntimeRouteRejectsRetiredMode) {
     /* §9.73 裁决 A44：原 documented baseline 面（equal / pixel_ivar → kBaseline，rc=0）
        已删除。其唯一理由是「legacy 整数路由的映射目标登记」；整数路由删除后理由消失，
        且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
-       （ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */
+       （docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */
     for (const char* m : {"equal", "pixel_ivar"}) {
         const astrocs::v6runtime::ModeRoute r = astrocs::v6runtime::route_phase2_weight_token(m);
         EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;

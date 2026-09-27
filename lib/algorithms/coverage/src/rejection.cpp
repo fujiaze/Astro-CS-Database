@@ -1101,7 +1101,7 @@ const char* p2_rejection_semantic_id(int method) {
 // =====================================================================
 // 逐像素按几何 N 自动选择 —— 唯一决策点 + WBPP 映射
 // =====================================================================
-// 权威：ASTROCS_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
+// 权威：docs/ASTROCS_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
 // 自动选择」；档界实测出处 =
 // WBPP 2.5.9 WeightedBatchPreprocessing-engine.js:1421-1429 bestRejectionMethod()
 // （官方包 sha1 712cc7c3fdb523643ad0e685104592d511996f82）：
@@ -1140,7 +1140,7 @@ const char* p2_rejection_semantic_id(int method) {
 //     p2_reject_plan_resolve 的 undet_default）；两处都属 EXP-204 落地面，
 //     本任务只落 WBPP 表（kWbppTable）。
 // 原四档表（n ≤ 3 不排异 / 4–7 percentile / 8–15 winsorized / ≥16 linear）
-// **作废**（ASTROCS_DESIGN.md §4.5 已加作废横幅）。
+// **作废**（docs/ASTROCS_DESIGN.md §4.5 已加作废横幅）。
 enum class PixelSmallNPolicy { kWbppTable, kConservativeNone };
 static constexpr PixelSmallNPolicy kPixelSmallNPolicy =
     PixelSmallNPolicy::kConservativeNone;   // ← EXP-204 定案；改判对称读法只改本行

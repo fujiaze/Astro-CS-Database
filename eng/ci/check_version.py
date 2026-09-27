@@ -324,7 +324,7 @@ def _alpha_hit(text: str):
 def detect_version_presence(root: str) -> tuple:
     """(present, evidence): 仓库里是否存在任何"版本信息面"。
 
-    判据对齐 ASTROCS_DESIGN §12「Alpha 之前：程序与代码中不包含任何版本信息」：
+    判据对齐 docs/ASTROCS_DESIGN §12「Alpha 之前：程序与代码中不包含任何版本信息」：
       · 根 VERSION 文件非空;
       · lib/infrastructure/cli/** 或根 CMakeLists.txt 出现 alpha 字面量;
       · 根 CMakeLists.txt 的 project(... VERSION ...) 数字三元组 (版本基础设施);
@@ -443,7 +443,7 @@ def main() -> int:
         doc_files, doc_missing, doc_empty_dirs = doc_scan_set(root)
         add(checks, "version_absence_alpha_pre", not stale, "<version-surface>", None,
             "无版本信息",
-            "ASTROCS_DESIGN §12: Alpha 前程序与代码中不含任何版本信息; "
+            "docs/ASTROCS_DESIGN §12: Alpha 前程序与代码中不含任何版本信息; "
             "本模式判据 = 版本信息不存在 ⇒ 不判红 "
             "(存在则转入 [1]~[6] 一致性校验, 由 version_presence_detected 留痕)")
         add(checks, "doc_set_complete", not doc_missing and not doc_empty_dirs,
@@ -654,7 +654,7 @@ DOC_TMPL = "# %s\n\ndoc_version: 0.10.0-alpha.1\n"
 ROOT_CMAKE_NO_VERSION_TMPL = """cmake_minimum_required(VERSION 3.24)
 project(acsd LANGUAGES C CXX)
 """
-NO_VERSION_DOC_TMPL = "# %s\n\n版本信息面: 无 (Alpha 前, ASTROCS_DESIGN §12)\n"
+NO_VERSION_DOC_TMPL = "# %s\n\n版本信息面: 无 (Alpha 前, docs/ASTROCS_DESIGN §12)\n"
 
 
 def _mini_repo(root: str, *, expected: str = "0.11.0-alpha.2", omit=(),

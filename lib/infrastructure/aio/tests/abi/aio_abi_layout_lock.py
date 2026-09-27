@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """aio_abi_layout_lock.py — AIO HiPS 跨边界结构布局一致性机器锁 (V11-N-01)
 
-ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1: 跨 DLL 边界使用版本化 C ABI;
+docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1: 跨 DLL 边界使用版本化 C ABI;
 结构体带 struct_size/abi_version。本锁把"公共 C 头定义"与"Python ctypes
 镜像"钉死:
 
@@ -155,13 +155,13 @@ def check_all(probe_data, mirror_ns):
         if name not in probe_data:
             errors.append("C 探针缺少镜像声明的结构体 %s" % name)
 
-    # ABI 头部契约 (ASTROCS_DESIGN 7.3) + 版本/尺寸常量一致性
+    # ABI 头部契约 (docs/ASTROCS_DESIGN 7.3) + 版本/尺寸常量一致性
     for name, probe_struct in probe_data.items():
         pf = probe_struct["fields"]
         if not pf or pf[0]["name"] != "struct_size" or pf[0]["offset"] != 0:
-            errors.append("ASTROCS_DESIGN 7.3: %s 首字段必须是 struct_size@0" % name)
+            errors.append("docs/ASTROCS_DESIGN 7.3: %s 首字段必须是 struct_size@0" % name)
         if len(pf) < 2 or pf[1]["name"] != "abi_version" or pf[1]["offset"] != 4:
-            errors.append("ASTROCS_DESIGN 7.3: %s 第二字段必须是 abi_version@4" % name)
+            errors.append("docs/ASTROCS_DESIGN 7.3: %s 第二字段必须是 abi_version@4" % name)
         if pf and pf[0]["size"] != 4:
             errors.append("%s.struct_size 必须为 4 字节 (uint32_t)" % name)
         if len(pf) > 1 and pf[1]["size"] != 4:

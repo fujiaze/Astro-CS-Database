@@ -536,7 +536,7 @@ bool MemoryPressureGovernor::choose_victim(std::uint64_t* ticket_out,
   s.frames[best->ticket].evicted = true;
   s.evictions++;
   s.event("evict_lowest_progress", PressureAction::EVICT_LOWEST, s.last.ts, &victim,
-          "discard the least-advanced in-flight frame (ASTROCS_DESIGN §8.3 "
+          "discard the least-advanced in-flight frame (docs/ASTROCS_DESIGN §8.3 "
           "\"drop the lowest-progress workflow and release its occupancy\"); "
           "it will be restarted after pressure subsides");
   if (ticket_out) *ticket_out = victim.ticket;

@@ -12,5 +12,5 @@
 - `invalid_enum_mismatch.json` —— 负例：携带已删除键 ⇒ 必须被拒绝；
 - `invalid_default_mismatch.json` —— 负例：`integration` 为空 ⇒ 缺必需键。
 
-权威依据：`ASTROCS_DESIGN.md` §3.1:171/175；`docs/science/PSF_SIGNAL_WEIGHT.md`
+权威依据：`docs/ASTROCS_DESIGN.md` §3.1:171/175；`docs/science/PSF_SIGNAL_WEIGHT.md`
 §4:62/72；`docs/contracts/CONFIG_CONTRACT.md`（`CON-CONFIG-CONTRACTS` 行）。

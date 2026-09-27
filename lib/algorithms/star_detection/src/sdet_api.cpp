@@ -2485,7 +2485,7 @@ static int sdet_detect_impl(StarDetectorHandle handle,
 // ============================================================================
 // sdet_detect_guided_impl - 星表引导检测 (权威路径)
 // ----------------------------------------------------------------------------
-// 规范: ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
+// 规范: docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
 //       03_star_detection.md §4 —— 检测定义域 = **星表位置**(用本帧 WCS 把 Gaia
 //       星表反向投影到像素域), 只对星表位置做质心/PSF 拟合; 拟合成功即星点,
 //       失败**直接丢弃**(不计虚警、不报错)。

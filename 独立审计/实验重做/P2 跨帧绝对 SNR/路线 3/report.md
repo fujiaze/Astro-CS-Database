@@ -2,7 +2,7 @@
 
 **审查周期**: 2026-09-26  
 **审查依据**: `独立审计/证据/审查 -05-②-科学性 -1.md`、`审查 -05-②-科学性 -3.md`  
-**输入权威**: `docs/science/NOISE_MODEL.md`、`ASTROCS_DESIGN.md` §2.2  
+**输入权威**: `docs/science/NOISE_MODEL.md`、`docs/ASTROCS_DESIGN.md` §2.2  
 **本路身份**: 第③路——工程验证路线  
 
 ---

@@ -159,7 +159,7 @@ A("| 非占位 ID 137 / 零命中 64 / 其中 VERIFIED 53 | `复核-DB13` §1.4 
   "限 spec §3 自定合同层 111/46）；token 出现 204 |")
 A("| 「反向不可走 = 53 条」 | `复核-DB13` §5 | 部分成立 | 按检查器自身判据 C8，"
   "「VERIFIED 而无 authority 可见」只 10 条（6 在册 + 4 超册）；缺规则面另 5 类 |")
-A("| `ASTROCS_DESIGN.md:420` 锚 | `复核-DB13` 成稿 P2 | 订正 | 实测在 `:422`；`:420` 是"
+A("| `docs/ASTROCS_DESIGN.md:420` 锚 | `复核-DB13` 成稿 P2 | 订正 | 实测在 `:422`；`:420` 是"
   "「路由依据 N = 该输出像素的几何可贡献帧数」 |")
 A("| 门禁规模数 345 step / 93% | `复核-门禁入口` W1 | 待订正 | 按该复核件复算口径登记（`ACSD-T00` §8） |")
 A("| 「自造状态词百级传染」 | `复核-负责人面与索引` V1 | 不成立，按实测重写 | 实测 `files=153 occ=517` |")
@@ -212,7 +212,7 @@ DISP = {
     "docs/science/CONTROL_WEIGHT_SNR.md": "由 `ACSD-T20` 领改（X1 定案在前）",
     "docs/science/PHOTOMETRY.md": "由 `ACSD-T25` 领改（载体定案在前），T02/T03/T31 改指针",
     "docs/science/NOISE_MODEL.md": "由 `ACSD-T20` 领改，T32/T40 改指针",
-    "ASTROCS_DESIGN.md": "属上位合同：只允许 `ACSD-T27`（锚订正 :420→:422）与"
+    "docs/ASTROCS_DESIGN.md": "属上位合同：只允许 `ACSD-T27`（锚订正 :420→:422）与"
                          "`ACSD-T21`（§209 分母量名）两类改动，且必须走变更流程",
     "eng/packaging/config/defaults.json": "与 `ACSD-T05`/`ACSD-T25`/`ACSD-T41` 同一提交（门与数据同批）",
     "eng/packaging/config/config_registry.json": "同上（T05/T29/T36/T41）",

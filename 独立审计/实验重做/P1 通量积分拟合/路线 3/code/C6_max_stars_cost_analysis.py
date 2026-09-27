@@ -219,7 +219,7 @@ results = {
 """,
     "references": [
         {"type": "doc", "file": "eng/packaging/config/config_registry.json", "lines": "1923"},
-        {"type": "design", "file": "ASTROCS_DESIGN.md", "section": "§4.2"}
+        {"type": "design", "file": "docs/ASTROCS_DESIGN.md", "section": "§4.2"}
     ]
 }
 

@@ -154,13 +154,13 @@ configure_file(lib/infrastructure/cli/resource_gate_thresholds_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h @ONLY)
 
 # ── 运行时资源预算比例的唯一数值源 ──────────────────────────────────────────
-# 依据: ASTROCS_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）
+# 依据: docs/ASTROCS_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）
 #       + SCHEDULER_CONTRACT §3（内存上限由配置决定，禁硬编码）。
 # 与上面 G-RES-01 同款机制: 数值只写一次（eng/packaging/config/runtime_resources.json），
 # C++ 侧经生成头消费 ⇒ 实现侧零字面量（不得硬编码比例）。
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/config/runtime_resources.json ASTROCS_RUNTIME_RESOURCES_JSON)
 string(JSON ASTROCS_RR_MEMORY_BUDGET_PERCENT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_budget_percent)
-# 内存压力治理的水位/去抖/节流（ASTROCS_DESIGN.md §8.3:609-615 编排策略）——
+# 内存压力治理的水位/去抖/节流（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）——
 # 与预算比例同一个唯一数值源，不新增第二份配置面。
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_ENABLED GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_enabled)
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_HIGH_PERCENT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_high_percent)
@@ -399,7 +399,7 @@ add_library(astrocs_core STATIC
   # MEM-WIRE-01: 内存预算**来源解析**（纯函数；可用内存 × 可配置比例，默认 95）。
   # 唯一数值源 = eng/packaging/config/runtime_resources.json（经生成头消费，零字面量）。
   lib/infrastructure/scheduler/src/memory_budget.cpp
-  # MEMGOV-01: 内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略里
+  # MEMGOV-01: 内存压力治理（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略里
   # 「探针校正 :612 / 异步并行 :613 / 可丢弃重跑 :615」的共同实现面）。
   # 依赖面：只 include 自己的公开头 + memory_budget.h(公开头) + 生成头
   # runtime_resources_generated.h + aio_atomic_file.h(header-only 追加写原语)
@@ -475,7 +475,7 @@ target_include_directories(astrocs_common PUBLIC
 # 它 ⇒ lib/infrastructure/pipeline/orchestrator/cpp/** 从未进任何构建图，
 # SAT-001（claim SC-008 饱和电平解析）与 MASK-002（claim SC-007 逐星掩膜输入）
 # 在 orchestrator.cpp 的改动从未被编译过。
-# 归属: ASTROCS_DESIGN §7.1 逐字「scheduler/ 注册、资源预算、执行、取消、checkpoint」
+# 归属: docs/ASTROCS_DESIGN §7.1 逐字「scheduler/ 注册、资源预算、执行、取消、checkpoint」
 # 与本目录职责面逐条对应 ⇒ 职责家 = scheduler/**；物理位 = ARCH-001 迁移清单 #15
 # （登记在 pipeline/），位置与职责冲突登记 ORCH-HOME-01 交前台裁决。
 # target: astrocs_infra_orchestrator（MODULE_MAP conventions: astrocs_infra_<id>）;
@@ -645,7 +645,7 @@ target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common ast
   astrocs_probes)
 
 # lib/algorithms/coverage · Phase3 HIPS properties 解析器 (W8 / W4-A9 批次 4)
-# 原 lib/phase3_session/hips_properties.{h,cpp} (ASTROCS_DESIGN §7.1 无独立 hips 行;
+# 原 lib/phase3_session/hips_properties.{h,cpp} (docs/ASTROCS_DESIGN §7.1 无独立 hips 行;
 # coverage 承接 HIPS 产品结构面 —— 前台 2026-09-17 裁决)。独立成库以解
 # 「astrocs_p3_rsmp ⇄ astrocs_phase3_session」链接环: 该解析器不依赖任何 phase3
 # 目标 (头仅 <cstddef>/<string>), 由 resample 模块与会话库同时依赖。
@@ -932,7 +932,7 @@ target_link_libraries(astrocs_phase2_session PUBLIC astrocs_contracts astrocs_ph
 
 add_library(astrocs_phase3_session STATIC
   lib/phase3_session/p3_session.cpp
-  # W4-A9 批次 1: p3_wcs.cpp 已迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1
+  # W4-A9 批次 1: p3_wcs.cpp 已迁 lib/algorithms/projection/ (docs/ASTROCS_DESIGN §7.1
   # 「projection」行; 由 add_subdirectory(lib/algorithms/projection) 的
   # astrocs_p3_projection_wcs 声明, 经本库 target_link_libraries 进闭包)。
   # W4-A9 批次 3: p3_output.cpp 已迁 lib/algorithms/fits_output/ (同 §7.1「fits_output」
@@ -1093,7 +1093,7 @@ target_link_libraries(astrocs_cli_runtime PUBLIC
   astrocs_core astrocs_module_adapters)
 
 # W4-A9 批次 1: projection 算法模块注册 (p3_wcs TAN 投影/WCS 内核,
-# 原 lib/phase3_session/p3_wcs.cpp; ASTROCS_DESIGN §7.1「projection」)。
+# 原 lib/phase3_session/p3_wcs.cpp; docs/ASTROCS_DESIGN §7.1「projection」)。
 # 声明见 lib/algorithms/projection/CMakeLists.txt (if(NOT TARGET) 守卫)。
 # 由 astrocs_phase3_session / acsd / astrocs_module_adapters 经
 # target_link_libraries 引用 astrocs_p3_projection_wcs (同名 target 前向引用)。

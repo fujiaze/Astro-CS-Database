@@ -12,7 +12,7 @@
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
 - 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
-- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 134 个目标，其中 115 个的 `doc` 字段指向该表（含带登记批注的变体），19 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 53 / extension 50 / ci 30。
+- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 134 个目标，其中 115 个的 `doc` 字段指向该表（含带登记批注的变体），19 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 53 / extension 50 / ci 30。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
 ## 2. 覆盖计数（`coverage` 块逐字引用，本文件不重算该块）

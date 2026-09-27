@@ -2,7 +2,7 @@
 
 **审查周期**: 2026-09-26  
 **审查依据**: `独立审计/证据/审查 -05-①-科学性 -1.md`、`审查 -05-①-科学性 -3.md`  
-**输入权威**: `ASTROCS_DESIGN.md` §2.5、`docs/science/PHOTOMETRY.md`  
+**输入权威**: `docs/ASTROCS_DESIGN.md` §2.5、`docs/science/PHOTOMETRY.md`  
 
 ---
 
@@ -57,7 +57,7 @@
 **文献腿**:
 - **Sky subtraction algorithms review**, Lupton 1993, Cambridge University Press (第四章)
 - **Optimal stacking with background modeling**, Hogg et al. 2018, arXiv:1803.08651 ✅ Verified
-- **ACSD 内部规范**: `ASTROCS_DESIGN.md` §2.5 ✅ 上位文档锚定
+- **ACSD 内部规范**: `docs/ASTROCS_DESIGN.md` §2.5 ✅ 上位文档锚定
 
 **实验腿**: `code/exp_P5_01_upm_continuity.py`（基于合成数据的 standalone 实验）
 

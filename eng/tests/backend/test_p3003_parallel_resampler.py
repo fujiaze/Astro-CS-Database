@@ -34,7 +34,7 @@ class TestP3003ParallelResampler(unittest.TestCase):
         os.makedirs(cls.hips, exist_ok=True)
 
     def _cfg(self, out, cancel_row=-1, sampler="bilinear"):
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
         # 平铺会话配置形态(见 session_commands.h)。cancel_row 非现行 CLI 键
         # (parser 白名单拒绝), 取消语义由 test_04 的 session 源码契约覆盖。
         del cancel_row

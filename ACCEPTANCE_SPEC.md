@@ -191,7 +191,7 @@ flowchart LR
 
 | 类别 | 内容 |
 |---|---|
-| 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN.md` §8.1），Phase1 输出 JSON 直接满足 Phase2 输入并串行跑通；预检三级（🟢 correct / 🟠 warn / 🔴 error）与 yes、`-y`/`-yes`、`-force` 语义按最高设计 §4.5 生效（correct/warn 需 yes，warn 不阻塞，error 阻塞且 -y 不可越，-force 跳过整个检查） |
+| 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `docs/ASTROCS_DESIGN.md` §8.1），Phase1 输出 JSON 直接满足 Phase2 输入并串行跑通；预检三级（🟢 correct / 🟠 warn / 🔴 error）与 yes、`-y`/`-yes`、`-force` 语义按最高设计 §4.5 生效（correct/warn 需 yes，warn 不阻塞，error 阻塞且 -y 不可越，-force 跳过整个检查） |
 | 科学性 | 产品通过 schema 校验、manifest 字段完整；WCS 与已知天区坐标对拍；星点定位/通量抽检与合成层结论一致；SNR 权重链可追溯 |
 | 性能 | 全程资源记录归档；真实负载下无异常；内存峰值合理 |
 | 并行确定性 | 同批数据 1 worker 与 N worker 产品数值一致 |
@@ -268,7 +268,7 @@ flowchart LR
 5. L4 M42 与 Galaxy Center 两组视觉验收由负责人逐项确认；
 6. 机器门（`docs/ci/03_GATES.md` 的 P0）全绿、零 waiver；
 7. 仓库整洁（历史代码与治理工件按 ENGINEERING_SPEC §2/§9 处置完毕）；
-8. 版本纪律满足（发布版本号取自根 `VERSION` 单源，见 `ASTROCS_DESIGN.md` §13；alpha 阶段前程序与产物中不出现版本信息）；
+8. 版本纪律满足（发布版本号取自根 `VERSION` 单源，见 `docs/ASTROCS_DESIGN.md` §13；alpha 阶段前程序与产物中不出现版本信息）；
 9. 日志与错误系统验收全绿（§9）。
 
 发布决定只由负责人作出。

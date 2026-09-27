@@ -49,12 +49,12 @@
       "status": "NOT_FOUND"
     },
     {
-      "claim": "05: ASTROCS_DESIGN.md §2.3 平滑性要求",
-      "target": "ASTROCS_DESIGN.md",
+      "claim": "05: docs/ASTROCS_DESIGN.md §2.3 平滑性要求",
+      "target": "docs/ASTROCS_DESIGN.md",
       "pattern": "^### 2\\.3 [^\\n]*",
       "hits": [
         {
-          "file": "ASTROCS_DESIGN.md",
+          "file": "docs/ASTROCS_DESIGN.md",
           "line": 208,
           "text": "### 2.3 创新点三（P3）：算子——平面到 HEALPix 的通量守恒映射与控制点上球面"
         }

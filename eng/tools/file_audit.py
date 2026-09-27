@@ -41,7 +41,7 @@ SOURCE_COMMAND = ["git", "ls-files", "-z"]
 SHIPPING_PREFIXES = ("lib/", "eng/", "docs/", "实验/")
 SHIPPING_EXACT = (
     "CMakeLists.txt", "CMakePresets.json", "VERSION", "README.md", "AGENTS.md",
-    "ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md",
+    "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md",
     "CONTROL_PACK_SPEC.md", "DEPENDENCIES.md", "memory.md",
 )
 SCANNED_EXT = (

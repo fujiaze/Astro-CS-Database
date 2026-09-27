@@ -29,7 +29,7 @@
     "coverage_index_name": "coverage.index.json",
     "forbidden_synonyms": ["storage_mode", "storage_format", "output_form", "pack_form", "index_paths", "coverage_index_path", "frame_index", "index_file"],
     "layers": [
-      {"layer": "top-design", "file": "ASTROCS_DESIGN.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "top-design", "file": "docs/ASTROCS_DESIGN.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
       {"layer": "design", "file": "docs/design/PRODUCT_STORAGE_FORM.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json", "form_source"]},
       {"layer": "design-p1", "file": "docs/design/PHASE1_DETAILED_DESIGN.md", "must_contain": ["storage_form", "archive", "bare"]},
       {"layer": "design-p2", "file": "docs/design/PHASE2_DETAILED_DESIGN.md", "must_contain": ["coverage_index", ".hips.index.json"]},

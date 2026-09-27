@@ -47,7 +47,7 @@ def target_role(p):
     d = os.path.dirname(p)
     b = os.path.basename(p)
     if d == '':
-        return {'ASTROCS_DESIGN.md': '顶层决策（第 1 层）',
+        return {'docs/ASTROCS_DESIGN.md': '顶层决策（第 1 层）',
                 'AGENTS.md': '标准与检查（干活手册）',
                 'ENGINEERING_SPEC.md': '标准与检查（工程规范）',
                 'ACCEPTANCE_SPEC.md': '负责人面（验收规范）',

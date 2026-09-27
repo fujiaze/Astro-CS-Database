@@ -2031,7 +2031,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             //   仅当 D_p = 0（零合格样本）时输出 signal = NaN ∧ support ≤ 0；
             //   **强制计数**：被剔除样本按原因分类计数（禁静默剔除）。
             // 方差可用性是**独立通道**，不参与合格性判定（上游授权 =
-            // ASTROCS_DESIGN.md §5.5:379「NaN 采用样本级掩膜」；V≤0 无掩膜授权，
+            // docs/ASTROCS_DESIGN.md §5.5:379「NaN 采用样本级掩膜」；V≤0 无掩膜授权，
             // 按 §0.1:45「每一层只由它的上一层推出」不得由下级另立）。
             // 旧行为（NaN 经 F_p 直接传播 + 无计数）已作废（原注释引用的
             // DRIZZLE.md §8「不掩膜」行亦已按同一 rule_id 反转）。

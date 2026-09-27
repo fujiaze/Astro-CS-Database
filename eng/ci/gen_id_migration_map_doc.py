@@ -215,7 +215,7 @@ def render(doc: dict, facts: dict, map_display: str, out_display: str) -> str:
              + " 合计 " + str(len(targets)) + " 个目标，其中 " + str(sec2_targets)
              + " 个的 " + q("doc") + " 字段指向该表（含带登记批注的变体），"
              + str(len(targets) - sec2_targets) + " 个指向其它权威面（" + q("docs/contracts/**")
-             + "、" + q("docs/science/**") + "、" + q("docs/api/**") + "、" + q("ASTROCS_DESIGN.md")
+             + "、" + q("docs/science/**") + "、" + q("docs/api/**") + "、" + q("docs/ASTROCS_DESIGN.md")
              + " 或扩展登记说明）；按 " + q("kind") + " 计：doc " + str(kind_counts.get("doc", 0))
              + " / extension " + str(kind_counts.get("extension", 0)) + " / ci "
              + str(kind_counts.get("ci", 0)) + "。")

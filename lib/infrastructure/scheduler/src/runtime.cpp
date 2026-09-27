@@ -58,7 +58,7 @@ std::string utc_now_ms() {
 
 
 // ── 从 IR 节点的**静态声明**构造 plan_estimator 的输入 metadata ──
-// 依据 ASTROCS_DESIGN.md §8.3「静态预算：从输入数据（帧尺寸与类型、配置、模块声明）
+// 依据 docs/ASTROCS_DESIGN.md §8.3「静态预算：从输入数据（帧尺寸与类型、配置、模块声明）
 // 静态估算每个模块的内存与 CPU 需求」。本函数**不做任何 IO**：只读 IR 节点自带的
 // module_id / resource_class / config_json（含 CLI 展开的 phase 配置）。
 // 键面口径（与生产 config 读取面一致，不新造同义键）：
@@ -116,7 +116,7 @@ class RuntimeImpl final : public Runtime {
         memory_limit_bytes_(rb.memory_limit_bytes),
         memory_source_(std::move(rb.memory_source)) {
     trace_store_ = std::make_shared<TraceStore>();
-    // ── MEMGOV-01: 内存压力治理器（ASTROCS_DESIGN.md §8.3:609-615 编排策略）──
+    // ── MEMGOV-01: 内存压力治理器（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）──
     // 预算**复用** astrocs::core::resolve_memory_budget 的结果（本层不重算预算、
     // 不发明第二份口径）；压力分子来源由调用方注入。
     MemoryBudget mb;

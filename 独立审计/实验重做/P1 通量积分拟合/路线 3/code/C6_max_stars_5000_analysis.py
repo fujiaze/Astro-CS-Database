@@ -197,7 +197,7 @@ results = {
     ],
     "conclusion": final_conclusion.strip(),
     "references": [
-        {"type": "design", "file": "ASTROCS_DESIGN.md", "section": "§4.2"},
+        {"type": "design", "file": "docs/ASTROCS_DESIGN.md", "section": "§4.2"},
         {"type": "documentation", "url": "https://gea.esac.esa.int/archive/documentation/"},
         {"type": "practice", "name": "Astropy pyvo.gaia Cookbook"}
     ]

@@ -1379,7 +1379,7 @@
 具名,i,lib/algorithms/fits_output/p3_output.cpp:605,0.5f,③未见于条文面,形态不明·需人工读用途,for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++covn;
 具名,got,lib/algorithms/fits_output/p3_output.cpp:948,0.0,③未见于条文面,字面量硬编码·条文面零提及,double got = 0.0;
 具名,i,lib/algorithms/fits_output/p3_output.cpp:1040,0.5f,③未见于条文面,声明行未见值（须读初始化处）,for (std::size_t i = 0; i < n; ++i) if (buf[i] > 0.5f) ++impl_->covered;
-具名,w,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:18,3.1,③未见于条文面,随输入算出（可导出，但须登记导出式）,*                      w = SNR^2/F_ref^2 = 1/sigma_F^2（ASTROCS_DESIGN.md §3.1；
+具名,w,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:18,3.1,③未见于条文面,随输入算出（可导出，但须登记导出式）,*                      w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ASTROCS_DESIGN.md §3.1；
 具名,a,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:96,1.0,③未见于条文面,字面量硬编码·条文面零提及,double a = 1.0;                       /* 光度响应 a_k */
 具名,rho_mean,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:122,0.0,③未见于条文面,字面量硬编码·条文面零提及,double rho_mean = 0.0;
 具名,rho_max,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:123,0.0,③未见于条文面,字面量硬编码·条文面零提及,double rho_max = 0.0;
@@ -3708,7 +3708,7 @@
 行内,,lib/algorithms/calibration/src/photometry_apply.h:92,0.0,④-待人工·行内值,字面量硬编码·行内无名,"double B[5] = {0.0, 0.0, 0.0, 0.0, 0.0};"
 行内,,lib/algorithms/calibration/src/photometry_apply.h:101,1.0,④-待人工·行内值,形态不明·需人工读用途,if (photo_spatial_nterm(f.order) == 0) return 1.0;
 行内,,lib/algorithms/calibration/src/photometry_apply.h:102,10.0,④-待人工·行内值,字面量硬编码·行内无名,"return std::pow(10.0, photo_spatial_log10_m(f, x, y));"
-行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:55,3.1,④-待人工·行内值,形态不明·需人工读用途,* psfsw_robust_weight **不是现行对象**（ASTROCS_DESIGN.md §3.1 订正后；
+行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:55,3.1,④-待人工·行内值,形态不明·需人工读用途,* psfsw_robust_weight **不是现行对象**（docs/ASTROCS_DESIGN.md §3.1 订正后；
 行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:117,0.0,④-待人工·行内值,形态不明·需人工读用途,if (v_single_frame < 0.0 || common_mode_variance < 0.0 || n_combined < 0) {
 行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:118,-1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,return -1.0;
 行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:121,2.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,* 就必须记录 N_combined（ALG-P1-001 §2.3），否则自身方差不可判。 */
@@ -3738,7 +3738,7 @@
 行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:511,-1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (static_cast<int>(c.size()) != n_pix) return -1.0;
 行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:513,-1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,return -1.0;
 行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:601,1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (!(res.ratio > 1.0 + kSharedDetectionEps)) {
-行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:708,3.1,④-待人工·行内值,形态不明·需人工读用途,"""(not a current object: ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
+行内,,lib/algorithms/calibration/src/v6_calibration_covariance.cpp:708,3.1,④-待人工·行内值,形态不明·需人工读用途,"""(not a current object: docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
 行内,,lib/algorithms/coverage/CMakeLists.txt:11,3.24,④-待人工·行内值,形态不明·需人工读用途,cmake_minimum_required(VERSION 3.24)
 行内,,lib/algorithms/coverage/CMakeLists.txt:140,11.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,# RQS-B3 / M4-C-01 (ALG-P2-SMP-001 11.3 F2): kcorr_lookup non-uniform
 行内,,lib/algorithms/coverage/include/astro/phase2/stage2_common.h:255,57.29577951308232,④-待人工·行内值,声明行未见值（须读初始化处）,inline double kDegPerRad() { return 57.29577951308232; }
@@ -3766,7 +3766,7 @@
 行内,,lib/algorithms/coverage/src/acr_kernels.cpp:329,4.0,④-待人工·行内值,字面量硬编码·行内无名,"static_cast<float>(-std::fabs(lo ? *lo : 4.0)),  // CUDA kernel 低侧为负"
 行内,,lib/algorithms/coverage/src/acr_kernels.cpp:330,3.0,④-待人工·行内值,字面量硬编码·行内无名,"static_cast<float>(std::fabs(hi ? *hi : 3.0)),"
 行内,,lib/algorithms/coverage/src/block.cpp:51,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (per_px <= 0.0) {
-行内,,lib/algorithms/coverage/src/coverage.cpp:434,3.1,④-待人工·行内值,形态不明·需人工读用途,"""ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58; """
+行内,,lib/algorithms/coverage/src/coverage.cpp:434,3.1,④-待人工·行内值,形态不明·需人工读用途,"""docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58; """
 行内,,lib/algorithms/coverage/src/identifiability.cpp:32,0.0,④-待人工·行内值,字面量硬编码·行内无名,"L.assign(static_cast<std::size_t>(n) * static_cast<std::size_t>(n), 0.0);"
 行内,,lib/algorithms/coverage/src/identifiability.cpp:40,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(sum > 0.0) || !std::isfinite(sum)) return false;
 行内,,lib/algorithms/coverage/src/identifiability.cpp:44,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(d > 0.0)) return false;
@@ -3994,8 +3994,8 @@
 行内,,lib/algorithms/coverage/src/stage2_common.cpp:175,0.0,④-待人工·行内值,形态不明·需人工读用途,if (cfg->support_power < 0.0) {
 行内,,lib/algorithms/coverage/src/stage2_common.cpp:406,0.2,④-待人工·行内值,字面量硬编码·行内无名,"s.value(""low_fraction"", 0.2);  // WBPP Light"
 行内,,lib/algorithms/coverage/src/stage2_common.cpp:408,0.1,④-待人工·行内值,字面量硬编码·行内无名,"s.value(""high_fraction"", 0.1);"
-行内,,lib/algorithms/coverage/src/stage2_common.cpp:449,3.1,④-待人工·行内值,形态不明·需人工读用途,"""（ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"""
-行内,,lib/algorithms/coverage/src/stage2_common.cpp:462,3.1,④-待人工·行内值,形态不明·需人工读用途,"""ASTROCS_DESIGN.md §3.1:173「权重只能来自纯净信号与噪声之比」及 """
+行内,,lib/algorithms/coverage/src/stage2_common.cpp:449,3.1,④-待人工·行内值,形态不明·需人工读用途,"""（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"""
+行内,,lib/algorithms/coverage/src/stage2_common.cpp:462,3.1,④-待人工·行内值,形态不明·需人工读用途,"""docs/ASTROCS_DESIGN.md §3.1:173「权重只能来自纯净信号与噪声之比」及 """
 行内,,lib/algorithms/coverage/src/stage2_common.cpp:463,3.1,④-待人工·行内值,形态不明·需人工读用途,"""§3.1:175「没有可选择项」冲突。唯一降级面 = 帧级 SNR 逆方差链 """
 行内,,lib/algorithms/coverage/src/upm.cpp:201,0.0,④-待人工·行内值,形态不明·需人工读用途,if (it == m->cell_index.end()) return 0.0;
 行内,,lib/algorithms/coverage/src/upm.cpp:224,0.0,④-待人工·行内值,形态不明·需人工读用途,if (flags & 16u) return 0.0;          // photo_rejected -> 不可信
@@ -4184,7 +4184,7 @@
 行内,,lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:1261,0.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (nx * hp_center.x + ny * hp_center.y + nz * hp_center.z < 0.0) {
 行内,,lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:1876,0.0,④-待人工·行内值,形态不明·需人工读用途,if (vertices == nullptr || n < 3) return 0.0;
 行内,,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:27,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (scale == 0.0) return 0.0;
-行内,,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:119,3.1,④-待人工·行内值,形态不明·需人工读用途,"""current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); allowed """
+行内,,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:119,3.1,④-待人工·行内值,形态不明·需人工读用途,"""current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); allowed """
 行内,,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:145,1.0,④-待人工·行内值,形态不明·需人工读用途,return 1.0;
 行内,,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:195,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (!is_finite(sum_a_jp) || !is_finite(A_pixel_j) || A_pixel_j <= 0.0) {
 行内,,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:230,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (!is_finite(a) || a <= 0.0) return DrzError::invalid_source_area;
@@ -4217,7 +4217,7 @@
 行内,,lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp:163,2.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,while (ra_rad < T(0))              ra_rad += T(2.0 * M_PI);
 行内,,lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp:164,2.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,while (ra_rad >= T(2.0 * M_PI))    ra_rad -= T(2.0 * M_PI);
 行内,,lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp:211,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(cosc > 0.0)) {
-行内,,lib/algorithms/drizzle/hips/src/aio_publish.cpp:8,9.73,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,* I/O 归属 (ASTROCS_DESIGN §9 + GAP_AUDIT §9.73 裁决 U5):
+行内,,lib/algorithms/drizzle/hips/src/aio_publish.cpp:8,9.73,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,* I/O 归属 (docs/ASTROCS_DESIGN §9 + GAP_AUDIT §9.73 裁决 U5):
 行内,,lib/algorithms/drizzle/hips/src/module_entry.cpp:68,1.0,④-待人工·行内值,声明行未见值（须读初始化处）,"static const char kVersion[]   = ""1.0"";"
 行内,,lib/algorithms/drizzle/hips/src/module_entry.cpp:174,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!obj || !key) return 0.0;
 行内,,lib/algorithms/drizzle/hips/src/module_entry.cpp:178,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!p) return 0.0;
@@ -4239,16 +4239,16 @@
 行内,,lib/algorithms/drizzle/src/module_entry.cpp:1037,1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (!found || !isfinite(nside) || nside < 1.0 ||
 行内,,lib/algorithms/drizzle/src/module_entry.cpp:1038,4294967295.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,nside > 4294967295.0 || nside != (double)(uint32_t)nside ||
 行内,,lib/algorithms/drizzle/src/module_entry.cpp:1323,1.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,/* 唯一导出入口 (ARC-001 §1.1; ABI-006 全查 exports):
-行内,,lib/algorithms/fits_output/CMakeLists.txt:9,7.1,④-待人工·行内值,形态不明·需人工读用途,"#   (ASTROCS_DESIGN §7.1「fits_output」行); 源逐字节等价, 命名空间 astrocs::phase3"
-行内,,lib/algorithms/fits_output/p3_output.h:101,8.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,/* ── 子块流式写/校验（P3-STREAM-01；ASTROCS_DESIGN §8.3 export「子块流式」）────
+行内,,lib/algorithms/fits_output/CMakeLists.txt:9,7.1,④-待人工·行内值,形态不明·需人工读用途,"#   (docs/ASTROCS_DESIGN §7.1「fits_output」行); 源逐字节等价, 命名空间 astrocs::phase3"
+行内,,lib/algorithms/fits_output/p3_output.h:101,8.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,/* ── 子块流式写/校验（P3-STREAM-01；docs/ASTROCS_DESIGN §8.3 export「子块流式」）────
 行内,,lib/algorithms/integration/v6/CMakeLists.txt:4,-004.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,# 根/公共 CMakeLists 的注册归 RUNTIME-CI-001/W9 (C-004.4)；本文件自包含可独立
 行内,,lib/algorithms/integration/v6/CMakeLists.txt:7,3.16,④-待人工·行内值,形态不明·需人工读用途,cmake_minimum_required(VERSION 3.16)
-行内,,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:21,3.1,④-待人工·行内值,形态不明·需人工读用途,*                      现行对象（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
+行内,,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:21,3.1,④-待人工·行内值,形态不明·需人工读用途,*                      现行对象（docs/ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
 行内,,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:29,1.05,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   FZ-AP2PT-SNR-IDENT-RTOL 1e-9 / FZ-AP2PT-CORR-RATIO-MIN 1.05
 行内,,lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h:35,-004.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   P33 撤销保持（C-004.2）: 不得重新引入 snr_frame_coefficient / snr_coefficient /
 行内,,lib/algorithms/integration/v6/include/astrocs/v6/variance_propagation.h:8,4.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - docs/plugins/algorithms_phase2/11_upm.md §4.1（校准参数不确定度必须传播）
-行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:4,4.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - ASTROCS_DESIGN.md §4.3:255-261「逆方差叠加：SNR → 逆方差权重；
-行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:6,3.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - ASTROCS_DESIGN.md §3.4:163-175「帧级 SNR 是未加权的原始通量型信噪比
+行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:4,4.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - docs/ASTROCS_DESIGN.md §4.3:255-261「逆方差叠加：SNR → 逆方差权重；
+行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:6,3.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - docs/ASTROCS_DESIGN.md §3.4:163-175「帧级 SNR 是未加权的原始通量型信噪比
 行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:8,4.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - docs/plugins/algorithms_phase1/07_noise_snr.md §4.1:55-70（通量型口径，
 行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:10,4.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   - docs/plugins/algorithms_phase2/13_integration.md §4.0:32-38
 行内,,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:20,3.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,* fail-closed 纪律（DESIGN §3.4:156、13_integration.md §7:80）:
@@ -4263,8 +4263,8 @@
 行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:62,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(best > 0.0) || !std::isfinite(best)) return false;
 行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:77,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (f == 0.0) continue;
 行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:168,0.0,④-待人工·行内值,形态不明·需人工读用途,if (v.empty()) return 0.0;
-行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:197,3.1,④-待人工·行内值,形态不明·需人工读用途,*        **不是现行对象**：ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
-行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:206,3.1,④-待人工·行内值,形态不明·需人工读用途,"""a current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
+行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:197,3.1,④-待人工·行内值,形态不明·需人工读用途,*        **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
+行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:206,3.1,④-待人工·行内值,形态不明·需人工读用途,"""a current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
 行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:346,1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (!(std::fabs(f.view.flux_variance * f.view.w_info - 1.0) <= 1e-9)) {
 行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:502,0.0,④-待人工·行内值,字面量硬编码·行内无名,"std::vector<double> ivar(as.variance.size(), 0.0);"
 行内,,lib/algorithms/integration/v6/src/phase2_integrate.cpp:564,1.0,④-待人工·行内值,形态不明·需人工读用途,"{""median_target"", 1.0},"
@@ -4319,11 +4319,11 @@
 行内,,lib/algorithms/integration/v6/src/weight_chain.cpp:815,0.0,④-待人工·行内值,字面量硬编码·行内无名,"r.sparse_node_residual.assign(n_frames, 0.0);"
 行内,,lib/algorithms/integration/v6_phase1/CMakeLists.txt:4,-004.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,# 根/公共 CMakeLists 的注册归 RUNTIME-CI-001/W9 (C-004.4)；本文件自包含可独立
 行内,,lib/algorithms/integration/v6_phase1/CMakeLists.txt:7,3.16,④-待人工·行内值,形态不明·需人工读用途,cmake_minimum_required(VERSION 3.16)
-行内,,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:22,3.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*                      产品/消费者声明它走显式拒绝 + 迁移提示（ASTROCS_DESIGN.md §3.1；
+行内,,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:22,3.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*                      产品/消费者声明它走显式拒绝 + 迁移提示（docs/ASTROCS_DESIGN.md §3.1；
 行内,,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:42,-004.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*   C-004.2 / P33 撤销: 帧级 median(SNR_F) 系数不得接入权重面（本层不引用）。
-行内,,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:222,3.1,④-待人工·行内值,形态不明·需人工读用途,* 的组内归一权重 w_psfsw（PSF 拟合质量代理的复合权重），ASTROCS_DESIGN.md §3.1 明确
-行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:61,3.1,④-待人工·行内值,形态不明·需人工读用途,*        标定。」⇒ ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
-行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:82,3.1,④-待人工·行内值,形态不明·需人工读用途,"""(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
+行内,,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:222,3.1,④-待人工·行内值,形态不明·需人工读用途,* 的组内归一权重 w_psfsw（PSF 拟合质量代理的复合权重），docs/ASTROCS_DESIGN.md §3.1 明确
+行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:61,3.1,④-待人工·行内值,形态不明·需人工读用途,*        标定。」⇒ docs/ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
+行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:82,3.1,④-待人工·行内值,形态不明·需人工读用途,"""(docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
 行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:113,-004.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,/* P33 撤销守卫（C-004.2 / FZ-GATE-MEDIAN-SNR）：帧级 median(SNR_F) 系数与
 行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:276,1.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""k_corr inherited frozen in-domain constant 1.4 """
 行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:295,7.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,/* DRZ-FLUX-FIX-01（负责人裁决）：核按 drop 面积归一（F&H 2002 §7.2 式(7)
@@ -4340,7 +4340,7 @@
 行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1174,1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,std::fabs(var_f * w_info - 1.0) > 1e-9)
 行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1197,0.0,④-待人工·行内值,字面量硬编码·行内无名,"pj[""flux_conservation_factor""].get<double>() <= 0.0)"
 行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1199,1.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"if (std::fabs(pj[""flux_conservation_factor""].get<double>() - 1.0) > 1e-12)"
-行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1279,3.1,④-待人工·行内值,形态不明·需人工读用途,* 复合而来）。ASTROCS_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
+行内,,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1279,3.1,④-待人工·行内值,形态不明·需人工读用途,* 复合而来）。docs/ASTROCS_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
 行内,,lib/algorithms/noise_snr/CMakeLists.txt:28,9.67,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,#   **已作废**（依据实况 + GAP_AUDIT §9.67 定案 3）。生产噪声源不靠本子图注册接入:
 行内,,lib/algorithms/noise_snr/cpp/include/snr_estimator.h:592,-2.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,double   frame_depth_m5_mag;    // 5-sigma 点源深度 ZP-2.5*log10(F_5) [mag]; 无 ZP 时 NaN
 行内,,lib/algorithms/noise_snr/cpp/src/information_weight.cpp:3,3.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,* 数值算法: 对角闭式 / Cholesky 解 / Woodbury 低秩; 均为冻结 §3.4 列出的路径。 */
@@ -4604,8 +4604,8 @@
 行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:605,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(denom > 0.0)) continue;
 行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:629,0.0,④-待人工·行内值,字面量硬编码·行内无名,"out.var_out.assign(npix, 0.0);"
 行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:633,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (alpha[a][p] == 0.0) continue;
-行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:668,3.1,④-待人工·行内值,形态不明·需人工读用途,*        绝对标定。」⇒ ASTROCS_DESIGN.md §3.1：权重只能来自纯净信号与噪声
-行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:685,3.1,④-待人工·行内值,形态不明·需人工读用途,"""(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
+行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:668,3.1,④-待人工·行内值,形态不明·需人工读用途,*        绝对标定。」⇒ docs/ASTROCS_DESIGN.md §3.1：权重只能来自纯净信号与噪声
+行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:685,3.1,④-待人工·行内值,形态不明·需人工读用途,"""(docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
 行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:861,0.0,④-待人工·行内值,形态不明·需人工读用途,!(rec.composite.floor > 0.0) ||
 行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:871,0.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"if (!(w > 0.0)) { add_finding(v, ""PSFSW-G15"", ""non-positive W_psfsw""); break; }"
 行内,,lib/algorithms/photometry/cpp/src/psfsw.cpp:941,0.95,④-待人工·行内值,字面量硬编码·行内无名,rec.baseline_confidence >= 0.95);
@@ -4928,8 +4928,8 @@
 行内,,lib/algorithms/platesolve/cpp/ipv/test/test_synthetic.cpp:268,180.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"<< "", θ="" << (prosac_result.transform.theta * 180.0 / M_PI) << ""°"""
 行内,,lib/algorithms/platesolve/cpp/ipv/test/test_synthetic.cpp:278,1.5,④-待人工·行内值,字面量硬编码·行内无名,"prosac_result.transform, 1.5, 4000, 4000,"
 行内,,lib/algorithms/platesolve/module.yaml:147,18.1,④-待人工·行内值,形态不明·需人工读用途,:1867 显式桥接（DATA_SEMANTICS §18.1）；编排 port DATA 编目
-行内,,lib/algorithms/projection/CMakeLists.txt:9,7.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"#     原址 lib/phase3_session/p3_wcs.{h,cpp}; W4-A9 按 ASTROCS_DESIGN §7.1"
-行内,,lib/algorithms/projection/module.yaml:5,7.1,④-待人工·行内值,形态不明·需人工读用途,# ASTROCS_DESIGN §7.1「projection」行；构建挂载: 根 CMakeLists.txt
+行内,,lib/algorithms/projection/CMakeLists.txt:9,7.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"#     原址 lib/phase3_session/p3_wcs.{h,cpp}; W4-A9 按 docs/ASTROCS_DESIGN §7.1"
+行内,,lib/algorithms/projection/module.yaml:5,7.1,④-待人工·行内值,形态不明·需人工读用途,# docs/ASTROCS_DESIGN §7.1「projection」行；构建挂载: 根 CMakeLists.txt
 行内,,lib/algorithms/projection/module.yaml:9,0.0,④-待人工·行内值,形态不明·需人工读用途,# p3_wcs_make（rotation_pa_deg 恒 0.0）/ :163 状态映射 / :232 worker
 行内,,lib/algorithms/projection/module.yaml:51,5.3,④-待人工·行内值,形态不明·需人工读用途,# SCI-FIX-PROJ 增补（2026-09-16）: 投影 registry 权威 = DESIGN §5.3 八投影
 行内,,lib/algorithms/projection/module.yaml:59,15.9,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,# legacy 偏差对照证据门保留（四项偏差 D1..D4 见 ALG-P3-PROJ-IMPL-001 §15.9），
@@ -4969,7 +4969,7 @@
 行内,,lib/algorithms/projection/p3_projection.cpp:309,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(kRegistry[i].max_abs_crval_dec_deg > 0.0) ||
 行内,,lib/algorithms/projection/p3_projection.cpp:310,0.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,!(kRegistry[i].max_fov_deg > 0.0)) return i + 1;
 行内,,lib/algorithms/projection/p3_projection.cpp:332,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(scale_deg_per_px > 0.0)) return P3ProjectionStatus::P3_PROJ_PARAM;
-行内,,lib/algorithms/projection/p3_projection_registry.h:188,5.3,④-待人工·行内值,形态不明·需人工读用途,"p3_proj_declared_list() + "" (ASTROCS_DESIGN 5.3); reason: "" + reason;"
+行内,,lib/algorithms/projection/p3_projection_registry.h:188,5.3,④-待人工·行内值,形态不明·需人工读用途,"p3_proj_declared_list() + "" (docs/ASTROCS_DESIGN 5.3); reason: "" + reason;"
 行内,,lib/algorithms/projection/p3_projection_registry.h:240,0.0,④-待人工·行内值,形态不明·需人工读用途,if (gate.status == P3_WCS_RT_GATE_OUT_OF_DOMAIN || !(gate.tol_px > 0.0)) {
 行内,,lib/algorithms/projection/p3_wcs.cpp:31,360.0,④-待人工·行内值,字面量硬编码·行内无名,if (*ra < 0) *ra += 360.0;
 行内,,lib/algorithms/projection/p3_wcs.cpp:106,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(scale_deg_per_px > 0.0)) return P3_WCS_PARAM;
@@ -4986,7 +4986,7 @@
 行内,,lib/algorithms/projection/p3_wcs.cpp:451,0.0,④-待人工·行内值,形态不明·需人工读用途,if (ap->require_negative_det_cd && !(det < 0.0)) {
 行内,,lib/algorithms/projection/p3_wcs.cpp:526,2.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (r >= M_PI / 2.0) return P3_WCS_HEMISPHERE;    // 跨 TAN 半球
 行内,,lib/algorithms/projection/p3_wcs.cpp:552,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (denom <= 0.0) return P3_WCS_HEMISPHERE;       // 背面(跨半球)
-行内,,lib/algorithms/projection/p3_wcs.h:64,5.3,④-待人工·行内值,形态不明·需人工读用途,/* ---- 适用域声明（ASTROCS_DESIGN.md §5.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
+行内,,lib/algorithms/projection/p3_wcs.h:64,5.3,④-待人工·行内值,形态不明·需人工读用途,/* ---- 适用域声明（docs/ASTROCS_DESIGN.md §5.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
 行内,,lib/algorithms/projection/p3_wcs.h:74,1.79e-3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*     （SCI-WCS-001 §11 STD-F1）。保守性下界 s ≥ 1.79e-3″/px（实测常数）
 行内,,lib/algorithms/projection/p3_wcs.h:75,2.93e-3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,*     / 2.93e-3″/px（设计常数）⇒ 覆盖所有真实仪器；代价是判据力弱。
 行内,,lib/algorithms/projection/p3_wcs.h:76,0.9586,④-待人工·行内值,形态不明·需人工读用途,*   * min_scale_arcsec —— 紧门适用域下限（覆盖仓内最小真实尺度 0.9586″/px）。
@@ -5031,7 +5031,7 @@
 行内,,lib/algorithms/psf/test/test_dpsf_nan_sort.cpp:43,2.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,img[y * width + x] += peak * std::exp(-(dx*dx + dy*dy) / (2.0 * sigma * sigma));
 行内,,lib/algorithms/psf/test/test_dpsf_nan_sort.cpp:60,0.0,④-待人工·行内值,形态不明·需人工读用途,"CHECK(std::isfinite(r.fwhm_x) && r.fwhm_x > 0.0, ""Case1 有限输入: FWHM 有限且>0"");"
 行内,,lib/algorithms/rejection/module.yaml:39,11.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,# 见 docs/algorithms/PHASE2_REJECTION.md §11.5；descriptor 占位
-行内,,lib/algorithms/resample/CMakeLists.txt:13,7.1,④-待人工·行内值,形态不明·需人工读用途,"#     (ASTROCS_DESIGN §7.1「resample」行), 但编译单元暂留 astrocs_phase3_session ——"
+行内,,lib/algorithms/resample/CMakeLists.txt:13,7.1,④-待人工·行内值,形态不明·需人工读用途,"#     (docs/ASTROCS_DESIGN §7.1「resample」行), 但编译单元暂留 astrocs_phase3_session ——"
 行内,,lib/algorithms/resample/p3_resample.cpp:210,3600.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,(512u << k)) / 3600.0;
 行内,,lib/algorithms/resample/p3_resample.cpp:445,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (weights) weights[0] = weights[1] = weights[2] = weights[3] = 0.0;
 行内,,lib/algorithms/resample/p3_resample.cpp:535,0.0,④-待人工·行内值,形态不明·需人工读用途,if (d == 0.0 && impl->unc_src == P3_UNC_IVAR) {
@@ -5049,7 +5049,7 @@
 行内,,lib/algorithms/resample/p3_rsmp_covariance.cpp:107,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(sum > 0.0) || std::isnan(sum)) {
 行内,,lib/algorithms/resample/p3_rsmp_covariance.cpp:135,0.0,④-待人工·行内值,字面量硬编码·行内无名,"std::vector<double> y(static_cast<std::size_t>(n), 0.0);"
 行内,,lib/algorithms/resample/p3_rsmp_covariance.cpp:141,0.0,④-待人工·行内值,字面量硬编码·行内无名,"z->assign(static_cast<std::size_t>(n), 0.0);"
-行内,,lib/algorithms/resample/p3_rsmp_failclosed.cpp:36,3.1,④-待人工·行内值,形态不明·需人工读用途,""" (not a current object: ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
+行内,,lib/algorithms/resample/p3_rsmp_failclosed.cpp:36,3.1,④-待人工·行内值,形态不明·需人工读用途,""" (not a current object: docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
 行内,,lib/algorithms/resample/p3_rsmp_failclosed.cpp:139,1.0,④-待人工·行内值,形态不明·需人工读用途,} else if (!(std::fabs(rec.psf_sum - 1.0) <= cfg.psf_sum_tol)) {
 行内,,lib/algorithms/resample/p3_rsmp_failclosed.cpp:151,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!rec.photometric_scale_present || !(rec.photometric_scale > 0.0) ||
 行内,,lib/algorithms/resample/p3_rsmp_operator.cpp:22,0.0,④-待人工·行内值,形态不明·需人工读用途,return 0.0;
@@ -5123,8 +5123,8 @@
 行内,,lib/algorithms/star_detection/src/nls_lm.cpp:247,0.0,④-待人工·行内值,字面量硬编码·行内无名,"wa2.assign(p, 0.0);"
 行内,,lib/algorithms/star_detection/src/nls_lm.cpp:365,0.0,④-待人工·行内值,形态不明·需人工读用途,if (delta > 0.0) {
 行内,,lib/algorithms/star_detection/src/nls_lm.cpp:424,0.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (actred > 0.0 && std::fabs(actred) <= opts.ftol * scale &&
-行内,,lib/algorithms/star_detection/src/nls_lm.h:5,8.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"* 位置依据: ASTROCS_DESIGN.md §8.4「顶层结构」——lib/algorithms/ 是科学算法唯一家,"
-行内,,lib/algorithms/star_detection/src/nls_lm.h:7,8.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"* 不是独立可调度模块(ASTROCS_DESIGN §8.5 的 README/module.yaml/独立 DLL 要求不适用,"
+行内,,lib/algorithms/star_detection/src/nls_lm.h:5,8.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"* 位置依据: docs/ASTROCS_DESIGN.md §8.4「顶层结构」——lib/algorithms/ 是科学算法唯一家,"
+行内,,lib/algorithms/star_detection/src/nls_lm.h:7,8.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"* 不是独立可调度模块(docs/ASTROCS_DESIGN §8.5 的 README/module.yaml/独立 DLL 要求不适用,"
 行内,,lib/algorithms/star_detection/src/nls_lm.h:9,8.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"* 头文件与实现同置于 src/, 不进公共 include 面(不跨 DLL 传 STL/异常, §8.5)。"
 行内,,lib/algorithms/star_detection/src/sdet_angle_guard.h:50,0.0,④-待人工·行内值,形态不明·需人工读用途,if (over > 0.0) {
 行内,,lib/algorithms/star_detection/src/sdet_angle_guard.h:58,90.0,④-待人工·行内值,形态不明·需人工读用途,while (std::fabs(angle_deg) > 90.0) {
@@ -5518,7 +5518,7 @@
 行内,,lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h:85,7.0,④-待人工·行内值,声明行未见值（须读初始化处）,uint32_t leaf7_ebx;      /* CPUID 7.0 EBX (结构化扩展) */
 行内,,lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h:86,7.0,④-待人工·行内值,声明行未见值（须读初始化处）,uint32_t leaf7_ecx;      /* CPUID 7.0 ECX */
 行内,,lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h:87,7.0,④-待人工·行内值,声明行未见值（须读初始化处）,uint32_t leaf7_edx;      /* CPUID 7.0 EDX */
-行内,,lib/infrastructure/cli/CMakeLists.txt:18,6.2,④-待人工·行内值,形态不明·需人工读用途,# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，ASTROCS_DESIGN §6.2）。
+行内,,lib/infrastructure/cli/CMakeLists.txt:18,6.2,④-待人工·行内值,形态不明·需人工读用途,# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，docs/ASTROCS_DESIGN §6.2）。
 行内,,lib/infrastructure/cli/CMakeLists.txt:19,3.16,④-待人工·行内值,形态不明·需人工读用途,cmake_minimum_required(VERSION 3.16)
 行内,,lib/infrastructure/cli/commands.cpp:316,0.0,④-待人工·行内值,形态不明·需人工读用途,"{""cpu_cores_used"", 0.0},"
 行内,,lib/infrastructure/cli/commands.cpp:560,30.0,④-待人工·行内值,字面量硬编码·行内无名,"{""python3"", renderer, ""--graph-dir"", gdir}, {}, 30.0, {}, true);"
@@ -5540,16 +5540,16 @@
 行内,,lib/infrastructure/cli/memory_report.h:600,0.0,④-待人工·行内值,形态不明·需人工读用途,if (frac_alloc >= 0.0 || cache_residual != 0) return false;  // 未采样同哨兵纪律
 行内,,lib/infrastructure/cli/memory_report.h:617,0.005,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,if (std::fabs(rs - slope) / denom > 0.005) return false;
 行内,,lib/infrastructure/cli/memory_report.h:618,0.0,④-待人工·行内值,字面量硬编码·行内无名,} else if (slope != 0.0) {
-行内,,lib/infrastructure/cli/module.yaml:3,6.2,④-待人工·行内值,形态不明·需人工读用途,# （ASTROCS_DESIGN §6.2 命令树）；当前以头文件形式编译进根 CMakeLists.txt 的
-行内,,lib/infrastructure/cli/module.yaml:27,1.2,④-待人工·行内值,形态不明·需人工读用途,- ASTROCS_DESIGN.md §1.2（三命令平级、禁止隐式串接）
-行内,,lib/infrastructure/cli/module.yaml:34,6.1,④-待人工·行内值,形态不明·需人工读用途,运行确认与委托，不含科学实现（薄入口，ASTROCS_DESIGN §6.1）。
+行内,,lib/infrastructure/cli/module.yaml:3,6.2,④-待人工·行内值,形态不明·需人工读用途,# （docs/ASTROCS_DESIGN §6.2 命令树）；当前以头文件形式编译进根 CMakeLists.txt 的
+行内,,lib/infrastructure/cli/module.yaml:27,1.2,④-待人工·行内值,形态不明·需人工读用途,- docs/ASTROCS_DESIGN.md §1.2（三命令平级、禁止隐式串接）
+行内,,lib/infrastructure/cli/module.yaml:34,6.1,④-待人工·行内值,形态不明·需人工读用途,运行确认与委托，不含科学实现（薄入口，docs/ASTROCS_DESIGN §6.1）。
 行内,,lib/infrastructure/cli/monitor.h:233,10000000.0,④-待人工·行内值,形态不明·需人工读用途,ft.dwLowDateTime) / 10000000.0;
 行内,,lib/infrastructure/cli/monitor.h:351,0.0,④-待人工·行内值,字面量硬编码·行内无名,? cur.per_thread_cpu_sum_seconds - last_.per_thread_cpu_sum_seconds : 0.0;
 行内,,lib/infrastructure/cli/monitor.h:354,0.0,④-待人工·行内值,字面量硬编码·行内无名,? cur.per_thread_cpu_max_seconds - last_.per_thread_cpu_max_seconds : 0.0;
 行内,,lib/infrastructure/cli/monitor.h:363,0.0,④-待人工·行内值,形态不明·需人工读用途,if (found ? (t.second > prev) : (t.second > 0.0)) ++active;
 行内,,lib/infrastructure/cli/monitor.h:369,0.0,④-待人工·行内值,字面量硬编码·行内无名,? cur.sys_io_wait_seconds - last_.sys_io_wait_seconds : 0.0;
 行内,,lib/infrastructure/cli/parser.cpp:424,9.68,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""(GAP_AUDIT §9.68); migrate to the multi-block form: """
-行内,,lib/infrastructure/cli/parser.cpp:428,3.3,④-待人工·行内值,形态不明·需人工读用途,"""lights sharing the same masters (ASTROCS_DESIGN.md §3.3)"";"
+行内,,lib/infrastructure/cli/parser.cpp:428,3.3,④-待人工·行内值,形态不明·需人工读用途,"""lights sharing the same masters (docs/ASTROCS_DESIGN.md §3.3)"";"
 行内,,lib/infrastructure/cli/process.cpp:106,1000.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,? static_cast<DWORD>(timeout_s * 1000.0)
 行内,,lib/infrastructure/cli/resource_gate.h:232,0.0,④-待人工·行内值,形态不明·需人工读用途,return g.active_window_seconds < 0.0 ||
 行内,,lib/infrastructure/cli/resource_gate.h:240,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (g.work_core_seconds >= 0.0) return g.work_core_seconds;
@@ -5575,17 +5575,17 @@
 行内,,lib/infrastructure/cli/session_commands.h:157,9.68,④-待人工·行内值,形态不明·需人工读用途,"""不得逐帧重复写校准帧（§9.68）"", ""block""},"
 行内,,lib/infrastructure/cli/session_commands.h:181,1.0,④-待人工·行内值,字面量硬编码·行内无名,"""{\""nested\"": 1, \""pixfrac\"": 1.0, \""precision_mode\"": 1}"","
 行内,,lib/infrastructure/cli/session_commands.h:187,9.68,④-待人工·行内值,形态不明·需人工读用途,"""本块整组 light 共用（§9.68）"", ""block""},"
-行内,,lib/infrastructure/cli/session_commands.h:202,4.2,④-待人工·行内值,形态不明·需人工读用途,"""可选星表引导检测配置段（ASTROCS_DESIGN.md §4.2 权威范式）："""
+行内,,lib/infrastructure/cli/session_commands.h:202,4.2,④-待人工·行内值,形态不明·需人工读用途,"""可选星表引导检测配置段（docs/ASTROCS_DESIGN.md §4.2 权威范式）："""
 行内,,lib/infrastructure/cli/session_commands.h:254,0.0,④-待人工·行内值,字面量硬编码·行内无名,"{""center"", ""{\""ra_deg\"": 0.0, \""dec_deg\"": 0.0}"","
 行内,,lib/infrastructure/cli/session_commands.h:258,0.001,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"{""scale_deg_per_px"", ""0.001"", ""输出像素尺度（度/像素，必须 > 0）""},"
 行内,,lib/infrastructure/cli/session_commands.h:269,0.0,④-待人工·行内值,形态不明·需人工读用途,"{""rotation_deg"", ""0.0"","
 行内,,lib/infrastructure/cli/session_commands.h:272,512.5,④-待人工·行内值,字面量硬编码·行内无名,"{""crpix_px"", ""[512.5, 512.5]"","
-行内,,lib/infrastructure/cli/session_commands.h:302,3.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""可选输出位深 -32(FP32)|-64(FP64)；阶段三计算精度键（ASTROCS_DESIGN §3.3:256），"""
+行内,,lib/infrastructure/cli/session_commands.h:302,3.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""可选输出位深 -32(FP32)|-64(FP64)；阶段三计算精度键（docs/ASTROCS_DESIGN §3.3:256），"""
 行内,,lib/infrastructure/cli/session_commands.h:380,9.68,④-待人工·行内值,形态不明·需人工读用途,"""output_dir（一块 = 一次运行 = 一份 run manifest；§9.68）。"""
 行内,,lib/infrastructure/cli/subcommand.h:149,3.5,④-待人工·行内值,形态不明·需人工读用途,"""（§3.5 error：文件找不到，-y 不可越）"");"
 行内,,lib/infrastructure/cli/subcommand.h:175,3.5,④-待人工·行内值,形态不明·需人工读用途,"errs.push_back(label + "" 不是路径字符串（§3.5 error：路径问题）"");"
 行内,,lib/infrastructure/cli/subcommand.h:177,3.5,④-待人工·行内值,形态不明·需人工读用途,"errs.push_back(label + "" 为空：没有输入路径（§3.5 error：路径问题）"");"
-行内,,lib/infrastructure/cli/v6_runtime_contract.h:115,3.1,④-待人工·行内值,形态不明·需人工读用途,"""not a current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
+行内,,lib/infrastructure/cli/v6_runtime_contract.h:115,3.1,④-待人工·行内值,形态不明·需人工读用途,"""not a current object (docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); """
 行内,,lib/infrastructure/cli/v6_runtime_contract.h:122,-004.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""production route (C-004.1)"";"
 行内,,lib/infrastructure/cli/v6_runtime_contract.h:344,0.0,④-待人工·行内值,形态不明·需人工读用途,"need(m.per_thread_cpu_sum_seconds > 0.0, ""per_thread_cpu_sum_seconds"");"
 行内,,lib/infrastructure/cli/v6_runtime_contract.h:345,0.0,④-待人工·行内值,形态不明·需人工读用途,"need(m.per_thread_cpu_max_seconds > 0.0, ""per_thread_cpu_max_seconds"");"
@@ -5677,9 +5677,9 @@
 行内,,lib/infrastructure/hips_browser/healpix_browser_qt/widgets/sphere_view.cpp:420,360.0,④-待人工·行内值,字面量硬编码·行内无名,while (center_ra_ >= 360.0) center_ra_ -= 360.0;
 行内,,lib/infrastructure/hips_browser/healpix_browser_qt/widgets/sphere_view.cpp:447,360.0,④-待人工·行内值,字面量硬编码·行内无名,while (center_ra_ >= 360.0) center_ra_ -= 360.0;
 行内,,lib/infrastructure/hips_browser/healpix_browser_qt/widgets/sphere_view.cpp:499,360.0,④-待人工·行内值,字面量硬编码·行内无名,while (ra >= 360.0) ra -= 360.0;
-行内,,lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:9,7.1,④-待人工·行内值,形态不明·需人工读用途,# 归属判定（逐字依据见 ASTROCS_DESIGN.md §7.1）：
+行内,,lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:9,7.1,④-待人工·行内值,形态不明·需人工读用途,# 归属判定（逐字依据见 docs/ASTROCS_DESIGN.md §7.1）：
 行内,,lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:16,7.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,#   该条依据写的是「7.1 infrastructure/pipeline（typed DAG 编排）」）⇒ 位置与职责冲突，
-行内,,lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:91,6.2,④-待人工·行内值,形态不明·需人工读用途,# ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
+行内,,lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:91,6.2,④-待人工·行内值,形态不明·需人工读用途,# docs/ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
 行内,,lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt:94,7.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,# （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分交前台裁决。
 行内,,lib/infrastructure/pipeline/orchestrator/cpp/include/star_coord_contract.h:43,0.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,return sdet_center - 0.5;
 行内,,lib/infrastructure/pipeline/orchestrator/cpp/include/star_coord_contract.h:56,0.5,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,return unified + 0.5;
@@ -5757,7 +5757,7 @@
 行内,,lib/infrastructure/scheduler/src/memory_pressure.cpp:231,1000.0,④-待人工·行内值,字面量硬编码·行内无名,1000.0;
 行内,,lib/infrastructure/scheduler/src/memory_pressure.cpp:418,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(s.sample_interval > 0.0) || !s.last_valid ||
 行内,,lib/infrastructure/scheduler/src/memory_pressure.cpp:440,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!(s.sample_interval > 0.0) || !s.last_valid ||
-行内,,lib/infrastructure/scheduler/src/memory_pressure.cpp:539,8.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""discard the least-advanced in-flight frame (ASTROCS_DESIGN §8.3 """
+行内,,lib/infrastructure/scheduler/src/memory_pressure.cpp:539,8.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""discard the least-advanced in-flight frame (docs/ASTROCS_DESIGN §8.3 """
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:498,0.0,④-待人工·行内值,形态不明·需人工读用途,if (std::isfinite(norm) && norm > 0.0) {
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:522,2.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,return 2.0 * std::asin(std::sqrt(s)) / kP1D2R;
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:1293,0.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"if (!aio_file::read_head(path.c_str(), 100ull * 2880ull, &blob)) return 0.0;"
@@ -5778,7 +5778,7 @@
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:2550,0.0,④-待人工·行内值,字面量硬编码·行内无名,if (!std::isfinite(k_expo) || k_expo <= 0.0) {
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:2559,1.0,④-待人工·行内值,字面量硬编码·行内无名,"if (std::fabs(cfg_k - k_expo) > 1e-6 * std::max(1.0, std::fabs(k_expo))) {"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:2657,0.0,④-待人工·行内值,形态不明·需人工读用途,"{""dark_exptime_s"", dark.ok() ? dark_exptime : 0.0},"
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3351,4.2,④-待人工·行内值,形态不明·需人工读用途,"""] (ASTROCS_DESIGN.md §4.2: top 2–5 万; 禁静默夹取)"";"
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3351,4.2,④-待人工·行内值,形态不明·需人工读用途,"""] (docs/ASTROCS_DESIGN.md §4.2: top 2–5 万; 禁静默夹取)"";"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3389,0.0,④-待人工·行内值,形态不明·需人工读用途,!std::isfinite(det) || !(std::fabs(det) > 0.0)) {
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3483,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!std::isfinite(s0) || !(s0 > 0.0)) {
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3501,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!std::isfinite(s0) || !(s0 > 0.0)) {
@@ -5787,8 +5787,8 @@
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3588,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!std::isfinite(exptime) || !(exptime > 0.0)) {
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3599,1.5,④-待人工·行内值,字面量硬编码·行内无名,"0, 1.5, cfg.ipv_params.gaia_query_radius_factor,"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3602,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!std::isfinite(query_radius_deg) || !(query_radius_deg > 0.0)) {
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3811,4.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""full-frame blind detection (ASTROCS_DESIGN.md §4.2)""));"
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3820,4.2,④-待人工·行内值,形态不明·需人工读用途,"""an assumed orientation (ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)""));"
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3811,4.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""full-frame blind detection (docs/ASTROCS_DESIGN.md §4.2)""));"
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3820,4.2,④-待人工·行内值,形态不明·需人工读用途,"""an assumed orientation (docs/ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)""));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:3882,5.0,④-待人工·行内值,字面量硬编码·行内无名,if (!dets[w]) dets[w] = std::make_unique<astrocs::phase1::StarDetector>(5.0);
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:4053,0.0,④-待人工·行内值,字面量硬编码·行内无名,: 0.0;
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:4089,0.0,④-待人工·行内值,字面量硬编码·行内无名,"std::vector<double> dets(N_fit * 6, 0.0);"
@@ -5850,12 +5850,12 @@
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:7808,0.0,④-待人工·行内值,字面量硬编码·行内无名,"fmt(p1_num(wj, ""cd21"", 0.0), b7, sizeof(b7));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:7809,0.0,④-待人工·行内值,字面量硬编码·行内无名,"fmt(p1_num(wj, ""cd22"", 0.0), b8, sizeof(b8));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:7964,11.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" publish a science variance plane (DATA-P1-DRZ 11.1:295"""
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8069,8.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" signal/support (ASTROCS_DESIGN §8.2:547)"";"
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8069,8.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" signal/support (docs/ASTROCS_DESIGN §8.2:547)"";"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8159,11.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" DATA-P1-DRZ 11.1:295 frame block)"");"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8258,0.0,④-待人工·行内值,形态不明·需人工读用途,if (auto_rc == 0 && auto_res.finest_arcsec > 0.0 && frame_nside > 0) {
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8266,0.0,④-待人工·行内值,字面量硬编码·行内无名,? hp_res_arcsec / finest_input_arcsec : 0.0;
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8480,3.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""writer requires non-empty input_lights (P0-21 §3.4: N 帧 ⇒ N 个 HiPS 产品)""));"
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8541,4.4,④-待人工·行内值,形态不明·需人工读用途,""" (ASTROCS_DESIGN §4.4: 任何一帧失败都显式判红; 该帧不产出产品,"""
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8541,4.4,④-待人工·行内值,形态不明·需人工读用途,""" (docs/ASTROCS_DESIGN §4.4: 任何一帧失败都显式判红; 该帧不产出产品,"""
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8649,12.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" (DATA-P1-HIPS §12.2: signal/support 恒写且叶 tile 数一致)""));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8739,12.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" (DATA_SEMANTICS §12.4/§4a: 损坏必须 fail-closed, 禁 clamp/禁静默跳过)""));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:8931,3.4,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,""" (P0-21 §3.4: 输入 N 帧 ⇒ 恰好 N 个 HiPS 产品; 禁静默丢弃)""));"
@@ -5885,9 +5885,9 @@
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:10808,0.0,④-待人工·行内值,形态不明·需人工读用途,if (!std::isfinite(med) || !std::isfinite(sigma) || !(sigma > 0.0))
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11075,0.0,④-待人工·行内值,字面量硬编码·行内无名,"compact_vals.assign(depth, 0.0);"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11412,9.73,④-待人工·行内值,形态不明·需人工读用途,"""weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"""
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11413,3.1,④-待人工·行内值,形态不明·需人工读用途,"""（ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"""
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11413,3.1,④-待人工·行内值,形态不明·需人工读用途,"""（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"""
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11424,9.73,④-待人工·行内值,形态不明·需人工读用途,"""legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 """
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11425,3.1,④-待人工·行内值,形态不明·需人工读用途,"""support 或等权降级冒充逆方差权重，与 ASTROCS_DESIGN.md §3.1:173「权重只能"""
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11425,3.1,④-待人工·行内值,形态不明·需人工读用途,"""support 或等权降级冒充逆方差权重，与 docs/ASTROCS_DESIGN.md §3.1:173「权重只能"""
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11426,3.1,④-待人工·行内值,形态不明·需人工读用途,"""来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。唯一降级面 = """
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11516,1.0,④-待人工·行内值,字面量硬编码·行内无名,"std::vector<double> frame_gain(frames.size(), 1.0);"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:11524,0.0,④-待人工·行内值,声明行未见值（须读初始化处）,"p2_hips_prop_double(ds, ""ASTROCS_FRAME_SNR"", &fsnr) && fsnr > 0.0;"
@@ -5922,16 +5922,16 @@
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:12989,30.2,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""DATA-P2-REJ-001 §30.2 AIO bits 32/64: writer"""
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:12994,30.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""DATA-P2-PROV-001 §30.3: AIO writer provenance"""
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13324,9.73,④-待人工·行内值,形态不明·需人工读用途,"""weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"""
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13325,3.1,④-待人工·行内值,形态不明·需人工读用途,"""（ASTROCS_DESIGN.md §3.1:175「没有可选择项」；"""
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13325,3.1,④-待人工·行内值,形态不明·需人工读用途,"""（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；"""
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13330,9.73,④-待人工·行内值,形态不明·需人工读用途,"""legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 """
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13331,3.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""support 或等权降级冒充逆方差权重（ASTROCS_DESIGN.md §3.1:173/175）。""));"
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13331,3.1,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""support 或等权降级冒充逆方差权重（docs/ASTROCS_DESIGN.md §3.1:173/175）。""));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13734,0.0,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"if (!(g->scale > 0.0)) return fail(""scale_deg_per_px must be > 0"");"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13737,85.0,④-待人工·行内值,形态不明·需人工读用途,"if (std::fabs(g->dec) > 85.0) return fail(""abs(center.dec_deg) must be <= 85"");"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13794,0.0,④-待人工·行内值,字面量硬编码·行内无名,"d->cd[0][0] = j.value(""cd11"", 0.0);"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13795,0.0,④-待人工·行内值,字面量硬编码·行内无名,"d->cd[0][1] = j.value(""cd12"", 0.0);"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13796,0.0,④-待人工·行内值,字面量硬编码·行内无名,"d->cd[1][0] = j.value(""cd21"", 0.0);"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13797,0.0,④-待人工·行内值,字面量硬编码·行内无名,"d->cd[1][1] = j.value(""cd22"", 0.0);"
-行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13943,6.3,④-待人工·行内值,形态不明·需人工读用途,""" (ASTROCS_DESIGN §6.3)"";"
+行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:13943,6.3,④-待人工·行内值,形态不明·需人工读用途,""" (docs/ASTROCS_DESIGN §6.3)"";"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:14066,0.0,④-待人工·行内值,字面量硬编码·行内无名,"g.parity.c_str(), 0.0, &wcs,"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:14692,4.3,④-待人工·行内值,形态不明·需人工读用途,"""run context missing (required for §4.3 provenance): "" + err));"
 行内,,lib/infrastructure/scheduler/src/module_adapters.cpp:14698,4.3,④-待人工·行内值,随输入算出（可导出，但须登记导出式）,"""run_context.json must carry non-empty run_id/software_version (§4.3)""));"

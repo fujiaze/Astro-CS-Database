@@ -14,7 +14,7 @@
 ## 2 输入面
 
 1. 本点目录的 `01_缺陷清单.md`、`02_已确立的算法与验证程序.md`、`03_修复顺序与验收判据.md`、`04_二次核对.md`（四件全部读完再动笔）。
-2. 仓库权威链，按 AGENTS.md §1 的逐层下钻顺序：`ASTROCS_DESIGN.md` → `docs/design/` → `docs/plugins/`（模块正本）→ `docs/science/` 与 `docs/algorithms/` → `docs/contracts/`。派单会点名本点必须读到的具体文件。
+2. 仓库权威链，按 AGENTS.md §1 的逐层下钻顺序：`docs/ASTROCS_DESIGN.md` → `docs/design/` → `docs/plugins/`（模块正本）→ `docs/science/` 与 `docs/algorithms/` → `docs/contracts/`。派单会点名本点必须读到的具体文件。
 3. `独立审计包`（同一交付集）里的 `02_科学/`、`04_代码/经验参数与硬编码清单.md`、`06_实施/打回报告B_设计符合性审查.md` 的相关节 —— 用作风味一致性与"这条是否已被别处判过"的对照。
 
 ## 3 `05_正向规格.md` 的判据

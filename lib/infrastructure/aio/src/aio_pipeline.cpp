@@ -933,7 +933,7 @@ static int serialize_block_data(FILE* fp, const AioBlock* blk) {
     }
 }
 
-    /* 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+    /* 降级登记 (docs/ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path)  {
@@ -1162,7 +1162,7 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
     return 0;
 }
 
-    /* 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+    /* 降级登记 (docs/ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path)  {
@@ -1273,7 +1273,7 @@ static std::string block_to_xml(const AioBlock* blk, const char* block_name_over
     return xml;
 }
 
-    /* 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+    /* 降级登记 (docs/ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
@@ -1315,7 +1315,7 @@ AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     }
 }
 
-    /* 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+    /* 降级登记 (docs/ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path)  {
@@ -1362,7 +1362,7 @@ AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* 
     }
 }
 
-    /* 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+    /* 降级登记 (docs/ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 /* 旧名包装 (非生产/诊断别名; **不是**「兼容保留」的生产接口) */
@@ -1383,7 +1383,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     }
 }
 
-    /* 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+    /* 降级登记 (docs/ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
      * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 /* FITS 导出: 简化版本，写入裸二进制 + 元数据头 */

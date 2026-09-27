@@ -12,7 +12,7 @@
 
 退役 (RETIRED, 2026-09-16, 负责人裁决) —— 本脚本对应的 CI 检查项 TRACEABILITY-CODE 已退役：
   1. 新 CI 规范 docs/ci/01_CHECKS.md 不含任何追溯要求（TRACEABILITY / 追溯 零命中）；
-  2. ASTROCS_DESIGN.md 与 ENGINEERING_SPEC.md 同样零命中「追溯」；
+  2. docs/ASTROCS_DESIGN.md 与 ENGINEERING_SPEC.md 同样零命中「追溯」；
   3. 本检查的唯一默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 位于**构建产物目录**，
      从来不是权威落位；该表已随 artifacts/ 按负责人裁决删除（commit b1290525「不归档、不保留」）；
   4. 表内容锚在 docs/VERSIONING.md 的版本串匹配上，而新设计 §12 明令版本信息下线 ⇒ 口径被新世代废止；

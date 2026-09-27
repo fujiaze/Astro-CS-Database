@@ -47,7 +47,7 @@ target_compile_definitions(export_stream_test PRIVATE
 add_test(NAME export_stream COMMAND export_stream_test)
 
 # ----------------------------------------------------------------------------
-# P3-STREAM-01：生产 export 子块流式门（ASTROCS_DESIGN §8.3 export 行 +
+# P3-STREAM-01：生产 export 子块流式门（docs/ASTROCS_DESIGN §8.3 export 行 +
 # SCHEDULER_CONTRACT §2）。判据：① 生产链确实引用 ExportStreamScheduler
 # （writer 节点 manifest 自报 scheduler + whole_frame_fault=false；resample2/
 # verify 自报 sub_block_streaming）；② 峰值 RSS 随 sub_block_px 变化；
@@ -102,7 +102,7 @@ target_include_directories(mem_wire_test PRIVATE
 target_link_libraries(mem_wire_test PRIVATE astrocs_core)
 add_test(NAME mem_wire COMMAND mem_wire_test)
 
-# MEMGOV-01: 内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略）的
+# MEMGOV-01: 内存压力治理（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）的
 # 机制判据 —— 四条负例 + 不可确定 fail-open + 调度器派发门红绿配对。
 add_executable(memory_pressure_test memory_pressure_test.cpp)
 target_include_directories(memory_pressure_test PRIVATE

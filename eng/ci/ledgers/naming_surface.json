@@ -348,7 +348,7 @@
       "machine_evidence": [
         "CMakeLists.txt 与 CMakePresets.json（ASTROCS_* 选项/变量）",
         "lib/**（ASTROCS_* 头守卫与产品扩展键前缀）",
-        "ASTROCS_DESIGN.md（最高设计文件名，§0 索引与行号锚的宿主）"
+        "docs/ASTROCS_DESIGN.md（最高设计文件名，§0 索引与行号锚的宿主）"
       ],
       "families": [
         "A"

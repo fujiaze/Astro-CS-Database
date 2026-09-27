@@ -22,7 +22,7 @@
 //                的对应 step；
 //             ③ 同步移除 CMakeLists.txt:347-359 与 :952-954 两处 add_subdirectory，
 //                并更新 docs/modules/orchestrator.md、eng/ci/id_migration_map.json 登记项。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §8.1/§8.2
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §8.1/§8.2
 //             （生产链路由 scheduler 注册与编排、pipeline 提供 typed DAG 与命名块）；
 //             lib/infrastructure/pipeline/PENDING.md:10（orchestrator/ 属 §7.1 退役计划内）；
 //             docs/modules/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）。

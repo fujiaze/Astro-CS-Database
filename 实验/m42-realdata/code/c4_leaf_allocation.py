@@ -4,7 +4,7 @@
 
 规范依据
 --------
-- 创新点四定义与创新边界：ASTROCS_DESIGN.md:147-159（leaf 边界精确、绝对立体角口径下的
+- 创新点四定义与创新边界：docs/ASTROCS_DESIGN.md:147-159（leaf 边界精确、绝对立体角口径下的
   构造闭合 Sigma_p a_jp = (pi/3)|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立；
   奇点条款：chart 映射在 face 角点与面内 |z|=2/3 折线处存在分支结构）。
 - 冻结门：docs/algorithms/DRIZZLE_GEOMETRY.md:236（FP64 通量闭合 <1e-6；FP32/FP64 逐 leaf <1e-5），
@@ -161,7 +161,7 @@ def main():
     g.add("C4-G4-hierarchy-area-closure",
           "Sigma_p area(p) 在 order 0..9 上一致（相对差 <= 1e-6 = 8.4 x eps_fp32）", float(dev),
           bool(dev <= GATE),
-          source="ASTROCS_DESIGN.md:153（构造闭合）+ DRIZZLE_GEOMETRY.md:53-54",
+          source="docs/ASTROCS_DESIGN.md:153（构造闭合）+ DRIZZLE_GEOMETRY.md:53-54",
           note="order0 总面积 %.6e sr = %.6e 叶面积（A_cell=%.6e）；实测 %.3e = eps_fp32 的 %.1f%%"
                % (ref, ref / M.A_CELL, M.A_CELL, dev, 100.0 * dev / FP32_EPS))
     # 负例：把某一阶的 support 整体乘 (1+1e-5)

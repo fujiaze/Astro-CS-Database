@@ -1,6 +1,6 @@
 {
   "schema": "astrocs-aio-io-boundary-inventory/v1",
-  "authority": "ASTROCS_DESIGN.md §9 + 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 U5",
+  "authority": "docs/ASTROCS_DESIGN.md §9 + 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 U5",
   "note": "棘轮上限台账：每个非 aio 命中文件逐条给出理由与归属。命中数只减不增（超过登记值判红）；文件转干净后须删除对应条目。本台账不是 waiver —— HARD 层（lib/algorithms/drizzle/hips/**、lib/algorithms/fits_output/**、块↔文件接口越界调用）不受其约束。",
   "entries": [
     {
@@ -1942,7 +1942,7 @@
         "cxx-stream": 2
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>",
@@ -1958,7 +1958,7 @@
         "win32-fs": 1
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>",
@@ -1979,7 +1979,7 @@
         "cxx-stream": 1
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>"
@@ -1992,7 +1992,7 @@
         "cxx-stream": 3
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>",
@@ -2006,7 +2006,7 @@
         "cxx-stream": 1
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>"
@@ -2020,7 +2020,7 @@
         "filesystem": 2
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>",
@@ -2035,7 +2035,7 @@
         "filesystem": 2
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "inspect_hiss_file",
@@ -2051,7 +2051,7 @@
         "fopen": 4
       },
       "category": "RETIRED-PENDING",
-      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "reason": "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>",

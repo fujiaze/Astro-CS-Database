@@ -2,9 +2,9 @@
 """FIX-208 验收 4/5/6：资源门收窄为**磁盘门**；内存/CPU/线程不设门；exit 10 收窄。
 
 权威（逐条）：
-  * ASTROCS_DESIGN.md §3.5「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
+  * docs/ASTROCS_DESIGN.md §3.5「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
     运行中写盘失败/磁盘满 ⇒ 报错（fail-closed）；内存 / CPU / 线程不设门」；
-  * ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
+  * docs/ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
   * GAP_AUDIT.md(RELEASE-02) §9.74 裁决 10（负责人逐字：「不应该有资源超限（除非存储不足）。
     那个问题直接在跑前报 warn，写入磁盘满了报错……只考虑磁盘写满这一个问题」）。
 
@@ -394,7 +394,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         剂量-反应：单帧 12/12 正确、双帧 58 次中 5 次 rc=7 且无 failure_kind 事件
         （run/FLAKE-01/logs/a_dose.log、a_f2_40.log；宿主 8 个 CPU 自旋时 20/20 正确
         ⇒ 触发条件是帧间调度交错，不是宿主压力）。
-        ⇒ 判据保留（ASTROCS_DESIGN §3.5/§6.3 要求 fail-closed 为 exit 10），
+        ⇒ 判据保留（docs/ASTROCS_DESIGN §3.5/§6.3 要求 fail-closed 为 exit 10），
         但失败必须**自解释**，不得被当作 flake 忽略。
 
         该竞态已修：磁盘满分类改为**帧级归因窗口**（lib/infrastructure/aio/src/

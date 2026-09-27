@@ -4,7 +4,7 @@
 **身份声明**：本人为三路独立审查中的**第③路**（科学性视角），与第①路（规范性）、第②路（实现一致性）互不通信、独立取证。
 
 **审查基准时间**：2026-09-26  
-**参照面**：`01_缺陷清单.md`、`02_已确立的算法与验证程序.md`、`ASTROCS_DESIGN.md §12.2`、`docs/science/PHOTOMETRY.md`、`docs/algorithms/PHOTOMETRIC_FIT.md`  
+**参照面**：`01_缺陷清单.md`、`02_已确立的算法与验证程序.md`、`docs/ASTROCS_DESIGN.md §12.2`、`docs/science/PHOTOMETRY.md`、`docs/algorithms/PHOTOMETRIC_FIT.md`  
 **输入材料**：
 - `独立审计/证据/审查-05-①-科学性-1.md`（第①路审查成稿）
 - `独立审计/证据/审查-05-①-科学性-3.md`（第③路首轮审查纪要）

@@ -4,7 +4,7 @@
 > 负责人裁决（2026-09-22，原话）：「对于 m42 这种目标确实很难。但是**叠加的时候，所有这个位置的信号都有一样的背景**。
 > 因此**只要这个区域产生的信噪比绝对准确就行**。**本身也不会和其他天区叠加**。此外**可以查论文，其他开源天文软件等等如何计算**。」
 > 上游缺陷来源：`实验/absolute-snr/docs/EXP-02-STRUCTURE-CONTAMINATION.md`
-> 权威依据：`AGENTS.md` §5／§8、`ASTROCS_DESIGN.md` §2.2、§5.3、§5.4、§12.1、§12.2、§12.3、`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a／§4.3／§4.5、`docs/science/NOISE_MODEL.md`、`docs/science/CONTROL_WEIGHT_SNR.md`
+> 权威依据：`AGENTS.md` §5／§8、`docs/ASTROCS_DESIGN.md` §2.2、§5.3、§5.4、§12.1、§12.2、§12.3、`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a／§4.3／§4.5、`docs/science/NOISE_MODEL.md`、`docs/science/CONTROL_WEIGHT_SNR.md`
 > 固定 seed：**20260925**｜本单元**只读** `lib/**`、`eng/**`、`docs/**`、`testdata/**`、`实验/shared/**`
 > **不运行任何 ACSD 可执行文件**；**不使用 `ulimit -v`**；无 git 写操作；**不运行 `eng/tools/round_start.sh`**。
 
@@ -33,12 +33,12 @@
 
 | 层 | 文档 | 本条要求 |
 |---|---|---|
-| 最高设计 | `ASTROCS_DESIGN.md` §2.2 | 帧级 SNR 只计真实源信号能量与噪声；**信号经独立局部背景估计与扣除，天光只通过其散粒噪声进入噪声项** |
-| 最高设计 | `ASTROCS_DESIGN.md` §5.3 | 三种 SNR 重建口径（`dense` / `sparse_reconstruct` 默认 / `frame_reconstruct`）；**实际 SNR = 帧级 × 帧内相对因子**；权重由 SNR 现场换算为逆方差 |
-| 最高设计 | `ASTROCS_DESIGN.md` §5.4 | UPM「多退少补」：每帧扣除它**相对公共天光面**的偏差，保留公共面 ⇒ **帧级加性偏移本来就有专门机制处理** |
-| 最高设计 | `ASTROCS_DESIGN.md` §12.1 | 每个科学结论需**三类独立一手证据**：论文/标准 + 开源库代码（项目+版本+文件:行）+ 仓内实测 |
-| 最高设计 | `ASTROCS_DESIGN.md` §12.2 | 三类实验数据：HST 真实模板+物理前向仿真／纯解析代数合成（含「真值无效应⇒归零」负例）／testdata 真实数据 |
-| 最高设计 | `ASTROCS_DESIGN.md` §12.3 | 实验报告八要素；**每个度量具备非退化判据**，恒真门没有证据资格 |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` §2.2 | 帧级 SNR 只计真实源信号能量与噪声；**信号经独立局部背景估计与扣除，天光只通过其散粒噪声进入噪声项** |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` §5.3 | 三种 SNR 重建口径（`dense` / `sparse_reconstruct` 默认 / `frame_reconstruct`）；**实际 SNR = 帧级 × 帧内相对因子**；权重由 SNR 现场换算为逆方差 |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` §5.4 | UPM「多退少补」：每帧扣除它**相对公共天光面**的偏差，保留公共面 ⇒ **帧级加性偏移本来就有专门机制处理** |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` §12.1 | 每个科学结论需**三类独立一手证据**：论文/标准 + 开源库代码（项目+版本+文件:行）+ 仓内实测 |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` §12.2 | 三类实验数据：HST 真实模板+物理前向仿真／纯解析代数合成（含「真值无效应⇒归零」负例）／testdata 真实数据 |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` §12.3 | 实验报告八要素；**每个度量具备非退化判据**，恒真门没有证据资格 |
 | 插件文档 | `07_noise_snr.md` §4.2a | `sigma_sky_source` 二选一必填（`shot_noise_only` / `empirical_total_rms`），**读噪只出现一次**；声明与实际不一致 ⇒ fail-closed |
 | 插件文档 | `07_noise_snr.md` §4.3 | **标量降级门**：仅当帧内 `W_psf(x,y)` 鲁棒相对离散与系统趋势低于阈值才存帧级标量；**否则存 map/控制点/多项式/HEALPix** |
 | 插件文档 | `07_noise_snr.md` §4.5 | 稀疏控制点间隔 **Δ = hips.tile_width / 8 = 64 px**（tile_width=512） |
@@ -676,7 +676,7 @@ EXP-02 的 F2 代理量：`kf`、`A1 = σ̂_prod/(σ_diff/√2)`、`R`、`A2 = �
 
 | 动作 | 位置 | 内容 |
 |---|---|---|
-| 新增小节 | `docs/science/`（沿 `ASTROCS_DESIGN.md` §2.2 索引下钻）——**「区域化 σ_sky 的口径、可信域与尺度选择」** | ① σ_sky 的语义与 `sigma_sky_source` 声明；② 三项误差-尺度关系式（§4.1）；③ 推荐 B=64 与有效性掩膜要求；④ **「帧级标量」与「区域 σ 图」是两个不同语义的量，不可互替**；⑤ R2 的适用前提（≥2 帧同天区、位置稳定分量对消）与失效边界 |
+| 新增小节 | `docs/science/`（沿 `docs/ASTROCS_DESIGN.md` §2.2 索引下钻）——**「区域化 σ_sky 的口径、可信域与尺度选择」** | ① σ_sky 的语义与 `sigma_sky_source` 声明；② 三项误差-尺度关系式（§4.1）；③ 推荐 B=64 与有效性掩膜要求；④ **「帧级标量」与「区域 σ 图」是两个不同语义的量，不可互替**；⑤ R2 的适用前提（≥2 帧同天区、位置稳定分量对消）与失效边界 |
 | 订正 | `07_noise_snr.md` §4.3 | 「标量降级门」补上**量化判据**：用 §4.1 的 `res_err(B)` 与 σ 图离散 `D_reg` 作为触发条件（M42 类帧 `D_reg ≫ 1.25` ⇒ 必须存图） |
 | 新增 | `07_noise_snr.md` §4.5 | 明确稀疏层除「相对 SNR」外**新增绝对 σ 层**（§8.3） |
 | 登记 | EXP-01 D8 缺陷登记表 | 链到本报告；把「帧级标量」的判定从「精度不足」升级为「**定义域错误**」 |

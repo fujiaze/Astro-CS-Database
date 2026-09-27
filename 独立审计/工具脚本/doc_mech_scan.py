@@ -88,7 +88,7 @@ def self_test(tmp: Path) -> int:
         encoding=ENC)
     good = tmp / "GOOD.md"
     good.write_text(
-        "# 好文档\n\n上游：ASTROCS_DESIGN.md §2。\n\n本文描述现行设计要怎样。\n\n"
+        "# 好文档\n\n上游：docs/ASTROCS_DESIGN.md §2。\n\n本文描述现行设计要怎样。\n\n"
         "真实链接 [在册](docs/REAL.md) 与 `docs/REAL.md` 都不该判悬空。\n\n"
         "通配引用 `NOWHERE/*.md` 不是仓库路径，判悬空即误报。\n",
         encoding=ENC)

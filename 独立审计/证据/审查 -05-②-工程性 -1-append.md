@@ -101,7 +101,7 @@
   - **订正句**：**本节仅声明引用规则；详细符合性映射见《缺陷清单》§10 覆盖对照表。**
 
 ### §1.2 术语（唯一记法） 行 92–94
-- **原句**："`依据：`ASTROCS_DESIGN.md` §2.2...；`docs/design/PHASE2_DETAILED_DESIGN.md` §2/§114...；`docs/science/CONTROL_WEIGHT_SNR.md` §2b/§5/§8c。`"
+- **原句**："`依据：`docs/ASTROCS_DESIGN.md` §2.2...；`docs/design/PHASE2_DETAILED_DESIGN.md` §2/§114...；`docs/science/CONTROL_WEIGHT_SNR.md` §2b/§5/§8c。`"
   - **检查**：此处的"依据"段落是规范的，**不是冗余**。但 §1.1 行 71–72 的类似"依据"段需核对是否与 §1.2 重复。
   - **发现**：`**行 71–72 的"依据"段重复了 §1.2 的行 92–94 的部分内容（对象表）**。建议删除 §1.1 末尾的"依据"段，统一移至 §1.2。
 
@@ -118,7 +118,7 @@
   - **检查**：`**此处的"依据"段与前文 §4.1–4.4 中逐条"依据"段大量重复**。建议改为：各字段单位语义详见 §4.1–4.4 的"合同对应"列；聚合引用见 registry `FZ-UNIT-*`。**
 
 ### §6.3 各阶段的生产/消费分工 行 650–651
-- **原句**："`依据：`ASTROCS_DESIGN.md`（阶段间只通过磁盘产品＋manifest＋哈希交换）；`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.6...`"
+- **原句**："`依据：`docs/ASTROCS_DESIGN.md`（阶段间只通过磁盘产品＋manifest＋哈希交换）；`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.6...`"
   - **检查**：`**此处的"依据"段与前文 §6.1–6.2 中的分散引用重复**。建议移到 §6.1 开头。
 
 ---

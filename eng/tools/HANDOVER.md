@@ -23,13 +23,13 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 阶段间只通过磁盘产品 + manifest + 哈希交换。正式平台 Windows x64 与 Linux amd64，纯 CPU 生产。
 
 **权威链（逐层下钻，不是挑一篇读）**：
-`ASTROCS_DESIGN.md`（最高，先通读相关章节）→ `docs/design/` → `docs/plugins/` →
+`docs/ASTROCS_DESIGN.md`（最高，先通读相关章节）→ `docs/design/` → `docs/plugins/` →
 `docs/science/` 与 `docs/algorithms/`（公式与推导，只读权威）→ `docs/contracts/` →
 `ENGINEERING_SPEC.md` → `ACCEPTANCE_SPEC.md` → `docs/ci/` → `docs/research/`。
 
 **机器契约字面量冻结、改名时绝不可动**：`x-astrocs-*` schema 键前缀、模块 ID `astrocs.*`、
 `ASTROCS_*` 环境变量与 CMake 选项、`namespace astrocs`、`#include <astrocs/...>`、
-目录 `lib/include/astrocs/**`、文件名 `ASTROCS_DESIGN.md`。
+目录 `lib/include/astrocs/**`、文件名 `docs/ASTROCS_DESIGN.md`。
 显示名是 `ACSD` / `Astro Celestial Sphere Database`；判定规则（唯一源在 `ENGINEERING_SPEC.md`）：
 **把该处换成 ACSD 后是否有任何机器会失配或指向不存在对象——会则保留原名，否则必须写成 ACSD**。
 
@@ -243,7 +243,7 @@ python3 eng/tools/audit_intake.py <报告文件.md|.csv> --out run/ONEPAGER/work
 - **排异路由（M3）**：`1≤n≤3 none / n=4..5 percentile / n≥6 winsorized_sigma`。
 - **内存治理三层**：CLI 解析预算（默认 95%，`host.memory_budget_percent` 可覆盖）→ 运行时资源预算 →
   调度器预留式回压（`mem_used+need<=limit`，否则 park）。
-- **`ASTROCS_DESIGN.md` §8.3 编排策略六条**是内存治理的正本；**下游不得复述**。
+- **`docs/ASTROCS_DESIGN.md` §8.3 编排策略六条**是内存治理的正本；**下游不得复述**。
   其中「可丢弃重跑」这条**仍未接线**（实现语义只存在于未跟踪草稿）。
 - **设计条文接线台账**：`eng/ci/ledgers/design_clauses.json`，41 条 = 23 已接线 / 18 未接线。
   未接线主因四类：① 零实现；② **配置键静默失效**（`§5.3 snr_path`、`§5.5 algorithm_rejection_method`

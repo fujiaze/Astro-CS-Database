@@ -2,9 +2,9 @@
  * @file nls_lm.h
  * @brief 自研信赖域 Levenberg–Marquardt 非线性最小二乘求解器（GSL 替代）
  *
- * 位置依据: ASTROCS_DESIGN.md §8.4「顶层结构」——lib/algorithms/ 是科学算法唯一家,
+ * 位置依据: docs/ASTROCS_DESIGN.md §8.4「顶层结构」——lib/algorithms/ 是科学算法唯一家,
  * 模块并联放置; 本求解器是 lib/algorithms/star_detection 的**模块内部数值后端**,
- * 不是独立可调度模块(ASTROCS_DESIGN §8.5 的 README/module.yaml/独立 DLL 要求不适用,
+ * 不是独立可调度模块(docs/ASTROCS_DESIGN §8.5 的 README/module.yaml/独立 DLL 要求不适用,
  * 因为它是单一调用点的内部实现细节), 亦非第三方代码(故不入 lib/third_party/)。
  * 头文件与实现同置于 src/, 不进公共 include 面(不跨 DLL 传 STL/异常, §8.5)。
  *

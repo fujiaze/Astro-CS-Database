@@ -257,7 +257,7 @@ std::string local_cpu_signature() {
     return astrocs::crypto::sha256_hex(seed.data(), seed.size());
 }
 
-// ── CLI-MULTIBLOCK（依据 ASTROCS_DESIGN.md §4.3 输入合同）：normalize 多数据块 ──
+// ── CLI-MULTIBLOCK（依据 docs/ASTROCS_DESIGN.md §4.3 输入合同）：normalize 多数据块 ──
 // 语义（逐条依据 §4.3）：
 //   ① 一个 JSON 内可写多个数据块（block），形如「一个 main 下面写很多个函数」；
 //   ② 每块自带：一组 input_lights + 一套母版 + 运行参数 + 块级 output_dir；
@@ -314,7 +314,7 @@ const std::set<std::string>& session_keys() {
         //   默认（mode=auto / max_stars=20000 / parity=pos / limiting_mag 派生），
         //   不是错误。合同声明 =
         //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
-        //   规范：ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
+        //   规范：docs/ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
         //   + docs/plugins/algorithms_phase1/03_star_detection.md §5.1。
         "star_detection",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
@@ -331,7 +331,7 @@ const std::set<std::string>& session_keys() {
         // hips_paths 元素保持字符串（逐帧索引路径按命名规则派生）。同 snr_path：
         // CLI 只识别并透传，消费点（阶段二 coverage 节点）在阶段 2 ⇒ 死键台账已登记。
         "coverage_index",
-        //（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（GAP_AUDIT G05；docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取
         // 合同声明名（禁止新造同义键）：
         //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -342,7 +342,7 @@ const std::set<std::string>& session_keys() {
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
         "projection", "sampler", "longitude_parity", "bitpix",
         "coverage_output", "max_tiles", "frame",
-        // P3-STREAM-01（ASTROCS_DESIGN §8.3 export 行 + SCHEDULER_CONTRACT §3）：
+        // P3-STREAM-01（docs/ASTROCS_DESIGN §8.3 export 行 + SCHEDULER_CONTRACT §3）：
         // 导出**编排参数**（子块边长 / 有界队列深度）——与 max_tiles 同款的资源/
         // 编排键（非科学键，不改任何公式与容差），生产消费点 = module_adapters 的
         // phase3 resample2/writer/verify 节点（p3n_sub_block_px）。
@@ -359,7 +359,7 @@ const std::set<std::string>& session_keys() {
         // （CLI 配置面与节点面共用）；生产消费点 = scheduler 的 p3 wcs/writer/verify
         // 节点（P3NodeModule::validate_config + p3_op_wcs/writer/verify）⇒ 不是死键。
         "crop",
-        // 计算精度口径（ASTROCS_DESIGN §3.3:256）：阶段一 =
+        // 计算精度口径（docs/ASTROCS_DESIGN §3.3:256）：阶段一 =
         // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
         // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记
         // （eng/ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
@@ -425,7 +425,7 @@ std::string retired_perframe_form_message(const std::string& session_name) {
            "{\"schema_version\":\"1\",\"blocks\":[{\"name\":\"<label>\","
            "\"input_lights\":[...],\"master_bias\":\"...\",\"master_dark\":\"...\","
            "\"master_flat\":\"...\",\"output_dir\":\"...\"}]} — one block per group of "
-           "lights sharing the same masters (ASTROCS_DESIGN.md §3.3)";
+           "lights sharing the same masters (docs/ASTROCS_DESIGN.md §3.3)";
 }
 
 bool config_has_blocks(const nlohmann::json& doc) {
@@ -484,7 +484,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
         errs.push_back("config mixes 'blocks' with flat single-block keys "
                        "(output_dir/input_lights/master_*/...): the two forms are mutually "
                        "exclusive — keep either blocks[] or the flat single-block shorthand "
-                       "(ASTROCS_DESIGN.md §3.3; GAP_AUDIT §9.68)");
+                       "(docs/ASTROCS_DESIGN.md §3.3; GAP_AUDIT §9.68)");
     }
     const auto& blocks = doc["blocks"];
     if (!blocks.is_array() || blocks.empty()) {

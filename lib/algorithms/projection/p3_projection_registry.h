@@ -1,8 +1,8 @@
 // lib/algorithms/projection/p3_projection_registry.h — Phase3 投影「产品声明注册表」
-// （ASTROCS_DESIGN.md §5.3 的唯一产品声明权威）
+// （docs/ASTROCS_DESIGN.md §5.3 的唯一产品声明权威）
 //
 // 规范依据:
-//   * ASTROCS_DESIGN.md §5.3: 首批冻结 8 投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA;
+//   * docs/ASTROCS_DESIGN.md §5.3: 首批冻结 8 投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA;
 //     「已实现并可作为产品声明的以实际注册表为准; 未实现的必须显式报「不支持」,
 //     禁止声称支持」(当前登记: 仅 TAN 已实现); 每种投影必须声明适用域
 //     (含 TAN 的 |dec|≤85°、FOV≤20°、手性 det(CD)<0、CRPIX 用 FITS 1-based
@@ -185,7 +185,7 @@ inline P3WcsStatus p3_proj_declare(const char* code, std::string* why) {
             reason = "unknown projection code (not in the frozen 8-projection set)";
         }
         *why = "projection '" + c + "' unsupported; supported projections: " +
-               p3_proj_declared_list() + " (ASTROCS_DESIGN 5.3); reason: " + reason;
+               p3_proj_declared_list() + " (docs/ASTROCS_DESIGN 5.3); reason: " + reason;
     }
     return P3_WCS_UNSUPPORTED;
 }

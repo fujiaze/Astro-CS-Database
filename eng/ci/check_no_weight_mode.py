@@ -5,7 +5,7 @@
 权威依据
   - `工程控制/RELEASE-02/GAP_AUDIT.md` §9.73 裁决 A44（负责人逐字：不存在「权重模式」，
     全程都是 SNR；权重只在阶段二消费 SNR 时按该天位像素对应帧集合现场算出）；
-  - `ASTROCS_DESIGN.md` §2.1（总纲：全程只有 SNR，不存在「权重模式」这个概念；
+  - `docs/ASTROCS_DESIGN.md` §2.1（总纲：全程只有 SNR，不存在「权重模式」这个概念；
     禁止任何「权重模式 / 权重档位 / 默认权重模式 / mode0·mode1·mode2」的键名、枚举、配置项或产物）；
   - `ENGINEERING_SPEC.md` §8（每项检查有正例与负例、能红能绿；fail-closed；锚存活）；
   - `工程控制/RELEASE-03/tasks/DOC-201.md`（验收门 1/2 + 「新增负例 ⇒ 检查器判红」）。
@@ -54,7 +54,7 @@ SKIP_DIRS = {".git", "build", "run", "__pycache__", ".venv", "node_modules"}
 TEXT_EXT = {".md", ".json", ".yaml", ".yml", ".csv", ".txt", ".py", ".rst"}
 
 # ── 派生登记地图（不是活文档）──────────────────────────────────────────────
-# docs/DOCUMENT_INDEX.yaml 是全文档集的「地图」（ASTROCS_DESIGN.md §0.2：全文档集
+# docs/DOCUMENT_INDEX.yaml 是全文档集的「地图」（docs/ASTROCS_DESIGN.md §0.2：全文档集
 # 唯一索引地图，由 eng/tools/doccheck/check_doc_index.py 校验）。它的字段内容是
 # **登记与派生**面：path = 仓库路径字面量；downstream = 机器扫描出的引用方路径表；
 # duty = 所登记文档标题的截断副本。它们不是在引入 weight_mode 作为活键/枚举/
@@ -132,7 +132,7 @@ def run(root, json_out=None):
         return 2
     result = {
         "tool": "check_no_weight_mode",
-        "authority": ["GAP_AUDIT.md §9.73 A44", "ASTROCS_DESIGN.md §2.1",
+        "authority": ["GAP_AUDIT.md §9.73 A44", "docs/ASTROCS_DESIGN.md §2.1",
                       "工程控制/RELEASE-03/tasks/DOC-201.md"],
         "root": os.path.abspath(root),
         "files_scanned": nfiles,

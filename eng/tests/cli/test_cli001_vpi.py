@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CLI 命令面语义（原 CLI-001 validate|plan|inspect 冻结文件，按 §6.2 新树同步）。
 
-权威: ASTROCS_DESIGN §6.2（唯一七行命令树; phase 仅为内部指代）、§3.5（预检阻断）、
+权威: docs/ASTROCS_DESIGN §6.2（唯一七行命令树; phase 仅为内部指代）、§3.5（预检阻断）、
 §6.3（stdout/退出码）、docs/api/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（依据 §6.2 唯一命令树 + CLI-001 rc 矩阵）:

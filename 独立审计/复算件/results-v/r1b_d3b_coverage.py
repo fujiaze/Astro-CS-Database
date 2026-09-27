@@ -11,8 +11,8 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 REPO = r"F:\Astro dev\Astro CS Normalization Database"
-FORMAL_ROOT_DOCS = ("ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md")
-ENTRY_DOCS = ("README.md", "ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md",
+FORMAL_ROOT_DOCS = ("docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md")
+ENTRY_DOCS = ("README.md", "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md",
               "CONTROL_PACK_SPEC.md", "DEPENDENCIES.md")
 EXEMPT_DIRS = ("docs/research/", "docs/archive/")
 SCAN_EXTS = (".md", ".yaml", ".yml", ".csv", ".json", ".txt")

@@ -41,7 +41,7 @@
     },
     {
       "type": "design",
-      "file": "ASTROCS_DESIGN.md",
+      "file": "docs/ASTROCS_DESIGN.md",
       "section": "§4.2"
     }
   ]

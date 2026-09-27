@@ -34,7 +34,7 @@
 
 四创新点的前四单元（`photometric-magnitude`、`absolute-snr`、`additive-sky-seamless`、
 `healpix-polar`）已用 HST 真实信号模板 + 物理前向仿真、纯解析合成两类数据给出结论。
-`ASTROCS_DESIGN.md` §12.2 要求三类数据齐备；本单元补齐**第三类：真实数据**，
+`docs/ASTROCS_DESIGN.md` §12.2 要求三类数据齐备；本单元补齐**第三类：真实数据**，
 载体是已经跑完的 M42 端到端运行。
 
 方法上的三条硬约束：
@@ -52,7 +52,7 @@
 
 ### 2.1 SCI-A：测光星等坐标系
 
-`k_photo` 是线性乘性标度（`ASTROCS_DESIGN.md:120-128`），故
+`k_photo` 是线性乘性标度（`docs/ASTROCS_DESIGN.md:120-128`），故
 `S_i = k_photo,i · I_cal,i = c·(N + sky_i)`：正确标定下帧间只差一个**加性**天光项，
 乘性比应为 1。本单元据此给出三组测量。
 

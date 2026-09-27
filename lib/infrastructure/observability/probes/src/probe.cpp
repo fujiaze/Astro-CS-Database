@@ -20,7 +20,7 @@
 #include <string>
 #include <unordered_map>
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 探针 sink 的追加写
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 探针 sink 的追加写
 // 经 aio 唯一实现 (aio_atomic::append_open/append_write/append_flush), 本 TU 不
 // 自持 FILE* 通道。
 #include "aio_atomic_file.h"

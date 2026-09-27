@@ -71,7 +71,7 @@ class TestCpuProfile(unittest.TestCase):
         assert r.returncode == 0, r.stderr
         cls.profile = os.path.join(cls.tmp, "cpu_profile.json")
         cls.hw = os.path.join(cls.tmp, "hw.json")
-        # CLI-001 / ASTROCS_DESIGN 6.2: 旧 hardware inspect 用户命令已删(rc=2)。
+        # CLI-001 / docs/ASTROCS_DESIGN 6.2: 旧 hardware inspect 用户命令已删(rc=2)。
         # 硬件画像改由宿主探针直调 hardware_inspect_json_v1(与生产同实现,
         # 同 eng/tests/backend/test_hardware_inspect.py::TestHardwareInspectProbe)。
         hw_main = os.path.join(cls.tmp, "hw_main.cpp")

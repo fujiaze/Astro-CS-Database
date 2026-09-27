@@ -4,7 +4,7 @@
 
 规范依据
 --------
-- 创新点三：ASTROCS_DESIGN.md:139-145（信号校准到测光星等坐标系后帧间连续；接缝来自天光；
+- 创新点三：docs/ASTROCS_DESIGN.md:139-145（信号校准到测光星等坐标系后帧间连续；接缝来自天光；
   天光可加性去除；UPM 联合建立连续绝对天光参考平面；多退少补；**保留背景**）。
 - 纯加性冻结模型：docs/science/PHASE2_UPM.md:9-10 / :186-190（calibrated_f(p) = raw_f(p) - C_f(p)，
   C_f 为 8x8 control cell 双线性加性场；"本期决议：纯加性"，g_k == 1）。
@@ -357,7 +357,7 @@ def main():
     g.add("C3-G3-sky-retained",
           "corrected 样本电平 / 帧自身天光电平 > 0.3（保留公共天光平面，非全减背景）",
           float(np.min(ratios)) if ratios.size else None, ok_sky,
-          source="ASTROCS_DESIGN.md:143（保留公共天光平面，多退少补）",
+          source="docs/ASTROCS_DESIGN.md:143（保留公共天光平面，多退少补）",
           note="中位比 %.4f，n=%d" % (float(np.median(ratios)) if ratios.size else float('nan'), ratios.size))
     g.add("C3-N3-full-subtraction-red",
           "负例：把公共天光平面整体减掉（全减背景）后同一判据必须判红",

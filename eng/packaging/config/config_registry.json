@@ -4,7 +4,7 @@
   "task": "W5-CFG-002（控制包 PROJECT-GOVERNANCE-01 / 任务卡 CFG-002）",
   "scope": "配置登记类遗留闭合：①plugin 级默认（docs/plugins/** 全 23 篇配置表）②per-module knobs 归属③滤镜名匹配语义④cpu_profile.host.os_abi 值域⑤索引归属。",
   "authority": {
-    "design": "ASTROCS_DESIGN.md §3.3（eng/packaging/config/ 全局配置：filters.json 滤镜库、defaults.json 默认参数）",
+    "design": "docs/ASTROCS_DESIGN.md §3.3（eng/packaging/config/ 全局配置：filters.json 滤镜库、defaults.json 默认参数）",
     "separation": "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离；cpu_profile 仅 benchmark 可写）",
     "spec": "ENGINEERING_SPEC.md §7（目录规范：eng/packaging/config/ 为程序根全局配置）、§8（登记项必须能红能绿、可执行负例面、fail-closed）",
     "science_redline": "ENGINEERING_SPEC.md §3（科学公式/默认容差不可随意修改）；docs/contracts/CONFIG_CONTRACT.md（配置语义与索引）",
@@ -545,7 +545,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 psf；**2026-09-20 订正**：文档已把 \"aperture\" 降为**仅诊断/交叉验证**（非生产口径）——原文「插件默认 psf（psf/aperture）」中的 aperture 生产义已作废，依据 §9.51 Q-C / §9.52 + ASTROCS_DESIGN.md:264（全链只有一个 flux 口径 = PSF 拟合域）。未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 psf；**2026-09-20 订正**：文档已把 \"aperture\" 降为**仅诊断/交叉验证**（非生产口径）——原文「插件默认 psf（psf/aperture）」中的 aperture 生产义已作废，依据 §9.51 Q-C / §9.52 + docs/ASTROCS_DESIGN.md:264（全链只有一个 flux 口径 = PSF 拟合域）。未进任何配置类。归属：负责人裁决。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
@@ -566,7 +566,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 2×FWHM（相对默认，无数值权威）；**2026-09-20 订正**：文档已把该行标为「仅诊断/交叉验证、值待定」——原默认与实现/README 的 4.0px / 6-10px 二选一冲突（reports/RELEASE-02/conformance/CONFORM-SWEEP-2.md:124-138），且孔径不属生产口径（§9.51 Q-C / §9.52 + ASTROCS_DESIGN.md:264）。未进任何配置类。归属：负责人裁决。 【2026-09-20 前台订正】文档行已标「值待定」（原 2×FWHM 作废留痕），登记册同步；归属：负责人裁决。",
+      "note": "插件默认 2×FWHM（相对默认，无数值权威）；**2026-09-20 订正**：文档已把该行标为「仅诊断/交叉验证、值待定」——原默认与实现/README 的 4.0px / 6-10px 二选一冲突（reports/RELEASE-02/conformance/CONFORM-SWEEP-2.md:124-138），且孔径不属生产口径（§9.51 Q-C / §9.52 + docs/ASTROCS_DESIGN.md:264）。未进任何配置类。归属：负责人裁决。 【2026-09-20 前台订正】文档行已标「值待定」（原 2×FWHM 作废留痕），登记册同步；归属：负责人裁决。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
@@ -699,7 +699,7 @@
       "registered_at": "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
       "registered_key": "mosaic.config.snr_path",
       "finding": "none",
-      "note": "已登记：phase_config mosaic config.snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct = Phase2 默认消费稀疏层，负责人 2026-09-19 裁决 GAP_AUDIT §9.46；键名与 ASTROCS_DESIGN.md §4.3:381（Phase2 消费面）一致；**2026-09-20 订正**：原写「§3.3:124」——§3.3 经 §9.56 裁决 4/§9.68 收口后为 CLI 平铺键集、**已不含 snr_path**，该行锚悬空）。默认值唯一登记 = eng/packaging/config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target 指向本 schema 字段）。**转录口径**：文档该行字段列写作「snr_path（Phase2 消费面键，在 mosaic 配置）」（括注写进了字段列），本册登记字段名 snr_path（括注是说明、不是字段名）；CFG002-01 会因该括注报本行「缺登记」，订正建议 = 文档把括注移入说明列（reports/RELEASE-02/snr-config-land.md §5）。",
+      "note": "已登记：phase_config mosaic config.snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct = Phase2 默认消费稀疏层，负责人 2026-09-19 裁决 GAP_AUDIT §9.46；键名与 docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面）一致；**2026-09-20 订正**：原写「§3.3:124」——§3.3 经 §9.56 裁决 4/§9.68 收口后为 CLI 平铺键集、**已不含 snr_path**，该行锚悬空）。默认值唯一登记 = eng/packaging/config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target 指向本 schema 字段）。**转录口径**：文档该行字段列写作「snr_path（Phase2 消费面键，在 mosaic 配置）」（括注写进了字段列），本册登记字段名 snr_path（括注是说明、不是字段名）；CFG002-01 会因该括注报本行「缺登记」，订正建议 = 文档把括注移入说明列（reports/RELEASE-02/snr-config-land.md §5）。",
       "conflict": null
     },
     {
@@ -1423,7 +1423,7 @@
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "contracts_doc",
-      "registered_at": "ASTROCS_DESIGN.md:313",
+      "registered_at": "docs/ASTROCS_DESIGN.md:313",
       "registered_key": null,
       "finding": "none",
       "note": "profile 输出路径固定为程序安装目录（benchmark 独占写），默认「安装目录（固定）」由设计条款承载（§6.2；另见 docs/design/UNIFIED_MODEL.md §3）。",
@@ -1486,7 +1486,7 @@
       "registered_at": "docs/plugins/infrastructure/21_observability.md:35",
       "registered_key": null,
       "finding": "none",
-      "note": "运行日志目录（默认由块级 output_dir 派生 = <output_dir>/logs），运行期策略；禁落 CWD/源码树/run/（ASTROCS_DESIGN §7.3、LOG-004）。",
+      "note": "运行日志目录（默认由块级 output_dir 派生 = <output_dir>/logs），运行期策略；禁落 CWD/源码树/run/（docs/ASTROCS_DESIGN §7.3、LOG-004）。",
       "conflict": null
     },
     {
@@ -1883,7 +1883,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "UPM 图平滑 λ（upm.h:75 逐字「图平滑权重（默认 0=关闭）」）。**与「堆叠平滑项」不是同一项**：阻尼 α≈0.5 是迭代阻尼（ASTROCS_DESIGN §4.4:459）、smoothing_lambda 是拟合正则项、堆叠平滑项是拟合目标里的新项（§9.67 定案 5 本期不加）。前两者并存不冲突。生产经 model.smoothing_lambda 读取，未登记。 【2026-09-23 CFG002-01 订正】declared_default 与文档单元格同步：原登记为文档改写前的残片；现行文档列 = 「键缺省时编译期默认 0.0；P2_SMOOTHING_LAMBDA_AUTO = 0.1 仅在 auto 路径生效」，与 upm.h:75「默认 0=关闭」+ stage2_common.h:24（auto 键值专用常量）逐条一致。",
+      "note": "UPM 图平滑 λ（upm.h:75 逐字「图平滑权重（默认 0=关闭）」）。**与「堆叠平滑项」不是同一项**：阻尼 α≈0.5 是迭代阻尼（docs/ASTROCS_DESIGN §4.4:459）、smoothing_lambda 是拟合正则项、堆叠平滑项是拟合目标里的新项（§9.67 定案 5 本期不加）。前两者并存不冲突。生产经 model.smoothing_lambda 读取，未登记。 【2026-09-23 CFG002-01 订正】declared_default 与文档单元格同步：原登记为文档改写前的残片；现行文档列 = 「键缺省时编译期默认 0.0；P2_SMOOTHING_LAMBDA_AUTO = 0.1 仅在 auto 路径生效」，与 upm.h:75「默认 0=关闭」+ stage2_common.h:24（auto 键值专用常量）逐条一致。",
       "conflict": null
     },
     {
@@ -1899,7 +1899,7 @@
       "registered_key": "star_detection.mode",
       "finding": "none",
       "conflict": null,
-      "note": "【B3 收口 2026】star_detection 段已纳入合法输入面：合同声明 = phase_config_normalize#/$defs/star_detection_config（块内 normalize_block.properties 与平铺顶层 properties 两形态同面，additionalProperties:false）；CLI 认键 = session_commands.h config_fields(SESSION_NORMALIZE) + parser.cpp session_keys()。缺段 = 取编译期默认，不是错误。 生产读取点 = module_adapters.cpp p1_guided_cfg（mode 越界 token 即 DATA fail-closed）。SCI/ALG 权威 = ASTROCS_DESIGN.md §4.2（星表引导拟合 = 权威范式、全图盲检测非权威）。"
+      "note": "【B3 收口 2026】star_detection 段已纳入合法输入面：合同声明 = phase_config_normalize#/$defs/star_detection_config（块内 normalize_block.properties 与平铺顶层 properties 两形态同面，additionalProperties:false）；CLI 认键 = session_commands.h config_fields(SESSION_NORMALIZE) + parser.cpp session_keys()。缺段 = 取编译期默认，不是错误。 生产读取点 = module_adapters.cpp p1_guided_cfg（mode 越界 token 即 DATA fail-closed）。SCI/ALG 权威 = docs/ASTROCS_DESIGN.md §4.2（星表引导拟合 = 权威范式、全图盲检测非权威）。"
     },
     {
       "module": "03_star_detection",
@@ -2053,12 +2053,12 @@
     "declared_negatives": [
       {
         "literal": "bader r",
-        "where": "ASTROCS_DESIGN.md:144",
+        "where": "docs/ASTROCS_DESIGN.md:144",
         "must": "REJECT"
       },
       {
         "literal": "bader v",
-        "where": "ASTROCS_DESIGN.md:146",
+        "where": "docs/ASTROCS_DESIGN.md:146",
         "must": "REJECT"
       },
       {

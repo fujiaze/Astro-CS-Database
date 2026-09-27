@@ -52,7 +52,7 @@ python3 real_gain.py && python3 real_ridge.py && python3 real_pixel_check.py \
 ## 数据依赖
 
 - 真实数据：`run/RELEASE-02/L4-rebuild/norm/<tile>/`（49 帧 `calibrated_*.fts` + `p1_flux.json` + `p1_wcs.json`）。
-  根目录由 `real_gain._find_root()` 自动向上查找 `ASTROCS_DESIGN.md`，也可用环境变量 `ASTROCS_ROOT` 覆盖。
+  根目录由 `real_gain._find_root()` 自动向上查找 `docs/ASTROCS_DESIGN.md`，也可用环境变量 `ASTROCS_ROOT` 覆盖。
 - 合成实验：无外部依赖（自带场景生成）。
 
 ## ⚠ 本轮最重要的结论（负面，务必先读）

@@ -4,7 +4,7 @@
 权威（现行，逐条对应）:
   * `docs/api/CLI_PROTOCOL_V1.md` —— 断言对象（§1 命令树 / §2 退出码 / §3 stdout 纪律 /
     §4 JSONL 事件流 / §5 取消与崩溃 / §6 检查器合同 / §7 output_dir）；
-  * `ASTROCS_DESIGN.md` §7.1（唯一命令树）、§7.2（配置、事件与退出码）、
+  * `docs/ASTROCS_DESIGN.md` §7.1（唯一命令树）、§7.2（配置、事件与退出码）、
     §4.5（运行前预检三档）、§1.2（三命令平级独立）；
   * `lib/infrastructure/cli/exit_codes.h` —— 退出码**唯一源**（生产实现正本）；
   * `eng/contracts/schemas/jsonl_event_v1.schema.json` —— JSONL 事件流机器 schema（派生件）。
@@ -13,7 +13,7 @@ GAP_AUDIT G2-4 / D-8 处置（2026-09-22，GATE-502）:
   本文件旧版断言 `"全部删除且 rc=2"`、`" 10 "`、`"旧 Phase exe"`、`"以 04 为准"` 四条措辞，
   这些串在 tracked 权威文档（RELEASE-04 换版前后）中**都不存在** —— 旧断言对象是已不可得的
   04 控制包副本。现改为：对现行文档做**结构化解析**（代码块 / 枚举表 / 必含字段表 / 编号条款）
-  并与生产唯一源（exit_codes.h / jsonl schema / ASTROCS_DESIGN §7.1）**交叉核对**；
+  并与生产唯一源（exit_codes.h / jsonl schema / docs/ASTROCS_DESIGN §7.1）**交叉核对**；
   任何一处漂移都会判红（负例见 GATE-502 回执 §红绿双向证据）。
 """
 import os
@@ -22,11 +22,11 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "api", "CLI_PROTOCOL_V1.md")
-DESIGN = os.path.join(REPO, "ASTROCS_DESIGN.md")
+DESIGN = os.path.join(REPO, "docs/ASTROCS_DESIGN.md")
 EXIT_CODES_H = os.path.join(REPO, "lib", "infrastructure", "cli", "exit_codes.h")
 JSONL_SCHEMA = os.path.join(REPO, "eng", "contracts", "schemas", "jsonl_event_v1.schema.json")
 
-# §1 冻结命令树（ASTROCS_DESIGN §7.1 的唯一命令树在本合同的落地形态）。
+# §1 冻结命令树（docs/ASTROCS_DESIGN §7.1 的唯一命令树在本合同的落地形态）。
 SPEC_TREE = [
     "acsd --version [--json]",
     "acsd normalize (--json <config.json> | --template [-o <path>] | --help)",
@@ -114,7 +114,7 @@ class TestCliProtocol(unittest.TestCase):
         # 都会被这条抓住；常量侧由 test_01 逐行锁。
         got = fenced_block(self.s, "## 1 ")
         doc_cmds = {l.split()[1] for l in got}
-        self.assertEqual(design_cmds, doc_cmds, "CLI_PROTOCOL §1 与 ASTROCS_DESIGN §7.1 命令集不一致")
+        self.assertEqual(design_cmds, doc_cmds, "CLI_PROTOCOL §1 与 docs/ASTROCS_DESIGN §7.1 命令集不一致")
         # 三命令的三种形态在 §7.1 逐条存在
         for cmd in ("normalize", "mosaic", "export"):
             for form in ("--json <config.json>", "--template [-o <path>]", "--help"):
@@ -179,7 +179,7 @@ class TestCliProtocol(unittest.TestCase):
 
     # ── 7. 上游权威指针存活（替换旧 "以 04 为准" 自指断言） ──
     def test_07_upstream_authority_sections_exist(self):
-        self.assertIn("ASTROCS_DESIGN.md §7.1", self.s, "文档头必须声明上游 §7.1（命令树）")
+        self.assertIn("docs/ASTROCS_DESIGN.md §7.1", self.s, "文档头必须声明上游 §7.1（命令树）")
         self.assertIn("§7.2", self.s, "文档头必须声明上游 §7.2（配置、事件与退出码）")
         for h in ("### 7.1 命令树（唯一）", "### 7.2 配置、事件与退出码", "### 4.5 运行前预检（三个命令通用）"):
             self.assertIn(h, self.design, "最高设计缺小节 %r（上游指针失效）" % h)

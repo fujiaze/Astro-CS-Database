@@ -2,7 +2,7 @@
 """EXP-P4-04: Brightness-forward validation of dense-SNR reconstruction and its
 downstream (P5-side) consumption -- the chain use-case.
 
-Audit items I8 (brightness forward constraint: ASTROCS_DESIGN S2.4 /
+Audit items I8 (brightness forward constraint: docs/ASTROCS_DESIGN S2.4 /
 CONTROL_WEIGHT_SNR.md S2b) and I6 (dense / sparse_reconstruct / frame_reconstruct
 are reconstruction manners of ONE physical quantity; weights are NOT a caliber).
 

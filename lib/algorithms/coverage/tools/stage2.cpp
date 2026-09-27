@@ -385,7 +385,7 @@ int main(int argc, char** argv) {
     // 局部 SNR 质量场：PSF_SIGNAL_WEIGHT.md §7a 定案 —— stage2 的 local_snr /
     // frame_snr_medians 是**相对质量权重场**（改名 quality_weight），只作诊断。
     // §9.73 裁决 A44 后它**不再进入任何权重面**：原 weight_mode=0 的
-    // support×snr²（无量纲、非信号/噪声之比）已删除（ASTROCS_DESIGN.md
+    // support×snr²（无量纲、非信号/噪声之比）已删除（docs/ASTROCS_DESIGN.md
     // §3.1:173「权重只能来自纯净信号与噪声之比」；§3.1:175「没有可选择项」）
     // ⇒ 原 local_snr_map 的构造与其权重消费点一并删除，不留"建了不用"的死面。
     // 仅保留「无局部星点的 control observation 回退整帧 SNR median」这一
@@ -774,7 +774,7 @@ int main(int argc, char** argv) {
         }
     }
     // ivar 产品 —— §9.73 裁决 A44 后**唯一**权重口径（逐样本逆方差）。
-    // ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
+    // docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
     // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的口径」。
     // 整个 ivar 产品缺失时默认
     // → 显式 science/degraded 错误（无静默回退）；仅当显式配置
@@ -792,7 +792,7 @@ int main(int argc, char** argv) {
     if (ivar_product_missing > 0) {
         // §9.73 裁决 A44（同批清理）：原 legacy_allow_weight_fallback=true 的
         // support 降级分支已删除 —— support 是无量纲几何量，不是信号/噪声之比
-        // （ASTROCS_DESIGN.md §3.1:173），且「没有可选择项」（§3.1:175）。
+        // （docs/ASTROCS_DESIGN.md §3.1:173），且「没有可选择项」（§3.1:175）。
         // ⇒ ivar 产品缺失**恒** fail-closed：拒绝在非逆方差语义下冒充 ivar coadd。
         log("weight_policy=ivar 且 ivar 产品缺失 " +
             std::to_string(ivar_product_missing) + " 帧 → 显式科学错误；"
@@ -1362,7 +1362,7 @@ int main(int argc, char** argv) {
                 }
                 // §9.73 裁决 A44：唯一权重口径 = 逐样本 ivar（逆方差）。
                 // 原 weight_mode==0（support×snr²，无量纲、非信号/噪声之比）与
-                // weight_mode==1（等权）两条可选分支已删除（ASTROCS_DESIGN.md
+                // weight_mode==1（等权）两条可选分支已删除（docs/ASTROCS_DESIGN.md
                 // §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。
                 for (std::uint32_t s = 0; s < n_valid; ++s) {
                     const std::uint32_t orig = src_idx[s];
@@ -1617,7 +1617,7 @@ int main(int argc, char** argv) {
                 // §9.73 裁决 A44：唯一权重口径 = 逐像素 ivar（帧 ivar 产品）;
                 // 产品缺失 → support (几何可靠性, 不伪造 ivar)。原 mode 0
                 // (support×snr²) 与 mode 1 (equal) 两条可选分支已删除
-                // （ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
+                // （docs/ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
                 {
                     for (std::uint32_t s = 0; s < n_valid; ++s) {
                         // 用 source_indices（原 frame slot）取该帧该像素 ivar
@@ -1645,7 +1645,7 @@ int main(int argc, char** argv) {
                 }
                 // §9.73 裁决 A44：原 weight_mode==0（support×snr²，无量纲、非信号/
                 // 噪声之比）与 weight_mode==1（等权）两条可选分支已删除
-                // （ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
+                // （docs/ASTROCS_DESIGN.md §3.1:173/175；PSF_SIGNAL_WEIGHT.md §4:72）。
                 // SNR lookup 后统一校验候选权重（非 finite/负 → fatal；诊断透出首 tile/像素）
                 if (p2_validate_candidate_weights(weights.data(), n_valid) !=
                     0) {

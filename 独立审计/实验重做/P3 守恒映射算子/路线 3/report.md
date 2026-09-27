@@ -2,7 +2,7 @@
 
 **审查周期**: 2026-09-26  
 **审查依据**: `独立审计/证据/审查 -05-④-科学性 -1.md`、`审查 -05-④-科学性 -3.md`  
-**输入权威**: `docs/algorithms/DRIZZLE_GEOMETRY.md`、`ASTROCS_DESIGN.md` §2.3  
+**输入权威**: `docs/algorithms/DRIZZLE_GEOMETRY.md`、`docs/ASTROCS_DESIGN.md` §2.3  
 
 ---
 

@@ -2,7 +2,7 @@
 """AIO-OWNERSHIP: aio_image* owner 归类 + 禁止裸 free(aio_image*) + 算法目录禁产品 I/O。
 
 依据（现行权威）:
-- ASTROCS_DESIGN.md §9: "aio 是唯一 FITS/HiPS/manifest 读写边界; Phase1/2/3 复用同一
+- docs/ASTROCS_DESIGN.md §9: "aio 是唯一 FITS/HiPS/manifest 读写边界; Phase1/2/3 复用同一
   套 AIO, 禁止各自复制 reader/writer"; §7.1 顶层结构把 aio 归 lib/infrastructure/。
 - docs/plugins/infrastructure/17_aio.md §1/§6: aio 是唯一允许触碰磁盘产品的模块。
 - ENGINEERING_SPEC.md §8: 每项检查必须有正例与负例(能红能绿)。
@@ -50,7 +50,7 @@ ALG_SRC_EXT = (".c", ".cc", ".cpp", ".cxx")
 #   lib/algorithms/drizzle/hips/** = MODULE_MAP:P1-HIPS 目标目录(内为 aio_hips_writer 直写面
 #   + aio_publish_* staging 面), 依据 ARCH-001 迁移清单第 10/11 行(lib/hips 归 drizzle legacy),
 #   其退出 = AIO-001 收敛完成后删除该目录。此处显式登记豁免域, 只减不增。
-#   lib/algorithms/fits_output/** = 判据订正(ENGINEERING_SPEC §3): 最高设计 ASTROCS_DESIGN §7.1
+#   lib/algorithms/fits_output/** = 判据订正(ENGINEERING_SPEC §3): 最高设计 docs/ASTROCS_DESIGN §7.1
 #   与 docs/plugins/algorithms_phase3/16_fits_output.md §1/§3 把「流式 FITS 输出(PRIMARY+扩展
 #   HDU+WCS+provenance)」明定为该算法的**职责本体**; 本规则原文(AIO-OWN-002)写于 W4-A9 迁移前,
 #   把该模块的直写面误判为「算法侧复制 reader/writer」。订正为: 只有该模块自身为规则豁免域;
@@ -165,7 +165,7 @@ def main(argv=None):
     print(f"  total acquisition sites: {sum(len(v) for v in owners.values())}")
     alg = alg_scan(REPO)
     print("AIO-OWN-002 (lib/algorithms 生产源码禁直接 FITS/HiPS 产品 I/O; "
-          "依据 ASTROCS_DESIGN §9 / 17_aio.md §1):")
+          "依据 docs/ASTROCS_DESIGN §9 / 17_aio.md §1):")
     if alg:
         print(f"  AIO_OWNERSHIP_VIOLATION: {len(alg)} 处算法目录直接产品 I/O")
         for rel, ln, txt, rule in alg:

@@ -54,11 +54,11 @@
 
 #include "astrocs/common_abi_v1.h"
 #include "astrocs/core/context.h"
-// MEMGOV-01: 帧轴内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略）。
+// MEMGOV-01: 帧轴内存压力治理（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）。
 // 调度器在执行本节点前经 GovernorScope 绑定线程本地治理器，帧轴在此就近取用。
 #include "astrocs/core/memory_pressure.h"
 // P3-STREAM-01：ARCH-504 export 子块流式调度器（生产接线点 = phase3 writer 节点）。
-// 依据 ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写 FITS，
+// 依据 docs/ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写 FITS，
 // 有界队列 + 背压，不整幅驻留」+ docs/contracts/SCHEDULER_CONTRACT.md §2。
 #include "astrocs/core/export_stream.h"
 
@@ -127,7 +127,7 @@
 // astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
 // 相对路径 include 同 "../../../algorithms/star_detection/wrapper_phase1/star_detector.h" 先例, 根 CMake
 // 零改动）
-// 三个 Phase3 会话内核头已按 ASTROCS_DESIGN §7.1 迁入各自算法
+// 三个 Phase3 会话内核头已按 docs/ASTROCS_DESIGN §7.1 迁入各自算法
 // 模块 —— p3_wcs.h → algorithms/projection (批次 1)、p3_resample.h →
 // algorithms/resample (批次 2)、p3_output.h → algorithms/fits_output (批次 3);
 // 符号与命名空间零改动, 仅 include 面改锚。
@@ -167,7 +167,7 @@
 #include <vector>
 
 // ── CLEAN-403: 本 TU 的文件 I/O 全部经 aio 机制原语 ─────────────────────────
-// 依据 ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」+
+// 依据 docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」+
 // §9.73 裁决 U5。本命名空间只做**薄转发**(零策略/零缓存/零语义), 使调用点不再
 // 出现第二处文件系统原语; 机制唯一实现在 lib/infrastructure/aio/src/**。
 namespace aio_fs {
@@ -1167,7 +1167,7 @@ ModuleDescriptor p2_write_descriptor() {
   d.execution_class = "io";
   d.parallel_ok = false;
   d.ports = {
-      //GAP_AUDIT G3-4 / ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」:
+      //GAP_AUDIT G3-4 / docs/ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」:
       // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/sr;
       // docs/contracts/DATA_SEMANTICS.md §31.1）。integrated 输入面仍为
       // integrate 节点产出的逐像素信号面（docs/modules/registry/astrocs.phase2.write.md
@@ -1398,7 +1398,7 @@ std::string p1_base_name(const std::string& path) {
   return slash == std::string::npos ? path : path.substr(slash + 1);
 }
 
-// ── P0-21: 一组进一组出（ASTROCS_DESIGN §3.4「输出基数」）───────────────
+// ── P0-21: 一组进一组出（docs/ASTROCS_DESIGN §3.4「输出基数」）───────────────
 // 每帧输入 ⇒ 一个独立 HiPS 产品目录 output_dir/<frame_key>/。frame_key 由输入
 // light 基名（去扩展名）经字符白名单派生; 同块内重复 key ⇒ fail-closed
 // （两帧共用目录会互相覆盖产品与中间产物, 属"静默丢弃"）。
@@ -1826,7 +1826,7 @@ static uint32_t p1_axis_env_u32(const char* name) {
   return static_cast<uint32_t>(std::min<unsigned long long>(x, 4096ull));
 }
 
-// ── MEMGOV-01: 帧轴内存压力治理（ASTROCS_DESIGN.md §8.3:609-615 编排策略）──────
+// ── MEMGOV-01: 帧轴内存压力治理（docs/ASTROCS_DESIGN.md §8.3:609-615 编排策略）──────
 // 落实最高设计 §8.3 的三条策略在**帧级并行轴**上的语义：
 //   :612「探针校正」  —— 压力实测（进程树 RSS / 预算）与每次决策随事件流落盘
 //   :613「异步并行」  —— 「预算充裕」由实测压力判定（不再是一次性静态快照）
@@ -2165,7 +2165,7 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   }
   // 不变量自检（fail-closed）：帧轴退出时**必须**每一帧都跑完。
   // 覆盖不到 = 计数/回队逻辑有缺陷 ⇒ 抛异常（节点红），**绝不静默少一帧**
-  //（ASTROCS_DESIGN.md §8.3:616 数值结果与并发度无关、与治理无关）。
+  //（docs/ASTROCS_DESIGN.md §8.3:616 数值结果与并发度无关、与治理无关）。
   // 正常路径下恒不触发（含"持续高压把某帧钉住"的路径：钉住只停止丢弃，不停止执行）。
   if (rep.completed.load() != n) {
     throw std::runtime_error(
@@ -2239,7 +2239,7 @@ static uint64_t p1_available_memory_bytes() {
 #ifdef _WIN32
   return 0;  // 平台策略不变（见上）: Windows 恒 cap=1
 #else
-  // AIO-SYSINFO-01: 可用内存探测经 aio 边界（ASTROCS_DESIGN §10「aio 是文件级
+  // AIO-SYSINFO-01: 可用内存探测经 aio 边界（docs/ASTROCS_DESIGN §10「aio 是文件级
   // 唯一 I/O 边界」+ §9.73 裁决 U5）。口径（/proc/meminfo 的 MemAvailable，含
   // 可回收 page cache；读不到则回退 sysconf(_SC_AVPHYS_PAGES)×_SC_PAGESIZE）
   // 在 aio 侧唯一实现，本 TU 不再自持 fopen/fgets 通道。返回 0 = 不可判定
@@ -2525,7 +2525,7 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
           "light size mismatch vs first frame: " + lp));
       return;
     }
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -2914,7 +2914,7 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + in_path));
       return;
     }
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -3268,7 +3268,7 @@ inline double p1_psf_analytic_flux(double A, double sx, double sy) {
 
 // ════════════════════════════════════════════════════════════════════════════
 // STARDET-01：星表引导检测（权威路径）节点级驱动
-// 规范: ASTROCS_DESIGN.md §4.2（星表引导检测：用本帧 WCS 把 Gaia 星表逆投影到
+// 规范: docs/ASTROCS_DESIGN.md §4.2（星表引导检测：用本帧 WCS 把 Gaia 星表逆投影到
 //   像素域，只对星表位置做质心/PSF 拟合；拟合成功即星点，失败直接丢弃；按亮度
 //   取 top 2–5 万为上限，极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）
 //   + §2.1 + docs/plugins/algorithms_phase1/03_star_detection.md §4。
@@ -3294,7 +3294,7 @@ bool p1_header_pointing(const P1Image& im, double* ra0, double* dec0,
 // 取向先验取自本帧解算产物时必须用**同一判据**确认天测可用（有限 crval + 非退化 CD）。
 bool p1_wcs_astrometry_usable(const Json& wc, std::string* why);
 
-// top 数合同域 = 2–5 万（ASTROCS_DESIGN.md §4.2）。越界即 DATA 拒绝，禁静默夹取。
+// top 数合同域 = 2–5 万（docs/ASTROCS_DESIGN.md §4.2）。越界即 DATA 拒绝，禁静默夹取。
 static constexpr int kP1GuidedMaxStarsLo = 20000;
 static constexpr int kP1GuidedMaxStarsHi = 50000;
 // 206.265 = (180×3600)/π × 1e-3，与 kP9AsecPerUmPerMm / ipv_select.cpp:57
@@ -3348,7 +3348,7 @@ bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
     *why = "star_detection.max_stars=" + std::to_string(max_stars) +
            " outside contract domain [" + std::to_string(kP1GuidedMaxStarsLo) + ", " +
            std::to_string(kP1GuidedMaxStarsHi) +
-           "] (ASTROCS_DESIGN.md §4.2: top 2–5 万; 禁静默夹取)";
+           "] (docs/ASTROCS_DESIGN.md §4.2: top 2–5 万; 禁静默夹取)";
     return false;
   }
   out->max_stars = max_stars;
@@ -3725,7 +3725,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   const std::string psf_mode = (n_fit_limit > 0) ? std::string("fast")
                                                  : std::string("precise");
   // ── STARDET-01: 检测模式解析（权威 = 星表引导拟合）──────────────────────────
-  // 依据 ASTROCS_DESIGN.md §4.2 + docs/plugins/algorithms_phase1/03_star_detection.md §4。
+  // 依据 docs/ASTROCS_DESIGN.md §4.2 + docs/plugins/algorithms_phase1/03_star_detection.md §4。
   // 节点级一次解析（禁逐帧重复），模式与 fail-closed 语义见 p1_guided_cfg 注释块。
   P1GuidedCfg gcfg;
   {
@@ -3808,7 +3808,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "star_detection.mode=catalog_guided requires gaia_data_dir "
           "(star_detection.gaia_data_dir or wcs.gaia_data_dir): refusing to degrade to "
-          "full-frame blind detection (ASTROCS_DESIGN.md §4.2)"));
+          "full-frame blind detection (docs/ASTROCS_DESIGN.md §4.2)"));
     }
     if (!have_orient) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -3817,7 +3817,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
           ") and neither star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} (or the "
           "same keys under the wcs section) nor star_detection.rotation_deg + "
           "star_detection.parity is configured; refusing to inverse-project the catalog with "
-          "an assumed orientation (ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)"));
+          "an assumed orientation (docs/ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)"));
     }
   }
   const bool guided = (eff_mode == "catalog_guided");
@@ -3890,7 +3890,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
       return;
     }
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -4267,7 +4267,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   (*man)["fit_limit"] = n_fit_limit;        // P14-N-08
   (*man)["psf_fit_truncated"] = n_fit_total < n_total_total;  // P14-N-08
   (*man)["n_psf_valid"] = n_valid_total;
-  // STARDET-01: 检测模式与权威性登记（ASTROCS_DESIGN.md §4.2 权威 = 星表引导拟合）
+  // STARDET-01: 检测模式与权威性登记（docs/ASTROCS_DESIGN.md §4.2 权威 = 星表引导拟合）
   (*man)["detection_mode"] = eff_mode;
   (*man)["detection_authoritative"] = guided;
   (*man)["detection_degraded_reason"] = degrade_reason;
@@ -5184,7 +5184,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
       return;
     }
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -5298,7 +5298,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //   (c) 全局性失败（星表不可读 / 配置非法 / 冻结 C 入口自身 rc!=0）⇒ 本节点
   //       **中止**（环境问题，不是数据问题；换一帧也不会好）。
   // 运行级判红：失败帧不产出产品 ⇒ 产品数 < 输入帧数，由 write_hips 节点按
-  //   ASTROCS_DESIGN §4.4「任何一帧未被处理、跳过或失败都显式判红」上抛
+  //   docs/ASTROCS_DESIGN §4.4「任何一帧未被处理、跳过或失败都显式判红」上抛
   //   SCIENCE_PRECONDITION（exit 4）；本节点不因单帧失败而中止。
   // 逐帧判决是**唯一真相**（manifest.frame_status / p1_phot.json.frames[]）；
   //   组级 photometry_applied 只是摘要，下游不得据此替代逐帧判定。
@@ -5395,7 +5395,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   std::map<std::string, P1FrameScale> scales;
   // PHOT-MXY-01: m(x,y) 的审计面（系数 + 规范 + 基函数清单 + 拟合残差 + 可辨识性
   // 读数 + 降级原因）。落进 p1_phot.json 的 photscale_detail / photscale_fit，
-  // 使「乘进像素的空间场是什么」可被独立读者复算（ASTROCS_DESIGN §4.2 的可核对性）。
+  // 使「乘进像素的空间场是什么」可被独立读者复算（docs/ASTROCS_DESIGN §4.2 的可核对性）。
   auto p1_spatial_gain_json = [](const P1FrameScale& sc) -> Json {
     Json c = Json::array();
     const int nt = (sc.m_order <= 0) ? 0 : (sc.m_order == 1 ? 2 : 5);
@@ -6048,7 +6048,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
             "photometry apply: cannot read " + src_path_i));
         return;
       }
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -6318,7 +6318,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   }
   if (n_frames_failed == 0 && !photometry_applied) {
     // 通道缺席且无一帧施加: 「测光未配置」的**显式降级**（不是某帧拟合失败）。
-    // 依据 ASTROCS_DESIGN §4.2「该步不可用时产品显式记录 degraded_reason 并
+    // 依据 docs/ASTROCS_DESIGN §4.2「该步不可用时产品显式记录 degraded_reason 并
     // fail-closed」+ LOG 合同 §6 D1/D2。拟合失败**不再**走 degraded_reason ——
     // 它是显式失败（frames[].status=fail + error_*）, 由运行级判红收敛。
     prov["degraded_reason"] = "photscale_absent";
@@ -6356,7 +6356,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ── NOISE-MODEL-CANON-002（负责人 §9.67 定案 2「逐像素方差接入」+ ASTROCS_DESIGN
+// ── NOISE-MODEL-CANON-002（负责人 §9.67 定案 2「逐像素方差接入」+ docs/ASTROCS_DESIGN
 //    §8.2:526-527「阶段内：命名块内存管线与块生命周期」）────────────────────────────────────
 // A（snr_noise_model_v1 / _f64 / _fill；docs/science/NOISE_MODEL.md:71/165 与
 // docs/algorithms/NOISE_ESTIMATION.md §13.1:120「生产符号唯一源」）的**调用侧配置
@@ -7030,7 +7030,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         : static_cast<const void*>(im.px());
     const std::string base = p1_base_name(path);
 
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -7697,7 +7697,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
       return;
     }
-    // ── MEMGOV-01 丢弃安全点（ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
+    // ── MEMGOV-01 丢弃安全点（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」）────────
     // 位置依据（三条同时成立）：① 本帧像素已读入并校验（占用已产生）；② **尚未落盘
     // 任何本帧产物**（本 op 的原子提交点在此之后）；③ **尚未进入跨帧共享可变状态**
     // （noise floor 全局注册表的注册→释放区间 / 任何跨帧累加器）。
@@ -7876,7 +7876,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "add data block failed"));
       return;
     }
-    // ── 定案 2（负责人 §9.67「2那就接入啊」+ ASTROCS_DESIGN §8.2:526-527）──
+    // ── 定案 2（负责人 §9.67「2那就接入啊」+ docs/ASTROCS_DESIGN §8.2:526-527）──
     // 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ §11.1:295 逐字
     // 「variance 面（可选，帧内块）| float32，随 data 布局 | ADU²」）。
     // 生产者 = A（snr_noise_model_v1/_fill; 与 p1_op_noise 共用
@@ -7888,7 +7888,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // 帧身份/标度: 输入数组 = 与 "data" 块**同一数组、同一 dtype** ⇒ 无需 SNR-002
     //   尺度律（PHOTSCAL 已由上游测光节点乘入, 本节点不二次缩放, 见 hp_drizzle_api
     //   的 apply_photometry=false 口径）。
-    // fail-closed（ASTROCS_DESIGN §8.2:547「退化或无正有限值的面（如全零方差面）
+    // fail-closed（docs/ASTROCS_DESIGN §8.2:547「退化或无正有限值的面（如全零方差面）
     // 不挂帧，挂帧会导致积分侧清空像素」）:
     //   ① A 退化（rc=1）时 variance_bg_global 保持 0（noise_model.cpp:414-418）
     //      ⇒ _fill 写出全零平面（:739-746）; 而 drizzle_engine.cpp:1919 对
@@ -8066,7 +8066,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           var_reason = "NoiseWeightModelV1 degenerate (rc=1): variance_bg_global=0;"
                        " attaching an all-zero plane would make drizzle_engine"
                        " skip every pixel (varianceValue<=0 => continue) and erase"
-                       " signal/support (ASTROCS_DESIGN §8.2:547)";
+                       " signal/support (docs/ASTROCS_DESIGN §8.2:547)";
         } else if (!var_plane_auditable) {
           // §5d/§8 fail-closed（与上一条分支同口径：显式降级、不静默、不出片）。
           // 注意本分支**不**消费 classify_variance_plane 的 n_usable 判据：那张面
@@ -8419,7 +8419,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       }
       (*man)["variance_product_status"] =
           var_all ? "attached" : (var_any ? "mixed" : "skipped");
-      // 块词表登记（ASTROCS_DESIGN §8.2:526: 名字/形状/类型/单位/可缺性）。
+      // 块词表登记（docs/ASTROCS_DESIGN §8.2:526: 名字/形状/类型/单位/可缺性）。
       (*man)["variance_block_name"] = "variance";
       (*man)["variance_block_type"] = "AIO_BLOCK_FLOAT32";
       (*man)["variance_block_shape"] = f_var_block[fi]["shape"];
@@ -8484,10 +8484,10 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     if (uniq.failed()) return uniq;
   }
   const std::string filter_passband = doc.value("filter_passband", std::string());
-  // ── FAILSEM-01: 上游逐帧失败判决 → 运行级判红（ASTROCS_DESIGN §4.4）───────
+  // ── FAILSEM-01: 上游逐帧失败判决 → 运行级判红（docs/ASTROCS_DESIGN §4.4）───────
   // 「任何一帧未被处理、跳过或失败都显式判红，产品数与输入帧数可核对」。
   // 上游测光节点判 fail 的帧没有产品 ⇒ 产品数 < 输入帧数。本节点把该事实**显式
-  // 判红**（SCIENCE_PRECONDITION → exit 4，ASTROCS_DESIGN §7.2「4 = 科学验证或
+  // 判红**（SCIENCE_PRECONDITION → exit 4，docs/ASTROCS_DESIGN §7.2「4 = 科学验证或
   // 不变量失败」），并且**不发布** p1_products.json（P0-21: 不产出部分产品却报
   // 成功）。其他帧的 HiPS 产物已在磁盘上（本节点不回滚、不删除它们的证据）。
   Json phot_failed = Json::object();      // frame_key -> 上游逐帧失败记录
@@ -8538,7 +8538,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           p1_frame_key(lp) + " upstream_status=" +
           (up_status.empty() ? std::string("(none)") : up_status) + " upstream_error=" +
           (up_err.empty() ? std::string("(none)") : up_err) +
-          " (ASTROCS_DESIGN §4.4: 任何一帧失败都显式判红; 该帧不产出产品,"
+          " (docs/ASTROCS_DESIGN §4.4: 任何一帧失败都显式判红; 该帧不产出产品,"
           " 其余帧产物已写出但数据集清单不发布)"));
     }
     if (!aio_fs::exists(props)) {
@@ -8553,7 +8553,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     int nside = 0;
     // ── SCI-NOISE-001 §5d: 把**上游落盘**的审计块读回来（AUDIT-PERSIST-01）──────
     // 为什么读磁盘而不是靠节点间内存传递：三阶段/多节点之间只经「磁盘产品 +
-    // manifest + 哈希」交换（ASTROCS_DESIGN §1），节点 manifest 在本链上不落盘
+    // manifest + 哈希」交换（docs/ASTROCS_DESIGN §1），节点 manifest 在本链上不落盘
     // （见 p1_variance_audit_block 头注）。p1_stack.json 是 drizzle 节点自己写的
     // 逐帧产物，读它与读 nside 走的是同一次 open，零额外 I/O。
     Json var_audit_up = Json::object();
@@ -8920,7 +8920,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
       (*man)["final_artifact"] = final_path;
     }
   }
-  // ── 聚合结构化 JSON（ASTROCS_DESIGN §3.4「外加 1 个列出全部产品路径的结构化
+  // ── 聚合结构化 JSON（docs/ASTROCS_DESIGN §3.4「外加 1 个列出全部产品路径的结构化
   //    JSON」+「可串行衔接」）: hips_paths 可直接作为 mosaic 的 hips_paths 消费。
   const std::size_t n_inputs = doc["input_lights"].size();
   if (hips_paths.size() != n_inputs) {
@@ -11367,7 +11367,7 @@ static bool p2_hips_prop_double(AioHipsDataset* ds, const char* key, double* out
 
 // ── op: integrate_frames（唯一真实入口 p2_validate_candidate_weights +
 //      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同 +
-//      §9.73 裁决 A44 的**单一权重口径**（ASTROCS_DESIGN.md §3.1:175
+//      §9.73 裁决 A44 的**单一权重口径**（docs/ASTROCS_DESIGN.md §3.1:175
 //      「权重的产生链固定为两步、没有可选择项」；PSF_SIGNAL_WEIGHT.md §4）:
 //      逐样本 ivar 逆方差。ivar 产品缺失 → 不再等权降级:
 //      由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
@@ -11397,8 +11397,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
 
   // ── §9.73 裁决 A44：legacy 整数权重模式域（0/1/2）已删除 ─────────────────
   // 规范依据（权威，只读）：
-  //   · ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
-  //   · ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
+  //   · docs/ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
+  //   · docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
   //   · docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72「单一权重口径（无模式选择）」
   //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」；
   //   · docs/ci/01_CHECKS.md CHK-NO-WEIGHT-MODE-CODE（FZ-WEIGHT-SINGLE-PATH）。
@@ -11410,19 +11410,19 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   if (doc.contains("weight_mode"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
-        "（ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"
+        "（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"
         "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"
         "权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 "
         "w = SNR^2/F_ref^2 = 1/sigma_F^2；请删除该键。"));
   // §9.73 裁决 A44（同批清理）：legacy_allow_weight_fallback **已删除**。
   // 该键曾允许「ivar 缺失 → 降级 support/equal」；support 是无量纲几何量、equal 是等权，
-  // 二者都不是信号/噪声之比（ASTROCS_DESIGN.md §3.1:173/175）⇒ 既不能被设、也不能被读，
+  // 二者都不是信号/噪声之比（docs/ASTROCS_DESIGN.md §3.1:173/175）⇒ 既不能被设、也不能被读，
   // 出现即 fail-closed 具名拒绝。唯一降级面 = 帧级 SNR 逆方差链 w = SNR^2/F_ref^2，
   // 由数据可用性自动决定（不是用户开关）；权重链未闭合即 DATA 错误。
   if (doc.contains("legacy_allow_weight_fallback"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
-        "support 或等权降级冒充逆方差权重，与 ASTROCS_DESIGN.md §3.1:173「权重只能"
+        "support 或等权降级冒充逆方差权重，与 docs/ASTROCS_DESIGN.md §3.1:173「权重只能"
         "来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。唯一降级面 = "
         "帧级 SNR 逆方差链 w = SNR^2/F_ref^2；请删除该键。"));
 
@@ -11608,7 +11608,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   }
   // §9.73 裁决 A44：原 `else`（weight_mode==1 → 等权、unit_weight_mode1、
   // uncertainty_unavailable_reason="weight_mode_1_equal_non_ivar"）已删除 ——
-  // 等权是**可选择的非逆方差口径**，与 ASTROCS_DESIGN.md §3.1:175「没有可选择项」
+  // 等权是**可选择的非逆方差口径**，与 docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」
   // 直接冲突；唯一口径 = 逐样本 ivar，ivar 缺失走帧级 SNR 逆方差链（fail-closed）。
   struct IvarGuard {
     std::vector<IvarSet>* v;
@@ -12051,7 +12051,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p2_integrated.json";
   Json missing_j = Json::array();
   for (uint64_t mf : ivar_missing_frames) missing_j.push_back(mf);
-  // G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
+  // G3-12（docs/ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
   // 产品面**不再落** weight_mode 键。方差面状态由 corrected_variance_used /
   // snr_chain_used / uncertainty_available 三个语义键如实承载（下方均在册）。
   Json artifact = Json{{"schema", "DATA-P2-INT"},
@@ -12115,7 +12115,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ══ (ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1) ═══════════════════
+// ══ (docs/ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1) ═══════════════════
 // Phase2 mosaic 产品集: 运行私有暂存区 → 校验 → 统一原子发布。
 // 暂存区 = output_dir 的**兄弟**路径 (同文件系统 ⇒ rename 不跨设备; 不在正式
 // 目录内 ⇒ 正式目录永不出现半成品 tile), 词法与 aio_publish v1 的
@@ -12186,7 +12186,7 @@ bool p2_publish_mosaic_tree(const std::string& out_dir,
 }
 
 // ══ Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）═════════════════
-// 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/DATA_SEMANTICS.md §31.1（signal_sb = ADU/sr; 方差/ivar 由二次律唯一导出）;
+// 依据: docs/ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/DATA_SEMANTICS.md §31.1（signal_sb = ADU/sr; 方差/ivar 由二次律唯一导出）;
 // FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表的 canonical
 // 产品串（kP3Bunit* 常量），本节点不另发明第二套词表、不做任何"猜测"。
 //
@@ -12463,7 +12463,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const uint32_t nside =
       1u << static_cast<uint32_t>(target_order + 9);
   const uint64_t tile_span = int_doc.value("tile_leaf_span", kP2TileLeafSpan);
-  // 审计面（DATA-UNC-001 §30.1 规则 1 / ASTROCS_DESIGN §3.1）：集成产物必须
+  // 审计面（DATA-UNC-001 §30.1 规则 1 / docs/ASTROCS_DESIGN §3.1）：集成产物必须
   // **显式**声明方差面是否科学可用；缺键 ⇒ DATA fail-closed（禁静默缺省）。
   // G3-12：原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
   // §3.1「全程只有 SNR，不存在『权重模式』这个概念」冲突，且该键随产品落盘。
@@ -12964,7 +12964,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             // （数值上含读噪/量化时 variance != signal^2，见 EMVA 1288 R4.0 Linear §2.4 Eq.(15)）。
                             {"quadratic_law", "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"}}},
                         {"uncertainty_available", uncertainty_available},
-                        // G3-12（ASTROCS_DESIGN §3.1）：p2_final.json
+                        // G3-12（docs/ASTROCS_DESIGN §3.1）：p2_final.json
                         // **不再落** weight_mode 键（「全程只有 SNR，不存在
                         // 『权重模式』这个概念」）；方差面状态由
                         // uncertainty_available + weight_basis +
@@ -12978,7 +12978,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             {"ASTROCS_MODEL_HASH", model_hash},
                             {"ASTROCS_UNCERTAINTY_AVAILABLE",
                              uncertainty_available ? "true" : "false"},
-                            // A44（GAP_AUDIT §9.73 / ASTROCS_DESIGN §2.1）：全程只有
+                            // A44（GAP_AUDIT §9.73 / docs/ASTROCS_DESIGN §2.1）：全程只有
                             // SNR，**不存在「权重模式」** ⇒ 本 provenance 面不得承载
                             // ASTROCS_WEIGHT_MODE（原键已删除；HiPS provenance 只承载
                             // 帧级 SNR 与稀疏相对 SNR 比值）。
@@ -13322,13 +13322,13 @@ struct P2NodeModule : public IModule {
     if (doc.contains("weight_mode"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
-          "（ASTROCS_DESIGN.md §3.1:175「没有可选择项」；"
+          "（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；"
           "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"));
     // §9.73 裁决 A44（同批清理）：该键已删除 ⇒ 出现即拒绝（不再做类型校验后放行）。
     if (doc.contains("legacy_allow_weight_fallback"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
-          "support 或等权降级冒充逆方差权重（ASTROCS_DESIGN.md §3.1:173/175）。"));
+          "support 或等权降级冒充逆方差权重（docs/ASTROCS_DESIGN.md §3.1:173/175）。"));
     return Result<void>::success();
   }
 
@@ -13813,7 +13813,7 @@ bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
   return true;
 }
 
-// ══ Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）═════════════
+// ══ Phase3 输入语义守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）═════════════
 // 生产 export 只接受**面亮度语义**输入；按输入 provenance 声明的单位分派，
 // 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）:
 //   * 面亮度（BUNIT 显式含立体角幂次 canonical "ADU/sr"，或 BUNIT=ADU +
@@ -13940,7 +13940,7 @@ P3InputUnit p3n_guard_input_units(const std::string& hips_dir) {
       g.code = "P3-INPUT-NOT-SURFACE-BRIGHTNESS";
       g.reason = "BUNIT 'ADU' with ASTROCS_PIXEL_SEMANTICS=integrated_flux resolves to"
                  " integrated flux; export accepts surface-brightness inputs only"
-                 " (ASTROCS_DESIGN §6.3)";
+                 " (docs/ASTROCS_DESIGN §6.3)";
       return g;
     }
     // 裸 ADU 而无像素语义声明: 输入**未声明**可判语义 → 输入格式错 (exit 3)
@@ -13955,7 +13955,7 @@ P3InputUnit p3n_guard_input_units(const std::string& hips_dir) {
   // 其余（含可解析的非面亮度单位与冻结词汇表外单位）: 已声明但非面亮度语义 → exit 4
   g.code = res.resolvable ? "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
                           : "P3-INPUT-UNIT-UNSUPPORTED";
-  g.reason = "export accepts surface-brightness inputs only (ASTROCS_DESIGN §6.3):"
+  g.reason = "export accepts surface-brightness inputs only (docs/ASTROCS_DESIGN §6.3):"
              " BUNIT '" + g.bunit_raw + "'" +
              (res.resolvable ? (" resolves to '" + res.resolved.canonical() + "'")
                              : std::string(" is outside the frozen unit vocabulary")) +
@@ -14242,7 +14242,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   }
 
   const long nelem = (long)g.w * g.h;
-  // ── P3-STREAM-01：子块流式（ASTROCS_DESIGN §8.3 export 行）──────────────
+  // ── P3-STREAM-01：子块流式（docs/ASTROCS_DESIGN §8.3 export 行）──────────────
   // 驻留面 = 单个子块 × 并发任务数（**与总图大小无关**）：子块按 (by,bx) 行
   // 主序产出，经 aio 位置写直接落进 p3_resampled.bin 的平面行主序区间；
   // 平面布局与整幅实现逐字节相同（plane 连续拼接，行主序），故下游 writer/
@@ -15250,7 +15250,7 @@ struct P3NodeModule : public IModule {
     ModulePlan p;
     p.node_id = node_id;
     p.work_units = 1;
-    // P3-STREAM-01：export 的调度单元 = 输出子块（ASTROCS_DESIGN §8.3 export 行）；
+    // P3-STREAM-01：export 的调度单元 = 输出子块（docs/ASTROCS_DESIGN §8.3 export 行）；
     // 具体切分在 op 内按 sub_block_px 与预算确定（work unit 经唯一 executor 提交）。
     p.parallel_axes = {"sub-block"};
     p.cpu_heavy = desc_.execution_class == "cpu_heavy";

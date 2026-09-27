@@ -8,7 +8,7 @@
 输出: artifacts/evidence/prerelease-v5/capsules/REV-002_<commit12>.zip
 
 退役 (RETIRED, 2026-09-16, 负责人裁决) —— REV-002 属旧世代(V5 控制包)审阅胶囊任务, 随该世代作废:
-  1. 依据: ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)+ 负责人裁决
+  1. 依据: docs/ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)+ 负责人裁决
      「历史版本控制包全部作废; artifacts/ 不归档不保留」(artifacts/ 整体删除见 commit b1290525);
   2. 输入已不存在: artifacts/evidence/prerelease-v5/tables/{TRACEABILITY,COMMITS,REVIEW_CAPSULE_INDEX}.csv
      三条被第 119-121 行的 isfile 判定**静默跳过**(不报错、不留痕);
@@ -138,7 +138,7 @@ def collect_files() -> list[tuple[str, str]]:
 
 RETIRED_NOTICE = (
     "MAKE_REV2_CAPSULE_RETIRED: 本工具（旧世代 REV-002 审阅胶囊生成器）已于 2026-09-16 按负责人裁决退役。\n"
-    "  依据: ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
+    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
     "（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: artifacts/evidence/prerelease-v5/tables/*.csv 与 artifacts/evidence/prerelease-v5/capsules/。\n"

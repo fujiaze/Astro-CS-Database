@@ -119,7 +119,7 @@ def parse_ir(ir_text: str) -> set:
 #      它把"检测"钉在"解算"之前, 使"权威检测需要含取向的 WCS"变成循环依赖;
 #   ② 节点数组序不是注册表 DAG 的拓扑序 ⇒ 数组序只是文档, 与调度真实序脱节;
 #   ③ psf 节点被排到 wcs 之前 ⇒ 取向先验只能靠配置或"北向上/东向左"假设
-#      （ASTROCS_DESIGN.md §4.2: 权威路径不得以假设取向冒充）。
+#      （docs/ASTROCS_DESIGN.md §4.2: 权威路径不得以假设取向冒充）。
 
 def _split_top_level(arg_text: str):
     """按顶层逗号切分 mk() 实参（只认 {} () [] 深度；字符串内不切）。"""

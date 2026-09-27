@@ -11,7 +11,7 @@
 // §9.73 裁决 A44（同批清理）：原 stack.support_x_snr2.v1（weight_mode=0，
 // weights = support × SNR²）与 stack.equal.v1（weight_mode=1 → 等权）两个
 // **可选口径**及其 weight_mode 选择键**已删除** —— support 是无量纲几何量、
-// equal 是等权，二者都不是信号/噪声之比（ASTROCS_DESIGN.md §3.1:173/175；
+// equal 是等权，二者都不是信号/噪声之比（docs/ASTROCS_DESIGN.md §3.1:173/175；
 // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、
 // 口径配置项或口径产物」）。
 // UPM 控制点权重为 upm.robust_control_weight.v1（不同语义，禁止混名）。

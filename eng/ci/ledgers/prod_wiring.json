@@ -137,7 +137,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_badcol.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "ac_column_variance_inflate"
@@ -148,7 +148,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_badcol.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "ac_correct_columns"
@@ -159,7 +159,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_badcol.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "ac_correct_columns_ex"
@@ -170,7 +170,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_badcol.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "ac_correct_columns_f64"
@@ -181,7 +181,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/cosmetic/tests/p1cos/p1cos_tests_badcol.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "ac_detect_bad_columns_from_master"
@@ -192,7 +192,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/p2_block_plan_test.cpp,lib/algorithms/coverage/tests/sanitize_driver.cpp,lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_block_plan"
@@ -203,7 +203,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_coverage_support_classify"
@@ -214,7 +214,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_deterministic_reduction_order"
@@ -225,7 +225,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/rejection_nonfinite_weights_test.cpp,lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_eligibility_filter"
@@ -236,7 +236,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/synthetic_gate.cpp,lib/algorithms/coverage/tools/stage2.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_large_scale_apply"
@@ -247,7 +247,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_reject_calibration"
@@ -258,7 +258,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_reject_classify"
@@ -269,7 +269,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_reject_plan_thresholds_inherited"
@@ -280,7 +280,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/sanitize_driver.cpp,lib/algorithms/coverage/tests/synthetic_gate.cpp,lib/algorithms/coverage/tools/rejection_cli.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_reject_stack"
@@ -291,7 +291,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_rejection_class_id"
@@ -302,7 +302,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_rej/p2_rej_v6_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_rejection_weight_surface_guard"
@@ -313,7 +313,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_scalar_degrade_gate"
@@ -324,7 +324,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp,lib/algorithms/coverage/tools/stage2.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_estimate_gain_dc"
@@ -335,7 +335,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=全仓零调用点；def=lib/algorithms/coverage/src/sky_plane.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_patch_default_config"
@@ -346,7 +346,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_patch_estimate"
@@ -357,7 +357,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_node_adapt_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_adaptive_report"
@@ -368,7 +368,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_eval"
@@ -379,7 +379,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_eval_block"
@@ -390,7 +390,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_frame_delta"
@@ -401,7 +401,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky_kappa/v6_p2_sky_kappa_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_normal_matrices"
@@ -412,7 +412,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky_kappa/v6_p2_sky_kappa_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_normal_matrix_size"
@@ -423,7 +423,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_sky_plane_residuals"
@@ -434,7 +434,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_spatial_model_eval"
@@ -445,7 +445,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_spatial_model_summary"
@@ -456,7 +456,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_star_mask_caps"
@@ -467,7 +467,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_star_mask_contains"
@@ -478,7 +478,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_stats_mad"
@@ -489,7 +489,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_stats_median"
@@ -500,7 +500,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_tile_boundary_owner"
@@ -511,7 +511,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_control_variance"
@@ -522,7 +522,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/sanitize_driver.cpp,lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_dense_info"
@@ -533,7 +533,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/sanitize_driver.cpp,lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_dense_read_block"
@@ -544,7 +544,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp,eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp,eng/tests/validation/release02/unc_propagation/unc_prop_oracle.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_build"
@@ -555,7 +555,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_c_out"
@@ -566,7 +566,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp,eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp,eng/tests/validation/release02/unc_propagation/unc_prop_oracle.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_close"
@@ -577,7 +577,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_component_of_frame"
@@ -588,7 +588,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_component_ref_frame"
@@ -599,7 +599,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp,eng/tests/validation/release02/unc_propagation/unc_prop_oracle.cpp,lib/algorithms/coverage/tools/stage2.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_info"
@@ -610,7 +610,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp,eng/tests/validation/release02/unc_propagation/unc_prop_oracle.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_param_cov"
@@ -621,7 +621,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_provenance"
@@ -632,7 +632,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_sky/v6_p2_sky_test.cpp,eng/tests/unit/v6_p2_upm/v6_p2_upm_ma_test.cpp,eng/tests/validation/release02/unc_propagation/unc_prop_oracle.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_ma_solution"
@@ -643,7 +643,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tests/sanitize_driver.cpp,lib/algorithms/coverage/tests/synthetic_gate.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_materialize_dense"
@@ -654,7 +654,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：lib/algorithms/coverage/tools/stage2.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_upm_materialize_dense_n"
@@ -665,7 +665,7 @@
       "reason": "类 A 处置：该符号是模块版本化公开头的 C ABI 声明（模块对外/诊断面），生产路径走变体入口或诊断工具，不在三个生产命令的调用图上——按 PUBLIC_API.md 新增节的口径登记豁免，不冒充生产接线；判决证据=调用点仅在非生产面：eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp,lib/algorithms/coverage/tests/weight_mode_retire_negative_test.cpp",
       "owner": "前台（模块公开头 C ABI 面的消费者/退役裁决人）",
       "exit_condition": "该符号进入三个生产命令的调用图（或其在生产链上被真实消费）；或按 docs/contracts/PUBLIC_API.md 变更流程退役该符号（删声明+实现+测例迁移）；或该符号并入已接线的变体入口。满足任一条即删本条目。",
-      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
+      "authority": "docs/contracts/PUBLIC_API.md（2026-09-25 新增节「C ABI 声明面 ≠ 三命令生产调用面」） + docs/ASTROCS_DESIGN.md §8.4/§8.5（模块版本化公开头、单一 entrypoint） + §10（诊断/测试接口与生产路径区分登记）",
       "evidence": "run/WIRING-W16-01/out/prod_wiring_p2.json（同轮判决）+ run/WIRING-W16-01/REPORT.md §3 类 A 抽样复核",
       "class": "A",
       "symbol": "p2_weight_source_token_reject"

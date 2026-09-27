@@ -1,5 +1,5 @@
 // lib/algorithms/fits_output/p3_output.cpp — 输出原子写/校验 (ALG-P3-004) — P3-004
-// 原址 lib/phase3_session/p3_output.cpp, 按 ASTROCS_DESIGN
+// 原址 lib/phase3_session/p3_output.cpp, 按 docs/ASTROCS_DESIGN
 // §7.1「fits_output」行迁入本模块; 源逐字节等价 (仅头注 | include 面改锚)。
 #include "p3_output.h"
 
@@ -32,7 +32,7 @@
 // 成立; 该目录已由 astrocs_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
 #include "aio_cfitsio_mutex.h"
 #include "sha256.h"
-// ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
+// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
 // 本模块**不再**自持文件系统原语 —— 临时文件/fsync/原子 rename/删除经 aio
 // 机制原语 (aio_atomic_file.h), 文件内容摘要经 aio 摘要原语
 // (aio_file_io.h)。二者均为 aio 内唯一实现 (header-only 机制面)。
@@ -621,7 +621,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 // ══════════════════════════════════════════════════════════════════════════
 // 子块流式写 / 独立重开流式校验（P3-STREAM-01）
 //
-// 规范：ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
+// 规范：docs/ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
 // FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成
 // 正比、与总图大小无关」；docs/contracts/SCHEDULER_CONTRACT.md §2 export 行同文。
 // 产品语义与整幅 API 逐条同面（FITS 关键字、BSCALE/BZERO、HISTORY provenance、

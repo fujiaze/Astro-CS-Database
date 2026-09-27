@@ -22,7 +22,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
 // 执行一次 pipeline（同步；取消经 Runtime::cancel）
 // MON-002: cancel_ext 为可选外部协作取消源 —— 与信号 cancel_flag 等价转发 rt->cancel()，
 // 但不影响 CLI 全局取消态。
-// §9.74 裁决 10（ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ CLI 不再因
+// §9.74 裁决 10（docs/ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ CLI 不再因
 // 资源判据（CPU/内存/线程）置位本取消源（原 first-10s gate 快速失败接线已退役）；
 // 参数保留为通用外部取消面，调用点当前恒传 nullptr。
 // 返回: exit code（astrocs::OK=0；科学失败=4；IO=7；...）
@@ -32,7 +32,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
 //   0 = 未提供 ⇒ 不启用内存回压（语义同旧行为，便于既有调用方零改动）。
 // memory_available_bytes / memory_budget_percent —— 预算推导的输入回显（证据面；
 //   只进观测，不参与判定）。压力分子来源（进程树 RSS）由本层注入 aio 探针：
-//   aio 是文件级唯一 I/O 边界（ASTROCS_DESIGN §10），core 不因此链接 astrocs_aio。
+//   aio 是文件级唯一 I/O 边界（docs/ASTROCS_DESIGN §10），core 不因此链接 astrocs_aio。
 //   压力事件台账落 <config.output_dir>/memory_pressure_ledger.jsonl（JSONL，只增不改）。
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason,

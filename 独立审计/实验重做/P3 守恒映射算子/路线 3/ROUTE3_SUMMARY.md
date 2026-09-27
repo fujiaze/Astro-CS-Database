@@ -124,7 +124,7 @@
 
 **结果**: 
 - A_drop 口径通量误差=0;A_pixel 口径误差随 pixfrac 增大 (+56%~+300%)
-- **订正要求**: DRIZZLE.md:44-50,DATA_SEMANTICS.md:47,ASTROCS_DESIGN.md:209 同步改为`A_drop,j`
+- **订正要求**: DRIZZLE.md:44-50,DATA_SEMANTICS.md:47,docs/ASTROCS_DESIGN.md:209 同步改为`A_drop,j`
 
 **文件**: `results/drizzle_weight_denominator.json`
 
@@ -135,7 +135,7 @@
 | 幻觉编号 | 错误锚 → 正确锚 | 本路处理 |
 |---|---|---|
 | H1 | astro_sphere_sink.cpp:1617 → drizzle_engine.cpp:1617 | 确认实现位置 |
-| H2 | ASTROCS_DESIGN.md:209 写 `/A_pixel` → `/A_drop` | 给出文献 + 实验订正 |
+| H2 | docs/ASTROCS_DESIGN.md:209 写 `/A_pixel` → `/A_drop` | 给出文献 + 实验订正 |
 | H3 | spherical_overlap.h:223-224 "机器精度" → "深度上界 12" | 给出解析推导 |
 | H4 | spherical_overlap.h:228 → `max(...,1e-11)` | 实测地板效应 |
 | H5 | hp_drizzle_api.h:114 禁抄值 `211034.6` → `211076.285...` | 引用 DRIZZLE_GEOMETRY.md 订正 |

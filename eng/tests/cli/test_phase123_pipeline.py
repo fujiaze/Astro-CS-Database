@@ -7,7 +7,7 @@
 每阶段独立进程、只读上游**持久化 HiPS 产品**（无任何 fixture 顶替）; 断言
 rc=0 / status=complete / artifacts 非空且 sha256+size 可独立复算。
 
-CLI-002 重锚依据: CLI-001 唯一命令树 = normalize/mosaic/export（ASTROCS_DESIGN §6.2;
+CLI-002 重锚依据: CLI-001 唯一命令树 = normalize/mosaic/export（docs/ASTROCS_DESIGN §6.2;
 docs/api/CLI_PROTOCOL_V1.md §1 旧 phase1|2|3 run / verify / graph 均为已删除别名 → rc=2）。
 旧用例的 verify --json --run-manifest 闭环改为**测试内独立复算** sha256/size（判据不变、
 不依赖已删命令）; graph --preset 退役判据保留为负例（rc=2）。
@@ -21,7 +21,7 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
   有合格 patch（σ>0）⇒ normalize 产出 variance/ivar 子产品 ⇒ normalize→mosaic
   默认逐帧逆方差链可闭合（--make 的常量域帧 σ=0 ⇒ 整帧退化 ⇒ 默认链 fail-closed）。
 
-权重口径（ASTROCS_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
+权重口径（docs/ASTROCS_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
   HiPS 里**存**的是**帧级 SNR**（与稀疏控制点上的绝对 SNR）; 权重是阶段二消费 SNR 时
   按覆盖该像素的帧集合**现场算出的派生量**，不是配置键 ⇒ 配置面**不得**出现
   weight_mode / legacy_allow_weight_fallback（CLI 白名单已摘除，出现即 rc=3）。

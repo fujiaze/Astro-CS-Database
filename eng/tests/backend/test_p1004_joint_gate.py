@@ -71,7 +71,7 @@ def _ensure_mon001_fixture():
             shutil.rmtree(FIELD_HIPS, ignore_errors=True)
             shutil.move(os.path.join(tmpd, "FIELD.hips"), FIELD_HIPS)
         if not os.path.isfile(MON001_CFG):
-            # CLI-002 / ASTROCS_DESIGN 6.2: 现行 export 平铺会话配置形态。
+            # CLI-002 / docs/ASTROCS_DESIGN 6.2: 现行 export 平铺会话配置形态。
             cfg = {
                 "schema_version": "1",
                 "source": {"hips_dir": FIELD_HIPS},
@@ -99,7 +99,7 @@ def _ensure_mon001_fixture():
 def _run_phase3(events=True):
     """现行载体 export(2c 亲和, 恢复 CI 设计语境)。
 
-    CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2)。
+    CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2)。
     """
     argv = [EXE, "export", "--json", MON001_CFG, "-y"]
     if events:
