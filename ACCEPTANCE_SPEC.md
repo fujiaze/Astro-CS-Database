@@ -81,7 +81,7 @@ flowchart TB
 
 ## 3. L1：合成数据科学性验收
 
-**目标**：在真值已知条件下证明每个科学算法实现与 `docs/science/`、`docs/algorithms/` 的公式和定义一致。
+**目标**：在真值已知条件下证明每个科学算法实现与 `docs/science/`、`docs/science/algorithms/` 的公式和定义一致。
 
 **三类实验数据（最高设计 §12.2）**：
 

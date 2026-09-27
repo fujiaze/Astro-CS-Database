@@ -46,7 +46,7 @@ flowchart TD
 ### 3.1 输入
 
 - 负责人在对话中给出的**具体方向**（哪个阶段/模块、关注什么、不接受什么）；
-- 权威文档：最高设计 + 对应插件文档 + `docs/science/` + `docs/algorithms/`；
+- 权威文档：最高设计 + 对应插件文档 + `docs/science/` + `docs/science/algorithms/`；
 - 仓库现状：源码、测试、配置、schema。
 
 ### 3.2 流程
