@@ -537,7 +537,7 @@ static void test_s302_kernel_semantics() {
   // ── FIX-204（docs/ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
   // + EXP-204 定案（保守读法）：astrocs_adaptive_pixel 逐几何 N 内置映射 ──
   // 1≤N≤3 → none（不排异）；4≤N≤5 → percentile；6≤N≤15 → winsorized_sigma；
-  // N≥16 → linear_fit；N=0（void 像素占位，无候选栈）→ percentile。
+  // N≥16 → winsorized_sigma（REJECTION.md §5 改投）；N=0（void 像素占位，无候选栈）→ percentile。
   // extreme_prior 不再出现在 AUTO。
   {
     struct MapCase { std::uint32_t n; int method; };
@@ -547,8 +547,8 @@ static void test_s302_kernel_semantics() {
         {4u, P2_REJECT_PERCENTILE}, {5u, P2_REJECT_PERCENTILE},
         {6u, P2_REJECT_WINSORIZED_SIGMA}, {7u, P2_REJECT_WINSORIZED_SIGMA},
         {8u, P2_REJECT_WINSORIZED_SIGMA},
-        {15u, P2_REJECT_WINSORIZED_SIGMA}, {16u, P2_REJECT_LINEAR_FIT},
-        {64u, P2_REJECT_LINEAR_FIT}};
+        {15u, P2_REJECT_WINSORIZED_SIGMA}, {16u, P2_REJECT_WINSORIZED_SIGMA},
+        {64u, P2_REJECT_WINSORIZED_SIGMA}};   // n≥16 档随 REJECTION.md §5 改投 winsorized
     for (const MapCase& c : cases) {
       P2RejectionPlan p{};
       CHECK(resolve_adaptive_pixel_plan(c.n, &p));

@@ -855,7 +855,7 @@ declared_absent_capabilities:
     下列 (module, code) 组合在登记时点实测缺失。这是**已登记实现缺口**，不是「已具备」声明；
     逐条处置由 owner 承接（补实现/manifest/unit），判据一律如实保留。
   checked_at: 2026-09-23（前台复核：陈旧缺口登记随实现落地同步删除并同步计数，检查器 CHK-MODULE-MANIFEST 的 stale_declared_absent_capability 判红要求「缺口登记必须随落地同步删除」）
-  capability_gap_count: 70
+  capability_gap_count: 69
   items:
     - {module: aio, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}
     - {module: aio, code: product_unit_skeleton, owner: BLD-401, reason: "产品清单 unit 状态 SKELETON（未安装；§12.5）"}
@@ -908,7 +908,6 @@ declared_absent_capabilities:
     - {module: rejection, code: module_yaml_value_mismatch, owner: BLD-401, reason: "module.yaml 字段与映射表期望不一致（entrypoint/module_id；实现缺口）"}
     - {module: rejection, code: product_unit_missing, owner: BLD-401, reason: "产品清单无对应 unit（ENGINEERING_SPEC §8；实现缺口）"}
     - {module: resample, code: header_missing_abi_version, owner: BLD-401, reason: "公开头缺 abi_version/struct_size（ENGINEERING_SPEC §4 第 3 项）"}
-    - {module: resample, code: missing_co_located_tests, owner: BLD-401, reason: "共址测试目录在位但无可识别测试文件（ENGINEERING_SPEC §4 第 6 项）"}
     - {module: resample, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}
     - {module: resample, code: module_yaml_value_mismatch, owner: BLD-401, reason: "module.yaml 字段与映射表期望不一致（entrypoint/module_id；实现缺口）"}
     - {module: resample, code: product_unit_missing, owner: BLD-401, reason: "产品清单无对应 unit（ENGINEERING_SPEC §8；实现缺口）"}
