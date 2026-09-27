@@ -414,9 +414,9 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 | 项 | 规范要求（§5/§7a） | 实现现状（实测锚） | 状态 |
 |---|---|---|---|
-| 收敛判据的尺度归一 | 生产必须走相对/尺度归一判据（绝对 1e-6 在生产尺度不可达） | `module_adapters.cpp:7808-7813` 取 `tolerance=1e-6` ∧ `tolerance_relative=1`（相对判据，分母 `max(scale_obs,1)`）；`p2_session.cpp:204` 取 `tolerance=1e-6` 而**未设** `tolerance_relative`（零初始化 ⇒ 0 ⇒ 绝对判据） | **两入口口径不一致**（待统一） |
-| `converged` 状态枚举 0/1/2/3 | 只读访问器暴露 `0=max_iter/1=converged/2=stalled/3=invalid`，并写入数据面 | `upm.cpp:1028-1050`（stalled 连续 5 次低改善）、`:1577-1589`（访问器）；`module_adapters.cpp:7928-7935/:7963/:7997` 读入并落 manifest | **已满足** |
-| 可辨识性判决 κ | 判决取**未正则化**的列均衡数据信息矩阵：`r_eff < n_free ⟺ κ(H_red) > 1/τ`；`κ(H_solve)` 只作求解稳定性诊断 | `sky_plane.cpp:1082-1135`（判据 + fail-closed）、`identifiability.h`（天光面与 UPM 共用同一函数）、`module_adapters.cpp:8807-8864`（节点间距自适应 + provenance） | **已满足** |
+| 收敛判据的尺度归一 | 生产必须走相对/尺度归一判据（绝对 1e-6 在生产尺度不可达） | `module_adapters.cpp:9568` 取 `tolerance=1e-6` ∧ `:9573` 取 `tolerance_relative=1`（相对判据，分母 `max(scale_obs,1)`）；`p2_session.cpp:204` 取 `tolerance=1e-6` 而**未设** `tolerance_relative`（零初始化 ⇒ 0 ⇒ 绝对判据） | **两入口口径不一致**（待统一） |
+| `converged` 状态枚举 0/1/2/3 | 只读访问器暴露 `0=max_iter/1=converged/2=stalled/3=invalid`，并写入数据面 | `upm.cpp:1028-1050`（stalled 连续 5 次低改善）、`:1577-1589`（访问器）；`module_adapters.cpp:9691-9696` 读入（`p2_upm_convergence`，读不到按未证明收敛）、`:9734` 进 provenance KV、`:9800` 落 manifest | **已满足** |
+| 可辨识性判决 κ | 判决取**未正则化**的列均衡数据信息矩阵：`r_eff < n_free ⟺ κ(H_red) > 1/τ`；`κ(H_solve)` 只作求解稳定性诊断 | `sky_plane.cpp:1082-1135`（判据 + fail-closed）、`identifiability.h`（天光面与 UPM 共用同一函数）、`module_adapters.cpp:9869-9876`（节点间距由输入几何导出，CHAIN-WIRE-ADAPT-01/W4）、`:9925/:9930-9950`（几何 provenance 落 manifest） | **已满足** |
 | κ 口径 | **唯一阈值** `τ = rank_rtol`（相对口径、尺度不变、精度地板 `max(m,n)·eps`）；**不存在**绝对条件数上限 | `sky_plane.h:217-222`、`upm.h:293-295`（同一符号/同一值/同一实现） | **已统一** |
 | 自适应重试的授权边界 | 判绿参数面 = 冻结 `τ`；唯一自适应方向 = 节点间距（§7a 规则 3/5） | `module_adapters.cpp:9560-9568` 注释要求收敛容差回退冻结值并称相对判据待定，而同段 `:9569-9576` 以「定案」名义启用相对判据——**同一函数内两段注释对同一变更的授权状态表述互斥** | **待统一**（不掩盖） |
 

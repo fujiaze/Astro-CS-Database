@@ -217,7 +217,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp:21-27`（常数 `_MAD_SCALE/_TUKEY_C/_IRLS_MAX_ITER/_IRLS_CONVERGE`）、`:486-500`（星等一致性预过滤）、`:518-536`（`|r_consistent|<3 ⇒ NO_DATA`）、`:538-586`（IRLS/Tukey 迭代）、`:589-627`（`scale`/inliers/`sigma_residual`）及 `lib/algorithms/photometry/cpp/src/pc_api.cpp:145,435`（`mag_tolerance=3.0` 实际传入点；`star_matcher.cpp:241-248` 仅为 `psf_valid` 诊断）一致。
 - **`mag_tolerance = 3.0 mag` 的地位与适用域（正向约束）**：它是**进入 IRLS 之前的粗预过滤窗**，单位 mag，量纲上等价于通量比 `10^{0.4·3.0} ≈ 15.85×`；其作用是剔除与 Gaia 星等明显不一致的错配/污染样本，**不是**标定质量的判据。
-  - **证据出处**：Project-defined 冻结值（配置键 `photometry.mag_tolerance`，`eng/packaging/config/defaults.json`；合同字段 `docs/contracts/DATA_SEMANTICS.md` §测光字段表「合同值 3.0」；算法侧 `docs/algorithms/PHOTOMETRIC_FIT.md` 星等预过滤行）。本层**不引用文献**为该窗宽背书。
+  - **证据出处**：Project-defined 冻结值（配置键 `photometry.mag_tolerance`，`eng/packaging/config/defaults.json`；合同字段 `docs/contracts/DATA_SEMANTICS.md` §测光字段表「合同值 3.0」；算法侧 `docs/science/algorithms/PHOTOMETRIC_FIT.md` 星等预过滤行）。本层**不引用文献**为该窗宽背书。
   - **为什么窗宽不构成风险**：真正决定鲁棒性的是其后 IRLS/Tukey 层——`S = MAD(r)/0.6744897501960817`、`c = 4.685` 的 biweight 截断（§7「鲁棒性」不变量：注入 20% 离群 `location` 变化 `<0.1 dex`）。预过滤窗只需保证「不放走数量级级错配」，不需要窄。
   - **变更约束**：改该值属 §10 列出的不可接受变化，须走 SCI 变更。
 
@@ -357,7 +357,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ASTROCS_DESIGN.md` §4.2），本节不另立口径。
 - **每帧独立标定**：不同夜/不同透明度的帧 `k_photo` 不同是正常的、正确的；「帧间一致性」是语义目标与报告字段，**不是门禁**（`PHOT-GATE-DROP-001`；本文件 §1/§10）。
-- **项目约定数值的文献豁免**：FOV 三常数、阶梯档距、亮端 `mag_min`、匹配半径 `match_radius_px=2.0`、`max_stars=5000` 上限、`1.0 dex` 粗筛界、质量因子 `0.1/0.5` 等实现级数值为**项目约定**——文献腿查无出处、登记为约定（敏感性与保守方向已由实验单元给出），引用时**不注文献出处**（负责人已批豁免；豁免清单见 `独立审计/实验重做/总编对账/五单元成稿简报.md` P1/P5 豁免节）。
+- **项目约定数值的文献豁免**：FOV 三常数、阶梯档距、亮端 `mag_min`、匹配半径 `match_radius_px=2.0`、`max_stars=5000` 上限、`1.0 dex` 粗筛界、质量因子 `0.1/0.5` 等实现级数值为**项目约定**——文献腿查无出处、登记为约定（敏感性与保守方向已由实验单元给出），引用时**不注文献出处**（豁免清单见 `独立审计/实验重做/总编对账/五单元成稿简报.md` P1/P5 豁免节）。
 
 ### 16.2 物理单位消除的论证（为什么产物只能是星等）
 
