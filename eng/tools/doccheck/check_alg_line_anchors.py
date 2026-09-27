@@ -21,7 +21,7 @@
                        作用域 = DOC_GLOB（现 docs/**/*.md，含 docs/contracts、docs/modules）。
   L3 symbol_drift      逐符号表中「列头声明了文件」的锚：该行首列符号必须逐字出现在
                        该锚的行范围内。符号整体不在目标文件 ⇒ L3 symbol_absent。
-                       作用域 = SYMBOL_GLOB（**有意保持** docs/algorithms/*.md，见常量注释）。
+                       作用域 = SYMBOL_GLOB（**有意保持** docs/science/algorithms/*.md，见常量注释）。
   L2 target_unresolved 锚目标必须解析到唯一**被 git 跟踪**的仓库文件（exact →
                        doc-relative → unique basename）；解析不到/未跟踪 ⇒ 判红。
 
@@ -54,14 +54,14 @@ import sys
 import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# L1（行数锚）作用域：DOC-DRIFT-FIX-01 由 docs/algorithms/*.md 扩到全 docs 面 ——
+# L1（行数锚）作用域：DOC-DRIFT-FIX-01 由 docs/science/algorithms/*.md 扩到全 docs 面 ——
 # docs/contracts/**、docs/modules/** 的「<file>（N 行」长期无门，实测 70 条与源文件不符。
 DOC_GLOB = "docs/**/*.md"
-# L3（逐符号表行号范围）作用域**有意保持** docs/algorithms/*.md：扩到 docs/contracts 会
+# L3（逐符号表行号范围）作用域**有意保持** docs/science/algorithms/*.md：扩到 docs/contracts 会
 # 立刻暴露 docs/contracts/DATA_SEMANTICS.md 两张状态表 35 条符号漂移（rejection.cpp /
 # p2_session.cpp 整体位移），订正需逐符号重新推导语义，不属本任务声明的判据面 ——
 # 该项已在回执中作为「发现但未改」逐条列出，不得当作已覆盖。
-SYMBOL_GLOB = "docs/algorithms/*.md"
+SYMBOL_GLOB = "docs/science/algorithms/*.md"
 
 EXTS = ("cpp", "cc", "cxx", "h", "hpp", "hh", "py", "sh", "ps1", "json",
         "yaml", "yml", "md", "cmake", "in", "txt")
@@ -340,7 +340,7 @@ def _git_init(root):
 
 def _mk_fixture():
     root = tempfile.mkdtemp(prefix="alg_anchor_selftest_")
-    _write(root, "docs/algorithms/SYNTH.md", _SYNTH_DOC)
+    _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
     _write(root, "lib/x/synth.h", _SYNTH_H)
     _write(root, "lib/x/synth.cpp", _SYNTH_CPP)
     _git_init(root)
@@ -382,13 +382,13 @@ def self_test():
         expect("N3 符号整体缺失", root, "FAIL", "L3_symbol_absent")
         _write(root, "lib/x/synth.cpp", _SYNTH_CPP)
         # N4 锚目标不存在 ⇒ L2_target_unresolved
-        _write(root, "docs/algorithms/SYNTH.md", _SYNTH_DOC.replace("synth.cpp", "nosuch.cpp", 1))
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC.replace("synth.cpp", "nosuch.cpp", 1))
         expect("N4 锚目标不存在", root, "FAIL", "L2_target_unresolved")
-        _write(root, "docs/algorithms/SYNTH.md", _SYNTH_DOC)
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
         # N5 扫描面塌缩（0 行数锚 且 0 符号锚）⇒ L0 fail-closed
-        _write(root, "docs/algorithms/SYNTH.md", "# 空文档\n无锚\n")
+        _write(root, "docs/science/algorithms/SYNTH.md", "# 空文档\n无锚\n")
         expect("N5 扫描面塌缩", root, "FAIL", "L0_scan_floor")
-        _write(root, "docs/algorithms/SYNTH.md", _SYNTH_DOC)
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
         # N6 文档根缺失 ⇒ L0 fail-closed
         empty = tempfile.mkdtemp(prefix="alg_anchor_empty_")
         try:
@@ -397,10 +397,10 @@ def self_test():
             shutil.rmtree(empty, ignore_errors=True)
         # N7 未跟踪文件（git 仓库里新增未 add）⇒ L2_target_unresolved
         _write(root, "lib/x/extra.cpp", "// extra\n")
-        _write(root, "docs/algorithms/SYNTH.md",
+        _write(root, "docs/science/algorithms/SYNTH.md",
                _SYNTH_DOC + "\n> 旁证 lib/x/extra.cpp（1 行）\n")
         expect("N7 锚指向未跟踪文件", root, "FAIL", "L2_target_unresolved")
-        _write(root, "docs/algorithms/SYNTH.md", _SYNTH_DOC)
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
         os.remove(os.path.join(root, "lib/x/extra.cpp"))
         expect("N7' 恢复后回绿", root, "PASS")
     finally:

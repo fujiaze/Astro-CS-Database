@@ -22,9 +22,9 @@
   module.yaml 单 manifest id 取 MOD-astrocs-phase2-upm-fit，apply
   对应 ID 于文件头注释与 README §fit/apply descriptor 现状声明。
 - 本任务 ID 决策（唯一方案，避免与矩阵/registry 占位冲突）:
-  ALG=ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
+  ALG=ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
   P2-UPM-DOC 新建，SA-B 负责；兼承接 ALG-UPM-001 权威推导
-  （docs/algorithms/UPM_SOLVER.md）与 ALG-UPM-CONTROL-IVAR-001
+  （docs/science/algorithms/UPM_SOLVER.md）与 ALG-UPM-CONTROL-IVAR-001
   control-ivar 权重子面）——registry 页 upstream 现占位
   ALG-P2-UPM-001/002（astrocs.phase2.upm-fit/apply.md 头部），ID
   风格与 ALG-P2-SMP-001（phase2_samp 先例）同族，取 -IMPL-1 避免
@@ -127,7 +127,7 @@
 
 > 本节由 V6 任务 \`IMPL-P2-UPM-001\` 追加，记录 V6 目标态乘法/加性分离实现；
 > 不改写上文 P2-UPM-DOC 历史合同文本。上位：\`ALG-P2-SURF-UPM.md\`
-> （\`ALG-P2S-UPM.1..8\`）、\`docs/contracts/DATA_SEMANTICS.md §31\`、\`docs/algorithms/GATES_AND_TOLERANCES.md\`。
+> （\`ALG-P2S-UPM.1..8\`）、\`docs/contracts/DATA_SEMANTICS.md §31\`、\`docs/science/algorithms/GATES_AND_TOLERANCES.md\`。
 
 - 新增公共面（\`lib/algorithms/coverage/include/astro/phase2/upm.h\`）：
   \`P2UpmMaObservation\` / \`P2UpmMaConfig\` / \`P2UpmMaInfo\` +

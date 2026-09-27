@@ -6,7 +6,7 @@
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/
 > PHASE2_UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
-> （docs/algorithms/UPM_SOLVER.md，公式与容差零改动）。
+> （docs/science/algorithms/UPM_SOLVER.md，公式与容差零改动）。
 > 模块: lib/algorithms/coverage/src/upm.cpp（2793 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/upm.h（384 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
@@ -147,7 +147,7 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1240-1269
   - `SCI-P2-UPM-002`（apply descriptor sci_id，module_adapters.cpp:696）
     ⇒ **SCI-UPM-001**；
   - `ALG-P2-UPM-001`（fit 行 algorithm_id，TRACEABILITY_MATRIX.csv:22）
-    ⇒ **ALG-UPM-001**（docs/algorithms/UPM_SOLVER.md，推导权威）+
+    ⇒ **ALG-UPM-001**（docs/science/algorithms/UPM_SOLVER.md，推导权威）+
     **ALG-P2-UPM-IMPL-001**（本文件，实现级合同）；
   - `ALG-P2-UPM-002`（apply 行，TRACEABILITY_MATRIX.csv:21）⇒
     **ALG-UPM-001** + **ALG-P2-UPM-IMPL-001**。
@@ -483,7 +483,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 - `ALG-P2-UPM-IMPL-001` = 本文档整体（逐符号锚 §3/§6；实现级合同）。
 - 上游：SCI-UPM-001（FROZEN 集合零改动，§5）；ALG-UPM-001
-  （docs/algorithms/UPM_SOLVER.md，推导权威，本批原位修订）；ALG-
+  （docs/science/algorithms/UPM_SOLVER.md，推导权威，本批原位修订）；ALG-
   UPM-CONTROL-IVAR-001（PHASE2_SAMPLER.md §5.4/§12 承载）；ALG-P2-
   SMP-001（obs/frame_id 上游）。
 - 下游 DATA：DATA-P2-UPM（fit 产物）/ DATA-P2-COR（apply 产物）

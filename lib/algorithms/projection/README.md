@@ -22,7 +22,7 @@
 > lib/phase3_session/ 迁入本目录（docs/ASTROCS_DESIGN §7.1「projection」行），
 > 并登记 astrocs_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
 > 会话消费点 p3_session.cpp 的 include 同步改新址。
-> 文档口径见 docs/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
+> 文档口径见 docs/science/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
 > v1 偏差表）、docs/plugins/algorithms_phase3/14_projection.md。
 
 ## 1 身份
@@ -47,7 +47,7 @@
 | 层 | ID | 权威落位 | 状态 |
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN，映射声明 SCI-P3-WCS-001⇒SCI-P3-001 见 ALG-P3-PROJ-IMPL-001 §5） | FROZEN |
-| ALG | ALG-P3-PROJ-IMPL-001 | docs/algorithms/PHASE3_PROJ_IMPL.md（本域实现级合同，兼承接 ALG-P3-002 本域子面） | CONTRACT_READY |
+| ALG | ALG-P3-PROJ-IMPL-001 | docs/science/algorithms/PHASE3_PROJ_IMPL.md（本域实现级合同，兼承接 ALG-P3-002 本域子面） | CONTRACT_READY |
 | DATA | DATA-P3-WCS | docs/contracts/DATA_SEMANTICS.md §28 | CONTRACT_READY |
 | API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
@@ -57,7 +57,7 @@
 
 ## 2a P3-001 registry 与四投影（2026-09-10 增补）
 
-- 冻结口径: docs/algorithms/PHASE3_PROJ_IMPL.md §15（六要素声明/共享
+- 冻结口径: docs/science/algorithms/PHASE3_PROJ_IMPL.md §15（六要素声明/共享
   旋转核/逐式公式/守卫域/测试设计）；SCI 层零改动。
 - 符号: P3ProjectionSpec/P3ProjectionDescriptor/P3ProjectionStatus/
   P3ProjectionId/kP3ProjectionRegistryVersion/p3_projection_registry_
@@ -96,8 +96,8 @@
 ## 5 co-located 合同链接
 
 - SCI: [docs/science/PHASE3_HIPS_TO_FITS.md](../../docs/science/PHASE3_HIPS_TO_FITS.md)（FROZEN）
-- ALG: [docs/algorithms/PHASE3_PROJ_IMPL.md](../../docs/algorithms/PHASE3_PROJ_IMPL.md)
-- ALG(承接): [docs/algorithms/PHASE3_RESAMPLE.md](../../docs/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-002 施工规格，公式零改动）
+- ALG: [docs/science/algorithms/PHASE3_PROJ_IMPL.md](../../docs/science/algorithms/PHASE3_PROJ_IMPL.md)
+- ALG(承接): [docs/science/algorithms/PHASE3_RESAMPLE.md](../../docs/science/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-002 施工规格，公式零改动）
 - DATA: [docs/contracts/DATA_SEMANTICS.md](../../docs/contracts/DATA_SEMANTICS.md) §28
 - API: [docs/contracts/PUBLIC_API.md](../../docs/contracts/PUBLIC_API.md)
 - 模块页: [docs/modules/phase3_proj.md](../../docs/modules/phase3_proj.md)；

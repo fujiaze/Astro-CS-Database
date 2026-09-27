@@ -487,7 +487,7 @@
       "role": "projection_registry_contract",
       "owner": "SCI-FIX-PROJ(W4)",
       "object_class": null,
-      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §5.3 八投影 + docs/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj_v6.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
+      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §5.3 八投影 + docs/science/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj_v6.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
     },
     {
       "file": "eng/contracts/schemas/dual_line_file_domain.schema.json",

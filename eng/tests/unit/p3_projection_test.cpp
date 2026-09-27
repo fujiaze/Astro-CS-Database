@@ -1,6 +1,6 @@
 // eng/tests/unit/p3_projection_test.cpp — P3-001 投影 registry 与冻结四投影验证面
 //
-// 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/algorithms/PHASE3_PROJ_IMPL.md,
+// 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/science/algorithms/PHASE3_PROJ_IMPL.md,
 // P3-001 新 claim) + SCI-P3-001 (FROZEN, TAN 容差/守卫零改动) + 宪章 §7.3/
 // §18.1 (首批四投影 TAN/SIN/CAR/AIT registry 冻结)。
 //

@@ -1,7 +1,7 @@
 // P1-NOISE-TEST · 单元/性质/oracle/负面/fill 测试组 (单执行器 core)
 //
 // 控制包任务: P1-NOISE-TEST (SA-P1N-T, queue 41, lock-P1-NOISE; 依赖
-// P1-NOISE-DOC 闭环)。合同锚: docs/algorithms/NOISE_ESTIMATION.md §13.4
+// P1-NOISE-DOC 闭环)。合同锚: docs/science/algorithms/NOISE_ESTIMATION.md §13.4
 // TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结, 2026-09-07, wave W1) +
 // ALG-NOISE-001..003 + §13.3 DISP-NOISE-001..009 现状行为断言 +
 // SCI-NOISE-001..015 (NOISE_MODEL.md, FROZEN T104, 冻结容差不放宽)。

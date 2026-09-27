@@ -7,67 +7,67 @@
   ],
   "resolvers": [
     {
-      "doc": "docs/algorithms/COSMETIC_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/COSMETIC_ALGORITHMS.md",
       "basename": "cosmetic_corrector.cpp",
       "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
       "why": "生产唯一源（cc_* 通道在文档中以全路径 lib/calibration/cpp/ 出现，走 exact 解析）"
     },
     {
-      "doc": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/CALIBRATION_ALGORITHMS.md",
       "basename": "cosmetic_corrector.cpp",
       "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
       "why": "同上"
     },
     {
-      "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "api.cpp",
       "path": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
       "why": "§10 DISP-DRZ 表的 api.cpp = drizzle C API 实现（同目录 hp_drizzle_api.h:93 为其头）；现址 lib/algorithms/drizzle/healpix_drizzle（ARCH-001 迁移后）"
     },
     {
-      "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "healpix_core.h",
       "path": "lib/algorithms/drizzle/healpix_drizzle/healpix_core.h",
       "why": "shim 构造容忍 nside 非法（:25-27）；ARCH-001 迁移后现址 lib/algorithms/drizzle/healpix_drizzle"
     },
     {
-      "doc": "docs/algorithms/HIPS_WRITER.md",
+      "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "basename": "healpix_core.h",
       "path": "lib/algorithms/shared/healpix/healpix_core.h",
       "why": "tile 排布/leaf_to_tile_nest 权威在 lib/algorithms/shared/healpix（HiPS 打包注释 :43-45）；由 lib/common/healpix 纯移动而来（内容逐字节相同）"
     },
     {
-      "doc": "docs/algorithms/HIPS_WRITER.md",
+      "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "basename": "healpix_core.cpp",
       "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
       "why": "ang2pix_nest 实现 :233-243；由 lib/common/healpix 纯移动而来（内容逐字节相同）"
     },
     {
-      "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+      "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/noise_snr/cpp/build.ps1",
       "why": "MinGW 通道 cpp/build.ps1"
     },
     {
-      "doc": "docs/algorithms/PHOTOMETRIC_FIT.md",
+      "doc": "docs/science/algorithms/PHOTOMETRIC_FIT.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/photometry/cpp/build.ps1",
       "why": "本模块 MinGW 通道"
     },
     {
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/platesolve/cpp/ipv/build.ps1",
       "why": "ipv_solver.dll MinGW 通道"
     },
     {
-      "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md",
       "basename": "star_detector.h",
       "path": "lib/algorithms/star_detection/wrapper_phase1/star_detector.h",
       "why": "Phase1 生产 sdet 封装（StarSource/StarCatalog）"
     },
     {
-      "doc_prefix": "docs/algorithms/",
+      "doc_prefix": "docs/science/algorithms/",
       "basename": "noise_model.cpp",
       "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "why": "ALG 文档的 noise_model.cpp 唯一指 snr_estimator 生产实现；lib/phase1/noise 小封装在文档中以全路径出现"
@@ -85,19 +85,19 @@
       "why": "同上"
     },
     {
-      "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "DRIZZLE.md",
       "path": "docs/science/DRIZZLE.md",
       "why": "裸 DRIZZLE.md 锚指 SCI 冻结文档；同名审计报告使 basename 不再唯一，显式钉死到 docs/science/DRIZZLE.md"
     },
     {
-      "doc": "docs/algorithms/HIPS_WRITER.md",
+      "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "basename": "DRIZZLE.md",
       "path": "docs/science/DRIZZLE.md",
       "why": "同上（同名审计报告引入同名 basename）"
     },
     {
-      "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+      "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "basename": "NOISE_MODEL.md",
       "path": "docs/science/NOISE_MODEL.md",
       "why": "裸 NOISE_MODEL.md 锚指 SCI 冻结文档；reports/ 下同名审计报告使 basename 不再唯一，显式钉死"
@@ -163,7 +163,7 @@
       "why": "原文以省略号截断写「…properties.md:22」，被引文档即 docs/modules/registry/astrocs.phase3.properties.md"
     },
     {
-      "doc": "docs/algorithms/PHASE3_RSMP_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_RSMP_IMPL.md",
       "basename": "module_entry.cpp",
       "path": "lib/algorithms/drizzle/src/module_entry.cpp",
       "why": "DISP-P3RSMP-006 行自述「drizzle 先例 module_entry.cpp:971 的 n_rejected_nonfinite」；全仓 5 个 module_entry.cpp 中只有 lib/algorithms/drizzle/src/module_entry.cpp:971 是 \"n_rejected_nonfinite\" 聚合键，其余 4 个该行无此键"
@@ -171,12 +171,12 @@
   ],
   "exemptions": [
     {
-      "doc": "docs/algorithms/PHASE2_SAMPLER.md",
+      "doc": "docs/science/algorithms/PHASE2_SAMPLER.md",
       "raw": "ledger.md:250",
       "kind": "HISTORICAL_RUN_ARTIFACT",
       "reason": "指向 bughunt 运行账本 run/local/bughunt/ledger.md（R3-A），属 run/ 运行产物（gitignore），非仓库源码锚",
       "owner": "P2-SAMP-IMPL",
-      "evidence": "docs/algorithms/PHASE2_SAMPLER.md:391"
+      "evidence": "docs/science/algorithms/PHASE2_SAMPLER.md:391"
     },
     {
       "doc": "docs/science/INTEGRATION.md",
@@ -184,7 +184,7 @@
       "kind": "FROZEN_SCI_CLAIM",
       "reason": "SCI §5:63 冻结声明原文（实际 76 行）；ALG 侧已登记为已知漂移，修改方向 = 从 SCI 到 ALG",
       "owner": "SCI-INT owner",
-      "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:182"
+      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
     },
     {
       "doc": "docs/science/INTEGRATION.md",
@@ -192,31 +192,31 @@
       "kind": "FROZEN_SCI_CLAIM",
       "reason": "同上（实际 74 行）",
       "owner": "SCI-INT owner",
-      "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:182"
+      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
     },
     {
-      "doc": "docs/algorithms/INTEGRATION_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/INTEGRATION_ALGORITHMS.md",
       "raw": "integrate.cpp:10-79",
       "kind": "FROZEN_SCI_CLAIM",
       "reason": "转述 SCI §5:63 声明原文（实际 76 行）；本 ALG 文档 §3 已给现行行号",
       "owner": "SCI-INT owner",
-      "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:182"
+      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
     },
     {
-      "doc": "docs/algorithms/PHASE2_INTEGRATION.md",
+      "doc": "docs/science/algorithms/PHASE2_INTEGRATION.md",
       "raw": "integrate.cpp:10-79",
       "kind": "FROZEN_SCI_CLAIM",
       "reason": "引述 SCI 声明原文（实际 76 行）；同行已显式登记锚漂移并指向 §3",
       "owner": "SCI-INT owner",
-      "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:182"
+      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
     },
     {
-      "doc": "docs/algorithms/PHASE2_INTEGRATION.md",
+      "doc": "docs/science/algorithms/PHASE2_INTEGRATION.md",
       "raw": "integrate.h:1-75",
       "kind": "FROZEN_SCI_CLAIM",
       "reason": "引述 SCI 声明原文（实际 74 行）",
       "owner": "SCI-INT owner",
-      "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:182"
+      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
     },
     {
       "doc": "docs/science/NOISE_MODEL.md",
@@ -230,139 +230,139 @@
   "bindings": [
     {
       "id": "P3FITS-CTYPE",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "CTYPE1"
     },
     {
       "id": "P3FITS-CUNIT",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "CUNIT1"
     },
     {
       "id": "P3FITS-CRPIX",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "CRPIX1"
     },
     {
       "id": "P3FITS-CRVAL",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "CRVAL1"
     },
     {
       "id": "P3FITS-CD",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "CD1_1"
     },
     {
       "id": "P3FITS-BSCALE",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "BSCALE"
     },
     {
       "id": "P3FITS-BUNIT",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "BUNIT"
     },
     {
       "id": "P3FITS-PROV",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "HIPSID"
     },
     {
       "id": "P3FITS-MUTEX",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
       "symbol": "CfitsioLockGuard"
     },
     {
       "id": "P3FITS-HWCONC",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/phase3_session/p3_session.cpp",
       "symbol": "hardware_concurrency"
     },
     {
       "id": "P3FITS-THREAD",
-      "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/phase3_session/p3_session.cpp",
       "symbol": "std::thread"
     },
     {
       "id": "P3RSMP-DESCRIPTOR",
-      "doc": "docs/algorithms/PHASE3_RSMP_IMPL.md",
+      "doc": "docs/science/algorithms/PHASE3_RSMP_IMPL.md",
       "target": "lib/infrastructure/scheduler/src/module_adapters.cpp",
       "symbol": "p3_resample2_descriptor"
     },
     {
       "id": "PLATESOLVE-CREATE",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_solve_create"
     },
     {
       "id": "PLATESOLVE-DESTROY",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_solve_destroy"
     },
     {
       "id": "PLATESOLVE-GAIA",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_set_gaia_handle"
     },
     {
       "id": "PLATESOLVE-DETECTOR",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_set_detector_handle"
     },
     {
       "id": "PLATESOLVE-DEFAULTS",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_get_default_params"
     },
     {
       "id": "PLATESOLVE-INLIERCOUNT",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_get_last_inlier_count"
     },
     {
       "id": "PLATESOLVE-INLIERS",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_get_last_inliers"
     },
     {
       "id": "PLATESOLVE-MEMORY",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_solve_from_memory("
     },
     {
       "id": "PLATESOLVE-DETECTIONS",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_solve_from_detections_v1("
     },
     {
       "id": "PLATESOLVE-CALLBACK",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "ipv_solve_from_memory_with_callback("
     },
     {
       "id": "PLATESOLVE-DOIMPL",
-      "doc": "docs/algorithms/PLATESOLVE.md",
+      "doc": "docs/science/algorithms/PLATESOLVE.md",
       "target": "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "symbol": "do_solve_from_detections_v1_impl"
     },
@@ -392,73 +392,73 @@
     },
     {
       "id": "NOISE-MINPATCH",
-      "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+      "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "target": "lib/algorithms/noise_snr/cpp/include/snr_estimator.h",
       "symbol": "min_patch_samples"
     },
     {
       "id": "NOISE-NREJ",
-      "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+      "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "target": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "symbol": "n_rejected_patches"
     },
     {
       "id": "NOISE-CMAKE",
-      "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+      "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
       "target": "CMakeLists.txt",
       "symbol": "astrocs_phase1_noise"
     },
     {
       "id": "CAL-CMAKE",
-      "doc": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/CALIBRATION_ALGORITHMS.md",
       "target": "CMakeLists.txt",
       "symbol": "astrocs_calibration"
     },
     {
       "id": "COS-CMAKE",
-      "doc": "docs/algorithms/COSMETIC_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/COSMETIC_ALGORITHMS.md",
       "target": "CMakeLists.txt",
       "symbol": "astrocs_calibration"
     },
     {
       "id": "DRZ-SIPORDER",
-      "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "target": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
       "symbol": "sip_order"
     },
     {
       "id": "DRZ-MAXANGLE",
-      "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "target": "lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp",
       "symbol": "drop_area"
     },
     {
       "id": "P2SMP-CELLSIDE",
-      "doc": "docs/algorithms/PHASE2_SAMPLER.md",
+      "doc": "docs/science/algorithms/PHASE2_SAMPLER.md",
       "target": "lib/algorithms/coverage/src/sampler.cpp",
       "symbol": "cell_side"
     },
     {
       "id": "P2SMP-CVAR",
-      "doc": "docs/algorithms/PHASE2_SAMPLER.md",
+      "doc": "docs/science/algorithms/PHASE2_SAMPLER.md",
       "target": "lib/algorithms/coverage/src/sampler.cpp",
       "symbol": "cvar"
     },
     {
       "id": "P2SMP-CIVAR",
-      "doc": "docs/algorithms/PHASE2_SAMPLER.md",
+      "doc": "docs/science/algorithms/PHASE2_SAMPLER.md",
       "target": "lib/algorithms/coverage/src/sampler.cpp",
       "symbol": "civar"
     },
     {
       "id": "HIPS-ANG2PIX",
-      "doc": "docs/algorithms/HIPS_WRITER.md",
+      "doc": "docs/science/algorithms/HIPS_WRITER.md",
       "target": "lib/algorithms/shared/healpix/healpix_core.cpp",
       "symbol": "ang2pix_nest"
     },
     {
       "id": "STARDET-SRCS",
-      "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+      "doc": "docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md",
       "target": "lib/algorithms/star_detection/wrapper_phase1/star_detector.h",
       "symbol": "StarSource"
     },

@@ -58,7 +58,7 @@ LZ4 或 zlib+shuffle 压缩块；GaiaDR3 32B 记录 / GaiaDR3SP 384B 记录）�
 ## 4. 合同链接
 
 - SCI: `SCI-AST-001`（docs/science/ASTROMETRY.md）
-- ALG: `ALG-GAIA-001`（docs/algorithms/GAIA_QUERY.md）
+- ALG: `ALG-GAIA-001`（docs/science/algorithms/GAIA_QUERY.md）
 - DATA: `DATA-GAIA-001`（docs/contracts/DATA_SEMANTICS.md §8）
 - API: `API-GAIA-001`（docs/contracts/PUBLIC_API.md §gaia_client C API）
 - ARCH: `ARCH-001`（docs/contracts/ARCH-001.md）

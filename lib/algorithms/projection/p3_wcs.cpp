@@ -116,7 +116,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     tmp.width_px = width_px;
     tmp.height_px = height_px;
     tmp.projection = canon;   // 已校验投影的冻结码字面量(静态存储, 非硬编码路径)
-    // G1 (ALG-P3-002, docs/algorithms/PHASE3_RESAMPLE.md §2) 冻结输出 WCS 构造
+    // G1 (ALG-P3-002, docs/science/algorithms/PHASE3_RESAMPLE.md §2) 冻结输出 WCS 构造
     // (FITS 1-based, CD-only, 对角, PA=0 精确形式):
     //   east_left:  CD = diag(−s, +s)   (x 增 → RA 减, 北朝上)
     //   east_right: CD = diag(+s, −s)   (x 增 → RA 增, y 增 → Dec 减)

@@ -130,7 +130,7 @@ large_scale 结构生长:
   仅扩展结构生长 (trail)，compact cosmic 不生长 (rejection.cpp:1501-1592 trail 分支)
 ```
 
-与 `lib/algorithms/coverage/src/rejection.cpp:1-12,1182-1288,1809-1830,1996-2201` 及 `lib/algorithms/coverage/include/astro/phase2/rejection.h:45-62,94-118,203-239` 一致（行号实测，逐符号锚见 `docs/algorithms/PHASE2_REJECTION.md` §3）。
+与 `lib/algorithms/coverage/src/rejection.cpp:1-12,1182-1288,1809-1830,1996-2201` 及 `lib/algorithms/coverage/include/astro/phase2/rejection.h:45-62,94-118,203-239` 一致（行号实测，逐符号锚见 `docs/science/algorithms/PHASE2_REJECTION.md` §3）。
 
 ## 6 假设
 
@@ -307,7 +307,7 @@ large_scale 结构生长:
   （可核验版本/file:line 见 §5、§14a），**逐像素按几何 n 的粒度**与低 n 保守档为项目自定；
   **方法核的语义来源**：`linear_fit` = PixInsight ImageIntegration 官方式[21]/式[22]（横轴 = 排序秩 `0…N−1`、
   带升序约束）+ *Numerical Recipes* 3rd ed. **§15.7.3**（`Fitmed`，L1 稳健拟合；本项目以加权最小二乘实现，
-  偏离已在 `docs/algorithms/PHASE2_REJECTION.md` F7 登记）；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；
+  偏离已在 `docs/science/algorithms/PHASE2_REJECTION.md` F7 登记）；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；
   `percentile` = 本层定义（§5/§8a）+ IRAF `pclip` 命名。语义注册表 `rejection.cpp:1082-1098` 的 `*_SIRIL` id
   与核注释 `rejection.cpp:1514/1614` 是**次生参考实现对拍用的冻结标识**（oracle 用未修改的 Siril 1.4.3
   官方源码做**掩码逐元素对拍**），**不是核语义的归属**；语义 ID 文本改名属 SCI 变更（§10），本层本轮不改。

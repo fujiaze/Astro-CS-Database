@@ -20,7 +20,7 @@
 //   * lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp     (导出 1-based 契约)
 //   * lib/infrastructure/pipeline/orchestrator/cpp/include/star_coord_contract.h
 //
-// 判据（docs/algorithms/GATES_AND_TOLERANCES.md 待登记为 G-P1-CENTER-CONTRACT-1）:
+// 判据（docs/science/algorithms/GATES_AND_TOLERANCES.md 待登记为 G-P1-CENTER-CONTRACT-1）:
 //   [C1] 契约恒等式: sdet→统一 -0.5 / dpsf→统一 恒等 / 统一→ipv +0.5
 //   [C2] psf→photometry: 16 个 psf 块点经生产 pixelToSky 与**独立**单位向量
 //        gnomonic 参考解（FITS 1-based 入参 = x+1）一致 |Δ| <= 1e-9 deg

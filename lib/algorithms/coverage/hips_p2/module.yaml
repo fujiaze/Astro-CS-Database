@@ -70,7 +70,7 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE2_UPM.md
   sci_extra: docs/science/INTEGRATION.md
-  alg: docs/algorithms/PHASE2_MOSAIC_WRITE.md
+  alg: docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
   data: docs/contracts/DATA_SEMANTICS.md#§20
   api: docs/contracts/PUBLIC_API.md#API-P2-HIPS-001
 contract_ids:

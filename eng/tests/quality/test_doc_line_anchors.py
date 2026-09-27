@@ -29,7 +29,7 @@ CONTRACT_REL = os.path.join("docs", "algorithms", "anchors", "anchor_contract.js
 REGISTRY_REL = os.path.join("docs", "algorithms", "anchors", "unresolved_registry.json")
 CONTRACT_DOC_REL = os.path.join("docs", "algorithms", "anchors", "ANCHOR_CONTRACT.md")
 
-DOC = "docs/algorithms/SAMPLE.md"
+DOC = "docs/science/algorithms/SAMPLE.md"
 SRC = "lib/sample/sample_impl.cpp"
 OTHER = "lib/sample/other/sample_impl.cpp"
 GHOST = "lib/sample/ghost.cpp"
@@ -55,7 +55,7 @@ DOC_BODY = [
 
 CONTRACT = {
     "schema": "astrocs/doc-line-anchor-contract/v1",
-    "doc_globs": ["docs/algorithms/*.md"],
+    "doc_globs": ["docs/science/algorithms/*.md"],
     "resolvers": [],
     "exemptions": [],
     "bindings": [

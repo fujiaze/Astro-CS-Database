@@ -342,7 +342,7 @@ TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
     // ③ 计数恒等式（1 与 N 都必须精确成立）。
     // 注：本 fixture 的 retained 计数为 0 ⇒ 不受已登记缺陷 DISP-P2SMP-002
     // （第三遍对 reason==2 重复 ++rejected_insufficient_retained，
-    // docs/algorithms/PHASE2_SAMPLER.md §11.2）影响；该缺陷整改归 P2-SAMP-IMPL，
+    // docs/science/algorithms/PHASE2_SAMPLER.md §11.2）影响；该缺陷整改归 P2-SAMP-IMPL，
     // 不在 FIX-210 范围。
     ASSERT_EQ(0u, s1.rejected_insufficient_retained)
         << "fixture 触发了 DISP-P2SMP-002 双计数面 ⇒ 恒等式断言需先处置该登记缺陷";

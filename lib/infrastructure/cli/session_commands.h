@@ -142,7 +142,7 @@ inline const std::vector<std::pair<const char*, const char*>>& config_second_blo
 }
 
 inline const std::vector<ConfigField>& config_fields(SessionId s) {
-    // drizzle.precision_mode 必须显式（docs/algorithms/DRIZZLE_GEOMETRY.md B2-A12：
+    // drizzle.precision_mode 必须显式（docs/science/algorithms/DRIZZLE_GEOMETRY.md B2-A12：
     // 0=FP32/1=FP64，缺失即 DATA 拒绝，不 silent 降精度）；模板取 1（FP64）与
     // RESCUE-FD-02 的库边界缺省一致（宁可慢，不静默丢精度）。
     // CLI-MULTIBLOCK（依据 docs/ASTROCS_DESIGN.md §4.3 输入合同）：normalize 配置 =
@@ -180,7 +180,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"drizzle",
          "{\"nested\": 1, \"pixfrac\": 1.0, \"precision_mode\": 1}",
          "drizzle 累加参数；nside 缺省即 auto（由最细输入采样派生，"
-         "docs/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验；"
+         "docs/science/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验；"
          "precision_mode 必须显式 0=FP32/1=FP64（无 silent 缺省）", "block"},
         {"filter_passband", "\"Baader R\"",
          "观测滤镜/波段标识（空 = 显式无 filter；非空必须逐字命中 eng/packaging/config/filters.json）；"

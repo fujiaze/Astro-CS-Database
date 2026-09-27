@@ -16,7 +16,7 @@ extern "C" double astrocs_phase2_kcorr_lookup_for_test(double pixfrac,
 
 namespace {
 
-// 冻结表值（docs/algorithms/PHASE2_SAMPLER.md §11.3 F2 / sampler.cpp:91-94）
+// 冻结表值（docs/science/algorithms/PHASE2_SAMPLER.md §11.3 F2 / sampler.cpp:91-94）
 constexpr double kTab300[3] = {1.2112, 1.3925, 1.4980};
 constexpr double kTab600[3] = {2.3958, 2.8971, 3.2035};
 constexpr double kPf[3] = {0.5, 0.8, 1.0};

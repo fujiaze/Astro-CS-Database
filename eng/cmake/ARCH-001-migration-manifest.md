@@ -90,7 +90,7 @@
 | `lib/healpix_db` | 2 | 7 | 4 | 3 | 49 | eng/tests/docs 已同步；eng/ci/cli 见下 |
 
 - `eng/tests/**`：已随迁移同步（CMake + Python 内的 lib 路径字符串）。
-- `docs/**`：已同步 2136 处（120 文件）。**`docs/algorithms/**` 未动**——按前台令等 TEST-GREEN-001 交棒后由本任务接手（锚点同步）。
+- `docs/**`：已同步 2136 处（120 文件）。**`docs/science/algorithms/**` 未动**——按前台令等 TEST-GREEN-001 交棒后由本任务接手（锚点同步）。
 - `eng/ci/**`：按前台令**只登记不改**（CI-001 窗口订正）。
 - `lib/infrastructure/cli/**`：按前台令**不改**（CLI-001 文件域；该文件当前不在构建图内）。
 
@@ -122,7 +122,7 @@
 
 | 对象 | 变更 | 结果 |
 |---|---|---|
-| `docs/algorithms/**/*.md` | 仅源码路径串（lib 旧路径 -> 新路径），23 文件 128 行；行号/公式/数值/结论零改动 | 见 logs/93_anchor_sync.log |
+| `docs/science/algorithms/**/*.md` | 仅源码路径串（lib 旧路径 -> 新路径），23 文件 128 行；行号/公式/数值/结论零改动 | 见 logs/93_anchor_sync.log |
 | `anchor_contract.json` `resolvers[].path` / `bindings[].target` / `exemptions[].raw` | 35 条路径同步 | 同上 |
 | 符号绑定真实位置核对 | 逐条 grep 新目标文件确认符号存在 | **41/41 FOUND，0 MISS**（logs/95_binding_verify.log）|
 | 锚门复跑 | `python3 docs/algorithms/anchors/check_doc_line_anchors.py --root .` | **rc=0**，`36 docs, 808 anchors, EXEMPT:9, OK:799`（logs/94_anchors_after.log）|
@@ -135,6 +135,6 @@
 |---|---|---|
 | cli/CMakeLists.txt（43 处旧路径命中） | CLI-001 文件域 | **明确结论：该文件属「兼容图」，不参与任何构建目标**（根 CMakeLists.txt 无 `add_subdirectory(cli)`，cli 相关 target 由根 CMake 直接以显式源清单声明）。其路径同步归 CLI-001/INT-001 收口，**不计入 ARCH-001 的「旧路径零命中」验收门**。 |
 | eng/ci/**（checks.json、ci_repair_round.py 等） | 前台令：只登记不改 | CI-001 订正 |
-| docs/algorithms/**、anchor_contract.json | 前台令：等 TEST-GREEN-001 交棒 | 锚点同步（6 条已红需订正）归本任务后续 |
+| docs/science/algorithms/**、anchor_contract.json | 前台令：等 TEST-GREEN-001 交棒 | 锚点同步（6 条已红需订正）归本任务后续 |
 | docs/modules/MODULE_MAP.yaml、eng/tools/quality/**、eng/tests/quality/** | MOD-001 事实源/前台禁改 | legacy_paths 应同步为 target_dir |
 

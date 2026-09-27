@@ -14,7 +14,7 @@
 //
 // 稳健化（与实验/photometric-magnitude/docs/p1-spatial-gain.md §2.3/§2.4 一致）:
 //   尺度 S **一次估计后在迭代中固定**（MAD(r−L)/0.6745），与 star_matcher 的
-//   固定尺度 M 估计路线（docs/algorithms/PHOTOMETRIC_FIT.md §F3）同口径，
+//   固定尺度 M 估计路线（docs/science/algorithms/PHOTOMETRIC_FIT.md §F3）同口径，
 //   因此继承同一崩溃点保证；c = 4.685 与生产冻结值同值。
 //   离群剔除只在阶段 3 **收紧**（绝不把阶段 2 剔除的星放回来）。
 //

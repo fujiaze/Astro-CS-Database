@@ -1,6 +1,6 @@
 // P1-WCS-TEST · 独立 oracle
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §8 (参考实现/Oracle) + §9 (容差来源)
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §8 (参考实现/Oracle) + §9 (容差来源)
 // + §11.4 TEST-WCS-DESIGN-001 (P1-WCS-DOC 冻结)。
 //
 // 独立性规则 (模板 <prefix>-TEST §3): oracle 不调用被测函数、不复制同一实现。

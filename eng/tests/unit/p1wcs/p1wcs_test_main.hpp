@@ -1,7 +1,7 @@
 // P1-WCS-TEST · 测试执行器框架 (单执行器 + 单测组注册 + 故障注入)
 //
 // 控制包任务: P1-WCS-TEST (lock-P1-WCS; 依赖 P1-WCS-DOC 闭环)。
-// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001
 // (P1-WCS-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-WCS
 // (MOD astrocs.phase1.wcs-platesolve, TEST-P1-WCS-001)。
 //

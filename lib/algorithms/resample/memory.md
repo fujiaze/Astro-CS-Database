@@ -41,11 +41,11 @@
   V5 SCI-007 2026-08-28，集合 SCI-P3-001..020；矩阵行 science_id
   占位 SCI-P3-RES-001 MISSING 不入合同，映射声明于
   PHASE3_RSMP_IMPL.md §5，照 P3-PROJ 先例）；
-  ALG=ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md
+  ALG=ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md
   新建，兼承接既有 ALG-P3-003（G3 order 选择 + G4 leaf 采样）本域
   子面；ID 风格与 ALG-P2-UPM-IMPL-001/ALG-P3-PROJ-IMPL-001/
   ALG-P3-FITS-IMPL-001 同族；既有 ALG-P3-001..004 登记于
-  docs/algorithms/PHASE3_RESAMPLE.md（本文件为公共施工规格，本任务
+  docs/science/algorithms/PHASE3_RESAMPLE.md（本文件为公共施工规格，本任务
   仅表述级修订：LRU→FIFO 更正 + 实现锚补记，G1-G5 公式零改动），
   ALG-P3-003 以独立条目入 INDEX.yaml（ACTIVE，downstream 增补
   ALG-P3-RSMP-IMPL-001）；ALG-P3-RES-001 为 descriptor 占位 ID

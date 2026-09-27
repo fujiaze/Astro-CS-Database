@@ -127,7 +127,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   两分支同一变量、同一回写值）；**`K` 必须由调用方从 FITS `EXPTIME` 得出**
   （`K = t_light/t_dark`），缺 `EXPTIME` 时调用方 fail-closed
   （`module_adapters.cpp:2129-2147,2198-2216`），模块层不设 `K` 默认值、
-  不把 `K` 当可优化搜索量（`docs/algorithms/CALIBRATION_ALGORITHMS.md` §3.3 F3.1/F3.2）。
+  不把 `K` 当可优化搜索量（`docs/science/algorithms/CALIBRATION_ALGORITHMS.md` §3.3 F3.1/F3.2）。
 - `dark_opt=1` 与 `dark_opt=0` 的唯一差别是**入参 master_dark 的约定**：
   `dark_opt=1` 接受含 bias 的暗场母版（`dark_total = bias + dark`），先分离再缩放；
   `dark_opt=0`（默认）接受已减 bias 的暗电流母版。二者在 `K=1` 时**代数恒等**

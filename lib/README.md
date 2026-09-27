@@ -6,7 +6,7 @@
 
 - 放：可编译进产品的科学算法（algorithms/）、不定义科学公式的工程基建（infrastructure/）、三阶段装配会话（phase1_session/、phase2_session/、phase3_session/）、公共头（include/）与第三方依赖（third_party/）。
 - 不放：机器门与检查器（eng/ci/）、测试套件（eng/tests/）、合同 schema 正本（eng/contracts/）。
-- 不放：科学公式与推导正文（docs/science/、docs/algorithms/）；本目录只提供对应实现。
+- 不放：科学公式与推导正文（docs/science/、docs/science/algorithms/）；本目录只提供对应实现。
 - 目录结构按最高设计的顶层结构执行：算法模块并联命名；phase1/2/3 是会话层的内部指代，科学算法目录不用 phase 命名。
 
 ## 内容

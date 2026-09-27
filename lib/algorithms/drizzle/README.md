@@ -73,11 +73,11 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 | 层 | ID | 权威文档 |
 |---|---|---|
 | SCI | SCI-DRZ-001 | docs/science/DRIZZLE.md（FROZEN T105 2026-08-23；SCI-DRZ-001/014/015/016 集合） |
-| ALG | ALG-DRZ-001 | docs/algorithms/DRIZZLE_GEOMETRY.md（逐公式源码锚定 + DISP-DRZ 清单） |
+| ALG | ALG-DRZ-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md（逐公式源码锚定 + DISP-DRZ 清单） |
 | DATA | DATA-P1-DRZ | docs/contracts/DATA_SEMANTICS.md §11（上游 DATA-P1-CAL §9；编排现状引用 DATA-P1-STACK） |
 | API | API-DRZ-001 / API-P1-007 | docs/contracts/PUBLIC_API.md / docs/api/PHASE1_API_V1.md（区间 API-P1-001..010） |
 | MOD/SRC | MOD-astrocs-phase1-drizzle / SRC-DRZ-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
-| TEST | TEST-DRZ-DESIGN-001 | docs/algorithms/DRIZZLE_GEOMETRY.md §9（可执行 TEST-P1-DRZ-001 由 P1-DRZ-TEST 落地） |
+| TEST | TEST-DRZ-DESIGN-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md §9（可执行 TEST-P1-DRZ-001 由 P1-DRZ-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
 
@@ -103,7 +103,7 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
   等）；面积 = 球面 S-H 裁剪 + Van Oosterom 扇形三角剖分（:186-239）。
 - **FP32/FP64**：模板双实例（float/double 显式实例化
   drizzle_engine.cpp:2171-2178）；precision_mode 0/1/-1（-1=读 header
-  "PRECISION" KV；**无 KV 时按 `docs/algorithms/DRIZZLE_GEOMETRY.md`
+  "PRECISION" KV；**无 KV 时按 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`
   `RESCUE-FD-02` 缺省 FP64（原引「宪章 §5.3」已废止，现行载体即该条 +
   `DATA_SEMANTICS.md` §11.1「PRECISION」行；**语义不变**），未知 KV/参数值
   显式拒绝**）；FP32 累加器真 binary32（门 1e-5）。

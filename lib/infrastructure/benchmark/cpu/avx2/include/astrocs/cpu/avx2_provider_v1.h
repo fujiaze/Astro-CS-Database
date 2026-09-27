@@ -22,7 +22,7 @@
  *     (CPU-002 冻结参数 POD —— 本 provider 只迁移热点 kernel 的 ISA 变体,
  *     **不复制** baseline 的科学 kernel 实现; 参数/槽位/缓冲合同同源复用);
  *   - ALG-001 calibration-pixel-transform 与 ALG-P3-002 hips-bulk-transform
- *     离散公式 (docs/algorithms/)。
+ *     离散公式 (docs/science/algorithms/)。
  *
  * 关键约束 (v1 不可变; 扩展须升版本):
  *   1) 纯 C11 可编译 (extern "C" 兼容 C++17); 禁 STL/异常跨边界; 无第三方依赖。

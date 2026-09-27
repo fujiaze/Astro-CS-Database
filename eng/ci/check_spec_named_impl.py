@@ -9,11 +9,11 @@
   - docs/ci/01_CHECKS.md §1（唯一注册表 · 能绿能红 · fail-closed · 锚存活）。
 
 防的复发缺口（三条同类缺陷，均为 P0）：
-  - S1-002：ALG-STARDET-001（docs/algorithms/STAR_DETECTION_ALGORITHMS.md:8）点名
+  - S1-002：ALG-STARDET-001（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:8）点名
     lib/algorithms/star_detection/src/sdet_api.cpp 为**唯一权威生产源**，但生产
     star-psf 节点（module_adapters.cpp p1_op_star_psf_impl）跑的是
     wrapper_phase1::StarDetector（345,960 条源 vs sdet 1,473 条，Gaia 纯度 0.212%）；
-  - S2-NS-01：ALG-NOISE（docs/algorithms/NOISE_ESTIMATION.md:120）写「生产符号唯一源 =
+  - S2-NS-01：ALG-NOISE（docs/science/algorithms/NOISE_ESTIMATION.md:120）写「生产符号唯一源 =
     lib/algorithms/noise_snr/cpp/src/noise_model.cpp」，但该模块子图因根
     CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 被注释而不在构建图；
   - S4-P3X-06/P3X-12：p3_v6_export.cpp 被

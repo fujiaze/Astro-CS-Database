@@ -1,6 +1,6 @@
 // P1-DRZ-TEST · FIX-DRZ-A..F 合成 fixture generator
 //
-// 合同锚: docs/algorithms/DRIZZLE_GEOMETRY.md §9 TEST-DRZ-DESIGN-001
+// 合同锚: docs/science/algorithms/DRIZZLE_GEOMETRY.md §9 TEST-DRZ-DESIGN-001
 // (P1-DRZ-DOC 冻结, 2026-09-07, wave W1); SCI=SCI-DRZ-001
 // (docs/science/DRIZZLE.md FROZEN T105 2026-08-23, 集合 014/015/016)。
 //

@@ -303,8 +303,8 @@
 | `CTEST-P1NOISE-SATURATION` | KEPT | `CHK-INVARIANT` | extension | P1 | W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记 |
 | `CTEST-P1NOISE-SATURATION-SELFCHECK` | KEPT | `CHK-INVARIANT` | extension | P1 | W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_selfcheck（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记 |
 | `CTEST-P1NOISE-SATURATION-WIRING` | KEPT | `CHK-INVARIANT` | extension | P1 | W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_wiring（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记 |
-| `CTEST-P1NOISE-VARIANCE-FLOOR` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：方差地板按产品数据类型导出的可表示性判据。判据依据 docs/algorithms/NOISE_ESTIMATION.md 与 docs/science/NOISE_MODEL.md 的地板口径。 |
-| `CTEST-P1PHOT-DETERMINISM` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：测光装配的到达顺序不变性判据（星表与点扩散表置换后逐位一致）。判据依据 docs/algorithms/PHOTOMETRIC_FIT.md 的到达顺序不变性条款。 |
+| `CTEST-P1NOISE-VARIANCE-FLOOR` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：方差地板按产品数据类型导出的可表示性判据。判据依据 docs/science/algorithms/NOISE_ESTIMATION.md 与 docs/science/NOISE_MODEL.md 的地板口径。 |
+| `CTEST-P1PHOT-DETERMINISM` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：测光装配的到达顺序不变性判据（星表与点扩散表置换后逐位一致）。判据依据 docs/science/algorithms/PHOTOMETRIC_FIT.md 的到达顺序不变性条款。 |
 | `CTEST-P1PHOT-FIXGATES` | MERGED-INTO | `CHK-ORACLE` | doc | P0 | SCI/ALG Oracle 测试 |
 | `CTEST-P1PHOT-PASSBAND-IDENTITY` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：通带身份核对判据（声明名、点数、包络与逐元素指纹四项）。判据依据 docs/science/PHOTOMETRY.md 的通带身份核对条款与 docs/contracts/CONFIG_CONTRACT.md 的曲线身份核对条款。 |
 | `CTEST-P1PSF-CENTER-CONTRACT` | KEPT | `CHK-INVARIANT` | extension | P1 | W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed） |

@@ -64,5 +64,5 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 - 任务: ARCH-002(本文件)/ARCH-003(backend ABI)/ARCH-004(thread budget)/ARCH-005(Phase3 模块)/CLI-001(单一 target)/API-001..005
 - 文档: MODULE_MAP.md/DATA_FLOW.md/PIPELINE.md/ERROR_MODEL.md/THREADING_MODEL.md/OWNERSHIP_AND_LIFETIME.md/IO_AND_ATOMICITY.md/PERFORMANCE_MODEL.md
 - **权威**：本文件是详细文档层的一员，**不另立权威链、不作排他性权威自称**
-  （最高设计 §0.1/§0.2）；架构问题的唯一权威 = 最高设计 §8，科学/算法权威 = `docs/science/` + `docs/algorithms/`，
+  （最高设计 §0.1/§0.2）；架构问题的唯一权威 = 最高设计 §8，科学/算法权威 = `docs/science/` + `docs/science/algorithms/`，
   与本文件冲突时一律以最高设计为准。

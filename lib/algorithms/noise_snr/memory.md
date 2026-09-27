@@ -3,7 +3,7 @@
 > 生命周期: P1-NOISE-DOC（本文档重立为追加式模块记忆）→ P1-NOISE-IMPL（落码）→
 > P1-NOISE-TEST（可执行测试）→ P1-NOISE-INT。追加式日志，不删改历史段落
 > （下方 2026-07-15 / 2026-08-15 为历史登记，其中"乘法模型"一段已被三层
-> 科学重构取代——现状以本目录 README.md（r1）与 docs/algorithms/
+> 科学重构取代——现状以本目录 README.md（r1）与 docs/science/algorithms/
 > NOISE_ESTIMATION.md §13 为准）。
 
 ## 2026-09-07 · P1-NOISE-DOC 合同冻结（CONTRACT_READY）
@@ -21,7 +21,7 @@
 - 本目录三件套：README.md（模块合同 10 节，r1）、module.yaml（11 号标准
   §4 manifest，module_status=CONTRACT_READY，entrypoint=MISSING）、
   memory.md（本文件）。
-- docs/algorithms/NOISE_ESTIMATION.md §13 增补（ALG-NOISE-001..003 逐符号
+- docs/science/algorithms/NOISE_ESTIMATION.md §13 增补（ALG-NOISE-001..003 逐符号
   源码锚定 + §13.3 DISP-NOISE-001..009 + §13.4 TEST-NOISE-DESIGN-001
   冻结容差）。
 - docs/contracts/DATA_SEMANTICS.md §13（DATA-P1-NOISE）。

@@ -6,7 +6,7 @@
 > scale=median(F_syn/F_instr)/MAD 清洗"等表述与现行源码不符，见 §10 与
 > memory.md；合同冻结以本版为准）
 > 权威来源: SCI=docs/science/PHOTOMETRY.md（SCI-PHOT-001，FROZEN T103
-> 2026-08-23，共享引用不改动）；ALG=docs/algorithms/PHOTOMETRIC_FIT.md
+> 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PHOTOMETRIC_FIT.md
 > （ALG-PHOT-001..002 + §13 逐符号源码锚定）；DATA=docs/contracts/
 > DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/contracts/PUBLIC_API.md
 > （API-PHOT-001）；矩阵行=docs/traceability/TRACEABILITY_MATRIX.json
@@ -76,7 +76,7 @@ DATA-P1-SOURCES/DATA-P1-FLUX）为编排层词汇（descriptor），模块合同
 
 ## 4. 算法（ALG-PHOT-001..002）
 
-权威逐符号锚定=docs/algorithms/PHOTOMETRIC_FIT.md §13.1。摘要：
+权威逐符号锚定=docs/science/algorithms/PHOTOMETRIC_FIT.md §13.1。摘要：
 
 - **ALG-PHOT-002 星等一致性匹配与 QA**：WCS TAN+SIP 投影 Gaia 星入帧
   （wcs_transform.cpp:207-229）→ Gaia/PSF 两棵 KD-tree（star_matcher.cpp

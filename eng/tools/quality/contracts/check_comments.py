@@ -28,11 +28,11 @@ REQUIRE_ID_NEAR_LOWER = tuple(k.lower() for k in REQUIRE_ID_NEAR)
 
 
 # 权威引用面（W4-A3）：不变量注释必须给出**权威锚**。权威锚 = 科学/算法 ID，
-# 或指向权威文档路径（docs/science/**、docs/algorithms/**）。
+# 或指向权威文档路径（docs/science/**、docs/science/algorithms/**）。
 # 依据：追溯规范允许"ID 或文档锚"两种形态；实测 ipv_solver.h:66 引的是
-# `docs/algorithms/PLATESOLVE.md Invariants`，是合格的权威锚却被旧口径判红。
+# `docs/science/algorithms/PLATESOLVE.md Invariants`，是合格的权威锚却被旧口径判红。
 AUTHORITY_TOKENS = ("SCI-", "ALG-", "TRACEABILITY",
-                    "docs/science/", "docs/algorithms/")
+                    "docs/science/", "docs/science/algorithms/")
 # 内嵌第三方单头库（vendored）识别：文件头若干行内同时出现许可证名与 Copyright。
 # 判据：这类文件的注释不受本项目注释纪律约束（不是我们的代码）。
 VENDOR_HEAD_LINES = 40
@@ -116,7 +116,7 @@ def _self_test() -> int:
                                     encoding="utf-8")
         # 正例：权威锚也可以是权威文档路径（不限于 SCI-/ALG- ID）
         (d / "bad.cpp").write_text(
-            "// 见 docs/algorithms/PLATESOLVE.md Invariants: 输出恒非负\nint h(){return 0;}\n",
+            "// 见 docs/science/algorithms/PLATESOLVE.md Invariants: 输出恒非负\nint h(){return 0;}\n",
             encoding="utf-8")
         f, _ = _scan(root)
         cases.append(("pos_authority_doc_path", f, 0))

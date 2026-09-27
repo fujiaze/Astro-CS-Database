@@ -36,7 +36,7 @@ static bool safe_pixel_count(int w, int h, std::uint64_t* out) {
 // 合同锚:
 //   - docs/science/ASTROMETRY.md §5/§7 (xp = x+1; CRPIX 1-based) 与 §11 STD-F1
 //     桥接门（**全域保守门 1e-6 px**，覆盖所有尺度）
-//   - docs/algorithms/GATES_AND_TOLERANCES.md §3 G-P1-WCS-BRIDGE（紧门 1e-8 px，
+//   - docs/science/algorithms/GATES_AND_TOLERANCES.md §3 G-P1-WCS-BRIDGE（紧门 1e-8 px，
 //     适用域 scale ≥ 0.9″/px）/ G-P1-WCS-BRIDGE-GLOBAL（全域保守门 1e-6 px）
 //   - docs/standards/STANDARDS_REGISTRY.md STD-F1 (Paper I §2.1.1)
 //   - lib/algorithms/projection/p3_wcs.cpp (唯一 +1 桥接点 fits_pixel_1based;

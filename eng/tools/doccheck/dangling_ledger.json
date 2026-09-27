@@ -83,7 +83,7 @@
   },
   {
    "file": "eng/contracts/schemas/phase_config_export.schema.json",
-   "token": "docs/algorithms/PHASE3_HIPS_TO_FITS.md",
+   "token": "docs/science/algorithms/PHASE3_HIPS_TO_FITS.md",
    "owner": "BLD-401",
    "reason": "合同 schema note 中的历史 docs/ 指针（合同域收口）",
    "former_owner": "FIX-404",
@@ -119,7 +119,7 @@
   },
   {
    "file": "eng/tests/quality/test_doc_line_anchors.py",
-   "token": "docs/algorithms/SAMPLE.md",
+   "token": "docs/science/algorithms/SAMPLE.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
    "former_owner": "FIX-404",
@@ -431,7 +431,7 @@
   },
   {
    "file": "eng/tools/doccheck/check_alg_line_anchors.py",
-   "token": "docs/algorithms/SYNTH.md",
+   "token": "docs/science/algorithms/SYNTH.md",
    "owner": "DOC-403",
    "reason": "检查器自检夹具/退役路径登记面：按设计保留（非活动指针），随对应检查器退役时清理",
    "former_owner": "DOC-403",
@@ -599,7 +599,7 @@
   },
   {
    "file": "eng/tools/traceability/check_traceability_matrix.py",
-   "token": "docs/algorithms/X.md",
+   "token": "docs/science/algorithms/X.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
    "former_owner": "FIX-404",
@@ -699,7 +699,7 @@
   },
   {
    "file": "eng/tools/migration/rewrite_refs.py",
-   "token": "docs/algorithms/X.md",
+   "token": "docs/science/algorithms/X.md",
    "owner": "DOC-403",
    "reason": "迁移规则旧路径模式示例",
    "classification": "fixture_or_pattern",

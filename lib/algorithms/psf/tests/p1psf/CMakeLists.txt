@@ -2,7 +2,7 @@
 # P1-PSF-TEST (TEST-P1-PSF-001) — lib/algorithms/psf 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-PSF-TEST (queue 45, lock-P1-PSF; 依赖 P1-PSF-DOC 闭环)。
-# 合同锚: docs/algorithms/STAR_PSF_ALGORITHMS.md §11 TEST-PSF-DESIGN-001
+# 合同锚: docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11 TEST-PSF-DESIGN-001
 # (P1-PSF-DOC 冻结); lib/algorithms/psf/README.md r1 + module.yaml
 # (CONTRACT_READY, 7 导出 C API, legacy lib/algorithms/psf)。
 #
@@ -102,7 +102,7 @@ add_test(NAME p1psf_prodpath_centroid COMMAND p1psf_prodpath_check_test)
 # 相差恰 0.5000 px, 而 ipv 去重阈值是严格 < 0.5 px ⇒ 同星双份进 ipv。
 # 本 target 链接 **两条支路的真实生产源** (sdet 5 TU + dpsf 2 TU) 与生产坐标
 # 契约头 star_coord_contract.h (orchestrator 写端/读端唯一事实源)。
-# 判据与阈值来源: docs/algorithms/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行
+# 判据与阈值来源: docs/science/algorithms/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行
 # (median <= 0.1 px / p95 <= 0.3 px / 双支路分离 <= 0.05 px / dpsf 系 0.05 px)。
 # 正例 p1psf_centroid_gate 必 PASS; 负例 p1psf_centroid_gate_neg 用修复前映射
 # 重算, 必须以 >= 0.4 px 分离被检出 (能红能绿, ENGINEERING_SPEC §8)。

@@ -330,7 +330,7 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
 // 样本级掩膜口径 (rule_id NAN-SAMPLE-MASK-COVERAGE-NAN) 的唯一实现:
 //   权威 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
 //   invalid_handling 块 (唯一正本) + docs/standards/NUMERIC_STANDARD.md §MUST
-//   + ALG-P3-003 §2 G4/§4 (docs/algorithms/PHASE3_RESAMPLE.md)。
+//   + ALG-P3-003 §2 G4/§4 (docs/science/algorithms/PHASE3_RESAMPLE.md)。
 //   ①不合格样本 = ¬isfinite(值) (NaN 与 ±Inf 同类);
 //   ②从分子、分母、方差三项一并剔除 (被剔除样本的生效权重恰为 0 ⇒ 不留在分母);
 //   ③对剩余合格邻域重归一 c_k = w_k / Σ(合格 w_j) (FP64, 固定 k 序 ⇒ 确定性);

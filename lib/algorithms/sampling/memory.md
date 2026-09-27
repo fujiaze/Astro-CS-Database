@@ -55,7 +55,7 @@
   SCI-P2-SMP-001/alg_id=ALG-P2-SMP-001/data_id=DATA-P2-SMP/
   api_id=API-P2-001/test_id=TEST-P2-SMP-001）。编排层词汇，
   P2-XX-INT 对齐；占位 SCI-P2-SMP-001 ⇒ SCI-UPM-001 映射声明 =
-  docs/algorithms/PHASE2_SAMPLER.md §11.4，占位 ID 不入合同。
+  docs/science/algorithms/PHASE2_SAMPLER.md §11.4，占位 ID 不入合同。
 - known_defects（登记不改码，整改归 P2-SAMP-IMPL/TEST）:
   - DISP-P2SMP-001: 配置修补 `<=0→默认` 吞显式 0（:485-502）；
     bughunt ledger R3-A P3-③（run/local/bughunt/ledger.md:247-250）。

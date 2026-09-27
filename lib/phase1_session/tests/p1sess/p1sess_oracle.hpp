@@ -11,7 +11,7 @@
 //   算法委托面 (ac_calibrate_frame/ac_correct_frame) 的期望值由 ALG-CAL
 //   冻结公式独立重算: ALG-CAL-001 标准模式 out = (light - dark)/flat,
 //   flat 下限 max(flat,0.1) (lib/algorithms/calibration/src/calibrator.cpp:110-128
-//   实测数学, SCI 权威 docs/algorithms/CALIBRATION_ALGORITHMS.md)。
+//   实测数学, SCI 权威 docs/science/algorithms/CALIBRATION_ALGORITHMS.md)。
 //   常数场 fixture → 期望 = (light - dark)/max(flat,0.1) 单值代数。
 #ifndef P1SESS_ORACLE_HPP
 #define P1SESS_ORACLE_HPP

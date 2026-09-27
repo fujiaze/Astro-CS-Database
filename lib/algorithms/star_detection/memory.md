@@ -96,7 +96,7 @@ P1-STAR-DOC 任务完成模块冻结合同（状态 CONTRACT_READY，禁止宣�
 - **README.md r1（重写）**：SRC-STAR-001 源码实测冻结（sdet_api.cpp 2373 行），
   9 导出 C API + 内部核心逐符号行号锚；旧 V5.0 性能叙事归 ARCHIVED_NON_NORMATIVE，
   旧排序描述（饱和星在前按 r 降序）与实现不符已修正。
-- **ALG 权威**：docs/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001
+- **ALG 权威**：docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001
   §11 逐符号锚 + DISP-STAR-001..005 + TEST-STAR-DESIGN-001 冻结测试设计 +
   SCI-P1-STAR-001 状态声明）。
 - **DATA 权威**：docs/contracts/DATA_SEMANTICS.md §17（DATA-P1-STAR）；

@@ -14,7 +14,7 @@
       "kind": "prod_path",
       "defect_ref": "CONFORM-SWEEP-1-002 / GAP_AUDIT §9.48② / DG-C-01",
       "spec": {
-        "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+        "doc": "docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md",
         "loc": "8",
         "quote": "> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp"
       },
@@ -30,7 +30,7 @@
       "kind": "call_site",
       "defect_ref": "CONFORM-SWEEP-1-002（345,960 条 vs 1,473 条；Gaia 纯度 0.212%）/ GAP_AUDIT §9.49 定案 1",
       "spec": {
-        "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+        "doc": "docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md",
         "loc": "8",
         "quote": "> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp"
       },
@@ -51,7 +51,7 @@
       "kind": "prod_path",
       "defect_ref": "CONFORM-SWEEP-2 NS-01 / DG-A-14",
       "spec": {
-        "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+        "doc": "docs/science/algorithms/NOISE_ESTIMATION.md",
         "loc": "120",
         "quote": "生产符号唯一源 = `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`"
       },

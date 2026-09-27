@@ -1,7 +1,7 @@
 // ============================================================================
 // P1-PSF-TEST · 独立 oracle (测试侧科学真值 + 期望值, 不调用被测函数)
 // ----------------------------------------------------------------------------
-// 合同锚: docs/science/PSF.md (Moffat4 模型), docs/algorithms/
+// 合同锚: docs/science/PSF.md (Moffat4 模型), docs/science/algorithms/
 // STAR_PSF_ALGORITHMS.md §11 TEST-PSF-DESIGN-001, lib/algorithms/psf/README.md
 // §5 (容差元数据), 11_MODULE_SOURCE_TEST_STANDARD.md §5 (容差须引用来源)。
 //

@@ -1,6 +1,6 @@
 // P1-CAL-TEST · 单元/负面/性质/cosmetic 测试组
 //
-// 覆盖 (TEST-CAL-DESIGN-001, docs/algorithms/CALIBRATION_ALGORITHMS.md §9):
+// 覆盖 (TEST-CAL-DESIGN-001, docs/science/algorithms/CALIBRATION_ALGORITHMS.md §9):
 //   units      : FIX-CAL-A 常量场 I1 + FIX-CAL-B 解析梯度 oracle + I2 空平场 +
 //                I5 负值保留 + actual_k 恒等 oracle + FP64 位级往返
 //                (ALG-CAL-001/002/003; 容差 §9: rtol1e-6/atol1e-7 或 bitwise)

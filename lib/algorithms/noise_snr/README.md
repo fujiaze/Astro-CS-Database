@@ -77,7 +77,7 @@ max(a+b·x+c·y, floor)）。所有权：out_model 由调用方分配/持有，c
 | 层 | ID | 权威文档 |
 |---|---|---|
 | SCI | SCI-NOISE-001..015 | docs/science/NOISE_MODEL.md（FROZEN T104 2026-08-23，共享引用不改动；SNR-002 scale law/SNR-004 σ5%/SNR-005 gain 诊断/SNR-006 场 10%） |
-| ALG | ALG-NOISE-001..003 | docs/algorithms/NOISE_ESTIMATION.md §13（逐符号源码锚定 + DISP-NOISE-001..009 + TEST-NOISE-DESIGN-001） |
+| ALG | ALG-NOISE-001..003 | docs/science/algorithms/NOISE_ESTIMATION.md §13（逐符号源码锚定 + DISP-NOISE-001..009 + TEST-NOISE-DESIGN-001） |
 | DATA | DATA-P1-NOISE | docs/contracts/DATA_SEMANTICS.md §13（上游 §4a 产品语义 ivar=1/variance、ivar=0 显式不可用） |
 | API | API-NOISE-001 / API-P1-006 | docs/contracts/PUBLIC_API.md（snr_estimator.h 7 noise 导出现状 C API）/ docs/api/PHASE1_API_V1.md §2（编排级） |
 | ARCH/MOD/SRC | ARCH-001 / MOD-astrocs-phase1-noise-snr / SRC-NOISE-001 | docs/traceability/TRACEABILITY_MATRIX.json；SRC 锚 snr_estimator.h::noise 7 导出 |

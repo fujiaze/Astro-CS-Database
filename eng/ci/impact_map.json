@@ -165,7 +165,7 @@
     {
       "paths": [
         "docs/science/**",
-        "docs/algorithms/**"
+        "docs/science/algorithms/**"
       ],
       "checks": [
         "VERSION-CONSISTENCY",

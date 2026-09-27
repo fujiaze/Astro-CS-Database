@@ -191,7 +191,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件声明默认 false 且禁止 true；docs/science/** 与 docs/algorithms/** 全库零命中（grep 实测），未进任何配置类。归属：负责人裁决（CFG-001 §8.1 source 规则 / §8.2 旋钮归属）。",
+      "note": "插件声明默认 false 且禁止 true；docs/science/** 与 docs/science/algorithms/** 全库零命中（grep 实测），未进任何配置类。归属：负责人裁决（CFG-001 §8.1 source 规则 / §8.2 旋钮归属）。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
@@ -1114,7 +1114,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 bilinear；字段名按 DOC-SCI-001 A2 与 ALG 权威统一为 sampler（docs/algorithms/PHASE3_RESAMPLE.md:8,:43 取值 nearest|bilinear）；旧名 kernel 为分叉名。归属：负责人裁决（未进任何配置类，export 无重采样核字段）。",
+      "note": "插件默认 bilinear；字段名按 DOC-SCI-001 A2 与 ALG 权威统一为 sampler（docs/science/algorithms/PHASE3_RESAMPLE.md:8,:43 取值 nearest|bilinear）；旧名 kernel 为分叉名。归属：负责人裁决（未进任何配置类，export 无重采样核字段）。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
@@ -1243,7 +1243,7 @@
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "contracts_doc",
-      "registered_at": "docs/algorithms/PHASE3_FITS_IMPL.md:23",
+      "registered_at": "docs/science/algorithms/PHASE3_FITS_IMPL.md:23",
       "registered_key": null,
       "finding": "none",
       "note": "原子写协议（tmp->flush->fsync->rename）为算法合同义务，默认 true 由该条款承载。",
@@ -1258,7 +1258,7 @@
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "contracts_doc",
-      "registered_at": "docs/algorithms/PHASE3_FITS_IMPL.md:47",
+      "registered_at": "docs/science/algorithms/PHASE3_FITS_IMPL.md:47",
       "registered_key": null,
       "finding": "none",
       "note": "DATASUM/CHECKSUM 逐 HDU（FITS 4.0 §4.4.2.5）为合同义务，默认 true 由该条款承载。",

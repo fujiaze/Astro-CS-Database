@@ -520,7 +520,7 @@ def main() -> int:
 # —— 复合 test_path / src_path 解析（W4-A3） -------------------------------------
 # 矩阵的锚列允许三种形态（全部在现行矩阵中出现，必须机器可解析）：
 #   ① 单文件          `eng/tests/unit/x.cpp`
-#   ② 文件::用例/符号  `docs/algorithms/X.md::TEST-X-DESIGN-001`
+#   ② 文件::用例/符号  `docs/science/algorithms/X.md::TEST-X-DESIGN-001`
 #   ③ **复合**        `<目录> (ctest <目标>/<目标>); <文件>; <源文件说明> <文件>:<行> <符号>`
 #     例：`lib/algorithms/calibration/tests/p1cal (ctest p1cal_units/…);
 #          eng/tests/backend/test_calibration_oracle.py;
@@ -596,7 +596,7 @@ def parse_matrix_anchor(p: str) -> dict:
                         out["entries"].append({"kind": "case", "raw": sym,
                                                "path": path.strip(), "case": sym})
             elif any(ch in chunk for ch in "(（"):
-                # 样例：docs/algorithms/X.md (TEST-X-DESIGN-001)
+                # 样例：docs/science/algorithms/X.md (TEST-X-DESIGN-001)
                 m = re.match(r"^([^\s(（]+)\s*[(（]([^)）]*)[)）]", chunk)
                 if m:
                     out["entries"].append({"kind": "path", "raw": m.group(1).strip(),

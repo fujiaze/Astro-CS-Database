@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：机读 schema（schemas/）、数据与工件合同的机读形态（data/）、配置与模块合同（config/）、阶段块流合同（block_flow/）、合同提案存放位（proposals/）、资源门合同（resource_gate_v1.json）。
-- 不放：合同条款正文与说明（docs/contracts/，与本目录 schema 双向对应）；科学公式（docs/science/、docs/algorithms/）。
+- 不放：合同条款正文与说明（docs/contracts/，与本目录 schema 双向对应）；科学公式（docs/science/、docs/science/algorithms/）。
 - 合同字段发生变化时，本目录 schema、docs/contracts/ 说明与相应检查器同步更新。
 
 ## 内容

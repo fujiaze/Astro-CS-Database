@@ -146,7 +146,7 @@ class TestStandardClauseExclusion(unittest.TestCase):
         # docs/standards/STANDARDS_REGISTRY.md:86 实测行 (IVOA HiPS)
         "- CLAUSES: HiPS 1.0 §3（层级索引与目录结构）/§4.1（tile）/§4.2.1（properties）/§4.4.1（all-sky map）/§6.3.1（客户端绘制）",
         # docs/standards/STANDARDS_REGISTRY.md:95 / :239 实测行
-        "| §4.2.1（properties 必需键集） | `hips_version/hips_order` 必需且自洽 | PARTIAL | docs/algorithms/HIPS_WRITER.md |",
+        "| §4.2.1（properties 必需键集） | `hips_version/hips_order` 必需且自洽 | PARTIAL | docs/science/algorithms/HIPS_WRITER.md |",
         "| STD-F1 | spherical-projection | Paper I §2.1.1（CRPIX 1-based 参考像素） | 第 1 行 | OPEN | STD-F1-ADJ |",
         # N2 + N3: 枚举续项与标准名裸条款号
         "条款面: §4.1/4.2.1/4.4.1/6.3.1；Paper II 5.1.1 与 HiPS 4.2.1 见标准正文",

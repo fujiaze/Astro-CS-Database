@@ -99,7 +99,7 @@ CONTRACTS = [
     ("ALG-INTEGRATE-001",
      "integrator 权重资格：NaN/Inf/负→INVALID；0→合法不贡献；>0→可用；"
      "reducer 无 policy 知识",
-     "docs/algorithms/INTEGRATION_ALGORITHMS.md", "phase2",
+     "docs/science/algorithms/INTEGRATION_ALGORITHMS.md", "phase2",
      "lib/algorithms/coverage/src/integrate.cpp",
      "p2_integrate_pixel; p2_validate_candidate_weights",
      "V17NonFiniteWeightInvalid;V17StatusesExplicit;V17NonFiniteSupportInvalid",
@@ -110,7 +110,7 @@ CONTRACTS = [
     ("ALG-DRZ-GEOM-CACHE-001",
      "bounded target-ipix geometry cache（LRU 8192，run generation 清空）；"
      "科学等价 + 操作计数",
-     "docs/algorithms/DRIZZLE_GEOMETRY.md", "healpix_drizzle",
+     "docs/science/algorithms/DRIZZLE_GEOMETRY.md", "healpix_drizzle",
      "lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp;"
      "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
      "compute_overlap_area_g_ctx_cached; TargetGeomCache::get_or_build; "
@@ -134,7 +134,7 @@ CONTRACTS = [
      "PRE_RELEASE_ENGINEERING_FOUNDATION", "PR#1 保留"),
     ("ALG-UPM-FRAME-BIND-001",
      "parameter_rows[index] ↔ frame_id_by_index[index] 同长无重复",
-     "docs/algorithms/UPM_SOLVER.md", "phase2",
+     "docs/science/algorithms/UPM_SOLVER.md", "phase2",
      "lib/algorithms/coverage/src/upm.cpp",
      "p2_upm_save; p2_upm_open",
      "UpmPersistAllPermutations;UpmPersistRandomStableIds;"

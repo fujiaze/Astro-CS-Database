@@ -28,7 +28,7 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
   科学公式）；构建=静态库 astrocs_phase2_session（根
   CMakeLists.txt:454-458，link astrocs_contracts astrocs_phase2；
   CLI target 汇总 :504/:522/:538）。
-- 合同：ALG-P2-SESSION-001（docs/algorithms/PHASE2_SESSION.md）/
+- 合同：ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md）/
   DATA-P2-SESSION（DATA_SEMANTICS §24）/ API-P2-SESSION-001
   （PUBLIC_API「Phase2 装配会话 C API」节）/ 编排上游 API-P2-001
   （docs/api/PHASE2_API_V1.md，FROZEN，引用不改动）。

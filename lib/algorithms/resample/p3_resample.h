@@ -155,7 +155,7 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
  *     nan_signal_support_le_0 / zero_substitution=forbidden /
  *     rejection_counting=mandatory / **count_field=n_rejected_nonfinite**;
  *   · docs/standards/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
- *   · ALG-P3-003 §2 G4 + §4 (docs/algorithms/PHASE3_RESAMPLE.md) —— 本核冻结口径
+ *   · ALG-P3-003 §2 G4 + §4 (docs/science/algorithms/PHASE3_RESAMPLE.md) —— 本核冻结口径
  *     (样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数; 禁「零填」替代语义)。
  * 分类为**互斥、可加**三项 (DATA-002 §2a 规则 3): 值非有限 / 方差非有限 / 权重非正。
  * 信号核只消费 signal 平面 ⇒ variance 项恒 0; 权重由邻域几何唯一确定 ⇒ 权重非正项恒 0

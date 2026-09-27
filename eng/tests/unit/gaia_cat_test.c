@@ -5,7 +5,7 @@
  *     negative/worker/performance 全覆盖；期望值来自独立 fixture 真值
  *     （gaia_cat_manifest.h，由 gaia_xpsd_fixture_gen 生成，oracle 再独立
  *     复算），绝不由被测函数产生。
- *   - docs/algorithms/GAIA_QUERY.md §5 TEST-GAIA-DESIGN-001：
+ *   - docs/science/algorithms/GAIA_QUERY.md §5 TEST-GAIA-DESIGN-001：
  *     I1 无假阴性 / I2 无假阳性 / I3 缓存 bitwise / I4 mag 窗口闭区间 /
  *     I5 截断 200000；负面（坏魔数/截断/坏压缩标签/GAIA_ALLOC_TEST 注入）；
  *     1/N worker；冻结容差 |Δpos|≤5e-10 deg、|Δmag|≤1e-9、光谱字节全等。

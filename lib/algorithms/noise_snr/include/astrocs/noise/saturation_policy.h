@@ -1,7 +1,7 @@
 // saturation_policy.h — 饱和电平的解析策略（SAT-001，claim SC-008）
 //
 // 权威：docs/science/NOISE_MODEL.md §4「饱和域」（claim SC-008）与 §8 首行；
-//       docs/algorithms/NOISE_ESTIMATION.md §13.2（饱和电平语义）；
+//       docs/science/algorithms/NOISE_ESTIMATION.md §13.2（饱和电平语义）；
 //       docs/contracts/DATA_SEMANTICS.md §13.1（data/cfg 行）。
 //
 // 规则（唯一事实源=上述 SCI 条款，本头文件只是它的可测实现）：

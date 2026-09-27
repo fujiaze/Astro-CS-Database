@@ -102,7 +102,7 @@ coverage:
   **适用域**：该紧门仅在 `scale ≥ min_scale_arcsec = 0.9″/px` 时有保守性证据；尺度低于下限时紧门**不适用**（报「超出适用域」而非判红），退回全域保守门 `1e-6 px`。
   **两门不合并**：紧门判据力强但域窄（`0.9″/px` 处余量 2.98×）；全域门覆盖所有真实仪器但判据力弱（`0.18″/px` 处余量 101×）。
   **包络式**：`envelope_px = C_env·u·sec²Δ/s_rad`，`u = 2⁻⁵³`、`C_env = 128`（一阶包络实测 max = 78）、`sec²Δ = 1 + (FOV_rad/2)²`——该式成立是因为 TAN 的平面半径 `ξ = (180°/π)·tan γ`，故 `ξ_max = FOV_rad/2 ⇒ sec²γ_max = 1 + tan²γ_max = 1 + (FOV_rad/2)²`（`p3_wcs.cpp:253-263`）。
-  门的适用域判定 = `p3_wcs_roundtrip_gate()`（单一事实源）；见 `docs/algorithms/GATES_AND_TOLERANCES.md` §3。
+  门的适用域判定 = `p3_wcs_roundtrip_gate()`（单一事实源）；见 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3。
 - **常数场不变量**：常数球面面亮度场 `B0` → 有效区输出恒 `B0`（nearest 与 bilinear 均）。
 - **bilinear 权重和**：4 邻域权重和 = 1 ± k·ULP（FP64 累加；**不作逐位/精确断言**——
   IEEE-754 下「恒为 1」不可满足；k 由累加 dtype 决定，测试以相对容差判）。
@@ -219,7 +219,7 @@ coverage:
 ## 16 登记面：§5.3 输入语义守卫与产品 provenance 现状
 
 > 本节是**如实登记**（`ASTROCS_DESIGN.md` §12.5 负向状态如实标注 + §5.3），
-> **不改动**本文件任何公式、阈值、容差与冻结锚点。证据 = 本节与 `docs/algorithms/PHASE3_PROJ_IMPL.md` §16
+> **不改动**本文件任何公式、阈值、容差与冻结锚点。证据 = 本节与 `docs/science/algorithms/PHASE3_PROJ_IMPL.md` §16
 > （判据 sha256 `562d9f7447b91f650d547ce0a322fc519e91de270956da9c49094b7f163d5de0`）。
 
 | # | 项 | 实测现状 | 结论 |
@@ -233,4 +233,4 @@ coverage:
 - **代码侧缺口（只登记，本文件不改）**：C1a（`module_adapters.cpp:1040-1057` `p2_write_descriptor` 的 `mosaic` 端口仍为 `UnitId::ADU`，应为 `UnitId::SURFACE_BRIGHTNESS`）、C4 的会话面部分、C5 的未声明产品部分、
   C9（HiPS hierarchy 归约用 **f32** 累加器：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；修法 = 用已存在的 `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和）。
   另登记：`p3_order_select`（`p3_resample.cpp:206-218`）在无 `k ≤ max_order` 满足 `res_deg ≤ s_out` 时直接返回 `max_order` 且状态 `P3_RS_OK`，**不区分「恰好等于」与「被夹紧」**（欠采样倍率可由 `θ_pix(order_sel)/s_out` 复算，实测最大 14.31×，见 §5 夹紧域）。
-  实现侧完整清单与归属见 `docs/algorithms/PHASE3_PROJ_IMPL.md` §16（同一实验单元，避免两套文字）。
+  实现侧完整清单与归属见 `docs/science/algorithms/PHASE3_PROJ_IMPL.md` §16（同一实验单元，避免两套文字）。

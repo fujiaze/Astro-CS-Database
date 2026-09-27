@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：normalize/mosaic/export 三阶段详细设计、统一观测模型、产品落盘形态、日志与错误系统设计。
-- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/algorithms/）；合同条款正文（在 docs/contracts/）；模块级工作细节（在 docs/plugins/）。
+- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/science/algorithms/）；合同条款正文（在 docs/contracts/）；模块级工作细节（在 docs/plugins/）。
 
 ## 内容
 

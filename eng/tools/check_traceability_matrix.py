@@ -204,10 +204,10 @@ def self_test(root: str, outdir: str, matrix_real: str) -> int:
     cases: list[tuple[str, dict, str]] = [
         # (case 名, 行, 期望必红的规则；"NONE" = 必须全绿)
         ("A1_doc_anchor_md_id",
-         _row("MOD-selftest-a1", test_path="docs/algorithms/STAR_PSF_ALGORITHMS.md::TEST-PSF-DESIGN-001"),
+         _row("MOD-selftest-a1", test_path="docs/science/algorithms/STAR_PSF_ALGORITHMS.md::TEST-PSF-DESIGN-001"),
          "RULE-A"),
         ("A2_doc_only_path",
-         _row("MOD-selftest-a2", test_path="docs/algorithms/COSMETIC_ALGORITHMS.md"),
+         _row("MOD-selftest-a2", test_path="docs/science/algorithms/COSMETIC_ALGORITHMS.md"),
          "RULE-A"),
         ("B1_verified_no_evidence",
          _row("MOD-selftest-b1", evidence_id="EVID-MISSING", evidence_status="MISSING"),

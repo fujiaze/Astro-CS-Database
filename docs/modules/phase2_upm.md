@@ -19,8 +19,8 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
 > `lib/algorithms/sampling/`/`lib/algorithms/integration/`/`lib/algorithms/rejection/` 先例新建；
 > `lib/algorithms/coverage/` 一目录一套已被 P2-COV 占用，不可覆盖）。合同权威=
 > 三件套 + docs/science/PHASE2_UPM.md（SCI-UPM-001，共享 FROZEN）+
-> docs/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导）+
-> docs/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
+> docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导）+
+> docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
 > 合同，SCI/ALG 占位 ID⇒合同 ID 映射声明在其映射节）。descriptor
 > 词汇 module_id=`astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
 > （module_adapters.cpp:661-678/:680-694）为编排层占位，由 P2-XX-INT
@@ -256,8 +256,8 @@ F6 dense/sparse 1e-12 等价基线）。
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零改
   动；descriptor 占位 SCI-P2-UPM-001/002⇒SCI-UPM-001 映射声明=
   PHASE2_UPM_IMPL.md 映射节）
-- ALG：docs/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导）+
-  docs/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
+- ALG：docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导）+
+  docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
   合同）；DATA：DATA_SEMANTICS §23（DATA-P2-SMP）/§25（DATA-P2-UPM）
   /§26（DATA-P2-COR）；API：API-P2-UPM-001（PUBLIC_API.md）+ 编排层
   API-P2-001（FROZEN）

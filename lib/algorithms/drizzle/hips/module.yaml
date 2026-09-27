@@ -24,7 +24,7 @@
 # 现状实现为单句柄串行写（无内部并行：write_* 逐 tile 顺序调用，CFITSIO 单
 # 流程写盘，finalize 层次聚合按 k 降序确定性顺序），last_error 线程局部
 # （aio_hips_writer.cpp:48 thread_local）。ThreadLease 接线为迁移整改点
-# （见 docs/contracts/PUBLIC_API.md API-HIPS-001 与 docs/algorithms/HIPS_WRITER.md
+# （见 docs/contracts/PUBLIC_API.md API-HIPS-001 与 docs/science/algorithms/HIPS_WRITER.md
 # DISP-HIPS-001..012；含 CFITSIO mutex 包装、abort 事务化、estsize/fov
 # 真实估算等登记项）。
 # entrypoint=astrocs_module_query_v1（P1-HIPS-IMPL 交付态；v1 op 面单事务

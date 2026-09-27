@@ -3,7 +3,7 @@
  * 依据（冻结，不得事后改）：
  *   - MODULE_MIGRATION_TEMPLATE.md "<prefix>-TEST"：fixture 由固定 seed+参数
  *     生成，不提交大二进制；覆盖极区、RA 环绕、mag 边界、两种压缩。
- *   - docs/algorithms/GAIA_QUERY.md §5 TEST-GAIA-DESIGN-001：合成 fixture
+ *   - docs/science/algorithms/GAIA_QUERY.md §5 TEST-GAIA-DESIGN-001：合成 fixture
  *     ≥2 文件 × 多树，LZ4 与 zlib+shuffle 两种压缩，含/不含光谱记录，
  *     极区星、RA≈0/360 环绕星、mag 边界星。
  *   - 记录/节点布局与解码常量以 lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
@@ -403,7 +403,7 @@ static int fix_write_manifest(const char *dir) {
     if (!f) return -1;
     fprintf(f, "{\"kind\":\"manifest\",\"id\":\"TEST-GAIA-001\",\"seed\":%llu,"
                "\"generator\":\"eng/tests/unit/gaia_xpsd_fixture_gen.c\","
-               "\"alg_ref\":\"docs/algorithms/GAIA_QUERY.md s2/s5\"}\n",
+               "\"alg_ref\":\"docs/science/algorithms/GAIA_QUERY.md s2/s5\"}\n",
             (unsigned long long)FIX_SEED);
     for (int i = 0; i < g_nstars; i++) {
         FixStar *s = &g_stars[i];

@@ -12,7 +12,7 @@
 //   5) SNR cell 归属弱 oracle: 独立球面角距离 + cell 角尺度解析上界
 //
 // SCI/ALG ID 锚 (逐条核到实际文档 ID, 不臆造):
-//   ALG-HIPS-001..005 — docs/algorithms/HIPS_WRITER.md: 本 oracle 逐式对拍
+//   ALG-HIPS-001..005 — docs/science/algorithms/HIPS_WRITER.md: 本 oracle 逐式对拍
 //     的上位算法 —— (2a) NESTED→FITS 局部索引映射 / (2b)(2c) 叶级 signal·
 //     support 归一与无效规则 / (3a) variance·ivar 归一 / (4b)(4c) hierarchy
 //     逐阶聚合 / (5a) MOC UNIQ / (5c) SNR 产品与 properties。

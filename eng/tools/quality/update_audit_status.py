@@ -167,7 +167,7 @@ def _legacy_main() -> int:
          "err8=1.25e-17 > err1=8.08e-18 (strict < undecidable at float64 ulp for 3.2e-8 sr pixel)",
          "subdivision must not degrade area beyond science tolerance",
          "float64 resolution at tiny pixel area", "assert both densities < 1e-9 sr",
-         "test_spherical_overlap 77/77", "docs/algorithms/DRIZZLE_GEOMETRY.md",
+         "test_spherical_overlap 77/77", "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
          "none (test-only)", "FIXED"],
         ["F-V19R2-UPM-002", "upm.cpp p2_upm_calibrate_block/evaluate_c",
          "unknown frame id silently used frame 0 parameters",

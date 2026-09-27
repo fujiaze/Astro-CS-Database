@@ -4115,7 +4115,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/tools/quality/deep_ci_driver.py",
-      "note": "新增执行单元（非本波基线，absorbed）：测光装配的到达顺序不变性判据（星表与点扩散表置换后逐位一致）。判据依据 docs/algorithms/PHOTOMETRIC_FIT.md 的到达顺序不变性条款。",
+      "note": "新增执行单元（非本波基线，absorbed）：测光装配的到达顺序不变性判据（星表与点扩散表置换后逐位一致）。判据依据 docs/science/algorithms/PHOTOMETRIC_FIT.md 的到达顺序不变性条款。",
       "order_in_target": 6
     },
     {
@@ -4155,7 +4155,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/tools/quality/deep_ci_driver.py",
-      "note": "新增执行单元（非本波基线，absorbed）：方差地板按产品数据类型导出的可表示性判据。判据依据 docs/algorithms/NOISE_ESTIMATION.md 与 docs/science/NOISE_MODEL.md 的地板口径。",
+      "note": "新增执行单元（非本波基线，absorbed）：方差地板按产品数据类型导出的可表示性判据。判据依据 docs/science/algorithms/NOISE_ESTIMATION.md 与 docs/science/NOISE_MODEL.md 的地板口径。",
       "order_in_target": 10
     },
     {

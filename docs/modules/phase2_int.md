@@ -23,7 +23,7 @@
   legacy_paths="lib/algorithms/coverage integration sources"。
 - 合同链：SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，零改动；
   SCI-P2-INT-001⇒SCI-INT-001 映射声明见 ALG
-  文档 §11.5）→ ALG-P2-INT-001（docs/algorithms/PHASE2_INTEGRATION.md）
+  文档 §11.5）→ ALG-P2-INT-001（docs/science/algorithms/PHASE2_INTEGRATION.md）
   → DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001（PUBLIC_API）
   → TEST-P2-INT-001（MISSING；登记面=ALG §11.4 设计冻结 VERIFIED，
   COV/HIPS 先例；可执行测试归 P2-INT-TEST）。
@@ -68,5 +68,5 @@ W9 ACR 等价（:3021-3160）；eng/tests/backend/test_p2004_reject_integrate.py
 - 合同三件套：`lib/algorithms/integration/`（README/module.yaml/memory.md）
 - registry 页：docs/modules/registry/astrocs.phase2.integrate.md
 - SCI：docs/science/INTEGRATION.md（FROZEN，零改动）
-- ALG：docs/algorithms/PHASE2_INTEGRATION.md；DATA：§21；
+- ALG：docs/science/algorithms/PHASE2_INTEGRATION.md；DATA：§21；
   API：PUBLIC_API API-P2-INT-001

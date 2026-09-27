@@ -2,7 +2,7 @@
 # P1-WCS-TEST (TEST-P1-WCS-001) — lib/algorithms/platesolve + lib/algorithms/platesolve/wrapper_phase1 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-WCS-TEST (lock-P1-WCS; 依赖 P1-WCS-DOC 闭环, 2026-09-07)。
-# 合同锚: docs/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (F1-F6,
+# 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (F1-F6,
 # 冻结容差不放宽); docs/science/ASTROMETRY.md SCI-WCS-001; 矩阵行 P1-WCS
 # (MOD astrocs.phase1.wcs-platesolve, registry 页
 # docs/modules/registry/astrocs.phase1.wcs-platesolve.md)。
@@ -168,7 +168,7 @@ set_tests_properties(p1wcs_std_f1_bridge_cross PROPERTIES LABELS "p1wcs")
 # G-P1-WCS-CLOSURE v1 冻结口径的可复现门
 # ---------------------------------------------------------------------------
 # 合同锚: docs/science/ASTROMETRY.md §11a (SCI-WCS-001);
-# docs/algorithms/GATES_AND_TOLERANCES.md §3 行 G-P1-WCS-CLOSURE-REPRO (发布门=Y)
+# docs/science/algorithms/GATES_AND_TOLERANCES.md §3 行 G-P1-WCS-CLOSURE-REPRO (发布门=Y)
 # 与 §2 行 SNR_det。判据: 同输入同口径两次运行 median 完全相等 (容差 0 px,
 # 实测漂移 0) + 记录必须能由自带残差向量与声明半径重新导出 + params 逐项等于
 # 冻结口径。本目标跑合成场自检: 两口径各两跑必绿, 7 类负例注入必红, 缺输入

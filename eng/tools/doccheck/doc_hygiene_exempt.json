@@ -17,42 +17,42 @@
       "authority": "eng/tools/quality/v19r3_traceability.py:57-59（CONTRACTS 常量；docstring 第 14 行「输出：docs/TRACEABILITY.csv（覆盖原文件）」）"
     },
     {
-      "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+      "path": "docs/science/algorithms/PHASE2_MOSAIC_WRITE.md",
       "rule": "D3h_prohibition",
       "fingerprint": "179d87d3f84c1b1a",
       "reason": "逐字引述生产源码日志串 stage2.cpp:214 log(\"target_order 高于输入最高 order，禁止插值伪装分辨率\")，改词即改实测引文",
       "authority": "该行自述锚 :205-208（源串见 lib/algorithms/coverage/tools/stage2.cpp:214）"
     },
     {
-      "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+      "path": "docs/science/algorithms/PHASE2_MOSAIC_WRITE.md",
       "rule": "D3h_prohibition",
       "fingerprint": "345a083795b79206",
       "reason": "逐字引述生产源码注释串 stage2.cpp:1630「禁止静默换 support」；本行正文本就是同一串的重述，改任一即改实测引文",
       "authority": "该行自述锚 :1369（源串见 lib/algorithms/coverage/tools/stage2.cpp:1630）"
     },
     {
-      "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+      "path": "docs/science/algorithms/PHASE2_MOSAIC_WRITE.md",
       "rule": "D3h_prohibition",
       "fingerprint": "4347051de8f8e8b5",
       "reason": "逐字引述生产源码注释串 stage2.cpp:1553「// 禁止像素热循环创建 vector（depth 级小块复用）」，改词即改实测引文",
       "authority": "该行自述锚 :1290-1297（源串见 lib/algorithms/coverage/tools/stage2.cpp:1553）"
     },
     {
-      "path": "docs/algorithms/PHASE2_MOSAIC_WRITE.md",
+      "path": "docs/science/algorithms/PHASE2_MOSAIC_WRITE.md",
       "rule": "D3h_prohibition",
       "fingerprint": "eaf423f57e680a9b",
       "reason": "逐字引述生产源码注释串 stage2.cpp:81「// 帧级 SNR（Phase1 SNR Catalogue median；禁止重新检测星点）」，改词即改实测引文",
       "authority": "该行自述锚 :73（源串见 lib/algorithms/coverage/tools/stage2.cpp:81）"
     },
     {
-      "path": "docs/algorithms/PHASE2_REJECTION.md",
+      "path": "docs/science/algorithms/PHASE2_REJECTION.md",
       "rule": "D3h_prohibition",
       "fingerprint": "38b08af8ccf3807e",
       "reason": "表行内逐字引述同一条冻结头注释 rejection.cpp:12 的「禁止阈值漂移」，改词即改实测引文",
       "authority": "该行自述锚 :1-12（源串见 lib/algorithms/coverage/src/rejection.cpp:12）"
     },
     {
-      "path": "docs/algorithms/PHASE2_REJECTION.md",
+      "path": "docs/science/algorithms/PHASE2_REJECTION.md",
       "rule": "D3h_prohibition",
       "fingerprint": "756e5299fbdddc1c",
       "reason": "逐字引述生产源码冻结头注释 rejection.cpp:12「本文件为阈值/迭代权威实现，禁止阈值漂移。」，改词即改实测引文",

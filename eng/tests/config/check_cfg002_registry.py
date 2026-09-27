@@ -1055,7 +1055,7 @@ SANDBOX_FILES = [
 SANDBOX_DIRS = ["eng/packaging/config", "eng/contracts/schemas", "eng/contracts/config", "docs/plugins",
                 "eng/tests/config/fixtures"]
 # 顶层科学/算法文档（defaults 的 source_ref 与 contracts_doc 登记点指向它们；v6 子树门不读，不入沙箱）
-SANDBOX_GLOBS = ["docs/science/*.md", "docs/algorithms/*.md", "docs/design/UNIFIED_MODEL.md",
+SANDBOX_GLOBS = ["docs/science/*.md", "docs/science/algorithms/*.md", "docs/design/UNIFIED_MODEL.md",
                  "lib/infrastructure/benchmark/backend_host/*.cpp", "ENGINEERING_SPEC.md"]
 
 

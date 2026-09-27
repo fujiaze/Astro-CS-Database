@@ -35,7 +35,7 @@ python3 eng/tools/realdata/match_plan.py plan --testdata testdata \
 2. **滤镜归一**：casefold + 去分隔符（`OIII == Oiii`）；**不改数据文件名**；
 3. **dark 策略**：精确曝光优先（容差 ≤0.01s，K=1.0）；缺失时线性缩放
    `K = t_light/t_dark`（`docs/science/CALIBRATION.md:57,90`），估计器
-   `OPTIMAL` fallback `EXPOSURE_RATIO`（`docs/algorithms/CALIBRATION_ALGORITHMS.md:158,292`），
+   `OPTIMAL` fallback `EXPOSURE_RATIO`（`docs/science/algorithms/CALIBRATION_ALGORITHMS.md:158,292`），
    `phase_config.dark_optimization=true` 显式开启并逐帧记录 K；
    K 域 `(0, 10]`（K_OUT_OF_RANGE 语义），越界 → `NO_MASTER_DARK_BEYOND_POLICY`；
 4. **flat 策略**：滤镜归一精确匹配；缺失 → `NO_<FILTER>_FLAT`（如

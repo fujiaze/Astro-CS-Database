@@ -379,7 +379,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   FP32→uint16 量化通道**（实测 u16 量化对质心贡献 median 0.0018 / p95 0.0036 /
   max 0.0056 px，余量约 90×，可达且未超标；R-3 §2.6），**不构成端到端位置门**；
   端到端绝对位置门 = **G-P1-CENTROID-1**（ctest `p1psf_centroid_gate`/
-  `p1psf_centroid_gate_neg`，判据见 `docs/algorithms/GATES_AND_TOLERANCES.md`）。
+  `p1psf_centroid_gate_neg`，判据见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`）。
 - F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
 - F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训
   :1854/:2217-2218 固化）。容差冻结: 上述数值在 TEST 落地时逐项写死，
@@ -396,7 +396,7 @@ ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 
 PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象）
 （descriptor astrocs.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
 
-> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
+> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
@@ -406,7 +406,7 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 - 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
 - 椭圆高斯 LM：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, LNM 630, 105；实现对照 GSL（GPL-3.0）。
 - IIR 递归高斯平滑：Young & van Vliet 1995, Signal Processing 44, 139。
-- SNR_peak/门：docs/algorithms/GATES_AND_TOLERANCES.md §2/§3。
+- SNR_peak/门：docs/science/algorithms/GATES_AND_TOLERANCES.md §2/§3。
 - 检测侧椭圆高斯与 PSF 侧 Moffat4 的 FWHM 不可跨块比较（DISP-STAR-007；Moffat 1969, A&A 3, 455）。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：

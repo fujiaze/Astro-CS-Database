@@ -18,7 +18,7 @@ downstream: [TEST-P2-REJ-001]
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
 > frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
 > 保持不动；合同权威=lib/algorithms/rejection/ 三件套 +
-> docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）。descriptor
+> docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）。descriptor
 > 词汇（本节标题 module_id=astrocs.phase2.reject、端口表、坐标
 > PIXEL）为编排层占位（module_adapters.cpp:700-717，注册 :785），由
 > P2-XX-INT 对齐 astrocs.p2.rejection（矩阵 P2-REJ 行）；冻结依据 = 该矩阵行本身，以免反向

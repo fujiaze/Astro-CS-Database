@@ -8,9 +8,9 @@
 > 上游（本表**不新设阈值**，每行阈值必须回指到既有 SCI/ALG 条款或本表标注的标定证据）:
 > SCI-P1-STAR-001 §1/§4（docs/science/STAR_DETECTION.md）、SCI-PSF-001 §11
 > （docs/science/PSF.md）、SCI-WCS-001 §7/§11（docs/science/ASTROMETRY.md）、
-> ALG-STARDET-001 §11.4（docs/algorithms/STAR_DETECTION_ALGORITHMS.md）、
-> ALG-STARPSF-001 §11.4（docs/algorithms/STAR_PSF_ALGORITHMS.md）、
-> ALG-WCS-001 §11.4（docs/algorithms/PLATESOLVE.md）。
+> ALG-STARDET-001 §11.4（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md）、
+> ALG-STARPSF-001 §11.4（docs/science/algorithms/STAR_PSF_ALGORITHMS.md）、
+> ALG-WCS-001 §11.4（docs/science/algorithms/PLATESOLVE.md）。
 > 标定证据面: 本表各行「来源」列所引 SCI/ALG 条款与对应 `ctest` 目标
 > （探针直链本树 sdet+dpsf 静态库 + scipy 独立复算）。
 > 机器校验: `eng/tools/check_gates_and_tolerances.py`（本表即机器可校验事实源）。

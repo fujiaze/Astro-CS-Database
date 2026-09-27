@@ -2,7 +2,7 @@
 # P1-COS-TEST (TEST-P1-COS-001) — lib/algorithms/cosmetic 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-COS-TEST (SA-P1O-T, queue 34, lock-P1-COS; 依赖 P1-COS-DOC
-# 闭环)。合同锚: docs/algorithms/COSMETIC_ALGORITHMS.md §9
+# 闭环)。合同锚: docs/science/algorithms/COSMETIC_ALGORITHMS.md §9
 # TEST-COS-DESIGN-001 (P1-COS-DOC 冻结, 2026-09-07, wave W1); 矩阵行
 # P1-COS (MOD astrocs.p1.cosmetic)。
 #

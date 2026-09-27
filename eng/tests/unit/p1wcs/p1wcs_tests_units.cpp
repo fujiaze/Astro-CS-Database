@@ -1,6 +1,6 @@
 // P1-WCS-TEST · units 组 (F1 合成线性场 + F3 CRPIX/Y-down 不变量 + F6 legacy 桥)
 //
-// 合同锚: docs/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (P1-WCS-DOC
+// 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (P1-WCS-DOC
 // 冻结)。冻结容差逐项写死, 不得放宽:
 //   F1: n_pairs≥12, rms_arcsec≤0.5", CD 相对误差≤2%, |ΔCRVAL|≤1"
 //   F3: CRPIX=(w/2+0.5, h/2+0.5) 精确; Y-down CD 第 2 列符号翻转

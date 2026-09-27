@@ -2,7 +2,7 @@
 // test_snr_unknown_block.cpp - WP-F 步骤13: SNR 子块布局与未知必需子块拒绝测试
 //
 // 依据:
-// - docs/algorithms/NOISE_ESTIMATION.md (SNR 块语义)
+// - docs/science/algorithms/NOISE_ESTIMATION.md (SNR 块语义)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §17 (SNR 控制点), §13 (独立子块)
 // - docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (SNR 子块发布边界)
 //

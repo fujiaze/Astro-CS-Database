@@ -26,7 +26,7 @@
 | 层 | ID | 权威落位 | 状态 |
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN，映射声明 SCI-P3-RES-001⇒SCI-P3-001 见 ALG-P3-RSMP-IMPL-001 §5） | FROZEN |
-| ALG | ALG-P3-RSMP-IMPL-001 | docs/algorithms/PHASE3_RSMP_IMPL.md（本域实现级合同，兼承接 ALG-P3-003 本域子面 G3/G4） | CONTRACT_READY |
+| ALG | ALG-P3-RSMP-IMPL-001 | docs/science/algorithms/PHASE3_RSMP_IMPL.md（本域实现级合同，兼承接 ALG-P3-003 本域子面 G3/G4） | CONTRACT_READY |
 | DATA | DATA-P3-RES | docs/contracts/DATA_SEMANTICS.md §29 | CONTRACT_READY |
 | API | API-P3-RSMP-001 | docs/contracts/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
@@ -90,8 +90,8 @@
 ## 5 co-located 合同链接
 
 - SCI: [docs/science/PHASE3_HIPS_TO_FITS.md](../../docs/science/PHASE3_HIPS_TO_FITS.md)（FROZEN）
-- ALG: [docs/algorithms/PHASE3_RSMP_IMPL.md](../../docs/algorithms/PHASE3_RSMP_IMPL.md)
-- ALG(承接): [docs/algorithms/PHASE3_RESAMPLE.md](../../docs/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-003 施工规格，公式零改动）
+- ALG: [docs/science/algorithms/PHASE3_RSMP_IMPL.md](../../docs/science/algorithms/PHASE3_RSMP_IMPL.md)
+- ALG(承接): [docs/science/algorithms/PHASE3_RESAMPLE.md](../../docs/science/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-003 施工规格，公式零改动）
 - DATA: [docs/contracts/DATA_SEMANTICS.md](../../docs/contracts/DATA_SEMANTICS.md) §29
 - API: [docs/contracts/PUBLIC_API.md](../../docs/contracts/PUBLIC_API.md)
 - 模块页: [docs/modules/phase3_rsmp.md](../../docs/modules/phase3_rsmp.md)；

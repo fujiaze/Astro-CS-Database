@@ -24,9 +24,9 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 > :460-465），不整目录归属，矩阵 legacy_paths="lib/phase3_session
 > fits sources" 只圈 fits sources）。合同权威=三件套 +
 > docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，共享 FROZEN V5
-> SCI-007）+ docs/algorithms/PHASE3_RESAMPLE.md
+> SCI-007）+ docs/science/algorithms/PHASE3_RESAMPLE.md
 > （ALG-P3-001..004 施工规格，公式零改动）+
-> docs/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001，实现级
+> docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001，实现级
 > 合同，SCI-P3-WR-001⇒SCI-P3-001 映射声明在其 §5）。descriptor 词汇
 > module_id=`astrocs.phase3.writer`（module_adapters.cpp:445-460
 > p3_writer_descriptor）为编排层占位，由 P3-FITS-INT 对齐
@@ -140,8 +140,8 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 ## 链接
 
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN）
-- ALG: docs/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
-  + docs/algorithms/PHASE3_RESAMPLE.md（ALG-P3-001..004，零改动）
+- ALG: docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
+  + docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-001..004，零改动）
 - DATA: docs/contracts/DATA_SEMANTICS.md §27（DATA-P3-FITS）
 - API: docs/contracts/PUBLIC_API.md API-P3-FITS-001 节 +
   API-P3-001（FROZEN 镜像）

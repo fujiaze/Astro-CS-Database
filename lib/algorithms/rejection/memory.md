@@ -52,7 +52,7 @@
   注: manifest input_ports 照 descriptor 实际 corrected/accepted_mask
   （support/ivar/quality_flags 为消费链词汇：stage2 逐帧打开与
   gather 栈内消费，非编排 port）；占位 sci_id=SCI-P2-REJ-001 ⇒
-  SCI-REJ-001 映射声明 = docs/algorithms/PHASE2_REJECTION.md §11.5，
+  SCI-REJ-001 映射声明 = docs/science/algorithms/PHASE2_REJECTION.md §11.5，
   占位 ID 不入合同。
 - known_defects（登记不改码，整改归 P2-REJ-IMPL/TEST）:
   - DISP-P2REJ-001: rejection.h:118 percentile low_fraction 注释

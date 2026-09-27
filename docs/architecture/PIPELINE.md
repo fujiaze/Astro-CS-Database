@@ -57,7 +57,7 @@ admit（兼容性校验） → coverage（重叠图 union） → sampling（控�
 
 ## 关键不变量
 
-- **科学冻结权威 = `docs/science/`（公式）与 `docs/algorithms/`（推导）**
+- **科学冻结权威 = `docs/science/`（公式）与 `docs/science/algorithms/`（推导）**
   （最高设计 §0.1/§1.1）。
 - 序列化：V11（外部 oracle 冻结）；sampler/UPM：V13/V14（内部指代）。
 - Browser 不拥有科学数据解释权（**工具分类，非发布**；最高设计 §7.1/§10.1）。

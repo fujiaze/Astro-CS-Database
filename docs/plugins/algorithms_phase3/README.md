@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：投影 registry、重采样采样核、FITS 流式写出三模块的职责与边界。
-- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/algorithms/）；阶段详细设计（在 docs/design/PHASE3_DETAILED_DESIGN.md）。
+- 不放：科学公式正本（在 docs/science/）；算法推导（在 docs/science/algorithms/）；阶段详细设计（在 docs/design/PHASE3_DETAILED_DESIGN.md）。
 - 说明：phase3 仅为文档分组的内部指代，代码中算法模块并联放置。
 
 ## 内容

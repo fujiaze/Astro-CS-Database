@@ -2,7 +2,7 @@
  *
  * 合同锚 (主: docs/science/PSF_SIGNAL_WEIGHT.md;
  *         Phase1: docs/design/PHASE1_DETAILED_DESIGN.md;
- *         冻结: docs/algorithms/GATES_AND_TOLERANCES.md;
+ *         冻结: docs/science/algorithms/GATES_AND_TOLERANCES.md;
  *         eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary):
  *   - FZ-FIELD-PSFSW-4COMP  : signal/concentration/noise/background 四分量,
  *                             measurement_id 互异, p05<=p50<=p95, valid_area_fraction in [0,1]

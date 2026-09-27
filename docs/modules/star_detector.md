@@ -72,7 +72,7 @@ STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
 ## Science IDs
 
 SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
-引用不改动）；ALG-STARDET-001（docs/algorithms/STAR_DETECTION_ALGORITHMS.md
+引用不改动）；ALG-STARDET-001（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md
 §11 逐符号锚）；DATA-P1-STAR（DATA_SEMANTICS §17）；API-STAR-001
 （PUBLIC_API）。「SCI-PSF-001 输入侧」为共享 SCI 引用关系（检测为 PSF 拟合
 与 plate solve 提供候选/中心），保留于 ALG 文档 §1。

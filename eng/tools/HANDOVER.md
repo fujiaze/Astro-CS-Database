@@ -24,7 +24,7 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 
 **权威链（逐层下钻，不是挑一篇读）**：
 `docs/ASTROCS_DESIGN.md`（最高，先通读相关章节）→ `docs/design/` → `docs/plugins/` →
-`docs/science/` 与 `docs/algorithms/`（公式与推导，只读权威）→ `docs/contracts/` →
+`docs/science/` 与 `docs/science/algorithms/`（公式与推导，只读权威）→ `docs/contracts/` →
 `ENGINEERING_SPEC.md` → `ACCEPTANCE_SPEC.md` → `docs/ci/` → `docs/research/`。
 
 **机器契约字面量冻结、改名时绝不可动**：`x-astrocs-*` schema 键前缀、模块 ID `astrocs.*`、

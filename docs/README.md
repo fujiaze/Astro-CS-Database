@@ -9,7 +9,7 @@
 
 ## 文档分层
 
-- **科学线**：`docs/science/` 公式与科学定义权威，`docs/algorithms/` 算法推导与实现锚定，佐证要求见 `docs/DOCUMENT_GOVERNANCE.md`；
+- **科学线**：`docs/science/` 公式与科学定义权威，`docs/science/algorithms/` 算法推导与实现锚定，佐证要求见 `docs/DOCUMENT_GOVERNANCE.md`；
 - **工程线**：行为合同与机器可校验 schema 的文档化说明（`docs/contracts/`、`docs/api/`），CI 规范（`docs/ci/`），标准与检查（`docs/standards/`）；
 - **模块与架构**：`docs/plugins/`（模块工作细节）、`docs/architecture/`、`docs/modules/`、`docs/design/`；
 - **验证与运维**：`docs/validation/`、`docs/quality/`、`docs/operations/`、`docs/diagnostics/`、`docs/performance/`；

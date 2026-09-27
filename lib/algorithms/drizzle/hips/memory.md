@@ -20,7 +20,7 @@
 - 本目录三件套：README.md（模块合同 10 节）、module.yaml（11 号标准
   §4 manifest，module_status=CONTRACT_READY，entrypoint=MISSING）、
   memory.md（本文件）。
-- docs/algorithms/HIPS_WRITER.md 新建：ALG-HIPS-001..005 逐公式源码
+- docs/science/algorithms/HIPS_WRITER.md 新建：ALG-HIPS-001..005 逐公式源码
   锚定 + TEST-HIPS-DESIGN-001（§9）+ DISP-HIPS-001..008（§10）。
 - docs/contracts/DATA_SEMANTICS.md 追加 §12（DATA-P1-HIPS）。
 - docs/contracts/PUBLIC_API.md 追加 API-HIPS-001 节（9 符号现状 C API）。
@@ -34,7 +34,7 @@
 - docs/traceability/TRACEABILITY_MATRIX.{json,csv} 追加
   MOD-astrocs-phase1-hips-writer 行（七层 VERIFIED + EVID-MISSING，
   追加不重排）。
-- docs/DOCUMENT_INDEX.yaml 登记 docs/algorithms/HIPS_WRITER.md 与
+- docs/DOCUMENT_INDEX.yaml 登记 docs/science/algorithms/HIPS_WRITER.md 与
   registry 页；lib/algorithms/drizzle/hips/ 三件套入索引。
 - 源码事实采集底稿（不入库）：run/local/agent_p1_hips_doc/
   （my_own_facts.md 主核 + subagent 侦察报告）。

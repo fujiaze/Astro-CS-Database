@@ -5,7 +5,7 @@
 //   · docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a invalid_handling:
 //     样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 (count_field=n_rejected_nonfinite);
 //   · docs/standards/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
-//   · docs/algorithms/PHASE3_RESAMPLE.md §2 G4 / §4 (禁「零填」替代语义)。
+//   · docs/science/algorithms/PHASE3_RESAMPLE.md §2 G4 / §4 (禁「零填」替代语义)。
 //
 // 判据 (非退化; 真值无效应/实现退回旧口径时必判红):
 //   T1 harness 自检: fixture 的 FITS 序索引与生产 read_leaf 映射一致 (前提; 失败即前提失效)

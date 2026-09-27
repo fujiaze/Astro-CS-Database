@@ -5,13 +5,13 @@
 > 本页为 calibration 模块摘要页：生产调用方、线程模型、错误语义、
 > 诊断/测试陈述、现状缺陷一律以 lib/algorithms/calibration 现行源码为准；
 > 模块级合同与算法细节见
-> docs/algorithms/CALIBRATION_ALGORITHMS.md
+> docs/science/algorithms/CALIBRATION_ALGORITHMS.md
 > （ALG-CAL-001..006）；数据语义见 docs/contracts/DATA_SEMANTICS.md §9
 > （DATA-P1-CAL）；API 合同见 docs/contracts/PUBLIC_API.md（API-CAL-001）
 > 与 docs/api/PHASE1_API_V1.md（API-P1-001）。
 > cosmetic 域合同已独立冻结为
 > astrocs.p1.cosmetic（lib/algorithms/cosmetic/，ALG-COS-001..005 =
-> docs/algorithms/COSMETIC_ALGORITHMS.md，DATA-P1-COS = DATA_SEMANTICS
+> docs/science/algorithms/COSMETIC_ALGORITHMS.md，DATA-P1-COS = DATA_SEMANTICS
 > §10，API-COS-001 = PUBLIC_API.md）——与本页 P1-CAL 合同共享同一编译
 > 目标 astrocs_calibration 与头文件；本页仅保留 P1-CAL 视角摘要，
 > cosmetic 域以 lib/algorithms/cosmetic/README.md 为权威。
@@ -83,9 +83,9 @@ ALG-CAL §8。无全局状态（除 OpenMP ICV）。
 ## Science IDs
 
 SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN）；ALG-CAL-001..006
-（docs/algorithms/CALIBRATION_ALGORITHMS.md，CONTRACT_READY）。
+（docs/science/algorithms/CALIBRATION_ALGORITHMS.md，CONTRACT_READY）。
 cosmetic 域：SCI-CAL-001 共享 + ALG-COS-001..005
-（docs/algorithms/COSMETIC_ALGORITHMS.md，CONTRACT_READY，
+（docs/science/algorithms/COSMETIC_ALGORITHMS.md，CONTRACT_READY，
 MOD-astrocs-phase1-cosmetic）。
 
 ## 性能特征

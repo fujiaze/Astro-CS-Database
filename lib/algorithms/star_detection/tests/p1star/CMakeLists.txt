@@ -2,7 +2,7 @@
 # P1-STAR-TEST (TEST-P1-STAR-001) — lib/algorithms/star_detection 可复用验证面
 # ----------------------------------------------------------------------------
 # 控制包任务: P1-STAR-TEST (SA-P1ST-T, queue 49, lock-P1-STAR; 依赖
-# P1-STAR-DOC 闭环)。合同锚: docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4
+# P1-STAR-DOC 闭环)。合同锚: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.4
 # TEST-STAR-DESIGN-001 (P1-STAR-DOC 冻结, 2026-09-08, wave W3); 矩阵行
 # P1-STAR (MOD astrocs.phase1.star_detection, TEST-P1-STAR-001); 冻结合同
 # lib/algorithms/star_detection/README.md (CONTRACT_READY)。

@@ -5,7 +5,7 @@
 > 文档版本: r1（本 README 重写取代 V4.30 营销式旧 README——旧文成功率/性能
 > 对比等叙述保留于 GitHub 上游仓库与 memory.md 存档，合同冻结以本版为准）
 > 权威来源: SCI=docs/science/ASTROMETRY.md（SCI-WCS-001，FROZEN T102
-> 2026-08-23，共享引用不改动）；ALG=docs/algorithms/PLATESOLVE.md
+> 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001 + §11 逐符号源码锚定）；DATA=docs/contracts/
 > DATA_SEMANTICS.md §18（DATA-P1-WCS）；API=docs/contracts/PUBLIC_API.md
 > （API-WCS-001）；矩阵行=docs/traceability/TRACEABILITY_MATRIX.json

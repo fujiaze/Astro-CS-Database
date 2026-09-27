@@ -1,7 +1,7 @@
 // P1-PHOT-TEST · 测试执行器框架 (单执行器 + 单测组注册 + 故障注入)
 //
 // 控制包任务: P1-PHOT-TEST (lock-P1-PHOT; 依赖 P1-PHOT-DOC 闭环)。合同锚:
-// docs/algorithms/PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC
+// docs/science/algorithms/PHOTOMETRIC_FIT.md §13.4 TEST-PHOT-DESIGN-001 (P1-PHOT-DOC
 // 冻结, 2026-09-07) + docs/science/PHOTOMETRY.md §11 (SCI-PHOT-001, FROZEN
 // T103 2026-08-23); 矩阵行 P1-PHOT (MOD-astrocs-phase1-photometry,
 // TEST-PHOT-DESIGN-001 → TEST-P1-PHOT-001); 模块合同

@@ -2,7 +2,7 @@
  * SCI-PSF-001 / ALG-STAR-PSF-*：I=B+A/(1+Q)⁴；Q/dx·dy 定见 STAR_PSF_ALGORITHMS.md 伪代码与 docs/science/PSF.md；
  * 守卫：pivot 1e-30（数值奇异，45）、sx/sy≤0 哨兵 1e10（71-74）、Q<0 哨兵 1e10（89-91）、
  *  h=max(|x|·1e-6,1e-8)（114）、sx/sy 下界 0.3（169-170,326）、FWHM>rect 拒绝（333-341）、
- *  背景比 0.5（343-344）；对照表见 docs/science/PSF.md / docs/algorithms/STAR_PSF_ALGORITHMS.md。
+ *  背景比 0.5（343-344）；对照表见 docs/science/PSF.md / docs/science/algorithms/STAR_PSF_ALGORITHMS.md。
  */
 #include "dpsf_psf.h"
 #include "dpsf_log.h"

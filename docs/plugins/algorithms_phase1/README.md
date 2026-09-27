@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：normalize 各节点模块（定标、修复、检测、PSF、天测、测光、噪声 SNR、Drizzle）的工作细节。
-- 不放：科学公式正本（在 docs/science/）；算法推导与门表（在 docs/algorithms/）；阶段详细设计（在 docs/design/PHASE1_DETAILED_DESIGN.md）。
+- 不放：科学公式正本（在 docs/science/）；算法推导与门表（在 docs/science/algorithms/）；阶段详细设计（在 docs/design/PHASE1_DETAILED_DESIGN.md）。
 - 说明：phase1 仅为文档分组的内部指代，代码中算法模块并联放置。
 
 ## 内容

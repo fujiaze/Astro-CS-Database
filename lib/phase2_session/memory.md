@@ -49,7 +49,7 @@
   output_dir 必填；runtime_client.cpp:49 run 格式自动补 output_dir、
   :51 phase2 直通不补。
 - known_defects（登记不改码，整改归 P2-SESSION-IMPL，权威清单=
-  docs/algorithms/PHASE2_SESSION.md §11.3）:
+  docs/science/algorithms/PHASE2_SESSION.md §11.3）:
   - DISP-P2SES-001: validate 未拒未知键（:80-96 仅必需键/类型/upm
     形状）与 h:19 注释出入；键白名单缺失拼错键静默忽略。
   - DISP-P2SES-002: run 未强制/复用 validate，parse 后直接
@@ -72,7 +72,7 @@
   :33-40 / facade 委托 :44-53 / 阶段序 :56-66 / manifest trace :69-74。
   可执行 TEST-P2-SESSION-001 MISSING（归 P2-SESSION-TEST）。
 - 合同 ID 登记（本任务冻结）: ALG-P2-SESSION-001
-  （docs/algorithms/PHASE2_SESSION.md）/ DATA-P2-SESSION（§24）/
+  （docs/science/algorithms/PHASE2_SESSION.md）/ DATA-P2-SESSION（§24）/
   API-P2-SESSION-001 / TEST-P2-SESSION-001（DORMANT 登记）/
   SRC-P2-SESSION-001（五导出符号）；SCI 层共享引用
   SCI-UPM-001/SCI-INT-001/SCI-REJ-001（FROZEN 零改动）。

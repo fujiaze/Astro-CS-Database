@@ -36,7 +36,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 - 合同：SCI-P2-COV-001（指向既有 FROZEN 共享 SCI：docs/science/
   PHASE2_UPM.md §1 覆盖并集 + docs/science/INTEGRATION.md §5
   support/validity 分离 + docs/science/SCIENCE_SCOPE.md §处理链第 5
-  步；共享 SCI 不改动，状态声明=docs/algorithms/PHASE2_COVERAGE.md
+  步；共享 SCI 不改动，状态声明=docs/science/algorithms/PHASE2_COVERAGE.md
   §11.5，SCI-WCS-001=共享 ASTROMETRY.md 先例）/
   ALG-COV-001（PHASE2_COVERAGE.md §2 逐公式行号锚）/ DATA-COV-001
   （DATA_SEMANTICS §19）/ API-COV-001（PUBLIC_API Coverage union C API

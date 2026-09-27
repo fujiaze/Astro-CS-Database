@@ -25,7 +25,7 @@
 | 层 | ID | 权威落位 | 状态 |
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN；映射声明 SCI-P3-WCS-001⇒SCI-P3-001 见 ALG §5） | FROZEN |
-| ALG | ALG-P3-PROJ-IMPL-001 | docs/algorithms/PHASE3_PROJ_IMPL.md（兼承接 ALG-P3-002 G1/G2 本域子面） | CONTRACT_READY |
+| ALG | ALG-P3-PROJ-IMPL-001 | docs/science/algorithms/PHASE3_PROJ_IMPL.md（兼承接 ALG-P3-002 G1/G2 本域子面） | CONTRACT_READY |
 | DATA | DATA-P3-WCS | docs/contracts/DATA_SEMANTICS.md §28 | CONTRACT_READY |
 | API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
@@ -86,7 +86,7 @@ module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
 ## 7 链接
 
 - registry 手写页: docs/modules/registry/astrocs.phase3.wcs.md
-- ALG: docs/algorithms/PHASE3_PROJ_IMPL.md
+- ALG: docs/science/algorithms/PHASE3_PROJ_IMPL.md
 - DATA: docs/contracts/DATA_SEMANTICS.md §28
 - API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001）
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）

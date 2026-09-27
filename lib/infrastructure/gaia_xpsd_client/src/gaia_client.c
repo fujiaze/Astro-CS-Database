@@ -473,7 +473,7 @@ typedef struct {
 /* ===== 缓存辅助函数 ===== */
 
 /* B4-P1-2: block_cache 锁封装。
- * 合同 docs/algorithms/GAIA_QUERY.md §4 单写者约定原本依赖
+ * 合同 docs/science/algorithms/GAIA_QUERY.md §4 单写者约定原本依赖
  * "并行轴=文件, 每文件仅单线程访问 block_cache"; 但 match 类查询
  * (gaia_client_query_spectrum_by_coords 等) 并行轴=坐标, 多线程并发
  * 读写同一文件的 block_cache (lookup 写 last_access / insert 淘汰+free /

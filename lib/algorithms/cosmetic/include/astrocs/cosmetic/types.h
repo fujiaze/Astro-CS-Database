@@ -10,7 +10,7 @@
  *   module_id   = astrocs.p1.cosmetic         (module.yaml module_id 字段)
  *   version     = 0.1.0-alpha.1              (module.yaml module_version, 避免双口径)
  *   abi_version = 1                           (module.yaml abi_version)
- * 合同 ID 三组 (docs/algorithms/COSMETIC_ALGORITHMS.md §8 冻结;
+ * 合同 ID 三组 (docs/science/algorithms/COSMETIC_ALGORITHMS.md §8 冻结;
  * docs/contracts/PUBLIC_API.md API-COS-001):
  *   sci_id = SCI-CAL-001 / alg_id = ALG-COS-001 / api_id = API-COS-001
  */

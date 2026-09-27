@@ -24,7 +24,7 @@
 # internal_parallel=none，输出 bitwise 与线程数无关，但 ThreadLease/
 # 取消检查点无接线（阶段级取消由编排 session 阶段边界提供
 # p2_session.cpp:120；迁移整改点 DISP-COV-005，见
-# docs/algorithms/PHASE2_COVERAGE.md §11.3 与
+# docs/science/algorithms/PHASE2_COVERAGE.md §11.3 与
 # docs/contracts/PUBLIC_API.md API-COV-001）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:561-576 p2_coverage_descriptor 的
@@ -62,7 +62,7 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE2_UPM.md
   sci_extra: docs/science/INTEGRATION.md
-  alg: docs/algorithms/PHASE2_COVERAGE.md
+  alg: docs/science/algorithms/PHASE2_COVERAGE.md
   data: docs/contracts/DATA_SEMANTICS.md#§19
   api: docs/contracts/PUBLIC_API.md#API-COV-001
 contract_ids:

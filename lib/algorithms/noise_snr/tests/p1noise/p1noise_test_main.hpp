@@ -1,7 +1,7 @@
 // P1-NOISE-TEST · 测试执行器框架 (单执行器 + 单测组注册 + 故障注入)
 //
 // 控制包任务: P1-NOISE-TEST (SA-P1N-T, queue 41, lock-P1-NOISE; 依赖
-// P1-NOISE-DOC 闭环)。合同锚: docs/algorithms/NOISE_ESTIMATION.md §13.4
+// P1-NOISE-DOC 闭环)。合同锚: docs/science/algorithms/NOISE_ESTIMATION.md §13.4
 // TEST-NOISE-DESIGN-001 (P1-NOISE-DOC 冻结, 2026-09-07, wave W1); 矩阵行
 // P1-NOISE (MOD astrocs.p1.noise-snr, TEST-P1-NOISE-001)。
 //

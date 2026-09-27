@@ -355,7 +355,7 @@ main(stage2.json, CLI overrides):
 - 权威参考实现 = stage2.cpp CPU reference 权威路径本身（:1061-1541，
   "CPU reference 路径" 注释 :1061）；ACR 块路径为执行域加速（:863-1058），
   两者科学语义等价合同（kernel legacy_parallel 同路径 :979-983；ACR 等价
-  权威 = docs/algorithms/ACR_EQUIVALENCE.md ALG-ACR-EQUIV）。
+  权威 = docs/science/algorithms/ACR_EQUIVALENCE.md ALG-ACR-EQUIV）。
 - Oracle 设计（独立于被测符号，不复制 §2 公式）:
   - Python/NumPy 参考实现: 合成 3 帧单 tile HiPS（signal/support/ivar），
     按 SCI-INT §5 语义独立复算 signal（weighted mean, w=ivar）与
@@ -388,7 +388,7 @@ main(stage2.json, CLI overrides):
     （ivar_wiring_test.cpp:311-322）；repeat-2T 阈值 1e-6、差数==0
     （:339-341，by-construction 位精确注释 :327-328）；帧置换/ivar 局部性
     阈值 1e-4（:383-385/:406-410）。
-  - ACR↔CPU 等价: ALG-ACR-EQUIV（docs/algorithms/ACR_EQUIVALENCE.md）
+  - ACR↔CPU 等价: ALG-ACR-EQUIV（docs/science/algorithms/ACR_EQUIVALENCE.md）
     权威容差域。
   - 集合/索引运算整数精确: target_order/ipix/序转换往返容差=0（bitwise）。
 - **TEST-P2-HIPS-001 MISSING**: 专属端到端马赛克 synthetic gate（NumPy
@@ -407,10 +407,10 @@ main(stage2.json, CLI overrides):
 - 上游 SCI: SCI-UPM-001（PHASE2_UPM.md §5）、SCI-INT-001（INTEGRATION.md
   §5）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
   （SCIENCE_SCOPE.md）——全部共享只读引用，不改动（§引言纪律声明）。
-- ALG 上游: ALG-UPM-001（docs/algorithms/UPM_SOLVER.md）、
-  ALG-REJ-001..008（docs/algorithms/REJECTION_ALGORITHMS.md，DERIVED）、
-  ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md，ACTIVE）、
-  ALG-HIPS-001..005（docs/algorithms/HIPS_WRITER.md，writer 库
+- ALG 上游: ALG-UPM-001（docs/science/algorithms/UPM_SOLVER.md）、
+  ALG-REJ-001..008（docs/science/algorithms/REJECTION_ALGORITHMS.md，DERIVED）、
+  ALG-COV-001（docs/science/algorithms/PHASE2_COVERAGE.md，ACTIVE）、
+  ALG-HIPS-001..005（docs/science/algorithms/HIPS_WRITER.md，writer 库
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp——P2 马赛克共用其
   ALG-HIPS-002 归一公式 signal=flux_sum/covered_area、
   support=covered_area/A_cell 钳 1.0（:477-479）与 finalize manifest.json

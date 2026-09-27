@@ -20,7 +20,7 @@
   legacy_paths="lib/algorithms/coverage integration sources"。
 - 合同链：SCI-INT-001（docs/science/INTEGRATION.md，FROZEN T108
   2026-08-23，集合 SCI-INT-001/002/004/008）→ ALG-P2-INT-001
-  （docs/algorithms/PHASE2_INTEGRATION.md）→ DATA-P2-INT
+  （docs/science/algorithms/PHASE2_INTEGRATION.md）→ DATA-P2-INT
   （DATA_SEMANTICS §21）/ API-P2-INT-001（PUBLIC_API）→
   TEST-P2-INT-001（登记面=设计冻结 VERIFIED，ALG 文档 §11.4，COV/HIPS
   先例；可执行测试 MISSING 归 P2-INT-TEST）。
@@ -77,7 +77,7 @@ DRIVER_SRC 积分段 :66-126，含 max(accepted support) 注释 :124）。
 
 - README/module.yaml/memory.md：`lib/algorithms/integration/`（本目录）
 - SCI：docs/science/INTEGRATION.md（FROZEN，零改动）
-- ALG：docs/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）
+- ALG：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）
 - DATA：docs/contracts/DATA_SEMANTICS.md §21（DATA-P2-INT）
 - API：docs/contracts/PUBLIC_API.md API-P2-INT-001
 - 模块页：docs/modules/phase2_int.md；

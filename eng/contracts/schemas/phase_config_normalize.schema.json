@@ -137,20 +137,20 @@
             "string",
             "object"
           ],
-          "description": "HEALPix nside；缺省即 auto（由最细输入采样派生，docs/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验"
+          "description": "HEALPix nside；缺省即 auto（由最细输入采样派生，docs/science/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验"
         },
         "pixfrac": {
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 1,
-          "description": "drizzle drop 收缩因子 pixfrac（0 < pixfrac <= 1；语义/值域权威 docs/science/DRIZZLE.md + docs/algorithms/DRIZZLE_GEOMETRY.md；非法值显式 NO_DATA 不夹逼）"
+          "description": "drizzle drop 收缩因子 pixfrac（0 < pixfrac <= 1；语义/值域权威 docs/science/DRIZZLE.md + docs/science/algorithms/DRIZZLE_GEOMETRY.md；非法值显式 NO_DATA 不夹逼）"
         },
         "precision_mode": {
           "enum": [
             0,
             1
           ],
-          "description": "科学计算精度，必须显式：0=FP32 / 1=FP64（缺失即 DATA 拒绝，不 silent 降精度；docs/algorithms/DRIZZLE_GEOMETRY.md B2-A12）"
+          "description": "科学计算精度，必须显式：0=FP32 / 1=FP64（缺失即 DATA 拒绝，不 silent 降精度；docs/science/algorithms/DRIZZLE_GEOMETRY.md B2-A12）"
         }
       }
     },
@@ -469,7 +469,7 @@
       "type": "number",
       "exclusiveMinimum": 0,
       "maximum": 1,
-      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md 与 docs/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority，归属 SCI-RES-01/R-005），本字段不声明数值默认。"
+      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority，归属 SCI-RES-01/R-005），本字段不声明数值默认。"
     },
     "algorithm_psf_model": {
       "enum": [

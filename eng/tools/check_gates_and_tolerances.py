@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""F-2 机器门：冻结门表 docs/algorithms/GATES_AND_TOLERANCES.md 可校验性。
+"""F-2 机器门：冻结门表 docs/science/algorithms/GATES_AND_TOLERANCES.md 可校验性。
 
 背景（SCI-FIX-PSF 第 9 项 / R-3 §5.6）：本域原有 7 条门「零标定依据」，
 2/5 条连量测域都没写、无一条有阈值来源字段。本检查器把「门表」变成**机器事实源**：
@@ -29,7 +29,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TABLE_DOC = "docs/algorithms/GATES_AND_TOLERANCES.md"
+TABLE_DOC = "docs/science/algorithms/GATES_AND_TOLERANCES.md"
 INDEX_DOC = "docs/DOCUMENT_INDEX.yaml"
 
 REQUIRED_COLS = ["门ID", "判据式", "量测域", "统计量", "SNR/信噪定义", "阈值", "阈值来源", "证据ID"]

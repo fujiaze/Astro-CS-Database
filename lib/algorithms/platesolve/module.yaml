@@ -37,7 +37,7 @@
 # ipv_select.cpp:810/:1123/:1412/:1756 schedule(static)），求解主体单线程，
 # 输出 bitwise 与线程数无关，但 ThreadLease/omp_set_num_threads 无接线
 # （迁移整改点，见 docs/contracts/PUBLIC_API.md API-WCS-001 与
-# docs/algorithms/PLATESOLVE.md §11.3 DISP-WCS-001..006）。
+# docs/science/algorithms/PLATESOLVE.md §11.3 DISP-WCS-001..006）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:450-464 p1_wcs_descriptor 的
 # module_id=astrocs.phase1.wcs-platesolve、sci_id=SCI-P1-WCS-001/
@@ -72,7 +72,7 @@ api_contracts:
   - API-WCS-001
 doc_links:
   sci: docs/science/ASTROMETRY.md
-  alg: docs/algorithms/PLATESOLVE.md#§11
+  alg: docs/science/algorithms/PLATESOLVE.md#§11
   data: docs/contracts/DATA_SEMANTICS.md#§18
   api: docs/contracts/PUBLIC_API.md#API-WCS-001
 contract_ids:

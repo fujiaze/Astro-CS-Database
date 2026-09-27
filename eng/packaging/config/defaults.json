@@ -5,7 +5,7 @@
   "authority": {
     "design": "docs/ASTROCS_DESIGN.md §3.3（程序根 eng/packaging/config/：defaults.json 放暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层密度等）",
     "preflight": "docs/ASTROCS_DESIGN.md §3.5（预检三级：容差等判定基准来自 eng/packaging/config/defaults.json）",
-    "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
+    "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/science/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
     "owner_rulings": "工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md「负责人补充裁决（2026-09-16 第二轮）」"
   },
   "field_count": 59,
@@ -35,7 +35,7 @@
       "unit": "1",
       "constraint": "已归一 master flat 的中位数判定带（无量纲）：median(flat) 落在带内 = 视为已归一（合同值 1.0）；带外必须显式声明 master_flat_normalize=\"median\" 才允许消费，否则消费边界 DATA 拒绝（rc=2）。仅区分「已归一 / 未归一」两种数量级状态，不是科学容差。",
       "authority_status": "sourced",
-      "source": "docs/science/CALIBRATION.md:103（消费边界按 master_flat_median_range 判定已归一：冻结默认 [0.5, 2.0]）；:102（区间外必须显式声明 master_flat_normalize=\"median\" 才允许消费）；docs/algorithms/CALIBRATION_ALGORITHMS.md:56 同值、:495（DISP-CAL-013 登记）",
+      "source": "docs/science/CALIBRATION.md:103（消费边界按 master_flat_median_range 判定已归一：冻结默认 [0.5, 2.0]）；:102（区间外必须显式声明 master_flat_normalize=\"median\" 才允许消费）；docs/science/algorithms/CALIBRATION_ALGORITHMS.md:56 同值、:495（DISP-CAL-013 登记）",
       "source_ref": {
         "path": "docs/science/CALIBRATION.md",
         "line": 103
@@ -108,7 +108,7 @@
       "unit": "px",
       "constraint": ">= 1；与 mask_radius_scale 相乘得 rmax = max(1, source_mask_radius_px) * max(1, mask_radius_scale) = 60 px —— **逐星掩膜半径的硬上界**（非操作默认半径）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:86（§5a `rmax = max(1,r0)·max(1,scale) = 60 px  # 硬上界`，claim SC-007）；拆分 r0=10/scale=6 见 docs/algorithms/NOISE_ESTIMATION.md:134（实现锚，非权威）",
+      "source": "docs/science/NOISE_MODEL.md:86（§5a `rmax = max(1,r0)·max(1,scale) = 60 px  # 硬上界`，claim SC-007）；拆分 r0=10/scale=6 见 docs/science/algorithms/NOISE_ESTIMATION.md:134（实现锚，非权威）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
         "line": 86
@@ -122,7 +122,7 @@
       "unit": "1",
       "constraint": ">= 1；无量纲倍率，与 source_mask_radius_px 相乘得 rmax（**上界**，见 NOISE_MODEL.md §5a）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:86（§5a 硬上界式，claim SC-007）；拆分 10·6 见 docs/algorithms/NOISE_ESTIMATION.md:134（实现锚，非权威）",
+      "source": "docs/science/NOISE_MODEL.md:86（§5a 硬上界式，claim SC-007）；拆分 10·6 见 docs/science/algorithms/NOISE_ESTIMATION.md:134（实现锚，非权威）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
         "line": 86
@@ -548,7 +548,7 @@
         "line": 30
       },
       "pending_task": null,
-      "note": "docs/algorithms/PHOTOMETRIC_FIT.md:20（F7 同一 3.0 mag）。"
+      "note": "docs/science/algorithms/PHOTOMETRIC_FIT.md:20（F7 同一 3.0 mag）。"
     },
     {
       "key": "photometry.tukey_c",
@@ -685,7 +685,7 @@
       "source": null,
       "source_ref": null,
       "pending_task": "SCI-RES-01/R-001（稀疏帧内 SNR 层控制点密度）+ 负责人批准",
-      "note": "docs/ASTROCS_DESIGN.md §3.3 点名 defaults.json 应含「稀疏层密度」；docs/science/** 与 docs/algorithms/** 全库检索无数值（GAP-024）。按裁决以 pending_authority 占位，禁止编造。**与 sparse_snr.spacing_px 不是同一字段**：本键单位「点/度²」（插件文档 07_noise_snr.md:113 的按面积密度表述，数值仍无 SCI/ALG 权威 ⇒ 保持 pending，本分片不改其状态、不改其 value/source）；负责人 2026-09-19 已裁决的稀疏层密度以**像素域控制点间隔**承载 = sparse_snr.spacing_px = 64 px（GAP_AUDIT §9.45，复用 Phase2 UPM 8×8/tile 控制网格）。文档侧单位/字段订正与 R-001 收口建议见 reports/RELEASE-02/snr-config-land.md §5。"
+      "note": "docs/ASTROCS_DESIGN.md §3.3 点名 defaults.json 应含「稀疏层密度」；docs/science/** 与 docs/science/algorithms/** 全库检索无数值（GAP-024）。按裁决以 pending_authority 占位，禁止编造。**与 sparse_snr.spacing_px 不是同一字段**：本键单位「点/度²」（插件文档 07_noise_snr.md:113 的按面积密度表述，数值仍无 SCI/ALG 权威 ⇒ 保持 pending，本分片不改其状态、不改其 value/source）；负责人 2026-09-19 已裁决的稀疏层密度以**像素域控制点间隔**承载 = sparse_snr.spacing_px = 64 px（GAP_AUDIT §9.45，复用 Phase2 UPM 8×8/tile 控制网格）。文档侧单位/字段订正与 R-001 收口建议见 reports/RELEASE-02/snr-config-land.md §5。"
     },
     {
       "key": "sparse_snr.spacing_px",
@@ -726,7 +726,7 @@
       "source": null,
       "source_ref": null,
       "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）+ 负责人批准",
-      "note": "docs/ASTROCS_DESIGN.md §3.3 点名「标量门」；docs/science/** 与 docs/algorithms/** 无数值（GAP-024）。标量门失败须自动升级空间模型（07_noise_snr.md:76），阈值未定前不得编造。"
+      "note": "docs/ASTROCS_DESIGN.md §3.3 点名「标量门」；docs/science/** 与 docs/science/algorithms/** 无数值（GAP-024）。标量门失败须自动升级空间模型（07_noise_snr.md:76），阈值未定前不得编造。"
     },
     {
       "key": "scalar_gate.trend",

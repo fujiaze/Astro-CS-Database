@@ -202,10 +202,10 @@ SOURCES = [
     ("orchestrator_cpp", "orchestrator.cpp", ("stage_name_v2",),
      "lib/orchestrator/cpp/src/orchestrator.cpp"),
     ("integration_algorithms", "INTEGRATION_ALGORITHMS.md", ("状态枚举取值",),
-     "docs/algorithms/INTEGRATION_ALGORITHMS.md"),
+     "docs/science/algorithms/INTEGRATION_ALGORITHMS.md"),
     ("integrate_h", "integrate.h", ("P2_INTEGRATE",), "lib/phase2/include/astro/phase2/integrate.h"),
     ("rejection_algorithms", "REJECTION_ALGORITHMS.md", ("状态/原因枚举取值",),
-     "docs/algorithms/REJECTION_ALGORITHMS.md"),
+     "docs/science/algorithms/REJECTION_ALGORITHMS.md"),
     ("rejection_h", "rejection.h", ("P2_STATUS",), "lib/phase2/include/astro/phase2/rejection.h"),
     ("noise_model_doc", "NOISE_MODEL.md", ("1.482602218505602",), "docs/science/NOISE_MODEL.md"),
     ("psf_doc", "PSF.md", ("robust_residual_sigma",), "docs/science/PSF.md"),
@@ -465,8 +465,8 @@ MINI_FILES = {
         "AstroCsExitCode\n SUCCESS=0  GENERIC_ERROR=1\n"
         "P1.READ P1.CALIBRATE P1.PLATESOLVE P1.PSF P1.PHOTOMETRIC P1.NOISE "
         "P1.DRIZZLE P1.HIPS_WRITE P2.INTEGRATE P2.HIPS_WRITE\n",
-    "docs/algorithms/INTEGRATION_ALGORITHMS.md": _mini_table(MINI_INTEGRATE),
-    "docs/algorithms/REJECTION_ALGORITHMS.md":
+    "docs/science/algorithms/INTEGRATION_ALGORITHMS.md": _mini_table(MINI_INTEGRATE),
+    "docs/science/algorithms/REJECTION_ALGORITHMS.md":
         _mini_table(MINI_REASON + MINI_STATUS, title="状态/原因枚举取值"),
     "docs/science/NOISE_MODEL.md":
         "MAD 常数 1.482602218505602（11 位简写 1.4826022185 只能在约等于语境，"

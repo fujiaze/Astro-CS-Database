@@ -371,7 +371,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**——**逐像素一律计入累加器并计数**（`isfinite(...)+continue` 式静默吞像素即反例，DISP-DRZ-004）；实现锚 `drizzle_engine.cpp:1899-1902`、`hp_drizzle_api.cpp`，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`） |
 | "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-447，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:434-443）。 |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
-| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**，**禁**静默取 FP32（权威 = docs/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点**必须**按 `drizzle.precision_mode` 写实际精度，**禁**写死 "0"；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
+| "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**，**禁**静默取 FP32（权威 = docs/science/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点**必须**按 `drizzle.precision_mode` 写实际精度，**禁**写死 "0"；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`；**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，与 `PHOTAPPL` 各自独立**——BUNIT 描述「量的种类」（线性计数面亮度），标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed，只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
@@ -777,7 +777,7 @@ astrocs-star-measurements-1，orchestrator.cpp:2403-2411 注释）**：列
 [7]=fwhm，[8]=A，[9]=B，[10]=mad（与 [4] 同源，保留为兼容别名），[11]=eccentricity，[12]=mag（detector），
 [13]=saturated，[14]=has_saturated。PSF 不输出独立 background_rms，SNR 使用
 A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.482602218505602；
-唯一冻结定义见 docs/algorithms/GATES_AND_TOLERANCES.md §2，**表述须带落点**）；下游必须经 star_id 连接，连接键 = star_id，非数组
+唯一冻结定义见 docs/science/algorithms/GATES_AND_TOLERANCES.md §2，**表述须带落点**）；下游必须经 star_id 连接，连接键 = star_id，非数组
 行号隐式连接（:2409-2411）。该块列语义由 P1-STAR-INT 承接（matrix depends_on_int=P1-STAR-INT）。
 
 ### 15.3 坐标与精度规则（汇总）
@@ -803,7 +803,7 @@ A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.48
 > DATA-P1-COS（§10）等冻结节。编排级合同 API-P1-001
 > （docs/api/PHASE1_API_V1.md，FROZEN）；入口符号合同 API-P1-SESSION
 > （PUBLIC_API.md）。本节是该会话数据面单位/dtype/shape/invalid 的**依据**（上位 =
-> `ASTROCS_DESIGN.md` §0/§0.1；科学公式与算法推导以 `docs/science/`、`docs/algorithms/` 为准），
+> `ASTROCS_DESIGN.md` §0/§0.1；科学公式与算法推导以 `docs/science/`、`docs/science/algorithms/` 为准），
 > 本节词汇的改写方向 = 由上游发起；本节权威等级由上位文档授予（依 §0.1：下级文档不另立权威链）。
 
 ### 16.1 config JSON（p1_session_validate 键集，p1_session.cpp:115-143）
@@ -919,7 +919,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   sdet_api.cpp:440-476）。门引用 SNR 时必须写 `SNR_peak` 及取值域
   （全局阈值 `median+5·bgnoise` 作用于 σ=2 平滑图 ⇒ 同一场 SNR_peak=20 可检出
   0 星 / SNR_peak=50 检出 36/40，R-3 §2.9/§4.2）。唯一冻结定义与全部门值见
-  docs/algorithms/GATES_AND_TOLERANCES.md §2/§3。
+  docs/science/algorithms/GATES_AND_TOLERANCES.md §2/§3。
   **检测范式**：`sdet_api.cpp` 的全局阈值路径是**全图盲检测**的实现
   （全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品）。
   **权威检测范式 = 星表引导拟合**（检测定义域是星表位置，用本帧 WCS
@@ -1066,7 +1066,7 @@ default）：
 > astrocs_p2_coverage.dll；现行实现生产源 lib/algorithms/coverage/src/coverage.cpp
 > 239 行 + 唯一权威签名头 lib/algorithms/coverage/include/astro/phase2/coverage.h，
 > 2 个 C ABI 导出，SRC-COV-001）。本节是该模块单位/dtype/shape/invalid
-> 的唯一权威；ALG: ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md）；
+> 的唯一权威；ALG: ALG-COV-001（docs/science/algorithms/PHASE2_COVERAGE.md）；
 > 编排级合同 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权图
 > Coverage 行）；descriptor astrocs.phase2.coverage
 > （module_adapters.cpp:623-638）为编排层词汇（端口坐标 PIXEL 登记与
@@ -1169,7 +1169,7 @@ P2HipsInputInfo 逐字段（coverage.h:32-38，回填锚 :113-143）:
 > （astrocs.p2.hips_writer；迁移目标 astrocs_p2_hips_writer.dll 为矩阵
 > 合同值，尚未存在，由 P2-HIPS-IMPL 建立，IMPLEMENTED 只由验收签发）。
 > 本节是 Phase2 马赛克（HiPS）输出单位/dtype/shape/invalid 的唯一
-> 权威；ALG: ALG-P2-HIPS-001..004（docs/algorithms/
+> 权威；ALG: ALG-P2-HIPS-001..004（docs/science/algorithms/
 > PHASE2_MOSAIC_WRITE.md，算法级逐符号锚由该文档登记）；编排级合同
 > API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN）；§4/§4a 的
 > signal/support/invalid 与 variance/ivar 产品语义在此落地为 Phase2
@@ -1346,7 +1346,7 @@ signal 回读失败 rc=7 :1665）。
   （precision 唯一选择 :528）；整数登记量（nside/order/tile 计数/
   UNIQ）bitwise 确定；浮点积分确定性受 acr_route/execution
   预算（CON-002，CLI/退出码同源 API-P2-HIPS-001）控制。
-- **交叉引用**: 上游 ALG-P2-HIPS-001..004（docs/algorithms/
+- **交叉引用**: 上游 ALG-P2-HIPS-001..004（docs/science/algorithms/
   PHASE2_MOSAIC_WRITE.md）；同文档相关节: DATA-P2-INT（暂无独立
   节，见上注记）、DATA-P1-HIPS（§12，单位公式同源）、
   DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001（§4a，输入侧 ivar/variance）、
@@ -1381,7 +1381,7 @@ signal 回读失败 rc=7 :1665）。
 > astrocs_p2_integration.dll 为矩阵合同值，尚未存在，由 P2-INT-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 逐像素积分内核
 > in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-INT-001
-> （docs/algorithms/PHASE2_INTEGRATION.md，逐符号锚与 §11 冻结附录）；
+> （docs/science/algorithms/PHASE2_INTEGRATION.md，逐符号锚与 §11 冻结附录）；
 > SCI 上游: SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，零改动）；
 > API 面: API-P2-INT-001（PUBLIC_API.md）；编排级合同 API-P2-001
 > （docs/api/PHASE2_API_V1.md，FROZEN）。本节冻结完成后，§20.3
@@ -1483,7 +1483,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在，由 P2-REJ-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 候选栈排异内核
 > in/out 单位/dtype/shape/invalid 的唯一权威；ALG: ALG-P2-REJ-001
-> （docs/algorithms/PHASE2_REJECTION.md，逐符号锚与 §11 冻结容差）；
+> （docs/science/algorithms/PHASE2_REJECTION.md，逐符号锚与 §11 冻结容差）；
 > SCI 上游: SCI-REJ-001（docs/science/REJECTION.md，FROZEN，零改动；
 > descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射见 ALG §11.5）；
 > API 面: API-P2-REJ-001（PUBLIC_API.md）+ 编排级 API-P2-001
@@ -1673,7 +1673,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 ### 22.6 交叉引用
 
 - 上游: SCI-REJ-001（docs/science/REJECTION.md，FROZEN，零改动）；
-  ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md，本域算法
+  ALG-P2-REJ-001（docs/science/algorithms/PHASE2_REJECTION.md，本域算法
   权威；SCI-P2-REJ-001⇒SCI-REJ-001 映射=ALG §11.5）。
 - 下游: API-P2-REJ-001（PUBLIC_API.md）+ API-P2-001（编排级，
   FROZEN）；TEST-P2-REJ-001（MISSING，P2-REJ-DOC 登记，P2-REJ-TEST
@@ -1695,7 +1695,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在，由 P2-SAMP-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 background-clean 控制
 > 点采样 in/out 单位/dtype/shape/invalid 的唯一权威；ALG:
-> ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，逐符号锚与 §11
+> ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，逐符号锚与 §11
 > 冻结容差）；SCI 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，
 > FROZEN，零改动；页头明示模块 "phase2 (upm/sampler)"；descriptor
 > 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射见 ALG §11.4）；API 面:
@@ -1843,7 +1843,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 ### 23.6 交叉引用
 
 - 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动）；
-  ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，本域算法权威；
+  ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，本域算法权威；
   SCI-P2-SMP-001⇒SCI-UPM-001 映射=ALG §11.4）；DATA-P2-COV
   （coverage union 输入，P2-COV 域）；DATA-FRAME-ID-001
   （frame_id 身份，§22 前文冻结）。
@@ -1870,7 +1870,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 > 本域为纯编排透传层（不实现科学公式，直调 lib/algorithms/coverage 生产符号），
 > SCI 上游零改动: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
 > （docs/science/，FROZEN）；ALG: ALG-P2-SESSION-001
-> （docs/algorithms/PHASE2_SESSION.md，逐符号锚与调用序）；API 面:
+> （docs/science/algorithms/PHASE2_SESSION.md，逐符号锚与调用序）；API 面:
 > API-P2-SESSION-001（PUBLIC_API.md「Phase2 装配会话 C API」节）+
 > 编排上游 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，引用不改动）。
 
@@ -2016,7 +2016,7 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
 
 - 上游: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001（docs/science/，共享
   FROZEN，零改动——本域纯透传不触碰科学公式）；ALG-P2-SESSION-001
-  （docs/algorithms/PHASE2_SESSION.md，四段调用序逐源码行号锚）。
+  （docs/science/algorithms/PHASE2_SESSION.md，四段调用序逐源码行号锚）。
 - 下游: API-P2-SESSION-001（PUBLIC_API.md，五符号展开冻结）+ 编排上游
   API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，引用不改动）；
   TEST-P2-SESSION-001（MISSING，P2-SESSION-DOC 登记，落地归
@@ -2042,7 +2042,7 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
 > IMPLEMENTED 只由验收签发）。本节是 Phase2 UPM fit（联合拟合/持久化/
 > 求值底座）in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游:
 > SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动；单位权威=
-> 其 §3）；ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
+> 其 §3）；ALG: ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
 > 逐符号锚）；API 面: API-P2-UPM-001（PUBLIC_API.md）；
 > descriptor 占位 module_id=astrocs.phase2.upm-fit
 > （module_adapters.cpp:661-678）由 P2-XX-INT 对齐。
@@ -2198,7 +2198,7 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 
 - 上游: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，零改动；
   单位权威=§3 :29，连续定义 §5）；ALG-P2-UPM-IMPL-001
-  （docs/algorithms/PHASE2_UPM_IMPL.md，本域算法权威）；ALG-UPM-001
+  （docs/science/algorithms/PHASE2_UPM_IMPL.md，本域算法权威）；ALG-UPM-001
   （UPM_SOLVER.md，Huber IRLS 求解权威）；ALG-UPM-CONTROL-IVAR-001
   （control_variance/control_ivar 冻结公式）；DATA-P2-SMP（§23，
   P2ControlObservation/P2ControlNode 唯一权威）。
@@ -2362,7 +2362,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-P3-001 §9a-11
 > G5 FITS 写公式 + §96 关键字冻结（docs/science/PHASE3_HIPS_TO_FITS.md，
 > FROZEN V5 SCI-007，零改动）；ALG:
-> ALG-P3-FITS-IMPL-001（docs/algorithms/PHASE3_FITS_IMPL.md，实现级
+> ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，实现级
 > 合同，兼承接 ALG-P3-002/004 本域子面）；API 面: API-P3-FITS-001；
 > descriptor 占位 module_id=astrocs.phase3.writer
 > （module_adapters.cpp:445-460 p3_writer_descriptor）由 P3-FITS-INT
@@ -2450,7 +2450,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > §9a-5 order 选择 + §9a-7 采样核 + §9a-8/10 输入拒绝（docs/science/
 > PHASE3_HIPS_TO_FITS.md，FROZEN V5 SCI-007，零改动）；
 > ALG: ALG-P3-003（G3/G4 施工规格，PHASE3_RESAMPLE.md，公式零改动）
-> + ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md 实现
+> + ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md 实现
 > 级合同）；API 面: API-P3-RSMP-001；descriptor 占位
 > module_id=astrocs.phase3.resample2（module_adapters.cpp:425-439
 > p3_resample2_descriptor）由 P3-RSMP-INT 对齐 astrocs.p3.resample。
@@ -2546,7 +2546,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > SCI-P3-001 §5 连续定义 + §9a-4 CRPIX/CD/parity 冻结 + §9a-6 极点/
 > 半球（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN V5 SCI-007，
 > 零改动）；ALG: ALG-P3-PROJ-IMPL-001
-> （docs/algorithms/PHASE3_PROJ_IMPL.md，实现级合同，兼承接
+> （docs/science/algorithms/PHASE3_PROJ_IMPL.md，实现级合同，兼承接
 > ALG-P3-002 G1/G2 本域子面）；API 面: API-P3-PROJ-001；descriptor
 > 占位 module_id=astrocs.phase3.wcs（module_adapters.cpp:406-423
 > p3_wcs_descriptor）由 P3-PROJ-INT 对齐 astrocs.p3.projection。

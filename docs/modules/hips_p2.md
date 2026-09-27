@@ -23,7 +23,7 @@
   "lib/algorithms/coverage write sources;lib/infrastructure/aio/healpix_db"。
 - 合同链：SCI-UPM-001（w_UPM）+ SCI-INT-001（signal/sup_max）+
   SCI-REJ-001（排异判据）——共享 FROZEN SCI 零改动 → ALG-P2-HIPS-001..004
-  （docs/algorithms/PHASE2_MOSAIC_WRITE.md）→ DATA-P2-HIPS
+  （docs/science/algorithms/PHASE2_MOSAIC_WRITE.md）→ DATA-P2-HIPS
   （DATA_SEMANTICS §20）/ API-P2-HIPS-001（PUBLIC_API Phase2 mosaic
   write 节）→ TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，
   COV 先例；可执行测试 MISSING 归 P2-HIPS-TEST）。

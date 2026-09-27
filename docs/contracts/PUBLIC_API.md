@@ -481,7 +481,7 @@
 > 权威签名头，PC_API :7-11 `extern "C"` 不抛异常）
 > SRC: lib/algorithms/photometry/cpp/src/pc_api.cpp
 > SCI: SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN，共享引用不改动）
-> ALG: ALG-PHOT-001..002（docs/algorithms/PHOTOMETRIC_FIT.md，§13 逐符号锚）
+> ALG: ALG-PHOT-001..002（docs/science/algorithms/PHOTOMETRIC_FIT.md，§13 逐符号锚）
 > DATA: DATA-P1-PHOT（DATA_SEMANTICS §14）；编排级合同 API-P1-005
 > （PHASE1_API_V1，descriptor 引用，与本节并行不互斥）
 > MOD: MOD-astrocs-phase1-photometry（module.yaml CONTRACT_READY，
@@ -1179,7 +1179,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > ABI: aio_hips_*（本文件既有 API-HIPS-001 节，P1 冻结面）——P2 作为
 > 库消费者经 aio_hips_product_begin（stage2.cpp:592-596）等引用，
 > **不重登记、不新增 C ABI**；ALG: ALG-P2-HIPS-001..004
-> （docs/algorithms/PHASE2_MOSAIC_WRITE.md）；MOD:
+> （docs/science/algorithms/PHASE2_MOSAIC_WRITE.md）；MOD:
 > astrocs.p2.hips_writer（迁移目标 astrocs_p2_hips_writer.dll 为
 > 矩阵合同值，尚未存在——MISSING 语义，由 P2-HIPS-IMPL 建立，本节
 > 不声明 IMPLEMENTED）。
@@ -1286,7 +1286,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行: P2PixelStack
 > :36-42 / P2IntegrateStatus :45-51 / P2PixelResult :53-63 / 函数
 > 声明 :58-66）；DATA: DATA-P2-INT（DATA_SEMANTICS §21，单位/dtype/
-> shape 唯一权威）；ALG: ALG-P2-INT-001（docs/algorithms/
+> shape 唯一权威）；ALG: ALG-P2-INT-001（docs/science/algorithms/
 > PHASE2_INTEGRATION.md，逐符号锚与并行 tolerance 合同）；MOD:
 > astrocs.p2.integration（迁移目标 astrocs_p2_integration.dll 为
 > 矩阵合同值，尚未存在——MISSING 语义，由 P2-INT-IMPL 建立，本节
@@ -1359,7 +1359,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）；DATA:
 > DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一
-> 权威）；ALG: ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md，
+> 权威）；ALG: ALG-P2-REJ-001（docs/science/algorithms/PHASE2_REJECTION.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.rejection（迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P2-REJ-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
@@ -1495,7 +1495,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 成员，根 CMakeLists.txt:337-346/:342）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）；DATA:
 > DATA-P2-SMP（DATA_SEMANTICS §23，单位/dtype/shape/invalid 唯一
-> 权威）；ALG: ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，
+> 权威）；ALG: ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.sampling（迁移目标
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P2-SAMP-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
@@ -1620,7 +1620,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > astrocs_phase2_session 成员，根 CMakeLists.txt:454-458）+ 唯一
 > 权威签名头 lib/phase2_session/p2_session.h（39 行）；DATA:
 > DATA-P2-SESSION（DATA_SEMANTICS §24，eng/packaging/config/manifest/错误码唯一
-> 权威）；ALG: ALG-P2-SESSION-001（docs/algorithms/PHASE2_SESSION.md，
+> 权威）；ALG: ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md，
 > 四段调用序逐源码行号锚）；MOD: astrocs.p2.session（迁移目标
 > astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实
 > 登记，由 P2-SESSION-IMPL 建立，本节不声明 IMPLEMENTED；registry
@@ -1737,7 +1737,7 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 > lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）；DATA:
 > DATA-P2-UPM（DATA_SEMANTICS §25，fit/persist 域单位/dtype/invalid
 > 唯一权威）/ DATA-P2-COR（DATA_SEMANTICS §26，apply 域唯一权威）；
-> ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
+> ALG: ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.upm（迁移目标
 > astrocs_p2_upm.dll 为矩阵合同值，尚未存在——MISSING 语义，由
 > P2-UPM-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
@@ -1896,7 +1896,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > lib/algorithms/fits_output/p3_output.h（166 行）+ WCS 关键字源 p3_wcs.h
 > （50 行）；DATA: DATA-P3-FITS（DATA_SEMANTICS §27，单位/dtype/
 > invalid 唯一权威）；ALG: ALG-P3-FITS-IMPL-001
-> （docs/algorithms/PHASE3_FITS_IMPL.md，逐符号锚与消费链）；
+> （docs/science/algorithms/PHASE3_FITS_IMPL.md，逐符号锚与消费链）；
 > MOD: astrocs.p3.fits_writer（迁移目标 astrocs_p3_fits_writer.dll
 > 为矩阵合同值，尚未存在——MISSING 语义，由 P3-FITS-IMPL 建立，
 > 本节不声明 IMPLEMENTED；descriptor 占位 module_id=
@@ -1983,7 +1983,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > 经 astrocs_phase3_session/astrocs_module_adapters 闭包）+ 唯一权威签名头
 > lib/algorithms/projection/p3_wcs.h；DATA: DATA-P3-WCS
 > （DATA_SEMANTICS §28，单位/dtype/invalid 唯一权威）；ALG:
-> ALG-P3-PROJ-IMPL-001（docs/algorithms/PHASE3_PROJ_IMPL.md，逐符号
+> ALG-P3-PROJ-IMPL-001（docs/science/algorithms/PHASE3_PROJ_IMPL.md，逐符号
 > 锚与 G1/G2 冻结式）；MOD: astrocs.p3.projection（迁移目标
 > astrocs_p3_projection.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P3-PROJ-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
@@ -2074,7 +2074,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > session 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
 > lib/algorithms/resample/p3_resample.h（201 行）；DATA: DATA-P3-RES
 > （DATA_SEMANTICS §29，单位/dtype/invalid 唯一权威）；ALG:
-> ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md，逐符号
+> ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md，逐符号
 > 锚与 G3/G4 冻结式）；MOD: astrocs.p3.resample（迁移目标
 > astrocs_p3_resample.dll 为矩阵合同值，尚未存在——MISSING 语义
 > （DISP-P3RSMP-005），由 P3-RSMP-IMPL 建立，本节不声明 IMPLEMENTED；

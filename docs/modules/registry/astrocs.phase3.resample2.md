@@ -34,9 +34,9 @@ downstream: [TEST-P3-RES-001]
   签名头 p3_resample.h（201 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007；矩阵 science_id 占位 SCI-P3-RES-001 映射
-  声明⇒SCI-P3-001）→ ALG-P3-003（docs/algorithms/PHASE3_RESAMPLE.md
+  声明⇒SCI-P3-001）→ ALG-P3-003（docs/science/algorithms/PHASE3_RESAMPLE.md
   G3/G4 施工规格，公式零改动）+ ALG-P3-RSMP-IMPL-001
-  （docs/algorithms/PHASE3_RSMP_IMPL.md 实现级合同）→ DATA-P3-RES
+  （docs/science/algorithms/PHASE3_RSMP_IMPL.md 实现级合同）→ DATA-P3-RES
   （DATA_SEMANTICS §29）+ API-P3-RSMP-001（PUBLIC_API.md Phase3
   重采样公共消费面节）→ TEST-P3-RES-001（登记面=
   TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED，见 §9 双重陈述；
@@ -198,8 +198,8 @@ downstream: [TEST-P3-RES-001]
 ## 10 合同链接
 
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN）
-- ALG: docs/algorithms/PHASE3_RSMP_IMPL.md；承接:
-  docs/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 G3/G4 施工规格，
+- ALG: docs/science/algorithms/PHASE3_RSMP_IMPL.md；承接:
+  docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 G3/G4 施工规格，
   零改动）
 - DATA: docs/contracts/DATA_SEMANTICS.md §29
 - API: docs/contracts/PUBLIC_API.md（API-P3-RSMP-001 节）

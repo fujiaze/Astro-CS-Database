@@ -47,7 +47,7 @@
 | 最高设计 | ASTROCS_DESIGN.md §10 | aio 是文件级唯一 I/O 边界；产品只落 output_dir；run/ 只放临时产物 |
 | 最高设计 | ASTROCS_DESIGN.md §13 | Alpha 前产物不出现版本信息；发布决定只属负责人（本文不下发布结论） |
 | 产品语义 | docs/contracts/DATA_SEMANTICS.md §12.2/§12.4 | signal 无效像素 **IEEE NaN 填充**；support 无效 0.0；variance/ivar 无信息 0.0；逐 tile DATASUM/CHECKSUM |
-| 算法登记 | docs/algorithms/HIPS_WRITER.md | ALG-HIPS-001..005；§0 范围界定 |
+| 算法登记 | docs/science/algorithms/HIPS_WRITER.md | ALG-HIPS-001..005；§0 范围界定 |
 | 前序实测 | 内存累加器方案评估 MEM-DESIGN-01（产物在 run/，可能已被 run_gc 回收），§1.4/§2.4/§5 | zlib9 0.90 / lzma 0.82~0.85 载荷压缩率；A+C+B(cons) 峰值 1708.0→186.9 MB；优化后 user time 27.68 s |
 | 仓内先例 | lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md §5.4 | 「数组不压缩…如需进一步压缩体积，可在**传输层（HTTP gzip）或归档层**（外层 zstd 包）处理」——与本文结论同向 |
 
