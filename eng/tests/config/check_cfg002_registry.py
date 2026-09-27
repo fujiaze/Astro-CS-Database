@@ -6,7 +6,7 @@
   CFG002-01  docs/plugins/** 配置表 <-> eng/packaging/config/config_registry.json 一一对应（缺登记/多登记/默认值漂移）
   CFG002-02  登记目标可解析（defaults.json 键 / phase_config 指针 / cpu_profile 指针 / 文档行号）与分类闭包
   CFG002-03  defaults.json 的 enum_target/enum_token 必须落进目标 phase_config 字段的 enum（默认值 -> 字段值域）
-  CFG002-04  滤镜名匹配语义（exact + 无别名）与正反例（登记负例 + 现行库派生近失配 + ASTROCS_DESIGN §4.3 示例块）
+  CFG002-04  滤镜名匹配语义（exact + 无别名）与正反例（登记负例 + 现行库派生近失配 + docs/ASTROCS_DESIGN §4.3 示例块）
   CFG002-05  cpu_profile.host.os_abi 值域 = 生产者字面量集合（fail-closed 枚举）
   CFG002-06  lib/**/module.yaml 键闭包（旋钮声明字段出现即判红）
   CFG002-07  索引归属唯一（eng/packaging/config/** vs eng/contracts/config/**；DOCUMENT_INDEX；eng/tests/test_index.csv）
@@ -554,7 +554,7 @@ def check_04_filter_name_policy(repo):
     # （否则登记形同虚设：任何轻量归一化都会把它变成合法键）；③ where 必须是
     # 「文件:行」锚点，文件真实存在且该行真的含该串（fail-closed，锚点失效即判红）。
     # GATE-502：RELEASE-04 换版后最高设计 §3.3 的 "bader r" 反例行已删（原
-    # ASTROCS_DESIGN.md:221 锚点失效）⇒ 登记已按现行合同重锚到
+    # docs/ASTROCS_DESIGN.md:221 锚点失效）⇒ 登记已按现行合同重锚到
     # docs/contracts/CONFIG_CONTRACT.md §10 负例表；值与判据未变。
     reg_lits = {ex.get("literal") for ex in look.get("non_key_examples", [])}
     low_keys = {k.lower() for k in keys}
@@ -637,10 +637,10 @@ def check_04_filter_name_policy(repo):
     if sorted(exercised) != want:
         problems.append("红绿双向只覆盖 %r，登记消费滤镜的 phase=%r（不得静默跳过）"
                         % (sorted(exercised), want))
-    # ASTROCS_DESIGN §4.3 输入合同示例块（现行权威；旧 §3.3 锚点在 RELEASE-04 换版后
+    # docs/ASTROCS_DESIGN §4.3 输入合同示例块（现行权威；旧 §3.3 锚点在 RELEASE-04 换版后
     # 已不含滤镜示例）：引号串必须是库键或已登记示例（近失配变体不得静默通过），
     # 且示例块必须至少含一个合法库键 —— 否则判据空转（假绿）。
-    design = read_text(repo, "ASTROCS_DESIGN.md").split("\n")
+    design = read_text(repo, "docs/ASTROCS_DESIGN.md").split("\n")
     start = end = None
     for i, ln in enumerate(design):
         if ln.startswith("### 4.3"):
@@ -649,7 +649,7 @@ def check_04_filter_name_policy(repo):
             end = i
             break
     if start is None:
-        problems.append("ASTROCS_DESIGN.md 缺 §4.3 段（示例锚点失效）")
+        problems.append("docs/ASTROCS_DESIGN.md 缺 §4.3 段（示例锚点失效）")
     else:
         block = design[start:end or len(design)]
         positives = 0
@@ -1044,7 +1044,7 @@ def run_checks(repo):
 
 SANDBOX_FILES = [
     "docs/DOCUMENT_INDEX.yaml", "docs/contracts/CONFIG_CONTRACT.md",
-    "ASTROCS_DESIGN.md", "eng/tests/test_index.csv", HW_CPP, PROFILE_CPP, STAGE1_TPL,
+    "docs/ASTROCS_DESIGN.md", "eng/tests/test_index.csv", HW_CPP, PROFILE_CPP, STAGE1_TPL,
     "ENGINEERING_SPEC.md", "docs/development/CONFIG_SCHEMA.md",
     "eng/tests/backend/test_cpu_profile.py", "eng/tests/unit/cpu007_profile_store_test.cpp",
     "eng/tools/validate_cpu_profile.py",

@@ -1,6 +1,6 @@
 # reverse_verify 定案结论 · SCI-A（低阶空间乘法增益）
 
-> 上游：ASTROCS_DESIGN.md §2.1 / §4.2 / §12.3；`ENGINEERING_SPEC.md §9`（有长期价值的结论并入正式文档）
+> 上游：docs/ASTROCS_DESIGN.md §2.1 / §4.2 / §12.3；`ENGINEERING_SPEC.md §9`（有长期价值的结论并入正式文档）
 > 来源：`reverse_verify/docs/p1-spatial-gain.md`（2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/photometric-magnitude/docs/p1-spatial-gain.md`）
 > 本文件只登记**现行结论**；完整推导、逐条数值与复跑细节见原文。
 

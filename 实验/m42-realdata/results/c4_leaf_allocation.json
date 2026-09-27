@@ -566,7 +566,7 @@
         "desc": "Sigma_p area(p) 在 order 0..9 上一致（相对差 <= 1e-6 = 8.4 x eps_fp32）",
         "value": 8.753990145683033e-09,
         "ok": true,
-        "source": "ASTROCS_DESIGN.md:153（构造闭合）+ DRIZZLE_GEOMETRY.md:53-54",
+        "source": "docs/ASTROCS_DESIGN.md:153（构造闭合）+ DRIZZLE_GEOMETRY.md:53-54",
         "level": "data",
         "note": "order0 总面积 3.644293e-04 sr = 2.391468e+07 叶面积（A_cell=1.523873e-11）；实测 8.754e-09 = eps_fp32 的 7.3%"
       },

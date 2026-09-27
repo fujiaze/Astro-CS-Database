@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RUNTIME-CI-001 确定性驱动：V6 三模式入口 + Phase1/2/3 写盘路径的跨 worker 预算等价回归。
 
-方法（判据口径 = ASTROCS_DESIGN.md §8.3/§9 + docs/contracts/SCHEDULER_CONTRACT.md §2.1 +
+方法（判据口径 = docs/ASTROCS_DESIGN.md §8.3/§9 + docs/contracts/SCHEDULER_CONTRACT.md §2.1 +
 docs/contracts/TEST_MATRIX.md §2）：
   * 独立（standalone）构建 eng/tests/integration/v6_p1 | v6_p2 | v6_p3 的写盘测试；
   * 同一输入在**不同 CPU 预算**（taskset 1/2/4/8 核）下重复运行；

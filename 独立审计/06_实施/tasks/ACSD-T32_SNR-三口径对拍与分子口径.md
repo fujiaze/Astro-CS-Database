@@ -15,7 +15,7 @@
 | `实验/absolute-snr/code/b3_domain_map.py` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_ | AUD-202-SNR核验.md×1 | AUD202·V4[PASS] | 入库 |
 | `实验/absolute-snr/results/b3_domain_map.json` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_ | — | AUD202·V4[PASS] | 入库 |
 | `docs/science/CONTROL_WEIGHT_SNR.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 2 条 D3 主张） | AUD-101-DA01-根规范与科学.md×10、AUD-101-DB-15.md×7、AUD-202-SNR核验.md×7、AUD-101-DB-13.md×4、AUD-101-DB-16.md×4、AUD-101-DB-04.md×1、AUD-101-DB-12.md×1、AUD-101-DB-14.md×1、AUD-101-DB-19.md×1、AUD-101-DB-20.md×1 | AUD202·V2[PASS] DB13·W4[PASS/P1] 结果层与收口层·R3[PASS] | 入库 |
-| `ASTROCS_DESIGN.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 11 条 D3 主张） | — | — | 入库 |
+| `docs/ASTROCS_DESIGN.md` | — | 三种重建口径由 JSON 显式选定、均产出同一物理量，实际生效口径记 `snr_path_effective`；§8b 图谱为其选型依据 | ①`snr_path` 是**死键**（`git grep "snr_path" -- lib` 的 6 处命中全为同名 FITS 形参、CLI 白名单串与帮助键表 ⇒ 配置读取面 0）；②`snr_path_effective` 在 `lib` **0 命中** ⇒ "不静默降级"无载体；③`dense` 不是"没有生产者"，而是**两个生产者都不可达且产物不被消费**（`hp_drizzle_（同对象另有 11 条 D3 主张） | — | — | 入库 |
 | `docs/science/DRIZZLE.md` | — | （见 §2 依据） | （同对象另有 2 条 D3 主张） | AUD-101-DB01.md×11、D9-工单对账.md×9、AUD-101-DA02-算法推导.md×7、AUD-101-DA01-根规范与科学.md×6、AUD-301-文献池P1.md×6、AUD-101-DB-10-补.md×5、AUD-204-面积交叠核验.md×4、AUD-301-文献复算-旧判批.md×4、D9-工单对账-补.md×3、AUD-101-DB-03.md×2、AUD-101-DB02.md×1、AUD-402-判读-BD1.md×1 | AUD204·W2[PASS] | 入库 |
 
 ## 2 依据
@@ -41,7 +41,7 @@ lib/algorithms/noise_snr/cpp/include/snr_estimator.h
 实验/absolute-snr/code/b3_domain_map.py
 实验/absolute-snr/results/b3_domain_map.json
 docs/science/CONTROL_WEIGHT_SNR.md
-ASTROCS_DESIGN.md
+docs/ASTROCS_DESIGN.md
 docs/science/DRIZZLE.md
 ```
 
@@ -77,6 +77,6 @@ docs/science/DRIZZLE.md
 | `实验/absolute-snr/code/b3_domain_map.py` | AUD-202-SNR核验.md:263 | AUD202·V4：确认（并补两条成稿没给的硬证据：结果件里 `snr` 出现 0 次；dense 两条生产者都不可达） |
 | `实验/absolute-snr/results/b3_domain_map.json` | — | AUD202·V4：确认（并补两条成稿没给的硬证据：结果件里 `snr` 出现 0 次；dense 两条生产者都不可达） |
 | `docs/science/CONTROL_WEIGHT_SNR.md` | AUD-101-DA01-根规范与科学.md:102;AUD-101-DA01-根规范与科学.md:104;AUD-101-DA01-根规范与科学.md:345;AUD-101-DA01-根规范与科学.md:349;AUD-101-DA01-根规范与科学.md:377;AUD-101-DA01-根规范与科学.md:380;AUD-101-DA01-根规范与科学.md:59;AUD-101-DA01-根规范与科学.md:649;AUD-101-DA01-根规范与科学.md:694;AUD-101-DA01-根规范与科学.md:727;AUD-101-DB-04.md:39;AUD-101-DB-12.md:202… | AUD202·V2：确认（定性从"写错对象"收窄为"生产根本没有该对象 + 消费侧按已作废的相对语义实现"） ‖ DB13·W4：确认（可结案，不必上呈） ‖ 结果层与收口层·R3：确认（差因＝口径未声明，非取数错；两侧数值各自可回溯） |
-| `ASTROCS_DESIGN.md` | — | — |
+| `docs/ASTROCS_DESIGN.md` | — | — |
 | `docs/science/DRIZZLE.md` | AUD-101-DA01-根规范与科学.md:321;AUD-101-DA01-根规范与科学.md:459;AUD-101-DA01-根规范与科学.md:463;AUD-101-DA01-根规范与科学.md:65;AUD-101-DA01-根规范与科学.md:680;AUD-101-DA01-根规范与科学.md:731;AUD-101-DA02-算法推导.md:1534;AUD-101-DA02-算法推导.md:1542;AUD-101-DA02-算法推导.md:1595;AUD-101-DA02-算法推导.md:1622;AUD-101-DA02-算法推导.md:1802;AUD-101-DA02-算法推导.md:484… | AUD204·W2：降级（成稿的两处口径混用；平台量级不可当作几何事实；但另有更大的真实预算违反） |
 

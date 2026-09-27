@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-// ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
+// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
 // 文件打开机制一律经 aio 唯一实现 (aio_fopen_utf8, lib/infrastructure/aio/src)。
 #include "aio_util.h"
 
@@ -26,7 +26,7 @@ static const size_t FITS_CARD_SIZE  = 80;
 // ----------------------------------------------------------------------------
 // 原实现在本 TU 内复制了一份 MultiByteToWideChar + _wfopen 的
 // UTF-8 打开逻辑, 与 aio 的 aio_fopen_utf8 (lib/infrastructure/aio/src/
-// aio_util.h) 构成**第二处 I/O 实现** —— 违反 ASTROCS_DESIGN §9
+// aio_util.h) 构成**第二处 I/O 实现** —— 违反 docs/ASTROCS_DESIGN §9
 // 「不得有第二处 I/O 实现」。现直接复用 aio 唯一实现: 语义逐位相同
 // (Windows widen 后 _wfopen; POSIX fopen), 本 TU 不再自持文件打开代码。
 // ============================================================================

@@ -200,7 +200,7 @@ UncFixture make_fixture(const char* tag, const float* variance_val,
     fx.ok = fx.ok && write_hips_sub(fx.hips, "variance", 0, 0, variance_val, "ADU^2");
   }
   if (ivar_val) fx.ok = fx.ok && write_hips_sub(fx.hips, "ivar", 0, 0, ivar_val, "1/(ADU^2)");
-  // FIX-402: 生产 Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS (b)）
+  // FIX-402: 生产 Phase3 输入语义守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS (b)）
   // 只放行**显式声明**面亮度语义的输入。本 fixture 的 signal 为 ADU 面亮度 ⇒ 补
   // 像素语义声明（保留 BUNIT=ADU 串, 使 session 路径既有 "ADU^2"/"ADU^-2" 期望
   // 与节点路径的 canonical 归一各得其所）。

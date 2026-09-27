@@ -5,7 +5,7 @@
 依据（逐条可核）：
   - ACCEPTANCE_SPEC.md §6.2「无接缝：**帧间**、块间无亮度/灰度阶跃」（帧间在前）；
   - ACCEPTANCE_SPEC.md §6.1（L4 产品生成链 = 整幅平面 FITS + 帧清单，两者都在手上）；
-  - ASTROCS_DESIGN.md §2（SCI-C：接缝 = 帧集变化处的亮度阶跃）；
+  - docs/ASTROCS_DESIGN.md §2（SCI-C：接缝 = 帧集变化处的亮度阶跃）；
   - 实验/additive-sky-seamless/README.md:225（R5「相对接缝度量」< 1% = 1e-2）——
     本门阈值 1e-2 的唯一数值来源，不是另拍的；
   - AGENTS.md §9（判据必须能红能绿、配可执行正例/负例，而不是放松判据）。

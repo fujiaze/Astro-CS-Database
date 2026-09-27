@@ -6,7 +6,7 @@
 > schema 判别式 `sparse_snr_semantics = "absolute_flux_type_snr"`）。
 >
 > 权威链（AGENTS.md §1 逐层下钻）：
-> `ASTROCS_DESIGN.md` §2.2（创新点二：跨帧可用的绝对信噪比）/§3.1（全程只有 SNR；帧级 SNR 与稀疏 SNR 层是两个独立对象）/§5.3（三口径与权重换算）/§12.2（三类实验数据）/§12.3（SCI-B 行）
+> `docs/ASTROCS_DESIGN.md` §2.2（创新点二：跨帧可用的绝对信噪比）/§3.1（全程只有 SNR；帧级 SNR 与稀疏 SNR 层是两个独立对象）/§5.3（三口径与权重换算）/§12.2（三类实验数据）/§12.3（SCI-B 行）
 > → `docs/design/UNIFIED_MODEL.md` §2、`docs/design/PHASE1_DETAILED_DESIGN.md` §8.2、`docs/design/PHASE2_DETAILED_DESIGN.md` §2
 > → `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1/§4.2/§4.2a/§4.5/§7、`docs/plugins/algorithms_phase2/13_integration.md` §3/§4.0
 > → `docs/science/CONTROL_WEIGHT_SNR.md` §0 注记/§2a/§4/§8a/§8b、`docs/science/NOISE_MODEL.md`
@@ -24,7 +24,7 @@
 
 | # | 问题 | 判定 | 证据锚 |
 |---|---|---|---|
-| 1 | **绝对表示是否正确？** | **正确** —— 它是物理定义 `SNR = F_signal/σ_F` 的**直接载体**；相对表示的落盘值 `ρ` **不是信噪比**（是信噪比的比值），物理量只有乘回帧级标量后才出现 | §1.4/§1.5、`ASTROCS_DESIGN.md` §3.1、`07_noise_snr.md` §4.1 |
+| 1 | **绝对表示是否正确？** | **正确** —— 它是物理定义 `SNR = F_signal/σ_F` 的**直接载体**；相对表示的落盘值 `ρ` **不是信噪比**（是信噪比的比值），物理量只有乘回帧级标量后才出现 | §1.4/§1.5、`docs/ASTROCS_DESIGN.md` §3.1、`07_noise_snr.md` §4.1 |
 | 2 | 相对表示是否**等价**？ | **不等价**：二者恰差一个**逐帧常数** `c_k = σ_frame,k·median(1/σ_c)`（帧内共模）；`c_k = 1` 是一个测度为零的巧合 | §1.4、§2.2、表 A |
 | 3 | 权重视角「共模 ⇒ 一阶免费」对吗？ | **对，但只在受限下游下**：单帧**归一化**加权与权重效率 `E` 下**严格逐位相消**（定理，可证）；**跨帧**只消掉 `c` 的公共部分，`c_k` 的**离散**进入帧间权重比与跨帧比值 | §3.1/§3.3、表 C |
 | 4 | 绝对电平视角呢？ | 共模因子**收全额**：相对表示的 SNR 电平偏差 = `c_k × b_c`，实测在真实 M42 帧上 **−15% ~ −77%**，而绝对表示 **≤0.2%** | §4、表 A/A2 |
@@ -125,7 +125,7 @@ SNR_rel(x,y) = SNR_frame,k * R[v/median_p(v)](x,y)
 | 落盘值是不是 (1.1) 的 SNR？ | **是**（`v(p) = F_ref/σ_F(p)`） | **不是**（`rho(p) = SNR_c/median(SNR_c)`，无量纲、中位为 1、与 `F_ref` 无关） |
 | 定义式 (1.1) 是否**直接**成立于落盘值？ | **成立** | **不成立**；只有重建后 `SNR_frame × rho` 才（在 A1 成立时）等于物理量 |
 | 性质 | **定义**的直接承载 | **约定**（把 SNR 分解成「帧级标量 × 归一化形状」的一种写法） |
-| 违反哪条现行规范？ | 无 | `ASTROCS_DESIGN.md` §3.1「**全程只有 SNR**，HiPS 里存的是帧级 SNR 与稀疏控制点上的绝对 SNR」；`07_noise_snr.md` §4.6「权重不落盘」的同类精神：**落盘的必须是物理量本身** |
+| 违反哪条现行规范？ | 无 | `docs/ASTROCS_DESIGN.md` §3.1「**全程只有 SNR**，HiPS 里存的是帧级 SNR 与稀疏控制点上的绝对 SNR」；`07_noise_snr.md` §4.6「权重不落盘」的同类精神：**落盘的必须是物理量本身** |
 
 ### 1.6 信息论视角：相对表示是**有损编码**
 
@@ -442,7 +442,7 @@ R[a*v](x) = m0 + a * k^T K^-1 (v - m0*1)  !=  a * R[v](x)        （除非 m0 = 
 **正确。** 四条理由，逐条可核验：
 
 1. **定义层**：绝对表示是 `SNR = F_signal/σ_F`（`07_noise_snr.md` §4.1 红线）的直写；相对表示的落盘值 `ρ` **不是** SNR，
-   物理量只有在乘回**另一个对象**（帧级标量）之后才出现 ⇒ 违反 `ASTROCS_DESIGN.md` §3.1「全程只有 SNR」；
+   物理量只有在乘回**另一个对象**（帧级标量）之后才出现 ⇒ 违反 `docs/ASTROCS_DESIGN.md` §3.1「全程只有 SNR」；
 2. **信息层**：`ρ` 是绝对场的确定性函数（`ρ = v/median(v)`），反之不成立；绝对表示**严格占优**（§1.6）；
 3. **误差层**：相对表示把**帧级估计器**的误差乘进局部场（`c_k = c_agg·b_f/b_c`），而 `c_k = 1` 是三个独立量的巧合（§2.2）；
 4. **实测层**：三类数据齐备，绝对表示电平偏差 **≤0.25%**（真实数据 ≤0.19%）；相对表示在**结构污染**场景 **−9% ~ −77%**，
@@ -486,7 +486,7 @@ R[a*v](x) = m0 + a * k^T K^-1 (v - m0*1)  !=  a * R[v](x)        （除非 m0 = 
 ### 6.1 结论先行：**已落地的表示变更方向正确，不需要回退**
 
 `run/SNR-DESIGN-01` 已落地的 `sparse_snr_semantics = "absolute_flux_type_snr"`、
-`ASTROCS_DESIGN.md` §3.1 的「两个独立对象」条、`CONTROL_WEIGHT_SNR.md` §8a 第 7 条、
+`docs/ASTROCS_DESIGN.md` §3.1 的「两个独立对象」条、`CONTROL_WEIGHT_SNR.md` §8a 第 7 条、
 `07_noise_snr.md` §4.1/§4.2/§4.5 的绝对语义 —— **全部与本推导一致，逐条成立**。
 本单元**不提出任何回退**，只提出**补强**。
 
@@ -496,7 +496,7 @@ R[a*v](x) = m0 + a * k^T K^-1 (v - m0*1)  !=  a * R[v](x)        （除非 m0 = 
 |---|---|---|---|---|---|
 | **A1** | `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5（重建算子登记项） | 只要求「显式声明算子、节点精确复现、越界 fail-closed」 | **补一条正齐次性要求**：算子须满足 `R[a·v] = a·R[v]`（或显式声明「该算子下相对场不能由绝对场缩放得到」，并把该声明入 manifest） | 文档 + 算子选型（`SCI-B-EXP-04` 范围） | **中**（若选了带固定先验均值的 GP/kriging，共模论证失效，实测残差 50%） |
 | **A2** | `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5 / `docs/science/CONTROL_WEIGHT_SNR.md` §8b | 稀疏层局部 σ 估计器**未冻结** | **补一条**：稀疏控制点的局部 σ 必须用**结构感知**估计器（mesh 局部背景 + 逐区域残差稳健尺度，或跨帧差分）；朴素「同 recipe 换小作用域」不够（`EXP-03` 实测 HST 上 +46%~+91%） | 文档 + 算法选型 | **高**（绝对表示「表示正确」不等于「数值准确」） |
-| **A3** | `docs/science/CONTROL_WEIGHT_SNR.md` §8a 第 7 条 / `ASTROCS_DESIGN.md` §3.1 | 已写「相互独立、不作尺度基准」 | **补一句方向性约束**：若未来要求帧级标量与稀疏层一致，必须由**稀疏层摘要导出帧级量**（`frame := median_p(SNR_c)`），**禁止**反向（`sparse := frame × 相对场`） | 文档（1 句） | 中 |
+| **A3** | `docs/science/CONTROL_WEIGHT_SNR.md` §8a 第 7 条 / `docs/ASTROCS_DESIGN.md` §3.1 | 已写「相互独立、不作尺度基准」 | **补一句方向性约束**：若未来要求帧级标量与稀疏层一致，必须由**稀疏层摘要导出帧级量**（`frame := median_p(SNR_c)`），**禁止**反向（`sparse := frame × 相对场`） | 文档（1 句） | 中 |
 | **A4** | `实验/absolute-snr/docs/snr-propagation-design.md` §2.1/§2.5/§1019/§1463；`run/SNR-DESIGN-01/REPORT.md` §6C | 「共模免费 ⇒ 稀疏层可以只做相对、是本设计能被接受的前提」；「`1.3127` ⇒ 帧级 SNR 偏低 23.8%」 | ① 「可被接受的前提」改为「**共模退化场景下单帧加权效率不受影响**」；② `1.3127` 是**两个生产者互相矛盾**（variance 面 MAD vs 帧级裁剪 RMS），**不是** `frame_snr` 相对真值的偏差，删除「⇒ 偏低 23.8%」的归因；③ 补本单元的实测电平偏差（真实帧 −15%~−77%） | 非权威链实验稿 + 任务报告（**权威链文档无需改**） | **中**（归因错误会误导后续设计） |
 | **A5** | `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `cfg.sigma_sky_source` 上方注释 | 写「noise_sigma 来自 noise_model 的空天稳健尺度 (1.4826*MAD)」 | 订正为「来自 `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**」（结论「含读噪的经验总 rms、不再叠加 `(RN/g)^2`」不变） | 代码注释（1 处） | 低（但属 provenance 失真） |
 

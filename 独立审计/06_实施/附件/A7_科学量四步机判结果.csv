@@ -219,7 +219,7 @@
 具名,n,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1363,4,未标注,③未见于条文面,
 具名,p_ii,lib/algorithms/integration/v6/src/variance_propagation.cpp:78,1.0,未标注,③未见于条文面,
 具名,w,lib/algorithms/integration/v6/src/variance_propagation.cpp:203,1.0,未标注,③未见于条文面,
-具名,correct,lib/algorithms/integration/v6/src/variance_propagation.cpp:215,1.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN
+具名,correct,lib/algorithms/integration/v6/src/variance_propagation.cpp:215,1.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `docs/ASTROCS_DESIGN
 具名,naive,lib/algorithms/integration/v6/src/variance_propagation.cpp:216,1.0,未标注,③未见于条文面,
 具名,kNodeReproductionTol,lib/algorithms/integration/v6/src/weight_chain.cpp:17,1e-9,未标注,③未见于条文面,
 具名,w,lib/algorithms/integration/v6/src/weight_chain.cpp:107,1.0,未标注,③未见于条文面,
@@ -245,7 +245,7 @@
 具名,f,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:354,2.0,未标注,③未见于条文面,
 具名,kMaskDegraded,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:644,2,未标注,③未见于条文面,
 具名,mid,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:901,0.5,未标注,③未见于条文面,
-具名,ivar,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1387,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,ivar,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1387,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,M_PI,lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:30,3.14159265358979323846,未标注,③未见于条文面,
 具名,kMoffat4FwhmFactor,lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:40,1.230310,未标注,③未见于条文面,
 具名,snr_phot,lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:161,1.0,未标注,②条文有名无值,docs/algorithms/GATES_AND_TOLERANCES.md:28 - **R5 SNR 统一**：凡门引用 SNR，必须使用 §2 已登记的定义（`SNR_peak` / `SNR_det`；`SNR_ph
@@ -269,11 +269,11 @@
 具名,f_in,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:224,1.0,未标注,③未见于条文面,
 具名,f5,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:257,5.0,未标注,③未见于条文面,
 具名,W,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:41,256,未标注,③未见于条文面,
-具名,fwhm,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:59,3.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:228 - PSF 拟合质量代理（FWHM、残差尺度等）只作诊断。
+具名,fwhm,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:59,3.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:228 - PSF 拟合质量代理（FWHM、残差尺度等）只作诊断。
 具名,r0,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:62,12,未标注,③未见于条文面,
 具名,alpha,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:146,2.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:33 三个创新点（最高设计 §2）各立一个自包含实验单元，alpha 发布前必须全部跑通并经独立审稿。**实验单元目录结构与报告八要素的唯一正本 
 具名,W4,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:208,512,未标注,③未见于条文面,
-具名,gain,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:243,1.5,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,gain,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:243,1.5,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
 具名,sigma0,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:277,3.0,未标注,③未见于条文面,
 具名,W6,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:279,512,未标注,③未见于条文面,
 具名,expect,lib/algorithms/noise_snr/cpp/test/noise_model_science_test.cpp:356,5000.0,未标注,②条文有名无值,docs/ci/01_CHECKS.md:124 | CHK-TEST-DISCRIMINATIVE | 质量 | 空断言静态门：Python AST 扫 test_* 与 C++ 剥注释扫
@@ -365,7 +365,7 @@
 具名,K_w,lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp:743,3,未标注,③未见于条文面,
 具名,deg,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:373,57.295779513082323,未标注,③未见于条文面,
 具名,MAX_ITERS,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:1014,5,未标注,③未见于条文面,
-具名,PERCENTILE,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:1015,0.35,未标注,②条文有名无值,ASTROCS_DESIGN.md:423 - 生产排异算法集为 none / percentile / winsorized / linear fit；min/max 极值法不用于生
+具名,PERCENTILE,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:1015,0.35,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:423 - 生产排异算法集为 none / percentile / winsorized / linear fit；min/max 极值法不用于生
 具名,SIGMA_CLIP_FACTOR,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:1016,10.0,未标注,③未见于条文面,
 具名,MAX_DIST,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:1017,100.0,未标注,③未见于条文面,
 具名,HALT_SIGMA,lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:1018,0.1,未标注,③未见于条文面,
@@ -576,7 +576,7 @@
 具名,ACR_X86_AVX512,lib/infrastructure/acr/backends/cpu/isa/avx512.cpp:9,1,未标注,③未见于条文面,
 具名,ACR_X86_SSE,lib/infrastructure/acr/backends/cpu/isa/sse.cpp:8,1,未标注,③未见于条文面,
 具名,kReduceBlocks,lib/infrastructure/acr/backends/cuda/bridge/acr_cuda_bridge_host.cpp:136,256,未标注,③未见于条文面,
-具名,block,lib/infrastructure/acr/backends/cuda/cuda_backend.hpp:113,256,未标注,②条文有名无值,"ASTROCS_DESIGN.md:347 E -->|是| BLOCK[""阻断运行，报出全部原因<br/>-y / -yes 不可越过""]"
+具名,block,lib/infrastructure/acr/backends/cuda/cuda_backend.hpp:113,256,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:347 E -->|是| BLOCK[""阻断运行，报出全部原因<br/>-y / -yes 不可越过""]"
 具名,kCpuDeviceId,lib/infrastructure/acr/core/task_descriptor.hpp:26,0,未标注,③未见于条文面,
 具名,kInvalidDeviceId,lib/infrastructure/acr/core/task_descriptor.hpp:27,-1,未标注,③未见于条文面,
 具名,kDefaultMinChunk,lib/infrastructure/acr/cost/cost_estimator.hpp:133,1024,未标注,③未见于条文面,
@@ -640,7 +640,7 @@
 具名,NVML_ERROR_NOT_SUPPORTED,lib/infrastructure/acr/utilization/system_metrics.cpp:40,8,未标注,③未见于条文面,
 具名,NVML_ERROR_GPU_IS_LOST,lib/infrastructure/acr/utilization/system_metrics.cpp:41,13,未标注,③未见于条文面,
 具名,NVML_ERROR_UNKNOWN,lib/infrastructure/acr/utilization/system_metrics.cpp:42,999,未标注,③未见于条文面,
-具名,VERSION,lib/infrastructure/aio/include/aio_ahpx_format.h:12,1,未标注,①条文含值,ACCEPTANCE_SPEC.md:271 8. 版本纪律满足（发布版本号取自根 `VERSION` 单源，见 `ASTROCS_DESIGN.md` §13；alpha 阶段前程序与
+具名,VERSION,lib/infrastructure/aio/include/aio_ahpx_format.h:12,1,未标注,①条文含值,ACCEPTANCE_SPEC.md:271 8. 版本纪律满足（发布版本号取自根 `VERSION` 单源，见 `docs/ASTROCS_DESIGN.md` §13；alpha 阶段前程序与
 具名,HEADER_FIXED_SIZE,lib/infrastructure/aio/include/aio_ahpx_format.h:16,18,未标注,③未见于条文面,
 具名,AIO_HIPS_TILE_VIEW_ABI_VERSION,lib/infrastructure/aio/include/aio_hips.h:77,1u,未标注,③未见于条文面,
 具名,AIO_HIPS_SNR_POINT_ABI_VERSION,lib/infrastructure/aio/include/aio_hips.h:78,1u,未标注,③未见于条文面,
@@ -943,7 +943,7 @@
 具名,version,lib/algorithms/calibration/include/astrocs/calibration/types.h:10,.0;.1;0.1,未标注,②条文有名无值,"ACCEPTANCE_SPEC.md:13 REL[""发布预览版<br/>版本号取自仓库根 VERSION<br/>负责人决定""]"
 具名,dark_opt,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:8,0.1,未标注,①条文含值,docs/algorithms/CALIBRATION_ALGORITHMS.md:14 （dark_opt 双分支 + flat_norm median=1.0 / floor 0.1）、§9a 专属问题
 具名,dark_opt,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:9,0.1,未标注,①条文含值,docs/algorithms/CALIBRATION_ALGORITHMS.md:14 （dark_opt 双分支 + flat_norm median=1.0 / floor 0.1）、§9a 专属问题
-具名,gain,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:84,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,gain,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:84,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
 具名,read_noise_e,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:86,0.0,未标注,②条文有名无值,docs/algorithms/NOISE_ESTIMATION.md:198 | DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/us
 具名,q_adu,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:88,1.0,未标注,③未见于条文面,
 具名,v_single_frame,lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h:100,0.0,未标注,③未见于条文面,
@@ -979,7 +979,7 @@
 具名,sigma,lib/algorithms/calibration/src/cosmetic_corrector.cpp:126,1.482602218505602f,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:22 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
 具名,sigma,lib/algorithms/calibration/src/cosmetic_corrector.cpp:147,1.482602218505602f,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:22 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
 具名,sum_wv,lib/algorithms/calibration/src/cosmetic_corrector.cpp:204,0.0f,未标注,③未见于条文面,
-具名,weight,lib/algorithms/calibration/src/cosmetic_corrector.cpp:214,1.0f,未标注,②条文有名无值,ASTROCS_DESIGN.md:187 - 方法学对标 PixInsight 公开文档中的 PSFSNR（功率比信噪比）；PixInsight 的 PSF Signal Weigh
+具名,weight,lib/algorithms/calibration/src/cosmetic_corrector.cpp:214,1.0f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:187 - 方法学对标 PixInsight 公开文档中的 PSFSNR（功率比信噪比）；PixInsight 的 PSF Signal Weigh
 具名,out_sigma_col,lib/algorithms/calibration/src/cosmetic_corrector.cpp:330,0.0f,未标注,③未见于条文面,
 具名,out_sigma_col,lib/algorithms/calibration/src/cosmetic_corrector.cpp:525,0.0f,未标注,③未见于条文面,
 具名,out_sigma_col,lib/algorithms/calibration/src/cosmetic_corrector.cpp:608,0.0f,未标注,③未见于条文面,
@@ -1011,10 +1011,10 @@
 具名,actual_k,lib/algorithms/calibration/src/module_entry.cpp:958,0.0,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:167 （flat==NULL 时跳过除法）；actual_k = k_init
 具名,ak,lib/algorithms/calibration/src/module_entry.cpp:1003,0.0,未标注,③未见于条文面,
 具名,ak,lib/algorithms/calibration/src/module_entry.cpp:1013,0.0f,未标注,③未见于条文面,
-具名,photscal,lib/algorithms/calibration/src/photometry_apply.cpp:54,.6f,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/calibration/src/photometry_apply.cpp:54,.6f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,w,lib/algorithms/calibration/src/photometry_apply.cpp:60,.6f,未标注,③未见于条文面,
-具名,photscal,lib/algorithms/calibration/src/photometry_apply.cpp:71,.6f,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
-具名,photscal,lib/algorithms/calibration/src/photometry_apply.cpp:113,.6f,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/calibration/src/photometry_apply.cpp:71,.6f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/calibration/src/photometry_apply.cpp:113,.6f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,w,lib/algorithms/calibration/src/photometry_apply.cpp:131,.6f,未标注,③未见于条文面,
 具名,x_ref,lib/algorithms/calibration/src/photometry_apply.h:66,0.0,未标注,③未见于条文面,
 具名,x_scale,lib/algorithms/calibration/src/photometry_apply.h:67,1.0,未标注,③未见于条文面,
@@ -1135,8 +1135,8 @@
 具名,wsum,lib/algorithms/coverage/src/integrate.cpp:31,0.0,未标注,②条文有名无值,docs/algorithms/ACR_EQUIVALENCE.md:51 - per-pixel独立无跨pixel归约；split按p0 固定顺序concat；归约仅 per-pixel vs/wsum FP64固
 具名,w,lib/algorithms/coverage/src/integrate.cpp:51,1.0,未标注,③未见于条文面,
 具名,invalid_input,lib/algorithms/coverage/src/integrate.cpp:55,0.0,未标注,②条文有名无值,docs/algorithms/ACR_EQUIVALENCE.md:47 | non-finite candidate | INVALID_INPUT一致 |
-具名,support,lib/algorithms/coverage/src/integrate.cpp:80,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
-具名,support,lib/algorithms/coverage/src/integrate.cpp:84,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,support,lib/algorithms/coverage/src/integrate.cpp:80,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,support,lib/algorithms/coverage/src/integrate.cpp:84,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,qap,lib/algorithms/coverage/src/rejection.cpp:35,1.0,未标注,③未见于条文面,
 具名,qam,lib/algorithms/coverage/src/rejection.cpp:36,1.0,未标注,③未见于条文面,
 具名,c,lib/algorithms/coverage/src/rejection.cpp:37,1.0,未标注,③未见于条文面,
@@ -1266,9 +1266,9 @@
 具名,max_dev,lib/algorithms/coverage/src/rejection.cpp:2911,0.0,未标注,③未见于条文面,
 具名,sp,lib/algorithms/coverage/src/rejection.cpp:2920,0.0,未标注,③未见于条文面,
 具名,pf,lib/algorithms/coverage/src/sampler.cpp:103,0.5;1.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/coverage/src/sampler.cpp:122,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/coverage/src/sampler.cpp:122,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,scale_arcsec,lib/algorithms/coverage/src/sampler.cpp:123,0.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:11 API-aio_hips_set_drizzle_provenance,aio_hips_set_drizzle_provenance,li"
-具名,pixfrac,lib/algorithms/coverage/src/sampler.cpp:137,0.0;1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/coverage/src/sampler.cpp:137,0.0;1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,scale_arcsec,lib/algorithms/coverage/src/sampler.cpp:140,0.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:11 API-aio_hips_set_drizzle_provenance,aio_hips_set_drizzle_provenance,li"
 具名,dra,lib/algorithms/coverage/src/sampler.cpp:260,180.0;360.0,未标注,③未见于条文面,
 具名,dra,lib/algorithms/coverage/src/sampler.cpp:286,180.0;360.0,未标注,③未见于条文面,
@@ -1301,7 +1301,7 @@
 具名,snr_val,lib/algorithms/coverage/src/sampler.cpp:897,1.0,未标注,②条文有名无值,docs/algorithms/PHASE2_SAMPLER.md:396 snr_search_radius_deg) 收集半径内星 SNR → 中位数为 snr_val 且
 具名,snr_val,lib/algorithms/coverage/src/sampler.cpp:905,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_SAMPLER.md:396 snr_search_radius_deg) 收集半径内星 SNR → 中位数为 snr_val 且
 具名,snr,lib/algorithms/coverage/src/sampler.cpp:1087,0.0,未标注,③未见于条文面,
-具名,ivar,lib/algorithms/coverage/src/sampler.cpp:1122,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,ivar,lib/algorithms/coverage/src/sampler.cpp:1122,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,v,lib/algorithms/coverage/src/sampler.cpp:1128,0.0f,未标注,③未见于条文面,
 具名,v,lib/algorithms/coverage/src/sampler.cpp:1354,1.0,未标注,③未见于条文面,
 具名,idx,lib/algorithms/coverage/src/sampler.cpp:1398,0.0,未标注,③未见于条文面,
@@ -1329,7 +1329,7 @@
 具名,k_corr,lib/algorithms/coverage/src/sky_plane.cpp:254,0.0;1.4,未标注,②条文有名无值,"docs/algorithms/HIPS_WRITER.md:223 该界是物理/表示域，**不是** k_corr 查表域 [300,600]″）/ obs_regime"
 具名,sigma,lib/algorithms/coverage/src/sky_plane.cpp:296,0.0,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:22 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
 具名,n_ret,lib/algorithms/coverage/src/sky_plane.cpp:305,1.0,未标注,①条文含值,"docs/algorithms/PHASE2_SAMPLER.md:507 代码中的 `n_ret = max(N_retained, 1.0)`（:873）是**死分支**（防御性写法），"
-具名,ivar,lib/algorithms/coverage/src/sky_plane.cpp:307,0.0;1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,ivar,lib/algorithms/coverage/src/sky_plane.cpp:307,0.0;1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,n_retained,lib/algorithms/coverage/src/sky_plane.cpp:312,.2f,未标注,②条文有名无值,"docs/algorithms/PHASE2_SAMPLER.md:53 | N_retained | clipping 后保留样本数；域 [min_samples, (2·background_patch_rad"
 具名,bright_fraction,lib/algorithms/coverage/src/sky_plane.cpp:318,.3f,未标注,③未见于条文面,
 具名,d2r,lib/algorithms/coverage/src/sky_plane.cpp:353,180.0,未标注,③未见于条文面,
@@ -1552,7 +1552,7 @@
 具名,boundary_dec,lib/algorithms/coverage/tools/calibrated_pair_diag.cpp:108,0.0,未标注,③未见于条文面,
 具名,flr,lib/algorithms/coverage/tools/calibrated_pair_diag.cpp:139,0.05,未标注,③未见于条文面,
 具名,lf_ok,lib/algorithms/coverage/tools/calibrated_pair_diag.cpp:141,1.05,未标注,③未见于条文面,
-具名,shared,lib/algorithms/coverage/tools/calibrated_pair_diag.cpp:326,.4f,未标注,②条文有名无值,ASTROCS_DESIGN.md:626 │   ├── fits_output  shared/
+具名,shared,lib/algorithms/coverage/tools/calibrated_pair_diag.cpp:326,.4f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:626 │   ├── fits_output  shared/
 具名,raw_med,lib/algorithms/coverage/tools/calibrated_pair_diag.cpp:327,.3,未标注,③未见于条文面,
 具名,v,lib/algorithms/coverage/tools/rejection_cli.cpp:34,0.0,未标注,③未见于条文面,
 具名,v,lib/algorithms/coverage/tools/rejection_cli.cpp:79,0.0,未标注,③未见于条文面,
@@ -1584,14 +1584,14 @@
 具名,dbg_reject_px,lib/algorithms/coverage/tools/stage2.cpp:834,9.73,未标注,③未见于条文面,
 具名,safety_factor,lib/algorithms/coverage/tools/stage2.cpp:1011,0.75,未标注,①条文含值,docs/algorithms/PHASE2_MOSAIC_WRITE.md:103 memory_limit_bytes=cfg.memory_limit_mb :783、safety_factor=0.75 :784、
 具名,v,lib/algorithms/coverage/tools/stage2.cpp:1123,0.0;1.0,未标注,③未见于条文面,
-具名,gain,lib/algorithms/coverage/tools/stage2.cpp:1166,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,gain,lib/algorithms/coverage/tools/stage2.cpp:1166,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
 具名,dk,lib/algorithms/coverage/tools/stage2.cpp:1174,0.0,未标注,③未见于条文面,
 具名,ok,lib/algorithms/coverage/tools/stage2.cpp:1250,0.0f,未标注,③未见于条文面,
 具名,support_threshold,lib/algorithms/coverage/tools/stage2.cpp:1350,0.0,未标注,①条文含值,docs/algorithms/PHASE2_REJECTION.md:459 support_threshold=0.0 :1093）→ p2_reject_stack_ex（:1184）→
 具名,signal_out,lib/algorithms/coverage/tools/stage2.cpp:1412,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_MOSAIC_WRITE.md:158 `signal_out=pr.signal`、`support_out=pr.support`（:1524-1527）。
 具名,area,lib/algorithms/coverage/tools/stage2.cpp:1471,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:96 aio_hips_writer finalize_tile（variance = var_num_sum/area²，
 具名,flux,lib/algorithms/coverage/tools/stage2.cpp:1472,0.0,未标注,②条文有名无值,docs/algorithms/GAIA_QUERY.md:136 float32 fluxMin @32 + float32 fluxMul @36 + uint8 flux[343] @40 + 1B 填
-具名,gain,lib/algorithms/coverage/tools/stage2.cpp:1522,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,gain,lib/algorithms/coverage/tools/stage2.cpp:1522,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
 具名,dk,lib/algorithms/coverage/tools/stage2.cpp:1530,0.0,未标注,③未见于条文面,
 具名,support_threshold,lib/algorithms/coverage/tools/stage2.cpp:1602,0.0,未标注,①条文含值,docs/algorithms/PHASE2_REJECTION.md:459 support_threshold=0.0 :1093）→ p2_reject_stack_ex（:1184）→
 具名,signal_out,lib/algorithms/coverage/tools/stage2.cpp:1680,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_MOSAIC_WRITE.md:158 `signal_out=pr.signal`、`support_out=pr.support`（:1524-1527）。
@@ -1620,7 +1620,7 @@
 具名,px,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:51,0.0,未标注,③未见于条文面,
 具名,value,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:52,0.0,未标注,②条文有名无值,docs/algorithms/HIPS_WRITER.md:202 - (5b) properties（write_properties :285-293 裸 `key=value\n` 直写，fopen
 具名,drop_area,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:53,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:40 `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
-具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:54,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:54,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,sum_contribution,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:55,0.0,未标注,③未见于条文面,
 具名,sumFlux,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:65,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:64 w 无量纲；`acc.sumFlux += Scalar(pixelValue * weight)`，:1628）。
 具名,sumArea,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:66,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:68 `pixfrac==1` 时 `pixel_area` 与 `drop_area` 是同一变量 ⇒ 比值恒 1.0 ⇒ `sumNorm ≡
@@ -1644,7 +1644,7 @@
 具名,ym_cell,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:557,0.5,未标注,③未见于条文面,
 具名,local_min,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:570,0.0,未标注,③未见于条文面,
 具名,step_px,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:593,2.0,未标注,③未见于条文面,
-具名,no_data,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:615,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:274 - **测光标定不设星数门槛**：任何可解析帧都执行测光标定并出产品，精度按**本帧自身**实测的匹配星数与误差预算如实标注，不套用他帧口径
+具名,no_data,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:615,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:274 - **测光标定不设星数门槛**：任何可解析帧都执行测光标定并出产品，精度按**本帧自身**实测的匹配星数与误差预算如实标注，不套用他帧口径
 具名,xm,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:623,0.5,未标注,③未见于条文面,
 具名,x1,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:691,1.0,未标注,③未见于条文面,
 具名,y1,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:692,1.0,未标注,③未见于条文面,
@@ -1692,8 +1692,8 @@
 具名,A_p,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2410,12.0;4.0,未标注,③未见于条文面,
 具名,A_p,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2422,.6,未标注,③未见于条文面,
 具名,n_source,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2461,.3f,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:241 - 时间: O(n_source · avg_candidates)，avg≈3.5（小图实测，9003 例
-具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:27,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:31,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:27,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:31,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,sumFlux,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:49,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:64 w 无量纲；`acc.sumFlux += Scalar(pixelValue * weight)`，:1628）。
 具名,sumWeight,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:50,0.0,未标注,③未见于条文面,
 具名,sumSnrSq,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:51,0.0,未标注,③未见于条文面,
@@ -1709,23 +1709,23 @@
 具名,bzero,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:178,0.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
 具名,bscale,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:179,1.0,未标注,①条文含值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:56 | XISF `Float32` `bounds=""0:1""` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image"
 具名,bzero,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:203,0.0;1.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:205,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:205,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,BITPIX,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:346,.6,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
 具名,CRVAL,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:401,.3f;.6f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:96 | 独立 Oracle 对拍 | 每模块有不调用生产实现的独立 Oracle 或解析解；投影与 Astropy/WCSLIB 独立对拍（正反
 具名,CD,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:402,.3,未标注,③未见于条文面,
 具名,BZERO,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:492,.6,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:519,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp:519,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,bzero,lib/algorithms/drizzle/healpix_drizzle/fits_reader.h:42,0.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
 具名,bscale,lib/algorithms/drizzle/healpix_drizzle/fits_reader.h:43,1.0,未标注,①条文含值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:56 | XISF `Float32` `bounds=""0:1""` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image"
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/fits_reader.h:45,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/fits_reader.h:45,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,dec,lib/algorithms/drizzle/healpix_drizzle/healpix_core.h:52,180.0;3.14159265358979323846;90.0,未标注,③未见于条文面,
 具名,ra,lib/algorithms/drizzle/healpix_drizzle/healpix_core.h:53,180.0;3.14159265358979323846,未标注,③未见于条文面,
 具名,ra,lib/algorithms/drizzle/healpix_drizzle/healpix_core.h:55,360.0,未标注,③未见于条文面,
 具名,phi_rad,lib/algorithms/drizzle/healpix_drizzle/healpix_core.h:62,180.0;3.14159265358979323846,未标注,③未见于条文面,
 具名,theta_rad,lib/algorithms/drizzle/healpix_drizzle/healpix_core.h:63,180.0;3.14159265358979323846;90.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:219,.4f;0.0;1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:219,.4f;0.0;1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,fits,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:230,.4f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:116 | **解压后合法（硬证据）** | `zstd -dc <name>.hips.zst` 管道给 `tar -xf -` 的产物与裸形态*
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:333,.6f,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:333,.6f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,crval1,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:404,0.0,未标注,②条文有名无值,docs/algorithms/PHASE3_FITS_IMPL.md:43 | CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:15-16 / p3_output.cpp:265-26
 具名,crval2,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:405,0.0,未标注,②条文有名无值,docs/algorithms/PHASE3_PROJ_IMPL.md:12 > registry v3（CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ v1 偏差表；
 具名,crpix1,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:406,0.0,未标注,②条文有名无值,docs/algorithms/PHASE3_FITS_IMPL.md:42 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:17-18 / p3_
@@ -1741,15 +1741,15 @@
 具名,has_cdelt,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:433,0.0,未标注,③未见于条文面,
 具名,prof_parse,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:543,0.0,未标注,③未见于条文面,
 具名,prof_hips,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:544,0.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:569,.4f;0.0;1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:569,.4f;0.0;1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,nside,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:581,.4f,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:117 exp_c_realdata.json` C3 段：nside=512/1024 × 181 档纬度扫描，最坏 1.0441/1.0442，
 具名,bzero,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:650,0.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
 具名,bscale,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:651,1.0,未标注,①条文含值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:56 | XISF `Float32` `bounds=""0:1""` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image"
 具名,CRVAL,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:667,.3;.3f;.6f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:96 | 独立 Oracle 对拍 | 每模块有不调用生产实现的独立 Oracle 或解析解；投影与 Astropy/WCSLIB 独立对拍（正反
 具名,snr_phot,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:844,.2f;.4f,未标注,②条文有名无值,docs/algorithms/GATES_AND_TOLERANCES.md:28 - **R5 SNR 统一**：凡门引用 SNR，必须使用 §2 已登记的定义（`SNR_peak` / `SNR_det`；`SNR_ph
 具名,snr,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:899,1.0,未标注,③未见于条文面,
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:951,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
-具名,photscal,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:971,.6f,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:951,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:971,.6f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,filter,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:1149,.1f,未标注,②条文有名无值,"docs/algorithms/HIPS_WRITER.md:100 OBJECT/FILTER/EXPTIME/DATE-OBS :197-204 + NSIDE/FIRSTPIX=""0""/"
 具名,parse_frame,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:1278,.3f,未标注,③未见于条文面,
 具名,drizzle_run,lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:1279,.3f,未标注,③未见于条文面,
@@ -1774,13 +1774,13 @@
 具名,m,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:76,3.0,未标注,③未见于条文面,
 具名,n,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:87,0.0,未标注,③未见于条文面,
 具名,max_r,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:102,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_REJECTION.md:342 tie-break: |rv−max_r| ≤ 1e-15 时取 frame_id 较小者       :1747-1748
-具名,support,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:153,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,support,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:153,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,m,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:195,2.0,未标注,③未见于条文面,
 具名,s,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:235,0.0,未标注,③未见于条文面,
 具名,c,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:237,1.0,未标注,③未见于条文面,
 具名,c,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp:240,0.0,未标注,③未见于条文面,
 具名,nside,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:28,.2,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:117 exp_c_realdata.json` C3 段：nside=512/1024 × 181 档纬度扫描，最坏 1.0441/1.0442，
-具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:39,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:39,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,total_signal_in,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:55,0.0,未标注,③未见于条文面,
 具名,total_signal_out,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:56,0.0,未标注,③未见于条文面,
 具名,total_covered_area_in,lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.h:57,0.0,未标注,③未见于条文面,
@@ -1889,27 +1889,27 @@
 具名,diag,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:515,0.0,未标注,②条文有名无值,docs/algorithms/HIPS_WRITER.md:359 ⇒ 入口 rc=−9 且 last_error 点名 ABI（view/variance/diag/snr 数组逐元素/
 具名,tol,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:518,1.0,未标注,③未见于条文面,
 具名,sum_x,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp:541,0.0,未标注,③未见于条文面,
-具名,a_jp,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:199,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:207 2. **绝对立体角口径下的构造闭合**：Σ_p a_jp = (π/3)·|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立，不依赖
+具名,a_jp,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:199,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:207 2. **绝对立体角口径下的构造闭合**：Σ_p a_jp = (π/3)·|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立，不依赖
 具名,w_sb,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:200,0.0,未标注,③未见于条文面,
 具名,c,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:201,0.0,未标注,③未见于条文面,
-具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:205,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
+具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:205,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
 具名,pixfrac_,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:263,1.0,未标注,③未见于条文面,
 具名,deficit,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:336,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3346 `CF-T-CONST-SB-TOL`、`FZ-AP1-DEFICIT-THRESH`、`FZ-AP2PT-CORR-RATIO-MIN`、
 具名,owner_signed_threshold,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:337,0.0,未标注,③未见于条文面,
 具名,flux_conservation_factor,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:375,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3285 ~~`weight_mode_version`~~（键不存在，§9.73 A44）、`correlation_summary`、`flux_
 具名,k_corr,lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.h:377,0.0,未标注,②条文有名无值,"docs/algorithms/HIPS_WRITER.md:223 该界是物理/表示域，**不是** k_corr 查表域 [300,600]″）/ obs_regime"
-具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.cpp:61,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
+具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.cpp:61,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
 具名,sum,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.cpp:73,0.0,未标注,③未见于条文面,
 具名,sum,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.cpp:111,0.0,未标注,③未见于条文面,
 具名,closure_rel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.cpp:116,0.0,未标注,③未见于条文面,
 具名,rel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.cpp:164,0.0,未标注,③未见于条文面,
 具名,px,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:33,0.0,未标注,③未见于条文面,
 具名,py,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:34,0.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:35,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
-具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:36,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
-具名,a_jp,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:42,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:207 2. **绝对立体角口径下的构造闭合**：Σ_p a_jp = (π/3)·|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立，不依赖
+具名,pixfrac,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:35,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:36,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
+具名,a_jp,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:42,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:207 2. **绝对立体角口径下的构造闭合**：Σ_p a_jp = (π/3)·|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立，不依赖
 具名,drop_area,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:46,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:40 `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
-具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:47,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
+具名,A_pixel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:47,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
 具名,sum_a_jp,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:48,0.0,未标注,③未见于条文面,
 具名,closure_rel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:49,0.0,未标注,③未见于条文面,
 具名,max_abs_closure_rel,lib/algorithms/drizzle/healpix_drizzle/v6_spherical_overlap.h:69,0.0,未标注,③未见于条文面,
@@ -1930,14 +1930,14 @@
 具名,exposure_s,lib/algorithms/drizzle/hips/src/module_entry.cpp:378,0.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:10 API-aio_hips_product_begin,aio_hips_product_begin,lib/infrastructure/a"
 具名,found,lib/algorithms/drizzle/src/module_entry.cpp:171,0.0,未标注,③未见于条文面,
 具名,found,lib/algorithms/drizzle/src/module_entry.cpp:179,-2147483648.0;2147483647.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/drizzle/src/module_entry.cpp:355,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/drizzle/src/module_entry.cpp:355,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,prec,lib/algorithms/drizzle/src/module_entry.cpp:364,-1.0,未标注,②条文有名无值,docs/algorithms/HIPS_WRITER.md:250 photometric_status，**SNR-PREC-001 精度合同：FP32 %.9g、FP64 %.17g
-具名,nested,lib/algorithms/drizzle/src/module_entry.cpp:418,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:209 4. **首次落地到天文 HEALPix drizzle 场景**：把该分配方式用于源像素 drop × NESTED leaf 的权重累加
+具名,nested,lib/algorithms/drizzle/src/module_entry.cpp:418,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:209 4. **首次落地到天文 HEALPix drizzle 场景**：把该分配方式用于源像素 drop × NESTED leaf 的权重累加
 具名,out_fp64,lib/algorithms/drizzle/src/module_entry.cpp:1054,0.0;1.0,未标注,③未见于条文面,
 具名,no_data_as_zero,lib/algorithms/drizzle/src/module_entry.cpp:1056,1.0,未标注,③未见于条文面,
 具名,sig_is_f64,lib/algorithms/drizzle/src/module_entry.cpp:1095,0.5,未标注,③未见于条文面,
 具名,out_b,lib/algorithms/drizzle/src/module_entry.cpp:1142,0.5,未标注,③未见于条文面,
-具名,nested,lib/algorithms/drizzle/src/module_entry.cpp:1153,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:209 4. **首次落地到天文 HEALPix drizzle 场景**：把该分配方式用于源像素 drop × NESTED leaf 的权重累加
+具名,nested,lib/algorithms/drizzle/src/module_entry.cpp:1153,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:209 4. **首次落地到天文 HEALPix drizzle 场景**：把该分配方式用于源像素 drop × NESTED leaf 的权重累加
 具名,output_fp64,lib/algorithms/drizzle/src/module_entry.cpp:1157,0.5,未标注,②条文有名无值,docs/contracts/PUBLIC_API.md:292 由调用方分配（width×height，output_fp64 决定 double/float 视图）；
 具名,no_data_as_zero,lib/algorithms/drizzle/src/module_entry.cpp:1168,0.0,未标注,③未见于条文面,
 具名,bscale,lib/algorithms/fits_output/p3_output.cpp:278,0.0;1.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
@@ -1993,7 +1993,7 @@
 具名,clip_low_,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:217,0.0,未标注,③未见于条文面,
 具名,node_residual_,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:218,0.0,未标注,③未见于条文面,
 具名,cell_center_offset_,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:219,0.0,未标注,③未见于条文面,
-具名,frame_snr,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:258,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:152 （`frame_snr`）与**帧内稀疏控制点层**（`sparse_snr_layer`，存控制点处的绝对 SNR）两个对象承载。
+具名,frame_snr,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:258,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:152 （`frame_snr`）与**帧内稀疏控制点层**（`sparse_snr_layer`，存控制点处的绝对 SNR）两个对象承载。
 具名,k,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:262,0.4,未标注,③未见于条文面,
 具名,ref_flux,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:270,0.0,未标注,③未见于条文面,
 具名,x,lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:272,0.0,未标注,③未见于条文面,
@@ -2015,11 +2015,11 @@
 具名,weight_value,lib/algorithms/integration/v6/src/phase2_integrate.cpp:409,0.0,未标注,②条文有名无值,docs/contracts/PUBLIC_API.md:2194 `weight.kind` / `weight.units` / `weight.group_normalized` / `weight.n
 具名,target_pixel_area,lib/algorithms/integration/v6/src/phase2_integrate.cpp:427,1.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3250 机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.j
 具名,flux_conservation_factor,lib/algorithms/integration/v6/src/phase2_integrate.cpp:455,1.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3285 ~~`weight_mode_version`~~（键不存在，§9.73 A44）、`correlation_summary`、`flux_
-具名,pixfrac,lib/algorithms/integration/v6/src/phase2_integrate.cpp:459,0.8,未标注,①条文含值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/integration/v6/src/phase2_integrate.cpp:459,0.8,未标注,①条文含值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,PIXIVAR,lib/algorithms/integration/v6/src/phase2_integrate.cpp:618,0.05,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3295 | 产品族记录层 | `https://astrocs.local/schemas/product_family/field_constra
 具名,deficit,lib/algorithms/integration/v6/src/phase2_integrate.cpp:625,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3346 `CF-T-CONST-SB-TOL`、`FZ-AP1-DEFICIT-THRESH`、`FZ-AP2PT-CORR-RATIO-MIN`、
 具名,q_sum,lib/algorithms/integration/v6/src/phase2_integrate.cpp:834,0.0,未标注,③未见于条文面,
-具名,error,lib/algorithms/integration/v6/src/phase2_integrate.cpp:836,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN
+具名,error,lib/algorithms/integration/v6/src/phase2_integrate.cpp:836,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `docs/ASTROCS_DESIGN
 具名,s,lib/algorithms/integration/v6/src/phase2_integrate.cpp:869,0.0,未标注,③未见于条文面,
 具名,wj,lib/algorithms/integration/v6/src/phase2_integrate.cpp:873,0.0,未标注,③未见于条文面,
 具名,s,lib/algorithms/integration/v6/src/phase2_integrate.cpp:875,0.0,未标注,③未见于条文面,
@@ -2043,9 +2043,9 @@
 具名,var_f,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1190,0.0,未标注,③未见于条文面,
 具名,sigma_bg,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1221,0.0,未标注,②条文有名无值,docs/algorithms/GATES_AND_TOLERANCES.md:35 | `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（st
 具名,p,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1223,0.0,未标注,③未见于条文面,
-具名,error,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1225,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN
+具名,error,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1225,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `docs/ASTROCS_DESIGN
 具名,cv,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1226,0.0,未标注,③未见于条文面,
-具名,error,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1233,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN
+具名,error,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1233,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `docs/ASTROCS_DESIGN
 具名,huber_delta,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1273,1.345,未标注,①条文含值,docs/algorithms/PHASE2_SESSION.md:133 huber_delta=1.345（**无量纲**；高斯参考分布下渐近效率 95% 的 Huber 阈值，
 具名,zero_anchor_weight,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1277,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_SESSION.md:295 | DISP-P2SES-005 | :184-194 | UPM 首版常量硬编码且仅 max_iterations/huber_delta
 具名,flux_conservation_factor,lib/algorithms/integration/v6/src/phase2_integrate.cpp:1281,1.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3285 ~~`weight_mode_version`~~（键不存在，§9.73 A44）、`correlation_summary`、`flux_
@@ -2104,7 +2104,7 @@
 具名,a_nea,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:108,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3303 **`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP
 具名,a_ref,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:109,0.0,未标注,②条文有名无值,docs/science/PSF_SIGNAL_WEIGHT.md:55 > **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photome
 具名,background_robust_mean,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:110,0.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:130,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:130,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,w_info,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:181,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:2687 - Phase3 **消费**上游 `W_info`，不重算、不替换；无量纲相对复合权重**的落点 = 诊断面**；
 具名,norm_median_target,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:189,0.0,未标注,③未见于条文面,
 具名,weight_value,lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h:191,0.0,未标注,②条文有名无值,docs/contracts/PUBLIC_API.md:2194 `weight.kind` / `weight.units` / `weight.group_normalized` / `weight.n
@@ -2122,7 +2122,7 @@
 具名,A_pixel_out,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:485,1.0,未标注,③未见于条文面,
 具名,px,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:503,0.5,未标注,③未见于条文面,
 具名,py,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:504,0.5,未标注,③未见于条文面,
-具名,A_pixel,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:506,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
+具名,A_pixel,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:506,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:210 5. **任意 WCS footprint 与权重/variance 链的整合**：drop 由任意 WCS（含 SIP 畸变）的源像素足迹
 具名,max_abs_cov,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:533,0.0,未标注,③未见于条文面,
 具名,deficit,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:789,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3346 `CF-T-CONST-SB-TOL`、`FZ-AP1-DEFICIT-THRESH`、`FZ-AP2PT-CORR-RATIO-MIN`、
 具名,s,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:883,0.0,未标注,③未见于条文面,
@@ -2131,7 +2131,7 @@
 具名,p95,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1152,0.0,未标注,③未见于条文面,
 具名,w_info,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1171,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:2687 - Phase3 **消费**上游 `W_info`，不重算、不替换；无量纲相对复合权重**的落点 = 诊断面**；
 具名,var_f,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1172,0.0,未标注,③未见于条文面,
-具名,pixfrac,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1191,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1191,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,q,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1228,0.0,未标注,③未见于条文面,
 具名,flux,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1229,0.0,未标注,②条文有名无值,docs/algorithms/GAIA_QUERY.md:136 float32 fluxMin @32 + float32 fluxMul @36 + uint8 flux[343] @40 + 1B 填
 具名,norm_median_target,lib/algorithms/integration/v6_phase1/src/phase1_product.cpp:1238,0.0,未标注,③未见于条文面,
@@ -2217,7 +2217,7 @@
 具名,a,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1335,0.0,未标注,③未见于条文面,
 具名,floor,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1361,0.0,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:14 （dark_opt 双分支 + flat_norm median=1.0 / floor 0.1）、§9a 专属问题
 具名,v_out,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1384,0.0f,未标注,③未见于条文面,
-具名,ivar,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1468,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,ivar,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1468,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,s,lib/algorithms/noise_snr/cpp/src/noise_model.cpp:1476,0.0,未标注,③未见于条文面,
 具名,med,lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:51,0.5,未标注,③未见于条文面,
 具名,fwhm,lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:71,0.0,未标注,①条文含值,docs/algorithms/GATES_AND_TOLERANCES.md:54 | G-P1-CENTROID-1 | `median\|astro_det − truth\| ≤ 0.1 ∧ p95 ≤ 0.3 ∧ \
@@ -2285,7 +2285,7 @@
 具名,var_f,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:209,0.0,未标注,③未见于条文面,
 具名,flux5_adu,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:217,5.0,未标注,③未见于条文面,
 具名,r,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:220,0.0,未标注,③未见于条文面,
-具名,n_sky,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:226,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:135 I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark"
+具名,n_sky,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:226,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:135 I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark"
 具名,var_ap,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:228,1.0,未标注,③未见于条文面,
 具名,aperture_correction,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:232,0.0;1.0,未标注,③未见于条文面,
 具名,sigma_f_aperture_adu,lib/algorithms/noise_snr/cpp/src/snr_science.cpp:234,0.0,未标注,③未见于条文面,
@@ -2365,7 +2365,7 @@
 具名,read_noise_e,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:50,0.0,未标注,②条文有名无值,docs/algorithms/NOISE_ESTIMATION.md:198 | DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/us
 具名,zero_point_mag,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:51,0.0,未标注,②条文有名无值,"docs/algorithms/PHOTOMETRIC_FIT.md:204 `zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 由上式**逐位复现** ——"
 具名,aperture_radius_px,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:52,0.0;1.5,未标注,③未见于条文面,
-具名,n_sky,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:53,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:135 I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark"
+具名,n_sky,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:53,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:135 I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark"
 具名,sigma_logflux_dex,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:55,0.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:372 API-snr_phot_cal_quality,snr_phot_cal_quality,lib/algorithms/noise_snr"
 具名,reference_flux_adu,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:59,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:593 | reference_baseline.reference_flux_common_unit | string | — | 公共锚单位（现
 具名,median_snr,lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h:74,0.0,未标注,②条文有名无值,"docs/contracts/DATA_SEMANTICS.md:376 | ""snr_model"" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_p"
@@ -2535,7 +2535,7 @@
 具名,y_ref,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:317,0.5,未标注,③未见于条文面,
 具名,x_scale,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:318,0.5;1.0,未标注,③未见于条文面,
 具名,y_scale,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:319,0.5;1.0,未标注,③未见于条文面,
-具名,blocks,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:431,.4f,未标注,②条文有名无值,ASTROCS_DESIGN.md:282 **两种形态互斥**：一个 JSON 可写多个数据块（`blocks[]`）；只有一块时可用平铺单块简写；同一顶层同时出现两种形态时报错。
+具名,blocks,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:431,.4f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:282 **两种形态互斥**：一个 JSON 可写多个数据块（`blocks[]`）；只有一块时可用平铺单块简写；同一顶层同时出现两种形态时报错。
 具名,amax,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:503,0.0,未标注,③未见于条文面,
 具名,lm,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:514,0.0,未标注,③未见于条文面,
 具名,j,lib/algorithms/photometry/cpp/src/spatial_gain.cpp:546,0.0,未标注,③未见于条文面,
@@ -2599,12 +2599,12 @@
 具名,scale_factor,lib/algorithms/photometry/cpp/src/star_matcher.cpp:528,1.0,未标注,①条文含值,docs/science/PHOTOMETRY.md:245 | 星等一致性后参考星 `<3` | `NO_DATA`：`fit_used=0`、`scale_factor=1.0`、`sigma_re
 具名,sigma_residual,lib/algorithms/photometry/cpp/src/star_matcher.cpp:529,0.0,未标注,②条文有名无值,"docs/algorithms/PHOTOMETRIC_FIT.md:19 F4: sigma_residual = median_i(|r_i − location|)/0.6744897501960817, r_"
 具名,S,lib/algorithms/photometry/cpp/src/star_matcher.cpp:545,0.0,未标注,③未见于条文面,
-具名,location,lib/algorithms/photometry/cpp/src/star_matcher.cpp:546,.6f,未标注,②条文有名无值,"ASTROCS_DESIGN.md:126 - **数据形态（架构口径，勿读成""数据变成星等""）**：`k_photo = 10^{−location}`（单位 [F_syn 单位]/"
+具名,location,lib/algorithms/photometry/cpp/src/star_matcher.cpp:546,.6f,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:126 - **数据形态（架构口径，勿读成""数据变成星等""）**：`k_photo = 10^{−location}`（单位 [F_syn 单位]/"
 具名,sum_wr,lib/algorithms/photometry/cpp/src/star_matcher.cpp:557,0.0,未标注,③未见于条文面,
 具名,w,lib/algorithms/photometry/cpp/src/star_matcher.cpp:564,0.0,未标注,③未见于条文面,
 具名,tmp,lib/algorithms/photometry/cpp/src/star_matcher.cpp:566,1.0,未标注,③未见于条文面,
-具名,location,lib/algorithms/photometry/cpp/src/star_matcher.cpp:579,.2;.6f,未标注,②条文有名无值,"ASTROCS_DESIGN.md:126 - **数据形态（架构口径，勿读成""数据变成星等""）**：`k_photo = 10^{−location}`（单位 [F_syn 单位]/"
-具名,location,lib/algorithms/photometry/cpp/src/star_matcher.cpp:581,.6f,未标注,②条文有名无值,"ASTROCS_DESIGN.md:126 - **数据形态（架构口径，勿读成""数据变成星等""）**：`k_photo = 10^{−location}`（单位 [F_syn 单位]/"
+具名,location,lib/algorithms/photometry/cpp/src/star_matcher.cpp:579,.2;.6f,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:126 - **数据形态（架构口径，勿读成""数据变成星等""）**：`k_photo = 10^{−location}`（单位 [F_syn 单位]/"
+具名,location,lib/algorithms/photometry/cpp/src/star_matcher.cpp:581,.6f,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:126 - **数据形态（架构口径，勿读成""数据变成星等""）**：`k_photo = 10^{−location}`（单位 [F_syn 单位]/"
 具名,scale,lib/algorithms/photometry/cpp/src/star_matcher.cpp:589,10.0,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:61 U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
 具名,cS,lib/algorithms/photometry/cpp/src/star_matcher.cpp:597,0.0;1.0,未标注,③未见于条文面,
 具名,u,lib/algorithms/photometry/cpp/src/star_matcher.cpp:601,0.0,未标注,③未见于条文面,
@@ -2681,7 +2681,7 @@
 具名,snr,lib/algorithms/photometry/wrapper_phase1/photometer.cpp:95,0.0,未标注,③未见于条文面,
 具名,flux,lib/algorithms/photometry/wrapper_phase1/photometer.h:15,0.0,未标注,②条文有名无值,docs/algorithms/GAIA_QUERY.md:136 float32 fluxMin @32 + float32 fluxMul @36 + uint8 flux[343] @40 + 1B 填
 具名,flux_error,lib/algorithms/photometry/wrapper_phase1/photometer.h:16,0.0,未标注,②条文有名无值,docs/algorithms/PHOTOMETRIC_FIT.md:210 **aperture 测光非生产符号**（lib/algorithms/photometry/wrapper_phase1/photomet
-具名,background,lib/algorithms/photometry/wrapper_phase1/photometer.h:17,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:260 CS --> BN[""background/noise 背景与噪声""]"
+具名,background,lib/algorithms/photometry/wrapper_phase1/photometer.h:17,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:260 CS --> BN[""background/noise 背景与噪声""]"
 具名,snr,lib/algorithms/photometry/wrapper_phase1/photometer.h:18,0.0,未标注,③未见于条文面,
 具名,aperture_radius_px,lib/algorithms/photometry/wrapper_phase1/photometer.h:26,4.0,未标注,③未见于条文面,
 具名,sky_annulus_inner,lib/algorithms/photometry/wrapper_phase1/photometer.h:27,6.0,未标注,③未见于条文面,
@@ -3466,7 +3466,7 @@
 具名,MOFFAT4_FWHM_FACTOR,lib/algorithms/psf/module.yaml:127,1.230310,未标注,①条文含值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:300 （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，
 具名,DPSF_FIT_OK,lib/algorithms/psf/module.yaml:145,11.2,未标注,②条文有名无值,docs/algorithms/STAR_PSF_ALGORITHMS.md:186 | 0 | DPSF_FIT_OK | 收敛 :163 且过验证链一~三 | 全参数回填 :391-403 | 计入 out_n_valid
 具名,DPSF_FIT_INVALID_PARAMS,lib/algorithms/psf/module.yaml:148,0.01;0.5,未标注,②条文有名无值,docs/algorithms/STAR_PSF_ALGORITHMS.md:109 | 图像含 NaN/Inf | **逐像素**跳过（采样阶段 `isfinite` 过滤，`:284-304`），其余像素正常拟合；**整窗
-具名,FWHM,lib/algorithms/psf/module.yaml:161,1.230310,未标注,②条文有名无值,ASTROCS_DESIGN.md:228 - PSF 拟合质量代理（FWHM、残差尺度等）只作诊断。
+具名,FWHM,lib/algorithms/psf/module.yaml:161,1.230310,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:228 - PSF 拟合质量代理（FWHM、残差尺度等）只作诊断。
 具名,radius,lib/algorithms/psf/src/dpsf_image.cpp:29,3.0,未标注,②条文有名无值,docs/algorithms/GAIA_QUERY.md:121 radius < 0                    → 不剪枝（防御）
 具名,sum,lib/algorithms/psf/src/dpsf_image.cpp:32,0.0,未标注,③未见于条文面,
 具名,val,lib/algorithms/psf/src/dpsf_image.cpp:44,0.0,未标注,③未见于条文面,
@@ -3639,7 +3639,7 @@
 具名,ok0,lib/algorithms/star_detection/src/nls_lm.cpp:152,0.0,未标注,③未见于条文面,
 具名,lam0,lib/algorithms/star_detection/src/nls_lm.cpp:155,10.0,未标注,③未见于条文面,
 具名,psi_lo,lib/algorithms/star_detection/src/nls_lm.cpp:169,0.0,未标注,③未见于条文面,
-具名,seed,lib/algorithms/star_detection/src/nls_lm.cpp:174,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:760 - 实验单元目录结构：`实验/<单元>/` 下含 README 实验报告、`code/`（固定 seed、可复跑）、`results/`、`
+具名,seed,lib/algorithms/star_detection/src/nls_lm.cpp:174,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:760 - 实验单元目录结构：`实验/<单元>/` 下含 README 实验报告、`code/`（固定 seed、可复跑）、`results/`、`
 具名,psi_hi,lib/algorithms/star_detection/src/nls_lm.cpp:184,1.0,未标注,③未见于条文面,
 具名,lam,lib/algorithms/star_detection/src/nls_lm.cpp:204,0.5,未标注,③未见于条文面,
 具名,next,lib/algorithms/star_detection/src/nls_lm.cpp:217,0.5,未标注,②条文有名无值,docs/algorithms/PHASE2_REJECTION.md:323 收缩到 kept 集，next iteration                             :1688-1701
@@ -3685,7 +3685,7 @@
 具名,halfA,lib/algorithms/star_detection/src/sdet_api.cpp:320,0.5,未标注,②条文有名无值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:101 - 初始化（:289-346）: halfA 边界搜索（`max_val=A0+B0`，沿中心行列向外走到
 具名,x0_init,lib/algorithms/star_detection/src/sdet_api.cpp:355,2.0,未标注,③未见于条文面,
 具名,y0_init,lib/algorithms/star_detection/src/sdet_api.cpp:356,2.0,未标注,③未见于条文面,
-具名,FWHM,lib/algorithms/star_detection/src/sdet_api.cpp:362,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:228 - PSF 拟合质量代理（FWHM、残差尺度等）只作诊断。
+具名,FWHM,lib/algorithms/star_detection/src/sdet_api.cpp:362,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:228 - PSF 拟合质量代理（FWHM、残差尺度等）只作诊断。
 具名,roundness,lib/algorithms/star_detection/src/sdet_api.cpp:364,1.0,未标注,②条文有名无值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:103 `fr_init=acos(2·roundness−1)`、`alpha_init=0`；`bkg0`=拟合窗内下半像素截尾 MAD
 具名,roundness,lib/algorithms/star_detection/src/sdet_api.cpp:365,1.0,未标注,②条文有名无值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:103 `fr_init=acos(2·roundness−1)`、`alpha_init=0`；`bkg0`=拟合窗内下半像素截尾 MAD
 具名,roundness,lib/algorithms/star_detection/src/sdet_api.cpp:366,0.01,未标注,②条文有名无值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:103 `fr_init=acos(2·roundness−1)`、`alpha_init=0`；`bkg0`=拟合窗内下半像素截尾 MAD
@@ -3750,7 +3750,7 @@
 具名,sx,lib/algorithms/star_detection/src/sdet_api.cpp:1604,0.0f,未标注,③未见于条文面,
 具名,sy,lib/algorithms/star_detection/src/sdet_api.cpp:1605,0.0f,未标注,③未见于条文面,
 具名,theta,lib/algorithms/star_detection/src/sdet_api.cpp:1606,0.0f,未标注,①条文含值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:165 - 饱和星拟合失败: flux/fwhm/sx/sy/theta/background/amplitude 全 0.0f 哨兵 +
-具名,background,lib/algorithms/star_detection/src/sdet_api.cpp:1607,0.0f,未标注,②条文有名无值,"ASTROCS_DESIGN.md:260 CS --> BN[""background/noise 背景与噪声""]"
+具名,background,lib/algorithms/star_detection/src/sdet_api.cpp:1607,0.0f,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:260 CS --> BN[""background/noise 背景与噪声""]"
 具名,amplitude,lib/algorithms/star_detection/src/sdet_api.cpp:1608,0.0f,未标注,①条文含值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:165 - 饱和星拟合失败: flux/fwhm/sx/sy/theta/background/amplitude 全 0.0f 哨兵 +
 具名,sigma,lib/algorithms/star_detection/src/sdet_api.cpp:1766,.1f;2.0,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:22 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
 具名,threshold,lib/algorithms/star_detection/src/sdet_api.cpp:1779,5.0,未标注,①条文含值,docs/algorithms/GATES_AND_TOLERANCES.md:40 `threshold = median(img) + 5.0·bgnoise`（`sdet_api.cpp:1790`，阈值语义锚 `:17
@@ -3891,7 +3891,7 @@
 具名,val,lib/algorithms/star_detection/src/sdet_image.cpp:744,0.0,未标注,③未见于条文面,
 具名,out_med,lib/algorithms/star_detection/src/sdet_image.cpp:791,0.0f,未标注,③未见于条文面,
 具名,out_mad,lib/algorithms/star_detection/src/sdet_image.cpp:792,0.0f,未标注,③未见于条文面,
-具名,block,lib/algorithms/star_detection/src/sdet_image.cpp:827,.2f,未标注,②条文有名无值,"ASTROCS_DESIGN.md:347 E -->|是| BLOCK[""阻断运行，报出全部原因<br/>-y / -yes 不可越过""]"
+具名,block,lib/algorithms/star_detection/src/sdet_image.cpp:827,.2f,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:347 E -->|是| BLOCK[""阻断运行，报出全部原因<br/>-y / -yes 不可越过""]"
 具名,is_normal,lib/algorithms/star_detection/src/sdet_image.cpp:865,0.707;1.0,未标注,③未见于条文面,
 具名,val,lib/algorithms/star_detection/src/sdet_image.cpp:961,0.0,未标注,③未见于条文面,
 具名,cnt,lib/algorithms/star_detection/src/sdet_image.cpp:962,0.0;1.0,未标注,③未见于条文面,
@@ -3936,15 +3936,15 @@
 具名,fwhm_px,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:18,0.0,未标注,②条文有名无值,"docs/contracts/DATA_SEMANTICS.md:579 | snr_sample | string | — | **样本定义**：全部测光有效 sources（flux>0, fwhm_px>0）"
 具名,ellipticity,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:19,0.0,未标注,③未见于条文面,
 具名,snr,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:20,0.0,未标注,③未见于条文面,
-具名,background,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:27,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:260 CS --> BN[""background/noise 背景与噪声""]"
+具名,background,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:27,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:260 CS --> BN[""background/noise 背景与噪声""]"
 具名,noise_sigma,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:28,0.0,未标注,②条文有名无值,docs/algorithms/GATES_AND_TOLERANCES.md:37 | `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_so
 具名,detection_sigma,lib/algorithms/star_detection/wrapper_phase1/star_detector.h:38,5.0,未标注,③未见于条文面,
 具名,wall_seconds,lib/include/astrocs/core/block_flow.h:75,0.0,未标注,③未见于条文面,
 具名,cpu_ms,lib/include/astrocs/core/contracts.h:219,0.0,未标注,③未见于条文面,
 具名,wall_ms,lib/include/astrocs/core/contracts.h:220,0.0,未标注,③未见于条文面,
 具名,wall_seconds,lib/include/astrocs/core/export_stream.h:95,0.0,未标注,③未见于条文面,
-具名,progress,lib/include/astrocs/core/logging.h:28,-1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
-具名,progress,lib/include/astrocs/core/logging.h:51,-1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
+具名,progress,lib/include/astrocs/core/logging.h:28,-1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
+具名,progress,lib/include/astrocs/core/logging.h:51,-1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
 具名,scale,lib/include/astrocs/core/master_unit_guard.h:46,1.0,未标注,①条文含值,docs/algorithms/CALIBRATION_ALGORITHMS.md:61 U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
 具名,median,lib/include/astrocs/core/master_unit_guard.h:62,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:233 | 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）
 具名,min_v,lib/include/astrocs/core/master_unit_guard.h:63,0.0,未标注,③未见于条文面,
@@ -3997,7 +3997,7 @@
 具名,rel_err,lib/infrastructure/acr/examples/minimal_parallel_for.cpp:49,0.0f,未标注,③未见于条文面,
 具名,sum,lib/infrastructure/acr/examples/minimal_parallel_for.cpp:55,.6f,未标注,③未见于条文面,
 具名,sum,lib/infrastructure/acr/examples/minimal_parallel_for.cpp:56,.6f,未标注,③未见于条文面,
-具名,error,lib/infrastructure/acr/examples/minimal_parallel_for.cpp:57,.3,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `ASTROCS_DESIGN
+具名,error,lib/infrastructure/acr/examples/minimal_parallel_for.cpp:57,.3,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:194 | 可行性 | 三命令退出码均为 0；阶段间只通过磁盘产品 + manifest + 哈希交接（唯一正本 = `docs/ASTROCS_DESIGN
 具名,elapsed,lib/infrastructure/acr/examples/minimal_parallel_for.cpp:58,.3f,未标注,②条文有名无值,docs/design/LOG_AND_ERROR_SYSTEM.md:74 | `log_event` | 单行结构化日志事件（run/task/node/module/phase/commit/host/level
 具名,median_ms,lib/infrastructure/acr/examples/weighted_integration/route_profile_calibration.cpp:167,0.0,未标注,③未见于条文面,
 具名,p90_ms,lib/infrastructure/acr/examples/weighted_integration/route_profile_calibration.cpp:168,0.0,未标注,③未见于条文面,
@@ -4270,14 +4270,14 @@
 具名,ratio,lib/infrastructure/acr/utilization/system_metrics.cpp:348,1.0,未标注,②条文有名无值,docs/algorithms/UPM_SOLVER.md:127 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983；UPMW-004 实证 ratio 0.997（SCI
 具名,ratio,lib/infrastructure/acr/utilization/system_metrics.hpp:26,-1.0;0.0,未标注,②条文有名无值,docs/algorithms/UPM_SOLVER.md:127 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983；UPMW-004 实证 ratio 0.997（SCI
 具名,ratio,lib/infrastructure/acr/utilization/system_metrics.hpp:34,-1.0;0.0,未标注,②条文有名无值,docs/algorithms/UPM_SOLVER.md:127 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983；UPMW-004 实证 ratio 0.997（SCI
-具名,pixfrac,lib/infrastructure/aio/include/hiss_format.h:53,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/aio/include/hiss_format.h:53,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,sampling_scale,lib/infrastructure/aio/include/hiss_format.h:225,0.0f,未标注,③未见于条文面,
 具名,sampling_scale,lib/infrastructure/aio/include/hiss_format.h:232,0.0f,未标注,③未见于条文面,
-具名,pixfrac,lib/infrastructure/aio/include/hiss_format.h:297,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
-具名,photscal,lib/infrastructure/aio/include/hiss_format.h:300,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,pixfrac,lib/infrastructure/aio/include/hiss_format.h:297,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,photscal,lib/infrastructure/aio/include/hiss_format.h:300,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,darkscl,lib/infrastructure/aio/include/hiss_format.h:311,1.0,未标注,③未见于条文面,
 具名,exptime,lib/infrastructure/aio/include/hiss_format.h:316,0.0,未标注,②条文有名无值,docs/algorithms/CALIBRATION_ALGORITHMS.md:26 EXPTIME 得出后传入）、噪声方差/SNR 估计（snr_estimator）、天光背景扣除
-具名,gain,lib/infrastructure/aio/include/hiss_format.h:320,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,gain,lib/infrastructure/aio/include/hiss_format.h:320,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
 具名,sum_flux,lib/infrastructure/aio/include/hiss_format.h:353,0.0,未标注,③未见于条文面,
 具名,sum_area,lib/infrastructure/aio/include/hiss_format.h:354,0.0,未标注,③未见于条文面,
 具名,pixel_area,lib/infrastructure/aio/include/hiss_format.h:364,1.0,未标注,①条文含值,docs/algorithms/DRIZZLE_GEOMETRY.md:68 `pixfrac==1` 时 `pixel_area` 与 `drop_area` 是同一变量 ⇒ 比值恒 1.0 ⇒ `sumNorm ≡
@@ -4286,7 +4286,7 @@
 具名,bzero,lib/infrastructure/aio/src/aio_fits.cpp:118,0.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
 具名,equinox,lib/infrastructure/aio/src/aio_fits.cpp:428,2000.0,未标注,①条文含值,docs/contracts/DATA_SEMANTICS.md:998 EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
 具名,equinox,lib/infrastructure/aio/src/aio_fits.cpp:429,2000.0,未标注,①条文含值,docs/contracts/DATA_SEMANTICS.md:998 EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
-具名,gain,lib/infrastructure/aio/src/aio_fits.cpp:483,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,gain,lib/infrastructure/aio/src/aio_fits.cpp:483,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
 具名,ccd_temp,lib/infrastructure/aio/src/aio_fits.cpp:491,0.0,未标注,③未见于条文面,
 具名,bscale,lib/infrastructure/aio/src/aio_fits.cpp:738,1.0,未标注,①条文含值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:56 | XISF `Float32` `bounds=""0:1""` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image"
 具名,bzero,lib/infrastructure/aio/src/aio_fits.cpp:739,0.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:55 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU"
@@ -4301,11 +4301,11 @@
 具名,i,lib/infrastructure/aio/src/aio_xisf.cpp:289,0.0,未标注,③未见于条文面,
 具名,equinox,lib/infrastructure/aio/src/aio_xisf.cpp:412,2000.0,未标注,①条文含值,docs/contracts/DATA_SEMANTICS.md:998 EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
 具名,equinox,lib/infrastructure/aio/src/aio_xisf.cpp:413,2000.0,未标注,①条文含值,docs/contracts/DATA_SEMANTICS.md:998 EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
-具名,gain,lib/infrastructure/aio/src/aio_xisf.cpp:431,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
-具名,pixfrac,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:323,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,gain,lib/infrastructure/aio/src/aio_xisf.cpp:431,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:161 分离需要额外支撑先验（暗帧、平场对/光子转移曲线、可信 `GAIN`、多曝光）；秩的代数依据见
+具名,pixfrac,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:323,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,A_p,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:340,12.0;4.0,未标注,③未见于条文面,
-具名,pixfrac,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:362,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
-具名,pixfrac,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:369,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:362,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:369,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,signal,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:1123,0.0f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:31 **判据的名词口径一律照最高设计的冻结语句，本节不复述、不改写**（「口径唯一、不在下层复述」）：① 星等属**表达层**——`k_phot
 具名,ret,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:1134,.4f,未标注,③未见于条文面,
 具名,signal,lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp:1163,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:31 **判据的名词口径一律照最高设计的冻结语句，本节不复述、不改写**（「口径唯一、不在下层复述」）：① 星等属**表达层**——`k_phot
@@ -4317,7 +4317,7 @@
 具名,mjd,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:163,40587.0,未标注,③未见于条文面,
 具名,drizzle_pixfrac,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:895,0.0,未标注,③未见于条文面,
 具名,drizzle_scale_arcsec,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:896,0.0,未标注,③未见于条文面,
-具名,frame_snr,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:899,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:152 （`frame_snr`）与**帧内稀疏控制点层**（`sparse_snr_layer`，存控制点处的绝对 SNR）两个对象承载。
+具名,frame_snr,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:899,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:152 （`frame_snr`）与**帧内稀疏控制点层**（`sparse_snr_layer`，存控制点处的绝对 SNR）两个对象承载。
 具名,reference_flux,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:900,0.0,未标注,③未见于条文面,
 具名,A_cell,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:918,0.0,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:73 :1629；**绝对球面面积**，非无量纲覆盖分数；support = D_p/A_cell 无量纲，语义不变）。
 具名,exposure,lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:920,0.0,未标注,②条文有名无值,"docs/algorithms/CALIBRATION_ALGORITHMS.md:528 ""has been bias-subtracted so that it can be scaled by exposure time""，顺"
@@ -4376,7 +4376,7 @@
 具名,theta,lib/infrastructure/aio/src/hiss_reader.cpp:244,180.0,未标注,②条文有名无值,"docs/algorithms/STAR_DETECTION_ALGORITHMS.md:99 `theta=−alpha` 归一到 (−90°,90°]。残差坐标 `dx=x+0.5−cx`（像素中心=索引+0.5，"
 具名,phi,lib/infrastructure/aio/src/hiss_reader.cpp:245,180.0,未标注,③未见于条文面,
 具名,nside,lib/infrastructure/aio/src/hiss_reader.cpp:743,.3f,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:117 exp_c_realdata.json` C3 段：nside=512/1024 × 181 档纬度扫描，最坏 1.0441/1.0442，
-具名,object,lib/infrastructure/aio/src/hiss_reader.cpp:746,.16;.1f;.32,未标注,②条文有名无值,ASTROCS_DESIGN.md:673 - 一个进程一个资源调度器与线程预算源：可用 CPU = 亲和性 ∩ cgroup ∩ Job Object；worker 数只来自 pro
+具名,object,lib/infrastructure/aio/src/hiss_reader.cpp:746,.16;.1f;.32,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:673 - 一个进程一个资源调度器与线程预算源：可用 CPU = 亲和性 ∩ cgroup ∩ Job Object；worker 数只来自 pro
 具名,signal,lib/infrastructure/aio/src/hiss_reader.cpp:1513,0.0f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:31 **判据的名词口径一律照最高设计的冻结语句，本节不复述、不改写**（「口径唯一、不在下层复述」）：① 星等属**表达层**——`k_phot
 具名,signal,lib/infrastructure/aio/src/hiss_reader.cpp:1532,0.0f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:31 **判据的名词口径一律照最高设计的冻结语句，本节不复述、不改写**（「口径唯一、不在下层复述」）：① 星等属**表达层**——`k_phot
 具名,signal,lib/infrastructure/aio/src/hiss_reader.cpp:1545,0.0f,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:31 **判据的名词口径一律照最高设计的冻结语句，本节不复述、不改写**（「口径唯一、不在下层复述」）：① 星等属**表达层**——`k_phot
@@ -4400,7 +4400,7 @@
 具名,fwrite,lib/infrastructure/aio/src/hiss_stream_writer.cpp:324,.2f,未标注,③未见于条文面,
 具名,in,lib/infrastructure/aio/src/hiss_writer.cpp:195,.2f,未标注,③未见于条文面,
 具名,BUNIT,lib/infrastructure/aio/src/hiss_writer.cpp:358,31.1,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:275 `PHOTDEGRADE=1`，引擎在显式声明时降级写 BUNIT=ADU（photappl=0），
-具名,PHOTSCAL,lib/infrastructure/aio/src/hiss_writer.cpp:368,.6f,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,PHOTSCAL,lib/infrastructure/aio/src/hiss_writer.cpp:368,.6f,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,n_valid,lib/infrastructure/aio/src/hiss_writer.cpp:621,.2f,未标注,②条文有名无值,docs/algorithms/NOISE_ESTIMATION.md:42 if n_valid <4 or !spatial_field or 几何退化(λlo/λhi<1/16) → global_median 
 具名,parent,lib/infrastructure/aio/src/hiss_writer.cpp:629,.4f,未标注,②条文有名无值,docs/algorithms/DRIZZLE_GEOMETRY.md:137 - HEALPix 地址: 仅 NESTED；`parent = ipix >> 2·d`、
 具名,mode,lib/infrastructure/aio/src/hiss_writer.cpp:677,.2f,未标注,②条文有名无值,docs/algorithms/ACR_EQUIVALENCE.md:45 | ivar mode | CPU禁用 |
@@ -4410,7 +4410,7 @@
 具名,initial_dec,lib/infrastructure/aio/v6/include/astro/aio/v6_hips_manifest.h:39,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:975 | ra0/dec0（OBJCTRA/OBJCTDEC，header 必需；config 可覆盖 initial_ra/initial_de
 具名,initial_fov,lib/infrastructure/aio/v6/include/astro/aio/v6_hips_manifest.h:40,0.0,未标注,③未见于条文面,
 具名,target_pixel_area,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:42,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3250 机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.j
-具名,pixfrac,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:48,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:48,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,p05,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:59,0.0,未标注,③未见于条文面,
 具名,max_systematic_deviation,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:60,0.0,未标注,③未见于条文面,
 具名,sampling_coverage,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:61,0.0,未标注,③未见于条文面,
@@ -4419,10 +4419,10 @@
 具名,mean_abs_rho,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:74,0.0,未标注,③未见于条文面,
 具名,max_abs_rho,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:76,0.0,未标注,③未见于条文面,
 具名,alpha_m,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:80,0.0,未标注,③未见于条文面,
-具名,pixfrac,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:85,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:85,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,value,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:99,0.0,未标注,②条文有名无值,docs/algorithms/HIPS_WRITER.md:202 - (5b) properties（write_properties :285-293 裸 `key=value\n` 直写，fopen
 具名,flux_conservation_factor,lib/infrastructure/aio/v6/include/astro/aio/v6_provenance.h:127,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3285 ~~`weight_mode_version`~~（键不存在，§9.73 A44）、`correlation_summary`、`flux_
-具名,pixfrac,lib/infrastructure/aio/v6/src/v6_provenance.cpp:252,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/aio/v6/src/v6_provenance.cpp:252,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,value,lib/infrastructure/aio/v6/src/v6_provenance.cpp:276,0.0,未标注,②条文有名无值,docs/algorithms/HIPS_WRITER.md:202 - (5b) properties（write_properties :285-293 裸 `key=value\n` 直写，fopen
 具名,median_ns,lib/infrastructure/benchmark/backend_host/bench_harness.cpp:83,0.5,未标注,③未见于条文面,
 具名,p05_ns,lib/infrastructure/benchmark/backend_host/bench_harness.cpp:87,0.05,未标注,③未见于条文面,
@@ -4516,7 +4516,7 @@
 具名,eq,lib/infrastructure/cli/monitor.h:430,0.0,未标注,③未见于条文面,
 具名,dt,lib/infrastructure/cli/monitor.h:441,0.001,未标注,③未见于条文面,
 具名,avg_cpu_percent,lib/infrastructure/cli/monitor.h:447,100.0,未标注,③未见于条文面,
-具名,block,lib/infrastructure/cli/parser.cpp:416,9.71,未标注,②条文有名无值,"ASTROCS_DESIGN.md:347 E -->|是| BLOCK[""阻断运行，报出全部原因<br/>-y / -yes 不可越过""]"
+具名,block,lib/infrastructure/cli/parser.cpp:416,9.71,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:347 E -->|是| BLOCK[""阻断运行，报出全部原因<br/>-y / -yes 不可越过""]"
 具名,avg_equivalent_cores,lib/infrastructure/cli/resource_events.h:36,0.0,未标注,③未见于条文面,
 具名,peak_equivalent_cores,lib/infrastructure/cli/resource_events.h:37,0.0,未标注,③未见于条文面,
 具名,wall_seconds,lib/infrastructure/cli/resource_events.h:44,0.0,未标注,③未见于条文面,
@@ -4545,7 +4545,7 @@
 具名,elapsed_seconds,lib/infrastructure/cli/resource_recorder.h:49,0.0,未标注,③未见于条文面,
 具名,cpu_pct,lib/infrastructure/cli/resource_recorder.h:51,0.0,未标注,③未见于条文面,
 具名,system_cpu_pct,lib/infrastructure/cli/resource_recorder.h:53,0.0,未标注,③未见于条文面,
-具名,progress,lib/infrastructure/cli/resource_recorder.h:64,.1;0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
+具名,progress,lib/infrastructure/cli/resource_recorder.h:64,.1;0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
 具名,per_thread_cpu_max_pct,lib/infrastructure/cli/resource_recorder.h:68,0.0,未标注,③未见于条文面,
 具名,per_thread_cpu_sum_pct,lib/infrastructure/cli/resource_recorder.h:69,0.0,未标注,③未见于条文面,
 具名,io_wait_pct,lib/infrastructure/cli/resource_recorder.h:70,0.0,未标注,③未见于条文面,
@@ -4642,10 +4642,10 @@
 具名,fov_deg,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1226,60.0,未标注,③未见于条文面,
 具名,zoom,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1268,1.0,未标注,③未见于条文面,
 具名,fov_deg,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1269,60.0,未标注,③未见于条文面,
-具名,phase,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1280,2.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:489 - `phase1/2/3` 仅为内部指代：命令名与 CLI 子目录使用 normalize/mosaic/export；**会话层目录可用
+具名,phase,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1280,2.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:489 - `phase1/2/3` 仅为内部指代：命令名与 CLI 子目录使用 normalize/mosaic/export；**会话层目录可用
 具名,zoom,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1281,1.0;4.5,未标注,③未见于条文面,
 具名,fov_deg,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1282,60.0,未标注,③未见于条文面,
-具名,phase,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1285,2.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:489 - `phase1/2/3` 仅为内部指代：命令名与 CLI 子目录使用 normalize/mosaic/export；**会话层目录可用
+具名,phase,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1285,2.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:489 - `phase1/2/3` 仅为内部指代：命令名与 CLI 子目录使用 normalize/mosaic/export；**会话层目录可用
 具名,center_ra,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1286,5.0,未标注,②条文有名无值,docs/algorithms/GAIA_QUERY.md:66 RA_s  = center_ra + x
 具名,center_dec,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1287,3.0,未标注,②条文有名无值,"docs/algorithms/GAIA_QUERY.md:76 r < 1e-15  → RA_s = center_ra, Dec_s = center_dec   # 投影中心（极点）"
 具名,zoom,lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp:1312,.1f;.2f,未标注,③未见于条文面,
@@ -4844,7 +4844,7 @@
 具名,mesh_center_ra_,lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.h:190,-999.0,未标注,③未见于条文面,
 具名,mesh_center_dec_,lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.h:191,-999.0,未标注,③未见于条文面,
 具名,mesh_fov_,lib/infrastructure/hips_browser/healpix_browser_qt/core/gl_renderer.h:192,-999.0,未标注,③未见于条文面,
-具名,support,lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_browser_backend.cpp:214,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,support,lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_browser_backend.cpp:214,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,p1,lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_sky_view.cpp:55,0.01,未标注,③未见于条文面,
 具名,p99,lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_sky_view.cpp:56,0.99,未标注,③未见于条文面,
 具名,cut,lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_sky_view.cpp:59,12.0f,未标注,③未见于条文面,
@@ -4968,15 +4968,15 @@
 具名,min,lib/infrastructure/observability/probes/src/probe.cpp:150,0.0,未标注,③未见于条文面,
 具名,max,lib/infrastructure/observability/probes/src/probe.cpp:151,0.0,未标注,③未见于条文面,
 具名,uncertainty_factor,lib/infrastructure/pipeline/orchestrator/cpp/include/admission_controller.h:76,1.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:129 API-MemoryBudgetManager,MemoryBudgetManager,lib/infrastructure/pipelin"
-具名,progress,lib/infrastructure/pipeline/orchestrator/cpp/include/cli_command.h:46,-1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
+具名,progress,lib/infrastructure/pipeline/orchestrator/cpp/include/cli_command.h:46,-1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:496 - 机器输出：`--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（唯一 schema，含 pr
 具名,duration_ms,lib/infrastructure/pipeline/orchestrator/cpp/include/cli_command.h:51,-1.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:154 API-output_jsonl_event_ex,output_jsonl_event_ex,lib/infrastructure/pip"
-具名,schema_version,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:22,1.1,未标注,②条文有名无值,"ASTROCS_DESIGN.md:286 ""schema_version"": ""1"","
+具名,schema_version,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:22,1.1,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:286 ""schema_version"": ""1"","
 具名,light_exposure_s,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:36,0.0,未标注,③未见于条文面,
 具名,dark_exposure_s,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:37,0.0,未标注,③未见于条文面,
 具名,initial_ra_deg,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:44,-999.0,未标注,③未见于条文面,
 具名,initial_dec_deg,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:45,-999.0,未标注,③未见于条文面,
 具名,sampling_scale,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:62,1.0,未标注,③未见于条文面,
-具名,pixfrac,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:67,0.8,未标注,①条文含值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/infrastructure/pipeline/orchestrator/cpp/include/json_config.h:67,0.8,未标注,①条文含值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,pixel_scale_arcsec,lib/infrastructure/pipeline/orchestrator/cpp/include/resource_monitor.h:154,1.0,未标注,③未见于条文面,
 具名,duration_sec,lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp:420,0.0,未标注,③未见于条文面,
 具名,pixel_scale_arcsec,lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:164,0.5;3600.0,未标注,③未见于条文面,
@@ -5233,7 +5233,7 @@
 具名,read_noise_e,lib/infrastructure/scheduler/src/module_adapters.cpp:6795,0.0,未标注,②条文有名无值,docs/algorithms/NOISE_ESTIMATION.md:198 | DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/us
 具名,zero_point_mag,lib/infrastructure/scheduler/src/module_adapters.cpp:6796,0.0,未标注,②条文有名无值,"docs/algorithms/PHOTOMETRIC_FIT.md:204 `zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 由上式**逐位复现** ——"
 具名,aperture_radius_px,lib/infrastructure/scheduler/src/module_adapters.cpp:6797,0.0,未标注,③未见于条文面,
-具名,n_sky,lib/infrastructure/scheduler/src/module_adapters.cpp:6798,0.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:135 I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark"
+具名,n_sky,lib/infrastructure/scheduler/src/module_adapters.cpp:6798,0.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:135 I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark"
 具名,sigma_logflux_dex,lib/infrastructure/scheduler/src/module_adapters.cpp:6800,0.0,未标注,②条文有名无值,"docs/contracts/API_CONTRACTS.csv:372 API-snr_phot_cal_quality,snr_phot_cal_quality,lib/algorithms/noise_snr"
 具名,configured_ref_flux,lib/infrastructure/scheduler/src/module_adapters.cpp:6806,0.0,未标注,③未见于条文面,
 具名,flux_adu,lib/infrastructure/scheduler/src/module_adapters.cpp:6855,0.0,未标注,③未见于条文面,
@@ -5250,9 +5250,9 @@
 具名,sigma_sky_adu,lib/infrastructure/scheduler/src/module_adapters.cpp:7151,0.0,未标注,②条文有名无值,docs/algorithms/STAR_DETECTION_ALGORITHMS.md:430 - **第三 σ 估计器的定义与消费面（量纲 ADU）**：`estimate_background` 的返回值 = 2 轮 `median
 具名,fref,lib/infrastructure/scheduler/src/module_adapters.cpp:7174,-0.4;10.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:564 ### 13.4 p1_snr.json 帧级科学 SNR 交付字段（DATA-P1-SNR/3，P14 样本真实性 + FREF-BASE
 具名,reference_flux_adu,lib/infrastructure/scheduler/src/module_adapters.cpp:7180,0.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:593 | reference_baseline.reference_flux_common_unit | string | — | 公共锚单位（现
-具名,pixfrac,lib/infrastructure/scheduler/src/module_adapters.cpp:7506,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
-具名,photscal,lib/infrastructure/scheduler/src/module_adapters.cpp:7537,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
-具名,photscal,lib/infrastructure/scheduler/src/module_adapters.cpp:7558,1.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,pixfrac,lib/infrastructure/scheduler/src/module_adapters.cpp:7506,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,photscal,lib/infrastructure/scheduler/src/module_adapters.cpp:7537,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
+具名,photscal,lib/infrastructure/scheduler/src/module_adapters.cpp:7558,1.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:276 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(
 具名,fmt,lib/infrastructure/scheduler/src/module_adapters.cpp:7800,.17,未标注,③未见于条文面,
 具名,nm_data_scale,lib/infrastructure/scheduler/src/module_adapters.cpp:7979,1.0,未标注,②条文有名无值,"docs/science/NOISE_MODEL.md:290 - **产品 dtype 成对不变量**：产品面 `(variance, ivar)` 必须落在两态之一——**可用** `variance"
 具名,hull_nonpositive_frac_eff,lib/infrastructure/scheduler/src/module_adapters.cpp:8049,1.0,未标注,③未见于条文面,
@@ -5266,10 +5266,10 @@
 具名,value,lib/infrastructure/scheduler/src/module_adapters.cpp:9527,0.0,未标注,②条文有名无值,docs/algorithms/HIPS_WRITER.md:202 - (5b) properties（write_properties :285-293 裸 `key=value\n` 直写，fopen
 具名,uncertainty,lib/infrastructure/scheduler/src/module_adapters.cpp:9528,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_SAMPLER.md:59 **单位约束（正向）**：value / uncertainty / σ_bg / y_ik = 面亮度 **ADU·sr⁻¹**；
 具名,snr,lib/infrastructure/scheduler/src/module_adapters.cpp:9529,0.0,未标注,③未见于条文面,
-具名,ivar,lib/infrastructure/scheduler/src/module_adapters.cpp:9530,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,ivar,lib/infrastructure/scheduler/src/module_adapters.cpp:9530,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,control_variance,lib/infrastructure/scheduler/src/module_adapters.cpp:9531,0.0,未标注,②条文有名无值,docs/algorithms/PHASE2_SAMPLER.md:10 > 辅助 SCI: SCI-UPM-WEIGHT-001（control_variance 公式权威）、
 具名,control_ivar,lib/infrastructure/scheduler/src/module_adapters.cpp:9532,0.0,未标注,②条文有名无值,ACCEPTANCE_SPEC.md:75 | 采样权重 | 天光采样点 control_ivar 权重下，真实信号加权 RMS 最小（与候选权重对照） |
-具名,support,lib/infrastructure/scheduler/src/module_adapters.cpp:9534,0.0,未标注,②条文有名无值,ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
+具名,support,lib/infrastructure/scheduler/src/module_adapters.cpp:9534,0.0,未标注,②条文有名无值,docs/ASTROCS_DESIGN.md:223 - signal / variance / ivar / source_snr / depth_m5 / frame_snr / point
 具名,ra_deg,lib/infrastructure/scheduler/src/module_adapters.cpp:9546,0.0,未标注,②条文有名无值,"docs/algorithms/HIPS_WRITER.md:244 （:888）；点 (ra_deg,dec_deg) 经共享 HEALPix 权威"
 具名,dec_deg,lib/infrastructure/scheduler/src/module_adapters.cpp:9547,0.0,未标注,②条文有名无值,"docs/algorithms/HIPS_WRITER.md:244 （:888）；点 (ra_deg,dec_deg) 经共享 HEALPix 权威"
 具名,huber_delta,lib/infrastructure/scheduler/src/module_adapters.cpp:9555,1.345,未标注,①条文含值,docs/algorithms/PHASE2_SESSION.md:133 huber_delta=1.345（**无量纲**；高斯参考分布下渐近效率 95% 的 Huber 阈值，
@@ -5327,7 +5327,7 @@
 具名,i,lib/phase3_session/p3_session.cpp:407,0.5f,未标注,③未见于条文面,
 具名,target_pixel_area,lib/phase3_session/p3_v6_export.cpp:267,1.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3250 机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.j
 具名,flux_conservation_factor,lib/phase3_session/p3_v6_export.cpp:290,1.0,未标注,②条文有名无值,docs/contracts/DATA_SEMANTICS.md:3285 ~~`weight_mode_version`~~（键不存在，§9.73 A44）、`correlation_summary`、`flux_
-具名,pixfrac,lib/phase3_session/p3_v6_export.cpp:294,1.0,未标注,②条文有名无值,"ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
+具名,pixfrac,lib/phase3_session/p3_v6_export.cpp:294,1.0,未标注,②条文有名无值,"docs/ASTROCS_DESIGN.md:295 ""drizzle"": { ""nested"": 1, ""pixfrac"": 0.8, ""precision_mode"": 0 },  // 默"
 具名,photometric_scale_present,lib/phase3_session/p3_v6_export.cpp:647,0.0,未标注,③未见于条文面,
 具名,fov_x_deg,lib/phase3_session/p3_v6_export.h:108,0.0,未标注,③未见于条文面,
 具名,fov_y_deg,lib/phase3_session/p3_v6_export.h:109,0.0,未标注,③未见于条文面,

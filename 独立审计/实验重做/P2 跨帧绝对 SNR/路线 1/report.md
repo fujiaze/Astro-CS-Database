@@ -3,7 +3,7 @@
 **身份**: 独立科学研究路线 1（三路并行，互不通信）  
 **日期**: 2026-09-26  
 **任务来源**: `独立审计/证据/审查 -05-② -科学性 -1.md`、`审查 -05-② -科学性 -3.md`  
-**上位权威链**: ASTROCS_DESIGN.md → docs/science/NOISE_MODEL.md → docs/algorithms/
+**上位权威链**: docs/ASTROCS_DESIGN.md → docs/science/NOISE_MODEL.md → docs/algorithms/
 
 ---
 

@@ -91,7 +91,7 @@ LEDGER = "eng/ci/ledgers/prod_wiring.json"
 
 # ── 生产源域 ────────────────────────────────────────────────────────────────
 PROD_EXTS = (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".inc", ".cu")
-# acr: ASTROCS_DESIGN §2「ACR 生产不可达」+ eng/tools/quality/check_prod_reachability.py
+# acr: docs/ASTROCS_DESIGN §2「ACR 生产不可达」+ eng/tools/quality/check_prod_reachability.py
 # ACR_SYMBOLS 机器断言 —— 设计上不在生产调用图，故既不作声明面也不作可达面。
 EXCLUDE_PARTS = {"third_party", "tests", "test", "tools", "archive", "build",
                  "acr", "examples", "benchmark"}

@@ -3,13 +3,13 @@
 """CHK-DOC-HYGIENE：正式文档过程痕迹门 + 已知限制台账 ID 可解析门。
 
 权威依据：
-  ASTROCS_DESIGN.md §0.3（文档写法：只写现行设计要怎样；已撤销的设计与已退役的实现不出现在正式文档里）；
+  docs/ASTROCS_DESIGN.md §0.3（文档写法：只写现行设计要怎样；已撤销的设计与已退役的实现不出现在正式文档里）；
   ENGINEERING_SPEC.md §8 规则 2（正式文档不写历史叙事、不堆任务编号与日期）、规则 4（悬空即缺陷）；
   AGENTS.md §8（提交信息不写流水账与任务编号长串）。
 
 判据（exit 0 = PASS）：
   D1 正式文档过程痕迹
-     正式文档 = ASTROCS_DESIGN.md / AGENTS.md / ENGINEERING_SPEC.md / ACCEPTANCE_SPEC.md / docs/**；
+     正式文档 = docs/ASTROCS_DESIGN.md / AGENTS.md / ENGINEERING_SPEC.md / ACCEPTANCE_SPEC.md / docs/**；
      豁免面 = docs/research/**（研究包证据指针）、docs/archive/**（归档件）。
      D1a 负责人裁决**逐字引述**（正则 负责人…裁决…：「…」）；
      D1b 「订正/修订/更正/修正 + 日期」流水（含日期在前式）。豁免：
@@ -64,7 +64,7 @@ import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-FORMAL_ROOT_DOCS = ("ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md")
+FORMAL_ROOT_DOCS = ("docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md")
 FORMAL_DOCS_DIR = "docs"
 EXEMPT_DIRS = ("docs/research/", "docs/archive/")
 LIMITS_DOC = "docs/KNOWN_LIMITATIONS.md"
@@ -330,11 +330,11 @@ def run(root):
 
 
 # ---- D3/D4：写作规则（前向陈述；禁词表 + 禁模式表）------------------------------
-# 权威依据：ASTROCS_DESIGN.md §0.3（只写现行设计要怎样）、ENGINEERING_SPEC.md §8 规则 2
+# 权威依据：docs/ASTROCS_DESIGN.md §0.3（只写现行设计要怎样）、ENGINEERING_SPEC.md §8 规则 2
 # （正式文档写"要怎样"）、AGENTS.md §1.1（先定规范再动手）。
 # 判据逐条对应 run/DOC-SYSTEM-PLAN-01/PLAN.md §2.2.2 的 D3a–D3g / D4a–D4e；
 # 新增 D3h（禁令类表述：不得/禁止/严禁/不允许）承载"只写正向约束"这条写作规则。
-ENTRY_DOCS = ("README.md", "ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md",
+ENTRY_DOCS = ("README.md", "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md",
               "CONTROL_PACK_SPEC.md", "DEPENDENCIES.md")
 EXEMPT_LEDGER = "eng/tools/doccheck/doc_hygiene_exempt.json"
 RATCHET_BASELINE = "artifacts/evidence/doc-hygiene/baseline.json"
@@ -912,7 +912,7 @@ def self_test():
             def _setup(root):
                 ent = {"entries": [{"path": "docs/w14.md", "rule": rule,
                                     "fingerprint": fingerprint(line),
-                                    "reason": "引述冻结口径", "authority": "ASTROCS_DESIGN.md §0.3"}]}
+                                    "reason": "引述冻结口径", "authority": "docs/ASTROCS_DESIGN.md §0.3"}]}
                 with open(os.path.join(root, EXEMPT_LEDGER), "w", encoding="utf-8") as fh:
                     json.dump(ent, fh, ensure_ascii=False)
             return _setup

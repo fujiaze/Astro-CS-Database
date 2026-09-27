@@ -5,7 +5,7 @@ Checks: 全生产运行；豁免面为空（正本 = eng/ci/exemptions.json）�
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
 
 TRUTHFUL-CONCLUSION-01（一页纸 S2-B）订正两处「说谎的结论」：
-  1. 原 status 有一个**造词**取值（ASTROCS_DESIGN.md §12.5 唯一状态阶梯里不存在该词），
+  1. 原 status 有一个**造词**取值（docs/ASTROCS_DESIGN.md §12.5 唯一状态阶梯里不存在该词），
      其语义是「存在挂账 P1 债务也算通过」。现改为只输出
      PASS/FAIL 判定词（与文件头退出码合同同源），债务另立 debt 字段如实登记。
   2. 原豁免面读一个**全仓不存在的文件名**（悬空引用），于是「豁免必须为空」

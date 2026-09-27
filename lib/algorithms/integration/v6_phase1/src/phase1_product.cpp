@@ -11,7 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写一律经
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写一律经
 // aio 唯一实现 (aio_file::read_all / aio_atomic::write_file_atomic), 本 TU 不
 // 自持 fstream 通道。
 #include "aio_atomic_file.h"
@@ -58,7 +58,7 @@ json forbidden_variance_sources_json() {
  *        ② 产品形状校验 open_phase1_product 逐条登记 FZ-MODE-RETIRED 违规并置
  *           view.retired_weight_object_declared（下游可判，不静默）。
  * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
- *        标定。」⇒ ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
+ *        标定。」⇒ docs/ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
  *        任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
  *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
@@ -79,7 +79,7 @@ const char* kRetiredCanonicalWeightObject = "psfsw_robust_weight";
 
 const char* kRetiredWeightObjectRejectReason =
     "FZ-MODE-RETIRED: psfsw_robust_weight is not a current object "
-    "(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+    "(docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
     "allowed weight objects: point_information (W_info=1/Var(F_hat)), "
     "surface_gls (A^T C^-1 A); "
     "migration: Phase2 derives frame weights from frame SNR (1/sigma_F^2) on site; "
@@ -1276,7 +1276,7 @@ Phase1GroupConsumption consume_phase1_group_for_psfsw(
   }
   /* FZ-MODE-RETIRED：本消费面**整体退役**——它的唯一产物就是退役对象
    * psfsw_robust_weight 的组内归一权重 w_psfsw（由 PSF 拟合质量代理 S/Conc/N/B
-   * 复合而来）。ASTROCS_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
+   * 复合而来）。docs/ASTROCS_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
    * 因此**不论产品是否仍携带退役声明**（PSFSW-RETIRE-03 后新产品的产品 schema 已
    * 不再要求携带）一律 fail-closed：不静默接受、不参与组内归一、不产出 w_psfsw。
    * 旧产品仍携带声明时，其退役登记在 open_phase1_product (6a)

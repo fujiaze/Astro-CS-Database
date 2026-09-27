@@ -3,7 +3,7 @@
 // 任务 PSFSW-RETIRE-01 共址负例回归门（跨模块的退役对象拒绝面）。
 //
 // 负责人裁决（原话）：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。
-// 而是绝对标定。」⇒ psfsw_robust_weight 不是现行对象（ASTROCS_DESIGN.md §3.1 订正后；
+// 而是绝对标定。」⇒ psfsw_robust_weight 不是现行对象（docs/ASTROCS_DESIGN.md §3.1 订正后；
 // docs/design/UNIFIED_MODEL.md:58：旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 //
 // 为什么本文件落在 lib/algorithms/coverage/tests/：

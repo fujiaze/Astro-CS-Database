@@ -14,7 +14,7 @@
 
 ### 缺去向（38）
 - ACCEPTANCE_SPEC.md
-- ASTROCS_DESIGN.md
+- docs/ASTROCS_DESIGN.md
 - FATDUCK_ACCESS.md
 - docs/DEVELOPER_GUIDE.md
 - docs/TROUBLESHOOTING.md
@@ -127,7 +127,7 @@
 
 ### 下沉（10）
 - ACCEPTANCE_SPEC.md
-- ASTROCS_DESIGN.md
+- docs/ASTROCS_DESIGN.md
 - docs/architecture/PHASE3_MODULE_ARCH.md
 - docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
 - docs/modules/registry/astrocs.phase2.sample.md

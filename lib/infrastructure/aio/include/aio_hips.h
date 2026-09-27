@@ -59,7 +59,7 @@ enum AioHipsDataType {
 };
 
 // ============================================================================
-// 跨边界结构 ABI 自描述 (ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
+// 跨边界结构 ABI 自描述 (docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
 // "版本化 C ABI, 结构体带 struct_size/abi_version")。
 //
 // 四个跨边界结构首部两个 uint32_t: struct_size @0 (= 调用方编译期 sizeof),
@@ -222,7 +222,7 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 //   ASTROCS_REJECT_PROFILE       版本化 profile 串 (如 wbpp_2_9_1)
 //
 // **已删除的键: 旧「权重模式」provenance 键**。
-//   依据: ASTROCS_DESIGN §2.1 总纲 + §3.1 数据对象（HiPS 含帧级 SNR 与可选稀疏
+//   依据: docs/ASTROCS_DESIGN §2.1 总纲 + §3.1 数据对象（HiPS 含帧级 SNR 与可选稀疏
 //   控制点层：绝对 SNR 控制点、同一参考通量 F_ref）+ §4.4 输出合同 + §5.5
 //   「先排异、后加权」+ docs/science/CONTROL_WEIGHT_SNR.md §8c「定权路径唯一：
 //   w(x,y) = SNR(x,y)²/F_ref²」—— 阶段二按该位置像素对应集合现场取逆方差定权，
@@ -263,7 +263,7 @@ AIO_HIPS_EXPORT int aio_hips_set_provenance(
 // 供调用方登记而不必重解析。
 // ═══════════════════════════════════════════════════════════════════════════
 typedef struct {
-    // 跨边界 ABI 自描述 (ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
+    // 跨边界 ABI 自描述 (docs/ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
     // "版本化 C ABI, 结构体带 struct_size/abi_version")。
     // **输出结构同样必须版本化**: 本结构由调用方分配、库写入 ⇒ 库必须先校验
     // 调用方的 struct_size/abi_version, 不匹配即 fail-closed(-9) 且**不写**;
@@ -304,7 +304,7 @@ AIO_HIPS_EXPORT int aio_hips_set_drizzle_provenance(
 // RELEASE-02 SD-15 帧级 SNR 键通道（键名冻结: ASTROCS_FRAME_SNR /
 // ASTROCS_REFERENCE_FLUX）:
 //   ASTROCS_FRAME_SNR      = 帧级**未加权通量型**信噪比 SNR_k = F_ref/σ_F
-//                            （ASTROCS_DESIGN §3.4 / 07_noise_snr.md §4.1;
+//                            （docs/ASTROCS_DESIGN §3.4 / 07_noise_snr.md §4.1;
 //                             信号经独立局部背景扣除、不被加性天光背景虚高,
 //                             天光散粒噪声计入 σ_n）—— 是**信噪比不是权重**。
 //   ASTROCS_REFERENCE_FLUX = 组内公共参考通量 F_ref（Phase2 逆方差换算

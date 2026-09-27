@@ -12,7 +12,7 @@ A2-010,noise.clip_sigma,docs/science/NOISE_MODEL.md:63（稳健裁剪: cosmic/ho
 A2-011,noise.mask_r_min_px,"docs/science/NOISE_MODEL.md:96（r_min = max(1.5 px, 0.75·FWHM_i)；符号表 :38 同）；注册件所引 :85 是空行",1,docs/science/NOISE_MODEL.md:96
 A2-012,noise.patch_grid,真锚 docs/science/NOISE_MODEL.md:61（§5『patch grid 8x8』）与 :48（§3a 像素域 8x8）；**注册件 source 与 source_ref 都引 :54，该行讲的是平面场启用条件（en,1,docs/science/NOISE_MODEL.md:61
 A2-013,noise.spatial_field_enabled,docs/science/NOISE_MODEL.md:54（enable_spatial_field==1 && n_control_points>=4 且几何张成二维；注册件所引 :47 是空行）,1,docs/science/NOISE_MODEL.md:54
-A2-014,paths.gaia_root,defaults.json:748 记负责人指令原文（无文档条款号，source_ref=null）；ASTROCS_DESIGN.md 与 AGENTS.md §7 记 gaia/ 为根级只读数据集目录（跟踪数 0，gitignore）⇒,1,defaults.json:748
+A2-014,paths.gaia_root,defaults.json:748 记负责人指令原文（无文档条款号，source_ref=null）；docs/ASTROCS_DESIGN.md 与 AGENTS.md §7 记 gaia/ 为根级只读数据集目录（跟踪数 0，gitignore）⇒,1,defaults.json:748
 A2-015,photometry.mag_tolerance,docs/science/PHOTOMETRY.md:34（真陈述行，注册件引 :30 偏 +4）；pc_api.cpp:145/:435 字面量 3.0；defaults.json 标 dead_config_key,2,docs/science/PHOTOMETRY.md:34; pc_api.cpp:145
 A2-016,photometry.min_inlier_stars,docs/science/PHOTOMETRY.md:191（注册件引 :44 偏 +147）；star_matcher.cpp:616 字面量,2,docs/science/PHOTOMETRY.md:191; star_matcher.cpp:616
 A2-017,photometry.min_reference_stars,docs/science/PHOTOMETRY.md:191（真行，注册件引 :44 偏 +147）；star_matcher.cpp:518 字面量,2,docs/science/PHOTOMETRY.md:191; star_matcher.cpp:518
@@ -24,7 +24,7 @@ A2-022,tolerance / tolerance_relative,module_adapters.cpp:9571/:9573（设 1）�
 A2-023,w_jp 权重分母,drizzle_engine.cpp:1617；docs/algorithms/DRIZZLE_GEOMETRY.md:48-50/:332（正确侧）vs :337-346、docs/contracts/DATA_SEMANTICS.md:,4,drizzle_engine.cpp:1617; docs/algorithms/DRIZZLE_GEOMETRY.md:48; docs/contracts/DATA_SEMANTICS.md:47
 A2-024,0.85 抄进用户可见诊断串,resource_gate.h:492；契约 eng/contracts/resource_gate_v1.json,1,resource_gate.h:492
 A2-025,1.253（应为 √(π/2)）,snr_science.cpp:279（代码）、:272（自证注释）；p1snr_linux_test.cpp:244（1e-15 断言）；docs/science/NOISE_MODEL.md:323,3,snr_science.cpp:279; p1snr_linux_test.cpp:244; docs/science/NOISE_MODEL.md:323
-A2-026,Phase2 逐像素科学权重（臂 A）,ASTROCS_DESIGN.md:156-158/:168-174；docs/science/NOISE_MODEL.md §5b/§5c/§10；module_adapters.cpp:11936/:8155/:12004,2,ASTROCS_DESIGN.md:156; module_adapters.cpp:11936
+A2-026,Phase2 逐像素科学权重（臂 A）,docs/ASTROCS_DESIGN.md:156-158/:168-174；docs/science/NOISE_MODEL.md §5b/§5c/§10；module_adapters.cpp:11936/:8155/:12004,2,docs/ASTROCS_DESIGN.md:156; module_adapters.cpp:11936
 A2-027,USER_HZ / _SC_CLK_TCK,monitor.h:257/:258（硬编码除 100.0）；反证在同文件 :204-205（iowait）与 :277-278（read_thread_cpu）都已用 sysconf(_SC_CLK_TCK) 并只在返回 ≤0 时兜底 1,1,monitor.h:257
 A2-028,eq,:428-437 与 commands.cpp:719 注释（作者以 0.5 s 标称周期自证「normalized 口径成立」）；对照 :470 的 last_t_ 成员（记录上次采样时刻，全文件零使用）,1,commands.cpp:719
 A2-029,hips_pixel_scale（浏览器真值件）,gen_geometry_truth.py:177（写死）、:168/:35（阶数声明）；生产写出路径 aio_hips_writer.cpp:1890 已按式算（不受影响）；本机复算 numerics.txt,2,gen_geometry_truth.py:177; aio_hips_writer.cpp:1890
@@ -80,7 +80,7 @@ A2-078,sigma_floor,唯一数值源：docs/contracts/DATA_SEMANTICS.md:2086（冻
 A2-079,sigma_residual 的「不可估计」编码,star_matcher.cpp:614 注释自证；docs/science/PHOTOMETRY.md:191/§3/§8 无具名不可估计值【缺输入：判读层与第②层均未给保守取值方向】,2,star_matcher.cpp:614; docs/science/PHOTOMETRY.md:191
 A2-080,sigma_sky_source 的择一（生产写死）,module_adapters.cpp:7159 赋值、:7151 noise_sigma 入参、:7130-7136 upper_bound_no_gain（此点证真）；docs/plugins/algorithms_phase1/07_,3,module_adapters.cpp:7159; docs/plugins/algorithms_phase1/07_noise_snr.md:118; docs/science/NOISE_MODEL.md:223
 A2-081,snr.gain_e_per_adu 的默认,phase_config_normalize.schema.json:229；module_adapters.cpp:6794；docs/science/NOISE_MODEL.md:239-240【缺输入：判读层与第②层均未给保守取值方向,3,phase_config_normalize.schema.json:229; module_adapters.cpp:6794; docs/science/NOISE_MODEL.md:239
-A2-082,sparse_snr.density,docs/plugins/algorithms_phase1/07_noise_snr.md:112-113 默认列为 ——（合规的无值登记）；ASTROCS_DESIGN.md §3.3 点名该字段应存在；pending_task=SCI,1,docs/plugins/algorithms_phase1/07_noise_snr.md:112
+A2-082,sparse_snr.density,docs/plugins/algorithms_phase1/07_noise_snr.md:112-113 默认列为 ——（合规的无值登记）；docs/ASTROCS_DESIGN.md §3.3 点名该字段应存在；pending_task=SCI,1,docs/plugins/algorithms_phase1/07_noise_snr.md:112
 A2-083,sys_io_wait_seconds,采集 :189-207；消费链 :367-369 → resource_recorder.h:70 → commands.cpp:1072 事件 io_wait_pct【缺输入：判读层与第②层均未给保守取值方向】,2,resource_recorder.h:70; commands.cpp:1072
 A2-084,zero_anchor_weight / rank_rtol / smoothing_lambda,sky_plane.cpp:463（rank_rtol=τ）；docs/science/PHASE2_UPM.md §5/§7；BD1 同簇合并覆盖 syn008_seam_main.cpp:103-105 的 7 个数值位点【缺输入：判读,2,sky_plane.cpp:463; syn008_seam_main.cpp:103
 A2-085,§3.5 与 §6.x 权威指针,三个 phase_config_*.schema.json 的 authority 数组、defaults.json:7/:22、filters.json:7、runtime_resources.json:5、resource_gate_v,7,defaults.json:7; filters.json:7; runtime_resources.json:5
@@ -95,7 +95,7 @@ A2-093,键名/符号名不对齐族,AUD-402-判读-A1 §1 第 3 条；eng/ci/che
 A2-094,(无名)·lib/infrastructure/acr/schemas/compute_config.example.yaml:20,lib/infrastructure/acr/utilization/memory_budget.hpp:23（ram_ratio 0.95）＋ :3（公式）＋ docs/KNOWN_LIMITATIONS.md:62（登记它与生产口径有意,1,docs/KNOWN_LIMITATIONS.md:62
 A2-095,"SKY_E+DARK+RN²（σ_sky,e² 声明常数）",实验/absolute-snr/code/b3_domain_map.py:41；复核-AUD202 V1(c) 反解,1,实验/absolute-snr/code/b3_domain_map.py:41
 A2-096,active_window_seconds,—（不进正式链路的观测字段初值：值由调用方在采样后覆盖，本身不承载判据或科学量）；—（初值本身结构性）；被测两量皆有唯一源：适用域 10 s = resource_gate_v1.json `applicability.min_active,1,resource_gate.h:147
-A2-097,avg_cpu_percent,ASTROCS_DESIGN.md §3.3 的「五件事」中「单位/归一化」由 :447 行内注释给出 ✓；但**与 GateConfig 约定冲突**：resource_gate.h:106-108 规定 GateConfig 的 CPU,3,resource_gate.h:106; monitor.h:447; resource_gate.h:5
+A2-097,avg_cpu_percent,docs/ASTROCS_DESIGN.md §3.3 的「五件事」中「单位/归一化」由 :447 行内注释给出 ✓；但**与 GateConfig 约定冲突**：resource_gate.h:106-108 规定 GateConfig 的 CPU,3,resource_gate.h:106; monitor.h:447; resource_gate.h:5
 A2-098,d_sys_io_wait_seconds,monitor.h:83/:189-207 采集；:367-369 钳位；下游 resource_recorder.h:70 io_wait_pct → commands.cpp:1072 事件字段 → resource_gate.h:32,4,monitor.h:83; resource_recorder.h:70; commands.cpp:1072
 A2-099,drizzle_pf_sb_gate 的 parity 夹具,tests/drizzle_pf_sb_gate.cpp:104-112/:209-214/:245-251/:253-258；界值推导 1/(510·64/255)=6.1e-3 vs 门 1e-5,1,tests/drizzle_pf_sb_gate.cpp:104
 A2-100,iowait_percent,—（不进正式链路的观测字段初值：值由调用方在采样后覆盖，本身不承载判据或科学量）；被测阈值 50.0 的唯一源是代码字面量 lib/infrastructure/cli/resource_gate.h:207（`io_wait_high_p,1,lib/infrastructure/cli/resource_gate.h:207
@@ -162,10 +162,10 @@ A2-160,(无名)·lib/infrastructure/cli/commands.cpp:925,推导在 lib/infrastru
 A2-161,(无名)·lib/infrastructure/cli/commands.cpp:974,阈值来源 = resource_gate_contract::kPerSampleUtilizationMinPercent（经 resource_gate.h:126-127 具名引入，注释记 单样本 >=0.85）；:124 并记『旧 ,1,resource_gate.h:126
 A2-162,(无名)·lib/infrastructure/cli/commands.cpp:978,阈值来源 = resource_gate_contract::kQueueLowUtilizationPercent（resource_gate.h:132-133，注释记 0.60）,1,resource_gate.h:132
 A2-163,(无名)·lib/infrastructure/cli/memory_report.h:599,哨兵约定（-1 未采样、合法值 0–1）由 :6-8/:78/:82 定义；memory_report.h:6-8/:78/:82；test_p2007_joint_gate.py:266 断言 -1.0 语义,2,memory_report.h:6; test_p2007_joint_gate.py:266
-A2-164,(无名)·lib/infrastructure/cli/module.yaml:27,ASTROCS_DESIGN.md:71 ### 1.2 三个命令，三个独立产品（与括号内自述「三命令平级、禁止隐式串接」相符）,1,ASTROCS_DESIGN.md:71
+A2-164,(无名)·lib/infrastructure/cli/module.yaml:27,docs/ASTROCS_DESIGN.md:71 ### 1.2 三个命令，三个独立产品（与括号内自述「三命令平级、禁止隐式串接」相符）,1,docs/ASTROCS_DESIGN.md:71
 A2-165,(无名)·lib/infrastructure/cli/monitor.h:351,monitor.h:347-351 算法注释；:88「未观测哨兵」纪律,1,monitor.h:347
 A2-166,(无名)·lib/infrastructure/cli/monitor.h:354,:347-354 算法；下游 commands.cpp:1069 per_thread_cpu_max_pct,1,commands.cpp:1069
-A2-167,(无名)·lib/infrastructure/cli/parser.cpp:428,ASTROCS_DESIGN.md §3.3（:237）实为「科学量与星表」，其正文四条分别是五件事口径、精度归属、HEALPix/帧哈希、星表只本地——**不含块形态**；块形态权威 = §4.3 输入合同（JSON 数据块），且这一归属,1,docs/contracts/CONFIG_CONTRACT.md:14
+A2-167,(无名)·lib/infrastructure/cli/parser.cpp:428,docs/ASTROCS_DESIGN.md §3.3（:237）实为「科学量与星表」，其正文四条分别是五件事口径、精度归属、HEALPix/帧哈希、星表只本地——**不含块形态**；块形态权威 = §4.3 输入合同（JSON 数据块），且这一归属,1,docs/contracts/CONFIG_CONTRACT.md:14
 A2-168,d_per_thread_cpu_max_seconds,monitor.h:86-91 注释＋:349-354 区间增量算法；消费点 commands.cpp:1069 per_thread_cpu_max_pct,2,monitor.h:86; commands.cpp:1069
 A2-169,fwhm_px,单位与换算口径：lib/algorithms/noise_snr/cpp/include/snr_estimator.h:325（fwhm_px = 检测块高斯 FWHM = 2.3548200450309493·sigma）＋ docs/,2,lib/algorithms/noise_snr/cpp/include/snr_estimator.h:325; docs/science/STAR_DETECTION.md:104
 A2-170,gain,单位锚 docs/science/NOISE_MODEL.md:32/§44；数值 2.0 无出处（也不需要）,1,docs/science/NOISE_MODEL.md:32

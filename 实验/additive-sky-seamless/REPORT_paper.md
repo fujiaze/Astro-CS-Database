@@ -4,7 +4,7 @@
 
 | 项 | 值 |
 |---|---|
-| 权威依据 | `ASTROCS_DESIGN.md` §2.3/§12.3；`ACCEPTANCE_SPEC.md` §2.3；`docs/science/PHASE2_UPM.md`；`docs/plugins/algorithms_phase2/11_upm.md`（11_upm §4.4 与正本互斥处按分歧台账 A-P5-06 维持禁令） |
+| 权威依据 | `docs/ASTROCS_DESIGN.md` §2.3/§12.3；`ACCEPTANCE_SPEC.md` §2.3；`docs/science/PHASE2_UPM.md`；`docs/plugins/algorithms_phase2/11_upm.md`（11_upm §4.4 与正本互斥处按分歧台账 A-P5-06 维持禁令） |
 | 事实源 | `独立审计/实验重做/总编对账/分歧台账.md`（D-07/D-08、A-P5-01…A-P5-12）；`五单元成稿简报.md` P5 节 |
 | 证据口径 | 正文每个数字标注 [文献] / [实验:code 文件名] / [推导]；[实验] 读数固化于 `results/audit_rework/`（审计重做三路＋补实验）与本单元 `results/c1–c7*.json`（历史正本，本轮未重跑） |
 | 数字可回溯性 | 三腿制：文献腿（refs.md VERIFIED 条目）、实验腿（固定 seed 脚本＋JSON）、推导腿（docs/ 支撑推导） |

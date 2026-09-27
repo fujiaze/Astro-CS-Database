@@ -1,9 +1,9 @@
 /* weight_chain.h — Phase2 SNR → 逆方差权重链（科学计算核心）
  *
  * 权威依据（只读，不改）:
- *   - ASTROCS_DESIGN.md §4.3:255-261「逆方差叠加：SNR → 逆方差权重；
+ *   - docs/ASTROCS_DESIGN.md §4.3:255-261「逆方差叠加：SNR → 逆方差权重；
  *       w = 1/σ² = SNR²/F_ref² ∝ SNR²；不是直接用 SNR 加权」
- *   - ASTROCS_DESIGN.md §3.4:163-175「帧级 SNR 是未加权的原始通量型信噪比
+ *   - docs/ASTROCS_DESIGN.md §3.4:163-175「帧级 SNR 是未加权的原始通量型信噪比
  *       F_ref/σ_F（Horne 1986），写入 HiPS 头；稀疏 SNR 层启用时 实际 SNR = 帧级 × 帧内」
  *   - docs/plugins/algorithms_phase1/07_noise_snr.md §4.1:55-70（通量型口径，
  *       w_k = SNR_k(F_ref)² / F_ref² = 1/σ_F,k²；稀疏层每控制点存未加权 SNR）

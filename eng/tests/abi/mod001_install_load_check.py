@@ -325,7 +325,7 @@ def main():
     # ── S7: 安装树模块面（现行载体） ──
     # CLI-001 已删除 modules list / modules verify / selftest 用户命令（依据
     # docs/api/CLI_PROTOCOL_V1.md §1：modules */selftest 属「已删除别名，rc=2」；
-    # ASTROCS_DESIGN §6.2 命令树只有 normalize/mosaic/export/help/--version/doctor/
+    # docs/ASTROCS_DESIGN §6.2 命令树只有 normalize/mosaic/export/help/--version/doctor/
     # benchmark）。能力去向（本段逐条验证，判据不放松）：
     #   * units 枚举与 verdict  → 安装树产品 manifest astrocs.product.json +
     #     eng/packaging/verify_install_tree.py（§S3 同一入口，此处对 unit 集再断言）；

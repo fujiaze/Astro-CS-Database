@@ -1,6 +1,6 @@
 // acsd JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002/CLI-004
 //
-// stdout 纪律（ASTROCS_DESIGN §6.3）：运行事件流是**默认输出**（GAP_AUDIT §9.74 裁决 7-a
+// stdout 纪律（docs/ASTROCS_DESIGN §6.3）：运行事件流是**默认输出**（GAP_AUDIT §9.74 裁决 7-a
 // 定案 1：事件流 = 默认输出，不需要旗标开启；GUI 用其它语言直接捕获 CLI 输出）。
 //   * 机器通道 = stdout：每行恰一个 UTF-8 JSON 事件（JSONL），禁夹普通文字；
 //     --json（--version/doctor/模板）时 stdout 恰一个 JSON 文档 —— 这些命令不发事件。

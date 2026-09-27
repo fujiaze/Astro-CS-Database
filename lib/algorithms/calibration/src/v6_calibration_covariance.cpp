@@ -52,7 +52,7 @@ bool is_allowed_variance_from(const std::string& v) {
 }
 
 /* 退役对象（PSFSW-RETIRE-01；负责人裁决「只要纯净信号/噪声的信噪比……绝对标定」）：
- * psfsw_robust_weight **不是现行对象**（ASTROCS_DESIGN.md §3.1 订正后；
+ * psfsw_robust_weight **不是现行对象**（docs/ASTROCS_DESIGN.md §3.1 订正后；
  * docs/design/UNIFIED_MODEL.md:58；统一对象 14→13，CHG-2026-09-20-PSFSW-RETIRE）。
  * 旧产品若在 variance_from 声明该对象 ⇒ 显式拒绝 + 迁移提示，不得静默接受，
  * 也不得再把它当作"在役的相对复合权重"（它连对象都不存在了）。 */
@@ -705,7 +705,7 @@ bool validate_covariance_record(const CovarianceRecord& rec, std::string* error)
   if (is_retired_canonical_object(rec.variance_from)) {
     // 退役对象优先报出（可诊断 + 迁移提示），仍是 fail-closed 的拒绝。
     return fail("variance_from declares retired canonical object 'psfsw_robust_weight' "
-                "(not a current object: ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+                "(not a current object: docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
                 "migration: variance_from=actual_combination_coefficients with "
                 "C_out = R C_in R^T");
   }

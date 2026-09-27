@@ -975,7 +975,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "三命令真实数据全链与 manifest 链",
-      "doc": "ASTROCS_DESIGN.md",
+      "doc": "docs/ASTROCS_DESIGN.md",
       "steps": [
         "E2E-CHAIN-VERIFY-STEP"
       ]
@@ -984,7 +984,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "E2E 链判据自测",
-      "doc": "ASTROCS_DESIGN.md",
+      "doc": "docs/ASTROCS_DESIGN.md",
       "steps": [
         "E2E-CHAIN-SELFTEST-STEP"
       ]

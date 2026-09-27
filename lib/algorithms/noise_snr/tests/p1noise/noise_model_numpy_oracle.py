@@ -44,13 +44,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def _repo_root(start):
-    """上溯到仓库根（根标志 = ASTROCS_DESIGN.md + 根 CMakeLists.txt）。
+    """上溯到仓库根（根标志 = docs/ASTROCS_DESIGN.md + 根 CMakeLists.txt）。
 
     不写死层级：模块自身也有 CMakeLists.txt，故必须用根独有标志判定。
     """
     cur = start
     while True:
-        if (os.path.isfile(os.path.join(cur, "ASTROCS_DESIGN.md"))
+        if (os.path.isfile(os.path.join(cur, "docs/ASTROCS_DESIGN.md"))
                 and os.path.isfile(os.path.join(cur, "CMakeLists.txt"))):
             return cur
         parent = os.path.dirname(cur)

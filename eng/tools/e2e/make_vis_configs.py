@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """VIS-501 两组成品帧配置生成（只做 R 通道）。
 
-依据：控制包 VIS-501 任务书；ASTROCS_DESIGN §6（三命令）；--help 的配置合同。
+依据：控制包 VIS-501 任务书；docs/ASTROCS_DESIGN §6（三命令）；--help 的配置合同。
 数据：testdata/Galaxy_Center_T4/lights/panel{1,2,3} Red 180s（共 32 帧）+ T4 母版（K=1）；
       testdata/M42_T2T3_mosaic_Flying_dutchman/{T2,T3} Red 300s + 对应母版（600s dark ⇒ K=0.5）。
 

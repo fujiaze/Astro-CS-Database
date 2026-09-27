@@ -372,7 +372,7 @@ namespace {
 //             weight.sources / variance_from ⇒ rc=1 + token 名）。删除即变成静默接受。
 // WHY:        负责人裁决（原话）：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于
 //             参考帧。而是绝对标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重
-//             psfsw_robust_weight **不是现行对象**：ASTROCS_DESIGN.md §3.1
+//             psfsw_robust_weight **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1
 //             「权重只能来自纯净信号与噪声之比……任何使偏差随帧而变的量（含 PSF 拟合
 //             质量代理）都不得进入科学叠加权重」；docs/design/UNIFIED_MODEL.md:58；
 //             docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
@@ -381,7 +381,7 @@ namespace {
 //             由 lib/algorithms/integration/v6/src/phase2_integrate.cpp 调用，
 //             并在 coverage target 内编译。
 // EXIT:       无（拒绝面必须保留）。
-// AUTHORITY:  ASTROCS_DESIGN.md §3.1；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
+// AUTHORITY:  docs/ASTROCS_DESIGN.md §3.1；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
 //             docs/design/UNIFIED_MODEL.md:58；ENGINEERING_SPEC.md §2/§3；
 //             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────
@@ -431,7 +431,7 @@ int p2_weight_source_token_reject(const char* const* tokens, std::uint64_t n,
                         std::snprintf(err, err_size,
                                       "forbidden weight source token '%s' "
                                       "(FZ-MODE-RETIRED: not a current object - "
-                                      "ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58; "
+                                      "docs/ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58; "
                                       "migration: Phase2 reconstructs the dense SNR field "
                                       "and derives inverse-variance weights "
                                       "w = SNR^2/F_ref^2; there is no selectable weight "

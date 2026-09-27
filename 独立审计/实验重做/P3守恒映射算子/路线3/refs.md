@@ -36,7 +36,7 @@
 | “机器精度”＋缺 floor 表述 | spherical_overlap.h:221–230 | 表述与实现不符 | exp07（q=floor(255S+0.5)） |
 | 1e−6 阈值 | spherical_overlap.cpp:574 | 阈值存在；矢高 6.39e−2≫1e−6·hp_res | exp05 |
 | weight=overlap/drop | drizzle_engine.cpp:1617 | w_jp=A_drop 归一口径正确 | exp03（守恒 8.2e−15） |
-| /A_pixel 契约 | ASTROCS_DESIGN.md:218（行号自 209 漂移） | **错**（应 A_drop） | exp03 负例（Σ_p w′=pf²） |
+| /A_pixel 契约 | docs/ASTROCS_DESIGN.md:218（行号自 209 漂移） | **错**（应 A_drop） | exp03 负例（Σ_p w′=pf²） |
 | 211034.6 | hp_drizzle_api.h:114 | **禁抄值**（相对差 −1.97e−4，nside 决策窗翻转） | exp08 |
 | orchestrator.cpp:180–181,198 / module_adapters.cpp:7603 | 链路接线 | 与链条位置节一致 | exp03 控制点用例 |
 | DRIZZLE.md:40–52 | docs/science | w_jp 段有效；无 π/(3N²) 锚；F&H 节号错 | exp01/02/03 |

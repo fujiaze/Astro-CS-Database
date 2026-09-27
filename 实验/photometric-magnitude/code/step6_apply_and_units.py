@@ -2,7 +2,7 @@
 """SCI-A 步骤 6 · apply photometry 落像素 + 物理单位消除论证与反推不可辨识实验
 
 对应 ACCEPTANCE_SPEC §2.1 的「物理单位消除」与「apply photometry」两行。
-设计依据：ASTROCS_DESIGN.md §2.1 / §4.2（I_photo = k_photo·m(x,y)·I_cal；其后所有节点与
+设计依据：docs/ASTROCS_DESIGN.md §2.1 / §4.2（I_photo = k_photo·m(x,y)·I_cal；其后所有节点与
 drizzle 消费归一化像素；不可用时显式 degraded_reason 且 fail-closed）、§4.4（产物通量以
 星等/相对星等表达；标定系数绝对值无物理意义；禁止由它反解增益/口径/曝光）。
 

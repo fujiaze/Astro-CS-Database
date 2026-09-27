@@ -1,6 +1,6 @@
 // lib/infrastructure/cli/subcommand.h — 三个平级子命令的共用实现（CLI-001）
 //
-// 薄入口（ASTROCS_DESIGN §6.1）职责边界，本文件是这条边界的落点：
+// 薄入口（docs/ASTROCS_DESIGN §6.1）职责边界，本文件是这条边界的落点：
 //   参数读取 / 配置模板填充 / 运行前预检 / 运行确认 / 退出码映射
 // 科学计算一律不在本层：执行、校验、计划、检视全部委托会话层
 // （lib/infrastructure/cli/commands.cpp 的 session_dispatch → runtime_client/算法模块）。
@@ -121,7 +121,7 @@ inline std::vector<std::string> config_structure_errors(SessionId session,
 }
 
 // ── §3.5 fail-closed 输入路径判定（存在性 / 可读性 / 类型） ──
-// 设计口径（ASTROCS_DESIGN §3.5:204）：error = 文件找不到、路径问题。
+// 设计口径（docs/ASTROCS_DESIGN §3.5:204）：error = 文件找不到、路径问题。
 // 预检必须在**磁盘**上核实，不得只看 JSON 结构（DC-310/DC-408 假绿根因）。
 // 只报路径层事实，不做科学值域判定。
 inline bool path_readable_file(const std::filesystem::path& p) {
@@ -454,7 +454,7 @@ struct Subcommand {
             return astrocs::ARGS;                           // 2: 配置错
         }
         const bool assume_yes = p.flags.count("-y") > 0 || p.flags.count("--yes") > 0;
-        // §3.5（依据 ASTROCS_DESIGN.md §4.5 运行前预检）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
+        // §3.5（依据 docs/ASTROCS_DESIGN.md §4.5 运行前预检）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
         // 预估），**无论 correct / warn / error 都必须显示页面**；-y 只跳过**确认**，
         // 不跳过页面 ⇒ 无确认交互时在此打印（有确认时由 confirm_run 打印同一份 page）。
         if (assume_yes) std::fputs(page.c_str(), stderr);

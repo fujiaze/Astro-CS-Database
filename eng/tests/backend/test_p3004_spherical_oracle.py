@@ -112,7 +112,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
     def _run(self, out, ra, dec, scale, w, h, sampler="nearest", hips=None):
         os.makedirs(out, exist_ok=True)
         hp = hips if hips else self.hips
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
         # 现行等价命令 = export --json <cfg>, 平铺会话配置形态(见 session_commands.h)。
         cfg = {"schema_version": "1",
                "source": {"hips_dir": hp},

@@ -34,13 +34,13 @@ DATA = os.path.abspath(os.path.join(HERE, "..", "data"))
 
 
 def _find_root(start):
-    """向上找含 ASTROCS_DESIGN.md 的仓库根; 可用 ASTROCS_ROOT 覆盖."""
+    """向上找含 docs/ASTROCS_DESIGN.md 的仓库根; 可用 ASTROCS_ROOT 覆盖."""
     env = os.environ.get("ASTROCS_ROOT")
     if env:
         return os.path.abspath(env)
     d = start
     for _ in range(8):
-        if os.path.exists(os.path.join(d, "ASTROCS_DESIGN.md")):
+        if os.path.exists(os.path.join(d, "docs/ASTROCS_DESIGN.md")):
             return d
         d = os.path.dirname(d)
     return os.path.abspath(os.path.join(start, "..", "..", "..", ".."))

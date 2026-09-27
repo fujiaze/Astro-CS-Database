@@ -96,7 +96,7 @@ class TestDocMachineCheck(unittest.TestCase):
         shutil.copytree(os.path.join(REPO, "docs", "api"), dst)
         p = os.path.join(dst, "CLI_PROTOCOL_V1.md")
         t = open(p, encoding="utf-8").read()
-        # CLI-001 已按 ASTROCS_DESIGN §6.1/§6.2 唯一命令树重写本文档（phase1/2/3 用户命令删除，
+        # CLI-001 已按 docs/ASTROCS_DESIGN §6.1/§6.2 唯一命令树重写本文档（phase1/2/3 用户命令删除，
         # 现行为 normalize/mosaic/export + help/--version/doctor/benchmark）；mutation 目标随文档更新，
         # 仍取 §1 命令块内的现行行，并注入 help 中不存在的非法选项。
         old = "acsd normalize (--json <config.json> | --template [-o <path>] | --help)"

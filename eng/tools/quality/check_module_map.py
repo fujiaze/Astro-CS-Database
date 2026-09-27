@@ -5,7 +5,7 @@
 权威依据
   - docs/plugins/00_INDEX.md §1（模块归属）/§2（23 篇模块总表）/§3（每篇 8 节模板）/§5（维护规则）
   - ENGINEERING_SPEC.md §4（每模块必备 7 项）/§8（manifest/注册表/target/产品清单一致）
-  - ASTROCS_DESIGN.md §7.1（顶层结构唯一）/§7.3（模块与 DLL/SO 边界，单一 entrypoint，
+  - docs/ASTROCS_DESIGN.md §7.1（顶层结构唯一）/§7.3（模块与 DLL/SO 边界，单一 entrypoint，
     不隐藏整阶段 Session；每个生产 DAG 节点映射唯一真实 module/导出入口）/§12.5（状态阶梯，唯一口径）
   - docs/ci/01_CHECKS.md §2（CHK-MODULE-MANIFEST = manifest/注册表/构建 target/产品清单一致，P0）
   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
@@ -29,7 +29,7 @@
   M6 产品清单一致（ENGINEERING_SPEC §8）：eng/packaging/astrocs.product.json 中存在
      对应 unit 且状态非 SKELETON；00_INDEX §2 明示「不进产品 manifest」的模块
      （hips_browser）以豁免理由登记（required=false + 权威引用）。
-  M7 状态词只取 ASTROCS_DESIGN §12.5 词表；VERIFIED 必须有证据文件在仓库内，
+  M7 状态词只取 docs/ASTROCS_DESIGN §12.5 词表；VERIFIED 必须有证据文件在仓库内，
      禁止表内自证：「合成测试或历史可用节点不等于真实数据/Windows VERIFIED」。
 
   M8 声明↔文件↔CMake target↔产品清单四方一致（FIX-404 / GAP_AUDIT G3-8）：
@@ -1034,11 +1034,11 @@ def run_check(repo: pathlib.Path, map_path: pathlib.Path):
         "authority": [
             "docs/plugins/00_INDEX.md §1/§2/§3/§5",
             "ENGINEERING_SPEC.md §4/§8",
-            "ASTROCS_DESIGN.md §7.1/§7.3/§12.5",
+            "docs/ASTROCS_DESIGN.md §7.1/§7.3/§12.5",
             "docs/ci/01_CHECKS.md §2",
         ],
         "status_vocabulary": list(STATUS_VOCABULARY),
-        "status_vocabulary_authority": "ASTROCS_DESIGN.md §12.5",
+        "status_vocabulary_authority": "docs/ASTROCS_DESIGN.md §12.5",
         "modules": [],
         "findings": [],
     }

@@ -15,7 +15,7 @@
 //   D4 AIT 域判据 A<2（正确为 A≤1；接受 |X_v1|>2 rad 的折叠环带）。
 //
 // 权威依据（与 v6 线一致）:
-//   * ASTROCS_DESIGN.md §5.3 八投影冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+//   * docs/ASTROCS_DESIGN.md §5.3 八投影冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
 //   * Calabretta & Greisen (2002) FITS WCS Paper II §2.1/§2.2（旋转三 Euler 角、
 //     LONPOLE 默认、各投影 native 层）；
 //   * ALG-P3-PROJ-IMPL-001 §15（v1 偏差表 + v3 冻结口径）。

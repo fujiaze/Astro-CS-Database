@@ -7,7 +7,7 @@ AUD-204 / T2 : 逐 leaf 交叠面积的"表示误差"与"闭合判据失明"实�
                （= drizzle_engine/spherical_overlap 现行表示：nside>=256 走 nb=4，
                  8<nside<256 走 samples=1 亦为 4 角）
   C (chart)  : drop 顶点映射进 chart + 大圆弧折线自适应细分 -> 轴对齐裁剪 + 鞋带 * (pi/3)
-               （= ASTROCS_DESIGN §2.4 主张的快速路径）
+               （= docs/ASTROCS_DESIGN §2.4 主张的快速路径）
   O (oracle) : leaf 真曲线边界 K 段 + 球面 S-H + VOS + Richardson 外推（独立高精度真值）
 
 度量：

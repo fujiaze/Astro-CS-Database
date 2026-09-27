@@ -1,7 +1,7 @@
 // eng/tests/unit/export_stream_test.cpp — ARCH-504 export 子块流式调度器回归锁
 //
 // 依据：CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md §2/§3/§4/§5；
-//       ASTROCS_DESIGN §6/§8.3。
+//       docs/ASTROCS_DESIGN §6/§8.3。
 // 判据（每条可证伪）：
 //   A. 与整幅参考路径输出**逐位一致**（同一像素函数、行主序 checksum 相同），且与 worker 数无关；
 //   B. 原子发布：产品文件存在且长度 = WCS 头 + properties + 像素字节；无 .tmp 残留；

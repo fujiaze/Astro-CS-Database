@@ -1,7 +1,7 @@
 # memory.md — astrocs.p3.projection（P3-PROJ-DOC 冻结）
 
 > **W4-A9 批次 1（2026-09-17）**：本文件下文所有 `lib/phase3_session/p3_wcs.*`
-> 路径已随生产源迁至 **`lib/algorithms/projection/p3_wcs.{h,cpp}`**（ASTROCS_DESIGN
+> 路径已随生产源迁至 **`lib/algorithms/projection/p3_wcs.{h,cpp}`**（docs/ASTROCS_DESIGN
 > §7.1「projection」行），共址测试在 `lib/algorithms/projection/tests/p3wcs/**`
 > （ctest 名 `p3_wcs`）；构建为 `astrocs_p3_projection_wcs` STATIC，经
 > `astrocs_phase3_session` → `astrocs_module_adapters` 闭包进产品图。
@@ -124,7 +124,7 @@
   （唯一权威签名头，namespace astrocs::phase3proj）+ `p3_projection.cpp`
   （registry v1 冻结表 4 行 TAN/SIN/CAR/AIT + 函数指针 dispatch +
   统一操作面 make/pix2world/world2pix/fits_keywords + registry_selfcheck）。
-- 冻结依据: 宪章 §7.3（registry 六要素/不散落 CLI switch）+ §18.1 裁决 1【该宪章已废止；现行 = `ASTROCS_DESIGN.md` §5.3（八投影）+ 本目录 module.yaml/README】
+- 冻结依据: 宪章 §7.3（registry 六要素/不散落 CLI switch）+ §18.1 裁决 1【该宪章已废止；现行 = `docs/ASTROCS_DESIGN.md` §5.3（八投影）+ 本目录 module.yaml/README】
   （首批四投影冻结，新增须注册+独立 Oracle）；TAN 逐式沿用
   lib/phase3_session/p3_wcs.cpp 冻结生产事实（G1/G2 零改动）；SIN/CAR/AIT
   为 §18.1（原宪章条款，已废止）新 claim，ALG 层唯一权威落位 docs/algorithms/PHASE3_PROJ_IMPL.md

@@ -1,7 +1,7 @@
 // eng/tests/unit/mosaic_window_test.cpp — ARCH-503 mosaic 天球窗口并行调度器回归锁
 //
 // 依据：CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md §2（窗口并行与确定性）/
-//       §3（资源声明）/§4（探针）；ASTROCS_DESIGN §8.3（mosaic 行）。
+//       §3（资源声明）/§4（探针）；docs/ASTROCS_DESIGN §8.3（mosaic 行）。
 // 判据（每条可证伪）：
 //   A. 确定性：N=1/2/4/8/16 worker 的窗口 outcome（含 checksum）**逐位一致**；
 //   B. 归约顺序：输出恒按 window_id 升序；

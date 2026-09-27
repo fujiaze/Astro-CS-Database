@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI-001: 唯一命令树校验（ASTROCS_DESIGN §6.1/§6.2 + §1.2）。
+"""CLI-001: 唯一命令树校验（docs/ASTROCS_DESIGN §6.1/§6.2 + §1.2）。
 
 判据（能红能绿；负例自证见 --self-test）:
   [A] 命令树完整: lib/infrastructure/cli/command_tree.h 的命令表 == §6.2 的
@@ -198,7 +198,7 @@ def check_runtime(binary, timeout=120):
         if got != 2:
             errors.append("旧命令应 rc=2: acsd %s → rc=%s" % (" ".join(args), got))
 
-    # 参数/命令错 → 2；输入缺失/格式错 → 3（ASTROCS_DESIGN §6.3 码表）
+    # 参数/命令错 → 2；输入缺失/格式错 → 3（docs/ASTROCS_DESIGN §6.3 码表）
     bad_args = [["normalize"], ["normalize", "--json"], ["mosaic"], ["export"],
                 ["doctor"], ["frobnicate"]]
     missing_input = [["normalize", "--json", "/nonexistent-cfg-cli001.json", "-y"],

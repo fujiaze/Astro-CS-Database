@@ -18,15 +18,15 @@
   [4] §5 条款指向的上级权威必须存在于权威链白名单（正文文件必须真实存在）；
       出现已删除的旧权威对象（ASTROCS_PROJECT_CONSTITUTION.md /
       AstroCS_ENGINEERING_CONSTRAINTS.md / 设计大纲/）即红；
-  [5] 权威链唯一性：ASTROCS_DESIGN.md §0 的 mermaid 链必须恰好覆盖
-      ASTROCS_DESIGN → AGENTS → ENGINEERING_SPEC → CONTROL_PACK_SPEC →
+  [5] 权威链唯一性：docs/ASTROCS_DESIGN.md §0 的 mermaid 链必须恰好覆盖
+      docs/ASTROCS_DESIGN → AGENTS → ENGINEERING_SPEC → CONTROL_PACK_SPEC →
       docs/ci → docs/plugins 六步且顺序正确（步骤全部为真实存在的路径）；
   [6] 反回归扫描：根权威面（README/AGENTS/ENGINEERING_SPEC/CONTROL_PACK_SPEC/
       HANDOVER）与 eng/tools/doccheck/、eng/tools/check_agents_gov.py 自身不得把
       已删除的旧权威文本写成上位/必读/冻结权威；
-  [7] 活动文档"唯一权威"声明：不得再有除 ASTROCS_DESIGN.md 之外的文档自称
+  [7] 活动文档"唯一权威"声明：不得再有除 docs/ASTROCS_DESIGN.md 之外的文档自称
       "唯一最高权威/唯一最高约束"（docs/archive/** 与已标 ARCHIVED_NON_NORMATIVE 的
-      归档件豁免；**唯一行内豁免 = 逐字点名 ASTROCS_DESIGN.md**）。
+      归档件豁免；**唯一行内豁免 = 逐字点名 docs/ASTROCS_DESIGN.md**）。
       扫描面 = <root> 自身（CI-003-E 修正：旧版在 --root 指向副本时把 base 换成
       不存在的 <root>/fixture-repo，scanned=0 ⇒ 假绿）；扫描面读不到任何文件时
       fail-closed 判红 unique_authority_scan_empty（ENGINEERING_SPEC §8）。
@@ -41,7 +41,7 @@
 **硬禁令节正文被清空** / **§0 权威声明被删** / **权威声明被反转**；
 正例含**硬禁令节编号平移**与**权威声明同义表述**），全部符合预期则自身 exit 0。
 
-口径修复（2026-09-21 BLD-401 R2；AGENTS.md / ASTROCS_DESIGN.md 逐字节冻结，只能改
+口径修复（2026-09-21 BLD-401 R2；AGENTS.md / docs/ASTROCS_DESIGN.md 逐字节冻结，只能改
 检查器）：[1] 三节结构断言按**标题**定位而非按节号（现行 AGENTS.md 硬禁令在 §6）；
 [5] §0 权威声明按**语义**判定（接受「以本文为准」/「以本文档为准」等等价自指表述）。
 能红能绿历史证据（1 正例 + 7 负例）：run/PROJECT-GOVERNANCE-01/GOV-001/fixtures/
@@ -60,13 +60,13 @@ import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 AGENTS = "AGENTS.md"
-DESIGN = "ASTROCS_DESIGN.md"
+DESIGN = "docs/ASTROCS_DESIGN.md"
 
-# ---- 权威链（ASTROCS_DESIGN.md §0）与"下级可引用"白名单 --------------------
-AUTHORITY_CHAIN = ["ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md",
+# ---- 权威链（docs/ASTROCS_DESIGN.md §0）与"下级可引用"白名单 --------------------
+AUTHORITY_CHAIN = ["docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md",
                    "CONTROL_PACK_SPEC.md", "docs/ci", "docs/plugins"]
 CITED_ALLOWED = {
-    "ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
+    "docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
     "docs/ci", "docs/plugins", "docs/science", "docs/algorithms",
     "docs/design/UNIFIED_MODEL.md", "docs/GLOSSARY.md", "memory.md", "REPO",
 }
@@ -84,7 +84,7 @@ LEGACY_BINDING_STRONG = ["权威", "上位", "最高", "FROZEN", "ACTIVE_NORMATI
 SELF_AUTHORITY_RE = re.compile(r"唯一\s*最高(权威|约束|规范|文档)")
 # §0 权威声明：按**语义**判定「本文件与其它文档冲突时以本文件为准」。
 # 口径修复（2026-09-21 BLD-401 R2）：旧判据要求逐字「以本文为准」，而
-# ASTROCS_DESIGN.md §0 写的是「以本文档为准」⇒ 真仓恒判红。自指表述
+# docs/ASTROCS_DESIGN.md §0 写的是「以本文档为准」⇒ 真仓恒判红。自指表述
 # （本文/本文档/本文件/本设计/本规范）在语义上等价，一律接受；判据仍要求
 # **不可让渡**的声明本身（"以本 X 为准"），"以别的文档为准"这类反转照旧判红
 # （见 --self-test N9/N10）。
@@ -95,7 +95,7 @@ STRUCTURE_SECTIONS = (
     ("硬禁令", ("硬禁令",)),
     ("停止点", ("停止点", "停下来问负责人")),
 )
-# 声明"唯一最高"时必须出现的自指文件（ASTROCS_DESIGN.md 自身或其等价描述）
+# 声明"唯一最高"时必须出现的自指文件（docs/ASTROCS_DESIGN.md 自身或其等价描述）
 DESIGN_SELF_RE = re.compile(r"(本文|本文件|本设计|ASTROCS_DESIGN\.md)")
 
 # §5 语义族：族名 -> 判定（对单条禁令文本）。
@@ -231,7 +231,7 @@ def violations_legacy_object_body(text: str, path: str) -> list:
 def label_to_authority(label: str) -> str:
     """§0 mermaid 节点标签 -> 权威链名（别名表；未知标签返回空串 => 判红）。"""
     if "最高设计" in label:
-        return "ASTROCS_DESIGN.md"
+        return "docs/ASTROCS_DESIGN.md"
     if "AGENTS" in label:
         return "AGENTS.md"
     if "工程规范" in label or "ENGINEERING_SPEC" in label:
@@ -289,7 +289,7 @@ def check_authority_chain(root: str, v: list, notes: dict) -> None:
 
 
 def check_unique_authority(root: str, v: list, notes: dict) -> None:
-    """除 ASTROCS_DESIGN.md 外，活动面不得自称"唯一最高权威/约束"。
+    """除 docs/ASTROCS_DESIGN.md 外，活动面不得自称"唯一最高权威/约束"。
 
     扫描面**总是** root 自身（CI-003-E：旧版 `base = root if root == REPO else
     os.path.join(root, "fixture-repo")` 让 --root 副本的扫描面指向不存在的
@@ -332,10 +332,10 @@ def check_unique_authority(root: str, v: list, notes: dict) -> None:
                 continue
             if not SELF_AUTHORITY_RE.search(line):
                 continue
-            # 唯一行内豁免：逐字点名现行最高设计 ASTROCS_DESIGN.md。
+            # 唯一行内豁免：逐字点名现行最高设计 docs/ASTROCS_DESIGN.md。
             # 「本文/本文件/本报告」等自指措辞不再豁免（CI-003-E；R-6 §3.6 实测该豁免
             # 吃掉了最常见的中文自称写法「本文档是唯一最高权威」）。
-            if "ASTROCS_DESIGN.md" in line:
+            if "docs/ASTROCS_DESIGN.md" in line:
                 continue
             v.append({"check": "single_authority_entry",
                       "detail": "%s:%d 以非最高权威文档自称唯一最高: %s"
@@ -461,7 +461,7 @@ SELFTEST_AGENTS_MD = """# AGENTS.md（mini-repo 夹具）
 
 ## 1. 开工前必读
 
-1. ASTROCS_DESIGN.md；
+1. docs/ASTROCS_DESIGN.md；
 
 ---
 
@@ -486,7 +486,7 @@ SELFTEST_AGENTS_MD = """# AGENTS.md（mini-repo 夹具）
 - 权限/数据/环境缺失导致任务无法推进；
 """
 
-SELFTEST_DESIGN_MD = """# ASTROCS_DESIGN.md（mini-repo 夹具）
+SELFTEST_DESIGN_MD = """# docs/ASTROCS_DESIGN.md（mini-repo 夹具）
 
 ## 0. 权威链
 
@@ -545,7 +545,7 @@ def _mini_repo(base: str) -> None:
     os.makedirs(os.path.join(base, "docs", "plugins"), exist_ok=True)
     _write(os.path.join(base, AGENTS), SELFTEST_AGENTS_MD)
     _write(os.path.join(base, DESIGN), SELFTEST_DESIGN_MD)
-    for rel, text in (("README.md", "# README（mini-repo 夹具）\n\n- ASTROCS_DESIGN.md\n"),
+    for rel, text in (("README.md", "# README（mini-repo 夹具）\n\n- docs/ASTROCS_DESIGN.md\n"),
                       ("ENGINEERING_SPEC.md", "# ENGINEERING_SPEC（mini-repo 夹具）\n"),
                       ("CONTROL_PACK_SPEC.md", "# CONTROL_PACK_SPEC（mini-repo 夹具）\n")):
         _write(os.path.join(base, rel), text)
@@ -656,7 +656,7 @@ def self_test() -> int:
               "## 5. 硬禁令（违反即回退）", "## 7. 硬禁令（违反即回退）")
         case("P5 硬禁令节编号平移（§5→§7）仍绿", "pass", p5)
 
-        # P6：权威声明同义表述「以本文档为准」仍绿（ASTROCS_DESIGN.md §0 现行写法）
+        # P6：权威声明同义表述「以本文档为准」仍绿（docs/ASTROCS_DESIGN.md §0 现行写法）
         p6 = os.path.join(tmp, "p6-authority-synonym")
         _mini_repo(p6)
         _edit(os.path.join(p6, DESIGN), "以本文为准", "以本文档为准")

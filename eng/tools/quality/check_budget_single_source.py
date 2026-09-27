@@ -15,7 +15,7 @@
      ⇒ 红。判据不承认「比自身影子文件」这类恒真比较。
   E3 表述同源：文档里自称「唯一预算来源」的行必须指向唯一源文件（出现第二个自称
      唯一来源 ⇒ 红）。
-  E4 状态词：分母登记 status 必须落在 ASTROCS_DESIGN.md §12.5 阶梯内。
+  E4 状态词：分母登记 status 必须落在 docs/ASTROCS_DESIGN.md §12.5 阶梯内。
 
 用法
   python3 eng/tools/quality/check_budget_single_source.py [--root DIR] [--json-out PATH] [--quiet]
@@ -43,7 +43,7 @@ except Exception:  # noqa: BLE001
     parse_ladder = None
 
 REG = "eng/tools/quality/budget_sources.json"
-DESIGN = "ASTROCS_DESIGN.md"
+DESIGN = "docs/ASTROCS_DESIGN.md"
 
 
 def _read(path):

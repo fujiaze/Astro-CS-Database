@@ -94,11 +94,11 @@
 ## AUD403-07 · 平台角色口径张力：Linux 是发行平台还是轻验证面
 
 - **对象**：`README.md:41`「正式平台为 Windows x64（acsd.exe 与 .dll）与 Linux amd64（acsd）」 vs `DEPENDENCIES.md:27`「Linux 控制节点（轻验证；**非发布产物**）」、`:38-39`「Linux preset 仅供静态检查/轻量编译…Linux 性能不作为 Windows 发布性能结论」。
-- **权威依据**：标准 01 §1（下位与上位冲突以上位为准，冲突即缺陷）；`ASTROCS_DESIGN.md §11` 发行表把 `Windows 10+ amd64 | acsd.exe` 与 `Linux amd64 | acsd（唯一 ELF + .so）`**并列为发行形态**。
+- **权威依据**：标准 01 §1（下位与上位冲突以上位为准，冲突即缺陷）；`docs/ASTROCS_DESIGN.md §11` 发行表把 `Windows 10+ amd64 | acsd.exe` 与 `Linux amd64 | acsd（唯一 ELF + .so）`**并列为发行形态**。
 - **现状 → 应为**：现状：最高设计 §11 与 README 把 Linux amd64 列为**正式发行平台**（各一套交付形态）；DEPENDENCIES 把同一 Linux 描述为"非发布产物/轻验证控制节点"。二者对"Linux 是否发行"表述不一致，新读者在 README↔DEPENDENCIES 间得到冲突答案。应为：以 §11 为准澄清——"Linux 是发行平台，但当前开发/CI 节点用 `linux-control` preset 只做轻验证，正式 Linux 发布产物面尚未产出"（区分"目标形态"与"当前实现状态"两条轴，避免把"未开工"写成"非发布"）。
-- **改法**：DEPENDENCIES §27 标题与正文补一句限定"（指当前控制节点用途；Linux amd64 发行形态见 ASTROCS_DESIGN §11，属未产出的发布面）"。此为平台状态轴措辞问题，非代码缺陷。
+- **改法**：DEPENDENCIES §27 标题与正文补一句限定"（指当前控制节点用途；Linux amd64 发行形态见 docs/ASTROCS_DESIGN §11，属未产出的发布面）"。此为平台状态轴措辞问题，非代码缺陷。
 - **置信**：PARTIAL（两处文字口径确为不一致；是否需上位裁决属负责人/AUD-101，按任务纪律不把"未开工"判为"已坏"）。
-- **取证命令**：`sed -n '703,710p' ASTROCS_DESIGN.md; sed -n '27p;38,39p' DEPENDENCIES.md; sed -n '41p' README.md`
+- **取证命令**：`sed -n '703,710p' docs/ASTROCS_DESIGN.md; sed -n '27p;38,39p' DEPENDENCIES.md; sed -n '41p' README.md`
 
 ---
 

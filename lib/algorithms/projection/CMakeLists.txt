@@ -6,7 +6,7 @@
 #
 # 目标归属:
 #   astrocs_p3_projection_wcs — TAN 投影/WCS 内核 (p3_wcs.cpp, ALG-P3-002)。
-#     原址 lib/phase3_session/p3_wcs.{h,cpp}; W4-A9 按 ASTROCS_DESIGN §7.1
+#     原址 lib/phase3_session/p3_wcs.{h,cpp}; W4-A9 按 docs/ASTROCS_DESIGN §7.1
 #     「projection」行迁入本模块 (WCS 属投影域)。C++17 命名空间
 #     astrocs::phase3 与公共符号名保持不变 (架构重构不改科学语义,
 #     ENGINEERING_SPEC §3)。

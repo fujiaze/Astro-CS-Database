@@ -5,7 +5,7 @@
 // 文件 → 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后落完成清单) +
 // aio_hips_reader.cpp (无完成清单 ⇒ 消费者拒绝, fail-closed)。
 //
-// 权威: ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
+// 权威: docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1。
 //
 // 用例 (每条都能红能绿, 无恒 PASS 占位):
 //   A1 publish_ok            正常发布: 清单齐备 + 每 tile DATASUM/CHECKSUM 校验通过
@@ -446,7 +446,7 @@ static void case_integrity_has_teeth() {
 }
 
 // ── A6: 磁盘满在**失败瞬间 (清理之前)** 就被分类, 且只有磁盘满类失败被分类 ──
-// 依据: ASTROCS_DESIGN §10「失败/取消路径清理临时产物」+ §7.2「10 = 磁盘写满/
+// 依据: docs/ASTROCS_DESIGN §10「失败/取消路径清理临时产物」+ §7.2「10 = 磁盘写满/
 // 写盘失败」。CLI 的 exit-10 判定原为事后探针; 清理释放空间后探针必然 fail-open,
 // 故判据必须是失败发生处的分类 (lib/infrastructure/aio/src/aio_disk_full.h)。
 // 能红能绿: 注入 tile_diskfull(ENOSPC 等价) 必须置位; 注入 tile_write_fail

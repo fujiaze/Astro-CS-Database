@@ -18,9 +18,9 @@ mods = {
  'P2': ('P2跨帧绝对SNR', '②',
         'docs/science/NOISE_MODEL.md（噪声信号模型正本，参考分解与逐项方差）', 'review-05-②-科学性'),
  'P3': ('P3守恒映射算子', '④',
-        'docs/algorithms/DRIZZLE_GEOMETRY.md（交叠分配与通量闭合门）与 ASTROCS_DESIGN.md §2.3', 'review-05-④-科学性'),
+        'docs/algorithms/DRIZZLE_GEOMETRY.md（交叠分配与通量闭合门）与 docs/ASTROCS_DESIGN.md §2.3', 'review-05-④-科学性'),
  'P4': ('P4重建稠密SNR', '②',
-        'ASTROCS_DESIGN.md §2.4（重建稠密信噪比：必须带亮度、三口径重建算子、w=SNR²/F_ref²=1/σ_F²）与 docs/science/NOISE_MODEL.md §5b、docs/science/CONTROL_WEIGHT_SNR.md §2b', 'review-05-②-科学性'),
+        'docs/ASTROCS_DESIGN.md §2.4（重建稠密信噪比：必须带亮度、三口径重建算子、w=SNR²/F_ref²=1/σ_F²）与 docs/science/NOISE_MODEL.md §5b、docs/science/CONTROL_WEIGHT_SNR.md §2b', 'review-05-②-科学性'),
  'P5': ('P5加性天光去除', '③',
         'docs/science/PHASE2_UPM.md 与 docs/plugins/algorithms_phase2/11_upm.md（UPM 与接缝判据正本）', 'review-05-③-科学性'),
 }

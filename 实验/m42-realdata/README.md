@@ -1,6 +1,6 @@
 # 实验单元 05：M42 真实数据腿（m42-realdata）
 
-本单元是四个核心创新点的**第三类数据腿**（真实数据，`ASTROCS_DESIGN.md` §12.2）在
+本单元是四个核心创新点的**第三类数据腿**（真实数据，`docs/ASTROCS_DESIGN.md` §12.2）在
 **已产出的 M42 真实数据端到端运行**上的独立复核。**不重跑三命令**，只读
 `run/RELEASE-05/vis/out/m42_p1_t2`、`m42_p1_t3`、`m42_p2`、`m42_p3` 的既有产品。
 
@@ -211,16 +211,16 @@ sha256sum -c 实验/m42-realdata/results/SNAPSHOT.sha256
 
 | 结论 | 规范/权威出处 |
 |---|---|
-| `k_photo` 是线性乘性标度 | `ASTROCS_DESIGN.md:120-128` |
+| `k_photo` 是线性乘性标度 | `docs/ASTROCS_DESIGN.md:120-128` |
 | 双边界判据形态与 EXP-04 数值 | `实验/photometric-magnitude/REPORT_paper.md:71-80`、`:147-149`、`:213` |
 | 组间散度参考值 0.02 dex 与"帧间独立"裁决 | `lib/infrastructure/scheduler/src/module_adapters.cpp:4377`、`:4826-4838` |
 | `sigma_residual` 定义（MAD/0.6745） | `lib/algorithms/photometry/cpp/src/star_matcher.cpp:612-621` |
 | 噪声律与 SNR 链 | `docs/science/PHASE2_UPM.md`、`docs/science/SNR_CHAIN.md`、`lib/algorithms/coverage/src/integrate.cpp:20-79` |
 | E 的定义与参考值 | `实验/absolute-snr/code/exp05/exp05_common.py:393-408`、`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`results/exp06_e1_analytic.json` |
 | 权威接缝判据本体 | `实验/additive-sky-seamless/code/sci_c_common.py:356-411` |
-| 纯加性天光模型与"保留背景" | `docs/science/PHASE2_UPM.md:9-10`、`:186-190`、`ASTROCS_DESIGN.md:139-145` |
+| 纯加性天光模型与"保留背景" | `docs/science/PHASE2_UPM.md:9-10`、`:186-190`、`docs/ASTROCS_DESIGN.md:139-145` |
 | FP64 通量闭合门 1e-6 | `docs/algorithms/DRIZZLE_GEOMETRY.md:235-237` |
-| 构造闭合与 `w_jp = a_jp/A_pixel` | `ASTROCS_DESIGN.md:147-159`、`docs/algorithms/DRIZZLE_GEOMETRY.md:41-57` |
+| 构造闭合与 `w_jp = a_jp/A_pixel` | `docs/ASTROCS_DESIGN.md:147-159`、`docs/algorithms/DRIZZLE_GEOMETRY.md:41-57` |
 | 逐样本掩码为唯一可判据载体 | `lib/infrastructure/scheduler/src/module_adapters.cpp:8960-8962` |
 | EXP-07 缺陷域与阈值 | `实验/healpix-polar/docs/EXP-07-POLAR.md:412`、`:650-657`、`:670-673`、`:677` |
 | HEALPix 公式 | `lib/algorithms/shared/healpix/healpix_core.cpp:155-226`（源自 astrometry.net `healpix.c`，BSD-3） |

@@ -3,7 +3,7 @@
 """FIX-203: 提升键不得静默变 no-op —— CLI 键表 / 生产消费 / 死键台账三方一致。
 
 权威依据：
-  * ASTROCS_DESIGN.md §3.3（三命令通用输入合同：**键名一律以命令行实际认的键为准**；
+  * docs/ASTROCS_DESIGN.md §3.3（三命令通用输入合同：**键名一律以命令行实际认的键为准**；
     「唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields()」）；
   * 工程控制/RELEASE-03/tasks/FIX-203.md 步骤 3（提升后**生产零消费**的键必须在
     eng/ci/ledgers/dead_config_keys.json 登记「合同声明但生产零读取」，不得静默变 no-op）；
@@ -13,7 +13,7 @@
 判据（能红能绿）：
   L1 提升键必须在 CLI 键表里（session_keys() 白名单 ∪ config_fields() 键）；
   L2 precision **不得**出现在 CLI 键表里（禁止新造同义键；阶段一 = drizzle.precision_mode，
-     阶段二/三 = 位深键 bitpix —— ASTROCS_DESIGN §3.3:256）；
+     阶段二/三 = 位深键 bitpix —— docs/ASTROCS_DESIGN §3.3:256）；
   L3 提升键若在 lib/** 的**生产消费面**（CLI 键表文件之外）零命中 ⇒ 必须有
      dead_config_key:<key> 台账条目且五字段齐备（id/kind/reason/owner/exit_condition）。
 """
@@ -134,7 +134,7 @@ class TestFix203PromotedKeys(unittest.TestCase):
             self.assertNotIn(key, self.config_fields,
                              "不得新造同义键：%s 出现在 config_fields()" % key)
         # 既有精度载体必须在键面上（复用而非新造）：阶段一 drizzle.precision_mode、
-        # 阶段三 bitpix（ASTROCS_DESIGN §3.3:256）。
+        # 阶段三 bitpix（docs/ASTROCS_DESIGN §3.3:256）。
         self.assertIn("drizzle", self.config_fields)
         self.assertIn("bitpix", self.session_keys)
 

@@ -6,7 +6,7 @@
 
 ## 职责
 > W4-A9（2026-09-17）后本目录只保留会话 facade 与尚未迁出的 `hips_properties*`；
-> 下列内核的**实现文件**已按 `ASTROCS_DESIGN §7.1` 迁入各自算法模块（源逐字节等价，
+> 下列内核的**实现文件**已按 `docs/ASTROCS_DESIGN §7.1` 迁入各自算法模块（源逐字节等价，
 > 公共符号与命名空间零改动），此处仅登记职责与去向。
 
 p3_wcs: WCS TAN + 尺寸溢出检查 (uint64) + 配置合同上限 (ASTROCS_P3_MAX_SIDE)。→ `lib/algorithms/projection/`

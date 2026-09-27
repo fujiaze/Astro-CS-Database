@@ -309,7 +309,7 @@ const BlockIndex* AhpxReader::findBlock(const std::string& id) const {
 bool AhpxReader::parseHeader() {
     m_blocks.clear();
 
-    // 旧格式显式拒绝 (变更 AHPX-WEIGHT-RETIRE-20260920; ASTROCS_DESIGN §2.1 /
+    // 旧格式显式拒绝 (变更 AHPX-WEIGHT-RETIRE-20260920; docs/ASTROCS_DESIGN §2.1 /
     // GAP_AUDIT §9.73 A44): 头 JSON 的 "weight" 字段是已作废权重模式
     // (SCALAR/GRID/PIXEL) 的载体, 本格式不承载权重 ⇒ fail-closed, 禁静默忽略。
     if (!ahpxFault("accept_legacy") && hasJsonKey(m_headerJson, RETIRED_WEIGHT_FIELD)) {

@@ -24,7 +24,7 @@ INC = os.path.join(REPO, "lib", "include")
 C = os.path.join(REPO, "lib", "algorithms", "shared")
 CASTRO = os.path.join(C, "healpix")
 
-# W4-A9 批次 1/2/3: 会话内核按 ASTROCS_DESIGN §7.1 分迁各算法模块
+# W4-A9 批次 1/2/3: 会话内核按 docs/ASTROCS_DESIGN §7.1 分迁各算法模块
 #   p3_wcs.cpp → lib/algorithms/projection (批次 1)
 #   p3_resample.cpp → lib/algorithms/resample (批次 2)
 #   p3_output.cpp → lib/algorithms/fits_output (批次 3)

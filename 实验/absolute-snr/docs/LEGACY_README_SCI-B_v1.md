@@ -7,7 +7,7 @@
 # SCI-B — 跨帧绝对 SNR 传递链 · 实验报告（实验单元）
 
 > **单元目录**：`实验/absolute-snr/`（报告 `README.md` / 代码 `code/` / 结果 `results/` / 数据指针 `data/README.md`）
-> **权威依据**：`ASTROCS_DESIGN.md` §2.2、§4.4、§5.3、§12.3；`ACCEPTANCE_SPEC.md` §2.2；
+> **权威依据**：`docs/ASTROCS_DESIGN.md` §2.2、§4.4、§5.3、§12.3；`ACCEPTANCE_SPEC.md` §2.2；
 > `docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/CONTROL_WEIGHT_SNR.md`、`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1/§4.2。
 > **固定 seed**：`20260921`（`code/sci_b_common.py:SEED_BASE`）；无任何时间/环境相关随机源。
 > **复跑**：`bash 实验/absolute-snr/code/run_all.sh`（构建/测试串行加锁；产物落 `results/`，日志落 `run/SCI-402/`）。
@@ -358,7 +358,7 @@ flock /tmp/astrocs_build.lock ctest --test-dir build --output-on-failure -R "p1s
 
 ### 10.2 问题二（A vs B）的实测结论
 
-判据：(a) 配对性 / (b) 正性截断 / (c) 跨帧可比（ASTROCS_DESIGN §3.1）/ (d) 帧级 reference_snr_f 一致性。
+判据：(a) 配对性 / (b) 正性截断 / (c) 跨帧可比（docs/ASTROCS_DESIGN §3.1）/ (d) 帧级 reference_snr_f 一致性。
 
 | 判据 | CUR 现行 | **方案 A**（PSF 解析通量） | 方案 B（盒和 + 盒和方差） |
 |---|---|---|---|

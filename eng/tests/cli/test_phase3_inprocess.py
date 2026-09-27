@@ -7,7 +7,7 @@
   * fixture 源码路径: ARCH-001 迁移后布局（lib/infrastructure/aio +
     lib/algorithms/shared/healpix）, 旧路径回退。
 
-**export 缺陷（显式红, 归属 CLI-002; 依据 ASTROCS_DESIGN §3.5/§6.1 + §6.2）**:
+**export 缺陷（显式红, 归属 CLI-002; 依据 docs/ASTROCS_DESIGN §3.5/§6.1 + §6.2）**:
   新树 export 的预检(lib/infrastructure/cli/subcommand.h precheck_config)只把 source 当
   array/string 计数, 而 phase3 会话(lib/phase3_session/p3_session.cpp)要求
   source.hips_dir 对象 ⇒ **没有任何 source 形态能同时过两层**:
@@ -369,7 +369,7 @@ class TestPhase3InProcess(unittest.TestCase):
 
         夹具选择（本用例单独生成，不动 setUpClass 的 --make-field）：
         正例臂要求 mosaic 整链 rc=0，而默认权重是**逐帧逆方差**（权重 = Phase2 消费
-        帧级 SNR 时现场派生量，ASTROCS_DESIGN §2.1 / §9.73 裁决 A44），缺逐帧
+        帧级 SNR 时现场派生量，docs/ASTROCS_DESIGN §2.1 / §9.73 裁决 A44），缺逐帧
         variance/ivar 时按 DATA-UNC-001 §30.1 **禁止静默回退等权** ⇒ 用只有
         SIGNAL|SUPPORT 的 --make-field 夹具时正例臂必然 rc=2（实测
         "2/2 frames missing ivar ... weight chain NOT closed"）。

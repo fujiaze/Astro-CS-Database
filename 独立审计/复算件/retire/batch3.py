@@ -158,7 +158,7 @@ ROWS = [
  "部分——无门以其文件名为输入；但 README/memory/module.yaml 三面声明「P1Api 保留仅作兼容面（当前无工厂委托）」",
  "先解引用再删：它编译进产品却无调用者。P1Api 在全仓代码面只有 1 个命中=其自身定义（git grep -nw P1Api -- lib eng => module_adapters.cpp:1193），即会话的 C ABI 包装无人构造 ⇒ 主动作是**删注册面**（见 AUD-404 行 71-72），不是接线",
  "lib/infrastructure/scheduler/src/module_adapters.cpp:1193-1216（P1Api 包装 struct）；lib/phase1_session/{README.md,memory.md,module.yaml}；标准 04 §1:20（会话目录归并后应退役）",
- "中：ASTROCS_DESIGN §8.4 与标准 04 §1 对同一目录给**相反**要求（前者要求保留 lib/phase{1,2,3}_session 目录，后者要求归并后退役），冲突已登记上呈；在该裁决落地前删目录会违背其中一份权威",
+ "中：docs/ASTROCS_DESIGN §8.4 与标准 04 §1 对同一目录给**相反**要求（前者要求保留 lib/phase{1,2,3}_session 目录，后者要求归并后退役），冲突已登记上呈；在该裁决落地前删目录会违背其中一份权威",
  "中——权威打架，未裁"],
 
 ["lib/phase2_session/p2_session.cpp",

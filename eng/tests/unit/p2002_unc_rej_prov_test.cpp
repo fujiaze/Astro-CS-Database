@@ -534,7 +534,7 @@ static void test_s302_kernel_semantics() {
           a.dec.rejected_high == b.dec.rejected_high &&
           a.dec.iterations == b.dec.iterations);
   }
-  // ── FIX-204（ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
+  // ── FIX-204（docs/ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
   // + EXP-204 定案（保守读法）：astrocs_adaptive_pixel 逐几何 N 内置映射 ──
   // 1≤N≤3 → none（不排异）；4≤N≤5 → percentile；6≤N≤15 → winsorized_sigma；
   // N≥16 → linear_fit；N=0（void 像素占位，无候选栈）→ percentile。
@@ -729,7 +729,7 @@ static void test_f_p2002_01_rejection_parity() {
   for (const auto& pl : rej["plans"])
     plans_by_n[pl["nominal_n"].get<std::uint32_t>()] = pl;
   CHECK(plans_by_n.count(3u) == 1u);
-  // FIX-204（ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
+  // FIX-204（docs/ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
   // + EXP-204 定案（保守读法）：n=3 档**路由** = none（不排异 + 加权积分），
   // underdetermined_n=3（闸默认保持 3；候选 ≤3 亦全接受并记
   // P2_STATUS_UNDERDETERMINED）。provenance 顶层 small_n_policy/low_n_policy +
@@ -1497,7 +1497,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   CHECK_MSG(mhash.size() == 64 && modhash.size() == 64 && !profile.empty(),
             "Phase2 artifacts must carry real 64hex hashes + profile");
   // FIX-201 / §9.73 A44: 原断言 CHECK_MSG(wmode == 2, "weight_mode must be 2")
-  // 锁定的是已作废的「权重模式」概念（ASTROCS_DESIGN §2.1「全程只有 SNR,
+  // 锁定的是已作废的「权重模式」概念（docs/ASTROCS_DESIGN §2.1「全程只有 SNR,
   // 不存在权重模式」）⇒ 该断言与其取值来源 (wmode) 一并删除。
   // 替代锁（更严, 且不依赖被删概念）: 产品面**不得**携带 A44 provenance 键。
   // 生产侧残留（module_adapters.cpp 仍向 p2_integrated.json / manifest 写小写
@@ -1830,7 +1830,7 @@ static void test_f_unc_003_no_plane_drift() {
       if (c.contains("provenance_keys")) {
         // FIX-201 / §9.73 A44 收窄锁: 只锁四键 (帧级 SNR 与稀疏控制点上的绝对 SNR
         // 之外无 provenance 面)。原断言把已作废的「权重模式」键当契约
-        // (与 ASTROCS_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
+        // (与 docs/ASTROCS_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
         // 断言里, 也不得由任何人重新引入。
         // 残留 (域外, 登记给前台): eng/contracts/data/
         // phase2_uncertainty_rejection_provenance_v1.json 的 provenance_keys

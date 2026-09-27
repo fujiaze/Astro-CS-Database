@@ -23,7 +23,7 @@
 #include <unistd.h>
 #endif
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 临时文件/fsync/
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 临时文件/fsync/
 // 原子 rename/目录创建/目录枚举/删除/存在性一律经 aio 唯一实现
 // (aio_atomic_file.h / aio_file_io.h), 本 TU 不自持 std::filesystem / FILE* / fd。
 #include "aio_atomic_file.h"

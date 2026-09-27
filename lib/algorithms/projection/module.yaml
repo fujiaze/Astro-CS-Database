@@ -2,7 +2,7 @@
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/projection/p3_wcs.cpp
 # + 唯一权威签名头 lib/algorithms/projection/p3_wcs.h，同一目录;
 # W4-A9 批次 1（2026-09-17）由 lib/phase3_session/ 迁入本模块，
-# ASTROCS_DESIGN §7.1「projection」行；构建挂载: 根 CMakeLists.txt
+# docs/ASTROCS_DESIGN §7.1「projection」行；构建挂载: 根 CMakeLists.txt
 # add_subdirectory(lib/algorithms/projection) 的 astrocs_p3_projection_wcs
 # STATIC，经 astrocs_phase3_session → astrocs_module_adapters 闭包；
 # 会话消费方 lib/phase3_session/p3_session.cpp :17 include / :160

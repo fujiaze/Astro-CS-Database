@@ -4,7 +4,7 @@
 //         §1.1（跨阶段唯一载体 = HiPS 产品树；同一产物身份不得在一个阶段产出、在另一阶段被消费）
 //         §2 第 4 条（声明的 lifecycle 与实际消费者跨度不一致 ⇒ 非法）
 //         §3（块被全部声明消费者用完即销毁；阶段结束不得残留任何块）
-//       ASTROCS_DESIGN.md §8.1（三命令独立、阶段间只走磁盘产品）、§8.2（命名块内存管线与块生命周期）
+//       docs/ASTROCS_DESIGN.md §8.1（三命令独立、阶段间只走磁盘产品）、§8.2（命名块内存管线与块生命周期）
 //       lib/include/astrocs/core/block_flow.h（BlockRole：EXTERNAL_IN/EXTERNAL_OUT/STAGE/SHORT）
 //       块流规格唯一事实源 eng/contracts/block_flow/stage_block_flow.json
 //       （由 lib/infrastructure/pipeline/module_ports.registry.json 派生，机器门

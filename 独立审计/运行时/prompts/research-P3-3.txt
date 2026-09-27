@@ -2,8 +2,8 @@
 任务背景：科学性对抗审查发现 05_正向规格.md 中一批科学量三腿缺失（文献值腿/实验标定腿/理论推导腿缺一或全缺）与少量幻觉锚。你的任务是把本模块的这些缺口**独立补齐**：亲手做文献核验、亲手做实验、亲手写报告——不是转抄审查意见。
 输入（先读）：
 1. 独立审计/证据/审查-05-④-科学性-1.md、审查-05-④-科学性-3.md（三腿缺失矩阵与幻觉锚清单；若同目录还有 -2 或 SUMMARY 件也读）——提取本模块的三腿缺失项与锚修复项清单；
-2. docs/algorithms/DRIZZLE_GEOMETRY.md（交叠分配与通量闭合门）与 ASTROCS_DESIGN.md §2.3（理论推导腿的权威来源，引用其式子编号）；
-3. ASTROCS_DESIGN.md §12.2 与 docs/science/、docs/algorithms/ 相关节（实验三类数据的适用性规则）。
+2. docs/algorithms/DRIZZLE_GEOMETRY.md（交叠分配与通量闭合门）与 docs/ASTROCS_DESIGN.md §2.3（理论推导腿的权威来源，引用其式子编号）；
+3. docs/ASTROCS_DESIGN.md §12.2 与 docs/science/、docs/algorithms/ 相关节（实验三类数据的适用性规则）。
 对清单里的每一项，产出四件套：
 A. 文献腿：真实核验——curl api.crossref.org/works/<DOI> 或 export.arxiv.org/api/query（arXiv 调用间隔 sleep 3，429 退避 20s，403 重试一次）；记录 DOI/arXiv 号、题名、作者、年份与回包要点；**解析不到就记 UNRESOLVED，绝不编造文献**。
 B. 实验腿：按数据适用性选型——解析代数合成（必须含"真值无效应⇒度量归零"负例）/ 纯合成物理前向 / HST 模板风格信号；固定 seed；单次实验 CPU ≤ 5 分钟，纯 Python＋numpy，不 import 仓库内任何 Python，不跑 eng/** 任何脚本，不碰构建。

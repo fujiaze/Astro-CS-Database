@@ -83,7 +83,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
         env = dict(os.environ, ASTROCS_REPO=REPO)
         if workers_env:
             env.update(workers_env)
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式)。
         r = subprocess.run([EXE, "mosaic", "--json", self.cfg, "--events-jsonl", "-y"],
                            capture_output=True, text=True, env=env, timeout=timeout)

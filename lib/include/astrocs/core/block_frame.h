@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-501 阶段内命名块与块生命周期（内存管线）
 //
-// 依据：ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.2（阶段内命名块
+// 依据：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.2（阶段内命名块
 //       内存管线与块生命周期）；ENGINEERING_SPEC.md §4.1（管线纪律）；
 //       CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md（块元数据 9 字段、
 //       创建-消费-销毁状态机、DAG 四条非法图判据、provenance 流转、显式降级）。

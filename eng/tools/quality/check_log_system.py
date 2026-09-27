@@ -3,7 +3,7 @@
 """CHK-LOG-SYS：日志与错误系统判据（LOG-SYS-01 / 最高设计 §7.3）。
 
 权威依据
-  - ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）；
+  - docs/ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）；
   - docs/design/LOG_AND_ERROR_SYSTEM.md（详细设计）；
   - docs/contracts/LOG_AND_ERROR_CONTRACT.md（日志行/落点/降级/退出码映射合同）；
   - ENGINEERING_SPEC.md §11（日志、诊断与错误）、§10（每项检查有正例与负例、fail-closed）。
@@ -535,7 +535,7 @@ def self_test(root: pathlib.Path):
                         "eng/ci/ledgers"):
                 (d / rel).mkdir(parents=True, exist_ok=True)
             for rel in DOC_ANCHOR_FILES:
-                (d / rel).write_text("> 上游：ASTROCS_DESIGN.md §7.3\n\n默认落点 <output_dir>/logs\n",
+                (d / rel).write_text("> 上游：docs/ASTROCS_DESIGN.md §7.3\n\n默认落点 <output_dir>/logs\n",
                                      encoding="utf-8")
             return d
 

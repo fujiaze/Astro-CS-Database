@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
+// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
 // 整文件读取机制经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 
@@ -373,7 +373,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
     // ── RELEASE-02 SD-15: 帧级未加权通量型 SNR → HiPS properties ──────────
     // 值来源 = 上游 snr 节点产物 <output_dir>/p1_snr.json 的该帧
-    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; ASTROCS_DESIGN §3.4 /
+    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; docs/ASTROCS_DESIGN §3.4 /
     // 07_noise_snr.md §4.1）。本帧产品目录 = hips_dir（= <output_dir>/<frame_key>）
     // ⇒ sidecar 在父目录，按 frame_key 匹配本帧。
     // 缺失/不匹配/非有限 → **不写键**（Phase2 权重链据此 fail-closed; 禁伪造,

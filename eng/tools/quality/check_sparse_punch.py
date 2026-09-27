@@ -3,7 +3,7 @@
 """CHK-SPARSE-PUNCH / CHK-SPARSE-PUNCH-PROBE：裸形态「文件系统打洞」判据。
 
 权威依据
-  - ASTROCS_DESIGN.md §10（裸形态体积削减两种机制的分工、生效面、失败语义）；
+  - docs/ASTROCS_DESIGN.md §10（裸形态体积削减两种机制的分工、生效面、失败语义）；
   - docs/design/PRODUCT_STORAGE_FORM.md §9.1（打洞：何时 / 对谁 / 失败怎么办 / 如何验证）；
   - docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1（冻结规则 + 五条判据）
     与表 T2（包围盒 TRIM：显式 opt-in、默认不启用）；

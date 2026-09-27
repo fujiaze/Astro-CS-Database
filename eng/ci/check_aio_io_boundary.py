@@ -3,7 +3,7 @@
 """AIO-IO-BOUNDARY：「aio 是文件级唯一 I/O 边界」机器判据（FIX-201）。
 
 权威依据
-  - ASTROCS_DESIGN.md §9（I/O 与原子产品）逐字：
+  - docs/ASTROCS_DESIGN.md §9（I/O 与原子产品）逐字：
       「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio；不得有第二处 I/O 实现。」
       「机器判据：全仓文件打开 / 流式读写 / 文件系统写操作，除 aio 内部外应为 0。
         ⇒ 现存违规（HiPS 发布实现、FITS 输出里的直接文件打开、块↔文件导出/缓存
@@ -18,7 +18,7 @@
   - ENGINEERING_SPEC.md §8（每项检查必须有正例与负例、能红能绿、fail-closed）。
 
 ────────────────────────────────────────────────────────────────────────────
-I/O 点穷举表（ASTROCS_DESIGN §9，此外无）
+I/O 点穷举表（docs/ASTROCS_DESIGN §9，此外无）
 ────────────────────────────────────────────────────────────────────────────
   #1 阶段一 normalize：读 原始 FITS + 校准帧（.fit/.fts/.fits 等） → 写 HiPS
   #2 阶段二 mosaic   ：读 HiPS                                → 写 天球 HiPS
@@ -61,7 +61,7 @@ HARD（无白名单，命中即红）
      aio_frame_export_block_fits / aio_frame_export_block_xml /
      aio_frame_export_all_xml / aio_pipeline_export_xml）在
      lib/infrastructure/aio/** 之外的任何调用点 = 生产越界 ⇒ 红。
-     身份 = 非生产/诊断（ASTROCS_DESIGN §9 第二段）。
+     身份 = 非生产/诊断（docs/ASTROCS_DESIGN §9 第二段）。
 
 AIO-INTERNAL（设计允许）
   I1 lib/infrastructure/aio/** 内的文件系统原语 = aio 边界本体，允许。
@@ -76,7 +76,7 @@ INVENTORY（棘轮上限，fail-closed）
 
 CLEAN-403（棘轮收口；fail-closed）
   C1 PRODUCTION-RESIDUAL 类别命中数 = 0（生产路径直连 I/O 一律经 aio）。
-     类别由 classify() 决定；**非生产/诊断面**按 ASTROCS_DESIGN §9「必须删除或
+     类别由 classify() 决定；**非生产/诊断面**按 docs/ASTROCS_DESIGN §9「必须删除或
      明确降级为非生产/诊断并登记」逐条降级登记（如 lib/algorithms/coverage/tools/
      与 lib/algorithms/integration/v6/oracle/recon_dump.cpp 的 DEV-TOOL）。降级
      必须逐条给理由与归属，且台账命中数受棘轮约束（只减不增）。
@@ -90,7 +90,7 @@ CLEAN-403（棘轮收口；fail-closed）
      函数归属 = 确定性作用域启发式（见 enclosing_functions）; 台账由同一函数
      经 --update-inventory 生成 ⇒ 登记值与判定值按构造一致。
 
-A44（前台追加，同源违规；ASTROCS_DESIGN §2.1 + §9.73 裁决 A44）
+A44（前台追加，同源违规；docs/ASTROCS_DESIGN §2.1 + §9.73 裁决 A44）
   A1 活目标 HiPS provenance 不得再出现「权重模式」族键/取值来源：
      lib/infrastructure/aio/** 的 C/C++ 源码中零 ASTROCS_WEIGHT_MODE；
      HiPS provenance 只承载帧级 SNR 与稀疏控制点上的绝对 SNR。
@@ -140,7 +140,7 @@ HARD_ZERO_PREFIXES = (
     "lib/algorithms/fits_output/",    # FITS 输出（p3_output.cpp）
 )
 
-# H2：块↔文件接口符号（ASTROCS_DESIGN §9「不是生产接口」）。
+# H2：块↔文件接口符号（docs/ASTROCS_DESIGN §9「不是生产接口」）。
 DIAGNOSTIC_SYMBOLS = (
     "aio_frame_save_cache", "aio_frame_load_cache",
     "aio_frame_export_block_fits", "aio_frame_export_block_xml",
@@ -193,7 +193,7 @@ A44_SCAN_PREFIXES = ("lib/infrastructure/aio/",)
 # ── 台账分类（首条命中即生效；逐条给理由 + 归属） ────────────────────────────
 CATEGORY_RULES = (
     ("lib/infrastructure/pipeline/orchestrator/", "RETIRED-PENDING",
-     "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+     "docs/ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
      "§7.1 退役计划 / 后续控制包"),
     ("lib/infrastructure/pipeline/module_loader/", "BOOTSTRAP-TRUST-BOUNDARY",
      "模块装载与安全加载器是 aio 自身的装载前置（自举信任边界），不能依赖 aio 才启动",
@@ -245,7 +245,7 @@ CATEGORY_RULES = (
     # （cmake -S lib/algorithms/integration/v6/oracle -B <build>），不进根构建
     # （根 CMakeLists 无 add_subdirectory）、不注册 ctest；唯一消费者是
     # oracle/recon_exp04_parity.py 与实验单元 EXP-04 的 Python 算子对拍。
-    # 按 ASTROCS_DESIGN §9「必须删除或**明确降级为非生产/诊断并登记**」降级登记为
+    # 按 docs/ASTROCS_DESIGN §9「必须删除或**明确降级为非生产/诊断并登记**」降级登记为
     # DEV-TOOL（与 lib/algorithms/coverage/tools/ 同口径）。**只登记这一个文件**，
     # 不放行整目录 ⇒ 该目录内新增文件仍按 lib/algorithms/ 兜底判 PRODUCTION-RESIDUAL。
     ("lib/algorithms/integration/v6/oracle/recon_dump.cpp", "DEV-TOOL",
@@ -646,7 +646,7 @@ def build_inventory(root, hits):
         entries.append(entry)
     return {
         "schema": "astrocs-aio-io-boundary-inventory/v1",
-        "authority": "ASTROCS_DESIGN.md §9 + 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 U5",
+        "authority": "docs/ASTROCS_DESIGN.md §9 + 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 U5",
         "note": ("棘轮上限台账：每个非 aio 命中文件逐条给出理由与归属。命中数只减不增"
                  "（超过登记值判红）；文件转干净后须删除对应条目。本台账不是 waiver —— "
                  "HARD 层（lib/algorithms/drizzle/hips/**、lib/algorithms/fits_output/**、"
@@ -783,7 +783,7 @@ def evaluate(root, inventory, strict_inventory):
 
 
 def render(res, report, strict_inventory):
-    print("AIO-IO-BOUNDARY (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」; "
+    print("AIO-IO-BOUNDARY (docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」; "
           "§9.73 裁决 U5)")
     if res["fail_closed"]:
         print("  FAIL-CLOSED: " + res["fail_closed"])

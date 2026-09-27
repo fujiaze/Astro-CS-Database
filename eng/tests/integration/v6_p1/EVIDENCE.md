@@ -67,7 +67,7 @@ timeout 900 ctest --test-dir build_clean --output-on-failure                    
 磁盘结构：`<dir>/science.fits`（PRIMARY=SIGNAL + SUPPORT/VARIANCE/IVAR）+ `<dir>/phase1_product.json`。
 
 - 重开校验：FITS CHECKSUM/DATASUM + SHA-256 与 manifest/provenance 相符 + 逐 HDU BUNIT + 单位冻结串 + 二次律 + psfsw 四分量 + provenance 最小集 + 禁诊断来源（**现行产品不携带退役对象声明**；携带者按退役/迁移情形登记）。
-- Phase2 消费面（`consume_phase1_group_for_psfsw`）：**整体退役、无条件 fail-closed**（FZ-MODE-RETIRED + 迁移提示，不产出 w_psfsw）——该面的唯一产物就是退役对象 psfsw_robust_weight 的组内归一权重，`ASTROCS_DESIGN.md` §3.1 禁止 PSF 质量代理进入科学叠加权重。Oracle 侧保留独立复算作**非空洞守卫**（fixture 四分量本身能算出合法组内归一 ⇒ 拒绝是策略拒绝而非数据退化）。
+- Phase2 消费面（`consume_phase1_group_for_psfsw`）：**整体退役、无条件 fail-closed**（FZ-MODE-RETIRED + 迁移提示，不产出 w_psfsw）——该面的唯一产物就是退役对象 psfsw_robust_weight 的组内归一权重，`docs/ASTROCS_DESIGN.md` §3.1 禁止 PSF 质量代理进入科学叠加权重。Oracle 侧保留独立复算作**非空洞守卫**（fixture 四分量本身能算出合法组内归一 ⇒ 拒绝是策略拒绝而非数据退化）。
 - 无半成品：几何闭合不可能（closure tol=0）时发布失败，目标目录不存在且无 `.staging.tmp-` 残留。
 
 ## 5. 负向测试（24 条，全部红）

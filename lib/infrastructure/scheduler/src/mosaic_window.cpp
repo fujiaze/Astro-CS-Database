@@ -1,5 +1,5 @@
 // ACSD Core — ARCH-503 mosaic 天球窗口并行调度器实现
-// 依据：ASTROCS_DESIGN.md §8.3；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md
+// 依据：docs/ASTROCS_DESIGN.md §8.3；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md
 #include "astrocs/core/mosaic_window.h"
 
 #include <algorithm>
@@ -340,7 +340,7 @@ bool window_peak_residency_ok(const std::vector<WindowPeakSample>& samples,
       }
     }
   }
-  // ④ 窗口大小是显式内存权衡参数（ASTROCS_DESIGN §8.3）：两个窗口**都实际装满**时，
+  // ④ 窗口大小是显式内存权衡参数（docs/ASTROCS_DESIGN §8.3）：两个窗口**都实际装满**时，
   //    window_tiles 更大 ⇒ 峰值驻留**严格更大**。
   //    「严格」是反恒真的关键：编译期常量（F-07 的 32 B）与任何未记账的常量驻留
   //    在这里必然违反 —— 旧的「不减」表述会被常量满足，属退化判据。

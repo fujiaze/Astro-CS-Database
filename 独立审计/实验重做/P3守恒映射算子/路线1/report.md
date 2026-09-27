@@ -88,7 +88,7 @@ P3 的三对接口，每一对都在本路线实验中被实际走过一次：
   | 0.5 | 4.4e-16 | −1.0e-14 | 4.000000 | 4.000000 | ✓ |
 
   负例 (c) 无效应度量 4.44e-16；方差二次律比值 [9.000000, 9.000000]（期望 9）；pf=0.8 三数：1/pf²−1=0.562500、1/pf⁴−1=1.44140625、2.5·log10(1/pf²)=0.48455 mag。
-- **结论**：S4 三腿齐备。文档链修正：`/A_drop` 锚定 drizzle_engine.cpp:1617；`ASTROCS_DESIGN.md` `/A_pixel` 语境锚现行行 218（:209 为"链上位置"文字）。
+- **结论**：S4 三腿齐备。文档链修正：`/A_drop` 锚定 drizzle_engine.cpp:1617；`docs/ASTROCS_DESIGN.md` `/A_pixel` 语境锚现行行 218（:209 为"链上位置"文字）。
 - **诚实边界**：局部 TAN 合成验证代数与守恒，不覆盖球面大尺度交叠的数值积分路径（那属 S5/S8 的预算对象）。
 - **复现**：`cd code && python3 e4_flux_conservation.py`
 
@@ -163,7 +163,7 @@ P3 的三对接口，每一对都在本路线实验中被实际走过一次：
 | 锚 | 自验结论 | 正确锚/处置 |
 |---|---|---|
 | H1 astro_sphere_sink.cpp:1617 | 文件仅 632 行，行不存在 | S4 权重口径 → drizzle_engine.cpp:1617 |
-| H2 ASTROCS_DESIGN.md:209 `/A_pixel` | :209 实为"链上位置"文字 | → 现行行 218 |
+| H2 docs/ASTROCS_DESIGN.md:209 `/A_pixel` | :209 实为"链上位置"文字 | → 现行行 218 |
 | H3 spherical_overlap.h:223-224 "机器精度" | cpp:857 `WCS_ADAPTIVE_MAX_DEPTH=12`；05 §11 写 8，三值冲突 | S10 处置 |
 | H4 h:228 wcs_epsilon 1e-12 | cpp:942 `max(src_scale_rad*1e-12, 1e-11)`，差 3.3e5 倍 | S10 处置 |
 | H5 禁抄值 211034.6 残留 | hp_drizzle_api.h:114、orchestrator.cpp:180-181,198（注释；:198 实算式正确）、module_adapters.cpp:7603、drizzle/README.md:93 | S2 清除清单 |

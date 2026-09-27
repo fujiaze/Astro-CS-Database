@@ -9,7 +9,7 @@
 ?? site/
 ```
 
-- 权威链已读：`ASTROCS_DESIGN.md` §2.2 / §5.3 → `docs/science/CONTROL_WEIGHT_SNR.md`（全文）→
+- 权威链已读：`docs/ASTROCS_DESIGN.md` §2.2 / §5.3 → `docs/science/CONTROL_WEIGHT_SNR.md`（全文）→
   `docs/science/NOISE_MODEL.md`（全文）→ `docs/science/PSF_SIGNAL_WEIGHT.md`（全文）→
   `docs/plugins/algorithms_phase1/07_noise_snr.md`（全文，含 §4.1/§4.2a/§4.5/§8b）→
   `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:99`、`eng/packaging/config/defaults.json`
@@ -59,7 +59,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
   - 同文件 `:11463` → `  std::string weight_basis = "per_sample_ivar";   // §30.1: w_i = 逐样本 ivar`
   - 该 ivar 的生产者：`module_adapters.cpp:7980-7982` `P1NoiseFrameModel nmc = p1_noise_model_for_frame(...)`
     → `:8156` `frame, "variance", AIO_BLOCK_FLOAT32, var_plane.data(),` 单位串 `"定案2 NoiseWeightModelV1 blank-sky variance (ADU^2, ...)"`
-- 权威依据：`ASTROCS_DESIGN.md:171-174`「**加权方差必须含源项（正向约束）**…其中**必须含源的散粒项**（∝ `N_src/g`）。只含空背景项的方差是**背景受限**口径…最优加权的唯一来源是含源项的总方差」；
+- 权威依据：`docs/ASTROCS_DESIGN.md:171-174`「**加权方差必须含源项（正向约束）**…其中**必须含源的散粒项**（∝ `N_src/g`）。只含空背景项的方差是**背景受限**口径…最优加权的唯一来源是含源项的总方差」；
   同节 `:156-158`「以背景方差倒数定权会使权重不含源光子散粒项、把亮源像素过权」；
   `docs/science/CONTROL_WEIGHT_SNR.md:62-65`（§2a 同一条）；`docs/science/NOISE_MODEL.md` §5 vs §5c 两面的「取值互不代用」。
 - 现状 → 应为：现状 = 叠加权重 `w(x,y) = 1/σ_bg²(x,y)`（`σ_bg²` 由星点掩膜后 blank-sky MAD 平面场给出，按构造**不含源项**）
@@ -72,7 +72,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
   `PYTHONDONTWRITEBYTECODE=1 python -B "独立审计/复算件/aud202\aud202_recompute.py"` → `R4_production_paths`。
   独立复算给出「中心像素 `1/σ_bg²` 对 `1/σ_w²` 的过权倍数」随源通量的增长：
   F=10 e⁻ → ×1.011；100 → ×1.106；1000 → ×2.057；3×10⁴ → ×32.7；10⁶ → **×1058**。
-  即该缺陷对亮源像素的过权可达 3 个数量级，与 `ASTROCS_DESIGN.md:158` 的定性警告同向、量级由本次给出。
+  即该缺陷对亮源像素的过权可达 3 个数量级，与 `docs/ASTROCS_DESIGN.md:158` 的定性警告同向、量级由本次给出。
 
 ### AUD202-002 Zackay & Ofek I/II 归属与 arXiv 末位序号绑定：无绑反（对任务书给定前提的证伪性核查）
 
@@ -104,7 +104,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
   → `:739` `if (!compose_actual_snr(f.frame_snr, intra, &actual, &cerr))` → `:779` `if (!weight_from_snr(actual, f_ref_k, &w, &werr))`
   → `:783` `w *= g * g;`
 - 权威依据：`docs/science/PSF_SIGNAL_WEIGHT.md:82-89`（§4「阶段一产稀疏 SNR 控制点 → 阶段二用每帧的稀疏控制点重建稠密 SNR 面 → 取逆方差定权」= 生产默认组合）；
-  `docs/science/CONTROL_WEIGHT_SNR.md:229-237`（§8c 生产默认组合）；`ASTROCS_DESIGN.md:188-191`（帧内空间变化由 `sparse_snr_layer` 承载）。
+  `docs/science/CONTROL_WEIGHT_SNR.md:229-237`（§8c 生产默认组合）；`docs/ASTROCS_DESIGN.md:188-191`（帧内空间变化由 `sparse_snr_layer` 承载）。
 - 现状 → 应为：现状 = 走 ivar 时是**背景面**逐像素权（AUD202-001），走帧级 SNR 链时是
   `w_k = frame_snr_k²/F_ref,k² = 1/σ_F,k²(ref profile)` —— **一帧一个数，信号维与空间维全为常数**；
   两条路径都不存在「含源项的逐像素权重」。→ 应为 = 默认路径由稀疏绝对 SNR 控制点重建稠密 `SNR(x,y)` 后现场换算，
@@ -202,7 +202,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
 - 权威依据：`docs/science/NOISE_MODEL.md:131`（§5b 表"重采样相关"行：`var_out = Σ c_j² v_j`（对角）…
   **协方差非对角不落盘**）；`docs/science/UNCERTAINTY_AND_COVARIANCE.md:142`
   「⇒ 用产品 `variance` 做孔径/测量误差时，**必须显式加入协方差项**；`Σc_k²u_k` 标量式只在 `C_in` 对角时成立」；
-  `ASTROCS_DESIGN.md:181` 与 `docs/science/PSF_SIGNAL_WEIGHT.md:28-33`（完整形式 `W = a²PᵀC⁻¹P`，白噪声近似**只在噪声白时**成立）。
+  `docs/ASTROCS_DESIGN.md:181` 与 `docs/science/PSF_SIGNAL_WEIGHT.md:28-33`（完整形式 `W = a²PᵀC⁻¹P`，白噪声近似**只在噪声白时**成立）。
 - 现状 → 应为：现状 = 帧级 SNR / 稀疏控制点 / 深度 `m_5` 全部走对角（白噪声）形式，
   而 Phase1 产品是 drizzle 重采样后的 HEALPix 叶（相关长度 1–2 px，NOISE_MODEL §5b 实测 ρ₁ 列）
   ⇒ 落入 `07_noise_snr.md:130`「白噪声时为简单形式；**相关噪声时用完整信息核**」的"相关噪声"分支却没有用完整核。
@@ -264,7 +264,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
     `    est_dense = C.sigma_field_fast(img0, P_PATCH)`，`:139` → `        for name, est in [("sparse", est_sparse), ("dense", f32),`；
     `实验/absolute-snr/docs/EXP-04-RECONSTRUCTION.md:96-97` → 「**非算子臂**（对照）：`dense_P32`（稠密口径，P=32 patch 稳健 **σ**，块常数展开）、
     `dense_at_D`…、`frame_median`（帧级标量 = **控制值中位数**…）」
-- 权威依据：`ASTROCS_DESIGN.md:398-403`（§5.3：三种口径由 JSON 显式指定…三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示；
+- 权威依据：`docs/ASTROCS_DESIGN.md:398-403`（§5.3：三种口径由 JSON 显式指定…三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示；
   实际生效口径记录在 `snr_path_effective`）；`docs/science/CONTROL_WEIGHT_SNR.md:205-222`（§8b 把该图谱列为"SCI-B 定案；选型依据"）；
   `docs/plugins/algorithms_phase1/07_noise_snr.md:96`（§4.2「适用域由实验判定…完整适用域图谱由 `实验/absolute-snr` 给出」）。
 - 现状 → 应为：
@@ -282,7 +282,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
 - 证据级别：A（最高设计 §5.3 条款）+ 代码/台账接线事实 + B（实验脚本对象面读码核对，未重跑）。
 - 置信：**CONFIRMED**（对象错配与三口径不可达）；三臂数值本身 **未复算**（依赖 C++ 稠密 SNR 面，见需复测清单 R-2）
 - 复算命令或推导：`git grep -c "snr_path_effective" -- lib` → 无输出（0 命中）；`git grep -n "snr_path_effective" | cut -d: -f1 | sort -u`
-  → 27 命中全在 `ACCEPTANCE_SPEC.md / ASTROCS_DESIGN.md / docs/* / eng/ci/ledgers/*`；
+  → 27 命中全在 `ACCEPTANCE_SPEC.md / docs/ASTROCS_DESIGN.md / docs/* / eng/ci/ledgers/*`；
   `git grep -n "snr_estimate" -- '*.cpp' ':!lib/algorithms/noise_snr' ':!*/tests/*' ':!*/test/*'` → 空。对象错配为读码定义比对。
 
 ### AUD202-010 「不入库权重」被实质破坏：Phase1 落盘 ivar、Phase2 原样用作叠加权重；两篇权威文档在此直接打架
@@ -292,7 +292,7 @@ Phase2  w_k = actual_snr_k² / F_ref,k² · g_k² ,  actual_snr = frame_snr × i
     （随帧 HiPS 发布 `variance`/`ivar` 子产品，见 `:8805` `    if (variance_products_present) { products.push_back("variance"); products.push_back("ivar"); }`）
   - 消费不换算：同文件 `:11937` → `            w = static_cast<double>(ivar_v[d][static_cast<size_t>(p)]);`（**赋值即权重**，无 `SNR²/F_ref²` 换算步骤）
   - 打架条款：`docs/science/NOISE_MODEL.md:328` → 「**权重归一与适用域**：`ivar` 作为 Phase2 逐像素科学权重直接入加权（归一在消费侧 `Σw/Σ`），适用域=空背景随机分量…」
-    vs `ASTROCS_DESIGN.md:156-158, 171-174`（权重必须含源项）与 `docs/science/CONTROL_WEIGHT_SNR.md:229-237`（§8c「定权路径（唯一，无分支）：所有重建路径产出的稠密 SNR 场都走同一式取逆方差」）；
+    vs `docs/ASTROCS_DESIGN.md:156-158, 171-174`（权重必须含源项）与 `docs/science/CONTROL_WEIGHT_SNR.md:229-237`（§8c「定权路径（唯一，无分支）：所有重建路径产出的稠密 SNR 场都走同一式取逆方差」）；
     `docs/plugins/algorithms_phase1/07_noise_snr.md:201`（§4.6「权重不落盘：HiPS 里只存帧级 SNR 与稀疏**绝对** SNR，权重由 Phase2 集成时现场派生」）。
 - 权威依据：同上（两条互斥条款即为证据）。
 - 现状 → 应为：现状 = ①「权重只在 mosaic 现场换算、不入库」的红线在**实质**上被破坏 —— 权重由 Phase1 产出的

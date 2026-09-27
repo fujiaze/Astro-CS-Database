@@ -10,7 +10,7 @@
 
 ## 0.【链条位置】P1→P2→P3→P4/P5 链上的 P3
 
-P3 是科学链第三个纠缠点：接收 P2 的两路输入——逐帧测光与噪声模型（P1 定标后的图像＋P2 的绝对 SNR 传递），把平面像元通量以 drizzle 权重投到 HEALPix 球面叶上（ASTROCS_DESIGN.md §2.3：通量绝对守恒 drizzle＋稀疏 SNR 控制点同 chart 上球）；其输出（叶通量 S_p、权重、量化存储）直接被 P4 的稠密 SNR 重建与 P5 的加性天光扣除/无缝叠加消费。阶段间只经磁盘产品＋manifest＋哈希交换。
+P3 是科学链第三个纠缠点：接收 P2 的两路输入——逐帧测光与噪声模型（P1 定标后的图像＋P2 的绝对 SNR 传递），把平面像元通量以 drizzle 权重投到 HEALPix 球面叶上（docs/ASTROCS_DESIGN.md §2.3：通量绝对守恒 drizzle＋稀疏 SNR 控制点同 chart 上球）；其输出（叶通量 S_p、权重、量化存储）直接被 P4 的稠密 SNR 重建与 P5 的加性天光扣除/无缝叠加消费。阶段间只经磁盘产品＋manifest＋哈希交换。
 
 本报告与上下游接口的贯穿用例（exp03，`code/exp03_weight_conservation.py`）：
 
@@ -200,7 +200,7 @@ P3 是科学链第三个纠缠点：接收 P2 的两路输入——逐帧测光�
 6. **Górski §5.3 节号** → 审查员 “节号不可核” 已过时：arXiv:astro-ph/0409513 §5.3 原句（non-geodesic boundaries、cos θ = a+b×φ / a+b/φ²、式 19–22、式(23) θpix≡√Ωpix）一手闭合。
 7. **cpp:1002 “偏差<4e−8”** → 错，实测 4.16e−7 rad（R3-09）。
 8. **spherical_overlap.h:221–230**：“机器精度” 注释＋缺 floor 的表述与实现事实不符（exp07 的 q=floor(255S+0.5) 语义应写明）。
-9. **ASTROCS_DESIGN.md:218**：/A_pixel 契约错误（行号自 209 漂移）——exp03 的 A_pixel 归一负例（Σ_p w′ = pf²，亏 36%）定量演示了该契约错误的后果。
+9. **docs/ASTROCS_DESIGN.md:218**：/A_pixel 契约错误（行号自 209 漂移）——exp03 的 A_pixel 归一负例（Σ_p w′ = pf²，亏 36%）定量演示了该契约错误的后果。
 10. **DRIZZLE.md:44–50**：对 F-04（w_jp）锚有效、对 F-01（A_leaf）无锚——两位审查员各对一半，本实验同时闭合两面。
 
 ---

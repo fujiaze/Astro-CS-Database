@@ -25,7 +25,7 @@
 
 ### C1-G1 逐帧残差散度 vs EXP-04 量级（**主判据，判红**）
 
-- **规范**：`ASTROCS_DESIGN.md:120-128`（k_photo 是线性乘性标度，每帧独立标定到同一测光星等
+- **规范**：`docs/ASTROCS_DESIGN.md:120-128`（k_photo 是线性乘性标度，每帧独立标定到同一测光星等
   坐标系）；判据形态与数值 band 见 `实验/photometric-magnitude/REPORT_paper.md:71-80`（双边界）、
   `:147-149`（三帧物理前向仿真 `sigma_obs` = 0.045344 / 0.057457 / 0.051718 mag）、
   `:213`（真实 testdata 帧 n=157、`sigma_obs` = 0.026520 mag）；
@@ -100,7 +100,7 @@
 
 ### C2-G1 产品 variance 平面的噪声律（**判红**）
 
-- **规范**：`ASTROCS_DESIGN.md:131-137`（跨帧绝对 SNR 传递链）；
+- **规范**：`docs/ASTROCS_DESIGN.md:131-137`（跨帧绝对 SNR 传递链）；
   `docs/science/PHASE2_UPM.md`、`docs/science/SNR_CHAIN.md`；
   噪声律 `Var(p) = sigma0² + D(p)/g` 的 EXP-06 实测指数带 **0.995–1.017**
   （`实验/absolute-snr/docs/EXP-06-SUMMARY.md`、`results/exp06_e1_analytic.json`）。
@@ -204,7 +204,7 @@
 
 ### C3-G3 天光保留（非全减背景）
 
-- **规范**：`ASTROCS_DESIGN.md:139-145`（保留公共天光平面、多退少补）、
+- **规范**：`docs/ASTROCS_DESIGN.md:139-145`（保留公共天光平面、多退少补）、
   `p2_corrected.json` 的 `additive_mode_effective = "delta"`、`c_subtracted = false`、
   `sky_plane_mode = "delta_to_B_ref"`。
 - **判据**：`corrected 样本电平 / 帧自身天光等效电平 (k·bg/A_pixel) > 0.3`。
@@ -225,7 +225,7 @@
 
 ### C4-G1 逐 leaf 覆盖重数守恒（**零容差，全量**）
 
-- **规范**：`ASTROCS_DESIGN.md:147-159`（构造闭合）、
+- **规范**：`docs/ASTROCS_DESIGN.md:147-159`（构造闭合）、
   `docs/algorithms/DRIZZLE_GEOMETRY.md:41-57`（`w_jp = a_jp/A_pixel`、`D_p = Σ_j a_jp`）、
   `:235-237`（FP64 闭合 <1e-6 冻结门）、
   `lib/infrastructure/scheduler/src/module_adapters.cpp:8960-8962`（`p2_rejection_sample_mask.bin`

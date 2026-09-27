@@ -2,7 +2,7 @@
 
 **身份**：三路独立研究中的**路线 3**（互不通信、独立取证）。
 **输入**：审查件 \`独立审计/证据/审查-05-②-科学性-1.md\`、\`审查-05-②-科学性-3.md\`（同目录不存在 ②-科学性-2，已核实）；
-权威链 \`ASTROCS_DESIGN.md\` §2/§2.4、\`docs/science/NOISE_MODEL.md\` §5b、\`docs/science/CONTROL_WEIGHT_SNR.md\` §2b、
+权威链 \`docs/ASTROCS_DESIGN.md\` §2/§2.4、\`docs/science/NOISE_MODEL.md\` §5b、\`docs/science/CONTROL_WEIGHT_SNR.md\` §2b、
 \`docs/plugins/algorithms_phase1/07_noise_snr.md\` §4.1–4.5。
 **方法**：对清单每项独立补齐三腿（A 文献真值核验 / B 固定-seed 合成实验含非退化负例 / C 理论推导），
 纯 Python+numpy、不 import 仓库任何 Python、单实验 CPU ≤ 5 s（上限 5 min）。

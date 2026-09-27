@@ -117,7 +117,7 @@ bool write_signal_hips(const std::string& root) {
   std::ofstream p(fs::path(root_posix + "/signal/properties"), std::ios::binary);
   if (!p) return false;
   // FIX-402: 生产 Phase3 输入语义守卫只放行**显式声明**的面亮度输入
-  // （ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）: 裸 "ADU" 无像素语义声明
+  // （docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）: 裸 "ADU" 无像素语义声明
   // 按"单位不可判"拒绝 ⇒ fixture 按冻结单位表写 canonical signal_sb 串。
   p << hips_properties_text("ADU/sr");
   p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";

@@ -17,7 +17,7 @@ closing = r"""
 
 ## 一、本批最高危三条（只挑，不复述）
 
-1. **CR-240-18**（格 5）· P1 像素产品的发布序缺 `fsync(fd)`：`ASTROCS_DESIGN.md:688`、`docs/contracts/PUBLIC_API.md:1914`（R10-C 冻结序）与 aio 自身的 `aio_atomic_file.h:5-8`（"所有产品 = 临时文件/目录 + 校验 + fsync + 原子 rename 提交"）都要求 fsync 在 rename 之前，aio 的 JSON 原语照做了（`aio_atomic_file.h:120-146` 有 `_commit`/`fsync` 且失败即返码），但本文件的 FITS 面（`:1460-1474`＋`:1481-1495`）在 rename **之后**才 `fsync_parent_dir`，且该函数是 `void`（`aio_atomic_file.h:605-609`，内部 `(void)fsync_path(...)`）——本段唯一直接落在"正式目录只出现完整产品"这一主张上的洞。
+1. **CR-240-18**（格 5）· P1 像素产品的发布序缺 `fsync(fd)`：`docs/ASTROCS_DESIGN.md:688`、`docs/contracts/PUBLIC_API.md:1914`（R10-C 冻结序）与 aio 自身的 `aio_atomic_file.h:5-8`（"所有产品 = 临时文件/目录 + 校验 + fsync + 原子 rename 提交"）都要求 fsync 在 rename 之前，aio 的 JSON 原语照做了（`aio_atomic_file.h:120-146` 有 `_commit`/`fsync` 且失败即返码），但本文件的 FITS 面（`:1460-1474`＋`:1481-1495`）在 rename **之后**才 `fsync_parent_dir`，且该函数是 `void`（`aio_atomic_file.h:605-609`，内部 `(void)fsync_path(...)`）——本段唯一直接落在"正式目录只出现完整产品"这一主张上的洞。
 2. **CR-240-07**（格 3）· 占位合同 ID 进产品：`ALG-002` 同时是 star-psf（`:888`）、wcs-platesolve（`:910`）、photometry（`:949`）三个节点的自报算法 ID，经 `:13175`→`commands.cpp:275` 落进 `run_manifest.provenance.algorithm_ids`，而 `ALG-002` 不在合同 ID 唯一事实源 `docs/contracts/INDEX.yaml` 内；同族 `ALG-P1-CAL-001`/`ALG-P1-COS-001` 亦然（CI 夹具 `eng/ci/fixtures/run_manifest/real_manifest_sample.json:50-53` 已在钉这三个值）。
 3. **CR-240-15**（格 5）· 错型配置在节点 run 面静默回退默认（`:1354-1393`），而 P1 节点路径上没有任何 validate 面拦错型（`IModule::validate_config` 在 `lib/**` 零调用者，检索式见格 4"核过不报"），方向钉死为**放行**：字符串 `"false"` 对一个 `dflt=true` 的开关会被读成 true。与 `PUBLIC_API.md:721`「类型错→PARAM，无 silent default」相反。
 

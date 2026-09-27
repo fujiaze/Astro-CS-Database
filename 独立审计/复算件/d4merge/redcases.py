@@ -61,7 +61,7 @@ RED_BY_POS = {
    "eq = d_cpu_seconds / interval_ 用标称周期作分母；采样被拖慢时按 0.5 s 折算 ⇒ 等效核系统性高估（高估＝利用率好看＝fail-open）。同族 resource_recorder.h:128 亦用标称，而 commands.cpp:782 的窗长又改用实测 elapsed_seconds ⇒ 三处两口径；实测量 last_t_（:470）已备但全文件零使用",
    "AUD-402-判读-A2 §3.2"),
  "lib/infrastructure/cli/monitor.h:441": ("红", "L-04/L-08",
-   "dt = max(0.001, n×interval_) 仍以标称周期为分母；0.001 s 下界无任何说明（ASTROCS_DESIGN.md:239 §3.3 要求 epsilon 给物理或数值来源）",
+   "dt = max(0.001, n×interval_) 仍以标称周期为分母；0.001 s 下界无任何说明（docs/ASTROCS_DESIGN.md:239 §3.3 要求 epsilon 给物理或数值来源）",
    "AUD-402-判读-A2 §3.2／§3.4"),
  # ---- 采样周期多侧（A3 L7 + A2 L-02）----
  "lib/infrastructure/cli/monitor.h:336": ("红", "L7/L-02",

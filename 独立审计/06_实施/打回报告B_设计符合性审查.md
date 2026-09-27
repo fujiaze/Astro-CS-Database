@@ -1,7 +1,7 @@
 # 打回报告 B：最高设计符合性审查（不符项、上下级冲突、设计了没实现）
 
 读者：负责人（拿去打回开发节点）＋ 开发节点。被审基线 `c8f64e9a`。
-上位权威：`ASTROCS_DESIGN.md`（最高设计）沿索引下钻至 `docs/design/`、`docs/plugins/`、`docs/science/`、`docs/algorithms/`、`docs/contracts/`、`ENGINEERING_SPEC.md`、`ACCEPTANCE_SPEC.md`。
+上位权威：`docs/ASTROCS_DESIGN.md`（最高设计）沿索引下钻至 `docs/design/`、`docs/plugins/`、`docs/science/`、`docs/algorithms/`、`docs/contracts/`、`ENGINEERING_SPEC.md`、`ACCEPTANCE_SPEC.md`。
 科学量与常数的支撑问题不在本报告内，见《打回报告 A》。
 
 **判定分五档**（每条必须落进一档，不许混用）：

@@ -4,7 +4,7 @@
 
 规范依据
 --------
-- 创新点一定义：ASTROCS_DESIGN.md:120-128（k_photo 是**线性乘性标度**，每帧独立标定到
+- 创新点一定义：docs/ASTROCS_DESIGN.md:120-128（k_photo 是**线性乘性标度**，每帧独立标定到
   同一测光星等坐标系；I_photo = k_photo * I_cal）。
 - 双边界判据形态：实验/photometric-magnitude/REPORT_paper.md:71-80；三帧物理前向仿真
   sigma_obs = 0.045344 / 0.057457 / 0.051718 mag（:147-149）；真实 testdata 帧
@@ -337,7 +337,7 @@ def main():
         g.add("C1-G2-k-response-%s" % b,
               "置换 k 臂的帧间散度必须严格大于标定臂（估计器对 k 有响应）",
               float(perm["max_abs_dev_dex"]), bool(perm["max_abs_dev_dex"] > cal_o["max_abs_dev_dex"]),
-              source="ASTROCS_DESIGN.md:126", level="control",
+              source="docs/ASTROCS_DESIGN.md:126", level="control",
               note="标定 %.4f dex < 置换 %.4f dex" % (cal_o["max_abs_dev_dex"], perm["max_abs_dev_dex"]))
         # 诚实登记：标定 vs 不标定谁更一致 —— 两个估计器给出相反答案 ⇒ 不可判定
         cf[b]["verdict_calibration_removes_diff"] = "UNDECIDABLE"

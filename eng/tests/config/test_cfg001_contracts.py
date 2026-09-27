@@ -230,7 +230,7 @@ class TestDefaultsContract(unittest.TestCase):
         self.assertEqual([], failures, "锚点失败 %d 条：\n  - %s" % (len(failures), "\n  - ".join(failures)))
 
     def test_design_named_defaults_all_present(self):
-        """ASTROCS_DESIGN §3.3 点名的默认值项必须出现（含三项无权威数值者）。"""
+        """docs/ASTROCS_DESIGN §3.3 点名的默认值项必须出现（含三项无权威数值者）。"""
         _doc, fields = defaults_fields()
         for key in ["calibration.dark_light_exposure_tolerance", "psf.default_model",
                     "detection.threshold_sigma", "scalar_gate.rd", "scalar_gate.trend",

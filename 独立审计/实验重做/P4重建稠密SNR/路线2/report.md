@@ -10,7 +10,7 @@
 
 ## 1. 【链条位置】
 
-P4 在科学链中的位置与三腿证据的接口含义（依据 ASTROCS_DESIGN §2.4、NOISE_MODEL §5a/5b/5c、CONTROL_WEIGHT_SNR §2a/2b、weight_chain.cpp:91,153-155、snr_evaluator.h:109,113）：
+P4 在科学链中的位置与三腿证据的接口含义（依据 docs/ASTROCS_DESIGN §2.4、NOISE_MODEL §5a/5b/5c、CONTROL_WEIGHT_SNR §2a/2b、weight_chain.cpp:91,153-155、snr_evaluator.h:109,113）：
 
 ```
 P1 通量积分拟合(星等坐标)

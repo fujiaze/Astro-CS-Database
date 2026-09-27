@@ -127,7 +127,7 @@
    ],
    "组外单向点名": [
     "ACCEPTANCE_SPEC.md",
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/GLOSSARY.md",
     "docs/algorithms/HIPS_WRITER.md",
     "docs/algorithms/PHOTOMETRIC_FIT.md",
@@ -226,7 +226,7 @@
     "docs/science/UNCERTAINTY_AND_COVARIANCE.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/GLOSSARY.md",
     "docs/algorithms/GATES_AND_TOLERANCES.md",
     "docs/algorithms/PHASE3_RESAMPLE.md",
@@ -355,7 +355,7 @@
     "docs/science/REJECTION.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/algorithms/PHASE2_REJECTION.md",
     "docs/architecture/CACHE_POLICY.md",
     "docs/modules/phase2_rej.md",
@@ -452,7 +452,7 @@
     "docs/design/LOG_AND_ERROR_SYSTEM.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md",
     "docs/standards/CODE_STANDARD.md"
    ],
@@ -495,7 +495,7 @@
     "docs/standards/CODE_STANDARD.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "ENGINEERING_SPEC.md",
     "docs/design/PRODUCT_STORAGE_FORM.md",
     "docs/standards/ERROR_HANDLING_STANDARD.md"
@@ -700,7 +700,7 @@
     "docs/plugins/infrastructure/21_observability.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/architecture/ARCHITECTURE.md"
    ],
    "themes": {
@@ -728,7 +728,7 @@
     "docs/DOCUMENT_INDEX.yaml"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/algorithms/CALIBRATION_ALGORITHMS.md"
    ],
    "themes": {
@@ -780,7 +780,7 @@
     "docs/VERSIONING.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/ci/03_GATES.md"
    ],
    "themes": {
@@ -981,7 +981,7 @@
     "docs/contracts/PIPELINE_BLOCK_CONTRACT.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/contracts/SCHEDULER_CONTRACT.md",
     "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
     "docs/plugins/algorithms_phase2/12_rejection.md"
@@ -1060,7 +1060,7 @@
    },
    "正本候选": [],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/TRACEABILITY.csv"
    ],
    "themes": {
@@ -1114,7 +1114,7 @@
     "docs/standards/NUMERIC_STANDARD.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/contracts/DATA_SEMANTICS.md",
     "docs/science/PHASE3_HIPS_TO_FITS.md",
     "docs/standards/STANDARDS_REGISTRY.md"
@@ -1323,7 +1323,7 @@
     "docs/plugins/algorithms_phase1/01_calibration.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/DOCUMENT_INDEX.yaml",
     "docs/design/PHASE1_DETAILED_DESIGN.md",
     "docs/modules/MODULE_MAP.yaml",
@@ -1354,7 +1354,7 @@
     "docs/science/INTEGRATION.md"
    ],
    "组外单向点名": [
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "docs/algorithms/PHASE2_INTEGRATION.md",
     "docs/design/PHASE2_DETAILED_DESIGN.md",
     "docs/plugins/algorithms_phase1/07_noise_snr.md",
@@ -10632,7 +10632,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**缺开头\"上游\"行**（L1 标题、L3 即 `## 1. 验收体系总览`）。内联锚定极密（L31 五条点名最高设计 §2.1/§2.2/§4.4；L33\"实验单元目录结构与报告八要素的唯一正本 = 最高设计 §12.3\"；L86\"三类实验数据（最高设计 §12.2）\"；L194\"唯一正本 = `ASTROCS_DESIGN.md` §8.1\"；L208\"工作盘回收与预留口径 = `AGENTS.md` §3（**运营事实源，本节不复制数值**）\"；L271 版本 §13）。**判定：正文锚定优于 AGENTS/ENGINEERING，但 §3 要求的开头标注仍缺**",
+   "a": "**缺开头\"上游\"行**（L1 标题、L3 即 `## 1. 验收体系总览`）。内联锚定极密（L31 五条点名最高设计 §2.1/§2.2/§4.4；L33\"实验单元目录结构与报告八要素的唯一正本 = 最高设计 §12.3\"；L86\"三类实验数据（最高设计 §12.2）\"；L194\"唯一正本 = `docs/ASTROCS_DESIGN.md` §8.1\"；L208\"工作盘回收与预留口径 = `AGENTS.md` §3（**运营事实源，本节不复制数值**）\"；L271 版本 §13）。**判定：正文锚定优于 AGENTS/ENGINEERING，但 §3 要求的开头标注仍缺**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**缺开头行**"
@@ -10698,7 +10698,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有但形式弱**：§1 第 1 条 `ASTROCS_DESIGN.md`——\"项目是什么…（最高权威）\"，属**阅读顺序**标注，不是标准 01 §3 要求的\"章节号 + 标题\"元信息行。§2/§5/§10 内联引 §2/§12.2/§12.3。**判定：部分满足**（无 `> 上游：` 行）",
+   "a": "**有但形式弱**：§1 第 1 条 `docs/ASTROCS_DESIGN.md`——\"项目是什么…（最高权威）\"，属**阅读顺序**标注，不是标准 01 §3 要求的\"章节号 + 标题\"元信息行。§2/§5/§10 内联引 §2/§12.2/§12.3。**判定：部分满足**（无 `> 上游：` 行）",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "弱（§1 第1条）"
@@ -10737,7 +10737,7 @@
    "b": "保留（3处改指针）"
   },
   {
-   "path": "ASTROCS_DESIGN.md",
+   "path": "docs/ASTROCS_DESIGN.md",
    "field": "角色",
    "type": "同稿双式",
    "a_batch": "DA-01",
@@ -10748,7 +10748,7 @@
    "b": "★顶层决策"
   },
   {
-   "path": "ASTROCS_DESIGN.md",
+   "path": "docs/ASTROCS_DESIGN.md",
    "field": "主题",
    "type": "同稿双式",
    "a_batch": "DA-01",
@@ -10759,7 +10759,7 @@
    "b": "是什么·四创新点·顶层架构·CLI·发行·验收"
   },
   {
-   "path": "ASTROCS_DESIGN.md",
+   "path": "docs/ASTROCS_DESIGN.md",
    "field": "写法违规",
    "type": "同稿双式",
    "a_batch": "DA-01",
@@ -10770,7 +10770,7 @@
    "b": "0/3/0/0"
   },
   {
-   "path": "ASTROCS_DESIGN.md",
+   "path": "docs/ASTROCS_DESIGN.md",
    "field": "处置建议",
    "type": "同稿双式",
    "a_batch": "DA-01",
@@ -10808,7 +10808,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**缺开头\"上游\"行**。内联：L3 导语（\"把最高设计与实际代码的偏差变成可执行、可验收的工作单元\"）、L134\"八要素与目录结构的唯一正本 = `ASTROCS_DESIGN.md` §12.3\"、L163 任务状态词表与 §12.5 分域声明、L208\"取值集合 = §12.5 词表，本规范不复制\"、L129\"提交粒度正本 = `ENGINEERING_SPEC.md` §6\"。**判定：指针密度高、形式标注缺**",
+   "a": "**缺开头\"上游\"行**。内联：L3 导语（\"把最高设计与实际代码的偏差变成可执行、可验收的工作单元\"）、L134\"八要素与目录结构的唯一正本 = `docs/ASTROCS_DESIGN.md` §12.3\"、L163 任务状态词表与 §12.5 分域声明、L208\"取值集合 = §12.5 词表，本规范不复制\"、L129\"提交粒度正本 = `ENGINEERING_SPEC.md` §6\"。**判定：指针密度高、形式标注缺**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**缺开头行**"
@@ -10929,7 +10929,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**缺开头\"上游\"行**（L1 标题、L3 `---`、L5 即 `## 1. 语言、编译器与平台`）。内联锚定密集：L9 平台下限指针、L35\"架构与模块规范的上位权威 = 最高设计 §8\"、L81\"版本口径正本 = 最高设计 §13\"、L100\"资源口径上位权威 = 最高设计 §9\"、L174 文档正本分工唯一口径自 claim、§14 表（L232-241）\"ASTROCS_DESIGN.md — 一切条款的上位来源\"。**判定：文内有锚、开头无标注 → 标准 01 §3 未满足**",
+   "a": "**缺开头\"上游\"行**（L1 标题、L3 `---`、L5 即 `## 1. 语言、编译器与平台`）。内联锚定密集：L9 平台下限指针、L35\"架构与模块规范的上位权威 = 最高设计 §8\"、L81\"版本口径正本 = 最高设计 §13\"、L100\"资源口径上位权威 = 最高设计 §9\"、L174 文档正本分工唯一口径自 claim、§14 表（L232-241）\"docs/ASTROCS_DESIGN.md — 一切条款的上位来源\"。**判定：文内有锚、开头无标注 → 标准 01 §3 未满足**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**缺开头行**"
@@ -10962,7 +10962,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**保留（正本）**。四项：① 开头补 `> 上游：ASTROCS_DESIGN.md §0.1（唯一权威链）、§7.2（退出码）、§8（架构）、§9（资源）、§13（版本）`；② 按 §2 声明多角色共存例外或把 §3/§7 运营面拆到 `docs/development/`；③ 与 AGENTS 的三处重复改指针；④ 修 `aio_hips_writer.cpp` 为全路径",
+   "a": "**保留（正本）**。四项：① 开头补 `> 上游：docs/ASTROCS_DESIGN.md §0.1（唯一权威链）、§7.2（退出码）、§8（架构）、§9（资源）、§13（版本）`；② 按 §2 声明多角色共存例外或把 §3/§7 运营面拆到 `docs/development/`；③ 与 AGENTS 的三处重复改指针；④ 修 `aio_hips_writer.cpp` 为全路径",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "保留（补上游行）"
@@ -10995,7 +10995,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**缺\"上游\"行**，且**全文不引用最高设计**（`grep -c ASTROCS_DESIGN FATDUCK_ACCESS.md` → 0）。唯一上位味道在 L42-43\"见审计 §14 性能实测\"（无文件名）与 L36\"（AGENTS.md：Windows 不可用时记录等待，不阻塞 Linux 开发）\"（**无节号**）。**判定：上游 = 缺**",
+   "a": "**缺\"上游\"行**，且**全文不引用最高设计**（`grep -c docs/ASTROCS_DESIGN FATDUCK_ACCESS.md` → 0）。唯一上位味道在 L42-43\"见审计 §14 性能实测\"（无文件名）与 L36\"（AGENTS.md：Windows 不可用时记录等待，不阻塞 Linux 开发）\"（**无节号**）。**判定：上游 = 缺**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**缺（且不引上位）**"
@@ -11072,7 +11072,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L4 首段末即标 `（ASTROCS_DESIGN.md §1.1）`；L8\"权威链只有一条…（`ASTROCS_DESIGN.md` §0.1）\"；L9\"与本文档集冲突时以 `ASTROCS_DESIGN.md` 为准（该文 §0）\"；§科学目标四条逐条标 §2.1/§2.2/§2.3/§2.4。**判定：满足标准 01 §3（根文档中唯一在开头给出上位条款号的）**",
+   "a": "**有**：L4 首段末即标 `（docs/ASTROCS_DESIGN.md §1.1）`；L8\"权威链只有一条…（`docs/ASTROCS_DESIGN.md` §0.1）\"；L9\"与本文档集冲突时以 `docs/ASTROCS_DESIGN.md` 为准（该文 §0）\"；§科学目标四条逐条标 §2.1/§2.2/§2.3/§2.4。**判定：满足标准 01 §3（根文档中唯一在开头给出上位条款号的）**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有（§1.1/§0.1）"
@@ -11149,10 +11149,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "**两块上游**：:3 `ASTROCS_DESIGN.md §8（软件架构）`；:5-7 又一块\"上游：`AGENTS.md` §3、`ENGINEERING_SPEC.md` §1/§6、`ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）\"",
+   "a": "**两块上游**：:3 `docs/ASTROCS_DESIGN.md §8（软件架构）`；:5-7 又一块\"上游：`AGENTS.md` §3、`ENGINEERING_SPEC.md` §1/§6、`docs/ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）\"",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "**两块**：:3 `ASTROCS_DESIGN.md §8（软件架构）`；:5-7 又一块\"上游：`AGENTS.md` §3、`ENGINEERING_SPEC.md` §1/§6、`ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）\"⇒ 同文件两处上游声明（标准 01 §1/§3）"
+   "b": "**两块**：:3 `docs/ASTROCS_DESIGN.md §8（软件架构）`；:5-7 又一块\"上游：`AGENTS.md` §3、`ENGINEERING_SPEC.md` §1/§6、`docs/ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）\"⇒ 同文件两处上游声明（标准 01 §1/§3）"
   },
   {
    "path": "docs/DEVELOPER_GUIDE.md",
@@ -11215,10 +11215,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "①:5-7 把版本条款记为 `ASTROCS_DESIGN.md §12`——\"Alpha 前无版本信息\"实际在 **§13**（§12 是\"验证体系\"，:482 的 `--version` 行亦自指\"见 §13\"）⇒ 节号错；②:35\"仅修改 `lib/` 源码\"与 `ENGINEERING_SPEC.md` §7 目录规范（eng/tests、docs、eng/tools 皆为常规改动面）冲突；③:39\"日志统一写 `run/logs/<module>/<YYYYMMDD>/`\"与最高设计 §7.3/`docs/design/LOG_AND_ERROR_SYSTEM.md` §4 的运行日志落点（`<output_dir>/logs`）冲突（与 LOGGING_DIAGNOSTICS_STANDARD 同型错误，二者互为复述）；④:28 `variance_propagation_test`、:27 `noise_model_science_test` 等目标名实测在 `eng/**`+`lib/**` 有引用（`git grep -l -w` 命中 3–13 份），不判悬空，但\"矩阵\"与 `docs/contracts/TEST_MATRIX.md` 正本无指针关系",
+   "a": "①:5-7 把版本条款记为 `docs/ASTROCS_DESIGN.md §12`——\"Alpha 前无版本信息\"实际在 **§13**（§12 是\"验证体系\"，:482 的 `--version` 行亦自指\"见 §13\"）⇒ 节号错；②:35\"仅修改 `lib/` 源码\"与 `ENGINEERING_SPEC.md` §7 目录规范（eng/tests、docs、eng/tools 皆为常规改动面）冲突；③:39\"日志统一写 `run/logs/<module>/<YYYYMMDD>/`\"与最高设计 §7.3/`docs/design/LOG_AND_ERROR_SYSTEM.md` §4 的运行日志落点（`<output_dir>/logs`）冲突（与 LOGGING_DIAGNOSTICS_STANDARD 同型错误，二者互为复述）；④:28 `variance_propagation_test`、:27 `noise_model_science_test` 等目标名实测在 `eng/**`+`lib/**` 有引用（`git grep -l -w` 命中 3–13 份），不判悬空，但\"矩阵\"与 `docs/contracts/TEST_MATRIX.md` 正本无指针关系",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:7 把\"Alpha 前无版本信息\"记为 `ASTROCS_DESIGN.md §12`——§12 是\"验证体系\"（:721），该条实际在 **§13**（:805-:810\"alpha 阶段之前，程序、代码与产物中不出现任何版本信息\"）⇒ 节号错；②:39 的日志落点与 §7.3:530、§10:696 相反（同 2.10，且它正是 `CHK-LOG-SYS` R3 判红面）；③:35\"仅修改 `lib/` 源码\" ↔ `ENGINEERING_SPEC.md` §7 目录规范把 `eng/`、`docs/`、`eng/tests/` 都列为常规改动面（本批多条整改项本身就在 docs/ 与 eng/）⇒ 与上位目录规范冲突"
+   "b": "①:7 把\"Alpha 前无版本信息\"记为 `docs/ASTROCS_DESIGN.md §12`——§12 是\"验证体系\"（:721），该条实际在 **§13**（:805-:810\"alpha 阶段之前，程序、代码与产物中不出现任何版本信息\"）⇒ 节号错；②:39 的日志落点与 §7.3:530、§10:696 相反（同 2.10，且它正是 `CHK-LOG-SYS` R3 判红面）；③:35\"仅修改 `lib/` 源码\" ↔ `ENGINEERING_SPEC.md` §7 目录规范把 `eng/`、`docs/`、`eng/tests/` 都列为常规改动面（本批多条整改项本身就在 docs/ 与 eng/）⇒ 与上位目录规范冲突"
   },
   {
    "path": "docs/DEVELOPER_GUIDE.md",
@@ -11303,10 +11303,10 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "`ASTROCS_DESIGN.md §4.2`；**L7 是本分片最规范的权威句**： `连续数学定义以 docs/science/CALIBRATION.md（SCI-CAL-001，FROZEN）为唯一权威； 本文只做离散化与实现事实登记，本文为下游派生件，SCI 的修改从 SCI 自身发起` —— **权威指向上位、自称派生件、声明修改方向，三点全对**。§2 标题再复述\"（SCI-CAL-001 §5 转述，权威以 SCI 为准）\"。",
+   "a": "`docs/ASTROCS_DESIGN.md §4.2`；**L7 是本分片最规范的权威句**： `连续数学定义以 docs/science/CALIBRATION.md（SCI-CAL-001，FROZEN）为唯一权威； 本文只做离散化与实现事实登记，本文为下游派生件，SCI 的修改从 SCI 自身发起` —— **权威指向上位、自称派生件、声明修改方向，三点全对**。§2 标题再复述\"（SCI-CAL-001 §5 转述，权威以 SCI 为准）\"。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "L3 `> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）`——实核 `ASTROCS_DESIGN.md:254` 的 §4.2 标题确为「节点流程」，且 §4 = 「normalize（Phase1）：单帧标准化」⇒ **指代成立**，本份不在\"§号与标题错配\"缺陷族内。L5 另标 SCI 上游 `SCI-CAL-001`"
+   "b": "L3 `> 上游：docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）`——实核 `docs/ASTROCS_DESIGN.md:254` 的 §4.2 标题确为「节点流程」，且 §4 = 「normalize（Phase1）：单帧标准化」⇒ **指代成立**，本份不在\"§号与标题错配\"缺陷族内。L5 另标 SCI 上游 `SCI-CAL-001`"
   },
   {
    "path": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
@@ -11314,7 +11314,7 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "`ASTROCS_DESIGN.md §4.2`；**L7 是本分片最规范的权威句**： `连续数学定义以 docs/science/CALIBRATION.md（SCI-CAL-001，FROZEN）为唯一权威； 本文只做离散化与实现事实登记，本文为下游派生件，SCI 的修改从 SCI 自身发起` —— **权威指向上位、自称派生件、声明修改方向，三点全对**。§2 标题再复述\"（SCI-CAL-001 §5 转述，权威以 SCI 为准）\"。",
+   "a": "`docs/ASTROCS_DESIGN.md §4.2`；**L7 是本分片最规范的权威句**： `连续数学定义以 docs/science/CALIBRATION.md（SCI-CAL-001，FROZEN）为唯一权威； 本文只做离散化与实现事实登记，本文为下游派生件，SCI 的修改从 SCI 自身发起` —— **权威指向上位、自称派生件、声明修改方向，三点全对**。§2 标题再复述\"（SCI-CAL-001 §5 转述，权威以 SCI 为准）\"。",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:3` §4.2 节点流程（实核成立）"
@@ -11416,7 +11416,7 @@
    "a": "- **L513 `DISP-CAL-006 apply_photometry（ALG-CAL-006）**已订正**：已编译…且有生产调用方`** —— **\"已订正\"＝整改完成态历史叙事**（本文件唯一一处）。 - 任务编号：`P1-CAL-IMPL/TEST/INT`（§8/§9/§10 标题与正文多处）。 - L592 `config_sha256` —— **域内字段名，非版本锚，不判违例**（特别注明以免误删）。 - 无日期、无 commit、无\"废止/留痕\"字样 —— **本分片写法最接近合规的长文档之一**。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "① 状态编号入正文：L5 `状态: CONTRACT_READY`（标准 01 §4 点名禁项；状态口径唯一属 `ASTROCS_DESIGN.md §12.5`）。 ② 任务/缺陷编号密集：`DISP-CAL-001..014`（§10 全节 L490–607）、`P1-CAL-IMPL`（L277/403/426）、`P1-CAL-TEST`（L428/615）、`TEST-CAL-DESIGN-001`（L428/615）、`BIAS-001`（L524）、`UNIT-001`（L554）、`FIX` 型无。 ③ 历史叙事：L618 节标题 `参考文献与参考代码库（含许可证）— SCI-001-S2 补齐`、L620 `原有条款全部保留`、L492 `DISP-CAL-001（**部分关闭**）`、L498 `DISP-CAL-010（**已按现行语义落地**）`、L513 `DISP-CAL-006 … **已订正**`、L337 `**已退役**：逐条分歧 …` ⇒ 违 §4「无旧版/曾/已修式历史叙事，需表达硬约束时用正向条款」。 ④ L592 `config_sha256` 是**字段名**不是哈希值。 ⑤ L337 与 L340 之间「现状依据与 oracle 一律取自生产源」属过程性辩解。 ⑥ 无日期、无 commit sha（全文未检出 YYYY-MM-DD 与 7–40 位十六进制字面量）。"
+   "b": "① 状态编号入正文：L5 `状态: CONTRACT_READY`（标准 01 §4 点名禁项；状态口径唯一属 `docs/ASTROCS_DESIGN.md §12.5`）。 ② 任务/缺陷编号密集：`DISP-CAL-001..014`（§10 全节 L490–607）、`P1-CAL-IMPL`（L277/403/426）、`P1-CAL-TEST`（L428/615）、`TEST-CAL-DESIGN-001`（L428/615）、`BIAS-001`（L524）、`UNIT-001`（L554）、`FIX` 型无。 ③ 历史叙事：L618 节标题 `参考文献与参考代码库（含许可证）— SCI-001-S2 补齐`、L620 `原有条款全部保留`、L492 `DISP-CAL-001（**部分关闭**）`、L498 `DISP-CAL-010（**已按现行语义落地**）`、L513 `DISP-CAL-006 … **已订正**`、L337 `**已退役**：逐条分歧 …` ⇒ 违 §4「无旧版/曾/已修式历史叙事，需表达硬约束时用正向条款」。 ④ L592 `config_sha256` 是**字段名**不是哈希值。 ⑤ L337 与 L340 之间「现状依据与 oracle 一律取自生产源」属过程性辩解。 ⑥ 无日期、无 commit sha（全文未检出 YYYY-MM-DD 与 7–40 位十六进制字面量）。"
   },
   {
    "path": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
@@ -11567,10 +11567,10 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "`ASTROCS_DESIGN.md §4.2`；`SCI-CAL-001`（§2 参数表 hot_sigma/cold_sigma/ method/max_structure_size、§6 假设、§9a mask 极性 1=坏点）；\"本文档只登记离散算法与实现事实， 不修改 SCI\"。**上游具体。**",
+   "a": "`docs/ASTROCS_DESIGN.md §4.2`；`SCI-CAL-001`（§2 参数表 hot_sigma/cold_sigma/ method/max_structure_size、§6 假设、§9a mask 极性 1=坏点）；\"本文档只登记离散算法与实现事实， 不修改 SCI\"。**上游具体。**",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "L3 `> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）`——§4.2 实为「节点流程」（`ASTROCS_DESIGN.md:254`）⇒ **指代成立**，本份不在 §号错配缺陷族内"
+   "b": "L3 `> 上游：docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）`——§4.2 实为「节点流程」（`docs/ASTROCS_DESIGN.md:254`）⇒ **指代成立**，本份不在 §号错配缺陷族内"
   },
   {
    "path": "docs/algorithms/COSMETIC_ALGORITHMS.md",
@@ -11578,7 +11578,7 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "`ASTROCS_DESIGN.md §4.2`；`SCI-CAL-001`（§2 参数表 hot_sigma/cold_sigma/ method/max_structure_size、§6 假设、§9a mask 极性 1=坏点）；\"本文档只登记离散算法与实现事实， 不修改 SCI\"。**上游具体。**",
+   "a": "`docs/ASTROCS_DESIGN.md §4.2`；`SCI-CAL-001`（§2 参数表 hot_sigma/cold_sigma/ method/max_structure_size、§6 假设、§9a mask 极性 1=坏点）；\"本文档只登记离散算法与实现事实， 不修改 SCI\"。**上游具体。**",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:3` §4.2（实核成立）"
@@ -11655,7 +11655,7 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "**有**（L3–15，含 L15 `状态词唯一口径 = ASTROCS_DESIGN.md §12.5；IMPLEMENTED 只由验收签发`）。 违 §4；且 L15 属 §1 末条禁的\"自declare唯一口径\"。",
+   "a": "**有**（L3–15，含 L15 `状态词唯一口径 = docs/ASTROCS_DESIGN.md §12.5；IMPLEMENTED 只由验收签发`）。 违 §4；且 L15 属 §1 末条禁的\"自declare唯一口径\"。",
    "b_batch": "D1残余",
    "b_form": "V",
    "b": "**有**：L5–15 两块引用（`ID 覆盖: ALG-COS-001..005 状态: CONTRACT_READY 上游: SCI-CAL-001 下游: …` + 实现源/迁移目标/科学定义指针 + 状态口径声明）⇒ 违标准 01 §4「文档开头无元信息块（文档 ID、状态编号）」"
@@ -11666,7 +11666,7 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "**有**（L3–15，含 L15 `状态词唯一口径 = ASTROCS_DESIGN.md §12.5；IMPLEMENTED 只由验收签发`）。 违 §4；且 L15 属 §1 末条禁的\"自declare唯一口径\"。",
+   "a": "**有**（L3–15，含 L15 `状态词唯一口径 = docs/ASTROCS_DESIGN.md §12.5；IMPLEMENTED 只由验收签发`）。 违 §4；且 L15 属 §1 末条禁的\"自declare唯一口径\"。",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有（`:5-15`）"
@@ -11680,7 +11680,7 @@
    "a": "- L10–13 `迁移目标目录 lib/algorithms/cosmetic/（落码由 P1-COS-IMPL 执行，**尚未存在**生产符号）` —— 未建状态叙事。 - **L15 `算法分层与 ALG-CAL-004 的重叠界定见 §0`** 之外的 `状态词唯一口径` 句（同上条）。 - §0 `**已退役**`、`退役通道 cc_*`、`**不再**静默…`（§5 附近）等完成/退役语域； `lib/algorithms/calibration/cpp/` 双实现去留\"归 P1-COS-IMPL\"。 - 任务编号：`P1-COS-IMPL`、`P1-COS-TEST`、`DISP-COS-*`、`TEST-COS-DESIGN-001`。 - L416 `— SCI-001-S2 补齐`（共例）。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "① L15 「**状态词唯一口径 =** `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发」⇒ 直撞标准 01 §1 末条「任何文档不声明自己的第二套权威顺序或\"唯一口径\"」，也撞 §4「开头无元信息块（…纪律声明）」；同族句另见 L14「不修改 SCI」。 ② 状态编号：L5 `状态: CONTRACT_READY`。 ③ 任务/缺陷编号密集：`ALG-COS-001..005`、`DISP-COS-001..012`（§10 表）、`P1-COS-IMPL`（L11/307）、`P1-COS-TEST`（L28/311/313）、`TEST-COS-DESIGN-001`（L5/311）、`TEST-P1-COS-001`（L313/411）、`P1-COS-DOC`。 ④ 历史叙事：L36/L289「**已退役**」、L306「退役源只作**历史登记**」、L416 节标题「— SCI-001-S2 **补齐**」、L418「原有的条款全部保留」（原文 `原有条款全部保留`）⇒ 违 §4「无旧版/留痕/曾/原 xx 等历史叙事」。 ⑤ 时态/现状叙事混进规范条款：L10–11「迁移目标目录 …（落码由 P1-COS-IMPL 执行，**尚未存在生产符号**）」——该现状陈述在 HEAD 已不成立（见「与上位冲突」1），属 §4「只写现行设计要怎样」的反例。 ⑥ 无日期、无 commit sha、无 sha256 值"
+   "b": "① L15 「**状态词唯一口径 =** `docs/ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发」⇒ 直撞标准 01 §1 末条「任何文档不声明自己的第二套权威顺序或\"唯一口径\"」，也撞 §4「开头无元信息块（…纪律声明）」；同族句另见 L14「不修改 SCI」。 ② 状态编号：L5 `状态: CONTRACT_READY`。 ③ 任务/缺陷编号密集：`ALG-COS-001..005`、`DISP-COS-001..012`（§10 表）、`P1-COS-IMPL`（L11/307）、`P1-COS-TEST`（L28/311/313）、`TEST-COS-DESIGN-001`（L5/311）、`TEST-P1-COS-001`（L313/411）、`P1-COS-DOC`。 ④ 历史叙事：L36/L289「**已退役**」、L306「退役源只作**历史登记**」、L416 节标题「— SCI-001-S2 **补齐**」、L418「原有的条款全部保留」（原文 `原有条款全部保留`）⇒ 违 §4「无旧版/留痕/曾/原 xx 等历史叙事」。 ⑤ 时态/现状叙事混进规范条款：L10–11「迁移目标目录 …（落码由 P1-COS-IMPL 执行，**尚未存在生产符号**）」——该现状陈述在 HEAD 已不成立（见「与上位冲突」1），属 §4「只写现行设计要怎样」的反例。 ⑥ 无日期、无 commit sha、无 sha256 值"
   },
   {
    "path": "docs/algorithms/COSMETIC_ALGORITHMS.md",
@@ -11842,10 +11842,10 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "`ASTROCS_DESIGN.md §5.4`；`SCI-UPM-001`（FROZEN）＋辅助 `SCI-UPM-WEIGHT-001`、`SCI-NOISE-001`、 `SCI-SCOPE-001 §处理链第 5 步`；关联 `ALG-UPM-CONTROL-IVAR-001`（本文件 §5.4 承接）。**多源、具体。**",
+   "a": "`docs/ASTROCS_DESIGN.md §5.4`；`SCI-UPM-001`（FROZEN）＋辅助 `SCI-UPM-WEIGHT-001`、`SCI-NOISE-001`、 `SCI-SCOPE-001 §处理链第 5 步`；关联 `ALG-UPM-CONTROL-IVAR-001`（本文件 §5.4 承接）。**多源、具体。**",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "L5 `> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）`——实测 `ASTROCS_DESIGN.md:406` §5.4 = 「天光平面与统一相对模型（UPM）」⇒ **成立**。 但 L452 正文另引「`ASTROCS_DESIGN.md` §8（资源与并行的强制条款…）与 **§7.1（模块边界）**」→ 实测 §7.1 = 「命令树（唯一）」（`:466`）、§8 = 「软件架构」（`:542`），而被引内容（浮点归约顺序冻结、并行开关不改变科学数值、线程预算唯一来源）实在 **§9（CPU 后端与资源）`:677`** ⇒ **本份命中\"§号与标题错配\"缺陷族 1 处**（派单点名的那一族，逐条核后仅此处中弹）"
+   "b": "L5 `> 上游：docs/ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）`——实测 `docs/ASTROCS_DESIGN.md:406` §5.4 = 「天光平面与统一相对模型（UPM）」⇒ **成立**。 但 L452 正文另引「`docs/ASTROCS_DESIGN.md` §8（资源与并行的强制条款…）与 **§7.1（模块边界）**」→ 实测 §7.1 = 「命令树（唯一）」（`:466`）、§8 = 「软件架构」（`:542`），而被引内容（浮点归约顺序冻结、并行开关不改变科学数值、线程预算唯一来源）实在 **§9（CPU 后端与资源）`:677`** ⇒ **本份命中\"§号与标题错配\"缺陷族 1 处**（派单点名的那一族，逐条核后仅此处中弹）"
   },
   {
    "path": "docs/algorithms/PHASE2_SAMPLER.md",
@@ -11853,7 +11853,7 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "`ASTROCS_DESIGN.md §5.4`；`SCI-UPM-001`（FROZEN）＋辅助 `SCI-UPM-WEIGHT-001`、`SCI-NOISE-001`、 `SCI-SCOPE-001 §处理链第 5 步`；关联 `ALG-UPM-CONTROL-IVAR-001`（本文件 §5.4 承接）。**多源、具体。**",
+   "a": "`docs/ASTROCS_DESIGN.md §5.4`；`SCI-UPM-001`（FROZEN）＋辅助 `SCI-UPM-WEIGHT-001`、`SCI-NOISE-001`、 `SCI-SCOPE-001 §处理链第 5 步`；关联 `ALG-UPM-CONTROL-IVAR-001`（本文件 §5.4 承接）。**多源、具体。**",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:5` §5.4（实核成立）；正文 `:452` 另引「§7.1（模块边界）」＝节号错配"
@@ -11996,10 +11996,10 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "1. **`k_corr` 证据源可复跑性与 `UPM_SOLVER.md` 互斥**： 本文件 §7 表判 `常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 control_median_mc_test 已注册 ⇒ 可复跑**`； 而 `UPM_SOLVER.md:110–111` 同一段内既写\"已注册（可复跑）\"又写\"**当前不可复跑**\"（并于 L128 第三次写\"可复跑\"）。 ⇒ **跨文档同一证据源三种读法**，直接影响 AGENTS §5\"判据非退化/有证据资格\"的成立性。 2. **行数声明失真**：L15/L89 `sampler.cpp（1536 行，实测）`、`sampler.h（288 行，实测）` —— 实测 **1503 / 273**（**−33 / −15**，文件是**变短**的， 故 §3/§5 中靠后符号的锚号反而可能落在真实内容之后）。门判红 L1×4 + L3×1，互证。 3. **§2 单位块的量纲自证 vs `PHASE2_INTEGRATION.md §8` 冲突**（本审计的正面证据，非本文件之错）： L64–84 的\"适用域与证据\"给出**完整可复算的量纲闭环**： 真实 M42 帧 Ω_px=2.2991e-11 sr、σ_bg 中位 14.826 ADU/px → control_ivar=0.5937 (ADU/px)⁻² → 换算因子 (1/Ω_px)²=1.8919e21 → **3.14e-22**，与生产实测中位 **5.6e-22** 同量级（1.78×）； 并给出决定性负例：**\"若单位为裸 ADU，推出值应为 0.594，与生产实测相差 22 dex ⇒ 单位是 ADU·sr⁻¹，不是 ADU。\"** ⇒ **本文件是 §5 冲突表中支持 `ADU·sr⁻¹` 一側的最强定量论证**（科学终裁仍归负责人/AUD-201）。 - **正面向样例（应作为目标架构范式）**： - §2 的\"适用域与证据（本条是上表的量纲依据，不是约定）\"——**先给结论、再给推导链、再给反证量级**； - §5.3 L214 起对 `1.482602218505602` 常数的\"适用域\"专段（E[MAD×1.4826]/σ_true 的蒙特卡洛验证）； - §6 L452 明写\"**不另立权威**（§0.1：只有一份权威链）\"并回指 `ASTROCS_DESIGN.md §8/§7.1` —— **全分片唯一显式承认单一权威链的下位文档**； - §7 \"与 SCI 的对应与偏差\"表：**逐条 SCI 语义 × 实现现状 × 判定**，8 行中 7 行\"一致\"、 1 行标注不在本域——**可核的符合性矩阵**。",
+   "a": "1. **`k_corr` 证据源可复跑性与 `UPM_SOLVER.md` 互斥**： 本文件 §7 表判 `常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 control_median_mc_test 已注册 ⇒ 可复跑**`； 而 `UPM_SOLVER.md:110–111` 同一段内既写\"已注册（可复跑）\"又写\"**当前不可复跑**\"（并于 L128 第三次写\"可复跑\"）。 ⇒ **跨文档同一证据源三种读法**，直接影响 AGENTS §5\"判据非退化/有证据资格\"的成立性。 2. **行数声明失真**：L15/L89 `sampler.cpp（1536 行，实测）`、`sampler.h（288 行，实测）` —— 实测 **1503 / 273**（**−33 / −15**，文件是**变短**的， 故 §3/§5 中靠后符号的锚号反而可能落在真实内容之后）。门判红 L1×4 + L3×1，互证。 3. **§2 单位块的量纲自证 vs `PHASE2_INTEGRATION.md §8` 冲突**（本审计的正面证据，非本文件之错）： L64–84 的\"适用域与证据\"给出**完整可复算的量纲闭环**： 真实 M42 帧 Ω_px=2.2991e-11 sr、σ_bg 中位 14.826 ADU/px → control_ivar=0.5937 (ADU/px)⁻² → 换算因子 (1/Ω_px)²=1.8919e21 → **3.14e-22**，与生产实测中位 **5.6e-22** 同量级（1.78×）； 并给出决定性负例：**\"若单位为裸 ADU，推出值应为 0.594，与生产实测相差 22 dex ⇒ 单位是 ADU·sr⁻¹，不是 ADU。\"** ⇒ **本文件是 §5 冲突表中支持 `ADU·sr⁻¹` 一側的最强定量论证**（科学终裁仍归负责人/AUD-201）。 - **正面向样例（应作为目标架构范式）**： - §2 的\"适用域与证据（本条是上表的量纲依据，不是约定）\"——**先给结论、再给推导链、再给反证量级**； - §5.3 L214 起对 `1.482602218505602` 常数的\"适用域\"专段（E[MAD×1.4826]/σ_true 的蒙特卡洛验证）； - §6 L452 明写\"**不另立权威**（§0.1：只有一份权威链）\"并回指 `docs/ASTROCS_DESIGN.md §8/§7.1` —— **全分片唯一显式承认单一权威链的下位文档**； - §7 \"与 SCI 的对应与偏差\"表：**逐条 SCI 语义 × 实现现状 × 判定**，8 行中 7 行\"一致\"、 1 行标注不在本域——**可核的符合性矩阵**。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 同一文档内对同一测试给出互斥结论（自相矛盾 + 与工程事实三方不合）**： §5.4 L312–313 「当前生产取值 1.4 的来源是项目自产 MC（`control_median_mc_test`…），而**该测试未注册/不在任何 CMake/ctest/CI 面（构建孤儿）**⇒ 该常数在仓内**不可复跑**」 ↔ §7 表第 6 行 L463 「k_corr MC 校准非猜测（sampler.h:50-51）…**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑**」。 实测三方：`lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:110 add_executable(control_median_mc_test …)`（在 CMake）、`eng/ci/checks.json:4363/:4687` 有 `drizzle_control_median_mc`（在 CI 面）、而 `eng/tests/unit/CMakeLists.txt:1540` 注释判「现行事实: control_median_mc_test / kcorr_matrix_test 属 **tracked-but-unbuilt**，PHASE2_UPM.md 必须显式标 MISSING」。 ⇒ 三处各说一套，本份两处互斥且**都不完整**；`k_corr = 1.4`（冻结常数、§10 禁改清单第 2 条）的可复跑性因此**未定案**，是本批唯一影响科学参数的登记缺陷。 **2. 文件规模自declare不实**：L15–16 与 §3 标题 L89 两处称「sampler.cpp（**1536 行**）」「sampler.h（**288 行，实测**）」→ 实测 `wc -l` = **1503 / 273**（−33 / −15）。\"实测\"二字使其成为事实断言；且 §3–§5 的锚全部按 1536 行标定 ⇒ 尾部锚系统性偏大。 **3. 跨文件锚漂移**：`upm.cpp:2766-2790`（`p2_upm_control_variance`）→ 实测 **`:2954`**；`upm.cpp:2772-2783`（k_corr 定义域 rc=2/rc=1 判据）→ 同区漂移；`upm.cpp:565`（per-control 可靠度=配置常量 1.0 的归一化消费）→ 实测 `:565` 是 `const double lambda_s = std::max(0.0, cfg.smoothing_lambda);` ⇒ **锚落在 smoothing 参数上，与所claim 的语义无关**；`sampler_parallel_consistency_test.cpp:29`（`TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism)`）→ 实测 TEST 在 **`:41`**，`:29` 是 `mix()` 哈希工具函数（§11.3 F8 与 §6 确定性两条判据的载体锚皆错）。 同一份内**自相矛盾的锚**：kcorr 表位置 L322「lookup 表 :96-99」↔ §11.3 F2「表值 :94-97」；而 §3 内部符号表 L110 写 `kcorr_lookup :88-109`（实测该函数区确在 88–117，`pf_grid/sc_grid/{1.2112,1.3925,1.4980}` 逐值命中）⇒ 三处三种区间，表值本身准确。 仍准确组：`coverage/CMakeLists.txt:28`（`option(P2_ENABLE_OPENMP …)` 逐行命中）、`upm.h:38-41`（obs.ivar 弃用）、`upm.h:51-53`（snr_available 禁以 1.0 伪装）⇒ 头文件锚准，`.cpp`/跨模块锚漂移，与 1.1/1.2 同形态。 **4. 同一实测量两处值不同（k_corr 标定域失配的\"实测\"角尺度）**：本份 L328–330 「本仓 M42 300 s R 帧实测 **0.9890″/px**（由 FOCALLEN=1877 mm、XPIXSZ=9 µm 推得 206264.806×9e-6/1.877）」 ↔ 代码注释 `lib/algorithms/coverage/src/sampler.cpp:90` 「生产真帧源像素角尺度 **0.9586″/px** 远在标定域 [300,600]″ 之外」。 ⇒ 两处都自称\"实测/真帧\"，相差 3.2%；不影响\"标定域外 300×\"的结论方向，但作为**适用域声明的定量依据**必须二选一并给推导（前言 §4 要求贴两侧原文，已贴）。 **5. 与上位不构成冲突的一条（如实登记以免整治误删）**：§6 L444–446 与 §10 第 7 条「输出 obs 序列 **bitwise** 与 worker 数无关」看似与 `ASTROCS_DESIGN.md:677`「1/N worker 的等价判据是事前冻结的浮点容差，**不是逐位一致**」相抵，但同上位句续文允许「由构造保证位精确的路径（固定槽位写回、per-thread 定序归并）其模块自有门仍可断言 bitwise」⇒ 本份属被允许的特例，**不判冲突**。"
+   "b": "**1. 同一文档内对同一测试给出互斥结论（自相矛盾 + 与工程事实三方不合）**： §5.4 L312–313 「当前生产取值 1.4 的来源是项目自产 MC（`control_median_mc_test`…），而**该测试未注册/不在任何 CMake/ctest/CI 面（构建孤儿）**⇒ 该常数在仓内**不可复跑**」 ↔ §7 表第 6 行 L463 「k_corr MC 校准非猜测（sampler.h:50-51）…**MC 证据源 `control_median_mc_test` 已注册 ⇒ 可复跑**」。 实测三方：`lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:110 add_executable(control_median_mc_test …)`（在 CMake）、`eng/ci/checks.json:4363/:4687` 有 `drizzle_control_median_mc`（在 CI 面）、而 `eng/tests/unit/CMakeLists.txt:1540` 注释判「现行事实: control_median_mc_test / kcorr_matrix_test 属 **tracked-but-unbuilt**，PHASE2_UPM.md 必须显式标 MISSING」。 ⇒ 三处各说一套，本份两处互斥且**都不完整**；`k_corr = 1.4`（冻结常数、§10 禁改清单第 2 条）的可复跑性因此**未定案**，是本批唯一影响科学参数的登记缺陷。 **2. 文件规模自declare不实**：L15–16 与 §3 标题 L89 两处称「sampler.cpp（**1536 行**）」「sampler.h（**288 行，实测**）」→ 实测 `wc -l` = **1503 / 273**（−33 / −15）。\"实测\"二字使其成为事实断言；且 §3–§5 的锚全部按 1536 行标定 ⇒ 尾部锚系统性偏大。 **3. 跨文件锚漂移**：`upm.cpp:2766-2790`（`p2_upm_control_variance`）→ 实测 **`:2954`**；`upm.cpp:2772-2783`（k_corr 定义域 rc=2/rc=1 判据）→ 同区漂移；`upm.cpp:565`（per-control 可靠度=配置常量 1.0 的归一化消费）→ 实测 `:565` 是 `const double lambda_s = std::max(0.0, cfg.smoothing_lambda);` ⇒ **锚落在 smoothing 参数上，与所claim 的语义无关**；`sampler_parallel_consistency_test.cpp:29`（`TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism)`）→ 实测 TEST 在 **`:41`**，`:29` 是 `mix()` 哈希工具函数（§11.3 F8 与 §6 确定性两条判据的载体锚皆错）。 同一份内**自相矛盾的锚**：kcorr 表位置 L322「lookup 表 :96-99」↔ §11.3 F2「表值 :94-97」；而 §3 内部符号表 L110 写 `kcorr_lookup :88-109`（实测该函数区确在 88–117，`pf_grid/sc_grid/{1.2112,1.3925,1.4980}` 逐值命中）⇒ 三处三种区间，表值本身准确。 仍准确组：`coverage/CMakeLists.txt:28`（`option(P2_ENABLE_OPENMP …)` 逐行命中）、`upm.h:38-41`（obs.ivar 弃用）、`upm.h:51-53`（snr_available 禁以 1.0 伪装）⇒ 头文件锚准，`.cpp`/跨模块锚漂移，与 1.1/1.2 同形态。 **4. 同一实测量两处值不同（k_corr 标定域失配的\"实测\"角尺度）**：本份 L328–330 「本仓 M42 300 s R 帧实测 **0.9890″/px**（由 FOCALLEN=1877 mm、XPIXSZ=9 µm 推得 206264.806×9e-6/1.877）」 ↔ 代码注释 `lib/algorithms/coverage/src/sampler.cpp:90` 「生产真帧源像素角尺度 **0.9586″/px** 远在标定域 [300,600]″ 之外」。 ⇒ 两处都自称\"实测/真帧\"，相差 3.2%；不影响\"标定域外 300×\"的结论方向，但作为**适用域声明的定量依据**必须二选一并给推导（前言 §4 要求贴两侧原文，已贴）。 **5. 与上位不构成冲突的一条（如实登记以免整治误删）**：§6 L444–446 与 §10 第 7 条「输出 obs 序列 **bitwise** 与 worker 数无关」看似与 `docs/ASTROCS_DESIGN.md:677`「1/N worker 的等价判据是事前冻结的浮点容差，**不是逐位一致**」相抵，但同上位句续文允许「由构造保证位精确的路径（固定槽位写回、per-thread 定序归并）其模块自有门仍可断言 bitwise」⇒ 本份属被允许的特例，**不判冲突**。"
   },
   {
    "path": "docs/algorithms/PHASE2_SAMPLER.md",
@@ -12007,7 +12007,7 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "1. **`k_corr` 证据源可复跑性与 `UPM_SOLVER.md` 互斥**： 本文件 §7 表判 `常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 control_median_mc_test 已注册 ⇒ 可复跑**`； 而 `UPM_SOLVER.md:110–111` 同一段内既写\"已注册（可复跑）\"又写\"**当前不可复跑**\"（并于 L128 第三次写\"可复跑\"）。 ⇒ **跨文档同一证据源三种读法**，直接影响 AGENTS §5\"判据非退化/有证据资格\"的成立性。 2. **行数声明失真**：L15/L89 `sampler.cpp（1536 行，实测）`、`sampler.h（288 行，实测）` —— 实测 **1503 / 273**（**−33 / −15**，文件是**变短**的， 故 §3/§5 中靠后符号的锚号反而可能落在真实内容之后）。门判红 L1×4 + L3×1，互证。 3. **§2 单位块的量纲自证 vs `PHASE2_INTEGRATION.md §8` 冲突**（本审计的正面证据，非本文件之错）： L64–84 的\"适用域与证据\"给出**完整可复算的量纲闭环**： 真实 M42 帧 Ω_px=2.2991e-11 sr、σ_bg 中位 14.826 ADU/px → control_ivar=0.5937 (ADU/px)⁻² → 换算因子 (1/Ω_px)²=1.8919e21 → **3.14e-22**，与生产实测中位 **5.6e-22** 同量级（1.78×）； 并给出决定性负例：**\"若单位为裸 ADU，推出值应为 0.594，与生产实测相差 22 dex ⇒ 单位是 ADU·sr⁻¹，不是 ADU。\"** ⇒ **本文件是 §5 冲突表中支持 `ADU·sr⁻¹` 一側的最强定量论证**（科学终裁仍归负责人/AUD-201）。 - **正面向样例（应作为目标架构范式）**： - §2 的\"适用域与证据（本条是上表的量纲依据，不是约定）\"——**先给结论、再给推导链、再给反证量级**； - §5.3 L214 起对 `1.482602218505602` 常数的\"适用域\"专段（E[MAD×1.4826]/σ_true 的蒙特卡洛验证）； - §6 L452 明写\"**不另立权威**（§0.1：只有一份权威链）\"并回指 `ASTROCS_DESIGN.md §8/§7.1` —— **全分片唯一显式承认单一权威链的下位文档**； - §7 \"与 SCI 的对应与偏差\"表：**逐条 SCI 语义 × 实现现状 × 判定**，8 行中 7 行\"一致\"、 1 行标注不在本域——**可核的符合性矩阵**。",
+   "a": "1. **`k_corr` 证据源可复跑性与 `UPM_SOLVER.md` 互斥**： 本文件 §7 表判 `常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 control_median_mc_test 已注册 ⇒ 可复跑**`； 而 `UPM_SOLVER.md:110–111` 同一段内既写\"已注册（可复跑）\"又写\"**当前不可复跑**\"（并于 L128 第三次写\"可复跑\"）。 ⇒ **跨文档同一证据源三种读法**，直接影响 AGENTS §5\"判据非退化/有证据资格\"的成立性。 2. **行数声明失真**：L15/L89 `sampler.cpp（1536 行，实测）`、`sampler.h（288 行，实测）` —— 实测 **1503 / 273**（**−33 / −15**，文件是**变短**的， 故 §3/§5 中靠后符号的锚号反而可能落在真实内容之后）。门判红 L1×4 + L3×1，互证。 3. **§2 单位块的量纲自证 vs `PHASE2_INTEGRATION.md §8` 冲突**（本审计的正面证据，非本文件之错）： L64–84 的\"适用域与证据\"给出**完整可复算的量纲闭环**： 真实 M42 帧 Ω_px=2.2991e-11 sr、σ_bg 中位 14.826 ADU/px → control_ivar=0.5937 (ADU/px)⁻² → 换算因子 (1/Ω_px)²=1.8919e21 → **3.14e-22**，与生产实测中位 **5.6e-22** 同量级（1.78×）； 并给出决定性负例：**\"若单位为裸 ADU，推出值应为 0.594，与生产实测相差 22 dex ⇒ 单位是 ADU·sr⁻¹，不是 ADU。\"** ⇒ **本文件是 §5 冲突表中支持 `ADU·sr⁻¹` 一側的最强定量论证**（科学终裁仍归负责人/AUD-201）。 - **正面向样例（应作为目标架构范式）**： - §2 的\"适用域与证据（本条是上表的量纲依据，不是约定）\"——**先给结论、再给推导链、再给反证量级**； - §5.3 L214 起对 `1.482602218505602` 常数的\"适用域\"专段（E[MAD×1.4826]/σ_true 的蒙特卡洛验证）； - §6 L452 明写\"**不另立权威**（§0.1：只有一份权威链）\"并回指 `docs/ASTROCS_DESIGN.md §8/§7.1` —— **全分片唯一显式承认单一权威链的下位文档**； - §7 \"与 SCI 的对应与偏差\"表：**逐条 SCI 语义 × 实现现状 × 判定**，8 行中 7 行\"一致\"、 1 行标注不在本域——**可核的符合性矩阵**。",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "同文件对 `control_median_mc_test` 给出互斥结论且三方不合；自declare 1536/288 行实为 1503/273；`upm.cpp:565`、`:2766-2790`、并行测试 `:29` 锚漂；实测角尺度 0.9890 与代码注释 0.9586 两处不同值"
@@ -12084,10 +12084,10 @@
    "type": "批间不一致",
    "a_batch": "DA-02",
    "a_form": "B",
-   "a": "docstring L8 指 `docs/algorithms/anchors/ANCHOR_CONTRACT.md`。**未标最高设计条款**。 索引给的 `ASTROCS_DESIGN.md §4/§5/§6` 与实际不符（同 §1.7 问题）。",
+   "a": "docstring L8 指 `docs/algorithms/anchors/ANCHOR_CONTRACT.md`。**未标最高设计条款**。 索引给的 `docs/ASTROCS_DESIGN.md §4/§5/§6` 与实际不符（同 §1.7 问题）。",
    "b_batch": "D1补三份",
    "b_form": "V",
-   "b": "**未标最高设计条款**（docstring 全文不含 `ASTROCS_DESIGN.md` 节号）：`:7` `规则（详见 docs/algorithms/anchors/ANCHOR_CONTRACT.md）：` 只指同目录合同件 ⇒ 按标准 01 §3 判 `缺`。**索引侧另有一套**：`docs/DOCUMENT_INDEX.yaml` 给该件登记 `upstream: \"ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）\"`——三个命令节，与本检查器（锚机制的实现）无落实关系，且与 `ANCHOR_CONTRACT.md` 自标的上游不同 ⇒ 同一机制两套上游标注（机械列 `upstream_pointer=False` **判对**：文档级\"上游：\"行确实不存在）"
+   "b": "**未标最高设计条款**（docstring 全文不含 `docs/ASTROCS_DESIGN.md` 节号）：`:7` `规则（详见 docs/algorithms/anchors/ANCHOR_CONTRACT.md）：` 只指同目录合同件 ⇒ 按标准 01 §3 判 `缺`。**索引侧另有一套**：`docs/DOCUMENT_INDEX.yaml` 给该件登记 `upstream: \"docs/ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）\"`——三个命令节，与本检查器（锚机制的实现）无落实关系，且与 `ANCHOR_CONTRACT.md` 自标的上游不同 ⇒ 同一机制两套上游标注（机械列 `upstream_pointer=False` **判对**：文档级\"上游：\"行确实不存在）"
   },
   {
    "path": "docs/algorithms/anchors/check_doc_line_anchors.py",
@@ -12216,10 +12216,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "ASTROCS_DESIGN.md §7.3、§10（:3 已标）",
+   "a": "docs/ASTROCS_DESIGN.md §7.3、§10（:3 已标）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 标 `ASTROCS_DESIGN.md §7.3、§10` — 两节号与题均对得上（§7.3=ASTROCS_DESIGN.md:515，§10=:684）"
+   "b": ":3 标 `docs/ASTROCS_DESIGN.md §7.3、§10` — 两节号与题均对得上（§7.3=docs/ASTROCS_DESIGN.md:515，§10=:684）"
   },
   {
    "path": "docs/design/LOG_AND_ERROR_SYSTEM.md",
@@ -12227,10 +12227,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "16 份（ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、ACCEPTANCE_SPEC.md、docs/contracts/LOG_AND_ERROR_CONTRACT.md、eng/tools/quality/check_log_system.py、eng/ci/ledgers/log_system_ledger.json 等）",
+   "a": "16 份（docs/ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、ACCEPTANCE_SPEC.md、docs/contracts/LOG_AND_ERROR_CONTRACT.md、eng/tools/quality/check_log_system.py、eng/ci/ledgers/log_system_ledger.json 等）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "14 份（含 ASTROCS_DESIGN.md:540、ENGINEERING_SPEC.md:191、docs/contracts/LOG_AND_ERROR_CONTRACT.md、docs/plugins/infrastructure/21_observability.md、eng/ci/ledgers/log_system_ledger.json、实验/photometric-magnitude/docs/p1-spatial-gain.md）；非孤儿"
+   "b": "14 份（含 docs/ASTROCS_DESIGN.md:540、ENGINEERING_SPEC.md:191、docs/contracts/LOG_AND_ERROR_CONTRACT.md、docs/plugins/infrastructure/21_observability.md、eng/ci/ledgers/log_system_ledger.json、实验/photometric-magnitude/docs/p1-spatial-gain.md）；非孤儿"
   },
   {
    "path": "docs/design/LOG_AND_ERROR_SYSTEM.md",
@@ -12348,7 +12348,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "Hc",
-   "a": "ASTROCS_DESIGN.md §4（:3 已标）；另自declare 上位 `docs/owner/PROJECT_SPEC.md`（:5）",
+   "a": "docs/ASTROCS_DESIGN.md §4（:3 已标）；另自declare 上位 `docs/owner/PROJECT_SPEC.md`（:5）",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": ":3 标 §4（对得上）。**另有第二套权威声明** :5–:6：把 `docs/owner/PROJECT_SPEC.md` 与最高设计并列为\"上位\"，且写\"冲突时本文件描述目标，**目标只由本文件定义**\" ⇒ 直接违标准 01 §1（任何文档不声明第二套权威顺序或\"唯一口径\"）与 §1\"下位与上位冲突时以上位为准\""
@@ -12384,7 +12384,7 @@
    "a": "①ASTROCS_DESIGN.md:271 ↔ 本文件:44–46（节点序依据整段复述）；②`docs/science/DRIZZLE.md:21,159` ↔ 本文件:143（drizzle 归一分母两处口径相反）；③`docs/contracts/DATA_SEMANTICS.md` §31.1（本文件 :137 自称\"唯一正本\"）↔ 本文件 :139–147 又复述单位/量纲表",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:36–:46 节点序与\"序的依据\"整段 ↔ `ASTROCS_DESIGN.md` §4.2（:254 起）——本文件 :34 自己声明\"节点顺序以 §4.2 为唯一权威\"却又复述链与理由；②:137–:147 单位/量纲表自称\"唯一正本 = `docs/contracts/DATA_SEMANTICS.md` §31.1/§31.1a\"，:139–:147 仍把该表的行复制一遍（正本句 `DATA_SEMANTICS.md:375,451` 同口径）；③:154–:156\"为什么必须保持线性\"整段 ↔ `docs/design/PHASE2_DETAILED_DESIGN.md:11` 同题复述（两份下层文档各写一遍，无互指）"
+   "b": "①:36–:46 节点序与\"序的依据\"整段 ↔ `docs/ASTROCS_DESIGN.md` §4.2（:254 起）——本文件 :34 自己声明\"节点顺序以 §4.2 为唯一权威\"却又复述链与理由；②:137–:147 单位/量纲表自称\"唯一正本 = `docs/contracts/DATA_SEMANTICS.md` §31.1/§31.1a\"，:139–:147 仍把该表的行复制一遍（正本句 `DATA_SEMANTICS.md:375,451` 同口径）；③:154–:156\"为什么必须保持线性\"整段 ↔ `docs/design/PHASE2_DETAILED_DESIGN.md:11` 同题复述（两份下层文档各写一遍，无互指）"
   },
   {
    "path": "docs/design/PHASE1_DETAILED_DESIGN.md",
@@ -12480,10 +12480,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "Hc",
-   "a": "ASTROCS_DESIGN.md §5（:3 已标）",
+   "a": "docs/ASTROCS_DESIGN.md §5（:3 已标）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 标 §5（对得上，§5=ASTROCS_DESIGN.md:365）；单一抬头，合规"
+   "b": ":3 标 §5（对得上，§5=docs/ASTROCS_DESIGN.md:365）；单一抬头，合规"
   },
   {
    "path": "docs/design/PHASE2_DETAILED_DESIGN.md",
@@ -12513,10 +12513,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "Hc",
-   "a": "①最高设计 §5.5 ↔ 本文件 :54–:63（排异档界表被复制，而最高设计 :421 明文\"唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9，本节不复制档界与取值\"）；②本文件 :21 ↔ ASTROCS_DESIGN.md:397（三条 SNR 重建口径与 `w=SNR²/F_ref²` 整段复述）",
+   "a": "①最高设计 §5.5 ↔ 本文件 :54–:63（排异档界表被复制，而最高设计 :421 明文\"唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9，本节不复制档界与取值\"）；②本文件 :21 ↔ docs/ASTROCS_DESIGN.md:397（三条 SNR 重建口径与 `w=SNR²/F_ref²` 整段复述）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:21 三条 SNR 重建口径 + `w = SNR²/F_ref²` 整段 ↔ `ASTROCS_DESIGN.md`:397–:398（同句复述，含 `snr_path_effective`）；②:58–:62 排异档界三行表 ↔ 唯一正本 `docs/plugins/algorithms_phase2/12_rejection.md`:63–:67（逐档同值）——**上位明确禁止这次复述**（`ASTROCS_DESIGN.md`:420「逐像素档位表（档界与算法名）的唯一正本 = 12_rejection.md §9，**本节不复制档界与取值**」）；③:100–:114 权重两步产生链 ↔ `ASTROCS_DESIGN.md`:228–:229"
+   "b": "①:21 三条 SNR 重建口径 + `w = SNR²/F_ref²` 整段 ↔ `docs/ASTROCS_DESIGN.md`:397–:398（同句复述，含 `snr_path_effective`）；②:58–:62 排异档界三行表 ↔ 唯一正本 `docs/plugins/algorithms_phase2/12_rejection.md`:63–:67（逐档同值）——**上位明确禁止这次复述**（`docs/ASTROCS_DESIGN.md`:420「逐像素档位表（档界与算法名）的唯一正本 = 12_rejection.md §9，**本节不复制档界与取值**」）；③:100–:114 权重两步产生链 ↔ `docs/ASTROCS_DESIGN.md`:228–:229"
   },
   {
    "path": "docs/design/PHASE2_DETAILED_DESIGN.md",
@@ -12612,10 +12612,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "Hc",
-   "a": "ASTROCS_DESIGN.md §6（:3 已标）；§8 段内又另起一块上游（:79）",
+   "a": "docs/ASTROCS_DESIGN.md §6（:3 已标）；§8 段内又另起一块上游（:79）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 标 §6（对得上，§6=ASTROCS_DESIGN.md:434）；**:79 在同一文件里又立第二块\"上游/约束\"抬头**（§8 段首），与 :3 同功能不同范围"
+   "b": ":3 标 §6（对得上，§6=docs/ASTROCS_DESIGN.md:434）；**:79 在同一文件里又立第二块\"上游/约束\"抬头**（§8 段首），与 :3 同功能不同范围"
   },
   {
    "path": "docs/design/PHASE3_DETAILED_DESIGN.md",
@@ -12648,7 +12648,7 @@
    "a": "与 `docs/plugins/algorithms_phase3/14_projection.md` 分层（设计↔模块工作细节）合法；§8 crop 与 §9 视觉判据在 `ACCEPTANCE_SPEC.md` §6.2 有同主题表述，本文件以指针引用、未复制门值 → 不判重复",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:135–:137 的接缝度量口径（\"方差比对电平阶跃原理性失明\"）↔ `ACCEPTANCE_SPEC.md`:229 同句（正本已声明\"唯一数值来源 = 机器门实现 `eng/tools/e2e/seam_footprint.py`、门限推导正本 = `docs/science/PHASE2_UPM.md` §17，本节与 `docs/ci/01_CHECKS.md` 都不复制 §17 的数值结论\"）——本文件复述结论句而不复制数值，判重叠不判重复；②:9–:13 三输出模式 ↔ `ASTROCS_DESIGN.md`:457（§6.3 末\"输出模式 surface_brightness/point_source_flux/visualization 显式声明，visualization 标注不可测量\"）"
+   "b": "①:135–:137 的接缝度量口径（\"方差比对电平阶跃原理性失明\"）↔ `ACCEPTANCE_SPEC.md`:229 同句（正本已声明\"唯一数值来源 = 机器门实现 `eng/tools/e2e/seam_footprint.py`、门限推导正本 = `docs/science/PHASE2_UPM.md` §17，本节与 `docs/ci/01_CHECKS.md` 都不复制 §17 的数值结论\"）——本文件复述结论句而不复制数值，判重叠不判重复；②:9–:13 三输出模式 ↔ `docs/ASTROCS_DESIGN.md`:457（§6.3 末\"输出模式 surface_brightness/point_source_flux/visualization 显式声明，visualization 标注不可测量\"）"
   },
   {
    "path": "docs/design/PHASE3_DETAILED_DESIGN.md",
@@ -12678,7 +12678,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "Hc",
-   "a": ":24 与 :15 把投影冻结清单与 signal 面亮度语义的上游记为 `ASTROCS_DESIGN.md §5.3` —— 实测 §5.3 是「SNR 重建与逆方差叠加」（ASTROCS_DESIGN.md:385），八投影冻结在 **§6.3**（:453），面亮度量纲硬约束在 **§5.6**（:430）→ 两处节号错位；:107 称\"同名异义与 `docs/design/UNIFIED_MODEL.md` §3 冲突\"，实测 UNIFIED_MODEL §3 只讲三类配置分离（:64–:76），不登记 `mode` 键位（真实占用面 = `eng/contracts/schemas/cpu_profile.schema.json` 的 `legacy_v1/kernel_v1`）",
+   "a": ":24 与 :15 把投影冻结清单与 signal 面亮度语义的上游记为 `docs/ASTROCS_DESIGN.md §5.3` —— 实测 §5.3 是「SNR 重建与逆方差叠加」（docs/ASTROCS_DESIGN.md:385），八投影冻结在 **§6.3**（:453），面亮度量纲硬约束在 **§5.6**（:430）→ 两处节号错位；:107 称\"同名异义与 `docs/design/UNIFIED_MODEL.md` §3 冲突\"，实测 UNIFIED_MODEL §3 只讲三类配置分离（:64–:76），不登记 `mode` 键位（真实占用面 = `eng/contracts/schemas/cpu_profile.schema.json` 的 `legacy_v1/kernel_v1`）",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": "无路径悬空（:131 `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop` 实测该 $defs 存在于 :362；:130 `docs/api/CLI_PROTOCOL_V1.md` §7.1 实测存在 :132；:135 门 `CHK-L4-SEAM-FOOTPRINT` 在 `eng/ci/checks.json` 命中 2 处；:137 `ACCEPTANCE_SPEC.md` §6/§6.2/§8 均可解析）。**一处引用错位**：:107 称判别键取 `crop_form` 是为了避开\"`mode` 同名异义与 `docs/design/UNIFIED_MODEL.md` §3 冲突\"，实测 UNIFIED_MODEL 全文 `mode` 出现 0 次（`grep -c mode docs/design/UNIFIED_MODEL.md` = 0），其 §3 只讲三类配置分离；真正的同名登记面 = `docs/contracts/config_separation_anchors.json:206-208`（`documented_same_name.mode`）与 `eng/contracts/schemas/phase_config_normalize.schema.json:31` ⇒ 指针指向了不含该内容的文档节"
@@ -12692,7 +12692,7 @@
    "a": "同上：§2/§1 的上游节号指向与所引内容不同节；:70 验收把 TAN/SIN/CAR/AIT 四投影列为验收面，而 :24 自陈\"当前仅 TAN\"且最高设计 :453 同口径 —— 验收面与实现状态未标注分档（状态词按前言 §5 第 6 条属\"未实现\"，文档未点明）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":15 与 :24 把\"输入只接受面亮度语义\"与\"八投影冻结清单\"的上游都记为 `ASTROCS_DESIGN.md §5.3`——实测 §5.3 = \"SNR 重建与逆方差叠加\"（:385），八投影在 §6.3（:453），面亮度输入守卫在 §6.3 末（:457）；§5.6（:428-430）只说\"Phase2 信号为面亮度量纲\" ⇒ 两处节号指错节；:70 验收把 TAN/SIN/CAR/AIT 四投影列为验收面，:24 与上位 :453 同口径\"当前仅 TAN 可用\"，验收面未标\"实现后生效\"的状态档（前言 §5 第 6 条：未实现须如实分档，不得与现行验收面混写）"
+   "b": ":15 与 :24 把\"输入只接受面亮度语义\"与\"八投影冻结清单\"的上游都记为 `docs/ASTROCS_DESIGN.md §5.3`——实测 §5.3 = \"SNR 重建与逆方差叠加\"（:385），八投影在 §6.3（:453），面亮度输入守卫在 §6.3 末（:457）；§5.6（:428-430）只说\"Phase2 信号为面亮度量纲\" ⇒ 两处节号指错节；:70 验收把 TAN/SIN/CAR/AIT 四投影列为验收面，:24 与上位 :453 同口径\"当前仅 TAN 可用\"，验收面未标\"实现后生效\"的状态档（前言 §5 第 6 条：未实现须如实分档，不得与现行验收面混写）"
   },
   {
    "path": "docs/design/PHASE3_DETAILED_DESIGN.md",
@@ -12733,7 +12733,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "V",
-   "a": ":3 已标 ASTROCS_DESIGN.md §10 + §4.4/§5/§6 + 附录 B；:5 又 declare 上位最高设计（重复声明）",
+   "a": ":3 已标 docs/ASTROCS_DESIGN.md §10 + §4.4/§5/§6 + 附录 B；:5 又 declare 上位最高设计（重复声明）",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": ":3 标 §10 + §4.4/§5/§6 + 附录 B（节号均实测存在且题对）；**:5–:6 又立\"上位/下游\"两行清单**（与 :3 同功能）"
@@ -12744,10 +12744,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "V",
-   "a": "22 份（含 ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、ACCEPTANCE_SPEC.md、docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md、三个 PHASE* 设计、eng/ci/checks.json、4 份 schema）",
+   "a": "22 份（含 docs/ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、ACCEPTANCE_SPEC.md、docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md、三个 PHASE* 设计、eng/ci/checks.json、4 份 schema）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "20 份（含 ACCEPTANCE_SPEC.md、ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md、三个 PHASE* 设计、`eng/ci/checks.json` 的 CHK-HIPS-STORAGE-FORM changed_paths、4 份 schema）"
+   "b": "20 份（含 ACCEPTANCE_SPEC.md、docs/ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md、三个 PHASE* 设计、`eng/ci/checks.json` 的 CHK-HIPS-STORAGE-FORM changed_paths、4 份 schema）"
   },
   {
    "path": "docs/design/PRODUCT_STORAGE_FORM.md",
@@ -12810,10 +12810,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "V",
-   "a": "无实质冲突：§10.1 的 `storage_form`（archive 默认 / 留空取默认并 warn / Phase2·Phase3 出现即 REJECT）与 `ENGINEERING_SPEC.md` §7、`ASTROCS_DESIGN.md` §10 一致。**登记一项 eng 侧缺口**：`git grep -n \"storage\" eng/packaging/config/defaults.json` = 0 命中，`config_registry.json` 亦无 `storage_form` 行，而 ENGINEERING_SPEC §7 称\"默认值来源 = defaults.json\"、CFG002-01/02 要求旋钮逐行登记 → 默认值来源声明与登记面不符（缺陷属 ENGINEERING_SPEC/eng 面，非本文件）",
+   "a": "无实质冲突：§10.1 的 `storage_form`（archive 默认 / 留空取默认并 warn / Phase2·Phase3 出现即 REJECT）与 `ENGINEERING_SPEC.md` §7、`docs/ASTROCS_DESIGN.md` §10 一致。**登记一项 eng 侧缺口**：`git grep -n \"storage\" eng/packaging/config/defaults.json` = 0 命中，`config_registry.json` 亦无 `storage_form` 行，而 ENGINEERING_SPEC §7 称\"默认值来源 = defaults.json\"、CFG002-01/02 要求旋钮逐行登记 → 默认值来源声明与登记面不符（缺陷属 ENGINEERING_SPEC/eng 面，非本文件）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "无实质口径冲突：§10.1（:224–:228）与 `ASTROCS_DESIGN.md` §10、`ENGINEERING_SPEC.md` §7、schema 一致，且被 `CHK-HIPS-STORAGE-FORM --doc-consistency` 的词表面覆盖（该文件在 `layers` 内、must_contain 6 词）。**登记一项上位声明与登记面不符（缺陷在上位与 eng 侧）**：`ENGINEERING_SPEC.md`:143 称\"默认值来源 = `eng/packaging/config/defaults.json`\"，实测 `grep -c storage_form eng/packaging/config/defaults.json` = 0、`config_registry.json` 亦 0，默认值实际声明面 = `eng/contracts/schemas/phase_config_normalize.schema.json:480-492`（enum + description\"键缺失/空串/null ⇒ archive + warn\"）"
+   "b": "无实质口径冲突：§10.1（:224–:228）与 `docs/ASTROCS_DESIGN.md` §10、`ENGINEERING_SPEC.md` §7、schema 一致，且被 `CHK-HIPS-STORAGE-FORM --doc-consistency` 的词表面覆盖（该文件在 `layers` 内、must_contain 6 词）。**登记一项上位声明与登记面不符（缺陷在上位与 eng 侧）**：`ENGINEERING_SPEC.md`:143 称\"默认值来源 = `eng/packaging/config/defaults.json`\"，实测 `grep -c storage_form eng/packaging/config/defaults.json` = 0、`config_registry.json` 亦 0，默认值实际声明面 = `eng/contracts/schemas/phase_config_normalize.schema.json:480-492`（enum + description\"键缺失/空串/null ⇒ archive + warn\"）"
   },
   {
    "path": "docs/design/PRODUCT_STORAGE_FORM.md",
@@ -12854,7 +12854,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "V",
-   "a": ":3 已标 ASTROCS_DESIGN.md §3.1/§3.2（实测 §3.1 数据对象、§3.2 三类配置，号与题均对得上）",
+   "a": ":3 已标 docs/ASTROCS_DESIGN.md §3.1/§3.2（实测 §3.1 数据对象、§3.2 三类配置，号与题均对得上）",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": ":3 标 §3.1/§3.2（实测 §3.1=数据对象 :221、§3.2=三类配置 :231，号题相符）"
@@ -12865,10 +12865,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "V",
-   "a": "81 份（本批最高：README.md、ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、docs/contracts/CONFIG_CONTRACT.md、DATA_SEMANTICS.md、UNIFIED_OBJECTS.md、docs/plugins/**、eng/packaging/config/config_registry.json 等）",
+   "a": "81 份（本批最高：README.md、docs/ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、docs/contracts/CONFIG_CONTRACT.md、DATA_SEMANTICS.md、UNIFIED_OBJECTS.md、docs/plugins/**、eng/packaging/config/config_registry.json 等）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "79 份（本批最高：README.md、ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、docs/contracts/{CONFIG_CONTRACT,DATA_SEMANTICS,UNIFIED_OBJECTS}.md、docs/plugins/**、eng/packaging/config/config_registry.json 等）"
+   "b": "79 份（本批最高：README.md、docs/ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、docs/contracts/{CONFIG_CONTRACT,DATA_SEMANTICS,UNIFIED_OBJECTS}.md、docs/plugins/**、eng/packaging/config/config_registry.json 等）"
   },
   {
    "path": "docs/design/UNIFIED_MODEL.md",
@@ -12879,7 +12879,7 @@
    "a": "是（数据对象唯一正本：最高设计 :223「全仓只有一份正本定义」、附录 A 与 ENGINEERING_SPEC §3 均指名本文件）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "是（数据对象唯一正本：`ASTROCS_DESIGN.md`:223\"全仓只有一份正本定义\"指名本层；:56 的 13 项枚举与上位 :223 逐项相符）"
+   "b": "是（数据对象唯一正本：`docs/ASTROCS_DESIGN.md`:223\"全仓只有一份正本定义\"指名本层；:56 的 13 项枚举与上位 :223 逐项相符）"
   },
   {
    "path": "docs/design/UNIFIED_MODEL.md",
@@ -12887,10 +12887,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "V",
-   "a": "①:43/:45 的 `frame_snr`/`sparse_snr_layer` 口径长段 ↔ `ASTROCS_DESIGN.md:225–229`（\"全程只有 SNR，没有权重模式…权重换算 w=SNR²/F_ref² 对两者一致\"）——同一段科学口径在最高设计与本文件各写一遍，本文件 :45 还把算子选择规则让给 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5，形成\"三层复述\"；②:64–:76 三类配置 ↔ `docs/contracts/CONFIG_CONTRACT.md` §1「三类配置（现场清单）」；③:42/:43 的 `flux` 唯一口径句在 :42、:43 两行内**逐字重复两遍**（\"全链只有一个 `flux` 口径 = PSF 拟合域…孔径仅作显式声明的诊断/交叉验证\"），文件内自我重复",
+   "a": "①:43/:45 的 `frame_snr`/`sparse_snr_layer` 口径长段 ↔ `docs/ASTROCS_DESIGN.md:225–229`（\"全程只有 SNR，没有权重模式…权重换算 w=SNR²/F_ref² 对两者一致\"）——同一段科学口径在最高设计与本文件各写一遍，本文件 :45 还把算子选择规则让给 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5，形成\"三层复述\"；②:64–:76 三类配置 ↔ `docs/contracts/CONFIG_CONTRACT.md` §1「三类配置（现场清单）」；③:42/:43 的 `flux` 唯一口径句在 :42、:43 两行内**逐字重复两遍**（\"全链只有一个 `flux` 口径 = PSF 拟合域…孔径仅作显式声明的诊断/交叉验证\"），文件内自我重复",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:43/:45 的 `frame_snr`/`sparse_snr_layer` 独立性 + `w=SNR²/F_ref²` 长段 ↔ `ASTROCS_DESIGN.md`:225–:226（同一条\"两个独立对象、换算对两者一致\"在最高设计与本文件各写一遍，本文件 :45 又把算子选择规则让给 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5，形成三层承载）；②:64–:76 三类配置 ↔ `docs/contracts/CONFIG_CONTRACT.md`（合同层同类登记表）与 `ASTROCS_DESIGN.md` §3.2；③文件内自我重复：:42 与 :43 两行各写一遍\"全链只有一个 `flux` 口径 = PSF 拟合域…孔径仅作显式声明的诊断/交叉验证\""
+   "b": "①:43/:45 的 `frame_snr`/`sparse_snr_layer` 独立性 + `w=SNR²/F_ref²` 长段 ↔ `docs/ASTROCS_DESIGN.md`:225–:226（同一条\"两个独立对象、换算对两者一致\"在最高设计与本文件各写一遍，本文件 :45 又把算子选择规则让给 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5，形成三层承载）；②:64–:76 三类配置 ↔ `docs/contracts/CONFIG_CONTRACT.md`（合同层同类登记表）与 `docs/ASTROCS_DESIGN.md` §3.2；③文件内自我重复：:42 与 :43 两行各写一遍\"全链只有一个 `flux` 口径 = PSF 拟合域…孔径仅作显式声明的诊断/交叉验证\""
   },
   {
    "path": "docs/design/UNIFIED_MODEL.md",
@@ -12975,7 +12975,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）`。**§4（normalize）错**：本份全部内容是 **Phase2**（`phase2` 加权叠加、`stage2*.cpp`、`coverage/`），与 §4 normalize 无关；正确应是 **§5（mosaic）+ §9（CPU 后端与资源）+ §1.3（非目标 ACR）**。命令：`sed -n '9p;12p' docs/science/ACR_EQUIVALENCE.md`（\"使 `phase2` 加权叠加在任意 ACR 调度下科学结果一致\"）→ **上游标注与内容错位**",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）`。**§4（normalize）错**：本份全部内容是 **Phase2**（`phase2` 加权叠加、`stage2*.cpp`、`coverage/`），与 §4 normalize 无关；正确应是 **§5（mosaic）+ §9（CPU 后端与资源）+ §1.3（非目标 ACR）**。命令：`sed -n '9p;12p' docs/science/ACR_EQUIVALENCE.md`（\"使 `phase2` 加权叠加在任意 ACR 调度下科学结果一致\"）→ **上游标注与内容错位**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**有但标错阶段**"
@@ -13041,7 +13041,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.4（输出合同）`",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.4（输出合同）`",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §4.2/§4.4"
@@ -13107,7 +13107,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.6（硬约束）`。**未标 §4.3（母版标度红线与暗场-亮场曝光容差判定，上位 L308 明写该两条\"见 `docs/plugins/algorithms_phase1/` 与 `defaults.json`\"）** → 本份 §6a 自称该判据正本，与上位指向不一致（见冲突①）",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.6（硬约束）`。**未标 §4.3（母版标度红线与暗场-亮场曝光容差判定，上位 L308 明写该两条\"见 `docs/plugins/algorithms_phase1/` 与 `defaults.json`\"）** → 本份 §6a 自称该判据正本，与上位指向不一致（见冲突①）",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有（不全）"
@@ -13184,7 +13184,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§5.3（SNR 重建与逆方差叠加）`",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§5.3（SNR 重建与逆方差叠加）`",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §2.2/§5.3"
@@ -13272,7 +13272,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）`。**§5.2 与 §6.3 都不含 drizzle**：命令 `grep -n \"^### 5.2|^### 6.3\" ASTROCS_DESIGN.md` → L371「### 5.2 固定科学流程」（Phase2 管线 = admit/coverage/sampling/upm/rejection/integration，**无 drizzle**）、L451「### 6.3 投影算法」（Phase3 投影，非 drizzle）；drizzle 节点在 **§4.2**（L266 `R[\"drizzle 球面重采样\"]`）与 **§4.4/§4.6**。**判定：上游标注错到别的阶段**（标准 01 §3「标明其上游最高设计条款」实质失效）",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）`。**§5.2 与 §6.3 都不含 drizzle**：命令 `grep -n \"^### 5.2|^### 6.3\" docs/ASTROCS_DESIGN.md` → L371「### 5.2 固定科学流程」（Phase2 管线 = admit/coverage/sampling/upm/rejection/integration，**无 drizzle**）、L451「### 6.3 投影算法」（Phase3 投影，非 drizzle）；drizzle 节点在 **§4.2**（L266 `R[\"drizzle 球面重采样\"]`）与 **§4.4/§4.6**。**判定：上游标注错到别的阶段**（标准 01 §3「标明其上游最高设计条款」实质失效）",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**有但标错节**"
@@ -13294,7 +13294,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**保留（正本）+ 三项**：① **改上游标注为 `ASTROCS_DESIGN.md §4.2（Phase1 节点流程：drizzle 球面重采样）、§4.4（输出合同）、§4.6（硬约束）`**；② 与 UNCERTAINTY 的方差分母二选一（应以本份 + 代码的 `N_p²` 为准，UNCERTAINTY 改文并加 `pixfrac` 幂次说明）；③ §5 的\"一手文献逐字\"块与 §14a 的开源对照整合进 `docs/references/`（或保留但改为引用式），本份留结论；④ 统一源码锚为全路径；⑤ 把\"唯一口径文字\"从合同层收回 science 层",
+   "a": "**保留（正本）+ 三项**：① **改上游标注为 `docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程：drizzle 球面重采样）、§4.4（输出合同）、§4.6（硬约束）`**；② 与 UNCERTAINTY 的方差分母二选一（应以本份 + 代码的 `N_p²` 为准，UNCERTAINTY 改文并加 `pixfrac` 幂次说明）；③ §5 的\"一手文献逐字\"块与 §14a 的开源对照整合进 `docs/references/`（或保留但改为引用式），本份留结论；④ 统一源码锚为全路径；⑤ 把\"唯一口径文字\"从合同层收回 science 层",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "保留（修上游+方差分母）"
@@ -13327,7 +13327,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）`。**未列 §5.2（固定科学流程含 `integration` 节点）与 §5.6（硬约束）**",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）`。**未列 §5.2（固定科学流程含 `integration` 节点）与 §5.6（硬约束）**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §5.3"
@@ -13382,7 +13382,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）`；L5 ID 块再写 `上游: SCI-SCOPE-001`",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）`；L5 ID 块再写 `上游: SCI-SCOPE-001`",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §2.2/§4.2"
@@ -13459,7 +13459,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）`。**只标一条**，但本份实际承载上位 §2.3（创新点三全部口径）与 §5.2（流程 `upm`/`upm apply` 两节点）→ 上游标注不完整",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）`。**只标一条**，但本份实际承载上位 §2.3（创新点三全部口径）与 §5.2（流程 `upm`/`upm apply` 两节点）→ 上游标注不完整",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有（不全）"
@@ -13547,7 +13547,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）`",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）`",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §6.2/§6.3"
@@ -13624,7 +13624,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2.1（创新点一：测光星等坐标系）、§4.4（输出合同）`；§16 头（L343）**再次**列出上游三条 + 研究包——**同一文档两处声明上游**（L3 与 L343），两份清单内容不完全同（L343 多 §4.2）",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2.1（创新点一：测光星等坐标系）、§4.4（输出合同）`；§16 头（L343）**再次**列出上游三条 + 研究包——**同一文档两处声明上游**（L3 与 L343），两份清单内容不完全同（L343 多 §4.2）",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有（**两处**）"
@@ -13690,7 +13690,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）`。**未标 §4.4（PSF 有效面积随帧级 SNR 落盘，上位 L326）**",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）`。**未标 §4.4（PSF 有效面积随帧级 SNR 落盘，上位 L326）**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有（缺 §4.4）"
@@ -13745,7 +13745,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2.2（创新点二）、§4.4（输出合同）`；**另有 L5-6 第二份上游声明**「上位：docs/science/UNIFIED_SCIENCE_MODEL.md ／ 依据：PixInsight PSF Signal Weight/PSF SNR 方法、Horne/Naylor 最优提取、Zackay & Ofek…」→ **同一文档两套上游（最高设计 + 同层另一份 science）**，标准 01 §1\"每一层只由它的上一层推出\" + §3\"标明其上游最高设计条款\"→ **自造第二套上位关系 = 权威链缺陷**",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2.2（创新点二）、§4.4（输出合同）`；**另有 L5-6 第二份上游声明**「上位：docs/science/UNIFIED_SCIENCE_MODEL.md ／ 依据：PixInsight PSF Signal Weight/PSF SNR 方法、Horne/Naylor 最优提取、Zackay & Ofek…」→ **同一文档两套上游（最高设计 + 同层另一份 science）**，标准 01 §1\"每一层只由它的上一层推出\" + §3\"标明其上游最高设计条款\"→ **自造第二套上位关系 = 权威链缺陷**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 **+ 第二套上位**"
@@ -13833,7 +13833,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）`（**唯一一条，标注准确**；§5.5 L422 亦把\"逐像素档位表唯一正本\"指给 `docs/plugins/algorithms_phase2/12_rejection.md` §9 → **双向指针成环**，见冲突②）",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §5.5（逐像素排异）`（**唯一一条，标注准确**；§5.5 L422 亦把\"逐像素档位表唯一正本\"指给 `docs/plugins/algorithms_phase2/12_rejection.md` §9 → **双向指针成环**，见冲突②）",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §5.5（双向成环）"
@@ -13888,7 +13888,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §1（项目定位）、§2（核心科学方法）`（**17 份 science 全部有**这一行 `> 上游：ASTROCS_DESIGN.md §x（标题）`：`grep -l \"^> 上游\" docs/science/*.md | wc -l` → 17，见 §3 索引核对表）。但标准 01 §3 还要求\"标章节号 **+ 标题**\"，本文只给号",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §1（项目定位）、§2（核心科学方法）`（**17 份 science 全部有**这一行 `> 上游：docs/ASTROCS_DESIGN.md §x（标题）`：`grep -l \"^> 上游\" docs/science/*.md | wc -l` → 17，见 §3 索引核对表）。但标准 01 §3 还要求\"标章节号 **+ 标题**\"，本文只给号",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §1/§2"
@@ -13954,7 +13954,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）`。**另 L9「ALG 权威: ALG-STARDET-001（docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11）」= 第二条权威序**（标准 01 §1 末条\"不声明自己的第二套权威顺序\"；此处是\"ALG 权威\"让渡，属必要分工还是第二序需裁决 → 判定：让渡合法但形式上是第二个权威头）",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）`。**另 L9「ALG 权威: ALG-STARDET-001（docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11）」= 第二条权威序**（标准 01 §1 末条\"不声明自己的第二套权威顺序\"；此处是\"ALG 权威\"让渡，属必要分工还是第二序需裁决 → 判定：让渡合法但形式上是第二个权威头）",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 **+ALG 权威**"
@@ -14031,7 +14031,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）、§3.1（数据对象）`。**缺 §6.x（Phase3 方差传播的上位）**——§Phase3 一节的内容上位是 §6.2/§6.4，未列入",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）、§3.1（数据对象）`。**缺 §6.x（Phase3 方差传播的上位）**——§Phase3 一节的内容上位是 §6.2/§6.4，未列入",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有（缺 §6.x）"
@@ -14097,7 +14097,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有**：L3 `> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3.1（数据对象）`",
+   "a": "**有**：L3 `> 上游：docs/ASTROCS_DESIGN.md §2（核心科学方法）、§3.1（数据对象）`",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "有 §2/§3.1"
@@ -14207,7 +14207,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "①:12\"public raw pointer 必须注明 borrowed / owned / optional\" ↔ `CODE_STANDARD.md:14`\"公共指针必须声明所有权（borrowed / owned / optional）与空值语义\"（同一句要求两处各写一遍，无互指）；②:11\"失败时输出参数必须重置或文档化'未写入'\" ↔ `C_ABI_STANDARD.md:6-7`\"输出在失败时重置：`*out_model = nullptr` 语义由实现保证\"；③:7-12 的 ABI 边界要求 ↔ `ASTROCS_DESIGN.md` §8.5（:663「跨 DLL 不传 STL/异常/RTTI…」）同一主题分层",
+   "a": "①:12\"public raw pointer 必须注明 borrowed / owned / optional\" ↔ `CODE_STANDARD.md:14`\"公共指针必须声明所有权（borrowed / owned / optional）与空值语义\"（同一句要求两处各写一遍，无互指）；②:11\"失败时输出参数必须重置或文档化'未写入'\" ↔ `C_ABI_STANDARD.md:6-7`\"输出在失败时重置：`*out_model = nullptr` 语义由实现保证\"；③:7-12 的 ABI 边界要求 ↔ `docs/ASTROCS_DESIGN.md` §8.5（:663「跨 DLL 不传 STL/异常/RTTI…」）同一主题分层",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": "①:12\"public raw pointer 必须注明 borrowed / owned / optional\" ↔ `CODE_STANDARD.md:14`\"公共指针必须声明所有权（borrowed / owned / optional）与空值语义\"——同一条要求两处各写、**互不引用**；②:11\"失败时输出参数必须重置或文档化'未写入'\" ↔ `C_ABI_STANDARD.md:6-7`\"输出在失败时重置：`*out_model = nullptr` 语义由实现保证\"；③:7-12 的 ABI 边界清单 ↔ 最高设计 §8.5（:661-667）同一主题分层（分层合法）"
@@ -14438,10 +14438,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":3 标 §8.4（错）+ :5-6 另declare\"权威来源：`ENGINEERING_SPEC.md` §1/§4 + `ASTROCS_DESIGN.md` §10.2\" ⇒ **同一文件两处上游声明**",
+   "a": ":3 标 §8.4（错）+ :5-6 另declare\"权威来源：`ENGINEERING_SPEC.md` §1/§4 + `docs/ASTROCS_DESIGN.md` §10.2\" ⇒ **同一文件两处上游声明**",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 §8.4（集体错号）+ **:5-6 又立\"权威来源\"第二抬头**（`ENGINEERING_SPEC.md` §1/§4 + `ASTROCS_DESIGN.md` §10.2）⇒ 同一文件两套上游声明（标准 01 §1 禁第二套权威顺序）"
+   "b": ":3 §8.4（集体错号）+ **:5-6 又立\"权威来源\"第二抬头**（`ENGINEERING_SPEC.md` §1/§4 + `docs/ASTROCS_DESIGN.md` §10.2）⇒ 同一文件两套上游声明（标准 01 §1 禁第二套权威顺序）"
   },
   {
    "path": "docs/standards/CODE_STANDARD.md",
@@ -14504,10 +14504,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":5-6 与 :10-11 两次引用 `ASTROCS_DESIGN.md` **§10.2**——实测 §10（:684）为\"I/O 与原子产品\"且**无子节**，\"Windows 官方工具链为 MSVC\"实际在 **§11**（:709）⇒ 两处引用同一不存在节号",
+   "a": ":5-6 与 :10-11 两次引用 `docs/ASTROCS_DESIGN.md` **§10.2**——实测 §10（:684）为\"I/O 与原子产品\"且**无子节**，\"Windows 官方工具链为 MSVC\"实际在 **§11**（:709）⇒ 两处引用同一不存在节号",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":6 与 :11 两次引用 `ASTROCS_DESIGN.md` **§10.2**——实测 §10（:684）\"I/O 与原子产品\"**无子节**（下一节直接是 §11，:701），\"Windows 官方工具链为 MSVC\"实际在 **§11**（:709）⇒ 引用了不存在的节号，两处"
+   "b": ":6 与 :11 两次引用 `docs/ASTROCS_DESIGN.md` **§10.2**——实测 §10（:684）\"I/O 与原子产品\"**无子节**（下一节直接是 §11，:701），\"Windows 官方工具链为 MSVC\"实际在 **§11**（:709）⇒ 引用了不存在的节号，两处"
   },
   {
    "path": "docs/standards/CODE_STANDARD.md",
@@ -14746,7 +14746,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":15-16\"每个并行模块文档必须写 parallel region/shared/thread-local/reduction/determinism/float accumulation order\" ↔ `ASTROCS_DESIGN.md` §9（:672 浮点归约顺序冻结、worker 数来源）与 `docs/architecture/THREADING_MODEL.md`（本文件 :25 亦指向它）同一主题三处承载",
+   "a": ":15-16\"每个并行模块文档必须写 parallel region/shared/thread-local/reduction/determinism/float accumulation order\" ↔ `docs/ASTROCS_DESIGN.md` §9（:672 浮点归约顺序冻结、worker 数来源）与 `docs/architecture/THREADING_MODEL.md`（本文件 :25 亦指向它）同一主题三处承载",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": ":13-:16\"每个并行模块文档必须写 parallel region/shared/thread-local/reduction/determinism/float accumulation order\" ↔ `docs/architecture/THREADING_MODEL.md`（本文件 :25 指向的同一文档）与最高设计 §9:675（浮点归约顺序冻结、1 worker 与 N worker 等价判据）——同一\"并行文档必备要素\"三处承载，两处无互指"
@@ -14980,7 +14980,7 @@
    "a": ":3 标 §8.4（模块与 ABI）——与其主题（文档规范）完全不相干，正确上位 = 最高设计 §0/§0.1–§0.3",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 §8.4（模块与 ABI）——号错且**题与主题完全不相干**；文档规范的正确上位 = `ASTROCS_DESIGN.md` §0/§0.1（:35）/§0.2（:47）/§0.3（:57）"
+   "b": ":3 §8.4（模块与 ABI）——号错且**题与主题完全不相干**；文档规范的正确上位 = `docs/ASTROCS_DESIGN.md` §0/§0.1（:35）/§0.2（:47）/§0.3（:57）"
   },
   {
    "path": "docs/standards/DOCUMENTATION_STANDARD.md",
@@ -15010,10 +15010,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":5-9\"权威链（`ASTROCS_DESIGN.md` §0，唯一）：ASTROCS_DESIGN.md → AGENTS.md → ENGINEERING_SPEC.md → CONTROL_PACK_SPEC.md → docs/ci/ → docs/plugins/；**另立** docs/science/（公式权威）、docs/algorithms/（推导权威）\" ↔ `ASTROCS_DESIGN.md`:37-45「### 0.1 唯一权威链：1 本文档…2 详细设计…3 具体设计…4 代码」与 :55「**只有一条权威链**：每份文档的权威顺序由 §0.1 给出」——本文件把\"链\"重写成按文件的 6 段序列并把 science/algorithms 标为\"另立\"（不在链上），是**同主题的第二套口径**",
+   "a": ":5-9\"权威链（`docs/ASTROCS_DESIGN.md` §0，唯一）：docs/ASTROCS_DESIGN.md → AGENTS.md → ENGINEERING_SPEC.md → CONTROL_PACK_SPEC.md → docs/ci/ → docs/plugins/；**另立** docs/science/（公式权威）、docs/algorithms/（推导权威）\" ↔ `docs/ASTROCS_DESIGN.md`:37-45「### 0.1 唯一权威链：1 本文档…2 详细设计…3 具体设计…4 代码」与 :55「**只有一条权威链**：每份文档的权威顺序由 §0.1 给出」——本文件把\"链\"重写成按文件的 6 段序列并把 science/algorithms 标为\"另立\"（不在链上），是**同主题的第二套口径**",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":5-9\"权威链（`ASTROCS_DESIGN.md` §0，唯一）：`ASTROCS_DESIGN.md` → `AGENTS.md` → `ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/` → `docs/plugins/`；另立 `docs/science/`（公式权威）、`docs/algorithms/`（推导权威）、`docs/design/UNIFIED_MODEL.md`\" ↔ `ASTROCS_DESIGN.md`:37-42「§0.1 唯一权威链：1 本文档…2 详细设计…3 具体设计…4 代码」＋:52「**只有一条权威链**：每份文档的权威顺序由 §0.1 给出」——本文件把四层链重写成按文件的六段序列，并把 science/algorithms 标为\"另立\"（链外），是同一主题的第二套权威口径"
+   "b": ":5-9\"权威链（`docs/ASTROCS_DESIGN.md` §0，唯一）：`docs/ASTROCS_DESIGN.md` → `AGENTS.md` → `ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/` → `docs/plugins/`；另立 `docs/science/`（公式权威）、`docs/algorithms/`（推导权威）、`docs/design/UNIFIED_MODEL.md`\" ↔ `docs/ASTROCS_DESIGN.md`:37-42「§0.1 唯一权威链：1 本文档…2 详细设计…3 具体设计…4 代码」＋:52「**只有一条权威链**：每份文档的权威顺序由 §0.1 给出」——本文件把四层链重写成按文件的六段序列，并把 science/algorithms 标为\"另立\"（链外），是同一主题的第二套权威口径"
   },
   {
    "path": "docs/standards/DOCUMENTATION_STANDARD.md",
@@ -15054,10 +15054,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "①与最高设计 §0.1 冲突（第二套权威顺序，见\"重复\"栏）；②:11-22 的 L0–L5 分层与 `ASTROCS_DESIGN.md` §0.2 的详细文档层枚举、与 `docs/DOCUMENT_INDEX.yaml`（唯一索引地图，标准 01 §3）**三处并存**，且本文件分层缺 `docs/design/` 除 UNIFIED_MODEL 外的其余 5 份（同目录文档在自己立的地图里没位置）；③:36 只写裸文件名 `docs_machine_consistency.py`（实为 `eng/tools/docs_machine_consistency.py`）且不写门 ID",
+   "a": "①与最高设计 §0.1 冲突（第二套权威顺序，见\"重复\"栏）；②:11-22 的 L0–L5 分层与 `docs/ASTROCS_DESIGN.md` §0.2 的详细文档层枚举、与 `docs/DOCUMENT_INDEX.yaml`（唯一索引地图，标准 01 §3）**三处并存**，且本文件分层缺 `docs/design/` 除 UNIFIED_MODEL 外的其余 5 份（同目录文档在自己立的地图里没位置）；③:36 只写裸文件名 `docs_machine_consistency.py`（实为 `eng/tools/docs_machine_consistency.py`）且不写门 ID",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:5-9 第二套权威顺序（见\"重复\"栏，直接撞标准 01 §1 与最高设计 :52）；②:11-22 的 L0–L5 分层与 `ASTROCS_DESIGN.md` §0.2 的详细层枚举、`docs/DOCUMENT_INDEX.yaml`（唯一索引地图）**三处并存**，且本分层图里 `docs/design/` 只出现 UNIFIED_MODEL（:17），本批同目录另外 5 份详细设计在自己目录的\"权威分层\"里没有位置；③:35\"current authority 只取正式文档集内的现行条目\"与 :21 把 v6 历史档案留在分层图里自相矛盾"
+   "b": "①:5-9 第二套权威顺序（见\"重复\"栏，直接撞标准 01 §1 与最高设计 :52）；②:11-22 的 L0–L5 分层与 `docs/ASTROCS_DESIGN.md` §0.2 的详细层枚举、`docs/DOCUMENT_INDEX.yaml`（唯一索引地图）**三处并存**，且本分层图里 `docs/design/` 只出现 UNIFIED_MODEL（:17），本批同目录另外 5 份详细设计在自己目录的\"权威分层\"里没有位置；③:35\"current authority 只取正式文档集内的现行条目\"与 :21 把 v6 历史档案留在分层图里自相矛盾"
   },
   {
    "path": "docs/standards/DOCUMENTATION_STANDARD.md",
@@ -15153,10 +15153,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":7-11 三层语义 ↔ `CODE_STANDARD.md:17-18`（同一三层式各写一遍）；:8-9 recoverable status 枚举 ↔ `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5/§6；:15-18 违规判据 ↔ `docs/design/LOG_AND_ERROR_SYSTEM.md`:184-188 R1/R2 与 `ASTROCS_DESIGN.md`:521（\"空 catch、忽略返回码、只写日志、降级为警告后继续四类形态都无错误码，属未传播\"）——同一\"四类吞错形态\"三处承载",
+   "a": ":7-11 三层语义 ↔ `CODE_STANDARD.md:17-18`（同一三层式各写一遍）；:8-9 recoverable status 枚举 ↔ `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5/§6；:15-18 违规判据 ↔ `docs/design/LOG_AND_ERROR_SYSTEM.md`:184-188 R1/R2 与 `docs/ASTROCS_DESIGN.md`:521（\"空 catch、忽略返回码、只写日志、降级为警告后继续四类形态都无错误码，属未传播\"）——同一\"四类吞错形态\"三处承载",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:7-11 三层语义 ↔ `CODE_STANDARD.md:17-18` 同式各写；②:8-9 recoverable status 枚举 ↔ `LOG_AND_ERROR_CONTRACT.md` §5/§6 承载面；③:15-18 四条违规判据 ↔ `ASTROCS_DESIGN.md`:521「空 catch、忽略返回码、只写日志、降级为'警告后继续'四类形态都无错误码，属未传播」与 `docs/design/LOG_AND_ERROR_SYSTEM.md`:184-187 R1/R2——同一\"吞错形态\"清单三处承载（本文件未指上位，也未指门 R1/R2）"
+   "b": "①:7-11 三层语义 ↔ `CODE_STANDARD.md:17-18` 同式各写；②:8-9 recoverable status 枚举 ↔ `LOG_AND_ERROR_CONTRACT.md` §5/§6 承载面；③:15-18 四条违规判据 ↔ `docs/ASTROCS_DESIGN.md`:521「空 catch、忽略返回码、只写日志、降级为'警告后继续'四类形态都无错误码，属未传播」与 `docs/design/LOG_AND_ERROR_SYSTEM.md`:184-187 R1/R2——同一\"吞错形态\"清单三处承载（本文件未指上位，也未指门 R1/R2）"
   },
   {
    "path": "docs/standards/ERROR_HANDLING_STANDARD.md",
@@ -15417,7 +15417,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":5\"日志统一写 `run/logs/<module>/<YYYYMMDD>/`，源码目录保持只读\" ↔ ①`ASTROCS_DESIGN.md`:530-533「每次运行在块级 `output_dir` 下产出完整运行日志，日志目录默认 `<output_dir>/logs`（日志落点的唯一来源 = 块级 `output_dir`）」；②`docs/design/LOG_AND_ERROR_SYSTEM.md`:92-100「日志目录 `log_dir` 默认 `<output_dir>/logs`；判据红 = 进程 CWD 相对路径、源码树内目录、**`run/` 下的运行日志**、安装目录、用户家目录」——同一主题（运行日志落点）两份文档给出互斥取值，且其中一份被 P0 门判为红面",
+   "a": ":5\"日志统一写 `run/logs/<module>/<YYYYMMDD>/`，源码目录保持只读\" ↔ ①`docs/ASTROCS_DESIGN.md`:530-533「每次运行在块级 `output_dir` 下产出完整运行日志，日志目录默认 `<output_dir>/logs`（日志落点的唯一来源 = 块级 `output_dir`）」；②`docs/design/LOG_AND_ERROR_SYSTEM.md`:92-100「日志目录 `log_dir` 默认 `<output_dir>/logs`；判据红 = 进程 CWD 相对路径、源码树内目录、**`run/` 下的运行日志**、安装目录、用户家目录」——同一主题（运行日志落点）两份文档给出互斥取值，且其中一份被 P0 门判为红面",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": ":5-:8\"日志统一写 run/logs/<module>/<YYYYMMDD>/…每 stage 记录：stage_id、run_id、frame_id、config_hash、input hash、output hash、wall/cpu/RSS/IO、thread count、status、error category/code、upstream cause\" ↔ `docs/design/LOG_AND_ERROR_SYSTEM.md`:93-:100（落点 `log_dir` 默认 `<output_dir>/logs`）＋ :74（`log_event` 字段面 = run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic）——同一主题（落点 + 字段清单）两处各写、词表不同、无互指"
@@ -15453,7 +15453,7 @@
    "a": "①:5 与最高设计 §7.3/设计文档 §4 **口径相反**（run/ 落点正是 `CHK-LOG-SYS` R3 的判红面）；②:6-8 的 stage 字段清单（stage_id/run_id/frame_id/config_hash/…）与设计文档 §3 的 `log_event` 字段面（run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic）不同名同域，未指正本；③本文件不在 `CHK-LOG-SYS` 的文档一致面内：`eng/tools/quality/check_log_system.py:69-70,534` 的文档扫描面只含 `docs/design/LOG_AND_ERROR_SYSTEM.md` 与 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` ⇒ 这条互相矛盾的落点口径**没有任何门禁读取**（门禁映射缺口）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "**三处口径与上位相反，且没有门禁读取本文件**：①落点——:5「日志统一写 `run/logs/<module>/<YYYYMMDD>/`」↔ `ASTROCS_DESIGN.md:530`「日志目录默认 `<output_dir>/logs`（日志落点的唯一来源 = 块级 `output_dir`）」与 `:696`「`run/` 只放开发/CI 过程产物与过程日志，与运行日志不互替」↔ 设计文档 `:99-:100` 把「`run/` 下的运行日志」列为**判据红**面（`CHK-LOG-SYS` R3，实装在 `eng/tools/quality/check_log_system.py:366`）；②字段面——:6-:8 的 stage 字段清单与设计 §3 的 `log_event` 字段面不同名同域，未指正本；③**映射缺口（concern 1）**：`check_log_system.py:69-70` 的 `DOC_ANCHOR_FILES` 只含设计文档与合同文档 ⇒ 本文件这条与 P0 门判红面相反的落点口径**不被任何门读取**（`grep -o \"docs/standards[A-Za-z0-9_./-]*\" eng/ci/checks.json` 无本文件），标准 05 §5 要求的\"门禁↔文档口径\"映射在此为空"
+   "b": "**三处口径与上位相反，且没有门禁读取本文件**：①落点——:5「日志统一写 `run/logs/<module>/<YYYYMMDD>/`」↔ `docs/ASTROCS_DESIGN.md:530`「日志目录默认 `<output_dir>/logs`（日志落点的唯一来源 = 块级 `output_dir`）」与 `:696`「`run/` 只放开发/CI 过程产物与过程日志，与运行日志不互替」↔ 设计文档 `:99-:100` 把「`run/` 下的运行日志」列为**判据红**面（`CHK-LOG-SYS` R3，实装在 `eng/tools/quality/check_log_system.py:366`）；②字段面——:6-:8 的 stage 字段清单与设计 §3 的 `log_event` 字段面不同名同域，未指正本；③**映射缺口（concern 1）**：`check_log_system.py:69-70` 的 `DOC_ANCHOR_FILES` 只含设计文档与合同文档 ⇒ 本文件这条与 P0 门判红面相反的落点口径**不被任何门读取**（`grep -o \"docs/standards[A-Za-z0-9_./-]*\" eng/ci/checks.json` 无本文件），标准 05 §5 要求的\"门禁↔文档口径\"映射在此为空"
   },
   {
    "path": "docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md",
@@ -15516,10 +15516,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":3 标 §3.3（科学量与星表，**`:185`**）+ §8.5（模块与 ABI）——§8.5 号题相符（本批唯一），但行号锚错：`ASTROCS_DESIGN.md:185` 实测是 §2.2 的句子\"并经 §12.3 的独立审稿\"，\"五件事\"实际在 **:239**（§3.3 首行）",
+   "a": ":3 标 §3.3（科学量与星表，**`:185`**）+ §8.5（模块与 ABI）——§8.5 号题相符（本批唯一），但行号锚错：`docs/ASTROCS_DESIGN.md:185` 实测是 §2.2 的句子\"并经 §12.3 的独立审稿\"，\"五件事\"实际在 **:239**（§3.3 首行）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 标 §3.3（科学量与星表）+ §8.5——**§8.5 号题相符（本批 14 份里唯一写对节号的）**；但行内锚 `:185` 错：`ASTROCS_DESIGN.md:185` 实测是 §2.2 的句子\"并经 §12.3 的独立审稿\"，\"五件事\"实际在 **:239**（§3.3 首行）；:15 又以\"> 依据：…\"**把同一条上游重复第二遍**（同文件两处上游声明，且都带同一个错锚）"
+   "b": ":3 标 §3.3（科学量与星表）+ §8.5——**§8.5 号题相符（本批 14 份里唯一写对节号的）**；但行内锚 `:185` 错：`docs/ASTROCS_DESIGN.md:185` 实测是 §2.2 的句子\"并经 §12.3 的独立审稿\"，\"五件事\"实际在 **:239**（§3.3 首行）；:15 又以\"> 依据：…\"**把同一条上游重复第二遍**（同文件两处上游声明，且都带同一个错锚）"
   },
   {
    "path": "docs/standards/NUMERIC_STANDARD.md",
@@ -15692,10 +15692,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":5\"版本唯一源 = 根 `VERSION`（`docs/owner/RELEASE_STATUS.md` §2）\" ↔ `ASTROCS_DESIGN.md`:808-810（§13 同一条款，正本明指 RELEASE_STATUS §2）——本文件以指针写法（合规）；但 :8-11 交付包结构与 :12-15 门字面量与 `docs/owner/RELEASE_STATUS.md`、`ACCEPTANCE_SPEC.md` 的发布门清单同域双写",
+   "a": ":5\"版本唯一源 = 根 `VERSION`（`docs/owner/RELEASE_STATUS.md` §2）\" ↔ `docs/ASTROCS_DESIGN.md`:808-810（§13 同一条款，正本明指 RELEASE_STATUS §2）——本文件以指针写法（合规）；但 :8-11 交付包结构与 :12-15 门字面量与 `docs/owner/RELEASE_STATUS.md`、`ACCEPTANCE_SPEC.md` 的发布门清单同域双写",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":5\"版本唯一源 = 根 `VERSION`（`docs/owner/RELEASE_STATUS.md` §2）\" ↔ `ASTROCS_DESIGN.md`:808-:810（§13 同一条款，指针写法，合规）；但 :8-:11 交付包内容与 :12-:15 门字面量 ↔ `docs/owner/RELEASE_STATUS.md` §2（:56 起\"版本与发布面\"）与 `ACCEPTANCE_SPEC.md` 发布门同域双写"
+   "b": ":5\"版本唯一源 = 根 `VERSION`（`docs/owner/RELEASE_STATUS.md` §2）\" ↔ `docs/ASTROCS_DESIGN.md`:808-:810（§13 同一条款，指针写法，合规）；但 :8-:11 交付包内容与 :12-:15 门字面量 ↔ `docs/owner/RELEASE_STATUS.md` §2（:56 起\"版本与发布面\"）与 `ACCEPTANCE_SPEC.md` 发布门同域双写"
   },
   {
    "path": "docs/standards/RELEASE_STANDARD.md",
@@ -15780,10 +15780,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": ":3–:6 自标 `ASTROCS_DESIGN.md` §5.3（**冻结八投影**）/附录 B + `ENGINEERING_SPEC.md` §8；`docs/DOCUMENT_INDEX.yaml` 登记的 upstream 是 §8.4（模块与 ABI）⇒ **文档自标与索引登记两条不同**（标准 01 §3：索引登记含上游）",
+   "a": ":3–:6 自标 `docs/ASTROCS_DESIGN.md` §5.3（**冻结八投影**）/附录 B + `ENGINEERING_SPEC.md` §8；`docs/DOCUMENT_INDEX.yaml` 登记的 upstream 是 §8.4（模块与 ABI）⇒ **文档自标与索引登记两条不同**（标准 01 §3：索引登记含上游）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": ":3 自标 `ASTROCS_DESIGN.md` §5.3（冻结八投影）/附录 B + `ENGINEERING_SPEC.md` §8，并自declare\"不在 §0 权威链上\"；而 `docs/DOCUMENT_INDEX.yaml:1435` 给它登记的 upstream 是\"§8.4（模块与 ABI）\"⇒ **文档自标与唯一索引登记是两条不同口径**（标准 01 §3 要求同源）"
+   "b": ":3 自标 `docs/ASTROCS_DESIGN.md` §5.3（冻结八投影）/附录 B + `ENGINEERING_SPEC.md` §8，并自declare\"不在 §0 权威链上\"；而 `docs/DOCUMENT_INDEX.yaml:1435` 给它登记的 upstream 是\"§8.4（模块与 ABI）\"⇒ **文档自标与唯一索引登记是两条不同口径**（标准 01 §3 要求同源）"
   },
   {
    "path": "docs/standards/STANDARDS_REGISTRY.md",
@@ -15849,7 +15849,7 @@
    "a": "无外部路径悬空（§D.* 七字段的 EVIDENCE 与偏差表指针共 44 条路径逐条实测存在：见 §5.4 核对表）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "①:33\"新增/变更域…必须走 `ENGINEERING_SPEC.md` §3 + **`SCIENCE_CORRECTNESS.md`** 变更流程\"——不给路径且跟踪集无此件：`git ls-files | grep -i science_correct` 无输出，删除历史 = `git log --diff-filter=D --name-only -- \"*SCIENCE_CORRECTNESS*\"` → `ae0f1e63` 删 `工程控制/PROJECT-GOVERNANCE-01/SCIENCE_CORRECTNESS.md`；②:282\"跨域治理类偏差使用 **05 号 findings 登记册**的 `STD-F<n>` ID\"——该登记册已删除（`ls 工程控制/` = RELEASE-05、evidence；checker :68-:73 自记\"随旧控制包世代清理删除\"且 `EXTERNAL_FINDINGS_REQUIRED = False`），与 :293-:294\"本表是这些 ID 的**唯一事实源**\"自相矛盾；③:4\"资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`\"——`ASTROCS_DESIGN.md` §8 全节无资源门条款（我扫 :542-:668 只有内存管线/调度），资源门实际在 §4.5:357，而 `resource_gate_v1.json:76` 自称依据 = \"§3.5/§6.3\"（**§3.5 不存在**，§6.3 是投影算法）⇒ 两侧锚点互不相等且都错。§5 的 `docs/standards/__missing__.md`（:368）是检查器 `--fault-inject`/负例命令的字面量，不判悬空"
+   "b": "①:33\"新增/变更域…必须走 `ENGINEERING_SPEC.md` §3 + **`SCIENCE_CORRECTNESS.md`** 变更流程\"——不给路径且跟踪集无此件：`git ls-files | grep -i science_correct` 无输出，删除历史 = `git log --diff-filter=D --name-only -- \"*SCIENCE_CORRECTNESS*\"` → `ae0f1e63` 删 `工程控制/PROJECT-GOVERNANCE-01/SCIENCE_CORRECTNESS.md`；②:282\"跨域治理类偏差使用 **05 号 findings 登记册**的 `STD-F<n>` ID\"——该登记册已删除（`ls 工程控制/` = RELEASE-05、evidence；checker :68-:73 自记\"随旧控制包世代清理删除\"且 `EXTERNAL_FINDINGS_REQUIRED = False`），与 :293-:294\"本表是这些 ID 的**唯一事实源**\"自相矛盾；③:4\"资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`\"——`docs/ASTROCS_DESIGN.md` §8 全节无资源门条款（我扫 :542-:668 只有内存管线/调度），资源门实际在 §4.5:357，而 `resource_gate_v1.json:76` 自称依据 = \"§3.5/§6.3\"（**§3.5 不存在**，§6.3 是投影算法）⇒ 两侧锚点互不相等且都错。§5 的 `docs/standards/__missing__.md`（:368）是检查器 `--fault-inject`/负例命令的字面量，不判悬空"
   },
   {
    "path": "docs/standards/STANDARDS_REGISTRY.md",
@@ -15857,7 +15857,7 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "①**上游节号错两处**：§5.3 实为\"SNR 重建与逆方差叠加\"（ASTROCS_DESIGN.md:385），八投影冻结在 §6.3:453（原文\"首批冻结 TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA…当前仅 TAN 可用\"），附录 B 在 :823；②:66 记\"Paper II §5 Table 1（TAN/SIN/CAR/AIT **四投影**）… CONFORMANT…registry v1 恰四行\"，与最高设计 §6.3 的**八投影冻结集**及\"当前仅 TAN\"不符（四/八与实现档未登记为偏差）；③:336 与 :3 的 `ENGINEERING_SPEC §8` 指向\"锚存活/fail-closed\"——实测该规则在 **§10**（机器一致性检查，ENGINEERING_SPEC.md:176-188），§8 是\"文档集：自解释与层级索引\"；④:33 引\"`SCIENCE_CORRECTNESS.md` 变更流程\"**不给路径**且跟踪集无此件（`git ls-files",
+   "a": "①**上游节号错两处**：§5.3 实为\"SNR 重建与逆方差叠加\"（docs/ASTROCS_DESIGN.md:385），八投影冻结在 §6.3:453（原文\"首批冻结 TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA…当前仅 TAN 可用\"），附录 B 在 :823；②:66 记\"Paper II §5 Table 1（TAN/SIN/CAR/AIT **四投影**）… CONFORMANT…registry v1 恰四行\"，与最高设计 §6.3 的**八投影冻结集**及\"当前仅 TAN\"不符（四/八与实现档未登记为偏差）；③:336 与 :3 的 `ENGINEERING_SPEC §8` 指向\"锚存活/fail-closed\"——实测该规则在 **§10**（机器一致性检查，ENGINEERING_SPEC.md:176-188），§8 是\"文档集：自解释与层级索引\"；④:33 引\"`SCIENCE_CORRECTNESS.md` 变更流程\"**不给路径**且跟踪集无此件（`git ls-files",
    "b_batch": "DB-10-补",
    "b_form": "V",
    "b": "①上游节号错：八投影冻结在 §6.3:453（\"当前仅 TAN 可用\"），非 :3/:383 所写的 §5.3（=SNR 重建与逆方差叠加，:385）；②:65 记\"Paper II §5 Table 1（TAN/SIN/CAR/AIT）**四投影** CONFORMANT…registry v1 恰四行\"，与上位 §6.3 的**八投影冻结集**不衔接，且\"仅 TAN 可用\"的实现档**没有登记为偏差**（§D.spherical-projection 偏差表 :73-:78 无对应行）；③:268 把 DISP-DRZ-009 的\"保持口径\"写成 `w=a/A_pixel`，正是科学正本 `docs/science/DRIZZLE.md:158` 明列的**禁止写法**（\"把核权重写回 `a_jp/A_pixel,j` ⇒ `Σ_p F_p = pixfrac²·Σ_j x_j`，FZ-COND-FLUX-CONSERV 判红\"），与同文件 :187 的 CLOSED 结论互斥；④**按其自家判据 C7 复算，§3 索引有 2 行不成立**：C7 用\"§3 索引行的条款串 ∈ 该域清单首列\"做逐字相等（`docs/standards/checks/check_standards_registry.py:513-515`），我逐字比对：`DISP-DRZ-002`、`DISP-DRZ-009` 的条款串\"§3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义）\"在 drizzle 清单首列里不存在（清单写的是 `A_drop` 版）⇒ `C7_deviation_index_rows_resolve` 应判红 ⇒ 若 CI 台账记 STD-REG 为绿，则台账与该门判据不符（本批禁跑门，此条为推导，需前台独立复验）"
@@ -15926,7 +15926,7 @@
    "a": ":3 标 §8.4（模块与 ABI）→ 集体错号；主题上位应是 **§12 验证体系（:721）与 §12.4 验证层级（:764）**，以及 `ENGINEERING_SPEC.md` §5（测试规范，:64-:90）——本文件对两者**一律无指针**",
    "b_batch": "D1补三份",
    "b_form": "V",
-   "b": "有单行：`:3` `> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）` ⇒ 满足标准 01 §3 的\"标明上游\"形式要求，但**号与题互不相配**：实测 `ASTROCS_DESIGN.md:618` = `### 8.4 顶层结构`，而\"模块与 ABI\"是 `:661` `### 8.5 模块与 ABI`；测试主题的实质上位是 `:721` `## 12. 验证体系` 与 `:764` `### 12.4 验证层级与四层验收`（另 `ENGINEERING_SPEC.md:64` `## 5. 测试规范`）。全文对 §12/§5 **无任何指针**"
+   "b": "有单行：`:3` `> 上游：docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）` ⇒ 满足标准 01 §3 的\"标明上游\"形式要求，但**号与题互不相配**：实测 `docs/ASTROCS_DESIGN.md:618` = `### 8.4 顶层结构`，而\"模块与 ABI\"是 `:661` `### 8.5 模块与 ABI`；测试主题的实质上位是 `:721` `## 12. 验证体系` 与 `:764` `### 12.4 验证层级与四层验收`（另 `ENGINEERING_SPEC.md:64` `## 5. 测试规范`）。全文对 §12/§5 **无任何指针**"
   },
   {
    "path": "docs/standards/TEST_STANDARD.md",
@@ -15959,7 +15959,7 @@
    "a": "①:5\"每科学契约 ≥1 test/oracle（property/oracle/MC）\" ↔ `ENGINEERING_SPEC.md:66-:69`\"每模块必备测试：确定性合成数据生成器；**不调用生产实现的独立 Oracle 或解析解**；科学不变量/性质测试\"——同一\"必须有独立 Oracle\"下限两处各写、无互指；②:10\"变更模块必须重跑相关 gate\" ↔ `ENGINEERING_SPEC.md:83`\"普通重构跑模块测试 + 影响分析选出的链路\"（同一条变更-重跑规则的第二套措辞，且本句引入 `gate` 词而 ENGINEERING_SPEC 用\"链路\"）；③:6\"测试必须使用公共生产 API；实现面只有生产一份\" ↔ `docs/standards/CODE_STANDARD.md:21`\"production science implementation 单一（单一实现 + oracle）\"",
    "b_batch": "D1补三份",
    "b_form": "V",
-   "b": "三处举证（各带 `路径:行`，两处段落并列）： ① 本件 `:5` `- 每科学契约 ≥1 test/oracle（property/oracle/MC）。` ↔ `docs/contracts/TEST_MATRIX.md:6` `> 规则: 每个 SCI/ALG ID 至少一个独立 TEST; 容差事前冻结; 影响触发按 07 矩阵。` ＋ ↔ `ENGINEERING_SPEC.md:69` `- 不调用生产实现的独立 Oracle 或解析解；`。重叠范围 = \"什么算被测、是否必须有独立 Oracle\"；差异 = 本件给数量下限（≥1）与类型枚举，ENGINEERING_SPEC 给\"必备测试清单\"且要求\"不调用生产实现\"，TEST_MATRIX 给 ID↔TEST 映射表。**三处无互指**。 ② 本件 `:6` `- 测试必须使用公共生产 API；实现面只有生产一份。` ↔ `docs/standards/CODE_STANDARD.md:21` `- production science implementation 单一（单一实现 + oracle）。`。重叠 = \"实现面单一\"；差异 = 本件把该断言用作测试面约束，CODE_STANDARD 是代码红线。 ③ 本件 `:3` 上游串 ↔ `docs/development/TESTING.md:3` `> 上游：ASTROCS_DESIGN.md §8（软件架构）`。同一\"测试\"主题两件**各标一个互不相干的上位号**（§8.4 vs §8，均非 §12）⇒ 双向索引在此不闭合（标准 01 §3）。 与 `AUD-101-DB-10-补.md` §2.14 的登记方向一致（其举证为 :5↔ENGINEERING_SPEC:66-69、:6↔CODE_STANDARD:21），本条为独立复核复现，非沿用"
+   "b": "三处举证（各带 `路径:行`，两处段落并列）： ① 本件 `:5` `- 每科学契约 ≥1 test/oracle（property/oracle/MC）。` ↔ `docs/contracts/TEST_MATRIX.md:6` `> 规则: 每个 SCI/ALG ID 至少一个独立 TEST; 容差事前冻结; 影响触发按 07 矩阵。` ＋ ↔ `ENGINEERING_SPEC.md:69` `- 不调用生产实现的独立 Oracle 或解析解；`。重叠范围 = \"什么算被测、是否必须有独立 Oracle\"；差异 = 本件给数量下限（≥1）与类型枚举，ENGINEERING_SPEC 给\"必备测试清单\"且要求\"不调用生产实现\"，TEST_MATRIX 给 ID↔TEST 映射表。**三处无互指**。 ② 本件 `:6` `- 测试必须使用公共生产 API；实现面只有生产一份。` ↔ `docs/standards/CODE_STANDARD.md:21` `- production science implementation 单一（单一实现 + oracle）。`。重叠 = \"实现面单一\"；差异 = 本件把该断言用作测试面约束，CODE_STANDARD 是代码红线。 ③ 本件 `:3` 上游串 ↔ `docs/development/TESTING.md:3` `> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）`。同一\"测试\"主题两件**各标一个互不相干的上位号**（§8.4 vs §8，均非 §12）⇒ 双向索引在此不闭合（标准 01 §3）。 与 `AUD-101-DB-10-补.md` §2.14 的登记方向一致（其举证为 :5↔ENGINEERING_SPEC:66-69、:6↔CODE_STANDARD:21），本条为独立复核复现，非沿用"
   },
   {
    "path": "docs/standards/TEST_STANDARD.md",
@@ -16000,10 +16000,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10-补",
    "a_form": "V",
-   "a": "①:8 的 GPU 分句与上位适用域不对齐：`ASTROCS_DESIGN.md`:671\"生产仅纯 CPU\"、§1.3:98 把\"ACR/GPU/CPU+GPU 混合生产路由\"列为**非目标（ACR 源码保留为隔离实验，生产不可达）**——本句把 GPU 当作常规测试面而不写这一限定，读者会以为存在生产 GPU 路径；实测该面的存在形态只有隔离实验与 CUDA 桥（`lib/infrastructure/acr/backends/cuda/**`、`lib/algorithms/coverage/CMakeLists.txt:230` 注释\"GPU 不可用时…GTEST_SKIP\"）；②:5-:10 六条与 `ENGINEERING_SPEC.md` §5 之间无任何映射或指针，且 14 份 standards 全部不在门禁读取面内（`grep -c \"_STANDARD\" eng/ci/checks.json` = 0）⇒ 本规范既不被上游索引、也不被下游门读，是\"两头空\"的一条轴（标准 05 §5 的映射在此为空）",
+   "a": "①:8 的 GPU 分句与上位适用域不对齐：`docs/ASTROCS_DESIGN.md`:671\"生产仅纯 CPU\"、§1.3:98 把\"ACR/GPU/CPU+GPU 混合生产路由\"列为**非目标（ACR 源码保留为隔离实验，生产不可达）**——本句把 GPU 当作常规测试面而不写这一限定，读者会以为存在生产 GPU 路径；实测该面的存在形态只有隔离实验与 CUDA 桥（`lib/infrastructure/acr/backends/cuda/**`、`lib/algorithms/coverage/CMakeLists.txt:230` 注释\"GPU 不可用时…GTEST_SKIP\"）；②:5-:10 六条与 `ENGINEERING_SPEC.md` §5 之间无任何映射或指针，且 14 份 standards 全部不在门禁读取面内（`grep -c \"_STANDARD\" eng/ci/checks.json` = 0）⇒ 本规范既不被上游索引、也不被下游门读，是\"两头空\"的一条轴（标准 05 §5 的映射在此为空）",
    "b_batch": "D1补三份",
    "b_form": "V",
-   "b": "①**上游号题双错**：`:3` 标 `§8.4（模块与 ABI）`，实测 `ASTROCS_DESIGN.md:618` = `### 8.4 顶层结构`、`:661` = `### 8.5 模块与 ABI`；测试主题的上位在 `:721 ## 12. 验证体系` / `:764 ### 12.4 验证层级与四层验收`，本件一律不指。 ②**GPU 分句与上位适用域不对齐**：`ASTROCS_DESIGN.md:671`（§9 CPU 后端与资源）`- 生产仅纯 CPU；支持 amd64 baseline、AVX2/FMA、AVX-512 子集…`，`:96 ### 1.3 非目标（明确不做）` 之 `:98` `- ACR/GPU/CPU+GPU 混合生产路由（ACR 源码保留为隔离实验，生产不可达）`；本件 `:8` 把 GPU 当常规测试面而不写\"仅隔离实验面\"，读者会推定存在生产 GPU 路径。 ③**与门禁注册表的映射为空（本批专项，见 §1.1a）**：6 条判据在 `eng/ci/checks.json` 里**一条登记边都没有**。 ④同主题两件上位互斥（见\"重复或重叠对象\"③），且前批对同一对文件给出**相反合并方向**（见\"处置建议\"栏与前批订正）"
+   "b": "①**上游号题双错**：`:3` 标 `§8.4（模块与 ABI）`，实测 `docs/ASTROCS_DESIGN.md:618` = `### 8.4 顶层结构`、`:661` = `### 8.5 模块与 ABI`；测试主题的上位在 `:721 ## 12. 验证体系` / `:764 ### 12.4 验证层级与四层验收`，本件一律不指。 ②**GPU 分句与上位适用域不对齐**：`docs/ASTROCS_DESIGN.md:671`（§9 CPU 后端与资源）`- 生产仅纯 CPU；支持 amd64 baseline、AVX2/FMA、AVX-512 子集…`，`:96 ### 1.3 非目标（明确不做）` 之 `:98` `- ACR/GPU/CPU+GPU 混合生产路由（ACR 源码保留为隔离实验，生产不可达）`；本件 `:8` 把 GPU 当常规测试面而不写\"仅隔离实验面\"，读者会推定存在生产 GPU 路径。 ③**与门禁注册表的映射为空（本批专项，见 §1.1a）**：6 条判据在 `eng/ci/checks.json` 里**一条登记边都没有**。 ④同主题两件上位互斥（见\"重复或重叠对象\"③），且前批对同一对文件给出**相反合并方向**（见\"处置建议\"栏与前批订正）"
   },
   {
    "path": "docs/standards/TEST_STANDARD.md",
@@ -16110,10 +16110,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "无上游标注（`DOC-INDEX` 的 `has_upstream_header` 不适用于 .py；索引却给它登记了 `upstream: ASTROCS_DESIGN.md §8.4（模块与 ABI）`——号与题均与本文件无关）",
+   "a": "无上游标注（`DOC-INDEX` 的 `has_upstream_header` 不适用于 .py；索引却给它登记了 `upstream: docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）`——号与题均与本文件无关）",
    "b_batch": "DB-10-补",
    "b_form": "V",
-   "b": "无上游标注（`check_doc_index.py:356` 的 `has_upstream_header` 只作用 `docs/**/*.md`，.py 不受检），但 `docs/DOCUMENT_INDEX.yaml:1443` 仍给它登记 `upstream: ASTROCS_DESIGN.md §8.4（模块与 ABI）`——号与题都与本检查器无关 ⇒ 索引登记了一个不存在于该件的元信息（标准 01 §3 登记含上游，登记面失真）"
+   "b": "无上游标注（`check_doc_index.py:356` 的 `has_upstream_header` 只作用 `docs/**/*.md`，.py 不受检），但 `docs/DOCUMENT_INDEX.yaml:1443` 仍给它登记 `upstream: docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）`——号与题都与本检查器无关 ⇒ 索引登记了一个不存在于该件的元信息（标准 01 §3 登记含上游，登记面失真）"
   },
   {
    "path": "docs/standards/checks/check_standards_registry.py",
@@ -16121,10 +16121,10 @@
    "type": "批间不一致",
    "a_batch": "DB-10",
    "a_form": "H",
-   "a": "无上游标注（`DOC-INDEX` 的 `has_upstream_header` 不适用于 .py；索引却给它登记了 `upstream: ASTROCS_DESIGN.md §8.4（模块与 ABI）`——号与题均与本文件无关）",
+   "a": "无上游标注（`DOC-INDEX` 的 `has_upstream_header` 不适用于 .py；索引却给它登记了 `upstream: docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）`——号与题均与本文件无关）",
    "b_batch": "D1补三份",
    "b_form": "V",
-   "b": "文档级\"上游：\"行**不存在**（机械列 `upstream_pointer=False` **判对**；`has_upstream_header` 类检查不作用 `.py`）。docstring `:5` 只指 `docs/standards/STANDARDS_REGISTRY.md §1/§2`，`:31-33` 段指 `ENGINEERING_SPEC §8` ⇒ 按标准 01 §3 判 `缺`。**索引却登记了** `upstream: \"ASTROCS_DESIGN.md §8.4（模块与 ABI）\"`（`docs/DOCUMENT_INDEX.yaml`）——号与题都与本检查器无关，且该号本身配错（§8.4 实为\"顶层结构\"，见 §1.1\"上游\"），属\"给代码件登记该件不可能有的元信息\""
+   "b": "文档级\"上游：\"行**不存在**（机械列 `upstream_pointer=False` **判对**；`has_upstream_header` 类检查不作用 `.py`）。docstring `:5` 只指 `docs/standards/STANDARDS_REGISTRY.md §1/§2`，`:31-33` 段指 `ENGINEERING_SPEC §8` ⇒ 按标准 01 §3 判 `缺`。**索引却登记了** `upstream: \"docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）\"`（`docs/DOCUMENT_INDEX.yaml`）——号与题都与本检查器无关，且该号本身配错（§8.4 实为\"顶层结构\"，见 §1.1\"上游\"），属\"给代码件登记该件不可能有的元信息\""
   },
   {
    "path": "docs/standards/checks/check_standards_registry.py",
@@ -16330,7 +16330,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**有让渡声明但形式违规**：L10-11\"科学/算法/架构/发布权威一律以 `docs/`（science|algorithms|architecture|standards|modules|contracts）、最高设计 `ASTROCS_DESIGN.md`（§0 权威链）与 `docs/owner/`（L0）为准；本文件不复制长文、不承载权威判定\"。**但同一块 L3 同时自称\"仓库唯一项目记忆\"= 在\"记忆\"这一主题上自 claim 唯一口径，而权威链没有任何上位条款设立\"项目记忆\"层**",
+   "a": "**有让渡声明但形式违规**：L10-11\"科学/算法/架构/发布权威一律以 `docs/`（science|algorithms|architecture|standards|modules|contracts）、最高设计 `docs/ASTROCS_DESIGN.md`（§0 权威链）与 `docs/owner/`（L0）为准；本文件不复制长文、不承载权威判定\"。**但同一块 L3 同时自称\"仓库唯一项目记忆\"= 在\"记忆\"这一主题上自 claim 唯一口径，而权威链没有任何上位条款设立\"项目记忆\"层**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "让渡声明+自称唯一记忆"
@@ -16374,7 +16374,7 @@
    "type": "同稿双式",
    "a_batch": "DA-01",
    "a_form": "V",
-   "a": "**删除该文件，并把\"项目记忆\"这一层从正式文档层移除**（标准 01 §2 末条给出去向）：稳定目标 → `ASTROCS_DESIGN.md` §1 已承载；当前 SHA/版本 → 全删，由根 `VERSION` 与 `docs/owner/RELEASE_STATUS.md` 单源；模块索引 → `docs/architecture/MODULE_MAP.md` + `docs/modules/`；未决事项 → 按 `docs/standards/DOCUMENTATION_STANDARD.md` §7 的\"登记格式\"迁 `artifacts/evidence/` 并由正本引用（现存 11 条中仅\"Windows 发布执行面 NOT_VERIFIED\"与\"版本收敛遗留\"有现行价值，其余 9 条已闭环、由 git 历史承载）。 **前置动作（顺序不可颠倒）**：① 先由负责人裁决 ⑤/⑥ 的 `acsd.exe` ↔ `astrocs.exe` 口径；② 从 `ENGINEERING_SPEC.md` §7 L104-108 根固定条目清单与 `eng/ci/root_manifest.json` 移除 `memory.md`；③ 若保留\"记忆层\"，则先补规范（位置、格式、禁令）并让 `AGENTS.md` §1.2 指向它——**当前 `AGENTS.md` §1.2 要求\"动手前先查两类记忆\"却无任何落位锚、也不引 `memory.md`，两份互不引用（`grep -n memory AGENTS.md` → 0）**；④ 删除属\"删除交付物/用户数据\"，按 AGENTS §10 必须上呈负责人，本批**只登记不执行**",
+   "a": "**删除该文件，并把\"项目记忆\"这一层从正式文档层移除**（标准 01 §2 末条给出去向）：稳定目标 → `docs/ASTROCS_DESIGN.md` §1 已承载；当前 SHA/版本 → 全删，由根 `VERSION` 与 `docs/owner/RELEASE_STATUS.md` 单源；模块索引 → `docs/architecture/MODULE_MAP.md` + `docs/modules/`；未决事项 → 按 `docs/standards/DOCUMENTATION_STANDARD.md` §7 的\"登记格式\"迁 `artifacts/evidence/` 并由正本引用（现存 11 条中仅\"Windows 发布执行面 NOT_VERIFIED\"与\"版本收敛遗留\"有现行价值，其余 9 条已闭环、由 git 历史承载）。 **前置动作（顺序不可颠倒）**：① 先由负责人裁决 ⑤/⑥ 的 `acsd.exe` ↔ `astrocs.exe` 口径；② 从 `ENGINEERING_SPEC.md` §7 L104-108 根固定条目清单与 `eng/ci/root_manifest.json` 移除 `memory.md`；③ 若保留\"记忆层\"，则先补规范（位置、格式、禁令）并让 `AGENTS.md` §1.2 指向它——**当前 `AGENTS.md` §1.2 要求\"动手前先查两类记忆\"却无任何落位锚、也不引 `memory.md`，两份互不引用（`grep -n memory AGENTS.md` → 0）**；④ 删除属\"删除交付物/用户数据\"，按 AGENTS §10 必须上呈负责人，本批**只登记不执行**",
    "b_batch": "DA-01",
    "b_form": "H",
    "b": "**删除**（先改登记面；上呈）"
@@ -16432,7 +16432,7 @@
    "a": ":7 「最高设计 §12；ACCEPTANCE_SPEC 全文；CONTROL_PACK_SPEC §7。」—— 三份均存在； `CONTROL_PACK_SPEC §7` 标题是「独立验证（**前台**职责）」而本任务由**子代理**执行 ⇒ 条款语义与角色不完全对齐（轻）",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`:7`「最高设计 §12；ACCEPTANCE_SPEC 全文；CONTROL_PACK_SPEC §7。」三条均存在：`ASTROCS_DESIGN.md:721` §12「验证体系」、`ACCEPTANCE_SPEC.md` 在跟踪集、`CONTROL_PACK_SPEC.md:176` §7「独立验证（**前台**职责）」。**标题级错配 0 处**；但 §7 把独立验证定为**前台职责**而本任务书 :3 指定由「独立验收子代理」执行 ⇒ 条款归属与本件角色分配不同口径（轻，登记）。"
+   "b": "`:7`「最高设计 §12；ACCEPTANCE_SPEC 全文；CONTROL_PACK_SPEC §7。」三条均存在：`docs/ASTROCS_DESIGN.md:721` §12「验证体系」、`ACCEPTANCE_SPEC.md` 在跟踪集、`CONTROL_PACK_SPEC.md:176` §7「独立验证（**前台**职责）」。**标题级错配 0 处**；但 §7 把独立验证定为**前台职责**而本任务书 :3 指定由「独立验收子代理」执行 ⇒ 条款归属与本件角色分配不同口径（轻，登记）。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ACCEPT-501.md",
@@ -16564,7 +16564,7 @@
    "a": "**本批最高优先级单条**：:14 「…、**适用域 n≥100**、降级路径；」—— 该\"适用域\"在 `docs/science/PHOTOMETRY.md`（全文 `grep \"n≥100\"` 零命中，§16.5 第 1 条为「不设固定星数门槛」）、 `ACCEPTANCE_SPEC.md` §2.1、`实验/photometric-magnitude/REPORT_paper.md:275`（「测光不设星数门槛」） **三处正本均不存在**，且 `OPEN_QUESTIONS.md:42-48` Q-5 记负责人已裁决**删除**该门槛。 ⇒ 独立验收者按本清单执行，会**把一条被撤销的定案当作\"科学-文档一致性\"来判**， 并把\"未落地\"记成五一致性缺陷 —— 即错误的验收清单会**生产**错误的一致性结论。 这条正是 `AUDIT_PACKAGE.md:13` 已发生的事实。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**本批最高优先级单条：`:14`「适用域 n≥100」把已作废的科学定案当现行验收判据**。 ① 科学正本现文 `docs/science/PHOTOMETRY.md:394` §16.5 标题「星数依赖与降级语义（SCI-A 实验定案）」，`:399` 第 1 条逐字：「**星数不构成拒绝条件**：不存在星点少到无法测光的图；任何可解析帧都完成测光定标并出产品…；**不设固定星数门槛**」——全文 `grep 'n≥100|星数门槛'` 仅命中该否定句，**无任何 n≥100 门槛**。 ② 裁决在案 `工程控制/RELEASE-05/OPEN_QUESTIONS.md:40`「## Q-5（科学文档 vs 代码落地缺口）测光星数门槛」，`:42`「**状态：已裁决**。负责人裁决：…把相关门槛与限制都删掉；星数真的少时应报拟合失败，而不是用门禁去卡」，`:43-46` 记录删除已贯穿 `ASTROCS_DESIGN.md`、`PHOTOMETRY.md §16.5`、`REPORT_paper.md`、`module_adapters.cpp`（`P1_PHOT_MIN_FIT_STARS` 已删）、`eng/ci/check_provenance_consistency.py`。 ⇒ 独立验收者按 `:14` 执行，会把\"没有 n≥100 门\"记成**科学-文档一致性缺陷**并回派修复，即**错误的验收清单会生产错误的结论**。 ③ **同一残留在包内还有一处**：`SUMMARY.md` §2「测光星等坐标系（SCI-A）…边界：适用域为拟合星数 n≥100（`PHOTOMETRY.md` §16.5）」——引用的正是那条写着\"不设门槛\"的节 ⇒ 该作废口径同时活在任务书与收口报告两处（`SUMMARY.md` 属 DB-19 范围，此处只作关联举证）。 ④ 本条**独立复算并证实** `AUD-101-DB-19.md` §1.16 的同一判法（非沿用：两侧原文与 Q-5 原文均为本机 `grep`/`sed` 取证）。"
+   "b": "**本批最高优先级单条：`:14`「适用域 n≥100」把已作废的科学定案当现行验收判据**。 ① 科学正本现文 `docs/science/PHOTOMETRY.md:394` §16.5 标题「星数依赖与降级语义（SCI-A 实验定案）」，`:399` 第 1 条逐字：「**星数不构成拒绝条件**：不存在星点少到无法测光的图；任何可解析帧都完成测光定标并出产品…；**不设固定星数门槛**」——全文 `grep 'n≥100|星数门槛'` 仅命中该否定句，**无任何 n≥100 门槛**。 ② 裁决在案 `工程控制/RELEASE-05/OPEN_QUESTIONS.md:40`「## Q-5（科学文档 vs 代码落地缺口）测光星数门槛」，`:42`「**状态：已裁决**。负责人裁决：…把相关门槛与限制都删掉；星数真的少时应报拟合失败，而不是用门禁去卡」，`:43-46` 记录删除已贯穿 `docs/ASTROCS_DESIGN.md`、`PHOTOMETRY.md §16.5`、`REPORT_paper.md`、`module_adapters.cpp`（`P1_PHOT_MIN_FIT_STARS` 已删）、`eng/ci/check_provenance_consistency.py`。 ⇒ 独立验收者按 `:14` 执行，会把\"没有 n≥100 门\"记成**科学-文档一致性缺陷**并回派修复，即**错误的验收清单会生产错误的结论**。 ③ **同一残留在包内还有一处**：`SUMMARY.md` §2「测光星等坐标系（SCI-A）…边界：适用域为拟合星数 n≥100（`PHOTOMETRY.md` §16.5）」——引用的正是那条写着\"不设门槛\"的节 ⇒ 该作废口径同时活在任务书与收口报告两处（`SUMMARY.md` 属 DB-19 范围，此处只作关联举证）。 ④ 本条**独立复算并证实** `AUD-101-DB-19.md` §1.16 的同一判法（非沿用：两侧原文与 Q-5 原文均为本机 `grep`/`sed` 取证）。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ACCEPT-501.md",
@@ -16649,10 +16649,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8.1/§8.2；ENGINEERING_SPEC §4.1；CONTRACT-501 的块生命周期合同。」—— 三锚均存在（`ASTROCS_DESIGN.md:544`、`:571`、`ENGINEERING_SPEC.md:55`）⇒ 本批任务书中依据最实的一份",
+   "a": ":6 「最高设计 §8.1/§8.2；ENGINEERING_SPEC §4.1；CONTRACT-501 的块生命周期合同。」—— 三锚均存在（`docs/ASTROCS_DESIGN.md:544`、`:571`、`ENGINEERING_SPEC.md:55`）⇒ 本批任务书中依据最实的一份",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`:7`「最高设计 §8.1/§8.2；ENGINEERING_SPEC §4.1；CONTRACT-501 的块生命周期合同。」实测 `ASTROCS_DESIGN.md:544` §8.1「总原则：唯一 CLI 入口、阶段独立调度器」、`:571` §8.2「阶段内：命名块内存管线与块生命周期」、`ENGINEERING_SPEC.md:55` §4.1「管线纪律（对应最高设计 §8）」、合同 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` 存在 ⇒ **四条依据全部可核，本批任务书中依据最实的一份**，无 §号错配"
+   "b": "`:7`「最高设计 §8.1/§8.2；ENGINEERING_SPEC §4.1；CONTRACT-501 的块生命周期合同。」实测 `docs/ASTROCS_DESIGN.md:544` §8.1「总原则：唯一 CLI 入口、阶段独立调度器」、`:571` §8.2「阶段内：命名块内存管线与块生命周期」、`ENGINEERING_SPEC.md:55` §4.1「管线纪律（对应最高设计 §8）」、合同 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` 存在 ⇒ **四条依据全部可核，本批任务书中依据最实的一份**，无 §号错配"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-501.md",
@@ -16660,7 +16660,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8.1/§8.2；ENGINEERING_SPEC §4.1；CONTRACT-501 的块生命周期合同。」—— 三锚均存在（`ASTROCS_DESIGN.md:544`、`:571`、`ENGINEERING_SPEC.md:55`）⇒ 本批任务书中依据最实的一份",
+   "a": ":6 「最高设计 §8.1/§8.2；ENGINEERING_SPEC §4.1；CONTRACT-501 的块生命周期合同。」—— 三锚均存在（`docs/ASTROCS_DESIGN.md:544`、`:571`、`ENGINEERING_SPEC.md:55`）⇒ 本批任务书中依据最实的一份",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:7` §8.1/§8.2（实核成立，四条依据全可核）"
@@ -16784,7 +16784,7 @@
    "a": "无数值以外的冲突。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 与包内 GAP_AUDIT 的同一口径互斥**：`:14`「34 文件 18427 行」↔ `GAP_AUDIT.md:11`「G0-3（D-2 B1） | pipeline/orchestrator **50 文件 18411 行**未接入生产」↔ 本机 HEAD 复算：`git ls-files -- lib/infrastructure/pipeline/orchestrator | wc -l` = **53**，其中代码文件（cpp/h/hpp/c/cc）= **36 个 / 19052 行**。 ⇒ 三个数两两不同，且两个文档数都不可从 HEAD 复跑；三处均未声明计数口径（是否含测试/头文件/非代码文件）。CLEAN-501 `:14` 又引「B1 orchestrator 50 文件 18411 行」，与 GAP_AUDIT 同值而与 ARCH-501 不同 ⇒ **包内一处 50/18411（两处引用）、一处 34/18427，两者都不等于实测**。 危害：下一个按数规划删除量与回归成本的对话会拿到互斥基线，且删除回执（CLEAN-501 验收门第 1 条）无法对账。 **2. 与上位不冲突的一条**：`:15` 的状态机/引用计数条款与 `ASTROCS_DESIGN.md §8.2`（`:571`）同向 ⇒ 登记为一致。 **3. 收口后可执行性**：本件已 PASS，其验收门（`:21-24`）四条均无门名/脚本名，只写\"单测覆盖/可观测/各有红绿测试\"，且对应门确实存在（`CHK-ARCH501-BLOCK-FRAME` 在 `eng/ci/ID_MIGRATION_MAP.md:88`，判据类别 doc/P0，绑 `CTEST-CORE-BLOCK-FRAME`）⇒ **锚未漂到无关代码**；唯一问题是盘点的三个数"
+   "b": "**1. 与包内 GAP_AUDIT 的同一口径互斥**：`:14`「34 文件 18427 行」↔ `GAP_AUDIT.md:11`「G0-3（D-2 B1） | pipeline/orchestrator **50 文件 18411 行**未接入生产」↔ 本机 HEAD 复算：`git ls-files -- lib/infrastructure/pipeline/orchestrator | wc -l` = **53**，其中代码文件（cpp/h/hpp/c/cc）= **36 个 / 19052 行**。 ⇒ 三个数两两不同，且两个文档数都不可从 HEAD 复跑；三处均未声明计数口径（是否含测试/头文件/非代码文件）。CLEAN-501 `:14` 又引「B1 orchestrator 50 文件 18411 行」，与 GAP_AUDIT 同值而与 ARCH-501 不同 ⇒ **包内一处 50/18411（两处引用）、一处 34/18427，两者都不等于实测**。 危害：下一个按数规划删除量与回归成本的对话会拿到互斥基线，且删除回执（CLEAN-501 验收门第 1 条）无法对账。 **2. 与上位不冲突的一条**：`:15` 的状态机/引用计数条款与 `docs/ASTROCS_DESIGN.md §8.2`（`:571`）同向 ⇒ 登记为一致。 **3. 收口后可执行性**：本件已 PASS，其验收门（`:21-24`）四条均无门名/脚本名，只写\"单测覆盖/可观测/各有红绿测试\"，且对应门确实存在（`CHK-ARCH501-BLOCK-FRAME` 在 `eng/ci/ID_MIGRATION_MAP.md:88`，判据类别 doc/P0，绑 `CTEST-CORE-BLOCK-FRAME`）⇒ **锚未漂到无关代码**；唯一问题是盘点的三个数"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-501.md",
@@ -16869,10 +16869,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8.3（normalize 行）、§9；CONTRACT-501 调度器接口与探针合同。」—— `ASTROCS_DESIGN.md:597` §8.3、`:669` §9（CPU 后端与资源）均存在 ⇒ 依据成立",
+   "a": ":6 「最高设计 §8.3（normalize 行）、§9；CONTRACT-501 调度器接口与探针合同。」—— `docs/ASTROCS_DESIGN.md:597` §8.3、`:669` §9（CPU 后端与资源）均存在 ⇒ 依据成立",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`:7`「最高设计 §8.3（normalize 行）、§9；CONTRACT-501 调度器接口与探针合同。」实测 `ASTROCS_DESIGN.md:597` §8.3「三个阶段调度器」表内有 normalize 行（`:602`）、`:669` §9「CPU 后端与资源」⇒ **成立，无 §号错配**"
+   "b": "`:7`「最高设计 §8.3（normalize 行）、§9；CONTRACT-501 调度器接口与探针合同。」实测 `docs/ASTROCS_DESIGN.md:597` §8.3「三个阶段调度器」表内有 normalize 行（`:602`）、`:669` §9「CPU 后端与资源」⇒ **成立，无 §号错配**"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-502.md",
@@ -16880,7 +16880,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8.3（normalize 行）、§9；CONTRACT-501 调度器接口与探针合同。」—— `ASTROCS_DESIGN.md:597` §8.3、`:669` §9（CPU 后端与资源）均存在 ⇒ 依据成立",
+   "a": ":6 「最高设计 §8.3（normalize 行）、§9；CONTRACT-501 调度器接口与探针合同。」—— `docs/ASTROCS_DESIGN.md:597` §8.3、`:669` §9（CPU 后端与资源）均存在 ⇒ 依据成立",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:7` §8.3（normalize 行）＋§9（实核成立）"
@@ -16938,7 +16938,7 @@
    "a": ":11 「统一资源预算源：线程数、内存上限、队列深度从配置/资源门读取； **模块不得私建线程池**」与 `docs/architecture/THREAD_BUDGET_ARCH.md`（跟踪件，:29 已见）重叠； 差异：任务书是禁令、架构文档是预算模型 ⇒ 合法分层",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`docs/architecture/THREAD_BUDGET_ARCH.md`。**两处原文**：本件 `:14`「统一资源预算源：线程数、内存上限、队列深度从配置/资源门读取；**模块不得私建线程池**」↔ `ASTROCS_DESIGN.md:610`「一个进程只有一个资源预算源（§9），线程池的唯一来源是调度器；科学计算内核单层并行」与 `:673`「worker 数只来自 profile 与预算对象，模块不硬编码线程数、**不私建长期线程池**」。 差异：任务书是禁令、上位是原则＋\"长期\"限定词 ⇒ 合法分层，但**限定词不一致**（见「与上位冲突」2）"
+   "b": "`docs/architecture/THREAD_BUDGET_ARCH.md`。**两处原文**：本件 `:14`「统一资源预算源：线程数、内存上限、队列深度从配置/资源门读取；**模块不得私建线程池**」↔ `docs/ASTROCS_DESIGN.md:610`「一个进程只有一个资源预算源（§9），线程池的唯一来源是调度器；科学计算内核单层并行」与 `:673`「worker 数只来自 profile 与预算对象，模块不硬编码线程数、**不私建长期线程池**」。 差异：任务书是禁令、上位是原则＋\"长期\"限定词 ⇒ 合法分层，但**限定词不一致**（见「与上位冲突」2）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-502.md",
@@ -16949,7 +16949,7 @@
    "a": ":11 「统一资源预算源：线程数、内存上限、队列深度从配置/资源门读取； **模块不得私建线程池**」与 `docs/architecture/THREAD_BUDGET_ARCH.md`（跟踪件，:29 已见）重叠； 差异：任务书是禁令、架构文档是预算模型 ⇒ 合法分层",
    "b_batch": "D1残余",
    "b_form": "H",
-   "b": "与 `ASTROCS_DESIGN:610/:673` 线程池条款重叠（禁令 vs 原则＋\"长期\"限定词）"
+   "b": "与 `docs/ASTROCS_DESIGN:610/:673` 线程池条款重叠（禁令 vs 原则＋\"长期\"限定词）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-502.md",
@@ -16982,7 +16982,7 @@
    "a": "无死链。但 :19 「1/N worker **逐位一致**」这条门的**执行载体** （`normalize_workflow_test.cpp`，`git grep -l` 命中 `eng/tests/unit/`）在，门 `CHK-ARCH502-NORMALIZE-WF` 亦注册 ✓",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "无死链：`:10` 允许改面 `lib/infrastructure/scheduler/**` 实测 26 个跟踪文件、`lib/infrastructure/cli/normalize/**` 实测 1 个跟踪文件 ⇒ **在跟踪集**（`cli/*` 各只 1 个文件，\"入口骨架在、实现分散在 scheduler\"，不影响域可执行性）；`:19` 的退出码 9 在 `ASTROCS_DESIGN.md:508`「 | 9 | 用户取消或超时 | 」与 `:512`「取消（Ctrl-C）：…→ exit 9」、`docs/contracts/LOG_AND_ERROR_CONTRACT.md:105`「`CANCELLED` | 9（CANCELLED）」三处定义 ⇒ 条款可核"
+   "b": "无死链：`:10` 允许改面 `lib/infrastructure/scheduler/**` 实测 26 个跟踪文件、`lib/infrastructure/cli/normalize/**` 实测 1 个跟踪文件 ⇒ **在跟踪集**（`cli/*` 各只 1 个文件，\"入口骨架在、实现分散在 scheduler\"，不影响域可执行性）；`:19` 的退出码 9 在 `docs/ASTROCS_DESIGN.md:508`「 | 9 | 用户取消或超时 | 」与 `:512`「取消（Ctrl-C）：…→ exit 9」、`docs/contracts/LOG_AND_ERROR_CONTRACT.md:105`「`CANCELLED` | 9（CANCELLED）」三处定义 ⇒ 条款可核"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-502.md",
@@ -17004,7 +17004,7 @@
    "a": ":11 「模块不得私建线程池」与 HEAD 的一处口径差：`ACCEPTANCE.md:17` 记 「专用预取线程（`prefetch_threads`，默认 **1=关**）」，即调度器自带专用线程， 由 `eng/tools/arch/check_thread_budget.py` 登记（`HANDOFF.md:241`「**新增线程池必须登记**，否则门禁红」）—— 任务书的\"不得私建\"与实现的\"登记后可建\"语义不同 ⇒ 属**条款措辞过严**， 以 `docs/architecture/THREAD_BUDGET_ARCH.md` 的登记制为正本，任务书宜改\"须登记\"。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 判据严格度与上位相反（本份主条）**：`:18`「确定性：固定 worker 数下归约顺序冻结，**1/N worker 逐位一致**」+ 验收门 `:22`「合成多帧任务：N=1/2/4/8 worker 结果**逐位一致**」↔ 上位 `ASTROCS_DESIGN.md:616`「**不变量**：数值结果与并发度无关——1/N worker **数值等价**，判据是事前冻结的浮点容差；**归约顺序冻结是达成手段，不是判据本身**。由构造保证位精确的路径（固定槽位写回、per-thread 定序归并）其模块自有门仍可断言 bitwise，但**合同层不要求逐位一致**」与 `:602` normalize 行同口径。 ⇒ 本件把\"手段\"写成\"判据\"，且未声明\"构造保证位精确\"这一上位允许 bitwise 的前提。后果：以本件为验收依据会把\"容差内的数值等价\"判红，或反向逼实现为凑 bitwise 而牺牲并行度。 **注意不是全否**：上位明令允许模块自有门断言 bitwise，所以\"红\"的成立条件是\"该门被当成合同层判据\"——本件 `:22` 正是以任务书验收门身份出现 ⇒ 属**与上位口径不齐**，处置为改写而非删除。 **2. 禁令过严**：`:14`「模块不得私建线程池」无上位例外条款，而上位 `:673` 限定的是\"**长期**线程池\"；`mosaic` 预取等短生命周期线程在上位登记制下允许 ⇒ 本件字面禁令严于上位"
+   "b": "**1. 判据严格度与上位相反（本份主条）**：`:18`「确定性：固定 worker 数下归约顺序冻结，**1/N worker 逐位一致**」+ 验收门 `:22`「合成多帧任务：N=1/2/4/8 worker 结果**逐位一致**」↔ 上位 `docs/ASTROCS_DESIGN.md:616`「**不变量**：数值结果与并发度无关——1/N worker **数值等价**，判据是事前冻结的浮点容差；**归约顺序冻结是达成手段，不是判据本身**。由构造保证位精确的路径（固定槽位写回、per-thread 定序归并）其模块自有门仍可断言 bitwise，但**合同层不要求逐位一致**」与 `:602` normalize 行同口径。 ⇒ 本件把\"手段\"写成\"判据\"，且未声明\"构造保证位精确\"这一上位允许 bitwise 的前提。后果：以本件为验收依据会把\"容差内的数值等价\"判红，或反向逼实现为凑 bitwise 而牺牲并行度。 **注意不是全否**：上位明令允许模块自有门断言 bitwise，所以\"红\"的成立条件是\"该门被当成合同层判据\"——本件 `:22` 正是以任务书验收门身份出现 ⇒ 属**与上位口径不齐**，处置为改写而非删除。 **2. 禁令过严**：`:14`「模块不得私建线程池」无上位例外条款，而上位 `:673` 限定的是\"**长期**线程池\"；`mosaic` 预取等短生命周期线程在上位登记制下允许 ⇒ 本件字面禁令严于上位"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-502.md",
@@ -17026,7 +17026,7 @@
    "a": "**保留原地**；收口随目录移除。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**保留原地 + 订正两处**：①`:18`/`:22` 的\"逐位一致\"改为「1/N worker 数值等价，判据 = 事前冻结浮点容差；构造保证位精确的路径可另设 bitwise 自有门」（直接引 `ASTROCS_DESIGN.md §8.3` 不变量句，标准 01 §1「下位与上位冲突时以上位为准」）；②`:14` 补上位限定词「不私建**长期**线程池；需专用线程走 THREAD_BUDGET 登记」；③`:19`「保持」改正向条款「退出码 = 9」。收口随包移除。"
+   "b": "**保留原地 + 订正两处**：①`:18`/`:22` 的\"逐位一致\"改为「1/N worker 数值等价，判据 = 事前冻结浮点容差；构造保证位精确的路径可另设 bitwise 自有门」（直接引 `docs/ASTROCS_DESIGN.md §8.3` 不变量句，标准 01 §1「下位与上位冲突时以上位为准」）；②`:14` 补上位限定词「不私建**长期**线程池；需专用线程走 THREAD_BUDGET 登记」；③`:19`「保持」改正向条款「退出码 = 9」。收口随包移除。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-502.md",
@@ -17089,7 +17089,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8.3（mosaic 行）、§5；CONTRACT-501 调度器接口合同。」—— `ASTROCS_DESIGN.md:365` §5 存在 ✓",
+   "a": ":6 「最高设计 §8.3（mosaic 行）、§5；CONTRACT-501 调度器接口合同。」—— `docs/ASTROCS_DESIGN.md:365` §5 存在 ✓",
    "b_batch": "D1残余",
    "b_form": "V",
    "b": "`:7`「最高设计 §8.3（mosaic 行）、§5；CONTRACT-501 调度器接口合同。」实测 `:597` §8.3 表内有 mosaic 行（`:604`）、`:365` §5「mosaic（Phase2）」⇒ **成立**"
@@ -17100,7 +17100,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8.3（mosaic 行）、§5；CONTRACT-501 调度器接口合同。」—— `ASTROCS_DESIGN.md:365` §5 存在 ✓",
+   "a": ":6 「最高设计 §8.3（mosaic 行）、§5；CONTRACT-501 调度器接口合同。」—— `docs/ASTROCS_DESIGN.md:365` §5 存在 ✓",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:7` §8.3（mosaic 行）＋§5（实核成立）"
@@ -17144,10 +17144,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":13 「窗口内固定顺序：**coverage→UPM（SNR 加权稀疏采样）→排异→SNR² 集成**」与 `ASTROCS_DESIGN.md` §5（mosaic 章）的节点顺序重叠 ⇒ 下位复述上位顺序（标准 01 §1 允许下钻， 但 §4「只写现行设计要怎样」要求复述处给指针）；轻。",
+   "a": ":13 「窗口内固定顺序：**coverage→UPM（SNR 加权稀疏采样）→排异→SNR² 集成**」与 `docs/ASTROCS_DESIGN.md` §5（mosaic 章）的节点顺序重叠 ⇒ 下位复述上位顺序（标准 01 §1 允许下钻， 但 §4「只写现行设计要怎样」要求复述处给指针）；轻。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`ASTROCS_DESIGN.md §8.3` mosaic 行。**两处原文**：本件 `:16`「窗口内固定顺序：**coverage→UPM（SNR 加权稀疏采样）→排异→SNR² 集成**；窗口间独立」↔ `ASTROCS_DESIGN.md:604`「…窗口内 **UPM→排异→集成**顺序固定，窗口间无共享可变状态」。 差异：本件在窗口内顺序前端多列一个 `coverage` 节点、并把\"集成\"具体成\"SNR² 集成\"⇒ 是**下钻加细**而非矛盾（`§5.2` 固定科学流程含 coverage），但 §4 要求复述处给指针；轻。"
+   "b": "`docs/ASTROCS_DESIGN.md §8.3` mosaic 行。**两处原文**：本件 `:16`「窗口内固定顺序：**coverage→UPM（SNR 加权稀疏采样）→排异→SNR² 集成**；窗口间独立」↔ `docs/ASTROCS_DESIGN.md:604`「…窗口内 **UPM→排异→集成**顺序固定，窗口间无共享可变状态」。 差异：本件在窗口内顺序前端多列一个 `coverage` 节点、并把\"集成\"具体成\"SNR² 集成\"⇒ 是**下钻加细**而非矛盾（`§5.2` 固定科学流程含 coverage），但 §4 要求复述处给指针；轻。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-503.md",
@@ -17155,7 +17155,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":13 「窗口内固定顺序：**coverage→UPM（SNR 加权稀疏采样）→排异→SNR² 集成**」与 `ASTROCS_DESIGN.md` §5（mosaic 章）的节点顺序重叠 ⇒ 下位复述上位顺序（标准 01 §1 允许下钻， 但 §4「只写现行设计要怎样」要求复述处给指针）；轻。",
+   "a": ":13 「窗口内固定顺序：**coverage→UPM（SNR 加权稀疏采样）→排异→SNR² 集成**」与 `docs/ASTROCS_DESIGN.md` §5（mosaic 章）的节点顺序重叠 ⇒ 下位复述上位顺序（标准 01 §1 允许下钻， 但 §4「只写现行设计要怎样」要求复述处给指针）；轻。",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "与 `DESIGN:604` mosaic 行顺序条款重叠（本件多列 coverage、把集成具体为 SNR²）"
@@ -17191,7 +17191,7 @@
    "a": "无死链；:15 「稀疏-稠密等价**已证 3.1e-15**」的证据载体未给路径 ⇒ 不可复核（登记为**引用不完备**）",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "1. **`:15` 的 RELEASE-04 载体不在跟踪集**：`git ls-files 工程控制 | awk -F/ '{print $2}' | sort | uniq -c` → 仅 `31 RELEASE-05` ⇒ 包名 `RELEASE-04` 无工作区落点，\"约 3.9GB/帧\"不可复跑；同值读数另见 `SUMMARY.md`/`HANDOFF.md`（DB-19 范围），三处均无测量口径（帧数、看门狗采样点、RSS 还是 Pss）。 2. `:17` 的 `3.1e-15` 无 `run/` 或 `artifacts/evidence/` 指针 ⇒ 登记为**引用不完备**（不是死链，是缺载体）； 3. 文件级：`:10` 允许改面「scheduler、`lib/infrastructure/cli/mosaic/**`」实测 1 个跟踪文件（域在）、`:25`「复用 SCI-B/C Oracle」指创新点编号（`ASTROCS_DESIGN §2.2/§2.3`）与 `实验/absolute-snr`、`实验/additive-sky-seamless`（目录名实测存在）⇒ **无文件级死链**"
+   "b": "1. **`:15` 的 RELEASE-04 载体不在跟踪集**：`git ls-files 工程控制 | awk -F/ '{print $2}' | sort | uniq -c` → 仅 `31 RELEASE-05` ⇒ 包名 `RELEASE-04` 无工作区落点，\"约 3.9GB/帧\"不可复跑；同值读数另见 `SUMMARY.md`/`HANDOFF.md`（DB-19 范围），三处均无测量口径（帧数、看门狗采样点、RSS 还是 Pss）。 2. `:17` 的 `3.1e-15` 无 `run/` 或 `artifacts/evidence/` 指针 ⇒ 登记为**引用不完备**（不是死链，是缺载体）； 3. 文件级：`:10` 允许改面「scheduler、`lib/infrastructure/cli/mosaic/**`」实测 1 个跟踪文件（域在）、`:25`「复用 SCI-B/C Oracle」指创新点编号（`docs/ASTROCS_DESIGN §2.2/§2.3`）与 `实验/absolute-snr`、`实验/additive-sky-seamless`（目录名实测存在）⇒ **无文件级死链**"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-503.md",
@@ -17213,7 +17213,7 @@
    "a": ":17 「与单窗口参考实现数值一致（**冻结容差**，复用 SCI-B/C Oracle）」与 `SUMMARY.md:46`「N=1/2/4/8/16 **逐位一致**且与单窗口参考**逐位相同**（容差 0）」口径不同 （\"冻结容差\"vs\"容差 0\"）⇒ 门的严格度两说不一致，须以测试实际值裁一。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 与 1.6 同一型的判据冲突（本份上位文本更直白）**：`:18`「归约顺序冻结（窗口 ID、像素序），1/N worker **逐位一致**」+ 门 `:23`「N=1/2/4/8/16 worker **逐位一致**」↔ 上位 mosaic 行 `ASTROCS_DESIGN.md:604` 逐字：「窗口内 UPM→排异→集成顺序固定，窗口间无共享可变状态；**归约顺序冻结，1/N worker 数值等价（判据=事前冻结的浮点容差，见 §9）**」。 ⇒ 上位在 **mosaic 这一行**就把判据钉为\"数值等价+冻结容差\"，本件两处写\"逐位一致\"——**同一阶段同一判据，两说相反**；本份比 ARCH-502 更严重，因为它违反的是点名 mosaic 的那一行。 **2. 件内容差**：`:25`「与单窗口参考实现数值一致（**冻结容差**…）」与同包 `SUMMARY.md:46`「N=1/2/4/8/16 逐位一致且与单窗口参考**逐位相同**（容差 0）」（DB-19 引）在\"容差 vs 容差 0\"上两说——本批不改 SUMMARY（别批），登记为**包内待裁一致性**，建议按 1 的结论统一为\"上位冻结容差\"。 3. 科学口径无冲突：`:16` 的顺序、`:14` 的窗口配置化与 §5/§8.3 同向"
+   "b": "**1. 与 1.6 同一型的判据冲突（本份上位文本更直白）**：`:18`「归约顺序冻结（窗口 ID、像素序），1/N worker **逐位一致**」+ 门 `:23`「N=1/2/4/8/16 worker **逐位一致**」↔ 上位 mosaic 行 `docs/ASTROCS_DESIGN.md:604` 逐字：「窗口内 UPM→排异→集成顺序固定，窗口间无共享可变状态；**归约顺序冻结，1/N worker 数值等价（判据=事前冻结的浮点容差，见 §9）**」。 ⇒ 上位在 **mosaic 这一行**就把判据钉为\"数值等价+冻结容差\"，本件两处写\"逐位一致\"——**同一阶段同一判据，两说相反**；本份比 ARCH-502 更严重，因为它违反的是点名 mosaic 的那一行。 **2. 件内容差**：`:25`「与单窗口参考实现数值一致（**冻结容差**…）」与同包 `SUMMARY.md:46`「N=1/2/4/8/16 逐位一致且与单窗口参考**逐位相同**（容差 0）」（DB-19 引）在\"容差 vs 容差 0\"上两说——本批不改 SUMMARY（别批），登记为**包内待裁一致性**，建议按 1 的结论统一为\"上位冻结容差\"。 3. 科学口径无冲突：`:16` 的顺序、`:14` 的窗口配置化与 §5/§8.3 同向"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-503.md",
@@ -17235,7 +17235,7 @@
    "a": "**保留原地**；:12 删历史数值、:17 与实测统一为\"逐位相同\"或给出容差值。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**保留原地 + 订正三处**：①`:18`/`:23` 的\"逐位一致\"改引 `ASTROCS_DESIGN.md §8.3` mosaic 行原句（\"数值等价＋事前冻结浮点容差\"），若确要 bitwise 则须写明属\"构造保证位精确的模块自有门\"（标准 01 §1）；②`:15` 删 RELEASE-04 读数或改为可复跑命令＋口径；③`:17` 给 `3.1e-15` 的证据载体（迁 `artifacts/evidence/`）或删除该\"已证\"表述（§2 留证规则）。收口随包移除。"
+   "b": "**保留原地 + 订正三处**：①`:18`/`:23` 的\"逐位一致\"改引 `docs/ASTROCS_DESIGN.md §8.3` mosaic 行原句（\"数值等价＋事前冻结浮点容差\"），若确要 bitwise 则须写明属\"构造保证位精确的模块自有门\"（标准 01 §1）；②`:15` 删 RELEASE-04 读数或改为可复跑命令＋口径；③`:17` 给 `3.1e-15` 的证据载体（迁 `artifacts/evidence/`）或删除该\"已证\"表述（§2 留证规则）。收口随包移除。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-503.md",
@@ -17298,10 +17298,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §6、§8.3（export 行）。」—— `ASTROCS_DESIGN.md:434` §6 存在 ✓",
+   "a": ":6 「最高设计 §6、§8.3（export 行）。」—— `docs/ASTROCS_DESIGN.md:434` §6 存在 ✓",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`:7`「最高设计 §6、§8.3（export 行）。」实测 `ASTROCS_DESIGN.md:434` §6「export（Phase3）：投影导出」、`:605` §8.3 表内 export 行 ⇒ **成立**，无 §号错配"
+   "b": "`:7`「最高设计 §6、§8.3（export 行）。」实测 `docs/ASTROCS_DESIGN.md:434` §6「export（Phase3）：投影导出」、`:605` §8.3 表内 export 行 ⇒ **成立**，无 §号错配"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-504.md",
@@ -17309,7 +17309,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §6、§8.3（export 行）。」—— `ASTROCS_DESIGN.md:434` §6 存在 ✓",
+   "a": ":6 「最高设计 §6、§8.3（export 行）。」—— `docs/ASTROCS_DESIGN.md:434` §6 存在 ✓",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "有：`:7` §6＋§8.3（export 行）（实核成立）"
@@ -17345,7 +17345,7 @@
    "a": "否",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "否（投影与重采样数学正本是 `docs/algorithms/PHASE3_PROJ_IMPL.md`/`DRIZZLE_GEOMETRY.md`，原子发布条款在 `ASTROCS_DESIGN §10`）"
+   "b": "否（投影与重采样数学正本是 `docs/algorithms/PHASE3_PROJ_IMPL.md`/`DRIZZLE_GEOMETRY.md`，原子发布条款在 `docs/ASTROCS_DESIGN §10`）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-504.md",
@@ -17364,10 +17364,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":14 「原子发布：临时目录→完整 FITS→原子 rename，磁盘满 **exit 10**」与 `ASTROCS_DESIGN.md` §10（产品原子发布条款）重叠；差异：设计给原则、任务书给退出码 ⇒ 合法分层。",
+   "a": ":14 「原子发布：临时目录→完整 FITS→原子 rename，磁盘满 **exit 10**」与 `docs/ASTROCS_DESIGN.md` §10（产品原子发布条款）重叠；差异：设计给原则、任务书给退出码 ⇒ 合法分层。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`ASTROCS_DESIGN.md §10`（I/O 与原子产品）。**两处原文**：本件 `:16`「原子发布：临时目录→完整 FITS→原子 rename，磁盘满 exit 10（保持已修语义）」↔ `ASTROCS_DESIGN.md:509`「 | 10 | 磁盘写满/写盘失败 | 」＋§10 章（`:684` 起）的原子产品条款。 差异：上位给原则与退出码表、本件给实现顺序（临时目录→rename）⇒ 合法分层。**exit 10 两侧取值一致**（本批唯一无争议的数值一致项之一，登记为否定性结论以免整治误删）"
+   "b": "`docs/ASTROCS_DESIGN.md §10`（I/O 与原子产品）。**两处原文**：本件 `:16`「原子发布：临时目录→完整 FITS→原子 rename，磁盘满 exit 10（保持已修语义）」↔ `docs/ASTROCS_DESIGN.md:509`「 | 10 | 磁盘写满/写盘失败 | 」＋§10 章（`:684` 起）的原子产品条款。 差异：上位给原则与退出码表、本件给实现顺序（临时目录→rename）⇒ 合法分层。**exit 10 两侧取值一致**（本批唯一无争议的数值一致项之一，登记为否定性结论以免整治误删）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-504.md",
@@ -17375,7 +17375,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":14 「原子发布：临时目录→完整 FITS→原子 rename，磁盘满 **exit 10**」与 `ASTROCS_DESIGN.md` §10（产品原子发布条款）重叠；差异：设计给原则、任务书给退出码 ⇒ 合法分层。",
+   "a": ":14 「原子发布：临时目录→完整 FITS→原子 rename，磁盘满 **exit 10**」与 `docs/ASTROCS_DESIGN.md` §10（产品原子发布条款）重叠；差异：设计给原则、任务书给退出码 ⇒ 合法分层。",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "与 `DESIGN:509` 退出码表重叠（exit 10 两侧一致，登记为无冲突）"
@@ -17433,7 +17433,7 @@
    "a": "本件与现状的冲突点在 :24 「禁止…不等价」所保护的语义已落地： HEAD 上生产 writer 节点已 `ExportStreamScheduler` 化（举证见 1.9「与上位冲突」1）， 任务书本身无冲突，但 `ACCEPTANCE.md:19`/`SUMMARY.md:47` 对它的\"未接线\"陈述与现状冲突 ⇒ 处置在台账侧。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "1. `:18`「RSS 与子块大小成正比、与总图大小无关」与 `ASTROCS_DESIGN.md:605` export 行「有界队列 + 背压，**不整幅驻留**」同向 ⇒ 无冲突。 2. **被禁止项保护的条件在 HEAD 仍成立（如实登记，以免整治误删）**：SIN 确未启用——`docs/algorithms/PHASE3_PROJ_IMPL.md:120`「projection 仅接受 \"TAN\"（缺省即 TAN）；SIN/CAR/AIT 即便已在…」，且 `docs/KNOWN_LIMITATIONS.md:116-125` 第 41/42 条仍登记 SIN 缺「往返误差上界 + 尺度域」声明、其条件数缺陷由反向门 `sin_roundtrip_gate.py` 单独承担 ⇒ **条款内容与现状一致，问题只在措辞形态**（禁状态叙事）。 3. 本件与 SUMMARY 侧对该任务的\"已接线\"陈述无冲突（不同于 DB-19 对 ARCH-504 判的那条，其冲突落在 `ACCEPTANCE.md:19`/`SUMMARY.md:47`，属别批文件，本批不复述其结论）"
+   "b": "1. `:18`「RSS 与子块大小成正比、与总图大小无关」与 `docs/ASTROCS_DESIGN.md:605` export 行「有界队列 + 背压，**不整幅驻留**」同向 ⇒ 无冲突。 2. **被禁止项保护的条件在 HEAD 仍成立（如实登记，以免整治误删）**：SIN 确未启用——`docs/algorithms/PHASE3_PROJ_IMPL.md:120`「projection 仅接受 \"TAN\"（缺省即 TAN）；SIN/CAR/AIT 即便已在…」，且 `docs/KNOWN_LIMITATIONS.md:116-125` 第 41/42 条仍登记 SIN 缺「往返误差上界 + 尺度域」声明、其条件数缺陷由反向门 `sin_roundtrip_gate.py` 单独承担 ⇒ **条款内容与现状一致，问题只在措辞形态**（禁状态叙事）。 3. 本件与 SUMMARY 侧对该任务的\"已接线\"陈述无冲突（不同于 DB-19 对 ARCH-504 判的那条，其冲突落在 `ACCEPTANCE.md:19`/`SUMMARY.md:47`，属别批文件，本批不复述其结论）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-504.md",
@@ -17455,7 +17455,7 @@
    "a": "**保留原地**；:8/:14 改正向条款（「SIN 投影未启用」/「磁盘满退出码 = 10」）。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**保留原地 + 两处措辞改正向条款**：`:11` 改「投影数学中 SIN 投影不启用（适用域与缺陷登记见 `docs/KNOWN_LIMITATIONS.md` 第 41/42 条）」为指针式正向条款；`:16` 删「保持已修语义」，写「磁盘满退出码 = 10」（引 `ASTROCS_DESIGN.md:509`）。理由：标准 01 §4（写法：禁历史叙事、硬禁令直接陈述）。收口随包移除。"
+   "b": "**保留原地 + 两处措辞改正向条款**：`:11` 改「投影数学中 SIN 投影不启用（适用域与缺陷登记见 `docs/KNOWN_LIMITATIONS.md` 第 41/42 条）」为指针式正向条款；`:16` 删「保持已修语义」，写「磁盘满退出码 = 10」（引 `docs/ASTROCS_DESIGN.md:509`）。理由：标准 01 §4（写法：禁历史叙事、硬禁令直接陈述）。收口随包移除。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-504.md",
@@ -17518,10 +17518,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8（全文）、**§10.3**；ENGINEERING_SPEC §2（退役实现二选一处置）。」 —— §8 ✓（:542）、§2 ✓（:14「代码风格与历史实现处置」），**§10.3 不存在**： `ASTROCS_DESIGN.md` §10（:684「I/O 与原子产品」）**无编号子节** （`grep -n \"^### 10\\.\" ASTROCS_DESIGN.md` → 0 命中，正文为无编号项目符号列表） ⇒ **悬空条款引用**（机械列只判文件级链接，判不到条款级）",
+   "a": ":6 「最高设计 §8（全文）、**§10.3**；ENGINEERING_SPEC §2（退役实现二选一处置）。」 —— §8 ✓（:542）、§2 ✓（:14「代码风格与历史实现处置」），**§10.3 不存在**： `docs/ASTROCS_DESIGN.md` §10（:684「I/O 与原子产品」）**无编号子节** （`grep -n \"^### 10\\.\" docs/ASTROCS_DESIGN.md` → 0 命中，正文为无编号项目符号列表） ⇒ **悬空条款引用**（机械列只判文件级链接，判不到条款级）",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`:7`「最高设计 §8（全文）、**§10.3**；ENGINEERING_SPEC §2（退役实现二选一处置）。」——§8 ✓（`:542`「软件架构」）、`ENGINEERING_SPEC.md:14` §2「代码风格与历史实现处置」✓；**§10.3 不存在**：`grep -n '^### 10\\.' ASTROCS_DESIGN.md` → **0 命中**，§10（`:684`「I/O 与原子产品」）正文是无编号项目符号列表 ⇒ **悬空条款引用**（本批唯一一条\"§号指向不存在的节\"）。机械列 `dangling_links=[]` 判不到条款级"
+   "b": "`:7`「最高设计 §8（全文）、**§10.3**；ENGINEERING_SPEC §2（退役实现二选一处置）。」——§8 ✓（`:542`「软件架构」）、`ENGINEERING_SPEC.md:14` §2「代码风格与历史实现处置」✓；**§10.3 不存在**：`grep -n '^### 10\\.' docs/ASTROCS_DESIGN.md` → **0 命中**，§10（`:684`「I/O 与原子产品」）正文是无编号项目符号列表 ⇒ **悬空条款引用**（本批唯一一条\"§号指向不存在的节\"）。机械列 `dangling_links=[]` 判不到条款级"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-505.md",
@@ -17529,7 +17529,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": ":6 「最高设计 §8（全文）、**§10.3**；ENGINEERING_SPEC §2（退役实现二选一处置）。」 —— §8 ✓（:542）、§2 ✓（:14「代码风格与历史实现处置」），**§10.3 不存在**： `ASTROCS_DESIGN.md` §10（:684「I/O 与原子产品」）**无编号子节** （`grep -n \"^### 10\\.\" ASTROCS_DESIGN.md` → 0 命中，正文为无编号项目符号列表） ⇒ **悬空条款引用**（机械列只判文件级链接，判不到条款级）",
+   "a": ":6 「最高设计 §8（全文）、**§10.3**；ENGINEERING_SPEC §2（退役实现二选一处置）。」 —— §8 ✓（:542）、§2 ✓（:14「代码风格与历史实现处置」），**§10.3 不存在**： `docs/ASTROCS_DESIGN.md` §10（:684「I/O 与原子产品」）**无编号子节** （`grep -n \"^### 10\\.\" docs/ASTROCS_DESIGN.md` → 0 命中，正文为无编号项目符号列表） ⇒ **悬空条款引用**（机械列只判文件级链接，判不到条款级）",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "**部分**：`:7` §8 与 ENGINEERING_SPEC §2 可核，**§10.3 不存在**（`^### 10\\.` 0 命中）"
@@ -17587,7 +17587,7 @@
    "a": ":20 「退役：lib/phase*_session、orchestrator 中未采纳部分按 **ENGINEERING §2** 删除或统一注释块（含原因+替代指针）」与 `ENGINEERING_SPEC.md §2` 的退役处置条款重叠； 差异：任务书给出可机器核的 `CHK-RETIRED-CODE 绿`，规范给出处置形式 ⇒ 合法分层 （`CHK-RETIRED-CODE` 确在注册表：`grep -c CHK-RETIRED-CODE eng/ci/checks.json` → 2， 且有实现 `eng/ci/check_retired_code.py` 与 `docs/ci/01_CHECKS.md` 说明）",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`ENGINEERING_SPEC.md §2` 与 `ASTROCS_DESIGN.md §8.1`。**两处原文**：本件 `:18`「退役：lib/phase*_session、orchestrator 中未采纳部分按 ENGINEERING §2 删除或统一注释块（含原因+替代指针）；CHK-RETIRED-CODE 绿；MODULE_MAP fake=0」↔ 标准 04 §4 第 1 条「退役实现二选一：直接删除，或以统一注释块标注退役原因、替代实现与日期口径」（同义条款的规范正本在 `ENGINEERING_SPEC §2`）。 差异：任务书给的是**机器门名**（`CHK-RETIRED-CODE`/`MODULE_MAP fake=0`），规范给处置形式 ⇒ 合法分层；两个门名实测都有实体：`eng/ci/check_retired_code.py` 存在、`CHK-RETIRED-CODE` 在 `eng/ci/checks.json` 2 处命中、`eng/tools/quality/check_module_map.py` + `docs/modules/MODULE_MAP.yaml` 存在"
+   "b": "`ENGINEERING_SPEC.md §2` 与 `docs/ASTROCS_DESIGN.md §8.1`。**两处原文**：本件 `:18`「退役：lib/phase*_session、orchestrator 中未采纳部分按 ENGINEERING §2 删除或统一注释块（含原因+替代指针）；CHK-RETIRED-CODE 绿；MODULE_MAP fake=0」↔ 标准 04 §4 第 1 条「退役实现二选一：直接删除，或以统一注释块标注退役原因、替代实现与日期口径」（同义条款的规范正本在 `ENGINEERING_SPEC §2`）。 差异：任务书给的是**机器门名**（`CHK-RETIRED-CODE`/`MODULE_MAP fake=0`），规范给处置形式 ⇒ 合法分层；两个门名实测都有实体：`eng/ci/check_retired_code.py` 存在、`CHK-RETIRED-CODE` 在 `eng/ci/checks.json` 2 处命中、`eng/tools/quality/check_module_map.py` + `docs/modules/MODULE_MAP.yaml` 存在"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-505.md",
@@ -17631,7 +17631,7 @@
    "a": "1. :6 `§10.3`（上述，条款不存在） 2. :19 「每迁一个阶段做一次全链等价比对」的\"阶段\"未定义映射；:22 「MODULE_MAP fake=0」—— `docs/modules/MODULE_MAP.yaml` 存在，`grep -c fake` → 1 处 ⇒ 该门目前**恰好 0 个 fake 之外的计数**， 登记为未证（不判定）",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "1. `:7` 的 **`ASTROCS_DESIGN.md §10.3` 不存在**（命令与证据见「上游」列）。 2. `:14`「归档输出哈希与关键数值（容差表写入**任务回执**）」——任务回执落 `run/RELEASE-05/`，`git ls-files -- run` 仅 `run/.gitkeep` ⇒ **验收载体不在跟踪集**（本份验收门第 2 条「合成全链三阶段等价（哈希/容差表）」在工作区内无从复核，只有 `artifacts/evidence/release-05/AUDIT_PACKAGE.md` 里的转述）。 3. `:10` 点名的 `docs/owner/PIPELINE_OVERVIEW.md`、`docs/owner/ARCHITECTURE_OVERVIEW.md`、`lib/phase*_session/**`、`lib/infrastructure/pipeline/orchestrator/**` **全部在跟踪集**（实测 16/5/5 与 53 个文件）⇒ 无死链"
+   "b": "1. `:7` 的 **`docs/ASTROCS_DESIGN.md §10.3` 不存在**（命令与证据见「上游」列）。 2. `:14`「归档输出哈希与关键数值（容差表写入**任务回执**）」——任务回执落 `run/RELEASE-05/`，`git ls-files -- run` 仅 `run/.gitkeep` ⇒ **验收载体不在跟踪集**（本份验收门第 2 条「合成全链三阶段等价（哈希/容差表）」在工作区内无从复核，只有 `artifacts/evidence/release-05/AUDIT_PACKAGE.md` 里的转述）。 3. `:10` 点名的 `docs/owner/PIPELINE_OVERVIEW.md`、`docs/owner/ARCHITECTURE_OVERVIEW.md`、`lib/phase*_session/**`、`lib/infrastructure/pipeline/orchestrator/**` **全部在跟踪集**（实测 16/5/5 与 53 个文件）⇒ 无死链"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-505.md",
@@ -17653,7 +17653,7 @@
    "a": ":16 「长生命周期块（WCS/PSF/SNR/星表匹配）**随帧到导出**」—— 该句与 `OPEN_QUESTIONS.md:94-97` BFD-E1 的结论（合同里这句\"在代码中无对应路径\"）以及 :150-151 建议「删掉代码中不存在的『WCS/PSF/SNR 存活到导出』表述」直接对立； 实测合同正文已无该表述，但**任务书仍把它当要求**。⇒ 与本批 1.12 同一处： 撤销动作做了合同侧、没做任务书侧，**三处（任务书 / 合同 / OQ 裁决）不得并存**。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 包内对同一任务的状态陈述互斥（本批\"误导下一个开工对话\"的头号实例）**： `OPEN_QUESTIONS.md:15-18` Q-2「ARCH-501 已交付命名块与生命周期基础；**ARCH-502/503/504（三阶段调度器）与 ARCH-505（20 个生产节点改写、Session/orchestrator 退役）未开始**」 ↔ `SUMMARY.md:9` 把 **ARCH-502、ARCH-503、ARCH-504 明列为 PASS（17）**、ARCH-505 为 BLOCKED（1） ↔ `ACCEPTANCE.md:20` 判 ARCH-505「**BLOCKED（部分落地）**」并列出交付件（块流规格 20 节点/26 块、`StageBlockFlow` 执行器、12/12 与 10/10 机器门、`core_block_frame` 33/33）。 ⇒ 同一包内三份文档对同一批任务给出\"未开始 / PASS / 部分落地\"三档，其中 `OPEN_QUESTIONS.md` 的\"未开始\"与另两份**直接矛盾**；下一个据 Q-2 排期的对话会重做 ARCH-502/503/504 已完成的工作。**这三份都是 DB-19 的清单项**，本批只在自己十份的行上登记后果，冲突源头的处置归其所属批次。 2. `:23`「生产路径无 Session 直接装配」的验收判据在 HEAD **未达成且可复跑**：`git grep -ln 'phase1_session|Phase1Session' -- lib/infrastructure` → `lib/infrastructure/cli/commands.cpp`、`lib/infrastructure/acr/ci/check_acr_dormant.py` 命中 ⇒ 生产入口仍装配 Session；与 `OPEN_QUESTIONS.md:19-20`「生产路径**当前仍是整阶段 Session 装配**，不是最高设计 §8.1 的三独立调度器 + 命名块内存管线」一致 ⇒ 任务书该门如实。 3. 与上位无条款冲突：`:4`/`:15-17` 的目标态与 `ASTROCS_DESIGN §8.1/§8.2` 同向"
+   "b": "**1. 包内对同一任务的状态陈述互斥（本批\"误导下一个开工对话\"的头号实例）**： `OPEN_QUESTIONS.md:15-18` Q-2「ARCH-501 已交付命名块与生命周期基础；**ARCH-502/503/504（三阶段调度器）与 ARCH-505（20 个生产节点改写、Session/orchestrator 退役）未开始**」 ↔ `SUMMARY.md:9` 把 **ARCH-502、ARCH-503、ARCH-504 明列为 PASS（17）**、ARCH-505 为 BLOCKED（1） ↔ `ACCEPTANCE.md:20` 判 ARCH-505「**BLOCKED（部分落地）**」并列出交付件（块流规格 20 节点/26 块、`StageBlockFlow` 执行器、12/12 与 10/10 机器门、`core_block_frame` 33/33）。 ⇒ 同一包内三份文档对同一批任务给出\"未开始 / PASS / 部分落地\"三档，其中 `OPEN_QUESTIONS.md` 的\"未开始\"与另两份**直接矛盾**；下一个据 Q-2 排期的对话会重做 ARCH-502/503/504 已完成的工作。**这三份都是 DB-19 的清单项**，本批只在自己十份的行上登记后果，冲突源头的处置归其所属批次。 2. `:23`「生产路径无 Session 直接装配」的验收判据在 HEAD **未达成且可复跑**：`git grep -ln 'phase1_session|Phase1Session' -- lib/infrastructure` → `lib/infrastructure/cli/commands.cpp`、`lib/infrastructure/acr/ci/check_acr_dormant.py` 命中 ⇒ 生产入口仍装配 Session；与 `OPEN_QUESTIONS.md:19-20`「生产路径**当前仍是整阶段 Session 装配**，不是最高设计 §8.1 的三独立调度器 + 命名块内存管线」一致 ⇒ 任务书该门如实。 3. 与上位无条款冲突：`:4`/`:15-17` 的目标态与 `docs/ASTROCS_DESIGN §8.1/§8.2` 同向"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/ARCH-505.md",
@@ -17796,7 +17796,7 @@
    "a": "否",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "否（双平台发行正本 = `ASTROCS_DESIGN §11`「双平台发行与安装」；机器门表 = `docs/ci/01_CHECKS.md`）"
+   "b": "否（双平台发行正本 = `docs/ASTROCS_DESIGN §11`「双平台发行与安装」；机器门表 = `docs/ci/01_CHECKS.md`）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/BLD-501.md",
@@ -17807,7 +17807,7 @@
    "a": "否",
    "b_batch": "D1残余",
    "b_form": "H",
-   "b": "否（双平台正本 `ASTROCS_DESIGN §11`；门表 `docs/ci/01_CHECKS.md`）"
+   "b": "否（双平台正本 `docs/ASTROCS_DESIGN §11`；门表 `docs/ci/01_CHECKS.md`）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/BLD-501.md",
@@ -17884,7 +17884,7 @@
    "a": ":11 「零 waiver、零豁免清单、零 SKIP（平台限制显式登记除外）」与 `AGENTS.md §6`「不用 waiver 盖红灯」一致 ✓；:12 的\"无版本字符串\"与 `docs/VERSIONING.md` 的 FIN 前禁版本条款一致 ✓。真冲突在上位缺：任务书未标最高设计条款。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 「唯一入口」锚与 HEAD 构建面不符（本份主条，且它是收尾门的判据）**：`:9`「单入口验证：产物仅 **`astrocs`**（Windows `astrocs.exe` / Linux `astrocs`），无 phase 子入口」↔ 实测根 `CMakeLists.txt:981` 的唯一产品可执行目标是 **`add_executable(acsd`**，同文件 `:4`/`:968` 两处注释自证「唯一 project()/唯一 add_executable(**acsd**)」；`git grep -n 'add_executable(astrocs'` 在 `CMakeLists.txt`/`eng/**`/`lib/**` **0 命中**（仅 `lib/algorithms/coverage/CMakeLists.txt:206 add_executable(astrocs-stage2 …)` 是按需工具目标，非交付入口），历史 `add_executable(astrocs)` 只出现在 `artifacts/evidence/audit-2026-01/FIX_LEDGER.csv` 对一个已不存在的 `cli/CMakeLists.txt` 的转述。 ⇒ 本份验收门第 3 条按字面执行必然判红（拿不到名为 `astrocs` 的产物），且\"改名方向\"（ACSD ↔ astrocs）本身是待裁事项；`ASTROCS_DESIGN §7.1` 命令树（`:466`）只给 `normalize/mosaic/export` 三个子命令，**通体不声明可执行文件名** ⇒ 本件锚在上位也无依据。"
+   "b": "**1. 「唯一入口」锚与 HEAD 构建面不符（本份主条，且它是收尾门的判据）**：`:9`「单入口验证：产物仅 **`astrocs`**（Windows `astrocs.exe` / Linux `astrocs`），无 phase 子入口」↔ 实测根 `CMakeLists.txt:981` 的唯一产品可执行目标是 **`add_executable(acsd`**，同文件 `:4`/`:968` 两处注释自证「唯一 project()/唯一 add_executable(**acsd**)」；`git grep -n 'add_executable(astrocs'` 在 `CMakeLists.txt`/`eng/**`/`lib/**` **0 命中**（仅 `lib/algorithms/coverage/CMakeLists.txt:206 add_executable(astrocs-stage2 …)` 是按需工具目标，非交付入口），历史 `add_executable(astrocs)` 只出现在 `artifacts/evidence/audit-2026-01/FIX_LEDGER.csv` 对一个已不存在的 `cli/CMakeLists.txt` 的转述。 ⇒ 本份验收门第 3 条按字面执行必然判红（拿不到名为 `astrocs` 的产物），且\"改名方向\"（ACSD ↔ astrocs）本身是待裁事项；`docs/ASTROCS_DESIGN §7.1` 命令树（`:466`）只给 `normalize/mosaic/export` 三个子命令，**通体不声明可执行文件名** ⇒ 本件锚在上位也无依据。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/BLD-501.md",
@@ -17903,10 +17903,10 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": "**保留原地** + **补「权威依据」节**（建议 `ASTROCS_DESIGN.md §12.4` 验证层级与四层验收 + `ACCEPTANCE_SPEC.md` 发布门），:8 的 G3-4/D-5 串号改为条款文字。理由：标准 01 §3 + 包规范 §5。",
+   "a": "**保留原地** + **补「权威依据」节**（建议 `docs/ASTROCS_DESIGN.md §12.4` 验证层级与四层验收 + `ACCEPTANCE_SPEC.md` 发布门），:8 的 G3-4/D-5 串号改为条款文字。理由：标准 01 §3 + 包规范 §5。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**保留原地（NOT_RUN，任务仍活）+ 收口前补三节**：①补 `## 权威依据`（应指 `ASTROCS_DESIGN §11` 双平台发行与安装 + `docs/ci/01_CHECKS.md`）、`## 改动范围`、`## 禁止` 三节以合 `CONTROL_PACK_SPEC §5` 模板（缺权威依据亦违标准 01 §3）；②`:9` 的产物名与根 CMake 的 `acsd` 统一（按负责人改名裁决取一），并给 `docs/ci/01_CHECKS.md` 门表指针而非复述 checkbox。理由：标准 01 §1（下位与上位冲突以上位为准）＋§4（复述处给指针）。"
+   "b": "**保留原地（NOT_RUN，任务仍活）+ 收口前补三节**：①补 `## 权威依据`（应指 `docs/ASTROCS_DESIGN §11` 双平台发行与安装 + `docs/ci/01_CHECKS.md`）、`## 改动范围`、`## 禁止` 三节以合 `CONTROL_PACK_SPEC §5` 模板（缺权威依据亦违标准 01 §3）；②`:9` 的产物名与根 CMake 的 `acsd` 统一（按负责人改名裁决取一），并给 `docs/ci/01_CHECKS.md` 门表指针而非复述 checkbox。理由：标准 01 §1（下位与上位冲突以上位为准）＋§4（复述处给指针）。"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/BLD-501.md",
@@ -17914,7 +17914,7 @@
    "type": "批间不一致",
    "a_batch": "DB-19",
    "a_form": "B",
-   "a": "**保留原地** + **补「权威依据」节**（建议 `ASTROCS_DESIGN.md §12.4` 验证层级与四层验收 + `ACCEPTANCE_SPEC.md` 发布门），:8 的 G3-4/D-5 串号改为条款文字。理由：标准 01 §3 + 包规范 §5。",
+   "a": "**保留原地** + **补「权威依据」节**（建议 `docs/ASTROCS_DESIGN.md §12.4` 验证层级与四层验收 + `ACCEPTANCE_SPEC.md` 发布门），:8 的 G3-4/D-5 串号改为条款文字。理由：标准 01 §3 + 包规范 §5。",
    "b_batch": "D1残余",
    "b_form": "H",
    "b": "保留＋补三节（权威依据指 §11 与门表）、产物名与 `acsd` 统一（按改名裁决）"
@@ -18192,7 +18192,7 @@
    "a": ":6 「最高设计 §8；ENGINEERING_SPEC §4.1、§8；CONTROL_PACK_SPEC 双线纪律（**00_README §3**）。」—— 前三项存在 ✓；第四项把**包内启动件**列为规范依据 ⇒ 层级倒置（下位文档给上位任务书当依据）",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "`:7`「最高设计 §8；ENGINEERING_SPEC §4.1、§8；CONTROL_PACK_SPEC 双线纪律（00_README §3）。」四条实测全部成立：`ASTROCS_DESIGN.md:542` §8；`ENGINEERING_SPEC.md:55` §4.1「管线纪律（对应最高设计 §8）」、`:149` §8「文档集：自解释与层级索引」；`工程控制/RELEASE-05/00_README.md:39` 「## 3. 双线纪律（重点）」⇒ **无悬空、无 §号错配**"
+   "b": "`:7`「最高设计 §8；ENGINEERING_SPEC §4.1、§8；CONTROL_PACK_SPEC 双线纪律（00_README §3）。」四条实测全部成立：`docs/ASTROCS_DESIGN.md:542` §8；`ENGINEERING_SPEC.md:55` §4.1「管线纪律（对应最高设计 §8）」、`:149` §8「文档集：自解释与层级索引」；`工程控制/RELEASE-05/00_README.md:39` 「## 3. 双线纪律（重点）」⇒ **无悬空、无 §号错配**"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/CONTRACT-501.md",
@@ -18467,7 +18467,7 @@
    "a": "否",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "否（它命令替换的六份**才是**正本层根文档，现均在跟踪集：`ASTROCS_DESIGN.md`、`AGENTS.md`、`ENGINEERING_SPEC.md`、`ACCEPTANCE_SPEC.md`、`CONTROL_PACK_SPEC.md`、`docs/owner/PROJECT_SPEC.md`，逐个 `git ls-files --error-unmatch` = TRACKED）"
+   "b": "否（它命令替换的六份**才是**正本层根文档，现均在跟踪集：`docs/ASTROCS_DESIGN.md`、`AGENTS.md`、`ENGINEERING_SPEC.md`、`ACCEPTANCE_SPEC.md`、`CONTROL_PACK_SPEC.md`、`docs/owner/PROJECT_SPEC.md`，逐个 `git ls-files --error-unmatch` = TRACKED）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/DOC-501.md",
@@ -18555,7 +18555,7 @@
    "a": "**本批唯一一条\"任务书授权制造断链\"的条款**：:12 「跑 doc-index 门，**因结构调整产生的悬空指针登记转 DOC-502/ARCH-505，不阻断本任务**」—— 与标准 01 §3「每份文档、每个机制都能追溯到最高设计的一条要点；**未登记即缺陷**」 及 §5「沿…无悬空链接」正面冲突（任务书把悬空链接设为可延期项，门禁\"不阻断\"）。 实测其后果已发生：`ACCEPTANCE.md:8` D5 记 DOC-502 后续订正「**目录漂移 8 份**」， `docs/algorithms/07_noise_snr.md`（ACCEPTANCE:52/:69 仍在引）即漂移产物之一。",
    "b_batch": "D1残余",
    "b_form": "V",
-   "b": "**1. 三条验收门里有两条现在只剩\"历史可满足\"性**：门 1（`:20`「六组 cmp/diff 为空」）需要包内 `docs/` 作对照物，工作区无该树 ⇒ 现在跑必然无对象可比；本件已 PASS（`SUMMARY.md:9`），其 PASS 只能由提交时的过程证据支撑，而过程证据落 `run/`（不入库）⇒ 该门**当前既不可复跑亦不可复核**，属标准 01 §3「双向可追溯」断链。 **2. 门 2 与门 3 现在仍可执行且成立**：门 2 见「重复或重叠对象」列的六份实测（日期 0、任务编号 0）；门 3「ASTROCS_DESIGN §8 含三独立调度器、块生命周期、三阶段调度形态、探针条款」逐条命中 `ASTROCS_DESIGN.md:544` §8.1「总原则：唯一 CLI 入口、阶段独立调度器」、`:571` §8.2「阶段内：命名块内存管线与块生命周期」、`:597` §8.3「三个阶段调度器」、`:542-668` 段内「探针」2 处 ⇒ **本批唯一一条\"替换后至今仍可判绿\"的锚**。 3. `:16`「因结构调整产生的悬空指针登记转 DOC-502/ARCH-505，**不阻断本任务**」——把已知缺陷外派且无回收闭环：`docs/DOCUMENT_INDEX.yaml:23-27` 头注仍记「CLEAN-402 删除 docs/{archive,review,backlog}/** 后遗留的 32 条悬空条目…已在本版清除」，说明同族悬空确曾需要专门清除轮次；本件的外派条款本身没有对应门 ⇒ 登记为**放行条款无载体**（与 1.12 `:20` 同一形态）"
+   "b": "**1. 三条验收门里有两条现在只剩\"历史可满足\"性**：门 1（`:20`「六组 cmp/diff 为空」）需要包内 `docs/` 作对照物，工作区无该树 ⇒ 现在跑必然无对象可比；本件已 PASS（`SUMMARY.md:9`），其 PASS 只能由提交时的过程证据支撑，而过程证据落 `run/`（不入库）⇒ 该门**当前既不可复跑亦不可复核**，属标准 01 §3「双向可追溯」断链。 **2. 门 2 与门 3 现在仍可执行且成立**：门 2 见「重复或重叠对象」列的六份实测（日期 0、任务编号 0）；门 3「docs/ASTROCS_DESIGN §8 含三独立调度器、块生命周期、三阶段调度形态、探针条款」逐条命中 `docs/ASTROCS_DESIGN.md:544` §8.1「总原则：唯一 CLI 入口、阶段独立调度器」、`:571` §8.2「阶段内：命名块内存管线与块生命周期」、`:597` §8.3「三个阶段调度器」、`:542-668` 段内「探针」2 处 ⇒ **本批唯一一条\"替换后至今仍可判绿\"的锚**。 3. `:16`「因结构调整产生的悬空指针登记转 DOC-502/ARCH-505，**不阻断本任务**」——把已知缺陷外派且无回收闭环：`docs/DOCUMENT_INDEX.yaml:23-27` 头注仍记「CLEAN-402 删除 docs/{archive,review,backlog}/** 后遗留的 32 条悬空条目…已在本版清除」，说明同族悬空确曾需要专门清除轮次；本件的外派条款本身没有对应门 ⇒ 登记为**放行条款无载体**（与 1.12 `:20` 同一形态）"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/DOC-501.md",
@@ -18618,7 +18618,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`最高设计 §2、§4.2、§5.4、§8；三实验单元 results/ 与 REVIEW.md`（第 7 行）——四个 § 号在 `ASTROCS_DESIGN.md` 全部存在（§2:106、§4.2:254、§5.4:406、§8:542），**指对了但粒度倒挂**：本任务改的是科学文档口径，其上位条款应是 §2.1/§2.2/§2.3 三个创新点，写成整章 §2 等于没有指",
+   "a": "`最高设计 §2、§4.2、§5.4、§8；三实验单元 results/ 与 REVIEW.md`（第 7 行）——四个 § 号在 `docs/ASTROCS_DESIGN.md` 全部存在（§2:106、§4.2:254、§5.4:406、§8:542），**指对了但粒度倒挂**：本任务改的是科学文档口径，其上位条款应是 §2.1/§2.2/§2.3 三个创新点，写成整章 §2 等于没有指",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "§2/§4.2/§5.4/§8 ✓（粒度过粗）"
@@ -18662,7 +18662,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "两处。① **文件域与产物落点不符**：步骤 5 说\"星数不构成拒绝条件（不设适用域门槛）\"，与 `ASTROCS_DESIGN.md:274`（`**测光标定不设星数门槛**…星数少到 SCI-PHOT-001 §4 冻结门…不成立时…走 NO_DATA 拟合失败路径`）和 `docs/science/PHOTOMETRY.md:396`（`1. **星数不构成拒绝条件**…不设固定星数门槛`）**完全一致**——但同一控制包的 `SUMMARY.md:25`/`ACCEPTANCE.md:56`（D-13）把它反过来写成\"PHOTOMETRY.md §16.5 定案 n≥100、生产门槛仍 kMinFitStars=3 ⇒ 文档定案未落地\"。冲突方是包级件，不是本任务书（详见 §6A 节 P0-1）。② `ENGINEERING_SPEC.md:160`（规则 2\"正式文档…不堆任务编号与日期\"）与本任务书把 7 条结论挂 `SCI-B D1/D2`、`RELEASE-04` 编号：任务书本身不受该条约束（非正式文档层），但它的**产物**受——`docs/` 侧是否因此带入编号，属别批（DB-03/04）判定范围",
+   "a": "两处。① **文件域与产物落点不符**：步骤 5 说\"星数不构成拒绝条件（不设适用域门槛）\"，与 `docs/ASTROCS_DESIGN.md:274`（`**测光标定不设星数门槛**…星数少到 SCI-PHOT-001 §4 冻结门…不成立时…走 NO_DATA 拟合失败路径`）和 `docs/science/PHOTOMETRY.md:396`（`1. **星数不构成拒绝条件**…不设固定星数门槛`）**完全一致**——但同一控制包的 `SUMMARY.md:25`/`ACCEPTANCE.md:56`（D-13）把它反过来写成\"PHOTOMETRY.md §16.5 定案 n≥100、生产门槛仍 kMinFitStars=3 ⇒ 文档定案未落地\"。冲突方是包级件，不是本任务书（详见 §6A 节 P0-1）。② `ENGINEERING_SPEC.md:160`（规则 2\"正式文档…不堆任务编号与日期\"）与本任务书把 7 条结论挂 `SCI-B D1/D2`、`RELEASE-04` 编号：任务书本身不受该条约束（非正式文档层），但它的**产物**受——`docs/` 侧是否因此带入编号，属别批（DB-03/04）判定范围",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "包级件反写它的结论为 n≥100"
@@ -18706,7 +18706,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "**缺 `## 权威依据` 段**（全文只有 目标/步骤/验收门 三段）。步骤 3 内联一个上游锚\"（最高设计 §6.2）\"——**指错**：`ASTROCS_DESIGN.md:440` 的 §6.2 是\"export（Phase3）流程\"（HiPS→WCS 计划→重采样→FITS→验证→原子发布），预检合同在 **§4.5 运行前预检（三个命令通用）**（`ASTROCS_DESIGN.md:332`）。全仓其余引用者一致指 §4.5：`docs/api/CLI_PROTOCOL_V1.md:37,119`、`docs/contracts/CONFIG_CONTRACT.md:15,106`、`docs/architecture/PIPELINE.md:5`",
+   "a": "**缺 `## 权威依据` 段**（全文只有 目标/步骤/验收门 三段）。步骤 3 内联一个上游锚\"（最高设计 §6.2）\"——**指错**：`docs/ASTROCS_DESIGN.md:440` 的 §6.2 是\"export（Phase3）流程\"（HiPS→WCS 计划→重采样→FITS→验证→原子发布），预检合同在 **§4.5 运行前预检（三个命令通用）**（`docs/ASTROCS_DESIGN.md:332`）。全仓其余引用者一致指 §4.5：`docs/api/CLI_PROTOCOL_V1.md:37,119`、`docs/contracts/CONFIG_CONTRACT.md:15,106`、`docs/architecture/PIPELINE.md:5`",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "**缺段**；内联 §6.2 **错指**（应 §4.5）"
@@ -18717,7 +18717,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "**是本主题的一处现行工作合同**（三命令端到端与预检矩阵的验收判据只在它与 `ACCEPTANCE_SPEC.md` §5 各有一套；后者是发布门层正本，前者是任务层）。它**不是**预检语义的正本（正本 = `ASTROCS_DESIGN.md` §4.5）",
+   "a": "**是本主题的一处现行工作合同**（三命令端到端与预检矩阵的验收判据只在它与 `ACCEPTANCE_SPEC.md` §5 各有一套；后者是发布门层正本，前者是任务层）。它**不是**预检语义的正本（正本 = `docs/ASTROCS_DESIGN.md` §4.5）",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "是（本主题工作合同）"
@@ -18805,7 +18805,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`最高设计 §9；ENGINEERING_SPEC §10；CONTRACT-501 性能门判据与监控字段语义`（第 7 行）——§9 = `ASTROCS_DESIGN.md:669 CPU 后端与资源` ✓；`ENGINEERING_SPEC §10` = :176 机器一致性检查 ✓；CONTRACT-501 的对象 = `docs/contracts/PERF_GATE_CONTRACT.md`（存在，且引用 GATE-501）✓",
+   "a": "`最高设计 §9；ENGINEERING_SPEC §10；CONTRACT-501 性能门判据与监控字段语义`（第 7 行）——§9 = `docs/ASTROCS_DESIGN.md:669 CPU 后端与资源` ✓；`ENGINEERING_SPEC §10` = :176 机器一致性检查 ✓；CONTRACT-501 的对象 = `docs/contracts/PERF_GATE_CONTRACT.md`（存在，且引用 GATE-501）✓",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "§9 + `ENGINEERING_SPEC §10` ✓"
@@ -18882,7 +18882,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`最高设计 §12；ENGINEERING_SPEC §10；GAP_AUDIT G2-4..G2-7`（第 7 行）——§12 = `ASTROCS_DESIGN.md:721 验证体系` ✓；`ENGINEERING_SPEC §10` ✓；`GAP_AUDIT.md:37-40` 四条 G2-4/G2-5/G2-6/G2-7 全部在册 ✓（grep 实证）",
+   "a": "`最高设计 §12；ENGINEERING_SPEC §10；GAP_AUDIT G2-4..G2-7`（第 7 行）——§12 = `docs/ASTROCS_DESIGN.md:721 验证体系` ✓；`ENGINEERING_SPEC §10` ✓；`GAP_AUDIT.md:37-40` 四条 G2-4/G2-5/G2-6/G2-7 全部在册 ✓（grep 实证）",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "§12 + `ENGINEERING_SPEC §10` + G2-4..7 ✓"
@@ -18959,7 +18959,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`最高设计 §9、§8.3；GAP_AUDIT G3-3；CONTRACT-501 性能门判据`（第 7 行）——§9 = `ASTROCS_DESIGN.md:669` ✓；§8.3 = `:597 三个阶段调度器` ✓（`eng/tools/HANDOVER.md:246` 明文\"§8.3 编排策略六条是内存治理的正本；**下游不得复述**\"——见冲突列）；G3-3 = `GAP_AUDIT.md:50` ✓",
+   "a": "`最高设计 §9、§8.3；GAP_AUDIT G3-3；CONTRACT-501 性能门判据`（第 7 行）——§9 = `docs/ASTROCS_DESIGN.md:669` ✓；§8.3 = `:597 三个阶段调度器` ✓（`eng/tools/HANDOVER.md:246` 明文\"§8.3 编排策略六条是内存治理的正本；**下游不得复述**\"——见冲突列）；G3-3 = `GAP_AUDIT.md:50` ✓",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "§9/§8.3/G3-3 ✓"
@@ -18970,7 +18970,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`PERF-501.md:20`（`- [ ] L2 真门四条判据（均值、p50、达标占比、低利用窗且无积压）达标，或给出有证据的硬件/算法上限并登记 OPEN_QUESTIONS`）与 `GATE-501.md:14`（`四条冻结判据（平均利用率 ≥0.85、p50 ≥0.90、达标样本占比 ≥0.70、无连续 142s 低利用窗且无积压）任一违规 verdict=red`）——**同一套判据在本包两份任务书里各写一遍**，两份都不带指向既有登记 `eng/ci/l2_frozen_gate.py:10`（`违规（平均 0.245<0.85、p50 0.039<0.90、达标占比 0.069<0.70、连续 142.0s`）的指针；数值正本按 `CONTROL_PACK_SPEC.md` §5 模板应在\"权威依据\"里给条款号，此处给的是自设文字。第二处：`PERF-501.md:16`（`内存：峰值 RSS 给预算对照表（稠密 SNR 不驻留、块即时回收、窗口/子块流式）`）对 `ASTROCS_DESIGN.md` §8.3 编排六条 —— `eng/tools/HANDOVER.md:246` 明文禁止下游复述",
+   "a": "`PERF-501.md:20`（`- [ ] L2 真门四条判据（均值、p50、达标占比、低利用窗且无积压）达标，或给出有证据的硬件/算法上限并登记 OPEN_QUESTIONS`）与 `GATE-501.md:14`（`四条冻结判据（平均利用率 ≥0.85、p50 ≥0.90、达标样本占比 ≥0.70、无连续 142s 低利用窗且无积压）任一违规 verdict=red`）——**同一套判据在本包两份任务书里各写一遍**，两份都不带指向既有登记 `eng/ci/l2_frozen_gate.py:10`（`违规（平均 0.245<0.85、p50 0.039<0.90、达标占比 0.069<0.70、连续 142.0s`）的指针；数值正本按 `CONTROL_PACK_SPEC.md` §5 模板应在\"权威依据\"里给条款号，此处给的是自设文字。第二处：`PERF-501.md:16`（`内存：峰值 RSS 给预算对照表（稠密 SNR 不驻留、块即时回收、窗口/子块流式）`）对 `docs/ASTROCS_DESIGN.md` §8.3 编排六条 —— `eng/tools/HANDOVER.md:246` 明文禁止下游复述",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "`:20` 与 `GATE-501.md:14` 同套判据两处各写；`:16` 复述 §8.3（`HANDOVER.md:246` 明禁）"
@@ -19047,7 +19047,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "**缺 `## 权威依据` 段，全文无任何最高设计条款指针**（机械列 `upstream_pointer=False` 属实，本批唯二之一，另两份见 1.11/1.13）。应指 `ASTROCS_DESIGN.md` §12.4/§13 与 `ACCEPTANCE_SPEC.md` §7/§8。标准 01 §3 判不合规",
+   "a": "**缺 `## 权威依据` 段，全文无任何最高设计条款指针**（机械列 `upstream_pointer=False` 属实，本批唯二之一，另两份见 1.11/1.13）。应指 `docs/ASTROCS_DESIGN.md` §12.4/§13 与 `ACCEPTANCE_SPEC.md` §7/§8。标准 01 §3 判不合规",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "**缺**（无任何条款指针）"
@@ -19069,10 +19069,10 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`REPORT-501.md:25`（`FIN 动作（README 更新、VERSION/宏改 0.0.1alpha、控制包收口）等负责人明确指令后执行`）对 `AGENTS.md:124`（`不宣布发布：发布决定只属负责人`）与 `ASTROCS_DESIGN.md:817`（`**最终发布决定只属项目负责人**；agent 至多声明 READY_FOR_OWNER_REVIEW`）——**同一条纪律三处各写一套**，且任务书这套把\"发布\"扩成\"FIN 动作\"三项（README/版本号/控制包收口）＝第二份口径。第二处：`20:`（`是否具备发布 0.0.1alpha 预览的条件（agent 只给建议，决定权在负责人）`）对 `ACCEPTANCE_SPEC.md:260-276` 九条发布门——任务书压成\"四问\"，**丢了第 7 条仓库整洁、第 8 条版本纪律、第 9 条日志与错误系统验收**（不完备副本，按它自查会漏三门）",
+   "a": "`REPORT-501.md:25`（`FIN 动作（README 更新、VERSION/宏改 0.0.1alpha、控制包收口）等负责人明确指令后执行`）对 `AGENTS.md:124`（`不宣布发布：发布决定只属负责人`）与 `docs/ASTROCS_DESIGN.md:817`（`**最终发布决定只属项目负责人**；agent 至多声明 READY_FOR_OWNER_REVIEW`）——**同一条纪律三处各写一套**，且任务书这套把\"发布\"扩成\"FIN 动作\"三项（README/版本号/控制包收口）＝第二份口径。第二处：`20:`（`是否具备发布 0.0.1alpha 预览的条件（agent 只给建议，决定权在负责人）`）对 `ACCEPTANCE_SPEC.md:260-276` 九条发布门——任务书压成\"四问\"，**丢了第 7 条仓库整洁、第 8 条版本纪律、第 9 条日志与错误系统验收**（不完备副本，按它自查会漏三门）",
    "b_batch": "DB-20",
    "b_form": "H",
-   "b": "`:25` 对 `AGENTS.md:124`+`ASTROCS_DESIGN.md:817`（三处）；四问丢九门中三条"
+   "b": "`:25` 对 `AGENTS.md:124`+`docs/ASTROCS_DESIGN.md:817`（三处）；四问丢九门中三条"
   },
   {
    "path": "工程控制/RELEASE-05/tasks/REPORT-501.md",
@@ -19102,7 +19102,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "两处硬冲突：① `25:` 的\"VERSION/宏改 0.0.1alpha\"已被现实作废——根 `VERSION` 现为 `0.1.0-alpha.1`（`cat VERSION`；变更提交 `e9e4b603 产品版本进入 0.1.0-alpha.1，版本条款按单一事实源对齐`），而 `ASTROCS_DESIGN.md:808` + `ENGINEERING_SPEC.md:145` 定\"根 `VERSION` 是产品版本唯一事实源\"⇒ 任务书自设了与单源并列的第二套版本口径，且该值从未生效；② `10:`-`11:` 要求的性能/视觉证据在本阶段被上位禁止产出——`eng/tools/HANDOVER.md:70-83`（负责人：\"**先停止端到端**…**全部完成前不要再做任何测试与端到端**\"）⇒ 八项中第 4、5 项在现行授权下**不可完成**，本任务已不是\"待办\"而是\"待改判\"",
+   "a": "两处硬冲突：① `25:` 的\"VERSION/宏改 0.0.1alpha\"已被现实作废——根 `VERSION` 现为 `0.1.0-alpha.1`（`cat VERSION`；变更提交 `e9e4b603 产品版本进入 0.1.0-alpha.1，版本条款按单一事实源对齐`），而 `docs/ASTROCS_DESIGN.md:808` + `ENGINEERING_SPEC.md:145` 定\"根 `VERSION` 是产品版本唯一事实源\"⇒ 任务书自设了与单源并列的第二套版本口径，且该值从未生效；② `10:`-`11:` 要求的性能/视觉证据在本阶段被上位禁止产出——`eng/tools/HANDOVER.md:70-83`（负责人：\"**先停止端到端**…**全部完成前不要再做任何测试与端到端**\"）⇒ 八项中第 4、5 项在现行授权下**不可完成**，本任务已不是\"待办\"而是\"待改判\"",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "`0.0.1alpha` 对根 `VERSION=0.1.0-alpha.1`；4/5 项被 `HANDOVER.md:70-83` 禁做"
@@ -19113,7 +19113,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "**保留 + 就地订正**（它是负责人阅读件结构与四问口径的唯一成文处，出库后无处重建；且必须先把第 4/5 项标注为\"待解禁后由新工作项承接\"才能谈收口）。订正：补 `## 权威依据` 段指 `ASTROCS_DESIGN.md` §12.4/§13 + `ACCEPTANCE_SPEC.md` §7/§8（标准 01 §3）；删\"VERSION/宏改 0.0.1alpha\"改指根 `VERSION` 单源（标准 01 §1：冲突即缺陷）；八项清单与 `ACCEPTANCE_SPEC.md` §8 九条发布门做一次对齐（补齐缺的三条或改指上位不复制）",
+   "a": "**保留 + 就地订正**（它是负责人阅读件结构与四问口径的唯一成文处，出库后无处重建；且必须先把第 4/5 项标注为\"待解禁后由新工作项承接\"才能谈收口）。订正：补 `## 权威依据` 段指 `docs/ASTROCS_DESIGN.md` §12.4/§13 + `ACCEPTANCE_SPEC.md` §7/§8（标准 01 §3）；删\"VERSION/宏改 0.0.1alpha\"改指根 `VERSION` 单源（标准 01 §1：冲突即缺陷）；八项清单与 `ACCEPTANCE_SPEC.md` §8 九条发布门做一次对齐（补齐缺的三条或改指上位不复制）",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "保留 + 补上游、删版本字面量"
@@ -19146,7 +19146,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`最高设计 §2.2、§4.4；实验/absolute-snr/results/REVIEW.md（D1）、DOC-502 冻结的噪声口径`（第 7 行）——§2.2 = `ASTROCS_DESIGN.md:130 创新点二：跨帧可用的绝对信噪比` ✓ 正解；**§4.4 指偏**：`:316` 是\"输出合同（Phase1）\"，与噪声项组合无直接关系；本主题真正上位是 `docs/science/CONTROL_WEIGHT_SNR.md:201` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a。`实验/absolute-snr/results/REVIEW.md` ✓ 存在",
+   "a": "`最高设计 §2.2、§4.4；实验/absolute-snr/results/REVIEW.md（D1）、DOC-502 冻结的噪声口径`（第 7 行）——§2.2 = `docs/ASTROCS_DESIGN.md:130 创新点二：跨帧可用的绝对信噪比` ✓ 正解；**§4.4 指偏**：`:316` 是\"输出合同（Phase1）\"，与噪声项组合无直接关系；本主题真正上位是 `docs/science/CONTROL_WEIGHT_SNR.md:201` 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a。`实验/absolute-snr/results/REVIEW.md` ✓ 存在",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "§2.2 ✓、§4.4 指偏"
@@ -19234,7 +19234,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`最高设计 §5.4；实验/additive-sky-seamless/README.md §10（FIX-1/2/3）；DOC-502 收敛语义`（第 7 行）——§5.4 = `ASTROCS_DESIGN.md:406 天光平面与统一相对模型（UPM）` ✓；`实验/additive-sky-seamless/README.md:384` 确有 `## 10. 生产缺陷登记（FIX，**未改任何生产代码**）`，FIX-1/2/3 三行在 `:388-390` ✓ 可核",
+   "a": "`最高设计 §5.4；实验/additive-sky-seamless/README.md §10（FIX-1/2/3）；DOC-502 收敛语义`（第 7 行）——§5.4 = `docs/ASTROCS_DESIGN.md:406 天光平面与统一相对模型（UPM）` ✓；`实验/additive-sky-seamless/README.md:384` 确有 `## 10. 生产缺陷登记（FIX，**未改任何生产代码**）`，FIX-1/2/3 三行在 `:388-390` ✓ 可核",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "§5.4 ✓ + `11_upm §4.6` ✓"
@@ -19333,7 +19333,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`ACCEPTANCE_SPEC §2.1；实验/photometric-magnitude/{README.md,results/*}`（第 7 行）——`ACCEPTANCE_SPEC.md:35` `### 2.1 SCI-A：测光校准到测光星等坐标系` ✓ 精确；**未指最高设计条款**（§2.1/§4.2 侧的 `ASTROCS_DESIGN.md:120 创新点一` 才是源头）。标准 01 §3 要求标\"上游最高设计条款\"⇒ 半合规（有上位、层级差一级）",
+   "a": "`ACCEPTANCE_SPEC §2.1；实验/photometric-magnitude/{README.md,results/*}`（第 7 行）——`ACCEPTANCE_SPEC.md:35` `### 2.1 SCI-A：测光校准到测光星等坐标系` ✓ 精确；**未指最高设计条款**（§2.1/§4.2 侧的 `docs/ASTROCS_DESIGN.md:120 创新点一` 才是源头）。标准 01 §3 要求标\"上游最高设计条款\"⇒ 半合规（有上位、层级差一级）",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "`ACCEPTANCE_SPEC §2.1` ✓（未指最高设计）"
@@ -19344,7 +19344,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "`SCI-503.md:19`（`**讨论**：误差预算各项…G6/N5 低星数边界（写明星数**不构成拒绝条件**、§4 求解前提不成立即 NO_DATA 拟合失败）`）对 `ASTROCS_DESIGN.md:274`（`**测光标定不设星数门槛**…星数少到 SCI-PHOT-001 §4 冻结门（|r_consistent| ≥ 3 才进 IRLS）不成立时，拟合**本就不产出标度** ⇒ 走 NO_DATA 拟合失败路径`）与 `docs/science/PHOTOMETRY.md:396`（`1. **星数不构成拒绝条件**…不设固定星数门槛`）——三处同串。判定：**合法分层**（任务书→文档→报告三级各写其职责，报告 `REPORT_paper.md:242` 已回指\"PHOTOMETRY.md §16.5 第 1–2 条\"），**不计第二份正本**。真正的第二份正本在别处且方向相反：`TASK_LIST.md:12` 把本任务的验收门写成\"**n≥100 适用域表述**\"（见 §6A 节 P0-1）",
+   "a": "`SCI-503.md:19`（`**讨论**：误差预算各项…G6/N5 低星数边界（写明星数**不构成拒绝条件**、§4 求解前提不成立即 NO_DATA 拟合失败）`）对 `docs/ASTROCS_DESIGN.md:274`（`**测光标定不设星数门槛**…星数少到 SCI-PHOT-001 §4 冻结门（|r_consistent| ≥ 3 才进 IRLS）不成立时，拟合**本就不产出标度** ⇒ 走 NO_DATA 拟合失败路径`）与 `docs/science/PHOTOMETRY.md:396`（`1. **星数不构成拒绝条件**…不设固定星数门槛`）——三处同串。判定：**合法分层**（任务书→文档→报告三级各写其职责，报告 `REPORT_paper.md:242` 已回指\"PHOTOMETRY.md §16.5 第 1–2 条\"），**不计第二份正本**。真正的第二份正本在别处且方向相反：`TASK_LIST.md:12` 把本任务的验收门写成\"**n≥100 适用域表述**\"（见 §6A 节 P0-1）",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "星数三处同串（合法分层）；**`TASK_LIST.md:12` 反向**"
@@ -19696,7 +19696,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "**缺 `## 权威依据` 段，全文无条款指针**（本批唯二无上游的份之一，另见 1.6；机械列 `upstream_pointer=False` ✓ 正确）。应指 `ACCEPTANCE_SPEC.md:206` §6（\"L4：真实数据端到端视觉验收（M42 + Galaxy Center）\"）与 `ASTROCS_DESIGN.md` §12.4——两处都没写，正文用\"L4\"\"SCI-C 接缝度量\"这类非正式名代指",
+   "a": "**缺 `## 权威依据` 段，全文无条款指针**（本批唯二无上游的份之一，另见 1.6；机械列 `upstream_pointer=False` ✓ 正确）。应指 `ACCEPTANCE_SPEC.md:206` §6（\"L4：真实数据端到端视觉验收（M42 + Galaxy Center）\"）与 `docs/ASTROCS_DESIGN.md` §12.4——两处都没写，正文用\"L4\"\"SCI-C 接缝度量\"这类非正式名代指",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "**缺**（无任何条款指针）"
@@ -19751,7 +19751,7 @@
    "type": "同稿双式",
    "a_batch": "DB-20",
    "a_form": "V",
-   "a": "**保留 + 就地订正**（它是 L4 在任务层唯一的工作合同，且 4 条 NOT_RUN 之一；出库即失去负责人目检的判据载体）。订正：补 `## 权威依据` 段指 `ACCEPTANCE_SPEC.md` §6 与 `ASTROCS_DESIGN.md` §12.4；`14:` 的\"SCI-C 接缝度量\"改成正式门名并显式要求 V6 `rel_step ≤ 1e-2`（数值不复制，指 `seam_footprint.py` 与 `docs/science/PHASE2_UPM.md` §17）；删 `9:` 的工作盘数值改指 `AGENTS.md` §3；补\"testdata `.fts` 不入库，需按 `testdata/README.md` 先取数\"的前提",
+   "a": "**保留 + 就地订正**（它是 L4 在任务层唯一的工作合同，且 4 条 NOT_RUN 之一；出库即失去负责人目检的判据载体）。订正：补 `## 权威依据` 段指 `ACCEPTANCE_SPEC.md` §6 与 `docs/ASTROCS_DESIGN.md` §12.4；`14:` 的\"SCI-C 接缝度量\"改成正式门名并显式要求 V6 `rel_step ≤ 1e-2`（数值不复制，指 `seam_footprint.py` 与 `docs/science/PHASE2_UPM.md` §17）；删 `9:` 的工作盘数值改指 `AGENTS.md` §3；补\"testdata `.fts` 不入库，需按 `testdata/README.md` 先取数\"的前提",
    "b_batch": "DB-20",
    "b_form": "H",
    "b": "保留 + 补上游与门名"

@@ -77,7 +77,7 @@
      * testdata 真实产物臂：固定"PSF 解析通量"口径下，**盒和/PSF 通量比逐帧漂移 24.3%**（0.760→0.944，16 帧）；
      * **负例**：同帧恒等对照**严格 0.000**✔；同 seeing、不同噪声实现 z ≈ 0.01（3σ 内归零）✔。
      ⇒ 盒和口径给出的是 `E_B(seeing)·F_true`，**不是源的测光通量**，逐帧乘性偏差 7%~24%，
-       直接违反 `ASTROCS_DESIGN.md` §3.1「权重只能来自纯净信号与噪声之比 / 绝对标定 / 不基于参考帧」。
+       直接违反 `docs/ASTROCS_DESIGN.md` §3.1「权重只能来自纯净信号与噪声之比 / 绝对标定 / 不基于参考帧」。
    - **(d) 帧级 `reference_snr_f`**：生产帧级路径（`snr_frame_science.cpp`）用
      `ref_row.flux_adu = cfg.reference_flux_adu`（**模型总通量**）+ `snr_optimal`
      ⇒ **它已经是方案 A 的口径**。若改成盒和口径，同一 F_ref 的帧级 SNR 会偏移 **−0.08%（FWHM=1.6）~ −6.77%（FWHM=3.9）**。
@@ -503,7 +503,7 @@ F̂ = 2πA·sx·sy/3 做 delta 方法：
 
 **判读**：盒和口径报告的是 `E_B(seeing)·F_true`，**不是源的测光通量**；
 在生产的 seeing 域内，同一颗星的报告通量会随帧改变 **7%~10%（仿真）/ 24%（真实产物）**。
-这直接违反 `ASTROCS_DESIGN.md` §3.1「权重只能来自纯净信号与噪声之比……**绝对标定**……不基于参考帧」。
+这直接违反 `docs/ASTROCS_DESIGN.md` §3.1「权重只能来自纯净信号与噪声之比……**绝对标定**……不基于参考帧」。
 A 的口径是**总通量**，跨帧乘性偏差为 0（解析）/ 2.7%~3.1%（含 PSF 拟合误差，见 §5 诚实边界）。
 
 ### 3.5 (d) 帧级 `reference_snr_f`
@@ -562,7 +562,7 @@ A 的口径是**总通量**，跨帧乘性偏差为 0（解析）/ 2.7%~3.1%（�
 > ① 补 **方差配对修正**（把 `1/Σ(P²/V)` 乘拟合膨胀因子，或改用全参数 Fisher 信息；实测 1.18~1.95）；
 > ② 修正 **跨块 FWHM 列口径**（喂 2.3548·sx，不是 fwhm_x）；
 > ③ 显式登记 **样本缩到 ~0.4%** 的科学后果。
-> 方案 B 只有在"只想要盒和的显著性、不想要源通量"时才自洽，而那**不是** `ASTROCS_DESIGN.md` §2.2/§3.1 要的量。
+> 方案 B 只有在"只想要盒和的显著性、不想要源通量"时才自洽，而那**不是** `docs/ASTROCS_DESIGN.md` §2.2/§3.1 要的量。
 
 ---
 
@@ -713,7 +713,7 @@ bash code/run_all.sh
 
 | 类别 | 来源 |
 |---|---|
-| 规范 | `ASTROCS_DESIGN.md` §2.2（跨帧绝对 SNR）/§3.1（权重只能来自纯净信号与噪声之比、绝对标定）/§12.2（三类实验数据）/§12.3（实验单元八要素）；`AGENTS.md` §5 |
+| 规范 | `docs/ASTROCS_DESIGN.md` §2.2（跨帧绝对 SNR）/§3.1（权重只能来自纯净信号与噪声之比、绝对标定）/§12.2（三类实验数据）/§12.3（实验单元八要素）；`AGENTS.md` §5 |
 | 代码（只读） | `lib/algorithms/noise_snr/cpp/src/snr_science.cpp`（`snr_source_snr_f64`/`moffat4Discrete`/`autoHalf`/`detectionSigmaFromFwhm`）；`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`（`detect`/`estimate_background`）；`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_psf_analytic_flux`/`p1_op_star_psf_impl`）；`lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp` |
 | 文档 | `docs/plugins/algorithms_phase1/06_photometry.md` §4；`docs/science/PSF.md` §2/§5/§9a；`docs/science/NOISE_MODEL.md` §5/§5a/§9a |
 | 既有报告（输入，非终点） | `run/SCI-SNR-01/REPORT.md`、`run/SNR-REVIEW-01/REVIEW.md`、`run/SNR-ESTIMATOR-01/REPORT.md` |

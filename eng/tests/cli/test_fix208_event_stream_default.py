@@ -2,7 +2,7 @@
 """FIX-208 验收 1/2：运行事件流 = **默认输出**；运行事件流 schema **唯一**。
 
 权威（逐条）：
-  * ASTROCS_DESIGN.md §6.3（运行事件走 JSONL：schema_version/event_id/run_id/.../kind 含
+  * docs/ASTROCS_DESIGN.md §6.3（运行事件走 JSONL：schema_version/event_id/run_id/.../kind 含
     progress/resource/artifact/backend/final；stdout 无日志污染）；
   * GAP_AUDIT.md(RELEASE-03) §4.3 Q6 裁决：唯一运行事件流 schema =
     lib/infrastructure/cli/protocol.h（ValidateEventV1）+ jsonl.h（JsonlEmitter）；

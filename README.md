@@ -1,16 +1,16 @@
 # Astro Celestial Sphere Database（ACSD） — 天文 CCD/CMOS 图像校准与标准化数据库
 
 ACSD 把单帧观测转换为可独立消费、带不确定度与来源链的球面科学产品（HiPS），再按明确科学目标
-合成马赛克、导出测量意义明确的 WCS FITS（`ASTROCS_DESIGN.md` §1.1）。
+合成马赛克、导出测量意义明确的 WCS FITS（`docs/ASTROCS_DESIGN.md` §1.1）。
 
 ## 权威链与索引
 
-权威链只有一条，权威程度自上而下递减（`ASTROCS_DESIGN.md` §0.1）；每一层由它的上一层推出，
-下级文档陈述与本设计一致的细化内容。与本文档集冲突时以 `ASTROCS_DESIGN.md` 为准（该文 §0）。
+权威链只有一条，权威程度自上而下递减（`docs/ASTROCS_DESIGN.md` §0.1）；每一层由它的上一层推出，
+下级文档陈述与本设计一致的细化内容。与本文档集冲突时以 `docs/ASTROCS_DESIGN.md` 为准（该文 §0）。
 
 | 序 | 入口 | 回答什么 |
 |---|---|---|
-| ① | [`ASTROCS_DESIGN.md`](ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
+| ① | [`docs/ASTROCS_DESIGN.md`](docs/ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
 | ② | [`AGENTS.md`](AGENTS.md) | 机器干活手册：下钻顺序、工作流、纪律 |
 | ③ | [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) | 代码、测试、提交、目录与 CI 规则 |
 | ④ | [`CONTROL_PACK_SPEC.md`](CONTROL_PACK_SPEC.md) | 控制包的制作与执行规范 |
@@ -26,7 +26,7 @@ ACSD 把单帧观测转换为可独立消费、带不确定度与来源链的球
 ## 三个命令，三个独立产品
 
 `normalize` / `mosaic` / `export` 是三个平级独立命令：各自独立启动、独立重跑、独立验收（阶段间交换媒介的
-唯一正本 = `ASTROCS_DESIGN.md` §8.1；产品交换合同见
+唯一正本 = `docs/ASTROCS_DESIGN.md` §8.1；产品交换合同见
 `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`）。对外只有一个 CLI 入口 `acsd`，它按命令
 拉起对应阶段的调度器（§8.1）。`phase` 是内部指代：命令名与 CLI 子目录用
 `normalize`/`mosaic`/`export`，会话层目录为 `lib/phase{1,2,3}_session`（§7.1、§8.4）。
@@ -98,7 +98,7 @@ acsd help / acsd --version / acsd doctor / acsd benchmark
 
 ## 状态口径
 
-状态词表唯一口径 = `ASTROCS_DESIGN.md` §12.5（**取值集合见该节，本文档不复制**）；状态由检查与验收现场计算，
+状态词表唯一口径 = `docs/ASTROCS_DESIGN.md` §12.5（**取值集合见该节，本文档不复制**）；状态由检查与验收现场计算，
 登记表不预写状态。
 
 - 逐模块/逐阶段状态与证据锚：`docs/owner/RELEASE_STATUS.md`、`docs/modules/MODULE_MAP.yaml`。

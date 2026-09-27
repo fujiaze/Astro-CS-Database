@@ -2,7 +2,7 @@
 """预检语义矩阵测试（GATE-502 步骤 6）—— correct/warn/error × yes/-y/无确认/-force。
 
 权威：
-  * ASTROCS_DESIGN.md §4.5（运行前预检三档 + 确认与越权语义）；
+  * docs/ASTROCS_DESIGN.md §4.5（运行前预检三档 + 确认与越权语义）；
   * docs/api/CLI_PROTOCOL_V1.md §1（error 阻断且 -y 不可越；correct/warn 都需 yes 确认，
     -y/-yes 跳过确认；-force 跳过整个检查步骤）；
   * lib/infrastructure/cli/subcommand.h Subcommand::run（唯一实现：预检页 → 阻断优先级

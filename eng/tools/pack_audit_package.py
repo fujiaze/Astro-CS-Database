@@ -5,7 +5,7 @@
 用法: python3 eng/tools/pack_audit_package.py
 
 退役 (RETIRED, 2026-09-16, 负责人裁决) —— **打包入口(main)退役; 白名单/排除函数仍为活动依赖**:
-  1. 依据: ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)+ 负责人裁决
+  1. 依据: docs/ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)+ 负责人裁决
      「历史版本控制包全部作废; artifacts/ 不归档不保留」(artifacts/ 整体删除见 commit b1290525);
      产物内含 VERSION/CHANGELOG 口径, 与 §12「Alpha 前不含任何版本信息」冲突;
   2. 输出已不存在: artifacts/evidence/prerelease-v5/(其 AUDIT_PACKAGE_*.zip 与 capsules/ 已随 artifacts/ 删除);
@@ -116,7 +116,7 @@ def git(*a):
 
 RETIRED_NOTICE = (
     "PACK_AUDIT_PACKAGE_RETIRED: 本打包入口（旧世代 V5 审核包 zip）已于 2026-09-16 按负责人裁决退役。\n"
-    "  依据: ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ §12（Alpha 前不含版本信息）"
+    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ §12（Alpha 前不含版本信息）"
     "+ 负责人裁决（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输出路径已不存在: artifacts/evidence/prerelease-v5/AUDIT_PACKAGE_<c12>.zip。\n"

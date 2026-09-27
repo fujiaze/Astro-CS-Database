@@ -124,7 +124,7 @@ P4 重建：dense_SNR, dense_Var = reconstruct(sparse_control_points, method="sp
 
 | 符号 | 含义 | 单位 | 来源 |
 |-----|------|-----|-----|
-| `SNR_c` | 稀疏控制点绝对 SNR | 无量纲 | ASTROCS_DESIGN §2.2 |
+| `SNR_c` | 稀疏控制点绝对 SNR | 无量纲 | docs/ASTROCS_DESIGN §2.2 |
 | `SNR(x,y)` | 稠密 SNR 场 | 无量纲 | 本模块产出 |
 | `F_ref` | 参考通量（星等 m=6.0 反算） | ADU | CONTROL_WEIGHT_SNR §6 |
 | `w(x,y)` | 叠加权重 | ADU⁻² | `w = SNR²/F_ref²` |

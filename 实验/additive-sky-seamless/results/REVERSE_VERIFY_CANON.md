@@ -1,6 +1,6 @@
 # reverse_verify 定案结论 · SCI-C（UPM 控制点平滑 λs）
 
-> 上游：ASTROCS_DESIGN.md §2.3 / §12.3；`ENGINEERING_SPEC.md §9`
+> 上游：docs/ASTROCS_DESIGN.md §2.3 / §12.3；`ENGINEERING_SPEC.md §9`
 > 来源：`reverse_verify/docs/smooth-lambda.md`（2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/additive-sky-seamless/docs/smooth-lambda.md`）
 
 ## 1. 现行结论（原文 §0 结论速览）

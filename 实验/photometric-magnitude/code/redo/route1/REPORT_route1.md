@@ -1,7 +1,7 @@
 # 实验重做报告 · P1 通量积分拟合（测光星等坐标系）——三腿缺失独立补齐（路线1）
 
 **身份**：三路独立研究之路线1。互不通信、独立取证；本文档对科学性审查（05_正向规格.md 三腿缺失矩阵与幻觉锚清单）所列本模块缺口做独立补齐：每项产出 A 文献腿 / B 实验腿 / C 可复现代码 / D 本节报告。
-**依据链**：`ASTROCS_DESIGN.md §2.1` → `docs/science/PHOTOMETRY.md`（k_photo 正本，引用其行号）→ `docs/algorithms/PHOTOMETRIC_FIT.md` → `独立审计/08_修复包/①测光星等坐标系/{01,02,05}`。
+**依据链**：`docs/ASTROCS_DESIGN.md §2.1` → `docs/science/PHOTOMETRY.md`（k_photo 正本，引用其行号）→ `docs/algorithms/PHOTOMETRIC_FIT.md` → `独立审计/08_修复包/①测光星等坐标系/{01,02,05}`。
 **纪律**：纯 Python+numpy，不 import 仓库任何 Python，不跑 eng/**，未做 git 写。所有脚本 seed 写死；单脚本 CPU 均远低于 5 分钟（实测 <10 s 量级）。
 
 ---

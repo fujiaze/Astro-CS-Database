@@ -5,7 +5,7 @@
 // aio_file_io.h - AIO 文件级读/摘要机制原语 (header-only; aio 唯一实现)
 //
 // 依据:
-// - ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio；
+// - docs/ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio；
 //   不得有第二处 I/O 实现」+ §9.73 裁决 U5（负责人逐字：「全部走 aio……
 //   没有其他需要读写的地方了」）。
 // - 机器判据：全仓文件打开 / 流式读写 / 文件系统写操作，除 aio 内部外应为 0。
@@ -126,7 +126,7 @@ inline bool read_range(const char* path, std::uint64_t offset, std::size_t count
 }
 
 // ── 位置写（随机访问顺序无关写入；P3-STREAM-01）────────────────────────────
-// 语义：子块流式的**唯一随机写通道**（ASTROCS_DESIGN §8.3 export「子块流式」）。
+// 语义：子块流式的**唯一随机写通道**（docs/ASTROCS_DESIGN §8.3 export「子块流式」）。
 // 用途：子块产出顺序与平面文件的字节序无关（平面 = 行主序连续区），故必须能
 // 「按偏移写子块」而不是只能顺序追加；调用方（算法/基建）禁止自行 fopen/fseek。
 // 并发：同一实例的多线程写由内部互斥串行化（FILE* 游标是共享状态）；

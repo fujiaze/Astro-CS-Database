@@ -6,7 +6,7 @@
 现有门锚在「制品形态」上（声明有没有消费者、配置键有没有被读、有没有构建目标、
 dlopen 宿主可不可达），而设计条文是自然语言 —— 门与规范之间没有映射。
 本门补的就是这张映射：台账 eng/ci/ledgers/design_clauses.json 把
-ASTROCS_DESIGN.md 中被监视标题范围内的**每一条 bullet** 逐条登记为一条 clause，
+docs/ASTROCS_DESIGN.md 中被监视标题范围内的**每一条 bullet** 逐条登记为一条 clause，
 写明它对应哪一处生产实现（或如实标 unwired + 具名解除条件）。
 
 判据（全部 fail-closed；每条都有 --self-test 负例）：
@@ -636,7 +636,7 @@ def _bullets_of(doc_text: str, marker: str = "编排策略"):
 def _clause(bullet, **kw) -> dict:
     cl = {
         "id": "DESIGN-8-ORCH-BUDGET",
-        "anchor": "ASTROCS_DESIGN.md:%d" % bullet.line,
+        "anchor": "docs/ASTROCS_DESIGN.md:%d" % bullet.line,
         "text_sha256": bullet.sha256,
         "requirement": bullet.norm,
         "status": STATUS_WIRED,
@@ -656,7 +656,7 @@ def _good_ledger(doc_text: str = _DOC_SECTION) -> dict:
         "ledger_schema": LEDGER_SCHEMA,
         "ledger_id": "design_clauses",
         "purpose": "fixture",
-        "watched_sections": [{"file": "ASTROCS_DESIGN.md", "heading": "### 8.3 调度器",
+        "watched_sections": [{"file": "docs/ASTROCS_DESIGN.md", "heading": "### 8.3 调度器",
                               "bullet_scope_marker": "编排策略"}],
         "clauses": [
             _clause(bulls[0]),
@@ -673,7 +673,7 @@ def _good_ledger(doc_text: str = _DOC_SECTION) -> dict:
 def _write_fixture(root: pathlib.Path, doc: str = _DOC_SECTION, prod=None,
                    ledger: dict = None) -> pathlib.Path:
     root.mkdir(parents=True, exist_ok=True)
-    (root / "ASTROCS_DESIGN.md").write_text(_DOC_HEAD + doc, encoding="utf-8")
+    (root / "docs/ASTROCS_DESIGN.md").write_text(_DOC_HEAD + doc, encoding="utf-8")
     prod = _PROD_LINES if prod is None else prod
     src = root / "lib" / "infra"
     src.mkdir(parents=True, exist_ok=True)
@@ -742,7 +742,7 @@ def _selftest(json_out=None) -> int:
         def mk_no_marker(repo):
             bulls = _bullets_of(doc_no_marker, marker="")
             led = {"ledger_schema": LEDGER_SCHEMA, "ledger_id": "x",
-                   "watched_sections": [{"file": "ASTROCS_DESIGN.md",
+                   "watched_sections": [{"file": "docs/ASTROCS_DESIGN.md",
                                          "heading": "### 8.3 调度器"}],
                    "clauses": [_clause(b, id="DESIGN-8-NOMARK-%d" % i)
                                for i, b in enumerate(bulls)]}
@@ -756,7 +756,7 @@ def _selftest(json_out=None) -> int:
         run("red_text_sha256_wrong", True, mk(mutate=lambda led, b: led.update(
             clauses=[dict(led["clauses"][0], text_sha256="0" * 64), led["clauses"][1]])))
         run("red_anchor_line_drift", True, mk(mutate=lambda led, b: led.update(
-            clauses=[dict(led["clauses"][0], anchor="ASTROCS_DESIGN.md:%d" % b[1].line),
+            clauses=[dict(led["clauses"][0], anchor="docs/ASTROCS_DESIGN.md:%d" % b[1].line),
                      led["clauses"][1]])))
         run("red_duplicate_clause_for_bullet", True, mk(mutate=lambda led, b: led.update(
             clauses=[led["clauses"][0], dict(led["clauses"][0], id="DESIGN-DUP"),
@@ -857,7 +857,7 @@ def _selftest(json_out=None) -> int:
                     "\n".join(_PROD_LINES) + "\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(repo), "init", "-q"],
                            check=True, capture_output=True)
-            subprocess.run(["git", "-C", str(repo), "add", "ASTROCS_DESIGN.md", "eng",
+            subprocess.run(["git", "-C", str(repo), "add", "docs/ASTROCS_DESIGN.md", "eng",
                             "lib/infra/tracked.cpp"], check=True, capture_output=True)
             doc = json.loads(lp.read_text(encoding="utf-8"))
             doc["clauses"][0]["production_anchor"] = ["lib/infra/draft.cpp:2"]
@@ -876,7 +876,7 @@ def _selftest(json_out=None) -> int:
         # ── C7 fail-closed（rc=2 面） ──
         def mk_no_doc(repo):
             lp = _write_fixture(repo)
-            (repo / "ASTROCS_DESIGN.md").unlink()
+            (repo / "docs/ASTROCS_DESIGN.md").unlink()
             return lp
 
         run_crash("crash_missing_design_doc", mk_no_doc)

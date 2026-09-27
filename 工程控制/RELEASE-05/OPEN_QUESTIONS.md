@@ -41,7 +41,7 @@
 
 - **状态**：**已裁决**。负责人裁决：实际输入帧不会遇到该问题，**把相关门槛与限制都删掉**；
   星数真的少时应**报拟合失败**，而不是用门禁去卡。
-- **现处置**：`ASTROCS_DESIGN.md`、`docs/science/PHOTOMETRY.md` §16.5、
+- **现处置**：`docs/ASTROCS_DESIGN.md`、`docs/science/PHOTOMETRY.md` §16.5、
   `实验/photometric-magnitude/REPORT_paper.md` 的适用域门槛条款已删除（星数不构成拒绝条件）；
   `module_adapters.cpp` 的调度器侧星数门禁（`P1_PHOT_MIN_FIT_STARS`）与拟合后复检门已删除，
   改由拟合自身判决（`rc`/`fit_ok`）上报；`eng/ci/check_provenance_consistency.py` 的

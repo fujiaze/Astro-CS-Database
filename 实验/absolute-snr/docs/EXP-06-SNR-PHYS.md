@@ -1,6 +1,6 @@
 # EXP-06 帧内 SNR 的物理建模与重建
 
-> 上游：`ASTROCS_DESIGN.md` §2.2（创新点二：跨帧可用绝对信噪比）、§5.3（SNR 重建与逆方差叠加）、§12.2/§12.3（三类实验数据与实验单元）；
+> 上游：`docs/ASTROCS_DESIGN.md` §2.2（创新点二：跨帧可用绝对信噪比）、§5.3（SNR 重建与逆方差叠加）、§12.2/§12.3（三类实验数据与实验单元）；
 > 规范细节：`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1/§4.2/§4.5、`docs/science/NOISE_MODEL.md` §5/§9a/§10、`docs/science/CONTROL_WEIGHT_SNR.md` §2a/§8a/§8b。
 > 前置单元：`实验/absolute-snr/docs/EXP-03-REGIONAL-SIGMA.md`（区域 σ 的空间结构与口径）、`EXP-04-RECONSTRUCTION.md`（稀疏控制点重建算子选型）、`EXP-05-ABSOLUTE-SNR.md`（稀疏层存绝对 SNR 的表示层推导）。
 > 代码：`实验/absolute-snr/code/exp06/`；结果：`实验/absolute-snr/results/exp06_*.json`、`EXP06_TABLES.md`；日志：`run/EXP-06-SNR-PHYS/logs/`。
@@ -61,8 +61,8 @@
 
 | 层 | 文档 | 条款 | 本单元对应 |
 |---|---|---|---|
-| 最高设计 | `ASTROCS_DESIGN.md` | §2.2 帧级 SNR 与稀疏控制点同口径同 `F_ref`；§5.3 三种重建口径与逆方差权重 | 全篇 |
-| 最高设计 | `ASTROCS_DESIGN.md` | §12.2 三类实验数据；§12.3 实验单元 | 臂 A/B/C |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` | §2.2 帧级 SNR 与稀疏控制点同口径同 `F_ref`；§5.3 三种重建口径与逆方差权重 | 全篇 |
+| 最高设计 | `docs/ASTROCS_DESIGN.md` | §12.2 三类实验数据；§12.3 实验单元 | 臂 A/B/C |
 | 插件细节 | `docs/plugins/algorithms_phase1/07_noise_snr.md` | §4.1 SNR 红线；§4.2 三条路径；**§4.5 稀疏层几何与重建算子（冻结词表、正齐次性、控制点局部 σ 必须结构感知）** | §2/§3/§10 |
 | 科学定义 | `docs/science/NOISE_MODEL.md` | §5 连续定义；§9a 专属问题；**§10 不可接受变化（gain 诊断模型不入生产 variance/ivar）** | §10/§11 |
 | 科学定义 | `docs/science/CONTROL_WEIGHT_SNR.md` | §2a 帧级科学基准；§8a/§8b 三口径适用域 | §2 |
@@ -509,7 +509,7 @@ Massey & Jacoby 1992（Crossref 未命中）｜Morton optimal weighting（未命
 | `07_noise_snr.md` §4.5 算子正齐次性 | 自由斜率版本严格满足（6.7e-16）；**固定增益版本不满足**（0.213）⇒ 若采用后者必须写入 `homogeneity = false` 并放弃共模相消假设 |
 | `07_noise_snr.md` §4.5 控制点局部 σ 必须结构感知 | 本单元复核并加强：R0 控制值在真实结构场景上劣 206 倍（§4.2） |
 | `NOISE_MODEL.md` §10「gain 诊断模型不入生产 variance/ivar」 | **推荐路径不依赖 FITS GAIN**（斜率由数据自拟合，CV 决定是否启用）⇒ 不触及该条款；若要用 header gain 固定斜率，属 SCI 变更，需裁决 |
-| `ASTROCS_DESIGN.md` §5.3 三口径与算子词表 | 物理路径是**第四条重建路径**，需在设计层登记其标识、诊断字段与适用域；算子词表本身不变（插值仍是残差项与 `D` 展开的工具） |
+| `docs/ASTROCS_DESIGN.md` §5.3 三口径与算子词表 | 物理路径是**第四条重建路径**，需在设计层登记其标识、诊断字段与适用域；算子词表本身不变（插值仍是残差项与 `D` 展开的工具） |
 
 ### 10.3 与 SCI-B 跨帧口径的一致性
 

@@ -32,7 +32,7 @@
 | §9.2：α=0.7/β=2.0/h_abs_min=0.01° 锚自 11_upm.md §4.2 | §4.2 为"稀疏天光面表示"，无任何 α/β/0.01° 常数；节点间距明文"由输入几何导出" | **幻觉锚** |
 | 判据06：min_cluster_size=3 锚自 REJECTION.md §5.2 | grep REJECTION.md：min_cluster/连通簇/簇大小 **0 命中** | **幻觉锚** |
 | 判据02：support_min=0.2 锚自 PHASE2_UPM §7a 规则 1 | 规则 1 是节点间距 ≤ 重叠目标尺度/2；全文件仅 2 处 "support" 且均为资格面，无 0.2 | **锚错位**（值可能来自实现默认，未在其声称的科学正本中） |
-| 判据01：rel_step_max=0.1 锚自 ASTROCS_DESIGN §2.3 + 02§3.2 | ASTROCS_DESIGN 只有接缝判据 1e-2 面；0.1 无任何推导或标定 | **无锚经验诊断量**（UNRESOLVED） |
+| 判据01：rel_step_max=0.1 锚自 docs/ASTROCS_DESIGN §2.3 + 02§3.2 | docs/ASTROCS_DESIGN 只有接缝判据 1e-2 面；0.1 无任何推导或标定 | **无锚经验诊断量**（UNRESOLVED） |
 | 判据03：IRLS 收敛 1e-8 / max_iter 50 | 11_upm §5：max_iter/convergence_gate 默认值留空"——"；PHASE2_UPM §5 默认容差 1e-6（相对） | **与正本不一致（1e-8 无锚）** |
 | 判据05：n_retained 面的 min_samples | PHASE2_SAMPLER §3：min_samples=5 有登记锚 | 成立（登记性） |
 
@@ -44,7 +44,7 @@
 
 ## 1. 范围与权威链
 
-本模块（P5 加性天光去除，SCI-C）权威链：ASTROCS_DESIGN.md §5.2/§5.4 → docs/science/PHASE2_UPM.md（SCI-UPM-001 冻结，T106）→ docs/plugins/algorithms_phase2/11_upm.md（插件正本）→ docs/algorithms/PHASE2_SAMPLER.md / PHASE2_UPM_IMPL.md（实现侧）。缺口清单来源：独立审计/08_修复包/③加性天光无缝/01_缺陷清单.md（68 条）与 04_二次核对.md，以及 05_正向规格.md 的常数五件套/判据 01–06。
+本模块（P5 加性天光去除，SCI-C）权威链：docs/ASTROCS_DESIGN.md §5.2/§5.4 → docs/science/PHASE2_UPM.md（SCI-UPM-001 冻结，T106）→ docs/plugins/algorithms_phase2/11_upm.md（插件正本）→ docs/algorithms/PHASE2_SAMPLER.md / PHASE2_UPM_IMPL.md（实现侧）。缺口清单来源：独立审计/08_修复包/③加性天光无缝/01_缺陷清单.md（68 条）与 04_二次核对.md，以及 05_正向规格.md 的常数五件套/判据 01–06。
 
 本路线对权威文档的引用一律注明式子/规则编号；对 05_正向规格.md 的引用均为被审计对象引用（其锚点经 grep 独立核查，结果见 §0 表）。
 

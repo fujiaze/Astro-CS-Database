@@ -5,10 +5,10 @@
 // ipv_log_sink.h - ipv::Logger 落点接缝的唯一实现（**内部头**，不属公共 include 面）
 //
 // 依据
-//   - ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界」（CLEAN-403）: 日志落盘
+//   - docs/ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界」（CLEAN-403）: 日志落盘
 //     经 aio 机制原语（aio_atomic::append_open / append_write / append_flush /
 //     append_close），本模块不自持 std::ofstream / FILE* 通道。
-//   - ASTROCS_DESIGN.md §8.4/§8.5: 模块 include/ 是公共头面，src/ 是实现面。
+//   - docs/ASTROCS_DESIGN.md §8.4/§8.5: 模块 include/ 是公共头面，src/ 是实现面。
 //
 // 为什么接缝实现在这里而不在 ipv/include/ipv_log.h 的内联体里（DOC-004/AST-API）:
 //   公共头必须能在**公共 include 面**（lib/**/include ∪ lib/**/cpp）下被 clang

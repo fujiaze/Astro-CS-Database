@@ -116,7 +116,7 @@ static uint32_t cli_affinity_cpu_count() {
 // 依据（逐条）：
 //   * **不设固定上限**：预算动态取自**当前可用内存** × **可配置比例**（默认 95%）——
 //     该比例可配置、默认 95%，全链不写死内存上限字面量。
-//   * ASTROCS_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
+//   * docs/ASTROCS_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
 //     调度器与线程预算源）、§3.5（资源门只管磁盘 ⇒ 本预算是调度准入输入，不是门禁）
 //   * docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限由配置/资源门决定，禁止硬编码）
 // 两个输入：
@@ -294,7 +294,7 @@ nlohmann::json build_run_provenance(
     return p;
 }
 
-// ── 磁盘门运行期臂（§9.74 裁决 10；ASTROCS_DESIGN §3.5「运行中写盘失败/磁盘满 ⇒ 报错
+// ── 磁盘门运行期臂（§9.74 裁决 10；docs/ASTROCS_DESIGN §3.5「运行中写盘失败/磁盘满 ⇒ 报错
 // （fail-closed）」+ §6.3「exit 10 = 磁盘写满 / 写盘失败」）──
 // 判定唯一实现 = lib/infrastructure/cli/disk_gate.h（classify_write_failure / probe_writable）；
 // 本函数只做「落退出码 + 发 error 事件」，不重复实现判据，也不引入任何内存/CPU/线程门。
@@ -419,7 +419,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     }
     // §4 final.run_manifest 回填（SMOKE-001 D8）：登记本次 manifest 路径。
     ev.set_run_manifest(final_path);
-    // §9.74 裁决 7-a 定案 1（ASTROCS_DESIGN §6.3）：事件流 = **默认输出** ⇒ stdout 只承载
+    // §9.74 裁决 7-a 定案 1（docs/ASTROCS_DESIGN §6.3）：事件流 = **默认输出** ⇒ stdout 只承载
     // 机器 JSONL（无日志污染），人可读摘要由 JsonlEmitter 同源写到 stderr。旧「人类模式把
     // manifest 路径打到 stdout」的分支随之退役（manifest 路径 = artifact 事件的 path 字段，
     // final 事件回填 run_manifest）——不得再往 stdout 打非 JSON 文本。
@@ -884,7 +884,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         // 归并为 exit 10（真实探测写判定，不猜 errno）；否则保留管线原退出码。
         //
         // 定位: 本探针是**兜底**，不是判据。它问的是"现在还能不能写"，而
-        // ASTROCS_DESIGN §10 要求失败/取消路径**清理临时产物** —— 清理会释放磁盘满，
+        // docs/ASTROCS_DESIGN §10 要求失败/取消路径**清理临时产物** —— 清理会释放磁盘满，
         // 探针随后必然成功（fail-open，实测 rc=7 而非 10）。磁盘满的**判据**改为在
         // 失败发生处（aio，清理之前）分类，经失败节点 manifest 的
         // error_kind="disk_full" 由 runtime_client.cpp::pipeline_exit_code_from_error
@@ -1083,7 +1083,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"one_budget_source_rule", astrocs::v6runtime::kOneBudgetSourceRule},
         {"determinism_contract", astrocs::v6runtime::kDeterminismContractId},
     });
-    // §9.74 裁决 10（ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
+    // §9.74 裁决 10（docs/ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
     // **恒为 record-only**（完整记录，不改变退出码，无 rc=10 路径）。阈值/判定式一字未改;
     // 工作量下限(负责人 2.A)作为事实字段一并记录。--strict-resource-gate/--on-resource-gate
     // 保留接受（登记现状）: strict_flag_requested 如实入事件，但不再改变裁决。
@@ -1152,9 +1152,9 @@ struct BlockOutcome {
 //                Runtime 已加载; 置位经 cancel_watch → rt->cancel() 送达调度器)
 //   ③ 写盘窗     本函数（产物收集/哈希完成 → run manifest/运行图落盘之前）
 // 语义: 轮询 astrocs::is_cancelled()（与信号处理器同一原子标志）; 返回 true 时
-// 调用方按 ASTROCS_DESIGN §7.2「取消 → 写 incomplete manifest → exit 9」收尾。
+// 调用方按 docs/ASTROCS_DESIGN §7.2「取消 → 写 incomplete manifest → exit 9」收尾。
 // 不设环境变量时零影响（单次 getenv，不 sleep、不改判定）。
-// 权威: ASTROCS_DESIGN.md §7.2（退出码 9 / 取消路径）、§10（原子产品：没有完成
+// 权威: docs/ASTROCS_DESIGN.md §7.2（退出码 9 / 取消路径）、§10（原子产品：没有完成
 // 清单就不算成功对象）；GAP_AUDIT G3-15（SIGTERM 全阶段 exit 9 路径未覆盖）。
 bool write_stage_cancel_window() {
     const char* ms_env = std::getenv("ASTROCS_TEST_WRITE_SLEEP_MS");
@@ -2230,7 +2230,7 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 // config init / config validate / config show-effective 与 verify / verify profile 同属
-// CLI-001 已删命令面（docs/api/CLI_PROTOCOL_V1.md §1 已删除别名 → rc=2；ASTROCS_DESIGN
+// CLI-001 已删命令面（docs/api/CLI_PROTOCOL_V1.md §1 已删除别名 → rc=2；docs/ASTROCS_DESIGN
 // §6.2 唯一命令树无 config */verify*）。全仓零调用点，按 ENGINEERING_SPEC §8 显式退役；
 // 现行校验入口 = 会话命令预检（subcommand.h precheck_config）+ doctor --json +
 // export 的 resume/manifest 校验（cmd_session3_run）。
@@ -2239,7 +2239,7 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // 服务它们的 cli_exe_dir() 清单/模块发现根）同为已删能力（docs/api/CLI_PROTOCOL_V1.md §1
 // 已删除别名 → rc=2）。零调用点死代码按 ENGINEERING_SPEC §8 显式退役，能力去向见下条注释。
 // CLI-001 已删除 modules list/verify/selftest 用户命令（docs/api/CLI_PROTOCOL_V1.md §1
-// 明列 modules */selftest 为已删除别名 → rc=2；ASTROCS_DESIGN §6.2 命令树只有
+// 明列 modules */selftest 为已删除别名 → rc=2；docs/ASTROCS_DESIGN §6.2 命令树只有
 // normalize/mosaic/export/help/--version/doctor/benchmark）。原实现
 // （cmd_modules_list / cmd_modules_verify / cmd_selftest 及 locate_product_manifest /
 // product_manifest_base_dir / unit_file_present / load_product_manifest）为零调用点
@@ -2255,7 +2255,7 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // phase1|2|3 *）不在表内，解析阶段即 unknown command → exit 2。
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
-    // §9.74 裁决 7-a 定案 1（ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，不需要旗标
+    // §9.74 裁决 7-a 定案 1（docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，不需要旗标
     // 开启（GUI 用其它语言直接捕获 CLI 输出）。--events-jsonl 保留接受（等价默认行为，
     // 不再是开启开关）；stdout 恒为纯 JSONL/单 JSON 文档，人可读摘要走 stderr。
     astrocs::JsonlEmitter ev(astrocs::make_run_id(), joined);
@@ -2282,7 +2282,7 @@ int dispatch(const Parsed& p) {
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");
         // G3-11（GAP_AUDIT G3-11）：verify 能力纳入命令树。
-        // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（ASTROCS_DESIGN
+        // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（docs/ASTROCS_DESIGN
         // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
         // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见
         // docs/api/CLI_PROTOCOL_V1.md §1 + eng/tests/cli/test_cli_protocol.py
@@ -2400,7 +2400,7 @@ int dispatch(const Parsed& p) {
 }
 
 // ── 会话层分派（命令层 ↔ 会话层唯一契约面，声明见 lib/infrastructure/cli/cli_common.h）──
-// 三个会话各自独立执行、独立恢复，互不共享进程状态（ASTROCS_DESIGN §1.2）。
+// 三个会话各自独立执行、独立恢复，互不共享进程状态（docs/ASTROCS_DESIGN §1.2）。
 int session_dispatch(int session, SessionOp op, const Parsed& p, astrocs::JsonlEmitter& ev) {
     switch (op) {
         case SessionOp::Run:

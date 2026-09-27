@@ -104,7 +104,7 @@ flowchart TD
 （一句话：本任务让什么符合哪条权威条款）
 
 ## 权威依据
-- ASTROCS_DESIGN.md §x（条款）
+- docs/ASTROCS_DESIGN.md §x（条款）
 - docs/science/xxx.md §x（公式与适用域）
 
 ## 改动范围（文件域，互斥）
@@ -131,7 +131,7 @@ flowchart TD
 - 科学/架构/性能/文档不混在一个任务；
 - 每个任务给出**验收命令**；
 - 大模块拆小步：先合同/schema → 再算法实现 → 再测试 → 再集成；
-- 科学创新点验证用实验单元任务（SCI-A/B/C），自带报告八要素与独立审稿（八要素与目录结构的唯一正本 = `ASTROCS_DESIGN.md` §12.3，本规范不复制清单）。
+- 科学创新点验证用实验单元任务（SCI-A/B/C），自带报告八要素与独立审稿（八要素与目录结构的唯一正本 = `docs/ASTROCS_DESIGN.md` §12.3，本规范不复制清单）。
 
 ---
 
@@ -160,7 +160,7 @@ flowchart LR
 
 ### 6.3 任务状态
 
-`NOT_STARTED → IN_PROGRESS → PASS / FAIL / BLOCKED`（PASS 仅由前台验收后写入）。**任务状态词表属本规范域，与模块状态词表（`ASTROCS_DESIGN.md` §12.5）是两个域，取值互不代用**。
+`NOT_STARTED → IN_PROGRESS → PASS / FAIL / BLOCKED`（PASS 仅由前台验收后写入）。**任务状态词表属本规范域，与模块状态词表（`docs/ASTROCS_DESIGN.md` §12.5）是两个域，取值互不代用**。
 
 ```mermaid
 flowchart LR
@@ -205,7 +205,7 @@ flowchart LR
 
 ## 9. 阶段汇总与收口清理
 
-- 控制包全部任务 PASS 后，前台写 `SUMMARY.md`：目标、差距清单闭合情况、每模块状态（**取值集合 = `ASTROCS_DESIGN.md` §12.5 词表，本规范不复制**）、遗留项；
+- 控制包全部任务 PASS 后，前台写 `SUMMARY.md`：目标、差距清单闭合情况、每模块状态（**取值集合 = `docs/ASTROCS_DESIGN.md` §12.5 词表，本规范不复制**）、遗留项；
 - **真实数据终验先于控制包完成声明**（最高设计 §12）；未过终验不写"完成"；
 - **收口即清理**：SUMMARY 中有长期价值的结论沉淀进正式文档（最高设计/科学文档/插件文档/索引），随后把本控制包目录从仓库移除（与清理任务同一提交）；任务的完整过程、证据与讨论由 git 历史承载，仓库工作区只保留当前生产代码、自解释文档集与当前在执行的控制包；
 - 不产 zip/胶囊/台账等重量级长期设施。
@@ -216,7 +216,7 @@ flowchart LR
 
 | 文档 | 关系 |
 |---|---|
-| ASTROCS_DESIGN.md | 差距与任务的权威来源 |
+| docs/ASTROCS_DESIGN.md | 差距与任务的权威来源 |
 | 插件文档 docs/plugins/ | 任务"允许改什么"与"验收什么"的细节依据 |
 | ENGINEERING_SPEC.md | 代码/测试/提交/CI/清理的具体规则 |
 | AGENTS.md | 前台与 SubAgent 的执行纪律 |

@@ -310,7 +310,7 @@ def part_c():
     print("       对象 = 逐像素物理噪声方差，不是重建方差。")
     print("    ② 实验侧 kriging/GPR 预测方差（snr-propagation-design.md:537、exp4_kriging_scaling.py，")
     print("       b4_integration.py 的 pred_var）——分析代码，不在生产算子里。")
-    print("    ③ 合同要求（ACCEPTANCE_SPEC.md:60、ASTROCS_DESIGN.md:327、")
+    print("    ③ 合同要求（ACCEPTANCE_SPEC.md:60、docs/ASTROCS_DESIGN.md:327、")
     print("       docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md:99：『重建算子…返回预测方差』，")
     print("       且 snr-propagation-design.md:541 规定该方差要进权重分母）——生产算子无实现、无字段、")
     print("       eng/contracts 的 schema 侧亦无该字段的登记（grep variance∧(sparse|recon) 只命中")

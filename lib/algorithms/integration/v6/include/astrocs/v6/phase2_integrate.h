@@ -15,10 +15,10 @@
  * 冻结锚（逐条符合，不得放宽）:
  *   FZ-WEIGHT-SINGLE-PATH  权重只有一个口径、没有可选择项：Phase1 产稀疏 SNR 控制点
  *                      → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加；
- *                      w = SNR^2/F_ref^2 = 1/sigma_F^2（ASTROCS_DESIGN.md §3.1；
+ *                      w = SNR^2/F_ref^2 = 1/sigma_F^2（docs/ASTROCS_DESIGN.md §3.1；
  *                      docs/science/PSF_SIGNAL_WEIGHT.md §4）
  *   FZ-MODE-RETIRED    psfsw_robust 显式拒绝 + 迁移提示：psfsw_robust_weight 不是
- *                      现行对象（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
+ *                      现行对象（docs/ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
  *                      产品校验与权重来源拒绝面一律拒绝，不得静默接受
  *   FZ-FIELD-WEIGHTMODE legacy 0=support×snr² / auto / support_x_snr2 REJECT
  *   FZ-FORMULA-Q/WINFO/FHAT   Q_k=a_k P_k^T C_k^-1 d_k; W=a_k^2 P_k^T C_k^-1 P_k;

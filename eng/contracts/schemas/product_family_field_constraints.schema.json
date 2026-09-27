@@ -2477,7 +2477,7 @@
       "title": "ACSD V6 psfsw_robust 四分量与复合权重（生产，W6 集成）",
       "description": "[生产 schema | SCHEMA-INTEGRATE-001/W6] 由 eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw 机械迁移；语义权威 = eng/contracts/data/v6_clause_registry_v1.json（条款 id 见 x-astrocs-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/v6_clause_registry_v1.json 的 weight_vocabulary / migration_map 节。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：PSFSW 是正式可选 conventional integration 权重（非 QA-only），但无量纲、组内相对，不得写成 ivar/Fisher/W_info。四分量 psfsw.signal / psfsw.concentration / psfsw.noise / psfsw.background 分别落产品，measurement_id 互异，各带 p05/p50/p95 与有效覆盖。复合 Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta)，W_psfsw,k=Wt_k/median_j(Wt_j)。covariance 只能从实际组合系数传播，effective PSF 必输。",
       "x-astrocs-canonical-object-retirement": {
-        "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 ASTROCS_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：eng/contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",
+        "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 docs/ASTROCS_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：eng/contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",
         "retired_canonical_object": "psfsw_robust_weight",
         "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
         "v6_layer_status": "retained_design_archive"
@@ -2517,7 +2517,7 @@
       ],
       "x-astrocs-retired-declaration-optional": {
         "note": "PSFSW-RETIRE-03（产品合同收口，A44 式留痕）：weight_mode / weight 是**退役对象** psfsw_robust_weight 的声明面，已从 required 移出 ⇒ 不再是强制要求。缺席 = 现行产品（新写出的产品不再声明该对象）；在场 = 可判定的**退役/迁移情形**，其形状必须逐条等于退役 canonical 形式（weight_mode=psfsw_robust、weight.kind=psfsw_robust_weight、units=1、group_normalized=true、scope=group、median_target=1.0），并必须被识别 + 显式拒绝 + 给迁移提示（不得静默接受）。",
-        "authority": "ASTROCS_DESIGN.md §3.1（权重只能来自纯净信号与噪声之比/逆方差；PSF 拟合质量代理只作诊断）；docs/design/UNIFIED_MODEL.md:58；docs/contracts/DATA_SEMANTICS.md §31.1/§31.3/§31.7；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44；PSFSW-RETIRE-01/03",
+        "authority": "docs/ASTROCS_DESIGN.md §3.1（权重只能来自纯净信号与噪声之比/逆方差；PSF 拟合质量代理只作诊断）；docs/design/UNIFIED_MODEL.md:58；docs/contracts/DATA_SEMANTICS.md §31.1/§31.3/§31.7；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44；PSFSW-RETIRE-01/03",
         "migration_hint": "迁移提示：point_information（W_info=1/Var(F_hat)）用于点源，surface_gls（A^T C^-1 A）用于展源；Phase2 现场由帧 SNR 派生权重；PSF 质量代理（FWHM/residual）只作诊断。"
       },
       "properties": {

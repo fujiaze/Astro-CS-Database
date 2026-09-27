@@ -13,7 +13,7 @@
   "x-astrocs-authority": [
     "docs/design/UNIFIED_MODEL.md §3（run_manifest：本次运行冻结：源码/配置/输入输出哈希）",
     "docs/contracts/config_separation_anchors.json（run_manifest 字段名族与禁止名）",
-    "ASTROCS_DESIGN.md §6.3:322（运行事件与机器输出）"
+    "docs/ASTROCS_DESIGN.md §6.3:322（运行事件与机器输出）"
   ],
   "x-astrocs-notes": [
     "字段名取自 DATA-001 锚点 config_separation_anchors.json 的 run_manifest 族：^run_id$ / ^software_sha$ / ^config_hash$ / ^manifest_(input|output)_hashes$ / ^toolchain_[a-z0-9_]+$。",

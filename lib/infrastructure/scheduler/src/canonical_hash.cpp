@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读取/存在性/
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读取/存在性/
 // 头部探测/流式分块读取一律经 aio 唯一实现 (aio_file_io.h / aio_atomic_file.h,
 // 均为 header-only 机制面 —— 不引入 cfitsio 或产品 IO 库链接依赖, core 依赖图
 // 保持原样)。
@@ -223,7 +223,7 @@ struct FitsCard {
 // 返回 false = 结构非法（调用方按失败处理, 不做静默降级）。
 // P3-STREAM-01：FITS 规范哈希改为**流式**读取 —— 头部按 2880 字节逻辑记录读、
 // 数据单元按 64 KiB 分块喂 SHA-256，峰值内存 = 单块（与文件大小无关）。
-// 判据：ASTROCS_DESIGN §8.3 export 行「内存占用与子块大小成正比、与总图大小
+// 判据：docs/ASTROCS_DESIGN §8.3 export 行「内存占用与子块大小成正比、与总图大小
 // 无关」—— 整文件 read_all 会让 writer/verify 节点的峰值随产品大小线性增长。
 // 语义不变：canonical 正文与逐 HDU DATA sha256 与整读实现逐字节相同
 //（eng/tools/canonical_product_hash.py 为独立镜像，可交叉核对）。

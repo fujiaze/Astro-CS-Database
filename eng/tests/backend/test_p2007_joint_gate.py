@@ -105,7 +105,7 @@ class TestP2007JointGate(unittest.TestCase):
         out = os.path.join(cls.tmp, tag)
         os.makedirs(out, exist_ok=True)
         cfg = os.path.join(out, "cfg.json")
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>(平铺会话格式 hips_paths)。
         # --resource-detail/--strict-resource-gate 均不在命令树白名单(真 CLI rc=2),
         # 现行唯一可达资源门语义 = P26 默认 record-only(记录+warning, 不改 rc)。

@@ -7,7 +7,7 @@
 用法: python3 eng/tools/assemble_audit.py
 
 退役 (RETIRED, 2026-09-16, 负责人裁决) —— 本工具属旧世代(V5 控制包)审核包装配线, 已退役:
-  1. 权威链 (ASTROCS_DESIGN.md §0): 旧世代控制包产物不构成判据; 负责人裁决「历史版本控制包全部作废」;
+  1. 权威链 (docs/ASTROCS_DESIGN.md §0): 旧世代控制包产物不构成判据; 负责人裁决「历史版本控制包全部作废」;
   2. 唯一输入源 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/
      已不存在 (tracked 工作区无该目录); artifacts/evidence/prerelease-v5/tables/ 随 artifacts/ 整体删除
      (commit b1290525「不归档、不保留」);
@@ -76,7 +76,7 @@ def write_rows(path: pathlib.Path, header: list[str], rows: list[list[str]]) -> 
 
 RETIRED_NOTICE = (
     "ASSEMBLE_AUDIT_RETIRED: 本工具（旧世代 V5 审核包装配线）已于 2026-09-16 按负责人裁决退役。\n"
-    "  依据: ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
+    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
     "（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；\n"
     "        ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入已不存在: 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/ "

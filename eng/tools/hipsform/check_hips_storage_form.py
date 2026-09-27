@@ -6,7 +6,7 @@
   - docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md（CONTRACT-STORAGE-001：命名/布局/索引/哈希）
   - docs/design/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001：形态判据与完整形态）
   - eng/contracts/schemas/hips_storage_form.schema.json（索引 schema 机器事实源）
-  - ASTROCS_DESIGN.md §10（I/O 与原子产品）
+  - docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）
 
 检查项（exit 0 = PASS）：
   A. 锚存在：schema / 合同文档 / 设计文档 / 既有 FITS 校验器 / CI 内置 schema 校验器

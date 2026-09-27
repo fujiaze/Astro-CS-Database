@@ -66,7 +66,7 @@ SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *sat
                                        float *mag, int *has_saturated,
                                        float **extras, int extra_count);
 
-// ── 星表引导检测（权威路径，ASTROCS_DESIGN.md §4.2 / §2.1）──────────────────
+// ── 星表引导检测（权威路径，docs/ASTROCS_DESIGN.md §4.2 / §2.1）──────────────────
 // 检测定义域 = 星表逆投影到像素域的预测位置 pred_x/pred_y[0..n_pred)：
 // 只在这些位置做质心/椭圆高斯 PSF 拟合；拟合或质量门失败的位置**直接丢弃**
 // （不计虚警、不报错）。全图盲检测（sdet_detect_ex[_f64]）保留为**诊断/初值**

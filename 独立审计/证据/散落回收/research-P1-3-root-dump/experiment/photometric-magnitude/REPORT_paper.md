@@ -22,7 +22,7 @@
 
 ### 1.1 问题定位
 
-ACSD 三个创新点中，创新点一回答的是「**把一帧图像标定到什么尺度上，这个尺度才既物理诚实又可用于跨帧比较**」（`ASTROCS_DESIGN.md` §2.1、§4.2、§4.4）。项目的数据面前提是硬的：**FITS 头拿不到增益、曝光、有效口径、光学/大气透过率**。于是可观测链只能写成乘积形态
+ACSD 三个创新点中，创新点一回答的是「**把一帧图像标定到什么尺度上，这个尺度才既物理诚实又可用于跨帧比较**」（`docs/ASTROCS_DESIGN.md` §2.1、§4.2、§4.4）。项目的数据面前提是硬的：**FITS 头拿不到增益、曝光、有效口径、光学/大气透过率**。于是可观测链只能写成乘积形态
 
 ```text
 I_cal = (g · t · A_eff · η · …) · ∫ F_λ(λ) · T(λ) · Q(λ) · λ dλ  +  噪声
@@ -111,7 +111,7 @@ I_photo = k_photo · m(x,y) · I_cal,   m(x,y) = 10^(+0.4·poly(x,y)) = 1/m_gain
 
 ## 3 实验设计
 
-### 3.1 三类实验数据互证（`ASTROCS_DESIGN.md` §12.2）
+### 3.1 三类实验数据互证（`docs/ASTROCS_DESIGN.md` §12.2）
 
 | 类别 | 数据 | 角色 | 生成 |
 |---|---|---|---|
@@ -305,7 +305,7 @@ I_photo = k_photo · m(x,y) · I_cal,   m(x,y) = 10^(+0.4·poly(x,y)) = 1/m_gain
 1. ACSD 仓库，`VERSION = 0.11.0-alpha.2`，HEAD `d8495a65b696759bae209e509c6ef2e6a372245a`（main）。
 2. `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN，T103 冻结 2026-08-23）；§16.5 由 DOC-502（commit `b85c79dd`）登记；§16.2/§16.3 为单位消除与禁止反解论证。
 3. `docs/plugins/algorithms_phase1/06_photometry.md` §4.1（判据形态与逐项预算；记录 L4 49 帧 PASS 1/49）。
-4. `ACCEPTANCE_SPEC.md` §2.1（SCI-A 六项验收判据）；`ASTROCS_DESIGN.md` §2.1/§4.2/§4.4/§12.2/§12.3。
+4. `ACCEPTANCE_SPEC.md` §2.1（SCI-A 六项验收判据）；`docs/ASTROCS_DESIGN.md` §2.1/§4.2/§4.4/§12.2/§12.3。
 5. 实验单元：`实验/photometric-magnitude/README.md`、`results/GATES.md`、`results/gates.json`、`results/step1..step8*.json`、`results/REVIEW.md`（两轮独立审稿）、`results/DOC_CORRECTIONS.md`、`results/REVERSE_VERIFY_CANON.md`。
 6. 实验代码：`实验/photometric-magnitude/code/*.py`（固定种子 20260921）；`code/README.md` 记录运行环境 Python 3.13.5 / numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1。
 

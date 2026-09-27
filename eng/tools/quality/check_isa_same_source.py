@@ -18,7 +18,7 @@
      任一侧缺位/不一致 ⇒ 红。
   S4 宿主 ISA 一律红：构建输入里出现 -march=native / 裸 -march= 即红；
      只有 eng/ci/exemptions.json 的显式豁免能解除（当前豁免面为空）。
-  S5 状态词：站点 status 必须落在 ASTROCS_DESIGN.md §12.5 阶梯内（越词即红；
+  S5 状态词：站点 status 必须落在 docs/ASTROCS_DESIGN.md §12.5 阶梯内（越词即红；
      阶梯由 eng/tools/quality/check_conclusion_truth.py 的解析器读出，口径唯一实现）。
   S6 正向状态需证据：status 为正向（CONTRACT_READY/IMPLEMENTED/INSTALLED/VERIFIED/
      READY_FOR_OWNER_REVIEW）的站点必须给出 declaration 与 detection，否则红。
@@ -49,7 +49,7 @@ except Exception:  # noqa: BLE001
     parse_ladder = None
 
 REG = "eng/tools/quality/isa_sites.json"
-DESIGN = "ASTROCS_DESIGN.md"
+DESIGN = "docs/ASTROCS_DESIGN.md"
 ISA_FLAG = re.compile(r"(?<![\w-])-m(arch|tune|sse[0-9a-z._]*|avx[0-9a-z]*|fma|bmi[12]|f16c|popcnt)(=\S+)?")
 HOST_ISA = re.compile(r"(?<![\w-])-march(=\S+)?")
 # 两套命名同源：backend_host 装载面用 ACS_FEAT_*，CPU-001 探测面用 ACS_CAP_FEAT_*，

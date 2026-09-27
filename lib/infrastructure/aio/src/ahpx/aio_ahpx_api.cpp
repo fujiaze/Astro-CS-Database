@@ -40,7 +40,7 @@
 // metadata_json: 元数据 JSON 字符串, 可为 nullptr
 // zstd_level: ZSTD 压缩级别 (1-22, 0=不压缩, 推荐 5)
 //
-// 变更 AHPX-WEIGHT-RETIRE-20260920 (ASTROCS_DESIGN §2.1 / A44): 权重参数已作废,
+// 变更 AHPX-WEIGHT-RETIRE-20260920 (docs/ASTROCS_DESIGN §2.1 / A44): 权重参数已作废,
 // 本入口不再接收也不写出任何权重; 声明 (astro_image_io.h) 与定义同形。
 // ============================================================================
 AIO_EXPORT int aio_ahpx_write(const char *path,

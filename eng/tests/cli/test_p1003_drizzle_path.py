@@ -83,7 +83,7 @@ class TestP1003DrizzlePath(unittest.TestCase):
                 self.assertNotIn(sym, text, f"{os.path.basename(src)} 含 {sym} 直连")
 
     def test_03_drizzle_command_rejects_production(self):
-        """drizzle 用户命令已删除（ASTROCS_DESIGN §6.2 唯一命令树; CLI-001 rc 矩阵）:
+        """drizzle 用户命令已删除（docs/ASTROCS_DESIGN §6.2 唯一命令树; CLI-001 rc 矩阵）:
         作为生产命令不可达 ⇒ 未知命令 rc=2(ARGS), 错误面指向新命令树。
         旧断言 "stderr 含 preset"（旧 cmd_drizzle 仅测试 preset 的语义）已随命令删除;
         本用例保留其真实意图「drizzle 不得作为生产命令运行」并加强为"命令不存在"。

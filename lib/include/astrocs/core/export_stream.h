@@ -1,6 +1,6 @@
 // ACSD Core — ARCH-504 export 子块流式调度器
 //
-// 依据：ASTROCS_DESIGN.md §6（投影导出）、§8.3（export = 子块流式）；ENGINEERING_SPEC.md
+// 依据：docs/ASTROCS_DESIGN.md §6（投影导出）、§8.3（export = 子块流式）；ENGINEERING_SPEC.md
 //       §4.1；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md。
 //
 // 核心机制（合同条款，测试逐条锁）：
@@ -14,7 +14,7 @@
 //   ⑦ **生产接线（P3-STREAM-01）**：phase3 writer 节点经 `ExportSink` 把每个
 //      子块写进 FITS 数据区（cfitsio `fits_write_subset`）；resample2 / verify
 //      节点同样按子块读写 —— 生产 export 全程无整幅平面驻留
-//      （ASTROCS_DESIGN §8.3 export 行）。
+//      （docs/ASTROCS_DESIGN §8.3 export 行）。
 //
 // 边界：投影数学（TAN 冻结）不改；SIN 缺陷未解决前不启用。
 #pragma once

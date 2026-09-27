@@ -15,7 +15,7 @@
 #      acsd 的 target_link_libraries。
 #
 # 三个子命令模块各声明一个 INTERFACE target，便于模块化引用与共址测试引用；
-# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，ASTROCS_DESIGN §6.2）。
+# 不 install、不产出独立二进制（CLI 只有唯一可执行 acsd，docs/ASTROCS_DESIGN §6.2）。
 cmake_minimum_required(VERSION 3.16)
 
 add_library(astrocs_cli_subcommands INTERFACE)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ARCH-004 静态 checker: 未登记线程创建 / 硬编码线程数 / 私有线程池扫描 (§5 合同实现)。
 
-RT-001 加固 (P0 M5a-G-005; 依据 ASTROCS_DESIGN.md §8 + ENGINEERING_SPEC.md §8/§10):
+RT-001 加固 (P0 M5a-G-005; 依据 docs/ASTROCS_DESIGN.md §8 + ENGINEERING_SPEC.md §8/§10):
   1) 扫描面 = 生产源码面。原实现手抄 5 个根 [lib, providers, cli, runtime, include], 其中
      providers/ cli/ runtime/ include/ 4 个在 ARCH-001 根目录整合后已不存在（cli/ ->
      lib/infrastructure/cli, include/ -> lib/include），而 scan() 用 `if not os.path.isdir(root):
@@ -177,10 +177,10 @@ REGISTERED = {
     "lib/infrastructure/acr/examples/weighted_integration/weighted_integration_kernels.cpp":
         "ACR benchmark 示范代码: 线程源=逐内核 benchmark 线程租借参数(threads>0 才设置), 非硬编码; dormant 非生产路径(V5 不接入)",
     "lib/infrastructure/acr/scheduler/dispatcher.cpp":
-        "ACR dormant 调度器 per-call 池 x1 (:1174 workers): ACR 保留源码/不进生产构建与路由(ASTROCS_DESIGN §1.3/§8); 非 RT-001 修复对象",
+        "ACR dormant 调度器 per-call 池 x1 (:1174 workers): ACR 保留源码/不进生产构建与路由(docs/ASTROCS_DESIGN §1.3/§8); 非 RT-001 修复对象",
     # ── 私有线程池声明（std::vector<std::thread>）──
     "lib/infrastructure/scheduler/src/executor.cpp":
-        "唯一共享 executor 池 x2 (CPU heavy :39 + 有界 I/O :217), worker 数 = ThreadBudget.budget(); 设计允许的唯一长期池(ASTROCS_DESIGN §8 单一线程预算源)",
+        "唯一共享 executor 池 x2 (CPU heavy :39 + 有界 I/O :217), worker 数 = ThreadBudget.budget(); 设计允许的唯一长期池(docs/ASTROCS_DESIGN §8 单一线程预算源)",
     "lib/infrastructure/scheduler/src/scheduler.cpp":
         "run() 期 per-run 池 x1 (budget_ 个线程): 线程数来自 ThreadBudget, 非硬编码; 但与 executor 池并存 -> 同 run 线程上界≈2×budget(RT-001 步骤2 单一 executor 未收编; W3-R2-008 佐证)",
     "lib/algorithms/coverage/src/sampler.cpp":
@@ -206,7 +206,7 @@ REGISTERED = {
     "lib/include/astrocs/core/block_flow.h":
         "ARCH-505 命名块流执行器：不持有线程池（复用调用方注入的执行函数），登记为可见面",
     "lib/phase3_session/p3_session.cpp":
-        "Session 期池 x1: ASTROCS_DESIGN §7.3 禁 Session 型模块 -> 该目录为 INT-001 删除对象(ARCH-001 DEFERRED)",
+        "Session 期池 x1: docs/ASTROCS_DESIGN §7.3 禁 Session 型模块 -> 该目录为 INT-001 删除对象(ARCH-001 DEFERRED)",
     # ── 独立 Oracle / 自查 harness（非生产路径）──
     "lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp":
         "权重链独立合成 Oracle 的 1/N worker 逐位一致自查(ENGINEERING_SPEC §9 自查自修): "

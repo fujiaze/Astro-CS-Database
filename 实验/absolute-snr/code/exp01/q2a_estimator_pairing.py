@@ -13,7 +13,7 @@
 判据：
   (a) 配对性  —— 报告 sigma 必须等于**所报 flux 估计量**的抽样标准差（MC 实测 std 对拍）
   (b) 截断处理 —— 正性截断的偏置与方差缩减是否被完备处理
-  (c) 跨帧可比 —— 报告 flux 是否为**与 seeing 无关**的测光量（ASTROCS_DESIGN §3.1）
+  (c) 跨帧可比 —— 报告 flux 是否为**与 seeing 无关**的测光量（docs/ASTROCS_DESIGN §3.1）
   (d) 帧级影响 —— reference_snr_f（模型 F_ref 路径）走的是哪个口径
 
 负例（真值无效应 => 归零）：

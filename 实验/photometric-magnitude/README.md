@@ -4,7 +4,7 @@
 - **固定种子**：`20260921`（所有 RNG 由 `scia_common.rng(tag)` SHA256 派生）
 - **一键复跑**：`bash 实验/photometric-magnitude/code/run_all.sh`（`quick` 跳过最慢的 step6）
 - **判据表**：`results/GATES.md`（机读 `results/gates.json`）
-- **规范依据**：`ASTROCS_DESIGN.md` §2.1 / §4.2 / §4.4 / §12.1–12.3；
+- **规范依据**：`docs/ASTROCS_DESIGN.md` §2.1 / §4.2 / §4.4 / §12.1–12.3；
   `ACCEPTANCE_SPEC.md` §2.1 判据表；`docs/plugins/algorithms_phase1/06_photometry.md` **§4.1**
   （"测光一致性判据（从误差预算推导）"，判据形态逐字来源；该文只有 §1–§8，**没有 §2.1/§3.1**）；
   `docs/science/PHOTOMETRY.md`（推导出处）；`run/RELEASE-02/parallel/06.md` §2（逐项预算实测）

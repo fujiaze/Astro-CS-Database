@@ -4,7 +4,7 @@
 
 规范依据
 --------
-- 创新点二：ASTROCS_DESIGN.md:131-137（帧间一致性把每帧独立标定的噪声传递为跨帧绝对 SNR；
+- 创新点二：docs/ASTROCS_DESIGN.md:131-137（帧间一致性把每帧独立标定的噪声传递为跨帧绝对 SNR；
   不因组内一致而放大系统项）。冻结定义：docs/science/PHASE2_UPM.md（加性噪声模型）、
   docs/science/SNR_CHAIN.md、lib/algorithms/coverage/src/integrate.cpp:20-79
   （ivar 加权：signal = Sigma w x / Sigma w；w = 1/sigma_F^2）。

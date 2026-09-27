@@ -1,5 +1,5 @@
 // lib/algorithms/projection/p3_wcs.cpp — TAN(gnomonic) WCS 实现 (ALG-P3-002/003) — P3-002
-// 原址 lib/phase3_session/p3_wcs.cpp (ASTROCS_DESIGN §7.1「projection」);
+// 原址 lib/phase3_session/p3_wcs.cpp (docs/ASTROCS_DESIGN §7.1「projection」);
 // 源逐字节迁移, 命名空间/公式/容差零改动 (ENGINEERING_SPEC §3 架构重构不改科学语义)。
 // 数学: Calabretta & Greisen (2002) 标准球面三角公式(RA wrap 经 atan2+fmod 归一)。
 #include "p3_wcs.h"
@@ -166,7 +166,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     return P3_WCS_OK;
 }
 
-// ---- 适用域（ASTROCS_DESIGN.md §5.3）----
+// ---- 适用域（docs/ASTROCS_DESIGN.md §5.3）----
 namespace {
 
 // TAN 适用域声明（SCI §9a-12 alpha 冻结 + Paper I §2.1.1 + 往返门分层）。
@@ -192,7 +192,7 @@ namespace {
 //     用 RSS 设门必然误拒；RSS 只回答「误差通常多大」）。
 //
 // roundtrip_tol_px = 1e-8 px —— 往返 Oracle 实验表（冻结）+ GATE-DERIVE-01 复核:
-//   * 规范来源: ASTROCS_DESIGN §5.3「每种投影必须声明适用域（含往返误差上界），
+//   * 规范来源: docs/ASTROCS_DESIGN §5.3「每种投影必须声明适用域（含往返误差上界），
 //     违反 ⇒ 拒绝」；上界必须由实验确定（GAP_AUDIT G3-6 要求经 SCI 复核后冻结）。
 //   * TAN 全域实测（本生产实现自身，880 组几何 × 密集逐像素 = 8.31e6 次往返 +
 //     FOV=20° 适用域边界 512²/1024²/2048² = 2.42e7 次往返）:

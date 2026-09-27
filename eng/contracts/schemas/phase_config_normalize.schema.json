@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/normalize/v1",
   "title": "ACSD phase_config — normalize v1（三命令通用输入合同：多数据块 blocks[] / 平铺单块简写）",
-  "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态，GAP_AUDIT §9.71 裁决 2（2026-09-20）把该形态确立为**三命令通用输入合同**（ASTROCS_DESIGN.md §3.3）：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。逐帧 {phase_name, config, inputs[]} 形态已按 §9.68 **退役**（与 mosaic/export 的处置不同：那两份 schema 按 §9.71 裁决 2 定案 4「不是退役旧合同」**保留**旧分支作合同留痕；normalize 侧旧分支由 §9.68 删除，CLI 明确拒绝并给迁移提示）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态，GAP_AUDIT §9.71 裁决 2（2026-09-20）把该形态确立为**三命令通用输入合同**（docs/ASTROCS_DESIGN.md §3.3）：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。逐帧 {phase_name, config, inputs[]} 形态已按 §9.68 **退役**（与 mosaic/export 的处置不同：那两份 schema 按 §9.71 裁决 2 定案 4「不是退役旧合同」**保留**旧分支作合同留痕；normalize 侧旧分支由 §9.68 删除，CLI 明确拒绝并给迁移提示）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "normalize",
   "x-astrocs-config-class": "phase_config",
@@ -11,18 +11,18 @@
     "benchmark"
   ],
   "x-astrocs-authority": [
-    "ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：多块 blocks[] + 平铺单块简写 + 互斥规则）",
+    "docs/ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：多块 blocks[] + 平铺单块简写 + 互斥规则）",
     "GAP_AUDIT §9.71 裁决 2（负责人 2026-09-20：三命令同构块结构 —— 一个块 = {输出名称, 运行参数, 输入的一组帧}；定案 3 键名与 CLI 统一）",
     "GAP_AUDIT §9.68（负责人裁决 2026-09-20：normalize 配置 = 多数据块 JSON；同一组校准帧和运行参数支持一组 light）",
-    "ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
-    "ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
+    "docs/ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
+    "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
     "形态（§9.68 + §9.71 裁决 2）：① 多块 —— {\"schema_version\",\"blocks\":[normalize_block, ...]}（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）；② 平铺单块简写 —— 顶层 input_lights/master_*/output_dir/运行参数（只有一块时的等价写法，向后兼容）。二者互斥：顶层同时出现 blocks 与任一平铺键 → 本 schema 的 then 分支（propertyNames）与 CLI 解析器都报错，不静默取一。该形态是**三命令通用输入合同**（§3.3）：mosaic/export 同构（块内第三件分别为 hips_paths / source.hips_dir）。",
     "顶层键闭包用 propertyNames 而非 additionalProperties：schema_version 与 cpu_profile 的同名键冲突登记（eng/tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 的 phase_config ∩ cpu_profile == {precision}）必须保持，故 schema_version 不进 properties；块内（normalize_block）无此冲突，仍用 additionalProperties:false 做机器拒绝。",
-    "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：本 schema 的顶层键 {schema_version, blocks} 与块内键（input_lights/master_*/output_dir/filter_passband/drizzle/wcs/...）以 ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。旧逐帧形态 {phase_name, config, inputs[]} 已按 §9.68 删除。",
+    "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：本 schema 的顶层键 {schema_version, blocks} 与块内键（input_lights/master_*/output_dir/filter_passband/drizzle/wcs/...）以 docs/ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。旧逐帧形态 {phase_name, config, inputs[]} 已按 §9.68 删除。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在块与 drizzle/wcs 两级做机器拒绝。",
     "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
     "**落盘形态键 storage_form**：Phase1 产品的落盘形态是**输入配置项**，不是运行期开关——取值 archive（默认）/ bare；键缺失、空串或 null ⇒ 取默认 archive 并报一条 level=warn 事件（不静默取默认）。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10、docs/design/PRODUCT_STORAGE_FORM.md §10；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。本键**只**出现在 normalize（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）——mosaic/export 出现本键一律 REJECT。生产消费点（写出侧按形态落盘）属分阶段实现计划阶段 2；在此之前 CLI 只识别并透传，登记在 eng/ci/ledgers/dead_config_keys.json，不得静默 no-op。",
@@ -81,12 +81,12 @@
         "ZWO G",
         "ZWO R"
       ],
-      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，ASTROCS_DESIGN.md §3.3；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
+      "description": "滤镜库键，必须逐字命中 eng/packaging/config/filters.json 的 filters 键（未知滤镜 -> error，docs/ASTROCS_DESIGN.md §3.3；enum 由 eng/tests/config 断言与滤镜库逐项相等）"
     },
     "output_dir": {
       "type": "string",
       "minLength": 1,
-      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（ASTROCS_DESIGN.md §6.3）。多块形态下是**块级**必填（每块独立 output_dir ⇒ 独立 run manifest）"
+      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（docs/ASTROCS_DESIGN.md §6.3）。多块形态下是**块级**必填（每块独立 output_dir ⇒ 独立 run manifest）"
     },
     "block_name": {
       "type": "string",
@@ -355,7 +355,7 @@
     "star_detection_config": {
       "type": "object",
       "additionalProperties": false,
-      "description": "星表引导检测（权威路径）配置段。段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 全取编译期默认（不是错误）。规范：ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式；按亮度取上限，规模由配置键 `star_detection.max_stars` 与星表查询口径导出；极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）+ docs/plugins/algorithms_phase1/03_star_detection.md §5.1。",
+      "description": "星表引导检测（权威路径）配置段。段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 全取编译期默认（不是错误）。规范：docs/ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式；按亮度取上限，规模由配置键 `star_detection.max_stars` 与星表查询口径导出；极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）+ docs/plugins/algorithms_phase1/03_star_detection.md §5.1。",
       "propertyNames": {
         "enum": [
           "mode",
@@ -389,7 +389,7 @@
           "minimum": 20000,
           "maximum": 50000,
           "default": 20000,
-          "description": "检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]（本 schema 的 minimum/maximum 即唯一事实源，实现锚 = lib/infrastructure/scheduler/src/module_adapters.cpp kP1GuidedMaxStarsLo/Hi 与 p1_guided_cfg）；规模语义 = ASTROCS_DESIGN.md §4.2「按亮度取上限」（设计自定算力上界，非科学常数；本节不复制数值——数值只在本 schema 与 docs/plugins/algorithms_phase1/03_star_detection.md §5.1 表声明）。与本件另一键 `snr.max_sources`（交付 SNR 样本上限，默认 0 = 不限）是**两个不同对象**：本键管检测定义域，交付样本上限不截断本键。越界即 DATA 拒绝，禁静默夹取。"
+          "description": "检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]（本 schema 的 minimum/maximum 即唯一事实源，实现锚 = lib/infrastructure/scheduler/src/module_adapters.cpp kP1GuidedMaxStarsLo/Hi 与 p1_guided_cfg）；规模语义 = docs/ASTROCS_DESIGN.md §4.2「按亮度取上限」（设计自定算力上界，非科学常数；本节不复制数值——数值只在本 schema 与 docs/plugins/algorithms_phase1/03_star_detection.md §5.1 表声明）。与本件另一键 `snr.max_sources`（交付 SNR 样本上限，默认 0 = 不限）是**两个不同对象**：本键管检测定义域，交付样本上限不截断本键。越界即 DATA 拒绝，禁静默夹取。"
         },
         "approx_wcs": {
           "type": "object",

@@ -1760,7 +1760,7 @@
         "desc": "置换 k 臂的帧间散度必须严格大于标定臂（估计器对 k 有响应）",
         "value": 0.35172072589064435,
         "ok": true,
-        "source": "ASTROCS_DESIGN.md:126",
+        "source": "docs/ASTROCS_DESIGN.md:126",
         "level": "control",
         "note": "标定 0.2631 dex < 置换 0.3517 dex"
       },
@@ -1796,7 +1796,7 @@
         "desc": "置换 k 臂的帧间散度必须严格大于标定臂（估计器对 k 有响应）",
         "value": 0.6768742270046998,
         "ok": true,
-        "source": "ASTROCS_DESIGN.md:126",
+        "source": "docs/ASTROCS_DESIGN.md:126",
         "level": "control",
         "note": "标定 0.2726 dex < 置换 0.6769 dex"
       },

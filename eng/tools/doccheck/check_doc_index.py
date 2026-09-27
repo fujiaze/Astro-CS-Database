@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """DOC-403 机器检查器：双向层级索引闭合门（DOC-INDEX v2）。
 
-权威依据：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、§0.3；ENGINEERING_SPEC.md §8
+权威依据：docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、§0.3；ENGINEERING_SPEC.md §8
 （悬空即缺陷）、§10（机器门：fail-closed / 可执行负例面 / 锚存活）。
 
 检查项（exit 0 = PASS）：
@@ -16,7 +16,7 @@
   B. 双向索引闭合（DOC-403 新增）
      6. 最高设计与根文档（ENGINEERING_SPEC §7 根固定条目）中每个 docs/... 指针目标存在；
      7. 每份下级文档（docs/**/*.md，活动分类 ACTIVE_*）都在索引登记；
-     8. 每份下级文档抬头有「上游」条款区（指向 ASTROCS_DESIGN.md 条款），覆盖率 100%；
+     8. 每份下级文档抬头有「上游」条款区（指向 docs/ASTROCS_DESIGN.md 条款），覆盖率 100%；
      9. 文档与代码注释中引用的 docs/ 路径存在（与 FIX-404 代码路径门共用扫描数据；
         跨域未修项在 eng/tools/doccheck/dangling_ledger.json 显式登记，只减不增）；
   C. 归档边界与旧权威回归
@@ -82,7 +82,7 @@ ARCHIVE_DECL_MARKERS = ("ARCHIVED", "已归档", "已退役")
 # memory.md 不入本表：它是 history/日志命名空间驻留点（GOV-003 §2/§4 只警告不硬判，
 # 见 eng/ci/check_version.py 文件头 [5]），历史轮次引用不构成活动指针。
 ROOT_DOCS = (
-    "ASTROCS_DESIGN.md",
+    "docs/ASTROCS_DESIGN.md",
     "AGENTS.md",
     "ENGINEERING_SPEC.md",
     "CONTROL_PACK_SPEC.md",
@@ -354,7 +354,7 @@ def header_region(lines: list, max_lines: int = 25) -> list:
 
 
 def has_upstream_header(text: str) -> bool:
-    return any(("上游" in ln and "ASTROCS_DESIGN.md" in ln)
+    return any(("上游" in ln and "docs/ASTROCS_DESIGN.md" in ln)
                for ln in header_region(text.splitlines()))
 
 
@@ -827,7 +827,7 @@ def main(argv=None) -> int:
 OWNER_DOCS = ("SCIENCE_OVERVIEW.md", "PIPELINE_OVERVIEW.md", "ARCHITECTURE_OVERVIEW.md",
               "RELEASE_STATUS.md", "CHANGE_REVIEW.md")
 ROOT_DOC_FILES = {
-    "ASTROCS_DESIGN.md": "# 最高设计\n\n科学公式见 docs/owner/SCIENCE_OVERVIEW.md；"
+    "docs/ASTROCS_DESIGN.md": "# 最高设计\n\n科学公式见 docs/owner/SCIENCE_OVERVIEW.md；"
                          "索引见 docs/DOCUMENT_INDEX.yaml。\n" + ("顶层设计正文。 " * 30) + "\n",
     "AGENTS.md": "# AGENTS\n\n读法见 docs/DOCUMENT_INDEX.yaml。\n" + ("干活手册。 " * 30) + "\n",
     "ENGINEERING_SPEC.md": "# 工程规范\n\n文档集见 docs/ci/。\n" + ("工程规范正文。 " * 30) + "\n",
@@ -905,14 +905,14 @@ def _mk(root: str) -> None:
         _write(os.path.join(root, name), text)
     for d in OWNER_DOCS:
         _write(os.path.join(root, "docs/owner", d),
-               "# " + d + "\n\n> 上游：ASTROCS_DESIGN.md §2（核心科学方法）\n\n"
+               "# " + d + "\n\n> 上游：docs/ASTROCS_DESIGN.md §2（核心科学方法）\n\n"
                + ("owner L0 overview content. " * 20) + "\n")
     _write(os.path.join(root, "docs/ci/01_CHECKS.md"),
-           "# checks\n\n> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）\n\nbody\n")
+           "# checks\n\n> 上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）\n\nbody\n")
     _write(os.path.join(root, "docs/archive/OLD.md"), "# ARCHIVED old doc\n")
     _write(os.path.join(root, "docs/review/OLD_REVIEW.md"), "# ARCHIVED old review copy\n")
     _write(os.path.join(root, "docs/DOC-L0.md"),
-           "# L0\n\n> 上游：ASTROCS_DESIGN.md §0.2\n\nbody\n")
+           "# L0\n\n> 上游：docs/ASTROCS_DESIGN.md §0.2\n\nbody\n")
     _write(os.path.join(root, "lib/x/foo.cpp"),
            "// legacy pointer docs/legacy/OLD.md (跨域未修，台账登记)\nint x = 1;\n")
     _write(os.path.join(root, LEDGER_PATH),
@@ -1038,8 +1038,8 @@ def self_test() -> int:
 
         # S10 负例：最高设计里的 docs/ 链接悬空 ⇒ root_docs_doc_links_resolve 判红
         r10 = _mk_repo(tmp, "s10")
-        _write(os.path.join(r10, "ASTROCS_DESIGN.md"),
-               ROOT_DOC_FILES["ASTROCS_DESIGN.md"] + "\n详见 docs/nope/NOPE.md。\n")
+        _write(os.path.join(r10, "docs/ASTROCS_DESIGN.md"),
+               ROOT_DOC_FILES["docs/ASTROCS_DESIGN.md"] + "\n详见 docs/nope/NOPE.md。\n")
         _git_init(r10)
         cases.append(("S10-dangling-root-doc-link",) + _red(r10, "s10", True,
                                                             "root_docs_doc_links_resolve"))
@@ -1055,7 +1055,7 @@ def self_test() -> int:
         # S12 负例：漏登一篇下级文档 ⇒ subordinate_docs_registered 判红
         r12 = _mk_repo(tmp, "s12")
         _write(os.path.join(r12, "docs/new/NEW.md"),
-               "# NEW\n\n> 上游：ASTROCS_DESIGN.md §2\n\nbody\n")
+               "# NEW\n\n> 上游：docs/ASTROCS_DESIGN.md §2\n\nbody\n")
         _git_init(r12)
         cases.append(("S12-unregistered-doc",) + _red(r12, "s12", True,
                                                       "subordinate_docs_registered"))

@@ -2,9 +2,9 @@
 """FIX-406: 三阶段 × 三取消点 SIGTERM/SIGINT 取消矩阵（exit 9 + incomplete manifest + 无半成品）。
 
 权威（逐条）:
-  * ASTROCS_DESIGN.md §7.2「取消（Ctrl-C）：协作取消 → 关 writer → 写 incomplete
+  * docs/ASTROCS_DESIGN.md §7.2「取消（Ctrl-C）：协作取消 → 关 writer → 写 incomplete
     manifest → 删/隔离临时产物 → exit 9」+ 退出码表「9 = 用户取消或超时」；
-  * ASTROCS_DESIGN.md §10「所有产品走临时区 → 校验 → 原子改名发布 → 最后落完成清单；
+  * docs/ASTROCS_DESIGN.md §10「所有产品走临时区 → 校验 → 原子改名发布 → 最后落完成清单；
     没有完成清单就不算成功对象；失败/取消时清理临时产物」；
   * GAP_AUDIT G3-15「SIGTERM 全阶段 exit 9 路径未覆盖」（本任务闭合）。
 
@@ -72,7 +72,7 @@ CANCEL_POINTS = (
 SLEEP_MS = "6000"          # 注入窗（信号在 1.2s 到达，窗内必达）
 SIGNAL_DELAY = 1.2
 EVIDENCE = os.path.join(REPO, "run", "FIX-406", "evidence", "cancel_matrix.json")
-# 临时/半成品文件命名（ASTROCS_DESIGN §10 原子发布；aio/p3_output 实测命名族）
+# 临时/半成品文件命名（docs/ASTROCS_DESIGN §10 原子发布；aio/p3_output 实测命名族）
 TEMP_PAT = re.compile(r"\.tmp|\.partial|\.tmppool|\.part$|\.incomplete$")
 
 

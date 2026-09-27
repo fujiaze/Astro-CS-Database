@@ -3,7 +3,7 @@
 """CHK-NO-WEIGHT-MODE-CODE：代码面「单一权重口径」门（FZ-WEIGHT-SINGLE-PATH）。
 
 权威依据
-  - `ASTROCS_DESIGN.md` §3.1：全程只有 SNR，没有"权重模式"这个概念；权重是 Phase2
+  - `docs/ASTROCS_DESIGN.md` §3.1：全程只有 SNR，没有"权重模式"这个概念；权重是 Phase2
     集成时按天球像素对应的输入帧集合**现场计算的派生量**；Phase1 与 Phase3 不产生、
     不消费权重。
   - `docs/science/PSF_SIGNAL_WEIGHT.md` §4（单一权重口径，没有可选择项）：阶段一产

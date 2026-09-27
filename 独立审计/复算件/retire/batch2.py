@@ -67,7 +67,7 @@ ROWS = [
  "生产0/测试0/文档0/登记1；内含路径名 lib/astro_image_io/src/aio_abi.cpp（不在跟踪集，现行为 lib/infrastructure/aio/…）",
  "是——合同层文件（eng/contracts/data/ 是机器校验的合同数据面）；同名锚亦登记于 eng/ci/ledgers/registration_anchor_ledger.json ⇒ 该门 CHK-REGISTRATION-ANCHORS（ID 出处 eng/ci/checks.json，command=eng/ci/check_registration_anchors.py）会按锚解析",
  "先解引用再删：把陈旧路径改成现行路径而非删除条目（它是 ABI 合同对实现锚的绑定）",
- "eng/ci/ledgers/registration_anchor_ledger.json 同一锚；ASTROCS_DESIGN §8.4 的 ABI 条款",
+ "eng/ci/ledgers/registration_anchor_ledger.json 同一锚；docs/ASTROCS_DESIGN §8.4 的 ABI 条款",
  "高（改对反而判红）：CHK-REGISTRATION-ANCHORS 的判据是「锚必须可解析」；把路径改错或删条目 ⇒ 锚不可解析直接判红。必须改成现行真实路径",
  "中——未跑门，锚解析失败是否已现网发生未裁"],
 
@@ -145,7 +145,7 @@ ROWS = [
  "占位模块",
  "不被任何 target 编译",
  "生产1/测试4/文档3/登记2（命令：git grep -ln secure_loader => 28 文件；其中 eng/tests/abi/ 4 个 pytest 以 cc 现场编译：test_secure_loader.py:225、test_module_registry.py:131、test_abi005_echo.py:223、mod001_install_load_check.py:112）",
- "是——ASTROCS_DESIGN §8.4 指定的唯一 loader 实现；且 eng/ci/ledgers/aio_io_boundary_inventory.json:1926 登记本路径（门 CHK-AIO-IO-BOUNDARY，ID 出处 eng/ci/checks.json）、eng/ci/ledgers/prod_wiring.json:709 记「类 B 处置：属 C ABI 动态装载通道（ABI-003 loader）」",
+ "是——docs/ASTROCS_DESIGN §8.4 指定的唯一 loader 实现；且 eng/ci/ledgers/aio_io_boundary_inventory.json:1926 登记本路径（门 CHK-AIO-IO-BOUNDARY，ID 出处 eng/ci/checks.json）、eng/ci/ledgers/prod_wiring.json:709 记「类 B 处置：属 C ABI 动态装载通道（ABI-003 loader）」",
  "保留并说明理由（**不许按死代码删**）：它是 ABI-003 合同的唯一实现与唯一测试载体；整改动作应是「进构建图」（给独立 add_library 或登记进 orchestrator 的装载器 target），而不是删除",
  "若进图：eng/cmake/install_layout.cmake 安装面、docs/architecture/abi/ABI_003_SECURE_LOADER.md、eng/ci/ledgers/{aio_io_boundary_inventory,prod_wiring}.json、abi003_loader_probe.c",
  "高：删它 ⇒ 4 个 abi pytest 现场 cc 失败（改对反而判红的典型：把「没进构建图」误读成「死代码」）",

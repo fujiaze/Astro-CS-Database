@@ -224,7 +224,7 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
 
 - 位置：`code/step7_negatives.py:142`（`img = img0 + gx*(xx - W/2)`）、`:159`（`img = img0 + amp*fine`）、`:207`（曲率）
 - 证据：三处都是往**已生成**的帧上叠加确定性图样，**没有对应的 Poisson 散粒噪声**。
-  `ASTROCS_DESIGN.md:564` 逐字："天光对 SNR 的影响通过散粒噪声体现，**不用算术加常数代替加天光**"。
+  `docs/ASTROCS_DESIGN.md:564` 逐字："天光对 SNR 的影响通过散粒噪声体现，**不用算术加常数代替加天光**"。
   与之对照，同一实验的 `step1_analytic.py:154-167`（天光 ×0.25/1/4/16 走 Poisson）是物理正确口径，
   且实测 σ_obs = 0.013352/0.013603/0.019149/0.034587 **单调上升**（`step1_analytic.json → noise_scaling`）。
 - 影响：N2 的"不响应"结论建立在被禁的注入方式上；用物理口径（step1）时度量是响应的。

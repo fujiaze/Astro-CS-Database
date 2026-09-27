@@ -3,7 +3,7 @@
 # SPEC-POLARITY-CONSIST-01: 判据口径 <-> 设计冻结语句 一致性门（能红能绿，fail-closed）。
 #
 # 任务依据: run/ONEPAGER/onepager_20260925_1018.md 一页纸 S1 第 13 条与第 16 条。
-# 权威链: ASTROCS_DESIGN.md（最高设计）> ACCEPTANCE_SPEC.md（验收）> docs/plugins/**、
+# 权威链: docs/ASTROCS_DESIGN.md（最高设计）> ACCEPTANCE_SPEC.md（验收）> docs/plugins/**、
 # docs/science/**（下层细则）；口径只在权威层定义，下层写指针不复述。
 #
 # 判据（四组）:
@@ -12,7 +12,7 @@
 #   P2 反义判红：验收判据与下层文档不得把冻结语义写成反义——(a) 星等落盘/星等即数据形态、
 #      (b) 稀疏控制点层 = 相对 SNR、(c) 无绝对数值窗口被读成不许出现数值。
 #      命中且不在否定/引用/判红语境（不得/不可/禁/反义/判红/为准/而非/不是/不）内即判红。
-#   P3 规模类数字可解析：ASTROCS_DESIGN.md 与 ACCEPTANCE_SPEC.md 里的规模类数字
+#   P3 规模类数字可解析：docs/ASTROCS_DESIGN.md 与 ACCEPTANCE_SPEC.md 里的规模类数字
 #      （N 万 / 5 位以上整数）必须在本地窗口内解析到配置键（反引号 dotted key）或
 #      推导式（派生/推导/导出/正本），或命中已登记豁免（版本号/年份/HEALPix 等）。
 #   P4 配置真值复算：P3 引用的每个配置键必须有活载体（eng/contracts/schemas/
@@ -40,7 +40,7 @@ import shutil
 import sys
 import tempfile
 
-DESIGN = "ASTROCS_DESIGN.md"
+DESIGN = "docs/ASTROCS_DESIGN.md"
 ACCEPT = "ACCEPTANCE_SPEC.md"
 SCHEMA = "eng/contracts/schemas/phase_config_normalize.schema.json"
 REGISTRY = "eng/packaging/config/config_registry.json"

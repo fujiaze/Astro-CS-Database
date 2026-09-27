@@ -3,11 +3,11 @@
 """test_fix402_phase3_semantic_guard.py — FIX-402 Phase3 输入语义守卫 + 写端口单位。
 
 依据（逐条可追）:
-  * ASTROCS_DESIGN §6.3 —— 输入语义守卫（只接受面亮度语义输入; 方差/逆方差显式
+  * docs/ASTROCS_DESIGN §6.3 —— 输入语义守卫（只接受面亮度语义输入; 方差/逆方差显式
     消费并传播; 其余语义显式拒绝）+ 输出模式 surface_brightness / point_source_flux
     / visualization 显式声明, visualization 标注"不可测量";
-  * ASTROCS_DESIGN §5.6 —— Phase2 信号为面亮度量纲（写端口 SURFACE_BRIGHTNESS）;
-  * ASTROCS_DESIGN §7.2 —— 退出码 3 = 输入缺失/格式错, 4 = 科学验证或不变量失败;
+  * docs/ASTROCS_DESIGN §5.6 —— Phase2 信号为面亮度量纲（写端口 SURFACE_BRIGHTNESS）;
+  * docs/ASTROCS_DESIGN §7.2 —— 退出码 3 = 输入缺失/格式错, 4 = 科学验证或不变量失败;
   * FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC（docs/contracts/DATA_SEMANTICS.md §31
     01_units_and_bunit.md §1/§3/§4）。
 

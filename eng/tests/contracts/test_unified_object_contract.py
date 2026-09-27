@@ -309,7 +309,7 @@ class TestNegativeFixtures(unittest.TestCase):
 class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
     """G. sparse_snr_layer 存**绝对** SNR：schema 冻结 + 数值判据能红能绿。
 
-    设计（ASTROCS_DESIGN.md §2.2/§3.1/§4.4/§5.3）：控制点值 = 该点的绝对通量型
+    设计（docs/ASTROCS_DESIGN.md §2.2/§3.1/§4.4/§5.3）：控制点值 = 该点的绝对通量型
     SNR F_ref/σ_F(x,y)，与 frame_snr 同口径、同逐帧参考通量 F_ref；Phase2 由
     控制点**直接重建**为稠密 SNR 场，**不**乘/除帧级标量。本类给出机器可判据：
       * 结构判据：schema 以 sparse_snr_semantics=absolute_flux_type_snr 冻结语义；
@@ -429,7 +429,7 @@ class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
 
     # ── 文档漂移判据（注入相对表述 ⇒ 判红）──────────────────────────────
     AUTHORITY_DOCS = (
-        "ASTROCS_DESIGN.md",
+        "docs/ASTROCS_DESIGN.md",
         "docs/design/UNIFIED_MODEL.md",
         "docs/design/PHASE2_DETAILED_DESIGN.md",
         "docs/plugins/algorithms_phase1/07_noise_snr.md",
@@ -697,7 +697,7 @@ class TestRegistryIndex(unittest.TestCase):
     """registry 索引与 INDEX.yaml / DATA_ARTIFACTS.md 的一致性（迁移映射与废弃/退役登记）。
 
     废弃登记 = 变更编号（CHG-YYYY-MM-DD-<TAG>）；退役条件 = 负责人裁决哨兵 OWNER_DECISION
-    —— 版本号不得作为生效/退役条件（ASTROCS_DESIGN.md §12；GAP_AUDIT §4.1 Q2 裁决）。
+    —— 版本号不得作为生效/退役条件（docs/ASTROCS_DESIGN.md §12；GAP_AUDIT §4.1 Q2 裁决）。
     """
 
     def test_registry_has_deprecation_window(self):

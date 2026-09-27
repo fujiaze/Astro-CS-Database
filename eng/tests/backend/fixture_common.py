@@ -77,7 +77,7 @@ def _build_fixture_exe():
     return _FIXTURE_EXE
 
 
-# FIX-402: Phase3 生产输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）
+# FIX-402: Phase3 生产输入语义守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）
 # 只接受**显式声明**面亮度语义的输入。fixture 由 AIO writer 生成（writer 不写
 # BUNIT），故此处按冻结单位表补齐产品单位声明（与 module_adapters 的
 # declare_hips_surface_brightness_units 同源同串; 幂等）。

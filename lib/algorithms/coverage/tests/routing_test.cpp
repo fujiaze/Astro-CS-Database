@@ -78,7 +78,7 @@ TEST(Phase2Routing, AcrBlockNeverEligibleUnderSingleWeightPath) {
 }
 
 // ── 负例（能红）：legacy 整数权重模式域的任何形态都必须被拒绝 ────────────────
-// 权威：ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
+// 权威：docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
 // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的口径：不存在口径选择键、
 // 口径枚举、口径配置项或口径产物」。
 TEST(Phase2Routing, LegacyWeightModeDomainRejected) {

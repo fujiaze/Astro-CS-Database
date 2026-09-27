@@ -1,6 +1,6 @@
 # 参考文献与开源项目（reverse_verify 逆向验收工作区）
 
-> 上游：ASTROCS_DESIGN.md §12.3（实验单元的佐证来源要求）、ENGINEERING_SPEC.md §8（文档集与双向索引）
+> 上游：docs/ASTROCS_DESIGN.md §12.3（实验单元的佐证来源要求）、ENGINEERING_SPEC.md §8（文档集与双向索引）
 > 来源：`reverse_verify/references/bibliography.md`（2026-09-21 ROOT-CONSOLIDATION 迁入本目录；
 > 同批迁入机器可读版 `reverse_verify_bibliography.bib`）。原 `reverse_verify/references/README.md`
 > 的**记录规则**并入本节，规则原文保留如下。

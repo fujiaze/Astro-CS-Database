@@ -6,7 +6,7 @@
 # 目标:
 #   astrocs_p3_fits_output — FITS 原子写 + 重开验证 (ALG-P3-FITS-IMPL-001)。
 #   W4-A9 批次 3 (2026-09-17): p3_output.{h,cpp} 由 lib/phase3_session/ 迁入本目录
-#   (ASTROCS_DESIGN §7.1「fits_output」行); 源逐字节等价, 命名空间 astrocs::phase3
+#   (docs/ASTROCS_DESIGN §7.1「fits_output」行); 源逐字节等价, 命名空间 astrocs::phase3
 #   与全部公共符号名不变。
 #   依赖闭包 (均为本模块外部的既有 target, 无环):
 #     astrocs_common            — SHA-256 (lib/algorithms/shared/crypto) + shared include 面

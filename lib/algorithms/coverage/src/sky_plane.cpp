@@ -27,7 +27,7 @@
 
 #include "crypto/sha256.h"
 
-// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读写机制
+// CLEAN-403 (docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读写机制
 // 一律经 aio 唯一实现 (header-only 机制面), 本 TU 不自持 fopen/fread/fwrite。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"

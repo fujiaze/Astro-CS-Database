@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BENCH-001 硬件画像: CLI 域断言 + 宿主探针（ASTROCS_DESIGN §6.2 新树同步）。
+"""BENCH-001 硬件画像: CLI 域断言 + 宿主探针（docs/ASTROCS_DESIGN §6.2 新树同步）。
 
 CLI-001 删除 hardware inspect 用户命令（§6.2 唯一命令树）后本文件的处置（TEST-CLI-SYNC）:
   * CLI 域断言保留并改新树: hardware inspect → rc=2（命令不存在是**正确行为**）;

@@ -4,7 +4,7 @@
 > 合同落位（三件套：README + module.yaml + memory.md），照
 > lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
 > 目录先例新建。**SCI-FIX-PROJ 增补（2026-09-16）**：投影集合权威 =
-> ASTROCS_DESIGN.md §5.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+> docs/ASTROCS_DESIGN.md §5.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
 > **在役 registry = v6 线 p3_proj_v6.h/.cpp（kProjectionRegistryVersion=3）**
 > ——CAR/AIT 按 Calabretta & Greisen (2002) Paper II §2.2 三 Euler 角把
 > CRVAL2（含 LONPOLE 默认 0/180）纳入映射、AIT 椭圆域 A≤1、CAR native 极行
@@ -19,7 +19,7 @@
 > dll_target=astrocs_p3_projection.dll 尚未存在（entrypoint=MISSING，
 > 挂载由 P3-PROJ-IMPL/P3-002 建立，禁止声明 IMPLEMENTED）。
 > **W4-A9 批次 1（2026-09-17）**：legacy 生产源 p3_wcs.h/.cpp 已由
-> lib/phase3_session/ 迁入本目录（ASTROCS_DESIGN §7.1「projection」行），
+> lib/phase3_session/ 迁入本目录（docs/ASTROCS_DESIGN §7.1「projection」行），
 > 并登记 astrocs_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
 > 会话消费点 p3_session.cpp 的 include 同步改新址。
 > 文档口径见 docs/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9

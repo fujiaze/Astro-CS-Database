@@ -33,7 +33,7 @@
       "severity": "blocker",
       "kind": "undeclared_module",
       "registry_ref": "R:note「未知 module_id/operation 即拒绝」；R 共 20 个 module",
-      "summary": "代码额外注册 astrocs.phase2.resample 与 astrocs.phase3.resample，二者不在注册表的 20 个 module 内；后者自认是占位残留（顶层 astrocs.phase3.resample 占位 descriptor，P2 模板复制残留）。按注册表自述「未知 module_id 即拒绝」，二者一旦被调度即违反 ENGINEERING_SPEC.md §4 第 4 条「单一 entrypoint，不隐藏整阶段 Session」与 ASTROCS_DESIGN.md §8.4「每个生产 DAG 节点映射唯一真实模块/导出入口」。注册表侧**不得**为消除该差异而虚构两个节点（那正是本任务要消除的形态）；处置只能改代码 ⇒ 需单独裁决。",
+      "summary": "代码额外注册 astrocs.phase2.resample 与 astrocs.phase3.resample，二者不在注册表的 20 个 module 内；后者自认是占位残留（顶层 astrocs.phase3.resample 占位 descriptor，P2 模板复制残留）。按注册表自述「未知 module_id 即拒绝」，二者一旦被调度即违反 ENGINEERING_SPEC.md §4 第 4 条「单一 entrypoint，不隐藏整阶段 Session」与 docs/ASTROCS_DESIGN.md §8.4「每个生产 DAG 节点映射唯一真实模块/导出入口」。注册表侧**不得**为消除该差异而虚构两个节点（那正是本任务要消除的形态）；处置只能改代码 ⇒ 需单独裁决。",
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CPU-003/§6.2 golden: 唯一 exe 的 benchmark（单命令）+ doctor --json。
 
-权威: ASTROCS_DESIGN §6.2（命令树只有 benchmark，无 cpu/--quick/--full/--output/
+权威: docs/ASTROCS_DESIGN §6.2（命令树只有 benchmark，无 cpu/--quick/--full/--output/
 verify-profile 子面；benchmark 直接生成/更新安装目录 cpu_profile）、§8（cpu_profile
 绑定 CPU 特征/provider 哈希）、docs/api/CLI_PROTOCOL_V1.md §1。
 

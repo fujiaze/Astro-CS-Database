@@ -2,7 +2,7 @@
 """CLI golden 测试（按 CLI-001 §6.2 新树同步）: help 树/版本 JSON/parser 拒绝面/模板/
 配置错误映射/stdout 纪律/crash boundary 70/Unicode/退出码单源 + incomplete manifest。
 
-权威: ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§3.5（预检阻断）、
+权威: docs/ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§3.5（预检阻断）、
 docs/api/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（旧命令面已被 CLI-001 删除，依据 §6.2 + CLI-001 rc 矩阵；原用例前提=命令存在）:
@@ -310,7 +310,7 @@ class TestGolden(unittest.TestCase):
 class TestManifestIncomplete(unittest.TestCase):
     """预检 fail-closed 数据面: 输入路径不存在 → rc=3, 写 manifest 之前阻断。
 
-    2026-09-18 CLI 预检修复（ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122 fail-closed）：
+    2026-09-18 CLI 预检修复（docs/ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122 fail-closed）：
     路径不存在/不可读在 precheck_config 阶段即判 error，`-y` 不可越，进程在
     session_dispatch（任何产品/manifest 落盘）之前返回 rc=3。
     旧断言（落 1 个 incomplete manifest + final 事件 exit_code=3）固化的是修复前的
@@ -354,7 +354,7 @@ class TestManifestIncomplete(unittest.TestCase):
 # =====================================================================
 # FIX-405 G3-11: verify 能力纳入命令树（doctor 机器旗标 --run-manifest）
 #
-# 权威: ASTROCS_DESIGN §7.1 唯一命令树（无独立 verify 命令；verify* 属已删别名
+# 权威: docs/ASTROCS_DESIGN §7.1 唯一命令树（无独立 verify 命令；verify* 属已删别名
 # → rc=2）+ docs/api/CLI_PROTOCOL_V1.md §1/§3（--json 恰一个 JSON 文档；退出码
 # 2 参数 / 3 输入 / 5 版本 / 8 完整性）。
 # 落位: command_tree.h 把 --run-manifest 登记为 doctor 的**内部/机器旗标**

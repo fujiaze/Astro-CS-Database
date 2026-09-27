@@ -74,7 +74,7 @@ def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
     sampler = read_text(repo / "lib/algorithms/coverage/src/sampler.cpp")
     upm = read_text(repo / "lib/algorithms/coverage/src/upm.cpp")
     p3_session = read_text(repo / "lib/phase3_session/p3_session.cpp")
-    # W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (ASTROCS_DESIGN §7.1)
+    # W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (docs/ASTROCS_DESIGN §7.1)
     p3_resample = read_text(repo / "lib/algorithms/resample/p3_resample.cpp")
 
     # 1) Phase2 并行宏/开关: 根 CMake 必须定义 P2_ENABLE_OPENMP / P2_PARALLEL

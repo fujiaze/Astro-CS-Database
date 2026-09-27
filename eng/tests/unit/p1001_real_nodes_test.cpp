@@ -3098,7 +3098,7 @@ static void test_ivar001_phase1_variance_products() {
   }
 }
 
-// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / ASTROCS_DESIGN §8.2）──
+// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / docs/ASTROCS_DESIGN §8.2）──
 // 登记面 = DATA-P1-DRZ §11.1:295「variance 面（可选，帧内块）| float32 | ADU²」；
 // 生产侧 = drizzle 节点（module_adapters.cpp p1_op_drizzle）用 A
 // （snr_noise_model_v1/_fill）对**即将被积分的同一数组**产块并 add_block；
@@ -3773,7 +3773,7 @@ static void test_chain_wire_w3_mask_radius_scale_invariance() {
   }
 }
 
-// ── P0-21: 一组进一组出（ASTROCS_DESIGN §3.4「输出基数」）────────────────
+// ── P0-21: 一组进一组出（docs/ASTROCS_DESIGN §3.4「输出基数」）────────────────
 // 缺陷: drizzle/wcs 只取 input_lights[0] ⇒ N 帧只产 1 个 HiPS, 静默丢弃 N-1 帧
 // （L4 实测 49 帧只产 12 个产品）。本用例锁定:
 //   * N=3 帧 ⇒ 恰好 3 个逐帧 HiPS 产品, 内容互不相同（非同一帧写三次）;
@@ -4746,7 +4746,7 @@ static void test_p1photbroken_scale_guards() {
 //
 // 递归收集 root 下全部**常规文件**（键 = 相对 root 的 POSIX 相对路径）。
 // 目录枚举经 aio 唯一机制原语（aio_atomic::for_each_child，header-only；
-// ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5），本 TU 不再
+// docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5），本 TU 不再
 // 自持 std::filesystem 遍历通道。kind: 0=常规文件 / 1=目录 / 2=其他（不跟随
 // 符号链接）。与 recursive_directory_iterator 的等价性: 常规目录照常下钻、常规
 // 文件照常采集；kind==2（符号链接/fifo/设备）不采集 —— 夹具产物树由 writer 直接
@@ -4919,7 +4919,7 @@ static void test_perf_p1_frame_parallel_bitwise_1_vs_n() {
 // 全链判据（能红能绿）:
 //   A 红: 3 帧里 1 帧无标度 ⇒ 该帧无产品; 其余 2 帧 HiPS 照常产出;
 //          运行级显式判红（write_hips 上抛 SCIENCE_PRECONDITION）, 不发布
-//          p1_products.json（ASTROCS_DESIGN §4.4 + P0-21 不产出部分产品却报成功）。
+//          p1_products.json（docs/ASTROCS_DESIGN §4.4 + P0-21 不产出部分产品却报成功）。
 //   B 绿: 3 帧全有标度 ⇒ 运行成功且恰好 3 个产品（证明 A 的红不是恒真门）。
 // ══════════════════════════════════════════════════════════════════════════
 static void test_failsem01_frame_failure_semantics() {
@@ -5033,7 +5033,7 @@ int main() {
   test_b2a15_ghost_discontinuous_multiparent();
   // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面
   test_ivar001_phase1_variance_products();
-  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / ASTROCS_DESIGN §8.2）
+  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / docs/ASTROCS_DESIGN §8.2）
   test_ivar002_frame_variance_block_wiring();
   // CHAIN-WIRE-ADAPT-01: 生产编排接线（§5d 审计 + 方差面真值 + 掩膜标度）
   test_chain_wire_w1_varplane_audit_failclosed();

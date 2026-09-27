@@ -58,7 +58,7 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         os.makedirs(cls.out, exist_ok=True)
         ensure_f1f2_hips()
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
-        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # CLI-002 / docs/ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
         # 现行等价命令 = mosaic --json <cfg>, 平铺会话配置形态(hips_paths)。
         json.dump({"schema_version": "1",
                    "hips_paths": [os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips"),

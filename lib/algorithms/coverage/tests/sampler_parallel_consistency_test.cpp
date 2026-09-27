@@ -262,7 +262,7 @@ TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
 
 // =====================================================================
 // FIX-210 D2：诊断计数在 1 worker 与 N worker 下必须**逐位一致**
-// （ASTROCS_DESIGN §8「并行开关不得改变科学数值；输出不得依赖线程调度」）。
+// （docs/ASTROCS_DESIGN §8「并行开关不得改变科学数值；输出不得依赖线程调度」）。
 //
 // 根因（本任务定位）：pass1_cell() 入口 "cv = 0; ci = 0;" 把调用方传入的
 // 计数器清零；串行路径每 cell 用新局部量接收后立即累加（正确），而并行 worker

@@ -265,7 +265,7 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
         return false;
     }
 
-    // 已作废字段守卫 (变更 AHPX-WEIGHT-RETIRE-20260920; ASTROCS_DESIGN §2.1/A44):
+    // 已作废字段守卫 (变更 AHPX-WEIGHT-RETIRE-20260920; docs/ASTROCS_DESIGN §2.1/A44):
     // 调用方元数据携带旧 "weight" 字段 ⇒ 拒绝写出 (既不产出读侧必拒的文件,
     // 也不静默丢弃调用方数据)。
     if (!ahpxFault("writer_accept_legacy_meta") &&

@@ -1,9 +1,9 @@
 // lib/infrastructure/cli/disk_gate.h — 磁盘门（**唯一资源判据**）
 //
 // 规范依据（逐条）：
-//   * ASTROCS_DESIGN.md §3.5「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
+//   * docs/ASTROCS_DESIGN.md §3.5「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
 //     运行中写盘失败/磁盘满 ⇒ 报错（fail-closed）；内存 / CPU / 线程不设门」；
-//   * ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
+//   * docs/ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
 //   * GAP_AUDIT.md（RELEASE-02）§9.74 裁决 10（负责人逐字：「不应该有资源超限（除非存储不足）。
 //     那个问题直接在跑前报 warn，写入磁盘满了报错……只考虑磁盘写满这一个问题」）；
 //   * GAP_AUDIT.md（RELEASE-03）§4.3 Q6（运行事件流唯一 schema = protocol.h/jsonl.h）。
@@ -210,7 +210,7 @@ inline const char* write_failure_kind_name(WriteFailureKind k) {
     }
 }
 
-// 「磁盘写满 / 写盘失败」的唯一退出码（ASTROCS_DESIGN §6.3 exit 10；数值源 = exit_codes.h）。
+// 「磁盘写满 / 写盘失败」的唯一退出码（docs/ASTROCS_DESIGN §6.3 exit 10；数值源 = exit_codes.h）。
 inline bool write_failure_is_resource_exit(WriteFailureKind k) {
     return k == WriteFailureKind::DiskFull || k == WriteFailureKind::WriteFailed;
 }

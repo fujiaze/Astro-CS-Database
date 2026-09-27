@@ -2,7 +2,7 @@
 """CLI-RUN-PRESET: 运行面（preset→IR→Runtime）+ Artifact 哈希链 校验（§6.2 新命令树）。
 
 历史: 本检查器原判据是旧字面量 '{"phase1 run"}' 等（旧 phase 命令面）。CLI-001 把用户
-命令树切换为 ASTROCS_DESIGN §6.2 的唯一七行树后旧判据恒红；本文件按 TEST-CLI-SYNC 把判据
+命令树切换为 docs/ASTROCS_DESIGN §6.2 的唯一七行树后旧判据恒红；本文件按 TEST-CLI-SYNC 把判据
 同步到新树，**判据语义保持不变**（逐命令单 phase 调度 / artifact 进 run manifest /
 sha256 mismatch → INTEGRITY(8) / --events-jsonl stdout 纪律），改为实测运行新命令 +
 预设旗标互斥/组合语义。
