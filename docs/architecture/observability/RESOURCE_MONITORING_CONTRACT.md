@@ -44,7 +44,7 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 
 | 工件名 | 生产者 | 列合同 | 采样语义 |
 |---|---|---|---|
-| **`resource_timeseries.csv`**（生产运行记录） | `lib/infrastructure/cli/resource_recorder.h` | **唯一列合同声明（Q4）**：该工件列合同**只有一处** = 生产实现 `lib/infrastructure/cli/resource_recorder.h:260-266`（20 列）；**本文件不复写其列名、不重定义其列** | **run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖 |
+| **`resource_timeseries.csv`**（生产运行记录） | `lib/infrastructure/cli/resource_recorder.h` | **唯一列合同声明（Q4）**：该工件列合同**只有一处** = 生产实现 `lib/infrastructure/cli/resource_recorder.h:289-293`（20 列）；**本文件不复写其列名、不重定义其列** | **run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖 |
 | **`monitor_timeseries.csv`**（本合同的监控伴随器原始数据） | `lib/infrastructure/observability/monitoring/monitor.py` | 本节 §3.1（21 列 + seed 行 + 行指纹链） | **每秒采样 + seed 行 + 指纹链 + 写后只读** |
 
 - 本合同的 CSV 工件名**固定为 `monitor_timeseries.csv`**（本节以下所有「CSV」均指该工件）；
