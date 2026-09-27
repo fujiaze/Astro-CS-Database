@@ -1,11 +1,10 @@
-> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # 独立 Oracle、零用例即红与负向 mutation 政策（QA-MATRIX-001）
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器实现：`reports/v6/qa-design/oracle/qa_oracle.py`、`validate_spec.py`、`run_mutations.py`、`run_all.py`
-- 证据：`reports/v6/qa-design/evidence/{oracle_baseline.json,rc_summary.json,mutations.json,logs/}`
+- 机器实现：`artifacts/evidence/v6/qa-design/oracle/qa_oracle.py`、`validate_spec.py`、`run_mutations.py`、`run_all.py`
+- 证据：`artifacts/evidence/v6/qa-design/evidence/{oracle_baseline.json,rc_summary.json,mutations.json,logs/}`
 
 ## 1. Oracle 独立性（对应根因 R2/R4）
 

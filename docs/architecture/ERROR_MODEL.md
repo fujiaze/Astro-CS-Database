@@ -42,7 +42,7 @@ MODULE_ABI_UNSUPPORTED=27  INPUT_INVALID=28
 MODULE_SPECIFIC_BASE=100
 ```
 
-**判据 = 与 `lib/infrastructure/cli/exit_codes.h` 的 `astrocs::ExitCode` 枚举逐名逐值一致。**
+**机器判据 = 「进程退出码（唯一源）」节 11 码与 `lib/infrastructure/cli/exit_codes.h` 的 `astrocs::ExitCode` 枚举逐名逐值一致，由 `eng/tools/docs_machine_consistency.py`（error_taxonomy_exit_codes）执行；上方模块特定码为 JSONL `error.numeric_code` 面，与进程退出码分立。**
 
 阶段 stage IDs：P1.READ/P1.CALIBRATE/P1.STAR/P1.PSF/P1.PLATESOLVE/
 P1.PHOTOMETRIC/P1.NOISE/P1.DRIZZLE/P1.HIPS_WRITE/P2.*。

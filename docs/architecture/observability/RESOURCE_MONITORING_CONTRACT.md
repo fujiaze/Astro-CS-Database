@@ -48,9 +48,9 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 | **`monitor_timeseries.csv`**（本合同的监控伴随器原始数据） | `lib/infrastructure/observability/monitoring/monitor.py` | 本节 §3.1（21 列 + seed 行 + 行指纹链） | **每秒采样 + seed 行 + 指纹链 + 写后只读** |
 
 - 本合同的 CSV 工件名**固定为 `monitor_timeseries.csv`**（本节以下所有「CSV」均指该工件）；
-- **两工件各自具名**：任何消费方读取 `monitor_timeseries.csv` 时
-  `resource_timeseries.csv` 名列另一份工件；本节的 21 列合同只覆盖
-  `resource_timeseries.csv` 上。
+- **两工件各自具名**：任何消费方按名读取，两工件不互替；本节的 21 列合同只覆盖
+  `monitor_timeseries.csv`；`resource_timeseries.csv` 的列合同见其唯一声明处
+  （生产实现 `lib/infrastructure/cli/resource_recorder.h`，20 列），本文件不复写。
 
 ### 3.1 CSV 列合同（`monitor_timeseries.csv`）
 

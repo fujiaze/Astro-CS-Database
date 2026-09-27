@@ -1,11 +1,10 @@
-> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
 # 负向 mutation 目录（QA-MATRIX-001）
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器目录（唯一事实源）：`reports/v6/qa-design/data/mutations.json`（56 条）。
-- 驱动器：`reports/v6/qa-design/oracle/run_mutations.py`；实测结果：`reports/v6/qa-design/evidence/mutations.json`。
+- 机器目录（唯一事实源）：`artifacts/evidence/v6/qa-design/data/mutations.json`（56 条）。
+- 驱动器：`artifacts/evidence/v6/qa-design/oracle/run_mutations.py`；实测结果：`artifacts/evidence/v6/qa-design/evidence/mutations.json`。
 - 每条门能红的 mutation 清单已并入 `QA_MATRIX.md` §9 每门 `门能红 mutation` 字段与机器规格 `gate.mutations`。
 
 ## 1. 三类 mutation

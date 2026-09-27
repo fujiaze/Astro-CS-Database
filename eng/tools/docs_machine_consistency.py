@@ -10,7 +10,7 @@
         权重模式域后，原断言要求 stage2_common.cpp **保留**该域解析 —— 那是把已废除
         的域钉成合法规格（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」）。）
   2. frame_id_contract_exact        — DATA-FRAME-ID-001：SHA-256 truncate，无 FNV/路径派生残留
-  3. error_taxonomy_exit_codes      — ERROR_MODEL 退出码全集合 ↔ orchestrator.h 枚举
+  3. error_taxonomy_exit_codes      — ERROR_MODEL 进程退出码段 ↔ exit_codes.h（astrocs::ExitCode）11 码
   4. integration_status_full_set    — INTEGRATION_ALGORITHMS ↔ integrate.h（P2_INTEGRATE_*）
   5. rejection_status_full_set      — REJECTION_ALGORITHMS ↔ rejection.h（P2_STATUS_*/P2_REASON_*）
   6. stage_ids_docs_vs_orchestrator — stage ID 面 ↔ orchestrator stage_name_v2
@@ -116,7 +116,7 @@ BENIGN_SURFACES = [
     (re.compile(r"^lib/algorithms/coverage/tools/"), "覆盖域诊断工具（非交付面）"),
     (re.compile(r"^reports/"), "审计报告与历史证据（非活动规范文本）"),
     (re.compile(r"^工程控制/"), "控制包任务卡与账本（过程记录，非活动规范文本）"),
-    (re.compile(r"^eng/tests/unit/v6_p2_rej/oracle_expected\.inc$"),
+    (re.compile(r"^eng/tests/unit/p2_rej/oracle_expected\.inc$"),
      "数值 oracle 期望表（数据数组，非常数写法；W4-A6 / M7-T-102 归其域）"),
     (re.compile(r"^eng/tools/docs_machine_consistency\.py$"),
      "本门自身的判据正则与负例夹具定义处（含截断字面量是判据的一部分，自扫描会造成自指假红）"),
@@ -196,9 +196,9 @@ SOURCES = [
     ("sampler_h", "sampler.h", ("truncated-64",), "lib/phase2/include/astro/phase2/sampler.h"),
     ("data_semantics", "DATA_SEMANTICS.md", ("frame_id",), "docs/contracts/DATA_SEMANTICS.md"),
     ("upm_doc", "PHASE2_UPM.md", ("control cell",), "docs/science/PHASE2_UPM.md"),
-    ("error_model", "ERROR_MODEL.md", ("AstroCsExitCode",), "docs/architecture/ERROR_MODEL.md"),
-    ("orchestrator_h", "orchestrator.h", ("namespace AstroCsExitCode",),
-     "lib/orchestrator/cpp/include/orchestrator.h"),
+    ("error_model", "ERROR_MODEL.md", ("astrocs::ExitCode",), "docs/architecture/ERROR_MODEL.md"),
+    ("exit_codes_h", "exit_codes.h", ("namespace astrocs",),
+     "lib/infrastructure/cli/exit_codes.h"),
     ("orchestrator_cpp", "orchestrator.cpp", ("stage_name_v2",),
      "lib/orchestrator/cpp/src/orchestrator.cpp"),
     ("integration_algorithms", "INTEGRATION_ALGORITHMS.md", ("状态枚举取值",),
@@ -332,14 +332,24 @@ def run_checks(root: str) -> dict:
         "DATA-FRAME-ID-001：SHA-256 truncate；无 FNV/路径派生残留"))
 
     tax = r.read(p["error_model"])
-    orc_h = r.read(p["orchestrator_h"])
-    doc_exit = extract_enum(tax)
-    code_exit = extract_enum(orc_h, "namespace AstroCsExitCode")
+    ec_h = r.read(p["exit_codes_h"])
+    # 进程退出码段 = ERROR_MODEL「## 进程退出码（唯一源）」节的 11 码；模块特定码
+    # （JSONL error.numeric_code 20-29/100）与进程退出码分立，不参与比对
+    # （ERROR_MODEL §机器判据行；唯一源 = lib/infrastructure/cli/exit_codes.h）。
+    _seg_i = tax.find("## 进程退出码")
+    _seg_j = tax.find("模块特定非进程退出码", _seg_i) if _seg_i >= 0 else -1
+    _seg = tax[_seg_i:_seg_j] if 0 <= _seg_i < _seg_j else ""
+    _pat = r"([A-Z][A-Z0-9_]{1,})\s*=\s*(\d+)"
+    doc_exit = {m.group(1): int(m.group(2)) for m in re.finditer(_pat, _seg)}
+    _ns = ec_h.find("namespace astrocs")
+    _nse = ec_h.find("}", _ns) if _ns >= 0 else -1
+    code_exit = ({m.group(1): int(m.group(2)) for m in re.finditer(_pat, ec_h[_ns:_nse])}
+                 if 0 <= _ns < _nse else {})
     orc = r.read(p["orchestrator_cpp"])
     results.append(check(
         "error_taxonomy_exit_codes",
-        "AstroCsExitCode" in tax and bool(code_exit) and doc_exit == code_exit,
-        "ERROR_MODEL 全集合 == orchestrator.h 退出码 (doc=%d code=%d)"
+        bool(doc_exit) and len(code_exit) == 11 and doc_exit == code_exit,
+        "ERROR_MODEL 进程退出码段 == exit_codes.h astrocs::ExitCode 11 码 (doc=%d code=%d)"
         % (len(doc_exit), len(code_exit))))
 
     int_h = r.read(p["integrate_h"])
@@ -447,9 +457,11 @@ MINI_FILES = {
         _mini_enum("P2IntegrateStatus", MINI_INTEGRATE),
     "lib/algorithms/coverage/include/astro/phase2/rejection.h":
         _mini_enum("P2RejectReason", MINI_REASON) + _mini_enum("P2RejectStatus", MINI_STATUS),
-    "lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h":
-        "namespace AstroCsExitCode {\n constexpr int SUCCESS = 0;\n"
-        " constexpr int GENERIC_ERROR = 1;\n}\n",
+    "lib/infrastructure/cli/exit_codes.h":
+        "namespace astrocs {\nenum ExitCode {\n    OK = 0,\n    ARGS = 2,\n"
+        "    INPUT = 3,\n    SCIENCE = 4,\n    BACKEND = 5,\n    COMPUTE = 6,\n"
+        "    IO = 7,\n    INTEGRITY = 8,\n    CANCELLED = 9,\n    RESOURCE = 10,\n"
+        "    INTERNAL = 70,\n};\n}\n",
     "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp":
         'const char* stage_name_v2(int) { return "P1.READ"; }\n',
     "lib/infrastructure/aio/include/aio_hips.h":
@@ -462,7 +474,10 @@ MINI_FILES = {
     "docs/contracts/DATA_SEMANTICS.md": "frame_id SHA-256\n| signal | support | variance | ivar |\n",
     "docs/science/PHASE2_UPM.md": "DATA-FRAME-ID-001 control cell\n",
     "docs/architecture/ERROR_MODEL.md":
-        "AstroCsExitCode\n SUCCESS=0  GENERIC_ERROR=1\n"
+        "## 进程退出码（唯一源）\n> OK=0  ARGS=2  INPUT=3  SCIENCE=4  BACKEND=5  COMPUTE=6\n"
+        "> IO=7  INTEGRITY=8  CANCELLED=9  RESOURCE=10  INTERNAL=70\n"
+        "机器判据 = 与 lib/infrastructure/cli/exit_codes.h 的 astrocs::ExitCode 枚举一致\n"
+        "模块特定非进程退出码：STAR_DETECT_FAILED=20 MODULE_SPECIFIC_BASE=100\n"
         "P1.READ P1.CALIBRATE P1.PLATESOLVE P1.PSF P1.PHOTOMETRIC P1.NOISE "
         "P1.DRIZZLE P1.HIPS_WRITE P2.INTEGRATE P2.HIPS_WRITE\n",
     "docs/science/algorithms/INTEGRATION_ALGORITHMS.md": _mini_table(MINI_INTEGRATE),
@@ -509,6 +524,19 @@ def self_test() -> int:
                                     "return 1.4826 * median_of(v);\n"))
         cases.append(("B_truncated_literal_red",
                       "numeric_constants_single_spelling" in _reds(res), _reds(res)))
+
+        # B2 负例：exit_codes.h 与 ERROR_MODEL 进程退出码段码值不一致 ⇒ 退出码门必红
+        repo = _mini_repo(os.path.join(tmp, "exitmismatch"))
+        with open(os.path.join(repo, "lib/infrastructure/cli/exit_codes.h"), "w",
+                  encoding="utf-8") as f:
+            f.write("namespace astrocs {\nenum ExitCode {\n    OK = 0,\n    ARGS = 2,\n"
+                    "    INPUT = 3,\n    SCIENCE = 4,\n    BACKEND = 5,\n    COMPUTE = 6,\n"
+                    "    IO = 7,\n    INTEGRITY = 8,\n    CANCELLED = 9,\n    RESOURCE = 99,\n"
+                    "    INTERNAL = 70,\n};\n}\n")
+        subprocess.run(["git", "add", "-A"], cwd=repo, capture_output=True, timeout=120)
+        res = run_checks(repo)
+        cases.append(("B2_exit_code_mismatch_red",
+                      "error_taxonomy_exit_codes" in _reds(res), _reds(res)))
 
         # C 负例：必需源文件缺失 ⇒ fail-closed 判红（不崩溃静默）
         repo = _mini_repo(os.path.join(tmp, "gone"))
