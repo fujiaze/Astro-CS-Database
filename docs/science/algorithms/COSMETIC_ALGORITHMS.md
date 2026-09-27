@@ -210,16 +210,15 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   - `dark==NULL` 或 `hot_sigma<=0` → 热检测关闭；`bias==NULL` 或
     `cold_sigma<=0` → 冷检测关闭；两者皆关 → `all_bad` 全 0，
     interpolate_pixels 逐像素拷贝（恒等映射），**模块退化为空转 pass**；
-  - **现网生产调用点（两处，均传 NULL 检测源）**：
-    ① legacy session 路径 `lib/phase1_session/p1_session.cpp:462-465`
-    （cosmetic stage，`ac_correct_frame(image_px, w, h, nullptr, nullptr, ...)`），
-    逐像素原样复制回写（`p1_session.cpp:471` memcpy → `:472` `aio_write_fits`），
-    计数写 manifest（`p1_session.cpp:477-478`）；
-    ② 调度器路径 `lib/infrastructure/scheduler/src/module_adapters.cpp:2355`
-    （`p1_op_cosmetic`，同样 `nullptr, nullptr`），`:2364` memcpy 回写、`:2370` 原子写盘、`:2394-2395` 计数写 manifest。
-    ⇒ **两条生产路径的 `hot_sigma/cold_sigma` 都 >0（默认 5.0）而检测源为
-    NULL，故热/冷检测全部关闭，`out_hot=out_cold=0`，模块退化为恒等 pass**
-    （no fabrication of valid coverage：不做假修复；检测生效需接线母版）。
+  - **现网生产调用点（两处，检测源均已接真实母版参考平面）**：
+    ① legacy session 路径 `lib/phase1_session/p1_session.cpp:465-477`
+    （cosmetic stage；`dark_plane`/`bias_plane` 取自已加载母版帧，
+    母版尺寸与帧不符时显式判红 `ACS_ERR_PARAM`，不静默降级为恒等 pass）；
+    ② 调度器路径 `lib/infrastructure/scheduler/src/module_adapters.cpp:2928-2932`
+    （`p_dark_ok`/`p_bias_ok` = 母版可读 ∧ 尺寸相符；`ac_correct_frame(..., p_dark_ok ? m_dark.px() : nullptr, p_bias_ok ? m_bias.px() : nullptr, ...)`；
+    配置未给母版时该路径检测关闭，参与面经 `hot_source`/`cold_source` 如实留痕）。
+    ⇒ **检测源 = 真实母版**（`dark==NULL`/`bias==NULL` 的 API 语义保留为
+    配置面行为，见上条；no fabrication of valid coverage：不做假修复）。
   - 输出可等于输入缓冲? 现行 API 无别名约束登记（out 由调用方分配；
     in-place `data==out` 未定义，见 §7 DATA-P1-COS invalid 行）。
 - 返回值: ac::correct_frame 无返回值；C ABI 层 `ac_correct_frame`
@@ -392,7 +391,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 | DISP-COS-006 | 检测/过滤 O(n) 额外内存（统计复制 + labels/sizes 向量）无上限防护（上限=帧大小，登记为常数界） | cosmetic_corrector.cpp:46-48,64-111 |
 | DISP-COS-007 | 无取消检查点（PHASE1_API_V1 §2 cosmetic 取消点=无；session 帧粒度取消为替代粒度） | cosmetic_corrector.cpp:229-265；PHASE1_API_V1 §2 |
 | DISP-COS-008 | 并行=OpenMP 进程级默认 team（ICV 可被 ac_set_num_threads 全局改写），不满足 ThreadLease 约束 D.3/D.4——迁移整改点 | cosmetic_corrector.cpp:126,147,166,254,258 |
-| DISP-COS-009 | 生产调用链现状未接线母版：两条生产路径均传 nullptr dark/bias → 检测全禁用、模块空转（检测从未在生产生效） | `lib/phase1_session/p1_session.cpp:462-465`（计数 :477-478、回写 :471-472）；`lib/infrastructure/scheduler/src/module_adapters.cpp:2355`（回写 :2364） |
+| DISP-COS-009 | 检测接线已整改：两条生产路径的检测源均为真实母版参考平面，母版尺寸不符显式判红（PARAM）不静默降级；遗留边界 = 调度器路径配置未给母版时检测关闭，参与面经 hot_source/cold_source 留痕 | `lib/phase1_session/p1_session.cpp:465-477`；`lib/infrastructure/scheduler/src/module_adapters.cpp:2928-2932` |
 | DISP-COS-010 | in-place（data==out 别名）未定义且未校验；out 与 data 重叠区域行为未登记 | ac_api.cpp:108-122 |
 | DISP-COS-011 | 镜像反射边界在 w<3/h<3 小帧下邻域自映射（重复计数；中值免疫偏移但 IDW 出界方向被 clamp 语义吸收），小帧语义未在 SCI 声明 | cosmetic_corrector.cpp:180-193 |
 | DISP-COS-012 | `method` 词表外取值的两条生产路径处置互斥：`p1_session.cpp:445-450` 显式失败（fail-closed），`module_adapters.cpp:2328-2329` 静默回落 median（fail-open，即已从 session 路径移除的旧形态）；同一配置在两条路径上得到不同产物，且 fail-open 侧无诊断 | `module_adapters.cpp:2328-2329`；对照 `p1_session.cpp:440-450` |
@@ -423,7 +422,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - 稳健尺度（median/MAD 换算）：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
   **`1.4826·MAD` 的归属**：Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）把 `1.4826·MAD` 当**既有对照基线**引用，其研究对象是 `S_n`/`Q_n` 及其有限样本偏差校正的粗糙近似 ⇒ **该文不是本模块 MAD 有限样本校正的来源**；本模块使用**渐近常数**、不做有限样本校正。若要做，来源为 Akinshin 2022（arXiv:2207.12005 / arXiv:2209.12268）或 Park, Kim & Wang 2020（DOI 10.1080/03610918.2019.1699114）。
 - 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
-- 插值修复（中值/双线性）：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
+- 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
@@ -432,4 +431,6 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+**权威依据**：本文件 ALG-COS-001..005 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/contracts/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..005 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 
