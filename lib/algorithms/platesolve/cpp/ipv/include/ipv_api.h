@@ -266,7 +266,7 @@ IPV_API int ipv_get_last_inliers(void* solver, double* out_buffer, int max_count
 #endif
 
 // ---------------------------------------------------------------------------
-// [P27-DEAD-PARAMS] 当前生产路径**不消费**的字段（负责人裁决 A：不改解算行为，
+// [P27-DEAD-PARAMS] 当前生产路径**不消费**的字段（不改解算行为，
 // 只做明确标注 + 机器锁防误用）。
 //
 // 生产路径（CLI `phase1 run` -> p1_op_wcs，lib/infrastructure/scheduler/src/module_adapters.cpp:2100）:

@@ -44,7 +44,7 @@
   signal=10.0、n_positive_weight=1）、NaN/Inf support→INVALID
   :4718-4738、五态+计数器 :4741-4760、加权均值+ALL_REJECTED
   :2628-2643、weight policy 门 :2941-2990（equal/snr/snr2/
-  support_x_snr2/inverse_variance 等 bias/rmse 门）；W9 ACR 等价门
+  support_x_snr2/inverse_variance 等 bias/rmse 门）；ACR 等价门
   :3021-3160（LegacyLauncherEquivalent）；P2-004 生产 Oracle
   eng/tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
   积分段 :66-126: 状态门 :67-101、signal 10.75/support 0.5 :113-126）。

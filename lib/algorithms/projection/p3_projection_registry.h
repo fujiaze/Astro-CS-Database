@@ -100,7 +100,7 @@ inline const P3ProjFrozenEntry* p3_proj_frozen_table(int* count) {
 // 偏差仍复现 ⇒ rc 0（本段登记成立）；内核被修好 ⇒ rc 1（修好即转红），强制同步本段与
 // p3_proj.h/.cpp 的 ENGINEERING_SPEC §2 保留注释块之已知缺陷登记。CLEAN-401 实测（2026-09-21，
 // 中心邻域 0.25 px 步长密扫）：worst 7.39e-5 px @0.5″/px、4.40e-3 px @0.05″/px —— 与
-// 独立复核报告同量级且更大，印证「误差无上界」结论（证据 run/CLEAN-401/evidence/
+// 独立复核报告同量级且更大，印证「误差无上界」结论（证据 
 // sin_roundtrip_gate.json）。
 inline bool p3_proj_is_frozen_code(const char* code) {
     int n = 0;

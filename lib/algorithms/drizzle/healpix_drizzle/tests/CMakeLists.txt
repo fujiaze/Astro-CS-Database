@@ -220,7 +220,7 @@ set_tests_properties(drizzle_science_matrix PROPERTIES
 #   * 门类测试 (能红能绿、判据确定) ⇒ add_executable + add_test;
 #   * 探针/剖析驱动 ⇒ add_executable 编入构建图 (零漂移保证: 引擎接口一变即编译
 #     失败), **不注册 ctest** —— 它们是计时/产物剖析件, 不是判据门, 注册进 CI 会
-#     把机器负载差异当失败。一次性运行证据见 run/WIRING-W34-01/evidence/。
+#     把机器负载差异当失败。一次性运行证据见登记取证。
 # ============================================================================
 set(DRZ_PROBE_TESTS
   representative_probe
@@ -261,10 +261,10 @@ target_compile_definitions(reference_overlap PRIVATE
 target_link_libraries(reference_overlap PRIVATE
   astrocs_drizzle ${ASTROCS_OMP_TARGET})
 # **不注册 ctest**: 一次性实跑该独立蒙特卡洛参考路径得 "32 通过, 3 失败"
-# (run/WIRING-W34-01/evidence/reference_overlap.txt): 三条断言分别差
+# (登记取证 reference_overlap.txt): 三条断言分别差
 # 3.4e-19 (tol 3.0e-20)、2.6e-6 (tol 4.1e-13)、rel_err 1.04e-6 (tol 1e-6)。
 # 容差与断言属科学判据面, 本轮禁止放松/删改 ⇒ 只编入构建图 (零漂移), 红灯
-# 上呈前台裁决 (WIRING-W34-01 报告 §W4-E #2)。
+# 上呈记录 (WIRING-W34-01 报告 §W4-E #2)。
 # add_test(NAME drizzle_reference_overlap COMMAND reference_overlap)
 
 # 9d. drizzle_l3_full_fp32: **Windows 专用** L3/Gate D 验收 driver

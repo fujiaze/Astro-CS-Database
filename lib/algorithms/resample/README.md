@@ -96,7 +96,6 @@
 - API: [docs/contracts/PUBLIC_API.md](../../docs/contracts/PUBLIC_API.md)
 - 模块页: [docs/modules/phase3_rsmp.md](../../docs/modules/phase3_rsmp.md)；
   registry 手写页: docs/modules/registry/astrocs.phase3.resample2.md
-- 迁移模板: 工程控制/…/tasks/MODULE_MIGRATION_TEMPLATE.md（P3-RSMP-DOC）
 
 ## 6 实测偏差登记（不改码，详见 ALG-P3-RSMP-IMPL-001 §11）
 

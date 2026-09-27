@@ -80,11 +80,11 @@ static bool valid_product_params(int tile_width, int hips_order) {
 }
 
 // ---------------------------------------------------------------------------
-// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1:
+// docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」:
 // **完成清单 fail-closed** —— 「没有完成清单就不算成功对象」。产品集根下的
 // manifest.json 由 writer 在**全部 tile 完成之后**最后原子落盘 (aio_hips_finalize);
 // 中途 kill / 失败 / 取消只会留下无清单的 tile 残骸。消费者 (aio_hips_open)
-// 必须拒绝这类目录, 否则残骸会被当成产品消费 (G3-1「重跑消费残留」)。
+// 必须拒绝这类目录, 否则残骸会被当成产品消费。
 // 判据: 清单存在且非空 + 含 products 数组 + 声明了本次请求的子产品。
 // ---------------------------------------------------------------------------
 bool manifest_products_of(const std::string& root, std::string* products,

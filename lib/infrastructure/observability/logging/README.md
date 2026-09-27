@@ -11,7 +11,7 @@
 | `../monitoring/` | LOG-002 起的生产资源监控伴生器 |
 | `../../docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` | 权威合同文档（字段表、事件语义、脱敏、验收、LOG-001/LOG-002 边界） |
 
-## 边界：本目录**不是**运行事件流（RELEASE-03 GAP_AUDIT §4.3 Q6 裁决）
+## 边界：本目录**不是**运行事件流（运行事件流 schema 唯一 = protocol.h/jsonl.h）
 
 - **运行事件流**（GUI/外部 harness 直接捕获的 CLI stdout JSONL）唯一 schema =
   `lib/infrastructure/cli/protocol.h`（`ValidateEventV1` 发送侧硬闸）+

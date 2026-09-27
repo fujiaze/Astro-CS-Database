@@ -1,7 +1,7 @@
 // acsd CLI — parser (RT-008 拆分自 main.cpp)
 // 统一 parser + 参数校验帮助器 + CPU 指纹/hash 帮助器。
 // 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头 ——
-// 只 include CLI 自身的单一声明头 session_commands.h（input_contract()，供 §9.71
+// 只 include CLI 自身的单一声明头 session_commands.h（input_contract()，供
 // 三命令同构块结构派生输入判据；块内键集则与平铺形态同源 = 本文件 session_keys()，
 // 禁止在 parser 内手写第二份键集）。
 #include "cli_common.h"
@@ -47,7 +47,7 @@ const std::set<std::string>& cmd_value_tokens() {
                                             "--cpu-profile", "--mode", "--export-mode",
                                             // §8/21_observability §8.4: 资源门 enforce 显式写法。
                                             "--on-resource-gate",
-                                            // G3-11: doctor 的 verify 能力旗标
+                                            // doctor 的 verify 能力旗标
                                             // --run-manifest <manifest.json>（取值；
                                             // 命令树登记见 command_tree.h value_flags()
                                             // 与 doctor 的 allowed 表；不写进 help）。
@@ -304,7 +304,7 @@ const std::set<std::string>& session_keys() {
         //   合同声明 = eng/contracts/schemas/phase_config_normalize.schema.json
         //   #/$defs/noise_config。段内未知键 ⇒ 节点 rc=3（禁静默忽略）。
         "noise",
-        // FIX-P1 (RELEASE-02): 测光归一化配置块 (photometry.fit.enabled/
+        // FIX-P1: 测光归一化配置块 (photometry.fit.enabled/
         //   gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars),
         //   由 p1_op_photometry 消费 (I_photo=k_photo*I_cal, 02_FROZEN §7)。
         //   缺失 = 不施加 (如实中性 applied=false, 不伪造 1.0)。
@@ -322,7 +322,7 @@ const std::set<std::string>& session_keys() {
         // 节点侧键集（module_adapters P2NodeModule::validate_config + op 读取）:
         //   hips_paths, output_dir, upm, reject, reject_profile,
         //   persist_upm/upm_save_path（UPM 持久化落盘键）。
-        // §9.73 裁决 A44: weight_mode / legacy_allow_weight_fallback **已摘除**
+        // weight_mode / legacy_allow_weight_fallback **已摘除**
         // （「权重模式」概念不存在；权重是消费 SNR 时的派生量）⇒ 配置里出现即 rc=3。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
         "reject", "reject_profile",
@@ -331,7 +331,7 @@ const std::set<std::string>& session_keys() {
         // hips_paths 元素保持字符串（逐帧索引路径按命名规则派生）。同 snr_path：
         // CLI 只识别并透传，消费点（阶段二 coverage 节点）在阶段 2 ⇒ 死键台账已登记。
         "coverage_index",
-        //（GAP_AUDIT G05；docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取
         // 合同声明名（禁止新造同义键）：
         //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -347,7 +347,7 @@ const std::set<std::string>& session_keys() {
         // 编排键（非科学键，不改任何公式与容差），生产消费点 = module_adapters 的
         // phase3 resample2/writer/verify 节点（p3n_sub_block_px）。
         "sub_block_px", "queue_depth",
-        //GAP_AUDIT N03：export 提升键（合同声明名逐字，平铺顶层，与
+        //export 提升键（合同声明名逐字，平铺顶层，与
         // center/scale_deg_per_px 同面）：
         //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 同 snr_path：CLI 只识别并透传，生产消费点未落地 ⇒ 死键台账已登记。
@@ -369,13 +369,13 @@ const std::set<std::string>& session_keys() {
         // 显式单算法；按 n 的分段/表达式）。CLI 只识别并透传到 pdoc（phase_config
         // 直通分支），消费与 per-pixel 路由在 scheduler 面（另一分片）。
         "algorithm_rejection_method",
-        // RELEASE-02 SD-15 补白名单: 合同 schema 已声明但 CLI kSessionKeys 缺的
+        // SD-15 补白名单: 合同 schema 已声明但 CLI kSessionKeys 缺的
         // 4 键（CLI 判 unknown key 退出 3 ⇒ 配置不可达）。CLI 只识别并透传到
         // pdoc（phase_config 直通分支），科学消费在 scheduler 面。
         //   phase_config_normalize.schema.json: sparse_snr_layer / algorithm_psf_model
         //   phase_config_mosaic.schema.json:    algorithm_upm_gauge
-        // §9.73 裁决 A44: algorithm_weight_mode **已摘除**（同 weight_mode）。
-        // algorithm_upm_gauge 保留至 §9.71 定案 5 契约面整体重整（前台面）。
+        // algorithm_weight_mode **已摘除**（同 weight_mode）。
+        // algorithm_upm_gauge 保留至契约面整体重整（前台面）。
         // 键名与 config_separation_anchors.json 的 ^algorithm_* 族一致。
         "algorithm_upm_gauge",
         "algorithm_psf_model", "sparse_snr_layer",
@@ -387,7 +387,7 @@ const std::set<std::string>& session_keys() {
 }
 
 // 块内允许键 = 平铺会话键集 + 块级键：
-//   name       —— 可选；manifest/日志的块归属标识（§9.68 建议形态）；
+//   name       —— 可选；manifest/日志的块归属标识；
 //   output_dir —— 必填；块级运行产物落点（顶层平铺时是简写的运行级 output_dir，
 //                 多块形态下**只允许**写在块内 —— 两形态互斥由下面判据强制）。
 const std::set<std::string>& block_keys() {
@@ -395,7 +395,7 @@ const std::set<std::string>& block_keys() {
     return k;
 }
 
-// 退役的逐帧形态判别（§9.68 否决项）{phase_name, config, inputs[]}：
+// 退役的逐帧形态判别 {phase_name, config, inputs[]}：
 //   phase_name 顶层键（该形态的 phase 判别键），或 inputs 为**数组**
 //   （V1 形态的 inputs 是对象；逐帧形态才是每帧一个对象的数组）。
 // 唯一实现：运行期 validate_config_full 与 CLI 预检同源（同文案、同退出码 3）。
@@ -405,23 +405,23 @@ bool config_is_retired_perframe_form(const nlohmann::json& doc) {
 }
 
 // 迁移提示（预检页与运行期共用同一份文案，禁止各写一份）。按会话给：
-//   * normalize：§9.68 否决的「每帧一个对象」旧写法 → 指向多块形态；
-//   * mosaic/export：合同形态 {phase_name, config, inputs[]}（键名与 CLI 不一致）→ 指向
-//     §9.71 裁决 2（块状结构统一；键名方案属定案 4 的前台裁量面）。
+//   * normalize：「每帧一个对象」旧写法 → 指向多块形态；
+//   * mosaic/export：合同形态 {phase_name, config, inputs[]}（键名与 CLI 不一致）→ 统一为
+//     块状结构（键名方案属前台裁量面）。
 std::string retired_perframe_form_message(const std::string& session_name) {
     if (session_name != "normalize") {
         return "config uses the phase_config contract form {phase_name, config, inputs[]}, "
                "which is not the CLI session form — " + session_name +
                " moves to the same block structure as normalize "
-               "(GAP_AUDIT §9.71 ruling 2: one block = {output name, run parameters, "
-               "one group of input frames}); the unified key-name scheme is pending "
-               "(ruling 2 定案 4). Use the block form "
-               "{\"schema_version\":\"1\",\"blocks\":[{...}]} once it lands; "
+               "(one block = {output name, run parameters, "
+               "one group of input frames}); the unified key-name scheme is a frontend decision. "
+               "Use the block form "
+               "{\"schema_version\":\"1\",\"blocks\":[{...}]}; "
                "see docs/contracts/CONFIG_CONTRACT.md §3";
     }
     return "config uses the retired per-frame phase_config form "
-           "{phase_name, config, inputs[]} — one entry per light is no longer supported "
-           "(GAP_AUDIT §9.68); migrate to the multi-block form: "
+           "{phase_name, config, inputs[]} — one entry per light is no longer supported; "
+           "migrate to the multi-block form: "
            "{\"schema_version\":\"1\",\"blocks\":[{\"name\":\"<label>\","
            "\"input_lights\":[...],\"master_bias\":\"...\",\"master_dark\":\"...\","
            "\"master_flat\":\"...\",\"output_dir\":\"...\"}]} — one block per group of "
@@ -441,7 +441,7 @@ bool config_has_flat_session_keys(const nlohmann::json& doc) {
     return false;
 }
 
-// 多块形态结构校验（唯一实现）。判据（§9.68 + 现有 flat_session 纪律）：
+// 多块形态结构校验（唯一实现）。判据（现有 flat_session 纪律）：
 //   * blocks 与平铺键互斥（同时出现 → 报错，不静默取一）；
 //   * blocks 必须是非空数组，每项必须是对象；
 //   * 每块必须有非空 input_lights（非空字符串数组）与非空字符串 output_dir（禁 silent default）；
@@ -460,7 +460,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
         errs.push_back("blocks 缺失或配置不是 JSON 对象");
         return errs;
     }
-    // §9.71 裁决 2：三命令同构块结构（一个块 = 输出名称 + 运行参数 + 一组输入帧）。
+    // 三命令同构块结构（一个块 = 输出名称 + 运行参数 + 一组输入帧）。
     // 块内键集与「输入帧键」**从单一来源派生**，禁止手写副本：
     //   * 键集 = 平铺会话键集 session_keys() + block_keys()（name/output_dir）
     //     —— §3.3「两形态等价」：块内门与平铺门必须是**同一份**键表。
@@ -473,7 +473,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     //     session_keys() 的并集，故块内门同源 = 两形态等价（机器判据见
     //     eng/tests/cli/test_fix210_block_key_parity.py）。
     //   * 输入判据 = input_contract(session)（数组形态 or 对象形态 + 必需子键）；
-    //   * §9.73 裁决 A44（「权重模式」概念不存在）⇒ 块面不收 weight_mode /
+    //   * 「权重模式」概念不存在 ⇒ 块面不收 weight_mode /
     //     legacy_allow_weight_fallback（派生量，由 Phase2 消费 SNR 时现场算）。
     //   * schema_version 由两形态各自单列（顶层 kAllowedKeys）⇒ 块内不收。
     const astrocs::cli::cmd::SessionId sess = astrocs::cli::cmd::session_of(session_name);
@@ -484,7 +484,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
         errs.push_back("config mixes 'blocks' with flat single-block keys "
                        "(output_dir/input_lights/master_*/...): the two forms are mutually "
                        "exclusive — keep either blocks[] or the flat single-block shorthand "
-                       "(docs/ASTROCS_DESIGN.md §3.3; GAP_AUDIT §9.68)");
+                       "(docs/ASTROCS_DESIGN.md §3.3)");
     }
     const auto& blocks = doc["blocks"];
     if (!blocks.is_array() || blocks.empty()) {
@@ -553,8 +553,8 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
 // pipeline_config.json v1 全量校验(合同: docs/api/MANIFEST_VERIFY_V1.md §1)
 // 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
 // session_mode=true (phaseN run): 追加接受两种会话格式 —— RT-008 平铺直通
-// (runtime_client phase_config 平铺分支) 与 CLI-MULTIBLOCK 多块形态 (顶层 blocks[],
-// §9.68)；未知键拒绝面与 V1 同强度;
+// (runtime_client phase_config 平铺分支) 与 CLI-MULTIBLOCK 多块形态 (顶层 blocks[]）
+// 未知键拒绝面与 V1 同强度;
 // config validate 顶层命令面恒为 V1 合同 (CLI-003 golden, session_mode=false)。
 int validate_config_full(const std::string& path, nlohmann::json* doc_out,
                          bool session_mode, const std::string& session_name) {
@@ -578,7 +578,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
                                                        "output_dir", "phase3"};
     const std::set<std::string>& kSessionKeys = session_keys();
-    // CLI-MULTIBLOCK（§9.68 否决项）: 退役的逐帧形态 {phase_name, config, inputs[]}
+    // CLI-MULTIBLOCK: 退役的逐帧形态 {phase_name, config, inputs[]}
     // 必须**明确拒绝并给迁移提示**（不静默当成一条 unknown key 一笔带过）。
     // 判别：phase_name 顶层键（该形态的 phase 判别键），或 inputs 为**数组**
     // （V1 形态的 inputs 是对象；逐帧形态才是每帧一个对象的数组）。

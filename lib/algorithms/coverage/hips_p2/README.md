@@ -68,7 +68,7 @@
   ACR :1024-1040/CPU :1606-1619，`astrocs::healpix::nested_local_to_fits_index(i,9,512)`
   调用 :1032/:1611）→ `aio_hips_write_signal_support_tile`
   :1047-1054/:1629-1636 → `aio_hips_finalize` :1638-1648。
-- 权重语义门（matrix 专项；**§9.73 裁决 A44 后订正**）：**唯一权重口径** = 逐帧 ivar
+- 权重语义门（matrix 专项；**已订正**）：**唯一权重口径** = 逐帧 ivar
   产品（`AIO_HIPS_RD_IVAR`）逆方差；`weight_mode` 与 `legacy_allow_weight_fallback`
   两个键**已删除** ⇒ 出现即配置解析失败（具名 fail-closed）。ivar 产品缺失**恒**为
   显式科学错误 rc=7（"拒绝继续，防止在非逆方差语义下冒充 ivar coadd"）；唯一自动降级面
@@ -101,8 +101,8 @@
 词汇（module_adapters.cpp:1040-1057 p2_write_descriptor：integrated
 DATA-P2-INT in / mosaic DATA-P2-RES out，UnitId::SURFACE_BRIGHTNESS、
 CoordinateFrame::PIXEL）为编排层词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
-（EXP-203 C2 行锚订正：原写 :677-694 已漂移；C1 单位订正：原写 UnitId::ADU 与
-surface brightness 语义矛盾，改为 UnitId::SURFACE_BRIGHTNESS。）
+（C2 行锚已对准现行行号；C1 单位已订正：UnitId::ADU 与
+surface brightness 语义矛盾，现行 = UnitId::SURFACE_BRIGHTNESS。）
 
 - 输入：N 个 Phase1 单帧 HiPS（signal/support 子产品必读 :536-537；ivar
   子产品为唯一权重来源，必读）+ control 级 local_snr_map/local_ivar_map
@@ -120,7 +120,7 @@ surface brightness 语义矛盾，改为 UnitId::SURFACE_BRIGHTNESS。）
 --cpu-workers/--io-workers/--gpu-route cpu|auto|cuda/--deterministic 0|1
 （CON-002 :155-166）。公共关键字段（stage2_common.h）：hips[]、
 target_order(auto)、precision(0)、reject_method(AUTO)/reject_profile
-（`weight_mode` / `legacy_allow_weight_fallback` 已按 §9.73 裁决 A44 删除：出现即拒绝）
+（`weight_mode` / `legacy_allow_weight_fallback` 已删除：出现即拒绝）
 (wbpp_2_9_1)/reject_underdetermined_n(2)、reject_normalization
 (astrocs_median_center_v1)、large_scale_*(false)、acr_route(auto)、
 memory_limit_mb(24576)、out_hips、diagnostics(true)。权威登记：

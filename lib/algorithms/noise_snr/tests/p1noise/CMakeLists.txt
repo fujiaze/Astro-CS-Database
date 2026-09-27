@@ -123,7 +123,7 @@ if(UNIX)
 endif()
 add_test(NAME p1noise_selfcheck COMMAND p1noise_selfcheck_test)
 # ============================================================================
-# P5-SNR (2026-09-14, 负责人授权): 逐源 SNR 科学修正回归锁 (TEST-P5-SNR)
+# P5-SNR: 逐源 SNR 科学修正回归锁 (TEST-P5-SNR)
 #   被测面 = snr_science.cpp (Horne 1986 / CCD 方程 / 5-sigma 深度 / 零点标准误)
 #            + snr_estimator.cpp 生产控制点路径 (snr_extract_model_v3)
 #   oracle = 测试内独立长双精度暴力实现 + NumPy oracle 锚值
@@ -150,7 +150,7 @@ add_test(NAME p1snr_science_oracle COMMAND p1snr_science_test oracle)
 add_test(NAME p1snr_science_negative COMMAND p1snr_science_test negative)
 add_test(NAME p1snr_science_production COMMAND p1snr_science_test production)
 add_test(NAME p1snr_science_determinism COMMAND p1snr_science_test determinism)
-# SCI-501 (FIX-407): sigma_sky 语义 / 读噪双计负例保护（MC 3sigma 双向）
+# SCI-501: sigma_sky 语义 / 读噪双计负例保护（MC 3sigma 双向）
 add_test(NAME p1snr_science_skysource COMMAND p1snr_science_test skysource)
 
 # ============================================================================

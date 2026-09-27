@@ -17,7 +17,7 @@ namespace aio::ahpx {
 // ============================================================================
 // 测试用故障注入 (先例: P2-002/P3-002/AIO-001 的 ASTROCS_*_FAULT)
 // 仅供回归锁证明"能红"; 正常实现不读该变量。
-//   writer_accept_legacy_meta - 跳过"元数据含已作废 weight 字段即拒绝"守卫
+//   writer_accept_legacy_meta - 跳过"元数据含 weight 字段即拒绝"守卫
 //   writer_drop_snr           - 跳过 snr 块写出
 // ============================================================================
 static bool ahpxFault(const char* name) {
@@ -265,7 +265,7 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
         return false;
     }
 
-    // 已作废字段守卫 (变更 AHPX-WEIGHT-RETIRE-20260920; docs/ASTROCS_DESIGN §2.1/A44):
+    // 旧字段守卫 (变更 AHPX-WEIGHT-RETIRE-20260920; docs/ASTROCS_DESIGN §2.1):
     // 调用方元数据携带旧 "weight" 字段 ⇒ 拒绝写出 (既不产出读侧必拒的文件,
     // 也不静默丢弃调用方数据)。
     if (!ahpxFault("writer_accept_legacy_meta") &&

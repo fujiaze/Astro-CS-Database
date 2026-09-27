@@ -115,5 +115,5 @@
   （98 checks PASS，不与冻结 JSON 逐项一致即红）；负向 mutation
   `run/v6/p2-samp/oracle/run_mutations.py`（8 注入全红 + 正向控制）。
   集成：新符号编入根 `astrocs_phase2` 既有 TU，无需改根 CMake；
-  eng/tests/unit 注册按 C-004.4 由控制器 W9 独立集成提交处理。
+  eng/tests/unit 注册按 C-004.4 由控制器独立集成提交处理。
 

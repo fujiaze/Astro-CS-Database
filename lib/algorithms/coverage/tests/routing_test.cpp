@@ -31,7 +31,7 @@ TEST(Phase2Routing, ProductionParseBuildSharedPath) {
     EXPECT_EQ(m.robust_loss, 0);            // huber
     EXPECT_EQ(m.snr_weight_mode, 0);        // snr2_normalized
     EXPECT_EQ(std::string(m.input_manifest_hash), "deadbeef");
-    // 集成路由字段：cpu 路由保持；§9.73 裁决 A44 后不存在「权重模式」字段。
+    // 集成路由字段：cpu 路由保持；不存在「权重模式」字段。
     EXPECT_EQ(cfg.acr_route, "cpu");
 }
 
@@ -50,7 +50,7 @@ TEST(Phase2Routing, WorkerBudgetPropagates) {
     EXPECT_EQ(effective_cpu_workers(cfg.exec), 6);
 }
 
-// ── §9.73 裁决 A44 后的 ACR 资格（收紧，不是放宽）──────────────────────────
+// ── ACR 资格（收紧，不是放宽）──────────────────────────
 // 删除 legacy 整数权重模式域后，生产**只剩**一条权重口径（逐样本逆方差）。
 // TRACEABILITY ACR-IVAR-001 冻结「ivar science 模式必须走 CPU canonical path」，
 // 该条对本仓恒成立 ⇒ 不存在任何合法配置能进入 ACR 块。

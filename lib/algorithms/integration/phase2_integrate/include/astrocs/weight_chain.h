@@ -31,17 +31,17 @@
  *   reference_flux F_ref               : 与帧产品同通量标度 [ADU]
  *   weights w                          : [ADU^-2]（= 1/σ_F²，与 Phase1 W_info 同量纲）
  *
- * 前置条件（DESIGN §4.3:256 + WEIGHT-SCI-001 配对性定理 + 负责人 GAP_AUDIT §9.49
- *   定案 2「帧间独立」）: **配对性只要求同一帧内 SNR 与 F_ref 同源**，即
+ * 前置条件（DESIGN §4.3:256 + WEIGHT-SCI-001 配对性定理「帧间独立」
+ *   **配对性只要求同一帧内 SNR 与 F_ref 同源**，即
  *     SNR_k = a_k·F_ref,k/σ_k  ⇒  SNR_k²/F_ref,k² = a_k²/σ_k² = w_k
  *   成立当且仅当**该帧**的分子分母同源。**不要求跨帧相等。**
  *
- *   ⚠ 本节曾写「F_ref 为组内公共常数…逐帧 F_ref 不得使用」—— 该表述**已作废**：
+ *   ⚠ F_ref **不是**组内公共常数：逐帧 F_ref 合法且必需（依据：
  *   FREF-BASELINE-001 的 scope="frame_independent_fixed_magnitude" 下
  *   F_ref,k = 10^(−0.4(m_ref−ZP_k))，ZP_k 依赖**该帧自己的**光学系统/滤镜
- *   ⇒ 不同指向、不同光学系统的帧**合法地**有不同的 F_ref,k；旧表述等价于
- *   「不同光学系统的帧混装即报错」，与 §9.49 定案 2 直接冲突，并使 weight_mode=2
- *   在多指向拼接上完全不可用（实测 6/6 帧被拒）。用组标量反而在跨指向时
+ *   ⇒ 不同指向、不同光学系统的帧**合法地**有不同的 F_ref,k。组公共常数口径
+ *   等价于「不同光学系统的帧混装即报错」，并使 weight_mode=2
+ *   在多指向拼接上完全不可用（实测 6/6 帧被拒）。用组标量在跨指向时
  *   **破坏**同源性。变更 claim: WEIGHT-FREF-PERFRAME-001。
  *
  *   现行为：逐帧取 f.ref_flux（>0）为准，未提供时回退组标量 reference_flux；
@@ -257,14 +257,14 @@ struct FrameWeightInput {
   bool has_frame_snr = false;
   double frame_snr = 0.0;                     /* F_ref/σ_F，>0 有限 */
   /* 本帧**自己的**参考通量 F_ref,k（>0 有限；0 = 未提供，回退到组标量）。
-   * 为什么必须逐帧（负责人 GAP_AUDIT §9.49 定案 2「帧间独立」+ FREF-BASELINE-001）：
+   * 为什么必须逐帧（帧间独立 + FREF-BASELINE-001）：
    *   FREF-BASELINE 的 scope="frame_independent_fixed_magnitude" 下
    *   F_ref,k = 10^(−0.4(m_ref−ZP_k))，ZP_k 依赖**该帧自己的**光学系统/滤镜
    *   ⇒ 不同指向或不同光学系统的帧**合法地**有不同的 F_ref,k。
    *   配对性定理（WEIGHT-SCI-001）只要求**分子分母同源**（同一帧的 SNR 与 F_ref），
-   *   **不要求**跨帧相等。旧实现把「组内公共 F_ref」当 fail-closed 闸门，
-   *   等价于「不同光学系统的帧混装即报错」—— 与 §9.49 定案 2 直接冲突，
-   *   并使 weight_mode=2 在多指向拼接上完全不可用（实测 6/6 帧被拒）。
+   *   **不要求**跨帧相等。组公共 F_ref 闸门口径等价于「不同光学系统的帧混装即报错」，
+   *   并使 weight_mode=2 在多指向拼接上完全不可用
+   *   （实测 6/6 帧被拒）。
    *   ⇒ 跨帧一致性降级为**报告字段**（见 module_adapters 的
    *   reference_flux_spread_*），不再是门。 */
   double ref_flux = 0.0;

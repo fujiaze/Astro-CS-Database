@@ -13,9 +13,8 @@
 //   photometry     → Photometer::measure     (lib/algorithms/photometry/wrapper_phase1)
 //   noise-snr      → NoiseModel::estimate    (lib/algorithms/noise_snr/wrapper_phase1)
 //   drizzle        → hp_drizzle_run_phase1_hips (lib/algorithms/drizzle 静态库)
-//                    2026-09-20 订正 [V5 分片 5 / R-2]: 旧文 `hp_drizzle_run` 已作废 ——
-//                    生产调用点本文件 :4745（A 分片报告记 :4562, 已漂移）;
-//                    `hp_drizzle_run` 仅剩定义、零生产调用者（GAP_AUDIT A-04）
+//                    生产调用点本文件 :4745;
+//                    `hp_drizzle_run` 仅剩定义、无生产调用者
 //   writer         → aio_write_fits          (lib/infrastructure/aio)
 // P2-001: Phase2 7 类节点唯一真实 operation 委托（ARCH-P0-001 Phase2 侧整改;
 //   原工厂委托 P2Api session adapter = 子节点调用完整 p2_session_run 违规）:
@@ -97,12 +96,12 @@
 #include "astro/phase2/stage2_common.h"  // CONFORM-FIX-B-009: P2_SMOOTHING_LAMBDA_AUTO
                                          // 单一来源（stage2 工具与 node chain 同语义）
 #include "healpix/healpix_core.h"  // fits_index_to_nested_local (NESTED LUT 单一权威)
-// RELEASE-02 权重链: HiPS 头帧级 SNR → 逆方差权重 (w = SNR²/F_ref²)。
+// 权重链: HiPS 头帧级 SNR → 逆方差权重 (w = SNR²/F_ref²)。
 #include "astrocs/weight_chain.h"
-// RELEASE-02 P2b: 残差制造者 PΣPᵀ 归一化方差传播（variance_propagation.h）
+// P2b: 残差制造者 PΣPᵀ 归一化方差传播（variance_propagation.h）
 #include "astrocs/variance_propagation.h"
 #include "crypto/sha256.h"         // astrocs::crypto::sha256_hex (input_manifest_hash)
-#include "astrocs/probe.h"         // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
+#include "astrocs/probe.h"         // 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
 #include "photometer.h"
 #include "snr_estimator.h"   // NOISE-MODEL-CANON-001: SCI-NOISE-001 §5/§5a 唯一实现 (A)
@@ -110,7 +109,7 @@
 // lib/algorithms/noise_snr/cpp/src/snr_science.cpp (已编入 astrocs_phase1_noise)。
 #include "snr_frame_science.h"
 #include "wcs_tan.h"
-// RELEASE-02 FIX-P1 (P1-1): Phase1 测光归一化真正接到像素。
+// FIX-P1 (P1-1): Phase1 测光归一化真正接到像素。
 //  - apply_photometry: I_photo = k_photo·I_cal (生产零调用者缺陷的修复;
 //    astrocs_calibration 已编入 photometry_apply.cpp)
 //  - fit_frame_photometry: 装配 gaia_client + filters/QE → 生产 star_matcher
@@ -167,8 +166,8 @@
 #include <vector>
 
 // ── CLEAN-403: 本 TU 的文件 I/O 全部经 aio 机制原语 ─────────────────────────
-// 依据 docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」+
-// §9.73 裁决 U5。本命名空间只做**薄转发**(零策略/零缓存/零语义), 使调用点不再
+// 依据 docs/ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」。
+// 本命名空间只做**薄转发**(零策略/零缓存/零语义), 使调用点不再
 // 出现第二处文件系统原语; 机制唯一实现在 lib/infrastructure/aio/src/**。
 namespace aio_fs {
 inline bool exists(const std::string& p) {
@@ -1167,7 +1166,7 @@ ModuleDescriptor p2_write_descriptor() {
   d.execution_class = "io";
   d.parallel_ok = false;
   d.ports = {
-      //GAP_AUDIT G3-4 / docs/ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」:
+      //docs/ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」:
       // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/sr;
       // docs/contracts/DATA_SEMANTICS.md §31.1）。integrated 输入面仍为
       // integrate 节点产出的逐像素信号面（docs/modules/registry/astrocs.phase2.write.md
@@ -1282,7 +1281,7 @@ uint64_t p1_fits_primary_header_bytes(const std::string& path) {
   return 0;  // 主头无 END → fail-closed
 }
 
-// NOISE-MODEL-CANON-001（负责人 §9.67 定案 3）: 饱和电平读取。
+// NOISE-MODEL-CANON-001: 饱和电平读取。
 // SCI NOISE_MODEL §4「饱和域」(claim SC-008) 要求：未提供电平时调用方**必须**
 // 在帧产品写显式降级声明（禁止静默）。来源优先级 = cfg > SATURATE > DATAMAX，
 // 与 snr_estimator.h:134-136 的声明一致。
@@ -1537,7 +1536,7 @@ std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
   return p1_calibrated_path(doc, light);
 }
 
-// ── RELEASE-02 FIX-P1 (P1-1): 测光已应用帧路径 photoapplied_<base> ──────────
+// ── FIX-P1 (P1-1): 测光已应用帧路径 photoapplied_<base> ──────────
 // photometry 节点在 Drizzle 前把 I_photo = k_photo·I_cal 应用到 cal 产物, 写成
 // 独立路径 photoapplied_<base>（不就地覆写上游产物, 同 CORE-RACE-001 语义）。
 // drizzle 消费该路径; 若 provenance 声明 applied=true 而产物缺失 ⇒ 调用方
@@ -1783,7 +1782,7 @@ bool p1_master_flat_valid(const P1Image& flat, std::string* why) {
 }
 
 // ── op: calibrate（唯一真实入口 ac_calibrate_frame; 语义对齐 p1_session calibrate 阶段）──
-// ── PERF-P1 (RELEASE-05): 确定性帧级并行执行器 ─────────────────────────────
+// ── PERF-P1: 确定性帧级并行执行器 ─────────────────────────────
 // 与 p2_parallel_for（PERF-P2）**同规范**，不是另发明一套：
 //   · 线程数 = Runtime lease 注入的 __workers（AGENTS §6: 禁硬编码线程数;
 //     1 = 串行 reference）；
@@ -2181,7 +2180,7 @@ static uint32_t p1_workers(const Json& doc) {
 }
 
 // ── PERF-P1: 帧级并行的**内存安全**并发上限 ────────────────────────────────
-// 实测约束（run/RELEASE-05/perf/logs/{ser3,par3,par11}.log；同一代码同一数据，
+// 实测约束（同一代码同一数据，
 // 仅差并行轴）: T4 4500x3600（16.2e6 px）FP64、drizzle auto nside=65536 下
 //   · 串行 3 帧峰值 RSS 4.09 GB；
 //   · 3 帧并行峰值 RSS 17.5 GB（≈ 5.8 GB/帧 ≈ 358 B/px；含 signal/weight/variance
@@ -2240,7 +2239,7 @@ static uint64_t p1_available_memory_bytes() {
   return 0;  // 平台策略不变（见上）: Windows 恒 cap=1
 #else
   // AIO-SYSINFO-01: 可用内存探测经 aio 边界（docs/ASTROCS_DESIGN §10「aio 是文件级
-  // 唯一 I/O 边界」+ §9.73 裁决 U5）。口径（/proc/meminfo 的 MemAvailable，含
+  // 唯一 I/O 边界」）。口径（/proc/meminfo 的 MemAvailable，含
   // 可回收 page cache；读不到则回退 sysconf(_SC_AVPHYS_PAGES)×_SC_PAGESIZE）
   // 在 aio 侧唯一实现，本 TU 不再自持 fopen/fgets 通道。返回 0 = 不可判定
   // ⇒ 上层 p1_memory_cap 判 cap=1（fail-closed）。
@@ -2401,7 +2400,7 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   const mu::Stats mu_st_dark = p1_image_stats(dark);
   const mu::Stats mu_st_flat = p1_image_stats(flat);
   for (size_t fi = 0; fi < lights.size(); ++fi) {
-    // [RELEASE-02 probe] 逐帧热点: calibrate
+    // [probe] 逐帧热点: calibrate
     ASTROCS_PROBE_SCOPE_CTX(_probe_cal_frame, "phase1", "calibrate.frame");
     ASTROCS_PROBE_TAG(_probe_cal_frame, "frame_key", p1_frame_key(lights[fi]).c_str());
     if (bias.ok()) {
@@ -3073,7 +3072,7 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
       // 逐帧坏列 provenance（列索引可重建掩膜；掩膜本身落盘 badcol_<base>）
       // 已修（n_columns，掩膜值 1）与仅标记（n_marked_only，掩膜值 2）**分账**：
       // 两者在产物里的含义不同（前者真的换了像素值），合并报数会把未修的列
-      // 谎报为已修（LINDEF-CLOSE-01 裁决 4）。
+      // 谎报为已修（LINDEF-CLOSE-01）。
       Json fr = Json{{"input", p1_base_name(doc["input_lights"][fi].get<std::string>())},
                      {"n_columns", f_ncols[fi]},
                      {"n_marked_only", f_nmark[fi]},
@@ -4387,7 +4386,7 @@ P1SipCoeffs p1_parse_sip(const Json& wc, bool* ok, std::string* err) {
 // 天测键。该回退一旦命中, WcsTransform 初始化为 CRVAL=(0,0)、CD=0（det=0）:
 // 锥形搜索落到 (0,0)、gaia_projected_in_frame=0、匹配 0 对 ⇒ star_matcher 走
 // NO_DATA 退化（scale=1.0）, 而调用方把 1.0 当作"已拟合标度"施加。
-// 实测（run/RELEASE-02/logs/smoke_norm.stderr:6155-6167 与 12 板块 phot 日志）
+// 实测（smoke 与 12 板块 phot 运行日志）
 // 11/12 板块正是这条路径。可用性判据: 有限 CRVAL1/2 + 有限非退化 CD 矩阵。
 bool p1_wcs_astrometry_usable(const Json& wc, std::string* why) {
   auto bad = [why](const char* m) { if (why) *why = m; return false; };
@@ -4922,7 +4921,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   bool have_first = false;
   for (const auto& l : doc["input_lights"]) {
     const std::string lp = l.get<std::string>();
-    // [RELEASE-02 probe] 逐帧热点: wcs
+    // [probe] 逐帧热点: wcs
     ASTROCS_PROBE_SCOPE_CTX(_probe_wcs_frame, "phase1", "wcs.frame");
     ASTROCS_PROBE_TAG(_probe_wcs_frame, "frame_key", p1_frame_key(lp).c_str());
     const std::string frame_path = p1_calibrated_path(doc, lp);
@@ -5264,12 +5263,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   Json flux_out = Json{{"schema", "DATA-P1-FLUX"}, {"frames", frames}};
   if (!p1_write_text(out_path, flux_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
-  // ── RELEASE-02 FIX-P1 (P1-1): 取 k_photo 并真正施加 I_photo = k_photo·I_cal ──
+  // ── FIX-P1 (P1-1): 取 k_photo 并真正施加 I_photo = k_photo·I_cal ──
   // 规范依据: docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.6 /
   //   docs/science/PHOTOMETRY.md (SCI-PHOT-001 FROZEN):
   //   k_photo = scale = 10^(-location), location = Tukey-IRLS(r_i) (c=4.685)。
   //
-  // 缺陷 (GAP_AUDIT §9.29): 本节点原只 measure_flux, 写死
+  // 缺陷: 本节点原只 measure_flux, 写死
   //   photometry_applied=false/photscal=1.0; apply_photometry 生产零调用者;
   //   会归一化的 pc_calibrate_simple* 只在测试 target 编译 ⇒ Phase1 测光
   //   归一化从未应用到像素。
@@ -5286,8 +5285,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //   两者皆无 → 如实中性 (applied=false, pixel_scaling="none") +
   //   photscale_source="none"（不把 1.0 伪装成"已应用"）。
   //
-  // ── FAILSEM-01 帧级失败语义（负责人裁决）────────────────────────────────
-  // 负责人原话：「拟合失败这帧报 error/fail 呗，不阻塞其他帧。」
+  // ── FAILSEM-01 帧级失败语义 ────────────────────────────────
+  // 口径：「拟合失败这帧报 error/fail 呗，不阻塞其他帧。」
   // 逐帧**独立**判定，三种结局互不牵连：
   //   (a) 该帧产出标度 ⇒ 施加 I_photo = k_photo·I_cal 并写 photoapplied 产物；
   //   (b) 该帧拟合失败（无 PSF 星 / NO_DATA / 非物理标度 / 散度超限 / 侧车无
@@ -5530,7 +5529,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     const std::string qe_name = fit_cfg.value("qe_name", std::string());
     const int max_stars = p1_int(fit_cfg, "max_stars", 5000);
     // FAILSEM-01: 配置缺项是**全局性失败**（不是数据问题）⇒ 立即中止, 不把整批
-    // 帧判 fail。依据: 负责人裁决「全局性失败（如星表不可读、config 非法）⇒ 仍应中止」。
+    // 帧判 fail。依据: 「全局性失败（如星表不可读、config 非法）⇒ 仍应中止」。
     if (gaia_dir.empty()) {
       return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_GAIA_DIR_MISSING",
           "photometry.fit.gaia_data_dir (或 wcs.gaia_data_dir) required"
@@ -5887,7 +5886,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
               !sfj["source"].get<std::string>().empty();
           const bool fit_evidence = source_declared || n_matched >= 1;
           // 无拟合证据 = **该帧**的拟合失败（不是侧车结构违约）⇒ 该帧 fail,
-          // 其他帧照常施加（帧间独立, 负责人裁决「不阻塞其他帧」）。
+          // 其他帧照常施加（帧间独立, 不阻塞其他帧）。
           if (!fit_evidence) {
             const std::string side_key = p1_frame_key(file);
             for (size_t li = 0; li < n_lights; ++li) {
@@ -6160,7 +6159,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // 组间 k 散度门只决定"是否把 k 施加到像素"（photometry_applied），**不得**
   // 把已经算出的逐帧拟合结果丢弃：帧级 SNR 的绝对参考通量
   //   F_ref,k = 10^(-0.4*(m_ref - ZP_k)),  ZP_k = ZP_syn,k - 2.5*log10(k_photo,k)
-  // 需要它，且按 §9.49 定案 2（帧间独立；跨帧 k 不同是正常的）必须逐帧可得。
+  // 需要它，且按帧间独立口径（跨帧 k 不同是正常的）必须逐帧可得。
   // 无此表时 SNR 节点无法把 F_ref 锚到固定星等 ⇒ 只能退化为块级中位数。
   Json photscale_fit = Json::object();
   for (const auto& l : lights) {
@@ -6273,7 +6272,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    // photscale_detail[<frame>].spatial_gain（同一份 JSON）。
                    {"spatial_gain_mode", spatial_gain_mode},
                    {"n_spatial_applied", static_cast<uint64_t>(n_spatial_applied)},
-                   // 组间一致性：**报告字段，非门禁**（负责人 GAP_AUDIT §9.49 定案 2）。
+                   // 组间一致性：**报告字段，非门禁**（帧间独立）。
                    {"photscale_spread_dex", photscale_spread_dex},
                    {"photscale_spread_warn", photscale_spread_warn},
                    {"photscale_spread_gate", "none (owner ruling 9.49: frame-independent)"},
@@ -6331,7 +6330,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   (*man)["photometry_applied"] = photometry_applied;
   (*man)["photscal"] = photometry_applied ? photscal_rep : 1.0;
   (*man)["photscale_source"] = photscale_source;
-  // 组间一致性报告字段（非门禁；负责人 GAP_AUDIT §9.49 定案 2：帧间独立，不设组间门）。
+  // 组间一致性报告字段（非门禁；帧间独立，不设组间门）。
   (*man)["photscale_spread_dex"] = photscale_spread_dex;
   (*man)["photscale_spread_warn"] = photscale_spread_warn;
   (*man)["photscale_spread_gate"] = "none (owner ruling 9.49: frame-independent)";
@@ -6356,7 +6355,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ── NOISE-MODEL-CANON-002（负责人 §9.67 定案 2「逐像素方差接入」+ docs/ASTROCS_DESIGN
+// ── NOISE-MODEL-CANON-002（「逐像素方差接入」+ docs/ASTROCS_DESIGN
 //    §8.2:526-527「阶段内：命名块内存管线与块生命周期」）────────────────────────────────────
 // A（snr_noise_model_v1 / _f64 / _fill；docs/science/NOISE_MODEL.md:71/165 与
 // docs/science/algorithms/NOISE_ESTIMATION.md §13.1:120「生产符号唯一源」）的**调用侧配置
@@ -6706,7 +6705,7 @@ P1NoiseFrameModel p1_noise_model_for_frame(const void* data, bool data_is_f64,
     }
   }
   const int n_stars = static_cast<int>(nm_sx.size());
-  // W3 审计量：掩膜通量是否真的做过标度换算（data_scale≠1 时逐星输入已乘 α）。
+  // 审计量：掩膜通量是否真的做过标度换算（data_scale≠1 时逐星输入已乘 α）。
   // 键只在换算生效时出现（ADU 面不出现，逐位不变）。
   if (n_stars > 0 && std::isfinite(data_scale) && data_scale > 0.0 &&
       data_scale != 1.0) {
@@ -6814,7 +6813,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   }
 
   // ── WEIGHT-SCI-001 (2026-09-18): 组内公共参考通量 F0 ─────────────────────
-  // 依据 RELEASE-02 weight-sci-ruling.md（配对性定理；该报告已退役，见仓库 git 历史）:
+  // 依据配对性定理（WEIGHT-SCI-001）:
   //   SNR_f = a_f·F0/σ_f  ⇒  SNR_f²/F0² = a_f²/σ_f² = w_f
   // 成立当且仅当分母 F0 与定义 SNR 时所用参考通量是同一个。逐帧 F_ref 回退已
   // 在 snr_frame_science.cpp 删除（缺失即 fail-closed）。因此本节点必须为
@@ -6918,7 +6917,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     sci_cfg.reference_flux_adu = group_ref_flux;
 
   // ── FREF-BASELINE-001: 固定参考星等的**绝对共同基准** ────────────────────
-  // 负责人裁决（GAP_AUDIT §9.49 定案 7）: 「直接用 6 等星（或一个数值表示比较
+  // 参考基准口径: 「直接用 6 等星（或一个数值表示比较
   // 正常的星等来做基准就行）」。据此把帧级 SNR 的参考通量从"块级检出通量
   // 中位数"（数据派生、随帧集漂移）改为**同一颗参考星**在各帧的仪器通量:
   //
@@ -6930,7 +6929,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   // 由此同时满足三条硬要求:
   //   (i)  帧间可比: 各帧报的是**同一颗**参考星的 SNR, 不再混入本帧检出亮度;
   //   (ii) 帧间独立: F_ref 只依赖本帧自身的测光标定 ⇒ **不需要"组"的概念**
-  //        （§9.49 定案 2; 跨帧 k_photo 不同是正常的, 不是错误）;
+  //        （帧间独立; 跨帧 k_photo 不同是正常的, 不是错误）;
   //   (iii) 配对性: 头部 ASTROCS_REFERENCE_FLUX 写**物理公共锚**
   //        F0 = 10^(-0.4*(m_ref - ZP_syn_block)), 对同波段同星场恒为同一数
   //        ⇒ 闸门恒过, 且 w = SNR_f²/F0² = a_f²/σ_f²（WEIGHT-SCI-001
@@ -7037,7 +7036,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     // ⇒ 在此放弃是幂等的：零产物、零共享状态变更，帧轴重跑时从"读入"重来。
     // 越过本行后帧体内部会把该帧移出牺牲帧候选集（mark committed）。
     if (p1_frame_should_abandon(path)) return;
-    // ── NOISE-MODEL-CANON-001（负责人 §9.67 定案 3「选对的」）──────────────
+    // ── NOISE-MODEL-CANON-001（「选对的」）──────────────
     // 改用冻结 SCI-NOISE-001 §5/§5a 的**唯一实现**（docs/science/NOISE_MODEL.md:71/165;
     // ALG §13.1:120「生产符号唯一源」）。旧 wrapper_phase1::NoiseModel 是它的
     // **退化子集**（ALG §13.5:257-262）= 无掩膜/无 5σ 裁剪/无饱和过滤/无 patch 网格/
@@ -7428,7 +7427,6 @@ Json p1_variance_audit_block(const Json& var_diag, const std::string& status,
 }
 
 // ── op: drizzle_stack（唯一真实入口 hp_drizzle_run_phase1_hips; nside 科学参数无缺省）──
-//    2026-09-20 订正 [V5 分片 5 / R-2 同源]: 旧文 hp_drizzle_run 已作废, 实调用 :4745
 Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
@@ -7629,7 +7627,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   std::vector<std::string> f_skip_status(drz_n);
   p1_parallel_for(drz_workers, drz_n, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     const std::string lp = doc["input_lights"][fi].get<std::string>();
-    // [RELEASE-02 probe] 逐帧热点: drizzle
+    // [probe] 逐帧热点: drizzle
     ASTROCS_PROBE_SCOPE_CTX(_probe_drz_frame, "phase1", "drizzle.frame");
     ASTROCS_PROBE_TAG(_probe_drz_frame, "frame_key", p1_frame_key(lp).c_str());
     // ── FAILSEM-01: 逐帧输入面选择（不再用组级 applied 一刀切）────────────
@@ -7876,7 +7874,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "add data block failed"));
       return;
     }
-    // ── 定案 2（负责人 §9.67「2那就接入啊」+ docs/ASTROCS_DESIGN §8.2:526-527）──
+    // ── 逐像素方差接入（docs/ASTROCS_DESIGN §8.2:526-527）──
     // 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ §11.1:295 逐字
     // 「variance 面（可选，帧内块）| float32，随 data 布局 | ADU²」）。
     // 生产者 = A（snr_noise_model_v1/_fill; 与 p1_op_noise 共用
@@ -7924,7 +7922,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       }
       // 帧身份归一（去节点前缀 + 去扩展名）: p1_sources.json 由 star-psf 节点按
       // cleaned_<base> 记账, 本节点积分 photoapplied_/calibrated_<base>（帧身份
-      // 差异已在 run/RELEASE-02/parallel/02-variance-wiring.md §3.2 登记）。
+      // 差异已登记）。
       auto nm_stem = [](const std::string& base) -> std::string {
         std::string s = base;
         for (const char* p : {"cleaned_", "calibrated_", "photoapplied_"}) {
@@ -8002,7 +8000,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         // var_diag ⇒ **落盘产品**（p1_stack.json#variance_audit，见 :6985/:7099 与
         // p1_variance_audit_block 头注）与 variance_product_frames 条目。
         // 注：节点 manifest（(*man)）**不是**落盘面 —— CLI 只从它抽 6 个键
-        // （commands.cpp:242-296），所以「写进 (*man)」曾经等于「写进内存后丢弃」。
+        // （commands.cpp:242-296），所以「写进 (*man)」的内容不会自动落盘。
         var_diag = Json{{"sigma_bg_global", nmc.model.sigma_bg_global},
                         {"variance_bg_global", nmc.model.variance_bg_global},
                         {"n_control_points", nmc.model.n_control_points},
@@ -9036,7 +9034,7 @@ bool p2_read_bin_range(const std::string& path, uint64_t offset_elems,
 constexpr uint64_t kP2TileLeafSpan = 512ULL * 512ULL;
 constexpr uint32_t kP2TileShift = 9;  // leaf order − tile order 差（512=2^9）
 
-// ── PERF-P2 (RELEASE-02): 确定性 tile 级并行执行器 ────────────────────────────
+// ── PERF-P2: 确定性 tile 级并行执行器 ────────────────────────────
 // 线程数 = Runtime lease 注入的 __workers（AGENTS §5: 禁硬编码线程数; 1 = 串行
 // reference）。任务以原子计数动态认领（等价 dynamic schedule, 抗负载不均）;
 // 每个任务只写**自己下标**的结果槽 / 输出 offset，跨任务无任何浮点归约 ⇒ 结果
@@ -9562,18 +9560,18 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // ⇒ 生产门 ≈1e-3·max|M| ≈3e12 ADU，比冻结门宽 18 个数量级，且与
   // p2_session.cpp:204（仍 1e-6）分叉。现回退到冻结值，恢复符合性；
   // 相对判据（尺度无关）的**授权路径**见变更 claim 草案
-  // 工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md
-  // （状态：草案，待负责人裁决）——未经裁决不得在实现内启用。
+  // CONFORM-FIX-B-001（tolerance-relative 变更 claim 草案）
+  // 未经变更流程批准不得在实现内启用。
   // 显式 opt-in 覆盖键 upm.tolerance / upm.tolerance_relative 保留（默认 0）。
   uc.tolerance = 1e-6;
-  // SCI-502 FIX-1 定案（DOC-502 / 11_upm.md 4.6 / PHASE2_UPM_IMPL 496）：
+  // SCI-502 定案（DOC-502 / 11_upm.md 4.6 / PHASE2_UPM_IMPL 496）：
   // 收敛判据必须**无量纲**、分母用观测量尺度。绝对容差 1e-6 在 ~300 e⁻ 尺度
   // 永不收敛（300 次迭代 converged=0，SCI-C C1 A7b）⇒ 生产默认走相对判据；
   // upm.cpp 内部以 max(scale_obs, 1.0) 保留近零尺度下的绝对容差保护。
   uc.tolerance_relative = 1;
-  // RELEASE-02 P2a-2/P2a-4（科学行为变更）：阻尼 α=0.5（naive α=1 在
+  // P2a-2/P2a-4（科学行为变更）：阻尼 α=0.5（naive α=1 在
   // 链式/二部覆盖图有特征值 -1、周期 2 振荡）；M 全帧加权；末端残差场
-  // gauge 使叠加 ≡ 公共场 ⇒ 覆盖子集突变处阶跃恒 0（q2-snr-smooth §4/§5）。
+  // gauge 使叠加 ≡ 公共场 ⇒ 覆盖子集突变处阶跃恒 0。
   uc.gs_damping = 0.5;
   uc.m_full_frame = 1;
   uc.final_gauge = 1;
@@ -9598,8 +9596,8 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // （CONFIG_SCHEMA.md:19 smoothing(auto→0.1)；"auto" 的解析值单一来源 =
   // P2_SMOOTHING_LAMBDA_AUTO）。缺键保持 upm.h:75 的编译期默认 0.0 ——
   // 该默认属 docs/science/algorithms/PHASE2_UPM_IMPL.md §13「冻结面」，改动须走
-  // SCI/合同变更；与负责人裁决 GAP_AUDIT §9.39 A5「λ 不能为 0」的冲突已
-  // 登记上呈（生产 λ 取值归 SMOOTH-LAMBDA 分片），本节点不擅自改冻结默认。
+  // SCI/合同变更；λ 不能为 0 是硬约束，
+  // 生产 λ 取值归 SMOOTH-LAMBDA 配置面，本节点不擅自改冻结默认。
   {
     const Json model_cfg = (doc.contains("model") && doc["model"].is_object())
                                ? doc["model"] : Json::object();
@@ -9644,7 +9642,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // M4-C-02: 与 stage2_common 对称的显式覆盖面；缺省保持 SCI §9a:133 λ0=1e-3。
   if (upm_cfg.contains("zero_anchor_weight"))
     uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
-  // RELEASE-02 P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归与
+  // P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归与
   // 负责人按 c-delta-ruling 裁决切换）。
   if (upm_cfg.contains("tolerance"))
     uc.tolerance = upm_cfg["tolerance"].get<double>();
@@ -9681,7 +9679,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     if (p2_upm_component_gauges(model, &n_components, gauges.data()) != 0)
       gauges.clear();
   }
-  // RELEASE-02 P2a-3（收敛状态可见）：iterations/converged/objective 此前
+  // P2a-3（收敛状态可见）：iterations/converged/objective 此前
   // 只进 .bin（模型 JSON 文本），p2_upm_model.json 契约面缺失、且本节点从不
   // 调用 p2_upm_convergence。此处显式读取并落盘到 .json + manifest，使
   // "不收敛"在数据面上可见（禁 rc=0 冒充已收敛）。
@@ -9729,11 +9727,11 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
                        {"input_manifest_hash", manifest_hash},
                        {"artifact_bin", bin_path},
                        {"use_ivar_weight", 1},
-                       // RELEASE-02 P2a-3：IRLS 收敛状态（只读访问器）
+                       // P2a-3：IRLS 收敛状态（只读访问器）
                        {"iterations", upm_iterations},
                        {"converged", upm_converged},
                        {"objective", upm_objective},
-                       // RELEASE-02 P2a-2/P2a-3/P2a-4 求解器行为 provenance
+                       // P2a-2/P2a-3/P2a-4 求解器行为 provenance
                        {"tolerance", uc.tolerance},
                        {"tolerance_relative", uc.tolerance_relative},
                        {"gs_damping", uc.gs_damping},
@@ -9795,7 +9793,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   (*man)["upm_model_bin"] = bin_path;
   (*man)["model_hash"] = std::string(info.model_hash);
   (*man)["observation_count"] = info.observation_count;
-  // RELEASE-02 P2a-3：收敛状态进 manifest（不收敛必须对机器消费者可见）
+  // P2a-3：收敛状态进 manifest（不收敛必须对机器消费者可见）
   (*man)["upm_iterations"] = upm_iterations;
   (*man)["upm_converged"] = upm_converged;
   (*man)["upm_objective"] = upm_objective;
@@ -9822,7 +9820,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     //   （grep docs/ 仅命中 UNIFIED_MODEL.md:49 对象描述与
     //   UNIFIED_SCIENCE_MODEL.md:122 的 UNRESOLVED 登记）；
     //   ③ 唯一「默认开启」记录是 FIX-A 目标模型前提下的前台选项 a
-    //   （工程控制/RELEASE-02/ACCEPTANCE.md:11、RELEASE-02 FIX-A-report.md:73,140,156——报告已退役，见仓库 git 历史），
+    //   （FIX-A 报告的唯一「默认开启」记录；报告已退役），
     //   而 FIX-A-UPM-001 已被 FIX-SCI-SNR-CANON-001 否决 ⇒ 该前提消失。
     // 处置：缺省 = (additive_mode ∈ {delta,both})，即「要施加才构建」；
     // 显式 sky_plane.enabled 始终优先。默认路径不再产出无消费方的
@@ -9831,7 +9829,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     const Json seam_pre =
         (doc.contains("seam") && doc["seam"].is_object()) ? doc["seam"]
                                                          : Json::object();
-    // §9.67 定案 1：默认 "delta"（多退少补到公共天光面，保留 B_ref）
+    // 默认 "delta"（多退少补到公共天光面，保留 B_ref）
     const std::string additive_mode_pre =
         seam_pre.value("additive_mode", std::string("delta"));
     const bool delta_wanted =
@@ -9999,7 +9997,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       else spc.max_nodes = 8192;
       char sperr[512] = {0};
       void* spm = nullptr;
-      // ── SCI-502 FIX-3 定案 + CHAIN-WIRE-ADAPT-01 / W4: 近奇异 + 节点间距自适应 ──
+      // ── SCI-502 定案 + CHAIN-WIRE-ADAPT-01: 近奇异 + 节点间距自适应 ──
       // 旧实现只做「粗糙度惩罚逐级 x10」这一条分支（kappa 分支），节点间距被
       // 写死的 1.0 度钉死 ⇒ 7a:190-192「节点间距必须与 roughness_penalty **同级**
       // 进入自适应重试回路；条件数或残差不达门时，除提高粗糙度惩罚外，必须允许
@@ -10073,7 +10071,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         (*man)["sky_plane_error"] = std::string(sperr);
         // DATA-UNC-001 §30.1（unavailable 显式登记）：顶层置降级标志，机器消费者
         // 无法把本次 mosaic 读成"天光面已生效"。rc=6 是否升为硬 fail-closed 由
-        // 前台裁决（见 RELEASE-02 fix-sky-report.md §6；该报告已退役，见仓库 git 历史）。
+        // rc=6 当前为记录级降级，是否升硬 fail-closed 属前台裁量面。
         (*man)["sky_plane_degraded"] = true;
         if (spm) p2_sky_plane_close(spm);
       } else {
@@ -10097,9 +10095,9 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
           (*man)["sky_plane_n_nodes"] = spinfo.n_nodes;
           (*man)["sky_plane_n_frames"] = spinfo.n_frames;
           (*man)["sky_plane_n_used"] = spinfo.n_used;
-          // SCI-502 FIX-3 provenance: 条件数/秩/迭代如实落盘（可观测、可审计）
+          // SCI-502 provenance: 条件数/秩/迭代如实落盘（可观测、可审计）
           (*man)["sky_plane_kappa"] = spinfo.kappa;
-          // SCI-502 FIX-3：未惩罚数据矩阵条件数（独立诊断量；λ=0 时与 kappa 逐位相等）
+          // SCI-502：未惩罚数据矩阵条件数（独立诊断量；λ=0 时与 kappa 逐位相等）
           (*man)["sky_plane_kappa_data"] = spinfo.kappa_data;
           // PHASE2_UPM 7a 规则 4/5：可辨识性读数（唯一判据落在未正则化矩阵上）
           (*man)["sky_plane_identifiable"] = (spinfo.identifiable != 0);
@@ -10130,7 +10128,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
 
 // ── upm-apply 共用: 读单帧全部 tile 的 signal/support, 生成 leaf 升序
 //    (tile_ipix 升序 × tile 内 NESTED local 升序) 的 valid 像素校正集。
-//    唯一真实入口 p2_upm_calibrate_block（W2 冻结核心接口）; 每帧每 tile
+//    唯一真实入口 p2_upm_calibrate_block（冻结核心接口）; 每帧每 tile
 //    恰好一次块调用; support<=0/非 finite 像素不进校正（保留 NaN 占位,
 //    下游 integrate 面按 §30 invalid policy 收敛 NaN）。──
 struct P2FrameTiles {
@@ -10145,7 +10143,7 @@ struct P2FrameTiles {
   std::vector<double> data;          // 全 tile leaf-major（NaN=无效）
 };
 
-// ── RELEASE-02 P2b-1: 控制级残差制造者方差表（upm-apply 逐像素方差用）──────
+// ── P2b-1: 控制级残差制造者方差表（upm-apply 逐像素方差用）──────
 // 归一化把观测 y 映射到被扣除的校正场 ĝ = H y，输出 corrected = y − ĝ = P y
 // （P = I − H，"残差制造者"）。p2_samples.json 的每个 control 上，各帧观测以
 // control_ivar 加权耦合出公共校正场；采用 **(c) 排除自身**（H_kk=0，与 P2a
@@ -10290,7 +10288,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     nside = 1u << static_cast<uint32_t>(target_order + 9);
   }
 
-  // ── RELEASE-02 P2a-1：单次加性扣除（去掉有害的双重扣除）────────────────
+  // ── P2a-1：单次加性扣除（去掉有害的双重扣除）────────────────
   // 生产原为 corrected = (raw − C_k) − δ_k，两次逐帧加性扣除。实测帧间失配
   //   raw−C = 0.131% / raw−δ = 2.799% / raw−C−δ = 13.974%（比不校正的
   //   13.454% 还差）——C 已把每帧对齐到公共面，δ 是在已对齐场上的第二次
@@ -10299,8 +10297,8 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   //   delta = raw − δ_k         （**默认**；多退少补到公共天光面，保留 B_ref）
   //   c     = raw − C_k         （全减，含 B_ref ⇒ 背景被剪掉；仅对照）
   //   both  = raw − C_k − δ_k   （legacy 双重扣除，仅供对照/回归）
-  // ⚠ 默认值变更（2026-09-20，负责人 GAP_AUDIT §9.67 定案 1「**多退少补到公共天光面**」）：
-  //   原默认 "c" 的依据是 §9.54 裁决 1 的**接缝**判据；该判据经前台复核**是退化的**——
+  // ⚠ 默认值语义「**多退少补到公共天光面**」：
+  //   原默认 "c" 的依据是**接缝**判据；该判据经复核**是退化的**——
   //   `raw−C` 把整张背景减掉后各帧都 ≈0，两帧相减自然 ≈0 ⇒ **接缝小是因为背景没了，
   //   不是因为对齐做好了**。用「接缝」当判据必然收敛到「全减光」。
   //   负责人定案：`calibrated_k = raw_k − δ_k`，**保留公共天光面 B_ref**。
@@ -10325,7 +10323,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   const bool sub_delta = (additive_mode_effective == "delta" ||
                           additive_mode_effective == "both");
 
-  // ── PERF-P2 S1.1 (RELEASE-02): frame 级并行（work unit = 一帧）───────────
+  // ── PERF-P2 S1.1: frame 级并行（work unit = 一帧）───────────
   // 每帧独立 sig/sup 句柄、独立 p2_corrected_f<fid>.bin 输出文件; 帧间零共享写、
   // 零浮点归约; model/sky_model/local_lut 只读共享。帧结果按下标写各自槽位, join
   // 后按 paths 序组装 ⇒ 产物与串行逐位一致、与线程数/调度顺序无关。
@@ -10364,20 +10362,20 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     std::string data_file;
     std::vector<P2FrameTiles::TileData> tiles;
     uint64_t n_pixels = 0;
-    // RELEASE-02 P2b-1: 逐像素 Var(corrected) 面
+    // P2b-1: 逐像素 Var(corrected) 面
     std::string var_file;
     bool var_ok = false;
     bool pixel_noise_included = false;
     uint64_t n_var_pixels = 0;
   };
-  // ── RELEASE-02 P2b-1: 逐像素 Var(corrected) 输入（残差制造者 PΣPᵀ）─────
+  // ── P2b-1: 逐像素 Var(corrected) 输入（残差制造者 PΣPᵀ）─────
   // 控制级耦合表来自 p2_samples.json；不可得 → 如实报 variance_available=false
   // （禁伪造方差面；P2b-5 过渡期纪律）。
   std::vector<P2bControlVar> cvar_tab;
   int cvar_grid = 0;
   std::string cvar_why;
   // variance_include_self: false（默认）= (c) 排除自身（与 P2a 重构口径一致）；
-  // true = UPM 含自身的加权均值（W2 口径；此时"残差制造者 vs σ²+Var(ĝ)"
+  // true = UPM 含自身的加权均值（口径；此时"残差制造者 vs σ²+Var(ĝ)"
   // 差异显著——朴素式对 N 帧高估 (1+1/N)/(1-1/N)）。
   const bool cvar_include_self = doc.value("variance_include_self", false);
   const bool cvar_available = p2b_load_control_var(
@@ -10467,7 +10465,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     uint64_t tile_offset = 0;
     for (int t = 0; t < n_tiles; ++t) {
       const uint64_t tip = tile_ipix[static_cast<size_t>(t)];
-      // [RELEASE-02 probe] 逐 tile: sky_plane 应用 (库层 eval_block 已计时, 此处补 tile 上下文)
+      // [probe] 逐 tile: sky_plane 应用 (库层 eval_block 已计时, 此处补 tile 上下文)
       ASTROCS_PROBE_SCOPE_CTX(_probe_sky_tile, "phase2", "sky_plane.apply.tile");
       ASTROCS_PROBE_TAG(_probe_sky_tile, "tile_id", static_cast<unsigned long long>(tip));
       std::fill(var_tile.begin(), var_tile.end(),
@@ -10523,7 +10521,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       if (n_valid > 0) {
         p2_upm_calibrate_block(model, fid, leaves.data(), in_v.data(),
                                out_v.data(), n_valid);   // 唯一真实校正入口
-        // RELEASE-02 P2a-1：单次加性扣除（见本函数头 seam.additive_mode）。
+        // P2a-1：单次加性扣除（见本函数头 seam.additive_mode）。
         // calibrate_block 已输出 raw − C（并含 P2a-2 末端公共 gauge G）。
         if (!sub_c) {
           // delta 模式：把 C 加回（raw − C → raw − G），只保留 δ 一次扣除。
@@ -10552,7 +10550,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           }
         }
         // 回填 valid 位置（calibrate_block 按输入序输出; 重新扫描映射）
-        // 同时算 RELEASE-02 P2b-1 逐像素 Var(corrected)：最近 control 的
+        // 同时算 P2b-1 逐像素 Var(corrected)：最近 control 的
         // 残差制造者方差（(c) 排除自身），加可选帧 Phase1 逐像素方差。
         const uint64_t tile_side = (1ull << kP2TileShift);
         uint64_t k = 0;
@@ -10671,9 +10669,9 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   // sky_plane_mode="none" / additive_combination="raw_minus_C" 并列为互斥声明，
   // 按「本次 mosaic 是否做了天光面扣除」取值的消费者必被误导。
   const bool sky_loaded = (sky_guard.m != nullptr);
-  // RELEASE-02 P2b-5: 过渡期诚实标记。方差面 = 残差制造者 PΣPᵀ（(c) 排除自身
+  // P2b-5: 过渡期诚实标记。方差面 = 残差制造者 PΣPᵀ（(c) 排除自身
   // 控制级耦合）+ 可选逐像素 Phase1 噪声 + 参数协方差 J_out C_θ J_outᵀ。
-  // 当前生产 W2 模型无 C_θ API（参数项缺失）且 L4 输入帧无 variance 产品
+  // 当前生产模型无 C_θ API（参数项缺失）且 L4 输入帧无 variance 产品
   // （逐像素噪声缺失）⇒ 不得声称完整 Var(corrected)，uncertainty_available
   // 必须为 false，权重链不得据此声称逆方差加权。
   const bool param_cov_included = false;
@@ -10681,7 +10679,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       any_var_ok && all_pixel_noise && param_cov_included;
   const bool delta_applied = sub_delta && sky_loaded;
   const bool sky_applied = delta_applied;   // CONFORM-FIX-B-012: applied == δ 实扣
-  // RELEASE-02 P2a-1：单次加性扣除 provenance（组合语义对机器消费者可见）
+  // P2a-1：单次加性扣除 provenance（组合语义对机器消费者可见）
   std::string combo;
   if (sub_c && delta_applied) combo = "raw_minus_C_minus_delta(legacy)";
   else if (sub_c) combo = "raw_minus_C";
@@ -10694,7 +10692,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                        // CONFORM-FIX-B-012: applied(实扣) 与 loaded(仅载入) 分离
                        {"sky_plane_applied", sky_applied},
                        {"sky_plane_loaded", sky_loaded},
-                       // RELEASE-02 P2a-1：单次加性扣除（默认 raw−C；双重扣除已
+                       // P2a-1：单次加性扣除（默认 raw−C；双重扣除已
                        // 证有害：13.974% vs 0.131%，c-delta-ruling §2）。
                        {"additive_mode_requested", additive_mode},
                        {"additive_mode_effective", additive_mode_effective},
@@ -10708,7 +10706,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                         sky_loaded ? (out_dir + "/p2_sky_plane.bin") : std::string()},
                        {"n_pixels_total", total_pixels},
                        {"tile_leaf_span", kP2TileLeafSpan},
-                       // ── RELEASE-02 P2b-1/5: 逐像素方差面与诚实标记 ──
+                       // ── P2b-1/5: 逐像素方差面与诚实标记 ──
                        {"variance_available", any_var_ok},
                        {"variance_model",
                         any_var_ok
@@ -10739,7 +10737,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   (*man)["pixel_noise_included"] = any_var_ok && all_pixel_noise;
   (*man)["param_covariance_included"] = param_cov_included;
   (*man)["uncertainty_available"] = uncertainty_available;
-  // RELEASE-02 P2a-1：组合语义与降级显式登记
+  // P2a-1：组合语义与降级显式登记
   (*man)["additive_mode_requested"] = additive_mode;
   (*man)["additive_mode_effective"] = additive_mode_effective;
   (*man)["additive_combination"] = combo;
@@ -10823,7 +10821,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
 //      linear fit；禁止 min/max 与 NoRejection（AUTO 命中即 fail-closed）。
 //      N≤3 的实际不排异来自 kernel underdetermined 闸（候选 ≤3 ⇒ 全接受 +
 //      UNDERDETERMINED，provenance 如实记录）；「N<6 档下界是否含 N≤3」是
-//      rejection.cpp 的**唯一决策点**（EXP-204 待定案）。无逐像素先验计算。
+//      rejection.cpp 的**唯一决策点**（保守档）。无逐像素先验计算。
 //      kernel 永不执行 AUTO）。rejected_low/high 语义 =
 //      threshold 侧计数（禁原始值符号）; eligible<=underdetermined_n →
 //      UNDERDETERMINED 全接受并计入 provenance underdetermined_pixels。──
@@ -10907,9 +10905,9 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       union_tiles[tip].push_back(TileRef{tip, f, off});
     }
   }
-  // [RELEASE-02 probe] 规模 gauge: 并集 tile 数
+  // [probe] 规模 gauge: 并集 tile 数
   ASTROCS_PROBE_GAUGE("phase2", "reject.union_tiles", static_cast<double>(union_tiles.size()));
-  // ── PERF-P2 S1.2 (RELEASE-02): union-tile 级并行 ─────────────────────────
+  // ── PERF-P2 S1.2: union-tile 级并行 ─────────────────────────
   // 每个输出 tile 的像素完全在 tile 内算完; 跨 tile 只有**整数**计数器归约
   // （结合律成立 ⇒ 顺序无关 ⇒ 逐位一致）。输出按 tile 升序写入预分配固定
   // offset（accepted/nrej/candidates: i*tile_span; sample_mask: depth 前缀和
@@ -10988,7 +10986,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     P2SupportReader& rd = *readers[w];
     const size_t ti_s = static_cast<size_t>(ti);
     const uint64_t tip = rt.tip;
-    // [RELEASE-02 probe] 逐 tile 热点: reject
+    // [probe] 逐 tile 热点: reject
     ASTROCS_PROBE_SCOPE_CTX(_probe_rej_tile, "phase2", "reject.tile");
     ASTROCS_PROBE_TAG(_probe_rej_tile, "tile_id", static_cast<unsigned long long>(tip));
     ASTROCS_PROBE_GAUGE("phase2", "reject.tile_frames", static_cast<double>(rt.depth));
@@ -11144,7 +11142,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
         }
       }
       // 该像素**未做排异**的两种合法来源（如实计数, 不冒充排异成功）：
-      // ① 决策点路由到 none（EXP-204 保守档：几何 N ≤ 3）；
+      // ① 决策点路由到 none（保守档：几何 N ≤ 3）；
       // ② kernel underdetermined 闸（候选数 ≤ plan.underdetermined_n；WBPP 表
       //    下几何 N ≤ 3 走此路：路由记 percentile，实际全接受 + UNDERDETERMINED）。
       // 判据只用 plan 字段（决策点/闸的唯一来源），不在此复制常量。
@@ -11240,7 +11238,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                       {"max_iterations", p.linear_fit.max_iterations}};
         break;
       default:
-        // 其它方法（显式 opt-in 先验档 / EXP-204 保守 none 档）参数不在
+        // 其它方法（显式 opt-in 先验档 / 保守 none 档）参数不在
         // AUTO 映射值域内；method + nominal_n 已足够追溯。
         break;
     }
@@ -11265,7 +11263,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                        {"low_n_policy", "underdetermined_no_rejection"},
                        {"low_n_max_n", 3},
                        // 小 N 策略（**唯一决策点**在 rejection.cpp 的
-                       // kPixelSmallNPolicy；EXP-204 待定案）。路由按 WBPP 一手
+                       // kPixelSmallNPolicy）。路由按 WBPP 一手
                        // 实测表（N<6 → percentile，含 N≤3）；N ≤ 3 的**实际
                        // 执行**由 kernel underdetermined 闸决定（候选 ≤
                        // underdetermined_n ⇒ 全接受 + UNDERDETERMINED）。
@@ -11367,12 +11365,12 @@ static bool p2_hips_prop_double(AioHipsDataset* ds, const char* key, double* out
 
 // ── op: integrate_frames（唯一真实入口 p2_validate_candidate_weights +
 //      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同 +
-//      §9.73 裁决 A44 的**单一权重口径**（docs/ASTROCS_DESIGN.md §3.1:175
+//      **单一权重口径**（docs/ASTROCS_DESIGN.md §3.1:175
 //      「权重的产生链固定为两步、没有可选择项」；PSF_SIGNAL_WEIGHT.md §4）:
 //      逐样本 ivar 逆方差。ivar 产品缺失 → 不再等权降级:
 //      由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
 //      weight-chain-report §6）; 权重链未闭合 → DATA 错误 + closure token
-//      （legacy_allow_weight_fallback 已按 §9.73 A44 删除：出现即拒绝）。
+//      （legacy_allow_weight_fallback 已删除：出现即拒绝）。
 //      原 weight_mode∈{1,2} 整数域已删除：该键出现即 fail-closed 拒绝。
 //      ivar_mosaic = Σ ivar_i（帧索引序, 正权样本）; variance = 1/W。──
 Result<void> p2_op_integrate(const Json& doc, Json* man) {
@@ -11395,7 +11393,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         "corrected artifact frames invalid"));
   const uint64_t tile_span = cor_doc.value("tile_leaf_span", kP2TileLeafSpan);
 
-  // ── §9.73 裁决 A44：legacy 整数权重模式域（0/1/2）已删除 ─────────────────
+  // ── legacy 整数权重模式域（0/1/2）已删除 ─────────────────
   // 规范依据（权威，只读）：
   //   · docs/ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
   //   · docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
@@ -11414,7 +11412,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"
         "权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 "
         "w = SNR^2/F_ref^2 = 1/sigma_F^2；请删除该键。"));
-  // §9.73 裁决 A44（同批清理）：legacy_allow_weight_fallback **已删除**。
+  // legacy_allow_weight_fallback **已删除**。
   // 该键曾允许「ivar 缺失 → 降级 support/equal」；support 是无量纲几何量、equal 是等权，
   // 二者都不是信号/噪声之比（docs/ASTROCS_DESIGN.md §3.1:173/175）⇒ 既不能被设、也不能被读，
   // 出现即 fail-closed 具名拒绝。唯一降级面 = 帧级 SNR 逆方差链 w = SNR^2/F_ref^2，
@@ -11426,7 +11424,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         "来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。唯一降级面 = "
         "帧级 SNR 逆方差链 w = SNR^2/F_ref^2；请删除该键。"));
 
-  // ── RELEASE-02 P2b-2: 优先消费归一化逐像素方差 w = 1/Var(corrected) ──────
+  // ── P2b-2: 优先消费归一化逐像素方差 w = 1/Var(corrected) ──────
   // p2_corrected.json 报 uncertainty_available=true（方差完整传播：残差制造者
   // PΣPᵀ + 逐像素 Phase1 噪声 + 参数协方差项）时，权重面**优先**用逐像素
   // 1/Var(corrected)（weight_chain.h: weight_from_corrected_variance）；否则
@@ -11465,7 +11463,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   bool use_snr_chain = false;                     // ivar 缺失时走 SNR 权重链
   std::vector<double> snr_weights;                // 逐帧 w = 1/σ_F² [ADU^-2]
   std::string snr_chain_closure = "not_used";
-  // 组间 F_ref 一致性：**报告字段，非门**（负责人 GAP_AUDIT §9.49 定案 2：
+  // 组间 F_ref 一致性：**报告字段，非门**（
   // 帧间独立；配对性只要求同帧内 SNR 与 F_ref 同源，不要求跨帧相等）。
   double ref_flux_spread_rel = 0.0;
   uint64_t ref_flux_spread_frame = 0;
@@ -11540,15 +11538,15 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           in.gain = &frame_gain[f];
         }
         if (has_ref) {
-          // ── 负责人 GAP_AUDIT §9.49 定案 2（帧间独立）──────────────
-          // 旧实现把「组内 F_ref 必须逐帧相等」当 fail-closed 闸门。该要求
+          // ── 帧间独立 ──────────────
+          // 组内 F_ref 逐帧相等的 fail-closed 闸门口径
           // **科学上不成立**：配对性定理（WEIGHT-SCI-001）只要求**同一帧内**
           // SNR 与 F_ref 同源（w_k = SNR_k²/F_ref,k²），**不要求跨帧相等**。
           // FREF-BASELINE-001 的 scope="frame_independent_fixed_magnitude"
           // 下 F_ref,k = 10^(−0.4(m_ref−ZP_k))，ZP_k 依赖**该帧自己的**光学
           // 系统/滤镜 ⇒ 不同指向、不同光学系统的帧**合法地**有不同 F_ref,k。
-          // 旧闸门等价于「不同光学系统的帧混装即报错」，与 §9.49 定案 2
-          // 直接冲突，并使 weight_mode=2 在多指向拼接上完全不可用
+          // 旧闸门等价于「不同光学系统的帧混装即报错」
+          // 并使 weight_mode=2 在多指向拼接上完全不可用
           // （实测：6 帧跨 t2_m1/t2_m2 两块 ⇒ 6/6 被拒，链路永不闭合）。
           // ⇒ 逐帧用自己的 F_ref,k；跨帧一致性降级为**报告字段**
           //   （reference_flux_spread_*），不再是门。
@@ -11606,7 +11604,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       uncertainty_available = true;
     }
   }
-  // §9.73 裁决 A44：原 `else`（weight_mode==1 → 等权、unit_weight_mode1、
+  // 原 `else`（weight_mode==1 → 等权、unit_weight_mode1、
   // uncertainty_unavailable_reason="weight_mode_1_equal_non_ivar"）已删除 ——
   // 等权是**可选择的非逆方差口径**，与 docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」
   // 直接冲突；唯一口径 = 逐样本 ivar，ivar 缺失走帧级 SNR 逆方差链（fail-closed）。
@@ -11658,7 +11656,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           "rejection sample mask read failed: " + smask_file));
   }
 
-  // ── PERF-P2 S1.3 (RELEASE-02): tile 级并行 + sm_cursor 串行预检 ─────────
+  // ── PERF-P2 S1.3: tile 级并行 + sm_cursor 串行预检 ─────────
   // 唯一结构改动: 原循环内的 sample_mask 连续性校验（游标 sm_cursor）与
   // slot/depth 求解抽成**串行预检 pass**（O(n_tiles), 成本可忽略）—— 它必须在
   // 任何 tile 处理前按 tile 升序推进, 且失败语义/错误串与串行逐字一致。
@@ -11678,7 +11676,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   if (!rej_tiles.is_array() || rej_tiles.empty())
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "rejection artifact tiles invalid"));
-  // [RELEASE-02 probe] 规模 gauge: 待积分 tile 数
+  // [probe] 规模 gauge: 待积分 tile 数
   ASTROCS_PROBE_GAUGE("phase2", "integrate.tiles", static_cast<double>(rej_tiles.size()));
   std::vector<IntTile> itiles;
   itiles.reserve(rej_tiles.size());
@@ -11787,7 +11785,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     const uint64_t sm_off = it.sm_off;
     const uint64_t depth = it.depth;
     const uint64_t base = static_cast<uint64_t>(ti) * tile_span;
-    // [RELEASE-02 probe] 逐 tile 热点: integrate
+    // [probe] 逐 tile 热点: integrate
     ASTROCS_PROBE_SCOPE_CTX(_probe_int_tile, "phase2", "integrate.tile");
     ASTROCS_PROBE_TAG(_probe_int_tile, "tile_id", static_cast<unsigned long long>(tip));
     std::vector<float> ivar_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
@@ -12051,7 +12049,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p2_integrated.json";
   Json missing_j = Json::array();
   for (uint64_t mf : ivar_missing_frames) missing_j.push_back(mf);
-  // G3-12（docs/ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
+  // （docs/ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
   // 产品面**不再落** weight_mode 键。方差面状态由 corrected_variance_used /
   // snr_chain_used / uncertainty_available 三个语义键如实承载（下方均在册）。
   Json artifact = Json{{"schema", "DATA-P2-INT"},
@@ -12061,8 +12059,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                        {"corrected_variance_used", corr_var_ready},
                        {"snr_chain_closure", snr_chain_closure},
                        {"snr_chain_used", use_snr_chain},
-                       // 组间 F_ref 一致性 = **报告字段，非门**（GAP_AUDIT §9.49
-                       // 定案 2）。逐帧 F_ref,k 合法地可不同（不同指向/不同光学
+                       // 组间 F_ref 一致性 = **报告字段，非门**（帧间独立；
+                       // 逐帧 F_ref,k 合法地可不同（不同指向/不同光学
                        // 系统 ⇒ 不同 ZP_k）；配对性只要求同帧内同源。
                        {"reference_flux_spread_rel", ref_flux_spread_rel},
                        {"reference_flux_spread_frame", ref_flux_spread_frame},
@@ -12115,7 +12113,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ══ (docs/ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1) ═══════════════════
+// ══ (docs/ASTROCS_DESIGN §10「I/O 与原子产品」) ═══════════════════
 // Phase2 mosaic 产品集: 运行私有暂存区 → 校验 → 统一原子发布。
 // 暂存区 = output_dir 的**兄弟**路径 (同文件系统 ⇒ rename 不跨设备; 不在正式
 // 目录内 ⇒ 正式目录永不出现半成品 tile), 词法与 aio_publish v1 的
@@ -12314,14 +12312,14 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
 //            kappa、kappa_max、k_corr、model_hash、any_fail_closed_reason。
 // 落点（自定）：阶段二**产品级摘要** p2_final.json（DATA-P2-RES）新增 phase2_audit
 //   块，内容从磁盘产品 **读回**（p2_sky_plane.bin 是求解器自己落盘的 §7a 记录，
-//   JSON 文本；p2_upm_model.json 是 W2 模型面），不做节点间内存传递。
+//   JSON 文本；p2_upm_model.json 是模型面），不做节点间内存传递。
 //
 // 两个求解器的口径必须**分开登记**（§7a:205-216「κ 上限是两个不同求解器的两个不同
 // 口径，必须逐求解器写明」）:
 //   ① 天光面样条求解器 p2_sky_plane_build_adaptive：κ 门 kappa_max 由 rank_rtol
 //      派生（见 kappa_max_source），实测 M42 κ=3.35e8；
 //   ② UPM/GLS 正规矩阵 p2_upm_ma_build：冻结 FZ-AP2S-KAPPA-MAX=1e6 —— 但**生产链
-//      不调用该求解器**（生产入口是 W2 冻结的 p2_upm_build_geo，其 P2ModelInfo 无
+//      不调用该求解器**（生产入口是冻结的 p2_upm_build_geo，其 P2ModelInfo 无
 //      rank/kappa 访问器，见 upm.h:60-68 与 upm.h:311-328）。故本块对 ② 的
 //      rank/kappa 作**具名不可得登记**（不是静默缺键），并同时给出冻结门值，
 //      使「是否把 converged=0 与 rank≪n_params 升级为 fail-closed」这条待裁决项
@@ -12465,7 +12463,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const uint64_t tile_span = int_doc.value("tile_leaf_span", kP2TileLeafSpan);
   // 审计面（DATA-UNC-001 §30.1 规则 1 / docs/ASTROCS_DESIGN §3.1）：集成产物必须
   // **显式**声明方差面是否科学可用；缺键 ⇒ DATA fail-closed（禁静默缺省）。
-  // G3-12：原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
+  // 原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
   // §3.1「全程只有 SNR，不存在『权重模式』这个概念」冲突，且该键随产品落盘。
   // 现改用同一 p2_integrated.json 内**已有的语义键**：uncertainty_available
   // （方差/ivar 子产品是否定义）与 corrected_variance_used / snr_chain_used
@@ -12964,7 +12962,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             // （数值上含读噪/量化时 variance != signal^2，见 EMVA 1288 R4.0 Linear §2.4 Eq.(15)）。
                             {"quadratic_law", "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"}}},
                         {"uncertainty_available", uncertainty_available},
-                        // G3-12（docs/ASTROCS_DESIGN §3.1）：p2_final.json
+                        // （docs/ASTROCS_DESIGN §3.1）：p2_final.json
                         // **不再落** weight_mode 键（「全程只有 SNR，不存在
                         // 『权重模式』这个概念」）；方差面状态由
                         // uncertainty_available + weight_basis +
@@ -12978,7 +12976,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             {"ASTROCS_MODEL_HASH", model_hash},
                             {"ASTROCS_UNCERTAINTY_AVAILABLE",
                              uncertainty_available ? "true" : "false"},
-                            // A44（GAP_AUDIT §9.73 / docs/ASTROCS_DESIGN §2.1）：全程只有
+                            // （docs/ASTROCS_DESIGN §2.1）：全程只有
                             // SNR，**不存在「权重模式」** ⇒ 本 provenance 面不得承载
                             // ASTROCS_WEIGHT_MODE（原键已删除；HiPS provenance 只承载
                             // 帧级 SNR 与稀疏相对 SNR 比值）。
@@ -13182,7 +13180,7 @@ struct P1NodeModule : public IModule {
       // __workers 消费（禁硬编码；budget 为空时 lease 降级为 1 ⇒ 串行 reference）。
       doc["__workers"] = cap;
       switch (spec_.op) {
-        // [RELEASE-02 probe] Phase1 七阶段边界 (calibrate/cosmetic/star_psf/wcs/noise/drizzle/writer)
+        // [probe] Phase1 七阶段边界 (calibrate/cosmetic/star_psf/wcs/noise/drizzle/writer)
         case P1NodeOp::Calibrate: {
           ASTROCS_PROBE_SCOPE("phase1", "calibrate");
           r = p1_op_calibrate(doc, &man); break;
@@ -13287,7 +13285,7 @@ struct P2NodeModule : public IModule {
   const ModuleDescriptor& descriptor() const noexcept override { return desc_; }
 
   // config 合同: hips_paths（非空 string 数组）+ output_dir（string）必填;
-  // upm/reject 对象可选; weight_mode **已按 §9.73 裁决 A44 删除**（出现即拒绝,
+  // upm/reject 对象可选; weight_mode **已删除**（出现即拒绝,
   // 不存在「权重模式」）; 其余科学参数无 silent default（op 内 fail-closed
   // 校验, 不提前消费缺省值）。
   Result<void> validate_config(const std::string& config_json) override {
@@ -13317,14 +13315,14 @@ struct P2NodeModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::DATA, "upm must be object"));
     if (doc.contains("reject") && !doc["reject"].is_object())
       return Result<void>::fail(Error(ErrorDomain::DATA, "reject must be object"));
-    // §9.73 裁决 A44：不存在「权重模式」⇒ 该键既不能被设、也不能被读。
+    // 不存在「权重模式」⇒ 该键既不能被设、也不能被读。
     // 出现在节点配置里即 fail-closed 拒绝（不得静默忽略，也不得做类型校验后放行）。
     if (doc.contains("weight_mode"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
           "（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；"
           "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"));
-    // §9.73 裁决 A44（同批清理）：该键已删除 ⇒ 出现即拒绝（不再做类型校验后放行）。
+    // 该键已删除 ⇒ 出现即拒绝（不再做类型校验后放行）。
     if (doc.contains("legacy_allow_weight_fallback"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
@@ -13402,7 +13400,7 @@ struct P2NodeModule : public IModule {
       Json cfg2 = doc;
       cfg2["__workers"] = cap;
       switch (spec_.op) {
-        // [RELEASE-02 probe] Phase2 七阶段边界 (coverage/sample/upm_fit/upm_apply/reject/integrate/write)
+        // [probe] Phase2 七阶段边界 (coverage/sample/upm_fit/upm_apply/reject/integrate/write)
         case P2NodeOp::Coverage: {
           ASTROCS_PROBE_SCOPE("phase2", "coverage");
           r = p2_op_coverage(cfg2, &man); break;
@@ -14199,7 +14197,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   if (props_bunit != guard.bunit_canonical)
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "p3_props.json bunit drift: '" + props_bunit + "' != live input '" +
-        guard.bunit_canonical + "' (FIX-402 输入语义守卫)"));
+        guard.bunit_canonical + "' (输入语义守卫)"));
   const bool input_unc_available = (src != P3_UNC_NONE);
   // FZ-P3-MODES: visualization 不产出/不消费测量层（禁写 VARIANCE/IVAR 作测量层）
   const bool unc_available = measure_face && input_unc_available;

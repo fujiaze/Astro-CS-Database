@@ -156,7 +156,7 @@ P3WcsStatus p3_wcs_roundtrip_dense_max_error_px(const P3WcsDescriptor* d,
  * 违规 → P3_WCS_PARAM（why 填具体项）; 未声明适用域的投影 → P3_WCS_UNSUPPORTED。
  * **例外（不判红）**: 尺度低于紧门适用域下限且全域保守门亦无保守性证据时，
  * 往返门**不适用** ⇒ 返回 P3_WCS_OK 并在 why 写明「超出适用域」（机器可读判定
- * 用 p3_wcs_roundtrip_gate()）。理由: 判红会误拒合法几何（GATE-WCS-01 裁决 1）。
+ * 用 p3_wcs_roundtrip_gate()）。理由: 判红会误拒合法几何（GATE-WCS-01）。
  * p3_wcs_make 在返回前调用本函数: 违反适用域 ⇒ 拒绝且 *out 保持零初始化。 */
 P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
                                        std::string* why);

@@ -1,5 +1,5 @@
 // lib/algorithms/projection/tests/p3wcs/p3_projection_registry_test.cpp
-// FIX-205 共址测试: 产品声明注册表 + 显式「不支持」 + 适用域 + 机器判据
+// 共址测试: 产品声明注册表 + 显式「不支持」 + 适用域 + 机器判据
 //
 // 规范依据:
 //   * docs/ASTROCS_DESIGN.md §5.3（8 投影冻结; 未实现必须显式报「不支持」, 禁止声称
@@ -295,7 +295,7 @@ void test_applicability_rejections() {
                   ap->require_negative_det_cd &&
                   ap->crpix_fits_1based_pixel_center &&
                   ap->roundtrip_tol_px == kRoundtripTolPx,
-              "TAN 适用域声明 = 85/20/det<0/1-based/1e-8（FIX-406 Oracle 冻结）");
+              "TAN 适用域声明 = 85/20/det<0/1-based/1e-8（Oracle 冻结）");
     // 分层门声明项（GATE-DERIVE-01 / GATE-WCS-01）: 两门用途不同, 不合并为一个数
     CHECK_MSG(ap->roundtrip_tol_global_px == kRoundtripTolGlobalPx,
               "全域保守门声明 = 1e-6 px（SCI-WCS-001 §11 STD-F1）");
@@ -331,18 +331,18 @@ void test_cross_registry() {
     }
 }
 
-// ---- C7: 容差合同冻结 + 尺度感知分层门（FIX-406 + GATE-DERIVE-01）----------
+// ---- C7: 容差合同冻结 + 尺度感知分层门（GATE-DERIVE-01）----------
 // ① 冻结值回归锁: 紧门 == 1e-8 px（禁放宽回 1e-6）、全域门 == 1e-6 px;
 // ② 最坏工况（全域实测最坏点几何: **0.18″/px**（5e-5 deg/px）, |CRVAL2|=85°,
 //    PA=30°, 129²）——该尺度低于紧门适用域下限 ⇒ **退回全域保守门**, 实测余量 ≥ 4×;
 // ③ 不得产生假红（该几何 make 放行、check_applicability 放行）。
-// 注: 本注释旧版把该工况写成 0.05″/px, 与 FIX-406 扫描表 5e-5 deg/px 差 3.6×,
-//     而 0.18″/px 恰是紧门保守性的临界尺度 ⇒ 已按 GATE-WCS-01 裁决 6 更正。
+// 注: 该工况冻结值 = 5e-5 deg/px（0.18″/px）,
+//     而 0.18″/px 恰是紧门保守性的临界尺度 （GATE-WCS-01 判据）。
 void test_tolerance_freeze() {
     const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
     CHECK_MSG(ap != nullptr, "C7: TAN 适用域已声明");
     CHECK_MSG(ap->roundtrip_tol_px == kRoundtripTolPx && kRoundtripTolPx <= 1e-8,
-              "C7: 紧门冻结 = 1e-8 px（FIX-406 Oracle；禁放宽回 1e-6）");
+              "C7: 紧门冻结 = 1e-8 px（Oracle 冻结；禁放宽回 1e-6）");
     P3WcsDescriptor d{};
     CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.0, 0.00005, 129, 129, "east_left",
                                            30.0, &d) == P3WcsStatus::P3_WCS_OK,
@@ -582,7 +582,7 @@ int self_test() {
     expect(astrocs::phase3::p3_proj_probe("SIN", &detail) == P3WcsStatus::P3_WCS_OK,
            false, "探针 SIN 跑不通");
     if (bad == 0) {
-        std::printf("FIX-205 SELF-TEST PASS: 判据在变异输入下必红, 真值输入必绿\n");
+        std::printf("PROJ REGISTRY SELF-TEST PASS: 判据在变异输入下必红, 真值输入必绿\n");
         return 0;
     }
     return 1;
@@ -676,11 +676,11 @@ int main(int argc, char** argv) {
     test_gate_scale_table();
     if (failures == 0) {
         std::printf(
-            "FIX-205 PROJ REGISTRY PASS（声明集==实现集==可运行集 + 未实现显式不支持 "
+            "PROJ REGISTRY PASS（声明集==实现集==可运行集 + 未实现显式不支持 "
             "+ 适用域拒绝 + 往返门分层（紧门 1e-8px / 全域 1e-6px / 超域报错不判红）"
-            "+ 密集域扫描, FIX-406 + GATE-DERIVE-01）\n");
+            "+ 密集域扫描, GATE-DERIVE-01）\n");
         return 0;
     }
-    std::fprintf(stderr, "FIX-205 PROJ REGISTRY FAIL (%d)\n", failures);
+    std::fprintf(stderr, "PROJ REGISTRY FAIL (%d)\n", failures);
     return 1;
 }

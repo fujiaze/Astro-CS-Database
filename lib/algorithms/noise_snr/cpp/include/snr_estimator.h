@@ -63,7 +63,7 @@ typedef struct {
     double sigma_logflux_dex;  // 测光残差散度 (dex / log10 flux-ratio) — 逐星散度, 非零点误差
     double sigma_mag;          // 2.5 × dex (mag) — 逐星散度
     double sigma_cal_rel;      // ln(10) × dex (相对标定散度, 无量纲) — 逐星散度
-    // P5-SNR 订正 (2026-09-14, 负责人授权; SCI-PHOT-001 / PHOTOMETRY_LITERATURE_REVIEW C.2.2):
+    // P5-SNR 订正 (SCI-PHOT-001 / PHOTOMETRY_LITERATURE_REVIEW C.2.2):
     // sigma_residual 是参考星样本的散射, 零点标准误必须除以 sqrt(N):
     //   sigma_location_se_dex ≈ 1.253 * sigma_logflux_dex / sqrt(n_matches)
     double sigma_location_se_dex;  // 零点标准误 (dex); N<=0 或 sigma<=0 时为 0
@@ -245,7 +245,7 @@ SNR_API int  snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model)
 //              （禁 clamp 成 floor、禁写 NaN；DATA_SEMANTICS §4a 三态表）。
 // 否则全局常量（退化时 variance_bg_global=ivar_bg_global=0）。 冻结。
 // 返回 0=成功, 3=nullptr/尺寸非法, SNR_ABI_MISMATCH(-9)=model ABI 头部失配,
-// SNR_FLOOR_UNBOUND(-10)=模型未绑定 variance_floor（G3-6 fail-closed：
+// SNR_FLOOR_UNBOUND(-10)=模型未绑定 variance_floor（fail-closed：
 //   原实现对此静默回退 1e-12，使配置的 variance_floor 在生产 fill 路径上被无声
 //   忽略；现改为显式拒绝，调用方须经 build 或
 //   snr_noise_model_v1_bind_variance_floor 显式绑定）。
@@ -254,7 +254,7 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     float* out_variance, float* out_ivar);
 
 // ---------------------------------------------------------------------------
-// variance_floor 显式绑定 + 钳位触发计数 (G3-6: 钳位 fail-open → fail-closed)
+// variance_floor 显式绑定 + 钳位触发计数 (钳位 fail-open → fail-closed)
 //
 // 语义（不改变任何科学数值）:
 //   * bind: 把 floor 登记为该模型的 fill 下限（与 build 内部登记同一注册表）。
@@ -286,7 +286,7 @@ SNR_API double snr_noise_gain_variance(double signal,
                                        double read_noise_e);
 
 // ============================================================================
-// P5-SNR 逐源科学 SNR (2026-09-14, 负责人授权修改冻结/科学文档)
+// P5-SNR 逐源科学 SNR 
 //
 // 依据 (逐字锚): run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md
 //   §C.3.1 Horne 1986 最优提取  Var(F)^-1 = sum_i P_i^2/sigma_i^2, SNR_F = F/sigma_F

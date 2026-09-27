@@ -57,7 +57,7 @@ json forbidden_variance_sources_json() {
  *           （不参与组内归一、不产出 w_psfsw）；
  *        ② 产品形状校验 open_phase1_product 逐条登记 FZ-MODE-RETIRED 违规并置
  *           view.retired_weight_object_declared（下游可判，不静默）。
- * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
+ * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
  *        标定。」⇒ docs/ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
  *        任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
@@ -72,7 +72,7 @@ json forbidden_variance_sources_json() {
  *          - 产品面不据此 fail（否则 write 的原子发布自校验必然失败、整条 Phase1
  *            产品链不可用）；**硬拒绝落在消费面** consume_phase1_group_for_psfsw
  *            （该面整体退役，无条件 fail-closed）。
- *        A44 式留痕：docs/contracts/DATA_SEMANTICS.md §31（单位表 OBSOLETE 行 +
+ *        留痕：docs/contracts/DATA_SEMANTICS.md §31（单位表 OBSOLETE 行 +
  *        退役说明）与 eng/contracts/data/clause_registry.json
  *        #x-astrocs-canonical-object-retirement。 */
 const char* kRetiredCanonicalWeightObject = "psfsw_robust_weight";
@@ -292,7 +292,7 @@ Provenance make_provenance(const Phase1FrameInputs& in, const Phase1Units& u,
     p.correlation_summary.has_max_abs_rho = true;
     p.correlation_summary.max_abs_rho = rho_max;
   }
-  /* DRZ-FLUX-FIX-01（负责人裁决）：核按 drop 面积归一（F&H 2002 §7.2 式(7)
+  /* DRZ-FLUX-FIX-01：核按 drop 面积归一（F&H 2002 §7.2 式(7)
    * 下方 "fractional area overlap of the drop"；drizzlepac cdrizzlebox.c
    * dover /= jaco）⇒ Phi_out = Sum_j x_j 与 pixfrac 无关，因子恒为 1。
    * 旧口径 factor=pixfrac^2 是"按 A_pixel 归一"的代数产物，已废止。 */
@@ -698,7 +698,7 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
      * （weight_mode="psfsw_robust" / weight.kind="psfsw_robust_weight"）。退役对象的
      * 声明在 schema 里已从 required 移出，成为**可判定的退役/迁移情形**：新写出的产品
      * 不需要它；旧产品仍携带时由 open_phase1_product (6) 识别、登记并交消费面
-     * fail-closed（A44 留痕 + 迁移提示见 kRetiredWeightObjectRejectReason）。 */
+     * fail-closed（迁移提示见 kRetiredWeightObjectRejectReason）。 */
     json ps;
     ps["psfsw_schema"] = "astrocs.v6.psfsw/v1";
     ps["schema_version"] = 1;
@@ -1158,7 +1158,7 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir) {
       return fail("psfsw four components missing");
   }
   if (ps["components"]["concentration"].value("units", std::string()) != "ADU/px^2")
-    return fail("concentration units != ADU/px^2 (W6 authority)");
+    return fail("concentration units != ADU/px^2");
 
   /* (7) 点源信息定位与单位。 */
   const json& pi = doc["point_information"];

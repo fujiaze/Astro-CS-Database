@@ -1,13 +1,13 @@
 // acsd JSON/JSONL writer (API-002 §3/§4 协议 v1) — CLI-002/CLI-004
 //
-// stdout 纪律（docs/ASTROCS_DESIGN §6.3）：运行事件流是**默认输出**（GAP_AUDIT §9.74 裁决 7-a
-// 定案 1：事件流 = 默认输出，不需要旗标开启；GUI 用其它语言直接捕获 CLI 输出）。
+// stdout 纪律（docs/ASTROCS_DESIGN §6.3）：运行事件流是**默认输出**（事件流 = 默认输出，
+// 不需要旗标开启；GUI 用其它语言直接捕获 CLI 输出）。
 //   * 机器通道 = stdout：每行恰一个 UTF-8 JSON 事件（JSONL），禁夹普通文字；
 //     --json（--version/doctor/模板）时 stdout 恰一个 JSON 文档 —— 这些命令不发事件。
 //   * 人可读通道 = stderr：与机器 JSONL **同源生成**（同一事件对象；LOG-001 §2 双通道纪律），
 //     单行 ≤ 4096 字节，自由文本先脱敏（绝对路径/盘符/UNC/凭据 → <redacted>）。
 // CLI-004: 发送侧经 protocol.h ValidateEventV1 硬闸（GUI 可调用进程协议冻结合同）。
-// Q6（RELEASE-03 GAP_AUDIT §4.3）：运行事件流 schema **唯一** = 本文件 + protocol.h；
+// 运行事件流 schema **唯一** = 本文件 + protocol.h；
 // LOG-001（lib/infrastructure/observability/logging/**）是**另一份**「结构化日志」合同
 // （字段 schema/seq/ts/run/…/level/event），**不是**运行事件流，两者的键名/枚举/工件名
 // 不得互相冒充（本文件禁止把 LOG-001 的 seq/event/level 键名当作运行事件字段）。
@@ -144,7 +144,7 @@ inline std::string human_summary_of(const nlohmann::json& ev) {
 }
 
 // JSONL 事件发射器: 固定 10 必含字段 + kind 扩展; sequence 从 0 单调递增。
-// §9.74 裁决 7-a 定案 1：**默认启用**（不再是开关）；enabled() 恒真，保留为调用方
+// **默认启用**（不再是开关）；enabled() 恒真，保留为调用方
 // 表达「事件流是唯一 stdout 结果通道」的语义锚。
 class JsonlEmitter {
 public:

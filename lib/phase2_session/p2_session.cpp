@@ -15,7 +15,7 @@
 #include "astro/phase2/sampler.h"
 #include "astro/phase2/upm.h"
 
-#include "astrocs/probe.h"  // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
+#include "astrocs/probe.h"  // 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
 namespace {
 
@@ -120,7 +120,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
 
     // ── 阶段 1: coverage(取消点=阶段边界) ──
     if (s->cancelled()) { s->manifest["stages"].push_back({{"name", "coverage"}, {"status", "cancelled"}}); return ACS_ERR_CANCELLED; }
-    // [RELEASE-02 probe] Phase2 阶段边界: coverage
+    // [probe] Phase2 阶段边界: coverage
     ASTROCS_PROBE_SCOPE_CTX(_probe_p2_coverage, "phase2", "coverage.stage");
     s->stage("coverage", "running");
     P2CoverageResult cov{};
@@ -150,7 +150,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
                                 {"n_union_cells", cov.n_union_cells},
                                 {"target_order", cov.target_order}});
     s->log(ACS_LOG_INFO, "phase2", "stage coverage ok: cells=" + std::to_string(cov.n_union_cells));
-    // [RELEASE-02 probe] 规模 gauge + 阶段收尾
+    // [probe] 规模 gauge + 阶段收尾
     ASTROCS_PROBE_GAUGE("phase2", "coverage.union_cells", static_cast<double>(cov.n_union_cells));
     ASTROCS_PROBE_GAUGE("phase2", "coverage.inputs", static_cast<double>(cov.n_inputs));
     ASTROCS_PROBE_SCOPE_END(_probe_p2_coverage);
@@ -158,7 +158,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
     // ── 阶段 2: sample(预算绑定 §3 — sampler 走 Runtime lease 多 worker;
     // 1 worker 仅作 reference; 生产 N-worker 并行同生产符号) ──
     if (s->cancelled()) { s->stage("sample", "cancelled"); return ACS_ERR_CANCELLED; }
-    // [RELEASE-02 probe] Phase2 阶段边界: sample
+    // [probe] Phase2 阶段边界: sample
     ASTROCS_PROBE_SCOPE_CTX(_probe_p2_sample, "phase2", "sample.stage");
     s->stage("sample", "running");
     P2SamplerConfig sc = p2_sampler_default_config();
@@ -186,14 +186,14 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
                               {"overlap_controls", stats.overlap_controls}});
     s->log(ACS_LOG_INFO, "phase2", "stage sample ok: obs=" + std::to_string(n_obs) +
                " overlap_controls=" + std::to_string(stats.overlap_controls));
-    // [RELEASE-02 probe] 规模 gauge (样本数) + 阶段收尾
+    // [probe] 规模 gauge (样本数) + 阶段收尾
     ASTROCS_PROBE_GAUGE("phase2", "sample.n_obs", static_cast<double>(n_obs));
     ASTROCS_PROBE_GAUGE("phase2", "sample.n_controls", static_cast<double>(n_controls));
     ASTROCS_PROBE_SCOPE_END(_probe_p2_sample);
 
     // ── 阶段 3: upm build(预算绑定: blocks=budget; 取消=整模型不写半成品) ──
     if (s->cancelled()) { s->stage("upm_build", "cancelled"); return ACS_ERR_CANCELLED; }
-    // [RELEASE-02 probe] Phase2 阶段边界: upm_build
+    // [probe] Phase2 阶段边界: upm_build
     ASTROCS_PROBE_SCOPE_CTX(_probe_p2_upm, "phase2", "upm_build.stage");
     s->stage("upm_build", "running");
     P2UpmBuildConfig uc{};
@@ -242,7 +242,7 @@ acs_status p2_session_run(acs_handle h, const acs_span_u8 config_json) {
             s->stage("persist", "cancelled");
             return ACS_ERR_CANCELLED;
         }
-        // [RELEASE-02 probe] Phase2 阶段边界: persist
+        // [probe] Phase2 阶段边界: persist
         ASTROCS_PROBE_SCOPE_CTX(_probe_p2_persist, "phase2", "persist.stage");
         s->stage("persist", "running");
         const std::string save_path = doc["upm_save_path"].get<std::string>();

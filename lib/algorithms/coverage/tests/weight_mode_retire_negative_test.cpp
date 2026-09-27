@@ -1,8 +1,8 @@
 // lib/algorithms/coverage/tests/weight_mode_retire_negative_test.cpp
 //
-// 任务 PSFSW-RETIRE-01（负责人裁决）共址负例回归门。
+// 任务 PSFSW-RETIRE-01 共址负例回归门。
 //
-// 负责人裁决（原话）：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。
+// 权重口径：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。
 // 而是绝对标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重 psfsw_robust_weight
 // **不是现行对象**，退役。
 //
@@ -117,7 +117,7 @@ TEST(PsfswRetire, RuntimeRouteRejectsRetiredMode) {
         EXPECT_EQ(r.kind, RouteKind::kReject) << "token=" << m;
         EXPECT_EQ(r.rc, 2) << "token=" << m;
     }
-    /* §9.73 裁决 A44：原 documented baseline 面（equal / pixel_ivar → kBaseline，rc=0）
+    /* 原 documented baseline 面（equal / pixel_ivar → kBaseline，rc=0）
        已删除。其唯一理由是「legacy 整数路由的映射目标登记」；整数路由删除后理由消失，
        且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
        （docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72）。 */

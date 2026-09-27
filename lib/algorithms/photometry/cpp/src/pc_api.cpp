@@ -36,7 +36,7 @@ extern "C" {
 // -2: 尺寸无效
 // -3: 无Gaia星或无PSF星
 // ============================================================================
-// RELEASE-02 FIX-P1 (P1-2): 内部实现携带 quality_flags（长度=n_psf，按 PSF 行
+// FIX-P1 (P1-2): 内部实现携带 quality_flags（长度=n_psf，按 PSF 行
 // 对齐；含 PC_QF_SATURATED_MASK 的星不进零点拟合）。冻结的 C 导出
 // pc_calibrate_simple 以 nullptr 调本实现（签名/行为不变）；质量位感知的
 // 生产入口见 pc_api_qf.h。
@@ -210,7 +210,7 @@ int pc_calibrate_simple(
 // -2: gaia_client_handle 为空
 // -3: 锥形搜索失败或无光谱星
 // ============================================================================
-// RELEASE-02 FIX-P1 (P1-2): 内部实现携带 quality_flags（同 run_simple_impl）。
+// FIX-P1 (P1-2): 内部实现携带 quality_flags（同 run_simple_impl）。
 static int run_with_gaia_f32_impl(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
@@ -1283,7 +1283,7 @@ PC_API int pc_calibrate_simple_with_gaia_f64_v2(
 }
 
 // ============================================================================
-// RELEASE-02 FIX-P1 (P1-2): 质量位感知入口（非 C 导出, C++ 链接期）
+// FIX-P1 (P1-2): 质量位感知入口（非 C 导出, C++ 链接期）
 //
 // 与 pc_calibrate_simple_with_gaia_f64_v2 逐参数等价, 仅追加
 // const uint32_t* quality_flags（长度 = n_psf, 按 PSF 行对齐; 含

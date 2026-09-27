@@ -36,7 +36,7 @@
   已实现 TAN/SIN/CAR/AIT，STG/MOL/CEA/ZEA 未实现（registry_find 返回
   nullptr，fail-closed；实施归 P3-001/GAP-011）。新增投影必须落在冻结集合内
   并附独立往返 Oracle。**legacy v1 已 RETIRED**（见上，仅作偏差对照）。
-- **产品声明面（FIX-205, 2026-09-20）**：产品可声明集 = **仅 TAN**，唯一权威 =
+- **产品声明面**：产品可声明集 = **仅 TAN**，唯一权威 =
   `p3_projection_registry.h`（header-only）：冻结集 F(8) / 实现集 I(1) /
   声明集 D(1)，判据 **D == I == 实际可运行集 R**（R = 生产路径黑盒实跑
   `p3_proj_probe` 通过的码）。未实现/未冻结码请求 ⇒ 显式「不支持」+ 已支持
@@ -102,18 +102,17 @@
 - API: [docs/contracts/PUBLIC_API.md](../../docs/contracts/PUBLIC_API.md)
 - 模块页: [docs/modules/phase3_proj.md](../../docs/modules/phase3_proj.md)；
   registry 手写页: docs/modules/registry/astrocs.phase3.wcs.md
-- 迁移模板: 工程控制/…/tasks/MODULE_MIGRATION_TEMPLATE.md（P3-PROJ-DOC）
 
 ## 6 实测偏差登记（不改码，详见 ALG-P3-PROJ-IMPL-001 §10）
 
 - PA 未接线: p3_session.cpp:160 rotation_pa_deg 恒 0.0（能力在内核，
   会话未消费）。
 - 20000 上限可编译期覆盖: ASTROCS_P3_MAX_SIDE（p3_wcs.cpp:18-22）。
-- ~~projection 字段硬编码 "TAN"（p3_wcs.cpp:36）~~ **FIX-205 已闭合**：
+- ~~projection 字段硬编码 "TAN"（p3_wcs.cpp:36）~~ **已闭合**：
   descriptor 携带的投影码取自注册表冻结码字面量（p3_proj_canonical_code），
   非 TAN 请求由注册表显式拒绝（见 §7）。
 
-## 7 FIX-205 产品声明注册表与适用域门（2026-09-20）
+## 7 产品声明注册表与适用域门
 
 - 权威: `p3_projection_registry.h`（header-only/inline；DESIGN §5.3）。
   API: p3_proj_{frozen_table,is_frozen_code,frozen_list,declared_codes,

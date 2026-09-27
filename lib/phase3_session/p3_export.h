@@ -24,7 +24,7 @@
 //             ④ 删除 eng/tests/integration/p3_export/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
-//             RELEASE-04 GAP_AUDIT G2-1/G3-2（包已出库）；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
+//             eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
 // lib/phase3_session/p3_export.h — Phase3 V6 三模式产品导出接线层 (P3-INTEGRATE-001)
 //

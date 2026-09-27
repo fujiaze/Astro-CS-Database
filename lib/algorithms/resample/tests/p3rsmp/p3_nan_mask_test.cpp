@@ -122,7 +122,7 @@ bool write_sub(const std::string& root, const char* sub, const char* bunit,
                                    static_cast<int>(kW), gen, nullptr) == 0;
 }
 
-// FIX-401 §10 完成清单: 无清单的产品根被 aio_hips_open fail-closed
+// 完成清单（docs/ASTROCS_DESIGN §10）: 无清单的产品根被 aio_hips_open fail-closed
 bool write_manifest(const std::string& root) {
     const std::string body =
         "{\n  \"format_version\": 1,\n  \"product\": \"HiPS\",\n"

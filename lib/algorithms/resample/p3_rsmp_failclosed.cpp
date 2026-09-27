@@ -11,7 +11,7 @@ namespace astrocs {
 namespace p3rsmp {
 
 const std::vector<std::string>& forbidden_weight_source_tokens() {
-  // PSFSW-RETIRE-01：其中 "psfsw_robust_weight" / "psfsw" 自负责人裁决起表示
+  // PSFSW-RETIRE-01：其中 "psfsw_robust_weight" / "psfsw" 表示
   // **退役对象的显式拒绝面**（旧产品声明该对象 ⇒ REJECT），不是"在役的相对
   // 复合权重"。该两项不得按"残留清理"删除（删除即变成静默接受）。
   static const std::vector<std::string> v = {

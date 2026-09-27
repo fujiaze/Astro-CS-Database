@@ -57,7 +57,7 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "jsonl.h"
 #include "memory_report.h"
 #include "monitor.h"
-#include "disk_gate.h"        // §9.74 裁决 10: 磁盘门 = 唯一资源判据（内存/CPU/线程不设门）
+#include "disk_gate.h"        // 磁盘门 = 唯一资源判据（内存/CPU/线程不设门）
 #include "resource_events.h"
 #include "resource_gate.h"
 #include "astrocs/core/context.h"  // B2-A18: 租约授予观测
@@ -294,7 +294,7 @@ nlohmann::json build_run_provenance(
     return p;
 }
 
-// ── 磁盘门运行期臂（§9.74 裁决 10；docs/ASTROCS_DESIGN §3.5「运行中写盘失败/磁盘满 ⇒ 报错
+// ── 磁盘门运行期臂（docs/ASTROCS_DESIGN §3.5「运行中写盘失败/磁盘满 ⇒ 报错
 // （fail-closed）」+ §6.3「exit 10 = 磁盘写满 / 写盘失败」）──
 // 判定唯一实现 = lib/infrastructure/cli/disk_gate.h（classify_write_failure / probe_writable）；
 // 本函数只做「落退出码 + 发 error 事件」，不重复实现判据，也不引入任何内存/CPU/线程门。
@@ -374,14 +374,14 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
         std::ofstream f(std::filesystem::u8path(tmp_path), std::ios::binary | std::ios::trunc);
         if (!f) {
             std::fprintf(stderr, "acsd: cannot write run manifest '%s'\n", tmp_path.c_str());
-            // §9.74 裁决 10: 写盘失败/磁盘满 ⇒ fail-closed（磁盘满 → 10；其它 → 7）。
+            // 写盘失败/磁盘满 ⇒ fail-closed（磁盘满 → 10；其它 → 7）。
             return disk_write_failure_exit(ev, "manifest", out_dir, "run_manifest",
                                            astrocs::probe_writable(out_dir),
                                            "run manifest open failed");
         }
         body = m.dump(2) + "\n";
         f << body;
-        // §9.74 裁决 10: ofstream 的缓冲失败可能延迟到析构 flush —— 必须显式 flush 并
+        // ofstream 的缓冲失败可能延迟到析构 flush —— 必须显式 flush 并
         // 用落盘字节数核对（旧实现只看 f.good() ⇒ 磁盘满时静默产出 0 字节 manifest
         // 且照发 "run manifest written" 事件 = fail-open）。
         f.flush();
@@ -419,7 +419,7 @@ int write_run_manifest(const std::string& out_dir, astrocs::JsonlEmitter& ev, co
     }
     // §4 final.run_manifest 回填（SMOKE-001 D8）：登记本次 manifest 路径。
     ev.set_run_manifest(final_path);
-    // §9.74 裁决 7-a 定案 1（docs/ASTROCS_DESIGN §6.3）：事件流 = **默认输出** ⇒ stdout 只承载
+    // （docs/ASTROCS_DESIGN §6.3）：事件流 = **默认输出** ⇒ stdout 只承载
     // 机器 JSONL（无日志污染），人可读摘要由 JsonlEmitter 同源写到 stderr。旧「人类模式把
     // manifest 路径打到 stdout」的分支随之退役（manifest 路径 = artifact 事件的 path 字段，
     // final 事件回填 run_manifest）——不得再往 stdout 打非 JSON 文本。
@@ -586,7 +586,7 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
 
 // MON-002: 发射资源 summary 事件。
 // summary 事件内嵌指标; 原始时序只记录留存路径+样本数(不内嵌几十 MB 数据)。
-// GATE-FIX-RES(R-4 D-14/D-15): 分层档 detail 参数与 curve_points 恒空数组已删除;
+// GATE-FIX-RES: 分层档 detail 参数与 curve_points 恒空数组已删除;
 // 曲线唯一载体 = raw_dir/resource_timeseries.csv(字段 resource_curve_artifact 声明)。
 static void emit_resource_summary(astrocs::JsonlEmitter& ev, const std::string& phase,
                                   const astrocs::ProcessMonitor::Summary& s,
@@ -678,19 +678,19 @@ static void emit_phase_stats_resource(astrocs::JsonlEmitter& ev, const std::stri
 // MON-004 资源观测生产接线(lib/infrastructure/cli/resource_gate.h 唯一生产调用点):
 // 后台线程对 run_pipeline 执行期采样(ProcessMonitor::tick), 结束后按 07 合同
 // evaluate_gate 判定 —— 判定结果**只记录**(resource/resource_gate 事件 + 资源三产物)。
-// §9.74 裁决 10（负责人逐字「不应该有资源超限（除非存储不足）……只考虑磁盘写满这一个问题」）:
+// 资源门口径（「不应该有资源超限（除非存储不足）……只考虑磁盘写满这一个问题」）:
 // **一般性资源超限门已取消** ⇒ CPU/内存/线程判据**不产生任何退出码**（rc=10 路径已删），
 // 唯一资源门 = 磁盘门（disk_gate.h；跑前 warn / 运行中写盘失败 error + exit 10）。
 // 短任务判定域由 evaluate_gate 内建(NotApplicable), 冒烟小测不受影响。
 // kind 固定 Compute: phase1/2/3 均为 cpu_heavy 合成管线(runtime_client.cpp
 // resources.class=cpu_heavy); io/mem 类判据属 benchmark 专用路径, 不在 CLI run。
-// GATE-FIX-RES(R-4 D-14): resource_detail_arg() 已删除 —— 该旗标从未进入命令树
+// GATE-FIX-RES: resource_detail_arg() 已删除 —— 该旗标从未进入命令树
 // 白名单（lib/infrastructure/cli/command_tree.h 未登记, 真 CLI 报
 // "unknown flag '--resource-detail'" rc=2）, 属**死代码**; 唯一曲线载体为磁盘工件
 // resource_timeseries.csv（summary 事件 raw_dir/raw_n + resource_curve_artifact）。
 
 // 资源门「记录/裁决分离」开关解析（**历史复现开关，已退役**）。
-//   §9.74 裁决 10: 一般性资源超限门已取消 ⇒ 资源判据**恒为 record-only**（无 rc=10 路径）；
+//   一般性资源超限门已取消 ⇒ 资源判据**恒为 record-only**（无 rc=10 路径）；
 //   本开关保留接受并在事件里如实登记（strict_flag_requested），但**不再**改变裁决。
 //   --on-resource-gate accept|record: 与默认等价的显式写法(端到端脚本兼容)。
 // 非法取值 → ARGS(2), 拒绝静默降级（登记现状，不赋予合同承诺）。
@@ -763,7 +763,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
             alloc_rec.tick(mon.last_sample());
             ++tick;
             // MON-002: first 10s gate 调用点 —— 跨过 10s 边界后首次采样即评估:
-            // 低 CPU+非 IO+非内存带宽饱和 → **只登记诊断事实**（§9.74 裁决 10: 资源判据
+            // 低 CPU+非 IO+非内存带宽饱和 → **只登记诊断事实**（资源判据
             // 不设门、不接入协作取消、不改退出码；原 rc=10 归并路径已删除）。
             if (!first10s_done.load(std::memory_order_relaxed) &&
                 static_cast<double>(tick) * 0.5 >= 10.0) {
@@ -785,7 +785,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                     f10.first10s_non_io = static_cast<double>(io_bytes) < 1e6 * win;
                     // 内存带宽未测: CPU 低时必然未饱和(07 §4 保守取真)
                     f10.first10s_mem_not_saturated = true;
-                    // §9.74 裁决 10: 资源判据不再接入协作取消（一般性资源超限门已取消）
+                    // 资源判据不再接入协作取消（一般性资源超限门已取消）
                     // ⇒ 只登记诊断事实，不置位任何取消源；本判定仍由收尾事件如实呈现。
                     if (astrocs::fast_fail_first10s(f10)) {
                         first10s_diag.store(
@@ -807,7 +807,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 粒度 = phase 粒度(run 开始 0/1, 结束 1/1): Runtime 公开合同无节点级进度回调,
     // 协议面按合同冻结 —— 粒度升级(节点/帧级采样)不改变字段结构, 消费者透明。
     ev.emit_progress(0, 1, "phases", nullptr, nullptr);
-    // §9.74 裁决 10: 资源判据（CPU/内存/线程）不设门 ⇒ 恒不接入协作取消
+    // 资源判据（CPU/内存/线程）不设门 ⇒ 恒不接入协作取消
     // （取消源恒 nullptr）；计算不再因利用率被判据提前打断（记录与裁决分离）。
     // 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
@@ -842,7 +842,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         const bool wrote = recorder.write_all(res_out_dir, mon_s.wall_seconds,
                                               mon_s.sample_overhead_ms);
         if (!wrote) {
-            // §9.74 裁决 10 运行期臂: 写盘失败/磁盘满 ⇒ error + fail-closed（磁盘 → 10）。
+            // 运行期臂: 写盘失败/磁盘满 ⇒ error + fail-closed（磁盘 → 10）。
             const astrocs::WriteProbe pr = astrocs::probe_writable(res_out_dir);
             if (astrocs::write_failure_is_resource_exit(pr.kind))
                 return disk_write_failure_exit(ev, phase, res_out_dir, "resource_timeseries.csv",
@@ -862,7 +862,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                          sanitize(res_out_dir).c_str());
         }
     }
-    // MON-002: first-10s 判定只作**记录事实**（§9.74 裁决 10: 资源判据不设门、不改退出码；
+    // MON-002: first-10s 判定只作**记录事实**（资源判据不设门、不改退出码；
     // 原 fast_fail_first_10s → rc=10 归并路径已随一般性资源超限门取消）。
     const astrocs::GateDiag f10 =
         static_cast<astrocs::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
@@ -880,7 +880,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                 "pipeline failed (rc=10): disk full classified at the failure site "
                 "(node manifest error_kind=disk_full), before temp-artifact cleanup");
         }
-        // §9.74 裁决 10 运行期臂（兜底）: 管线失败且**磁盘写不进去**（写满/写失败）⇒ fail-closed
+        // 运行期臂（兜底）: 管线失败且**磁盘写不进去**（写满/写失败）⇒ fail-closed
         // 归并为 exit 10（真实探测写判定，不猜 errno）；否则保留管线原退出码。
         //
         // 定位: 本探针是**兜底**，不是判据。它问的是"现在还能不能写"，而
@@ -1035,7 +1035,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"work_core_seconds", g.work_core_seconds},
         {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
         {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
-        {"resource_gate_mode", "record_only"},   // §9.74 裁决 10: 恒 record-only（无 enforce 路径）
+        {"resource_gate_mode", "record_only"},   // 恒 record-only（无 enforce 路径）
         {"strict_flag_requested", strict_flag_requested},
         {"first_10s_gate", astrocs::gate_diag_name(f10)},
         // MON-001: 逐样本门观测证据(-1=未采样哨兵, 非合法值)。
@@ -1083,7 +1083,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"one_budget_source_rule", astrocs::v6runtime::kOneBudgetSourceRule},
         {"determinism_contract", astrocs::v6runtime::kDeterminismContractId},
     });
-    // §9.74 裁决 10（docs/ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
+    // （docs/ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
     // **恒为 record-only**（完整记录，不改变退出码，无 rc=10 路径）。阈值/判定式一字未改;
     // 工作量下限(负责人 2.A)作为事实字段一并记录。--strict-resource-gate/--on-resource-gate
     // 保留接受（登记现状）: strict_flag_requested 如实入事件，但不再改变裁决。
@@ -1105,7 +1105,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                  {"work_core_seconds", g.work_core_seconds},
                  {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
                  {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
-                 // SO-05 记录/裁决分离（§9.74 裁决 10；docs/plugins/infrastructure/
+                 // SO-05 记录/裁决分离（docs/plugins/infrastructure/
                  // 21_observability.md §8.3/§8.4）：资源判据**恒 record-only**，CLI 面不存在
                  // enforce 路径（resource_gate.h::gate_enforcement 恒 RecordOnly）。原先写的
                  // would_fail_if_so05_signed=true 已删：它对 §8.3 的 record_and_justify 判据
@@ -1133,7 +1133,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     return astrocs::OK;
 }
 
-// ── CLI-MULTIBLOCK（GAP_AUDIT §9.68 / §9.71 裁决 2）：逐块会话执行的共用返回面 ──
+// ── CLI-MULTIBLOCK：逐块会话执行的共用返回面 ──
 // 单块简写调用一次（block_count==1）；多块形态逐块调用 —— 每块独立 output_dir、
 // 独立 run manifest（不得把多块混成一个 manifest）；块名写入日志与 manifest。
 // cfg/cfg_sha = 用户配置文件（manifest provenance 面：多块时恒为原文件，使 verify 的
@@ -1155,7 +1155,7 @@ struct BlockOutcome {
 // 调用方按 docs/ASTROCS_DESIGN §7.2「取消 → 写 incomplete manifest → exit 9」收尾。
 // 不设环境变量时零影响（单次 getenv，不 sleep、不改判定）。
 // 权威: docs/ASTROCS_DESIGN.md §7.2（退出码 9 / 取消路径）、§10（原子产品：没有完成
-// 清单就不算成功对象）；GAP_AUDIT G3-15（SIGTERM 全阶段 exit 9 路径未覆盖）。
+// 清单就不算成功对象）。
 bool write_stage_cancel_window() {
     const char* ms_env = std::getenv("ASTROCS_TEST_WRITE_SLEEP_MS");
     if (ms_env == nullptr) return false;   // 生产路径: 无钩子
@@ -1169,7 +1169,7 @@ bool write_stage_cancel_window() {
     return astrocs::is_cancelled();
 }
 
-// CLI-MULTIBLOCK（§9.71 裁决 2）：单块 phase2 会话执行（与 phase1 同构）。
+// CLI-MULTIBLOCK：单块 phase2 会话执行（与 phase1 同构）。
 BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                               const std::string& cfg, const std::string& cfg_sha,
                               const std::string& cfg_text, const std::string& block_name,
@@ -1304,7 +1304,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         catch (...) { return std::string("."); }
     }();
 
-    // CLI-MULTIBLOCK（§9.71 裁决 2）: 块归属写进本块 manifest（单块简写不写，保持旧形态）。
+    // CLI-MULTIBLOCK: 块归属写进本块 manifest（单块简写不写，保持旧形态）。
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
@@ -1352,9 +1352,9 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     return out;
 }
 
-// CLI-MULTIBLOCK（§9.71 裁决 2）：mosaic 运行入口（形态判定 + 逐块派发；final 恰一个）。
+// CLI-MULTIBLOCK：mosaic 运行入口（形态判定 + 逐块派发；final 恰一个）。
 int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    // RUNTIME-CI-001: 显式模式路由门（--mode；§9.73 A44 后 legacy 整数 weight_mode
+    // RUNTIME-CI-001: 显式模式路由门（--mode；legacy 整数 weight_mode
     // 与 config 的 weight_mode 键均已删除，出现即具名拒绝）；reject → ARGS(2)。
     {
         const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
@@ -1411,7 +1411,7 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 
-// CLI-MULTIBLOCK（§9.71 裁决 2）：单块 phase3 会话执行（与 phase1/2 同构）。
+// CLI-MULTIBLOCK：单块 phase3 会话执行（与 phase1/2 同构）。
 BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                               const std::string& cfg, const std::string& cfg_sha,
                               const std::string& cfg_text, const std::string& block_name,
@@ -1605,7 +1605,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         catch (...) { return std::string("."); }
     }();
 
-    // CLI-MULTIBLOCK（§9.71 裁决 2）: 块归属写进本块 manifest（单块简写不写，保持旧形态）。
+    // CLI-MULTIBLOCK: 块归属写进本块 manifest（单块简写不写，保持旧形态）。
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
@@ -1645,7 +1645,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     return out;
 }
 
-// CLI-MULTIBLOCK（§9.71 裁决 2）：export 运行入口（形态判定 + 逐块派发；final 恰一个）。
+// CLI-MULTIBLOCK：export 运行入口（形态判定 + 逐块派发；final 恰一个）。
 int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // RUNTIME-CI-001: 显式输出模式路由门（--export-mode）；reject → ARGS(2)。
     {
@@ -1944,7 +1944,7 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
 }
 
 
-// CLI-MULTIBLOCK（§9.68/§9.71）：单块 phase1 会话执行（结构体定义见文件上方）。
+// CLI-MULTIBLOCK：单块 phase1 会话执行（结构体定义见文件上方）。
 
 BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                                     const std::string& cfg_path, const std::string& cfg_sha,
@@ -2037,7 +2037,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     // B2-A10（宪章 §4.3）: 同 phase2/3 的真实 provenance 子对象。
     nlohmann::json p1_extra = nlohmann::json::object();
     p1_extra["provenance"] = build_run_provenance(mans, artifacts);
-    // CLI-MULTIBLOCK（§9.68）: 块归属写进本块 manifest（块级 name/index/count），
+    // CLI-MULTIBLOCK: 块归属写进本块 manifest（块级 name/index/count），
     // 便于多块各自归属；单块简写不写本子对象（保持旧 manifest 逐字节形态）。
     if (multi)
         p1_extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
@@ -2078,7 +2078,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     return out;
 }
 
-// CLI-MULTIBLOCK（GAP_AUDIT §9.68）：normalize 运行入口。
+// CLI-MULTIBLOCK：normalize 运行入口。
 // 形态判定：顶层 blocks ⇒ 多块（逐块按序各自成一次运行：独立 output_dir、独立
 // run manifest、独立 run_context/graph；块级 name 写入日志与 manifest）；
 // 否则走平铺单块简写（原路径，向后兼容）。
@@ -2255,7 +2255,7 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // phase1|2|3 *）不在表内，解析阶段即 unknown command → exit 2。
 int dispatch(const Parsed& p) {
     const std::string joined = p.join();
-    // §9.74 裁决 7-a 定案 1（docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，不需要旗标
+    // （docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，不需要旗标
     // 开启（GUI 用其它语言直接捕获 CLI 输出）。--events-jsonl 保留接受（等价默认行为，
     // 不再是开启开关）；stdout 恒为纯 JSONL/单 JSON 文档，人可读摘要走 stderr。
     astrocs::JsonlEmitter ev(astrocs::make_run_id(), joined);
@@ -2281,7 +2281,7 @@ int dispatch(const Parsed& p) {
     }
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");
-        // G3-11（GAP_AUDIT G3-11）：verify 能力纳入命令树。
+        // verify 能力纳入命令树。
         // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（docs/ASTROCS_DESIGN
         // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
         // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见

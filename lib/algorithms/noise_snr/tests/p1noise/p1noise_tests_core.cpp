@@ -861,7 +861,7 @@ int test_negative() {
     }
 
 
-    // n11 (FIX-405 G3-6): variance_floor 钳位 fail-open → fail-closed。
+    // n11: variance_floor 钳位 fail-open → fail-closed。
     // ① 非法 floor (NaN / 0 / 负) 一律显式拒绝 (SNR_FLOOR_UNBOUND), 不产模型;
     // ② 手工拼装 (未注册) 模型 fill ⇒ 显式拒绝, 不再静默回退 1e-12;
     // ③ 显式绑定极大 floor (1e6) 后 fill 必须**真的**用 1e6 —— 旧实现在生产
@@ -1355,7 +1355,7 @@ int test_mask() {
 
     // 负例①: 手工欠掩膜 (r=1 px, F=1e7 同亮度亮星) ⇒ |偏差| > 2% (门必须能红)。
     // 逐星无偏所需 r_local(F=1e7, FWHM=3) ≈ 39 px ⇒ 1 px 掩膜是**明确欠掩膜**
-    // (欠掩膜偏差由 run/PROJECT-GOVERNANCE-01/MASK-002/probe_mask002 1 标定:
+    // (欠掩膜偏差由 probe_mask002 探针标定:
     //  r=1.5 px ⇒ 3.9%、r=3 px ⇒ 5.2%; 本夹具 seed 流不同, 取 r=1 px 留裕量)。
     double neg_bias = 0.0;
     for (int k = 0; k < 3; ++k) {

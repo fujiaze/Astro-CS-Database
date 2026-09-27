@@ -21,12 +21,12 @@
 
 // ── CONFORM-FIX-B-009: smoothing 键 "auto" 的唯一解析值（单一来源）──
 // 语义权威：docs/development/CONFIG_SCHEMA.md:19 「smoothing(auto→0.1)」；
-// 负责人裁决 GAP_AUDIT §9.39 A5「smoothing_lambda 不能为 0」（λ>0 必须）。
-// **不是**生产取值裁决面：具体生产 λ 由 SMOOTH-LAMBDA 分片扫描后裁决
+// smoothing_lambda 不能为 0（λ>0 必须）。
+// **不是**生产取值裁决面：具体生产 λ 由 SMOOTH-LAMBDA 配置面确定
 // （本常量只定义 "auto" 这个键值解析成什么，不定义生产链路的 λ）。
 // 注意与 docs/science/algorithms/PHASE2_UPM_IMPL.md:382「0.0（默认关闭平滑）」的
 // 冲突：该表自述「冻结面，任何修改必须走 SCI/合同变更」⇒ 本实现不擅自改
-// 冻结面，冲突已登记上呈（见 RELEASE-02 conform-fix-b.md §009；该报告已退役，见仓库 git 历史）。
+// 冻结面（现行权威以 docs/science/algorithms/ 为准，不擅自改动）。
 constexpr double P2_SMOOTHING_LAMBDA_AUTO = 0.1;
 
 struct P2Stage2Config {
@@ -65,10 +65,10 @@ struct P2Stage2Config {
     int max_irls_iterations = 100;
     double tolerance = 1e-6;
     // FIX-A 稀疏天光面链（P0-08/09/10）：观测外采样点联合拟合
-    // b_k(x)=B_ref(x)+delta_k(x)。FIX-GK 方案 B（负责人裁决）：施加
+    // b_k(x)=B_ref(x)+delta_k(x)。FIX-GK 方案 B：施加
     // corrected=(raw-C-δ_k)/g_k，δ_k=b_k−B_ref（归一化到公共面 B_ref，
     // 保留真实天光亮度，只消除帧间差异；不再扣整个 b_k）。
-    // 缺省关闭：保持 RELEASE-01 加性 C 场行为不变（基线 447 不回归）。
+    // 缺省关闭：保持早期加性 C 场行为不变（基线 447 不回归）。
     // 生产 config 模板显式 sky_plane.enabled=true / frame_gain=true 启用目标模型；
     // 由 FIX-C/E2E 启用并重验 L4。代码路径已完整接线，非空壳。
     bool   sky_plane_enabled = true;
@@ -102,7 +102,7 @@ struct P2Stage2Config {
     std::uint64_t memory_limit_mb = 24576;
     int reject_method = P2_REJECT_AUTO;  // production default = auto
     // CONFORM-FIX-B-007: 生产默认 profile = ACSD 自研档
-    // （负责人裁决 FIX-SCI-SNR-CANON-001 / GAP_AUDIT §9.40 C2「自研的 ⇒ 改文档
+    // （FIX-SCI-SNR-CANON-001「自研的 ⇒ 改文档
     // 对齐代码」；docs/science/REJECTION.md:21,47、CONFIG_SCHEMA.md:25、
     // eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
     // 旧默认 wbpp_2_9_1 是**对照档**，使工具链与交付 node chain 的排异方法
@@ -147,14 +147,14 @@ struct P2Stage2Config {
     int minmax_high_count = 1;
     int minmax_min_kept = 4;
     std::string rcr_technique = "ss_median_dl";
-    // §9.73 裁决 A44（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、
+    //（docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、
     // **没有可选择项**」；docs/science/PSF_SIGNAL_WEIGHT.md §4:72「没有可选择的
     // 口径：不存在口径选择键、口径枚举、口径配置项或口径产物」）：
     // 原 legacy 整数权重模式域 int weight_mode{0,1,2} 与其字符串 token
     // （auto/ivar/equal/support_x_snr2）**已删除** —— 单一权重口径 =
     // 阶段二按天球像素对应的输入帧集合现场算出的逆方差
     // w = SNR^2 / F_ref^2 = 1/sigma_F^2，无模式选择。
-    // §9.73 裁决 A44（同批清理）：原 legacy_allow_weight_fallback 开关**已删除** ——
+    // 原 legacy_allow_weight_fallback 开关**已删除** ——
     // 它允许「ivar 产品缺失时降级 support/equal」，而 support 是无量纲几何量、
     // equal 是等权，二者都不是信号/噪声之比 ⇒ 与 docs/ASTROCS_DESIGN.md §3.1:173
     // 「权重只能来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。
@@ -176,7 +176,7 @@ P2UpmBuildConfig p2_stage2_make_upm_cfg(const P2Stage2Config& cfg,
                                         const char* input_manifest_hash);
 
 // CON-007 + TRACEABILITY ACR-IVAR-001: ACR 块路由资格。
-// §9.73 裁决 A44 删除了 legacy 整数权重模式域后，生产**只剩**一条权重口径
+// 删除 legacy 整数权重模式域后，生产**只剩**一条权重口径
 // （逐样本逆方差，等价于原 weight_mode=2）⇒ ACR-IVAR-001「ivar science 模式
 // 必须走 CPU canonical path」对本仓**恒成立** ⇒ 本函数恒 false（ACR 块生产不可达；
 // docs/ASTROCS_DESIGN.md §2「纯 CPU 生产，ACR 生产不可达」）。

@@ -233,7 +233,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         req.psf_quality);
 
     // ── FREF-BASELINE-001: 绝对合成星等零点 ZP_syn ──────────────────────
-    // 目的: 给帧级 SNR 提供一个**跨帧公共**的绝对参考锚（负责人裁决:
+    // 目的: 给帧级 SNR 提供一个**跨帧公共**的绝对参考锚（基准口径:
     // "直接用 6 等星/一个数值表示比较正常的星等来做基准"）。定义与
     // snr_science.cpp:234 的 m_5 约定一致: mag = ZP_syn - 2.5*log10(F_syn)。
     //

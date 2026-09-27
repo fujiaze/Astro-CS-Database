@@ -38,7 +38,7 @@ python3 lib/infrastructure/acr/ci/check_acr_dormant.py --repo . --selftest # 负
 
 ## 范围
 
-本支线 `feature/astrocompute-runtime` **只开发底层**，不修改任何现有 ACSD 算法实现。详见 `工程控制/tasks/acr/spec.md`。
+本支线 `feature/astrocompute-runtime` **只开发底层**，不修改任何现有 ACSD 算法实现。
 
 ## 目录结构
 
@@ -91,4 +91,4 @@ cmake --build build/acr-cuda -j
 - docs/science/algorithms/ACR_EQUIVALENCE.md — ACR 算法等价性（现行权威）
 - DEPENDENCIES.md — 第三方依赖锁定（现行权威）
 - 历史 ACR 任务文档（spec/checklist/tasks、审计报告、禁止修改路径、ADR）已随
-  治理工件清理删除，见 git 历史；本模块为**非生产**面（GAP_AUDIT §未覆盖）。
+  治理工件清理删除，见 git 历史；本模块为**非生产**面。

@@ -1,6 +1,6 @@
 # lib/algorithms/coverage 模块记忆
 
-> **§9.73 裁决 A44 订正（2026-09-23，WEIGHTMODE-CLEANUP-01）**：本文件下方若干**带日期**的
+> **订正（WEIGHTMODE-CLEANUP-01）**：本文件下方若干**带日期**的
 > 历史条目里出现的 `weight_mode` / `weight_mode=2` / `mode0`/`mode1` 等写法，描述的是**当时**
 > 的实现。现状（权威）：**不存在「权重模式」**（`docs/ASTROCS_DESIGN.md` §3.1:171/175；
 > `docs/science/PSF_SIGNAL_WEIGHT.md` §4:62/72）。`P2Stage2Config::weight_mode` 与
@@ -24,37 +24,36 @@ photometric scale、新 runtime I/O DLL。
 
 ## 已完成（本模块，2026-08-10）
 
-### W0-W10（前序会话，gate 12/12 基线）
-- W0 盘点 / W1 Wiki 同步 / W2 接口冻结（`工程控制/docs/PHASE2_IMPLEMENTATION/`、
-  `工程控制/docs/PHASE2_INTERFACE_FREEZE/`）；
-- W4 UPM CPU reference（Huber IRLS + snr2_normalized + 弱零锚）；
-- W6 block planner；W7 sigma/winsorized/averaged-sigma/ESD；
-- W9 ACR synthetic `synthetic.mosaic_reject.fp64acc` legacy launcher；
-- W10 robustness（NaN/min-samples/zero-memory/all-rejected）。
+### 前序分批（前序会话，gate 12/12 基线）
+- 实现盘点 / Wiki 同步 / 接口冻结；
+- UPM CPU reference（Huber IRLS + snr2_normalized + 弱零锚）；
+- block planner；sigma/winsorized/averaged-sigma/ESD；
+- ACR synthetic `synthetic.mosaic_reject.fp64acc` legacy launcher；
+- robustness（NaN/min-samples/zero-memory/all-rejected）。
 
 ### 本会话补全（真实链闭合）
-- **W3 coverage 真实实现**（`src/coverage.cpp`）：AIO reader 读取每帧
+- **coverage 真实实现**（`src/coverage.cpp`）：AIO reader 读取每帧
   properties/tiles，兼容校验（hips_frame/obs_filter/tile_width/version），
   MOC union（NESTED parent 聚合），target_order = min(输入 max order)。
-- **W4 control sampler**（`lib/include/astro/phase2/sampler.h` +
+- **control sampler**（`lib/include/astro/phase2/sampler.h` +
   `src/sampler.cpp`）：union 内 control cell 网格（默认 8×8/tile），patch
   estimator（support>0 + finite 过滤，median 位置 + MAD 尺度），SNR 来自
   Phase1 SNR Catalogue 邻近星点（不重新检测星点），保留负值。
-- **W4 UPM 完整化**：自包含 SHA-256（FIPS 180-4，`src/sha256.cpp`）、
+- **UPM 完整化**：自包含 SHA-256（FIPS 180-4，`src/sha256.cpp`）、
   frame-control 二分图连通分量、真实内容哈希、JSON sparse 持久化
   （`p2_upm_save/open`，format `astrocs-upm-v1`）。
-- **W5 dense cache**：头部 JSON（source_hash/target_order/precision/frame
+- **dense cache**：头部 JSON（source_hash/target_order/precision/frame
   count/checksum）+ 二进制 controls/frame 块；`p2_upm_dense_info` /
   `p2_upm_dense_read_block` 做 stale 校验（source hash 不匹配返回 2）。
-- **W7 补全**：LinearFit（残差 MAD 尺度稳健版）与 RCR（Maples et al. 2018
+- **补全**：LinearFit（残差 MAD 尺度稳健版）与 RCR（Maples et al. 2018
   论文独立实现，Chauvenet 判据，weighted/unweighted）。
-- **W8 stage2 正式入口**（`eng/tools/stage2.cpp` → `astrocs-stage2.exe`）：
+- **stage2 正式入口**（`eng/tools/stage2.cpp` → `astrocs-stage2.exe`）：
   单 JSON 参数驱动 DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE →
   UPM_FIT → UPM_PERSIST → BLOCK_PLAN → BLOCK_CALIBRATE → REJECT_INTEGRATE →
   HIPS_WRITE → HIPS_VERIFY；输出 signal/support 两个 Image HiPS；
   support_out = max(accepted support)（覆盖并集保守下界）；
   fallback=none（样本不足不做 rejection，单覆盖稳定输出）。
-- **W11 真实马赛克**：crop 三片（T2/T3/t4_crop，51 tiles，6.99M px 全
+- **真实马赛克**：crop 三片（T2/T3/t4_crop，51 tiles，6.99M px 全
   fallback）+ T4 crop×full 重叠验证（285 tiles，61.59M px，重叠区 4.02M px
   真实 2 样本加权叠加）+ 最终完整三片（312 tiles，64.56M px）。
 
@@ -84,7 +83,7 @@ photometric scale、新 runtime I/O DLL。
 
 ## 未完成 / 已知限制
 
-- W9 ACR 仅 legacy CPU launcher 注册，无 CUDA/GPU kernel（profile 后按热点接入，
+- ACR 仅 legacy CPU launcher 注册，无 CUDA/GPU kernel（profile 后按热点接入，
   CPU reference 是权威科学语义）。
 - Oracle 矩阵（Astropy/NIST/Siril/IRAF 对照）只做了 NIST ESD 与 Rosner 风格
   单侧离群验证，未全量跑 synthetic matrix（N=2..500 × 7 种污染）。
@@ -292,7 +291,7 @@ photometric scale、新 runtime I/O DLL。
   **13.14%** 像素、其等效上阈实测只有 **≈2.1–2.4·σ_robust**（名义 3.5·σ_fit）。
 - **受控评估**（生产 kernel，A 臂与生产掩码 5744/5744 逐点一致）：显著点漏检
   **3.92% → 1.44%**、真·单异常 99.34% → 99.69%、干净像素过拒 **12.200% → 0.067%**、
-  n≥16 可测残余 >2.5σ **27/1175 → 0/1175**。证据 = run/REJECT-DOCFIX-01/。
+  n≥16 可测残余 >2.5σ **27/1175 → 0/1175**。证据 = REJECT-DOCFIX-01 实验记录。
 - **对照档未动**：wbpp_2_9_1 / wbpp_current / astrocs_adaptive 仍是 N>15 → linear_fit
   （WBPP 档界对照基线）；linear_fit 仍是合法显式方法（request=linear_fit）。
 - **ESD 自查结论（M5 不采用）**：实现**忠实于 Rosner/NIST**（λ1(54)=3.1588 与 NIST 公布值一致、

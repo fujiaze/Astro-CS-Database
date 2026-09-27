@@ -88,7 +88,7 @@ exports:
 # 下列符号已从 source_symbols 撤下：它们在三个生产命令（cmd_session{1,2,3}_run）
 # 的名字级调用图上不可达（判据 = eng/ci/check_prod_wiring.py W1），且不在本模块
 # exports 面内。符号本体、公共头声明与既有 API 面均不动；去向 = API 合同面/
-# 诊断工具面/契约测试面，逐类处置依据见 run/WIRING-W16-01/REPORT.md §3。
+# 诊断工具面/契约测试面，逐类处置依据见登记报告。
 # 本撤销同时是既有门 CHK-ALGO-WIRING W2 台账 dormant_algorithms.json 明文
 # 退出条件之一（「或从 lib/**/module.yaml source_symbols 移除该声明」）。
 source_symbols:
@@ -159,7 +159,7 @@ notes: >-
   判定 + 钳位；theta 经 4 候选 {θ,π/2-θ,π/2+θ,π-θ} trimmed-MAD 消歧
   （dpsf_psf.cpp:389-401）。flux=2π·A·sx·sy/3 为 β=4 Moffat 解析积分
   （:406-407），FWHM=1.230310·sx/sy（:371-372）。
-  PSF-FAST-001（P2 性能批，负责人裁决 2026-09-14）：生产节点只跑 FAST ——
+  PSF-FAST-001（P2 性能批）：生产节点只跑 FAST ——
   全量检测(145,884 P1-003 类)保持不变, 仅把 Moffat4 拟合限制到最亮
   psf.max_stars 颗(节点配置, 默认 5000; 0=不截断)。完整精确路径
   (p1_op_star_psf_precise = n_fit_limit 0) **保留但 inactive**: 开关

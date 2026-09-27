@@ -30,8 +30,7 @@
 //             （DOC-403 文件域）。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
 //             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
-//             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记」；
-//             RELEASE-04 GAP_AUDIT G3-6 / G2-1（包已出库）。
+//             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记」。
 // ──────────────────────────────────────────────────────────────────────
 // lib/algorithms/projection/p3_proj.h — V6 Phase3 投影实现层（标准 FITS WCS Paper II
 // registry v3 已实现四投影 + 逐像素立体角 Ω + R/S 行/列归一二元语义 + 计划/奇点/wrap）

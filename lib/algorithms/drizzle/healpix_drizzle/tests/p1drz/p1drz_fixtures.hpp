@@ -211,10 +211,10 @@ inline drizzle::FitsImage fix_drz_d_impulse(int w, int h, int px, int py,
 }
 
 // ---------------------------------------------------------------------------
-// FIX-DRZ-E 非有限注入面（FIX-405 G3-5 反转后口径, 与 drizzle_nonfinite_test 互补）:
+// FIX-DRZ-E 非有限注入面（反转后口径, 与 drizzle_nonfinite_test 互补）:
 // 常量面亮度场 + 指定索引 {NaN, +Inf, -Inf}。
 // 现行冻结口径 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
-// （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN, EXP-202 定案）: 不合格样本**样本级掩膜**
+// （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）: 不合格样本**样本级掩膜**
 // （从 F_p/D_p/Var_p 一并剔除 + 重归一 + 强制计数），仅 D_p=0 时输出覆盖级 NaN。
 // 原「经 F_p 直接传播、不掩膜」承诺（DRIZZLE.md:96 行）已按同一 rule_id 作废。
 // 返回注入索引列表供 oracle 断言：掩膜成立（无 leaf 被污染）且计数 = 注入数。

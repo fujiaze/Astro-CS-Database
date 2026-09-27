@@ -5,8 +5,6 @@
 //   - docs/ASTROCS_DESIGN.md §10 逐字：「aio 是文件级唯一 I/O 边界：任何文件读写经
 //     aio，不得有第二处 I/O 实现」；机器判据「全仓文件打开 / 流式读写 / 文件
 //     系统写操作，除 aio 内部外应为 0」。
-//   - 工程控制/RELEASE-02/GAP_AUDIT.md §9.73【裁决 U5】负责人逐字：
-//     「全部走 aio……没有其他需要读写的地方了」。
 //   - 任务 AIO-SYSINFO-01：把 scheduler 的「可用内存探测」收进 aio 边界。原实现
 //     lib/infrastructure/scheduler/src/module_adapters.cpp 的
 //     p1_available_memory_bytes() 直接 std::fopen("/proc/meminfo") 读

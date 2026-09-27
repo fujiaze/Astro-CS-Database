@@ -54,7 +54,7 @@ namespace p1hips {
 namespace {
 
 // ── 冻结常量 (DATA-UNC-001 §30.2/§30.3) ────────────────────────────────────
-// FIX-201 / §9.73 A44: 旧「权重模式」provenance 键已删除 (5 → 4 键)。
+// 旧「权重模式」provenance 键已删除 (5 → 4 键)。
 const char* kProvKeys[4] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
                             "ASTROCS_UNCERTAINTY_AVAILABLE",
                             "ASTROCS_REJECT_PROFILE"};
@@ -213,7 +213,7 @@ const int kDiagOnlyFlags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
                            AIO_HIPS_PRODUCT_NREJ | AIO_HIPS_PRODUCT_NUSED;
 
 // 四键齐备性 + 值对拍 (properties, 大写键)
-// FIX-201 / §9.73 A44 收窄锁: 原断言把旧「权重模式」键当契约 (与最高设计
+// 收窄锁: 原断言把旧「权重模式」键当契约 (与最高设计
 // §2.1「全程只有 SNR, 不存在权重模式」相反) —— 现改为**反向锁**: 该族键必须
 // 缺席。任何人重新引入权重模式键, 本断言立即判红 (不放宽任何其它门禁)。
 int dp_check_prov_props(CheckState& cs, const std::string& dir,
@@ -238,7 +238,7 @@ int dp_check_prov_props(CheckState& cs, const std::string& dir,
     for (const auto& e : kv)
         if (e.first.find("WEIGHT") != std::string::npos) ++wm;
     P1HIPS_CHECK_MSG(cs, wm == 0, fault,
-                     "%s/properties 禁出现权重模式键 (§9.73 A44; got %d)", prod, wm);
+                     "%s/properties 禁出现权重模式键 (got %d)", prod, wm);
     return bad + wm;
 }
 
@@ -569,7 +569,7 @@ int test_diag_prov_negative() {
         }
     }
 
-    // DP-N1b (FIX-201 / §9.73 A44 收窄锁, 替代原「非法 weight_mode=3 → 拒绝」
+    // DP-N1b (收窄锁, 替代原「非法 weight_mode=3 → 拒绝」
     // 用例 —— 该形参已删除, 用例对象不存在): 四键 setter 的**合法**形态必须
     // rc==0 且落盘 properties **零**权重模式键。若旧形参被重新引入, 本调用点
     // 编译期即失败 (比运行期断言更强); 若旧键被重新写出, 运行期判红。
@@ -594,17 +594,17 @@ int test_diag_prov_negative() {
             for (const auto& e2 : kv2)
                 if (e2.first.find("WEIGHT") != std::string::npos) ++wm;
             P1HIPS_CHECK_MSG(cs, wm == 0, "dpn1b_no_weight_mode_key",
-                             "A44: properties 禁出现权重模式键 (got %d)", wm);
+                             "properties 禁出现权重模式键 (got %d)", wm);
             const std::string man = slurp(dir + "/manifest.json");
             // BLD-401 空断言充数修复（AGENTS.md §9）：manifest 缺失/为空 ⇒
-            // find("weight")==npos 恒真 ⇒ 该 A44 判据静默变成恒真门。
+            // find("weight")==npos 恒真 ⇒ 该判据静默变成恒真门。
             // failname=nullptr: 只作可读性守卫, 不新增可注入故障名。
             P1HIPS_CHECK_MSG(cs, !man.empty(), nullptr,
                              "dpn1b_manifest_readable: manifest.json 不可读/为空"
-                             "（A44 判据会退化为恒真）");
+                             "（判据会退化为恒真）");
             P1HIPS_CHECK_MSG(cs, man.find("weight") == std::string::npos,
                              "dpn1b_manifest_no_weight_mode_key",
-                             "A44: manifest.json provenance 禁出现权重模式键");
+                             "manifest.json provenance 禁出现权重模式键");
         }
     }
 

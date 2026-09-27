@@ -65,7 +65,7 @@ struct CDMatrix {
 // 前向 A/B: 6x6=36 项 (i*6+j, i+j<=order<=5), C ABI (IpvWcsResult.sip_a[36])
 // 与消费方契约 (wcs_transform evalSip i*6+j) 兼容层, 布局冻结。
 // 逆向 AP/BP: 同 36 项兼容层 (WCS-002 整改形态, 41 网格阶 5)。
-// 扩展逆向 APx/BPx (WCS-003 布局扩展, owner 裁决 1 选 B): 10x10=100 项,
+// 扩展逆向 APx/BPx (WCS-003 布局扩展, 选 B): 10x10=100 项,
 //   索引 i*10+j, 支持 i+j<=apx_order<=9; 81x81 网格高阶拟合逆映射, 供
 //   迭代式反演 (wcs_sky_to_pixel_iterative) 一步初值与高畸变场逆表达。
 //   追加尾部字段: A/B/AP/BP/order/ap_order 偏移与 sizeof 兼容面不变
@@ -216,7 +216,7 @@ struct FlipModeResult {
     bool           success;
 };
 
-// [P27-DEAD-PARAMS] 生产路径不消费字段标注（负责人裁决 A；机器锁 ipv_dead_params_lock）:
+// [P27-DEAD-PARAMS] 生产路径不消费字段标注（机器锁 ipv_dead_params_lock）:
 //   【全局】生产路径无任何 "配置/CLI -> IpvParams" 注入路径 (p1_op_wcs 仅
 //   ipv_get_default_params + 清零 log_dir; wcs 配置对象无 IPV 参数键) =>
 //   本结构体 24 字段全部不可由用户配置影响, 值恒为编译期默认值。

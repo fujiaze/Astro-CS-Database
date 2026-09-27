@@ -56,7 +56,7 @@ TEST(kcorr, piecewise_midpoints_rtol_1e_12) {
               0.5 * ((1.2112 + 1.3925) / 2.0 + (2.3958 + 2.8971) / 2.0), tol);
 }
 
-// F2（SCI-FIX-WEIGHT / R-2 D-10）：scale 维**已退役**。
+// F2（SCI-FIX-WEIGHT）：scale 维**已退役**。
 // 标定域 = scale ∈ [300,600]″（kcorr_matrix_test.cpp:75）。生产真帧源像素角
 // 尺度 0.9586″/px（provenance 生产者实写 0.009856″）远在域外 ⇒ 域外**禁止
 // clamp**：静默 clamp 会把「恒取 300 档」固化成合同，并把与帧无关的表值当

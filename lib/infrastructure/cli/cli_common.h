@@ -100,12 +100,12 @@ std::string local_cpu_signature();
 // subcommand.h 预检同源，禁止各写一份 ⇒ 防预检/运行期分叉）。
 bool config_has_blocks(const nlohmann::json& doc);
 bool config_has_flat_session_keys(const nlohmann::json& doc);
-// 退役的逐帧形态 {phase_name, config, inputs[]}（§9.68 否决项）判别 + 迁移提示
+// 退役的逐帧形态 {phase_name, config, inputs[]} 判别 + 迁移提示
 // （唯一实现 = parser.cpp；预检与运行期同文案、同退出码 3）。
 // session_name ∈ {"normalize","mosaic","export"}：提示按会话给 —— normalize 的该形态是
 // 「每帧一个对象」的旧写法；mosaic/export 的**合同**形态同为 {phase_name, config, inputs[]}
-// （键名与 CLI 不一致，见 GAP_AUDIT §9.71 裁决 2 定案 3），其块化键名方案属**前台裁量面**
-// （定案 4），落地前 CLI 明确拒绝并指向该裁决（不静默按 normalize 键集解释）。
+// （键名与 CLI 不一致），其块化键名方案属**前台裁量面**
+// 落地前 CLI 明确拒绝（不静默按 normalize 键集解释）。
 bool config_is_retired_perframe_form(const nlohmann::json& doc);
 std::string retired_perframe_form_message(const std::string& session_name);
 // 多块形态结构校验（唯一实现）：返回诊断行（空 = 结构可达）；*exit_code = 2（结构/配置错）
@@ -113,7 +113,7 @@ std::string retired_perframe_form_message(const std::string& session_name);
 // include_unknown_keys=false ⇒ 只报结构错（预检页与运行期同序：结构错 2 优先，
 // 未知键交由 validate_config_full 报 3，与平铺路径逐字同序）。
 // session_name 决定块内**输入帧键**判据：normalize → input_lights[]（块 = 一组 light）；
-// mosaic/export 的块内键名方案待 §9.71 定案 4 ⇒ 此前对二者**显式不支持**（rc=2，
+// mosaic/export 的块内键名方案待定 ⇒ 对二者**显式不支持**（rc=2，
 // 不静默按 normalize 键集解释）。
 std::vector<std::string> session_blocks_errors(const std::string& session_name,
                                                const nlohmann::json& doc, int* exit_code,

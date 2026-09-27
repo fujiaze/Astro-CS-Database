@@ -8,7 +8,7 @@
 #     · V6 三模式重采样传播 (IMPL-P3-RSMP-001): p3_rsmp_*.cpp
 #     · 叶级重采样内核 (ALG-P3-003): p3_resample.cpp
 #
-# 迁移沿革 (W4-A9 批次 2 → W8/批次 4):
+# 迁移沿革 (W4-A9 批次 2 → 批次 4):
 #   批次 2 (2026-09-17): p3_resample.{h,cpp} 文件由 lib/phase3_session/ 迁入本目录
 #     (docs/ASTROCS_DESIGN §7.1「resample」行), 但编译单元暂留 astrocs_phase3_session ——
 #     该源依赖 hips_properties_parse/hips_product_validate (时在会话库内) 与

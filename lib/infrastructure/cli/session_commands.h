@@ -114,7 +114,7 @@ inline const InputContract& input_contract(SessionId s) {
 // 合同键在 --template 里可见（验收门：模板必须含新键）；默认值的
 // 唯一家仍是 schema / defaults.json，本表只是显示，不新增第二份来源。
 // crpix_px 的 [512.5, 512.5] 是随模板几何（1024×1024）推出的示例占位，非数值默认。
-// scope（CLI-MULTIBLOCK, GAP_AUDIT §9.68）：
+// scope（CLI-MULTIBLOCK）：
 //   "top"   —— 配置顶层键（单块简写/所有命令）
 //   "block" —— normalize 多块形态的**块内**键（模板里组装进 blocks[] 的每一项；
 //              --help 以 blocks[].<key> 形式列出，与模板同源）
@@ -126,7 +126,7 @@ struct ConfigField {
     const char* scope = "top";   // "top" | "block"
 };
 
-// 多块模板的第二块示例取值覆盖（键 → JSON 文本）。两块示例展示 §9.68 的实际用途：
+// 多块模板的第二块示例取值覆盖（键 → JSON 文本）。两块示例展示多块形态的实际用途：
 // 多通道（红/氢）各带自己的平场与运行参数，但**共用同一组 bias/dark 母版**
 // 与同一个 Gaia 目录 —— 「同一组校准帧和运行参数支持一组 light」。
 // name 是块归属标识（日志/run manifest 的 block.name），不是运行参数。
@@ -154,7 +154,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "块归属标识（可选；写入日志与 run manifest 的 block.name，便于多块归属）", "block"},
         {"input_lights", "[\"path/to/light1.fits\", \"path/to/light2.fits\"]",
          "亮场 FITS 路径数组（必填非空）= 一大组 light；本块的母版与运行参数支持整组，"
-         "不得逐帧重复写校准帧（§9.68）", "block"},
+         "不得逐帧重复写校准帧", "block"},
         {"master_bias", "\"path/to/bias.fits\"",
          "本块 bias master FITS 路径；缺 → 预检 error（仅 -force 可越）", "block"},
         {"master_dark", "\"path/to/dark.fits\"",
@@ -167,7 +167,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // 落盘形态键（HIPS-IDX-01）：合同声明 = phase_config_normalize.schema.json
         // #/$defs/storage_form（enum archive|bare，默认 archive；键缺失/空串/null ⇒
         // 默认 + warn，禁止静默取默认）。json == nullptr ⇒ 不进 --template/--help 骨架：
-        // 模板不替用户主张形态，用户不写就走「默认 archive + warn」这条已裁决的路径。
+        // 模板不替用户主张形态，用户不写就走「默认 archive + warn」这条默认路径。
         // 形态只改磁盘表示与 I/O 路径，不改科学结果（两形态 tree_hash 相同）。
         // 生产消费点（写出侧按形态落盘）= 分阶段实现计划阶段 2 ⇒ 已登记
         // eng/ci/ledgers/dead_config_keys.json（不得把「CLI 认识」当成「已消费」）。
@@ -184,7 +184,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "precision_mode 必须显式 0=FP32/1=FP64（无 silent 缺省）", "block"},
         {"filter_passband", "\"Baader R\"",
          "观测滤镜/波段标识（空 = 显式无 filter；非空必须逐字命中 eng/packaging/config/filters.json）；"
-         "本块整组 light 共用（§9.68）", "block"},
+         "本块整组 light 共用", "block"},
         {"wcs", "{\"gaia_data_dir\": \"path/to/gaia\"}",
          "指向来源与解算输入：填 wcs.gaia_data_dir 走真实 IPV 解算；"
          "或改为显式线性 WCS 八参数 crpix1/crpix2/crval1/crval2/cd11/cd12/cd21/cd22", "block"},
@@ -219,7 +219,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "可选：数据集级覆盖索引 coverage.index.json 的路径（加性可选键；缺省回退 = 由产品级索引现场倒排）"
          "（合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
         {"output_dir", "\".\"", "运行产物唯一落点（必填非空字符串）"},
-        //（GAP_AUDIT G05；docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 不认的提升键落地。键名**逐字**取合同
         // 声明名（禁止新造同义键）：
         //   eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -233,10 +233,10 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
         // 精度口径（docs/ASTROCS_DESIGN §3.3:256）：阶段二/三 = 位深键 bitpix(-32/-64)，
         // 阶段一 = drizzle.precision_mode(0/1)。**不新造 precision(fp32/fp64) 同义键**。
-        // §9.73 裁决 A44（「权重模式」概念不存在）: 原 weight_mode / legacy_allow_weight_fallback
+        // 「权重模式」概念不存在: 原 weight_mode / legacy_allow_weight_fallback
         // 两键**已从 CLI 配置面摘除**（模板/help/白名单同撤）。权重是 Phase2 消费 SNR 时的
         // 派生量（帧级 SNR + 稀疏相对 SNR 比），不是配置项；实现/冻结面（module_adapters /
-        // v6 provenance / mode gate legacy 分支）由另一分片处置。
+        // v6 provenance / mode gate legacy 分支）另行处置。
         {"upm", nullptr, "可选 UPM 配置块（拒绝/拟合参数）"},
         {"reject", nullptr, "可选 rejection 配置块；reject_profile 选择档位"},
         // DC-401/DC-418/DC-419（§4.5.5）: CLI 只识别并透传，不判科学值域；
@@ -256,7 +256,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"width_px", "1024", "输出宽度（1..20000）"},
         {"height_px", "1024", "输出高度（1..20000）"},
         {"scale_deg_per_px", "0.001", "输出像素尺度（度/像素，必须 > 0）"},
-        //GAP_AUDIT N03；docs/ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准：
+        //docs/ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准：
         // 合同声明但 CLI 不认的提升键落地。键名**逐字**取合同声明名（禁止新造同义键）：
         //   eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
@@ -326,7 +326,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
 // 配置模板（§6.1 --template）：由 config_fields 拼装 —— 键名/值/说明单源，
 // 与运行期节点必需键同步（E2E-D02：normalize 曾缺 drizzle.precision_mode，
 // 用户拿模板补路径后仍被拒）。
-// CLI-MULTIBLOCK（§9.68）：scope=="block" 的字段组装为 blocks[] 的两块示例
+// CLI-MULTIBLOCK：scope=="block" 的字段组装为 blocks[] 的两块示例
 // （同一 JSON 内并列多块，各带一套母版与运行参数 + 块级 output_dir）。
 inline std::string config_template(SessionId s) {
     std::string out = "{\n";
@@ -377,7 +377,7 @@ inline std::string config_field_help(SessionId s) {
         if (std::string(f.scope) == "block") has_block_fields = true;
     if (has_block_fields)
         out += "  blocks — 多数据块数组：每块 = 一组 light + 一套母版 + 运行参数 + 块级 "
-               "output_dir（一块 = 一次运行 = 一份 run manifest；§9.68）。"
+               "output_dir（一块 = 一次运行 = 一份 run manifest）。"
                "只有一块时可用平铺单块简写（input_lights/master_*/output_dir 顶层平铺）；"
                "两种形态互斥\n";
     for (const auto& f : config_fields(s)) {

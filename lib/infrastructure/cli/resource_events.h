@@ -1,5 +1,5 @@
 // acsd 资源事件模块 (MON-002) — stage/resource/backend 事件 + summary + raw 指针。
-// GATE-FIX-RES(R-4 D-14): 「summary|timeseries 分层档」已退役 —— 该档旗标
+// GATE-FIX-RES: 「summary|timeseries 分层档」已退役 —— 该档旗标
 // --resource-detail 不在命令树白名单（真 CLI rc=2 「unknown flag」）, 且 timeseries
 // 档只写恒空 curve_points, 唯一曲线构造器 build_curve() 生产零调用 ⇒ 删除, 避免
 // 下游据 «curve_points 存在» 推断「有曲线」而读到空数组（静默错误信号）。
@@ -47,7 +47,7 @@ struct ResourceReport {
     } summary;
     std::string raw_dir;             // 原始时序留存路径(节点)
     // 曲线不再内嵌事件: 唯一载体 = raw_dir/resource_timeseries.csv
-    // (GATE-FIX-RES / R-4 D-14/D-15)。
+    // (GATE-FIX-RES)。
     std::size_t raw_n = 0;           // 原始样本数(入库, 但不内嵌数据)
 };
 

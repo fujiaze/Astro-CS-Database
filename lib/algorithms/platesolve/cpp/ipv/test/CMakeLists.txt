@@ -157,7 +157,7 @@ add_test(NAME ipv_params_abi_failclosed COMMAND ipv_params_abi_failclosed_test)
 set_tests_properties(ipv_params_abi_failclosed PROPERTIES TIMEOUT 120)
 
 # ============================================================================
-# P27 死字段防误用锁 (负责人裁决 A: 不改解算行为, 只标注 + 机器锁)
+# P27 死字段防误用锁 (不改解算行为, 只标注 + 机器锁)
 # ----------------------------------------------------------------------------
 # 生产路径 phase1 run -> p1_op_wcs -> ipv_solve_from_memory_with_callback_d
 # -> solve_from_memory_with_callback_f64 -> solve_post_select 中:

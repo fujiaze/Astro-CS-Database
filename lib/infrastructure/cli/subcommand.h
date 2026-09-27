@@ -27,7 +27,7 @@
 #include "session_commands.h"
 
 #include "cli_common.h"   // Parsed / need_value / parse_fail / session_dispatch
-#include "disk_gate.h"    // §9.74 裁决 10: 磁盘门（唯一资源判据；跑前 warn / 运行中 fail-closed）
+#include "disk_gate.h"    // 磁盘门（唯一资源判据；跑前 warn / 运行中 fail-closed）
 #include "exit_codes.h"
 #include "jsonl.h"
 
@@ -71,7 +71,7 @@ inline std::vector<std::string> config_structure_errors(SessionId session,
         errs.push_back(retired_perframe_form_message(session_cli_name(session)));
         return errs;
     }
-    // CLI-MULTIBLOCK（GAP_AUDIT §9.68/§9.71）：多块形态 —— 结构与运行期
+    // CLI-MULTIBLOCK：多块形态 —— 结构与运行期
     // 同源（唯一实现 = parser.cpp session_blocks_errors），此处不另造判据。
     // 多块形态自带块级 output_dir，故不要求顶层 output_dir。
     if (config_has_blocks(doc)) {
@@ -163,7 +163,7 @@ inline void check_input_path(std::vector<std::string>& errs, const std::string& 
 inline std::vector<std::string> input_path_errors(SessionId session,
                                                   const nlohmann::json& doc) {
     std::vector<std::string> errs;
-    // CLI-MULTIBLOCK（§9.68）：块级路径按平铺同款纪律逐块核磁盘，标签带 blocks[i]. 前缀
+    // CLI-MULTIBLOCK：块级路径按平铺同款纪律逐块核磁盘，标签带 blocks[i]. 前缀
     // （一块一组 light + 一套母版；母版路径存在性 = 现有纪律：预检在盘上核实）。
     auto check_array_in = [&](const nlohmann::json& host, const char* key, bool want_dir,
                               const std::string& prefix) {
@@ -184,7 +184,7 @@ inline std::vector<std::string> input_path_errors(SessionId session,
         check_array_in(doc, key, want_dir, "");
     };
 
-    // §9.71 裁决 2（三命令同构块结构）：块内「一组输入帧」的判据按会话给 ——
+    //（三命令同构块结构）：块内「一组输入帧」的判据按会话给 ——
     // normalize 收 light 帧文件，mosaic/export 收 HiPS 目录；键名/形态来自
     // input_contract(session)（单一声明），不在此手写第二份。
     if (config_has_blocks(doc) && doc["blocks"].is_array()) {
@@ -243,9 +243,9 @@ inline std::vector<std::string> input_path_errors(SessionId session,
 inline std::vector<CheckLine> calibration_checks(SessionId session,
                                                   const nlohmann::json& doc) {
     std::vector<CheckLine> checks;
-    // §9.71 裁决 2: 标定帧概念只属于 normalize 会话（mosaic/export 的输入是 HiPS 产品）。
+    // 标定帧概念只属于 normalize 会话（mosaic/export 的输入是 HiPS 产品）。
     if (session != SESSION_NORMALIZE) return checks;
-    // CLI-MULTIBLOCK（§9.68）：多块形态逐块给标定帧可见性，标签带 blocks[i]. 前缀
+    // CLI-MULTIBLOCK：多块形态逐块给标定帧可见性，标签带 blocks[i]. 前缀
     // （块级归属可见；缺校准帧仍是 -force 可越过的 error，逐块独立判定）。
     auto checks_for = [&](const nlohmann::json& host, const std::string& prefix) {
         for (const char* k : {"master_bias", "master_dark", "master_flat"}) {
@@ -272,7 +272,7 @@ inline std::vector<CheckLine> calibration_checks(SessionId session,
     return checks;
 }
 
-// ── §3.5「详细预估」+ §9.74 裁决 10：磁盘预检（**唯一资源判据**） ──
+// ── §3.5「详细预估」+ 磁盘预检（**唯一资源判据**） ──
 //   * 预估事实（可用空间 / 预估需求下限）恒呈现（correct 行）——§3.5 要求预检页含
 //     「资源与磁盘占用预估」；
 //   * 余量不足 ⇒ **warn（不阻断）**：只进预检页，**不参与** has_error() 判定，
@@ -301,7 +301,7 @@ inline std::vector<CheckLine> disk_precheck_lines(SessionId session, const nlohm
 // 不再在此另造一套。
 inline std::vector<CheckLine> precheck_config(SessionId session, const nlohmann::json& doc) {
     std::vector<CheckLine> checks;
-    // CLI-MULTIBLOCK（§9.68）：多块形态逐块给「块归属 + output_dir + light 条目数」
+    // CLI-MULTIBLOCK：多块形态逐块给「块归属 + output_dir + light 条目数」
     // 可见性（一块 = 一次运行 = 一个 output_dir / 一份 manifest）。
     if (config_has_blocks(doc) && doc["blocks"].is_array()) {
         const std::vector<std::string> berrs = config_structure_errors(session, doc);
@@ -410,7 +410,7 @@ struct Subcommand {
             std::fprintf(stderr, "acsd: %s -force: skipping precheck and confirmation\n", name);
             return session_dispatch(static_cast<int>(session), SessionOp::Run, p, ev);
         }
-        // CLI-MULTIBLOCK（§9.68 否决项）：退役的逐帧形态 {phase_name, config, inputs[]}
+        // CLI-MULTIBLOCK：退役的逐帧形态 {phase_name, config, inputs[]}
         // 在预检面即**明确拒绝并给迁移提示**（不落进「output_dir 缺失」一类泛化诊断；
         // 与运行期 validate_config_full 同文案、同退出码 3）。
         if (config_is_retired_perframe_form(doc)) {

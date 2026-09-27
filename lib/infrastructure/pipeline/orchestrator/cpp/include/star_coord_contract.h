@@ -16,8 +16,8 @@
 //       - dpsf 采样 sp.dx = (double)x - cx (dpsf_psf.cpp:295), 即像素"索引"
 //         就是模型坐标, 拟合中心回移 img_cx = cx + x0 (dpsf_psf.cpp:437)
 //         仍在该系; **无 +0.5 注入**。
-//       - 因此同一颗星 sdet 输出比 dpsf 输出恒大 0.5 px。实测 (R-3 §2.9,
-//         run/PROJECT-GOVERNANCE-01/R-3/probe/probe_convention, SNR=50/100/300):
+//       - 因此同一颗星 sdet 输出比 dpsf 输出恒大 0.5 px。实测（探针,
+//         SNR=50/100/300):
 //         sdet - truthFITS median 0.0100..0.0202 px;
 //         dpsf - truthFITS 恒 -0.4993..-0.5000 px; 三种初值同解。
 //

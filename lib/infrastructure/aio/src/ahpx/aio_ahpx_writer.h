@@ -36,7 +36,7 @@ public:
 
     // 设置元数据 JSON (调用方构建完整 JSON 字符串)
     // 必须包含 image/wcs/observation/calibration 字段
-    // 携带已作废的 "weight" 字段 ⇒ write() 显式拒绝 (不产出读侧必拒的文件)
+    // 携带 "weight" 字段 ⇒ write() 显式拒绝 (不产出读侧必拒的文件)
     void setMetadata(const std::string& json);
 
     // 设置图像数据 (float32, HWC 或 CHW 排列由调用方约定, 这里只存原始字节)

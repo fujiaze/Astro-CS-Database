@@ -3,7 +3,7 @@
 //             模块 DLL + run_stage_* 阶段表 + admission_controller/resource_monitor +
 //             request_cancel/SIGINT 取消令牌 + checkpoint.cpp），目录 50 文件 / 18411 行。
 // WHY-KEPT:   ① ORCH-HOME-01（物理位 = lib/infrastructure/pipeline/orchestrator；职责家 =
-//             lib/infrastructure/scheduler/**）已按 ORCH-001 登记交前台裁决，退场与否属该裁决范围；
+//             lib/infrastructure/scheduler/**）已按 ORCH-001 登记另行处置，退场与否属该事项范围；
 //             ② eng/ci/checks.json 的 CHK-CONTRACT-TEST 以 ctest_targets 登记本目录 6 个 ctest
 //             （orchestrator_logger_units / orchestrator_checkpoint_units / orchestrator_cli_integration /
 //             orchestrator_legacy_cli_smoke / orchestrator_legacy_cli_validate /

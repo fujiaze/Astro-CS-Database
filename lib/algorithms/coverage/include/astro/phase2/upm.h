@@ -1,6 +1,6 @@
 // lib/algorithms/coverage/include/astro/phase2/upm.h
 //
-// Phase2 Unified Photometric Model (UPM) 公共接口（W2 冻结，
+// Phase2 Unified Photometric Model (UPM) 公共接口（冻结，
 // AstroCS_Phase2_Implementation_Control_Package_V1，SHA 34A532A2...B2EB308）。
 //
 // 语义（冻结）：
@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 
-// ===== 控制观测（W2 冻结 + control-variance 合同）=====
+// ===== 控制观测（冻结 + control-variance 合同）=====
 typedef struct {
     std::uint64_t frame_id;
     std::uint64_t control_id;
@@ -56,7 +56,7 @@ typedef struct {
     std::uint32_t quality_flags;
 } P2ControlObservation;
 
-// ===== 模型信息（W2 冻结）=====
+// ===== 模型信息（冻结）=====
 typedef struct {
     std::uint32_t version;
     std::uint32_t precision;      // 0=fp32, 1=fp64
@@ -67,7 +67,7 @@ typedef struct {
     char model_hash[65];          // 模型内容 SHA-256
 } P2ModelInfo;
 
-// ===== 构建配置（W2 冻结）=====
+// ===== 构建配置（冻结）=====
 typedef struct {
     int    robust_loss;           // 0=huber（首版）
     int    snr_weight_mode;       // 0=snr2_normalized（首版）
@@ -92,10 +92,9 @@ typedef struct {
     // CON-005 并行观察/聚合 worker 数（0=auto；1=串行默认）。仅 P2_ENABLE_OPENMP
     // 且 >1 时并行 compute_raw/聚合；gauge/连通分量/收敛/归并保持固定顺序。
     int    cpu_workers;          // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
-    // ===== RELEASE-02 P2a 接缝修复（科学行为变更，显式 opt-in）=====
-    // 下列 4 项默认取 W2 冻结基线（legacy）值，使 cfg{}/cfg; 的既有调用点
+    // ===== P2a 接缝修复（科学行为变更，显式 opt-in）=====
+    // 下列 4 项默认取冻结基线（legacy）值，使 cfg{}/cfg; 的既有调用点
     // 行为逐位不变；生产装配 p2_op_upm_fit 显式启用 P2a-2/P2a-3/P2a-4。
-    // 依据：RELEASE-02 {q2-snr-smooth,c-delta-ruling}.md（已退役，见仓库 git 历史）。
     // P2a-2 阻尼：C 场交替更新 x ← (1-α)·x_old + α·x_new。α<=0 / 非有限 /
     // >1 一律按 1.0（无阻尼，legacy）。naive α=1 在链式/二部覆盖图上有
     // 特征值 -1（周期 2 振荡，永不收敛）。
@@ -178,7 +177,7 @@ P2_API int p2_upm_raw_weight(const P2ControlObservation* obs,
                              double* out_raw);
 
 // per-control 归一化权重（raw/sum_j(raw) × control_reliability）。
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_normalized_weights 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_normalized_weights 全仓零消费者声明已撤下。 */
 
 // geometry/topology hash（仅 geometry/coverage 决定，不含
 // SNR/quality/support 等观测可信度；权重变化不得改变）。
@@ -352,7 +351,7 @@ P2_API int p2_upm_ma_solution(
 // frame -> 连通分量下标；control -> 连通分量下标。未知 id → 返回 1。
 P2_API int p2_upm_ma_component_of_frame(
     const void* model, std::uint64_t frame_id, std::uint64_t* out_component);
-/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_ma_component_of_control 全仓零消费者声明已撤下；见 run/WIRING-W16-01/REPORT.md。 */
+/* RETIRED 2026-09-25 (CHK-PROD-WIRING W1): p2_upm_ma_component_of_control 全仓零消费者声明已撤下。 */
 // 每分量 gauge 参考帧（分量内最小 frame_id；与构建顺序无关）。
 P2_API int p2_upm_ma_component_ref_frame(
     const void* model, std::uint64_t component, std::uint64_t* out_ref_frame_id);
@@ -379,7 +378,7 @@ P2_API int p2_upm_ma_provenance(
 // ===========================================================================
 // 生产链（p2_upm_build_geo）的可辨识性与拟合诊断 —— 只读访问器
 // ===========================================================================
-// 背景：生产链走 W2 冻结的 p2_upm_build_geo（坐标下降 Huber IRLS），**不是** V6
+// 背景：生产链走冻结的 p2_upm_build_geo（坐标下降 Huber IRLS），**不是** V6
 // MA 求解器，而 P2ModelInfo（本文件 :60-68）没有 rank/kappa 访问器。此前
 // p2_upm_model.json 只能把 rank/kappa 记成 null + 「不可得原因」。
 //
@@ -424,7 +423,7 @@ typedef struct {
 // 未记录诊断（旧模型文件）。
 P2_API int p2_upm_identifiability(const void* model, P2UpmIdentifiability* out);
 
-// **不收敛/判红的产品级警告块**（负责人裁决：报警告，不影响运行，不 fail-closed）。
+// **不收敛/判红的产品级警告块**（报警告，不影响运行，不 fail-closed）。
 // 输出可直接并入产品 JSON 的机器可检标记，形如：
 //   {"warnings":[{"code":"P2-UPM-NOT-CONVERGED","severity":"warning",...}],
 //    "warning_codes":["P2-UPM-NOT-CONVERGED"],"upm_converged_warning":true,...}

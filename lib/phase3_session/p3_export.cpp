@@ -24,7 +24,7 @@
 //             ④ 删除 eng/tests/integration/p3_export/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
-//             RELEASE-04 GAP_AUDIT G2-1/G3-2（包已出库）；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
+//             eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
 // lib/phase3_session/p3_export.cpp — Phase3 V6 三模式产品导出接线实现。
 //
@@ -35,7 +35,7 @@
 //   aio::FitsStreamWriter + aio::atomic_publish_file -> 流式 FITS + 原子发布
 //   aio::verify_fits_file / validate_provenance_json / validate_bunit_law -> 重开独立验证
 //
-// 产品 HDU 布局的 schema 依据（W6 生产 schema，SCHEMA-INTEGRATE-001）:
+// 产品 HDU 布局的 schema 依据（生产 schema，SCHEMA-INTEGRATE-001）:
 //   eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/provenance/allOf 规定：
 //     units.bunit == "ADU"  =>  units.pixel_semantics == "surface_brightness"
 //                              且 units.pixel_area_power == -2；

@@ -41,7 +41,7 @@ WcsFitResult build_wcs(
 
 // ---------------------------------------------------------------------------
 // 迭代式反演: 天球 (RA/Dec, 度) → 像素 (0-based FITS, Y-down)
-// (WCS-003 owner 裁决 1 选 B: 消费方迭代式反演语义的生产参考实现,
+// (WCS-003 选 B: 消费方迭代式反演语义的生产参考实现,
 //  替代 AP/BP 一步直加语义达成 F2 冻结门 <1e-4 px)
 //
 // 语义: 解 u 满足前向模型 F(u) = u + A(u) = CD⁻¹·(ξ,η)
@@ -60,7 +60,7 @@ WcsFitResult build_wcs(
 //   **本函数不做 FITS 1-based 换算**)。
 //   converged=false 时 x,y 置 NaN, iterations=已执行迭代次数。
 //
-// STD-F1 口径边界 (前台裁决 R-02 方案 b; 合同见 docs/science/ASTROMETRY.md):
+// STD-F1 口径边界 (方案 b; 合同见 docs/science/ASTROMETRY.md):
 //   - 本函数属 ipv 内部 0-based 口径, **禁止**在此处或调用侧再施加一次 +1;
 //   - FITS 1-based 桥接 (xp = x + 1) 的唯一责任方 = Phase3 导出边界
 //     (lib/algorithms/projection/p3_wcs.cpp 的 fits_pixel_1based);

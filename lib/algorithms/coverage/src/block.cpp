@@ -1,4 +1,4 @@
-// lib/algorithms/coverage/src/block.cpp — Phase2 W6 动态分块
+// lib/algorithms/coverage/src/block.cpp — Phase2 动态分块
 #include "astro/phase2/block.h"
 
 #include <algorithm>

@@ -20,7 +20,7 @@
 //       MC 实测带 [1.27, 1.43]（DATA_SEMANTICS control_k_corr 行；
 //       在册实测 1.3883，受控复现 1.3445±0.0416）。
 //    代码默认 kControlCorrDefault=1.4 的角色是实现记录与查表域外回退值
-//    （D-08：逐帧两因子查表 k_gauss × k_geo 优先于常数），本测试不做
+//    （逐帧两因子查表 k_gauss × k_geo 优先于常数），本测试不做
 //    |1.4 − k_corr_empirical| 容差断言。
 //
 // 编译（PowerShell）：
@@ -51,7 +51,7 @@ constexpr int W = 20, H = 20;
 constexpr int NSIDE = 512;
 constexpr double SKY = 1000.0;
 constexpr double SIGMA = 10.0;
-// 判据（DATA_SEMANTICS control_k_corr 行，D-08 口径）：
+// 判据（DATA_SEMANTICS control_k_corr 行口径）：
 const double K_SCI_LO = 0.98, K_SCI_HI = 2.0;    // 科学合理区间
 const double K_BAND_LO = 1.27, K_BAND_HI = 1.43; // 声明几何 MC 实测带
 
@@ -269,7 +269,7 @@ int main() {
     std::printf("k_corr=%.4f  N_eff=%.1f  (%.2fs)\n",
                 k_corr, n_eff, dt);
 
-    // 非退化判据门（judge；红 = 测量链退化或超声明带，与 D-08 口径一致）。
+    // 非退化判据门（judge；红 = 测量链退化或超声明带，与声明口径一致）。
     const int jd = judge(k_corr, var_emp, baseline);
     if (jd != 0) {
         std::printf("[FAIL] k_corr=%.4f 超出科学合理区间 [%.2f, %.2f] "
@@ -279,6 +279,6 @@ int main() {
     }
     std::printf("[PASS] k_corr=%.4f 落在声明几何 MC 实测带 [%.2f, %.2f]："
                 "作为标定几何专属实测证据（代码默认 1.4 为实现记录，"
-                "逐帧查表优先，D-08）\n", k_corr, K_BAND_LO, K_BAND_HI);
+                "逐帧查表优先）\n", k_corr, K_BAND_LO, K_BAND_HI);
     return 0;
 }

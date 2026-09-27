@@ -646,7 +646,7 @@ static int gaia_query_mag_iterative(
     }
     // ALG-WCS-001 §4a.4: 触顶 (每文件返回上限) 的星表按遍历序被截断, 在空间/星等上
     // 不完整, 属科学有偏样本 ⇒ 不得交付给求解器作参考星表 (fail-closed)。
-    // 证据: run/RELEASE-05/perf/fix3/REPORT-PERF-MEM-FIX-01.md §5 —— 采用截断样本的
+    // 证据: PERF-MEM-FIX-01 实测报告 §5 —— 采用截断样本的
     // 4 次运行全部以 iter_trans_solve 全阶失败告终 (参考集 tri_B=26053 vs 收敛时 24761)。
     if (mi.capped) {
         char buf[384];

@@ -36,7 +36,7 @@
  *                             support_x_snr*；帧级 median(SNR_F) 只作诊断
  *   IMPL-P3-INTEGRATE-001 约定: HDU 命名 SIGNAL / FLUX / EFFECTIVE_PSF
  *
- * 权词表单源（W6 canonical，禁第三套）:
+ * 权词表单源（canonical，禁第三套）:
  *   weight.{kind,units,group_normalized,normalization.scope,
  *           normalization.median_target,normalization.constants_version,weight_value}
  */

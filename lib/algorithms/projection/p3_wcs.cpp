@@ -32,7 +32,7 @@ void normalize_ra(double* ra) {
 }
 
 // ---------------------------------------------------------------------------
-// STD-F1 / 前台裁决 R-02(方案 b) 导出边界桥接 —— **全文件唯一 +1 点**
+// STD-F1（方案 b） 导出边界桥接 —— **全文件唯一 +1 点**
 //
 // 口径 (合同冻结, 见 docs/science/ASTROMETRY.md 与
 // docs/standards/STANDARDS_REGISTRY.md 的 STD-F1 行):
@@ -184,7 +184,7 @@ namespace {
 //     0.18″/px 上余量仅 1.01×（独立区间算术包络 1.78e-8 px ⇒ 0.56× ⇒ 会误拒）。
 //   ⇒ 紧门必须配适用域下限 min_scale_arcsec = 0.9″/px（覆盖仓内最小真实尺度
 //     0.9586″/px，即 T2/T3 档）。尺度低于下限时**该门不适用**（明确报「超出
-//     适用域」），**不判红**——判红会误拒合法几何（GATE-WCS-01 裁决 1）。
+//     适用域」），**不判红**——判红会误拒合法几何（GATE-WCS-01）。
 //   * 全域保守门 1e-6 px（SCI-WCS-001 §11 STD-F1）保留: 保守性下界
 //     s ≥ 1.79e-3″/px（实测常数）/ 2.93e-3″/px（设计常数）⇒ 覆盖所有真实仪器；
 //     代价是判据力弱（0.18″/px 处相对包络余量 101×）。两门用途不同, **不合并**。
@@ -193,13 +193,13 @@ namespace {
 //
 // roundtrip_tol_px = 1e-8 px —— 往返 Oracle 实验表（冻结）+ GATE-DERIVE-01 复核:
 //   * 规范来源: docs/ASTROCS_DESIGN §5.3「每种投影必须声明适用域（含往返误差上界），
-//     违反 ⇒ 拒绝」；上界必须由实验确定（GAP_AUDIT G3-6 要求经 SCI 复核后冻结）。
+//     违反 ⇒ 拒绝」；上界必须由实验确定（经 SCI 复核后冻结）。
 //   * TAN 全域实测（本生产实现自身，880 组几何 × 密集逐像素 = 8.31e6 次往返 +
 //     FOV=20° 适用域边界 512²/1024²/2048² = 2.42e7 次往返）:
 //     max = 2.437e-9 px（最坏工况 **0.18″/px**（= 5e-5 deg/px）、|CRVAL2|=85°、
 //     PA=30°、129²）。**更正**: 本注释旧版把该工况写成「0.05″/px」，与复核
 //     扫描表的 5e-5 deg/px 差 3.6×，且 0.18″/px 恰是 K4 的临界尺度 ⇒ 必须更正
-//     （GATE-DERIVE-01 §6.4 / GATE-WCS-01 裁决 6）。
+//     （GATE-DERIVE-01 §6.4）。
 //   * 独立 Oracle 可达精度: astropy 7.0.1 / WCSLIB 8.4 与独立切基式 ~2.5e-10 px
 //     （对拍同一 WCS；SIN 内核同类问题的判定见内核已知偏差登记）。
 //   * 冻结值 1e-8 px = 实测最坏 4.1× / Oracle 可达 40×；相对旧值 1e-6 px 是
@@ -475,7 +475,7 @@ P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
     const P3WcsRoundtripGate gate = p3_wcs_roundtrip_gate(d);
     if (gate.status == P3_WCS_RT_GATE_OUT_OF_DOMAIN) {
         // 明确报「超出适用域」, 但**不是**失败: 闭式 TAN 在该尺度仍正确, 只是没有
-        // 可用的保守门（判红会误拒; GATE-WCS-01 裁决 1）。
+        // 可用的保守门（判红会误拒; GATE-WCS-01）。
         if (why)
             *why = std::string("applicability: roundtrip gate OUT OF APPLICABILITY "
                                "DOMAIN: scale ") +

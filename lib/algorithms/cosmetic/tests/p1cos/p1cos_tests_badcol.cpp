@@ -211,7 +211,7 @@ void case_degrade_traced(int w, int h) {
             if (r.out[static_cast<size_t>(y) * w + 0] != d[static_cast<size_t>(y) * w + 1]) ++bad;
         check(bad == 0, "边缘坏列按声明行为复制唯一可用锚列");
     }
-    // 4b. 连续三列坏（10,11,12）：**默认 max_seg_len=1 不修**（负责人裁决
+    // 4b. 连续三列坏（10,11,12）：**默认 max_seg_len=1 不修**（
     //     只修单列；相邻多列不属本任务）⇒ 降级为"仅标记"，掩膜值 2，
     //     逐位保留原值，并置 AC_COLSTAT_WIDE_DEFECT。不得静默。
     {
@@ -470,7 +470,7 @@ void case_master_paths(int w, int h) {
 }
 
 
-// ═══════ ⑨ 修复像素方差面 var_out = (Σw²·var_in)·κ（LINDEF-CLOSE-01 裁决 3）═══════
+// ═══════ ⑨ 修复像素方差面 var_out = (Σw²·var_in)·κ（LINDEF-CLOSE-01）═══════
 // 判据非退化对照：κ=1（只做 Σw² 传播）与 κ=2（信息平价）必须给出**不同**结果；
 // 仅标记（掩膜值 2）的列必须**不动**方差（值没被换过）；κ<=0/非有限必须拒绝且不写输出。
 void case_variance_inflate(int w, int h) {
@@ -533,7 +533,7 @@ void case_variance_inflate(int w, int h) {
           "9e 拒绝时不得写出任何方差值");
 }
 
-// ═══════ ⑩ 母版专用阈值 + 宽标记区间守卫 + 已修/仅标记分账（裁决 2/4）═══════
+// ═══════ ⑩ 母版专用阈值 + 宽标记区间守卫 + 已修/仅标记分账═══════
 // 非退化对照：同一帧、同一母版，只改 master_column_sigma（5.0 → 40.0）必须给出
 // 不同的母版路径判出数，而**科学帧路径的判出数一个字不变**。
 void case_master_sigma_and_wide_budget(int w, int h) {

@@ -170,7 +170,7 @@ const double kRealFwhm[5] = {1.4072320071088888, 2.9622233810299274, 3.033945408
 
 // NumPy oracle 锚值 (独立实现; CONFORM-FIX-A ① 按修复后口径
 // fwhm_px(检测块高斯) -> sigma = fwhm/2.3548200450309493 复算, 见
-// run/RELEASE-02/conform-fix-a/harness/conf1_oracle.py; 修复前锚值见 CONFORM-SWEEP-1-001)
+// conf1 oracle 脚本; 修复前锚值见 CONFORM-SWEEP-1-001)
 const double kOracleSnrOptReal0 = 10.01518830728662;
 const double kOracleSnrOptCcd   = 126.30302219525699;
 const double kOracleSnrOptSky   = 7.323043993711507;
@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
         checkClose(b.snr_optimal / a.snr_optimal, 2.0, 1e-12, "sky-limited SNR linear in flux");
     }
 
-    // ── SCI-501 (FIX-407): sigma_sky 语义 / 读噪双计负例保护 ──────────────
+    // ── SCI-501: sigma_sky 语义 / 读噪双计负例保护 ──────────────
     // 口径正本: docs/plugins/algorithms_phase1/07_noise_snr.md 4.2a（DOC-502 冻结）。
     // 逐像素噪声 sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g，读噪只出现一次。
     // 本组：① 双计臂（经验总 rms 再加 (RN/g)^2）必须被判红（MC 3sigma 外）；

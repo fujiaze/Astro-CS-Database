@@ -282,7 +282,7 @@ struct DrizzleOpCounters {
     int64_t sh_calls = 0;         // 球面重叠调用数
     int64_t tile_lookups = 0;     // tile 累加器访问数
     int64_t heap_allocations = 0; // 热循环堆分配数 (目标 ~0)
-    // G3-5: 样本级掩膜计数（DATA-002 §2a 强制计数；整数, 归约序无关）
+    // 样本级掩膜计数（DATA-002 §2a 强制计数；整数, 归约序无关）
     int64_t rejected_nonfinite_value = 0;      // 值非有限 (NaN/Inf)
     int64_t rejected_nonfinite_variance = 0;   // 方差面非有限 (NaN/Inf)
     int64_t rejected_nonpositive_weight = 0;   // 权重非有限或 ≤0
@@ -2021,9 +2021,9 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         }
 
         for (int x = 0; x < img.width; x++) {
-            // ── G3-5 / DISP-DRZ-004 收口 ───────────────────────────────────
+            // ── 样本级掩膜 / DISP-DRZ-004 收口 ───────────────────────────────────
             // 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
-            // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案）:
+            // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN）:
             //   合格样本 = isfinite(x_j)（值有限即合格）；
             //   不合格样本 → **样本级掩膜**（从分子 F_p、分母 D_p、方差项
             //   Var_p 三项一并剔除 ⇒ 重归一自动成立；禁止让单个不合格样本使
@@ -2033,8 +2033,8 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             // 方差可用性是**独立通道**，不参与合格性判定（上游授权 =
             // docs/ASTROCS_DESIGN.md §5.5:379「NaN 采用样本级掩膜」；V≤0 无掩膜授权，
             // 按 §0.1:45「每一层只由它的上一层推出」不得由下级另立）。
-            // 旧行为（NaN 经 F_p 直接传播 + 无计数）已作废（原注释引用的
-            // DRIZZLE.md §8「不掩膜」行亦已按同一 rule_id 反转）。
+            // 现行行为 = 样本级掩膜 + 强制计数；NaN 经 F_p 直接传播 + 无计数的旧行为不再使用（原注释引用的
+            // DRIZZLE.md §8「不掩膜」行亦已按同一 rule_id 订正）。
             DrizzleOpCounters& tc = threadCounters[static_cast<size_t>(tid)];
             Scalar pixelValue = pixels[(size_t)y * (size_t)img.width + (size_t)x];
             if (!std::isfinite((double)pixelValue)) {
@@ -2237,7 +2237,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.op_sh_calls        = totalOps.sh_calls;
     stats.op_tile_lookups    = totalOps.tile_lookups;
     stats.op_heap_allocations = totalOps.heap_allocations;
-    // G3-5: 样本级掩膜计数（强制暴露；合计 = 三原因之和）
+    // 样本级掩膜计数（强制暴露；合计 = 三原因之和）
     stats.n_rejected_nonfinite_value    = totalOps.rejected_nonfinite_value;
     stats.n_rejected_nonfinite_variance = totalOps.rejected_nonfinite_variance;
     stats.n_rejected_nonpositive_weight = totalOps.rejected_nonpositive_weight;

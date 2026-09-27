@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // 任务: W4-A1（像素中心契约口径; OPEN_ITEMS A1 / 问题扫描 M1a-C-003）。
 //
-// 缺陷背景（探针实测, run/PROJECT-GOVERNANCE-01/W4-A1/logs/30_oracle.txt）:
+// 缺陷背景（探针实测）:
 //   * psf 块 cx/cy = dpsf 原始输出 = **index-is-center（0-based 数组下标即中心）**
 //     —— 与 star_coord_contract.h 的统一契约、DATA-P1-PSF §15.2/§15.3 一致;
 //   * 内部 0-based 与 FITS 1-based（CRPIX 1-based, Paper I §2.1.1）之间只允许

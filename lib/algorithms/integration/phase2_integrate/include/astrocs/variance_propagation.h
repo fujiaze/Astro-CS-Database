@@ -1,8 +1,6 @@
 /* variance_propagation.h — Phase2b 归一化方差传播（残差制造者 PΣPᵀ）
  *
  * 权威依据（只读，不改）:
- *   - RELEASE-02 unc-prop-audit.md §3（正确传播公式，M2 合同项；已退役，见仓库 git 历史）
- *   - RELEASE-02 q2-snr-smooth.md §2/§5/§7（÷g² 必进方差；权重同源；已退役，见仓库 git 历史）
  *   - lib/algorithms/coverage/include/astro/phase2/upm.h:225-228
  *       C_theta=(JᵀWJ)^-1；C_out=C_stat+J_out C_theta J_outᵀ；禁止权重反推 variance
  *   - docs/plugins/algorithms_phase2/11_upm.md §4.1（校准参数不确定度必须传播）
@@ -60,7 +58,7 @@ bool naive_variance(const HatRow& h, const double* sigma2, std::size_t n_frames,
                     std::size_t i, double* out_var, std::string* err);
 
 /* 由帧权重 w_j（>0 有限）构造 H 行：ĝ = Σ_j w_j y_j / W。
- *   include_self=true  → H_ij = w_j/W        （含自身的加权均值；W2 口径）
+ *   include_self=true  → H_ij = w_j/W        （含自身的加权均值口径）
  *   include_self=false → H_ij = w_j/W_{-i}   （(c) 排除自身；H_ii=0）
  * include_self=false 且 w_i<=0/非有限 → fail-closed（"排除自身"要求自身存在）。 */
 bool normalized_weight_hat_row(const double* w, std::size_t n, std::size_t i,

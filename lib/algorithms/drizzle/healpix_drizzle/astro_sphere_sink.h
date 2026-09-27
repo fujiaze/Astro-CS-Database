@@ -96,7 +96,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 //   成对落盘 (逐像素三态见 astro_sphere_sink.cpp 叶级注释);
 //   0 = 无方差输入 ⇒ 只写 signal+support (与旧 writer 逐字节等价)。
 //
-// RELEASE-02 SD-15 增补: 本末端额外把**帧级未加权通量型 SNR**写入 HiPS
+// 增补: 本末端额外把**帧级未加权通量型 SNR**写入 HiPS
 // properties（键名冻结 ASTROCS_FRAME_SNR = F_ref/σ_F 与 ASTROCS_REFERENCE_FLUX
 // = F_ref; docs/ASTROCS_DESIGN §3.4 / 07_noise_snr.md §4.1）。值取自本帧产品目录
 // 的父目录（= Phase1 output_dir）中的上游产物 p1_snr.json 的该帧

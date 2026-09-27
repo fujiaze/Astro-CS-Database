@@ -129,7 +129,7 @@ AIO_EXPORT void  aio_free(void* ptr);
 /* ===========================================================================
  * 块名词表 API（标准块定义表 = 帧内命名块的唯一登记处）
  * ---------------------------------------------------------------------------
- * 契约（GAP_AUDIT G1-5）：
+ * 契约：
  *   - aio_frame_add_block / aio_frame_add_block_move 只接受**标准块定义表**中的
  *     块名（见文件末「标准块定义表」），或经 aio_block_name_register 显式注册的
  *     扩展名；两者之外的任意自定义名一律拒绝（返回 9，frame 不变）。
@@ -329,7 +329,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  *     扩展路径只有一条 = 显式注册（先在本表增行、给出权威引用，再注册）。
  *     variance / ivar 的语义正本 = docs/design/UNIFIED_MODEL.md §2 +
  *     eng/contracts/schemas/unified/{variance,ivar}.schema.json；
- *     消费面登记 = docs/contracts/DATA_SEMANTICS.md §11.1（GAP_AUDIT G1-5）。
+ *     消费面登记 = docs/contracts/DATA_SEMANTICS.md §11.1。
  * ===========================================================================
  *
  * ===========================================================================

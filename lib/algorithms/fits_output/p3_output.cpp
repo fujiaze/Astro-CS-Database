@@ -32,7 +32,7 @@
 // 成立; 该目录已由 astrocs_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
 #include "aio_cfitsio_mutex.h"
 #include "sha256.h"
-// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
+// docs/ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」:
 // 本模块**不再**自持文件系统原语 —— 临时文件/fsync/原子 rename/删除经 aio
 // 机制原语 (aio_atomic_file.h), 文件内容摘要经 aio 摘要原语
 // (aio_file_io.h)。二者均为 aio 内唯一实现 (header-only 机制面)。

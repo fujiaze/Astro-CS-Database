@@ -1,5 +1,5 @@
 // lib/infrastructure/observability/probes/src/probe.cpp
-// RELEASE-02 性能探针框架实现 (仅 ASTROCS_PROBES=ON 时参与编译)。
+// 性能探针框架实现 (仅 ASTROCS_PROBES=ON 时参与编译)。
 //
 // 低开销策略:
 //   - 记录路径: 线程本地 std::string 行缓冲 + 线程本地 count/gauge 聚合, 无锁;

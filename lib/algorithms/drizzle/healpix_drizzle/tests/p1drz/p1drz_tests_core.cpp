@@ -521,7 +521,7 @@ int group_negative() {
 
     // -- NaN 面输入（全非有限）: 引擎层不崩溃、返回成功、零合格样本 ⇒
     //    无输出 leaf（覆盖级 NaN 面）+ **强制计数**（DATA-002 §2a /
-    //    rule_id NAN-SAMPLE-MASK-COVERAGE-NAN；FIX-405 G3-5 反转后口径）--
+    //    rule_id NAN-SAMPLE-MASK-COVERAGE-NAN；样本掩膜口径）--
     {
         FitsImage img = fix_drz_f_buffer(W, H, std::numeric_limits<float>::quiet_NaN());
         DrizzleConfig cfg = make_cfg(NSIDE, 1.0, 1, true);

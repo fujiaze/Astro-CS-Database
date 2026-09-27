@@ -1110,20 +1110,20 @@ const char* p2_rejection_semantic_id(int method) {
 // （对应的是 WBPP ≤2.3.x 的 n < 25 → LinearFit，1.4.6 :190-203 实测）；
 // 即档界取自 2.4.0+、该档算法取自 ≤2.3.x。逐像素粒度是 ACSD 自定扩展
 // （WBPP 按帧组 activeFrames().length 路由，无逐像素行为）。
-// 旧引文 "BPP-FrameGroup.js:1304-1312" 的文件名不存在于任何官方包，已作废。
+// 旧引文 "BPP-FrameGroup.js:1304-1312" 不存在于任何官方包，引文以官方包现行文件为准。
 //
 // ╔════════════════════════════════════════════════════════════════════╗
-// ║ **唯一显式决策点**（EXP-204 定案后**只改这一处**）                   ║
+// ║ **唯一显式决策点**（**只改这一处**）                                 ║
 // ╚════════════════════════════════════════════════════════════════════╝
-// 待定科学问题（工程控制/RELEASE-03/tasks/EXP-204.md）—— **已由 EXP-204 定案**：
+// 小 N 档位科学问题 **已定案**：
 //   「N < 6 → percentile 档的**下界是否含 N ≤ 3**？」⇒ **不含**（保守读法）。
-//   - PixelSmallNPolicy::kConservativeNone（**EXP-204 定案值，当前生效**）：
+//   - PixelSmallNPolicy::kConservativeNone（**定案值，当前生效**）：
 //     1 ≤ N ≤ 3 → none（不排异 + 直接加权积分；依据 docs/science/REJECTION.md §16
 //     「小 N 档位取舍的依据」：低/中电平下强制 percentile 有损 ⇒ 该段取保守读法）。
-//     依据：EXP-204 三数据面 + 6 轮独立复核 + 对抗轮（判据冻结 sha256 bd8982d6…）：
+//     依据：三数据面实验 + 6 轮独立复核 + 对抗轮（判据冻结 sha256 bd8982d6…）：
 //     低/中电平（≲2700 e⁻/pix）下强制 percentile 有损/无益/不可用（N=3 ρ−1 达
 //     0.3–27% ≫ τ_ρ=0.31%；N=2 A1s 83.5% 像素无输出）；「高电平占优」反例
-//     超出实验网格上界（1734 e⁻/pix）属外延。电平依赖与反例已记 GAP_AUDIT §5.8。
+//     超出实验网格上界（1734 e⁻/pix）属外延。电平依赖与反例见实验记录。
 //   - PixelSmallNPolicy::kWbppTable（**对称读法，未采用**）：N < 6 一律 percentile
 //     （含 N ≤ 3；N = 0 为 void 像素占位）。若改采对称读法 ⇒ 只改下面 1 行。
 //   最终映射表（逐像素按几何 N）：
@@ -1135,24 +1135,24 @@ const char* p2_rejection_semantic_id(int method) {
 //   * N ≤ 3 的**实际执行**另受 kernel 的 underdetermined 闸约束：候选数
 //     ≤ underdetermined_n（astrocs_adaptive_pixel 默认 3）⇒ 全接受 +
 //     P2_STATUS_UNDERDETERMINED，provenance 如实记录（非静默降级）；
-//   * EXP-204 若要「N ≤ 3 **强制** percentile 排异」，除本决策点外还需把
+//   * 若要「N ≤ 3 **强制** percentile 排异」，除本决策点外还需把
 //     pixel profile 的 underdetermined_n 默认从 3 降到 2（见
-//     p2_reject_plan_resolve 的 undet_default）；两处都属 EXP-204 落地面，
+//     p2_reject_plan_resolve 的 undet_default）；两处都属该决策落地面，
 //     本任务只落 WBPP 表（kWbppTable）。
 // 原四档表（n ≤ 3 不排异 / 4–7 percentile / 8–15 winsorized / ≥16 linear）
 // **作废**（docs/ASTROCS_DESIGN.md §4.5 已加作废横幅）。
 enum class PixelSmallNPolicy { kWbppTable, kConservativeNone };
 static constexpr PixelSmallNPolicy kPixelSmallNPolicy =
-    PixelSmallNPolicy::kConservativeNone;   // ← EXP-204 定案；改判对称读法只改本行
+    PixelSmallNPolicy::kConservativeNone;   // ← 定案值；改判对称读法只改本行
 
 std::uint32_t p2_rejection_percentile_band_min_n(void) {
-    // 4 = N ≤ 3 走保守 none（EXP-204 定案，当前）；
+    // 4 = N ≤ 3 走保守 none（当前生效）；
     // 1 = 「N<6」档含 N ≤ 3（WBPP 对称读法，未采用）。
     return (kPixelSmallNPolicy == PixelSmallNPolicy::kWbppTable) ? 1u : 4u;
 }
 
 static int astrocs_n_map_method(std::uint32_t n) {
-    // 保守分支仅在 EXP-204 定案「保留不排异」时可达；n = 0 为 void 像素占位，
+    // 保守分支仅在「保留不排异」读法下可达；n = 0 为 void 像素占位，
     // 不参与该分支 —— AUTO 路由表值域恒为
     // {percentile, winsorized_sigma, linear_fit}。
     if (kPixelSmallNPolicy == PixelSmallNPolicy::kConservativeNone &&
@@ -1162,7 +1162,7 @@ static int astrocs_n_map_method(std::uint32_t n) {
     if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
     // M3（依据 docs/science/REJECTION.md §5「n ≥ 6 → winsorized_sigma」）：
     // n ≥ 16 由 linear_fit 改投 winsorized_sigma。
-    // 实测依据（生产 kernel 受控评估，run/REJECT-DOCFIX-01/REPORT.md）：
+    // 实测依据（生产 kernel 受控评估）：
     // 干净像素过拒 12.200% → 0.067%、显著点漏检 3.92% → 1.44%、
     // n≥16 可测残余 >2.5σ 27/1175 → 0/1175。
     // 偏离登记：WBPP 2.5.9 的 n>15 分支是 ESD（帧组级选择），本表的档界取自
@@ -1185,8 +1185,8 @@ static bool auto_method_forbidden(int method, std::uint32_t n,
                                     bool pixel_profile) {
     if (method == P2_REJECT_MINMAX) return true;
     if (method == P2_REJECT_NONE) {
-        // 唯一合法的 NONE 来源 = 小 N 保守决策点本身（EXP-204 若定案
-        // 「保留不排异」时 PixelSmallNPolicy::kConservativeNone 对 1≤N≤3 的
+        // 唯一合法的 NONE 来源 = 小 N 保守决策点本身（「保留不排异」读法下
+        // PixelSmallNPolicy::kConservativeNone 对 1≤N≤3 的
         // 显式选择）。任何**其它**路径产出 NONE ⇒ 视为路由缺陷 ⇒ fail-closed。
         return !(pixel_profile &&
                  kPixelSmallNPolicy == PixelSmallNPolicy::kConservativeNone &&
@@ -1229,7 +1229,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     //   其余（AUTO）→ 3（**kernel 闸**：候选数 ≤3 不做排异判定，全接受并记
     //   UNDERDETERMINED，不冒充排异成功。此后该值与路由档**解耦**：
     //   N ≤ 3 的路由由 astrocs_n_map_method 上方的唯一决策点决定（WBPP 表
-    //   ⇒ percentile），实际执行仍受本闸约束；EXP-204 若定案「强制
+    //   ⇒ percentile），实际执行仍受本闸约束；若要「强制
     //   percentile 排异」需把本默认降到 2，见该决策点注释）；
     // - 其余冻结 profile → 2（逐位不变，含显式 extreme_prior）。
     std::uint32_t undet_default = 2u;
@@ -1274,7 +1274,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
         if (pixel_profile) {
             // ACSD 自有「按逐输出像素几何 N」映射（档界 = WBPP 2.5.9 实测表；
             // N<6 percentile / 6..15 winsorized / **N≥16 winsorized**（M3），
-            // 唯一决策点在 astrocs_n_map_method 上方（EXP-204）。
+            // 唯一决策点在 astrocs_n_map_method 上方。
             method = astrocs_n_map_method(n);
         } else {
             // 本仓冻结 AUTO 路由表（**对照档专用**；档界取自 WBPP 2.5.9
@@ -2620,7 +2620,7 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
         return 2;
     }
 // ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
-// WHAT:       psfsw 残留面（GAP_AUDIT G2-2 的 rejection.cpp 对应点）：拒绝权重面守卫的
+// WHAT:       psfsw 残留面（rejection.cpp 对应点）：拒绝权重面守卫的
 //             冻结禁止 token 表里保留 "psfsw"（与 coverage.cpp:376 同一冻结词表的第二份执行面）。
 // WHY-KEPT:   同 coverage.cpp 的保留块：语义源 = docs/contracts/DATA_SEMANTICS.md §31
 //             astrocs.v6.contract-freeze.v1.json:196-197 的 forbidden.weight_source_tokens，
@@ -2630,9 +2630,9 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
 //             DOC-402 域，本任务按 ENGINEERING_SPEC §3 不得单方面改动。
 // STATUS:     非产品目标态、仍是生产可达的合同门（reject_outliers 节点的权重来源守卫）。
 // EXIT:       与 coverage.cpp:376 同批删除：DOC-402 整体退役 frozen 的
-//             forbidden.weight_source_tokens 段并留 A44 痕后，同提交收缩本表与
+//             forbidden.weight_source_tokens 段后，同提交收缩本表与
 //             eng/tests/unit/p2_samp/p2_samp_test.cpp 的对应断言。
-// AUTHORITY:  ENGINEERING_SPEC.md §2 / §3；RELEASE-04 GAP_AUDIT G2-2（包已出库）；
+// AUTHORITY:  ENGINEERING_SPEC.md §2 / §3；
 //             eng/contracts/data/clause_registry.json:196-197。
 // ──────────────────────────────────────────────────────────────────────
     // 禁止 token（FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE /

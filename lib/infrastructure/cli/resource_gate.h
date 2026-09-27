@@ -1,7 +1,7 @@
 // acsd 资源利用率**观测/判定** (MON-003) — 07 §3/§4/§5 分类+公式+first-10s 诊断+诊断分类
 // ABI 冻结(v1)不改公共 API; 本模块纯 CLI 侧判定。硬编码禁令: 线程数/cpus 由调用方注入。
 //
-// §9.74 裁决 10（docs/ASTROCS_DESIGN §3.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
+// （docs/ASTROCS_DESIGN §3.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
 // 判定结果只作**记录**（resource/resource_gate 事件 + 资源产物），**不产生任何退出码**；
 // 唯一资源门 = 磁盘门（lib/infrastructure/cli/disk_gate.h，exit 10 = 磁盘写满/写盘失败）。
 //
@@ -66,7 +66,7 @@ enum class GateDiag {
     // (末尾追加, 不重排既有值; 判定源 = lib/infrastructure/cli/memory_report.h 报告面):
     AllocGrowthUnbounded,    // RSS 曲线稳健斜率 >= 失败线(注入 leak 失败路径)
     AllocReclaimMissing,     // run 结束回落不可解释(残留超容差且回落低于阈值)
-    // GATE-FIX-RES(R-4 D-13 item 1): 判定域不成立时返回**显式分类**, 不再静默 Ok。
+    // GATE-FIX-RES: 判定域不成立时返回**显式分类**, 不再静默 Ok。
     // 判定域 = 计算区间**严格大于** 10 s（契约 applicability.
     // min_active_window_seconds_exclusive）; 旧实现另有 wall<5s 静默豁免, 已删除
     // （与 Python 冻结门的 not_applicable 同义）。
@@ -249,7 +249,7 @@ inline bool gate_workload_above_floor(const GateConfig& g) {
 // 门禁处置(记录与裁决分离):
 //   RecordOnly —— **唯一**处置。资源判据只记录/报告(resource_gate 事件 severity=warning),
 //                 不改变进程退出码。
-//   Enforced   —— **已退役**(§9.74 裁决 10 + docs/ASTROCS_DESIGN §3.5/§6.3: 一般性资源超限门
+//   Enforced   —— **已退役**(docs/ASTROCS_DESIGN §3.5/§6.3: 一般性资源超限门
 //                 已取消，内存/CPU/线程不设门)。枚举值保留以免破坏既有 ABI/测试引用，
 //                 但 gate_enforcement() 恒返回 RecordOnly —— CLI 面**不存在**由 CPU/内存
 //                 判据产生 rc=10 的路径（exit 10 只属磁盘写满/写盘失败，见 disk_gate.h）。
@@ -262,7 +262,7 @@ inline bool gate_diag_is_violation(GateDiag d) {
     return d != GateDiag::Ok && d != GateDiag::NotApplicable;
 }
 
-// §9.74 裁决 10: 一般性资源超限门已取消 ⇒ 本函数恒 RecordOnly。
+// 一般性资源超限门已取消 ⇒ 本函数恒 RecordOnly。
 // strict_mode 参数保留（调用方仍解析 --strict-resource-gate / --on-resource-gate，
 // 旗标登记为「历史复现开关，已退役」），但**不再**改变裁决；d 只影响记录内容。
 inline GateEnforcement gate_enforcement(bool /*strict_mode*/, GateDiag /*d*/) {
@@ -273,8 +273,8 @@ inline const char* gate_enforcement_name(GateEnforcement e) {
 }
 
 // 已分配容量(allocated capacity)分母 —— G-RES-01「已分配容量」的单一实现点。
-// 取义已在 docs/plugins/infrastructure/21_observability.md §8 定稿（原
-// NEEDS_DECISION(M5a-G-002) 已由 R-4 D-12 裁决并写入契约 denominator）:
+// 取义已在 docs/plugins/infrastructure/21_observability.md §8 定稿
+// （写入契约 denominator）:
 //   primary  = granted_workers（真实观测到的租约授予宽度峰值）
 //   sentinel = 0（未观测; **不得**以配置值回填, lib/include/astrocs/core/context.h:93-103）
 //   fallback = min(selected_workers, available_cpus)

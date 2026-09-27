@@ -86,7 +86,7 @@ static void write_fits_8x8(const std::string& path, float pixel_value) {
     std::fclose(fp);
 }
 
-// WIRING-AUDIT-01 FIX-1：任意像素值的 8x8 FITS fixture（构造「母版含单像素坏点」场景）。
+// 任意像素值的 8x8 FITS fixture（构造「母版含单像素坏点」场景）。
 // 与 write_fits_8x8 同一字节布局，只把常量像素换成逐像素数组；原函数零改动。
 static void write_fits_8x8_pixels(const std::string& path, const std::vector<float>& px) {
     std::FILE* fp = std::fopen(path.c_str(), "wb");
@@ -259,7 +259,7 @@ int main() {
         CHECK(o.run_rc == ACS_OK, "T7 run barrier: no terminate, error surfaced as status code");
     }
 
-    // T8 (WIRING-AUDIT-01 FIX-1): cosmetic 检测源必须真接线 —— 判据**非退化**。
+    // T8: cosmetic 检测源必须真接线 —— 判据**非退化**。
     // 缺陷背景：p1_session.cpp 阶段 3 的 ac_correct_frame 调用点原恒传
     //   master_dark/master_bias = nullptr ⇒ 检测永久禁用、阶段是恒等 pass
     //   （连单像素坏点都不修），而 module.yaml 声明了 detect_hot_pixels /

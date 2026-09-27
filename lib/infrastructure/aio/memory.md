@@ -255,7 +255,7 @@
   （§30.2 未冻结诊断平面聚合语义，不臆造）。
 - **读通道**: `AIO_HIPS_RD_NREJ=5` / `AIO_HIPS_RD_NUSED=6` +
   `aio_hips_read_tile_i32`（BITPIX≠32 → `-6`，不接受 float 冒充）。
-- **§30.3 四 provenance 键**（FIX-201 / §9.73 A44: 原五键中的旧「权重模式」键
+- **§30.3 四 provenance 键**（原五键中的旧「权重模式」键
   已删除 —— 全程只有 SNR, provenance 不承载权重模式）:
   `aio_hips_set_provenance(ps, input_manifest_hash, model_hash,
   uncertainty_available, reject_profile)` —— 全或无

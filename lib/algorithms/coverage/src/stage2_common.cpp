@@ -264,8 +264,8 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     return false;
                 }
                 // 版本化 profile。CONFORM-FIX-B-007：生产默认 = 自研档
-                // astrocs_adaptive_pixel（负责人裁决 FIX-SCI-SNR-CANON-001 /
-                // GAP_AUDIT §9.40 C2；SCI REJECTION §4/§5/§7、CONFIG_SCHEMA.md:25、
+                // astrocs_adaptive_pixel（FIX-SCI-SNR-CANON-001 /
+                // SCI REJECTION §4/§5/§7、CONFIG_SCHEMA.md:25、
                 // contracts provenance:67 同值）。wbpp_2_9_1 为**对照档**、
                 // wbpp_current 为 migration alias（规范化到 wbpp_2_9_1）。
                 // 与 node chain（module_adapters.cpp p2_op_reject 缺省）一致。
@@ -432,7 +432,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     }
                 }
             }
-        // ── §9.73 裁决 A44：legacy 整数权重模式域与其 token 已删除 ──────────
+        // ── legacy 整数权重模式域与其 token 已删除 ──────────
         // 规范依据（权威，只读）：
         //   · docs/ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
         //   · docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
@@ -452,7 +452,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                    "w = SNR^2/F_ref^2 = 1/sigma_F^2；请删除该键。";
             return false;
         }
-        // §9.73 裁决 A44（同批清理）：legacy_allow_weight_fallback **已删除** ——
+        // legacy_allow_weight_fallback **已删除** ——
         // 该键曾允许「ivar 缺失 → 降级 support/equal」，而 support/equal 都不是
         // 信号/噪声之比（docs/ASTROCS_DESIGN.md §3.1:173/175）。
         // ⇒ 该键**既不能被设、也不能被读**：出现即 fail-closed 拒绝。
@@ -512,7 +512,7 @@ bool p2_acr_block_eligible(const P2Stage2Config& cfg,
                            bool acr_registered,
                            int reject_method,
                            bool large_scale_active) {
-    // §9.73 裁决 A44 删除 legacy 整数权重模式域后，生产**只剩**一条权重口径：
+    // 删除 legacy 整数权重模式域后，生产**只剩**一条权重口径：
     // 逐样本逆方差（原 weight_mode=2 语义）。TRACEABILITY ACR-IVAR-001 冻结：
     // 「ivar science 模式必须走 CPU canonical path」；acr_kernels.cpp 亦对
     // cell-ivar 权重显式 throw（ACR 与逐像素 ivar 不等价）。

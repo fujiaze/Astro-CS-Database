@@ -59,7 +59,7 @@ bool is_deferred_weight_mode_token(const std::string& token);
 // ---------------------------------------------------------------------------
 // 1. 单位与 BUNIT 二次律（FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC）
 // ---------------------------------------------------------------------------
-// BUNIT 表示为 ADU 幂次 × 立体角幂次（sr）（canonical 串固定，不发明第三套词表；W6 归一）。
+// BUNIT 表示为 ADU 幂次 × 立体角幂次（sr）（canonical 串固定，不发明第三套词表）。
 struct Bunit {
   int adu_power = 0;
   int px_power = 0;
@@ -479,7 +479,7 @@ const std::vector<std::string>& forbidden_weight_source_tokens();
 const std::vector<std::string>& forbidden_psfsw_product_keys();
 bool token_is_forbidden_weight_source(const std::string& token);
 
-// 退役对象（PSFSW-RETIRE-01；负责人裁决）：psfsw_robust_weight **不是现行对象**
+// 退役对象（PSFSW-RETIRE-01）：psfsw_robust_weight **不是现行对象**
 // （docs/ASTROCS_DESIGN.md §3.1 订正后；docs/design/UNIFIED_MODEL.md:58；统一对象 14→13）。
 // 旧产品若在 variance_from / weight_sources 声明该对象 ⇒ 显式拒绝 + 迁移提示，
 // 不得静默接受，也不得再把它当作"在役的相对复合权重"。

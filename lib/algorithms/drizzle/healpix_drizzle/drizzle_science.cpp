@@ -137,7 +137,7 @@ double sb_to_legacy_weight(double w_sb_jp, double pixfrac) {
 }
 double sb_combination_coefficient(double w_jp, double N_p) { return w_jp / N_p; }
 
-// DRZ-FLUX-FIX-01（负责人裁决）: 核按 drop 面积归一 ⇒ Sum_p Sum_j w_jp x_j = Sum_j x_j，
+// DRZ-FLUX-FIX-01: 核按 drop 面积归一 ⇒ Sum_p Sum_j w_jp x_j = Sum_j x_j，
 // 因子恒为 1，与 pixfrac 无关（pixfrac 只决定 footprint/drop 面积大小，不收缩总流量）。
 // 形参保留以免位移既有调用点；返回值不依赖它。
 double flux_conservation_factor(double pixfrac) {
@@ -389,7 +389,7 @@ GateVerdict gate_sb_definition(const DrizzleOperator& op, const double* x,
     const char* g = "FZ-FORMULA-DRIZZLE-SB";
     // DRZ-FLUX-FIX-01: drop_area（canonical）与 sb_a_pixel 给出同一个 c_jp，
     // 故两种参数化都接受；下面的数值判据（S_p = Sum_j B_j a_jp/Sum_j a_jp）不变。
-    // 旧写法的 "!= sb_a_pixel" fail-closed 已被负责人裁决取消（drop 面积归一是
+    // 旧写法的 "!= sb_a_pixel" fail-closed 已不采用（drop 面积归一是
     // F&H 2002 §7.2 / drizzlepac dover/=jaco 的口径，不是 legacy）。
     if (claimed_signal.size() != op.n_dst()) return fail(g, "claim size mismatch");
     for (uint32_t p = 0; p < op.n_dst(); ++p) {
@@ -415,7 +415,7 @@ GateVerdict gate_constant_surface_brightness(const DrizzleOperator& op, const do
     const char* g = "FZ-GATE-CONST-SB";
     // DRZ-FLUX-FIX-01: drop_area（canonical）与 sb_a_pixel 给出同一个 c_jp，
     // 故两种参数化都接受；下面的数值判据（S_p = Sum_j B_j a_jp/Sum_j a_jp）不变。
-    // 旧写法的 "!= sb_a_pixel" fail-closed 已被负责人裁决取消（drop 面积归一是
+    // 旧写法的 "!= sb_a_pixel" fail-closed 已不采用（drop 面积归一是
     // F&H 2002 §7.2 / drizzlepac dover/=jaco 的口径，不是 legacy）。
     // (1) 构造必须是面亮度：x_j == B0 * A_pixel_j（禁止常量 ADU 构造）。
     for (uint32_t j = 0; j < op.n_src(); ++j) {
@@ -450,7 +450,7 @@ GateVerdict gate_variance_identity(const DrizzleOperator& op, const double* v,
     const char* g = "FZ-FORMULA-DRIZZLE-VAR";
     // DRZ-FLUX-FIX-01: drop_area（canonical）与 sb_a_pixel 给出同一个 c_jp，
     // 故两种参数化都接受；下面的数值判据（S_p = Sum_j B_j a_jp/Sum_j a_jp）不变。
-    // 旧写法的 "!= sb_a_pixel" fail-closed 已被负责人裁决取消（drop 面积归一是
+    // 旧写法的 "!= sb_a_pixel" fail-closed 已不采用（drop 面积归一是
     // F&H 2002 §7.2 / drizzlepac dover/=jaco 的口径，不是 legacy）。
     if (claimed_variance.size() != op.n_dst()) return fail(g, "claim size mismatch");
     for (uint32_t p = 0; p < op.n_dst(); ++p) {

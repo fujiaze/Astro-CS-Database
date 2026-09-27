@@ -1,4 +1,4 @@
-// lib/algorithms/coverage/src/coverage.cpp — Phase2 W3 coverage union 实现（真实 AIO 接入）
+// lib/algorithms/coverage/src/coverage.cpp — Phase2 coverage union 实现（真实 AIO 接入）
 //
 // 语义（ 34A532A2...B2EB308 + wiki Phase2_Architecture）：
 // - 输入为多个 Phase1 单帧 HiPS（signal/support/snr）；
@@ -370,7 +370,7 @@ namespace {
 // WHAT:       冻结 forbidden.weight_source_tokens 里的 "psfsw_robust_weight" / "psfsw"
 //             —— **保留不动**：这是退役对象的**显式拒绝面**（旧产品把该对象写进
 //             weight.sources / variance_from ⇒ rc=1 + token 名）。删除即变成静默接受。
-// WHY:        负责人裁决（原话）：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于
+// WHY:        「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于
 //             参考帧。而是绝对标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重
 //             psfsw_robust_weight **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1
 //             「权重只能来自纯净信号与噪声之比……任何使偏差随帧而变的量（含 PSF 拟合

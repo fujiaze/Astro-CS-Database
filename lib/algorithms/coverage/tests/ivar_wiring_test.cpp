@@ -112,7 +112,7 @@ void write_hips(const std::string& dir, const FrameSpec& spec,
     }
 }
 
-// §9.73 裁决 A44：配置里**不得**再出现 legacy_allow_weight_fallback（出现即拒绝）。
+// 配置里**不得**再出现 legacy_allow_weight_fallback（出现即拒绝）。
 std::string write_config(const std::vector<std::string>& dirs,
                          const std::string& out_dir,
                          bool revive_legacy_fallback = false) {
@@ -472,7 +472,7 @@ TEST(Phase2IvarWiring, IvarTileMissingFailClosed) {
             }
         }
     }
-    // §9.73 裁决 A44：ivar 缺失**恒** fail-closed（rc=7）——原 legacy 降级开关已删除，
+    // ivar 缺失**恒** fail-closed（rc=7）——原 legacy 降级开关已删除，
     // support（无量纲几何量）不得冒充 ADU^-2 ivar。
     const std::string out_fc = tmp_dir() + "/out_missing_fc.hips";
     fs::remove_all(out_fc);
@@ -485,7 +485,7 @@ TEST(Phase2IvarWiring, IvarTileMissingFailClosed) {
     fs::remove_all(out_leg);
     const int rc_leg = run_stage2(write_config(dirs, out_leg, true), 1);
     EXPECT_NE(exit_code(rc_leg), 0)
-        << "legacy_allow_weight_fallback 复活必须被拒绝（§9.73 A44）";
+        << "legacy_allow_weight_fallback 复活必须被拒绝";
     EXPECT_FALSE(fs::exists(out_leg + "/diagnostics.json"))
         << "被拒配置不得产出 diagnostics.json";
     EXPECT_FALSE(fs::exists(out_leg + "/properties"))

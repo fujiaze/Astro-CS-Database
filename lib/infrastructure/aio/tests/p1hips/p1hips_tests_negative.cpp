@@ -274,7 +274,7 @@ int test_negative() {
         if (is_root()) {
             std::fprintf(stdout, "[p1hips] negative: N4 跳过 (root 权限绕过只读目录)\n");
         } else {
-            // FIX-401 §10: aio_hips_product_begin 现在会确定性清除本次将写入的
+            // 完成清单语义: aio_hips_product_begin 现在会确定性清除本次将写入的
             // 子产品目录 (上次 kill/失败残留不得被本次消费; 完成清单先摘掉)。
             // 只读目录必须在 begin **之后**建立 —— begin 前建立的会被合法清除
             // (那是残留, 不是"不可写路径")。
@@ -382,7 +382,7 @@ int test_negative() {
                 dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
                 AIO_HIPS_PRODUCT_SNR, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
             P1HIPS_CHECK(cs, ps != nullptr, "n6_begin");
-            // FIX-401 §10: 同 N4 —— 只读 snr 目录在 begin 之后建立。
+            // 完成清单语义: 同 N4 —— 只读 snr 目录在 begin 之后建立。
             P1HIPS_CHECK(cs, make_ro_dir(dir + "/snr"), "n6_mkro_snr");
             if (ps) {
                 std::vector<FixSnrPointF> pts = fix_hips_d_snr_points(42u, 4);
