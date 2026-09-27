@@ -72,3 +72,6 @@ GSL-REPLACE-*
 VERSION-ALPHA-*
 CTEST-FINAL-*
 ACSD-PLAN-*
+
+# 未跟踪工作笔记本（裁决记录，不入库但不可回收）
+笔记本*
