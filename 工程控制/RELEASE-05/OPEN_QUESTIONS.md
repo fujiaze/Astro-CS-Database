@@ -33,7 +33,7 @@
 - **状态**：**已裁决**。负责人裁决：以**仓内权威**为准，订正成统一枚举。
 - **唯一口径**：`0=max_iter / 1=converged / 2=stalled / 3=invalid`
   （`docs/plugins/algorithms_phase2/11_upm.md` §4.6、`docs/science/PHASE2_UPM.md` §5、
-  `docs/algorithms/PHASE2_UPM_IMPL.md`、`lib/algorithms/coverage/include/astro/phase2/upm.h`）。
+  `docs/science/algorithms/PHASE2_UPM_IMPL.md`、`lib/algorithms/coverage/include/astro/phase2/upm.h`）。
 - **现处置**：`tasks/SCI-502.md` / `tasks/DOC-502.md` 的任务书文字已按仓内权威订正；
   `upm.h` 与 `PHASE2_UPM_IMPL.md` 中只写 0/1 的旧表述已补齐四态；实现与文档一致。
 
