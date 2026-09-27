@@ -66,7 +66,7 @@ handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处�
 无效/句柄 NULL/分配失败（`sdet_detect_guided_ex_f64` 在 `pred_x/pred_y` 为 NULL 且
 `n_pred>0` 时同样返回 −1）。节点侧的权威路径 fail-closed 语义（星表缺失/空/部分装载、
 取向先验缺失、0 星存活）见 docs/plugins/algorithms_phase1/03_star_detection.md §7.1。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
-reject_star SfError 五码；编排级 det_ret≠0 或 count≤0 → 退出码
+reject_star SfError 六码；编排级 det_ret≠0 或 count≤0 → 退出码
 STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
 
 ## Science IDs
