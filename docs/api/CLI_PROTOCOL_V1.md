@@ -105,7 +105,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 `alloc_samples.csv` / `alloc_report.json`、节点科学产物)**只落 `output_dir`**;
 
 > **资源时序工件的唯一列合同（GAP_AUDIT §4.2）**：
-> - **唯一列合同 = 生产实现** `lib/infrastructure/cli/resource_recorder.h:260-266`：**20 列**
+> - **唯一列合同 = 生产实现** `lib/infrastructure/cli/resource_recorder.h:289-293`：**20 列**
 >   `elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress,threads,active_compute_threads,per_thread_cpu_max_pct,per_thread_cpu_sum_pct,io_wait_pct`
 >   （**run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖）；`lib/infrastructure/cli/resource_events.h:6` 明文
 >   「资源时序曲线的**唯一载体** = 磁盘工件 `resource_timeseries.csv`」。
