@@ -177,7 +177,7 @@
         "unit_id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
         "kind": { "$ref": "#/$defs/unit_kind" },
         "phase_scope": { "$ref": "#/$defs/phase_scope" },
-        "dll_name": { "type": "string", "pattern": "^astrocs_[a-z0-9_]+\\.dll$|^acsd\.exe$" },
+        "dll_name": { "type": "string", "pattern": "^astrocs_[a-z0-9_]+\\.dll$|^acsd\\.exe$" },
         "cmake_target": { "type": "string", "minLength": 1 },
         "install_path": { "type": "string" },
         "module_id": { "type": ["string", "null"], "description": "module DLL 必须有 module_id；平台单元为 null" },

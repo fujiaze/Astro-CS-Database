@@ -5,7 +5,7 @@
  "scope": "docs/ 路径扫描面中的代码注释/夹具/退役登记面；FIX-404 声明文件域（lib/**）已由 FIX-404 清零，剩余条目为域外项，逐条带 classification + handoff 路由",
  "owner_summary": {
   "BLD-401": 45,
-  "DOC-403": 5
+  "DOC-403": 15
  },
  "max_entries": 50,
  "entries": [
@@ -607,6 +607,116 @@
    "handoff": {
     "to": "BLD-401",
     "reason": "越出 FIX-404 声明文件域（tools），由该域任务收口或上呈"
+   }
+  },
+  {
+   "file": "eng/ci/check_naming_surface.py",
+   "token": "docs/a.md",
+   "owner": "DOC-403",
+   "reason": "命名检查器自测夹具键名（样例路径，非真实引用）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/ci/check_naming_surface.py",
+   "token": "docs/a.md",
+   "owner": "DOC-403",
+   "reason": "命名检查器自测夹具键名（样例路径，非真实引用）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/ci/check_naming_surface.py",
+   "token": "docs/a.md",
+   "owner": "DOC-403",
+   "reason": "命名检查器自测夹具键名（样例路径，非真实引用）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/ci/check_naming_surface.py",
+   "token": "docs/a.md",
+   "owner": "DOC-403",
+   "reason": "命名检查器自测夹具键名（样例路径，非真实引用）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/ci/check_naming_surface.py",
+   "token": "docs/a.md",
+   "owner": "DOC-403",
+   "reason": "命名检查器自测夹具键名（样例路径，非真实引用）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/ci/check_naming_surface.py",
+   "token": "docs/nowhere/*",
+   "owner": "DOC-403",
+   "reason": "命名检查器负例夹具 glob 样例",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/tools/migration/rewrite_refs.py",
+   "token": "docs/science/algorithms/",
+   "owner": "DOC-403",
+   "reason": "批次2迁移规则目标模式串（批次2落地后自愈可移除）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/tools/migration/rewrite_refs.py",
+   "token": "docs/science/algorithms/",
+   "owner": "DOC-403",
+   "reason": "批次2迁移规则目标模式串（批次2落地后自愈可移除）",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/tools/migration/rewrite_refs.py",
+   "token": "docs/algorithms/X.md",
+   "owner": "DOC-403",
+   "reason": "迁移规则旧路径模式示例",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
+   }
+  },
+  {
+   "file": "eng/tools/quality/check_budget_single_source.py",
+   "token": "docs/other.md",
+   "owner": "DOC-403",
+   "reason": "预算单源检查器文档样例串",
+   "classification": "fixture_or_pattern",
+   "handoff": {
+    "to": "DOC-403",
+    "reason": "检查器夹具样例/迁移规则模式串，非真实路径引用；目标路径落地或改写样例后移除"
    }
   }
  ],
