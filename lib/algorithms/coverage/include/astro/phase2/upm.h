@@ -95,7 +95,7 @@ typedef struct {
     // ===== RELEASE-02 P2a 接缝修复（科学行为变更，显式 opt-in）=====
     // 下列 4 项默认取 W2 冻结基线（legacy）值，使 cfg{}/cfg; 的既有调用点
     // 行为逐位不变；生产装配 p2_op_upm_fit 显式启用 P2a-2/P2a-3/P2a-4。
-    // 依据：reports/RELEASE-02/{q2-snr-smooth,c-delta-ruling}.md。
+    // 依据：RELEASE-02 {q2-snr-smooth,c-delta-ruling}.md（已退役，见仓库 git 历史）。
     // P2a-2 阻尼：C 场交替更新 x ← (1-α)·x_old + α·x_new。α<=0 / 非有限 /
     // >1 一律按 1.0（无阻尼，legacy）。naive α=1 在链式/二部覆盖图上有
     // 特征值 -1（周期 2 振荡，永不收敛）。

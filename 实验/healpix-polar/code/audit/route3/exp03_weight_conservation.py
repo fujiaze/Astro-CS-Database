@@ -22,6 +22,7 @@
 #   Candidate leaves searched within angular distance <= max_angle + 1.25*hp_res
 #   (HP_CIRCUMRADIUS_FACTOR margin); metric (1) certifies that search is complete.
 import json, os, sys, time
+import os
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from edge_geom import sample_edge, to_vec, wrap_pi
@@ -302,7 +303,7 @@ def main():
         control_points=bool(worst < 1.05),
         elapsed_s=time.time()-t0)
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp03_weight_conservation.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp03_weight_conservation.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

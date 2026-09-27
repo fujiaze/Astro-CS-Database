@@ -32,9 +32,10 @@ Method (pure numpy, no repo imports, deterministic -- no RNG needed, seed fixed 
 
 Seed: 20050709 (Gorski et al. 2005 submission date); results deterministic regardless.
 Run:  python3 e1_leaf_area_and_scale.py
-Output: ../results/e1_leaf_area_and_scale.{json,txt}
+Output: results/audit/route1/e1_leaf_area_and_scale.{json,txt}
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -245,7 +246,7 @@ OUT["control_point_assignment"] = {
     "honest_boundary": "polar-branch inverse and NESTED ordering not exercised in this standalone check"
 }
 
-with open("../results/e1_leaf_area_and_scale.json", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e1_leaf_area_and_scale.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 lines = ["E1 leaf area + nside scale constant  (seed=%d, deterministic)" % SEED, ""]
@@ -276,6 +277,6 @@ lines.append("")
 lines.append("[Control-point assignment (P2->P3->P4 interface)]")
 lines.append("  roundtrip max err = %.3e over %d in-diamond points ; %d distinct leaf ids on 128-grid"
              % (cp["roundtrip_max_abs_err"], cp["sample_points_in_face4_diamond"], cp["distinct_leaf_ids_128grid"]))
-with open("../results/e1_leaf_area_and_scale.txt", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e1_leaf_area_and_scale.txt"), "w") as fh:
     fh.write("\n".join(lines) + "\n")
 print("\n".join(lines))

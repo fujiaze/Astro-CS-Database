@@ -30,11 +30,11 @@
     },
     {
       "claim": "05: PHASE2_UPM_IMPL.md §6.3 数值稳定性",
-      "target": "docs/algorithms/PHASE2_UPM_IMPL.md",
+      "target": "docs/science/algorithms/PHASE2_UPM_IMPL.md",
       "pattern": "^### 6\\.3|^## 6 ",
       "hits": [
         {
-          "file": "docs/algorithms/PHASE2_UPM_IMPL.md",
+          "file": "docs/science/algorithms/PHASE2_UPM_IMPL.md",
           "line": 158,
           "text": "## 6 离散公式 F1-F6（公式语义与 UPM_SOLVER.md §2 一致，逐条实现锚）"
         }

@@ -42,7 +42,8 @@ import json, time
 import numpy as np
 
 SEED = 20260926
-OUT = "../results/exp_p4_04_brightness_forward.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route1", "exp_p4_04_brightness_forward.json")
 
 GRID = 256
 DELTA = 32

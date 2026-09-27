@@ -41,7 +41,7 @@ RC2a acos(z) 角点构造（RC1 的前置暴露条件）、RC3 TAN 逆投影极�
 
 ## 一键复现
 
-- 三路审计＋补实验：bash code/audit/run_all.sh（Python，seed 写死，输出到 run/healpix-polar-audit-logs/，与 results/audit/ 存档逐位对照）
+- 三路审计＋补实验：bash code/audit/run_all.sh（Python，seed 写死，日志到 run/healpix-polar-audit-logs/，各实验 JSON 落 results/audit/<路线>/，与存档逐位对照）
 - 历史探针：bash run_all.sh [quick|full]（约 15/60 分钟，日志落 run/EXP-07-POLAR/logs/）
 
 ## 环境

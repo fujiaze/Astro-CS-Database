@@ -88,7 +88,7 @@ typedef struct {
 } P2StarMaskCap;
 
 // 局部稳健背景估计（纯函数，无 I/O；与 sampler 的 patch estimator 同一数学定义：
-// median + 1.4826*MAD 尺度 + 亮端 σ-clipping + 保留比例门）。
+// median + 1.482602218505602*MAD 尺度 + 亮端 σ-clipping + 保留比例门）。
 typedef struct {
     int    min_samples;              // 默认 5
     int    clip_iters;               // 默认 3
@@ -100,7 +100,7 @@ typedef struct {
 
 typedef struct {
     double value;            // 稳健中位数
-    double sigma_mad;        // 1.4826*MAD（>0）
+    double sigma_mad;        // 1.482602218505602*MAD（>0）
     double variance;         // k_corr*(π/2)*sigma_mad²/N_retained
     double ivar;             // 1/variance（variance<=0 → 0）
     double uncertainty;      // sqrt(variance)

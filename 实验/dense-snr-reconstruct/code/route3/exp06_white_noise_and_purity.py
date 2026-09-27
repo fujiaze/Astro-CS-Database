@@ -21,7 +21,8 @@ import json
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp06_white_noise_and_purity.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route3", "exp06_white_noise_and_purity.json")
 
 
 def main():

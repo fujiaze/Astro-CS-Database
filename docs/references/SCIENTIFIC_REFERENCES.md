@@ -43,7 +43,7 @@
 
 - `设计大纲/大报告_项目历史.md`：实现/口径演进证据，不是当前科学权威。
 - `设计大纲/大报告_历代控制包.md`：需求和治理演进证据。
-- `reports/review-package-20260915/`：V3 后问题、推导和缺陷账本。
+- `artifacts/evidence/review-package/`：V3 后问题、推导和缺陷账本。
 - `run/perf-fix/P5-snr/`：P5 SNR 实验、Oracle 和报告留档；结论须按新统一科学模型重新解释。
 
 ## H. 测光专项参考档案（既有 B1–B90 调查）
@@ -165,7 +165,7 @@
 62. Zackay, B. & Ofek, E. O. 2017, “How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit”, ApJ 836, 188（DOI 10.3847/1538-4357/836/2/188；arXiv:1512.06879）。用途：proper coaddition、方差归一与有效 PSF。
 63. **（消歧）** Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction—Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）——这是 **ZOGY 图像相减**论文，**不是** “How to coadd images? I”。`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §5.1 第 1 条曾把两者混引，引用时须拆开。
 64. Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124）。用途：MRS/starlet 小波稳健噪声（PixInsight 默认噪声估计的方法学来源）。
-65. Rousseeuw, P. J. & Croux, C. 1993, “Alternatives to the Median Absolute Deviation”, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。用途：MAD 的 σ 一致化常数 1.4826 与 Sn/Qn 尺度估计；ACSD 用标准 MAD→σ，**未采用** PixInsight 的 2.48308/2.03636。
+65. Rousseeuw, P. J. & Croux, C. 1993, “Alternatives to the Median Absolute Deviation”, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。用途：MAD 的 σ 一致化常数（文献作 `1.4826`，4 位截断展示；权威全精度 `1.482602218505602`）与 Sn/Qn 尺度估计；ACSD 用标准 MAD→σ，**未采用** PixInsight 的 2.48308/2.03636。
 66. Moffat, A. F. J. 1969, A&A 3, 455（见 §I 第 21 条）。用途：Moffat 轮廓；ACSD 取 β=4，FWHM=1.230310·σ。
 67. Stetson, P. B. 1987, PASP 99, 191（DOI 10.1086/131977，见 §I 第 22 条）。用途：拥挤场 PSF 测光。
 68. Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（DOI 10.1051/aas:1996164，见 §I 第 24 条）。用途：背景网格、检测阈值、FLUXERR 误差传播。

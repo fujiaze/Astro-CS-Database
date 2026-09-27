@@ -69,7 +69,7 @@
 HEALPix 面坐标卡 `(face, u, v) ∈ [0,1]²` 上，面积元是常数（§2.1），因此"叶 × drop 交叠面积"在 chart 里本应是简单的平面多边形运算。
 生产实现 V0（`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`）走的是球面路线：把叶的 4 个角点用大圆弧连成四边形，用 drop 的 4 条边大圆半空间做 Sutherland–Hodgman 裁剪，再用 Van Oosterom–Strackee（VOS）算球面多边形面积。
 
-门禁为 FP64 通量闭合 `< 1e-6`（`docs/algorithms/DRIZZLE_GEOMETRY.md:236`）。
+门禁为 FP64 通量闭合 `< 1e-6`（`docs/science/algorithms/DRIZZLE_GEOMETRY.md:236`）。
 
 待答问题：
 
@@ -568,7 +568,7 @@ N6 暴露的表示域边界（角半径 ≲ 1.5e-8 rad = 0.003″ 时 dec 舍入
 | Sutherland & Hodgman 1974, *Reentrant Polygon Clipping*, CACM 17(1), 32，DOI [10.1145/360767.360802](https://doi.org/10.1145/360767.360802) | 生产与 oracle 的裁剪算法 | 该算法对**直线边**多边形精确。用在球面上时每条边是大圆弧、每侧是半空间，故仍然精确；误差全部来自"叶边界被换成弦"这一步，而非裁剪本身 |
 | Fernique et al. 2015, *MOC — HEALPix Multi-Order Coverage map Version 1.0*（IVOA Recommendation），arXiv [1505.02937](https://arxiv.org/abs/1505.02937) | 权威的"球面多边形 × HEALPix 单元"实现规范 | MOC 的做法与本实验 §2.2 的 chart 原生路径同构：**叶侧用 chart 精确边界，drop 侧自适应细化**，并在 cell 覆盖 face 角点时特判。本实验 T8b 独立复现了这一必要性（不特判则丢 90% 面积） |
 | 球面多边形稳定面积算法（Girard 球面盈余 / l'Huilier 公式 / Kahan 2000 *Miscalculating Area and Angles of a Needle-like Triangle*） | 针状三角形的面积相消 | 本实验的极点交叠多边形是极端针状（横向尺度 ~1e-6 rad，纵向 ~1e-11），`det` 型公式直接失效；采用"旋转到质心 + VOS"后相对精度恢复到 1e-16 量级 |
-| 本仓库 `docs/algorithms/DRIZZLE_GEOMETRY.md` §9 | 门禁与冻结量（FP64 闭合 < 1e-6；arc-chord 1e-6·hp_res） | 本实验未改任何冻结值；实测表明冻结的 `arc-chord 1e-6·hp_res` 对极冠叶**不足**（真实弦偏差 6.39e-2 hp_res，比冻结阈值大 4 个数量级） |
+| 本仓库 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` §9 | 门禁与冻结量（FP64 闭合 < 1e-6；arc-chord 1e-6·hp_res） | 本实验未改任何冻结值；实测表明冻结的 `arc-chord 1e-6·hp_res` 对极冠叶**不足**（真实弦偏差 6.39e-2 hp_res，比冻结阈值大 4 个数量级） |
 
 ---
 
@@ -792,4 +792,4 @@ cd "/workspace/Astro CS Database" && python3 run/EXP-07-POLAR/verify/check_repor
 
 **外部文献**：见 §5（Górski 2005 / Calabretta & Roukema 2007 / Van Oosterom & Strackee 1983 / Sutherland & Hodgman 1974 / MOC 1.0 / Kahan 2000）。
 
-**仓库内权威文档**：`docs/algorithms/DRIZZLE_GEOMETRY.md` §9（门禁与冻结量）、`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`、`lib/algorithms/shared/healpix/healpix_core.cpp`、`lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp`。
+**仓库内权威文档**：`docs/science/algorithms/DRIZZLE_GEOMETRY.md` §9（门禁与冻结量）、`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp`、`lib/algorithms/shared/healpix/healpix_core.cpp`、`lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp`。

@@ -1,5 +1,6 @@
 import json, sys
-OUT = '/workspace/Astro CS Database/独立审计/实验重做/P3守恒映射算子/补实验-k_corr/results'
+import os
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "kcorr")
 def load(n): return json.load(open(OUT + '/' + n, encoding='utf-8'))
 g0 = load('g0_sanity.json')
 print("G0 sanity: N289 k=%.4f k_shape=%.4f pass=%s | N25 k=%.4f pass=%s" % (

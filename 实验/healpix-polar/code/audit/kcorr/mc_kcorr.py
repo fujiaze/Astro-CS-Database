@@ -4,7 +4,7 @@
 mc_kcorr.py - P3 平面到球面通量守恒映射算子补实验: k_corr=1.3883 的受控蒙特卡洛溯源
 
 正本几何(唯一记录: lib/algorithms/drizzle/healpix_drizzle/tests/control_median_mc_test.cpp,
-配合 docs/science/PHASE2_UPM.md SS5/SS4 与 docs/algorithms/PHASE2_SAMPLER.md SS5.4 的文字记载):
+配合 docs/science/PHASE2_UPM.md SS5/SS4 与 docs/science/algorithms/PHASE2_SAMPLER.md SS5.4 的文字记载):
   - 单帧 20x20 源图, 源像素角尺度 300"/px (deg_per_px = 300/3600, 测试源码 :56)
   - HEALPix nside=512 NESTED, 输出 leaf 等面积尺度 = 211076.28514206142/512 = 412.2552"/px
     (DRIZZLE_GEOMETRY.md SS3: HEALPIX_SCALE_PER_NSIDE_ARCSEC, Gorski 2005 等面积基数)

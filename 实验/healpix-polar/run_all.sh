@@ -7,7 +7,7 @@
 #   full : 追加 chart 原生对照、REC-1 预算扫描、计时、HST 两档（约 60 分钟）
 # ============================================================================
 set -u
-MODE="$1"
+MODE="${1:-quick}"
 if [ -z "$MODE" ]; then MODE=quick; fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"

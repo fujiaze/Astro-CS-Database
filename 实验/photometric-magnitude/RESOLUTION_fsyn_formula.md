@@ -79,7 +79,7 @@ F_λ(λ_i) = byte_i · flux_mul + flux_min           # 单位 W·m⁻²·nm⁻¹
 
 ### 2.3 真实数据（生产链逐位复现）
 
-`run/SCI-PHOT-FORMULA-01/evidence/d1_zp_sigma_rederive.json`（口径见 `docs/algorithms/PHOTOMETRIC_FIT.md`）：
+`run/SCI-PHOT-FORMULA-01/evidence/d1_zp_sigma_rederive.json`（口径见 `docs/science/algorithms/PHOTOMETRIC_FIT.md`）：
 
 | 帧 | 落盘 `zero_point_mag` | 按 §1 公式复算 | Δ | 落盘 `zero_point_n_stars` | 复算 n |
 |---|---:|---:|---:|---:|---:|

@@ -6814,7 +6814,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   }
 
   // ── WEIGHT-SCI-001 (2026-09-18): 组内公共参考通量 F0 ─────────────────────
-  // 依据 reports/RELEASE-02/weight-sci-ruling.md（配对性定理）:
+  // 依据 RELEASE-02 weight-sci-ruling.md（配对性定理；该报告已退役，见仓库 git 历史）:
   //   SNR_f = a_f·F0/σ_f  ⇒  SNR_f²/F0² = a_f²/σ_f² = w_f
   // 成立当且仅当分母 F0 与定义 SNR 时所用参考通量是同一个。逐帧 F_ref 回退已
   // 在 snr_frame_science.cpp 删除（缺失即 fail-closed）。因此本节点必须为
@@ -7150,11 +7150,11 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
       astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
       // SCI-B D1 定案 (07_noise_snr.md 4.2a): noise_sigma 来自
-      // StarDetector::estimate_background 的**整帧 2 轮 median±3*1.4826*MAD 裁剪后 RMS**
+      // StarDetector::estimate_background 的**整帧 2 轮 median±3*1.482602218505602*MAD 裁剪后 RMS**
       // (盲检测 detect() 与星表引导路径同用该估计器), 是**含读出噪声的经验总 rms**
       // ⇒ 声明语义, 禁止在 snr_science 里再加一次 (RN/g)^2
       // (修复前读噪双计: sigma_F 高估 +12.8%~+34.0%)。
-      // 注: noise_model 的 1.4826*MAD 稳健尺度是**另一个**生产者(承载逐像素 variance /
+      // 注: noise_model 的 1.482602218505602*MAD 稳健尺度是**另一个**生产者(承载逐像素 variance /
       // variance_bg_global), 不是本处入参。
       cfg.sigma_sky_source = SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS;
       // ── FREF-BASELINE-001: 逐帧参考通量 = 固定星等 m_ref 在本帧的仪器通量 ──
@@ -9822,7 +9822,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     //   （grep docs/ 仅命中 UNIFIED_MODEL.md:49 对象描述与
     //   UNIFIED_SCIENCE_MODEL.md:122 的 UNRESOLVED 登记）；
     //   ③ 唯一「默认开启」记录是 FIX-A 目标模型前提下的前台选项 a
-    //   （工程控制/RELEASE-02/ACCEPTANCE.md:11、reports/RELEASE-02/FIX-A-report.md:73,140,156），
+    //   （工程控制/RELEASE-02/ACCEPTANCE.md:11、RELEASE-02 FIX-A-report.md:73,140,156——报告已退役，见仓库 git 历史），
     //   而 FIX-A-UPM-001 已被 FIX-SCI-SNR-CANON-001 否决 ⇒ 该前提消失。
     // 处置：缺省 = (additive_mode ∈ {delta,both})，即「要施加才构建」；
     // 显式 sky_plane.enabled 始终优先。默认路径不再产出无消费方的
@@ -10073,7 +10073,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         (*man)["sky_plane_error"] = std::string(sperr);
         // DATA-UNC-001 §30.1（unavailable 显式登记）：顶层置降级标志，机器消费者
         // 无法把本次 mosaic 读成"天光面已生效"。rc=6 是否升为硬 fail-closed 由
-        // 前台裁决（见 reports/RELEASE-02/fix-sky-report.md §6）。
+        // 前台裁决（见 RELEASE-02 fix-sky-report.md §6；该报告已退役，见仓库 git 历史）。
         (*man)["sky_plane_degraded"] = true;
         if (spm) p2_sky_plane_close(spm);
       } else {
@@ -10758,7 +10758,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
 // 对每个 eligible 候选样本, 取该样本所属帧该 tile 内以输出像素为中心的
 // 31×31 邻域（clipped 到 tile 边界）稳健统计:
 //     prior_sky   = 邻域中位数
-//     prior_sigma = 1.4826 × MAD(邻域)
+//     prior_sigma = 1.482602218505602 × MAD(邻域)
 // 中位数与 MAD **同源**（同一邻域）; 按 eligibility 紧凑序写出（调用方用
 // src_idx 对齐, 禁止用 compact index 猜 original slot）。
 // 任一 eligible 样本邻域有效像素 < kMinValid → 返回 false（调用方不传先验
@@ -10804,7 +10804,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     std::nth_element(buf.begin(), buf.begin() + static_cast<std::ptrdiff_t>(mid),
                      buf.end());
     const double mad = buf[mid];
-    const double sigma = 1.4826 * mad;
+    const double sigma = 1.482602218505602 * mad;
     if (!std::isfinite(med) || !std::isfinite(sigma) || !(sigma > 0.0))
       return false;
     out_sky[s] = med;

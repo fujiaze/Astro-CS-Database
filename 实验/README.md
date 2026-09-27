@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：随仓库维护的实验单元——固定 seed 的实验代码（code/）、输入数据（data/）、结果与判据表（results/）、支撑推导（docs/）、文献台账（refs.md）、REPORT_experiment.md 与 REPORT_paper.md。
-- 不放：科学公式正本与推导（docs/science/、docs/algorithms/）；单元报告只引用这些权威，不复制正文。
+- 不放：科学公式正本与推导（docs/science/、docs/science/algorithms/）；单元报告只引用这些权威，不复制正文。
 - 不放：一次性运行产物与日志（run/）、CI 与验收证据（artifacts/）。
 - 自包含要求：仅凭一个单元目录即可回答假说、方法、数据、结果、诚实边界、复现命令与佐证来源，不依赖单元之外的临时文件。
 

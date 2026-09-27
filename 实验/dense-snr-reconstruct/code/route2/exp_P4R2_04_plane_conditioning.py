@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 
 SEED = 20260929
-RESULTS = Path(__file__).resolve().parent.parent / "results"
+RESULTS = Path(__file__).resolve().parent.parent / "results" / "route2"
 rng = np.random.default_rng(SEED)
 
 n_pts = 64

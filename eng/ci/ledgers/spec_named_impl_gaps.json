@@ -2,7 +2,7 @@
   "ledger_schema": "astrocs.ci-ledger/v1",
   "ledger_id": "spec-named-impl-gaps",
   "purpose": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 的**缺口显式登记**（不是豁免）：承载本轮已确证、尚未接线的「规范点名权威实现不在生产路径」条目。每条命中仍计入 ledgered_gaps 并在 --strict 下判红；条目不再复现时判 ledger_stale（豁免必须存活，只减不增）。不得用本台账把门禁改绿：删条目即恢复判红。",
-  "generated_by": "reports/RELEASE-02/design-gap-synthesis.md DG-C-01 / 工程控制/RELEASE-02/GAP_AUDIT.md §9.44",
+  "generated_by": "RELEASE-02 design-gap-synthesis.md DG-C-01（该报告已退役，见仓库 git 历史）/ 工程控制/RELEASE-02/GAP_AUDIT.md §9.44",
   "entries": [
     {
       "id": "SNI-S4-P3X-06",

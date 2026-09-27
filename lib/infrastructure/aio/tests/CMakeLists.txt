@@ -6,7 +6,7 @@
 # 即这些测试从未被编译、从未在 ctest 中运行 —— 属 TST-001 登记的「测试零注册」缺陷。
 #
 # 本文件只注册**已逐条独立复跑通过**的用例（前台 ad hoc 构建 + 运行，证据见
-# reports/RELEASE-01/tests/TST-001-report.md 与 工程控制/RELEASE-01/GAP_AUDIT.md §7.9）：
+# RELEASE-01 tests TST-001-report.md（已退役，见仓库 git 历史）与 工程控制/RELEASE-01/GAP_AUDIT.md §7.9）：
 #   test_checksum        49 PASS / 0 FAIL（含 CRC32C Castagnoli 标准向量）
 #   test_tile_model      67 PASS / 0 FAIL
 #   test_transform       75 PASS / 0 FAIL / 2 SKIP（可选依赖缺失）

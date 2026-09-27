@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """P2 跨帧绝对 SNR（控制点方差语义）补实验：control_variance 渐近式的有限 N 偏差。
 
-被审量：docs/science/PHASE2_UPM.md §5 / docs/algorithms/PHASE2_SAMPLER.md §5.4 的
+被审量：docs/science/PHASE2_UPM.md §5 / docs/science/algorithms/PHASE2_SAMPLER.md §5.4 的
 
     control_variance = k_corr x (pi/2) x sigma_bg^2 / N_retained
 

@@ -452,7 +452,7 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 | 布局 | 来源 | 间距 Δ | 每 4096² 帧控制点数 | 与实测相关长度 ℓ≈48 px 之比 |
 |---|---|---|---|---|
 | Phase-1 噪声 patch 网格 8×8 | `docs/science/NOISE_MODEL.md:52` | **512 px** | 64 | Δ/ℓ ≈ **10.7** |
-| Phase-2 UPM 控制网格 8×8 / 512² tile | `docs/algorithms/PHASE2_SAMPLER.md:123` | **64 px** | 4096 | Δ/ℓ ≈ **1.33** |
+| Phase-2 UPM 控制网格 8×8 / 512² tile | `docs/science/algorithms/PHASE2_SAMPLER.md:123` | **64 px** | 4096 | Δ/ℓ ≈ **1.33** |
 
 **设计决策 D2（推荐）**：稀疏 SNR 层的控制点**复用 Phase-2 UPM 的 8×8/tile 控制网格**，即 `cell_side = 64` leaf px，
 `n_controls = 64 × n_union_tiles`（含空覆盖占位，`DATA_SEMANTICS.md:1577`），`control_id` 沿用既有编码。
@@ -1026,7 +1026,7 @@ eps_tot² = eps_P1² + eps_sparse² + eps_theta² + eps_g² + eps_drizzle² + ep
 | `eps_P1` 估计量噪声 | 1.5%（`N_sky ≥ 9216` 的预算） | `NOISE_MODEL.md` §5a 冻结式 `SE(σ̂)/σ ≈ 1.44/√N_sky` |
 | `eps_P1` **结构污染偏差** | **31.3%**（σ）；方差 76.8% | 原证据 `σ_MAD/σ_clippedRMS` 中位数 **1.3127**（8 帧范围 1.0939–1.5731，方差比 1.7676，EXP-3 Part A）**只度量同一产品内两个噪声生产者互相矛盾**（分子 = 逐像素噪声模型 A 的整帧未裁剪 MAD，分母 = `frame_snr` 用的整帧裁剪 RMS），**不是帧级 σ 相对真值的偏差**；帧级 σ 的真实电平偏差由 `EXP-05` 表 A 直接对真值测得：真实 M42 帧 **偏低 15% ~ 77%**（随结构含量变化） |
 | `eps_sparse` 稀疏重建 | 9.2%（64 px）～ 23.0%（1024 px） | 实测 EXP-2/EXP-3 `RMSE(log SNR)` |
-| `eps_theta` UPM 参数 | **+3.4%（良态）～ +2200%（病态）** | `reports/RELEASE-02/unc-prop-audit.md`：`J_out C_θ J_outᵀ` = 0.46–333 ADU² vs 原始 σ² = 6.76 ADU² |
+| `eps_theta` UPM 参数 | **+3.4%（良态）～ +2200%（病态）** | RELEASE-02 unc-prop-audit.md（已退役，见仓库 git 历史）：`J_out C_θ J_outᵀ` = 0.46–333 ADU² vs 原始 σ² = 6.76 ADU² |
 | `eps_g` 乘性归一化 | **今天结构上为 0**（`g ≡ 1`，无写入者）；一旦启用则 1:1 传播 | §4.5 |
 | `eps_drizzle` 相关噪声 | **20.2%**（方差低估 36.3%） | `UNCERTAINTY_AND_COVARIANCE.md`：`≈1+0.75ρ`，`ρ = 0.19`（nside=512 MC） |
 | `eps_master` 母版方差 | **未建模**（`CALIBRATION.md:236` 登记 UNRESOLVED） | 有限母版模型给出 `σ_master/σ_sky ~ 1/√N_master` |

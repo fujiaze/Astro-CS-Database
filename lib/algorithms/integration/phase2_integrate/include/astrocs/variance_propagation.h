@@ -1,8 +1,8 @@
 /* variance_propagation.h — Phase2b 归一化方差传播（残差制造者 PΣPᵀ）
  *
  * 权威依据（只读，不改）:
- *   - reports/RELEASE-02/unc-prop-audit.md §3（正确传播公式，M2 合同项）
- *   - reports/RELEASE-02/q2-snr-smooth.md §2/§5/§7（÷g² 必进方差；权重同源）
+ *   - RELEASE-02 unc-prop-audit.md §3（正确传播公式，M2 合同项；已退役，见仓库 git 历史）
+ *   - RELEASE-02 q2-snr-smooth.md §2/§5/§7（÷g² 必进方差；权重同源；已退役，见仓库 git 历史）
  *   - lib/algorithms/coverage/include/astro/phase2/upm.h:225-228
  *       C_theta=(JᵀWJ)^-1；C_out=C_stat+J_out C_theta J_outᵀ；禁止权重反推 variance
  *   - docs/plugins/algorithms_phase2/11_upm.md §4.1（校准参数不确定度必须传播）

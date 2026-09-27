@@ -6,6 +6,7 @@
 #   nside decision window where the wrong constant flips the chosen nside by a factor 2
 #   (rule: smallest power-of-two nside with hp_res(nside) <= finest).
 import json
+import os
 import numpy as np
 
 def main():
@@ -51,7 +52,7 @@ def main():
         rel_diff_about_minus_2e4=bool(abs(rel + 1.97e-4) < 1e-6),
         decision_flip=bool(demo["nside_true"] == 4 and demo["nside_wrong"] == 2))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp08_scale_constant.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp08_scale_constant.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

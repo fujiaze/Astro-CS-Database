@@ -7,9 +7,9 @@
 - 创新点四定义与创新边界：docs/ASTROCS_DESIGN.md:147-159（leaf 边界精确、绝对立体角口径下的
   构造闭合 Sigma_p a_jp = (pi/3)|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立；
   奇点条款：chart 映射在 face 角点与面内 |z|=2/3 折线处存在分支结构）。
-- 冻结门：docs/algorithms/DRIZZLE_GEOMETRY.md:236（FP64 通量闭合 <1e-6；FP32/FP64 逐 leaf <1e-5），
+- 冻结门：docs/science/algorithms/DRIZZLE_GEOMETRY.md:236（FP64 通量闭合 <1e-6；FP32/FP64 逐 leaf <1e-5），
   冻结容差出处同文件 :235（"不得放宽"）。
-- 累加与归一：docs/algorithms/DRIZZLE_GEOMETRY.md:41-57（w_jp = a_jp/A_pixel；D_p = Sigma_j a_jp；
+- 累加与归一：docs/science/algorithms/DRIZZLE_GEOMETRY.md:41-57（w_jp = a_jp/A_pixel；D_p = Sigma_j a_jp；
   support = D_p/A_cell）。
 - 逐样本接受权威：lib/infrastructure/scheduler/src/module_adapters.cpp:8960-8962
   （p2_rejection_sample_mask.bin，"§30.2 完备划分的唯一可判据载体"）；

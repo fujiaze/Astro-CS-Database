@@ -35,6 +35,6 @@ for n in (5, 9, 25):
     ))
     print(rows[-1])
 out = dict(group="direct_characterization_iid_gaussian", seed=SEED, nmc=NMC, rows=rows)
-p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results", "direct_char.json")
+p = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "kcorr", "direct_char.json")
 json.dump(out, open(p, "w"), indent=1)
 print("written", p)

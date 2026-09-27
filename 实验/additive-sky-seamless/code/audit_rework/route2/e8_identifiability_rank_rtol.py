@@ -96,7 +96,7 @@ def main():
                                 "identifiable": r_g == 6,
                                 "chi2_red": chi2g / (300 - r_g)}
     res["audit_condition_number_1e12"] = {
-        "anchor_claimed": "docs/algorithms/PHASE2_UPM_IMPL.md §6.3",
+        "anchor_claimed": "docs/science/algorithms/PHASE2_UPM_IMPL.md §6.3",
         "grep_hits_for_cond/1e12_in_that_file": 0,
         "rule5_says": "absolute kappa_max constants are NOT on the judgment surface",
         "verdict": "hallucinated anchor; 1e12 gate contradicts frozen rule 4/5",

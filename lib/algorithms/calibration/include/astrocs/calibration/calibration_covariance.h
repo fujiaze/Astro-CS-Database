@@ -26,7 +26,7 @@
  *   docs/contracts/DATA_SEMANTICS.md  FZ-PROV-SHARED-SYSTEMATIC /
  *       FZ-FORMULA-COV-PROP / FZ-CAL-FLOOR / FZ-CAL-QUANTUM-DEFAULT
  *   docs/contracts/DATA_SEMANTICS.md §31.6 ; 01_units_and_bunit.md
- *   reports/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md  DI-03 (OPEN, fail-closed)
+ *   artifacts/evidence/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md  DI-03 (OPEN, fail-closed)
  *
  * 单位（冻结）: light/master signal = ADU ; variance = ADU^2 ;
  *              calibrated signal y = ADU ; v_cal = ADU^2 ; W_info = ADU^-2。

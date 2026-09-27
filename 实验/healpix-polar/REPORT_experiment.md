@@ -115,7 +115,7 @@
 ## 7. 复现命令
 
 ~~~bash
-# (A) 三路审计 + k_corr 补实验（Python；seed 见 §3；输出到 run/healpix-polar-audit-logs/）
+# (A) 三路审计 + k_corr 补实验（Python；seed 见 §3；日志到 run/healpix-polar-audit-logs/，各实验 JSON 以脚本自身位置锚定落 results/audit/<路线>/）
 cd 实验/healpix-polar
 bash code/audit/run_all.sh
 # 对照既有存档：results/audit/{route1,route2,route3,kcorr}/（逐位可对照；tables.md 可由 read_tables.py 重生成）

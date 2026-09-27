@@ -1,7 +1,7 @@
 # 修复前坏产物证据（PROV-SEMANTIC-FAKE）
 
 这些 `p1_phot.json` 是 **FIX-P1 竞态缺陷** 的**修复前**输出，由
-`reports/RELEASE-02/p1-phot-fix2.md` 与 `run/RELEASE-02/p1-phot-fix2/EVIDENCE.json` 记录。
+RELEASE-02 工作记录（p1-phot-fix2 报告与 EVIDENCE.json；原两指针随 reports/ 与 run/ 清退，见仓库 git 历史）记录。
 
 保留为**受控红例 fixture**（`CHK-PROVENANCE-CONSISTENCY --self-test` 可用），
 **不是**当前产物的样本 —— 原始大产物已从 `run/` 清除（否则门禁会对 bug 的历史输出永久报红）。

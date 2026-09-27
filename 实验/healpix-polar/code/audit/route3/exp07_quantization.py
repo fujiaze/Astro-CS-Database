@@ -7,6 +7,7 @@
 #   S < 1/510 uncovered (q = 0 -> division undefined, must be special-cased); clamp S=1.3;
 #   variance bias of quantized signal ~ (1+r_sig)^2 - 1 ~ 2*r_sig.
 import json
+import os
 import numpy as np
 
 SEED = 20260926
@@ -78,7 +79,7 @@ def main():
         var_bias_tracks_2rsig=bool(all(abs(v["var_ratio_minus_1"] - v["pred_2rsig_plus"]) < 0.05 for v in var_rows)))
     print("worst:", worst, "points:", pts)
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp07_quantization.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp07_quantization.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

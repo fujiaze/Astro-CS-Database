@@ -17,7 +17,8 @@ import json
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp02_metric_E_properties.json"
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "results", "route3", "exp02_metric_E_properties.json")
 
 
 def efficiency(sigma_true, sigma_hat, n_mc=40000, seed=1):

@@ -5,6 +5,7 @@
 # Negative control: an equal-area lat-lon grid under the same metric (must be clearly worse and
 # latitude-dependent, showing the metric discriminates and HEALPix uniformity is the special claim).
 import json, sys, os
+import os
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from edge_geom import sample_edge, to_vec, wrap_pi
@@ -83,7 +84,7 @@ def main():
         headroom=float(1.25 - max(r)),
         negctl_worse=bool(w > max(r)))
     print("VERDICT:", json.dumps(out["verdict"]))
-    with open("results/exp04_circumradius.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route3", "exp04_circumradius.json"), "w") as f:
         json.dump(out, f, indent=1)
 
 if __name__ == "__main__":

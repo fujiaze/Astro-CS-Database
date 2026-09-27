@@ -24,9 +24,10 @@ Method: exact-VOS spherical areas (gnomonic maps lines to great circles => 4-cor
   and an injected wrong-coefficient model leaves nonzero fit residual.
 
 Run: python3 e5_projection_budgets.py
-Output: ../results/e5_projection_budgets.{json,txt}
+Output: results/audit/route1/e5_projection_budgets.{json,txt}
 """
 import json
+import os
 import math
 import numpy as np
 
@@ -177,7 +178,7 @@ OUT["tangent_plane_fit"] = {"coefficient": float(coef_good), "max_residual": flo
                             "wrong_model_residual": float(res_wrong),
                             "verdict": "theta^2/2-family model fits; theta^2/12-model residual is nonzero"}
 
-with open("../results/e5_projection_budgets.json", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e5_projection_budgets.json"), "w") as fh:
     json.dump(OUT, fh, indent=1)
 
 L = ["E5 projection budgets (seed=%d)" % SEED, ""]
@@ -206,6 +207,6 @@ ft = OUT["tangent_plane_fit"]
 L.append("  theta^2-model coefficient = %.4f (max residual %.1e); wrong theta^2/12 model residual %.1e"
          % (ft["coefficient"], ft["max_residual"], ft["wrong_model_residual"]))
 txt = "\n".join(L)
-with open("../results/e5_projection_budgets.txt", "w") as fh:
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "results", "audit", "route1", "e5_projection_budgets.txt"), "w") as fh:
     fh.write(txt + "\n")
 print(txt)

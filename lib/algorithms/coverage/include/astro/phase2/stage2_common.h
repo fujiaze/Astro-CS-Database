@@ -26,7 +26,7 @@
 // （本常量只定义 "auto" 这个键值解析成什么，不定义生产链路的 λ）。
 // 注意与 docs/science/algorithms/PHASE2_UPM_IMPL.md:382「0.0（默认关闭平滑）」的
 // 冲突：该表自述「冻结面，任何修改必须走 SCI/合同变更」⇒ 本实现不擅自改
-// 冻结面，冲突已登记上呈（见 reports/RELEASE-02/conform-fix-b.md §009）。
+// 冻结面，冲突已登记上呈（见 RELEASE-02 conform-fix-b.md §009；该报告已退役，见仓库 git 历史）。
 constexpr double P2_SMOOTHING_LAMBDA_AUTO = 0.1;
 
 struct P2Stage2Config {

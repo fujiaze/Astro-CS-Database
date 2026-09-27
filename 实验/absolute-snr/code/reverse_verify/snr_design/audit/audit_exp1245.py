@@ -310,7 +310,7 @@ def exp4(a, out):
 
 # =========================================================================== #
 def exp5(a, out):
-    # cited source: reports/RELEASE-02/unc-prop-audit.md section 2.3
+    # cited source: RELEASE-02 unc-prop-audit.md section 2.3 (report retired; see repo git history)
     raw_var = 6.76
     param_well = 2.995
     param_ill = 332.8

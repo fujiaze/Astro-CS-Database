@@ -8,6 +8,7 @@
 # Every leaf edge connects vertex-grid points of adjacent levels and lies wholly inside one zone.
 # Meridian detection: endpoints share phi (mod 2pi). Pole edges (z=+-1) are meridians.
 import numpy as np
+import os
 
 def wrap_pi(x):
     return (x + np.pi) % (2*np.pi) - np.pi
