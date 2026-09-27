@@ -1,7 +1,7 @@
 # check_config_contracts 夹具
 
 > 本目录是 `eng/tools/quality/contracts/check_config_contracts.py` 的**历史夹具**。
-> 该检查器已按 §9.73 裁决 A44 **反转判据**，自检面改为内置的 `--self-test`
+> 该检查器判据已反转（权重模式键出现即拒绝），自检面为内置的 `--self-test`
 > （临时树正例/负例 + fail-closed，7 例），**不再读取本目录**；本目录目前无任何
 > 调用方（orphaned）。
 

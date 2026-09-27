@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """RUNTIME-CI-001 V6 CTest 门驱动（逐名验收锚 + fail-closed）。
 
-语义（任务卡 + CONTROLLER_LOG C-004.4 / C-007 AR-033/AR-034）：
+语义（CONTROLLER_LOG C-004.4 / C-007）：
   * 根构建面（CMakeLists.txt / eng/tests/unit/CMakeLists.txt / eng/tests/integration/*）由控制器在
     W9 之后以独立集成提交注册 V6 目标；本驱动不注册目标，只**按名验收**。
   * 目标尚未注册（build 树无 CTestTestfile，或期望名不存在）时：**清晰 FAIL（rc 2）**，
@@ -57,7 +57,7 @@ def main(argv=None):
         out["reason"] = (
             "V6 CTest 目标尚未注册进构建树: %s 无 CTestTestfile.cmake。"
             "根构建面注册由控制器在 RUNTIME-CI-001 之后的独立集成提交完成"
-            "(C-004.4 / C-007 AR-033)；本门 fail-closed，不静默通过。" % build_dir)
+            "(C-004.4 / C-007)；本门 fail-closed，不静默正常。" % build_dir)
         _emit(args.output, out)
         print("V6_CTEST_FAIL(prerequisite): " + out["reason"], file=sys.stderr)
         return 2

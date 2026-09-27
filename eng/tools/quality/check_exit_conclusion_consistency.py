@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CHK-EXIT-CONSISTENCY：结论与退出码一致性体检（W4-A3 新增登记门）。
+"""CHK-EXIT-CONSISTENCY：结论与退出码一致性体检（新增登记门）。
 
 口径：打印 FAIL 必须 rc≠0。检查器"打印红却返回 0"是 fail-open —— 上层门禁按退出码判
 生死，于是最该拦住的失败被静默放过。
@@ -240,8 +240,7 @@ def main() -> int:
         "non_zero_path_present": len(provable),
         "capability_gaps": [
             "静态可达性分析：只判文件里是否存在潜在非零退出路径，不证明该路径在失败时",
-            "真的被走到（需要逐脚本动态负例注入）。本轮对少量脚本做了人肉动态复核，",
-            "证据见 run/PROJECT-GOVERNANCE-01/W4-A3/logs/after_EXIT-CONSISTENCY.log。",
+            "真的被走到（需要逐脚本动态负例注入）。本轮对少量脚本做了动态复核并留档。",
             "已知不可静态判定：同一函数内先打印失败结论、随后在失败分支 return 0",
             "（但函数另有非零返回）—— 需要分支/数据流语义，本轮不判，登记为能力缺口。",
         ],

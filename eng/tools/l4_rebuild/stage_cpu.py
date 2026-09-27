@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""PERF-DRZ: 修正 RELEASE-02 stage_cpu.py 的时间区间对齐缺陷。
+"""PERF-DRZ: 修正历史 stage_cpu.py 的时间区间对齐缺陷。
 
-缺陷 (原始 run/RELEASE-02/L4-rebuild/stage_cpu.py):
+缺陷 (原始 stage_cpu.py):
   探针中 *阶段级* 事件 (name in {calibrate,drizzle,wcs,...}) 的 ts_utc 是
   **阶段结束时刻**, wall_us 才是阶段耗时。原脚本把 ts_utc 当作阶段**开始**
   时刻 (a = t - t0; b = a + w), 于是 drizzle 阶段被采样到"阶段结束后"的
@@ -16,7 +16,7 @@
   -> start 15:20:32.021 = 进程起点。END 语义成立。
 
 本脚本用正确窗口 [t_end-w, t_end] 重算, 并与原脚本口径并列对比。
-用法: python3 run/RELEASE-02/perf-drz/stage_cpu_fixed.py
+用法: python3 stage_cpu_fixed.py
 """
 import json, csv, os, glob, collections, datetime
 

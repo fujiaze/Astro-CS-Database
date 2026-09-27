@@ -4,7 +4,7 @@
 Checks: 全生产运行；豁免面为空（正本 = eng/ci/exemptions.json）；P0/P1=0。
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
 
-TRUTHFUL-CONCLUSION-01（一页纸 S2-B）订正两处「说谎的结论」：
+TRUTHFUL-CONCLUSION-01 订正两处「说谎的结论」：
   1. 原 status 有一个**造词**取值（docs/ASTROCS_DESIGN.md §12.5 唯一状态阶梯里不存在该词），
      其语义是「存在挂账 P1 债务也算通过」。现改为只输出
      PASS/FAIL 判定词（与文件头退出码合同同源），债务另立 debt 字段如实登记。
@@ -14,7 +14,7 @@ TRUTHFUL-CONCLUSION-01（一页纸 S2-B）订正两处「说谎的结论」：
 """
 import argparse, json, pathlib, sys, subprocess
 
-# W4-A3（B 类收口）：报告生成器的子进程超时此前**未捕获** —— subprocess.run(timeout=30)
+# （B 类收口）：报告生成器的子进程超时此前**未捕获** —— subprocess.run(timeout=30)
 # 抛出 TimeoutExpired 时本脚本以未捕获 Traceback 退出（exit 1 + 30 行栈），既不是
 # 合同 FAIL 也不是环境错，违反 ENGINEERING_SPEC §8「fail-closed 且不 traceback」。
 # 现改为：① 默认预算放宽到 300s（30s 对全仓合同报告不足，实测超时）；
@@ -155,7 +155,7 @@ def main():
     return 0 if status == "PASS" else 1
 
 if __name__ == "__main__":
-    # W4-A3：兜底 —— 任何意外异常转成 exit 2 + 单行说明，绝不打印 Traceback。
+    # 兜底 —— 任何意外异常转成 exit 2 + 单行说明，绝不打印 Traceback。
     try:
         sys.exit(main())
     except SystemExit:

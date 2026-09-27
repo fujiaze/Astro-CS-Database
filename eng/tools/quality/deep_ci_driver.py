@@ -341,7 +341,7 @@ def cmd_ctest_target(args: argparse.Namespace) -> int:
     CI 检查项。build dir 由登记顺序保证已构建（BUILD-GCC-RELEASE 或
     CTEST-LINUX-FULL 先行）。
 
-    GAP-027 fail-closed（CI-001，2026-09-16）：原注释断言「未构建时 ctest 报
+    GAP-027 fail-closed（CI-001）：原注释断言「未构建时 ctest 报
     "No tests were found" 非零」——**与 ctest 实测行为矛盾**：构建树未 configure
     或目标未注册时 ctest -R 打印 "No tests were found!!!" 且 **rc=0**，本驱动据此
     静默 PASS（46 条 CTEST-<TARGET> 门 + CTEST-LINUX-FULL 同族恒绿）。现在先做

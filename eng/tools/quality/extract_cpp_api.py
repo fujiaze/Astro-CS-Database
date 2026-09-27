@@ -29,7 +29,7 @@ HEADER_GLOBS = (
     "lib/*/cpp/include/**/*.h",
     "lib/*/*/include/**/*.h",
     "lib/algorithms/platesolve/cpp/ipv/include/*.h",
-    # W4-A3：契约表登记了更深层的公共头（如
+    # 契约表登记了更深层的公共头（如
     # lib/infrastructure/pipeline/orchestrator/cpp/include/admission_controller.h
     # —— 深度 5，旧的四条 glob 全部覆盖不到）⇒ 这些头里的符号整批落进
     # API-MISSING-AST。改为按 "任意深度 + /include/ 段" 收集；可复现性约束
@@ -44,7 +44,7 @@ HEADER_RE_F = re.compile(r'^\s*(?:P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API)?\
 # Broader: capture function-like lines in include headers
 FUNC_LINE_RE = re.compile(r'^\s*(?:extern\s+"C"\s*\{\s*)?(?:P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API|extern)?\s*([^\n;]*\b(\w+)\s*\([^;]*\)\s*;)', re.M)
 
-# ── W4-A3：契约表登记面 = 函数 **+ 类 + 成员方法** ─────────────────────────────
+# ── 契约表登记面 = 函数 **+ 类 + 成员方法** ─────────────────────────────
 # 事由： docs/contracts/API_CONTRACTS.csv 的 kind 列有 C（类）与 M（方法）两类行，
 # 其 symbol 是**类名**（signature 是构造声明，常带 `public:` 前缀）或**成员方法名**
 # （声明在 class 体内部，带 explicit/virtual/const/noexcept、默认实参含 `{}`）。
@@ -88,7 +88,7 @@ def extract_from_header(path: pathlib.Path):
             continue
         # 注意：签名**原样保留**（含结尾 ';'）—— check_api_contracts 的文本判据
         # 是"CSV full_signature == 头文件实测文本"，两侧本来就是带 ';' 的写法。
-        # W4-A3 只在 _arity() 侧放宽（剥掉 ';'/导出宏后再数参数），不动这里。
+        # 只在 _arity() 侧放宽（剥掉 ';'/导出宏后再数参数），不动这里。
         sig = re.sub(r'\s+', ' ', full)
         results.append({"symbol": name, "signature": sig, "header": str(path), "export": prefix or None})
     return results
@@ -139,7 +139,7 @@ def extract(repo: pathlib.Path):
         except Exception as e:
             print(f"warn: {h}: {e}", file=sys.stderr)
     # Dedupe by symbol+header
-    # W4-A3：同名+同头多条时**优先保留带参数表的声明**。类/结构体标记行
+    # 同名+同头多条时**优先保留带参数表的声明**。类/结构体标记行
     # （"class AdmissionController"）无参数面，若按到达顺序抢占，kind=C 契约行
     # 的签名比对会退化成 API-SIG-UNPARSABLE(ast arity=None)。
     dedup = {}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""check_isa_same_source.py —— ISA 三侧同源门（一页纸 S2-C）。
+"""check_isa_same_source.py —— ISA 三侧同源门。
 
 要修的缺陷（审查节点原话）
   禁硬编码 ISA 的门**只读根 CMake**，而 -march=native 散在多个模块 Makefile；

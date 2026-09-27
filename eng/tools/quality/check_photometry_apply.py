@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """verify_photometry_apply.py — 测光归一化"是否真的乘到像素上"的独立复算门
 
-归属: run/RULING-DOC-01 (负责人裁决 B 的数值验证)
+定位: 数值验证工具
 目的: 验证 ACSD Phase1 生产节点 astrocs.phase1.photometry 的施加步是否**真的**
       把标度 k_photo 乘到了像素上, 即磁盘产物满足
           photoapplied[i] == float32( double(calibrated[i]) * k_photo )   (有限像素)

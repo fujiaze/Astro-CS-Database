@@ -145,7 +145,7 @@ def err(prefix: str, msg: str, subcode: str = None, sig: str = None) -> dict:
     """错误记录。
 
     `code` 是**稳定的判定类别**（对外合同，测试与 §7 规则表按它断言）；
-    `subcode` 是 W4-A3 引入的**细分粒度**（同一类别下的具体失效型），
+    `subcode` 是 引入的**细分粒度**（同一类别下的具体失效型），
     用于把"路径不存在"与"用例/目标不存在"分开 —— 两者同属悬空引用（DANGLING_REF）
     这一类别，但根因与处置完全不同（前者改锚，后者补用例/改目标名）。
     """
@@ -158,7 +158,7 @@ def err(prefix: str, msg: str, subcode: str = None, sig: str = None) -> dict:
 
 
 def warn(prefix: str, msg: str, subcode: str = None, sig: str = None) -> dict:
-    """警告记录。subcode 口径与 err() 一致（W4-A3 引入，--strict 升级为 ERROR）。"""
+    """警告记录。subcode 口径与 err() 一致（引入，--strict 升级为 ERROR）。"""
     rec = {"severity": "WARN", "code": prefix, "detail": msg}
     if subcode:
         rec["subcode"] = subcode
@@ -416,7 +416,7 @@ def main() -> int:
                 results.append(err("SCHEMA_VIOLATION",
                                    f"{mid} [{idk} 层] 非法状态 {st!r} ∈ {{VERIFIED,MISSING,NONE}}"))
             # C4 ID 格式
-            # 复合形态（W4-A3）：`ID-A;ID-B` = 同一层由多个已登记 ID 共同锚定
+            # 复合形态（）：`ID-A;ID-B` = 同一层由多个已登记 ID 共同锚定
             # （与 test_path 的复合形态同源）。**逐个**切片校验，任一元素不匹配即判红；
             # 空元素由 C3 抓。这是"支持复合形态"，不是放宽单 ID 正则。
             id_parts = [x.strip() for x in str(ident).split(";")] if ";" in str(ident) else [str(ident)]
@@ -510,14 +510,14 @@ def main() -> int:
     # 模块清单完整性：每个 registry/已建模块被覆盖（不判孤行）
     _check_module_coverage(root, rows, results)
 
-    # W4-A3（C 类：打印结论↔退出码一致）：退出码必须用 _finish **判后**的结论。
+    # （C 类：打印结论↔退出码一致）：退出码必须用 _finish **判后**的结论。
     # 旧写法在 _finish 之后从原 results 重算 errors —— strict 升级与基线判定的
     # 结果不进退出码 ⇒ 打印 FAIL 却 rc=0（该检查器自身的 fail-open）。
     n_errors, _n_warns = _finish(root, args, results)
     return _exit_code(n_errors)
 
 
-# —— 复合 test_path / src_path 解析（W4-A3） -------------------------------------
+# —— 复合 test_path / src_path 解析（） -------------------------------------
 # 矩阵的锚列允许三种形态（全部在现行矩阵中出现，必须机器可解析）：
 #   ① 单文件          `eng/tests/unit/x.cpp`
 #   ② 文件::用例/符号  `docs/science/algorithms/X.md::TEST-X-DESIGN-001`
@@ -689,8 +689,8 @@ def _check_anchor(root, mid, layer, p, results, seen):
                                    f"{mid} [{layer}]: 路径不存在 {rel}", "PATH_NOT_FOUND"))
             continue
         if tracking_available() and not _git_tracked_dir(root, rel):
-            # W4-A3 判据分级：「路径不存在」是硬错（ERROR）；「路径在盘上但尚未纳入
-            # 版本库」是**工作区瞬时状态**（前台提交前必然出现，如 W4-A9 的迁移文件），
+            # 判据分级：「路径不存在」是硬错（ERROR）；「路径在盘上但尚未纳入
+            # 版本库」是**工作区瞬时状态**（前台提交前必然出现，如  的迁移文件），
             # 与同文件既有的 REF_OUT_OF_SCOPE 同例：默认 WARN，--strict 升级 ERROR。
             # 同一路径只报一次（路径 + N 个用例共锚的场景会重复 N 行）。
             if rel not in _reported_untracked:
@@ -891,8 +891,8 @@ def _check_csv_parity(root, results) -> None:
                                f"{MATRIX_CSV_REL} 行 {i} {mid} 与 JSON 不一致列: {diffs}（请重跑 gen_traceability_csv.py）"))
 
 
-# ── 烧毁式 WARN 基线（附录 H.6，W4-A3 实施）─────────────────────────────────────
-# 口径（前台裁决 2026-09-17）：默认 rc=0 是门，--strict 是审计升级。存量 WARN 走
+# ── 烧毁式 WARN 基线（附录 H.6，实施）─────────────────────────────────────
+# 口径：默认 rc=0 是门，--strict 是审计升级。存量 WARN 走
 # **烧毁式基线**：①只降不升 —— 基线里"匹配不到当前 WARN"的条目判红
 # （BASELINE_STALE），必须随修复同步删除，不允许把基线当只增不减的豁免表；
 # ②归零转全量强制 —— 基线为空时所有 WARN 在 --strict 下一律升级 ERROR；

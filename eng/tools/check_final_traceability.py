@@ -13,7 +13,7 @@
      * 硬编码版本断言 ver != "0.10.0-alpha.2" ⇒ 改为从根 VERSION 读（VER-001 单源，
        与同批 check_reproducible_build.py 的既有订正同款）；否则本文件在现行
        0.11.0-alpha.2 下**结构性恒红**，保留可复跑性无从谈起；
-     * p3_resample.cpp 的锚 lib/phase3_session/ ⇒ lib/algorithms/resample/（W4-A9 迁移后真址）；
+     * p3_resample.cpp 的锚 lib/phase3_session/ ⇒ lib/algorithms/resample/（ 迁移后真址）；
      * 委托的 eng/tools/check_traceability.py 自身已按 §2.1 退役（无参 rc=2 打印
        TRACEABILITY_RETIRED）⇒ 不再把「被委托门已退役」计为追溯失败；显式给
        --traceability-csv 时仍按原样委托复跑。
@@ -41,7 +41,7 @@ VERSION_REL = "VERSION"
 PUBLIC_API_REL = os.path.join("docs", "contracts", "PUBLIC_API.md")
 RELEASE_STATUS_REL = os.path.join("docs", "review", "RELEASE_STATUS.md")
 TRACEABILITY_CHECKER_REL = os.path.join("eng", "tools", "check_traceability.py")
-# W4-A9 批次 1/2 迁移后的真址（原 lib/phase3_session/ 已不是 p3_resample 的落点）
+# /2 迁移后的真址（原 lib/phase3_session/ 已不是 p3_resample 的落点）
 P3_IMPL_RELS = (os.path.join("lib", "algorithms", "projection", "p3_wcs.cpp"),
                 os.path.join("lib", "algorithms", "resample", "p3_resample.cpp"),
                 os.path.join("lib", "algorithms", "fits_output", "p3_output.cpp"))

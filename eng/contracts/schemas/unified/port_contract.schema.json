@@ -17,7 +17,7 @@
         "retired_on": "2026-09-20",
         "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
         "canonical_schema_removed": true,
-        "basis_ref": "工程控制/RELEASE-03/GAP_AUDIT.md §4.5 C01；docs/ASTROCS_DESIGN.md §2.1/§2.2/§2.3；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 A44；run/RELEASE-02/design-merge/DESIGN-DRAFT.md §3.1-C01",
+        "basis_ref": "docs/ASTROCS_DESIGN.md §2.1/§2.2/§2.3",
         "rejection": "port_contract enum rejects the retired object: declaring unified_object=psfsw_robust_weight ⇒ enum FAIL (explicit reject, fail-closed, no silent accept)",
         "migration_hint": "迁移提示：canonical schema 与 example 已删除，不存在等价替代对象；点源严格权重用 point_information（W_info=1/Var(F_hat)），帧级参考用 frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生）。见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
       }

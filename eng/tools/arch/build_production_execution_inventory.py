@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ARCH-001: 生成 PRODUCTION_EXECUTION_INVENTORY.csv（生成器，可重跑）。
 
-存在理由（独立审查一页纸 S1 第 22／29 条）
+存在理由（生产执行面登记缺口）
   * 第 22 条：本生成器曾被校验器跑到**被校对象**上（eng/tests/arch/test_inventory.py
     的 test_05 先读跟踪件字节、再在原地重跑生成器覆写该文件）⇒ 差异在第一跑即被抹掉、
     第二跑必然通过。故本生成器支持 --out：校验器写临时目录再比对，跟踪件保持只读。
@@ -65,7 +65,7 @@ rows, notes = [], []
 def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):
     rows.append(dict(zip(COLS, [cat, sym, loc, cls, reach, phase, tm, ev, risk])))
 
-# 0 真实构建图（唯一实现 eng/ci/cmake_graph.py；一页纸 S1 第 25/26/29 条共用）
+# 0 真实构建图（唯一实现 eng/ci/cmake_graph.py）
 def _load_graph_module():
     path = os.path.join(REPO, "eng", "ci", "cmake_graph.py")
     if not os.path.isfile(path):
@@ -98,7 +98,7 @@ for line in exe:
     add("exe_target", name, tgt, "production" if is_prod else ("test" if name.startswith("test_") else "tool"),
         "yes" if is_prod else "no", "-", "n/a(单exe策略)" if is_prod else "非发布目标", line.split(":",2)[0]+":"+line.split(":",2)[1].split(":")[0])
 
-# 1b 根构建图目标集（一页纸 S1 第 29 条）：生产入口与全部构建产出的可执行目标必须
+# 1b 根构建图目标集：生产入口与全部构建产出的可执行目标必须
 #    落在登记面里 —— 「登记集合 包含 构建产出的可执行目标集合」由
 #    eng/tests/arch/test_inventory.py::test_04 断言（不是断言「production exe 数 == 0」）。
 if GRAPH is not None:
@@ -163,7 +163,7 @@ for l in rg(r"acr_route|acr_registered|p2_acr", ["lib"]):
 # 7 I/O writer
 io_files = sorted({l.split(":")[0] for l in rg(r"aio_frame_add_block|aio_write|fits_create_file|hips.*writer|atomic_write", ["lib"])})
 
-# 7b 非生产可达面登记（CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06）
+# 7b 非生产可达面登记
 # 规则 7 是"符号命中 ⇒ production"的**模式级**声明；对只被测试目标编译的遗留实现
 # 会过度声明（清单与事实不符）。登记项 = 已由机器判据核实"不在生产入口 acsd 的
 # 传递闭包内"的文件：按既有列语义改标 classification=test / production_reachable=no

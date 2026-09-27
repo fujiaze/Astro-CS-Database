@@ -32,7 +32,7 @@
   M7 状态词只取 docs/ASTROCS_DESIGN §12.5 词表；VERIFIED 必须有证据文件在仓库内，
      禁止表内自证：「合成测试或历史可用节点不等于真实数据/Windows VERIFIED」。
 
-  M8 声明↔文件↔CMake target↔产品清单四方一致（FIX-404 / GAP_AUDIT G3-8）：
+  M8 声明↔文件↔CMake target↔产品清单四方一致（缺口收口）：
      每条路径声明（target_dir/readme/module_yaml/target_file/co_located_tests/schema_links）
      与 target 声明，要么在树中真实存在/被 CMake 定义，要么在 MODULE_MAP 的
      declared_absent_paths 中**逐条登记缺口**（owner + reason，owner 必须命中 gap_owners，
@@ -41,7 +41,7 @@
        * 缺口登记的路径已存在 → FAIL(stale_declared_absent)     棘轮反向自证；
        * owner 未登记/无任务书→ FAIL(gap_owner_unknown)         fail-closed；
        * 已登记缺口          → GAP(declared_absent_registered)  逐条出机器表，不静默、不判绿。
-  M9 块名词表（FIX-404 / GAP_AUDIT G1-5）：aio_pipeline.h「标准块定义表」是帧内命名块的
+  M9 块名词表（缺口收口）：aio_pipeline.h「标准块定义表」是帧内命名块的
      唯一登记处，且必须与 aio_pipeline.cpp 的 kStandardBlockNames 逐名一致（声明↔实现）；
      生产源（非 eng/tests/fixture）里的 aio_frame_add_block / add_block_move / kv_set 调用点
      只准使用标准名或同文件 aio_block_name_register 显式注册的扩展名。
@@ -50,7 +50,7 @@
        * 生产调用点用未注册名→ FAIL(block_name_unregistered)。
   M10 悬空台账收口（与 DOC-403 的 doc-index 门共用扫描数据）：
      消费 eng/tools/doccheck/dangling_ledger.json（缺文件/不可解析/超冻结上限 → FAIL，fail-closed）；
-     FIX-404 声明文件域（lib/**）内的悬空条目必须清零；域外条目必须逐条给出
+     缺口收口声明文件域（lib/**）内的悬空条目必须清零；域外条目必须逐条给出
      classification + handoff（to + reason），owner 命中 gap_owners。
        * 台账不可用/超上限       → FAIL(dangling_ledger_unavailable)；
        * lib/** 仍有悬空条目     → FAIL(fix404_domain_dangling_open)；
@@ -143,12 +143,12 @@ FINDING_SEVERITY = {
     "schema_link_glob_unverifiable": "NOTE", "product_manifest_exempt": "NOTE",
     "not_verified": "NOTE", "legacy_paths_present": "NOTE",
     "entrypoint_vtable_resolved": "NOTE",
-    # --- M8 四方一致 / 缺口登记（FIX-404） ---
+    # --- M8 四方一致 / 缺口登记 ---
     "fake_path": "FAIL", "fake_target": "FAIL", "stale_declared_absent": "FAIL",
     "gap_owner_unknown": "FAIL", "gap_registry_missing": "FAIL",
     "gap_registry_count_mismatch": "FAIL", "stale_declared_absent_capability": "FAIL",
     "declared_absent_registered": "GAP", "declared_absent_capability_registered": "GAP",
-    # --- M9 块名词表（FIX-404 / G1-5） ---
+    # --- M9 块名词表（缺口收口） ---
     "block_table_parse_failed": "FAIL", "block_table_code_drift": "FAIL",
     "block_name_unregistered": "FAIL", "block_name_registered": "NOTE",
     # --- M10 悬空台账收口（与 DOC-403 doc-index 门共用扫描数据） ---
@@ -171,7 +171,7 @@ BLOCK_TABLE_END = "块生命周期管理"
 # M10: 与 DOC-403 doc-index 门共用的悬空台账 + 冻结上限（只减不增）。
 DANGLING_LEDGER = "eng/tools/doccheck/dangling_ledger.json"
 LEDGER_FROZEN_MAX = 104
-# FIX-404 声明文件域（本任务收口后，台账里不得再有该域的悬空条目）。
+# 缺口收口声明文件域（收口后台账里不得再有该域的悬空条目）。
 FIX404_DOMAIN_PREFIXES = ("lib/",)
 LEDGER_CLASSIFICATIONS = ("fixture_or_pattern", "stale_pointer", "retired_namespace",
                           "handoff_required")
@@ -966,12 +966,12 @@ def check_block_name_vocabulary(repo: pathlib.Path, tracked: list):
             findings.append(Finding(
                 rel, "block_name_unregistered",
                 "生产调用点使用非标准块名 %r：不在 %s 标准块定义表，且同文件无 "
-                "aio_block_name_register 显式注册（FIX-404 / G1-5）" % (name, BLOCK_TABLE_HEADER)))
+                "aio_block_name_register 显式注册（缺口收口）" % (name, BLOCK_TABLE_HEADER)))
     return findings, {"standard": sorted(standard), "call_sites": sites}
 
 
 def check_dangling_ledger(repo: pathlib.Path, gap_owners: dict):
-    """M10：消费 DOC-403 doc-index 门的悬空台账（共用扫描数据），收口 FIX-404 域。"""
+    """M10：消费 DOC-403 doc-index 门的悬空台账（共用扫描数据），收口该域。"""
     findings = []
     p = repo / DANGLING_LEDGER
     if not p.is_file():
@@ -998,7 +998,7 @@ def check_dangling_ledger(repo: pathlib.Path, gap_owners: dict):
         if rel.startswith(FIX404_DOMAIN_PREFIXES):
             findings.append(Finding(
                 rel, "fix404_domain_dangling_open",
-                "FIX-404 声明文件域（lib/**）内仍有未收口悬空条目：%r（token=%r）"
+                "缺口收口声明文件域（lib/**）内仍有未收口悬空条目：%r（token=%r）"
                 % (rel, e.get("token"))))
             continue
         cls = str(e.get("classification") or "")
@@ -1016,7 +1016,7 @@ def check_dangling_ledger(repo: pathlib.Path, gap_owners: dict):
     for e in entries:
         counts[str(e.get("owner"))] = counts.get(str(e.get("owner")), 0) + 1
     findings.append(Finding("<map>", "dangling_ledger_ok",
-                            "台账 %d 条；FIX-404 域内 0 条；owner 分布=%s" % (len(entries), counts),
+                            "台账 %d 条；收口域内 0 条；owner 分布=%s" % (len(entries), counts),
                             severity="NOTE"))
     return findings, {"entries": len(entries), "owner_counts": counts}
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""run/ 轮次产物回收 —— 防止 run/ 无限膨胀（负责人 2026-09-21 指令）。
+"""run/ 轮次产物回收 —— 防止 run/ 无限膨胀。
 
-为什么需要：run/ 是 gitignore 的临时区，历史轮次（RELEASE-01/02/03、各任务 scratch）
+为什么需要：run/ 是 gitignore 的临时区，历史轮次、各任务 scratch
 会累积到上百 GB，挤压 L4 全流程所需工作盘。本脚本把"开新一轮先清旧轮次"变成固定动作。
 
 用法：
@@ -16,7 +16,7 @@
 
 路径单源（LINUXMAIN-PATH-01 A）：TOOLS_DIR = 本文件所在目录，REPO / RUN / KEEP_FILE 全部由它
 派生，不再手抄 "tools/..." 字面量 —— 手抄副本一旦与真身漂移，保留清单会被**静默**当成不存在，
-于是「保留清单命中」这条护栏整条失效（实测：RELEASE-04 被删）。
+于是「保留清单命中」这条护栏整条失效（实测有过误删）。
 
 硬护栏（fail-closed，任一命中即拒绝该条目）：
   * 只处理 run/ 的**直接子项**，绝不递归跟随符号链接；
@@ -90,7 +90,7 @@ def load_keep_patterns(keep_file: Path, extra_keep, extra_glob):
     """读保留清单；缺失 / 解析为空 ⇒ KeepListUnavailable（fail-closed，不返回空清单）。
 
     LINUXMAIN-PATH-01 A 判据：原实现 `if keep_file.is_file()` 静默跳过读不到的清单，
-    等价于「保留清单 = 空」⇒ --apply 会回收本应保留的轮次（实测 RELEASE-04 被删）。
+    等价于「保留清单 = 空」⇒ --apply 会回收本应保留的轮次（实测有过误删）。
     保留清单是本脚本唯一的「不可删」来源，读不到时**没有任何安全默认值** ⇒ 必须拒绝执行。
     """
     if not keep_file.is_file():

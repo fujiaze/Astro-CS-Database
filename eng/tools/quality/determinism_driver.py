@@ -11,7 +11,7 @@ docs/contracts/TEST_MATRIX.md §2）：
     （eng/tools/quality/numeric_equiv.py；FP64 rtol=1e-12/atol=1e-13×scale、FP32
     rtol=5e-6/atol=1e-6×scale、整数/mask/索引/NaN 位置精确一致），全部在容差内 ⇒ PASS；
     超差或结构不一致 ⇒ FAIL。理由：1/N worker 的合同判据是**浮点容差**而非逐位一致
-    （负责人裁决 2026-09-22：「数值精度在浮点容差内就可以」），但容差档必须仍能抓住真实
+    （既定口径「数值精度在浮点容差内就可以」），但容差档必须仍能抓住真实
     退化——因此保留逐字节档为优先判据，且容差档自带敏感性自检。
   * 产物缺失/运行失败/两档均不通过 → FAIL（rc 1）；构建或 taskset 缺失 → 清晰 FAIL（rc 2）。
 

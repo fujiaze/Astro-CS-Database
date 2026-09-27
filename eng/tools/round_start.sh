@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 开新一轮运行：回收旧轮次产物 → 建目录 → 写轮次元数据（负责人 2026-09-21 指令）。
+# 开新一轮运行：回收旧轮次产物 → 建目录 → 写轮次元数据。
 # 用法：eng/tools/round_start.sh <ROUND-ID>       例：eng/tools/round_start.sh RELEASE-05
 # 说明：run/ 是 gitignore 的临时区，历史轮次会累积到上百 GB；本脚本把"先清旧轮次"变成固定动作。
 # 细节与硬护栏见 eng/tools/run_gc.py 头部注释；保留清单见 eng/tools/run_keep.txt。

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """check_build_graph.py —— 构建图门（CON-BUILD-GRAPH）。
 
-整改依据（独立审查一页纸 S1 第 25 条）
+整改依据（构建图一致性）
   原实现以「文档里是否出现某四个字符串」+「某个 CMakeLists 里是否有 add_library(phase2」
   为判据，故 docs/architecture/BUILD_GRAPH.md 的「生产构建图」三行目标名与路径**全部落空**
   （astro_image_io.dll / hepix_drizzle / orchestrator.exe，且未列 acsd、astrocs_phase2），

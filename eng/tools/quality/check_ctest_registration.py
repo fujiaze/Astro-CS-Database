@@ -52,7 +52,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[3]
 REGISTRY_REL = "eng/ci/checks.json"
 
-# 口径（W4-A3 前台裁决，2026-09-17）：**已显式登记进 eng/ci/checks.json 的 ctest_targets
+# 口径：**已显式登记进 eng/ci/checks.json 的 ctest_targets
 # ⇒ 不再进本冻结基线**。冻结基线是 CI-REG-002 建立时点**存量目标**的一次性过渡收编
 # 机制；显式登记强于冻结（登记会被 C4/C6 双向校验，冻结只保证不漂移）。所以看到
 # 某个 add_test 目标不在本基线里，先查它是不是已被显式登记 —— 那是**正常**的，
@@ -93,7 +93,7 @@ class GitUnavailable(RuntimeError):
 def git_tracked_set(repo: pathlib.Path) -> set:
     """git 已跟踪文件集（仓库相对、'/' 分隔）。
 
-    W4-A3：CTest 面 = **版本库面**。并发写者（其它任务）在工作区留下的
+    CTest 面 = **版本库面**。并发写者（其它任务）在工作区留下的
     **未跟踪** CMake 源不属于本仓库的任何检出，若纳入判据，本门就会在
     别人写到一半的目录上判红（实测：lib/algorithms/projection/tests/p3wcs/ 的
     未跟踪 CMakeLists 重复注册 p3_wcs ⇒ C1 红），把「CI 注册闭包」变成
@@ -156,7 +156,7 @@ FOREACH_RE = re.compile(r'foreach\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^)]*?)\s*\
 def expand_foreach(text, depth=0):
     """把 foreach(var a b c) ... endforeach() 展开成逐值副本。
 
-    W4-A3：解析器原先只取字面量名，于是
+    解析器原先只取字面量名，于是
     lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt 的
     foreach(orch_test logger checkpoint) 生成的 orchestrator_logger_units /
     orchestrator_checkpoint_units 两条真实 ctest 在扫描面上不可见 —— 这正是
@@ -203,13 +203,13 @@ def load_json(path: pathlib.Path) -> dict:
 
 
 def command_surface(check: dict) -> list:
-    """聚合项 + 其各 step 的 command 全文（W4-A3 C6 口径订正）。
+    """聚合项 + 其各 step 的 command 全文（C6 口径订正）。
 
     CI-001 ID 收敛后注册表是**两层**结构：聚合项（CHK-*）持有 ctest_targets，
     而真正调用 ctest 的是其 steps[].command（deep_ci_driver.py ctest-target
     --target <名>）。C6 的判据是「登记了就必须真跑」，故运行面 = 聚合项 command
     ∪ 全部 step command；只看聚合项 command 会把**确实在跑**的目标误判为
-    「登记但未真跑」（W4-A3 实测 56 条误红）。
+    「登记但未真跑」（实测 56 条误红）。
     """
     cmd = list(check.get("command", []) or [])
     for step in check.get("steps", []) or []:
@@ -407,7 +407,7 @@ def run_selftest() -> int:
     case("S6_stale_baseline", {"CMakeLists.txt": FIXTURE_CMAKE_STALE}, empty_reg,
          {"targets": ["removed_target"]}, False)
     # S8：两层注册表 —— 目标由 step command 真跑（聚合项 command 只是转发），
-    #     不得判「登记但未真跑」（W4-A3 C6 口径订正的正例面）。
+    #     不得判「登记但未真跑」（C6 口径订正的正例面）。
     case("S8_pattern_in_step_command", {"CMakeLists.txt": FIXTURE_CMAKE_ONE},
          _fixture_registry("demo_units", via_step=True), {"targets": []}, True)
 
@@ -449,7 +449,7 @@ def main(argv=None) -> int:
         # 依赖不可用 ⇒ 点名 + fail-closed（rc=2）。**不得**退化成"空版本库面 ⇒ 全部目标
         # 未注册/陈旧"（原缺陷：282 条错误全部指向「target 消失」而真因是「git 不可用」）。
         print("CTEST-REG-FAIL: GIT_UNAVAILABLE %s" % exc)
-        print("  CTest 面 = 版本库面（W4-A3 口径）；git 面不可用 ⇒ 不给出注册闭包结论，"
+        print("  CTest 面 = 版本库面（口径）；git 面不可用 ⇒ 不给出注册闭包结论，"
               "fail-closed rc=2（空版本库面不等于「target 消失/陈旧注册」）")
         if args.output:
             out = pathlib.Path(args.output)
@@ -508,7 +508,7 @@ def main(argv=None) -> int:
         "dangling_patterns": verdict["dangling_patterns"],
         "pattern_not_in_command": verdict["pattern_not_in_command"],
         "untracked_cmake_sources": untracked,
-        "untracked_note": ("未跟踪的 CMake 源不计入 CTest 面（W4-A3：本门判"
+        "untracked_note": ("未跟踪的 CMake 源不计入 CTest 面（本门判"
                            "版本库，不判并发写者的工作区快照）；此处留痕不静默丢弃"),
         "error_count": len(errors),
         "errors": errors,

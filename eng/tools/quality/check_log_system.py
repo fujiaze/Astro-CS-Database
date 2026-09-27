@@ -196,7 +196,7 @@ def match_brace(masked: str, open_idx: int) -> int:
 # exp_relvec_core.cpp 触发 R3 未登记 ⇒ 门把「工作区快照」当判据（假红），
 # 而该目录按 .gitignore:37（`archive/`，注释「归档目录（GOV-002 起归档文件须受
 # Git 跟踪）」）**不是交付面**。
-# 口径与 eng/tools/quality/check_ctest_registration.py 的 W4-A3 一致：判定面收敛到
+# 口径与 eng/tools/quality/check_ctest_registration.py 的 一致：判定面收敛到
 # git ls-files；未跟踪源单独计数并在证据 JSON 的 untracked_cpp_files 字段留痕
 # （不静默丢弃）。git 不可用 ⇒ Fail（rc=2，fail-closed），不得当成「全部未跟踪」。
 def git_tracked_set(root: pathlib.Path):
@@ -511,7 +511,7 @@ def run_checks(root: pathlib.Path, ledger_path: pathlib.Path):
             "R1 仅覆盖生产收敛面 cli/scheduler/pipeline/aio（算法模块错误面由 C ABI 返回码门覆盖）",
             "R2 是语法形态识别（探测调用 + 探测结果被返回 + 另一分支返回值），不含跨函数数据流分析",
             "判定面 = git ls-files（版本库面）；未跟踪/被忽略的 .cpp 不计入判定，"
-            "逐条列在 untracked_cpp_files 留痕（口径同 check_ctest_registration.py W4-A3）",
+            "逐条列在 untracked_cpp_files 留痕（口径同 check_ctest_registration.py ）",
         ],
     }
 

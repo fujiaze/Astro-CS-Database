@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""断言判别力静态检查（GATE-502 / GAP_AUDIT G2-7）——「空断言 / 恒真断言」防复发门。
+"""断言判别力静态检查（GATE-502）——「空断言 / 恒真断言」防复发门。
 
 职责（fail-closed，无豁免清单）：
   1. Python（eng/tests/**/*.py）：每个 test_* 函数/方法必须有**判别力断言** ——
@@ -12,7 +12,7 @@
      ⇒ FAIL(constant_assertion)。
   3. C++（eng/tests/**/*.{cpp,cc,cxx,hpp,h}，先剥注释）：
      CHECK(true) / CHECK(1) / ASSERT_TRUE(true) / EXPECT_TRUE(true) / assert(true) /
-     static_assert(true) ⇒ FAIL(constant_assertion)。RELEASE-04 在 io_adapter 发现的
+     static_assert(true) ⇒ FAIL(constant_assertion)。io_adapter 曾发现的
      `ASSERT_TRUE(true, "...")` 软通过即此类。
 
 为什么需要它：ENGINEERING_SPEC §10「每项检查有正例与负例（能红能绿）」+ AGENTS §9

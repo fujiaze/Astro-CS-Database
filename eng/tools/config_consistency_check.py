@@ -3,7 +3,7 @@
 """CONFIG-CONSISTENCY | Stage2 配置默认值一致性门（struct / parser / schema /
 template / docs 五面）。
 
-审计根因（CONFORM-SWEEP-3-017）
+审计根因（配置一致性漂移）
   本工具是 docs/development/CONFIG_SCHEMA.md:3-4 自述的默认值一致性唯一校验器，
   但四条事实源路径**全部失效**，只输出 env_missing×4 ⇒ C4（默认值不符）类缺陷
   在全仓无机器门。根因两条：
@@ -11,8 +11,7 @@ template / docs 五面）。
        → lib/algorithms/coverage/{lib/include/astro/phase2,src}/stage2_common.{h,cpp}
        （AGENTS.md §6 lib/algorithms/ 并联放置；CMakeLists 同步改名）；
     2. 控制包归档：工程控制/{schemas/stage2.schema.json,configs/stage2.template.json}
-       在 GOV-002（commit b7b2dea70dbcdacdcf6eb762609a908abdeab697
-       「docs(governance): GOV-002 归档非当前工程文档」）被**从工作树删除**，
+       已随治理批次归档并被**从工作树删除**，
        engineering/control/ 亦已清空 —— 树内不再有 stage2 schema/template。
 
 事实源与判据（任一 finding ⇒ exit 1）
@@ -60,7 +59,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 HDR_REL = "lib/algorithms/coverage/include/astro/phase2/stage2_common.h"
 SRC_REL = "lib/algorithms/coverage/src/stage2_common.cpp"
 DOC_REL = "docs/development/CONFIG_SCHEMA.md"
-# GOV-002 归档 commit（stage2 schema/template 的最后存续版本 = 该 commit 的父提交）
+# 历史归档 commit（stage2 schema/template 的最后存续版本 = 该 commit 的父提交）
 ARCHIVE_COMMIT = "b7b2dea70dbcdacdcf6eb762609a908abdeab697"
 ARCHIVED = {
     "schema": "工程控制/schemas/stage2.schema.json",

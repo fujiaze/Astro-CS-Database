@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ALG-LINE-ANCHORS | ALG 文档行号/行数锚 vs 源文件实测门（审计 CONFORM-SWEEP-3-018）。
+"""ALG-LINE-ANCHORS | ALG 文档行号/行数锚 vs 源文件实测门。
 
 为什么另立本门（根因）
   `DOC-LINE-ANCHORS`（step of CHK-SCI-REF，
@@ -9,7 +9,7 @@
   它**不判**：
     (a) 文档自述的**行数锚**（`sampler.cpp（1156 行）`）是否等于源文件实测行数；
     (b) 逐符号表里**裸行号范围**（`| cvar | :840-842 |`）所指区间是否真的含该符号。
-  审计 CONFORM-SWEEP-3-018 的三份 ALG 文档（PHASE2_SAMPLER / PHASE2_UPM_IMPL /
+  三份 ALG 文档（PHASE2_SAMPLER / PHASE2_UPM_IMPL /
   PHASE2_REJECTION）在这两条上**系统性过期**，而旧门禁全程判绿 —— 这是「行号锚漂移」
   类缺陷长期无机器门的结构性原因。
 

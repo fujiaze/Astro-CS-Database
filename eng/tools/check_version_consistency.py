@@ -4,7 +4,7 @@
 且不得出现 stable/RC/beta 预发布标记; VERSION 本身与 gen_version 常量为豁免定义点。
 exit 0 = PASS; 任何伪造/漂移版本字面量 => 非 0 (mutation 必须失败)。
 
-标准条款号豁免 (P2/CI-VER-CHK-001, 裁决 R-08): FITS WCS Paper I/II 与 IVOA HiPS
+标准条款号豁免 (P2/CI-VER-CHK-001): FITS WCS Paper I/II 与 IVOA HiPS
 的条款引用 (§2.1.1 / §4.2.1 / §4.4.1 / §6.3.1 等) 是科学可追溯锚, 不是产品版本;
 识别口径按"标准条款号形态"收窄 (见 mask_standard_clause_numbers)。
 口径只准更精确、不准更宽松: 只挖条款号本身, 同行真实版本字面量仍须 FAIL。
@@ -19,7 +19,7 @@ alpha/prerelease 判定与"点名了工具但同单元出现本项目版本语�
 属 history 命名空间, 改写即伪造溯源 ⇒ 按路径登记豁免(CAPTURED_ARTIFACTS), 不放宽任何
 产品版本声明的判定。
 
-合同生命周期边界字段豁免 (W4-A3): 合同/对象注册表 JSON 里的
+合同生命周期边界字段豁免: 合同/对象注册表 JSON 里的
 `"retire_after": "X.Y.Z"` 是**前向生命周期边界**(该字段的语义就是"在此版本之后退出"),
 不是"产品当前版本 = X.Y.Z"的声明 ⇒ 与唯一版本源比较是错口径 —— 现行实测
 `docs/contracts/unified_object_registry.json`(20 处) 与
@@ -48,7 +48,7 @@ PROBE_FIXTURES = {  # 版本探针工具：内含 '0.1.0' 等被扫描 token，�
 TEST_FIXTURES = {  # 单元测试合成数据文件: 内含 semver 解析/比较/取代逻辑的合成 token
     os.path.join("eng", "tests", "artifact", "test_provenance.py"),  # parse_version/version_gt 等合成版本
     os.path.join("eng", "tests", "abi", "test_secure_loader.py"),  # loader 探针 fixture 0.0.0-test 等非法版本样本
-    # W4-A3 实测残余: 硬件探针默认 build 串 (0.0.0-alpha.0+g000000000000) 与
+    # 实测残余: 硬件探针默认 build 串 (0.0.0-alpha.0+g000000000000) 与
     # eng/tests/config/fixtures/** 的 cpu_profile 负例/正例合成数据 (0.1.0-alpha.1) ——
     # 都是"旧世代合成 token", 不是活动文档里的产品版本声明。
     os.path.join("eng", "tests", "backend", "test_hardware_inspect.py"),
@@ -77,7 +77,7 @@ EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "d
           # "…未修改 Siril\n1.4.3 官方 harness…" 跨行断开 siril 豁免词 → 漏报;
           # 'harness' 一词在仓库仅出现于外部 oracle 工具上下文, 与 siril/rcr 同口径)
           "hipsgen", "votable", 'version "', "harness",
-          # W4-A3 实测残余 16 条(全在 docs/science|algorithms|references 的外部引用面,
+          # 实测残余 16 条(全在 docs/science|algorithms|references 的外部引用面,
           # 与产品版本无关; 原口径把外部软件版本/文献卷页/数据文件名当产品版本):
           #   astropy/WCSLIB 7.0.1(可执行标准)、photutils 1.6.0(Zenodo DOI)、
           #   gdr3sp-1.0.0-*.xpsd(数据文件名)、MNRAS 214, 575(卷, 页, 被逗号分隔成三元组)、
@@ -89,12 +89,12 @@ CONTRACT_DOC_VERSION = re.compile(r"状态:\s*\w+\s+版本:\s*\d+\.\d+\.\d+")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
              "lib", "AstroCS.wiki", "__pycache__"}
 
-# ── 标准条款号口径 (P2/CI-VER-CHK-001, 裁决 R-08) ──────────────────────────
+# ── 标准条款号口径 (P2/CI-VER-CHK-001) ──────────────────────────
 # 事由: docs/standards/STANDARDS_REGISTRY.md 的 FITS WCS Paper I/II 与 IVOA HiPS
 #       条款引用 (§2.1.1 / §4.2.1 / §4.4.1 / §6.3.1) 被旧口径误判为"未知版本
 #       字面量", 19 条 findings 全部落在该文件。
 # 依据: 宪章 §19 基础科学与格式参考 + §7.3「以标准为基础, 而不是根据现有代码反推」;
-#       裁决 R-08 —— 修检查器口径, 严禁为过检查改写标准条款号; 检查器只准更精确、
+#       修检查器口径, 严禁为过检查改写标准条款号; 检查器只准更精确、
 #       不准更宽松 (必须带"真实版本漂移仍 FAIL"的正向守卫用例)。
 # 形态: ① § 前缀条款号 (§2.1.1), 含其枚举续项 (§4.1/4.2.1/4.4.1);
 #       ② 标准名后紧跟的裸条款号 (Paper I 2.1.1 / HiPS 4.2.1 / SIP 2.1.1)。
@@ -141,7 +141,7 @@ def mask_standard_clause_numbers(line):
         chars[s:e] = [" "] * (e - s)
     return "".join(chars)
 
-# ── 合同生命周期边界字段口径 (W4-A3) ────────────────────────────────────────
+# ── 合同生命周期边界字段口径 ────────────────────────────────────────
 # 事由: 合同/对象注册表 JSON 的 "retire_after": "0.12.0" 是前向生命周期边界,
 #       被 BASE_RE 当"未知版本字面量", 真仓恒 49 条 FAIL。
 # 依据: DATA-001 统一对象合同的兼容映射字段语义(该字段定义"在此版本之后退出",
@@ -157,13 +157,13 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
     r'"(?:' + "|".join(LIFECYCLE_KEYS) + r')"\s*:\s*"(\d+\.\d+\.\d+)"')
 
 
-# ── 第三方工具版本口径 (BLD-401 R3) ─────────────────────────────────────────
+# ── 第三方工具版本口径 (BLD-401) ─────────────────────────────────────────
 # 事由: docs/research/*RESEARCH_PACK.md 的「开源对照」表把**第三方工具版本**
 #       (SWarp 2.41.5 / DeepSkyStacker-DSS 6.2.2 / SExtractor 2.28.2) 写在表里,
 #       被 BASE_RE 当"未知产品版本字面量" ⇒ UT-VERSION 在真仓恒 FAIL(7 条),
 #       遮蔽 test_04/test_13。这些是**外部工具/文献的版本**，不是本项目版本声明。
 # 依据: 研究包是「项目+版本+文件:行」的一手对照锚（DOC-404 逐字锚校验），版本号是
-#       溯源证据；严禁为过检查改写研究包内容 —— 与 R-08 / W4-A3 同款：修口径。
+#       溯源证据；严禁为过检查改写研究包内容 —— 同款口径：修口径。
 # 形态收窄（只准更精确、不准更宽松）: 只挖**紧贴第三方工具名**的版本字面量 ——
 #   ① 工具名与该字面量之间不得再出现别的版本字面量（否则那才是被声明的版本）;
 #   ② 工具名与该字面量之间不得出现本项目版本语境词（本项目/项目版本/产品版本/
@@ -173,7 +173,7 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
 # eng/tests/version/test_version_consistency.py::TestExternalToolVersionExemption）。
 #   apache/httpd（COMPRESS-ARCHIVE-01 补登）: 研究包记录 CDS HiPS 服务器 HTTP 行为实测时
 #       把**服务端产品串** `Apache/2.4.67` 作为溯源证据写进正文（"实测命令与响应" 行）。
-#       这是第三方 Web 服务器版本，不是本项目版本声明；口径同 BLD-401 R3（外部组件版本
+#       这是第三方 Web 服务器版本，不是本项目版本声明；口径同 BLD-401（外部组件版本
 #       是溯源证据，严禁为过检查改写研究包内容），故补入工具名表 —— 判定仍受 ①②③ 三条
 #       收窄约束（间隔上限、无中间版本字面量、无本项目版本语境词）约束，不放宽。
 EXTERNAL_TOOL_NAMES = ("swarp", "deepskystacker", "sextractor", "scamp", "siril",
@@ -229,12 +229,12 @@ def mask_lifecycle_boundaries(line):
     return LIFECYCLE_BOUNDARY_RE.sub(repl, line)
 
 
-# ── 外部引用单元口径 (VER-001 R14) ─────────────────────────────────────────
+# ── 外部引用单元口径 (VER-001) ─────────────────────────────────────────
 # 事由: docs/contracts/DATA_SEMANTICS.md 的 WBPP/PixInsight 引用段把外部软件版本
 #       (2.5.9 / 2.9.1) 写在**跨行的引用子项**里 —— 工具名在子项首行, 版本号落在
 #       续行 ⇒ 行级豁免词表按行匹配必然漏报 (与 R13 "…未修改 Siril\n1.4.3…"
 #       跨行断开 siril 同型)。旧口径下本仓恒红 2 条, 遮蔽真实漂移判定。
-# 依据: 与 R-08 / W4-A3 / BLD-401 R3 同款 —— 外部软件版本是**溯源证据**,
+# 依据: 同款口径 —— 外部软件版本是**溯源证据**,
 #       严禁为过检查改写合同文档; 修口径。
 # 形态收窄 (只准更精确): 引用单元 = 连续的引用行(`>` 开头)构成的段, 段界为
 #       空引用行(`>` 独占一行)、非引用行、以及**新编号子项行**(`> ①` / `> ②` …)。
@@ -298,7 +298,7 @@ def iter_files():
             for fn in filenames:
                 if fn.endswith((".py", ".md", ".json", ".sh", ".ps1")):
                     full = os.path.join(dirpath, fn)
-                    # W4-A3：跳过符号链接 —— 链接不是"第二权威"，同一份文件被扫两次
+                    # 跳过符号链接 —— 链接不是"第二权威"，同一份文件被扫两次
                     # 会把目标文件里的历史版本字面量重复计数（实测：facade 链接到
                     # gaia zlib 测试后，1.3.1/1.3.2 被当成未知产品版本字面量）。
                     if os.path.islink(full):
@@ -335,7 +335,7 @@ def check_file(path, base_num, alpha_n, errors):
     if rel in CAPTURED_ARTIFACTS:
         return  # 运行期捕获产物(history 命名空间; 记录产生它的那次构建的版本串)
     alpha_full = re.compile(r"(\d+\.\d+\.\d+)-alpha\.(\d+)")
-    # 生命周期列口径 (W4-A3): 合同文档里 "退役窗口 / retire_after" 表格列同样是
+    # 生命周期列口径: 合同文档里 "退役窗口 / retire_after" 表格列同样是
     # **前向边界**语义(该列的取值定义"何时退出", 天然 != 当前基础号)。表头命中
     # LIFECYCLE_KEYS 即对其后的连续表格数据行启用豁免; 表格结束(非 '|' 行)即复位。
     lifecycle_table = False
@@ -363,7 +363,7 @@ def check_file(path, base_num, alpha_n, errors):
                 continue
             if (i - 1) in cite_exempt:
                 continue  # 外部引用单元(R14): 裸三元组属被引外部软件版本, 非产品版本
-            # R-08 / W4-A3: 未知版本字面量扫描前先挖掉标准条款号与合同生命周期
+            # 未知版本字面量扫描前先挖掉标准条款号与合同生命周期
             # 边界值。alpha/prerelease 判定仍跑在原始行上 —— 口径只收窄未知字面量
             # 误报面, 不放宽漂移判定。
             if lifecycle_table:

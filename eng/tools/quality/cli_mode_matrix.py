@@ -11,7 +11,7 @@
   * mosaic 权重口径 token **全部拒绝**（FZ-WEIGHT-SINGLE-PATH：不存在可选择口径）：
     {point_information, surface_gls, psfsw_robust, psf_snr_power, auto, support_x_snr2,
      equal, pixel_ivar, 0, 1, 2, bogus} → rc=2 + 明确拒绝；**接受集为空**；
-  * （§9.73 裁决 A44 订正）原 mosaic baseline {equal, pixel_ivar} → 放行 + 非生产告警
+  * （订正）原 mosaic baseline {equal, pixel_ivar} → 放行 + 非生产告警
     一面已删除：其唯一理由是「legacy 整数路由的映射目标登记」，整数路由删除后理由消失。
   * 未显式给出 --mode：门不介入（既有缺省路径不变）；
   * export 生产输出 {surface_brightness, point_source_flux, visualization} → 门放行；
@@ -24,7 +24,7 @@
 FZ-P3-MODES）的拒绝理由。正例无法在无真实输入时 rc=0（会话继续执行并在输入/科学面上
 失败），因此断言「模式门未拒绝 + 已进入门后的会话运行面」，而不是把负例反转成绿。
 
-## 规范依据（本矩阵守的是「CLI 面不存在权重模式选择机制」这条裁决面）
+## 规范依据（本矩阵守的是「CLI 面不存在权重模式选择机制」这条规则面）
 
   * docs/ASTROCS_DESIGN.md §3.1：「全程只有 SNR，没有『权重模式』这个概念」——权重是
     Phase2 集成时按天球像素对应的输入帧集合**现场算出的派生量**；Phase1/Phase3
@@ -46,7 +46,7 @@ FZ-P3-MODES）的拒绝理由。正例无法在无真实输入时 rc=0（会话�
     C1「模式选择机制不存在」+ C2「退役对象的**拒绝面**必须存活（收紧不是删除）」，
     并逐字点名 route_phase2_weight_token 是合法名字（只做 fail-closed 判定与 baseline
     登记）。本矩阵是该代码门在**真实二进制**上的运行面佐证。
-    注（§9.73 裁决 A44）：该注释里的「baseline 登记」指函数**存在且只做 fail-closed
+    注：该注释里的「baseline 登记」指函数**存在且只做 fail-closed
     判定**；实现里对 equal / pixel_ivar 开 kBaseline(rc=0) 例外的部分已删除 —— 例外与
     runtime_contract.h 自身冻结说明「全部 token 一律 fail-closed 拒绝（rc=2）」不一致。
   * docs/science/algorithms/PLATESOLVE.md（相邻口径复核）：全文无 mode / 权重模式条款
@@ -87,7 +87,7 @@ FORCE = ["-force"]
 
 # ── 冻结路由表副本（与 runtime_contract.h 对齐；此处只刻画「期望」，判定由真实二进制给出）──
 # FZ-WEIGHT-SINGLE-PATH：phase2 没有可放行的权重口径 token ⇒ 接受集为空。
-# §9.73 裁决 A44 后 equal / pixel_ivar 也并入拒绝面：原「documented baseline」放行面的
+# equal / pixel_ivar 也并入拒绝面：原「documented baseline」放行面的
 # 唯一理由是「它们是 route_legacy_weight_mode_int 的映射目标登记」；整数路由删除后该
 # 理由消失，且它们是**输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归
 # fail-closed（docs/ASTROCS_DESIGN.md §3.1:175「没有可选择项」；
@@ -142,7 +142,7 @@ RETIRED_CASES = [
         "old": "phase2 validate --config <cfg_wm2.json>  (config weight_mode=2)",
         "replacement": "mosaic --json <cfg> --mode pixel_ivar -force -y  → rc=2 + FZ-WEIGHT-SINGLE-PATH",
         "reason": "config 整数 weight_mode 路由在 CLI 面上不可达（--config 旗标随 CLI-001 删除）；"
-                  "且 §9.73 裁决 A44 已删除 legacy 整数权重模式域 ⇒ 原「1|2 → baseline 放行」"
+                  "且 legacy 整数权重模式域已删除 ⇒ 原「1|2 → baseline 放行」"
                   "面随之删除：equal / pixel_ivar 的 baseline 放行面其唯一理由是「整数路由的"
                   "映射目标登记」，整数路由删除后理由消失 ⇒ 二者与其余 token 同归 fail-closed"
                   "（本矩阵 REJECT_P2 已并入）。",
@@ -227,7 +227,7 @@ def run_matrix(binary, work, json_out=""):
           rc, err)
 
     # 3) phase2 放行面：**空集**（FZ-WEIGHT-SINGLE-PATH 无合法 token）。
-    #    原 baseline 放行面（equal / pixel_ivar → 放行 + 非生产告警）已按 §9.73 裁决 A44
+    #    原 baseline 放行面（equal / pixel_ivar → 放行 + 非生产告警）已并入拒绝面
     #    删除，二者并入上面的 REJECT_P2 拒绝面（判据收紧，不是放宽）。
     assert ACCEPT_P2 == [], "phase2 接受集必须为空（FZ-WEIGHT-SINGLE-PATH）"
     for tok in ACCEPT_P2:
@@ -305,7 +305,7 @@ _INJECTED_WRAPPER = '''#!/usr/bin/env python3
 
 真实二进制对 mosaic ... --mode 0 是 fail-closed 拒绝（FZ-FIELD-WEIGHTMODE，rc=2）。
 本包装器把该 token 改写成 pixel_ivar —— 于是「0」从必须拒绝的非法 token 变成一条
-**可选择的口径**（负责人裁决要禁掉的那一层）。其余调用原样转发真实二进制。
+**可选择的口径**（要禁掉的那一层）。其余调用原样转发真实二进制。
 """
 import subprocess
 import sys

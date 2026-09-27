@@ -1,39 +1,39 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """pack_audit_package.py — 打包基线代码(不含数据/第三方/二进制) + 证据, 构成审核包 zip。
-产物: artifacts/evidence/prerelease-v5/AUDIT_PACKAGE_<c12>.zip(目标 <10MB, 无数据)。
+产物: AUDIT_PACKAGE_<c12>.zip（旧证据树; 目标 <10MB, 无数据）。
 用法: python3 eng/tools/pack_audit_package.py
 
-退役 (RETIRED, 2026-09-16, 负责人裁决) —— **打包入口(main)退役; 白名单/排除函数仍为活动依赖**:
-  1. 依据: docs/ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)+ 负责人裁决
-     「历史版本控制包全部作废; artifacts/ 不归档不保留」(artifacts/ 整体删除见 commit b1290525);
+退役 (RETIRED) —— **打包入口(main)退役; 白名单/排除函数仍为活动依赖**:
+  1. 依据: docs/ASTROCS_DESIGN.md §0(权威链: 旧世代控制包产物不构成判据)
+     （历史版本控制包全部作废; 不归档不保留）;
      产物内含 VERSION/CHANGELOG 口径, 与 §12「Alpha 前不含任何版本信息」冲突;
-  2. 输出已不存在: artifacts/evidence/prerelease-v5/(其 AUDIT_PACKAGE_*.zip 与 capsules/ 已随 artifacts/ 删除);
-  3. 实测 2026-09-16: 该目录若已被旁路重建则 rc=0 **静默产出 11.2MB / 2709 条目**、
+  2. 输出已不存在: 旧证据树（其 AUDIT_PACKAGE_*.zip 与 capsules/ 已删除）;
+  3. 实测: 该目录若已被旁路重建则 rc=0 **静默产出 11.2MB / 2709 条目**、
      zip_bytes=10.67 超过 10MB 目标仍 exit 0; 目录不存在则未捕获 FileNotFoundError
      —— 两种形态都属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉」;
   4. **保留不退役的部分(活动替代即其自身)**: allowed()/denied()/EXCLUDE_EXT/DENY_PATHS/DENY_NAME_RE
      是**审计包收录白名单与凭据排除保证的唯一真源**, 被活动门 CHK-SECRET-HYGIENE 直接 import
      (eng/tools/quality/check_secret_hygiene.py:53 DEFAULT_PACKER → pack_files() 调 allowed()),
      并由 eng/tests/quality/test_secret_hygiene.py 的能绿能红证据覆盖 —— 不得删改语义;
-  5. 发布候选打包门为 eng/ci/checks.json 的 CHK-PACKAGE; 正式证据落 reports/**。
-  复原命令 (内容未丢): git show 01754fab8618:eng/tools/pack_audit_package.py
+  5. 发布候选打包门为 eng/ci/checks.json 的 CHK-PACKAGE; 正式证据按 §7 落位。
+  复原命令 (内容未丢): git 历史
   退役后行为: 运行本文件打印 PACK_AUDIT_PACKAGE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿);
      作为模块 import 时不受影响(allowed/denied 语义不变)。
-  登记见 docs/ci/01_CHECKS.md §2.2 与 artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md。
+  登记见 docs/ci/01_CHECKS.md §2.2。
 """
 from __future__ import annotations
 
 import datetime, hashlib, json, os, pathlib, re, sys, zipfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-# D-14（GATE-501）：陈旧根级 artifacts/prerelease_v5/ 已清零；本工具已退役
+# 陈旧根级历史证据目录已清零；本工具已退役
 # （见文件头 RETIRED 说明，无参运行打印 PACK_AUDIT_PACKAGE_RETIRED 并 exit 2），
 # 常量仅指向当前证据树，避免残留陈旧路径。
 OUT = REPO / "artifacts/evidence/prerelease-v5"
 
 # 顶层贡献: 这些路径作为"代码"或"证据"收录
-# ROOT-008 收口：根 cli/ 已退役并物理删除（GAP-003/§7，CLI 归 lib/infrastructure/cli/）。
+# 根 cli/ 已退役并物理删除（GAP-003/§7，CLI 归 lib/infrastructure/cli/）。
 # 旧条目使 pack scope 读到不存在路径 ⇒ CHK-SECRET-HYGIENE 记 file_unreadable 恒红。
 CODE_TOPS = {"include", "lib", "eng/tools", "tests", "eng/contracts/schemas", "docs"}
 EVIDENCE_TOPS = {"reports", "工程控制/RELEASE_V5", "artifacts/evidence/prerelease-v5/AUDIT_REVIEW",
@@ -115,15 +115,15 @@ def git(*a):
 
 
 RETIRED_NOTICE = (
-    "PACK_AUDIT_PACKAGE_RETIRED: 本打包入口（旧世代 V5 审核包 zip）已于 2026-09-16 按负责人裁决退役。\n"
+    "PACK_AUDIT_PACKAGE_RETIRED: 本打包入口（旧世代 V5 审核包 zip）已退役。\n"
     "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ §12（Alpha 前不含版本信息）"
-    "+ 负责人裁决（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；"
+    "（历史版本控制包全部作废；不归档不保留）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
-    "  输出路径已不存在: artifacts/evidence/prerelease-v5/AUDIT_PACKAGE_<c12>.zip。\n"
+    "  输出路径已不存在（旧证据树）。\n"
     "  仍在使用（不退役）: 本模块的 allowed()/denied()/EXCLUDE_EXT 是 CHK-SECRET-HYGIENE 的白名单真源，"
     "import 语义不变。\n"
-    "  复原命令: git show 01754fab8618:eng/tools/pack_audit_package.py\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
+    "  复原命令: git 历史\n"
+    "  登记: docs/ci/01_CHECKS.md §2.2"
 )
 
 

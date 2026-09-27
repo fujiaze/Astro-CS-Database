@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""check_conclusion_truth.py —— 结论真实性门（一页纸 S2-B：状态词与覆盖度结论失真）。
+"""check_conclusion_truth.py —— 结论真实性门（状态词与覆盖度结论失真）。
 
 权威依据
   - docs/ASTROCS_DESIGN.md 12.5 状态阶梯（唯一口径）—— 状态词的**唯一**词汇来源；

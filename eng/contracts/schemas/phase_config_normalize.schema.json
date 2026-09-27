@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/normalize/v1",
   "title": "ACSD phase_config — normalize v1（三命令通用输入合同：多数据块 blocks[] / 平铺单块简写）",
-  "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态，GAP_AUDIT §9.71 裁决 2（2026-09-20）把该形态确立为**三命令通用输入合同**（docs/ASTROCS_DESIGN.md §3.3）：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。逐帧 {phase_name, config, inputs[]} 形态已按 §9.68 **退役**（与 mosaic/export 的处置不同：那两份 schema 按 §9.71 裁决 2 定案 4「不是退役旧合同」**保留**旧分支作合同留痕；normalize 侧旧分支由 §9.68 删除，CLI 明确拒绝并给迁移提示）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "description": "normalize 科学配置合同，**多数据块**形态（docs/ASTROCS_DESIGN.md §3.3 把该形态确立为**三命令通用输入合同**）：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。逐帧 {phase_name, config, inputs[]} 形态已**退役**（与 mosaic/export 的处置不同：那两份 schema **保留**旧分支作合同留痕；normalize 侧旧分支已删除，CLI 明确拒绝并给迁移提示）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "normalize",
   "x-astrocs-config-class": "phase_config",
@@ -12,22 +12,22 @@
   ],
   "x-astrocs-authority": [
     "docs/ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：多块 blocks[] + 平铺单块简写 + 互斥规则）",
-    "GAP_AUDIT §9.71 裁决 2（负责人 2026-09-20：三命令同构块结构 —— 一个块 = {输出名称, 运行参数, 输入的一组帧}；定案 3 键名与 CLI 统一）",
-    "GAP_AUDIT §9.68（负责人裁决 2026-09-20：normalize 配置 = 多数据块 JSON；同一组校准帧和运行参数支持一组 light）",
+    "docs/ASTROCS_DESIGN.md §3.3（三命令同构块结构 —— 一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一）",
+    "normalize 配置 = 多数据块 JSON（同一组校准帧和运行参数支持一组 light）",
     "docs/ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
-    "形态（§9.68 + §9.71 裁决 2）：① 多块 —— {\"schema_version\",\"blocks\":[normalize_block, ...]}（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）；② 平铺单块简写 —— 顶层 input_lights/master_*/output_dir/运行参数（只有一块时的等价写法，向后兼容）。二者互斥：顶层同时出现 blocks 与任一平铺键 → 本 schema 的 then 分支（propertyNames）与 CLI 解析器都报错，不静默取一。该形态是**三命令通用输入合同**（§3.3）：mosaic/export 同构（块内第三件分别为 hips_paths / source.hips_dir）。",
+    "形态：① 多块 —— {\"schema_version\",\"blocks\":[normalize_block, ...]}（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）；② 平铺单块简写 —— 顶层 input_lights/master_*/output_dir/运行参数（只有一块时的等价写法，向后兼容）。二者互斥：顶层同时出现 blocks 与任一平铺键 → 本 schema 的 then 分支（propertyNames）与 CLI 解析器都报错，不静默取一。该形态是**三命令通用输入合同**（§3.3）：mosaic/export 同构（块内第三件分别为 hips_paths / source.hips_dir）。",
     "顶层键闭包用 propertyNames 而非 additionalProperties：schema_version 与 cpu_profile 的同名键冲突登记（eng/tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 的 phase_config ∩ cpu_profile == {precision}）必须保持，故 schema_version 不进 properties；块内（normalize_block）无此冲突，仍用 additionalProperties:false 做机器拒绝。",
     "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：本 schema 的顶层键 {schema_version, blocks} 与块内键（input_lights/master_*/output_dir/filter_passband/drizzle/wcs/...）以 docs/ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。旧逐帧形态 {phase_name, config, inputs[]} 已按 §9.68 删除。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在块与 drizzle/wcs 两级做机器拒绝。",
     "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
     "**落盘形态键 storage_form**：Phase1 产品的落盘形态是**输入配置项**，不是运行期开关——取值 archive（默认）/ bare；键缺失、空串或 null ⇒ 取默认 archive 并报一条 level=warn 事件（不静默取默认）。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10、docs/design/PRODUCT_STORAGE_FORM.md §10；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。本键**只**出现在 normalize（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）——mosaic/export 出现本键一律 REJECT。生产消费点（写出侧按形态落盘）属分阶段实现计划阶段 2；在此之前 CLI 只识别并透传，登记在 eng/ci/ledgers/dead_config_keys.json，不得静默 no-op。",
-    "块内键集派生（§9.71 裁决 2 定案 3「键名一律以命令行实际认的键为准」）：唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_NORMALIZE) + parser.cpp block_keys()={name, output_dir}。**登记在案的既存差异（本任务实测，未修）**：normalize_block 另含 12 个会话可选键（cosmetic / dark_optimization / dark_scale_factor / master_units / master_scale / master_flat_normalize / master_flat_median_range / photometry / sparse_snr_layer / sparse_snr_spacing_px / algorithm_drizzle_pixfrac / algorithm_psf_model）——它们在 parser.cpp session_keys()（平铺白名单）内、可经平铺简写到达，但**不在** config_fields() 内 ⇒ CLI 的块内未知键门（session_blocks_errors）对块内出现它们判 rc=3（实测）。收口二选一（均不在本任务文件域）：① 把这 12 键补进 config_fields()（lib/infrastructure/cli/**）；② 从 normalize_block 移除并改指 config_registry.json 的两条 sparse_snr_layer 登记点（eng/packaging/config/**）。在收口前，块内出现这 12 键是「schema 通过但 CLI rc=3」，不得据此认为块面已同构。",
-    "按 §9.73 裁决 A44（不存在「权重模式」）：本 schema 任何分支都**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode（机器断言在 eng/tests/config/test_cfg004_unified_contract.py）。",
+    "块内键集派生（键名一律以命令行实际认的键为准）：唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_NORMALIZE) + parser.cpp block_keys()={name, output_dir}。**登记在案的既存差异（实测，未修）**：normalize_block 另含 12 个会话可选键（cosmetic / dark_optimization / dark_scale_factor / master_units / master_scale / master_flat_normalize / master_flat_median_range / photometry / sparse_snr_layer / sparse_snr_spacing_px / algorithm_drizzle_pixfrac / algorithm_psf_model）——它们在 parser.cpp session_keys()（平铺白名单）内、可经平铺简写到达，但**不在** config_fields() 内 ⇒ CLI 的块内未知键门（session_blocks_errors）对块内出现它们判 rc=3（实测）。收口二选一（均不在本任务文件域）：① 把这 12 键补进 config_fields()（lib/infrastructure/cli/**）；② 从 normalize_block 移除并改指 config_registry.json 的两条 sparse_snr_layer 登记点（eng/packaging/config/**）。在收口前，块内出现这 12 键是「schema 通过但 CLI rc=3」，不得据此认为块面已同构。",
+    "（不存在「权重模式」）本 schema 任何分支都**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode（机器断言在 eng/tests/config/test_cfg004_unified_contract.py）。",
     "star_detection 段（B3 收口）：段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 取编译期默认，不是错误。段内键名 mode 与 cpu_profile 的 legacy_v1/kernel_v1 同名（语义无关：检测模式 vs CPU profile 模式；且不在 cross_class_forbidden.cpu_profile_keys_in_phase_config 硬件禁止名列表内）⇒ 按**登记制**处置（登记面 = docs/contracts/config_separation_anchors.json#cross_class_forbidden.documented_same_name；门 = eng/tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 与 eng/tests/config/gate_assertions.py 门 G4，两者均从该登记面读取集合、不硬编码）。键闭包由 propertyNames.enum + additionalProperties:false 保证。合同文档 = docs/plugins/algorithms_phase1/03_star_detection.md §5.1；登记册 = eng/packaging/config/config_registry.json（03_star_detection 组）。"
   ],
   "type": "object",
@@ -457,19 +457,19 @@
     "sparse_snr_layer": {
       "type": "boolean",
       "default": true,
-      "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：负责人 2026-09-19 裁决「默认稀疏路径要求稀疏层默认产出」（change-claim FIX-SCI-SNR-CANON-001 §3.2；docs/plugins/algorithms_phase1/07_noise_snr.md:112、08_drizzle.md:46）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 eng/packaging/config/templates/normalize.phase_config.json；不复制进 eng/packaging/config/defaults.json（eng/packaging/config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
+      "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：默认稀疏路径要求稀疏层默认产出（docs/plugins/algorithms_phase1/07_noise_snr.md:112、08_drizzle.md:46）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 eng/packaging/config/templates/normalize.phase_config.json；不复制进 eng/packaging/config/defaults.json（eng/packaging/config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
     },
     "sparse_snr_spacing_px": {
       "type": "integer",
       "minimum": 1,
       "default": 64,
-      "description": "稀疏 SNR 层控制点间隔 Δ（px），即负责人 2026-09-19 裁决的「稀疏层密度」像素域表述（GAP_AUDIT §9.45：「64 可以了，够密且占用空间可控」）：默认 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格（二者同一套几何）⇒ Δ = hips.tile_width / 8 = 512 / 8 = 64（eng/packaging/config/defaults.json#hips.tile_width = 512）；实测 SNR 场相关长度 ℓ = 48 px ⇒ Δ/ℓ = 1.33（近临界采样，够密）。单位 px，非「点/度²」；与文档侧 07_noise_snr.md:113 的 sparse_snr_density（点/度²、pending_authority）不是同一字段（后者数值仍无 SCI/ALG 权威，本键不改其状态）。数值默认同时登记于 eng/packaging/config/defaults.json#sparse_snr.spacing_px 与 eng/packaging/config/templates/normalize.phase_config.json（三处同值 64）。"
+      "description": "稀疏 SNR 层控制点间隔 Δ（px），即「稀疏层密度」的像素域表述：默认 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格（二者同一套几何）⇒ Δ = hips.tile_width / 8 = 512 / 8 = 64（eng/packaging/config/defaults.json#hips.tile_width = 512）；实测 SNR 场相关长度 ℓ = 40.4–57.9 px 区间 ⇒ Δ/ℓ ≈ 1.1–1.6（够密）。单位 px，非「点/度²」；与文档侧 07_noise_snr.md:113 的 sparse_snr_density（点/度²、pending_authority）不是同一字段（后者数值仍无 SCI/ALG 权威）。数值默认同时登记于 eng/packaging/config/defaults.json#sparse_snr.spacing_px 与 eng/packaging/config/templates/normalize.phase_config.json（三处同值 64）。"
     },
     "algorithm_drizzle_pixfrac": {
       "type": "number",
       "exclusiveMinimum": 0,
       "maximum": 1,
-      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority，归属 SCI-RES-01/R-005），本字段不声明数值默认。"
+      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority），本字段不声明数值默认。"
     },
     "algorithm_psf_model": {
       "enum": [

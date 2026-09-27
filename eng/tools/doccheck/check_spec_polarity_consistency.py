@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # SPEC-POLARITY-CONSIST-01: 判据口径 <-> 设计冻结语句 一致性门（能红能绿，fail-closed）。
 #
-# 任务依据: run/ONEPAGER/onepager_20260925_1018.md 一页纸 S1 第 13 条与第 16 条。
+# 任务依据: 规格极性一致性缺口。
 # 权威链: docs/ASTROCS_DESIGN.md（最高设计）> ACCEPTANCE_SPEC.md（验收）> docs/plugins/**、
 # docs/science/**（下层细则）；口径只在权威层定义，下层写指针不复述。
 #

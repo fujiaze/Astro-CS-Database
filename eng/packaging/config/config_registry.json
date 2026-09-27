@@ -1,7 +1,6 @@
 {
   "registry_schema": "astrocs.config-registry/v1",
   "registry_id": "config.config_registry",
-  "task": "W5-CFG-002（控制包 PROJECT-GOVERNANCE-01 / 任务卡 CFG-002）",
   "scope": "配置登记类遗留闭合：①plugin 级默认（docs/plugins/** 全 23 篇配置表）②per-module knobs 归属③滤镜名匹配语义④cpu_profile.host.os_abi 值域⑤索引归属。",
   "authority": {
     "design": "docs/ASTROCS_DESIGN.md §3.3（eng/packaging/config/ 全局配置：filters.json 滤镜库、defaults.json 默认参数）",
@@ -19,8 +18,8 @@
     },
     "finding": {
       "none": "已闭合：有唯一登记点（配置类/文档条款/CLI/资源面），且默认值一致或显式无默认。",
-      "gap": "插件文档声明了默认值，但无 SCI/ALG 权威、未进任何配置类 -> 登记为设计缺口，归属负责人裁决（CFG-001 §8.1/§8.2 口径）。",
-      "unregistered": "插件默认列为 ——（无默认），但字段本身未在 phase_config/defaults 登记 -> 归属待裁决。",
+      "gap": "插件文档声明了默认值，但无 SCI/ALG 权威、未进任何配置类 -> 登记为设计缺口，归属结论由登记册 note 陈述。",
+      "unregistered": "插件默认列为 ——（无默认），但字段本身未在 phase_config/defaults 登记 -> 归属结论由登记册 note 陈述。",
       "conflict": "插件文档的默认值/语义与 SCI/ALG 权威或已登记配置冲突 -> 登记冲突与证据，禁止两存。"
     },
     "no_auto_sync": "本登记册是人工维护的登记面；文档变化必须由人重新判定归属（ENGINEERING_SPEC §8 fail-closed；禁止 regenerate 制造绿灯）。",
@@ -191,13 +190,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件声明默认 false 且禁止 true；docs/science/** 与 docs/science/algorithms/** 全库零命中（grep 实测），未进任何配置类。归属：负责人裁决（CFG-001 §8.1 source 规则 / §8.2 旋钮归属）。",
+      "note": "插件声明默认 false 且禁止 true；docs/science/** 与 docs/science/algorithms/** 全库零命中（grep 实测），未进任何配置类，登记为设计缺口。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/01_calibration.md:48"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -242,13 +241,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true；SCI/ALG 全库零命中；未进任何配置类。归属：负责人裁决（CFG-001 §8.2）。",
+      "note": "插件默认 true；SCI/ALG 全库零命中；未进任何配置类，登记为设计缺口。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/02_cosmetic.md:33"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -263,13 +262,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 5.0 σ；SCI/ALG 全库零命中（与 defaults.json 的 detection.threshold_sigma 同值但不同义：后者是检测阈值，本项是宇宙线阈值）；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 5.0 σ；SCI/ALG 全库零命中（与 defaults.json 的 detection.threshold_sigma 同值但不同义：后者是检测阈值，本项是宇宙线阈值）；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/02_cosmetic.md:34"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -284,13 +283,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 neighbor；SCI/ALG 全库零命中；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 neighbor；SCI/ALG 全库零命中；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/02_cosmetic.md:35"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -305,7 +304,7 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=detection.threshold_sigma",
       "registered_key": "detection.threshold_sigma",
       "finding": "none",
-      "note": "已按 DOC-SCI-001 §4 与 defaults detection.threshold_sigma 对齐：冻结语义=全局 median(img)+5.0·bgnoise（σ=2 平滑图，sdet_api.cpp:1782-1792）；逐像素 variance/ivar 局部自适应为目标态、未实现，登记 DISP-STAR-002（归 P1-STAR-IMPL/INT）。",
+      "note": "与 defaults detection.threshold_sigma 对齐：冻结语义=全局 median(img)+5.0·bgnoise（σ=2 平滑图，sdet_api.cpp:1782-1792）；逐像素 variance/ivar 局部自适应为目标态、未实现，登记为设计缺口。",
       "conflict": null
     },
     {
@@ -320,13 +319,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 2 px；SCI/ALG 零命中；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 2 px；SCI/ALG 零命中；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/03_star_detection.md:33"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -341,13 +340,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true；SCI/ALG 零命中；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 true；SCI/ALG 零命中；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/03_star_detection.md:34"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -362,14 +361,14 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true（是否输出 selection function）；SCI/ALG 零命中。同名 token 在 docs/science/PSF_SIGNAL_WEIGHT.md:118 指 PSFSW 选择函数证据对象（异义同名）。归属：负责人裁决（含同名消歧）。",
+      "note": "插件默认 true（是否输出 selection function）；SCI/ALG 零命中。同名 token 在 docs/science/PSF_SIGNAL_WEIGHT.md:118 指 PSFSW 选择函数证据对象（异义同名），同名消歧登记于本行。",
       "conflict": {
         "kind": "unregistered_default_homonym",
         "evidence": [
           "docs/plugins/algorithms_phase1/03_star_detection.md:35",
           "docs/science/PSF_SIGNAL_WEIGHT.md:118"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -384,7 +383,7 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=psf.default_model",
       "registered_key": "psf.default_model",
       "finding": "none",
-      "note": "已按 DOC-SCI-001 §2 与 psf.default_model=moffat4 对齐；检测/PSF 双模型见 DISP-STAR-007（检测侧椭圆高斯不属本模块）。",
+      "note": "与 psf.default_model=moffat4 对齐；检测/PSF 双模型差异已登记为设计缺口（检测侧椭圆高斯不属本模块）。",
       "conflict": null
     },
     {
@@ -399,13 +398,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 0（帧级）；SCI/ALG 零命中；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 0（帧级）；SCI/ALG 零命中；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/04_psf.md:33"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -420,7 +419,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "门阈值，插件默认列 ——；未进任何配置类。归属：负责人裁决（是否作为 phase_config 字段）。",
+      "note": "门阈值，插件默认列 ——；未进任何配置类；是否作为 phase_config 字段登记于本行待定。",
       "conflict": null
     },
     {
@@ -435,7 +434,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "门阈值，插件默认列 ——；未进任何配置类。归属：负责人裁决。",
+      "note": "门阈值，插件默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -450,14 +449,14 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 gaia；与 22_gaia_xpsd_client 的 catalog 同名同默认（跨模块重复声明）；未进任何配置类。归属：负责人裁决（含归属唯一化）。",
+      "note": "插件默认 gaia；与 22_gaia_xpsd_client 的 catalog 同名同默认（跨模块重复声明）；未进任何配置类；归属唯一化登记于本行。",
       "conflict": {
         "kind": "unregistered_default_duplicate",
         "evidence": [
           "docs/plugins/algorithms_phase1/05_platesolve.md:33",
           "docs/plugins/infrastructure/22_gaia_xpsd_client.md:32"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -472,7 +471,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "插件标「必填」（无默认）；未进任何配置类。归属：负责人裁决。",
+      "note": "插件标「必填」（无默认）；未进任何配置类。",
       "conflict": null
     },
     {
@@ -487,14 +486,14 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 tan（WCS 模型 tan/sip/pv）；未进任何配置类。与 export 的 wcs.projection（同为 tan 语义的投影选择）不得混为一字段（相位不同）。归属：负责人裁决。",
+      "note": "插件默认 tan（WCS 模型 tan/sip/pv）；未进任何配置类。与 export 的 wcs.projection（同为 tan 语义的投影选择）不得混为一字段（相位不同），归属唯一化登记于本行。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/05_platesolve.md:35",
           "eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/projection"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -509,13 +508,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 200；SCI/ALG 零命中；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 200；SCI/ALG 零命中；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/05_platesolve.md:36"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -530,7 +529,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "残差门（mas/px），默认列 ——；未进任何配置类。归属：负责人裁决。",
+      "note": "残差门（mas/px），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -545,13 +544,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 psf；**2026-09-20 订正**：文档已把 \"aperture\" 降为**仅诊断/交叉验证**（非生产口径）——原文「插件默认 psf（psf/aperture）」中的 aperture 生产义已作废，依据 §9.51 Q-C / §9.52 + docs/ASTROCS_DESIGN.md:264（全链只有一个 flux 口径 = PSF 拟合域）。未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 psf；文档已把 \"aperture\" 降为**仅诊断/交叉验证**（非生产口径）——原文「插件默认 psf（psf/aperture）」中的 aperture 无生产义，依据 docs/ASTROCS_DESIGN.md:264（全链只有一个 flux 口径 = PSF 拟合域）。未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/06_photometry.md:31"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -566,13 +565,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 2×FWHM（相对默认，无数值权威）；**2026-09-20 订正**：文档已把该行标为「仅诊断/交叉验证、值待定」——原默认与实现/README 的 4.0px / 6-10px 二选一冲突（reports/RELEASE-02/conformance/CONFORM-SWEEP-2.md:124-138），且孔径不属生产口径（§9.51 Q-C / §9.52 + docs/ASTROCS_DESIGN.md:264）。未进任何配置类。归属：负责人裁决。 【2026-09-20 前台订正】文档行已标「值待定」（原 2×FWHM 作废留痕），登记册同步；归属：负责人裁决。",
+      "note": "插件默认 2×FWHM（相对默认，无数值权威）；文档已把该行标为「仅诊断/交叉验证、值待定」——原默认与实现/README 的 4.0px / 6-10px 二选一冲突，且孔径不属生产口径（docs/ASTROCS_DESIGN.md:264）。未进任何配置类；登记值与文档行「值待定」标记同步（原 2×FWHM 仅作留痕）。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/06_photometry.md:32"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -587,7 +586,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "sky 环（px），默认列 ——；未进任何配置类。归属：负责人裁决。",
+      "note": "sky 环（px），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -602,7 +601,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "固定参考通量（e⁻/s，m5/SNR 定义必需），默认列 ——；未进任何配置类。归属：负责人裁决。 【2026-09-20 前台订正】declared_default 与文档列同步（原 None）。 【2026-09-20 前台】declared_default 与检查器 cell_norm 口径一致（其只 strip 首尾反引号 ⇒ 尾部反引号被剥离）。 【2026-09-20 前台】unit 与文档列同步（原 e⁻/s，文档列为「见说明」）。",
+      "note": "固定参考通量（e⁻/s，m5/SNR 定义必需），默认列 ——；未进任何配置类。declared_default 与文档列同步（原 None）；declared_default 与检查器 cell_norm 口径一致（其只 strip 首尾反引号 ⇒ 尾部反引号被剥离）；unit 与文档列同步（文档列为「见说明」）。",
       "conflict": null
     },
     {
@@ -617,7 +616,7 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=scalar_gate.rd",
       "registered_key": "scalar_gate.rd",
       "finding": "none",
-      "note": "已登记：defaults.json 以 pending_authority/null 占位（SCI-RES-01/R-002），与插件默认列 —— 一致。",
+      "note": "已登记：defaults.json 以 pending_authority/null 占位，与插件默认列 —— 一致。",
       "conflict": null
     },
     {
@@ -632,7 +631,7 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=scalar_gate.trend",
       "registered_key": "scalar_gate.trend",
       "finding": "none",
-      "note": "已登记：pending_authority/null（SCI-RES-01/R-002）。",
+      "note": "已登记：pending_authority/null。",
       "conflict": null
     },
     {
@@ -647,14 +646,14 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true；CFG-001 §2 明示该 plugin 级默认未进 defaults.json（source 规则限 docs/science|docs/algorithms），§8.1 归属负责人裁决。现以本登记册登记，数值不动。",
+      "note": "插件默认 true；该 plugin 级默认未进 defaults.json（source 规则限 docs/science|docs/algorithms）。现以本登记册登记，数值不动。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase1/07_noise_snr.md:111",
           "docs/contracts/CONFIG_CONTRACT.md §2"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -669,7 +668,7 @@
       "registered_at": "eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_layer",
       "registered_key": "normalize.config.sparse_snr_layer",
       "finding": "none",
-      "note": "已登记（phase_config normalize config）；同名 knob 亦由 08_drizzle:46 声明，归属唯一 = 该 phase_config 字段（两处声明同一字段，不是两个字段）。默认 false→true（负责人 2026-09-19 裁决：默认稀疏路径要求稀疏层默认产出，FIX-SCI-SNR-CANON-001 §3.2；07_noise_snr.md:112 与 08_drizzle.md:46 均为 true，schema 亦记 default=true）。**转录口径**：文档默认列写作 Markdown 加粗 **true**，本册登记语义值 true（不把标记写进数据字段）；CFG002-01 会因该标记报 declared_default 漂移，订正建议见 reports/RELEASE-02/snr-config-land.md §5。",
+      "note": "已登记（phase_config normalize config）；同名 knob 亦由 08_drizzle:46 声明，归属唯一 = 该 phase_config 字段（两处声明同一字段，不是两个字段）。默认 false→true（默认稀疏路径要求稀疏层默认产出；07_noise_snr.md:112 与 08_drizzle.md:46 均为 true，schema 亦记 default=true）。**转录口径**：文档默认列写作 Markdown 加粗 **true**，本册登记语义值 true（不把标记写进数据字段）；CFG002-01 会因该标记报 declared_default 漂移。",
       "conflict": null
     },
     {
@@ -684,7 +683,7 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=sparse_snr.density",
       "registered_key": "sparse_snr.density",
       "finding": "none",
-      "note": "已登记：pending_authority/null（SCI-RES-01/R-001）。行号 65→113（文档重排）。**注意**：负责人 2026-09-19 已裁决稀疏层密度 Δ = 64 px（GAP_AUDIT §9.45），该值由**新键** sparse_snr.spacing_px（单位 px，承载字段 normalize.config.sparse_snr_spacing_px）承载；本行（点/度²）数值仍无 SCI/ALG 权威 ⇒ 保持 pending_authority，二者不是同一字段。文档 07_noise_snr.md:139 的单位列与 SCI-RES-01/R-001 收口订正建议见 reports/RELEASE-02/snr-config-land.md §5。",
+      "note": "已登记：pending_authority/null。行号 65→113（文档重排）。**注意**：稀疏层密度 Δ = 64 px，由**新键** sparse_snr.spacing_px（单位 px，承载字段 normalize.config.sparse_snr_spacing_px）承载；本行（点/度²）数值仍无 SCI/ALG 权威 ⇒ 保持 pending_authority，二者不是同一字段。",
       "conflict": null
     },
     {
@@ -699,7 +698,7 @@
       "registered_at": "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
       "registered_key": "mosaic.config.snr_path",
       "finding": "none",
-      "note": "已登记：phase_config mosaic config.snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct = Phase2 默认消费稀疏层，负责人 2026-09-19 裁决 GAP_AUDIT §9.46；键名与 docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面）一致；**2026-09-20 订正**：原写「§3.3:124」——§3.3 经 §9.56 裁决 4/§9.68 收口后为 CLI 平铺键集、**已不含 snr_path**，该行锚悬空）。默认值唯一登记 = eng/packaging/config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target 指向本 schema 字段）。**转录口径**：文档该行字段列写作「snr_path（Phase2 消费面键，在 mosaic 配置）」（括注写进了字段列），本册登记字段名 snr_path（括注是说明、不是字段名）；CFG002-01 会因该括注报本行「缺登记」，订正建议 = 文档把括注移入说明列（reports/RELEASE-02/snr-config-land.md §5）。",
+      "note": "已登记：phase_config mosaic config.snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct = Phase2 默认消费稀疏层；键名与 docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面）一致；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）。默认值唯一登记 = eng/packaging/config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target 指向本 schema 字段）。**转录口径**：文档该行字段列写作「snr_path（Phase2 消费面键，在 mosaic 配置）」（括注写进了字段列），本册登记字段名 snr_path（括注是说明、不是字段名）；CFG002-01 会因该括注报本行「缺登记」，订正建议 = 文档把括注移入说明列。",
       "conflict": null
     },
     {
@@ -714,7 +713,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "HEALPix order，默认列 ——；未进任何配置类（与 nside 等价，二者取一待裁决）。归属：负责人裁决。",
+      "note": "HEALPix order，默认列 ——；未进任何配置类（与 nside 等价，二者取一，登记为设计缺口）。",
       "conflict": null
     },
     {
@@ -729,7 +728,7 @@
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=drizzle.pixfrac",
       "registered_key": "drizzle.pixfrac",
       "finding": "none",
-      "note": "已按 DOC-SCI-001 §3 裁决：默认 1.0 已入 defaults.json（owner_adjudicated，FZ-COND-FLUX-CONSERV 严格通量守恒端点 + E1 复算 + V18R2-V19 运行史）；值域 (0,1] 不变，pixfrac<1 须记 provenance.flux_conservation_factor=pixfrac²。",
+      "note": "默认 1.0 已入 defaults.json（owner_adjudicated；严格通量守恒端点）；值域 (0,1] 不变，pixfrac<1 须记 provenance.flux_conservation_factor=pixfrac²。",
       "conflict": null
     },
     {
@@ -744,7 +743,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "输出像素尺度（arcsec/px），默认列 ——；未进任何配置类。归属：负责人裁决。",
+      "note": "输出像素尺度（arcsec/px），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -759,7 +758,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "HEALPix nside（与 order 等价），默认列 ——；未进任何配置类。归属：负责人裁决。",
+      "note": "HEALPix nside（与 order 等价），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -774,7 +773,7 @@
       "registered_at": "eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_layer",
       "registered_key": "normalize.config.sparse_snr_layer",
       "finding": "none",
-      "note": "与 07_noise_snr:112 同名的同一字段：归属唯一 = phase_config normalize config.sparse_snr_layer。默认 false→true（负责人 2026-09-19 裁决，FIX-SCI-SNR-CANON-001 §3.2；文档默认列写作加粗 **true**，本册登记语义值 true，CFG002-01 订正建议见 reports/RELEASE-02/snr-config-land.md §5）。",
+      "note": "与 07_noise_snr:112 同名的同一字段：归属唯一 = phase_config normalize config.sparse_snr_layer。默认 false→true；文档默认列写作加粗 **true**，本册登记语义值 true（CFG002-01 会因该标记报 declared_default 漂移）。",
       "conflict": null
     },
     {
@@ -789,7 +788,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "最小有效重叠（deg²），默认列 ——；CFG-001 §8.2 点名为未进 phase_config 的 per-module knob。归属：负责人裁决。",
+      "note": "最小有效重叠（deg²），默认列 ——；未进 phase_config 的 per-module knob，未进任何配置类。",
       "conflict": null
     },
     {
@@ -804,13 +803,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true；SCI/ALG 零命中；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 true；SCI/ALG 零命中；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase2/09_coverage.md:31"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -825,7 +824,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "空间采样间隔（px/deg），默认列 ——；CFG-001 §8.2 点名项。归属：负责人裁决。",
+      "note": "空间采样间隔（px/deg），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -840,7 +839,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "亮星排除半径，默认列 ——；归属：负责人裁决。",
+      "note": "亮星排除半径，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -855,7 +854,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "控制点数量下限，默认列 ——；归属：负责人裁决。",
+      "note": "控制点数量下限，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -885,7 +884,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "稳健拟合迭代上限，默认列 ——；与 12_rejection 的 max_iter 同名异模块（异义同名风险）。归属：负责人裁决。",
+      "note": "稳健拟合迭代上限，默认列 ——；与 12_rejection 的 max_iter 同名异模块（异义同名风险），未进任何配置类。",
       "conflict": null
     },
     {
@@ -900,7 +899,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "收敛门，默认列 ——；归属：负责人裁决。",
+      "note": "收敛门，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -915,14 +914,14 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认「全类」；未进任何配置类（phase_config 的 algorithm_rejection_method 是方法选择，不是类别开关）。归属：负责人裁决。",
+      "note": "插件默认「全类」；未进任何配置类（phase_config 的 algorithm_rejection_method 是方法选择，不是类别开关）。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase2/12_rejection.md:31",
           "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_rejection_method"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -937,7 +936,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "预测残差阈值（σ），CFG-001 §8.2 点名项；与 defaults.json 已登记的 rejection.<method>.lower_sigma/upper_sigma（排异阈值表）不是同一字段。归属：负责人裁决。",
+      "note": "预测残差阈值（σ）；与 defaults.json 已登记的 rejection.<method>.lower_sigma/upper_sigma（排异阈值表）不是同一字段，未进任何配置类。",
       "conflict": null
     },
     {
@@ -952,7 +951,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "迭代上限，默认列 ——；与 11_upm 的 max_iter 同名异模块、与 defaults.json 的 rejection.<method>.max_iterations（值 8）关系未声明。归属：负责人裁决。",
+      "note": "迭代上限，默认列 ——；与 11_upm 的 max_iter 同名异模块、与 defaults.json 的 rejection.<method>.max_iterations（值 8）关系未声明，未进任何配置类。",
       "conflict": null
     },
     {
@@ -967,13 +966,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true（移动源独立层保留，SCI 语义）；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 true（移动源独立层保留，SCI 语义）；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase2/12_rejection.md:34"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -988,13 +987,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认「全」；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认「全」；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase2/13_integration.md:66"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -1009,7 +1008,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "相关噪声近似方式，默认列 ——；归属：负责人裁决。",
+      "note": "相关噪声近似方式，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1084,7 +1083,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "FITS 级 CD/CDELT 形态，默认列 ——；phase_config 用 s_out_deg + rotation_deg 表达尺度与旋转，未登记 CD 矩阵形态。归属：负责人裁决。",
+      "note": "FITS 级 CD/CDELT 形态，默认列 ——；phase_config 用 s_out_deg + rotation_deg 表达尺度与旋转，未登记 CD 矩阵形态。",
       "conflict": null
     },
     {
@@ -1114,13 +1113,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 bilinear；字段名按 DOC-SCI-001 A2 与 ALG 权威统一为 sampler（docs/science/algorithms/PHASE3_RESAMPLE.md:8,:43 取值 nearest|bilinear）；旧名 kernel 为分叉名。归属：负责人裁决（未进任何配置类，export 无重采样核字段）。",
+      "note": "插件默认 bilinear；字段名与 ALG 权威统一为 sampler（docs/science/algorithms/PHASE3_RESAMPLE.md:8,:43 取值 nearest|bilinear）；旧名 kernel 为分叉名。未进任何配置类，export 无重采样核字段。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase3/15_resample.md:35"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -1135,13 +1134,13 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true；未进任何配置类。归属：负责人裁决。",
+      "note": "插件默认 true；未进任何配置类。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
           "docs/plugins/algorithms_phase3/15_resample.md:36"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -1156,7 +1155,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "输入 order 选择约束（Nyquist），默认列 ——；归属：负责人裁决。",
+      "note": "输入 order 选择约束（Nyquist），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1366,7 +1365,7 @@
       "registered_at": "eng/contracts/schemas/cpu_profile.schema.json#/$defs/kernel_v2/properties/workers",
       "registered_key": "kernel_v2.workers",
       "finding": "none",
-      "note": "线程预算由 cpu_profile 提供，禁硬编码（ENGINEERING_SPEC §10、UNIFIED_MODEL §3）；禁入 phase_config。注：$defs.kernel_v2 已由 profile_v2.properties.kernels.additionalProperties $ref（W5-CPU-001 接线，见 config_registry.cpu_profile_kernel_link，refs=1）。",
+      "note": "线程预算由 cpu_profile 提供，禁硬编码（ENGINEERING_SPEC §10、UNIFIED_MODEL §3）；禁入 phase_config。注：$defs.kernel_v2 已由 profile_v2.properties.kernels.additionalProperties $ref（kernel_v2 接线，见 config_registry.cpu_profile_kernel_link，refs=1）。",
       "conflict": null
     },
     {
@@ -1381,7 +1380,7 @@
       "registered_at": "eng/contracts/schemas/cpu_profile.schema.json#/$defs/kernel_v2/properties/block",
       "registered_key": "kernel_v2.block",
       "finding": "none",
-      "note": "分块大小由 cpu_profile 提供（同上）；同样经 kernel_v2 接线生效（W5-CPU-001）。",
+      "note": "分块大小由 cpu_profile 提供（同上）；同样经 kernel_v2 接线生效。",
       "conflict": null
     },
     {
@@ -1411,7 +1410,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "内存预算（MB），默认列 ——；资源预算不得进科学配置（UNIFIED_MODEL §3、ENGINEERING_SPEC §10），但 cpu_profile schema 亦未登记该键。归属：负责人裁决（资源调度面）。",
+      "note": "内存预算（MB），默认列 ——；资源预算不得进科学配置（UNIFIED_MODEL §3、ENGINEERING_SPEC §10），但 cpu_profile schema 亦未登记该键；归属资源调度面。",
       "conflict": null
     },
     {
@@ -1426,7 +1425,7 @@
       "registered_at": "docs/ASTROCS_DESIGN.md:313",
       "registered_key": null,
       "finding": "none",
-      "note": "profile 输出路径固定为程序安装目录（benchmark 独占写），默认「安装目录（固定）」由设计条款承载（§6.2；另见 docs/design/UNIFIED_MODEL.md §3）。",
+      "note": "profile 输出路径固定为程序安装目录（benchmark 独占写），默认「安装目录（固定）」由设计条款承载（docs/ASTROCS_DESIGN.md §6.2；另见 docs/design/UNIFIED_MODEL.md §3）。",
       "conflict": null
     },
     {
@@ -1456,7 +1455,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "重复测量次数，默认列 ——；benchmark 自身旋钮未登记默认。归属：负责人裁决。",
+      "note": "重复测量次数，默认列 ——；benchmark 自身旋钮未登记默认，未进任何配置类。",
       "conflict": null
     },
     {
@@ -1516,7 +1515,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "资源采样间隔，默认列 ——；归属：负责人裁决。",
+      "note": "资源采样间隔，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1531,14 +1530,14 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 gaia；与 05_platesolve 的 catalog 同名同默认（跨模块重复声明）。归属：负责人裁决（含归属唯一化）。",
+      "note": "插件默认 gaia；与 05_platesolve 的 catalog 同名同默认（跨模块重复声明）；归属唯一化登记于本行。",
       "conflict": {
         "kind": "unregistered_default_duplicate",
         "evidence": [
           "docs/plugins/infrastructure/22_gaia_xpsd_client.md:32",
           "docs/plugins/algorithms_phase1/05_platesolve.md:33"
         ],
-        "owner": "负责人裁决"
+        "owner": "config_registry"
       }
     },
     {
@@ -1553,7 +1552,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "插件标「必填」（无默认）；归属：负责人裁决。",
+      "note": "插件标「必填」（无默认）；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1568,7 +1567,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "缓存目录，默认列 ——；归属：负责人裁决。",
+      "note": "缓存目录，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1583,7 +1582,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "单次查询上限，默认列 ——；归属：负责人裁决。",
+      "note": "单次查询上限，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1598,7 +1597,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "网络超时（s），默认列 ——；归属：负责人裁决。",
+      "note": "网络超时（s），默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1613,7 +1612,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "最大渲染 order，默认列 ——；归属：负责人裁决。",
+      "note": "最大渲染 order，默认列 ——；未进任何配置类。",
       "conflict": null
     },
     {
@@ -1658,7 +1657,7 @@
       "registered_at": "docs/plugins/algorithms_phase1/07_noise_snr.md:138",
       "registered_key": "07_noise_snr#sparse_snr_spacing_px",
       "finding": "none",
-      "note": "负责人 2026-09-19 定案 Δ=64px（相关长度 ℓ = 40.4–57.9 px 区间 ⇒ Δ/ℓ ≈ 1.1–1.6）；复用 Phase2 UPM 8×8/tile 控制网格。（2026-09-20 订正：原 note 写「ℓ=48px ⇒ Δ/ℓ=1.33 近临界」——ℓ 单点值已作废，§9.48 更正表判「应写 40.4–57.9px 区间」；同步 docs/plugins/algorithms_phase1/07_noise_snr.md:138）",
+      "note": "稀疏层控制点间隔 Δ = 64 px（实测相关长度 ℓ = 40.4–57.9 px 区间 ⇒ Δ/ℓ ≈ 1.1–1.6）；复用 Phase2 UPM 8×8/tile 控制网格（与 docs/plugins/algorithms_phase1/07_noise_snr.md:138 同步）。",
       "conflict": null
     },
     {
@@ -1853,7 +1852,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "归一施加模式。负责人 §9.67 定案 1 定默认 delta（raw−δ_k，保留公共天光面 B_ref）。生产经 seam.additive_mode 读取（module_adapters.cpp），但不在 defaults.json / CLI 白名单 / 任何 phase_config schema 中 ⇒ 未登记。归属：前台按 §9.71 裁决 5「契约面整体重整」统一处置。",
+      "note": "归一施加模式。默认 delta（raw−δ_k，保留公共天光面 B_ref）。生产经 seam.additive_mode 读取（module_adapters.cpp），但不在 defaults.json / CLI 白名单 / 任何 phase_config schema 中 ⇒ 未登记；随契约面整体重整统一处置。",
       "conflict": null
     },
     {
@@ -1868,7 +1867,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "是否构建/落盘公共天光面 B_ref 产品（§9.55 S8）。生产经 sky_plane.enabled 读取（module_adapters.cpp，缺省 delta_wanted），未登记。归属：同上。",
+      "note": "是否构建/落盘公共天光面 B_ref 产品。生产经 sky_plane.enabled 读取（module_adapters.cpp，缺省 delta_wanted），未登记。归属：同上。",
       "conflict": null
     },
     {
@@ -1883,7 +1882,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "UPM 图平滑 λ（upm.h:75 逐字「图平滑权重（默认 0=关闭）」）。**与「堆叠平滑项」不是同一项**：阻尼 α≈0.5 是迭代阻尼（docs/ASTROCS_DESIGN §4.4:459）、smoothing_lambda 是拟合正则项、堆叠平滑项是拟合目标里的新项（§9.67 定案 5 本期不加）。前两者并存不冲突。生产经 model.smoothing_lambda 读取，未登记。 【2026-09-23 CFG002-01 订正】declared_default 与文档单元格同步：原登记为文档改写前的残片；现行文档列 = 「键缺省时编译期默认 0.0；P2_SMOOTHING_LAMBDA_AUTO = 0.1 仅在 auto 路径生效」，与 upm.h:75「默认 0=关闭」+ stage2_common.h:24（auto 键值专用常量）逐条一致。",
+      "note": "UPM 图平滑 λ（upm.h:75 逐字「图平滑权重（默认 0=关闭）」）。**与「堆叠平滑项」不是同一项**：阻尼 α≈0.5 是迭代阻尼（docs/ASTROCS_DESIGN §4.4:459）、smoothing_lambda 是拟合正则项、堆叠平滑项是拟合目标里的新项（本期不加）。前两者并存不冲突。生产经 model.smoothing_lambda 读取，未登记。declared_default 与文档单元格同步：现行文档列 = 「键缺省时编译期默认 0.0；P2_SMOOTHING_LAMBDA_AUTO = 0.1 仅在 auto 路径生效」，与 upm.h:75「默认 0=关闭」+ stage2_common.h:24（auto 键值专用常量）逐条一致。",
       "conflict": null
     },
     {
@@ -2095,7 +2094,7 @@
     "dead_filter_enum_phases": [
       "export"
     ],
-    "dead_filter_enum_note": "三份 schema 都保留 $defs/filter_name（统一滤镜键面 + CFG-001 的 enum==库键门）。真正被字段 $ref 的只有 normalize（块级 blocks[].filter_passband，空串=显式无 filter，§9.68 后取代逐帧 inputs[].filter）与 mosaic（inputs[].filter 可选，模板未用）；export 无任何字段引用它（导出以 HiPS 产品为单位、滤镜已在上游分离），属已登记的死定义。若某 phase 新增或移除 filter 字段，本登记必须同步（机器门断言 phases_consuming_filter / dead_filter_enum_phases）。",
+    "dead_filter_enum_note": "三份 schema 都保留 $defs/filter_name（统一滤镜键面 + enum==库键门）。真正被字段 $ref 的只有 normalize（块级 blocks[].filter_passband，空串=显式无 filter，多块形态收口后取代逐帧 inputs[].filter）与 mosaic（inputs[].filter 可选，模板未用）；export 无任何字段引用它（导出以 HiPS 产品为单位、滤镜已在上游分离），属已登记的死定义。若某 phase 新增或移除 filter 字段，本登记必须同步（机器门断言 phases_consuming_filter / dead_filter_enum_phases）。",
     "library_facts": {
       "keys": 45,
       "case_or_space_collisions": 0,
@@ -2122,7 +2121,7 @@
         "SDSS u",
         "SDSS z"
       ],
-      "bandwidth_semantics": "本库以 wavelength_nm[]/value[] 承载通带响应曲线（逐字转录自 lib/algorithms/photometry/data/response_curves/filters.json），无带宽标量列；docs/contracts/** 内不存在滤镜命名/带宽条款（唯一提及为 CONFIG_CONTRACT §4），故不存在旧名残留或别名冲突；channel 列语义与空值域未在任何权威文档定义 -> 登记为缺口（归属：负责人裁决 / 测光文档域）。"
+      "bandwidth_semantics": "本库以 wavelength_nm[]/value[] 承载通带响应曲线（逐字转录自 lib/algorithms/photometry/data/response_curves/filters.json），无带宽标量列；docs/contracts/** 内不存在滤镜命名/带宽条款（唯一提及为 CONFIG_CONTRACT §4），故不存在旧名残留或别名冲突；channel 列语义与空值域未在任何权威文档定义 -> 登记为缺口（归属测光文档域）。"
     }
   },
   "os_abi": {
@@ -2174,7 +2173,7 @@
       "eng/tests/system",
       "eng/tests/validation"
     ],
-    "test_index_known_unregistered_note": "CFG-002 只闭合 eng/tests/config 的登记（任务卡 6.7 / 本卡项5）；上列目录在 eng/tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 eng/tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。 追加 eng/tests/validation：RELEASE-02 验证工作区（L4/M16 真实数据验收与论文实验），由 RELEASE-02 控制包建立。 退役登记项 eng/tests/gaia_zlib 已删除：该目录在真仓库不存在（目录本身与 test_index.csv 双向都不成立），属「登记了但已无对象」的死登记项；本清单是只减不增的棘轮，死项必须删除而不是留着提示。",
+    "test_index_known_unregistered_note": "eng/tests/config 的登记已闭合；上列目录在 eng/tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 eng/tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。 追加 eng/tests/validation：验证工作区（L4/M16 真实数据验收与论文实验）。 退役登记项 eng/tests/gaia_zlib 已删除：该目录在真仓库不存在（目录本身与 test_index.csv 双向都不成立），属「登记了但已无对象」的死登记项；本清单是只减不增的棘轮，死项必须删除而不是留着提示。",
     "gate": "机器门断言：①contracts/config/** 与 eng/packaging/config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；③tests/test_index.csv 登记 eng/tests/config，且「未登记目录集合 == test_index_known_unregistered」（fail-closed）；④config/** 下不得出现 *.schema.json（防第二事实源）；⑤「登记项必须仍有对象」（棘轮，只减不增）：本清单每一条的目录必须真实存在，且必须仍是 test_index.csv 的未登记缺口；失效项 ⇒ 判红并要求删除登记 —— 由 PY-TEST-INDEX-VERDICTS（eng/ci/check_test_index.py R8）机器保证。"
   },
   "cpu_profile_kernel_link": {
@@ -2184,10 +2183,10 @@
       "kernel_v1": 1,
       "kernel_v2": 1
     },
-    "handover": "已闭合（W5-CPU-001，2026-09-17）：按 W5-CFG-002 交接完成接线；负例 eng/tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json（size_class 越界）与 cpu_profile_v2_bad_kernel.json（provider 越界）必红；正向 v1/v2 夹具仍绿；producer 面无需改动（接线不收紧：镜像与 $defs 接线时为同一约束）。"
+    "handover": "已闭合：接线完成；负例 eng/tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json（size_class 越界）与 cpu_profile_v2_bad_kernel.json（provider 越界）必红；正向 v1/v2 夹具仍绿；producer 面无需改动（接线不收紧：镜像与 $defs 接线时为同一约束）。"
   },
   "contract_doc_citations": {
-    "structural_rule": "CONFIG_CONTRACT.md 内所有 文件:行 与 文件:a-b 引用必须：文件存在、行在范围内、起始行非空、范围升序（W5-CFG-002 实测修正了 7 处因文档重排失效的行号）。",
+    "structural_rule": "CONFIG_CONTRACT.md 内所有 文件:行 与 文件:a-b 引用必须：文件存在、行在范围内、起始行非空、范围升序（实测修正过因文档重排失效的行号）。",
     "token_anchors": [
       {
         "ref": "docs/science/STAR_DETECTION.md:21",
@@ -2230,6 +2229,6 @@
       "noise.mask_fwhm_floor_scale"
     ],
     "rule": "这些字段的 source 括号文本是「段号 + claim」式转述，不在被引行逐字出现（被引行内容本身语义正确）。清单只减不增：新增 paraphrase 必须改为逐字 hint 或在此显式登记（ENGINEERING_SPEC §8 豁免只减不增）。",
-    "owner": "noise.* 两行归 MASK-002（掩膜语义整改，正在重写 noise.* 与 NOISE_MODEL.md）；本卡只登记不代改。"
+    "owner": "noise.* 两行的掩膜语义整改正在重写 noise.* 与 NOISE_MODEL.md；本登记只记录豁免不代改。"
   }
 }

@@ -129,7 +129,7 @@ def rule_r1_mode_routing(ctx: Ctx):
               "route_legacy_weight_mode_int 缺 legacy 0 的 FZ-FIELD-WEIGHTMODE 拒绝分支")
 
 
-# W4-A3：阶段 ↔ 用户命令名的映射唯一事实源 = docs/ASTROCS_DESIGN §2:317
+# 阶段 ↔ 用户命令名的映射唯一事实源 = docs/ASTROCS_DESIGN §2:317
 # （「phase1|2|3 仅为内部指代（设计层面），代码与命令名使用 normalize/mosaic/export」）。
 STAGE_COMMANDS = (("phase1", "normalize"), ("phase2", "mosaic"), ("phase3", "export"))
 
@@ -151,7 +151,7 @@ def _command_tree_flags(ctx: Ctx) -> dict:
 def rule_r2_cli_flags(ctx: Ctx):
     """--mode 仅 phase2(mosaic)，--export-mode 仅 phase3(export)；phase1(normalize) 不得有。
 
-    **W4-A3 判据改绑（A 类/B 类：判据读取面过时 ⇒ 空转）**。原实现从
+    **判据改绑（A 类/B 类：判据读取面过时 ⇒ 空转）**。原实现从
     `parser.cpp` 抓 `"phase[123] ..."` 字面量表；CLI-001 已删除这些用户命令
     （parser.cpp:31-33），正则命中 0 条 ⇒ 4 条 R2-* 检查**全部被静默跳过**，
     规则只剩 R2-value-flags 在跑（"空转绿"，正是 ENGINEERING_SPEC §8 要防的失效型）。
@@ -206,7 +206,7 @@ def rule_r2_cli_flags(ctx: Ctx):
 def rule_r3_phase_isolation(ctx: Ctx):
     """CLI 命令面不得有聚合 run/graph/pipeline 入口；阶段命令名按设计权威。
 
-    **W4-A3 判据改绑（B 类：判据过时）**。原实现从 `lib/infrastructure/cli/parser.cpp`
+    **判据改绑（B 类：判据过时）**。原实现从 `lib/infrastructure/cli/parser.cpp`
     的字面量表 `kRules` 抓路径，并断言 `phase1 run`/`phase2 run`/`phase3 run`
     三条**逐 phase 用户命令必须存在**。两者都已过时：
 
@@ -361,7 +361,7 @@ def rule_r7_ci_registration(ctx: Ctx):
     except Exception as e:
         ctx.fail("R7-json", "eng/ci/checks.json 不可解析: %s" % e)
         return
-    # **W4-A3 判据改绑（A 类：判据索引面与注册表两层结构不匹配）**。
+    # **判据改绑（A 类：判据索引面与注册表两层结构不匹配）**。
     # eng/ci/checks.json 是**两层注册表**：顶层聚合项 checks[].id + 执行单元 steps[].id
     # （step 未声明的字段按 INHERIT_FIELDS 继承父项）。V6 的 8 个 ID 全部以
     # **执行单元**形态登记，而原实现只索引顶层 ⇒ 8 条 R7-check-present 恒红，

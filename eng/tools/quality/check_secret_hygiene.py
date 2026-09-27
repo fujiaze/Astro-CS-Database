@@ -7,7 +7,6 @@
   * ENGINEERING_SPEC.md §7 —— 禁止散落根目录、根条目须登记；
   * ENGINEERING_SPEC.md §8 —— 机器检查能绿能红、fail-closed；
   * docs/ci/01_CHECKS.md §4 —— 新增检查项流程；
-  * 工程控制/PROJECT-GOVERNANCE-01/tasks/ROOT-006.md —— 本检查的需求来源。
 
 设计要点
 --------

@@ -128,7 +128,7 @@ g++ -std=c++17 $SAN -Iplate_solve/cpp/ipv/include -lm \
   -o ipv_san 2>"$OUT/ipv.build.log" || { echo "plate_solve,test_synthetic,BUILD_FAIL,$(head -3 $OUT/ipv.build.log)" >> "$OUT/sanitizer_coverage.csv"; }
 run_mod plate_solve ipv_san
 # 判据：CSV 的 status 列只反映驱动退出码，**不得**把 FAIL 行改写成 PASS
-# （独立审查《一页纸》S1-2：红灯不得被 sed 成绿灯）。测试断言的 n_inliers 阈值
+# （红灯不得被 sed 成绿灯）。测试断言的 n_inliers 阈值
 # （变换精确 RMS=0 时 38<40）与 sanitizer 无关 ⇒ 单独落一份注记文件，status 保持 FAIL。
 if grep -q "AddressSanitizer\|runtime error:" "$OUT/plate_solve.log" 2>/dev/null; then
   echo "plate_solve,ipv_san,FAIL,ASan/UBSan finding" >> "$OUT/plate_solve.note"

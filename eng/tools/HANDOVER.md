@@ -14,7 +14,7 @@
 - **本对话已结束。基线保持静止**，不做测试、不做端到端、不做全量构建。
 - **当前阶段 = 只读推导找错**（见 §4）：扫描在只读节点做，产出报告；
   开发节点接报告、逐条修 bug。**全部修完且找不出新问题之后**，才做彻底构建与实测。
-- 待修清单的正本是外部审查节点维护的**一页纸**，见 §5。
+- 待修清单的正本由外部审查节点维护（不在本仓），见 §5。
 
 ## 1 这是什么项目、先读什么
 
@@ -100,9 +100,7 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 另一条相关口径：「**事实证明门禁并不可靠，而且反复失效**」「**现在应该注重正向解决问题**」——
 意思是**优先修产品真缺陷**，不要陷入「加门—门坏—修门」的循环。
 
-## 5 待修清单的正本：一页纸（在外部审查节点上）
-
-**位置**：`F:\Astro dev\独立审查\整改\一页纸.md`（Windows 节点 Fatduck 上，**不在本仓**）。
+## 5 待修清单的正本（在外部审查节点上，**不在本仓**）
 **本仓副本**：`run/ONEPAGER/onepager_latest.md`（同步方法见下）。
 
 **它由审查节点维护，开发节点不改它**；开发节点维护的是状态件
@@ -113,7 +111,7 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 - `eng/tools/fatduck_ps.sh '<PowerShell 命令>'` —— 在 Windows 节点执行一条命令；
 - `eng/tools/fatduck_put.sh <本地文件> '<Windows 绝对路径>'` —— **分块**写文件（整文件 base64 会超命令行长度上限，实测 9 KB 即被拒）。
 
-**同步一页纸**：
+**同步待修清单**：
 ```bash
 ./eng/tools/fatduck_ps.sh '[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Content -Raw -Encoding UTF8 -LiteralPath "F:\\Astro dev\\独立审查\\整改\\一页纸.md"' > run/ONEPAGER/onepager_latest.md
 ```
@@ -274,7 +272,7 @@ bash run/M42-E2E-03/driver.sh
 |---|---|
 | 前台（你） | **只有前台能 git 写**；能写 `checks.json` / `id_migration_map.json` / `prod_wiring_baseline.json` / `known_failures_baseline.json`；统一登记新检查项的 ID 迁移 |
 | 子代理 | **零 git 写权限**；只做单元工作；报告必须含「我证伪了任务书的哪个前提」 |
-| 审查节点 | 维护一页纸，**只读**；不改仓库 |
+| 审查节点 | 维护待修清单，**只读**；不改仓库 |
 
 **新增检查项的流程**：写门 → 登记进 `checks.json`（聚合项 `command` 必须写成
 `['python3','eng/ci/run_checks.py','--check','<ID>','--quiet']`，否则 R12 红）→

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""RELEASE-02 系统性能监视器 (sysmon) —— 与目标程序同步启动、按固定间隔采样、写 CSV。
+"""ACSD 系统性能监视器 (sysmon) —— 与目标程序同步启动、按固定间隔采样、写 CSV。
 
-设计意图（负责人原话）:
+设计意图：
     「用一个和程序同步启动的 Python 做系统性能利用率统计。」
 
 数据源优先 Linux /proc，**不依赖任何第三方包**（无 psutil 也能跑）。
@@ -420,7 +420,7 @@ class Sampler:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="ACSD RELEASE-02 procfs 系统监视器")
+    ap = argparse.ArgumentParser(description="ACSD procfs 系统监视器")
     ap.add_argument("--out", required=True, help="输出 CSV 路径")
     ap.add_argument("--pid", action="append", default=[],
                     help="跟踪目标进程 pid (可重复; 含全部后代)")
