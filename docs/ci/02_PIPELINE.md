@@ -28,8 +28,8 @@
 
 | Workflow | Job（依赖） | 内容 | 证据锚 |
 |---|---|---|---|
-| `ci-linux.yml` | `linux`（无依赖，单 job，ubuntu） | `python3 eng/ci/run.py --profile linux-main`（`workflow_dispatch` 可选 `linux-deep`）；失败路径调 `eng/ci/wf_step.py --step LINUX-BOOTSTRAP-DIAG` | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
-| `ci-windows.yml` | `windows`（无依赖，单 job，windows-2022） | `python eng/ci/run.py --profile windows-main`（MSVC 测试 + 打包候选）；失败路径调 `eng/ci/wf_step.py --step WINDOWS-BOOTSTRAP-DIAG` | `astrocs-windows-candidate-<sha>` ← `artifacts/candidate/`（success）；`windows-ci-<sha>` ← `artifacts/ci/`（always） |
+| `ci-linux.yml` | `linux`（单 job，ubuntu） | run.py --profile linux-main（workflow_dispatch 可选 linux-deep）；失败路径 wf_step.py --step LINUX-BOOTSTRAP-DIAG | `linux-ci-<sha>` ← `artifacts/ci/`（always） |
+| `ci-windows.yml` | `windows`（单 job） | run.py --profile windows-main；失败调 wf_step.py --step WINDOWS-BOOTSTRAP-DIAG | `astrocs-windows-candidate-<sha>`、`windows-ci-<sha>` ← artifacts/（success/always） |
 
 增量档不跑整条链：只执行与改动集相交的检查（`CI_SPEC.md §2.3`），构建/测试 target 由构建图反查得出；
 任一 fail-closed 条件命中即判红。

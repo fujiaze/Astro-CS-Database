@@ -1,0 +1,122 @@
+{
+ "doc": "DATA_SEMANTICS.md 代码锚重锚登记（P-042 修复单）",
+ "scope": "只登记 docs/contracts/DATA_SEMANTICS.md 实现锚 file.ext:line 的行号重定位；判据与语义零改动。",
+ "method": "核证器 eng/tests/contracts/check_data_semantics_anchors.py 三档分类（old_still_valid / high_confidence / manual_review）；high_confidence 为候选行号，每条替换前按文档行语义与目标行内容逐条对照人工复核，复核驳回的候选不落笔。区间锚按首行定位、区间长度保持原 span；结构块整体扩张时端点按块界调整。",
+ "reanchored": [
+  {
+   "anchor": "hp_drizzle_api.cpp:412-421",
+   "registered": "434-443",
+   "evidence": "CDELT 读取行 aio_frame_kv_get_double(frame, header, CDELT1, 0.0)"
+  },
+  {
+   "anchor": "orchestrator.cpp:3367-3379",
+   "registered": "3313-3325",
+   "evidence": "precision_mode 写入注释（fp32 默认或 fp64，drizzle DLL 写 HISS metadata）"
+  },
+  {
+   "anchor": "hp_drizzle_api.h:55",
+   "registered": "39",
+   "evidence": "weight_path 可选权重 FITS 文件路径参数注释（文件通道权重面）"
+  },
+  {
+   "anchor": "orchestrator.cpp:2411-2419",
+   "registered": "2403-2411",
+   "evidence": "写入 star_measurements 权威块注释（schema astrocs-star-measurements-1）"
+  },
+  {
+   "anchor": "p1_session.cpp:558-566",
+   "registered": "349-357",
+   "evidence": "host->allocator.alloc host 分配行"
+  },
+  {
+   "anchor": "commands.cpp:910",
+   "registered": "668",
+   "evidence": "granted_workers = granted_worker_observation()"
+  },
+  {
+   "anchor": "orchestrator.cpp:1556-1575",
+   "registered": "1593-1612",
+   "evidence": "using sdet_create_fn = StarDetectorHandle(*)(const SDetParams*)"
+  },
+  {
+   "anchor": "orchestrator.cpp:2252-2280",
+   "registered": "2218-2246",
+   "evidence": "星点检测权威块注释（x,y,flux,mag,saturated,has_saturated）"
+  },
+  {
+   "anchor": "coverage.h:32-44",
+   "registered": "32-38",
+   "evidence": "P2HipsInputInfo struct 域整体（B2-A8 注释与 hips_ordering 字段并入，起始行不变）"
+  },
+  {
+   "anchor": "stage2.cpp:792-805",
+   "registered": "565-578",
+   "evidence": "if (ivar_product_missing > 0) fail-closed 段至 return 7"
+  },
+  {
+   "anchor": "sampler.h:137-140",
+   "registered": "85-93",
+   "evidence": "@param frame_ids 与 hips_paths 同序、0 为非法哨兵注释块"
+  },
+  {
+   "anchor": "sampler.h:138",
+   "registered": "117",
+   "evidence": "同上注释块（0=非法哨兵冻结注释）"
+  },
+  {
+   "anchor": "upm.h:125-127",
+   "registered": "99-101",
+   "evidence": "全局平滑/Laplacian 延拓（harmonic continuation）注释块"
+  },
+  {
+   "anchor": "p2_session.cpp:206",
+   "registered": "189",
+   "evidence": "空间 UPM 显式 control leaf 层级、取 coverage 实测值注释"
+  },
+  {
+   "anchor": "upm.cpp:316",
+   "registered": "256",
+   "evidence": "m->info.precision = 1; // fp64 reference"
+  },
+  {
+   "anchor": "upm.cpp:65",
+   "registered": "56",
+   "evidence": "double M{0.0}; // latent unified reference（待求）"
+  },
+  {
+   "anchor": "p3_wcs.cpp:105",
+   "registered": "40",
+   "evidence": "fabs(centre_dec_deg) > kMaxAbsDec → P3_WCS_PARAM"
+  },
+  {
+   "anchor": "p3_wcs.h:14-23",
+   "registered": "12-20",
+   "evidence": "struct P3WcsDescriptor 域（crval/crpix/cd/width/height/projection）"
+  },
+  {
+   "anchor": "p3_output.h:20-29",
+   "registered": "15-24",
+   "evidence": "struct P3Provenance 起始行（8 字段）"
+  }
+ ],
+ "kept_as_registered": [
+  {
+   "anchor": "p2_session.h:19",
+   "evidence": "纯读无 IO、拒未知键/缺必需键注释仍精确对位（两处引用）"
+  },
+  {
+   "anchor": "p3_resample.h:150-159",
+   "evidence": "样本级掩膜强制计数（NAN-SAMPLE-MASK-COVERAGE-NAN）注释块对位"
+  },
+  {
+   "anchor": "p3_resample.h:93-96",
+   "evidence": "邻域样本 NaN/Inf 掩膜重归一注释对位"
+  },
+  {
+   "anchor": "hp_drizzle_api.cpp:427-447",
+   "evidence": "CTYPE2 读取段仍在原位（核证器归 old_still_valid 类，共 58 条）"
+  }
+ ],
+ "manual_review": "约 180 条证据不足或歧义（弱匹配/多候选/无语义 token/basename 歧义），全量清单以核证器 --report 现场输出为准；逐条按 DATA_SEMANTICS.md 行语义定位同语义行，无法对应时登记为语义级重锚需求（引用符号替代行号）。",
+ "boundary": "行号指针修正；实现行为、判据数值、语义负载零改动。核证器 token 分类依赖 ASCII 标识符与引号串，中文注释行的对位以人工对照为最终依据。"
+}

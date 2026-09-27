@@ -368,13 +368,13 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**——**逐像素一律计入累加器并计数**（`isfinite(...)+continue` 式静默吞像素即反例，DISP-DRZ-004）；实现锚 `drizzle_engine.cpp:1899-1902`、`hp_drizzle_api.cpp`，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`） |
+| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:584-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**——**逐像素一律计入累加器并计数**（`isfinite(...)+continue` 式静默吞像素即反例，DISP-DRZ-004）；实现锚 `drizzle_engine.cpp:1899-1902`、`hp_drizzle_api.cpp`，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`） |
 | "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-447，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:412-421）。 |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**，**禁**静默取 FP32（权威 = docs/science/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3367-3379）。**B2-A12**：P1 drizzle 节点**必须**按 `drizzle.precision_mode` 写实际精度，**禁**写死 "0"；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`；**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，与 `PHOTAPPL` 各自独立**——BUNIT 描述「量的种类」（线性计数面亮度），标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed，只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
-| nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
+| nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-210 文件通道 / `:557-561` 帧通道）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
 | "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | **像素域**量纲 `ADU^2`（§31.1 `pixel_variance_in`；UNIFIED_MODEL §2 variance 对象）；**标度 = 与同帧 `data` 块同一数组、同一 dtype**（数组为 `photo_scaled_adu` ⇒ 随 α² 一并缩放；本节点不二次缩放。标度词表 = `docs/standards/NUMERIC_STANDARD.md`）。**输入块（`ADU^2`，像素域）与输出产品（`ADU^2/sr^2`，面亮度域，§12.2）量纲不同**；换算责任方 = writer 归一（因子 `1/covered_area^2`，§4a） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
@@ -882,7 +882,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 > SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
 > 引用不改动）；编排级合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威
 > 检测，PLATESOLVE 禁重检测）。本节是该模块单位/dtype/shape/invalid 的唯一
-> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-510）为
+> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-509）为
 > 编排层词汇，由 P1-PSF-INT 对齐；冻结依据只取上游权威文档。
 
 ### 17.1 输入（生产通道 sdet_detect_ex / sdet_detect_ex_f64，orchestrator.cpp:2172-2196）
@@ -891,7 +891,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 |---|---|---|---|
 | image | uint16（FP32 通道，float→uint16 clamp [0,65535] 转换，orchestrator.cpp:2179-2187，DISP-STAR-001）/ double（FP64 通道全程不降级，PREC-105 同族）`[h·w]` 行主序 0-based | ADU | NULL / h≤0 / w≤0 → rc=−1（sdet_api.cpp:1612、:2325、:2340） |
 | handle（sdet_create 预建，orchestrator.cpp:1556-1575 参数构造） | StarDetectorHandle | — | NULL → −1；句柄级互斥使用（PHASE1_API_V1 §2 表行 handle 级 no/no）；SDetParams 9 字段生产消费面缺口=DISP-STAR-003（ALG-STARDET-001 §11.1/§11.3） |
-| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2176、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:780-802），不识别名该列全 0 |
+| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2176、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:782-802），不识别名该列全 0 |
 
 ### 17.2 输出（malloc 10 数组，唯一释放入口 sdet_free_detect_ex，sdet_api.cpp:2357-2372）
 
@@ -993,7 +993,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 | ctype1/ctype2[16] | char | "RA---TAN(-SIP)"/"DEC--TAN(-SIP)" | — |
 | error_msg[256] | char | — | 空串=无错；NULL 参数/C++ 异常填充（ipv_entry.cpp:181-187/:218-224） |
 
-- 编排写回（唯一权威落位，orchestrator.cpp:2003-2049）：header KV
+- 编排写回（唯一权威落位，orchestrator.cpp:2004-2049）：header KV
   CTYPE1/2、CRVAL1/2、CRPIX1/2、CD1_1/CD1_2/CD2_1/CD2_2、RADESYS=ICRS、
   EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
   ap_order>0 时 AP_ORDER/BP_ORDER + AP_i_j/BP_i_j。求解失败 →
@@ -1588,7 +1588,7 @@ eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
   :174-177；profile 版本化，生产默认 astrocs_adaptive_pixel）；kernel 永不接收 AUTO
   （:285 注释，违规→INVALID_METHOD :1688-1701）。
 
-### 22.2 输出（P2RejectionDecision，rejection.h:276-283）
+### 22.2 输出（P2RejectionDecision，rejection.h:395-403）
 
 | 字段 | dtype/shape | 单位/值域 | invalid/未定 |
 |---|---|---|---|
@@ -2452,7 +2452,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > ALG: ALG-P3-003（G3/G4 施工规格，PHASE3_RESAMPLE.md，公式零改动）
 > + ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md 实现
 > 级合同）；API 面: API-P3-RSMP-001；descriptor 占位
-> module_id=astrocs.phase3.resample2（module_adapters.cpp:425-439
+> module_id=astrocs.phase3.resample2（module_adapters.cpp:425-438
 > p3_resample2_descriptor）由 P3-RSMP-INT 对齐 astrocs.p3.resample。
 
 ### 29.1 输入
@@ -2528,7 +2528,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   上游）、§28（WCS 域，输出平面几何上游）、§30.7（DATA-P3-REJ-001，
   本域输出面的**强制剔除计数**诊断平面承载面冻结）。
 - 端口词汇注记: registry descriptor p3_resample2_descriptor
-  （module_adapters.cpp:425-439，module_id=astrocs.phase3.resample2
+  （module_adapters.cpp:425-438，module_id=astrocs.phase3.resample2
   占位）端口表 wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+
   resampled(DATA-P3-RES 可) 为编排层词汇，由 P3-RSMP-INT 对齐
   astrocs.p3.resample；冻结依据只取上游权威文档。

@@ -11,7 +11,7 @@ docs、tests 必须一致；一致性由 `eng/tools/config_consistency_check.py`
 >   `docs/contracts/CONFIG_CONTRACT.md` §3。
 > - 本文的 `precision(fp32)` 是 **orchestrator** 的解析缺省（仅用于「doc ↔ parser/struct 一致」门）；
 >   三命令 `phase_config` 的精度**必须显式**（normalize = 块级 `drizzle.precision_mode`；mosaic/export =
->   位深键 / `config.precision` 键名），见 `CONFIG_CONTRACT.md` §3「精度显式声明」。
+>   位深键（`config.precision` 为死键，不得再于配置中使用），见 `CONFIG_CONTRACT.md` §3「精度显式声明」。
 > - **`output_mode` 不属本文范围**（它只出现在 export 的 `phase_config`）：**必填且必须显式** ——
 >   `blocks[]` 分支、平铺单块简写分支、`{phase_name, config, inputs[]}` 简写分支的 `required`
 >   **都含 `output_mode`**（fail-closed；`docs/contracts/CONFIG_CONTRACT.md` §3 末条）；

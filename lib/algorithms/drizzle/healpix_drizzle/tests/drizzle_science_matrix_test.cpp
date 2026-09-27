@@ -9,8 +9,12 @@
 // - computed drop area (生产 4 角/自适应多边形)
 // - raw overlap sum (Σ overlap over 生产候选)
 // - raw absolute/relative error (不得用 Σoverlap 归一化掩盖)
-// Gate: |computed-ref|/ref < 1e-6 (SIP) / < 1e-10 (纯 TAN);
-// |Σoverlap-computed|/computed < 1e-8
+// Gate (逐 variant 的 mean 相对误差, 与 CHECK 一致):
+//   mean |computed-ref|/ref < 1e-6 (生产 drop_area 尺度感知:
+//   微小 drop 切平面 ~1e-9, 大 drop Van Oosterom ~1e-12);
+//   mean |Σoverlap-computed|/computed < 1e-6;
+//   per-drop 误差全量落 overlap_matrix.jsonl (含 >1e-9 的
+//   worst-case 像素信息行)
 //
 // Part B: WCS 变体 Drizzle 矩阵 (Gate P2/P4, NSIDE=65536 生产尺度)
 // per variant: FP64 一次 + FP32 一次
@@ -32,6 +36,7 @@
 #include <cstring>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <vector>
 #include <string>
 #include <map>
@@ -221,6 +226,7 @@ static double area_ref_planar(const std::vector<spherical::Vec3>& pts) {
 // ============================================================================
 static void run_overlap_matrix(const char* jsonl) {
     printf("=== Part A: Overlap 矩阵 (Gate P1) ===\n");
+    std::filesystem::create_directories("run/temp/precise_hardening");
     FILE* f = std::fopen(jsonl, "w");
     if (!f) { printf("  [FAIL] 无法写 %s\n", jsonl); g_fail++; return; }
 
@@ -306,6 +312,9 @@ static void run_overlap_matrix(const char* jsonl) {
                 double mean_ref = sum_rel_ref / npx, mean_ov = sum_rel_ov / npx;
                 // 门限 1e-6: 生产 drop_area 已尺度感知 (微小 drop 切平面 2D
                 // 面积, 误差 ~1e-9; 大 drop 球面 Van Oosterom, 误差 ~1e-12)
+                if (worst_case > 0)
+                    printf("  [info] worst-case px#%d rel err >1e-9 (%s sc=%.3g pf=%.2f)\n",
+                           worst_case, wcs_name(k), sc, pf);
                 double gate_ref = 1e-6;
                 char msg[192];
                 snprintf(msg, sizeof(msg),
