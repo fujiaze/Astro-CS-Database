@@ -1,8 +1,8 @@
 # IPV Plate Solving 完整流程文档
 
-> 版本: V4.9 (2026-07-04)
+> 版本: V4.9
 > 模块路径: `lib/algorithms/platesolve/cpp/ipv/`
-> 入口: `IPVSolver::solve()` ([ipv_solver.cpp:296](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp#L296))
+> 入口: `IPVSolver::solve()` (`ipv_solver.cpp:296`)
 
 ---
 
@@ -12,7 +12,7 @@
 
 | 项 | 实际情况 |
 |---|---|
-| 随机数生成器 | `std::mt19937 gen(42)` 固定种子 ([ipv_ransac.cpp:335](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp#L335)) |
+| 随机数生成器 | `std::mt19937 gen(42)` 固定种子 (`lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:335`) |
 | 可复现性 | 同一帧每次运行结果完全一致 |
 | 采样策略 | PROSAC = **PROgressive** SAmple Consensus, 按 vote 降序优先采样高票候选, 非纯随机 |
 | 失败帧根因 | 候选对里就没有足够的真实匹配 (polygon_match max_vote=5 区分度低), 不是采样运气问题 |
@@ -46,7 +46,7 @@ FITS 图像 ──► [1 StarSelector] ──► U (图像侧星点, 角秒坐�
                             [5] WCS 输出 (CD/CRVAL/CRPIX)
 ```
 
-### 主流程 `solve()` ([ipv_solver.cpp:296](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp#L296))
+### 主流程 `solve()` (`ipv_solver.cpp:296`)
 
 | 阶段 | 耗时(典型) | 说明 |
 |------|----------|------|
@@ -81,10 +81,13 @@ FITS 图像 ──► [1 StarSelector] ──► U (图像侧星点, 角秒坐�
 - 输出: x, y, flux, saturated[]
 
 ### Step 3: 图像侧选星 (U 向量组)
-- 函数: `select_image_stars()` ([ipv_select.cpp](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp))
-- **不对称策略** (用户硬约束):
-  - 饱和星数 ≥ img_n_target (默认 50): **全选饱和星**
-  - 饱和星数 < 50: 饱和星 + 非饱和补足 50 (按 flux 降序)
+- 函数: `select_image_stars()` (`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:842-850`)
+- **样本定义域 = 星等可靠的非饱和检测** (与 `docs/science/algorithms/PLATESOLVE.md` §4a.1 同口径):
+  - 饱和检测一律排除且不回填 (饱和像元读出被截断 ⇒ box 积分通量不随真实亮度单调、
+    质心有偏, 样本亮度深度不可复现);
+  - 候选按 box 积分星等升序 (越小越亮) 取前 `min(img_n_target, 非饱和候选数)` 颗;
+    mag 为 NaN 的失效星排最后且不被选中;
+  - 非饱和候选 < 2 由调用方 fail-closed (点名 n_detected/n_saturated/n_unsat)。
 - 坐标转换 (角秒, 原点图像中心, **Y 轴向上**):
   ```
   U[i].x = (det_x - cx) * s0
@@ -93,7 +96,7 @@ FITS 图像 ──► [1 StarSelector] ──► U (图像侧星点, 角秒坐�
 - 其中 `s0 = 206.265 × pixel_size_um / focal_length_mm` (角秒/像素)
 
 ### Step 4: FOV/密度计算
-- 函数: `compute_fov_density()` ([ipv_select.cpp:216](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp#L216))
+- 函数: `compute_fov_density()` (`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:216`)
 - 公式:
   ```
   s0 = 206.265 × pixel_size / focal_length        (角秒/像素)
@@ -111,7 +114,7 @@ FITS 图像 ──► [1 StarSelector] ──► U (图像侧星点, 角秒坐�
   - 下限: 50
 
 ### Step 5: V4.9 密度公式估算极限星等 ⭐ 新增
-- 函数: `estimate_mag_lim_by_density()` ([ipv_select.cpp:315](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp#L315))
+- 函数: `estimate_mag_lim_by_density()` (`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:315`)
 - **用户指导**: "根据天球平均星点密度, 搞一个根据视场角自动估算需要的极限星等的公式, 保证查出来的星比需要的多就行。初始只需要很小的极限星等"
 - 模型 (Gaia DR3 G 波段近似):
   ```
@@ -168,7 +171,7 @@ FITS 图像 ──► [1 StarSelector] ──► U (图像侧星点, 角秒坐�
 
 每个 mode 独立求解, 取 score 最大者。
 
-### 单个 flip_mode 流程 (`solve_flip_mode` [ipv_solver.cpp:95](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp#L95))
+### 单个 flip_mode 流程 (`solve_flip_mode` `lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp:95`)
 
 #### 5.1 apply_flip
 - 对 W 应用镜像得到 W'
@@ -200,7 +203,7 @@ FITS 图像 ──► [1 StarSelector] ──► U (图像侧星点, 角秒坐�
 - 候选数 < 4: 直接失败 (无法解相似变换)
 
 #### 5.5 PROSAC 验证 ⭐ 核心
-- 函数: `prosac_verify()` ([ipv_ransac.cpp:310](file:///f:/Astro%20dev/Astro%20CS%20Normalization%20Database/lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp#L310))
+- 函数: `prosac_verify()` (`lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp:310`)
 - **模型**: `W = s·R(θ)·U + t` (相似变换, 4 参数: s, θ, tx, ty)
 - **随机数**: `std::mt19937 gen(42)` 固定种子, **可复现**
 - **三阶段采样**:

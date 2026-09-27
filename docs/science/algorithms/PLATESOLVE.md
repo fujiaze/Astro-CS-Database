@@ -240,7 +240,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | 错误串编码归一 | ipv_entry.cpp:320-370（`utf8_safe_copy`，§4b）、:186-193（`set_error_msg`）、:179-185（`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
 | 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |
 | iter_trans_solve | ipv_itertrans.cpp:974 | 迭代重投影多项式拟合（order 1→3） |
-| robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight），失败回退不破坏主解 |
+| robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：`docs/references/SCIENTIFIC_REFERENCES.md` §E 20 Mosteller & Tukey 1977、§F 37 Beaton & Tukey 1974 biweight 原始出处），失败回退不破坏主解 |
 | extract_wcs_sip | ipv_wcs.cpp:229 | WCS+SIP 提取（生产路径） |
 | CD = trans 线性项/3600 | ipv_wcs.cpp:256-266 | 度/像素（F2） |
 | CRVAL/CRPIX 冻结 | ipv_wcs.cpp:264-277 | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
@@ -366,7 +366,7 @@ API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 
 - WCS 框架/TAN/SIP：Paper I §2.1.1；Paper II §2.1/§2.2/Table 1；Shupe et al. 2005, ASPC 347, 491（SIP）。
 - 可执行标准：WCSLIB（LGPL-3.0）、astropy.wcs（BSD-3-Clause）≥7.0.1。
-- 三角匹配/星表求解：Groth 1986, AJ 91, 1244（DOI 10.1086/114121）；Valdes et al. 1995, PASP 107, 1119（DOI 10.1086/133670）。
+- 三角匹配/星表求解：Groth 1986, AJ 91, 1244（DOI 10.1086/114099）；Valdes et al. 1995, PASP 107, 1119（DOI 10.1086/133667）。
 - 多帧联合校准：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）。
 - Astrometry.net 语义对照（本文件 §8）：Astrometry.net（https://astrometry.net，许可证需网络核验）。
 - Huber IRLS（SIP 拟合）：Huber 1964, Ann. Math. Statist. 35, 73。

@@ -57,8 +57,8 @@
   `SNR_peak = A_fit/σ_bg` 单位下是 `SNR_peak = 5·(1 + σ_smooth²/σ_psf²)`（连续极限），
   实测系数为 `6.22 ± 0.50`（**50% 过渡点**，§11.4 F1）。该式给出的是检出概率 0.5
   的位置，**不是召回域下限**；召回域下限 = §11.4 F1 的逐档 **99% 召回阈表**
-  （σ_psf = 1.0 / 1.27 / 1.5 / 2.0 / 2.5 / 3.0 px 对应 46.0 / 24.0 / 19.0 / 16.0 /
-  10.0 / 10.0），两者**不可互换**。
+  （σ_psf = 1.0 / 1.27 / 1.5 / 2.0 / 2.5 / 3.0 px 档；数值以本文件 §11.4 表
+  「99% 召回阈 `SNR_peak`」行为唯一权威，此处不复制数值以防漂移），两者**不可互换**。
 - 动态范围与饱和水平（:1834-1838）: `bg=median(img)`，`maxi=max(img)`，
   `dynrange=min(maxi,65535)−bg`，`minsatlevel=0.7·dynrange`，
   `satrange=0.1·dynrange`，`locthreshold=5·bgnoise`；`norm = 65535.0f` 字面量
@@ -402,7 +402,7 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
-- 阈值检测/去混叠：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；源码 SExtractor（GPL-3.0）detect.c/scan.c。
+- 阈值检测/去混叠：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；源码 SExtractor（GPL-3.0，tag 2.8.6）scan.c（扫描/阈值）/extract.c（提取）/back.c（背景）/photom.c（测光）。
 - 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
 - 椭圆高斯 LM：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, LNM 630, 105；实现对照 GSL（GPL-3.0）。
 - IIR 递归高斯平滑：Young & van Vliet 1995, Signal Processing 44, 139。
