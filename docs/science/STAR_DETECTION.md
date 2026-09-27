@@ -63,9 +63,9 @@
   检测是经验性图像处理流程，不宣称解析保证。
 - 全局检测阈值（`detection.threshold_sigma`）：
   `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**；`bgnoise` 为
-  **未平滑原图**的行差分背景噪声 RMS，单位 ADU（`sdet_api.cpp:1783`，
+  **未平滑原图**的行差分背景噪声 RMS，单位 ADU（`sdet_api.cpp:596-639`，
   估计器见 ALG-STARDET-001 §2）。**量纲声明（必须随阈值同读）**：该阈作用在
-  `σ_smooth = 2.0` 的平滑图上（`sdet_api.cpp:1856-1857` 判 `smooth > threshold`），
+  `σ_smooth = 2.0` 的平滑图上（`sdet_api.cpp:1654`/:1672 判 `smooth > threshold`），
   故它在**平滑图噪声单位**下的取值是 `5.0/‖k‖₂ = 5.0·2σ_smooth·√π = 35.45 σ_smooth`
   （连续 2D 高斯核 `‖k‖₂ = 1/(2σ_smooth√π) = 0.14105`）。
   **`threshold_sigma` 是「未平滑原图噪声」的倍数，不是阈值实际作用图像上的显著性**；
