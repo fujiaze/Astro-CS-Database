@@ -67,7 +67,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - 缺 tile/非有限 → validity 标记，不以零填充；
 - **无覆盖/无数据 = NaN**（与支撑度 ≤0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用**样本级掩膜**：被掩除的样本不参与该输出像素，剩余样本权重**重归一**；整个输出像素无有效覆盖则置 NaN（**覆盖级 NaN**）并**强制计数**（最高设计 §5.5/§10，规则见 `docs/science/DRIZZLE.md`）；
 - **逐像素方差/ivar 产品面**：生产调度路径**已挂** `variance` 帧内命名块 —— `lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`；登记面 = `DATA-P1-DRZ` §11.1:295「variance 面（可选，帧内块）float32，ADU²」。引擎侧 `sumVarNum += v·w²`（`w = a_jp/A_pixel,j`），sink/writer finalize 出 V19 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（`true` ⇒ variance|ivar 位同时置位，`false` ⇒ 两位均不置位，禁占位子产品），**由磁盘事实给出，禁硬编码**。
-  **显式降级（非静默，带 `var_status`/`var_reason`）**：noise model 退化（rc=1）⇒ `skipped_degenerate_empty_support`；填充面含非有限/非正值 ⇒ `skipped_fill_failed`（全零方差面会让引擎整像素 `varianceValue<=0 ⇒ continue`，抹掉 signal/support，故 fail-closed）。凡「逐像素方差已由生产路径产出」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据；旧表述「生产调度路径不挂 `variance` 块 ⇒ `has_variance=0` ⇒ `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）」与工作区现状**不符，已作废**；双实现分裂见 `07_noise_snr.md` §4.4。
+  **显式降级（非静默，带 `var_status`/`var_reason`）**：noise model 退化（rc=1）⇒ `skipped_degenerate_empty_support`；填充面含非有限/非正值 ⇒ `skipped_fill_failed`（全零方差面会让引擎整像素 `varianceValue<=0 ⇒ continue`，抹掉 signal/support，故 fail-closed）。凡「逐像素方差已由生产路径产出」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据；旧表述「生产调度路径不挂 `variance` 块 ⇒ `has_variance=0` ⇒ `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）」与工作区现状**不符，查无实据**；双实现分裂见 `07_noise_snr.md` §4.4。
 
 ## 8. 测试与 Oracle
 

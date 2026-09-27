@@ -46,7 +46,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 
 ## 4 JSONL 运行事件流 v1（**唯一 schema**）
 
-> **唯一性声明（GAP_AUDIT §4.3）**：运行事件流的**唯一 schema** = 实现正本
+> **唯一性声明**：运行事件流的**唯一 schema** = 实现正本
 > `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`）。
 > 本节是它的**人类可读合同**（同源；字段名 / 枚举 / 顺序键以 `protocol.h` + `jsonl.h` 为准，
 > 冲突时以实现正本为准）。机器 schema = `eng/contracts/schemas/jsonl_event_v1.schema.json`（**派生件**，
@@ -104,7 +104,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 `resource_timeseries.csv` / `resource_summary.json` / `worker_balance.csv`、
 `alloc_samples.csv` / `alloc_report.json`、节点科学产物)**只落 `output_dir`**;
 
-> **资源时序工件的唯一列合同（GAP_AUDIT §4.2）**：
+> **资源时序工件的唯一列合同**：
 > - **唯一列合同 = 生产实现** `lib/infrastructure/cli/resource_recorder.h:289-293`：**20 列**
 >   `elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress,threads,active_compute_threads,per_thread_cpu_max_pct,per_thread_cpu_sum_pct,io_wait_pct`
 >   （**run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖）；`lib/infrastructure/cli/resource_events.h:6` 明文
@@ -131,9 +131,8 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
    负例矩阵的 `neg: missing output_dir` + `no CWD residue` 两条。
 ### 7.1 导出裁剪范围参数 `crop`（GUI 框选导出接口，EXPORT-CROP-01）
 
-> 权威：负责人裁决 2026-09-23 逐字：「默认导出的话是要求边框不得裁剪任何有效像素，然后可以
-> 导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪范围。这样我以后 gui 的 HiPS
-> 浏览器里面我可以直接导出框选。需要保留接口。」
+> 权威口径：默认导出要求边框不得裁剪任何有效像素（允许含黑边，到平面域后手动剪裁）；
+> 同时支持手动输入裁剪范围；GUI HiPS 浏览器的框选直接导出依赖此接口，接口须保留。
 > 上游：本文件 §1（命令树）/ §7（配置与 `output_dir`）+ `ASTROCS_DESIGN.md` §6/§7.2。
 > 设计正本：`docs/design/PHASE3_DETAILED_DESIGN.md` §8；字段合同：
 > `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；

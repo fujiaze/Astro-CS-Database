@@ -122,7 +122,7 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
   | `Baader R`（配置声明，正确） | 73 | 572–716 nm | 643.4 nm |
   | `Antlia V Pro Series B`（误取） | 53 | 420–524 nm | 470.3 nm |
 
-  两者合成星等差 `Δm`（G∈[6,16]、解码谱处处为正，n=8406）：**中位 −0.978 mag、跨星散度（1.4826·MAD）0.449 mag**。这个散度**不被任何单标量零点吸收**，直接进入 `sigma_residual`。
+  两者合成星等差 `Δm`（G∈[6,16]、解码谱处处为正，n=8406）：**中位 −0.978 mag、跨星散度（1.482602218505602·MAD）0.449 mag**。这个散度**不被任何单标量零点吸收**，直接进入 `sigma_residual`。
 - **判据参照**：本仓 49 帧 M42 真实数据的逐帧 `2.5·sigma_residual_dex` 中位由（误取通带）**0.42720 mag** 降到（正确通带）**0.04505 mag**，比值 **9.5×**；而本表独立算出的通带失配散度 **0.449 mag** 与之同量级 ⇒ 两者互为独立佐证（`实验/photometric-magnitude/RESOLUTION_m42_curve_resolve.md` §3；本轮 `d1_zp_sigma_rederive.json`）。
 - **量级的适用域（两个量级各自具名）**：文献中的「通带失配」指**同名通带的曲线差异/微小偏移**，其定量量级为 **0.05–0.1 mag**（Bessell 1990：`"nonlinear deviations of up to 0.1 mag"`、`"systematic differences up to 0.05 mag"`）、**2–5%**（Stubbs & Tonry 2006 引 Saha et al. 2005：`"systematic discrepancies at the 2-5% level. They attribute these discrepancies to passband differences"`）、**~5 mmag**（Burke et al. 2017：`"less than 5 mmag"`，其通带形状精度 `"better than 0.1%"`）、**7 mmag**（Souverin et al. 2024, StarDICE III：中心波长 0.2 nm / 宽带通量 7 mmag）。本节的 **0.449 mag** 来自**取到另一支滤镜**（λ_eff 差 173 nm），**远在该文献区间之外**；因此该数字的用途是「证明通带身份错误不可接受」，**引用域 = 通带身份错误的证据**。
 

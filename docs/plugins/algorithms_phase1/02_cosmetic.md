@@ -12,6 +12,7 @@
 - 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：cosmetic/validity）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（有效性域）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（修正对协方差的影响）
+- `docs/science/algorithms/COSMETIC_ALGORITHMS.md`（ALG-COS 冻结正本：检测统计/插值修复口径，缺陷登记 DISP-COS-003）
 
 ## 3. 输入/输出数据合同
 

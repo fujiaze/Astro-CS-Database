@@ -806,5 +806,5 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
 - 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照，**次生参考实现对拍**）。
-- **真实数据读数（M42 沿线，口径与分母显式）**：显著点（卫星帧留一稳健 z>5）漏检 **3.92%（220/5611）**、真·单异常口径检出率 **99.34%（4526/4556）**；其中 `n ≥ 16`（**M3 前**为 linear_fit 档，M3 后改投 winsorized）显著点漏检 **9.67%（160/1655）**、`n = 6..15`（winsorized 档）**1.52%（60/3956）**。*「5785 点全作分母 = 4.96%」的旧读法已作废*（分母混入 174 个无 >5σ 异常的点）。权威口径见 `docs/science/REJECTION.md` §17；复现 = `run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py` + `m3_m5_metrics.py`（生产 kernel 复现，与产品掩码 5744/5744 一致）。
+- **真实数据读数（M42 沿线，口径与分母显式）**：显著点（卫星帧留一稳健 z>5）漏检 **3.92%（220/5611）**、真·单异常口径检出率 **99.34%（4526/4556）**；其中 `n ≥ 16`（**M3 前**为 linear_fit 档，M3 后改投 winsorized）显著点漏检 **9.67%（160/1655）**、`n = 6..15`（winsorized 档）**1.52%（60/3956）**。*「5785 点全作分母 = 4.96%」的旧读法查无实据*（分母混入 174 个无 >5σ 异常的点）。权威口径见 `docs/science/REJECTION.md` §17；复现 = `run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py` + `m3_m5_metrics.py`（生产 kernel 复现，与产品掩码 5744/5744 一致）。
 

@@ -110,7 +110,6 @@ ACR:                        DORMANT（保留源码隔离测试；生产构建排
 ```
 
 ---
-authoring_task: GOV-004
 authoring_owner: SA-GOV-01
 base_main_sha: caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
 convergence_task: DOC-CONV-001

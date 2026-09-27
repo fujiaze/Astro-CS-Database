@@ -80,7 +80,7 @@
   既不是 WBPP 2.4.0+ 的 ESD，也不是 WBPP ≤2.3.x 的 linear_fit
   （1.4.6 `:190-203`：`n<8` percentile / `≤10` averaged / `<20` winsorized / `<25` LinearFit / 否则 ESD）。
   **这条偏离的依据是实测，不是偏好**（三者同批数据、同一生产 kernel，见
-  `run/REJECT-DOCFIX-01/REPORT.md` §2/§4）：① ESD 在 `n = 16/17` 的**逐像素**路由下空假设错误率
+  复现域 `run/REJECT-DOCFIX-01/`（run/ 为不入库临时域；取证随包=独立审计 REJECT-DOCFIX 件，再生=按该报告 §2/§4 命令重跑）REPORT §2/§4）：① ESD 在 `n = 16/17` 的**逐像素**路由下空假设错误率
   被 `k=10` 级联抬到 **11.36%**（每步 `α=0.05` 本身校准精确（实测 4.95%），λ 与 NIST 公布值一致
   （λ₁(54)=3.1588）、NIST 54 点算例复现 3 outliers；**但 NIST 明说 n≥25 才准确**，仓内
   `W_ESD_LT25` 同义。**实现本身无缺陷**：λ₁(54)=3.1588 与 NIST 公布值一致、NIST 54 点算例复现 3 outliers、
@@ -371,7 +371,7 @@ large_scale 结构生长:
 > 本节只登记**实测算得的读数与分母口径**，不改本节上游任何公式、阈值、路由与冻结锚点。
 
 - **两种 z 的区分（读数前必读）**：
-  - `z_trail` = 卫星帧的**留一**稳健 z：排除该帧后，用其余候选帧的 `median` 与 `1.4826·MAD` 计算该帧的偏离；
+  - `z_trail` = 卫星帧的**留一**稳健 z：排除该帧后，用其余候选帧的 `median` 与 `1.482602218505602·MAD` 计算该帧的偏离；
   - **显著点** = `z_trail > 5` 的沿线取样点（即"卫星线确实在该像素留下可判异常"的点）。
 - **沿线取样点读数**（M42 生产产品 `run/M42-E2E-02/out/full_p2_v2`；4 条真实卫星线、每 2 帧取样共 **5785** 点。
   逐点判定由**生产 kernel**（`build/lib/algorithms/coverage/rejection_cli` → `p2_reject_plan_resolve` +
@@ -392,6 +392,6 @@ large_scale 结构生长:
 - **漏排成因**：漏排点的主导形态**不是**「同一条卫星线在同一像素产生 2 个同侧离群」——
   实测 5785 点中 **87.6%（5067 点）栈内只有 1 帧 `z>+5`**，没有任何一例是同一颗卫星在同一像素两次成像。
   主因是「**1 个高异常 + 1 个低异常**」两端同时拉动秩轴拟合（79/220），低异常主要来自单帧的线性暗伪影；
-- **复现**：`run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py`（生产 kernel 三臂）+ `m3_m5_metrics.py`（读数）；
-  证据 `run/REJECT-DOCFIX-01/evidence/m3_m5_eval.json`、`m3_m5_metrics.json`。
+- **复现**：三臂评估脚本 `m3_m5_eval.py`（生产 kernel 三臂）+ `m3_m5_metrics.py`（读数）——脚本与证据在临时域 `run/REJECT-DOCFIX-01/{scripts,evidence}/`（不入库；持久化取证=独立审计随包件，再生=按报告命令重跑）；
+  证据 `m3_m5_eval.json`、`m3_m5_metrics.json`。
 
