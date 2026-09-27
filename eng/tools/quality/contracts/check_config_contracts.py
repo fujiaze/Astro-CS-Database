@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""check_config_contracts.py — T403 config contracts checker（§9.73 A44 后判据反转）
+"""check_config_contracts.py — T403 config contracts checker（判据反转）
 
 权威依据
   - docs/ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
   - docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
   - docs/science/PSF_SIGNAL_WEIGHT.md §4:72「**没有可选择的口径**：不存在口径选择键、
     口径枚举、口径配置项或口径产物」；
-  - 工程控制 GAP_AUDIT §9.73 裁决 A44（负责人 2026-09-20）；
   - ENGINEERING_SPEC.md §8（每项检查有正例与负例、能红能绿；fail-closed；锚存活）。
 
 判据（**正向约束**，全部 fail-closed）
@@ -100,7 +99,7 @@ def check_repo(repo):
         findings.append({
             "id": "CFG-WEIGHTMODE-FIELD-REVIVED", "severity": "P0",
             "file": HEADER_REL, "observed": "bare weight_mode x%d in code" % len(hits),
-            "expected": "0 (no legacy integer weight mode field; §9.73 A44)",
+            "expected": "0 (no legacy integer weight mode field)",
         })
 
     # ── P2 token 面：legacy 取值 token 与 legacy 报错串必须为 0 ────────────
@@ -110,14 +109,14 @@ def check_repo(repo):
                 "id": "CFG-WEIGHTMODE-TOKEN-REVIVED", "severity": "P0",
                 "file": PARSER_REL, "symbol": tok,
                 "observed": "legacy weight token literal present in code",
-                "expected": "absent (no selectable weight mode; §9.73 A44)",
+                "expected": "absent (no selectable weight mode)",
             })
     if LEGACY_ERROR_STRING in parser:
         findings.append({
             "id": "CFG-WEIGHTMODE-ERROR-REVIVED", "severity": "P0",
             "file": PARSER_REL, "symbol": LEGACY_ERROR_STRING,
             "observed": "legacy weight_mode error string present in code",
-            "expected": "absent (key deleted; §9.73 A44)",
+            "expected": "absent (key deleted)",
         })
 
     # ── P3 拒绝面存活（非退化）────────────────────────────────────────────
@@ -163,7 +162,7 @@ def check_repo(repo):
             findings.append({
                 "id": "CFG-EXAMPLE-DEAD-KEY", "severity": "P0", "file": rel,
                 "observed": "integration.weight_mode present in example config",
-                "expected": "absent (dead key; §9.73 A44)",
+                "expected": "absent (dead key)",
             })
     return findings
 
@@ -185,7 +184,7 @@ _GOOD_HEADER = ("struct P2Stage2Config {\n"
 _GOOD_PARSER = (
     'bool p2_stage2_parse_config(const nlohmann::json& j) {\n'
     '    const auto& in = j["integration"];\n'
-    '    // §9.73 A44：该键出现即 fail-closed\n'
+    '    // 该键出现即 fail-closed\n'
     '    if (in.contains("weight_mode")) { return false; }\n'
     '    cfg->acr_route = in.value("acr_route", std::string("auto"));\n'
     '    if (cfg->acr_route != "auto") { *err = "acr_route 只支持 auto/cpu"; }\n'

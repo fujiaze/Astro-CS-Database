@@ -17,7 +17,7 @@
      6. 最高设计与根文档（ENGINEERING_SPEC §7 根固定条目）中每个 docs/... 指针目标存在；
      7. 每份下级文档（docs/**/*.md，活动分类 ACTIVE_*）都在索引登记；
      8. 每份下级文档抬头有「上游」条款区（指向 docs/ASTROCS_DESIGN.md 条款），覆盖率 100%；
-     9. 文档与代码注释中引用的 docs/ 路径存在（与 FIX-404 代码路径门共用扫描数据；
+     9. 文档与代码注释中引用的 docs/ 路径存在（与代码路径缺口门共用扫描数据；
         跨域未修项在 eng/tools/doccheck/dangling_ledger.json 显式登记，只减不增）；
   C. 归档边界与旧权威回归
     10. docs/archive/** 下每个 md 头 400 字符含 ARCHIVED 标记；工程控制归档目录约束；
@@ -91,7 +91,7 @@ ROOT_DOCS = (
     "DEPENDENCIES.md",
 )
 
-# 代码注释面扫描目录（与 FIX-404 代码路径门共用扫描数据；过程/证据目录不入扫描面）
+# 代码注释面扫描目录（与代码路径缺口门共用扫描数据；过程/证据目录不入扫描面）
 CODE_SCAN_DIRS = ("lib/", "eng/ci/", "eng/tools/", "eng/tests/", "eng/contracts/", "eng/packaging/config/",
                   "eng/packaging/", "eng/cmake/")
 # 2026-09-21 ROOT-CONSOLIDATION：reverse_verify/ 根条目解散，其内容整体迁入 实验/，
@@ -294,7 +294,7 @@ def scan_dangling(root: str, rel: str, files: set, dirs: set) -> list:
 
 
 def load_ledger(root: str) -> tuple:
-    """跨域未修悬空引用台账（FIX-404 等域）。读不到 ⇒ (None, 原因)，调用方判红。"""
+    """跨域未修悬空引用台账（收口域）。读不到 ⇒ (None, 原因)，调用方判红。"""
     full = os.path.join(root, LEDGER_PATH)
     if not os.path.isfile(full):
         return None, LEDGER_PATH + " 不存在"

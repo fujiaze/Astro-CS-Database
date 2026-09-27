@@ -7,7 +7,7 @@
   - 变更/新增生产源（PR/本轮）：VERIFIED (R1-v19r2)
   - 测试/工具/文档/aux：VERIFIED（机器门禁 + 套件运行）
   - build/vendor/data/control：不进入审计表
-并生成 reports/v19r2/batch_summary.csv 与 reports/v19r2/findings.csv。
+legacy: 生成 batch_summary.csv 与 findings.csv（历史输出根已退役）。
 """
 
 from __future__ import annotations
@@ -77,12 +77,12 @@ def batch_of(path: str) -> str:
 
 RETIRED_NOTICE = (
     "UPDATE_AUDIT_STATUS_RETIRED: 本工具（V19R2 S3 审计台账更新（file_audit_inventory.csv → batch_summary/findings））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
-    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
-    "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；"
+    "结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED。\n"
     "  退役原因: ① 输出根 reports/v19r2/ 在本世代不存在（无生产者/无消费者）；"
     "② review_status 与批次行 「PASS」 按文件类别直接赋值 VERIFIED/PASS，未读任何证据，无法从证据源复算 ⇒ 再跑一次就产出假绿。\n"
     "  活动替代: 审计状态一律现场算（eng/tools/quality/check_module_map.py 的口径：状态不从登记表反推）。\n"
-    "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/quality/update_audit_status.py\n"
+    "  复原命令: git 历史\n"
     "  退役后行为: main() 打印本说明并 exit 2；原实现保留在 _legacy_main()（按复原命令取回）。"
 )
 

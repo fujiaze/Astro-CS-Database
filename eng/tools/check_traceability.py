@@ -10,20 +10,20 @@
  R7 status ∈ {ACTIVE, RETIRED}; RETIRED 行豁免 R3/R4 但仍计入唯一性。
 用法: python3 eng/tools/check_traceability.py <csv...>   exit 0 = PASS。
 
-退役 (RETIRED, 2026-09-16, 负责人裁决) —— 本脚本对应的 CI 检查项 TRACEABILITY-CODE 已退役：
+退役 (RETIRED) —— 本脚本对应的 CI 检查项 TRACEABILITY-CODE 已退役：
   1. 新 CI 规范 docs/ci/01_CHECKS.md 不含任何追溯要求（TRACEABILITY / 追溯 零命中）；
   2. docs/ASTROCS_DESIGN.md 与 ENGINEERING_SPEC.md 同样零命中「追溯」；
-  3. 本检查的唯一默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 位于**构建产物目录**，
-     从来不是权威落位；该表已随 artifacts/ 按负责人裁决删除（commit b1290525「不归档、不保留」）；
+  3. 本检查的唯一默认输入（旧追溯表 CSV）位于构建产物目录，
+     从来不是权威落位；该表已随构建产物目录整体删除；
   4. 表内容锚在 docs/VERSIONING.md 的版本串匹配上，而新设计 §12 明令版本信息下线 ⇒ 口径被新世代废止；
-  5. 内容未丢：git show b1290525^:artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 可取回。
+  5. 内容可通过 git 历史取回。
   保留可复跑性：传入显式 CSV 仍按 R1-R7 全量校验；无参调用不再回退被删快照 ——
   打印 RETIRED 说明并 exit 2（fail-closed，不伪装绿）。登记见 docs/ci/01_CHECKS.md §2 退役记录。
 """
 import csv, os, re, sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# 历史默认表（已随 artifacts/ 删除；退役后本脚本不再持有默认输入路径常量，避免悬空引用）。
+# 历史默认表（已删除；退役后本脚本不再持有默认输入路径常量，避免悬空引用）。
 HEADER = ["claim_id", "science_doc", "science_anchor", "algorithm_doc", "algorithm_anchor",
           "architecture_doc", "api_symbol", "source_symbol", "test_id", "oracle_id",
           "unit", "precision_contract", "status"]
@@ -117,8 +117,8 @@ def check_table(path, errors):
 
 def main():
     if len(sys.argv) <= 1:
-        print("TRACEABILITY_RETIRED: 本检查项 TRACEABILITY-CODE 已于 2026-09-16 按负责人裁决退役；"
-              "默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 已随 artifacts/ 删除（b1290525）。"
+        print("TRACEABILITY_RETIRED: 本检查项 TRACEABILITY-CODE 已退役；"
+              "默认输入（旧追溯表）已随构建产物目录删除。"
               "可复跑用法: python3 eng/tools/check_traceability.py <claims.csv>（登记见 docs/ci/01_CHECKS.md）。")
         return 2
     errors = []

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""check_budget_single_source.py —— 内存/资源预算「源唯一 + 有判别力」门（一页纸 S2-E）。
+"""check_budget_single_source.py —— 内存/资源预算「源唯一 + 有判别力」门。
 
 要修的缺陷（审查节点原话）
   · 一处「内存安全」结论是**比自身影子文件**得出的（构造恒真，没有判别力）；

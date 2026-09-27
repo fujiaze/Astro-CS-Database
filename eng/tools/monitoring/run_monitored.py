@@ -932,7 +932,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     # CI-001 收紧（控制包 02_GATES_AND_EXECUTION.md §执行"监控必须调用
     # evaluate"）: CI 注册检查的监控必须判定且 fail-closed。判定结果写入
     # frozen_gate, fail → 10。
-    # 订正（GATE-FIX-RES / R-4 D-12）: 旧实现把 host_probe.effective_cpu_cores
+    # 订正（GATE-FIX-RES）: 旧实现把 host_probe.effective_cpu_cores
     # （机器有效核）当已分配容量 ⇒ 任何 worker 数 < 机器核数的并行任务结构性判红
     # （实测 2 线程满核 14s → U=6.3% → rc=10）。机器有效核不是已分配容量；
     # 未声明已分配容量时利用率判据不成立（recorded），分母无关判据照常判定。
@@ -986,7 +986,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         effective_int = effective if isinstance(effective, int) else None
         # selected_workers 缺省 = 哨兵 0（**未声明**），不得用机器有效核回填：
         # run_monitored 监控的是外部命令，无从得知其线程预算；以机器核充当已分配
-        # 容量正是本任务要修的结构性误报（R-4 D-12 / E7b）。
+        # 容量正是本检查要修的结构性误报。
         selected = (args.gate_selected_workers
                     if args.gate_selected_workers is not None else 0)
         allocated = resolve_allocated_capacity(

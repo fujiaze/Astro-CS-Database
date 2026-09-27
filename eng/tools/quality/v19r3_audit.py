@@ -9,7 +9,7 @@ FRESH_FULL_REVIEW.md 语义：
 - 等式：verified + deleted + archived + test_only_verified == inventory_total；
 - unreviewed = 0。
 
-输出（reports/v19r3/）：
+输出（历史输出根，已退役）：
   source_manifest.csv / file_audit_inventory.csv / final_inventory_summary.md
   evidence/quality/final_source_manifest.csv / comment_check.json
 
@@ -18,7 +18,7 @@ F01-F12 机器检查（每文件如实记录）：
   F04 注释卫生        F05 ownership/生命周期 F06 线程安全
   F07 错误路径         F08 数值安全          F09 性能/复杂度
   F10 测试引用存在     F11 文档一致性        F12 语义人工复核标记
-生产/变更文件由本轮 agent 逐批语义复核（见 reports/v19r3/fresh_file_audit_summary.md）。
+生产/变更文件由本轮 agent 逐批语义复核（见 fresh_file_audit_summary.md）。
 """
 
 from __future__ import annotations
@@ -184,12 +184,12 @@ def f_checks(path: str, rel: str, category: str) -> dict:
 
 RETIRED_NOTICE = (
     "V19R3_AUDIT_RETIRED: 本工具（V19R3 S5/S6/S10 最终 inventory + fresh 文件审计 + comment hygiene）已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
-    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
-    "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；"
+    "结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED。\n"
     "  退役原因: ① 输出根 reports/v19r3/、evidence/quality/ 在本世代不存在（无生产者/无消费者）；"
     "② F05..F12 的 ownership_ok/thread_ok/error_ok/numeric_ok/performance_ok/tests_ok/docs_ok 七列恒为 「PASS」，无法从证据源复算 ⇒ 再跑一次就产出假绿。\n"
     "  活动替代: 现状审计面由 eng/tools/quality/known_failures_baseline.py（--mode verify/check）与 eng/ci/ 各门承担。\n"
-    "  复原命令: git show 822b9c5391a14cc36979a7c550984f6ce363c713:eng/tools/quality/v19r3_audit.py\n"
+    "  复原命令: git 历史\n"
     "  退役后行为: main() 打印本说明并 exit 2；原实现保留在 _legacy_main()（按复原命令取回）。"
 )
 

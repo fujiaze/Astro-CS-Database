@@ -10,7 +10,7 @@
     文件数、总行数、函数定义近似计数（正则近似，非正式解析器）；
   * 输出 JSON 基线报告到 --output（登记于 eng/ci/checks.json outputs）；
   * 阈值固定为 null（未冻结），报告带 "placeholder": true 与所有权标注；
-  * **阈值不判红 ≠ 输入面不判红**（GATE-SOLID-01 / 独立审查节点一页纸 S2-A）：
+  * **阈值不判红 ≠ 输入面不判红**（GATE-SOLID-01）：
     --paths 里**任一测量根不存在**即 exit 1 并逐条打印缺失路径。旧实现在
     "全部不存在"时才判红（GAP-027），部分缺失则静默扫剩下的（注册表登记的
     `lib,cli,include` 里 cli/include 已迁走 ⇒ 两个根恒空、门恒真通过）；
@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     missing = [t["path"] for t in per_path if not t.get("exists")]
     if missing:
-        # GATE-SOLID-01 / 一页纸 S2-A：**声明的输入路径不存在即红**。
+        # GATE-SOLID-01：**声明的输入路径不存在即红**。
         # 旧实现只在"全部不存在"（GAP-027）时判红 —— 部分缺失时静默扫剩下的，
         # 恒空的那几个根不产生任何判定（"空扫描恒真通过"）。JSON 照常落盘（留证），
         # 但退出码必须非零。
@@ -147,7 +147,7 @@ def missing_targets(per_path: list) -> list:
 
 
 def selftest() -> int:
-    """负例面（GATE-SOLID-01 / S2-A）：部分缺失、全缺失、空 --paths 均须判红。
+    """负例面（GATE-SOLID-01）：部分缺失、全缺失、空 --paths 均须判红。
 
     在临时目录上构造真实 scan_path 结果（不扫真实仓库），正例必须不被误伤。
     """

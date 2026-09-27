@@ -2,22 +2,20 @@
 # -*- coding: utf-8 -*-
 """assemble_audit.py — 按当前现状汇总最终审核包(白名单)并跑校验, 如实报告阻塞。
 产物:
-  artifacts/evidence/prerelease-v5/audit_src/   包_final 的 SOURCE(白名单文件就位)
-  artifacts/evidence/prerelease-v5/AUDIT_REVIEW/  package_final 输出(审核包)
+  audit_src/    包_final 的 SOURCE(白名单文件就位)
+  AUDIT_REVIEW/ package_final 输出(审核包)
 用法: python3 eng/tools/assemble_audit.py
 
-退役 (RETIRED, 2026-09-16, 负责人裁决) —— 本工具属旧世代(V5 控制包)审核包装配线, 已退役:
-  1. 权威链 (docs/ASTROCS_DESIGN.md §0): 旧世代控制包产物不构成判据; 负责人裁决「历史版本控制包全部作废」;
-  2. 唯一输入源 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/
-     已不存在 (tracked 工作区无该目录); artifacts/evidence/prerelease-v5/tables/ 随 artifacts/ 整体删除
-     (commit b1290525「不归档、不保留」);
-  3. 实测 2026-09-16: 运行即未捕获 FileNotFoundError, 并残留空目录 artifacts/evidence/prerelease-v5/audit_src/
+退役 (RETIRED) —— 本工具属旧世代(V5 控制包)审核包装配线, 已退役:
+  1. 权威链 (docs/ASTROCS_DESIGN.md §0): 旧世代控制包产物不构成判据（历史版本控制包全部作废）;
+  2. 唯一输入源（旧控制包目录）已不存在 (tracked 工作区无该目录); 旧证据树已整体删除;
+  3. 实测: 运行即未捕获 FileNotFoundError, 并残留空目录 audit_src/
      —— 属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉」(既不能红, 也无显式退役语义);
   4. 活动替代: 无同名替代。发布候选打包门为 eng/ci/checks.json 的 CHK-PACKAGE
-     (打包/白名单/哈希/版本/provenance); 证据留档走 reports/**, 不再回写构建产物目录。
-  复原命令 (内容未丢): git show 01754fab8618:eng/tools/assemble_audit.py
+     (打包/白名单/哈希/版本/provenance); 证据留档按 §7 落位, 不再回写构建产物目录。
+  复原命令 (内容未丢): git 历史
   退役后行为: 无参调用打印 ASSEMBLE_AUDIT_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2 与 artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md。
+  登记见 docs/ci/01_CHECKS.md §2.2。
 """
 from __future__ import annotations
 
@@ -75,11 +73,11 @@ def write_rows(path: pathlib.Path, header: list[str], rows: list[list[str]]) -> 
 
 
 RETIRED_NOTICE = (
-    "ASSEMBLE_AUDIT_RETIRED: 本工具（旧世代 V5 审核包装配线）已于 2026-09-16 按负责人裁决退役。\n"
-    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
-    "（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；\n"
+    "ASSEMBLE_AUDIT_RETIRED: 本工具（旧世代 V5 审核包装配线）已退役。\n"
+    "  依据: docs/ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）"
+    "（历史版本控制包全部作废；不归档不保留）；\n"
     "        ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
-    "  输入已不存在: 工程控制/RELEASE_V5/AstroCS_MAIN_RELEASE_CONTROL_V5_SINGLE_CLI_AMD64_20260828/ "
+    "  输入已不存在: 旧控制包目录 "
     "与 artifacts/evidence/prerelease-v5/tables/。\n"
     "  复原命令: git show 01754fab8618:eng/tools/assemble_audit.py\n"
     "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"

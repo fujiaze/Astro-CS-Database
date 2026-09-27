@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """排查台账数据库 CLI（数据不入库：run/<排查>/ledger-raw.json；本工具入库）
 
-流水线（负责人定案）：MIMO 挖疑 → MIMO 复核真伪 → 确证入台账 → fixer 修理
+流水线：MIMO 挖疑 → MIMO 复核真伪 → 确证入台账 → fixer 修理
 → reviewer 确认 → close 关闭条目 → 前台推送。
 
 fix_state 状态机：OPEN → IN_FIX → FIXED_REVIEWED → CLOSED。

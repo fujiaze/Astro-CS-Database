@@ -3,9 +3,9 @@
 """check_source_inventory.py — V19R2 S0 inventory gate.
 
 Generates, from `git ls-files`:
-  reports/v19r2/source_manifest.csv        (path,size_bytes,sha256,type,module,shipping)
-  reports/v19r2/file_audit_inventory.csv   (MASTER_CONTROL_SPEC S8 field set, seeded)
-  reports/v19r2/evidence/quality/shipping_units.csv (production compile units)
+  source_manifest.csv        (path,size_bytes,sha256,type,module,shipping)
+  file_audit_inventory.csv   (MASTER_CONTROL_SPEC S8 field set, seeded)
+  evidence/quality/shipping_units.csv (production compile units)
 
 Exclusions (control package): build/vendor/data/archive.  Third-party vendored
 code (lib/infrastructure/aio/third_party) is recorded but excluded from first-party.

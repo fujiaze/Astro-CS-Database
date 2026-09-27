@@ -4,7 +4,7 @@
 
 退役判定依据
   1) 判据对象全仓已不存在：COMMITS.csv 在活动树零命中（仅 run/CLEAN-402/backup/
-     reports/REAUDIT_V3/** 的历史备份里留有旧副本，属 run/ 临时面）。
+     历史备份里留有旧副本，属 run/ 临时面）。
   2) 判据面已被在册门承接：提交纪律由 AGENTS.md §8 与 eng/ci 的在册检查项
      （CHK-KNOWN-FAILURES-BASELINE / CHK-IMPACT-MAP 等）承担；本脚本在
      eng/ci/checks.json 与 docs/ci/01_CHECKS.md §2 中零引用。

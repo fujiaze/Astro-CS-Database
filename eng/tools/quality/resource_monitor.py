@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""eng/tools/quality/resource_monitor.py — 外挂资源监控（P26 T1；纯 stdlib，Linux /proc）。
+"""eng/tools/quality/resource_monitor.py — 外挂资源监控（纯 stdlib，Linux /proc）。
 
-设计要点（负责人裁决 1: 资源利用率记录不应由程序本身做, 而是外挂脚本监控）:
+设计要点（资源利用率记录不由程序本身做, 而是外挂脚本监控）:
   * 本脚本是独立外挂进程, 只读 /proc/**; 被监控程序**无需任何配合/埋点/环境变量**。
   * 采样默认 1 Hz(--interval 可配), 覆盖进程树: 总 CPU%(相对已分配容量)、每线程 CPU、
     RSS/PSS、内存增长率(滑动窗口)、读/写字节、I/O wait、墙钟。
@@ -50,7 +50,7 @@ PAGE_SIZE = int(os.sysconf("SC_PAGE_SIZE"))
 # 默认阈值(可被 CLI 覆盖)。注意: 这些是**外挂裁决建议**阈值, 不是程序内置门。
 # 数值不在本文件发明：唯一数值源 = eng/contracts/resource_gate_v1.json（G-RES-01）；
 # 判据语义权威 = docs/plugins/infrastructure/21_observability.md §8。
-# BLD-401: 路径随 2026-09-21 根目录整合订正（contracts/ → eng/contracts/）。
+# 路径已随根目录整合订正（contracts/ → eng/contracts/）。
 # __file__ = <repo>/eng/tools/quality/resource_monitor.py ⇒ parents[2] = <repo>/eng。
 _RESOURCE_GATE_CONTRACT_PATH = (
     Path(__file__).resolve().parents[2] / "contracts" / "resource_gate_v1.json")
@@ -77,7 +77,7 @@ DEFAULT_MIN_MEAN_CAPACITY_PERCENT = float(_GATE_COMPUTE["mean_utilization_min_pe
 DEFAULT_LOW_UTIL_PERCENT = float(_GATE_COMPUTE["queue_low_utilization_percent"])
 DEFAULT_MAX_LOW_UTIL_RUN_SECONDS = float(_GATE_COMPUTE["queue_low_window_seconds_min"])
 DEFAULT_MIN_CORE_SECONDS = float(RESOURCE_GATE_CONTRACT["workload_floor_core_seconds"])
-# GATE-FIX-RES 对齐（R-4 D-13 item 5）：单位统一为 **MiB/s**（1048576 B/s），
+# GATE-FIX-RES 对齐：单位统一为 **MiB/s**（1048576 B/s），
 # 判据方向统一为 **>=**（与 C++ kAllocGrowthUnboundedMbPerS / evaluate_mon002
 # 同口径）。旧注释写 MB/s 而实际算的是 MiB/s，且方向为严格大于 —— 两处口径差
 # 4.858%。
@@ -757,7 +757,7 @@ def judge(summary, thresholds):
                 "work_core_seconds": core_seconds,
                 "workload_floor_core_seconds": thresholds["min_core_seconds"],
                 "checks": checks,
-                "note": "低于工作量下限 → 不做利用率裁决(只记录); 见负责人 2.A"}
+                "note": "低于工作量下限 → 不做利用率裁决(只记录)"}
     fails = []
     warns = []
     if cpu["mean"] < thresholds["min_mean_capacity_percent"]:
@@ -864,7 +864,7 @@ def _load_records_from(out_dir):
 
 
 def build_parser():
-    ap = argparse.ArgumentParser(description="ACSD 外挂资源监控 + 裁决建议(P26 T1)")
+    ap = argparse.ArgumentParser(description="ACSD 外挂资源监控 + 裁决建议")
     ap.add_argument("--out", default="run/resource/mon", help="产物目录")
     ap.add_argument("--pid", type=int, default=None, help="挂到已在运行的进程(进程树根)")
     ap.add_argument("--interval", type=float, default=1.0, help="采样周期秒(默认 1Hz)")

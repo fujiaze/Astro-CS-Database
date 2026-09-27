@@ -69,7 +69,7 @@ IMPACT_FIELDS = {"science", "algorithm", "data_semantics", "public_api",
 CMD_FIELDS = {"command_id", "argv_redacted", "timeout_seconds", "exit_code",
               "started_utc", "duration_seconds", "log_path", "log_sha256"}
 
-# F-CI-002-03 (CI-002, owner 裁决锚 2026-09-11 "归档线证据不受现行 schema 复验"):
+# F-CI-002-03 (CI-002, 既定口径 "归档线证据不受现行 schema 复验"):
 # ARCHIVED_SUPERSEDED 历史线(ACTIVITY_STATE 登记: V6.1 REWORK = ARCHIVED_SUPERSEDED,
 # 仅作历史参照, 交付面由宪章对齐包接管)的 TASK_RESULT 属旧 schema 时代历史证据,
 # 禁止改写证据文件本身; 现行 schema 复验只约束活跃线。命中下列前缀的文件显式

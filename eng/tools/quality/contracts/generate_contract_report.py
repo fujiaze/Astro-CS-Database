@@ -40,7 +40,7 @@ def main():
             continue
         import subprocess
         try:
-            # W4-A3：30s 对 check_doc_symbols（187 份文档 × 全仓路径面）不够 ⇒
+            # 30s 对 check_doc_symbols（187 份文档 × 全仓路径面）不够 ⇒
             # 单工具超时被判 ERROR（"结论与退出码不一致"：工具其实能跑出 PASS）。
             # 预算改为可配（默认 600s）；并把"超时"与"异常"分开登记，别用一个
             # ERROR 把 TIMEOUT 盖掉。判据本身不放宽，只把量测预算还给工具。

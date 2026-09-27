@@ -14,7 +14,7 @@ STALE_PATTERNS = [
 # Require ID near complex invariants: check that invariant-adjacent comments have SCI/ALG ID
 REQUIRE_ID_NEAR = ["invariant", "不变量", "conservative", "false_negative"]
 
-# ── W4-A3：不变量-ID 判据的作用域 ─────────────────────────────────────────────
+# ── 不变量-ID 判据的作用域 ─────────────────────────────────────────────
 # 事由：原实现把「含 invariant/不变量/false_negative 等词 ⇒ 必须就近出现 SCI-/ALG-
 # ID」应用到 **lib/ 全域**。但 SCI-*/ALG-* 是科学/算法层 ID（定义域 docs/science、
 # docs/algorithms），只有 lib/algorithms/** 的实现有对应权威可引；基础设施模块
@@ -27,7 +27,7 @@ INVARIANT_SCOPE = "lib/algorithms"
 REQUIRE_ID_NEAR_LOWER = tuple(k.lower() for k in REQUIRE_ID_NEAR)
 
 
-# 权威引用面（W4-A3）：不变量注释必须给出**权威锚**。权威锚 = 科学/算法 ID，
+# 权威引用面（）：不变量注释必须给出**权威锚**。权威锚 = 科学/算法 ID，
 # 或指向权威文档路径（docs/science/**、docs/science/algorithms/**）。
 # 依据：追溯规范允许"ID 或文档锚"两种形态；实测 ipv_solver.h:66 引的是
 # `docs/science/algorithms/PLATESOLVE.md Invariants`，是合格的权威锚却被旧口径判红。

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""把 docs/architecture/BUILD_GRAPH.md 的机器块从**真实构建图**导出（一页纸 S1 第 25 条）。
+"""把 docs/architecture/BUILD_GRAPH.md 的机器块从**真实构建图**导出。
 
 存在理由
   该文档的「生产构建图」表原先手抄，三行的目标名与路径全部落空

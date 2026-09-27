@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """check_cmake_usebeforedef.py — CMake 门「use-before-define / 退化命令」检查器。
 
-事由（W4-A9 确定性翻转实验，2026-09-17）：lib/algorithms/noise_snr/tests/p1noise/
+事由（确定性翻转实验）：lib/algorithms/noise_snr/tests/p1noise/
 CMakeLists.txt 的 add_test(p1noise_abi_layout COMMAND ${P1NOISE_PYTHON3} ...)
 出现在 find_program(P1NOISE_PYTHON3 ...) 之前 ⇒ 全新 build 目录首次 configure 时
 该变量为空，CTestTestfile 里命令退化成裸 .py 路径（无可执行位）⇒ 门以 BAD_COMMAND

@@ -52,7 +52,7 @@ ALG_SRC_EXT = (".c", ".cc", ".cpp", ".cxx")
 #   其退出 = AIO-001 收敛完成后删除该目录。此处显式登记豁免域, 只减不增。
 #   lib/algorithms/fits_output/** = 判据订正(ENGINEERING_SPEC §3): 最高设计 docs/ASTROCS_DESIGN §7.1
 #   与 docs/plugins/algorithms_phase3/16_fits_output.md §1/§3 把「流式 FITS 输出(PRIMARY+扩展
-#   HDU+WCS+provenance)」明定为该算法的**职责本体**; 本规则原文(AIO-OWN-002)写于 W4-A9 迁移前,
+#   HDU+WCS+provenance)」明定为该算法的**职责本体**; 本规则原文(AIO-OWN-002)曾
 #   把该模块的直写面误判为「算法侧复制 reader/writer」。订正为: 只有该模块自身为规则豁免域;
 #   其余 lib/algorithms/** 仍全面受管(负例注入自检保持必红)。残留工作(fits_output 复用 aio
 #   原子提交设施)登记为 finding, 不由本检查项冒充。

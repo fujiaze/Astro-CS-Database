@@ -96,7 +96,7 @@ def classify(rel):
 
 
 # 必需输入根：缺失即 exit 2（fail-closed）。"扫不到" ≠ "清单本来就该是空的"，
-# 也不允许覆空在册清单还打印 OK（独立审查《一页纸》S1-2）。
+# 也不允许覆空在册清单还打印 OK（结论真实性缺口）。
 REQUIRED_ROOTS = ["lib", "docs", "eng/tools"]
 
 

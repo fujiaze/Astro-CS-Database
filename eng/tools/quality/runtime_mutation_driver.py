@@ -23,7 +23,7 @@ DEFAULT_REPO = pathlib.Path(__file__).resolve().parents[3]
 ORACLE_REL = "eng/tools/quality/runtime_oracle.py"
 
 # 需要复制进临时树的运行面文件（Oracle 的读取面）
-# **W4-A3 订正**：原 COPY_SET 缺 `lib/infrastructure/cli/command_tree.h` —— R2/R3
+# **订正**：原 COPY_SET 缺 `lib/infrastructure/cli/command_tree.h` —— R2/R3
 # 改绑到命令树唯一事实源后，临时树里缺该文件 ⇒ Oracle 报
 # `FILE-MISSING command_tree.h` ⇒ mutation_driver 的"干净树必须先 PASS"自检失败
 # （clean tree oracle not PASS）。COPY_SET 必须与 Oracle 的 ctx.read() 面逐项一致。
@@ -54,11 +54,11 @@ MUTATIONS = [
     ("so05-auto-hard-fail", "lib/infrastructure/cli/runtime_contract.h",
      "    v.status = \"record_only_pending_owner_signoff\";\n    v.hard_fail = false;",
      "    v.status = \"record_only_pending_owner_signoff\";\n    v.hard_fail = true;"),
-    # W4-A3 改绑：R3 现读 command_tree.h（parser.cpp 的字面量表已随 CLI-001 删除）。
+    # 改绑：R3 现读 command_tree.h（parser.cpp 的字面量表已随 CLI-001 删除）。
     ("aggregate-pipeline-entry", "lib/infrastructure/cli/command_tree.h",
      '        {"benchmark", true, {}},',
      '        {"benchmark", true, {}},\n        {"pipeline", true, {"--config"}},'),
-    # W4-A3 改绑：phase2 阶段的用户命令名 = mosaic（docs/ASTROCS_DESIGN §2:317）；
+    # 改绑：phase2 阶段的用户命令名 = mosaic（docs/ASTROCS_DESIGN §2:317）；
     # R2 现读 command_tree.h，故注入点随之改到 mosaic 的旗标表。
     #
     # RELEASE-02 改绑（2026-09-19，GATE-RED-FIX）：**语义不变**，仍注入
@@ -66,7 +66,7 @@ MUTATIONS = [
     # §8/21_observability §8.4 资源门 enforce 旗标落地（command_tree.h:85-87 mosaic
     # 行新增 --strict-resource-gate / --on-resource-gate）而失配：anchor matched
     # 0 times ⇒ mutation_driver 判「漏检」，V6-RUNTIME-CLOSURE/V6-NEGATIVE-MUTATION
-    # 双红。按注入锚维护惯例（同 W4-A3 两处改绑）把锚点同步到新形态：注入后
+    # 双红。按注入锚维护惯例（同 两处改绑）把锚点同步到新形态：注入后
     # mosaic 的 allowed 仍缺 --mode，Oracle 规则 R2-phase2-mode-flag
     # （runtime_oracle.py::rule_r2_cli_flags，"--mode" in flags）必须判红；
     # 可检出性由本驱动的 CLEAN_TREE(必绿) + 逐条注入(必红) 自证。

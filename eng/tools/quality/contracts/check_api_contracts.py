@@ -58,7 +58,7 @@ def main():
     # 覆盖口径: docs/contracts/API_CONTRACTS.csv 全部行 vs extract_cpp_api.py
     # 头文件实测(含 lib/include/lib 头文件), 覆盖率 = rows 中实际比对的行数比例。
     def _arity(sig_text: str):
-        # W4-A3：参数个数判据要能吃下"声明原文"形态 —— CSV 与头文件两侧都可能带
+        # 参数个数判据要能吃下"声明原文"形态 —— CSV 与头文件两侧都可能带
         # 结尾 ';' 与导出宏前缀（AIO_EXPORT/AIO_HIPS_EXPORT/...）。原实现要求整串
         # 以 ')' 收尾，导致 kind=C 构造声明等行退化成 API-SIG-UNPARSABLE(ast=None)，
         # 掩盖了真正的判据信息（"几个参数"是可比量）。这里只做形态剥离，不改判据。
@@ -109,7 +109,7 @@ def main():
         if sym in ast_syms:
             same_hdr = [r for r in ast_syms[sym] if r.get("header") == hdr]
             if same_hdr:
-                # W4-A3：同名多条时优先取**带参数表**的声明。抽取器现在也会登记
+                # 同名多条时优先取**带参数表**的声明。抽取器现在也会登记
                 # class/struct 名（签名为 "class X"，无参数面），若直接取首条会把
                 # kind=C 契约行判成 API-SIG-UNPARSABLE（ast arity=None）。
                 ast_sig = next((r.get("signature") for r in same_hdr

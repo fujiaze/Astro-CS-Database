@@ -11,7 +11,7 @@
     「所有引用 id 均存在于 eng/ci/checks.json 且为 fast profile 候选，由
     eng/ci/tests/test_impact_map.py 机器校验」。
 
-为什么另立本门（W4-A3 根因）
+为什么另立本门（根因）
   旧 eng/ci/tests/test_impact_map.py 只按**顶层 id** 索引注册表（`c["id"] for c in
   registry["checks"]`），而注册表的执行单元自 CI-001 ID 收敛后是**两层**结构：
   顶层聚合项（CHK-* 等 42 项）+ 其 steps[].id（138 项旧 ID 原样保留）。
@@ -62,7 +62,7 @@ DOC_REL = "docs/ci/01_CHECKS.md"
 RUNNER_REL = "eng/ci/run.py"
 
 # R4 探针面：(路径域, 锚存活路径, glob 探针)。
-# W4-A3 按 ARCH-001 / ROOT-008 迁移后的**真实布局**重锚：迁移前的 schemas/ evidence/
+# 按 ARCH-001 / ROOT-008 迁移后的**真实布局**重锚：迁移前的 schemas/ evidence/
 # modules/ runtime/ graph/ launch/ AstroCS.wiki/ 在现行根清单中不存在，不得再作判据锚。
 # 锚存活（ENGINEERING_SPEC §8）= ANCHORS 第 2 列必须真实存在，否则判红（不得静默跳过）。
 PROBE_DOMAINS = [
@@ -97,7 +97,7 @@ PROBE_DOMAINS = [
     # 「锚失效」假红（锚必须是版本库面里稳定存在的东西）。改锚到 tracked 的
     # artifacts/acceptance（L2/L3/L4 验收证据，git ls-files 命中 77 件）。
     ("artifacts/**", "artifacts/acceptance", "artifacts/ci/run.json"),
-    # 2026-09-21 根目录整合：reports/ 退役 → artifacts/evidence/**（AGENTS.md §7）；
+    # 根目录整合：reports/ 退役 → artifacts/evidence/**（AGENTS.md §7）；
     # 域继承者按新路径重锚，不保留已不存在的根条目。
     ("artifacts/evidence/**", "artifacts/evidence/README.md",
      "artifacts/evidence/README.md"),
@@ -114,7 +114,7 @@ def _utc_now() -> str:
 
 # ------------------------------------------------------------------ 注册表索引 ----
 def index_registry(registry: dict) -> dict:
-    """把两层注册表摊平成统一索引（W4-A3 根因：step id 与顶层 id 混用）。
+    """把两层注册表摊平成统一索引（根因：step id 与顶层 id 混用）。
 
     返回 {top, steps, fast, retired}：fast 为顶层 ∪ step 的 fast 候选集合，
     step 未显式声明 profiles 时继承父项（与 eng/ci/run_checks.py 的继承语义一致）。

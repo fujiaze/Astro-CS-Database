@@ -85,8 +85,7 @@ def main() -> int:
 
     # 4) SBOM (SPDX 2.3): 本包由单一 CONTAINER(ACSD CLI)承载, 无外部可交付二进制
     license_text = (
-        "ACSD CLI 发布包自带许可证。仓库内第三方许可见工程控制/RELEASE_V5/.../"
-        "PACKAGE_MANIFEST.md 与各 third_party 目录 LICENSE。"
+        "ACSD CLI 发布包自带许可证。仓库内第三方许可见各 third_party 目录 LICENSE 与打包清单。"
         "本 SBOM 对发布包交付对象(ACSD Linux amd64 单一 CLI)建档。"
     )
     with open(os.path.join(root, "LICENSES", "NOTICE.txt"), "w", encoding="utf-8") as f:

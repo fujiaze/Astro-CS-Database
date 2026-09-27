@@ -4,7 +4,7 @@
 #   1) 每步 wall/user/sys/maxrss（/usr/bin/time）        -> timings.csv
 #   2) 事件流 NODE_START/NODE_END（--events-jsonl）      -> logs/<tag>.events.jsonl （逐阶段 wall_ms）
 #   3) 仓库自带资源遥测（run 收尾自动出）                -> logs/<tag>.resource_*     （CPU/RSS/io_wait 时间序列）
-#   4) RELEASE-02 sysmon.py 系统利用率时间序列（整机 + runner 进程树） -> logs/sysmon.csv
+#   4) sysmon.py 系统利用率时间序列（整机 + runner 进程树） -> logs/sysmon.csv
 # stage_profile.py 把 2)+3) 按时间对齐 => Phase1 逐阶段性能表。
 # 只观测，不改科学参数；不写死线程数（AGENTS §5）。
 set -u
@@ -20,7 +20,7 @@ mkdir -p "$NORM" "$LOGS"
 TIMINGS=$L4/timings.csv
 echo 'step,rc,wall_s,user_s,sys_s,maxrss_kb' > "$TIMINGS"
 
-# ── RELEASE-02 性能探针: 系统监视器随程序同步启动, 结束(含异常退出)自动收尾 ──
+# ── 性能探针: 系统监视器随程序同步启动, 结束(含异常退出)自动收尾 ──
 # ASTROCS_SYSMON=0 可关闭; ASTROCS_SYSMON_INTERVAL 覆盖采样间隔 (默认 1s)。
 # 跟踪 $$ (本 runner) 的整个进程树 ⇒ 覆盖每一步 acsd 子进程; 不做线程数假设。
 SYSMON_PID=""

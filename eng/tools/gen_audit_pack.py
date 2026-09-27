@@ -17,7 +17,7 @@ from pathlib import Path
 
 RETIRED_NOTICE = (
     "GEN_AUDIT_PACK_RETIRED: 本工具（ACSD v1.1 审计包生成（git bundle + 文档/证据汇总 + AUDIT_MANIFEST））已退役；任意调用 exit 2（fail-closed，不伪装绿）。\n"
-    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；独立审查《一页纸》S1-2"
+    "  依据: ENGINEERING_SPEC.md §8（不允许「静默坏掉 / 僵尸入口」）；"
     "（结论不得写成源码字面量，结论字段必须从证据源读取，读不到写 NOT_VERIFIED）。\n"
     "  退役原因: ① 输出根 audit/AstroCS-v1.1-audit-pack/（且不在根清单允许目录内）；输入 engineering/**、dist/** 均已不存在；"
     "② verification.regression_tests=「352/352 PASS」、tasks_done=「31/31」、gates_passed=「G0-G8 (9/9)」、verdict=「PASS」 全为字面量，无法从证据源复算 ⇒ 再跑一次就产出假绿（且会把在册汇总覆空仍打印 OK）。\n"

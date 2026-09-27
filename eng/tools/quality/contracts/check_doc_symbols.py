@@ -13,7 +13,7 @@ _HEADER_CORPUS = {}
 def _header_corpus(repo: pathlib.Path):
     """lib/**、lib/include/** 的公开头文本（**一次**读入）。
 
-    W4-A3: 原实现对**每个** token 都重新 rglob 全树 + 逐个 read_text ⇒
+    原实现对**每个** token 都重新 rglob 全树 + 逐个 read_text ⇒
     判定面 O(tokens × headers)，实测把 CON-DOC-SYMBOLS 拖到 120s 超时
     （CI 侧 120s timeout 判 TIMEOUT，判据再对也拿不到结论）。现在只读一次。
     """
@@ -38,7 +38,7 @@ def _defined_in_public_header(repo: pathlib.Path, token: str) -> bool:
     return re.search(r"\b" + re.escape(token) + r"\b", _header_corpus(repo)) is not None
 
 
-# ── W4-A3：非 API 命名空间解析面 ────────────────────────────────────────────
+# ── 非 API 命名空间解析面 ────────────────────────────────────────────
 # 事由：原判据把文档反引号里的**所有**标识符形态 token 都拿去和
 # `docs/architecture/api_inventory.csv`（只登记**函数签名**）比对 ⇒ 文档状态词
 # (`ALG_PROPOSED`/`TARGET_NORMATIVE`/`NOT_IMPLEMENTED`/`PENDING_SO07`)、文档简写
@@ -156,7 +156,7 @@ def main():
         api_syms = set(r["symbol"] for r in inv)
     except: pass
     # Load known files
-    # W4-A3: 原实现对**整仓** rglob("*")（含 build/ run/ .git/ 问题扫描/），
+    # 原实现对**整仓** rglob("*")（含 build/ run/ .git/ 问题扫描/），
     # 187 份文档 × 全树遍历 ⇒ 单跑 4 分钟，CI 120s timeout 直接判 TIMEOUT。
     # 判定面只需要"文档可能引用的仓库文件"，排除重型产物目录后同判据更快。
     # 注意：`run/` 与 `reports/` **必须保留**在遍历面内 —— 文档常把运行产物写成
@@ -222,9 +222,9 @@ def main():
                         if "<" in token or ">" in token:
                             found = True
                     if not found:
-                        # W4-A3: 三种形态**明确不是**"文件必须存在"的判据对象：
+                        # 三种形态**明确不是**"文件必须存在"的判据对象：
                         #   ① 历史引证：token 自身带"已删除/已归档/deleted"标记
-                        #      （如 `工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/x.md`）
+                        #      （如历史控制包目录下的 tasks/x.md）
                         #      —— 文档已声明该文件不存在，拿"存在"判它是错口径；
                         #   ② 花括号展开/通配（`docs/design/PHASE{1,2,3}_.md`）；
                         #   ③ 含空格的命令行（`grep -c gate2 eng/ci/checks.json`）。
@@ -236,7 +236,7 @@ def main():
                             found = True
                     if not found:
                         # Allow if is a non-retention namespace doc.
-                        # W4-A3: `run/**` 加入非保留命名空间 —— run/ 是 ENGINEERING_SPEC
+                        # `run/**` 加入非保留命名空间 —— run/ 是 ENGINEERING_SPEC
                         # §7 / AGENTS.md 明定的「运行产物、不入库」空间（gitignore），
                         # 对 run/ 里的产物断言"文件存在"本身是错口径（与 archive/
                         # third_party 同类）。判据只对**在版本库保留面内**的路径生效。
@@ -274,7 +274,7 @@ def main():
                 # Heuristic: if token looks like path but contains multiple slashes without clear file, skip detailed check
                 pass
             # Check if token looks like symbol (contains _ and no spaces)
-            # W4-A3: 文档词干 / 术语词典 / 登记命名空间 命中即视为文档引用或科学量,
+            # 文档词干 / 术语词典 / 登记命名空间 命中即视为文档引用或科学量,
             # 不进 API-inventory 判据（api_inventory 只登记函数签名）。收窄判据面。
             seen_tokens.add(token)
             if (_stem_resolves(token, doc_stems) or token in glossary_toks
@@ -300,7 +300,7 @@ def main():
                             findings.append({"id":"DOC-BAD-SYMBOL","severity":"P1","file":str(doc.relative_to(repo)),"symbol":token,"observed":"symbol not in API inventory","expected":"exists"})
                             status="FAIL"
     # Check archive symbols should not be in active docs (exclude archive docs themselves)
-    # W4-A3: 登记项只减不增守卫 — 登记了却在扫描面从未出现的 token 判红
+    # 登记项只减不增守卫 — 登记了却在扫描面从未出现的 token 判红
     # (防止把登记表当只增不减的豁免表; 条目随文档改写失效即须同步清除)。
     stale = sorted(t for t in ns_tokens if t not in seen_tokens)
     if stale:
