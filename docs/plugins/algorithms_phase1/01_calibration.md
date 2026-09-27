@@ -12,6 +12,7 @@
 - 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：校准方差传播）
 - `docs/science/NOISE_MODEL.md`（噪声模型与方差传播公式）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §4（校准与方差传播）
+- `docs/science/CALIBRATION.md`（SCI-CAL-001 测光校准冻结正本：bias/dark/flat 顺序、`K=t_light/t_dark`、方差传播）
 
 ## 3. 输入/输出数据合同
 

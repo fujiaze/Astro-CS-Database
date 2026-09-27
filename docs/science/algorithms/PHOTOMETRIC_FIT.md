@@ -300,7 +300,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - MAD→σ 0.6744897501960817：标准正态分位恒等式；Rousseeuw & Croux 1993, JASA 88, 1273。
 - 最优提取/统计结构：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
 - 误差口径 FLUXERR/MAGERR：**SExtractor User Manual** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明「this error estimate provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」。**引用边界**：Bertin & Arnouts 1996, A&AS 117, 393（DOI 10.1051/aas:1996164）正文**不含** `FLUXERR/MAGERR` 定义，故定义式的出处 = SExtractor User Manual §2.24.2。**差异**：本层 sigma_residual 是逐星定标散度（dex，系综量），不是单源通量误差。
-- MAD 有限样本修正 `b_n`：Croux & Rousseeuw 1992, *Computational Statistics* **1**, 411（p.413 表：n=3→1.495、4→1.363、5→1.206、9→1.107；n>9→`n/(n−0.8)`；定义式 `MAD_n = b_n·1.4826·med_i|x_i−med_j x_j|`）。
+- MAD 有限样本修正 `b_n`：Croux & Rousseeuw 1992, *Computational Statistics* **1**, 411（p.413 表：n=3→1.495、4→1.363、5→1.206、9→1.107；n>9→`n/(n−0.8)`；定义式 `MAD_n = b_n·1.4826·med_i|x_i−med_j x_j|`（`1.4826` 为该文献的截断展示；权威全精度 `1.482602218505602`））。
 - 稳健估计的尺度路线（先验尺度 vs 同时迭代）：Huber & Ronchetti 2009, *Robust Statistics* 2nd ed., Wiley（ISBN 978-0-470-12990-6）§6.4 p.133「Simultaneous M-Estimates of Location and Scale」、§6.5 p.137「M-Estimates with Preliminary Estimates of Scale」、§7.7 p.172「In practice, we calculate the estimates β and σ by simultaneous iterations」。Tukey biweight 的效率/崩溃点表：statsmodels `statsmodels/robust/_tables.py` `tukeybiweight_eff`（`c=4.685065 → eff 0.95 / breakdown 0.119414`）。
 - Gaia XP/CALSPEC：Gaia Collaboration et al. 2023, A&A 674, A1；Bohlin, Hubeny & Rauch 2020, AJ 159, 246；Bessell & Murphy 2012, PASP 124, 140。
 - Akima 子样条：Akima 1970, J. ACM 17, 589（DOI 10.1145/321607.321609）。

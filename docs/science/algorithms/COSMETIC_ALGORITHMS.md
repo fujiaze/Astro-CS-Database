@@ -420,7 +420,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   **适用域（两层核验结论）**：这两篇解决的是**单帧宇宙线剔除**（拉普拉斯边缘检测 / 直方图分析），与坏点检测**不是同一问题**：数据源不同（单帧亮场 vs 母版 dark/bias）、统计量不同（边缘响应 / 直方图 vs 全局 median + k·MAD）、目标不同（瞬态事件 vs 固定坏点）。⇒ 二者**只作"同类图像缺陷处理"的领域背景**；本模块坏点检测的选型依据 = Project-defined（见下条）。
 - **坏点（hot/cold pixel）检测与修复**：本模块为 Project-defined 实现（§1–§5 即其完整规范），算法要素的通用依据见下条"稳健尺度"与"连通域"；**无**外部算法被引为该检测器的选型来源。
 - 稳健尺度（median/MAD 换算）：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
-  **`1.4826·MAD` 的归属**：Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）把 `1.4826·MAD` 当**既有对照基线**引用，其研究对象是 `S_n`/`Q_n` 及其有限样本偏差校正的粗糙近似 ⇒ **该文不是本模块 MAD 有限样本校正的来源**；本模块使用**渐近常数**、不做有限样本校正。若要做，来源为 Akinshin 2022（arXiv:2207.12005 / arXiv:2209.12268）或 Park, Kim & Wang 2020（DOI 10.1080/03610918.2019.1699114）。
+  **`1.4826·MAD`（文献 4 位截断展示；权威全精度 `1.482602218505602`）的归属**：Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）把 `1.4826·MAD` 当**既有对照基线**引用，其研究对象是 `S_n`/`Q_n` 及其有限样本偏差校正的粗糙近似 ⇒ **该文不是本模块 MAD 有限样本校正的来源**；本模块使用**渐近常数**、不做有限样本校正。若要做，来源为 Akinshin 2022（arXiv:2207.12005 / arXiv:2209.12268）或 Park, Kim & Wang 2020（DOI 10.1080/03610918.2019.1699114）。
 - 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
 - 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 

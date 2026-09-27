@@ -18,7 +18,7 @@
 | `VERIFIED` | 除 INSTALLED 外，已在正式平台（Windows x64）与真实数据上通过验收 | Fatduck/真实数据证据（**当前无此项**） |
 | `NOT_IMPLEMENTED` | 能力不在当前基线（符号/路径不存在） | 全域 grep 零命中 |
 | `NOT_VERIFIED` | 能力可能存在但当前提交未复跑执行验收 | 无当前提交证据 |
-| `DEFERRED` | 任务图/负责人裁决明确不在本轮范围 | 控制包任务图条目 |
+| `DEFERRED` | 任务图界定明确不在本轮范围 | 控制包任务图条目 |
 | `DORMANT` | 保留源码但**不**进生产构建/加载/发布 | CMake/preset 排除 + 隔离测试 |
 | `FAIL` | 已执行但不符合要求 | 执行证据 + 不符合项 |
 
@@ -81,10 +81,10 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
 |---|---|---|
 | 最高设计 | `CONTRACT_READY` | `ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
-| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已随 ROOT-007/RETIRE-001 退役（历史条目） |
-| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定 ROOT-007 已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
+| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
+| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
 | 内核标准注册表 | `CONTRACT_READY` | `docs/standards/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
-| 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0（GOV-003） |
+| 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/astrocs/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
 | Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
@@ -98,7 +98,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
 | FITS 流式接口 | `IMPLEMENTED` | IO-001（接口 + 实现 + 契约测试）；**未接入 Phase3 writer**（见 §4） |
-| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 已由 ROOT-007 删除，旧轮次评审副本已由 CLEAN-402 删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/owner/**`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
+| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 与旧轮次评审副本已删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/owner/**`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
 
 > 本表"实测"级证据（IMPLEMENTED/INSTALLED）全部来自 BASE=`da3c4b4a` 的命令日志
 > `run/docconv001/logs/{focused_rebuild_test.log,mod001_install_check.log,cli001_vpi.log}`；
@@ -146,7 +146,6 @@ CLI 命令面:     INSTALLED（normalize/mosaic/export + doctor/benchmark；独�
 ```
 
 ---
-authoring_task: GOV-004
 authoring_owner: SA-GOV-01
 base_main_sha: caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
 convergence_task: DOC-CONV-001

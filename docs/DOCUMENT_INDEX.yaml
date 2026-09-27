@@ -684,6 +684,12 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）"
       downstream: "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md、docs/design/PHASE1_DETAILED_DESIGN.md、docs/design/PHASE2_DETAILED_DESIGN.md、docs/design/PHASE3_DETAILED_DESIGN.md、docs/plugins/infrastructure/17_aio.md"
       notes: "形态由访问模式决定：Phase1 默认归档（可切裸）、Phase2 裸、Phase3 裸 FITS 不套壳"
+    - path: "docs/design/STAR_DETECTION_IMPL_DESIGN.md"
+      status: ACTIVE_NORMATIVE
+      duty: "星检测模块实现细节设计（设计稿净室②段）：16 算子逐项规格，论文锚定 5（YvV95/T&S06/B&A96 §3·§6/Stetson 1987/信赖域 LM 文献）＋替换为论文构造 1（O11→SExtractor 多阈值 deblending 树，B&A96 §4）＋Project-defined 10（就地标注）；三条冻结合同与重写边界；CLEAN 门与 DAOFIND 门/Kron 孔径备置合同"
+      upstream: "docs/ASTROCS_DESIGN.md §2（创新点四）、§4（normalize）；docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG §11.4 冻结 κ 表）"
+      downstream: "lib/algorithms/star_detection/src/sdet_api.cpp（重写输入）；docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md"
+      notes: "设计稿：YvV q²=1.4281 行为锚冻结；σ_eff=2.2666 为 κ 1.25× 残差候选成因假设（登记未改表）；引文勘误 YvV95=Signal Processing 44(2)、T&S06=IEEE TSP 54(6)"
     - path: "docs/design/UNIFIED_MODEL.md"
       status: ACTIVE_NORMATIVE
       duty: "统一观测模型、数据对象表与三类配置的唯一正本"

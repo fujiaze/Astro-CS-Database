@@ -348,7 +348,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | DISP-P3RSMP-003 | `p3_resample_check_mode` 会话编排层无调用点（flux/variance 输入拒未经会话守卫；能力在内核、探针消费） | grep 全仓: 仅 p3_resample_probe_main.cpp:31 | SCI §9a-8/10 | P3-RSMP-INT 接线（会话请求守卫增加 input_mode 检查） |
 | DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | p3_session.cpp:265-277 | SCI §9a-9 | P3-RSMP-IMPL/INT |
 | DISP-P3RSMP-005 | astrocs_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
-| DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json:322` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 上呈负责人/合同域：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `module_entry.cpp:971` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
+| DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json:322` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `module_entry.cpp:971` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
 | DISP-P3RSMP-007 | **C（coverage）语义的跨文档冲突**（本任务**不改** C）：ALG-P3-003 §2 G4 / §4 与 DATA_SEMANTICS §29.4 说「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ S=NaN ∧ C=1），而 DATA_SEMANTICS §29.2 写「C=1 ⇔ 足迹内存在**有限** tile 像素」、DATA-002 §2a 规则 2 写「零合格样本 ⇒ signal=NaN ∧ **support≤0**」 | 本任务 M42 复验实测：改后仍 464263 px 为 `S=NaN ∧ C=1`（零合格样本，四角上游 support≤0），与 G4 口径一致、与 §29.2/§2a 表述不一致 | ALG-P3-003 §2 G4/§4；DATA_SEMANTICS §29.2 vs §29.4；DATA-002 §2a 规则 2 | 合同域裁决（本任务按 ALG 冻结口径保持 C 不变；若判 §2a 为准，则 Phase3 需另出 support 平面，属结构性变更） |
 
 ## 12 TEST-P3-RSMP-DESIGN-001 设计冻结（登记面 VERIFIED）
@@ -396,8 +396,8 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   （¬isfinite 样本必须计数暴露）；**零填替代**（零合格样本必须 NaN）；
   **用未重归一的几何权重传播方差**（DATA-002 §2a 规则 1）。
 - DISP 台账: §11 表七项（DISP-P3RSMP-001..007）；001..005 本任务首版登记，
-  006/007 本次登记（006 = 强制计数产品承载面未冻结 → 上呈；007 = C 语义
-  跨文档冲突 → 合同域裁决），均不在本任务闭环。
+  006/007 本次登记（006 = 强制计数产品承载面未冻结 → 待合同域登记；007 = C 语义
+  跨文档冲突 → 待合同域定案），均不在本任务闭环。
 
 ## 14 SCI 层零改动声明
 

@@ -165,7 +165,6 @@ Phase3 扩展（healpix_interp4、流式 FITS 接入）: NOT_IMPLEMENTED
 ```
 
 ---
-authoring_task: GOV-004
 authoring_owner: SA-GOV-01
 base_main_sha: caee3e67e5a209a9e47b514f42b2b63f3dc4da4e
 convergence_task: DOC-CONV-001
