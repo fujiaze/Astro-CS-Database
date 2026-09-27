@@ -1,130 +1,151 @@
-# Astro Celestial Sphere Database（ACSD） — 天文 CCD/CMOS 图像校准与标准化数据库
+# Astro Celestial Sphere Database（ACSD）
 
-ACSD 把单帧观测转换为可独立消费、带不确定度与来源链的球面科学产品（HiPS），再按明确科学目标
-合成马赛克、导出测量意义明确的 WCS FITS（`docs/ASTROCS_DESIGN.md` §1.1）。
+ACSD 是一个天文 CCD/CMOS 图像校准与标准化数据库：把单帧天文观测转换为可独立消费、带不确定度与
+来源链的球面科学产品（HiPS），再按明确科学目标合成马赛克，或导出测量意义明确的平面 WCS FITS。
 
-## 权威链与索引
+科学核心是一条链：先把每帧校准到统一的测光星等坐标系（以 Gaia DR3 XP 星表正向合成期望测光量、
+拟合逐帧乘性标度），在这个坐标系上测量不受天光影响的绝对信噪比，再用加性方式去除天光、建立帧间
+连续的绝对信号平面，使叠加结果天然无接缝；配合全天 HEALPix 产品上的精确面积交叠分配完成通量守恒
+重采样。正式平台 Windows x64 与 Linux amd64，纯 CPU 生产。
 
-权威链只有一条，权威程度自上而下递减（`docs/ASTROCS_DESIGN.md` §0.1）；每一层由它的上一层推出，
-下级文档陈述与本设计一致的细化内容。与本文档集冲突时以 `docs/ASTROCS_DESIGN.md` 为准（该文 §0）。
+## 构建
 
-| 序 | 入口 | 回答什么 |
-|---|---|---|
-| ① | [`docs/ASTROCS_DESIGN.md`](docs/ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
-| ② | [`AGENTS.md`](AGENTS.md) | 机器干活手册：下钻顺序、工作流、纪律 |
-| ③ | [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) | 代码、测试、提交、目录与 CI 规则 |
-| ④ | [`CONTROL_PACK_SPEC.md`](CONTROL_PACK_SPEC.md) | 控制包的制作与执行规范 |
-| ⑤ | [`ACCEPTANCE_SPEC.md`](ACCEPTANCE_SPEC.md) | 四层验收标准与预览版发布门 |
-| ⑥ | [`docs/ci/CI_SPEC.md`](docs/ci/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
-| ⑦ | [`docs/plugins/00_INDEX.md`](docs/plugins/00_INDEX.md) | 逐模块工作细节 |
-
-与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/algorithms/`（算法推导与符号表）、
-`docs/design/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/contracts/`（合同的文档化说明，与 `eng/contracts/`
-的机器校验 schema 双向对应）。全文档集的唯一索引地图 = `docs/DOCUMENT_INDEX.yaml`；文档体系分层见
-`docs/standards/DOCUMENTATION_STANDARD.md`。
-
-## 三个命令，三个独立产品
-
-`normalize` / `mosaic` / `export` 是三个平级独立命令：各自独立启动、独立重跑、独立验收（阶段间交换媒介的
-唯一正本 = `docs/ASTROCS_DESIGN.md` §8.1；产品交换合同见
-`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`）。对外只有一个 CLI 入口 `acsd`，它按命令
-拉起对应阶段的调度器（§8.1）。`phase` 是内部指代：命令名与 CLI 子目录用
-`normalize`/`mosaic`/`export`，会话层目录为 `lib/phase{1,2,3}_session`（§7.1、§8.4）。
-
-| 命令 | 内部指代 | 输入 | 输出 |
-|---|---|---|---|
-| `normalize` | Phase1 | JSON 配置（数据块 = 一组 light + 对应校准帧 + 滤镜） | 标准化单帧 HiPS（帧级 SNR 入文件头，可选稀疏帧内 SNR 层）+ 结构化 JSON |
-| `mosaic` | Phase2 | 一组合同兼容 HiPS + JSON 配置 | 马赛克 HiPS + UPM/排异/集成 provenance + 结构化 JSON |
-| `export` | Phase3 | 任一合同兼容 HiPS + JSON 配置 | 平面 WCS FITS + 结构化 JSON |
-
-三个命令的 JSON 模板由 `--template` 生成，字段说明由 `--help` 给出（`docs/api/CLI_PROTOCOL_V1.md`）。
-正式平台为 Windows x64（交付 `acsd.exe` 与各 `.dll`）与 Linux amd64（`acsd`），纯 CPU 生产；
-ACR 源码保留为隔离实验，生产构建路径不含它（§1.3、§8、§10）。
-
-## 科学目标
-
-科学核心是一条链：先把每帧校准到统一的测光星等坐标系，再在这个坐标系上测量不受天光影响的绝对信噪比，
-最后用加性方式去除天光、建立帧间连续的绝对信号平面，使叠加结果天然无接缝（§2）。三个创新点互为前提，
-各自以独立实验单元呈现于 `实验/`，alpha 发布前全部经实验与独立审稿证实（§2、§12.3）。
-
-1. **测光校准到测光星等坐标系**（§2.1）：只对星点测光，星点位置由 Gaia DR3 XP 星表逆映射到本帧像素域获得；
-   用 Gaia DR3 XP 星点光谱 × CCD QE 曲线 × 滤镜透过率曲线积分正向合成期望测光量，与实测通量拟合得到逐帧
-   线性乘性标度 `k_photo`（`I_photo = k_photo·I_cal`），把整帧对齐到统一相对测光零点并消除物理单位。
-   公式、单位与适用域见 `docs/science/PHOTOMETRY.md`。
-2. **跨帧可用的绝对信噪比**（§2.2）：交付物是 Phase1 实际产出的 PSF 信号 SNR（逐源 `SNR_F = F/σ_F`），
-   以帧级标量 `frame_snr` 与帧内稀疏控制点层 `sparse_snr_layer` 两个对象承载；Phase2 由它重建稠密 SNR 场
-   并定权 `w(x,y) = SNR(x,y)²/F_ref² = 1/σ_F(x,y)²`。定义与推导见 `docs/science/NOISE_MODEL.md`、
-   `docs/science/CONTROL_WEIGHT_SNR.md`。
-3. **加性天光与无接缝叠加**（§2.3）：UPM 在全部帧上联合建立一张连续的绝对天光参考平面，每帧按
-   「多退少补」加性扣除自身偏差并保留公共天光，帧集变化处结果连续。定义见 `docs/science/PHASE2_UPM.md`。
-4. **全天 HEALPix 产品的精确面积交叠分配**（§2.4）：以 12 个基面的等面积 chart 为坐标域（Jacobian 恒为 π/3），
-   drop 足迹映射进 chart 后交叠退化为轴对齐裁剪 + 鞋带公式，逐 leaf 面积按绝对立体角口径累加。
-   几何与判据见 `docs/algorithms/DRIZZLE_GEOMETRY.md`。
-
-## 构建与运行
-
-构建需要 CMake + Ninja 与 C++ 工具链；依赖与工具链冻结值见 `DEPENDENCIES.md`（Windows preset 合同 =
-根 `CMakePresets.json`）。
+需要 CMake、Ninja 与 C++ 工具链（依赖与工具链冻结值见 `DEPENDENCIES.md`）。
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   # 仓库唯一的根 CMake
 ninja -C build
-ctest --test-dir build --output-on-failure
+ctest --test-dir build --output-on-failure                # 测试
 python3 eng/ci/run_checks.py                              # 机器一致性检查（注册表 eng/ci/checks.json）
 ```
 
-```bash
-acsd normalize --json <config.json>    # 单帧标准化
-acsd mosaic    --json <config.json>    # 马赛克
-acsd export    --json <config.json>    # 投影导出
-acsd help / acsd --version / acsd doctor / acsd benchmark
+## 使用
+
+对外只有一个 CLI 入口 `acsd`，三个命令平级独立：独立启动、独立重跑、独立验收。
+
+```text
+acsd normalize --json <config.json>     # 单帧标准化：light + 校准帧 + 滤镜 → 标准化 HiPS（帧级 SNR 入头）
+acsd mosaic    --json <config.json>     # 马赛克：合同兼容 HiPS 组 → 马赛克 HiPS + provenance
+acsd export    --json <config.json>     # 投影导出：任一合同兼容 HiPS → 平面 WCS FITS
+acsd help
+acsd doctor [--json]                    # 环境自检
+acsd benchmark                          # 生成/更新安装目录 cpu_profile（后续运行自动读取）
 ```
 
-命令树是唯一命令面（§7.1）；配置结构、事件流与退出码见 §7.2，日志与错误传播见 §7.3 与
-`docs/contracts/LOG_AND_ERROR_CONTRACT.md`。机器门注册表 = `eng/ci/checks.json`，运行方式与判据见 `docs/ci/`。
+配置不用手写：`acsd <命令> --template [-o <path>]` 生成可改的完整 JSON 模板，`--help` 给字段说明。
+运行前有配置预检三档（correct / warn / error，error 阻塞），事件流是默认输出（stdout 每行一个 JSON
+事件，GUI 可直接捕获）。退出码全 11 条冻结（0 成功 … 10 磁盘写满、70 未分类内部错误），唯一源
+`lib/infrastructure/cli/exit_codes.h`；完整协议见 `docs/api/CLI_PROTOCOL_V1.md`。
 
-## 仓库布局
+## 文档与权威链
 
-模块索引权威 = `docs/architecture/MODULE_MAP.md` 与 `docs/modules/`；根目录固定条目与新增约定见
-`ENGINEERING_SPEC.md` §7。
+权威链只有一条，自上而下递减：与下级文档冲突时以 `docs/ASTROCS_DESIGN.md` 为准。全文档集唯一索引
+= `docs/DOCUMENT_INDEX.yaml`，各目录均有中文 `README.md` 说明职责与内容。
 
-顶层分四块：算法在 `lib/algorithms/`（并联放置），基建与 CLI 在 `lib/infrastructure/`，
-工程支撑面在 `eng/`（合同 schema、机器门、构建与质量工具、程序全局配置），自解释文档集在 `docs/`。
-科学实验单元在 `实验/`，证据在 `artifacts/`，控制包工作区在 `工程控制/`，
-开发/CI 过程产物与过程日志在 `run/`（不入库；回收机制见 `eng/tools/run_gc.py`）。
+| 入口 | 回答什么 |
+|---|---|
+| [`docs/ASTROCS_DESIGN.md`](docs/ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
+| [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) | 代码、测试、提交、目录与 CI 规则 |
+| [`CONTROL_PACK_SPEC.md`](CONTROL_PACK_SPEC.md) | 控制包的制作与执行规范 |
+| [`ACCEPTANCE_SPEC.md`](ACCEPTANCE_SPEC.md) | 四层验收标准与预览版发布门 |
+| [`docs/ci/CI_SPEC.md`](docs/ci/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
+| [`docs/plugins/00_INDEX.md`](docs/plugins/00_INDEX.md) | 逐模块工作细节 |
 
-根目录固定条目、各目录的完整职责与新增约定见 `ENGINEERING_SPEC.md` §7；
-模块清单见 `docs/architecture/MODULE_MAP.md` 与 `docs/modules/`。
-
-## 状态口径
-
-状态词表唯一口径 = `docs/ASTROCS_DESIGN.md` §12.5（**取值集合见该节，本文档不复制**）；状态由检查与验收现场计算，
-登记表不预写状态。
-
-- 逐模块/逐阶段状态与证据锚：`docs/owner/RELEASE_STATUS.md`、`docs/modules/MODULE_MAP.yaml`。
-- 发布口径：`VERIFIED` 要求正式平台（Windows x64）与真实数据验收通过；agent 至多声明
-  `READY_FOR_OWNER_REVIEW`，最终发布决定由项目负责人作出（§12.5、§13）。
-- 版本口径：产品版本唯一事实源 = 仓库根 `VERSION`（形态 `MAJOR.MINOR.PATCH-alpha.N`），CMake、CLI、
-  产品 manifest 与活动文档由该源派生（单源条款 = `docs/owner/RELEASE_STATUS.md` §2）。
-- 待决条款的计数与逐条登记：`eng/contracts/data/v6_clause_registry_v1.json` 的 `counts` 段
-  （语义权威 = `docs/contracts/DATA_SEMANTICS.md` §31.10）。
-- 已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
-
-## 细节往哪读
+与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/algorithms/`（算法推导与符号表）、
+`docs/design/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/contracts/`（合同说明，与 `eng/contracts/`
+机器 schema 双向对应）；科学佐证纪律见 `docs/DOCUMENT_GOVERNANCE.md`。
 
 | 要读什么 | 去哪读 |
 |---|---|
-| 数据对象、三类配置、逐阶段详细设计 | `docs/design/`（入口 `docs/design/UNIFIED_MODEL.md`） |
+| 数据对象、三类配置、逐阶段详细设计 | `docs/design/` |
 | 科学定义式、单位、适用域 | `docs/science/` |
 | 算法推导、符号表、算法级边界 | `docs/algorithms/` |
 | 产品字段、键集、值域（文档侧） | `docs/contracts/` |
-| 机器校验的 schema（机器侧唯一事实源） | `eng/contracts/` |
+| 机器校验 schema（机器侧唯一事实源） | `eng/contracts/` |
 | 模块工作细节 | `docs/plugins/`、`docs/modules/` |
 | 架构与不变量 | `docs/architecture/` |
 | 跨阶段产品交换与 ABI | `docs/interfaces/` |
 | CLI/API 协议 | `docs/api/CLI_PROTOCOL_V1.md` |
 | 机器门清单与运行方式 | `docs/ci/` |
 | 验收证据与 QA 矩阵 | `docs/validation/`、`artifacts/evidence/` |
-| 外部标准与文献 | `docs/standards/`、`docs/references/SCIENTIFIC_REFERENCES.md` |
 | 术语 | `docs/GLOSSARY.md` |
 | 开发与排查 | `docs/DEVELOPER_GUIDE.md`、`docs/TROUBLESHOOTING.md` |
+
+## 仓库布局
+
+算法在 `lib/algorithms/`（并联放置），基建与 CLI 在 `lib/infrastructure/`，工程支撑面在 `eng/`
+（合同 schema、机器门、构建与质量工具、程序全局配置），自解释文档集在 `docs/`；科学实验单元在
+`实验/`，证据在 `artifacts/`，控制包工作区在 `工程控制/`，过程产物在 `run/`（不入库）。
+模块索引权威 = `docs/architecture/MODULE_MAP.md`；根目录固定条目见 `ENGINEERING_SPEC.md` §7。
+
+## 状态与版本
+
+状态词表唯一口径 = `docs/ASTROCS_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/owner/RELEASE_STATUS.md`
+与 `docs/modules/MODULE_MAP.yaml`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
+由该源派生。已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
+
+## 参考项目与文献
+
+### 文献
+
+**Drizzle 与球面重采样**
+- Drizzle 算法（Paper I）：Fruchter & Hook 2002，[arXiv:astro-ph/0207407](https://arxiv.org/abs/astro-ph/0207407)、[DOI 10.1051/0004-6361:20021326](https://doi.org/10.1051/0004-6361:20021326)
+- Drizzle 配套论文（Paper II）：[DOI 10.1051/0004-6361:20021327](https://doi.org/10.1051/0004-6361:20021327)
+- SIP 多项式畸变表示：Shupe et al. 2005, ASPC 347, 491
+- HEALPix：Górski et al. 2005, ApJ 622, 759，[DOI 10.1086/427976](https://doi.org/10.1086/427976)
+
+**天体测量与 platesolve**
+- FOCAS 三角匹配：Valdes et al. 1995, PASP 107, 1119，[DOI 10.1086/133667](https://doi.org/10.1086/133667)
+- 平面星表模式匹配：Groth 1986, AJ 91, 280，[DOI 10.1086/114099](https://doi.org/10.1086/114099)
+- astrometry.net：Lang et al. 2010, AJ 139, 1782，[DOI 10.1088/0004-6256/139/5/1782](https://doi.org/10.1088/0004-6256/139/5/1782)、[arXiv:0910.2233](https://arxiv.org/abs/0910.2233)
+- SCAMP 天测标定：Bertin 2006, ASPC 351, 112
+- k-vector 范围搜索：Mortari 1999, J. Astronaut. Sci.（候选出处，佐证充实中）
+
+**检测与测光**
+- SourceExtractor：Bertin & Arnouts 1996, A&AS 117, 393，[DOI 10.1086/133849](https://doi.org/10.1086/133849)
+- DAOPHOT：Stetson 1987, PASP 99, 191，[DOI 10.1086/131877](https://doi.org/10.1086/131877)
+
+**校准与宇宙线**
+- L.A.Cosmic：van Dokkum 2001, PASP 113, 1420，[arXiv:astro-ph/0108003](https://arxiv.org/abs/astro-ph/0108003)
+- 平场适用性检验：Marshall & DePoy 2005，[arXiv:astro-ph/0510233](https://arxiv.org/abs/astro-ph/0510233)
+- 暗场-曝光稳健线性回归与热像素：Hochedez et al. 2013，[arXiv:1303.1437](https://arxiv.org/abs/1303.1437)
+
+**统计与稳健估计**
+- Huber 1964（M 估计），[DOI 10.1214/aoms/1177703732](https://doi.org/10.1214/aoms/1177703732)
+- Holland & Welsch 1977（IWLS 稳健回归），[DOI 10.1080/00401706.1977.10489534](https://doi.org/10.1080/00401706.1977.10489534)
+- Rousseeuw & Croux 1993（Qn 稳健尺度），[DOI 10.1080/01621459.1993.10476308](https://doi.org/10.1080/01621459.1993.10476308)
+- 中位数/MAD 数值口径：Akinshin 2022，[arXiv:2207.12005](https://arxiv.org/abs/2207.12005)
+- 求和数值误差：Baumer 2017，[arXiv:1706.07400](https://arxiv.org/abs/1706.07400)
+- Ipatov 2006，[arXiv:astro-ph/0610931](https://arxiv.org/abs/astro-ph/0610931)
+
+**PROSAC 采样**：Chum & Matas 2005，[DOI 10.1109/CVPR.2005.221](https://doi.org/10.1109/CVPR.2005.221)
+
+**星表**：Gaia DR3，Gaia Collaboration 2023，[arXiv:2208.00211](https://arxiv.org/abs/2208.00211)
+
+**Astropy 社区**：Astropy Collaboration 2013/2018/2022，[DOI 10.3847/1538-3881/aabc4f](https://doi.org/10.3847/1538-3881/aabc4f)
+
+### 开源项目
+
+| 项目 | 许可 | 关联 |
+|---|---|---|
+| [Siril](https://gitlab.com/free-astro/siril) | GPL-3.0 | 校准/cosmetic/platesolve 对照实现 |
+| [SourceExtractor](https://github.com/astromatic/sextractor) | LGPL-3.0 | 星检测与测光基准 |
+| [SWarp](https://github.com/astromatic/swarp) | GPL-3.0 | 重采样与叠加语义锚 |
+| [SCAMP](https://github.com/astromatic/scamp) | GPL-3.0 | 天测标定对照 |
+| [astrometry.net](https://github.com/dstndstn/astrometry.net) | GPL-3.0-or-later | platesolve 受限求解与 verify |
+| [astropy](https://github.com/astropy/astropy) | BSD-3 | WCS/SIP 参考实现 |
+| [ccdproc](https://github.com/astropy/ccdproc) | BSD-3 | 图像校准流程对照 |
+| [astroscrappy](https://github.com/astropy/astroscrappy) | BSD-3 | L.A.Cosmic 移植（宇宙线 oracle 候选） |
+| [photutils](https://github.com/astropy/photutils) | BSD-3 | 孔径/PSF 测光对照 |
+| [IRAF/NOAO ccdred](https://github.com/IRAF-community/iraf) | 非 OSI | 校准组合参数锚（ccdmask/zerocombine/darkcombine） |
+| [LSST ip_isr](https://github.com/lsst/ip_isr) | GPL-3.0 | ISR 与方差传播对照 |
+| [hstcal (calacs)](https://github.com/spacetelescope/hstcal) | BSD-3 | HST 校准链对照 |
+| [WCSLIB](https://www.atnf.csiro.au/people/mcalabre/WCS/) | LGPL-3.0 | WCS 参考实现 |
+| [Gnuastro](https://www.gnu.org/software/gnuastro/) | GPL-3.0 | 掩膜位语义与统计工具对照 |
+| [ESO CPL/pipelines](https://www.eso.org/sci/software/cpl/) | GPL-2.0+ | ESO 流水线族对照 |
+| [SDSS](https://github.com/sdss) | 非 OSI | flags 与测光管线对照 |
+| [HEALPix](https://healpix.sourceforge.io/) | GPL-2.0+ | 球面像素化方案 |
+| [CFITSIO](https://heasarc.gsfc.nasa.gov/fitsio/) | 随库条款 | FITS I/O（随仓 third_party） |
+| [nlohmann/json](https://github.com/nlohmann/json) | MIT | JSON（随仓 third_party） |
+
+> 完整佐证映射（哪篇支撑我们哪条断言）见 `docs/references/` 与 `实验/` 各单元的佐证来源区。
