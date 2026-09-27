@@ -48,7 +48,7 @@ downstream: [TEST-P1-STAR-001]
   （sdet_api.cpp:448/:2321-2325/:2042-2044），dedup/sort/maxStars 串行，
   输出 bitwise 与线程数无关（determinism=fixed_reduction_order）；现状
   无 ThreadBudget 接线（整改归 P1-STAR-IMPL）。
-- 错误：入口 0（含 0 星空场）/−1；拟合 SDET_FIT_*；质量门 SfError 五码；
+- 错误：入口 0（含 0 星空场）/−1；拟合 SDET_FIT_*；质量门 SfError 六码；
   编排 STAR_DETECT_FAILED（:2200-2212）。
 - 已知限制：DISP-STAR-001..005 + ThreadBudget/取消缺失（ALG-STARDET-001
   §11.3，登记不改码，整改归 P1-STAR-IMPL/INT）。

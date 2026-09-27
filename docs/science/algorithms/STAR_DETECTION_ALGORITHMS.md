@@ -107,7 +107,7 @@
 - 星等（正常星，:2316-2338）: `mag = −2.5·log10(Σ_box(pixel − B_fit))`，box=
   (2R+1)² 用候选 R（钳 [5,200]）与候选中心；`box_sum≤0 → mag=NaN`。
   饱和星（debug 路径 :1597）: `mag = −2.5·log10(A_fit)`（A>0），失败=NaN
-  （量纲差异登记 DISP-STAR-003）。
+  （量纲差异登记 DISP-STAR-004）。
 - 饱和标志（:2298）: `is_saturated = (A_fit > dynrange)`；`has_saturated =
   is_saturated`（:2342，DISP-STAR-004）。
 - 输出排序（sdet_sort_stars :972-981）: mag 升序 stable_sort，NaN 恒排末尾；
@@ -233,7 +233,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1738-2483
 | 候选 mag_est 降序（impl 无截断） | :2170-2171 | 阶段5 排序闸门 |
 | sdet_gauss_fit | :508-639 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
 | sdet_lm_fit（自研 TR-LM 7 参） | :289-444 | 阶段6 拟合主体（halfA :320） |
-| reject_star | :214-252 | 阶段8 质量门（SfError 五码 :198-205） |
+| reject_star | :214-252 | 阶段8 质量门（SfError 六码 :198-205） |
 | StarRecord 构建+mag | :2269-2348 | 阶段8（is_saturated :2298、mag :2316-2338） |
 | sdet_dedup_stars | :853-970 | 阶段10a（语义见 §2） |
 | sdet_sort_stars | :972-981 | 阶段10b（mag 升序 NaN 末尾） |
@@ -260,7 +260,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 - 入口级: 0=成功（含 0 星）；−1=参数无效/内存分配失败
   （:1749/:2409-2414/:2914/:2939）。
 - 拟合级 SDET_FIT_* 四码全列: OK/INVALID_PARAMS/NO_CONVERGENCE/ITERATION_LIMIT（:66-69/:621-632）；
-  reject_star SfError 五码 SF_OK/SF_FWHM_NEG/SF_FWHM_TOO_SMALL/
+  reject_star SfError 六码 SF_OK/SF_FWHM_NEG/SF_FWHM_TOO_SMALL/
   SF_ROUNDNESS_BELOW_CRIT/SF_RMSE_TOO_LARGE/SF_FWHM_TOO_LARGE（:198-205）。
 - 编排级: 检测失败或 0 星 → 退出码 STAR_DETECT_FAILED
   （orchestrator.cpp:2200-2212）；star_det 权威块写入失败 → BLOCK_MISSING
