@@ -36,8 +36,10 @@ python3 eng/tests/abi/mod001_install_load_check.py --build-dir build/linux-contr
 MOD-001（科学DLL安装加载验证与产品清单）：required 集自 BLD-003 的 6 项扩至
 11 项（+5 科学模块 DLL，宪章 §8.4）；安全 loader（§18.4 签名清单官方模块）
 逐 unit 加载验证与负向注入见 `eng/tests/abi/mod001_install_load_check.py`。
-F-CI-002-01（owner 裁决 2026-09-11）：astrocs_p1_noise 随 lib/snr_estimator
-V7 残留断链解除摘出生产图与本清单（未入库不登记），V7 残留收编后恢复。
+astrocs_p1_noise（MOD-P1-NOISE 模块化迁移目标 DLL）：源码子图在 `lib/algorithms/noise_snr/`
+（独立 CMakeLists 定义 SHARED 目标），未纳入根生产构建图；生产面由 `lib/snr_estimator`
+的现状产物承载，安装树与本清单 units 不登记该 DLL，安装一致性检查与安全 loader
+逐 unit 验证只消费登记单元。该子图并入根生产构建图后，随安装树与本清单同步登记。
 
 Windows 正式安装树（`AstroCS-<根 VERSION>-win-x64/`，03_TARGET §4）由
 WIN-* 系列在 Fatduck 验证；本目录同步声明布局，不在 Linux 伪装 Windows 结论

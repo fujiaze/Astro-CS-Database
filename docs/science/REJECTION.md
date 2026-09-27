@@ -63,13 +63,12 @@
   1 ≤ n ≤ 3      → none（不排异 + 直接逆方差加权积分；provenance 记 underdetermined_no_rejection。**偏离代价**：不排异的代价 = 污染**泄漏**——注入实验实测 `N=2` 泄漏 **1/2**、`N=3` 泄漏 **1/3**；收益 = **不误剔真信号**——低/中电平（≲2700 e⁻/pix）下强制 percentile 使 `N=3` 精度损失 `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出**）
   4 ≤ n ≤ 5      → percentile (low 0.2 / high 0.1, scale=|median|)
   n ≥ 6          → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
-                   （**M3 裁决（负责人 2026-09-25）**：原 `n ≥ 16 → linear_fit`
-                   （5.0 / 3.5 / 8）档**改投 winsorized**。实测依据（生产 kernel 受控评估，
+                   （`n ≥ 16 → linear_fit`（5.0 / 3.5 / 8）档**改投 winsorized**。实测依据（生产 kernel 受控评估，
                    与生产掩码 5744/5744 逐点一致）：干净像素过拒 **12.200% → 0.067%**、
                    显著点漏检 **3.92% → 1.44%**、`n≥16` 可测残余 >2.5σ **27/1175 → 0/1175**；
                    该档占全图 **13.14%** 像素。`linear_fit` 仍是合法显式方法
                    （`request=linear_fit`），只是不再由 AUTO 在生产档产出；
-                   对照档 wbpp_2_9_1 / astrocs_adaptive **未随此改动**。）
+                   对照档 wbpp_2_9_1 / astrocs_adaptive 保持 linear_fit 档配置。）
   档界来源（**可核验形式**：版本 + 包 sha1 + 真实 file:line）：
   WBPP **2.5.9**（官方更新包 https://pixinsight.com/update/1.8.9-1/20230203-script.zip ，
   sha1 `712cc7c3fdb523643ad0e685104592d511996f82`，`product-info.txt` 自述版本 2.5.9）
@@ -77,9 +76,9 @@
   `n = activeFrames().length`；`n < 6 → PercentileClip`；`n ≤ 15 或 BIAS/DARK → WinsorizedSigmaClip`；
   `否则 → Rejection_ESD`；合法性窗口 `rejectionIsGood()` = `:1349-1412`。
   **本表采纳 WBPP 的档界（6 / 15 两处），但不采纳其 `n > 15` 档的算法类型**：
-  WBPP 2.4.0+ 该档是 `Rejection_ESD`，**本表该档取 winsorized_sigma（M3 裁决 2026-09-25）**——
-  既不是 WBPP 2.4.0+ 的 ESD，也不是 WBPP ≤2.3.x 的 linear_fit（后者是 M3 前本表的取值，
-  1.4.6 `:190-203`：`n<8` percentile / `≤10` averaged / `<20` winsorized / `<25` LinearFit / 否则 ESD）。
+  WBPP 2.4.0+ 该档是 `Rejection_ESD`，**本表该档取 winsorized_sigma**——
+  既不是 WBPP 2.4.0+ 的 ESD，也不是 WBPP ≤2.3.x 的 linear_fit
+  （1.4.6 `:190-203`：`n<8` percentile / `≤10` averaged / `<20` winsorized / `<25` LinearFit / 否则 ESD）。
   **这条偏离的依据是实测，不是偏好**（三者同批数据、同一生产 kernel，见
   `run/REJECT-DOCFIX-01/REPORT.md` §2/§4）：① ESD 在 `n = 16/17` 的**逐像素**路由下空假设错误率
   被 `k=10` 级联抬到 **11.36%**（每步 `α=0.05` 本身校准精确（实测 4.95%），λ 与 NIST 公布值一致
@@ -97,11 +96,11 @@
   WBPP 只提供**档界与算法类型**的参考，本项目按逐像素 `n` 自定扩展。
   本表把 `1 ≤ N ≤ 3` 改为 none、percentile 收窄到 `4 ≤ N ≤ 5`。差异依据：低电平强制 percentile 有损（`N=3` 的 `ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` 时 83.5% 像素无输出 ⇒ 小 N 段不排异更接近真值；`N ≥ 4` 起 percentile 偏差进入容差内。
   显式指定算法时 `16≤n<20` linear_fit 由调用方发 WARN。extreme_value_clip_prior_sigma 为显式 opt-in，永不参与 AUTO 路由。**电平依赖**：翻转边界 ≈3000–3400 e⁻/pix——判据**由电平决定、不由 N 决定**；该区间**超出实验网格上界 1734 e⁻/pix，属外延**。
-对照档 wbpp_2_9_1 (仅对照/回归基线；解析表实测 rejection.cpp:1275-1283；**未随 M3 改动**):
+对照档 wbpp_2_9_1 (仅对照/回归基线，保持 linear_fit 档配置；解析表实测 rejection.cpp:1275-1283):
   n < 6          → percentile (low 0.2 / high 0.1, scale=|median|)
   6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
   n > 15         → linear_fit (lower 5.0 / upper 3.5 / 8 iter)
-  注（**归属订正**）：WBPP 2.5.9 实测的 n > 15 分支是 Rejection_ESD
+  注（**归属说明**）：WBPP 2.5.9 实测的 n > 15 分支是 Rejection_ESD
   （engine.js:1421-1429，sha1 712cc7c3…），本对照档该档取 linear_fit ⇒ **该档与 WBPP 2.4.0+ 不符**，
   对应的是 WBPP ≤2.3.x 旧表。本行只描述**本仓解析表**，不是对 WBPP 行为的转述。
   WBPP ≥2.6 源码随商业安装分发、公开不可核验，故以 **2.5.9** 为可核验基准。
@@ -272,7 +271,7 @@ large_scale 结构生长:
   的序贯 Chauvenet 迭代，经验修正因子表锚 Siril 之外的官方 RCR 实现；
   EXTREME_VALUE_PRIOR_SIGMA=已知先验 σ 的极值检验（显式 opt-in，`rejection.cpp:1915-1965`）。
 - **阈值**：表驱动冻结锚点（冻结头注释 `rejection.cpp:1-12`；规划层 typed 默认值 `rejection.cpp:1226-1251`：sigma/winsorized/averaged/median_sigma 4.0/3.0/8；linear_fit 5.0/3.5/8；ESD alpha 0.05/max 10；percentile 0.2/0.1；minmax 1/1/4；large_scale 默认关闭）——**阈值定义只取自该表**。
-- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由，不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）；生产默认档 `astrocs_adaptive_pixel`（自研）的内置映射见 §5（`1≤n≤3`→none；`4≤n≤5`→percentile；`n≥6`→winsorized_sigma（M3 裁决后，原 `n≥16`→linear_fit 档改投）；`rejection.cpp:1153-1176` 实测）。
+- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由，不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）；生产默认档 `astrocs_adaptive_pixel`（自研）的内置映射见 §5（`1≤n≤3`→none；`4≤n≤5`→percentile；`n≥6`→winsorized_sigma（`n≥16`→linear_fit 档改投 winsorized）；`rejection.cpp:1153-1176` 实测）。
 - **small-N**：`n ≤ 3` 不声明排异能力（生产档路由 `none`、对照档由内核闸判 `UNDERDETERMINED`）；`4 ≤ n ≤ 5` → percentile（其等效阈值见 §8a）；单帧无排异（§1 非目标）。
 - **frame identity**：每候选携带 `frame_id[i]`；排异只置 `accepted[i]` 掩膜不合并样本，identity 全程保持（integration 侧可追溯，SCI-INT §9a）。
 
@@ -294,17 +293,17 @@ large_scale 结构生长:
 > 本节只补出处与参考实现，不改动 §5 阈值表与 §10 禁改清单。
 
 - **Generalized ESD**：Rosner, B. 1983, Technometrics 25, 165-172（DOI 10.1080/00401706.1983.10487848）；独立可执行实现与临界值表见 NIST/SEMATECH e-Handbook of Statistical Methods §1.3.5.17/§7.1.6。
-- **方法族命名来源（参数名已订正）**：IRAF `combine`/`imcombine` 共用的 `ccdred/src/combine/` 引擎，其参数文件
+- **方法族命名来源**：IRAF `combine`/`imcombine` 共用的 `ccdred/src/combine/` 引擎，其参数文件
   `noao/imred/ccdred/combine.par`（iraf-community/iraf@main，IRAF/NOAO 许可，非 OSI）的
   `reject` 值域为 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，另有
   `combine=average|median`、`nlow=1`/`nhigh=1`、`nkeep=1`、`mclip=yes`、`lsigma=3.`/`hsigma=3.`、
   `pclip=-0.5`、`sigscale=0.1`、`rdnoise=0.`/`gain=1.`/`snoise=0.`、`grow=0`、`lthreshold`/`hthreshold=INDEF`。
-  **该引擎没有 `lfitclip` 也没有 `winsorize` 参数**（本仓旧引文中的这两个名字在 IRAF 里不存在，已删去）；
+  **该引擎没有 `lfitclip` 也没有 `winsorize` 参数**（这两个名字在 IRAF 参数面里不存在）；
   与 `linear_fit` 对应的 IRAF 方法族是 `ccdclip`（CCD 噪声模型裁切），与 `winsorized_sigma` **无对应项**
   （`sigclip`/`avsigclip` 是 σ 裁切，不是 winsorize）。**命名只作方法族命名来源，核语义一律以本层为准**
   （尤其 `pclip`：IRAF 的 `pclip` 是**按秩裁固定比例样本**，与本层 `percentile` 的**乘性判据带同名不同义**，
   两种含义并列见 §8a）。可执行独立对照 = ccdproc.combine（BSD-3-Clause）与 astropy `SigmaClip`（BSD-3-Clause）。
-- **来源归属（订正后，取代旧表述）**：生产默认档 `astrocs_adaptive_pixel` 的**档界**采纳自 WBPP
+- **来源归属**：生产默认档 `astrocs_adaptive_pixel` 的**档界**采纳自 WBPP
   （可核验版本/file:line 见 §5、§14a），**逐像素按几何 n 的粒度**与低 n 保守档为项目自定；
   **方法核的语义来源**：`linear_fit` = PixInsight ImageIntegration 官方式[21]/式[22]（横轴 = 排序秩 `0…N−1`、
   带升序约束）+ *Numerical Recipes* 3rd ed. **§15.7.3**（`Fitmed`，L1 稳健拟合；本项目以加权最小二乘实现，
@@ -365,7 +364,7 @@ large_scale 结构生长:
   翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）。
   **§8a 的 percentile 适用域（阈值随 `|median|/s` 漂移）与上述档位取舍是两件事**，各自独立表述。
 - **档位表归属**：逐像素冻结映射表见 `docs/plugins/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /
-  `N≥6` winsorized（M3 后））；本节 §5 的 `astrocs_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
+  `N≥6` winsorized）；本节 §5 的 `astrocs_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
 
 ## 17 真实数据读数（M42 沿线；口径显式）
 
@@ -385,15 +384,14 @@ large_scale 结构生长:
   | **真·单异常点**（栈内恰好 1 帧 `z>+5` 且无 `z<−5`） | **4556** | **30** | **0.66%** | **99.34%** |
   | 多异常点（≥2 帧 `z>+5`） | 451 | 50 | 11.09% | 88.91% |
   | ↳ 其中 `n = 6..15`（winsorized 档） | 3956 | 60 | 1.52% | 98.48% |
-  | ↳ 其中 `n ≥ 16`（**M3 前**为 linear_fit 档；M3 后同档改投 winsorized） | 1655 | 160 | 9.67% | 90.33% |
+  | ↳ 其中 `n ≥ 16`（生产档 winsorized 口径） | 1655 | 160 | 9.67% | 90.33% |
 
-- **分母口径说明（这是被订正的那个数）**：5785 点里有 **174 点**没有 `z_trail > 5` 的异常（卫星线太暗），
-  把这类点计入分母会把漏检率抬到 **4.96%**——该读法**已作废**；正确读数是**显著点口径 3.92%（220/5611）**，
+- **分母口径说明**：5785 点里有 **174 点**没有 `z_trail > 5` 的异常（卫星线太暗），
+  把这类点计入分母会把漏检率抬到 **4.96%**；本节读数取**显著点口径 3.92%（220/5611）**，
   而**真·单异常口径的检出率 = 99.34%（4526/4556）**。两者必须连同分母一起引用。
-- **漏排成因（订正）**：漏排点的主导形态**不是**「同一条卫星线在同一像素产生 2 个同侧离群」——
+- **漏排成因**：漏排点的主导形态**不是**「同一条卫星线在同一像素产生 2 个同侧离群」——
   实测 5785 点中 **87.6%（5067 点）栈内只有 1 帧 `z>+5`**，没有任何一例是同一颗卫星在同一像素两次成像。
   主因是「**1 个高异常 + 1 个低异常**」两端同时拉动秩轴拟合（79/220），低异常主要来自单帧的线性暗伪影；
-  「同侧多离群导致检出率随幅度下降」这一说法**已收回**。
 - **复现**：`run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py`（生产 kernel 三臂）+ `m3_m5_metrics.py`（读数）；
   证据 `run/REJECT-DOCFIX-01/evidence/m3_m5_eval.json`、`m3_m5_metrics.json`。
 
