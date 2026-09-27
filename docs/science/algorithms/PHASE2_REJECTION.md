@@ -3,9 +3,9 @@
 > 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
 
 > ID: ALG-P2-REJ-001  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/rejection.cpp（2949 行，astrocs_phase2 静态库
+> 模块: lib/algorithms/coverage/src/rejection.cpp（2956 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
 > （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
@@ -58,7 +58,7 @@
 null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 同一政策）。
 
-## 3 逐符号锚（rejection.cpp 2950 行 / rejection.h 595 行，实测；锚 = `grep -n` + 花括号配对，行号一律照录实测值）
+## 3 逐符号锚（rejection.cpp 2956 行 / rejection.h 602 行，实测；锚 = `grep -n` + 花括号配对，行号一律照录实测值）
 
 | 符号/段 | 锚（rejection.cpp） | 语义 |
 |---|---|---|
@@ -121,17 +121,17 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | P2RejectStatus | :102-111 | OK=0..INTERNAL_ERROR=7（八态） |
 | P2RejectionNormalization | :114-118 | NONE=0/MEDIAN_CENTER=1/MEDIAN_SCALE=2（floor 默认 1e-12 在 plan 字段 :208） |
 | typed params | :121-151 | P2SigmaParams :121-125/P2LinearFitParams :127-131/P2EsdParams :133-136/P2PercentileParams :138-141（low_fraction 注释 "默认 0.1" 漂移 :139）/P2MinmaxParams :143-147/P2RcrParams :149-151（low/high/max_iter 逐方法独立，:120 注释） |
-| P2LargeScaleParams | :165-170 | enabled/min_structure_pixels=8/low·high_grow_radius_pixels=2（默认关闭 :166；语义 :153-164） |
-| P2ExtremeValuePriorSigmaParams | :194-200 | 先验 σ 极值检验参数（alpha/prior_sigma/prior_sky/center_mode） |
-| P2RejectionPlan | :203-224 | 显式计划（method/minimum_n/underdetermined_n/normalization/floor/typed 大成员/nominal_n） |
-| P2RejectionPlanRequest | :227-239 | request（允许 AUTO）/nominal_contributors/profile/underdetermined_n（:234-238 冻结注释：wbpp·adaptive=2、astrocs_adaptive_pixel=3、extreme_prior=1） |
+| P2LargeScaleParams | :170-175 | enabled/min_structure_pixels=8/low·high_grow_radius_pixels=2（默认关闭 :166；语义 :153-164） |
+| P2ExtremeValuePriorSigmaParams | :199-205 | 先验 σ 极值检验参数（alpha/prior_sigma/prior_sky/center_mode） |
+| P2RejectionPlan | :208-229 | 显式计划（method/minimum_n/underdetermined_n/normalization/floor/typed 大成员/nominal_n） |
+| P2RejectionPlanRequest | :232-244 | request（允许 AUTO）/nominal_contributors/profile/underdetermined_n（:234-238 冻结注释：wbpp·adaptive=2、astrocs_adaptive_pixel=3、extreme_prior=1） |
 | plan_resolve 注释 | :241-259 | 本仓冻结 AUTO 路由表（档界取自 WBPP 2.5.9）+ profile 语义 + AUTO 落点为具名自动方法（fail-closed） |
 | p2_rejection_percentile_band_min_n 注释 | :267-274 | 小 N 决策点下界查询（1=档含 N≤3；4=N≤3 走保守 none） |
-| p2_rejection_applicability | :291-297 | 方法×nominal_n 适用域 WARN 码（advisory，不阻断执行） |
+| p2_rejection_applicability | :307-308 | 方法×nominal_n 适用域 WARN 码（advisory，不阻断执行） |
 | P2EligibilityInput/Output | :300-321 | 连续版资格层（support_threshold 严格大于 :307；quality_flags_required=0 不要求 :308） |
 | P2EligibilityGatherInput/Output | :328-362 | 生产 strided gather（Input :328-346/Output :348-362）；PHASE2_IVAR_WIRING 注释 :350-355（source_indices 权威映射，compact 后 original slot 一律取自该映射） |
-| P2CandidateStack | :368-380 | kernel 输入（values/weights/frame_ids/count/data_type 0=fp32,1=fp64 仅诊断 :373；prior_sigma/prior_sky :378-379） |
-| P2RejectionDecision | :383-390 | reasons u8 :384/accepted_count/rejected_low/rejected_high/iterations/status :389 |
+| P2CandidateStack | :379-391 | kernel 输入（values/weights/frame_ids/count/data_type 0=fp32,1=fp64 仅诊断 :373；prior_sigma/prior_sky :378-379） |
+| P2RejectionDecision | :394-401 | reasons u8 :384/accepted_count/rejected_low/rejected_high/iterations/status :389 |
 | p2_reject_stack_ex 声明 | :394-401 | kernel n≤64 固定 scratch；AUTO 非法 |
 | p2_large_scale_apply 声明 | :413-416 | frame-major 每帧 width×height 字节原地修改；仅扩张 ≥min_structure_pixels 结构；参数非法 rc=1 |
 | compat P2SampleStackView/Result | :418-443 | 旧接口（生产 Stage2 不再调用；sigma_low/sigma_high/max_iterations/min_samples 兼容换算） |
@@ -143,13 +143,13 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 
 | status | 值 | 触发条件（精确） | 锚（rejection.cpp） | 冻结测试证据 |
 |---|---|---|---|---|
-| OK | 0 | 判定完成且全栈无 UNDERDETERMINED reason 且 accepted_count>0 | :2196-2198 | G6PermutationInvariance；V15ExPermutationInvarianceTyped |
-| MIN_SAMPLES | 1 | count==0（:2018）∨ 资格数 < 调用方显式 min_samples（compat :2250-2259） | :2018/:2250-2259 | R2MinSamples |
-| ALL_REJECTED | 2 | accepted_count==0 且 n>4（全拒非小栈） | :2194 | V15SatelliteTrail20Frames 负样本集；p2_reject_stack_ex 直测 |
-| INVALID_INPUT | 3 | 任一候选 values 或 weights 非 finite | :2025-2034 | V15NoneDoesNotReacceptNaN |
+| OK | 0 | 判定完成且全栈无 UNDERDETERMINED reason 且 accepted_count>0 | :2216-2218 | G6PermutationInvariance；V15ExPermutationInvarianceTyped |
+| MIN_SAMPLES | 1 | count==0（:2018）∨ 资格数 < 调用方显式 min_samples（compat :2250-2259） | :2038/:2256-2265 | R2MinSamples |
+| ALL_REJECTED | 2 | accepted_count==0 且 n>4（全拒非小栈） | :2214 | V15SatelliteTrail20Frames 负样本集；p2_reject_stack_ex 直测 |
+| INVALID_INPUT | 3 | 任一候选 values 或 weights 非 finite | :2045-2054 | V15NoneDoesNotReacceptNaN |
 | UNDERDETERMINED | 4 | n ≤ underdetermined_n ∨ n < method minimum_n（:2067，**underdetermined_n 默认随 profile**：生产档 3 / 对照档 2 / 生产档×extreme_prior 1，:1218-1225）；或部分 UNDERDETERMINED reason（:2197）；或 n≤4 全拒容错 fallback（:2185-2193） | :2064-2073/:2185-2199 | V15SatelliteN2Underdetermined |
 | INVALID_CONFIGURATION | 5 | PERCENTILE×norm≠MEDIAN_CENTER（:2038-2045）∨ RCR×norm≠NONE（:2046-2052）∨ EXTREME_PRIOR×norm≠NONE（:2055-2062） | :2038-2062 | V16InvalidConfigurationCombos |
-| INVALID_METHOD | 6 | plan.method 出界（含 AUTO=10 进 kernel） | :2000-2013（status :2011） | V17InvalidMethodStatus |
+| INVALID_METHOD | 6 | plan.method 出界（含 AUTO=10 进 kernel） | :2020-2033（status :2031） | V17InvalidMethodStatus |
 | INTERNAL_ERROR | 7 | kernel 内部不变量破坏（现状不可达；保留态） | rejection.h 枚举定义 P2_STATUS_INTERNAL_ERROR = 7（kernel 不可达，无 rejection.cpp 锚） | —（设计保留） |
 
 ### 4.2 per-sample reason（rejection.h:71-77；与 status 分离，SCI §7 状态分离不变量）
@@ -503,7 +503,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   P2IntegrateStatus（integrate.h，非本模块域）。**语义权威=本文件 §4.1**。
 - **行号锚（DISP-P2REJ-003，非语义缺陷）**: 本文档 §3/§5 与
   REJECTION_ALGORITHMS.md §12 的行号锚一律以**本次实测**（rejection.cpp
-  2950 行 / rejection.h 595 行）为准；外部文档引用行号与实测不符时，
+  2950 行 / rejection.h 602 行）为准；外部文档引用行号与实测不符时，
   以本文档 §3 为准（与 DISP-P2INT-002 同类）。
 - **minmax tie-break 未显式冻结（DISP-P2REJ-004，合同级限制）**:
   :1897-1898 比较器仅按 value（std::sort 非稳定）——同输入同编译器
@@ -612,7 +612,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   实现 MIN_SAMPLES 不一致（八态无 NO_CANDIDATES；NO_CANDIDATES 属积分域
   P2IntegrateStatus）（§7）；语义权威=本文件 §4.1。
 - **DISP-P2REJ-003**（锚漂移，非语义）: 外部文档行号引用与实测
-  （rejection.cpp 2950 行 / rejection.h 595 行）不符时（§7）；
+  （rejection.cpp 2956 行 / rejection.h 602 行）不符时（§7）；
   行号权威=本文件 §3。
 - **DISP-P2REJ-004**（合同级限制）: minmax 比较器仅 value，等值
   tie-break 未显式冻结（§7）；整改候选=显式 index tie-break + 等值门。
@@ -726,8 +726,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 13 追溯
 
-- 实现: lib/algorithms/coverage/src/rejection.cpp（2950 行）+
-  lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）（实测）。
+- 实现: lib/algorithms/coverage/src/rejection.cpp（2956 行）+
+  lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）（实测）。
 - 合同: DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
   承载页 §独立验证节；可执行落地归 P2-REJ-TEST + EVIDENCE）。

@@ -129,7 +129,7 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（384 行；
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（449 行；
   P2ControlObservation :31-57、P2ModelInfo :60-68、P2UpmBuildConfig
   :71-92、build :95-98、build_geo :103-107、save/open/info
   :108-110、calibrate_block :113-、evaluate_c :122、

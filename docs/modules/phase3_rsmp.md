@@ -51,7 +51,7 @@
 
 ## 4 生产源
 
-- lib/algorithms/resample/p3_resample.h（201 行，签名头正本）+
+- lib/algorithms/resample/p3_resample.h（202 行，签名头正本）+
   lib/algorithms/resample/p3_resample.cpp（586 行）——十符号:
   P3ResampleStatus/p3_order_select/p3_resample_check_mode/
   P3SamplerImpl/P3Sampler/p3_sampler_open/p3_sampler_open_ex/

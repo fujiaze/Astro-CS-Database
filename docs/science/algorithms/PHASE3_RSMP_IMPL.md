@@ -11,7 +11,7 @@
 > docs/science/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/algorithms/resample/p3_resample.h（201 行，唯一权威签名头）+
+> 生产源: lib/algorithms/resample/p3_resample.h（202 行，唯一权威签名头）+
 > lib/algorithms/resample/p3_resample.cpp（586 行）。
 > （2026-09-23 复测; NAN-SAMPLE-MASK 对齐任务新增 P3SampleRejection +
 > p3_sample_bilinear_nanmask_ex，见 §4/§6.5/§6.6。）
@@ -54,7 +54,7 @@
 ## 3 生产源图（实测）
 
 ```text
-lib/algorithms/resample/p3_resample.h        201 行  唯一权威签名头（ALG-P3-003 施工面 11 个
+lib/algorithms/resample/p3_resample.h        202 行  唯一权威签名头（ALG-P3-003 施工面 11 个
                                                      公共符号，§4；另有 P30 缓存观测面与
                                                      DATA-P3-UNC-001 不确定度面符号，§4 表不重复列）
 lib/algorithms/resample/p3_resample.cpp     586 行  全部实现（§6 逐符号）

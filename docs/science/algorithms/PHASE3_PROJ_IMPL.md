@@ -13,7 +13,7 @@
 > §14 = 以独立证据判定、不预设谁为准。订正原则见 `ENGINEERING_SPEC.md` §3。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/algorithms/projection/p3_wcs.h（166 行，唯一权威签名头）+
+> 生产源: lib/algorithms/projection/p3_wcs.h（373 行，唯一权威签名头）+
 > lib/algorithms/projection/p3_wcs.cpp（593 行），已由 lib/phase3_session/ 迁入本目录
 > （内容逐字节等价，行数按新址复测）。
 

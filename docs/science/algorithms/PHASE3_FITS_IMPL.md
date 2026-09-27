@@ -48,7 +48,7 @@
 | DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | p3_output.cpp:142-149 / :314-323 / :339-347 / :378-386 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:36 / :166-176 |
 
-## 3 逐符号锚（p3_output.cpp 1082 行 / p3_output.h 166 行 / p3_wcs.h 166 行，实测）
+## 3 逐符号锚（p3_output.cpp 1082 行 / p3_output.h 166 行 / p3_wcs.h 373 行，实测）
 
 > 行锚按 `grep -n` 现址登记，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；**语义不变**（`ANCHOR_CONTRACT.md` §2/§5：只改数字、不动符号/公式/门）。
 
