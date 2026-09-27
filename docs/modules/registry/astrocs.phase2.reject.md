@@ -31,9 +31,9 @@ downstream: [TEST-P2-REJ-001]
   astrocs_p2_rejection.dll（合同值，尚未存在，P2-REJ-IMPL）。
 - 合同三件套：lib/algorithms/rejection/（按 lib/algorithms/integration/→lib/algorithms/coverage/hips_p2/ 先例
   新建；lib/algorithms/coverage/ 一套已被 P2-COV 占用）。
-- 生产源：lib/algorithms/coverage/src/rejection.cpp（2949 行，根 CMakeLists.txt
+- 生产源：lib/algorithms/coverage/src/rejection.cpp（2956 行，根 CMakeLists.txt
   :336-346/:340 astrocs_phase2 静态库成员）+ 签名头正本
-  lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）。
+  lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）。
 - 模块页：docs/modules/phase2_rej.md。
 
 ## 职责与明确非职责

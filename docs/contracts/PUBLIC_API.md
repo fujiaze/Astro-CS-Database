@@ -477,7 +477,7 @@
 ## Photometric C API（API-PHOT-001）
 
 > ID: API-PHOT-001  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）
-> 头: lib/algorithms/photometry/cpp/include/photometric_calib.h（275 行，唯一
+> 头: lib/algorithms/photometry/cpp/include/photometric_calib.h（277 行，唯一
 > 权威签名头，PC_API :7-11 `extern "C"` 不抛异常）
 > SRC: lib/algorithms/photometry/cpp/src/pc_api.cpp
 > SCI: SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN，共享引用不改动）
@@ -1281,9 +1281,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 清单行 17-19/24-29 的展开冻结，**不新增、不修改任何 C 头/C
 > ABI**）；编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，
 > 内核本身无 session 依赖（无状态纯函数）。
-> SRC: lib/algorithms/coverage/src/integrate.cpp（81 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:344）；唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行: P2PixelStack
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行: P2PixelStack
 > :36-42 / P2IntegrateStatus :45-51 / P2PixelResult :53-63 / 函数
 > 声明 :58-66）；DATA: DATA-P2-INT（DATA_SEMANTICS §21，单位/dtype/
 > shape 唯一权威）；ALG: ALG-P2-INT-001（docs/science/algorithms/
@@ -1355,9 +1355,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 冻结（既有符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；
 > 编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，kernel
 > 无 session 依赖（无状态纯函数）。
-> SRC: lib/algorithms/coverage/src/rejection.cpp（2949 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/rejection.cpp（2956 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）；DATA:
 > DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-REJ-001（docs/science/algorithms/PHASE2_REJECTION.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.rejection（迁移目标
@@ -1491,9 +1491,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 展开冻结，**不新增、不修改任何 C 头/C ABI**）；编排层经
 > API-P2-001（PHASE2_API_V1 phase session）驱动，采样函数无
 > session 依赖（数据面经 P2CoverageResult 显式传入）。
-> SRC: lib/algorithms/coverage/src/sampler.cpp（1536 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/sampler.cpp（1503 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:337-346/:342）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行）；DATA:
 > DATA-P2-SMP（DATA_SEMANTICS §23，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.sampling（迁移目标
@@ -1732,9 +1732,9 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 > 定位: Phase2 UPM fit/persist/apply/reload 公共 C ABI 消费面——
 > 既有 16 导出符号的展开冻结（**不新增、不修改任何 C 头/C ABI**；
 > upm.h 为唯一权威签名头，184 行）。
-> SRC: lib/algorithms/coverage/src/upm.cpp（2793 行，astrocs_phase2 静态库成员，
+> SRC: lib/algorithms/coverage/src/upm.cpp（2981 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:337-346/:338）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/upm.h（449 行）；DATA:
 > DATA-P2-UPM（DATA_SEMANTICS §25，fit/persist 域单位/dtype/invalid
 > 唯一权威）/ DATA-P2-COR（DATA_SEMANTICS §26，apply 域唯一权威）；
 > ALG: ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
@@ -2072,7 +2072,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > 式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
 > SRC: lib/algorithms/resample/p3_resample.cpp（586 行，astrocs_phase3_
 > session 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/algorithms/resample/p3_resample.h（201 行）；DATA: DATA-P3-RES
+> lib/algorithms/resample/p3_resample.h（202 行）；DATA: DATA-P3-RES
 > （DATA_SEMANTICS §29，单位/dtype/invalid 唯一权威）；ALG:
 > ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md，逐符号
 > 锚与 G3/G4 冻结式）；MOD: astrocs.p3.resample（迁移目标

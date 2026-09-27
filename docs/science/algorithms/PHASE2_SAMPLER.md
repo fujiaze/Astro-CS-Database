@@ -12,8 +12,8 @@
 > §处理链第 5 步"控制采样"（链位置）。
 > 关联 ALG: ALG-UPM-CONTROL-IVAR-001（本文件 §5.4 冻结承接，见 §12）；
 > ALG-UPM-001（UPM 拟合，下游消费方）。
-> 模块: lib/algorithms/coverage/src/sampler.cpp（1536 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行，实测）；
+> 模块: lib/algorithms/coverage/src/sampler.cpp（1503 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行，实测）；
 > DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: astrocs.p2.sampling（合同三件套
 > lib/algorithms/sampling/，迁移目标 astrocs_p2_sampling.dll 为矩阵合同值
@@ -86,7 +86,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
   相加/相除）会使标度类消费面整体偏 Ω_px 的幂次倍；本模块输出的混用面 = 已声明
   标度换算的前提下与 ADU 域量混用。
 
-## 3 逐符号锚（sampler.cpp 1536 行 / sampler.h 288 行，实测）
+## 3 逐符号锚（sampler.cpp 1503 行 / sampler.h 273 行，实测）
 
 **导出符号（sampler.h 声明 / sampler.cpp 实现）**：
 
@@ -97,7 +97,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 | p2_stats_median | :103 | :450-457 | 共享 median（NaN 过滤） |
 | p2_stats_mad | :104-105 | :449-461 | 共享 MAD×1.482602218505602（out_median 回传） |
 | p2_sample_controls | :103-114 | :1236-1251 | 采样入口（frame_id 内部计算） |
-| p2_sample_controls_cached | :156-168 | :1255-1271 | 采样入口（外部透传 frame_id 缓存） |
+| p2_sample_controls_cached | :141-153 | :1255-1271 | 采样入口（外部透传 frame_id 缓存） |
 
 **内部符号（匿名/静态）**：
 

@@ -1375,8 +1375,8 @@ signal 回读失败 rc=7 :1665）。
 ## 21. Phase2 integration（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-INT）
 
 > ID: DATA-P2-INT  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/integrate.cpp（81 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
+> 模块: lib/algorithms/coverage/src/integrate.cpp（89 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
 > （astrocs.p2.integration；合同三件套 lib/algorithms/integration/，迁移目标
 > astrocs_p2_integration.dll 为矩阵合同值，尚未存在，由 P2-INT-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 逐像素积分内核
@@ -1477,8 +1477,8 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 ## 22. Phase2 rejection（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-REJ）
 
 > ID: DATA-P2-REJ  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/rejection.cpp（2949 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）
+> 模块: lib/algorithms/coverage/src/rejection.cpp（2956 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）
 > （astrocs.p2.rejection；合同三件套 lib/algorithms/rejection/，迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在，由 P2-REJ-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 候选栈排异内核
@@ -1689,8 +1689,8 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 ## 23. Phase2 sampling（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-SMP）
 
 > ID: DATA-P2-SMP  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/sampler.cpp（1536 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）
+> 模块: lib/algorithms/coverage/src/sampler.cpp（1503 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行）
 > （astrocs.p2.sampling；合同三件套 lib/algorithms/sampling/，迁移目标
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在，由 P2-SAMP-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 background-clean 控制
@@ -2035,8 +2035,8 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
 ## 25. Phase2 UPM fit（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-UPM）
 
 > ID: DATA-P2-UPM  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/upm.cpp（2793 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）（astrocs.p2.upm-fit；
+> 模块: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（449 行）（astrocs.p2.upm-fit；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移目标
 > astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL 建立，
 > IMPLEMENTED 只由验收签发）。本节是 Phase2 UPM fit（联合拟合/持久化/
@@ -2273,8 +2273,8 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 ## 26. Phase2 UPM apply（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-COR）
 
 > ID: DATA-P2-COR  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/upm.cpp（2793 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行，calibrate/evaluate/
+> 模块: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（449 行，calibrate/evaluate/
 > dense_read 面 =upm.h:112-123/:164-172）（astrocs.p2.upm-apply；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移
 > 目标 astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL
@@ -2440,7 +2440,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 > ID: DATA-P3-RES  状态: CONTRACT_READY
 > 模块: lib/algorithms/resample/p3_resample.cpp（586 行）+ 唯一权威签名头
-> lib/algorithms/resample/p3_resample.h（201 行，本域十符号 =p3_resample.h
+> lib/algorithms/resample/p3_resample.h（202 行，本域十符号 =p3_resample.h
 > 全部公共面）（astrocs.p3.resample；astrocs_phase3_session 静态库
 > 成员，根 CMakeLists.txt:460-465；迁移目标 astrocs_p3_resample.dll
 > 为矩阵合同值，尚未存在（DISP-P3RSMP-005），由 P3-RSMP-IMPL 建立，

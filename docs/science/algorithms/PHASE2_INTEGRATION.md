@@ -3,9 +3,9 @@
 > 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
 > ID: ALG-P2-INT-001  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/integrate.cpp（81 行，astrocs_phase2 静态库成员，
+> 模块: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
 > （docs/science/INTEGRATION.md，FROZEN，集合
 > SCI-INT-001/002/004/008，零改动）。DATA: DATA-P2-INT（DATA_SEMANTICS
@@ -47,7 +47,7 @@
 `weights=null` → 等权 1.0。reducer 只消费权重数组本身，本层不编码
 ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 
-## 3 逐符号锚（integrate.cpp 81 行 / integrate.h 74 行，实测）
+## 3 逐符号锚（integrate.cpp 89 行 / integrate.h 83 行，实测）
 
 | 符号/段 | 锚（integrate.cpp） | 语义 |
 |---|---|---|
@@ -75,9 +75,9 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 |---|---|---|
 | 权重策略注释 | :8-11 | stack.support_x_snr2.v1 / stack.equal.v1 |
 | support canonical 语义 | :17 | "output support 唯一 canonical reducer：max(accepted support)" |
-| P2PixelStack | :36-42 | values/weights/support/accepted 可空语义 + count |
-| P2IntegrateStatus | :45-51 | OK=0/NO_CANDIDATES=1/ALL_REJECTED=2/ZERO_VALID_WEIGHT=3/INVALID_INPUT=4 |
-| P2PixelResult | :53-63 | signal/support/n_used/n_candidates/n_accepted/n_finite/n_positive_weight/status |
+| P2PixelStack | :45-51 | values/weights/support/accepted 可空语义 + count |
+| P2IntegrateStatus | :54-60 | OK=0/NO_CANDIDATES=1/ALL_REJECTED=2/ZERO_VALID_WEIGHT=3/INVALID_INPUT=4 |
+| P2PixelResult | :62-72 | signal/support/n_used/n_candidates/n_accepted/n_finite/n_positive_weight/status |
 | 函数声明 | :58-66 | p2_integrate_pixel(:58-59) / p2_validate_candidate_weights(:62-66) |
 
 ## 4 状态机与返回码（五态显式、互斥、可达）
@@ -320,8 +320,8 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ## 13 追溯
 
-- 实现: lib/algorithms/coverage/src/integrate.cpp（81 行）+
-  lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
+- 实现: lib/algorithms/coverage/src/integrate.cpp（89 行）+
+  lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
 - 交叉: docs/modules/phase2_int.md + lib/algorithms/integration/ 三件套；

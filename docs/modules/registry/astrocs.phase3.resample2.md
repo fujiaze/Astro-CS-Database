@@ -31,7 +31,7 @@ downstream: [TEST-P3-RES-001]
   lib/algorithms/projection→phase3_fits 先例新建；lib/phase3_session/ 为会话
   编排域共享源，不整目录归属）。
 - 生产源: lib/algorithms/resample/p3_resample.cpp（586 行）+ 权威源
-  签名头 p3_resample.h（201 行）。
+  签名头 p3_resample.h（202 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007；矩阵 science_id 占位 SCI-P3-RES-001 映射
   声明⇒SCI-P3-001）→ ALG-P3-003（docs/science/algorithms/PHASE3_RESAMPLE.md
