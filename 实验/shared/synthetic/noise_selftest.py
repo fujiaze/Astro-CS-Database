@@ -54,7 +54,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[3]
+ROOT = HERE.parents[2]                      # 仓库根
 sys.path.insert(0, str(HERE))
 import noise_model as NM  # noqa: E402
 
