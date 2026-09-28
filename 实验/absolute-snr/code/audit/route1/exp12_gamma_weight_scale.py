@@ -48,7 +48,7 @@ out["conclusion"] = ("gamma=2 follows from the pairing identity (alpha=2, beta=1
                      "delta=1 already imply it); the 'missing calibration record' is "
                      "satisfied by this derivation + numeric verification at 1e-15.")
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp12_gamma_weight_scale.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp12_gamma_weight_scale.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

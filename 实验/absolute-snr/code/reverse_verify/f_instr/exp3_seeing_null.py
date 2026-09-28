@@ -43,7 +43,7 @@ def main():
     d = np.load(os.path.join(OUT, "scene.npz"))
     sky = d["sky_good"]
     nm = NoiseModel()
-    f0, _ = nm.render(sky, None, None, np.random.default_rng(4242))
+    f0, _ = nm.render(sky, None, None, rng=np.random.default_rng(4242))
     sig = float(1.4826 * np.median(np.abs(f0 - np.median(f0))))
     pos = positions(30)
     n_real = 4
@@ -64,7 +64,7 @@ def main():
             src = np.zeros(sky.shape)
             for (x, y) in pos:
                 src += render_psf(sky.shape, x, y, fw, total=F, beta=BETA)
-            frame, _ = nm.render(sky, src, None, rng)
+            frame, _ = nm.render(sky, src, None, rng=rng)
             for (x, y) in pos:
                 cur, _b = aperture_curve(frame, x, y, [3.0, 4.0, 6.0, 10.0])
                 vals["aper_3"].append(cur[0]); vals["aper_4"].append(cur[1])

@@ -25,15 +25,16 @@ B experiment leg  : analytic sensitivity curve of the truncation window
   and the 05 series +4e-6 / +2.4e-4 / +1.33% (NOT reproduced under S1 or S2;
   sign and magnitude differ -> anchor UNRESOLVED, our curve replaces it).
 C seed             : SEED = 20260926 (deterministic analytic evaluation).
-D outputs          : results/exp10_truncation_window.json
+D outputs          : results/route2/exp10_truncation_window.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt, ceil, log, exp, pi
 
 SEED = 20260926
-OUT = "results/exp10_truncation_window.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp10_truncation_window.json")
 
 def gauss_terms(fwhm, h):
     sig = fwhm / (2.0 * sqrt(2.0 * log(2.0)))

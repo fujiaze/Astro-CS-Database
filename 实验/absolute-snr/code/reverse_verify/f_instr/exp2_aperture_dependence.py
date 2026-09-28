@@ -34,7 +34,7 @@ def positions(n, size=512, margin=40, minsep=32, seed=11):
 
 
 def frame_sigma(sky, nm, seed=4242):
-    f, _ = nm.render(sky, None, None, np.random.default_rng(seed))
+    f, _ = nm.render(sky, None, None, rng=np.random.default_rng(seed))
     return robust_loc_scale(f.ravel())[1] if False else float(
         np.median(np.abs(f - np.median(f))) * 1.4826)
 
@@ -62,7 +62,7 @@ def main():
             src = np.zeros(sky.shape)
             for (x, y) in pos:
                 src += render_psf(sky.shape, x, y, fw, total=F, beta=BETA)
-            frame, _ = nm.render(sky, src, None, rng)
+            frame, _ = nm.render(sky, src, None, rng=rng)
             for (x, y) in pos:
                 cur, bkg = aperture_curve(frame, x, y, RADII)
                 for i, r in enumerate(RADII):

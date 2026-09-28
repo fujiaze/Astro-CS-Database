@@ -61,7 +61,7 @@ for tag, S_src in (("bright", 1.0e4), ("faint", 1.0e2)):
         legacy_signal_includes_sky[-1] / legacy_signal_includes_sky[0])
 out["our_slope"] = results
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp06_sky_monotonicity.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp06_sky_monotonicity.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

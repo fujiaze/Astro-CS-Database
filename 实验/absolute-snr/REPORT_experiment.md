@@ -9,9 +9,9 @@
 ## 【链条位置】
 
 - **上游接口（P1 → P2）**：输入逐帧测光零点 ZP_k（mag）与逐星产品（F、FWHM）。P2 生成 F_ref,k = 10^(−0.4(m_ref−ZP_k)) [ADU]；恒等式 F_ref,k·k_photo,k = F0 锁定与 P1 的自洽 [实验:code/audit/route1/exp04_double_count_bias.py]。P1 低星数帧零点不确定度被低估（MAD 有限样本偏差 1.49×，n=3）会传入 P2，按 P1 单元精度约定处理。
-- **本环产出**：① frame_snr（无量纲，依赖 m_ref，须同档比较）；② 逐源 σ_F/SNR_F（ADU 域）；③ 稀疏控制点 sparse_snr_value = F_ref/σ_F（无量纲，Δ=64 px 网格）；④ 叠加权唯一换算口径 w = SNR²/F_ref² = 1/σ_F² [ADU⁻²]。
+- **本环产出**：① frame_snr（无量纲，依赖 m_ref，须同档比较）；② 逐源 σ_F/SNR_F（ADU 域）；③ 稀疏控制点 sparse_snr_value = F_ref/σ_F（无量纲，Δ=64 px 网格；**边界（P2-B2）**：口径与 schema 已冻结、Phase2 消费面已接线并红绿验证，但 Phase1 侧尚无产者与 HiPS 载体 ⇒ 生产链当前不产出该层，见 REPORT_paper §6）；④ 叠加权唯一换算口径 w = SNR²/F_ref² = 1/σ_F² [ADU⁻²]。
 - **下游消费**：P3 上球（消费控制点＋预测方差；k_corr 查表由 P3 承载，D-08）；P4 稠密重建（插值配置化＋运行日志输出不落盘，已批，承载于 P4）；P5 加性天光去除（w 组合，SNR_comb² = ΣSNR_k²）。
-- **精度约定**：m_ref 随产品落盘；换算权逐帧比对对 m_ref/ZP 不变（≤3.3×10⁻¹⁶）[实验:code/audit/route3/exp04_refmag_chain.py]；量纲错位 ⇒ SNR 偏一个 gain 因子（增益不变性检验锁定约定）[实验:code/audit/route1/exp04_double_count_bias.py]；控制点精度约定 1.5%（N_sky=9216 口径）穿过 P4 接口仅通胀 1.06× [实验:code/audit/route3/exp04_refmag_chain.py]。
+- **精度约定**：m_ref 随产品落盘；换算权逐帧比对对 m_ref/ZP 的**代数**不变性 ≤3.3×10⁻¹⁶，但生产组成下只是近似——m_ref 档实测漂移 1.9%–4.2%（f4 生产驱动最大 4.20%、exp04 生产臂 3.83%、exp05 1.95%；零点灵敏度 1.85% 是另一量），故必须同档比较（P2-M2）[实验:code/audit/route3/exp04_refmag_chain.py]；量纲错位 ⇒ SNR 偏一个 gain 因子（增益不变性检验锁定约定）[实验:code/audit/route1/exp04_double_count_bias.py]；控制点精度约定 1.5%（N_sky=9216 口径）经接口核对传递（首轮 **IDW 代理算子**：RMS 0.229、通胀 1.06×，属代理自身性质；**冻结默认算子** natural_bicubic_spline_clip_v1 在生产 SparseSnrReconstructor 直调下实测 T ≈ 0.87 衰减、同几何 disc 0.1206，见 REPORT_paper §4.9，P2-M5）[实验:code/audit/route3/exp04_refmag_chain.py]。**数值精度**：全部复算 FP64；1e-9 级判据仅 FP64 有定义（FP32 负控 3.4×10⁻⁸，P2-m8）。
 
 ## 1 假说与判定
 
@@ -28,7 +28,7 @@
 | H12 | 方差按 C_out=R C_in Rᵀ 传播；对角近似欠估 | 成立（对角元比 0.9980；对角近似宣称方差仅为实际的 32.5%；欠估闭式 1+ρ(M_eff−1)，36.31%@ρ=0.19、4-tap） | [实验:code/b5_phase3_transfer.py][实验:code/audit/route1/exp10_covariance_diagonal_approx.py] |
 | H13 | "RMSE≡s_field"类门是恒真门、不作证据 | 成立（对抗场下门仍绿 ⇒ 移除；替代判据 E 双向可假） | [实验:code/b6_gates_audit.py] |
 | A1 | κ_MAD、FWHM/σ（Gauss/Moffat4）、截尾均值、中位数 SE 四常数为解析闭式 | 成立（1.5×10⁻¹⁶～10⁻¹³ 级一致；Moffat4 冻结值截断 rel +1.908×10⁻⁶） | [实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route2/exp03_closed_form_constants.py][实验:code/audit/route3/exp02_profile_constants.py] |
-| A2 | c(n=64)=1.152（vs 1.144） | **终裁 1.152（D-04）**：MC 1.1508（+0.19%）；1.144 支算术漂移 5811→5816.6 | [实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route1/exp03_sky_budget_constant.py] |
+| A2 | c(n=64)=1.152（vs 1.144） | **终裁 1.152（D-04）**：MC 1.1508（+0.105%；另一路 MC 1.1542 对应 +0.19%）；1.144 支算术漂移 5811→5816.6 | [实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route1/exp03_sky_budget_constant.py] |
 | A3 | 9216=(1.44/0.015)² 与直接管线测量自洽 | 成立（c≈1.449 ⇒ N_min≈9321，差 1.2%） | [实验:code/audit/route3/exp01_mad_sigma_budget.py] |
 | A4 | 双计偏差登记值 +14.5009%/+38.2524% 存在闭式且逐位复现（05"seed 无关闭式"为错误标签，订正） | 成立（闭式复算 2.35×10⁻¹⁴；Moffat4 MC 复现 3.3×10⁻⁷；增益不变性精确） | [实验:code/audit/route3/exp05_doublecount_corr.py][实验:code/audit/route1/exp04_double_count_bias.py] |
 | A5 | 对角欠估 36.3% 有闭式；23.3% 与之同族 | 成立（1+ρ(M_eff−1)；23.3%=ρ0.101/4-tap 或 M_eff2.6/ρ0.19，A-P2-08） | [实验:code/audit/route1/exp10_covariance_diagonal_approx.py][实验:code/audit/route2/exp07_correlation_diagonal.py] |
@@ -62,7 +62,7 @@
 4. **对角欠估**：1+ρ(M_eff−1) 闭式；36.31%@ρ=0.19、4-tap；23.3% 同族；1+0.75ρ̄ 淘汰 [实验:code/audit/route1/exp10_covariance_diagonal_approx.py]。
 5. **权重唯一性**：γ=2 恒等偏差 4.4×10⁻¹⁶=2 ulp；γ≠2 ⇒ O(1) 畸变；恒等门改 4 ulp 规则（A-P2-10）[实验:code/audit/route1/exp12_gamma_weight_scale.py][实验:code/audit/route1/exp07_weight_and_coadd_identities.py]。
 6. **控制点方差**：N=5 纯公式高估 9.53%（方向词订正，D-07）；端到端 ±1.5%；生产链裁剪臂低估 1.3–3.2%；偶 N 效应 +5.0%@N=20 [实验:code/audit/supplement_control_variance/*]。
-7. **接口传递**：1.5% 控制点精度穿过 P4（通胀 1.06×）；SNR_comb²=ΣSNR_k²（2.2×10⁻¹⁶）；对角近似宣称方差仅为实际 32.5% [实验:code/audit/route3/exp04_refmag_chain.py][实验:code/b4_integration.py][实验:code/b5_phase3_transfer.py]。
+7. **接口传递**：1.5% 控制点精度穿过 P4（首轮 IDW 代理算子通胀 1.06×；冻结默认算子在真实控制网格上 T ≈ 0.87 衰减、disc 0.1206，见 REPORT_paper §4.9）；SNR_comb²=ΣSNR_k²（2.2×10⁻¹⁶）；对角近似宣称方差仅为实际 32.5% [实验:code/audit/route3/exp04_refmag_chain.py][实验:code/b4_integration.py][实验:code/b5_phase3_transfer.py]。
 8. **适用域**：地面稀疏胜帧级（0.0413–0.0825 vs 0.0506–0.1691 dex）、HST 帧级胜（Δ*≈16 px）、稠密 64 MiB/帧超预算 64 倍（诊断地位）[实验:code/b3_domain_map.py]。
 
 ## 5 按分歧台账对既有内容的订正

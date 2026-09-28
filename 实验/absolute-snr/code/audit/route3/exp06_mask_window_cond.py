@@ -151,7 +151,7 @@ out = {
     "H3_conditioning": h3,
 }
 here = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(here, "..", "results", "exp06_mask_window_cond.json")
+path = os.path.join(here, "..", "results", "route3", "exp06_mask_window_cond.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=1, ensure_ascii=False)

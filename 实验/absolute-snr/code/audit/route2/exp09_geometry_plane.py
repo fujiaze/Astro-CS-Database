@@ -19,14 +19,15 @@ B experiment leg  :
        is 4x (the gate's design point), at 1/64 it is 8x.  MC with fixed noise.
   NEGATIVE CONTROL (17): r = 1 (square grid) => inflation 1 (no effect).
 C seed             : SEED = 20260926.
-D outputs          : results/exp09_geometry_plane.json
+D outputs          : results/route2/exp09_geometry_plane.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp09_geometry_plane.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp09_geometry_plane.json")
 
 def plane_design(pts):
     x, y = pts[:, 0], pts[:, 1]

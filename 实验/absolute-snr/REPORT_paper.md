@@ -8,7 +8,7 @@
 
 ## 摘要
 
-跨帧绝对信噪比（SNR）传递链把单帧测光零点提升为可在帧间、口径间与流水线阶段间传递的绝对信噪比标尺。本文对支撑该标尺的全部 25 个登记常数逐项完成文献、实验、理论推导三腿闭合：双计偏差登记值 +14.5009%/+38.2524% 由 Moffat β=4 轮廓的闭式与蒙特卡洛两条路径逐位复现（最大相对偏差 2.35×10⁻¹⁴，机器精度级）[实验:code/audit/route3/exp05_doublecount_corr.py][实验:code/audit/route1/exp04_double_count_bias.py]；协方差对角近似引起的方差欠估 36.3% 获得精确闭式 1+ρ(M_eff−1) 的解释并在同一条曲线上统一了历史遗留的两个读数 [实验:code/audit/route1/exp10_covariance_diagonal_approx.py][推导]；天空样本预算 N_sky=9216=(1.44/0.015)² 与直接管线测量（N_min≈9321）相差 1.2%，阈值自洽 [实验:code/audit/route3/exp01_mad_sigma_budget.py][推导]；叠加权重指数 γ=2 由恒等式 w = SNR²/F_ref² = 1/σ_F² 唯一确定，数值偏差 4.4×10⁻¹⁶（2 ulp），γ≠2 时帧权畸变达 ×0.32–×3.16 [实验:code/audit/route1/exp12_gamma_weight_scale.py]。历史登记中 1.152 与 1.144 的取舍由 20 万次蒙特卡洛终裁为 1.152（相对偏差 +0.19%），对手支系数字漂移 5811→5816.6（分歧台账 D-04）。稀疏控制点 sparse_snr_value = F_ref/σ_F 由此获得完备的量纲、精度与有效性约定，成为下游球面映射（P3）、稠密重建（P4）与加性天光去除（P5）消费的无量纲硬通货。控制点方差语义中有限样本效应被三口径定量定界：纯公式口径下渐近式对真方差高估 9.53%（N=5，保守方向），端到端口径被 MAD 小样本偏置抵消至 ±1.5% 内（分歧台账 D-07）。
+跨帧绝对信噪比（SNR）传递链把单帧测光零点提升为可在帧间、口径间与流水线阶段间传递的绝对信噪比标尺。本文对支撑该标尺的全部 25 个登记常数逐项给出文献腿、实验腿与理论推导腿证据（其中 13 项三腿全做、5 项确认为结构性/合同性常数并附验证、其余给出实验腿与边界刻画——与 §1 贡献 1 同口径）：双计偏差登记值 +14.5009%/+38.2524% 由 Moffat β=4 轮廓的闭式与蒙特卡洛两条路径逐位复现（最大相对偏差 2.35×10⁻¹⁴，机器精度级）[实验:code/audit/route3/exp05_doublecount_corr.py][实验:code/audit/route1/exp04_double_count_bias.py]；协方差对角近似引起的方差欠估 36.3% 获得精确闭式 1+ρ(M_eff−1) 的解释并在同一条曲线上统一了历史遗留的两个读数 [实验:code/audit/route1/exp10_covariance_diagonal_approx.py][推导]；天空样本预算 N_sky=9216=(1.44/0.015)² 与直接管线测量（N_min≈9321）相差 1.2%，阈值自洽 [实验:code/audit/route3/exp01_mad_sigma_budget.py][推导]；叠加权重指数 γ=2 由恒等式 w = SNR²/F_ref² = 1/σ_F² 唯一确定，数值偏差 4.4×10⁻¹⁶（2 ulp），γ≠2 时帧权畸变达 ×0.32–×3.16 [实验:code/audit/route1/exp12_gamma_weight_scale.py]。历史登记中 1.152 与 1.144 的取舍由 20 万次蒙特卡洛终裁为 1.152（20 万次主路实测 1.1508，相对偏差 +0.105%；另一路 MC 读数 1.1542 对应 +0.19%），对手支系数字漂移 5811→5816.6（分歧台账 D-04）。稀疏控制点 sparse_snr_value = F_ref/σ_F 由此获得完备的量纲、精度与有效性约定，成为下游球面映射（P3）、稠密重建（P4）与加性天光去除（P5）消费的无量纲硬通货。控制点方差语义中有限样本效应被三口径定量定界：纯公式口径下渐近式对真方差高估 9.53%（N=5，保守方向），端到端口径被 MAD 小样本偏置抵消至 ±1.5% 内（分歧台账 D-07）。
 
 ---
 
@@ -20,7 +20,7 @@
 
 1. **常数体系的三腿闭合**。全部 25 个登记常数（P-CST-01…25）逐项给出文献腿、实验腿与理论推导腿，其中 13 项三腿全做、5 项确认为结构性/合同性常数并附验证、其余给出实验腿与边界刻画；"真值无效应 ⇒ 度量归零"的负例纪律在全部 35 个审计脚本中内置并运行验证 [实验:code/audit/*]。
 2. **三个争议的终裁执行**。1.152 vs 1.144（D-04）、control_variance N=5 偏差方向与口径（D-07）、k_corr 常数 1.4 的地位（D-08，改查表并由 P3 单元承载）均按台账裁决写定，历史正本中与之冲突的表述相应订正。
-3. **可传递性的接口证明**。以一个贯穿数值用例证明 P1→P2→P3/P4/P5 全链量纲与精度约定的一致性：控制点精度约定（1.5%）完整穿过 IDW 重建接口，换算权的逐帧比对对参考星等档 m_ref 与零点完全不变（相对偏差 ≤3.3×10⁻¹⁶）[实验:code/audit/route3/exp04_refmag_chain.py]。
+3. **可传递性的接口证明**。以一个贯穿数值用例证明 P1→P2→P3/P4/P5 全链量纲与精度约定的一致性：控制点精度约定（1.5%）穿过重建接口（首轮以 IDW 代理算子做接口级核对——代理仅用于检验接口传递性，不宣称冻结算子的迁移已核对；冻结默认算子 natural_bicubic_spline_clip_v1 在真实控制网格上的传递实测：T ≈ 0.87（衰减、无放大）、离散化 rel RMS 0.1206，即 1.06×/0.2287 是代理算子自身性质，见 §4.9）；换算权 w = SNR²/F_ref² 的逐帧比值对参考星等档 m_ref 与零点在**代数上精确不变**（相对偏差 ≤3.3×10⁻¹⁶，因 F_ref 与 SNR 同源、恒等式中该档同时消去）；但该不变性在生产方差组成（含源泊松项，σ_F 不自相似于 F_ref）下只是近似，实测漂移 **1.9%–4.2%**（见 §2 精度约定）[实验:code/audit/route3/exp04_refmag_chain.py]。
 
 ## 2 【链条位置】
 
@@ -30,7 +30,7 @@
 
 **下游消费**。P3 把控制点连同预测方差上球（drizzle）；P4 用插值核从控制点重建稠密 SNR 场（插值参数为配置量，插值设置已批配置化＋运行日志输出不落盘，承载于 P4 单元）；P5 按 w 组合多帧去除加性天光，SNR_comb² = Σ SNR_k²。
 
-**精度约定**。frame_snr 依赖 m_ref（每星等单调降 2.5118864 倍 [实验:code/audit/route3/exp04_refmag_chain.py]），故 m_ref 必须随产品落盘、跨帧比较必须在同一 m_ref 档内；而换算权 w 的逐帧比值对 m_ref 与 ZP 完全不变（相对偏差 ≤3.3×10⁻¹⁶）——这是"跨帧可用、不依赖参考帧"的全部数学根据 [实验:code/audit/route3/exp04_refmag_chain.py]。量纲约定以 ADU 域为像素值域、SNR 无量纲；任何一环的量纲错位都会使 SNR 偏一个增益因子，双计偏差的增益不变性检验（bias 对 gain 精确不变）锁定了正确约定 [实验:code/audit/route1/exp04_double_count_bias.py]。控制点精度约定（1.5%，即 N_sky=9216 预算口径）经验证完整穿过 P4 的重建接口：归一化重建 RMS 0.229 中控制点噪声仅贡献 1.06× 通胀 [实验:code/audit/route3/exp04_refmag_chain.py]。
+**精度约定**。frame_snr 依赖 m_ref：**天光限**（σ_F ∝ F_ref，纯天光支）下每星等精确降 10^0.4 = 2.5118864 倍——这是上游权威的限定语（docs/plugins/algorithms_phase1/07_noise_snr.md:78「天光限下 SNR ∝ F_ref」）；**生产组成**（方差含源泊松项 ⇒ σ_F 不正比于 F_ref）下实测每星等比值 **1.5853–1.5859**（≈10^0.2 = 1.58489）：对抗审查在生产源上实测 1.5853090287937501 / 1.5857058347196948，本订正复核驱动实测 1.5857580959662516（相对 10^0.2 偏差 6.5×10⁻⁴；逐点见 evidence/f4_mref_domain.json）[实验:code/audit/route3/exp04_refmag_chain.py][实验:code/audit/route1/exp05_mref_and_reference_flux.py]。故 m_ref 必须随产品落盘、跨帧比较必须在同一 m_ref 档内。换算权 w = SNR²/F_ref² 的逐帧比值对 m_ref 与 ZP 是**代数恒等**（≤3.3×10⁻¹⁶）；但生产组成下该不变性只是近似：w 的跨帧比值随 m_ref 档漂移 **1.9%–4.2%**（生产驱动 f4 在真实 M42 帧对上最大 **4.20%**；audit exp04 生产臂 3.83%；audit exp05 1.95%；对抗审查实测 +2.03%——差异来自臂配置、m_ref 跨度与估计量）。同一恒等式的**零点灵敏度**是另一个量，不得与本区间混用：ZP ±0.02 mag 下 w 比值变化 1.85%（f4）/1.76%（exp04 负控）——故"跨帧可用、不依赖参考帧"必须与"同档 m_ref"联用，不得表述为对 m_ref 完全不变 [实验:code/audit/route3/exp04_refmag_chain.py]。量纲约定以 ADU 域为像素值域、SNR 无量纲；任何一环的量纲错位都会使 SNR 偏一个增益因子，双计偏差的增益不变性检验（bias 对 gain 精确不变）锁定了正确约定 [实验:code/audit/route1/exp04_double_count_bias.py]。控制点精度约定（1.5%，即 N_sky=9216 预算口径）经**接口级**核对穿过 P4 重建接口（首轮用 IDW 代理算子：归一化重建 RMS 0.229、控制点噪声通胀 1.06× —— 代理自身性质；冻结默认算子 natural_bicubic_spline_clip_v1 实测 T ≈ 0.87 衰减、同几何 disc 0.1206，见 §4.9）[实验:code/audit/route3/exp04_refmag_chain.py]。
 
 ## 3 方法
 
@@ -40,15 +40,16 @@
 
   F̂ = Σ(P_i x_i/σ_i²)/Σ(P_i²/σ_i²)，　σ_F² = 1/Σ(P_i²/σ_i²)。
 
-该式为逆方差加权的标准结果 [文献：Aitken 1935（标注级引用，经负责人批准进入科学文档）；Horne 1986]。帧级标尺锚定于参考星等档：F_ref,k = 10^(−0.4(m_ref−ZP_k))，m_ref=6.0 为单位制锚点（项目冻结纪律，取值不注文献出处）。稀疏控制点的无量纲化 sparse_snr = F_ref/σ_F 使同一数值在不同帧、不同增益配置下语义唯一。
+该式为逆方差加权的标准结果 [文献：Aitken 1935（标注级引用，经负责人批准进入科学文档）；Horne 1986]。
+**上式（D1）的适用前提（须显式列出，失效即边界）**：① 像素噪声相互独立；② 设计矩阵 P 已知且无误差；③ 逐像素方差 σ_i² 已知（以估计量 σ̂_i 代入会引入二阶项，其量级正是 P-CST-08 的 1.152 所度量）；④ 背景估计无误差（背景与源同估时另加 δB 项，边界闭式见 route3/exp06）。失效域：① 失效（像素间相关 ρ>0）时对角近似欠估 Var 比 1+ρ(M_eff−1)（§4.4）；② 失效（轮廓/口径用错）属系统口径偏差，与蒙特卡洛散度分开核算；③ 失效即为 §4.2 的终裁对象 [文献：docs/science/CONTROL_WEIGHT_SNR.md §2b；Horne 1986]。帧级标尺锚定于参考星等档：F_ref,k = 10^(−0.4(m_ref−ZP_k))，m_ref=6.0 为单位制锚点（项目冻结纪律，取值不注文献出处）。稀疏控制点的无量纲化 sparse_snr = F_ref/σ_F 使同一数值在不同帧、不同增益配置下语义唯一。
 
 ### 3.2 常数三腿闭合方法
 
-对每个登记常数，三条证据腿独立取证后交叉判定：**文献腿**核对一手出处（DOI/bibcode/arXiv 级），核验方式与命中状态记入核验台账（refs.md）；**实验腿**以固定 seed 的纯 Python+numpy 蒙特卡洛或数值实验复现，每个实验内置"真值无效应 ⇒ 度量归零或判红"的负例（能红能绿，无恒真门）；**推导腿**给出解析闭式或结构论证。三路重做互不通信、目录隔离，交叉一致方判闭合；路间冲突提交总编对账裁决（分歧台账 D-xx）。全部读数为固定 seed（20260926；补实验 20260601/05）复现值 [实验:code/audit/*]。
+对每个登记常数，三条证据腿独立取证后交叉判定：**文献腿**核对一手出处（DOI/bibcode/arXiv 级），核验方式与命中状态记入核验台账（refs.md）；**实验腿**以固定 seed 的纯 Python+numpy 蒙特卡洛或数值实验复现，每个实验内置"真值无效应 ⇒ 度量归零或判红"的负例（能红能绿，无恒真门）；**推导腿**给出解析闭式或结构论证。三路重做互不通信、目录隔离，交叉一致方判闭合；路间冲突提交总编对账裁决（分歧台账 D-xx）。全部读数为固定 seed（20260926；补实验 20260601/05）复现值 [实验:code/audit/*]。**数值精度声明**：本文全部复算与生产实现均为 IEEE-754 双精度（FP64，weight_chain.h 起全链 double）；文中 1e-9 / ulp 级判据只在 FP64 下有定义——同一判据在 FP32 下必红（负控 route2/exp05_float_tolerances.py 实测 FP32 相对差 3.4×10⁻⁸），故不得据本文判据推断 FP32 实现合规；产品数值位深由 FITS bitpix（-32/-64）承载，与判据精度是两件事 [实验:code/audit/route2/exp05_float_tolerances.py]。
 
 ### 3.3 数据
 
-三类实验数据按最高设计 §12.2 配置：① 完整物理前向仿真（电子域 Moffat β=4 轮廓 + 天光/暗流泊松 + 高斯读出噪声 + 增益/量化，单元主实验 b1–b2，seed 20260921）[实验:code/b1_sky_scan.py][实验:code/b2_noise_terms.py]；② 纯解析代数合成（审计三路的常数恒等式与闭式复算，含全部负例）[实验:code/audit/*]；③ testdata 真实数据（M42 三帧地面视宁度受限域与 HST M16 高对比域，三口径适用域图谱）[实验:code/b3_domain_map.py]。负例均为非退化判据：常数输入⇒σ̂=0、ΔF=0⇒Δm≡0（逐位）、clip 负控 −6.7%~−8.8%、ρ=0⇒对角恒等（逐位 0.0）、常场⇒重建误差 1.4×10⁻¹⁴、RN=0⇒双计偏差=0 [实验:code/audit/*]。
+三类实验数据按最高设计 §12.2 配置：① 完整物理前向仿真（电子域 Moffat β=4 轮廓 + 天光/暗流泊松 + 高斯读出噪声 + 增益/量化，单元主实验 b1–b2，seed 20260921）[实验:code/b1_sky_scan.py][实验:code/b2_noise_terms.py]；② 纯解析代数合成（审计三路的常数恒等式与闭式复算，含全部负例）与"真实信号模板 + 完整物理前向仿真"（HST M16 高对比臂属本类：信号模板取自真实 HST 数据，但噪声/增益/量化/前向过程为完整仿真，不是真实测量）[实验:code/audit/*][实验:code/b3_domain_map.py]；③ testdata 真实数据（**仅** M42 三帧地面视宁度受限域原生帧，三口径适用域图谱）[实验:code/b3_domain_map.py]。负例均为非退化判据：常数输入⇒σ̂=0、ΔF=0⇒Δm≡0（逐位）、clip 负控 −6.7%~−8.8%、ρ=0⇒对角恒等（逐位 0.0）、常场⇒重建误差 1.4×10⁻¹⁴、RN=0⇒双计偏差=0 [实验:code/audit/*]。
 
 ## 4 结果
 
@@ -58,7 +59,7 @@
 
 ### 4.2 天空样本预算：1.152 的终裁与 9216 的自洽
 
-单 patch MAD→σ̂ 换算的相对标准误骨架常数历史上存在 1.152 与 1.144 两读。20 万次蒙特卡洛（n=64）实测 1.1508，与 1.152 相对偏差 +0.19%；1.144 支的天光预算复算 9216→5816.6（非 5811），属算术漂移而非独立测量。分歧台账 D-04 终裁取 1.152 [实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route1/exp03_sky_budget_constant.py]。管线级实测 c_eff = 1.4751±0.023 与理论链 1.152×1.2533 = 1.444 相差 +2.4%（≈1.1σ MC 误差），方向与量级一致 [实验:code/audit/route1/exp03_sky_budget_constant.py]；直接管线测得 c≈1.449 ⇒ N_min≈9321，与登记预算 9216 = (1.44/0.015)² 相差 1.2%，阈值自洽 [实验:code/audit/route3/exp01_mad_sigma_budget.py][推导]。解析渐近闭式给 c_known = 1.1664（合并支 1.148/1.165/1.168 渐近一致）[实验:code/audit/route3/exp01_mad_sigma_budget.py]。按 D-04，历史正本中 5811 的读数一律订正为 5816.6。
+单 patch MAD→σ̂ 换算的相对标准误骨架常数历史上存在 1.152 与 1.144 两读。20 万次蒙特卡洛（n=64）实测 1.1508，与 1.152 相对偏差 +0.105%（另一路 MC 读数 1.1542 对应 +0.19%）；1.144 支的天光预算复算 9216→5816.6（非 5811），属算术漂移而非独立测量。分歧台账 D-04 终裁取 1.152 [实验:code/audit/route1/exp01_robust_statistics_constants.py][实验:code/audit/route1/exp03_sky_budget_constant.py]。管线级实测 c_eff = 1.4750784±0.023 与理论链 1.152×1.2533141 = 1.4438178 相差 **+2.17%**（= 1.36σ MC 误差），方向与量级一致 [实验:code/audit/route1/exp03_sky_budget_constant.py]；直接管线测得 c≈1.449 ⇒ N_min≈9321，与登记预算 9216 = (1.44/0.015)² 相差 1.2%，阈值自洽 [实验:code/audit/route3/exp01_mad_sigma_budget.py][推导]。解析渐近闭式给 c_known = 1.1664（合并支 1.148/1.165/1.168 渐近一致）[实验:code/audit/route3/exp01_mad_sigma_budget.py]。按 D-04，历史正本中 5811 的读数一律订正为 5816.6。
 
 ### 4.3 双计偏差：闭式存在且逐位复现
 
@@ -90,10 +91,35 @@
 
 跨级传递的对拍在历史正本与本轮审计中双重完成：P2→P3 方差传播 C_out = R C_in Rᵀ 的对角元 MC 比值 0.9980；对角近似宣称的方差只有实际散度的 32.5%，故点源信息量必须按输出 PSF 与完整协方差重算 [实验:code/b5_phase3_transfer.py]。三口径（帧级标量 / 稀疏 Δ=64 / 稠密）在 testdata 两域给出互补适用域：地面视宁度受限域稀疏口径全部优于帧级标量（RMSE 0.0413–0.0825 vs 0.0506–0.1691 dex），HST 高对比域帧级标量最好且失效边界 Δ*≈16 px；稠密口径存储 64 MiB/帧超预算 64 倍，确认其诊断地位 [实验:code/b3_domain_map.py]。SNR 路径 fail-closed 状态语义经转写自检与静默降级注入判红验证 [实验:code/b6_gates_audit.py]。
 
+**帧级标量口径的电平系统偏差（P2-M3，补实验 EXP-05 表 A）**：生产 frame_snr 的 σ 取**整帧两轮裁剪 RMS**（作用域整帧、聚合为平方型），其被估量是 RMS(σ) 而非控制点中位 median(σ)，且整帧足迹把大尺度星云结构计入噪声。在真实 M42 帧上以 1 px 棋盘 hold-out（估计/真值零像素重叠）实测：**帧级标量（相对）表示**的 SNR 电平相对真值**偏低 15%–77%**（随面板结构含量而变；flat_with_struct 臂 −45.70%），而**绝对（控制点/逐像素）表示**在同域 **≤0.2%**（真实数据 ≤0.19%）；无结构场景下两者相当（−1%~+2%）。该偏低是**共模**项（逐帧常数 c_k·b_c），**不随帧数增加而消**，故多帧叠加不能修复 ⇒ 绝对口径不是"更精细"，而是消除该共模项的**必要条件**。同时登记一条归因订正：历史「整帧未裁剪 MAD 比裁剪 RMS 高 31.27% ⇒ 帧级 SNR 偏低 23.8%」不成立——1.3127 的分子来自另一条路径（noise_model 的未裁剪 MAD），与 frame_snr 的裁剪 RMS 不同源 [实验:code/exp05/exp05_common.py][实验:code/audit/supplement_control_variance/*]。
+
+### 4.9 冻结默认重建算子的迁移核对（P2-M5）
+
+补脚本 route3/exp11_frozen_operator_transfer.py 只读编译**生产**类 astrocs::v6::p2weight::SparseSnrReconstructor（weight_chain.cpp，sha256 记入产物 JSON；零 Python 重实现），在真实 M42 三帧 4096² × 真实生产控制网格（Δ=64 ⇒ 4096 控制点；Δ=32 加密对照、cell_center_v1、节点 31.5+64i）上实测**噪声传递因子** T = RMS(重建场扰动)/RMS(控制值扰动)（与真值、噪声模型无关）：**冻结默认算子 natural_bicubic_spline_clip_v1 的 T = 0.856–0.911（18 个读数全部 < 1，衰减、无放大）**；bilinear_regular_grid_v1 0.659–0.664（无钳制对照档）；nearest_control_point_v1 1.000/1.000（逐位，恒等互验）；mesh_median 0.660–0.733（非线性：单位脉冲恒 0、叠加残差 7.1×10⁻³）。无真值交叉验证：单位脉冲 Σ_k w_k(q)² 闭式 0.8539 vs 生产脉冲实测 0.8627；真实帧 1024² 全节点窗口 pred 0.8687 vs meas 0.8794（差 1.2%）。解析正弦真值下离散化相对 RMS：**冻结默认 0.1206**、mesh 0.5168、bilinear 0.1444、nearest 0.3173，而 **IDW 代理同几何 0.22874**（与 exp04 存档逐位一致）⇒ 结论：**§4.2 的「1.06× 通胀 / 0.2287 量级」是 IDW 代理算子自身的性质，不适用于冻结默认算子**——默认算子的控制点噪声传递是**衰减**而非通胀。16 门全绿（red_gates = []），含 fail-closed 负例（4 个未知算子 token、nearest 用于规则网格、控制值 0/负、nx<2、全 NaN、角点锚定网格）与正例（部分 NaN 按最近有效点填充 n_filled=3）；钳制档实测 clipped=1（bilinear clipped=0）；正齐次性 R(K·v)=K·R(v) 到 8.2×10⁻¹⁶。
+
+**度量陷阱（口径约定）**：名义的「1.5%·mean(重建场)」归一读数 = T × RMS(控制值)/mean(重建场)，在重尾 σ 表示下会虚高（M2 帧达 4.79），而同一算子的 T = 0.873 ⇒ **凡判「控制点噪声是否被放大」一律用 T，不用名义归一读数**。
+
+**诚实边界**：真实帧无逐像素真值 ⇒ 真实帧上的离散化 rel RMS（P=16 cell 中心 65536 点/帧、估计器自身 SE 0.0732）被估计器散度主导，四个差异极大的算子读数反而几乎相同（0.851–0.895）⇒ **该量分辨不出算子、只能作上界；T 能分辨（0.66–1.00）**。控制网格取自 σ 估计场而非 P1 真实控制点产品；Δ=32 仅加密对照；nearest 只在散点模式合法；钳制不可独立关闭（合同把核/滤波/钳制绑成单一 token）。读数与红/绿命令见 run/FINAL-07/审核包/科研审查/P2_订正/evidence/P2-M5_exp11_frozen_operator_transfer.md [实验:code/audit/route3/exp11_frozen_operator_transfer.py]。
+
+  T = RMS(重建场扰动)/RMS(控制值扰动)（与真值、噪声模型无关）：
+
+  | 算子 token | T（Δ=64，三帧） | 读法 |
+  |---|---|---|
+  | **natural_bicubic_spline_clip_v1（冻结默认）** | **0.856–0.911（18 个读数全部 < 1）** | **衰减、无放大** |
+  | bilinear_regular_grid_v1 | 0.659–0.664 | 无钳制对照档 |
+  | nearest_control_point_v1 | 1.000 / 1.000（逐位） | 恒等，D↔C 互验 |
+  | …_mesh_median_v1 | 0.660–0.733 | 非线性（单位脉冲恒 0、叠加残差 7.1×10⁻³） |
+
+  无真值交叉验证：单位脉冲的 Σ_k w_k(q)² 闭式 0.8539 vs 生产脉冲实测 0.8627；真实帧 1024² 全节点窗口 pred 0.8687 vs meas 0.8794（差 1.2%）。解析正弦真值下离散化相对 RMS：**冻结默认 0.1206**、mesh 0.5168、bilinear 0.1444、nearest 0.3173，**IDW 代理同几何 0.22874**（与 exp04 存档逐位一致）⇒ 结论：**§4.2 的「1.06× 通胀 / 0.2287 量级」是 IDW 代理算子自身的性质，不适用于冻结默认算子**；默认算子的控制点噪声传递是**衰减**而非通胀。16 门全绿（red_gates=[]），含 fail-closed 负例（4 个未知算子 token、nearest 用于规则网格、控制值 0/负、nx<2、全 NaN、角点锚定网格）与正例（部分 NaN 按最近有效点填充 n_filled=3）；钳制档实测 clipped=1（bilinear clipped=0）；正齐次性 R(K·v)=K·R(v) 到 8.2×10⁻¹⁶。
+
+  **度量陷阱（口径约定）**：名义的「1.5%·mean(重建场)」归一读数 = T × RMS(控制值)/mean(重建场)，在重尾 σ 表示下会虚高（M2 帧达 4.79），而同一算子的 T = 0.873 ⇒ **凡判「控制点噪声是否被放大」一律用 T，不用名义归一读数**。
+
+  **诚实边界**：真实帧无逐像素真值 ⇒ 真实帧上的离散化 rel RMS（P=16 cell 中心 65536 点/帧、估计器自身 SE 0.0732）被估计器散度主导，四个算子读数几乎相同（0.851–0.895）⇒ **该量分辨不出算子、只能作上界；T 能分辨（0.66–1.00）**。控制网格取自 σ 估计场而非 P1 真实控制点产品；Δ=32 仅加密对照；钳制不可独立关闭（合同把核/滤波/钳制绑成单一 token）。读数与红/绿命令见 run/FINAL-07/审核包/科研审查/P2_订正/evidence/P2-M5_exp11_frozen_operator_transfer.md [实验:code/audit/route3/exp11_frozen_operator_transfer.py]。
+
 ## 5 结论
 
 1. 跨帧绝对 SNR 的常数体系整体闭合：25 个登记常数全部获得三腿证据，其中全部科学量常数达到闭式或逐位复现级闭合；两处历史登记笔误（1.144 支算术漂移、"seed 无关闭式"标签）与两处符号/方向词笔误（截断方向、N=5 方向词）已按台账订正。
-2. 稀疏控制点 sparse_snr_value = F_ref/σ_F 具备成为无量纲硬通货的全部要件：量纲约定被增益不变性锁定，m_ref 依赖被权重比值不变性中和，控制点精度约定（1.5%）经验证完整穿过下游重建接口。
+2. 稀疏控制点 sparse_snr_value = F_ref/σ_F 具备成为无量纲硬通货的全部要件：量纲约定被增益不变性锁定；m_ref 依赖在天光限（σ_F ∝ F_ref）下被权重比值恒等式**精确**中和，在生产组成下只被**近似**中和（m_ref 档实测漂移 1.9%–4.2%），故跨帧使用必须同档 m_ref 且该档随产品落盘；控制点精度约定（1.5%）经接口级核对穿过下游重建接口（代理算子），冻结默认算子的迁移核对见 §4.9。
 3. 叠加权重 γ=2 由恒等式唯一确定，是定义性结论而非标定结论；k_corr 不再是单一冻结常数而由 P3 单元的几何查表承载。
 4. 控制点方差的有限样本效应被定量定界且方向保守：渐近式对真方差高估（纯公式口径），生产链裁剪臂低估 1.3–3.2%（量级在预算裕量内）。
 
@@ -107,6 +133,10 @@
 - **文献腿降级项**：Serfling 1980 与 Cramér 1946 §28.5 为书目级（小节号存疑，标注后引用）；Moffat 1969 为 ADS bibcode 锚定（DOI 未核）；Aitken 1935 已核 DOI 10.1017/S0370164600014346（年份维持 1935 通行引法；出版年 INSPIRE 记 1936——卷 55 跨 1935–36，1936 通行注同文；经负责人批准进入科学文档。<!-- 订正: 检查-行文逻辑 Y6——原作「DOI 未核」，以 PHOTOMETRY.md:305 / refs.md V11 的已核状态为准统一 -->）全部核验状态见 refs.md。
 - **本单元主实验的仿真坐标**（g=1.3 e⁻/ADU、RN=10 e⁻ 等）为声明量，不反解物理参数；真实数据面无解析真值，hold-out 真值自带 0.0224 dex 噪声。
 - **对 MC 真值的偏置数字带 ±3 pp 蒙特卡洛噪声**（N=1000 时 σ_F 估计量相对标准误 ≈2.2%），闭式预言与实测臂比值之差（≤1.25 pp）才是低噪证据；引用具体偏置数字时应注明该不确定度。
+- **帧级标量口径存在共模电平偏差 −15%~−77%**（§4.8；真实 M42 帧 hold-out 实测，随结构含量而变，不随帧数消）；本文的绝对口径结论**不得**被读成"帧级标量口径已可用"。历史「整帧未裁剪 MAD 高 31.27% ⇒ 帧级 SNR 偏低 23.8%」为归因错误，已按 EXP-05 §2.5 订正。
+- **误差预算文档与补实验适用域已纳入引用集**（P2-M4）：本单元 docs/snr-propagation-design.md（误差预算口径：eps_drizzle 计入求和、eps_theta 复核 +20.1%/+608.6%）、docs/EXP-05-ABSOLUTE-SNR.md（三口径适用域与电平偏差）、docs/EXP-06-SNR-PHYS.md 与 docs/EXP-06-SUMMARY.md（口径差未决项）；此前两稿未收这些域边界。
+- **稀疏层的生产者与载体缺位（P2-B2 新增硬边界）**：本文所称"帧内稀疏绝对 SNR 控制点"当前在生产链上**无产者**——Phase1 尚无 sparse_snr_layer 侧车写者（合同 schema 已冻结于 eng/contracts/schemas/unified/sparse_snr_layer.schema.json）与 HiPS 属性载体（ASTROCS_SPARSE_SNR_LAYER）发布者。Phase2 侧本轮已把 snr_path 的消费面**真正接上**并与合同对齐：请求 sparse_reconstruct 时按属性读取稀疏层、**逐像素**以 w = (sparse_snr/F_ref,k)²·g_k² 组合（红/绿臂见订正报告 P2-B2 与 run/FINAL-07/logs/p2b2_*）；缺层/层损坏/枚举非法一律 fail-closed（SNR_PATH_DENSE_UNAVAILABLE / SPARSE_SNR_LAYER_DAMAGED / INVALID_SNR_PATH_TOKEN）**不静默降级**，snr_path_effective / snr_path_reason / 层帧计数随产品落盘（旧版 in.sparse = nullptr 的悬空接线已删）。⇒ 论文中"控制点已产出并可被下游消费"须降级为"口径已冻结 + 消费面已接线并红绿验证 + 生产者与载体待交付"；在产者落地前，P3/P4/P5 对稀疏层只能走 frame_reconstruct 或稠密路径。
+- **数值精度**：全部复算 FP64；1e-9 级判据在 FP32 下无定义（FP32 负控实测 3.4×10⁻⁸）——不得据本文判据推断 FP32 实现合规（P2-m8）。
 
 ## 参考文献
 
@@ -119,7 +149,7 @@
 5. Rousseeuw, P. J., & Croux, C. (1993). Alternatives to the median absolute deviation. JASA 88(424), 1273–1283. DOI: 10.1080/01621459.1993.10476408. [MAD→σ 常数]
 6. Croux, C., & Rousseeuw, P. J. (1992). Time-efficient algorithms for two highly robust estimators of scale. Computational Statistics, 411–428. DOI: 10.1007/978-3-662-26811-7_58. [稳健尺度算法]
 7. Stigler, S. M. (1977). Do robust estimators work with real data? Ann. Statist. 5(6), 1055–1098. DOI: 10.1214/aos/1176343997. [稳健性实证]
-8. Moffat, A. F. J. (1969). A theoretical investigation of focal stellar images. A&A 3, 455. bibcode: 1969A&A.....3..455M. [β=4 轮廓；bibcode 锚定，标注级（未逐页）]
+8. Moffat, A. F. J. (1969). A theoretical investigation of focal stellar images. A&A 3, 455. bibcode: 1969A&A.....3..455M. [Moffat 轮廓族出处：该文给出的是以 β 为自由参数的轮廓族，**β=4 不是该文结论**，而是项目/工具约定（PixInsight 标定集用 β=4，见 docs/science/PSF_SIGNAL_WEIGHT.md 引文与 docs/plugins/*/07_noise_snr.md 的冻结口径）；bibcode 锚定，标注级（未逐页）——P2-m1 订正]
 9. Zackay, B., & Ofek, E. O. (2017). TRIPOLI series. ApJ 836, 187/188. arXiv:1512.06872; arXiv:1512.06879. [背景主导噪声极限与 SNR 传递的相容性]
 10. Bertin, E., & Arnouts, S. (1996). SExtractor: Software for source extraction. A&AS 117, 393–404. DOI: 10.1051/aas:1996164. [背景估计与掩膜实践参照（不作为 k 值出处）]
 11. Goldberg, D. (1991). What every computer scientist should know about floating-point arithmetic. ACM Comput. Surv. 23, 5. [浮点门值]
@@ -127,7 +157,7 @@
 13. Howell, S. B. (2006). Handbook of CCD Astronomy, 2nd ed. Cambridge Univ. Press. [CCD 方程；标准专著]
 14. Newberry, M. V. (1991). Signal-to-noise considerations for sky-subtracted CCD data. PASP 103, 122. DOI: 10.1086/132801. [天空扣除 SNR]
 15. IVOA (2017). Hierarchical Progressive Surveys, REC 1.0. DOI: 10.5479/ADS/bib/2017ivoa.spec.0519F. [hips_tile_width=512；官方 PDF 正文命中]
-16. Riello, M. et al. (2020). Gaia EDR3: Photometric content and validation. A&A 649, A3. arXiv:2012.01916. [测光标定实践]
-17. Pinelis, I. (2022). On the variance of the sample median. ALEA Lat. Am. J. Probab. Math. Stat. 19, 359. [样本中位数方差；全文取回]
+16. Riello, M. et al. (2021). Gaia EDR3: Photometric content and validation. A&A 649, A3. arXiv:2012.01916（arXiv 2020-12-03 预印；Crossref 10.1051/0004-6361/202039587 出版年 2021）. [测光标定实践；年标按出版年订正，P2-m2]
+17. Christoph, G., Ulyanov, V. V., & Bening, V. E. (2022). Second Order Expansions for Sample Median with Random Sample Size. ALEA Lat. Am. J. Probab. Math. Stat. 19, 339–365. DOI: 10.30757/ALEA.v19-13. [样本中位数方差；期刊全文取回，著者/题名/页码经 Crossref 与期刊 PDF 双核]
 18. Akinshin, A. arXiv:2209.12268; arXiv:2207.12005. [MAD 有限样本偏置修正因子；摘要级]
 19. Stetson, P. B. (1987). DAOPHOT: A computer program for crowded-field stellar photometry. PASP 99, 191. DOI: 10.1086/131977. [逐源测光背景，链上参照]

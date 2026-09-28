@@ -36,7 +36,7 @@ K_MAD = 1.482602218505602                      # robust_sigma 因子（sampler �
 K_KCORR = 1.0                                  # 本实验隔离 (pi/2) leg：k_corr 置 1
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "results", "finiteN_control_variance.json")
+OUT = os.path.join(HERE, "..", "results", "supplement_control_variance", "finiteN_control_variance.json")
 
 N_GRID_ODD = [5, 7, 9, 11, 13, 15, 17, 21, 25, 33, 41, 49, 65, 81, 97, 129, 161, 201]
 N_GRID_EVEN = [20, 40, 100]                    # 偶数 N（中位数 = 两个中央序统计量均值），仅 MC

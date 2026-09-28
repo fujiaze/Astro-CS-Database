@@ -91,7 +91,7 @@ out["null_no_source"] = {"bias_r2": b0a, "bias_r60": b0b,
                          "difference": abs(b0a - b0b),
                          "expected": "~0 within MC error"}
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp11_mask_radius_bias.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp11_mask_radius_bias.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

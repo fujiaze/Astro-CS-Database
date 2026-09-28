@@ -19,15 +19,16 @@ B experiment leg  :
        in float32 (dev ~1e-7, trips) => the tolerance is meaningful only under
        the FP64 evaluation rule.  Negative control: float32 must trip.
 C seed             : SEED = 20260926.
-D outputs          : results/exp05_float_tolerances.json
+D outputs          : results/route2/exp05_float_tolerances.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt, log
 
 SEED = 20260926
-OUT = "results/exp05_float_tolerances.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp05_float_tolerances.json")
 
 def bicubic_catmull(p0, p1, p2, p3, t):
     # Catmull-Rom cubic through 4 nodes, separable use

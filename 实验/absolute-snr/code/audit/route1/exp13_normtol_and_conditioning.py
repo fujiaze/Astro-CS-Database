@@ -88,7 +88,7 @@ out["conditioning_note"] = ("the x-slope coefficient error scales ~ 1/lambda_rat
                             "the 1/16 criterion is the last well-conditioned rung "
                             "(formula-derived, no external literature needed).")
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp13_normtol_and_conditioning.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp13_normtol_and_conditioning.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

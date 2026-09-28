@@ -91,7 +91,7 @@ out["mc_equicorrelated_check"] = {"ratio_numeric_var_exact_over_diag": vex / vdg
                                   "closed_form": 1 + rho * 3.0}
 out["null_rho0_metric"] = float(abs((c @ np.eye(4) @ c) / ((c ** 2) @ np.ones(4)) - 1.0))
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp10_covariance_diagonal_approx.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp10_covariance_diagonal_approx.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

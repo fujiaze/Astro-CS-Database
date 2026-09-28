@@ -25,14 +25,15 @@ B experiment leg  :
        family.  Honest boundary: toy model, original calibration grid not
        archived in 05.
 C seed             : SEED = 20260926.
-D outputs          : results/exp07_correlation_diagonal.json
+D outputs          : results/route2/exp07_correlation_diagonal.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp07_correlation_diagonal.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp07_correlation_diagonal.json")
 
 def gls_variance(C):
     """GLS variance of estimating a common mean from correlated pixels:

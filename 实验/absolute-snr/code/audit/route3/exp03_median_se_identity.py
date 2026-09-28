@@ -82,7 +82,7 @@ out = {
     "H3_gamma": h3,
 }
 here = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(here, "..", "results", "exp03_median_se_identity.json")
+path = os.path.join(here, "..", "results", "route3", "exp03_median_se_identity.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=1, ensure_ascii=False)

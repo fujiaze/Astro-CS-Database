@@ -61,7 +61,7 @@ out["null_rho0"] = {
     "expected": 1.0,
 }
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp14_kcorr_inflation.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp14_kcorr_inflation.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

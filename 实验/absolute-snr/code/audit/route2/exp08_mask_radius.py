@@ -18,16 +18,17 @@ B experiment leg  : synthetic-frame Monte Carlo (MASK-002 oracle style).
   NEGATIVE CONTROL 2: fixed r = 60 px on a 256^2 / 50-star frame => N_sky <
   9216 (budget violation must be detectable; sky-budget invariant).
 C seed             : SEED = 20260926 (frame generation, flux draws).
-D outputs          : results/exp08_mask_radius.json
+D outputs          : results/route2/exp08_mask_radius.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt, log, pi
 
 SEED = 20260926
 KAPPA = 0.1
-OUT = "results/exp08_mask_radius.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp08_mask_radius.json")
 
 def r_local_moffat(F, fwhm, beta, k, sigma_bg):
     alpha = fwhm / (2.0 * sqrt(2.0 ** (1.0 / beta) - 1.0))

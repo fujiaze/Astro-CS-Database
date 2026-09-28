@@ -50,7 +50,7 @@ out["identity_snr_comb_squared"] = {
     "within_4_ulp": bool(resid.max() <= 4 * 2.220446049250313e-16),
 }
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp07_weight_and_coadd_identities.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp07_weight_and_coadd_identities.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

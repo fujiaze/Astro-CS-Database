@@ -148,7 +148,7 @@ out["P-CST-07"]["mc_c_sqrt_n_N200"] = c_meas
 out["P-CST-07"]["mc_1sigma_err"] = float(mc_rel_err * k_med)
 out["P-CST-07"]["mc_z_vs_closed"] = float((c_meas - k_med) / (mc_rel_err * k_med))
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp01_robust_statistics_constants.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp01_robust_statistics_constants.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

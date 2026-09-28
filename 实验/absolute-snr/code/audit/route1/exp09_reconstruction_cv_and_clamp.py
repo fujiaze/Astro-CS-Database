@@ -189,7 +189,7 @@ out["clamp_checkerboard"] = {
             "(repo P-ALG-09), while for IDW the clamp is a no-op by construction.",
 }
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp09_reconstruction_cv_and_clamp.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp09_reconstruction_cv_and_clamp.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

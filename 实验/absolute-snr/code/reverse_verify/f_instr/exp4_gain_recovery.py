@@ -69,7 +69,7 @@ def pair_case(sky, pos, nm, fwhm_a, fwhm_b, gain, response_b=None, n_real=4, see
         FA = 100.0 * 0.0
         # 真值通量: 以帧 A 的峰值 S/N=100 定标 (两帧同一批星)
         if sig is None:
-            f0, _ = nm.render(sky, None, None, np.random.default_rng(4242))
+            f0, _ = nm.render(sky, None, None, rng=np.random.default_rng(4242))
             sig = float(1.4826 * np.median(np.abs(f0 - np.median(f0))))
         F = 100.0 * sig / float(moffat_profile(0.0, 0.0, fwhm_a, BETA))
         srcA = np.zeros(sky.shape); srcB = np.zeros(sky.shape)
@@ -77,8 +77,8 @@ def pair_case(sky, pos, nm, fwhm_a, fwhm_b, gain, response_b=None, n_real=4, see
             srcA += render_psf(sky.shape, x, y, fwhm_a, total=F, beta=BETA)
             srcB += render_psf(sky.shape, x, y, fwhm_b, total=F * gain, beta=BETA)
         Rb = np.ones(sky.shape) if response_b is None else response_b
-        frA, _ = nm.render(sky, srcA, None, rngA)
-        frB, _ = nm.render(sky, srcB, Rb, rngB)
+        frA, _ = nm.render(sky, srcA, None, rng=rngA)
+        frB, _ = nm.render(sky, srcB, Rb, rng=rngB)
         mA = measure(frA, pos, sig, fwhm_a)
         mB = measure(frB, pos, sig, fwhm_b)
         for name in mA:

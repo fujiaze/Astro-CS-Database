@@ -253,6 +253,11 @@ inline int walk_tree(const std::string& root,
 // 显式失败, 无静默重复）。
 #include "executor.cpp"
 #include "executor_runtime.h"
+// 编排参数（docs/contracts/SCHEDULER_CONTRACT.md §3 / R-27）：tile span / sub_block_px /
+// queue_depth 的数值唯一来源 =
+// eng/packaging/config/runtime_resources.json（orchestration_params 节），经本生成头消费
+// ⇒ 实现侧零字面量。值域守卫（kP3Min/MaxSubBlockPx）保留为 fail-closed。
+#include "runtime_resources_generated.h"
 
 // session C ABI（与 lib/phaseN_session/*.h 一致；避免把会话头拉进 core 依赖图）
 extern "C" {
@@ -9030,9 +9035,13 @@ bool p2_read_bin_range(const std::string& path, uint64_t offset_elems,
   return true;
 }
 
-// tile 内 leaf 数（512×512 标准 HiPS tile = 2^18 leaf）
-constexpr uint64_t kP2TileLeafSpan = 512ULL * 512ULL;
-constexpr uint32_t kP2TileShift = 9;  // leaf order − tile order 差（512=2^9）
+// tile 内 leaf 数（512×512 标准 HiPS tile = 2^18 leaf）与 leaf/tile 阶差。
+// R-27 受控化：数值唯一来源 = eng/packaging/config/runtime_resources.json
+// （orchestration_params 节）经 runtime_resources_generated.h 消费，本文件零字面量；
+// 二者关系 span == (2^shift)^2 由生成头 static_assert 锁定。tile span 同时是 P2
+// **产品格式不变量**（见 p2_op_reject 的 tile_leaf_span 逐位比对），不是可自由调参。
+using astrocs::runtime_resources::kP2TileLeafSpan;
+using astrocs::runtime_resources::kP2TileShift;
 
 // ── PERF-P2: 确定性 tile 级并行执行器 ────────────────────────────
 // 线程数 = Runtime lease 注入的 __workers（AGENTS §5: 禁硬编码线程数; 1 = 串行
@@ -9808,7 +9817,11 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // B_ref(x)+δ_k(x)（稀疏样条, 按需求值, 不建稠密栅格）。采样点直接由
   // background-clean control observations 映射（与 sampler patch estimator
   // 同源）; 成功后 save 供 upm-apply 逐像素扣除。失败显式降级（保留 UPM C
-  // 场）并记日志, 不静默、不写半成品。config: doc["sky_plane"]。
+  // 场）并记日志, 不静默、不写半成品。**降级的下游后果在 apply 节点闭合**：
+  // 请求 δ 而无天光面产物时，apply 只能退化为全减（背景归零），该产品按
+  // docs/plugins/algorithms_phase2/11_upm.md §7 判红 —— 具名 degraded_reason +
+  // warning_codes 随 p2_corrected.json 与节点 manifest 落盘。
+  // config: doc["sky_plane"]。
   {
     const Json sp_cfg = (doc.contains("sky_plane") && doc["sky_plane"].is_object())
                             ? doc["sky_plane"] : Json::object();
@@ -9824,8 +9837,11 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     //   而 FIX-A-UPM-001 已被 FIX-SCI-SNR-CANON-001 否决 ⇒ 该前提消失。
     // 处置：缺省 = (additive_mode ∈ {delta,both})，即「要施加才构建」；
     // 显式 sky_plane.enabled 始终优先。默认路径不再产出无消费方的
-    // p2_sky_plane.bin（其稀疏样条拟合 + Schur 解是纯成本），
-    // 且 additive_mode=delta 时不会静默退化为 c。
+    // p2_sky_plane.bin（其稀疏样条拟合 + Schur 解是纯成本）。该缺省只保证
+    // **默认配置**下 δ 与天光面同来同去：天光面被显式关闭或构建失败时，
+    // 请求 δ 的施加节点仍退化为全减 c。该退化**不是静默**——apply 节点写
+    // degraded_reason=no_sky_plane_artifact + warning_codes=
+    // P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE（判红面，下游/门禁按码判定）。
     const Json seam_pre =
         (doc.contains("seam") && doc["seam"].is_object()) ? doc["seam"]
                                                          : Json::object();
@@ -10312,11 +10328,26 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       additive_mode != "both")
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "seam.additive_mode invalid (expect c|delta|both): " + additive_mode));
+  // ── 加性施加模式的显式降级登记（判红面）────────────────────────────────
+  // 依据 docs/plugins/algorithms_phase2/11_upm.md §5/§7：请求 δ（delta 或 both）
+  // 而无天光面产物 ⇒ δ 不存在，只能退化为单次 C 扣除（**全减**，背景归零）；
+  // 该形态必须判红，不得以"看起来没有警告"通过。判红面 = 具名
+  // degraded_reason + warning_codes（产品照出、rc 不变，口径同 §4.6/§7 的
+  // warning_codes 约定），随 p2_corrected.json 与节点 manifest 同时落盘，
+  // 下游/门禁按警告码判定。绝不静默变成 raw 不校正，也绝不回退到双重扣除。
   std::string additive_mode_effective = additive_mode;
-  if (additive_mode == "delta" && !sky_guard.m) {
-    // 无天光面产物 ⇒ δ 不存在；退化为单次 C 扣除并显式登记（绝不静默变成
-    // raw 不校正，也绝不回退到双重扣除）。
+  std::string additive_degraded_reason;
+  std::vector<std::string> additive_warning_codes;
+  if ((additive_mode == "delta" || additive_mode == "both") && !sky_guard.m) {
     additive_mode_effective = "c";
+    additive_degraded_reason = "no_sky_plane_artifact";
+    additive_warning_codes.push_back("P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE");
+    std::fprintf(stderr,
+                 "[upm-apply] WARNING: seam.additive_mode=%s but no usable sky plane"
+                 " artifact -> additive_mode_effective=c (whole background subtracted);"
+                 " judged RED via warning_codes=%s degraded_reason=%s\n",
+                 additive_mode.c_str(), additive_warning_codes.front().c_str(),
+                 additive_degraded_reason.c_str());
   }
   const bool sub_c = (additive_mode_effective == "c" ||
                       additive_mode_effective == "both");
@@ -10697,6 +10728,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                        {"additive_mode_requested", additive_mode},
                        {"additive_mode_effective", additive_mode_effective},
                        {"additive_combination", combo},
+                       // 判红面（11_upm §7）：请求 δ 而无天光面产物 ⇒ 具名
+                       // degraded_reason + 警告码；无降级时 degraded_reason=null、
+                       // warning_codes 为空数组（可断言的成功态，与 §4.6 同口径）。
+                       {"degraded_reason",
+                        additive_degraded_reason.empty()
+                            ? Json(nullptr) : Json(additive_degraded_reason)},
+                       {"warning_codes", additive_warning_codes},
                        {"c_subtracted", sub_c},
                        {"delta_subtracted", delta_applied},
                        // FIX-GK 方案 B: 施加的是逐帧 δ_k=b_k−B_ref（保留公共面 B_ref），
@@ -10741,8 +10779,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   (*man)["additive_mode_requested"] = additive_mode;
   (*man)["additive_mode_effective"] = additive_mode_effective;
   (*man)["additive_combination"] = combo;
-  if (additive_mode == "delta" && additive_mode_effective != "delta")
-    (*man)["additive_mode_degraded"] = "no_sky_plane_artifact";
+  // 判红面（11_upm §7）：无降级时 warning_codes 为空数组（可断言的成功态）；
+  // 有降级时同时给具名 degraded_reason，下游/门禁按警告码判红。
+  (*man)["warning_codes"] = additive_warning_codes;
+  if (!additive_degraded_reason.empty()) {
+    (*man)["degraded_reason"] = additive_degraded_reason;
+    (*man)["additive_mode_degraded"] = additive_degraded_reason;   // 兼容既有键
+  }
   return Result<void>::success();
 }
 
@@ -11363,6 +11406,260 @@ static bool p2_hips_prop_double(AioHipsDataset* ds, const char* key, double* out
   return false;
 }
 
+// HiPS properties 文本（"KEY=value\n"）字符串键解析（稀疏层声明读取）。
+static bool p2_hips_prop_str(AioHipsDataset* ds, const char* key, std::string* out) {
+  if (!ds || !key || !out) return false;
+  std::vector<char> buf(1 << 16, 0);
+  if (aio_hips_get_properties(ds, buf.data(), static_cast<int>(buf.size())) != 0)
+    return false;
+  const std::string text(buf.data());
+  const std::string k = std::string(key) + "=";
+  size_t pos = 0;
+  while (pos < text.size()) {
+    size_t eol = text.find('\n', pos);
+    if (eol == std::string::npos) eol = text.size();
+    std::string line = text.substr(pos, eol - pos);
+    pos = eol + 1;
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    if (line.compare(0, k.size(), k) == 0) {
+      *out = line.substr(k.size());
+      return !out->empty();
+    }
+  }
+  return false;
+}
+
+// ── 稀疏帧内 SNR 层（sparse_snr_layer）载入 + 合同校验（P2 生产消费面）──────
+// 权威：docs/contracts/UNIFIED_OBJECTS.md §4b、docs/design/UNIFIED_MODEL.md §2、
+//       eng/contracts/schemas/unified/sparse_snr_layer.schema.json、
+//       docs/plugins/algorithms_phase1/07_noise_snr.md §4.2/§4.5、
+//       docs/plugins/algorithms_phase2/13_integration.md §4.0。
+// 声明面：帧产品 signal 子产品的 HiPS 属性键 ASTROCS_SPARSE_SNR_LAYER = 层 JSON
+//   相对该产品目录的路径（与 ASTROCS_FRAME_SNR / ASTROCS_REFERENCE_FLUX 同一
+//   属性通道）。该键名为**加性**新增，落点登记见
+//   run/FINAL-07/审核包/科研审查/P2_订正/P2_跨帧绝对SNR_订正报告.md。
+// 判据（全部 fail-closed；不识别即判红，**无静默回退**）：
+//   C1 判别式 / schema id / 版本逐字一致（禁以别的对象名冒充）；
+//   C2 sparse_snr_semantics == "absolute_flux_type_snr"（相对语义 ⇒ 判红：
+//      schema 该键明文「消费时不得乘/除帧级 SNR 做还原」）；
+//   C3 object_weight_capability 恒 false 且 object_weight_verdict == "帧内精细参考"；
+//   C4 role == "intra_frame_reference"、frame_id 非空、provenance.source_chain 非空；
+//   C5 reconstruction_operator 落在冻结词表内（未识别 ⇒ 判红，不回退默认档）；
+//   C6 control_point_geometry.node_placement == "cell_center_v1"（相位约定唯一）；
+//   C7 控制点值键名必须是 sparse_snr_value（schema propertyNames 否定式：禁
+//      snr/value/weight/mask 等歧义键），值有限且 > 0，几何须构成规则网格；
+//   C8 交生产重建器 SparseSnrReconstructor::prepare 复核（算子/相位/节点复现/
+//      值域钳制）；prepare 拒绝 ⇒ 判红。
+struct P2SparseLayerProbe {
+  bool declared = false;
+  bool valid = false;
+  std::string path;
+  std::string operator_id;
+  std::size_t n_control_points = 0;
+  double node_reproduction_max_abs = 0.0;
+  std::string fail_reason;
+  astrocs::v6::p2weight::SparseSnrReconstructor rec;
+};
+
+static void p2_axis_unique(std::vector<double> in, double tol,
+                           std::vector<double>* out) {
+  std::sort(in.begin(), in.end());
+  out->clear();
+  for (double v : in) {
+    if (out->empty() || std::fabs(v - out->back()) > tol) out->push_back(v);
+  }
+}
+
+static bool p2_sparse_layer_load(const std::string& abs_path,
+                                 P2SparseLayerProbe* out) {
+  auto fail = [&](const std::string& why) {
+    out->valid = false;
+    out->fail_reason = why;
+    return false;
+  };
+  Json d;
+  if (!p2_read_json(abs_path, &d)) return fail("layer JSON unreadable: " + abs_path);
+  if (!d.is_object()) return fail("layer JSON root is not an object");
+  auto str_eq = [&](const char* k, const char* want) {
+    return d.contains(k) && d[k].is_string() && d[k].get<std::string>() == want;
+  };
+  if (!str_eq("unified_object", "sparse_snr_layer"))
+    return fail("C1 unified_object != \"sparse_snr_layer\"");
+  if (!str_eq("object_schema_id",
+              "https://astrocs.local/schemas/unified/sparse_snr_layer/v1"))
+    return fail("C1 object_schema_id mismatch");
+  if (!d.contains("schema_version") || !d["schema_version"].is_number_integer() ||
+      d["schema_version"].get<int>() != 1)
+    return fail("C1 schema_version != 1");
+  if (!str_eq("sparse_snr_semantics", "absolute_flux_type_snr"))
+    return fail("C2 sparse_snr_semantics != \"absolute_flux_type_snr\" "
+                "(相对语义禁止; 消费时不得乘/除帧级 SNR)");
+  if (!d.contains("object_weight_capability") ||
+      !d["object_weight_capability"].is_boolean() ||
+      d["object_weight_capability"].get<bool>())
+    return fail("C3 object_weight_capability != false");
+  if (!str_eq("object_weight_verdict", "帧内精细参考"))
+    return fail("C3 object_weight_verdict != \"帧内精细参考\"");
+  if (!str_eq("role", "intra_frame_reference"))
+    return fail("C4 role != \"intra_frame_reference\"");
+  if (!d.contains("frame_id") || !d["frame_id"].is_string() ||
+      d["frame_id"].get<std::string>().empty())
+    return fail("C4 frame_id missing/empty");
+  if (!d.contains("provenance") || !d["provenance"].is_object() ||
+      !d["provenance"].contains("source_chain") ||
+      !d["provenance"]["source_chain"].is_array() ||
+      d["provenance"]["source_chain"].empty())
+    return fail("C4 provenance.source_chain missing/empty (FZ-PROV-MINIMAL-SET)");
+  // C7: schema propertyNames 否定式（歧义键名一律判红）
+  static const char* kReserved[] = {"weight",      "value",       "mask",
+                                    "snr",         "snr_value",   "weight_value",
+                                    "value_value", "mask_value"};
+  auto has_reserved = [&](const Json& o) {
+    if (!o.is_object()) return std::string();
+    for (const char* k : kReserved)
+      if (o.contains(k)) return std::string(k);
+    return std::string();
+  };
+  for (const char* okey :
+       {"units", "missing_value", "provenance", "control_point_geometry"}) {
+    if (d.contains(okey) && d[okey].is_object()) {
+      const std::string bad = has_reserved(d[okey]);
+      if (!bad.empty())
+        return fail(std::string("C7 reserved key '") + bad + "' in " + okey);
+    }
+  }
+  // C6: 相位约定与几何声明
+  if (!d.contains("control_point_geometry") ||
+      !d["control_point_geometry"].is_object())
+    return fail("C6 control_point_geometry missing (node_placement 不可判)");
+  const Json& geo = d["control_point_geometry"];
+  if (!geo.contains("node_placement") || !geo["node_placement"].is_string() ||
+      geo["node_placement"].get<std::string>() != "cell_center_v1")
+    return fail("C6 node_placement != \"cell_center_v1\"");
+  double origin_x = 0.0, origin_y = 0.0, spacing_decl = -1.0;
+  if (geo.contains("spacing_px")) {
+    if (!geo["spacing_px"].is_number()) return fail("C6 spacing_px not a number");
+    spacing_decl = geo["spacing_px"].get<double>();
+    if (!(spacing_decl > 0.0) || !std::isfinite(spacing_decl))
+      return fail("C6 spacing_px <= 0 / non-finite");
+  }
+  if (geo.contains("origin_x")) {
+    if (!geo["origin_x"].is_number() || !std::isfinite(geo["origin_x"].get<double>()))
+      return fail("C6 origin_x non-finite");
+    origin_x = geo["origin_x"].get<double>();
+  }
+  if (geo.contains("origin_y")) {
+    if (!geo["origin_y"].is_number() || !std::isfinite(geo["origin_y"].get<double>()))
+      return fail("C6 origin_y non-finite");
+    origin_y = geo["origin_y"].get<double>();
+  }
+  // C7: 控制点
+  if (!d.contains("control_points") || !d["control_points"].is_array() ||
+      d["control_points"].empty())
+    return fail("C7 control_points missing/empty");
+  const double tol = 1e-6;
+  std::vector<double> xs, ys, vals;
+  for (const Json& p : d["control_points"]) {
+    if (!p.is_object()) return fail("C7 control point is not an object");
+    const std::string bad = has_reserved(p);
+    if (!bad.empty())
+      return fail(std::string("C7 reserved key '") + bad + "' in control point");
+    if (!p.contains("x") || !p["x"].is_number() || !p.contains("y") ||
+        !p["y"].is_number() || !p.contains("sparse_snr_value") ||
+        !p["sparse_snr_value"].is_number())
+      return fail("C7 control point must carry numeric x,y,sparse_snr_value");
+    const double x = p["x"].get<double>(), y = p["y"].get<double>();
+    const double v = p["sparse_snr_value"].get<double>();
+    if (!std::isfinite(x) || !std::isfinite(y))
+      return fail("C7 control point coordinate non-finite");
+    if (!std::isfinite(v) || !(v > 0.0))
+      return fail("C7 control point sparse_snr_value non-finite/<=0");
+    xs.push_back(x);
+    ys.push_back(y);
+    vals.push_back(v);
+  }
+  std::vector<double> ux, uy;
+  p2_axis_unique(xs, tol, &ux);
+  p2_axis_unique(ys, tol, &uy);
+  const int nx = static_cast<int>(ux.size()), ny = static_cast<int>(uy.size());
+  if (nx < 2 || ny < 2)
+    return fail("C7 regular grid needs nx>=2 and ny>=2 (散点形态需显式覆盖半径, "
+                "schema 无该字段 ⇒ 不支持)");
+  if (static_cast<std::size_t>(nx) * static_cast<std::size_t>(ny) != xs.size())
+    return fail("C7 control points do not form a complete regular grid");
+  const double dx = ux[1] - ux[0], dy = uy[1] - uy[0];
+  for (int i = 1; i < nx; ++i)
+    if (std::fabs((ux[i] - ux[i - 1]) - dx) > tol)
+      return fail("C7 x spacing not uniform");
+  for (int j = 1; j < ny; ++j)
+    if (std::fabs((uy[j] - uy[j - 1]) - dy) > tol)
+      return fail("C7 y spacing not uniform");
+  if (spacing_decl > 0.0 &&
+      (std::fabs(spacing_decl - dx) > tol || std::fabs(spacing_decl - dy) > tol))
+    return fail("C6 declared spacing_px does not match the control-point lattice");
+  astrocs::v6::p2weight::SparseSnrLayer layer;
+  layer.present = true;
+  layer.regular_grid = true;
+  layer.nx = nx;
+  layer.ny = ny;
+  layer.x0 = ux[0];
+  layer.y0 = uy[0];
+  layer.dx = dx;
+  layer.dy = dy;
+  layer.grid_tol = 1e-6;
+  layer.grid_origin_x = origin_x;
+  layer.grid_origin_y = origin_y;
+  layer.max_radius_px = -1.0;
+  if (d.contains("reconstruction_operator")) {
+    if (!d["reconstruction_operator"].is_string())
+      return fail("C5 reconstruction_operator not a string");
+    const std::string op = d["reconstruction_operator"].get<std::string>();
+    astrocs::v6::p2weight::SparseReconOperator parsed;
+    if (!astrocs::v6::p2weight::parse_sparse_recon_operator(op, &parsed))
+      return fail("C5 unknown reconstruction_operator token '" + op +
+                  "' (冻结词表外; 不回退默认档)");
+    layer.reconstruction_operator = op;
+  }
+  layer.points.assign(static_cast<std::size_t>(nx) * static_cast<std::size_t>(ny),
+                      astrocs::v6::p2weight::SparseSnrPoint());
+  for (std::size_t n = 0; n < vals.size(); ++n) {
+    const int i = static_cast<int>(std::lround((xs[n] - ux[0]) / dx));
+    const int j = static_cast<int>(std::lround((ys[n] - uy[0]) / dy));
+    astrocs::v6::p2weight::SparseSnrPoint sp;
+    sp.x = xs[n];
+    sp.y = ys[n];
+    sp.snr = vals[n];
+    layer.points[static_cast<std::size_t>(j) * static_cast<std::size_t>(nx) +
+                 static_cast<std::size_t>(i)] = sp;
+  }
+  std::string perr;
+  if (!out->rec.prepare(layer, &perr))
+    return fail("C8 SparseSnrReconstructor::prepare rejected layer: " + perr);
+  out->operator_id = out->rec.operator_id();
+  out->n_control_points = out->rec.n_control_points();
+  out->node_reproduction_max_abs = out->rec.node_reproduction_max_abs();
+  out->valid = true;
+  return true;
+}
+
+// 声明面探测：属性键缺省 ⇒ declared=false（输入无稀疏层，非错误）。
+static P2SparseLayerProbe p2_sparse_layer_probe(AioHipsDataset* ds,
+                                                const std::string& product_dir) {
+  P2SparseLayerProbe pr;
+  std::string rel;
+  if (!p2_hips_prop_str(ds, "ASTROCS_SPARSE_SNR_LAYER", &rel)) return pr;
+  pr.declared = true;
+  std::string abs = rel;
+  if (rel[0] != '/') {
+    abs = product_dir;
+    if (!abs.empty() && abs.back() != '/') abs += '/';
+    abs += rel;
+  }
+  pr.path = abs;
+  p2_sparse_layer_load(abs, &pr);
+  return pr;
+}
+
 // ── op: integrate_frames（唯一真实入口 p2_validate_candidate_weights +
 //      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同 +
 //      **单一权重口径**（docs/ASTROCS_DESIGN.md §3.1:175
@@ -11424,6 +11721,42 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         "来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。唯一降级面 = "
         "帧级 SNR 逆方差链 w = SNR^2/F_ref^2；请删除该键。"));
 
+  // ── snr_path：三条 SNR 重建路径的**唯一生产读取/消费点**（此前为死键）──────
+  // 正本：docs/ASTROCS_DESIGN.md §5.3（design_clauses 条目 DESIGN-5.3-SNR-PATH-JSON）、
+  //       docs/plugins/algorithms_phase1/07_noise_snr.md §4.2/§4.5、
+  //       eng/contracts/schemas/phase_config_mosaic.schema.json
+  //       #/$defs/mosaic_config/properties/snr_path（enum，默认 sparse_reconstruct）。
+  // 不静默降级（07 §4.2「实际生效口径记 snr_path_effective」）：
+  //   · 未知 token ⇒ 具名 fail-closed，禁回退默认档；
+  //   · dense 请求而稠密帧内 SNR 面在输入产品上不可达 ⇒ 具名 fail-closed
+  //     （不静默替换为帧级口径）；
+  //   · sparse_reconstruct 而输入无稀疏层 ⇒ 按帧级执行，但**必须显式记录**
+  //     实际生效口径 snr_path_effective 与逐帧计数（本产物 + 节点 manifest）；
+  //   · 稀疏层已声明但损坏/不可重建 ⇒ 具名 fail-closed。
+  const std::string snr_path_requested =
+      doc.value("snr_path", std::string("sparse_reconstruct"));
+  if (snr_path_requested != "dense" && snr_path_requested != "sparse_reconstruct" &&
+      snr_path_requested != "frame_reconstruct")
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "INVALID_SNR_PATH_TOKEN: snr_path='" + snr_path_requested + "' 不在冻结枚举 "
+        "{dense, sparse_reconstruct, frame_reconstruct} 内（schema "
+        "phase_config_mosaic#/$defs/mosaic_config/properties/snr_path；默认 "
+        "sparse_reconstruct）。未识别 token 一律 fail-closed，不得回退默认档。"));
+  if (snr_path_requested == "dense")
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "SNR_PATH_DENSE_UNAVAILABLE: snr_path=dense 要求消费 Phase1 稠密逐像素 SNR 面，"
+        "而该面在输入产品上不可达（Phase1 只产出帧级 ASTROCS_FRAME_SNR 与可选的稀疏"
+        "帧内 SNR 层），P2 无该面的读取载体。显式请求的口径无法兑现 ⇒ fail-closed"
+        "（不静默替换为帧级口径；07_noise_snr.md §4.2 不静默降级）。"));
+  // 实际生效口径（权重面裁定后回填；not_used = SNR 场不是权重来源）
+  std::string snr_path_effective = "not_used";
+  std::string snr_path_reason;
+  bool snr_path_used_for_weights = false;
+  uint64_t sparse_layer_declared_frames = 0;
+  uint64_t sparse_layer_valid_frames = 0;
+  std::vector<P2SparseLayerProbe> sparse_probe(frames.size());
+  Json sparse_frame_detail = Json::array();
+
   // ── P2b-2: 优先消费归一化逐像素方差 w = 1/Var(corrected) ──────
   // p2_corrected.json 报 uncertainty_available=true（方差完整传播：残差制造者
   // PΣPᵀ + 逐像素 Phase1 噪声 + 参数协方差项）时，权重面**优先**用逐像素
@@ -11462,6 +11795,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   std::string weight_source = "none";             // weight-chain-report §6.1.4
   bool use_snr_chain = false;                     // ivar 缺失时走 SNR 权重链
   std::vector<double> snr_weights;                // 逐帧 w = 1/σ_F² [ADU^-2]
+  std::vector<double> snr_fref_k;                 // 逐帧生效 F_ref,k（逐像素面分母）
+  std::vector<double> snr_gain_k;                 // 逐帧 g_k（w 乘 g_k²）
   std::string snr_chain_closure = "not_used";
   // 组间 F_ref 一致性：**报告字段，非门**（
   // 帧间独立；配对性只要求同帧内 SNR 与 F_ref 同源，不要求跨帧相等）。
@@ -11522,6 +11857,26 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             p2_hips_prop_double(ds, "ASTROCS_FRAME_SNR", &fsnr) && fsnr > 0.0;
         const bool has_ref = ds &&
             p2_hips_prop_double(ds, "ASTROCS_REFERENCE_FLUX", &fref) && fref > 0.0;
+        // 稀疏帧内 SNR 层探测（同一 HiPS 属性通道；键缺省 ⇒ 无层，非错误）
+        sparse_probe[f] = p2_sparse_layer_probe(ds, p);
+        if (sparse_probe[f].declared) {
+          ++sparse_layer_declared_frames;
+          Json fd{{"frame_index", static_cast<uint64_t>(f)},
+                  {"declared", true},
+                  {"layer_path", sparse_probe[f].path},
+                  {"valid", sparse_probe[f].valid}};
+          if (sparse_probe[f].valid) {
+            ++sparse_layer_valid_frames;
+            fd["operator_id"] = sparse_probe[f].operator_id;
+            fd["n_control_points"] =
+                static_cast<uint64_t>(sparse_probe[f].n_control_points);
+            fd["node_reproduction_max_abs"] =
+                sparse_probe[f].node_reproduction_max_abs;
+          } else {
+            fd["fail_reason"] = sparse_probe[f].fail_reason;
+          }
+          sparse_frame_detail.push_back(fd);
+        }
         if (ds) aio_hips_close(ds);
         FrameWeightInput& in = winputs[f];
         in.frame_id = std::to_string(frames[f].value("frame_id", 0ull));
@@ -11529,7 +11884,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         in.kind = FrameSnrKind::kFluxTypeUnweightedSnr;
         in.has_frame_snr = has_snr;
         in.frame_snr = fsnr;
-        in.sparse = nullptr;   // 稀疏 SNR 层尚未接入生产数据面
+        // 稀疏层**不**经本链接线：本链的合成式是 actual = frame_snr × intra
+        // （weight_chain.cpp compose_actual_snr），会把**绝对**信噪比再乘一次
+        // 帧级标量，与 schema「absolute_flux_type_snr … 消费时不得乘/除帧级
+        // SNR 做还原」冲突（跨域缺陷 P2-N1，登记于订正报告）。稀疏层的真实
+        // 消费面 = 下方**逐像素**权重 w(x,y) = SNR_layer(x,y)²/F_ref,k²·g_k²
+        // （13_integration §4.0）；本链在此只用于取 F_ref,k 与 g_k。
+        in.sparse = nullptr;
         in.x = 0.0;
         in.y = 0.0;
         in.gain = nullptr;
@@ -11560,6 +11921,22 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           if (rel > 1e-9) ref_flux_spread_noncommon = true;
         }
       }
+      // 稀疏层**声明但损坏/不可重建** ⇒ 显式失败（07_noise_snr.md §4.2
+      // 「损坏层 fail-closed」；schema 校验 C1–C8 任一不成立即判红）。
+      if (snr_path_requested == "sparse_reconstruct" &&
+          sparse_layer_declared_frames > sparse_layer_valid_frames) {
+        std::string why;
+        for (const Json& fd : sparse_frame_detail) {
+          if (!fd.contains("fail_reason")) continue;
+          if (!why.empty()) why += " | ";
+          why += "frame" + std::to_string(fd.value("frame_index", 0ull)) + ": " +
+                 fd.value("fail_reason", std::string());
+        }
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "SPARSE_SNR_LAYER_DAMAGED: snr_path=sparse_reconstruct 且输入帧声明了稀疏"
+            "帧内 SNR 层，但该层损坏/不可重建 ⇒ 显式失败（不静默降级到帧级；"
+            "eng/contracts/schemas/unified/sparse_snr_layer.schema.json）: " + why));
+      }
       astrocs::v6::p2weight::WeightChainPolicy wpolicy;
       wpolicy.require_frame_gain = require_gain;
       const WeightChainResult wres =
@@ -11582,6 +11959,26 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       weight_source = wres.weight_source;
       weight_basis = "frame_snr_ivar";
       snr_chain_closure = astrocs::v6::p2weight::weight_closure_token(wres.closure);
+      snr_fref_k = wres.reference_flux_k;
+      snr_gain_k = wres.frame_gain;
+      // ── 实际生效口径裁定（不静默降级）────────────────────────────────
+      snr_path_used_for_weights = true;   // SNR 场即权重来源（本分支）
+      if (snr_path_requested == "frame_reconstruct") {
+        snr_path_effective = "frame_reconstruct";
+        snr_path_reason = "requested_frame_reconstruct";
+      } else if (sparse_layer_valid_frames == frames.size()) {
+        // 各帧均声明且校验通过的稀疏层 ⇒ 逐像素绝对 SNR 面
+        snr_path_effective = "sparse_reconstruct";
+        snr_path_reason = "sparse_layer_valid_all_frames";
+        weight_source = "sparse_snr_layer";
+        weight_basis = "sparse_snr_layer_absolute_snr";
+      } else {
+        // 无层 / 层覆盖不全 ⇒ 帧级执行，并**显式**记下实际口径与原因
+        snr_path_effective = "frame_reconstruct";
+        snr_path_reason = (sparse_layer_declared_frames == 0)
+                              ? "no_sparse_layer_in_input"
+                              : "partial_sparse_layer_coverage";
+      }
       // CONFORM-FIX-B-004（fail-closed，DATA_SEMANTICS §30.1 唯一出口）：
       // 帧级 SNR 链只是**积分权重**的显式降级路径，**不是**方差产品的来源。
       // §30.1 合成公式的前提是 ivar_product_missing==0（全部输入帧 ivar 可用、
@@ -11603,6 +12000,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     } else {
       uncertainty_available = true;
     }
+  }
+  // snr_path 生效口径收口：SNR 场不是权重来源时（逐像素方差面 / 逐样本 ivar），
+  // 实际口径记为 not_used + 具名原因（不静默：键与原因双写）。
+  if (!snr_path_used_for_weights) {
+    snr_path_effective = "not_used";
+    snr_path_reason = corr_var_ready ? "not_used_corrected_variance_priority1"
+                                     : "not_used_per_sample_ivar_available";
   }
   // 原 `else`（weight_mode==1 → 等权、unit_weight_mode1、
   // uncertainty_unavailable_reason="weight_mode_1_equal_non_ivar"）已删除 ——
@@ -11906,15 +12310,52 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
               return;
             }
           } else if (use_snr_chain) {
-            // ivar 产品缺失 → 帧级 SNR 逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
-            // 逐帧常量; weight-chain-report §6.1）
+            // ivar 产品缺失 → 帧级 SNR 逆方差链（w = SNR²/F_ref² = 1/σ_F²;
+            // weight-chain-report §6.1）。口径由 snr_path 裁定（不静默降级）：
+            //   · sparse_reconstruct（各帧稀疏层声明且校验通过）⇒ **逐像素**
+            //     w(x,y) = SNR_layer(x,y)²/F_ref,k²·g_k²（13_integration §4.0；
+            //     层值即绝对信噪比 ⇒ 不再乘帧级标量，07_noise_snr.md §4.2）；
+            //   · 否则 ⇒ 帧级常量 w = SNR_k²/F_ref,k²·g_k²（实际口径已在
+            //     snr_path_effective/snr_path_reason 显式记录）。
             if (it.slot[d] >= snr_weights.size()) {
               t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
               t_err[ti_s] = "frame-SNR weight index out of range (frame " +
                             std::to_string(it.slot[d]) + ")";
               return;
             }
-            w = snr_weights[it.slot[d]];
+            if (snr_path_effective == "sparse_reconstruct") {
+              const size_t fid = it.slot[d];
+              // 像素坐标：corrected 面按 FITS 行主序装入 tile 缓冲（x = p % 512,
+              // y = p / 512；512 = 1<<kP2TileShift，与 upm_apply 的
+              // fits_index_to_nested_local(..., kP2TileShift, 512) LUT 同一序号定义）。
+              const double px = static_cast<double>(p & ((1ull << kP2TileShift) - 1ull));
+              const double py = static_cast<double>(p >> kP2TileShift);
+              double snr_px = 0.0;
+              std::string serr;
+              if (fid >= sparse_probe.size() || !sparse_probe[fid].valid) {
+                t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+                t_err[ti_s] = "sparse SNR layer missing for frame " +
+                              std::to_string(fid) + " in the per-pixel weight face";
+                return;
+              }
+              if (!sparse_probe[fid].rec.eval(px, py, &snr_px, nullptr, &serr)) {
+                t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+                t_err[ti_s] = "sparse SNR layer reconstruction failed at frame " +
+                              std::to_string(fid) + " pixel (" + std::to_string(px) +
+                              "," + std::to_string(py) + "): " + serr;
+                return;
+              }
+              if (!astrocs::v6::p2weight::weight_from_snr(
+                      snr_px, snr_fref_k[fid], &w, &serr)) {
+                t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+                t_err[ti_s] = "sparse SNR layer weight failed at frame " +
+                              std::to_string(fid) + ": " + serr;
+                return;
+              }
+              w *= snr_gain_k[fid] * snr_gain_k[fid];
+            } else {
+              w = snr_weights[it.slot[d]];
+            }
             if (!std::isfinite(w) || !(w > 0.0)) {
               t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
               t_err[ti_s] = "frame-SNR weight invalid (non-finite/<=0) at frame " +
@@ -12059,6 +12500,17 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                        {"corrected_variance_used", corr_var_ready},
                        {"snr_chain_closure", snr_chain_closure},
                        {"snr_chain_used", use_snr_chain},
+                       // snr_path 消费面（DESIGN-5.3-SNR-PATH-JSON 解除条件）：
+                       // 三条口径由配置显式选定，实际生效口径与计数如实落盘。
+                       {"snr_path", snr_path_requested},
+                       {"snr_path_effective", snr_path_effective},
+                       {"snr_path_used_for_weights", snr_path_used_for_weights},
+                       {"snr_path_reason", snr_path_reason},
+                       {"sparse_snr_layer_frames_declared",
+                        sparse_layer_declared_frames},
+                       {"sparse_snr_layer_frames_valid", sparse_layer_valid_frames},
+                       {"sparse_snr_layer_coord", "tile_local_fits_rowmajor_v1"},
+                       {"sparse_snr_layer_frames", sparse_frame_detail},
                        // 组间 F_ref 一致性 = **报告字段，非门**（帧间独立；
                        // 逐帧 F_ref,k 合法地可不同（不同指向/不同光学
                        // 系统 ⇒ 不同 ZP_k）；配对性只要求同帧内同源。
@@ -12099,6 +12551,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   (*man)["corrected_variance_used"] = corr_var_ready;
   (*man)["snr_chain_closure"] = snr_chain_closure;
   (*man)["snr_chain_used"] = use_snr_chain;
+  (*man)["snr_path"] = snr_path_requested;
+  (*man)["snr_path_effective"] = snr_path_effective;
+  (*man)["snr_path_used_for_weights"] = snr_path_used_for_weights;
+  (*man)["snr_path_reason"] = snr_path_reason;
+  (*man)["sparse_snr_layer_frames_declared"] = sparse_layer_declared_frames;
+  (*man)["sparse_snr_layer_frames_valid"] = sparse_layer_valid_frames;
+  (*man)["sparse_snr_layer_coord"] = "tile_local_fits_rowmajor_v1";
   (*man)["reference_flux_spread_rel"] = ref_flux_spread_rel;
   (*man)["reference_flux_spread_frame"] = ref_flux_spread_frame;
   (*man)["reference_flux_noncommon"] = ref_flux_spread_noncommon;
@@ -13547,10 +14006,12 @@ bool p3n_check_request_fields(const Json& doc, std::string* err) {
 // 决定，禁止硬编码」：默认值 = ARCH-504 组件声明的配置默认（256），配置可改；
 // 值域 [16, 1024] 为内存守卫（在途上界 = 2·queue_depth·sb²·8 B，与总图大小无关）。
 // 与 max_tiles 同款「资源/编排键」形态（CLI 会话键白名单已登记，见 parser.cpp）。
-constexpr int kP3DefaultSubBlockPx = 256;
-constexpr int kP3MinSubBlockPx = 16;
-constexpr int kP3MaxSubBlockPx = 1024;
-constexpr int kP3DefaultQueueDepth = 4;
+// R-27 受控化：四个编排常数（缺省 + 值域守卫）的唯一数值来源 =
+// eng/packaging/config/runtime_resources.json（orchestration_params 节）；本文件零字面量。
+using astrocs::runtime_resources::kP3DefaultSubBlockPx;
+using astrocs::runtime_resources::kP3DefaultQueueDepth;
+using astrocs::runtime_resources::kP3MaxSubBlockPx;
+using astrocs::runtime_resources::kP3MinSubBlockPx;
 
 bool p3n_sub_block_px(const Json& doc, int* out, std::string* err) {
   auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
