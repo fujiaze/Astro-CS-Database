@@ -13,7 +13,13 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <unistd.h>；getpid() → CRT _getpid()（进程唯一名用）。
+#include <process.h>
+#define getpid() _getpid()
+#else
 #include <unistd.h>
+#endif
 
 #include <nlohmann/json.hpp>
 
@@ -21,7 +27,7 @@ namespace fs = std::filesystem;
 
 using astrocs::backend_host::PathResult;
 using astrocs::backend_host::SaveResult;
-using astrocs::backend_host::LoadResult;
+using astrocs::backend_host::ProfileLoadResult;
 using astrocs::backend_host::default_profile_path_v1;
 using astrocs::backend_host::save_profile_atomic_v1;
 using astrocs::backend_host::load_profile_checked_v1;
@@ -141,7 +147,7 @@ int main() {
     bool ok = false;
     const std::string back = read_file(target, &ok);
     CHECK(ok && back == prof);
-    const LoadResult l = load_profile_checked_v1(target, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(target, make_hw_json(), kCommit, {});
     CHECK(l.valid && l.status == "ok");
     CHECK(l.json_text == prof);
     CHECK(l.reason.empty() && l.rejected_path.empty());
@@ -161,7 +167,7 @@ int main() {
     bool ok = false;
     const std::string t = temp_dir() + "/cpu_profile.json";
     { std::ofstream f(t, std::ios::binary); f << half; }
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(!l.valid);
     CHECK(l.reason.rfind("corrupted", 0) == 0);
     CHECK(!l.rejected_path.empty() && fs::exists(l.rejected_path));
@@ -175,7 +181,7 @@ int main() {
   {
     const std::string t = temp_dir() + "/cpu_profile.json";
     { std::ofstream f(t, std::ios::binary); f << "\x01 not json {{{ garbage"; }
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(!l.valid);
     CHECK(l.reason.rfind("corrupted", 0) == 0);
     CHECK(!l.rejected_path.empty());
@@ -186,7 +192,7 @@ int main() {
     const std::string t = temp_dir() + "/cpu_profile.json";
     { std::ofstream f(t, std::ios::binary);
       f << "{\"schema_version\": 1, \"mode\": \"full\", \"kernels\": []}"; }
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(!l.valid);
     CHECK(l.reason.rfind("old_schema", 0) == 0);
     CHECK(!l.rejected_path.empty());   // 旧版本隔离(同 verify 语义)
@@ -196,7 +202,7 @@ int main() {
   {
     const std::string t = temp_dir() + "/cpu_profile.json";
     CHECK(save_profile_atomic_v1(make_v2_profile(), make_hw_json(), kCommit, t).ok);
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json("OtherVendor"),
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json("OtherVendor"),
                                                  kCommit, {});
     CHECK(!l.valid);
     CHECK(l.reason.rfind("stale_machine", 0) == 0);
@@ -208,7 +214,7 @@ int main() {
   {
     const std::string t = temp_dir() + "/cpu_profile.json";
     CHECK(save_profile_atomic_v1(make_v2_profile(), make_hw_json(), kCommit, t).ok);
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit2, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit2, {});
     CHECK(!l.valid);
     CHECK(l.reason.rfind("stale_build", 0) == 0);
     CHECK(fs::exists(t));
@@ -217,7 +223,7 @@ int main() {
   // ── 8) 负向: 无 profile → missing + 清晰 warning(消费方按 V8-CPU-002 回落) ──
   {
     const std::string t = temp_dir() + "/ACSD/cpu_profile.json";
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(!l.valid);
     CHECK(l.status == "missing");
     CHECK(l.warning_text.find("generic ISA") != std::string::npos);
@@ -249,7 +255,7 @@ int main() {
                                                   make_hw_json(), kCommit, t);
     CHECK(!bad.ok);
     CHECK(bad.reason.find("verify_profile_v2") != std::string::npos);
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(l.valid);   // 旧版原样可用
     // 外域 schema(CPU-006 benchmark-report/v1) → 同一防线拒绝(结构性隔离不破坏)
     const SaveResult foreign = save_profile_atomic_v1(
@@ -278,7 +284,7 @@ int main() {
     const std::string t = temp_dir() + "/cpu_profile.json";
     const std::string bad = make_v2_profile("GenuineTest", "oracle:fail");
     CHECK(save_profile_atomic_v1(bad, make_hw_json(), kCommit, t).ok);
-    const LoadResult l = load_profile_checked_v1(
+    const ProfileLoadResult l = load_profile_checked_v1(
         t, make_hw_json(), kCommit, {"calibration-pixel-transform"});
     CHECK(!l.valid);
     CHECK(l.reason.rfind("consumer_invalid", 0) == 0);
@@ -311,7 +317,7 @@ int main() {
     j["kernels"]["calibration-pixel-transform"]["median"] = 90.0;
     const std::string v2p = j.dump(2) + "\n";
     CHECK(save_profile_atomic_v1(v2p, make_hw_json(), kCommit, t).ok);
-    const LoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
+    const ProfileLoadResult l = load_profile_checked_v1(t, make_hw_json(), kCommit, {});
     CHECK(l.valid && l.json_text == v2p);
     CHECK(nlohmann::json::parse(l.json_text)
               ["kernels"]["calibration-pixel-transform"]["median"].get<double>() == 90.0);

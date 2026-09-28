@@ -287,11 +287,11 @@ SaveResult save_profile_atomic_v1(const std::string& json_text,
     return r;
 }
 
-LoadResult load_profile_checked_v1(const std::string& target_path,
+ProfileLoadResult load_profile_checked_v1(const std::string& target_path,
                                    const std::string& hw_json,
                                    const std::string& current_commit,
                                    const std::vector<std::string>& check_consumer) {
-    LoadResult out;
+    ProfileLoadResult out;
     if (!aio_atomic::path_exists(target_path, nullptr)) {
         out.status = "missing";
         out.warning_text =

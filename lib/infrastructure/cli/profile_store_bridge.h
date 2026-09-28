@@ -1,21 +1,15 @@
 // lib/infrastructure/cli/profile_store_bridge.h
 //
-// 桥接头（DYN-740 / R-29）：让命令层在**同一个 TU** 里同时使用
+// 桥接头：让命令层在**同一个 TU** 里同时使用
 //   · lib/infrastructure/benchmark/backend_host/backend_loader.h（ISA provider 预检/装载）
 //   · lib/infrastructure/benchmark/backend_host/profile_store.h（cpu_profile 原子写）
-// 两者都在 astrocs::backend_host 里定义了一个**同名类型 LoadResult**（前者=装载裁决，
-// 后者=读取裁决），直接共存会 "redefinition of struct LoadResult" 编译失败——这不是
-// 使用方的错，是两份公开头在同一命名空间重名的缺陷（已登记；正解是改名，属对方域）。
-//
-// 本头的**收容**手段：包含 profile_store.h 之前把它的 LoadResult 宏改名为
-// ProfileLoadResult，包含后立刻 undef。安全性：非模板函数的**返回值类型不参与
-// 名字修饰**，故改名只影响本 TU 的类型名解析，不改变任何符号/ABI/链接结果；
-// 且宏作用域仅限本头内部的这一次包含。
+// 两份公开头曾各自定义一个**同名同型别 `LoadResult`**（前者=装载裁决，后者=读取裁决），
+// 同一 TU 同时包含即 "redefinition of struct astrocs::backend_host::LoadResult" 编译失败。
+// 读取侧已按语义改名为 `ProfileLoadResult`（见 profile_store.h），两类型
+// 现可在该命名空间共存；本头**不再需要**宏改名收容（原 `#define LoadResult ...` 段已删）。
 #pragma once
 
-#define LoadResult ProfileLoadResult
 #include "profile_store.h"
-#undef LoadResult
 
 #include <string>
 
