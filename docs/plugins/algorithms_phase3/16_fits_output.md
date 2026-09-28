@@ -26,7 +26,7 @@
     **BUNIT 语义（已闭合）**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT`（canonical `ADU/sr`；缺声明即 fail-closed，禁按 `ADU` 猜测）；`VARIANCE`/`IVAR` 扩展 HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一权威 = `docs/contracts/DATA_SEMANTICS.md` §31.1a；
   - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似、生成时间。
 - 所有 HDU shape/WCS 对齐。
-- 参考：`eng/contracts/schemas/fits_product.schema.json`。
+- 参考：`docs/contracts/DATA_SEMANTICS.md` §27（DATA-P3-FITS：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
