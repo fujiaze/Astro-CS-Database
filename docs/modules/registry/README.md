@@ -1,10 +1,13 @@
 # registry
 
-本目录存放 registry 模块的说明文档：按模块 ID 组织的生产实现登记，由源码 descriptor 生成。
+本目录存放 registry 模块的说明文档：按 module_id 组织的生产实现登记。页面事实以源码
+descriptor、模块合同三件套（`lib/algorithms/<module>/`）与 SCI/ALG 正本为准；
+生成页带生成锚，无锚页为人工内容。
 
 ## 职责边界
 
-- 放：逐模块 registry 说明（生产实现落位、职责、入口与端口）与 ID 迁移基线。
+- 放：逐模块 registry 说明（生产实现落位、职责、入口与端口）、模块 ID 迁移基线，
+  以及 descriptor 词汇与合同 module_id 的对齐登记。
 - 不放：模块工作细节设计（在 docs/plugins/）；模块总映射（在上级 MODULE_MAP.yaml）；ABI 合同（在 docs/api/）。
 
 ## 内容

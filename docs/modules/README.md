@@ -17,10 +17,10 @@
 - `star_detector.md` —— 单帧全图盲检测。
 - `plate_solve.md` —— 星表匹配与 plate solve 解出 WCS。
 - `photometric_calib.md` —— 测光定标与质量指标。
-- `snr_estimator.md` —— 三层噪声模型与 SNR 估计。
+- `docs/modules/snr_estimator.md` —— 三层噪声模型与 SNR 估计。
 - `healpix_drizzle.md` —— 球面 Drizzle 重投影与通量守恒累加。
 - `healpix_browser_qt.md` —— HiPS/HEALPix 球面浏览器（可选构建）。
-- `gaia_xpsd_client.md` —— XPSD 格式本地星表解析（离线）。
+- `docs/modules/gaia_xpsd_client.md` —— XPSD 格式本地星表解析（离线）。
 - `acr.md` —— 异构计算运行时（kernel registry、调度、执行器）。
 - `orchestrator.md` —— normalize 阶段编排。
 - `phase1_session.md` —— normalize 装配与进程内执行段。
@@ -28,6 +28,14 @@
 - `hips_p2.md` —— 输入哈希链与 manifest 规则。
 - `phase3_proj.md`、`phase3_rsmp.md`、`phase3_fits.md` —— export 阶段的投影、重采样与 FITS 写出模块。
 - `registry/` —— registry 模块的机读生成件与基线。
+
+## 合同三件套落位规则
+
+每个模块的合同三件套（`README.md` / `module.yaml` / `memory.md`）落在该模块独立的
+`lib/algorithms/<module>/` 目录；目录名按模块域命名，已被同域模块占用的目录不复用
+（既有落位：`lib/algorithms/coverage/hips_p2/`、`lib/algorithms/upm/`、
+`lib/algorithms/sampling/`、`lib/algorithms/rejection/`、`lib/algorithms/integration/`、
+`lib/algorithms/fits_output/`）。各模块页只引用本规则，不复述。
 
 ## 上游
 

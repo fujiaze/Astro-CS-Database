@@ -8,8 +8,8 @@
 > astrocs_phase1_session，根 CMakeLists.txt:448-452）。合同 ID：
 > DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION（PUBLIC_API）；
 > 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md，FROZEN）；不设
-> 独立 DLL（MODULE_MIGRATION_MATRIX 无 P1-SESSION 行）。registry 关系：
-> 五函数经 P1Api（lib/infrastructure/scheduler/src/module_adapters.cpp:1193）被 8 个
+> 独立 DLL（本会话不设独立 DLL 目标）。registry 关系：
+> 五函数经 P1Api（lib/infrastructure/scheduler/src/module_adapters.cpp 的工厂注册面）被 8 个
 > Phase1 descriptor 工厂委托（p1_nodes 表＋register_factory，:15462-15478；make_p1_node_module
 > 定义 :13265）。
 
@@ -48,7 +48,7 @@ host free；AIOImageData 经 canonical deleter aio_free_image_data（IO-002）�
 
 threadsafe:no（handle 级单线程）；reentrant:yes；omp worker 数=
 host budget.max_workers 注入（禁硬编码）；B 线 registry 通道经
-SessionModule ThreadLease 租借（module_adapters.cpp:156-162）。
+SessionModule ThreadLease 租借（module_adapters.cpp 的适配器租借面）。
 
 ## Errors
 

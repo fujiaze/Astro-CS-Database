@@ -4,7 +4,7 @@
 
 > 本页为模块导览页；冻结合同落位
 > lib/algorithms/platesolve/（README.md + module.yaml + memory.md 三件套，
-> CONTRACT_READY，entrypoint=MISSING）；registry 登记页 =
+> CONTRACT_READY，entrypoint 未落地）；registry 登记页 =
 > docs/modules/registry/astrocs.phase1.wcs-platesolve.md。
 
 ## 职责
@@ -36,18 +36,18 @@ POD，无堆所有权转移。
 ## Thread safety
 
 句柄级互斥使用；OpenMP 仅三角形投票/选星（整数归并，bitwise 与线程数
-无关）；ThreadLease 未接线（DISP-WCS-005）。
+无关）；ThreadLease 未接线（缺陷登记 = docs/science/algorithms/PLATESOLVE.md §11）。
 
 ## Errors
 
 几何退化/星不足 → ret=0/success=0（error_msg 载因）→ 编排
 PLATESOLVE_FAILED；BLOCK_MISSING（必需块缺失）；CD 退化坍缩按失败处理
-（DISP-WCS-001 失败-置信度语义）。
+（失败-置信度语义见 PLATESOLVE.md §11）。
 
 ## Science IDs
 
 SCI-WCS-001（docs/science/ASTROMETRY.md，FROZEN）；ALG-WCS-001
-（docs/science/algorithms/PLATESOLVE.md §11 逐符号锚 + DISP-WCS-001..006 +
+（docs/science/algorithms/PLATESOLVE.md §11 逐符号锚与缺陷登记 +
 TEST-WCS-DESIGN-001 冻结容差）。
 
 ## Tests

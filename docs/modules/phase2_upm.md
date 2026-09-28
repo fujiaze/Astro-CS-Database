@@ -13,7 +13,8 @@
 > docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
 > 合同，SCI/ALG 占位 ID⇒合同 ID 映射声明在其映射节）。descriptor
 > 词汇 module_id=`astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
-> （module_adapters.cpp:661-678/:680-694）为编排层占位词汇，其对齐属迁移目标（未落地）；冻结依据 =
+> （p2_upm_fit_descriptor / p2_upm_apply_descriptor）为编排层口径，其对齐属
+> 迁移目标（未落地）；冻结依据 =
 > `docs/science/algorithms/PHASE2_UPM_IMPL.md`（ALG-P2-UPM-IMPL-001）与 `docs/science/PHASE2_UPM.md`（SCI-UPM-001）。
 
 ## 身份与合同落位
@@ -21,21 +22,16 @@
 - MOD ID：`MOD-astrocs-phase2-upm-fit`（fit 职能 registry 行 ID 沿用）
   / `MOD-astrocs-phase2-upm-apply`（apply 职能 registry 行 ID 沿用，
   两行同指本页合同 `astrocs.p2.upm`）；module_id 合同值=
-  `astrocs.p2.upm`（矩阵 P2-UPM 行；descriptor 占位
-  `astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
-  module_adapters.cpp:661-694 仅编排层词汇）；dll_target=
-  `astrocs_p2_upm.dll`（合同值，尚未存在；MISSING 语义，迁移目标未落地）。
-- 合同三件套：`lib/algorithms/upm/`（README r1 + module.yaml
-  CONTRACT_READY entrypoint=MISSING + memory.md），按
-  `lib/algorithms/sampling/`→`lib/algorithms/integration/`→`lib/algorithms/rejection/` 先例新建；
-  `lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，不可
-  覆盖。
+  `astrocs.p2.upm`（descriptor 占位 `astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
+  仅编排层词汇）；dll_target=`astrocs_p2_upm.dll`（合同值，尚未存在，
+  迁移目标未落地）。
+- 合同三件套：`lib/algorithms/upm/`（README + module.yaml CONTRACT_READY，
+  entrypoint 未落地 + memory.md）；落位规则见 docs/modules/README.md。
 - 生产源：`lib/algorithms/coverage/src/upm.cpp`（1565 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
   签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）。模块页=
   本文件。
-- owner SA-P2-U21；depends_on_int=P2-SAMP;CPU-005
-  （MODULE_MIGRATION_MATRIX P2-UPM 行权威）；
+- owner SA-P2-U21；depends_on_int=P2-SAMP;CPU-005；
   legacy_paths="lib/algorithms/coverage upm sources"。
 
 ## 职责与明确非职责
@@ -54,14 +50,13 @@
   build_geo 变体（:934）消费全几何 P2ControlNode（含单帧区），单帧
   区经全局平滑/Laplacian 延拓（harmonic continuation）。
 - apply 职责：按 frame_id 绑定逐块校准——**默认只扣偏差 δ_k、保留公共天光面
-  B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §4.4「公共面语义：
+  B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §5.4「公共面语义：
   只扣「多退少补」的偏差，不剪掉整个背景」）。
   ⚠ **记法消歧（强制）**：`C_k ≡ B_ref + δ_k` 是**表示层全量**；**全量扣除
-  `raw − C_k`（含 `B_ref`）不再是默认**，凡写 `raw − C_k` 处必须写明
-  「全量」还是「仅偏差」——本页原写 `calibrated = raw − C_f(p)` **无消歧，已按
-  R24 订正**。实现键 `seam.additive_mode ∈ {c, delta, both}`：`delta` = `raw − δ_k`
-  （保留 `B_ref`，**设计默认**）、`c` = 全量扣除、`both` = 两者同时施加
-  （最高设计 §4.4；⚠ 实现面默认仍为 `c`，属**待改**，以设计为准）。
+  `raw − C_k`（含 `B_ref`）不是默认**：凡写 `raw − C_k` 处必须写明「全量」
+  还是「仅偏差」。实现键 `seam.additive_mode ∈ {c, delta, both}`：`delta` =
+  `raw − δ_k`（保留 `B_ref`，**设计默认**）、`c` = 全量扣除、`both` = 两者同时
+  施加（最高设计 §5.4；实现面默认仍为 `c`，属**待改**，以设计为准）。
   内核锚 = p2_upm_calibrate_block :1240，与 p2_upm_evaluate_c :1271
   sparse/dense 同一科学语义；dense cache 物化/读取
   （p2_upm_materialize_dense_n :1390 分批并行求值→(f,tile) 单调序
@@ -79,8 +74,8 @@
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:661-678 fit/:618-632
-apply 实测；占位词汇，按 registry 生成词保留）:
+编排层 descriptor 端口表（p2_upm_fit_descriptor fit /
+p2_upm_apply_descriptor apply；词汇按 registry 生成词保留）:
 
 fit 侧:
 
@@ -124,7 +119,7 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
   :108-110、calibrate_block :113-、evaluate_c :122、
   raw_weight 冻结注 :126-133、normalized_weights :139-、
   geometry_hash :146、component_gauges :150、
-  materialize_dense 重复声明 :154-156/:173-178（DISP-P2UPM-001）、
+  materialize_dense 重复声明 :154-156/:173-178（登记见 ALG-P2-UPM-IMPL-001）、
   dense_info :159-、dense_read_block :166-、close :180）。
 - 核心 symbol（lib/algorithms/coverage/src/upm.cpp 16 导出，extern "C"）:
   p2_upm_build（:929）、p2_upm_build_geo（:934）、p2_upm_save
@@ -144,19 +139,19 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 
 ## Registry descriptor 与配置 schema
 
-fit descriptor=module_id `astrocs.phase2.upm-fit`（占位）；apply
-descriptor=module_id `astrocs.phase2.upm-apply`（占位）
-（module_adapters.cpp:661-678/:680-694）；两 descriptor 均
+fit descriptor = module_id `astrocs.phase2.upm-fit`（占位）；apply
+descriptor = module_id `astrocs.phase2.upm-apply`（占位；
+p2_upm_fit_descriptor / p2_upm_apply_descriptor）；两 descriptor 均
 execution_class=`cpu_heavy`、parallel_ok=true、api_id=API-P2-001、
-abi=c++17。占位 ID 清单（descriptor 派生词汇，其对齐属迁移目标，未落地）:
+abi=c++17。descriptor 派生词汇（其对齐属迁移目标，未落地）:
 fit=SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001；apply=
-SCI-P2-UPM-002/ALG-P2-UPM-002/DATA-P2-COR/TEST-P2-UPM-002；
-DISP-P2UPM-004=descriptor 端口占位语义 persist→reload（ports 静态
-声明与内核 probe/fill 语义的桥接未验证）。配置=P2UpmBuildConfig 16
+SCI-P2-UPM-002/ALG-P2-UPM-002/DATA-P2-COR/TEST-P2-UPM-002。
+descriptor 端口为静态声明的 persist→reload 语义，与内核 probe/fill
+语义的桥接未验证。配置=P2UpmBuildConfig 16
 字段（upm.h:71-92；production 默认单一来源=p2_session.cpp:183-199:
 robust_loss=0 huber、upm_weight_source=0 snr2_normalized、
 huber_delta=1.345、max_iterations=100、tolerance=1e-6、
-target_order=coverage 实测、sigma_floor=1e-3、support_power=1.0、
+target_order=覆盖图 order（取自 coverage）、sigma_floor=1e-3、support_power=1.0、
 use_ivar_weight=1、control_reliability=1.0；upm/smoothing_lambda/
 huber_delta/max_iterations 可被 phase config JSON 覆盖
 p2_session.cpp:200-206）。
@@ -167,7 +162,7 @@ p2_session.cpp:200-206）。
   worker-local tsums、:613-661 逐 obs 独立 w）与 dense tile 求值
   （:1477-1484 std::thread 池，workers 由调用方传 lease）；模块内
   std::thread 实现，**无 OpenMP**（:1477 注释"无 OpenMP"；upm.h
-  :89-91 注释仍写 OpenMP=漂移，DISP-P2UPM-002）。
+  :89-91 注释仍写 OpenMP，属注释漂移，登记见 ALG-P2-UPM-IMPL-001）。
 - worker 数=Runtime lease 唯一来源：cfg.cpu_workers=ThreadBudget.
   max_workers 经 p2_session.cpp:197（§3 blocks=budget）与 stage2.cpp
   :482 传入；模块无 hardware_concurrency 自行开线程；0=auto、1=串行
@@ -198,27 +193,26 @@ p2_session.cpp:200-206）。
   parse/IO（:941/:945/:1009-1028/:1234 等）；rc=2 production 缺
   control ivar（:609→build 传播，upm.h:46-50 冻结）与 dense stale
   cache（upm.h:167 注释 0=ok,1=io/parse,2=stale）。evaluate_c
-  未知 frame_id=NaN（:1277-1280）。无 ACS_ERR_* 词汇（本页修订旧
-  registry 派生内容）。
+  未知 frame_id=NaN（:1277-1280）。模块面错误码词汇 = P2UPM 内核 rc，
+  不使用编排层 ACS_ERR_* 词汇。
 - 取消: 会话消费面整模型不写半成品——upm_build 入口检查
   p2_session.cpp:181、persist 段取消点 :223-227（取消即 close 模型
   返回 ACS_ERR_CANCELLED，无半成品文件）；模块内核无取消检查点。
 - 无段内 checkpoint（dense 物化整缓存一次写）；stage2 消费链逐阶段
   stage 日志由会话/编排层承载，非模块内输出。
-- known_defects（登记不改码）: DISP-P2UPM-001（upm.h:154-156/
-  :173-175 materialize_dense 重复声明）、DISP-P2UPM-002（upm.h:89-91
-  注释漂移 OpenMP vs std::thread 实现）、DISP-P2UPM-003
-  （p2_session.cpp:196-204 覆盖键缺口）、DISP-P2UPM-004（descriptor
-  端口占位语义 persist→reload）；整改面未落地。
+- known_defects（登记不改码；正本 = ALG-P2-UPM-IMPL-001 缺陷清单）:
+  upm.h:154-156/:173-175 materialize_dense 重复声明；upm.h:89-91 注释漂移
+  （OpenMP vs std::thread 实现）；p2_session.cpp:196-204 覆盖键缺口；
+  descriptor 端口静态声明的 persist→reload 语义；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-UPM-001`/`TEST-P2-UPM-002` MISSING（可执行测试待建，不冒认）；登记面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 节设计冻结
-VERIFIED 承载锚。现状相邻证据（引用不冒认）:
-eng/tests/api/test_upm_recovery_oracle.py（SYN-005 参数恢复 oracle：
+可执行 `TEST-P2-UPM-001`/`TEST-P2-UPM-002` 待建（不冒认）；登记面 =
+ALG-P2-UPM-IMPL-001 TEST-DESIGN 节设计冻结。现状相邻证据（引用不冒认）:
+eng/tests/api/test_upm_recovery_oracle.py（参数恢复 oracle：
 test_01 常数面恢复、test_02 逐帧偏移、test_03 收敛确定性 model_hash
 逐位、test_04 星 flux 不破坏）；eng/tests/api/test_upm_parallel.py
-（PAR-003：test_01 每 worker 重复确定、test_02 1/N 科学等价、
+（并行面：test_01 每 worker 重复确定、test_02 1/N 科学等价、
 test_03 内存有界）；eng/tests/unit/p2_upm_synthetic_test.cpp（合成单元
 面）；eng/tests/backend/test_p2002_parallel_upm.py（P2-002 生产并行
 upm 面）。容差权威=ALG-P2-UPM-IMPL-001 TEST-DESIGN 冻结（ALG-UPM-001
@@ -226,18 +220,17 @@ F6 dense/sparse 1e-12 等价基线）。
 
 ## 已知限制
 
-- DISP-P2UPM-001..004（上节，登记不改码）。
 - ALG 边界: 覆盖并集非凸区外推仅经 tile 内 cell 界锚点（外推锚只引
   用真实存在 cell，upm.cpp tile_gx/gy_bounds）；单帧区=harmonic
   continuation 非数据约束解（SCI-UPM-001 §4）；quality_mode=1
   snr²/(1+snr²)/unc² 权重仅 ablation/诊断（SNR-015）。
-- DISP-P2UPM-001..004 的现行语义与判据正本 =
-  `docs/science/algorithms/PHASE2_UPM_IMPL.md` §11/§13（本页只留指针）。
+- 缺陷与现行语义正本 = `docs/science/algorithms/PHASE2_UPM_IMPL.md`
+  §11/§13（本页只留指针）。
 
 ## 链接
 
 - 合同锚：`lib/algorithms/upm/`（README/module.yaml/memory.md 三件套）
-- registry 手写页：docs/modules/registry/astrocs.phase2.upm-fit.md、
+- registry 登记页：docs/modules/registry/astrocs.phase2.upm-fit.md、
   docs/modules/registry/astrocs.phase2.upm-apply.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零改
   动；descriptor 占位 SCI-P2-UPM-001/002⇒SCI-UPM-001 映射声明=

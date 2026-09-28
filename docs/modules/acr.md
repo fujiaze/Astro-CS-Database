@@ -37,7 +37,8 @@ work_pool 调度；dispatcher 纯 CPU 回退；设备不可用时按 partial 契
 
 ## Science IDs
 
-依赖 phase2（ALG-UPM-* 等）；无独立科学定义。
+依赖 phase2（ALG-UPM-*、ALG-REJ-*、SCI-INT-* 等）；无独立科学定义，
+等价性判据正本 = `docs/science/algorithms/ACR_EQUIVALENCE.md`。
 
 ## 性能特征
 

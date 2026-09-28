@@ -14,7 +14,7 @@
 + auto nside + FP32/FP64 双精度通道 + Sphere→Plane 反向 drizzle +
 操作计数诊断。归一（S=F/D、variance=sumVarNum/D²、ivar）在
 astro_image_io finalize 层（astro_sphere_sink.cpp:100 传出，
-aio_hips_writer finalize_tile 完成——DISP-DRZ-007）。
+aio_hips_writer finalize_tile 完成，登记见 DRIZZLE_GEOMETRY.md）。
 
 ## 非职责
 
@@ -63,14 +63,15 @@ finalize 层，covered_area≤0 → variance NaN）。
 
 SCI-DRZ-001/014/015/016（docs/science/DRIZZLE.md，FROZEN）；
 ALG-DRZ-001（docs/science/algorithms/DRIZZLE_GEOMETRY.md，含 TEST-DRZ-
-DESIGN-001 与 DISP-DRZ-001..008）；DATA-P1-DRZ；API-DRZ-001；
+DESIGN-001 与缺陷登记）；DATA-P1-DRZ；API-DRZ-001；
 MOD-astrocs-phase1-drizzle（lib/algorithms/drizzle/module.yaml）。
 
 ## 性能特征
 
 TargetGeomCache 复用（命中率为运行期统计量，读数与条件见实验单元 `实验/healpix-polar/`）；三层候选缓冲
-（1.25/3.0·hp_res + fast 1.15 畸变系数）；候选零漏选（设计 oracle 语料
-9003 例，false_negative=0）；计数 `METRIC-P1-DRZ-CANDIDATES` 等
+（1.25/3.0·hp_res + fast 1.15 畸变系数）；候选零漏选（设计 oracle
+语料，判据见 DRIZZLE_GEOMETRY.md；读数与条件见 `实验/healpix-polar/`）；
+计数 `METRIC-P1-DRZ-CANDIDATES` 等
 （`DrizzleOpCounters` 全字段见 `operation_counts.json` 剖面）。
 
 ## 有界 target-ipix 几何缓存
@@ -80,8 +81,9 @@ TargetGeomCache 复用（命中率为运行期统计量，读数与条件见实�
 - 计数新增 target_boundary_builds / target_geometry_builds /
   geometry_cache_hits / geometry_cache_misses（DrizzleStats +
   [ops] 行）；
-- 科学等价：candidate oracle 9003/0、freeze 42/42、UPMW-005 MC 复算结果不变；
-  k_corr 规范取值 1.4（实测读数与条件见实验单元 `实验/healpix-polar/`）。判据详见 docs/science/algorithms/DRIZZLE_GEOMETRY.md。
+- 科学等价：candidate oracle、freeze 闭合门与 MC 复算结果不变（判据见
+  docs/science/algorithms/DRIZZLE_GEOMETRY.md；读数与条件见 `实验/healpix-polar/`）；
+  k_corr 规范取值 1.4。
 
 ## Tests
 
@@ -97,4 +99,5 @@ TEST-P1-DRZ-001 可执行面待建）；Monte Carlo 方差
 
 lib/algorithms/drizzle/healpix_drizzle/（10 源文件编入根 CMake 静态库
 astrocs_drizzle，CMakeLists.txt:356-366；poly_clip.cpp 编入但
-生产路径零调用——DISP-DRZ-008）；模块合同 lib/algorithms/drizzle/。
+生产路径零调用，登记见 DRIZZLE_GEOMETRY.md）；模块合同
+lib/algorithms/drizzle/。

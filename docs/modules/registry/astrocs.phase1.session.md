@@ -1,24 +1,17 @@
----
-id: MOD-astrocs-phase1-session
----
-
 # 模块 astrocs.phase1.session
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 手写合同页：registry 无
-> astrocs.phase1.session descriptor——gen_module_readmes.py 以
-> module_adapters.cpp 为源仅生成 8 个 Phase1 descriptor 页
->（calibration/cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/
-> drizzle/writer），本页为其装配底座（p1_session 函数族）手写登记，
-> 重生成时须保留。权威签名头 lib/phase1_session/p1_session.h。
+> Phase1 装配底座（p1_session 函数族）登记页；权威签名头
+> lib/phase1_session/p1_session.h，实现 lib/phase1_session/p1_session.cpp。
+> 装配底座不设独立 registry descriptor：八个 Phase1 descriptor 工厂经 P1Api
+> 委托本模块的五函数。
 
 - 模块词汇：`astrocs.phase1.session`（现行 registry
   descriptor 无此 module_id，五函数经 P1Api 被 8 descriptor 工厂委托——
-  lib/infrastructure/scheduler/src/module_adapters.cpp:755-762/:790-797/:817-832）。
-- 层级：assembly（编排），不设独立 DLL（MODULE_MIGRATION_MATRIX 无
-  P1-SESSION 行）；构建=静态库 astrocs_phase1_session（根
-  CMakeLists.txt:448-452）。
+  lib/infrastructure/scheduler/src/module_adapters.cpp 的工厂注册面）。
+- 层级：assembly（编排），不设独立 DLL；构建 = 静态库 astrocs_phase1_session
+  （根 CMakeLists.txt:448-452）。
 - 合同：DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION
   （PUBLIC_API「Phase1 装配会话 C API」节）/ 编排上游 API-P1-001
   （docs/api/PHASE1_API_V1.md FROZEN）。

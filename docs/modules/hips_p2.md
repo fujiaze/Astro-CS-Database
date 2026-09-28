@@ -3,9 +3,8 @@
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位
-> `lib/algorithms/coverage/hips_p2/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/drizzle/hips/`（P1-HIPS）先例新建；
-> `lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
+> `lib/algorithms/coverage/hips_p2/`（README + module.yaml + memory.md，CONTRACT_READY，
+> entrypoint 未落地）；落位规则见 docs/modules/README.md。
 > 唯一生产源 `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，astrocs-stage2 工具，
 > lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
 > `lib/algorithms/coverage/include/astro/phase2/stage2_common.h`；共用 writer 库
@@ -16,8 +15,7 @@
 ## 身份与合同
 
 - MOD ID：`MOD-astrocs-phase2-hips-writer`（registry 行 ID 沿用
-  `MOD-astrocs-phase2-write`）；module_id：`astrocs.p2.hips_writer`
-  （MODULE_MIGRATION_MATRIX P2-HIPS 行）；dll_target：
+  `MOD-astrocs-phase2-write`）；module_id：`astrocs.p2.hips_writer`；dll_target：
   `astrocs_p2_hips_writer.dll`（合同值，尚未存在；迁移目标未落地）。
 - owner SA-P2-I23；depends_on_int=P2-INT;IO-003；legacy_paths=
   "lib/algorithms/coverage write sources;lib/infrastructure/aio/healpix_db"。
@@ -56,13 +54,13 @@
   并行仅内部（CON-006 定序归并）；large_scale 激活强制串行。
 - 确定性：同输入同 config → 同 mosaic（tile 序固定、归并定序、单 writer；
   UTC 时间戳字段除外）。
-- known_defects：DISP-P2HIPS-001..004（无 variance/ivar 输出产品；hash 链
-  未入 properties provenance；直写无 staging 归 IO-003 承接；O(T·N) probe）
-  ——现行实现保持此语义；整改面未落地。
+- known_defects（登记不改码；正本 = ALG-P2-HIPS-001..004 缺陷清单）：
+  无 variance/ivar 输出产品；hash 链未入 properties provenance；直写无
+  staging（归 IO 域承接）；O(T·N) probe——现行实现保持此语义；整改面未落地。
 
 ## 验证
 
-可执行 `TEST-P2-HIPS-001` MISSING（可执行测试待建）；登记面=设计冻结 VERIFIED；
+可执行 `TEST-P2-HIPS-001` 待建；登记面 = 设计冻结；
 设计内容与容差来源=
 ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md §8/§9）。现状相邻证据：
 phase2_synthetic_gate ACR mosaic_reject_legacy↔CPU 等价

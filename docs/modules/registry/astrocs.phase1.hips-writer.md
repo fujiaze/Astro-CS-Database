@@ -1,21 +1,17 @@
----
-id: MOD-astrocs-phase1-hips-writer
----
-
 # 模块 astrocs.p1.hips_writer
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 本页为 HiPS writer 模块合同登记页。事实源：lib/algorithms/drizzle/hips/README.md、module.yaml、
-> docs/science/algorithms/HIPS_WRITER.md、docs/contracts/DATA_SEMANTICS.md §12、
-> docs/contracts/PUBLIC_API.md API-HIPS-001、
-> docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-hips-writer 行。
+> 合同：ALG-HIPS-001（docs/science/algorithms/HIPS_WRITER.md）/
+> DATA-HIPS-001（docs/contracts/DATA_SEMANTICS.md §12）/ API-HIPS-001
+> （docs/contracts/PUBLIC_API.md）。事实源：lib/algorithms/drizzle/hips/README.md
+> （CONTRACT_READY）、module.yaml、lib/infrastructure/aio/src/hips/aio_hips_writer.cpp。
 
 ## 职责与明确非职责
 
 生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake
 astrocs_hips 静态库 CMakeLists.txt:298-309；registry descriptor 无本模块
-页项——astrocs_p1_hips_writer.dll 为迁移目标（未落地），entrypoint=MISSING）。
+页项——astrocs_p1_hips_writer.dll 为迁移目标，entrypoint 未落地）。
 职责：IVOa HiPS 1.4 产品集写入（signal/support/variance/ivar Image HiPS +
 SNR Catalogue HiPS、叶级 tile FITS（NESTED→FITS 序映射、checksum）、低阶
 hierarchy 聚合、Moc.fits UNIQ、properties/metadata/manifest 生成、Drizzle
@@ -49,7 +45,7 @@ module_id=`astrocs.p1.hips_writer`；现状 registry 无本模块 descriptor
 （module_adapters.cpp 无 hips_writer 项，全仓库无 astrocs_p1_hips_writer
 CMake 目标）；配置经 product_begin 参数固化（nside/tile_width/data_type/
 flags/creator_did/obs_title/obs_filter/exposure_s/obs_date/moc_order）；
-versioned config schema=MISSING（冻结）。
+versioned config schema 待落地（窗口期以 product_begin 参数为冻结面）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -69,19 +65,19 @@ Moc.fits BINTABLE；handle 所有权=writer（finalize/abort 释放）；view
 ## 错误、日志、指标、取消和 checkpoint
 
 错误码：product_begin NULL；write_signal -1..-5；write_variance -1..-7；
-finalize -1..-8；provenance 1/2——无集中枚举（DISP-HIPS-007）；
+finalize -1..-8；provenance 1/2——无集中枚举（缺陷登记 = ALG-HIPS-001 §10）；
 last_error=thread_local 文本。日志=stderr [hips]/[sink]。指标=stderr
-profile 计时（transform/fits_write/hierarchy/finalize 分段）。取消=无
-检查点（登记限制）；checkpoint 无（abort 不清理已写文件，
-DISP-HIPS-001，处置归调用方/IO-003 层）。
+profile 计时（transform/fits_write/hierarchy/finalize 分段）。取消=无检查点；
+abort 不清理已写文件，处置归调用方/IO-003 层（缺陷登记 = ALG-HIPS-001 §10）。
 
-⚠ **原子性待修缺口登记（未闭合）**：
-本模块的 HiPS tile 写出**不是原子发布**——现状为 `remove → fits_create → write_chksum → close`
-（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:330/:399` 的 `std::remove`），
-**违反最高设计 §9「所有产品（含 HiPS tile）：临时文件/目录 + 校验 + fsync + 原子 rename 提交」**。
-最高设计 §9 已把该处如实登记为**本期例外**；
-**闭合判据** = tile 走「临时区 → 校验 → 哈希 → 原子改名」且负例可红。
-**未闭合期间**：本页保持「缺口」语义，**HiPS tile 原子发布的宣称以闭合判据通过为前提**。
+## 原子发布边界
+
+最高设计 §9 要求所有产品（含 HiPS tile）走「临时文件/目录 + 校验 + fsync + 原子
+rename 提交」。本模块现状为 `remove → fits_create → write_chksum → close`
+（lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的 `std::remove`），不构成原子发布，
+属已登记的例外面（缺陷登记 = ALG-HIPS-001 §10）。闭合判据 = tile 走
+「临时区 → 校验 → 哈希 → 原子改名」且负例可红；在闭合判据通过前，
+HiPS tile 的原子发布宣称不成立。
 
 ## 独立 synthetic 验证命令与容差
 
@@ -93,6 +89,6 @@ DISP-HIPS-001，处置归调用方/IO-003 层）。
 
 ## 已知限制
 
-ALG-HIPS-001 §10（DISP-HIPS-001..012）+ README §9（abort 无 rollback、
-CFITSIO 裸调无 mutex、错误码混用、hips_estsize 硬编码、moc_order 静默
-clamp、无取消）；docs/KNOWN_LIMITATIONS.md。
+ALG-HIPS-001 §10 缺陷登记（abort 无 rollback、CFITSIO 裸调无 mutex、错误码混用、
+hips_estsize 硬编码、moc_order 静默 clamp、无取消）+ README §9；
+docs/KNOWN_LIMITATIONS.md。

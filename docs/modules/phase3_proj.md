@@ -2,19 +2,15 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 模块总页；registry
-> 手写合同页=docs/modules/registry/astrocs.phase3.wcs.md（行
-> MOD-astrocs-phase3-wcs）；合同三件套=lib/algorithms/projection/
-> {README.md,module.yaml,memory.md}。
+> 模块总页；registry 登记页 = docs/modules/registry/astrocs.phase3.wcs.md；
+> 合同三件套 = lib/algorithms/projection/（落位规则见 docs/modules/README.md）。
 
 ## 1 身份
 
-- module_id: astrocs.p3.projection（MODULE_MIGRATION_MATRIX P3-PROJ
-  行权威值）；registry 行 MOD-astrocs-phase3-wcs；
-  dll_target=astrocs_p3_projection.dll（合同值，尚未存在，
-  entrypoint=MISSING（迁移目标未落地），IMPLEMENTED 只由验收签发）；
-  现状构建=astrocs_phase3_session 静态库成员（根 CMakeLists.txt
-  :460-465）。
+- module_id: astrocs.p3.projection；registry 行 MOD-astrocs-phase3-wcs；
+  dll_target=astrocs_p3_projection.dll（合同值，尚未存在，entrypoint 未落地，
+  IMPLEMENTED 只由验收签发）；现状构建 = astrocs_phase3_session 静态库成员
+  （p3_wcs.cpp 为其五源文件之一）。
 - owner: SA-P3-P25；language: c++17；abi_version: 1；
   phase_scope: phase3；resource_class: cpu_heavy；
   threading_model: host_executor_lease（迁移目标合同值；现状=内核
@@ -31,7 +27,7 @@
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
 | ARCH | ARCH-001 | docs/contracts/ARCH-001.md | VERIFIED |
 | TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；可执行面待落地 | 见左 |
-| EVID | EVID-MISSING | 验收证据待补 | MISSING |
+| EVID | 执行证据 | 验收证据待补（未取得） | NOT_VERIFIED |
 
 ## 3 职责
 
@@ -52,7 +48,7 @@
 ## 4 生产源
 
 - lib/algorithms/projection/p3_wcs.h（签名头正本）+
-  lib/algorithms/projection/p3_wcs.cpp——六符号（W4-A9 批次 1 由
+  lib/algorithms/projection/p3_wcs.cpp——六符号（生产源 p3_wcs.h/.cpp，由
   lib/phase3_session/ 迁入本模块）:
   P3WcsDescriptor/P3WcsStatus/p3_wcs_make/p3_wcs_pix2world/
   p3_wcs_world2pix/p3_wcs_fits_keywords。
@@ -69,7 +65,7 @@
 | props | DATA-P3-PROPS | 必 | descriptor 词汇，HiPS properties 面 |
 | wcs_plan | DATA-P3-WCS | 可 | §28 权威源（入参/映射/descriptor/关键词面） |
 
-端口词汇为 descriptor 派生（module_adapters.cpp:406-423 占位
+端口词汇为 descriptor 派生（p3_wcs_descriptor，占位
 module_id=astrocs.phase3.wcs），其对齐属迁移目标（未落地），不作冻结依据。
 
 ## 6 实测偏差与整改（不修码）
@@ -79,16 +75,17 @@ module_id=astrocs.phase3.wcs），其对齐属迁移目标（未落地），不�
 - 产品声明门 `p3_proj_declare` 对非 TAN 码
   **显式返回 `P3_WCS_UNSUPPORTED`**（含请求码 + 原因 + 已支持清单），
   `p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生 `P3_WCS_UNSUPPORTED`。
-  在役 registry = `p3_proj.cpp`（v3）。
+  在役 registry = `p3_proj.cpp`。
 - DLL/入口未建；WCSLIB 验收 oracle 与可执行测试待建。
-- 本域无 DISP 缺陷登记；详见 ALG-P3-PROJ-IMPL-001 §11/§13。
+- 缺陷登记与现行语义见 ALG-P3-PROJ-IMPL-001 §11/§13。
 
 ## 7 链接
 
-- registry 手写页: docs/modules/registry/astrocs.phase3.wcs.md
+- registry 登记页: docs/modules/registry/astrocs.phase3.wcs.md
 - ALG: docs/science/algorithms/PHASE3_PROJ_IMPL.md
 - DATA: docs/contracts/DATA_SEMANTICS.md §28
 - API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001）
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 同域: docs/modules/phase3_fits.md（写出域）、
-  phase3_session 模块页（**未建**：Session 型模块按 §7.3 不迁移、待删除，见 `eng/cmake/ARCH-001-migration-manifest.md` §1；会话编排面现行权威=`docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`）
+  phase3_session 模块页未建（会话编排层不单独成模块）；会话编排面现行权威 =
+  `docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`。

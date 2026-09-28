@@ -51,7 +51,7 @@ SCI-UPM-WEIGHT-001、ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001
 - p2_upm_raw_weight：production=quality×control_ivar（缺 control ivar
 显式 rc=2）；use_ivar_weight=0 走 snr² ablation 诊断域；
 - sampler：uncertainty=SE(patch median)，N_retained + k_corr=1.4
-  （UPMW-005 MC 校准）；obs.ivar 弃用为诊断；
+  （标定读数与条件见 `实验/healpix-polar/`）；obs.ivar 弃用为诊断；
 - stage2：use_ivar_weight 显式透传（默认 1）；weight_policy=ivar 时
    ACR 块强制 CPU（ACR-IVAR-001）；ivar 产品整体缺失 = 硬科学错误；
 - integration：零权重合法（ZERO_VALID_WEIGHT），NaN/Inf/负 INVALID；
@@ -71,9 +71,9 @@ P2.* stage 日志；astrocs-diagnose 支持。
 
 ## Tests
 
-synthetic_gate 89 项（含 UPMW-001..004/006/007）；G5 ivar 真值；
-SNR-015 ablation；UPMW-005 在 healpix_drizzle/tests/
-control_median_mc_test.cpp（2000 实现 Drizzle MC；k_corr 规范取值 1.4，实测读数与条件见实验单元 `实验/healpix-polar/`）。
+synthetic_gate 组（含 UPMW 组）；G5 ivar 真值；SNR-015 ablation；
+control-median MC 在 healpix_drizzle/tests/control_median_mc_test.cpp；
+k_corr 规范取值 1.4（读数与条件见 `实验/healpix-polar/`）。
 
 ## Known limitations
 
@@ -86,9 +86,9 @@ lib/algorithms/coverage/{src,lib/include/astro/phase2,tools,tests}/。
 ## Coverage 子模块合同
 
 - coverage 环节合同（ALG-COV-001 / DATA-COV-001 / API-COV-001、端口与缺陷登记）唯一正本 =
-  `docs/science/algorithms/PHASE2_COVERAGE.md` 与模块合同页
-  `docs/modules/registry/astrocs.phase2.coverage.md`（+ `lib/algorithms/coverage/README.md`、
-  `module.yaml`）；本页只留指针。
+  `docs/science/algorithms/PHASE2_COVERAGE.md`；模块合同 = `lib/algorithms/coverage/`
+  （README + module.yaml）；registry 登记页 = docs/modules/registry/astrocs.phase2.coverage.md。
+  本页只留指针。
 - 本模块归属边界：处理链阶段序为 coverage → sampler → …，非本模块归属；
   coverage/support/validity 三概念分离，coverage 禁作隐式科学权重
   （w_UPM 唯一冻结式 = `docs/science/PHASE2_UPM.md` §5）。
