@@ -60,6 +60,10 @@ PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi003_loader_probe.c")
 VERIFY_SCRIPT = os.path.join(REPO, "eng", "packaging", "verify_install_tree.py")
 CC = os.environ.get("CC", "gcc")
 TIMEOUT = 900
+# FINAL-07：门内按需构建是**显式选项**（默认关闭）。理由见 S1：CI 的 UT-ABI 登记
+# 超时 300 s，而门内那一次 22 目标构建实测 ≥900 s ⇒ 必然被外部超时杀成"无判词"。
+# 构建树缺失属构建面问题（CHK-BUILD-LINUX），本门只如实判红并给出下一步。
+ALLOW_BUILD = os.environ.get("ASTROCS_MOD001_ALLOW_BUILD") == "1"
 
 # 产品清单合同锚（MOD-001: 科学模块 DLL 必须登记且可加载; 唯一事实源 =
 # lib/<mod>/module.yaml 的 module_id + CMake SHARED target OUTPUT_NAME）。
@@ -211,13 +215,29 @@ def main():
 
     # ── S1: 构建在位（缺失则构建, rc 判定; 幂等） ──
     targets = PLATFORM_TARGETS + SCIENCE_TARGETS
-    missing = [t for t in SCIENCE_TARGETS
-               if not os.path.isfile(os.path.join(build, t + ".so"))]
-    if missing:
+    # FINAL-07 UT-ABI 真因：原探测用**顶层路径** build/<target>.so，而 Linux 的
+    # 实际输出位是 build/<子目录>/<target>.so（本机实测
+    # build/linux-control/lib/algorithms/drizzle/astrocs_p1_drizzle.so）⇒ 即便 CI
+    # 的构建步已构建全部科学目标，这里也恒判"缺 5 个"，于是在门内起一次 22 目标
+    # 构建（实测 ≥900 s），而登记超时 300 s ⇒ 必然被外部杀成"无判词"。
+    # 探测口径必须与下一行的 find_built_so 一致（同一构建树、同一实际输出位）。
+    missing = [t for t in SCIENCE_TARGETS if not find_built_so(build, t)]
+    if missing and ALLOW_BUILD:
         r = run(["cmake", "--build", build, "--target"] + targets
                 + ["-j", str(os.cpu_count() or 2)])
         check("S1 build science module DLLs " + (str(missing) if missing else ""),
               r.returncode == 0, r.stderr[-600:] if r.returncode else "")
+    elif missing:
+        # FINAL-07（UT-ABI 超登记超时 300 s 被终止）根因：缺 .so 时本门**在门内**起一次
+        # 22 目标构建（本机实测该内层构建 ≥900 s，CI 的 300 s 必然先杀 ⇒ 无判词、只有
+        # 超时）。缺件是构建面的事，交给 CHK-BUILD-LINUX；本门默认只如实判红并给出
+        # 可执行的下一步，不再用一次完整构建把门变成"事实上的构建步"。
+        # 需要在门内按需构建时显式开 ASTROCS_MOD001_ALLOW_BUILD=1。
+        check("S1 build science module DLLs（缺 %d 个且未允许门内构建）" % len(missing),
+              False,
+              "build=%s missing=%s；先跑 python3 eng/ci/run_checks.py --check "
+              "CHK-BUILD-LINUX 备好构建树，或设 ASTROCS_MOD001_ALLOW_BUILD=1 允许门内构建"
+              % (build, missing))
     so_paths = {t: find_built_so(build, t) for t in SCIENCE_TARGETS}
     missing_paths = [t for t, p in so_paths.items() if not p]
     check("S1 build tree science .so 全在（构建树实际输出位）",

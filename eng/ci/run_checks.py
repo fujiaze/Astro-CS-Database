@@ -74,6 +74,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import declared_inputs as _decl_in  # noqa: E402  (eng/ci/declared_inputs.py：声明输入面单一实现点)
 import incremental as _inc  # noqa: E402  (eng/ci/incremental.py：范围计算正本)
 import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
+import proc_teardown as _teardown  # noqa: E402  (eng/ci/proc_teardown.py：显式回收单一实现点)
 
 SCHEMA_VERSION = 1
 RUNNER = "eng/ci/run_checks.py"
@@ -346,22 +347,8 @@ def tail(text: str, limit: int = TAIL_LIMIT) -> str:
 
 
 def _terminate(process: subprocess.Popen) -> None:
-    try:
-        if os.name == "posix":
-            import errno
-            try:
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                return
-            except OSError as exc:
-                if exc.errno != errno.ESRCH:
-                    process.kill()
-        else:  # pragma: no cover - Windows 路径
-            process.kill()
-    except Exception:  # noqa: BLE001
-        try:
-            process.kill()
-        except OSError:
-            pass
+    """终止 step 进程树（实现单一来源 = eng/ci/proc_teardown.py:kill_group）。"""
+    _teardown.kill_group(process)
 
 
 def declared_input_state(repo: Path, rel: str) -> tuple:
@@ -469,8 +456,18 @@ JUDGMENT_RE = re.compile(
     # 机器可读判定记录：形如 {"check": "D3_new_violation", "file": "…", "line": N, "detail": "…"}
     # 的门（如 CHK-DOC-HYGIENE）把判词打成逐条 JSON 对象；这些行本身就带 文件:行，
     # 必须被当作判词收进来（实测：漏掉它们会让 reason 退化成「门未打印可识别判词」）。
+    # FINAL-07 G10-②：构建/编译失败形态（自带 文件:行，但旧正则不认 ⇒ judgment_lines=[]）。
+    # CI 实证：LINUX-MAIN-BUILD-TREE 的 stderr 是
+    #   CMake Error at CMakeLists.txt:1153 (add_executable): Cannot find source file: run/...
+    r"|(^\s*CMake (?:Error|Warning) at [^\n:]+:[0-9]+)"
+    r"|(^\s*[^\s:][^\n:]*\.[A-Za-z0-9]+:[0-9]+(?::[0-9]+)?:\s*(?:fatal )?(?:error|warning)\b)"
+    # FINAL-07 G10-⑤：结构化判定形态（status/passed 与 verdict 同族）。
+    r"|(\"status\"\s*:\s*\"?(?:FAIL|FAILED|ERROR|RED))"
+    r"|(\"passed\"\s*:\s*false)"
     r"|(^\s*\{\s*\"check\"\s*:)", re.I | re.M)
 BANNER_MAX = 200
+# 单条判词块的字节上限（FINAL-07 G9：防一篇缩进 JSON 被吞成一条 5 MB 判词）。
+JUDGMENT_CHUNK_MAX = 8192
 _DETAIL_KEY_RE = re.compile(r'"(?:detail|check|reason|message)"\s*:')
 
 
@@ -503,9 +500,16 @@ def judgment_lines(*blobs) -> list:
                 # 判词横幅 + 其下缩进列出的逐条 finding（通常才是带 文件:行 的那几条）
                 # 整体成块收进来，不截断。只在横幅行本身较短时向后吞，避免把门打在
                 # 横幅之后的整块无关内容一起收进来。
+                merged_bytes = len(line)
                 for nxt in lines[i + 1:]:
                     if nxt.strip() and not nxt[:1].isspace():
                         break
+                    if merged_bytes + len(nxt) > JUDGMENT_CHUNK_MAX:
+                        chunk.append("    …[判词块超过 %d 字节，余下缩进行省略；"
+                                     "完整输出见本次运行的 check 日志]"
+                                     % JUDGMENT_CHUNK_MAX)
+                        break
+                    merged_bytes += len(nxt)
                     chunk.append(nxt.rstrip())
             elif re.match(r'^\s*(?:ERROR|FAIL):\s', line, re.I):
                 # unittest 形态的 `ERROR: test_x (...)` 只给**用例名**，不给文件行号。
@@ -699,7 +703,8 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
     env["ASTROCS_CI_OUT_ROOT"] = str(run_root)
 
     try:
-        proc = subprocess.Popen(
+        # 登记进进程账：外部 TERM/INT 与 atexit 对仍在跑的登记项整组回收（防逃逸孤儿）。
+        proc = _teardown.spawn(
             step["command"], cwd=str(repo), env=env,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             shell=False, start_new_session=(os.name == "posix"),
@@ -737,6 +742,7 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
     result["timed_out"] = timed_out
     result["crash"] = crash
     result["trust_declared"] = trust_declared
+    _teardown.release(proc)   # 已收尾：从进程账注销（atexit 只回收真正逃逸的）
     # 判词（门自己说自己红了的那几行）逐条全量留证，**不截断**。
     judgments = judgment_lines(stdout_s, stderr_s)
     result["judgment_lines"] = judgments
@@ -1951,6 +1957,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list | None = None) -> int:
     args = build_parser().parse_args(argv)
     started = utc_now()
+    # FINAL-07 §7：外部 TERM/INT 打断时显式回收已 spawn 的 step 进程组。
+    _teardown.install_handlers()
     repo = Path(args.repo_root).resolve() if args.repo_root else \
         Path(__file__).resolve().parent.parent.parent
     registry_path = Path(args.registry) if args.registry else repo / "eng" / "ci" / "checks.json"

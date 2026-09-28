@@ -429,7 +429,9 @@ int main() {
 '''
 
 # ── Python 静态断言 ──
-_HDR = INC / "acsd" / "core" / "plan_estimator.h"
+# 头文件现役落点 = lib/include/astrocs/core/plan_estimator.h（INC 内的目录名
+# 与 #include 口径都是 astrocs；原字面量 acsd 是改名残留 ⇒ setUpClass FileNotFoundError）。
+_HDR = INC / "astrocs" / "core" / "plan_estimator.h"
 _SRC = CORE / "plan_estimator.cpp"
 _BACKEND_TABLE = (REPO / "lib" / "infrastructure" / "benchmark" / "backend_host"
                  / "backend_table.inc")

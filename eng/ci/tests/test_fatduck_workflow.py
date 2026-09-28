@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-008 单测：Fatduck workflow / select_candidate / notify 构造（全离线）。
+# FINAL-07：本模块 docstring 含 Windows 路径字面量（D:\AstroCSRunner\harness\...），
+# 非 raw 串会让每次 ast.parse/import 都吐 SyntaxWarning: invalid escape sequence '\A'
+# （CI 日志噪声 22 行，且未来 Python 版本会升级为错误）⇒ docstring 改 raw 串。
+r"""V8-CI-008 单测：Fatduck workflow / select_candidate / notify 构造（全离线）。
 
 覆盖：
 1. fatduck.yml 存在且 yaml.safe_load 可解析；恰好三个 job 且名字固定；

@@ -135,7 +135,10 @@ class TestAdopt006VersionUnification(unittest.TestCase):
         import re
         with open(os.path.join(REPO, "CMakeLists.txt"), encoding="utf-8") as f:
             text = f.read()
-        m = re.search(r"project\(\s*astrocs\s+VERSION\s+(\S+)", text)
+        # 产品名 = 根 CMakeLists.txt 的唯一 project()（现役名 acsd；本文件夹具
+        # 第 64 行同样写 project(acsd ...)）——原字面量 astrocs 是改名前的残留，
+        # 使本用例在改名后恒红。判据（唯一 project() + VERSION 基础号一致）不变。
+        m = re.search(r"project\(\s*acsd\s+VERSION\s+(\S+)", text)
         self.assertIsNotNone(m, "根 CMakeLists.txt 必须含唯一 project()")
         self.assertEqual(m.group(1), BASE, TOL)
 

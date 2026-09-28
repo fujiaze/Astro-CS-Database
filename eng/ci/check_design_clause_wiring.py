@@ -605,6 +605,127 @@ def print_findings(findings) -> None:
         print("  - %s" % item)
 
 
+# ── 维护面：重锚（行锚随设计文档/生产文件演进漂移时的机械再锚定） ─────────────
+def reanchor(repo, ledger_path=None, *, write: bool = False):
+    """把台账的行锚重锚到**当前树**：条文锚按 text_sha256 认领、生产锚按 token 认领。
+
+    判据不放宽：只改 `anchor` / `production_anchor`（含 anchor_tokens 的键）的**行号**，
+    不动 text_sha256 / status / assertion / reason / exit_condition。
+    认领不唯一（同一 sha 命中多行、token 命中多行或零命中）或 sha 已不在范围内时
+    **一律不改**并如实报告 —— 那属于「条文已改、需人复核」，不是行号漂移。
+    返回 (changes, skipped)；写盘后由调用方复跑 evaluate 取证。
+    """
+    repo = pathlib.Path(repo).resolve()
+    snap = Snapshot(repo)
+    ledger_path = pathlib.Path(ledger_path) if ledger_path else (repo / LEDGER_REL)
+    led = load_ledger(ledger_path)
+    doc = led.doc
+    by_sha: dict = {}
+    for sec in doc["watched_sections"]:
+        file_rel = norm_rel(str(sec.get("file", "")))
+        heading = str(sec.get("heading", ""))
+        marker = str(sec.get("bullet_scope_marker", "") or "")
+        for b in scan_scope(snap.lines(file_rel), heading, marker):
+            by_sha.setdefault((file_rel, b.sha256), []).append(b.line)
+
+    changes: list = []
+    skipped: list = []
+    for cl in doc["clauses"]:
+        cid = str(cl.get("id", "?"))
+        sha = str(cl.get("text_sha256", "")).strip().lower()
+        anchor = str(cl.get("anchor", "")).strip()
+        m = _ANCHOR_RE.match(anchor)
+        if not m:
+            skipped.append((cid, "anchor 形态非法: %r" % anchor))
+            continue
+        afile, aline = norm_rel(m.group("path")), int(m.group("line"))
+        cand = sorted(set(by_sha.get((afile, sha), [])))
+        if not cand:
+            skipped.append((cid, "text_sha256 在 %s 监视范围内无对应 bullet"
+                            "（条文已改或条目过期 ⇒ 需人复核，不改）" % afile))
+        elif aline in cand:
+            pass                                   # 已正确，幂等
+        elif len(cand) > 1:
+            skipped.append((cid, "该 sha 命中多行 %s（认领不唯一 ⇒ 不改）" % cand))
+        else:
+            cl["anchor"] = "%s:%d" % (afile, cand[0])
+            changes.append("%s: anchor %s:%d -> %s:%d" % (cid, afile, aline, afile, cand[0]))
+
+        # 生产锚：token 不在登记行 ⇒ 唯一命中处再锚定；多命中/零命中不改。
+        tokens = cl.get("anchor_tokens")
+        if not isinstance(tokens, dict):
+            tokens = {}
+        anchors = cl.get("production_anchor")
+        if not isinstance(anchors, list):
+            continue
+        out = []
+        for a in anchors:
+            am = _ANCHOR_RE.match(str(a).strip())
+            tok = tokens.get(a)
+            if not am or not isinstance(tok, str) or not tok.strip():
+                out.append(a)
+                continue
+            pfile, pline = norm_rel(am.group("path")), int(am.group("line"))
+            try:
+                plines = snap.lines(pfile)
+            except gc.GateError as exc:
+                skipped.append((cid, "%s: %s（不改）" % (a, exc)))
+                out.append(a)
+                continue
+            if 1 <= pline <= len(plines) and tok in plines[pline - 1]:
+                out.append(a)
+                continue
+            hits = [i + 1 for i, ln in enumerate(plines) if tok in ln]
+            if len(hits) == 1:
+                na = "%s:%d" % (pfile, hits[0])
+                out.append(na)
+                tokens[na] = tokens.pop(a)
+                changes.append("%s: production_anchor %s -> %s" % (cid, a, na))
+            else:
+                skipped.append((cid, "%s 的 token 命中 %s（不唯一/不存在 ⇒ 不改）"
+                                % (a, hits or "0 处")))
+                out.append(a)
+        cl["production_anchor"] = out
+        cl["anchor_tokens"] = tokens
+
+    if write and changes:
+        ledger_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
+                               encoding="utf-8")
+    return changes, skipped
+
+
+def _reanchor_selftest_cases(tmp, mk, cases, failures) -> None:
+    """重锚的**可执行正/负例**：正例必须真修到绿，负例（条文已改）必须仍判红且不改。"""
+    pos = tmp / "reanchor_positive"
+    lp = mk()(pos)
+    led = load_ledger(lp)
+    led.doc["clauses"][0]["anchor"] = "docs/ASTROCS_DESIGN.md:1"
+    lp.write_text(json.dumps(led.doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    cases[0] += 1
+    ch, _sk = reanchor(pos, lp, write=True)
+    got = evaluate(pos, lp)[0]
+    if ch and not got:
+        print("SELFTEST_PASS reanchor_repairs_drift (changes=%d)" % len(ch))
+    else:
+        failures.append("reanchor_repairs_drift: changes=%d 剩余 finding=%s"
+                        % (len(ch), got[:3]))
+
+    neg = tmp / "reanchor_negative"
+    lp = mk()(neg)
+    led = load_ledger(lp)
+    led.doc["clauses"][0]["text_sha256"] = "0" * 64
+    led.doc["clauses"][0]["anchor"] = "docs/ASTROCS_DESIGN.md:1"
+    lp.write_text(json.dumps(led.doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    cases[0] += 1
+    ch, sk = reanchor(neg, lp, write=True)
+    got = evaluate(neg, lp)[0]
+    if got and not ch and sk:
+        print("SELFTEST_PASS reanchor_refuses_text_changed (skipped=%d)" % len(sk))
+    else:
+        failures.append("reanchor_refuses_text_changed: changes=%d findings=%s"
+                        % (len(ch), got[:3]))
+
+
 # ── 自检夹具 ─────────────────────────────────────────────────────────────
 _DOC_HEAD = "# 设计\n\n"
 _DOC_SECTION = (
@@ -673,6 +794,8 @@ def _good_ledger(doc_text: str = _DOC_SECTION) -> dict:
 def _write_fixture(root: pathlib.Path, doc: str = _DOC_SECTION, prod=None,
                    ledger: dict = None) -> pathlib.Path:
     root.mkdir(parents=True, exist_ok=True)
+    # 设计文档位于 docs/ 子目录：父目录必须先建，否则自检夹具写入即 FileNotFoundError（门崩）。
+    (root / "docs").mkdir(parents=True, exist_ok=True)
     (root / "docs/ASTROCS_DESIGN.md").write_text(_DOC_HEAD + doc, encoding="utf-8")
     prod = _PROD_LINES if prod is None else prod
     src = root / "lib" / "infra"
@@ -943,6 +1066,9 @@ def _selftest(json_out=None) -> int:
                             % out.count("FINDING-"))
         else:
             print("SELFTEST_PASS no_truncation (200/200 printed, no ellipsis)")
+
+        # ── 重锚维护面：正例真修到绿、负例（条文已改）必须仍判红且不改 ──
+        _reanchor_selftest_cases(tmp, mk, cases, failures)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -968,11 +1094,32 @@ def main(argv=None) -> int:
                     help="台账路径（缺省 = <repo>/%s）" % LEDGER_REL)
     ap.add_argument("--json-out", default=None)
     ap.add_argument("--self-test", action="store_true", dest="self_test")
+    # 维护面（不改判据）：行锚随设计文档/生产文件演进漂移后，按 sha/token 机械再锚定。
+    # 默认 dry-run 只打印；--write 才落盘，落盘后必须复跑本门取证（PASS 才算收工）。
+    ap.add_argument("--reanchor", action="store_true",
+                    help="重锚：把 anchor/production_anchor 的行号对齐当前树（dry-run）")
+    ap.add_argument("--write", action="store_true",
+                    help="与 --reanchor 同用：把重锚结果写回台账")
     args = ap.parse_args(argv)
     try:
         # 自检也必须走同一三态出口：自检自身崩溃同样是 CRASH(2)，不得记成 FAIL。
         if args.self_test:
             return _selftest(args.json_out)
+        if args.reanchor:
+            repo = pathlib.Path(args.repo).resolve()
+            ch, sk = reanchor(repo, args.ledger, write=args.write)
+            print("REANCHOR %s changes=%d skipped=%d"
+                  % ("WRITTEN" if (args.write and ch) else "DRY-RUN", len(ch), len(sk)))
+            for line in ch:
+                print("  + %s" % line)
+            for cid, why in sk:
+                print("  ! %s: %s" % (cid, why))
+            findings, extra = evaluate(repo, args.ledger)
+            print("REANCHOR_VERIFY findings=%d" % len(findings))
+            if findings:
+                print_findings(findings)
+                return 1
+            return 0
         findings, extra = evaluate(pathlib.Path(args.repo).resolve(), args.ledger)
         if findings:
             print_findings(findings)

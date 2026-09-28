@@ -15,7 +15,8 @@ set(P3SESS_DIR  "${REPO_ROOT}/lib/phase3_session")
 set(P3PROJ_DIR  "${REPO_ROOT}/lib/algorithms/projection")
 set(P3RSMP_DIR  "${REPO_ROOT}/lib/algorithms/resample")
 set(AIO_PRODUCT_IO_DIR  "${REPO_ROOT}/lib/infrastructure/aio/product_io")
-set(JSON_DIR    "${REPO_ROOT}/third_party")
+# WIN-PORT 缺陷⑤: 第三方头唯一落点 = lib/third_party（根目录整合后无根 third_party/）。
+set(JSON_DIR    "${REPO_ROOT}/lib/third_party")
 
 # AIO v6 生产库（IMPL-AIO-001 提供；不修改其源码，仅链接）。
 if(NOT TARGET astrocs_product_io)

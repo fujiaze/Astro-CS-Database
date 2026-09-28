@@ -9490,8 +9490,7 @@
       "id": "CHK-ALGO-WIRING",
       "profiles": [
         "fast",
-        "linux-main",
-        "windows-main"
+        "linux-main"
       ],
       "platform": "linux",
       "command": [
@@ -10474,7 +10473,8 @@
         "eng/ci/validate_registry.py",
         "--registry",
         "eng/ci/checks.json",
-        "--strict"
+        "--strict",
+        "--self-test"
       ],
       "timeout_seconds": 300,
       "heavy": false,
@@ -13092,7 +13092,7 @@
       "command": [
         "python3",
         "eng/tools/check_baseline_opcodes.py",
-        "build/CMakeFiles/astrocs_cpu_baseline.dir/lib/backend_host/baseline_backend.cpp.o"
+        "build/linux-control/CMakeFiles/astrocs_cpu_baseline.dir/lib/infrastructure/benchmark/backend_host/baseline_backend.cpp.o"
       ],
       "timeout_seconds": 300,
       "heavy": false,
@@ -13100,8 +13100,10 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "lib/backend_host/**",
         "lib/infrastructure/benchmark/backend_host/**"
+      ],
+      "inputs": [
+        "build/linux-control/CMakeFiles/astrocs_cpu_baseline.dir/lib/infrastructure/benchmark/backend_host/baseline_backend.cpp.o"
       ],
       "requires_monitor": false
     },

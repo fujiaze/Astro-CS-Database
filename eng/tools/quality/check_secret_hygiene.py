@@ -289,7 +289,8 @@ def build_report(scope, root, files, max_bytes, report_only, git_backed=False) -
     undecidable: list[dict] = []
     results: list[dict] = []
     counts = {"files_in_set": len(files), "files_scanned": 0, "files_skipped_binary": 0,
-              "files_oversize": 0, "files_with_critical": 0, "files_with_suspect": 0,
+              "files_oversize": 0, "files_oversize_streamed": 0,
+              "files_with_critical": 0, "files_with_suspect": 0,
               "files_info_only": 0, "fatal_findings": 0, "files_vanished": 0}
     for rel in files:
         path = root / rel
@@ -310,9 +311,13 @@ def build_report(scope, root, files, max_bytes, report_only, git_backed=False) -
             counts["files_skipped_binary"] += 1
             continue
         if len(data) > max_bytes:
+            # FINAL-07 G9：>max_bytes 曾直接记 undecidable ⇒ "判不了也判红"，
+            # 且判词只有 oversize_unscanned、落不到 文件:行。文件本已整读进内存，
+            # 上限只是扫描成本口径 ⇒ 改为**照常按行扫描**并单独计数：含密钥形态
+            # 照样判红（fatal），不含就不判红。判据强度不降（扫得更全），
+            # undecidable 只留给真正读不了的文件。
             counts["files_oversize"] += 1
-            undecidable.append({"path": rel, "reason": "oversize_unscanned"})
-            continue
+            counts["files_oversize_streamed"] = counts.get("files_oversize_streamed", 0) + 1
         counts["files_scanned"] += 1
         hits, soft = scan_text_ex(_decode(data))
         if not hits and not soft:
@@ -417,6 +422,45 @@ def _self_leak(report: dict) -> bool:
     return False
 
 
+
+def _print_judgments(report: dict, json_out: str = "") -> None:
+    """有界判词：**只看判词面**（谁判红、定位到 文件:行），不再把整篇报告灌 stdout。
+
+    FINAL-07 G9：原实现无 --quiet 时 print(整篇 JSON)，实测 CI 该门 stdout 判词
+    5,044,585 字符（1200+ 条 info-only 命中全量列出），汇总层把握整段吞成一条
+    判词 ⇒ 真判词被淹没、红项无法定位。这里保：
+      * 每条 fatal 命中（判红依据）逐条打印 「路径:行 [形态ID]」，**不截断**；
+      * 每条 undecidable（判不了的原因）逐条打印 「路径: 原因」，点名文件；
+      * info-only 命中给出计数与前若干条，全量仍在 --json-out 的报告里。
+    """
+    verdict = report.get("verdict", "?")
+    reasons = ",".join(report.get("verdict_reasons") or []) or "none"
+    counts = report.get("counts") or {}
+    print("%s_%s: verdict_reasons=%s files_in_set=%s files_scanned=%s "
+          "files_oversize=%s fatal_findings=%s"
+          % (CHECK_ID, verdict, reasons, counts.get("files_in_set"),
+             counts.get("files_scanned"), counts.get("files_oversize"),
+             counts.get("fatal_findings")))
+    for r in report.get("files_with_findings") or []:
+        for pid in r.get("fatal_patterns") or []:
+            for ln in (r.get("patterns") or {}).get(pid, []) or ["?"]:
+                print("  - %s:%s [%s] fatal" % (r.get("path"), ln, pid))
+    for u in report.get("undecidable") or []:
+        print("  - %s: %s" % (u.get("path"), u.get("reason")))
+    info_rows = [r for r in (report.get("files_with_findings") or [])
+                 if not (r.get("fatal_patterns") or [])]
+    if info_rows:
+        head = 20
+        for r in info_rows[:head]:
+            pids = ",".join(r.get("info_patterns") or [])
+            print("  - %s [%s] info（非判红）" % (r.get("path"), pids))
+        if len(info_rows) > head:
+            print("  - …另有 %d 个 info-only 文件（非判红；全量见 %s）"
+                  % (len(info_rows) - head, json_out or "报告 JSON"))
+    if json_out:
+        print("  全量报告（含逐文件命中与行号）: %s" % json_out)
+
+
 def _iter_paths(report: dict) -> list[str]:
     out: list[str] = []
 
@@ -488,7 +532,13 @@ def main(argv=None) -> int:
                           "verdict_reasons": report.get("verdict_reasons", []),
                           "counts": report.get("counts", {}), "fatal_paths": report.get("fatal_paths", [])},
                          ensure_ascii=False))
+    elif args.json_out:
+        # 报告已落盘 ⇒ stdout 只承担判词面（有界、可定位），不再灌整篇 JSON。
+        _print_judgments(report, str(args.json_out))
     else:
+        # 无 --json-out 的本地用法：保留整篇结构化输出（人读/取证面），
+        # 但先打判词摘要，保证判词在最前、可直接定位。
+        _print_judgments(report, "")
         print(text)
     return rc
 
