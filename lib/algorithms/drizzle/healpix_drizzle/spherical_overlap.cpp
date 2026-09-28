@@ -555,7 +555,14 @@ void get_healpix_boundary4(const healpix::HealpixCore& hp, uint64_t ipix,
 //
 // 输出: out 追加从 p0 开始的细分顶点 (含 p0, 不含 p1, p1 由相邻边处理).
 // ============================================================================
-static const int    HP_ADAPTIVE_MAX_DEPTH = 8;      // 最大递归深度 (2^8=256 段/边)
+// 最大递归深度: 12 (2^12=4096 段/边)。
+// P3-10 订正: 原值 8 (256 段/边) 与同文件 WCS 侧 WCS_ADAPTIVE_MAX_DEPTH=12
+//   不一致，且对极冠边不足 —— 极冠边真曲线相对弦偏差可达 8.09e-2·ρ₁
+//   （ρ₁=hp_res，见 DRIZZLE_GEOMETRY.md §9「面积守恒闭合」与叶侧弦表示预算），
+//   按"中点偏差 < 1e-6·hp_res"收敛需 depth ≥ 9；depth 8 会在未达预算处
+//   被深度上限截断。统一为 12 与 WCS 侧一致，保留 1e-6·hp_res 收敛判据
+//   与 1e-6·hp_res 弦长预算（该预算只对赤道带小圆边成立）。
+static const int    HP_ADAPTIVE_MAX_DEPTH = 12;
 // 细分阈值取相对值 hp_epsilon = hp_res_rad * 1e-6 (hp_res_rad = sqrt(π/(3·Ns²))),
 // 定义与推导见下方 subdivide_healpix_edge 内的 hp_epsilon 赋值与注释.
 // 旧口径 hp_res_rad * 1e-12 对非大圆弧的 HEALPix 等纬度边永不收敛, 已废弃.
@@ -1171,6 +1178,43 @@ Scalar compute_overlap_area_g(const DropGeometryT<Scalar>& g,
         hp.pixelResolutionArcsec() * ARCSEC_TO_RAD);
 }
 
+// ============================================================================
+// P3-01 订正: 交叠面积只保留**一条**数值路径（"叶多边形完全在 drop 内"快路径已删）
+// ----------------------------------------------------------------------------
+// 订正前: 高 NSIDE 下先判"叶边界多边形的顶点是否全在 drop 的各半空间内"，
+//   命中即返回**解析真叶面积** π/(3N²)。该返回值与被裁剪多边形（弦四边形）
+//   的面积相差至 ~9.97%/叶（极冠 apex 叶; 推导见
+//   实验/healpix-polar/docs/DERIVATIONS-P3.md D2），二者混用即在守恒闭合
+//   Σ_j a_jp / A_drop 上留下假缺口：极点栅格 0.2"/px nside=2²¹ 实测
+//   376/1089 破门、最坏 2.5172e-02（生产直调）。
+//
+// 订正过程（两步，两步都有实测取证）:
+//   ① 同口径改造: 命中时返回裁剪路径**同一例程**算出的同一多边形面积
+//      （S-H 无交点 ⇒ 输出 = 输入多边形）。实测开/关逐叶**逐位一致**
+//      （极点/接缝/三角点/赤道/face 角点 5 组共 137k 叶，0 个不等），
+//      守恒闭合两面同为 1.3726e-13（此前开=2.5172e-02、关=3.8234e-14）。
+//   ② 实测判决删除: 同口径后该快路径**不再省时** —— 命中判定是 O(nb×n_clip)
+//      次点积，与 S-H 自身的 is_inside 扫描重复；实测 overlap 循环
+//      133.1 ns/叶（开）vs 125.2 ns/叶（关），净亏 ~6%。故直接删除，
+//      使"快路径与裁剪路径同口径"成为构造性事实（不存在第二条路径）。
+//
+// 故障注入（负例门专用，生产默认关闭，标志静态缓存 ⇒ 稳态零开销）:
+//   ASTROCS_DRZ_P3_FAULT=legacy_corner_fast 复现订正前行为
+//   （顶点全含判定 + 返回 π/(3N²)），回归门必须对其判红。
+//
+// 权威条款: docs/science/algorithms/DRIZZLE_GEOMETRY.md §9「面积守恒闭合」
+//   （逐 drop max(1e-6·A_drop, 1e-15 sr) + 帧级 1e-4；位置集含极点与 u+v=1
+//   接缝）+ 该节"叶侧弦表示预算按叶侧分列"。回归门 = ctest
+//   drizzle_p3_conservation / _self_test / _legacy_injection。
+// ============================================================================
+static bool p3_legacy_corner_fault() {
+    static const bool en = [] {
+        const char* v = std::getenv("ASTROCS_DRZ_P3_FAULT");
+        return v && std::strcmp(v, "legacy_corner_fast") == 0;
+    }();
+    return en;
+}
+
 template <typename Scalar>
 Scalar overlap_area_impl(const DropGeometryT<Scalar>& g,
                          double hp_res_rad, int nside,
@@ -1224,23 +1268,26 @@ Scalar overlap_area_impl(const DropGeometryT<Scalar>& g,
     // 已移除 — 球面像素边界的支撑线无法精确表示 (细分小段不是支撑线,
     // 主 4 角大圆弧与真实边界内缩/外扩不定), 任何近似支撑线的分离判定都会
     // 在边界附近误杀真实相交的 drop (L0 NSIDE=64 实测通量丢失 0.6%)。
-    // 保留数学安全的快路径: 快速拒绝 (包围圆) / leaf_fully / drop_inside。
+    // 保留数学安全的快路径: 快速拒绝 (包围圆) / drop_inside。
+    // "叶多边形完全在 drop 内 → 解析面积" 快路径已删除（P3-01 订正，论证见
+    // 本文件 p3_legacy_corner_fault 定义上方）。
     const double inside_tol = 1e-12;
-    bool leaf_fully_inside_drop = true;
-    for (const auto& n : drop_clip_normals) {
-        for (int i = 0; i < nb; i++) {
-            if (hp_boundary[i].x * n.x + hp_boundary[i].y * n.y +
-                    hp_boundary[i].z * n.z < -inside_tol) {
-                leaf_fully_inside_drop = false;
-                break;
+    if (p3_legacy_corner_fault()) {
+        bool legacy_fully_inside = true;
+        for (const auto& n : drop_clip_normals) {
+            for (int i = 0; i < nb; i++) {
+                if (hp_boundary[i].x * n.x + hp_boundary[i].y * n.y +
+                        hp_boundary[i].z * n.z < -inside_tol) {
+                    legacy_fully_inside = false;
+                    break;
+                }
             }
+            if (!legacy_fully_inside) break;
         }
-        if (!leaf_fully_inside_drop) break;
-    }
-    if (leaf_fully_inside_drop) {
-        // drop 包含像素 → overlap = 像素解析面积 (4π/(12·NSIDE²) = π/(3·NSIDE²))
-        if (overlap_profile_enabled()) g_tl_n_fully++;
-        return Scalar(PI / (3.0 * (double)nside * (double)nside));
+        if (legacy_fully_inside) {
+            if (overlap_profile_enabled()) g_tl_n_fully++;
+            return Scalar(PI / (3.0 * (double)nside * (double)nside));
+        }
     }
 
     // drop 完全位于目标像素内 → overlap = drop_area (weight=1 精确)

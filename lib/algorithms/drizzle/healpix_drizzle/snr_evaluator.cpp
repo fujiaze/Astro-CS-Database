@@ -14,7 +14,20 @@
 #endif
 
 // nanoflann: header-only KD-tree
+// WIN-PORT 第三方头告警隔离: nanoflann.hpp 是本文件的**同目录** vendored 第三方头
+// (BSD-3, Muja/Lowe/Blanco)，MSVC 的 /external:I（CMake 的 SYSTEM include 面）对
+// "同目录引号 include" 不生效（引号 include 先命中源文件所在目录），故按其自身
+// 触发的两条诊断在**引入点**做窄隔离：C4324(alignas 导致的 padding，nanoflann.hpp
+// 内 Node 定义) 与 C4127(DIM>0 常量条件)。push/pop 成对 ⇒ 本 TU 自有代码的告警
+// 口径不变；不做整 target /W 降级，也不改 vendored 头文件本体。
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4324 4127)
+#endif
 #include "nanoflann.hpp"
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -196,7 +209,7 @@ bool SnrEvaluator::build(uint32_t n_points,
     n_points_   = valid;
     snr_phot_   = snr_phot;
     median_snr_ = (median_snr > 0.0) ? median_snr : 1.0;
-    idw_power_  = (idw_power > 0.0) ? idw_power : 2.0;
+    idw_power_  = (idw_power > 0.0) ? idw_power : 1.0;   // 兜底=规范默认 1.0 (07_noise_snr.md:192)
     built_      = true;
 
     fprintf(stderr, "[snr_evaluator] build 成功: %u 控制点 (有效 %u/%u), "
@@ -252,7 +265,7 @@ bool SnrEvaluator::buildF64(uint32_t n_points,
     n_points_   = valid;
     snr_phot_   = snr_phot;
     median_snr_ = (median_snr > 0.0) ? median_snr : 1.0;
-    idw_power_  = (idw_power > 0.0) ? idw_power : 2.0;
+    idw_power_  = (idw_power > 0.0) ? idw_power : 1.0;   // 兜底=规范默认 1.0 (07_noise_snr.md:192)
     built_      = true;
     fprintf(stderr, "[snr_evaluator] buildF64 成功: %u 控制点 (double snr)\n",
             n_points_);

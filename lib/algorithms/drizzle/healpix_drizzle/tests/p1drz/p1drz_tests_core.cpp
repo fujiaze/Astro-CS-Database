@@ -19,8 +19,13 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>（本文件只用于 negative 组的 fork 隔离）。
+#include <cstdio>
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -579,6 +584,17 @@ int group_negative() {
     //    (异常捕获/返回 false/abort 三者皆算拒绝, 正常 rc=0 才算漏) --
     {
         FitsImage img = fix_drz_a_const_sb(W, H, B0, SCALE, false);
+#ifdef _WIN32
+        // WIN-PORT: 本负例的判据是"非法 nside 被 libgomp terminate/abort 或异常拒绝" ——
+        // 它**必须**在子进程里跑：拒绝路径本身就是进程级终止，就地跑会带走整个测试进程，
+        // 而 Windows 无 fork（子进程体是本进程内的 C++ 代码，无法跨进程度传递）。
+        // 故本平台不执行该子进程体，改为**显式判红并打印原因**（不伪装 PASS/SKIP）：
+        // 运行面（ctest p1drz_negative）在 Windows 上的处置由 WIN-PORT 报告登记。
+        (void)img;
+        P1DRZ_CHECK_MSG(g_cs, false, "negative_matrix",
+                        "UNSUPPORTED-ON-WINDOWS: 非法 nside 负例依赖 POSIX fork 隔离"
+                        "（abort/异常拒绝路径为进程级终止）");
+#else
         const pid_t pid = fork();
         P1DRZ_CHECK_MSG(g_cs, pid >= 0, "negative_matrix", "negative: fork 失败");
         if (pid == 0) {
@@ -605,6 +621,7 @@ int group_negative() {
                             "negative: nside=500 非正常完成 (status=%d, abort/异常/err 皆拒绝)",
                             status);
         }
+#endif
     }
     return g_cs.failures == 0 ? 0 : 1;
 }

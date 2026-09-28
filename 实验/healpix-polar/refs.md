@@ -12,11 +12,11 @@
 ### V1. Górski et al. 2005（HEALPix 等面积离散化）
 
 - **标识**：ApJ 622, 759；DOI [10.1086/427976](https://doi.org/10.1086/427976)；arXiv:[astro-ph/0409513](https://arxiv.org/abs/astro-ph/0409513)。
-- **核验方式**：arXiv 全文实取（路线1/2/3 三路独立抓取，关键句逐字摘录一致）。
+- **核验方式**：arXiv 全文实取（路线1/2/3 三路独立抓取，关键句逐字摘录一致）；分节号按 arXiv PDF 版（arXiv:astro-ph/0409513v1）逐节定位复核（§5 = "5. The HEALPix Grid"、§5.3 = "5.3. Pixel Boundaries"、§6 = "6. Spherical Harmonic Transforms"），ar5iv HTML 渲染版逐节交叉一致。
 - **核验到的锚句**：
   - §5："A HEALPix map has Npix = 12 N_side² pixels of the same area Ωpix = π/(3N_side²)"（A_leaf 文献腿）。
   - §5.3 首句："Pixel boundaries are non-geodesic"；式(19)–(22)："cos θ = a + b×φ in the equatorial zone, and cos θ = a + b/φ² in the polar caps"（极冠边在 (φ,z) 平面为 φ 的二次型——矢高口径判定的依据）。
-  - 式(23)：θpix ≡ √Ωpix（hp_res 定义锚）。
+  - §5.3 式(23)：θpix ≡ √Ωpix（hp_res 定义锚）；位于 §5.3 内式(22) 之后、Table 1 文字（"Table 1 summaries the number of pixels and resolution available in HEALPix"）之后、§6 首段之前——**不在 §5 首段**（A_leaf 原句 Npix = 12 N_side² 在 §5 首段，与式(23) 分列两处）。
 - **用途**：A_leaf=π/(3N²) 文献腿；hp_res=211076.28514206142″/N；极冠矢高与自适应细分的边界曲线族口径。
 
 ### V2. Fruchter & Hook 2002（Drizzle）
@@ -26,7 +26,7 @@
 - **核验方式**：arXiv v2 全文实取（路线1/2/3 + 补实验-k_corr 四路独立；**出处节号按分歧台账 D-03 终裁：父代理直验原文**）。
 - **核验到的锚句**：
   - **权重公式＝§2 式(2)–(5)**（D-03 终裁）：式(2)/(3) 迭代含原句 "where a factor of s² is introduced to conserve surface intensity"；式(4)/(5) 权重和 W = Σ a·w。路线1 曾标"§7.2 式(7) 后"，系取错节，**撤换**。
-  - **方差/相关＝§7 式(6)–(10)**（与权重分列引用）：§7.1 "Drizzle frequently divides the power from a given input pixel between several output pixels. As a result, the noise in adjacent pixels will be correlated."；§7.2 式(6)(7) 单输出像素方差（"where axy is the fractional area overlap of the drop of input data pixel dxy with the output pixel o"）；式(8)–(10) R=σc/σp 定义与闭式，唯一数值例 R=1.662（p=0.6, s=0.5）。
+  - **方差/相关＝§7 式(6)–(10)**（与权重分列引用）：§7.1 "Drizzle frequently divides the power from a given input pixel between several output pixels. As a result, the noise in adjacent pixels will be correlated."；§7.2 式(6)(7) 单输出像素方差（"where axy is the fractional area overlap of the drop of input data pixel dxy with the output pixel o"）；式(8)–(10) R=σc/σp 定义与闭式，唯一数值例 R=1.662（p=0.6, s=0.5）。**§7.2 为原文实有子节（标题 "7.2. The Calculation"）**，一手复核：arXiv PDF（astro-ph/9808087v2）与 ar5iv HTML 双路均含 "7. NOISE IN DRIZZLED IMAGES" → "7.1. The Nature of the Problem" → "7.2. The Calculation" 三级标题，式(6)(7) 居 §7.2 内；审查报告 P3-12 之②「原文 §7 内部无 §7.2 编号」经核不成立，本条此节号维持不改。
   - 子串级检索：全文不含 1.3883 / 1.4 / k_corr / covariance（k_corr 补实验，D-08）。
 - **用途**：w_jp = a_jp/A_drop 的 s² 表面亮度守恒（§2）；k_corr 的必要性论证只可引其 §7.1 相关论断，k_corr 数值本身不是 F&H 内容（D-08）。
 

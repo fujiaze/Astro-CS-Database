@@ -49,7 +49,20 @@ target_link_libraries(p1drz_tests PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
 add_test(NAME p1drz_units COMMAND p1drz_tests units)
 add_test(NAME p1drz_properties COMMAND p1drz_tests properties)
 add_test(NAME p1drz_oracle COMMAND p1drz_tests oracle)
+# WIN-PORT (FINAL-07 可移植性): negative 组里的「非法 nside」锚是 **进程级终止** 语义
+# （libgomp terminate / abort 从 OpenMP region 逃逸，catch 不可达），判据靠 fork 子进程
+# 隔离 + waitpid 的 WIFEXITED/WIFSIGNALED 区分。Windows 既无 fork（子进程体是本进程内的
+# C++ 代码，无法跨进程度传递），也无等价的"复制地址空间"原语 ⇒ 等价语义不可表达。
+# 按 platform 口径显式限定到 UNIX。注册面仍留在 if(UNIX) 内：eng/ci/ctest_baseline.json 的
+# p1drz_negative 是 Linux 面冻结目标，eng/tools/quality/check_ctest_registration.py 的静态
+# 扫描（C1/C5）仍可见本行；跳过在 else() 分支显式打点（不得静默失效）。
+# 编译面不受影响：p1drz_tests 目标在 Windows 上照常构建（p1drz_tests_core.cpp 的 fork 块
+# 已按 _WIN32 分支给出**显式判红 + 原因**的占位，见该文件 negative_matrix 处）。
+if(UNIX)
 add_test(NAME p1drz_negative COMMAND p1drz_tests negative)
+else()
+message(STATUS "P1-DRZ(p1drz): negative 组的非法 nside 锚依赖 POSIX fork 隔离（abort/terminate 为进程级终止）⇒ 本平台 ${CMAKE_SYSTEM_NAME} 显式跳过注册（FINAL-07 WIN-PORT）")
+endif()
 
 # performance 基线 (独立可执行, 时长敏感与 core 组隔离)
 add_executable(p1drz_perf_test
