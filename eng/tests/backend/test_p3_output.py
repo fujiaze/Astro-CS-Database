@@ -266,12 +266,20 @@ class TestP3Output(unittest.TestCase):
         self.assertEqual(_fd_of(evs[max(i for i, _ in opens_tmp)][1]),
                          evs[max(fsyncs)][1],
                          f"fsync(fd) 必须作用于 tmp: {evs}")
-        # flush→fsync: RENAME(发布点)之前, 最后一次对 tmp fd 的数据写出
-        # (fwrite/fflush) 必须在 FSYNC 之前 (RENAME 后 fd 可能被 verify 读端
-        # 复用, 其 flush 不属于 tmp 写窗口)
+        # flush→fsync: RENAME(发布点)之前, 最后一次对 tmp **写通道**的数据写出
+        # (fwrite/fflush) 必须在 FSYNC 之前。
+        # fd 号会被复用: 新发布序下 verify 读端 (fopen rb) 就在 RENAME 之前,
+        # 其 fclose 也会发 FFLUSH(同 fd 号) —— 故必须逐事件跟踪「该 fd 最近一次
+        # FOPEN 的模式」, 只把写通道(w)事件计入, 否则读端 FFLUSH 会被误判成写。
         pre_rename = evs[:min(renames)]
-        writes_tmp = [i for i, (k, a) in enumerate(pre_rename)
-                      if k in ("FWRITE", "FFLUSH") and a in tmp_fds]
+        fd_mode = {}
+        writes_tmp = []
+        for i, (k, a) in enumerate(pre_rename):
+            if k == "FOPEN":
+                fd_mode[_fd_of(a)] = a.split("mode=")[-1]
+            elif (k in ("FWRITE", "FFLUSH") and a in tmp_fds
+                  and "w" in fd_mode.get(a, "")):
+                writes_tmp.append(i)
         self.assertTrue(writes_tmp, f"未见对 tmp 的数据写出: {evs}")
         self.assertLess(max(writes_tmp), min(fsyncs),
                         f"FSYNC 必须在最后一次 flush(fwrite/fflush) 之后: {evs}")
@@ -283,6 +291,78 @@ class TestP3Output(unittest.TestCase):
         self.assertEqual(o.split()[0], "OK")
         h = hashlib.sha256(open(out, "rb").read()).hexdigest()
         self.assertEqual(o.split()[1], h)
+
+    # ---- P-205 / P-206 (台账 A-4 / 在册 P-085) 增补 -----------------------
+
+    def test_12_publish_order_verify_and_hash_before_rename(self):
+        """P-205: 发布序 = fsync → 校验(DATASUM) → sha256 → 原子 rename。
+
+        正本 = IO_003 §4 步骤序 + docs/ASTROCS_DESIGN.md §10「… 校验 → fsync →
+        算哈希 → 原子改名 …」。旧实现是 rename → sha256 → 重开校验（倒置）。
+        可观测判据（LD_PRELOAD 事件序，断电语义以调用序替代）:
+          (a) RENAME 之前必须存在对 **tmp** 的读打开（校验与 sha256 都读 tmp）;
+          (b) RENAME 之后不得再出现对**已发布路径**的读打开。
+        旧序在 (a)(b) 上都判红（哈希/校验读的是 rename 之后的目标路径）。"""
+        out = os.path.join(self.tmp, "order.fits")
+        so = self._build_interposer()
+        self._build_fsync_probe()
+        rc, o, err = self._run_fsync_probe("write", out, 32, 20, 9, preload=so)
+        self.assertEqual(rc, 0, f"{o}\n{err[-2000:]}")
+        evs = self._parse_events(err)
+        want_tmp = os.path.basename(out) + "."
+        want_final = os.path.basename(out)
+        renames = [i for i, (k, a) in enumerate(evs)
+                   if k == "RENAME" and os.path.basename(a).startswith(want_tmp)]
+        self.assertTrue(renames, f"未见 RENAME(tmp→out): {evs}")
+        cut = min(renames)
+        def name_of(a):
+            return os.path.basename(a.split(" fd=")[0])
+
+        def mode_of(a):
+            return a.split("mode=")[-1]
+
+        pre_tmp_reads = [i for i, (k, a) in enumerate(evs[:cut])
+                         if k == "FOPEN" and name_of(a).startswith(want_tmp)
+                         and "r" in mode_of(a)]
+        self.assertTrue(pre_tmp_reads,
+                        f"P-205: RENAME 之前必须已对 tmp 做校验/sha256 读: {evs}")
+        post_final_reads = [i for i, (k, a) in enumerate(evs[cut:])
+                            if k == "FOPEN" and name_of(a) == want_final
+                            and "r" in mode_of(a)]
+        self.assertEqual(post_final_reads, [],
+                         f"P-205: RENAME 之后不得再读已发布路径(哈希须在发布前): {evs}")
+        # 产品身份不变: 探针报的 sha256 == 发布后文件字节 sha256
+        self.assertEqual(o.split()[0], "OK")
+        self.assertEqual(o.split()[1],
+                         hashlib.sha256(open(out, "rb").read()).hexdigest())
+
+    def test_13_verify_detects_datasum_tamper(self):
+        """P-206: verify 必须对 DATASUM/CHECKSUM 键做对拍（cfitsio fits_verify_chksum）。
+
+        负例非退化: 只改 PRIMARY DATASUM 卡的一个数字 —— 像素/尺寸/WCS/单位全不变
+        （sha256 变化，但篡改方重算 sha256 即可盖过）。旧 verify 不读 checksum 键
+        ⇒ reopen=1（判红）；新 verify 逐 HDU 对拍 ⇒ reopen=0（判绿）。"""
+        self._build_fsync_probe()
+        out = os.path.join(self.tmp, "chk.fits")
+        rc, o, err = self._run_fsync_probe("write", out, 24, 16, 11)
+        self.assertEqual(rc, 0, f"{o}\n{err[-2000:]}")
+        # 基线: 未篡改 → reopen=1
+        rc, o, err = self._run_fsync_probe("verify_path", out, 24, 16, 11)
+        self.assertEqual(rc, 0, f"{o}\n{err[-2000:]}")
+        self.assertTrue(o.startswith("OK reopen=1"), f"基线必须绿: {o}")
+        # 篡改: 只动 DATASUM 卡的首位数字
+        raw = bytearray(open(out, "rb").read())
+        m = re.search(rb"DATASUM\s*=\s*'(\d)", bytes(raw))
+        self.assertIsNotNone(m, "未找到 DATASUM 卡")
+        i = m.start(1)
+        raw[i] = ord('0') if raw[i] != ord('0') else ord('1')
+        tampered = os.path.join(self.tmp, "chk_tampered.fits")
+        with open(tampered, "wb") as fh:
+            fh.write(bytes(raw))
+        rc, o, err = self._run_fsync_probe("verify_path", tampered, 24, 16, 11)
+        self.assertEqual(rc, 0, f"{o}\n{err[-2000:]}")
+        self.assertTrue(o.startswith("OK reopen=0"),
+                        f"DATASUM 篡改必须被 verify 检出（旧实现零鉴别力）: {o}")
 
     def test_08_fsync_failure_propagates_no_publish(self):
         """fsync 失败注入 → 写路径必须报 IO 错误, 不 rename 发布任何产物。"""

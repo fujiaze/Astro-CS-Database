@@ -59,4 +59,12 @@ static_assert(kP1MaxFramesInFlight <= 4096u,
 static_assert(kSchedulerPrefetchThreadsMax <= 256u,
               "orchestration_params: scheduler_prefetch_threads_max 越界（> 256 无意义，疑似配置错）");
 
+// 进程有效 CPU 预算的配置上限（X1；0 = 不设上限）。预算唯一来源仍是运行期配额
+// （调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。
+// 依据 docs/standards/CONCURRENCY_STANDARD.md「默认」节（线程数外部可配置、
+// 默认 min(可用核, 配置上限)、取值来源 = 配置）；消费面 = scheduler/src/cpu_budget.cpp。
+inline constexpr std::uint32_t kCpuBudgetMax = @ASTROCS_RR_CPU_BUDGET_MAX@;
+static_assert(kCpuBudgetMax <= 4096u,
+              "orchestration_params: cpu_budget_max 越界（> 4096 无意义，疑似配置错）");
+
 }  // namespace astrocs::runtime_resources

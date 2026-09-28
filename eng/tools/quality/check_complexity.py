@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""check_complexity.py — V8-CI-005 linux-deep 复杂度基线检查（owner=SA-CI-32）。
+"""check_complexity.py — linux-deep 复杂度基线检查。
 
 状态：占位实现（placeholder）。合同（07_CI_MACHINE_CONTRACT.md「Coverage 与
 复杂度」）：第一次 deep CI 只测量并记录基线，不虚构阈值；第二个原子任务再
@@ -15,11 +15,11 @@
     "全部不存在"时才判红（GAP-027），部分缺失则静默扫剩下的（注册表登记的
     `lib,cli,include` 里 cli/include 已迁走 ⇒ 两个根恒空、门恒真通过）；
   * 无可测量目标（--paths 为空）同样判红（空面不得恒真）；
-  * 正式 C++ 解析器由后续质量任务（owner=SA-CI-32）替换，届时本文件升级为真实检查器。
+  * 正式 C++ 解析器尚未接入：解析器就位后本文件升级为真实检查器，现行只做基线记录。
 
 仅 stdlib；无外部命令；只读扫描 + 写 --output 一个文件（run/ 临时目录）。
 
-V8-CI-005（SA-CI-32）增强（保持占位语义：只记录、exit 0、不判阈值）：
+增强记录（保持占位语义：只记录、exit 0、不判阈值）：
   * 增加分支 token 计数（if/for/while/case/catch/&&/||/?:）→
     per-file cyclomatic = 1 + branch_tokens（文件级粒度；不做函数体切分，
     namespace/class 花括号会把多函数吞并成假"巨型函数"）；

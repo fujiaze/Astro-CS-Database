@@ -1,7 +1,7 @@
 // eng/tests/unit/p3_proj/p3_proj_test.cpp — IMPL-P3-PROJ-001 共址单元测试
 //
 // 覆盖（正例 + 负例，负例=违反冻结即失败）:
-//   A registry v3 完整性（已实现 4 行 TAN/SIN/CAR/AIT；权威冻结集合 = DESIGN §5.3
+//   A registry v3 完整性（已实现 4 行 TAN/SIN/CAR/AIT；权威冻结集合 = DESIGN §6.3
 //     八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA；表内 code 必须属于冻结集）。
 //   B 标准 FITS WCS Paper II 一致性:
 //     - TAN/SIN 独立 3D 单位向量第一性原理往返 <1e-6 px；
@@ -134,19 +134,19 @@ void test_registry() {
     int n = -1;
     const Spec* tab = astrocs::phase3proj::v6::registry_table(&n);
     CHECK_MSG(n == 4,
-              "registry 已实现恰 4 行（TAN/SIN/CAR/AIT；DESIGN §5.3 八投影之一部）");
+              "registry 已实现恰 4 行（TAN/SIN/CAR/AIT；DESIGN §6.3 八投影之一部）");
     CHECK_MSG(tab != nullptr, "registry table 非空");
     CHECK_MSG(astrocs::phase3proj::v6::kProjectionRegistryVersion == 3,
               "registry 版本 = 3（Paper II CRVAL2 旋转 + AIT A≤1 + CAR 极行 fail-closed）");
-    // 权威冻结集合 = DESIGN §5.3 八投影；本层实现为其子集，表内 code 必须属于该集合
+    // 权威冻结集合 = DESIGN §6.3 八投影；本层实现为其子集，表内 code 必须属于该集合
     int nf = -1;
     const char* const* frozen = astrocs::phase3proj::v6::registry_frozen_set(&nf);
-    CHECK_MSG(nf == 8 && frozen != nullptr, "冻结集合恰 8 行（DESIGN §5.3）");
+    CHECK_MSG(nf == 8 && frozen != nullptr, "冻结集合恰 8 行（DESIGN §6.3）");
     const char* frozen_expect[8] = {"TAN", "SIN", "CAR", "AIT",
                                     "STG", "MOL", "CEA", "ZEA"};
     for (int i = 0; i < 8; ++i) {
         CHECK_MSG(std::strcmp(frozen[i], frozen_expect[i]) == 0,
-                  "冻结集合顺序 = DESIGN §5.3");
+                  "冻结集合顺序 = DESIGN §6.3");
         CHECK_MSG(astrocs::phase3proj::v6::registry_is_frozen_code(frozen[i]),
                   "冻结集成员判定为真");
     }
@@ -159,9 +159,9 @@ void test_registry() {
         CHECK_MSG(std::strcmp(tab[i].code, codes[i]) == 0, "code 顺序冻结");
         CHECK_MSG(tab[i].pix2world && tab[i].world2pix, "函数指针非空");
         CHECK_MSG(tab[i].singularity_kind && tab[i].singularity_kind[0] != '\0',
-                  "奇点声明非空（DESIGN §5.3 六要素）");
+                  "奇点声明非空（DESIGN §6.3 六要素）");
         CHECK_MSG(astrocs::phase3proj::v6::registry_is_frozen_code(tab[i].code),
-                  "已实现 code 属于 DESIGN §5.3 冻结集");
+                  "已实现 code 属于 DESIGN §6.3 冻结集");
         CHECK_MSG(tab[i].max_abs_crval_dec_deg == 85.0, "中心守卫 85°");
         CHECK_MSG(tab[i].max_fov_deg > 0.0, "合法 FOV 声明 > 0");
         CHECK_MSG(astrocs::phase3proj::v6::registry_find(codes[i]) == &tab[i],

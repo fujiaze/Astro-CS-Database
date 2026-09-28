@@ -210,8 +210,8 @@
       "registration": "inputs_block",
       "registered_at": "eng/contracts/schemas/phase_config_normalize.schema.json#/properties/blocks[]",
       "registered_key": "blocks[].cosmetic",
-      "finding": "none",
-      "note": "路径输入，无默认。",
+      "finding": "gap",
+      "note": "路径输入，无默认。**该键全仓零消费**：lib/ 与 eng/contracts/schemas/ 与 eng/packaging/config/defaults.json 对 `cosmetic_map_path` 均零命中（唯一出现处即本登记行）⇒ 既无默认值对象也无文档声明行，登记点只能落在 normalize block 的容器指针上；按登记册词表标 finding=gap（本行只登记口径，补文档行/核销键须走 config_registry 面处置）。",
       "conflict": null
     },
     {
@@ -382,9 +382,13 @@
       "registration": "defaults_json",
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=psf.default_model",
       "registered_key": "psf.default_model",
-      "finding": "none",
-      "note": "与 psf.default_model=moffat4 对齐；检测/PSF 双模型差异已登记为设计缺口（检测侧椭圆高斯不属本模块）。",
-      "conflict": null
+      "finding": "conflict",
+      "note": "与 psf.default_model=moffat4 对齐；检测/PSF 双模型差异已登记为设计缺口（检测侧椭圆高斯不属本模块）。**但本键生产零消费**（lib/ 全仓 grep `psf_model` / `default_model` 零命中），已作为 dead key 登记在 eng/ci/prod_wiring_baseline.json 的 dead_config_key 清单内（该面门为绿）；CLI 实况键名是 `algorithm_psf_model`（lib/infrastructure/cli/parser.cpp 平铺白名单），与本行的 `psf.default_model` **不同名**⇒ 两面相反，按登记册词表标 finding=conflict 并给出证据。",
+      "conflict": {
+        "kind": "same_knob_two_keys",
+        "evidence": "eng/ci/prod_wiring_baseline.json（dead_config_key:psf.default_model；check_config_consumed.py 判绿）+ lib/infrastructure/cli/parser.cpp:381（session_keys 含 algorithm_psf_model）+ eng/contracts/schemas/phase_config_normalize.schema.json:663（algorithm_psf_model 定义）；docs/plugins/algorithms_phase1/04_psf.md:34 声明的字段名为 psf_model、无算法前缀。",
+        "owner": "config_registry 面（键名收口：psf.default_model 与 algorithm_psf_model 须二择一并同步 defaults.json / schema / 插件文档），本行只登记不改口径。"
+      }
     },
     {
       "module": "04_psf",
@@ -1104,7 +1108,7 @@
     {
       "module": "15_resample",
       "doc": "docs/plugins/algorithms_phase3/15_resample.md",
-      "line": 37,
+      "line": 38,
       "field": "sampler",
       "declared_default": "bilinear",
       "unit": null,
@@ -1117,7 +1121,7 @@
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
-          "docs/plugins/algorithms_phase3/15_resample.md:35"
+          "docs/plugins/algorithms_phase3/15_resample.md:38"
         ],
         "owner": "config_registry"
       }
@@ -1125,7 +1129,7 @@
     {
       "module": "15_resample",
       "doc": "docs/plugins/algorithms_phase3/15_resample.md",
-      "line": 38,
+      "line": 39,
       "field": "correlation_output",
       "declared_default": "true",
       "unit": null,
@@ -1138,7 +1142,7 @@
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
-          "docs/plugins/algorithms_phase3/15_resample.md:36"
+          "docs/plugins/algorithms_phase3/15_resample.md:39"
         ],
         "owner": "config_registry"
       }
@@ -1723,13 +1727,13 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 93,
+      "line": 137,
       "field": "bkg_spline_spacing",
       "declared_default": null,
       "unit": "deg",
       "owner_class": "science_param",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/algorithms_phase2/11_upm.md:91",
+      "registered_at": "docs/plugins/algorithms_phase2/11_upm.md:137",
       "registered_key": "11_upm#bkg_spline_spacing",
       "finding": "none",
       "note": "样条节点间距（决定面自由度）",
@@ -1768,13 +1772,13 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 71,
+      "line": 78,
       "field": "cache_budget_mb",
       "declared_default": null,
       "unit": "MB",
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/infrastructure/19_runtime.md:69",
+      "registered_at": "docs/plugins/infrastructure/19_runtime.md:78",
       "registered_key": "19_runtime#cache_budget_mb",
       "finding": "none",
       "note": "进程内共享缓存字节预算（LRU）",
@@ -1803,11 +1807,11 @@
       "declared_default": null,
       "unit": "MB",
       "owner_class": "runtime_policy",
-      "registration": "plugin_doc",
-      "registered_at": "docs/plugins/infrastructure/22_gaia_xpsd_client.md:57",
-      "registered_key": "22_gaia_xpsd_client#mem_cache_budget_mb",
-      "finding": "none",
-      "note": "内存缓存字节预算（LRU）",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "gap",
+      "note": "内存缓存字节预算（LRU）。**文档与 defaults.json 均无该字段对象**（22_gaia_xpsd_client.md §5 配置项表未列、eng/packaging/config/defaults.json 零命中）⇒ 原登记点 :57 指向空行属**假登记**；按登记册词表如实降级为 registration=none / finding=gap，补文档行或核销该行须走 config_registry 面处置。",
       "conflict": null
     },
     {
@@ -1818,11 +1822,11 @@
       "declared_default": "true",
       "unit": null,
       "owner_class": "runtime_policy",
-      "registration": "plugin_doc",
-      "registered_at": "docs/plugins/infrastructure/22_gaia_xpsd_client.md:59",
-      "registered_key": "22_gaia_xpsd_client#prefetch_neighbors",
-      "finding": "none",
-      "note": "邻接瓦片预取",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "gap",
+      "note": "邻接瓦片预取。**文档与 defaults.json 均无该字段对象**（同上）⇒ 原登记点 :59 指向空行属**假登记**；已按登记册词表降级为 registration=none / finding=gap。",
       "conflict": null
     },
     {
@@ -2024,9 +2028,10 @@
   "totals": {
     "rows": 120,
     "by_finding": {
-      "none": 68,
-      "gap": 21,
-      "unregistered": 31
+      "none": 64,
+      "gap": 24,
+      "unregistered": 31,
+      "conflict": 1
     },
     "by_owner_class": {
       "science_param": 85,
@@ -2036,10 +2041,10 @@
     },
     "by_registration": {
       "inputs_block": 8,
-      "none": 52,
+      "none": 54,
       "defaults_json": 6,
       "phase_config": 18,
-      "plugin_doc": 25,
+      "plugin_doc": 23,
       "contracts_doc": 3,
       "cli": 6,
       "cpu_profile": 2
@@ -2224,12 +2229,9 @@
     "rule": "每个 token_anchor 的 ref 字符串必须出现在 CONFIG_CONTRACT.md 正文（引用存活），且被引行必须含该 token（语义未漂移）。"
   },
   "defaults_anchor_exceptions": {
-    "paraphrase": [
-      "noise.max_clip_rounds",
-      "noise.mask_fwhm_floor_scale"
-    ],
+    "paraphrase": [],
     "rule": "这些字段的 source 括号文本是「段号 + claim」式转述，不在被引行逐字出现（被引行内容本身语义正确）。清单只减不增：新增 paraphrase 必须改为逐字 hint 或在此显式登记（ENGINEERING_SPEC §8 豁免只减不增）。",
-    "owner": "noise.* 两行的掩膜语义整改正在重写 noise.* 与 NOISE_MODEL.md；本登记只记录豁免不代改。"
+    "owner": "（空）原两条豁免 noise.max_clip_rounds / noise.mask_fwhm_floor_scale 已按规则改为逐字 hint 重锚（hint 直接取自被引行，见 defaults.json 对应 source_ref），豁免项随之核销——清单只减不增，不留死登记。"
   },
   "orchestration_params": {
     "status": "REGISTERED",
@@ -2294,6 +2296,15 @@
         "guard": "static_assert >= 1",
         "consumers": [
           "module_adapters.cpp p3n_sub_block_px / 队列构造"
+        ]
+      },
+      {
+        "key": "cpu_budget_max",
+        "unit": "线程数（上限）",
+        "semantics": "进程有效 CPU 预算的配置上限；0 = 不设上限。预算唯一来源仍是运行期配额（调度器 lease / CLI 注入的可用核），本键只设上限",
+        "guard": "生成头 static_assert <= 4096",
+        "consumers": [
+          "lib/infrastructure/scheduler/src/cpu_budget.cpp#process_cpu_budget"
         ]
       },
       {

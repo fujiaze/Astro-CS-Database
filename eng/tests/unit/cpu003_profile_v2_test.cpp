@@ -146,8 +146,36 @@ int main() {
     CHECK(np1.workers == 1);
   }
 
+  // 6) R-52 组装期不变量判据(唯一出处 profile_invariant_violation)的正负例:
+  //    正例 = 合规项不得误判; 负例 = "oracle:pass 却 median<=0" 必须判红。
+  {
+    astrocs::backend_host::KernelProfile good;
+    good.kernel_id = "hips-bulk-transform";
+    good.correctness_test = "oracle:pass";
+    good.median_ns = 1234.5;
+    good.mad_ns = 12.0;
+    CHECK(astrocs::backend_host::profile_invariant_violation(good).empty());
+
+    // 负例 1(本轮红项的真形态): 过 oracle 但统计量根本没测到
+    astrocs::backend_host::KernelProfile zero = good;
+    zero.median_ns = 0.0;
+    CHECK(astrocs::backend_host::profile_invariant_violation(zero) ==
+          "kernels.hips-bulk-transform.median <= 0");
+
+    // 负例 2: MAD 为负(非法统计量)
+    astrocs::backend_host::KernelProfile negmad = good;
+    negmad.mad_ns = -1.0;
+    CHECK(!astrocs::backend_host::profile_invariant_violation(negmad).empty());
+
+    // 不误判: oracle 失败时 median=0 是合法表达(CPU-003: 错误候选不计时)
+    astrocs::backend_host::KernelProfile failed = good;
+    failed.correctness_test = "oracle:fail";
+    failed.median_ns = 0.0;
+    CHECK(astrocs::backend_host::profile_invariant_violation(failed).empty());
+  }
+
   if (failures == 0) {
-    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例)\n");
+    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例/组装期不变量正负例)\n");
     return 0;
   }
   std::fprintf(stderr, "CPU-003 TESTS FAIL (%d)\n", failures);

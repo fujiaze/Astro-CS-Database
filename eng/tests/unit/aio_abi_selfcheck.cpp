@@ -10,8 +10,14 @@
 // ASTROCS_AIO_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
 #include "aio_abi_test_main.hpp"
 
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下）。
+#include <process.h>
+#include <cstdlib>   // _pgmptr（等价 /proc/self/exe 的可执行文件路径）
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -41,6 +47,13 @@ int run_injected_child(const char* group, const std::string& fault_name) {
     char* child_argv[] = {arg0, arg1, nullptr};
     char* child_env[] = {fbuf.data(), nullptr};
 
+#ifdef _WIN32
+    // WIN-PORT: Windows 无 fork/execve/waitpid。_spawnve(_P_WAIT, ...) 给出等价语义：
+    // 用同一可执行文件（_pgmptr）以同一 argv/env 起子进程并阻塞等待，直接返回其
+    // 退出码 —— 与 POSIX 支路的"注入环境 + 等子进程 + 取退出码"判据一致。
+    const intptr_t rc = _spawnve(_P_WAIT, _pgmptr, child_argv, child_env);
+    return rc < 0 ? 127 : static_cast<int>(rc);
+#else
     const pid_t pid = fork();
     if (pid < 0) {
         std::perror("fork");
@@ -53,6 +66,7 @@ int run_injected_child(const char* group, const std::string& fault_name) {
     int status = 0;
     waitpid(pid, &status, 0);
     return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+#endif
 }
 
 // 注入子进程入口: execve 重入后 argv[1] = 组名, 只跑该组并回传 rc

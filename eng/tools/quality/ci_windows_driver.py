@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ci_windows_driver.py — V8-CI-006 windows-main hosted 检查驱动（owner=SA-CI-32）。
+"""ci_windows_driver.py — windows-main hosted 检查驱动。
 
-控制包依据（02_CI_TASKS.md V8-CI-006「GitHub Windows」）：
+运行面依据（GitHub Windows）：
   - windows-2022 / VS 2022 v143 / Win10 minimum target / ACR OFF，全部经
     CMakePresets.json 既有 preset ``win-msvc-17.14.39-x64``（base-msvc 冻结
     generator/toolset/SDK/C++17/ACR OFF；preset 自带 Windows 主机 condition，

@@ -45,8 +45,14 @@ void gaia_test_free(void *p);
 #include <omp.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <time.h>
+#ifdef _WIN32
+/* WIN-PORT: MSVC 无 <unistd.h>；POSIX mkdir(path,mode) → CRT _mkdir(path)。 */
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#else
+#include <unistd.h>
+#endif
 
 #include "gaia_cat_manifest.h" /* 参考真值（生成器产物，构建期嵌入） */
 

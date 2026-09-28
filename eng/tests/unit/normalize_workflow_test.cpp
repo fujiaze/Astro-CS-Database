@@ -29,7 +29,15 @@ using namespace astrocs::core;
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <unistd.h>；本文件只用到 mkdir(path,mode) 与 /proc RSS 证据。
+// mkdir 映射到 CRT _mkdir（POSIX 侧调用点保持两参形态）；/proc/self/statm 是
+// Linux 专有面（见下方 rss_kb），Windows 侧该证据项取 -1，不参与判据。
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#else
 #include <unistd.h>
+#endif
 
 namespace {
 // 确保证据目录存在（ctest 工作目录可能是 run/ci/build-*，必须 mkdir -p）
@@ -344,10 +352,14 @@ int main() {
   // ── I. 峰值内存受在途块集合约束（帧并发度 vs RSS 曲线）──────────────────
   {
     auto rss_kb = []() -> long {
+#ifdef _WIN32
+      return -1;  // WIN-PORT: MSVC 无 /proc/self/statm 与 sysconf（证据项 Linux-only）
+#else
       std::ifstream f("/proc/self/statm");
       long size = 0, resident = 0;
       if (f >> size >> resident) return resident * (sysconf(_SC_PAGESIZE) / 1024);
       return -1;
+#endif
     };
     std::ofstream ev(std::string(ARCH502_EVIDENCE_DIR) + "/arch502_rss_curve.csv", std::ios::trunc);
     if (ev) ev << "workers,frames,peak_inflight_bytes,rss_kb\n";

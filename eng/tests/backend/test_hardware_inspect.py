@@ -198,7 +198,7 @@ class TestHardwareInspectProbe(unittest.TestCase):
         build = gen_version.read_base_version() + "+g0123456789ab"
         r = subprocess.run([self.probe, build], capture_output=True, text=True, timeout=120)
         json.loads(r.stdout)  # 整体恰一 JSON 文档
-        self.assertNotIn("astrocs:", r.stderr or "", "正常路径 stderr 无报错")
+        self.assertNotIn("acsd:", r.stderr or "", "正常路径 stderr 无报错")
 
 
 if __name__ == "__main__":

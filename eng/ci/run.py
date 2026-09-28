@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ACSD 统一 CI 执行器（控制包任务 V8-CI-002，owner=SA-CI-32）。
+"""ACSD 统一 CI 执行器。
 
-职责（tasks/02_CI_TASKS.md「V8-CI-002」+ 07_CI_MACHINE_CONTRACT.md）：
+职责（CI 规范见 docs/ci/CI_SPEC.md；检查项唯一注册表 = eng/ci/checks.json）：
   - 唯一 CI 入口：CI YAML 只调用 ``python3 eng/ci/run.py --profile ...``，不复制业务命令。
   - 从唯一注册表 ``eng/ci/checks.json`` 按 profile / --check / --focus / --changed-from
     （经 eng/ci/impact_map.json）选择检查，逐项按登记 command 与 timeout 执行。

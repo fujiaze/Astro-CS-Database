@@ -12,8 +12,11 @@ sha256 mismatch → INTEGRITY(8) / --events-jsonl stdout 纪律），改为实�
       (--template/-o)、可 --help；旧 phase1/2/3 命令面（run|validate|plan|inspect 及裸
       phaseN）不再登记。
   [B] preset→IR→Runtime 唯一执行路径: 三个用户命令各自经 run_with_resource_gate(ev,
-      "phaseN") → run_pipeline({N}) 做**单 phase** 调度，互不串接（禁止把三阶段隐式串成
-      一次运行, §1.2）。
+      "phaseN") → run_pipeline 做**单 phase** 调度，互不串接（禁止把三阶段隐式串成
+      一次运行, §1.2）。run_pipeline 的判据落在**实参语义**而非字面量: 用正则匹配调用并
+      读其首个花括号初始化实参 —— 无逗号 ⇒ 单元素（单 phase）⇒ 绿；含逗号或为空 ⇒
+      多 phase ⇒ 红；一处调用都没有 ⇒ 红（fail-closed）。排版（换行/缩进/命名空间限定/
+      括号内空格）不影响判据；旧判据要求 run_pipeline 后紧跟左花括号的**逐字**形态，属格式耦合。
   [C] artifact 传递: artifact 收集进 run manifest（artifacts 数组 + astrocs_run_*.json）；
       resume 时 prior artifact sha256 与磁盘不符 → INTEGRITY(=8)，绝不静默跳过。
   [D] 预设旗标互斥/组合语义（binary 存在时实测运行）:
@@ -28,6 +31,8 @@ sha256 mismatch → INTEGRITY(8) / --events-jsonl stdout 纪律），改为实�
 负例自证: python3 eng/tools/check_cli_run_preset.py --self-test
   - 命令树副本重新登记旧命令 phase1 run → 必须红；
   - commands.cpp 副本删掉 artifact 收集 → 必须红；
+  - commands.cpp 副本把 run_pipeline 的多 phase 调用 {1, 2, 3} 塞回 → 必须红；
+  - commands.cpp 副本把单 phase 调用**改排版**（换行/缩进/括号内空格）→ 必须仍绿；
   - 用永远 rc=0 的桩二进制跑运行时判据 → 必须红；
   - 恢复后必须重新变绿。
 """
@@ -48,6 +53,9 @@ REQUIRED_FLAGS = ("--json", "--template", "-o", "--help")
 LEGACY_TREE_TOKENS = ("phase1", "phase2", "phase3")
 # 每个运行命令的最小可运行配置键（fail-closed 空输入 → 预检阻断 rc=2）
 CFG_KEY = {"normalize": "input_lights", "mosaic": "hips_paths", "export": "source"}
+# run_pipeline 调用面: [限定名]run_pipeline( [模板/限定前缀] { ... } —— 取首个花括号初始化
+# 实参，判据落在**实参个数**（无逗号 ⇒ 单 phase），不落在排版上。
+RUN_PIPELINE_CALL = re.compile(r"\brun_pipeline\s*\(\s*(?:[\w:<>]*\s*)?\{([^{}]*)\}")
 
 
 def read(path):
@@ -66,8 +74,29 @@ def parse_tree_commands(text):
     return out
 
 
+CLI_CMDS_REL = "lib/infrastructure/cli/commands.cpp"
+
+
 def strip_line_comments(text):
     return re.sub(r"//[^\n]*", "", text)
+
+
+def run_pipeline_calls(text):
+    """列出 run_pipeline 调用点的首个花括号初始化实参（去空白后的文本）。
+
+    C++ 里实参可能是 {N}（单元素）或 {1, 2, 3}（多阶段）⇒ 判据取**实参个数**，
+    与排版无关。
+    """
+    return [(m.group(1).strip(), m.start()) for m in RUN_PIPELINE_CALL.finditer(text)]
+
+
+def production_sources(root):
+    """生产代码扫描面 = lib/** 的 C++ 源/头（不含 eng/tests：测试可用多 phase 装负例）。"""
+    lib = pathlib.Path(root) / "lib"
+    if not lib.is_dir():
+        return []
+    return sorted(p for p in lib.rglob("*")
+                  if p.suffix in (".cpp", ".h", ".hpp", ".cc") and p.is_file())
 
 
 def check_static(root=None):
@@ -101,8 +130,29 @@ def check_static(root=None):
             token = 'run_with_resource_gate(ev, "phase%d"' % sid
             if token not in cmds_text:
                 errors.append("缺 %s 的单 phase 调度 %s（preset→IR→Runtime）" % (cmd, token))
-        if "run_pipeline({" not in cmds_text:
-            errors.append("缺 run_pipeline 单 phase 调度 helper（preset→IR→Runtime 唯一路径）")
+        # run_pipeline 判据按**实参语义**：CLI 命令实现里必须有「单元素花括号实参」的
+        # 调用；生产面（lib/**）任何位置出现多元素（含逗号）或空实参调用 ⇒ 判红。
+        # 旧判据要求字面量 run_pipeline({ 逐字在场：排版一变（换行/命名空间限定）即假红，
+        # 且新增多阶段调用不判红（独立审计 AUD401-009 点名该保护力被高估）。
+        hits = []
+        for src in production_sources(root):
+            try:
+                body = strip_line_comments(src.read_text(encoding="utf-8"))
+            except OSError as exc:
+                errors.append("生产源不可读（fail-closed）: %s: %s" % (src, exc))
+                continue
+            rel = str(src.relative_to(pathlib.Path(root))).replace(os.sep, "/")
+            for inner, _off in run_pipeline_calls(body):
+                hits.append((rel, inner))
+        single = [h for h in hits if h[1] and "," not in h[1]]
+        if not [h for h in single if h[0] == CLI_CMDS_REL]:
+            errors.append("缺 run_pipeline 单 phase 调度 helper（preset→IR→Runtime 唯一路径）:"
+                          " %s 无「单元素花括号实参」调用" % CLI_CMDS_REL)
+        for rel, inner in hits:
+            if inner and "," not in inner:
+                continue
+            errors.append("run_pipeline 多 phase 调用（§1.2 禁止三阶段隐式串接）: %s: {%s}"
+                          % (rel, inner))
         if '"artifacts", artifacts' not in cmds_text:
             errors.append("缺 artifact 收集进 run manifest")
         if "astrocs_run_" not in cmds_text:
@@ -231,10 +281,16 @@ def self_test():
     failures = []
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="cli_run_preset_selftest_"))
     try:
-        for rel in ("lib/infrastructure/cli", "cli"):
+        # 夹具 = 生产扫描面 lib/** 的最小可判子集（自测自 2026-09 起曾因夹具里残留的
+        # 已迁移路径 "cli/"（现已并入 lib/infrastructure/cli/）而 FileNotFoundError，
+        # 即 --self-test 自身恒崩 ⇒ 负例自证形同虚设；此处只拷判据真正要读的面。
+        for rel in ("lib/infrastructure/cli",):
+            src_dir = REPO / rel
+            if not src_dir.is_dir():
+                raise RuntimeError("自测夹具源缺失（判据面已迁移？）: %s" % src_dir)
             dst = tmp / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(REPO / rel, dst, dirs_exist_ok=True)
+            shutil.copytree(src_dir, dst, dirs_exist_ok=True)
         base = check_static(tmp)
         if base:
             failures.append("副本基线不为绿（自证无效）: %s" % base[:3])
@@ -264,13 +320,30 @@ def self_test():
                 failures.append("负例 2 未变红: 删掉 artifact 收集仍 PASS")
             cp.write_text(c, encoding="utf-8")
 
+        # 负例 3（语义）: run_pipeline 被多 phase 调用（§1.2 禁止三阶段隐式串接）
+        c = cp.read_text(encoding="utf-8")
+        anchor = "{phase.back() - '0'}"
+        if anchor not in c:
+            failures.append("负例 3 注入点未命中（单 phase 实参形态已变: %s）" % anchor)
+        else:
+            cp.write_text(c.replace(anchor, "{1, 2, 3}", 1), encoding="utf-8")
+            if not check_static(tmp):
+                failures.append("负例 3 未变红: run_pipeline 多 phase 调用 {1, 2, 3} 仍 PASS")
+            # 正例 3b: 同一单 phase 调用**改排版**（换行/缩进/括号内空格）后必须仍绿
+            cp.write_text(c.replace(anchor, "{\n            phase.back() - 0\n        }", 1)
+                          .replace("phase.back() - 0", "phase.back() - '0'"), encoding="utf-8")
+            reformat_errors = check_static(tmp)
+            if reformat_errors:
+                failures.append("正例 3b 被误判红（判据仍咬排版）: %s" % reformat_errors[:2])
+            cp.write_text(c, encoding="utf-8")
+
         if check_static(tmp):
             failures.append("副本恢复后仍为红（自证不可复跑）")
 
-        # 负例 3（运行时）: 永远 rc=0 的桩 → [D] 必须报红
+        # 负例 4（运行时）: 永远 rc=0 的桩 → [D] 必须报红
         stub = _stub_binary(str(tmp), "#!/bin/sh\nexit 0\n")
         if not check_runtime(stub):
-            failures.append("负例 3 未变红: 桩二进制（永远 rc=0）通过了运行时判据")
+            failures.append("负例 4 未变红: 桩二进制（永远 rc=0）通过了运行时判据")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return failures
@@ -304,8 +377,8 @@ def main(argv=None):
             for f in fails:
                 print("  " + f)
             return 1
-        print("CLI-RUN-PRESET_SELFTEST_PASS: 负例(旧命令重登记/删 artifact 收集/运行时桩)"
-              "均能变红, 恢复后变绿")
+        print("CLI-RUN-PRESET_SELFTEST_PASS: 负例(旧命令重登记/删 artifact 收集/多 phase 调用/"
+              "运行时桩)均能变红; 单 phase 调用改排版仍绿; 恢复后变绿")
         return 0
 
     errors = check_static()

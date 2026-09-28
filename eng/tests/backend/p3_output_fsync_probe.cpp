@@ -58,6 +58,29 @@ int main(int argc, char** argv) {
     if (mode == "write" && argc >= 6) {
         return do_write(argv[2], atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     }
+    // P-206 (在册 P-085) 用: 以与 do_write 同源的参考面 verify 任意路径。
+    //   verify_path <path> <W> <H> <seed>
+    //   -> "OK reopen=<0|1> sha_len=<n>" | "IO sha_len=<n>"
+    // 判据: 篡改 DATASUM 卡后 reopen 必须 0 (旧实现零鉴别力 ⇒ 1 = 判红)。
+    if (mode == "verify_path" && argc >= 6) {
+        const int W = atoi(argv[3]), H = atoi(argv[4]), seed = atoi(argv[5]);
+        std::vector<float> sig, cov;
+        fill(W, H, seed, sig, cov);
+        P3WcsDescriptor w{};
+        w.crpix_x = (W + 1) / 2.0; w.crpix_y = (H + 1) / 2.0;
+        w.crval_ra_deg = 210.0; w.crval_dec_deg = 34.0;
+        w.cd[0][0] = -0.001; w.cd[0][1] = 0; w.cd[1][0] = 0; w.cd[1][1] = 0.001;
+        w.width_px = W; w.height_px = H;
+        P3OutputResult r{};
+        const P3OutputStatus st = p3_output_verify(argv[2], &w, sig.data(), cov.data(),
+                                                   W, H, &r);
+        if (st != P3_OUT_OK) {
+            std::printf("IO sha_len=%zu\n", std::strlen(r.sha256));
+            return 1;
+        }
+        std::printf("OK reopen=%d sha_len=%zu\n", r.reopen_ok, std::strlen(r.sha256));
+        return 0;
+    }
     if (mode == "verify_missing" && argc >= 3) {
         P3WcsDescriptor w{};
         P3OutputResult r{};

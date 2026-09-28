@@ -16,12 +16,19 @@
   - 唯一事实源 = 根 CMakeLists.txt，沿**未注释**的 add_subdirectory 递归；
   - 只认字面 target 名与可解析的 CMake 变量引用；不可解析者**不猜**（丢弃并计数，
     调用方据此 fail-closed，禁止把「解析不出来」当成「不存在」而判绿）；
+  - 变量表 = 内建路径变量 + 所在文件与**被 include 的仓库内 .cmake 模块**里的 set()；
+    set() 值按 CMake 列表语义存为 ';' 连接，使用点在读 source 时再按 ';' 拆成多个 token
+    （P-035：根 CMakeLists 的 include(eng/cmake/cfitsio_sources.cmake) 用 set() 列出 60 个 C 源，
+    旧实现既不认 include 也不认多 token 列表 ⇒ astrocs_cfitsio 的源集为空、指纹是空串哈希）；
+  - include() 只认不含变量引用（或仅含内建路径变量）的字面 .cmake 路径，且必须落在仓库内；
+    递归深度有界、按调用栈防环；解析不出的 include／source 实参计入 unresolved（仍不猜）；
   - 锚点缺失（根 CMakeLists 不在）⇒ GateError（rc=2），不得静默判绿；
   - 本模块只读，不写任何文件。
 """
 from __future__ import annotations
 
 import hashlib
+import os
 import pathlib
 import re
 import sys
@@ -41,6 +48,8 @@ CMAKE_KEYWORDS = ("STATIC", "SHARED", "MODULE", "INTERFACE", "OBJECT", "ALIAS", 
 LINK_KEYWORDS = ("PUBLIC", "PRIVATE", "INTERFACE", "DEBUG", "OPTIMIZED", "GENERAL",
                  "LINK_PUBLIC", "LINK_PRIVATE", "LINK_INTERFACE_LIBRARIES")
 _CMAKE_VAR_RE = re.compile(r"\$\{([A-Za-z0-9_]+)\}")
+_VARIABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_.\-]*$")
+_TARGET_NAME_RE = _VARIABLE_NAME_RE
 
 
 # --------------------------------------------------------------------- cmake graph ----
@@ -106,7 +115,7 @@ def _iter_reachable_cmake(repo: pathlib.Path):
             toks = _tokens(body)
             if not toks:
                 continue
-            sub = toks[0].strip('"')
+            sub = toks[0].strip(chr(34))
             if "$" in sub:
                 continue
             candidate = (path.parent / sub).resolve()
@@ -119,10 +128,115 @@ def _iter_reachable_cmake(repo: pathlib.Path):
                 queue.append(cm)
 
 
+def _tokens_quoted(body: str):
+    """引号感知分词：引号内空白不断词（CMake 语义）；引号被剥掉，不进 token 文本。"""
+    import shlex
+    lex = shlex.shlex(body, posix=True)
+    lex.whitespace_split = True
+    lex.commenters = ""
+    return list(lex)
+
+
+def _include_path(repo: pathlib.Path, cmake: pathlib.Path, body: str, variables: dict):
+    """include(<路径>) 的仓库内绝对路径；不可解析/不在仓库内/非 .cmake ⇒ None（不猜）。
+
+    只认字面路径或内建路径变量前缀（本解析器里它就是发起 include 的那个目录）。
+    """
+    toks = _tokens_quoted(body)
+    if not toks:
+        return None
+    raw = toks[0].strip(chr(34))
+    if ";" in raw or not raw.endswith(".cmake"):
+        return None
+    resolved = _expand(raw, variables)
+    if resolved is None:
+        return None
+    candidate = pathlib.Path(resolved)
+    if not candidate.is_absolute():
+        candidate = cmake.parent / candidate
+    candidate = pathlib.Path(os.path.realpath(candidate))
+    try:
+        candidate.relative_to(repo)
+    except ValueError:
+        return None
+    return candidate if candidate.is_file() else None
+
+
+def _collect_variables(repo: pathlib.Path, cmake: pathlib.Path, variables: dict,
+                       unresolved: list, seen=None, depth: int = 0):
+    """把本文件与递归 include 的仓库内 .cmake 模块里的 set() 并入 variables（就地更新）。
+
+    递归深度有界（≤8）且按调用栈防环；带变量引用的 include 若解析不到仓库内文件，
+    或深浅超限，记入 unresolved（禁止把「读不出来」当成「没有」）；无变量引用的
+    include(Foo) 形态是 CMake 模块查找，本解析器无法解析，不记账也不猜。
+    """
+    seen = set() if seen is None else seen
+    key = os.path.realpath(cmake)
+    if key in seen:
+        return
+    seen.add(key)
+    try:
+        rel = cmake.relative_to(repo).as_posix()
+    except ValueError:
+        rel = cmake.as_posix()
+    text = _strip_cmake_comments(gc.read_text(cmake, rel))
+    for body in _commands(text, "include"):
+        inc = _include_path(repo, cmake, body, variables) if depth < 8 else None
+        if inc is None:
+            toks = _tokens_quoted(body)
+            if toks and "$" in toks[0]:
+                unresolved.append({"file": rel,
+                                   "token": toks[0], "kind": "include"})
+            continue
+        _collect_variables(repo, inc, variables, unresolved, seen, depth + 1)
+    for body in _commands(text, "set"):
+        toks = _tokens_quoted(body)
+        if (len(toks) < 2 or _CMAKE_VAR_RE.search(toks[0])
+                or not _VARIABLE_NAME_RE.match(toks[0])):
+            continue
+        values = [_expand(t, variables) for t in toks[1:]]
+        if any(v is None for v in values):
+            continue  # 列表值里有解析不出的元素 ⇒ 整个 set 不猜（不部分写入，避免半真值）
+        variables[toks[0]] = ";".join(values)  # CMake 列表语义：存储用分号连接
+
+
+def _source_tokens(repo: pathlib.Path, cmake: pathlib.Path, tok: str, variables: dict):
+    """把 add_library/add_executable 的一个实参展开为 0..n 个仓库内 source 相对路径。
+
+    展开结果按 CMake 列表语义用分号拆分（set(VAR a b c) ⇒ 使用点变 3 个 source）；
+    未知变量展开不出，或不在仓库内、后缀非源码 ⇒ 返回 []（不猜，由调用方计数）。
+    """
+    resolved = _expand(tok.strip(chr(34)), variables)
+    if resolved is None:
+        return []
+    out = []
+    for piece in str(resolved).split(";"):
+        piece = piece.strip()
+        if not piece:
+            continue
+        candidate = pathlib.Path(piece)
+        if not candidate.is_absolute():
+            candidate = cmake.parent / candidate
+        try:
+            relsrc = pathlib.Path(os.path.realpath(candidate)).relative_to(repo).as_posix()
+        except ValueError:
+            continue
+        if relsrc.endswith(SOURCE_SUFFIXES):
+            out.append(relsrc)
+    return out
+
+
 def parse_cmake_graph(repo: pathlib.Path):
-    """返回 {targets: {name: {sources, file, kind}}, edges: {name: set(dep)}}。"""
+    """返回 {targets, edges, unresolved}；targets[name] = {sources, file, kind}。
+
+    变量表 = 内建路径变量 + 本文件与被 include 的仓库内 .cmake 模块里的 set()（递归有界）；
+    set() 按 CMake 列表语义存为分号连接，使用点再拆成多个 source。解析不出的 source 实参
+    与 include 进入 unresolved（调用方可据此 fail-closed），绝不猜。
+    """
+    repo = pathlib.Path(os.path.realpath(repo))
     targets: dict = {}
     edges: dict = {}
+    unresolved: list = []
     for cmake in _iter_reachable_cmake(repo):
         rel = cmake.relative_to(repo).as_posix()
         text = _strip_cmake_comments(gc.read_text(cmake, rel))
@@ -132,54 +246,43 @@ def parse_cmake_graph(repo: pathlib.Path):
             "CMAKE_SOURCE_DIR": repo.as_posix(),
             "PROJECT_SOURCE_DIR": repo.as_posix(),
         }
-        for body in _commands(text, "set"):
-            toks = _tokens(body)
-            if len(toks) >= 2 and not _CMAKE_VAR_RE.search(toks[0]):
-                value = _expand(toks[1], variables)
-                if value is not None:
-                    variables[toks[0]] = value
+        _collect_variables(repo, cmake, variables, unresolved)
         for kind in ("add_library", "add_executable"):
             for body in _commands(text, kind):
                 toks = _tokens(body)
                 if not toks:
                     continue
-                name = toks[0].strip('"')
-                if "$" in name or not re.match(r"^[A-Za-z_][A-Za-z0-9_.\-]*$", name):
+                name = toks[0].strip(chr(34))
+                if "$" in name or not _TARGET_NAME_RE.match(name):
                     continue
                 info = targets.setdefault(name, {"sources": set(), "file": rel, "kind": kind})
                 for tok in toks[1:]:
                     if tok.upper() in CMAKE_KEYWORDS:
                         continue
-                    resolved = _expand(tok.strip('"'), variables)
-                    if resolved is None:
+                    found = _source_tokens(repo, cmake, tok, variables)
+                    if not found:
+                        if "$" in tok:
+                            unresolved.append({"file": rel, "target": name,
+                                               "token": tok, "kind": kind})
                         continue
-                    candidate = pathlib.Path(resolved)
-                    if not candidate.is_absolute():
-                        candidate = cmake.parent / candidate
-                    try:
-                        relsrc = candidate.resolve().relative_to(repo.resolve()).as_posix()
-                    except ValueError:
-                        continue
-                    if relsrc.endswith(SOURCE_SUFFIXES):
-                        info["sources"].add(relsrc)
+                    info["sources"].update(found)
         for body in _commands(text, "target_link_libraries"):
             toks = _tokens(body)
             if not toks:
                 continue
-            name = toks[0].strip('"')
+            name = toks[0].strip(chr(34))
             if "$" in name:
                 continue
             deps = edges.setdefault(name, set())
             for tok in toks[1:]:
-                tok = tok.strip('"')
+                tok = tok.strip(chr(34))
                 if tok.upper() in LINK_KEYWORDS:
                     continue
                 if "$" in tok or "::" in tok:
                     continue
                 deps.add(tok)
-    return {"targets": targets, "edges": edges}
-
-
+    return {"targets": targets, "edges": edges,
+            "unresolved": unresolved}
 def production_closure(graph: dict, entry: str):
     targets = graph["targets"]
     if entry not in targets:

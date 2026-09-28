@@ -29,8 +29,40 @@ timeout 1200 cmake --build build/linux-control -j 2 \
 # 注: 该门的 install 面走 build/linux-control(cm/install_layout.cmake 白名单),
 # 干净树必须把 install 载荷目标一并构建, 否则 cmake --install 会在
 # libacsd_io.so / modules/*.so 处缺失失败(旧步只建 acsd)。
-timeout 2400 cmake --build build/linux-control -j 2 --target   acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline   astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration   astrocs_p1_cosmetic astrocs_p1_hips_writer
-mkdir -p build && cp -f build/linux-control/astrocs build/acsd
+# R-52/B 组：目标清单必须覆盖安装脚本引用的**全部**载荷目标（15 个）——先建齐、再重链。
+#   旧清单只列 9 个（缺 acsd 及 3 个 cpu 变体 + 3 个 cpuprov），
+#   于是 preinstall 重链会在未构建的目标上失败（"没有规则可制作目标 …capability_detect.c.o"）。
+timeout 2400 cmake --build build/linux-control -j 2 --target \
+  acsd acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline \
+  astrocs_cpu_avx2 astrocs_cpu_avx512 \
+  astrocs_cpuprov_baseline astrocs_cpuprov_avx2 astrocs_cpuprov_avx512 \
+  astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration \
+  astrocs_p1_cosmetic astrocs_p1_hips_writer \
+  astrocs_backends_manifest astrocs_providers_manifest
+# R-52/B 组：Makefiles 树（linux-control preset）的安装载荷由**显式 preinstall 重链**供给
+#   —— CMake 为 Unix Makefiles 生成器把安装源指向 CMakeFiles/CMakeRelink.dir/<tgt>，
+#   而 cmake --build --target <tgt> 与 make <tgt> 都**不触发** <tgt>/preinstall（只有显式目标才触发）。
+#   verification 树**不得依赖环境自动完成该步**（R-52 第 1 条）⇒ 此处显式执行，逐个载荷失败即红。
+for _t in acsd acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline   astrocs_cpu_avx2 astrocs_cpu_avx512   astrocs_cpuprov_baseline astrocs_cpuprov_avx2 astrocs_cpuprov_avx512   astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration   astrocs_p1_cosmetic astrocs_p1_hips_writer; do
+  timeout 600 make -C build/linux-control "$_t/preinstall"
+done
+# R-52/B 组：载荷清单与安装脚本**单源比对**，缺件即红（fail-closed）。
+#   清单不再手抄 —— 直接读 cmake_install.cmake 的安装源路径，脚本改了就自动跟上。
+python3 - <<'PYEOF'
+import os, re, sys
+src = open("build/linux-control/cmake_install.cmake", encoding="utf-8").read()
+want = sorted({m.group(1) for m in re.finditer(r'FILES "([^"]+)"', src)})
+want = [p for p in want if "${" not in p]          # 只比绝对规范路径
+missing = [p for p in want if not os.path.isfile(p)]
+if missing:
+    print("INSTALL-PAYLOAD-INCOMPLETE: 安装脚本要求 %d 件，缺 %d 件：" % (len(want), len(missing)),
+          file=sys.stderr)
+    for p in missing: print("  missing: " + p, file=sys.stderr)
+    print("  处置：补建对应目标（含其 preinstall 重链），不放松该判据。", file=sys.stderr)
+    sys.exit(1)
+print("INSTALL-PAYLOAD-COMPLETE: %d 件齐备" % len(want))
+PYEOF
+mkdir -p build && cp -f build/linux-control/acsd build/acsd
 cp -f build/linux-control/libacsd_runtime.so build/libacsd_runtime.so
 # eng/tests/backend oracle fixture(如 test_phase3_reproject_oracle)用
 # -IREPO/build 取 version_generated.h; 根 build/ 仅被 cp 二进制,

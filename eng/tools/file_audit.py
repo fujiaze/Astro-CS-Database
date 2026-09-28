@@ -23,13 +23,23 @@
   分子 = `standard_scanned`：上述文件中扩展名落在 SCANNED_EXT 内的那些
          （即"标准扫描器真的会读"的文件）。`unscanned` 列出未覆盖项，使分子可核对。
 
+快照（可复算性的输入面）
+  分子与分母依赖"已跟踪文件全集"这一**随提交漂移**的输入，故产物必须登记输入快照：
+  source_revision（产出时 HEAD）与 source_snapshot_sha256（该路径全集的指纹）。
+  复算 = `--at-revision <source_revision>`：按该提交树重建同一输入，计数与指纹必须
+  逐位相等。旧口径（"产物 vs. 现时工作树计数"）把**快照漂移**与**数字被改写**混为
+  一谈：任何一次新增出货语料文件的提交都会让结论瞬间变红，而门分不清这是漂移还是
+  造假；新口径对两者分别判定（漂移 ⇒ 按登记快照仍可复算；改写 ⇒ 计数或指纹不符即红）。
+
 用法
   python3 eng/tools/file_audit.py [--root DIR] [--json-out PATH] [--quiet]
-退出码 0 = 产出审计；2 = 前置命令不可用（fail-closed）。
+  python3 eng/tools/file_audit.py --at-revision <sha> [--json-out PATH] [--quiet]
+退出码 0 = 产出审计；2 = 前置命令不可用/快照不可解析（fail-closed，不退回第二来源）。
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -37,6 +47,18 @@ import sys
 from collections import Counter
 
 SOURCE_COMMAND = ["git", "ls-files", "-z"]
+REVISION_COMMAND = ["git", "rev-parse"]
+
+# 输入快照（复算的输入面，见模块头「快照」一节）
+TREE_COMMAND = ["git", "ls-tree", "-r", "-z", "--name-only"]
+SNAPSHOT_DEFINITION = (
+    "快照 = 一条 git 命令给出的**已跟踪路径全集**；source_snapshot_sha256 = "
+    "sha256(路径排序后以 \"\\n\" 连接)。产出时快照 = 产出时点的索引/工作树"
+    "（source_command = git ls-files -z，source_revision = 产出时 HEAD）；"
+    "复算时快照 = source_revision 的提交树（git ls-tree -r -z --name-only <rev>，"
+    "即 file_audit.py --at-revision <rev>）。索引干净时两者给出同一路径全集 ⇒ "
+    "计数与指纹可逐位复算；复算必须按 source_revision 重建输入，而不是按现时工作树。"
+)
 
 SHIPPING_PREFIXES = ("lib/", "eng/", "docs/", "实验/")
 SHIPPING_EXACT = (
@@ -58,22 +80,62 @@ DENOMINATOR_DEFINITION = (
 )
 
 
-def tracked_files(root):
-    """一条命令取全量已跟踪文件。失败即抛（调用方转 exit 2）。"""
-    r = subprocess.run(SOURCE_COMMAND, cwd=root, capture_output=True)
+def _git(root, cmd):
+    """跑一条 git 命令；失败即抛（调用方转 exit 2，fail-closed）。"""
+    r = subprocess.run(cmd, cwd=root, capture_output=True)
     if r.returncode != 0:
-        raise RuntimeError("git ls-files 失败 rc=%d: %s"
-                           % (r.returncode, r.stderr.decode("utf-8", "replace")[:300]))
-    out = r.stdout.decode("utf-8", "surrogateescape")
-    return [p for p in out.split("\0") if p]
+        raise RuntimeError("%s 失败 rc=%d: %s"
+                           % (" ".join(cmd), r.returncode,
+                              r.stderr.decode("utf-8", "replace")[:300]))
+    return r.stdout.decode("utf-8", "surrogateescape")
+
+
+def tracked_files(root):
+    """一条命令取全量已跟踪文件（产出路径）。"""
+    return [p for p in _git(root, SOURCE_COMMAND).split("\0") if p]
+
+
+def tracked_files_at(root, revision):
+    """按提交树取同一路径全集（复算路径）：索引干净时与 tracked_files 集合相同。"""
+    return [p for p in _git(root, TREE_COMMAND + [revision]).split("\0") if p]
+
+
+def head_revision(root):
+    """产出时 HEAD（不可判定时 None ⇒ 产物显式登记为不可复算，不静默编造）。"""
+    r = subprocess.run(REVISION_COMMAND + ["HEAD"], cwd=root, capture_output=True)
+    if r.returncode != 0:
+        return None
+    rev = r.stdout.decode("utf-8", "replace").strip()
+    return rev or None
+
+
+def resolve_revision(root, revision):
+    """把 rev 解析为提交 sha；不可解析即抛（fail-closed，不退回现时工作树）。"""
+    r = subprocess.run(REVISION_COMMAND + [revision + "^{commit}"], cwd=root,
+                       capture_output=True)
+    if r.returncode != 0:
+        raise RuntimeError("git rev-parse %s^{commit} 失败 rc=%d: %s"
+                           % (revision, r.returncode,
+                              r.stderr.decode("utf-8", "replace")[:300]))
+    return r.stdout.decode("utf-8", "replace").strip()
+
+
+def snapshot_sha256(paths):
+    """输入快照指纹：路径集合（排序）的 sha256 —— 与取数所用命令无关，只反映输入全集。"""
+    return hashlib.sha256("\n".join(sorted(paths)).encode("utf-8")).hexdigest()
 
 
 def is_shipping(path):
     return path.startswith(SHIPPING_PREFIXES) or path in SHIPPING_EXACT
 
 
-def audit(root):
-    files = tracked_files(root)
+def audit(root, at_revision=""):
+    if at_revision:
+        revision = resolve_revision(root, at_revision)
+        files = tracked_files_at(root, revision)
+    else:
+        files = tracked_files(root)
+        revision = head_revision(root)
     shipping = sorted(p for p in files if is_shipping(p))
     scanned = [p for p in shipping if os.path.splitext(p)[1].lower() in SCANNED_EXT]
     unscanned = sorted(p for p in shipping if p not in set(scanned))
@@ -85,6 +147,9 @@ def audit(root):
         "source_command": SOURCE_COMMAND,
         "source_command_text": " ".join(SOURCE_COMMAND),
         "denominator_definition": DENOMINATOR_DEFINITION,
+        "source_revision": revision,
+        "source_snapshot_sha256": snapshot_sha256(files),
+        "snapshot_definition": SNAPSHOT_DEFINITION,
         "counts": {
             "tracked_total": len(files),
             "shipping_total": len(shipping),
@@ -103,9 +168,11 @@ def main(argv=None):
         os.path.dirname(os.path.abspath(__file__)))))
     ap.add_argument("--json-out", default="")
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--at-revision", default="",
+                    help="按该提交树复算（输入快照 = source_revision；缺省 = 现时索引/工作树）")
     a = ap.parse_args(argv)
     try:
-        out = audit(a.root)
+        out = audit(a.root, a.at_revision)
     except (OSError, RuntimeError) as exc:
         print("FILE_AUDIT_ERROR: %s（fail-closed，不退回第二来源）" % exc, file=sys.stderr)
         return 2

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-003 资源探测库（owner=SA-CI-32，纯 stdlib，Linux /proc + /sys）。
+"""资源探测库（纯 stdlib，Linux /proc + /sys）。
 
-职责（tasks/02_CI_TASKS.md V8-CI-003）：
+职责（按 /proc 与 /sys 事实源给出可解释的并发与内存口径）：
   读取 affinity/cpuset/cgroup quota、逻辑/物理核和可用内存，动态计算并发；
   不得硬编码核数。任何来源缺失都必须有 fallback，并在结果里标注 source
   （"sched_getaffinity" / "cpu_count" / "procfs" / "sysfs" / "cgroup2" /

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-003 单元测试：eng/tools/monitoring/run_monitored.py（owner=SA-CI-32）。
+"""单元测试：eng/tools/monitoring/run_monitored.py。
 
-覆盖（tasks/02_CI_TASKS.md V8-CI-003 验收）：
+覆盖（wrapper 对外契约逐条验收）：
   ① busy-loop 子进程 → 树级平均 CPU% 高（>50%）；
   ② sleep 子进程 → CPU% 近零（<20%）且 evaluate(min_cpu_percent=...) 标记违规；
   ③ memory-growth 子进程 → peak RSS 显著高于基线（>32MB）且

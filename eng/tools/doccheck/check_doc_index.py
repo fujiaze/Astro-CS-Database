@@ -140,6 +140,14 @@ SKIP_EXACT = (
     "eng/ci/check_mutation_gates.py",                       # ② --self-test 夹具面
     "eng/ci/check_registration_anchors.py",                 # ② --self-test 夹具面
     "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",  # ② 同上
+    # ② FINAL-07 补登记：两文件的 `--self-test` 夹具按构造写入不存在的 docs/ 路径
+    # （docs/owner/REFS.md、docs/owner/FORGED.md、docs/owner/MIXED.md、
+    # docs/science/CAL.md…ACR.md、docs/science/NOPE.md）作为**应当被判红的样例文本**，
+    # 被本门当悬空引用扫描 = 把负例当违规（实测 17 条假红全部来自这两份文件的夹具，
+    # HEAD 基线同一判据为绿、不含这 17 条）。准入判据不变：两份均 `--self-test` +
+    # `def _self_test(`/`def self_test(` 实现体（skip_exact_reason 机器自证）。
+    "eng/tools/doccheck/check_version_namespaces.py",          # ② --self-test 夹具面
+    "eng/tools/quality/contracts/check_traceability.py",        # ② --self-test 夹具面
 )
 
 # ②的机器判据：既要有 --self-test 入口，又要有 self_test()/_self_test() 实现体 ——

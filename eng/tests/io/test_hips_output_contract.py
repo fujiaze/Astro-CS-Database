@@ -381,5 +381,39 @@ class TestFitsVerifyCrossOracle(unittest.TestCase):
                 fits_verify.verify_fits_file(str(p2))
 
 
+class TestProductFilenameWhitelist(unittest.TestCase):
+    """IO-003 §3.2 文件名白名单（P-178 扩项：根层 `coverage.index.json`）。
+
+    非退化：正例能绿（数据集级覆盖索引被接受并进完成 manifest），负例能红
+    （非白名单名、以及**带子目录**的覆盖索引 —— 只认根层这一个名）。
+    """
+
+    def test_coverage_index_at_root_accepted(self):
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        s = store_at(tmp, "run-cov")
+        files = standard_hips_files(ipix_list=(0,)) + [
+            ("coverage.index.json", b'{"index_schema": "astrocs.coverage-index/v1"}\n')]
+        doc = s.publish_directory("signal", files)
+        paths = {e["path"] for e in doc["tree"]}
+        self.assertIn("coverage.index.json", paths)
+        self.assertTrue(s.verify_tree_hash("signal"))
+
+    def test_illegal_name_rejected(self):
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        s = store_at(tmp, "run-bad")
+        with self.assertRaises(hos.PublishError):
+            s.publish_directory("signal", standard_hips_files(ipix_list=(0,))
+                                + [("notes.txt", b"x\n")])
+        self.assertFalse(s.has_complete_manifest("signal"))
+
+    def test_coverage_index_in_subdir_rejected(self):
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        s = store_at(tmp, "run-sub")
+        with self.assertRaises(hos.PublishError):
+            s.publish_directory("signal", standard_hips_files(ipix_list=(0,))
+                                + [("sub/coverage.index.json", b"{}\n")])
+        self.assertFalse(s.has_complete_manifest("signal"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

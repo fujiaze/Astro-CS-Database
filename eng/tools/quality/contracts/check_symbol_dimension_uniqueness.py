@@ -6,6 +6,8 @@
 三条可判定子判据（全部 fail-closed）：
   C1 SYM-DIM-DEF-SPLIT       定义站点 `SYM = <expr>` 的右侧经量纲代数求值后，必须等于该
                              符号在注册表中的唯一量纲类；不等即红（同时给出两个站点的 file:line）。
+                             右侧**不可求值**（未登记叶符号 / 非法字符残留）单列 id
+                             `SYM-DIM-DEF-UNRESOLVED`：不可求值即无法证明量纲类一致 ⇒ fail-closed 判红。
   C2 SYM-DIM-CLAIM-CONFLICT  符号旁的显式量纲断言（`SYM` 无量纲 / `SYM` 量纲 `X` /
                              `SYM` 单位 `X`）必须与注册量纲类一致；不一致即红。
   C3 SYM-DIM-FORBIDDEN-CTX   注册表为符号声明的「禁止共现短语」（如 `D_p` 旁不得出现「权重和」）
@@ -20,7 +22,11 @@
   - 负例：三种注入（C1/C2/C3 各一）必须各自产生**预期 id + 预期 file:line** 的 finding；
   - **恒真守卫**：与判据无关的任意改动必须产生与干净夹具**完全相同**的 finding 集（否则判据恒红）；
   - **判别力守卫**：注入后的 finding 集必须与干净夹具**不同**（否则判据恒真/无证据资格）；
-  - **恒假守卫**：否定式消歧写法（「`D_p` 不是无量纲权重和」）不得触发 C3。
+  - **恒假守卫**：否定式消歧写法（「`D_p` 不是无量纲权重和」）不得触发 C3；
+  - **引号守卫**：引号是散文分隔符 —— 引号内的**合法**定义（`"D_p = Σ_j a_jp"`）不得判红，
+    引号内的**错误**定义（`"D_p = Σ_{合格} w_j"`）必须仍判红（引号不得成为掩盖通道）；
+  - **链式等式守卫**：`D_p = sumArea = Σ_j a_jp` 在第二个等号处终止、按首段求值（零 finding），
+    而 `D_p = w_j = Σ_j a_jp` 必须仍判红（首段量纲不符）—— 终止不得掩盖错误定义。
   任一守卫不成立 ⇒ `--self-test` 非零退出。
 
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 registry schema error
@@ -35,8 +41,12 @@ import tempfile
 REGISTRY_REL = "eng/tools/quality/contracts/symbol_dimension_registry.json"
 
 # ── 表达式切分 ───────────────────────────────────────────────────────────────
-# RHS 终止符：反引号 / 中文句读 / 分号 / 竖线 / 右括号 / 第二个等号 / 行尾
-_RHS_STOP = "`。，；;|)）]】、,#⇒→≥≤≠"
+# RHS 终止符：反引号 / 引号（ASCII 与 CJK）/ 中文句读 / 分号 / 竖线 / 右括号 /
+# 第二个等号（链式等式 `D_p = sumArea = Σ_j a_jp` 只取首段）/ 行尾。
+# 引号与第二个等号本是**散文与链式等式分隔符**：缺它们会把写法正确的定义站点判成
+# SYM-DIM-DEF-UNRESOLVED（FINAL-07 实测：p1drz_disp009_gate.cpp:131 的 `"D_p=Σ_j a_jp"`
+# 与 audit_findings_drizzle.md:29 的 `D_p = sumArea = Σ a_jp`）——两处右侧本身可求值。
+_RHS_STOP = "`。，；;|)）]】、,#⇒→≥≤≠=\"'“”‘’"
 # Σ/Sum 的下标可能是 CJK（如 Σ_合格 / Σ_{合格} / Σ_j）⇒ 下标字符集必须含 CJK，
 # 否则 "_合格" 会残留成未登记叶符号（实测 DATA-002 §2a 即此形态）。
 _SUM_RE = re.compile(r"(?:Σ|Sum)\s*(?:\{[^{}]*\}|_\{[^{}]*\}|_[A-Za-z0-9\u4e00-\u9fff]+)?")
@@ -425,6 +435,14 @@ def _mutate(corpus, rel, old, new):
     return c
 
 
+def _append(corpus, rel, line):
+    """在夹具末尾追加一行（用于「同一定义换书写形态」的对照探针）。"""
+    c = {k: list(v) for k, v in corpus.items()}
+    assert line not in c[rel], "夹具追加行已存在: %r" % (line,)
+    c[rel].append(line)
+    return c
+
+
 def self_test(repo):
     reg = load_registry(repo)
     cases = []
@@ -470,12 +488,49 @@ def self_test(repo):
                       x["file"] == "lib/fixture/engine.cpp" and x["line"] == 2 for x in m3),
                   "got %r" % m3))
 
+    # ── 分隔符守卫（FINAL-07 CON-SYMBOL-DIM-UNIQUE 实测缺陷回归）──────────────
+    # 引号是**散文分隔符**：引号内的定义必须照常求值（实测 p1drz_disp009_gate.cpp:131）。
+    m6 = probe(_append(_CLEAN, "docs/contracts/FIX.md",
+                       '"D_p = Σ_j a_jp" 是覆盖面积口径的引号写法。'))
+    cases.append(("引号守卫·引号内的合法定义不得判红",
+                  not any(x["id"] == "SYM-DIM-DEF-UNRESOLVED" for x in m6),
+                  "got %r" % m6))
+
+    # 引号不得成为掩盖错误定义的通道。
+    m7 = probe(_append(_CLEAN, "docs/contracts/FIX.md",
+                       '"D_p = Σ_{合格} w_j" 是权重和写法。'))
+    ids7 = sorted({x["id"] for x in m7})
+    cases.append(("引号守卫·引号内的错误定义必须仍判红",
+                  "SYM-DIM-DEF-SPLIT" in ids7
+                  and set(ids7) <= {"SYM-DIM-DEF-SPLIT", "SYM-DIM-FORBIDDEN-CTX"}
+                  and any(x["id"] == "SYM-DIM-DEF-SPLIT"
+                          and x["file"] == "docs/contracts/FIX.md" and x["line"] == 5
+                          for x in m7),
+                  "got %r" % m7))
+
+    # 链式等式：第二个等号终止（实测 audit_findings_drizzle.md:29）。
+    m8 = probe(_mutate(_CLEAN, "docs/contracts/FIX.md",
+                       "`D_p = Σ_j a_jp` = covered_area，量纲 `sr`。",
+                       "`D_p = sumArea = Σ_j a_jp` = covered_area，量纲 `sr`。"))
+    cases.append(("链式等式守卫·第二个等号终止且首段可求值 ⇒ 零 finding",
+                  m8 == [], "got %r" % m8))
+
+    m9 = probe(_mutate(_CLEAN, "docs/contracts/FIX.md",
+                       "`D_p = Σ_j a_jp` = covered_area，量纲 `sr`。",
+                       "`D_p = w_j = Σ_j a_jp` = covered_area，量纲 `sr`。"))
+    cases.append(("链式等式守卫·首段量纲不符仍须判红",
+                  any(x["id"] == "SYM-DIM-DEF-SPLIT"
+                      and x["file"] == "docs/contracts/FIX.md" and x["line"] == 1
+                      for x in m9),
+                  "got %r" % m9))
+
     m4 = probe(_mutate(_CLEAN, "docs/contracts/FIX.md",
                       "`W_p = Σ_{合格} w_j`，无量纲。", "`Q_p = Σ_{合格} w_j`，无量纲。"))
     cases.append(("恒真守卫·无关改动不得产生 finding", m4 == clean, "got %r" % m4))
 
-    cases.append(("判别力守卫·注入必须改变结论", m1 != clean and m2 != clean and m3 != clean,
-                  "m1=%r m2=%r m3=%r clean=%r" % (m1, m2, m3, clean)))
+    cases.append(("判别力守卫·注入必须改变结论",
+                  m1 != clean and m2 != clean and m3 != clean and m7 != clean and m9 != clean,
+                  "m1=%r m2=%r m3=%r m7=%r m9=%r clean=%r" % (m1, m2, m3, m7, m9, clean)))
 
     m5 = probe(_mutate(_CLEAN, "lib/fixture/engine.cpp",
                       "    // D_p = Σ_j a_jp  (覆盖球面面积, sr)",

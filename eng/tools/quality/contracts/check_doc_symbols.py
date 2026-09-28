@@ -2,10 +2,17 @@
 """check_doc_symbols.py — T402 doc symbols checker
 
 Checks: 文档中反引号符号、文件和 config key 均可解析；排除 archive 清单
+        扫描面完整性：权威域目录缺失 / 扫到 0 份文档 ⇒ 判红（静默退化为恒真门的防线）
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
+  python3 eng/tools/quality/contracts/check_doc_symbols.py              # 判据本体
+  python3 eng/tools/quality/contracts/check_doc_symbols.py --self-test  # 正例绿/负例红夹具面
 """
 import argparse, json, pathlib, re, sys, csv
+import shutil, subprocess, tempfile
 
+# 权威文档域（判定面 = 这些目录下的 *.md）。改判定面必须显式改本常量：
+# 目录缺失或一份文档都没扫到 ⇒ 本门没有判据对象，此时判 PASS 就是恒真门。
+AUTH_DIRS = ("science", "algorithms", "architecture", "contracts", "modules", "design")
 
 _HEADER_CORPUS = {}
 
@@ -126,12 +133,150 @@ def _load_symbol_namespaces(repo, findings):
     return toks, ok
 
 
+# ── 内置夹具面（--self-test）：正例判绿 + 负例判红 + 恢复判绿 ────────────────
+# 夹具全部落临时目录（**不写仓库正文**）；子进程跑**真实 CLI** —— 判据怎么判，
+# 夹具面就怎么判。路径一律拼接构造，不在源码里写死仓库正文里的 docs 路径字面量。
+_FIXTURE_DOC = "FIXTURE_SAMPLE.md"
+
+
+def _dp(*parts):
+    """夹具仓库相对路径（拼接构造）。"""
+    return str(pathlib.PurePosixPath("docs", *parts))
+
+
+def _registry(entries):
+    return {"schema": "astrocs/doc-symbol-namespaces/v1", "auto_domains": [],
+            "registered_symbols": list(entries)}
+
+
+def _fixture(root, name, *, doc_tokens=(), registry=None, skip_registry=False,
+             domains=None, extra_files=()):
+    """造一个最小夹具仓库，返回其根目录。"""
+    base = pathlib.Path(root) / name
+    (base / "docs" / "architecture").mkdir(parents=True, exist_ok=True)
+    for d in (AUTH_DIRS if domains is None else domains):
+        (base / "docs" / d).mkdir(parents=True, exist_ok=True)
+    if not skip_registry:
+        reg = _registry([]) if registry is None else registry
+        (base / "docs" / "architecture" / "doc_symbol_namespaces.json").write_text(
+            json.dumps(reg, ensure_ascii=False), encoding="utf-8")
+    if doc_tokens:
+        p = base / "docs" / "science" / _FIXTURE_DOC
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# 夹具文档\n\n正文：" + "、".join("`%s`" % t for t in doc_tokens) + "\n",
+                     encoding="utf-8")
+    for rel, text in extra_files:
+        p = base / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+    return base
+
+
+def _fixture_run(root, name, **kw):
+    base = _fixture(root, name, **kw)
+    out = base / "selftest_out.json"
+    proc = subprocess.run(
+        [sys.executable, str(pathlib.Path(__file__).resolve()),
+         "--repo", str(base), "--out-json", str(out)],
+        cwd=str(root), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if not out.is_file():
+        return proc.returncode, None, proc.stdout
+    return proc.returncode, json.loads(out.read_text(encoding="utf-8")), proc.stdout
+
+
+def self_test():
+    """正例判绿 / 负例判红 / 恢复判绿；任一例不符预期 ⇒ rc=1。"""
+    common_files = (
+        ("fixture_evidence.py", "FIXTURE_REGISTERED_TOKEN = 1\n"),
+        ("lib/include/fixture_case.h", "#define FIXTURE_HEADER_CONST 1\n"),
+        (_dp("architecture", "api_inventory.csv"),
+         "symbol,signature\nFIXTURE_API_SYMBOL,int fixture_api_symbol(void)\n"),
+        (_dp("GLOSSARY.md"),
+         "| 术语 | 定义 |\n|---|---|\n| FIXTURE_GLOSSARY_TERM | 夹具术语 |\n"),
+    )
+    live_tokens = ("FIXTURE_REGISTERED_TOKEN", "FIXTURE_HEADER_CONST",
+                   "FIXTURE_API_SYMBOL", "FIXTURE_GLOSSARY_TERM")
+    reg_ok = _registry([{"token": "FIXTURE_REGISTERED_TOKEN", "namespace": "fixture",
+                         "evidence": "fixture_evidence.py:1",
+                         "reason": "夹具登记项：evidence 文件逐字含该 token"}])
+    reg_stale = _registry([
+        {"token": "FIXTURE_REGISTERED_TOKEN", "namespace": "fixture",
+         "evidence": "fixture_evidence.py:1", "reason": "夹具登记项"},
+        {"token": "FIXTURE_STALE_TOKEN", "namespace": "fixture",
+         "evidence": "fixture_stale_evidence.py:1", "reason": "夹具登记项"}])
+    cases = (
+        ("正例-四类命名空间全可解析", 0, None,
+         dict(doc_tokens=live_tokens, registry=reg_ok, extra_files=common_files)),
+        ("负例-悬空符号", 1, "DOC-BAD-SYMBOL",
+         dict(doc_tokens=("FIXTURE_DANGLING_SYMBOL",), registry=reg_ok,
+              extra_files=common_files)),
+        ("负例-登记项不再命中(STALE)", 1, "DOC-SYMBOL-REGISTRY-STALE",
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",), registry=reg_stale,
+              extra_files=common_files + (("fixture_stale_evidence.py",
+                                           "FIXTURE_STALE_TOKEN = 1\n"),))),
+        ("负例-evidence 未逐字含 token", 1, "DOC-SYMBOL-REGISTRY-EVIDENCE",
+         dict(doc_tokens=("FIXTURE_EV_TOKEN",),
+              registry=_registry([{"token": "FIXTURE_EV_TOKEN", "namespace": "fixture",
+                                   "evidence": "fixture_evidence.py:1",
+                                   "reason": "夹具登记项"}]),
+              extra_files=common_files)),
+        ("负例-evidence 文件不存在", 1, "DOC-SYMBOL-REGISTRY-EVIDENCE",
+         dict(doc_tokens=("FIXTURE_EV_FILE_TOKEN",),
+              registry=_registry([{"token": "FIXTURE_EV_FILE_TOKEN", "namespace": "fixture",
+                                   "evidence": "fixture_absent.py:1",
+                                   "reason": "夹具登记项"}]),
+              extra_files=common_files)),
+        ("负例-登记表缺失", 1, "DOC-SYMBOL-REGISTRY-MISSING",
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",), skip_registry=True,
+              extra_files=common_files)),
+        ("负例-权威域目录缺失", 1, "DOC-SYMBOL-SCAN-SURFACE",
+         dict(doc_tokens=(), registry=reg_ok, domains=(), extra_files=common_files)),
+        ("负例-扫描面 0 份文档", 1, "DOC-SYMBOL-SCAN-SURFACE",
+         dict(doc_tokens=(), registry=_registry([]), extra_files=())),
+        ("恢复-正例重跑仍绿", 0, None,
+         dict(doc_tokens=live_tokens, registry=reg_ok, extra_files=common_files)),
+    )
+    root = tempfile.mkdtemp(prefix="doc-symbols-selftest-")
+    bad = []
+    try:
+        for i, (name, want_rc, want_id, kw) in enumerate(cases):
+            rc, result, out = _fixture_run(root, "case%02d" % i, **kw)
+            if result is None:
+                bad.append("%s：未产出 JSON（rc=%s）\n%s" % (name, rc, (out or "")[-400:]))
+                print("BAD  %s：无 JSON 输出" % name)
+                continue
+            ids = [f.get("id") for f in result.get("findings", [])]
+            ok = rc == want_rc and result.get("status") == ("PASS" if want_rc == 0 else "FAIL")
+            if ok and want_id is None:
+                ok = not ids          # 正例必须一条 finding 都没有（防误红）
+            if ok and want_id is not None:
+                ok = want_id in ids   # 负例必须命中**指定**判词（防"红了但不是这条"）
+            print("%s %s rc=%s findings=%s" % ("OK  " if ok else "BAD ", name, rc, ids))
+            if not ok:
+                bad.append("%s：期望 rc=%s finding=%s，实得 rc=%s findings=%s"
+                           % (name, want_rc, want_id, rc, ids))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    if bad:
+        print("DOC-SYMBOL-SELFTEST_FAIL: %d/%d 例不符预期" % (len(bad), len(cases)))
+        for item in bad:
+            print("  - " + item)
+        return 1
+    print("DOC-SYMBOL-SELFTEST_PASS: %d/%d 例（正例/恢复 2 例须绿，负例 %d 例须红且命中指定判词）"
+          % (len(cases), len(cases), len(cases) - 2))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=".")
     ap.add_argument("--out-json", default=None)
     ap.add_argument("--out-junit", default=None)
+    ap.add_argument("--self-test", dest="self_test", action="store_true",
+                    help="跑内置正例/负例夹具面（全部符合预期 = 0，任一例不符预期 = 1）")
     args = ap.parse_args()
+    if args.self_test:
+        return self_test()
     repo = pathlib.Path(args.repo)
     findings = []
     status = "PASS"
@@ -143,10 +288,22 @@ def main():
     seen_tokens = set()
     # Scan docs/**/*.md excluding archive/history
     # Only authoritative docs per 05 L1 classification
-    auth_dirs = ["science","algorithms","architecture","contracts","modules","design"]
     docs = []
-    for d in auth_dirs:
+    for d in AUTH_DIRS:
         docs.extend([p for p in (repo / "docs" / d).rglob("*.md") if "archive" not in str(p)])
+    # 扫描面完整性守卫（fail-closed；静默退化防线）：权威域目录缺失、或一份文档都没扫到
+    # ⇒ 本门没有判据对象。此时给 PASS 等于恒真门（真值无效应时度量不归零，见 AGENTS.md
+    # §5/§9）：docs/ 一次重构、域清单改个名，全部悬空符号都会**静默**停止受判。
+    # 判定面收缩必须显式改 AUTH_DIRS（可见的改口径），不得靠"扫不到"变绿。
+    missing_domains = [d for d in AUTH_DIRS if not (repo / "docs" / d).is_dir()]
+    if missing_domains or not docs:
+        findings.append({"id": "DOC-SYMBOL-SCAN-SURFACE", "severity": "P1",
+                         "file": "docs",
+                         "symbol": ",".join(missing_domains) or "docs_scanned=0",
+                         "observed": ("权威域目录缺失: " + ",".join(missing_domains))
+                                     if missing_domains else "扫描面为 0 份文档",
+                         "expected": "六个权威域目录齐备，且至少扫到 1 份 md"})
+        status = "FAIL"
     # Also include top-level docs that are authoritative: TRACEABILITY, PUBLIC_API etc handled via contracts
     # Only add if exists (fixtures may not have)
     for extra in [repo / "docs/contracts/PUBLIC_API.md", repo / "docs/contracts/DATA_SEMANTICS.md"]:
