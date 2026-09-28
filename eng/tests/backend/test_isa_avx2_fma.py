@@ -71,8 +71,10 @@ class TestIsaAvx2Fma(unittest.TestCase):
                 v[m.group(1)] = float(m.group(2))
         self.assertIn("hips", v)
         self.assertIn("calibration", v)
-        # D-14（GATE-501）：统一到已跟踪证据路径（见 test_isa_variants.py 同注）。
-        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-003",
+        # D-14（GATE-501）：写入面 = 2026-09-28 artifacts 重组后的唯一落点
+        # 实验/engineering-evidence/prerelease-v5/（见 test_isa_variants.py 同注）；
+        # 旧 artifacts/ 树已 git rm，写旧路径 = 运行期未跟踪文件 ⇒ CHK-UNIT FAIL(dirty)。
+        out = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5", "ISA-003",
                            "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:

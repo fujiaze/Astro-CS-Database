@@ -23,7 +23,7 @@
     3. 全文件中语义 token 得分的 best 行唯一；
     4. 分数 >= 3（引号串命中按 3 分计权）且 |best - old| <= 300。
 
-修复单：docs/contracts/DATA_SEMANTICS_anchor_fixlist.md（登记已核证重锚的逐条证据）。
+修复单：eng/tests/contracts/data_semantics_anchor_fixlist.json（登记已核证重锚的逐条证据）。
 """
 import argparse
 import collections

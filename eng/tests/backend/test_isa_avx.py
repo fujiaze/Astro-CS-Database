@@ -75,8 +75,12 @@ class TestIsaAvx(unittest.TestCase):
         self.assertIn("hips", v, "热点 hips 必须有变体测量")
         self.assertIn("calibration", v, "热点 calibration 必须有变体测量")
         # 完整测量工件(决策可审计) — ISA-002
-        # D-14（GATE-501）：统一到已跟踪证据路径（见 test_isa_variants.py 同注）。
-        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-002",
+        # D-14（GATE-501）：写入面 = 2026-09-28 artifacts 重组后的唯一落点
+        # 实验/engineering-evidence/prerelease-v5/（同 test_isa_variants.py 注）；
+        # 旧 artifacts/evidence/prerelease-v5/ 已 git rm，写旧路径会在运行期造出
+        # 未跟踪文件 ⇒ CHK-UNIT FAIL(dirty)。新前缀在 eng/ci/checks.json 的
+        # CHK-UNIT dirty_ignore_prefixes 显式登记为写入面。
+        out = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5", "ISA-002",
                            "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:
@@ -124,7 +128,9 @@ class TestIsaAvx(unittest.TestCase):
         须先冻结测量（固定输入指纹缓存），属 GATE-501 域。
         本判据仍能红：删测量行、缺 decision 列、把 NOT_SHIPPED 改成 SHIP 都会失败。
         """
-        ev = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5")
+        # 读取面同写入面：2026-09-28 artifacts 重组后 ISA-001/002 工件唯一落点
+        # 实验/engineering-evidence/prerelease-v5/（旧 artifacts/ 树已 git rm）。
+        ev = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5")
         p1 = os.path.join(ev, "ISA-001", "MEASUREMENTS.csv")
         p2 = os.path.join(ev, "ISA-002", "MEASUREMENTS.csv")
         self.assertTrue(os.path.isfile(p1), "缺 ISA-001(avx2) 跟踪证据: %s" % p1)

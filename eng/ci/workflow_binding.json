@@ -102,7 +102,7 @@
       "step_id": "LINUX-UPLOAD-EVIDENCE",
       "workflow": ".github/workflows/ci-linux.yml",
       "job": "linux",
-      "name": "Upload small evidence",
+      "name": "Upload public CI evidence",
       "role": "artifact-upload"
     },
     {

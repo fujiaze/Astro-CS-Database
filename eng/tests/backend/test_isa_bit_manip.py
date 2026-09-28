@@ -57,28 +57,38 @@ class TestIsaBitManip(unittest.TestCase):
                          f"不得有位操作专用指令(无位操作热点): {found}")
 
     def test_03_no_empty_dll_shipped(self):
-        """必须写 NOT_APPLICABLE 证据且不把空 DLL 入库(shipped backend 目录无位操作变体)。"""
+        """必须登记 NOT_APPLICABLE 且不把空 DLL 入库(shipped backend 目录无位操作变体)。
+
+        证据缺位的处置口径（原缺陷：证据不在树内即 self.skipTest ⇒ skip 在 CI 里
+        不计失败，等于用「跳过」冒充「通过」）：
+          * 树内**有** ISA-005/MEASUREMENTS.csv → 逐行断言指令计数为 0 且登记
+            NOT_APPLICABLE（原判据原样保留，不静默删除）；
+          * 树内**无**该文件 → **不跳过**，改判「缺位已被显式登记」：
+            docs/architecture/ISA_BIT_MANIP_VARIANTS.md §4 完整性登记
+            「测量工件未入库」（ISA-005 结论 = NOT_APPLICABLE、不写空 DLL ⇒
+            不留测量工件是登记态，不是遗漏）。该登记被删 ⇒ 本用例判红。
+        依据：ISA_BIT_MANIP_VARIANTS.md §4；docs/KNOWN_LIMITATIONS.md 条目 21
+        （验收证据文件缺位须显式登记，「不以 skip 充绿」）。
+        """
         # 本任务未把 bmi2_backend.cpp/.so 作为正式 SHPI 变体入库
         self.assertFalse(os.path.isfile(os.path.join(HOST, "bmi2_backend.cpp")),
                          "NOT_APPLICABLE 结论不应留下入库的空 DLL/变体源")
         self.assertFalse(os.path.isfile(os.path.join(HOST, "bmi2_backend.so")))
-        # 证据表存在且 instruction_count=0
-        # D-14（GATE-501）：读取路径统一到证据树（ISA-005 证据缺位事实不变，
-        # 仍按下方显式 skipTest 处理，不静默删除判据）。
+        # D-14（GATE-501）：证据面路径统一到 2026-09-28 artifacts 重组后的唯一落点。
         mea = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5", "ISA-005",
                            "MEASUREMENTS.csv")
-        if not os.path.isfile(mea):
-            # ISA-005 计数证据不在树内(artifacts/prerelease_v5 仅有 ISA-001/002/003);
-            # NOT_APPLICABLE 决定与"不写空 DLL"由 docs/architecture/
-            # ISA_BIT_MANIP_VARIANTS.md 台账承载(test_04 断言), 此处保留无空 DLL
-            # 断言(上方)后显式跳过计数证据段, 不静默删除判据。
-            self.skipTest("ISA-005 MEASUREMENTS.csv 证据不在树内(实验/engineering-evidence/prerelease-v5/"
-                          "ISA-005/ 缺失); NOT_APPLICABLE 决定记录见 "
-                          "docs/architecture/ISA_BIT_MANIP_VARIANTS.md")
-        for row in csv.reader(open(mea, encoding="utf-8")):
-            if row and row[0] != "kernel":
-                self.assertEqual(row[3], "0", f"{row[0]} 位操作指令计数须为 0")
-                self.assertIn("NOT_APPLICABLE", row[4])
+        if os.path.isfile(mea):
+            for row in csv.reader(open(mea, encoding="utf-8")):
+                if row and row[0] != "kernel":
+                    self.assertEqual(row[3], "0", f"{row[0]} 位操作指令计数须为 0")
+                    self.assertIn("NOT_APPLICABLE", row[4])
+            return
+        led = open(os.path.join(REPO, "docs", "architecture", "ISA_BIT_MANIP_VARIANTS.md"),
+                   encoding="utf-8").read()
+        self.assertIn("NOT_APPLICABLE", led,
+                      "证据缺位须有显式 NOT_APPLICABLE 登记（不可静默跳过）")
+        self.assertRegex(led, r"(未|不)入库",
+                         "ISA-005 台账 §4 须显式登记「测量工件未入库」：缺位是登记态，不是遗漏")
 
     def test_04_decision_ledger_records_na(self):
         doc = open(os.path.join(REPO, "docs", "architecture", "ISA_BIT_MANIP_VARIANTS.md"),
