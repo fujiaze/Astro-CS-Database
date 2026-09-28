@@ -37,6 +37,9 @@ target_include_directories(astrocs_orchestrator_jsv PUBLIC
   ${CMAKE_SOURCE_DIR}/lib/third_party)
 if(MSVC)
   target_compile_options(astrocs_orchestrator_jsv PRIVATE /w)
+  # 第三方隔离 (见根 CMakeLists add_compile_options 的 ASTROCS_WARNINGS_OFF):
+  # 本目标不收项目 /W4, 只留 /w, 消除 D9025 "overriding '/W4' with '/w'"。
+  set_target_properties(astrocs_orchestrator_jsv PROPERTIES ASTROCS_WARNINGS_OFF 1)
 else()
   target_compile_options(astrocs_orchestrator_jsv PRIVATE -w)
 endif()
@@ -93,6 +96,11 @@ endif()
 # 仅用于共址冒烟测试与诊断，**不 install、不进产品 manifest**。其退场与否
 # （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分另行处置。
 add_executable(orchestrator_legacy_cli src/main.cpp)
+# WIN-PORT 缺陷⑤: main.cpp 直接 include nlohmann/json.hpp (源 :36)。上面
+# astrocs_infra_orchestrator 的 lib/third_party 是 PRIVATE include 面, 不向本
+# 可执行传播 ⇒ MSVC C1083。此处显式登记本 TU 的第三方头搜索面。
+target_include_directories(orchestrator_legacy_cli PRIVATE
+  ${CMAKE_SOURCE_DIR}/lib/third_party)
 target_link_libraries(orchestrator_legacy_cli PRIVATE astrocs_infra_orchestrator)
 
 # 共址测试子目录由根 CMakeLists.txt 在 enable_testing() 之后单独注册

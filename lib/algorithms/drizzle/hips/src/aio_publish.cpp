@@ -34,6 +34,16 @@
 
 #include "aio_atomic_file.h"
 
+/* WIN-PORT: UCRT (MSVC) 的 <errno.h> 不定义 POSIX EDQUOT（磁盘配额超限，Linux
+ * errno 122）；本 TU 的 fsync 失败分类（:120/:135）按 publish.h v1 合同要区分
+ * ENOSPC|EDQUOT → AIO_PUBLISH_ERR_DISKFULL，故需该常量存在。取值与同仓既有
+ * 先例逐位一致（lib/infrastructure/aio/io/fits_core.c:46-48 同款守卫 + 122）。
+ * Windows 侧 errno 由 UCRT 产生，不会等于 122 ⇒ 该分支在 Windows 自然为假，
+ * Linux 行为逐位不变（EDQUOT 已在 <errno.h> 中定义，守卫不生效）。 */
+#if defined(_WIN32) && !defined(EDQUOT)
+#define EDQUOT 122
+#endif
+
 /* staging 路径缓冲上限 (publish.h v1 冻结推荐值 1024) */
 #define PUBLISH_PATH_MAX 1024
 

@@ -88,16 +88,25 @@ out_hot/out_cold 可 NULL。
 - **FP64 ABI**：`ac_correct_frame_f64` 非真双精度——double 输入转
   float32 执行（统计/mask/插值全程 f32）、输出回转 double
   （ac_api.cpp:228-263；头文件 :105-115 声明；DISP-COS-004）。
-- **生产调用现状（no fabrication of valid coverage）**：唯一生产调用点
-  `lib/phase1_session/p1_session.cpp:294-307`（cosmetic stage，
-  2026-09-01 c5629be6 引入）传 `master_dark=nullptr、master_bias=nullptr`
-  → 两检测全禁用、out_hot=out_cold=0、帧逐像素复制回写——**生产
-  cosmetic 阶段现状为恒等 pass，检测/修复从未在生产生效**
-  （DISP-COS-009）；母版接线由 P1-COS-IMPL/编排层处理。
+- **生产调用现状（no fabrication of valid coverage）**：生产两处调用点的
+  **检测源均为真实母版参考平面**——① legacy session 路径
+  `lib/phase1_session/p1_session.cpp:465-490`（cosmetic stage；`dark_plane`/
+  `bias_plane` 取自已加载母版帧，母版尺寸与帧不符时**显式判红
+  `ACS_ERR_PARAM`**，不静默降级为恒等 pass）；② 调度器路径
+  `module_adapters.cpp:2928-2932`（`p_dark_ok`/`p_bias_ok` = 母版可读 ∧
+  尺寸相符，见本节引用正本）。**旧结论「传 nullptr ⇒ 恒等 pass、检测从未在
+  生产生效」已作废**（WIRING-AUDIT-01 整改；正本 =
+  `docs/science/algorithms/COSMETIC_ALGORITHMS.md:212-220` 与同文件 §10 的
+  DISP-COS-009 行）。`dark==NULL`/`bias==NULL` 时检测关闭、模块退化为恒等
+  映射（`cosmetic_corrector.cpp:243-249`：`dark`/`bias` 为空则对应检测不跑、两掩膜全 0），这是 **API/配置面语义**
+  （`module_entry.cpp:714` 的 legacy NULL 通道），**不是生产现状**。
 - **并发**：函数级 reentrant+threadsafe（无共享可变全局）；OpenMP
   `parallel for schedule(static)` 像素域并行（判定/合并/清零/插值），
-  统计（median/MAD）与 BFS 标记串行；计数用 omp reduction(+)（整数加法
-  可交换，结果确定）。输出 bitwise 与线程数无关。ac_set_num_threads
+  统计（median/MAD）与 BFS 标记串行；**掩码合并与坏点计数是串行循环**
+  （`cosmetic_corrector.cpp:253-259`，该文件内无任何 `omp reduction`——旧登记
+  「计数用 omp reduction(+)」与「合并并行」均已作废）。坏列路径的并行面 =
+  逐列中位数（`:352-355`，每线程独立缓冲）与坏列修复（`:488`）。输出
+  bitwise 与线程数无关。ac_set_num_threads
   进程级改写 OpenMP ICV（竞态+跨模块副作用，DISP-COS-008；迁移后
   host ThreadLease 取代）。
 - **内存**：调用方分配 out；模块内 std::vector RAII；峰值额外内存
@@ -116,8 +125,10 @@ out_hot/out_cold 可 NULL。
   值必须 numeric/bool）：`enabled`（bool，默认 true）、`hot_sigma`
   （默认 5.0）、`cold_sigma`（默认 5.0）、`method`（字符串
   "median"/"bilinear" 映射 AC_METHOD_MEDIAN/BILINEAR，其他→median）、
-  `max_structure_size`（默认 4）；无 master_dark/master_bias 键（即
-  检测永远禁用——DISP-COS-009 根因）。实验参考
+  `max_structure_size`（默认 4）；**母版不在本键集内**——`master_dark` /
+  `master_bias` 由会话/编排层的输入块提供并由 **p1_session.cpp:331-338 读取、
+  :479-484 接线**（旧登记「无 master 键 ⇒ 检测永远禁用」已作废，见 §4 生产调用
+  现状）。实验参考
   lib/algorithms/calibration/batch_config.json（5.0/5.0/median/4）。
 - 正式版本化 schema 由 P1-COS-IMPL 冻结（acs_module_descriptor_v1.
   config_schema_ver）。
@@ -173,13 +184,13 @@ ac_* 通道不同，未编译进 CMake 主构建）。
 INTERNAL 死值）；检测统计不过滤 NaN（NaN 源帧检测静默失效）；
 bilinear 实为 IDW 且非 0 method 一律 IDW；f64 ABI 降级 f32；
 w·h int31 溢出无防护；in-place 别名未定义；OpenMP ICV 违反
-ThreadLease 约束；无取消检查点；**生产调用未接线母版（检测从未在
-生产生效）**。
+ThreadLease 约束；无取消检查点；**母版缺席时的恒等通道（`dark/bias==NULL`）
+曾被误登记为「生产现状」**（该结论已作废，见上）。
 
 ## 10. 迁移（P1-COS-IMPL 目标，不声明完成）
 
 本目录（lib/algorithms/cosmetic/）为迁移落点：astrocs_p1_cosmetic.dll、
 module.yaml（同目录，manifest：entrypoint=`astrocs_module_query_v1`——入口符号在位、函数体零调用）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
-接线、DISP-COS 清单消化、母版接线修复（DISP-COS-009）见 ALG-COS
+接线、DISP-COS 清单消化见 ALG-COS（母版接线修复已完成，见 §4 生产调用现状）
 §0/§8 与 module.yaml 注释。迁移不得改变 ALG-COS-001..005 公式语义与
 DATA-P1-COS 数据语义（SCI-CAL-001 未变更前）。

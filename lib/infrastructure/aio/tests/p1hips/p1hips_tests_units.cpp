@@ -8,8 +8,9 @@
 #include "p1hips_fixtures.hpp"
 #include "p1hips_oracle.hpp"
 
-#include <dirent.h>
+#include <filesystem>
 #include <sys/stat.h>
+#include <system_error>
 
 #include <algorithm>
 #include <cctype>
@@ -140,19 +141,22 @@ static std::uint64_t fnv_file(const std::string& path) {
 }
 
 void walk_dir(const std::string& dir, std::vector<std::string>& files) {
-    DIR* d = opendir(dir.c_str());
-    if (!d) return;
-    struct dirent* e;
-    while ((e = readdir(d)) != nullptr) {
-        const std::string name = e->d_name;
+    // WIN-PORT: 原实现用 <dirent.h>+opendir/readdir/stat（MSVC 无 <dirent.h>）。
+    // 改用 std::filesystem（C++17 标准，两平台同源）：is_directory 与原
+    // stat+S_ISDIR 一致（同样跟随符号链接），stat 失败即跳过的不变量保持；
+    // 遍历顺序不定，但调用方 tree_digest 随后 std::sort ⇒ 与 readdir 不定序无关。
+    std::error_code ec;
+    std::filesystem::directory_iterator it(dir, ec), end;
+    if (ec) return;
+    for (; it != end; it.increment(ec)) {
+        if (ec) break;
+        const std::string name = it->path().filename().string();
         if (name == "." || name == "..") continue;
         const std::string full = dir + "/" + name;
-        struct stat st{};
-        if (stat(full.c_str(), &st) != 0) continue;
-        if (S_ISDIR(st.st_mode)) walk_dir(full, files);
-        else files.push_back(full);
+        std::error_code ec_child;
+        if (it->is_directory(ec_child)) walk_dir(full, files);
+        else if (!ec_child) files.push_back(full);
     }
-    closedir(d);
 }
 
 bool tree_digest(const std::string& dir, std::uint64_t& digest,

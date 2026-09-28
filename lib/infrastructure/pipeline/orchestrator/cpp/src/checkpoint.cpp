@@ -632,8 +632,12 @@ std::vector<std::string> CheckpointManager::list_all() {
         if (!entry.is_regular_file()) continue;
         std::string ext = entry.path().extension().string();
         // 转小写
+        // WIN-PORT C4244: std::tolower 返回 int（C 接口），写回 char 序列是隐式
+        // 窄化 —— MSVC /W4 在 STL 内部 (<algorithm>(3553,24)) 报 C4244。此处是
+        // 语言标准要求的收窄点，显式转换即消除（入参已限定为 (unsigned char)，
+        // 值域 0..255 落 char 的可表示子集，行为逐位不变）。
         std::transform(ext.begin(), ext.end(), ext.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (ext == ".json") {
             // 返回 stem (不含扩展名)
             result.push_back(entry.path().stem().string());
@@ -657,8 +661,12 @@ void CheckpointManager::clear_all() {
     for (const auto& entry : fs::directory_iterator(checkpoint_dir_)) {
         if (!entry.is_regular_file()) continue;
         std::string ext = entry.path().extension().string();
+        // WIN-PORT C4244: std::tolower 返回 int（C 接口），写回 char 序列是隐式
+        // 窄化 —— MSVC /W4 在 STL 内部 (<algorithm>(3553,24)) 报 C4244。此处是
+        // 语言标准要求的收窄点，显式转换即消除（入参已限定为 (unsigned char)，
+        // 值域 0..255 落 char 的可表示子集，行为逐位不变）。
         std::transform(ext.begin(), ext.end(), ext.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (ext == ".json") {
             std::error_code ec;
             if (fs::remove(entry.path(), ec)) {

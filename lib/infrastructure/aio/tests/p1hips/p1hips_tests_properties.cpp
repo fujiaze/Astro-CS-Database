@@ -30,7 +30,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <dirent.h>
 #include <filesystem>
 #include <system_error>
 #include <string>

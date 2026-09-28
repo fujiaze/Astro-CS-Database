@@ -6,8 +6,15 @@
 //              (排除恒 PASS 侧)
 // 注册表 (p1drz_test_main.hpp): flux_closure, uniformity, impulse,
 //   nonfinite, determinism, variance, negative_matrix, sip_active, adu_inverse
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下方 fork 块）。
+#include <cstdint>
+#include <cstdlib>   // _pgmptr（等价 /proc/self/exe 的可执行文件路径）
+#include <process.h>
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -75,6 +82,13 @@ int main(int argc, char** argv) {
         char arg1[] = "all";
         char* child_argv[3] = {arg0, arg1, nullptr};
 
+        #ifdef _WIN32
+        // WIN-PORT: Windows 无 fork/execve/waitpid。_spawnve(_P_WAIT, ...) 给出等价语义：以同一
+        // 可执行文件（_pgmptr）与同一 argv/env 起子进程并阻塞等待，直接取子进程退出码 ——
+        // 与 POSIX 支路「注入环境重跑 + 等子进程 + 取退出码」同一判据面。
+        const intptr_t rc_win = _spawnve(_P_WAIT, _pgmptr, child_argv, child_env);
+        const int rc = rc_win < 0 ? 127 : static_cast<int>(rc_win);
+        #else
         const pid_t pid = fork();
         if (pid < 0) {
             std::perror("fork");
@@ -87,6 +101,7 @@ int main(int argc, char** argv) {
         int status = 0;
         waitpid(pid, &status, 0);
         const int rc = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+        #endif
         if (rc == 0) {
             std::fprintf(stderr,
                          "[p1drz-selfcheck] injection %s 未使测试失败 (恒 PASS 侧!)\n",

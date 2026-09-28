@@ -53,7 +53,7 @@ std::vector<std::string> provenance_required_keys() {
       "config_hash",         "units",                "coordinate",
       "pixel_semantics",     "sampling",             "algorithm_ids",
       "module",              "provider",             "approximations",
-      "degradations",        "normalization_version","weight_mode_version",
+      "degradations",        "normalization_version",
       "correlation_summary", "flux_conservation_factor", "k_corr",
       "generated_utc",       "output_hash"};
 }
@@ -108,7 +108,11 @@ json provenance_to_json(const Provenance& p) {
   }
   j["degradations"] = degs;
   j["normalization_version"] = p.normalization_version;
-  j["weight_mode_version"] = p.weight_mode_version;
+  // weight_mode_version 不在 §31.5 FROZEN 最小集内（R-42/P-188）⇒ 只作可选版本留痕，
+  // 不得必写（必写会把非最小集字段升格为缺键即 REJECT 的成员）。
+  if (!p.weight_mode_version.empty()) {
+    j["weight_mode_version"] = p.weight_mode_version;
+  }
   json cs = json::object();
   cs["representation"] = p.correlation_summary.representation;
   if (!p.correlation_summary.kernel_id.empty()) cs["kernel_id"] = p.correlation_summary.kernel_id;

@@ -319,6 +319,17 @@ std::string utc_now() {
 
 }  // namespace
 
+/* 组装期不变量(唯一出处; 声明见 profile_gen.h)。返回 "" = 合规。
+ * 依据: docs/ASTROCS_DESIGN.md §9「选择用稳定统计」——
+ * 判 oracle 通过的候选必须有可复读的统计量; median<=0 与 oracle:pass 自相矛盾,
+ * 唯一物理含义是"该候选根本没测到统计量"(例如 winner 统计量被未测量的 worker 覆盖拉空)。 */
+std::string profile_invariant_violation(const KernelProfile& kp) {
+    if (kp.correctness_test == "oracle:pass" && !(kp.median_ns > 0))
+        return "kernels." + kp.kernel_id + ".median <= 0";
+    if (kp.mad_ns < 0) return "kernels." + kp.kernel_id + ".mad < 0";
+    return "";
+}
+
 ProfileBundle generate_profile_v2(const std::string& mode, const std::string& build_id,
                                   const std::string& commit,
                                   const std::string& cli_sha256,
@@ -529,11 +540,15 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                     }
                 }
                 if (winner_workers == 1) {
-                    winner_workers = avail;   // heavy 场景不得退 1(08 §4-8)
+                    // heavy 场景不得退 1(08 §4-8): 优先升级到 avail 的实测候选;
+                    // 该候选不存在(或统计量为 0)时**保持已选中候选的统计量**, 而不是把
+                    // winner_workers 改成未测量的值 —— 后者会产出「oracle:pass 却 median=0」
+                    // 的自相矛盾条目(组装期判据 profile_invariant_violation 会如实判红)。
                     for (const auto& c : cands)
-                        if (c.oracle_pass && c.provider == winner && c.workers == avail) {
-                            winner_block = c.block; winner_median = c.median_ns;
-                            winner_mad = c.mad_ns; break;
+                        if (c.oracle_pass && c.provider == winner && c.workers == avail &&
+                            c.median_ns > 0) {
+                            winner_workers = c.workers; winner_block = c.block;
+                            winner_median = c.median_ns; winner_mad = c.mad_ns; break;
                         }
                 }
             }
@@ -550,6 +565,11 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
             kp.median_ns = winner_median;
             kp.mad_ns = winner_mad;
             kp.fallback_reason = winner.empty() ? "no passing provider" : "";
+            // 组装期不变量(fail-closed, 唯一判据 profile_invariant_violation):
+            // 违反即记入 violations ⇒ 调用方在本进程内失败, 不落盘、不等复读层拒收。
+            const std::string viol = profile_invariant_violation(kp);
+            if (!viol.empty())
+                bundle.violations.push_back(std::string(sp.kernel_id) + ": " + viol);
             bundle.kernels[sp.kernel_id] = kp;
         }
     }
@@ -560,6 +580,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
 
     // ── 7. 组装 v2 JSON ──
     bundle.raw_samples_sha256 = raw_candidates_sha256(bundle.raw);
+    // 组装期违反项随 bundle 交给调用方(fail-closed); 不写入 profile 文本, 保持 v2 schema 闭包。
     nlohmann::json j;
     j["schema"] = "astrocs.cpu-profile/v2";
     j["profile_id"] = "sha256:" + bundle.raw_samples_sha256;
@@ -700,7 +721,12 @@ std::string verify_profile_v2(const std::string& json_text, const std::string& e
             return "kernels." + it.key() + ".provider invalid: " + prov;
         if (kp.value("workers", 0) < 1) return "kernels." + it.key() + ".workers < 1";
         if (kp.value("block", 0) < 1) return "kernels." + it.key() + ".block < 1";
-        if (kp.value("median", 0.0) <= 0) return "kernels." + it.key() + ".median <= 0";
+        // R-52/C②：median 判据与 correctness_test **同一条语义**（组装期唯一判据 =
+        // profile_invariant_violation）。oracle:fail 的候选按 CPU-003「错误候选不计时」
+        // 本就 median=0，无条件判红会把"可如实落盘的科学失败"变成写盘失败（IO=7），
+        // 从而掩盖真实 verdict（应 SCIENCE=4）——那是判据自身与原语义不一致。
+        if (kp.value("correctness_test", "") == "oracle:pass" && kp.value("median", 0.0) <= 0)
+            return "kernels." + it.key() + ".median <= 0";
         if (kp.value("mad", -1.0) < 0) return "kernels." + it.key() + ".mad < 0";
         const std::string st = kp.value("self_test_sha256", "");
         if (st.size() != 64) return "kernels." + it.key() + ".self_test_sha256 not 64hex";

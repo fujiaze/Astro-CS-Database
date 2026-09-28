@@ -326,10 +326,10 @@ const std::set<std::string>& session_keys() {
         // （「权重模式」概念不存在；权重是消费 SNR 时的派生量）⇒ 配置里出现即 rc=3。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
         "reject", "reject_profile",
-        // HIPS-IDX-01（合同 = phase_config_mosaic.schema.json#/$defs/coverage_index_ref）：
-        // 阶段二输入的**加性可选键**，指向数据集级覆盖索引 coverage.index.json；
-        // hips_paths 元素保持字符串（逐帧索引路径按命名规则派生）。同 snr_path：
-        // CLI 只识别并透传，消费点（阶段二 coverage 节点）在阶段 2 ⇒ 死键台账已登记。
+        // HIPS-IDX-01（合同 = phase_config_mosaic.schema.json#/$defs/coverage_index_path；P-180 分名：
+        // **字符串**输入路径，勿与 hips_storage_form.schema.json#/$defs/coverage_index_ref 对象混读）：
+        // 阶段二输入的**加性可选键**，指向数据集级覆盖索引 coverage.index.json；hips_paths 元素保持
+        // 字符串（逐帧索引路径由命名规则派生）。同 snr_path：CLI 只识别并透传，消费点在阶段 2 ⇒ 死键台账已登记。
         "coverage_index",
         //（docs/ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取

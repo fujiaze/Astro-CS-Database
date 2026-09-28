@@ -17,7 +17,8 @@
 // ============================================================================
 
 #include "hiss_stream_writer.h"
-#include "aio_util.h"  // aio_fopen_utf8
+#include "aio_util.h"          // aio_fopen_utf8
+#include "aio_atomic_file.h"   // aio_atomic::fsync_path / fsync_parent_dir (P-175)
 
 #include <cstdio>
 #include <cstring>
@@ -637,11 +638,29 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         return HISS_ERR_IO;
     }
 
-    // 8. 删除临时池 (数据已复制到 .partial)
+    // 8. 内容落盘 (P-175): 「关闭/fsync」的 fsync 步此前在本函数全文缺失
+    // (grep fsync = 0)。依据 docs/plugins/infrastructure/17_aio.md:26「所有产品:
+    // 临时文件/目录 + 校验 + fsync + 原子 rename 提交」与 IO_003 §4 步骤序:
+    // 流式面此前只有 fflush + fclose (用户态缓冲 → 内核页缓存)，rename 之后
+    // 没有任何落盘保证。机制在 aio (aio_atomic::fsync_path)，本模块不自持
+    // open/fsync/close。失败 = 发布失败 (fail-closed: 删 .partial, 不 rename)。
+    {
+        const int frc = aio_atomic::fsync_path(pimpl_->partial_path, 0);
+        if (frc != 0) {
+            fprintf(stderr,
+                    "[hiss][stream] finalize 失败: fsync(.partial) 失败 errno=%d "
+                    "(P-175: 内容未落盘, 拒绝发布)\n", frc);
+            cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
+            pimpl_->opened = false;
+            return HISS_ERR_IO;
+        }
+    }
+
+    // 9. 删除临时池 (数据已复制到 .partial)
     std::error_code ec;
     std::filesystem::remove(pimpl_->temp_pool_path, ec);
 
-    // 9. 原子重命名 .partial → 最终路径
+    // 10. 原子重命名 .partial → 最终路径
     // 使用 MoveFileExW (Windows), 不先删除旧文件
     // 移植: 失败路径清理 .partial (不删除已有正式文件)
     int ret = atomic_replace(pimpl_->partial_path, pimpl_->final_path);
@@ -652,6 +671,27 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
         cleanup_temp_files(pimpl_->partial_path, pimpl_->temp_pool_path);
         pimpl_->opened = false;
         return -8;
+    }
+
+    // 11. 父目录 fsync (rename 的目录项落盘)。语义分层 (与 aio 产品发布面
+    // aio_atomic::fsync_parent_dir 同口径):
+    //   · 文件内容 fsync 失败 ⇒ 未发布 (上面已 fail-closed);
+    //   · 目录 fsync 失败 ⇒ 内容与文件名已可见、但目录项可能未落盘 ——
+    //     **第三态「已发布但持久化未确认」** (P-174 同族): 不得回滚 (回滚会把
+    //     已可见产品删掉, 更坏), 也不得静默成功。本写入器无结果结构体承载该态,
+    //     故以 stderr 结构化行明示, 返回码保持 0 (产品确实已发布)。
+    {
+        const std::size_t slash = pimpl_->final_path.find_last_of("/\\");
+        const int drc = (slash == std::string::npos || slash == 0)
+                            ? 0
+                            : aio_atomic::fsync_path(
+                                  pimpl_->final_path.substr(0, slash), 1);
+        if (drc != 0) {
+            fprintf(stderr,
+                    "[hiss][stream] 第三态: 已 rename 但目录 fsync 失败 errno=%d "
+                    "path=%s (P-174/P-175: 已发布, 持久化未确认)\n",
+                    drc, pimpl_->final_path.c_str());
+        }
     }
 
     uint64_t total_size = base_offset + pimpl_->temp_pool_size;

@@ -53,7 +53,8 @@ enum P3OutputStatus {
 
 /* 原子写 S+C 合成 FITS(主 HDU=signal, 扩展=coverage 二值):
  * 写入 <dir>/.<base>.<pid>.tmp → flush(cfitsio 缓冲全部写出) → fsync(fd) →
- * rename 到 output_path (IO_003 §4: 关闭/fsync → sha256 → 原子 rename);
+ * 校验(tmp, 结构+DATASUM/CHECKSUM) → sha256(tmp) → rename 到 output_path
+ * (IO_003 §4 正本: 关闭/fsync → fitsverify → sha256 → 原子 rename; P-205);
  * 取消/失败 → 删除 tmp/产物, 不留完整假文件, 也不发布无完整性锚的输出。 */
 P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage,
                                       int width, int height,
@@ -65,7 +66,8 @@ P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage
                                       int cancelled_at_row,   // -1=不取消
                                       P3OutputResult* result);
 
-/* 独立重开: 读回 header 数字+数据回环(用 fits_read_file)并重算 checksum。
+/* 独立重开: 读回 header 数字+数据回环(用 fits_read_file) + 逐 HDU
+ * DATASUM/CHECKSUM 对拍(cfitsio fits_verify_chksum; P-206)并重算文件 sha256。
  * sha256 计算失败(文件不可读等) → P3_OUT_IO, result 不携带假哈希。 */
 P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* wcs,
                                 const float* signal, const float* coverage,
@@ -111,7 +113,8 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
  *         把子块写进该 HDU 的数据区；end_hdu 写该 HDU 的 DATASUM/CHECKSUM；
  *         publish 走发布门（HDU 集合成对完整：unc 模式必须 PRIMARY+COVERAGE
  *         +VARIANCE+IVAR 全齐，缺任一 ⇒ 拒发布）→ flush → close → fsync →
- *         原子 rename → sha256（IO_003 §4）。
+ *         校验(tmp, 逐 HDU DATASUM/CHECKSUM) → sha256(tmp) → 原子 rename
+ *         （IO_003 §4 正本的步骤序; P-205）。
  *   · 校验：open 独立重开并逐项对拍 WCS/尺寸/HDU 存在性；check_block 读回同一
  *         矩形区间并与期望子块逐像素对拍（NaN==NaN 同态）；close 汇总
  *         reopen_ok/coverage_ok 并重算 sha256。
@@ -134,7 +137,8 @@ public:
     P3OutputStatus write_block(int x0, int y0, int w, int h, const float* data);
     // 收尾当前 HDU：DATASUM/CHECKSUM。
     P3OutputStatus end_hdu();
-    // 原子发布：flush → close → fsync → rename → sha256（失败删除产物）。
+    // 原子发布：flush → close → fsync → 校验(tmp) → sha256(tmp) → rename
+    // （IO_003 §4 步骤序；失败删除 tmp，不发布）。
     P3OutputStatus publish(P3OutputResult* result);
     // 取消/失败：关闭并删除临时对象，**不发布**。幂等。
     void abort();

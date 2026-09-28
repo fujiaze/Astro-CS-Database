@@ -325,6 +325,10 @@ void detect_bad_columns(const float* data, int w, int h,
                         float column_sigma, int neighbor_k, int max_seg_len,
                         unsigned char* col_mask,
                         int* out_n_cols, float* out_sigma_col, int* out_status) {
+    /* WIN-PORT C4100: 本判据的工作域是"列段 + 段外线性插值锚点"（见上方 :318-323
+     * 的判据推导），不需要 neighbor_k —— 该参数属冻结的对外签名，保留并显式
+     * 标记未使用。 */
+    (void)neighbor_k;
     int status = AC_COLSTAT_OK;
     if (out_n_cols) *out_n_cols = 0;
     if (out_sigma_col) *out_sigma_col = 0.0f;
@@ -539,8 +543,12 @@ void correct_columns(const float* data, int w, int h, float* out,
 // 用**同一判据**（detect_bad_columns，跳变配对分段），各自帧内自校准 ⇒ 各路径
 // 的检出集合对自身标度严格不变，故母版与科学帧标度不一致也不影响判坏集合。
 //
-// 仲裁 = **并集**（不是交集）：生产两条调用路径都不接线母版（DISP-COS-009），
-// 科学帧路径必须能独立工作；交集会漏掉只在一处可见的缺陷。每一路的证据都
+// 仲裁 = **并集**（不是交集）：生产两条调用路径**都接线母版**（旧注释"都不接线
+// 母版 / DISP-COS-009"已作废、该 DISP 注销）——scheduler 侧 p1_op_cosmetic 经
+// resolve_master（module_adapters.cpp:2929-2930）载入 master_dark/master_bias，
+// 作实参传给 ac_correct_columns_ex2（:3002，dim_ok/bim_ok 维度门控）；
+// 会话侧同（p1_session.cpp:479-484 取 dark/bias 平面后调 ac_correct_frame）。
+// 科学帧路径仍必须能独立工作；交集会漏掉只在一处可见的缺陷。每一路的证据都
 // 逐列写进 source_mask，不静默丢弃。置信度由来源组合导出：
 //   dark 与 bias 一致判坏                      => HIGH（物理来源双重印证）
 //   仅一个物理来源判坏 / 科学帧 + 任一母版      => MEDIUM

@@ -22,9 +22,6 @@
 #include "p1hips_fixtures.hpp"
 #include "p1hips_oracle.hpp"
 
-#include <sys/wait.h>
-#include <unistd.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cstdio>

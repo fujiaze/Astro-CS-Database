@@ -32,7 +32,6 @@
 
 #include <fitsio.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include <cstdio>
 #include <cstdlib>

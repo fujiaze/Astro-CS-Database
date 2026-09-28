@@ -17,8 +17,15 @@
 // f2_scale_roundtrip / f4_scale_nan_passthrough / g1_const_fill /
 // g2_plane_fill_refbitwise / g3_nullable_outputs / g4_nospatial_const / ...
 //   (P1NOISE_SELFCHECK_FAULT 可覆盖注入名; 默认 a1_sigma_rtol)
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下方 fork 块）。
+#include <cstdint>
+#include <cstdlib>   // _pgmptr（等价 /proc/self/exe 的可执行文件路径）
+#include <process.h>
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -56,6 +63,13 @@ int run_selfcheck() {
     char* child_argv[] = {arg0, arg1, nullptr};
     char* child_env[] = {fbuf.data(), nullptr};
 
+    #ifdef _WIN32
+    // WIN-PORT: Windows 无 fork/execve/waitpid。_spawnve(_P_WAIT, ...) 给出等价语义：以同一
+    // 可执行文件（_pgmptr）与同一 argv/env 起子进程并阻塞等待，直接取子进程退出码 ——
+    // 与 POSIX 支路「注入环境重跑 + 等子进程 + 取退出码」同一判据面。
+    const intptr_t rc_win = _spawnve(_P_WAIT, _pgmptr, child_argv, child_env);
+    const int child_rc = rc_win < 0 ? 127 : static_cast<int>(rc_win);
+    #else
     const pid_t pid = fork();
     if (pid < 0) {
         std::perror("fork");
@@ -68,6 +82,7 @@ int run_selfcheck() {
     int status = 0;
     waitpid(pid, &status, 0);
     const int child_rc = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    #endif
     if (child_rc == 0) {
         std::fprintf(stderr,
                      "SELFCHECK: fault-inject '%s' 后 units 仍 PASS — 恒 PASS 占位, 注入机制失效\n",
@@ -98,6 +113,13 @@ int run_selfcheck() {
         char n7a0[] = "p1noise_selfcheck";
         char n7a1[] = "negative";
         char* n7_argv[] = {n7a0, n7a1, nullptr};
+        #ifdef _WIN32
+        // WIN-PORT: Windows 无 fork/execve/waitpid。_spawnve(_P_WAIT, ...) 给出等价语义：以同一
+        // 可执行文件（_pgmptr）与同一 argv/env 起子进程并阻塞等待，直接取子进程退出码 ——
+        // 与 POSIX 支路「注入环境重跑 + 等子进程 + 取退出码」同一判据面。
+        const intptr_t rc_win = _spawnve(_P_WAIT, _pgmptr, n7_argv, n7_env);
+        const int rc2 = rc_win < 0 ? 127 : static_cast<int>(rc_win);
+        #else
         const pid_t pid2 = fork();
         if (pid2 < 0) {
             std::perror("fork");
@@ -110,6 +132,7 @@ int run_selfcheck() {
         int st2 = 0;
         waitpid(pid2, &st2, 0);
         const int rc2 = WIFEXITED(st2) ? WEXITSTATUS(st2) : -1;
+        #endif
         if (rc2 == 0) {
             std::fprintf(stderr,
                          "SELFCHECK: fault-inject 'n7_plane_pred_unavailable' 后 negative 仍 PASS"
@@ -139,6 +162,13 @@ int run_selfcheck() {
             std::vector<char> buf(envs.begin(), envs.end());
             buf.push_back('\0');
             char* env[] = {buf.data(), nullptr};
+            #ifdef _WIN32
+            // WIN-PORT: Windows 无 fork/execve/waitpid。_spawnve(_P_WAIT, ...) 给出等价语义：以同一
+            // 可执行文件（_pgmptr）与同一 argv/env 起子进程并阻塞等待，直接取子进程退出码 ——
+            // 与 POSIX 支路「注入环境重跑 + 等子进程 + 取退出码」同一判据面。
+            const intptr_t rc_win = _spawnve(_P_WAIT, _pgmptr, av, env);
+            const int rc3 = rc_win < 0 ? 127 : static_cast<int>(rc_win);
+            #else
             const pid_t pid3 = fork();
             if (pid3 < 0) {
                 std::perror("fork");
@@ -151,6 +181,7 @@ int run_selfcheck() {
             int st3 = 0;
             waitpid(pid3, &st3, 0);
             const int rc3 = WIFEXITED(st3) ? WEXITSTATUS(st3) : -1;
+            #endif
             if (rc3 == 0) {
                 std::fprintf(stderr,
                              "SELFCHECK: fault-inject '%s' 后 adaptive 仍 PASS — 该判据恒真,"

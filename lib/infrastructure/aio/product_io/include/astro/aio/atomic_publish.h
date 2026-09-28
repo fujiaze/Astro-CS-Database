@@ -1,13 +1,34 @@
 /* atomic_publish.h — 原子发布原语 (tmp + fsync + rename + 重开验证)
  *
  * 任务: IMPL-AIO-001 (Wave 5)。写域: lib/infrastructure/aio/product_io/。
- * 语义锚 (ALG-P3-008 §7.3, 宪章 §4.3/§14.4):
- *   1. 写临时文件（与目标同目录，保证 rename 原子）
- *   2. flush / close / fsync
- *   3. (DATASUM/CHECKSUM 由 fits 写入 tmp 内容)
- *   4. 原子 rename 到目标
- *   5. 重开并独立验证（由 verify_fn 提供，失败即撤销发布）
- *   失败或取消：删除 tmp，rename 不发生 -> 目标根无可见半成品。
+ * 语义锚 (ALG-P3-008 §7.3, 宪章 §4.3/§14.4)。
+ * **步序正本唯一** = docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（生产者协议
+ * 6 步序）+ §4.1（机制层步序与"两序关系"的唯一声明处）—— 本文件**不复写步序表**，
+ * 只记机制层的实际顺序与调用方约束：
+ *   写 tmp(同目录) -> flush/close/fsync(+DATASUM/CHECKSUM 由 fits 写进 tmp) ->
+ *   **原子 rename 到目标** -> **重开已发布对象并由 verify_fn 独立验证** -> 失败即撤销。
+ * 与 §4 生产者序（校验先于 rename）的关系见 §4.1：内容面等价；机制层**检测面更强**
+ * （能检出 rename 之后才发生的损坏），但**可见性更弱**（有未验证对象短暂可见的窗口、
+ * 撤销会删除已替换的目标）⇒ 调用方必须按下面的 durability 三态处置。
+ * 失败或取消：删除 tmp；rename 未发生 ⇒ 目标根无可见半成品（见 PublishResult::durability
+ * 的 kNotPublished）。
+ *
+ * P-174：发布终态**恰有三态**，由 PublishResult::durability 表达（与 status 正交，
+ * 不动冻结的 PublishStatus 数值域）——旧口径「失败/取消 ⇒ 无正式产品」只覆盖首尾两态，
+ * 缺「已发布但持久化未确认」：
+ *   ① kNotPublished  = 未发布：目标根无本次发布的正式产品（rename 未发生，或 rename
+ *      后验证失败且已撤销成功）；
+ *   ② kDurable       = 已发布且持久化已确认：目标可见，且 rename 后的**目录 fsync 成功**
+ *      （目录项确认落盘）；判据 = rename 已生效 + 目录 fsync 成功；
+ *   ③ kNotDurable    = 已发布但持久化未确认：目标**已可见且不可回滚**，而目录项持久化
+ *      无证据 —— rename 后目录 fsync 失败（status 仍 fail-closed 为 kErrIo），或本平台
+ *      无目录 fsync 等价物 / 调用方显式关闭 opts.fsync_directory（此时 status 可为 kOk，
+ *      但不得据此声称「已确认落盘」）。
+ *   自洽判据：renamed == (durability != kNotPublished)，见 publish_result_consistent()。
+ *   调用方处置：kNotDurable **不得回滚删除**（产品已可见，删了就毁掉已发布对象）、
+ *   **不得静默当成功**（该产品面在崩溃后可能消失），须显式可见（日志/manifest 标注
+ *   「持久化未确认」）并允许对父目录重跑 fsync 确认；只有 kNotPublished 才按
+ *   「无正式产品」清理/重发。
  *
  * 状态码 0..15/70/71 数值与 lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h
  * aio_publish_status_v1、lib/include/astrocs/io/aio_abi_v1.h 对齐（编译期 static_assert）。
@@ -46,6 +67,17 @@ enum class PublishStatus : int {
 
 const char* publish_status_name(PublishStatus s);
 
+// P-174 三终态：发布终态的**持久化事实**，与 status 正交。数值域独立于冻结的
+// PublishStatus（0..15/70/71，见文件末尾 static_assert），因此不触碰
+// lib/include/astrocs/io/aio_abi_v1.h 与 lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h。
+enum class PublishDurability : int {
+  kDurable = 0,       // 目标可见 + 目录项持久化已确认（rename 后目录 fsync 成功）
+  kNotDurable = 1,    // 目标可见（已发布、不可回滚）+ 持久化未确认 => 第三态
+  kNotPublished = 2,  // 目标根无正式产品（默认）
+};
+
+const char* publish_durability_name(PublishDurability d);
+
 // 取消探针：返回 true 表示调用方要求取消。
 using CancelFn = std::function<bool()>;
 // 内容写出器：向 fd 顺序写数据；返回 false 表示失败（不得静默）。
@@ -72,9 +104,22 @@ struct PublishResult {
   std::string sha256_hex;
   std::uint64_t bytes_written = 0;
   std::string message;
+  // renamed 语义（P-174 明确）：目标位置此刻是否由本次发布的对象占据 ——
+  // rename 已生效且未被撤销 ⇒ true；rename 未发生，或 rename 后验证失败且撤销
+  // 成功（目标根已无该产品）⇒ false。恒等式：renamed == (durability !=
+  // kNotPublished)，由 publish_result_consistent() 判定。
   bool renamed = false;
   bool tmp_residue = false;  // 失败后 tmp 是否残留（必须恒为 false）
+  // P-174 第三态：只描述「正式产品面的持久化事实」，与 status 正交（status 仍是
+  // 调用方的主判据）。默认 kNotPublished；详见文件头三态说明。
+  PublishDurability durability = PublishDurability::kNotPublished;
 };
+
+// P-174 终态自洽判据：存在正式产品（kDurable | kNotDurable）⇔ renamed。
+inline bool publish_result_consistent(const PublishResult& r) {
+  const bool published = r.durability != PublishDurability::kNotPublished;
+  return r.renamed == published;
+}
 
 // 原子发布单个文件。
 PublishResult atomic_publish_file(const std::string& target,

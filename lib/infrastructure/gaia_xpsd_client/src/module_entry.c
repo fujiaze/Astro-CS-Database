@@ -975,6 +975,11 @@ static acs_status gaia_execute(acs_module_instance_v1* inst_raw,
             return s2;
         }
     }
+    /* WIN-PORT C4715: 控制流上此处不可达 —— 尺寸查询分支（cap==0 或 data==NULL）
+     * 与"整写"分支（data!=NULL 且 cap>0）互补且都已 return。MSVC 无法跨结构体
+     * 字段比较证明穷尽性 ⇒ 显式收尾。返回 ACS_ERR_INTERNAL 而非 ACS_OK：
+     * C_ABI_STANDARD 禁 rc 双语义，"未写入任何输出"不得伪装成成功。 */
+    return ACS_ERR_INTERNAL;
 }
 
 /* ───────── inspect / request_cancel / destroy ───────── */

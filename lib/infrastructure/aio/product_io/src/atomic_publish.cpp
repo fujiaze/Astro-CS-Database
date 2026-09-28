@@ -14,7 +14,12 @@
 
 #if defined(_WIN32)
 #include <direct.h>
+/* WIN-PORT: <fcntl.h> 提供 _O_WRONLY/_O_CREAT/_O_EXCL/_O_BINARY（<io.h> 只给 _open/
+ * _close 声明，不给这些标志）⇒ 缺此头 MSVC 报 C2065 ×4（原 :325）。
+ * <process.h> 提供 _getpid 声明 ⇒ 缺此头 MSVC 报 C3861（原 :37）。 */
+#include <fcntl.h>
 #include <io.h>
+#include <process.h>
 #include <windows.h>
 #else
 #include <dirent.h>
@@ -138,6 +143,30 @@ bool fsync_dir(const std::string& path, std::string* err) {
 #endif
 }
 
+// P-174：rename **已生效**（目标可见、不可回滚）之后的持久化确认。
+// 返回 true 仅当「目录 fsync 已执行且成功」——这是 kDurable 的唯一证据。
+// 返回 false = 持久化未确认（第三态 kNotDurable），其中：
+//   *err 非空 ⇒ 目录 fsync 真失败（调用方按 fail-closed 上报 kErrIo）；
+//   *err 清空 ⇒ 本平台/本配置无持久化证据（Windows 无目录 fsync 等价物，
+//                或调用方显式 opts.fsync_directory == false）；
+bool confirm_dir_durability(const std::string& dir, bool fsync_directory,
+                            std::string* err) {
+#if defined(_WIN32)
+  (void)dir;
+  (void)fsync_directory;
+  if (err) err->clear();
+  // WIN-PORT: Windows 无目录 fsync 等价物（fsync_dir 为尽力模式恒返回 true）
+  // ⇒ 目录项持久化在本平台不可观测：不得把「无失败证据」当成「已确认落盘」。
+  return false;
+#else
+  if (!fsync_directory) {
+    if (err) err->clear();
+    return false;  // 无 fsync ⇒ 无持久化证据
+  }
+  return fsync_dir(dir, err);
+#endif
+}
+
 }  // namespace
 
 const char* publish_status_name(PublishStatus s) {
@@ -152,6 +181,15 @@ const char* publish_status_name(PublishStatus s) {
     case PublishStatus::kErrMismatch: return "ERR_MISMATCH";
     case PublishStatus::kErrInternal: return "ERR_INTERNAL";
     default: return "ERR_OTHER";
+  }
+}
+
+const char* publish_durability_name(PublishDurability d) {
+  switch (d) {
+    case PublishDurability::kDurable: return "DURABLE";
+    case PublishDurability::kNotDurable: return "NOT_DURABLE";
+    case PublishDurability::kNotPublished: return "NOT_PUBLISHED";
+    default: return "UNKNOWN";
   }
 }
 
@@ -404,13 +442,24 @@ PublishResult atomic_publish_file(const std::string& target,
   }
   res.renamed = true;
 
-  if (opts.fsync_directory) {
+  {
     std::string derr;
-    if (!fsync_dir(dirname_of(target), &derr)) {
-      res.status = PublishStatus::kErrIo;
-      res.message = derr;
-      // 已 rename，但目录 fsync 失败：仍按失败上报（fail-closed）。
-      return res;
+    if (!confirm_dir_durability(dirname_of(target), opts.fsync_directory,
+                                &derr)) {
+      // P-174 第三态：rename 已生效 ⇒ 产品已可见且不可回滚。此时**不得**删除
+      // 目标（那是已发布对象），也**不得**静默当成功。
+      res.durability = PublishDurability::kNotDurable;
+      if (!derr.empty()) {
+        // 目录 fsync 真失败：status 仍 fail-closed 报失败（旧口径不变），但
+        // durability 指明「产品其实已可见、崩溃后目录项可能消失」。
+        res.status = PublishStatus::kErrIo;
+        res.message = derr;
+        return res;
+      }
+      // 无目录 fsync 证据（Windows 无目录 fsync 等价物 / 显式关闭
+      // fsync_directory）：status 走成功路径，但 durability 只到 kNotDurable。
+    } else {
+      res.durability = PublishDurability::kDurable;
     }
   }
   if (opts.verify_after_rename && verify) {
@@ -421,6 +470,13 @@ PublishResult atomic_publish_file(const std::string& target,
         if (opts.fsync_directory) {
           std::string derr;
           fsync_dir(dirname_of(target), &derr);
+        }
+        // P-174：撤销成功后目标根不再有正式产品 ⇒ 回到 kNotPublished，且
+        // renamed 同步复位（终态自洽：renamed ⇔ durability != kNotPublished）；
+        // 撤销失败（目标仍在）⇒ 保留既有持久化事实，不谎报「未发布」。
+        if (!path_exists(target)) {
+          res.renamed = false;
+          res.durability = PublishDurability::kNotPublished;
         }
       }
       res.status = PublishStatus::kErrChecksum;
@@ -541,12 +597,19 @@ PublishResult atomic_publish_directory(const std::string& target_dir,
   }
   res.renamed = true;
   res.bytes_written = n_files;
-  if (opts.fsync_directory) {
+  {
     std::string derr;
-    if (!fsync_dir(parent, &derr)) {
-      res.status = PublishStatus::kErrIo;
-      res.message = derr;
-      return res;
+    if (!confirm_dir_durability(parent, opts.fsync_directory, &derr)) {
+      // P-174 第三态：staging -> 目标 rename 已生效 ⇒ 整树已可见且不可回滚
+      // （remove_tree 会毁掉已发布对象，故此处不得清理）。
+      res.durability = PublishDurability::kNotDurable;
+      if (!derr.empty()) {
+        res.status = PublishStatus::kErrIo;
+        res.message = derr;
+        return res;
+      }
+    } else {
+      res.durability = PublishDurability::kDurable;
     }
   }
   if (opts.verify_after_rename && verify) {
@@ -557,6 +620,11 @@ PublishResult atomic_publish_directory(const std::string& target_dir,
         if (opts.fsync_directory) {
           std::string derr;
           fsync_dir(parent, &derr);
+        }
+        // P-174：撤销成功 ⇒ 回到 kNotPublished 并复位 renamed（终态自洽）。
+        if (!path_exists(target_dir)) {
+          res.renamed = false;
+          res.durability = PublishDurability::kNotPublished;
         }
       }
       res.status = PublishStatus::kErrChecksum;

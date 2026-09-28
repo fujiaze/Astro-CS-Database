@@ -51,7 +51,17 @@ struct ProfileBundle {
     std::map<std::string, KernelProfile> kernels;  // kernel_id → 选择
     std::string raw_samples_sha256;    // 原始候选序列化 hash
     std::string profile_id;            // "sha256:<hex>"
+    // 组装期不变量违反项(空=全部合规)。非空 ⇒ 该 profile 结构性不可写盘:
+    // 调用方须 fail-closed(CLI 返回 astrocs::CRASH), 不得落盘再等复读层拒收。
+    std::vector<std::string> violations;
 };
+
+/* 组装期不变量(唯一出处, 与 verify_profile_v2 同一条判据; 返回 "" = 合规):
+ * correctness_test == "oracle:pass" ⇒ median_ns > 0 且 mad_ns >= 0。
+ * 依据: docs/ASTROCS_DESIGN.md §9「选择用稳定统计」+ eng/tests/cli/test_bench_cli.py:94-95
+ * (「过 oracle 却零耗时」是结构性自相矛盾: 唯一物理含义是统计量根本没测到)。
+ * 本判据可独立调用 ⇒ 负例注入无需真实测量环境。 */
+std::string profile_invariant_violation(const KernelProfile& kp);
 
 /* 生成 v2 profile。mode: "quick"(1 代表 kernel medium) | "full"(12 kernel × 3 规模)。
  * build_id: "X.Y.Z[-pre]+g<hash12>"(纯 base 版本由调用方派生, 单源 VER-001); commit: 40hex; cli_sha256: 运行二进制实测。

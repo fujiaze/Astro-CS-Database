@@ -20,7 +20,6 @@
 #ifndef P1HIPS_TEST_MAIN_HPP
 #define P1HIPS_TEST_MAIN_HPP
 
-#include <dirent.h>
 
 #include <algorithm>
 #include <cmath>
@@ -32,6 +31,27 @@
 #include <string>
 #include <sys/stat.h>
 #include <vector>
+
+#ifdef _WIN32
+// WIN-PORT（测试局部 shim）: MSVC 无 <unistd.h>，也没有 POSIX setenv/unsetenv/sleep。
+// p1hips 测试族用它们注入/恢复故障环境变量、跨界等待 ⇒ 映射到 CRT/Win32 等价物：
+//   setenv(k,v,1)/unsetenv(k) → _putenv_s（MSVC 覆盖语义的唯一入口；空值即删除）
+//   sleep(秒) → Sleep(毫秒)
+// 只服务测试面，不进生产头；生产侧环境变量读取走 std::getenv（两平台皆有）。
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <cstdlib>
+static inline int acs_test_setenv(const char* k, const char* v) { return _putenv_s(k, v); }
+static inline int acs_test_unsetenv(const char* k) { return _putenv_s(k, ""); }
+#define setenv(k, v, o) acs_test_setenv((k), (v))
+#define unsetenv(k) acs_test_unsetenv(k)
+#define sleep(s) Sleep(static_cast<DWORD>((s) * 1000))
+#endif
 
 namespace p1hips {
 
