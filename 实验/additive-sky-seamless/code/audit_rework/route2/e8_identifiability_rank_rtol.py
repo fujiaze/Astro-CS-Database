@@ -101,6 +101,7 @@ def main():
         "rule5_says": "absolute kappa_max constants are NOT on the judgment surface",
         "verdict": "hallucinated anchor; 1e12 gate contradicts frozen rule 4/5",
     }
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

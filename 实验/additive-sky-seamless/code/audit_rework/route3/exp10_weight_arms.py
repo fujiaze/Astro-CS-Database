@@ -145,6 +145,7 @@ def main():
         "ivar_decreases_with_sky": bool(np.all(np.diff(1.0 / sig ** 2) < 0)),
         "claim": "D-06 证实: snr^2(以电平为分子)随天光增大而增大, 与真实统计权重(ivar)方向相反"}
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

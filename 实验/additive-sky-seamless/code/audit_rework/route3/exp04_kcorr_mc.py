@@ -106,6 +106,7 @@ def main():
     # 单调性: k 随 pixfrac 增（固定位移）
     ks = [c["k_corr_measured"] for c in out["cases"][:4]]
     out["monotone_in_pixfrac"] = bool(np.all(np.diff(ks) > 0))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     print("saved:", os.path.abspath(OUT))

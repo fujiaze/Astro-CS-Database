@@ -1,0 +1,273 @@
+{
+ "cases": {
+  "F1_ramp_rho_0.10pct_per_px": {
+   "bg": 1.0,
+   "case": "F1 光滑斜坡 ρ=0.10%/px（无台阶）",
+   "checks": [
+    {
+     "assertion": "门判据量被梯度污染（非零、仍 < 门）",
+     "detail": -0.0040000000000000036,
+     "ok": true
+    },
+    {
+     "assertion": "d4x 诊断量**超门**（无接缝却超门）",
+     "detail": -0.016000000000000014,
+     "ok": true
+    },
+    {
+     "assertion": "d4x/d = 4（纯斜坡特征，对比正例的 1）",
+     "detail": 4.0,
+     "ok": true
+    },
+    {
+     "assertion": "备选判据归零（斜坡不敏感）",
+     "detail": 0.0,
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": 4.0,
+   "interior": true,
+   "n": 201,
+   "rel_step": -0.0040000000000000036,
+   "rel_step_d4x": -0.016000000000000014,
+   "rel_step_nograd": 0.0,
+   "step": -0.0040000000000000036,
+   "step_nograd": 0.0,
+   "verdict": "PASS"
+  },
+  "F2_ramp_rho_0.26pct_per_px": {
+   "bg": 1.0,
+   "case": "F2 光滑斜坡 ρ=0.26%/px（无台阶）⇒ 门自身伪阳",
+   "checks": [
+    {
+     "assertion": "门判红（真值无接缝 ⇒ 伪阳/误伤）",
+     "detail": "FAIL",
+     "ok": true
+    },
+    {
+     "assertion": "备选判据仍绿（不误伤）",
+     "detail": -1.1102230246251565e-16,
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": 3.999999999999968,
+   "interior": true,
+   "n": 201,
+   "rel_step": -0.010400000000000076,
+   "rel_step_d4x": -0.04159999999999997,
+   "rel_step_nograd": -1.1102230246251565e-16,
+   "step": -0.010400000000000076,
+   "step_nograd": -1.1102230246251565e-16,
+   "verdict": "FAIL"
+  },
+  "F3_antiphase_cancel_1.05pct": {
+   "bg": 1.00525,
+   "case": "F3 1.05% 台阶 + 反号梯度相消（漏检面 ii）",
+   "checks": [
+    {
+     "assertion": "门读 0 判绿（漏检面 ii 复现）",
+     "detail": 0.0,
+     "ok": true
+    },
+    {
+     "assertion": "备选判据恢复台阶幅度 Δ/bg（该漏检面被消除）",
+     "detail": [
+      -0.010445162894802278,
+      0.010445162894802289
+     ],
+     "ok": true
+    },
+    {
+     "assertion": "d4x 诊断量也超门（另一路旁证）",
+     "detail": 0.03133548868440684,
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": null,
+   "interior": true,
+   "n": 201,
+   "rel_step": 0.0,
+   "rel_step_d4x": 0.03133548868440684,
+   "rel_step_nograd": -0.010445162894802278,
+   "step": 0.0,
+   "step_nograd": -0.01049999999999999,
+   "verdict": "PASS"
+  },
+  "N1_flat": {
+   "bg": 1.0,
+   "case": "N1 平坦（无台阶无斜坡）",
+   "checks": [
+    {
+     "assertion": "rel_step 精确归零",
+     "detail": 0.0,
+     "ok": true
+    },
+    {
+     "assertion": "rel_step_nograd 精确归零",
+     "detail": 0.0,
+     "ok": true
+    },
+    {
+     "assertion": "判绿",
+     "detail": "PASS",
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": null,
+   "interior": true,
+   "n": 201,
+   "rel_step": 0.0,
+   "rel_step_d4x": 0.0,
+   "rel_step_nograd": 0.0,
+   "step": 0.0,
+   "step_nograd": 0.0,
+   "verdict": "PASS"
+  },
+  "P1_step_1.5pct": {
+   "bg": 1.0074999999999998,
+   "case": "P1 真实台阶 1.5%",
+   "checks": [
+    {
+     "assertion": "门判红",
+     "detail": "FAIL",
+     "ok": true
+    },
+    {
+     "assertion": "备选判据同样红（不误伤真台阶）",
+     "detail": -0.014888337468982535,
+     "ok": true
+    },
+    {
+     "assertion": "d 扫描比值 = 1（台阶在 d 扫描下守恒）",
+     "detail": 1.0,
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": 1.0,
+   "interior": true,
+   "n": 201,
+   "rel_step": -0.014888337468982535,
+   "rel_step_d4x": -0.014888337468982535,
+   "rel_step_nograd": -0.014888337468982535,
+   "step": -0.014999999999999902,
+   "step_nograd": -0.014999999999999902,
+   "verdict": "FAIL"
+  },
+  "P2_step_0.8pct": {
+   "bg": 1.004,
+   "case": "P2 真实台阶 0.8%（< 确定性地板 1.0050251%）",
+   "checks": [
+    {
+     "assertion": "门判绿（地板行为正确，不是漏检面）",
+     "detail": "PASS",
+     "ok": true
+    },
+    {
+     "assertion": "备选判据同样绿",
+     "detail": -0.007968127490039847,
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": 1.0,
+   "interior": true,
+   "n": 201,
+   "rel_step": -0.007968127490039847,
+   "rel_step_d4x": -0.007968127490039847,
+   "rel_step_nograd": -0.007968127490039847,
+   "step": -0.008000000000000007,
+   "step_nograd": -0.008000000000000007,
+   "verdict": "PASS"
+  },
+  "P3_step_1.5pct_plus_ramp_rho_0.10pct": {
+   "bg": 1.0074999999999998,
+   "case": "P3 1.5% 台阶 + 0.10%/px 斜坡",
+   "checks": [
+    {
+     "assertion": "门判红",
+     "detail": "FAIL",
+     "ok": true
+    },
+    {
+     "assertion": "备选判据恢复台阶幅度（仍 > 门）",
+     "detail": -0.014888337468982535,
+     "ok": true
+    },
+    {
+     "assertion": "备选判据 ≈ 台阶真值/bg",
+     "detail": [
+      -0.014888337468982535,
+      0.014888337468982632
+     ],
+     "ok": true
+    }
+   ],
+   "d4x_over_d_ratio": 1.6315789473684248,
+   "interior": true,
+   "n": 201,
+   "rel_step": -0.018858560794044573,
+   "rel_step_d4x": -0.03076923076923069,
+   "rel_step_nograd": -0.014888337468982535,
+   "step": -0.018999999999999906,
+   "step_nograd": -0.014999999999999902,
+   "verdict": "FAIL"
+  }
+ },
+ "ctrl_shift": 200.0,
+ "d": 2.0,
+ "gate": 0.01,
+ "min_samples": 20,
+ "noise_mc": {
+  "assertion": {
+   "detail": "负例（平坦/斜坡）备选判据超门率必须为 0；正例（真台阶）超门率 ≥ 0.5",
+   "ok": true
+  },
+  "n_mc": 400,
+  "per_case": {
+   "flat": {
+    "abs_bias_delivered": 7.78835126905e-06,
+    "abs_bias_nograd": 1.1028793784211645e-05,
+    "noise_std_ratio_nograd_over_delivered": 1.365965065243424,
+    "rel_step_exceed_rate": 0.0,
+    "rel_step_mean": 7.78835126905e-06,
+    "rel_step_nograd_exceed_rate": 0.0,
+    "rel_step_nograd_mean": 1.1028793784211645e-05,
+    "rel_step_nograd_std": 0.00016582535417462076,
+    "rel_step_std": 0.00012139794669277986
+   },
+   "ramp": {
+    "abs_bias_delivered": 0.010405859542614455,
+    "abs_bias_nograd": 7.80173440607755e-06,
+    "noise_std_ratio_nograd_over_delivered": 1.3630144545609895,
+    "rel_step_exceed_rate": 1.0,
+    "rel_step_mean": -0.010405859542614455,
+    "rel_step_nograd_exceed_rate": 0.0,
+    "rel_step_nograd_mean": -7.80173440607755e-06,
+    "rel_step_nograd_std": 0.0001691217903768599,
+    "rel_step_std": 0.0001240792346779125
+   },
+   "step": {
+    "abs_bias_delivered": -1.1941462312512613e-05,
+    "abs_bias_nograd": -1.5016255264043918e-05,
+    "noise_std_ratio_nograd_over_delivered": 1.3528752843120277,
+    "rel_step_exceed_rate": 1.0,
+    "rel_step_mean": -0.01487626777609484,
+    "rel_step_nograd_exceed_rate": 1.0,
+    "rel_step_nograd_mean": -0.014873192983143308,
+    "rel_step_nograd_std": 0.000182184507183563,
+    "rel_step_std": 0.0001346646725652975
+   }
+  },
+  "sigma_over_bg": 0.001
+ },
+ "note": "门的第三失效模式（光滑法向斜坡）量化 + 斜坡不敏感化备选判据的正负例；备选判据是否入门由判据面变更流程裁决，本脚本不改门本体。",
+ "rho_gate_frac_per_px": 0.0025,
+ "rho_gate_pct_per_px": 0.25,
+ "schema": "SCI-C/SEAM-GRADIENT-SCAN/1",
+ "seed": 20260928,
+ "summary": {
+  "n_assertions": 20,
+  "n_failed": 0,
+  "noise_assertion_ok": true,
+  "verdict": "PASS"
+ }
+}

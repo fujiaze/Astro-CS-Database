@@ -66,6 +66,7 @@ def main():
         "initial_0.5_note": "05 规格的 quality_factor_initial=0.5 与 D-56 登记的两档 0.1/0.5 "
                             "口径不同(初值 vs 降权档), 引用时应区分"}
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

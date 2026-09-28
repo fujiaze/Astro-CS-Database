@@ -136,7 +136,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 | `rank_rtol` | 1e-10 | —— | **唯一**判据阈值 τ（相对量，冻结值 `FZ-AP2S-RANK-RTOL`）：`identifiable ⟺ r_eff == n_free ⟺ κ(H_red) < 1/τ`。绝对条件数上限（`kappa_max` 类常数）与求解矩阵上的门均属另一口径（§4.7） |
 | `max_iter` | —— | —— | 稳健拟合迭代上限 |
 | `convergence_gate` | —— | —— | 收敛门（**无量纲**，见 §4.6）：`max_dM/max(scale_obs,eps) < tol_step` 且 `|Δobj|/max(|obj_old|,eps) < tol_obj`；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。**`tol=1e-6` 不是硬门** |
-| `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。施加侧默认 `delta`（实现锚 = 阶段二 apply 节点的 `seam.additive_mode` 读取与施加分支，按**符号**定位）；无天光面产物时 `delta` 显式退化为 `c` 并登记 `additive_mode_effective`（不校正、双重扣除均属另一形态） |
+| `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。施加侧默认 `delta`（实现锚 = 阶段二 apply 节点的 `seam.additive_mode` 读取与施加分支，按**符号**定位）；无天光面产物时 `delta`/`both` 显式退化为 `c` 并登记 `additive_mode_effective`（不校正、双重扣除均属另一形态）。该退化**判红**（§7）：登记面 = `degraded_reason=no_sky_plane_artifact` + `warning_codes` 含 `P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE` |
 | `sky_plane.enabled` | 随 `additive_mode ∈ {delta, both}` | —— | 是否构建/落盘公共天光面 `B_ref` 产品；缺省 = 「要施加 `δ_k` 才构建」，显式值优先（实现 `module_adapters.cpp` 的 `sp_cfg.value("enabled", delta_wanted)`） |
 | `smoothing_lambda` | 键缺省时编译期默认 **0.0**；`P2_SMOOTHING_LAMBDA_AUTO` = 0.1 仅在 auto 路径生效| —— | **UPM 图平滑权重**（`upm.h:75` 逐字「图平滑权重（默认 0=关闭）」）。仓库里有三个互不相同、并存不冲突的量——① **阻尼 `α≈0.5`** = 迭代阻尼（naive Gauss-Seidel `α=1` 在链式/二部覆盖图上特征值 −1 ⇒ 周期 2 振荡）；② **本键 `smoothing_lambda`** = 对天光/δ 面**拟合的正则项**（现行机制）；③ **堆叠平滑项** = 拟合目标里的新项，本期不加，做实验验证。实现常量 `P2_SMOOTHING_LAMBDA_AUTO = 0.1`（`lib/algorithms/coverage/include/astro/phase2/stage2_common.h:30`）。|
 
@@ -154,7 +154,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 - 显著模型失配（如样条面无法表达的强局部背景）→ 失败并报告残差结构；
 - 参数协方差不输出 → 下游 covariance 不可信，标记；
 - 参考面受单帧主导（权重失衡）→ 权重分布审计并标记；
-- 无天光面产物而 `additive_mode=delta` ⇒ 显式退化为 `c` 并登记；公共天光面 `B_ref` 被整场扣除（`raw − C_k` 全减）⇒ **判红**；
+- **无天光面产物而 `additive_mode ∈ {delta, both}` ⇒ `δ_k` 不存在 ⇒ 显式退化为 `c`（`raw − C_k` 全减，公共天光面 `B_ref` 被整场扣除）⇒ 判红**。判红面 = 具名 `degraded_reason = no_sky_plane_artifact` + `warning_codes` 含 `P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE`，随 `p2_corrected.json` 与节点 manifest 同时落盘，口径同上一句（产品照出、rc 不变，判红由 `warning_codes` 非空承载）；不得静默变成「不校正」，也不得回退到双重扣除。该形态的产品**不得用于「无接缝」主张**：全减后背景归零，接缝判据在分母上退化（§8 非退化接缝判据条）；
 
 ## 8. 测试与 Oracle
 

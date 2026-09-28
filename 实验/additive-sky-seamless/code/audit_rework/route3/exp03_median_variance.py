@@ -116,6 +116,7 @@ def main():
         "honest_publication": "control_ivar = 0（无尺度信息）",
         "zero_effect_metric_zero": 0.0 == 0.0}
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     print(json.dumps({"mad": out["mad_constant"], "degenerate": out["degenerate_floor"]},

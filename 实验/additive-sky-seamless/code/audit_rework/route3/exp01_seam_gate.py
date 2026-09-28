@@ -159,6 +159,7 @@ def main():
                        "metric_at_1.1x_eff_gate": float(m_above)})
     out["cases"]["smooth_seam"] = smooth
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

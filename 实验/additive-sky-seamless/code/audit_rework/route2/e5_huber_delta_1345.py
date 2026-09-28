@@ -88,6 +88,7 @@ def main():
                        "huber_bias": float(np.mean(T)),
                        "bias_diff_abs": abs(float(np.mean(T)) - float(np.mean(x))),
                        "note": "no-effect metric = |bias difference|; expected ~0 (1/sqrt(R*n))"}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

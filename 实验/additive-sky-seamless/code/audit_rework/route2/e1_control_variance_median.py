@@ -105,6 +105,7 @@ def main():
     w1, w2 = 1.0 / var1, 1.0 / var2
     res["chain"] = {"ivar1": w1, "ivar2": w2, "weight_ratio_w1_over_w2": w1 / w2,
                     "expected": 1.0 / 4.0}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps({"derived": res["derived"], "kcorr": res["kcorr_equicorr"],

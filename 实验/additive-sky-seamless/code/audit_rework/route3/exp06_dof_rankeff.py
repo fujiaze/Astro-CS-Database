@@ -74,6 +74,7 @@ def main():
 
     out["negative_ok"] = abs(out["full_rank_negative"]["ratio_dof_n_minus_r_eff"]
                              - out["full_rank_negative"]["ratio_dof_n_minus_params"]) < 1e-12
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

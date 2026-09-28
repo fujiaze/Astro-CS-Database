@@ -52,7 +52,9 @@ void run_ma(const json& sc, json& out) {
     const json& jm = sc.value("ma_cfg", json::object());
     mc.min_frames = jm.value("min_frames", 2);
     mc.rank_rtol  = jm.value("rank_rtol", 1e-10);
-    mc.kappa_max  = jm.value("kappa_max", 1e6);
+    // kappa_max 已退休（upm.h:290「已退休：kappa_max（FZ-AP2S-KAPPA-MAX=1e6）」）；
+    // P2UpmMaConfig 已无该成员 ⇒ 本探针不得再传该键，否则 HEAD 上编译失败。
+    // 判据只剩 rank_rtol 一条（欠定与病态同一条判据、同一个 rc）。
     mc.gauge_mode = jm.value("gauge_mode", 0);
     mc.allow_additive_only_single_frame = jm.value("allow_additive_only_single_frame", 0);
     mc.c_in_has_unrepresented_shared_terms = 0;

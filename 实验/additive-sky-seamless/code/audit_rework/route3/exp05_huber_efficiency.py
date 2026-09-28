@@ -122,6 +122,7 @@ def main():
     out["scale_equivariance"] = {
         "max_rel_err": float(np.max(np.abs(h2 / 10.0 - h1) / (np.abs(h1) + 1e-12)))}
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))
