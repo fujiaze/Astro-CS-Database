@@ -450,6 +450,10 @@ bool write_moc_fits_raw(const std::string& path,
 //   * 哈希校验 = 重开临时文件独立跑 fits_verify_chksum (DATASUM/CHECKSUM 由
 //     write_chksum_deterministic 写入), 不过即删除临时文件并失败;
 //   * 任一环节失败 ⇒ 删除临时文件 + 返回 false —— 正式路径只可能出现完整 tile。
+//   * P-084 (台账 C2): 步序含 punch 步 —— fsync 之后、原子 rename 之前对块对齐
+//     字面全零区域打洞（aio_sparse::punch_all_zero_blocks, verify=true; 读回
+//     不一致 ⇒ 拒发布, 卷不支持 ⇒ 降级 warn 不阻断）。依据
+//     docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与 ENGINEERING_SPEC §11。
 // 注入面 (测试专用, 未设置时逐行零行为差异): ASTROCS_HIPS_TILE_FAULT =
 //   tile_write_fail | tile_diskfull | tile_checksum_fail | tile_fsync_fail |
 //   tile_rename_fail。每个注入名必败 (无恒 PASS 占位), 用于负例判别力证明。
@@ -535,7 +539,8 @@ bool verify_fits_checksum(const std::string& path, std::string* err) {
     return true;
 }
 
-// 私有临时文件 → 内容写出 → 哈希校验 → fsync → 原子 rename → 父目录 fsync。
+// 私有临时文件 → 内容写出 → 哈希校验 → fsync → punch 全零块（P-084 台账 C2;
+// 体积削减步, 读回不符拒发布 / 卷不支持降级 warn）→ 原子 rename → 父目录 fsync。
 bool write_fits_atomic(const std::string& final_path,
                        const std::function<bool(const std::string&)>& body,
                        std::string* err) {
@@ -626,7 +631,8 @@ bool write_fits_atomic(const std::string& final_path,
 }
 
 // 原子 tile 写入口 (签名与 write_fits_image_raw 逐字一致): 全部调用点自动经
-// 临时文件 + 哈希校验 + fsync + 原子 rename。
+// 临时文件 + 哈希校验 + fsync + punch 全零块（P-084 台账 C2, 实现见
+// write_fits_atomic 内 aio_sparse 打洞段）+ 原子 rename。
 bool write_fits_image(const std::string& path,
                       int bitpix,
                       long naxis1, long naxis2,

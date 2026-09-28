@@ -6,7 +6,7 @@
 //   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h
 //     冻结; ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - 只迁移实测可能获益的热点 kernel (ISA-004 台账;
-//     artifacts/evidence/prerelease-v5/ISA-004/MEASUREMENTS.csv):
+//     ISA-004 实测在案，测量工件留档 实验/engineering-evidence/prerelease-v5/):
 //       hips-bulk-transform (ALG-P3-002)  avx512 +29.5% vs baseline (≈avx2
 //       +28.3% 同档; EVEX 512-bit 向量化获益)  SHIP
 //     其余 kernel 不注册 → run_kernel 返回 ACS_ERR_UNSUPPORTED, host 按

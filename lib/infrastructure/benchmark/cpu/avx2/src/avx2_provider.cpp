@@ -5,7 +5,7 @@
 //   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
 //     ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - 只迁移 profile 指定的热点 kernel (02 §10.1 / ISA-001/003 实测台账;
-//     artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv):
+//     ISA-001 实测在案，测量工件留档 实验/engineering-evidence/prerelease-v5/):
 //       calibration-pixel-transform (ALG-001)  +20.7%/+11.7%  SHIP
 //       hips-bulk-transform (ALG-P3-002)        +28.2%/+28.3%  SHIP
 //     其余 10 个注册 kernel 不在本 provider 表内 → run_kernel 返回
