@@ -39,3 +39,19 @@ add_test(NAME p2_oracle
   COMMAND ${P2_PYTHON} "${P2_IT_DIR}/oracle/p2_oracle.py"
           --workdir "${P2_WORK}" --repo "${P2_REPO}")
 set_tests_properties(p2_oracle PROPERTIES DEPENDS "p2_write" TIMEOUT 600)
+
+# M06 逐像素权重面判据（稀疏层绝对 SNR 的消费面 + 误乘帧级标量的反例 +
+# 两条逐像素入口逐像素一致）。直接链生产库，不使用测试专用后门。
+add_executable(p2_pixel_weight_test "${P2_IT_DIR}/p2_pixel_weight_test.cpp")
+target_link_libraries(p2_pixel_weight_test PRIVATE astrocs_phase2_integrate)
+set_target_properties(p2_pixel_weight_test PROPERTIES
+  CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+add_test(NAME p2_pixel_weight COMMAND p2_pixel_weight_test)
+set_tests_properties(p2_pixel_weight PROPERTIES TIMEOUT 300)
+
+# M06 判据 (D)：module_adapters 的逐像素面必须调用**同一**生产 API（单一实现），
+# 且稀疏层语义判别式必须随层传入（不写「消费时不得乘/除帧级 SNR」的旁路实现）。
+add_test(NAME p2_pixel_weight_wiring
+  COMMAND ${P2_PYTHON} "${P2_IT_DIR}/oracle/p2_pixel_weight_wiring.py"
+          --repo "${P2_REPO}")
+set_tests_properties(p2_pixel_weight_wiring PROPERTIES TIMEOUT 120)

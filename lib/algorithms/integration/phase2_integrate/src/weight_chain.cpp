@@ -47,6 +47,16 @@ WeightChainResult fail_with_policy(const WeightChainPolicy& policy,
 
 }  /* namespace */
 
+const char* sparse_snr_semantics_token(SparseSnrSemantics s) {
+  switch (s) {
+    case SparseSnrSemantics::kAbsoluteFluxTypeSnr:
+      return "absolute_flux_type_snr";
+    case SparseSnrSemantics::kRelativeToFrameSnr: return "relative_to_frame_snr";
+    case SparseSnrSemantics::kUnspecified: return "unspecified";
+  }
+  return "unspecified";
+}
+
 const char* frame_snr_kind_token(FrameSnrKind k) {
   switch (k) {
     case FrameSnrKind::kFluxTypeUnweightedSnr: return "flux_type_unweighted_snr";
@@ -65,7 +75,7 @@ const char* weight_closure_token(WeightClosure c) {
     case WeightClosure::kUnclosedInvalidReferenceFlux: return "unclosed_invalid_reference_flux";
     case WeightClosure::kUnclosedSparseLayerUnreconstructible:
       return "unclosed_sparse_layer_unreconstructible";
-    case WeightClosure::kUnclosedInvalidIntraSnr: return "unclosed_invalid_intra_snr";
+    case WeightClosure::kUnclosedInvalidIntraSnr: return "unclosed_invalid_layer_snr";
     case WeightClosure::kUnclosedNonFiniteWeight: return "unclosed_non_finite_weight";
     case WeightClosure::kUnclosedWrongSnrSemantics: return "unclosed_wrong_snr_semantics";
     case WeightClosure::kUnclosedLegacyFallbackRejected: return "unclosed_legacy_fallback_rejected";
@@ -73,6 +83,9 @@ const char* weight_closure_token(WeightClosure c) {
     case WeightClosure::kBaselineEqualWeight: return "baseline_equal_weight";
     case WeightClosure::kUnclosedMissingGain: return "unclosed_missing_gain";
     case WeightClosure::kUnclosedInvalidGain: return "unclosed_invalid_gain";
+  case WeightClosure::kUnclosedSparseLayerRequiredMissing:
+    return "unclosed_sparse_layer_required_missing";
+  case WeightClosure::kUnclosedInvalidLayerSnr: return "unclosed_invalid_layer_snr";
   }
   return "unknown";
 }
@@ -112,26 +125,170 @@ bool weight_from_corrected_variance(double variance, double* out_weight,
   if (out_weight) *out_weight = w;
   return true;
 }
+/* ------------------------------------------------------------------ */
+/* 逐像素消费面：稀疏层（绝对 SNR）→ w(x,y) = (SNR_layer/F_ref,k)²·g_k²  */
+/* ------------------------------------------------------------------ */
+/* 权威（只读）：docs/science/UNIFIED_SCIENCE_MODEL.md:59「w(x,y) = SNR(x,y)^2 /
+ * F_ref^2 ≡ 1/sigma_F(x,y)^2」；docs/science/PSF_SIGNAL_WEIGHT.md:87 同式；
+ * docs/ASTROCS_DESIGN.md §3.1:264「控制点值即绝对量本身，不乘/除帧级标量」；
+ * eng/contracts/schemas/unified/sparse_snr_layer.schema.json（消费时不得乘/除
+ * 帧级 SNR）。本函数**只有**层值一个 SNR 输入：签名里根本不存在帧级 SNR 参数，
+ * 从接口面排除「误乘帧级标量」这一类口径错。 */
+namespace {
 
-bool compose_actual_snr(double frame_snr, double intra_snr, double* out_snr,
-                        std::string* err) {
-  auto set = [&](const char* m) { if (err) *err = m; };
-  if (!positive_finite(frame_snr)) {
-    set("frame_snr must be finite and > 0");
-    return false;
-  }
-  if (!positive_finite(intra_snr)) {
-    set("intra-frame SNR factor must be finite and > 0");
-    return false;
-  }
-  const double s = frame_snr * intra_snr;
-  if (!positive_finite(s)) {
-    set("composed actual SNR is non-finite/non-positive");
-    return false;
-  }
-  if (out_snr) *out_snr = s;
-  return true;
+PixelWeightResult pixel_fail(WeightClosure closure, const std::string& err,
+                             bool absent_layer = false) {
+  PixelWeightResult r;
+  r.ok = false;
+  r.weight_chain_closed = false;
+  r.production_allowed = false;
+  r.closure = closure;
+  r.error = err;
+  r.weight_source = absent_layer ? "frame_level_degraded" : "none";
+  r.generated_from_absent_layer = absent_layer;
+  return r;
 }
+
+/* 复核层语义：只有冻结的 absolute_flux_type_snr 合法。 */
+bool layer_semantics_ok(const SparseSnrLayer& layer, std::string* err) {
+  if (layer.semantics == SparseSnrSemantics::kAbsoluteFluxTypeSnr) return true;
+  if (err) {
+    *err = std::string("sparse layer semantics '") +
+           sparse_snr_semantics_token(layer.semantics) +
+           "' is not the frozen 'absolute_flux_type_snr' (control-point value is the "
+           "absolute flux-type SNR F_ref/sigma_F itself; a relative factor must not "
+           "be multiplied by any frame-level scalar)";
+  }
+  return false;
+}
+
+PixelWeightResult finish_pixel_weight(const PixelWeightInput& in,
+                                      const WeightChainPolicy& policy,
+                                      const SparseReconstruction& info,
+                                      double layer_snr) {
+  auto fail = [&](WeightClosure c, const std::string& m) {
+    return pixel_fail(c, m);
+  };
+  if (!positive_finite(in.ref_flux_k)) {
+    return fail(WeightClosure::kUnclosedInvalidReferenceFlux,
+                "per-pixel reference flux F_ref,k must be finite and > 0 "
+                "(w(x,y) = (SNR_layer/F_ref,k)^2 * g_k^2 undefined)");
+  }
+  if (!positive_finite(layer_snr)) {
+    return fail(WeightClosure::kUnclosedInvalidLayerSnr,
+                "reconstructed sparse-layer absolute SNR must be finite and > 0 "
+                "(layer value is the SNR itself, not a relative factor)");
+  }
+  double g = 1.0;
+  if (in.gain != nullptr) {
+    if (!positive_finite(*in.gain)) {
+      return fail(WeightClosure::kUnclosedInvalidGain,
+                  "frame gain g_k must be finite and > 0 "
+                  "(multiplicative normalization corrected=(y-g_hat)/g_k)");
+    }
+    g = *in.gain;
+  } else if (policy.require_frame_gain) {
+    return fail(WeightClosure::kUnclosedMissingGain,
+                "frame gain g_k missing but policy.require_frame_gain=true "
+                "(w = (SNR_layer/F_ref,k)^2 * g_k^2 undefined; no silent g=1 fallback)");
+  }
+  double w = 0.0;
+  std::string werr;
+  if (!weight_from_snr(layer_snr, in.ref_flux_k, &w, &werr)) {
+    return fail(WeightClosure::kUnclosedNonFiniteWeight, werr);
+  }
+  w *= g * g;
+  if (!positive_finite(w)) {
+    return fail(WeightClosure::kUnclosedNonFiniteWeight,
+                "(SNR_layer/F_ref,k)^2 * g_k^2 non-finite/non-positive after gain");
+  }
+  PixelWeightResult r;
+  r.ok = true;
+  r.weight_chain_closed = true;
+  r.production_allowed = true;
+  r.closure = WeightClosure::kClosed;
+  r.weight_source = "sparse_snr_layer_absolute_snr";
+  r.sparse_operator_id = info.operator_id;
+  r.sparse_node_residual = info.node_reproduction_max_abs;
+  r.layer_snr = layer_snr;
+  r.reference_flux_k = in.ref_flux_k;
+  r.gain = g;
+  r.weight = w;
+  r.generated_from_absent_layer = false;
+  /* 量纲/口径自证：w[ADU^-2]·F_ref[ADU]^2 - SNR^2[1]·g^2 应恒为 0。 */
+  r.dimensional_identity = w * in.ref_flux_k * in.ref_flux_k - layer_snr * layer_snr * g * g;
+  return r;
+}
+
+}  /* namespace */
+
+PixelWeightResult weight_from_sparse_layer_pixel(
+    const PixelWeightInput& in, const WeightChainPolicy& policy) {
+  const std::string tag = in.frame_id.empty() ? std::string("frame") : in.frame_id;
+  if (in.layer == nullptr || !in.layer->present) {
+    if (policy.require_sparse_layer_for_pixel_weights) {
+      return pixel_fail(WeightClosure::kUnclosedSparseLayerRequiredMissing,
+                        tag + ": per-pixel weight face requires the sparse absolute-SNR "
+                              "layer but none is present (no silent fallback to "
+                              "frame-level scalar, no layer value treated as 1)");
+    }
+    return pixel_fail(WeightClosure::kUnclosedSparseLayerRequiredMissing,
+                      tag + ": sparse absolute-SNR layer absent -> explicit degradation "
+                            "to the frame-level scalar path (generated_from_absent_layer;"
+                            " the layer value is NOT treated as 1)",
+                      /*absent_layer=*/true);
+  }
+  std::string serr;
+  if (!layer_semantics_ok(*in.layer, &serr)) {
+    return pixel_fail(WeightClosure::kUnclosedWrongSnrSemantics, tag + ": " + serr);
+  }
+  SparseReconstruction info;
+  double v = 0.0;
+  if (!reconstruct_sparse_snr(*in.layer, in.x, in.y, &v, &info, &serr)) {
+    return pixel_fail(WeightClosure::kUnclosedSparseLayerUnreconstructible,
+                      tag + ": sparse absolute-SNR layer present but unreconstructible "
+                            "at (" + std::to_string(in.x) + "," + std::to_string(in.y) +
+                            "): " + serr);
+  }
+  return finish_pixel_weight(in, policy, info, v);
+}
+
+PixelWeightResult weight_from_sparse_layer_pixel_prepared(
+    const SparseSnrReconstructor& reconstructor, const PixelWeightInput& in,
+    const WeightChainPolicy& policy) {
+  const std::string tag = in.frame_id.empty() ? std::string("frame") : in.frame_id;
+  if (in.layer == nullptr || !in.layer->present) {
+    if (policy.require_sparse_layer_for_pixel_weights) {
+      return pixel_fail(WeightClosure::kUnclosedSparseLayerRequiredMissing,
+                        tag + ": per-pixel weight face requires the sparse absolute-SNR "
+                              "layer but none is present");
+    }
+    return pixel_fail(WeightClosure::kUnclosedSparseLayerRequiredMissing,
+                      tag + ": sparse absolute-SNR layer absent -> explicit degradation "
+                            "to the frame-level scalar path (generated_from_absent_layer)",
+                      /*absent_layer=*/true);
+  }
+  std::string serr;
+  if (!layer_semantics_ok(*in.layer, &serr)) {
+    return pixel_fail(WeightClosure::kUnclosedWrongSnrSemantics, tag + ": " + serr);
+  }
+  if (!reconstructor.ready()) {
+    return pixel_fail(WeightClosure::kUnclosedSparseLayerUnreconstructible,
+                      tag + ": prebuilt sparse reconstructor is not ready()");
+  }
+  SparseReconstruction info;
+  double v = 0.0;
+  if (!reconstructor.eval(in.x, in.y, &v, &info, &serr)) {
+    return pixel_fail(WeightClosure::kUnclosedSparseLayerUnreconstructible,
+                      tag + ": sparse absolute-SNR layer present but unreconstructible "
+                            "at (" + std::to_string(in.x) + "," + std::to_string(in.y) +
+                            "): " + serr);
+  }
+  return finish_pixel_weight(in, policy, info, v);
+}
+
+
+
 
 /* ------------------------------------------------------------------ */
 /* 重建算子词表（冻结；算子标识 = 唯一配置面）                            */
@@ -679,8 +836,9 @@ WeightChainResult compute_inverse_variance_weights(
   WeightChainResult r;
   r.reference_flux = reference_flux;
   r.reference_flux_k.assign(n, reference_flux);
-  r.intra_snr.assign(n, 1.0);
+  r.layer_snr.assign(n, 0.0);
   r.actual_snr.assign(n, 0.0);
+  r.weight_deferred_to_pixel_path.assign(n, false);
   r.weights.assign(n, 0.0);
   r.sparse_operator_ids.assign(n, std::string());
   r.sparse_node_residual.assign(n, 0.0);
@@ -711,35 +869,42 @@ WeightChainResult compute_inverse_variance_weights(
                               tag + ": frame-level SNR non-finite/non-positive", n);
     }
 
-    double intra = 1.0;
-    if (f.sparse != nullptr && f.sparse->present) {
-      double v = 0.0;
-      SparseReconstruction info;
+    /* 层与帧级是两个独立对象：有层时**本帧的权必须在逐像素面给出**
+       （w(x,y) = (SNR_layer(x,y)/F_ref,k)²·g_k²），本函数不为该帧产出标量权，
+       更不得把层值当「帧内相对因子」乘到帧级标量上（已作废的
+       actual = frame_snr × intra 合成）。层缺失 = 显式降级（不是乘 1）：
+       仅当 policy.require_sparse_layer_for_pixel_weights=false 时继续走帧级标量。 */
+    bool have_layer = (f.sparse != nullptr && f.sparse->present);
+    if (f.sparse != nullptr && !f.sparse->present &&
+        policy.require_sparse_layer_for_pixel_weights) {
+      return fail_with_policy(
+          policy, WeightClosure::kUnclosedSparseLayerRequiredMissing,
+          tag + ": sparse absolute-SNR layer required but not present "
+                "(no frame-level fallback, no layer value treated as 1)",
+          n);
+    }
+    if (!have_layer && policy.require_sparse_layer_for_pixel_weights) {
+      return fail_with_policy(
+          policy, WeightClosure::kUnclosedSparseLayerRequiredMissing,
+          tag + ": per-pixel weight face requires the sparse absolute-SNR layer "
+                "(green field for the layer path); explicit degradation must be "
+                "declared by policy (no silent frame-level fallback)",
+          n);
+    }
+    if (have_layer) {
       std::string serr;
-      if (!reconstruct_sparse_snr(*f.sparse, f.x, f.y, &v, &info, &serr)) {
-        return fail_with_policy(
-            policy, WeightClosure::kUnclosedSparseLayerUnreconstructible,
-            tag + ": sparse intra-frame SNR layer present but unreconstructible: " + serr,
-            n);
+      if (!layer_semantics_ok(*f.sparse, &serr)) {
+        return fail_with_policy(policy, WeightClosure::kUnclosedWrongSnrSemantics,
+                                tag + ": " + serr, n);
       }
-      if (!positive_finite(v)) {
-        return fail_with_policy(policy, WeightClosure::kUnclosedInvalidIntraSnr,
-                                tag + ": reconstructed intra-frame SNR non-finite/non-positive",
-                                n);
-      }
-      intra = v;
-      r.sparse_operator_ids[k] = info.operator_id;
-      r.sparse_node_residual[k] = info.node_reproduction_max_abs;
       any_sparse = true;
+      r.weight_deferred_to_pixel_path[k] = true;
+      continue; /* 该帧的权由逐像素面给出：本函数不给标量权 */
     }
-    r.intra_snr[k] = intra;
 
-    double actual = 0.0;
-    std::string cerr;
-    if (!compose_actual_snr(f.frame_snr, intra, &actual, &cerr)) {
-      return fail_with_policy(policy, WeightClosure::kUnclosedInvalidIntraSnr,
-                              tag + ": " + cerr, n);
-    }
+    /* 帧级标量路径（无层 / frame_reconstruct）：actual_snr_k = frame_snr_k。
+       不再与任何帧内因子相乘（层已由上面的逐像素面承接）。 */
+    const double actual = f.frame_snr;
     r.actual_snr[k] = actual;
 
     /* 乘性光度响应 g_k（可空）。归一化 corrected=(y−ĝ)/g_k ⇒ Var(corrected)=
@@ -793,7 +958,7 @@ WeightChainResult compute_inverse_variance_weights(
   r.weight_chain_closed = true;
   r.production_allowed = true;
   r.closure = WeightClosure::kClosed;
-  r.weight_source = any_sparse ? "frame_snr_x_sparse_snr" : "frame_snr";
+  r.weight_source = any_sparse ? "sparse_snr_layer_absolute_snr" : "frame_snr";
   return r;
 }
 
@@ -808,8 +973,9 @@ WeightChainResult make_equal_weight_baseline(std::size_t n_frames) {
       "SNR weight chain)";
   r.weight_source = "equal_weight_baseline";
   r.weights.assign(n_frames, 1.0);
-  r.intra_snr.assign(n_frames, 1.0);
+  r.layer_snr.assign(n_frames, 0.0);
   r.actual_snr.assign(n_frames, 0.0);
+  r.weight_deferred_to_pixel_path.assign(n_frames, false);
   r.frame_gain.assign(n_frames, 1.0);
   r.sparse_operator_ids.assign(n_frames, std::string());
   r.sparse_node_residual.assign(n_frames, 0.0);

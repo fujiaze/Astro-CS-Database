@@ -64,7 +64,12 @@ if(NOT TARGET astrocs_phase2_integrate)
     "${P2_REPO}/lib/infrastructure/aio/src"
     "${P2_REPO}/lib/infrastructure/aio/src/hips"
     "${P2_REPO}/lib/infrastructure/aio/third_party/cfitsio"
-    "${P2_REPO}/third_party"
+    # WIN-PORT 缺陷⑤: nlohmann/json.hpp 的唯一落点是 lib/third_party/nlohmann/
+    # (根目录整合 commit ee99ca26 把第三方头自根 third_party/ 迁入 lib/third_party/,
+    #  本处 ${P2_REPO}/third_party 是迁移漏网的死路径 ⇒ 本 target 编入的
+    #  coverage/src/upm.cpp、aio/src/aio_upm.cpp 与 product_io 的 hips_manifest.h /
+    #  provenance.h 在 MSVC 下报 C1083 找不到 nlohmann/json.hpp)。
+    "${P2_REPO}/lib/third_party"
     "${P2_REPO}/lib/algorithms/calibration/include"
     "${P2_REPO}/lib/algorithms/psf/include"
     "${P2_REPO}/lib/algorithms/noise_snr/include"
