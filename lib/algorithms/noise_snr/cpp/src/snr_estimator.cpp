@@ -32,7 +32,7 @@
 
 namespace {
 
-// PSF 块母函数因子: FWHM = 1.230310 * sigma (各向同性 Moffat4 beta=4; SCI-PSF-001 §5)。
+// PSF 块母函数因子: FWHM = 1.230310 * sigma (各向同性 Moffat4 beta=4; SCI-PSF-001 §5)。sigma 约定 = 模型参数口径 (Q=0.5*r^2/sigma^2 => sigma=sqrt(<r^2>)=alpha/sqrt(2), PSF.md §16); 他域逐轴高斯口径 sigma_g=alpha/2 的因子 1.7399178 代入即 sqrt(2) 偏差, 禁用。
 // 本文件消费的是 **PSF 块**行 (row[5] = fwhm_x/y = 1.230310*sigma), 故此处用 PSF 块
 // 因子把 FWHM 换算为 sigma 后, 经 SnrSourceParams.sigma_px 传入 snr_science.cpp。
 // snr_science 的 fwhm_px 参数契约属**检测块高斯**列 (DATA-P1-SOURCES, 因子

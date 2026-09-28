@@ -1,14 +1,56 @@
 {
+  "seed": null,
+  "convention_definitions": {
+    "sigma_model_q": "sqrt(<r^2>) = alpha/sqrt(2); 生产 Q = 0.5*r^2/sigma^2 的参数（唯一生产口径）",
+    "sigma_g_peraxis": "alpha/2; 同二阶矩高斯逐轴口径（他域，生产禁用）",
+    "r2_over_alpha2": 0.5,
+    "r_half_over_alpha": 0.4349794420460824,
+    "fwhm_over_alpha": 0.8699588840921645
+  },
   "analytic_value_beta4": 1.2303076525901024,
-  "numeric_value": 1.2303077930596018,
+  "fwhm_over_sigma_model_q_analytic": 1.2303076525901024,
+  "fwhm_over_sigma_model_q_numeric": 1.230307650667661,
+  "fwhm_over_sigma_peraxis_gauss_g": 1.739917768184329,
+  "numeric_value": 1.230307650667661,
   "registered": 1.23031,
-  "rel_err_numeric_vs_registered": 1.793808388299165e-06,
+  "rel_err_numeric_vs_registered": 1.9095450245168086e-06,
   "verdict": "PASS",
-  "gaussian_control_fwhm_over_sigma": 1.6651092207543554,
+  "production_roundtrip_positive": {
+    "C": 1.23031,
+    "sigma_px": 2.4384098316684413,
+    "profile_value_at_r=FWHM/2": 0.4999987857309731,
+    "half_max_residual": 1.2142690268834855e-06,
+    "implied_FWHM_px": 2.999994276052628,
+    "implied_FWHM_rel_err": 1.9079824573609017e-06,
+    "verdict": "PASS"
+  },
+  "production_roundtrip_negative_peraxis": {
+    "C": 1.7399178,
+    "sigma_px": 1.7242193855364891,
+    "profile_value_at_r=FWHM/2": 0.27700077938268786,
+    "half_max_residual": 0.22299922061731214,
+    "implied_FWHM_px": 2.121320304769747,
+    "implied_FWHM_rel_err": 0.29289323174341764,
+    "verdict": "RED"
+  },
+  "production_roundtrip_exact_closed_form": {
+    "C": 1.2303076525901024,
+    "sigma_px": 2.4384144841205018,
+    "profile_value_at_r=FWHM/2": 0.5000000000000001,
+    "half_max_residual": 1.1102230246251565e-16,
+    "implied_FWHM_px": 3.000000000000001,
+    "implied_FWHM_rel_err": 2.9605947323337506e-16,
+    "verdict": "PASS"
+  },
+  "gaussian_control_fwhm_over_sigma": 1.6651092216216,
   "gaussian_theory_2sqrt_2ln2": 2.3548200450309493,
+  "gaussian_theory_2d_rms_convention": 1.6651092223153954,
   "conclusions": [
-    "\u89e3\u6790\uff1aFWHM/sigma = 2*sqrt(2)*sqrt(2^{1/4}-1) = 1.230307653\uff0c\u4e0e\u767b\u8bb0\u503c 1.230310 \u76f8\u5bf9\u5dee 1.91e-06\uff1b",
-    "\u6570\u503c\u79ef\u5206\u590d\u6838\uff1a1.230307793\uff08\u76f8\u5bf9\u5dee 1.79e-06\uff09\u21d2 P-CST-05 \u53ef\u8d70\u65b9\u6848 B\uff08\u7406\u8bba\u63a8\u5bfc\u817f\uff09\uff0c\u5b9e\u9a8c\u5355\u5143\u4e0d\u518d\u662f\u5fc5\u9700\uff1b",
-    "\u8d1f\u4f8b\uff1a\u540c\u4e00\u8ba1\u7b97\u4f5c\u7528\u4e8e\u9ad8\u65af\u8f6e\u5ed3\u5f97 1.665109 = 2*sqrt(2 ln2)\uff08\u2260Moffat4 \u503c\uff09\u21d2 \u5e38\u6570\u968f\u8f6e\u5ed3\u65cf\u53d8\u5316\uff0c\u5224\u636e\u80fd\u533a\u5206\uff08\u975e\u6052\u771f\uff09\u3002"
+    "一手定义：beta=4 时 <r^2>=alpha^2/2, FWHM=2*alpha*sqrt(2^{1/4}-1)；sigma=sqrt(<r^2>)=alpha/sqrt(2)（生产口径）⇒ FWHM/sigma = 1.230307653",
+    "数值积分复核（同口径）：1.230307651，与登记值 1.230310 相对差 1.91e-06",
+    "他域口径 sigma_g=alpha/2 ⇒ FWHM/sigma_g = 1.739917768（与生产口径恒差 sqrt(2)=1.414214，生产禁用）",
+    "生产参数化往返（正例）：sigma=FWHM/1.230310 时 r=FWHM/2 处剖面 = 0.4999988（残差 1.21e-06，判 PASS）",
+    "生产参数化往返（负例）：代入 1.7399178 时剖面 = 0.2770008、反解 FWHM 短 29.3%（判 RED）——判据能红能绿，非恒真",
+    "负例 2（轮廓族）：同一计算作用于高斯轮廓得 1.665109 = 2*sqrt(2 ln2)/sqrt(2)（同 rms 半径口径；逐轴口径为 2.3548200450）——常数随轮廓族与 sigma 口径双重变化（非普适）"
   ]
 }

@@ -1,0 +1,134 @@
+{
+  "seed": 20260928,
+  "delta": 64,
+  "patch": 8,
+  "gain_e_per_adu": 1.3,
+  "read_noise_e": 5.0,
+  "metric": "E_eff = Var_w/Var_opt - 1（v = σ_true²，唯一口径 P4-B02）",
+  "calibers": {
+    "frame": "帧级标量（节点中位数；单帧内 = 生产帧级逆方差链的常数铺满）",
+    "cell": "Δ=64 格级常值铺满",
+    "dense_recon": "生产样条逐像素（P4 交付物）",
+    "oracle_dense": "逐像素真方差（上界，E 必须机器零）"
+  },
+  "A_analytic_synthetic": {
+    "structured": {
+      "E_eff_frame": 0.0011989266387544273,
+      "E_eff_cell": 0.005305903502840215,
+      "E_eff_dense_recon": 0.004670417284253325,
+      "E_eff_oracle_dense": 0.0,
+      "E_eff_dense_shuffled_RED": 0.0044462467570458575,
+      "dex_rmse_dense_recon": 0.032640252012070985,
+      "dex_rmse_cell": 0.03445353431617474,
+      "p5_stack_var_ratio": {
+        "frame": 1.0011989266387544,
+        "cell": 1.0053059035028402,
+        "dense_recon": 1.0046704172842533,
+        "oracle_dense": 1.0
+      },
+      "E_prop_invalid_RED": {
+        "dense_w": 0.0366384752663762,
+        "dense_w_x3p17": 2.2861439665944125,
+        "note": "被否口径：乘性缩放后读数改变（不尺度不变），且可为负"
+      },
+      "n_nodes": [
+        32,
+        32
+      ],
+      "frame_sigma2_median": 24.72954841960211,
+      "gates": {
+        "G1_oracle_dense_zero": true,
+        "G2_monotone_frame_gt_cell_gt_dense": false,
+        "R1_shuffled_worse": false,
+        "R2_prop_not_scale_invariant": true
+      },
+      "all_pass": false,
+      "tag": "structured"
+    },
+    "flat_negative_control": {
+      "E_eff_frame": -2.220446049250313e-16,
+      "E_eff_cell": 0.001384935304328705,
+      "E_eff_dense_recon": 0.0011398718019299814,
+      "E_eff_oracle_dense": 0.0,
+      "E_eff_dense_shuffled_RED": 0.001142130236344574,
+      "dex_rmse_dense_recon": 0.014783612568885643,
+      "dex_rmse_cell": 0.016298142168664716,
+      "p5_stack_var_ratio": {
+        "frame": 0.9999999999999998,
+        "cell": 1.0013849353043287,
+        "dense_recon": 1.00113987180193,
+        "oracle_dense": 1.0
+      },
+      "E_prop_invalid_RED": {
+        "dense_w": 0.007051812344558206,
+        "dense_w_x3p17": 2.192354245132249,
+        "note": "被否口径：乘性缩放后读数改变（不尺度不变），且可为负"
+      },
+      "n_nodes": [
+        32,
+        32
+      ],
+      "frame_sigma2_median": 26.20022105179165,
+      "gates": {
+        "G1_oracle_dense_zero": true,
+        "R1_shuffled_worse": true,
+        "R2_prop_not_scale_invariant": true,
+        "G3_flat_no_fake_advantage": true
+      },
+      "all_pass": true,
+      "tag": "flat_negative_control"
+    }
+  },
+  "B_hst_template_physical_forward": {
+    "E_eff_frame": 0.010863831895236098,
+    "E_eff_cell": 0.2777613031746424,
+    "E_eff_dense_recon": 7543.018908021808,
+    "E_eff_oracle_dense": 0.0,
+    "E_eff_dense_shuffled_RED": 521400.32261434774,
+    "dex_rmse_dense_recon": 100.77720219180998,
+    "dex_rmse_cell": 1.9810132157742983,
+    "p5_stack_var_ratio": {
+      "frame": 1.010863831895236,
+      "cell": 1.2777613031746424,
+      "dense_recon": 7544.018908021808,
+      "oracle_dense": 1.0
+    },
+    "E_prop_invalid_RED": {
+      "dense_w": 138.24992169966094,
+      "dense_w_x3p17": 440.4222517879255,
+      "note": "被否口径：乘性缩放后读数改变（不尺度不变），且可为负"
+    },
+    "n_nodes": [
+      32,
+      32
+    ],
+    "frame_sigma2_median": 672135.7825468235,
+    "gates": {
+      "G1_oracle_dense_zero": true,
+      "G2_monotone_frame_gt_cell_gt_dense": false,
+      "R1_shuffled_worse": true,
+      "R2_prop_not_scale_invariant": true
+    },
+    "all_pass": false,
+    "tag": "hst_template",
+    "exposure_scale_e": 585352.9400925654,
+    "median_counts_e": 13632.70856550777,
+    "p999_counts_e": 50000.0
+  },
+  "C_real_frame_proxy_reference": {
+    "frame": "testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f502n_v1_drz.fits",
+    "crop": [
+      2048,
+      2048
+    ],
+    "reference": "局部 MAD² 代理（含散粒噪声 + 真实小尺度结构，非绝对真方差）",
+    "E_eff_frame": 11.817555181868888,
+    "E_eff_cell": 0.17074257984337193,
+    "E_eff_dense_recon": 9786.95644778621,
+    "E_eff_dense_shuffled_RED": 13709.801771437957,
+    "dex_rmse_dense_recon": 97.80679314153662,
+    "note": "真实帧无绝对真值 ⇒ 本类只作一致性/相对序读数，不参与 G1/G2 判定",
+    "relative_order_frame_gt_dense": false
+  },
+  "all_pass": false
+}

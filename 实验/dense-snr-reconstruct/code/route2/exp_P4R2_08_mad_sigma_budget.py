@@ -23,7 +23,10 @@ from pathlib import Path
 import numpy as np
 
 SEED = 20261003
-RESULTS = Path(__file__).resolve().parent.parent / "results" / "route2"
+# P4-B04: 结果目录锚定本单元 results/route2（旧版 parent.parent 解析到 code/results，
+# 使存档与脚本脱钩且单独重跑 FileNotFoundError）。
+RESULTS = Path(__file__).resolve().parents[2] / "results" / "route2"
+RESULTS.mkdir(parents=True, exist_ok=True)
 rng = np.random.default_rng(SEED)
 
 # ---------- A: Phi^{-1}(3/4) ----------

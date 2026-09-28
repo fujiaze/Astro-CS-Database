@@ -176,9 +176,11 @@
         ]
       },
       "extreme_4dex": {
-        "A_full_E": 0.037,
-        "A_bglimit_E": 0.433,
-        "ratio": "12x"
+        "A_full_E": 0.030158,
+        "A_bglimit_E": 0.38046,
+        "ratio": "12x",
+        "archive_pointer": "results/route1/exp_p4_04_brightness_forward.json::arms/extreme_A_full/stack_usecase/E、::arms/extreme_A_bglimit/stack_usecase/E",
+        "provenance_fix_note": "订正轮按实验存档订正：原记 0.037/0.433 与存档 0.030158/0.38046 不符（+22.7%/+13.8%）"
       },
       "zero_source_negative": {
         "full_equals_bglim_max_abs_dev": 0,
@@ -215,6 +217,23 @@
         ]
       },
       "w_vs_mref": "w 比 = 1.0 逐位（route3/exp01 H1d）；m_ref 降格记录参考电平（A-P4-06）"
+    },
+    "three_calibers_controlled_experiment": {
+      "claim": "三口径（frame 帧级常数 / cell Δ=64 格级常值铺满 / dense 生产样条逐像素）对照：dense 并非一律最优",
+      "archive_pointer": "results/calibers/exp_P4CAL_02_three_calibers_guarded.json",
+      "script": "code/calibers/exp_P4CAL_02_three_calibers_guarded.py",
+      "provenance": "本轮新跑（SEED=20260928；三类数据 + 6 档对比度扫描 + 三条守卫臂；all_pass=true）",
+      "E_frame_cell_dense": {
+        "analytic_structured_vrange_36": [1.159, 0.00903, 0.577],
+        "hst_template_physical_forward_vrange_2.1e6": [0.416, 0.206, 257000.0],
+        "real_frame_proxy": [11.8, 0.171, 64600.0],
+        "flat_negative_control": [4e-15, 0.00127, 0.00102]
+      },
+      "dense_beats_frame_window_vrange": [1.78, 235.0],
+      "guards": "节点场夹取 [0.25min,4max] + 散粒地板 v_hat >= d_ADU/g：HST 腿 E_dense 2.57e5 -> 43.2，仍不优于 cell",
+      "reconciliation_with_route1_exp04": "exp04 控制值为精确 cell 模型量（表示上限，E_full 7.43e-4）；本实验控制值走生产 8x8 patch 1.4826*MAD 配方 ⇒ 估量噪声主导，E_dense 升到 0.577/2.57e5；真实可达效率由控制值精度支配",
+      "frame_caliber_vs_production": "生产帧级口径 w = SNR^2/F_ref^2 进入帧级逆方差链，单帧内即空间常数权场 = 本实验 frame 臂（E_eff 对 w 乘性缩放免疫）",
+      "production_dense_plane": "BLOCKED：snr_path=dense 具名 fail-closed SNR_PATH_DENSE_UNAVAILABLE（module_adapters.cpp:11745-11750），生产链路无 Phase1 稠密 SNR 面产品"
     },
     "geometry_and_constants": {
       "lambda_ratio_gate": {

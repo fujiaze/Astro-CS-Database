@@ -48,7 +48,7 @@ constexpr double kPi   = 3.14159265358979323846;
 // 检测块母函数因子: FWHM = 2.3548200450309493 * sigma (椭圆高斯, TWO_SQRT_2_LOG2;
 //   ALG-STARDET-001 §2 :63, SCI-P1-STAR-001 §5 :68)。DATA-P1-SOURCES.fwhm_px 属该块。
 constexpr double kGaussFwhmFactor = 2.3548200450309493;
-// PSF 块母函数因子: FWHM = 1.230310 * sigma (各向同性 Moffat4 beta=4; SCI-PSF-001 §5)。
+// PSF 块母函数因子: FWHM = 1.230310 * sigma (各向同性 Moffat4 beta=4; SCI-PSF-001 §5)。sigma 约定 = 模型参数口径 (Q=0.5*r^2/sigma^2 => sigma=sqrt(<r^2>)=alpha/sqrt(2), PSF.md §16); 他域口径 sigma_g=alpha/2 的 1.7399178 禁用。
 //   只用于本块**自身 Moffat4 模型**的 sigma -> FWHM 正向导出 (网格/孔径半径);
 //   **禁止**用它反解检测块输入的 fwhm_px (跨块比较, DISP-STAR-007)。
 constexpr double kMoffat4FwhmFactor = 1.230310;

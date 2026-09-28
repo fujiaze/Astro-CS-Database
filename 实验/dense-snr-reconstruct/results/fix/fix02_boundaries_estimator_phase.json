@@ -1,0 +1,119 @@
+{
+  "seed": 20260928,
+  "A_control_point_estimator_bias": {
+    "structured_field": {
+      "n_nodes": 64,
+      "bias_node_plane_vs_node_truth": {
+        "E_eff": 0.02613998167311271,
+        "dex": 0.06253572592235018
+      },
+      "bias_node_truth_vs_cell_mean": {
+        "E_eff": 0.0017426824894333226,
+        "dex": 0.009192311389444568
+      },
+      "bias_combined_plane_vs_cell_mean": {
+        "E_eff": 0.023228051787269388,
+        "dex": 0.04242847480797418
+      }
+    },
+    "flat_control": {
+      "n_nodes": 64,
+      "bias_node_plane_vs_node_truth": {
+        "E_eff": 0.00015553648077704096,
+        "dex": 0.0037794897856652365
+      },
+      "bias_node_truth_vs_cell_mean": {
+        "E_eff": 0.0,
+        "dex": 0.0
+      },
+      "bias_combined_plane_vs_cell_mean": {
+        "E_eff": 0.00015553648077704096,
+        "dex": 0.0037794897856652365
+      }
+    },
+    "rule": "平坦场三段偏差在 MC 噪声内归零（判绿）；结构场合并偏差非零并按量级登记",
+    "pass": true
+  },
+  "B_delta_guard": {
+    "cases": {
+      "smooth_delta64": {
+        "ok": true,
+        "delta_max": 64.0,
+        "why": {
+          "delta_geom": 64.0,
+          "delta_err": 102.06207261596576,
+          "delta_mem": 1024.0,
+          "delta_max": 64.0,
+          "delta": 64,
+          "verdict": "PASS"
+        }
+      },
+      "smooth_delta128": {
+        "ok": false,
+        "delta_max": 64.0,
+        "why": {
+          "delta_geom": 64.0,
+          "delta_err": 102.06207261596576,
+          "delta_mem": 1024.0,
+          "delta_max": 64.0,
+          "delta": 128,
+          "verdict": "RED"
+        }
+      },
+      "highcontrast_delta256": {
+        "ok": false,
+        "delta_max": 5.0,
+        "why": {
+          "delta_geom": 64.0,
+          "delta_err": 5.0,
+          "delta_mem": 1024.0,
+          "delta_max": 5.0,
+          "delta": 256,
+          "verdict": "RED"
+        }
+      },
+      "flat_delta512": {
+        "ok": false,
+        "delta_max": 64.0,
+        "why": {
+          "delta_geom": 64.0,
+          "delta_err": Infinity,
+          "delta_mem": 1024.0,
+          "delta_max": 64.0,
+          "delta": 512,
+          "verdict": "RED"
+        }
+      }
+    },
+    "archive_evidence": "results/route3/exp03_sparse_dense_reconstruction.json::domains.highcontrast.256 五算子 E=1.515-1.894（完全失效）",
+    "pass": true
+  },
+  "C_node_phase": {
+    "cases": {
+      "production_cell_center_31p5": {
+        "node_origin_px": 31.5,
+        "rmse_dex": 0.15751182095319746,
+        "E_eff": 0.8739880427815374
+      },
+      "route1_floor_31": {
+        "node_origin_px": 31.0,
+        "rmse_dex": 0.15791435021310643,
+        "E_eff": 0.8883223340167532
+      },
+      "route3_32": {
+        "node_origin_px": 32.0,
+        "rmse_dex": 0.15711993845229302,
+        "E_eff": 0.8600141206238365
+      },
+      "corner_0": {
+        "node_origin_px": 0.0,
+        "rmse_dex": 0.1936381416038064,
+        "E_eff": 2.1534815222872976
+      }
+    },
+    "production_convention": "cell_center_v1: 节点 i·Δ+(Δ−1)/2（Δ=64 ⇒ 31.5，半整数）",
+    "evidence": "weight_chain.cpp:473-486 与 sparse_snr_layer.schema.json node_placement",
+    "pass": true
+  },
+  "all_pass": true
+}

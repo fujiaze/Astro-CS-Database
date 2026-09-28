@@ -1,0 +1,151 @@
+{
+  "seed": 20260928,
+  "unit": "实验/dense-snr-reconstruct",
+  "A_metric_definition": {
+    "canonical": "E_eff = Var_w/Var_opt - 1, Var_opt = 1/sum(1/sigma_true^2)（Cauchy-Schwarz 可达下界 ⇒ 恒 ≥ 0）",
+    "rejected": "E_prop = Var_w/(1/sum(w)) - 1（不是下界 ⇒ 可判负；且对 w→c·w 不不变 ⇒ 不是损失量）",
+    "script_var_opt_definitions": {
+      "route1/exp_p4_02_interpolators.py": {
+        "lines": [
+          "var_opt = 1.0 / np.sum(1.0 / v)"
+        ],
+        "kind": "true_variance_bound"
+      },
+      "route1/exp_p4_04_brightness_forward.py": {
+        "lines": [
+          "var_opt = 1.0 / np.sum(1.0 / v)"
+        ],
+        "kind": "true_variance_bound"
+      },
+      "route3/exp02_metric_E_properties.py": {
+        "lines": [
+          "var_opt = 1.0 / (1.0 / sigma_true**2).sum()"
+        ],
+        "kind": "true_variance_bound"
+      },
+      "route3/exp03_sparse_dense_reconstruction.py": {
+        "lines": [
+          "var_opt = 1.0 / (1.0 / sigma_true**2).sum()"
+        ],
+        "kind": "true_variance_bound"
+      },
+      "route3/exp01_weight_identity_gamma_optimality.py": {
+        "lines": [
+          "var_opt = 1.0 / (1.0 / sig**2).sum()"
+        ],
+        "kind": "true_variance_bound"
+      },
+      "route3/exp04_idw_parameters.py": {
+        "lines": [
+          "var_opt = 1.0 / (1.0 / st**2).sum()"
+        ],
+        "kind": "true_variance_bound"
+      },
+      "route2/exp_P4R2_07_luminance_chain.py": {
+        "lines": [
+          "var_opt = float(np.mean((stack_opt[src_mask] - truth[src_mask])**2))",
+          "var_opt_theory_arr = 1.0 / (1.0/sa2 + 1.0/sb2)",
+          "var_opt_theory = float(np.mean(var_opt_theory_arr))"
+        ],
+        "kind": "true_variance_bound"
+      }
+    },
+    "all_productive_scripts_same_caliber": true,
+    "lock_arms": [
+      {
+        "arm": "scale_0.3155x",
+        "E_eff": -2.220446049250313e-16,
+        "E_prop": 9.046187346324725,
+        "E_prop_negative": false
+      },
+      {
+        "arm": "scale_3.17x",
+        "E_eff": -1.1102230246251565e-16,
+        "E_prop": -0.9004866204261163,
+        "E_prop_negative": true
+      },
+      {
+        "arm": "shuffled",
+        "E_eff": 0.6335143137557184,
+        "E_prop": 0.6335143137557184,
+        "E_prop_negative": false
+      },
+      {
+        "arm": "flat",
+        "E_eff": 0.29045941376248585,
+        "E_prop": 0.06473272776081251,
+        "E_prop_negative": false
+      }
+    ],
+    "scale_invariance_probe": {
+      "c=0.25": {
+        "E_eff": 0.0,
+        "E_prop": -0.75
+      },
+      "c=4": {
+        "E_eff": 0.0,
+        "E_prop": 3.0
+      }
+    },
+    "scale_invariance_deviation": {
+      "E_eff_max_abs_dev": 0.0,
+      "E_prop_max_abs_dev": 3.75
+    },
+    "verdict": "PASS"
+  },
+  "C_rebuilt_gates": {
+    "C1_luminance_gate_rebuilt": {
+      "arms": {
+        "idw_p2_k16_true_operator": {
+          "median_ratio": 3.2243735979347905,
+          "pearson_r_at_sources": 0.9847272232058605,
+          "dr_ratio_vs_truth": 0.4760293062809681,
+          "spatially_resolved": true,
+          "connectivity_verdict": "PASS",
+          "discriminative_verdict": "PASS"
+        },
+        "nearest_control_grid": {
+          "median_ratio": 3.234657783623972,
+          "pearson_r_at_sources": 0.9999374386646526,
+          "dr_ratio_vs_truth": 1.003932059019083,
+          "spatially_resolved": true,
+          "connectivity_verdict": "PASS",
+          "discriminative_verdict": "PASS"
+        },
+        "global_constant": {
+          "median_ratio": 3.218076607202836,
+          "pearson_r_at_sources": 0.0,
+          "dr_ratio_vs_truth": 0.15392977029770916,
+          "spatially_resolved": false,
+          "connectivity_verdict": "PASS",
+          "discriminative_verdict": "RED"
+        },
+        "shuffled_control_values": {
+          "median_ratio": 3.2004267952467966,
+          "pearson_r_at_sources": -0.45270348644198216,
+          "dr_ratio_vs_truth": 0.3080159931164186,
+          "spatially_resolved": false,
+          "connectivity_verdict": "PASS",
+          "discriminative_verdict": "RED"
+        }
+      },
+      "rule": "① 连通性（降级）：真算子的通量×10 跟随比落在 √10±15%；② 判别力（新，算子敏感）：空间分辨算子（r>0.9 且动态范围保持>0.5）判绿，全局常量与打乱控制值必须判红",
+      "pass": true
+    },
+    "C2_zero_source_per_arm_estimator": {
+      "max_rel_diff_zero_source_frame": 0.0,
+      "max_rel_diff_source_present_frame": 165.44677340219044,
+      "rule": "零源帧两臂逐位相等（判绿）+ 有源帧丢源项判红",
+      "pass": true
+    },
+    "C3_contrast_arm_with_estimated_source": {
+      "metric_exact_source_model": 18.017686700223226,
+      "metric_source_model_biased_10pct": 16.215918030200903,
+      "relative_change": -0.09999999999999998,
+      "registered_37p31_is_reverse_engineered_scene_reading": true,
+      "rule": "偏 10% 的源模型必须与精确模型区分（判红）",
+      "pass": true
+    }
+  },
+  "all_pass": true
+}
