@@ -13,6 +13,9 @@
       （相对偏差 < 3 * MC 标准误）。
   T12 生产实现对拍：Python 独立复算 vs 生产 C ABI snr_source_snr_f64
       （g++ 直编 lib/algorithms/noise_snr/cpp/src/snr_science.cpp，只读）。
+      **宽度约定**：canon 的 FWHM_PX 是 PSF 块 Moffat4 FWHM，而生产 fwhm_px 字段是
+      检测块高斯 FWHM（跨块混用使 sigma 高估 1.914005x，DISP-STAR-007）⇒ canonical
+      路径经同尺度入口 sigma_px 传 canon 的 Moffat4 sigma；错约定作为负例必须判红。
 
 用法: TMPDIR=/dev/shm/astrocs_fsnr python3 run_redlines.py [--out DIR]
 """
@@ -37,6 +40,22 @@ GAIN = 1.5          # e-/ADU
 READ_E = 5.0        # e-
 F_S_E = 2000.0      # 源总通量 [e-]（固定）
 B_GRID = [0.0, 10.0, 100.0, 1000.0, 10000.0]   # 天光 [e-/pix]
+
+# --- 生产 ABI 宽度约定映射（P2-T12 订正，2026-09-29）-----------------------------
+# 生产 ABI 有两条互斥的宽度入口（lib/algorithms/noise_snr/cpp/include/snr_estimator.h:301-327
+# 与 lib/algorithms/noise_snr/cpp/src/snr_science.cpp:14-24/58-61/134-136/157）：
+#   fwhm_px  = **检测块**椭圆高斯 FWHM（= 2.3548200450309493*sigma），>0 时优先；
+#   sigma_px = 本块 Moffat4 轮廓 sigma（与 fwhm_px 同一 sigma 尺度），fwhm_px<=0 时启用。
+# 本单元 canon 的 FWHM_PX 属 **PSF 块 Moffat4 FWHM**（frame_snr_canon.py:36）。
+# 旧版判据把 Moffat4 FWHM 直接灌进 fwhm_px —— 生产明令禁止的跨块混用
+# （snr_estimator.h:305 / snr_science.cpp:136 记 DISP-STAR-007：sigma 高估 1.914005x）
+# ⇒ 判据恒红，且与 docs/frame-snr-canon.md:375 的「P12 PASS」矛盾。
+# 订正：canonical 路径改走同尺度入口 sigma_px，传 canon 的 Moffat4 sigma；
+# 并把**错约定**保留为负例（期望判红）以证明该判据能红能绿。
+GAUSS_FWHM_FACTOR = 2.3548200450309493           # 生产 kGaussFwhmFactor（检测块）
+MOFFAT4_FWHM_FACTOR = 1.230310                   # 生产 kMoffat4FwhmFactor（PSF 块 = canon）
+SIGMA_CANON_PX = FWHM_PX / MOFFAT4_FWHM_FACTOR   # canon Moffat4 sigma [px]
+WRONG_CONVENTION_INFLATION = GAUSS_FWHM_FACTOR / MOFFAT4_FWHM_FACTOR  # 1.914005x
 
 
 def monotone_criterion(vals: list[float]) -> bool:
@@ -188,17 +207,18 @@ CPP_PROBE = r'''
 #include <cmath>
 #include "snr_estimator.h"
 int main(int argc, char** argv) {
-  if (argc < 6) { std::fprintf(stderr, "usage: F_s_e B_e sigma_R_e gain fwhm\n"); return 2; }
+  if (argc < 6) { std::fprintf(stderr, "usage: F_s_e B_e sigma_R_e gain fwhm [sigma_px]\n"); return 2; }
   const double F_e = std::atof(argv[1]);
   const double B_e = std::atof(argv[2]);
   const double rn_e = std::atof(argv[3]);
   const double gain = std::atof(argv[4]);
   const double fwhm = std::atof(argv[5]);
+  const double sigma_px = (argc > 6) ? std::atof(argv[6]) : 0.0;  // 生产同尺度入口
   SnrSourceParams p;
   std::memset(&p, 0, sizeof(p));
   p.flux_adu = F_e / gain;                 // ADU
-  p.fwhm_px = fwhm;
-  p.sigma_px = 0.0;
+  p.fwhm_px = fwhm;                        // 检测块高斯 FWHM（<=0 时改用 sigma_px）
+  p.sigma_px = sigma_px;                   // 本块 Moffat4 sigma（与 fwhm_px 同尺度）
   p.sigma_sky_adu = std::sqrt(B_e) / gain; // sky rms in ADU (sky Poisson only)
   p.gain_e_per_adu = gain;
   p.read_noise_e = rn_e;
@@ -219,7 +239,37 @@ int main(int argc, char** argv) {
 '''
 
 
+def _out_of_range_negative(exe: str) -> dict:
+    """越界负例：两个宽度入口都不有效（fwhm_px=0 且 sigma_px<=0）⇒ 生产必须 fail-closed 拒绝。
+
+    生产 `snr_science.cpp:157-160`：sigma 非有限或 <=0 ⇒ status=1 拒绝；本函数要求两条越界
+    用例都被拒（判据由此获得"越界必红"的一面）。
+    """
+    cases = []
+    for label, fwhm, sigma in (("fwhm_px=0 & sigma_px=0", 0.0, 0.0),
+                               ("fwhm_px=0 & sigma_px<0", 0.0, -1.0)):
+        r = subprocess.run([exe, repr(F_S_E), "100.0", repr(READ_E), repr(GAIN),
+                            repr(fwhm), repr(sigma)], capture_output=True, text=True, timeout=120)
+        try:
+            prod = json.loads(r.stdout.strip().splitlines()[-1])
+        except Exception:                                    # noqa: BLE001
+            prod = {"ok": False, "parse_error": True}
+        cases.append({"case": label, "prod_ok": bool(prod.get("ok")),
+                      "prod_rc": prod.get("rc"), "rejected": (not prod.get("ok"))})
+    return {"cases": cases, "pass": all(c["rejected"] for c in cases)}
+
+
 def test_T12_production_crosscheck(repo_root: str, tmpdir: str) -> dict:
+    """T12 生产对拍（宽度约定已订正 + 错约定负例）。
+
+    生产 ABI 的两条宽度入口互斥（snr_estimator.h:301-327、
+    snr_science.cpp:14-24/58-61/134-136/157）：
+      fwhm_px  = **检测块**椭圆高斯 FWHM（= 2.3548200450309493*sigma），>0 时优先；
+      sigma_px = 本块 Moffat4 sigma（与 fwhm_px 同一 sigma 尺度），fwhm_px<=0 时启用。
+    本单元 canon 的 FWHM_PX 属 **PSF 块 Moffat4 FWHM** ⇒ canonical 路径必须走 sigma_px；
+    把 Moffat4 FWHM 灌进 fwhm_px 是生产明令禁止的跨块混用（DISP-STAR-007，sigma 高估
+    1.914005x）。本函数把它作为**负例**保留，并要求该负例判红（能红能绿）。
+    """
     src = os.path.join(repo_root, "lib/algorithms/noise_snr/cpp/src/snr_science.cpp")
     probe_cpp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cpp", "p1snr_probe.cpp")
     os.makedirs(os.path.join(os.path.dirname(probe_cpp)), exist_ok=True)
@@ -233,14 +283,16 @@ def test_T12_production_crosscheck(repo_root: str, tmpdir: str) -> dict:
     cp = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if cp.returncode != 0:
         return {"pass": None, "status": "SKIP: g++ build failed", "stderr": cp.stderr[-2000:]}
+    sigma_canon = C.moffat4_sigma_from_fwhm(FWHM_PX)
     half = C.moffat4_auto_half(FWHM_PX)
     P = C.moffat4_discrete_profile(FWHM_PX, half_px=half)
     rows = []
     ok = True
     notes = []
     for B in B_GRID:
-        r = subprocess.run([exe, repr(F_S_E), repr(B), repr(READ_E), repr(GAIN), repr(FWHM_PX)],
-                           capture_output=True, text=True, timeout=120)
+        # (a) canonical 口径：fwhm_px<=0 + sigma_px=canon Moffat4 sigma ⇒ 两侧同一轮廓
+        r = subprocess.run([exe, repr(F_S_E), repr(B), repr(READ_E), repr(GAIN),
+                            "0.0", repr(sigma_canon)], capture_output=True, text=True, timeout=120)
         prod = json.loads(r.stdout.strip().splitlines()[-1])
         if not prod.get("ok"):
             # 生产 C ABI 要求 sigma_sky_adu > 0（fail-closed），B=0 无表示 ->
@@ -256,15 +308,41 @@ def test_T12_production_crosscheck(repo_root: str, tmpdir: str) -> dict:
         rel_sig = _rel(prod["sigma_f_optimal_adu"], py_sigma_adu)
         rel_p2 = _rel(prod["sum_p2"], float(np.sum(P**2)))
         good = rel_snr < 1e-12 and rel_sig < 1e-12 and rel_p2 < 1e-12
-        ok = ok and good
+        # (b) 错约定负例：把 canon 的 Moffat4 FWHM 灌进生产 fwhm_px（旧版判据做法）⇒ 须判红
+        r2 = subprocess.run([exe, repr(F_S_E), repr(B), repr(READ_E), repr(GAIN),
+                             repr(FWHM_PX)], capture_output=True, text=True, timeout=120)
+        prod2 = json.loads(r2.stdout.strip().splitlines()[-1])
+        if prod2.get("ok"):
+            wrong_rel_snr = _rel(prod2["snr_optimal"], py_snr)
+            wrong_rel_p2 = _rel(prod2["sum_p2"], float(np.sum(P**2)))
+            wrong_rejected = bool(wrong_rel_snr > 1e-6 and wrong_rel_p2 > 1e-6)
+        else:
+            wrong_rel_snr = float("nan")
+            wrong_rel_p2 = float("nan")
+            wrong_rejected = True          # 生产直接拒绝也算该负例判红
+        ok = ok and good and wrong_rejected
         rows.append({"B_e_per_pix": B, "prod_snr": prod["snr_optimal"], "python_snr": py_snr,
                      "rel_diff_snr": rel_snr, "rel_diff_sigmaF": rel_sig,
-                     "rel_diff_sumP2": rel_p2, "match": good})
-    return {"pass": ok, "status": "OK", "compiler": "g++ (direct, no cmake/ninja)",
+                     "rel_diff_sumP2": rel_p2, "match": good,
+                     "rel_diff_snr_wrong_convention": wrong_rel_snr,
+                     "rel_diff_sumP2_wrong_convention": wrong_rel_p2,
+                     "wrong_convention_rejected": wrong_rejected})
+    oor = _out_of_range_negative(exe)
+    ok = ok and oor["pass"]
+    return {"pass": ok,
+            "status": "OK (canonical green + wrong-convention negative red + out-of-range negative red)",
+            "out_of_range_negative": oor,
+            "compiler": "g++ (direct, no cmake/ninja)",
             "source": "lib/algorithms/noise_snr/cpp/src/snr_science.cpp (read-only)",
+            "convention": {
+                "canon_profile": "Moffat4 beta=4, FWHM_PX=%s px (PSF 块约定; frame_snr_canon.py:36)" % FWHM_PX,
+                "canon_sigma_px": sigma_canon,
+                "production_field_used": "sigma_px (fwhm_px=0)",
+                "production_field_forbidden": "fwhm_px 属检测块高斯 FWHM (DISP-STAR-007)",
+                "wrong_convention_sigma_inflation_expected": WRONG_CONVENTION_INFLATION,
+                "authority": ["snr_estimator.h:301-327", "snr_science.cpp:14-24",
+                              "snr_science.cpp:134-136", "snr_science.cpp:157"]},
             "grid_half_used": half, "notes": notes, "rows": rows}
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="run/reverse_verify/frame_snr")

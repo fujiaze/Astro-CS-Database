@@ -377,6 +377,10 @@ run/RELEASE-02/perf-drz/norm_t2_m1_red/cleaned_M42_M1_T2_flying_dutchman-2025121
 | P14 无物理单位闭合 | 尺度不变 < 1e-12 | **PASS**（1.5e-15） |
 | T8/T9/T10/T11/T12（解析版） | 全绿 | **PASS** |
 
+> **P12/T12 的宽度约定（2026-09-29 订正）**：生产 `snr_source_snr_f64` 的两个宽度入口互斥 —— `fwhm_px` 属**检测块**椭圆高斯 FWHM（`= 2.3548200450309493·σ`），`sigma_px` 属本块 Moffat4 σ（`fwhm_px<=0` 时启用；`lib/algorithms/noise_snr/cpp/include/snr_estimator.h:301-327`、`.../src/snr_science.cpp:14-24/134-136/157`；跨块混用被 `DISP-STAR-007` 明令禁止，会使 σ 高估 **1.914005×**）。本文 §5 用的 canon 轮宽 `FWHM_PX = 4 px` 是 **Moffat4 FWHM** ⇒ 对拍必须经 `sigma_px` 传 canon 的 Moffat4 σ（= 3.2513 px）。订正前判据把 Moffat4 FWHM 灌进 `fwhm_px`，故 T12/P12 **恒红**（`rel_sumP2 = 0.7287`）；订正后正例绿（T12 `rel_snr ≤ 5.8e-15`、`sum_p2` 1.3e-14；P12 `rel_snr ≤ 1.0e-14`，阈值 1e-12），**同一判据的错约定负例仍判红**（`rel_snr = 0.19–0.48`）⇒ 能红能绿。读数与复跑命令见 `run/FINAL-07/审核包/科研审查/P2_订正/evidence/t12_p12/`。
+
+> **P13 的当前环境状态**：上表 P13「PASS」是真实帧树在位时的记录；本机该树（`run/RELEASE-02/**/norm/**`）已被 `run_gc` 回收，故当前实跑 `P13` 返回 `SKIP: no real frame found`（既非 PASS 也非 FAIL），与 T12/P12 无关。
+
 ---
 
 ## 4 与现行实现的差距表
