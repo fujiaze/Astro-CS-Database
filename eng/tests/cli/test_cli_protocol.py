@@ -181,7 +181,8 @@ class TestGolden(unittest.TestCase):
         for case in cases:
             r = run(*case)
             self.assertEqual(r.returncode, 2, "%s → 期望 2, 得 %s" % (case, r.returncode))
-            self.assertIn("astrocs:", r.stderr, "%s 缺 stderr 诊断" % (case,))
+            # 诊断前缀 = 唯一入口名 acsd（docs/ASTROCS_DESIGN.md §1.2/§7.1；提交 a6f602fe 命名统一）。
+            self.assertIn("acsd:", r.stderr, "%s 缺 stderr 诊断" % (case,))
             self.assertEqual(r.stdout, "", "%s stdout 应无输出(污染)" % (case,))
 
     # ── 模板 = 完整可运行 JSON（原 config init 的等价面） ──

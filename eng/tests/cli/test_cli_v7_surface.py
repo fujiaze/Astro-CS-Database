@@ -138,7 +138,8 @@ class TestVersionSurface(unittest.TestCase):
     def test_04_version_rejects_unknown_flag(self):
         r = run("--version", "--bogus")
         self.assertEqual(r.returncode, 2)
-        self.assertIn("astrocs:", r.stderr)
+        # 诊断前缀 = 唯一入口名 acsd（docs/ASTROCS_DESIGN.md §1.2/§7.1）。
+        self.assertIn("acsd:", r.stderr)
         self.assertEqual(r.stdout, "")
 
 

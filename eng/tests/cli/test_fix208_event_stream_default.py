@@ -305,7 +305,7 @@ class TestRunEventStreamDefault(unittest.TestCase):
         for line in self.res.stderr.splitlines():
             self.assertLessEqual(len(line.encode("utf-8")), MAX_LINE_BYTES,
                                  "摘要行超 4096 字节: %r" % line[:80])
-        self.assertNotIn("astrocs:", self.res.stdout, "stdout 不得混入人类诊断文本")
+        self.assertNotIn("acsd:", self.res.stdout, "stdout 不得混入人类诊断文本")
 
     def test_05_json_commands_single_document_no_events(self):
         """--json 机器输出面：stdout 恰一个 JSON 文档，且不发事件流。"""
