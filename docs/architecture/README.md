@@ -1,5 +1,7 @@
 # architecture
 
+> 上游：docs/ASTROCS_DESIGN.md §8.4（顶层结构）、§8.5（模块与 ABI）、§9（CPU 后端与资源）。
+
 本目录是软件架构层：把最高设计 §8 落实为可执行的结构规则，覆盖总览、执行与线程、I/O 与错误、CPU 后端与性能模型，并附机读清单。
 
 ## 职责边界
@@ -28,7 +30,3 @@
 - `production_call_paths_stage1.csv` / `production_call_paths_stage2.csv` / `PRODUCTION_EXECUTION_INVENTORY.csv` —— 生产调用路径与执行清单。
 - `doc_symbol_namespaces.json` —— 文档符号命名空间登记。
 - `abi/`、`cpu/`、`observability/` —— 安全加载器、CPU 能力与后端、可观测性三个子域。
-
-## 上游
-
-上游：docs/ASTROCS_DESIGN.md §8（软件架构）、§8.1（顶层结构）、§8.4（模块与 ABI）、§9（CPU 后端与资源）。

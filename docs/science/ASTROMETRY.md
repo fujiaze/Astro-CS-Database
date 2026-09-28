@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.4（输出合同）
 
-> ID: SCI-WCS-001 (SCI-AST-001 别名)  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-WCS-001..  模块: plate_solve (IPV)
+> 本文件条款为冻结定义，变更走变更流程。
 
 ## 1 目的与非目标
 
@@ -15,14 +15,14 @@
 |---|---|---|
 | `x,y` | 像素坐标（0-based `x∈[0,w-1]`） | 求解器内部 |
 | `xp,yp` | FITS 1-based 像素 `xp=x+1` | FITS 头 |
-| `CRPIX1/2` | 参考像素（1-based， `w/2+0.5, h/2+0.5`） | `ipv_wcs.cpp:154,276` |
+| `CRPIX1/2` | 参考像素（1-based， `w/2+0.5, h/2+0.5`） | `ipv_wcs.cpp` |
 | `CRVAL1/2` | 参考天球坐标 RA/Dec (deg) | 同上 |
 | `CD` | 线性变换 `deg/pixel`（`CD=trans.linear/3600`） | WCS 头 |
 | ξ,η | TAN 投影中间坐标（deg） | §5 前向式 |
-| `cd_inv` | `CD^{-1}` 线性逆 `pixel/arcsec`（仅 SIP 换算） | `ipv_wcs.cpp:328-331` |
+| `cd_inv` | `CD^{-1}` 线性逆 `pixel/arcsec`（仅 SIP 换算） | `ipv_wcs.cpp` |
 | `trans` | IPV 求解的畸变多项式（含 `x_ij,y_ij`） | 求解器 |
-| `A/B` | SIP 前向畸变系数 `1/pixel^{i+j-1}` | `ipv_wcs.cpp:340-356` |
-| `AP/BP` | SIP 逆向系数 | `ipv_wcs.cpp:464` |
+| `A/B` | SIP 前向畸变系数 `1/pixel^{i+j-1}` | `ipv_wcs.cpp` |
+| `AP/BP` | SIP 逆向系数 | `ipv_wcs.cpp` |
 | `RA,Dec` | 天球坐标 J2000 deg | 输出 |
 | `θ_q, radius` | 查询锥球心距/半径 | `gaia_client.c` |
 | `C, C45` | 极区平面 Lipschitz `π/2≈1.5708`, `π/(2√2)≈1.1107` | 极区 prune |
@@ -47,13 +47,13 @@
   1. **ipv 求解器内部不是桥接点**——其 `u = det_x − w/2` 已等于 Paper I §2.1.1 的
      `q`，迭代反演输出 `u + CRPIX` 已是 1-based FITS `p`（§5a），故
      `ipv_wcs.cpp` 输出侧**不再叠加** `+1`；
-  2. `p1_sources` 的整数数组下标 `x`：由 `eng/tools/astrometry/closure_metric.py:223`
+  2. `p1_sources` 的整数数组下标 `x`：由 `eng/tools/astrometry/closure_metric.py`
      的 `p = x + 1` 换算（第三方 astropy `origin=0` 语义）；
   3. p3 产品网格下标 `x0`：由 `lib/algorithms/projection/p3_wcs.cpp` 的
      `fits_pixel_1based`（`xp = x0 + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）换算；
-  4. `p1_wcs.json` 写出侧：`lib/infrastructure/scheduler/src/module_adapters.cpp:2487-2493`、
-     `:2731-2733` 对 samples 的 0-based `(x,y)` 单次 `+1` 后喂 1-based `WcsTan`，
-     并声明 `pixel_origin`/`fits_pixel_origin`（`:2555-2557`、`:2811-2813`）。
+  4. `p1_wcs.json` 写出侧：`lib/infrastructure/scheduler/src/module_adapters.cpp`、
+      对 samples 的 0-based `(x,y)` 单次 `+1` 后喂 1-based `WcsTan`，
+     并声明 `pixel_origin`/`fits_pixel_origin`（）。
   上述 2/3/4 是**三个不同量**在各自边界上的单次换算，互不重复；**"唯一桥接点"
   这一表述不成立**，正确口径是「每量一次」。
   桥接缺失或重复都产生恒定 1px 系统偏移，必须被第三方对拍检出（§11）。
@@ -98,22 +98,22 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   在 1-based `p = CRPIX`（连续像素中心坐标 `x_c = CRPIX − 0.5`）。
 - **求解器口径（既有实现，与 Paper I 逐式一致，不是偏离）**：`lib/algorithms/platesolve` 的
   `trans`/SIP 拟合自变量是 **sdet 半整数像素中心** `det_x = i + 0.5`（`i` 为 0-based 数组下标；
-  `lib/algorithms/star_detection/src/sdet_api.cpp:546-549`），`u = det_x − w/2`
-  （`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:943,947` 取 `cx = img_w/2.0`），
-  `CRPIX = w/2 + 0.5`（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:159-162`）。因
+  `lib/algorithms/star_detection/src/sdet_api.cpp`），`u = det_x − w/2`
+  （`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp` 取 `cx = img_w/2.0`），
+  `CRPIX = w/2 + 0.5`（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp`）。因
   `p = det_x + 0.5 = i + 1`，故 **`u = det_x − w/2 = p − CRPIX` 就是 Paper I §2.1.1 的 `q`**；
-  迭代反演 `out.x = u + CRPIX`（`ipv_wcs.cpp:942-946`）返回的是 **1-based FITS 像素 `p`**
+  迭代反演 `out.x = u + CRPIX`（`ipv_wcs.cpp`）返回的是 **1-based FITS 像素 `p`**
   （参考像素 `det_x = w/2` ⟺ `p = CRPIX`）。**无 1px 原点差、无"常量 1px 平移"。**
-  `ipv_wcs.h:43,57-60,70-71` 把该输出注释为"0-based FITS 像素"，属**标签错误**（见 §14a）。
+  `ipv_wcs.h` 把该输出注释为"0-based FITS 像素"，属**标签错误**（见 §14a）。
 - **真正 0-based 的量（仅两处，各施加一次「下标→FITS」换算）**：
   (i) `p1_sources` 的整数数组下标 `x`（phase1 `StarDetector`），由第三方 astropy `origin=0` 语义
-  `p = x + 1` 换算（`eng/tools/astrometry/closure_metric.py:223`，无额外桥接）；
+  `p = x + 1` 换算（`eng/tools/astrometry/closure_metric.py`，无额外桥接）；
   (ii) p3 产品网格下标 `x0`，由 `lib/algorithms/projection/p3_wcs.cpp` 的 `fits_pixel_1based`
   （`xp = x0 + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）换算。二者是同一「下标→FITS」换算
   在不同域各一次，**与 ipv 求解器内部口径无关**。
-  `p1_wcs.json` 写出侧（`lib/infrastructure/scheduler/src/module_adapters.cpp:2487-2493`、`:2731-2733`）
+  `p1_wcs.json` 写出侧（`lib/infrastructure/scheduler/src/module_adapters.cpp`）
   对 samples 的 0-based `(x,y)` 同样单次 `+1` 后喂 1-based `WcsTan`，并声明
-  `pixel_origin`/`fits_pixel_origin`（`:2555-2557`、`:2811-2813`）。
+  `pixel_origin`/`fits_pixel_origin`（）。
 - **责任方**：**Phase3 导出边界**（`lib/phase3_session/`）与 `p1_wcs.json` 写出侧负责产品网格/数组
   下标 → FITS 1-based 的**单次**换算；ipv 求解器内部输出已是 1-based FITS `p`，`+1` 已含于该输出
   （双重桥接 = 恒定 1px 系统偏移）。`wcs_sky_to_pixel_iterative` 当前无生产消费方（仅测试面调用）。
@@ -143,7 +143,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - **CRPIX 不变量**：`CRPIX = w/2+0.5, h/2+0.5` (1-based) 恒成立，与求解结果无关。
 - **行列式不变量**：`Y-up → Y-down` 转换前后 `|det(CD)|` 不变（仅符号重排）。
 - **SIP 逆一致性**：逆映射以**迭代反演**为准；不变量在**独立于拟合采样的密集域**（中心 90% 区域 + 四边 + 四角 + ≥1000 随机点，FP64）上测量，判据 `max‖(x,y)−WCS^{-1}(WCS(x,y))‖ ≤ 1e-4 px`（与 ALG-WCS-001 §11.4 F2 同值）。
-  **分层口径（GATE-WCS-01 条目 2；门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 为唯一事实源）**：该 1e-4 px 是**全链冻结门**（判据力弱，实测最坏 2.91e-9 px ⇒ 余量 3.4e4×），
+  **分层口径（门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 为唯一事实源）**：该 1e-4 px 是**全链冻结门**（判据力弱，实测最坏 2.91e-9 px ⇒ 余量 3.4e4×），
   它**不是** FP64 地板门；迭代反演路径另设紧门 `G-P1-WCS-RT-ITER = κ_iter·τ = 1e-8 px`（τ = 1e-9 px 收敛容差，写进合同），
   AP/BP 多项式逆另设**表示门** `G-P1-WCS-RT-APBP ≤ 10% × 边缘畸变预算`（~184 px 畸变下多项式逆达不到 1e-4 px：实测 3.46 px）。
   三条路径地板相差 5–9 个量级，**同一个数不能同时服务它们**。
@@ -155,8 +155,8 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | 星点不足/几何退化 | 返回 `IPV_NO_SOLUTION`，不写 WCS | `ipv_entry.cpp` |
-| `trans` 线性奇异 (`det→0`) | 拒 SIP 推导，返回参数错误 | `ipv_wcs.cpp:322 inv_det` |
-| `rect` 空/越界 | `LOG_WARN empty rect` | `dpsf_psf.cpp:446` 类比 |
+| `trans` 线性奇异 (`det→0`) | 拒 SIP 推导，返回参数错误 | `ipv_wcs.cpp inv_det` |
+| `rect` 空/越界 | `LOG_WARN empty rect` | `dpsf_psf.cpp` 类比 |
 | 极区 `θ_q+radius>90°` 或跨 `±45°` | 保守不剪枝，遍历极冠树 | `gaia_client.c` |
 | RA 环绕 `±180°` | `dra=360−dra` 并 `cos(dec)` 缩放判交 | `bbox_intersects` |
 
@@ -164,7 +164,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 - FP64 全链路；`CD` 与 SIP 系数以 `double` 写入 FITS 头；AP/BP 以**≥7×7 采样网格**（实现 41×41，DISP-WCS-008）迭代反演/最小二乘拟合，残差 `rms_px` 写入诊断。
 
-## 9a 专属问题回答（SCI-002 指定问题逐项）
+## 9a 口径问答：夹角判据、极区行为与两口径报告
 
 - **WCS frame/pixel convention**：ICRS/J2000；CRPIX 1-based 冻结公式（§7）；`xp=x+1`；`CD` deg/px；SIP 系数单位 `1/px^{i+j-1}`；FITS 输出 Y-down 翻转（§5）。
 - **PSF 参数**：椭圆 Moffat4 七参数 `B,A,x0,y0,sx,sy,θ`，`FWHM≈1.230310·σ`，解析通量 `flux=2πA·sxsy/3`（PSF.md §2/§5），供星点建模与剔星。
@@ -185,8 +185,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - **往返不变量**：像素→天球→像素往返在**独立密集域**（中心 90% + 四边/四角 + ≥1000 随机点）上 `max_abs ≤ 1e-4 px`（FP64）；拟合域自网格的鉴别力为零（自网格 1.8e-12 px vs 离网格 3.10 px），判据以独立密集域为准。
   **该门测的是逆映射实现的表示/收敛地板，不是 FP64 地板**（导出边界 TAN 闭式路径的 FP64 地板是 `~1e-9 px @0.18″/px`，见 §11 的 STD-F1 行与 `GATES_AND_TOLERANCES.md` §3 的 G-P1-WCS-RT-ITER）。
 - **极区保守门**：对 `|dec|>45°` 人工锥与全量 Gaia 节点暴力比对，`false_negative=0`。
-- **导出边界桥接门（STD-F1，§5a）**：**两个用途不同、不合并为一个数**的门（GATE-WCS-01 条目 4；
-  门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 为唯一事实源）：
+- **导出边界桥接门（STD-F1，§5a）**：**两个用途不同、不合并为一个数**的门（门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 为唯一事实源）：
   - **全域保守门 `< 1e-6 px`（`G-P1-WCS-BRIDGE-GLOBAL`）**：覆盖**所有**像素尺度。保守性下界
     `s ≥ 1.79e-3″/px`（实测常数）/ `2.93e-3″/px`（设计常数）——比任何真实仪器的像素尺度还小 1–2 个量级；
     代价是判据力弱（0.18″/px 处相对解析包络余量 101×，1e-7 量级缺陷会被放过）。
@@ -196,10 +195,11 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   两门均在**九宫格 + 密集域扫描**（全帧 ≤128² 网格 + 四边/四角/中心 + 1024 固定 seed 随机点）上测量，
   且与 Paper I §2.1.1 独立第三方参考（`xp = x0+1`）差同门值；
   负向注入（移除桥接 `xp = x0`、错置桥接 `xp = x0+2`）必须产生 `≥1 px` 偏差并使对拍 FAIL。
-  推导依据（阈值不再是无依据的引用）：TAN 闭式投影截断项**恒等于 0**（逐式证明 `G∘F = I`；FP80 判别实验
-  误差随 eps 线性缩小，实测比值 1792–2238 vs 理论 2048）⇒ 误差 100% 来自 FP64 舍入，主项
-  `ε ≈ C_env·u·sec²Δ/s_rad`（`u = 2⁻⁵³`，`C_env = 78` 实测 / `128` 设计，`sec²Δ ≤ 1.03046`）；
-  合成规则 = 最坏情况包络**线性相加**（不用 RSS：实测包络/RSS = 2.47×）。证据锚 `run/GATE-DERIVE-01/REPORT.md`。
+  阈值推导依据：TAN 闭式投影截断项**恒等于 0**（逐式证明 `G∘F = I`；FP80 判别实验的误差随 eps 线性缩小）
+  ⇒ 误差 100% 来自 FP64 舍入，主项 `ε ≈ C_env·u·sec²Δ/s_rad`（`u = 2⁻⁵³`，`sec²Δ ≤ 1.03046`；
+  `C_env` 取设计常数，与实测常数的偏差登记在 ALG 层）。
+  合成规则 = 最坏情况包络**线性相加**（不用 RSS——包络与 RSS 的比值由分母口径决定，两者不互为替代；
+  误差预算的完整推导、判别实验与复算入口正本见 `实验/` 天测误差预算单元 results）。
 - **失败注入**：空星表/奇异线性/越界 `rect` 显式错误码。
 - **外部闭环指标门**：§11a 的 G-P1-WCS-CLOSURE v1 口径与 G-P1-WCS-CLOSURE-REPRO 可复现门。
 
@@ -217,13 +217,13 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 | 项 | 冻结值 | 依据（逐条） |
 |---|---|---|
-| 检出星样本 `S` | `p1_sources.json` 中 `x,y` 有限 **且 `snr > 20`** | ① 低 SNR 检出星在 1″ 内主要是错配（全样本只有 4–28% 能找到对应体）；② 与同域位置门 G-P1-CENTROID-SCI 的 `SNR_peak ≥ 20` 域同源（GATES_AND_TOLERANCES §3）；③ 实测：LDN43 T2 中 `snr ≤ 20` 却进入「flux 前 20000」样本的 13,861 颗贡献了 1497 个 1″ 匹配中的 **813 个（54%）**，median 0.4486″，比 SNR 合格子集的 0.4059″ **更差** ⇒ 不设 SNR 门则半数「匹配」不可解释 |
+| 检出星样本 `S` | `p1_sources.json` 中 `x,y` 有限 **且 `snr > 20`** | ① 低 SNR 检出星在 1″ 内主要是错配（全样本只有 4–28% 能找到对应体）；② 与同域位置门 G-P1-CENTROID-SCI 的 `SNR_peak ≥ 20` 域同源（GATES_AND_TOLERANCES §3）；③ 实测（读数与帧标识正本见 `实验/` 天测实验单元 results）：未设 SNR 门的子样本中位角距**更差**、且其匹配贡献集中在低 SNR 检出 ⇒ 不设 SNR 门则匹配样本被低 SNR 错配主导 |
 | 样本上限 | `flux` 降序前 **20000**（超限时记录 `sample_capped=true`，并同时记录 `n_det_snr_pass`） | 运行时间上界（T4 场 n_detected 1.46e5、星表锥内 3.4e6）；**上限必须随记录报告**，否则 |S| 不可复现（实测方法学） |
-| 星表样本 | 本仓 Gaia DR3 XPSD 视场单锥搜索，**G < 18** | 与 `lib/algorithms/platesolve/memory.md:49-63` 记录的工具口径一致；mag<18 与 T2/T3/T4 探测深度匹配，避免暗端错配主导 |
+| 星表样本 | 本仓 Gaia DR3 XPSD 视场单锥搜索，**G < 18** | 与 `lib/algorithms/platesolve/memory.md` 记录的工具口径一致；mag<18 与 T2/T3/T4 探测深度匹配，避免暗端错配主导 |
 | 匹配半径 | **1.0″（唯一值）**，必须写入记录 `params.match_radius_arcsec` | ① 1″ 在 T2/T3 原生采样（0.9586/0.9669″/px）≈1 px，把残差锚回像素尺度（`0.897 px` 的本意）；② 1″ 是四档扫描（1/2/3/5″）中最严的一档，错配污染最小；③ **不冻结半径即不可复现**：仅把半径 1″→5″，T3 median 即从 0.5410″ 漂到 0.6140″（**+13.5%**） |
 | 统计量 | **median**（必须同时报 p95 / max / n_matched / match_rate） | ① 该口径用 median，保持可比；② median 对错配长尾稳健；③ p95/max 几乎贴住半径上限正是「错配主导」的特征 ⇒ 三者必须同报，判读面 = 四项联合 |
 | 匹配率 | `match_rate = n_matched / \|S\|`，**必须与 median 同报** | median 单独不可解释：`M` 只描述「已匹配的那些星」，匹配率回答「多少星根本没匹配上」；实测 4.9%（T3）/3.5%（T2）/28.0%（T4，全样本） |
-| WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、各自具名** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 实测二者统计等价（T3 solved 0.5644 px / 0.5410″ vs header 0.5051 px / 0.4841″；T2 0.4202 px / 0.4062″ vs 0.3627 px / 0.3507″）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
+| WCS 口径 | `wcs_flavor` ∈ {`solved_cd_sip`（产物 `p1_wcs.json` 的 CD+SIP）, `frame_header`（输入帧头，当前为仪器 PinPoint）}，**分别报告、各自具名** | ① 求解结果当前不写回 FITS 头，头域仍是未授权的外部解 ⇒ 两种口径并存；② 两种口径在仓内真实帧上统计等价（各口径的中位角距读数与帧标识正本见 `实验/` 天测实验单元 results）⇒ 任一方都不能代表另一方；③ `0.897 px` 是 **frame_header** 口径 |
 | 像素换算 | `median_px = median_arcsec / s0`，`s0 = 3600·sqrt\|det(CD)\|`（**线性 CD 标度**；SIP 的局部标度不参与），s0 必须同报 | 以 px 报值；s0 定义与本节口径一致，缺 s0 则 px 值不可复现 |
 | 残差定义 | 1-最近邻（tangent 平面 KD-tree 选邻居）→ 最终用**真大圆角距**（不用平面近似代替） | 与独立 astropy 对拍通过（逐点 100% 相等） |
 | 独立性 | 只用 astropy（≥7.0.1）从产物 JSON/FITS 头重建 WCS + 独立星表解码；**不导入 Astro Celestial Sphere Database（ACSD） 代码、不读 `wcs_result.*`** | ENGINEERING_SPEC §5.1「不调用生产实现的独立 Oracle」；GATES_AND_TOLERANCES §1 R3 |
@@ -254,15 +254,14 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 ## 14 Primary literature（引用定位声明）
 
-1. Greisen & Calabretta 2002, A&A 395, 1061（Paper I，DOI 10.1051/0004-6361:20021326，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.right.html)）：WCS 关键词体系（CRPIX/CRVAL/CD）与广义坐标映射方法——文章级定位，TAN/SIP 公式号未逐式核验；本合同 §5 的权威面 = Project-defined 定义本身。
+1. Greisen & Calabretta 2002, A&A 395, 1061（Paper I，DOI 10.1051/0004-63611326，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.right.html)）：WCS 关键词体系（CRPIX/CRVAL/CD）与广义坐标映射方法——文章级定位，TAN/SIP 公式号未逐式核验；本合同 §5 的权威面 = Project-defined 定义本身。
 2. Calabretta & Greisen 2002, A&A 395, 1077（Paper II，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3860/aah3860.right.html)）：天球坐标实现与 TAN 投影——文章级定位（§5 TAN 语义为 Project-defined）。
 3. Shupe et al. 2005, ASPC 347, 491（SIP畸变约定，bibcode 2005ASPC..347..491S）：SIP A/B/AP/BP 来源——文章级定位（bibcode 级，未逐页核验）。
 
 ## 14a 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动 §5/§5a/§11a 任何公式、常数与容差。
 
-- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-6361:20021326，arXiv:astro-ph/0207407 逐字核验）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）；参考像素（world==CRVAL）在 1-based `p = CRPIX`（连续中心 `x_c = CRPIX − 0.5`）。**据此，本文件 §5a 的桥接口径为**：求解器拟合自变量是 sdet 半整数像素中心 `det_x = i+0.5`，`u = det_x − w/2 = p − CRPIX` 即 Paper I 的 `q`，迭代反演 `x = u + CRPIX = p` 已是 1-based FITS；`ipv_wcs.h:43,57-60,70-71` 把该输出注释为 0-based，而 `ipv_wcs.cpp:945-946` 的 `out.x = u + crpix` 按 Paper I §2.1.1 即 1-based `p`——注释属标签错误（与 §5a 同一判读）。
+- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-63611326，arXiv:astro-ph/0207407 逐字核验）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）；参考像素（world==CRVAL）在 1-based `p = CRPIX`（连续中心 `x_c = CRPIX − 0.5`）。**据此，本文件 §5a 的桥接口径为**：求解器拟合自变量是 sdet 半整数像素中心 `det_x = i+0.5`，`u = det_x − w/2 = p − CRPIX` 即 Paper I 的 `q`，迭代反演 `x = u + CRPIX = p` 已是 1-based FITS；`ipv_wcs.h` 把该输出注释为 0-based，而 `ipv_wcs.cpp` 的 `out.x = u + crpix` 按 Paper I §2.1.1 即 1-based `p`——注释属标签错误（与 §5a 同一判读）。
 - **TAN 投影与 celestial↔native 旋转/LONPOLE**：Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1。
 - **SIP A/B/AP/BP 约定**：Shupe, D. L. et al. 2005, ASP Conf. Ser. 347, 491（bibcode 2005ASPC..347..491S）。**核验状态**：bibcode 级。
 - **可执行标准与独立 Oracle**：WCSLIB（LGPL-3.0，官方 https://www.atnf.csiro.au/people/mcalabre/WCS/ ；镜像 Punzo/wcslib SPDX=LGPL-3.0）；astropy.wcs（BSD-3-Clause，https://github.com/astropy/astropy）≥7.0.1；ERFA（BSD-3-Clause 类，liberfa/erfa）。
@@ -271,16 +270,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - **极区保守剪枝/球面 bbox**：Project-defined（§8/§11）；球面几何基元可对照 astropy/ERFA 的独立实现。
 - **Y-up↔Y-down 与 |det(CD)| 不变量**：Paper I §2.1.1 的像素/世界定义 + Project-defined 符号规则（§5）。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

@@ -98,26 +98,11 @@ flowchart LR
 
 ---
 
-## 9 SCI-C 实测结论（RELEASE-04 / SCI-403）
+## 9 SCI-C 规范条款（control_ivar 定权、可辨识性、warning 码）
 
-实验单元 `实验/additive-sky-seamless/`（报告 `README.md`、结果 `results/*.json`、复跑 `code/run_all.sh`）。
-
-1. **`control_ivar` 是三臂中最优的采样权重**：伪影漏入 0.0245 e⁻，比 uniform（0.0651）小 2.7×、
-   比 `SNR²`（0.3203）小 **13×**；真值加权 RMS 亦最小（1.532 < uniform 1.674 < SNR² 2.069 e⁻）。
-   **边界（必须同引）**：相对 uniform 的 RMS 优势 8.5% 小于 NMC=20 的 MC 误差（std 0.698 e⁻），
-   ⇒ 在**噪声项**上与等权不可分辨；决定性优势在**偏差漏入**。
-2. **完整链路实测**：1374 采样点 / 4 帧（每帧 ≥4），星点掩膜覆盖最亮 0.1% 像素 100%，
-   掩膜面积占比 1.19%，联合天光面 49 节点、`identifiable = 1`（`r_eff == n_free`，n_free=49）、
-   χ²_red 0.771、δ_k 非零。
-3. **稀疏性实测**：稀疏模型 14,001 B vs 稠密栅格 8,389,129 B（**0.167%**）；
-   节点/像素 = 1.87e-4；按需求值 64² 块峰值 RSS 11,688 kB < 稠密物化 512² 的 14,568 kB；
-   子集现场求值与全网格求值**逐位相同**（δ_k、b_k 均为 0.0）。
-4. **真实数据**（M42 M1 T3 Red 4 帧）：生产天光面 rc=0、`identifiable = 1`（`r_eff == n_free` = 49）、χ²_red 1.004；同一次求解的 `κ(H_red) = 3.16e7` 是**诊断读数**，
-   **它的用途 = 诊断**（合格判定只看 `r_eff == n_free` ⟺ `κ < 1/τ`，τ = `rank_rtol`；产品键 `n_params` = 58 是参数计数、不是判据自由度，判据自由度 = `n_free`，与 `docs/science/PHASE2_UPM.md` 同一次求解读数（rank = n_nodes = 49、n_params = 58）自洽）。
-   真实帧间背景乘性斜率中位 0.995（0.806–1.323，分块动态范围仅 ~10 ADU ⇒ 不确定度大）。
-5. **收敛状态与容差**：`converged` 是状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`
-   （`p2_upm_convergence` 与 `p2_upm_model.json#identifiability.converged` 同源）。
-   绝对容差 `tolerance=1e-6` 在 ~300 e⁻ 尺度下 300 次迭代仍不收敛（判据与适用域见
-   `docs/science/PHASE2_UPM.md` §16.3）；**不收敛不阻塞**——产品照出、构建 rc 不变，
-   但 `warning_codes` 必须含 `P2-UPM-NOT-CONVERGED`（见 `11_upm.md` §4.6）。
+- **采样权重一律取 `control_ivar`**（`w_ki = control_ivar_ki`）：三臂对照（`control_ivar` / `uniform` / `SNR²`）的结论 = `control_ivar` 是**偏差漏入**最小的一臂；与等权相比其**噪声项**优势落在 MC 误差内，决定性优势在偏差漏入（依据 = `docs/science/CONTROL_WEIGHT_SNR.md`，读数见 `实验/additive-sky-seamless/results`）。
+- **可辨识性判据**：合格判定只看未正则化数据信息矩阵的 `r_eff == n_free`（等价于 `κ < 1/τ`，τ = `rank_rtol`）；`κ` 与 `n_params` 只作诊断读数、不作判据（口径正本 = `11_upm.md` §4.7 与 `docs/science/PHASE2_UPM.md`）。
+- **收敛与容差**：`converged` 是状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`（`p2_upm_convergence` 与 `p2_upm_model.json#identifiability.converged` 同源）；绝对容差 `tolerance=1e-6`，**不收敛不阻塞**——产品照出、构建 rc 不变，但 `warning_codes` 必须含 `P2-UPM-NOT-CONVERGED`（见 `11_upm.md` §4.6）。
+- **稀疏性**：稀疏点表按需求值，峰值内存随采样点数而非像素数增长；子集现场求值与全网格求值**逐位相同**（判据见 §8）。
+- **实测结论的承载面** = `实验/additive-sky-seamless/`（报告 `README.md`、结果 `results/*.json`、复跑 `code/run_all.sh`）；本页只写规范条款。
 

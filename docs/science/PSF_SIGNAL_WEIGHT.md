@@ -52,8 +52,8 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 >   标定集为 1000 幅 4096² 合成图（背景高斯 σ=0.001、均值 0.015、平均 1500 颗可检测星、
 >   Moffat β=4 FWHM=5 px），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。**未独立核验**：PCL 头文件在 `gitlab.com/pixinsight/PCL` 的常见路径上 404，该行数值与下一条元数据断言均待补一手锚点。
 >
-> **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；其最优性以本项目 L1 合成数据标定记录为判据。
-> - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/psfsw.h:42-64,137-138`。
+> **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp`；`lib/algorithms/photometry/include/astrocs/psfsw.h`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；其最优性以本项目 L1 合成数据标定记录为判据。
+> - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp`；`lib/algorithms/photometry/include/astrocs/psfsw.h`。
 
 对象身份 `psfsw_robust_weight` **已退役**（权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定，最高设计 §3.1）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），接受面 = 具名拒绝。上列特征描述的是**在役诊断量**必须保留的形态；为避免星表选择偏差，诊断量还必须满足以下约束：
 
@@ -117,7 +117,7 @@ C_out = R C_in Rᵀ
 6. 零星、少星、拥挤、严重梯度、云、拖线、不同 FOV 和不同波段都有 fail-closed 测试；
 7. 权重分量和最终权重的负向 mutation 必须使门变红。
 
-## 7a. SCI-B 定案结论（跨帧绝对 SNR 传递链，实验闭环）
+## 7a. 跨帧绝对 SNR 传递链的结论与判据
 
 > 依据：实验单元 `实验/absolute-snr/`（报告 `README.md`、结果 `results/b1..b6*.json`、复跑 `code/run_all.sh`，固定 seed 20260921）。
 > 本节只**确认**已有定义与给出实验判据，不改 §2/§3/§5 公式、不改默认容差。
@@ -128,7 +128,7 @@ C_out = R C_in Rᵀ
 4. **拟合权重 ≠ 堆叠权重**：带杠杆 `h` 的拟合值方差为 `σ²h`，不能按 `1/σ²` 当独立测量堆叠（实测方差高 52.3%，解析 50.4%）；等杠杆时两者严格等价（损失≡0）。稳健拟合（Huber k=1.345, IRLS）在 5%×10σ 离群下把偏差从 0.426 压到 0.084，干净数据下不损失。
 5. **Phase3 传递**：`C_out=R C_in Rᵀ`（对角元 MC/解析 0.9980）；点源信息量必须按**输出 PSF**与**完整 C_out** 重算（`Var=1/(P_outᵀC_out⁻¹P_out)`，实测 9.105 vs 解析 9.071）；只取对角 `Σc_k²u_k` 使输出方差低估 1.37 倍，其"宣称方差"只有实际散度的 32.5%。
 6. **非退化判据（强制）**：空间权重/σ 场的精度判据用**权重效率损失** `E=Var_w/Var_opt−1`（E=0 ⇔ σ̂∝σ_true，全局尺度相消）；"帧级臂 RMSE ≤ K·s_field"类判据对任意真值场恒真（对抗场下 E=7.17 仍绿），**证据资格 = 空**（`results/b6_gates_audit.json`）。
-7. **三口径适用域**：默认 `sparse_reconstruct`(Δ=64) 在地面视宁度受限域三帧全部胜出帧级标量；HST 类高对比结构域帧级标量更优（cell 稳健 MAD 偏差随 Δ 从 +0.029 增到 +0.301 dex）。稠密口径 4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 64 倍，**稠密超门结论成立**。
+7. **三口径适用域**：默认 `sparse_reconstruct`(Δ=64) 在地面视宁度受限域三帧全部胜出帧级标量；HST 类高对比结构域帧级标量更优——cell 稳健 MAD 偏差随 Δ **单调增大**（单调性为结构性主张；斜率与取值是 fixture 专属读数、不迁移，正本 = `实验/absolute-snr/results/b3_domain_map.json`）。稠密口径 4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 64 倍，**稠密超门结论成立**。
 
 ## 8. 命名与构成边界
 
@@ -138,25 +138,14 @@ C_out = R C_in Rᵀ
 - 未声明共同星集/selection function 就跨天区比较 PSFSW；
 - 用 PSFSW 的经验成功替代 Q/W 与 covariance 的科学产品。
 
-## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 9 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动 §2/§3/§5 公式与 §7 验收。
-
-- **点源信息权重 Q=aPᵀC⁻¹d、W=a²PᵀC⁻¹P、Var(F)=1/W**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339；Zackay & Ofek 2017, ApJ 836, 187（arXiv:1512.06872）。
-- **proper coadd / 信息保持组合**：Zackay & Ofek 2017, ApJ 836, 188（arXiv:1512.06879）。
+- **点源信息权重 Q=aPᵀC⁻¹d、W=a²PᵀC⁻¹P、Var(F)=1/W**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339；Zackay & Ofek 2017, ApJ 836, 187（arXiv.06872）。
+- **proper coadd / 信息保持组合**：Zackay & Ofek 2017, ApJ 836, 188（arXiv.06879）。
 - **白噪声 W_info=a²/(σ_pix²·A_NEA)、A_NEA=1/ΣP²**：噪声等效面积定义见 Horne 1986/Naylor 1998；实现对照 photutils（BSD-3-Clause）的 effective PSF/等效面积与 MoffatPSF 归一。
 - **PSFSW/PSFSNR 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）；**ACSD 不照抄其标定常数**（§3）。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II。
-- **已定案（原 UNRESOLVED）**：与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` 语义冲突已按「同名两义分离」定案（claim `FIX-SCI-SNR-CANON-001`）：Phase1 HiPS 的 `frame_snr` = **点源（PSF）信号 SNR**（纯信号/噪声，`F_signal` 已扣局部背景、天光只进 `σ_F`）；stage2 的 `local_snr`/`frame_snr_medians` = 相对质量权重场（改名 `quality_weight`）。
+- **同名两义分离**：`frame_snr` 在本文件与 Phase1 HiPS 文件头中同名两义，**必须**分别命名——Phase1 HiPS 的 `frame_snr` = **点源（PSF）信号 SNR**（纯信号/噪声，`F_signal` 已扣局部背景、天光只进 `σ_F`）；stage2 的 `local_snr`/`frame_snr_medians` = 相对质量权重场，字段名 `quality_weight`。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

@@ -17,7 +17,7 @@
 
 ## 3. 输入/输出数据合同
 
-- **输入**：定标信号、variance/ivar、validity、PSF 模型/地图、光度响应 `a_k`、检测目录。
+- **输入**：定标信号、variance/ivar、validity、光度响应 `a_k`、检测目录（含逐源 `fwhm`；交付样本按测光有效源构造，不取 PSF 参数面）。
 - **输出**（独立对象，各自独立成面）：
   - `source_snr`：`SNR_s = F_hat_s / σ_F,s`（源测量诊断，依赖源亮度）；
   - `depth_m5`：`m5 = ZP − 2.5log10[5σ_F(ref)]`（帧/位置深度表达）；
@@ -65,7 +65,7 @@ SNR_k²(F_ref,k) = F_ref,k² W_psf,k
 
 **数学定义与换算**（**逐帧**参考通量 `F_ref,k` + 公共锚 `F0`，正本见 `docs/science/PSF_SIGNAL_WEIGHT.md`）：
 ```text
-# 帧级 SNR（未加权原始信噪比，写入文件头）：真实源信号 / 真实噪声（通量型口径，Horne 1986）
+# 帧级 SNR（未加权原始信噪比，写入文件头）：真实源信号 / 真实噪声（通量型口径；Horne, K. 1986, PASP 98, 609, DOI: 10.1086/131801）
 SNR_k(F_ref,k) = F_ref,k · sqrt(W_psf,k) = F_ref,k / σ_F,k
 W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k  （点源信息，σ_F,k² = 1/W_psf,k；信噪比本身未做任何加权）
 F_ref,k = 10^(−0.4·(m_ref − ZP_k))，m_ref = 6.0；F_ref,k · k_photo,k = F0（公共锚，严格恒等）
@@ -74,8 +74,8 @@ F_ref,k = 10^(−0.4·(m_ref − ZP_k))，m_ref = 6.0；F_ref,k · k_photo,k = F
 w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对性只在同一帧内成立）
 ```
 
-- **逐帧 `F_ref,k`（不是组内公共常数）**：`F_ref,k = 10^(−0.4·(m_ref − ZP_k))` 由**该帧自己的** `ZP_k` 决定，`m_ref = 6.0`，`reference_flux_scope = frame_independent_fixed_magnitude`；公共锚 `F0 = 10^(−0.4·(m_ref − ZP_syn))` 与帧无关，严格恒等 `F_ref,k · k_photo,k = F0`（实测偏差 ≤ 4.3e-4）。配对性只要求**同一帧内** SNR 与 `F_ref` 同源，**不要求跨帧相等**；不同指向/不同光学系统的帧**合法地**有不同 `F_ref,k`，**不设组间 `F_ref` 硬闸门**。
-- **`m_ref = 6.0` 适用域警告**：`ZP_syn` 由 Gaia DR3 XP 绝对 XPSD 谱经本帧滤光片/QE **正向合成**，`F_ref,k` 是在**线性区外**的形式外推（实测：M42 Red 300 s 超饱和 1899×；HST M16 F657N 超 WFC3/UVIS 满井 1.9e4×）。作为**参考电平仍良定义**（天光限下 `SNR ∝ F_ref`），但**该值的用途 = 参考电平**（6 等星档参考）。
+- **逐帧 `F_ref,k`（不是组内公共常数）**：`F_ref,k = 10^(−0.4·(m_ref − ZP_k))` 由**该帧自己的** `ZP_k` 决定，`m_ref = 6.0`，`reference_flux_scope = frame_independent_fixed_magnitude`；公共锚 `F0 = 10^(−0.4·(m_ref − ZP_syn))` 与帧无关，严格恒等 `F_ref,k · k_photo,k = F0`。配对性只要求**同一帧内** SNR 与 `F_ref` 同源，**不要求跨帧相等**；不同指向/不同光学系统的帧**合法地**有不同 `F_ref,k`，**不设组间 `F_ref` 硬闸门**。
+- **`m_ref = 6.0` 适用域警告**：`ZP_syn` 由 Gaia DR3 XP 绝对 XPSD 谱经本帧滤光片/QE **正向合成**，`F_ref,k` 是在**线性区外**的形式外推（真实帧可饱和或超满井）。作为**参考电平仍良定义**（天光限下 `SNR ∝ F_ref`），但**该值的用途 = 参考电平**（6 等星档参考）。
 - **口径澄清（与 PixInsight 式[18]的区别）**：上式 frame_snr 是**通量型**信噪比 `F_ref,k/σ_F,k`（一次方比），逆方差换算 `w_k=SNR_k²/F_ref,k²=1/σ_F,k²` 严格成立；PixInsight 式[18] PSFSNR 是**功率比型** `(Σf)²/σ_n²`（平方比，本身已是 SNR² 量级），不能再做 `SNR_k²/F_ref,k²` 换算。ACSD 只对标 PSFSNR 的方法学（恒星测光取信号、稳健噪声、独立背景），数学上采用通量型口径以保证与逆方差叠加严格自洽。
 - HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目标的叠加消费，因此入库的是客观的未加权 SNR（与具体集成无关的观测量）；权重在 Phase2 集成时按天球像素对应的输入帧集合现场计算。
 - 稀疏帧内层启用时，每个控制点同样存**未加权的绝对 SNR(x,y)**（与帧级 SNR 同一物理定义、同一逐帧参考通量 `F_ref`；绝对量本身，不是相对因子），而非权重。
@@ -97,15 +97,15 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **不静默降级**：输入无稀疏层而路径为 `sparse_reconstruct`（含默认）⇒ 按帧级执行但**必须显式记录实际路径**（`snr_path_effective`）并计数；稀疏层存在但损坏/不可重建 ⇒ 显式失败；
 - 存储量/精度折中与显式指定口径见 §5 配置项。
 
-**实测适用域边界（三条，`实验/absolute-snr` EXP-04；判据 E = `Var_w/Var_opt − 1`，`E=0 ⇔ σ̂ ∝ σ_true`）**：
+**适用域边界（三条，判据 E = `Var_w/Var_opt − 1`，`E=0 ⇔ σ̂ ∝ σ_true`；完整适用域图谱与读数 = `实验/absolute-snr`）**：
 
-1. **HST 类高对比域：失效边界 Δ\* 与重建算子强绑定**。定义 Δ\* = 「该算子 E 首次劣于帧级臂的最小 Δ」：`bilinear_regular_grid_v1` **Δ\*=32 px**；默认 `natural_bicubic_spline_clip_v1` **Δ\*=32 px（一步都没推后）**；`..._mesh_median_v1` **Δ\*=128 px**。生产 Δ=64 ⇒ 该域上现行双线性比「退化成帧级」差 **2.1 倍**（0.1136 vs 0.0530）、默认档差 **2.6 倍**（0.1375 vs 0.0530），**只有 mesh 档（0.0490）胜出**。⇒ 该域的结论必须写成「在某个算子下」，不能只写「帧级更优」；
-2. **未分辨结构域（cell 内 ℓ_u ≪ Δ）：没有任何重建算子能救回来**。cell 稳健尺度被 cell 内未分辨结构抬偏是主导项：E 从可分辨域的 0.0091 跳到 0.4364（48 倍），且该域内算子间极差只有 **27.7%**（0.4345–0.5549）⇒ 算子选型在此域不是主要矛盾，控制点估计量（结构感知局部 σ）才是；
-3. **M42 类真实地面帧：稠密与稀疏在 ~15% 内互有胜负**。三帧实测 M1/M2 稠密略胜（0.0312/0.0268 vs 稀疏 0.0323/0.0313）、**M4 稀疏胜 12%**（0.0246 vs 0.0280）⇒ 该域只能给**定性**结论（「稠密的价值不足以抵偿 2048× 存储」），**结论口径 = 两臂互有胜负**。
+1. **HST 类高对比域：失效边界 Δ\* 与重建算子强绑定**。Δ\* = 「该算子 E 首次劣于帧级臂的最小 Δ」：`bilinear_regular_grid_v1` 与默认档 `natural_bicubic_spline_clip_v1` 的 Δ\* 相同，`..._mesh_median_v1` 的 Δ\* 更大。生产 Δ=64 ⇒ 该域上现行双线性与默认档都不如「退化成帧级」的兜底臂，**只有 mesh 档胜出**。⇒ 该域的结论必须写成「在某个算子下」，不能只写「帧级更优」；
+2. **未分辨结构域（cell 内 ℓ_u ≪ Δ）：没有任何重建算子能救回来**。cell 稳健尺度被 cell 内未分辨结构抬偏是主导项（该域的 E 比可分辨域高两个数量级），且该域内算子间极差小 ⇒ 算子选型在此域不是主要矛盾，控制点估计量（结构感知局部 σ）才是；
+3. **M42 类真实地面帧：稠密与稀疏互有胜负**，差值量级不足以抵偿稀疏层的存储优势 ⇒ 该域只给**定性**结论（**结论口径 = 两臂互有胜负**）。
 
-- 判据口径两条已知局限（与结论同读）：① **E 对乘性偏差完全免疫**——两个臂可以在 E 完全相同（均 0.0530）而水平偏差相差 8.7 倍（0.094 vs 0.818 dex）⇒ E 只回答「权重效率」，**不能替代水平偏差判据**；② 「帧级臂 RMSE ≤ K·s_field」类判据对任意真值场恒真（K 足够大即可），**无证据资格**。
+- 判据口径两条已知局限（与结论同读）：① **E 对乘性偏差完全免疫**——两个臂可以在 E 完全相同（均 0.0530）而水平偏差相差数倍（dex 量级）⇒ E 只回答「权重效率」，**不能替代水平偏差判据**；② 「帧级臂 RMSE ≤ K·s_field」类判据对任意真值场恒真（K 足够大即可），**无证据资格**。
 
-### 4.2a σ_sky 口径冻结（防读出噪声双计；SCI-B D1 定案）
+### 4.2a σ_sky 口径冻结（防读出噪声双计）
 
 - **唯一口径规则**：逐像素噪声 `σ_i² = σ_sky,i² + (RN/g)² + F·P_i/g`，**读噪只出现一次**。`sigma_sky_adu` 这个入参**只承载一种语义**，调用方必须显式声明是哪种；**择一依据 = 显式声明**。
 - **入参语义枚举（二选一，必填）**：
@@ -118,12 +118,11 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **决策树（调用点实现口径）**：
   1. `sigma_sky_source=shot_noise_only` 且 `gain_e_per_adu>0 && read_noise_e>0` ⇒ 走 `σ_sky,散粒² + (RN/g)² + F·P_i/g`（设计本意路径）；
   2. `sigma_sky_source=empirical_total_rms` ⇒ 只加源泊松项 `F·P_i/g`，**不再加** `(RN/g)²`；
-  3. `gain_e_per_adu<=0`（gain 未知，PSF 行路径）⇒ **源泊松项 `F·P_i/g` 同样不可加**——该项含 `1/g`，无 `g` 即无法计算 ⇒ 退回**天空受限**口径 `σ_F² = σ_sky²/ΣP_i²`，**不加** `(RN/g)²`。此口径下 SNR **系统性偏高**，是**上界**而不是绝对 SNR（解析式 `SNR_rep/SNR_true = √(1+F/σ_bg²)`；φ=0.5 偏高 41%、φ=0.95 偏高 347%）⇒ 产品必须标 `snr_caliber = upper_bound_no_gain` 并带 `snr_degraded_reason`，**该值的用途仅限上界诊断**（最高设计 §2.2 的交付物是绝对 SNR）；
+  3. `gain_e_per_adu<=0`（gain 未知，PSF 行路径）⇒ **源泊松项 `F·P_i/g` 同样不可加**——该项含 `1/g`，无 `g` 即无法计算 ⇒ 退回**天空受限**口径 `σ_F² = σ_sky²/ΣP_i²`，**不加** `(RN/g)²`。此口径下 SNR **系统性偏高**，是**上界**而不是绝对 SNR（解析式 `SNR_rep/SNR_true = √(1+F/σ_bg²)`，偏高幅度随背景受限程度增大）⇒ 产品必须标 `snr_caliber = upper_bound_no_gain` 并带 `snr_degraded_reason`，**该值的用途仅限上界诊断**（最高设计 §2.2 的交付物是绝对 SNR）；
   4. 声明与实际来源不一致（声称散粒而来源为经验总 rms，或反之）⇒ **fail-closed 拒绝**，**择一依据 = 显式声明**，告警不构成放行。
-- **实测证据**（`实验/absolute-snr/results/b2_noise_terms.json`，N_MC=1000，复现 `python3 实验/absolute-snr/code/b2_noise_terms.py`）：双计使 `σ_F` 高估 **+12.8%**（基准点 F=1000 e⁻、B=100 e⁻/px、RN=10 e⁻、g=1.3、D=0.5）至 **+34.0%**（RN=50 e⁻ 最坏点）；天光主导点（B≥10⁵）偏差 <1%；正确口径臂在全部扫描点 ≤3σ。
-- **帧级 SNR 实证**（`实验/absolute-snr/results/b1_sky_scan.json`）：B=0 时双计臂 SNR=38.47 vs 定义式/真值 43.32/43.21（**−11.2%**）。
+- **证据**（`实验/absolute-snr`：项级扫描 N_MC=1000 + 帧级 SNR 扫描）：双计臂的 `σ_F` 系统性高估，天光主导区（`B ≥ 10⁵`）偏差可忽略；正确口径臂在全部扫描点 ≤3σ。读数与复现命令见该实验单元 `results/`。
 - **必须保持的不变量**：固定源通量、天光 B 增大 ⇒ SNR 单调下降、斜率 −1/2；双计会破坏该斜率。
-- **负例保护**：旧组合方式（经验总 rms 再加 `(RN/g)²`）必须被测试判红。
+- **负例**：`empirical_total_rms` 时再加 `(RN/g)²` 必须判红。
 
 ### 4.3 其他要点
 
@@ -133,16 +132,15 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 
 ### 4.4 噪声模型：A 为唯一生产模型
 
-- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:807` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:917-918`）链入主程序。
+- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt`）链入主程序。
 - 模型定义、参数语义、稳健噪声估计与掩膜规则的正本见 `docs/science/NOISE_MODEL.md`；本文件只登记插件侧接口与接线事实，不复制公式。
-- **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产调度路径**已挂** `variance` 帧内命名块——`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`（`module_adapters.cpp:8153-8157`），引擎侧 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，`true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status`/`var_reason`）；口径正本 = `08_drizzle.md` §7。
+- **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产调度路径**已挂** `variance` 帧内命名块——`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`（`module_adapters.cpp`），引擎侧 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，`true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status`/`var_reason`）；口径正本 = `08_drizzle.md` §7。
 - **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一像素必须落在两态之一 —— **可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`；**不可用** `variance=0 ∧ ivar=0`。
   平面预测 ≤ 0、或生效 floor / 输出值在 float32 中不可表示（下溢为 0 / 上溢为非有限）的像素取不可用态；不可用方差的落盘值 = 显式不可用态本身——
   floor clamp 会把「模型在此处失效」发布成 `ivar=1/floor` 的极大权重；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。
   正本 = `docs/science/NOISE_MODEL.md` §5/§7/§9 与 `docs/contracts/DATA_SEMANTICS.md` §4a 三态表；
   门 = `ctest -R p1noise_negative`（`n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`）+ `ctest -R p1noise_selfcheck`（证明判据能红，非恒真）。
-- **影响面**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；逐像素**不确定度产品面**由生产调度路径经 A 的插件路径产出（接线在场：`module_adapters.cpp:8153-8157`）。凡「逐像素方差/不确定度已传播到产品」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据。
-- **行号说明**：本节的 `文件:行` 以符号名/文件名核对为准；工作树并发改动会使行号漂移。
+- **影响面**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；逐像素**不确定度产品面**由生产调度路径经 A 的插件路径产出（接线在场：`module_adapters.cpp`）。凡「逐像素方差/不确定度已传播到产品」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据。
 
 ### 4.4a 背景方差面的自适应拟合与 §5d 审计面
 
@@ -186,12 +184,12 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 | `nearest_control_point_v1` | 最近控制点 + 显式覆盖半径 | 散点层唯一合法算子 |
 
 - 算法（默认路径，全部 O(N)）：① 无效控制点（NaN，即 schema 的 `invalid_repr`）取最近有效控制点（等距并列取平均），**全部无效 ⇒ fail-closed**；② 可分离自然边界双三次样条（y 向 natural BC → x 向 natural BC）；③ 钳到有效控制值值域 `[min(ctrl), max(ctrl)]`。高对比档在 ① 与 ② 之间插入 3×3 mesh 中值滤波。非 NaN 的非有限值与 ≤0 是**非法值**（不是 invalid 表示）⇒ fail-closed；未识别算子标识 ⇒ fail-closed（默认档只对已识别算子标识生效）。
-- **值域钳制不可省（实测）**：去掉钳制后，光滑插值类在病态控制网格上的权重效率损失 E 由 1.007 / 0.294 升到 **1.44e4 / 2.48e4**，并会给出**负的 σ**（同网格实测 min = −0.2627 / −0.0616，非物理）；正常面上钳制的代价只有 ×0.998–1.004。
-- **mesh 中值滤波是必需项而非可选优化，且必须按域显式开启（实测）**：HST 类高对比域上默认路径单独使用 E=0.1375，比帧级兜底 0.0530 差 2.6 倍，叠加滤波后改善到 0.0490；而在解析可分辨域滤波造成 9.3 倍损失、在 M42 类真实地面帧上是全部稀疏算子中最差的（劣 39–74%）。⇒ **默认关**；
+- **值域钳制不可省**：去掉钳制后，光滑插值类在病态控制网格上的权重效率损失 E 上升若干数量级，并会给出**负的 σ**（非物理）；正常面上钳制的代价可忽略。读数见 `实验/absolute-snr`。
+- **mesh 中值滤波是必需项而非可选优化，且必须按域显式开启**：HST 类高对比域上默认路径单独使用劣于帧级兜底，叠加滤波后转为胜出；而在解析可分辨域与 M42 类真实地面帧上滤波造成显著损失。⇒ **默认关**；读数见 `实验/absolute-snr`；
 - **选择规则（按数据来源，不按控制网格自身推断）**：可判定 cell 内含未分辨点源（空间高分辨率 / HST 类）⇒ 声明 `..._mesh_median_v1`；地面 seeing-limited 与一般情形 ⇒ 默认档；**无法判断 ⇒ 默认档**（默认目标域上滤波有害）。该规则由 `sparse_recon_operator_for_source()` 显式承载。**从控制网格自身推断不可行**：两个候选标量诊断（相邻控制值差分比 ρ、`std(log10 ctrl)/ε_cell`）都不能把「滤波有益」与「滤波有害」的域分开，且在 16-bit 整数真实数据上直接失效（EXP-04 §4.3）；
 - 任何算子都必须满足四条**与选型无关**的约束：① **显式声明**——算子标识入 manifest；② **正齐次性** `R[a·v] = a·R[v]`（`a > 0`）——控制点值整体缩放时重建场按同一因子缩放，这是「帧内共模因子在权重口径下相消」成立的前提，带**数据无关固定先验均值**或向固定值收缩正则的算子（如固定先验均值的 GP/kriging）**不满足**该条；③ 在控制点处**精确复现**节点值；④ 越出定义域即 **fail-closed**，域外取值一律显式拒绝（外推/帧级回退各属另一路径）。不正齐次的算子若被选用，必须把 `homogeneity` 声明与「该算子下相对场**不能**由绝对场缩放得到」写入 manifest，消费侧据共模相消做的等价假设**以该声明为前提**（算子正齐次性的反例与残差量级见 `实验/absolute-snr` EXP-05 §3.1/§3.2）；
 - 控制点位置、取值、采样覆盖、`reconstruction_operator` 与 `snr_path_effective` 一并写入 manifest 与产品内容证据块。
-- **插值设置配置化＋运行日志输出，不随产物落盘**：词表只冻结算子标识与语义（上表）；算子级数值设置属**配置级**参数，由配置承载、不冻结进词表——备选 IDW 口径保持**备选定位**（不在上列冻结词表内），其 `idw_power` 默认 **1.0**（含噪最优带 0.5–1 上端；p=2 降级为无噪/光滑极限最优读数——终裁 = `实验/dense-snr-reconstruct` 分歧台账 D-05）、`K` = 16、重合点守卫 γ<1e-10，以及 mesh 滤波开关等，均按配置解析；**实现侧接线现状（如实登记）**：`snr_evaluator` 的兜底默认当前为 2.0（`snr_evaluator.h:109` 成员初始化与 `snr_evaluator.cpp` 的 ≤0 守卫），与终裁默认 1.0 尚未对齐，配置显式传值时不触发兜底；每次重建把**实际生效**的插值设置写入**运行日志**（IDW 口径含实测最优 `p*`（argmin）、`K` 与噪声档），**不随产物落盘**——产物面只按上条登记算子标识与层几何（manifest）。`p*` 依赖场形态与噪声档，不冻结单一「最优值」，随日志积累重标定。
+- **插值设置配置化＋运行日志输出，不随产物落盘**：词表只冻结算子标识与语义（上表）；算子级数值设置属**配置级**参数，由配置承载、不冻结进词表——备选 IDW 口径保持**备选定位**（不在上列冻结词表内），其 `idw_power` 默认 **1.0**（适用域 = 含噪场景，最优带 0.5–1 的上端；p=2 属无噪/光滑极限口径）、`K` = 16、重合点守卫 γ<1e-10，以及 mesh 滤波开关等，均按配置解析；**实现侧接线现状（如实登记）**：`snr_evaluator` 的兜底默认当前为 2.0（`snr_evaluator.h` 成员初始化与 `snr_evaluator.cpp` 的 ≤0 守卫），规范值 = 本表的 1.0，配置显式传值时不触发兜底；每次重建把**实际生效**的插值设置写入**运行日志**（IDW 口径含实测最优 `p*`（argmin）、`K` 与噪声档），**不随产物落盘**——产物面只按上条登记算子标识与层几何（manifest）。`p*` 依赖场形态与噪声档，不冻结单一「最优值」，随日志积累重标定。
 - **控制点局部 σ 必须结构感知（数值准确的必要条件）**：控制点存绝对 SNR 只保证**表示正确**，不保证**数值准确**——后者完全由局部 σ 估计器决定。把估计作用域从整帧朴素地换成区域（同一 recipe + 更小窗口）**不够**：整帧口径的结构污染只是被挪到更小尺度，cell 内的未分辨结构仍被算进稳健尺度。控制点的局部 σ **必须**用**结构感知**估计器：mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；估计器标识、`sigma_rho` 与 `quality_flags` 一并入 manifest。估计器认证、逐区域偏差与适用域见 `docs/science/CONTROL_WEIGHT_SNR.md` §8b 与 `实验/absolute-snr`（EXP-03 的 R0/R1/R2）。
 
 ### 4.6 输出独立性与分面约束
@@ -248,7 +246,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **加性背景平移不改变信号项**（注入恒定背景偏置，测光信号不变）；**天光散粒噪声增强时 `σ_n` 增大、帧级 SNR 按理论下降**；**单调性负例**：固定源通量、天光 `B` 增大 ⇒ SNR 单调下降，`B→∞` 时 `SNR→0`；
 - **注入-回收**：已知真值 `F_s` + 已知天光 + 已知噪声 ⇒ 回收 SNR = `F_s/σ_F`（三条路径各一组；不满足者判红）；
 - 稀疏层：启用/不启用输出结构正确，稀疏层值可重建验证；**三路径精度与存储量对比**：`dense` / `sparse_reconstruct` / `frame_reconstruct` 同输入重建稠密 SNR，报告精度差与存储量；无稀疏层而路径为 `sparse_reconstruct` 时实际路径须被显式记录（负例：静默降级判红）；
-- **重建算子 Oracle（能红能绿，`lib/algorithms/integration/phase2_integrate/oracle/`）**：① 正例——默认算子与独立复算的自然样条+钳制逐点一致、控制点自身复现残差 ~0、预置路径与单次调用逐位一致、1/8 worker 求值逐位一致；② 与实验单元 EXP-04 的算子实现逐像素对拍（容差 1e-12）；③ 负例注入——移除值域钳制 ⇒ 病态网格 E 由 1.007 爆到 1.44e4 判红；把 mesh 滤波档改成全局默认 ⇒ 默认目标域上默认档与滤波档持平（比值 9.26× → 1.00×）判红；移除 cell 中心几何门 ⇒ 角点锚定网格被接受判红；同时移除钳制与正值守卫 ⇒ 重建场出现负 σ（min = −0.2627）判红；
+- **重建算子 Oracle（能红能绿，`lib/algorithms/integration/phase2_integrate/oracle/`）**：① 正例——默认算子与独立复算的自然样条+钳制逐点一致、控制点自身复现残差 ~0、预置路径与单次调用逐位一致、1/8 worker 求值逐位一致；② 与实验单元 EXP-04 的算子实现逐像素对拍（容差 1e-12）；③ 负例注入——移除值域钳制 ⇒ 病态网格 E 爆增判红；把 mesh 滤波档设为全局默认 ⇒ 默认目标域上默认档与滤波档持平判红；移除 cell 中心几何门 ⇒ 角点锚定网格被接受判红；同时移除钳制与正值守卫 ⇒ 重建场出现负 σ 判红；
 - **稀疏层绝对语义判据（能红能绿）**：① 绿——控制点自身复现：在节点坐标处重建值 == 落盘控制点值（残差 ~0），且与帧级标量**无关**（同层配不同帧级标量，重建结果逐位相同）；② 红——按相对值解释：取 `SNR(x,y) = frame_snr × v(x,y)/median(v)` 时，节点重建值 ≠ 落盘值（除非 `frame_snr == median(v)`），该差异必须被判红；③ 红——schema 层：`sparse_snr_semantics` 声明为相对语义或缺失 ⇒ 合同测试判红；
 - 点源/面亮度口径分离：把面亮度 SNR 当帧级 SNR 使用必须判红；
 - **逐帧 `F_ref,k` 独立性负例**：人为要求组内 `F_ref` 相等（组间硬闸门）⇒ 必须判红——不同指向/不同光学系统的帧合法地有不同 `F_ref,k`；`w_k = SNR_k²/F_ref,k²` 的配对性**只在同一帧内**成立；

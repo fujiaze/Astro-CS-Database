@@ -2,8 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
 
-> ID: ALG-P2-REJ-001  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/rejection.cpp（2956 行，astrocs_phase2 静态库
+> 实现源: lib/algorithms/coverage/src/rejection.cpp（2962 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
@@ -58,7 +57,7 @@
 null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 同一政策）。
 
-## 3 逐符号锚（rejection.cpp 2956 行 / rejection.h 602 行，实测；锚 = `grep -n` + 花括号配对，行号一律照录实测值）
+## 3 逐符号锚（rejection.cpp 2962 行 / rejection.h 602 行；锚 = `grep -n` + 花括号配对，行号一律照录实测值）
 
 | 符号/段 | 锚（rejection.cpp） | 语义 |
 |---|---|---|
@@ -87,7 +86,7 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | scratch_median / scratch_mad | :1060-1068 / :1070-1073 | nth_element 中位（偶数均值）；MAD=median(|x−med|)，σ=1.482602218505602·MAD 由调用方乘 |
 | p2_rejection_semantic_id | :1082-1098 | 方法 → canonical semantic id（11 方法全覆盖） |
 | kPixelSmallNPolicy / p2_rejection_percentile_band_min_n | :1138-1146 | 小 N 决策点（kConservativeNone ⇒ 档下界 4）与查询入口 |
-| astrocs_n_map_method | :1148-1158 | 生产档逐几何 N 路由（1≤N≤3 none / N<6 percentile / N≤15 winsorized / else linear_fit） |
+| astrocs_n_map_method | :1154-1180 | 生产档逐几何 N 路由（kConservativeNone 且 1≤N≤3 → none / N<6 → percentile / N≥6 → winsorized_sigma） |
 | auto_method_forbidden | :1167-1179 | AUTO 只落到具名的自动方法；min/max 与 NoRejection 走 fail-closed 守卫 |
 | p2_reject_plan_resolve | :1182-1288 | planning 层 AUTO 解析 + typed 默认值（冻结表，§5 F1） |
 | p2_reject_plan_resolve_n | :1290-1301 | 逐 stack nominal_n 覆盖入口 |
@@ -105,9 +104,9 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 | reject_median_sigma_impl | :1833-1875 | median+SD 迭代 clip |
 | reject_minmax_impl | :1878-1910 | 固定 rank 一次性删除（不迭代；比较器仅按 value） |
 | reject_extreme_prior_impl | :1915-1965 | 已知先验 σ 极值检验（Grubbs 变体，原始值域；extreme_prior_valid :1971-1992） |
-| p2_reject_stack_ex | :1996-2201 | 唯一生产 kernel 入口（§4 状态机 + §5 F3/F14） |
-| p2_reject_stack_resolve_ex | :2203-2217 | 规划+执行合并入口（AUTO 在此消解） |
-| p2_reject_stack（compat） | :2222-2333 | 旧接口 adapter（资格层+MIN_SAMPLES :2250-2259+typed 换算+non-finite 覆盖） |
+| p2_reject_stack_ex | :2022-2227 | 唯一生产 kernel 入口（§4 状态机 + §5 F3/F14） |
+| 规划+执行合并入口 | —（定义已删除，全仓零消费者） | 等价能力由 §5 planning 层 `p2_reject_plan_resolve` + `p2_reject_stack_ex` 组合承接 |
+| p2_reject_stack（compat） | :2234-2333 | 兼容 adapter（资格层 + MIN_SAMPLES :2240/:2269 + typed 换算 + non-finite 覆盖） |
 | large_scale_grow_side | :2342-2406 | 8 邻域连通分量（DFS）→ 分量≥min_size 合格 → Chebyshev 半径扩张 → 只增不减 |
 | p2_large_scale_apply | :2410-2433 | 逐帧 low/high 独立半径调用；参数非法 rc=1 |
 | 继承阈值核对 / class id / applicability | :2449-2484 / :2534-2545 / :2552-2600 | 阈值继承核对、reason 分类、方法×N 适用域 WARN（W_PCT_GT8 / W_PCT_N4_FALLBACK 等） |
@@ -143,13 +142,13 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 
 | status | 值 | 触发条件（精确） | 锚（rejection.cpp） | 冻结测试证据 |
 |---|---|---|---|---|
-| OK | 0 | 判定完成且全栈无 UNDERDETERMINED reason 且 accepted_count>0 | :2216-2218 | G6PermutationInvariance；V15ExPermutationInvarianceTyped |
-| MIN_SAMPLES | 1 | count==0（:2018）∨ 资格数 < 调用方显式 min_samples（compat :2250-2259） | :2038/:2256-2265 | R2MinSamples |
-| ALL_REJECTED | 2 | accepted_count==0 且 n>4（全拒非小栈） | :2214 | V15SatelliteTrail20Frames 负样本集；p2_reject_stack_ex 直测 |
+| OK | 0 | 判定完成且全栈无 UNDERDETERMINED reason 且 accepted_count>0 | :2222-2224 | G6PermutationInvariance；V15ExPermutationInvarianceTyped |
+| MIN_SAMPLES | 1 | count==0（:2018）∨ 资格数 < 调用方显式 min_samples（compat :2250-2259） | :2044/:2262-2271 | R2MinSamples |
+| ALL_REJECTED | 2 | accepted_count==0 且 n>4（全拒非小栈） | :2220 | V15SatelliteTrail20Frames 负样本集；p2_reject_stack_ex 直测 |
 | INVALID_INPUT | 3 | 任一候选 values 或 weights 非 finite | :2045-2054 | V15NoneDoesNotReacceptNaN |
-| UNDERDETERMINED | 4 | n ≤ underdetermined_n ∨ n < method minimum_n（:2067，**underdetermined_n 默认随 profile**：生产档 3 / 对照档 2 / 生产档×extreme_prior 1，:1218-1225）；或部分 UNDERDETERMINED reason（:2197）；或 n≤4 全拒容错 fallback（:2185-2193） | :2064-2073/:2185-2199 | V15SatelliteN2Underdetermined |
+| UNDERDETERMINED | 4 | n ≤ underdetermined_n ∨ n < method minimum_n（:2093，**underdetermined_n 默认随 profile**：生产档 3 / 对照档 2 / 生产档×extreme_prior 1）；或部分 UNDERDETERMINED reason；或 n≤4 全拒容错 fallback；或 `method = EXTREME_VALUE_PRIOR_SIGMA` 且先验 σ 缺失/非法（:2101-2108，fail-closed 全接受并记 UNDERDETERMINED） | :2085-2108 | V15SatelliteN2Underdetermined |
 | INVALID_CONFIGURATION | 5 | PERCENTILE×norm≠MEDIAN_CENTER（:2038-2045）∨ RCR×norm≠NONE（:2046-2052）∨ EXTREME_PRIOR×norm≠NONE（:2055-2062） | :2038-2062 | V16InvalidConfigurationCombos |
-| INVALID_METHOD | 6 | plan.method 出界（含 AUTO=10 进 kernel） | :2020-2033（status :2031） | V17InvalidMethodStatus |
+| INVALID_METHOD | 6 | plan.method 出界（含 AUTO=10 进 kernel） | :2020-2033（status :2037） | V17InvalidMethodStatus |
 | INTERNAL_ERROR | 7 | kernel 内部不变量破坏（现状不可达；保留态） | rejection.h 枚举定义 P2_STATUS_INTERNAL_ERROR = 7（kernel 不可达，无 rejection.cpp 锚） | —（设计保留） |
 
 ### 4.2 per-sample reason（rejection.h:71-77；与 status 分离，SCI §7 状态分离不变量）
@@ -208,10 +207,10 @@ AUTO 路由（N = 该输出像素的几何覆盖帧数，一次解析；两档�
   生产档 astrocs_adaptive_pixel（:1148-1158 唯一决策点）:
     1 ≤ N ≤ 3  → NONE（不排异，直接逆方差加权积分）
     4 ≤ N ≤ 5  → PERCENTILE
-    N ≥ 6      → WINSORIZED_SIGMA   （M3 裁决 2026-09-25：原 N ≥ 16 → LINEAR_FIT 档改投）
-  对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（:1262-1268）:
+    N ≥ 6      → WINSORIZED_SIGMA   （`n ≥ 16` 档同投 winsorized）
+  对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（:1172-1176）:
     N < 6 → PERCENTILE;  6 ≤ N ≤ 15 → WINSORIZED_SIGMA;  N > 15 → LINEAR_FIT
-  min/max 不用于生产（AUTO 禁止产出 min/max 与 NoRejection，生产路径守卫 fail-closed
+  min/max 不用于生产（AUTO 只落到具名自动方法，生产路径守卫 fail-closed
   :1167-1179/:1272-1278）
   minimum_n = method_minimum_n(method)                        :1280
 profile 合法集 = {astrocs_adaptive_pixel(生产默认, Astro Celestial Sphere Database（ACSD） 自研),
@@ -238,7 +237,7 @@ profile 合法集 = {astrocs_adaptive_pixel(生产默认, Astro Celestial Sphere
              (q & required)==required)                     :1429-1433
 合格样本紧凑写入 values/weights/support/frame_ids            :1435-1445
 source_indices[cnt] = s（eligible→original slot 权威映射;
-  ivar/quality/variance 一律经此映射，禁止 compact index 猜测,
+  ivar/quality/variance 一律经此映射；compact index 猜测恒不接受,
   h:350-355 PHASE2_IVAR_WIRING）                            :1438-1439
 诊断计数 invalid_finite（含非有限 weights）/valid/support/quality :1403-1404/:1410-1433
 ```
@@ -565,9 +564,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 3. 阈值表（4.0/3.0/8；5.0/3.5/8；0.05/10；0.2/0.1；1/1/4；
    minimum_n 注册表）——rejection.cpp:1-12/:1226-1251/:982-999；
    阈值表取值 = 上列冻结值（"效果好"不是重定义依据，SCI §9a）。
-4. AUTO 路由（生产档 1≤N≤3 none / 4≤N≤5 percentile / **N≥6 winsorized**
-   （M3 裁决：原 N≥16 linear_fit 档改投）；对照档 N<6 percentile / 6..15
-   winsorized / N>15 linear_fit，**未随 M3 改动**）
+4. AUTO 路由（生产档 1≤N≤3 none / 4≤N≤5 percentile / **N≥6 winsorized**，
+   `n ≥ 16` 档同投 winsorized；对照档 `wbpp_2_9_1` 档界 = N<6 percentile /
+   6..15 winsorized / N>15 linear_fit）
    与 nominal n 一次解析（解析结果即最终值，per-pixel n_eff 重选不在其列，SCI §7/§10）。
 5. normalization 默认 MEDIAN_CENTER + floor 1e-12；PERCENTILE/RCR/
    EXTREME_PRIOR 的 normalization 绑定（:2036-2062）。
@@ -612,7 +611,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   实现 MIN_SAMPLES 不一致（八态无 NO_CANDIDATES；NO_CANDIDATES 属积分域
   P2IntegrateStatus）（§7）；语义权威=本文件 §4.1。
 - **DISP-P2REJ-003**（锚漂移，非语义）: 外部文档行号引用与实测
-  （rejection.cpp 2956 行 / rejection.h 602 行）不符时（§7）；
+  （rejection.cpp 2962 行 / rejection.h 602 行）不符时（§7）；
   行号权威=本文件 §3。
 - **DISP-P2REJ-004**（合同级限制）: minmax 比较器仅 value，等值
   tie-break 未显式冻结（§7）；整改候选=显式 index tie-break + 等值门。
@@ -726,7 +725,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 13 追溯
 
-- 实现: lib/algorithms/coverage/src/rejection.cpp（2956 行）+
+- 实现: lib/algorithms/coverage/src/rejection.cpp（2962 行）+
   lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）（实测）。
 - 合同: DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
@@ -776,7 +775,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   TEST-P2-REJ-001，设计冻结 VERIFIED + 可执行 MISSING 双
   statement）——由主控写入，本节仅声明预期终态。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
 > 本节只给可核验出处与参考实现，不改动本文件任何公式、锚点、阈值与容差。
 
@@ -786,16 +785,10 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **winsorization/稳健尺度**：Hoaglin, Mosteller & Tukey (eds.) 1983, *Understanding Robust and Exploratory Data Analysis*, Wiley（ISBN 0-471-09777-2）——书籍级背景。
 - **Tukey biweight**：Beaton, A. E. & Tukey, J. W. 1974, *The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data*, Technometrics **16**, 147-185（DOI [10.1080/00401706.1974.10489171](https://doi.org/10.1080/00401706.1974.10489171)）——**本层 11 个方法均不使用 biweight 核**，该引用只作稳健估计背景，不作为任何方法的语义依据。
 - **clipped-mean/伪影**：Gruen, D., Seitz, S. & Bernstein, G. M. 2014, PASP **126**, 158（页面级未核验）。
-- **档界来源**：PixInsight WBPP **2.5.9** `WeightedBatchPreprocessing-engine.js:1421-1429` `bestRejectionMethod()`（官方包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`；非学术软件来源。**旧引文 `BPP-FrameGroup.js:1304-1312` 作废**：该文件名不存在于任何官方包，且 `n>15 → LinearFit` 在 1.4.2–2.5.9 任何版本均不成立）。IRAF `combine`/`imcombine`（方法族命名来源；`reject` 值域 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，**无 `lfitclip`/`winsorize`**）。
-- **核语义来源（订正）**：`linear_fit` = 官方**式[21]/[22]** + NR 3rd ed. §15.7.3；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/REJECTION.md` §5/§8a 本层定义。**Siril 1.4.3 是次生参考实现**（上列 `:31-44` 用于掩码逐元素对拍），**不是核语义归属**。
+- **档界来源**：PixInsight WBPP **2.5.9** `WeightedBatchPreprocessing-engine.js:1421-1429` `bestRejectionMethod()`（官方包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`；非学术软件来源）。IRAF `combine`/`imcombine`（方法族命名来源；`reject` 值域 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，**无 `lfitclip`/`winsorize`**）。
+- **核语义来源**：`linear_fit` = 官方**式[21]/[22]** + NR 3rd ed. §15.7.3；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/REJECTION.md` §5/§8a 本层定义。**Siril 1.4.3 是次生参考实现**（上列 `:31-44` 用于掩码逐元素对拍），**不是核语义归属**。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---
@@ -806,5 +799,5 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
 - 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照，**次生参考实现对拍**）。
-- **真实数据读数（M42 沿线，口径与分母显式）**：显著点（卫星帧留一稳健 z>5）漏检 **3.92%（220/5611）**、真·单异常口径检出率 **99.34%（4526/4556）**；其中 `n ≥ 16`（**M3 前**为 linear_fit 档，M3 后改投 winsorized）显著点漏检 **9.67%（160/1655）**、`n = 6..15`（winsorized 档）**1.52%（60/3956）**。*「5785 点全作分母 = 4.96%」的旧读法查无实据*（分母混入 174 个无 >5σ 异常的点）。权威口径见 `docs/science/REJECTION.md` §17；复现 = `run/REJECT-DOCFIX-01/scripts/m3_m5_eval.py` + `m3_m5_metrics.py`（生产 kernel 复现，与产品掩码 5744/5744 一致）。
+- **真实数据判据（M42 沿线，口径与分母显式）**：显著点以「卫星帧留一稳健 z>5」判定，分母口径 = 全域显著点；漏检率与检出率按分档（`n ≥ 16`、`n = 6..15`）分别统计。读数正本 = 实验/m42-realdata/results/。权威口径见 `docs/science/REJECTION.md` §17；复现入口 = 生产 kernel 与受控真值脚本 `lib/algorithms/coverage/tools/controlled_rejection_truth.py`。
 

@@ -16,7 +16,7 @@
 
 ## 3. 输入/输出数据合同
 
-- **输入**：检测目录（像素坐标）、参考星表匹配集、初始猜测（可空）、配置。生产节点（`astrocs.phase1.wcs-platesolve`）按帧读**校准后像素**自行做星点检测与匹配（实现 = 注入的 sdet 检测算子句柄：`module_adapters.cpp:4967` 调 `ipv_solve_from_memory_with_callback_d`，内部单次检测 + callback 同步导出供 PSF 复用），**不消费** `star_detection` 节点的星表 ⇒ 本节点在节点序上先于 `star-psf`（最高设计 §4.2）。
+- **输入**：检测目录（像素坐标）、参考星表匹配集、初始猜测（可空）、配置。生产节点（`astrocs.phase1.wcs-platesolve`）按帧读**校准后像素**自行做星点检测与匹配（实现 = 注入的 sdet 检测算子句柄：`module_adapters.cpp` 调 `ipv_solve_from_memory_with_callback_d`，内部单次检测 + callback 同步导出供 PSF 复用），**不消费** `star_detection` 节点的星表 ⇒ 本节点在节点序上先于 `star-psf`（最高设计 §4.2）。
 - **输出**：WCS（ICRS，像素中心/轴向/单位/SIP/PV 域明确）、匹配表、残差统计、验证记录。
 - 正反变换一致，独立星表残差验证。近似指向由 `wcs.init_source`（`header_pointing` / `config` / `neighbor_crval`）给出，只用于星表逆映射的初值；权威 WCS 是求解器在该指向下完成星表匹配与稳健迭代精化后的唯一输出（最高设计 §4.2）。解算轮次数是求解器实现细节，不是流程语义。
 - 参考：`docs/contracts/DATA_SEMANTICS.md` §18（DATA-P1-WCS：模块输入/输出数据合同正本）。
@@ -26,7 +26,8 @@
 - 匹配：像素→天球→匹配（几何+亮度辅助），拒绝离群；
 - 拟合：TAN 基（或按需 SIP/PV），最小二乘 + 稳健迭代；
 - 输出：CRPIX/CRVAL/CD/PC/CDELT/CTYPE，FITS 1-based 关键字、内部 0-based 像素中心；
-- 系统误差与随机误差分开报告（与测光一致）。
+- 系统误差与随机误差分开报告（与测光一致）；
+- **二轮精化 = 平移精化**：上游 WCS（如 HST HLSP drz 头部）与 Gaia DR3 之间存在系统平移，设计须能覆盖 ~2″ 量级；精化的必要性取决于上游 WCS 质量，不是流程固定开销（判据与读数正本 = `docs/science/PHOTOMETRY.md` §16，读数见 `实验/photometric-magnitude/results/step3_forward_vs_photflam.json` 的 `wcs_refinement`）。
 
 ## 5. 配置项
 

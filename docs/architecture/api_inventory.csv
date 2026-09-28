@@ -1,4 +1,4 @@
-# NOTE (P-133, 2026-09-29): export 列标 RETIRED 的行 = 已注销死符号（e891df28 重写注销, grep 实测无定义无引用），仅保留作历史引用白名单（check_doc_symbols api_syms 面），不计入现行导出计数；现行导出面以各头 SDET_EXPORT/SNR_API 等宏实测为准。
+# export 列标 RETIRED 的行 = 已注销符号：全仓无定义、无引用，保留作符号解析白名单（check_doc_symbols api_syms 面），不计入现行导出计数；现行导出面以各头 SDET_EXPORT/SNR_API 等宏的现场扫描为准。
 symbol,header,signature,export
 ACS_ERR_CANCELLED,lib/include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_CANCELLED = 6 },
 ACS_ERR_BUDGET,lib/include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_BUDGET = 8 },

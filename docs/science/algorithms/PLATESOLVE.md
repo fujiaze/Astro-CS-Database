@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
 
-> ID: ALG-WCS-001  范围: ALG-WCS-001..002  上游 SCI: SCI-WCS-001  状态: DERIVED  模块: plate_solve/cpp/ipv
-
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-WCS-001` (CRPIX=w/2+0.5, CD deg/pixel, cd_inv pixel/arcsec, SIP A/B 解析 / AP/BP 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）, Y-down)
@@ -360,9 +358,8 @@ astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - WCS 框架/TAN/SIP：Paper I §2.1.1；Paper II §2.1/§2.2/Table 1；Shupe et al. 2005, ASPC 347, 491（SIP）。
 - 可执行标准：WCSLIB（LGPL-3.0）、astropy.wcs（BSD-3-Clause）≥7.0.1。
@@ -371,11 +368,5 @@ API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 - Astrometry.net 语义对照（本文件 §8）：Astrometry.net（https://astrometry.net，许可证需网络核验）。
 - Huber IRLS（SIP 拟合）：Huber 1964, Ann. Math. Statist. 35, 73。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

@@ -2,8 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
-> ID: ALG-P2-INT-001  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库成员，
+> 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
@@ -61,12 +60,12 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 | │ ├ support 门 | :38-42 | support 非空且（!finite 或 ≤0）→ invalid_input |
 | │ ├ n_finite 计数 | :43 | ++n_finite |
 | │ ├ 权重门 | :44-48 | w=weights?w[i]:1.0；!finite → invalid_input；w<0 → invalid_input |
-| │ ├ 零权重 | :49 | w==0 → continue（合法零贡献；n_accepted/n_finite 已计入） |
+| │ ├ 零权重 | :56 | w==0 → continue（合法零贡献；n_accepted/n_finite 已计入） |
 | │ ├ sup_max 更新 | :49-50 | support 非空时 sup_max=max(sup_max,sup)——**位于权重分支（:51-57，含 :56 `w==0 continue`）之前**，作用域 = 通过资格门的全部 accepted 样本（canonical 语义；约束与负例判据见 §7/§11.3） |
 | │ ├ 累加 | :52-53 | vs+=w*x; wsum+=w（double 固定序） |
 | │ └ n_used 计数 | :56 | ++n_used |
 | ├ rc 同步 | :58-63 | invalid_input → INVALID_INPUT（rc=0，n_used=已计数部分） |
-| ├ 无正权重分支 | :65-69 | n_positive_weight==0 → status = (n_accepted==0 ? ALL_REJECTED : ZERO_VALID_WEIGHT)——**wsum==0 不做除法** |
+| ├ 无正权重分支 | :70-73 | n_positive_weight==0 → status = (n_accepted==0 ? ALL_REJECTED : ZERO_VALID_WEIGHT)——**wsum==0 不做除法**；ZERO_VALID_WEIGHT 下 support 按 :79-80 照常发布 |
 | ├ signal 计算 | :70 | signal = vs/wsum |
 | ├ support 输出 | :71 | support = support ? sup_max : 1.0（空支撑守恒） |
 | └ OK | :72 | status=OK，rc=0 |
@@ -86,12 +85,12 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 |---|---|---|---|---|
 | OK | 0 | ≥1 正权重 eligible 样本 | :72 | synthetic_gate:2630-2636（signal=10.75 门）；p2004 :69-126 |
 | NO_CANDIDATES | 1 | count==0 ∨ values==null | :23-26 | synthetic_gate:4747-4750 |
-| ALL_REJECTED | 2 | count>0 ∧ n_accepted==0 | :65-69 | synthetic_gate:2639-2643（status==2）；:4751-4756 |
-| ZERO_VALID_WEIGHT | 3 | n_accepted>0 ∧ n_positive_weight==0（全零权重 accepted） | :65-69 | synthetic_gate:4746-4760（计数器 n_candidates=2/n_accepted=2/n_finite=2/n_positive_weight=0/n_used=0）；p2004 :93-101 |
+| ALL_REJECTED | 2 | count>0 ∧ n_accepted==0 | :66-69 | synthetic_gate:2639-2643（status==2）；:4751-4756 |
+| ZERO_VALID_WEIGHT | 3 | n_accepted>0 ∧ n_positive_weight==0（全零权重 accepted） | :70-73 | synthetic_gate:4746-4760（计数器 n_candidates=2/n_accepted=2/n_finite=2/n_positive_weight=0/n_used=0）；p2004 :79-80 |
 | INVALID_INPUT | 4 | 任一 accepted 样本：values 非 finite ∨ support 非 finite/≤0 ∨ weights 非 finite/负 | :37/:38-42/:44-48 | synthetic_gate:4718-4738（NaN support）；:4690-4700（负权重）；:4723-4726 |
 
 - rc（函数返回）与 status 正交：rc=1 仅 stack/result null（:20）；
-  rc=0 时 status 载全部语义。**wsum==0 不做除法**（:65-69 分支先行），
+  rc=0 时 status 载全部语义。**wsum==0 不做除法**（:70-73 分支先行），
   无除零/NaN 泄漏路径。
 - 状态穷尽/互斥为 SCI §11 状态穷尽门冻结面；显式计数器
   （n_candidates/n_accepted/n_finite/n_positive_weight/n_used）供
@@ -117,7 +116,7 @@ eligibility（逐候选 i，候选索引固定序）:
 输出:
   invalid_input        → status=INVALID_INPUT（n_used=已计数）  :66-69
   n_positive_weight==0 → status = n_accepted==0
-                          ? ALL_REJECTED : ZERO_VALID_WEIGHT    :70-74
+                          ? ALL_REJECTED : ZERO_VALID_WEIGHT    :70-73
   否则                 → signal = vs / wsum                     :75
                          support = support ? sup_max : 1.0      :76
                          status = OK                            :77
@@ -130,10 +129,10 @@ eligibility（逐候选 i，候选索引固定序）:
   DESIGN §3.1/§5.3 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
   的派生量，SNR 只作 veto/质量门、不直接加权；
   等权分支/weights=null → 等权 1.0（stage2.cpp:1139）。
-  `ivar_valid?ivar:support` 是降级键 `legacy_allow_weight_fallback=true`
-  （默认 false）时的**显式降级路径**（stage2.cpp:1113-1120），
-  **不是逐样本 ivar 的定义**；
-  该降级发生时 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
+  权重面只认逐样本 ivar：降级键 `legacy_allow_weight_fallback` 已从合同删除，
+  其出现在输入中即被拒绝（module_adapters.cpp:11717）；缺 ivar 乘积的样本由
+  `ivar_product_missing` 计数，全部齐备时取 1.0、否则取 0.0（stage2.cpp:1113-1125）
+  ⇒ 缺失一律 fail-closed；该情形下 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
 - 本层冻结的改动面 = 空（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
   ZERO_VALID_WEIGHT；在本层引入 ivar/SNR 策略；改变求和顺序。
@@ -199,9 +198,9 @@ eligibility（逐候选 i，候选索引固定序）:
 | count==0 / values==null | NO_CANDIDATES | :23-26 |
 | stack/result null | rc=1（status 不变） | :20-21 |
 | 非 finite values/support/weights、w<0 | INVALID_INPUT | :37/:38-42/:44-48 |
-| w==0（部分） | 合法零贡献（signal 与移除该样本等价） | :49 |
-| w==0（全部 accepted） | ZERO_VALID_WEIGHT（不做除法） | :49/:65-69 |
-| n_accepted==0 | ALL_REJECTED | :65-69 |
+| w==0（部分） | 合法零贡献（signal 与移除该样本等价） | :56 |
+| w==0（全部 accepted） | ZERO_VALID_WEIGHT（不做除法） | :56/:70-73 |
+| n_accepted==0 | ALL_REJECTED | :66-69 |
 | support 全空（null） | support=1.0（空支撑守恒） | :71 |
 | n_used | = n_positive_weight（=通过门正权样本数） | :56 |
 
@@ -330,20 +329,13 @@ eligibility（逐候选 i，候选索引固定序）:
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
   （ACR 域）/ module_adapters.cpp:723-741 descriptor 占位。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42, DOI 10.1017/S0370164600014346）。**差异**：本层不编码 ivar 语义（§7）。
 - 最优叠加/信息保持：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - support=max：Project-defined（§5）；与 SCI-INT §5 同构。
 - 并行归约容差：IEEE 754-2019；Higham 2002。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

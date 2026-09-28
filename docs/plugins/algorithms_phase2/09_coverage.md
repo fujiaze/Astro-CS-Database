@@ -22,9 +22,10 @@
 
 ## 4. 算法与公式要点
 
-- 重叠图：帧间球面交叠（几何有效域交集）；
-- 记录有效面积、信息量（可推导到 point_information 的域）；
-- 连通分量：无连接分量不能假装在同一零点/背景基准；输出分组件或 fail-closed。
+- 重叠图：帧间球面交叠（几何有效域交集），以 MOC 表达（`Ω = MOC_1 ∪ … ∪ MOC_N`，NESTED）；定义、推导与适用域正本 = `docs/design/PHASE2_DETAILED_DESIGN.md` §3 与 `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（有效域语义）；
+- 记录有效面积（球面交叠面积积分，单位 deg²/sr）与信息量（可推导到 `point_information` 的域面；该量的定义与推导正本 = `docs/science/PSF_SIGNAL_WEIGHT.md`，插件侧口径见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.6）；
+- 连通分量：在几何有效域上按球面邻接求连通分量，互不相连的分量一律分组件输出，**不**按同一零点/背景基准合并；分量划分由 §5 的 `connected_components` 键控制。
+- **假设与适用域**：输入帧的同一零点/背景基准只在**连通分量内**成立；几何有效域不重叠的帧不构成同一分量（域外不做外推）。验证方式见 §8（解析重叠几何 + 断图检测）。
 
 ## 5. 配置项
 
@@ -35,7 +36,7 @@
 
 ## 6. 接口/ABI
 
-- entrypoint：Phase1 产品组 → 重叠图+coverage；
+- entrypoint：Phase1 产品组 → 重叠图+coverage；模块落点 = `lib/algorithms/coverage/src/coverage.cpp`（签名头 `lib/algorithms/coverage/include/astro/phase2/coverage.h`，C ABI 入口 `p2_coverage_build`；模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的 `astrocs.phase2.coverage`）；生产接线 = `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p2_op_coverage`；
 - 输出可被 sampling/upm/integration 消费。
 
 ## 7. 错误与边界

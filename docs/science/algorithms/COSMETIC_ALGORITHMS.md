@@ -2,7 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
 
-> ID 覆盖: ALG-COS-001..005  状态: CONTRACT_READY  上游: SCI-CAL-001  下游: DATA-P1-COS / API-COS-001 / API-P1-002 / TEST-COS-DESIGN-001
 > 实现唯一生产源 =
 > `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
 > `astrocs_calibration`（源清单 `lib/algorithms/calibration/CMakeLists.txt:20-25`）；C ABI 导出
@@ -30,7 +29,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - **单一生产源（冻结）**：本文档全部 `文件:行` 锚点在不写全路径时一律指
   `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
   `astrocs_calibration` 与 `astrocs_p1_calibration` 的生产源；
-  `lib/algorithms/calibration/CMakeLists.txt:20-25` 的 `CAL_PROD_SOURCES`
+  `lib/algorithms/calibration/CMakeLists.txt:20-25` 的 CMake 变量 `set(CAL_PROD_SOURCES …)`
   与根 `CMakeLists.txt:589-598` 的 `add_library(astrocs_calibration STATIC ...)`
   源清单均含它）；
   同名文件 `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp` **已退役**，
@@ -168,9 +167,9 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   **插值核的规范状态（冻结）**：SCI-CAL-001 §2 只登记 `method` 参数名，未规定
   插值核的数学形式；本模块的**唯一**插值核即本节两条（method=0 5×5 镜像反射
   中值、method=1 四方向 `1/dist` IDW），P1-COS-TEST 按本节公式冻结容差。
-  **要改插值核**（含把 method=1 改成真 bilinear）必须先改 SCI-CAL-001 §2 的
-  `method` 定义并走 ALG 变更流程——实现的取值面 = 本节公式，测试的 oracle 一律取自已冻结的核，没有任何测试会
-  按未冻结的核写 oracle。**要求**：任何 `method` 取值都必须落到本节两条之一，
+  **插值核与 `method` 语义变更必须先改 SCI-CAL-001 §2 的冻结定义并走 ALG 变更流程**；
+  当前 `method=1` 的实际核 = 四方向 `1/dist` IDW（本节公式）。实现的取值面 = 本节
+  公式，测试的 oracle 一律取自已冻结的核，没有测试按未冻结的核写 oracle。**要求**：任何 `method` 取值都必须落到本节两条之一，
   且核的适用域（孤立点 / 拉长结构 / 小帧）按本节声明，分支集合在本节内完整定义。
 - 并行/确定性: 逐像素独立，线程数无关；float 累加顺序 = 方向数组固定顺序
   d=0..3（确定性）。
@@ -216,7 +215,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
     母版尺寸与帧不符时显式判红 `ACS_ERR_PARAM`，不静默降级为恒等 pass）；
     ② 调度器路径 `lib/infrastructure/scheduler/src/module_adapters.cpp:2928-2932`
     （`p_dark_ok`/`p_bias_ok` = 母版可读 ∧ 尺寸相符；`ac_correct_frame(..., p_dark_ok ? m_dark.px() : nullptr, p_bias_ok ? m_bias.px() : nullptr, ...)`；
-    配置未给母版时该路径检测关闭，参与面经 `hot_source`/`cold_source` 如实留痕）。
+    配置未给母版时该路径检测关闭，参与面由 `hot_source`/`cold_source` 记录）。
     ⇒ **检测源 = 真实母版**（`dark==NULL`/`bias==NULL` 的 API 语义保留为
     配置面行为，见上条；no fabrication of valid coverage：不做假修复）。
   - 输出可等于输入缓冲? 现行 API 无别名约束登记（out 由调用方分配；
@@ -289,7 +288,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   cc_* 通道（cc_correct_median[data,bad_mask,H,W,window 奇数 3..15]/
   cc_detect_hot/cc_detect_cold/cc_last_error），唯一构建路径是同目录 Windows
   MinGW `Makefile`（产物 `cosmetic_corrector.dll`）；**不在任何 CMake 目标
-  内**（`lib/algorithms/calibration/CMakeLists.txt:20-25` 的 `CAL_PROD_SOURCES`
+  内**（`lib/algorithms/calibration/CMakeLists.txt:20-25` 的 CMake 变量 `set(CAL_PROD_SOURCES …)`
   与根 `CMakeLists.txt` 的 `astrocs_calibration` 源清单都不含它），仓内无消费者，`lib/algorithms/calibration/python/` 与
   `cosmetic_corrector.dll` 在当前树中不存在。**退役理由（逐条实测事实，非风格差异）**：
   | 项 | 生产源 `src/cosmetic_corrector.cpp` | 退役源 `cpp/cosmetic_corrector.cpp` |
@@ -300,8 +299,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   | 并行 | `schedule(static)` | `schedule(dynamic,64)` + reduction（:153） |
   | 邻域源 | 原帧 `data` | 备份副本 `backup`（:147,:172） |
   | 全局统计 | 单线程 median/MAD | 同口径但偶数样本用两次 `nth_element`（:39-45，数值等价） |
-  ⇒ 二者在**退化语义与边界语义上给出不同数值**，属两套独立实现。退役源
-  只作历史登记；现状依据与新测试 oracle 一律取自生产源；如需其能力（参数化
+  ⇒ 二者在**退化语义与边界语义上给出不同数值**，属两套独立实现。现状依据与新测试 oracle 一律取自生产源；如需其能力（参数化
   窗口）应迁入生产源并走 ALG 变更流程；权威口径始终是生产源。
 - 迁移落点: `lib/algorithms/cosmetic/`（P1-COS-IMPL 建 astrocs_p1_cosmetic.dll +
   C ABI adapter + plan/execute/cancel/inspect + ThreadLease 接线）；
@@ -390,11 +388,11 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 | DISP-COS-005 | `n = w·h` int 乘法无溢出防护（int31 域）；w·h>2^31 行为未定义 | cosmetic_corrector.cpp:231；ac_api.cpp:108-122 |
 | DISP-COS-006 | 检测/过滤 O(n) 额外内存（统计复制 + labels/sizes 向量）无上限防护（上限=帧大小，登记为常数界） | cosmetic_corrector.cpp:46-48,64-111 |
 | DISP-COS-007 | 无取消检查点（PHASE1_API_V1 §2 cosmetic 取消点=无；session 帧粒度取消为替代粒度） | cosmetic_corrector.cpp:229-265；PHASE1_API_V1 §2 |
-| DISP-COS-008 | 并行=OpenMP 进程级默认 team（ICV 可被 ac_set_num_threads 全局改写），不满足 ThreadLease 约束 D.3/D.4——迁移整改点 | cosmetic_corrector.cpp:126,147,166,254,258 |
-| DISP-COS-009 | 检测接线已整改：两条生产路径的检测源均为真实母版参考平面，母版尺寸不符显式判红（PARAM）不静默降级；遗留边界 = 调度器路径配置未给母版时检测关闭，参与面经 hot_source/cold_source 留痕 | `lib/phase1_session/p1_session.cpp:465-477`；`lib/infrastructure/scheduler/src/module_adapters.cpp:2928-2932` |
+| DISP-COS-008 | 并行=OpenMP 进程级默认 team（ICV 可被 ac_set_num_threads 全局改写），不满足 ThreadLease 约束 D.3/D.4 | cosmetic_corrector.cpp:126,147,166,254,258 |
+| DISP-COS-009 | 两条生产路径的检测源均为真实母版参考平面，母版尺寸不符显式判红（PARAM）不静默降级；边界 = 调度器路径配置未给母版时检测关闭，参与面由 hot_source/cold_source 记录 | `lib/phase1_session/p1_session.cpp:465-477`；`lib/infrastructure/scheduler/src/module_adapters.cpp:2928-2932` |
 | DISP-COS-010 | in-place（data==out 别名）未定义且未校验；out 与 data 重叠区域行为未登记 | ac_api.cpp:108-122 |
 | DISP-COS-011 | 镜像反射边界在 w<3/h<3 小帧下邻域自映射（重复计数；中值免疫偏移但 IDW 出界方向被 clamp 语义吸收），小帧语义未在 SCI 声明 | cosmetic_corrector.cpp:180-193 |
-| DISP-COS-012 | `method` 词表外取值的两条生产路径处置互斥：`p1_session.cpp:445-450` 显式失败（fail-closed），`module_adapters.cpp:2328-2329` 静默回落 median（fail-open，即已从 session 路径移除的旧形态）；同一配置在两条路径上得到不同产物，且 fail-open 侧无诊断 | `module_adapters.cpp:2328-2329`；对照 `p1_session.cpp:440-450` |
+| DISP-COS-012 | `method` 词表外取值的两条生产路径处置互斥：`p1_session.cpp:445-450` 显式失败（fail-closed），`module_adapters.cpp:2328-2329` 静默回落 median（fail-open，与 `p1_session.cpp` 的 fail-closed 处置并存于两条路径）；同一配置在两条路径上得到不同产物，且 fail-open 侧无诊断 | `module_adapters.cpp:2328-2329`；对照 `p1_session.cpp:440-450` |
 
 ## 11 关联
 
@@ -412,9 +410,8 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - 摘要引用: ALG-CAL-004（docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.4，
   P1-CAL 合同视角同一实现）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - **宇宙线剔除（单帧）**：van Dokkum 2001, PASP **113, 1420**（LA Cosmic，DOI 10.1086/323894，卷页已核）；Pych 2004, **PASP 116, 148–153**,"A Fast Algorithm for Cosmic-Ray Removal from Single Images"（DOI **10.1086/381786**，卷页与 DOI 经 Crossref + OpenAlex 双源核验）。
   **适用域（两层核验结论）**：这两篇解决的是**单帧宇宙线剔除**（拉普拉斯边缘检测 / 直方图分析），与坏点检测**不是同一问题**：数据源不同（单帧亮场 vs 母版 dark/bias）、统计量不同（边缘响应 / 直方图 vs 全局 median + k·MAD）、目标不同（瞬态事件 vs 固定坏点）。⇒ 二者**只作"同类图像缺陷处理"的领域背景**；本模块坏点检测的选型依据 = Project-defined（见下条）。
@@ -424,13 +421,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
 - 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
 **权威依据**：本文件 ALG-COS-001..005 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/contracts/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..005 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 

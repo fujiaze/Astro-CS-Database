@@ -1,6 +1,6 @@
 # Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
 
-> ID: ALG-P2-HIPS-001..004  状态: FROZEN
+> 本文件条款为冻结定义，变更走变更流程。
 > 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
 
 > 上游 SCI（只读引用，全部 FROZEN，共享引用不改动）: SCI-UPM-001（docs/science/PHASE2_UPM.md §5 w_UPM 公式）、
@@ -16,8 +16,6 @@
 > 模块 MOD-astrocs-phase2-hips-writer（registry 现状实测 astrocs.phase2.write.md =
 > MOD-astrocs-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=astrocs.phase2.write 现状域）。
-> 纪律声明: 所有 stage2.cpp:NNN 行锚逐条 `grep -n`/`sed` 实测；
-> IMPLEMENTED 词只签给持有源码锚的语句；缺陷以 DISP-P2HIPS-* 登记，SCI 修改从 SCI 发起。
 
 ## 1 上游 SCI 与输入输出
 
@@ -197,7 +195,7 @@
 main(stage2.json, CLI overrides):
   argc/config 解析失败 → rc=2                        # :130-154
   CLI override --cpu-workers/--io-workers/--gpu-route/--deterministic (CON-002)  # :155-166
-  日志 run/logs/phase2/<date>/stage2.log             # :168-173
+  日志 <output_dir>/logs/phase2/stage2.log           # :168-173
   # ALG-P2-HIPS-001 编排生命周期
   coverage 两阶段（容量+填充, p2_coverage_build）失败 → rc=3   # :189-202
   target_order 决议；高于输入最高 order → rc=3（禁伪装分辨率）  # :203-208
@@ -287,7 +285,7 @@ main(stage2.json, CLI overrides):
   （:576-577）。
 - ivar 数值: ivar==0 合法零权重（ZERO_VALID_WEIGHT，不贡献，:1366-1368）；
   nonfinite/负 → `p2_validate_candidate_weights` hard fail rc=6（:1402-1431），
-  禁止静默换 support（:1369 注释 "禁止静默换 support"）。
+  静默换 support 恒不接受（:1369 注释载明该约束）。
 - 零权重像素: n_valid==0 → px_depth_0 计数，valid=0（:1434-1436/:1225-1231）；
   UNDERDETERMINED → total_fallback/underdetermined_px（:1507-1514）。
 - support==0 → valid=0、area/flux=0（ACR 路径 :992-997）。
@@ -335,7 +333,7 @@ main(stage2.json, CLI overrides):
   `view.valid_mask` :1628，权重式只取 ivar/support）。
 - **no root science formula change**: w_UPM（PHASE2_UPM.md §5）、signal/sup_max
   （INTEGRATION.md §5）、rejection 判据（REJECTION.md SCI-REJ-001..008）
-  一律不改；本模块实现锚只登记 stage2 侧编排语义（§1 纪律声明）。
+  一律不改；本模块实现锚只登记 stage2 侧编排语义。
 - **分辨率上限 = 输入最高 order**: target_order ≤ 输入最高 order，违者 rc=3
   （:205-208）。
 - **输出确定性**: 同输入同 config → 同 mosaic（固定 tile 序 :659、固定
@@ -406,7 +404,7 @@ main(stage2.json, CLI overrides):
 
 - 上游 SCI: SCI-UPM-001（PHASE2_UPM.md §5）、SCI-INT-001（INTEGRATION.md
   §5）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
-  （SCIENCE_SCOPE.md）——全部共享只读引用，不改动（§引言纪律声明）。
+  （SCIENCE_SCOPE.md）——全部共享只读引用，不改动。
 - ALG 上游: ALG-UPM-001（docs/science/algorithms/UPM_SOLVER.md）、
   ALG-REJ-001..008（docs/science/algorithms/REJECTION_ALGORITHMS.md，DERIVED）、
   ALG-COV-001（docs/science/algorithms/PHASE2_COVERAGE.md，ACTIVE）、
@@ -502,17 +500,16 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   （DATA-P2-INT/DATA-P2-RES 现定义于
   TRACEABILITY_MATRIX.json 与 registry astrocs.phase2.integrate.md:22/
   astrocs.phase2.write.md:23）。
-- PUBLIC_API.md :54 的 astrocs-stage2 CLI 条目为历史登记；生产入口 =
-  `acsd phase2 run`，本文档登记其底层写出实现
+- `astrocs-stage2` CLI 条目不在生产入口面；生产入口 = `acsd phase2 run`，
+  本文档登记其底层写出实现
   lib/algorithms/coverage/tools/stage2.cpp。
 - 测试现状: 无名为 TEST-P2-HIPS-001 的测试；实测基线 = ivar_wiring_test.cpp
   （直接跑生产 astrocs-stage2）、routing_test.cpp、synthetic_gate.cpp
   Phase2Integrate/Phase2Robust（reducer 级，:2622/:3360）、
   eng/tests/backend/test_p2004_reject_integrate.py。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - HiPS 写出：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - 重采样/相关噪声：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
@@ -520,11 +517,5 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - FITS 关键字/写出：FITS Standard 3.0；CFITSIO（宽松许可）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

@@ -4,7 +4,7 @@
 
 ## 1. 目标与范围
 
-IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不含科学算法迁移）：
+本合同定义 **FITS 流式 I/O 接口**（宿主基础设施，不含科学算法迁移）：
 
 1. 把 FITS 第三方库（CFITSIO 等）隔离在动态库（Linux `libacsd_io.so` / Windows `acsd_io.dll`）**内部**；公开边界是纯 C ABI，
    **CFITSIO 类型/句柄（`fitsfile*` 等）绝不跨 DLL 边界**。
@@ -24,7 +24,7 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 | io 服务模块骨架（README/module.yaml/CMake/占位入口） | `lib/infrastructure/aio/io/` |
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
 | FITS 流 C ABI（只被动态库 `libacsd_io.so`/`acsd_io.dll` 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
-| 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h`（**该文件不存在**：全仓零命中，如实登记为缺口；现行 io ABI 面 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` + `hips_input_v1.h`） |
+| 模块公开 ABI 面（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h`、`hips_input_v1.h` |
 | 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `eng/tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
 
@@ -126,6 +126,7 @@ typedef struct acs_fio_trace_hooks_v1 {
   §DATASUM/CHECKSUM 关键字约定（条款登记与符合状态见 `docs/standards/STANDARDS_REGISTRY.md` §D.fits）
   对数据区做 32 位 1 的补码块校验：2880 字节块、
   16-bit 大端字累加、进位回卷，返回 10 位十进制字符串；算法独立（不链接 CFITSIO）。
+
   一手标准与本仓正/负例（`eng/tests/io/test_fits_stream_contract.py` 的
   `TestFitsCoreContract.test_datasum_cross`：与文件 DATASUM 卡及 astropy 独立算法三方一致；
   `test_checksum_verify_and_tamper`：篡改一字节即返回 `ACS_FIO_ERR_CHECKSUM`）相互佐证。
@@ -193,12 +194,12 @@ typedef struct acs_fio_trace_hooks_v1 {
 ## 13. 与相邻接口/实现的边界
 
 - `lib/infrastructure/aio`（AIO，含 CFITSIO 静态链）：全图像读写（aio_read/write_fits），
-  保留作兼容层；**IO-001 不迁移/不修改**，其内部 CFITSIO 用法同样不跨 DLL 边界。
-- `lib/infrastructure/aio/io` + `lib/include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（IO-001 原型），保留。
+  保留作兼容层；**本接口不迁移、不修改该层**，其内部 CFITSIO 用法同样不跨 DLL 边界。
+- `lib/infrastructure/aio/io` + `lib/include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（本接口的原型实现），保留。
 - `lib/infrastructure/aio/io/fits_core.c` 是本接口新增的 fits 流 C 核心（无 CFITSIO 依赖）。
 - 产物 manifest C ABI（`lib/include/astrocs/contracts/artifact_abi_v1.h`）：fits 流接口不重复其职责。
 - trace/bytes：由宿主注入 hook；本接口只覆盖 hook 契约与累计语义，trace 事件面（取值为现场观测）见 `docs/architecture/observability/RUN_GRAPH_CONTRACT.md`。
-- HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本接口不实现。
+- HiPS/manifest 输入输出（`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`）在本接口之上扩展，本接口不实现。
 
 ## 14. 已知限制（v1 骨架）
 

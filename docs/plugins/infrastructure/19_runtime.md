@@ -16,7 +16,7 @@
 ## 3. 输入/输出数据合同
 
 - **输入**：run-plan（节点图、模块 ID、配置、输出路径）、cpu_profile、内存预算（可选）。
-- **输出**：run-graph、run-trace（JSONL）、资源时间序列、artifact-manifest、run-summary；调度指标（worker 空转率、缓存命中率、数据搬运量、上下文切换次数、RSS 峰值）。
+- **输出**：运行图三件（`graph/static_graph.json`（计划）、`graph/observed_trace.json`（实际观测）、`graph/graph_sidecar.json`）、资源三件套（`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`）、run 摘要与 artifact 登记面；artifact-manifest 与调度指标（worker 空转率、缓存命中率、数据搬运量、上下文切换次数、RSS 峰值）为待实现项。
 - 参考：`eng/contracts/schemas/run_*.schema.json`。
 
 ## 4. 算法与公式要点
@@ -26,12 +26,12 @@
 - typed DAG：节点 = 模块/entrypoint/operation；科学依赖不可改变（最高设计 §3/4/5）；
 - 一个进程只有一个资源调度器与线程预算源；workers 与长期线程池均取该预算源的分配值；
 - 分块/并行只改变执行，不改变归约次序或科学结果；
-- **并行轴分配（PERF-501）**：Phase1 节点的帧级宽度与帧内 OpenMP 度由同一 lease 预算切分，
+- **并行轴分配（冻结口径）**：Phase1 节点的帧级宽度与帧内 OpenMP 度由同一 lease 预算切分，
   `in_flight = min(n, frame_workers)`、`inner_omp = max(1, thread_budget / in_flight)`，
   两轴之积 ≤ 预算。帧级被 `p1_memory_cap`（内存闸门）压低时必须把剩余预算转给帧内轴，
-  否则出现「16 核预算只用 2 核」的利用率塌陷（实测 cpu 恒 202%）。
-  语义与不变式见 `docs/architecture/THREADING_MODEL.md` §并行轴分配；
-  标定值与实测见 `docs/architecture/PERFORMANCE_MODEL.md` §PERF-501；
+  否则出现「预算未用满」的利用率塌陷。
+  语义与不变式见 `docs/architecture/THREADING_MODEL.md` §并行轴分配（冻结口径）；
+  冻结标定值见 `docs/architecture/PERFORMANCE_MODEL.md` §1.2（冻结参数）；
   观测面 `ASTROCS_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
 
 ### 4.2 编排连续性与数据局部性
@@ -73,24 +73,24 @@ flowchart LR
 |---|---|---|---|
 | `workers` | 由 profile | —— | 线程预算（取自 cpu_profile） |
 | `block` | 由 profile | —— | 分块大小（结合内存预算自动收窄） |
-| `checkpoint` | true | —— | 是否支持 checkpoint |
+| `checkpoint` | true | —— | 进程内检查点开关（`CheckpointStore`，存活于进程生命周期内） |
 | `memory_limit` | —— | MB | 内存预算（可选） |
-| `cache_budget_mb` | —— | MB | 进程内共享缓存字节预算（LRU） |
-| `schedule_policy` | `locality_first` | —— | 调度策略（locality_first/balanced） |
+| `cache_budget_mb` | —— | MB | 进程内共享缓存字节预算（LRU）；当前无行为承载，生产路径不读取，存废走变更流程 |
+| `schedule_policy` | `locality_first` | —— | 调度策略（locality_first/balanced）；当前无行为承载，生产路径不读取，存废走变更流程 |
 
 ## 6. 接口/ABI
 
 - entrypoint：run-plan → 执行 → run 产物；
-- 模块通过注册表加载（版本化 C ABI 校验），不隐藏整阶段 Session；
+- 模块经构建内注册表装配（`ModuleRegistry`，`runtime_client.cpp`），不隐藏整阶段 Session；装载期版本化 C ABI 校验由 `secure_loader` 提供，生产装配不走动态装载路径；
 - 缓存以只读共享句柄向模块提供（如星表客户端），模块不自行持有重复副本。
 
 ## 7. 错误与边界
 
 - ABI/签名/CPU 特征不匹配 → exit 5（BACKEND）；
 - 执行失败 → exit 6（COMPUTE）；
-- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**；内存/CPU/线程不设门（最高设计 §4.5，退出码见 §7.2）；
+- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` §8.4）；内存/CPU/线程不设门（最高设计 §4.5，退出码见 §7.2）；
 - 取消/超时 → exit 9（CANCELLED）；
-- 内存预算内无法安排最小工作集 → 显式失败并报告所需工作集，不静默退化。
+- 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
 - **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5。
 - **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
 - **降级必须显式**：上游产物/能力缺失时改走替代路径并继续运行，只允许在"显式写 `degraded_reason` + manifest 记录 + 不改变科学语义"三要件齐备时发生（合同 §6）；改变科学语义的降级 = 故障，必须 fail-closed；
@@ -105,7 +105,7 @@ flowchart LR
 - 1 worker vs N worker 数值一致；
 - 取消/checkpoint 恢复无半成品，且取消/失败路径的运行日志仍发布并登记；
 - **错误上行**：每个节点的失败路径测试断言"返回稳定错误码 + CLI 退出码正确"，负例注入（吞掉错误码）必红；
-- **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据 `CHK-LOG-SYS` R2）；
+- **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/ci/`）；
 - 资源监控记录完整性；磁盘门测试（能红能绿）。
 
 ---
@@ -118,8 +118,5 @@ flowchart LR
 - 对应登记：`docs/modules/MODULE_MAP.yaml` 条目 `id: scheduler` /
   `module_id: astrocs.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
   `docs/plugins/00_INDEX.md` §2 第 2 列 = `scheduler`。
-- `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是
-  `eng/packaging/config/config_registry.json` 与 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
-- `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中登记，规模随
-  `docs/modules/registry/module_id_migration_baseline.json` 的 `index_module_count = 23`
-  一并维护；本页与 `00_INDEX.md` 已覆盖其名。
+- `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
+- `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中登记；本页与 `00_INDEX.md` 已覆盖其名。

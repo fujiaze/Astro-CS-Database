@@ -1,15 +1,12 @@
 # Phase3 Projection/WCS 实现级算法合同（ALG-P3-PROJ-IMPL-001）
 
-> ID: ALG-P3-PROJ-IMPL-001  状态: CONTRACT_READY  模块:
-> astrocs.p3.projection（迁移合同值；registry descriptor 占位
-> astrocs.phase3.wcs 由 P3-PROJ-INT 对齐）
 > 上游：ASTROCS_DESIGN.md §6.3（投影算法）
 
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 同步口径见 §14）；承接 ALG-P3-002 本域子面
 > （G1/G2 施工规格，docs/science/algorithms/PHASE3_RESAMPLE.md）。
 > **本域现行口径**：§15 依据 = `ASTROCS_DESIGN.md` §5.3 八投影 +
-> registry v3（CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ v1 偏差表；
+> projection registry（现行集合：CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ 对照口径偏差表（离线对照用）；
 > §14 = 以独立证据判定、不预设谁为准。订正原则见 `ENGINEERING_SPEC.md` §3。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
@@ -25,7 +22,7 @@
   INT 的合同基线。
 - 非目标: **生产 alpha 路径仍只走 TAN**（lib/algorithms/projection/p3_wcs.cpp，
   会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ASTROCS_DESIGN §5.3
-  八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），v3 已实现 4/8、
+  八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），已实现 4/8、
   STG/MOL/CEA/ZEA 实施归 P3-001（新增投影必须落在冻结集合内并附独立
   Oracle）；本文件不臆造未实现投影的公式（§15.1/§15.3）；不做重采样
   （ALG-P3-001/003，phase3_resample2 域）；不做 FITS 文件读写
@@ -99,7 +96,7 @@ enum class P3WcsStatus {
   P3_WCS_UNSUPPORTED = 2,  // projection≠TAN
   P3_WCS_HEMISPHERE = 3    // 输出跨 TAN 半球
 };
-// 请求层 projection/frame/coverage_output 合法性 (B2-A4/A5 唯一机器源;
+// 请求层 projection/frame/coverage_output 合法性 (唯一机器源;
 // CLI 配置面 runtime_client::phase_config 与节点面 module_adapters 共用)
 P3WcsStatus p3_wcs_validate_request(const char* projection, const char* frame,
                                     const char* coverage_output, std::string* why);
@@ -116,9 +113,9 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 ```
 
-- **投影拒绝（B2-A4 冻结，取值一律按本节）**：`p3_wcs_validate_request` 对
+- **投影拒绝（冻结，取值一律按本节）**：`p3_wcs_validate_request` 对
   projection 仅接受 "TAN"（缺省即 TAN）；SIN/CAR/AIT 即便已在
-  `lib/algorithms/projection` registry（v3）注册，也**未接入**
+  `lib/algorithms/projection` registry 注册，也**未接入**
   alpha 会话生产路径（会话层收窄，SCI-P3 §9a-3），故与任意未注册码一样返回
   P3_WCS_UNSUPPORTED——
   **P3_WCS_UNSUPPORTED 即最终取值（TAN 只来自显式请求）**（01_SCIENCE_AUTHORITY_BASELINE §4）。frame
@@ -257,7 +254,7 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 **不判红**——判红会误拒），退回**全域保守门 1e-6 px**（SCI-WCS-001 §11 STD-F1）。
 门值/适用域/证据 = 门表 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 的
 G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
-`run/GATE-DERIVE-01/REPORT.md`（TAN 闭式截断项恒等于 0 ⇒ 误差 100% 来自 FP64 舍入）。
+实验/engineering-evidence/（TAN 闭式截断项恒等于 0 ⇒ 误差 100% 来自 FP64 舍入）。
 解析oracle回归现状由
 eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 复算）；验收级 oracle=WCSLIB（矩阵 notes），由 P3-PROJ-TEST 建立。
@@ -292,7 +289,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   - `world2pix` 侧判据是 `denom = cos(ρ) > 0`，即 **ρ < 90°**（真前半球）。
   - ⇒ `{r<π/2}` ⊊ `{denom>0}`：环带 **57.5183634° ≤ ρ < 90°** 是前半球合法天区，
     但 `pix2world` 一律返回 P3_WCS_HEMISPHERE ⇒ 该环带内正反映射不互逆。
-    实测锚（生产码探针 `run/SCI-FIX-DRZGEOM-01/evidence/exp_b_tan_guard_probe`）：
+    实测锚（生产码探针；证据正本 = 实验/engineering-evidence/）：
     ρ=57.0°→OK、ρ=57.5184°→HEMISPHERE（阈值 = atan(π/2)）；同一 descriptor 的
     401×401 网格（160801 点）中被 `r≥π/2` 拒绝的 8124 点**全部**满足 `denom>0`。
   - **适用域**：本域合同域 FOV ≤ 20°（§6.1 适用域门）的四角 ρ_max ≈ 14.2° < ρ*，
@@ -396,7 +393,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   （Paper I/II、astropy/WCSLIB）与可复跑实验为准；正本见
   `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。
 
-## 15 版本化 projection registry v3 与 DESIGN §5.3 八投影冻结集合
+## 15 projection registry 与 DESIGN §5.3 八投影冻结集合
 
 > **权威依据**：`ASTROCS_DESIGN.md §5.3`（原文：内置多种投影算法，
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
@@ -424,12 +421,12 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   该集合（`registry_selfcheck()` 强制；不属于 → 自检失败）。
 - **在役 registry = 现行实现** `lib/algorithms/projection/p3_proj.h/.cpp`，
   `kProjectionRegistryVersion = 3`。
-- **v1 线**（`lib/algorithms/projection/p3_projection.h/.cpp`，
+- **对照口径实现（离线对照用）**（`lib/algorithms/projection/p3_projection.h/.cpp`，
   `kP3ProjectionRegistryVersion = 1`，`kP3ProjectionRegistryRetired = true`）
   **RETIRED**：仅保留偏差对照证据门（§15.9 + `ctest
   p3_proj_legacy_deviation`），引用面限于偏差对照证据门；其行为冻结、取值固定
   （偏差集合只减不增，任何变化须复核并更新 §15.9）。
-- **实现状态（如实）**：v3 已实现 4/8（TAN/SIN/CAR/AIT）；`STG/MOL/CEA/ZEA`
+- **实现状态**：已实现 4/8（TAN/SIN/CAR/AIT）；`STG/MOL/CEA/ZEA`
   未实现——`registry_find()` 返回 nullptr（fail-closed，无 fallback），
   实施归 P3-001（GAP-011），逐式公式与独立 Oracle 随后续变更引入
   （本文不臆造未验证公式，只冻结集合成员/适用域声明面）。
@@ -437,7 +434,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   该收窄是**会话层**行为，与 registry 八投影注册面不冲突——registry 面已登记
   冻结集合，会话未接线（见 §15.5 与 SCI §9a-3 注记）。
 
-| 行 | id | code | CTYPE1/CTYPE2 | 中心守卫 | 合法 FOV 声明 | 域 | v3 状态 |
+| 行 | id | code | CTYPE1/CTYPE2 | 中心守卫 | 合法 FOV 声明 | 域 | 状态 |
 |---|---|---|---|---|---|---|---|
 | 0 | TAN | "TAN" | RA---TAN / DEC--TAN | \|CRVAL2\|≤85° | 20°（SCI §9a-12 冻结） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
 | 1 | SIN | "SIN" | RA---SIN / DEC--SIN | \|CRVAL2\|≤85° | 60°（声明值） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
@@ -467,7 +464,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   `δ = asin(sinθ sinδ₀ + cosθ cosδ₀ cosφ)`
   `Δα = atan2(−cosθ sinφ, cosδ₀ sinθ − sinδ₀ cosθ cosφ)`
   （等价于 Paper II §2.2 三 Euler 角取 native 极 = CRVAL 点：δ_p=δ₀、φ_p=180°。）
-- **CAR/AIT 旋转核（v3 订正：CRVAL2 进映射）**：投影参考点 (φ0,θ0)=(0,0)，
+- **CAR/AIT 旋转核（CRVAL2 进映射）**：投影参考点 (φ0,θ0)=(0,0)，
   LONPOLE 标准默认。由 Paper II §2.2 球面三角形余弦定理解三 Euler 角：
   `sinδ₀ = sinθ₀ sinδ_p + cosθ₀ cosδ_p cos(φ0 − φ_p)`　（θ0=φ0=0 ⇒ cosδ_p = sinδ₀ / cos φ_p）
   `α_p = α₀ − atan2( −cosθ₀ sin(φ0−φ_p), sinθ₀ cosδ_p − cosθ₀ sinδ_p cos(φ0−φ_p) )`
@@ -523,13 +520,13 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   四角守卫对 CAR 即「禁触碰 native 极行 |θ|≥90°」；对 AIT 即「四角 A≤1」。
 - 状态码（P3ProjectionStatus，值域与 P3WcsStatus 冻结对齐）: OK=0 /
   PARAM=1 / UNSUPPORTED=2（未知码/越界 id/冻结集内未实现） / HEMISPHERE=3。
-- 域界语义（v3）: TAN r≥π/2 / SIN ρ>1 / AIT A>1 → HEMISPHERE；
+- 域界语义: TAN r≥π/2 / SIN ρ>1 / AIT A>1 → HEMISPHERE；
   CAR native 极行 |θ|≥90° → PARAM；TAN/SIN world2pix 端 |dec|>85° → PARAM
   （§9 冻结语义沿用）。
 - fits_keywords: CTYPE1/2 经 registry spec 解析（禁硬编码 CTYPE 于
   调用方），其余行与 §8 同族（CRPIX/CRVAL %.10f、CD %.12e、每行
   ≤80 字节、12 行）；descriptor 空指针/未注册 id → 空串（fail-closed
-  不产 CTYPE 面）。CRVAL2 现在是**映射量**（不再是纯记录量），LONPOLE 采用
+  不产 CTYPE 面）。CRVAL2 为**映射量**，参与投影映射；LONPOLE 采用
   Paper II 标准默认语义，读方无需额外关键字即可复现映射。
 
 ### 15.5 六要素声明（DESIGN §5.3 逐投影）
@@ -549,14 +546,14 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 ### 15.6 TEST-P3-PROJ-REG-001（登记面 + 可执行面同文件承载）
 
-- **T1/T2 名与判据分工（v3 订正）**：往返自洽 ≠ 标准正确。现状实现在 30° 错
+- **T1/T2 名与判据分工**：往返自洽 ≠ 标准正确。现状实现在 30° 错
   映射下往返误差仍 4.5e-15 px ⇒ 只保留「往返」会恒绿。故拆两条：
   - **(i) 往返不变量**（保留）：每投影 pixel→world→pixel < 1e-8 px；
   - **(ii) 绝对标准对拍**（新，验收口径）：astropy/WCSLIB 逐像素对拍，
     容差 ≤1e-8 deg（实测 ≤6.854e-13°），**必须含 dec0≠0 用例**（CRVAL2 只在
     δ0≠0 进入映射；δ0≡0 对 CRVAL2 缺陷零区分力）与 **CRPIX↔CRVAL 定义性
     不变量**（pix2world(CRPIX)==CRVAL，Paper I §2.1.1）。
-- 可执行面（v3 现状）:
+- 可执行面（现状）:
   - `eng/tests/unit/p3_proj/p3_proj_test.cpp`（ctest: p3_proj_units /
     p3_proj_fault_*）: T1 registry 完整性（版本=3/已实现 4 行/冻结集合 8 行
     且 code 顺序/DESIGN 集合成员判定/函数指针/selfcheck=0/未知码 nullptr 无
@@ -565,7 +562,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     scale≤0/W=0/H=20001/空指针全族/SIN 视场超半球/**AIT A>1（含折叠环带
     |X|=229.125°）**/**CAR native 极行 |θ|=90 与 make 触极行**/SIN 背面点）；
     T7 CTYPE 关键词面；T8 确定性；T9 1/N worker；
-    **T-H（v3 新增）CRVAL2 进映射**：CAR/AIT dec0∈{±30,+60,−45} 的
+    **T-H CRVAL2 进映射**：CAR/AIT dec0∈{±30,+60,−45} 的
     `pix2world(CRPIX)==CRVAL` 与「dec ≠ 平面 Y」区分性断言。
   - `eng/tests/unit/p3_proj/p3_proj_wcs_oracle.py`（pytest 面，ctest
     p3_proj_wcs_oracle）: astropy 独立实现逐点绝对对拍（14 条用例，含 6 条
@@ -573,13 +570,13 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     CAR 解析纬度带判据限定 `|CRVAL2|≤1e-9`（倾斜 CAR 的行不是天球纬度带，
     否则对任何正确实现都误判，R-1 §4-B）。
   - `eng/tests/unit/p3_proj/p3_proj_legacy_deviation.py`（ctest
-    p3_proj_legacy_deviation）: **v1 偏差表门**（§15.9 四项），
-    v1 已 RETIRED ⇒ 表内偏差必须仍复现（缺失即红，须复核），表外新偏差亦红。
+    p3_proj_legacy_deviation）: **对照口径偏差表门**（§15.9 四项，
+    对照口径实现（RETIRED））⇒ 表内偏差必须复现（缺失即红，须复核），表外新偏差亦红。
 - 故障注入（必败面，测试级注入、生产源零 getenv）:
   `ASTROCS_P3PROJ_FAULT=const_omega|legacy_car|legacy_ait|swap_norm|naive_wrap`
   注入等价缺陷，注入模式断言必败并报告捕获（FAULT-EFFECT-CONFIRMED）。
 - 验收级 oracle 升级（WCSLIB 独立实现，§12 T6）仍归 P3-PROJ-TEST，本层不冒认；
-  v3 已把「绝对对拍 + dec0≠0 + CRPIX 不变量」落到 Oracle 可执行面。
+  现行注册表已把「绝对对拍 + dec0≠0 + CRPIX 不变量」落到 Oracle 可执行面。
 
 ### 15.7 构建挂载与越界登记
 
@@ -604,14 +601,14 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - **可执行标准（全文获取受阻时的替代口径，R-1 §2.0）**：astropy 7.0.1
   （WCSLIB）逐点对拍——22 组 (proj, α0, δ0∈{0,±10,±30,±60,±85}, parity, PA)
   最大球面偏差 6.854e-13°；AIT 边界实测 X=162.0560°（标准 162.0569°）、
-  Y=81.0280°（标准 81.0285°）；CAR 极点行 astropy 与 v3 一致（fail-closed
+  Y=81.0280°（标准 81.0285°）；CAR 极点行 astropy 与现行实现一致（fail-closed
   是项目产品语义选择：该行 Ω=0、RA 无定义）。
 - 3D 向量 oracle 第一性原理（切基正交投影/透视除法）为 Project-defined
   独立推导路径，与生产球面三角公式互为独立验证。
 
-### 15.9 v1 偏差表（RETIRED 冻结对照）
+### 15.9 对照口径偏差表（离线对照用，RETIRED 冻结对照）
 
-> v1 = `lib/algorithms/projection/p3_projection.h/.cpp`（RETIRED）。四项偏差
+> 对照口径 = `lib/algorithms/projection/p3_projection.h/.cpp`（RETIRED）。四项偏差
 > 均由 `eng/tests/unit/p3_proj/p3_proj_legacy_deviation.py` 以 `LEGACY_DEVIATION_TABLE`
 > 断言「仍然复现」；修好 v1 或偏差消失 ⇒ 该门转红（须复核并更新本表）。
 > 实测（ctest p3_proj_legacy_deviation，rc=0）:
@@ -627,7 +624,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 ## 16 登记面：C1–C9 的实现侧缺口（**只登记，不改码**）
 
 > 依据：`ASTROCS_DESIGN.md` §5.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
-> 证据：Phase2 信号量纲判据冻结 sha256 `562d9f7447b91f650d547ce0a322fc519e91de270956da9c49094b7f163d5de0`（正本见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16）与 `ALIGNMENT-5.3.md` C1–C9；
+> 证据：Phase2 信号量纲判据正本 = `docs/science/PHASE3_HIPS_TO_FITS.md` §16（C1–C9）；
 > 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，文字只有这一份）。
 
 | # | 位置 | 现状（实测） | 归属 |
@@ -644,13 +641,12 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | C8 | `docs/contracts/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `astrocs_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
 | **C9** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:495-499,776-800` | hierarchy 归约在 **f32** 累加器上做：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；`f32_accum_repro.json` 复现发布值到 1.5e-9，float64 理想值差 2.52e-3 | **lib/** ⇒ FIX（本包只登记；修法 = `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和） |
 
-- **判据冻结**：`ALIGNMENT-5.3.md` §1 结论表 + E09 `results/PREREGISTRATION.sha256`（`562d9f74…`，冻结于 2026-09-20T08:39:28Z，跑后未改）。
+- **判据冻结**：`docs/science/PHASE3_HIPS_TO_FITS.md` §16 结论表 + 实验/engineering-evidence/ 的 `results/PREREGISTRATION*`。
 - **负例（判据非退化）**：FLUX-IN 支同二进制下 `R_cross = 4.0`、`T ≈ −1`；面积标度错注入 `T = −0.75` ⇒ 判据能红能绿。
-- **不在本节范围（已知偏差，现行）**：现行 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用），随 v6 家族失效而消失；入库复现门 `eng/tests/unit/p3_proj/sin_roundtrip_gate.py` 修好即转红。
+- **不在本节范围（已知偏差，现行）**：现行 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用）；其已知偏差不入生产门，入库复现门 `eng/tests/unit/p3_proj/sin_roundtrip_gate.py` 修好即转红。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 投影 native↔celestial：Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1；本文件 §15.8 已给逐条文献锚，本节只补代码库。
 - CRPIX/CRVAL 不变量：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1。
@@ -658,11 +654,5 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 1 及其引用（Aitoff 1889；Mollweide 1805；Lambert 1772 等）；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
 - 3D 向量 oracle：Project-defined 第一性原理推导（§15.8）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

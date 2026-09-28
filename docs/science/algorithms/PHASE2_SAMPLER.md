@@ -1,6 +1,6 @@
 # Phase2 Sampler Algorithms（P2-SAMP / astrocs.p2.sampling）
 
-> ID: ALG-P2-SMP-001  状态: CONTRACT_READY。本文件是 Phase2 控制点采样模块（control sampler）
+> 本文件是 Phase2 控制点采样模块（control sampler）
 > 算法层**唯一权威**：逐公式源码行号锚定 + 冻结容差 + 实现偏差登记。
 > 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
 
@@ -12,7 +12,7 @@
 > §处理链第 5 步"控制采样"（链位置）。
 > 关联 ALG: ALG-UPM-CONTROL-IVAR-001（本文件 §5.4 冻结承接，见 §12）；
 > ALG-UPM-001（UPM 拟合，下游消费方）。
-> 模块: lib/algorithms/coverage/src/sampler.cpp（1503 行）+ 唯一权威签名头
+> 实现源: lib/algorithms/coverage/src/sampler.cpp（1503 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行，实测）；
 > DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: astrocs.p2.sampling（合同三件套
@@ -73,8 +73,8 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 - 面积换算只发生在下游写盘前：`area = support×A_cell`、`flux = signal×area`
   （`lib/algorithms/coverage/tools/stage2.cpp:1149-1152` / `:1368-1369`），
   即 signal 是**单位面积通量**；
-- 实测闭环（本仓 `run/SCI-FIX-PHASE2-01/real/r2_m42_rawframe.py`，证据
-  `run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2e_unit_closure`）：真实 M42
+- 实测闭环（本仓 `实验/absolute-snr/REPORT_experiment.md`，证据
+  `实验/absolute-snr/results/`）：真实 M42
   300 s R 帧（raw 像素尺度 0.9890″/px，Ω_px = 2.2991e-11 sr）上 4096 个 17×17 patch
   实测 σ_bg 中位 = 14.826 ADU/px、N_retained 中位 = 287，按 §5.4 公式得
   control_variance = 1.684 (ADU/px)²、control_ivar = 0.5937 (ADU/px)⁻²；按 ADU·sr⁻¹
@@ -86,7 +86,7 @@ ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
   相加/相除）会使标度类消费面整体偏 Ω_px 的幂次倍；本模块输出的混用面 = 已声明
   标度换算的前提下与 ADU 域量混用。
 
-## 3 逐符号锚（sampler.cpp 1503 行 / sampler.h 273 行，实测）
+## 3 逐符号锚（sampler.cpp 1503 行 / sampler.h 273 行）
 
 **导出符号（sampler.h 声明 / sampler.cpp 实现）**：
 
@@ -219,7 +219,7 @@ y_ik = m0（收敛集位置估计）                     # :863
   1273-1283, DOI 10.1080/01621459.1993.10476408（MAD 的一致性因子与有限样本修正）；
   有限样本修正 b_n 表见 Croux, C. & Rousseeuw, P. J. 1992, *Computational Statistics*,
   411-428, DOI 10.1007/978-3-662-26811-7_58。
-- 本仓实测（`run/SCI-FIX-PHASE2-01/exp/e1e2_domain_calibration.py`，证据
+- 本仓实测（`实验/absolute-snr/REPORT_experiment.md`，证据
   `evidence/e1e2_domain.json:mad_factor`，R=4×10⁵）：E[MAD×1.482602218505602]/σ_true =
   **0.9528 (N=17) / 0.9972 (N=289)**（高斯，判绿）；**1.275（均匀）**、
   **0.727（拉普拉斯）**（非高斯，判红）⇒ 因子在高斯 patch 上成立；在非高斯
@@ -234,9 +234,8 @@ y_ik = m0（收敛集位置估计）                     # :863
 **σ_bg 的零尺度分支（正向约束）**：
 
 - 判据：`σ_bg_raw == 0` ⟺ **patch 内 ≥ 半数像素取同一数值**（`median(|v−m0|) = 0`）。
-  可达性实测：真实 M42 300 s R 帧 4096 个 17×17 patch 中 **2 个**命中（0.049%），
-  且这 2 个 patch **没有一个是全常数**
-  （`evidence/r2_m42_raw.json:R2d_sigma_zero_reachability`）⇒ 该分支在真实数据上可达，
+  可达性判据：真实帧上该分支必须可达，且命中 patch **没有一个是全常数**
+  （读数与证据正本 = 实验/absolute-snr/results/）⇒ 该分支在真实数据上可达，
   不是理论角落；
 - 约束：该分支表示 **patch 不携带尺度信息**（数据被量化/饱和平台主导），**发布口径 = 无尺度信息标记，本模块不把它**
   映射成一个有限的正方差。发布口径由 §5.4 规定；1e-12 只是避免 `σ_bg²` 归零的数值
@@ -280,7 +279,6 @@ uncertainty      = sqrt(control_variance)                  # :878
   含 3σ 亮端裁剪的生产链（裁剪后 MAD、n_retained）下：N=5 不触发裁剪（−0.8%）；
   N≥9 触发率 12–35%，发布 cvar 对被估量（裁剪后中位数，触发时奇偶翻转）
   **低估 1.3–3.2%**。
-  <!-- 三口径数据来源：独立审计/实验重做/P2跨帧绝对SNR/补实验-control_variance/report.md §3/§4a（seed 20260601）；偶 N 奇偶效应与生产链裁剪语义按该报告补写 -->
   同一实验对非高斯族给出**判红**结果：均匀分布比值 → 6/π = 1.9099（实测 1.9013 @N=1025）、
   拉普拉斯分布比值 → 1/π = 0.3183（实测 0.3345 @N=1025），两者都与解析值 1/(4Nf(m)²)
   一致而与 πσ²/(2N) 相差 3–6 倍 ⇒ **π/2 因子只对高斯样本成立**，与排除「把 (π/2)
@@ -292,12 +290,10 @@ uncertainty      = sqrt(control_variance)                  # :878
   ③ patch 内分布近似高斯且无结构梯度（见下条）。**退化条件**：patch 含显著空间结构时
   σ_bg 量的是样本离散度而非噪声（§5.3），本式给出的是「patch 样本离散度的 πσ²/(2N)」，
   不是 control estimator 对真值的统计方差。
-- **σ_bg 的结构分量（实测）**：`run/SCI-FIX-PHASE2-01/exp/e3e4_floor_and_structure.py`
+- **σ_bg 的结构分量（实测）**：`实验/absolute-snr/REPORT_experiment.md`
   （证据 `evidence/e3e4_floor_structure.json:E4_structure_vs_noise`）在真值 σ=2 的 patch 上
-  叠加线性梯度：E[σ_bg]/σ_true = **0.9955（零梯度，判绿）/ 1.0104（0.05/px）/ 1.2214
-  （0.2/px）/ 3.8098（1.0/px）/ 18.4659（5.0/px）**；真实 M42 300 s R 帧 4096 个 patch 上
-  σ_bg 与高通噪声估计之比中位 **1.010**，但 **3.78% 的 patch > 2×、0.12% > 10×**
-  （`evidence/r2_m42_raw.json:R2c_structure_inflation`）。⇒ 适用域 = **背景主导 patch**；
+  叠加线性梯度：E[σ_bg]/σ_true 必须随梯度单调增（零梯度时必须 ≤1.01、1.0/px 时
+  必须 ≥3.0）；读数正本 = 实验/absolute-snr/results/。⇒ 适用域 = **背景主导 patch**；
   结构主导 patch 上 control_variance 偏大（权重偏小），必须在 provenance 里可分辨。
 
 **零尺度分支的发布口径（正向约束）**：
@@ -306,8 +302,8 @@ uncertainty      = sqrt(control_variance)                  # :878
   「无尺度信息」：`control_ivar = 0`、`control_variance` 取非有限值（或等价地以
   `quality_flags` 置位并计数），**发布面 = 无尺度信息标记**（1e-12 只作数值保护量，不生成有限正方差）。
   理由：1e-12 是量纲随标度变化的数值保护量（§5.3），把它平方除以 N 得到的是
-  **伪方差**；本仓实测该伪方差 = 7.609e-27、伪 control_ivar = 1.314e26
-  （`evidence/e3e4_floor_structure.json:E3b_constant_patch`），比同一标度下 float32
+  **伪方差**；该伪方差与伪 control_ivar 的读数正本 = 实验/absolute-snr/results/，
+  它们比同一标度下 float32
   可表示的最小真实离散度所对应的方差还小 **32 个数量级**（M42 ADU·sr⁻¹ 标度），
   即「任何可表示的数据都不可能支持这个精度」。
 - 危害的可判定实证：把该伪方差当物理方差发布后，命中地板的观测以 1.314e26 的权重
@@ -350,7 +346,6 @@ uncertainty      = sqrt(control_variance)                  # :878
     k_corr ≈ 2.5–3.0 → 低估约 2 倍。`upm.cpp:2265-2275` 已把声明要求落成写盘门
     （FZ-PROV-KCORR）：`k_corr_applicability_domain` 为空即 rc=7；k_corr ≠ 1.4 时必须另给
     `k_corr_calibration_run_id`。
-  <!-- k_corr 两因子公式证据源：独立审计/实验重做/P3守恒映射算子/补实验-k_corr/report.md §0/§4 -->
 - **K_CORR_DOMAIN 选项 B（逐帧标定）：仅 pixfrac 维参与标定（SC-005）**：
   仅当帧 Drizzle provenance 的源像素角尺度落在**标定域 [300,600]″/px** 才取
   kcorr_lookup(pixfrac, scale)（:93-117）；**域外一律保留 kcorr=0**（回退链
@@ -361,11 +356,10 @@ uncertainty      = sqrt(control_variance)                  # :878
   旧行为「域外 clamp」把静默饱和固化成合同（旧 kcorr_lookup_test.domain_clamp），
   已被 `kcorr.domain_fallback_to_frozen_default_not_clamp` 取代；
 - **标定域与生产数据尺度的失配（实测，属适用域声明而非缺陷豁免）**：
-  (i) 真实生产帧的源像素角尺度量级为 **≈1″/px**：本仓 M42 300 s R 帧实测
-  0.9890″/px（`evidence/r2_m42_raw.json:R2a_unit`，由 FOCALLEN=1877 mm、
-  XPIXSZ=9 µm 推得 206264.806×9e-6/1.877 = 0.9890″/px）；本仓 probe 产品
-  `hips_pixel_scale=0.000224 deg = 0.8064″/px`
-  （`run/VARIANCE-SEMANTICS-01/probe/out_probe_orig_m42_1024_1024/hips/signal/properties`）
+  (i) 真实生产帧的源像素角尺度量级为 **≈1″/px**（由 FOCALLEN=1877 mm、
+  XPIXSZ=9 µm 推得 206264.806×9e-6/1.877 ≈ 0.989″/px）；probe 产品
+  `hips_pixel_scale ≈ 0.8064″/px`
+  （`实验/healpix-polar/results/`）
   ⇒ 与标定域 [300,600]″/px 相差 **300× 以上**；
   (ii) 因此**逐帧标定在所有已知生产数据上恒不生效**，生产实现现仍回退未在本尺度标定的
   代码默认 1.4（实现记录）；任何「control_variance 已做 Drizzle 相关校正」的表述必须写明这一点，
@@ -452,7 +446,7 @@ SHA 流 = 9 关键 properties（creator_did/obs_title/obs_filter/
   + 各 tile "St=" + support tile 字节 + ";"（:381-393）
   + SNR catalogue 逐条 "i:ra,dec,snr,qf;"（max_digits10 格式化；:394-421）
 路径/重命名/换根目录不变；任何科学 payload 变化 → 改变；失败/异常
-→ 0（调用方 :512-523 拒绝 rc=1；禁止静默继续）。
+→ 0（调用方 :512-523 拒绝 rc=1；静默继续恒不接受）。
 ```
 
 派生口径 = SHA-256 前缀 16 hex 大端截断（FNV-1a 与路径派生属另一类标识；sampler.h:97 注释冻结）。
@@ -607,7 +601,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影�
 |---|---|---|---|
 | F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.482602218505602×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
 | F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、**域外回退冻结默认 1.4（禁 clamp）**、provenance 缺失/尺度未知回退 1.4 | 角点值 exact；插值点 rtol 1e-12；域外 == 1.4 exact | phase2_sampler.kcorr.corner_exact / .domain_fallback_to_frozen_default_not_clamp（表值 :94-97） |
-| F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | **两档分开**：(a) 解析复算 rtol 1e-12（f64 复算域，判据=逐值相等）；(b) 与 MC 实测 Var(median) 比对的**相对**判据：N=289 时 |比值/k_corr − 1| ≤ 0.02、N=17 时 ≤ 0.05（本仓实测 (a) 恒真、(b) 高斯 0.986/0.972，见 `evidence/e3e4_floor_structure.json:E3a_true_noise` 与 `evidence/e1e2_domain.json:median_variance`）。**统计判据必须显式声明 N 与分布**（「3σ」这类写法不含声明） | synthetic_gate.cpp:4001/:4061/:4089（先例在库）；域判据见 `run/SCI-FIX-PHASE2-01/exp/e1e2_domain_calibration.py` |
+| F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | **两档分开**：(a) 解析复算 rtol 1e-12（f64 复算域，判据=逐值相等）；(b) 与 MC 实测 Var(median) 比对的**相对**判据：N=289 时 |比值/k_corr − 1| ≤ 0.02、N=17 时 ≤ 0.05（实测 (a) 恒真、(b) 读数正本 = 实验/absolute-snr/results/）。**统计判据必须显式声明 N 与分布**（「3σ」这类写法不含声明） | synthetic_gate.cpp:4001/:4061/:4089（先例在库）；域判据见 `实验/absolute-snr/REPORT_experiment.md` |
 | F4 | 坐标/tile 映射：单 tile 合成 → 64 cell (ra,dec,leaf_ipix) 对独立 HEALPix 参考实现（astropy-healpix，BSD-3-Clause） | atol 1e-9 deg（≈3.6e-6″；适用域=本模块 order ≤ 12 的 f64 pix2ang_nest，参考实现同域；**高于该 order 或跨实现差异 >1e-9 deg 时判据不成立**，须先做参考实现一致性预检再启用本门）；cell 索引单射 exact | 无（新建） |
 | F5 | constant/gradient/impulse 验证面：constant patch（σ_bg_raw=0 分支）、线性梯度 patch（亮端 clipping 方向性）、单像素 impulse（bfrac=1/n_total 路径） | (a) 有尺度 patch：cvar rtol 1e-12；(b) **零尺度分支（非退化判据）**：σ_bg_raw=0 时断言 `control_ivar == 0` 且 control_variance 非有限，**且**断言该分支在 ≥50% 像素同值的 patch 上触发、在 <50% 的 patch 上不触发（正/负例各一，§5.3 判据）；(c) 梯度 patch：E[σ_bg]/σ_true 在 slope=0 时 ≤1.01、slope=1.0/σ 时 ≥3.0（能红能绿，证据 `evidence/e3e4_floor_structure.json:E4_structure_vs_noise`）；接受/拒绝判定 exact | 无（新建；公式 :864-878） |
 | F6 | 边界/seam：patch 跨 tile 边界截断、相邻 tile 互不污染、第二遍邻域同 tile 限定、空覆盖 tile 占位 | obs 集合 exact；node 占位数 exact | 无（新建） |
@@ -667,9 +661,8 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
   depends_on_int=P2-COV-INT;CPU-005，MODULE_MIGRATION_MATRIX.csv
   :15 权威）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 控制点/背景采样与相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；SExtractor（GPL-3.0；Bertin & Arnouts 1996, A&AS 117, 393）。
 - 稳健尺度/clipping：Hoaglin et al. 1983；Rousseeuw & Croux 1993。
@@ -677,11 +670,5 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983（中位数渐近方差）；本文件 §5.4 承接 ALG-UPM-CONTROL-IVAR-001。
 - SNR 加权采样：UNIFIED_SCIENCE_MODEL §4；docs/plugins/algorithms_phase2/10_sampling.md §4.2。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

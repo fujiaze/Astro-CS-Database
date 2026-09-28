@@ -12,11 +12,11 @@
 
 ## 1. 目标与范围
 
-IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原子 HiPS/manifest
+本合同在 FITS 流式接口（原子写）与 HiPS 输入读端之上建立 **原子 HiPS/manifest
 输出发布** 合同（宿主基础设施，不含科学算法迁移）：把"磁盘上产出的 HiPS 子产品目录
 （properties + NorderK/DirD/NpixN.fits tiles + 可选 Moc.fits）"以 **原子、可恢复、
-唯一目标** 的方式发布，并在发布完成后落 **完成 manifest**（唯一完成标记）。IO-002
-读端/跨 Phase 消费只接受本接口发布的完整产物（DATA-002 R-DISK-ONLY）。
+唯一目标** 的方式发布，并在发布完成后落 **完成 manifest**（唯一完成标记）。HiPS 输入
+读端/跨 Phase 消费只接受本接口发布的完整产物（`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 的 `R-DISK-ONLY`）。
 
 发布流水线（每个产物文件）：
 `临时写（run 私有 stage）→ 关闭/fsync → fitsverify（结构 + DATASUM）→ sha256 →
@@ -31,8 +31,8 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 的 sha256 只作容器指纹记入 `storage` 段，不作产品身份。
 
 本合同覆盖**输出端**的发布语义：tile 生成/投影按 P1/P2/P3 科学模块的正本执行；
-`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 按各自现行职责运行。读端（IO-002）与
-产物交换资格（DATA-002）是独立合同面，不在此重复。
+`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 按各自现行职责运行。读端（`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`）与
+产物交换资格（`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`）是独立合同面，不在此重复。
 
 ## 2. 模块归属与目录
 
@@ -42,7 +42,7 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 | 原子输出发布器（Python 执行形态） | `lib/infrastructure/aio/io/hips_output_store.py` |
 | FITS 独立校验器（fitsverify，与 fits_core 同算法） | `lib/infrastructure/aio/io/fits_verify.py` |
 | 契约/负测（Python） | `eng/tests/io/test_hips_output_contract.py` |
-| 测试 tile fixture（复用 IO-001 fits_core） | `eng/tests/io/hips_output_fixture.py` |
+| 测试 tile fixture（复用 FITS 流式接口 fits_core） | `eng/tests/io/hips_output_fixture.py` |
 
 本接口执行形态 = `lib/infrastructure/aio/io/hips_output_store.py`（发布状态机）+
 `lib/infrastructure/aio/io/fits_verify.py`（FITS 结构 + DATASUM 校验）：纯 Python 语义层，
@@ -97,14 +97,15 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
    文件名形态）→ 符号链接检查。全部通过才进入写。
 2. **覆盖清理**：默认不覆盖——目标为**成功对象**（含 COMPLETE manifest）且
    `overwrite=False` → `PublishError`。中断/cancel 残留（目录存在但无 COMPLETE
-   manifest）= **非成功对象**（DATA-003 语义）→ 自动清残重发；成功对象仅在显式
+   manifest）= **非成功对象**（`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 语义）→ 自动清残重发；成功对象仅在显式
    `overwrite=True` 时清除后重建。
 3. **stage 临时写**：每个文件写入 `{run}/stage/`（O_EXCL；临时名带内容 sha256
    前缀防碰撞）；写后 `fsync` 关闭（关闭 = 内容完整落盘）。
+
 4. **fitsverify**：`.fits` 科学平面 tile（`NpixN.fits`）必须通过结构 + DATASUM
-   校验（`fits_verify.py`，与 IO-001 fits_core `fits_verify_file` 同一算法族，
+   校验（`fits_verify.py`，与 FITS 流式接口 fits_core `fits_verify_file` 同一算法族，
    可由 C verifier / astropy 交叉验证）。失败 → `PublishError`，无成功对象。
-   `Moc.fits` 为 BINTABLE（IO-001 支持域外，IO-002 MOC optional）→ 只做 sha256
+   `Moc.fits` 为 BINTABLE（FITS 流式接口支持域外，HiPS 输入读端 MOC optional）→ 只做 sha256
    + 原子落盘，不阻塞发布。
 5. **sha256**：每个文件内容 sha256/64hex 记录。
 6. **原子 rename**：逐个 `os.replace`（同文件系统原子）从 stage → 目标；
@@ -139,6 +140,7 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 ```
 
 - `tree` 条目 = `{path, size, sha256}`（稳定排序）。
+
 - **`storage` 段（加性，运行级形态事实）**：`storage` 段属**运行级完成清单** `manifest.json#storage`，
   记录该次运行生效的落盘形态与容器/索引指纹：`storage_form`（`archive` | `bare`）、`form_source`
   （`config` = 输入配置显式给出 / `default` = 键缺失或留空 ⇒ 取默认 `archive` 并已报 warn）、`products[]`
@@ -148,6 +150,7 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
   `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`。
   本接口的**产品级**完成 manifest（`products/{user_path}/manifest.json`，执行形态
   `lib/infrastructure/aio/io/hips_output_store.py`）承载 `tree` / `tree_hash` / `fitsverify` 三项与形态无关的事实。
+
 - **形态事实只落输出清单面**：`storage_form` / `archive_sha256` / `index_sha256` 出现在三处——Phase1
   输出清单 `p1_products.json#frames[]` 的逐帧四字段、上述运行级 `storage` 段、产品级索引
   （正本 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.2/§10.3）；归档内 `properties` 与裸形态
@@ -190,9 +193,9 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 
 1. 本接口交付 Python 语义层 + 全部契约/负测；Windows 侧交付形态 `acsd_io.dll` 按同一发布
    状态机由同语义 C 接线复刻（Linux 侧对应产物 `libacsd_io.so`）。
-2. `Moc.fits`（BINTABLE 扩展）不做内容校验（IO-001 §14.2：表扩展 UNSUPPORTED；
-   IO-002 MOC optional hint 语义：缺失/损坏不阻塞读/写）。
+2. `Moc.fits`（BINTABLE 扩展）不做内容校验（FITS 流式接口 §14.2：表扩展 UNSUPPORTED；
+   HiPS 输入读端 MOC optional hint 语义：缺失/损坏不阻塞读/写）。
 3. 并发安全以 run 目录隔离 + 单次发布单线程为前提；单 run 内并发发布同一
-   user_path 由调用方串行化（与 DATA-003 writer 唯一 producer 同纪律）。
-4. CHECKSUM 卡写路径沿用 IO-001 默认关闭；fitsverify 校验 DATASUM（写入侧恒写
+   user_path 由调用方串行化（与 `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 的 writer 唯一 producer 同纪律）。
+4. CHECKSUM 卡写路径沿用 FITS 流式接口默认关闭；fitsverify 校验 DATASUM（写入侧恒写
    DATASUM 卡），CHECKSUM 卡存在且非占位时同样校验。

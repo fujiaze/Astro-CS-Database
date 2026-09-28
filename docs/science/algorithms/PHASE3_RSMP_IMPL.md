@@ -2,9 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §6.2（export 流程）
 
-> ID: ALG-P3-RSMP-IMPL-001  状态: CONTRACT_READY  模块: astrocs.p3.resample（迁移合同值；
-> registry 生产 descriptor 占位 astrocs.phase3.resample2 由 P3-RSMP-INT
-> 对齐）  上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，
+> 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，
 > FROZEN，零改动；矩阵行 science_id 引用的
 > SCI-P3-RES-001 为 MISSING 占位，本域全部科学内容映射声明为
 > SCI-P3-001，见 §5）。承接既有 ALG-P3-003 本域子面（G3/G4 施工规格，
@@ -13,8 +11,8 @@
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/resample/p3_resample.h（202 行，唯一权威签名头）+
 > lib/algorithms/resample/p3_resample.cpp（586 行）。
-> （2026-09-23 复测; NAN-SAMPLE-MASK 对齐任务新增 P3SampleRejection +
-> p3_sample_bilinear_nanmask_ex，见 §4/§6.5/§6.6。）
+> 本层含 `P3SampleRejection` 与 `p3_sample_bilinear_nanmask_ex`（NaN 样本掩膜
+> 与对齐口径），逐项登记见 §4/§6.5/§6.6。
 > 代码中的数学核心唯一 = healpix 权威函数（见 §6）。
 
 ## 1 目的与非目标
@@ -60,7 +58,7 @@ lib/algorithms/resample/p3_resample.h        202 行  唯一权威签名头（AL
 lib/algorithms/resample/p3_resample.cpp     586 行  全部实现（§6 逐符号）
 lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp  437 行  样本级掩膜 Oracle+负例（§12）
 lib/phase3_session/p3_session.cpp      441 行  会话编排消费（§8）
-lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（禁止第二套核心）
+lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（第二套核心恒不接受）
 eng/tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nearest/bilinear/pix2ang 六模式）
 eng/tests/backend/test_p3_resample.py      164 行  最近邻邻接测试（编译探针+seam/NaN/无静默默认）
 eng/tests/backend/test_p3003_parallel_resampler.py 141 行  并行域邻接测试
@@ -156,7 +154,7 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 （lib/algorithms/shared/healpix/healpix_core.cpp 权威实现）= `sqrt(π/3)/nside` rad。
 **该式是精确的等面积等效线尺度，不是近似**：HEALPix 在同一 nside 下**所有单元面积严格
 相等** = `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4；本仓实测
-`run/SCI-FIX-DRZGEOM-01/evidence/exp_a_geometry.json` A4 段：nside=512/1024 × 9 档纬度
+实验/healpix-polar/results/（A4 段）：nside=512/1024 × 9 档纬度
 面积相对偏差恒为 0.0；同一实验的等经纬网格阴性对照在 dec=89.9° 偏 −20.5%）。
 **适用域**：该式是**面平均**判据；HEALPix 单元的局部采样步长（邻元中心角距）随纬度与
 方向变化——实测 nside=512 共边邻元步长 ∈ [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×
@@ -349,7 +347,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI §9a-9 要求记 missing） | p3_session.cpp:265-277 | SCI §9a-9 | P3-RSMP-IMPL/INT |
 | DISP-P3RSMP-005 | astrocs_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
 | DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 §2a 冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与 DATA-002 §2a「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json:322` 仅有可选 `rejected_sample_count`；DATA_SEMANTICS §30.2（Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 §2a 规则 3；ALG-P3-003 §2 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 §30.2 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `module_entry.cpp:971` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
-| DISP-P3RSMP-007 | **C（coverage）语义的跨文档冲突**（本任务**不改** C）：ALG-P3-003 §2 G4 / §4 与 DATA_SEMANTICS §29.4 说「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ S=NaN ∧ C=1），而 DATA_SEMANTICS §29.2 写「C=1 ⇔ 足迹内存在**有限** tile 像素」、DATA-002 §2a 规则 2 写「零合格样本 ⇒ signal=NaN ∧ **support≤0**」 | 本任务 M42 复验实测：改后仍 464263 px 为 `S=NaN ∧ C=1`（零合格样本，四角上游 support≤0），与 G4 口径一致、与 §29.2/§2a 表述不一致 | ALG-P3-003 §2 G4/§4；DATA_SEMANTICS §29.2 vs §29.4；DATA-002 §2a 规则 2 | 合同域裁决（本任务按 ALG 冻结口径保持 C 不变；若判 §2a 为准，则 Phase3 需另出 support 平面，属结构性变更） |
+| DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = DATA_SEMANTICS §29**：Phase3 侧执行口径 = ALG-P3-003 §2 G4 / §4 与 §29.4「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；§29.2「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 §2a 规则 2「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 §29 正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 §29.4 一致 | ALG-P3-003 §2 G4/§4；DATA_SEMANTICS §29；DATA-002 §2a 规则 2 | 合同域登记面：§29.2 与 §29.4 的表述按 §29 正本收敛（订正动作落合同域） |
 
 ## 12 TEST-P3-RSMP-DESIGN-001 设计冻结（登记面 VERIFIED）
 
@@ -373,8 +371,8 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
     T1 harness 映射自检 / T2 1·2·3 个非有限样本的重归一真值 / T3 零合格样本 S=NaN 且
     C=1 / T4 ±Inf 与 NaN 同类（含混合、全 Inf）/ T5 强制计数分类 / T6 方差按重归一权重
     传播（FP64 1e-12，且与「沿用原几何权重」错值相对差 >5%）/ T6b 零合格样本方差 NaN。
-    红/绿实证: 同一用例对「回退 any_nan→NaN」变体判红 47 处（run/RSMP-NANMASK-01/
-    evidence/test_red_anynan.log）、对现行实现判绿（test_green.log）。
+    正例/负例判据: 同一用例对「回退 any_nan→NaN」变体必须判红、对现行实现判绿；
+    判红/判绿证据与日志正本 = 实验/engineering-evidence/。
 - P3-RSMP-TEST 设计要求（合同）: ①order 选择等价性（对拍
   pixel_resolution_arcsec 公式，§6.1）②seam 连续性（SYN-007 预冻结
   容差）③NaN/coverage 值语义全表（§6.6 五行，含样本级掩膜与覆盖级 NaN）
@@ -395,9 +393,9 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   order；hardware_concurrency 决定线程数；静默默认 open；**静默剔除**
   （¬isfinite 样本必须计数暴露）；**零填替代**（零合格样本必须 NaN）；
   **用未重归一的几何权重传播方差**（DATA-002 §2a 规则 1）。
-- DISP 台账: §11 表七项（DISP-P3RSMP-001..007）；001..005 本任务首版登记，
-  006/007 本次登记（006 = 强制计数产品承载面未冻结 → 待合同域登记；007 = C 语义
-  跨文档冲突 → 待合同域定案），均不在本任务闭环。
+- DISP 台账: §11 表七项（DISP-P3RSMP-001..007）。006 = 强制计数产品承载面未冻结
+  → 登记面 = 合同域；007 = C 语义以 DATA_SEMANTICS §29 为唯一正本 → 订正动作
+  登记面 = 合同域。
 
 ## 14 SCI 层零改动声明
 
@@ -406,20 +404,13 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - ALG 层: docs/science/algorithms/PHASE3_RESAMPLE.md 仅做表述级修订
   （tile cache 逐出表述、实现锚补记、§3 伪代码与 G4/§4 口径对齐），G1-G5 公式零改动。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - HiPS 层级/tile：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - 双线性采样核与 tile 寻址：Project-defined（本文件 §6.4/§6.5，SCI-P3 §5）。
 - FITS tile 读取：FITS Standard 3.0；CFITSIO（宽松许可）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

@@ -20,15 +20,14 @@
 
 - 全局 OpenMP 设置只由宿主进程持有；线程数由 run context 配置。
 - 计数器：atomic 或 thread-local 聚合（计数一律经同步原语）。
-- 浮点累积顺序固定（确定性输出）；reduction 顺序文档化。
+- 浮点累积顺序固定（确定性输出）；归约顺序文档化于本文件「确定性锚点」节。
 - cache（dense UPM、Gaia 查询缓存）必须线程安全或单线程互斥访问。
 
 ### 并行轴分配（冻结口径）
 
 P1 各节点有两个可独立分配的并行轴：**帧级**（同时处理几帧，受内存闸门约束）与
-**帧内 OpenMP**（每帧几条线程，受线程预算约束）。两轴之和必须 ≤ Runtime lease 给出的
-预算：两个轴**相乘分配**，**两轴之积 ≤ lease 的线程预算**（同时真正在算的线程数不超过预算；
-最高设计 §9），实现落点 = `p1_parallel_for(workers, n, thread_budget, body)`
+**帧内 OpenMP**（每帧几条线程，受线程预算约束）。两轴按**乘积**分配：**两轴之积 = 同时真正
+在算的线程数，必须 ≤ Runtime lease 给出的线程预算**（最高设计 §9），实现落点 = `p1_parallel_for(workers, n, thread_budget, body)`
 （`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
 
 ```
@@ -57,7 +56,21 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 ⇒ **要 `W_eff` 达到帧内轴宽度必须 `K ≥ inner_omp`**；而 `K = inner_omp = num_threads` 时
 同时在飞的 scratch 份数 `= in_flight × inner_omp ≤ lease`（上式不变式）
 ⇒ **`K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关**。
-故 `kScratchPoolCap` 的取值不再是独立旋钮，而由帧内轴派生。
+故 `kScratchPoolCap` 由帧内轴派生（现行形态 = `drizzle_engine.cpp` 的 per-stripe scratch 池：强制按 stripe 索引升序左折叠归约，见 `:1857-1859` 与归约分支 `:2117-2142`）。
+
+**口径统一（R-30：两轴并行 vs 内核不嵌套 · 唯一预算源 · 三命令进程边界）**
+
+- **唯一预算源**：上文两轴式与 `THREAD_BUDGET_ARCH.md` §1 的 `Σ(活动 worker) ≤ budget` 是
+  **同一预算的两种陈述**，不是两个预算：lease（= 可用 CPU 交 `execution_options_contract.md`
+  的对象）是唯一来源，帧轴与帧内轴都从它派生。
+- **单个科学内核内部的并行度 = 帧内轴**：`inner_omp` 就是该内核的并行度；内核内只有这一个
+  parallel region（`EXECUTION_MODEL.md` §6「外层已并行则内层串行」、
+  `THREAD_BUDGET_ARCH.md` §1「消除嵌套并行与不可预算并发」）。两轴相乘 = 同时真正在算的线程数，
+  其积仍是**同一预算内的分配**，不是预算翻倍。
+- **三命令进程边界**：`normalize`/`mosaic`/`export` 各自独立进程、一次调用只驱动一个阶段
+  （`docs/api/CLI_PROTOCOL_V1.md` §1「三个命令平级独立：各自独立进程…」、
+  `docs/ASTROCS_DESIGN.md` §1.2）⇒ 线程预算**不跨命令、不跨阶段共享**；
+  「两轴相乘」只在同一次调用内的同一预算上成立。
 
 **分配形态的结论：「一帧独占全部核心」不采纳。**
 在 `W_eff` 恒定的同二进制受控 A/B 下（四档产品**逐位相同**；逐档墙钟 / 峰值 RSS / CPU p50 读数见
@@ -117,4 +130,4 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 
 ## 契约
 
-`ENG-THREAD-*` 契约（`docs/TRACEABILITY.csv` 登记 `ENG-THREAD-001`）。
+线程模型契约 = `ENG-THREAD-001`（登记面 = `docs/TRACEABILITY.csv`）；静态 checker 合同见 `THREAD_BUDGET_ARCH.md` §5。

@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
-> ID: SCI-INT-001  集合: SCI-INT-001,002,004,008  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-INT-001..  模块: phase2 (integrate)
+> 本文件条款为冻结定义，变更走变更流程。
 
 ## 1 目的与非目标
 
@@ -28,7 +28,7 @@
 
 - `x, signal, values`: **面亮度 ADU·sr⁻¹**（与 UPM 校准后同一标度；量纲依据=上游 Phase1 HiPS
   signal 层的写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，裸 ADU 判红，
-  `lib/infrastructure/aio/src/hiss_writer.cpp:335-365`；标度换算与实测闭环见
+  `lib/infrastructure/aio/src/hiss_writer.cpp`；标度换算与实测闭环见
   ALG-P2-SMP-001 §2 与 ALG-P2-INT-001 §8）；`w, ivar`: **信号⁻²，即 (ADU·sr⁻¹)⁻²**
   （本层不编码 ivar 语义，仅数值权重）；`support`: 无量纲 [0,1]；计数 `n_*`: 无量纲；
   `wsum`: 信号⁻²，即 (ADU·sr⁻¹)⁻²；`vs = Σwᵢxᵢ`: (ADU·sr⁻¹)⁻¹。
@@ -70,7 +70,7 @@
        status  = OK
 ```
 
-与 `lib/algorithms/coverage/src/integrate.cpp:10-79` 及 `lib/algorithms/coverage/include/astro/phase2/integrate.h:1-75` 一致。`support` 为 `max(accepted support)` 且仅消费 `pr.support`，调用方不二次 max/mean。
+与 `lib/algorithms/coverage/src/integrate.cpp` 及 `lib/algorithms/coverage/include/astro/phase2/integrate.h` 一致。`support` 为 `max(accepted support)` 且仅消费 `pr.support`，调用方不二次 max/mean。
 
 ## 6 假设
 
@@ -85,8 +85,8 @@
 - **支撑单调性**：`sup_max = max(accepted support)`，增样本不减 `support`；
   **口径的精确作用域**：max 的作用域 = 通过资格门（`accepted ∧ values 有限 ∧
   support 有限且 >0`）的全部样本，**不含权重正性要求**——零权重 accepted 样本的
-  support **进入** max（`lib/algorithms/coverage/src/integrate.cpp:49-50`，位于权重分支
-  之前；回归门 `eng/tests/unit/p2_output_semantics_test.cpp:85-107`）。
+  support **进入** max（`lib/algorithms/coverage/src/integrate.cpp`，位于权重分支
+  之前；回归门 `eng/tests/unit/p2_output_semantics_test.cpp`）。
 - **两个 support 的命名区分（各自具名）**：
   (i) **样本级 support**（本层输入 `support[i]`，域 (0,1]，几何覆盖支撑）——
   本层只对它做 canonical max 归约；
@@ -98,8 +98,8 @@
 
 | 条件 | 行为 | 证据 |
 |---|---|---|
-| `count==0` / `values==null` | `NO_CANDIDATES` | `integrate.cpp:23` |
-| 非有限 `values/support/weights` | `INVALID_INPUT` | `integrate.cpp:41-61` |
+| `count==0` / `values==null` | `NO_CANDIDATES` | `integrate.cpp` |
+| 非有限 `values/support/weights` | `INVALID_INPUT` | `integrate.cpp` |
 | 负权重 `w<0` | `INVALID_INPUT` | `w<0` 分支 |
 | `w==0` 全部 | `ZERO_VALID_WEIGHT` (若有 accepted) | `n_positive==0` 分支 |
 | 全拒 `n_accepted==0` | `ALL_REJECTED` | `n_accepted==0 ? ALL_REJECTED` |
@@ -111,9 +111,9 @@
 
 ## 10 不可接受变化
 
-- 将 `support` 改为 `mean`/`sum` 或二次聚合（canonical 为 `max`）；
-- 将 `w==0` 改为 `INVALID_INPUT`（零权重为合法不贡献）；
-- 将 `INVALID_INPUT` 合并为 `ZERO_VALID_WEIGHT`（显式互斥状态）；
+- `support` 的 canonical 聚合 = `max`（覆盖并集的保守下界）；`mean`/`sum` 与二次聚合路径不属于本合同；
+- `w==0` 属合法输入，其语义 = 该候选不贡献；把它归入 `INVALID_INPUT` 的路径不属于本合同；
+- `INVALID_INPUT` 与 `ZERO_VALID_WEIGHT` 是显式互斥状态，合并两者的路径不属于本合同；
 - 在本层引入 `ivar/SNR` 策略（policy 在调用方，reducer 无知）；
 - 改变求和顺序导致非确定性 `signal`。
 
@@ -141,7 +141,7 @@
 
 积分在**像素栈域**逐像素独立进行（每 `P2PixelStack` 一个位置）；无 WCS/重投影（天区重投影=SCI-DRIZZLE 非目标，§1）；候选携带 `frame_id`（DATA_SEMANTICS §5），聚合不丢失样本身份（n_used/权重可追溯）。
 
-## 9a 专属问题回答（SCI-006 指定问题逐项）
+## 9a 口径问答：聚合顺序、support 语义与权重校验
 
 - **integration 权重**：`weights[i]`=逐候选科学权重（可空=等权 1.0），来源为 SCI-NOISE ivar/SCI-UPM 权重链；本层不做权重策略（§1 非目标）。
 - **归一**：`signal=Σ_{valid,W>0} w_i·x_i / wsum`（wsum=权重归一）；`support`=canonical reducer `max(accepted support)`（唯一归约器 = max，§10）。
@@ -157,24 +157,13 @@
 
 ## 14a 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动 §5 公式与 §10 禁改清单。
 
 - **加权均值/逆方差聚合**：教科书级（加权最小二乘/逆方差加权平均，如 Bevington, P. R. & Robinson, D. K. 2003, Data Reduction and Error Analysis for the Physical Sciences, 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346）的 GLS）。**差异**：Astro Celestial Sphere Database（ACSD） 的 reducer 不编码 ivar 语义（§9），权重策略在调用方（SCI-NOISE/SCI-UPM），故这里是**通用数值加权均值**而非“逆方差估计量”本身。
 - **最优叠加/信息保持组合**：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - **support=max canonical reducer**：Project-defined（覆盖并集保守下界，§5/§10），无外部公式；可对照 coverage/几何并集语义。
 - **Fruchter & Hook 2002, PASP 114, 144**：重采样后相关噪声背景（与 §5 加权平均的适用域相关）。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

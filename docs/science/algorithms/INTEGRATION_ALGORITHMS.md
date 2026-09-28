@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
-> ID: ALG-INT-001  范围: ALG-INT-001..003  上游 SCI: SCI-INT-001  状态: DERIVED  模块: phase2/integrate
-
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-INT-001,002,004,008` (signal=Σw·x/Σw, support=max, 零权重合同)
@@ -35,7 +33,7 @@ F4: n_accepted, n_finite, n_positive_weight计数
 F5: if invalid → INVALID_INPUT; else if n_positive==0 → (n_accepted==0? ALL_REJECTED: ZERO_VALID_WEIGHT)
 F6: signal = Σ w·x / Σw, support = max(accepted support) if提供 else 1.0, n_used=n_positive
 F6a: support reducer 作用域 = accepted ∧ finite(value/support)（**不含** w>0 要求）；
-     零权 accepted 样本合法不贡献 signal, 但必须进入 sup_max（B2-A7 修复, P2P3-F9）
+     零权 accepted 样本合法不贡献 signal, 但必须进入 sup_max
 ```
 
 来源: `integrate.cpp:10-79` `integrate.h: P2PixelStack/Result`
@@ -51,7 +49,7 @@ function integrate_pixel(in, out):
   if count==0 or values==null → NO_CANDIDATES
   for i: acc=accepted?.accepted[i]:true; count n_accepted; if !acc continue
          if !finite(values) → invalid; if support non-finite/≤0 → invalid
-         ++n_finite; sup_max=max(sup_max, support)        # 资格通过即进 reducer(B2-A7)
+         ++n_finite; sup_max=max(sup_max, support)        # 资格通过即进 reducer
          w=weights?.w[i]:1; if !finite(w)或w<0→invalid; if w==0 continue
          ++n_positive; vs+=w·x; wsum+=w
   out.n_finite/positive/accepted=n_*
@@ -67,7 +65,7 @@ function integrate_pixel(in, out):
 | count==0 | NO_CANDIDATES |
 | non-finite value/support | INVALID_INPUT |
 | 负w | INVALID_INPUT |
-| w==0 | 合法不贡献 signal，但计入 support reducer（B2-A7） |
+| w==0 | 合法不贡献 signal，但计入 support reducer |
 | support空 | 1.0 |
 
 ## 5 确定性与归约
@@ -100,19 +98,12 @@ function integrate_pixel(in, out):
 - API: integrate.h: p2_integrate_pixel, p2_validate_candidate_weights
 - TST: TST-INT-001 常量场, TST-INT-ZERO, FAIL四态
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003, Data Reduction and Error Analysis for the Physical Sciences 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346）的 GLS）。**差异**：本层 reducer 不编码 ivar 语义，权重策略在调用方（SCI-NOISE/SCI-UPM）。
 - 最优叠加：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - support=max canonical reducer：Project-defined（覆盖并集保守下界，本文件 F6）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

@@ -16,6 +16,7 @@
     定义见 `docs/science/NOISE_MODEL.md`。
   - **Gaia 极区 prune**：剪枝用**可证明保守**的球面判据（不丢候选）；cache 键精确匹配，
     实现锚 = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 的 `query_cache_lookup()`。
+
 - 性能基线与回归判据见 `docs/performance/BASELINE.md`；超过基线回归阈值（<5%）即判红。
 - 编排与内存的实测读数、拟合与逐档墙钟见 `实验/engineering-evidence/l2_performance/`；
   本文件只承载结构结论与冻结参数。

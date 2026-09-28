@@ -2,13 +2,13 @@
 
 > 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
 
-> ID: ALG-P2-UPM-IMPL-001  状态: CONTRACT_READY。本文件是 Phase2 Unified Photometric Model（UPM）
+> 本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/
 > PHASE2_UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
 > （docs/science/algorithms/UPM_SOLVER.md，公式与容差零改动）。
-> 模块: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（449 行，实测）；
+> 实现源: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（453 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: astrocs.p2.upm
 > （TRACEABILITY_MATRIX.csv :21/:22 两行）；TEST: TEST-P2-UPM-001/002
@@ -69,35 +69,35 @@
 裸 ADU 判红（`lib/infrastructure/aio/src/hiss_writer.cpp:335-365`）；本层一切绝对量随该标度，
 **不是**与仪器无关的常数——跨标度（如与 ADU 域孔径测光量）混用前必须先声明 Ω_px 换算。
 
-## 3 逐符号锚（upm.cpp 2981 行 / upm.h 449 行，实测）
+## 3 逐符号锚（upm.cpp 2981 行 / lib/algorithms/coverage/include/astro/phase2/upm.h 453 行）
 
-**导出符号（upm.h 声明 / upm.cpp 实现）**：
+**导出符号（`lib/algorithms/coverage/include/astro/phase2/upm.h` 声明 / upm.cpp 实现）**：
 
-| 符号 | 声明（upm.h） | 实现（upm.cpp） | 语义 |
+| 符号 | 声明（lib/algorithms/coverage/include/astro/phase2/upm.h） | 实现（upm.cpp） | 语义 |
 |---|---|---|---|
-| p2_upm_build | :120-122 | :1372-1375 | 构建（obs 驱动拓扑）入口 |
-| p2_upm_build_geo | :128-131 | :1377-1381 | 全几何节点构建（含单帧区 continuation） |
-| p2_upm_save | :133-133 | :1383-1504 | 稀疏 json 原子写（aio_upm_write_sparse） |
-| p2_upm_open | :134-134 | :1506-1801 | 强校验重开（format/frames/controls/C） |
-| p2_upm_info | :135-135 | :1803-1808 | P2ModelInfo 快照（hash/control_count） |
-| p2_upm_convergence | :150-151 | :1893-1905 | 迭代/目标/收敛**只读**访问器（不改 P2ModelInfo 冻结布局） |
-| p2_upm_calibrate_block | :154-160 | :1907-1941 | 逐块校准（唯一运行时 apply 面） |
-| p2_upm_evaluate_c | :163-164 | :1943-1963 | 直接求值 C(frame,leaf) |
-| p2_upm_raw_weight | :175-177 | :1966-1997 | raw 权重单一实现（production/ablation） |
-| p2_upm_geometry_hash | :184 | :2001-2022 | 几何/拓扑 hash（不含观测可信度） |
-| p2_upm_component_gauges | :188-190 | :2024-2036 | 每分量 gauge frame id 查询 |
-| p2_upm_materialize_dense_n | :215-216 | :2045-2174 | 稠密缓存物化（worker 数显式） |
-| p2_upm_materialize_dense | :193-194/:212-213 | :2177-2180 | 稠密物化 wrap（workers=0 auto；声明重复见 DISP-P2UPM-001） |
-| p2_upm_dense_info | :197-201 | :2182-2199 | dense 信息（等价门用） |
-| p2_upm_dense_read_block | :204-211 | :2201-2216 | dense 块读（stale 拒绝） |
-| p2_upm_close | :218 | :2218-2222 | 释放 |
+| p2_upm_build | :124-126 | :1372-1375 | 构建（obs 驱动拓扑）入口 |
+| p2_upm_build_geo | :132-135 | :1377-1381 | 全几何节点构建（含单帧区 continuation） |
+| p2_upm_save | :137-137 | :1383-1504 | 稀疏 json 原子写（aio_upm_write_sparse） |
+| p2_upm_open | :138-138 | :1506-1801 | 强校验重开（format/frames/controls/C） |
+| p2_upm_info | :139-139 | :1803-1808 | P2ModelInfo 快照（hash/control_count） |
+| p2_upm_convergence | :154-155 | :1893-1905 | 迭代/目标/收敛**只读**访问器（不改 P2ModelInfo 冻结布局） |
+| p2_upm_calibrate_block | :158-164 | :1907-1941 | 逐块校准（唯一运行时 apply 面） |
+| p2_upm_evaluate_c | :167-168 | :1943-1963 | 直接求值 C(frame,leaf) |
+| p2_upm_raw_weight | :179-181 | :1966-1997 | raw 权重单一实现（production/ablation） |
+| p2_upm_geometry_hash | :188 | :2001-2022 | 几何/拓扑 hash（不含观测可信度） |
+| p2_upm_component_gauges | :192-194 | :2024-2036 | 每分量 gauge frame id 查询 |
+| p2_upm_materialize_dense_n | :219-220 | :2045-2174 | 稠密缓存物化（worker 数显式） |
+| p2_upm_materialize_dense | :197-198/:216-217 | :2177-2180 | 稠密物化 wrap（workers=0 auto；声明重复见 DISP-P2UPM-001） |
+| p2_upm_dense_info | :201-205 | :2182-2199 | dense 信息（等价门用） |
+| p2_upm_dense_read_block | :208-215 | :2201-2216 | dense 块读（stale 拒绝） |
+| p2_upm_close | :222 | :2218-2222 | 释放 |
 
 **内部符号（匿名 namespace）**：
 
 | 符号/段 | 锚（upm.cpp） | 语义 |
 |---|---|---|
-| build_impl | :212-927 | 构建/求解/哈希本体（两入口共用） |
-| evaluate_c_field | :202-265 | centered 双线性求值（sparse/dense 共用语义） |
+| build_impl | :255-1370 | 构建/求解/哈希本体（两入口共用） |
+| evaluate_c_field | :215-219 | centered 双线性求值（sparse/dense 共用语义；`quality_factor` :220-229） |
 | quality_factor | :220-229 | quality_flags 映射（16→0 / 2→0.1 / 1→1.0 / 未知→0.5） |
 | huber_rho / huber_w | :196-206 | Huber loss / 权重核（无量纲 z） |
 | compute_raw（lambda） | :509-561 | raw 计算 + per-control 归一化 + 并行归并 |
@@ -111,25 +111,25 @@
 
 ```text
 function build_impl(obs, n_obs, nodes, n_nodes, cfg):            # upm.cpp:255-1370
-  校验: out_model/obs/n_obs==0 → rc=1 (:215); target_order<0 → rc=1 (:246-249)
-  cfg 缺省修补（:218-245，默认值见 §13）
+  校验: out_model/obs/n_obs==0 → rc=1 (:258); target_order<0 → rc=1 (:306-315)
+  cfg 缺省修补（:261-305，默认值见 §13）
   装配: nodes 全几何 + obs 按 (tile,gx,gy) cell 去重 (:266-314)
-  frame_ids(std::set 升序) → frame_index/frame_id_by_index (:265/:340-346)
-  邻接图: 网格 4-邻接 + 跨 tile 几何邻接(角距<1.6×cell_dist) (:351-413)
-  连通分量: frame-control 二分图 DFS; 无 obs 几何节点=sentinel (:415-491)
-  每分量 gauge: ref_frame = 分量内最小 frame_id (:464-469)
-  for iter in 0..max_iterations-1:                               # :601-873
-    raw = p2_upm_raw_weight 逐 obs; 归一化 raw/Σraw×reliability  # :509-561
-    w[i] = raw_norm[i] × huber_w(z_i); z = r/σeff                # :612-650
-    M[k] = Σ w·(y−C)/Σ w（参考帧观测优先，未覆盖延拓全帧）        # :651-764
-    C[f] = CG( W+λsL+λ0I , rhs ); 参考帧 C=0                     # :765-858
-    objective += raw·huber_rho(z); max_dM/tol && max_dC/tol → break  # :859-872
-  model_hash = SHA-256(max_digits10 序列化: cfg+manifest+frames+controls+C)  # :879-921
+  frame_ids(std::set 升序) → frame_index/frame_id_by_index (:401-407)
+  邻接图: 网格 4-邻接 + 跨 tile 几何邻接(角距<1.6×cell_dist) (:411-473)
+  连通分量: frame-control 二分图 DFS; 无 obs 几何节点=sentinel (:475-530)
+  每分量 gauge: ref_frame = 分量内最小 frame_id (:524-528)
+  for iter in 0..max_iterations-1:                               # :736 起
+    raw = p2_upm_raw_weight 逐 obs; 归一化 raw/Σraw×reliability  # :558-610
+    w[i] = raw_norm[i] × huber_w(z_i); z = r/σeff                # :760-780
+    M[k] = Σ w·(y−C)/Σ w（参考帧观测优先，未覆盖延拓全帧）        # :784-900
+    C[f] = CG( W+λsL+λ0I , rhs ); 参考帧 C=0                     # :903-1010
+    objective += raw·huber_rho(z); max_dM/tol && max_dC/tol → break  # :1013-1190
+  model_hash = SHA-256(max_digits10 序列化: cfg+manifest+frames+controls+C)  # :1200-1210
 
-function calibrate_block(model, frame_id, leaves, in, out, n):   # :1240-1269
-  未知 frame_id → rc=1 显式失败禁回退 (:1249-1252)
-  逐 leaf: tile=leaf>>18; local=leaf&mask; nested_local_to_xy    # :1256-1262
-  out[i] = in[i] − evaluate_c_field(model, fi, tile, x, y)       # :1263-1266
+function calibrate_block(model, frame_id, leaves, in, out, n):   # :1907-1941（p2_upm_calibrate_block）
+  未知 frame_id → rc=1 显式失败（:1919；回退到 frame 0 参数属于错误科学结果）
+  逐 leaf: tile=leaf>>18; local=leaf&mask; nested_local_to_xy    # :1924-1929
+  out[i] = in[i] − evaluate_c_field(model, fi, tile, x, y)       # :1932
 ```
 
 ## 5 上游 SCI 与映射声明（本域零 SCI 改动）
@@ -170,7 +170,7 @@ quality_factor: flags&16→0.0; &2→0.1; &1→1.0; 未知→0.5     # :177-186
 control_variance = k_corr·(π/2)·σ_bg²/N_retained; control_ivar = 1/control_variance
   （sampler 域 ALG-UPM-CONTROL-IVAR-001 承接产出；upm.h:43-50 冻结注释）
 rc=2 门: control_ivar≤0/非有限 → rc=2 显式拒绝（:1311；build 内 :602-610
-  升级 build rc=2，禁止静默降级；DATA-UPM-CONTROL-UNC-001）
+  升级 build rc=2；静默降级恒不接受；DATA-UPM-CONTROL-UNC-001）
 ```
 
 **F2 per-control 归一化**（out_norm = raw/Σraw × control_reliability）：
@@ -239,9 +239,9 @@ sparse json: format="astrocs-upm-v2"（:1223），frames[]+C[] 行序显式持�
   唯一 AIO 出口 aio_upm_write_sparse（原子写）           # :1299-1301
 open 强校验: format(:1323)、frames 存在/数组/无重复/类型、
   controls/C 字段类型与行数、
-  任何损坏 → rc=1 稳定错误禁止异常越界（p2_upm_open :1304-1567）
+  任何损坏 → rc=1 稳定错误；异常越界恒不接受（p2_upm_open :1506-1800）
 dense cache: format="astrocs-upm-dense-v2"（aio_upm.cpp），
-  source_hash=model_hash 校验（p2_upm_dense_read_block :1912-1927）
+  source_hash=model_hash 校验（p2_upm_dense_read_block :2201-2216）
 dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 ```
 
@@ -310,13 +310,13 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 | p2_upm_build / build_geo | 0 | 成功 | :926/:931/:937 |
 | 同上 | 1 | 参数错：null out_model/obs、**n_obs=0**、target_order<0（无有效 leaf 层级）；save/open 参数错与 IO/format/字段损坏同码 | :215、:246-249、:941、:1009-1028、:1064-1134、:1177-1227 |
 | 同上 | 2 | production 缺 control_ivar（`p2_upm_raw_weight` rc=2 传播；显式科学错误禁静默降级） | :1650-1681 → :2256 |
-| p2_upm_raw_weight | 0/1/2 | ok / 参数错 / production 缺 control_ivar | :1650-1681；语义注释 upm.h:138-145 |
-| p2_upm_calibrate_block | 0/1 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1591-1625 |
-| p2_upm_evaluate_c | NaN | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵） | :1627-1647 |
-| p2_upm_convergence | 0/1 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1577-1589 |
-| p2_upm_dense_read_block | 0/1/2 | ok / 参数 null·未知 frame_id·io/parse / **stale-cache（source hash 不匹配）** | :1912-1927；语义注释 upm.h:176-177 |
-| p2_upm_materialize_dense_n | 0/1 | ok / null、tile_set 空、aio 失败 | :1756-1885 |
-| p2_upm_component_gauges | 0/1/2 | ok / null model / ref_frame 容量不足 | :1735-1747 |
+| p2_upm_raw_weight | :179-181 | ok / 参数错 / production 缺 control_ivar | :1650-1681；语义注释 upm.h:138-145 |
+| p2_upm_calibrate_block | :158-164 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1591-1625 |
+| p2_upm_evaluate_c | :167-168 | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵） | :1627-1647 |
+| p2_upm_convergence | :154-155 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1577-1589 |
+| p2_upm_dense_read_block | :208-215 | ok / 参数 null·未知 frame_id·io/parse / **stale-cache（source hash 不匹配）** | :2201-2216；语义注释 upm.h:176-177 |
+| p2_upm_materialize_dense_n | :219-220 | ok / null、tile_set 空、aio 失败 | :1756-1885 |
+| p2_upm_component_gauges | :192-194 | ok / null model / ref_frame 容量不足 | :1735-1747 |
 
 - 空输入链：n_obs=0 → rc=1（:215）；无 target_order（cfg.target_order<0
   且未显式给出）→ rc=1（:246-249，注释"空间 UPM 必须知道 control
@@ -456,7 +456,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - **dense 物化**：lib/algorithms/coverage/tools/stage2.cpp:470-495——
   p2_upm_save :472 → p2_upm_materialize_dense_n :481-483（workers=
   effective_cpu_workers(cfg.exec)，与积分一致）；
-- **apply 面**：stage2.cpp 经 p2_upm_calibrate_block（:927 与 :1272
+- **apply 面**：stage2.cpp 经 p2_upm_calibrate_block（stage2.cpp:1158 与 :1516
   两处逐块校准；进程内 model 直通，无二次 open）；
 - **reload 消费（p2_upm_open）**：lib/algorithms/coverage/tools/
   calibrated_pair_diag.cpp:205（诊断工具读取 upm_sparse.json +
@@ -498,9 +498,8 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - ALG-UPM-001（UPM_SOLVER.md）与本文档同步登记：行号/并行表述按实测，
   公式与容差零改动。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
 - 弱零锚/正则化：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（卷页需网络核验）。
@@ -509,13 +508,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - 共轭梯度（C 更新）：Hestenes & Stiefel 1952, J. Res. NBS 49, 409。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

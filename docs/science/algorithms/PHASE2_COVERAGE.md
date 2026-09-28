@@ -70,12 +70,12 @@
   （同一天球系、J2000 参考架），列为两个取值是**输入兼容性**需要，不是两个不同的
   坐标系；下游一律按 ICRS/J2000 消费。域外（galactic/ecliptic）判红属**未实现**，
   **表述口径 = 「未实现」**。
-- B2-A8 filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
+- filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
   **键缺失 → rc=1 "missing obs_filter property ..."**（:92-104，fail-closed）；
   键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
-  做跨帧**全等**比较（§2 filter 公式）；只在双方非空时比较会使"带 filter
-  的帧 + 未声明 filter 的帧"被静默并入同一 union（DISP-COV-003，已关闭）。
-- B2-A8 tile 编号方案（inspect_frame :126-133）: `hips_ordering` 存在且 ≠ "NESTED"
+  做跨帧**全等**比较（§2 filter 公式）；空串参与全等比较，键缺失在 inspect_frame
+  层一律拒绝（DISP-COV-003）。
+- tile 编号方案（inspect_frame :126-133）: `hips_ordering` 存在且 ≠ "NESTED"
   → rc=1 "unsupported hips_ordering=%s (NESTED required)"（fail-closed）；本模块
   union 父聚合 `t>>2s` 与下游 NESTED 消费只在 NESTED 语义下成立。缺省键（AIO
   写侧恒写 NESTED）登记为空串。
@@ -88,7 +88,7 @@
 - filter/passband 一致性（build :215-225）: 基准 = 首帧 `filter_passband`
   （:215-218，无论空串与否）；后续帧 `filter ≠ filter_ref` →
   "filter mismatch: %s vs %s" rc=1（:219-225）。**空串参与全等比较**，
-  不再跳过（B2-A8；键缺失已在 inspect_frame 层拒绝）。
+  （键缺失已在 inspect_frame 层拒绝）。
 - 跨帧坐标系一致性（build :227-233）: `hips_frame` 必须逐帧相等；
   equatorial 与 icrs 混用 → "hips_frame mismatch: %s vs %s" rc=1（逐帧校验
   ∈{equatorial,icrs} 之外还须比较跨帧一致性）。
@@ -126,7 +126,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
       (失败: error 转述 :176-178)
       if rc: error 转述, status=1, rc=1                        # :176-178
       f=info_f.filter; fr=info_f.frame_type
-      if 未设基准→基准=f, frame基准=fr           # :215-218 (B2-A8 全等, 无空串豁免)
+      if 未设基准→基准=f, frame基准=fr           # :215-218 (全等, 无空串豁免)
       elif f≠基准: status=1, rc=1               # :219-225 filter mismatch
       elif fr≠frame基准: status=1, rc=1         # :227-233 hips_frame mismatch
       target_order = min(target_order, info_f.max_leaf_order)  # :194-196
@@ -163,8 +163,8 @@ p2_coverage_build(hips_paths, n_inputs, out):
 - `hips_order` 缺失/负 → rc=1（:89-93）；`hips_tile_width≠512` → rc=1
   （:106-110）；`hips_version` 缺失 → rc=1（:111-115）；`hips_frame∉
   {equatorial,icrs}` → rc=1（:116-121）。
-- B2-A8 `obs_filter` 键缺失 → rc=1（:92-104，"missing obs_filter property"）。
-- B2-A8 `hips_ordering` 显式声明且 ≠ "NESTED" → rc=1（:126-133）。
+- `obs_filter` 键缺失 → rc=1（:92-104，"missing obs_filter property"）。
+- `hips_ordering` 显式声明且 ≠ "NESTED" → rc=1（:126-133）。
 - filter mismatch（全等比较，含空串）→ rc=1（:219-225）；跨帧
   `hips_frame` 不等 → rc=1（:227-233）。
 - 输出 MOC cell 升序且唯一（sort+unique :212-214）；K=0 仅当全部输入
@@ -320,10 +320,9 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   id（lib/algorithms/coverage/memory.md「W4 UPM 完整化：真实内容哈希」），碰撞风险
   如实登记；整改: 内容哈希派生 id（P2-COV-IMPL，与 UPM SHA-256 设施
   对齐）。
-- ~~DISP-COV-003 空 filter 静默放行~~（**B2-A8 已关闭**）: 原实现仅在双方
-  非空时比较，可能混入异 passband 帧（违背「同一 filter/passband」兼容前提
-  coverage.h:7）。整改（已完成）: (a) inspect_frame 对 `obs_filter` **键缺失**
-  fail-closed（:92-104）；(b) build 层对全部帧做**全等**比较（:215-225，含空串）；
+- DISP-COV-003（现状）: `obs_filter` **键缺失** fail-closed（inspect_frame :92-104）；
+  build 层对全部帧做**全等**比较（:215-225，含空串）——空 filter 一律不静默放行
+  （违背「同一 filter/passband」兼容前提 coverage.h:7）；
   (c) 跨帧 `hips_frame` 相等（:227-233）；(d) `hips_ordering` 非 NESTED 拒绝
   （:126-133）。真实 filter/ordering 负例见 eng/tests/cli/test_phase3_inprocess.py
   `test_10_coverage_requires_filter_and_nested_ordering`。
@@ -395,20 +394,13 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
 - 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor astrocs.phase2.coverage
   由 P2-COV-INT 对齐，不作冻结依据）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
 - 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
 - coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 docs/plugins/algorithms_phase2/09_coverage.md §1；权威语义在本文件 §7 负向条款。
 - MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

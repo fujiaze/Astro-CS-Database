@@ -12,7 +12,7 @@
 - `point_source_flux`：Q/W/flux/detection 产品；
 - `visualization`：允许显示型降级，类别字段标为显示型，与测量产品分列。
 
-- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ASTROCS_DESIGN.md` §5.3/§5.6；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
+- 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ASTROCS_DESIGN.md` §6.3 输入语义守卫 / §6.4 硬约束；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
 - 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（`docs/contracts/DATA_SEMANTICS.md` §31.1a/§31.2）。
 - 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/design/PRODUCT_STORAGE_FORM.md`）。
 - **Phase3 产物是交付物**：输出为**裸 FITS 文件，不压缩、不套壳**（用户与外部工具直接打开）；Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。输入合同**不设** `storage_form` 键（形态由落盘名判定、对调用方透明），出现即 REJECT。
@@ -21,7 +21,7 @@
 
 ## 2. WCS 计划
 
-用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**支持声明只以该注册表为准**（`ASTROCS_DESIGN.md` §5.3）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
+用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**支持声明只以该注册表为准**（`ASTROCS_DESIGN.md` §6.3 投影算法）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
 
 计划阶段：
 
@@ -168,7 +168,6 @@ C_y = R C_x Rᵀ
 | `phantom_data_px` | 未覆盖却有值的像素数（V1a 判据量） |
 | `covered_but_nonfinite_px` | 覆盖却非有限的像素数（**仅诊断**，不判红） |
 
-`covered_fraction` 与 `finite_fraction` 的差就是「覆盖 ≠ 有效数据」的量：M42 实测
-`0.99668` vs `0.96900`，差值 464,263 px。判据不因该差值判红（见 §9.2），但两者必须
-同时落盘，便于独立复核。
+`covered_fraction` 与 `finite_fraction` 的差就是「覆盖 ≠ 有效数据」的量。判据不因该差值
+判红（见 §9.2），但两者必须同时落盘，便于独立复核；真帧读数见 `实验/` 证据面。
 

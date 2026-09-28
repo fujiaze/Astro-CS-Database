@@ -22,13 +22,13 @@
 ## 4. 算法与公式要点
 
 - 科学模式要求球面几何一致，**距离一律取球面量**；
-- 采样核是产品语义：
+- 采样核是产品语义（核定义、误差/边界与适用域正本 = `docs/science/algorithms/PHASE3_RESAMPLE.md`；验证方式见 §8）：
   - nearest：仅离散 mask/诊断或显式用户选择；
   - bilinear/高阶核：连续场，但必须说明通量/面亮度语义；
   - point-source Q/W/PSF 参数按各自语义插值，与普通 signal 插值分属两套口径；
-- 线性采样 `y=Rx`：`C_y = RC_xRᵀ`；仅输出对角 variance 必须给相关核/近似误差；
+- 线性采样 `y=Rx`：`C_y = RC_xRᵀ`；仅输出对角 variance 必须给相关核/近似误差（方差传播推导正本 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`）；
 - coverage 与 variance 各自独立、互不代用；
-- 当前"四象限最近中心双线性"只能在 Oracle 与误差/边界定义后作为注册核，不能因现码存在就成永恒目标。
+- 现行 `bilinear` 核 = 四象限最近中心双线性；该核满足**注册条件**的前提 = 独立 Oracle 与误差/边界定义齐备（见 §8），核语义与适用域正本 = `docs/science/algorithms/PHASE3_RESAMPLE.md`。
 
 ## 5. 配置项
 
@@ -40,7 +40,7 @@
 
 ## 6. 接口/ABI
 
-- entrypoint：HiPS+WCS 计划+核 → 平面重采样产品；
+- entrypoint：HiPS+WCS 计划+核 → 平面重采样产品；模块落点 = `lib/algorithms/resample/p3_resample.cpp`（签名头 `lib/algorithms/resample/p3_resample.h`，C ABI 入口 `p3_sampler_open_ex`；模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的 `astrocs.phase3.resample2`）；生产接线 = `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3_op_resample`；
 - 供 fits_output 写出。
 
 ## 7. 错误与边界

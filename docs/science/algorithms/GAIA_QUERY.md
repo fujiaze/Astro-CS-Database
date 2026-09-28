@@ -1,10 +1,7 @@
 # Gaia XPSD 查询（ALG-GAIA-001）
 
-> ID: ALG-GAIA-001  状态: CONTRACT_READY
-> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）
-
-> 上游 SCI: SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
-> 模块: lib/infrastructure/gaia_xpsd_client（module_id astrocs.catalog.gaia）
+> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）、
+> SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
 > 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
 > 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 的
 > 性能摘要冲突时以本文与源码为准）。
@@ -81,7 +78,8 @@ r < 1e-15  → RA_s = center_ra, Dec_s = center_dec   # 投影中心（极点）
   RA_s 归一到 [0,360)
 ```
 
-量化步长推导（实测锚 @f7fa3160）：实码 `inv_scale = 1/(3600·1000·500)` deg/LSB
+量化步长由实码 `inv_scale = 1/(3600·1000·500)` deg/LSB 定义（符号位置
+`gaia_client.c`）
 （`gaia_client.c:1282`、`:1411`、`:1550` 三处同值），即每度 1.8e9 LSB；
 1 deg = 3600″ × 10⁶ µas/″ = 3.6e9 µas，故 1 LSB = 3.6e9/1.8e9 = **2 µas**
 （等价口径：分母分解 500 LSB/mas → 0.002 mas = 2 µas）。与同代码块
@@ -234,7 +232,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 
 ## 5. fast/reference/oracle 与测试设计（TEST-GAIA-DESIGN-001，冻结）
 
-> 状态: DESIGN_FROZEN（本节为 CAT-GAIA-DOC 冻结的测试设计与容差合同）。
+> 本节为 CAT-GAIA-DOC 冻结的测试设计与容差合同。
 > 可执行测试（eng/tests/{unit,properties,oracle,fixtures,negative,performance}）
 > 由 CAT-GAIA-TEST 建立；本文不声明任何测试已 PASS。
 
@@ -277,9 +275,8 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 - TEST-GAIA-DESIGN-001（本文 §5，设计冻结；可执行 TEST-GAIA-* 待
   CAT-GAIA-TEST）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - Gaia 星表发布：Gaia Collaboration et al. 2016, A&A 595, A1（DR1）；2018, A&A 616, A1（DR2）；2021, A&A 649, A1（EDR3）；2023, A&A 674, A1（DR3）。**核验状态**：文章级。
 - Gaia 天体测量解：Lindegren et al. 2021, A&A 649, A2（DOI 10.1051/0004-6361/202039709）。
@@ -287,11 +284,5 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 - 锥搜索/球面几何：astropy（BSD-3-Clause）SkyCoord/cone search 作独立 Oracle；HEALPix 见 Górski et al. 2005。
 - 极冠平面剪枝：Project-defined（本文件 §2.5）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

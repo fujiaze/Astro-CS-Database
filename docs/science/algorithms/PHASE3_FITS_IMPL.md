@@ -2,15 +2,15 @@
 
 > 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§10（I/O 与原子产品）
 
-> ID: ALG-P3-FITS-IMPL-001  状态: CONTRACT_READY。本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
+> 本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
 > 逐符号源码行号锚定 + 冻结容差 + 现状缺陷登记。科学语义权威=SCI-P3-001
 > （docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 集合 SCI-P3-001..020，零改动）；推导级算法权威=ALG-P3-001..004
 > （docs/science/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本域不改动其
 > 公式；G1/G2 WCS 构造与 G5 FITS 写公式的本域实现子面由本文档承接）。
-> 模块: lib/algorithms/fits_output/p3_output.cpp（1082 行）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（166 行）+ WCS 关键字源
-> lib/algorithms/projection/p3_wcs.h（W4-A9 批次 1 迁入）；
+> 实现源: lib/algorithms/fits_output/p3_output.cpp（1172 行）+ 唯一权威签名头
+> lib/algorithms/fits_output/p3_output.h（172 行）+ WCS 关键字源
+> lib/algorithms/projection/p3_wcs.h；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
 > DATA: DATA-P3-FITS（DATA_SEMANTICS §27）；MOD: astrocs.p3.fits_writer
 > （MODULE_MIGRATION_MATRIX P3-FITS 行）；TEST: TEST-P3-WR-001
@@ -37,18 +37,18 @@
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | p3_output.cpp:333/:374-375 |
 | width,height | int px | [1,20000]（会话层 :113-114；内核 width<1 拒 :207） | p3_output.h:59-60 |
 | bitpix | int | -32 \| -64（真实决定 buffer，h:64） | p3_output.cpp:236-245 |
-| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，B2-A9 由 TINT 改 TDOUBLE） | p3_output.cpp:278-280 |
+| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，取值 TDOUBLE） | p3_output.cpp:278-280 |
 | BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 cpp:284-285，与 DATA_SEMANTICS §31.1a「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（p3_resample.cpp:293），会话 `p3_session.cpp:396` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | p3_output.cpp:284-285 / p3_resample.cpp:293 |
 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:17-18 / p3_output.cpp:263-264 |
 | CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:15-16 / p3_output.cpp:265-266 |
 | CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:19 / p3_output.cpp:267-270 |
 | CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:252-253 |
 | CUNIT1/2 | string | deg | p3_output.cpp:255-256 |
-| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（B2-A10，禁占位串） | p3_output.h:19-33 / p3_output.cpp:288-295 |
+| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（禁占位串） | p3_output.h:19-33 / p3_output.cpp:288-295 |
 | DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | p3_output.cpp:142-149 / :314-323 / :339-347 / :378-386 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:36 / :166-176 |
 
-## 3 逐符号锚（p3_output.cpp 1082 行 / p3_output.h 166 行 / p3_wcs.h 373 行，实测）
+## 3 逐符号锚（p3_output.cpp 1172 行 / p3_output.h 172 行 / p3_wcs.h 373 行）
 
 > 行锚按 `grep -n` 现址登记，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；**语义不变**（`ANCHOR_CONTRACT.md` §2/§5：只改数字、不动符号/公式/门）。
 
@@ -61,7 +61,7 @@
 - `make_temp_path`（:151-157）: tmp = `out + "." + pid + ".tmp"`（:154），
   同目录保证 rename 原子（:155 注释）——**与 h:54-57 协议注
   `<dir>/.<base>.<pid>.tmp` 形态偏差**（DISP-P3FITS-002）。
-- `sha256_file_checked`（:166-176）: R10-C 封装（:159-165 注释冻结）——
+- `sha256_file_checked`（:166-176）: 原子封装（:159-165 注释冻结）——
   文件打开/读取/关闭机制下沉 aio（`aio_file::sha256_hex`）：空串/前缀哈希
   完整性锚 = 完整读出后的 64hex（空串/前缀哈希只表失败），失败返回 false 由调用方
   整体失败（provenance 只收完整 64hex 哈希）。ASTROCS_HASH_FAIL_INJECT
@@ -75,7 +75,7 @@
   2. cfitsio 进程锁 :221-222（RT-008：`aio::CfitsioLockGuard`，全程持锁覆盖内部
      verify 重开；锁单例 aio_cfitsio_mutex.h:29-32，与读路径
      aio_fits.cpp:529 共用）。
-  3. tmp 路径 + 历史残留清理 :224-227；fits_create_file :232-235。
+  3. tmp 路径 + 遗留 tmp 清理 :224-227；fits_create_file :232-235。
   4. bitpix 门 :236-240（≠-32/≠-64 → P3_OUT_PARAM + 删 tmp）；
      fits_create_img :241-245（2 维 naxes={width,height}）。
   5. WCS+基础关键字 :247-286（CTYPE1/2 :252-253、CUNIT1/2=deg
@@ -89,22 +89,22 @@
      P3_OUT_CANCELLED，输出不落盘）。
   9. COVERAGE 扩展 HDU :325-333（fits_create_img 同 bitpix + EXTNAME=
      "COVERAGE" :332 + fits_write_pix :333）。
-  10. 标准校验和（B2-A9）: PRIMARY 在写 signal 后调 `fits_write_std_chksum`
+  10. 标准校验和: PRIMARY 在写 signal 后调 `fits_write_std_chksum`
       （:314-323，cfitsio `fits_write_chksum` → DATASUM+CHECKSUM 逐 HDU），
       COVERAGE :334-345、VARIANCE/IVAR :376-383 同。
-  11. R10-C 原子发布序 :387-423（注释 :387-392 冻结：cfitsio 内部
-      缓冲 flush → fsync(fd) → 原子 rename；原实现在 close 前 fsync
+  11. 原子发布序 :387-423（注释 :387-392 冻结：cfitsio 内部
+      缓冲 flush → fsync(fd) → 原子 rename；仅 close 前 fsync
       只能落已入内核页缓存前缀，崩溃可丢数据或留半成品，违反
       IO_003 §4/§6）——fits_flush_file :395-402（失败即无成功对象）
       → fits_close_file :403-404 → fsync(fd) :405-416
       （机制下沉 aio `aio_atomic::fsync_path`，:405-408 注释
       R18 34201181796 errno=9 实证）→ rename :418-423
-      （`aio_atomic::atomic_replace`）。
+      （`atomic_replace`）。
   12. 发布后完整性 :425-445（sha256_file_checked :429，失败 → 删
       产物+P3_OUT_IO :429-433；total_px/covered_px（coverage>0.5f
       计数 :437）/coverage_ok=1/reopen_ok 经独立 verify :440-444）。
 - `p3_output_verify_ex`（:457-619；`p3_output_verify` :449-455 为旧签名
-  兼容薄壳）: 参数门 :462-463；**(void)wcs 已取消**——B2-A9 起读回
+  兼容薄壳）: 参数门 :462-463；**(void)wcs 不作为读取源**——只读回
   CTYPE1/2、CUNIT1/2（:502-513 段，`card_equals` :492-501 剥字符串值两侧
   单引号并去定长补白）与 CRPIX1/2、CRVAL1/2、CD1_1..CD2_2（:515-528）
   和传入 descriptor 逐项对拍，任一不符 `wcsok=0`；READONLY 重开 :475；
@@ -139,7 +139,7 @@ function p3_output_write_atomic(signal, coverage, W, H, wcs, bunit, path, prov, 
   fits_create_img(f, bitpix, [W,H]); write EXTNAME="COVERAGE"                  # :327-332
   fits_write_pix(f, TFLOAT, coverage)                                          # :333
   write_std_chksum(PRIMARY)  # cfitsio fits_write_chksum → DATASUM+CHECKSUM  # :314-323
-  fits_flush_file(f) else IO            # ① cfitsio 缓冲全部到 OS(R10-C)        # :395-402
+  fits_flush_file(f) else IO            # ① cfitsio 缓冲全部到 OS              # :395-402
   fits_close_file(f) else IO                                                   # :403-404
   fsync(open(tmp))  else IO             # ② fd 级落盘(机制在 aio)               # :405-416
   rename(tmp, path) else IO             # ③ 原子发布                            # :418-423
@@ -186,15 +186,15 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 6 实现级合同 F1-F4（非 SCI 新公式；G5/G1/G2 引用 PHASE3_RESAMPLE.md 零改动）
 
-- **F1 原子发布序**（IO_003 §4/§6 实现，R10-C 修正 :387-392）:
+- **F1 原子发布序**（IO_003 §4/§6 实现，:387-392）:
   tmp 建写 → fits_flush_file（cfitsio dirty buffer 全量到 OS，失败
   即无成功对象 :395-402）→ close :403-404 → fsync(fd)（机制下沉 aio
   `aio_atomic::fsync_path` :405-416）→ rename :418-423。任何一步失败
   → unlink(tmp) 不发布；发布后 sha256 失败 → unlink(产物) 不留无锚
   输出（:429-433）。取消（cancelled_at_row≥0）→ close+unlink+不落盘
-  （:307-312）。**标准校验和（B2-A9 修正）**：删除自算 `fdatasum`（LE
+  （:307-312）。**标准校验和**：自算 `fdatasum`（LE
   字节和 + TINT 写保留字 DATASUM——非法关键字值，astropy `checksum=True`
-  报 "Datasum verification failed"）；改由 CFITSIO `fits_write_chksum` 逐 HDU
+  报 "Datasum verification failed"）；标准写盘由 CFITSIO `fits_write_chksum` 逐 HDU
   写标准 DATASUM/CHECKSUM（:314-323 PRIMARY / :334-345 COVERAGE /
   :376-383 VARIANCE/IVAR），由 cfitsio 负责累加与归属，符合 IAU FITS 4.0
   §4.4.2.5。
@@ -299,10 +299,10 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   （eng/tests/unit/p3_output_test.cpp:66-77）。
 - T2 独立 verify：重开 dims/WCS/BUNIT/checksum/mask 一致 →
   reopen_ok=1、coverage_ok=1、sha256 64hex（:79-86）。
-  **T2b（B2-A9 新增，已执行）** WCS 篡改负例：写后翻转 CRPIX1 +1 →
+  **T2b WCS 篡改负例**：写后翻转 CRPIX1 +1 →
   重开 verify `reopen_ok=0`；恢复后 `reopen_ok=1`（eng/tests/unit/
   p3_output_test.cpp 3b 段 :188-224，覆盖 verify 对 WCS 的鉴别力）。
-  **T2c（B2-A9 新增，已执行）** 标准校验和：astropy `fits.verify`/
+  **T2c 标准校验和**：astropy `fits.verify`/
   `checksum=True` 逐 HDU 无警告，DATASUM/CHECKSUM 为 32-bit 数字串 +
   16 字符；BSCALE/BZERO 存在时为 float（eng/tests/cli/test_phase3_inprocess.py
   `test_09_fits_standard_checksum_and_wcs_provenance`）。
@@ -335,12 +335,12 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   全域保守门 `roundtrip_tol_global_px = 1e-6 px`（覆盖全部真实仪器尺度，
   代价是判别力弱）、`max_fov_deg = 20°`、`max_abs_crval_dec_deg = 85°`、
   `envelope_c_env = 128`（解析包络设计常数，实测 max 78）。门值/适用域/推导
-  以 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 与 `run/GATE-DERIVE-01/REPORT.md`
-  为准。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
+  以 `docs/science/algorithms/GATES_AND_TOLERANCES.md` §3 为准（推导证据见
+  实验/engineering-evidence/）。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
   它只用于"是否触发人工复核"，**合同容差 = §3 门值**；
   常数场 0（bilinear 权重和=1 构造保证）；
   回环逐值精确（F4 NaN 语义）；sha256 64hex 小写。
-- R10-C 发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归
+- 原子发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归
   P3-FITS-IMPL 时取值即本节冻结值（发布面只收完整哈希与完整产物）。
 
 ## 14 现状缺陷登记（DISP-P3FITS-001..003，登记不改码）
@@ -366,13 +366,13 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   `P3FitsVerifyStream`（h:113-162，实现 cpp:633-1082；P3-STREAM-01），产品
   语义与整幅 API 同面、差别只在驻留面，本文档未逐符号展开（归 P3-FITS-IMPL
   续写）；(d) 文件系统原语（tmp/fsync/rename/unlink）下沉 aio
-  （`aio_atomic_file.h` / `aio_file_io.h`），本域不再自持（§3 已如实订正）。
+  （`aio_atomic_file.h` / `aio_file_io.h`），本域不再自持（§3）。
   本条只登记不改码、不动公式/容差/冻结门。
-- **整改项（B2-A9/A10 已闭合）**: (a) `prov.manifest_hash` 不再恒 nullptr——
+- **现行接线**: (a) `prov.manifest_hash` 取真实哈希——
   module_adapters `p3_op_writer` 计算 `input_manifest_hash` = sha256(输入 HiPS
   `signal/properties` + `signal/Moc.fits`)，HISTORY manifest 字段写真实哈希；
   (b) verify 读回 CTYPE/CUNIT/CRPIX/CRVAL/CD 与 descriptor 对拍（§3），
-  CRPIX 负例可检出；(c) DATASUM/CHECKSUM 改 CFITSIO 标准 `fits_write_chksum`
+  CRPIX 负例可检出；(c) DATASUM/CHECKSUM 由 CFITSIO 标准 `fits_write_chksum` 写入
   （§6 F1）。provenance RUNID/SWVER/source_sha 由 CLI `run_context.json` +
   输入产品哈希注入，禁占位串。
 
@@ -422,9 +422,8 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   cfitsio、eng/ci/、eng/tools/、eng/tests/ 本任务零触碰；发现的实现偏差全部
   登记（§14）不反向修改 SCI（模板红线）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - FITS 标准/关键字：FITS Standard 3.0（HDU/关键字/checksum）；CFITSIO（宽松许可，NASA/HEASARC）作独立读取器。
 - WCS 关键字语义：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）。
@@ -432,11 +431,5 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - 原子写：POSIX rename(2) 原子性（IEEE Std 1003.1）；本文件 §4 write_atomic 为 Project-defined。
 - BUNIT/VARIANCE/IVAR 扩展：DATA_SEMANTICS §30；FITS Standard 3.0 §4.3。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

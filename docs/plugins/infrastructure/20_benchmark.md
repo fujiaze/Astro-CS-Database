@@ -36,7 +36,7 @@
 
 ## 6. 接口/ABI
 
-- entrypoint：`benchmark`（直接运行，程序输出到安装目录）；
+- entrypoint：`benchmark`（直接运行，程序输出到安装目录）；模块落点 = `lib/infrastructure/benchmark/`（`backend_host/` 的 `profile_gen.cpp` / `bench_harness.cpp` / `cpu_routing.cpp` / `worker_advisor.cpp` / `profile_store.cpp`；`cpu/` 的 `baseline` / `avx` / `avx2` / `avx512` / `common` kernel 族）；
 - scheduler 读取安装目录 profile 决定线程/ISA。
 
 ## 7. 错误与边界

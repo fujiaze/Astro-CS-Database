@@ -11,19 +11,19 @@
 
 - 最高设计 `ASTROCS_DESIGN.md` §6.3（投影算法：内置多种）
 - `docs/design/PHASE3_DETAILED_DESIGN.md` §2
-- FITS WCS Paper I/II（外部标准）
+- FITS WCS Paper I：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（[全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.html)）；Paper II：Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（[全文](https://www.aanda.org/articles/aa/full/2002/45/aah3860/aah3860.right.html)）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：用户 WCS 计划（中心、尺度、shape、旋转、投影或足够约束）。
 - **输出**：注册的投影定义（CTYPE、正反变换、适用域、奇点处理、CRPIX/CRVAL/CD/PC/CDELT）。
-- 参考：`eng/contracts/schemas/projection_registry.schema.json`（registry v3，机器可校验导出 schema）。
+- 参考：`eng/contracts/schemas/projection_registry.schema.json`（registry 冻结集合，机器可校验导出 schema）。
 - 权威落位：`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15`（registry 冻结表 + 逐投影六要素）+ `lib/algorithms/projection/`（`Spec` 六要素字段与 `registry_frozen_set()` 导出；schema 不复制公式）。
 
 ## 4. 算法与公式要点
 
 - **内置多种投影**，首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**（权威 = `ASTROCS_DESIGN.md §6.3`），每种声明：适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT、CTYPE；
-- **registry v3 要点**（FITS WCS Paper II）：CAR/AIT 把 CRVAL2（含 LONPOLE 默认 0/180）纳入三 Euler 角映射、AIT 椭圆域 A≤1、CAR native 极行 |θ|≥90° fail-closed；`registry_find` 未命中返回 nullptr = fail-closed；
+- **registry 冻结要点**（FITS WCS Paper II）：CAR/AIT 把 CRVAL2（含 LONPOLE 默认 0/180）纳入三 Euler 角映射、AIT 椭圆域 A≤1、CAR native 极行 |θ|≥90° fail-closed；`registry_find` 未命中返回 nullptr = fail-closed；
 - **实现状态**：已实现 TAN/SIN/CAR/AIT（4/8）；STG/MOL/CEA/ZEA 待实现；注册面与会话面分离；
 - FITS 1-based 关键字、内部 0-based 像素中心，转换唯一；
 - 正反变换必须互逆（误差 < 合同阈值）；
