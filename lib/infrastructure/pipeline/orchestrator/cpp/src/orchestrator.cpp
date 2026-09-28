@@ -1432,6 +1432,17 @@ struct WcsHeaderParams {
     bool has_ap = false;
 };
 
+// SIP 头键缓冲容量 (键名形如 "<prefix>_<i>_<j>")。
+// 生产不变量: 系数网格索引 idx = i*6 + j < 36 ⇒ i, j ∈ [0,5] ⇒ 各为 1 位十进制,
+// 前缀最长 "AP" ⇒ 实际最长键 "AP_5_5" (6 字符 + NUL)。
+// 容量按**格式串自身的一般最坏情形**取: 前缀 1 + '_' + int(≤10) + '_' + int(≤10) + NUL = 24,
+// 取 32 有余。GCC 的 -Wformat-truncation 值域分析无法从 idx < 36 反演 i,j 的上界
+// (不做整除反演), 故旧的 char key[16] 被判"可能截断" (基线日志站点 :1466/:2034/:2036/:2053/:2055);
+// 按格式串上界给足容量即把"不截断"变成结构事实 —— 不是抑制宏、不改编译选项。
+static constexpr std::size_t kSipHeaderKeyCap = 32;
+static_assert(kSipHeaderKeyCap >= 1 + 1 + 10 + 1 + 10 + 1,
+              "SIP 头键缓冲须容纳 \"%s_%d_%d\" 的一般最坏情形");
+
 static bool read_wcs_from_header(
     const std::function<const char*(const char*, const char*)>& fn_kv_get,
     const std::function<double(const char*, const char*, double)>& fn_kv_get_double,
@@ -1456,7 +1467,7 @@ static bool read_wcs_from_header(
         if (order_str == nullptr) return 0;
         int order = std::atoi(order_str);
         if (order <= 0) return 0;
-        char key[16];
+        char key[kSipHeaderKeyCap];
         for (int i = 0; i <= order; ++i) {
             for (int j = 0; j <= order - i; ++j) {
                 // SIP §3: i+j<2 的头键不存在 (写侧同样不写); 保持 coeffs 初值 0。
@@ -2023,7 +2034,7 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         int order = wcs_result.sip_order;
         fn_kv_set_double(frame_, "header", "A_ORDER", static_cast<double>(order));
         fn_kv_set_double(frame_, "header", "B_ORDER", static_cast<double>(order));
-        char key[16];
+        char key[kSipHeaderKeyCap];
         for (int i = 0; i <= order; ++i) {
             for (int j = 0; j <= order - i; ++j) {
                 // SIP (Shupe 2005) §3: A_ij/B_ij 只对 i+j>=2 定义; i+j<2 的三项
@@ -5455,8 +5466,12 @@ TaskResult Orchestrator::run_stage2(const std::string& hiss_dir,
     for (const auto& entry : fs::directory_iterator(hiss_dir)) {
         if (!entry.is_regular_file()) continue;
         std::string ext = entry.path().extension().string();
+        // WIN-PORT C4244: std::tolower 返回 int（C 接口），写回 char 序列是隐式
+        // 窄化 —— MSVC /W4 在 STL 内部 (<algorithm>(3553,24)) 报 C4244。此处是
+        // 语言标准要求的收窄点，显式转换即消除（入参已限定为 (unsigned char)，
+        // 值域 0..255 落 char 的可表示子集，行为逐位不变）。
         std::transform(ext.begin(), ext.end(), ext.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (ext == ".hiss") {
             hiss_files.push_back(entry.path().string());
         }

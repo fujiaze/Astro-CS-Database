@@ -18,13 +18,27 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <unistd.h>/mkdtemp。测试只需"唯一可写临时目录"：
+// 用 CRT _mktemp_s 生成唯一名 + _mkdir 建目录（POSIX 侧保持 mkdtemp 语义）。
+#include <direct.h>
+#include <io.h>
+static inline char* acs_mkdtemp(char* tmpl) {
+    if (_mktemp_s(tmpl, std::strlen(tmpl) + 1) != 0) return nullptr;
+    if (_mkdir(tmpl) != 0) return nullptr;
+    return tmpl;
+}
+#define mkdtemp(p) acs_mkdtemp(p)
+#else
 #include <unistd.h>
+#endif
 
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "aio_abi_omp.hpp"
@@ -33,6 +47,23 @@ namespace {
 
 using astrocs::crypto::Sha256;
 using namespace ::aio_abi_test;
+
+// AIO_* (enum aio_status) 与 ACS_FIO_* (enum acs_fio_status) 在 C++ 下是两个
+// **互不相同的枚举类型**。直接写 `AIO_OK == ACS_FIO_OK` 既是跨枚举类型比较
+// (-Wenum-compare), 在类型语义上也不成立 (不同枚举类型之间不可比)。
+// 本测试要断言的是两家族**数值 (ABI 值域)** 逐项对齐, 故显式取各自底层整型后
+// 比较: 把"数值相等"写成代码事实, 而不是把告警压掉。
+template <typename L, typename R>
+constexpr bool abi_numeric_eq(L lhs, R rhs) noexcept {
+    static_assert(std::is_enum<L>::value && std::is_enum<R>::value,
+                  "abi_numeric_eq 只用于两个枚举的 ABI 数值对齐复核");
+    using UL = std::underlying_type_t<L>;
+    using UR = std::underlying_type_t<R>;
+    static_assert(sizeof(UL) <= sizeof(long long) && sizeof(UR) <= sizeof(long long),
+                  "abi_numeric_eq 要求枚举底层类型不超过 long long");
+    return static_cast<long long>(static_cast<UL>(lhs)) ==
+           static_cast<long long>(static_cast<UR>(rhs));
+}
 
 // FIPS 180-4 标准向量 (python hashlib.sha256 权威预生成)
 // content: 非空=字面内容; 空=NUL 且以 'x' 填充 len 字节 (块边界族)
@@ -105,18 +136,20 @@ int test_units(CheckState& cs) {
         AIO_CHECK(cs, std::strcmp(info.hash_algorithm_name, "sha256") == 0, "u1_alg_name");
         AIO_CHECK(cs, (info.capability_bits & AIO_CAP_HASH_REVIEW) != 0, "u1_cap_hash");
         // 编译期对齐证明的运行时复核: IO 家族全域数值一致 (fits_stream_v1.h)
-        AIO_CHECK(cs, AIO_OK == ACS_FIO_OK && AIO_ERR_PARAM == ACS_FIO_ERR_PARAM &&
-                          AIO_ERR_ABI_MISMATCH == ACS_FIO_ERR_ABI_MISMATCH &&
-                          AIO_ERR_NOMEM == ACS_FIO_ERR_NOMEM && AIO_ERR_IO == ACS_FIO_ERR_IO &&
-                          AIO_ERR_UNSUPPORTED == ACS_FIO_ERR_UNSUPPORTED &&
-                          AIO_ERR_CANCELLED == ACS_FIO_ERR_CANCELLED &&
-                          AIO_ERR_STATE == ACS_FIO_ERR_STATE &&
-                          AIO_ERR_TRUNCATED == ACS_FIO_ERR_TRUNCATED &&
-                          AIO_ERR_BAD_HEADER == ACS_FIO_ERR_BAD_HEADER &&
-                          AIO_ERR_MISMATCH == ACS_FIO_ERR_MISMATCH &&
-                          AIO_ERR_CHECKSUM == ACS_FIO_ERR_CHECKSUM &&
-                          AIO_ERR_NANINF == ACS_FIO_ERR_NANINF &&
-                          AIO_ERR_DISKFULL == ACS_FIO_ERR_DISKFULL,
+        AIO_CHECK(cs, abi_numeric_eq(AIO_OK, ACS_FIO_OK) &&
+                          abi_numeric_eq(AIO_ERR_PARAM, ACS_FIO_ERR_PARAM) &&
+                          abi_numeric_eq(AIO_ERR_ABI_MISMATCH, ACS_FIO_ERR_ABI_MISMATCH) &&
+                          abi_numeric_eq(AIO_ERR_NOMEM, ACS_FIO_ERR_NOMEM) &&
+                          abi_numeric_eq(AIO_ERR_IO, ACS_FIO_ERR_IO) &&
+                          abi_numeric_eq(AIO_ERR_UNSUPPORTED, ACS_FIO_ERR_UNSUPPORTED) &&
+                          abi_numeric_eq(AIO_ERR_CANCELLED, ACS_FIO_ERR_CANCELLED) &&
+                          abi_numeric_eq(AIO_ERR_STATE, ACS_FIO_ERR_STATE) &&
+                          abi_numeric_eq(AIO_ERR_TRUNCATED, ACS_FIO_ERR_TRUNCATED) &&
+                          abi_numeric_eq(AIO_ERR_BAD_HEADER, ACS_FIO_ERR_BAD_HEADER) &&
+                          abi_numeric_eq(AIO_ERR_MISMATCH, ACS_FIO_ERR_MISMATCH) &&
+                          abi_numeric_eq(AIO_ERR_CHECKSUM, ACS_FIO_ERR_CHECKSUM) &&
+                          abi_numeric_eq(AIO_ERR_NANINF, ACS_FIO_ERR_NANINF) &&
+                          abi_numeric_eq(AIO_ERR_DISKFULL, ACS_FIO_ERR_DISKFULL),
                   "u1_status_align_fio");
     }
 
