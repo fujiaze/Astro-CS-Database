@@ -1668,6 +1668,33 @@
       ]
     },
     {
+      "id": "CON-DOC-SYMBOLS-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/contracts/check_doc_symbols.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "lib/**",
+        "eng/tools/quality/contracts/**",
+        "eng/tests/**",
+        "eng/contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "DOC-INDEX",
       "profiles": [
         "fast",
@@ -2072,6 +2099,97 @@
         "eng/tools/docs_machine_consistency.py"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "CHK-MANIFEST-EXIT-CODES",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-MANIFEST-EXIT-CODES",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/manifest-exit-codes/manifest_exit_codes.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/api/MANIFEST_VERIFY_V1.md",
+        "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
+        "docs/plugins/infrastructure/21_observability.md",
+        "docs/design/LOG_AND_ERROR_SYSTEM.md",
+        "lib/infrastructure/cli/commands.cpp",
+        "lib/infrastructure/cli/exit_codes.h",
+        "eng/ci/check_manifest_exit_codes.py"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "MANIFEST-EXIT-CODES",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_manifest_exit_codes.py",
+            "--json-out",
+            "run/ci/manifest-exit-codes/manifest_exit_codes.json",
+            "--quiet"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/manifest-exit-codes/manifest_exit_codes.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "docs/api/MANIFEST_VERIFY_V1.md",
+            "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
+            "docs/plugins/infrastructure/21_observability.md",
+            "docs/design/LOG_AND_ERROR_SYSTEM.md",
+            "lib/infrastructure/cli/commands.cpp",
+            "lib/infrastructure/cli/exit_codes.h",
+            "eng/ci/check_manifest_exit_codes.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "MANIFEST-EXIT-CODES-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_manifest_exit_codes.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_manifest_exit_codes.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
     },
     {
       "id": "CHK-ISA-SAME-SOURCE",
@@ -8894,6 +9012,33 @@
       "requires_monitor": false
     },
     {
+      "id": "VERSION-NAMESPACES-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/doccheck/check_version_namespaces.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "实验/**",
+        "artifacts/evidence/**",
+        "README.md",
+        "eng/tools/doccheck/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "DOC-L0",
       "profiles": [
         "fast",
@@ -9708,6 +9853,64 @@
           "waivable": false,
           "changed_paths": [
             "eng/ci/check_provider_manifests.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-NODE-BUDGET-WIRING",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-NODE-BUDGET-WIRING",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/node_budget_wiring.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "lib/infrastructure/scheduler/**",
+        "docs/architecture/THREADING_MODEL.md",
+        "eng/packaging/config/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "NODE-BUDGET-WIRING-NEG",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_node_budget_wiring.py",
+            "--repo",
+            ".",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_node_budget_wiring.py"
           ],
           "requires_monitor": false
         }

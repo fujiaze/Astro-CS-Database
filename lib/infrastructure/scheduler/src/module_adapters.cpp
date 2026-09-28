@@ -258,6 +258,10 @@ inline int walk_tree(const std::string& root,
 // eng/packaging/config/runtime_resources.json（orchestration_params 节），经本生成头消费
 // ⇒ 实现侧零字面量。值域守卫（kP3Min/MaxSubBlockPx）保留为 fail-closed。
 #include "runtime_resources_generated.h"
+// X1 节点并行预算接线：预算唯一权威 = 运行期配额（调度器 lease / CLI 注入的可用核），
+// 不再把「调用方没传 __workers」解释成串行。见 docs/architecture/THREADING_MODEL.md
+// 「并行轴分配」§8.3:647 与 docs/standards/CONCURRENCY_STANDARD.md「默认」节。
+#include "cpu_budget.h"
 
 // session C ABI（与 lib/phaseN_session/*.h 一致；避免把会话头拉进 core 依赖图）
 extern "C" {
@@ -2193,10 +2197,35 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   }
 }
 
-// P1 节点并行度：Runtime lease 注入的 __workers（budget 唯一权威; 1 = 串行）。
-static uint32_t p1_workers(const Json& doc) {
-  return std::max(1u, doc.value("__workers", 1u));
+// ── X1: 节点线程预算的唯一解析面 ────────────────────────────────────────────
+// 语义（唯一权威 = 运行期预算，**不是**使用方传参）：
+//   · config 里**有** __workers（调度器 execute 注入的 lease）→ 以它为准（max(1, 值)；1 显式串行）；
+//   · config 里**没有** __workers（直接调用 op 的门禁/单元/集成路径，无调度上下文）→ 取「进程有效
+//     CPU 预算」= CLI 注入的可用核（亲和性 ∩ cgroup），未注入则现算 min(可用核, 配置上限)
+//     ⇒ **缺省不是 1**。
+// 缺陷背景（本函数修复的根因）：旧实现恒取 1 ⇒ P1 帧轴 budget=1 ⇒ p1_parallel_for 的
+//   frame_w<=1 分支 omp_set_num_threads(inner_u=1) ⇒ 节点内 omp parallel for（如
+//   dpsf_fit_batch_f64）继承 ICV=1 ⇒ 整批单线程（PSF 域实测 1,086.0 s vs 16 线程 101.2 s）。
+// 只收紧不放大：lease 存在时本函数**不放大**调用方给的值；内存闸门（p1_frame_workers）与
+//   轴分配不变式 in_flight × inner_u ≤ budget 均不变。
+static uint32_t node_thread_budget_of(const Json& doc) {
+  bool present = false;
+  std::uint32_t lease_workers = 1u;
+  if (doc.is_object() && doc.contains("__workers")) {
+    present = true;
+    const Json& v = doc["__workers"];
+    if (v.is_number_integer() || v.is_number_unsigned()) {
+      const long long n = v.get<long long>();
+      lease_workers = (n > 0) ? static_cast<std::uint32_t>(n) : 1u;
+    } else {
+      lease_workers = 1u;   // 非数值：fail-closed 视为显式串行
+    }
+  }
+  return astrocs::core::node_thread_budget(present, lease_workers);
 }
+
+// P1 节点并行度（budget 唯一权威 = 运行期预算；见上）。
+static uint32_t p1_workers(const Json& doc) { return node_thread_budget_of(doc); }
 
 // ── PERF-P1: 帧级并行的**内存安全**并发上限 ────────────────────────────────
 // 实测约束（同一代码同一数据，
@@ -9161,25 +9190,37 @@ uint64_t p2_node_frame_id(const std::string& hips_path, std::string* err) {
   return fid;
 }
 
-// §20.3 input_manifest_hash = canonical(frame identity + 关键元数据)（stage2
-// 同一公式: 按 frame_id 升序拼接 "fid|filter=..;order=..;frame=..;" 后 sha256;
-// frame_id 为真实 p2_frame_id 数值（DATA-FRAME-ID-001）, 16hex 大端文本排序键）
+// P2 面 input_manifest_hash —— **单一公式**（正本 §20.3 / DATA_SEMANTICS
+// :1318-1323「input_manifest_hash = sha256(canonical(sorted(frame_id|filter=;order=;frame=;)))」，
+// 公式锚 = stage2.cpp:230-252 逐帧 meta 拼接 + 按 frame_id 数值升序 + sha256）。
+//
+// P-170（台账 §3 表）: 本函数此前把 frame_id 写成 `%016llx` 十六进制文本并按
+// 文本排序，而正本实现 stage2.cpp:250 用 `std::to_string(fid)` 十进制文本 ⇒
+// **同一输入集在两条路径产出不同 input_manifest_hash**（同名键两个值，
+// 且本函数注释自称「stage2 同一公式」——与事实不符）。现逐字节对齐正本：
+//   · fid 文本 = 十进制（std::to_string，与 stage2.cpp:250 一致）
+//   · 排序 = 按 frame_id 数值（std::pair<uint64_t,...> 默认序；stage2.cpp:246-247 同）
+// 排序键与文本形态必须同时对齐：十六进制定长文本序恰与数值序同序，故旧实现
+// 的**顺序**无害，分歧只在 fid 文本形态（顺序仍按数值/定长文本保持稳定）。
+//
+// 面区分（不得跨面比较）: P3 面的同名键是**另一条公式**
+// （p3n_input_manifest_hash: sha256(输入 HiPS signal/properties + Moc.fits 字节)，
+// 正本 DATA_SEMANTICS §27.1 + PHASE3_FITS_IMPL.md）；两面输入全集不同，
+// 其值只可在各自面内比对。
 std::string p2_input_manifest_hash(const P2CoverageView& view,
                                    const std::vector<uint64_t>& frame_ids) {
-  std::vector<std::pair<std::string, std::string>> hex_entries;
+  std::vector<std::pair<uint64_t, std::string>> entries;
   for (size_t i = 0; i < view.hips_paths.size(); ++i) {
     std::string meta;
     meta += std::string("filter=") + view.inputs[i].filter_passband + ";";
     meta += "order=" + std::to_string(view.inputs[i].max_leaf_order) + ";";
     meta += std::string("frame=") + view.inputs[i].frame_type + ";";
-    char hex[17];
-    std::snprintf(hex, sizeof(hex), "%016llx",
-                  static_cast<unsigned long long>(frame_ids[i]));
-    hex_entries.emplace_back(std::string(hex), meta);
+    entries.emplace_back(frame_ids[i], meta);
   }
-  std::sort(hex_entries.begin(), hex_entries.end());
+  std::sort(entries.begin(), entries.end());
   std::string payload;
-  for (const auto& e : hex_entries) payload += e.first + "|" + e.second + ";";
+  for (const auto& e : entries)
+    payload += std::to_string(e.first) + "|" + e.second + ";";
   return astrocs::crypto::sha256_hex(payload.data(), payload.size());
 }
 
@@ -9406,7 +9447,8 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   // CON-004: cpu_workers = Runtime lease 权威（P2NodeModule execute 注入
   // __workers; budget 唯一权威, 禁硬编码; 1=串行 reference）。恒最后赋值，
   // 不允许被 model.cpu_workers 覆盖（lease 是唯一权威）。
-  sc.cpu_workers = std::max(1, doc.value("__workers", 1));
+  // X1: 预算唯一权威 = 运行期配额（lease 注入则以其为准；无 lease 取进程有效 CPU 预算，缺省非 1）。
+  sc.cpu_workers = static_cast<int>(node_thread_budget_of(doc));
   (*man)["sampler_config_source"] =
       doc.contains("model") ? "config.model+defaults" : "compiled_defaults";
 
@@ -9606,7 +9648,8 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   uc.use_ivar_weight = 1;          // production（SCI-UPM-WEIGHT-001 冻结）
   uc.control_reliability = 1.0;
   // CON-005: cpu_workers = Runtime lease 权威（execute 注入 __workers）
-  uc.cpu_workers = std::max(1, doc.value("__workers", 1));
+  // X1: 预算唯一权威 = 运行期配额（lease 注入则以其为准；无 lease 取进程有效 CPU 预算，缺省非 1）。
+  uc.cpu_workers = static_cast<int>(node_thread_budget_of(doc));
   const std::string manifest_hash = smp_doc.value("input_manifest_hash", std::string());
   std::string manifest_hold = manifest_hash;
   uc.input_manifest_hash = manifest_hold.empty() ? nullptr : manifest_hold.c_str();
@@ -10430,7 +10473,8 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     for (std::size_t i = 0; i < cvar_tab.size(); ++i)
       cvar_at[{cvar_tab[i].tile_ipix, cvar_tab[i].gy * cvar_grid + cvar_tab[i].gx}] = i;
 
-  const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
+  // X1: 预算唯一权威 = 运行期配额（lease 注入则以其为准；无 lease 取进程有效 CPU 预算，缺省非 1）。
+  const uint32_t workers = node_thread_budget_of(doc);
   std::vector<P2FrameOut> fouts(paths.size());
   p2_parallel_for(workers, static_cast<uint64_t>(paths.size()),
                   [&](uint64_t fi, uint32_t /*w*/) {
@@ -11002,7 +11046,8 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     }
   }
   const size_t n_tiles = rtiles.size();
-  const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
+  // X1: 预算唯一权威 = 运行期配额（lease 注入则以其为准；无 lease 取进程有效 CPU 预算，缺省非 1）。
+  const uint32_t workers = node_thread_budget_of(doc);
   std::vector<uint8_t> accepted_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<uint16_t> nrej_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<uint16_t> cand_u16(n_tiles * static_cast<size_t>(tile_span));
@@ -11473,6 +11518,9 @@ struct P2SparseLayerProbe {
   double node_reproduction_max_abs = 0.0;
   std::string fail_reason;
   astrocs::v6::p2weight::SparseSnrReconstructor rec;
+  /* 原始层（含冻结语义判别式）：逐像素权重面用它复核 semantics —— 重建器副本
+     不携带语义，只有层本体能证明「层值 = 绝对通量型 SNR」。 */
+  astrocs::v6::p2weight::SparseSnrLayer layer;
 };
 
 static void p2_axis_unique(std::vector<double> in, double tol,
@@ -11613,6 +11661,9 @@ static bool p2_sparse_layer_load(const std::string& abs_path,
     return fail("C6 declared spacing_px does not match the control-point lattice");
   astrocs::v6::p2weight::SparseSnrLayer layer;
   layer.present = true;
+  /* 冻结语义：C2 已判等 absolute_flux_type_snr；此处把该判别式随层传到消费面，
+   * 使逐像素权重面能独立复核（不以「上游已校验」为由跳过）。 */
+  layer.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
   layer.regular_grid = true;
   layer.nx = nx;
   layer.ny = ny;
@@ -11649,6 +11700,7 @@ static bool p2_sparse_layer_load(const std::string& abs_path,
   std::string perr;
   if (!out->rec.prepare(layer, &perr))
     return fail("C8 SparseSnrReconstructor::prepare rejected layer: " + perr);
+  out->layer = layer;   /* 逐像素面复核 semantics 用 */
   out->operator_id = out->rec.operator_id();
   out->n_control_points = out->rec.n_control_points();
   out->node_reproduction_max_abs = out->rec.node_reproduction_max_abs();
@@ -11898,15 +11950,12 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         in.kind = FrameSnrKind::kFluxTypeUnweightedSnr;
         in.has_frame_snr = has_snr;
         in.frame_snr = fsnr;
-        // 稀疏层**不**经本链接线：本链的合成式是 actual = frame_snr × intra
-        // （weight_chain.cpp compose_actual_snr），会把**绝对**信噪比再乘一次
-        // 帧级标量，与 schema「absolute_flux_type_snr … 消费时不得乘/除帧级
-        // SNR 做还原」冲突（跨域缺陷 P2-N1，登记于订正报告）。稀疏层的真实
-        // 消费面 = 下方**逐像素**权重 w(x,y) = SNR_layer(x,y)²/F_ref,k²·g_k²
-        // （13_integration §4.0）；本链在此只用于取 F_ref,k 与 g_k。
+        // 稀疏层**不**经本链（帧级标量链）接线：层与帧级是两个独立对象，层值即
+        // **绝对** SNR 本身，本链只用于取 F_ref,k 与 g_k。稀疏层的真实消费面 =
+        // 下方**逐像素**权重 w(x,y) = (SNR_layer(x,y)/F_ref,k)²·g_k²，由集成侧
+        // 生产 API weight_from_sparse_layer_pixel_prepared 给出（13_integration
+        // §4.0；冻结 schema「消费时不得乘/除帧级 SNR 做还原」）。
         in.sparse = nullptr;
-        in.x = 0.0;
-        in.y = 0.0;
         in.gain = nullptr;
         if (require_gain) {
           frame_gain[f] = frames[f].value("frame_gain", 1.0);
@@ -11951,11 +12000,38 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             "帧内 SNR 层，但该层损坏/不可重建 ⇒ 显式失败（不静默降级到帧级；"
             "eng/contracts/schemas/unified/sparse_snr_layer.schema.json）: " + why));
       }
-      astrocs::v6::p2weight::WeightChainPolicy wpolicy;
-      wpolicy.require_frame_gain = require_gain;
+      // ── 实际生效口径裁定（不静默降级）—— 必须在建权重输入**之前**定，
+      //    因为它决定「本帧的权从哪来」：sparse_reconstruct ⇒ 权在**逐像素**面
+      //    由层值给出（本链不为该帧产标量权，也不得把层值当帧内因子相乘）。
+      if (snr_path_requested == "frame_reconstruct") {
+        snr_path_effective = "frame_reconstruct";
+        snr_path_reason = "requested_frame_reconstruct";
+      } else if (sparse_layer_valid_frames == frames.size()) {
+        snr_path_effective = "sparse_reconstruct";
+        snr_path_reason = "sparse_layer_valid_all_frames";
+        weight_source = "sparse_snr_layer";
+        weight_basis = "sparse_snr_layer_absolute_snr";
+      } else {
+        snr_path_effective = "frame_reconstruct";
+        snr_path_reason = (sparse_layer_declared_frames == 0)
+                              ? "no_sparse_layer_in_input"
+                              : "partial_sparse_layer_coverage";
+      }
+      const bool pixel_face = (snr_path_effective == "sparse_reconstruct");
+      astrocs::v6::p2weight::WeightChainPolicy m06_pixel_wpolicy;
+      m06_pixel_wpolicy.require_frame_gain = require_gain;
+      /* 逐像素面：层是该面的**必需**输入 ⇒ 缺层/未 present 判红，而不是静默走
+         帧级标量（层值也不是「乘 1」）。帧级面：层不进本链（两个独立对象）。 */
+      m06_pixel_wpolicy.require_sparse_layer_for_pixel_weights = pixel_face;
+      /* [锚: 稀疏 SNR 层尚未接入生产数据面] 本链（帧级标量）**不接收**稀疏层：
+         层与帧级是两个独立对象，层值即绝对 SNR 本身（ASTROCS_DESIGN §3.1:264）。
+         稀疏层的消费面在**下方逐像素路径**（weight_from_sparse_layer_pixel_prepared，
+         层语义判别式随层传入），与集成侧判据共用同一生产实现 ⇒ 口径不可能分叉。
+         本注释同时是 eng/ci/check_no_weight_mode_code.py 的 CHAIN_ANCHORS 登记项
+         （锚字符串：稀疏 SNR 层尚未接入生产数据面），删改即门禁判红。 */
       const WeightChainResult wres =
           astrocs::v6::p2weight::compute_inverse_variance_weights(
-              winputs, ref_flux_set ? ref_flux : 0.0, wpolicy);
+              winputs, ref_flux_set ? ref_flux : 0.0, m06_pixel_wpolicy);
       if (!wres.ok) {
         const std::string tok =
             std::string(astrocs::v6::p2weight::weight_closure_token(wres.closure));
@@ -11975,24 +12051,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       snr_chain_closure = astrocs::v6::p2weight::weight_closure_token(wres.closure);
       snr_fref_k = wres.reference_flux_k;
       snr_gain_k = wres.frame_gain;
-      // ── 实际生效口径裁定（不静默降级）────────────────────────────────
       snr_path_used_for_weights = true;   // SNR 场即权重来源（本分支）
-      if (snr_path_requested == "frame_reconstruct") {
-        snr_path_effective = "frame_reconstruct";
-        snr_path_reason = "requested_frame_reconstruct";
-      } else if (sparse_layer_valid_frames == frames.size()) {
-        // 各帧均声明且校验通过的稀疏层 ⇒ 逐像素绝对 SNR 面
-        snr_path_effective = "sparse_reconstruct";
-        snr_path_reason = "sparse_layer_valid_all_frames";
-        weight_source = "sparse_snr_layer";
-        weight_basis = "sparse_snr_layer_absolute_snr";
-      } else {
-        // 无层 / 层覆盖不全 ⇒ 帧级执行，并**显式**记下实际口径与原因
-        snr_path_effective = "frame_reconstruct";
-        snr_path_reason = (sparse_layer_declared_frames == 0)
-                              ? "no_sparse_layer_in_input"
-                              : "partial_sparse_layer_coverage";
-      }
+      // 实际生效口径已在建权重输入前裁定（见上方 snr_path_effective 段落）。
       // CONFORM-FIX-B-004（fail-closed，DATA_SEMANTICS §30.1 唯一出口）：
       // 帧级 SNR 链只是**积分权重**的显式降级路径，**不是**方差产品的来源。
       // §30.1 合成公式的前提是 ivar_product_missing==0（全部输入帧 ivar 可用、
@@ -12156,7 +12216,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     itiles.push_back(std::move(it));
   }
   const size_t n_tiles = itiles.size();
-  const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
+  // X1: 预算唯一权威 = 运行期配额（lease 注入则以其为准；无 lease 取进程有效 CPU 预算，缺省非 1）。
+  const uint32_t workers = node_thread_budget_of(doc);
   const bool need_ivar = (!fallback && !use_snr_chain && !corr_var_ready);
   std::vector<double> sig_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<double> sup_bin(n_tiles * static_cast<size_t>(tile_span));
@@ -12344,29 +12405,38 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
               // fits_index_to_nested_local(..., kP2TileShift, 512) LUT 同一序号定义）。
               const double px = static_cast<double>(p & ((1ull << kP2TileShift) - 1ull));
               const double py = static_cast<double>(p >> kP2TileShift);
-              double snr_px = 0.0;
-              std::string serr;
               if (fid >= sparse_probe.size() || !sparse_probe[fid].valid) {
                 t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
                 t_err[ti_s] = "sparse SNR layer missing for frame " +
                               std::to_string(fid) + " in the per-pixel weight face";
                 return;
               }
-              if (!sparse_probe[fid].rec.eval(px, py, &snr_px, nullptr, &serr)) {
+              // **单一实现**：逐像素消费走集成侧生产函数
+              // weight_from_sparse_layer_pixel_prepared
+              // （w(x,y) = (SNR_layer/F_ref,k)^2 * g_k^2；不乘帧级标量；
+              //   层语义与 fail-closed 由同一函数负责 —— 与
+              //   eng/tests/integration/p2_integrate 的判据是同一代码路径）。
+              astrocs::v6::p2weight::PixelWeightInput pin;
+              pin.frame_id = std::to_string(it.slot[d]);
+              pin.layer = &sparse_probe[fid].layer;
+              pin.x = px;
+              pin.y = py;
+              pin.ref_flux_k = snr_fref_k[fid];
+              pin.gain = &snr_gain_k[fid];
+              const astrocs::v6::p2weight::PixelWeightResult pres =
+                  astrocs::v6::p2weight::weight_from_sparse_layer_pixel_prepared(
+                      sparse_probe[fid].rec, pin);
+              if (!pres.ok || !(pres.weight > 0.0) ||
+                  !std::isfinite(pres.weight)) {
                 t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
-                t_err[ti_s] = "sparse SNR layer reconstruction failed at frame " +
+                t_err[ti_s] = "sparse SNR layer per-pixel weight not closed at frame " +
                               std::to_string(fid) + " pixel (" + std::to_string(px) +
-                              "," + std::to_string(py) + "): " + serr;
+                              "," + std::to_string(py) + "): closure=" +
+                              astrocs::v6::p2weight::weight_closure_token(pres.closure) +
+                              " " + pres.error;
                 return;
               }
-              if (!astrocs::v6::p2weight::weight_from_snr(
-                      snr_px, snr_fref_k[fid], &w, &serr)) {
-                t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
-                t_err[ti_s] = "sparse SNR layer weight failed at frame " +
-                              std::to_string(fid) + ": " + serr;
-                return;
-              }
-              w *= snr_gain_k[fid] * snr_gain_k[fid];
+              w = pres.weight;
             } else {
               w = snr_weights[it.slot[d]];
             }
