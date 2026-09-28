@@ -107,6 +107,7 @@ def main():
         "analytic_sqrt2_sigma_over_bg": math.sqrt(2.0) * SIGMA_OVER_BG,
         "median_se_coeff_sqrt_pi_over_2": math.sqrt(math.pi / 2.0),
     }
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps({k: res[k] for k in ("deterministic_floor",

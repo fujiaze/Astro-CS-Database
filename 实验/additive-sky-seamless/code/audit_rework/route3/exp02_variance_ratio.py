@@ -52,6 +52,7 @@ def main():
     # 结论判定
     r0 = out["rows"][0]
     out["negative_ok"] = (abs(r0["VR_side_mean"] - 1) < 0.02 and abs(r0["VR_pool_mean"] - 1) < 0.02)
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     print("saved:", os.path.abspath(OUT))

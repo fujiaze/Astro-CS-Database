@@ -96,6 +96,7 @@ def main():
     resid = y - X @ th
     seam = float(np.mean(resid[framesamp == 1]) - np.mean(resid[framesamp == 0]))
     res["negative_representable"] = {"level_step": seam, "seam_residual_RMS": float(np.sqrt(np.mean(resid ** 2)))}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

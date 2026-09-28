@@ -127,6 +127,7 @@ def main():
                                 "n_unidentified": nf3 - r3,
                                 "identifiable": r3 == nf3 and k3 < 1.0 / TAU}
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

@@ -71,6 +71,7 @@ def main():
         "influence_of_degenerate_obs_fail_closed": 0.0,
         "damage_removed": abs(est_bad - est_fix) > 1e3,
     }
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

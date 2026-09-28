@@ -1,0 +1,105 @@
+{
+ "provenance_note": [
+  "源 run 树是过程产物（run/ 不入库、可被轮次回收，产品 FITS 已被回收）；本文件是这些读数的**逐字冻结拷贝**，",
+  "随实验单元入库，使论文可在 实验/ 内锚定。sha256 为记录时对源文件的摘要，供源文件仍在时逐字核对。",
+  "凡非源文件直接打印、而由两条读数互推的字段，一律以 derived 标注。"
+ ],
+ "purpose": [
+  "F2：把「真实帧足迹边界」的接缝读数（含门覆盖 114/196 与三个越门诊断量）作为实验单元内可复核的证物。",
+  "F3：把生产天光面节点间距的几何来源与同产品两次运行的不同节点数作为对照证物。"
+ ],
+ "schema": "SCI-C/PRODUCTION-E2E-RECORD/1",
+ "seam_readings": {
+  "diagnostic_interpretation": {
+   "legacy_rel_max": "v1 无符号 excess 口径最大值（诊断量，不判红）",
+   "rel_step_d4x_max": "4d 采样半距 d 扫描的最大值（诊断量，不判红；对线性梯度敏感 ×4）",
+   "rel_step_net_max": "扣 200 px 平行对照线后的净台阶最大值（诊断量，不判红）"
+  },
+  "gate": 0.01,
+  "legacy_rel_max": 0.026108913554962455,
+  "max_abs_rel": 0.007256101148201211,
+  "n_edges_excluded_few_samples": 0,
+  "n_edges_excluded_not_interior": 82,
+  "n_edges_total": 196,
+  "n_edges_valid": 114,
+  "product": {
+   "frame_naxis": [
+    4096,
+    4096
+   ],
+   "n_frames": 49,
+   "shape": [
+    6208,
+    4352
+   ]
+  },
+  "rel_step_d4x_max": 0.021915164073480705,
+  "rel_step_net_max": 0.012948198594091534,
+  "verdict": "PASS"
+ },
+ "sky_plane_geometry": {
+  "n_frames": 49,
+  "n_obs": 277255,
+  "overlap_band_deg": 0.160172302,
+  "pixel_scale_arcsec_derived": 0.940399997,
+  "pointing_spacing_deg": 0.939886757,
+  "runs": [
+   {
+    "adopted": true,
+    "h_deg": 0.080086151,
+    "h_px": 306.582459,
+    "log": "run/M42-E2E-02/logs/mosaic_full.out",
+    "n_nodes": 1189,
+    "source": "direct"
+   },
+   {
+    "adopted": false,
+    "derived_note": "h 取自同产品 trace 的细化档（[trace 1] h=0.040043076 deg，该次运行因 κ 门 rc=7 未采纳）；n_nodes=4290 为该日志直接打印值，两者相互印证。【P5 订正】原记录把本档标成 adopted=true，与同一条 source 日志行「[trace 1] ... adopted=0 rc=7」以及本对象自己的 derived_note 自相矛盾 ⇒ 已改为 adopted=false；自检器新增「adopted 与 source trace 日志逐字一致」一条以防再犯。",
+    "h_deg": 0.040043076,
+    "h_px": 153.291231,
+    "log": "run/M42-E2E-02/logs/mosaic_full_v2.out",
+    "n_nodes": 4290,
+    "source": "derived"
+   }
+  ],
+  "sample_pitch_deg": 0.014400345
+ },
+ "sources": [
+  {
+   "keys": [
+    "baseline.gate",
+    "shape",
+    "n_frames",
+    "frame_naxis"
+   ],
+   "kind": "接缝门读数（生产门本体 eng/tools/e2e/seam_footprint.py 的输出）",
+   "path": "run/M42-E2E-02/results/seam_e2e02_v3.json",
+   "sha256": "61bc51bd39688c5f785b12fba3795e16925286972095e470c41c49019686693c"
+  },
+  {
+   "kind": "天光面构建日志（首次解，1189 节点）",
+   "line": "[sky_plane] ok n_used=277255 n_nodes=1189 n_frames=49 rms_w=0.000108623",
+   "path": "run/M42-E2E-02/logs/mosaic_full.out",
+   "sha256": "d06fc8bf94ffcae4cdcb438e01f8825417b7a3d7ed4f5681e831a9ac70c6bfc1"
+  },
+  {
+   "kind": "天光面构建日志（细化档，4290 节点）",
+   "line": "[sky_plane] ok n_used=277255 n_nodes=4290 n_frames=49 rms_w=3.0788e-05",
+   "path": "run/M42-E2E-02/logs/mosaic_full_v2.out",
+   "sha256": "298ec83c1a7db428e52aabfb8d9ce2704161aa2734321ab793f20bda16bbb3ec"
+  },
+  {
+   "kind": "生产几何导出与自适应 trace（同一产品：n_obs=277255 / n_frames=49）",
+   "lines": [
+    "[geometry] overlap_band=0.160172302 full=0.169725110 pointing=0.939886757 (min 0.938555198 max 0.940966130) sample_pitch=0.014400345 n_obs=277255 n_frames=49 n_pointings=6 n_overlap_pairs=11 fence=0.012763180 frame_extent=1.085346719",
+    "[derive] rc=0 h=0.080086151 deg (306.582459 px) upper=0.080086151 lower=0.014400345 representable=0.160172302 deg (613.165 px) constraining=0.160172302",
+    "[trace 0] h=0.080086151 deg nodes=1189 rank=1187 rank_solve=1187 kappa=3.35e+08 chi2=1840.38 action=0 adopted=1 rc=0",
+    "[trace 1] h=0.040043076 deg nodes=0 rank=0 rank_solve=0 kappa=0 chi2=0 action=0 adopted=0 rc=7",
+    "[final] h=0.080086151 deg penalty=0.001 kappa=3.34996e+08 chi2=1840.38"
+   ],
+   "path": "run/CHAIN-WIRE-ADAPT-01/logs/w4_geometry_real_8192.log",
+   "sha256": "5746d3310e9d0c9a0720f77bcda40c18981fc6d04eb32379679f222193c7372c"
+  }
+ ],
+ "title": "生产 49 帧端到端产品的接缝读数与天光面几何（逐字冻结记录）"
+}

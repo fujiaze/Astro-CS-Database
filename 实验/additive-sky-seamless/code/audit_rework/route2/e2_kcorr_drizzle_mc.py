@@ -96,6 +96,7 @@ def main():
     k_ref = float(np.var(np.median(x, axis=1)) / ((math.pi / 2.0) / Nref))
     res["negative_uncorrelated"] = {"branch": "raw input pixels", "N": Nref,
                                     "k_corr_est": k_ref, "k_minus_1": k_ref - 1.0}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

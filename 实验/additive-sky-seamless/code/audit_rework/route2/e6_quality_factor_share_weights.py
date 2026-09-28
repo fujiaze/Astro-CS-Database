@@ -90,6 +90,7 @@ def main():
         "stacked_variance_from_weights": float(1.0 / w.sum()),
         "note": "P5 solver consumes w = qf*reliability*ivar; integration consumes 1/sum(w)",
     }
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

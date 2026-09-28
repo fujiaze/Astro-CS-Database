@@ -100,6 +100,7 @@ def main():
         })
     clean_vr = next(c["variance_ratio_aligned_blocks"] for c in res["cases"] if c["case"] == "clean")
     res["negative"] = {"clean_variance_ratio_minus_1": clean_vr - 1.0}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

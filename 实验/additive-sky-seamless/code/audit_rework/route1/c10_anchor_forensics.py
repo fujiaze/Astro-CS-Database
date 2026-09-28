@@ -93,6 +93,7 @@ def main():
         if isinstance(hits, list) and hits:
             w = hits[0]["file"] + ":" + str(hits[0]["line"])
         print(f"[{st:9s}] {claim[:52]:52s} {w}")
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
 

@@ -83,6 +83,7 @@ def main():
                "at_lambda_4h_residual_mean": rows[1]["residual_frac_measured_mean"],
                "ratio_means": rows[0]["residual_frac_measured_mean"] / rows[1]["residual_frac_measured_mean"],
                "note": "尺度从 4h 降到 2h（越过规则1 界限）残余比升 5.3x => '尺度≲2h 显著'方向证实"}}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

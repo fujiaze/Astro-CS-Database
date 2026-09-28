@@ -112,6 +112,7 @@ def main():
     th0 = fit(y, X, 0.0, D2p)
     th1 = fit(y, X, 1e-10, D2p)
     res["negative"]["max_abs_dtheta_lam0_vs_1e-10"] = float(np.max(np.abs(th0 - th1)))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w") as f:
         json.dump(res, f, indent=1)
     print(json.dumps(res, indent=1))

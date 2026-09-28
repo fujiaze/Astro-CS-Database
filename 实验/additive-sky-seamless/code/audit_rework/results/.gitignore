@@ -1,0 +1,6 @@
+# 审计重做三路脚本的就地重跑产物（P5-23）。
+# 脚本把 OUT 写成 <本目录>/<name>.json（如 c3_seam_gate.py 的 OUT = __file__/../results），
+# 属重跑过程产物，不入库；正本固化拷贝在实验单元上游的 results/audit_rework/<route>/。
+# 本文件自身入库（例外）。
+*
+!.gitignore

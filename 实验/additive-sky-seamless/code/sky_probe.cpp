@@ -31,13 +31,15 @@ int main(int argc, char** argv) {
     cfg.spline_degree        = jc.value("spline_degree", cfg.spline_degree);
     cfg.node_spacing_deg     = jc.value("node_spacing_deg", cfg.node_spacing_deg);
     cfg.frame_gradient_order = jc.value("frame_gradient_order", cfg.frame_gradient_order);
-    cfg.roughness_penalty    = jc.value("roughness_penalty", cfg.roughness_penalty);
+    // 已退休键（sky_plane.h:221「已退休：原 kappa_max 绝对常数（1e8）与 κ(H_solve) 门控
+    // 口径」；sky_plane.cpp:890「已退休：原 cfg.roughness_penalty 自由标定值，生产权重
+    // 尺度下惰性」）：结构体已无这两字段，本探针**不转发**它们。场景 JSON 里仍带
+    // roughness_penalty/kappa_max 属历史配置，生产构建会忽略这两个键（sky_plane.cpp:1861）。
     cfg.huber_delta          = jc.value("huber_delta", cfg.huber_delta);
     cfg.max_iterations       = jc.value("max_iterations", cfg.max_iterations);
     cfg.tolerance            = jc.value("tolerance", cfg.tolerance);
     cfg.gauge_mode           = jc.value("gauge_mode", cfg.gauge_mode);
     cfg.weight_mode          = jc.value("weight_mode", cfg.weight_mode);
-    cfg.kappa_max            = jc.value("kappa_max", cfg.kappa_max);
     cfg.rank_rtol            = jc.value("rank_rtol", cfg.rank_rtol);
     cfg.min_samples          = jc.value("min_samples", cfg.min_samples);
     cfg.min_samples_per_frame= jc.value("min_samples_per_frame", cfg.min_samples_per_frame);

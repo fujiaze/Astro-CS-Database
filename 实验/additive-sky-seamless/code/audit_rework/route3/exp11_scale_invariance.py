@@ -88,6 +88,7 @@ def main():
                                        "rel_gate": 0.0 < ABS_TOL,
                                        "note": "真值无效应 => max_dM=0, 两判据一致归零"}
 
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

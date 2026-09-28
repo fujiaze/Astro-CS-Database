@@ -74,6 +74,7 @@ def main():
         "claim": "lambda0=1e-3 仅在份额式权重(Σw≈1)下是'弱'锚(偏置 0.1%); "
                  "在绝对 ivar 权重面(Σw~1e-24)下偏置 ~100% => 改正场归零。"
                  "该常数的科学含义必须与权重口径绑定声明。"}
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))

@@ -22,6 +22,9 @@ INC=(
 )
 LIBS=(
   "$ROOT/build/libastrocs_phase2.a"
+  # 可辨识性判据（p2_identifiability_assess）在独立静态库；phase2 库引用它而
+  # 不自带 ⇒ 漏链即 undefined reference（HEAD 2026-09 起的库拆分结果）。
+  "$ROOT/build/libastrocs_identifiability.a"
   "$ROOT/build/libastrocs_hips.a"
   "$ROOT/build/libastrocs_aio.a"
   "$ROOT/build/libastrocs_common.a"
