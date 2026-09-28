@@ -72,8 +72,13 @@ class TestIsaAvx512(unittest.TestCase):
             if m:
                 v[m.group(1)] = float(m.group(2))
         self.assertIn("hips", v)
-        # D-14（GATE-501）：统一到证据树路径（见 test_isa_variants.py 同注）。
-        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-004",
+        # D-14（GATE-501）：写入面 = 2026-09-28 artifacts 重组后的唯一落点
+        # 实验/engineering-evidence/prerelease-v5/（见 test_isa_variants.py 同注）。
+        # 事实核验：ISA-004 工件在本仓库从未入库（git log -- '*prerelease-v5*' 无
+        # ISA-004 记录），旧写法把每次运行都变成 artifacts/ 下的未跟踪新文件
+        # （Linux CI CHK-UNIT 实测违规项之一）。落到与 ISA-001/002/003 同族、
+        # 且在 eng/ci/checks.json CHK-UNIT dirty_ignore_prefixes 登记的写入面。
+        out = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5", "ISA-004",
                            "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:

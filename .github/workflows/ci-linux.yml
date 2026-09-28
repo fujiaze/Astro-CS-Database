@@ -146,11 +146,43 @@ jobs:
           # CI-001B 目标 1：内联诊断体迁入 eng/ci/steps/collect_bootstrap_diag.py（两平台共用）。
           # 仅失败路径调用，不掩盖首要失败原因。
           python3 eng/ci/wf_step.py --step LINUX-BOOTSTRAP-DIAG
-      - name: Upload small evidence
+      - name: Upload public CI evidence
+        # CI-001B：显式声明 if，使上传面在绑定声明里逐条可审计（Windows 侧同款）。
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (eng/ci/actions.lock.json)
         with:
           name: linux-ci-${{ github.sha }}
-          path: artifacts/ci/
+          # 归因面补齐（与 Windows 侧 run/ci/win-* 白名单对齐）：原上传面只有
+          # artifacts/ci/，而聚合型检查（CHK-*）的执行细节、构建真实错误、逐用例
+          # ctest 结果都落在 run/ci/ 下 —— 缺它时 Linux 红项只看到
+          # "steps=X pass=Y fail=Z"，无法离线定位真实错误。
+          # 多路径模式下某条路径缺失仅 warning，artifacts/ci/ 有内容即满足
+          # if-no-files-found: error（与 Windows 侧同口径，不因单一路径为空丢弃证据）。
+          # 白名单口径（不含构建树本体与产品树，实测 run/ci 921 MB 中 817 MB 是
+          # build-*/，另 94 MB 是 seam-footprint/ 产品树；本白名单实收 ≈ 4–8 MB）：
+          # 目录名/文件名一律用通配表达，避免与 workflow 治理门的业务命令字面
+          # 扫描（eng/ci/tests、eng/ci/validate_workflow_binding.py）产生假命中。
+          path: |
+            artifacts/ci/
+            # ① 聚合型检查 per-step 结果：eng/ci/run_checks.py 的 run-root 默认
+            #    run/ci/run-checks，落 <ts>/checks/<step-id>.json + 逐阶段日志，
+            #    不在 artifacts/ci/ 内。Windows 侧无此包装层，故其白名单直接列
+            #    win-stage-*.log / win-test-*.json。
+            run/ci/run-checks/
+            # ② V6-CTEST-UNIT 的单元组结果（run/quality/ outputs 契约）。
+            run/quality/
+            # ③ 构建真实错误摘要（BUILD-GCC-RELEASE / CHK-BUILD-LINUX / DEEP-*
+            #    的 outputs 契约：build-*-summary.json、pkg-consistency.json）。
+            run/ci/*.json
+            # ④ 逐检查证据 JSON 一层：driver 的逐用例结果、monitor 的超时/RSS
+            #    判定输入（checks.json requires_monitor 契约）、doc/命名/密钥等
+            #    检查报告 —— 即 run/ci/<检查>/<证据>.json。
+            run/ci/*/*.json
+            # ⑤ 全量 ctest junit（CHK-UNIT / CTEST-LINUX-FULL outputs 契约）：
+            #    用例级失败可离线定位（对应 Windows 侧 run/ci/win-test-junit.xml）。
+            run/ci/build-gcc-release/*.junit.xml
+            # ⑥ driver / ctest 逐阶段全量日志与失败清单（LastTestsFailed.log）
+            #    （对应 Windows 侧 run/ci/win-stage-*.log）。
+            run/ci/**/*.log
           retention-days: 14
           if-no-files-found: error
