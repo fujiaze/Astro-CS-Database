@@ -1,6 +1,6 @@
 # astrocs.p2.hips_writer — Phase2 HiPS 马赛克写出模块（P2-HIPS）
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位
 > `lib/algorithms/coverage/hips_p2/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
@@ -18,15 +18,15 @@
 - MOD ID：`MOD-astrocs-phase2-hips-writer`（registry 行 ID 沿用
   `MOD-astrocs-phase2-write`）；module_id：`astrocs.p2.hips_writer`
   （MODULE_MIGRATION_MATRIX P2-HIPS 行）；dll_target：
-  `astrocs_p2_hips_writer.dll`（合同值，尚未存在，迁移归 P2-HIPS-IMPL）。
-- owner SA-P2-I23；depends_on_int=P2-INT-INT;IO-003；legacy_paths=
+  `astrocs_p2_hips_writer.dll`（合同值，尚未存在；迁移目标未落地）。
+- owner SA-P2-I23；depends_on_int=P2-INT;IO-003；legacy_paths=
   "lib/algorithms/coverage write sources;lib/infrastructure/aio/healpix_db"。
 - 合同链：SCI-UPM-001（w_UPM）+ SCI-INT-001（signal/sup_max）+
   SCI-REJ-001（排异判据）——共享 FROZEN SCI 零改动 → ALG-P2-HIPS-001..004
   （docs/science/algorithms/PHASE2_MOSAIC_WRITE.md）→ DATA-P2-HIPS
   （DATA_SEMANTICS §20）/ API-P2-HIPS-001（PUBLIC_API Phase2 mosaic
   write 节）→ TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，
-  COV 先例；可执行测试 MISSING 归 P2-HIPS-TEST）。
+  COV 先例；可执行测试待建）。
 
 ## 职责（摘要，权威=lib/algorithms/coverage/hips_p2/README.md §2）
 
@@ -58,11 +58,11 @@
   UTC 时间戳字段除外）。
 - known_defects：DISP-P2HIPS-001..004（无 variance/ivar 输出产品；hash 链
   未入 properties provenance；直写无 staging 归 IO-003 承接；O(T·N) probe）
-  ——登记不改码，整改归 P2-HIPS-IMPL/INT。
+  ——现行实现保持此语义；整改面未落地。
 
 ## 验证
 
-可执行 `TEST-P2-HIPS-001` MISSING（P2-HIPS-TEST 建立）；登记面=设计冻结 VERIFIED；
+可执行 `TEST-P2-HIPS-001` MISSING（可执行测试待建）；登记面=设计冻结 VERIFIED；
 设计内容与容差来源=
 ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md §8/§9）。现状相邻证据：
 phase2_synthetic_gate ACR mosaic_reject_legacy↔CPU 等价

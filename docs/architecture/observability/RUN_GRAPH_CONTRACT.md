@@ -1,38 +1,35 @@
-# Astro Celestial Sphere Database（ACSD） 运行图渲染工具合同（LOG-003）
+# Astro Celestial Sphere Database（ACSD） 运行图渲染工具合同
 
-> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
-
-> 机器可读事实源：`eng/tools/graph/render_run_graph.py`（渲染工具 + 机器验证）、
-> `lib/infrastructure/pipeline/trace_replay.py`（RT-006 权威 replay 聚合）、
-> `lib/infrastructure/pipeline/typed_dag.py`（RT-001 typed DAG 编译器，只读消费）。
-> 本文档是视图；字段定义与验收以工具/标准为权威。
+> 上游：docs/ASTROCS_DESIGN.md §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）、§8.4（顶层结构）、§10（I/O 与原子产品）
 
 ## 1. 目的与边界
 
+机器可读事实源：`eng/tools/graph/render_run_graph.py`（渲染工具 + 机器验证，字段定义与
+验收的唯一权威）、`lib/infrastructure/pipeline/trace_replay.py`（权威 replay 聚合）、
+`lib/infrastructure/pipeline/typed_dag.py`（typed DAG 编译器，只读消费）。
+
 ACSD 需要一个**运行图渲染工具**：从 plan/trace 生成 DOT/SVG/JSON 运行图，
 标出真实入口、数据边、并行轴、workers、provider、耗时、资源、DLL hash、
-artifact hash。旧手绘图/静态架构示意图不再作为规范来源——每次生成都从当前
-提交可复现，且机器可验证与 trace 一致。
+artifact hash。运行图的规范形态是每次生成都从当前提交可复现、且机器可验证与 trace 一致。
 
-**验收（依据=`ASTROCS_DESIGN.md` §6.3 + 本文件）**：
+**验收（依据=`docs/ASTROCS_DESIGN.md` §7.2/§7.3 + 本文件）**：
 - 图与 trace 调用计数一致：图节点 `call_count` == replay `call_count` ==
   原始 `module_call` 事件计数（`--verify` exit 0 = GRAPH_CONSISTENT）；
 - 图与 trace 的 DLL hash、artifact hash 一致（从 trace 事件真实字段取；
   观测缺失留空，字段值只来自 trace 事件）；
 - 每次生成写 generator 版本、source SHA、输入文件 hash；DOT/JSON 是可审计
   事实，SVG 是派生展示物；
-- Doxygen/Graphviz 仅生成文档，不改变产品执行 → `scientific_change` 恒 false。
+- Doxygen/Graphviz 仅生成文档、不改变产品执行与科学结果。
 
-**边界**：本任务不改科学公式/运行调度；只读消费 `lib/infrastructure/pipeline` 产物
-（不 import 修改）；不实现真实 Graphviz 布局（主机无已登记 dot 时不假装
-调用成功——DOT 文本 + 最小合法 SVG 直出，见 §4）。
+**边界**：本工具只读消费 `lib/infrastructure/pipeline` 产物（不 import 修改），
+不参与运行调度与科学计算；渲染链不依赖外部布局二进制（DOT 文本 + 最小合法 SVG 直出，见 §4）。
 
 ## 2. 两类图分开
 
 | 图 | 来源 | 表示 | 取值来源 |
 |---|---|---|---|
 | 静态/声明图 | typed plan（`astrocs.typed-dag/v1` / `astrocs.plan-graph/v1`） | resource_class、数据边、operation | 不表示实际调用/耗时/hash |
-| 真实运行图 | RT-006 trace JSONL（`astrocs.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 取值只来自 trace 事件 |
+| 真实运行图 | trace JSONL（`astrocs.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 取值只来自 trace 事件 |
 
 `eng/tools/graph/render_run_graph.py render --trace <jsonl> [--plan <plan.json>]`
 把二者合成一张运行图：节点=真实执行入口（trace 观测），计划声明属性
@@ -44,7 +41,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 生成链：trace JSONL +（可选）plan → `graph-runtime.json` +
 `graph-runtime.dot`（+ `--svg` 时 `graph-runtime.svg`）。每张图含：
 
-- `generator.tool/version`（`eng/tools/graph/render_run_graph.py` v1.0.0）；
+- `generator.tool/version`（`eng/tools/graph/render_run_graph.py`，版本取值只来自工具自身）；
 - `source.main_sha`（当前提交 SHA，`--sha` 显式传入，取值只来自显式传参）；
 - `source.inputs.*.sha256`（trace/plan 输入文件 hash）；
 - `metrics`（node_count / module_call_total / scheduler_concurrency_max /
@@ -53,17 +50,14 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG 是派生
 展示物，DOT/JSON 才是可审计事实**（审计以 JSON/DOT 为准）。
 
-## 4. 零第三方依赖（Graphviz 不可用时）
+## 4. 零第三方依赖
 
-本机/控制节点**无 graphviz/dot 二进制、python graphviz 包未装**。DOT 是纯
-文本规范形态；本工具用纯 Python 标准库生成 DOT + JSON（审计事实），`--svg`
-时直出**最小合法 SVG**（拓扑分层布局，`xml.etree` 可解析）。
+渲染链**零外部二进制**，只用 Python 标准库生成 DOT/JSON：DOT 是纯文本规范形态，
+本工具以标准库生成 DOT + JSON（审计事实），`--svg` 时直出**最小合法 SVG**
+（拓扑分层布局，`xml.etree` 可解析）。
 
-**调用面 = 零外部二进制**（代码中无 subprocess，不假装调用 dot 成功）；
-无 dot 不报错也不把缺 SVG 当 PASS 阻碍——DOT/JSON 已生成即满足工具职责
-（工具不可用不能把缺图标记 PASS；只要 DOT/JSON 已生成，其他不
-依赖 SVG 的任务继续）。未来若控制节点登记固定版本 Graphviz，可把 DOT 交给
-该 dot 渲染 SVG，替换本工具的直出展示物（审计事实不变）。
+**调用面 = 零外部二进制**（代码中无 subprocess）；只要 DOT/JSON 已生成即满足工具职责，
+缺 SVG 不阻碍不依赖 SVG 的消费方。SVG 是派生展示物，可替换渲染后端而不变审计事实。
 
 ## 5. 运行图 JSON 合同（astrocs.graph-json/v1）
 
@@ -71,7 +65,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 {
   "schema": "astrocs.graph-json/v1",
   "graph_kind": "runtime",
-  "generator": {"tool": ".../render_run_graph.py", "version": "1.0.0"},
+  "generator": {"tool": ".../render_run_graph.py", "version": "<version>"},
   "source": {"main_sha": "<40hex>", "inputs": {"trace": {"path","sha256"},
               "plan": {"sha256"}}},
   "run_ids": ["..."],
@@ -104,7 +98,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
   不落这些字段**；
 - `resource_class`/`operation`/`parallel_declared` 是计划声明属性，恒带
   `resource_class_source="plan"`；
-- 数据边优先取 plan 边（typed-dag IR 经 RT-001 编译器只读推导数据边；
+- 数据边优先取 plan 边（typed-dag IR 经 `lib/infrastructure/pipeline/typed_dag.py` 只读推导数据边；
   plan-graph v1 直接取 edges），标注 plan 边引用的 artifact 若被
   `artifact_publish` 观测到则填真实 hash，未发布留空；无 plan 时退化为一组
   trace producer 边（`edge_source="trace"`，consumer 留空）；
@@ -125,7 +119,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 `GRAPH_INCONSISTENT` + 不一致清单。**篡改图（改 call_count/hash/status）
 必然 FAIL**（负测覆盖）。
 
-## 7. 真实入口与字段语义（与 RT-006 对齐）
+## 7. 真实入口与字段语义（与 trace 聚合对齐）
 
 TraceEvent（`lib/include/astrocs/core/contracts.h`）JSONL 字段：type/run_id/
 node_id/module_id/module_version/dll_name/dll_sha256/build_id/entry/
@@ -136,18 +130,17 @@ artifact_id/artifact_sha256/artifact_size/cpu_ms/wall_ms/seq。聚合语义与
 由本工具从事件直接收集。字段值只来自 trace 事件：worker/provider/duration/
 hash 等观测字段一律只来自 trace 事件。
 
-## 8. 旧手绘图不再作为规范来源
+## 8. 规范来源
 
-`evidence/**` 下的一次性手写 `*.dot` 产物（历史归档件）**不作当前规范来源**。运行图规范来源：
+运行图的规范来源 = `eng/tools/graph/render_run_graph.py` 从**当前提交**可复现生成的
+`graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）：
 
-- 运行图规范来源 = `eng/tools/graph/render_run_graph.py` 从**当前提交**可复现
-  生成的 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）；
-- 静态架构示意图（`docs/architecture/DATA_FLOW.md` 等 ASCII 流程、ARCH-001
-  mermaid、历史 evidence DOT）是**信息性视图**，不作运行事实规范来源；
-- 文档维护：变更运行图语义必须改本工具 + 本合同 + 重跑验证；证据面只用重跑
-  生成的图作证**。
+- 可审计事实 = 重跑生成的 `graph-runtime.{json,dot}`；`graph-runtime.svg` 是派生展示物；
+- 静态架构示意图（`docs/architecture/DATA_FLOW.md` 等 ASCII 流程、`docs/architecture/ARCHITECTURE.md`
+  的 mermaid 图）是**信息性视图**，不承载运行事实；
+- 运行图语义的变更 = 改本工具 + 改本合同 + 重跑验证；证据面只用重跑生成的图作证。
 
-## 9. 验收（LOG-003）
+## 9. 验收
 
 | # | 验收点 | 证据 |
 |---|---|---|
@@ -155,16 +148,17 @@ hash 等观测字段一律只来自 trace 事件。
 | G2 | 图与 trace 调用计数一致（replay 双实现） | `verify` exit 0 GRAPH_CONSISTENT |
 | G3 | DLL/artifact hash 与 trace 事件真实字段一致；观测缺失留空不冒充 | dll/artifact 一致性测试 |
 | G4 | JSON 中间表示结构 + generator/source/输入 hash | graph-json/v1 schema 断言 |
-| G5 | SVG 最小合法；DOT 含全部节点/边；无 dot 二进制仍 PASS | selfcheck + CLI render |
+| G5 | SVG 最小且合法；DOT 含全部节点/边；零外部二进制仍产出 DOT/JSON | selfcheck + CLI render |
 | G6 | 无 plan producer 边来自 trace；PLAN_ONLY 不冒充观测 | trace-only/plan-only 测试 |
 | G7 | 负测：篡改 call_count/hash/status → verify FAIL | 篡改负测 |
-| G8 | LOG-002 / RT-006 / LOG-001 回归不破坏 | 回归测试 |
+| G8 | 资源监控合同、结构化日志合同与 trace 聚合的回归不破坏 | 回归测试 |
 
 ## 10. 参考
 
-- 依据：`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
-- RT-006：`lib/include/astrocs/core/contracts.h` TraceEvent、
+- 依据：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+- trace 事件与聚合：`lib/include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`
-- RT-001：`lib/infrastructure/pipeline/typed_dag.py`、
+- typed DAG 编译：`lib/infrastructure/pipeline/typed_dag.py`、
   `lib/infrastructure/pipeline/typed_dag.schema.json`
-- LOG-002：`docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`
+- 资源监控伴随器：`docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`
+- 结构化日志：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`

@@ -1,29 +1,28 @@
-# CPU 能力探测与安全矩阵 (CPU-001)
+# CPU 能力探测与安全矩阵
 
-> ID: DOC-ARCH-CPU-001 · 状态: FROZEN (CPU-001)
-> 上游: `ASTROCS_DESIGN.md` §9（CPU 后端与资源）/ `ENGINEERING_SPEC.md` §10（资源与性能）
-> 下游: CPU-002 baseline、CPU-003 AVX2/FMA、CPU-004 AVX-512、CPU-005 路由
-> 实现: lib/infrastructure/benchmark/cpu/common/（capability_v1.h + capability_detect.c）
-> 测试: eng/tests/cpu/dispatch/（probe + feature matrix 模拟负测 + schema 校验）
+> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）/ ENGINEERING_SPEC.md §10（资源与性能）
 
 ## 1. 目标与验收
+
+实现面 = `lib/infrastructure/benchmark/cpu/common/`（`capability_v1.h` + `capability_detect.c`）；
+测试面 = `eng/tests/cpu/dispatch/`（探针 + feature matrix 模拟负测 + schema 校验）。
 
 实现 AMD64 CPUID 叶、AVX/AVX2/FMA/AVX512F/CD/BW/DQ/VL、BMI2、OSXSAVE 与
 XGETBV 检查；**区分“硬件支持”(hw) 与“OS 可安全执行”(os_safe)**。能力探测
 必须先于任何高级 provider 调用（不调用高级 provider 后才检测）。
 
-验收项（CPU-001）：
-1. 模拟 feature matrix（合成 CPUID/XCR0 输入跑判定引擎）→ 本机实测 + 模拟双证据；
+验收项：
+1. 合成 CPUID/XCR0 矩阵（合成输入跑判定引擎）与真实 CPUID/XCR0 双路验证；
 2. 缺 AVX / 缺 OS state / 缺子集 → 拒绝（负测）；
-3. Windows / Linux 输出同一 JSON schema（`cpu_capability.schema.json` 唯一事实源）；
-4. 不读取硬编码核心数（探测层零核心计数）。
+3. Windows / Linux 输出同一 JSON schema（`lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json` 唯一事实源）；
+4. 核心计数只来自运行期查询，探测层零核心计数。
 
 ## 2. 探测序与信任边界
 
 加载/执行高级 ISA 前固定顺序：
 
 ```text
-CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → (CPU-002+) DLL ABI/hash
+CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → provider 装载的 ABI/hash 校验
               → provider self-test
 ```
 
@@ -31,11 +30,10 @@ CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → (CPU-002+) DLL ABI/ha
 - `os_safe`：`hw ∩ OS 状态位 ∩ 组包含` 后可安全执行平面。
 - **provider 加载判定只使用 os_safe**：硬件支持但 OS 不保存对应寄存器 → 拒绝
   （不在 os_safe → `acs_cap_os_safe_satisfies_v1(required)` 返回 0）。
-- AVX-512 至少检查所需 F/CD/BW/DQ/VL 子集与 XCR0 opmask/ZMM 状态；**不能只看
-  一个 `AVX512F`**（CPU-004 验收“缺任何子集/OS ZMM state 拒绝”）。
+- AVX-512 至少检查所需 F/CD/BW/DQ/VL 子集与 XCR0 opmask/ZMM 状态；判定面覆盖“缺任何子集/OS ZMM state 拒绝”。
 
 探测实现自身只执行 SSE2 可执行指令 + cpuid + xgetbv；XGETBV 仅在 OSXSAVE=1
-后执行 → 探测永不触发非法指令。本层不读取逻辑核数、affinity、cgroup（CPU-008）。
+后执行，探测路径不触发非法指令。逻辑核数、affinity、cgroup 属资源预算面，不在本层。
 
 ## 3. 判定规则（cap_classify，单事实源）
 
@@ -45,7 +43,7 @@ CPUID feature → OSXSAVE → XGETBV XMM/YMM/ZMM state → (CPU-002+) DLL ABI/ha
 | AVX 家族（AVX/AVX2/FMA） | `osxsave=1 且 XCR0&0x6==0x6`（XMM\|YMM 保存） |
 | AVX-512 五子集（F/CD/BW/DQ/VL） | `osxsave=1 且 XCR0&0xE0==0xE0`（opmask\|ZMM_Hi256\|Hi16_ZMM）**且五子集 hw 全置** |
 
-位语义（v1 冻结，只允许尾部追加）：
+位语义（冻结；新增能力位只在尾部追加）：
 `SSE2=1<<0, SSE4_1=1<<1, SSE4_2=1<<2, AVX=1<<3, AVX2=1<<4, FMA=1<<5,
 BMI1=1<<6, BMI2=1<<7, AVX512F=1<<8, AVX512CD=1<<9, AVX512BW=1<<10,
 AVX512DQ=1<<11, AVX512VL=1<<12`。
@@ -62,7 +60,7 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
   cpuid{...}/os_state{osxsave,xcr0}/features{hw[],os_safe[]}/
   hw_features_bitmask/os_safe_features_bitmask/judgement{...}`。
 - Windows `_M_X64` 与 Linux `__x86_64__` 共享同一 C ABI 头与同一序列化格式
-  （同源契约）；实机验证由 WIN-* 承担。
+  （同源契约）；实机验证属发行验证面。
 
 ## 5. C ABI 稳定性
 
@@ -73,13 +71,12 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 - 纯 C11（extern "C" 兼容 C++17）；禁 STL/异常/RTTI；无第三方依赖；
   跨边界无托管分配、无 opaque handle。
 
-## 6. 模拟 feature matrix（测试事实源）
+## 6. 合成 feature matrix（测试事实源）
 
 `eng/tests/cpu/dispatch/cpu_capability_matrix_test.c` 以合成
 `acs_cap_result_v1`（直接置 CPUID 证据 + XCR0/OSXSAVE）驱动与生产同一的
-`cap_classify` 语义（经公开 API `acs_cap_detect_v1` 后绕开不可注入的实测分支，
-复用 `acs_cap_os_safe_satisfies_v1` 判定）——负测不触碰生产探测路径外的代码，
-判定函数即生产函数。矩阵行（节选）：
+`cap_classify` 语义（合成证据经公开 API `acs_cap_detect_v1` 的注入入口进入，
+复用 `acs_cap_os_safe_satisfies_v1` 判定）——判定函数即生产函数。矩阵行（节选）：
 
 | 行 | hw CPUID | OSXSAVE/XCR0 | 预期 os_safe | 预期判定 |
 |---|---|---|---|---|
@@ -92,12 +89,12 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 
 另有非法位拒绝、required=0 通过、hw-only 诊断（os_safe 拒但 hw 过）等负/正用例。
 
-## 7. 与相邻任务边界
+## 7. 与相邻组件的边界
 
-| 任务 | 边界 |
+| 组件 / 位置 | 边界 |
 |---|---|
-| CPU-002 baseline | 加载 `require` 判定消费本层 os_safe；本层不建 DLL |
-| CPU-003/004 | provider 目标在编译/加载各自查 `required_features ⊆ os_safe`；本层不含任何 AVX 指令 |
-| CPU-005 路由 | 逐 kernel provider 选择前先 capability 判定 |
-| CPU-006/007 | profile 指纹含本层 CPUID/XCR0 输出；本层不读写 profile |
-| CPU-008 | 有效核/线程建议不属本层（本层零核心计数） |
+| baseline provider（`lib/infrastructure/benchmark/cpu/baseline/`） | 加载 `require` 判定消费本层 os_safe；本层不建模块产物 |
+| AVX2 / AVX-512 provider（`lib/infrastructure/benchmark/cpu/avx2/`、`.../avx512/`） | 各自在编译/加载期查 `required_features ⊆ os_safe`；本层不含任何 AVX 指令 |
+| 逐 kernel 路由（`lib/infrastructure/benchmark/backend_host/`；`eng/tests/cpu/dispatch/cpu005_route_decision_test.cpp`） | 逐 kernel provider 选择前先 capability 判定 |
+| 基准与 profile（`lib/infrastructure/benchmark/backend_host/profile_store.h` 的 `save_profile_atomic_v1`、`eng/contracts/schemas/cpu_profile.schema.json`） | profile 指纹含本层 CPUID/XCR0 输出；本层不读写 profile |
+| 线程 / 资源预算（`lib/infrastructure/scheduler/`、`docs/architecture/THREADING_MODEL.md`） | 有效核/线程建议属预算面；本层零核心计数 |

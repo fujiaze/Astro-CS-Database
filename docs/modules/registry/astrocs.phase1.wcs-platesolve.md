@@ -1,22 +1,15 @@
 ---
 id: MOD-astrocs-phase1-wcs-platesolve
 module_id: astrocs.p1.platesolve
-aliases: [astrocs.p1.wcs, astrocs.phase1.wcs]
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-WCS-001, ALG-WCS-001, API-P1-004]
-downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 ---
 
 # 模块 astrocs.phase1.wcs-platesolve
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页 registry descriptor 占位 ID
 > （SCI-P1-WCS-001/ALG-002/TEST-P1-WCS-001）保留为编排层词汇，由
-> P1-WCS-INT 对齐；冻结合同 = SCI-WCS-001（docs/science/ASTROMETRY.md，
+>对齐；冻结合同 = SCI-WCS-001（docs/science/ASTROMETRY.md，
 > FROZEN，共享引用不改动）/ ALG-WCS-001（PLATESOLVE.md
 > §11 逐符号锚）/ DATA-P1-WCS（DATA_SEMANTICS §18）/ API-WCS-001
 > （PUBLIC_API WCS 节）；模块级事实以 lib/algorithms/platesolve/README.md（r1，
@@ -24,8 +17,8 @@ downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 > 目标 astrocs_p1_wcs.dll，entrypoint=MISSING）为准；现状构建
 > cpp/ipv/build.ps1:27 / Makefile:6 → ipv_solver.dll，未编入根 CMake
 > 主构建。测试设计 TEST-WCS-DESIGN-001（PLATESOLVE.md §11.4）已冻结，
-> 由 P1-WCS-TEST 执行落 TEST-P1-WCS-001 + EVIDENCE。现状缺陷登记
-> DISP-WCS-001..006（§11.3，登记不改码，整改归 P1-WCS-IMPL/INT；
+> 可执行测试待建（TEST-P1-WCS-001）+ EVIDENCE 待补。现状缺陷登记
+> DISP-WCS-001..006（§11.3，现行实现保持此语义；整改面未落地）；
 > CD 退化静默坍缩=DISP-WCS-001，失败-置信度语义冻结：退化必须
 > success=0 并按失败登记）。
 

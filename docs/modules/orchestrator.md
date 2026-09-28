@@ -1,6 +1,6 @@
 # Module: orchestrator
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责
 
@@ -41,7 +41,7 @@ stage1 JSON schema（configs/stage1.schema.json）。
 
 ## 性能特征
 
-资源监控（resource_monitor）；spill/checkpoint（V13+）。
+资源监控（resource_monitor）；spill/checkpoint。
 
 ## Diagnostics
 
@@ -67,12 +67,11 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
   `ASTROCS_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、内存/数据管线）在本仓的
   代码实体是 `lib/infrastructure/scheduler/src/{pipeline,artifact,artifact_store}.cpp` 与
   `lib/infrastructure/runtime/**`（MODULE_MAP id=`runtime`），**不是**本模块。
-- **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：ARCH-001 迁移清单 #15
-  （`eng/cmake/ARCH-001-migration-manifest.md`）登记的 DONE 位，该条依据写的是
-  「7.1 infrastructure/pipeline（typed DAG 编排）」。
-- ⇒ **位置与职责分离（登记 ORCH-HOME-01，待收敛）**：位置搬迁 = `git mv` + 引用/锚同步。
-  因此：任何按目录推断归属的判据（检查器/清单/文档）**一律按登记职责归位**：本模块 = 编排层，pipeline = 
-  typed DAG 实现。
+- **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：该目录承载编排层实现，对应顶层设计
+  §8.4 的「infrastructure/pipeline（typed DAG 编排）」位。
+- ⇒ **位置与职责分离**：归属一律按职责判定，不按目录名推断 —— 本模块 = 编排层；
+  typed DAG 与运行时实体 = `lib/infrastructure/scheduler/**` 与 `lib/infrastructure/runtime/**`。
+  检查器、清单与文档的归属判据同此口径。
 - **构建 target**：
   `astrocs_infra_orchestrator`（静态库；`cpp/CMakeLists.txt` 声明，根 `CMakeLists.txt`
   经 `add_subdirectory` 注册），vendored json-schema-validator 独立为
@@ -86,4 +85,4 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
 C++17 (`-std=c++17`, 见 `lib/infrastructure/pipeline/orchestrator/cpp/Makefile:CXXFLAGS`；
 正式构建入口 = 根 CMake 的 `astrocs_infra_orchestrator`)；C ABI 经 `DllLoader`
 纯 C 调用（`docs/standards/C_ABI_STANDARD.md`）；退出码与 `docs/architecture/ERROR_MODEL.md`
-全集合一致（`eng/tools/docs_machine_consistency.py` 校验）[B4-24]。
+全集合一致（`eng/tools/docs_machine_consistency.py` 校验）。

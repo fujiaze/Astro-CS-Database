@@ -1,6 +1,6 @@
 # Module: healpix_drizzle
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同 ID = ALG-DRZ-001（唯一合同引用，registry 登记名同此）；
 > 模块合同落位 lib/algorithms/drizzle/（迁移目标目录，astrocs.p1.drizzle）；
@@ -20,7 +20,7 @@ aio_hips_writer finalize_tile 完成——DISP-DRZ-007）。
 
 不做多帧统计合并（Phase2）；不做 master/校准/坏点（P1-CAL/
 P1-COS）；不做线程授予（omp 为内部通道，生产调度走 Runtime
-lease，CMakeLists.txt:379-382；ThreadLease 由 P1-DRZ-IMPL 接线）。
+lease，CMakeLists.txt:379-382；ThreadLease 接线为迁移目标（未落地））。
 
 ## Public API
 
@@ -49,7 +49,7 @@ hp_drizzle_api.cpp（依据 `ENGINEERING_SPEC.md:129`）；行号待随实现复
 累加器，drizzle_engine.cpp:1671）+ 按线程序合并（:1762-1785）
 → 1/N 确定性（同输入同线程数 bitwise；跨线程数不保证 bitwise）。
 geometry cache：per-thread LRU 8192 + per-run generation 原子清空
-（:1659-1660，B4-22）；同进程多 run 并发安全。ThreadLease 零命中。
+（:1659-1660）；同进程多 run 并发安全。ThreadLease 零命中。
 
 ## Errors
 
@@ -68,28 +68,29 @@ MOD-astrocs-phase1-drizzle（lib/algorithms/drizzle/module.yaml）。
 
 ## 性能特征
 
-TargetGeomCache 复用（hit 率 91.7% 小图实测）；三层候选缓冲
-（1.25/3.0·hp_res + fast 1.15 畸变系数）；候选零漏选（9003 例
-false_negative=0）；计数 METRIC-P1-DRZ-CANDIDATES 等
-（DrizzleOpCounters 全字段见 operation_counts.json 剖面）。
+TargetGeomCache 复用（命中率为运行期统计量，读数与条件见实验单元 `实验/healpix-polar/`）；三层候选缓冲
+（1.25/3.0·hp_res + fast 1.15 畸变系数）；候选零漏选（设计 oracle 语料
+9003 例，false_negative=0）；计数 `METRIC-P1-DRZ-CANDIDATES` 等
+（`DrizzleOpCounters` 全字段见 `operation_counts.json` 剖面）。
 
-## V19R3 bounded target-ipix geometry cache
+## 有界 target-ipix 几何缓存
 
 - TargetGeomCache（LRU，默认 8192，线程私有，run generation 切换
-  清空，B4-22 原子化）；
+  清空，原子化替换）；
 - 计数新增 target_boundary_builds / target_geometry_builds /
   geometry_cache_hits / geometry_cache_misses（DrizzleStats +
   [ops] 行）；
-- 科学等价：candidate oracle 9003/0、freeze 42/42、UPMW-005 MC
-  k_corr=1.3883 不变（标定几何专属单次 MC 实测）；详见 docs/science/algorithms/DRIZZLE_GEOMETRY.md。
+- 科学等价：candidate oracle 9003/0、freeze 42/42、UPMW-005 MC 复算结果不变；
+  k_corr 规范取值 1.4（实测读数与条件见实验单元 `实验/healpix-polar/`）。判据详见 docs/science/algorithms/DRIZZLE_GEOMETRY.md。
 
 ## Tests
 
 lib 内科学门（lib/algorithms/drizzle/healpix_drizzle/tests/*.cpp）：
-candidate/overlap/variance oracle（evidence/drizzle/*.json）、
+candidate/overlap/variance oracle（测试源 `lib/algorithms/drizzle/healpix_drizzle/tests/` 的
+oracle/matrix 测试，证据产物为测试期 JSONL）、
 freeze/l0 闭合门、α² 缩放律、reverse false_hole/false_fill；
 合同级 TEST-DRZ-DESIGN-001（DRIZZLE_GEOMETRY.md §9，可执行
-TEST-P1-DRZ-001 由 P1-DRZ-TEST 建立）；Monte Carlo 方差
+TEST-P1-DRZ-001 可执行面待建）；Monte Carlo 方差
 （SNR-011/012）。
 
 ## Source files

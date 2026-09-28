@@ -1,6 +1,6 @@
 # Module: gaia_xpsd_client（astrocs.catalog.gaia / CAT-GAIA）
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 全部条目以
 > lib/infrastructure/gaia_xpsd_client/src/gaia_client.c/.h 为准
@@ -26,7 +26,7 @@ F_syn 光谱积分（photometric_calib）、匹配求解、目录整理/下载�
 - API: API-GAIA-001（docs/contracts/PUBLIC_API.md §gaia_client C API）
 - ARCH: ARCH-001（docs/contracts/ARCH-001.md）
 - TEST: TEST-GAIA-DESIGN-001（GAIA_QUERY.md §5，设计冻结；可执行
-  TEST-GAIA-* 由 CAT-GAIA-TEST 建立）
+  TEST-GAIA-* 待建）
 
 ## Public API
 
@@ -58,7 +58,7 @@ team（迁移后由 host ThreadLease 授予）。
 - `0` 成功（含空结果）；`-1` 参数错误/分配失败/内部错误；
 - `create` 失败返回 NULL（注意平台差异：空数据目录 Windows=NULL，
   POSIX=空 client，file_count=0）；
-- 分配故障路径全 checked（V18R3），cache 替换事务式；
+- 分配故障路径全 checked；cache 替换事务式；
 - **无网络**：不存在 TIMEOUT/网络错误码；
   "network errors never alter scientific identity" 由零网络 I/O 结构性满足。
 
@@ -66,13 +66,13 @@ team（迁移后由 host ThreadLease 授予）。
 
 四叉树投影索引（非 dec 排序索引）；极冠剪枝可证明保守；单查询
 O(树深 + 命中叶块解压 + 输出)；文件级并行；缓存命中近乎零解压。
-数量级参考见模块 README（历史实测，非本合同承诺）。
+性能量级参考见 `lib/infrastructure/gaia_xpsd_client/README.md` 的现状观测（非合同承诺）。
 
 ## Tests
 
 - 设计冻结：TEST-GAIA-DESIGN-001（GAIA_QUERY.md §5——合成 fixture、独立
   oracle、不变量 I1-I5、负面/分配注入、1/N worker、ISA bitwise、资源）；
-- 可执行测试：未实现（CAT-GAIA-TEST 落地，eng/tests/{unit,properties,oracle,
+- 可执行测试：待建（eng/tests/{unit,properties,oracle,
   fixtures,negative,performance}），当前无 PASS 声明。
 
 ## Source files

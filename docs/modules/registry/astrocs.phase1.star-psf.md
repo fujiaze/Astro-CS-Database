@@ -1,31 +1,22 @@
 ---
 id: MOD-astrocs-phase1-star-psf
 module_id: astrocs.p1.psf
-aliases: [astrocs.phase1.star-psf]
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P1-PSF-001, ALG-002, API-P1-003]
-downstream: [TEST-P1-PSF-001]
 ---
-
-> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
 
 # 模块 astrocs.phase1.star-psf
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页 registry descriptor 占位 ID
-> （ALG-002/TEST-P1-PSF-001）保留为编排层词汇，由 P1-PSF-INT 对齐；冻结
+> （ALG-002/TEST-P1-PSF-001）保留为编排层词汇，其对齐属迁移目标（未落地）；冻结
 > 合同 = SCI-P1-PSF-001（STAR_PSF_ALGORITHMS §11.5）/ ALG-STARPSF-001
 > （§11.1）/ DATA-P1-PSF（DATA_SEMANTICS §15）/ API-PSF-001（PUBLIC_API
 > PSF 节）；模块级事实以 lib/algorithms/psf/README.md（r1，CONTRACT_READY）+
 > lib/algorithms/psf/module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll，
 > entrypoint=MISSING）为准；现状构建 Makefile:3-5 → dynamic_psf.dll，未编入
 > 根 CMake 主构建。测试设计 TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4）
-> 已冻结，由 P1-PSF-TEST 执行落 TEST-P1-PSF-001 + EVIDENCE。现状缺陷登记
-> DISP-PSF-001..006（§11.3，登记不改码，整改归 P1-PSF-IMPL/INT）。
+> 已冻结；可执行测试待建（TEST-P1-PSF-001）+ EVIDENCE 待补。现状缺陷登记
+> DISP-PSF-001..006（§11.3，现行实现保持此语义；整改面未落地）。
 
 ## 职责与明确非职责
 

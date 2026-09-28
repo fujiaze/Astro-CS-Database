@@ -1,17 +1,11 @@
 ---
 id: MOD-astrocs-phase2-integrate
 module_id: astrocs.p2.integration
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P2-INT-001, ALG-P2-INT-001, API-P2-001]
-downstream: [TEST-P2-INT-001]
 ---
 
 # 模块 astrocs.phase2.integrate
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页自 gen_module_readmes 派生页事实修订为
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
@@ -20,15 +14,15 @@ downstream: [TEST-P2-INT-001]
 > 三件套 + docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）。
 > descriptor 词汇（本节标题 module_id=astrocs.phase2.integrate、端口
 > 表、坐标 PIXEL）为编排层占位（module_adapters.cpp:719-737
-> p2_integrate_descriptor，注册 :785），由 P2-XX-INT 对齐
-> astrocs.p2.integration（MODULE_MIGRATION_MATRIX P2-INT 行），
-> 冻结依据 = 该矩阵行本身。
+> p2_integrate_descriptor，注册 :785）为编排层占位词汇，其对齐属迁移目标（未落地）；
+> 冻结依据 = `docs/science/algorithms/PHASE2_INTEGRATION.md`（ALG-P2-INT-001），
+> 迁移矩阵行只作现状说明。
 
 ## 身份与合同落位
 
 - MOD ID：MOD-astrocs-phase2-integrate；module_id 合同值=
-  astrocs.p2.integration（矩阵 P2-INT 行）；dll_target=
-  astrocs_p2_integration.dll（合同值，尚未存在，P2-INT-IMPL）。
+  astrocs.p2.integration（矩阵行）；dll_target=
+  astrocs_p2_integration.dll（合同值，尚未存在）。
 - 合同三件套：lib/algorithms/integration/（README r1/module.yaml CONTRACT_READY
   entrypoint=MISSING/memory.md；lib/algorithms/coverage/ 一目录一套已被 P2-COV
   占用，按 lib/algorithms/coverage/hips_p2/ 先例新建）。
@@ -95,7 +89,7 @@ module_id=`astrocs.phase2.integrate`（占位）；execution_class=
   数无关（1..N bitwise）**；per-thread 统计 thread id 定序归并
   （stage2.cpp:1305-1313）；large_scale 激活强制串行（:1280 条件）。
 - worker 数=ThreadBudget.max_workers（禁 hardware_concurrency），
-  lease/取消检查点接线=迁移整改点（P2-INT-IMPL，与 DISP-COV-005
+  lease/取消检查点接线=迁移整改点（与 DISP-COV-005
   同构）。
 - determinism=fixed_reduction_order（module.yaml 合同值）。
 
@@ -108,16 +102,15 @@ P2PixelResult 调用方分配，integrate.h:36-42/:53-63）；无内部 cache
 ## 错误、日志、指标、取消和 checkpoint
 
 - 错误面=五态 status + rc=1（null 栈，:20-21）；无日志/指标输出
-  （纯函数）；无内部取消检查点/checkpoint（迁移 ThreadLease 接线
-  归 P2-INT-IMPL）。
+  （纯函数）；无内部取消检查点/checkpoint（迁移 ThreadLease 接线属迁移目标，未落地）。
 - known_defects（登记不改码）: DISP-P2INT-001（sup_max 漏计零权重
   accepted 样本，integrate.cpp:54-55 vs integrate.h:17，保守方向，
   bughunt R3-A）、DISP-P2INT-002（INTEGRATION.md:58 vs integrate.h:17
-  表述矛盾）——整改归 P2-INT-IMPL/TEST。
+  表述矛盾）；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-INT-001` MISSING（P2-INT-TEST 建立，不冒认）；
+可执行 `TEST-P2-INT-001` MISSING（可执行测试待建，不冒认）；
 登记面=TEST-P2-INT-DESIGN-001 设计冻结 VERIFIED（ALG-P2-INT-001
 §11.4: 常量场 bitwise/零权重惰性/五态穷尽/支撑 max 门/NumPy 参考
 rtol 1e-12/并行 1..N 线程 bitwise+ACR↔CPU 等价）。现状相邻证据
@@ -128,7 +121,6 @@ DRIVER_SRC :18-141）。
 
 ## 已知限制
 
-DISP-P2INT-001/002（上节）；support 输出现状为保守方向偏差（不改
-覆盖并集保守下界语义）；本页旧派生内容（"错误码=ACS_ERR_*"、
-"取消=host cancel 回调" 等 session 层词汇）以本合同页与
-DATA_SEMANTICS §21 为准修订。
+DISP-P2INT-001/002 的现行语义与判据正本 =
+`docs/science/algorithms/PHASE2_INTEGRATION.md` §11.3；support 输出现状为保守方向偏差
+（不改覆盖并集保守下界语义；本页只留指针）。

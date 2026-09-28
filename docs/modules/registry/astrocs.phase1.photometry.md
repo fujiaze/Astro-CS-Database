@@ -1,19 +1,11 @@
 ---
 id: MOD-astrocs-phase1-photometry
 module_id: astrocs.p1.photometry
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-PHOT-001, ALG-PHOT-001, ALG-PHOT-002, API-P1-005]
-downstream: [TEST-P1-PHOT-001]
 ---
-
-> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
 
 # 模块 astrocs.phase1.photometry
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页由源码核对后修订——
 > 合同 ID 由占位（SCI-P1-PHOT-001/ALG-002/TEST-P1-PHOT-001）更正为真实
@@ -23,7 +15,7 @@ downstream: [TEST-P1-PHOT-001]
 > lib/algorithms/photometry/cpp/（现状构建=cpp/Makefile:11 g++ -shared
 > -fopenmp → photometric_calib.dll + cpp/build.ps1:9，未编入根 CMake 主
 > 构建）为准；descriptor 占位 ID（module_adapters.cpp:531-547
-> p1_photometry_descriptor）由 P1-PHOT-INT 对齐本页；冻结依据 = 本页本身，以免反向作为冻结
+> p1_photometry_descriptor）的对齐属迁移目标（未落地）；冻结依据 = 本页本身，以免反向作为冻结
 > 依据。port DATA 编目（psf→DATA-P1-PSF/sources→DATA-P1-SOURCES/
 > fluxes→DATA-P1-FLUX）为编排层词汇，模块合同 DATA 层=DATA-P1-PHOT
 > （DATA_SEMANTICS §14）。生产调用=orchestrator.cpp:2474
@@ -32,7 +24,7 @@ downstream: [TEST-P1-PHOT-001]
 > aperture 旧符号，CMakeLists.txt:429-432 静态库，仅单测
 > eng/tests/unit/p1_wcs_phot_test）为计划迁移旧符号（README §9）。
 > DISP-PHOT-001..009 登记（PHOTOMETRIC_FIT §13.3），整改归
-> P1-PHOT-IMPL/INT。
+>。
 
 ## 职责与明确非职责
 
@@ -46,7 +38,6 @@ SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
 | `calibrated` | `DATA-P1-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `sources` | `DATA-P1-SOURCES` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
 | `fluxes` | `DATA-P1-FLUX` | 可 | `UnitId::ADU`（与 DATA_SEMANTICS §14.1 psf_flux 一致） | `CoordinateFrame::ICRS` |
-
 
 invalid = NaN/coverage=0(按 DATA 合同)。
 

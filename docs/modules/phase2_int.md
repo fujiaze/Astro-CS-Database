@@ -1,6 +1,6 @@
-# astrocs.p2.integration — Phase2 逐像素加权积分模块页（P2-INT）
+# astrocs.p2.integration — Phase2 逐像素加权积分模块页
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位
 > `lib/algorithms/integration/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
@@ -16,17 +16,16 @@
 - MOD ID：`MOD-astrocs-phase2-integrate`（registry 行 ID 沿用
   `MOD-astrocs-phase2-integrate`，本页=registry
   astrocs.phase2.integrate.md 同步合同页）；module_id：
-  `astrocs.p2.integration`（MODULE_MIGRATION_MATRIX P2-INT 行）；
-  dll_target：`astrocs_p2_integration.dll`（合同值，尚未存在，迁移归
-  P2-INT-IMPL）。
-- owner SA-P2-I23；depends_on_int=P2-REJ-INT;P1-NOISE-INT;CPU-005；
+  `astrocs.p2.integration`（合同值，与 registry 页一致；迁移矩阵行只作现状说明）；
+  dll_target：`astrocs_p2_integration.dll`（合同值，尚未存在；迁移目标未落地）。
+- owner SA-P2-I23；depends_on_int=P2-REJ;P1-NOISE;CPU-005；
   legacy_paths="lib/algorithms/coverage integration sources"。
 - 合同链：SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，零改动；
   SCI-P2-INT-001⇒SCI-INT-001 映射声明见 ALG
   文档 §11.5）→ ALG-P2-INT-001（docs/science/algorithms/PHASE2_INTEGRATION.md）
   → DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001（PUBLIC_API）
   → TEST-P2-INT-001（MISSING；登记面=ALG §11.4 设计冻结 VERIFIED，
-  COV/HIPS 先例；可执行测试归 P2-INT-TEST）。
+  COV/HIPS 先例；可执行测试待建）。
 
 ## 职责（摘要，权威=lib/algorithms/integration/README.md）
 
@@ -51,11 +50,11 @@
 - known_defects：DISP-P2INT-001（sup_max 漏计零权重 accepted 样本，
   bughunt R3-A，integrate.cpp:54-55 vs integrate.h:17，保守方向）；
   DISP-P2INT-002（INTEGRATION.md:58 vs integrate.h:17 表述矛盾，文档
-  级）。登记不改码，整改归 P2-INT-IMPL/TEST。
+  级）；现行实现保持此语义，整改面未落地。
 
 ## 验证
 
-可执行 `TEST-P2-INT-001` MISSING（P2-INT-TEST 建立）；登记面=设计冻结
+可执行 `TEST-P2-INT-001` MISSING（可执行测试待建）；登记面=设计冻结
 VERIFIED；设计内容与容差来源=ALG-P2-INT-001（PHASE2_INTEGRATION.md
 §11.4：常量场/零权重/五态/支撑/NumPy rtol 1e-12/并行 1..N 线程
 bitwise）。现状相邻证据（引用不冒认）：synthetic_gate.cpp

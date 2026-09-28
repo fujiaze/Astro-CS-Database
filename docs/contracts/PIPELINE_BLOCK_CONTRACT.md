@@ -1,10 +1,9 @@
-# 命名块生命周期合同（CONTRACT-501 / RELEASE-05）
+# 命名块生命周期合同
 
-> 上游：ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器；跨阶段只走磁盘产品 + manifest + 哈希）、§8.2（阶段内命名块内存管线与块生命周期）
-> 依据：ENGINEERING_SPEC.md §4.1（管线纪律）
+> 上游：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器；跨阶段只走磁盘产品 + manifest + 哈希）、§8.2（阶段内命名块内存管线与块生命周期）；ENGINEERING_SPEC.md §4.1（管线纪律）
 
-> ID: CONTRACT-501-BLOCK  状态: FROZEN  机器 schema: `eng/contracts/schemas/pipeline_block.schema.json`
-> 端口事实源: `lib/infrastructure/pipeline/module_ports.registry.json`（v2，冻结绑定表）
+机器 schema：`eng/contracts/schemas/pipeline_block.schema.json`（本合同的机器取值源）。
+端口事实源：`lib/infrastructure/pipeline/module_ports.registry.json`（v2，冻结绑定表）。
 
 ## 1 模型
 
@@ -62,7 +61,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
 
 - 典型短生命周期：`raw` 在校准后销毁、`calibrated` 在测光归一化后销毁；
 - 阶段终产物以**磁盘产品**形态发布、不占运行期块：逐帧 HiPS 树 + 产品清单（normalize）、马赛克 HiPS 树 + 马赛克清单（mosaic）、投影 FITS + 校验报告（export）；
-- **一次运行的峰值内存由在途块集合与分块大小决定**，不由总图大小决定（ARCH-503/504 的验收判据）。
+- **一次运行的峰值内存由在途块集合与分块大小决定**，不由总图大小决定（验收判据见本条）。
 
 ## 6 负例（必须能红）
 
@@ -90,7 +89,7 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
 | C5 载体合同 | 节点间端口 `carrier` ∈ {`output_dir_file`, `hips_product_tree`}；`output_dir` 产物身份限本阶段；`carrier_contract` 必须显式声明 HiPS 产品树为跨阶段载体 |
 | C6 非退化 | 模块数/端口数/代码 token 数/生产→消费边数均有下界；空注册表判红 |
 
-`--self-test` 给出 1 条正例（仓库现状必绿）与逐条负例（声明不存在的边、漏声明真实流、方向写反、锚点 token 删除/移出符号/符号不存在/文件不存在、跨阶段边、载体合同缺失、端口无锚点、节点函数改名、空注册表），负例必须逐条判红。
+`--self-test` 给出 1 条正例（必绿）与逐条负例（声明不存在的边、漏声明真实流、方向写反、锚点 token 删除/移出符号/符号不存在/文件不存在、跨阶段边、载体合同缺失、端口无锚点、节点函数改名、空注册表），负例必须逐条判红。
 
 ### 7.1 机器判据（注册表 ↔ 管线 IR 的节点序与边保真）
 
@@ -106,6 +105,6 @@ CREATED --(所有声明消费者执行完毕)--> CONSUMED --(调度器回收)-->
 | C8 IR 端口 ∈ descriptor | IR 每个节点的输入/输出端口名必须出现在 `module_adapters.cpp` 对应 descriptor 的端口表里（运行期 `MISSING_PORT` 静态验证的 CI 侧等价判据；不启动产品二进制即可发现 IR ↔ descriptor 漂移） |
 | C7 非退化 | phase1 节点数 / IR 边数 / 注册表端口边数均有下界；解析不到即 fail-closed（判据 = 解析成功；解析不到一律判红） |
 
-`--self-test` 含 5 条负例注入：交换 `psf`/`wcs` 节点序、恢复 `wcs ← p1_sources` 幻边、
-移除 `psf` 的 `artifact:p1_wcs` 输入、恢复 `photometry ← p1_psf` 幻边、把 IR 端口名改成 descriptor 里不存在的名字
+`--self-test` 含 5 条负例注入：交换 `psf`/`wcs` 节点序、注入 `wcs ← p1_sources` 幻边、
+移除 `psf` 的 `artifact:p1_wcs` 输入、注入 `photometry ← p1_psf` 幻边、把 IR 端口名改成 descriptor 里不存在的名字
 ——逐条必须判红；仓库现状必绿。

@@ -1,6 +1,10 @@
 # Module: snr_estimator
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
+
+> 模块合同权威 = `lib/algorithms/noise_snr/README.md`（CONTRACT_READY）+ `lib/algorithms/noise_snr/module.yaml`；
+> 逐符号源码锚定与缺陷登记见 `docs/science/algorithms/NOISE_ESTIMATION.md` §13。
+> 噪声模型 A 为唯一生产模型；噪声 σ 来源 = 局部 patch + 星点掩膜 + 饱和过滤。
 
 ## 职责
 
@@ -13,11 +17,11 @@ NoiseWeightModelV1（空背景稳健方差 → ivar）。
 
 ## Public API
 
-snr_estimator DLL（noise_model 主实现）。
+`lib/algorithms/noise_snr/`：`include/astrocs/information_weight.h`（`CovarianceView`/`PointEstimate`/`w_info_diagonal`/`w_info_dense`/`w_info_low_rank`/`w_info_solve`/`white_noise_gate`/`w_info_white_noise`/`diag_approx_report`/`combine_point_estimates`）、`include/astrocs/noise/types.h`（C 面类型）、`include/astrocs/noise/variance_plane_policy.h`（`VariancePlaneVerdict`/`classify_variance_plane`）、`include/astrocs/noise/saturation_policy.h`（`resolve_saturation_level`/`resolve_effective_saturation`/`saturation_filter_state`）；模块入口 `src/module_entry.cpp`（导出面 `src/astrocs_p1_noise.def`）。
 
 ## Data contract
 
-图像 + 星表 → variance 空间场/全局兜底/ivar（HiPS ivar 产品）。
+输入图像 + 星表；输出 variance 空间场/全局兜底/ivar（HiPS ivar 产品）。平面判定与审计字段 = `VariancePlaneVerdict` + `variance_audit_required_fields()`（10 字段）。
 
 ## Ownership
 
@@ -42,12 +46,4 @@ coadd/独立性/MC 协方差）。
 
 ## Source files
 
-lib/algorithms/noise_snr/cpp/。
-
----
-
-> 本页为 ACTIVE_INFORMATIVE 摘要。模块合同权威 = `lib/algorithms/noise_snr/README.md`（r1，
-> CONTRACT_READY）+ `lib/algorithms/noise_snr/module.yaml`（MOD-astrocs-phase1-
-> noise-snr），逐符号源码锚定与 DISP-NOISE-001..009 登记
-> 见 `docs/science/algorithms/NOISE_ESTIMATION.md` §13；冲突时以冻结合同为准。
-> **噪声模型 A 为唯一生产模型**；噪声 σ 来源 = 局部 patch + 星点掩膜 + 饱和过滤。
+`lib/algorithms/noise_snr/{include/astrocs,src,wrapper_phase1}/`（`src/module_entry.cpp` 为模块入口；`wrapper_phase1/snr_frame_science.{h,cpp}` 为 phase1 包装面）。

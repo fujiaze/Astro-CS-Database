@@ -1,18 +1,10 @@
 ---
 id: MOD-astrocs-phase3-verify
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P3-VER-001, ALG-P3-005, API-P3-001]
-downstream: [TEST-P3-VER-001]
 ---
-
-> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
 
 # 模块 astrocs.phase3.verify
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责与明确非职责
 

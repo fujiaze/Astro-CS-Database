@@ -1,24 +1,27 @@
-# DATA-003 生产 ArtifactStore 接线（设计权威）
+# 生产 ArtifactStore 接线
 
-> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+> 上游：docs/ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品）、
+> `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换、跨 Phase 仅磁盘交换）、
+> `docs/architecture/PIPELINE.md`（phase-isolated Runtime 的调度与运行结构）
 
-> 权威文档形态（本文）+ 执行形态
-> (`lib/infrastructure/aio/runtime/artifact_store/production_store.py`) + 验收测试
-> (`eng/tests/artifact/test_production_store.py`)。三形态必须同步修改。
-> 前序合同: DATA-001（typed manifest schema + 唯一 producer）、DATA-002（三阶段
-> 产品交换、跨 Phase 仅磁盘交换）；运行时隔离: RT-002（phase-isolated Runtime）。
+权威文档形态 = 本文；执行形态 = `lib/infrastructure/aio/runtime/artifact_store/production_store.py`。
+实现锚 = `ArtifactStore` / `Writer` / `StoreIO` 的公开方法名（`start` / `new_writer` /
+`stage_manifest` / `publish` / `bind_as_input` / `read_verified`）。typed manifest 的机器形态 =
+`eng/contracts/data/artifact_manifest.schema.json`（必填字段与 `additionalProperties` 口径）与
+`eng/contracts/data/artifact_types.registry.json`（type 登记与唯一 producer）。
 
-## 1. 目标（依据：本文件 + `ASTROCS_DESIGN.md` §9）
+## 1. 目标
 
 > Runtime 启动真实 Store；模块 `execute` 只能拿已校验 handle/reader/writer；
 > 写临时对象 → 完整校验 → hash → 原子 publish；cancel/fail 无成功对象。
 > 验收：spy Store 证明每读写经过 Store；绕过路径/producer 重复/错误 schema/
 > 磁盘满/进程中断/取消均失败且可恢复；manifest hash 可重算。
 
-约束来源: `ASTROCS_DESIGN.md` §1.2/§9（三 Phase 隔离产品命令；
-阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
-`docs/architecture/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，
-不是路径字符串）；DATA-001 manifest 合同（storage_uri 解析只发生在 Store 内部）。
+约束来源：`ASTROCS_DESIGN.md` §1.2/§10（三 Phase 隔离产品命令；阶段间只通过原子发布、哈希和
+provenance 完整的磁盘产品/manifest 交换）；`docs/architecture/ARCHITECTURE.md`（Pipeline edge
+传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
+（`eng/contracts/data/artifact_manifest.schema.json` 与 `eng/contracts/data/artifact_types.registry.json`；
+`storage_uri` 解析只发生在 Store 内部）。
 
 ## 2. 接线结构
 
@@ -33,7 +36,7 @@ Runtime 启动（每次 phase run）
 ```
 
 模块 `execute` 只接触上述 handle/reader/writer；任何真实文件系统路径解析只发生在
-`ArtifactStore`/`StoreIO` 内部（DATA-001 冻结语义）。跨 Phase 消费 = 进程外读取
+`ArtifactStore`/`StoreIO` 内部（artifact manifest 合同冻结语义）。跨 Phase 消费 = 进程外读取
 已发布 COMPLETE manifest + 内容（DATA-002 交换对象），不共享进程内对象。
 
 磁盘布局（每 run 私有）:
@@ -45,12 +48,16 @@ Runtime 启动（每次 phase run）
 {root}/runs/{run_id}/manifests/{artifact_id}.manifest.sha256  manifest hash sidecar
 ```
 
+两面划分：typed artifact 面 = `objects/` + `manifests/`（本文正本）；HiPS 目录产物面 =
+`products/{user_path}/`（正本 = `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §3.1）。
+两面目录在同一 `runs/{run_id}/` 根下互不重叠，各由其正本约束。
+
 ## 3. 写路径（临时对象 → 完整校验 → hash → 原子 publish）
 
-1. `new_writer(id)`：同 id 已发布 → 硬失败（唯一 producer，DATA-001）。
+1. `new_writer(id)`：同 id 已发布 → 硬失败（唯一 producer，artifact manifest 合同）。
 2. `Writer.stage_bytes(data)`：内容写入 Store 私有 `stage/` 临时文件并 fsync
    （发布前落盘；进程中断/磁盘满时不产生成功对象）。
-3. `stage_manifest(id, doc)`：DATA-001 manifest 完整校验（缺字段/NaN/重复
+3. `stage_manifest(id, doc)`：artifact manifest 完整校验（缺字段/NaN/重复
    producer/未知 type/非法 digest/status≠COMPLETE 全拒）。
 4. `publish(id)`：
    - 重读暂存内容 → sha256；
@@ -59,7 +66,7 @@ Runtime 启动（每次 phase run）
    - 原子 rename：先内容、再 manifest（manifest rename = 完成标记）、再 sidecar；
      每步前 fsync 文件与目录。
 
-发布物保持严格 DATA-001 manifest 形态（`additionalProperties=false`，不附加
+发布物保持严格 artifact manifest 形态（`additionalProperties=false`，不附加
 内部字段）；manifest hash 以独立 sidecar 持久化，可重算核对。
 
 ## 4. 读路径（消费前必须经 Store 校验）
@@ -71,7 +78,9 @@ Runtime 启动（每次 phase run）
 - 绕过 Store 直读 `objects/` 目录的文件不在索引内 → bind/consume 一律失败
   （无成功对象）；删除绕过文件即可恢复。
 
-## 5. 失败语义（全部失败且可恢复）
+## 5. 失败语义
+
+下表逐场景给出注入、结果与恢复：全部失败都不产生成功对象，且均可恢复。
 
 | 场景 | 注入 | 结果 | 恢复 |
 |---|---|---|---|
@@ -94,14 +103,16 @@ spy.writes/reads/publishes 非空，且内容字节只经 Store 事件读取 —
 
 ## 7. manifest hash 可重算
 
-发布时对 manifest 规范 JSON（`canonical_manifest_json`，键序 = DATA-001 冻结
+发布时对 manifest 规范 JSON（`canonical_manifest_json`，键序 = artifact manifest 冻结
 字段序、`ensure_ascii=False`、紧凑分隔）计算 sha256 并原子写入
 `{aid}.manifest.sha256`。验收: `manifest_digest_hex(id)`（sidecar）==
 `ArtifactStore.manifest_hash_recompute(doc)` == 磁盘 sidecar 内容。
 
 ## 8. 边界（非目标）
 
-- 本合同不改科学公式/常数；不改 DATA-001/002 已冻结 schema/registry/validator/
-  C ABI；不做 RT-007 checkpoint 表、不做 LOG/RT 溯源字段（DATA-004 范围）。
-- 本文件为 Python 执行语义（Linux 控制/轻合成验证）；Windows 正式 DLL 交付按
-  同语义 C 接线复刻，属于 DATA-004/WIN 后续范围。
+- 本合同覆盖 Store 的执行语义；科学公式/常数按 `docs/science/` 正本执行，artifact manifest 与
+  DATA-002 的 schema/registry/validator/C ABI 按各自机器正本执行；checkpoint 表、日志与 trace
+  溯源字段属 `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md` 与
+  `docs/design/LOG_AND_ERROR_SYSTEM.md` 范围。
+- Windows 侧交付形态 `acsd_runtime.dll`（Linux 侧 `libacsd_runtime.so`）按本文同一状态机
+  由同语义 C 接线复刻。

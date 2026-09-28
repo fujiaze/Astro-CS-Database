@@ -1,6 +1,6 @@
 # Module: common
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责
 
@@ -14,7 +14,7 @@
 
 | 头 | 前缀/类型 | 函数/类型(签名节选) | 要点 |
 |---|---|---|---|
-| `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，唯一一套（B4-01 去重） |
+| `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，全仓唯一一套（单源纪律 B4-01，见 `docs/standards/STANDARDS_REGISTRY.md`） |
 | `lib/algorithms/shared/crypto/sha256.h` | `astrocs::crypto` | `sha256_hex/Sha256 {update,final_hex}` | DATA-FRAME-ID-001 frame_id 唯一实现（truncated-64 SHA-256） |
 | `lib/algorithms/shared/include/astro_scalar.h` | `AstroScalarType` | `FP32/FP64, AstroScalarTraits, DISPATCH` | 双精度 ABI 标量分发 |
 | `lib/algorithms/shared/include/precision_context.h` | `PrecisionContext` | `set_scalar_type/scalar_type/is_fp32/is_fp64` | 全链路精度单例（启动写入、数据阶段只读无锁，默认 FP32） |
@@ -29,7 +29,7 @@
 
 ## Ownership
 
-- `healpix_core.h` header + `healpix_core.cpp` 实现；`sha256.h` + `sha256.cpp` 编译单元（静态库，非纯 header-only —— 见 ENG-C-04 澄清）。
+- `healpix_core.h` header + `healpix_core.cpp` 实现；`sha256.h` + `sha256.cpp` 编译单元（静态库，非纯 header-only）。
 - `Sha256` 增量对象由调用方持有，`final_hex` 为终态（`update` 的调用面随 `final_hex` 结束）；`sha256_hex` 纯函数无所有权转移。
 
 ## Thread safety
@@ -49,7 +49,7 @@
 
 ## Science IDs
 
-SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；详见 `docs/science/DRIZZLE.md` / `PHASE2_UPM.md` / `docs/contracts/DATA_SEMANTICS.md` §5 + `docs/science/algorithms/HEALPIX_MAPPING.md` B4-01。
+SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；详见 `docs/science/DRIZZLE.md` / `PHASE2_UPM.md` / `docs/contracts/DATA_SEMANTICS.md` §5 + `docs/science/algorithms/HEALPIX_MAPPING.md`。
 
 ## Tests
 

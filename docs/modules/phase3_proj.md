@@ -1,6 +1,6 @@
 # Phase3 投影/WCS 模块（astrocs.p3.projection）
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 模块总页；registry
 > 手写合同页=docs/modules/registry/astrocs.phase3.wcs.md（行
@@ -12,7 +12,7 @@
 - module_id: astrocs.p3.projection（MODULE_MIGRATION_MATRIX P3-PROJ
   行权威值）；registry 行 MOD-astrocs-phase3-wcs；
   dll_target=astrocs_p3_projection.dll（合同值，尚未存在，
-  entrypoint=MISSING，由 P3-PROJ-IMPL 建立，IMPLEMENTED 只由验收签发）；
+  entrypoint=MISSING（迁移目标未落地），IMPLEMENTED 只由验收签发）；
   现状构建=astrocs_phase3_session 静态库成员（根 CMakeLists.txt
   :460-465）。
 - owner: SA-P3-P25；language: c++17；abi_version: 1；
@@ -30,8 +30,8 @@
 | API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
 | ARCH | ARCH-001 | docs/contracts/ARCH-001.md | VERIFIED |
-| TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；可执行面升级归 P3-PROJ-TEST | 见左 |
-| EVID | EVID-MISSING | 归 P3-PROJ-INT/验收补 | MISSING |
+| TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；可执行面待落地 | 见左 |
+| EVID | EVID-MISSING | 验收证据待补 | MISSING |
 
 ## 3 职责
 
@@ -70,17 +70,17 @@
 | wcs_plan | DATA-P3-WCS | 可 | §28 权威源（入参/映射/descriptor/关键词面） |
 
 端口词汇为 descriptor 派生（module_adapters.cpp:406-423 占位
-module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
+module_id=astrocs.phase3.wcs），其对齐属迁移目标（未落地），不作冻结依据。
 
 ## 6 实测偏差与整改（不修码）
 
-- PA 未接线（p3_session.cpp:160 恒 0.0）→ P3-PROJ-IMPL/INT。
+- PA 未接线（p3_session.cpp:160 恒 0.0）；接线属迁移目标（未落地）。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（默认值语义）。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码
   **显式返回 `P3_WCS_UNSUPPORTED`**（含请求码 + 原因 + 已支持清单），
   `p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生 `P3_WCS_UNSUPPORTED`。
   在役 registry = `p3_proj.cpp`（v3）。
-- DLL/入口未建；WCSLIB 验收 oracle 归 P3-PROJ-TEST。
+- DLL/入口未建；WCSLIB 验收 oracle 与可执行测试待建。
 - 本域无 DISP 缺陷登记；详见 ALG-P3-PROJ-IMPL-001 §11/§13。
 
 ## 7 链接

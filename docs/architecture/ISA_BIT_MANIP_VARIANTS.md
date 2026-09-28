@@ -1,42 +1,51 @@
-# 整数/位操作 ISA 变体评估 (ISA-005) — NOT_APPLICABLE
+# 整数/位操作 ISA 变体评估
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、`docs/architecture/ISA_VARIANTS.md`（逐 kernel 选路）
 
-> ID: ARCH-ISA-005  状态: 结论 NOT_APPLICABLE  上游: ISA-004  下游: WIN-003/manifest
-> 依据: "只评估整数/位操作热点；VNNI 等与算法无关则写 NOT_APPLICABLE 证据，不写空 DLL；capability 与热点对应；无机械指令集堆砌"。
+## 0 评估口径
 
-## 1 整数/位操作热点审计(12 ABI-003 kernel)
+- 只评估**整数/位操作**热点；与算法无关的指令集扩展不写空 DLL，按 `NOT_APPLICABLE`
+  给出证据。
+- capability 必须与热点对应，不做机械指令集堆砌。
 
-逐 kernel 检查计算主循环(baseline_kernels_impl.inc OpComputer, 见 grep 证据):
+## 1 整数/位操作热点审计（12 kernel）
 
-| kernel | 计算类型 | 整数/位操作 | popcount/BMI2 适用? |
+逐 kernel 检查计算主循环（`lib/infrastructure/benchmark/backend_host/baseline_kernels_impl.inc`
+的 `OpComputer`）：
+
+| kernel | 计算类型 | 整数/位操作 | popcount/BMI2 适用？ |
 |---|---|---|---|
 | calibration-pixel-transform | 纯 float 乘减加 | 无 | 否 |
-| noise-snr-reductions | median 排序(比较场)+ fabs 计数 | 无(比较计数, 非位计数) | 否 |
+| noise-snr-reductions | median 排序（比较场）+ fabs 计数 | 无（比较计数，非位计数） | 否 |
 | psf-batch | 纯 float exp | 无 | 否 |
-| drizzle-overlap/accumulate/normalize | 纯 float | 无 | 否 |
-| upm-spmv | CSR gather(内存带宽受限) | 仅下标索引(非位操作) | 否 |
-| upm-residual/weight-update | 纯 float | 无 | 否 |
-| rejection-stats | median + 比较计数 | 无(比较计数) | 否 |
+| drizzle-overlap / accumulate / normalize | 纯 float | 无 | 否 |
+| upm-spmv | CSR gather（内存带宽受限） | 仅下标索引（非位操作） | 否 |
+| upm-residual / weight-update | 纯 float | 无 | 否 |
+| rejection-stats | median + 比较计数 | 无（比较计数） | 否 |
 | integration-accumulate | 纯 float | 无 | 否 |
-| hips-bulk-transform | 重采样(纯 float 双线性) | 无 | 否 |
+| hips-bulk-transform | 重采样（纯 float 双线性） | 无 | 否 |
 
-- **upm-spmv** 是唯一含整数索引的 kernel, 但其主循环是 `acc += in0[k] * in3[col]` —— **gather 型(数据依赖下标)**, 受内存带宽/延迟约束, 非位操作热点。BMI2(mulx/rorx/blsr)/POPCNT(popcnt)不加速 gather。
+- **upm-spmv** 是唯一含整数索引的 kernel，其主循环为 `acc += in0[k] * in3[col]`：
+  **gather 型（数据依赖下标）**，受内存带宽/延迟约束，不是位操作热点；
+  BMI2（mulx/rorx/blsr）/ POPCNT（popcnt）不加速 gather。
 
-## 2 实证(机器证据, 非只读断言)
+## 2 指令层证据
 
-以 `-mbmi2 -mpopcnt` 编译同一 baseline 源码为变体 DSO, 反汇编（要求"写证据"）:
+以 `-mbmi2 -mpopcnt` 编译同一 baseline 源码为对照变体：
 
-- **变体 DSO 反汇编含 BMI2/POPCNT 专用指令数 = 0**(无 mulx/rorx/blsr/blsmsk/tzcnt/lzcnt/popcnt/pdep/pext)。
-- 即工具链在 kernel 集中**未发现任何可加速的位操作**——变体与 baseline 指令层面一致。
-- 计时差(calibration/driz 数十 ns)纯为共享 2-vCPU VM 的 run-to-run 噪声; hips 差 0.4% 即噪声量级。**无真实位操作收益**。
+- 变体反汇编**不含任何 BMI2/POPCNT 专用指令**（mulx / rorx / blsr / blsmsk / tzcnt /
+  lcnt / popcnt / pdep / pext 计数为零）——工具链在该 kernel 集中未发现可加速的位操作，
+  对照变体与 baseline 指令层一致；
+- 计时差的量级与共享 vCPU 虚机的 run-to-run 噪声同阶 ⇒ **无真实位操作收益**。
+  逐项反汇编计数与计时读数见 `实验/engineering-evidence/prerelease-v5/`。
 
 ## 3 结论
 
-- 本 kernel 集**无整数/位操作热点**适用于 BMI2/POPCNT。→ 登记 **NOT_APPLICABLE**, **不写空 DLL**(不创建位操作变体文件入库)。
-- 测噪验证: 变体 DSO 仅作为瞬时测量工件(/tmp), **不 SHIP/不入 manifest**。
-- 若未来引入整数/位密集型 kernel(如 binarization/高位计数), 需重新评估(当前无)。
+- 本 kernel 集**无整数/位操作热点**适用于 BMI2/POPCNT ⇒ 登记 `NOT_APPLICABLE`，
+  **不登记位操作变体**（不新增变体源文件、不入 `backends.manifest.json`）。
+- 若未来引入整数/位密集型 kernel（如二值化、高位计数），重新按本节口径评估。
 
-## 4 完整性
-- 测量工件: 变体 DSO 为 /tmp 瞬时测量工件, 未入库（同树在案测量工件为 ISA-001/002/003 三批, 见 `ISA_VARIANTS.md` §1.6）; 反汇编证据（BMI2/POPCNT 专用指令数=0）随测量轮记录保存。
-- 与 preflight/ABI-002 关系: 未新增变体 → 无新 manifest 行, 无预检负担。
+## 4 与预检/模块边界的关系
+
+- 未新增变体 ⇒ 无新 manifest 行、无新增预检负担；逐 kernel 选路见
+  `docs/architecture/ISA_VARIANTS.md` §2。

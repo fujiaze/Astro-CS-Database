@@ -1,16 +1,10 @@
 ---
 id: MOD-astrocs-phase1-hips-writer
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 860639be8eb0c07a89383c3975bc14ba2f97ba19
-upstream: [SCI-DRZ-001, ALG-HIPS-001, DATA-P1-DRZ, DATA-P1-HIPS, API-HIPS-001]
-downstream: [TEST-HIPS-DESIGN-001]
 ---
 
 # 模块 astrocs.p1.hips_writer
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页为 HiPS writer 模块合同登记页。事实源：lib/algorithms/drizzle/hips/README.md、module.yaml、
 > docs/science/algorithms/HIPS_WRITER.md、docs/contracts/DATA_SEMANTICS.md §12、
@@ -21,7 +15,7 @@ downstream: [TEST-HIPS-DESIGN-001]
 
 生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake
 astrocs_hips 静态库 CMakeLists.txt:298-309；registry descriptor 无本模块
-页项——astrocs_p1_hips_writer.dll 由 P1-HIPS-IMPL 建立，entrypoint=MISSING）。
+页项——astrocs_p1_hips_writer.dll 为迁移目标（未落地），entrypoint=MISSING）。
 职责：IVOa HiPS 1.4 产品集写入（signal/support/variance/ivar Image HiPS +
 SNR Catalogue HiPS、叶级 tile FITS（NESTED→FITS 序映射、checksum）、低阶
 hierarchy 聚合、Moc.fits UNIQ、properties/metadata/manifest 生成、Drizzle
@@ -47,7 +41,7 @@ aio_hips_write_variance_tile / aio_hips_write_snr_points /
 aio_hips_set_drizzle_provenance / aio_hips_finalize / aio_hips_abort /
 aio_hips_write（兼容）/ aio_hips_last_error。生命周期
 begin→write_*→finalize/abort；迁移 create→validate→run→inspect→destroy
-由 P1-HIPS-IMPL 接线。
+为迁移目标（未落地）。
 
 ## Registry descriptor 与配置 schema
 
@@ -55,7 +49,7 @@ module_id=`astrocs.p1.hips_writer`；现状 registry 无本模块 descriptor
 （module_adapters.cpp 无 hips_writer 项，全仓库无 astrocs_p1_hips_writer
 CMake 目标）；配置经 product_begin 参数固化（nside/tile_width/data_type/
 flags/creator_did/obs_title/obs_filter/exposure_s/obs_date/moc_order）；
-versioned config schema=MISSING（P1-HIPS-IMPL 冻结）。
+versioned config schema=MISSING（冻结）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -95,7 +89,7 @@ DISP-HIPS-001，处置归调用方/IO-003 层）。
 逐像素校验 signal/support/variance/ivar 与 FITS 序映射（CDS Hipsgen 外部
 点，DATA_SEMANTICS §3）、MOC UNIQ/sky fraction、hierarchy 聚合闭合；
 冻结容差=FP64 逐像素 bitwise、f32 存储 rtol=1e-7、MOC/properties 精确。
-可执行 TEST-P1-HIPS-001 由 P1-HIPS-TEST 建立。
+可执行 TEST-P1-HIPS-001 待建。
 
 ## 已知限制
 

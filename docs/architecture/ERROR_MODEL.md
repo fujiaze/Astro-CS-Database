@@ -1,18 +1,21 @@
 # Error Model
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：docs/ASTROCS_DESIGN.md §7.3（错误传播与运行日志）、§8（软件架构）
 
 ## 类别
 
 CONFIG / INPUT_CORRUPT / DEPENDENCY / NUMERIC / NO_DATA / RESOURCE /
-TIMEOUT / IO / SCIENCE_GATE / INTERNAL（DIAGNOSTICS_STANDARD）。
+TIMEOUT / IO / SCIENCE_GATE / INTERNAL（口径 = `docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md`）。
 
 ## 阶段 ID
 
-P1.READ / P1.CALIBRATE / P1.STAR / P1.PSF / P1.PLATESOLVE /
-P1.PHOTOMETRIC / P1.NOISE / P1.DRIZZLE / P1.HIPS_WRITE /
-P2.COVERAGE / P2.SAMPLER / P2.UPM / P2.REJECTION / P2.INTEGRATE /
-P2.HIPS_WRITE。
+每阶段一个阶段 ID 前缀，逐节点一枚，节点名与注册表节点一致：
+
+| 阶段 | 阶段 ID |
+| --- | --- |
+| normalize | `P1.READ` / `P1.CALIBRATE` / `P1.STAR` / `P1.PSF` / `P1.PLATESOLVE` / `P1.PHOTOMETRIC` / `P1.NOISE` / `P1.DRIZZLE` / `P1.HIPS_WRITE` |
+| mosaic | `P2.COVERAGE` / `P2.SAMPLER` / `P2.UPM` / `P2.REJECTION` / `P2.INTEGRATE` / `P2.HIPS_WRITE` |
+| export | `P3.PROPERTIES` / `P3.WCS` / `P3.RESAMPLE` / `P3.WRITE` / `P3.VERIFY` |
 
 ## 稳定错误语义
 
@@ -44,11 +47,10 @@ MODULE_SPECIFIC_BASE=100
 
 **机器判据 = 「进程退出码（唯一源）」节 11 码与 `lib/infrastructure/cli/exit_codes.h` 的 `astrocs::ExitCode` 枚举逐名逐值一致，由 `eng/tools/docs_machine_consistency.py`（error_taxonomy_exit_codes）执行；上方模块特定码为 JSONL `error.numeric_code` 面，与进程退出码分立。**
 
-阶段 stage IDs：P1.READ/P1.CALIBRATE/P1.STAR/P1.PSF/P1.PLATESOLVE/
-P1.PHOTOMETRIC/P1.NOISE/P1.DRIZZLE/P1.HIPS_WRITE/P2.*。
-
 ## 契约
 
-ERR-* 族（S2 注册，含 ERR-P2-UPM-001 畸形模型）。
+稳定错误码族 `ERR-*` 的登记面 = `docs/TRACEABILITY.csv` 的 `error_codes` 列。
 
-ERR-P2-UPM-001 见 `lib/algorithms/coverage/src/upm.cpp`:1606-1619 frames 非数组/唯一/重复校验。
+以 `ERR-P2-UPM-001`（UPM 模型文件畸形）为例：f
+rames 非数组、frames 内重复、帧数与 C 行数不等，都在模型打开时判错并沿 `p2_upm_open` 上行
+（实现 `lib/algorithms/coverage/src/upm.cpp` 的 frames 校验）。

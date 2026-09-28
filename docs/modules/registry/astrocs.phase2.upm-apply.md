@@ -1,17 +1,11 @@
 ---
 id: MOD-astrocs-phase2-upm-apply
 module_id: astrocs.p2.upm
-version: 1.0.0
-status: ACTIVE
-owner: SA-P2-U21
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-UPM-001, ALG-P2-UPM-IMPL-001, ALG-UPM-001, API-P2-001]
-downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 ---
 
 # 模块 astrocs.phase2.upm-apply
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 手写合同页（registry 页保留先例
 > astrocs.phase1.session.md/astrocs.phase2.coverage.md/
@@ -23,7 +17,7 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 > entrypoint=MISSING）；生产源 lib/algorithms/coverage/src/upm.cpp 2981 行 +
 > upm.h 449 行；旧 descriptor 派生词汇（module_id=
 > astrocs.phase2.upm-fit/upm-apply、SCI-P2-UPM-001/002、
-> ALG-P2-UPM-001/002）由 P2-XX-INT 对齐修订。本页为 apply 职能；
+> ALG-P2-UPM-001/002）的对齐属迁移目标（未落地）。本页为 apply 职能；
 > fit 职能见 astrocs.phase2.upm-fit.md，模块总页=
 > docs/modules/phase2_upm.md。
 
@@ -32,8 +26,7 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 - MOD ID：`MOD-astrocs-phase2-upm-apply`（registry 行 ID 沿用）；
   module_id 合同值=`astrocs.p2.upm`（矩阵 P2-UPM 行；descriptor 占位
   `astrocs.phase2.upm-apply` 仅编排层词汇）；dll_target=
-  `astrocs_p2_upm.dll`（合同值，尚未存在，MISSING 语义归
-  P2-UPM-IMPL）。
+  `astrocs_p2_upm.dll`（合同值，尚未存在，MISSING 语义（迁移目标未落地）。
 - 合同三件套：lib/algorithms/upm/（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md），按
   lib/algorithms/sampling/→lib/algorithms/integration/→lib/algorithms/rejection/ 先例新建；
@@ -41,7 +34,7 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 - 生产源：lib/algorithms/coverage/src/upm.cpp（2981 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
   签名头 lib/algorithms/coverage/include/astro/phase2/upm.h（449 行）。
-- owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005；
+- owner SA-P2-U21；depends_on_int=P2-SAMP;CPU-005；
   legacy_paths="lib/algorithms/coverage upm sources"。
 
 ## 职责与明确非职责
@@ -102,7 +95,7 @@ rc=2 stale 拒绝（upm.h:167）。
 
 module_id=`astrocs.phase2.upm-apply`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True（module_adapters.cpp:681-694）。占位
-ID 清单（旧派生词汇，P2-XX-INT 对齐修订）: SCI-P2-UPM-002/
+ID 清单（descriptor 派生词汇，其对齐属迁移目标，未落地）: SCI-P2-UPM-002/
 ALG-P2-UPM-002/TEST-P2-UPM-002；DISP-P2UPM-004=descriptor 端口占位
 语义 persist→reload。apply 侧无独立求解配置（消费 fit 侧
 P2UpmBuildConfig 产物模型）；dense 物化 worker 数经 stage2.cpp:482
@@ -139,12 +132,12 @@ P2UpmBuildConfig 产物模型）；dense 物化 worker 数经 stage2.cpp:482
 - known_defects（登记不改码）: DISP-P2UPM-001（upm.h:154-156/
   :173-175 materialize_dense 重复声明）、DISP-P2UPM-002（upm.h:89-91
   注释漂移 OpenMP vs std::thread）、DISP-P2UPM-003（p2_session.cpp
-  :196-204 覆盖键缺口）、DISP-P2UPM-004（端口占位 persist→reload）。
-  整改归 P2-UPM-IMPL。
+  :196-204 覆盖键缺口）、DISP-P2UPM-004（端口占位 persist→reload）；
+  整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-UPM-002` MISSING（P2-UPM-TEST 建立，不冒认）；登记
+可执行 `TEST-P2-UPM-002` MISSING（可执行测试待建，不冒认）；登记
 面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 设计冻结 VERIFIED 承载锚。现状
 相邻证据（引用不冒认）: eng/tests/api/test_upm_recovery_oracle.py
 test_04（calibrate_block 信号映射/星 flux 不破坏）、eng/tests/unit/
@@ -154,7 +147,6 @@ TEST-DESIGN 冻结（dense/sparse 1e-12 等价基线）。
 
 ## 已知限制
 
-DISP-P2UPM-001..004（上节，登记不改码）；ALG 边界=dense cache 为
-空间求值缓存非科学重算（stale 拒绝语义）、未知 frame_id NaN 非异
-常；本页旧派生内容（"错误码=ACS_ERR_*"、"取消=host cancel 回调"等
-session 层词汇）以本合同页与 SCI-UPM-001/ALG-UPM-001 为准修订。
+DISP-P2UPM-001..004 的现行语义与判据正本 =
+`docs/science/algorithms/PHASE2_UPM_IMPL.md` §11/§13；ALG 边界=dense cache 为
+空间求值缓存非科学重算（stale 拒绝语义）、未知 frame_id → NaN 非异常（本页只留指针）。

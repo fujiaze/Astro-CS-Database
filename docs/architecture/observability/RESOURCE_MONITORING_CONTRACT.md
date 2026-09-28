@@ -1,29 +1,28 @@
-# Astro Celestial Sphere Database（ACSD） 资源监控伴随器合同（LOG-002）
+# Astro Celestial Sphere Database（ACSD） 资源监控伴随器合同
 
-> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
-
-> 机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（合同列/指纹/校验）、
-> `eng/tools/monitoring/verify_monitor_csv.py`（检查器）、
-> `lib/infrastructure/observability/monitoring/linux_procfs.py`（Linux 采集）、
-> `lib/infrastructure/observability/monitoring/windows_pdh_etw.py`（Windows 显式未实现 stub）。
-> 本文档是视图；字段定义与验收以 schema/检查器为权威。
+> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、§10（I/O 与原子产品）、§8.4（顶层结构）
 
 ## 1. 目的与边界
+
+机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（列合同、指纹链与
+校验的唯一权威）、`eng/tools/monitoring/verify_monitor_csv.py`（检查器）、
+`lib/infrastructure/observability/monitoring/linux_procfs.py`（Linux 采集）、
+`lib/infrastructure/observability/monitoring/windows_pdh_etw.py`（Windows 隔离 stub）。
 
 ACSD 需要一个**资源监控伴随器**：重任务（`cpu_heavy` / 长运行）run 自动创建
 monitor，同一 run ID **每秒**采集 process/system CPU、active/granted workers、
 RSS/private/commit、read/write bytes、queue/lock/io wait、provider/module，
-产出**不可手工合成**的原始 CSV，供运行图（LOG-003）、审计、容量分析消费。
+产出**不可手工合成**的原始 CSV，供运行图、审计、容量分析消费。
 
-**验收（依据=`ASTROCS_DESIGN.md` §9）**：
+**验收（依据=`docs/ASTROCS_DESIGN.md` §9）**：
 - 无 monitor 的 `cpu_heavy` run **失败**（负测强制点）；
 - I/O 区间与初始化区间**分开**记录；
 - 原始 CSV **不可手工合成**（header 指纹链 + 写后只读 + 时间戳单调断言）；
-- Linux procfs 与 Windows PDH/ETW 适配**分开**（Windows 仅隔离 stub/显式
-  未实现，不误报已支持）。
+- Linux procfs 与 Windows PDH/ETW 适配**分开**：Windows 侧为隔离 stub、显式
+  不实现，不误报已支持。
 
-**边界**：本任务不改科学公式（`scientific_change=false`）；不触碰
-LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
+**范围**：本合同冻结采集字段与单位、CSV 行合同、指纹链与校验判据，
+并给出 Linux procfs 生产采集面；Windows PDH/ETW 真实采集属发行验证面。
 
 ## 2. 强制自动建档
 
@@ -38,19 +37,19 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 
 ## 3. CSV 合同（原始时序数据）
 
-### 3.0 工件名与「两工件不互替」声明
+### 3.0 两个资源时序工件各自具名
 
 > ⚠ **强制消歧（唯一口径）**：仓库里有**两个不同的资源时序工件**，**不同名、不互替**：
 
 | 工件名 | 生产者 | 列合同 | 采样语义 |
 |---|---|---|---|
-| **`resource_timeseries.csv`**（生产运行记录） | `lib/infrastructure/cli/resource_recorder.h` | **唯一列合同声明（Q4）**：该工件列合同**只有一处** = 生产实现 `lib/infrastructure/cli/resource_recorder.h:289-293`（20 列）；**本文件不复写其列名、不重定义其列** | **run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖 |
+| **`resource_timeseries.csv`**（生产运行记录） | `lib/infrastructure/cli/resource_recorder.h` | 唯一列合同声明 = 生产实现 `lib/infrastructure/cli/resource_recorder.h`（20 列）；本文件只引用该声明 | **run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖 |
 | **`monitor_timeseries.csv`**（本合同的监控伴随器原始数据） | `lib/infrastructure/observability/monitoring/monitor.py` | 本节 §3.1（21 列 + seed 行 + 行指纹链） | **每秒采样 + seed 行 + 指纹链 + 写后只读** |
 
 - 本合同的 CSV 工件名**固定为 `monitor_timeseries.csv`**（本节以下所有「CSV」均指该工件）；
 - **两工件各自具名**：任何消费方按名读取，两工件不互替；本节的 21 列合同只覆盖
   `monitor_timeseries.csv`；`resource_timeseries.csv` 的列合同见其唯一声明处
-  （生产实现 `lib/infrastructure/cli/resource_recorder.h`，20 列），本文件不复写。
+  （生产实现 `lib/infrastructure/cli/resource_recorder.h`，20 列）。
 
 ### 3.1 CSV 列合同（`monitor_timeseries.csv`）
 
@@ -76,7 +75,7 @@ io_wait_rate_est,faults_rate,row_fingerprint
 | `interval_s` | 秒 | 距上一采样单调秒（≈1s） |
 | `cpu_pct` | % | 进程 CPU = CPU 秒差值/墙钟差值 ×100（100%=1 核满载） |
 | `sys_cpu_pct` | % | 系统级 CPU = 非空闲 jiffies/总 jiffies（整机） |
-| `active_workers` | int | **真实观测**（RT-006 trace 注入；无来源留 0） |
+| `active_workers` | int | **真实观测**（trace 事件注入；无来源留 0） |
 | `granted_workers` | int | **真实观测**授予租约上限（无来源留 0） |
 | `provider` | string | **真实观测** provider，取值只来自观测来源 |
 | `module` | string | **真实观测** module/node 归属 |
@@ -90,7 +89,7 @@ io_wait_rate_est,faults_rate,row_fingerprint
 | `faults_rate` | /s | 缺页速率（minflt+majflt 差值/墙钟） |
 | `row_fingerprint` | hex64 | 行指纹（§4） |
 
-空值（缺失/不可得）写空串；**绝不静默填 0 冒充观测**。
+空值（缺失/不可得）写空串；填 0 只表示真实观测到的零值。
 
 ## 4. 不可手工合成（指纹链 + 写后只读）
 
@@ -103,13 +102,12 @@ fp(seq=n)    = sha256(salt | fp(seq=n-1) | json(行字符串形态) | n)
 
 - 每行指纹绑定**前一行指纹**、**行字符串形态**（与文件逐字节一致）与**行号**；
 - 修改任意字节 / 手工追加 / 删除行 → 该行及后续全部失配（链式断裂）；
-- salt 固定为 `b"astrocs-log002-v1"`，跨进程/跨主机可复验。
+- salt = `b"astrocs-monitor-timeseries-v1"`，跨进程/跨主机可复验。
 
 ### 4.2 写后只读
 
-`ResourceMonitor.seal()`：flush + fsync + close + chmod 只读。监测结束后
-本工件（`monitor_timeseries.csv`，**不是** `resource_timeseries.csv`，见 §3.0）不可再写；
-复验/审计只读。
+`ResourceMonitor.seal()`：flush + fsync + close + chmod 只读。监测结束后本工件
+（`monitor_timeseries.csv`，见 §3.0）转为只读；复验与审计按只读消费。
 
 ### 4.3 单 run 单链
 
@@ -128,9 +126,9 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 6. `t_iso_utc` 单调（秒精度允许相等；`--no-ts-monotonic` 可关）；
 7. `run_phase ∈ PHASES`。
 
-## 6. 真实观测接线（RT-006 trace，取值只来自观测来源）
+## 6. 真实观测接线（取值只来自观测来源）
 
-`lib/infrastructure/observability/monitoring/trace_feed.py::TraceSnapshotObserver` 从 **RT-006 trace
+`lib/infrastructure/observability/monitoring/trace_feed.py::TraceSnapshotObserver` 从 **trace
 事件**（JSONL 或 TraceStore 快照 dict 列表）推导当前观测：
 
 - `provider`：最近一条携带非空 provider 的 trace 事件（MODULE_CALL /
@@ -140,31 +138,31 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 - `granted_workers`：活动节点 NODE_START/MODULE_CALL 的 granted_workers 观测
   最大值；无则最近 WORKER_TASK/MODULE_CALL 的 workers 观测。
 
-**硬约束**：observer 只读 trace 事件，绝不读计划/配置 JSON——配置值冒充观测
-即违例。`resource_monitor` 无 observer 且无真实置位时相关列为空/0，不造假。
+**硬约束**：observer 的取值来源只有 trace 事件；计划/配置 JSON 的值冒充观测即违例。
+`resource_monitor` 在无 observer 且无真实置位时相关列留空/0。
 
 ## 7. Linux/Windows 路径分离
 
-| 后端 | 位置 | 状态 |
+| 后端 | 位置 | 实现面 |
 |---|---|---|
-| Linux procfs | `lib/infrastructure/observability/monitoring/linux_procfs.py` | **真实实现**（控制节点） |
-| Windows PDH/ETW | `lib/infrastructure/observability/monitoring/windows_pdh_etw.py` | **显式未实现 stub**（隔离） |
+| Linux procfs | `lib/infrastructure/observability/monitoring/linux_procfs.py` | 生产采集实现 |
+| Windows PDH/ETW | `lib/infrastructure/observability/monitoring/windows_pdh_etw.py` | 隔离 stub |
 
 - `linux_procfs.collect()`：/proc/self/status、smaps_rollup、stat、io、
   /proc/stat、/proc/loadavg 真实观测；
 - `windows_pdh_etw.is_available()` 恒 False；`collect()` 抛
-  `NotImplementedError`（**绝不返回伪造观测**）；
-- 已知限制：Windows PDH/ETW 真实采集未实现（known_limits；接口签名与
-  Linux 对齐，未来 FATDUCK/Windows 控制节点填充）。
+  `NotImplementedError`，只返回真实观测；
+- 接口签名与 Linux 对齐；Windows PDH/ETW 真实采集未实现，缺口登记面
+  = `docs/KNOWN_LIMITATIONS.md`。
 
-## 8. 与 LOG-001 的关系
+## 8. 与结构化日志合同的关系
 
-LOG-002 不修改 LOG-001 冻结 schema/参考实现；可选的 metric 事件输出
-（`trace_feed.emit_metric_event`）复用 `astrocs.log.event.v1` 语义（phase=
-`monitoring`、event=`metric`）。若后续生产 Runtime 把 monitor 摘要写入统一
-JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭环）。
+可选的 metric 事件输出（`trace_feed.emit_metric_event`）复用 `astrocs.log.event.v1` 语义
+（phase=`monitoring`、event=`metric`），字段语义与枚举的正本 =
+`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` §2.2；生产 Runtime 把
+monitor 摘要写入统一 JSONL 时按该合同适配。本合同的交付面 = CSV 列合同 + 指纹链 + 校验闭环。
 
-## 9. 验收（LOG-002）
+## 9. 验收
 
 | # | 验收点 | 证据 |
 |---|---|---|
@@ -174,11 +172,11 @@ JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭�
 | B4 | I/O 区间与初始化区间分开 | `phases_seen` 含独立 init/io 行 |
 | B5 | provider/module/workers 来自 trace 真实观测 | `TraceSnapshotObserver` 测试 |
 | B6 | Linux procfs 与 Windows PDH/ETW 分开 | 后端分离 + Windows stub 负测 |
-| B7 | LOG-001 / RT-006 回归不破坏 | LOG-001 checker + rt006 py surface 回归 |
+| B7 | 结构化日志合同与 trace 聚合的回归不破坏 | 日志检查器 + trace 聚合回归 |
 
 ## 10. 参考
 
-- 依据：`ASTROCS_DESIGN.md` §9 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
-- LOG-001：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
-- RT-006：`lib/include/astrocs/core/contracts.h` TraceEvent、
+- 依据：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、§10（I/O 与原子产品）
+- 结构化日志合同：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
+- trace 事件：`lib/include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`

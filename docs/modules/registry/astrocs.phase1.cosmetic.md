@@ -1,18 +1,10 @@
 ---
 id: MOD-astrocs-phase1-cosmetic
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-CAL-001, ALG-COS-001, API-P1-002]
-downstream: [TEST-P1-COS-001]
 ---
-
-> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
 
 # 模块 astrocs.phase1.cosmetic
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页由源码核对后修订——
 > 合同 ID 由 W3 骨架占位（SCI-P1-COS-001/ALG-P1-COS-001）更正为真实
@@ -49,15 +41,14 @@ DATA-P1-COS 为准）。
 ac_correct_frame_f64/ac_set_num_threads，头
 lib/algorithms/calibration/include/astro_calibration.h）；编排级: API-P1-002
 （PHASE1_API_V1 §2，生命周期 create→validate→run→inspect→destroy，
-多模块共享）。迁移目标 astrocs_p1_cosmetic.dll + C ABI adapter 由
-P1-COS-IMPL 建立（entrypoint 现状 MISSING）。
+多模块共享）。迁移目标 astrocs_p1_cosmetic.dll + C ABI adapter（未落地，entrypoint 现状 MISSING）。
 
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase1.cosmetic`; execution_class=`cpu_heavy`;
 parallel_ok=True; 配置=cosmetic JSON（enabled/hot_sigma/cold_sigma/
 method/max_structure_size，p1_session.cpp:132-138 校验；正式版本化
-schema 由 P1-COS-IMPL 冻结）。
+schema 由冻结）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -83,7 +74,7 @@ rc!=AC_OK）。无日志（cosmetic 路径零 stderr）。取消=帧粒度（ses
 
 TEST-COS-DESIGN-001（docs/science/algorithms/COSMETIC_ALGORITHMS.md §9: 合成
 fixture FIX-COS-A..F、NumPy oracle rtol=1e-6/atol=1e-7、解析解
-bitwise、I1-I6 不变量）；可执行 TEST-P1-COS-001 由 P1-COS-TEST 建立
+bitwise、I1-I6 不变量）；可执行 TEST-P1-COS-001 待建
 （逐任务 TASK_RESULT 证据）。
 
 ## 已知限制
