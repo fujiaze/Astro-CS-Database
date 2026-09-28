@@ -13,6 +13,13 @@
 #include <cstring>
 #include <filesystem>
 #include <vector>
+#if defined(_WIN32)
+#include <process.h>   // _getpid（P-076 tmp 名确定性断言）
+#define P3TEST_GETPID _getpid
+#else
+#include <unistd.h>    // getpid
+#define P3TEST_GETPID getpid
+#endif
 
 static int failures = 0;
 #define CHECK(cond)                                                       \
@@ -306,6 +313,239 @@ int main() {
       CHECK(v.reopen_ok == 1); }
 
     std::remove(pb.c_str());
+  }
+
+  // 3d) P-077 (台账 A3) 成对发布门负例: begin_hdu/publish 必须校验 HDU 集合
+  // 成对完整（只写 PRIMARY 也能发布的旧缺陷形态）。三臂：
+  //   (A) 仅 PRIMARY 收尾 → publish 必拒，且无产物、无 .tmp 残留；
+  //   (B) PRIMARY+COVERAGE 收尾（unc 不可用面）→ publish 成功（positive control，
+  //       证明门不是"恒真拒绝"：门只在该拒的臂上拒）；
+  //   (C) begin_hdu(3)=IVAR 在 VARIANCE 未收尾时被拒 + VARIANCE 收尾后未成对
+  //       → publish 必拒（单边 uncertainty = 合同违规）。
+  {
+    const std::string pro077 = dir + "/astrocs_p3_out_test_pr077.fits";
+    const std::string pro077b = dir + "/astrocs_p3_out_test_pr077b.fits";
+    const std::string pro077c = dir + "/astrocs_p3_out_test_pr077c.fits";
+    std::remove(pro077.c_str());
+    std::remove(pro077b.c_str());
+    std::remove(pro077c.c_str());
+    std::error_code ec;
+    // 临时对象残骸检出自检：写侧 tmp 名 = <out>.<pid>.tmp（p3_output.cpp:151-157）。
+    auto no_residue = [&](const std::string& base) {
+      for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
+        if (ec) return;
+        if (entry.path().filename().string().rfind(base, 0) == 0) { CHECK(false); return; }
+      }
+    };
+
+    // ---- 臂 A: 只写 PRIMARY ----
+    {
+      astrocs::phase3::P3FitsStream ws;
+      CHECK(ws.open(pro077.c_str(), &wcs, w, h, -32, "ADU", &prov) ==
+            astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      astrocs::phase3::P3OutputResult r{};
+      CHECK(ws.publish(&r) != astrocs::phase3::P3_OUT_OK);   // 缺 COVERAGE ⇒ 必拒
+      CHECK(!ws.published());
+      CHECK(!std::filesystem::exists(std::filesystem::path(pro077)));
+      ws.abort();
+      no_residue("astrocs_p3_out_test_pr077.fits");
+    }
+
+    // ---- 臂 B: PRIMARY+COVERAGE（unc 不可用）→ 可发布 ----
+    {
+      astrocs::phase3::P3FitsStream ws;
+      CHECK(ws.open(pro077b.c_str(), &wcs, w, h, -32, "ADU", &prov) ==
+            astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(1) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, cov.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      astrocs::phase3::P3OutputResult r{};
+      CHECK(ws.publish(&r) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.published());
+      CHECK(std::filesystem::exists(std::filesystem::path(pro077b)));
+      CHECK(std::strlen(r.sha256) == 64);
+      std::remove(pro077b.c_str());
+    }
+
+    // ---- 臂 C: VARIANCE 未成对 ----
+    {
+      astrocs::phase3::P3FitsStream ws;
+      CHECK(ws.open(pro077c.c_str(), &wcs, w, h, -32, "ADU", &prov) ==
+            astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(1) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, cov.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      // VARIANCE 已收尾、IVAR 缺失（单边 unc）⇒ publish 必拒。
+      // 注: 本臂不先试 begin_hdu(3)——序门失败会把流置为 fail-closed 终端态
+      // （p3_output.cpp:822-826 impl_->failed=true），后续调用一律 PARAM，
+      // 无法再测「VARIANCE 单独收尾」这一面。序门另由臂 C2 单独覆盖。
+      CHECK(ws.begin_hdu(2) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      astrocs::phase3::P3OutputResult r{};
+      CHECK(ws.publish(&r) != astrocs::phase3::P3_OUT_OK);   // 缺 IVAR ⇒ 必拒
+      CHECK(!ws.published());
+      CHECK(!std::filesystem::exists(std::filesystem::path(pro077c)));
+      ws.abort();
+      no_residue("astrocs_p3_out_test_pr077c.fits");
+    }
+
+    // ---- 臂 D: HDU 集合成员齐全（不只是"已收尾个数"）----
+    // 旧形态只数 hdu_done[0]/[1]，故"跳过 COVERAGE 先建 VARIANCE"这条调用序
+    // 会让 hdu_done={1,1} 而发布一个**没有 COVERAGE 扩展**的半成品产品
+    // （下游把 support 面缺失误读成"无覆盖"）。三臂：
+    //   D1 跳过 COVERAGE 建 VARIANCE → publish 必拒；
+    //   D2 COVERAGE 建两次（重复 EXTNAME）→ 第二次 begin_hdu(1) 必拒；
+    //   D3 只写 PRIMARY+COVERAGE（unc 不可用）→ 必须仍能发布（正例对照）。
+    {
+      const std::string p1 = dir + "/astrocs_p3_out_test_pr077e1.fits";
+      const std::string p2 = dir + "/astrocs_p3_out_test_pr077e2.fits";
+      const std::string p3 = dir + "/astrocs_p3_out_test_pr077e3.fits";
+      std::remove(p1.c_str());
+      std::remove(p2.c_str());
+      std::remove(p3.c_str());
+      // D1
+      {
+        astrocs::phase3::P3FitsStream ws;
+        CHECK(ws.open(p1.c_str(), &wcs, w, h, -32, "ADU", &prov) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(2) == astrocs::phase3::P3_OUT_OK);   // 跳过 COVERAGE
+        CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+        astrocs::phase3::P3OutputResult r{};
+        CHECK(ws.publish(&r) != astrocs::phase3::P3_OUT_OK);    // 缺 COVERAGE 成员 ⇒ 必拒
+        CHECK(!ws.published());
+        CHECK(!std::filesystem::exists(std::filesystem::path(p1)));
+        ws.abort();
+      }
+      // D2
+      {
+        astrocs::phase3::P3FitsStream ws;
+        CHECK(ws.open(p2.c_str(), &wcs, w, h, -32, "ADU", &prov) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(1) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.write_block(0, 0, w, h, cov.data()) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(1) != astrocs::phase3::P3_OUT_OK);   // 重复 COVERAGE ⇒ 必拒
+        astrocs::phase3::P3OutputResult r{};
+        CHECK(ws.publish(&r) != astrocs::phase3::P3_OUT_OK);
+        CHECK(!ws.published());
+        CHECK(!std::filesystem::exists(std::filesystem::path(p2)));
+        ws.abort();
+      }
+      // D3（正例对照：证明 D1/D2 的"必拒"不是恒真拒绝）
+      {
+        astrocs::phase3::P3FitsStream ws;
+        CHECK(ws.open(p3.c_str(), &wcs, w, h, -32, "ADU", &prov) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.begin_hdu(1) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.write_block(0, 0, w, h, cov.data()) == astrocs::phase3::P3_OUT_OK);
+        CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+        astrocs::phase3::P3OutputResult r{};
+        CHECK(ws.publish(&r) == astrocs::phase3::P3_OUT_OK);
+        std::remove(p3.c_str());
+      }
+    }
+
+    // ---- 臂 C2: unc 成对序门（IVAR 先于已收尾的 VARIANCE，独立流）----
+    {
+      const std::string pro077d = dir + "/astrocs_p3_out_test_pr077d.fits";
+      std::remove(pro077d.c_str());
+      astrocs::phase3::P3FitsStream ws;
+      CHECK(ws.open(pro077d.c_str(), &wcs, w, h, -32, "ADU", &prov) ==
+            astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(0) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, sig.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(1) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.write_block(0, 0, w, h, cov.data()) == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.end_hdu() == astrocs::phase3::P3_OUT_OK);
+      CHECK(ws.begin_hdu(3) != astrocs::phase3::P3_OUT_OK);   // 序门必拒
+      astrocs::phase3::P3OutputResult r{};
+      CHECK(ws.publish(&r) != astrocs::phase3::P3_OUT_OK);    // 失败后恒拒发布
+      CHECK(!ws.published());
+      CHECK(!std::filesystem::exists(std::filesystem::path(pro077d)));
+      ws.abort();
+      no_residue("astrocs_p3_out_test_pr077d.fits");
+    }
+  }
+
+  // 3e) P-076 (台账 A2) 失败路径不变量: 任一 remove_file 之前必须已 fits_close_file。
+  // 旧缺陷形态（bitpix 非法 / create_img 失败 / BUNIT 表外 / 取消 四条失败路径先
+  // remove 后 close）在 Windows 上 _unlink 对仍打开的句柄必败 ⇒ tmp 残留；全平台
+  // 亦泄漏 fd。本不动量判据在 Linux 上同样可执行：tmp 名是**确定性**的
+  // <out>.<pid>.tmp（p3_output.cpp:151-157），故每条失败路径跑完后都能逐名断言
+  // "未发布产物 + tmp 不残留"；若实现把 remove 置于 close 之前，Windows 上这些
+  // 断言必红（Linux 上该顺序仍能删掉名字，故本门在 Linux 是必要非充分——
+  // Windows 节点的复跑由台账 P-076 单独跟踪）。
+  {
+    const std::string tp = dir + "/astrocs_p3_out_test_pr076.fits";
+    const std::string ttmp = tp + "." + std::to_string(P3TEST_GETPID()) + ".tmp";
+    std::error_code ecd;
+    auto no_file = [&](const std::string& p) {
+      return !std::filesystem::exists(std::filesystem::path(p), ecd);
+    };
+    // (a) bitpix 非法 → PARAM，无产物无 tmp
+    {
+      std::remove(tp.c_str());
+      astrocs::phase3::P3OutputResult r{};
+      const astrocs::phase3::P3OutputStatus st =
+          astrocs::phase3::p3_output_write_atomic(sig.data(), cov.data(), w, h, &wcs,
+                                                  "ADU", tp.c_str(), &prov, -16, -1, &r);
+      CHECK(st == astrocs::phase3::P3_OUT_PARAM);
+      CHECK(no_file(tp));
+      CHECK(no_file(ttmp));
+    }
+    // (c) 表外 BUNIT（unc 面）→ PARAM，无产物无 tmp
+    {
+      std::remove(tp.c_str());
+      std::vector<float> var(static_cast<size_t>(w) * h, 4.0f);
+      std::vector<float> ivar(static_cast<size_t>(w) * h, 0.25f);
+      astrocs::phase3::P3OutputResult r{};
+      const astrocs::phase3::P3OutputStatus st =
+          astrocs::phase3::p3_output_write_atomic_ex(sig.data(), cov.data(), var.data(),
+                                                     ivar.data(), w, h, &wcs, "Jy/beam",
+                                                     tp.c_str(), &prov, -32, -1, &r);
+      CHECK(st == astrocs::phase3::P3_OUT_PARAM);
+      CHECK(no_file(tp));
+      CHECK(no_file(ttmp));
+    }
+    // (d) 取消（cancelled_at_row>=0，signal 写出后）→ CANCELLED，无产物无 tmp
+    {
+      std::remove(tp.c_str());
+      astrocs::phase3::P3OutputResult r{};
+      const astrocs::phase3::P3OutputStatus st =
+          astrocs::phase3::p3_output_write_atomic(sig.data(), cov.data(), w, h, &wcs,
+                                                  "ADU", tp.c_str(), &prov, -32, 8, &r);
+      CHECK(st == astrocs::phase3::P3_OUT_CANCELLED);
+      CHECK(no_file(tp));
+      CHECK(no_file(ttmp));
+    }
+    // 收敛自检: 正常写一次后 tmp 仍不残留（正例，证明上面三条不是"恒真"）
+    {
+      std::remove(tp.c_str());
+      astrocs::phase3::P3OutputResult r{};
+      CHECK(astrocs::phase3::p3_output_write_atomic(sig.data(), cov.data(), w, h, &wcs,
+                                                    "ADU", tp.c_str(), &prov, -32, -1,
+                                                    &r) == astrocs::phase3::P3_OUT_OK);
+      CHECK(no_file(ttmp));
+      std::remove(tp.c_str());
+    }
   }
 
   // 4) pixel→sky→sample Oracle: WCS roundtrip 后采样信号一致

@@ -806,6 +806,15 @@ P3OutputStatus P3FitsStream::begin_hdu(int plane) {
     }
     if (plane < 1 || plane > 3) return P3_OUT_PARAM;
     if (impl_->hdu_open) return P3_OUT_PARAM;   // 上一 HDU 未收尾（校验和未写）
+    // P-077 (台账 A3): HDU **成员齐全**门（不只是"已收尾个数"）—— 该 plane 已收尾
+    // 即集合内成员已固定；重复进入会产出同名 EXTNAME 的第二个扩展（假 COVERAGE /
+    // 双 VARIANCE），下游按 EXTNAME 取面时读到错的那一个。fail-closed 拒，不静默重复。
+    if (impl_->hdu_done[plane]) {
+        g_last_err = "hdu already finished (duplicate EXTNAME): plane " +
+                     std::to_string(plane);
+        impl_->failed = true;
+        return P3_OUT_PARAM;
+    }
     fitsfile* f = impl_->f;
     int& status = impl_->status;
     long cnaxes[2] = {impl_->width, impl_->height};
