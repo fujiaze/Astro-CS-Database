@@ -63,6 +63,18 @@ struct ProfileBundle {
  * 本判据可独立调用 ⇒ 负例注入无需真实测量环境。 */
 std::string profile_invariant_violation(const KernelProfile& kp);
 
+/* Oracle 内省/测试入口(与 profile 生成路径**同一实现**, 无第二份公式):
+ * 返回逐元素 f64 参考。op: ACS_KOP_*; frames: 栈类帧数(非栈=1); k: op 标量;
+ * w: 网格宽; N: 元素数; in0..in3: 与生成路径同序的输入。
+ * 用途 = 把 oracle 的**离散语义**(网格点坐标 x=i%w, y=i/w 取整)钉进可独立复跑的
+ * 正负例: 该语义与 kernel(baseline_kernels_impl.inc)逐元素同源, 任何偏离都是
+ * "判据与冻结公式不同源" ⇒ 恒红门(候选结构性不可能通过), 必须在单元面判红。 */
+std::vector<double> oracle_ref_v1(int op, uint32_t frames, float k, uint32_t w, uint32_t N,
+                                  const std::vector<float>& in0,
+                                  const std::vector<float>& in1,
+                                  const std::vector<float>& in2,
+                                  const std::vector<float>& in3);
+
 /* 生成 v2 profile。mode: "quick"(1 代表 kernel medium) | "full"(12 kernel × 3 规模)。
  * build_id: "X.Y.Z[-pre]+g<hash12>"(纯 base 版本由调用方派生, 单源 VER-001); commit: 40hex; cli_sha256: 运行二进制实测。
  * backends_dir: 含 backends.manifest.json 与 provider DSO 的目录(空=仅内置 baseline)。

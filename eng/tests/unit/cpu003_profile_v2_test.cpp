@@ -3,6 +3,8 @@
 //       AVX512 提升<3% 选 AVX2 规则; workers/block 候选派生; verify_profile_v2 正负例。
 #include "profile_gen.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -174,8 +176,72 @@ int main() {
     CHECK(astrocs::backend_host::profile_invariant_violation(failed).empty());
   }
 
+  // 7) Oracle 离散语义正负例(能红能绿): 两档 oracle:fail 的根因是 oracle 把行坐标
+  //    写成实值 i/w, 而 kernel 取**整数网格点** i/w(baseline_kernels.h:18「于网格点」/
+  //    :27「源采样位置 (x*k, y*k)」; baseline_kernels_impl.inc:150/:212 为整数除)。
+  //    本组把该语义钉死: 偏离 ⇒ 判据与冻结公式不同源 ⇒ 所有候选结构性不可能通过(恒红门)。
+  {
+    const uint32_t w = 8, N = w * w;
+    const double tol = 2e-4;   // §7 冻结容差(唯一出处 profile_gen_v2.cpp:55)
+    std::vector<float> in1(N, 0.0f), in2(N, 0.0f), in3(N, 0.0f);
+
+    // 7a) wcs-psf-batch: 闭式 = k*exp(-r^2/2), (x,y) = (i%w, i/w) 整数网格点
+    {
+      const double cx = 3.5, cy = 4.5;
+      std::vector<float> in0(N, 0.0f);
+      in0[0] = static_cast<float>(cx);
+      in0[1] = static_cast<float>(cy);
+      const auto ref = astrocs::backend_host::oracle_ref_v1(
+          ACS_KOP_PSF_BATCH, 1, 1.0f, w, N, in0, in1, in2, in3);
+      for (uint32_t i = 0; i < N; ++i) {
+        const double x = static_cast<double>(i % w), y = static_cast<double>(i / w);
+        const double exact = std::exp(-((x - cx) * (x - cx) + (y - cy) * (y - cy)) * 0.5);
+        CHECK(std::fabs(ref[i] - exact) <= tol * std::max(1.0, std::fabs(exact)));
+      }
+      // 负例(判据能红): 实值行坐标变体在本判据下必须判红(偏离 ≫ 冻结容差);
+      // 复现该缺陷即令上面逐点正例与下面这条同时变红。
+      const uint32_t probe = w * 3 + 3;   // x=3,y=3 处: 实值 y=3.375 偏离最大
+      const double x = static_cast<double>(probe % w);
+      const double y_real = static_cast<double>(probe) / static_cast<double>(w);
+      const double wrong = std::exp(-((x - cx) * (x - cx) + (y_real - cy) * (y_real - cy)) * 0.5);
+      CHECK(std::fabs(wrong - ref[probe]) > tol * std::max(1.0, std::fabs(ref[probe])));
+    }
+
+    // 7b) hips-bulk-transform: 闭式 = 双线性(整数行号, 边缘 clamp), k=0.5
+    {
+      std::vector<float> in0(N, 0.0f);
+      for (uint32_t i = 0; i < N; ++i)
+        in0[i] = std::sin(static_cast<float>(i) * 0.01f) * 100.0f;   // 与生成路径同构
+      in2[0] = static_cast<float>(w);   // 源宽(→ aux0)
+      in3[0] = static_cast<float>(w);   // 源高(→ aux1)
+      const auto ref = astrocs::backend_host::oracle_ref_v1(
+          ACS_KOP_HIPS_BULK, 1, 0.5f, w, N, in0, in1, in2, in3);
+      for (uint32_t i = 0; i < N; ++i) {
+        const double x = static_cast<double>(i % w) * 0.5;
+        const double y = static_cast<double>(i / w) * 0.5;
+        const int x0 = std::min(std::max(static_cast<int>(std::floor(x)), 0),
+                                static_cast<int>(w) - 2);
+        const int y0 = std::min(std::max(static_cast<int>(std::floor(y)), 0),
+                                static_cast<int>(w) - 2);
+        const double fx = x - std::floor(x), fy = y - std::floor(y);
+        const double exact = (1 - fx) * (1 - fy) * in0[static_cast<size_t>(y0) * w + x0] +
+                             fx * (1 - fy) * in0[static_cast<size_t>(y0) * w + x0 + 1] +
+                             (1 - fx) * fy * in0[static_cast<size_t>(y0 + 1) * w + x0] +
+                             fx * fy * in0[static_cast<size_t>(y0 + 1) * w + x0 + 1];
+        CHECK(std::fabs(ref[i] - exact) <= tol * std::max(1.0, std::fabs(exact)));
+      }
+      // 负例(判据能红): 本轮实测的第一次偏离点 i=1(small 档实测 got=0.499992/ref=0.410044)
+      {
+        const double dy = 1.0 / static_cast<double>(w) * 0.5;          // 实值 y 多出的行内偏移
+        const double wrong = ref[1] + dy * in0[w];                     // 实值变体在 i=1 的额外项
+        CHECK(std::fabs(wrong - ref[1]) > tol * std::max(1.0, std::fabs(ref[1])));
+        CHECK(std::fabs(ref[1] - 0.5 * in0[1]) <= tol * std::max(1.0, std::fabs(ref[1])));
+      }
+    }
+  }
+
   if (failures == 0) {
-    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例/组装期不变量正负例)\n");
+    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例/组装期不变量正负例/oracle 离散语义正负例)\n");
     return 0;
   }
   std::fprintf(stderr, "CPU-003 TESTS FAIL (%d)\n", failures);
