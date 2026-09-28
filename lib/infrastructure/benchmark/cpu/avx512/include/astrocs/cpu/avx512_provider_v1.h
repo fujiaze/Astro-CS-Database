@@ -14,7 +14,7 @@
  *
  * 冻结合同:
  *   - 热点 profile 台账 = ISA-004 实测 (docs/architecture/ISA_VARIANTS.md
- *     §1.6 + artifacts/evidence/prerelease-v5/ISA-004/MEASUREMENTS.csv; SA-CPU-09
+ *     §1.6（ISA-004 复测在案，测量工件留档 实验/engineering-evidence/prerelease-v5/）; SA-CPU-09
  *     冻结): hips-bulk-transform avx512 +29.5% vs baseline (≈avx2 +28.3%
  *     同档) —— 唯一实测可能获益 kernel; calibration +3.8% (远低 avx2
  *     +11.7%) 与 drizzle-accumulate −22.5% 均 NOT_SHIPPED (防 AVX-512 降频
