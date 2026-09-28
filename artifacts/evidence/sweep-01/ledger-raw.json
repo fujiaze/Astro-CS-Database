@@ -1,0 +1,2309 @@
+{
+ "entries": [
+  {
+   "p": "P-001",
+   "sev": "黄",
+   "surf": "⑤",
+   "loc": "docs/design/PHASE1 §10+PHASE2 §9+PRODUCT_STORAGE_FORM ↔ lib 写入侧",
+   "desc": "两形态落盘写入面缺失：.hips.zst tar+zstd/<name>.hips.index.json/coverage.index.json/p1_products.json 四自报字段/manifest#storage.form_source——lib 零命中（module_adapters.cpp:8931-8940 无字段）；输入解析与检查器在位",
+   "note": "D3-wave1 R2；实现欠账，待排期实现批",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-002",
+   "sev": "黄",
+   "surf": "⑤",
+   "loc": "docs/design/LOG_AND_ERROR_SYSTEM §2/§4-§7 ↔ lib",
+   "desc": "L2 日志落盘器整层无实现（<output_dir>/logs、run_<run_id>.jsonl、六步生命周期、log_artifacts[]）；L1/L3 在位；sdet_log 3 处落点已台账豁免",
+   "note": "波3 R3 确认并扩大：run_manifest.schema.json 亦无 log_artifacts 字段（合同面同缺位）——实现批须含 schema 字段补齐",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28",
+   "updated": "2026-09-28"
+  },
+  {
+   "p": "P-003",
+   "sev": "黄",
+   "surf": "①",
+   "loc": "docs/design/STAR_DETECTION_IMPL_DESIGN §5.7/§5.12",
+   "desc": "文档断言 O7 √e 恒等式产出 LM 初值——实际 halfA 边界搜索（ALG :101-103/:142 权威=代码）；文档订正走 §8 流程",
+   "note": "D3-wave1 R1；前台即修文档",
+   "verify": "待确证",
+   "fix_state": "CLOSED",
+   "added": "2026-09-28",
+   "closed": "2026-09-28",
+   "closed_note": "§5.7/§5.12/管线表/防错⑭ 已订正入库",
+   "updated": "2026-09-28"
+  },
+  {
+   "p": "P-004",
+   "sev": "中",
+   "surf": "④",
+   "loc": "组4 顺延 18 项（旧 P-005/008/038/050/051/052/064/065/085/094/105/109/111/113/127/130/134/151）",
+   "desc": "未来验证工作订单（旧台账编号，结转）",
+   "note": "批量结转条目，逐项验证时再展开",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-005",
+   "sev": "中",
+   "surf": "③",
+   "loc": "P-158 门禁重设计族（旧编号）",
+   "desc": "冻结至收尾期解冻（负责人裁决）",
+   "note": "结转；收尾期执行",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-006",
+   "sev": "中",
+   "surf": "③",
+   "loc": "docs/science/DRIZZLE.md w_jp 与 DATA_SEMANTICS §12.3 措辞分歧（旧 P-176）",
+   "desc": "冻结公式面，走变更流程",
+   "note": "结转",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-007",
+   "sev": "中",
+   "surf": "②",
+   "loc": "CPU_003 §2/ISA_VARIANTS 测量数值零出处（旧 P-177 R1）",
+   "desc": "需找原始测量轮次或重测（空闲机独占）",
+   "note": "结转",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-008",
+   "sev": "中",
+   "surf": "②",
+   "loc": "ARCH-003..005 无 docs/contracts 承接文件（旧 P-177 R2）",
+   "desc": "登记面缺口，补承接或降级",
+   "note": "结转",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-009",
+   "sev": "低",
+   "surf": "②",
+   "loc": "module_adapters.cpp 自引行号漂移 :2218→:6203-6206 实况 :7607-7609（旧 P-177 R3）",
+   "desc": "代码侧注释锚，随 lib 批修",
+   "note": "结转",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-010",
+   "sev": "低",
+   "surf": "④",
+   "loc": "SCIENCE_OVERVIEW.md 重写（旧 P-169）",
+   "desc": "正面重写待排期",
+   "note": "结转",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-011",
+   "sev": "低",
+   "surf": "④",
+   "loc": "evidence/acceptance 二轮甄别（保留=科学/工程锚，命名 topic+date）",
+   "desc": "产物整理，收尾期执行",
+   "note": "结转",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-012",
+   "sev": "中",
+   "surf": "④",
+   "loc": "DOC-LINE-ANCHORS 门 105 findings",
+   "desc": "兄弟门预存红灯（C2×13/C3×7/C4×6/C5×1/C6×77/C7×1）：C3 含星检测重写后界外锚（sdet_api.cpp:1738-2483 超 2287 行）；与 ALG 锚门改动零交集，HEAD 即如此",
+   "note": "组20 机械重锚立项",
+   "verify": "待确证",
+   "fix_state": "CLOSED",
+   "added": "2026-09-28",
+   "closed": "2026-09-28",
+   "closed_note": "105 findings 清零入库；C7 规模行随并行编辑可能需再同步（--print-scale），D2 全量复跑兜底",
+   "updated": "2026-09-28"
+  },
+  {
+   "p": "P-013",
+   "sev": "低",
+   "surf": "④",
+   "loc": "check_alg_line_anchors.py L3 列级绑定",
+   "desc": "L3 列级绑定取表头第一文件判整列，cell 内文件前缀切换（upm.h:NN；upm.cpp:…）被误绑到 cpp——组19 以「upm.h: N」空格写法规避；门改进=支持 cell 内文件前缀切换",
+   "note": "门禁自身改进，随门禁重设计族（旧 P-158）一并考虑",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-014",
+   "sev": "黄",
+   "surf": "①",
+   "loc": "execution_options_contract §CLI ↔ 生产 parser.cpp",
+   "desc": "生产 mosaic 子命令无 --cpu-workers/--io-workers/--deterministic（唯一解析点在迁移冻结工具面 astrocs-stage2 tools/stage2.cpp:140/:168）——接口级实现欠账",
+   "note": "D3-波2 R1；与 P-001/P-002 同批排期",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-015",
+   "sev": "低",
+   "surf": "②",
+   "loc": "astrocs-stage2 tools/stage2.cpp:170 --gpu-route",
+   "desc": "迁移冻结工具面残留 --gpu-route 解析（无 GPU 生产，死旗标）",
+   "note": "D3-波2 范围外；随工具面批处置",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-016",
+   "sev": "低",
+   "surf": "④",
+   "loc": "check_doc_symbols 基线 15 条 FAIL",
+   "desc": "预存基线（HEAD 对跑同 15）：14 条 DOC-BAD-SYMBOL（docs/{science,algorithms,modules,contracts}）＋1 条 snr_v² DOC-SYMBOL-REGISTRY-STALE（登记只减不增治理项）；非波2 引入",
+   "note": "D3-波2 门终态披露；随文档清扫批治理",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-017",
+   "sev": "低",
+   "surf": "②",
+   "loc": "snr_evaluator 兜底默认 2.0 ↔ 实验台账 D-05 终裁 1.0",
+   "desc": "snr_evaluator.h:109 成员初始化与 snr_evaluator.cpp:199/:255 ≤0 守卫取 2.0；实验/dense-snr-reconstruct 分歧台账 D-05 终裁默认 1.0（含噪最优带 0.5–1 上端）；显式传值不触发兜底，兜底路径未对齐",
+   "note": "D3-波3 Y2；随实现批走变更流程（默认值行为变更）",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "p": "P-018",
+   "sev": "低",
+   "surf": "②",
+   "loc": "module_adapters.cpp:8157 字符串内嵌旧锚",
+   "desc": "代码字符串内嵌「DATA-P1-DRZ 11.1:295」——DATA_SEMANTICS 重锚后 variance 块现行 :380（:295 现为 §10.3 标题）",
+   "note": "D3-波3 范围外；随 lib 注释批订正",
+   "verify": "待确证",
+   "fix_state": "OPEN",
+   "added": "2026-09-28"
+  },
+  {
+   "id": "P-001",
+   "batch": "论证缺口",
+   "sev": "RED",
+   "desc": "RELEASE_STATUS 自相矛盾：validate/plan/inspect 已落地 vs rc=2 无载体",
+   "evidence": "RELEASE_STATUS.md:37 vs :140；CLI_PROTOCOL_V1:119；PIPELINE_OVERVIEW:36",
+   "verdict": "确证；子命题2（同簇未动声明）误报；同族 P-062 待确证按台账归并",
+   "fix": "状态表按现实改写",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-002",
+   "batch": "论证缺口",
+   "sev": "RED",
+   "desc": "RELEASE_STATUS:37「当前提交实测绿」无对应运行记录（BASE=docconv001 后 895 commits，自订规则 :103-105、SCIENCE_OVERVIEW:72）",
+   "evidence": "RELEASE_STATUS.md:37/:103-105；AUD-101-DB-12 已登记",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "复跑留档或改述；按 AUD-101-DB-12 归并跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-003",
+   "batch": "论证缺口",
+   "sev": "RED",
+   "desc": "PHASE2_UPM 六处引 run/SEAM-DERIV-01 死指针（:430/:533/:538-543；run_keep 无该前缀族）",
+   "evidence": "PHASE2_UPM.md:430/:533/:538-543；天光无缝核验报告:125；常数台账核-6；AUD-101-DA01:435 已登记",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补 SEAM-DERIV-02 或改述；按 AUD-101-DA01 归并",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-004",
+   "batch": "论证缺口",
+   "sev": "RED",
+   "desc": "BASELINE.md:14 evidence/performance 死指针＋单点数违反自订 ≥3 次口径",
+   "evidence": "BASELINE.md:14；AUD-101-DB-12:140/:143 已登记",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "复跑基准留档；按 AUD-101-DB-12 归并",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-005",
+   "batch": "论证缺口",
+   "sev": "YELLOW",
+   "desc": "OPTIMIZATION.md 声称 profile 排序结论无工件指针",
+   "evidence": "OPTIMIZATION.md 相关行",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补工件指针或删结论",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-006",
+   "batch": "论证缺口",
+   "sev": "YELLOW",
+   "desc": "PERFORMANCE_MODEL.md 数字零路径锚（子命题「工件不存在」误报：run/PERF-401/501 KEEP 实存）",
+   "evidence": "PERFORMANCE_MODEL.md 全文",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补路径锚；误报子命题销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-007",
+   "batch": "论证缺口",
+   "sev": "YELLOW",
+   "desc": "「无接缝」无条件表述三处 vs PHASE2_UPM:400 必须同引边界条件",
+   "evidence": "ASTROCS_DESIGN.md:133/:239；00_INDEX.md:112；PHASE2_UPM.md:400（:240 已示范正确写法）",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "收窄表述补边界条件",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-008",
+   "batch": "论证缺口",
+   "sev": "YELLOW",
+   "desc": "21_observability:103 exit10 充分条件与 19_runtime:91、LOG_AND_ERROR:123/:126 互斥",
+   "evidence": "21_observability.md:103；19_runtime.md:91；LOG_AND_ERROR_CONTRACT.md:123/:126",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "加「资源门判定域」限定",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-009",
+   "batch": "论证缺口",
+   "sev": "YELLOW",
+   "desc": "RELEASE_STATUS:93/:138 引已 RETIRED p3_projection v1 ctest",
+   "evidence": "RELEASE_STATUS.md:93/:138；SCIENCE_OVERVIEW.md:103 同；子命题 4/8/{TAN} 分层矛盾=误报（三层集合有意分层）",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改引 v2 registry；误报子命题销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-010",
+   "batch": "additive实验",
+   "sev": "RED",
+   "desc": "README:165 1% 检出读数与 results 相反（c2_multiplicative.json amp=0.672±0.023=29σ 检出；0.069=3×0.023 同源异批；code:385 检出语义错；README:36 vs :165 互斥）",
+   "evidence": "README.md:165/:36；results/c2_multiplicative.json；code/c2_multiplicative.py:372/:385",
+   "verdict": "确证；总台账:48 红",
+   "fix": "重跑统一三处读数＋改正 detected_at_1pct 语义",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-011",
+   "batch": "additive实验",
+   "sev": "RED",
+   "desc": "seed 声称三处全错（route3=20260926 非 20250926；route1=202603xx 系非 20260926；补实验混合）",
+   "evidence": "REPORT_experiment.md:26；REPORT_paper.md:107；results/audit_rework_summary.json:9；逐脚本 seed 实测",
+   "verdict": "确证；S17 红-2",
+   "fix": "三处文档按实况改写",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-012",
+   "batch": "additive实验",
+   "sev": "YELLOW",
+   "desc": "RSS 读数 11,688/14,568 vs results 11744/14520（README:45/:225）",
+   "evidence": "README.md:45/:225；results/c6_sparse_dense.json",
+   "verdict": "确证；S17 黄-3",
+   "fix": "回写实测值",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-013",
+   "batch": "additive实验",
+   "sev": "RED",
+   "desc": "REPORT_experiment:66 接缝门地板对数口径残留（线性口径已裁决，docs/seam-gate-floor.md:18-30；数值标签自相矛盾）",
+   "evidence": "REPORT_experiment.md:66；REPORT_paper.md:74；docs/seam-gate-floor.md:18-30",
+   "verdict": "确证；S17 红-1",
+   "fix": "同步口径；若属文档数字存量按归并跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-014",
+   "batch": "star三验",
+   "sev": "YELLOW",
+   "desc": "03_star_detection:35 GSL 残留（实况自研 nls_lm：sdet_api.cpp:27-41/:459-500/:713；CMakeLists:895/:903 禁 GSL；通读-CR-29:125/:130 待修清单）",
+   "evidence": "03_star_detection.md:35；sdet_api.cpp:27-41/:459-500/:713/:1877/:2121；通读-CR-29.md:125/:130",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改写后端描述；按通读-CR-29 归并",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-015",
+   "batch": "star三验",
+   "sev": "YELLOW",
+   "desc": "ALG 侧 bgnoise/smooth>thr 锚错（SCI 侧对）",
+   "evidence": "ALG_STAR_DETECTION:34/:50/:128；GATES:40-41；实况 sdet_api.cpp:595-639/:1654/:1672/:1469/:1439-1441/:1444",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "ALG+GATES 重锚",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-016",
+   "batch": "star三验",
+   "sev": "RED",
+   "desc": "虚警门冲突需 §8 二择一：ALG:308「≤0.1/千像素」设计冻结·发布门 Y vs SCI:150「出处未定」（git 4979515c 只改 SCI 侧）",
+   "evidence": "ALG:308；GATES:59；SCI:150；git show 4979515c",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "负责人 §8 裁决（建议门表侧标 UNJUSTIFIED+发布门 N 随定标补数）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-017",
+   "batch": "star三验",
+   "sev": "RED",
+   "desc": "ARCHITECTURE.md:20-21/:32 节点序错（star_detector→ipv）vs 三层权威站 PIPELINE 侧（platesolve→star_detection）",
+   "evidence": "ARCHITECTURE.md:20-21/:32；ASTROCS_DESIGN.md:297/:287-288；PIPELINE_BLOCK_CONTRACT.md:105 C6；runtime_client.cpp:164-176；check_registry_ir_parity.py:375",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 ARCHITECTURE 两行即与最高设计一致",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-018",
+   "batch": "star三验",
+   "sev": "YELLOW",
+   "desc": "ALG 18 值越界锚（>2287 行；:2269-2348/:2907-2944 等）＋源码回引 :1476 亦越界；两锚门绿=覆盖缺口（裸行号不入判据 check_alg_line_anchors.py:28-35）",
+   "evidence": "ALG:143/:237/:241/:242/:121/:228；sdet_api.cpp:1476；实况 :2232-2246/:2257-2265/:1486-1487；P-122 已登记族",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重锚＋门补裸行号判据；按 P-122 归并",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-019",
+   "batch": "star三验",
+   "sev": "YELLOW",
+   "desc": "03:36 算子序写反（实况 :1606/:1670-1695 连通域→:1703 解混→:1710 局部极大→:1783 零交叉→:1877 拟合）",
+   "evidence": "03_star_detection.md:36；sdet_api.cpp:1606-1877",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重写顺序",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-020",
+   "batch": "star三验",
+   "sev": "GAP",
+   "desc": "IMPL §5.1 缺 ρ_adj 独立噪声前提随读（上级 SCI:73-74/ALG:46-47 有；IMPL grep ρ_adj=0）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN §5.1:97-108",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补随读条款",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-021",
+   "batch": "star三验",
+   "sev": "GAP",
+   "desc": "IMPL §2 缺非退化三必须承接（SCI:60-62、GATES:58 门绑定；IMPL grep 非退化|过渡带=0）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN §2:40-56",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "承接三必须",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-022",
+   "batch": "star三验",
+   "sev": "RED",
+   "desc": "ALG 唯一漏记连通域/deblend 层（在役 :1036/:1044-1133/:1606/:1703/:1710；ALG grep 仅 :402 参考文；违反 :32 照录义务；IMPL §5.11 有记载）",
+   "evidence": "STAR_DETECTION_ALGORITHMS.md:30-152/:402；sdet_api.cpp:1036/:1044-1133/:1606/:1703",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补 §2/§3 条目＋伪代码两步",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-023",
+   "batch": "ISA矩阵",
+   "sev": "RED",
+   "desc": "R1 cpu_profile.json 运行时自动读取未实现（写点唯一 commands.cpp:2386 裸 ofstream；生产读点=0；profile_store 三 API 仅测试调用；唯一入口=--cpu-profile 旗标）",
+   "evidence": "ASTROCS_DESIGN.md:517/:510-511；commands.cpp:2344/:2386/:2388/:351-352；command_tree.h:61；profile_store.cpp:176/:290",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补实现或按设计改述；同族 P-112/S33-R2 按台账 ID 归并跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-024",
+   "batch": "ISA矩阵",
+   "sev": "RED",
+   "desc": "R2 worker 数只来自 profile 未实现（DESIGN:699；plan_estimator 零 profile 字段；worker_advisor 零生产调用；实源=affinity 核数＋节点自报）",
+   "evidence": "ASTROCS_DESIGN.md:699；runtime.cpp:115/:181-193/:200-204；commands.cpp:100/:1219/:1532/:2006；worker_advisor.h",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "同 R1 归并处置",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-025",
+   "batch": "ISA矩阵",
+   "sev": "RED",
+   "desc": "R4 生产零 per-kernel ISA 分发：变体 STATIC 不进 acsd 链接闭包、install 树仅 baseline、发行 manifest backends:[]、cpu_routing 生产零调用——「支持 AVX2/AVX-512」的生产分发/装载机制为零",
+   "evidence": "CMakeLists.txt:729/:736/:1005-1013；install_layout.cmake:22/:31；make_windows_release.py:88-98；known_failures_baseline.json:192-201 反核不覆盖",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "负责人决策：补分发链或收窄 §9:697 支持面声明",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-026",
+   "batch": "ISA矩阵",
+   "sev": "RED",
+   "desc": "R6 benchmark/cpu 四 TU 不在构建图（全 CMakeLists grep=0；仅测试脚本临时编译；capability_detect 检测面不在产品二进制）",
+   "evidence": "cpu/{baseline,avx2,avx512,common}/src/*；根 CMakeLists:235/:343；AUD-401 orphan_all.txt:70-73",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "入图或显式退役（与 CPU_003 边界：CPU_003 是 avx2 provider 编号面，本条是四 TU 整体不入图）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-027",
+   "batch": "ISA矩阵",
+   "sev": "归并",
+   "desc": "R3 memory_budget_percent 死键=已登记 P-111/S33-R1 完整覆盖（锚/命题/处置三者一致），不新立",
+   "evidence": "commands.cpp:126-149；profile_gen_v2.cpp:565-576；cpu_profile.schema.json:422-436",
+   "verdict": "已登记（P-111/S33-R1）",
+   "fix": "按 P-111/S33-R1 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-028",
+   "batch": "ISA矩阵",
+   "sev": "豁免",
+   "desc": "R5 check_isa_leak 未接 CI=已登记 FIX_LEDGER M5a-G-009（附注：其「provider 缺参静默跳过」子句已过时，:100-106 现 fail-closed）",
+   "evidence": "checks.json:7370-7391；check_isa_leak.py:48-126/:100-106",
+   "verdict": "已登记豁免（M5a-G-009）",
+   "fix": "按 M5a-G-009 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-029",
+   "batch": "ISA矩阵",
+   "sev": "LOW",
+   "desc": "I 类登记项：--cpu-profile 旗标属实现有设计无（应入 §7.2）；AVX512<3% 回退阈值双字面量双源（profile_gen_v2.cpp:508/:522 vs bench_report.cpp:228-229）",
+   "evidence": "command_tree.h:61；profile_gen_v2.cpp:496-522；bench_report.cpp:228-229",
+   "verdict": "低优先级登记",
+   "fix": "旗标入 §7.2；阈值收敛单源",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-030",
+   "batch": "架构三验",
+   "sev": "RED",
+   "desc": "EXECUTION_MODEL:18「最大并发16」硬编码＋per-tile/barrier 同步描述错误（实况 calibrator.cpp:94/:126/:134 逐像素、无 barrier）",
+   "evidence": "EXECUTION_MODEL.md:18；calibrator.cpp:94/:126/:134",
+   "verdict": "确证；M5a-C-002 已登记同实质（登记未覆盖 :18 per-tile/barrier 子句，随单补）",
+   "fix": "按 FIX_LEDGER M5a-C-002 归并跟踪（OPEN）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-031",
+   "batch": "架构三验",
+   "sev": "RED",
+   "desc": "THREADING_MODEL:29「两轴之和」vs 同文:36/DESIGN:706/module_adapters:1906-1923 之积（加法口径自反）",
+   "evidence": "THREADING_MODEL.md:29 vs :36；ASTROCS_DESIGN.md:706；module_adapters.cpp:1906-1923",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改「之积」",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-032",
+   "batch": "架构三验",
+   "sev": "YELLOW",
+   "desc": "THREAD_BUDGET_ARCH:21 三处口径过期（sampler 并行/reject-integrate per-tile）",
+   "evidence": "THREAD_BUDGET_ARCH.md:21；M8-C-001 同族 §4 行（:21 未登记）",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重写行；随 M8-C-001 同批",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-033",
+   "batch": "架构三验",
+   "sev": "YELLOW",
+   "desc": "ASYNC_IO_CONTRACT:29-30 现行时表述 vs DESIGN:700「一个专用线程」/effective_io_workers 生产消费=0（§9:89-94 自标待接入）",
+   "evidence": "ASYNC_IO_CONTRACT.md:29-30；ASTROCS_DESIGN.md:700",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "§3 加待接入标注",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-034",
+   "batch": "架构三验",
+   "sev": "归并",
+   "desc": "A5=已登记 D9-rest#86；未覆盖子点：ARCHITECTURE:52「ACR 不可达」仅对 stage2 CSV:10 成立、对 PRODUCTION_EXECUTION_INVENTORY(36 行 yes) 不成立",
+   "evidence": "ARCHITECTURE.md:52；stage2 availability CSV:10；PRODUCTION_EXECUTION_INVENTORY",
+   "verdict": "确证；主体 D9-rest#86 已登记",
+   "fix": "并入 D9-rest#86 或新立子条",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-035",
+   "batch": "架构三验",
+   "sev": "RED",
+   "desc": "BUILD_GRAPH:23 cfitsio sources=0/空串指纹（真源 61 条 .c：CMakeLists:488/:176+cfitsio_sources.cmake）；根因 cmake_graph.py:91-155 include()/变量展开盲区；门 PASS+self-test 9/9=判别力失效（M5b-G-05 同类新实例）",
+   "evidence": "BUILD_GRAPH.md:23；cmake_graph.py:91-155；根 CMakeLists.txt:488/:176",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "修解析器＋补 self-test 用例＋回写文档",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-036",
+   "batch": "架构三验",
+   "sev": "RED",
+   "desc": "红门：check_design_clause_wiring.py 现跑 exit=1、89 findings（41 CLAUSE_MISSING＋锚漂移 611-615→637-641），注册 linux-main/prerelease waivable=false——门当前必红",
+   "evidence": "check_design_clause_wiring.py；checks.json:4407；design_clauses.json 611-615→637-641",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "台账锚刷新＋缺口条款承接，恢复门绿（门不可豁免盖红灯）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-037",
+   "batch": "架构三验",
+   "sev": "YELLOW",
+   "desc": "EXECUTION_MODEL:31/:89 HiPS async_io 标注错（ASYNC_IO_CONTRACT:5 关联代码=phase2 coverage 域；aio_hips_writer 零引用；THREADING_MODEL:72-73 串行互斥）",
+   "evidence": "EXECUTION_MODEL.md:31/:89；ASYNC_IO_CONTRACT.md:5",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重标注",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-038",
+   "batch": "架构三验",
+   "sev": "YELLOW",
+   "desc": "docs/architecture 对静态预算/探针校正/可中断排队/可丢弃重跑/异步并行五策略细节层零承接（design_clauses.json 已登记 wired/unwired——文档层缺口非全仓缺口；ASTROCS_DESIGN:637-641 实为五条非四条）",
+   "evidence": "docs/architecture 全域 grep=0；design_clauses.json",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "细节层承接五条款",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-039",
+   "batch": "架构三验",
+   "sev": "YELLOW",
+   "desc": "MODULE_MAP 自证「以本表为准」但缺 lib/infrastructure/pipeline 独立行与 typed_dag 条目（check_module_map.py 无目录覆盖判据 PASS 23/23=门盲区）",
+   "evidence": "MODULE_MAP.md；check_module_map.py",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补行＋门补目录覆盖判据",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-040",
+   "batch": "架构三验",
+   "sev": "误报",
+   "desc": "C2「细节层零承接 §8.2」不成立（PIPELINE_BLOCK_CONTRACT.md 为正本、PIPELINE.md:54-56 等承接）",
+   "evidence": "PIPELINE_BLOCK_CONTRACT.md；PIPELINE.md:54-56",
+   "verdict": "误报",
+   "fix": "销案；EXECUTION_MODEL 标题 Lifetime 名不副实降级小瑕疵随单",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-041",
+   "batch": "UPM对齐",
+   "sev": "RED",
+   "desc": "IMPL:250-253+phase2_upm:186-187「worker 数无关」断言＋悬空锚（实况注释 :607-613=1e-12 绝对容差非位精确；:513=stack.push_back；冻结三档 PHASE2_UPM:184-191；test_upm_parallel 同 worker 才断言）",
+   "evidence": "PHASE2_UPM_IMPL.md:250-253；phase2_upm.md:186-187；upm.cpp:607-613/:513",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改三档口径＋重锚 compute_raw:605",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-042",
+   "batch": "UPM对齐",
+   "sev": "RED",
+   "desc": "11_upm:93/:138 收敛门双条件孤例（实况单容差 converged=1 仅步长；tol_step/tol_obj 字段不存在 upm.cpp:1034-1063；DISP-P2UPM-005 只盖 upm.h；module_adapters:9567 反引 11_upm 当定案）",
+   "evidence": "11_upm.md:93/:138；upm.cpp:1034-1063；module_adapters.cpp:9567",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "对齐单容差（或负责人裁定改码）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-043",
+   "batch": "UPM对齐",
+   "sev": "YELLOW",
+   "desc": "phase2_upm:245-246 quality_mode 错名（实况 (void)mode 恒忽略 upm.cpp:220-221；真开关 use_ivar_weight=0 :1981-1996；CR-25-06 只登代码侧）",
+   "evidence": "phase2_upm.md:245-246；upm.cpp:220-221/:1981-1996",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改写",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-044",
+   "batch": "UPM对齐",
+   "sev": "YELLOW",
+   "desc": "IMPL:90+phase2_upm:147/:184 workers=0 auto 错（实况 wrap 恒传 0=串行）",
+   "evidence": "PHASE2_UPM_IMPL.md:90；phase2_upm.md:147/:184",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改串行语义（M5a-D-001/DISP-P2UPM-002 只盖头文件）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-045",
+   "batch": "UPM对齐",
+   "sev": "YELLOW",
+   "desc": "IMPL:127/:234-237 F6 payload 清单缺 gauge 段（实况 :1199-1205 |G；生产 final_gauge=1 module_adapters:9577；锚漂 :879-921→:1170-1210）",
+   "evidence": "PHASE2_UPM_IMPL.md:127/:234-237；upm.cpp:1199-1205",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补清单＋重锚",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-046",
+   "batch": "UPM对齐",
+   "sev": "YELLOW",
+   "desc": "IMPL:291-292「迭代边界取消点」假（upm.cpp grep cancel=0；session 仅阶段边界 p2_session.cpp:195/:240-244；phase2_upm:215-217 反而正确）",
+   "evidence": "PHASE2_UPM_IMPL.md:291-292",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 IMPL",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-047",
+   "batch": "UPM对齐",
+   "sev": "YELLOW",
+   "desc": "IMPL §3/§4 build_impl 双界自相矛盾（:99 :212-927 vs :113 :255-1370；实测 :255-:1370；§6-§10 大漂 +316..+655；§2 导出表准=同文档混代）",
+   "evidence": "PHASE2_UPM_IMPL.md:99/:113/:212-927/:255-1370",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "全文统一重锚",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-048",
+   "batch": "UPM对齐",
+   "sev": "豁免",
+   "desc": "G1 rc=3 未入两文档=已登记 FIX_LEDGER M7-C-001 PARTIAL 遗留",
+   "evidence": "PHASE2_UPM_IMPL/11_upm grep rc=3=0",
+   "verdict": "已登记豁免（M7-C-001）",
+   "fix": "按 M7-C-001 跟踪（豁免面需补 M7-C-001）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-049",
+   "batch": "UPM对齐",
+   "sev": "RED",
+   "desc": "11_upm:95/:96 p2_upm_model.json 三键（rms_z/Σw/Σraw_w/sigma_residual_dex）零承载（实况键表 21 键 module_adapters:9716-9739 无三键；rms_z lib 零命中；CR-23 只登 sky_plane 半边）",
+   "evidence": "11_upm.md:95-96；module_adapters.cpp:9716-9739",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补键或改门定义",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-050",
+   "batch": "rej-int-samp",
+   "sev": "RED",
+   "desc": "PHASE2_REJECTION 族：:90 else linear_fit→实况 winsorized（:1173；同文 :211 两说）；:109 列已 RETIRED p2_reject_stack_resolve_ex（:2223）；§3 锚 +6~+17、§5 F3-F14 统一 -20、F1 typed -17、§9 五组 -20、§6 stage2 +244、:474 large_scale 错块；GAP extreme_prior 第4触发未载（:2095-2104）",
+   "evidence": "PHASE2_REJECTION.md:90/:109/:211；rejection.cpp:1173/:2223/:2095-2104",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "语义＋锚全量重校（锚漂移类可并 S6B-R03）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-051",
+   "batch": "rej-int-samp",
+   "sev": "RED",
+   "desc": "PHASE2_INTEGRATION 族：B1 :133-136 已删键 legacy_allow_weight_fallback 当现行（S6B-R05/P-025 已登记归并）；B6 §4 五态锚全错；B7 §6 stage2 锚 +244/+248；GAP ZERO_VALID_WEIGHT 发布 support 四处未载（integrate.cpp:79-80）",
+   "evidence": "PHASE2_INTEGRATION.md:133-136/§4/§6；integrate.cpp:79-80",
+   "verdict": "确证；B1 按 P-025/S6B-R05 归并",
+   "fix": "同上重校",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-052",
+   "batch": "rej-int-samp",
+   "sev": "RED",
+   "desc": "PHASE2_SAMPLER 族：C1 g_aio_mu 三处已撤销（实况 CfitsioLockGuard）；C2 o.ivar 语义相反（:1117-1124 回退 1/unc²）；C3 结构锚 +35；C4 15→17 字段漏 2；C8 §6 子锚 +8；C9 §7 双锚不一；GAP V6 三导出/接缝/RETIRED 零登记",
+   "evidence": "PHASE2_SAMPLER.md；integrate.cpp:1117-1124",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "同上重校",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-053",
+   "batch": "rej-int-samp",
+   "sev": "注记",
+   "desc": "误报：B8 frame-major、C7 §11.3 存在（ALG-P2-SMP-001=PHASE2_SAMPLER.md）；豁免：B3/B4/B5=S6B-R03、C5 行数=S6B-R11/R13",
+   "evidence": "",
+   "verdict": "误报2条/豁免4条已核",
+   "fix": "销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-054",
+   "batch": "P2五层",
+   "sev": "RED",
+   "desc": "PHASE2_SESSION:139-141 相对量+eps+tol_step 断言（冻结 floor=1；入口实为绝对判据 p2_session:199-211 只设 tolerance=1e-6 未设 tolerance_relative；PHASE2_UPM:423 入口口径义务未满足；grep tolerance_relative=0）",
+   "evidence": "PHASE2_SESSION.md:139-141；PHASE2_UPM.md:132-136/:145/:417/:423；p2_session.cpp:199-211；upm.h:112；upm.cpp:1036-1040",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改写＋注明所用入口（义务 :423）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-055",
+   "batch": "P2五层",
+   "sev": "RED",
+   "desc": "UNIFIED_MODEL:48 ∝SNR² 撞三重冻结（PHASE2_UPM:78-82/:123/:292、ASTROCS_DESIGN:435、10_sampling:49）＋第二载体 11_upm:50（代码默认 1/variance sky_plane:537/:676）",
+   "evidence": "UNIFIED_MODEL.md:48；11_upm.md:50；sky_plane.cpp:537/:676/:1053/:1169",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "两处改 control_ivar",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-056",
+   "batch": "P2五层",
+   "sev": "RED",
+   "desc": "PHASE2_INTEGRATION 同文两套单位表（:28-40 面亮度 vs :45-46/:126-127/:186-189 ADU；权威 DATA_SEMANTICS:1399/:1413=ADU 且非面亮度；§2 锚漂 integrate.h:37→46）",
+   "evidence": "PHASE2_INTEGRATION.md:28-40/:45-46/:126-127/:186-189；DATA_SEMANTICS.md:1399/:1413",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "统一 ADU 像素域＋锚更新",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-057",
+   "batch": "P2五层",
+   "sev": "RED",
+   "desc": "上级单位互斥：DATA_SEMANTICS §23.2:1760-1764 ADU vs §31.1a:3154-3156/:3169 ADU/sr vs §25.3:2131-2137 引文失实（PHASE2_UPM:32-36 实为面亮度 ADU·sr⁻¹）；三重正本锁定面亮度方向（DISP-P2UPM-007 同族只盖 upm.h 注释）",
+   "evidence": "DATA_SEMANTICS.md:1760-1764/:3154-3156/:3169/:2131-2137；PHASE2_UPM.md:32-36",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "合同表订正为面亮度＋§25.3 引文改（订正上级方向）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-058",
+   "batch": "P2五层",
+   "sev": "RED",
+   "desc": "PHASE2_DETAILED:54 标题五档表体三档（正本 12_rejection:70-71 四收三；ASTROCS_DESIGN:448 唯一正本；审计台账:317/UNRESOLVED:169 已登记订正项未修）",
+   "evidence": "PHASE2_DETAILED_DESIGN.md:54/:58-62；12_rejection.md:70-71；ASTROCS_DESIGN.md:448",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "标题改三档",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-059",
+   "batch": "P2五层",
+   "sev": "YELLOW",
+   "desc": "PHASE2_SESSION:384 298 行 vs :22/:376/实测 318（wc=318）",
+   "evidence": "PHASE2_SESSION.md:384/:22/:376",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 318",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-060",
+   "batch": "P2五层",
+   "sev": "误报",
+   "desc": "B-2「七个 operation」=权威口径（lib 去重恰 7 个 p2_op_*；SCIENCE_OVERVIEW:92 等 5 处登记七节点）；缺九步↔七映射=AUD-101-DB-10-补:74 已登记",
+   "evidence": "PHASE2_DETAILED_DESIGN.md:17；ASTROCS_DESIGN.md:401-408",
+   "verdict": "误报",
+   "fix": "销案；映射缺口随 AUD-101-DB-10-补",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-061",
+   "batch": "P2五层",
+   "sev": "误报-改写",
+   "desc": "C-1「13 键零承接」量词假（8/13 在场：rank_eff/rank_rtol/rank_rtol_effective/n_unidentified/kappa/kappa_solve=11_upm:114-117/:109、k_corr=IMPL:49/:423、model_hash=IMPL:127/:234/:244）；真缺口=5 键全缺（gauge_mode/lambda_numerical/node_spacing_deg/any_fail_closed_reason 等）＋细节层集合义务零（provenance grep=0）",
+   "evidence": "11_upm.md:109/:114-117；PHASE2_UPM_IMPL.md:49/:423/:127/:234/:244；PHASE2_UPM.md:264-266；DATA_SEMANTICS.md:2857-2862",
+   "verdict": "误报（原命题）；改写命题生效",
+   "fix": "按改写命题立案：补 5 键＋承接集合义务（已重注册为独立条目）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-062",
+   "batch": "P2五层",
+   "sev": "RED",
+   "desc": "C-2 自适应重试回路＋触发记录义务细节层零承接（PHASE2_UPM:221-230/:243-245「否则视为未实现」全 docs 仅一处；代码回路在 module_adapters:10013/:9867-9875；11_upm 仅 :111/:134 取值面片段）",
+   "evidence": "PHASE2_UPM.md:221-230/:243-245；module_adapters.cpp:10013/:9867-9875",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "细节层承接回路＋触发记录义务",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-063",
+   "batch": "P2五层",
+   "sev": "注记",
+   "desc": "A-3 归并：11_upm eps 地板+不存在符号=UPM对齐批 F-2 同一条（数值分歧 scale_obs∈(eps,1) 时 tol·s vs tol·1）",
+   "evidence": "11_upm.md:93/:138",
+   "verdict": "归并",
+   "fix": "按 UPM对齐批条目处置",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-064",
+   "batch": "star代码",
+   "sev": "RED",
+   "desc": "R1 AC_API 计数 14 vs 实测 18（声明 astro_calibration.h 18 处 :60..:379；定义 ac_api.cpp 18 处 :101..:422；文档 :17/:315/:614 三处称 14、:315 枚举仅 12、锚 :33-155 只盖前 5）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:17/:315/:614；astro_calibration.h；ac_api.cpp",
+   "verdict": "确证；P-064/S5-A5-R4 同源归并",
+   "fix": "改 18＋补枚举；P-064 确证材料（随 P-064 推进）；FIX_LEDGER M3-C-006 登记实测数 12 已过期需刷新",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-065",
+   "batch": "star代码",
+   "sev": "RED",
+   "desc": "R2「DLL 当前不存在」陈旧断言（实况 SHARED 目标+两个 .so 在盘+product.json IMPLEMENTED+install-tree required+MODULE_MAP INSTALLED；registry 对 astrocs.p1.* 身份零命中=运行期零绑定成立；MODULE_MIGRATION_MATRIX.csv 引用悬空全仓 0 文件）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:405-407/:406；根 CMakeLists.txt:296-301；module CMakeLists.txt:30；module_ports.registry.json",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改述＋补悬空引用；M3-I-001 邻接（其点名面未含 §8:406）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-066",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y3「4 个 cpp」vs 根 CMake:589-598 实列 5 TU（:597 photometry_apply）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:325/:17-21；根 CMakeLists.txt:589-598；通读-CR-54.md:527",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 5；S28-黄5 邻接（仅登记行号锚）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-067",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y4 头文件公式 (Light−Dark)/Flat 漏 bias 与 K·dark（实现 calibrator.cpp:137-139 标准式；同头 :90 兼容式含 Bias/K=同文件自对照错）",
+   "evidence": "astro_calibration.h:89 vs :90；calibrator.cpp:133-142",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补全公式",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-068",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y5 错误码/声明锚漂移三组（错误码 :21-24→实 :26-29；optimize_dark_k :169-179→实 :399-401；f64 区 :105-115→实 :330-371）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:316/:317/:318",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重锚（:318 已由 S28-黄5 部分登记）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-069",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y6 校验/参数锚漂移（:174 :101-101→实 :147-148；:380 五入口五锚全错；:318 :147-263→实 :194-312）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:174/:380/:318；ac_api.cpp:106-163",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重锚（:174/:318 已登记，:380 新）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-070",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y7 photometry_apply 六组锚全漂（:29-65→实 :33-74；F6.1-F6.4 内联锚同漂）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:281；photometry_apply.cpp:33-74/:60/:65-66/:67-69/:71",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重锚（零登记）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-071",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y8 消费链锚漂移五组（p1_session :372→:378、:462-465 传 nullptr→实 :478-485 传真实平面；module_adapters :2220→:2284/:2567、:2355→:2748/:2929、:1992-2002→:2333-2341、:2127..→:2467/:2476-2484/:2542-2561）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:326/:154-156/:218/:387/:392",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重锚（:154-156 组零登记）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-072",
+   "batch": "star代码",
+   "sev": "豁免",
+   "desc": "Y9 calibrator 头注黄金分割/16 线程=已登记 FIX_LEDGER M3-D-001（OPEN，position 点名同行）",
+   "evidence": "calibrator.cpp:5/:14-16/:30-31",
+   "verdict": "已登记豁免（M3-D-001）",
+   "fix": "按 M3-D-001 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-073",
+   "batch": "star代码",
+   "sev": "YELLOW",
+   "desc": "Y10 run_with_gaia_impl :896-1210→实 :896-1186；参数校验 :941-963→实 :926-946",
+   "evidence": "PHOTOMETRIC_FIT.md:206；pc_api.cpp:896-1186/:926-946",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重锚；S28-绿4 同位已登记可并案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-074",
+   "batch": "star代码",
+   "sev": "RED",
+   "desc": "G1 生产源清单缺 calibration_covariance.cpp（745 行；编入 phase1_product:25/phase2_integrate:44/coverage:170 三处；独立审计 700 命中全指 v6_ 前缀另一文件）",
+   "evidence": "CALIBRATION_ALGORITHMS.md:17-21；lib/algorithms/integration/phase1_product/CMakeLists.txt:25",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "清单补全（与 Y3 同根）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-075",
+   "batch": "P3fitsproj",
+   "sev": "RED",
+   "desc": "A1 verify 缺 BUNIT 读回（对拍键仅 CTYPE/CUNIT/CRPIX/CRVAL/CD+像素/coverage/uncertainty，无 fits_read_key BUNIT/checksum 读键；篡改 PRIMARY BUNIT 仍 reopen_ok；自注 :440 宣称对拍；测试 :79-87 结构零覆盖）",
+   "evidence": "p3_output.cpp:457-619/:440；PHASE3_FITS_IMPL.md:300-301；p3_output_test.cpp:79-87",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补 BUNIT 读回＋负例（checksum 由 sha256+T2c 覆盖，不另立案）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-076",
+   "batch": "P3fitsproj",
+   "sev": "RED",
+   "desc": "A2 四处 remove 前未 close（:236-240/:241-245/:327-331/:363-367；Windows _unlink 打开文件必败→tmp 残留；全平台 fd 泄漏；aio_atomic_file.h:492-499 原语不关句柄）",
+   "evidence": "p3_output.cpp:236-245/:327-331/:363-367；aio_atomic_file.h:492-499",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "先 close 再 remove（对照正确序 :309-310/:319-320/:341-342/:358-359）；Windows 节点补负例复跑",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-077",
+   "batch": "P3fitsproj",
+   "sev": "RED",
+   "desc": "A3 begin_hdu/publish 缺 HDU 齐全成对校验（只写 PRIMARY 也可发布；现仅 module_adapters nplanes=unc?4:2 循环兜住；DISP-P3FITS-003 只登记文档未展开非此缺口）",
+   "evidence": "p3_output.cpp:742-784/:821-822/:210",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "发布门补成对校验",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-078",
+   "batch": "P3fitsproj",
+   "sev": "YELLOW",
+   "desc": "A4 FITS §4:139-141 校验和序错（实际 PRIMARY :315-323 在 coverage :327 前；§3:92-94 与实现一致→§4 独错）",
+   "evidence": "PHASE3_FITS_IMPL.md:139-141 vs :92-94；p3_output.cpp:315-345",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 §4 顺序＋补 COVERAGE 校验和",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-079",
+   "batch": "P3fitsproj",
+   "sev": "RED",
+   "desc": "B1 半成品 descriptor：make 清零→先写 *out→失败未回滚（:442/:456-463/:465-473）；plan :588-592 直接承接；v1 p3_projection.cpp:336-353 同病；唯一满足者 p3_wcs.cpp:110-165 tmp-then-commit",
+   "evidence": "p3_proj.cpp:442/:456-473/:588-592；p3_proj.h:193",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "tmp-then-commit 统一",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-080",
+   "batch": "P3fitsproj",
+   "sev": "RED",
+   "desc": "B2 PROJ:211-213/:283「UNSUPPORTED 无产生点」错（实况 p3_wcs.cpp:74/:99/:100/:438＋registry 透传；§6.1:157-162 无投影门 vs §15.4:516-522 注册校验=同文两说）",
+   "evidence": "PHASE3_PROJ_IMPL.md:211-213/:283/:157-162/:516-522；p3_wcs.cpp:74/:99-100/:438",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "重写产生点描述＋统一两节",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-081",
+   "batch": "P3fitsproj",
+   "sev": "YELLOW",
+   "desc": "B5 AIT 合法 FOV「椭圆域内（声明值）」vs registry max_fov_deg=360.0（声明面数字直接不符；运行时全天空必拒由四角 A>1 成立不受影响；CR-58/M6a-D-012 邻接未列本条）",
+   "evidence": "PHASE3_PROJ_IMPL.md:445/:542；p3_proj.cpp:313/:429-430",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "声明面改文；「文档行为数字存量」是否覆盖声明面数字待负责人定夺",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-082",
+   "batch": "P3fitsproj",
+   "sev": "YELLOW",
+   "desc": "B7 ASTROCS_P3PROJ_FAULT 双词表并存（§15.6 const_omega|legacy_car|legacy_ait|swap_norm|naive_wrap=生产套 vs README:69/memory:145 tan|sin|car|ait|registry=v1 套；模块三件套漏收生产套五模式）",
+   "evidence": "PHASE3_PROJ_IMPL.md:578-580；README.md:69；p3_proj/CMakeLists.txt:31-35；p3_projection_test.cpp:560-585",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "三件套补生产套词表",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-083",
+   "batch": "P3fitsproj",
+   "sev": "RED",
+   "desc": "B8 projection/CMakeLists.txt:31 EXISTS 指向不存在 eng/ 目录→恒假→tests 永不挂载；且 tests/ 无 CMakeLists.txt 双重死（真挂载=根 CMakeLists.txt:1122）",
+   "evidence": "projection/CMakeLists.txt:31-32；根 CMakeLists.txt:1122",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "修守卫或删死代码",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-084",
+   "batch": "P3fitsproj",
+   "sev": "YELLOW",
+   "desc": "C2 aio_hips_writer 步骤串/入口注释漏 punch 步（实现 :587-613 有 punch 且 verify 不符即拒发布=行为步；:538/:443-455/:628-629 三处注释漏；全仓无登记）",
+   "evidence": "aio_hips_writer.cpp:538/:443-455/:628-629/:587-613",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "注释补步",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-085",
+   "batch": "P3fitsproj",
+   "sev": "豁免",
+   "desc": "B3/B4/B6=已登记豁免（S6B-R10 逐条登记 B3/B4；R01/R10 锚漂移登记面 B6；B6 附注 §4 栅栏锚未逐行列举、「SCI §7 ±1-4 行」口径与实测不符）",
+   "evidence": "检查-S6-algorithmsB.md:172/:176/:180",
+   "verdict": "已登记豁免（S6B-R10/R01）",
+   "fix": "按 S6B-R10/R01 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-086",
+   "batch": "calibphot",
+   "sev": "RED",
+   "desc": "02_cosmetic:26「横向邻域中值」vs 冻结差分判据（CALIBRATION.md:208-211 一阶差分+MAD+反号配对；corrector:358-412 逐式吻合且 :310-316 明文否定邻域法；同文件 :276-278 旧口径自相矛盾=疑抄根因）——与 P1细节批 A-3 同一条",
+   "evidence": "02_cosmetic.md:26；CALIBRATION.md:208-211；cosmetic_corrector.cpp:358-412/:310-316/:276-278",
+   "verdict": "确证（双验兵独立确认）",
+   "fix": "改写＋顺修 :276-278 注释（两批归并一条）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-087",
+   "batch": "calibphot",
+   "sev": "RED",
+   "desc": "02_cosmetic:28 variance 必须同步更新假（interpolate_pixels:161-162/correct_frame:230-235 无方差面；ac_column_variance_inflate :727-777 生产零调用 prod_wiring:135 unreachable；DATA_SEMANTICS:302/:328-332 本层不产 variance 自认）",
+   "evidence": "02_cosmetic.md:28；cosmetic_corrector.cpp:161-162/:230-235/:727-777",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "删断言",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-088",
+   "batch": "calibphot",
+   "sev": "RED",
+   "desc": "04_psf:18/:41 输入含 ivar/validity 假（dynamic_psf.h 全入口仅 image+detections+params；psf 代码 grep 0；DATA_SEMANTICS:724-733 同；:19 已标目标态而 :18/:41 未标）",
+   "evidence": "04_psf.md:18/:41；dynamic_psf.h:44-52/:122-132/:160-170",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补目标态标注",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-089",
+   "batch": "calibphot",
+   "sev": "YELLOW",
+   "desc": "STAR_PSF:90 init 值错（bkg0=下半区 MAD 截尾中位 :316-356、sx0=0.15·rw :368-369，全文件无 1.2）；:111/:97 sx/sy≤0→码1 NO_CONVERGENCE 非 invalid(2)＋钳位≥0.3 :195-196（§11.2:187 语义对=同文两说）",
+   "evidence": "STAR_PSF_ALGORITHMS.md:90/:97/:111；dpsf_psf.cpp:316-356/:368-369/:383-391/:195-196",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "§4 对齐 §11.2（DISP-PSF-003 泛句可并案）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-090",
+   "batch": "calibphot",
+   "sev": "YELLOW",
+   "desc": "STAR_PSF:11-12 两布局漏第三种批 ABI（dynamic_psf.h:84-99 B,A,cx,cy,sx,sy,θ,fwhm_x,fwhm_y 生产调用 module_adapters:4109-4111；DATA_SEMANTICS:754-762 误称布局B同名异物；布局A无生产写出面）",
+   "evidence": "STAR_PSF_ALGORITHMS.md:11-12；dynamic_psf.h:84-99；module_adapters.cpp:4109-4111",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "三布局表＋DATA 订正（AUD-101-DA02:802-811 只登 A/B 标签互换）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-091",
+   "batch": "calibphot",
+   "sev": "RED",
+   "desc": "Y8/Y9/Y10/G12 杂项族：Y8 归约矛盾（COSMETIC_ALGORITHMS:264 omp reduction vs :201 串行；实况 :254-259 串行；README:99-100 同错）；Y9 README:91-96/:119-120/:176-177 恒 nullptr 已过时（p1_session:331-338/:471-484/:499-500 真实平面；COSMETIC_ALGORITHMS:213-219 已改=处置未覆盖 README）；Y10 cosmetic_map_path 零消费但 config_registry:206 finding=none（同类 cr_* 键=gap 判据不一致）；G12 :20/:42-43/:47 validity/修正记录/饱和三断言假（DATA:286-298 输出仅 out+计数）",
+   "evidence": "COSMETIC_ALGORITHMS.md:264/:201；cosmetic/README.md:99-100/:91-96/:119-120/:176-177；cosmetic_corrector.cpp:254-259；p1_session.cpp:331-338/:471-484；config_registry.json:206；02_cosmetic.md:20/:42-43/:47",
+   "verdict": "确证（Y8 半边 A5-Y10 供并案）",
+   "fix": "README 全量重写＋config_registry 判据一致化＋02_cosmetic 三断言删改",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-092",
+   "batch": "calibphot",
+   "sev": "豁免",
+   "desc": "Y7 尚未存在生产符号=已登记（AUD-101-D1残余:84 逐字＋FIX_LEDGER M3-I-001；实况 module_entry.cpp 1262 行/:1246 定义/CMake SHARED:50/根 CMake:309）；G11 无坏列条目=已登记（AUD-101-D1残余:86 第4点＋检查-S5:56）",
+   "evidence": "AUD-101-D1残余.md:84/:86；FIX_LEDGER M3-I-001",
+   "verdict": "已登记豁免（M3-I-001/D1残余）",
+   "fix": "按既有登记跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-093",
+   "batch": "P1细节",
+   "sev": "RED",
+   "desc": "A-1 fail-closed 冲突未登记：06_photometry:104-105 显式降级+photscal=1.0+下游按未归一化 ADU 消费 vs 上级三处 fail-closed（PHOTOMETRY:355、ASTROCS_DESIGN:302「以已施加归一化为前提」、PHASE1_DETAILED:59）——无可和解；生产站 06 侧（module_adapters:6318-6331 写 degraded_reason 后继续）",
+   "evidence": "06_photometry.md:104-105；ASTROCS_DESIGN.md:302；PHOTOMETRY.md:355；module_adapters.cpp:6318-6331",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "负责人裁决方向或上级订正；AUD-101-DB-03:473 登记的是另一对照不覆盖",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-094",
+   "batch": "P1细节",
+   "sev": "YELLOW",
+   "desc": "B-1① V_b 双计 2αV(b)=已登记 OI-02 OPEN（DATA_SEMANTICS:3402；α=1 反例必红：真值 0 现式 2V(b)/f²）——复算确认，不新立",
+   "evidence": "PHASE1_DETAILED_DESIGN.md:103；DATA_SEMANTICS.md:3402",
+   "verdict": "已登记（OI-02）",
+   "fix": "按 OI-02 跟踪（科学公式面只登记）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-095",
+   "batch": "P1细节",
+   "sev": "RED",
+   "desc": "B-1② PHASE1:100「校准层不传播、重新猜噪声一律不采用」禁令 vs CALIBRATION:10/:321/:468-480 冻结相反口径（§9 不传播+「项目内不存在该条文」+证据不足待定项）；全仓 grep 仅 PHASE1:100",
+   "evidence": "PHASE1_DETAILED_DESIGN.md:100；CALIBRATION.md:10/:321/:468-480",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "删禁令或走变更流程对齐科学层",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-096",
+   "batch": "P1细节",
+   "sev": "RED",
+   "desc": "B-2 PSF 消费链文档断言 vs 「唯一消费者 photometry」+注册表全表无人消费 p1_psf+PIPELINE_BLOCK_CONTRACT:110 幻边负例（不走豁免）；04_psf:42/07_noise_snr:20 需删改；module_adapters:7182-7187 已解耦",
+   "evidence": "04_psf.md:42；07_noise_snr.md:20；PHASE1_DETAILED_DESIGN.md:46；module_ports.registry.json；PIPELINE_BLOCK_CONTRACT.md:110",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "删 04_psf/07_noise_snr 消费断言",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-097",
+   "batch": "P1细节",
+   "sev": "RED",
+   "desc": "C-1 曝光容差/暗场线性科学门细节层+代码零承接（CALIBRATION:228-282/:403-411 冻结 vs docs 三域 grep 0、无 |K·Δb| 判定工具）",
+   "evidence": "CALIBRATION.md:228-282/:403-411",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "细节层承接＋门实现或登记 deferred（相邻在册 P-028/ε 自登记/死键登记均不覆盖）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-098",
+   "batch": "P1细节",
+   "sev": "RED",
+   "desc": "C-2 passband_identity/gate/PHOT_PASSBAND_IDENTITY_INCONSISTENT 上级要求 06 零承接（输出清单 :19、错误码 :94-96 均缺；生产/合同/PHOTOMETRIC_FIT:107 俱在；CR-01-09 登记代码侧不覆盖文档承接）",
+   "evidence": "PHOTOMETRY.md:171-172；06_photometry.md:19/:94-96；module_adapters.cpp:5449-5459/:5837",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "06 补输出键＋稳定错误码",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-099",
+   "batch": "P1细节",
+   "sev": "RED",
+   "desc": "C-3 ~2″ 平移精化设计约束零承接（PHOTOMETRY:409 HST drz 实测 1.622″/1.63″；PHASE1 §7、05_platesolve §4、docs/algorithms、ASTROMETRY 全 0；DOC_CORRECTIONS C4 仅建议未落实）",
+   "evidence": "PHOTOMETRY.md:409；05_platesolve.md:24-29",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "05_platesolve/PHASE1 §7 补约束",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-100",
+   "batch": "P1细节",
+   "sev": "归并",
+   "desc": "C-4 坏列族 docs 零登记=在册 P-064 同源（问题台账:66 待确证→本轮确证材料；检查-S5:50-54 红项同事实）",
+   "evidence": "CALIBRATION.md:208-216；module_adapters.cpp:2942-2962；defaults.json:752-822",
+   "verdict": "确证；归并 P-064",
+   "fix": "并入 P-064 推进",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-101",
+   "batch": "P1细节",
+   "sev": "豁免",
+   "desc": "A-2 σ_psfsys r=10px=已登记豁免（正本 PHOTOMETRY:404 内记 10× 高估；R17=实验 README:458；AUD-101-DB-19:1434 A10 定案；DB-03:469 数值块待迁出）",
+   "evidence": "06_photometry.md:48-49；PHOTOMETRY.md:404-405",
+   "verdict": "已登记豁免",
+   "fix": "随 §1.22 迁出同步 :49 措辞",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-102",
+   "batch": "科学常数",
+   "sev": "RED",
+   "desc": "R1 DRIZZLE:64 N'_p 等价参数化代数错误（同 c_jp 要求 N'_p=D_p；复算单 drop 反例 S'=pf²·S −36%；量纲不齐）",
+   "evidence": "DRIZZLE.md:63-64/:45/:49；S25 R-25-04/AUD-204:148/:161 同款在册非豁免",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "FROZEN 面：走变更流程上呈（S25 红项处置=只登记上呈）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-103",
+   "batch": "科学常数",
+   "sev": "RED",
+   "desc": "R2 SCIENCE_SCOPE:47-52 γ 判据无数值阈值＋缺散粒噪声前提（纯随机 γ→0 被 :48-49 误判结构污染强制降级=判据非退化性受损）",
+   "evidence": "SCIENCE_SCOPE.md:47-50；NOISE_MODEL.md:124-125/:136-137",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补阈值＋前提（DA01:303/P-037 登记的是接线缺口不覆盖）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-104",
+   "batch": "科学常数",
+   "sev": "YELLOW",
+   "desc": "Y3 REJECTION:385-387 ↳ 缩进归属错（3956+1655=5611=显著点分母；父行 451<3956 不可能为子集；S4-Y01 同款在册非豁免）",
+   "evidence": "REJECTION.md:383-387",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "缩进重排归属",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-105",
+   "batch": "科学常数",
+   "sev": "YELLOW",
+   "desc": "Y6 GATES:91 T4 行内换算不自洽（0.0580×6.3076=0.36584≠0.3588，反推应 0.0569；T3 同病超舍入容差）",
+   "evidence": "GATES_AND_TOLERANCES.md:91",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 0.0569（或按定义域复核源值）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-106",
+   "batch": "科学常数",
+   "sev": "RED",
+   "desc": "Y7 NOISE_MODEL:169 倍温 6–8°C 无一手锚（§14a:371-404 无条目）且两源反证「5–7 不属实测区间」（MaxIm DL 手册 5-8°C、PMC10674984 ~5-10°C 均覆盖 5-7）",
+   "evidence": "NOISE_MODEL.md:168-169/:371-404",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补锚或改口径 5–10°C",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-107",
+   "batch": "科学常数",
+   "sev": "YELLOW",
+   "desc": "Y8 USM:131 frame_snr 悬空引用（本文件 §3 表无该键；真表在 design/UNIFIED_MODEL.md:43 且属其 §2；§2a 指偏半条=权威位实为 §0/§4）",
+   "evidence": "UNIFIED_SCIENCE_MODEL.md:131/:25-35；design/UNIFIED_MODEL.md:43；CONTROL_WEIGHT_SNR.md:50-80",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改指 design/UNIFIED_MODEL §2（或 §0/§4）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-108",
+   "batch": "科学常数",
+   "sev": "YELLOW",
+   "desc": "Y9 PHOTOMETRIC_FIT:40 7.29×MAD 应为 7.29σ=10.81×MAD（窗 3.0÷σ0.4115=7.29；同句 p=3.1e-13=2Φ(−7.29) 自证 σ 口径）",
+   "evidence": "PHOTOMETRIC_FIT.md:40/:48",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 7.29σ 或 10.81×MAD",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-109",
+   "batch": "科学常数",
+   "sev": "豁免",
+   "desc": "豁免 5 条：Y1 四数字=CR-59-07+M7-A-114；Y2 7vs11 种=M4-A-04；Y4 S_p 单位三口径=M2a-A-2；Y5 1.25 覆盖 1.532=M7-A-201；G2 round-trip 1e-12=M2b-F-01+M7-A-138+DA02:499-508",
+   "evidence": "FIX_LEDGER L313/L214/L138/L628/L28",
+   "verdict": "已登记豁免×5",
+   "fix": "按 FIX_LEDGER/CR-59/DA02 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-110",
+   "batch": "科学常数",
+   "sev": "误报",
+   "desc": "G1「Astier 2019 无 25% 上限」被一手反证：arXiv:1905.08677 逐字「miss up to 25 % of the variance」（转引 Downing 2006）——残余仅补引用锚（编辑级）",
+   "evidence": "NOISE_MODEL.md:130/:138",
+   "verdict": "误报",
+   "fix": "销案；可选补 Downing 2006/Astier 2019 引用锚",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-111",
+   "batch": "合同层",
+   "sev": "RED",
+   "desc": "A-1 CONFIG_CONTRACT:15 权威链失实转述 §4.5（「无交互式提示窗」vs ASTROCS_DESIGN:382 yes 确认=交互，18_cli:26/CLI_PROTOCOL_V1:26 三对一）＋锚 :278-304 实为 :358-383",
+   "evidence": "CONFIG_CONTRACT.md:15/:72；ASTROCS_DESIGN.md:382/:358-383",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改述＋重锚",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-112",
+   "batch": "合同层",
+   "sev": "RED",
+   "desc": "A-2 PUBLIC_API:76「日志写 run/logs/<module>/」违反唯一日志落点（ASTROCS_DESIGN:555-560/:722 块级 output_dir；LOG_AND_ERROR_CONTRACT:161 R3 负例逐字=该行即红灯字面量）",
+   "evidence": "PUBLIC_API.md:76；ASTROCS_DESIGN.md:555-560/:722；LOG_AND_ERROR_CONTRACT.md:161",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改块级 output_dir 口径",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-113",
+   "batch": "合同层",
+   "sev": "RED",
+   "desc": "A-3 头锚子句真问题：PUBLIC_API:1373-1374 称 rejection.h「:191-193 声明/:182-190 路由语义」→实声明 :272、:182-190=Grubbs 注释、语义注释 :84-95（主体四档表矛盾=复核-DB13:192+文档行为数字存量豁免，不重复）",
+   "evidence": "PUBLIC_API.md:1373-1379；rejection.h:272/:182-190/:84-95",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "头锚子句重锚（随主体档位表订正同批）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-114",
+   "batch": "合同层",
+   "sev": "RED",
+   "desc": "A-4 PUBLIC_API:238/:790「IVOA 1.4」误标（正解 IVOA HiPS 1.0＋properties hips_version=1.4；ASTROCS_DESIGN:851、PHASE3_HIPS_TO_FITS:192 逐字警告此混淆、STANDARDS_REGISTRY:85-89）",
+   "evidence": "PUBLIC_API.md:238/:790",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 HiPS 1.0＋properties 1.4 两分",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-115",
+   "batch": "合同层",
+   "sev": "RED",
+   "desc": "B-1 CONFIG_CONTRACT 权威链 6/6 锚失实（§4.3:224-261→实 :304-341；§4.5:278-304→实 :358-383；§7.2:446-467→实 :519-540；:61 :259→实 :339；:81 :273→实 :353；:83 §5.3:264-266→实 §6.3:479 投影/SNR 重建 §5.3）——AUD-101-DB-06-07:40 D-1 基于 826 行旧版二次漂移未闭合，:61 不在 D-1",
+   "evidence": "CONFIG_CONTRACT.md:14-16/:61/:81/:83；ASTROCS_DESIGN.md:304/:342/:358/:411/:479/:519/:339/:353",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "全量重锚＋D-1 登记刷新闭合",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-116",
+   "batch": "合同层",
+   "sev": "RED",
+   "desc": "C-1 storage_form 默认值来源死指针：ASTROCS_DESIGN:716＋ENGINEERING_SPEC:144「默认值来源=defaults.json」但 grep storage_form=0；真实承载 phase_config_normalize.schema.json:480-492（检查-S1-L1:70/:79/:152 已登记——并单派单勿重复立案）",
+   "evidence": "ASTROCS_DESIGN.md:716；ENGINEERING_SPEC.md:144；phase_config_normalize.schema.json:480-492",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改指 schema（并入检查-S1-L1 既有条目）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-117",
+   "batch": "合同层",
+   "sev": "误报",
+   "desc": "B-2 两处「唯一来源」=适用域已声明互指（CONFIG_SCHEMA:8-11 头部逐字排除 phase_config 合同；两处宾语不同：stage2_*.json 文件 vs defaults.json fields；CONFIG_CONTRACT:192 同向印证）",
+   "evidence": "CONFIG_SCHEMA.md:8-11；CONFIG_CONTRACT.md:192",
+   "verdict": "误报",
+   "fix": "销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-118",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "NOISE_MODEL:378 Starck DOI 挂错件（:20021569=Homeier Wolf-Rayet A&A397,585；应为 :20021571 curvelet A&A398,785）",
+   "evidence": "NOISE_MODEL.md:378；Crossref 双查；核验-CIT-12.md:160 同款（CIT 非豁免面）",
+   "verdict": "确证；CIT-12 已留痕",
+   "fix": "改 :20021571",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-119",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "CCD_LINEAR_DEFECT:77/:98 Desai 页码 16,1 应 16,67-78",
+   "evidence": "CCD_LINEAR_DEFECT_LITERATURE.md:77/:98；Crossref 10.1016/j.ascom.2016.04.002",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 16,67（CIT-23 只核存在性未比页码）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-120",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "同文:153 Magnier ApJS 251,3 挂错件（1612.05244→abb82c=251,5；251,3=abb829 另一篇）；:154 Waters 251,4 正确",
+   "evidence": "CCD_LINEAR_DEFECT_LITERATURE.md:153-154",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 251,5",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-121",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "同文:52/:114 Aihara PASJ 70,S4 应 S8（psx081=S8=DR1；S4=Overview 篇；CIT-22 反判绿且其 PASJ 69,113 亦错）",
+   "evidence": "CCD_LINEAR_DEFECT_LITERATURE.md:52/:114；Crossref psx081；OUP S8/S4 页",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 S8",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-122",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "PHOTPACK:229 B88 题名多「Landmark/」（三载体均无；CIT-04/07 已登记）",
+   "evidence": "PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:229",
+   "verdict": "确证；CIT-07 已留痕",
+   "fix": "删 Landmark/",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-123",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "SNR_WEIGHT:67 ZOGY 题名长副题三载体皆无（arXiv v1/v2、ApJ 官方均「…Photometry, and Hypothesis Testing」）且 :164 自相矛盾（AUD-301:361 半登记）",
+   "evidence": "SNR_WEIGHT_RESEARCH_PACK.md:67/:164",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "题名对齐官方",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-124",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "SCIENTIFIC_REFERENCES:176 Siril 锚错位（tag1.4.4 compute_noise_weights 实 :1080-1104、逆方差式 :1092-1094；:1111-1135 落 compute_wfwhm_weights:1106；同包 :171/:197 自纠对照；全仓零登记纯新增）",
+   "evidence": "SCIENTIFIC_REFERENCES.md:176；siril e89421cd raw",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 :1080/:1092-1094",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-125",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "同文:203 Snyder & Roodman「Proc. SPIE 11454」应 JATIS 5(4) 041509 (2019)（arXiv journal_ref+Crossref 双证无 SPIE 版本；CIT-24 已挂未定→坐实）",
+   "evidence": "CCD_LINEAR_DEFECT_LITERATURE.md:203",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 JATIS 5(4) 041509",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-126",
+   "batch": "文献批",
+   "sev": "RED",
+   "desc": "PHOTPACK B87-B90（:228-231）未打 [V]/[S]/[U] 标（90 条中 7 条无标=此四条+U1-U3；定义块在 :123 非提交方所写 :115）",
+   "evidence": "PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md:228-231/:240-242/:123",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补标或移「未核实」节",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-127",
+   "batch": "文献批",
+   "sev": "豁免",
+   "desc": "run/DOC-404 证据目录回收不可复跑=已登记（AUD-101-DB-12:236-240/DB-13:313/D9 对账:513-518）；其 COMPRESSION_CODEC:356 子引用=误报（该行实为 IVOA 报告引用）",
+   "evidence": "run/DOC-404 缺失 rc=1",
+   "verdict": "已登记豁免（AUD-101/D9）",
+   "fix": "按 AUD-101/D9 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-128",
+   "batch": "star_detection",
+   "sev": "RED",
+   "desc": "RED-1 sdet_api.cpp:1674 BFS queue 不清空（声明在组分循环外、push 前无 clear、循环完不排空→组分累积合并 O(C²)）；实机红绿对跑：401 组分帧 visits 1.2 亿 vs 60 万（201×）、单帧 64.4s vs 0.87s（74×）；输出坐标经 ±5 局部极大窗+:1840-1856 曼哈顿去重恰好 IDENTICAL=现有锚不亮红",
+   "evidence": "sdet_api.cpp:1674/:1680/:1682 vs :75/:81/:1094/:1098/:1338/:1345；git show 1355df1d",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补一行 queue.clear()＋组分尺寸断言负例（原版红/补丁绿）——fixer 最高优先",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-129",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-1 IMPL_DESIGN:278 门5 式缺 se_smax>2.0 前置（无前置时 se_smax≈1→limit≈1.54<正常 fwhm 2.35→误拒正常星；FIX-R1 只登记代码侧）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN.md:278；sdet_api.cpp:322-328/:303-308",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "md 补前置条件",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-130",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-2 IMPL_DESIGN:196-198 曲率式 σ=√(−S(0)/S″max) vs 码零交叉距离法（两法非同一测量程序；ALG:82-84 支持实况）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN.md:196-198；sdet_api.cpp:1286-1324/:1785-1797",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改零交叉法描述",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-131",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-3 δc 权重三方矛盾（IMPL:236「δc×组分总流量」vs 码 :1061 (void)total_flux/:1138-1143 用枝自身 bflow；码注释 :1045-1047 vs :1134 自相矛盾）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN.md:236；sdet_api.cpp:1061/:1138-1143",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "按 §8 查 B&A96 §4.1 原文后二择一",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-132",
+   "batch": "star_detection",
+   "sev": "误报",
+   "desc": "Y-4 IMPL:234 i=1..30 vs 码 i=29..1=行为等价（i=30 空集 no-op，有效层集两端同为 1..29）",
+   "evidence": "",
+   "verdict": "误报",
+   "fix": "销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-133",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-5 IMPL:270「λ 上调×3/下调÷2」变量错（3/2 作用于信赖域 Δ；λ 实为拒步 μ←μ·ν 与 Nielsen factor）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN.md:270；nls_lm.h:61-62；nls_lm.cpp:375-381/:401-405",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改信赖域/λ 双变量表述",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-134",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-6 star_detector.h:70-74 合同分类 vs 实况错分（O4b 未拟合→FITFAIL 应 dropped；O10 拟合前→REJECT 应 FITFAIL；CR-51-16 登记的是粒度缺陷非此错分）",
+   "evidence": "star_detector.h:70-74；sdet_api.cpp:2039/:2108-2115/:1949-1956",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "头合同语义或码分类对齐（二择一）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-135",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-7 SdetSatIsland.cx/cy 零消费（仅 :1394-1395 写入；O6 自峰行走 :1771-1777；IMPL:168 消费主张不实；sat_label/.r 有消费=§5.6 一致）",
+   "evidence": "sdet_api.cpp:1394-1395/:1771-1777；IMPL_DESIGN.md:168",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "删消费主张或接通消费（二择一）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-136",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-8 IMPL:207-208「钳位访问」错（实况域排除 [5,h−5)×[5,w−5)，全段零 clamp；ALG:127/:167-168 支持排除）",
+   "evidence": "STAR_DETECTION_IMPL_DESIGN.md:207-208",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改域排除表述",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-137",
+   "batch": "star_detection",
+   "sev": "豁免",
+   "desc": "Y-9 03:35 GSL 残留=通读-CR-29-04 已登记（登记内整改未完非新发现；与 star三验批 P-029 归并口径一致）",
+   "evidence": "通读-CR-29.md:118-131",
+   "verdict": "已登记豁免（CR-29-04）",
+   "fix": "按 CR-29-04 整改（同批已列）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-138",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-10 导出计数四方漂移（header 6 含 guided vs module.yaml exports=5 缺 sdet_detect_guided_ex_f64 vs 「9 个导出」×2 vs api_inventory.csv=10 含 4 死符号 vs modules 页=10 vs TRACEABILITY=9/7；e891df28 注销后计数未同步）",
+   "evidence": "star_detector.h:31-84；module.yaml:13/:83-88；PUBLIC_API.md:825/:829；api_inventory.csv:419-428；docs/modules/star_detector.md:30；TRACEABILITY_MATRIX:786",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "全量对齐现码 6 导出（含 guided）；DISP-STAR-005 登记删除事件但未盖计数漂移",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-139",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "Y-11 ALG:84 srl 符号约定未声明（旧码有向负左、新码正值反存；数值两侧等价无行为差，纯约定声明缺失）",
+   "evidence": "ALG_STAR_DETECTION.md:84；sdet_api.cpp:1312/:1793-1794",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "ALG 补一句符号约定",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-140",
+   "batch": "star_detection",
+   "sev": "LOW",
+   "desc": "GAP-1 死码双件（a) INV_4_LOG2 仅 :51 定义零引用（CR-31:48 记录的是重写前基线）；(b) SDET_DEBLEND_DEPTH 仅 :1038+:1062 (void) 零引用且「递归深度上限」注释误导（实为迭代实现）",
+   "evidence": "sdet_api.cpp:51/:1038/:1062",
+   "verdict": "确证（低危）",
+   "fix": "删死码或改注释",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-141",
+   "batch": "star_detection",
+   "sev": "豁免",
+   "desc": "GAP-1(c) sdet_gaussian_filter_separable 零调用=通读-CR-52.md:39 已登记",
+   "evidence": "sdet_image.cpp:25-90",
+   "verdict": "已登记豁免（通读-CR-52）",
+   "fix": "按 CR-52 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-142",
+   "batch": "star_detection",
+   "sev": "YELLOW",
+   "desc": "附带：lib/algorithms/star_detection/Makefile:59 SOURCES 仍列 e891df28 已删两文件→模块级 make 不可构建（根 CMake 不受影响）",
+   "evidence": "Makefile:59",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "清死源",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-143",
+   "batch": "P3细节14",
+   "sev": "RED",
+   "desc": "A-1 RSMP:27-28/:177-180/:318「不实现 variance/ivar（SCI §9a-10 显式拒）」与上级 HIPS:147 现文/DATA:2465 supersession/本文件 §4:101 自列 p3_uncertainty_* 三向反向（weight/support/flux-per-pixel 半边仍有效须保留）——与 9 条批 A-3 同条归并",
+   "evidence": "PHASE3_RSMP_IMPL.md:27-28/:101/:177-180/:318；PHASE3_HIPS_TO_FITS.md:10/:147",
+   "verdict": "确证；与 P3细节9批 A-3 归并（待其复验回）",
+   "fix": "按 §29.1 目标态＋现行码订正 §1/§6.2/§9",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-144",
+   "batch": "P3细节14",
+   "sev": "豁免",
+   "desc": "A-2 FIFO 残留四说（:73/:218/:382 等）=已登记 S6B-R08＋AUD-101-DA02:1227-1229/:2075 C-6",
+   "evidence": "检查-S6-algorithmsB.md:150-153",
+   "verdict": "已登记豁免（S6B-R08/DA02）",
+   "fix": "按 S6B-R08/DA02 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-145",
+   "batch": "P3细节14",
+   "sev": "YELLOW",
+   "desc": "A-3 附注（主体豁免 S6B-R09）：DATA_SEMANTICS §27 头:2358-2359/§29 头:2444-2445「astrocs_phase3_session…根 CMakeLists.txt:460-465」过期（现 :930-940 仅 p3_session.cpp，W8 归位；:460-465 实为 astrocs_probes）",
+   "evidence": "DATA_SEMANTICS.md:2358-2359/:2444-2445；根 CMakeLists.txt:930-940",
+   "verdict": "确证；主体已登记豁免（S6B-R09）",
+   "fix": "两级订正：细节层按 S6B-R09 跟踪＋上级两行随 A-7/A-8 同批订正",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-146",
+   "batch": "P3细节14",
+   "sev": "豁免",
+   "desc": "A-4 FITS_IMPL:401 §16 摘要裸 ADU=已登记 AUD-101-DA02:1480-1489（跨 5 份文档冲突簇已逐字登记）",
+   "evidence": "PHASE3_FITS_IMPL.md:401",
+   "verdict": "已登记豁免（DA02）",
+   "fix": "按 DA02 跟踪（与 9 条批 A-5 同条）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-147",
+   "batch": "P3细节14",
+   "sev": "RED",
+   "desc": "A-5 §5.3 锚系统性失修：ASTROCS_DESIGN §5.3 实为 SNR 重建(:411)、投影在 §6.3(:477-482)；344bf67f(RELEASE-04) 重编号后全体失修（「e42ca51e 出生即错」子结论=误报）；已登记面=DA01:607/DB-10:87/DB-09:245/DB-04:537（豁免）；未登记新面=SCIENCE_OVERVIEW:103/:108、PHASE3_DETAILED_DESIGN:15/:24、p3_projection_registry.h:65/:121/:188 错误串（用户可见）、p3_proj.cpp:304、p3_wcs.cpp:66、phase_config_export.schema.json:17、KNOWN_LIMITATIONS:118/:124",
+   "evidence": "ASTROCS_DESIGN.md:411/:477-482；git show 344bf67f",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "未登记面全量订正 §5.3→§6.3（含 registry 错误串）；已登记面按 AUD-101 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-148",
+   "batch": "P3细节14",
+   "sev": "误报",
+   "desc": "A-6 DETAILED:24「当前仅 TAN」=与其真正上级一致（D=I={TAN} 产品声明/实现集；HIPS:133「4/8」与 kRegistry[4] 是 v6 内核表层，两层各自成立；同类冲突 DB-04:117 已登记）",
+   "evidence": "PHASE3_DETAILED_DESIGN.md:24/:3；p3_projection_registry.h:120-143",
+   "verdict": "误报",
+   "fix": "销案；「以实际注册表」层属措辞含混顺手澄清",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-149",
+   "batch": "P3细节14",
+   "sev": "RED",
+   "desc": "A-7 DATA §29.3:2495「每 worker 独立 sampler+cache」错（代码=跨 worker 共享有界 LRU；方向=订正上级；细节侧同错扩散：RSMP:306、PUBLIC_API:2127、registry resample2:155/:105-108、phase3_rsmp:62——「独立 sampler✓/独立 cache✗」）",
+   "evidence": "DATA_SEMANTICS.md:2495；p3_resample.cpp:15/:64；p3_session.cpp:262/:273",
+   "verdict": "确证（订正上级方向）",
+   "fix": "上级订正＋四细节文档同批订正",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-150",
+   "batch": "P3细节14",
+   "sev": "RED",
+   "desc": "A-8 DATA §27.3:2401-2402「DATASUM u32 经 TINT 写入」过期（实况 fits_write_chksum 在产 p3_output.cpp:144/:50-53 注释明言 TINT 非法、fdatasum=0；同段 :2405 sha256/fdatasum 定序一并过期；§27.2:2389 自禁 TINT=同文档互斥）",
+   "evidence": "DATA_SEMANTICS.md:2401-2402/:2389/:2405；p3_output.cpp:144",
+   "verdict": "确证（订正上级方向）",
+   "fix": "订正上级（与 A-7 同批）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-151",
+   "batch": "P3细节14",
+   "sev": "RED",
+   "desc": "B-1 HDU 清单发明：DETAILED:57 与 16_fits_output:23 逐字同句列 VALIDITY/SUPPORT/REJECTION/POINT_INFORMATION HDU（上级输出面 PHASE3_RESAMPLE:11/DATA:2386-2393 零条目；ASTROCS grep=0）；三锚成环 DETAILED→ASTROCS:486→16:13→DETAILED；PSF/correlation §6.1 方向在 DATA §28.6 有承接但 §27 输出面零行（GAP 限定成立）",
+   "evidence": "PHASE3_DETAILED_DESIGN.md:57；16_fits_output.md:23/:13",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "发明清单删除或走变更流程立 HDU 合同（二择一）＋§27 补 PSF/correlation 输出行",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-152",
+   "batch": "P3细节14",
+   "sev": "误报",
+   "desc": "B-2 配置键 schema 零命中=误报/已登记（band_height/tile_cache_mb=runtime_policy 目标态 CFG-002；compression=禁入科学配置登记；mode=output_mode 命名裁决已执行 config_registry:1206-1219；correlation_output/order_limits=DB-04:136 已登记；发现方 DETAILED:71 行号有误实锚 §8.2:106-108）",
+   "evidence": "CONFIG_CONTRACT.md:100；config_registry.json:1161-1219",
+   "verdict": "误报",
+   "fix": "销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-153",
+   "batch": "P3细节14",
+   "sev": "豁免",
+   "desc": "B-3 测试死锚+行数矛盾=已登记（AUD-101-DA02:1236-1242/:2025＋S6B-R09/R10）",
+   "evidence": "检查-S6-algorithmsB.md:166/:172-180",
+   "verdict": "已登记豁免",
+   "fix": "按 S6B/DA02 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-154",
+   "batch": "P3细节14",
+   "sev": "GAP",
+   "desc": "C-1 uncertainty_available=false 八篇细节零承接（DATA:2390「无则不写 HDU 且 manifest=false」；八篇=RSMP/PROJ/FITS/RESAMPLE+DETAILED+14/15/16 plugins；grep 集合=0）",
+   "evidence": "DATA_SEMANTICS.md:2390",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "八篇补 manifest 键承接句",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-155",
+   "batch": "P3细节14",
+   "sev": "RED",
+   "desc": "C-2 p3_rejection.bin 独立载体八篇零承接（DATA:2482+:3042/:3056 §30.7 已冻结 vs RSMP:351 DISP-006「未冻结」互斥）——与 D9 ROW 8（生产零）强同源须合并处置",
+   "evidence": "DATA_SEMANTICS.md:2482/:3042-3056；RSMP_IMPL.md:351",
+   "verdict": "确证；D9 ROW 8 合并",
+   "fix": "与 D9 ROW 8 合并派单：承载面二择一后八篇承接",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-156",
+   "batch": "P3细节14",
+   "sev": "豁免",
+   "desc": "C-3 RSMP §4 符号表渲染破损=已登记 S6B-R07（三行脱表＋注记重复两遍）",
+   "evidence": "检查-S6-algorithmsB.md:140-145",
+   "verdict": "已登记豁免（S6B-R07）",
+   "fix": "按 S6B-R07 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-157",
+   "batch": "infra对齐",
+   "sev": "豁免",
+   "desc": "E1 exit 6（COMPUTE）无域产出=已登记 AUD-101-DB-08.md:150（「无一域产出 6 ⇒ 悬空码」+ findings_base.csv:1539）",
+   "evidence": "contracts.h:44-46；LOG_AND_ERROR_CONTRACT.md:97-106",
+   "verdict": "已登记豁免（AUD-101-DB-08）",
+   "fix": "按 DB-08 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-158",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "E2 增量：runtime_client.cpp:429-432 load_pipeline 失败恒 return 4（实际域=DATA/CONFIG，合同 :99/:100→2）＝表外映射，F-EXIT-MAP evidence 只指 :492-502 switch 不覆盖；主体三分支映射偏差=F-EXIT-MAP 已登记（log_system_ledger.json:494-500+P-108+S32+CR-69）",
+   "evidence": "runtime_client.cpp:429-432/:492-502；runtime.cpp:135/:144-148",
+   "verdict": "确证；主体已登记豁免",
+   "fix": ":432 按域映射表改；主体按 F-EXIT-MAP（登记不改码）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-159",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "E3 21_observability.md:46「manifest 登记失败→8」vs LOG_AND_ERROR_SYSTEM.md:127「→7」同情形互斥；两侧均零实现（lib grep run_log|logs/run_=0）",
+   "evidence": "docs/plugins/infrastructure/21_observability.md:46；docs/design/LOG_AND_ERROR_SYSTEM.md:127",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "二择一统一码值（7），或删未实现条款",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-160",
+   "batch": "infra对齐",
+   "sev": "豁免",
+   "desc": "L1 运行日志链零实现（log_artifacts 无生产者/键缺失不判红）=已登记 通读-CR-70 CR-70-3 逐字（本轮已独立闭合其 PARTIAL 检索缺口）",
+   "evidence": "通读-CR-70.md:87-90",
+   "verdict": "已登记豁免（通读-CR-70）",
+   "fix": "按 CR-70 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-161",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "L2 run-plan.json/run-graph.json 零生产者（lib+eng grep=0）而 21:19/CLI_PROTOCOL_V1:119 声称承接；实况产 graph/{static_graph,observed_trace,graph_sidecar}.json（commands.cpp:444/:521/:540），LOG-003 又名 graph-runtime（RUN_GRAPH_CONTRACT:44-45）",
+   "evidence": "commands.cpp:433-583",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "文档对齐实际产物名或接线 run-plan/run-graph",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-162",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "L3 HeavyRunGuard「无 monitor 必失败」强制点生产零调用（仅 runner.py+测试；名面 monitor_timeseries=AUD-101-DB-05 已登记，强制面未登记）；生产资源曲线实走 resource_recorder.h",
+   "evidence": "RESOURCE_MONITORING_CONTRACT.md:30-35/:45-50",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "接线 HeavyRunGuard 或订正合同口径",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-163",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "L4 jsonl.h:187/:190 fputs/fflush 返回值未查 vs 21:45「日志/事件写入失败→非 0 结束」（EPIPE/ENOSPC 无判定点）",
+   "evidence": "jsonl.h:187-190",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补返回值检查",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-164",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "S1 19_runtime.md:84「注册表加载（版本化 C ABI 校验）」口径超前：生产装配=构建内 ModuleRegistry（runtime_client.cpp:381/:24），secure_loader 零生产调用（唯一调用=abi003 探针）；prod_wiring 类B 登记的是接线缺口（ABI-004/RT-002），文档口径未随之订正",
+   "evidence": "19_runtime.md:84；module.cpp:27-28；runtime_client.cpp:381",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "文档改口径或完成 RT-002 接线",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-165",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "S2 19:93「内存不足→显式失败并报所需工作集」vs 实况回压挂起不失败（scheduler.cpp:196-232 bp_cv.wait）；runtime.cpp:204-213 估不出仅登记 reason 照常运行（文档 :61「内存不是门禁」自相张力）",
+   "evidence": "scheduler.cpp:196-232；runtime.cpp:204-213",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "二择一：实现显式失败或订正 :93",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-166",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "S3 checkpoint 三键零兑现（CheckpointStore 纯内存无落盘 checkpoint.cpp:16-90、cache_budget_mb/schedule_policy lib 零消费；config_registry:1772/:1787 finding=none、不在 dead_config_keys=死键未登记）",
+   "evidence": "19_runtime.md:76/:78/:79；checkpoint.cpp:16-90",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "删键/删条款或实现（死键登记补录）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-167",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "S4 19:19-20 输出五类+调度指标零生产者（artifact_store 仅 to_json 内存序列化；artifact-manifest.json/run-summary.json/调度指标全仓零生产者；run-graph/资源三件套由 CLI 侧代产）",
+   "evidence": "artifact_store.cpp:28-50",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补生产者或如实收缩输出清单",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-168",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "S5 16_fits_output.md 零 manifest 词（§3 输出清单缺 p3_writer.json/p3_verify.json，实况 module_adapters.cpp:14972/:15139 两处 p2_write_text_atomic）",
+   "evidence": "16_fits_output.md:20-29",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补输出清单两行",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-169",
+   "batch": "infra对齐",
+   "sev": "误报",
+   "desc": "S6 MANIFEST_VERIFY_V1:75 硬判=doctor 面（:70/:73-74 标题即明示），cmd_verify 逐条实现（sha256/size/status→8）；节点级只记录不违 :75",
+   "evidence": "MANIFEST_VERIFY_V1.md:70-75；commands.cpp:2161/:2217/:2222",
+   "verdict": "误报",
+   "fix": "销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-170",
+   "batch": "infra对齐",
+   "sev": "YELLOW",
+   "desc": "S7 input_manifest_hash 同键两套公式（p2=元数据拼接 sha256 module_adapters:9141-9161；p3=文件字节 sha256 :13760-13780）；p1 腿回退=CR-63 已登记（豁免），p2/p3 双公式无登记",
+   "evidence": "MANIFEST_VERIFY_V1.md:57；module_adapters.cpp:9141-9161/:13760-13780",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "钉公式或分键名",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-171",
+   "batch": "infra对齐",
+   "sev": "误报",
+   "desc": "S8 MANIFEST_VERIFY_V1:88 属 §5 落点映射（commands.cpp:31/:182=DET-001 同主题注释，真身 :193-209），未声明哈希实现正本；剩余 :182 距 :193 十一行漂移=编辑级",
+   "evidence": "MANIFEST_VERIFY_V1.md:86-92",
+   "verdict": "误报",
+   "fix": "销案",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-172",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "A1 三文档（17_aio/PRODUCT_STORAGE_FORM/16_fits_output）零锁/并发条款；实况跨进程无锁（atomic_publish 全文无 flock/fcntl/lockf，双进程同 target=rename last-writer-wins；hiss writer mutex 计数=0）",
+   "evidence": "atomic_publish.cpp:31/:328-331/:496-499",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补锁或文档如实登记单写者前提",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-173",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "A2 aio_atomic_file.h:57-60 next_seq 非原子 static++（多线程 tmp 名可重复）vs atomic_publish.cpp:31 std::atomic 两套机制并存",
+   "evidence": "aio_atomic_file.h:57-70",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "改 std::atomic（一行）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-174",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "A3 rename 后 fsync_dir 失败仍按失败上报（atomic_publish.cpp:405-414/:542-550，kErrIo 而产品已落正式路径）＝「失败/取消产物面=无正式产品」（17_aio:28）被违反；fsync_directory 默认 true 生产可达",
+   "evidence": "atomic_publish.cpp:405-414/:542-550",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "结果态补「已发布但未 fsync 持久」第三态或重试",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-175",
+   "batch": "infra对齐",
+   "sev": "RED",
+   "desc": "A4 hiss 流式 writer 全文 fsync=0（fflush:624→fclose:632→atomic_replace:647，rename 前后均无 fsync；atomic_replace :178-198 无 fsync_dir）vs 17_aio:26 义务；通读-CR-240 只盖 FITS 写路径不覆盖",
+   "evidence": "hiss_stream_writer.cpp:624-647/:178-198",
+   "verdict": "确证（对抗复验·真问题）",
+   "fix": "补 fsync（对齐 CR-240 修法）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-176",
+   "batch": "infra对齐",
+   "sev": "豁免",
+   "desc": "A5 aio_fits.cpp:1090 aio_write_fits 就地截断写正式路径=已登记 D9-工单对账 ROW 35（同行同定性「本体未修只在调用侧绕行」）+ 通读-CR-240:441-446",
+   "evidence": "aio_fits.cpp:1090；aio_api.cpp:228",
+   "verdict": "已登记豁免（D9-ROW35/CR-240）",
+   "fix": "按 D9 ROW 35 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-177",
+   "batch": "存储合同重测",
+   "sev": "RED",
+   "desc": "tree_hash canonical 规格写对象数组 [{path,size,sha256}] 而实现序列化三元组数组（hips_output_store.py:104-107，docstring :22-23 自相矛盾）；两形态实测哈希不同；「规范 JSON」未冻结键序/分隔符/ASCII 转义",
+   "evidence": "HIPS_STORAGE_FORM_CONTRACT.md:124；PRODUCT_STORAGE_FORM.md:169；IO_003:140/:144；hips_output_store.py:81-84/:104-107",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "实现改对象数组或合同补三元组口径并冻结序列化参数",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-178",
+   "batch": "存储合同重测",
+   "sev": "RED",
+   "desc": "IO-003 发布白名单（properties|Moc.fits|NorderK/DirD/NpixN.fits，代码 :593-606 同口径）拒绝 DATA_SEMANTICS §12.2 MUST 产品树成员（metadata.fits/:460、根 manifest.json/:461、snr/*:458-459）⇒ 三份 MUST 同时成立不可满足",
+   "evidence": "IO_003:80-82；HIPS_STORAGE_FORM_CONTRACT.md:47；DATA_SEMANTICS.md:458-461/:518-520",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "扩白名单或 §3.2 登记豁免名单并同步 A2",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-179",
+   "batch": "存储合同重测",
+   "sev": "RED",
+   "desc": "hips_tile_format 取值域 fits-only（A4+schema enum+checker）vs aio_hips_writer.cpp:2028-2030 对 SNR 目录子产品写 tsv（A2 归档成员含 snr/properties ⇒ 与 A4 冲突）；checker 只查 SUBPRODUCT=signal 故机器面暂绿",
+   "evidence": "HIPS_STORAGE_FORM_CONTRACT.md:49；hips_storage_form.schema.json:121-126；aio_hips_writer.cpp:2028-2030",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "合同补 catalogue 豁免或 writer 改口径",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-180",
+   "batch": "存储合同重测",
+   "sev": "YELLOW",
+   "desc": "同名 $defs.coverage_index_ref 异型（hips_storage_form=object vs phase_config_mosaic=string），合同两处 :223/:254 都称其为唯一机器事实源",
+   "evidence": "HIPS_STORAGE_FORM_CONTRACT.md:223/:254/:69；两 schema",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "两 def 分名或合同分别指向各自键路径",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-181",
+   "batch": "存储合同重测",
+   "sev": "GAP",
+   "desc": "manifest storage 段条款归属分裂：HIPS §10.3:225 与 IO-003:141 各挂「完成 manifest」且路径不同；CLI-003 冻结字段集无 storage、run_manifest.schema additionalProperties:false 无 storage、lib form_source=0",
+   "evidence": "MANIFEST_VERIFY_V1.md:26-31；run_manifest.schema.json:33",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "storage 段写入一份冻结合同+schema 并统一路径",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-182",
+   "batch": "存储合同重测",
+   "sev": "YELLOW",
+   "desc": "「原子发布」步数多口径并存无统一条款（ASTROCS:714 六步/IO-003 七步编号/PSF:153 五步/ENG_SPEC:208 五步含打洞/atomic_publish.h 五步注释；全仓「八步」=0）",
+   "evidence": "ASTROCS_DESIGN.md:714；IO_003:20-22/:95-112",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "指定唯一规范枚举，其余引用之",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-183",
+   "batch": "存储合同重测",
+   "sev": "YELLOW",
+   "desc": "打洞-哈希次序两份合同冻结「打洞后算哈希再发布」（T1:149、PSF:191）vs 同文档 :196/ENG_SPEC:208/代码（aio_hips_writer.cpp:568 校验→:580 fsync→:594 打洞→:619 rename，打洞后无哈希步）——:191 与 :196 同文件互斥",
+   "evidence": "HIPS_STORAGE_FORM_CONTRACT.md:149；PRODUCT_STORAGE_FORM.md:191/:196；aio_hips_writer.cpp:568-624",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "合同改 :196/:208 同款次序",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-184",
+   "batch": "存储合同重测",
+   "sev": "YELLOW",
+   "desc": "DATA_SEMANTICS §27.4:2413-2414 冻结锚 p3_output.cpp:235-287 已漂移（真实发布序 :397-421；行为与 R10-C 一致仅锚漂）",
+   "evidence": "DATA_SEMANTICS.md:2413-2414；p3_output.cpp:397-421",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "锚改 :397-421",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-185",
+   "batch": "存储合同重测",
+   "sev": "YELLOW",
+   "desc": "DATASUM/CHECKSUM 上游锚悬挂（DATA:2362-2364/:2397/:2422 引 SCI-P3「§96」不存在且全文 grep=0）＋ Phase1 函数/行锚错（DATA:502「fits_write_chksum :230/:275」实为自实现 :281/:383/:432；行为面绿）",
+   "evidence": "DATA_SEMANTICS.md:2362-2364/:502；aio_hips_writer.cpp:281/:383/:432",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "锚改 §9a-11/B2-A9 与 :281/:383/:432",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-186",
+   "batch": "存储合同重测",
+   "sev": "GAP",
+   "desc": "存储词表逐层断言 11 层不覆盖 DATA_SEMANTICS/PHASE3_HIPS_TO_FITS/MANIFEST_VERIFY_V1（三份 grep 存储词=0）——机器门盲区",
+   "evidence": "hips_storage_form.schema.json:31-43；DATA_SEMANTICS.md:505-521",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "三份文档加入 layers",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-187",
+   "batch": "存储合同重测",
+   "sev": "GAP",
+   "desc": "normalization_version 必填键无值域：合同正例 vs 生产写 drizzle_drop_area_normalized_v1/phase2_group_normalized_v1 三套互不相同且文档零登记——门对版本语义漂移零判别力",
+   "evidence": "DATA_SEMANTICS.md:3280-3286；product_family_field_constraints.schema.json:3420-3430",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "补值域词表或声明自由文本+语义不变式",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-188",
+   "batch": "存储合同重测",
+   "sev": "YELLOW",
+   "desc": "weight_mode_version 三面矛盾：§31.5:3285 划除「键不存在」vs provenance.cpp:49-58 required+:111 必写 vs schema required+clause_registry 迁移目标；check_no_weight_mode_code.py 不约束输出键故无门拉平",
+   "evidence": "DATA_SEMANTICS.md:3285；provenance.cpp:49-58/:111；clause_registry.json:2996-2999",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "三方择一统一",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-189",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "NOISE_MODEL:84 对齐声明整体失效（「与 noise_model.cpp:1-938 一致，fill_impl :776-866、门面 :868-883」↔ 实况 1482 行、fill_impl :1323、v1_fill :1412；:776-866 实为 build 路径）",
+   "evidence": "NOISE_MODEL.md:84；noise_model.cpp:1323/:1412",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "重锚 1482/1323/1412",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-190",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "NOISE_MODEL:55/:303/:304 floor/gain 判据锚全指错符号（:369-371=null_space_basis、:818=空行、真锚 :805-806/:1362/:1472-1480；同表 :830/:890/:1262 仍准=新旧锚混用）",
+   "evidence": "NOISE_MODEL.md:55/:303/:304",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "逐锚按符号重锚",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-191",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "noise_model.cpp:1057 注释仍用被 SCI 终裁否定的 1.144/√N 推 9216（(1.144/0.015)²=5817≠9216；:310/:1328 已是 1.44=同文件两口径并存）",
+   "evidence": "noise_model.cpp:1057；NOISE_MODEL.md:299-301",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "注释改 1.44 并复算",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-192",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "NOISE_ESTIMATION:30/:142-149 实现锚表漂移（default_config 实 :1243-1264、free :1447、scale_law :1463、gain :1472；:145 robust 锚仍准=混合漂移）",
+   "evidence": "NOISE_ESTIMATION.md:30/:142-149",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "重锚",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-193",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "STAR_PSF §11 冻结附录整体失锚（「934 行」↔实 1146；lm_solve 实 :120-207、LM 调用 :374-375、验证链 :386-390/:396-400/:403-408、flux :429、C API :481/:556/:683/:703/:716/:814/:990）且与本文档 §2:64/§3:91/§4:176 正确锚自相矛盾",
+   "evidence": "STAR_PSF_ALGORITHMS.md:150-171",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "重锚至与 §2/§3 收敛",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-194",
+   "batch": "noise-psf-cos重测",
+   "sev": "YELLOW",
+   "desc": "dpsf_psf.cpp:3-4 源码头注释第三套行号全错（h 实 :141、sx/sy 钳位 :195-196、FWHM>rect :396-401、背景比 :403-408）——三套锚无一全对",
+   "evidence": "dpsf_psf.cpp:3-4",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "统一到符号+单锚",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-195",
+   "batch": "noise-psf-cos重测",
+   "sev": "YELLOW",
+   "desc": "PSF.md:23/:114-117 锚漂移（flux 实 :429、A≤0 :364、FWHM :396-400、LM 上限返回 :207）与同文件 :70/:122 正确锚矛盾",
+   "evidence": "PSF.md:23/:70/:114-117/:122",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "重锚",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-196",
+   "batch": "noise-psf-cos重测",
+   "sev": "YELLOW",
+   "desc": "psf_model 双登记面口径相反（config_registry:385 finding=none+04_psf:34 无死键披露 vs prod_wiring_baseline:24-25 dead_config_key 棘轮；对照 02_cosmetic:36-37 有披露）",
+   "evidence": "config_registry.json:378-387；prod_wiring_baseline.json:24-25",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "统一为 finding=gap+04_psf 披露或接键入数值路径",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-197",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "坏列「段长≤2k−1/neighbor_k 归一 3」判据与实现错位：detect_bad_columns(:324-451) 全程不读 neighbor_k（签名透传 10 处）、无「<=0 归一 3」、真闸门=maxlen(:339 默认 1 来自未登记键 bad_column_max_seg_len；defaults:780-791 登记的 neighbor_k 无行为承载)",
+   "evidence": "CALIBRATION.md:210-211；cosmetic_corrector.cpp:324-451/:339；module_adapters.cpp:2787",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "上限接 2k−1 或订正文档+接入/注销 neighbor_k+登记 max_seg_len",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-198",
+   "batch": "noise-psf-cos重测",
+   "sev": "GAP",
+   "desc": "坏列算法 ALG/SCI ID 层零登记（COSMETIC_ALGORITHMS 只锚 :61-265；:267-780 坏列/方差管线+6 个 AC_API 生产在用；docs 全库 bad_column 符号 0 命中）",
+   "evidence": "COSMETIC_ALGORITHMS.md:6-11/:23",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "补 ALG-COS-006 逐公式登记",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-199",
+   "batch": "noise-psf-cos重测",
+   "sev": "RED",
+   "desc": "CALIBRATION:314/:420 冻结 SCI 以退役 cc_* 符号作 oracle 证据与 ALG-CAL-004（生产源无 cc_*；COSMETIC:39-42 自证退役通道不在任何 CMake 目标）",
+   "evidence": "CALIBRATION.md:314/:420",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "改指 ac:: 生产符号或标注退役",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-200",
+   "batch": "noise-psf-cos重测",
+   "sev": "YELLOW",
+   "desc": "CALIBRATION:426 公开 API 清单缺坏列家族 6 导出（astro_calibration.h:161/:184/:207/:248/:311/:365；生产 :2954 在用）",
+   "evidence": "CALIBRATION.md:426",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "补齐清单",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-201",
+   "batch": "noise-psf-cos重测",
+   "sev": "YELLOW",
+   "desc": "defaults.json 行锚链三方不一（clip_sigma 指 NOISE_MODEL:56 实 :63；constraint 指 NOISE_ESTIMATION:36 实 grid 行；10/6/60 导出链 :368→:143 实 :144、defaults 写 :134；自带「+6 偏移」注记实测不成立）",
+   "evidence": "defaults.json:109-171；NOISE_MODEL.md:368",
+   "verdict": "待复验（检测兵产出·未过对抗复验）",
+   "fix": "按符号重锚三处",
+   "status": "pending_verify"
+  },
+  {
+   "id": "P-202",
+   "batch": "P3细节三验三",
+   "sev": "YELLOW",
+   "desc": "注记：SCIENCE_OVERVIEW:103/:108 旧号另批在验不重复计数；p3_proj.cpp:304/:423 代码注释旧号「DESIGN §5.3」（与同文件 :31 §6.3 自反）随 A-5 批同订正",
+   "evidence": "p3_proj.cpp:304/:423/:31",
+   "verdict": "确证；归并 §5.3 失修批",
+   "fix": "随 §5.3→§6.3 批订正",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-203",
+   "batch": "P3细节三验三",
+   "sev": "RED",
+   "desc": "A-2 DATA_SEMANTICS §28.4:2607-2609「TAN 半球界两判据数学等价」错（r<π/2 ⇔ ρ<57.5184° ⊊ {denom>0 ⇔ ρ<90°}；环带正反映射不互逆；p3_wcs.cpp:526/:552 双阈值实证）——订正上级方向",
+   "evidence": "DATA_SEMANTICS.md:2607-2609；PHASE3_PROJ_IMPL.md:288-300",
+   "verdict": "确证（订正上级）",
+   "fix": "订正 §28.4 该句为真子集关系",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-204",
+   "batch": "P3细节三验三",
+   "sev": "RED",
+   "desc": "A-3 RSMP_IMPL:27-28/:177-180/:318 variance/ivar 拒收旧口径（上位已换轨 SCI-P3:147/DATA:2465/DESIGN:482 三份反向；代码在产 p3_resample.h:122-198、p3_output.cpp:347-385；文内 :101 自反；DISP-P3RSMP-003 本身已被现实反超）",
+   "evidence": "PHASE3_RSMP_IMPL.md:27-28/:177-180/:318",
+   "verdict": "确证",
+   "fix": "按 §29.1 目标态订正 §1/§6.2/§9",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-205",
+   "batch": "P3细节三验三",
+   "sev": "RED",
+   "desc": "A-4 Phase3 发布序倒置（实现 rename 后 sha256/verify vs DESIGN:714/IO_003 §4 前置冻结序；FITS_IMPL:189 失实「IO_003 §4 实现」声明；reopen_ok 无 rc 消费=verify 失败仍返 P3_OUT_OK）",
+   "evidence": "p3_output.cpp:418-444；ASTROCS_DESIGN.md:714；IO_003:103-110",
+   "verdict": "确证",
+   "fix": "哈希/verify 挪发布前+reopen_ok 接 rc 消费或登记偏差",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-206",
+   "batch": "P3细节三验三",
+   "sev": "RED",
+   "desc": "B-1 确证在册 P-085（verify 无 BUNIT 无 fits_verify_chksum；测试零鉴别力）——fixer 在飞已补 BUNIT 读回+篡改负例，checksum 面仍未补",
+   "evidence": "问题台账.md:87 P-085；p3_output.cpp:528-547",
+   "verdict": "确证在册（P-085）",
+   "fix": "随 fixer 提交后销 P-085；checksum 对拍另行跟进",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-207",
+   "batch": "P3细节三验三",
+   "sev": "YELLOW",
+   "desc": "B-3 HEALPIX_MAPPING:5「机器门禁保证唯一实现」门不存在（checks.json/01_CHECKS/spec_named_impls grep healpix=0；STANDARDS_REGISTRY:141 虚指无门 id；单源事实成立=shim 退役注释）",
+   "evidence": "HEALPIX_MAPPING.md:5；STANDARDS_REGISTRY.md:141",
+   "verdict": "确证",
+   "fix": "表述改如实或补建门给 id",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-208",
+   "batch": "P3细节三验三",
+   "sev": "RED",
+   "desc": "C-1 HEALPIX_MAPPING 缺 §3.3 五件事与 §12.1 Oracle/§12.4 负例承接（单位/域/归一化在 healpix_core.h:23-29 码不在文；test_healpix_oracle.cpp 实存未被承接；TEST-HEALPIX-* 仅通配符=DA02:490-494 已登记子项豁免）",
+   "evidence": "HEALPIX_MAPPING.md:7-21/:35-37",
+   "verdict": "确证",
+   "fix": "补指针级承接（I/O 四要素+Oracle/负例指针）",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-209",
+   "batch": "P3细节三验三",
+   "sev": "豁免",
+   "desc": "A-1 §5.3/§6.3 旧号散布=已登记（CR-58-9/DB-04:537/DA02:1779/DA01:607①④）——主体豁免",
+   "evidence": "通读-CR-58.md:257-267",
+   "verdict": "已登记豁免",
+   "fix": "按 AUD-101/CR-58 跟踪",
+   "status": "confirmed"
+  },
+  {
+   "id": "P-210",
+   "batch": "P3细节三验三",
+   "sev": "豁免",
+   "desc": "A-5 FITS_IMPL:401 裸 ADU=DA02:2070 C-1 逐字点名豁免；A-6 SCI-P3「未实现」状态=DA01:604/:607④+DB-12:23/:43 豁免；B-2 FIFO=S6B-R08+DA02 C-6 豁免",
+   "evidence": "AUD-101-DA02:2070/:1227-1229",
+   "verdict": "已登记豁免×3",
+   "fix": "按 AUD-101/S6B 跟踪",
+   "status": "confirmed"
+  }
+ ]
+}

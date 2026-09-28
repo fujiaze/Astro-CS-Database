@@ -1,29 +1,30 @@
-# Reports 目录说明
+# evidence 目录说明（机器门基线与台账）
 
-本目录存放**报告与证据面**。历史上按版本/阶段堆积的一次性报告已于 CLEAN-402
-（历史治理工件清理，2026-09-21）甄别清理：有长期价值的结论已并入正式文档
-（对照表见 `run/CLEAN-402/CONCLUSION_MIGRATION.md`），过程由 git 历史承载。
+本目录只收留**机器门消费的基线与台账**（门功能消费，非实测类）。
+按负责人裁决（2026-09-28，artifacts 重组），实测类内容（测量结果 / 基准数值 / 质量实测 /
+审计时点证据）已全部迁 `实验/engineering-evidence/` 留档，迁移映射见该目录 README；
+正式文档只写设计不引外部锚（唯一例外 = 科学链路引 `实验/`），实验结论写成文档规范条款。
 
-## 现行保留内容（每条都必须是"活锚"，不得再堆历史批次）
+## 现行保留内容（每条都是机器门的功能输入，不得删除）
 
 | 路径 | 保留理由 |
 |---|---|
 | `README.md`（本文件） | 本目录的锚（`eng/ci/impact_map.json` 路径域探针 + `eng/ci/root_manifest.json` required_dirs），不得删除 |
-| `v6/science-adjudication/`、`v6/qa-design/` | V6 产品族**活动设计档案**（`docs/{science,contracts,algorithms,validation}/v6/**`）的裁决与 QA 证据锚 |
-| `v6/release-review/01_CONVERGENCE_CORRECTIONS.md`、`v6/contract-review/{03_SUPERSEDED_SCI_SECTIONS,04_OPEN_ITEMS_AND_SIGNOFF}.md` | 同上（v6 文档逐条反引号引用的收敛订正/签字记录） |
-| `v6/performance/PERF-SCALE-001.md` | 活测试 `eng/tests/monitoring/test_frozen_gate.py` 判据依据（16-worker 实测 65.09%） |
-| `v6/{real-science,review-audit}/`、`v19r7_quality/` | 保留候选（未裁决的 P1/P2 闭环状态与真实科学轮结论），处置见 `run/CLEAN-402/RETAIN_CANDIDATES.md` |
-| `PROJECT-GOVERNANCE-01/research/` | 六份正式科学/算法/合同文档引用的**证据锚**（R-1/R-2/R-3/R-5/MASK-001/DOC-SCI-001 等） |
-| `PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md` | 退役工具/注册项的复原坐标唯一记录（4 处工具 docstring 引用） |
-| `PROJECT-GOVERNANCE-01/security/EXPOSURE_NOTE.md` | 凭据暴露面处置裁决的唯一落点 |
-| `RELEASE-01/science/exp_math.py` | `docs/science/NOISE_MODEL.md` 所引数值实验脚本的唯一 tracked 副本 |
-| `compress-01/` | `docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md` §7/§9 引用的**证据锚**：HiPS 瓦片与内存累加器压缩评估的最终数字（`final_numbers.json`）、填充率/TRIM/累加器扫描、复现脚本与 SHA-256 清单；原始 315 MB 基准产物未入库（可由该文 §7 重建） |
-| `v19r2/evidence/quality/traceability_check.json` | `eng/ci/checks.json`（CHK-SCI-REF）登记输出，删除会使该门 `FAIL(missing_output)`；待 FIX-404 把登记改指 `run/ci/quality/traceability_check.json` 后可删 |
-| `REAUDIT_V3/v3_exec/CON00{6,9,10}*.md`、`review-package-20260915/{02_待裁决清单.md,04_设计大纲综述/}` | 未决裁决/口径冲突的唯一落点，保留候选 |
-| `known-limitations-ledger/LEDGER.md` | `docs/KNOWN_LIMITATIONS.md` 条目的**过程台账**（编号注册表 / 严重度 / 状态 / 发现任务 / 裁决出处）唯一落点；该页条目号（`条目 N`、`§E M-x`）的解析对照表在其 §1 |
+| `doc-hygiene/baseline.json` | `check_doc_hygiene.py` 棘轮基线（只减不增），路径硬编码于 `eng/tools/doccheck/check_doc_hygiene.py` |
+| `known-limitations-ledger/LEDGER.md` | `docs/KNOWN_LIMITATIONS.md` 条目号解析台账（编号注册表 / 严重度 / 状态 / 发现任务 / 裁决出处）；CHK-DOC-HYGIENE D2d 判据要求其存在且 §1 编号表可解析 |
+| `truthful-conclusion-01/file_audit.json` | `eng/tools/quality/check_conclusion_truth.py`（CHK-TRUTHFUL-CONCLUSION）判据依据（file_audit 覆盖率复算件） |
+
+## 未决条目（原位保留，归属待负责人裁决）
+
+| 路径 | 现状 |
+|---|---|
+| `governance-01/` | 治理证据锚：`retire/RETIREMENT_LEDGER.md`（退役工具复原坐标，`docs/ci/01_CHECKS.md` §2.2 与 root_manifest notes 引用）、`research/`（R-1..R-6 等研究件）、`security/EXPOSURE_NOTE.md`（root_manifest 登记）。非实测、非门基线，未入迁移清单 |
+| `review-package/` | V3 后问题、推导和缺陷账本（`docs/references/SCIENTIFIC_REFERENCES.md` 引用）。未决裁决落点，非实测 |
+| `v19r2/` | `evidence/quality/traceability_check.json`（CHK-SCI-REF 历史登记输出；该门 outputs 现已指 `run/ci/quality/traceability_check.json`）。处置待裁决 |
 
 ## 目录规则
 
-- 新报告一律落 `run/<task>/`（gitignore，不入库）；只有被正式文档引用为**证据锚**的内容才允许进本目录；
-- 新增/删除本目录条目时，必须同步核对 `eng/ci/impact_map.json` 的 `reports/**` 探针与
+- 新报告一律落 `run/<task>/`（gitignore，不入库）；实测类证据一律落 `实验/engineering-evidence/`；
+  只有**机器门功能消费**的基线/台账才允许进本目录；
+- 新增/删除本目录条目时，必须同步核对 `eng/ci/impact_map.json` 的路径域探针与
   `eng/ci/root_manifest.json` 的 `required_dirs`（本目录不得为空目录出库）。
