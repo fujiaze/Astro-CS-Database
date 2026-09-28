@@ -313,7 +313,8 @@ class TestCli004ProcessProtocol(unittest.TestCase):
                            capture_output=True, text=True, timeout=60, cwd=run_cwd())
         self.assertEqual(r.returncode, 2)
         self.assertEqual(r.stdout, "")
-        self.assertIn("astrocs:", r.stderr)
+        # 诊断前缀 = 唯一入口名 acsd（docs/ASTROCS_DESIGN.md §1.2/§7.1）。
+        self.assertIn("acsd:", r.stderr)
         # 负向: 运行/模板互斥 → 2
         r_mutex = subprocess.run([EXE, "normalize", "--json", cfg, "--template"],
                                  capture_output=True, text=True, timeout=60, cwd=run_cwd())
@@ -325,7 +326,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         self.assertEqual(r2.returncode, 3)
         # 预检阻断（输入缺失）⇒ 无事件、无 manifest（fail-closed，不落看似完整的产物）
         self.assertEqual(r2.stdout, "", "预检阻断不得在 stdout 打印任何文本/事件")
-        self.assertIn("astrocs:", r2.stderr)
+        self.assertIn("acsd:", r2.stderr)
         self.assertEqual([f for f in os.listdir(out) if f.startswith("astrocs_run_")], [],
                          "预检阻断不得写 run manifest")
 
