@@ -174,7 +174,7 @@
             "point_source_flux",
             "visualization"
           ],
-          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §5.3:267）；默认 surface_brightness 见 docs/plugins/algorithms_phase3/16_fits_output.md:41"
+          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §5.3:267）；默认 surface_brightness 见 docs/plugins/algorithms_phase3/16_fits_output.md:45"
         },
         "wcs": {
           "$ref": "#/$defs/export_wcs"

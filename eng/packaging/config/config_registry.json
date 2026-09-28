@@ -721,14 +721,14 @@
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
       "line": 49,
       "field": "pixfrac",
-      "declared_default": "1.0",
+      "declared_default": "0.8",
       "unit": null,
       "owner_class": "science_param",
       "registration": "defaults_json",
       "registered_at": "eng/packaging/config/defaults.json#fields[].key=drizzle.pixfrac",
       "registered_key": "drizzle.pixfrac",
       "finding": "none",
-      "note": "默认 1.0 已入 defaults.json（owner_adjudicated；严格通量守恒端点）；值域 (0,1] 不变，pixfrac<1 须记 provenance.flux_conservation_factor=pixfrac²。",
+      "note": "默认 0.8 已入 defaults.json（owner_adjudicated，与 08_drizzle.md §5 表同值）；值域 (0,1] 不变（drop 面积归一，总通量与 pixfrac 无关）。",
       "conflict": null
     },
     {

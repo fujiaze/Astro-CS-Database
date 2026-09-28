@@ -11,7 +11,7 @@
 ## 内容
 
 - `01_calibration.md` —— 减偏置、暗流、平场的定标与不确定度传播。
-- `02_cosmetic.md` —— 坏点、热像素、宇宙线等异常像素的修正与 validity 标志。
+- `02_cosmetic.md` —— 坏点（hot/cold 像素）、坏列等异常像素的检测与修复，validity 标志（不做宇宙线剔除，见该篇 §1）。
 - `03_star_detection.md` —— 源检测：位置、质心/矩、源身份与 selection function 参数。
 - `04_psf.md` —— 空间变化 PSF 模型的估计、参数、残差与适用域。
 - `05_platesolve.md` —— 参考星表匹配解算天体测量解，生成并验证 ICRS WCS。

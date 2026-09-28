@@ -457,7 +457,7 @@
     "sparse_snr_layer": {
       "type": "boolean",
       "default": true,
-      "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：默认稀疏路径要求稀疏层默认产出（docs/plugins/algorithms_phase1/07_noise_snr.md:112、08_drizzle.md:46）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 eng/packaging/config/templates/normalize.phase_config.json；不复制进 eng/packaging/config/defaults.json（eng/packaging/config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
+      "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：默认稀疏路径要求稀疏层默认产出（docs/plugins/algorithms_phase1/07_noise_snr.md:213、08_drizzle.md:55）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 eng/packaging/config/templates/normalize.phase_config.json；不复制进 eng/packaging/config/defaults.json（eng/packaging/config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
     },
     "sparse_snr_spacing_px": {
       "type": "integer",

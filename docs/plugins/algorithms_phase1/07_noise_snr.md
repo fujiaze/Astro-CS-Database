@@ -133,15 +133,15 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 
 ### 4.4 噪声模型：A 为唯一生产模型
 
-- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:807` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:920-921`）链入主程序。
+- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:807` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:917-918`）链入主程序。
 - 模型定义、参数语义、稳健噪声估计与掩膜规则的正本见 `docs/science/NOISE_MODEL.md`；本文件只登记插件侧接口与接线事实，不复制公式。
-- **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产调度路径**已挂** `variance` 帧内命名块——`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`（`module_adapters.cpp:8154-8158`），引擎侧 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，`true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status`/`var_reason`）；口径正本 = `08_drizzle.md` §7。
+- **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序；生产调度路径**已挂** `variance` 帧内命名块——`lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`（`module_adapters.cpp:8153-8157`），引擎侧 `sumVarNum += v·w²`，sink/writer finalize 出 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（由磁盘事实给出，`true` ⇒ variance|ivar 位同时置位），显式降级非静默（带 `var_status`/`var_reason`）；口径正本 = `08_drizzle.md` §7。
 - **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一像素必须落在两态之一 —— **可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`；**不可用** `variance=0 ∧ ivar=0`。
   平面预测 ≤ 0、或生效 floor / 输出值在 float32 中不可表示（下溢为 0 / 上溢为非有限）的像素取不可用态；不可用方差的落盘值 = 显式不可用态本身——
   floor clamp 会把「模型在此处失效」发布成 `ivar=1/floor` 的极大权重；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。
   正本 = `docs/science/NOISE_MODEL.md` §5/§7/§9 与 `docs/contracts/DATA_SEMANTICS.md` §4a 三态表；
   门 = `ctest -R p1noise_negative`（`n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`）+ `ctest -R p1noise_selfcheck`（证明判据能红，非恒真）。
-- **影响面**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；逐像素**不确定度产品面**由生产调度路径经 A 的插件路径产出（接线在场：`module_adapters.cpp:8154-8158`）。凡「逐像素方差/不确定度已传播到产品」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据。
+- **影响面**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；逐像素**不确定度产品面**由生产调度路径经 A 的插件路径产出（接线在场：`module_adapters.cpp:8153-8157`）。凡「逐像素方差/不确定度已传播到产品」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据。
 - **行号说明**：本节的 `文件:行` 以符号名/文件名核对为准；工作树并发改动会使行号漂移。
 
 ### 4.4a 背景方差面的自适应拟合与 §5d 审计面
@@ -191,7 +191,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **选择规则（按数据来源，不按控制网格自身推断）**：可判定 cell 内含未分辨点源（空间高分辨率 / HST 类）⇒ 声明 `..._mesh_median_v1`；地面 seeing-limited 与一般情形 ⇒ 默认档；**无法判断 ⇒ 默认档**（默认目标域上滤波有害）。该规则由 `sparse_recon_operator_for_source()` 显式承载。**从控制网格自身推断不可行**：两个候选标量诊断（相邻控制值差分比 ρ、`std(log10 ctrl)/ε_cell`）都不能把「滤波有益」与「滤波有害」的域分开，且在 16-bit 整数真实数据上直接失效（EXP-04 §4.3）；
 - 任何算子都必须满足四条**与选型无关**的约束：① **显式声明**——算子标识入 manifest；② **正齐次性** `R[a·v] = a·R[v]`（`a > 0`）——控制点值整体缩放时重建场按同一因子缩放，这是「帧内共模因子在权重口径下相消」成立的前提，带**数据无关固定先验均值**或向固定值收缩正则的算子（如固定先验均值的 GP/kriging）**不满足**该条；③ 在控制点处**精确复现**节点值；④ 越出定义域即 **fail-closed**，域外取值一律显式拒绝（外推/帧级回退各属另一路径）。不正齐次的算子若被选用，必须把 `homogeneity` 声明与「该算子下相对场**不能**由绝对场缩放得到」写入 manifest，消费侧据共模相消做的等价假设**以该声明为前提**（算子正齐次性的反例与残差量级见 `实验/absolute-snr` EXP-05 §3.1/§3.2）；
 - 控制点位置、取值、采样覆盖、`reconstruction_operator` 与 `snr_path_effective` 一并写入 manifest 与产品内容证据块。
-- **插值设置配置化＋运行日志输出，不随产物落盘**：词表只冻结算子标识与语义（上表）；算子级数值设置属**配置级**参数，由配置承载、不冻结进词表——备选 IDW 口径保持**备选定位**（不在上列冻结词表内），其 `idw_power` 默认 **1.0**（含噪最优带 0.5–1 上端；p=2 降级为无噪/光滑极限最优读数）、`K` = 16、重合点守卫 γ<1e-10，以及 mesh 滤波开关等，均按配置解析；每次重建把**实际生效**的插值设置写入**运行日志**（IDW 口径含实测最优 `p*`（argmin）、`K` 与噪声档），**不随产物落盘**——产物面只按上条登记算子标识与层几何（manifest）。`p*` 依赖场形态与噪声档，不冻结单一「最优值」，随日志积累重标定。
+- **插值设置配置化＋运行日志输出，不随产物落盘**：词表只冻结算子标识与语义（上表）；算子级数值设置属**配置级**参数，由配置承载、不冻结进词表——备选 IDW 口径保持**备选定位**（不在上列冻结词表内），其 `idw_power` 默认 **1.0**（含噪最优带 0.5–1 上端；p=2 降级为无噪/光滑极限最优读数——终裁 = `实验/dense-snr-reconstruct` 分歧台账 D-05）、`K` = 16、重合点守卫 γ<1e-10，以及 mesh 滤波开关等，均按配置解析；**实现侧接线现状（如实登记）**：`snr_evaluator` 的兜底默认当前为 2.0（`snr_evaluator.h:109` 成员初始化与 `snr_evaluator.cpp` 的 ≤0 守卫），与终裁默认 1.0 尚未对齐，配置显式传值时不触发兜底；每次重建把**实际生效**的插值设置写入**运行日志**（IDW 口径含实测最优 `p*`（argmin）、`K` 与噪声档），**不随产物落盘**——产物面只按上条登记算子标识与层几何（manifest）。`p*` 依赖场形态与噪声档，不冻结单一「最优值」，随日志积累重标定。
 - **控制点局部 σ 必须结构感知（数值准确的必要条件）**：控制点存绝对 SNR 只保证**表示正确**，不保证**数值准确**——后者完全由局部 σ 估计器决定。把估计作用域从整帧朴素地换成区域（同一 recipe + 更小窗口）**不够**：整帧口径的结构污染只是被挪到更小尺度，cell 内的未分辨结构仍被算进稳健尺度。控制点的局部 σ **必须**用**结构感知**估计器：mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；估计器标识、`sigma_rho` 与 `quality_flags` 一并入 manifest。估计器认证、逐区域偏差与适用域见 `docs/science/CONTROL_WEIGHT_SNR.md` §8b 与 `实验/absolute-snr`（EXP-03 的 R0/R1/R2）。
 
 ### 4.6 输出独立性与分面约束

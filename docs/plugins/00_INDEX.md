@@ -28,7 +28,7 @@ docs/plugins/
 | 文档 | 模块 | 一句话职责 |
 |---|---|---|
 | `01_calibration.md` | calibration | 减偏置/暗流/平场，单位与方差传播 |
-| `02_cosmetic.md` | cosmetic | 坏点/热像素/宇宙线修正 |
+| `02_cosmetic.md` | cosmetic | 坏点（hot/cold 像素）/坏列检测与插值修复 |
 | `03_star_detection.md` | star_detection | 源探测与质心/矩 |
 | `04_psf.md` | psf | 空间 PSF 建模与参数化 |
 | `05_platesolve.md` | platesolve | 天体测量解算与 WCS 拟合 |
@@ -63,7 +63,7 @@ docs/plugins/
 | `19_runtime.md` | scheduler | 模块名 = `scheduler` + `pipeline`（最高设计 §8.1；`runtime` 不是模块名）；typed DAG、调度、线程预算、资源监控 |
 | `20_benchmark.md` | benchmark | CPU profile 生成与校验 |
 | `21_observability.md` | observability | 日志、事件、运行图 |
-| `22_gaia_xpsd_client.md` | gaia_xpsd_client | 外部星表查询、缓存、坐标/历元语义 |
+| `22_gaia_xpsd_client.md` | gaia_xpsd_client | 本地星表解析、缓存、坐标/历元语义（离线、零网络） |
 | `23_hips_browser.md` | hips_browser | 未来 GUI 可视化组件（不进产品 manifest） |
 
 ---
@@ -101,12 +101,14 @@ docs/plugins/
 
 ---
 
-## 6. 三个创新点与实验单元
+## 6. 五个创新点与实验单元
 
-ACSD 的科学核心是三个紧密相连的创新点（最高设计 §2），插件文档集按它们组织：
+ACSD 的科学核心是**一条科学链上的五个相互纠缠的创新点**（最高设计 §2），插件文档集按它们组织：
 
-1. **测光校准到测光星等坐标系**（§2.1）：Gaia DR3 XP 星点光谱 × CCD QE 曲线 × 滤镜透过率曲线积分，正向合成期望测光量并与实测通量拟合，结果应用到整帧像素，**整帧消除物理单位**；
-2. **跨帧可用的绝对信噪比**（§2.2）：**帧级 SNR**（点源 PSF 信号口径，写入 HiPS 文件头）+ **稀疏控制点上的绝对 SNR**（与帧级同口径、同参考通量 `F_ref`，无量纲），Phase2 消费时由控制点**重建为稠密 SNR**；
-3. **加性天光与无接缝叠加**（§2.3）：UPM 在全部帧上联合建立**连续的绝对天光参考平面**，各帧按「**多退少补**」用加法扣除偏差、保留公共天光平面。
+1. **P1 通量积分拟合（根基）**（§2.1）：Gaia DR3 XP 星点光谱 × CCD QE 曲线 × 滤镜透过率曲线积分，正向合成期望测光量并与实测通量拟合，结果以线性乘性标度应用到整帧像素，把图像校准到**测光星等坐标系**、**整帧消除物理单位**；
+2. **P2 跨帧可用的绝对信噪比**（§2.2）：**帧级 SNR**（点源 PSF 信号口径，写入 HiPS 文件头）+ **稀疏控制点上的绝对 SNR**（与帧级同口径、同逐帧参考通量 `F_ref`，无量纲），不依赖参考帧；
+3. **P3 平面到球面的通量守恒映射算子**（§2.3）：平面到 HEALPix 的**通量绝对守恒**映射（球面 drizzle）；稀疏 SNR 控制点同经该算子上球；
+4. **P4 重建稠密信噪比**（§2.4）：基于本仓噪声信号模型，把稀疏控制点重建为稠密 SNR 场（Phase2 消费）；
+5. **P5 加性天光去除与无接缝叠加**（§2.5）：UPM 在全部帧上联合建立**连续的绝对天光参考平面**，各帧按「**多退少补**」用加法扣除偏差、保留公共天光平面；P1 已统一信号平面、P2/P4 已给出精确 SNR，SNR 加权叠加天然无接缝。
 
-三个创新点各自是一个独立实验单元（最高设计 §12.3）：实验报告、固定 seed 的代码、结果与数据见 `实验/photometric-magnitude`（测光星等坐标系）、`实验/absolute-snr`（绝对 SNR 传递链）、`实验/additive-sky-seamless`（加性天光与无接缝）；公式与推导正本见 `docs/science/`、`docs/science/algorithms/`。
+五个创新点各自是一个独立实验单元（最高设计 §12.3）：实验报告、固定 seed 的代码、结果与数据见 `实验/photometric-magnitude`（P1 测光星等坐标系）、`实验/absolute-snr`（P2 绝对 SNR 传递链）、`实验/healpix-polar`（P3 平面到球面守恒映射与极区面积交叠）、`实验/dense-snr-reconstruct`（P4 稀疏→稠密 SNR 重建）、`实验/additive-sky-seamless`（P5 加性天光与无接缝）；公式与推导正本见 `docs/science/`、`docs/science/algorithms/`。
