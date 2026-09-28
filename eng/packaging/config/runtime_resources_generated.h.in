@@ -47,4 +47,16 @@ static_assert(kP3MinSubBlockPx >= 1 && kP3MinSubBlockPx <= kP3DefaultSubBlockPx 
 static_assert(kP3DefaultQueueDepth >= 1,
               "orchestration_params: p3_default_queue_depth 必须 >= 1");
 
+// ── 编排参数（续）：帧并发度上限与预取线程上限（DYN-740 / P4 交接项 2）──────
+// 依据 docs/ASTROCS_DESIGN.md §8.3:652（编排参数含「预取深度、帧并发度、工作窃取策略」，
+// 基于探针实测迭代）+ docs/contracts/SCHEDULER_CONTRACT.md §3/:38（最终取值由性能门定，
+// 合同保证机制正确）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。
+// 语义：帧并发度上限只**收紧**、不放大（实现侧 fail-closed）；0 = 策略值。
+inline constexpr std::uint32_t kP1MaxFramesInFlight = @ASTROCS_RR_P1_MAX_FRAMES_IN_FLIGHT@;
+inline constexpr std::uint32_t kSchedulerPrefetchThreadsMax = @ASTROCS_RR_SCHEDULER_PREFETCH_THREADS_MAX@;
+static_assert(kP1MaxFramesInFlight <= 4096u,
+              "orchestration_params: p1_max_frames_in_flight 越界（> 4096 无意义，疑似配置错）");
+static_assert(kSchedulerPrefetchThreadsMax <= 256u,
+              "orchestration_params: scheduler_prefetch_threads_max 越界（> 256 无意义，疑似配置错）");
+
 }  // namespace astrocs::runtime_resources

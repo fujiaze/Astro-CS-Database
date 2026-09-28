@@ -1929,6 +1929,20 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   //   线程数唯一来自 lease，不硬编码）。
   const uint32_t budget = (thread_budget > 0) ? thread_budget : workers;
   uint32_t frame_w = (workers > 0) ? workers : 1u;
+  // 帧并发度上限（受控配置键 p1_max_frames_in_flight；0 = 策略值）：**只收紧、不放大**。
+  // 依据 docs/ASTROCS_DESIGN.md §8.3:652（帧并发度属编排参数，基于探针实测迭代，不靠静态猜测）
+  // + docs/contracts/SCHEDULER_CONTRACT.md:38（最终取值由性能门定，合同只保证机制正确）
+  // + §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。fail-closed：收紧后
+  // in_flight×inner_u ≤ budget 由下面的同一公式保证；越界配置不放大、只报一次。
+  {
+    const std::uint32_t frame_cap = astrocs::runtime_resources::kP1MaxFramesInFlight;
+    if (frame_cap > 0u && frame_cap < frame_w) {
+      std::fprintf(stderr,
+                   "[p1axis] 配置帧并发度上限生效 frame_workers=%u -> %u (budget=%u n=%llu)\n",
+                   frame_w, frame_cap, budget, static_cast<unsigned long long>(n));
+      frame_w = frame_cap;
+    }
+  }
   const uint64_t in_flight =
       std::min<uint64_t>(n, static_cast<uint64_t>(frame_w));
 #ifdef _OPENMP

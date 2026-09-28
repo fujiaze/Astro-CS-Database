@@ -152,18 +152,27 @@ class TestFix203PromotedKeys(unittest.TestCase):
     # ── 判据能红能绿（负例自检） ──
     def test_04_ledger_gate_negative_control(self):
         consumed_none = lambda _k: False  # noqa: E731
-        # 绿：真台账对零消费键无 finding
-        self.assertEqual([], ledger_findings(self.ledger, MUST_BE_LEDGERED, consumed_none))
+        # 绿：真台账对**实测零消费**的提升键无 finding。范围按生产消费实测收缩：
+        # 某键一旦出现生产读取点，其台账条目按 exit_condition 出清，不该再被要求登记
+        # （FIX-203 步骤 3 的判据是「零消费 ⇒ 必须登记」，不是「提升过 ⇒ 永远登记」）。
+        zero_consumption = tuple(k for k in MUST_BE_LEDGERED
+                                 if not self.consumed_outside_cli_table(k))
+        self.assertEqual([], ledger_findings(self.ledger, zero_consumption, consumed_none))
         # 红 1：空台账 ⇒ 每个键都报缺条目
         self.assertEqual(["missing_ledger_entry:dead_config_key:%s" % k
                           for k in MUST_BE_LEDGERED],
                          ledger_findings({}, MUST_BE_LEDGERED, consumed_none))
         # 红 2：条目字段为空 ⇒ 判红（台账不是后门）
+        # 靶点键从**现存**条目里取：提升键按 exit_condition 出清后条目即消失，
+        # 写死键名会让本负例随台账演进静默失去靶点。
+        probe = next((k for k in MUST_BE_LEDGERED
+                      if ("dead_config_key:%s" % k) in self.ledger), None)
+        self.assertIsNotNone(probe, "台账中已无任何零消费提升键条目，负例失去靶点")
         broken = dict(self.ledger)
-        broken["dead_config_key:snr_path"] = dict(broken["dead_config_key:snr_path"],
-                                                  exit_condition="   ")
-        self.assertIn("ledger_entry_field_empty:dead_config_key:snr_path.exit_condition",
-                      ledger_findings(broken, ("snr_path",), consumed_none))
+        broken["dead_config_key:%s" % probe] = dict(broken["dead_config_key:%s" % probe],
+                                                    exit_condition="   ")
+        self.assertIn("ledger_entry_field_empty:dead_config_key:%s.exit_condition" % probe,
+                      ledger_findings(broken, (probe,), consumed_none))
         # 红 3：已消费的键不强制登记（判据不是恒真）
         self.assertEqual([], ledger_findings({}, ("bitpix",), lambda k: True))
 

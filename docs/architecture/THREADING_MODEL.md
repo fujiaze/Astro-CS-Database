@@ -95,8 +95,17 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 
 ### 并发度 A/B 对照的可复现性（冻结口径）
 
-`frame_workers` **不是配置项**：它由 `min(lease, p1_memory_cap)` 派生，而 `p1_memory_cap`
+`frame_workers` **不是自由配置项**：它由 `min(lease, p1_memory_cap)` 派生，而 `p1_memory_cap`
 随**运行时刻的 `MemAvailable`** 浮动 ⇒ 同一份配置文件在不同时刻跑，生效并发度可能不同。
+（DYN-740 / R-27 补充：编排参数受控化后，帧并发度**上限**可由受控配置键
+`p1_max_frames_in_flight` 收紧（唯一数值源 = `eng/packaging/config/runtime_resources.json`
+→ 生成头 → `module_adapters.cpp#p1_parallel_for`）；缺省 `0` = 不设上限，派生口径与本节不变，
+且实现侧只收紧不放大（fail-closed：收紧后 `in_flight × inner_u ≤ budget` 不变）。
+依据 `docs/ASTROCS_DESIGN.md` §8.3:652（帧并发度属编排参数，基于探针实测迭代）与
+`docs/contracts/SCHEDULER_CONTRACT.md`:38（最终取值由性能门定，合同只保证机制正确）。
+同批受控化的还有未接线调度器的预取线程上限 `scheduler_prefetch_threads_max`。
+**工作窃取策略**：生产**无实现**（全仓唯一命中在 ACR，而 ACR 生产不可达）⇒ 键位方案已登记于
+`config_registry.json#orchestration_params.gaps`，不落无读取面的死键，待实现后同批落键。）
 故任何「并发度 A vs B」的对照必须同时满足下列四条，缺一即不成立：
 
 1. **钉住**：`taskset -c <掩码>` 钉 CPU 掩码（Runtime 线程预算 = 掩码内的 CPU 数 ⇒ `lease` 确定）；

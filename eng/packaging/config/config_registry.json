@@ -2295,6 +2295,34 @@
         "consumers": [
           "module_adapters.cpp p3n_sub_block_px / 队列构造"
         ]
+      },
+      {
+        "key": "p1_max_frames_in_flight",
+        "unit": "帧（在飞帧数上限）",
+        "semantics": "P1 帧级并行宽度上限；0 = 策略值（由 Runtime lease 与内存闸门决定）。>0 时只收紧、不放大（fail-closed）",
+        "guard": "生成头 static_assert <= 4096（越界视为配置错；实现侧另按 in_flight×inner_u <= budget 保证不超预算）",
+        "consumers": [
+          "lib/infrastructure/scheduler/src/module_adapters.cpp#p1_parallel_for（帧轴分配，9 处调用共用）"
+        ]
+      },
+      {
+        "key": "scheduler_prefetch_threads_max",
+        "unit": "线程数（预取线程上限）",
+        "semantics": "未接线调度器 NormalizeWorkflowScheduler 的预取线程数受控上界；0 = 不设上限。实现侧 clamp + 留痕",
+        "guard": "生成头 static_assert <= 256",
+        "consumers": [
+          "lib/infrastructure/scheduler/src/normalize_workflow.cpp#run（prefetch_pool 构造前）"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "parameter": "工作窃取策略（work stealing policy）",
+        "planned_key": "scheduler_work_steal_policy（值域：0=atomic-claim 动态认领（现状）|1=per-worker 双端队列窃取）",
+        "status": "未落地（生产无实现）",
+        "reason": "全仓 grep：生产侧零 work-steal 实现（唯一命中 = lib/infrastructure/acr/**，而 ACR 生产不可达，docs/ASTROCS_DESIGN.md §8.4）；P1 帧轴现用原子认领（p1_parallel_for），无窃取路径。",
+        "ruling": "按裁决「先落受控配置键，再接线；禁止实现侧硬编码字面量」：键位与守卫方案已备于此，**不落死键**（无读取面的键会被 check_config_consumed 的 C1 判死键）。",
+        "unblock": "实现窃取调度（lib/infrastructure/scheduler/src/**）+ 数值等价负例（SCHEDULER_CONTRACT.md:27「异步与工作窃取只改变执行顺序，不改变结合顺序」）后，同批落键。"
       }
     ],
     "gate": "实现侧零字面量（grep 扫描 module_adapters.cpp）+ 生成头 static_assert 守卫（能红能绿，证据 run/FINAL-07/logs/DYN-740_R27_orchestration_params.log）；预算分母面的机器门 = eng/tools/quality/check_budget_single_source.py（CHK-BUDGET-SINGLE-SOURCE）",
