@@ -112,7 +112,7 @@ doc_index:
     - path: "docs/KNOWN_LIMITATIONS.md"
       status: ACTIVE_INFORMATIVE
       duty: "已知限制与明确不做的事项清单（只写现行限制陈述：现象 / 规范依据 / 归属去向）"
-      upstream: "docs/ASTROCS_DESIGN.md §1.3（非目标）"
+      upstream: "docs/ASTROCS_DESIGN.md §1.4（非目标）"
       downstream: "README.md、docs/DOCUMENT_INDEX.yaml"
     - path: "docs/TRACEABILITY.csv"
       status: ACTIVE_NORMATIVE
@@ -132,7 +132,7 @@ doc_index:
     - path: "docs/science/algorithms/ACR_EQUIVALENCE.md"
       status: ACTIVE_NORMATIVE
       duty: "ACR 等价性算法与退役实现边界"
-      upstream: "docs/ASTROCS_DESIGN.md §1.3（非目标）"
+      upstream: "docs/ASTROCS_DESIGN.md §1.4（非目标）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/PHASE2_MOSAIC_WRITE.md、docs/contracts/INDEX.yaml、docs/owner/SCIENCE_OVERVIEW.md"
     - path: "docs/science/algorithms/CALIBRATION_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
@@ -746,6 +746,10 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、eng/cmake/ARCH-001-migration-manifest.md、eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/schemas/projection_registry.schema.json 等 21 处"
       notes: "模块八元组映射（MOD-001；指向 docs/plugins 23 篇）"
+    - path: "docs/modules/README.md"
+      status: ACTIVE_INFORMATIVE
+      duty: "模块说明层入口：目录职责边界、内容清单与合同三件套落位规则"
+      upstream: "docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）"
     - path: "docs/modules/acr.md"
       status: ACTIVE_INFORMATIVE
       duty: "异构计算运行时：kernel registry、CPU/GPU 调度、device executor、"
@@ -852,6 +856,10 @@ doc_index:
       duty: "星表匹配 + TAN/SIP plate solve → WCS（含 SIP A/B/AP/BP 与质量指标"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
+    - path: "docs/modules/registry/README.md"
+      status: ACTIVE_INFORMATIVE
+      duty: "registry 说明层入口：逐模块生产实现登记、模块 ID 迁移基线与 descriptor 词汇对齐登记"
+      upstream: "docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）"
     - path: "docs/modules/registry/astrocs.phase1.calibration.md"
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
@@ -1232,7 +1240,7 @@ doc_index:
     - path: "docs/science/ACR_EQUIVALENCE.md"
       status: ACTIVE_NORMATIVE
       duty: "ACR 等价性的科学边界（生产不可达）"
-      upstream: "docs/ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）"
+      upstream: "docs/ASTROCS_DESIGN.md §1.4（非目标）、§4（normalize）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv、docs/contracts/INDEX.yaml、eng/contracts/data/clause_registry.json 等 7 处"
     - path: "docs/science/ASTROMETRY.md"
       status: ACTIVE_NORMATIVE

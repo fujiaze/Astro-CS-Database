@@ -77,19 +77,18 @@ entrypoint=MISSING）。
 
 ## 5. public entry 与实际主要 source symbols（sdet_api.cpp 实测行号）
 
-C API（9 导出，头 lib/algorithms/star_detection/include/star_detector.h:1-73）：
+C API（现行 6 导出，头 lib/algorithms/star_detection/include/star_detector.h:1-102）：
 
 | symbol | 头行 | 定义行 | 语义摘要 |
 |---|---|---|---|
-| `sdet_create` | star_detector.h:33 | sdet_api.cpp:954 | handle 创建；NULL→默认参数（:963-975）；生产实参 orchestrator.cpp:1593-1612 |
-| `sdet_destroy` | :34 | :984 | 唯一释放对 |
-| `sdet_detect` | :36-40 | :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
-| `sdet_free_coords` | :42 | :1276 | sdet_detect 专用释放 |
-| `sdet_detect_debug` | :44-50 | :1281 | 诊断入口（CC 路径+平滑图导出+extras） |
-| `sdet_free_debug_maps` | :52 | :1595 | debug 图专用释放 |
-| `sdet_detect_ex` | :54-62 | :2318 | 生产 FP32 入口（uint16→float，impl<float>） |
-| `sdet_detect_ex_f64` | :67-75 | :2343 | 生产 FP64 入口（impl<double>，全程不降级，PREC-105） |
-| `sdet_free_detect_ex` | :77-79 | :2357 | 十数组唯一释放（extras 同组） |
+| `sdet_create` | star_detector.h:31 | sdet_api.cpp:990 | handle 创建；NULL→默认参数 |
+| `sdet_destroy` | :32 | :1020 | 唯一释放对 |
+| `sdet_detect_ex` | :38-43 | :2305 | 全图盲检测 FP32 入口（uint16→float，impl<float>）；诊断/初值路径，非权威 |
+| `sdet_detect_ex_f64` | :47-52 | :2330 | 全图盲检测 FP64 入口（impl<double>，全程不降级，PREC-105）；诊断/初值路径，非权威 |
+| `sdet_free_detect_ex` | :54-56 | :2344 | 十数组唯一释放（extras 同组） |
+| `sdet_detect_guided_ex_f64` | :87-96 | :2281 | **权威路径**：星表逆投影预测位置上的引导检测（拟合/质量门失败的位置直接丢弃，不计虚警），输出十数组 + `SDetGuidedStats` |
+
+注：`sdet_detect`、`sdet_detect_debug`、`sdet_free_coords`、`sdet_free_debug_maps` 为历史导出，现行源码已无定义、导出表已注销（`docs/architecture/api_inventory.csv` 记 `export=RETIRED`），不计入现行 6 导出。
 
 内部核心（static/template，同文件）：`sdet_detect_impl<T>`（:1599-2353，
 float/double 双实例生产核心）、`sdet_compute_bgnoise`（:440-476，FnNoise1

@@ -28,7 +28,8 @@
 
 - 逐像素加权积分 reducer：`signal = Σ wᵢxᵢ / Σ wᵢ`（仅 eligible ∧
   正权重样本，候选索引固定序）；support canonical reducer
-  （max(accepted support)，integrate.h:17 冻结语义；现状缺陷登记 =
+  （max(accepted support)，integrate.h:26-27 冻结语义；零权重 accepted 样本
+  计入 max、全零权仍发布，integrate.cpp:44-50/:79-80；约束与回归门 =
   ALG-P2-INT-001 §11.3）。
 - 五态显式 status（OK/NO_CANDIDATES/ALL_REJECTED/ZERO_VALID_WEIGHT/
   INVALID_INPUT）；wsum==0 不做除法；零权重=合法零贡献。
@@ -44,10 +45,13 @@
 - 并发/确定性：像素内候选索引固定序归约；像素间并行在调用方
   （stage2.cpp:1288 / acr_kernels.cpp:218 OMP）；per-thread 统计
   thread id 定序归并（stage2.cpp:1305-1313）→ 输出与 worker 数无关。
-- known_defects（登记不改码；正本 = ALG-P2-INT-001 §11.3）：sup_max 漏计
-  零权重 accepted 样本（integrate.cpp:54-55 vs integrate.h:17，保守方向）；
-  INTEGRATION.md 与 integrate.h 的 support 表述矛盾（文档级）；现行实现
-  保持此语义，整改面未落地。
+- known_defects：无未决项。原 `DISP-P2INT-001`（sup_max 漏计零权重 accepted
+  样本）与 `DISP-P2INT-002`（support 表述矛盾）均已落地：现行实现 = sup_max
+  更新位于权重分支之前（`integrate.cpp:44-50`），零权重 accepted 样本**进入**
+  max，全零权（ZERO_VALID_WEIGHT）仍发布该 max（`:79-80`）、ALL_REJECTED 保持 0；
+  文档面已同步（`docs/science/INTEGRATION.md:85-90`、`DATA_SEMANTICS.md` §21.2/§21.5、
+  `PUBLIC_API.md` API-P2-INT-001 节）。正本 = ALG-P2-INT-001 §11.3（约束 + 回归门
+  `eng/tests/unit/p2_output_semantics_test.cpp` 4b/4c/4d）。
 
 ## 验证
 
