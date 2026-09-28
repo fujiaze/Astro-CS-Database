@@ -22,7 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import scia_common as sc
 import scia_gaia as sg
-from scia_calib import aperture_flux, calibrate, guided_photometry, psf_vs_aperture_systematics
+from scia_calib import (SIGMA_FLAT_HF_CANONICAL, aperture_flux, calibrate,
+                        guided_photometry, psf_vs_aperture_systematics)
 
 REPO = sc.REPO
 TD = os.path.join(REPO, "testdata")
@@ -148,22 +149,49 @@ def main():
         struct = float(max(1.0, bg_rms_adu / (sigma_pix_e / inst.gain)))
         from scia_common import mc_sigma_obs, noise_sigma_mag
         import scia_pipeline as pl
-        # σ_flat 是**可自算**的：低阶 m(x,y) 拟合后的残余星等散度（calibrate 内已算）
-        sig_flat_self = float(cal["delta_after_m"]) if np.isfinite(cal["delta_after_m"]) else 0.0
+        # σ_flat **必须独立于被测样本**（变更 claim PHOT-SIGMAFLAT-INDEP-001）。
+        # 真实帧没有独立平场观测（无 repeat-flat/sky-flat 对照）⇒ 取权威预算表值
+        # σ_flat,hf = 0.0007 mag（docs/plugins/algorithms_phase1/06_photometry.md §4.1，
+        # 同帧族 M42 T2 Red 300 s）；大尺度平场残差登记为"判不了"。
+        # calibrate 的 delta_after_m 与被测统计量 sigma_obs 同源（占旧上界方差 59.9%），
+        # 只作诊断登记，**不进**预算。
+        sig_flat = float(SIGMA_FLAT_HF_CANONICAL)
+        delta_diag = float(cal["delta_after_m"]) if np.isfinite(cal["delta_after_m"]) else None
         b = pl.build_budget(F, inst, sigma_pix_e, sysres["sigma_psfsys"], 0.0, 0.0,
-                            sig_flat_self, struct, cal["n_inliers"], tag="real")
+                            sig_flat, struct, cal["n_inliers"], tag="real")
+        # 敏感性：判定随 σ_flat 翻转的阈值（解 sigma_obs = rho_hi·sqrt(S_other + σ_flat²)）
+        b0 = pl.build_budget(F, inst, sigma_pix_e, sysres["sigma_psfsys"], 0.0, 0.0,
+                             0.0, struct, cal["n_inliers"], tag="real")
+        need = (cal["sigma_obs_mag"] / b0.rho_hi) ** 2 - (b0.sigma_ceiling / b0.rho_hi) ** 2
+        sigma_flat_flip = float(np.sqrt(need)) if need > 0 else 0.0
+        sweep = []
+        for sf in (0.0, 0.0007, 0.005, 0.010, sigma_flat_flip, 0.020):
+            bs = pl.build_budget(F, inst, sigma_pix_e, sysres["sigma_psfsys"], 0.0, 0.0,
+                                 float(sf), struct, cal["n_inliers"], tag="real")
+            sweep.append(dict(sigma_flat=float(sf), sigma_ceiling=float(bs.sigma_ceiling),
+                              verdict=sc.gate_verdict(cal["sigma_obs_mag"], bs)))
         res["single_frame_gate"] = dict(
             n=int(F.size), k_photo=float(cal["k_photo"]),
             sigma_obs_mag=cal["sigma_obs_mag"], n_inliers=int(cal["n_inliers"]),
             sigma_floor=b.sigma_floor, sigma_ceiling=b.sigma_ceiling,
             verdict=sc.gate_verdict(cal["sigma_obs_mag"], b),
+            gate_scope=b.gate_scope, lower_bound_defined=b.lower_bound_defined,
             items=dict(sigma_pix_e=sigma_pix_e, structure_factor=struct,
                        sigma_psfsys_inframe=sysres["sigma_psfsys"],
-                       sigma_flat=sig_flat_self, sigma_color=None, sigma_gaia=None),
+                       sigma_flat=sig_flat,
+                       sigma_flat_source=("06_photometry.md §4.1 权威预算表 σ_flat,hf"
+                                          "（同帧族），独立于被测样本"),
+                       delta_after_m_diagnostic=delta_diag,
+                       delta_after_m_role="diagnostic_only（与被测统计量同源，不进预算）",
+                       sigma_color=None, sigma_gaia=None),
+            sigma_flat_flip_threshold=sigma_flat_flip,
+            sigma_flat_sweep=sweep,
             unavailable_items=["sigma_color（真实帧无注入通带真值，不可自算）",
-                               "sigma_gaia（真实帧无参考侧真值，不可自算）"],
-            note="σ_flat 由帧内 m(x,y) 拟合残差自算；σ_color/σ_gaia 不可自算 ⇒ 上界不完整。"
-                 "若判定为 ABOVE_CEILING，必须先归因到「上界缺项」而不是直接判失败。")
+                               "sigma_gaia（真实帧无参考侧真值，不可自算）",
+                               "平场大尺度残差（无 repeat-flat/sky-flat 对照 ⇒ 判不了）"],
+            note="σ_flat 取权威预算表值（独立于被测样本）；σ_color/σ_gaia/大尺度平场残余"
+                 "不可自算 ⇒ 上界不完整（偏严方向）。判定为 ABOVE_CEILING 时如实报出，"
+                 "与 06_photometry.md §4.1 的 L4 49 帧『PASS 1/49』同归因：未消系统项超预算。")
     else:
         res["single_frame_gate"] = dict(verdict="INSUFFICIENT_SAMPLE", n=int(F.size))
     sc.jdump(res, os.path.join(sc.RESULTS, "step8_real_frame.json"))

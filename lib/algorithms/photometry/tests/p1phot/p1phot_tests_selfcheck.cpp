@@ -126,6 +126,22 @@ int run_selfcheck() {
                      child_rc);
     }
 
+    // 阶段 5: 注入 oracle 组的 Simpson 退化分支判据 (n_int == 3) → 必 FAIL
+    // (第四注入点: PHOT-SIMPSON-N3-001 回归锁必须能红)
+    {
+        const int child_rc = run_injected_child("oracle", "o3_simpson_n3_reference");
+        if (child_rc == 0) {
+            std::fprintf(stderr,
+                         "SELFCHECK: fault-inject 'o3_simpson_n3_reference' 后 oracle 仍 PASS — "
+                         "n_int==3 退化分支判据是恒真占位\n");
+            return 1;
+        }
+        std::fprintf(stdout,
+                     "SELFCHECK phase5: fault-inject 'o3_simpson_n3_reference' → child rc=%d "
+                     "(必败验证通过)\n",
+                     child_rc);
+    }
+
     std::fprintf(stdout, "P1PHOT SELFCHECK PASS (baseline + fault-injection both verified)\n");
     return 0;
 }

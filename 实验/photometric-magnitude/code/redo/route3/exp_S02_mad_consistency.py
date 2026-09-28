@@ -71,6 +71,9 @@ def main():
         "max_value": float(mad.max()),
         "criterion": "真值无散度 ⇒ σ̂=0(归零)",
         "pass": bool(mad.max() == 0.0),
+        # P1-m09: 常数序列的 MAD 恒为 0（数学恒真）⇒ 本项是**自洽/实现守卫**,
+        # 不构成可证伪证据; 保留字段用于回归, 引用时不得当作判别力证据。
+        "discriminating_power": "none (自洽守卫: MAD(const)=0 恒成立)",
     }
 
     # 顺带核 02 式-8 闭式: c/0.6744897501960817 = 6.945...

@@ -138,6 +138,47 @@ int test_oracle() {
             const double want = oracle::oracle_simpson(x, y);
             P1PHOT_CHECK(cs, rel_close_d(got, want, 1e-12), "o3_simpson_reference");
         }
+        // 退化分支 n_int == 3（4 点）: 闭式期望（变更 claim PHOT-SIMPSON-N3-001）。
+        // 1/3 前段区间数 n_13 = 0 ⇒ 只允许 3/8 分支；历史实现多计 2·y[0]·h/3，
+        // 常数被积函数得 3.6667 vs 真值 3.0（+22.2%）。期望值**不取自 oracle_simpson**
+        // ——该 oracle 历史上与本实现同构同错，故此处只用闭式。
+        {
+            std::vector<double> x = {0.0, 1.0, 2.0, 3.0}, y(4, 1.0);   // 常数 ⇒ 真值 3.0
+            const double got = photo_calib::simpson_integrate(x, y);
+            const double want = 3.0 * (x.back() - x.front()) / 3.0;   // = 3.0
+            P1PHOT_CHECK_MSG(cs, rel_close_d(got, want, 1e-15), "o3_simpson_n3_reference",
+                             "n_int=3 constant: got=%.15g want=%.15g", got, want);
+            const double o = oracle::oracle_simpson(x, y);
+            P1PHOT_CHECK_MSG(cs, rel_close_d(o, want, 1e-15), "o3_simpson_n3_reference",
+                             "oracle n_int=3 constant: got=%.15g want=%.15g", o, want);
+        }
+        // n_int == 3 的三次式: 3/8 对三次式精确 ⇒ 闭式 (27−0)/4 = 6.75
+        {
+            std::vector<double> x = {0.0, 1.0, 2.0, 3.0}, y;
+            for (double v : x) y.push_back(v * v * v);
+            const double got = photo_calib::simpson_integrate(x, y);
+            const double want = (std::pow(3.0, 4.0) - std::pow(0.0, 4.0)) / 4.0;  // = 6.75
+            P1PHOT_CHECK_MSG(cs, rel_close_d(got, want, 1e-15), "o3_simpson_n3_reference",
+                             "n_int=3 cubic: got=%.15g want=%.15g", got, want);
+        }
+        // n_int == 5（**6 点**）: 前 n_13 = 2 区间走 1/3 + 末 3 区间走 3/8 的组合分支，
+        // 常数被积函数真值 = 2.5·(x5−x0) = 12.5。
+        // 注: 历史草稿此处误用 7 点（= 6 个区间，偶数 ⇒ 只走 1/3 分支，want 凑巧仍对），
+        // 等于没覆盖组合分支；订正为 6 点并逐段校验两段之和。
+        {
+            std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0}, y(6, 2.5);
+            const double got = photo_calib::simpson_integrate(x, y);
+            const double want = 2.5 * (x.back() - x.front());          // = 12.5
+            P1PHOT_CHECK_MSG(cs, rel_close_d(got, want, 1e-15), "o3_simpson_n3_reference",
+                             "n_int=5 constant: got=%.15g want=%.15g", got, want);
+            // 分段互证: 1/3 段 [0,2] 上 ∫2.5 = 5.0；3/8 段 [2,5] 上 ∫2.5 = 7.5
+            const double seg_13 = (2.5 + 4.0 * 2.5 + 2.5) * 1.0 / 3.0;                    // 5.0
+            const double seg_38 = (2.5 + 3.0 * 2.5 + 3.0 * 2.5 + 2.5) * 3.0 * 1.0 / 8.0;  // 7.5
+            P1PHOT_CHECK_MSG(cs, rel_close_d(seg_13 + seg_38, want, 1e-15),
+                             "o3_simpson_n3_reference",
+                             "n_int=5 segments: 1/3=%.15g 3/8=%.15g sum=%.15g want=%.15g",
+                             seg_13, seg_38, seg_13 + seg_38, want);
+        }
     }
 
     // ── O1: F2 场全链 oracle IRLS (独立配对+独立统计) ─────────────────────

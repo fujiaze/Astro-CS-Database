@@ -15,7 +15,20 @@ import numpy as np
 
 from scia_common import (Budget, MAD_TO_SIGMA, PHOTON_MAG, fit_psf, gate_verdict,
                          irls_tukey, mad_sigma, match_catalogs, moffat_profile,
-                         psf_flux_variance_theory, sampling_rho, world_to_pix)
+                         psf_flux_variance_theory, sampling_rho,
+                         sigma_flat_independent, world_to_pix)
+
+# 自指项登记语（变更 claim PHOT-SIGMAFLAT-INDEP-001）
+SELF_REFERENTIAL_ITEM_NOTE = (
+    "diagnostic_only：与被测统计量 sigma_obs 同源（同一批逐星残差上的同一估计量，"
+    "只差去掉的模型：多项式 vs 常数）⇒ 不得作为 sigma_ceiling 的独立预算项。"
+    "原实现把它当 sigma_flat 使用（真实帧占上界方差 59.9%），已按变更 claim"
+    " PHOT-SIGMAFLAT-INDEP-001 订正为独立口径。"
+)
+
+# 权威预算表的高频平场残余（docs/plugins/algorithms_phase1/06_photometry.md §4.1，
+# M42 T2 Red 300 s 帧族；大尺度平场残差另登记为"判不了"）
+SIGMA_FLAT_HF_CANONICAL = 0.0007
 
 
 # --------------------------------------------------------------------------
@@ -85,16 +98,18 @@ def psf_vs_aperture_systematics(f_psf, f_ap, f_err_psf=None):
     if m.sum() < 5:
         return dict(sigma_psfsys=np.nan, n=int(m.sum()))
     ratio = f_psf[m] / f_ap[m]
-    s = 2.5 * mad_sigma(np.log10(ratio)) / np.log10(np.e) * 0.0 + 2.5 * mad_sigma(np.log10(ratio))
+    s = 2.5 * mad_sigma(np.log10(ratio))
     # 噪声预期（孔径与 PSF 域共有背景/平场项在比值中相消，只剩白噪声）
     noise = np.nan
     if f_err_psf is not None:
         e = f_err_psf[m]
-        noise = float(2.5 * np.median(e / f_psf[m]) / np.log(10.0) * 0.0 +
-                      2.5 / np.log(10.0) * np.median(e / f_psf[m]))
+        noise = float(2.5 / np.log(10.0) * np.median(e / f_psf[m]))
     return dict(sigma_psfsys=float(s), n=int(m.sum()), noise_expect_mag=noise,
                 ratio_median=float(np.median(ratio)))
 
+
+# sigma_flat_independent 的唯一定义在 scia_common（PSF 权重与 PHOTON_MAG 同源），
+# 此处只做转发，避免两处实现漂移。
 
 # --------------------------------------------------------------------------
 # 2. 逐帧标定拟合
@@ -151,8 +166,8 @@ def calibrate(f_instr, f_syn, mag_g=None, x=None, y=None, m_degree=0,
             #       m_corr(x,y) = 10^(+0.4·pred) = 1/m_gain
             out.update(m_coeffs=coef.tolist(), m_names=names,
                        delta_after_m=float(mad_sigma(dm - pred)),
-                       sigma_obs_after_m_mag=float(2.5 * 1.0 / np.log(10.0) * 0.0
-                                                   + mad_sigma(dm - pred)),
+                       delta_after_m_role=SELF_REFERENTIAL_ITEM_NOTE,
+                       sigma_obs_after_m_mag=float(mad_sigma(dm - pred)),
                        m_corr_definition="m_corr(x,y) = 10^(+0.4 * poly(x,y)) = 1/m_gain")
     return out
 
@@ -180,6 +195,12 @@ def budget_from_frame(flux_adu, inst, sigma_pix_e, sky_adu_med=None, n_used_ap=2
 
     flux_adu: 匹配样本的仪器通量 [ADU]（用中位通量代表本帧亮度分布）
     sigma_pix_e: 逐像素噪声 [e-]（白噪声口径 = 读出 ⊕ 天光散粒 ⊕ 暗流）
+
+    **sigma_flat 必须独立于被测样本**（变更 claim PHOT-SIGMAFLAT-INDEP-001）：
+    只接受"真值平场散度经 N_eff 折算"（sigma_flat_independent）或"权威预算表值"
+    （SIGMA_FLAT_HF_CANONICAL）；**不得**传 calibrate() 的 delta_after_m——它与
+    sigma_obs 同源，会让上界随被测散度同步膨胀（N6 反例实测：注入 0.10 mag 逐星
+    散度时自指口径仍恒 PASS，独立口径全档 ABOVE_CEILING）。
     """
     from scia_common import (_mean_psf_weighted, _sum_psf_sq, mc_sigma_obs,
                              noise_sigma_mag, psf_fit_variance_exact)

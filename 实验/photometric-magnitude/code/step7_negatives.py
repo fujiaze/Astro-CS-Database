@@ -80,6 +80,10 @@ def gate(cal, fr, inst, sigma_psfsys=0.0, sigma_color=0.0, sigma_gaia=0.002,
 
 def main():
     meta, inst, fr, wcs = base_setup()
+    # 平场残余的**独立**真值口径（变更 claim PHOT-SIGMAFLAT-INDEP-001）：负例的预算
+    # 一律用它，不用任何随被测样本变化的量（历史用常量 0.01 mag，属任意抬升上界）。
+    sigma_flat_true = sc.sigma_flat_independent(float(meta.get("flat_pix_sigma", 0.0)),
+                                                inst.fwhm_px, inst.beta_fit)
     img0 = np.asarray(fr["img"], float)
     H, W = img0.shape
     yy, xx = np.mgrid[0:H, 0:W]
@@ -113,7 +117,7 @@ def main():
         if out is None:
             continue
         cal, g, sel = out
-        b, v = gate(cal, fr, inst, sigma_psfsys=0.025, sigma_flat=0.01,
+        b, v = gate(cal, fr, inst, sigma_psfsys=0.025, sigma_flat=sigma_flat_true,
                     tag=f"n1_{amp}", flux=g["flux"][sel])
         rows.append(dict(injected_flat_residual_amp=amp, sigma_obs_mag=cal["sigma_obs_mag"],
                          sigma_floor=b.sigma_floor, sigma_ceiling=b.sigma_ceiling, verdict=v))
@@ -141,7 +145,7 @@ def main():
         if out is None:
             continue
         cal, g, sel = out
-        b, v = gate(cal, fr, inst, sigma_psfsys=0.025, sigma_flat=0.01,
+        b, v = gate(cal, fr, inst, sigma_psfsys=0.025, sigma_flat=sigma_flat_true,
                     tag=f"n2_{mult}", flux=g["flux"][sel])
         rows2.append(dict(sky_multiplier=mult, sky_adu=float(np.median(fr["sky_map_adu"]) * mult),
                           sigma_obs_mag=cal["sigma_obs_mag"], sigma_floor=b.sigma_floor,
@@ -153,7 +157,7 @@ def main():
         if out is None:
             continue
         cal, g, sel = out
-        b, v = gate(cal, fr, inst, sigma_psfsys=0.025, sigma_flat=0.01,
+        b, v = gate(cal, fr, inst, sigma_psfsys=0.025, sigma_flat=sigma_flat_true,
                     tag=f"n2n_{gx}", flux=g["flux"][sel])
         rows2n.append(dict(arithmetic_gradient_adu_per_px=gx,
                            sigma_obs_mag=cal["sigma_obs_mag"], verdict=v))
@@ -215,9 +219,9 @@ def main():
         r2 = sc.irls_tukey(r_in2)
         s2 = 2.5 * r2["sigma_residual"]
         bw = pl.build_budget(np.full(ii.size, Fmed), inst, sp2, 0.025, amp_col, 0.002,
-                             0.01, 1.0, ii.size, tag=f"n3s{amp_col}")
+                             sigma_flat_true, 1.0, ii.size, tag=f"n3s{amp_col}")
         bn = pl.build_budget(np.full(ii.size, Fmed), inst, sp2, 0.025, 0.0, 0.002,
-                             0.01, 1.0, ii.size, tag=f"n3n{amp_col}")
+                             sigma_flat_true, 1.0, ii.size, tag=f"n3n{amp_col}")
         sweep.append(dict(injected_color_amp_mag=amp_col, sigma_obs_mag=float(s2),
                           ceiling_with_color=bw.sigma_ceiling,
                           ceiling_without_color=bn.sigma_ceiling,
@@ -273,23 +277,64 @@ def main():
             rows5.append(dict(trim_tol=tol, n=int(m.sum()), sigma_obs_mag=None, verdict=None))
             continue
         c = calibrate(fl[m], fs[m], None, None, None, m_degree=0)
-        bb, vv = gate(c, fr, inst, sigma_psfsys=0.025, sigma_flat=0.01,
+        bb, vv = gate(c, fr, inst, sigma_psfsys=0.025, sigma_flat=sigma_flat_true,
                       tag=f"n5_{tol}", flux=fl[m])
         rows5.append(dict(trim_tol=tol, n=int(m.sum()), sigma_obs_mag=c["sigma_obs_mag"],
                           sigma_floor=bb.sigma_floor, sigma_ceiling=bb.sigma_ceiling,
                           verdict=vv))
+    # 判据口径（变更 claim PHOT-GATE-LOWSAMPLE-001）：下界 rho_lo ≤ 0（n ≤ 12）时**不可检验**，
+    # 判据降级为单边界并返回 LOWER_BOUND_UNDEFINED——**不得**记 PASS。
+    # 历史建议 max(rho_lo, 0)·sigma_fit 会把"不可判"写成恒真下界（σ_obs ≥ 0），已撤回。
     res["negatives"].append(dict(
-        id="N5", kind="退化输入检查：过度裁剪真实样本 ⇒ 度量归零/判红",
+        id="N5", kind="退化输入检查：过度裁剪真实样本 ⇒ 不得静默 PASS",
         provides_injection_response=False,
         setup="对帧 A 的**实测**通量按 |r−median(r)| < tol 逐步过裁剪；tol=None 为不裁剪基线",
         rows=rows5,
-        note="**本负例未通过，且暴露判据的真实弱点**：裁剪越狠 σ_obs 确实单调下降"
-             "（0.0453 → 0.0036），但 σ_floor 下降得更快，n≤22 时 rho_lo=1−3·1.166/√n 变负、"
-             "下界变成负数 ⇒ **BELOW_FLOOR 不可达**，过裁剪样本反而全部 PASS。"
-             "即该判据的下界对「把样本做干净」没有判别力（n 小的时候下界是空的）。",
-        finding="sigma_floor 在 n < (3·1.166)² = 12.2 附近变为非正；n≤22 时已接近失效。"
-                "建议：下界改用 max(rho_lo, 0)·sigma_fit 或对 n 设最小样本量硬门槛。",
-        pass_=bool(any(x["verdict"] == "BELOW_FLOOR" for x in rows5))))
+        note="裁剪越狠 σ_obs 确实单调下降（0.0453 → 0.0036），σ_floor 下降得更快："
+             "n ≤ 12 时 rho_lo = 1 − 3·1.166/√n ≤ 0 ⇒ **3σ 下包络不存在**，下界不可检验。"
+             "统计上这不是缺陷而是事实：σ̂ 的抽样分布在 n 小时下尾本来就越过 0，"
+             "此时判据对「把样本做干净」**没有判别力**。订正后的语义是**如实降级**："
+             "判据作用域置 upper_only、状态词 LOWER_BOUND_UNDEFINED，过裁剪帧不再拿到 PASS。",
+        finding="sigma_floor 在 n ≤ (3·1.166)² = 12.24 时非正 ⇒ 下界不可检验。"
+                "**撤回**原建议「下界改用 max(rho_lo, 0)·sigma_fit」——clamp 后下界恒为 0、"
+                "而 σ_obs ≥ 0 恒成立 ⇒ 恒 PASS，比原缺陷更隐蔽（正本 §16.5 第 3 条已同步）。"
+                "替代口径 = 显式最小样本规则：n ≤ 12 判 LOWER_BOUND_UNDEFINED（单边界），"
+                "并把 n 一并报出；对「过裁剪」的判别力来自上界与状态词，不来自被 clamp 的下界。",
+        pass_=bool(all(x["verdict"] != "PASS" for x in rows5
+                       if x.get("verdict") is not None and x.get("n") is not None and x["n"] <= 12))))
+
+    # ---------------- N6：自指预算项的反例（变更 claim PHOT-SIGMAFLAT-INDEP-001） ----------------
+    # 假说：sigma_flat 若取「拟合后残差」（被测统计量的函数），则注入**与平场无关**的
+    # 逐星散度会同步抬高 sigma_obs 与 sigma_ceiling ⇒ 判据惰性恒 PASS；独立口径必须判红。
+    xs0 = np.asarray(g["x"][sel], float); ys0 = np.asarray(g["y"][sel], float)
+    rows6 = []
+    for amp in (0.0, 0.02, 0.05, 0.10):
+        rr = sc.rng(f"neg:n6_{amp:.2f}")
+        Fi = fl * (10.0 ** (0.4 * amp * rr.normal(0.0, 1.0, fl.size)) if amp > 0 else 1.0)
+        c6 = calibrate(Fi, fs, None, xs0, ys0, m_degree=2)
+        f_self = float(c6["delta_after_m"]) if np.isfinite(c6["delta_after_m"]) else 0.0
+        b_self, v_self = gate(c6, fr, inst, sigma_psfsys=0.025, sigma_flat=f_self,
+                              tag=f"n6self{amp}", flux=Fi)
+        b_ind, v_ind = gate(c6, fr, inst, sigma_psfsys=0.025, sigma_flat=sigma_flat_true,
+                            tag=f"n6ind{amp}", flux=Fi)
+        rows6.append(dict(injected_scatter_mag=amp, sigma_obs_mag=c6["sigma_obs_mag"],
+                          sigma_flat_selfref=f_self, ceiling_selfref=b_self.sigma_ceiling,
+                          verdict_selfref=v_self, sigma_flat_independent=sigma_flat_true,
+                          ceiling_independent=b_ind.sigma_ceiling,
+                          verdict_independent=v_ind))
+    res["negatives"].append(dict(
+        id="N6", kind="注入-响应：与平场无关的逐星散度（自指预算项 vs 独立预算项）",
+        provides_injection_response=True,
+        setup="对帧 A 的实测通量乘 10^(0.4·amp·N(0,1))（逐星独立、与空间平场无关）；"
+              "同一批通量并行跑两种 sigma_flat 口径",
+        rows=rows6,
+        selfref_inert=bool(all(r["verdict_selfref"] == "PASS" for r in rows6)),
+        independent_turns_red_at=next((r["injected_scatter_mag"] for r in rows6
+                                       if r["verdict_independent"] == "ABOVE_CEILING"), None),
+        expected="独立口径：注入越大越判红；自指口径：ceiling 随观测同步膨胀 ⇒ 恒 PASS（无判别力）",
+        note="这是 blocker P1-B01 的**反例化**：自指口径下 ceiling 0.0325→0.1271 与 sigma_obs",
+        pass_=bool(all(r["verdict_selfref"] == "PASS" for r in rows6)
+                   and any(r["verdict_independent"] == "ABOVE_CEILING" for r in rows6))))
 
     n_ir = sum(1 for n in res["negatives"] if n.get("provides_injection_response"))
     res["n_negatives"] = len(res["negatives"])
@@ -300,9 +345,9 @@ def main():
             if n.get("provides_injection_response") and n.get("pass_")))
     res["summary"] = (f"{res['n_pass']}/{res['n_negatives']} 条通过；其中**注入-响应**型 "
                       f"{res['n_injection_response_pass']}/{n_ir} 条全部通过（N1 乘性平场残差、"
-                      f"N2 Poisson 天光抬升、N3 预算漏颜色项）。"
-                      f"N0/N4 是退化输入与错误门禁反例；**N5 未通过**并暴露判据下界在 n≲22 时"
-                      f"失效（σ_floor 变负）——如实记录，不掩盖。")
+                      f"N2 Poisson 天光抬升、N3 预算漏颜色项、N6 自指预算项）。"
+                      f"N0/N4 是退化输入与错误门禁反例；N5 暴露下界在 n≤12 时不可检验"
+                      f"（已按 PHOT-GATE-LOWSAMPLE-001 降级为单边界 + LOWER_BOUND_UNDEFINED）。")
     sc.jdump(res, os.path.join(sc.RESULTS, "step7_negatives.json"))
 
 

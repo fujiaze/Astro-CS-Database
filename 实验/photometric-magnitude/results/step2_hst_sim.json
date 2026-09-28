@@ -5,6 +5,7 @@
   ],
   "bin": 24,
   "inject_scale": 2.5950775206716316e+16,
+  "flat_pix_sigma": 0.0032,
   "n_injected": 71,
   "sky": {
     "sky_adu_med": 199.6,

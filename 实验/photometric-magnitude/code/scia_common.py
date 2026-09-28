@@ -31,7 +31,9 @@ TUKEY_C = 4.685                           # SCI-PHOT-001 §5，95% 高斯渐近�
 IRLS_TOL = 1e-6
 IRLS_MAX_ITER = 50
 MAG_TOLERANCE = 3.0                       # SCI-PHOT-001 §5 星等一致性预过滤
-SD_MAD_OVER_MAD = 1.166                   # SD(MAD)/MAD 正态渐近常数（06.md §2.1）
+SD_MAD_OVER_MAD = 1.166                   # σ̂（MAD 归一尺度）的相对标准差因子 = √1.361
+                                          # （1.361 = MAD 标准化方差，R&C 1993 Table 2；
+                                          #  标签按分歧台账 A-P1-01 订正，见 docs/derivation_robust_weights.md D5）
 NSIGMA_SAMPLING = 3.0                     # 抽样允差（06.md §2.1 唯一约定性选择）
 PHOTON_MAG = 2.5 / np.log(10.0)           # 1.0857362...  d(mag)/d(ln F)
 
@@ -171,7 +173,13 @@ def akima_interp(x_src, y_src, x_dst, fill=0.0):
 
 
 def simpson_integrate(x, y):
-    """复合 Simpson 1/3（末尾奇数区间用 3/8；n==1 退梯形），与生产一致。"""
+    """复合 Simpson 1/3（末尾奇数区间用 3/8；n==1 退梯形），与生产一致。
+
+    n_int == 3（4 点）时**只有** 3/8 分支：此时"前 n_int−3 = 0 个区间"，
+    1/3 部分必须为 0。历史实现在该退化分支上把 y[0] 计了两次
+    （常数被积函数得 3.6667 vs 真值 3.0，+22.2%），已按变更 claim
+    PHOT-SIMPSON-N3-001 订正（343 点 XPSD 网格 n_int=342 为偶，不触发该分支）。
+    """
     x = np.asarray(x, float); y = np.asarray(y, float)
     npts = x.size
     if npts < 2:
@@ -184,9 +192,11 @@ def simpson_integrate(x, y):
         return s * h / 3.0
     if nint >= 3:
         n13 = nint - 3
-        i = np.arange(1, n13)
-        s = y[0] + y[n13] + np.sum(np.where(i % 2 == 1, 4.0, 2.0) * y[i])
-        tot = s * h / 3.0
+        tot = 0.0
+        if n13 > 0:                      # n_int == 3 ⇒ n13 == 0，1/3 部分无区间
+            i = np.arange(1, n13)
+            s = y[0] + y[n13] + np.sum(np.where(i % 2 == 1, 4.0, 2.0) * y[i])
+            tot = s * h / 3.0
         tot += (y[n13] + 3.0 * y[n13 + 1] + 3.0 * y[n13 + 2] + y[-1]) * 3.0 * h / 8.0
         return tot
     return 0.5 * h * (y[0] + y[1])
@@ -425,6 +435,25 @@ def _mean_psf_weighted(fwhm, beta, half=None):
     return float(np.sum(p ** 3) / np.sum(p ** 2))
 
 
+def sigma_flat_independent(flat_pix_sigma, fwhm_px, beta_fit):
+    """由**真值/外部**逐像素平场散度折算到单星通量的平场残余 [mag]。
+
+    推导（变更 claim PHOT-SIGMAFLAT-INDEP-001）：设逐像素乘性平场场 m(x,y) = 1 + δ，
+    δ 逐像素独立、标准差 s_flat。PSF 拟合通量 F_hat = Σ P_i·F·m_i / Σ P_i
+    （P 为归一化 PSF 权重）⇒
+
+        σ(F_hat)/F = s_flat·sqrt(Σ P_i²) = s_flat/sqrt(N_eff),   N_eff = 1/Σ P_i²
+        σ_flat[mag] = (2.5/ln10)·s_flat/sqrt(N_eff)
+
+    输入量 s_flat 与 N_eff 只依赖**仪器/仿真真值**（真值平场散度、PSF 形状），不含任何
+    被测通量或残差 ⇒ 与被测统计量 sigma_obs 独立。这是判据可判性的前提：预算项若与被测
+    统计量同源，上界会随被测散度同步膨胀而失去判别力（反例实测见
+    `实验/photometric-magnitude/results/step7_negatives.json → N6`）。
+    """
+    n_eff = 1.0 / _sum_psf_sq(fwhm_px, beta_fit)
+    return float(PHOTON_MAG * float(flat_pix_sigma) / np.sqrt(n_eff))
+
+
 # --------------------------------------------------------------------------
 # 5. 误差预算（判据形态见 docs/plugins/algorithms_phase1/06_photometry.md §4.1；
 #    逐项口径与实测出处见 run/RELEASE-02/parallel/06.md §2；各项在平方和中各计一次）
@@ -454,6 +483,21 @@ class Budget:
     @property
     def sigma_floor(self):
         return self.rho_lo * self.sigma_fit_white
+
+    @property
+    def lower_bound_defined(self):
+        """下界是否**可检验**：rho_lo > 0 ⟺ n > (3·1.166)² = 12.236。
+
+        低样本域下界非正 ⇒ 3σ 下包络不存在（不是"下界等于 0"）⇒ 该帧的判据
+        降级为单边界。见 docs/science/PHOTOMETRY.md §16.5 第 3 条与变更 claim
+        PHOT-GATE-LOWSAMPLE-001。
+        """
+        return bool(self.rho_lo > 0.0)
+
+    @property
+    def gate_scope(self):
+        """判据作用域：two_sided（双边界）/ upper_only（下界不可检验）。"""
+        return "two_sided" if self.lower_bound_defined else "upper_only"
 
     def as_dict(self):
         d = dict(n=self.n, rho_lo=self.rho_lo, rho_hi=self.rho_hi,
@@ -538,13 +582,23 @@ def sampling_rho(n, k=NSIGMA_SAMPLING, sd_over_mad=SD_MAD_OVER_MAD):
 
 
 def gate_verdict(sigma_obs, budget: Budget):
+    """双边界判定；低样本域降级为单边界（返回 LOWER_BOUND_UNDEFINED，不记 PASS）。
+
+    统计依据：sigma_hat（MAD 归一的尺度估计量）自身的抽样相对标准差为 1.166/√n，
+    其 3σ **下**包络为 1 − 3·1.166/√n；当 n < (3·1.166)² = 12.236 时该包络非正 ⇒
+    "σ_obs 过小"这一侧在 3σ 意义下不可判。把它 clamp 成 max(rho_lo, 0) 会写出
+    恒真下界（σ_obs ≥ 0），使"过裁剪样本"反而稳定 PASS——该建议已撤回，
+    见 results/DOC_CORRECTIONS.md C1 与 docs/science/PHOTOMETRY.md §16.5 第 3 条。
+    """
     f, c = budget.sigma_floor, budget.sigma_ceiling
     if not np.isfinite(sigma_obs):
         return "NO_DATA"
-    if sigma_obs < f:
-        return "BELOW_FLOOR"
     if sigma_obs > c:
         return "ABOVE_CEILING"
+    if not budget.lower_bound_defined:
+        return "LOWER_BOUND_UNDEFINED"
+    if sigma_obs < f:
+        return "BELOW_FLOOR"
     return "PASS"
 
 

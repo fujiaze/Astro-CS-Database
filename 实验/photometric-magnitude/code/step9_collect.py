@@ -52,27 +52,34 @@ def main():
     fC = [f for f in s5["frames"] if f["tag"] == "C"][0]
     rows.append(dict(
         id="G1", item="测光残差双边界（sigma_floor <= sigma_obs <= sigma_ceiling）",
-        verdict="PASS",
+        # 由实测派生（非恒真）：任一行程非 PASS 即判 RED
+        verdict=("PASS" if all(f["verdict"] == "PASS" for f in s5["frames"]) else "RED"),
         evidence=(f"帧A σ_obs={fmt(fA['sigma_obs_mag'])} ∈ [{fmt(fA['budget']['sigma_floor'])}, "
                   f"{fmt(fA['budget']['sigma_ceiling'])}] → {fA['verdict']}；"
                   f"帧B σ_obs={fmt(fB['sigma_obs_mag'])} → {fB['verdict']}；"
-                  f"帧C(n={fC['n_selected']}) σ_obs={fmt(fC['sigma_obs_mag'])} → {fC['verdict']}"),
+                  f"帧C(n={fC['n_selected']}) σ_obs={fmt(fC['sigma_obs_mag'])} → {fC['verdict']}；"
+                  f"判据作用域 {fA.get('gate_scope')}/two_sided（n≤12 时下界不可检验 ⇒ "
+                  f"upper_only + LOWER_BOUND_UNDEFINED，见变更 claim PHOT-GATE-LOWSAMPLE-001）"),
         repro=f"{CMD}（或 python3 {CODE_REL}/step5_calibration_gate.py）",
         files=["results/step5_calibration_gate.json"]))
     rows.append(dict(
         id="G1b", item="误差预算逐项（光子噪声/PSF 拟合/平场/天光/颜色/参考侧/量化）在**仿真帧上**由本帧推导",
         verdict="PASS",
         evidence=("预算项来自本帧：σ_pix=%.4g e-、结构因子=%.4g、σ_psfsys(帧内小孔径)=%.4g mag、"
-                  "σ_color=%.4g mag、σ_flat=%.4g mag；obs/pred=%s"
+                  "σ_color=%.4g mag、σ_flat=%.4g mag（真值平场散度 %.4g 经 N_eff 折算的**独立**项，"
+                  "变更 claim PHOT-SIGMAFLAT-INDEP-001；delta_after_m=%.4g 仅作诊断）；obs/pred=%s"
                   % (fA["items_measured"]["sigma_pix_white_e"],
                      fA["items_measured"]["structure_factor"],
                      fA["items_measured"]["sigma_psfsys_inframe"],
                      fA["items_measured"]["sigma_color_from_truth"],
-                     fA["items_measured"]["sigma_flat_from_truth"],
+                     fA["items_measured"]["sigma_flat_independent"],
+                     fA["items_measured"]["sigma_flat_flat_pix_sigma_true"],
+                     fA["items_measured"]["delta_after_m_diagnostic"],
                      fmt(fA["obs_over_predicted"]))),
         repro=CMD, files=["results/step5_calibration_gate.json"]))
     if s6 is None:
-        rows.append(dict(id="G2", item="物理单位消除（产物只以星等表达；标定系数无绝对窗口；不可反解仪器参数）",
+        rows.append(dict(id="G2", item="物理单位消除（定标坐标系=星等域、像素承载面=线性标度面 photo_scaled_adu；"
+                                   "标定系数无绝对窗口；不可反解仪器参数）",
                          verdict="NOT_RUN", evidence="step6 未运行（quick 模式）",
                          repro=f"python3 {CODE_REL}/step6_apply_and_units.py",
                          files=["results/step6_apply_and_units.json"]))
@@ -81,7 +88,8 @@ def main():
         ue = s6["unit_elimination"]
         fam = ue["degenerate_family"]
         rows.append(dict(
-            id="G2", item="物理单位消除（产物只以星等表达；标定系数无绝对窗口；不可反解仪器参数）",
+            id="G2", item="物理单位消除（定标坐标系=星等域、像素承载面=线性标度面 photo_scaled_adu；"
+                       "标定系数无绝对窗口；不可反解仪器参数）",
             verdict="PASS",
             evidence=("退化族 A·t/g 相同 ⇒ 中位通量 %s / %s / %s ADU、σ_obs %s / %s / %s mag；"
                       "零点平移不变量 Δlocation=%s（期望 %s）、Δσ_residual=%s"
@@ -149,18 +157,26 @@ def main():
                   f"{s7['n_injection_response_pass']}/{s7['n_injection_response']} 全通过**："
                   "N1 乘性平场残差 σ_obs 0.0453→0.1596（3.52×，≥0.04 判红）；"
                   "N2 Poisson 天光抬升 ×1/2/4 σ_obs 0.0252→0.0481→0.0734（2.91×，4× 判红）；"
-                  "N3 漏颜色项阈值 0.04 mag（真实值 0.0057 的 7.0×）判 ABOVE_CEILING。"
+                  "N3 漏颜色项阈值 0.04 mag（真实值 0.0057 的 7.0×）判 ABOVE_CEILING；"
+                  "N6 自指预算项反例：注入 0.10 mag 逐星散度时自指口径恒 PASS、独立口径判 ABOVE_CEILING。"
                   "N0 真值无效应→BELOW_FLOOR；N4 实测 k_B/k_A=1.6099 证明跨帧 k 门会误杀正确帧；"
-                  "**N5 未通过**：过裁剪真实样本时 σ_floor 下降更快、n=5 时变负 ⇒ 下界失效（已单列）"),
+                  "N5 过裁剪（n≤12）不再静默 PASS，降级为 LOWER_BOUND_UNDEFINED（单边界）"),
         repro=f"python3 {CODE_REL}/step7_negatives.py",
         files=["results/step7_negatives.json"]))
+    _sf = (s8 or {}).get("single_frame_gate") or {}
     rows.append(dict(
         id="G7", item="三类实验数据互证（HST 物理前向 / 纯解析合成 / testdata 真实帧；真实帧 σ_color/σ_gaia 不可自算 ⇒ 上界不完整）",
-        verdict="PASS" if s8 else "PARTIAL",
+        # 由真实腿实测派生（非恒真）：三类一致且真实腿 PASS 才记 PASS；真实腿判红 ⇒ RED
+        verdict=("PASS" if (_sf.get("verdict") == "PASS") else "RED"),
         evidence=("① HST M16 F657N 真实信号模板 + 完整物理前向（帧 A/B/C）；"
-                  "② 纯解析代数合成（step1，Oracle 相对误差 %s）；③ testdata 真实帧 %s"
+                  "② 纯解析代数合成（step1，Oracle 相对误差 %s）；③ testdata 真实帧 %s："
+                  "σ_obs=%s vs σ_ceiling=%s ⇒ **%s**。三类**不一致**（仿真/解析绿、真实腿红）⇒"
+                  "按标准 01 §6 本单元的成立性判定为**不成立（待复审）**；真实腿与 "
+                  "06_photometry.md §4.1 的 L4 49 帧 PASS 1/49 同归因（未消系统项超预算）"
                   % (fmt(s1["oracle_zero_point_m1"]["k_rel_err"], 3),
-                     (s8 or {}).get("primary_frame", "n/a"))),
+                     _sf.get("verdict") is not None and (s8 or {}).get("primary_frame", "n/a")
+                     or "n/a", fmt(_sf.get("sigma_obs_mag")), fmt(_sf.get("sigma_ceiling")),
+                     _sf.get("verdict"))),
         repro=CMD, files=["results/step1_analytic.json", "results/step8_real_frame.json"]))
     pf = s3["per_filter"]
     rows.append(dict(

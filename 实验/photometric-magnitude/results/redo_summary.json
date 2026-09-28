@@ -5,7 +5,7 @@
   "basis": "独立审计/实验重做/P1通量积分拟合/{路线1,路线2,路线3}；分歧裁决以 独立审计/实验重做/总编对账/分歧台账.md 为准",
   "key_numbers": [
     {"item": "Tukey biweight c=4.685 渐近效率 ARE", "value": 0.9499974, "route": "route2", "evidence": "results/redo/route2/exp1_robust_constants.json", "note": "解析解 c*=4.6850649，与 statsmodels robust/_tables.py 4.685065 六位一致；台账 D-06 判 PMC6768164 锚有效"},
-    {"item": "解 ARE=0.95 的 c*", "value": 4.6850649, "route": "route2+route3", "evidence": "results/redo/route2/exp1_robust_constants.json; route3/exp_S01_tukey_c.json", "note": "一手锚 Kafadar 1983 doi:10.6028/jres.088.006 原句含 c=4.685⇒95%"},
+    {"item": "解 ARE=0.95 的 c*", "value": 4.6850649, "route": "route2（唯一数值锚；route3 exp_S01 自身根 4.6853179 仅 4 位小数一致，订正 P1-m05 后不作数值锚）", "evidence": "results/redo/route2/exp1_robust_constants.json; route3/exp_S01_tukey_c.json", "note": "一手锚 Kafadar 1983 doi:10.6028/jres.088.006 原句含 c=4.685⇒95%"},
     {"item": "MAD→σ 常数 0.6744897501960817 二分复算相对差", "value": 1.6e-16, "route": "route2+route3", "evidence": "route2/exp1_robust_constants.json; route3/exp_S02_mad_consistency.json", "note": "= Φ⁻¹(3/4)，双精度末位；解析恒等式"},
     {"item": "1/0.6744897501960817", "value": 1.482602218505602, "route": "route2", "evidence": "route2/exp1_robust_constants.json", "note": "发现 frame_photometry_fit.cpp:292 用 4 位截断 1.4826（相对差 1.496e-6），违反 NOISE_ESTIMATION.md:213 冻结条款（台账 A-P1-08）"},
     {"item": "IRLS tol 敏度：1e-2→1e-12 中位 location 跨度", "value": 1.93e-4, "route": "route2", "evidence": "route2/exp1_robust_constants.json", "note": "单位 dex；50 步上限最多 17 步未触及 ⇒ tol/max_iter 登记为求解器设置（豁免）"},
@@ -16,17 +16,21 @@
     {"item": "k_photo 零点平移不变量", "value": "逐位成立", "route": "route3", "evidence": "route3/exp_S04_mag_tolerance.json", "note": "F_instr 整体乘常数后 location 平移精确、内点集逐元素相同"},
     {"item": "σ_residual=0 ∧ fit_ok=true 帧的可估性", "value": "不可估计", "route": "route3", "evidence": "route3/exp_S05_gates_inlier.json", "note": "完美控制点须按非完美处理，下游 P4 不得以该帧为真值锚"},
     {"item": "1.0 dex 粗筛门非恒真（能红）", "value": "0.055 / 1.110", "route": "route3", "evidence": "route3/exp_S12_dex_bound.json", "note": "干净场/污染场通过率对照；S12 空间阶数为科学量"},
-    {"item": "n=3 时 MAD 型尺度有限样本偏差", "value": 1.49, "route": "route3", "evidence": "route3/exp_S11_zp_sample_floor.json", "note": "渐近式 1.2533/√n 在 n=3 高估 7.4% ⇒ ZP_syn 三星下限抽样误差是 n≈2338 满载的 25.7 倍"},
-    {"item": "max_stars=5000 对应 σ_ZP", "value": 6.36e-4, "route": "route3", "evidence": "route3/exp_S08_ladder.json", "note": "单位 mag；σ_ZP(N) 曲线支撑的工程上限"},
+    {"item": "n=3 时 MAD 型尺度有限样本偏差", "value": 1.49, "route": "route3", "evidence": "route3/exp_S11_zp_sample_floor.json", "note": "渐近式 1.2533/√n 在 n=3 对 SE 高估 8.03%（订正 P1-M04：精确 SE=0.6698291607404144σ / 渐近 0.7235930923753581σ − 1 = 0.08028；历史 7.4% 系 1−0.9256987 的误读） ⇒ ZP_syn 三星下限抽样误差是 n≈2338 满载的 25.7 倍"},
+     {"item": "σ_ZP(5000) 统一口径", "value": 8.86e-4, "route": "route3", "evidence": "route3/exp_S08_ladder.json → H8d", "note": "单位 mag；统一式 sigma_ZP(N)=1.2533*sigma_star/sqrt(N)，sigma_star=0.05 mag ≡ 0.02 dex。订正 P1-M05：历史 6.36e-4 mag 出自 route1 的 0.045/sqrt(N) 变体（缺 1.2533 中位数因子、sigma_star 取 0.045），相对低估 1.3926×；H8d 同时给出该口径一致性门的红/绿两态（统一式 PASS、旧变体 RED）"},
     {"item": "幻觉锚核验（路线3 逐锚抽验）", "value": "15/15 锚真实", "route": "route3", "evidence": "route3/exp_S00_anchor_verification.json", "note": "定位偏差（PHOTOMETRY.md:126/:400 实为锚漂移）按台账 A-P1-04/09 改记'行号漂移'"},
     {"item": "路线2 复核锚体系", "value": "24 处锚，唯一判内容不符者为 PMC6768164", "route": "route2", "evidence": "route2/report.md + 台账 D-06", "note": "D-06 直验原文含 c=4.685 原句 ⇒ 锚有效，路线2 误判撤回"},
-    {"item": "贯穿用例：ZP_syn / k_photo / sigma_residual", "value": "28.9358 mag / 1.00156 / 0.0493 dex", "route": "route2", "evidence": "route2/exp8_fsyn_forward.json", "note": "2000 星端到端；下游 sigma_kappa,stat=1.253·σ_res/√N=0.00138 dex"},
+    {"item": "贯穿用例：ZP_syn / k_photo / sigma_residual", "value": "28.9358 mag / 1.00156 / 0.0493 dex", "route": "route2", "evidence": "route2/exp8_fsyn_forward.json", "note": "2000 星端到端；下游 sigma_kappa,stat=1.2533·σ_res/√N（P1-M05 统一式，单位随输入域）=0.00138 dex"},
     {"item": "路线1 贯穿用例 scale 恢复相对误差", "value": 1.44e-3, "route": "route1", "evidence": "route1/exp2_mag_window_match.json", "note": "真值 3.7e6，恢复 3.7053e6，与 σ/√800 量级一致"},
     {"item": "匹配半径 2.0px 正确率（最优档）", "value": 0.996, "route": "route1", "evidence": "route1/exp2_mag_window_match.json", "note": "全档敏感性表 0.5–4.0px；歧义率 ≈r² 理论（路线3）"}
   ],
   "superseded_numbers": [
     {"item": "arXiv 号 2205.11321（Gaia DR3）", "status": "证伪（实为计量论文）", "corrected": "arXiv:2208.00211", "route": "route1", "ledger": "A-P1 文献腿"},
     {"item": "PHOTOMETRY.md:126 / :400 锚定位", "status": "行号漂移", "corrected": "正本在 :13 / :15-17", "route": "route3", "ledger": "A-P1-04/09"},
-    {"item": "审查'幻觉锚'定性", "status": "高估", "corrected": "科学量锚实测真实，改记行号漂移", "route": "route2+route3", "ledger": "A-P1-06/09"}
+    {"item": "审查'幻觉锚'定性", "status": "高估", "corrected": "科学量锚实测真实，改记行号漂移", "route": "route2+route3", "ledger": "A-P1-06/09"},
+    {"item": "σ_ZP(5000) = 6.36e-4 mag", "status": "被取代（缺 1.2533 中位数因子）", "corrected": "8.86e-4 mag（统一式 1.2533·0.05/√5000）", "route": "route1", "ledger": "P1-M05"},
+    {"item": "n=3 渐近式高估 SE 7.4%", "status": "数值误读", "corrected": "8.03%", "route": "route3", "ledger": "P1-M04"},
+    {"item": "低样本下界 max(rho_lo,0)·σ_fit 建议", "status": "撤回（恒真门）", "corrected": "n ≤ 12.236 ⇒ 作用域 upper_only + 状态词 LOWER_BOUND_UNDEFINED（不记 PASS）", "route": "本单元", "ledger": "P1-M07"},
+    {"item": "σ_flat 取 calibrate()['delta_after_m']", "status": "撤回（与被测统计量同源 ⇒ 上界自指）", "corrected": "仿真帧取真值平场散度经 N_eff 折算；真实帧取 06_photometry.md §4.1 的 σ_flat,hf=0.0007 mag", "route": "本单元", "ledger": "P1-B01"}
   ]
 }

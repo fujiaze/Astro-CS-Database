@@ -31,6 +31,9 @@ QE_MODEL = "KAF-16803"        # 流水线模型通带用的 QE（生产口径）
 QE_INJECT = "GSENSE400BSI"    # 注入用"真实仪器" QE（制造非零颜色项，避免自证式 Oracle）
 BIN = 24
 SIMDIR = os.path.join(sc.RUN, "sim")
+# 逐像素平场散度**真值**（仿真的输入量，非被测样本的函数）：误差预算的 sigma_flat 由它
+# 经 N_eff 折算（变更 claim PHOT-SIGMAFLAT-INDEP-001），此处落盘供 step5 取用。
+FLAT_PIX_SIGMA = 0.0032
 
 
 def load_template():
@@ -102,6 +105,7 @@ def make_frames():
     r = sc.rng("hst:mcoef")
     mcoef = np.array([1.0, 0.035, -0.028, 0.012, -0.009, 0.007])
     out = dict(shape=list(shape), bin=BIN, inject_scale=inject_scale,
+               flat_pix_sigma=FLAT_PIX_SIGMA,
                n_injected=int(idx.size), sky=sky_info, m_coeffs=mcoef.tolist(),
                wcs=dict(crval=[hdr["CRVAL1"], hdr["CRVAL2"]], crpix=list(wcs.wcs.crpix),
                         cd=(wcs.wcs.cd * 1.0).tolist(), ctype=list(wcs.wcs.ctype)),
@@ -125,7 +129,7 @@ def make_frames():
     for tag, trans, use_ext in (("A", 1.0, False), ("B", 0.62, False), ("C", 1.0, True)):
         truth = ss.Truth(inject_scale=inject_scale * trans, m_coeffs=mcoef, m_degree=2,
                          sky_adu=199.6, exp_time=300.0, ref_err_mag=0.002,
-                         flat_pix_sigma=0.0032, seed_tag=f"hst{tag}")
+                         flat_pix_sigma=FLAT_PIX_SIGMA, seed_tag=f"hst{tag}")
         if use_ext:
             px, py = xe, ye
             mag_gaia = mag_e

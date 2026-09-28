@@ -80,13 +80,19 @@ def main():
         "photon_weighted_lambda_eff_nm": float(f1 / f0),
         "ratio_lambda2": f2 / f1,
         "pass": bool(abs(f1 - HC * N_gamma) / f1 < 1e-12 and 500 < f1 / f0 < 800),
+        # P1-m09: hc·N_γ = ∫F_λTQλdλ 是**代数恒等**（E_γ=hc/λ 代入即得），
+        # `photon_weighted_lambda_eff_nm = f1/f0` 亦是定义式 ⇒ 自洽守卫, 无判别力。
+        "discriminating_power": "none (代数恒等 + 定义式)",
     }
 
     # H6b: 1 mag ⇒ 10^-0.4
     f_b = np.trapezoid(planck(lam, 5800) * T * Q * lam, lam)
     f_d = np.trapezoid(planck(lam, 5800) * 10 ** (-0.4) * T * Q * lam, lam)
     out["H6b"] = {"ratio": f_d / f_b, "expected": 10 ** (-0.4),
-                  "pass": bool(abs(f_d / f_b - 10 ** (-0.4)) < 1e-12)}
+                  "pass": bool(abs(f_d / f_b - 10 ** (-0.4)) < 1e-12),
+                  # P1-m09: 被积函数整体乘常数 ⇒ 比值恒等于该常数（积分线性性）;
+                  # 这不是"星等因子只进 0 次"的证据（该命题须用 F_syn 的定义式核）。
+                  "discriminating_power": "none (积分线性性恒等)"}
 
     # H6c: Simpson 误差与负例
     def integrand(l):

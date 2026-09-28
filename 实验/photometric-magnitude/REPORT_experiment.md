@@ -17,7 +17,11 @@
 
 - **参考通量**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，官方 343 点 @2 nm，336–1020 nm；G<15 域）；Akima 子样条 + 复合 Simpson 1/3（奇区间 3/8、n==1 退梯形）；**不含 `10^(−0.4·G)`**（`RESOLUTION_fsyn_formula.md` 判定，生产实现逐位一致）。插值/求积设置配置化 + 运行日志不落盘（负责人已批）。
 - **稳健零点**：`r_i = log10(F_instr/F_syn)` [dex]；固定尺度 Tukey biweight IRLS（c=4.685，tol=1e-6，max_iter=50）；`k_photo = 10^(−location)`；`sigma_residual = MAD(r_inliers)/0.6744897501960817`。
+- **预筛窗（订正 P1-M03）**：`|delta_i − median(delta)| ≤ 3.0 mag`，`delta_i := −2.5·log10 F_instr,i − G_i`（量纲 mag）；严格等价于 `|r_i − median(r)| ≤ 1.2 dex`（3.0/2.5）。两域容差不得混用。
+- **求积退化分支（订正 P1-m02）**：`n_int == 3` 时 1/3 前段区间数 `n_13 = 0` ⇒ 该段必须为 0；历史多计 `2·y[0]·h/3`，常数被积函数得 3.6667 vs 真值 3.0（+22.2%）。生产端与实验参考实现已按 claim `PHOT-SIMPSON-N3-001` 同步订正并补闭式期望 + 故障注入。
 - **双边界判据**：`σ_floor/σ_ceiling = (1 ∓ 3·1.166/√n)·(下/上界)`；1.166 = √1.361（MAD 标准化方差，**按台账 A-P1-01 订正标签**）；预算项各计一次。
+- **判据作用域（订正 P1-M07）**：`rho_lo = 1 − 3·1.166/√n ≤ 0` ⟺ `n ≤ 12.236` ⇒ 作用域降级 `upper_only`、状态词 `LOWER_BOUND_UNDEFINED`（**不记 PASS**）；**撤回** `max(rho_lo,0)` 夹逼（恒真门）。
+- **σ_flat 独立性（订正 P1-B01）**：仿真帧取**真值**逐像素平场散度经 `N_eff` 折算（`scia_common.sigma_flat_independent`，变更 claim `PHOT-SIGMAFLAT-INDEP-001`）；真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`；`calibrate()['delta_after_m']`（与被测统计量同源）**降级为诊断字段**，不进预算。反例化见 `results/step7_negatives.json → N6`。
 - **重做轮方法学**：三路互不通信独立取证；每项"文献腿（一手 DOI/官方文档/开源逐字）＋实验腿（固定 seed 合成实验，含"真值无效应⇒归零"负例）＋推导腿"三腿补齐；纯 numpy，不 import 仓库任何 Python。
 
 ## 3 数据
@@ -36,11 +40,12 @@
 ### 4.1 历史正本轮（results/step1..step8*.json，seed 20260921）
 
 - Oracle：估计器 vs 真值 rtol = 0.0，k 相对误差 3.33e-15 [实验:code/step1_analytic.py]。
-- 判据：3 仿真帧 + 1 真实帧全 PASS（σ_obs = 0.045344/0.057457/0.051718/0.026520 mag；观测/预算比 1.009/0.727/0.390/—）[实验:code/step5_calibration_gate.py]。
-- 负例齐备：真值无效应归零、乘性残差单调判红、散粒敏感（2.91×，4× 判红）/加性不敏感（1.08×）[实验:code/step7_negatives.py]。
-- 低样本：n≲22 下界失效（n=5 时 σ_floor=−0.004911）⇒ 只有上界是硬约束 [实验:code/step5_calibration_gate.py]。
+- 判据（**订正 P1-B01 后重跑**）：3 仿真帧全 PASS（σ_obs = 0.045344/0.057457/0.051718 mag；obs/pred = 1.154/1.008/0.417）[实验:code/step5_calibration_gate.py]；**真实帧判红**——σ_obs = 0.026520 > σ_ceiling = 0.020561 ⇒ **ABOVE_CEILING**（σ_flat 取权威常数 0.0007 mag；翻转临界 σ_flat = 0.013057 mag = 权威值 18.7 倍）[实验:code/step8_real_frame.py]。
+- **三类数据不一致 ⇒ 本单元成立性判「不成立（待修）」**（审查标准 §6）；真实帧判红与 `06_photometry.md` §4.1 的 L4「PASS 1/49」同归因。
+- 负例齐备（**7/7 通过**）：真值无效应归零判红、乘性残差单调判红、散粒敏感（2.91×，4× 判红）/加性不敏感（1.08×）；**N6** 为 P1-B01 的反例化（自指口径恒 PASS、独立口径 0.05 mag 判红）；**N5** 改为 `LOWER_BOUND_UNDEFINED` 语义 [实验:code/step7_negatives.py]。
+- 低样本：`n ≤ 12.236` 时 `rho_lo ≤ 0` ⇒ 3σ 下包络不存在（n=5 实测 σ_floor = −0.004911）；已按 P1-M07 改为显式降级（`upper_only` + 状态词不记 PASS），低样本域判别力只来自上界与状态词 [实验:code/step5_calibration_gate.py][实验:code/step7_negatives.py → N5]。
 - 引导检测：匹配率 0.2254/0.1972 → 0.9859；4096² 真实帧盲检 13163 检出仅 1.49% 对应星表星、30.3× 拟合次数；WCS 平移精化 ≲2 px 是前提（HST drz ~1.6″ vs 真实帧 0.0068″）[实验:code/step4_guided_vs_blind.py]。
-- 判读：**H1 成立（条件划定）、H2 成立（带 WCS 前提与循环性边界）**。
+- 判读（**订正**）：H1 在**仿真腿与解析腿**成立、在**真实帧腿不成立** ⇒ 按审查标准 §6 记 **不成立（待修）**；H2 成立（带 WCS 前提与循环性边界）。
 
 ### 4.2 重做轮三路（results/redo/，seed 20260926）
 
@@ -68,14 +73,15 @@
 - S04：平移不变量逐位 [实验:route3/exp_S04]；S05：σ_residual=0∧fit_ok=true 不可估计 [实验:route3/exp_S05]。
 - S06：F_syn/Simpson 误差分解（网格离散主导，uint8 量化 0.025%）[实验:route3/exp_S06]。
 - S07：FOV 缓冲/钳位冲突 [实验:route3/exp_S07]；S09：mag 窗 [实验:route3/exp_S09]；S10：匹配半径（歧义 ≈r²）[实验:route3/exp_S10]。
-- S11：n=3 MAD 偏差 1.49×、渐近式 n=3 高估 7.4%、ZP 三星下限抽样误差 25.7× [实验:route3/exp_S11]；S12：1.0 dex 界 0.055/1.110 非恒真 [实验:route3/exp_S12]。
+- S11：n=3 MAD 偏差 1.49×、**渐近式 n=3 高估 SE 8.03%**（订正 P1-M04：精确 SE = 0.6698291607404144σ vs 渐近 0.7235930923753581σ；历史 7.4% 是 `1−0.9256987` 的误读）、ZP 三星下限抽样误差 25.7× [实验:route3/exp_S11]；S12：1.0 dex 界 0.055/1.110 非恒真 [实验:route3/exp_S12]（**注 P1-m09**：该界为**粗筛**，历史正文的 3.0 mag 与实现一致；S12 的通过率对照是本单元少数的**有判别力**负例）。
 
-**判读**：H1′ 成立（常数体系三腿闭合，锚体系整体真实）；H1″ 成立（约定常数的危害方向与量级确认，豁免判定按 §6 清单）。
+**判读**：H1′ 成立（常数体系三腿闭合，锚体系整体真实，**二手归属两条已标注**：V3/V11）；H1″ 成立（约定常数的危害方向与量级确认，豁免判定按 §6 清单）。
+**m09 自洽性检查登记（无判别力，不得当证据）**：`route3/exp_S06` 的 **H6a/H6b** 与 `exp_S02`/`exp_S11` 的 `negative_zero_check` 均为**自洽/实现守卫**——常数序列下度量恒 0，属恒真结构；现有 JSON 字段保留作回归守卫，正文引用已标注其**无判别力**。
 
 ## 5 结论
 
 1. 测光星等坐标系的参考通量口径 `F_syn = ∫F_λ·T·Q·λ dλ` 与稳健零点估计（Tukey biweight c=4.685）三腿闭合；常数体系（c、0.6745、1.4826、1.166=√1.361）全部有文献/推导/实验三重支撑。
-2. 判据非退化性与适用域确立：真值无效应归零、乘性残差单调判红、只有上界是硬约束、不能认证天光扣除质量。
+2. 判据非退化性与适用域确立：真值无效应归零、乘性残差单调判红、`n ≤ 12.236` 时作用域降级 `upper_only`（**不记 PASS**）、不能认证天光扣除质量。**订正后真实帧腿判红 ⇒ 三类数据不一致 ⇒ 本单元成立性按审查标准 §6 判「不成立（待修）」**（见 §4）。
 3. 标定系数无绝对窗口由平移不变量逐位支撑；绝对值不可反解仪器参数。
 4. 主系统差源量化完成：星等窗 ≤0.032 mag（>统计误差 30 倍）、FOV 错配 −0.146 dex、低样本偏差 1.49×——下游精度约定（链条位置）据此写定。
 5. P1 输出的每 dex 精度是 P2–P5 全链误差底座；接口数值见 `REPORT_paper.md` §3。
@@ -89,7 +95,7 @@
 | 0.6745 / 1.4826 | 解析恒等式 | 推导腿自足（docs/derivation_robust_weights.md D3） |
 | FOV 三常数 / 阶梯档距 / mag_min 亮端 / 1.0 dex 界 | 项目约定（不注文献出处） | 敏感性实验与保守方向已给；文献腿按台账 U6 登记为约定 |
 | 匹配半径 2.0 px | 实现选择 | 全档敏感性表（0.5–4.0 px）[实验:route1/exp2] |
-| max_stars=5000 | 工程上限 | σ_ZP(N) 曲线支撑（5000 ⇒ 6.36e-4 mag）[实验:route3/exp_S08] |
+| max_stars=5000 | 工程上限 | σ_ZP(N) 曲线支撑（**订正 P1-M05**：统一式 `σ_ZP(N) = 1.2533·σ_star/√N`，`σ_star = 0.05 mag ≡ 0.02 dex` ⇒ 5000 ⇒ **8.86e-4 mag**；历史 6.36e-4 mag 来自 route1 的 `0.045/√N` 变体，缺 1.2533 中位数因子、σ_star 取值也不同，相对低估 1.39×）[实验:route3/exp_S08] |
 | m_cut 初值 6.0/1.5/2.0、身份指纹容差 1e-9 | 初值/浮点回环余量 | 不进科学值（S16/S17 豁免论证） |
 | quality_factor 0.1/0.5 | 项目约定 | 负责人已批豁免；承载单元 P5（本单元不涉） |
 
@@ -104,10 +110,22 @@
 | 5 | Gaia DR3 arXiv 号 2205.11321 | 正确号 2208.00211 | 路线1 文献腿自纠 |
 | 6 | `frame_photometry_fit.cpp:292` 1.4826 截断、mag_max_arr 耦合、B13 接线 | 登记为条款一致性/接线整改项（不改判据方向） | **按分歧台账 A-P1-08 订正** |
 | 7 | 旧 REPORT_paper 精读版（保留其仍成立的三类数据结论） | 本报告与其重写版并存；两轮数字均标注 seed 来源 | 本轮成稿纪律 |
+| 8 | **σ_flat 取 `calibrate()['delta_after_m']`**（自指：被测样本拟合后的残差散度充当预算项，真实帧占上界方差 59.4%） | 仿真帧改取**真值**平场散度经 `N_eff` 折算、真实帧取 `06_photometry.md` §4.1 的 `σ_flat,hf = 0.0007 mag`；`delta_after_m` 降级为诊断字段 | **审查 P1-B01（blocker）**；变更 claim `PHOT-SIGMAFLAT-INDEP-001`；反例化 = `step7_negatives.json → N6`；同一订正使真实帧由 PASS 翻为 ABOVE_CEILING（如实改判「不成立（待修）」） |
+| 9 | 低样本下界建议 `max(rho_lo, 0)·σ_fit` | **撤回**；改显式最小样本规则：`n ≤ 12.236` ⇒ 作用域 `upper_only` + 状态词 `LOWER_BOUND_UNDEFINED`（不记 PASS），并报出 `n`/`gate_scope` | **审查 P1-M07**（恒真门无证据资格，标准 §7）；`docs/science/PHOTOMETRY.md` §16.5 第 3 条已同步 |
+| 10 | 预筛窗写作 `|r − median(r)| ≤ 3.0`（r 为 dex）却注「= 1.2 dex」 | 量纲显式：`|delta − median(delta)| ≤ 3.0 mag` ⟺ `|r − median(r)| ≤ 1.2 dex`，实现 = `delta_i := −2.5·log10 F_instr,i − G_i` | **审查 P1-M03**；`docs/derivation_robust_weights.md` D1 |
+| 11 | n=3 渐近式「高估 7.4%」 | **8.03%**（精确 SE 0.6698291607404144σ / 渐近 0.7235930923753581σ − 1） | **审查 P1-M04** |
+| 12 | σ_ZP(5000) = 6.36e-4 mag（route1 `0.045/√N`）与 route3 的 `1.2533·σ/√N` 并存 | 统一为 `1.2533·σ_star/√N`（单位随输入域）⇒ **8.86e-4 mag**；route1 变体登记为**被取代** | **审查 P1-M05**；`route3/exp_S08 → H8b/H8d` |
+| 13 | Simpson 退化分支 `n_int == 3` 多计 `2·y[0]·h/3`（常数被积函数 3.6667 vs 3.0，+22.2%） | 该段置 0；生产端与实验参考实现同步订正 | **审查 P1-m02**；变更 claim `PHOT-SIMPSON-N3-001`；`p1phot` O3 组闭式期望 + 故障注入 `o3_simpson_n3_reference` |
+| 14 | 文献题录：V4 期号、V8 题名/DOI、V10 适用域、V2 路径、Akima 页域 | 6(9) / “…”spectroscopic data”+DOI / **两级域**（采样表示 G<15、连续表示 G<17.65）/ `robust/_tables.py` / **589–602** | **审查 P1-m06 / P1-M02**；`refs.md` + `docs/science/PHOTOMETRY.md` §14a |
+| 15 | 一手核验记录指向 `run/SCI-401/lit/verified_refs.md`（`run/` 为 gitignore、已回收 ⇒ 路径不存在） | 证据**随单元入库**：3 条引文订正记录落入 `refs.md`；其余文档改指 `refs.md` | **审查 P1-m10** |
+| 16 | 仿真帧 `σ_gaia = 0.002 mag` 计入上界，但注入与模型共用同一 `mag_eff` ⇒ 参考侧扰动在 `r_i` 中精确相消（复算相对差 0） | 标注「**该项在仿真中未被激活（偏松方向）**」，保留数值但降级为未检验项 | **审查 P1-m04**；`code/step5_calibration_gate.py` 注释 + `README.md`/`REPORT_paper.md` §3 + 本节 §4 边界 |
+| 17 | 恒真/空断言判据：`exp_S06` H6a（代数恒等）、H6b（积分线性性）、`exp_S02`/`exp_S11` 的 `negative_zero_check`（常数序列度量恒 0） | 三文件加 `discriminating_power` 字段标为「自洽守卫（无判别力）」，**保留字段作回归**但不作证据；有判别力的 H6c/H6d/H12、N0–N6 保留 | **审查 P1-m09**（标准 §7）；重跑落盘 `exp_S02/S06/S11` JSON |
+| 18 | `p1phot_performance` 并行比值门在共享过载节点上负载驱动地假红/假绿（同二进制 6 次隔离复跑 2 绿 4 红，parity4 6.0–9.8×） | **不改阈值 4.0**：自适应内循环 K 使单线程计时 ≳0.10 s；`getloadavg()` 过载时降级为 SOFT 登记；新增 `P1PHOT_PERF_FORCE_HARD=1` 负例开关证明该门**能红** | **本轮自查（P1-m13）**；`lib/algorithms/photometry/tests/p1phot/p1phot_tests_perf.cpp`；证据 `run/FINAL-07/logs/p1-perf-gate-red-green.txt` |
+| 19 | `results/GATES.md` 的 G1/G7 结论**写死**（G1 恒 PASS、G7 恒 PARTIAL）⇒ 恒真门 | 改为**由实测派生**：G1 三帧全 PASS 才绿；G7 由真实腿派生 ⇒ 本轮为 **RED**（三类数据不一致），合计 8/9 | **本轮自查**；`code/step9_collect.py` |
 
 ## 8 诚实边界
 
-见 `REPORT_paper.md` §7（八条全列）。补充实验口径：①历史正本轮全部预算项在仿真帧上由本帧推导（含真值重算的 σ_color/σ_flat），真实帧上 σ_color/σ_gaia 不可自算、标 `null` 且上界不完整；②仿真引导匹配的定位输入即注入真值（结构性循环），非循环证据来自真实帧；③σ_psfsys 孔径口径 r=4 为作者约定（保留三方对照）；④重做轮计数模型依赖天空平均密度假设（820/deg²，G<16 全天平均），非逐场实测；⑤仍开放（不阻成稿）：Lindegren 2021 亮端数字、R&C 原文、Huber & Ronchetti 页码、σ_floor/ceiling 政策值、ZP_syn 下限政策值、ieq 工程修复——**UNRESOLVED 项一律不进论文正文**，此处为唯一登记面。
+见 `REPORT_paper.md` §7（十一条全列）。补充实验口径：①历史正本轮全部预算项在仿真帧上由本帧推导（σ_color 为真值重算、**σ_flat 为真值平场散度经 `N_eff` 折算的独立项**，两者都**不含**被测残差；**`σ_gaia=0.002 mag` 在仿真上未被激活**——注入与模型共用同一 `mag_eff` ⇒ 参考侧扰动在 `r_i` 中精确相消，订正 P1-m04，方向偏松），真实帧上 σ_color/σ_gaia 不可自算、标 `null` 且上界不完整，**σ_flat 取权威常数 0.0007 mag 而非自算**；②仿真引导匹配的定位输入即注入真值（结构性循环），非循环证据来自真实帧；③σ_psfsys 孔径口径 r=4 为作者约定（保留三方对照）；④重做轮计数模型依赖天空平均密度假设（820/deg²，G<16 全天平均），非逐场实测；⑤仍开放（不阻成稿）：Lindegren 2021 亮端数字、R&C 原文、Huber & Ronchetti 页码、σ_floor/ceiling 政策值、ZP_syn 下限政策值、ieq 工程修复——**UNRESOLVED 项一律不进论文正文**，此处为唯一登记面。
 
 ## 9 复现命令
 

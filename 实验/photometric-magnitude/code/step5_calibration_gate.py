@@ -8,6 +8,8 @@
     PASS ⟺ sigma_floor ≤ sigma_obs ≤ sigma_ceiling
 逐项预算在本仿真帧上**从真值重算**（光子噪声/PSF 拟合不确定度/平场残余/天光残余/
 颜色项/参考侧/量化），并与注入真值对照。
+平场残余 sigma_flat 取**真值逐像素平场散度经 N_eff 折算**的独立物理项（变更 claim
+PHOT-SIGMAFLAT-INDEP-001）；calibrate 的 delta_after_m 与被测统计量同源，只作诊断登记。
 
 产出：results/step5_calibration_gate.json
 """
@@ -90,12 +92,22 @@ def analyse(tag, meta, inst, m_degree=2):
     else:
         m_corr_at = np.ones(xs.size)
     m_true_at = m_true[yr2, xr2]
-    # 平场残余 = 拟合 m 之后仍剩下的星等散度（calibrate 内已算，单位 mag，无多余因子）
-    sigma_flat = float(cal["delta_after_m"]) if np.isfinite(cal["delta_after_m"]) else 0.0
+    # 平场残余 sigma_flat = **独立物理项**：真值逐像素平场散度 flat_pix_sigma 经
+    # N_eff 折算到单星通量（变更 claim PHOT-SIGMAFLAT-INDEP-001）。
+    # calibrate 的 delta_after_m 与被测统计量 sigma_obs 同源（同一批残差上的同一估计量），
+    # 只作诊断登记，**不进** sigma_ceiling——否则上界随被测散度同步膨胀而失去判别力。
+    flat_pix_sigma = float(meta.get("flat_pix_sigma", 0.0)) if meta else 0.0
+    sigma_flat = (sc.sigma_flat_independent(flat_pix_sigma, inst.fwhm_px, inst.beta_fit)
+                  if flat_pix_sigma > 0 else 0.0)
+    delta_after_m_diag = (float(cal["delta_after_m"])
+                          if np.isfinite(cal["delta_after_m"]) else None)
     # 颜色项：模型通带 vs 注入通带的等效星等差散度（逐星已知）
     dcol = -2.5 * np.log10(np.asarray(fr["f_syn_inject"], float)[sel]
                            / np.asarray(fr["f_syn"], float)[sel])
     sigma_color = float(np.std(dcol))
+    # σ_gaia：参考侧（Gaia XP 合成通量精度）预算项。**注意（订正 P1-m04）**：本仿真
+    # 的注入与模型共用同一 mag_eff ⇒ 参考侧扰动在 r_i 中精确相消（复算相对差 0），
+    # 该项在仿真帧上**未被激活**；计入它使上界偏松（方向已知，不改变任何判红结论）。
     sigma_gaia = 0.002
     # 帧内 PSF 域方法系统误差（PSF vs 独立孔径）
     from scia_calib import aperture_flux, psf_vs_aperture_systematics
@@ -144,12 +156,18 @@ def analyse(tag, meta, inst, m_degree=2):
             psf_vs_ap_ratio_median=sysres.get("ratio_median"),
             sigma_color_from_truth=sigma_color,
             sigma_color_mean_mag=float(np.mean(dcol)),
-            sigma_flat_from_truth=sigma_flat,
+            sigma_flat_independent=sigma_flat,
+            sigma_flat_flat_pix_sigma_true=flat_pix_sigma,
+            sigma_flat_source=("truth flat_pix_sigma/sqrt(N_eff)，独立于被测样本"
+                               "（变更 claim PHOT-SIGMAFLAT-INDEP-001）"),
+            delta_after_m_diagnostic=delta_after_m_diag,
+            delta_after_m_role="diagnostic_only（与被测统计量同源，不进预算）",
             m_true_at_median=float(np.median(m_true_at)),
             m_corr_at_median=float(np.median(m_corr_at)),
             m_corr_times_mtrue_median=float(np.median(m_corr_at * m_true_at)),
-            delta_after_m_mag=float(cal["delta_after_m"]),
             n_m_terms=len(cal["m_coeffs"]) if cal["m_coeffs"] else 0),
+        gate_scope=b.gate_scope,
+        lower_bound_defined=b.lower_bound_defined,
         inject_scale_true=float(fr["inject_scale"]),
         k_photo_fit=cal["k_photo"],
         k_photo_true=1.0 / float(fr["inject_scale"]),

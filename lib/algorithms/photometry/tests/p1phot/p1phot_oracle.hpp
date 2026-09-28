@@ -294,9 +294,16 @@ inline double oracle_simpson(const std::vector<double>& x, const std::vector<dou
     }
     if (n_int >= 3) {
         const std::size_t n13 = n_int - 3;
-        double s = y[0] + y[n13];
-        for (std::size_t i = 1; i < n13; ++i) s += (i % 2 == 1 ? 4.0 : 2.0) * y[i];
-        double total = s * h / 3.0;
+        // n_int == 3 ⇒ n13 == 0: 1/3 前段无区间，必须为 0。
+        // 注意: 本 oracle 历史上与被测实现同构同错（都多计 2·y[0]·h/3），故它**不能**
+        // 作为该退化分支的期望值来源 —— O3 组对 n_int == 3 改用闭式期望（常数/三次式），
+        // 并另设故障注入名 o3_simpson_n3_reference（变更 claim PHOT-SIMPSON-N3-001）。
+        double total = 0.0;
+        if (n13 > 0) {
+            double s = y[0] + y[n13];
+            for (std::size_t i = 1; i < n13; ++i) s += (i % 2 == 1 ? 4.0 : 2.0) * y[i];
+            total = s * h / 3.0;
+        }
         total += (y[n13] + 3.0 * y[n13 + 1] + 3.0 * y[n13 + 2] + y[n_pts - 1]) * 3.0 * h / 8.0;
         return total;
     }

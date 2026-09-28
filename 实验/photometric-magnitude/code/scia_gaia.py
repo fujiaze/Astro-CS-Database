@@ -16,7 +16,25 @@ from scia_common import CACHE, REPO, RUN, sha256_file
 
 DUMP_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gaia_xp_dump.c")
 DUMP_BIN = os.path.join(RUN, "bin", "gaia_xp_dump")
-XPSD_DIR = "GaiaDR3SP"
+
+
+def _resolve_xpsd_dir():
+    """解析 XPSD 星表目录（P1-M01 订正）。
+
+    优先级：环境变量 SCI_A_XPSD_DIR（可覆盖）→ <repo>/gaia/GaiaDR3SP（仓内正位）
+    → cwd 相对 "GaiaDR3SP"（旧调用兼容）。不得依赖调用者的工作目录：历史实现写死
+    相对名，一键复现的第一步即以 "catalog directory not openable" 失败。
+    """
+    env = os.environ.get("SCI_A_XPSD_DIR")
+    if env:
+        return env
+    repo_dir = os.path.join(REPO, "gaia", "GaiaDR3SP")
+    if os.path.isdir(repo_dir):
+        return repo_dir
+    return "GaiaDR3SP"
+
+
+XPSD_DIR = _resolve_xpsd_dir()
 
 
 def build_dumper(force=False):
@@ -31,8 +49,26 @@ def build_dumper(force=False):
     return DUMP_BIN
 
 
+def check_xpsd_dir(d=None):
+    """星表目录自检（run_all.sh 首步调用）。
+
+    不可读时给出**可操作**的错误，而不是让 C 客户端以 "entries=0" 静默失败
+    （P1-M01：一键复现曾在第一步报 "gaia catalog directory not openable"）。
+    """
+    d = XPSD_DIR if d is None else d
+    p = d if os.path.isabs(d) else os.path.join(REPO, d)
+    if not os.path.isdir(p):
+        raise RuntimeError(f"XPSD 星表目录不可读: {p}（来源: SCI_A_XPSD_DIR / "
+                           f"<repo>/gaia/GaiaDR3SP / cwd 相对；实际解析值 {d!r}）")
+    n = len([f for f in os.listdir(p) if f.endswith(".xpsd")])
+    if n == 0:
+        raise RuntimeError(f"XPSD 星表目录内无 .xpsd 文件: {p}")
+    return dict(dir=p, n_xpsd=n)
+
+
 def dump_cone(ra, dec, radius_deg, mag_high, tag, force=False):
     """导出锥内 XP 谱到 CACHE/<tag>.csv（缓存命中则复用）。"""
+    check_xpsd_dir()
     build_dumper()
     out = os.path.join(CACHE, f"gaia_xp_{tag}.csv")
     if force or not os.path.exists(out):

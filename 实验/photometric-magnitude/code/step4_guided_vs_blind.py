@@ -3,7 +3,7 @@
 
 判据：Gaia 逆映射定位相对盲检的**匹配率提升**与**算力节省**有量化对照；
       拟合失败直接丢弃、不计虚警；粗 WCS 误差下的鲁棒性。
-对照实现：photutils DAOStarFinder 的 xycoords 语义（见 results/REFS.md / run/SCI-401/lit）。
+对照实现：photutils DAOStarFinder 的 xycoords 语义（见 ../refs.md；原指 results/REFS.md 与 run/SCI-401/lit，后者已随 run/ 回收，P1-m10 订正）。
 
 产出：results/step4_guided_vs_blind.json
 """
@@ -111,7 +111,7 @@ def main():
         print(f"[step4] {tag}: guided {guided_rate:.3f} ({t_guided:.1f}s) vs "
               f"blind {blind_rate:.3f} ({t_blind:.1f}s)")
     res["reference_implementation"] = dict(
-        note="星表位置引导可跳过源查找步骤 —— 开源实现的一手语义（见 run/SCI-401/lit/verified_refs.md）",
+        note="星表位置引导可跳过源查找步骤 —— 开源实现的一手语义（见 ../refs.md；P1-m10 订正路径）",
         photutils="photutils 3.0.0, detection/daofinder.py:26 (class DAOStarFinder), :210 (__init__); "
                   "文档逐字：'If xycoords are input, the algorithm will skip the source-finding step.'")
     sc.jdump(res, os.path.join(sc.RESULTS, "step4_guided_vs_blind.json"))
