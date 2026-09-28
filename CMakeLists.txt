@@ -47,8 +47,22 @@ else()
   # 否则 MSVC 按系统 ANSI 代码页误读 → 注释边界错乱 → 级联语法错误 (contracts.h C2144)。
   # NOMINMAX: windows.h 的 min/max 宏会破坏 std::min/std::max (C2589, monitor/recorder)。
   # _USE_MATH_DEFINES: MSVC 需此宏才暴露 M_PI (wcs_tan.cpp 等)。
-  add_compile_options(/utf-8 /W4 /EHsc)
+  # 第三方 vendored 目标 (astrocs_cfitsio / astrocs_orchestrator_jsv) 用属性
+  # ASTROCS_WARNINGS_OFF=1 退出本项目的 /W4: 它们各自已带 /w, 若同时收 /W4 则 cl 报
+  # "warning D9025: overriding '/W4' with '/w'" —— 零告警门禁下这条命令行告警同样算
+  # 告警。属**目标级第三方隔离**, 不是全局降级 (其余目标照旧 /W4)。
+  add_compile_options(/utf-8 /EHsc
+    "$<$<NOT:$<STREQUAL:$<TARGET_PROPERTY:ASTROCS_WARNINGS_OFF>,1>>:/W4>")
   add_compile_definitions(NOMINMAX _USE_MATH_DEFINES)
+  # WIN-PORT C4996 策略 (登记面 = ENGINEERING_SPEC.md §1「MSVC C4996 策略」):
+  # C4996 是 MSVC 对 ISO C 函数的**咨询性**告警 (strncpy/fopen/getenv/_open/...),
+  # 同一份代码在 Linux/GCC 侧编译零告警 —— 这是平台口径差, 不是代码缺陷。
+  # 处置 = 项目级关闭该咨询面, **不重写 206 个调用点** (行为风险 > 收益):
+  #   _CRT_SECURE_NO_WARNINGS  : 关 strncpy/fopen/getenv/sscanf/strerror/strdup 的 C4996;
+  #   _CRT_NONSTDC_NO_WARNINGS : 关 POSIX 名 (_open/_wfopen/getpid/...) 的弃用 C4996。
+  # 二者只关**这两个宏观咨询类别**; 其余告警类别 (C4244/C4334/C4324/C4310/C4190/
+  # C4127/C4100/C4456 等) 一律逐点真修或按语言标准正当处理, 不得靠全局降级掩盖。
+  add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
 endif()
 
 # 版本单源: 根 VERSION 文件 (VER-001)
@@ -180,6 +194,7 @@ string(JSON ASTROCS_RR_P3_MAX_SUB_BLOCK_PX GET "${ASTROCS_RUNTIME_RESOURCES_JSON
 string(JSON ASTROCS_RR_P3_DEFAULT_QUEUE_DEPTH GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p3_default_queue_depth)
 string(JSON ASTROCS_RR_P1_MAX_FRAMES_IN_FLIGHT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p1_max_frames_in_flight)
 string(JSON ASTROCS_RR_SCHEDULER_PREFETCH_THREADS_MAX GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params scheduler_prefetch_threads_max)
+string(JSON ASTROCS_RR_CPU_BUDGET_MAX GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params cpu_budget_max)
 configure_file(eng/packaging/config/runtime_resources_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/runtime_resources_generated.h @ONLY)
 
@@ -396,6 +411,9 @@ add_library(astrocs_core STATIC
   # ARCH-505: 阶段块流执行器（生产节点命名块装配）
   lib/infrastructure/scheduler/src/block_flow.cpp
   lib/infrastructure/scheduler/src/context.cpp
+  # X1: 节点并行预算的唯一解析面（运行期预算 = 进程有效 CPU 配额；见
+  # docs/architecture/THREADING_MODEL.md「并行轴分配」+ docs/standards/CONCURRENCY_STANDARD.md「默认」节）。
+  lib/infrastructure/scheduler/src/cpu_budget.cpp
   lib/infrastructure/scheduler/src/runtime.cpp
   lib/infrastructure/scheduler/src/scheduler.cpp
   lib/infrastructure/scheduler/src/checkpoint.cpp
@@ -505,6 +523,9 @@ if(MSVC)
   # zcompress.c 需 zlib (ACS_ZLIB_ROOT, MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
   # 注意: 不可用 MSYS2 mingw64 include (gcc 头无法被 MSVC 编译)。
   target_compile_options(astrocs_cfitsio PRIVATE /w)
+  # 第三方隔离 (见根 add_compile_options): 本目标不收项目 /W4, 只留 /w,
+  # 消除 D9025 "overriding '/W4' with '/w'"。
+  set_target_properties(astrocs_cfitsio PROPERTIES ASTROCS_WARNINGS_OFF 1)
   target_include_directories(astrocs_cfitsio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/win32_pthread_shim)
   target_link_libraries(astrocs_cfitsio PUBLIC kernel32)  # SRWLock API (shim)
@@ -992,6 +1013,12 @@ target_include_directories(astrocs_p1_ipv PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
+# WIN-PORT C2491: ipv_api.h 用 IPV_EXPORTS 区分 dllexport/dllimport —— 本 target
+# 编入的是**定义侧** TU (ipv_entry.cpp 等), Windows 下不定义该宏就会把定义
+# 声明成 __declspec(dllimport) ⇒ MSVC C2491「不允许 dllimport 函数的定义」×12。
+# 与源内既有构建面同口径 (cpp/ipv/Makefile:15 的 -DIPV_EXPORTS、
+# build.ps1:27 的 -DIPV_EXPORTS); Linux 侧 IPV_API 为空, 定义与否行为相同。
+target_compile_definitions(astrocs_p1_ipv PRIVATE IPV_EXPORTS)
 set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
   PROPERTY C_STANDARD 11)
 

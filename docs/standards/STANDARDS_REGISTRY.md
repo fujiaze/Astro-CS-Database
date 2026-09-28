@@ -1,7 +1,7 @@
 # 国际标准冻结注册表（STANDARDS_REGISTRY）
 
-> 上游权威: `ASTROCS_DESIGN.md` §5.3（冻结八投影）/附录 B（基础科学与格式参考）+ `ENGINEERING_SPEC.md` §8（本注册表为标准登记，不在 §0 权威链上）
-> 条款锚的现行落点：投影集合 = `ASTROCS_DESIGN.md` §5.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
+> 上游权威: `ASTROCS_DESIGN.md` §6.3（冻结八投影；本节号为本轮订正，原写 §5.3 = 「SNR 重建与逆方差叠加」）/附录 B（基础科学与格式参考）+ `ENGINEERING_SPEC.md` §8（本注册表为标准登记，不在 §0 权威链上）
+> 条款锚的现行落点：投影集合 = `ASTROCS_DESIGN.md` §6.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
 > 机器检查: `docs/standards/checks/check_standards_registry.py`（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
 > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
 
@@ -264,8 +264,8 @@
 | DISP-HIPS-011 | hips | §4.4.1（all-sky map 与 MOC 关系） | 第 5 行 | TRACKED | P1-HIPS-IMPL |
 | DISP-HIPS-012 | hips | §6.3.1（客户端绘制所需的初始视场/像素尺度元数据） | 第 6 行 | TRACKED | P1-HIPS-IMPL |
 | DISP-DRZ-001 | drizzle | §2/§3（SIP 畸变场下的 drop 映射） | 第 6 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | 源码注释同步（`spherical_overlap.h:15,77` / `spherical_overlap.cpp:11`） |
-| DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | CLOSED | —（面亮度保持口径 `w=a/A_pixel`） |
+| DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 第 2 行 | TRACKED | 源码注释同步（`spherical_overlap.h:15,77` / `spherical_overlap.cpp:11`） |
+| DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 第 2 行 | CLOSED | —（口径 = drop 面积归一核 `w=a/A_drop` + 面亮度分母 `N_p=Σ_j w_jp·A_pixel,j`；见 §D.drizzle 偏差表 DISP-DRZ-009） |
 | DISP-DRZ-003 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | CLOSED | —（口径 = 样本级掩膜，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`；正本 = DATA-002 §2a `invalid_handling`） |
 | DISP-DRZ-005 | drizzle | §3（球面交叠面积与微小 drop 数值路径） | 第 3 行 | TRACKED | P1-DRZ-IMPL / P1-DRZ-INT |
@@ -380,7 +380,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 ## 6. 追溯
 
-- 上游：`ASTROCS_DESIGN.md` 附录 B / §5.3；本文件不在 `ASTROCS_DESIGN.md` §0 权威链上。
+- 上游：`ASTROCS_DESIGN.md` 附录 B / §6.3（投影）；本文件不在 `ASTROCS_DESIGN.md` §0 权威链上。
 - `STD-F6`（「国际标准冻结注册表缺失」）的处置面由本文件落地；
   其跨域治理偏差**定义**在 §3.2。
 - D.fits 的证据指针 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h`。

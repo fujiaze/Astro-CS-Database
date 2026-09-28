@@ -22,6 +22,8 @@
 | cpu_profile | `eng/contracts/schemas/cpu_profile.schema.json` | **仅 benchmark** | ISA/workers/block + CPU/OS/软件版本/provider hash 机器绑定 | phase_config 的 `sci_*`/`algorithm_*` 字段 |
 | run_manifest | `eng/contracts/schemas/run_manifest.schema.json` | 运行时（每次运行冻结） | 源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本 | 科学参数与硬件调优字段 |
 
+- **cpu_profile 落点口径与适用域（R-52 裁决，2026-09-29）**：落点 = 发行布局（程序安装目录）；输出路径相对发行布局解析，**源码树内运行构建期二进制不构成产品契约面**。安装目录不可写或落在版本控制工作树内时转用户可写落点（Linux `$XDG_DATA_HOME/ACSD`，Windows `%LOCALAPPDATA%\ACSD`）并在 stderr 明示，**不静默换落点、不把 profile 或原始样本写入版本控制工作树**。本条与"运行产物不入库"守卫（`AGENTS.md` §6）**不冲突**：守卫拒绝的是写入版本控制工作树，口径给出的是合法替代落点。正本 = `docs/ASTROCS_DESIGN.md` §9；接口登记 = `docs/api/CLI_PROTOCOL_V1.md` §2；唯一实现 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）与 `lib/infrastructure/benchmark/backend_host/profile_store.cpp`（原子写 + 校验）。
+
 - phase_config 由**三份 phase 专属 schema** 定义：`eng/contracts/schemas/phase_config_normalize.schema.json`、`eng/contracts/schemas/phase_config_mosaic.schema.json`、`eng/contracts/schemas/phase_config_export.schema.json`；**不存在**同名聚合文件（唯一正本，`docs/design/UNIFIED_MODEL.md` §3）。回归锁：`eng/tests/config/test_cfg001_contracts.py::TestPhaseConfigFamily::test_no_aggregate_second_definition`。
 
 ## 2 `eng/packaging/config/defaults.json`（`astrocs.config-defaults/v1`）

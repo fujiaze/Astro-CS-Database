@@ -39,7 +39,7 @@
 ## 6. 接口/ABI
 
 - entrypoint：信号 + 候选星窗口 + 初值 → PSF 模型/参数（帧级 Moffat4）；
-- 输出模型的消费者 = 本帧 PSF 拟合域测光（`06_photometry.md`）；noise_snr 的交付样本与深度按测光有效源独立构造，与 PSF 参数面解耦。
+- 输出模型的**生产消费者 = 零**：节点注册表**不声明** `artifact:p1_psf` 输入端口——`lib/infrastructure/scheduler/src/module_adapters.cpp:932-933` 逐字记「该边在注册表里不存在（`astrocs.phase1.star-psf` 的 `p1_psf` 端口"生产链路零消费者"）」，`docs/contracts/PIPELINE_BLOCK_CONTRACT.md:110` 亦把 `photometry ← p1_psf` 列作自测负例（幻边）。`p1_psf.json` 只经 `star_id` 关联作**本插件内部**的 PSF 域复核读数（`module_adapters.cpp:4295` 落的 `p1_psf.json` / `:5588` 的关联读）；noise_snr 的交付样本与深度按测光有效源独立构造，与 PSF 参数面解耦。
 
 ## 7. 错误与边界
 

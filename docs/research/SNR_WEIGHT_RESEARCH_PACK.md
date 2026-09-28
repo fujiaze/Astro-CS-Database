@@ -64,7 +64,7 @@
 
 1. Zackay, B., & Ofek, E. O. 2017, *How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images*, ApJ **836**, 187（arXiv:1512.06872，DOI 10.3847/1538-4357/836/2/187；作者仅 Zackay & Ofek，无 Gal-Yam）——每帧先用**各自的 PSF 做 matched filter 再加权求和**才最优；先 PSF 均质化再叠加会损失灵敏度。直接约束本项目 integration 的 point_information 模式。
 2. Zackay, B., & Ofek, E. O. 2017, *How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit*, ApJ **836**, 188（arXiv:1512.06879）——背景主导噪声极限下任意用途最优的合成图（proper coaddition），核对最终叠加量与方差传播。
-3. **【消歧，勿与第 1 条混引】** Zackay, B., Ofek, E. O., & Gal-Yam, A. 2016, *Proper Image Subtraction—Optimal Transient Detection, Imaging and Photometry in the Presence of Point Sources and Galactic Background Noise*（ZOGY），ApJ **830**, 27（arXiv:1601.02655，DOI 10.3847/0004-637X/830/1/27）——这是**图像相减/暂现源检测**论文，不是 COAAD I；卷号 830 与 COAAD I 的 836 分属两篇。
+3. **【消歧，勿与第 1 条混引】** Zackay, B., Ofek, E. O., & Gal-Yam, A. 2016, *Proper Image Subtraction—Optimal Transient Detection, Photometry, and Hypothesis Testing*（ZOGY），ApJ **830**, 27（arXiv:1601.02655，DOI 10.3847/0004-637X/830/1/27）——这是**图像相减/暂现源检测**论文，不是 COAAD I；卷号 830 与 COAAD I 的 836 分属两篇。
 4. Horne, K. 1986, *An optimal extraction algorithm for CCD spectroscopy*, PASP 98, 609——逆方差（1/σ²）最优加权的经典源头。
 5. Naylor, T. 1998, *An optimal extraction algorithm for imaging photometry*, MNRAS 296, 339——成像测光的最优加权。
 6. Fruchter, A. S., & Hook, R. N. 2002, *Drizzle: A Method for the Linear Reconstruction of Undersampled Images*, PASP 114, 144——IIDR/drizzle 权重与像素保留（对照 export/重采样）。

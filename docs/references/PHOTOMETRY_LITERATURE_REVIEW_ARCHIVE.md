@@ -225,10 +225,10 @@
 
 **孔径改正 / 通带颜色项 / Gaia XP 追加**
 
-- [B87] Huang, Y., Yuan, H. & Xiao, K. 2024, ApJ 973, 1, arXiv:2408.09779（XP 合成 vs 观测残差的空间系统）
-- [B88] Stritzinger, M., et al. 2005, "An Atlas of Spectrophotometric Landmark/Landolt Standard Stars" DOI 10.1086/431468, arXiv:astro-ph/0504244
-- [B89] Brout, D., et al. 2022, ApJ 938, 111（CALSPEC 1.5% 变化 → 0.04 mag 的 dμ/dz 放大）
-- [B90] Gaia Collaboration, Vallenari, A., Brown, A. G. A., et al. 2023, A&A 674, A1, "Gaia Data Release 3: Summary of the content and survey properties" DOI 10.1051/0004-6361/202243940, arXiv:2208.00211
+- [B87] Huang, Y., Yuan, H. & Xiao, K. 2024, ApJ 973, 1, arXiv:2408.09779 [V]（XP 合成 vs 观测残差的空间系统）
+- [B88] Stritzinger, M., et al. 2005, "An Atlas of Spectrophotometric Landolt Standard Stars" DOI 10.1086/431468, arXiv:astro-ph/0504244 [V]
+- [B89] Brout, D., et al. 2022, ApJ 938, 111 [V]（CALSPEC 1.5% 变化 → 0.04 mag 的 dμ/dz 放大）
+- [B90] Gaia Collaboration, Vallenari, A., Brown, A. G. A., et al. 2023, A&A 674, A1, "Gaia Data Release 3: Summary of the content and survey properties" DOI 10.1051/0004-6361/202243940, arXiv:2208.00211 [V]
 
 **深度 / 巡天策略**
 

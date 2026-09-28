@@ -13,7 +13,7 @@
 | SNR 阶段 `NOISE_MODEL_STATUS=SKIPPED_*` | SNR 日志 | data 块缺失/API 缺失 | 确认 SNR 模块为当前版本 |
 | Drizzle 输出全 NaN | DRIZZLE 日志 | WCS/SIP 病态 | 检查 CRVAL/CD/A/B 系数; pixfrac |
 | HiPS verify 失败 | HIPS_VERIFY 日志 | tile 布局/产品缺失 | 用 aio_hips_reader 复读; 检查 variance/ivar |
-| stage2 `ZERO_VALID_WEIGHT` | INTEGRATE 日志 | 帧无 ivar 产品且 support=0 | 确认 Phase1 输出了 variance/ivar; 重跑 Phase1 生成含 variance/ivar 的帧 |
+| stage2 `ZERO_VALID_WEIGHT` | INTEGRATE 日志 | 帧无 ivar/variance 产品 ⇒ 全部样本权重为 0（`n_accepted>0 ∧ n_positive_weight==0`，`integrate.cpp:49`；**不是** support=0——该状态下 support 仍按 accepted 支撑的 max 发布，见 `DATA_SEMANTICS.md` §21.5） | 确认 Phase1 输出了 variance/ivar; 重跑 Phase1 生成含 variance/ivar 的帧 |
 | stage2 `INVALID_CONFIGURATION` | CONFIG 日志 | rejection normalization 组合非法 | percentile 必须 median_center; rcr 必须 none |
 | 权重全等权 (ivar 失效) | diag `ivar_product_missing>0` | 输入帧无 ivar 产品 | 重跑 Phase1 生成含 variance/ivar 的帧; 或接受 support 回退 |
 | 性能下降/超时 | E980 + `operation_counts.json` | 候选效率异常 / 线程配置 | 检查 candidate_efficiency; threads 配置 |

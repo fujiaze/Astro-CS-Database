@@ -49,7 +49,7 @@ x,y,flux,mag,saturated,has_saturated）+ star_det_psf_compat FLOAT32 [N,4]。
 ## Ownership
 
 输出十数组模块 malloc，调用方唯一经 `sdet_free_detect_ex` 整组释放
-（sdet_api.cpp:2271-2287），释放一律经该接口整组进行。
+（sdet_api.cpp:2344-2360），释放一律经该接口整组进行。
 
 ## Thread safety
 

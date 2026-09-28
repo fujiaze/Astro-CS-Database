@@ -37,7 +37,7 @@
   输出（CTYPE/CUNIT/CRPIX/CRVAL/CD）；极点/TAN 半球/参数守卫。
 - 非职责: 重采样（phase3_resample2 域）、FITS 文件读写
   （phase3_fits 域）、会话编排（p3_session 域）、**除 TAN 以外的投影**。
-- **投影集口径（最高设计 §5.3）**：**设计冻结 8 种**
+- **投影集口径（最高设计 §6.3）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**已实现并可作为产品声明的以实际注册表为准
   —— 当前登记：仅 `TAN` 已实现**（`lib/algorithms/projection/p3_projection_registry.h`
   的声明集 D = 实现集 I = `{TAN}`）；**支持声明以注册表登记为准：未实现者报「不支持」**

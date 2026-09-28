@@ -38,7 +38,7 @@
   域）、不做 FITS 文件读写（ALG-P3-FITS-IMPL-001 域）、不做请求
   解析与编排（p3_session run 段）、**除 TAN 以外的投影**、不改 SCI 公式
   （SCI-P3 FROZEN 零改动）。
-- **投影集口径（最高设计 §5.3）**：**设计冻结 8 种**
+- **投影集口径（最高设计 §6.3）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**当前登记：仅 `TAN` 已实现**
   （声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`）；
   **支持声明以注册表登记为准：未实现者报「不支持」**（`p3_proj_declare` →

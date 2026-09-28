@@ -21,11 +21,16 @@ path/to/file.ext:N,M        path/to/file.ext:N/L          path/to/file.ext#N
 path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 `@
 
+**一行多锚 = 逐 token 各成一条独立锚记录**（FINAL-07 判据订正留痕）：`<file>:N-M / :A-B / :C`
+是**三个**锚；续锚与首锚同文件、同解析规则（§2.2/§3），各自判界内（C3）、各自判边界空行（C6）、
+各自参与符号绑定（C4）。判词口径 = 检查器 `expand_anchors()` 的逐 token 展开；
+回归保护 = `--self-test` 的枚举正例与「续锚被贪心正则吞掉」负例（详见 §7.1）。
+
 **`#N` 是行号锚，`§N` 是章节引用——两者各自独立、取值互不代用**（DOC-DRIFT-FIX-01 消歧）：
 C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须写 `docs/contracts/DATA_SEMANTICS.md §4a`，
 章节引用一律写全路径；`…#4a` 形态会被扫描器把章节号当行号判界内/判空行（GLOSSARY.md 曾有 12 处此类碰撞）。
 
-现行规模（C7 逐字复测）：**111 文档 / 2098 锚** = 2066 目标锚 + 6 登记豁免 + 26 未解析登记。
+现行规模（C7 逐字复测）：**97 文档 / 2121 锚** = 2091 目标锚 + 4 登记豁免 + 25 未解析登记。
 
 > C7 逐字复测本行：数字必须等于检查器实测（口径 = 检查器自己的扫描器；改锚后跑
 > `check_doc_line_anchors.py --print-scale` 取现行行替换，口径唯一 = 检查器自己的扫描器）。
@@ -57,8 +62,9 @@ C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须
    `basename` 匹配的显式规则（**唯一**处理同名多候选的合法手段；
    `basename` 取 `os.path.basename(锚文本)`，故 `cpp/build.ps1` 要写 `build.ps1`）；
 4. **basename-unique**：全仓（排除归档标记目录，清单 = `ARCHIVE_MARKERS`，
-   `docs/algorithms/anchors/check_doc_line_anchors.py` 顶部常量：archive / 历史实现 / `.git` /
-   `third_party` / `build` / `out` / `run` / `worktrees`）唯一同名文件。
+   `docs/algorithms/anchors/check_doc_line_anchors.py` 顶部常量，取值逐字为
+   `/archive/` / `/legacy/` / `/.git/` / `/third_party/` / `/build/` / `/out/` /
+   `/run/` / `/worktrees/`）唯一同名文件。
 
 四步皆不命中 → 该锚必须**逐条登记**在 `unresolved_registry.json`（C8，只减不增）；
 未登记即 `C2_anchor_resolved` FAIL。目标必须是 **Git 跟踪**文件。
@@ -78,20 +84,27 @@ C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须
 | C7 contract_scale | 本文件 §1「现行规模」行与本门实测逐项相等；该行缺失/不可解析亦判红 | 规模声明过期（旧读数冒充现读数），或声明被删 |
 | C8 unresolved_registry | 未解析锚必须已登记；登记项必须仍命中；条目数 ≤ max_entries | 新未解析锚未登记 / STALE_REGISTRY / 棘轮被突破 |
 
-### 4.1 豁免（exemptions）纪律
+### 4.1 豁免（exemptions）与未解析登记（unresolved_registry）纪律
 
-豁免是**登记**而非放行：每条必须给出 `kind` / `reason` / `owner` / `evidence`。现行三类：
+两处都是**登记**而非放行，`kind` 取值以数据文件为准（不跨登记面代用）：
+`exemptions` 每条给出 `kind` / `reason` / `owner` / `evidence`，
+`unresolved_registry` 每条给出 `kind` / `reason` / `owner` / `handoff`。现行取值：
 
-- `HISTORICAL_RUN_ARTIFACT`：锚指向 `run/` 下的历史 bughunt 账本（gitignore 运行产物，
-  非仓库源码锚），仅作来源追溯，不构成可复测锚；
+`exemptions`（`anchor_contract.json`；本仓锚，**永久不判**）两类：
+
 - `FROZEN_SCI_CLAIM`：ALG 文档引述 SCI 冻结声明**原文**（如 SCI §5:63 中的
   `integrate.cpp:10-79`），原文行号与实际行数不符属 SCI 侧已知漂移，ALG 文档已显式
   登记且**修改方向 = 从 SCI 到 ALG**；该豁免随 SCI 变更流程一并消除；
 - `EXTERNAL_REFERENCE`：锚指向未 vendor 进仓库的外部开源实现（photutils / astropy /
   DeepSkyStacker 等）或外部许可证据文件，属文献与开源对照引用，非本仓源码锚。
 
-豁免（`exemptions`，本仓锚但按上表三类**永久不判**）与未解析登记
-（`unresolved_registry`，**本门暂时判不了**的台账，只减不增）是两回事，各自独立登记。
+`unresolved_registry`（`unresolved_registry.json`；**本门暂时判不了**的台账，只减不增）两类：
+
+- `EXTERNAL_REFERENCE`：与上同义的取值，外部引用在该台账逐条登记（两个登记面各自成条）；
+- `HISTORICAL_NARRATION`：正文订正叙述里被引的**订正前旧锚**（被引文件不在本仓），
+  不是现行锚；该叙述段删除时同提交删除登记项，否则 C8 判 STALE_REGISTRY。
+
+豁免与未解析登记是两回事，各自独立登记。
 
 ## 5 维护义务（同提交规则）
 
@@ -134,7 +147,7 @@ C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须
   `default_config :312` → `:333`、`CMakeLists.txt:435-437` → `:490-493`、
   `:513` → `:556`、`noise_model.cpp:179-200` → `:179-204`。
 - `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` / `COSMETIC_ALGORITHMS.md`：
-  `CMakeLists.txt:321-333` → `:373-380`（`astrocs_calibration` 目标）。
+  《CMakeLists.txt》321-333 → 373-380（`astrocs_calibration` 目标的历史锚，均已随根 CMakeLists 重排失效；现行锚 = CMakeLists.txt:621-641 的 `add_library(astrocs_calibration STATIC` 块）。
 - `docs/science/algorithms/PHASE3_RSMP_IMPL.md`：`module_adapters.cpp:425-439` → `:498`
   （`p3_resample2_descriptor`）。
 - `docs/science/algorithms/DRIZZLE_GEOMETRY.md`：DISP-DRZ-001 双方锚由 `api.cpp:88-92`
@@ -154,6 +167,33 @@ C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须
 GLOSSARY 里指向 CALIBRATION / DRIZZLE 的 `#27` 两处（§3 标题已下移到第 28 行）
 按「只改数字」订正为 `#28`。本段是订正留痕，不写成可解析锚形态。
 
+### 7.1 FINAL-07 判据自身缺陷订正：一行多锚的枚举（留痕）
+
+**症状**：C4 报了 4 条 BINDING_VIOLATION（`P3FITS-BUNIT` / `-CD` / `-CRVAL` / `-PROV`），
+而被要求的符号在目标文件里明明存在；同时 C6 只在**一行里的首个锚**上判边界空行。
+
+**根因（判据缺陷，不是文档漂移）**：原 `ANCHOR_RE = re.compile(_FILE + _ONE + _CONT)`。
+贪婪的 `_CONT` 把同一行的续锚（`:A-B`、`,N`）一并吞进匹配，于是 `pos = m.end()` 每次落在**已消费**的位置，
+其后的 `while CONT_RE.match(line, pos)` 成为**死代码**——一行只产出 **1** 条锚记录。
+实测影响（同一棵树，只改这一处）：
+
+- 一行多锚只枚举首锚 ⇒ **287 个锚**（含 `file:N-M / :A-B / :C` 与 `file:N,M` 形态）从未进入 C2/C3/C4/C6 判定面；
+- 4 条 C4 BINDING_VIOLATION 是**假红**：锚区间实际覆盖符号，只是续锚从未被展开。
+
+**订正**（不放松任何判据）：`ANCHOR_RE = _FILE + _ONE`（只捕获首锚），续锚一律交给既有 `CONT_RE` 循环逐 token 展开；
+`expand_anchors()` docstring 写明逐 token 语义与「raw 切片 = 从首锚起、含续锚文本」的口径；
+新增 `SCALE_LINE` 模板常量（C7 规范句式与 `SCALE_RE` 做往返自检）与 `--self-test`
+（`_st_write/_st_run/_st_make_fixture/self_test()`）：枚举正例 + 3 个负例，其中负例 C 正是
+「贪心 `_CONT` 吞掉续锚」的回归保护。
+
+**证据**：`run/FINAL-07/probe/check_greedy.py` 是还原贪婪 `_CONT` 的缺陷变体，跑 `--self-test` 得
+`SELF_TEST_FAIL: 1/7` 且 rc=1；订正版 `--self-test` 得 `SELF_TEST_PASS: 7/7` 且 rc=0。
+
+**判词面后果（本次同批订正）**：续锚可见后锚总数由 1744 涨到 2031（+287，判据订正瞬间实测），
+新暴露的续锚面陆续判红，本门生命周期内判词面在 51–88 条之间波动（两次 JSON 快照见 FINAL-07 回执 §1），
+逐条按 §2.5（边界空行只改数字）或 §2.6（内容整体搬走取实测地址）订正；
+**不删锚、不删机器门解析的字面量、不新增豁免、不放松判据**。
+
 ## 8 负向验收（必败）
 
 `eng/tests/quality/test_doc_line_anchors.py`（由既有 CI 检查项 `UT-QUALITY` 覆盖）含注入用例：
@@ -161,6 +201,8 @@ GLOSSARY 里指向 CALIBRATION / DRIZZLE 的 `#27` 两处（§3 标题已下移�
 同名分歧未登记 resolver、缺失豁免登记、陈旧豁免、**边界落在空行（start/end 各一例）**、
 **规模声明漂移**、**规模声明缺失**、**新增未登记未解析锚**、**登记项不再命中（STALE_REGISTRY）**；
 每条均要求检查器 **rc≠0**，并在还原后回到 **rc=0**（证明失败由注入引起）。
-`eng/tools/doccheck/check_alg_line_anchors.py --self-test` 覆盖行数锚与逐符号锚的
-正例/负例/恢复三态。确定性：同 cwd 双跑与跨 cwd 跑的 JSON 输出逐字节相同
+`check_doc_line_anchors.py --self-test` 另覆盖**枚举正例/负例**（一行三锚必须逐 token 各成一条记录；
+贪婪正则吞掉续锚 ⇒ 必红），共 7 组三态自检（正例绿 → 负例红 → 还原回绿）。
+`eng/tools/doccheck/check_alg_line_anchors.py --self-test` 覆盖行数锚、逐符号锚与
+**紧贴文件名的邻接裸行号锚**（`L1b`，FINAL-07 补入）的正例/负例/恢复三态（14 组）。确定性：同 cwd 双跑与跨 cwd 跑的 JSON 输出逐字节相同
 （检查器单进程串行，1/N worker parity 不适用）。

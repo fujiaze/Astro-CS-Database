@@ -27,4 +27,4 @@
 
 ## 上游
 
-上游：docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）、§5.3（冻结投影集合）、附录 B（外部标准与文献）、ENGINEERING_SPEC.md §8（文档集与机器一致性检查）。
+上游：docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）、§6.3（冻结投影集合）、附录 B（外部标准与文献）、ENGINEERING_SPEC.md §8（文档集与机器一致性检查）。

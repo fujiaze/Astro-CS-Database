@@ -117,14 +117,15 @@ PATH_RE = re.compile(r"(?<![\w/.-])(?:docs|eng|lib|tests|tools|ci|modules|runtim
 ID_TOKEN_RE = re.compile(r"\b(?:STD-F\d+|DISP-[A-Z0-9]+-\d+)\b")
 FIELD_RE = re.compile(r"^-\s*([A-Z]+)\s*[:：]\s*(.*)$")
 
-# 注入锚（--fault-inject 用的逐字字面量；与注册表 §3/§3.2 现文一致）
+# 注入锚（--fault-inject 用；与注册表 §3/§3.2 现文一致）
 IDX_SEP = "|---|---|---|---|---|---|"
 NONE_MARKER_ROW = "| （无） | (跨域治理) | — | — | — | — |"
-GOVERNANCE_ROW_STD_F6 = (
-    "| STD-F6 | 已闭环（治理级/P1） | docs/standards/STANDARDS_REGISTRY.md（本注册表 §1.2/§3.1）；"
-    "工程控制/AstroCS_CONSTITUTION_ALIGNMENT_CONTROL_V1_20260909/05_FINDINGS_REGISTER_20260911.md（已删除，仅历史溯源） "
-    "| STD-REG-001（本注册表建立即闭环；依据 = 原 05 号 findings 登记册 §STD-F6「国际标准冻结注册表缺失」处置面，"
-    "2026-09-16 由 git 历史逐字取证迁移） |")
+# §3.2 跨域治理偏差表的 **STD-F6 定义行**。锚落在"行首 ID 单元 + 整行"这一**冻结面**上：
+# 该行其余单元是会被合理改写的散文（严重度/指针曾按审计订正重写），写成整行逐字串会随
+# 正文漂移而命中 0 次 ⇒ 治理场景长期空转（独立审计 AUD-101-DB-10 已实测登记该失配）。
+# 锚仍是确定性文本锚，且仍经 _replace_once 空转守卫：命中 0 次（行被删/ID 改写）即
+# FAULT_INJECT_NOOP + exit 3，不静默通过。
+GOVERNANCE_ROW_STD_F6 = r"(?m)^\| STD-F6 \|[^\n]*\n"
 
 FAULT_SCENARIOS = [
     "drop-domain-section",
@@ -584,7 +585,16 @@ def _replace_once(text: str, pattern: str, repl: str, scenario: str) -> str:
 
 
 class InjectedNoOp(SystemExit):
-    """注入空转：以非零退出（3）暴露，不得被当作"注入已生效"。"""
+    """注入空转：以非零退出（**3**）暴露，不得被当作"注入已生效"。
+
+    直接 raise InjectedNoOp("...") 时 SystemExit 携带**字符串**，解释器按 exit 1 退出，
+    与本检查器"1 = FAIL（判据不满足）"的退出码合同同码 ⇒ 空转与真判红在 rc 面不可区分，
+    恰好绕开本守卫要堵的"以原文冒充已注入"。故此处显式：stderr 点名场景 + exit 3。
+    """
+
+    def __init__(self, message: str):
+        print(message, file=sys.stderr)
+        super().__init__(3)
 
 
 def inject(text: str, scenario: str) -> str:
@@ -619,8 +629,16 @@ def inject(text: str, scenario: str) -> str:
     if scenario == "dangling-deviation-id":
         return _replace_once(text, r"\| STD-F4 \|", "| STD-F99 |", scenario)
     if scenario == "drop-governance-deviation":
-        # 删掉 §3.2 的 STD-F6 定义行 ⇒ C6 悬空 + C7 索引失配 + C5' 表空
-        return _replace_once(text, re.escape(GOVERNANCE_ROW_STD_F6 + "\n"), "", scenario)
+        # 删掉 §3.2 的 STD-F6 **定义行**（不是 §3 索引里同 ID 的那一行）⇒ C6 悬空 +
+        # C7 索引失配 + C5' 表空。先在 §3.2 节内定位，避免宽锚误删 §3 索引行 ——
+        # 两个表都有 `| STD-F6 |` 行首，无节界约束的锚会删错对象（场景语义失真）。
+        m = re.search(r"(?ms)^### 3\.2\b.*?(?=^## |\Z)", text)
+        if not m:
+            raise InjectedNoOp(
+                "FAULT_INJECT_NOOP: 场景 %s 找不到 §3.2 节（注入未生效）" % scenario)
+        seg = m.group(0)
+        new_seg = _replace_once(seg, GOVERNANCE_ROW_STD_F6, "", scenario)
+        return _replace_once(text, re.escape(seg), new_seg.replace("\\", "\\\\"), scenario)
     if scenario == "add-none-marker-row":
         # §3 索引插入（无）行（定义域非空）⇒ C8 判 FAIL（C7 已按 NONE 过滤, 不受影响）
         return _replace_once(text, re.escape(IDX_SEP), IDX_SEP + "\n" + NONE_MARKER_ROW, scenario)

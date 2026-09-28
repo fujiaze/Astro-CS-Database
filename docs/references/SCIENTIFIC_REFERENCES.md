@@ -173,7 +173,7 @@
 
 ### N.3 参考代码库（含许可证；GPL 只对照不复制）
 
-- **Siril** — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril）。对照面：帧级权重 `compute_noise_weights` `w=1/(pscale²·bgnoise²)`（`src/stacking/median_and_mean.c:1111-1135`）、wFWHM/星数权重、IKSS 稳健尺度、多项式/RBF 背景。与 ACSD 差异：Siril 把权重直接当叠加系数、按帧均值归一；ACSD 的 `W_psfsw` 为组内中值归一无量纲量。
+- **Siril** — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril）。对照面：帧级权重 `compute_noise_weights` `w=1/(pscale²·bgnoise²)`（`src/stacking/median_and_mean.c:1080-1104`（式 `:1092-1094`））、wFWHM/星数权重、IKSS 稳健尺度、多项式/RBF 背景。与 ACSD 差异：Siril 把权重直接当叠加系数、按帧均值归一；ACSD 的 `W_psfsw` 为组内中值归一无量纲量。
 - **SWarp** — **GPL-3.0** [V]（https://github.com/astromatic/swarp）。对照面：`COADD_WEIGHTED` 逆方差组合与输出方差 `1/Σ(1/var_k)`（`src/coadd.c:1279-1311`）、`RESCALE_WEIGHTS` 实测噪声重标定 `sigfac`（`src/back.c:361-389`）。
 - **DeepSkyStacker（DSS）** — **BSD-3-Clause** [V]（https://github.com/deepskystacker/DSS）。**更正**：`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §4 表把它标为 GPL v3 且 URL `github.com/DeepSkyStacker/DeepSkyStacker`（404）——实际为 BSD-3-Clause（LICENSE 全文 + `README.md:13`），仓库 `deepskystacker/DSS`。对照面：帧评分 `ComputeScore`（圆度加权，`RegisterEngine.cpp:86-118`）、自适应加权平均 `w=1/(1+(x−µ)²/σ²)`（`avx_output.cpp:463-575`）。其 quality 与 SNR/FWHM 乘积无关。
 - **SExtractor** — **GPL-3.0** [V]（https://github.com/astromatic/sextractor）。对照面：背景网格/众数估计（`src/back.c:449-743`）、`Var(F)=Σ(σ_bkg²+F_pix/gain)`（`src/analyse.c:200-203,304-310`）。

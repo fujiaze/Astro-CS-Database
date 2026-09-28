@@ -14,8 +14,8 @@ ACSD 是天文 CCD/CMOS 图像校准与标准化数据库系统，发布物为**
 ```text
 acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — docs/api/CLI_PROTOCOL_V1.md)
   └── 阶段调度器分发（一次 CLI 调用只驱动一个阶段；串行控制面）
-        ├── Phase1（normalize）: astro_image_io → calibration → star_detector → dynamic_psf
-        │           → ipv(plate solve) → photometric_calib → snr_estimator → healpix_drizzle → HiPS
+        ├── Phase1（normalize）: astro_image_io → calibration → cosmetic/validity → background/noise
+        │           → platesolve(WCS) → star_detection → psf → photometry → noise_snr → drizzle → 产品验证 → HiPS
         ├── Phase2（mosaic）: coverage → sampler → UPM → rejection → integration → HiPS 产品
         ├── Phase3（export）: HiPS reader → order/采样 → 反向映射 → resample → coverage → FITS 原子写
         └── CPU 后端能力层（docs/architecture/CPU_BACKEND_ARCH.md: C ABI loader
@@ -28,7 +28,7 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — docs/api/CLI
 
 ## 3 Phase 数据流
 
-- **Phase1**（单帧→标准化）：FITS/XISF 亮场+母版 → 校准(CAL) → 检测/PSF → 天文定位(WCS) → 测光定标 → 噪声模型(ivarr) → HiPS 入库；帧身份=`frame_id`（truncated-64 SHA-256；正本 = `docs/contracts/DATA_SEMANTICS.md` §5，术语见 `docs/GLOSSARY.md`）。测光定标口径正本 = `docs/science/PHOTOMETRY.md`，噪声模型正本 = `docs/science/NOISE_MODEL.md`。
+- **Phase1**（单帧→标准化）：FITS/XISF 亮场+母版 → 校准(CAL) → 坏点/有效性 → 背景/噪声 → 天文定位(WCS/platesolve) → 星表引导检测 → PSF → 测光定标（同一步内施加归一化） → 噪声/SNR(ivarr) → 球面重采样(drizzle) → 产品验证 → HiPS 入库（节点序唯一正本 = 最高设计 §4.2：解算在前、检测与 PSF 建模在后）；帧身份=`frame_id`（truncated-64 SHA-256；正本 = `docs/contracts/DATA_SEMANTICS.md` §5，术语见 `docs/GLOSSARY.md`）。测光定标口径正本 = `docs/science/PHOTOMETRY.md`，噪声模型正本 = `docs/science/NOISE_MODEL.md`。
 - **Phase2**（多帧→统一产品）：coverage → control 采样(UPM) → 加性校正场 → 逐像素候选栈 → 排异(rejection) → 加权积分(integration) → signal/support → HiPS。
 - **Phase3**（HiPS→FITS）：图像 HiPS(单通道/ICRS/NESTED/float) → SCI-P3 alpha 范围校验 → 反向映射+采样+coverage → TAN FITS+provenance。
 - 三 Phase 经 manifest/数据文件衔接（**产品落块级 `output_dir`；`run/` 只放开发与 CI 过程产物**，见 §4），不共享进程外状态。
@@ -48,7 +48,7 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — docs/api/CLI
 ## 6 线程与执行
 
 - 全局 thread budget、两轴分配与执行架构见 `THREAD_BUDGET_ARCH.md` 与 `THREADING_MODEL.md`；每 kernel 预算来源 = `PERFORMANCE_MODEL.md` 的规范常数 + benchmark profile；无硬编码线程数（模块边界合同 = `docs/contracts/ARCH-001.md`；工程硬约束 = `AGENTS.md` §6）。
-- 执行语义存量证据：`production_call_paths_stage1.csv` / `production_call_paths_stage2.csv`（symbol 级）与 `PRODUCTION_EXECUTION_INVENTORY.csv`（由 `eng/tools/arch/build_production_execution_inventory.py` 从当前提交导出）；其中 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
+- 执行语义存量证据：`production_call_paths_stage1.csv` / `production_call_paths_stage2.csv`（symbol 级）与 `PRODUCTION_EXECUTION_INVENTORY.csv`（由 `eng/tools/arch/build_production_execution_inventory.py` 从当前提交导出）。ACR 的口径**按表分列**（两表当前不一致，属登记缺口）：`production_call_paths_stage2.csv` 的 `acr_routing` 行为 `DORMANT`（「生产构建/加载/路由/benchmark/发布不含 ACR/CUDA」）；而 `PRODUCTION_EXECUTION_INVENTORY.csv` 中 `lib/infrastructure/acr/**` 的 `production_reachable` 列有 45 行为 `yes`（该列口径 = 符号可达，不等价于「生产接线」）。本条不把任一表外推为「ACR 不可达」的全局断言。
 
 ## 7 不变量（机器可验）
 

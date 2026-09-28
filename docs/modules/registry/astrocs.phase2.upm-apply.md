@@ -115,7 +115,7 @@ P2UpmBuildConfig 产物模型）；dense 物化 worker 数经 stage2.cpp:482
 - 取消: 会话消费面整模型不写半成品（p2_session.cpp:181/:223-227）；
   内核无取消检查点；无段内 checkpoint（dense 物化整缓存一次写）。
 - 已知缺陷（登记不改码，正本 = ALG-P2-UPM-IMPL-001 缺陷清单）：
-  materialize_dense 重复声明（upm.h:154-156/:173-175）、注释漂移
+  materialize_dense 重复声明（upm.h:197-198/:216-217）、注释漂移
   OpenMP vs std::thread（upm.h:89-91）、p2_session.cpp:196-204 覆盖键缺口、
   端口占位 persist→reload；整改面未落地。
 

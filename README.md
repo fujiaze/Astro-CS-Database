@@ -45,6 +45,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | 入口 | 回答什么 |
 |---|---|
 | [`docs/ASTROCS_DESIGN.md`](docs/ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
+| [`AGENTS.md`](AGENTS.md) | 干活纪律与工作流（开工前逐层读文档、硬禁令、自查自修） |
 | [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) | 代码、测试、提交、目录与 CI 规则 |
 | [`CONTROL_PACK_SPEC.md`](CONTROL_PACK_SPEC.md) | 控制包的制作与执行规范 |
 | [`ACCEPTANCE_SPEC.md`](ACCEPTANCE_SPEC.md) | 四层验收标准与预览版发布门 |

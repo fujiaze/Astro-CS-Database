@@ -108,7 +108,7 @@ aio_upm 读面；dense cache 同模型 hash/目标 order 校验（stale 拒
   入口检查、:223-227 persist 取消即 close 返回 ACS_ERR_CANCELLED）；
   内核无取消检查点；无段内 checkpoint。
 - 已知缺陷（登记不改码，正本 = ALG-P2-UPM-IMPL-001 缺陷清单）：
-  materialize_dense 重复声明（upm.h:154-156/:173-175）、注释漂移
+  materialize_dense 重复声明（upm.h:197-198/:216-217）、注释漂移
   OpenMP vs std::thread（upm.h:89-91）、p2_session.cpp:196-204 覆盖键缺口、
   端口占位 persist→reload；整改面未落地。
 

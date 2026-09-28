@@ -36,6 +36,12 @@
   python3 docs/algorithms/anchors/check_doc_line_anchors.py [--root .] [--json-out F]
   python3 docs/algorithms/anchors/check_doc_line_anchors.py --print-scale
   python3 docs/algorithms/anchors/check_doc_line_anchors.py --print-registry
+  python3 docs/algorithms/anchors/check_doc_line_anchors.py --self-test
+
+锚口径（DOC-DRIFT-FIX-01 复核补正）：一行内的**每个**锚 token 单独成锚并单独受判。
+path:N,M 与 path:N/L 形态里的 M / L 是**独立锚**，不是首锚的附属——它们同样要过
+C2 解析、C3 界内、C4 绑定、C6 边界空行。历史实现把续锚吞进首锚的匹配区间（既不判
+也不计数），本门已订正为逐条展开；--self-test 的负例 C 专测这一面。
 """
 from __future__ import annotations
 
@@ -44,8 +50,10 @@ import glob as _glob
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 CONTRACT_REL = "docs/algorithms/anchors/anchor_contract.json"
 REGISTRY_REL = "docs/algorithms/anchors/unresolved_registry.json"
@@ -55,13 +63,21 @@ EXTS = ("cpp", "cc", "cxx", "h", "hpp", "hh", "py", "sh", "ps1", "txt",
 _FILE = (r"(?<![\w./-])((?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*"
          r"[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:" + "|".join(EXTS) + r"))")
 _ONE = r"[:#]L?(\d+)(?:\s*[-\u2013]\s*L?(\d+))?"
-_CONT = r"(?:\s*[/,]\s*:?L?(\d+)(?:\s*[-\u2013]\s*L?(\d+))?)*"
-ANCHOR_RE = re.compile(_FILE + _ONE + _CONT)
 CONT_RE = re.compile(r"\s*[/,]\s*:?L?(\d+)(?:\s*[-\u2013]\s*L?(\d+))?")
+# ANCHOR_RE 只吃「文件名 + 首个行号段」；同一 token 里 ,N 与 / :N 形态的**续锚**
+# 由 expand_anchors 用 CONT_RE 循环逐个展开成独立锚记录（契约 §1 的锚形态逐个受判）。
+# 缺陷留痕（DOC-LINE-ANCHORS 复核）：ANCHOR_RE 曾把与 CONT_RE 同形的贪婪重复组拼在
+# 末尾，group(0)/m.end() 直接越过全部续锚 ⇒ 下面的 while 循环成死代码，一行里的
+# 第 2..n 个锚被**静默吞掉**：不解析（C2）、不判界内（C3）、不判边界空行（C6）、
+# 不参与符号绑定（C4）——实测 287 个锚长期无门（见 ANCHOR_CONTRACT.md §7）。
+ANCHOR_RE = re.compile(_FILE + _ONE)
 # C7 规模声明的**规范句式**（ANCHOR_CONTRACT.md §1 必须逐字如此；改锚必须同步本行）
 SCALE_RE = re.compile(
     r"现行规模（C7 逐字复测）：\*\*(\d+) 文档 / (\d+) 锚\*\* = "
     r"(\d+) 目标锚 \+ (\d+) 登记豁免 \+ (\d+) 未解析登记。")
+# C7 规范句式的成句模板（--self-test 的 fixture 与正例回读都用它；不得另立句式）
+SCALE_LINE = ("现行规模（C7 逐字复测）：**%d 文档 / %d 锚** = "
+              "%d 目标锚 + %d 登记豁免 + %d 未解析登记。")
 
 ARCHIVE_MARKERS = ("/archive/", "/legacy/", "/.git/", "/third_party/",
                    "/build/", "/out/", "/run/", "/worktrees/")
@@ -105,7 +121,13 @@ def count_lines(root, rel):
 
 
 def expand_anchors(line):
-    """Yield (raw, base, start, end) for every anchor occurrence on one doc line."""
+    """Yield (raw, base, start, end) for every anchor occurrence on one doc line.
+
+    一行里可以有多个锚：首个锚 = 文件名 + 首个行号段；其后每个 ,N / / :N 形态的
+    续锚各**单独**产出一条记录（start/end 取该续锚自己的数字，不是首锚的），
+    这样续锚与首锚一样受 C2/C3/C4/C6 全判。续锚记录的 raw = 该行从首锚开头到
+    本续锚结尾的**原文切片**（与豁免/登记台账的 (doc, raw) 键口径一致）。
+    """
     out = []
     for m in ANCHOR_RE.finditer(line):
         base = m.group(1)
@@ -256,6 +278,105 @@ def emit(errors, anchors, counters, json_out, scale_line=None, registry_rows=Non
     return 0
 
 
+def _st_write(path, text):
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
+
+
+def _st_run(root):
+    """在 fixture 上跑本检查器本体（子进程），返回 (rc, stdout+stderr)。"""
+    r = subprocess.run([sys.executable, os.path.abspath(__file__), "--root", root],
+                       capture_output=True, text=True)
+    return r.returncode, r.stdout + r.stderr
+
+
+ST_TARGET = "lib/sample/sample_impl.cpp"
+ST_DOC = "docs/science/algorithms/SAMPLE.md"
+ST_TARGET_BODY = [
+    "// synthetic source for DOC-LINE-ANCHORS self-test",
+    "int sample_kernel(int x) {",
+    "    return x + 1;",
+    "}",
+    "",
+    "int sample_helper(int x) {",
+    "    return x - 1;",
+    "}",
+]
+
+
+def _st_make_fixture(tmp, anchor):
+    """最小 git fixture：1 文档 / 1 行锚（2 个锚 token）/ 1 目标文件；C7 行按实测写死。"""
+    _st_write(os.path.join(tmp, CONTRACT_REL), json.dumps(
+        {"schema": "astrocs/doc-line-anchor-contract/v1",
+         "doc_globs": ["docs/**/*.md"], "resolvers": [], "exemptions": [],
+         "bindings": []}, ensure_ascii=False))
+    _st_write(os.path.join(tmp, REGISTRY_REL), json.dumps(
+        {"schema": "astrocs/doc-anchor-unresolved-registry/v1",
+         "max_entries": 0, "entries": []}, ensure_ascii=False))
+    _st_write(os.path.join(tmp, CONTRACT_DOC_REL),
+              "# SYNTH ANCHOR CONTRACT\n\n" + SCALE_LINE % (1, 2, 2, 0, 0) + "\n")
+    _st_write(os.path.join(tmp, ST_DOC),
+              "# synthetic ALG doc\n\nanchors: " + chr(96) + anchor + chr(96) + "\n")
+    _st_write(os.path.join(tmp, ST_TARGET), "\n".join(ST_TARGET_BODY) + "\n")
+    env = dict(os.environ)
+    env.update({"GIT_AUTHOR_NAME": "selftest", "GIT_AUTHOR_EMAIL": "selftest@local",
+                "GIT_COMMITTER_NAME": "selftest", "GIT_COMMITTER_EMAIL": "selftest@local"})
+    for cmd in (["git", "init", "-q"], ["git", "add", "-A"],
+                ["git", "commit", "-q", "-m", "fixture"]):
+        subprocess.run(cmd, cwd=tmp, check=True, capture_output=True, env=env)
+
+
+def self_test():
+    """判据自检：正例判绿 + 负例判红 + 还原回绿（证明失败由注入引起）。
+
+    覆盖本门 2026-09-29 订正的枚举缺陷：同一 token 里的续锚（,N 与 / :N-M 形态）
+    此前被 ANCHOR_RE 的贪婪重复组吞掉、完全不判；本自检的负例 C 专测该面——
+    注入一个越界的**续锚**必须判红（旧实现下会漏判成绿）。
+    """
+    steps = []
+
+    def check(name, cond, extra=""):
+        steps.append((name, bool(cond), extra))
+        print("  [%s] %s%s" % ("OK" if cond else "FAIL", name, (" | " + extra) if extra else ""))
+        return bool(cond)
+
+    # 1) 枚举口径（不依赖子进程）：一行三锚，续锚必须各成一条记录
+    unit = expand_anchors("x " + chr(96) + "lib/sample/sample_impl.cpp:2-3 / :6 / :7-8" + chr(96))
+    check("expand_anchors 逐条展开续锚（不含首锚共 3 条）: %r" % (unit,),
+          [t[2:] for t in unit] == [(2, 3), (6, 6), (7, 8)] and len(unit) == 3)
+
+    m_scale = SCALE_RE.search(SCALE_LINE % (1, 2, 2, 0, 0))
+    check("C7 规范句式模板可被 SCALE_RE 逐字回读",
+          m_scale is not None and [int(x) for x in m_scale.groups()] == [1, 2, 2, 0, 0])
+
+    tmp = tempfile.mkdtemp(prefix="doc_line_anchors_selftest_")
+    try:
+        _st_make_fixture(tmp, "lib/sample/sample_impl.cpp:1-2 / :6-7")
+        rc, out = _st_run(tmp)
+        check("正例（首锚 + 续锚均在界内且边界非空）rc=0", rc == 0 and "DOC_LINE_ANCHORS_PASS" in out,
+              "rc=%d" % rc)
+        for name, bad, code in (
+                ("负例A 续锚越界（:6-7 -> :6-9）", "lib/sample/sample_impl.cpp:1-2 / :6-9", "C3_range_in_bounds"),
+                ("负例B 续锚边界落空行（:6-7 -> :5-6）", "lib/sample/sample_impl.cpp:1-2 / :5-6", "C6_boundary_blank"),
+                ("负例C 续锚被吞的回归守卫（:6-7 -> :99）", "lib/sample/sample_impl.cpp:1-2 / :99", "C3_range_in_bounds")):
+            _st_make_fixture(tmp, bad)
+            rc, out = _st_run(tmp)
+            check("%s -> 判红" % name, rc != 0 and code in out, "rc=%d/%s" % (rc, code))
+        _st_make_fixture(tmp, "lib/sample/sample_impl.cpp:1-2 / :6-7")
+        rc, out = _st_run(tmp)
+        check("还原后回绿（失败由注入引起）", rc == 0 and "DOC_LINE_ANCHORS_PASS" in out, "rc=%d" % rc)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    bad_steps = [s for s in steps if not s[1]]
+    print("SELF_TEST_%s: %d/%d" % ("PASS" if not bad_steps else "FAIL",
+                                   len(steps) - len(bad_steps), len(steps)))
+    return 0 if not bad_steps else 1
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="ALG/SCI doc line-anchor re-test")
     ap.add_argument("--root", default=".")
@@ -264,7 +385,11 @@ def main(argv=None):
                     help="只打印 ANCHOR_CONTRACT.md §1 应逐字写成的现行规模行")
     ap.add_argument("--print-registry", action="store_true",
                     help="只打印 unresolved_registry.json 应登记的未解析锚清单")
+    ap.add_argument("--self-test", action="store_true",
+                    help="判据自检（正例判绿 + 负例判红 + 还原回绿），不扫描本仓")
     args = ap.parse_args(argv)
+    if args.self_test:
+        return self_test()
     root = os.path.abspath(args.root)
 
     errors = []

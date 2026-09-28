@@ -44,6 +44,12 @@
 
 - 日志/事件写入失败 → 记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）；**故障一律按上述退出码上行**（"换一路日志继续跑"不在处置面内）；
 - 日志目录解析失败 → exit 2（ARGS）；目录创建失败 → exit 7（IO）；收尾 fsync 失败 → exit 7；manifest 登记失败 → exit 7（IO）；哈希失败 → exit 8（INTEGRITY）；
+- manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
+  **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
+  （INTEGRITY）。唯一源 = `docs/api/MANIFEST_VERIFY_V1.md` §3「校验序→错误码」
+  （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
+  sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
+  域→码表 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5（IO→7 / INTEGRITY→8）。
 - 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6）；
 - 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §8）。
 

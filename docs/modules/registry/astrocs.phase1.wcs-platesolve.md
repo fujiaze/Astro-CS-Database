@@ -33,7 +33,7 @@ C ABI 12 导出与返回码见 API-WCS-001。不做：重检测（消费调用�
 p1_wcs_descriptor 为准。
 
 invalid = NaN/coverage=0(按 DATA 合同)；求解失败 → PLATESOLVE_FAILED
-不写半成品 WCS 头（orchestrator.cpp:1981/:2003）。
+不写半成品 WCS 头（orchestrator.cpp:1992/:2015）。
 
 ## 公共 header、核心 symbol 与生命周期
 
