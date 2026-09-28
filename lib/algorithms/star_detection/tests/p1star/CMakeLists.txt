@@ -69,6 +69,9 @@ add_executable(p1star_tests
 target_include_directories(p1star_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1STAR_DIR})
+# FIX-P128: 负例观察面编译宏（生产 sdet_api.cpp 内 #ifdef SDET_TESTING 审计钩子;
+# 生产构建不含此定义, ABI/行为零影响）
+target_compile_definitions(p1star_tests PRIVATE SDET_TESTING)
 target_link_libraries(p1star_tests PRIVATE ${SDET_FIT_LINK} ${CMAKE_DL_LIBS})
 # OpenMP (生产 sdet 内 #pragma omp; 根 OpenMP::OpenMP_CXX 若未找到则依赖编译器默认)
 if(OpenMP_CXX_FOUND)
@@ -127,6 +130,8 @@ add_executable(p1star_perf_test
 target_include_directories(p1star_perf_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1STAR_DIR})
+# FIX-P128: 与 core 同宏面（perf 编入同一 sdet_api.cpp; 无消费者, 仅一致性）
+target_compile_definitions(p1star_perf_test PRIVATE SDET_TESTING)
 target_link_libraries(p1star_perf_test PRIVATE ${SDET_FIT_LINK})
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_perf_test PRIVATE OpenMP::OpenMP_CXX)
@@ -147,6 +152,8 @@ add_executable(p1star_selfcheck_test
 target_include_directories(p1star_selfcheck_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${P1STAR_DIR})
+# FIX-P128: 与 core 目标同宏面（selfcheck 共享 p1star_tests_core.cpp 的观察面 extern）
+target_compile_definitions(p1star_selfcheck_test PRIVATE SDET_TESTING)
 target_link_libraries(p1star_selfcheck_test PRIVATE ${SDET_FIT_LINK})
 if(OpenMP_CXX_FOUND)
   target_link_libraries(p1star_selfcheck_test PRIVATE OpenMP::OpenMP_CXX)

@@ -2,15 +2,18 @@
 # 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/star_detection/src/sdet_api.cpp 的
 # sdet_detect_impl/peaker 七步候选/sdet_gauss_fit(椭圆高斯)/sdet_lm_fit(仓内自研
 # trust-region LM: src/nls_lm.cpp, 无外部求解器依赖)/
-# reject_star/sdet_dedup_stars/sdet_sort_stars + C API sdet_create/sdet_destroy/
-# sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps/
-# sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex，唯一权威签名头
-# lib/algorithms/star_detection/include/star_detector.h:1-73），模块化迁移（独立模块源
+# reject_star/sdet_dedup_stars/sdet_sort_stars + C API（P-133 修订: 现行 6 导出 =
+# sdet_create/sdet_destroy/sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex/
+# sdet_detect_guided_ex_f64；旧 CC 路径 4 符号 sdet_detect/sdet_free_coords/
+# sdet_detect_debug/sdet_free_debug_maps 已随 e891df28 重写注销为死符号），
+# 唯一权威签名头
+# lib/algorithms/star_detection/include/star_detector.h:1-99），模块化迁移（独立模块源
 # astrocs_p1_star_detection.dll / C ABI adapter / plan-execute-cancel-inspect /
 # ThreadLease 接线）由 P1-STAR-IMPL 执行；可执行测试由 P1-STAR-TEST 建立
 # （TEST-STAR-DESIGN-001 → TEST-P1-STAR-001）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
-# （P1-STAR-DOC，2026-09-07，9 个导出 C API + 静态核心 sdet_detect_impl/
+# （P1-STAR-DOC, 2026-09-07 初稿 9 个导出 C API; P-133 修订为现行 6 个导出 C API
+# + 静态核心 sdet_detect_impl/
 # sdet_gauss_fit/sdet_lm_fit/reject_star，均 grep 实测于 sdet_api.cpp），
 # 禁止手抄他版。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P1-STAR 行 owner=SA-P1-S15、
@@ -86,6 +89,7 @@ exports:
   - sdet_detect_ex
   - sdet_detect_ex_f64
   - sdet_free_detect_ex
+  - sdet_detect_guided_ex_f64
 # 本撤销同时是既有门 CHK-ALGO-WIRING W2 台账 dormant_algorithms.json 明文
 # 退出条件之一（「或从 lib/**/module.yaml source_symbols 移除该声明」）。
 source_symbols:
@@ -94,6 +98,7 @@ source_symbols:
   - sdet_detect_ex
   - sdet_detect_ex_f64
   - sdet_free_detect_ex
+  - sdet_detect_guided_ex_f64
   - sdet_detect_impl
   - sdet_gauss_fit
   - sdet_lm_fit

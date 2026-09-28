@@ -67,9 +67,12 @@ SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *sat
 //      -1=参数无效/内存分配失败。
 // out_stats（可 NULL）逐项报告定义域计数，用于"不计虚警"语义的可观测性：
 //   n_predicted = 输入预测位置数
-//   n_dropped   = 丢弃的位置数（非有限 / 距边界 <2px / 拟合盒越界）
-//   n_fit_failed= 拟合未收敛或参数非法的位置数
-//   n_rejected  = 拟合成功但未过质量门（maxAxisRatio / reject_star）的位置数
+//   n_dropped   = 丢弃的位置数（非有限 / 距边界 <2px / 拟合盒越界；
+//                 语义映射与 sdet_api.cpp sdet_detect_guided_impl 注释 ① 一致）
+//   n_fit_failed= 拟合未收敛或参数非法、或 O4b 拟合前置判据失败（3x3 邻域
+//                 高像素计数 <3，sdet_detect_guided_impl 注释 ②）的位置数
+//   n_rejected  = 拟合前 O10 对称门拒绝（非饱和），或拟合成功但未过质量门
+//                 （maxAxisRatio / reject_star）的位置数
 //   n_fit_ok    = 拟合成功且过质量门的星点数（去重与 maxStars 截断前）
 //   n_output    = 最终输出星点数（去重 + maxStars 截断后）
 typedef struct {

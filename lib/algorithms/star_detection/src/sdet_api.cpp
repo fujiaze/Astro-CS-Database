@@ -48,9 +48,14 @@
 #define LM_MIN_HALF_RADIUS 1
 #define LM_MIN_LARGE_SAMPLING 3
 
-#define INV_4_LOG2 0.36067376022224075
-
 #define TWO_SQRT_2_LOG2 2.3548200450309493
+
+#ifdef SDET_TESTING
+// FIX-P128 负例观察面（仅测试目标以 -DSDET_TESTING 定义; 生产编译无此面,
+// 行为与 ABI 零影响）: sdet_detect_impl 检测段每组分 BFS 访问像素数
+// （= 该组分 comp.size()）按扫描序记录到此; 测试断言各组分数值即组分自身像素数。
+std::vector<int>* sdet_test_bfs_sizes = nullptr;
+#endif
 
 // FIX-P174: 原语收编——旧 sdet_detector.h 的类型与连通域原语迁入本文件（O4a 饱和岛消费；SPEC: ALG §3 8-连通语义）
 struct ConnectedComponent {
@@ -1035,7 +1040,7 @@ struct SdetCand {
 const int    SDET_MAX_BOX_RADIUS  = 200;                    // O9 上限（MAX_BOX_RADIUS）
 const int    SDET_DEBLEND_LEVELS  = 30;                     // O11 指数间隔阈值层数（冻结）
 const double SDET_DELTA_C         = 5e-3;                   // O11 分流系数 delta_c（冻结）
-const int    SDET_DEBLEND_DEPTH   = 8;                      // O11 递归深度上限（防御; 常规树深 <=2）
+const int    SDET_DEBLEND_DEPTH   = 8;                      // O11 历史参数: 实为迭代实现, 深度参数未使用（P-140; 常量现无消费者, 保留占位）
 const double SDET_SQRT_EXP1       = 1.6487212707001281468;  // sqrt(e)（O7 振幅换算恒等式）
 
 // O9 半径系数 s_factor = sqrt(2 ln 1000)（解析式入常量, 设计稿 §8-7）
@@ -1043,8 +1048,9 @@ const double SDET_S_FACTOR = std::sqrt(2.0 * std::log(1000.0));
 
 // ---- SPEC: §5.11 O11 deblending 树（B&A96 §4; 设计稿 §5.11）----
 // t(i) = thr*(Smax/thr)^(i/30), i = 1..30 自高向低; 首个满足「>= 2 枝且枝积分
-// 流量 > delta_c * 组分总流量」的层执行分裂: 存活枝 → 独立成分（递归, 总流量
-// 参照保持根组分值）; 未存活/低于分离阈值的像素按双变量高斯 argmax 重分配
+// 流量 > delta_c * 枝自身组分总流量」的层执行分裂: 存活枝 → 独立成分（迭代
+// 实现, 权重基准 = 枝自身 bflow, 见 sdet_deblend_leaf）; 未存活/低于分离阈值
+// 的像素按双变量高斯 argmax 重分配
 // （mu = 叶峰位, sigma^2 = 叶内权重二阶矩 + 0.25 下限）, 平局判归登记序靠前
 // （确定性, 项目定义）。全层不满足 → 单成分（B&A96 §4.3: 间隔 < 2 sigma 不可分,
 // 不触发即保持单星）。
@@ -1058,6 +1064,9 @@ static void sdet_deblend_leaf(const T* smooth, int w,
                               const std::vector<int>& pix,
                               double thr, double total_flux, int depth,
                               std::vector<SdetLeaf>* out_leaves) {
+    // P-131/P-140: total_flux（历史「根组分总流量」参照）与 depth（历史「递归深度
+    // 上限」）两形参在现行迭代实现中均未使用, 以 (void) 显式弃用——δc 权重实际
+    // 基准 = 枝自身 bflow（步 (1)）; 形参保留以不改动调用面。
     (void)total_flux;
     (void)depth;
     // FIX-R3: 成分内极大 = O11 树阈值层基准 smax（B&A96 §4.1, t(i) 以其为标度）;
@@ -1391,6 +1400,9 @@ static void sdet_mark_sat_islands(const T* src, int w, int h, double sat_thresho
             while (xr + 1 < w && (double)src[(size_t)sy0 * (size_t)w + (size_t)(xr + 1)] > sat_threshold) ++xr;
             while (yd - 1 >= 0 && (double)src[(size_t)(yd - 1) * (size_t)w + (size_t)sx0] > sat_threshold) --yd;
             while (yu + 1 < h && (double)src[(size_t)(yu + 1) * (size_t)w + (size_t)sx0] > sat_threshold) ++yu;
+            // P-135 (Y-7): isl.cx/cy（岛等效中心）当前无消费者——下游仅消费
+            // sat_label 与 isl.r（O4b 消费 :2061-2062; O6 饱和中心行走自峰独立
+            // 进行, 不读本字段）。字段预留, 在接通消费面前不得宣称已消费。
             isl.cx = 0.5 * ((double)xl + (double)xr) + 0.5;
             isl.cy = 0.5 * ((double)yd + (double)yu) + 0.5;
             isl.r = std::sqrt((double)area / 3.14159265358979323846);
@@ -1677,6 +1689,9 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                 const int p0 = y0 * w + x0;
                 if (!above[(size_t)p0] || label[(size_t)p0]) continue;
                 std::vector<int> comp;
+                queue.clear();  // FIX-P128: 清空上一组分残留（queue 声明在组分循环外;
+                                // 漏清空则历史像素在下方 qi 循环中无条件并入 comp,
+                                // 组分累积合并 O(C²); 对照 :1345 饱和岛 BFS 风格）
                 queue.push_back(p0);
                 label[(size_t)p0] = 1;
                 for (size_t qi = 0; qi < queue.size(); ++qi) {
@@ -1695,6 +1710,11 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                             }
                         }
                 }
+#ifdef SDET_TESTING  // FIX-P128 负例观察面: 每组分 BFS 访问像素数（仅测试目标
+                // 以 -DSDET_TESTING 定义; 生产编译不含此面, 行为与 ABI 零影响）
+                if (sdet_test_bfs_sizes)
+                    sdet_test_bfs_sizes->push_back(static_cast<int>(comp.size()));
+#endif
                 std::sort(comp.begin(), comp.end());
                 double total_flux = 0.0;
                 for (size_t k = 0; k < comp.size(); ++k)

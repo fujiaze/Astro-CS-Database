@@ -41,7 +41,9 @@ SRCDIR = src
 INCDIR = include
 TARGET = star_detector.dll
 
-SOURCES = $(SRCDIR)/sdet_api.cpp $(SRCDIR)/sdet_detector.cpp $(SRCDIR)/sdet_image.cpp $(SRCDIR)/sdet_log.cpp $(SRCDIR)/sdet_background.cpp $(SRCDIR)/nls_lm.cpp
+# P-142: sdet_detector.cpp/sdet_background.cpp 已于 e891df28 重写注销, 从 SOURCES 清除
+# （否则模块级 make 因缺文件不可构建; 现役源 = sdet_api/sdet_image/sdet_log/nls_lm）
+SOURCES = $(SRCDIR)/sdet_api.cpp $(SRCDIR)/sdet_image.cpp $(SRCDIR)/sdet_log.cpp $(SRCDIR)/nls_lm.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 # 默认目标: 直接编译 (无 LTO, 无 PCH, 最简单)
