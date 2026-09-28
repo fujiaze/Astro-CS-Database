@@ -20,6 +20,9 @@
 #                                  # 科学模块 DLL (MOD-001 安装面, §8.4;
 #                                  # astrocs_p1_noise 摘出见 F-CI-002-01 注)
 #     providers/astrocs_cpu_baseline.so   # baseline backend DSO 技术预览
+#     providers/astrocs_cpu_avx2.so       # 可选 ISA 变体 DSO (SHARED; R-28)
+#     providers/astrocs_cpu_avx512.so     # 可选 ISA 变体 DSO (SHARED; R-28)
+#     providers/backends.manifest.json    # 变体登记面 (实测 sha256 + required_features_bits)
 #     schemas/                     # 安装/产品/manifest schema 只读副本
 #     licenses/                    # 许可证收集 (第三方 + 本项目声明)
 #     astrocs.product.json         # 产品 manifest (模块/DLL/hash 登记; ABI-004 完善)
@@ -29,6 +32,8 @@
 #   modules/astrocs_noop.dll; modules/astrocs_catalog_gaia.dll;
 #   modules/astrocs_p1_{drizzle,calibration,cosmetic,hips_writer}.dll;
 #   providers/astrocs_cpu_baseline.dll;
+#   providers/astrocs_cpu_avx2.dll; providers/astrocs_cpu_avx512.dll;
+#   providers/backends.manifest.json;
 #   pipelines/, schemas/, licenses/, README.txt。
 #
 # 白名单原则: 本文件是唯一 install() 集合; 其余文件绝不 install。
@@ -38,7 +43,8 @@
 # ── RPATH: install 后平台 SHARED 依赖 $ORIGIN 解析 (Linux; 12 §6) ──
 set(ASTROCS_INSTALL_RPATH "$ORIGIN")
 set_property(GLOBAL PROPERTY ASTROCS_PLATFORM_SHARED_TARGETS
-  acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline)
+  acsd_runtime acsd_io astrocs_noop astrocs_cpu_baseline
+  astrocs_cpu_avx2 astrocs_cpu_avx512)
 
 function(acsd_apply_install_rpath tgt)
   if(UNIX AND NOT APPLE)
@@ -85,6 +91,30 @@ if(TARGET astrocs_cpu_baseline)
   install(TARGETS astrocs_cpu_baseline
     LIBRARY DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime
     RUNTIME DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime)
+endif()
+
+# ── 可选 ISA 变体 provider DSO (docs/architecture/ISA_VARIANTS.md §0/§2 / R-28) ──
+# avx2/avx512 变体是**独立动态库**（根 CMakeLists 以 SHARED 声明，编译旗标 target-local），
+# 随安装树进 providers/，运行期经 backend_loader 预检→dlopen→self_test 后按
+# cpu_profile/能力探测选取；主程序保持基线指令集，缺库或不支持即回退基线。
+# 变体**不在** acsd 链接闭包内（check_isa_leak 的 link map 口径不变）。
+foreach(_acs_isa_provider astrocs_cpu_avx2 astrocs_cpu_avx512)
+  if(TARGET ${_acs_isa_provider})
+    acsd_apply_install_rpath(${_acs_isa_provider})
+    install(TARGETS ${_acs_isa_provider}
+      LIBRARY DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime
+      RUNTIME DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime)
+  endif()
+endforeach()
+
+# providers/backends.manifest.json —— 可选变体的登记面（实测 sha256 + required_features_bits）。
+# 与 DSO 同目录安装：backend_loader 的语义是「清单 + 裸文件名同在 backends_dir」，
+# 因此运行期/doctor/benchmark 三处的 backends_dir 一律取 <prefix>/providers。
+# 清单本身与 DSO 同源生成（根 CMakeLists 的 astrocs_backends_manifest 目标）。
+if(TARGET astrocs_backends_manifest)
+  install(FILES ${ASTROCS_BACKENDS_MANIFEST}
+    DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR}
+    COMPONENT acsd_runtime)
 endif()
 
 # ── 科学模块 DLL (MOD-001: 宪章 §8.4 科学模块独立 DLL/SO 安装面) ──

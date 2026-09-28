@@ -74,7 +74,11 @@ bool is_heavy(const std::string& workload) {
     return workload == "compute" || workload == "memory";
 }
 
-bool provider_rank(const std::string& p) {   // 保守序: baseline(0) < avx2(1) < avx512(2)
+// WIN-PORT C4305: 返回类型写 bool 而函数体按 0/1/2 的**三档保守序**返回（注释即
+// 契约），bool 会把 avx512(2) 压成 true(1) 与 avx2 并列 —— 既是 /W4 的 int→bool
+// 截断告警，也是与注释/调用点 (<, ==) 语义不符的真实缺陷。改为 int 后
+// baseline < avx2 < avx512 的三档序与注释、与 :139-141 的比较用法一致。
+int provider_rank(const std::string& p) {   // 保守序: baseline(0) < avx2(1) < avx512(2)
     if (p == "baseline") return 0;
     if (p == "avx2") return 1;
     return 2;

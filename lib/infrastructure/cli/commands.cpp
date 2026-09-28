@@ -39,6 +39,7 @@
 
 
 #include "backend_loader.h"
+#include "profile_store_bridge.h"   // R-29: cpu_profile 原子写（收容 profile_store/backend_loader 同名类型冲突）
 #include "astrocs_process.h"
 #include "protocol.h"
 #include "resource_recorder.h"
@@ -94,7 +95,8 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "export/export.h"
 
 static void emit_backend_event(astrocs::JsonlEmitter&, const std::string&, const std::string&,
-                               const std::string&, uint32_t, uint32_t);
+                               const std::string&, uint32_t, uint32_t,
+                               const std::string& reason);
 
 // 主机可用并行预算(禁硬编码, 04/BENCH 规范): Linux 用 sched_getaffinity, Windows 用有效处理器数; 至少 1。
 static uint32_t cli_affinity_cpu_count() {
@@ -150,6 +152,203 @@ static uint32_t cli_memory_budget_percent(const std::string& cpu_profile_path) {
     } catch (...) {
         return 0;   // profile 不可读/不可解析 ⇒ 回落默认，不阻断运行
     }
+}
+
+// ── 安装目录 / cpu_profile 路径 / ISA provider 选取（R-28/R-29）──────────────────
+// 落点依据：docs/ASTROCS_DESIGN.md:524,714（benchmark 生成/更新**安装目录** cpu_profile）+
+//           docs/api/CLI_PROTOCOL_V1.md:31（同上，「后续运行自动读取」）+
+//           docs/architecture/ISA_VARIANTS.md §0 第 3 条 / §2（DSO 随安装树、运行期检测选取）。
+// 三处路径约定此前各写一套（--cpu-profile 旗标 / benchmark 写死 install_dir+"/cpu_profile.json"
+// / profile_store 的 XDG 口径），口径不统一 ⇒ 这里收敛为**唯一函数面**：
+//   install_dir  = 主 CLI 可执行文件所在目录（benchmark 结果缓存的唯一落点，
+//                  docs/ASTROCS_DESIGN.md:714「输出到安装目录」）
+//   providers_dir= install_dir/providers（backend_loader 要求 manifest 与裸文件名同目录）
+//   cpu_profile  = install_dir/cpu_profile.json（benchmark 写、运行期自动读的同一路径）
+// profile_store 的 default_profile_path_v1()（XDG/LOCALAPPDATA）仍是**用户级**口径，
+// 仅在本域显式登记为「安装目录不可写时的显式降级」（R-29 第二句），本次不改写其语义。
+static std::string cli_install_dir() {
+    std::string exe_path;
+#if defined(_WIN32)
+    char buf[MAX_PATH];
+    const DWORD n = GetModuleFileNameA(nullptr, buf, MAX_PATH);
+    if (n > 0) exe_path.assign(buf, n);
+#else
+    std::error_code ec;
+    const auto cp = std::filesystem::canonical("/proc/self/exe", ec);
+    if (!ec) exe_path = cp.string();
+#endif
+    if (exe_path.empty()) return std::string(".");
+    std::error_code ec2;
+    const auto parent = std::filesystem::path(exe_path).parent_path();
+    return parent.empty() ? std::string(".") : parent.string();
+}
+
+// provider 目录 = 安装目录下 providers/（清单与 DSO 同目录；见 install_layout.cmake）。
+static std::string cli_providers_dir() {
+    const std::string d = cli_install_dir();
+    return (d == ".") ? std::string("providers") : d + "/providers";
+}
+
+// benchmark 结果缓存的唯一路径（程序安装目录；docs/ASTROCS_DESIGN.md:524）。
+static std::string cli_default_cpu_profile_path() {
+    const std::string d = cli_install_dir();
+    return (d == ".") ? std::string("cpu_profile.json") : d + "/cpu_profile.json";
+}
+
+// 安装目录不可写（含"安装目录在源码树内 ⇒ 拒绝落盘"的冷启动/开发构建形态）时的
+// **显式降级**路径：CPU-007 的用户级口径（XDG/LOCALAPPDATA）。降级必须显式：
+// 调用方打印事实行并登记，不静默换落点（R-29 第二句）。
+static std::string cli_fallback_cpu_profile_path() {
+    return astrocs::cli::user_cpu_profile_path();
+}
+
+static bool cli_file_exists(const std::string& p) {
+    if (p.empty()) return false;
+    std::error_code ec;
+    return std::filesystem::is_regular_file(std::filesystem::u8path(p), ec);
+}
+
+// 读取口径（唯一）：显式旗标 > 安装目录缓存 > 用户级降级落点。三级全部说明来源。
+static std::string cli_resolve_cpu_profile_path(const std::string& explicit_path,
+                                                std::string* source_out) {
+    if (!explicit_path.empty()) {
+        if (source_out) *source_out = "--cpu-profile";
+        return explicit_path;
+    }
+    const std::string install_p = cli_default_cpu_profile_path();
+    if (cli_file_exists(install_p)) {
+        if (source_out) *source_out = "install-dir";
+        return install_p;
+    }
+    const std::string fb = cli_fallback_cpu_profile_path();
+    if (cli_file_exists(fb)) {
+        if (source_out) *source_out = "user-data-fallback";
+        return fb;
+    }
+    if (source_out) *source_out = "install-dir (missing)";
+    return install_p;
+}
+
+// ISA 选取结果（R-28）：provider 由**能力探测 + cpu_profile + 已装载 DSO**共同决定，
+// 缺库/不支持/收益不足一律回退基线（豁免面见 reason）。句柄随本对象释放。
+struct CliBackendSelection {
+    std::string provider = "baseline";             // 路由词表 baseline|avx2|avx512
+    std::string backend_id = "astrocs.cpu.baseline";   // 事件面稳定 id
+    std::string reason = "no manifest";            // 决策/回退原因（诊断，不省）
+    std::string route_json;                        // 逐 kernel 路由表（trace 面）
+    std::vector<void*> handles;
+    ~CliBackendSelection() {
+        for (void* h : handles) astrocs::backend_host::close_backend(h);
+    }
+};
+
+// 把 provider 词表映射到事件 backend_id（唯一映射点，禁第二处拼串）。
+static std::string cli_backend_id_for_provider(const std::string& provider) {
+    return "astrocs.cpu." + provider;   // baseline|avx2|avx512
+}
+
+// CPU-005 决策门限：与 bench_report 的冻结噪声门限同源（唯一拼写点）。
+static constexpr double kCliMinGainRel = 0.03;
+
+// 运行期 ISA 选取（docs/architecture/ISA_VARIANTS.md §2/§3）：manifest → 预检（含能力位）→ dlopen+self_test →
+// 逐 kernel 路由决策（cpu_routing，profile 驱动）→ 选址；任一步失败即回退基线。
+// 生产调用点 = run_with_resource_gate（三命令共同的运行路径），非测试专用。
+static CliBackendSelection cli_select_backend(const std::string& profile_path) {
+    CliBackendSelection sel;
+    namespace bh = astrocs::backend_host;
+    const std::string prof_text = [&] {
+        std::string t;
+        if (profile_path.empty()) return t;
+        if (!aio_file::read_all(profile_path.c_str(), &t)) t.clear();
+        return t;
+    }();
+    const std::string hw_json = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+
+    // 内置基线恒可用（进程内，不依赖任何 DSO）：它是回退的**语义**终点。
+    std::vector<bh::ProviderEvidence> providers;
+    {
+        bh::ProviderEvidence base;
+        base.id = "baseline";
+        base.query_ok = true;
+        base.self_test_ok = true;
+        base.kernels = bh::registered_kernel_ids_v1();
+        providers.push_back(std::move(base));
+    }
+
+    std::string manifest_text;
+    const std::string pdir = cli_providers_dir();
+    const bool have_manifest =
+        aio_file::read_all((pdir + "/backends.manifest.json").c_str(), &manifest_text);
+    if (have_manifest) {
+        std::vector<bh::ManifestEntry> entries;
+        std::string merr;
+        if (bh::parse_backends_manifest(manifest_text, &entries, &merr)) {
+            astrocs_host_services_v1 host;
+            void* hstate = nullptr;
+            astrocs_host_services_default_v1(&host, &hstate);
+            for (const auto& e : entries) {
+                bh::ProviderEvidence pe;
+                pe.id = e.backend_id;
+                astrocs_backend_api_v1 api;   // ABI 类型在全局命名空间（common_abi_v1.h）
+                std::memset(&api, 0, sizeof(api));
+                void* handle = nullptr;
+                std::string why;
+                const bh::LoadResult lr = bh::load_backend(pdir, e, &host, &api, &handle, &why);
+                if (lr.decision == bh::LoadResult::OK && handle != nullptr) {
+                    sel.handles.push_back(handle);
+                    pe.query_ok = true;
+                    pe.self_test_ok = true;
+                    pe.kernels = bh::registered_kernel_ids_v1();
+                } else {
+                    pe.query_ok = false;
+                    pe.reason = why;   // 预检/装载失败原因逐条留证（不静默）
+                }
+                providers.push_back(std::move(pe));
+            }
+        } else {
+            sel.reason = "manifest unparsable: " + merr;
+        }
+    } else {
+        sel.reason = "no backends manifest in " + pdir + " (builtin baseline only)";
+    }
+
+    // 无 profile ⇒ 保守口径（最低 ISA，但**不**退单线程）；有 profile ⇒ 逐 kernel 决策。
+    const std::vector<std::string>& kids = bh::registered_kernel_ids_v1();
+    if (prof_text.empty()) {
+        std::vector<std::string> reasons;
+        for (const auto& kid : kids) {
+            const bh::KernelRoute r = bh::conservative_route(kid, cli_affinity_cpu_count());
+            if (!r.fallback_reason.empty()) reasons.push_back(kid + ": " + r.fallback_reason);
+        }
+        sel.provider = "baseline";
+        sel.reason = "no cpu_profile — conservative baseline route"
+                     + (reasons.empty() ? std::string() : (" (" + reasons.front() + ")"));
+    } else {
+        sel.route_json = bh::build_route_table_v1(prof_text, hw_json, ASTROCS_COMMIT_SHA,
+                                                  providers, nullptr, kCliMinGainRel, kids);
+        try {
+            const nlohmann::json rt = nlohmann::json::parse(sel.route_json);
+            std::string best = "baseline";
+            const auto rank = [](const std::string& p) {
+                return p == "avx512" ? 3 : (p == "avx2" ? 2 : 1);
+            };
+            std::size_t n = 0, n_base = 0;
+            for (auto it = rt["routes"].begin(); it != rt["routes"].end(); ++it) {
+                const std::string p = it.value().value("provider", std::string("baseline"));
+                if (rank(p) > rank(best)) best = p;
+                ++n;
+                if (p == "baseline") ++n_base;
+            }
+            sel.provider = best;
+            sel.reason = "route table: " + std::to_string(n - n_base) + "/" + std::to_string(n) +
+                         " kernels on variant provider";
+        } catch (...) {
+            sel.provider = "baseline";
+            sel.reason = "route table unparsable — fallback baseline";
+        }
+    }
+    sel.backend_id = cli_backend_id_for_provider(sel.provider);
+    return sel;
 }
 
 // 解析出 (上限, 来源) 并落一条可核对的 stderr 事实行（与既有 "session run: budget workers="
@@ -641,14 +840,17 @@ static std::string backend_isa_name() {
 
 static void emit_backend_event(astrocs::JsonlEmitter& ev, const std::string& phase,
                                const std::string& backend_id, const std::string& status,
-                               uint32_t workers_used, uint32_t available_cpus) {
+                               uint32_t workers_used, uint32_t available_cpus,
+                               const std::string& reason = std::string("cli affinity lease")) {
     ev.emit("backend", "info", phase, status,
             {{"kernel", phase},
              {"backend_id", backend_id},
+             // isa = CPU 实测能力（硬件面）；backend_id/reason = 本次**选取结果**（决策面）。
+             // 两者不同源、不可互推：实测支持 avx512 但缺库时 isa=avx512、backend_id=baseline。
              {"isa", backend_isa_name()},
              {"workers", workers_used},
              {"block_size", 0},
-             {"reason", "cli affinity lease"},
+             {"reason", reason},
              {"workers_used", workers_used},
              {"available_cpus", available_cpus}});
 }
@@ -812,8 +1014,48 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
     // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§3.5 内存不设门）。
+    // R-29：cpu_profile 路径唯一口径 —— 显式 --cpu-profile 优先，否则取**安装目录**下的
+    // benchmark 结果缓存（docs/ASTROCS_DESIGN.md:524 / docs/api/CLI_PROTOCOL_V1.md:31：
+    // benchmark 生成/更新安装目录 cpu_profile，后续运行自动读取）。
+    // 缺失/失配**不阻塞**：打印经过并走保守口径（回落语义正本 =
+    // docs/architecture/EXECUTION_MODEL.md §5「无 cpu_profile → baseline 后端 + 动态 worker」
+    // 与 docs/architecture/CPU_BACKEND_ARCH.md §6「失败与回退」；V8-CPU-002）。
+    std::string prof_source;
+    const std::string prof_path = cli_resolve_cpu_profile_path(cpu_profile_path, &prof_source);
+    std::fprintf(stderr, "session run: cpu_profile source=%s path=%s\n",
+                 prof_source.c_str(), prof_path.c_str());
+    std::fflush(stderr);
+    {
+        std::error_code pec;
+        const bool exists = std::filesystem::is_regular_file(std::filesystem::u8path(prof_path), pec);
+        if (!exists) {
+            std::fprintf(stderr,
+                         "acsd: no cpu_profile at '%s' — running conservative baseline "
+                         "(run 'acsd benchmark' to generate it)\n", prof_path.c_str());
+            std::fflush(stderr);
+        } else {
+            // B-04：profile 独立校验（结构/机器一致性）经唯一实现 validate_cpu_profile
+            // 进入生产路径；失败只降级为保守口径 + 明确 stderr 事实行，不产生退出码
+            // （基准参数缺失/失配「显示经过、不阻塞运行」：见上条回落语义正本）。
+            nlohmann::json prof_doc;
+            const int vrc = validate_cpu_profile(prof_path, &prof_doc);
+            if (vrc != astrocs::OK) {
+                std::fprintf(stderr,
+                             "acsd: cpu_profile '%s' rejected (rc=%d) — conservative baseline\n",
+                             prof_path.c_str(), vrc);
+                std::fflush(stderr);
+            }
+        }
+    }
     astrocs::core::MemoryBudget mb;
-    cli_resolve_memory_budget(cpu_profile_path, &mb);
+    cli_resolve_memory_budget(prof_path, &mb);
+    // 运行期 ISA 选取（docs/architecture/ISA_VARIANTS.md §2 / R-28）：能力探测 + benchmark profile + 已装载 provider
+    // DSO → 逐 kernel 路由；缺库/不支持/收益不足回退基线。句柄活到本函数返回。
+    CliBackendSelection backend_sel = cli_select_backend(prof_path);
+    std::fprintf(stderr, "session run: backend=%s provider=%s (%s)\n",
+                 backend_sel.backend_id.c_str(), backend_sel.provider.c_str(),
+                 backend_sel.reason.c_str());
+    std::fflush(stderr);
     // MEMGOV-01: 同一份预算同时喂给「回压准入」（limit_bytes）与「压力治理」
     // （available/percent 回显）；压力分子来源在 runtime_client 侧注入 aio 探针。
     const int rrc = astrocs::cli::run_pipeline(
@@ -1128,7 +1370,12 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         // CLI-004: 真实 monitor 摘要外带给 phase stats 事件(冻结扩展字段同源填充)。
         if (summary_out != nullptr) *summary_out = mon_s2;
         emit_resource_summary(ev, phase, mon_s2, res_out_dir, recorder.record_count());
-        emit_backend_event(ev, phase, "astrocs.cpu.baseline", "selected", budget, budget);
+        // A-10：backend 事件的 backend_id/reason 必须来自**本次真实选址结果**
+        // （原实现硬写 "astrocs.cpu.baseline" + status="selected"，即使实际选了变体库
+        // 也一律自报基线 ⇒ 事件不可用于判定「选取是否生效」）。
+        emit_backend_event(ev, phase, backend_sel.backend_id,
+                           backend_sel.provider == "baseline" ? "fallback" : "selected",
+                           budget, budget, backend_sel.reason);
     }
     return astrocs::OK;
 }
@@ -2309,28 +2556,55 @@ int dispatch(const Parsed& p) {
             {"name", "hardware_sanity"},
             {"status", (hwd.value("available_logical_cpus", 0u) >= 1 &&
                         hwd.value("ram_bytes", 0ull) > 0) ? "pass" : "fail"}});
-        // shipped backend 核查(05 §7): 安全检测但不执行不支持指令——预检 manifest 内条目
-        std::ifstream mf("backends.manifest.json");
-        if (mf) {
-            std::stringstream mbuf; mbuf << mf.rdbuf();
+        // shipped backend 核查(05 §7): 安全检测但不执行不支持指令——预检 manifest 内条目。
+        // B-09：基准目录 = 安装目录下的 providers/（清单与 DSO 同目录，见 install_layout.cmake），
+        // 不再用 CWD "."（原实现从当前工作目录找 backends.manifest.json ⇒ 从任意目录运行
+        // doctor 都会退回「无 shipped DSO」分支，安装树里的变体形同未登记）。
+        const std::string pdir = cli_providers_dir();
+        std::string mbuf;
+        const bool have_manifest =
+            aio_file::read_all((pdir + "/backends.manifest.json").c_str(), &mbuf);
+        // 交付面 fail-closed：清单缺失 = ISA 变体分发面不完整（安装树缺 providers/*.so
+        // 或未构建 astrocs_backends_manifest）⇒ 判 fail，不得静默记 skipped/pass。
+        // 依据：docs/architecture/ISA_VARIANTS.md §0 第 3 条（变体随安装树分发）+ §2；
+        // AGENTS.md §9「检查器静默退化算未完成」。
+        checks.push_back(nlohmann::json{{"name", "backend_provider_dir"},
+                                        {"status", have_manifest ? "pass" : "fail"},
+                                        {"detail", have_manifest
+                                                       ? pdir
+                                                       : (pdir +
+                                                          " (backends.manifest.json 缺失：ISA 变体分发面不完整)")}});
+        if (have_manifest) {
             std::vector<astrocs::backend_host::ManifestEntry> entries;
             std::string merr;
-            astrocs::backend_host::parse_backends_manifest(mbuf.str(), &entries, &merr);
+            if (!astrocs::backend_host::parse_backends_manifest(mbuf, &entries, &merr)) {
+                checks.push_back(nlohmann::json{{"name", "backends_manifest"},
+                                                {"status", "fail"},
+                                                {"detail", merr}});
+            }
             for (const auto& e : entries) {
                 std::string why;
                 auto pr = astrocs::backend_host::preflight_entry(
-                    ".", e, astrocs_cpu_detect_features_v1(), &why);
+                    pdir, e, astrocs_cpu_detect_features_v1(), &why);
                 nlohmann::json ck;
                 ck["name"] = "backend_preflight:" + e.backend_id;
+                // 「能力不支持」是合法回退（exit 0 面）；「文件/hash/ABI 不符」才是缺陷。
+                // 原实现把两者一律记 skipped，缺陷与回退不可区分。
+                const bool unsupported_isa =
+                    why.find("unsupported ISA") != std::string::npos;
                 ck["status"] = pr.decision == astrocs::backend_host::LoadResult::OK
-                                   ? "pass" : "skipped";
+                                   ? "pass"
+                                   : (unsupported_isa ? "skipped" : "fail");
                 ck["detail"] = why;
                 checks.push_back(ck);
             }
         } else {
             checks.push_back(nlohmann::json{{"name", "backends_manifest"},
-                                            {"status", "pass"},
-                                            {"detail", "no shipped DSO (builtin baseline)"}});
+                                            {"status", "fail"},
+                                            {"detail",
+                                             pdir + "/backends.manifest.json 缺失 ⇒ "
+                                                    "ISA 变体不可选取（原实现记 pass/no shipped DSO，"
+                                                    "使「删清单」与「本就无变体」不可区分）"}});
         }
         bool all = true;
         for (const auto& c : checks)
@@ -2343,27 +2617,10 @@ int dispatch(const Parsed& p) {
     if (joined == "benchmark") {
         // §6.2: benchmark 生成/更新 cpu_profile（机器绑定配置，运行时自动读取）。
         // 数值/并行决策唯一来源 = lib/backend_host；本层不写死任何 ISA/线程数。
-        std::string exe_path;
-#if defined(_WIN32)
-        {
-            char buf[MAX_PATH];
-            const DWORD n = GetModuleFileNameA(nullptr, buf, MAX_PATH);
-            if (n > 0) exe_path.assign(buf, n);
-        }
-#else
-        {
-            std::error_code ec;
-            const auto cp = std::filesystem::canonical("/proc/self/exe", ec);
-            if (!ec) exe_path = cp.string();
-        }
-#endif
-        std::string install_dir = ".";
-        if (!exe_path.empty()) {
-            std::error_code ec2;
-            const auto parent = std::filesystem::path(exe_path).parent_path();
-            if (!parent.empty()) install_dir = parent.string();
-        }
-        std::string cli_bin = install_dir.empty() ? std::string(".") : install_dir + "/astrocs";
+        // 安装目录口径唯一来源 = cli_install_dir()（与 cpu_profile/provider 解析同源，
+        // 禁止第二处 exe-path 推导）。
+        const std::string install_dir = cli_install_dir();
+        std::string cli_bin = install_dir.empty() ? std::string(".") : install_dir + "/acsd";
 #if defined(_WIN32)
         {
             std::error_code ec3;
@@ -2383,16 +2640,38 @@ int dispatch(const Parsed& p) {
             verdict = "FAIL";
         }
         doc["verdict"] = verdict;
-        const std::string out_path = install_dir + "/cpu_profile.json";
-        {
-            std::ofstream f(std::filesystem::u8path(out_path), std::ios::binary | std::ios::trunc);
-            if (!f) {
-                std::fprintf(stderr, "acsd: cannot write cpu_profile '%s'\n", out_path.c_str());
+        // R-29：写入必须走唯一原子写实现（写临时→校验→rename；半写文件结构性不可见），
+        // 落点 = 程序安装目录（docs/ASTROCS_DESIGN.md:714）。原先用裸 std::ofstream 直写，进程中途
+        // 退出即留半截 profile，且绕过校验——属缺陷。
+        const std::string hw_json =
+            astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
+        const std::string json_text = doc.dump(2) + "\n";
+        const std::string install_path = cli_default_cpu_profile_path();
+        astrocs::cli::ProfileSaveOutcome sr = astrocs::cli::save_cpu_profile_atomic(
+            json_text, hw_json, ASTROCS_COMMIT_SHA, install_path);
+        std::string out_path = install_path;
+        std::string out_source = "install-dir";
+        if (!sr.ok) {
+            // 显式降级（不静默换落点）：安装目录不可写/位于源码树 ⇒ 用户级落点。
+            const std::string fb = cli_fallback_cpu_profile_path();
+            std::fprintf(stderr,
+                         "acsd: cpu_profile not stored at '%s' (%s) — falling back\n",
+                         install_path.c_str(), sr.reason.c_str());
+            if (fb.empty()) {
+                std::fprintf(stderr, "acsd: no writable cpu_profile location available\n");
                 return astrocs::IO;
             }
-            f << doc.dump(2) << "\n";
+            sr = astrocs::cli::save_cpu_profile_atomic(
+                json_text, hw_json, ASTROCS_COMMIT_SHA, fb);
+            if (!sr.ok) {
+                std::fprintf(stderr, "acsd: cannot write cpu_profile '%s' (%s)\n",
+                             fb.c_str(), sr.reason.c_str());
+                return astrocs::IO;
+            }
+            out_path = fb;
+            out_source = "user-data-fallback";
         }
-        std::printf("%s %s\n", out_path.c_str(), verdict.c_str());
+        std::printf("%s %s source=%s\n", out_path.c_str(), verdict.c_str(), out_source.c_str());
         if (verdict != "PASS") return astrocs::SCIENCE;
         return astrocs::OK;
     }
