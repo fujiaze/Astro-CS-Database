@@ -5,8 +5,8 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器规格（唯一事实源）：`artifacts/evidence/v6/qa-design/qa_matrix.json`；mutation 目录 `artifacts/evidence/v6/qa-design/data/mutations.json`；基线矩阵 `artifacts/evidence/v6/qa-design/data/baseline_matrix.json`；零用例账本 `artifacts/evidence/v6/qa-design/case_ledger.json`
-- 复跑入口：`python3 artifacts/evidence/v6/qa-design/oracle/run_all.py`（单 rc）
+- 机器规格（唯一事实源）：`实验/engineering-evidence/v6/qa-design/qa_matrix.json`；mutation 目录 `实验/engineering-evidence/v6/qa-design/data/mutations.json`；基线矩阵 `实验/engineering-evidence/v6/qa-design/data/baseline_matrix.json`；零用例账本 `实验/engineering-evidence/v6/qa-design/case_ledger.json`
+- 复跑入口：`python3 实验/engineering-evidence/v6/qa-design/oracle/run_all.py`（单 rc）
 - 推荐状态：由任务返回消息给出（PASS / FAIL / REVIEW_REQUIRED）
 
 > 本文件是**验证设计规格**，不是实现，也不是冻结动作。它把 SCI-ADJ-001 的语义冻结展开为**可实施、可验证**的门：
@@ -93,14 +93,14 @@
 
 | 产物 | 路径 |
 |---|---|
-| 机器规格（44 门） | `artifacts/evidence/v6/qa-design/qa_matrix.json` |
-| mutation 目录（56 条） | `artifacts/evidence/v6/qa-design/data/mutations.json` |
-| 基线矩阵 | `artifacts/evidence/v6/qa-design/data/baseline_matrix.json` |
-| 零用例账本 | `artifacts/evidence/v6/qa-design/case_ledger.json` |
-| 独立 Oracle / 校验 / 渲染 / 驱动 | `artifacts/evidence/v6/qa-design/oracle/{qa_oracle,validate_spec,render_docs,check_docs,run_mutations,run_all}.py` |
-| 证据与 rc | `artifacts/evidence/v6/qa-design/evidence/`、`artifacts/evidence/v6/qa-design/SUMMARY.md` |
+| 机器规格（44 门） | `实验/engineering-evidence/v6/qa-design/qa_matrix.json` |
+| mutation 目录（56 条） | `实验/engineering-evidence/v6/qa-design/data/mutations.json` |
+| 基线矩阵 | `实验/engineering-evidence/v6/qa-design/data/baseline_matrix.json` |
+| 零用例账本 | `实验/engineering-evidence/v6/qa-design/case_ledger.json` |
+| 独立 Oracle / 校验 / 渲染 / 驱动 | `实验/engineering-evidence/v6/qa-design/oracle/{qa_oracle,validate_spec,render_docs,check_docs,run_mutations,run_all}.py` |
+| 证据与 rc | `实验/engineering-evidence/v6/qa-design/evidence/`、`实验/engineering-evidence/v6/qa-design/SUMMARY.md` |
 
-复跑（在 `artifacts/evidence/v6/qa-design/oracle/`）：`python3 run_all.py`；单步：`python3 qa_oracle.py run`、
+复跑（在 `实验/engineering-evidence/v6/qa-design/oracle/`）：`python3 run_all.py`；单步：`python3 qa_oracle.py run`、
 `python3 validate_spec.py`、`python3 render_docs.py --write`、`python3 check_docs.py`、`python3 run_mutations.py`。
 
 ## 8. 门矩阵（机读渲染，逐字一致）
@@ -830,7 +830,7 @@
 ### `P0-05` — 785 合并层账本 P0 门族（带层声明）
 
 - **claim**：785 缺陷账本为合并层口径（667+83+29+4+2=785），叶子层 523 个 L-id 结构性不可表达；任何账本数字必须带层号；本门族对 R1/R2/R4/R5/R10 根因逐条给出销账门。
-- **条款锚**：AR-035；AR-051；AR-041；AR-042；AR-043；AR-044；AR-049；artifacts/evidence/v6/review-audit/03
+- **条款锚**：AR-035；AR-051；AR-041；AR-042；AR-043；AR-044；AR-049；实验/engineering-evidence/v6/review-audit/03
 - **输入 -> 输出**：DEFECT_LEDGER.json（只读） -> layer_declared, p0_family_cover
 - **单位**：count=1
 - **适用域**：缺陷账本口径与 P0 门族覆盖；处置权在控制器/负责人（本任务只登记）。
@@ -838,7 +838,7 @@
 - **容差来源**：口径规则冻结：所有账本数字带 merged_785/leaf_523；覆盖 R1/R2/R4/R5/R10。（status=frozen）
 - **零用例即红**：min_cases=5；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：账本数字无层号 / P0 根因无承载门 -> REJECT。
-- **独立 Oracle**：kind=structural；truth=artifacts/evidence/v6/review-audit/03 + DEFECT_LEDGER.json；must_not=acsd
+- **独立 Oracle**：kind=structural；truth=实验/engineering-evidence/v6/review-audit/03 + DEFECT_LEDGER.json；must_not=acsd
 - **门能红 mutation**：MUT-SPEC-09
 - **账本层**：merged_785；refs=AR-035, AR-051
 - **owner / wave / status**：QA-MATRIX-001 / FINAL-AUDIT-001 / W3 / frozen_registration_only

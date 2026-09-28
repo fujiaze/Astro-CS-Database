@@ -3,8 +3,8 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器实现：`artifacts/evidence/v6/qa-design/oracle/qa_oracle.py`、`validate_spec.py`、`run_mutations.py`、`run_all.py`
-- 证据：`artifacts/evidence/v6/qa-design/evidence/{oracle_baseline.json,rc_summary.json,mutations.json,logs/}`
+- 机器实现：`实验/engineering-evidence/v6/qa-design/oracle/qa_oracle.py`、`validate_spec.py`、`run_mutations.py`、`run_all.py`
+- 证据：`实验/engineering-evidence/v6/qa-design/evidence/{oracle_baseline.json,rc_summary.json,mutations.json,logs/}`
 
 ## 1. Oracle 独立性（对应根因 R2/R4）
 

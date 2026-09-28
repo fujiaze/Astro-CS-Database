@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §8.3（异步只用于能隐藏延迟的 I/O、预取与压缩）、§9（内存极简化）、
 > §10（aio 是文件级唯一 I/O 边界）、§13（发布决定只属负责人）。
-> 证据锚：`artifacts/evidence/compress-01/`（机器可读数字与复现脚本）；复现命令见 §7。
+> 证据锚：`实验/engineering-evidence/compress-01/`（机器可读数字与复现脚本）；复现命令见 §7。
 
 **结论（先给判断，再给证据）**
 
@@ -31,7 +31,7 @@
 
 **路径约定**：本文正文中的 `code/…`、`evidence/…`、`data/…`、`logs/…` 均相对原基准工作区
 `run/COMPRESS-01/`（gitignore 产物，可能已被 `run_gc` 回收）。已入库的机器可读证据与复现脚本在
-`artifacts/evidence/compress-01/`；全部复现命令与重建方式见 §7。语料提取（§7 步骤 1）需要主产物
+`实验/engineering-evidence/compress-01/`；全部复现命令与重建方式见 §7。语料提取（§7 步骤 1）需要主产物
 `run/PERF-401/out/real16_w1` 存在。
 
 ---
@@ -560,8 +560,8 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
 |---|---|
 | 本评估结论（zstd / Rice / TRIM / 内存累加器） | `docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md`（本文） |
 | 标准兼容性查证全文（21 条带英文原文引文） | `docs/research/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` |
-| 机器可读证据锚 | `artifacts/evidence/compress-01/`：`final_numbers.json`、`fill_scan.json`、`trim_scan.json`、`acc_roundtrip.json`、`product_level.json`、`verify/final_numbers.py`、`MANIFEST.sha256` |
-| 全部复现脚本 | `artifacts/evidence/compress-01/code/` |
+| 机器可读证据锚 | `实验/engineering-evidence/compress-01/`：`final_numbers.json`、`fill_scan.json`、`trim_scan.json`、`acc_roundtrip.json`、`product_level.json`、`verify/final_numbers.py`、`MANIFEST.sha256` |
+| 全部复现脚本 | `实验/engineering-evidence/compress-01/code/` |
 | 未入库（可由下列命令重建） | `data/`（1 MiB 级语料 288 MiB）、`evidence/*.csv`（原始基准数据）、`bin/`（编译产物）、`logs/` |
 
 脚本内的相对路径以 `run/COMPRESS-01/` 为工作根，故复现先按步骤 0 把归档的 `code/` 还原进该工作区，再按步骤 1~8 重跑。
@@ -569,7 +569,7 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
     cd "<仓库根>"
 
     # --- 0. 重建 run 工作区 + 构建小工具 (纯 C, 链接系统 libzstd / libcfitsio; 不触碰仓库构建树) ---
-    EV=artifacts/evidence/compress-01
+    EV=实验/engineering-evidence/compress-01
     mkdir -p run/COMPRESS-01/{code,bin,data,evidence,logs,verify}
     cp -r "$EV"/code/. run/COMPRESS-01/code/
     cp "$EV"/verify/final_numbers.py run/COMPRESS-01/verify/
@@ -614,7 +614,7 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
 **环境准备（一次性）**：本机 python 无 zstandard 模块且 python3 -m venv 不可用（缺 ensurepip），
 故用 python3 -m pip install --target run/COMPRESS-01/pylib zstandard（0.25.0，封装 libzstd 1.5.7）。
 
-**数字自洽性**：`artifacts/evidence/compress-01/final_numbers.json` 是本文 §2/§3 全部整产物数字的唯一来源；
+**数字自洽性**：`实验/engineering-evidence/compress-01/final_numbers.json` 是本文 §2/§3 全部整产物数字的唯一来源；
 其复跑依赖 `evidence/*.csv`（未入库，由步骤 3-4 生成）与 `fill_scan.json`（已入库，由步骤 2 生成），
 即"重跑基准 → 重算汇总"两段都可由上述命令完整重建。
 
@@ -652,7 +652,7 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
 
 ## 9. 证据索引与归档位置
 
-**已入库**（`artifacts/evidence/compress-01/`；逐文件 SHA-256 见该目录 `MANIFEST.sha256`）：
+**已入库**（`实验/engineering-evidence/compress-01/`；逐文件 SHA-256 见该目录 `MANIFEST.sha256`）：
 
 | 文件 | 内容 |
 |---|---|

@@ -61,7 +61,7 @@
 
 四条判据（平均利用率 ≥0.85 / p50 ≥0.90 / 达标样本占比 ≥0.70 / 无连续 ≥10s
 低利用窗）在 CI 裁决面由 `eng/ci/l2_frozen_gate.py` fail-closed 判定，任一
-违规即红。历史证据回放：`artifacts/acceptance/l2_performance/gates/*_gate.json`
+违规即红。历史证据回放：`实验/engineering-evidence/l2_performance/gates/*_gate.json`
 9 份 `verdict=pass` 的违规证据现在全部判红（`L2-FROZEN-GATE-REPLAY`）。
 生产侧 `run_monitored.py` 的 `record_and_justify` 字段是记录语义，
 **门禁通过的依据 = 机器门 rc=0**。
@@ -103,5 +103,5 @@ LINUX-MAIN-FIXTURES / LINUX-MAIN-BUILD-TREE）与 6 个 step 声明逐条适用�
 `CHK-FAILCLOSED-SURVEY` 对 230 个执行单元（78 个注册项）注入「缺失证据 / 坏证据 /
 无输出」三面，226 个适用面全部判红、4 个显式无适用面（`SILENT_OK_UNITS` 静默豁免 2 个 +
 `TESTKIT-LIST`/`UT-CPU-AVX512` 无证据面）；普查表见
-`artifacts/evidence/release-05/FAILCLOSED_SURVEY.md`。
+`实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md`。
 

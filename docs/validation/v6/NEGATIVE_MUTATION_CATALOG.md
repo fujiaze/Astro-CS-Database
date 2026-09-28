@@ -3,8 +3,8 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器目录（唯一事实源）：`artifacts/evidence/v6/qa-design/data/mutations.json`（56 条）。
-- 驱动器：`artifacts/evidence/v6/qa-design/oracle/run_mutations.py`；实测结果：`artifacts/evidence/v6/qa-design/evidence/mutations.json`。
+- 机器目录（唯一事实源）：`实验/engineering-evidence/v6/qa-design/data/mutations.json`（56 条）。
+- 驱动器：`实验/engineering-evidence/v6/qa-design/oracle/run_mutations.py`；实测结果：`实验/engineering-evidence/v6/qa-design/evidence/mutations.json`。
 - 每条门能红的 mutation 清单已并入 `QA_MATRIX.md` §9 每门 `门能红 mutation` 字段与机器规格 `gate.mutations`。
 
 ## 1. 三类 mutation
