@@ -415,6 +415,54 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         self.assertNotIn("bogus_kind", enum)
         self.assertNotIn("bogus_kind", proto_kinds)
 
+    # ── 10. P-163: 事件流发布面写失败（**只在名义 rc==0 时可观测**）──
+    # 语义正本: lib/infrastructure/cli/jsonl.h 的 publication_exit_code ——
+    #   "名义 rc 非 0 时原码保留" ⇒ 只有一次**成功运行**才可能观测到 7/10。
+    #   故本类用例必须搭在成功形态配置上；基线不成立时报「不可判」，不得把
+    #   "没观测到"读成"已闭环"（AGENTS §9：恒真门没有证据资格）。
+    def _ok_cfg(self, out):
+        os.makedirs(out, exist_ok=True)
+        return self._cfg(out, [os.path.join(self.data, "light_1.fits"),
+                               os.path.join(self.data, "light_2.fits")])
+
+    def test_10_p163_epipe_stdout_maps_to_io_7(self):
+        out = os.path.join(self.tmp, "o10")
+        cfg = self._ok_cfg(out)
+        proc = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                cwd=run_cwd())
+        # 立刻关闭读端：此后子进程对 stdout 的每次写都无读者 ⇒ EPIPE（errno=EPIPE）。
+        proc.stdout.close()
+        err = proc.stderr.read().decode("utf-8", "replace")
+        rc = proc.wait(timeout=600)
+        if rc < 0:
+            self.fail("stdout 写失败使进程被信号杀死（rc=%d，SIGPIPE?）—— P-163 的 IO(7) 映射"
+                      "不可达；CLI 必须忽略 SIGPIPE 并登记写失败。stderr=%s" % (rc, err[-400:]))
+        if rc == 0:
+            self.fail("[不可判] EPIPE 未发生：关读端前管道缓冲吸收了本次运行的全部 stdout "
+                      "⇒ 本用例零证据，不得计为通过（需增事件量或改注入点）")
+        self.assertEqual(rc, 7, "stdout 写失败必须映射 IO(7)；实测 rc=%d；stderr=%s"
+                         % (rc, err[-400:]))
+
+    def test_11_p163_enospc_stdout_maps_to_resource_10(self):
+        if not os.path.exists("/dev/full"):
+            self.fail("[不可判] /dev/full 不存在 ⇒ 无法确定性注入 ENOSPC（不得计为通过）")
+        out = os.path.join(self.tmp, "o11")
+        cfg = self._ok_cfg(out)
+        fd = os.open("/dev/full", os.O_WRONLY)
+        try:
+            proc = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
+                                    stdout=fd, stderr=subprocess.PIPE, cwd=run_cwd())
+            err = proc.stderr.read().decode("utf-8", "replace")
+            rc = proc.wait(timeout=600)
+        finally:
+            os.close(fd)
+        if rc == 0:
+            self.fail("[不可判] /dev/full 上未观测到写失败（本次运行未写 stdout?）"
+                      "⇒ 零证据，不得计为通过")
+        self.assertEqual(rc, 10, "stdout 写失败 errno=ENOSPC 必须映射 RESOURCE(10)"
+                         "（磁盘满不是通用 IO 码）；实测 rc=%d；stderr=%s" % (rc, err[-400:]))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -3868,6 +3868,74 @@
           "ctest_targets": [
             "aio_verify_order"
           ]
+        },
+        {
+          "id": "CTEST-AIO-TMP-PATH-UNIQUENESS",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_tmp_path_uniqueness",
+            "--output",
+            "run/ci/ctest/aio_tmp_path_uniqueness.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_tmp_path_uniqueness.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/unit/aio/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_tmp_path_uniqueness"
+          ]
+        },
+        {
+          "id": "NEG-P173-TSAN",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "900",
+            "--output",
+            "run/ci/monitor/P173-TSAN.json",
+            "--",
+            "python3",
+            "eng/tests/unit/aio/mutations/tmp_path_tsan_negative.py",
+            ".",
+            "run/ci/p173_tsan_work"
+          ],
+          "timeout_seconds": 1200,
+          "heavy": true,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/monitor/P173-TSAN.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/src/**",
+            "eng/tests/unit/aio/**"
+          ],
+          "requires_monitor": true,
+          "prerequisite_tools": [
+            "g++"
+          ]
         }
       ]
     },

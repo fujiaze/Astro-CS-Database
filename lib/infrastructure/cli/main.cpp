@@ -7,6 +7,7 @@
 // RT-008: 本文件仅保留入口壳(crash boundary + 平台入口)与薄 include 面;
 // parser/命令实现已拆至 lib/infrastructure/cli/parser.cpp 与 lib/infrastructure/cli/commands.cpp(共享头 lib/infrastructure/cli/cli_common.h)。
 // 本文件不 include 任何 session/CFITSIO/AIO/Drizzle 科学内部头(CHK-001 验收)。
+#include <csignal>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -99,5 +100,13 @@ int wmain(int argc, wchar_t** argv) {
     return real_main(static_cast<int>(u8.size()), ptrs.data());
 }
 #else
-int main(int argc, char** argv) { return real_main(argc, argv); }
+int main(int argc, char** argv) {
+    // P-163 / docs/plugins/infrastructure/21_observability.md §7：日志/事件写入失败必须
+    // "记 stderr 脱敏摘要 + 以非 0 退出码结束（IO=7；磁盘满=10）"。POSIX 对 SIGPIPE 的默认
+    // 处置是**直接终止进程**，会让写入路径的 EPIPE 分支永不可达（实测 rc=-13 被信号杀死，
+    // 合同要求的 IO(7) 映射不可达）⇒ 忽略 SIGPIPE，使写调用返回 -1/EPIPE，
+    // 由事件写入层（jsonl.h）登记为写失败并按 errno 映射（ENOSPC→10、否则→7）。
+    std::signal(SIGPIPE, SIG_IGN);
+    return real_main(argc, argv);
+}
 #endif

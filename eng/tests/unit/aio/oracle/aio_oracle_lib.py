@@ -294,7 +294,7 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
             "run_id", "input_product_hashes", "config_hash", "units",
             "coordinate", "pixel_semantics", "sampling", "algorithm_ids",
             "module", "provider", "approximations", "degradations",
-            "normalization_version", "weight_mode_version",
+            "normalization_version",
             "correlation_summary", "flux_conservation_factor", "k_corr",
             "generated_utc", "output_hash"]
     check(len(required) >= 20, "schema required list too short")

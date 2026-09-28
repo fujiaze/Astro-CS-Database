@@ -20,12 +20,12 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 | acsd | add_executable | CMakeLists.txt | 5 | 8a28-c03e-0a23 |
 | astrocs_aio | add_library | CMakeLists.txt | 8 | 00cb-06ac-ca2e |
 | astrocs_calibration | add_library | CMakeLists.txt | 5 | df12-9401-fe58 |
-| astrocs_cfitsio | add_library | CMakeLists.txt | 0 | e3b0-c442-98fc |
+| astrocs_cfitsio | add_library | CMakeLists.txt | 60 | ff4f-c594-adf6 |
 | astrocs_cli_runtime | add_library | CMakeLists.txt | 1 | 302c-75f0-f0b7 |
 | astrocs_cli_subcommands | add_library | lib/infrastructure/cli/CMakeLists.txt | 0 | e3b0-c442-98fc |
 | astrocs_common | add_library | CMakeLists.txt | 2 | 0999-866f-1db8 |
 | astrocs_contracts | add_library | CMakeLists.txt | 0 | e3b0-c442-98fc |
-| astrocs_core | add_library | CMakeLists.txt | 19 | a537-24d4-cfa9 |
+| astrocs_core | add_library | CMakeLists.txt | 20 | e1c4-8466-ab9c |
 
 | target | kind | cmakelists | sources | src_fingerprint |
 |---|---|---|---|---|
