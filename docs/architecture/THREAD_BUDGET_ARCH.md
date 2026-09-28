@@ -38,7 +38,7 @@
 ## 5 静态 checker 合同(验收)
 
 `eng/tools/arch/check_thread_budget.py`(BENCH-003 前落地,ARCH-004 先立合同):
-1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(登记表以 checker 内 THREAD_BUDGET_EXEMPT 为唯一事实源, 随实现演进, 以实跑输出为准; eng/tests/ 为扫描面豁免[测试面豁免=20], 不占登记条目)。当前生产源码面登记实况(实跑汇总=25 键/41 命中), 生产科学模块面核心六条: upm.cpp per-call 池 ×5(:620/:751/:794/:916/:2143, cworkers = Runtime lease) + sampler.cpp:934 per-call 池(workers = Runtime lease); 另有 weight_chain_selfcheck.cpp:479(权重链独立 Oracle 自查池, 不在根构建图内)、cosmetic/module_entry.cpp:64(omp_set_num_threads 租约注入)、历史保留面 orchestrator watchdog 路径级登记(orchestrator.cpp:5201/:5208)与 orchestrator.h:424/resource_monitor.h:135 文件级豁免等;
+1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(登记表以 checker 内 THREAD_BUDGET_EXEMPT 为唯一事实源, 随实现演进, 以实跑输出为准; eng/tests/ 为扫描面豁免[测试面豁免=20], 不占登记条目)。当前生产源码面登记实况(实跑汇总=25 键/41 命中), 生产科学模块面核心六条: upm.cpp per-call 池 ×5(:620/:751/:794/:916/:2143, cworkers = Runtime lease) + sampler.cpp:934 per-call 池(workers = Runtime lease); 另有 weight_chain_selfcheck.cpp:479(权重链独立 Oracle 自查池, 不在根构建图内)、lib/algorithms/cosmetic/src/module_entry.cpp:64(omp_set_num_threads 租约注入)、历史保留面 orchestrator watchdog 路径级登记(orchestrator.cpp:5201/:5208)与 orchestrator.h:424/resource_monitor.h:135 文件级豁免等;
 2. `omp_set_num_threads(`/`num_threads(` 字面量=0 容忍;
 3. 未登记即 FAIL(exit 1)——保证"未登记线程创建"机器可查。
 

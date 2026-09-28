@@ -59,7 +59,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   归一化 `w_norm = w/Σw × control_reliability`（upm.cpp:1325-1344）
   → Huber IRLS（δ=1.345 无量纲、IRLS 迭代重加权 + 图平滑 + 弱零锚
   + 连通分量逐分量 gauge=分量内最小 frame_id，ALG-UPM-001 F3/F5）。
-  模型=C[frame][control] 8×8 control cell 双线性场（upm.cpp:74）+
+  模型=C[frame][control] 8×8 control cell 双线性场（upm.cpp:75）+
   frame_index/frame_id_by_index 稳定绑定（绑定仅由稳定 frame_id 决
   定，save 前校验行数一致 :944-945，拒绝写绑定损坏的模型文件）。
   build_geo 变体（:934）消费全几何 P2ControlNode（含单帧区），单帧
@@ -194,7 +194,7 @@ p2_session.cpp:200-206）。
 ## 内存/cache/I-O/所有权
 
 - 内存: 构建 O(n_ctrl + n_frame·n_ctrl)（Model.C [frame][control]
-  upm.cpp:74 + obs_w 权重缓存）；dense 物化上界=kChunk·kLeafPx·8
+  upm.cpp:75 + obs_w 权重缓存）；dense 物化上界=kChunk·kLeafPx·8
   字节（:1389 冻结注释）；无无界缓存。
 - I/O: 唯一 AIO 通道=aio_upm_write_sparse（upm.cpp:1005，模型稀疏
   持久化，ENG-IO-001 原子写）+ aio_upm_open/aio_upm_dense_* 读面；
@@ -208,7 +208,7 @@ p2_session.cpp:200-206）。
 
 - 错误面=rc 三态 + 调用方语义承载: rc=0 ok；rc=1 参数/绑定/open/
   parse/IO（:941/:945/:1009-1028/:1234 等）；rc=2 production 缺
-  control ivar（:609→build 传播，upm.h:132-139 冻结）与 dense stale
+  control ivar（:609→build 传播，upm.h:46-50 冻结）与 dense stale
   cache（upm.h:167 注释 0=ok,1=io/parse,2=stale）。evaluate_c
   未知 frame_id=NaN（:1277-1280）。无 ACS_ERR_* 词汇（本页修订旧
   registry 派生内容）。

@@ -31,7 +31,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
   `astrocs_calibration` 与 `astrocs_p1_calibration` 的生产源；
   `lib/algorithms/calibration/CMakeLists.txt:20-25` 的 `CAL_PROD_SOURCES`
-  与根 `CMakeLists.txt` 的 `add_library(astrocs_calibration STATIC ...)`
+  与根 `CMakeLists.txt:589-598` 的 `add_library(astrocs_calibration STATIC ...)`
   源清单均含它）；
   同名文件 `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp` **已退役**，
   登记见 §8。二者是两套独立实现，**本模块行为的口径唯一取自生产源；cpp/ 版本的公式、阈值或退化语义无资格**

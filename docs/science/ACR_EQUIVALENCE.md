@@ -22,7 +22,7 @@
 | `wmode` | 实现标量槽（分支号 0/1/2 为实现事实；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | `scalars+wmode` |
 | `mosaic_reject_legacy` | CPU reference launcher（逐像素 `rejection+integrate`） | `acr_kernels.cpp` |
 | 逐像素 ivar 权重 | 阶段二按该天球像素对应帧集合现场算出的派生量 | `stage2_common.cpp:469` |
-| `ACR-IVAR-001` | ivar 时 ACR 块禁用 → CPU canonical | `stage2_common.cpp:512-529`（`p2_acr_block_eligible`） |
+| `ACR-IVAR-001` | ivar 时 ACR 块禁用 → CPU canonical | `stage2_common.cpp:512-528`（`p2_acr_block_eligible`） |
 
 ## 3 物理量和单位
 
@@ -41,7 +41,7 @@
 - **标量布局（正向约束，按 `append_scalar` 紧凑追加顺序、无填充）**：10 槽、共 **60 字节**，逐槽偏移 `px@0 / depth@8 / method@16 / und_n@20 / lo@24 / hi@32 / max_it@40 / p0@44 / wmode@52 / workers@56`。注册声明的 `args.scalar_bytes` **必须等于**该布局字节数：`validate_invocation` 按**精确相等**判定（`lib/infrastructure/acr/api/kernel_registry.cpp:21`），语义不是「不小于」。
 - **缺省与符号约定**：`method=1u`、`underdetermined_n=2u`、`max_iterations=8`、`p0=0`、`wmode=0`、`workers=1`；`sigma_lower=-4.0`、`sigma_upper=3.0` 的**符号位不承载语义**——CPU launcher 取 `fabs` 后写入 `plan.sigma.lower_sigma/upper_sigma`（`acr_kernels.cpp:90-99`），CUDA launcher 以 `-fabs(lo)`/`+fabs(hi)` 传入（`acr_kernels.cpp:329-330`）；两侧默认量值等价（`|lower|=4.0`、`upper=3.0`）。
 - 逐像素 ivar 权重时 `ACR` 块禁用，走 CPU `canonical p2_integrate_pixel` 路径（`ACR-IVAR-001`），不进入 `GPU/Mixed` 分块。
-  - **可判定条件**：`p2_acr_block_eligible(...)`（`stage2_common.cpp:512-529`）在本仓**恒返回 `false`**——冻结口径下生产只剩「逐样本逆方差」一条权重路径，而该路径按 `ACR-IVAR-001` 必须走 CPU canonical。⇒ **ACR 块在生产不可达是构造性结论**，不存在任何合法配置能进入该块（`stage2.cpp:868-870, 1001`）；ACR 等价门只在隔离实验/回归域内有意义（`ASTROCS_DESIGN.md` §1.3/§8.1）。
+  - **可判定条件**：`p2_acr_block_eligible(...)`（`stage2_common.cpp:512-528`）在本仓**恒返回 `false`**——冻结口径下生产只剩「逐样本逆方差」一条权重路径，而该路径按 `ACR-IVAR-001` 必须走 CPU canonical。⇒ **ACR 块在生产不可达是构造性结论**，不存在任何合法配置能进入该块（`stage2.cpp:868-870, 1001`）；ACR 等价门只在隔离实验/回归域内有意义（`ASTROCS_DESIGN.md` §1.3/§8.1）。
 - `acr_route∈{auto,cpu}`，其他取值在配置解析期显式拒绝（`stage2_common.cpp:469-471`）。
 
 ## 5 连续定义
@@ -82,12 +82,12 @@
   逐像素 ivar 权重路径 → 强制 CPU canonical (ACR-IVAR-001)
   无画像/无画像信任 (model_available≠model_trusted) → OpenMP fallback (acr memory.md: BDR Reviewed)
      适用域: mosaic_reject_legacy 的并行分支仅在 P2_ENABLE_OPENMP 编译宏定义时存在
-     (acr_kernels.cpp:75-80,212-245)；默认构建 P2_ENABLE_OPENMP=OFF (coverage/CMakeLists.txt:28)，
+     (acr_kernels.cpp:75-80,212-245)；默认构建 P2_ENABLE_OPENMP=OFF (lib/algorithms/coverage/CMakeLists.txt:28)，
      此时 workers 槽被读取但并行路径不参与编译，执行退化为串行。
   候选栈 non-finite / UNDERDETERMINED / ALL_REJECTED 等冻结语义在任意设备上一致
 ```
 
-与 `lib/algorithms/coverage/src/acr_kernels.cpp`（注册与三个 launcher）、`lib/algorithms/coverage/src/stage2_common.cpp:512-529`（`p2_acr_block_eligible`）、`lib/infrastructure/acr/backends/cuda/bridge/acr_cuda_bridge_kernels.cu:166-272`（CUDA kernel）、`lib/infrastructure/acr/memory.md: BDR Reviewed` 一致。
+与 `lib/algorithms/coverage/src/acr_kernels.cpp`（注册与三个 launcher）、`lib/algorithms/coverage/src/stage2_common.cpp:512-528`（`p2_acr_block_eligible`）、`lib/infrastructure/acr/backends/cuda/bridge/acr_cuda_bridge_kernels.cu:166-272`（CUDA kernel）、`lib/infrastructure/acr/memory.md: BDR Reviewed` 一致。
 
 ## 6 假设
 
@@ -109,7 +109,7 @@
 | `px==0` / `depth==0` | `throw runtime_error missing scalars` | `acr_kernels.cpp` |
 | 缺 `buffer0/1` | `throw missing buffers` | 同上 |
 | 逐像素 ivar 权重 | 禁 ACR，CPU canonical | `ACR-IVAR-001` |
-| 无画像信任 | OpenMP fallback；适用域 = `P2_ENABLE_OPENMP` 编译宏已定义（默认构建未定义 ⇒ 实际执行串行） | `acr memory.md BDR`；`acr_kernels.cpp:75-80,212-245`；`coverage/CMakeLists.txt:28` |
+| 无画像信任 | OpenMP fallback；适用域 = `P2_ENABLE_OPENMP` 编译宏已定义（默认构建未定义 ⇒ 实际执行串行） | `acr memory.md BDR`；`acr_kernels.cpp:75-80,212-245`；`lib/algorithms/coverage/CMakeLists.txt:28` |
 | 非有限 candidate | `INVALID_INPUT` 一致 | `integrate.cpp` |
 
 ## 9 精度策略

@@ -46,7 +46,7 @@
 | `reasons[i]` | per-sample 判定 | u8 0..3（P2RejectReason） | rejection.h:94-99/:384 |
 | `status` | stack-level 终态 | int 0..7（P2RejectStatus） | rejection.h:102-111/:389 |
 | `n`（nominal） | planning 层几何可贡献数（一次解析） | 无量纲 u32 | rejection.h:229/:223 |
-| `med/scale` | 工作域中位数/尺度 | 与 `values` 同标度（面亮度 ADU·sr⁻¹；MEDIAN_SCALE 无量纲化后 1） | rejection.cpp:2093-2105 |
+| `med/scale` | 工作域中位数/尺度 | 与 `values` 同标度（面亮度 ADU·sr⁻¹；MEDIAN_SCALE 无量纲化后 1） | rejection.cpp:2093-2104 |
 | `σ_lo/σ_hi` | 低/高侧阈值（sigma 族） | 无量纲 z 阈值（4.0 低 / 3.0 高） | rejection.cpp:1229（默认） |
 | `plow/phigh` | percentile 判据带分数 | 无量纲（0.2 低 / 0.1 高），带宽 = 分数 × \|median\| | rejection.cpp:1237（默认）/ :1817-1818 |
 | `alpha` | ESD 显著性水平 | 无量纲 0.05 | rejection.cpp:1236（默认） |
@@ -139,7 +139,7 @@ null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 
 ## 4 状态机与返回码（八态显式、互斥；reason 4 值正交）
 
-### 4.1 stack status（rejection.h:79-90；判据=本文档 §5）
+### 4.1 stack status（rejection.h:105-115；判据=本文档 §5）
 
 | status | 值 | 触发条件（精确） | 锚（rejection.cpp） | 冻结测试证据 |
 |---|---|---|---|---|

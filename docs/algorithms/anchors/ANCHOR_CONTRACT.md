@@ -25,7 +25,7 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须写 `docs/contracts/DATA_SEMANTICS.md §4a`，
 章节引用一律写全路径；`…#4a` 形态会被扫描器把章节号当行号判界内/判空行（GLOSSARY.md 曾有 12 处此类碰撞）。
 
-现行规模（C7 逐字复测）：**101 文档 / 1821 锚** = 1786 目标锚 + 9 登记豁免 + 26 未解析登记。
+现行规模（C7 逐字复测）：**111 文档 / 2098 锚** = 2066 目标锚 + 6 登记豁免 + 26 未解析登记。
 
 > C7 逐字复测本行：数字必须等于检查器实测（口径 = 检查器自己的扫描器；改锚后跑
 > `check_doc_line_anchors.py --print-scale` 取现行行替换，口径唯一 = 检查器自己的扫描器）。
@@ -131,7 +131,7 @@ C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须
 - `docs/science/REJECTION.md`：`rejection.h` 状态枚举三行 +1/+1/+2。
 - `docs/science/CALIBRATION.md`：`calibrator.cpp:84` → `:86`（文档原文即引述该 if）。
 - `docs/science/algorithms/NOISE_ESTIMATION.md`：`snr_estimator.h:107` → `:112`、
-  `default_config :312` → `:333`、`CMakeLists.txt:435-438` → `:490-493`、
+  `default_config :312` → `:333`、`CMakeLists.txt:435-437` → `:490-493`、
   `:513` → `:556`、`noise_model.cpp:179-200` → `:179-204`。
 - `docs/science/algorithms/CALIBRATION_ALGORITHMS.md` / `COSMETIC_ALGORITHMS.md`：
   `CMakeLists.txt:321-333` → `:373-380`（`astrocs_calibration` 目标）。

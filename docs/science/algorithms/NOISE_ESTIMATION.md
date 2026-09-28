@@ -134,12 +134,12 @@ snr_estimator CMake 目标，CMake 集成归 P1-NOISE-IMPL），
 dll_loader.cpp:41/55 加载名与路径吻合）。**噪声模型 A 为唯一生产模型**
 （`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`；公式正本 =
 `docs/science/NOISE_MODEL.md`），静态库
-`astrocs_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），CMakeLists.txt:767-770，经 `astrocs_phase1_session` PUBLIC 闭包链入主程序（CMakeLists.txt:876）；单测
+`astrocs_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），CMakeLists.txt:807-810，经 `astrocs_phase1_session` PUBLIC 闭包链入主程序（CMakeLists.txt:917-920）；单测
 eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注册）。
 
 | ALG | 符号 | 源锚 |
 |---|---|---|
-| ALG-NOISE-001 | `noise_model_impl`（模板 f32/f64 内核） | noise_model.cpp:347-621（参数校验 :363-371、`g_model_floor` 注册 :372、逐星半径掩膜+天空预算收缩 :383-481（MASK-002 / SCI §5a）、patch 网格循环 :505-528、全局兜底 :530-585、控制点数组 :586-621） |
+| ALG-NOISE-001 | `noise_model_impl`（模板 f32/f64 内核） | noise_model.cpp:783-1168（参数校验 :363-371、`g_model_floor` 注册 :372、逐星半径掩膜+天空预算收缩 :383-481（MASK-002 / SCI §5a）、patch 网格循环 :505-528、全局兜底 :530-585、控制点数组 :586-621） |
 | ALG-NOISE-001 | `snr_noise_model_v1` / `snr_noise_model_v1_f64`（C ABI 门面，extern "C" 异常屏障→rc 3） | noise_model.cpp:746-767 |
 | ALG-NOISE-001 | `snr_noise_model_v1_default_config` | noise_model.cpp:696-719（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12；**语义判据以 SCI 为准**：`r0·scale` = 60 px 是逐星半径的**硬上界**，另加 k=0.1 / r_min=1.5 px / fwhm_floor=0.75 / budget_patches=8 / budget_sky=9216 —— 见 `docs/science/NOISE_MODEL.md` §5a/§14.5） |
 | ALG-NOISE-001 | `robust_median` / `robust_sigma`（1.482602218505602·MAD）/ `collect_patch_sky`（掩膜+饱和过滤+5σ≤2 轮裁剪） | noise_model.cpp:100-110,113-120,131-171 |
@@ -158,7 +158,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 - `g_model_floor` 为 `std::unordered_map<const NoiseWeightModelV1*,double>`
   （noise_model.cpp:33），语义 = model 指针 key、无全局共享；容器与 key 类型
   以本节为准（§2 的 `std::map<void*,double>` 表述由本节覆盖）。
-- `min_patch_samples` 默认 **64**（snr_estimator.h:138、default_config :629），
+- `min_patch_samples` 默认 **64**（snr_estimator.h:142、default_config :629），
   patch 合格阈即 64；SCI-NOISE-001 §4 的冻结值即 64（N=5 时单 patch 偏差 −19.2%，
   与 SCI §11 冻结的 5% oracle 通过率不兼容）——本层**以 SCI 为准**。
 - 掩膜半径：**判据以 SCI 为准**（`docs/science/NOISE_MODEL.md` §5a）——
@@ -195,7 +195,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 |---|---|---|
 | DISP-NOISE-001 | `g_model_floor` 为进程级 unordered_map、以原始指针为 key：`_free` 后同址复用（ABA）可命中旧 floor 值；多线程并发 build/free 对该 map 无锁竞争（PHASE1_API_V1 §2 threadsafe=yes 以"model 对象隔离"为前提，本条即该前提的实现边界） | noise_model.cpp:33,372,903 |
 | DISP-NOISE-002 | **已闭合**：build 入口（`noise_model.cpp:369-371`）与 fill 入口（`:818`）用同一注册表与同一判据（非有限或 ≤0 ⇒ `SNR_FLOOR_UNBOUND(-10)`），两阶段不再有不同下界。**残留面**：build 侧 `max(vmed,floor)`/`max(sig²,floor)`/`max(patch_var,floor)` 的钳位次数只经 `snr_noise_model_v1_floor_clamp_count` 暴露，逐像素不可用像素数无独立计数键 | noise_model.cpp:369-371,546,581,605,818 |
-| DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/use_gain_model` 三字段在 noise_model_impl 中**零读取**：use_gain_model=1 无任何效果，gain 模型融合路径无实现（与 SCI §10 不融合禁令一致，但字段存在暗示可选路径，易误用） | snr_estimator.h:131-132,140；noise_model.cpp:347-362 |
+| DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/use_gain_model` 三字段在 noise_model_impl 中**零读取**：use_gain_model=1 无任何效果，gain 模型融合路径无实现（与 SCI §10 不融合禁令一致，但字段存在暗示可选路径，易误用） | snr_estimator.h:135-136,144；noise_model.cpp:347-362 |
 | DISP-NOISE-004 | 无取消检查点：noise_model_impl/fill_impl 均无 cancel 回调（§5c 为计划语义） | noise_model.cpp:347-621,776-866 |
 | DISP-NOISE-005 | `snr_noise_scale_law` 无参数校验：alpha=NaN/Inf/负值未拒绝，variance 无条件乘 α²（NaN 直传）；ivar 仅在 a2>0 且有限时更新——variance 与 ivar 在非法 alpha 下可失去互倒关系 | noise_model.cpp:919-926 |
 | DISP-NOISE-006 | `source_mask` 与 `star_x/y` 掩膜通道互斥：source_mask 非 NULL 时完全忽略 star 坐标（含 n_stars>0）；source_mask 长度不单独校验（信任 h·w 布局） | noise_model.cpp:383-481 |
@@ -275,7 +275,7 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 ### 13.5 边界登记（非生产）
 
 - 乘法 SNR 通道 `snr_estimate/snr_estimate_f64/snr_extract_model{,_v2,_v3}`
-  （snr_estimator.h:378-405,587-618）为诊断口径（头注释 :19-20）；
+  （snr_estimator.h:378-404,587-618）为诊断口径（头注释 :19-20）；
   不属 P1-NOISE 合同（SNR catalogue 语义归 P1-SNR/DRZ 侧），仅登记边界。
 - 迁移落点: `lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1`（matrix legacy_paths）→
   `astrocs_p1_noise.dll`（P1-NOISE-IMPL 建 C ABI adapter +

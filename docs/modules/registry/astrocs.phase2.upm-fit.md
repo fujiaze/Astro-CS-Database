@@ -114,7 +114,7 @@ production 默认单一来源=p2_session.cpp:183-199。
 ## 内存/cache/I-O/所有权
 
 内存 O(n_ctrl + n_frame·n_ctrl)（Model.C [frame][control]
-upm.cpp:74）；dense 物化上界=kChunk·kLeafPx·8 字节（:1389）。I/O=
+upm.cpp:75）；dense 物化上界=kChunk·kLeafPx·8 字节（:1389）。I/O=
 唯一 AIO aio_upm_write_sparse（:1005，ENG-IO-001 原子写）+
 aio_upm 读面；dense cache 同模型 hash/目标 order 校验（stale 拒
 绝）。所有权=调用方分配 model 与缓冲，p2_upm_close（:1559）唯一释

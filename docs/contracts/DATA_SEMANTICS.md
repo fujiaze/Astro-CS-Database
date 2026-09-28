@@ -658,7 +658,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 > 引用不改动）；编排级合同 API-P1-005（PHASE1_API_V1）。本节是该模块
 > 单位/dtype/shape/invalid 的唯一权威；descriptor 端口编目（psf→
 > DATA-P1-PSF/sources→DATA-P1-SOURCES/fluxes→DATA-P1-FLUX，
-> module_adapters.cpp:531-548）为编排层词汇，由 P1-PHOT-INT 对齐，
+> module_adapters.cpp:531-547）为编排层词汇，由 P1-PHOT-INT 对齐，
 > 冻结依据只取上游权威文档。
 
 
@@ -869,20 +869,20 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 - API-P1-001 冻结 7-stage 序列与现状 4 段（CAL+COS）的差距在
   lib/phase1_session/README.md §3 如实声明；补齐归 P1-SESSION-IMPL。
 - assembly 层的 IMPLEMENTED 只由证据签发；descriptor 端口编目
-  （module_adapters.cpp:317-606）与本节冲突时以本节+各冻结 DATA 节为准。
+  （module_adapters.cpp:318-606）与本节冲突时以本节+各冻结 DATA 节为准。
 
 ## 17. Phase1 star-detection 模块输入/输出数据（DATA-P1-STAR）
 
 > ID: DATA-P1-STAR  状态: CONTRACT_READY
 > 模块: lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1（astrocs.p1.star_detection，迁移目标
 > astrocs_p1_star_detection.dll；现行实现唯一生产源
-> lib/algorithms/star_detection/src/sdet_api.cpp:1599-2353 生产核心 sdet_detect_impl，
+> lib/algorithms/star_detection/src/sdet_api.cpp:1570-1943 生产核心 sdet_detect_impl，
 > 合同头 lib/algorithms/star_detection/include/star_detector.h:1-73）。ALG:
 > ALG-STARDET-001（STAR_DETECTION_ALGORITHMS §11 逐符号锚）；SCI:
 > SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
 > 引用不改动）；编排级合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威
 > 检测，PLATESOLVE 禁重检测）。本节是该模块单位/dtype/shape/invalid 的唯一
-> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-509）为
+> 权威；descriptor astrocs.phase1.star-psf（module_adapters.cpp:492-508）为
 > 编排层词汇，由 P1-PSF-INT 对齐；冻结依据只取上游权威文档。
 
 ### 17.1 输入（生产通道 sdet_detect_ex / sdet_detect_ex_f64，orchestrator.cpp:2172-2196）
@@ -891,9 +891,9 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 |---|---|---|---|
 | image | uint16（FP32 通道，float→uint16 clamp [0,65535] 转换，orchestrator.cpp:2179-2187，DISP-STAR-001）/ double（FP64 通道全程不降级，PREC-105 同族）`[h·w]` 行主序 0-based | ADU | NULL / h≤0 / w≤0 → rc=−1（sdet_api.cpp:1612、:2325、:2340） |
 | handle（sdet_create 预建，orchestrator.cpp:1556-1575 参数构造） | StarDetectorHandle | — | NULL → −1；句柄级互斥使用（PHASE1_API_V1 §2 表行 handle 级 no/no）；SDetParams 9 字段生产消费面缺口=DISP-STAR-003（ALG-STARDET-001 §11.1/§11.3） |
-| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2176、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:782-802），不识别名该列全 0 |
+| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2176、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:896-907），不识别名该列全 0 |
 
-### 17.2 输出（malloc 10 数组，唯一释放入口 sdet_free_detect_ex，sdet_api.cpp:2357-2372）
+### 17.2 输出（malloc 10 数组，唯一释放入口 sdet_free_detect_ex，sdet_api.cpp:2271-2287）
 
 | 数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
@@ -1530,7 +1530,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 | support | const f64* `[count]` | 无量纲 [0,1]（仅资格门禁作科学权重语义门，不进统计；§20.3 红线镜像） | 可空=不检查（core :1192-1198） | — |
 | quality | const u32* `[count]` | 位集（现状 control 级数据模型，stage2 传 nullptr 并记录，:236-237） | 可空=不检查 | — |
 | count | u32 标量 | 无量纲 | — | — |
-| support_threshold | f64 标量 | 无量纲 | — | 严格大于语义（rejection.h:206；core :1108/:1192-1198） |
+| support_threshold | f64 标量 | 无量纲 | — | 严格大于语义（rejection.h:207；core :1108/:1192-1198） |
 | quality_flags_required | u32 标量 | 位集 | — | 0=不要求 quality（:207；core :1199-1203） |
 
 连续版入口 `p2_eligibility_filter` 声明 rejection.h:222（compat 路径
@@ -1854,7 +1854,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 - 同文档: §20（编排域 stage2 编排消费 sccfg 透传）、§21（下游
   积分）、§22（rejection 域先行例）。
 - 端口词汇注记: registry descriptor p2_sample_descriptor
-  （module_adapters.cpp:642-654，module_id=astrocs.phase2.sample
+  （module_adapters.cpp:642-653，module_id=astrocs.phase2.sample
   占位）端口表 coverage→samples 为编排层词汇，由 P2-XX-INT 对齐
   astrocs.p2.sampling；冻结依据只取上游权威文档。
 
@@ -2275,14 +2275,14 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 > ID: DATA-P2-COR  状态: CONTRACT_READY
 > 模块: lib/algorithms/coverage/src/upm.cpp（2981 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/upm.h（449 行，calibrate/evaluate/
-> dense_read 面 =upm.h:112-123/:164-172）（astrocs.p2.upm-apply；
+> dense_read 面 =upm.h:112-122/:164-172）（astrocs.p2.upm-apply；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移
 > 目标 astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL
 > 建立，IMPLEMENTED 只由验收签发）。本节是 Phase2 UPM apply（逐帧校正）
 > in/out 单位/dtype/shape/invalid 的唯一权威；SCI 上游: SCI-UPM-001
 > §5 连续定义（calibrated_f(p) = raw_f(p) − C_f(p)，FROZEN，零改动）；
 > ALG: ALG-P2-UPM-IMPL-001；API 面: API-P2-UPM-001；descriptor 占位
-> module_id=astrocs.phase2.upm-apply（module_adapters.cpp:680-696）
+> module_id=astrocs.phase2.upm-apply（module_adapters.cpp:681-696）
 > 由 P2-XX-INT 对齐。
 
 ### 26.1 输入
@@ -2345,7 +2345,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 同文档: §23（观测上游）、§25（模型/持久化权威）、§24（会话域
   禁回退/取消语义同构）。
 - 端口词汇注记: registry descriptor p2_upm_apply_descriptor
-  （module_adapters.cpp:680-696，module_id=astrocs.phase2.upm-apply
+  （module_adapters.cpp:681-696，module_id=astrocs.phase2.upm-apply
   占位）端口表 upm_model→calibrated_frames→corrected 为编排层词汇
   （DISP-P2UPM-004 占位语义），由 P2-XX-INT 对齐
   astrocs.p2.upm-apply；冻结依据只取上游权威文档。
@@ -2452,7 +2452,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > ALG: ALG-P3-003（G3/G4 施工规格，PHASE3_RESAMPLE.md，公式零改动）
 > + ALG-P3-RSMP-IMPL-001（docs/science/algorithms/PHASE3_RSMP_IMPL.md 实现
 > 级合同）；API 面: API-P3-RSMP-001；descriptor 占位
-> module_id=astrocs.phase3.resample2（module_adapters.cpp:425-438
+> module_id=astrocs.phase3.resample2（module_adapters.cpp:425-437
 > p3_resample2_descriptor）由 P3-RSMP-INT 对齐 astrocs.p3.resample。
 
 ### 29.1 输入
@@ -2528,7 +2528,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   上游）、§28（WCS 域，输出平面几何上游）、§30.7（DATA-P3-REJ-001，
   本域输出面的**强制剔除计数**诊断平面承载面冻结）。
 - 端口词汇注记: registry descriptor p3_resample2_descriptor
-  （module_adapters.cpp:425-438，module_id=astrocs.phase3.resample2
+  （module_adapters.cpp:425-437，module_id=astrocs.phase3.resample2
   占位）端口表 wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+
   resampled(DATA-P3-RES 可) 为编排层词汇，由 P3-RSMP-INT 对齐
   astrocs.p3.resample；冻结依据只取上游权威文档。

@@ -171,14 +171,6 @@
   ],
   "exemptions": [
     {
-      "doc": "docs/science/algorithms/PHASE2_SAMPLER.md",
-      "raw": "ledger.md:250",
-      "kind": "HISTORICAL_RUN_ARTIFACT",
-      "reason": "指向 bughunt 运行账本 run/local/bughunt/ledger.md（R3-A），属 run/ 运行产物（gitignore），非仓库源码锚",
-      "owner": "P2-SAMP-IMPL",
-      "evidence": "docs/science/algorithms/PHASE2_SAMPLER.md:391"
-    },
-    {
       "doc": "docs/science/INTEGRATION.md",
       "raw": "lib/algorithms/coverage/src/integrate.cpp:10-79",
       "kind": "FROZEN_SCI_CLAIM",

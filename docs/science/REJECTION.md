@@ -156,7 +156,7 @@ large_scale 结构生长:
 | 全拒 | `ALL_REJECTED` | `rejection.cpp:2213-2215` |
 | 无候选（`count==0`） | `MIN_SAMPLES`（值 1；本层八态无 `NO_CANDIDATES`——该名属积分域 `P2IntegrateStatus`） | `rejection.cpp:2038` |
 | 配置非法 (method/profile) | `INVALID_CONFIGURATION/INVALID_METHOD` | `rejection.h:113-114`；`rejection.cpp:2020-2033/:2056-2075` |
-| 大结构 vs 紧凑 | trail 扩张，compact 不生长 | `rejection.cpp:2342-2440` |
+| 大结构 vs 紧凑 | trail 扩张，compact 不生长 | `rejection.cpp:2342-2439` |
 
 ### 8a percentile 判据的适用域：阈值是天光电平的固定分数，不是噪声尺度
 
