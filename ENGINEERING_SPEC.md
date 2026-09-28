@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 工程规范（Engineering Specification）
 
----
+> 上游：docs/ASTROCS_DESIGN.md §0.1（唯一权威链）、§7（目录与根条目登记面）
 
 ## 1. 语言、编译器与平台
 
@@ -11,20 +11,20 @@
 
 ---
 
-## 2. 代码风格与历史实现处置
+## 2. 代码风格与实现的现行处置规则
 
 - 遵循 `.clang-format` 与 `.editorconfig`；CI 检查格式；
 - 文件编码 UTF-8；行尾统一（Windows 仓库 CRLF 治理见 .gitattributes）；
 - 命名：模块/函数/变量按现有 `lib/` 惯例，不混用多种风格；
 - 注释只写：单位、数学原因、前后置条件、所有权、线程安全、生命周期、边界条件、非显然决定。
 
-**历史实现处置（二选一，没有第三种状态）**：
+**实现处置（二选一，没有第三种状态）**：
 
 1. **直接删除**：被新实现取代、不在生产路径、无保留价值的代码，连同引用点一起删干净；
 2. **保留则注释**：确有参考价值需暂时保留的（如等待接线的实现、隔离实验），在代码上方用统一注释块写明：它是什么、为什么保留、现状（未接入生产/仅供什么实验）、什么条件下删除或接入、权威依据条款。
 
 - 无注释的死代码、被注释掉的旧逻辑、标注了废弃但没有原因与去向的代码，视为缺陷；
-- 注释与正式文档只描述现行设计与当前状态；变更过程沉淀在控制包报告与 git 历史中。
+- 注释与正式文档只描述现行设计与当前状态；变更过程的留痕位置不在正式文档内。
 
 ---
 
@@ -32,7 +32,7 @@
 
 - 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差以 `docs/science/**`、`docs/science/algorithms/**` 为准，改动走变更流程；
 - **科学正确性优先**：独立证据（外部标准、文献、可复现实验）证明文档与事实不符时，订正文档是义务，记录证据、影响面并做一致性回归；文档正确而实现不符时改实现；
-- 架构重构与科学语义订正分开提交；架构迁移保持数值等价（顺序变化时先冻结容差并登记）；
+- 架构改动与科学语义改动分开提交；保持数值等价，顺序变化时先冻结容差并登记于合同；
 - 模块按声明精度与公式执行，计算结果与 CPU 型号无关；`cpu_profile` 只影响并行/ISA；
 - 数据对象按 `docs/design/UNIFIED_MODEL.md` 区分，一个字段只承载一个含义。
 
@@ -130,14 +130,14 @@ eng/packaging/config/（程序全局配置：filters.json / defaults.json）
 docs/contracts/（合同的文档化说明，与 eng/contracts 的 schema 双向对应）
 实验/（科学实验单元：photometric-magnitude / absolute-snr / additive-sky-seamless + shared，随仓库维护）
 工程控制/（控制包工作区，收口后按 CONTROL_PACK_SPEC §9 清理）
-artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与机器门基线/台账 artifacts/evidence/**；实测类证据留档 实验/engineering-evidence/**）
-独立审计/（独立审计交付件：审查报告与随包取证成稿、批次清单、复算件与取证脚本；只读参照件，不被代码消费、不被构建与门禁当作仓库判据输入，条目见该目录 00_总目录.md）
-run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 的运行日志不互替（最高设计 §10）；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
+artifacts/（证据与产物；内容由对应过程域承载，正文只登记目录与其准入判据；实测类证据留档 实验/engineering-evidence/**）
+独立审计/（独立审计交付件；只读参照件，不被代码消费、不被构建与门禁当作仓库判据输入）
+run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 的运行日志不互替（最高设计 §10））
 ```
 
 - 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记、经负责人核准后生效；
 - **根 `VERSION` 是固定条目**（产品版本唯一事实源，最高设计 §13）：它无扩展名，故以本条文字登记；机器登记见 `eng/ci/root_manifest.json` 的 `registered_local_retention` 段（该段是登记面，不是白名单放宽）；
-- `eng/build/toolchain.ps1` 是**现役固定条目**（Windows 侧构建/自检脚本），不是遗留待清理对象；其依赖面只允许仓内 vendored 依赖与系统工具链（见 `eng/packaging/dependency-lock.json` 的 `msys2_mingw: FORBIDDEN` 与 `machine_absolute_path: FORBIDDEN`）；
+- `eng/build/toolchain.ps1` 是**现役固定条目**（Windows 侧构建/自检脚本）；其依赖面只允许仓内 vendored 依赖与系统工具链（见 `eng/packaging/dependency-lock.json` 的 `msys2_mingw: FORBIDDEN` 与 `machine_absolute_path: FORBIDDEN`）；
 - **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，`hips_tile_format` 取标准词表值（词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
@@ -153,15 +153,14 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 
 - **根文档**：docs/ASTROCS_DESIGN（最高设计）、AGENTS、ENGINEERING_SPEC、CONTROL_PACK_SPEC、ACCEPTANCE_SPEC；
 - **docs/**：science（公式权威）、algorithms（推导权威）、plugins（模块工作细节）、design（数据对象与设计）、architecture、interfaces、standards、modules、contracts、development、validation、ci、research、references、api；
-- `docs/DOCUMENT_INDEX.yaml` 是唯一索引地图。
+- **索引地图**：`docs/DOCUMENT_INDEX.yaml` 是全文档集的唯一索引地图；目录招牌件（各目录 `README.md`）按"每目录必有 README"治理，登记于目录本身而不入规范索引段。
 
-规则：
+本节是文档索引与登记规则的**唯一正本**；文档体系的分层准入、上游抬头、正向书写与科学佐证条款的唯一正本 = `docs/DOCUMENT_GOVERNANCE.md`。
 
-1. **双向索引**：最高设计每节末尾指向对应下级文档；每份下级文档抬头标注上游最高设计条款；
-2. **只写现行设计**：正式文档写"要怎样"，不写已撤销设计、不写历史叙事、不堆任务编号与日期；
-3. **细节各归其层**：公式与数值在 science/algorithms，模块细节在 plugins，顶层文档只放结论与索引；
-4. **悬空即缺陷**：索引指向的文件/章节必须存在，文档引用的代码路径必须真实，CI 检查悬空引用；
-5. 代码改动改变行为时，同一提交内更新对应文档与索引。
+- **双向索引**：最高设计每节末尾指向对应下级文档；每份下级文档抬头标注上游最高设计条款；
+- **悬空即缺陷**：索引指向的文件/章节必须存在，文档引用的代码路径必须真实；跨域未修项登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增；
+- 代码改动改变行为时，同一提交内更新对应文档与索引；
+- 机器检查项：`DOC-INDEX`（索引闭合）、`DOC-INDEX-SELFTEST`（可执行正/负例面）、`CHK-DOC-HYGIENE`（写作规则与过程痕迹）、`CHK-DANGLING`（悬空引用），注册面 = `eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md` §2。
 
 ---
 
@@ -182,8 +181,9 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - **fail-closed**：检查器在输入缺失、路径不存在、依赖不可用时判红；"文件不存在"按"无违规"通过视为假绿；
 - **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时报 `ANCHOR_STALE`；
 - **注册表双向一致**：`eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐；
+- **悬空引用台账**：跨域未修的悬空引用登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增；台账缺失或不可解析按 fail-closed 判红；
 - 修改代码/测试后本地复跑对应检查项；
-- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、历史代码处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）、**交付共享对象符号闭包**（`CHK-PLUGIN-SYMBOL-CLOSURE`：产品清单登记的每个 plugin .so 的强未定义符号可在 DT_NEEDED 闭包内解析、DT_NEEDED 可解析、`dlopen(RTLD_NOW)` 成功，含正例与负例注入）。
+- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、实现处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）、**交付共享对象符号闭包**（`CHK-PLUGIN-SYMBOL-CLOSURE`：产品清单登记的每个 plugin .so 的强未定义符号可在 DT_NEEDED 闭包内解析、DT_NEEDED 可解析、`dlopen(RTLD_NOW)` 成功，含正例与负例注入）。
 
 ---
 
@@ -246,24 +246,24 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 
 ## 15. 命名：显示名与机器契约保留面
 
-**显示名（唯一）**：`ACSD`，全称 `Astro Celestial Sphere Database`。正文、文档、UI、注释、报告与提交消息一律使用显示名；历史名 `AstroCS` 只允许出现在本节定义的机器契约保留面内（本节为写清判定规则而逐字给出该历史名）。
+**显示名（唯一）**：`ACSD`，全称 `Astro Celestial Sphere Database`。正文、文档、UI、注释、报告与提交消息一律使用显示名；`AstroCS` 字面量族只允许出现在本节定义的机器契约保留面内（本节为写清判定规则而逐字给出该族字面量）。
 
-**判定规则（一句话，能判任何一处该不该改）**：把该处的历史名 `AstroCS` 换成显示名 `ACSD`，**看是否有任何机器会因此失配或指向不存在的对象**——编译器/链接器（include、符号）、`git`（忽略模式）、CMake（target/变量）、schema 与合同校验（键、ID、字面量）、CI 匹配（workflow 名、artifact 名、路径）、测试断言、台账与文档锚。**会 ⇒ 它是机器契约，原样保留；不会 ⇒ 它是显示名，必须写成 `ACSD`。没有第三种状态。**
+**判定规则（一句话，能判任何一处该不该改）**：把该处的 `AstroCS` 族字面量换成显示名 `ACSD`，**看是否有任何机器会因此失配或指向不存在的对象**——编译器/链接器（include、符号）、`git`（忽略模式）、CMake（target/变量）、schema 与合同校验（键、ID、字面量）、CI 匹配（workflow 名、artifact 名、路径）、测试断言、台账与文档锚。**会 ⇒ 它是机器契约，原样保留；不会 ⇒ 它是显示名，必须写成 `ACSD`。没有第三种状态。**
 
-**机器契约保留面（按类枚举，一律不改；改名会打断锚、schema、include 与产物兼容）**：
+**机器契约保留面（按类枚举；这些字面量被机器按字面读取，改动即打断锚、schema、include 与产物兼容）**：
 
 | # | 类 | 保留面 | 改名的机器后果 |
 |---|---|---|---|
 | 1 | C/C++ include 与符号 | 公共头目录 `astrocs/`、`#include <astrocs/…>`、`namespace astrocs`、`astrocs::`、`astrocs_*.dll/.so/.a` | 编译/链接面直接断链 |
 | 2 | 合同 / 注册表 / 模块 ID | schema 注解键 `x-astrocs*`；点分、连字符与斜杠 ID：`astrocs.*`、`MOD-astrocs-*`、`astrocs-*`、`astrocs/<x>/vN`；`astrocs*` 台账 schema id | schema 锚、注册表与产品清单按字面匹配，改名即断链 |
-| 3 | 环境变量 / CMake 选项 / 根文档名 | `ASTROCS_*`、`docs/ASTROCS_DESIGN.md`，及历史轮次 ID `ASTROCS-*` | 构建入口按字面读取；根文档名是全仓行号锚的宿主 |
+| 3 | 环境变量 / CMake 选项 / 根文档名 | `ASTROCS_*`、`docs/ASTROCS_DESIGN.md`，及轮次 ID 面 `ASTROCS-*` | 构建入口按字面读取；根文档名是全仓行号锚的宿主 |
 | 4 | 可执行 / target / CLI 名 | `astrocs`、`astrocs.exe`、`astrocs-cli`、CI artifact 前缀 `astrocs-windows-candidate-` | 构建 target、CI 选择器与单测断言 | 
 | 5 | CI workflow 名 | `AstroCS Linux CI` / `AstroCS Windows CI` / `AstroCS Fatduck Validation` | `workflow_run.workflows` 与 CI 选择器按名精确匹配 |
 | 6 | CI 候选产物成员名 | `AstroCS-candidate.zip` 及其落盘路径 | 常量、`require_outputs`、工作流绑定与单测 |
 | 7 | 冻结的宿主路径 | `C:/AstroCS/toolchains/…`、`D:\AstroCSRunner\…` | preset 与依赖锁冻结的安装位；SBOM 白名单正则与工作流逐字断言 |
 | 8 | 注册目录名与发布/审核产物名 | 根目录名 `AstroCS.wiki/`；`dist/AstroCS-CLI-v1/…`、`AstroCS-<根 VERSION>-win-x64/`、`AstroCS-audit-*` | `git` 忽略模式、根清单登记、安装树合同与生成器常量 |
 | 9 | 对外协议标识 | HTTP `User-Agent` product token（形如 `AstroCS-BASS-Index/1.0`） | 对外声明的客户端身份；改名是对外行为改变，不属命名统一的范围 |
-| 10 | 封存证据与只读数据登记面 | `artifacts/evidence/**`（证据锚，含对历史文件名与历史标题的逐字引用）、`testdata/**`（§7 只读登记目录，其 `README.md` 规定目录内含数据按只读处理） | 证据锚指向的对象一经封存即保持原样；只读目录的处置属发布权范畴 |
+| 10 | 封存证据与只读数据登记面 | `artifacts/evidence/**`（证据锚，按封存时的文件名与标题逐字引用）、`testdata/**`（§7 只读登记目录，其 `README.md` 规定目录内含数据按只读处理） | 证据锚指向的对象一经封存即保持原样；只读目录的处置属发布权范畴 |
 
 **唯一源与机器门**：
 

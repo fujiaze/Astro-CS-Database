@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） CI 规范（CI Specification）
 
-> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+> 上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）
 
 ---
 
@@ -26,6 +26,8 @@ flowchart LR
 ---
 
 ## 2. 触发与范围
+
+本节是 scope 语义（取值范围、选择规则、fail-closed 三条、超时预算）的**唯一正本**；其它文档只写"什么事件跑哪个范围"与指向本节的指针。
 
 ### 2.1 三种范围（唯一口径）
 
@@ -91,14 +93,14 @@ flowchart LR
 | 档 | 触发 | 内容 | 目标墙钟 |
 |---|---|---|---|
 | `fast`（默认） | 每次本地 / agent 运行 | 秒级一致性门：静态 / 文档 / 合同 / 治理 / 轻量单测 | ≤120 s |
-| **`integration`** | **提交前必跑（手动）** | 真起子进程 / 真跑 CLI 的集成型用例：FIX208 事件流与磁盘门、资源门正负例、`eng/tests/runtime/integration/**` | ≤300 s |
+| **`integration`** | **提交前必跑（手动）** | 真起子进程 / 真跑 CLI 的集成型用例：事件流与磁盘门（`CHK-FIX208-EVENT-STREAM-DEFAULT` / `CHK-FIX208-DISK-GATE`）、资源门正负例、`eng/tests/runtime/integration/**` | ≤300 s |
 | `linux-main` | 合入前 / 手动 | 全量 C++ 构建 + 全量 ctest + integration 档全部内容 | 分钟级 |
 | `windows-main` | 手动 / CI | Windows 构建 + 测试 | 分钟级 |
 | `linux-deep` / `prerelease` | 负责人手动、一次性 | sanitizer / coverage / 真实数据 E2E / L2 性能 / nwoker / invariant；带输入指纹缓存 | 小时级 |
 
 - **代价必须显式**：`fast` 变快靠的是把"真起子进程 / 真跑 CLI / 真实测量窗"的步骤**移出 fast**，
   **不是靠放宽判据、也不是靠 skip**。因此：
-  - **提交前必须跑 `integration` 档**，否则 FIX208 事件流与磁盘门、资源门（正负例）、runtime 集成用例无人跑；
+  - **提交前必须跑 `integration` 档**，否则事件流与磁盘门（`CHK-FIX208-EVENT-STREAM-DEFAULT` / `CHK-FIX208-DISK-GATE`）、资源门（正负例）、runtime 集成用例无人跑；
   - `fast` 档汇总行必须打印 `integration_not_run` 提示，结果 JSON 带同名字段（机器可读），
     "提交可合"的判据 = `integration` 档全绿；
   - 集成型用例以**目录归属**（`eng/tests/runtime/integration/**`，非包目录、`unittest discover` 不递归）
@@ -185,7 +187,7 @@ flowchart TD
 ## 9. 监控字段语义与 L2 冻结判据裁决面（fail-closed）
 
 > 上游：ENGINEERING_SPEC.md §10（fail-closed）、§12（资源与性能）；数值源
-> eng/contracts/resource_gate_v1.json。本节是 RELEASE-04 D-10 / D-12 的落地口径。
+> eng/contracts/resource_gate_v1.json。本节是监控字段语义与 L2 冻结判据的唯一正本。
 
 ### 9.1 requires_monitor（**真强制**，不改名）
 
@@ -220,8 +222,8 @@ flowchart TD
   `not_applicable`（非豁免）。
 - 分母（已分配容量）未声明：L2 验收证据按红（`l2_denominator_undeclared`）；
   常规监控证据按契约 `denominator.zero_denominator_effect` 记入 recorded。
-- 历史证据回放：`L2-FROZEN-GATE-REPLAY` 断言 RELEASE-04 归档的 9 份
-  `frozen_gate.verdict=pass` 违规证据现在必须判红（D-10 恒真门已堵）。
+- 门禁回放判据：已归档周期内 `frozen_gate.verdict=pass` 的违规证据必须判红
+  （回放输入取自 `实验/engineering-evidence/l2_performance/gates/`；机器门 `L2-FROZEN-GATE-REPLAY`）。
 
 ### 9.3 mutates_workspace（**真强制**，不改名）
 
@@ -243,8 +245,8 @@ flowchart TD
 | B 坏证据 | `requires_monitor: true` | `FAIL(monitor_gate_missing)`（注入违反 §9.2 的证据） |
 | C 无输出 | `outputs` 为空且非 waivable | `FAIL(empty_outputs)` |
 
-普查表落 `实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md`（机器可读面
-`run/ci/failclosed-survey/survey.json`）；适用面判绿即假绿风险，检查判红。
+普查表落 `实验/engineering-evidence/`（机器可读面由检查器现场产出，落点按
+`ENGINEERING_SPEC.md` §7 的运行产物规则）；适用面判绿即假绿风险，检查判红。
 显式登记豁免（`SILENT_OK_UNITS`：`API-DOCS`、`UNIT-CLOSURE`）
 在表中标注来源，不冒充已覆盖。
 
