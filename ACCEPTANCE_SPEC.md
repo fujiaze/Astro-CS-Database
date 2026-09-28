@@ -22,7 +22,7 @@ flowchart TB
 | L3 | 可行性 + 科学性 + 性能 | testdata 小批量真实帧 | 机器 + agent 抽检 |
 | L4 | 视觉正确性 + 发布决策 | testdata 的 M42、Galaxy Center 全量（本版仅 R 通道） | agent 初审 + 负责人目检 |
 
-每层验收由 agent 先行自修到位后提交，提交时附完整证据（日志、产品、报告落 `artifacts/acceptance/<layer>/`，实验单元落 `实验/`）；机器层全绿是提交上一层的前提。
+每层验收由 agent 先行自修到位后提交，提交时附完整证据（日志、产品、报告落 `artifacts/acceptance/<layer>/`，性能实测读数留档 `实验/engineering-evidence/l2_performance/`，实验单元落 `实验/`）；机器层全绿是提交上一层的前提。
 
 ---
 
@@ -249,7 +249,7 @@ flowchart LR
 | 项 | 落位 | 内容 |
 |---|---|---|
 | 创新点实验 | `实验/SCI-A`、`SCI-B`、`SCI-C` | 报告、code、results、data、审稿记录 |
-| 分层证据 | `artifacts/acceptance/l1_science/`、`l2_performance/`、`l3_small_batch/`、`l4_visual/` | 日志、产品、Oracle 结果、资源时序、PNG 与脚本 |
+| 分层证据 | `artifacts/acceptance/`（L2/L3/L4 层状态）；性能实测读数 `实验/engineering-evidence/l2_performance/` | 日志、产品、Oracle 结果、资源时序、PNG 与脚本 |
 | 验收报告 | `artifacts/acceptance/ACCEPTANCE_REPORT.md` | 四层逐项结论（通过/不通过 + 证据链接）、已知问题清单、运行环境（CPU/OS/构建哈希） |
 | 性能基线 | 安装目录（benchmark 产物） | L2/L3 扩展曲线与内存曲线，供后续版本自动对比 |
 
