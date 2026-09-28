@@ -23,7 +23,7 @@
       "registration_check_id": "CHK-DOCS-MACHINE-CONSISTENCY",
       "recorded_in": [
         {
-          "path": "artifacts/evidence/v19r7-quality/audit_stats.json",
+          "path": "实验/engineering-evidence/v19r7-quality/audit_stats.json",
           "pointer": "/before/machine_consistency",
           "keys": {
             "checks": "checks"

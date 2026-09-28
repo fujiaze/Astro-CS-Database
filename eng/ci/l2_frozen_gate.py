@@ -6,7 +6,7 @@
   L2 性能门的四条冻结判据（平均利用率 / p50 / 达标样本占比 / 无低利用窗）
   在 eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate 里以
   enforcement=record_and_justify 落地：违规只写进 recorded，**不改变 verdict**。
-  后果：artifacts/acceptance/l2_performance/gates/*_gate.json 里四条判据全部
+  后果：实验/engineering-evidence/l2_performance/gates/*_gate.json 里四条判据全部
   违规（平均 0.245<0.85、p50 0.039<0.90、达标占比 0.069<0.70、连续 142.0s
   低利用窗）而 frozen_gate.verdict="pass" —— 恒真门（AGENTS.md §9「恒真门
   没有证据资格」、§6「不用 waiver 盖红灯」）。

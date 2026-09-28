@@ -18,7 +18,7 @@
 用法（供 run_checks.py 导入；也可单独复跑取证据）
   python3 eng/ci/incremental.py change-set --base HEAD
   python3 eng/ci/incremental.py affected-targets --build-dir build lib/algorithms/coverage/src/sampler.cpp
-  python3 eng/ci/incremental.py fingerprint --archive artifacts/acceptance/l2_performance \\
+  python3 eng/ci/incremental.py fingerprint --archive 实验/engineering-evidence/l2_performance \\
       --commit "$(git rev-parse HEAD)" --config eng/contracts/resource_gate_v1.json \\
       --data testdata/BASS_DR3 --workers 16
 """

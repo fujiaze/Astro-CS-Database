@@ -1929,7 +1929,7 @@
         "eng/ci/exemptions.json",
         "docs/ASTROCS_DESIGN.md",
         "artifacts/evidence/truthful-conclusion-01/**",
-        "artifacts/evidence/v19r7-quality/**"
+        "实验/engineering-evidence/v19r7-quality/**"
       ],
       "requires_monitor": false,
       "steps": [
@@ -1965,7 +1965,7 @@
             "eng/ci/exemptions.json",
             "docs/ASTROCS_DESIGN.md",
             "artifacts/evidence/truthful-conclusion-01/**",
-            "artifacts/evidence/v19r7-quality/**"
+            "实验/engineering-evidence/v19r7-quality/**"
           ],
           "requires_monitor": false
         },
@@ -2623,7 +2623,7 @@
         "worker_balance.csv"
       ],
       "dirty_ignore_prefixes": [
-        "artifacts/evidence/prerelease-v5/"
+        "实验/engineering-evidence/prerelease-v5/"
       ],
       "steps": [
         {
@@ -2716,7 +2716,7 @@
           ],
           "requires_monitor": false,
           "dirty_ignore_prefixes": [
-            "artifacts/evidence/prerelease-v5/"
+            "实验/engineering-evidence/prerelease-v5/"
           ]
         },
         {
@@ -10538,7 +10538,7 @@
       "changed_paths": [
         "eng/ci/**",
         "eng/contracts/resource_gate_v1.json",
-        "artifacts/acceptance/l2_performance/**",
+        "实验/engineering-evidence/l2_performance/**",
         "docs/ci/**"
       ],
       "requires_monitor": false
@@ -10590,7 +10590,7 @@
       "waivable": false,
       "changed_paths": [
         "eng/ci/**",
-        "artifacts/acceptance/l2_performance/**",
+        "实验/engineering-evidence/l2_performance/**",
         "docs/ci/**"
       ],
       "requires_monitor": false
