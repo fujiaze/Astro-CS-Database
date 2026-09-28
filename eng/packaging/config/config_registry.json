@@ -2230,5 +2230,74 @@
     ],
     "rule": "这些字段的 source 括号文本是「段号 + claim」式转述，不在被引行逐字出现（被引行内容本身语义正确）。清单只减不增：新增 paraphrase 必须改为逐字 hint 或在此显式登记（ENGINEERING_SPEC §8 豁免只减不增）。",
     "owner": "noise.* 两行的掩膜语义整改正在重写 noise.* 与 NOISE_MODEL.md；本登记只记录豁免不代改。"
+  },
+  "orchestration_params": {
+    "status": "REGISTERED",
+    "scope": "编排参数受控化（DYN-740 / R-27）：tile span / sub_block_px / queue_depth 类常数的归属登记。",
+    "source_of_truth": "eng/packaging/config/runtime_resources.json#orchestration_params（唯一数值源；本册按 no_second_source 只登记归属/语义/单位/来源，不复制数值）",
+    "consumer_chain": "CMakeLists.txt（string(JSON ...) 取键 → configure_file）→ build/runtime_resources_generated.h → lib/infrastructure/scheduler/src/module_adapters.cpp（using 声明，实现侧零字面量）",
+    "owner_class": "resource_binding",
+    "authority": [
+      "docs/contracts/SCHEDULER_CONTRACT.md §3（线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定）",
+      "docs/standards/CONCURRENCY_STANDARD.md 默认节（线程数：外部可配置，默认 min(可用核, 配置上限)；取值来源 = 配置）"
+    ],
+    "keys": [
+      {
+        "key": "p2_tile_leaf_span",
+        "unit": "leaf 数（无量纲计数）",
+        "semantics": "P2 tile 内 leaf 数 = (2^p2_tile_shift)^2；同时是 P2 产品格式不变量（产品 manifest tile_leaf_span 逐位比对）",
+        "guard": "生成头 static_assert: span == (2^shift)^2",
+        "consumers": [
+          "lib/infrastructure/scheduler/src/module_adapters.cpp（p2 全链路缓冲/循环界/产品字段）"
+        ]
+      },
+      {
+        "key": "p2_tile_shift",
+        "unit": "阶（整数）",
+        "semantics": "leaf order − tile order 差（512 = 2^9）",
+        "guard": "与 span 成对锁定",
+        "consumers": [
+          "同上"
+        ]
+      },
+      {
+        "key": "p3_default_sub_block_px",
+        "unit": "像素（边长）",
+        "semantics": "P3 位置写子块缺省边长；在途内存上界 = 2·queue_depth·sb²·8 B",
+        "guard": "生成头 static_assert: min <= default <= max",
+        "consumers": [
+          "module_adapters.cpp（p3n_sub_block_px 缺省值与 3 处 sb 取值）"
+        ]
+      },
+      {
+        "key": "p3_min_sub_block_px",
+        "unit": "像素",
+        "semantics": "值域下界（fail-closed）",
+        "guard": "static_assert >= 1",
+        "consumers": [
+          "module_adapters.cpp p3n_sub_block_px"
+        ]
+      },
+      {
+        "key": "p3_max_sub_block_px",
+        "unit": "像素",
+        "semantics": "值域上界（fail-closed）",
+        "guard": "static_assert >= default",
+        "consumers": [
+          "module_adapters.cpp p3n_sub_block_px"
+        ]
+      },
+      {
+        "key": "p3_default_queue_depth",
+        "unit": "子块（队列长度）",
+        "semantics": "P3 子块写队列缺省深度",
+        "guard": "static_assert >= 1",
+        "consumers": [
+          "module_adapters.cpp p3n_sub_block_px / 队列构造"
+        ]
+      }
+    ],
+    "gate": "实现侧零字面量（grep 扫描 module_adapters.cpp）+ 生成头 static_assert 守卫（能红能绿，证据 run/FINAL-07/logs/DYN-740_R27_orchestration_params.log）；预算分母面的机器门 = eng/tools/quality/check_budget_single_source.py（CHK-BUDGET-SINGLE-SOURCE）",
+    "finding": "已闭合（升键前：6 个常数只以 constexpr 字面量存在于 module_adapters.cpp，schema/config_registry/defaults.json 全零命中）"
   }
 }

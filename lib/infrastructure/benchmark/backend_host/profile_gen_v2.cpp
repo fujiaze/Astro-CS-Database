@@ -450,10 +450,12 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                     cands.push_back(c);
                     continue;
                 }
-                for (const uint32_t w : workers_cand) {
+                // WIN-PORT C4456: 内层循环变量原名为 w，遮蔽了同名外层局部
+                // (本函数开头的参考帧 worker 数) ⇒ 更名 w_cand，取值/语义不变。
+                for (const uint32_t w_cand : workers_cand) {
                     for (const uint64_t blk : blocks) {
                         // budget 设为本候选 worker 数; block 通过 params 辅助传入
-                        astrocs_host_state_set_budget_v1(state, avail, w, &host);
+                        astrocs_host_state_set_budget_v1(state, avail, w_cand, &host);
                         acs_baseline_params_v1 p;
                         fill_params(&p, sp, in);
                         (void)blk;   // v1 kernel 无 block 参数; 记录但执行语义一致
@@ -461,7 +463,7 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                                                       kOracleRelTol, 3, 7);
                         RawCandidate c;
                         c.kernel_id = sp.kernel_id; c.size_class = sc; c.provider = pid;
-                        c.workers = w; c.block = blk;
+                        c.workers = w_cand; c.block = blk;
                         c.oracle_pass = (br.verdict == "OK");
                         c.median_ns = br.median_ns; c.mad_ns = br.mad_ns;
                         c.p05_ns = br.p05_ns; c.p95_ns = br.p95_ns;

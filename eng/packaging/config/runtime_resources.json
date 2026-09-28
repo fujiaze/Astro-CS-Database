@@ -43,6 +43,22 @@
   "x-astrocs-not-writable-by": [
     "benchmark"
   ],
+  "orchestration_params": {
+    "authority": "docs/contracts/SCHEDULER_CONTRACT.md §3（「线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定」——硬编码常数升为受控配置键；值域守卫保留 fail-closed）+ docs/standards/CONCURRENCY_STANDARD.md「默认」节（「线程数：外部可配置，默认 min(可用核, 配置上限)；取值来源 = 配置（16 不作硬编码值）」）",
+    "note": "P2 tile 几何与 P3 子块/队列深度的**唯一数值源**。升键前它们以 constexpr 字面量只存在于 lib/infrastructure/scheduler/src/module_adapters.cpp（kP2TileLeafSpan=512*512 / kP2TileShift=9 / kP3DefaultSubBlockPx=256 / kP3MinSubBlockPx=16 / kP3MaxSubBlockPx=1024 / kP3DefaultQueueDepth=4），schema/config_registry/defaults.json 全零命中 ⇒ 与 P1 帧闸门两分母同款缺陷（第二个未登记的数值来源）。现经 CMake configure_file 生成头消费（与 memory_budget_percent / frame_memory_gate 同一机制），实现侧零字面量；值域守卫（:min/:max）保留为 fail-closed。",
+    "p2_tile_leaf_span": 262144,
+    "p2_tile_leaf_span_constraint": "= (2^p2_tile_shift)^2；HiPS 标准 tile（512×512）的 leaf 数 2^18。**不是可自由调参**：它同时是 P2 产品格式不变量（产品 manifest 的 tile_leaf_span 字段与消费侧逐位比对，不一致即 DATA 错 fail-closed）⇒ 改动等于改产品格式，须走合同变更。",
+    "p2_tile_shift": 9,
+    "p2_tile_shift_constraint": "整数 ≥ 0；leaf order − tile order 差（512 = 2^9）。与 p2_tile_leaf_span 必须满足 span == (1<<shift)^2（configure 期 static_assert 锁定）。",
+    "p3_default_sub_block_px": 256,
+    "p3_default_sub_block_px_constraint": "整数，必须落在 [p3_min_sub_block_px, p3_max_sub_block_px]；P3 位置写子块的缺省边长（像素）。取值来源 = 内存守卫在途上界 2·queue_depth·sb²·8 B 在本机预算下的可行域（标定面见 eng/tests/config/test_cfg004_unified_contract.py）。",
+    "p3_min_sub_block_px": 16,
+    "p3_min_sub_block_px_constraint": "整数 ≥ 1；缺省值域下界（fail-closed 守卫：越界配置被拒，不回退静默取值）。",
+    "p3_max_sub_block_px": 1024,
+    "p3_max_sub_block_px_constraint": "整数；缺省值域上界（fail-closed 守卫）。",
+    "p3_default_queue_depth": 4,
+    "p3_default_queue_depth_constraint": "整数 ≥ 1；P3 子块写队列缺省深度。与 p3_default_sub_block_px 共同决定在途内存上界 2·queue_depth·sb²·8 B。"
+  },
   "frame_memory_gate": {
     "bytes_per_pixel": 116.0,
     "safety_frac": 0.75,

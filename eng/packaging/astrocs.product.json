@@ -14,6 +14,9 @@
     { "unit_id": "MOD-P1-CAL", "kind": "module", "rel_path": "modules/astrocs_p1_calibration.so", "abi_version": 1, "module_id": "astrocs.p1.calibration", "sha256": null, "status": "IMPLEMENTED" },
     { "unit_id": "MOD-P1-COS", "kind": "module", "rel_path": "modules/astrocs_p1_cosmetic.so", "abi_version": 1, "module_id": "astrocs.p1.cosmetic", "sha256": null, "status": "IMPLEMENTED" },
     { "unit_id": "MOD-P1-HIPSW", "kind": "module", "rel_path": "modules/astrocs_p1_hips_writer.so", "abi_version": 1, "module_id": "astrocs.p1.hips_writer", "sha256": null, "status": "IMPLEMENTED" },
-    { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" }
+    { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "PROV-CPU-AVX2", "kind": "provider", "rel_path": "providers/astrocs_cpu_avx2.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "PROV-CPU-AVX512", "kind": "provider", "rel_path": "providers/astrocs_cpu_avx512.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MANIFEST-BACKENDS", "kind": "manifest", "rel_path": "providers/backends.manifest.json", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" }
   ]
 }

@@ -27,4 +27,24 @@ inline constexpr std::uint32_t kMemoryPressureLowDwellSamples = @ASTROCS_RR_MEMO
 inline constexpr std::uint32_t kMemoryPressureEvictAfterSamples = @ASTROCS_RR_MEMORY_PRESSURE_EVICT_AFTER@;
 inline constexpr std::uint32_t kMemoryPressureSampleIntervalMs = @ASTROCS_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS@;
 
+// ── 编排参数（docs/contracts/SCHEDULER_CONTRACT.md §3 受控化 / R-27）──────────
+// 唯一数值源同为本文件对应的 JSON（orchestration_params 节）；实现侧零字面量。
+// P2 tile 几何：512×512 标准 HiPS tile = 2^18 leaf。它同时是**产品格式不变量**
+// （P2 产品 manifest 的 tile_leaf_span 与消费侧逐位比对）⇒ 改动等于改产品格式。
+inline constexpr std::uint64_t kP2TileLeafSpan = @ASTROCS_RR_P2_TILE_LEAF_SPAN@;
+inline constexpr std::uint32_t kP2TileShift = @ASTROCS_RR_P2_TILE_SHIFT@;
+static_assert(kP2TileLeafSpan == (1ULL << kP2TileShift) * (1ULL << kP2TileShift),
+              "orchestration_params: p2_tile_leaf_span 必须等于 (2^p2_tile_shift)^2");
+
+// P3 位置写子块几何与队列深度（缺省 + 值域守卫，守卫保留为 fail-closed）。
+inline constexpr int kP3DefaultSubBlockPx = @ASTROCS_RR_P3_DEFAULT_SUB_BLOCK_PX@;
+inline constexpr int kP3MinSubBlockPx = @ASTROCS_RR_P3_MIN_SUB_BLOCK_PX@;
+inline constexpr int kP3MaxSubBlockPx = @ASTROCS_RR_P3_MAX_SUB_BLOCK_PX@;
+inline constexpr int kP3DefaultQueueDepth = @ASTROCS_RR_P3_DEFAULT_QUEUE_DEPTH@;
+static_assert(kP3MinSubBlockPx >= 1 && kP3MinSubBlockPx <= kP3DefaultSubBlockPx &&
+                  kP3DefaultSubBlockPx <= kP3MaxSubBlockPx,
+              "orchestration_params: 必须满足 min <= default <= max");
+static_assert(kP3DefaultQueueDepth >= 1,
+              "orchestration_params: p3_default_queue_depth 必须 >= 1");
+
 }  // namespace astrocs::runtime_resources
