@@ -9,8 +9,8 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §1.3（非目标：Alpha 不含 GUI）、§8.1（顶层结构：hips_browser 基建目录）
-- IVOA HiPS 1.0（渲染规范）
+- 最高设计 `ASTROCS_DESIGN.md` §1.4（非目标（明确不做）：Alpha 不含 GUI）、§8.1（顶层结构：hips_browser 基建目录）
+- [IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)（IVOA 2017；渲染与层级切分规范）
 
 ## 3. 输入/输出数据合同
 
@@ -35,7 +35,7 @@
 
 ## 6. 接口/ABI
 
-- 独立可执行/组件；不进入 `acsd` 命令树；
+- 独立可执行/组件；不进入 `acsd` 命令树；模块落点 = `lib/infrastructure/hips_browser/healpix_browser_qt/`（`app/` 的 `main.cpp`（GUI 入口 `main`）/ `browser_cli.cpp`（命令行入口 `main`）/ `main_window.cpp`；`core/` 的 `browser_backend.cpp` / `hips_browser_backend.cpp` / `hips_sky_view.cpp` / `healpix_math.cpp` / `gl_renderer.cpp`）；
 - 读侧走 aio。
 
 ## 7. 错误与边界

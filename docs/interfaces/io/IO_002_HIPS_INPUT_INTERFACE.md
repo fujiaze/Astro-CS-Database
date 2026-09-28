@@ -8,9 +8,9 @@
 
 ## 1. 目标与范围
 
-IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**（宿主基础设施，
+本合同在 `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**（宿主基础设施，
 不含科学算法迁移）：给定一个 IVOA HiPS 1.4 兼容目录（Phase1/Phase2 在磁盘上产出的
-标准 HiPS 产品集或子产品目录），IO-002 负责：
+标准 HiPS 产品集或子产品目录），本合同负责：
 
 1. 解析并校验 `properties` 元数据（hips_version/order/tile_width/tile_format/frame/…）；
 2. 解析并校验 **NESTED tile address**（`NorderK/DirD/NpixN.fits` 布局、K 与 ipix 域、
@@ -54,7 +54,7 @@ HiPS 输出/原子发布见 `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`
 
 ## 3. 输入合同（IVOA HiPS 兼容子集）
 
-IO-002 读取的 HiPS 产品是 **磁盘上已发布的 HiPS 产品**，落盘形态为裸目录或 zstd 归档包（§1 第 8 条）。两档入口：
+本合同读取的 HiPS 产品是 **磁盘上已发布的 HiPS 产品**，落盘形态为裸目录或 zstd 归档包（§1 第 8 条）。两档入口：
 
 - **子产品目录**（`aio_hips_*` 产线布局，`docs/architecture/ARCHITECTURE.md` §3 Phase 数据流）：
   `<out>/signal|support|variance|ivar/` —— 目录内含 `properties`、可选 `Moc.fits`、
@@ -114,7 +114,7 @@ tile FITS 头内卡（存在时校验一致）：
 
 ### 3.4 科学平面（FITS-only）与 dtype
 
-- 只有 `hips_tile_format=fits` 的 tile 被接受；读 plane 走 IO-001 `acs_fio_reader_*`。
+- 只有 `hips_tile_format=fits` 的 tile 被接受；读 plane 走 FITS 流式接口的 `acs_fio_reader_*`。
 - 支持的 dtype：`-32`(f32)/`-64`(f64)（与 `docs/contracts/DATA_ARTIFACTS.md` 的 DATA-HIPS-* 登记一致：signal f32/f64，
   support f32/u8 但 HiPS 标准存 f32/f64；variance/ivar f32/f64）。u8 仅按 BITPIX=8
   读取为字节平面并以 `expected_bitpix=8` 声明（支持域内，不自动转换）。
@@ -135,7 +135,7 @@ tile FITS 头内卡（存在时校验一致）：
   （optional），只影响枚举能力。
 - **缺 tile 状态**：请求的 ipix 在 order-K 域内但文件不存在 →
   `ACS_HIPS_ERR_TILE_MISSING`（不报 IO/不虚构）；文件存在但非法（卡冲突/尺寸不符/
-  dtype 不支持/截断）→ `ACS_HIPS_ERR_TILE_INVALID` 或 IO-001 错误码透传。
+  dtype 不支持/截断）→ `ACS_HIPS_ERR_TILE_INVALID` 或 FITS 流式接口错误码透传。
 
 ### 3.6 properties 视图
 
@@ -149,11 +149,11 @@ tile FITS 头内卡（存在时校验一致）：
 | --- | --- | --- |
 | 0 | `ACS_HIPS_OK` | 成功 |
 | 1 | `ACS_HIPS_ERR_PARAM` | 参数非法（NULL/越界/非法 ipix/product 串） |
-| 2 | `ACS_HIPS_ERR_ABI_MISMATCH` | ABI 版本/结构大小失配（同 IO-001 语义） |
+| 2 | `ACS_HIPS_ERR_ABI_MISMATCH` | ABI 版本/结构大小失配（同 FITS 流式接口语义） |
 | 3 | `ACS_HIPS_ERR_NOMEM` | 内存不足 |
 | 4 | `ACS_HIPS_ERR_IO` | 底层 I/O 失败 |
 | 5 | `ACS_HIPS_ERR_UNSUPPORTED` | 不支持（非 fits 格式/`hips_frame` ∉ {equatorial, icrs}/非 NESTED 等） |
-| 6 | `ACS_HIPS_ERR_CANCELLED` | 取消（透传 IO-001 取消语义） |
+| 6 | `ACS_HIPS_ERR_CANCELLED` | 取消（透传 FITS 流式接口取消语义） |
 | 7 | `ACS_HIPS_ERR_STATE` | 句柄状态错误 |
 | 8 | `ACS_HIPS_ERR_PROPERTIES` | properties 缺失/非法键值（必填键缺/值不合法） |
 | 9 | `ACS_HIPS_ERR_ADDRESS` | tile 地址/布局不符（ipix 越界/Norder 不符/路径不合规） |
@@ -161,8 +161,8 @@ tile FITS 头内卡（存在时校验一致）：
 | 11 | `ACS_HIPS_ERR_TILE_INVALID` | tile 文件存在但布局/头/dtype 非法（含卡冲突、尺寸、截断透传） |
 | 12 | `ACS_HIPS_STATUS_COUNT` | 哨兵 |
 
-错误码 0–7 数值与 IO-001 `acs_fio_status`（对齐 common_abi_v1）一致，8–11 为
-HiPS 输入扩展。错误文本同 IO-001 约定：`char err[96]` 只做日志，不承载状态机。
+错误码 0–7 数值与 FITS 流式接口的 `acs_fio_status`（对齐 common_abi_v1）一致，8–11 为
+HiPS 输入扩展。错误文本同 FITS 流式接口约定：`char err[96]` 只做日志，不承载状态机。
 
 ## 5. C ABI（hips_input_v1.h 摘要）
 
@@ -203,13 +203,13 @@ int acs_hips_read_tile_plane_f64_v1(acs_hips_handle_v1 h, uint64_t ipix,
 - f32/f64 接口内部按 tile 实际 BITPIX（-32/-64/8）读取：-32 原样，-64 原样，
   8（u8）按字节提升 f32/f64；其余 BITPIX 在 `tile_status` 即判 INVALID。
 - 布局/地址校验在 open 后按 properties 就绪；tile 校验在每个 tile 访问时做。
-- 并发：reentrant；句柄非共享（同 IO-001 句柄语义）。cancel 经 hooks 透传给
-  fits_core（IO-001 取消语义）。
+- 并发：reentrant；句柄非共享（同 FITS 流式接口句柄语义）。cancel 经 hooks 透传给
+  fits_core（FITS 流式接口取消语义）。
 
-## 6. tile FITS 读取与 IO-001 的复用
+## 6. tile FITS 读取与 FITS 流式接口的复用
 
-IO-002 **不重新实现 FITS 解析**：`acs_hips_read_tile_plane_f*` 内部对拼出的
-`<dir>/NorderK/DirD/NpixN.fits` 调用 IO-001 `acs_fio_reader_open_v1` /
+本合同 **不重新实现 FITS 解析**：`acs_hips_read_tile_plane_f*` 内部对拼出的
+`<dir>/NorderK/DirD/NpixN.fits` 调用 `acs_fio_reader_open_v1` /
 `acs_fio_read_plane_v1`（期望 shape=TW×TW、BITPIX 0=按文件），失败映射：
 
 | fits_core 返回 | HiPS 映射 |
@@ -267,16 +267,16 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 
 ## 9. 与相邻接口/实现的边界
 
-- IO-001 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
+- FITS 流式接口（`docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`）的 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
 - `lib/infrastructure/aio`（aio_hips_*，CFITSIO 链）：HiPS 读写实现（writer 产线、
-  reader 供浏览器）；**IO-002 不修改**。IO-002 是 lib/infrastructure/aio/io 下与 IO-001
-  同层的输入合同骨架；产线 writer 与 IO-002 的磁盘布局合同相同（§3.3）。
+  reader 供浏览器）；**本合同不修改该实现**。本合同是 `lib/infrastructure/aio/io` 下与 FITS 流式接口
+  同层的输入合同骨架；产线 writer 与本合同的磁盘布局合同相同（§3.3）。
 - `lib/infrastructure/aio/healpix_db`：浏览器参考；不修改。
 - 产物 manifest 机器形态（`eng/contracts/data/artifact_manifest.schema.json`、
   `eng/contracts/data/artifact_types.registry.json`）与 DATA-HIPS-*：科学 dtype/unit/invalid 语义权威；
-  IO-002 只透出 header/plane，不做单位换算。
-- IO-003：HiPS 原子输出/manifest —— 在 IO-002 读端之外；本接口不实现写端。
-- MOC 解析：读端只解析 IO-002 支持的叶级 UNIQ 集合（BINTABLE+`UNIQ`+`MOCORDER`），
+  本合同只透出 header/plane，不做单位换算。
+- `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（HiPS 原子输出/manifest）：在本读端之外；本接口不实现写端。
+- MOC 解析：读端只解析本合同支持的叶级 UNIQ 集合（BINTABLE+`UNIQ`+`MOCORDER`），
   与 `aio_hips_reader` 的 MOC 用法语义一致（optional）。
 
 ## 10. 已知限制（v1 骨架）
@@ -292,6 +292,6 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 4. 不做父 order 静默回退；也**不提供**显式父 tile 定位/层级回退接口（v1 最小合同；
    浏览器 LOD 需要时由上层按 Norder 拼接，超出本接口范围）。
 5. `tile_status` 只区分 PRESENT/MISSING/INVALID；不细分 FITS 内部错误（透传 err 文本）。
-6. u8 tile（BITPIX=8）在支持域内（DATA-IMG-SUPPORT-001 u8 语义），但 HiPS 标准
+6. u8 tile（BITPIX=8）在支持域内（support 面 u8 语义见 `docs/contracts/DATA_ARTIFACTS.md`），但 HiPS 标准
    图像产品一般存 f32/f64；f32/f64 接口读取时提升。
 7. 大数据 tile 树扫描/远程 HiPS（http）不在本接口（磁盘输入合同；网络属未来 GUI/服务层）。

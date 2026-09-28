@@ -4,12 +4,17 @@
 
 ## 类别
 
-CONFIG / INPUT_CORRUPT / DEPENDENCY / NUMERIC / NO_DATA / RESOURCE /
-TIMEOUT / IO / SCIENCE_GATE / INTERNAL（口径 = `docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md`）。
+硬错误类别 = CONFIG / INPUT_CORRUPT / DEPENDENCY / NUMERIC / NO_DATA / RESOURCE /
+TIMEOUT / IO / SCIENCE_GATE / INTERNAL（口径 = `docs/standards/ERROR_HANDLING_STANDARD.md` 的三层语义）。
+
+机器面错误域 = `lib/include/astrocs/core/contracts.h` 的 `ErrorDomain` 枚举（CONFIG / DATA /
+SCIENCE_PRECONDITION / IO / RESOURCE / BACKEND / CANCELLED / INTERNAL），域→退出码唯一表
+= `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5。
 
 ## 阶段 ID
 
-每阶段一个阶段 ID 前缀，逐节点一枚，节点名与注册表节点一致：
+每阶段一个阶段 ID 前缀，逐节点一枚，节点名与 `docs/modules/registry/` 的注册表节点一致
+（日志面口径 = `docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md`）：
 
 | 阶段 | 阶段 ID |
 | --- | --- |
@@ -22,7 +27,7 @@ TIMEOUT / IO / SCIENCE_GATE / INTERNAL（口径 = `docs/standards/LOGGING_DIAGNO
 - C API：0=success；非 0=hard error（类别由调用上下文/troubleshooting 定位）。
 - 可恢复科学状态经 status 字段（UNDERDETERMINED / NO_CANDIDATES /
   ALL_REJECTED / ZERO_VALID_WEIGHT / INVALID_INPUT）。
-- 每个 high-risk error → troubleshooting 条目（docs/diagnostics/）。
+- 每个 high-risk error → troubleshooting 条目（`docs/diagnostics/TROUBLESHOOTING.md`）。
 
 ## 进程退出码（唯一源）
 
@@ -51,6 +56,6 @@ MODULE_SPECIFIC_BASE=100
 
 稳定错误码族 `ERR-*` 的登记面 = `docs/TRACEABILITY.csv` 的 `error_codes` 列。
 
-以 `ERR-P2-UPM-001`（UPM 模型文件畸形）为例：f
-rames 非数组、frames 内重复、帧数与 C 行数不等，都在模型打开时判错并沿 `p2_upm_open` 上行
+以 `ERR-P2-UPM-001`（UPM 模型文件畸形）为例：frames 非数组、frames 内重复、
+帧数与 C 行数不等，都在模型打开时判错并沿 `p2_upm_open` 上行
 （实现 `lib/algorithms/coverage/src/upm.cpp` 的 frames 校验）。

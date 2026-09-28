@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
 
-> ID: ALG-REJ-001  范围: ALG-REJ-001..008  上游 SCI: SCI-REJ-001  状态: DERIVED  模块: phase2/rejection
-
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-REJ-001..008` (7方法+wbpp路由+INVALID/UNDERDETERMINED分层)
@@ -52,10 +50,10 @@ F1: plan resolve（N = 该输出像素的几何覆盖帧数，一次解析；`re
       生产档 astrocs_adaptive_pixel（`rejection.cpp:1154-1176`）:
         1≤N≤3 → none（不排异，直接逆方差加权积分）; 4≤N≤5 → percentile 0.2/0.1;
         N≥6 → winsorized 4/3/8
-        （**M3 裁决 2026-09-25：原 `N≥16 → linear_fit 5/3.5/8` 档改投 winsorized**）
+        （`n ≥ 16` 档同投 winsorized）
       对照档 wbpp_2_9_1 / wbpp_current / astrocs_adaptive（`rejection.cpp:1275-1283`）:
-        N<6 → percentile; 6≤N≤15 → winsorized; N>15 → linear_fit（**未随 M3 改动**）
-      min/max 不用于生产（AUTO 路由禁止产出 min/max 与 NoRejection，fail-closed；
+        N<6 → percentile; 6≤N≤15 → winsorized; N>15 → linear_fit
+      min/max 不用于生产（AUTO 路由只产出具名自动方法，min/max 与 NoRejection 恒不可达，fail-closed；
       `rejection.cpp:1167-1179/:1272-1278`）
       与 WBPP 档界的差异及其依据见 docs/science/REJECTION.md
 F2: sigma: median ws, MAD→σ=1.482602218505602·MAD, thresholds 4.0 low /3.0 high 8iter
@@ -168,9 +166,8 @@ function p2_reject(stack, plan):
   `reject_linear_fit_impl`→`rejection.cpp:1615-1709`；`reject_esd_impl`→`rejection.cpp:1712-1782`
   （`rejection_oracle_compare` NIST 对照）；计划路由→`p2_reject_plan_resolve`（`synthetic_gate`）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - Generalized ESD：Rosner 1983, Technometrics 25, 165；NIST/SEMATECH e-Handbook §1.3.5.17/§7.1.6。
 - RCR：Maples et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d；arXiv:1807.05276）；Konz & Reichart 2023, arXiv:2301.07838。
@@ -197,11 +194,5 @@ function p2_reject(stack, plan):
 - **预测残差方差阈值/最优检验**：Zackay et al. 2016（DOI 10.3847/0004-637X/830/1/27）为方法学候选，
   本层当前不采用。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

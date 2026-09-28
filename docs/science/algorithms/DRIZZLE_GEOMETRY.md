@@ -2,7 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
 
-> ID 覆盖: ALG-DRZ-001  状态: CONTRACT_READY  上游: SCI-DRZ-001  下游: DATA-P1-DRZ / API-DRZ-001 / TEST-DRZ-DESIGN-001
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
 > CMakeLists.txt:356-366；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
@@ -40,7 +39,7 @@
   `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
 - 离散公式（逐条源码锚；**单位逐项**与 `docs/contracts/DATA_SEMANTICS.md` §31.1a
   的量纲链逐段一致，`FZ-UNIT-SIGNAL-SB` FROZEN）:
-  - 权重: `w_jp = a_jp / A_pixel,j`，**量纲 = 1（无量纲）**（a_jp 与 A_pixel,j 同为 sr）。
+  - 权重: `w_jp = a_jp / A_drop,j`，**量纲 = 1（无量纲）**（a_jp 与 A_drop,j 同为 sr）。
     **面亮度保持口径**（SCI-DRZ-001 §5 目标态面亮度保持权重），a_jp = drop ∩ target p
     球面交叠面积 [sr]；`A_drop,j` = drop 球面面积 [sr]（`build_drop_geometry` 的
     `g.drop_area`），由 `spherical::polygon_area_consistent`（收缩四角）求值。
@@ -56,8 +55,10 @@
     **归一分母（口径不可替换）**：`N_p = Σ_j w_jp·A_pixel,j`（`acc.sumNorm`，:1629 前后）。
     若改用覆盖面积 `D_p=Σ_j a_jp` 作分母，`S_p` 偏 `1/pixfrac²`（pf=0.8 → +56.25%），
     负例判据 `1/pf²−1`（DISP-DRZ-009 回归门的 N 判据）。
-    等价参数化 `w'_jp=a_jp/A_pixel,j` 配分母 `Σ_j w'_jp=D_p/pixfrac²` 给出同一个 `c_jp`，
-    但 `Phi_out` 只有 drop 面积归一口径 = `Σ_j x_j`。
+    **A_pixel 分母为实现细节（代数等价参数化，不构成第二套口径）**：`w′_jp = a_jp/A_pixel,j
+    = pixfrac²·w_jp`，配分母 `Σ_j w′_jp = D_p/pixfrac²` 与 canonical 给出同一个 `c_jp`；
+    该构造 `Σ_p w′_jp = pixfrac²`（pf=0.8 ⇒ 0.64），**不满足通量守恒门**，故核权重口径
+    一律取 drop 面积归一；`Phi_out` 只有 drop 面积归一口径 = `Σ_j x_j`。
     **适用域**：`A_pixel,j`（面亮度分母用）必须由未收缩四角在同一球面面积例程上求值；
     `A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确，球面残差
     `δ = A_drop/(pixfrac²·A_pixel) − 1 = (1−pixfrac²)·θ²·[0.25/(1+r_c²) − 0.625·ξ_c²/(1+r_c²)²] + O(θ⁴)`
@@ -93,7 +94,8 @@
   `I = Σ_i d_i·a_i·w_i·s² / Σ_i a_i·w_i`（"a factor of s² is introduced to conserve
   surface intensity"），同属"输入值的加权平均"族：两者对常量面亮度场均与 pixfrac 无关，
   差别在权重口径——F&H 用 `a·w`（w = 用户输入权重）并把像素尺度比以 `s²` 显式换算，
-  本模块用 `a`（几何交叠面积）并把绝对面亮度写进分子 `a/A_pixel,j`（⇒ 无需 s² 因子），
+  本模块用 `a_jp/A_drop,j`（几何交叠面积的 drop 归一），面亮度由分母
+  `N_p=Σ_j w_jp·A_pixel,j` 归一（⇒ 无需 s² 因子），
   分母 D_p 兼作 support 的分子（`support = D_p/A_cell`）。该差异为 Project-defined
   选择，须与 `FZ-UNIT-SIGNAL-SB` 的量纲链一并阅读，实现口径只取本模块 Project-defined 定义。
 - **S_p = F_p/D_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
@@ -119,14 +121,12 @@
      （HP_CIRCUMRADIUS_FACTOR=1.25，:42）。**系数依据（可判定上界）**：HEALPix 单元的
      外接半径 `r_circ`（像元中心→像元边界最远点角距）与等面积尺度 `hp_res = sqrt(A_cell)` 之比的
      全天 sup 为 **1.0415**（N=64 全天穷举实测，随 N 自下方单调升收敛；1.25/1.0415 = 1.2002，
-     即裕量 ≥20.0%）。旧记 **1.0442**（本仓 `run/SCI-FIX-DRZGEOM-01/evidence/
-     exp_c_realdata.json` C3 段：nside=512/1024 × 181 档纬度扫描，最坏 1.0441/1.0442，
-     出现在 |dec|≈42°，**不是极区**，1.25 相对留 19.7% 余量）系同一量在不同穷举日程下的读数，
-     口径统一后按全天穷举 sup≈1.0415 记账。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
+     即裕量 ≥20.0%；该上界与裕量的读数正本 = 实验/healpix-polar/
+     （REPORT_experiment.md 与该单元 results/）。**另注意区分一个几何常数**：1.1284 = √2·ρ₁/hp_res
      = 2/√π 是"极冠 apex 叶对角（极点→叶远角）/hp_res"的叶对角尺度（ρ₁ = arccos(1−1/(3N²))
-     ≈ √(2/3)/N）——其历史取心法（相邻 ring 纬度中点）在极冠 apex 叶上失效，**不得记作外接半径**。
-     阴性对照：等经纬网格同度量达 1.669（本仓实测；独立审计全天穷举另录反例 4.516——
-     1.25 的安全性只对 HEALPix 特化成立）⇒ 1.25 相对该上界留 ≥20.0% 裕量，且覆盖跨
+     ≈ √(2/3)/N）——外接半径必须按本节定义取值（像元中心→像元边界最远点角距）；相邻 ring 纬度中点法在极冠 apex 叶失效，只作叶对角尺度的取心，不用作外接半径。
+     阴性对照：等经纬网格的同度量显著高于该上界（读数与反例见 实验/healpix-polar/results/）
+     ⇒ 1.25 的安全性只对 HEALPix 特化成立，相对该上界留 ≥20.0% 裕量，且覆盖跨
      face 边界（面内畸变已由 `hp_res` 的球面定义吸收）。
      零漏选由 9003 例全枚举 oracle 兜底（§9）。
   2. 保守查询圆: `query_radius = max_angle + 3.0·hp_res`
@@ -134,7 +134,7 @@
      `query_radius ≥ max_angle + r_circ,max = max_angle + 1.0415·hp_res`（任一与 drop 相交
      的 cell，其中心必落在 drop 的 `max_angle` 邻域加该 cell 外接半径之内）⇒
      3.0·hp_res 比 1.0415·hp_res 宽 2.88×，属**保守过覆盖**（代价是候选数，不是正确性）；
-     （1.0442→1.0415、2.87×→2.88× 随上条口径统一同步订正）
+     （3.0/1.0415 = 2.88×，属保守过覆盖）
   3. fast 路径: 面 delta×1.15 面内畸变系数 + 极冠/跨 face 边界回退
      queryDisc（:1667-1702）。
 - 交叠面积: 球面多边形裁剪（clip_normals_d，内部 double）——逐边裁剪的球面推广（Sutherland–Hodgman 1974 原文只处理平面多边形，球面形式为本模块推广）
@@ -158,8 +158,7 @@
   （:706-708；**该常数是 HEALPix 等面积基数的精确开方**，不是近似：
   `sqrt(4π/(12·nside²))·(180/π)·3600 ≡ sqrt(π/3)/nside·(180/π)·3600`，逐位恒等，
   依据 Górski et al. 2005, ApJ 622, 759 §4「all pixels have exactly equal area
-  `4π/(12·nside²)`」；本仓实验锚 `run/SCI-FIX-DRZGEOM-01/evidence/exp_a_geometry.json`
-  A3 段：三档 nside 的恒等相对差 = 0.0）。
+  `4π/(12·nside²)`」；该恒等式在多档 nside 上的核对证据见 实验/healpix-polar/）。
   **数值纪律**：常数按上式**求值**，取值来源 = 求值结果；`211034.6` 与上式相差
   −1.97e-4（相对），会使 `nside` 决策在每个倍频程的
   `finest ∈ (211034.6/2^k, 211076.285/2^k)` 窗口内**少取一阶**
@@ -209,7 +208,7 @@
 | SNR 面非有限 | 计入 `rejected_nonfinite_value` 同族掩膜路径（SNR 面参与权重/有效性判定，剔除项逐条计数登记） | :2000-2005 |
 | 权重面非有限或 ≤0 | 计入 `rejected_nonpositive_weight`（原因 3）后剔除该样本（**必须计数**，禁静默） | :2013-2018 |
 | variance 面非有限（NaN/Inf） | 计入 `rejected_nonfinite_variance`（原因 2）后剔除该样本（**必须计数**，禁静默） | :2022-2027 |
-| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 DATA_SEMANTICS §4a「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（ASTROCS_DESIGN §5.5:379 只授权对 NaN 做样本级掩膜） | `drizzle_engine.cpp` V≤0 分支（现行 :2033-2038 置 0 不 continue）；订正依据与实测见 `run/VARIANCE-SEMANTICS-01/REPORT.md` |
+| **variance 面 = 0（方差不可用）** | **不是无效像素**：样本合格性只判 `isfinite(x_j)`（DATA-002 §2a）；variance=0 按 DATA_SEMANTICS §4a「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式不可用）」与 §20.1「ivar==0 = 合法零权重、variance==0 = 无信息」处理 ⇒ **只令方差项为 0，不丢信号、不丢几何支撑**。`V_j ≤ 0` 不构成掩膜授权（ASTROCS_DESIGN §5.5:379 只授权对 NaN 做样本级掩膜） | `drizzle_engine.cpp` V≤0 分支（现行 :2033-2038 置 0 不 continue）；证据见 实验/absolute-snr/（方差语义面）|
 | 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | :1322-1323 |
 | 半球检查失败（max_ang≥π/2） | 返回 NAN 面积 | spherical_overlap.cpp:196-216 |
 | A_drop<1e-20 / w≤0 | 拒绝 | drizzle_engine.cpp:1439-1441,1509-1512 |
@@ -269,19 +268,19 @@
 - HissWriter 流式（writeHisTilesT，drizzle_engine.cpp:1265 finalize），
   测光 gate :1950-1956；operation_counts.json 剖面
   （api.cpp:1091-1134）。
-- **B2-A12 精度 provenance（无 silent 缺省）**: 累加精度由
+- **累加精度 provenance（无 silent 缺省）**: 累加精度由
   `drizzle.precision_mode`（整数 0=FP32 / 1=FP64）显式给出；缺失或非整数
   → DATA 拒绝（不 silent 降 FP32）。节点写 p1_stack.json `precision_mode`、
   帧头 `PRECISION`=fp32/fp64 实际值（module_adapters.cpp:2023-2048）。
-- **RESCUE-FD-02 库边界精度缺省（无 silent FP32）**: `hp_drizzle_run` 参数
-  `precision_mode==-1` 且帧头无 `PRECISION` KV 时按本条 `RESCUE-FD-02` 取 **FP64**
-  （原引「宪章 §5.3」已废止，现行载体 = 本条；数据面同源 =
+- **库边界精度缺省（无 silent FP32）**: `hp_drizzle_run` 参数
+  `precision_mode==-1` 且帧头无 `PRECISION` KV 时取 **FP64**
+  （现行载体 = 本条；数据面同源 =
   `DATA_SEMANTICS.md` §11.1「PRECISION」行；**语义不变**）
   （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
   非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
-  `drizzle.precision_mode`（0|1）显式门把关（B2-A12）。
+  `drizzle.precision_mode`（0|1）显式门把关。
   （hp_drizzle_api.cpp:956-991；回归 eng/tests/unit/drizzle_precision_default_test.cpp）
-- **B2-A14 测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
+- **测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
   由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
   `PHOTDEGRADE=1`，引擎在显式声明时降级写 BUNIT=ADU（photappl=0），
@@ -290,7 +289,7 @@
 - 输入通道: PipelineFrame "data"（f32/f64 二选一，bzero=0/bscale=1
   固定，api.cpp:486-503）+ header WCS/SIP KV + 可选 "snr_model" 块
   （KD-tree IDW 重建逐像素 SNR，snr_evaluator.h）。
-- **B2-A17 SIP 桥接**（AUD-COORD F-03）：编排 drizzle 节点从上游
+- **SIP 桥接**：编排 drizzle 节点从上游
   `p1_wcs.json`（DATA-P1-WCS §18）读回 `wcs.sip`（order/ap_order/a/b/ap/bp，
   i*6+j），经 `p1_sip_write_header_frame` 写入 frame header 的 FITS 键：
 
@@ -313,21 +312,61 @@
     FIX-DRZ-C 梯度场；FIX-DRZ-D 脉冲单像素；FIX-DRZ-E NaN/Inf 注入面；
     FIX-DRZ-F SIP 畸变边缘 patch（15° 宽场）。
 - 冻结容差（预冻结，源自既有测试门，取值一律按本节）:
-  - FP64 通量闭合 <1e-6（主域）；FP32/FP64 逐 leaf <1e-5
-    （drizzle_freeze_test.cpp 硬门，:211 附近；l0 小图 FP64<1e-10）；
+  - **逐 leaf 面积/权重相对误差门（验收主判据）**：逐 leaf（目标叶）交叠面积与核权重
+    相对误差 <1e-5（drizzle_freeze_test.cpp 硬门，:211 附近；l0 小图 FP64<1e-10）；
+  - FP64 通量闭合（辅判据，只证总量守恒）：逐 drop ≤ max(1e-6·A_drop, 1e-15 sr)、
+    帧级 ≤1e-4，逐位置集分别判定，位置集必须含极点与 u+v=1 face 接缝（判据、绝对项
+    来源与适用域见本节「面积守恒闭合」条；位置集与逐组判定在
+    ctest 门 drizzle_p3_conservation）；求和型判据对逐叶错注入无判别力，
+    只作辅判据，不作验收判据；
   - 方差 α² 缩放律逐像素 worst_rel <1e-4（variance_propagation_test，
     SCI-DRZ-014）；
   - 候选零漏选: 9003 例 false_negative=0（candidate_oracle_test，
     4 pixfrac × 5 尺度 × 7 nside 全枚举，RA 跨 0/极区/face 边界）；
   - reverse: false_hole=false_fill=0、coverage∈[0,1]、常数场
     uniform_rel_std<1e-4、半图/全图 total_in 比 <1e-6；
-  - 面积误差预算: float 面积 0.05% ≪ 候选保守性（零漏选）≪ 门禁
-    容差；arc-chord 1e-6·hp_res（旧 §9/§12 冻结值照抄）。
+  - 面积误差预算（按叶侧分列，只按本叶侧引用）:
+    - 赤道带（等纬度小圆边）：arc-chord 预算 1e-6·hp_res —— 该预算只对
+      这类边成立，且仅在自适应细分深度 ≥9（生产 max_depth=12）时成立；无细分弦
+      表示下各带的亏缺量级正本 = 实验/healpix-polar/（REPORT_experiment.md）；
+    - 极冠边（β_0 < 2/3 两侧的等纬度边与经线边）：**不适用**上述相对
+      hp_res 预算。叶边界在 nside≥256 由 4 角弦表示（生产路径），经过
+      极点 apex 的叶其"弦/真"相对亏缺 ≥(1−2√2/π)（与 N 无关，N≳64 后
+      已收敛），比 1e-6·hp_res 的弦长预算大 4 个数量级；故极冠叶的
+      表示误差一律按**叶面积比**度量，并按「面积守恒闭合」的逐 drop
+      绝对项预算验收；1e-6·hp_res 只对赤道带这类边成立，与极冠叶是否达标无关。
 - 不变量: 常量场均匀性（无接缝/系统性亮斑，drizzle_freeze_test:422）；
   NESTED 地址往返；1/2/4 线程一致性；HISS 写读往返；负值保持；
   multi-FWHM 孔径测光 4σ 相对差 <1e-3。
 - 负面矩阵: §5 表逐行断言（pixfrac 0/负/>1、RING、多通道、缺 WCS、
   NaN 面、reverse 二选一/越界/重复 ipix）。
+- **面积守恒闭合（逐 drop 判据与位置集）**：
+  - 判据：逐 drop |Σ_j a_jp − A_drop,p| ≤ max(τ_rel·A_drop,p, ε_abs)，
+    τ_rel = 1e-6、ε_abs = 1e-15 sr；帧级 |Σ_p (Σ_j a_jp − A_drop,p)| /
+    Σ_p A_drop,p ≤ 1e-4。A_drop,p 为 drop 四角球面多边形面积（与生产
+    drop_area 同口径的独立复算，不复用被测路径）。
+  - 位置集（必须齐备，缺一即门不成立）：极点与其邻域、**u+v=1 face
+    接缝**（即 |z|=2/3 折线）、极冠内部、face 角点两侧、同纬度三角点、
+    赤道对照；另需含 HST 真实尺度（0.04″/px、nside=2^23）。
+  - 判据必须逐位置集分别判定并打印（全局汇总通过不等于各位置集通过）；
+    负例（注入订正前"叶顶点全含 ⇒ 返回解析叶面积 π/(3N²)"行为）时
+    极点/极冠组必须判红、赤道对照组必须仍绿。可执行门 =
+    ctest 目标 drizzle_p3_conservation / _self_test / _legacy_injection
+    （tests/p3_conservation_gate.cpp）。
+  - **绝对项 ε_abs 的来源与适用域**：叶边界在 nside≥256 由 4 角弦表示、
+    相邻叶边界与 drop 边的近退化大圆求交在 A_drop ≲1e-16 sr 尺度上
+    留下 ~1e-16 sr 的绝对残差；该残差与 drop 尺寸弱相关（实测 drop
+    0.005″→0.2″/px 期间最坏 4.3e-17…1.5e-16 sr）。把同一组 double 顶点送进
+    **同一裁剪算法**的 long double 版本，接缝地板不降（long double/生产 =
+    0.87/0.96/0.91；赤道对照虽 15× 但其绝对量 6e-22 sr 无意义）⇒ 它是
+    **几何/表示地板，不是算术精度地板**（算术项另设锁：同一组裁剪
+    顶点下 double 与 long double 累加之差须 ≤1e-8，见该门）。要移动该
+    地板须把叶边界生成与面积记账一并提到扩展精度表示（改变冻结口径，
+    需变更流程），仅提高中间量精度无效。
+    适用域：相对项在极点（实测最坏相对 2.2e-13）与赤道（2.8e-9）等
+    位置可达；**相对项在接缝不可达**——u+v=1 接缝的相对闭合 ∝1/A_drop，
+    0.04″/px 实测 3.9e-3、0.005″/px 实测 9.9e-2，故接缝与任何
+    A_drop ≲1e-9 sr 的域一律以绝对项判，相对门对该域不适用。
 
 ## 10 DISP-DRZ-001..009（SCI/文档 vs 源码口径清单；修复方向 = 从 SCI 到实现）
 
@@ -347,20 +386,21 @@
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
 
 **面亮度保持权重的实现口径**：
-`drizzle_engine.cpp` 的 `processPixelSharedTiled` 内权重恒为
-`weight = overlap_area / pixel_area`，其中 `pixel_area` = **未收缩**源像素球面面积
-（新增 `spherical::polygon_area_consistent`，与 `build_drop_geometry_into` 的
-`drop_area` 同一分支同一例程）；`pixfrac<1` 时由调用方
-（`processPixelTiled` 的 Step 2b）补 4 次未收缩四角 `pixelToSky`；
-`pixfrac==1` 时传 nullptr ⇒ 分母直接取 `drop_area`，产物**逐字节不变**
-（sha256 实证：`pixfrac==1` 默认路径的 `.norm.hiss`/`.canon` 与分母取 `drop_area` 时逐字节相同
-⇒ 默认路径零回归）。`sumArea`（D_p=Σa_jp，
+`drizzle_engine.cpp` 的 `processPixelSharedTiled` 内**核权重恒为**
+`weight = overlap_area / drop_area`（即 canonical `w_jp = a_jp/A_drop,j`，drop 面积归一，:1617）。
+**未收缩**源像素球面面积 `pixel_area`（`spherical::polygon_area_consistent`，与
+`build_drop_geometry_into` 的 `drop_area` 同一分支同一例程）**只进面亮度归一分母**：
+`sumNorm += overlap_area·(pixel_area/drop_area)`，即 `N_p = Σ_j w_jp·A_pixel,j`；
+`pixfrac<1` 时由调用方（`processPixelTiled` 的 Step 2b）补 4 次未收缩四角 `pixelToSky`；
+`pixfrac==1` 时传 nullptr ⇒ `pixel_area` 与 `drop_area` 为同一变量、比值恒 1.0，
+产物**逐字节不变**（默认路径与分母取 `drop_area` 时逐字节相同 ⇒ 零回归）。`sumArea`（D_p=Σa_jp，
 support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
+**A_pixel 归一（代数对照，不构成第二套口径）**：`w′_jp = overlap_area/pixel_area = pixfrac²·w_jp`，
+`Σ_p w′_jp = pixfrac²`（pf=0.8 ⇒ 0.64），**不满足通量守恒门**。
 **注意**：近似写法 `overlap_area·pixfrac²/drop_area` **只作对照，权重口径 = 球面精确交叠面积** ——
 恒等式 `A_drop,j = pixfrac²·A_pixel,j` 只在平面（仿射）极限下精确。**残差标度律**
-（二阶展开 + Gauss-Legendre 求积独立复算，锚 `run/SCI-FIX-DRZGEOM-01/evidence/
-exp_a_geometry.json` A2 段；两条数值路径与解析式在 |δ|>1e-13 域内相对差 <2.4e-3，
-小尺度档 <2e-5）：
+（二阶展开 + Gauss-Legendre 求积独立复算，证据见 实验/healpix-polar/
+REPORT_experiment.md 对应节；两条数值路径与解析式在 |δ|>1e-13 域内的一致性由该单元给出）：
 
 ```text
 δ(pixfrac, θ, ξ_c, η_c) = A_drop/(pixfrac²·A_pixel) − 1
@@ -404,9 +444,8 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 - TEST: TEST-DRZ-DESIGN-001（本文档 §9）；可执行 TEST-P1-DRZ-001
   由 P1-DRZ-TEST 建立（既有 lib 内 eng/tests/*.cpp 为科学门基线）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - Drizzle 线性重建/drop/pixfrac：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087）。**锚分列**：权重公式（w、a_xy、s²）= §2 式(2)–(5)；方差/相关（R = σc/σp、单输出像素方差）= §7 式(6)–(10)。**差异**：原式在切平面，本模块在球面 HEALPix 上实施（Project-defined 迁移）。
 - Drizzle 实践：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause）。
@@ -414,10 +453,4 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 - 球面三角面积：Van Oosterom & Strackee 1983, IEEE TBME 30, 125（DOI 10.1109/TBME.1983.325207）。
 - 多边形裁剪：Sutherland & Hodgman 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——**平面**算法（原文摘要为 “plane-faced volumes”）；本模块的球面逐边裁剪是它的推广，不属原文结论。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。

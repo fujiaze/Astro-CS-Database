@@ -10,12 +10,11 @@
 - 变体一律以 **DSO**（Windows `.dll` / Linux `.so`）随安装树分发；调度器运行时检测 CPU +
   benchmark 选取，缺库回退基线；主程序保持基线指令集。
 
-## 1 测量条件与决策
+## 1 测量口径与决策
 
-- 测量条件：Linux 开发节点（`vm-bj`，2 vCPU，AVX2+FMA+AVX512F）；
-  基准程序 `eng/tests/backend/kernel_bench_main.cpp`，median-of-5 计时 × 多轮，
-  baseline 取最优（对变体最保守）；变体整 TU 局部旗标，共享 `baseline_kernels_impl.inc`
-  同一源（**零复制漂移**）。
+- 测量口径：基准程序 `eng/tests/backend/kernel_bench_main.cpp` 逐 kernel 计时，取多轮
+  median-of-5 读数、baseline 取最优（对变体最保守）；变体整 TU 局部旗标，与 baseline 共享
+  `baseline_kernels_impl.inc` 同一源（**零复制漂移**）。
 - 变体实现（`lib/infrastructure/benchmark/backend_host/`）：`avx_backend.cpp`（`-mavx`，无 FMA）、
   `avx2_backend.cpp`（`-mavx2 -mfma`）、`avx512_backend.cpp`
   （`-mavx512f -mavx512bw -mavx512vl -mavx512dq`）。
@@ -46,6 +45,25 @@
   错误变体绝不入候选（hash / ABI / ISA 预检 + 逐 kernel Oracle）。
 - variant Oracle：与 baseline 同公式同序（共享源）⇒ 输出只允许 FMA 舍入差
   （容差 2e-4 相对，与 Python 参考比对）；值语义不变。
+
+### 2.1 实现落点（本节登记实现态，§0/§1 为决策态）
+
+**交付形态**：两个变体 target 为 SHARED，安装树 `providers/` 目录内落
+`astrocs_cpu_avx2.so` / `astrocs_cpu_avx512.so`（Windows：同目录 `.dll`），与清单
+`backends.manifest.json`（生成器 = `eng/tools/gen_backends_manifest.py`）**同目录**安装——
+加载器语义要求清单与裸文件名同目录（见 `docs/architecture/CPU_BACKEND_ARCH.md` §3 信任边界）。
+
+**能力位**：清单的 `required_features_bits` 由构建期实测填充；avx2 = `avx2|fma` = 24，
+avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需集会放过 KNL 型主机，
+故取编译期实际使用的四条）。位定义唯一源 = `cpu_features.h`。
+
+**运行期选路调用点**（生产）：`lib/infrastructure/cli/commands.cpp` 的运行路径
+→ `backend_loader`（裸文件名/ABI/实测 sha256/能力位预检 → dlopen → handshake → self_test）
+→ `cpu_routing`（逐 kernel 路由决策，profile 驱动）→ 选址；缺库/不支持/收益不足回退基线，
+事件面 `backend_id` 记**实际选址结果**。选取与回退口径正本 = `CPU_BACKEND_ARCH.md` §6。
+
+**avx512 的档位状态**：§1 表判 avx512 = NOT_SHIPPED（无超越 AVX2+FMA 的收益）。
+「随构建交付为可测量 DSO」与「档位是否发布」是两件事：本节只登记前者，后者以 §1 决策为准。
 
 ## 3 ISA 污染防线
 

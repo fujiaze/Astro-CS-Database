@@ -1,9 +1,6 @@
 # Calibration Algorithms (ALG-CAL)
 
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
-
-> ID: ALG-CAL-001  范围: ALG-CAL-001..006  上游 SCI: SCI-CAL-001  状态: CONTRACT_READY  模块: lib/algorithms/calibration（astrocs.p1.calibration / 目标 DLL astrocs_p1_calibration.dll）
->
 > 连续数学定义以 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
 > 本文只做离散化与实现事实登记，**本文为下游派生件，SCI 的修改从 SCI 自身发起**。现行源码中不存在
 > 黄金分割搜索、ISA benchmark 注册与取消检查点（§6 登记）。
@@ -14,11 +11,11 @@
   （dark_opt 双分支 + flat_norm median=1.0 / floor 0.1）、§9a 专属问题
   （无 pedestal、无 gain、无 read-noise 建模、负值保留、bad_mask 极性 1=坏点、
   variance 不传播）。
-- 生产源: `lib/algorithms/calibration/include/astro_calibration.h`（唯一公共头，14 个
+- 生产源: `lib/algorithms/calibration/include/astro_calibration.h`（唯一公共头，18 个
   `AC_API` 符号）+ `lib/algorithms/calibration/src/master_generator.cpp`、
   `lib/algorithms/calibration/src/calibrator.cpp`、`lib/algorithms/calibration/src/cosmetic_corrector.cpp`、
   `lib/algorithms/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
-  清单，CMakeLists.txt:589-598）。
+  清单，CMakeLists.txt:607-616）。
 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
   热像素/冷像素检测与插值修复；Gaia 测光比例标量应用（现状未接线）。
 - 不负责: FITS/XISF 文件读写（astro_image_io，调用方侧）、母版按曝光/滤镜
@@ -175,7 +172,7 @@ F3.3  参数无效（!light||!out||w<=0||h<=0）: actual_k=k_init，静默返回
 F3.4  契约边界:
       · bias 项在**两个分支都出现**：标准式 −bias、兼容式 −bias−K(dark−bias)；
         缺 bias（NULL）时该项为 0，且调用方必须在预检/manifest 显式登记"本底未去除"。
-      · K 在**两个分支都施加**；缺 EXPTIME 时调用方 fail-closed，不得静默 K=1。
+      · K 在**两个分支都施加**；缺 EXPTIME 时调用方 fail-closed；静默 K=1 恒不接受。
         K=1 时两分支代数恒等（SCI-CAL-001 §5/§7），逐位相等性不作判据。
 ```
 
@@ -272,7 +269,7 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
 ```
 
 **现状**: `dark_optimizer.cpp` 不在 CMake `astrocs_calibration` 构建清单
-（CMakeLists.txt:589-598），全仓无调用方；`hiss::Stage1Diagnostics` 来自
+（CMakeLists.txt:607-616），全仓无调用方；`hiss::Stage1Diagnostics` 来自
 `lib/infrastructure/aio/include/hiss_format.h`。登记为待迁移符号
 （P1-CAL-IMPL 决定接线或删除），不声明任何生产语义（DISP-CAL-005）。
 
@@ -312,7 +309,7 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 
 | 事实 | 内容 | 锚 |
 |---|---|---|
-| 公共符号 | 14 个 `AC_API`：`ac_generate_master_{bias,dark,flat}`、`ac_calibrate_frame`、`ac_correct_frame` 及 5 个 `_f64` 变体、`ac_set_num_threads`、`ac_version` | astro_calibration.h:33-155 |
+| 公共符号 | 18 个 `AC_API`（3 master + 2 单帧 + 3 列修正 + 1 坏列 + 1 方差膨胀 + 6 `_f64` + 2 线程/版本） | `astro_calibration.h:60-379` |
 | C++ 接口 | `ac::optimize_dark_k`（头文件声明但无 AC_API 导出宏，dark_optimizer.cpp 未编译） | astro_calibration.h:169-179 |
 | 错误码 | AC_OK=0、AC_ERR_PARAM=−1、AC_ERR_MEMORY=−2、AC_ERR_INTERNAL=−3；**−2/−3 从未返回**（见 DISP-CAL-001） | astro_calibration.h:21-24 |
 | FP64 ABI | 仅 `ac_calibrate_frame_f64` 真双精度（calibrate_d）；`ac_generate_master_*_f64`、`ac_correct_frame_f64` 将 double 输入 `static_cast<float>` 走 f32 实现后转回 double（统计/mask 路径降级，头文件 105-115 声明） | ac_api.cpp:147-263 |
@@ -322,7 +319,7 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:46-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
-| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:589-609；lib/algorithms/calibration/Makefile |
+| 构建 | CMake 目标 `astrocs_calibration`（STATIC，5 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:607-616；lib/algorithms/calibration/Makefile |
 | 生产调用方 | **calibrate**：`lib/phase1_session/p1_session.cpp:372` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp:2220`（`p1_op_calibrate`，CLI 路径）；**cosmetic**：`p1_session.cpp:462-465` 与 `module_adapters.cpp:2355`（`p1_op_cosmetic`），两处均传 `nullptr, nullptr` 检测源（见 COSMETIC_ALGORITHMS.md §4）；**master 生成**（`ac_generate_master_*`）当前无生产调用方——唯一入口 `lib/algorithms/calibration/src/module_entry.cpp:970-998` 属 `astrocs_p1_calibration` DLL 适配层，该 entrypoint 零调用（`lib/algorithms/calibration/README.md:22`） | p1_session.cpp:372,462-465；module_adapters.cpp:2220,2355；lib/algorithms/calibration/src/module_entry.cpp:970-998 |
 
 ### 4.1 非生产双实现：`cpp/cosmetic_corrector.cpp`（cc_* 通道）
@@ -487,22 +484,21 @@ oracle 同容差；actual_k 精确相等。
   缺陷不敏感，标度正确的判据另设**；标度由 §2 标度声明表 + 消费边界
   门判定（DISP-CAL-013）。
 
-## 10 现状缺陷清单（如实登记，P1-CAL-IMPL/INT 处理；不改代码）
+## 10 现状缺陷清单（P1-CAL-IMPL/INT 处理）
 
-- DISP-CAL-001（**部分关闭**）`generate_master_flat` 逐帧/最终归一对
+- DISP-CAL-001 `generate_master_flat` 逐帧/最终归一对
   **负 median** 取**拒绝**语义（返回 AC_ERR_PARAM，不写 out；
   `master_generator.cpp:234-238,276-280`），不直除翻转符号。**残留**：
   `ac_generate_master_*` 系列
   无 extern "C" 异常屏障仍未处理：std::bad_alloc 可穿越 C ABI
   （AC_ERR_MEMORY/AC_ERR_INTERNAL 为死值，从未返回）。
-- DISP-CAL-010（**已按现行语义落地**）`generate_master_flat` 步骤1 的
+- DISP-CAL-010 `generate_master_flat` 步骤1 的
   **帧 median** 与 `generate_master` 逐像素路径同一 NaN 策略：先剔 NaN 再取
   中位数（`master_generator.cpp:49-60,214-223`）；全 NaN 帧无有效中位数 →
   返回 AC_ERR_PARAM（fail-closed，SCI §4）。帧 median 不依赖 nth_element
   含 NaN 的未定义序。
 - DISP-CAL-002 `ac_set_num_threads` 全局改写 OpenMP ICV（进程级副作用，
-  并发调用竞态；违反约束 D.3/D.4 ThreadLease 模型；API-P1-001 §2 已列
-  V5 整改点）。
+  并发调用竞态；违反约束 D.3/D.4 ThreadLease 模型）。
 - DISP-CAL-003 `AC_METHOD_BILINEAR` 实际为 4 方向 IDW（1/dist 反比），
   非标准双线性插值；命名误导。
 - DISP-CAL-004 `detect_hot/cold_pixels` 与 `calibrate` 不过滤 NaN：
@@ -510,7 +506,7 @@ oracle 同容差；actual_k 精确相等。
   （下游 Drizzle 跳过非有限像素，行为可用但未在 ABI 文档化）。
 - DISP-CAL-005 `optimize_dark_k`（ALG-CAL-005）未编译未接线（不在
   CMake 清单、无调用方）；02_FROZEN §2.3 语义未进入生产路径。
-- DISP-CAL-006 `apply_photometry`（ALG-CAL-006）**已订正**：已编译（根 `CMakeLists.txt`）且**有生产调用方**（Phase1 photometry 节点同一步内施加）；k_photo
+- DISP-CAL-006 `apply_photometry`（ALG-CAL-006）已编译（根 `CMakeLists.txt`）且有**生产调用方**（Phase1 photometry 节点同一步内施加）；k_photo
   来源（Gaia 定标）不在本模块。
 - DISP-CAL-007 `normalize_flat`/`compute_mad` 为公共命名空间符号但无
   头文件声明、无调用方（死代码风险）。
@@ -529,7 +525,7 @@ oracle 同容差；actual_k 精确相等。
   bias → dark(×曝光比) → flat；LSST `ip_isr` 为 `biasCorrection` →
   `darkCorrection`（`maskedImage -= dark * expScaling / darkScaling`）→
   `flatCorrection`（证据与 URL 见 `docs/science/CALIBRATION.md` §14 第 4/5 条）。
-  **判据（真实 T2 NGC1727 Red 600s，固化二进制 63da68618aa73203）**：默认分支下
+  **判据（真实 T2 NGC1727 Red 600s）**：默认分支下
   "提供 vs 缺失 master_bias" 的 `calibrated_*.fts` 必须不同——**逐位相同
   （16,777,216 px 全等，max|Δ|=0）即偏离**；只提供 bias（无 dark/flat）时产物与
   完全不标定必须不同（**逐位相同即 bias 零影响，属偏离**）；缺 bias 的 dark+flat
@@ -615,9 +611,8 @@ oracle 同容差；actual_k 精确相等。
 - 测试: TEST-CAL-DESIGN-001（本文 §9，P1-CAL-TEST 落地可执行 TEST-P1-CAL-001）；既有共址测试 lib/algorithms/calibration/tests/test_photometry_apply.cpp
 - ARCH: ARCH-001（docs/contracts/ARCH-001.md）
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 母版约定与 ISR 顺序：ccdproc（BSD-3-Clause）reduction_toolbox/subtract_dark；LSST ip_isr（GPL-3.0）isrFunctions.py。
 - 探测器噪声/gain：Janesick 2001, SPIE PM83, Ch.2；Newberry 1991, PASP 103, 122；Howell 2006, Handbook of CCD Astronomy 2nd ed., CUP, Ch.4。
@@ -626,11 +621,5 @@ oracle 同容差；actual_k 精确相等。
 - XISF bounds 与 65535：XISF 1.0 Spec（PixInsight；PCL 自定义 source-available 许可）。
 - IRAF ccdproc/zerocombine（IRAF/NOAO 许可，非 OSI）：经典归约顺序对照。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

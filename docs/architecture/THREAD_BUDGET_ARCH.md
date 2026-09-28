@@ -19,11 +19,26 @@
 
 | 阶段 | 串行 I/O | CPU task（并行粒度） | async pipeline | backpressure |
 |---|---|---|---|---|
-| Phase1 读入 | aio 顺序读（1 线程） | 校准 / 检测 / PSF（逐帧行带） | 读→算双缓冲（深度=2） | 队列满时读阻塞 |
-| Phase1 WCS / 测光 | header KV 读写 | ipv 三角 / 投票（帧内） | — | 同步（见 §3） |
-| Phase1 Drizzle / HiPS | tile 原子写 | overlap / accumulate（候选） / normalize（归并） | tile 写异步（深度=1） | 落盘完成才 release tile |
-| Phase2 | UPM 模型读 / 写（串行） | sampler（串行 reference）→ rejection（行带）→ integration（行带） | — | 同步链 |
-| Phase3 | HiPS tile 读（cache） | 反向映射 + 采样（行带） | tile cache 预取（深度=1） | cache 上界 O(cache_tiles·W²) |
+| Phase1 各节点 | aio 读（每帧一次，句柄线程私有） | 两轴：帧级 × 帧内 | — | 内存闸门限帧在飞数 |
+| Phase1 Drizzle / HiPS | tile 原子写 | overlap / accumulate / 归并 | — | tile 写为原子事务 |
+| Phase2 coverage / UPM | UPM 模型读 / 写（串行） | coverage 重叠图 union；UPM solve | — | 同步链 |
+| Phase2 sampler | 控制采样点读（per-cell） | per-control-cell | — | 池满即阻塞 |
+| Phase2 block / reject / integrate | tile 原子写 | per-tile | — | 每任务只写自己的结果槽 |
+| Phase3 | HiPS tile 读（cache） | 反向映射 + 采样 | — | 内存 ∝ 子块大小 |
+
+各行的并行粒度与同步点：
+
+- **Phase1 各节点**（校准 / 检测 / PSF / 解算 / 测光 / 入库）：`p1_parallel_for` 两轴——帧级
+  `frame_w = min(lease, p1_memory_cap)` × 帧内 `inner_omp = max(1, lease / in_flight)`；
+  不变式 `in_flight × inner_omp ≤ lease`。
+- **Phase1 Drizzle / HiPS**：overlap / accumulate 按确定性 stripe 分片，归并按 stripe 索引升序左折叠；
+  失败或取消的单元不落正式路径。
+- **Phase2 coverage / UPM**：coverage 重叠图 union 为 tile 级；UPM solve = IRLS 主迭代串行 +
+  compute_raw / per-obs 权重 per-call 池（`granted_workers`）。
+- **Phase2 sampler**：per-control-cell，`next_c.fetch_add(1)` 动态认领，`cpu_workers = budget.max_workers`。
+- **Phase2 block / reject / integrate**：`p2_parallel_for`（std::thread + 原子计数动态认领，无 OpenMP、无 barrier），
+  跨任务零浮点归约。
+- **Phase3**：子块流式 + 有界队列背压，内存占用 ∝ 子块大小、与总图大小无关。
 
 - 每阶段在 run manifest 记录 `budget_alloc`（分配快照）；资源监控以同一对象为唯一事实来源
   （见 `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`）。

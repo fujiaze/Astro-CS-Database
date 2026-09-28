@@ -13,19 +13,19 @@
 - `docs/science/algorithms/GAIA_QUERY.md`（缓存契约/复杂度/并发模型/不变量正本）
 - `docs/architecture/CACHE_POLICY.md`（Gaia 查询缓存行）
 - `docs/plugins/algorithms_phase1/05_platesolve.md`（消费方）
-- Gaia 数据模型（外部标准）
+- Gaia DR3 数据模型：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3 发布与内容综述，DOI: 10.1051/0004-6361/202243940）；XPSD 本地编码合同 = `docs/standards/STANDARDS_REGISTRY.md`（catalog 行）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：本地星表数据集目录 `catalog_dir`（GaiaDR3/GaiaDR3SP 文件集）、查询请求（`ra`/`dec`/`radius_deg`/`mag_low`/`mag_high`，谱/测光变体含 `match_radius_arcsec`）、`db_type`（AUTO/DR3/DR3SP）、`max_workers`。
-- **输出**：星表行（位置、自行、parallax、光度、`source_id`）、数据集统计（file_count / file_entry_count / fail_count，`gaia_client.c:61` 暴露面）。
+- **输出**：星表行（位置、自行、parallax、光度、`source_id`）、数据集统计（file_count / file_entry_count / fail_count，`gaia_client.c` 暴露面）。
 - config 键词表冻结于 `lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h`（`ASTROCS_GAIA_CFG_KEY_*`）；op 词表：`cone_search` / `cone_search_for_solver` / `cone_search_with_spectrum` / `cone_search_with_photometry` / `query_spectrum_by_coords`（未知 op → PARAM，detail 100）。
 
 ## 4. 算法与公式要点
 
 ### 4.1 查询键与两级内存缓存
 
-- 缓存键**精确匹配**（不做量化舍入）：`ra`/`dec`/`radius_deg`/`mag_low`/`mag_high`（double 逐位）+ 数据集身份（`db_type`/`file_count`）+ 缓存键版本 `GAIA_CACHE_VERSION=2`；命中 = 同一查询精确重复（正本：`GAIA_QUERY.md` §2.9 汇总表「缓存」行；实现 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c:819-905` 的 `query_cache_lookup`/`query_cache_insert` 与 `:220-224` 的 `GAIA_CACHE_VERSION=2`）；
+- 缓存键**精确匹配**（不做量化舍入）：`ra`/`dec`/`radius_deg`/`mag_low`/`mag_high`（double 逐位）+ 数据集身份（`db_type`/`file_count`）+ 缓存键版本 `GAIA_CACHE_VERSION=2`；命中 = 同一查询精确重复（正本：`GAIA_QUERY.md` §2.9 汇总表「缓存」行；实现 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 的 `query_cache_lookup`/`query_cache_insert` 与同文件的 `GAIA_CACHE_VERSION=2`）；
 - 两级缓存均为**进程内存**实现：
   - **查询缓存 QueryCache**：64 条（`QUERY_CACHE_CAPACITY`），TTL 60 s，总字节上限 307,200,000 B，超限按 LRU（last_access）淘汰，事务性替换（先全分配成功再释放旧条目）+ 版本/过期校验失效；
   - **块缓存 BlockCache**：8192 槽/文件（2^n），模块级总预算 4 GB（`BLOCK_CACHE_MAX_MEMORY`，全部 XPSD 文件共享），内存压力淘汰 1/4 LRU；XPSD 文件 mmap 只读，块按需解压缓存（解压 O(B)、命中 O(1)）；
@@ -57,8 +57,8 @@
 
 ## 6. 接口/ABI
 
-- 模块导出面 = `astrocs_module_query_v1`（12 个 legacy 符号经 `-DGAIA_EXPORT=` 本地化；ABI-006）；
-- 生命周期 = `lifecycle_v1.h` 冻结时序（`module_entry.c:12-13`）：query → describe/validate_config/plan → execute；
+- 模块导出面 = `astrocs_module_query_v1`（12 个 legacy 符号经 `-DGAIA_EXPORT=` 本地化）；
+- 生命周期 = `lifecycle_v1.h` 冻结时序（`module_entry.c`）：query → describe/validate_config/plan → execute；
 - platesolve 经本模块获取匹配输入；查询缓存跨查询复用。
 
 ## 7. 错误与边界

@@ -121,23 +121,13 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 
 ## 12 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动 §2–§11 任何定义。
 
 - **线性观测模型 d=A x+n、Cov(n)=C**：教科书级（如 Kay, S. M. 1993, Fundamentals of Statistical Signal Processing: Estimation Theory, Prentice Hall；Rodgers, C. D. 2000, Inverse Methods for Atmospheric Sounding, World Scientific）。
 - **点源最优统计 Q/W、Fisher information**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339；Zackay & Ofek 2017, ApJ 836, 187。
 - **广义最小二乘 x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d、Cov=(AᵀC⁻¹A)⁻¹**：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346，GLS 原始出处）；教科书级。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
 - **5σ 深度 m5**：Tonry et al. 2012, ApJ 750, 99；Ivezić et al. 2019, ApJ 873, 111。
-- **跨文档口径**：本文件 §3 表的 frame_snr（未加权原始信噪比）与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a（相对质量权重，非科学信噪比）是不同对象，各自独立消费、取值互不代用；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
+- **跨文档口径**：`frame_snr` 的字段定义与数据对象归属见 `docs/design/UNIFIED_MODEL.md` §2（数据对象）；同名两义**必须**分别命名——Phase1 HiPS 文件头的 `frame_snr` = 未加权原始信噪比（科学量，本文件 §3 的 `source SNR`/`depth m5` 口径），`docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` = 相对质量权重场（非科学信噪比）；二者是不同对象，各自独立消费、取值互不代用；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

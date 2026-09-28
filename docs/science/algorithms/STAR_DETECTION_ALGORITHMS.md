@@ -6,8 +6,8 @@
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2287 行实测；源文件唯一在役副本）；合同头
-> lib/algorithms/star_detection/include/star_detector.h（99 行）；取值与签名一律以本头文件为唯一来源。
+> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2307 行；源文件唯一在役副本）；合同头
+> lib/algorithms/star_detection/include/star_detector.h（102 行）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
 > 迁移目标 astrocs_p1_star_detection.dll）。
@@ -31,7 +31,7 @@
 
 （锚=sdet_api.cpp 实测行号；公式与源码一一对应，正文按源码照录）
 
-- 背景噪声（FnNoise1 行差分族，:450-504；sdet_compute_bgnoise 定义 :451）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
+- 背景噪声（行差分族 `sdet_compute_bgnoise()` :601-644；调用点 :1456）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
   3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.7071
   （1/√2）。**量纲 ADU；输出量 = 单像素噪声 RMS `σ_n`。**
   **适用域（必须随引用同写）**：`Var(d) = 2σ_n²(1−ρ_adj)`，`ρ_adj` = 相邻像素
@@ -47,7 +47,7 @@
   `ρ_adj` 未标定时检测阈的 σ 基准 = 另行独立标定的估计量。
   纯独立高斯噪声下实测无偏：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
   散布 0.42%）。
-- 全局检测阈值（:1783 估 `bgnoise` 于**未平滑原图**；:1790 组装；:1856-1857 判 `smooth > threshold`）:
+- 全局检测阈值（:1456 调 `sdet_compute_bgnoise()` 估 `bgnoise` 于**未平滑原图**；:1481 组装 `pr.thr = pr.bg + 5.0·bgnoise`；阈值作用面 = :1451 的 σ=2 平滑图；候选门槛判据 :1849、对称性门 :1848、饱和判定 :2188）:
   `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**。
   **量纲声明**：阈值**作用图像**是 `σ_smooth = 2.0 px` 的 YvV 平滑图（:1772-1774），
   而 `bgnoise` 取自未平滑原图 ⇒ 阈在平滑图噪声单位下 = `5.0/‖k‖₂ = 35.45 σ_smooth`
@@ -83,7 +83,7 @@
   `Sr,Sc`（平滑图 σ 估计）与 `Ar,Ac`；平滑 PSF 估计量
   `Sr=(−srl+srr)/2`、`Ar=(Arl+Arr)/2`、`Sc=(−scu+scd)/2`、`Ac=(Acu+Acd)/2`；
   符号约定：单侧读数 `srl/srr/scu/scd`（及 `Arl/...`）记录**有符号差分读数**，
-  距离量取正值为有效（实现 `sdet_zero_cross_dir` 返回 `dist = |峰−零交叉| ≥ 1.0`，
+  距离量取正值为有效（实现 `sdet_zero_cross_dir()` 返回 `dist = |峰−零交叉| ≥ 1.0`，
   缺失侧回落 1.0）；对称合成取两侧均值 `Sr = 0.5·(drl + drr)`（sdet_api.cpp
   O7 段，`c.Sr = 0.5 * (drl + drr)`），同式得 `Sc`；
   `SQRT_EXP1=√e`（:1808）。
@@ -122,14 +122,14 @@
 ## 3 伪代码
 
 ```
-sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1570-1943
-  smooth   = GaussianBlur_YvV(image, sigma=2.0)   # :1761-1763（Young-van Vliet IIR）
-  bgnoise  = FnNoise1(image)                      # :450-504 行差分+3×5σ clip
-  median   = robust_median(image)
-  thr      = median + 5·bgnoise                   # :1779（阶段3 段 :1770-1779）
-  dynrange = min(max(image), 65535) − median      # :1824
-  for y,x in [r..h−r)×[r..w−r):                   # 阶段4 peaker :1787-2113
-    if smooth[y,x] ≤ thr: continue                # :1845-1846
+sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1582（模板双实例）
+  smooth   = GaussianBlur_YvV(image, sigma=2.0)   # :1451/:1453（Young-van Vliet IIR）
+  bgnoise  = sdet_compute_bgnoise(image)          # :1456 调用（族 :601-644，行差分+3×5σ clip）
+  median   = robust_median(image)                 # :1458-1460
+  thr      = median + 5·bgnoise                   # :1481（locthreshold :1480）
+  dynrange = min(max(image), 65535) − median      # :1477
+  for y,x in [r..h−r)×[r..w−r):                   # 候选扫描段
+    if max(|Ar|,|Ac|) < locthreshold: continue    # :1849（对称性门 :1848；另一路径 :2132）
     if not local_max_11x11(smooth,y,x): x+=5; continue   # :1849-1868 平局决胜取左上唯一
     (meanhigh, minhigh) = stat3x3(image, x, y, thr)      # :1870-1890 原图 3×3
     if boundary(xx±2,yy±2) 越界: continue         # :1892-1893
@@ -166,6 +166,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1570-1943
 - 拟合失败（:621-632）: LM 状态≠Success 或非有限值或 A≤0 →
   NO_CONVERGENCE，该候选丢弃（:2278），不产出 NaN 行。
 - mag NaN: 正常星 box_sum≤0（:2337）；NaN 排序恒在末尾（:972-981）。
+
 - 饱和星拟合失败: flux/fwhm/sx/sy/theta/background/amplitude 全 0.0f 哨兵 +
   mag=NaN（:1599-1610 debug 路径语义；extras 读取端 get_extra_field :809-850）。
 - 边界: peaker 扫描域 [r,h−r)×[r,w−r)（:1843-1844）；边界检查 xx±2/yy±2
@@ -200,9 +201,8 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1570-1943
 
 ## 8 参考实现/Oracle
 
-- 历史参考: star_finder.c（SEXtractor 族 peaker，源码注释逐段对齐 :1653-1660、
-  :1715、:1736、:1762、:1914-1947）；IPv 手写 LM 已被自研信赖域 LM（nls_lm）取代
-  （sdet_api.cpp:28 注释）。
+- 论文谱系: SEXTractor 族 peaker（峰值检出）与自研信赖域 LM（`nls_lm`，
+  `sdet_api.cpp:28` 注释）；行为等价由既有测试与 testdata 基线锁定。
 - 本文档即参考实现锚；数值 oracle 设计见 §11.4（TEST-STAR-DESIGN-001）。
 
 ## 9 容差来源
@@ -256,8 +256,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1570-1943
 SDetParams 9 字段（star_detector.h:14-23）生产消费面（DISP-STAR-003）:
 maxStars（:2383-2385）、maxAxisRatio（:2282-2284）完整消费；
 fitRadius 仅驱动 auto 半径日志推导（:2145-2163，阶段6 实际用 per-candidate R
-:2185）；fwhmClipSigma 仅 debug 入口消费（:1213-1216，impl 阶段8 已移除全局
-FWHM clip :2279）；structureLayers/hotPixelFilterRadius/iterativeClipSigma/
+:2185）；fwhmClipSigma 只由 debug 入口消费（:1213-1216）；structureLayers/hotPixelFilterRadius/iterativeClipSigma/
 iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 （sdet_detector.cpp），生产 impl 不调用结构图。
 
@@ -280,26 +279,23 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   到 [0,65535] 转 uint16 后进 sdet_detect_ex；PREC-105 同族精度约束；FP64
   通道（sdet_detect_ex_f64）不降级。
 - DISP-STAR-002 全局单阈值无局部背景自适应: median+5·bgnoise 全局阈值
-  （:1790）对渐变背景/星云场漏检低对比星；旧结构图局部背景路径已退出生产
-  impl（仅 :992/:1281 旧入口保留）。**实测量化（M42_M1_T2 Red 20251212@012404
-  校准帧，4096²，生产盲检测 `sdet_detect_ex_f64`）**：阈值 = 265.06 ADU，
-  2474 颗检出星的局部 3×3 背景 `p1/p50/p95` = 318.96 / 803.04 / 17983.63 ADU
-  ⇒ **100% 的检出星所在像素在原图上本已高于全局阈**，该阈在该帧上不构成检出下限；
-  同时 `bg3` 落在帧中位 ±2σ_n 内的检出星 **0 颗**（背景受限子样本为空）。
+  （:1790）对渐变背景/星云场漏检低对比星；结构图局部背景路径不在生产
+  impl（仅 :992/:1281 入口保留）。**适用域判据（生产盲检测 `sdet_detect_ex_f64`，
+  真实星云帧）**：逐检出星取 11×11 邻域局部背景 `bg3`，统计落在帧中位 ±2σ_n
+  内的颗数——该子样本为空集 ⇒ 全局阈不构成该域帧的检出下限。
   ⇒ 全局阈的**适用域 = 背景在检出尺度上空间平坦的帧**；星云/银道面场中检出集由
   11×11 局部极大 + 3×3 邻域 + 对称性门（`dA/dSr/dSc ≤ 2` 且
   `max(|Ar|,|Ac|) ≥ 5·bgnoise`，:2072-2084）决定，判据**必须**按此域分开声明。
-  **测法**：同一 M42 星云帧（4096²，float32 已定标）跑生产盲检测，逐检出星取
-  11×11 邻域局部背景 `bg3`，统计其落在帧中位 ±2σ_n 内的颗数。**负对照**：该子样本
-  为**空集**（0 颗）⇒ 全局阈不是该帧的检出下限；平坦背景合成场上同一统计量非空
-  （正例）⇒ 两域**必须**分开声明。
+  **负对照**：平坦背景合成场上同一统计量的取值必须非空（正例），该子样本为空集
+  ⇒ 全局阈不构成星云/银道面域的检出下限；两域**必须**分开声明。读数正本 =
+  星检测实验单元 results。
 - DISP-STAR-003 SDetParams 9 字段生产消费面缺口（§11.1 表后注）: 编排
   platesolve.* 传参（orchestrator.cpp:1591-1607）部分字段无效；fwhmClipSigma
   生产路径半失效。
 - DISP-STAR-004 饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
   :2293 `rec.flux = (float)fit_results[i].A` vs :2337 `rec.mag = (box_sum > 0.0) ? -2.5f*log10f(box_sum) : NAN`（段 :2316-2337））；has_saturated 恒等于 is_saturated（:2342），列语义
   未分化（star_det v1 [5] 列承接归 P1-STAR-INT）。
-- DISP-STAR-005 旧 CC 结构图路径（sdet_detect/sdet_detect_debug）已按净室重写裁决删除，检测为单实现路径（O1-O16），本项消解。
+- DISP-STAR-005 检测为单实现路径（O1–O16）；`sdet_detect`/`sdet_detect_debug` 不作为入口。
 - DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧生产内核为椭圆高斯
   （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4
   （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，
@@ -313,7 +309,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
 ### 11.4 TEST-STAR-DESIGN-001 冻结测试设计（可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 落地）
 
 - F1 合成高斯星场（已知中心/流量/FWHM/SNR）: 亚像素质心 |Δc|≤0.3 px
-  （SNR≥20）；FWHM 相对误差 ≤10%；纯噪声场虚警 ≤0.1/千像素
+  （SNR≥20）；FWHM 相对误差 ≤10%；纯噪声场虚警 ≤0.1/千像素（发布门 = `G-P1-STAR-FP`，阈值与本条一致）
   （专项=completeness/false positive synthetic fields）。
   **完整性（召回）门按 PSF 宽度分档冻结**，判据 = 逐档 99% 召回阈表（本仓实测，
   生产 `sdet_detect_ex_f64`，默认参数，256² 单星居中，**峰值对齐像素中心**，
@@ -403,9 +399,8 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 
 > 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 阈值检测/去混叠：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；源码 SExtractor（GPL-3.0，tag 2.8.6）scan.c（扫描/阈值）/extract.c（提取）/back.c（背景）/photom.c（测光）。
 - 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
@@ -414,13 +409,7 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 - SNR_peak/门：docs/science/algorithms/GATES_AND_TOLERANCES.md §2/§3。
 - 检测侧椭圆高斯与 PSF 侧 Moffat4 的 FWHM 不可跨块比较（DISP-STAR-007；Moffat 1969, A&A 3, 455）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---
@@ -433,10 +422,11 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
   （可推翻条件）**：两估计器若在同一批帧上逐帧相等，增益必须为 0；实测 CI 不含 0
   ⇒ 两者是可区分的不同估计量。
 - **第三 σ 估计器的定义与消费面（量纲 ADU）**：`estimate_background` 的返回值 = 2 轮 `median±3σ` 裁剪后、关于裁剪中位数的 **RMS**（`star_detector.cpp:67`），写入 `p1_sources.json:frames[].noise_sigma`，并被 noise-snr 节点读作 `cfg.sigma_sky_adu`。**它与 `bgnoise`（行差分 FnNoise1）不是同一个估计量**：同帧实测 20.7384 vs 13.8148 ADU（比值 1.5012，M42_M1_T2 Red 20251212@012404）。**测法**：同一帧分别跑
-  `sdet_compute_bgnoise`（行差分 FnNoise1，`sdet_api.cpp:450-504`）与
+  `sdet_compute_bgnoise()`（行差分 FnNoise1，`sdet_api.cpp:450-504`）与
   `StarDetector::estimate_background`（2 轮 `median±3σ` 裁剪后 RMS），两者互不调用。
-  **负对照**：两套 σ 若可互换，同帧比值必须为 1；实测 1.5012 ≠ 1 ⇒ 引用「σ_bg」
-  而不点名估计器的判据不可复核。凡写「σ_bg」的判据**必须**点名估计器。
+  **负对照**：两套 σ 若可互换，同帧比值必须为 1 ⇒ 引用「σ_bg」而不点名估计器的
+  判据不可复核（比值读数正本 = 星检测实验单元 results）。凡写「σ_bg」的判据**必须**
+  点名估计器。
 - **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备即引用前提；缺项数字只作过程记录。
 - **NaN fail-open 已闭合**：估计器入口逐像素 `isfinite` 归约 + 返回值检查，NaN 输入不再静默通过；负例（全 NaN patch）必须判红。
 

@@ -9,8 +9,8 @@
 ## 逐像素方差
 
 - 输入方差：噪声模型 A = `NoiseWeightModelV1`（空背景稳健方差，唯一生产模型，SCI-NOISE-001..015）；
-- Drizzle 传播：var_p = Σ v_j w_jp² / N_p²（SCI-DRZ-014 冻结口径；实现写法 = 分子 (sumVarNum·k²)、分母 D_p²，其中 k := D_p/N_p = pixfrac²，逐位等于 /N_p²，分子累加锚 `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1645-1647`；以 D_p² 计会把方差高估 1/pixfrac⁴，pf=0.8 → ×2.44）。
-  与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002；实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:919`、声明 `snr_estimator.h:256`）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
+- Drizzle 传播：var_p = Σ v_j w_jp² / N_p²（SCI-DRZ-014 冻结口径；实现写法 = 分子 (sumVarNum·k²)、分母 D_p²，其中 k := D_p/N_p = pixfrac²，逐位等于 /N_p²，分子累加锚 `drizzle_engine.cpp`；以 D_p² 计会把方差高估 1/pixfrac⁴，pf=0.8 → ×2.44）。归一化口径与几何锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`。
+  与 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002；实现锚 `noise_model.cpp` 与 `snr_estimator.h`，口径锚 `docs/science/algorithms/NOISE_ESTIMATION.md`）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
   **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp` 无量纲、归一分母 `N_p = Σ_j w_jp·A_pixel,j`（实现记法 `D_p/k`，`k := D_p/N_p`；`D_p = Σ_j a_jp` 与 `N_p` 同为 `sr` 计面积量）且**与 `v_j` 无关** ⇒ 缩放律在标度类别的任何一档上都成立（量纲论证主语取 N_p；D_p 与 N_p 同量纲，论证对两者同型）（`DATA_SEMANTICS` §4a；`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
 - 产品：HiPS variance + ivar（1/variance）。
 
@@ -50,9 +50,8 @@ control_ivar     = 1 / control_variance
   k_geo = drizzle 输出像素相关的纯几何因子；非高斯边际形状效应 ≤±5%（N≥9），只作附带可忽略性说明，不进入公式面。k_gauss 表
   （照抄 P3 正本 DERIVATIONS-P3 §D8 全表：N=5→1.637、9→1.316、17→1.144、25→1.083、49→1.046、≥121→≈1.00）与 k_geo 域
   （紧凑 patch 1.27±0.03 / 全 touched ≈1.43–1.45 / 远散 ≈1.00）**由 P3 单元
-  `实验/healpix-polar` 承载**。历史 MC 读数 1.3883（pixfrac=0.8、2000 实现、
-  N_eff≈181/251）= **标定几何专属 MC 实测带 1.27–1.43（中心 1.34±0.04）内一次实现值**
-  （受控复现 1.3445±0.0416，16 相位 × 8 seed）；冻结单数 1.4 在其声明标定域两端
+  `实验/healpix-polar` 承载**：`k_corr` 的 MC 证据与全部读数正本 = `实验/healpix-polar/`（results，
+  受控复现的相位/seed 构成同址登记）。冻结单数 1.4 在其声明标定域两端
   低估 control_variance（N=5 端 k_corr(5,紧凑)≈2.05 → 低估 32%；源 583–600″ 端
   ≈2.5–3.0 → 低估约 2 倍）。**引用义务**：任何引用 `control_variance` 的陈述必须声明
   ① 标定元组 (ρ, pixfrac, 帧数/dither, patch 构成)；② N_retained 档位（N≤25 时
@@ -106,7 +105,8 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
 - **为何主式必须带协方差项**：本文件协方差节已给出
   `Cov(S_p,S_q)=Σ_j c_jp c_jq v_j`，且自报 mean|ρ|≈0.19、max|ρ|≈0.57
   （SNR-012，nside=512）。只写 `Σ c_k²u_k` 等于假设 C_in 对角，**系统性低估**
-  输出方差：偏差因子 ≈ 1+0.75ρ（两像素近邻近似），ρ=0.19 ⇒ 方差低估 36.3%、
+  输出方差：设参与重叠的有效像素数为 `M_eff`，偏差因子 = `1+ρ(M_eff−1)`（近邻近似；
+  4-tap 核 ⇒ `M_eff=4` ⇒ `1+3ρ`），ρ=0.19 ⇒ 方差低估 36.3%、
   σ 低估 20.2%（MC 复算 0.39415 vs 理论 0.39250）。
   与 ALG-P3-001 §3（`C_y = R C_x Rᵀ`）同式；`Σc_k²` 标量式**只在 C_in 对角时**
   成立，该式的适用域 = C_in 对角（通用式见上）。
@@ -114,9 +114,9 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
   （§上协方差机制），归一 variance 的因子 = Σc_k² ≠ 1（常数信号场不变量
   SCI-P3 §7 只对 signal 成立，对 variance 不成立）。
 - **实现口径（正向约束）**：`propagate_covariance(op, c_in)` 按一般式 `C_y = R C_x Rᵀ` 计算，
-  **不假定 `C_in` 对角**（`lib/algorithms/resample/p3_rsmp_covariance.cpp:22-45`）；输出只取对角线作为
-  `variance` 产品（`p3_rsmp_propagation.cpp:101,108`）。**完整 `C_x` 是生产输入路径**，对角 `C_in` 只作
-  阴性对照（`lib/phase3_session/p3_export.h:129-132`）。
+  **不假定 `C_in` 对角**（实现锚 `p3_rsmp_covariance.cpp`；口径锚 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`）；
+  输出只取对角线作为 `variance` 产品（`p3_rsmp_propagation.cpp`）。**完整 `C_x` 是生产输入路径**，对角 `C_in` 只作
+  阴性对照（`p3_export.h`）。
   ⇒ 本文件主式与实现同式；产品面仍只发布对角 `variance`，**使用该 variance 做孔径/测量误差时**
   必须显式加入协方差项（本文件「对使用的约束」同款边界）。
 - 输入选择：输入 HiPS 含 variance/ 子产品则 u=variance；否则含 ivar/ 则
@@ -139,15 +139,13 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
 
 FP64；MC 表征 seed 固定可复现。
 
-## ID
+## 本文件条款族
 
-SCI-NOISE-011/012；ALG-DRZ-VAR-*；ALG-UPM-CONTROL-IVAR-001；
-DATA-UPM-CONTROL-UNC-001；DATA-P2-VAR-001；DATA-P3-UNC-001
+本文件条款编号 = SCI-NOISE-011/012、ALG-DRZ-VAR-*、ALG-UPM-CONTROL-IVAR-001、
+DATA-UPM-CONTROL-UNC-001、DATA-P2-VAR-001、DATA-P3-UNC-001
 （DATA-UNC-001，DATA_SEMANTICS §30）。
 
 ## 参考文献与参考代码库（含许可证）
-
-> 本节只补出处与参考实现，不改动本文件任何公式与容差。
 
 - **线性方差二次型 C_out = R C_in Rᵀ**：线性误差传播（教科书级）；数值稳定性与归约误差见 Higham 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。
 - **Drizzle 后相邻像素相关与方差低估**：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393，§5 相关噪声）；DrizzlePac Handbook（STScI）；Zackay & Ofek 2017, ApJ 836, 188（相关噪声下的信息保持组合）。**差异（正向约束）**：传播链内部按完整二次型计算 `C_y = R C_x Rᵀ`（§Phase3），但**产品面只发布其对角线** `variance`，完整协方差矩阵不作为产品交付（§协方差节）。⇒ 用产品 `variance` 做孔径/测量误差时，必须显式加入协方差项；`Σc_k²u_k` 标量式只在 `C_in` 对角时成立。
@@ -161,14 +159,5 @@ DATA-UPM-CONTROL-UNC-001；DATA-P2-VAR-001；DATA-P3-UNC-001
   **未独立验证**：Kendall & Stuart Vol.1 与 Hoaglin et al. 1983 的章节号与逐字原文（付费墙）。
 - **像素 ivar 与孔径方差不等价**：aperture 方差须显式加 Cov 项；相关噪声处理见 Zackay & Ofek 2017 II。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

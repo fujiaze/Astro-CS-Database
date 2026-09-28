@@ -2,8 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、§4.4 / §5 / §6（三阶段输出合同）、附录 B（外部标准与文献）
 
-上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）
-下游：`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/plugins/infrastructure/17_aio.md`、`docs/design/PHASE1_DETAILED_DESIGN.md` / `PHASE2_DETAILED_DESIGN.md` / `PHASE3_DETAILED_DESIGN.md`
+形态键的字段词表正本 = `eng/contracts/schemas/hips_storage_form.schema.json`；形态合同 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`；接口面 = `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`。
 
 ## 1. 两种落盘形态
 
@@ -43,7 +42,7 @@
 | **Phase2 mosaic** | 叠加后的天球数据库，被随机读取用于服务 | **裸 `<name>.hips/`** | 无（服务面不接受归档形态） |
 | **Phase3 export** | 平面 FITS 导出交付物 | **裸 FITS（不压缩、不套壳）** | 无 |
 
-- Phase1 归档形态的**下游读取代价必须可接受**：归档定位表的随机瓦片读取实测与本机冷盘直读同量级，且读盘字节数比裸形态少约三分之一（`run/HIPS-PACK-01/REPORT.md` §3）。
+- Phase1 归档形态的**下游读取代价必须可接受**：归档定位表的随机瓦片读取必须与本机冷盘直读同量级，且读盘字节数必须显著低于裸形态。判据 = 归档定位表的随机读延迟与冷盘直读同档，见 `实验/engineering-evidence/compress-01/`（机器门 `CHK-SPARSE-PUNCH-PROBE` 与归档定位表探针的复现面）。
 - Phase3 产物是**交付物**：外部工具（DS9 / astropy / 浏览器）必须能直接打开，任何套壳都会把"打开"变成"先解压"。Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。
 
 ## 3. 命名与内容布局
@@ -137,7 +136,7 @@ flowchart LR
 
 - 载体：**单个不压缩的 UTF-8 JSON 文件**，全量载入内存 + 现场建倒排。选择理由：无自定义二进制格式、无新第三方依赖（C++ 侧已有 vendored JSON 解析器）、可审计可 diff；记录数在本项目量级下远低于载体切换阈值。
 - 该索引是**派生产物**：可由各产品级索引重算。缺失时的规定回退是"读入全部产品级索引并现场倒排"（有依据的回退，不静默降级为逐瓦片探测）。
-- 覆盖范围登记**存在性 + 覆盖分数**，不登记"完全覆盖"单一布尔：叶块中约一成是**部分覆盖**（真实产物实测），只登记"完全覆盖"会漏掉这些块，只登记"有任何覆盖"又无法让阶段2 跳过近乎空的块。
+- 覆盖范围登记**存在性 + 覆盖分数**，不登记"完全覆盖"单一布尔：只登记"完全覆盖"会漏掉**部分覆盖**的叶块，只登记"有任何覆盖"又无法让阶段2 跳过近乎空的块。
 
 ## 6. 部分覆盖与查询语义
 
@@ -166,30 +165,34 @@ flowchart LR
 
 | 哈希 | 对象 | 用途 |
 |---|---|---|
-| **产品身份哈希** `tree_hash` | **解压后的 HiPS 内容**：`sorted[{path,size,sha256}]` 的规范 JSON 的 sha256（IO-003 口径） | 产品身份、跨阶段交换、可重算校验 |
+| **产品身份哈希** `tree_hash` | **解压后的 HiPS 内容**：`sha256(canonical_json)`（规范序列化见下） | 产品身份、跨阶段交换、可重算校验 |
 | **容器指纹** `archive_sha256` | `<name>.hips.zst` 的字节 | 容器完整性、缓存键；产品身份判据 = `tree_hash` |
 | **索引指纹** `index_sha256` | `<name>.hips.index.json` 的字节 | 索引完整性；且索引须可由产品内容重算 |
 
+- **`tree_hash` 的规范序列化**：`canonical_json` = 条目三元组数组 `[(path, size, sha256), …]` 按
+  `(path, size, sha256)` 升序排序后序列化；执行形态 = `lib/infrastructure/aio/io/hips_output_store.py`，
+  合同正本 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`。
 - **产品身份取解压后内容，不取压缩包字节**：压缩档位、帧切分、tar 顺序都是打包参数，不改变科学产品；若身份随打包参数变化，同一科学内容会有多个身份，跨运行可比性与可复现性同时失效。两形态因此**同身份**。
 - `manifest.json` 的 `tree` 记录**解压后内容**的条目（与裸形态相同），另设 `storage` 段记录形态、容器指纹与索引指纹。
+- **规范序列化参数（冻结）**：条目序列化为 `[path, size, sha256]` 三元组数组（不是对象数组）；UTF-8 编码、`ensure_ascii=false`（非 ASCII 路径按原字符写入，不做 \u 转义）、分隔符为 `(",", ":")`（无空白）；数组按 `(path, size, sha256)` 字典序升序。三项参数与排序键构成产品身份的全部自由度——任何一项变动即改变 `tree_hash`，属产品格式变更。两形态（裸 / 归档）逐字节同身份。
 
 ## 9. 体积削减：稀疏打洞（默认）与包围盒 TRIM（可选形态）
 
 > **包围盒 TRIM 纳入可选形态**：本节是它的设计落点（§9.2）。
 
-裸形态没有 zstd 兜底，瓦片里"有效域之外的边距"占着真实磁盘。削减体积有**两种不同机制**，作用层与前提都不同，**两者各自独立、收益不可迁移**（9.2 的 13.31% 口径为在案实测条款；9.1 打洞收益的复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`。**9.1 的整产物百分比是一次性测量值，其原始计时/扫描记录不在当前工作区**（`run/` 受回收策略管理），故只作口径对照、不作门值）：
+裸形态没有 zstd 兜底，瓦片里"有效域之外的边距"占着真实磁盘。削减体积有**两种不同机制**，作用层与前提都不同，**两者各自独立、收益不可迁移**。逐机制、逐层的收益读数与原始扫描记录 = `实验/engineering-evidence/compress-01/`（`fill_scan.json`、`trim_scan.json`、`product_level.json`、`final_numbers.json`）；本文件只承载机制的结构结论与判据落点。
 
-| 机制 | 作用层 | 收益（实测） | 读回行为 | 前提 |
+| 机制 | 作用层 | 判据落点 | 读回行为 | 前提 |
 |---|---|---|---|---|
-| **9.1 文件系统打洞**（sparse hole punching） | 文件分配层（**字节不变**） | 整产物约 **2.77%**（Linux 实测）；support 层约 **9.90%**；signal / variance / ivar 层 **0.0000%**（结构必然：NaN 边距无全零块）。**Windows 面未实测** | **逐字节不变**（稀疏区读出为零填充；打洞只作用于**本来就是零字节**的区域） | Linux ext4 上成立；Windows 有等价实现，**行为面待实测** |
-| **9.2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | signal+support **13.31%**（= `COMPRESS-01` 的 13.3%） | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
+| **9.1 文件系统打洞**（sparse hole punching） | 文件分配层（**字节不变**） | `CHK-SPARSE-PUNCH`、`CHK-SPARSE-PUNCH-PROBE`；收益读数 = `实验/engineering-evidence/compress-01/` | **逐字节不变**（稀疏区读出为零填充；打洞只作用于**本来就是零字节**的区域） | Linux ext4 上成立；Windows 有等价实现，**行为面待实测** |
+| **9.2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`） | 瓦片内容层（**改 FITS 结构**） | `CHK-SPARSE-PUNCH` 的「TRIM 默认形态 = 关闭」判据；收益读数 = `实验/engineering-evidence/compress-01/trim_scan.json` | **改变**：NAXIS1/NAXIS2 缩小，读者必须按 TRIM 关键字补边 | **不成立**——标准 FITS 读者读到的图像变小；草案特性、生态窄 |
 
-**关键区分（本次前提验证的核心结论）**：`COMPRESS-01` 的 **13.3% 属于 9.2（包围盒 TRIM）**，不是打洞；两者收益**不可迁移**。原因：signal 层边距是 IEEE **NaN**（`0x7FC00000`），**没有全零块可打**（实测 0.0000%）；而合同要求 signal 边距必须是 NaN（`docs/contracts/DATA_SEMANTICS.md` §12.4「未覆盖像素一律 invalid（signal=NaN/support=0）」，**不可互换**），把 NaN 改写成 0.0 会把"无覆盖"变成"有效零流量"⇒ 语义破坏；`NaN` 与 `0.0` 两位型各自独立、不可互换。
+**关键区分**：包围盒 TRIM 的收益属于 9.2，不是打洞；两者收益**不可迁移**。原因：signal 层边距是 IEEE **NaN**（位型 `0x7FC00000`），**没有全零块可打**（结构必然：NaN 位型含非零字节）；而合同要求 signal 边距必须是 NaN（`docs/contracts/DATA_SEMANTICS.md` §12.4「未覆盖像素一律 invalid（signal=NaN/support=0）」，**不可互换**），把 NaN 改写成 0.0 会把"无覆盖"变成"有效零流量"⇒ 语义破坏；`NaN` 与 `0.0` 两位型各自独立、不可互换。
 
 ### 9.1 文件系统打洞（默认启用，裸形态）
 
 - **何时**：瓦片写满 → `fsync` → 打洞 → 读回复算 → 算哈希 → 原子改名发布（打洞在发布之前、在运行私有临时区内完成；因为**文件字节不变**，产品身份哈希不受影响）。
-- **对谁生效**：**裸形态** `<name>.hips/` 的 FITS 瓦片（signal / support / variance / ivar 四层都尝试，实测只有含字面零区的层有收益）。**归档形态不实施**（见 §9.3）。
+- **对谁生效**：**裸形态** `<name>.hips/` 的 FITS 瓦片（signal / support / variance / ivar 四层都尝试；逐层收益与"哪些层含字面零区"的实测记录 = `实验/engineering-evidence/compress-01/fill_scan.json`）。**归档形态不实施**（见 §9.3）。
 - **怎么做**：对**已写满且已落盘**的文件按 4 KiB 对齐扫描全零块，用 `fallocate(FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE)`（Linux）/ `FSCTL_SET_SPARSE` + `FSCTL_SET_ZERO_DATA`（Windows）释放。**打洞范围只限整块全零区域**——部分为零的块保持原字节（打洞会改字节）。
 - **失败怎么办**：**不 fail-closed**。任何一步失败（卷不支持稀疏、对齐不足、权限、`EOPNOTSUPP`）⇒ 跳过打洞、保留完整 `.fits`、在 provenance 记 `trim=skipped(reason)`，产品照常发布。打洞是**体积优化**，不是科学语义；产品在打洞与未打洞两种状态下**逐字节相同**，因此不构成产品差异。
 - **如何验证**（可执行判据）：① 打洞前后整文件 `sha256` 必须相同；② 独立读器（cfitsio 与 astropy 两路）逐 HDU 读 header + 像素，逐字节全等；③ FITS 内嵌 `DATASUM`/`CHECKSUM` 打洞后仍自洽；④ 跨越"洞/非洞边界"的随机访问 `pread` 与打洞前全等；⑤ `st_blocks` 必须下降（否则说明洞没打上，须判红而不是静默通过）。
@@ -210,8 +213,8 @@ flowchart LR
 
 ### 9.3 与归档形态的关系（不变）
 
-- **归档形态：两种机制都不实施。** 实测在整包 zstd 之后再施加包围盒 TRIM，压缩包体积几乎不变（收益被 zstd 完全吸收），却引入草案关键字与读端补 NaN 的实现定义风险；打洞对归档容器同理无收益（容器字节不是全零区）。
-- 该结论来自 `run/HIPS-PACK-01/REPORT.md` §8，**本设计不改归档形态**；TRIM 的落点只在裸形态。
+- **归档形态：两种机制都不实施。** 整包 zstd 已吸收边距冗余，再施加包围盒 TRIM 对压缩包体积无实质收益，却引入草案关键字与读端补 NaN 的实现定义风险；打洞对归档容器同理无收益（容器字节不是全零区）。
+- 机制与收益读数见 `实验/engineering-evidence/compress-01/`（`product_level.json` 的逐层压缩比、`trim_scan.json` 的 TRIM 扫描）；**本设计不改归档形态**，TRIM 的落点只在裸形态。
 
 ## 10. 形态的输入配置与清单登记
 

@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
 
-> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/science/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/algorithms/resample/p3_resample.cpp 586 行实测在库)
+> 施工规格（重采样域实现级合同 = `docs/science/algorithms/PHASE3_RSMP_IMPL.md`，投影域 = `docs/science/algorithms/PHASE3_PROJ_IMPL.md`，写出域 = `docs/science/algorithms/PHASE3_FITS_IMPL.md`）；生产源 `lib/algorithms/resample/p3_resample.cpp`（586 行，实测在库）。
 
 ## 1 上游 SCI 与输入输出
 
@@ -46,7 +46,7 @@ G4 (ALG-P3-003) leaf 采样:
             不合格邻域样本（¬isfinite，含 ±Inf）按**样本级掩膜**从分子、分母、方差三项
             一并剔除，并对剩余有效邻域**重归一**；仅当零合格样本时 S=NaN
             （**覆盖级 NaN**），且每个输出像素**必须暴露**被剔除样本计数
-            （**强制计数**，禁止静默剔除）；C 只判足迹内有无 tile 像素，值 NaN 不改 C
+            （**强制计数**；静默剔除恒不接受）；C 只判足迹内有无 tile 像素，值 NaN 不改 C
             （4 个 tile 均可读则 C=1）。
             实现锚: lib/algorithms/resample/p3_resample.cpp 的 p3_sample_bilinear_nanmask_ex
             （唯一实现；p3_sample_bilinear_ex 为其薄封装，同一数学路径）。
@@ -69,7 +69,7 @@ G5 (ALG-P3-004) FITS 写:
   # 实现锚：p3_resample.cpp p3_sampler_open_ex（缺省串）→ p3_session.cpp:396 透传
   # → p3_output.cpp:284/351/675（写盘缺省同串）。
   WCS: G1 全量 + CTYPE=RA---<proj>/DEC--<proj> + CUNIT=deg
-  (B2-A4: <proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
+  (<proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
    未实现投影在写前 fail-closed, 不落任何 FITS)
   HISTORY: 源 HiPS 标识/order_sel/sampler/软件版本/manifest hash
   coverage: C=1 ⇔ 足迹内存在 tile 像素（值可为 NaN；NaN 只进 S 不改 C）; 无覆盖 S=NaN/C=0
@@ -82,7 +82,7 @@ G5 (ALG-P3-004) FITS 写:
 **G3 的适用域与量纲（证据锚）**：`s_tile_rad` 是**等面积等效**线尺度——HEALPix 同 nside
 下所有单元面积严格等于 `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4），故
 `sqrt(π/3)/(2^order·W)` 与该面积的平方根**逐位恒等**（非近似）；本仓实验
-`run/SCI-FIX-DRZGEOM-01/evidence/exp_a_geometry.json` A4 段：nside=512/1024 × 9 档纬度面积
+实验/healpix-polar/results/（A4 段）：nside=512/1024 × 9 档纬度面积
 相对偏差恒 0.0（阴性对照：等经纬网格在 dec=89.9° 偏 −20.5%）。**但它不是各向同性分辨率
 上界**：单元局部采样步长（邻元中心角距）随纬度/方向变化，nside=512 实测共边邻元 ∈
 [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×该尺度。要求方向性分辨率保证的消费方须按局部
@@ -179,9 +179,8 @@ function phase3_resample(hips_dir, params):
 - API: `API-004`(CLI JSONL 输入/输出, 待建)
 - TST: `SYN-007` 五件套(oracle 独立性)；`TST-P3-*` 编号随 API-004 建立
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - HiPS 层级/tile 与 order：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何/ang2pix：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
@@ -192,11 +191,5 @@ function phase3_resample(hips_dir, params):
   FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
 - 方差传播（若涉及）：Fruchter & Hook 2002；UNCERTAINTY_AND_COVARIANCE.md。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

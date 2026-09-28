@@ -21,7 +21,7 @@
 |---|---|---|
 | `F_instr` | 仪器通量 (ADU；e⁻ 需 gain，当前不可得；增益 `g` 的**单位语义固定为** e⁻/ADU，换算 `ADU = N_e/g`) | 输入 |
 | `F_syn` | 合成通量 `∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`（**不含** `10^(−0.4·G)`；口径与量纲见 §2a） | 输入（单位：W·m⁻²·nm） |
-| `G` | Gaia G 星等（`gaia_source.phot_g_mean_mag`；XPSD 记录内 `mag_raw×0.001−1.5`） | 星等一致性 `delta`、`ZP_syn` 诊断；**不进入 `F_syn`** |
+| `G` | Gaia G 星等（gaia_source 表的 phot_g_mean_mag 列；XPSD 记录内 `mag_raw×0.001−1.5`） | 星等一致性 `delta`、`ZP_syn` 诊断；**不进入 `F_syn`** |
 | `r_i` | `log10(F_instr/F_syn)` dex | 定标核心 |
 | `delta_i` | `−2.5·log10(F_instr)−G_Gaia` mag | 星等一致性 |
 | `location` | IRLS/Tukey 稳健位置（dex） | `star_matcher.cpp` |
@@ -30,7 +30,7 @@
 | `c` | Tukey 形状参数 `4.685` | 同上 |
 | `sigma_residual` | `MAD(r_inliers)/0.6744897501960817` dex | QA |
 | `sigma_mag` | `2.5·sigma_residual` mag | QA |
-| `mag_tolerance` | 星等一致性阈 `3.0 mag` | `pc_api.cpp,435` |
+| `mag_tolerance` | 星等一致性阈 `3.0 mag` | `pc_api.cpp` |
 | `psf_status,qf` | 饱和/质量标志 | `snr_estimator` |
 
 ## 2a 参考通量 `F_syn` 的合成口径（定义 · 量纲 · 适用域 · 证据）
@@ -178,9 +178,9 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
 
 ## 4 输入有效域
 
-- 每颗星 `F_instr>0, F_syn>0` 有限值；饱和星（`psf_status!=0` 或 `qf & (SATURATED|HAS_SATURATED)!=0`）不进入匹配与定标，计 `rejected_quality`（`star_matcher.cpp`，判据在 `:430`、拒绝在 `:432-436`）。
-- 参考星数 `|r_consistent|>=3` 才进 IRLS，否则 `NO_DATA`（`star_matcher.cpp`）；`|r_inliers|>=2` 才估计 `sigma_residual`，否则 `sigma_residual=0`（`star_matcher.cpp`，判据在 `:616`）。
-- `S>0` 时迭代 `max_iter=50, tol=1e-6`；`S==0` 跳过 IRLS 取 `median(r)`（`star_matcher.cpp`；常数 `:25` `_IRLS_MAX_ITER=50`、`:27` `_IRLS_CONVERGE=1e-6`）。
+- 每颗星 `F_instr>0, F_syn>0` 有限值；饱和星（`psf_status!=0` 或 `qf & (SATURATED|HAS_SATURATED)!=0`）不进入匹配与定标，计 `rejected_quality`（`star_matcher.cpp`，判据在 、拒绝在 ）。
+- 参考星数 `|r_consistent|>=3` 才进 IRLS，否则 `NO_DATA`（`star_matcher.cpp`）；`|r_inliers|>=2` 才估计 `sigma_residual`，否则 `sigma_residual=0`（`star_matcher.cpp`，判据在 ）。
+- `S>0` 时迭代 `max_iter=50, tol=1e-6`；`S==0` 跳过 IRLS 取 `median(r)`（`star_matcher.cpp`；常数  `_IRLS_MAX_ITER=50`、 `_IRLS_CONVERGE=1e-6`）。
 
 ## 5 连续定义
 
@@ -206,7 +206,7 @@ sigma_mag = 2.5·sigma_residual
 outlier_rate = 1 − |r_inliers|/|r_consistent|
 ```
 
-与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp`（常数 `_MAD_SCALE/_TUKEY_C/_IRLS_MAX_ITER/_IRLS_CONVERGE`）、`:486-500`（星等一致性预过滤）、`:518-536`（`|r_consistent|<3 ⇒ NO_DATA`）、`:538-586`（IRLS/Tukey 迭代）、`:589-627`（`scale`/inliers/`sigma_residual`）及 `lib/algorithms/photometry/cpp/src/pc_api.cpp,435`（`mag_tolerance=3.0` 实际传入点；`star_matcher.cpp` 仅为 `psf_valid` 诊断）一致。
+与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp`（常数 `_MAD_SCALE/_TUKEY_C/_IRLS_MAX_ITER/_IRLS_CONVERGE`）、（星等一致性预过滤）、（`|r_consistent|<3 ⇒ NO_DATA`）、（IRLS/Tukey 迭代）、（`scale`/inliers/`sigma_residual`）及 `lib/algorithms/photometry/cpp/src/pc_api.cpp`（`mag_tolerance=3.0` 实际传入点；`star_matcher.cpp` 仅为 `psf_valid` 诊断）一致。
 - **`mag_tolerance = 3.0 mag` 的地位与适用域（正向约束）**：它是**进入 IRLS 之前的粗预过滤窗**，单位 mag，量纲上等价于通量比 `10^{0.4·3.0} ≈ 15.85×`；其作用是剔除与 Gaia 星等明显不一致的错配/污染样本，**不是**标定质量的判据。
   - **证据出处**：Project-defined 冻结值（配置键 `photometry.mag_tolerance`，`eng/packaging/config/defaults.json`；合同字段 `docs/contracts/DATA_SEMANTICS.md` §测光字段表「合同值 3.0」；算法侧 `docs/science/algorithms/PHOTOMETRIC_FIT.md` 星等预过滤行）。本层**不引用文献**为该窗宽背书。
   - **为什么窗宽不构成风险**：真正决定鲁棒性的是其后 IRLS/Tukey 层——`S = MAD(r)/0.6744897501960817`、`c = 4.685` 的 biweight 截断（§7「鲁棒性」不变量：注入 20% 离群 `location` 变化 `<0.1 dex`）。预过滤窗只需保证「不放走数量级级错配」，不需要窄。
@@ -294,12 +294,12 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - **反方差（ivar）权重口径**（`ivar′ = ivar/α²`，§1/§3——本合同交给下游 GLS/逆方差加权的权重面）：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346，GLS 原始出处；与 `docs/science/UNIFIED_SCIENCE_MODEL.md` 的 GLS 条目同源）。
 - **最优提取（PᵀC⁻¹P 结构）**：Horne, K. 1986, PASP 98, 609（DOI 10.1086/131801）；Naylor, T. 1998, MNRAS 296, 339。**边界**：二者为已知 profile/方差下的最优提取；Astro Celestial Sphere Database（ACSD） 本层做的是 Gaia 交叉定标的零点/尺度，不是逐源最优提取（§1 非目标），引用只作统计结构对照。
 - **误差口径 FLUXERR/MAGERR 与孔径改正**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；photutils（BSD-3-Clause）aperture_photometry 的误差传播。**差异**：ACSD 的 sigma_residual 是**逐星定标散度**（dex），不是 SExtractor 的单源通量误差；两者语义不同、各自独立消费（NOISE_MODEL §9a）。
-- **Gaia XP 绝对分光刻度与 CALSPEC 溯源**：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3；arXiv:2208.00211）；Gaia Collaboration et al. 2021, A&A 649, A1（EDR3）；Bohlin, R. C., Hubeny, I. & Rauch, T. 2020, AJ 160, 21（DOI 10.3847/1538-3881/ab94b4）；Bohlin et al. 2014, AJ 147, 127（DOI 10.1088/0004-6256/147/6/127）；Bessell, M. & Murphy, S. 2012, PASP 124, 140（DOI 10.1086/664083）。
+- **Gaia XP 绝对分光刻度与 CALSPEC 溯源**：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3；arXiv.00211）；Gaia Collaboration et al. 2021, A&A 649, A1（EDR3）；Bohlin, R. C., Hubeny, I. & Rauch, T. 2020, AJ 160, 21（DOI 10.3847/1538-3881/ab94b4）；Bohlin et al. 2014, AJ 147, 127（DOI 10.1088/0004-6256/147/6/127）；Bessell, M. & Murphy, S. 2012, PASP 124, 140（DOI 10.1086/664083）。
 - **4. XP 采样均值谱的官方定义与单位（§2a.1/§2a.3 的一手依据）**：ESA Gaia DR3 官方文档 §20.12.4 `xp_sampled_mean_spectrum`，https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_spectroscopic_tables/ssec_dm_xp_sampled_mean_spectrum.html 。**原文**："This is the BP/RP externally calibrated sampled mean spectrum. All mean spectra are sampled to the same set of absolute wavelength positions, viz. 343 values from 336 to 1020 nm with a step of 2 nm."；字段表 **"flux : mean BP + RP combined spectrum flux (float[] array, Flux[W m-2 nm-1]) Externally-calibrated combined BP and RP flux."**（官方文档原文抓取核验，HTTP 200）。
 - **5. 合成通量的官方定义式与绝对刻度上限（§2a.1/§2a.5 的一手依据）**：ESA Gaia DR3 官方文档 §5.4.1 *Photometric processing → Calibration → External Calibration → Zero points*，https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photProc/cu5pho_ssec_photCal.html 。**原文（式 5.41）**："in VEGAMAG system the mean energy per wavelength units ⟨f_λ⟩ is calculated as: ⟨f_λ⟩ = ∫ f_λ(λ) S(λ) λ dλ / ∫ S(λ) λ dλ"；**原文（绝对刻度）**："Thus 1 % is thought to be the current state-of-the art uncertainty on the 'absolute' calibration scales."；**原文（零点适用面，逐字全句）**："Note however that as seen in Section 5.4.1 Gaia fluxes are published as photo-electrons s⁻¹ and are not normalised by the telescope pupil area, so the given zero points are intended only to be applied to Gaia fluxes and are not suitable for synthetic photometry computations."（落点 = 该页 §5.4.1 的 **Zero points** 小节、Table 5.4 之后的 Note 段；官方文档原文抓取核验，HTTP 200）。
-- **6. XP 合成测光与 passband 定义（§2a.4/§2a.5 的一手依据）**：Gaia Collaboration, Montegriffo, P., Bellazzini, M., De Angeli, F., et al. 2023, A&A 674, A33（DOI 10.1051/0004-6361/202243709；arXiv:2206.06215）。**原文（摘要）**："Synthetic photometry directly tied to a flux in physical units can be obtained from these spectra for any passband fully enclosed in this wavelength range."；"Existing top-quality photometry can be reproduced within a few per cent over a wide range of magnitudes and colour, for wide and medium bands, and with up to millimag accuracy when synthetic photometry is standardised with respect to these external sources."；**原文（passband 含探测器）**："actual TCs, which in the following we also refer to as passbands, are defined by the combination of the TC of an optical filter …, the sensitivity curve of a photon-counting detector (typically a CCD for observations in the optical spectral range), and the TC of the optical elements …, plus a contribution from the terrestrial atmosphere"。
-- **7. XP 外定标（仪器响应模型与定标精度）**：Montegriffo, P., De Angeli, F., Andrae, R., Riello, M., et al. 2023, A&A 674, A3（DOI 10.1051/0004-6361/202243880；arXiv:2206.06205）；De Angeli, F., et al. 2023, A&A 674, A2（DOI 10.1051/0004-6361/202243680；arXiv:2206.06143）；Carrasco, J. M., et al. 2021, A&A 652, A86（DOI 10.1051/0004-6361/202141249，XP 内定标）。
-- **8. Gaia G/BP/RP 通带与零点（§2a.6 真实数据判据用到的 G 通带与零点）**：Riello, M., De Angeli, F., Evans, D. W., et al. 2021, A&A 649, A3（DOI 10.1051/0004-6361/202039587；arXiv:2012.01916）；通带曲线文件 = 本仓 `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/GaiaEDR3_passband.dat`（列 `wl, G, G_err, BP, BP_err, RP, RP_err`，带外哨兵值 99.99）；Vega 零点 `ZP_VEG(G)=25.6874±0.0028`（官方 §5.4.1 Table 5.4），本合同复算用 GaiaXPy `Gaia_DR3_Vega` 的 W·m⁻²·nm⁻¹ 制零点 `−26.4899`。
+- **6. XP 合成测光与 passband 定义（§2a.4/§2a.5 的一手依据）**：Gaia Collaboration, Montegriffo, P., Bellazzini, M., De Angeli, F., et al. 2023, A&A 674, A33（DOI 10.1051/0004-6361/202243709；arXiv.06215）。**原文（摘要）**："Synthetic photometry directly tied to a flux in physical units can be obtained from these spectra for any passband fully enclosed in this wavelength range."；"Existing top-quality photometry can be reproduced within a few per cent over a wide range of magnitudes and colour, for wide and medium bands, and with up to millimag accuracy when synthetic photometry is standardised with respect to these external sources."；**原文（passband 含探测器）**："actual TCs, which in the following we also refer to as passbands, are defined by the combination of the TC of an optical filter …, the sensitivity curve of a photon-counting detector (typically a CCD for observations in the optical spectral range), and the TC of the optical elements …, plus a contribution from the terrestrial atmosphere"。
+- **7. XP 外定标（仪器响应模型与定标精度）**：Montegriffo, P., De Angeli, F., Andrae, R., Riello, M., et al. 2023, A&A 674, A3（DOI 10.1051/0004-6361/202243880；arXiv.06205）；De Angeli, F., et al. 2023, A&A 674, A2（DOI 10.1051/0004-6361/202243680；arXiv.06143）；Carrasco, J. M., et al. 2021, A&A 652, A86（DOI 10.1051/0004-6361/202141249，XP 内定标）。
+- **8. Gaia G/BP/RP 通带与零点（§2a.6 真实数据判据用到的 G 通带与零点）**：Riello, M., De Angeli, F., Evans, D. W., et al. 2021, A&A 649, A3（DOI 10.1051/0004-6361/202039587；arXiv.01916）；通带曲线文件 = 本仓 `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/GaiaEDR3_passband.dat`（列 `wl, G, G_err, BP, BP_err, RP, RP_err`，带外哨兵值 99.99）；Vega 零点 `ZP_VEG(G)=25.6874±0.0028`（官方 §5.4.1 Table 5.4），本合同复算用 GaiaXPy `Gaia_DR3_Vega` 的 W·m⁻²·nm⁻¹ 制零点 `−26.4899`。
 - **9. 光子计数通带（`λ` 因子的文献依据）**：Bessell, M. S. 1990, PASP 102, 1181（DOI 10.1086/132749，UBVRI passbands；能量计数 vs 光子计数口径）；Bessell, M. S. & Murphy, S. 2012, PASP 124, 140（DOI 10.1086/664083，photonic passband 与零点）；Fukugita, M., et al. 1996, AJ 111, 1748（DOI 10.1086/117915）；Sirianni, M., et al. 2005, PASP 117, 1049（DOI 10.1086/444553，端到端系统透过率 × 光谱的工程范例）。
 - **10. F_syn 数值积分（Akima + 复合 Simpson）**：Akima, H. 1970, J. ACM **17(4), 589–602**（DOI 10.1145/321607.321609；**页域订正 P1-m06**：历史只给首页 589）；复合 Simpson 1/3 公式（教科书级）。**实现忠实性与误差分解**：生产实现与同输入网格复合 Simpson 逐位一致；网格离散误差与 XPSD 量化误差的量级读数正本见 `实验/photometric-magnitude/`。
 - **11. XPSD 容器格式（`flux_min`/`flux_mul` 量化解码）**：

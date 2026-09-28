@@ -1,8 +1,6 @@
 # UPM Solver Algorithms (ALG-UPM)
 
 > 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
-
-> ID: ALG-UPM-001  范围: ALG-UPM-001..003  上游 SCI: SCI-UPM-001  状态: DERIVED  模块: phase2/upm
 > 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/PHASE2_UPM_IMPL.md)
 
 ## 1 上游 SCI 与输入输出
@@ -121,22 +119,15 @@ function p2_upm_build(observations, cfg):
   `F3`→`upm.cpp:761-763/:778-780`（Huber，δ 默认 `upm.cpp:286`，`UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
   `F5`→分量 gauge（`upm.cpp:471-476,837-842`）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
-- 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（卷页需网络核验）。
+- 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（外部文献条目，卷期页以 docs/references/SCIENTIFIC_REFERENCES.md 登记为准）。
 - 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
 - 稀疏天光面样条（目标表示）：Duchon 1977；Wahba 1990。
-- var(median)≈πσ²/(2N)：Hoaglin et al. 1983；UPMW-004 实证 ratio 0.997（SCI-UPM §11）。
-- k_corr 的 MC 证据源 control_median_mc_test 已注册（可复跑）；k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载），1.4 降为实现记录/域外回退值。
+- var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM §11）；实证比值读数正本 = 实验/healpix-polar/results/。
+- k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = 实验/healpix-polar/results/。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

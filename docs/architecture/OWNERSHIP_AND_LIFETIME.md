@@ -13,7 +13,7 @@
   optional（可空）。
 - thread-local：g_upm_error（aio_upm）为 thread_local，避免跨线程污染。
 
-## 已知审计点
+## 生命周期约束点
 
 - p2_upm_open 失败路径统一 delete。
 - dense cache 句柄 AioUpmDense 单出口释放（`lib/infrastructure/aio/src/aio_upm.cpp:298` `std::unique_ptr<AioUpmDense> guard(d)`，所有路径释放）。
@@ -21,4 +21,4 @@
 
 ## 契约
 
-ENG-OWN-001..003（S2 注册）。
+所有权与生命周期契约 = `ENG-OWN-001`（登记面 = `docs/TRACEABILITY.csv`）。

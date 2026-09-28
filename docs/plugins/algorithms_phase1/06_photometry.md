@@ -16,7 +16,7 @@
 ## 3. 输入/输出数据合同
 
 - **输入**：定标信号、variance/ivar、validity、PSF 模型、WCS、检测目录、配置。
-- **输出**：源通量 `F`、通量方差 `Var(F)`、`a_k`（光度响应）及其不确定度、颜色项、有效域、测光 flags。
+- **输出**：源通量 `F`、通量方差 `Var(F)`、`a_k`（光度响应）及其不确定度、颜色项、有效域、测光 flags、**通带身份块** `passband_identity`（声明通带名、`FILTER` 关键字、解析出的库键、曲线自述名与采样点数、波长范围、曲线来源）。
 - 参考：`docs/contracts/DATA_SEMANTICS.md` §14（DATA-P1-PHOT：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
@@ -29,7 +29,7 @@
 ### 4.1 测光一致性判据（**从误差预算推导**）
 
 - 判据只有**一条**（尺度无关）：**测光一致性**（施加后星点星等与 Gaia 残差的散度/MAD 小）；「帧间一致性」是**语义目标与报告字段，不是门禁**；门只有一个 = **单帧标定是否可信**，与其它帧无关；
-- ⚠ **判据必须从误差预算推导**（如 `≤0.03 mag` 的拍脑袋阈值属另一口径）：在 M42 拥挤场 + 2.0–2.6 px seeing + 16bit 下，`0.03 mag` 两种口径都达不到（中位 `0.0617` / 最坏 `0.1160 mag`）；
+- ⚠ **判据必须从误差预算推导**（如 `≤0.03 mag` 的拍脑袋阈值属另一口径）：阈值只能由本帧误差预算导出；工作例证见 `实验/photometric-magnitude`；
 - **`MAD ≤ 0.03 等` 不是硬门**：判据 = **测光正确 + 拟合收敛**；
 - ✅ **判据已推导**：完整推导 + 逐项出处见 `docs/science/PHOTOMETRY.md`；
   形态 = **双边界、单帧自算、尺度无关**：
@@ -44,15 +44,10 @@
   ```
 
   `1.166 = √1.361`（`1.361` = MAD 的标准化方差，Rousseeuw & Croux 1993, JASA 88, 1273, Table 2）：`1.166` 是 MAD→σ̂ 估计量的相对标准误 SD 因子（正本 `docs/science/PHOTOMETRY.md` §N5）；`3×` = 3σ 抽样允差（唯一约定性选择，须显式标注）。
-- **逐项预算（M42 T2 Red 300 s，匹配样本中位通量 F=9644 ADU，n=800；单位 mag，全部实测/推导）**：
-  σ_fit(白) **0.0140**（F=1.77e6 时 0.0008）· σ_fit(含天光结构) 0.0204 · **σ_psfsys 0.0307**
-  （本帧生产拟合器 vs 独立孔径 r=10px 的比值稳健散度；噪声预期 0.0032 ⇒ 系统主导）·
-  σ_color 0.0054（QE 未建模的通带失配；生产取 `Q(λ)≡1`）· σ_skyres 0.0045 ·
-  σ_Gaia 0.002（假设）· σ_flat,hf 0.0007 · σ_q(1/12 量化) 0.0005。
-  ⇒ **σ_floor = 0.0122 mag；σ_ceiling = 0.0422 mag**（逐帧 0.0418–0.0586）。
-  **实测对照（L4 49 帧）：中位 0.0611 / 最坏 0.2428 mag ⇒ PASS 1/49**；未消系统项 0.0442 mag
-  （最可能在参考侧：`F_syn` 通带未建模项 + XP 谱误差 + 差分消光）。
-  **本判据当前判红 48/49 帧 —— 如实结论，各项判据取值保持原样。**
+- **逐项预算（单位 mag；逐项定义、取值与出处正本 = `docs/science/PHOTOMETRY.md`）**：
+  σ_fit(白) · σ_fit(含天光结构) · σ_psfsys（本帧生产拟合器 vs 独立孔径的比值稳健散度，系统主导项）·
+  σ_color（QE 未建模的通带失配；生产取 `Q(λ)≡1`）· σ_skyres · σ_Gaia · σ_flat,hf · σ_q(1/12 量化)。
+  逐帧由该预算表导出 `σ_floor` 与 `σ_ceiling`；实测对照读数与未消系统项分解见 `实验/photometric-magnitude`。
 - **判不了（登记为 gap，数值留空）**：① 平场大尺度残差（缺 repeat-flat/sky-flat 对照）；
   ② Gaia XP 合成通量 `F_syn` 定标误差（本仓 `*.xpsd` 的 `magBP/magRP` 实测恒为 0；本层不产出逐星 `F_syn` 误差）；
   ③ 望远镜光学/大气/差分消光项（无仓内曲线）。未测项按**不加**处理（上限偏严 ⇒ fail-closed）。
@@ -73,7 +68,7 @@
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
 | `mode` | `psf` | —— | **生产口径 = `psf`**（PSF 拟合域口径）；`aperture` **仅诊断 / 交叉验证**（须显式声明，生产链取 `psf`——依据 `ASTROCS_DESIGN.md`「全链只有一个 `flux` 口径」） |
-| `aperture_radius` | ~~2×FWHM~~（**值待定**） | px | 孔径测光半径——**仅诊断 / 交叉验证**。（取值与实现/README 的 `4.0px` / `6-10px` 表述未统一，登记为 `finding: "gap"`；孔径不属生产口径） |
+| `aperture_radius` | 4.0 | px | 孔径测光半径——**仅诊断 / 交叉验证**（生产口径 = PSF 拟合域）。取值口径 = 孔径测光实现 `lib/algorithms/photometry/wrapper_phase1/photometer.h` 的 `Photometer` 构造默认值；配套 sky 环 6.0–10.0 px |
 | `sky_annulus` | —— | px | sky 环——**仅诊断 / 交叉验证**（同上；生产口径的局部背景由 PSF 拟合域承担） |
 
 绝对通量锚定由 Gaia XP 合成通量 `F_syn` 与输出 `location`/`scale` 承担（见 `docs/science/PHOTOMETRY.md`）；配置中无 `zero_point` 字段。
@@ -93,7 +88,8 @@
     不产出 `photoapplied_<base>`、不进 `photscales`，**其余帧照常拟合与施加**。稳定错误码：
     `PHOT_SOURCES_FRAME_MISSING`、`PHOT_WCS_UNUSABLE`、`PHOT_WCS_SIP_INVALID`、`PHOT_FRAME_UNREADABLE`、
     `PHOT_FIT_NO_SCALE`、`PHOT_SCALE_NON_PHYSICAL`、`PHOT_SCALE_MISSING`、
-    `PHOT_SCALE_NO_FIT_EVIDENCE`、`PHOT_FIT_IMPLAUSIBLE_SCATTER`。帧级失败**不是降级**，不写 `degraded_reason`；
+    `PHOT_SCALE_NO_FIT_EVIDENCE`、`PHOT_FIT_IMPLAUSIBLE_SCATTER`、`PHOT_PASSBAND_IDENTITY_INCONSISTENT`
+    （该帧曲线身份与组内首帧不一致；同时置 `passband_identity_inconsistent` 标志）。帧级失败**不是降级**，不写 `degraded_reason`；
   - **全局失败**（星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json` 缺项、冻结 C 入口返回非零）
     ⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），不把整批帧逐帧判 fail；
   - **运行级判红**由产品基数不变量给出（`ASTROCS_DESIGN.md` §4.4「任何一帧未被处理、跳过或失败都显式判红」）：
@@ -113,7 +109,7 @@
 - **测光一致性判据（§4.1）的负例（能红能绿，判据生效的必备条件）**：
   ① 伪造常数残差表（`r_i` 全等）⇒ `σ_obs < σ_floor` ⇒ **必须判红**；
   ② 把某帧 `F_instr` 乘随机因子（人为注入 0.2 mag 散度）⇒ `σ_obs > σ_ceiling` ⇒ **必须判红**；
-  ③ 健康帧（如 `t3_m6` 实测 0.0325 mag，n=803）⇒ **必须判绿**；
+  ③ 健康帧（合成与真实各一帧）⇒ **必须判绿**；
   ④ 人为加入跨帧 k/scale 一致性门 ⇒ **必须判红**（`PHOT-GATE-DROP-001`：组间一致性只作报告字段）；
   **判据未在代码中生效前**（§4.1 落地状态 ①–④ 未完成），通过/不通过门取「未生效」形态，`0.03 mag` 保持未生效登记；
 - **组间一致性的用途 = 报告字段**：人为加入跨帧 k/scale 一致性门 ⇒ 必须判红（`PHOT-GATE-DROP-001`）；

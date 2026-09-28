@@ -2,14 +2,12 @@
 
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
 
-> ID: ALG-STARPSF-001  上游 SCI: SCI-PSF-001  状态: DERIVED  模块: star_detector + dynamic_psf
-
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-PSF-001` (Moffat4 β=4, FWHM=1.230310·σ, q_psf=A/residual_scale)
 - 输入: 校准图像 `float32[H×W]` + 背景噪声 `σ_bg` (NoiseWeightModelV1)
 - 输出: 星点表 `(x,y,flux,A,B,σ,q_psf,residual_scale)` + PSF 块 `[N,9]`——
-  **存在两种互不兼容的 9 列布局，各自独立、取值互不代用**（实测锚 @f7fa3160）：
+  **存在两种互不兼容的 9 列布局，各自独立、取值互不代用**（按接口/函数名与结构体字段指认）：
 
 ### 1.1 布局 A：oracle/表面亮度参数布局（科学参数序，9 列）
 
@@ -35,7 +33,7 @@
 - 语义：DPSFFitResult 的**编排序列化布局**——面向下游消费者：[0]=status
   （整值 0..3，PHOTOMETRIC 仅 status=0 入匹配）、[1]=B、[2]=flux、[3]/[4]=cx/cy
   （全图 0-based px）、[5]=fwhm（(fwhm_x+fwhm_y)/2 平均）、[6]=A、[7]=mad
-  （历史列名，权威语义=10–90% 截尾均值 |残差|，即 residual_scale）、
+  （列名 `mad` 的权威语义 = 10–90% 截尾均值 |残差|，即 `residual_scale`）、
   [8]=eccentricity；dtype 全列 double/FLOAT64，单位 B/A/flux/mad=ADU、
   cx/cy/fwhm/eccentricity 如上。
 - **θ 列不在此布局中**（布局 B 无 θ 列）；布局 A 的 θ 单位 rad，**规范值域
@@ -72,7 +70,7 @@ F4: residual_scale=10–90% trimmed mean |residual|, robust_residual_sigma=resid
     # 适用域：Gaussian 专属；Uniform/Laplace/t5 残差下 σ̂/σ = 1.184/0.802/0.865（偏差 ≤±18%）
     # 实现取 lo=int(0.1m)、hi=int(0.9m)（:248-249），两端裁剪不对称 ⇒ 有限 m 偏低：
     # m=121 −0.98%、m=169 −0.47%、m=441 −0.28%、m=1024 −0.11%；适用域 m≥441（|偏差|<0.3%）
-    # 证据 run/SCI-FIX-STARPSF-01/results/e1_constants.txt
+    # 证据 实验/engineering-evidence/
 F5: q_psf=A/residual_scale, q_psf为QA代理不进science weight
 ```
 
@@ -184,7 +182,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 | 码 | 宏 | 触发（实测锚） | 单星接口（dpsf_fit/moffat4_fit） | 批接口（f32/f64 [N,9]） |
 |---|---|---|---|---|
 | 0 | DPSF_FIT_OK | 收敛 :163 且过验证链一~三 | 全参数回填 :391-403 | 计入 out_n_valid；写 9 字段 :784-794/907-916 |
-| 1 | DPSF_FIT_NO_CONVERGENCE | 验证链一 :336-338 / 二 :341-346 / 三 :349-354 | result 已 memset 0（:229）+status | 不计入 compact 行；逐星 out_status=1（B2-A2：失败星不再占参数行） |
+| 1 | DPSF_FIT_NO_CONVERGENCE | 验证链一 :336-338 / 二 :341-346 / 三 :349-354 | result 已 memset 0（:229）+status | 不计入 compact 行；逐星 out_status=1（失败星一律不占参数行） |
 | 2 | DPSF_FIT_INVALID_PARAMS | 空指针/w≤0/h≤0 :431-434；rect 面积<9 :236-239；rect 越界 :240-245；空 rect :445-450 | 同上 | 批整体 -1（:700-707），不触碰输出 |
 | 3 | DPSF_FIT_ITERATION_LIMIT | max_iter=200 耗尽 :187 | 仍回填当前最优参数 :391-403 | 非 OK→NaN，不计 valid |
 
@@ -201,7 +199,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 | DISP-PSF-003 | `DPSFFitParams.maxIter/tolerance` 死参数（LM 硬编码 1e-8/200）；§3 伪代码参数为旧稿 | :320-321,716-719 |
 | DISP-PSF-004 | 无取消检查点（OpenMP dynamic 4 处批拟合不可中断） | :528,635,738,866 |
 | DISP-PSF-005 | 无参数协方差/不确定性输出（科学专项 covariance 缺口，P1-PSF-IMPL 落地） | DPSFFitResult 12 字段 dynamic_psf.h:17-31 |
-| DISP-PSF-006 | 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批）——**B2-A2（RESCUE-P0-05）已关闭**：批 f32/f64 新增可选逐星 `out_status`（`psf_status:INT32[N]`），成功行 compact，星 ID↔行映射可由状态真值唯一判定 | dynamic_psf.h:129-136,146,188 |
+| DISP-PSF-006 | 批 f32/f64 路径逐星退败静默（仅 out_n_valid 汇总，per-star 状态不出批）——批 f32/f64 提供可选逐星 `out_status`（`psf_status:INT32[N]`），成功行 compact，星 ID↔行映射由状态真值唯一判定 | dynamic_psf.h:129-136,146,188 |
 
 ### 11.4 TEST-PSF-DESIGN-001（测试设计，P1-PSF-TEST 执行）
 
@@ -209,7 +207,7 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 - oracle：解析 Moffat4（β=4）合成图回收 B,A,cx,cy,sx,sy,θ；flux=2πAsxsy/3 与
   FWHM=1.230310·σ 恒等复核；独立参考不调用生产 symbol（11 号标准 §5）。
 - property：θ 消歧确定性（同输入同 θ 回选）；eccentricity∈[0,1)；批输出成功行
-  compact 与 out_status/out_n_valid 一致（B2-A2：3 星中间一颗失败 → row0↔星0、
+  compact 与 out_status/out_n_valid 一致（3 星中间一颗失败 → row0↔星0、
   row1↔星2，无 NaN 洞）；per-star 独立性（打乱星序不改变逐星结果）。
 - boundary：fitRadius 裁边 clamp（:438-441）；FWHM≈rect 边界；背景约束 0.5 阈值
   边界；max_iter 边界（ITERATION_LIMIT 仍回填）。
@@ -224,9 +222,8 @@ dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST 专项）；covariance=
 现状缺失，DISP-PSF-005 显式登记为 P1-PSF-IMPL 整改项，状态词停在登记态。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - Moffat 轮廓：Moffat 1969, A&A 3, 455（bibcode 1969A&A.....3..455M）。
 - β=4 解析通量/FWHM 因子：Project-defined 解析积分（可用 SciPy/sympy 复算）。
@@ -235,11 +232,5 @@ saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST �
 - 拥挤场 PSF 测光：Stetson 1987, PASP 99, 191。
 - q_psf/residual_scale：Project-defined 质量代理，非 SNR/非 Fisher information。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

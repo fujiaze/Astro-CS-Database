@@ -2,7 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
 
-> ID 覆盖: ALG-HIPS-001 ALG-HIPS-002 ALG-HIPS-003 ALG-HIPS-004 ALG-HIPS-005  状态: CONTRACT_READY
 > SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN，共享引用不改动；
 > :130 实现锚 finalize_tile 方差语义、:145 support=D_p 归一语义）
 > 与 SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
@@ -237,7 +236,7 @@ raw 体 :396）、`write_properties` :673-695、`finalize_image_product` :1816-1
   **astrocs_support_clamped_pixels + astrocs_coverage_gt1_pixels（:1119-1120
   properties / :1668-1669 manifest；M2a-H-3 钳制计数，见 (4c) 编码限）** /
   [非空] hips_data_range（sig_min≤sig_max 才写，:1026-1029）/ **hips_ordering=
-  "NESTED" 恒写（:908，B2-A8；消费侧 coverage 断言 NESTED）** / **obs_filter
+  "NESTED" 恒写（:908；消费侧 coverage 断言 NESTED）** / **obs_filter
   恒写（含空值，:960-964；空串=显式"无 filter"声明，**禁用**"键缺失"写法）** /
   [exposure>0] obs_exptime / [obs_date] obs_date +
   t_min+t_max（iso_to_mjd :65-79 固定纪元换算，t_max=t_min+exposure/86400，
@@ -262,7 +261,7 @@ raw 体 :396）、`write_properties` :673-695、`finalize_image_product` :1816-1
   nside/tile_width/data_type、products 列表、n_leaf_tiles=leaf_ipix_list
   .size()、moc_sky_fraction、astrocs_covered_sky_fraction、signal_dtype。
   **无 COMPLETE 状态字、无 sha256 树哈希**——发布侧语义在 IO-003
-  （runtime/io/hips_output_store.py 临时写→fsync→fitsverify→sha256→原子
+  （lib/infrastructure/aio/io/hips_output_store.py 临时写→fsync→fitsverify→sha256→原子
   rename→manifest COMPLETE），C++ writer 与发布层的对齐边界=DATA-P1-HIPS
   §12.5，两合同均如实登记（writer 无事务、发布层有；tree hash 仅存在于
   发布层）。
@@ -414,9 +413,8 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
   orchestrator:3404-3407）、orchestrator.cpp（stage 编排）、
   lib/algorithms/coverage/tools/stage2.cpp:592（Phase2 写方）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - HiPS 规范：IVOA HiPS 1.0 Recommendation（https://www.ivoa.net/documents/HiPS/；§3/§4.1/§4.2.1/§4.4.1/§6.3.1）。
 - HiPS 层级/目录：Fernique et al. 2015, A&A 578, A114（DOI 10.1051/0004-6361/201526075）。
@@ -425,11 +423,5 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 - MOC/properties：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
 - dtype/精度与 hierarchy 聚合：Project-defined（本文件 §2/§4/§8）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

@@ -1,13 +1,9 @@
 # Noise Estimation Algorithms (ALG-NOISE)
 
 > 上游：ASTROCS_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）
-
-> ID 覆盖: ALG-NOISE-001 ALG-NOISE-002 ALG-NOISE-003  上游 SCI: SCI-NOISE-001..015
 > (docs/science/NOISE_MODEL.md，FROZEN，共享引用不改动)
 > (逐符号源码锚定 §13.1 / DISP-NOISE §13.3 / TEST-NOISE-DESIGN-001 §13.4，
 > 根公式不变；**噪声模型 A 为唯一生产模型**，公式正本 = docs/science/NOISE_MODEL.md)
-> 模块: snr_estimator/noise_model
-
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-NOISE-001..015` (8×8 patch, MAD→σ 1.482602218505602, 平面场 a+b·x+c·y, floor 1e-12 ADU²；floor **只作用于可用方差**)
@@ -114,8 +110,8 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 ## 13 模块合同冻结增补（实现锚定 / DISP-NOISE / TEST-NOISE-DESIGN-001）
 
-> ID: ALG-NOISE-001..003  状态: CONTRACT_READY  上游: SCI-NOISE-001..015
-> （docs/science/NOISE_MODEL.md，FROZEN，不改 SCI）  下游: DATA-P1-NOISE
+> 上游：SCI-NOISE-001..015（docs/science/NOISE_MODEL.md，FROZEN，不改 SCI）
+> 下游：DATA-P1-NOISE
 > （DATA_SEMANTICS §13）/ API-NOISE-001（PUBLIC_API）/
 > MOD-astrocs-phase1-noise-snr / TEST-NOISE-DESIGN-001。
 > 本节由源码逐符号核对后追加：§1-§12 为既有登记，
@@ -210,10 +206,12 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 |---|---|---|---|
 | 1 | 平面几何判据 | `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | 数值判据表见 `docs/science/NOISE_MODEL.md`（A=0 / B=0.0133 / C=0.200 / 满格=1.0） |
 | 2 | gain 方向 | 解析式 `signal/gain + (rn/gain)²`；`eng/tests/unit/p1_noise_test.cpp` fixture 用 SCI 约定 `ADU=N_e/gain+N(0,rn/gain)`、容差 SCI 冻结 **5%**；断言生产诊断式 `snr_noise_gain_variance` 与该解析式一致 | SCI-NOISE-001 §5:58 |
-| 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；11 位简写 `1.4826022185` 与 4 位 `1.4826` 只作约等于语境（实测绝对差 5.602e-12、相对 3.779e-12）；`Φ⁻¹(3/4) = 0.6744897501960817`，测光侧 `0.6745` 相对差 +1.5196e-05，**与本层冻结值不可互换** | SCI-NOISE-001 §9:91；`docs/GLOSSARY.md` 禁两套定义 |
+| 3 | MAD→σ 常数 | 唯一全精度写法 `1.482602218505602`（= `1/Φ⁻¹(3/4)`）；`1.4826022185` 与 `1.4826` 只作约等于语境，各档相对差 3.779e-12 / 1.4964e-06；`0.6745` 相对差 +1.5196e-05（不可互换） | SCI-NOISE-001 §9:91；`docs/GLOSSARY.md` |
 | 4 | PSF 状态位 | 仅 `psf_status == 0.0` 置 `SNR_QF_PSF_OK`；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2、DATA_SEMANTICS:553 |
 | 5 | kLn10 | 模块内唯一定义点 = `noise_model.cpp:92`（字面量 `2.302585092994045684`） | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True |
 | 6 | defaults 引用 | `eng/packaging/config/defaults.json` 的 `noise.*` `source_ref` 指向 `docs/science/NOISE_MODEL.md` 实际陈述行（`patch_grid`→:46、`clip_sigma`→:48、`max_clip_rounds`→:48、`min_patch_samples`→:37、`spatial_field_enabled`→:39、`variance_floor`→:21）；`source_mask_radius_px`(10) / `mask_radius_scale`(6) 保留 ALG:134——SCI §5 只冻结 `rmax=max(1,r0)·max(1,scale)` 公式（:46）不给数值 | `ENGINEERING_SPEC.md` §3 权威链：科学默认值引用落在 `docs/science/**` |
+
+**MAD→σ 常数的各档舍入差（由 `1/Φ⁻¹(3/4)` 闭式复算）**：以全精度写法为基准，11 位简写 `1.4826022185` 的绝对差 5.602e-12、相对差 3.779e-12；4 位简写 `1.4826` 的绝对差 2.2185e-06、相对差 1.4964e-06。判据与冻结值一律取全精度写法，各档简写只作约等于语境。
 
 ### 13.4 测试设计 TEST-NOISE-DESIGN-001（冻结容差）
 
@@ -282,9 +280,8 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
   plan/execute/cancel/inspect + ThreadLease 接线）；本 DOC 不改任何
   生产代码。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - 背景网格 + 稳健 σ：Bertin & Arnouts 1996, A&AS 117, 393（**§2** 背景网格与稳健估计；§3 是检测不是背景）；源码 SExtractor（GPL-3.0）back.c/makeback。**差异**：SExtractor 用 mode/median + 迭代 σ，本模块用 8×8 patch MAD + 最小二乘平面场，二者不等价。**适用域**：该文不讨论权重图/逆方差加权/逐像元方差通道，本模块的 `variance/ivar` 面另立来源。
 - 多尺度稳健噪声 MRS/N*：Starck & Murtagh 2006, Astronomical Image and Data Analysis 2nd ed., Springer（ISBN 978-3-540-33023-3）；Starck, Donoho & Candès 2003, A&A 398, 785。现状未采用，仅选型对照。
@@ -292,11 +289,5 @@ eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注�
 - Poisson+read noise 诊断式：Newberry 1991, PASP 103, 122；Janesick 2001, SPIE PM83, Ch.2。
 - 饱和过滤：LSST ip_isr（GPL-3.0）doSaturation/SAT 面；FITS SATURATE/DATAMAX。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

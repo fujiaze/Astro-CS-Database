@@ -1,39 +1,53 @@
-# Execution & Lifetime Model (ARC-EXEC)
+# 执行与生命周期模型
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：ASTROCS_DESIGN.md §8（软件架构）、§9（CPU 后端与资源）
 
-> 关联: ARC-EXEC-001..00N  模块: phase2/acr  状态: FROZEN
-
-> ⚠ **休眠面一律标 `DORMANT`，与生产执行层分列**：
-> 本文件的 **ACR / CUDA / GPU 行与 §2/§5 的 H2D/D2H、GPU buffer、GPU fallback 全部标
-> `DORMANT`**（保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**，
-> 最高设计 §1.4）；**浏览器（Qt）标「工具分类（非发布）」**（最高设计 §7.1/§10：
-> HiPS Browser 不进产品 manifest）；**orchestrator 标「历史保留」**（最高设计 §7.1：
-> 接入后删除）。上述三类**均不是生产执行层**，发布/性能结论只引用生产层行。
+本文件给出各执行路径的串/并行分层、锁与原子原语、取消与超时语义、内存驻留与错误传播。生产执行层与隔离面分列：**ACR / CUDA / GPU 面不接入生产**（最高设计 §1.4：ACR 源码保留为隔离实验、生产不可达），**HiPS 浏览器属工具分类（非发布）**（最高设计 §1.4：GUI 非目标，不进产品清单），**Phase1 编排并入 CLI 的 pipeline driver、无独立进程**（最高设计 §8.1）。发布与性能结论只引用生产层条目。
 
 ## 1 串/并行分层
 
-| 路径 | 调用线程 | 切分单位 | 最大并发 | 调度器 | 同步点 | 证据 |
-|---|---|---|---|---|---|---|
-| Stage1 calibrate | calibrator thread | per-tile OpenMP | 16 | OpenMP parallel for | tile barrier | `calibrator.cpp` `#pragma omp parallel for`（:94/:126/:134） |
-| Stage1 drizzle | drizzle worker | per-source-pixel candidate（按确定性 stripe 分片） | n_threads | OpenMP + cache（per-stripe scratch 累加，无 reduction 子句） | 按 stripe 索引升序左折叠归约（累加与归约解耦，P15a/P22 形态） | `drizzle_engine.cpp:1923`（主并行区）/ `:1702`（merge_tile_map_into）/ `:2117-2142`（stripe 序归约） |
-| Stage2 sampler | stage2 worker pool | per-control-cell (64 per tile) | budget.max_workers（Runtime lease；1 = 串行 reference） | std::thread pool（无 OpenMP 条件） | cell barrier | `sampler.cpp:924-954`（`cfg.cpu_workers = budget.max_workers`，`next_c.fetch_add(1)` 动态取 cell） |
-| Stage2 UPM solve | stage2 main（IRLS 主迭代）；compute_raw/per-obs 权重 = per-call std::thread 池 | full graph；per-obs 权重行 | IRLS 主迭代 = 1；compute_raw/per-obs 权重 = granted_workers（Runtime lease） | IRLS 主迭代 serial；raw/权重按 lease 并行（check_thread_budget 登记在案） | — | `upm.cpp:605`（compute_raw）/ `:747`（per-obs 独立 w 计算注释）/ `:620/:751/:794/:916/:2143`（per-call 池 ×5，cworkers = cfg.cpu_workers ← Runtime lease）；M/C 更新主体串行（cg_solve_frame `:676` 起） |
-| Stage2 block/reject/integrate | block worker（std::thread 池） | per-tile（tile 级动态认领） | workers（Runtime lease） | p2_parallel_for（std::thread + 原子计数动态认领；无 OpenMP、无 barrier） | 无 pixel barrier：每任务只写自己下标的结果槽/输出 offset，跨任务零浮点归约 | `module_adapters.cpp:9045`（p2_parallel_for 定义）；调用点 `:10983`（reject）/ `:11778`（integrate）；`rejection.cpp`/`integrate.cpp` 内 `#pragma omp` 计数 = 0 |
-| ~~ACR Dispatcher~~ **DORMANT** | — | — | — | — | — | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；原行：acr thread / per-tile chunk (px) / auto / Dispatcher::decide / mixed merge / `acr_kernels.cpp` |
+| 路径 | 切分单位 | 最大并发 | 调度器 | 同步点 |
+|---|---|---|---|---|
+| Stage1 calibrate | per-pixel（单层 `n = w*h` 循环） | Runtime lease | OpenMP parallel for（static） | 无 barrier、无 tile 级同步点 |
+| Stage1 drizzle | per-source-pixel candidate（确定性 stripe 分片） | Runtime lease | OpenMP + cache | 按 stripe 索引升序左折叠归约 |
+| Stage2 sampler | per-control-cell | Runtime lease | std::thread pool | cell barrier |
+| Stage2 UPM solve | full graph；per-obs 权重行 | 主迭代 1；权重 = lease | 主迭代串行；权重 per-call 池 | — |
+| Stage2 block/reject/integrate | per-tile（动态认领） | Runtime lease | p2_parallel_for（std::thread） | 无 barrier，跨任务零浮点归约 |
 
-见 `THREADING_MODEL.md` 确定性锚点 ARC-004。
+调用线程与证据锚：
 
-## 2 异步 I/O 与 ACR
+- **Stage1 calibrate**：调用线程 = calibrator thread。证据 = `lib/algorithms/calibration/src/calibrator.cpp`
+  （`:94` 平场归一、`:126` 兼容式、`:134` 标准式；`calibrate_d` 的 `:170`/`:178` 同构）。
+- **Stage1 drizzle**：调用线程 = drizzle worker。证据 = `drizzle_engine.cpp` `:1923`（主并行区）、
+  `:1702`（`merge_tile_map_into`）、`:2117-2142`（stripe 序归约）。
+
+- **Stage2 sampler**：调用线程 = stage2 worker pool；`cfg.cpu_workers = budget.max_workers`。
+  证据 = `sampler.cpp` `:924-954`（`next_c.fetch_add(1)` 动态取 cell）。
+- **Stage2 UPM solve**：调用线程 = stage2 main（IRLS 主迭代）+ per-call std::thread 池（`compute_raw` /
+  per-obs 权重，登记在 `THREAD_BUDGET_ARCH.md`）。证据 = `upm.cpp` `:605`（`compute_raw`）、`:747`
+  （per-obs 独立 w 计算）、`:620/:751/:794/:916/:2143`（per-call 池 ×5，`cworkers = cfg.cpu_workers`）；
+  M/C 更新主体串行（`cg_solve_frame` `:676` 起）。
+- **Stage2 block/reject/integrate**：调用线程 = block worker（std::thread 池）。证据 =
+  `module_adapters.cpp` `:9045`（`p2_parallel_for` 定义）、`:10983`（reject 调用点）、`:11778`
+  （integrate 调用点）；`rejection.cpp`/`integrate.cpp` 内 `#pragma omp` 计数 = 0。
+
+确定性锚点见 `THREADING_MODEL.md`。ACR 异构分块面不接入生产（最高设计 §1.4），不在本表列行。
+
+## 2 异步 I/O
 
 | 项 | 模式 | 细节 |
 |---|---|---|
-| HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
-| HiPS read | 并发只读（无进程级锁） | **读路径线程模型**：读路径无进程级共享可变状态；每个 `fitsfile*` 为单线程私有、生命周期不跨线程转移（每次调用各自 open→read→close，句柄只在该调用栈帧）；并发安全由 cfitsio `_REENTRANT` 构建保证（`FptrTable`/错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开 `fits_already_open` 直接返回、不复用句柄，`cfileio.c:1544`）。机器判据 `eng/tools/quality/contracts/check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK` |
-| ~~ACR H2D/D2H~~ **DORMANT** | — | 保留源码与隔离测试，**不进生产**；原行：async via CUDA stream / `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
-| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，CPU_BACKEND_ARCH §6） |
+| HiPS write | 原子提交（`aio_hips_writer`） | 同目录临时文件 → 内容写出 → CHECKSUM 校验 → `fsync` → 打洞（可选）→ 原子 `rename` → 父目录 `fsync`；同目标并发写为 last-writer-wins（单写者前提，见 `IO_AND_ATOMICITY.md`） |
+| HiPS read | 并发只读（无进程级锁） | 读路径无进程级共享可变状态；`fitsfile*` 线程私有、不跨线程转移；并发安全由 cfitsio `_REENTRANT` 构建保证（详见本节末） |
+| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，见 `CPU_BACKEND_ARCH.md` §6） |
 
-## 3 锁/原子与 I/O 串行
+**HiPS 读路径线程模型**：每次调用各自 open→read→close，句柄只活在调用栈帧内；
+`FptrTable` 与错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开走
+`fits_already_open` 直接返回、不复用句柄（`cfitsio/cfileio.c` `:1544`）。
+机器判据 = `eng/tools/quality/contracts/check_execution_contracts.py` 的
+`EXEC-AIO-READ-NO-GLOBAL-LOCK`。
+
+## 3 锁 / 原子与 I/O 串行
 
 | 共享 | 原语 | 粒度 |
 |---|---|---|
@@ -43,60 +57,86 @@
 | Dense cache | `mutex` | per-write |
 | Memory budget | `atomic` counters | per-alloc |
 
-## 4 Future/Callback 与取消/超时
+## 4 Future / Callback 与取消 / 超时
 
 | 项 | 语义 |
 |---|---|
-| Orchestrator cancel | atomic flag `CANCELLED=9`（用户取消或超时；唯一源 `lib/infrastructure/cli/exit_codes.h`）, 流水线中断检查点 |
-| Stage2 signal | handler 设置取消标志, 当前 block 完成即退 |
-| Timeout | stage 配置 timeout_ms, 超时返 `CANCELLED=9`（唯一源不设独立超时码，取消与超时同码） |
-| Exception传播 | C ABI 边界捕获转返回码, 无异常跨 DLL |
+| Orchestrator cancel | atomic flag `CANCELLED=9`（用户取消或超时；唯一源 `lib/infrastructure/cli/exit_codes.h`），流水线中断检查点 |
+| Stage2 signal | handler 设置取消标志，当前 block 完成即退 |
+| Timeout | stage 配置 timeout_ms，超时返 `CANCELLED=9`（唯一源不设独立超时码，取消与超时同码） |
+| Exception 传播 | C ABI 边界捕获转返回码，无异常跨 DLL |
 
-## 5 CPU/GPU 内存驻留与回退
+## 5 CPU 内存驻留与回退
 
 | 项 | 语义 |
 |---|---|
-| CPU buffers | `BufferBinding` caller-owned, `free` via aio_hio_free |
-| ~~GPU buffers~~ **DORMANT** | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；原行：`cuda_buffer` device alloc, residency via ResidencyManager |
-| ~~H2D/D2H~~ **DORMANT** | 同上；原行：per-chunk async stream, timed via bridge loader |
-| Fallback | **生产 fallback = 无 cpu_profile → baseline 后端 + 动态 worker**（CPU_BACKEND_ARCH §6）。~~原「GPU OOM/无画像 → CPU OpenMP per-pixel」面 DORMANT~~ |
+| CPU buffers | `BufferBinding` caller-owned，`free` via aio_hio_free |
+| Fallback | **生产 fallback = 无 cpu_profile → baseline 后端 + 动态 worker**（见 `CPU_BACKEND_ARCH.md` §6） |
 
 ## 6 确定性与嵌套并行限制
 
 | 约束 | 规则 |
 |---|---|
-| 浮点求和顺序 | 按输入索引固定顺序, reduction文档化 (THREADING_MODEL ARC-004) |
-| 输入顺序 | frame_id/cell/pixel 索引固定, 不依赖线程调度 |
+| 浮点求和顺序 | 按输入索引固定顺序，reduction 文档化（见 `THREADING_MODEL.md`） |
+| 输入顺序 | frame_id/cell/pixel 索引固定，不依赖线程调度 |
 | 嵌套并行 | 外层已并行则内层串行 |
 
-## 7 错误/异常传播
+## 7 错误 / 异常传播
 
 | 错误 | 传播 |
 |---|---|
-| C ABI 返回码 | 0=OK 非0=失败, err缓冲仅日志 |
-| ~~ACR error~~ **DORMANT** | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；生产错误面见 `docs/architecture/ERROR_MODEL.md`（唯一源 `lib/infrastructure/cli/exit_codes.h`） |
-| Invalid/UNDERDETERMINED | per-pixel status, 不抛异常 |
+| C ABI 返回码 | 0=OK，非 0=失败，err 缓冲仅日志 |
+| Invalid / UNDERDETERMINED | per-pixel status，不抛异常 |
 
-## 8 ARC-EXEC 契约 ID 映射
+## 8 执行合同面映射
 
-| ID | 覆盖 |
+本文件的执行合同面按执行路径标识，覆盖如下；生产错误面唯一源 = `lib/infrastructure/cli/exit_codes.h`（表见 `ERROR_MODEL.md`）。
+
+| 合同面 | 覆盖 |
 |---|---|
-| ARC-EXEC-001 | Stage1 per-tile OpenMP calibrate |
+| ARC-EXEC-001 | Stage1 calibrate：per-pixel OpenMP（`#pragma omp parallel for schedule(static)`，共享 P2_ENABLE_OPENMP 构建开关；线程数由 Runtime lease 注入） |
 | ARC-EXEC-002 | Stage2 sampler 并发只读（无进程级锁；句柄单线程私有、不跨线程转移；Runtime lease 定 worker 数） |
-| ARC-EXEC-003 | Stage2 UPM solve：IRLS 主迭代串行；compute_raw/per-obs 权重按 Runtime lease 并行（per-call std::thread 池 ×5，check_thread_budget 登记在案） |
+| ARC-EXEC-003 | Stage2 UPM solve：IRLS 主迭代串行；compute_raw/per-obs 权重按 Runtime lease 并行（per-call std::thread 池 ×5，登记在 `THREAD_BUDGET_ARCH.md`） |
 | ARC-EXEC-004 | Phase2 block/reject/integrate：p2_parallel_for（std::thread）tile 级并行、原子计数动态认领，无 barrier，跨任务零浮点归约；tile 内逐像素候选栈串行处理 |
-| ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §1.4） |
-| ARC-EXEC-006 | HiPS async I/O transaction |
+| ARC-EXEC-006 | HiPS 写事务：临时文件 → 内容 → CHECKSUM 校验 → `fsync` → 打洞（可选）→ 原子 `rename` → 父目录 `fsync`；取消/失败不落正式产品 |
 | ARC-EXEC-007 | Orchestrator cancel/timeout propagation |
 
-见 `THREADING_MODEL.md`, `IO_AND_ATOMICITY.md`, `ERROR_MODEL.md` 子契约。
+子契约见 `THREADING_MODEL.md`、`IO_AND_ATOMICITY.md`、`ERROR_MODEL.md`。
 
----
+## 9 编排策略承接
 
-## 在役生产/CI 面（状态词取自 DORMANT 面之外）
+调度器按下列策略编排，内存占用永不越界（最高设计 §8.3）；各策略的现行落点：
+
+| 策略 | 现行落点（详见下） |
+|---|---|
+| **静态预算** | 标定常数 + 准入预算面 |
+| **探针校正** | 探针面 + 探针驱动标定 |
+| **异步并行** | 多帧并行 + I/O 与计算重叠 |
+| **可中断排队** | 内存闸门限帧在飞数 |
+| **可丢弃重跑** | 原子单元不落盘 + 重跑换目录 |
+
+- **静态预算**：从输入数据（帧尺寸与类型、配置、模块声明）静态估算每模块的内存与 CPU 需求，
+  作调度决策输入；标定常数落点 = `PERFORMANCE_MODEL.md` §1.2（`kP1FrameBytesPerPixel`、
+  `kP1FrameMemSafetyFrac`、内存预算百分比），准入预算面 = `eng/packaging/config/runtime_resources.json`。
+- **探针校正**：每节点墙钟 / 排队等待 / 块生命周期 / RSS / I/O / worker 均衡 / 缓存命中探针
+  随事件流落盘（探针面见 `observability/RESOURCE_MONITORING_CONTRACT.md`）；用实测校正静态模型，
+  探针驱动的标定旋钮 = `PERFORMANCE_MODEL.md` 与 `THREADING_MODEL.md` 的轴分配。
+
+- **异步并行**：预算充裕时异步启动独立工作流——多帧并行（`p1_parallel_for` 原子认领分批，
+  同时最多 `cap` 帧在飞）、I/O 预取与计算重叠（`ASYNC_IO_CONTRACT.md`）；
+  异步只用于能隐藏延迟的 I/O、预取与压缩。
+- **可中断排队**：预测后续工作流将产生内存膨胀或多线程峰值时，中断优先级低的工作流，
+  让其在内存中等待、按序排队进入；现行形态 = 内存闸门 `p1_memory_cap` 限制帧在飞数
+  （`THREADING_MODEL.md`「并行轴分配」），准入边界优先于并行宽度。
+- **可丢弃重跑**：内存仍不足时丢弃进度最低的工作流并释放其占用，该工作流随后重新开始；
+  现行形态 = 失败或取消的产物不落盘（原子单元不落盘），重跑 = 新运行目录 + 新 manifest
+  （`ARCHITECTURE.md` §5）。
+
+**不变量**：数值结果与并发度无关——1/N worker 数值等价，判据是事前冻结的浮点容差；归约顺序冻结是达成手段，不是判据本身（最高设计 §8.3）。
+
+## 10 在役生产 / CI 面
 
 - `lib/infrastructure/cli/runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `acsd`** ⇒ **在役生产**。
 - `lib/infrastructure/cli/mode_gate.h`：同链 include ⇒ **在役生产**。
 - `lib/infrastructure/scheduler/budget.py`：由 `eng/tools/quality/check_runtime_closure.py` 调用其 `selftest`、`eng/tools/quality/runtime_oracle.py` 锚定 ⇒ **在役 CI 面**。
-- 上述三者与本节开头的 `DORMANT` 面（ACR/CUDA/GPU、Qt 浏览器、orchestrator）**分属不同类别**，两者各列一张表。
-
+- 上述三者与隔离面（ACR / CUDA / GPU、Qt 浏览器）**分属不同类别**，各列一张表。

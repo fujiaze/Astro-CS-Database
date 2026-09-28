@@ -36,7 +36,7 @@
 - 变体反汇编**不含任何 BMI2/POPCNT 专用指令**（mulx / rorx / blsr / blsmsk / tzcnt /
   lcnt / popcnt / pdep / pext 计数为零）——工具链在该 kernel 集中未发现可加速的位操作，
   对照变体与 baseline 指令层一致；
-- 计时差的量级与共享 vCPU 虚机的 run-to-run 噪声同阶 ⇒ **无真实位操作收益**。
+- 计时差落在运行噪声量级 ⇒ **无真实位操作收益**。
   逐项反汇编计数与计时读数见 `实验/engineering-evidence/prerelease-v5/`。
 
 ## 3 结论

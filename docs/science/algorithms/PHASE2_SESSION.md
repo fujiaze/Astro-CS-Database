@@ -1,13 +1,13 @@
 # Phase2 Session Assembly（P2-SESSION / astrocs.p2.session）
 
-> ID: ALG-P2-SESSION-001  状态: CONTRACT_READY。本文件是 Phase2 进程内装配会话
+> 本文件是 Phase2 进程内装配会话
 > （lib/phase2_session/）的**装配合同唯一权威**：DAG 拓扑 + 端口 +
 > 生命周期 + 错误/并发/取消语义逐锚冻结。定位=assembly 编排层——
 > 不含任何科学公式，科学实现全部委托既有冻结 C API：coverage=
 > ALG-COV-001 域（PHASE2_COVERAGE.md）、sample=ALG-P2-SMP-001 域
 > （PHASE2_SAMPLER.md）、upm=ALG-UPM-001 域（UPM_SOLVER.md）、
 > persist=upm 持久化（SCI-UPM-PERSIST-001 面）；HiPS 马赛克写不进
-> 本会话（PUBLIC_API.md:1088-1090 冻结表述）。
+> p2 会话（`PUBLIC_API.md`「Phase2 会话装配」节冻结表述）。
 > 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§8.2（数据流形态）
 
 > 上游 SCI（共享引用零改动）: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
@@ -37,7 +37,7 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
   全文零科学实现；eng/tests/unit/p2_ir_facade_test.cpp:41-52 facade 委托
   断言冻结"不复制算法"）；
 - 不做 HiPS 马赛克写（upm_apply/reject/integrate/write 四域不在现状
-  4 段内；PUBLIC_API.md:1088-1090；补齐归 P2-SESSION-IMPL，§11.4）；
+  4 段内；`PUBLIC_API.md`「Phase2 会话装配」节；补齐归 P2-SESSION-IMPL，§11.4）；
 - 不做线程创建/并行调度决策：worker 数一律经 host->budget 注入域内
   C API（:155/:195，禁硬编码）；
 - 不重复科学数值容差：装配层 bitwise 透传，容差归各域 TEST（§11.5）。
@@ -305,7 +305,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 | 2 | coverage 域产物（union MOC+target_order，P2CoverageResult 进程内） | 已实现（lib/algorithms/coverage/src/coverage.cpp，ALG-COV-001 域） | 已存在（P2-COV 域） |
 | 3 | sample 域产物（P2ControlObservation/P2ControlNode/P2SampleStats） | 已实现（sampler.cpp，ALG-P2-SMP-001 域） | 已存在（P2-SAMP 域） |
 | 4 | upm 域产物（model 构建/持久化 p2_upm_build/save/info/close） | 已实现（lib/algorithms/coverage/src/upm*.cpp，ALG-UPM-001 域） | 已存在（P2-UPM 域） |
-| 5 | persist 段=HiPS writer 域马赛克写产品 | **不在会话**：p2_session persist 段仅 upm_save 单产物；upm_apply/reject/integrate/write 四域未编排（PUBLIC_API.md:1088-1090） | P2-SESSION-IMPL（typed DAG 扩面） |
+| 5 | persist 段=HiPS writer 域马赛克写产品 | **不在会话**：p2_session persist 段仅 upm_save 单产物；upm_apply/reject/integrate/write 四域未编排（`PUBLIC_API.md`「Phase2 会话装配」节） | P2-SESSION-IMPL（typed DAG 扩面） |
 | 6 | typed phase2 DAG 全链执行（"full execution no partial facade"） | 现状=4 段 facade 直调（p2_ir_facade_test.cpp:41-52 契合现状口径） | P2-SESSION-IMPL（台账 :187） |
 | 7 | module integration descriptor + typed ports | registry 无 astrocs.p2.session descriptor；占位 descriptor 工厂委托（§4） | P2-SESSION-INT（台账 :188） |
 | 8 | registry 页 astrocs.phase2.session.md / README / memory | 不存在；归 registry 面登记 | registry 面 |
@@ -345,15 +345,15 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 ### 11.6 SCI 层状态声明（本域零 SCI 改动）
 
-- 本会话共享引用 SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
-  （docs/science/，FROZEN）——**共享 SCI 引用不改动**
+- p2 会话引用 SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001 的语义
+  （docs/science/，FROZEN；**共享 SCI 引用不改动**）
   （P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、P2-COV
   SCI-UPM-001/SCI-INT-001、P2-INT SCI-INT-001、P2-REJ
   SCI-REJ-001 同构）。现状 4 段实际消费面=SCI-UPM-001（coverage/
   sampler/upm 域均在其集合 SCI-UPM-001..010 内）；SCI-INT-001/
   SCI-REJ-001 为会话下游 typed DAG 扩面（upm_apply/reject/integrate/
-  write 四域）的共享 SCI 引用，现状未由本会话直接调用——如实登记，
-  不冒认调用面。
+  write 四域）的共享 SCI 引用；本层直接消费面 = SCI-UPM-001（coverage/sampler/upm
+  域），调用面随 typed DAG 扩面接入。
 - SCI 公式语义不在此重复定义；两处冲突以 docs/science/ 为准并回改
   本文档（方向 = 从 docs/science/ 到本文档）。
 - descriptor 占位词汇（SCI-P2-RES-001 等，§4）与本页冲突时以本页为
@@ -393,9 +393,8 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - 差距整改：§11.4（IMPL/INT）+ §11.3 DISP-P2SES-001..008；
   测试落地：P2-SESSION-TEST（§11.5）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
 
 - DAG/拓扑排序：Kahn 1962, Comm. ACM 5, 558（DOI 10.1145/368996.369025）；Cormen et al. 2009, Introduction to Algorithms 3rd ed., MIT Press, §22.4。
 - provenance/来源链：W3C PROV-DM（https://www.w3.org/TR/prov-dm/）；manifest 字段语义以 DATA_SEMANTICS 为准。
@@ -403,11 +402,5 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - FITS checksum：FITS Standard 3.0 §5.5（DATASUM/CHECKSUM）；CFITSIO（宽松许可）。
 - 取消/生命周期语义：Project-defined（本文件 §5/§9）。
 
-参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
-- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
-- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
-- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
-- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 

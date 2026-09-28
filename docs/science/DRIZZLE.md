@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
 
-> ID: SCI-DRZ-001  集合: SCI-DRZ-001,014,015,016  状态: FROZEN（冻结定义）  上游: SCI-SCOPE-001  下游 ALG: ALG-DRZ-001..  模块: healpix_drizzle
+> 本文件条款为冻结定义，变更走变更流程。
 
 ## 1 目的与非目标
 
@@ -22,7 +22,7 @@
 | `N_p` | `Σ_j w_jp·A_pixel,j` **面亮度归一分母** | 重建式 |
 | `F_p, D_p, S_p` | 累积（分配）通量 / 覆盖面积 / 面亮度信号 | 同上 |
 | `sumVarNum` | `Σ v_j·w_jp²` 方差分子 | `TileLeafAccumulator` |
-| `hp_res` | HEALPix 像素尺度 `√(π/3)/nside rad` | `spherical_overlap.cpp:40` |
+| `hp_res` | HEALPix 像素尺度 `√(π/3)/nside rad` | `spherical_overlap.cpp` |
 | `pixfrac` | drop 收缩因子 (0,1]（`drizzle.pixfrac`，默认 0.8） | `drizzle_engine:half=0.5*pixfrac` |
 | `C=π/2, C45=π/(2√2)` | 极区 Lipschitz 常数 | 极区 prune |
 
@@ -95,17 +95,17 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
             低 nside 自适应细分；面积经 Sutherland–Hodgman 球面裁剪 +
             Van Oosterom & Strackee 扇形三角剖分
   通量守恒（严格不变量）：Σ_p F_p = Σ_j x_j·(Σ_p a_jp)/A_drop,j = Σ_j x_j（几何闭合时，§7）。
-缓冲三层 (spherical_overlap.cpp:40, HP_CIRCUMRADIUS_FACTOR=1.25·hp_res):
+缓冲三层 (spherical_overlap.cpp, HP_CIRCUMRADIUS_FACTOR=1.25·hp_res):
   1) overlap quick-reject:  lim = max_angle + 1.25·hp_res
   2) candidate 保守查询圆: query_radius = max_angle + 3.0·hp_res
   3) fast 枚举: buffer = 1.25·hp_res, 赤道 delta×1.15 畸变系数, 极冠回退
 ```
 
-与 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:40,573,773-931` 及 `drizzle_engine.cpp:100,736-762` 一致。
+与实现 `lib/algorithms/drizzle/healpix_drizzle/`（球面重叠与 drizzle 引擎）一致。
 
 ## 6 假设
 
-- 线性叠加且源像素噪声独立；几何 WCS 已解；球面裁剪外接圆半径 `1.25·hp_res` 覆盖赤道对角线 `1.532·res` 与全天最坏外接 `sup ≈ 1.0415·hp_res`（N=64 全天穷举）+ 裕量 ≥20.0%。
+- 线性叠加且源像素噪声独立；几何 WCS 已解；球面裁剪外接圆半径 `1.25·hp_res` 覆盖 HEALPix 叶外接半径 `sup ≈ 1.0415·hp_res`（N=64 全天穷举，裕量 1.2002）；候选完备性由 `3.0·hp_res` 查询圆与零漏选 oracle 保证。
 
 ## 7 独立不变量
 
@@ -128,10 +128,12 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
   `S_p=Σ_j B_j a_jp/Σ_j a_jp`（面亮度）**只有在归一分母取 `N_p=Σ_j w_jp·A_pixel,j` 时同时成立**；
   把核换成 `w=a_jp/A_pixel,j`（则 `Σ_p F_p=pixfrac²Σ_j x_j`），或把分母换成 `D_p=Σ_j a_jp`
   （则 `S_p=B0/pixfrac²`），另一条立刻偏 `pixfrac²`。二者不可同时满足任何单权重单分母组合。
-- **验收判据（drop 面积归一的正例/负例）**：`drizzle_acceptance_test` 在
-  `pixfrac∈{0.1,0.5,0.8,1.0}` × 过采样率 `{1,2,3,4}` 上断言 `Σ_p sumFlux_p=Σ_j x_j`
-  （FP64 相对闭合 `<1e-7`）；负例注入 `--inject-legacy-pixfrac2`（把 `Σout` 乘回 `pixfrac²`）
-  必须判红 —— 同一判据、同一可执行，非恒真门。
+- **验收判据（主判据 = 逐 leaf 门）**：主判据是**逐 leaf 面积/权重相对误差门**
+  （每个 leaf 的 `Σ_j a_jp` 与 `w_jp` 各自过相对误差门）；求和型判据
+  `Σ_p sumFlux_p=Σ_j x_j`（FP64 相对闭合 `<1e-7`）**只证总量守恒**，对逐 leaf 错注入
+  无判别力 ⇒ 验收判决一律以**逐 leaf 门**为准。`drizzle_acceptance_test` 在
+  `pixfrac∈{0.1,0.5,0.8,1.0}` × 过采样率 `{1,2,3,4}` 上同时跑两类判据；负例注入
+  `--inject-legacy-pixfrac2`（把 `Σout` 乘回 `pixfrac²`）必须判红 —— 同一可执行，非恒真门。
 
 ## 8 极端/退化条件
 
@@ -140,8 +142,8 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 | `pixfrac` 非法 `<=0/>1` | 拒绝 `NO_DATA` | `drizzle:拒绝非法pixfrac` |
 | RING ordering | 拒绝（HISS 统一 NESTED） | `drizzle:拒绝RING` |
 | 多通道图像 | 拒绝 | `drizzle:拒绝多通道` |
-| WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp:631` |
-| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**掩膜作用域 = 样本级**（单个不合格样本不改变输出像素的取值），分母只累计合格样本的权重；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，0/±Inf 一律读作有效数值），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（剔除逐条登记计数）。 | `spherical_overlap.cpp:192`（几何 NaN 显式拒绝） |
+| WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp` |
+| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**掩膜作用域 = 样本级**（单个不合格样本不改变输出像素的取值），分母只累计合格样本的权重；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，0/±Inf 一律读作有效数值），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（剔除逐条登记计数）。 | `spherical_overlap.cpp`（几何 NaN 显式拒绝） |
 | 无覆盖/几何退化 | `NO_DATA`，不产伪信号 | `drizzleTiled` |
 | 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（核分母 `A_drop,j` 与面亮度归一分母用的 `A_pixel,j` 走**同一分支同一例程**：θ<1e-3 时同为切平面 2D 面积，见 `spherical::polygon_area_consistent`） | `spherical_overlap.cpp` `planar_polygon_area_n` / `polygon_area_consistent` |
 | RA 跨0/极区/face边界 | `boundary_fallback` 保守 queryDisc，`false_negative=0` | `spherical_overlap` |
@@ -149,14 +151,14 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 
 ## 9 精度策略
 
-- FP64 累积 `F_p/sumVarNum/D_p/N_p`（`TileAccumulator sumFlux/sumArea/sumNorm/sumVarNum/nContrib` 线程局部后串行合并）；面积用 `double` 角点计算防 `float` 0.05% 偏差；`arc-chord <1e-6·hp_res ≈3e-6"`。`pixfrac=1` 时 `pixel_area` 与 `drop_area` 是同一变量 ⇒ `sumNorm ≡ sumArea` 逐位相同（默认路径零回归）。
+- FP64 累积 `F_p/sumVarNum/D_p/N_p`（`TileAccumulator sumFlux/sumArea/sumNorm/sumVarNum/nContrib` 线程局部后串行合并）；面积用 `double` 角点计算防 `float` 0.05% 偏差；`arc-chord <1e-6·hp_res` 预算**仅在自适应细分深度 ≥9（生产 `max_depth=12`）时成立**——无细分弦表示下极冠最大 `0.066·hp_res`、缝带 `6.587e-4·hp_res`、赤道 `1.443e-4·hp_res`。`pixfrac=1` 时 `pixel_area` 与 `drop_area` 是同一变量 ⇒ `sumNorm ≡ sumArea` 逐位相同（默认路径零回归）。
 
 ## 10 不可接受变化
 
 - 改变 `pixfrac` 语义或 `HP_CIRCUMRADIUS_FACTOR=1.25` 保守半径而不重跑 `9003` 例零漏选；
 - 将 `S_p` 定义为 `F_p`（漏面亮度归一分母 `N_p`）；
 - 把核权重写回 `a_jp/A_pixel,j`（则 `Σ_p F_p = pixfrac²·Σ_j x_j`，总流量被 `pixfrac²` 系统性压低，FZ-COND-FLUX-CONSERV 判红）；
-- 将 `S_p` 的分母取覆盖面积 `D_p=Σ_j a_jp` 而非面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`pixfrac<1` 偏 `1/pixfrac²`，FZ-FORMULA-DRIZZLE-SB / DISP-DRZ-009 的负例控制）；
+- 将 `S_p` 的分母取覆盖面积 `D_p=Σ_j a_jp` 而非面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`pixfrac<1` 偏 `1/pixfrac²`；该混合式属**禁用式**，其偏差判据见 ALG 层 `FZ-FORMULA-DRIZZLE-SB` / `DISP-DRZ-009` 登记面）；
 - 把 `provenance.flux_conservation_factor` 写成 `pixfrac²`（新口径下恒为 1）；
 - 将方差传播写为 `var_p=Σ v_j·w_jp`（漏 `²` 与 `/N²`）；
 - 在微小区用 `float` 面积致 0.05% 偏差。
@@ -168,9 +170,10 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 - **常量面亮度门（FZ-GATE-CONST-SB）**：按 `B0` 构造 `x_j=B0·A_pixel,j`，对全部
   `pixfrac∈(0,1]` 断言 `|S_p/B0−1|<1e-3` 全像素；负向注入（按每像素常量 ADU 构造、
   `S_p=F_p` 漏归一、**分母取覆盖面积 `D_p`**）必须判红（`p1drz_disp009` 的 N 判据）。
-- **通量守恒门（FZ-COND-FLUX-CONSERV）**：`drizzle_acceptance_test` 在
-  `pixfrac∈{0.1,0.5,0.8,1.0}`×过采样率 `{1,2,3,4}` 上断言 `Σ_p sumFlux_p=Σ_j x_j`
-  （FP64 `<1e-7`），并带 `--inject-legacy-pixfrac2` 负例注入（必须判红）。
+- **通量守恒门（FZ-COND-FLUX-CONSERV）**：主判据 = **逐 leaf 面积/权重相对误差门**；
+  `drizzle_acceptance_test` 在 `pixfrac∈{0.1,0.5,0.8,1.0}`×过采样率 `{1,2,3,4}` 上断言
+  逐 leaf 门与 `Σ_p sumFlux_p=Σ_j x_j`（FP64 `<1e-7`；后者只证总量守恒，验收判决一律以逐 leaf 门为准），
+  并带 `--inject-legacy-pixfrac2` 负例注入（必须判红）。
 - **Python 参考**：`healpy` 球面多边形面积对同 `drop` 的 `a_jp` 复算（`rtol 1e-9`）。
 - **几何缓存等价**：`TargetGeomCache` 命中/未命中结果 `max_abs==0`（`DRIZZLE_TARGETED`）。
 
@@ -210,7 +213,6 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 
 ## 14a 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动 §5/§7 的公式、常数与容差。
 
 - **Drizzle 线性重建/drop/pixfrac**：Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087v2 §2 式(2)-(5)）。式(5) 为**一致加权均值**
   `I_p = Σ_i d_i a_ip w_i s² / Σ_i a_ip w_i`（`a_ip`=drop 与目标像素的分数交叠、`s²=A_out/A_in`），
@@ -225,25 +227,12 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 - **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
 - **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207）——本模块按其平面三角形立体角式实现
-  Sutherland–Hodgman 球面裁剪 + 扇形三角剖分（spherical_overlap.cpp:152-186,218）。
+  Sutherland–Hodgman 球面裁剪 + 扇形三角剖分（spherical_overlap.cpp）。
 - **多边形裁剪**：Sutherland, I. E. & Hodgman, G. W. 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——平面算法原型（原文只处理平面多边形与平面窗口）；本模块的球面逐边裁剪是它的推广。
 - **HiPS/MOC 层级**：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）；Fernique et al. 2015, A&A 578, A114。
 - **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
-
-## 15 Acceptance
-
+参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
 - §7 不变量门全过；
 - `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；

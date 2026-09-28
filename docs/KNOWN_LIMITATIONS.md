@@ -25,8 +25,9 @@
 11. **UPM ivar 回退**：输入帧无 ivar 产品时积分权重回退 support（`ivar_product_missing` 计数如实记录）。
 12. **Phase1 SNR catalogue**：作为诊断保留，不作为科学权重。
 13. **Phase1 不确定度子产品缺失（未关，P0 级）**：CLI `normalize` 产出的 `p1_final.json` 实测 `n_variance_tiles=0` / `n_ivar_tiles=0`；写出器本身具备产出 variance/ivar 子产品的能力，缺口在 p1 节点未向 PipelineFrame 注入 variance 块。**最高设计 §3.1 规定不存在「权重模式」概念（全程只有 SNR）**，故该缺口的影响面 = 绝对 SNR / 不确定度链的可达性。
-15. **接缝残余未随天光面修复消失（L4 视觉复验，未关）**：全量 R 通道成品帧目检，天光面修复后接缝仍存在，幅度为本地背景的 1–3%；水平带 1 上缘由 +1.06% 变为 −2.39%（**变差 ≈2.2×**）。**根因不是 sky_plane 回退**，而是等权均值下帧集变化处的残余零点差 / 排异差异，需另行定位。接缝判据尚未通过。
-16. **天光面生效后的负值像素属约定变更（非缺陷）**：加性天光面生效后背景归零，负值像素占比由 6.0e-7 升至 **0.459**（46%）；下游读取与判据需按"允许负像素"的约定解释，该项归类为约定变更。
+15. **接缝残余未随天光面修复消失（未关；证据口径已按 P5-08 改写）**：真实帧足迹域上，「无接缝」主张**不成立**——门内读数 `max|rel_step| = 7.2561e-03` 未超门，但同一次读数块的**三个独立诊断量全部越门**（`rel_step_net_max = 1.2948e-02`、`rel_step_d4x_max = 2.1915e-02`、`legacy_rel_max = 2.6110e-02`），且门只覆盖 **114/196** 条边界（82 条 `not_interior` 不进判据）。**订正**：原登记文字（幅度 1–3%、水平带 +1.06%→−2.39%、"根因不是 sky_plane 回退"）一律撤下——① 该文字记录的是已被后续轮次取代的 M42-E2E-01 产品（legacy 口径随后由 0.10838 降到 0.02611、历史带判 0/17 超门）；② 其数字在仓内**无任何可复核载体**（产品 FITS 已随源 run 树回收）；③ 其归因被 `run/SCI-SEAM-Y2309-01` 的一手结论反证（真因是 node_spacing 取 1.0°，HEAD 已改为几何导出）。现行可核对面 = `实验/additive-sky-seamless/results/production_e2e_seam_record.json`（逐字冻结 + 4 个源 sha256 + 17 项自检，正/负例均可跑）。
+16a. **天光面生效后的负值像素属读取约定（保留原归类）**：加性天光面生效后背景归零 ⇒ 产品出现负值像素，占比 **48.4%**（`full_neg_frac = 0.4839820861816406`；来源 `实验/additive-sky-seamless/code/c3_public_plane.py:131` → `results/c3_public_plane.json` 的 `/product/full_neg_frac`；HEAD 复跑同口径 0.4851）；下游读取与判据须按「允许负像素」的约定解释。**订正**：原条目写的「0.459（46%）」在仓内无来源——0.45988 实为 `实验/additive-sky-seamless/results/c7_realdata.json` 的 `d_step`（δ 臂校正后的**接缝台阶**，单位 e⁻，见 `results/REVIEW.md` 的「step 20.8858 → 0.4599」），与负值像素**占比**是两个量，该数字与「46%」一并撤下。
+16b. **契约面缺陷：请求 δ 而无天光面产物时的降级（未关，major）**：`additive_mode=delta` 且无可用天光面时，`additive_mode_effective` 只能降为 `"c"`（全减、背景归零），而 `docs/plugins/algorithms_phase2/11_upm.md` §7 明令该情形**判红**；全减正是本单元判定的**退化路径**（背景近 0 ⇒ 判据量分母病态、`rel_step` 无界）⇒ 负值像素是**退化路径被触发的症状**，不只是约定变更。现状：该降级已改为**具名判红面**（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `degraded_reason=no_sky_plane_artifact` + `warning_codes=["P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE"]`，随 `p2_corrected.json` 与节点 manifest 落盘，产品照出、rc 不变），自相矛盾的旧注释已撤下。**仍缺**：① 全仓无任何测试/门禁**读取**该码（grep `lib/ eng/ docs/ 实验/` 只命中生产者）⇒ 判红面**恒绿**，不可判据；② 承载原 46% 数字的 `additive_mode_effective` 落盘证据（源 run 树已回收）⇒ 该数字按「未验证」处理。补可判红负例属 P2 文件域（`module_adapters.cpp` 不在本单元文件域），已在 P5 订正报告中登记。
 17. **`drizzle_scale_arcsec` 合法域**：NaN / ≤0 / >824.52″ 一律 `rc=2` + `set_error`（契约侧登记；去向 `docs/contracts/DATA_SEMANTICS.md`，由前台合并）。
 
 ## C. 工程与产品面
@@ -77,10 +78,20 @@
     - **规范依据**：`ASTROCS_DESIGN.md §8.1`「一次 CLI 调用只驱动一个阶段」；`AGENTS.md §6`「不串三阶段」。
     - **归属/去向**：调度器域 + `eng/ci`（生产调用点 phases 基数判据）。
 
-34. **Phase2 分块大小编译期硬编码 512²**
-    - **现象**：`lib/infrastructure/scheduler/src/module_adapters.cpp` 文件级 `constexpr uint64_t kP2TileLeafSpan = 512ULL * 512ULL`；`#p2_op_reject` 内 `tile_span != kP2TileLeafSpan` 直接判 DATA 错误（读 `cor_doc.value("tile_leaf_span", kP2TileLeafSpan)` 后即硬校验）⇒ 无任何配置/资源门输入。内存驱动的动态分块实现 `p2_block_plan`（`lib/algorithms/coverage/include/astro/phase2/block.h`）已在 `eng/ci/ledgers/dormant_algorithms.json` 登记为生产不可达。
-    - **规范依据**：`AGENTS.md §6`「不硬编码线程/ISA/**block**：由 benchmark 生成的 profile 决定」；`docs/contracts/SCHEDULER_CONTRACT.md §3`「分块/窗口/子块大小由配置/资源门决定」；`ASTROCS_DESIGN.md §8.3`；`docs/plugins/algorithms_phase2/**`（PHASE2_DETAILED_DESIGN §8「内存不足时重新分块」）。
-    - **归属/去向**：Phase2 集成/排异域 + 合同面任务；解除路径与 `dead_config_keys.json` 的键面纪律一致。属顶层合同结构性变更（把 tile span 提升为受控配置键 = 合同 + CLI 键面变更，须避免新造同义键）。
+34. **Phase2 分块大小编译期硬编码 512²（已闭合：升为受控配置键）**
+    - **现状**：实现侧**零字面量**——`module_adapters.cpp` 的 `kP2TileLeafSpan` / `kP2TileShift` /
+      `kP3DefaultSubBlockPx` / `kP3MinSubBlockPx` / `kP3MaxSubBlockPx` / `kP3DefaultQueueDepth`
+      改为 `using astrocs::runtime_resources::…`，取值来自唯一数值源
+      `eng/packaging/config/runtime_resources.json#orchestration_params`（CMake `string(JSON …)` →
+      `runtime_resources_generated.h`）；归属登记 = `eng/packaging/config/config_registry.json#orchestration_params`。
+      值域守卫仍在编译期 fail-closed（生成头 `static_assert`：span == (2^shift)²、min ≤ default ≤ max、qd ≥ 1），
+      红/绿证据 = `run/FINAL-07/logs/DYN-740_R27_orchestration_params.log`。
+    - **规范依据**：`docs/contracts/SCHEDULER_CONTRACT.md §3`「线程预算、内存上限…队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定」；
+      `docs/standards/CONCURRENCY_STANDARD.md`「默认」节（取值来源 = 配置）；`AGENTS.md §6`「不硬编码 block」。
+    - **仍未覆盖（诚实边界）**：① 分块**随内存动态重规划**仍未接线——内存驱动的 `p2_block_plan`
+      （`lib/algorithms/coverage/include/astro/phase2/block.h`）仍在 `eng/ci/ledgers/dormant_algorithms.json`
+      登记为生产不可达；本轮只把**取值**受控化，未引入按内存改块的路径；
+      ② 改配置值 → 重配置 → 重编译的整链红例未跑（需独占 configure 窗口）。
 
 35. **`CHK-ARCH503-MOSAIC-WIN` 的峰值驻留判据（已收敛为唯一实现）**
     - **现行口径**：`lib/infrastructure/scheduler/src/mosaic_window.cpp` 的峰值驻留取**实测值**（窗口输出像素缓冲 `capacity()` + 路由指针向量 + 标量局部，循环内取最大）；判据收敛为唯一实现 `window_peak_residency_ok`——peak>0 / peak≤解析上界 / 与总图规模解耦 / 装满时 `window_tiles` 更大 ⇒ peak **严格更大**，四条同时成立才绿；两条负例（常量驻留 `sizeof(double)*4`、零驻留注入）必须判红。
@@ -146,6 +157,29 @@
       2. `docs/plugins/algorithms_phase1/08_drizzle.md §7` 曾写「生产调度路径不挂 variance 块 ⇒ has_variance=0 ⇒ uncertainty_available=false」——与工作区现状（`module_adapters.cpp` 的 variance 块接线**已存在**，定案 2 / NoiseWeightModelV1 blank-sky variance，且 fail-closed）**不符**。
     - **规范依据**：`ENGINEERING_SPEC.md §8`（文档集随代码持续维护更新，保持自解释）；`ASTROCS_DESIGN.md §0.2`。
     - **归属/去向**：§6 订正为「跨线程数 bitwise 一致，由 `p1drz_merge_pipeline_lock` 回归锁守护」；`08_drizzle.md §7` 按接线现状订正。若第 2 处实为「接线已落地但未跑通」则需上呈。
+
+48. **P4→P5 稀疏层生产接线（`in.sparse`）与 IDW 参数配置面：两条跨域前置（P4-M05/M06）**
+    - **M06 现象**：`lib/infrastructure/scheduler/src/module_adapters.cpp:11893` 的 `in.sparse = nullptr`
+      是**有意的 fail-safe**，不是漏写：控制点值的冻结语义 = `absolute_flux_type_snr`
+      （`eng/contracts/schemas/unified/sparse_snr_layer.schema.json:300-302`：「与 frame_snr 同口径…
+      **消费时不得乘/除帧级 SNR 做还原**」），而消费者把稀疏层当**帧内（相对）**因子并与帧级 SNR 相乘
+      （`lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:715-743` + `compose_actual_snr:116`
+      ⇒ `actual = frame_snr × intra`）。按现状接线即违反冻结 schema（跨域缺陷 P2-N1）。
+      另：该链的产物是**逐帧标量**权重（`r.intra_snr[k]`/`r.actual_snr[k]`），与稀疏层的**逐像素**消费面
+      （`w(x,y)=SNR_layer(x,y)²/F_ref,k²·g_k²`，13_integration §4.0）结构不同 ⇒ 真实落点 = 集成/drizzle 单元。
+    - **M05 现象**：`idw_power` 在 `eng/packaging/config/**` **零命中**（`grep -rn idw_power eng/packaging/config` = 0），
+      无法直接登记为受控键：`eng/tests/config/check_cfg002_registry.py:186-191` 要求
+      `docs/plugins/**` 配置项表与 `config_registry.json#plugin_knobs` **一一对应**（文档有、登记册无 ⇒ 红；
+      登记册有、文档无 ⇒ 红），而 `07_noise_snr.md` 只在正文 `:192` 提到 `idw_power`，**无表格行**；
+      且 `defaults.json` 的 `authority.transcription_rule` 要求取值只从 `docs/science/**` 逐字转录 ⇒
+      插件文档来源的默认值不能直接进 defaults 数值面。代码侧现状：消费侧已是规范默认 1.0
+      （`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.h:110`、`snr_evaluator.cpp:212,268`），
+      生产侧仍硬写 2.0（`lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:593,730,833`）。
+    - **规范依据**：`docs/plugins/algorithms_phase1/07_noise_snr.md:192`（插值设置配置化 + 日志输出 `p*`，不随产物落盘）；
+      `eng/contracts/schemas/unified/sparse_snr_layer.schema.json`（层语义冻结）；`AGENTS.md §6`（不动科学默认值）。
+    - **归属/去向**：M06 = 集成/drizzle 单元（消费语义）+ 合同/科学面裁决；M05 = 文档单元（`07_noise_snr.md` 补表格行
+      与现状句订正）+ 算法单元（生产默认值与配置读取面、`p*` 日志）；两条落地后，配置键登记面（`eng/packaging/config/**`）
+      才可加键（否则该键无生产读取面 ⇒ `CHK-CONFIG-CONSUMED` 判死键）。
 
 47. **已由机器台账承载（本节只给交叉引用，不重复登记）**
     - **静默回退**（`module_adapters.cpp#p1_calibrated_path` 与 `#p1_cleaned_input_path` 在声明产物缺失时**不报错、不写 degraded_reason**，直接回退到原帧或上游 cal 产物）→ `eng/contracts/block_flow/conformance_deviations.json#BFD-A17`（blocker，`undeclared_input`）。

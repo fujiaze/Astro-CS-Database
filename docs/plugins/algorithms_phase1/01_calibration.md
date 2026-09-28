@@ -48,7 +48,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 | `flat_path` | —— | —— | master flat 路径 |
 | `gain` | —— | e⁻/ADU | 由元数据或显式覆盖 |
 | `read_noise` | —— | e⁻ | 由元数据或显式覆盖 |
-| `clip_negative` | false | —— | true 只用于负责人批准降级并记录的场合 |
+| `clip_negative` | false | —— | true 仅用于显式声明的具名降级路径：必须写 `degraded_reason` 并入 manifest |
 
 ## 6. 接口/ABI
 
