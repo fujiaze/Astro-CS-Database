@@ -55,6 +55,16 @@ static int g_checks = 0;
 
 namespace {
 
+// P-174：**成功**发布的期望持久化终态。Windows 无目录 fsync 等价物（fsync_dir 为
+// 尽力模式恒返回 true）⇒ 目录项持久化不可确认，成功发布只能报 kNotDurable；
+// POSIX 上目录 fsync 成功才是 kDurable。
+constexpr PublishDurability kExpectedPublishDurability =
+#if defined(_WIN32)
+    PublishDurability::kNotDurable;
+#else
+    PublishDurability::kDurable;
+#endif
+
 bool has_gate(const ValidationReport& r, const std::string& gate) {
   for (const auto& v : r.violations()) {
     if (v.gate == gate) return true;
@@ -366,6 +376,10 @@ int test_atomic(const std::string& workdir) {
     CHECK(r.renamed, "atomic renamed");
     CHECK(r.sha256_hex == Sha256::hex_of_string("hello-aio"), "sha of published bytes");
     CHECK(count_tmp_residue(dir) == 0, "no tmp residue after success");
+    // P-174 终态一：已发布且持久化已确认。
+    CHECK(r.durability == kExpectedPublishDurability,
+          "success => platform durability terminal");
+    CHECK(publish_result_consistent(r), "terminal state consistent");
   }
   // 负例：写一半失败 -> 目标不存在、无 tmp 残留。
   {
@@ -384,6 +398,10 @@ int test_atomic(const std::string& workdir) {
     if (f) std::fclose(f);
     CHECK(count_tmp_residue(dir) == 0, "no tmp residue after writer failure");
     CHECK(!r.tmp_residue, "tmp_residue false");
+    // P-174 终态三：rename 未发生 => 未发布（不得报第三态）。
+    CHECK(r.durability == PublishDurability::kNotPublished,
+          "writer failure => kNotPublished");
+    CHECK(publish_result_consistent(r), "terminal state consistent");
   }
   // 负例：取消 -> 目标不存在。
   {
@@ -415,6 +433,11 @@ int test_atomic(const std::string& workdir) {
     std::FILE* f = std::fopen(target.c_str(), "rb");
     CHECK(f == nullptr, "verified-failed product must be removed");
     if (f) std::fclose(f);
+    // P-174：撤销成功 => 回到未发布（renamed 与 durability 同步复位）。
+    CHECK(r.durability == PublishDurability::kNotPublished,
+          "verify-failure rollback => kNotPublished");
+    CHECK(!r.renamed, "verify-failure rollback => renamed reset");
+    CHECK(publish_result_consistent(r), "terminal state consistent");
   }
   // 目录原子发布正例 + builder 失败负例 + 非空目标 STATE。
   {
@@ -438,6 +461,10 @@ int test_atomic(const std::string& workdir) {
     const PublishResult r = atomic_publish_directory(tree, builder, verify_exists,
                                                      PublishOptions(), CancelFn());
     CHECK(r.status == PublishStatus::kOk, "dir publish ok");
+    // P-174 终态一（目录形态）。
+    CHECK(r.durability == kExpectedPublishDurability,
+          "dir publish => platform durability terminal");
+    CHECK(publish_result_consistent(r), "terminal state consistent");
     std::FILE* f = std::fopen((tree + "/norder6/tile.fits").c_str(), "rb");
     CHECK(f != nullptr, "dir publish produced tile");
     if (f) std::fclose(f);
@@ -463,6 +490,10 @@ int test_atomic(const std::string& workdir) {
     const PublishResult r3 = atomic_publish_directory(tree, builder, verify_exists,
                                                       PublishOptions(), CancelFn());
     CHECK(r3.status == PublishStatus::kErrState, "non-empty target => STATE");
+    // P-174 终态三：拒绝覆盖 = 未发布（第三态不得被误报）。
+    CHECK(r3.durability == PublishDurability::kNotPublished,
+          "STATE refusal => kNotPublished");
+    CHECK(publish_result_consistent(r3), "terminal state consistent");
   }
   std::printf("atomic: %d checks\n", g_checks);
   return 0;
