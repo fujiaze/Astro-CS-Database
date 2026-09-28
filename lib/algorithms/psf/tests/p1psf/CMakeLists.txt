@@ -66,6 +66,65 @@ target_include_directories(p1psf_perf_test PRIVATE
 target_link_libraries(p1psf_perf_test PRIVATE ${ASTROCS_OMP_TARGET})
 add_test(NAME p1psf_performance COMMAND p1psf_perf_test)
 
+# ----------------------------------------------------------------------------
+# PSF-PERF-001 (DISP-PSF-003 整改): 批路径"无进展"提前退出的等价验收面
+# ----------------------------------------------------------------------------
+# 依据: docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11.2（批接口对 status!=OK
+# 一律 NaN + FIT_FAILED ⇒ 批产物只取决于"是否 status==0"）与 §11.3 DISP-PSF-003。
+# 判据: ① 合成 Moffat4 星（真值由 p1psf_oracle 独立生成）必须拟合成功且达 §9
+#          冻结容差（位置 0.05 px / FWHM 1%）⇒ 提前退出没吃掉真星;
+#       ② 批路径（开提前退出）与单星路径（不开）的 OK 集合与 9 参数**逐位相同**。
+# 能红能绿: _inject 目标以 -DDPSF_BATCH_STALL_ITERS=2 把阈值压到 2, 提前退出必然
+# 截断正常收敛星 ⇒ 必须以 "NEGATIVE INJECTION DETECTED" 被检出（否则判红）。
+add_executable(p1psf_stall_equiv_test
+  ${P1PSF_DIR}/p1psf_stall_equiv.cpp
+  ${P1PSF_PROD_SOURCES})
+target_include_directories(p1psf_stall_equiv_test PRIVATE
+  ${P1PSF_INC}
+  ${P1PSF_SRC}
+  ${P1PSF_DIR})
+target_link_libraries(p1psf_stall_equiv_test PRIVATE ${ASTROCS_OMP_TARGET})
+add_test(NAME p1psf_stall_equiv COMMAND p1psf_stall_equiv_test)
+
+add_executable(p1psf_stall_equiv_inject_test
+  ${P1PSF_DIR}/p1psf_stall_equiv.cpp
+  ${P1PSF_PROD_SOURCES})
+target_include_directories(p1psf_stall_equiv_inject_test PRIVATE
+  ${P1PSF_INC}
+  ${P1PSF_SRC}
+  ${P1PSF_DIR})
+target_link_libraries(p1psf_stall_equiv_inject_test PRIVATE ${ASTROCS_OMP_TARGET})
+target_compile_definitions(p1psf_stall_equiv_inject_test PRIVATE
+  P1PSF_STALL_INJECT
+  DPSF_BATCH_STALL_ITERS=2)
+# 只跑 equiv 组（positive 组在注入相下本就该红, 不参与本目标的判据）
+add_test(NAME p1psf_stall_equiv_inject COMMAND p1psf_stall_equiv_inject_test equiv)
+set_tests_properties(p1psf_stall_equiv_inject PROPERTIES
+  PASS_REGULAR_EXPRESSION "NEGATIVE INJECTION DETECTED")
+
+# ----------------------------------------------------------------------------
+# PSF-DIAG-001 测量探针 (p1psf_fitcost_probe): 「先落盘测量」的执行面。
+# 依据 AGENTS.md §3 (重计算必须先落盘测量) / ENGINEERING_SPEC.md §7。
+# 与上述测试目标的两点差别:
+#   ① 生产源以 -DDPSF_FIT_DIAG 编入 ⇒ 逐候选诊断面生效 (生产 target
+#      astrocs_p1_dpsf **不定义**该宏, 生产二进制与判据逐位不变; 先例 =
+#      sdet_api.cpp 的 #ifdef SDET_TESTING 审计钩子);
+#   ② 需要 aio (读真实 FITS) 与 astrocs_phase1_stars (盲检测候选面),
+#      以便在**真实帧**上复现节点 p1_op_star_psf_impl 的候选面与拟合输入。
+# 探针只测量、不判据; 不进 CI 默认路径 (不 add_test)。
+# 真实帧复跑命令见 run/FINAL-07/审核包/PSF/ 报告。
+# ----------------------------------------------------------------------------
+add_executable(p1psf_fitcost_probe
+  ${P1PSF_DIR}/p1psf_fitcost_probe.cpp
+  ${P1PSF_PROD_SOURCES})
+target_compile_definitions(p1psf_fitcost_probe PRIVATE DPSF_FIT_DIAG)
+target_include_directories(p1psf_fitcost_probe PRIVATE
+  ${P1PSF_INC}
+  ${P1PSF_SRC}
+  ${P1PSF_DIR})
+target_link_libraries(p1psf_fitcost_probe PRIVATE
+  ${ASTROCS_OMP_TARGET} astrocs_aio astrocs_phase1_stars)
+
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
 add_executable(p1psf_selfcheck_test
   ${P1PSF_DIR}/p1psf_tests_selfcheck.cpp
