@@ -20,7 +20,7 @@
 | `σ,sx,sy` | 各向同性 σ / 各向异性轴尺度 (px) | FWHM 推导 |
 | `e` | 离心率 `√(1−(s_min/s_max)²)` | 椭率 |
 | `fwhm_x/y` | 轴向 FWHM `1.230310·s` | `MOFFAT4_FWHM_FACTOR` |
-| `flux` | 解析通量 `2πA·sxsy/3` (β=4) | `dpsf_psf.cpp:368` |
+| `flux` | 解析通量 `2πA·sxsy/3` (β=4) | `dpsf_psf.cpp:651-652` |
 | `residual_scale` | 10–90% trimmed mean \|residual\| | PSF 块第8列 |
 | `robust_residual_sigma` | `residual_scale/0.7316727929211932` | Gaussian 假设 |
 | `q_psf` | `A/residual_scale` 拟合质量代理 | 剔星/QA |
@@ -67,7 +67,7 @@ dx = x−(cx+x0), dy = y−(cy+y0)
 flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见下)
 ```
 
-与 `lib/algorithms/psf/src/dpsf_psf.cpp:24-25,84-118,222-254,425-432` 一致。
+与 `lib/algorithms/psf/src/dpsf_psf.cpp:24-25,84-118,222-254,426-432` 一致。
 
 **FWHM 因子的精确值与适用域**
 
@@ -103,23 +103,23 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 
 - **FWHM 缩放不变量**：各向同性 Moffat4 的 `FWHM/σ` 比值恒为 `1.230307652590102`（σ = 模型参数口径 √⟨r²⟩，见 §16；实现常量 1.230310 与精确值相对差 +1.91e-6）；σ_g = α/2 口径下该比值为 1.7399178387，两口径恒差 √2，禁止互换。与 `A,B` 无关。
 - **积分一致性**：各向同性 `σ` 的解析 `flux` 在数值积分（足域）内与 `A,σ` 的 `2πAσ²/3` 比例一致（误差仅离散域/截断）。
-- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`dpsf_psf.cpp:352-363`）。
+- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`dpsf_psf.cpp:634-645`）。
 - **平移不变量**：整帧平移 `Δ` 后拟合中心 `cx+x0` 同步平移 `Δ`（子像素插值误差内）。
 
 ## 8 极端/退化条件
 
 | 条件 | 行为 | 证据 |
 |---|---|---|
-| 空 `rect`/越界 | 返回错误 `DPSF_ERR_PARAM` | `dpsf_fit:446 empty rect` |
-| `A<=0` / `max<=bkg` | `WARN Amplitude<=0` 拒 | `dpsf_psf.cpp:310` |
-| `sx<=0`/`sy<=0`/非有限 | `WARN Invalid fit params` 拒 | `dpsf_psf.cpp:333` |
-| FWHM 超窗 | `WARN FWHM exceeds rect` | `dpsf_psf.cpp:343` |
-| LM 不收敛 | 返回非零 `status`，成本 `cost` 上报 | `dpsf_psf.cpp:186` |
+| 空 `rect`/越界 | 返回错误 `DPSF_ERR_PARAM` | `dpsf_psf.cpp:786`（`dpsf_fit: empty rect`，`dpsf_fit_batch_*` 同判据见 `:1180`/`:1351`） |
+| `A<=0` / `max<=bkg` | `WARN Invalid fit params` 拒（`DPSF_STAGE_INVALID_PARAMS`） | `dpsf_psf.cpp:609-613` |
+| `sx<=0`/`sy<=0`/非有限 | `WARN Invalid fit params` 拒（同判据含 `sx<=0.3`/`sy<=0.3` 下界）；迭代内的 `sx<=0‖sy<=0` 以 `1e10` 哨兵残差规避 | `dpsf_psf.cpp:609-613`；哨兵 `:237-238` |
+| FWHM 超窗 | `WARN FWHM exceeds rect`（`DPSF_STAGE_FWHM_GT_RECT`） | `dpsf_psf.cpp:619-623` |
+| LM 不收敛 | 返回非零 `status`（`DPSF_FIT_ITERATION_LIMIT`），成本 `cost` 上报；背景约束违反另判 `DPSF_STAGE_BKG_CONSTRAINT` | `dpsf_psf.cpp:411`；`:627-632` |
 | 无星/密集混淆 | 上游采样为空 → 显式 NO_DATA | 调用方 |
 
 ## 9 精度策略
 
-- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:120-208`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`。
+- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:292-411`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`。
 - **`kTrimMeanToSigma` 的闭式推导（可独立复算）**：设残差 `r ~ N(0, σ²)`，
   `|r|` 服从半正态。10% / 90% 分位点
   `a = Φ⁻¹(0.55) = 0.125661346855·σ`、`b = Φ⁻¹(0.95) = 1.644853626951·σ`；

@@ -25,16 +25,29 @@
     "manifest_storage_section": "storage",
     "manifest_storage_fields": ["storage_form", "form_source", "products", "coverage_index"],
     "coverage_index_ref_fields": ["path", "sha256", "n_frames", "n_blocks"],
+    "hips_tile_format_two_tiers": {
+      "note": "P-179（R-42）：hips_tile_format **分两档**——① Image 产品子产品（signal/support/variance/ivar）：固定 `fits`（FITS 瓦片，读端既有校验；IO_003 §5 的 properties 只含标准 token）；② HiPS **目录（catalogue）**子产品 `snr/`：固定 `tsv`（VOTable 元数据 + `.tsv` 控制点，承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，DATA_SEMANTICS §12.2）。停写 `tsv` 等于撤掉已冻结的科学载体 ⇒ 取「扩值域 + 逐子产品档位表」，不停写。",
+      "by_subproduct": {
+        "signal": "fits",
+        "support": "fits",
+        "variance": "fits",
+        "ivar": "fits",
+        "snr": "tsv"
+      }
+    },
     "index_name_suffix": ".hips.index.json",
     "coverage_index_name": "coverage.index.json",
-    "forbidden_synonyms": ["storage_mode", "storage_format", "output_form", "pack_form", "index_paths", "coverage_index_path", "frame_index", "index_file"],
+    "forbidden_synonyms": ["storage_mode", "storage_format", "output_form", "pack_form", "index_paths", "frame_index", "index_file"],
+    "disambiguation_notes": [
+      "coverage_index_path 自 P-180（R-42）起**不再是禁用同义名**：它是 eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs 的**正名**（输入配置里的覆盖索引**路径字符串**），与本文档运行级清单引用对象 $defs.coverage_index_ref（{path, sha256, n_frames, n_blocks}）分名，消解「同名异型」。此前它被列为 index_path 系的同义名属命名预留，现被正式启用；运行级清单字段名仍只认 coverage_index（manifest_storage_fields）。据此在 contract 层登记 must_contain，使分名事实可被 D1 逐层判据钉住。"
+    ],
     "layers": [
       {"layer": "top-design", "file": "docs/ASTROCS_DESIGN.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
       {"layer": "design", "file": "docs/design/PRODUCT_STORAGE_FORM.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json", "form_source"]},
       {"layer": "design-p1", "file": "docs/design/PHASE1_DETAILED_DESIGN.md", "must_contain": ["storage_form", "archive", "bare"]},
       {"layer": "design-p2", "file": "docs/design/PHASE2_DETAILED_DESIGN.md", "must_contain": ["coverage_index", ".hips.index.json"]},
       {"layer": "design-p3", "file": "docs/design/PHASE3_DETAILED_DESIGN.md", "must_contain": ["storage_form"]},
-      {"layer": "contract", "file": "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md", "must_contain": ["storage_form", "form_source", "index_path", "index_sha256", "archive_sha256", "archive_bytes", "coverage_index", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "contract", "file": "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md", "must_contain": ["storage_form", "form_source", "index_path", "index_sha256", "archive_sha256", "archive_bytes", "coverage_index", "coverage_index_path", ".hips.index.json", "coverage.index.json"]},
       {"layer": "contract-config", "file": "docs/contracts/CONFIG_CONTRACT.md", "must_contain": ["storage_form", "coverage_index", "archive", "bare"]},
       {"layer": "interface-io2", "file": "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md", "must_contain": ["storage_form", ".hips.index.json"]},
       {"layer": "interface-io3", "file": "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md", "must_contain": ["storage_form", "index_sha256", "archive_sha256"]},
@@ -121,8 +134,10 @@
         "hips_tile_format": {
           "type": "string",
           "enum": [
-            "fits"
-          ]
+            "fits",
+            "tsv"
+          ],
+          "description": "瓦片格式 token（P-179 两档词表）：Image 产品子产品固定 `fits`；HiPS 目录子产品 `snr` 固定 `tsv`。逐子产品档位表 = x-astrocs-field-vocabulary.hips_tile_format_two_tiers.by_subproduct（唯一源）；非该档位值一律判红。"
         },
         "n_leaf_tiles": {
           "type": "integer",

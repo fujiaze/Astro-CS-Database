@@ -22,10 +22,12 @@
   （p3_order_select）、输入模式守卫（p3_resample_check_mode）、
   NEAREST/BILINEAR 逐输出像素采样（含跨 tile 邻域读取）、tile 缓存——
   作为 P3-RSMP-IMPL/TEST/INT 的合同基线。
-- 非目标: 不实现 variance/weight/ivar/support 输入（SCI §9a-10 显式拒，
-  输出仅 S+coverage+provenance）；不做 flux-per-pixel 面积换算
-  （SCI §9a-8 显式拒）；不做 alpha channel/BLANK int tile（SCI §9a-9
-  显式拒）；不改投影（G1/G2 属 ALG-P3-PROJ-IMPL-001）与 FITS 原子写
+- 非目标: 不把 variance/weight/ivar 作为 **signal 的输入模式**（`p3_resample_check_mode`
+  拒：`weight`/`flux_per_pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；`variance`/`ivar`
+  依 DATA-P3-UNC-001 §30.4-4 已**转 uncertainty 子产品消费面**
+  `p3_uncertainty_open/close/propagate`，故非「不实现」）；support 输入与
+  flux-per-pixel 面积换算仍不实现（SCI §9a-10/§9a-8）；不做 alpha channel/BLANK int tile
+  （SCI §9a-9 显式拒）；不改投影（G1/G2 属 ALG-P3-PROJ-IMPL-001）与 FITS 原子写
   （G5 属 writer 域）；不引入第三种采样核（nearest/bilinear 之外显式拒）。
 - 本层为合同冻结层：只登记，不修生产码；缺陷走 DISP 登记（§13），
   由实现层与集成层整改。
@@ -45,7 +47,7 @@
 - 静态库落位: astrocs_phase3_session（根 CMakeLists.txt:460-465，
   p3_resample.cpp 为五源文件之一）。
 - 会话编排消费: lib/phase3_session/p3_session.cpp（§8 逐点锚定）。
-- descriptor 端口绑定（module_adapters.cpp:790-794）: 输入
+- descriptor 端口绑定（module_adapters.cpp:795-813）: 输入
   DATA-P3-WCS（必需）+ DATA-HIPS-001（必需），输出 DATA-P3-RES
   （可选产出）。
 
@@ -172,9 +174,9 @@ kMaxOrder=20 来自 hips_properties.h:23（ARCH-P3 §3）。
 
 ### 6.2 输入模式守卫——`p3_resample_check_mode`（cpp:95-107）
 
-`input_mode == "surface_brightness"` 唯一返回 `P3_RS_OK`；其余（含
-nullptr/空串/`flux`/`flux_per_pixel`/variance/weight/ivar）返回
-`P3_RS_UNSUPPORTED`。SCI §9a-8/§9a-10 显式拒的输入类型由此守卫拦截。
+`input_mode == "surface_brightness"` 唯一返回 `P3_RS_OK`；`nullptr`/空串 ⇒ `P3_RS_PARAM`；
+`weight`/`flux_per_pixel` ⇒ `P3_RS_UNSUPPORTED`（SCI §9a-8）；其余（含 `flux`/`variance`/`ivar`）
+⇒ `P3_RS_PARAM`——**「未支持模式」≠「显式拒」**：`variance`/`ivar` 依 DATA-P3-UNC-001 §30.4-4 已转 uncertainty 子产品消费面（§3 符号表 `p3_uncertainty_*`；cpp:221-222 逐字注记）。
 实测偏差: 会话编排层未接线（DISP-P3RSMP-003）。
 
 ### 6.3 sampler 生命周期
@@ -413,4 +415,19 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - FITS tile 读取：FITS Standard 3.0；CFITSIO（宽松许可）。
 
 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+
+---
+
+## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
+
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
+`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
+（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
+variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
+diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
+（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
+键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
+
 

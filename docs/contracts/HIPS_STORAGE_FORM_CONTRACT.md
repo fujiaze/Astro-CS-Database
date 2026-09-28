@@ -44,7 +44,7 @@
 | A1 | 归档内容 = 一个 tar 流的压缩结果；tar 根 = 产品根的内容（成员名以子产品名开头，不含前导 `./`） |
 | A2 | tar 成员集合 = 裸形态产品树的**全部常规文件**（`properties`、`NorderK/DirD/NpixN.fits`、`Moc.fits`、`metadata.fits`、产品集 `manifest.json` 等），不含目录项之外的额外文件 |
 | A3 | 成员顺序 = 成员路径的**字典序**（确定性）；成员头字段（mtime/uid/gid/uname/gname/mode）取固定值，使同一内容的两次打包字节一致 |
-| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 必须是既有读端接受的取值（`fits`），取值域 = `fits`（`zstd` / `fits.zst` / 任何非标准 token 一律判红） |
+| A4 | 归档内 `properties` 与裸形态 `properties` **逐字节一致**；`hips_tile_format` 取**两档词表**（P-179）的登记值 —— **Image 产品**子产品（`signal`/`support`/`variance`/`ivar`）= `fits`；**HiPS 目录（catalogue）**子产品 `snr/` = `tsv`（承载 SNR-PREC-001 `%.9g/%.17g` 精度锚，`DATA_SEMANTICS.md` §12.2）。逐子产品档位表 = 机器事实源 `x-astrocs-field-vocabulary.hips_tile_format_two_tiers.by_subproduct`；档位不符（`snr` 写 `fits`、Image 子产品写 `tsv`）或任何非标准 token（`zstd` / `fits.zst` / …）一律判红 |
 | A5 | 产品级索引与数据集级覆盖索引位于归档之外（产品同父目录 / 运行输出根） |
 
 ### 3.2 zstd 层
@@ -101,6 +101,13 @@
 - 登记语义 = **存在性 + 覆盖分数**（不登记"完全覆盖"单一布尔）。
 - 该索引是**派生产物**：可由各产品级索引重算；缺失时的规定回退 = 读入全部产品级索引并现场倒排。
 
+**生产者与发布路径（R-47）**：
+
+- **指定生产者** = 写出产品集清单的**同一条命令（`mosaic`）的发布步**：在运行输出**根层**写出 `coverage.index.json`，与产品集清单一并**同一次原子发布**（同批、同原子序，见 §9）。
+- **裁决口径不变**：仍**单判据**（本轮只裁 `coverage.index.json` 一项，兄弟面不随之进入白名单）、**不设豁免名单**；`IO_003` §4「发布清单必含 `properties`」**不得放宽**，产品集判定**不得**改为白名单。
+- **现状（2026-09-28）= 未实现（零生产者）**：登记面 = `docs/KNOWN_LIMITATIONS.md` §C 第 49 条 + `eng/ci/ledgers/dead_config_keys.json#dead_config_key:coverage_index`；**不得静默留白**。
+- **落地判据（R-47.4）**：该发布路径实现时，须同时提供**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）并进机器门；在此之前不得声称覆盖索引可用。
+
 ### 4.3 查询语义
 
 - 阶段2 按块查得**候选帧集合**，用于剪枝与调度；**不是**像素级裁决。
@@ -119,7 +126,7 @@
 
 | 哈希 | 对象 | 用途 | 边界外用途 |
 |---|---|---|---|
-| `tree_hash`（**产品身份**） | 解压后的 HiPS 内容：`sorted[{path,size,sha256}]` 的规范 JSON 的 sha256 | 产品身份、跨阶段交换、可重算校验 | — |
+| `tree_hash`（**产品身份**） | 解压后的 HiPS 内容：**条目三元组数组** `[[path,size,sha256], …]`（非对象数组）按 `(path,size,sha256)` 字典序升序后做 `sha256(canonical_json)`；规范序列化参数**冻结** = UTF-8、`ensure_ascii=false`、分隔符 `(",",":")`（无空白） | 产品身份、跨阶段交换、可重算校验 | — |
 | `archive_sha256`（容器指纹） | `<name>.hips.zst` 的字节 | 容器完整性、缓存键 | 用途限于容器面（产品身份 = `tree_hash`） |
 | `index_sha256` | `<name>.hips.index.json` 的字节 | 索引完整性 | 用途限于索引面（产品身份 = `tree_hash`） |
 
@@ -161,7 +168,7 @@
 | 索引 `coverage` 与 `tiles` 集合不一致 | 索引损坏错误（fail-closed） |
 | 索引声明覆盖但瓦片缺失 | 既有 `MISSING` 语义（以瓦片实际状态为准） |
 | 归档截断 / 帧解压长度不符 | 既有 `INVALID` / I/O 错误（fail-closed） |
-| 归档内 `properties` 声明非标准 `hips_tile_format` | 既有读端拒绝（`UNSUPPORTED`） |
+| `properties` 的 `hips_tile_format` 与该子产品档位不符（`signal` 写 `tsv` / `snr` 写 `fits`）或为非标准 token | 既有读端拒绝（`UNSUPPORTED`）；目录子产品 `snr` 的 `tsv` 是登记值，不在此列（P-179 两档词表） |
 
 
 ## 9. 机器校验
@@ -249,7 +256,8 @@
 - `hips_paths` 的元素**保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。
 - 额外的「总索引」引用用**加性可选键** `coverage_index`（字符串路径，指向数据集级 `coverage.index.json`）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（§4.2）。
 - 该键**不**承载形态选择：Phase2 产物固定裸形态（§10.5）。
-- 机器事实源：`$defs.coverage_index_ref`。
+- 机器事实源 = `eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs.coverage_index_path`（**字符串**路径键；P-180 分名后的正名）。
+- **同名异型消歧（P-180）**：本键的 `$defs` 曾与运行级清单引用**同名** `coverage_index_ref`——后者在本文档的机器事实源里是**对象**（`$defs.coverage_index_ref` = `{path, sha256, n_frames, n_blocks}`，见 §10.3），与之同名异型属机器可读面的最坏形态。现两者分名：**输入配置路径** = `phase_config_mosaic...#/$defs.coverage_index_path`（字符串）、**输出清单引用** = 本文件 `$defs.coverage_index_ref`（对象）。属性名 `coverage_index` 两侧不变（唯一词表 `x-astrocs-field-vocabulary.phase2_input_index_ref_key.name`）；引用本键的注释面（`lib/infrastructure/cli/parser.cpp`、`session_commands.h`）与死键台账已同步。
 
 ### 10.5 Phase2 / Phase3：形态键必须 REJECT
 

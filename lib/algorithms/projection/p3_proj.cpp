@@ -301,7 +301,7 @@ ProjStatus ait_world2pix(const Descriptor* d, double ra_deg, double dec_deg,
     return plane_to_pix(d, X * kDeg, Y * kDeg, x, y);
 }
 
-// DESIGN §5.3 八投影冻结集中已实现的 4 项（TAN/SIN/CAR/AIT）；STG/MOL/CEA/ZEA
+// DESIGN §6.3 八投影冻结集中已实现的 4 项（TAN/SIN/CAR/AIT）；STG/MOL/CEA/ZEA
 // 归 P3-001（GAP-011）实施后再入表，registry_selfcheck 保证表内 code 恒属于冻结集。
 const Spec kRegistry[4] = {
     {ProjectionId::kTAN, "TAN", "RA---TAN", "DEC--TAN", 85.0, 20.0,
@@ -310,9 +310,17 @@ const Spec kRegistry[4] = {
      "sin_limb_rho_gt_one", &sin_pix2world, &sin_world2pix},
     {ProjectionId::kCAR, "CAR", "RA---CAR", "DEC--CAR", 85.0, 180.0,
      "car_native_pole_row_abs_theta_ge_90", &car_pix2world, &car_world2pix},
-    {ProjectionId::kAIT, "AIT", "RA---AIT", "DEC--AIT", 85.0, 360.0,
+    {ProjectionId::kAIT, "AIT", "RA---AIT", "DEC--AIT", 85.0, 180.0,
      "ait_ellipse_a_gt_one", &ait_pix2world, &ait_world2pix},
 };
+
+// max_fov_deg = **直径惯例**：球面上离参考点的最大合法角距 ×2（R-40/P-081）。
+//   TAN 20°（SCI §9a-12 alpha 冻结，会话层唯一强制点）/ SIN 60°（声明值）/
+//   CAR 180°（native |θ|<90° ⇒ 直径 2×90°）/ AIT 180°（椭圆域 |φ|≤180° ⇒ 球面最大
+//   角距 90°，直径 180°；改前的 360° 把「整球角周长」当成了视场直径）。半轴
+//   162.0569°×81.0285° 与可构造矩形帧上限 229.24°×114.56° 都是**平面**像的量，
+//   不是球面 FOV，均不参与本字段（见 PHASE3_PROJ_IMPL §15.1/§15.3）。
+//   本字段是**声明字段**，非 make 硬门（registry_selfcheck 只校验 >0）。
 
 // ---------------- Ω 内部辅助 ----------------
 struct Vec3 { double x, y, z; };
@@ -420,7 +428,7 @@ int registry_selfcheck() {
     for (int i = 0; i < 4; ++i) {
         if (!kRegistry[i].code || !kRegistry[i].ctype1 || !kRegistry[i].ctype2)
             return i + 1;
-        // 表内投影必须属于 DESIGN §5.3 冻结集合（防未注册投影混入）
+        // 表内投影必须属于 DESIGN §6.3 冻结集合（防未注册投影混入）
         if (!registry_is_frozen_code(kRegistry[i].code)) return i + 1;
         if (!kRegistry[i].singularity_kind || kRegistry[i].code[0] == '\0')
             return i + 1;

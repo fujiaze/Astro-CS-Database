@@ -63,7 +63,7 @@ inline double fits_pixel_0based(double x1based) {
 // 冻结拒清单一致; 未实现/未注册投影在此显式拒绝, 绝不放行也不静默改写为 TAN。
 P3WcsStatus p3_wcs_validate_request(const char* projection, const char* frame,
                                     const char* coverage_output, std::string* why) {
-    // 投影: 唯一语义源 = 产品声明注册表（p3_projection_registry.h, DESIGN §5.3）。
+    // 投影: 唯一语义源 = 产品声明注册表（p3_projection_registry.h, DESIGN §6.3）。
     // 未实现/未注册码显式报「不支持」+ 已支持清单; 绝不静默回落 TAN。
     const P3WcsStatus pst = p3_proj_declare(projection, why);
     if (pst != P3_WCS_OK) return pst;
@@ -154,7 +154,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
         const P3WcsStatus st = p3_wcs_pix2world(&tmp, c[0], c[1], &ra, &dec);
         if (st != P3_WCS_OK) return st;
     }
-    // 适用域门(DESIGN §5.3「违反 ⇒ 拒绝」): |CRVAL2|≤85° / FOV≤20° /
+    // 适用域门(DESIGN §6.3「违反 ⇒ 拒绝」): |CRVAL2|≤85° / FOV≤20° /
     // det(CD)<0 / CRPIX=(W+1)/2 FITS 1-based 像素中心 / 往返 < 合同容差
     // （kTanApplicability.roundtrip_tol_px = 1e-8 px，Oracle 冻结）。
     {
@@ -166,7 +166,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     return P3_WCS_OK;
 }
 
-// ---- 适用域（docs/ASTROCS_DESIGN.md §5.3）----
+// ---- 适用域（docs/ASTROCS_DESIGN.md §6.3）----
 namespace {
 
 // TAN 适用域声明（SCI §9a-12 alpha 冻结 + Paper I §2.1.1 + 往返门分层）。
@@ -192,7 +192,7 @@ namespace {
 //     用 RSS 设门必然误拒；RSS 只回答「误差通常多大」）。
 //
 // roundtrip_tol_px = 1e-8 px —— 往返 Oracle 实验表（冻结）+ GATE-DERIVE-01 复核:
-//   * 规范来源: docs/ASTROCS_DESIGN §5.3「每种投影必须声明适用域（含往返误差上界），
+//   * 规范来源: docs/ASTROCS_DESIGN §6.3「每种投影必须声明适用域（含往返误差上界），
 //     违反 ⇒ 拒绝」；上界必须由实验确定（经 SCI 复核后冻结）。
 //   * TAN 全域实测（本生产实现自身，880 组几何 × 密集逐像素 = 8.31e6 次往返 +
 //     FOV=20° 适用域边界 512²/1024²/2048² = 2.42e7 次往返）:

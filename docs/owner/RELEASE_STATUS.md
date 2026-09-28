@@ -34,8 +34,12 @@
 架构收敛主体已完成：合同面（权威文档集[原冻结宪章已删除]/版本单源/文档边界/ABI v1/数据产物/Runtime 图/
 工具链 preset/DLL schema/FITS 流接口/内核标准注册表）冻结在位；三 Phase 节点化、
 Phase3 四投影 registry、RT 唯一 executor + 实测资源门、MOD 科学模块安装面、
-CLI validate/plan/inspect 薄命令面均已落地（当前提交实测绿）；遗留 run --phases
-连跑已删除。未完成：Windows 发布执行面与真实数据验收、healpix_interp4、
+CLI 命令面 = `normalize`/`mosaic`/`export` + `doctor`/`benchmark` 五入口（唯一命令树 = `docs/ASTROCS_DESIGN.md` §7.1）；
+独立 `validate`/`plan`/`inspect` 命令面**无载体**、调用返回 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1），
+其职责由 §4.5 预检三档页面与产物 `run-plan.json`/`run-graph.json` 承接；遗留 run --phases
+连跑已删除。**本节不主张「当前提交复跑」**：`IMPLEMENTED`/`INSTALLED` 级证据的基准 = §3 注
+（BASE=`da3c4b4a` 的命令日志 `run/docconv001/logs/`），本提交未复跑的面一律不写实测绿。
+未完成：Windows 发布执行面与真实数据验收、healpix_interp4、
 Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_FOR_OWNER_REVIEW。
 ```
 
@@ -80,7 +84,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 
 | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
 |---|---|---|
-| 最高设计 | `CONTRACT_READY` | `ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
+| 最高设计 | `CONTRACT_READY` | `docs/ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
 | 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
 | 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
 | 内核标准注册表 | `CONTRACT_READY` | `docs/standards/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |

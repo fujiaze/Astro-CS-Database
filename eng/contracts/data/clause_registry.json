@@ -2993,10 +2993,6 @@
       "clause_id": "FZ-COND-FLUX-CONSERV"
     },
     {
-      "path": "weight_mode_version",
-      "clause_id": "FZ-FIELD-WEIGHTMODE"
-    },
-    {
       "path": "correlation_summary",
       "clause_id": "FZ-PROV-SHARED-SYSTEMATIC"
     },

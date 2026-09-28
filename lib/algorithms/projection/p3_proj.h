@@ -37,7 +37,7 @@
 //
 // 任务: IMPL-P3-PROJ-001（wave 5, write_scope=lib/algorithms/projection/）
 // 上位冻结:
-//   * docs/ASTROCS_DESIGN.md §5.3（内置多种投影，首批冻结 TAN/SIN/CAR/AIT/STG/MOL/
+//   * docs/ASTROCS_DESIGN.md §6.3（内置多种投影，首批冻结 TAN/SIN/CAR/AIT/STG/MOL/
 //     CEA/ZEA 八投影；每投影声明适用域/奇点/经度 wrap/轴手性/CRPIX/CRVAL/CD/
 //     PC/CDELT/CTYPE；新增投影经 registry 注册并附独立往返 Oracle）。
 //   * DESIGN-P3-001 §2（WCS 计划）/§3（反向映射、逐像素面积元、禁止平面近似）/
@@ -72,7 +72,7 @@
 //     四项偏差保留为历史对照（ALG-P3-PROJ-IMPL-001 §15.9 v1 偏差表 + 证据门
 //     p3_proj_legacy_deviation.py），禁止新消费方引用；本层不再"保留 legacy 符号
 //     零改动"式回避，legacy 偏差不构成本层行为依据。
-//   * registry 权威冻结集合 = docs/ASTROCS_DESIGN.md §5.3 八投影
+//   * registry 权威冻结集合 = docs/ASTROCS_DESIGN.md §6.3 八投影
 //     （TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；本层 v3 注册已实现子集（当前 4 项，
 //     STG/MOL/CEA/ZEA 实施归 P3-001，GAP-011）。
 #ifndef ASTROCS_P3_PROJ_V6_H
@@ -83,7 +83,7 @@
 
 namespace astrocs::phase3proj::v6 {
 
-// 版本化 registry 版本（DESIGN §5.3 八投影冻结集 + 变更 claim）。
+// 版本化 registry 版本（DESIGN §6.3 八投影冻结集 + 变更 claim）。
 // v1 = 首批四投影，CRVAL2 不进映射（**已 RETIRED**，见下）；
 // v2 = CAR/AIT 符号与 √2 修正，但 CRVAL2 仍不进映射、AIT 域 A<2；
 // v3 = Paper II §2.2 三 Euler 角把 CRVAL2（含 LONPOLE 默认）纳入 CAR/AIT 映射 +
@@ -91,15 +91,15 @@ namespace astrocs::phase3proj::v6 {
 // 表内容或语义变化必须递增此版本并在 ALG-P3-PROJ-IMPL-001 §15 登记变更 claim。
 constexpr int kProjectionRegistryVersion = 3;
 
-// registry 权威冻结集合（docs/ASTROCS_DESIGN.md §5.3 首批八投影）。本层 kRegistry 是其
-// 已实现子集；新增投影必须先落在该集合内并附独立往返 Oracle（DESIGN §5.3）。
+// registry 权威冻结集合（docs/ASTROCS_DESIGN.md §6.3 首批八投影）。本层 kRegistry 是其
+// 已实现子集；新增投影必须先落在该集合内并附独立往返 Oracle（DESIGN §6.3）。
 //
 // ⚠ **本层是内核 registry, 不是产品声明**：本表行只表示
 // 「内核已实现 + 单测/Oracle 覆盖」；**产品可声明集**的唯一权威 =
 // lib/algorithms/projection/p3_projection_registry.h（当前 D={TAN}）。本表中
 // 非产品声明的行必须在该文件冻结表内标为 kKernelOnly（跨注册表一致判据见
 // eng/tests/p3wcs/p3_projection_registry_test.cpp C5）。**禁止**把本表行当作
-// 「已支持投影」对外声明（DESIGN §5.3「禁止声称支持」）。
+// 「已支持投影」对外声明（DESIGN §6.3「禁止声称支持」）。
 constexpr int kFrozenProjectionCount = 8;
 const char* const* registry_frozen_set(int* count);
 bool registry_is_frozen_code(const char* code);   // 冻结集合成员判定（大小写敏感）
@@ -133,14 +133,16 @@ struct Descriptor {
     int height_px = 0;
 };
 
-// 经纬方向 + CTYPE 规则 + 适用天区/奇点/合法 FOV 的六要素声明（DESIGN §5.3）。
+// 经纬方向 + CTYPE 规则 + 适用天区/奇点/合法 FOV 的六要素声明（DESIGN §6.3）。
 struct Spec {
     ProjectionId id;
     const char* code;
     const char* ctype1;
     const char* ctype2;
     double max_abs_crval_dec_deg;   // 中心 |CRVAL2| 守卫
-    double max_fov_deg;             // 合法 FOV 声明（非 make 硬门）
+    double max_fov_deg;             // 合法 FOV 声明（非 make 硬门）；**直径惯例**
+                                    // = 球面最大合法角距 ×2：TAN 20（SCI 冻结）
+                                    // / SIN 60 / CAR 180 / AIT 180（R-40）
     const char* singularity_kind;   // 奇点声明（静态串）
     ProjStatus (*pix2world)(const Descriptor*, double, double, double*, double*);
     ProjStatus (*world2pix)(const Descriptor*, double, double, double*, double*);

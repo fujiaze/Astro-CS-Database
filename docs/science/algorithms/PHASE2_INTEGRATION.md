@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
 
 > 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库成员，
-> 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头
+> 根 CMakeLists.txt:652-661/:660）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
 > （docs/science/INTEGRATION.md，FROZEN，集合
@@ -28,19 +28,25 @@
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
-| `values[i]` | 候选样本科学值 | **面亮度 ADU·sr⁻¹**（同 UPM 校准后标度），f64 | integrate.h:37 |
-| `weights[i]` | 数值权重（可空=等权 1.0） | **(ADU·sr⁻¹)⁻²**（仅数值域，语义策略在调用方），f64 | integrate.h:38 |
-| `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | integrate.h:39 |
+| `values[i]` | 候选样本科学值 | **像素域校准后标度**：量纲 = ADU（`calibrated_adu`）或 α·ADU（`photo_scaled_adu`）——**不是面亮度 `ADU·sr⁻¹`**（立体角归一 `1/A_cell` 在 writer 层），f64 | integrate.h:46 |
+| `weights[i]` | 数值权重（可空=等权 1.0） | **数值域，量纲 = 1/(`values` 量纲)²**（像素域 ⇒ `1/ADU²`）；物理语义（逐样本 ivar）与策略在调用方，本层不承诺面亮度域，f64 | integrate.h:47 |
+| `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | integrate.h:48 |
 | `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | integrate.h:49 |
-| `count` | 候选数 | 无量纲 u32 | integrate.h:41 |
-| `signal` | 加权积分输出 | 面亮度 ADU·sr⁻¹，f64 | integrate.h:55 |
-| `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | integrate.h:56 |
-| `n_used` | 实际参与积分样本数 | 无量纲 u32 | integrate.h:57 |
-| `wsum` | Σ wᵢ（eligible ∧ w>0） | (ADU·sr⁻¹)⁻² | integrate.cpp:59-60 |
-| `vs` | Σ wᵢxᵢ | (ADU·sr⁻¹)⁻¹ | integrate.cpp:59-60 |
+| `count` | 候选数 | 无量纲 u32 | integrate.h:50 |
+| `signal` | 加权积分输出 | **量纲 = `values` 的量纲**（`Σwᵢxᵢ/Σwᵢ`，本层**不改变标度类别**），f64 | integrate.h:63 |
+| `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | integrate.h:64 |
+| `n_used` | 实际参与积分样本数 | 无量纲 u32 | integrate.h:65 |
+| `wsum` | Σ wᵢ（eligible ∧ w>0） | 与 `weights` 同量纲（像素域 ⇒ ADU⁻²） | integrate.cpp:59-60 |
+| `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | integrate.cpp:59-60 |
 | `sup_max` | max(accepted support) —— **canonical 语义**（`integrate.cpp:49-50`，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | integrate.cpp:49-50 |
 
-权重语义（integrate.h:8-11 注释冻结）: 权重是 Phase2 按该天球像素
+> **单位域订正登记（DISP-P2INT-003）**：本表旧版把 `values`/`signal` 登记为
+> **面亮度 ADU·sr⁻¹**、把权重登记为 (ADU·sr⁻¹)⁻²，与本文档 §5/§8 及权威
+> `DATA_SEMANTICS.md` §21.1/§21.2（`signal` 量纲 = `values` 量纲，**不是**面亮度，
+> 立体角归一在 writer 层）自相矛盾；现按权威统一为**像素域 ADU**（`photo_scaled_adu`
+> 时为 α·ADU），权重随之取 `1/ADU²`。本轮只改本表登记，不动任何公式。
+
+权重语义（integrate.h:7-17 注释冻结）: 权重是 Phase2 按该天球像素
 对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
 并先经 `p2_validate_candidate_weights`（stage2.cpp:1106-1140）；
 `weights=null` → 等权 1.0。reducer 只消费权重数组本身，本层不编码
@@ -51,9 +57,9 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 | 符号/段 | 锚（integrate.cpp） | 语义 |
 |---|---|---|
 | p2_validate_candidate_weights | :10-17 | 预检：weights=null→0（合规）；任一 !finite 或 w<0→1（违规）；w==0 合法（不违规）。调用方: stage2.cpp:1141/:1402 |
-| p2_integrate_pixel | :19-74 | 唯一生产入口（C ABI；integrate.h:58-65 声明） |
+| p2_integrate_pixel | :19-87 | 唯一生产入口（C ABI；integrate.h:74 声明） |
 | ├ null 防御 | :20-21 | stack==null 或 result==null → rc=1 |
-| ├ 空栈 | :22-26 | count==0 ∨ values==null → NO_CANDIDATES（rc=0） |
+| ├ 空栈 | :23-26 | count==0 ∨ values==null → NO_CANDIDATES（rc=0） |
 | ├ eligibility 循环 | :30-57 | 候选索引固定序 i=0..count-1 |
 | │ ├ accepted 计数 | :34-36 | accepted 非空且为 0 → skip（不计 n_accepted） |
 | │ ├ values 非 finite | :37 | → invalid_input |
@@ -117,9 +123,9 @@ eligibility（逐候选 i，候选索引固定序）:
   invalid_input        → status=INVALID_INPUT（n_used=已计数）  :66-69
   n_positive_weight==0 → status = n_accepted==0
                           ? ALL_REJECTED : ZERO_VALID_WEIGHT    :70-73
-  否则                 → signal = vs / wsum                     :75
-                         support = support ? sup_max : 1.0      :76
-                         status = OK                            :77
+  否则                 → signal = vs / wsum                     :83
+                         support = support ? sup_max : 1.0      :84
+                         status = OK                            :85
 ```
 
 - 权重语义（调用方构造，本层无知）: **逐样本 `ivar`（1/ADU²），无任何
@@ -170,7 +176,7 @@ eligibility（逐候选 i，候选索引固定序）:
 - SCI §5:55-60 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
   signal/support reducer/状态分支）。
 - **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI §5:58、
-  integrate.h:17-19、SCI §2:21/§5:63/§7:75 同文，**本口径即全部口径**）。
+  integrate.h:26-27、SCI §2:21/§5:63/§7:75 同文，**本口径即全部口径**）。
   `sup_max` 更新必须置于权重分支**之前**（integrate.cpp:49-50），
   作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
   support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
@@ -179,7 +185,7 @@ eligibility（逐候选 i，候选索引固定序）:
   eng/tests/unit/p2_output_semantics_test.cpp:85-107
   （4b/4c；`ctest -R p2_output_semantics`）。
 - SCI §5:63 声称与 "integrate.cpp:10-79" / "integrate.h:1-75"
-  一致——实测文件为 81 行/74 行（行号如实以本文档 §3 为准；
+  一致——实测文件为 89 行/83 行（行号如实以本文档 §3 为准；
   语义一致不含该行号范围漂移）。
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
@@ -197,17 +203,17 @@ eligibility（逐候选 i，候选索引固定序）:
 |---|---|---|
 | count==0 / values==null | NO_CANDIDATES | :23-26 |
 | stack/result null | rc=1（status 不变） | :20-21 |
-| 非 finite values/support/weights、w<0 | INVALID_INPUT | :37/:38-42/:44-48 |
+| 非 finite values/support/weights、w<0 | INVALID_INPUT | :37/:38-42/:54-55 |
 | w==0（部分） | 合法零贡献（signal 与移除该样本等价） | :56 |
 | w==0（全部 accepted） | ZERO_VALID_WEIGHT（不做除法） | :56/:70-73 |
-| n_accepted==0 | ALL_REJECTED | :66-69 |
-| support 全空（null） | support=1.0（空支撑守恒） | :71 |
-| n_used | = n_positive_weight（=通过门正权样本数） | :56 |
+| n_accepted==0 | ALL_REJECTED | :71 |
+| support 全空（null） | support=1.0（空支撑守恒） | :80/:84 |
+| n_used | = n_positive_weight（=通过门正权样本数） | :58/:61 |
 
 ## 10 已冻结禁改清单（本层不可接受变化）
 
 1. 五态枚举 name/value/顺序（integrate.h:45-51）。
-2. support canonical reducer 语义 = max(accepted support)（integrate.h:17-19
+2. support canonical reducer 语义 = max(accepted support)（integrate.h:26-27
    文本口径；`sup_max` 更新位置 = integrate.cpp:49-50，位于权重分支之前，
    **语义解释与更新位置均取上列值**）。
 3. 零权重=合法零贡献（integrate.cpp:56 / SCI §10）。
@@ -235,7 +241,7 @@ eligibility（逐候选 i，候选索引固定序）:
 
 - **约束（`DISP-P2INT-001` 面）**：`sup_max` 更新必须位于权重分支**之前**（`integrate.cpp:49-50`；权重分支 =
   `:51-57`，其中 `:56` 为 `if (w == 0.0) continue;`），作用域 = 通过资格门的全部
-  accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 `integrate.h:17`
+  accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 `integrate.h:26`
   的 `max(accepted support)` 冻结语义一致。回归门：
   `eng/tests/unit/p2_output_semantics_test.cpp:85-107`（4b/4c）。
 - **禁用**把 `sup_max` 更新置于 `w == 0` 分支之后——会使零权 accepted 样本的 support
@@ -244,7 +250,7 @@ eligibility（逐候选 i，候选索引固定序）:
   `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
   即 support 与 signal 正交。
 - **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/contracts/DATA_SEMANTICS.md` §21.5
-  与 `integrate.h:17-19` 的文本口径必须同为 `max_{accepted} support[i]`，
+  与 `integrate.h:26-27` 的文本口径必须同为 `max_{accepted} support[i]`，
   **该口径即唯一口径**。
 
 ### 11.4 TEST-P2-INT-DESIGN-001 冻结测试设计（可执行 TEST-P2-INT-001 由 P2-INT-TEST 落地）

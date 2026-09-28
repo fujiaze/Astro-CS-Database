@@ -47,7 +47,8 @@ _COMPLETE = "COMPLETE"
 _RUN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 _MANIFEST_NAME = "manifest.json"
 # 允许发布的文件名（含默认产物）
-_FNAME_RE = re.compile(r"^[A-Za-z0-9._-]+\.fits$|^properties$|^Moc\.fits$")
+_FNAME_RE = re.compile(
+    r"^[A-Za-z0-9._-]+\.fits$|^properties$|^Moc\.fits$|^coverage\.index\.json$")
 
 
 class PublishError(ValueError):
@@ -591,10 +592,17 @@ class HipsOutputStore:
 
     @staticmethod
     def _validate_product_filename(fn: str) -> None:
-        """HiPS 产物文件名约束：properties | Moc.fits | NorderK/DirD/NpixN.fits。"""
+        """HiPS 产物文件名约束：properties | Moc.fits | NorderK/DirD/NpixN.fits |
+
+        coverage.index.json（**数据集级**覆盖索引；仅根层，IO-003 §3.2 白名单 P-178 扩项）。
+        """
         if fn == "properties":
             return
         if fn == "Moc.fits":
+            return
+        # 数据集级覆盖索引（HIPS_STORAGE_FORM_CONTRACT §4.2 / A5：位于归档之外、与产品同级）。
+        # 只认根层的这一个名（带路径或改名 = 新形态，须先改合同再实现）。
+        if fn == "coverage.index.json":
             return
         segs = fn.split("/")
         if len(segs) == 3 and segs[0].startswith("Norder") and \
@@ -603,7 +611,7 @@ class HipsOutputStore:
                 segs[2][4:-5].isdigit() and segs[2].endswith(".fits"):
             return
         raise PublishError(f"非 HiPS 目录产物文件名: {fn!r} "
-                           f"(仅 properties/Moc.fits/NorderK/DirD/NpixN.fits)")
+                           f"(仅 properties/Moc.fits/NorderK/DirD/NpixN.fits/coverage.index.json)")
 
     # ── 清理/查询 ──
     def _cleanup_staged(self, staged: List[Dict[str, Any]]) -> None:

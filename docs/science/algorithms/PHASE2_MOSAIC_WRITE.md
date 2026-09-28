@@ -414,7 +414,7 @@ main(stage2.json, CLI overrides):
   support=covered_area/A_cell 钳 1.0（:477-479）与 finalize manifest.json
   语义（:1086-1128）；variance 产品（:1060-1066）P2 不启用；P2 登记的
   是 stage2 侧编排与集成语义，writer 域合同不在此重登记）。
-- DATA: DATA-P2-INT（integrated，registry astrocs.phase2.integrate.md:22）、
+- DATA: DATA-P2-INT（integrated，registry astrocs.phase2.integrate.md:43）、
   DATA-P2-RES（mosaic，astrocs.phase2.write.md:23）；逐字段唯一权威见
   DATA_SEMANTICS §20。
 - API: API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权/并发合同）+
@@ -498,7 +498,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   （实测 MOD-astrocs-phase2-write / astrocs.phase2.write.md，execution_class=io）。
 - DATA_SEMANTICS 现状止于 §19（DATA-COV-001）；§20 DATA-P2-HIPS 为新增登记位
   （DATA-P2-INT/DATA-P2-RES 现定义于
-  TRACEABILITY_MATRIX.json 与 registry astrocs.phase2.integrate.md:22/
+  TRACEABILITY_MATRIX.json 与 registry astrocs.phase2.integrate.md:43/
   astrocs.phase2.write.md:23）。
 - `astrocs-stage2` CLI 条目不在生产入口面；生产入口 = `acsd phase2 run`，
   本文档登记其底层写出实现

@@ -17,7 +17,7 @@
 
 SCI-CAL-001 §12 将坏点检测/修复登记为 `ALG-CAL-004`（引用 cc_* 通道符号
 cc_detect_hot/cold + cc_correct_median）。本模块按迁移矩阵独立冻结为
-ALG-COS-001..005，逐公式锚定 **现行唯一生产实现**
+ALG-COS-001..006，逐公式锚定 **现行唯一生产实现**
 `ac::detect_hot_pixels/detect_cold_pixels/filter_by_structure_size/
 interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 `ac_correct_frame`/`ac_correct_frame_f64` 导出）：
@@ -30,7 +30,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
   `astrocs_calibration` 与 `astrocs_p1_calibration` 的生产源；
   `lib/algorithms/calibration/CMakeLists.txt:20-25` 的 CMake 变量 `set(CAL_PROD_SOURCES …)`
-  与根 `CMakeLists.txt:589-598` 的 `add_library(astrocs_calibration STATIC ...)`
+  与根 `CMakeLists.txt:617-626` 的 `add_library(astrocs_calibration STATIC ...)`
   源清单均含它）；
   同名文件 `lib/algorithms/calibration/cpp/cosmetic_corrector.cpp` **已退役**，
   登记见 §8。二者是两套独立实现，**本模块行为的口径唯一取自生产源；cpp/ 版本的公式、阈值或退化语义无资格**
@@ -253,6 +253,95 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   无关、与线程数无关；float 语义逐位可复现。
 - 复杂度: O(n) 时间 + O(n) 额外内存（每次检测复制一份）。
 
+## 5a ALG-COS-006 坏列（linear defect）检测·修复·三路径仲裁·方差膨胀
+
+> **登记依据**：本节为 P-198 补登（原文档 §0/§11 只登记 `ALG-COS-001..005`，坏列/方差管线
+> `:268-784` 与 6 个在役 `AC_API` 导出**零登记**；`docs` 全库 `bad_column` 符号 0 命中）。
+> SCI 侧无独立条款（`docs/science/CALIBRATION.md` §12 只登记坏点检测/修复 = ALG-CAL-004）；本族为
+> **Project-defined 实现**，其 `ALG-COS-006` 身份由本节首次落册。
+> **冻结面**：判据形式、`1.482602218505602` 常数、状态位语义、修复算子与**默认参数**均属冻结面
+> （`DATA_SEMANTICS.md` §10.4「修复」行），本节只登记事实，不改公式/容差/默认值。
+
+- 源码锚（唯一生产源，口径同 §0「单一生产源（冻结）」）：`cosmetic_corrector.cpp:268-784`。
+- **独立路径（冻结）**：本节任何函数都不被 ALG-COS-001..005 的函数调用，也不改变其判据/阈值/语义；
+  反之亦然（`:270-273` 的显式声明）——坏点路径按**像素**判定，本节按**列**判定。
+- 状态位（**降级必须留痕**，`:287-291`）：`OK=0`、`SCALE_DEGENERATE=1`（MAD(dev)==0 ⇒ 检测不可用）、
+  `FRAME_TOO_SMALL=2`、`EDGE_ONE_SIDED=4`、`NO_ANCHOR=8`；另 `AC_COLSTAT_WIDE_DEFECT`（`:450`）。
+  最少邻居列 `AC_COLSTAT_MIN_NEIGHBORS=2`（`:294`）。掩膜值：`0`=干净、`1`=已修、`2`=仅标记。
+
+**F6.1 检测判据（列统计量的一阶差分"跳变配对分段"）`detect_bad_columns` `:324-455`**
+
+```text
+cs[x] = median_y data[y][x]                      # 逐列中位数（对列内少数污染像素稳健）
+d[x]  = cs[x] − cs[x−1]                          # 一阶差分
+σ_d   = 1.482602218505602 · MAD(d)               # 帧内自校准（对检测源正标度变换严格不变）
+J     = { x : |d[x] − median(d)| >= column_sigma · σ_d }
+B     = {0} ∪ J ∪ {w}  ⇒ 电平段；段长 <= max_seg_len 且非全宽 ⇒ 坏列段
+```
+
+- `column_sigma <= 0` ⇒ **显式禁用**（不是降级；`:338`），掩膜保持全 0。
+- `neighbor_k` 在当前判据中**显式未使用**（`:331` `(void)neighbor_k;`，属冻结对外签名的保留形参）；
+  段长上限由 `max_seg_len` 承担。**这是实现事实，不是"用 neighbor_k 搜锚点"**。
+- 判据与修复算子**同构**：段 [a,b] 的预测值 = 段外锚点 L=a−1、R=b+1 的线性插值（`:318-319`）。
+- 已实测的三个"逐列与邻域基准比较"失败模式（负旁瓣 / 基准曲率偏差 / 段内无信号）见 `:310-317`。
+
+**F6.2 修复（段外锚点插值，输入 `data` 不级联）`repair_bad_columns` `:463-517`**
+
+- 段 [a,b] 两侧锚点在位：`out[y][x] = data[y][L] + (data[y][R] − data[y][L])·(x−L)/(R−L)`（`:499-504`）。
+- **单列段（a==b）** ⇒ `x−L)/(R−L) = 1/2` ⇒ `out = (data[L] + data[R])/2`（左右两邻算术平均；`:460-461`）。
+- 仅单侧锚点 ⇒ **复制该锚列** + `EDGE_ONE_SIDED`（`:505-508`）；无任何锚点 ⇒ **保留原值** + `NO_ANCHOR`（`:509-511`）。
+- 掩膜值 `2`（宽缺陷/仅标记）与 `0`（干净列）**逐位拷贝、不改值**（`:493`）；全列内不做纵向平滑（`:462`）。
+- 并行：`schedule(static)` 行并行（`:488`），行间无依赖 ⇒ 结果与线程数无关。
+
+**F6.3 主入口与三路径（science / dark / bias）仲裁**
+
+- 单路入口 `correct_columns` `:520-539` = `detect_bad_columns` + `repair_bad_columns`；
+  入参非法 ⇒ `FRAME_TOO_SMALL`（`:526-531`）。
+- 三路径仲裁唯一实现 `correct_columns_ex_impl` `:584-701`：**同一判据**、各自帧内自校准 ⇒
+  各路径检出集合对自身标度严格不变，母版与科学帧标度不一致**不影响**判坏集合（`:542-544`）。
+- **仲裁 = 并集（不是交集）**（`:546-547`）：交集会漏掉只在一处可见的缺陷；
+  每路证据逐列写进 `source_mask`（`AC_COLSTAT_SRC_SCIENCE/DARK/BIAS`，`:659-664`），不静默丢弃。
+- 置信度由来源组合导出（`:549-551` / `:665-674`）：`dark ∧ bias` ⇒ `HIGH`；
+  仅一个物理来源，或科学帧 + 任一母版 ⇒ `MEDIUM`；仅科学帧自身 ⇒ `LOW`。
+- 母版阈值 `master_column_sigma <= 0` ⇒ 归一到 `column_sigma`（`:618-621`；配置不得把母版放松到比科学帧更松）。
+- **宽标记声明区间守卫** `apply_wide_budget` `:570-580`：某路"仅标记"列数 > `frac_max·w` ⇒
+  该路整类宽标记丢弃并**记账**（`out_*_wide_suppressed`），判据本身一个字未动。
+- **逐路分账** `count_mask_cols` `:555-563`：掩膜 `1`（真改值）与 `2`（仅标记）分开计数 ——
+  合报会让下游把未修列当成已修（实测一轮真实运行 405 列标记、仅 63 列真正改值，`:552-554`）。
+- 旧入口 `correct_columns_ex` `:705-721` = `_impl(..., master_sigma=column_sigma, wide=0, 0, ...)`，
+  与改动前**逐位一致**（`:703-704`）。
+
+**F6.4 被修复像素的方差面 `column_variance_inflate` `:731-781`**
+
+```text
+w_L = (R−x)/(R−L),  w_R = (x−L)/(R−L)        # 与 F6.2 修复算子同式（权重和被修复列共享）
+Σw² = w_L² + w_R²                             # 单列段 ⇒ 1/2；贴边单侧复制 ⇒ 1
+var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜=1）施加
+```
+
+- 干净列与"仅标记"列**逐位拷贝** `var_in`（`:743-749`、`:728-729`）。
+- `κ` 由**调用方**给定（本函数不选 κ、不设默认值）；`κ` 非正/非有限 ⇒ 整体不写（`:738`）。
+- `out_w2_mean`/`out_px_inflated` 为记账输出（`:776-780`）。
+
+**C ABI 导出（在役 6 个；签名权威 = `lib/algorithms/calibration/include/astro_calibration.h` 坏列族）**
+
+| 导出 | 锚 | 消费者 |
+|---|---|---|
+| `ac_correct_columns` | `ac_api.cpp:316` | 本族主入口（单路） |
+| `ac_correct_columns_f64` | `ac_api.cpp:331` | FP64 ABI（同 `:363-364` 的降级语义：double 输入转 f32 执行后回转） |
+| `ac_detect_bad_columns_from_master` | `ac_api.cpp:356` | 母版专用检测（`master_column_sigma`；`module_adapters.cpp:2774` 契约注释） |
+| `ac_correct_columns_ex` | `ac_api.cpp:368` | 旧入口（F6.3 末条，逐位兼容） |
+| `ac_correct_columns_ex2` | `ac_api.cpp:389` | **CLI 生产路径**：`module_adapters.cpp:3002`（`p1_op_cosmetic` 内） |
+| `ac_column_variance_inflate` | `ac_api.cpp:422` | F6.4 方差面 |
+
+- **生产接线（现状）**：CLI `p1_op_cosmetic`（`lib/infrastructure/scheduler/src/module_adapters.cpp:2796`）
+  在 `:3002` 调 `ac_correct_columns_ex2`，检测源 = `:2929-2930` `resolve_master` 解析出的**真实**
+  `master_dark`/`master_bias`（`:2845` 明确登记"原实现两处都恒传 nullptr"的整改）。
+  旧 `lib/phase1_session/p1_session.cpp` 路径**不调**坏列族（只调 `ac_correct_frame` `:481`）⇒
+  两路径的坏列行为不同源，见 `DISP-COS-012` 同类登记口径。
+- **迁移面**：本族符号随 §8 的迁移落点（`lib/algorithms/cosmetic/`，P1-COS-IMPL）一并迁移；
+  本节不声明迁移已完成。
+
 ## 6 复杂度、确定性、并行归约汇总
 
 | 项 | 结论 | 源锚 |
@@ -382,7 +471,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 | ID | 缺陷（现状事实） | 锚 |
 |---|---|---|
 | DISP-COS-001 | 无 extern "C" 异常屏障：std::bad_alloc/omp 异常可穿越 C ABI；AC_ERR_MEMORY(-2)/AC_ERR_INTERNAL(-3) 定义但从未返回（死值错误码） | ac_api.cpp:108-122,228-263；astro_calibration.h:23-24 |
-| DISP-COS-002 | 检测统计不过滤 NaN/Inf：NaN 源帧 → 中位数/阈值非数值 → 判定静默全 false；NaN 数据像素不判坏直接透传 | cosmetic_corrector.cpp:46-54,126-128,147-149 |
+| DISP-COS-002 | 检测统计不过滤 NaN/Inf：NaN 源帧 → 中位数/阈值非数值 → 判定静默全 false；NaN 数据像素不判坏直接透传 | cosmetic_corrector.cpp:46-54,126-127,147-148 |
 | DISP-COS-003 | method=1（AC_METHOD_BILINEAR）名义 bilinear 实为 4 方向 1/dist IDW；模块层非 0 method 一律走 IDW（无参数校验） | `lib/algorithms/calibration/src/cosmetic_corrector.cpp:175,202-224`；`lib/algorithms/calibration/include/astro_calibration.h:23-24` |
 | DISP-COS-004 | ac_correct_frame_f64 非真双精度：double→float 降级执行（统计/mask/插值全程 f32），仅 I/O 层 double | ac_api.cpp:228-263；astro_calibration.h:105-115 |
 | DISP-COS-005 | `n = w·h` int 乘法无溢出防护（int31 域）；w·h>2^31 行为未定义 | cosmetic_corrector.cpp:231；ac_api.cpp:108-122 |
@@ -409,6 +498,9 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   P1-COS-TEST 建立。
 - 摘要引用: ALG-CAL-004（docs/science/algorithms/CALIBRATION_ALGORITHMS.md §3.4，
   P1-CAL 合同视角同一实现）。
+- ALG-COS-006（本文档 §5a）: 坏列检测/修复/三路径仲裁/方差膨胀，无 SCI 独立条款
+  （Project-defined），C ABI = `ac_correct_columns{,_f64,_ex,_ex2}`、
+  `ac_detect_bad_columns_from_master`、`ac_column_variance_inflate`。
 
 ## 参考文献与参考代码库（含许可证）
 
@@ -423,5 +515,5 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
-**权威依据**：本文件 ALG-COS-001..005 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/contracts/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..005 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
+**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/contracts/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 

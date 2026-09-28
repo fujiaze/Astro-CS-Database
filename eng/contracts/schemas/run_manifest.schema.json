@@ -17,7 +17,8 @@
   ],
   "x-astrocs-notes": [
     "字段名取自 DATA-001 锚点 config_separation_anchors.json 的 run_manifest 族：^run_id$ / ^software_sha$ / ^config_hash$ / ^manifest_(input|output)_hashes$ / ^toolchain_[a-z0-9_]+$。",
-    "禁止名（锚点 config_classes[run_manifest].forbidden_field_names）：isa / workers / block / sci_algorithm_id / sci_weight_mode。哈希一律小写十六进制，长度固定。"
+    "禁止名（锚点 config_classes[run_manifest].forbidden_field_names）：isa / workers / block / sci_algorithm_id / sci_weight_mode。哈希一律小写十六进制，长度固定。",
+    "加性可选键 storage（R-42/P-181）：归属 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.3（运行完成清单 manifest.json#storage），属运行级形态事实、不属哈希/版本字段名族；本 schema 只登记键位与类型，字段词表不在本文件复写（唯一机器事实源 = hips_storage_form.schema.json#/$defs.manifest_storage）。"
   ],
   "type": "object",
   "required": [
@@ -114,6 +115,10 @@
     "created_utc": {
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "storage": {
+      "type": "object",
+      "description": "加性可选键（R-42/P-181）：本次运行的落盘形态事实。字段词表与不变式 M1..M4 的唯一正本 = docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.3；唯一机器事实源 = eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage。本 schema 只登记键位与类型（故意不复写字段，避免第二份字段定义）：字段级校验由该 $defs 承载。缺失 ⇒ 无形态事实（不判红）。"
     }
   }
 }

@@ -3153,7 +3153,6 @@
         "approximations",
         "degradations",
         "normalization_version",
-        "weight_mode_version",
         "correlation_summary",
         "flux_conservation_factor",
         "k_corr",
@@ -3423,8 +3422,22 @@
           "x-astrocs": {
             "anchor": "SC-ADJ-F02; ADJ-GEN-03",
             "domain": "Phase1/psfsw",
-            "fail_closed": "归一版本缺失 -> REJECT",
-            "gate": "G-NORM-VERSION"
+            "fail_closed": "归一版本缺失 -> REJECT；未登记的归一版本 token -> REJECT（须先登记 value_domain 再产出）",
+            "gate": "G-NORM-VERSION",
+            "value_domain": {
+              "note": "P-187（R-42）：本字段此前只有「非空字符串」约束 ⇒ 值域无判据，任意 token 可过。现登记生产 token 值域（唯一机器源 = 本对象；文档面 = DATA_SEMANTICS.md §31.5a，须两处同步）。",
+              "registered_tokens": {
+                "drizzle_drop_area_normalized_v1": "Phase1 normalize：drop-area 归一（归一分母 N_p = Σ_j w_jp·A_pixel,j，DATA_SEMANTICS §4a）",
+                "phase2_group_normalized_v1": "Phase2 mosaic：按天球像素对应帧集合归一分组",
+                "drizzle_sb_normalization_v2_surface_brightness_preserving": "面亮度守恒归一的版本串（unit-face）",
+                "sb_a_pixel/v1": "面亮度像素面积幂族 v1（unit-face）"
+              },
+              "open_families": {
+                "calibration_master": "<norm>_v1（定标主帧 identity 的归一版本；域 = 定标协方差对象，非产品 provenance 面）"
+              },
+              "unregistered": "REJECT",
+              "rule": "产品 provenance 的 normalization_version 必须取 registered_tokens 的键之一，或匹配 open_families 的形态；未登记 token ⇒ REJECT（新增 token 必须先登记本对象与 §31.5a 再产出）。本字段不接受任意自由串。"
+            }
           }
         },
         "weight_mode_version": {

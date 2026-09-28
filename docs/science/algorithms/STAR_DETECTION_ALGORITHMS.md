@@ -31,7 +31,7 @@
 
 （锚=sdet_api.cpp 实测行号；公式与源码一一对应，正文按源码照录）
 
-- 背景噪声（行差分族 `sdet_compute_bgnoise()` :601-644；调用点 :1456）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
+- 背景噪声（行差分族 `sdet_compute_bgnoise()` :605-657；调用点 :1504）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
   3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.7071
   （1/√2）。**量纲 ADU；输出量 = 单像素噪声 RMS `σ_n`。**
   **适用域（必须随引用同写）**：`Var(d) = 2σ_n²(1−ρ_adj)`，`ρ_adj` = 相邻像素
@@ -47,9 +47,9 @@
   `ρ_adj` 未标定时检测阈的 σ 基准 = 另行独立标定的估计量。
   纯独立高斯噪声下实测无偏：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
   散布 0.42%）。
-- 全局检测阈值（:1456 调 `sdet_compute_bgnoise()` 估 `bgnoise` 于**未平滑原图**；:1481 组装 `pr.thr = pr.bg + 5.0·bgnoise`；阈值作用面 = :1451 的 σ=2 平滑图；候选门槛判据 :1849、对称性门 :1848、饱和判定 :2188）:
+- 全局检测阈值（:1504 调 `sdet_compute_bgnoise()` 估 `bgnoise` 于**未平滑原图**；:1529 组装 `pr.thr = pr.bg + 5.0·bgnoise`；阈值作用面 = :1497-1502 的 σ=2 平滑图；候选门槛判据 :1902、对称性门 :1894-1901、饱和判定 :1816-1819）:
   `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**。
-  **量纲声明**：阈值**作用图像**是 `σ_smooth = 2.0 px` 的 YvV 平滑图（:1772-1774），
+  **量纲声明**：阈值**作用图像**是 `σ_smooth = 2.0 px` 的 YvV 平滑图（:1496-1502），
   而 `bgnoise` 取自未平滑原图 ⇒ 阈在平滑图噪声单位下 = `5.0/‖k‖₂ = 35.45 σ_smooth`
   （连续 2D 高斯核 `‖k‖₂ = 1/(2σ_smooth√π) = 0.14105`）。
   **`threshold_sigma` 是未平滑原图噪声的倍数，不是阈值实际作用图像上的显著性**；
@@ -59,10 +59,10 @@
   的位置，**不是召回域下限**；召回域下限 = §11.4 F1 的逐档 **99% 召回阈表**
   （σ_psf = 1.0 / 1.27 / 1.5 / 2.0 / 2.5 / 3.0 px 档；数值以本文件 §11.4 表
   「99% 召回阈 `SNR_peak`」行为唯一权威，此处不复制数值以防漂移），两者**不可互换**。
-- 动态范围与饱和水平（:1834-1838）: `bg=median(img)`，`maxi=max(img)`，
+- 动态范围与饱和水平（:1523-1529）: `bg=median(img)`，`maxi=max(img)`，
   `dynrange=min(maxi,65535)−bg`，`minsatlevel=0.7·dynrange`，
   `satrange=0.1·dynrange`，`locthreshold=5·bgnoise`；`norm = 65535.0f` 字面量
-  （:1834，DISP-STAR-006）。**量纲 ADU；适用域 = 以 uint16 整数 ADU 读出、
+  （:1525，DISP-STAR-006）。**量纲 ADU；适用域 = 以 uint16 整数 ADU 读出、
   满阱=65535 ADU 的帧**。对已定标 float 帧，`dynrange` 的物理含义退化为
   「帧自身 max 与 65535 的较小者减帧中位」，**不等于探测器饱和电平**；
   该域外 `saturated` 列**必须**按 Project-defined 判据
@@ -72,88 +72,107 @@
   ≤ 65535 ADU。**测法**：生产盲检测输出逐星取 3×3 峰值与 `saturated` 列。
   **负对照**：上述 53 颗「3×3 峰值 ≤ 65535 却被标 `saturated`」即 `norm = 65535`
   不成立的反例 ⇒ 该列在 float 定标帧上**必须**按 Project-defined 判据消费。
-- 候选饱和判定（:1902-1907）: 3×3 邻域超阈值像素 `meanhigh`、`minhigh`；
+- 8-连通组分标记（O3, `sdet_find_connected_components` :79-125）: 阈值图 `smooth > thr` 的
+  非零像素按 **8 邻接 BFS** 标记连通分量（扫描序 y 主序发现、栈式 BFS ⇒ 平局 = 扫描序先到），
+  每分量记 `count` 与包围盒 `x0/y0/x1/y1`（:101-104）；释放面
+  `sdet_free_connected_components` :127-135。复杂度 O(N)。
+- 去混叠 deblending 树（O11, `sdet_deblend_leaf` :1080-1341；设计稿 §5.11；B&A96 §4）:
+  指数间隔阈值层 `t(i) = thr·(Smax/thr)^(i/30), i=1..30` 自高向低（`SDET_DEBLEND_LEVELS=30` :1058），
+  首个满足「≥2 枝且枝在**当前层**阈值之上的积分流量 > `delta_c·`父组分在**检出阈值**之上的总流量」
+  的层执行分裂（`SDET_DELTA_C=5e-3` :1059；判据两侧刻意不对称 = B&A96 §4）：
+  存活枝 → 独立成分；其余像素按双变量高斯 **argmax 重分配**（`mu` = 叶峰位、
+  `sigma²` = 叶内权重二阶矩 + 0.25 下限），平局归登记序靠前者。
+  全层不满足 ⇒ 单成分（间隔 < 2σ 不可分，B&A96 §4.3，不触发即保持单星）。
+  `SDET_DEBLEND_DEPTH=8` :1060 在现行**迭代**实现中无消费者（P-140 已登记，保留占位）。
+  产物 `SdetLeaf{pix, peak}` :1075-1078；`peak` 现仅供树基准与调试消费
+  （O8 冻结语义改由检测段 11×11 局部极大扫描承担，:1691-1726）。
+- 候选饱和判定（:1796-1819）: 3×3 邻域超阈值像素 `meanhigh`、`minhigh`；
   饱和 ⇔ `meanhigh−bg ≥ minsatlevel` 且 `pixel0−minhigh ≤ satrange`（双条件）。
-- 非饱和亚像素质心（一阶导数，:1907-1917）: `r0 = −0.5 − d1rl/(d1rr−d1rl)`、
+- 非饱和亚像素质心（一阶导数，:1821-1839）: `r0 = −0.5 − d1rl/(d1rr−d1rl)`、
   `c0 = −0.5 − d1cu/(d1cd−d1cu)`（分母 |·|<1e−20 时取 −0.5）。
-- 饱和中心 edge-walking（:1918-1978；独立实现 edge_walking_center :652-699）:
+- 饱和中心 edge-walking（:1840-1854；独立实现 `edge_walking_center` :736-784，
+  该独立实现现仅由无调用者的 `sdet_detect_saturated_stars` :785-904 消费，见 §10）:
   从候选中心四方向走到 `pixel ≤ sat` 边缘，饱和中心=边缘盒几何中心；
   距边界 <2px 丢弃。
-- 二阶导数零交叉宽度/振幅（:1980-2057）: 对平滑图 smooth 逐方向找二阶导零交叉
+- 二阶导数零交叉宽度/振幅（:1856-1870；独立实现 `sdet_zero_cross_dir()` :1343-1387）: 对平滑图 smooth 逐方向找二阶导零交叉
   `Sr,Sc`（平滑图 σ 估计）与 `Ar,Ac`；平滑 PSF 估计量
   `Sr=(−srl+srr)/2`、`Ar=(Arl+Arr)/2`、`Sc=(−scu+scd)/2`、`Ac=(Acu+Acd)/2`；
   符号约定：单侧读数 `srl/srr/scu/scd`（及 `Arl/...`）记录**有符号差分读数**，
   距离量取正值为有效（实现 `sdet_zero_cross_dir()` 返回 `dist = |峰−零交叉| ≥ 1.0`，
   缺失侧回落 1.0）；对称合成取两侧均值 `Sr = 0.5·(drl + drr)`（sdet_api.cpp
   O7 段，`c.Sr = 0.5 * (drl + drr)`），同式得 `Sc`；
-  `SQRT_EXP1=√e`（:1808）。
-- 拟合盒半径（:2059-2070）: `s_factor=√(−2·ln 0.001)=3.7172`（:1812）；
-  `R=max(ceil(3.7172·Sr), ceil(3.7172·Sc), r)`，钳位 `R≤200`（MAX_BOX_RADIUS），
+  `SDET_SQRT_EXP1=√e`（:1061）。
+- 拟合盒半径（:1872-1876）: `s_factor=√(−2·ln 0.001)=3.7172`（`SDET_S_FACTOR` :1064）；
+  `R=max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5)`，钳位 `R≤200`（`SDET_MAX_BOX_RADIUS` :1057），
   边界收缩 `R=max(R,1)` 且不出帧。
-- 对称性质量门（:2072-2084）: `dA=max(|Ar|,|Ac|)/min(|Ar|,|Ac|)`、`dSr`、`dSc`
+- 对称性质量门（:1894-1902）: `dA=max(|Ar|,|Ac|)/min(|Ar|,|Ac|)`、`dSr`、`dSc`
   同构（分母 <1e−20 时 1e30）；拒绝条件 `dA>2 ∨ dSr>2 ∨ dSc>2 ∨
   max(|Ar|,|Ac|)<locthreshold`。
-- candidate 去重（:2086-2098）: `matchradius=max(1, floor(0.2·R))`；
+- candidate 去重（:1906-1928）: `matchradius=max(1, floor(0.2·R))`；
   曼哈顿距 `|Δx|+|Δy|≤matchradius` 视为重复，先到先留（扫描序 y 主序）。
-- **椭圆高斯拟合模型（检测侧冻结母函数）**（sdet_gauss_fit :508-639 → sdet_lm_fit :289-444，
+- **椭圆高斯拟合模型（检测侧冻结母函数）**（sdet_gauss_fit :659-728 → sdet_lm_fit :387-604，
   自研信赖域 LM（nls_lm），7 参数）:
   `f(x,y)=B+A·exp(−(x′²/SX+(y′/r)²/SX)/1)`，参数 `{B,A,x0,y0,SX=2σ²,fr,alpha}`，
   `r=0.5·(cos fr+1)`，`sx=√(SX/2)`，`sy=sx·r`，`fwhm=2.3548·σ`（TWO_SQRT_2_LOG2），
   PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 §5）；同 sx 下 FWHM 相差 1.9140×，两块的 FWHM 各自独立取值（DISP-STAR-007）。
   `theta=−alpha` 归一到 (−90°,90°]。残差坐标 `dx=x+0.5−cx`（像素中心=索引+0.5，
-  :510-513）。
-- 初始化（:289-346）: halfA 边界搜索（`max_val=A0+B0`，沿中心行列向外走到
+  :688-689）。
+- 初始化（sdet_lm_fit :398-445）: halfA 边界搜索（`max_val=A0+bkg0`，沿中心行列向外走到
   `val−bkg0 ≤ A0/2`）→ `FWHMx=jj1−jj2`、`FWHMy=ii1−ii2`；`SX_init=FWHM²/4ln2`、
   `fr_init=acos(2·roundness−1)`、`alpha_init=0`；`bkg0`=拟合窗内下半像素截尾 MAD
-  clip 后中位（:560-592）；`max_iter=LM_MAX_ITER_ANGLE·(饱和?3:1)`。
-- 饱和像素 mask（:530-531）: 拟合采样排除 `val ≥ sat_threshold`；
-  排除后 m≤8 → INVALID_PARAMS（:545-547）。
-- 星等（正常星，:2316-2338）: `mag = −2.5·log10(Σ_box(pixel − B_fit))`，box=
+  clip 后中位（sdet_gauss_fit :696-712）；`max_iter=LM_MAX_ITER_ANGLE·(饱和?3:1)`（:461；常数 :48）。
+- 饱和像素 mask（:686）: 拟合采样排除 `val ≥ sat_threshold`；
+  排除后 m≤8 → INVALID_PARAMS（:694，`samples.size() <= NPARAMS+1`）。
+- 星等（正常星，:1990-2008）: `mag = −2.5·log10(Σ_box(pixel − B_fit))`，box=
   (2R+1)² 用候选 R（钳 [5,200]）与候选中心；`box_sum≤0 → mag=NaN`。
-  饱和星（debug 路径 :1597）: `mag = −2.5·log10(A_fit)`（A>0），失败=NaN
-  （量纲差异登记 DISP-STAR-004）。
-- 饱和标志（:2298）: `is_saturated = (A_fit > dynrange)`；`has_saturated =
-  is_saturated`（:2342，DISP-STAR-004）。
-- 输出排序（sdet_sort_stars :972-981）: mag 升序 stable_sort，NaN 恒排末尾；
-  dedup（sdet_dedup_stars :853-970）: 饱和星与正常星 2px 网格 d²<4.0 →
+  饱和星：原 debug 路径（:1597）已随重写注销——`sdet_detect_debug`/`sdet_free_debug_maps`
+  为**死符号**（§10），`sdet_detect_saturated_stars` :785-904 现无调用者 ⇒ 该路径的
+  `mag = −2.5·log10(A_fit)`（A>0）在生产面不再产出（量纲差异登记 DISP-STAR-004）。
+- 饱和标志（:1979）: `is_saturated = (A_fit > dynrange)`；`has_saturated =
+  is_saturated`（:1980，DISP-STAR-004）。
+- 输出排序（sdet_sort_stars :980-1037）: mag 升序 stable_sort，NaN 恒排末尾；
+  dedup（sdet_dedup_stars :952-979）: 饱和星与正常星 2px 网格 d²<4.0 →
   丢正常星保饱和星；饱和星间 d²<4.0 保 r 大者；正常星间 d²≤1.0 保先者；
-  最后 `maxStars>0` 截断（:2383-2385）。
+  最后 `maxStars>0` 截断（:1546-1547，`sdet_emit_records` 内）。
 
 ## 3 伪代码
 
 ```
-sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1582（模板双实例）
-  smooth   = GaussianBlur_YvV(image, sigma=2.0)   # :1451/:1453（Young-van Vliet IIR）
-  bgnoise  = sdet_compute_bgnoise(image)          # :1456 调用（族 :601-644，行差分+3×5σ clip）
-  median   = robust_median(image)                 # :1458-1460
-  thr      = median + 5·bgnoise                   # :1481（locthreshold :1480）
-  dynrange = min(max(image), 65535) − median      # :1477
+sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1630（模板双实例 :2319/:2338）
+  smooth   = GaussianBlur_YvV(image, sigma=2.0)   # :1497-1502（Young-van Vliet IIR）
+  bgnoise  = sdet_compute_bgnoise(image)          # :1504 调用（族 :605-657，行差分+3×5σ clip）
+  median   = robust_median(image)                 # :1487-1490
+  thr      = median + 5·bgnoise                   # :1529（locthreshold :1528）
+  dynrange = min(max(image), 65535) − median      # :1525
+  binary   = (smooth > thr)                       # O3 阈值化
+  comps    = label_8connected(binary)             # :1666-1667 → sdet_find_connected_components :79-125
+  leaves   = deblend_tree(comps, thr, total_flux) # :1770-1776 → sdet_deblend_leaf :1080-1341（O11，设计稿 §5.11）
   for y,x in [r..h−r)×[r..w−r):                   # 候选扫描段
-    if max(|Ar|,|Ac|) < locthreshold: continue    # :1849（对称性门 :1848；另一路径 :2132）
-    if not local_max_11x11(smooth,y,x): x+=5; continue   # :1849-1868 平局决胜取左上唯一
-    (meanhigh, minhigh) = stat3x3(image, x, y, thr)      # :1870-1890 原图 3×3
-    if boundary(xx±2,yy±2) 越界: continue         # :1892-1893
+    if max(|Ar|,|Ac|) < locthreshold: continue    # :1902（对称性门 :1894-1901；guided 路径 :2185）
+    if not local_max_11x11(smooth,y,x): x+=5; continue   # :1691-1726 平局决胜取左上唯一
+    (meanhigh, minhigh) = stat3x3(image, x, y, thr)      # :1799-1815 原图 3×3
+    if boundary(xx±2,yy±2) 越界: continue         # :1789
     if meanhigh−bg < 0.7·dynrange or pixel0−minhigh > 0.1·dynrange:
-        (r0,c0) = first_order_centroid(smooth,xx,yy)     # :1907-1917 非饱和
-    else:  sat=1; (r0,c0)=edge_walking(smooth,xx,yy,sat_level)  # :1918-1978 饱和
-    (Sr,Sc,Ar,Ac) = zero_cross_2nd(smooth,xx,yy,sat)     # :1980-2057
-    R = max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5); clamp R ≤ 200, 帧内收缩  # :2059-2070
-    if dA>2 or dSr>2 or dSc>2 or max(|Ar|,|Ac|)<5·bgnoise: continue  # :2072-2084
-    if exists prior candidate with |Δx|+|Δy| ≤ max(1,⌊0.2R⌋): continue  # :2086-2098
+        (r0,c0) = first_order_centroid(smooth,xx,yy)     # :1821-1839 非饱和
+    else:  sat=1; (r0,c0)=edge_walking(smooth,xx,yy,sat_level)  # :1840-1854 饱和
+    (Sr,Sc,Ar,Ac) = zero_cross_2nd(smooth,xx,yy,sat)     # :1856-1870
+    R = max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5); clamp R ≤ 200, 帧内收缩  # :1872-1876
+    if dA>2 or dSr>2 or dSc>2 or max(|Ar|,|Ac|)<5·bgnoise: continue  # :1894-1902
+    if exists prior candidate with |Δx|+|Δy| ≤ max(1,⌊0.2R⌋): continue  # :1906-1928
     candidates.push({x+xx偏移, y, mag_est=meanhigh, Sr, Sc, R, sat_flag})
-  sort candidates by mag_est desc（候选阶段不截断）       # :2170-2171
-  parallel for c in candidates:                   # 阶段6 :2180-2203 OpenMP dynamic
+  sort candidates by mag_est desc（候选阶段不截断）       # :1937-1939
+  parallel for c in candidates:                   # 阶段6 :1942-1958 OpenMP dynamic
     fit = NLS_TR_LM_GAUSS(image, window=2R+1, sat_mask=c.sat, init=halfA+局部截尾MAD)
-  for (fit, c) in zip(fit_results, candidates):   # 阶段8 :2269-2348
-    if fit.status ≠ OK: drop                      # :2278
-    if max(sx,sy)/min(sx,sy) > maxAxisRatio: drop # :2282-2284
-    if reject_star(fit) ≠ OK: drop                # :2287-2289（FWHM>0.5、圆度≥0.5、
+  for (fit, c) in zip(fit_results, candidates):   # 阶段8 :1960-2010
+    if fit.status ≠ OK: drop                      # :1961
+    if max(sx,sy)/min(sx,sy) > maxAxisRatio: drop # :1966-1970
+    if reject_star(fit) ≠ OK: drop                # :1973（FWHM>0.5、圆度≥0.5、
                                                   #   RMSE=mad·1.482602218505602/A≤0.2、FWHM 上限;
-                                                  #   饱和豁免 RMSE :214-252）
-    mag = −2.5·log10(Σ_box(pixel − B_fit))（box=R, 中心=候选中心）  # :2316-2338
-    saturated = (A_fit > dynrange); has_saturated = saturated       # :2298/:2342
-  dedup(stars); sort_by_mag_asc(stars, NaN last); 截断 maxStars   # 阶段10 :2363-2385
-  return 10×malloc 数组 (cx,cy,flux,mag,saturated,has_saturated[,extras])  # :2401-2483
+                                                  #   饱和豁免 RMSE :319-341）
+    mag = −2.5·log10(Σ_box(pixel − B_fit))（box=R, 中心=候选中心）  # :1990-2008
+    saturated = (A_fit > dynrange); has_saturated = saturated       # :1979/:1980
+  dedup(stars); sort_by_mag_asc(stars, NaN last); 截断 maxStars   # 阶段10 :1544-1547
+  return 10×malloc 数组 (cx,cy,flux,mag,saturated,has_saturated[,extras])  # :1537-1623
 ```
 
 ## 4 边界/NaN/Inf
@@ -233,32 +252,38 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1582（模板�
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| sdet_detect_impl<T> | sdet_api.cpp:1570-1943 | 生产核心（float/double 双实例调用点 :2921/:2940） |
-| YvV 平滑 σ=2.0 | :1761-1763 | 阶段2（sdet_gaussian_blur_yvv/_d） |
-| sdet_compute_bgnoise | :450-504 | 阶段3 行差分 FnNoise1 族 |
-| threshold=median+5·bgnoise | :1779 | 阶段3 全局阈值 |
-| peaker 主扫描 | :1787-2113 | 阶段4 七步（§2 候选公式锚） |
-| 候选 mag_est 降序（impl 无截断） | :2170-2171 | 阶段5 排序闸门 |
-| sdet_gauss_fit | :508-639 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
-| sdet_lm_fit（自研 TR-LM 7 参） | :289-444 | 阶段6 拟合主体（halfA :320） |
-| reject_star | :214-252 | 阶段8 质量门（SfError 六码 :198-205） |
-| StarRecord 构建+mag | :2269-2348 | 阶段8（is_saturated :2298、mag :2316-2338） |
-| sdet_dedup_stars | :853-970 | 阶段10a（语义见 §2） |
-| sdet_sort_stars | :972-981 | 阶段10b（mag 升序 NaN 末尾） |
-| 输出构造 10 数组 | :2401-2483 | malloc+赋值+extras（:2427-2452） |
-| sdet_detect_ex（FP32 入口） | :2907-2925 | uint16→float 转换后 impl<float> |
-| sdet_detect_ex_f64（FP64 入口） | :2932-2944 | impl<double> 全程双精度 |
-| sdet_create / sdet_destroy | :985-1021 | 句柄生命周期（默认参数 :993-1003） |
-| edge_walking_center | :652-699 | 独立饱和中心实现（debug 路径） |
-| sdet_detect_saturated_stars | :701-806 | 半阈值 CC 饱和检测（debug 路径） |
-| get_extra_field / parse_extra_name | :809-850 | extras 列解析 |
+| sdet_detect_impl<T> | sdet_api.cpp:1629-2016 | 生产核心（float/double 双实例调用点 :2319/:2338） |
+| YvV 平滑 σ=2.0 | sdet_api.cpp:1497-1502 | 阶段2 **调用面**（sdet_gaussian_blur_yvv/_d；**实现不在本文件**：sdet_image.cpp:176-186） |
+| sdet_compute_bgnoise | :605-657 | 阶段3 行差分 FnNoise1 族 |
+| threshold=median+5·bgnoise | :1529 | 阶段3 全局阈值（locthreshold :1528） |
+| peaker 主扫描 | :1691-1930 | 阶段4 七步（§2 候选公式锚） |
+| 候选 mag_est 降序（impl 无截断） | :1937-1939 | 阶段5 排序闸门 |
+| sdet_gauss_fit | :659-728 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
+| sdet_lm_fit（自研 TR-LM 7 参） | :387-604 | 阶段6 拟合主体（halfA :415） |
+| reject_star | :319-341 | 阶段8 质量门（SfError 码 :297-318） |
+| StarRecord 构建+mag | :1960-2010 | 阶段8（is_saturated :1979、mag :1990-2008） |
+| sdet_dedup_stars | :952-979 | 阶段10a（语义见 §2） |
+| sdet_sort_stars | :980-1037 | 阶段10b（mag 升序 NaN 末尾） |
+| 输出构造 10 数组 | :1537-1623 | `sdet_emit_records`：malloc+赋值+extras（:1553-1620） |
+| sdet_detect_ex（FP32 入口） | :2305-2323 | uint16→float 转换后 impl<float>（:2319） |
+| sdet_detect_ex_f64（FP64 入口） | :2330-2342 | impl<double> 全程双精度（:2338） |
+| sdet_create / sdet_destroy | :990-1034 | 句柄生命周期（默认参数 :998-1008） |
+| edge_walking_center | :736-784 | 独立饱和中心实现（**现仅由下一行消费**，见 §10） |
+| sdet_detect_saturated_stars | :785-904 | 半阈值 CC 饱和检测（**本文件内零调用者**；其 debug 入口已注销，见 §10） |
+| get_extra_field / parse_extra_name | :931-951 / :918-930 | extras 列解析 |
 
-SDetParams 9 字段（star_detector.h:14-23）生产消费面（DISP-STAR-003）:
-maxStars（:2383-2385）、maxAxisRatio（:2282-2284）完整消费；
-fitRadius 仅驱动 auto 半径日志推导（:2145-2163，阶段6 实际用 per-candidate R
-:2185）；fwhmClipSigma 只由 debug 入口消费（:1213-1216）；structureLayers/hotPixelFilterRadius/iterativeClipSigma/
-iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
-（sdet_detector.cpp），生产 impl 不调用结构图。
+SDetParams 9 字段（star_detector.h:14-23）生产消费面（DISP-STAR-003；实测口径，`grep params\.` 于 sdet_api.cpp）:
+
+| 字段 | sdet_api.cpp 内的消费面 |
+|---|---|
+| `maxStars` | sdet_api.cpp:2013、sdet_api.cpp:2272（传入 `sdet_emit_records`）；截断段 sdet_api.cpp:1536-1547 |
+| `maxAxisRatio` | :1952/:1966-1969（impl）、:2196/:2200-2203（guided）活门 |
+| `fitRadius`、`fwhmClipSigma` | **本文件内零消费面**：只出现在创建默认值 :1005/:1006 与创建日志 :1015-1016（原注的「auto 半径日志推导」与「debug 入口消费」两处消费面均随重写注销） |
+| `structureLayers`、`hotPixelFilterRadius`、`iterativeClipSigma`、`iterativeMaxRounds`、`medianFilterDetail` | **本文件内零消费面**：仅创建默认值 :999-1003 |
+
+⇒ 生产 impl 在本文件内实际消费 **2/9** 字段（`maxStars`、`maxAxisRatio`）。
+**悬空引用登记**：原注点名的 `sdet_detector.cpp` 与 `sdet_get_structure_map` 在
+`git ls-files` 与 `lib/` 全库均 **0 命中**（该文件从未入库），属悬空引用。
 
 ### 11.2 状态码/返回码语义
 

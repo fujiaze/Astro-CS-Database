@@ -61,7 +61,7 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 /* FITS 关键字文本(CTYPE/CRPIX/CRVAL/CD/CUNIT; 含 END 前格式); 每行 80 字节内。 */
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);
 
-/* ---- 适用域声明（docs/ASTROCS_DESIGN.md §5.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
+/* ---- 适用域声明（docs/ASTROCS_DESIGN.md §6.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
  * 声明项: |CRVAL2| 上界 / FOV 上界 / 手性 det(CD)<0 / CRPIX 用 FITS 1-based
  * 像素中心 / 往返误差上界(px) 及其**适用域**。未声明适用域的投影 → nullptr（fail-closed）。
  *

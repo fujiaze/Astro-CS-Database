@@ -5,7 +5,7 @@
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 同步口径见 §14）；承接 ALG-P3-002 本域子面
 > （G1/G2 施工规格，docs/science/algorithms/PHASE3_RESAMPLE.md）。
-> **本域现行口径**：§15 依据 = `ASTROCS_DESIGN.md` §5.3 八投影 +
+> **本域现行口径**：§15 依据 = `ASTROCS_DESIGN.md` §6.3 八投影 +
 > projection registry（现行集合：CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ 对照口径偏差表（离线对照用）；
 > §14 = 以独立证据判定、不预设谁为准。订正原则见 `ENGINEERING_SPEC.md` §3。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
@@ -21,7 +21,7 @@
   FITS 关键词文本输出、极点/半球/参数守卫——作为 P3-PROJ-IMPL/TEST/
   INT 的合同基线。
 - 非目标: **生产 alpha 路径仍只走 TAN**（lib/algorithms/projection/p3_wcs.cpp，
-  会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ASTROCS_DESIGN §5.3
+  会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ASTROCS_DESIGN §6.3
   八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），已实现 4/8、
   STG/MOL/CEA/ZEA 实施归 P3-001（新增投影必须落在冻结集合内并附独立
   Oracle）；本文件不臆造未实现投影的公式（§15.1/§15.3）；不做重采样
@@ -113,16 +113,45 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 ```
 
-- **投影拒绝（冻结，取值一律按本节）**：`p3_wcs_validate_request` 对
-  projection 仅接受 "TAN"（缺省即 TAN）；SIN/CAR/AIT 即便已在
-  `lib/algorithms/projection` registry 注册，也**未接入**
-  alpha 会话生产路径（会话层收窄，SCI-P3 §9a-3），故与任意未注册码一样返回
-  P3_WCS_UNSUPPORTED——
-  **P3_WCS_UNSUPPORTED 即最终取值（TAN 只来自显式请求）**（01_SCIENCE_AUTHORITY_BASELINE §4）。frame
-  非 icrs（接受 "ICRS"）→ P3_WCS_UNSUPPORTED；coverage_output 非 mask
-  → P3_WCS_PARAM。`p3_wcs_make` 的 projection 默认实参保持既有调用
-  零改动，入口先于一切数值构造校验；`p3_wcs_fits_keywords` 的 CTYPE
-  由 descriptor 的 projection 派生（TAN 字节不变），未实现投影返回空串。
+- **投影拒绝（冻结，取值一律按本节）**：请求面**唯一语义源** =
+  `lib/algorithms/projection/p3_projection_registry.h`（自述 = 「DESIGN §6.3 的
+  唯一产品声明权威」）。三层集合（该头 :14-20 冻结，**唯一权威**）：
+  ① 冻结集 **F** = 八投影 `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`
+  （`p3_proj_frozen_table` :66-89）；
+  ② 实现集 **I** = 生产路径真正有内核的码（`p3_proj_is_implemented` :145-150，
+  `kImplemented[1] = {"TAN"}` **:140-143**）；
+  ③ 声明集 **D** = 可作为产品声明的码（`p3_proj_is_declared` :127-131，
+  `kDeclared[1] = {"TAN"}` **:122**）。
+  判据 **D == I == 实际可运行集 R**，任一不等即判红（:19-20；自检
+  `p3_proj_registry_selfcheck` **:272**（D ⊆ I 判据 **:295**））。
+  ⇒ **产品面受理集 = {TAN}**。`p3_wcs_validate_request` :68 经
+  `p3_proj_declare`（:165-191）判定，**非声明码一律 :69 返回
+  P3_WCS_UNSUPPORTED**（SIN/CAR/AIT/STG/MOL/CEA/ZEA 与任意未知码同路）；
+  `p3_wcs_make` 另设两道保险：canonical 码查不到（:99）与
+  `!p3_proj_is_implemented`（:100）。
+
+  **逐码产品状态（注册表 :69-89，三值无第四态）**：
+
+  | 码 | 状态 | 依据 |
+  |---|---|---|
+  | TAN | `kProductDeclarable` | 生产内核 `p3_wcs.cpp` + 适用域已声明 |
+  | SIN / CAR / AIT | **`kKernelOnly`** | v6 内核（`p3_proj.h/.cpp`，`kProjectionRegistryVersion=3`）已实现 4/8，**但未接入生产路径 ⇒ 不是产品声明** |
+  | STG / MOL / CEA / ZEA | `kNotImplemented` | 无内核、无生产接线 |
+
+  **内核 4/8 是内部事实，不得表述为产品能力**（注册表头 :10-12 冻结）。
+  frame 非 icrs/ICRS（:72-74）→ P3_WCS_UNSUPPORTED；coverage_output 非 mask
+  （:77-81）→ P3_WCS_PARAM。**绝不静默回落 TAN**（:66-67/:91 注释；注册表 :22-23），
+  TAN 只来自显式请求或缺省（`(void)proj` 旧写法已废）。入口先于一切数值构造
+  校验（§6.1）；`p3_wcs_fits_keywords` 的 CTYPE 由 descriptor 的 projection
+  派生，非声明码返回空串。
+
+> **口径勘误（DISP-P3PROJ-002，按 R-51 改写）**：本节第一版把「v6 内核已实现
+> 4/8」误读为「产品面受理四投影」，据此写「已实现四投影一律按请求受理」，
+> 与注册表头三层模型（**D = I = {TAN}**）矛盾。现按注册表头（唯一权威）恢复
+> 三层表述：**产品面受理集 = {TAN}**；内核 4/8 属内部事实，不作产品能力表述。
+> 本节更早版本「projection 仅接受 TAN」的**结论正确、依据缺三层模型**，一并
+> 按注册表重述。`ASTROCS_DESIGN.md` §6.3:493「（当前仅 TAN 可用）」与注册表
+> **一致**，不改顶层（原上呈的"跨层冲突"经复核**不成立、已撤销**）。
 
 - 语义冻结: parity 接受 "east_left"（默认，nullptr 归一为
   east_left，p3_wcs.cpp:37，⇒CD1_1<0）与 "east_right"（⇒CD1_1>0），
@@ -151,12 +180,21 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
 
 ### 6.1 参数校验序（冻结）
 
-`out` 非空（:34）→ parity∈{east_left,east_right}（:39）→
-|centre_dec_deg|≤85.0°（:40，kMaxAbsDec :15，SCI/API/session 单一
-条件）→ scale_deg_per_px>0（:41）→ W,H∈[1,kMaxSide]（:42-43，
-kMaxSide=20000 默认，可 ASTROCS_P3_MAX_SIDE 编译期覆盖 :18-22，
-如实冻结）。顺序即实现序；任一失败返回 P3_WCS_PARAM，out 已被
-零初始化（:35）。
+`out` 非空（:90）→ **投影注册/实现门（`:91-100`，见下）** →
+`*out` 零初始化（:101）→ parity∈{east_left,east_right}（:102-104，
+nullptr 归一 east_left）→ |centre_dec_deg|≤85.0°（:105，kMaxAbsDec :20，
+SCI/API/session 单一条件）→ scale_deg_per_px>0 → W,H∈[1,kMaxSide]
+（kMaxSide=20000 默认，可 ASTROCS_P3_MAX_SIDE 编译期覆盖 :23-27，
+如实冻结）。顺序即实现序；任一失败返回 P3_WCS_PARAM（投影门失败返回
+P3_WCS_UNSUPPORTED，见下），out 已被零初始化。
+
+**投影门是校验序的第 2 步、先于一切数值构造**（旧版本节漏记此步、
+与 §15.4 同文两说，DISP-P3PROJ-001 勘误）：`p3_wcs_validate_request`
+（:64-84）经**产品声明门** `p3_proj_declare`（:68）判**非声明码**
+（D = {TAN}，见 §5）；`p3_wcs_make` 另设两道保险：(a) `frame` 非 icrs
+（:74）、(b) canonical 码查不到（:99）、(c) `!p3_proj_is_implemented`
+（:100，**防 D ⊄ I 回归的保险；D = I = {TAN} 下当前不可达**）——
+**绝不静默回落 TAN**，也不产半成品 descriptor（:91 注释冻结）。
 
 ### 6.2 CD 构造（G1 冻结式，:51-78）
 
@@ -205,9 +243,23 @@ east_right 分支取 sgn_y=−sgn_x（:71），PA=0 ⇒ CD=diag(+s,−s)，
 
 ### 6.5 projection 字段
 
-硬编码 "TAN"（:36 局部 proj，:89 `(void)proj`；out->projection 于
-h:19 冻结为 "TAN"）；P3_WCS_UNSUPPORTED=2 枚举现无产生点（备而
-不用，SIN/ZEA/CAR/AIT 扩展 TODO，§11）。
+`out->projection` 取**已校验的 canonical 码**（`p3_wcs.cpp:1-58` 同族；
+声明表 = `p3_projection_registry.h`）。
+
+**P3_WCS_UNSUPPORTED=2 是活跃的 fail-closed 出口、不是备用枚举**
+（旧版本节称"现无产生点"为误，DISP-P3PROJ-001 勘误）。实测产生点：
+
+| # | 产生点（p3_wcs.cpp） | 触发条件 |
+|---|---|---|
+| 1 | **:69**（主入口，`p3_wcs_make` 内 :95 透传） | 请求码**非产品声明集 D = {TAN}**：SIN/CAR/AIT（`kKernelOnly`）、STG/MOL/CEA/ZEA（`kNotImplemented`）与任意未知码**同路** |
+| 2 | :74 | `p3_wcs_validate_request`：`frame` 非 icrs/ICRS |
+| 3 | :99 | `p3_wcs_make`：canonical 码查不到（防御） |
+| 4 | :100 | `p3_wcs_make`：`!p3_proj_is_implemented`（**防 D ⊄ I 的保险；D = I = {TAN} 下当前不可达**） |
+| 5 | :438 | `p3_wcs_applicability` 守卫：投影无声明适用域 |
+
+registry 侧同码透传：`p3_projection.cpp:332/:369/:378`。故**除 TAN 外的
+全部冻结码与任意未知码一律走此码（主入口 :69）**；「产品面受理四投影」
+的读法不成立（注册表三层模型 D = I = {TAN}，见 §5）。
 
 ## 7 G2 正反映射冻结
 
@@ -277,7 +329,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 |---|---|---|---|
 | P3_WCS_OK | 0 | 成功 | — |
 | P3_WCS_PARAM | 1 | make: out 空/:39 parity/:40 \|dec\|>85°/:41 scale≤0/:42-43 尺寸越界；pix2world :95 空指针；world2pix :122 空指针/:123 \|dec\|>85°/:137 \|det\|<1e-300 | ACS_ERR_PARAM |
-| P3_WCS_UNSUPPORTED | 2 | 无产生点（projection≠TAN 备用枚举，§6.5） | ACS_ERR_UNSUPPORTED |
+| P3_WCS_UNSUPPORTED | 2 | **活跃 fail-closed 出口**（§6.5 表）：frame≠icrs :74 / 未注册码 :99 / 声明放行但未实现 :100 / 无适用域 :438 | ACS_ERR_UNSUPPORTED |
 | P3_WCS_HEMISPHERE | 3 | pix2world :524-526 r≥π/2（域上界 ρ*=57.5183634°，非半球界）；world2pix :549-552 denom≤0（真前半球 ρ≥90°）；make 四角守卫透传（:146-155） | ACS_ERR_PARAM |
 
 - 极点守卫单一条件冻结: |dec|≤85°（kMaxAbsDec :15，SCI/API/session
@@ -393,14 +445,14 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   （Paper I/II、astropy/WCSLIB）与可复跑实验为准；正本见
   `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。
 
-## 15 projection registry 与 DESIGN §5.3 八投影冻结集合
+## 15 projection registry 与 DESIGN §6.3 八投影冻结集合
 
-> **权威依据**：`ASTROCS_DESIGN.md §5.3`（原文：内置多种投影算法，
+> **权威依据**：`ASTROCS_DESIGN.md §6.3`（原文：内置多种投影算法，
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
 > 奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT/CTYPE；新增投影经
 > projection registry 注册并附独立往返 Oracle）+ `docs/plugins/algorithms_phase3/
 > 14_projection.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
-> 投影集合按 DESIGN §5.3 的**八投影**为准。
+> 投影集合按 DESIGN §6.3 的**八投影**为准。
 > **可执行标准**：astropy 7.0.1（WCSLIB）逐点对拍，22 组配置最大球面偏差
 > 6.854e-13°；证据与逐项判据见 `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。
 > **三项科学口径**：
@@ -415,7 +467,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 ### 15.1 registry 冻结集合、实现状态与版本
 
-- **权威冻结集合 = DESIGN §5.3 八投影，顺序冻结**：
+- **权威冻结集合 = DESIGN §6.3 八投影，顺序冻结**：
   `TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA`。registry 导出该集合
   （`registry_frozen_set()` / `registry_is_frozen_code()`），表内 code 必须属于
   该集合（`registry_selfcheck()` 强制；不属于 → 自检失败）。
@@ -439,18 +491,29 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | 0 | TAN | "TAN" | RA---TAN / DEC--TAN | \|CRVAL2\|≤85° | 20°（SCI §9a-12 冻结） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
 | 1 | SIN | "SIN" | RA---SIN / DEC--SIN | \|CRVAL2\|≤85° | 60°（声明值） | zenithal, (φ0,θ0)=(0,90°)，LC=180° | 已实现 |
 | 2 | CAR | "CAR" | RA---CAR / DEC--CAR | \|CRVAL2\|≤85° | <180°（声明值） | cylindrical, (φ0,θ0)=(0,0)，LC 默认 | 已实现 |
-| 3 | AIT | "AIT" | RA---AIT / DEC--AIT | \|CRVAL2\|≤85° | 椭圆域内（声明值） | pseudo-cylindrical, (φ0,θ0)=(0,0)，LC 默认 | 已实现 |
+| 3 | AIT | "AIT" | RA---AIT / DEC--AIT | \|CRVAL2\|≤85° | 180°（声明值；= 参考点最大球面角距 90° 的**直径**，同表 SIN/CAR 惯例） | pseudo-cylindrical, (φ0,θ0)=(0,0)，LC 默认 | 已实现 |
 | 4 | STG | "STG" | RA---STG / DEC--STG | \|CRVAL2\|≤85° | 待 P3-001 声明 | zenithal, (φ0,θ0)=(0,90°) | **未实现** |
 | 5 | MOL | "MOL" | RA---MOL / DEC--MOL | \|CRVAL2\|≤85° | 待 P3-001 声明 | pseudo-cylindrical, (φ0,θ0)=(0,0) | **未实现** |
 | 6 | CEA | "CEA" | RA---CEA / DEC--CEA | \|CRVAL2\|≤85° | 待 P3-001 声明 | cylindrical（标准纬线 0）, (φ0,θ0)=(0,0) | **未实现** |
 | 7 | ZEA | "ZEA" | RA---ZEA / DEC--ZEA | \|CRVAL2\|≤85° | 待 P3-001 声明 | zenithal（等积）, (φ0,θ0)=(0,90°) | **未实现** |
 
+> **「状态」列的层归属（防误读，DISP-P3PROJ-003）**：本表「已实现/未实现」
+> 指 **v6 内核**实现面（`p3_proj.h/.cpp`，`kProjectionRegistryVersion=3`；
+> 内核 4/8 = TAN/SIN/CAR/AIT），**不是产品声明面**。产品面**唯一权威** =
+> `lib/algorithms/projection/p3_projection_registry.h` 的三层模型，其
+> **产品受理集 D = I = {TAN}**；SIN/CAR/AIT 在该表状态为 `kKernelOnly`
+> （有内核、未接入生产路径）⇒ **不是产品声明，不得表述为产品能力**。
+> 与本节 :485-487「会话面收窄不变（仅接受 TAN）」一致。
+
 - 「LC」= LONPOLE 取 Paper II 标准默认：`δ0 ≥ θ0 ⇒ 0°，否则 180°`；实现等价
   形式见 §15.2。八投影全部落在 Paper II 标准集合内（astropy/WCSLIB 8/8 可构造，
   R-1 §2.4）。
-- max_fov_deg 为 registry **声明字段**（DESIGN §5.3「每种声明适用域」），非 make
+- max_fov_deg 为 registry **声明字段**（DESIGN §6.3「每种声明适用域」），非 make
   硬门——FOV 判定属会话层合同（TAN alpha 的 FOV≤20° 强制点在 SCI §4/§9a-12），
-  投影域本身由四角守卫 + 投影域界（§15.4）承载。
+  投影域本身由四角守卫 + 投影域界（§15.4）承载。口径 = **直径**（球面上离参考点的
+  最大合法角距 ×2）：TAN 20°/SIN 60°/CAR 180°/AIT 180°；域界为整球者上限即
+  `2×90° = 180°`（改前 AIT=360° 把整球角周长当成了视场直径；R-40/P-081，判据
+  `p3_projection_registry_test.cpp` C5b 已锁值与惯例，负例内建）。
 
 ### 15.2 统一管线与旋转核（rad 内部计算）
 
@@ -529,15 +592,15 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   不产 CTYPE 面）。CRVAL2 为**映射量**，参与投影映射；LONPOLE 采用
   Paper II 标准默认语义，读方无需额外关键字即可复现映射。
 
-### 15.5 六要素声明（DESIGN §5.3 逐投影）
+### 15.5 六要素声明（DESIGN §6.3 逐投影）
 
 | 投影 | 适用天区 | 奇点 | 经纬方向 | CRPIX/CRVAL/CD/CTYPE 规则 | 合法 FOV | 独立往返 Oracle |
 |---|---|---|---|---|---|---|
 | TAN | \|CRVAL dec\|≤85°, 视场同半球 | 天顶反面 r≥π/2 | parity 显式（§9a-4） | §6/§7 冻结；CRVAL=切点（含 CRVAL2） | ≤20°（SCI 冻结） | 3D 向量 gnomonic 透视重建（§15.6 T2/T4） |
 | SIN | \|CRVAL dec\|≤85°, 半球内 | 半球边界 ρ=1 | parity 显式 | 同 G1；CRVAL=投影点（含 CRVAL2） | ≤60°（声明值） | 3D 向量 orthographic 重建 |
 | CAR | \|CRVAL dec\|≤85°, native \|θ\|<90° | **native 极行 θ=±90°（整行塌缩：Ω=0、RA 无定义；fail-closed）** | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射**（§15.2） | <180°（声明值，球面行跨度） | 三 Euler 角独立式 + astropy 绝对对拍 |
-| AIT | \|CRVAL dec\|≤85°, 椭圆域 A≤1 | 椭圆域边界 A=1（φ=±180°）+ native 极 θ=±90°（非塌缩：Ω>0） | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射** | 椭圆域内（声明值；半轴 162.0569°×81.0285°）；**可构造矩形帧上限 229.24°×114.56°（63.7% 天空）**，全天空帧在四角守卫下必拒（§15.3） | Paper II 反演独立式 + astropy 绝对对拍 |
-| STG/MOL/CEA/ZEA | 待 P3-001 声明（zenithal/pseudo-cylindrical/cylindrical/zenithal 等积） | 待声明 | 待声明 | 同 G1（占位） | 待声明 | 待建立（每投影独立 Oracle，DESIGN §5.3 硬要求） |
+| AIT | \|CRVAL dec\|≤85°, 椭圆域 A≤1 | 椭圆域边界 A=1（φ=±180°）+ native 极 θ=±90°（非塌缩：Ω>0） | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射** | ≤180°（声明值，**直径惯例** = 参考点最大球面角距 90°×2；椭圆域半轴 162.0569°×81.0285° 是**平面**像量，不参与本字段）；**可构造矩形帧上限 229.24°×114.56°（63.7% 天空）** 同属平面量，全天空帧在四角守卫下必拒（§15.3） | Paper II 反演独立式 + astropy 绝对对拍 |
+| STG/MOL/CEA/ZEA | 待 P3-001 声明（zenithal/pseudo-cylindrical/cylindrical/zenithal 等积） | 待声明 | 待声明 | 同 G1（占位） | 待声明 | 待建立（每投影独立 Oracle，DESIGN §6.3 硬要求） |
 
 - 「保守收窄」：已实现四投影中心守卫统一沿用 85° 单一条件（与 TAN 同值），
   属冻结域收窄（alpha 原则），极点中心视场排除；放宽须经变更流程。
@@ -623,18 +686,18 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 ## 16 登记面：C1–C9 的实现侧缺口（**只登记，不改码**）
 
-> 依据：`ASTROCS_DESIGN.md` §5.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
+> 依据：`ASTROCS_DESIGN.md` §6.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
 > 证据：Phase2 信号量纲判据正本 = `docs/science/PHASE3_HIPS_TO_FITS.md` §16（C1–C9）；
 > 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，文字只有这一份）。
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
-| C1 | `docs/modules/registry/astrocs.phase2.write.md:61` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
-| C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:739-756` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
+| C1 | `docs/modules/registry/astrocs.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
+| C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
 | C3 | `docs/contracts/DATA_SEMANTICS.md:1114` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
-| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§5.3 生效与否以接线实测为准） |
+| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
@@ -655,4 +718,19 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 3D 向量 oracle：Project-defined 第一性原理推导（§15.8）。
 
 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+
+---
+
+## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
+
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
+`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
+（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
+variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
+diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
+（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
+键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
+
 

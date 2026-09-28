@@ -106,8 +106,8 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
 - `lib/algorithms/resample/p3_resample.{h,cpp}`：nearest / bilinear（G4 冻结权重，
   `p3_uncertainty_propagate`）——**无 healpix_interp4**（`NOT_IMPLEMENTED`，
   见 SCIENCE_OVERVIEW §4）。
-- `lib/algorithms/projection/p3_projection.{h,cpp}`：**冻结四投影 TAN/SIN/CAR/AIT registry v1**（BASE 快照；现行 = `ASTROCS_DESIGN.md` §5.3 八投影、registry v3）
-  （`:267-273`，原引「宪章 §7.3/§18.1」已废止；现行 = `ASTROCS_DESIGN.md` §5.3 八投影），统一操作面 make/pix2world/world2pix/fits_keywords；
+- `lib/algorithms/projection/p3_projection.{h,cpp}`：**冻结四投影 TAN/SIN/CAR/AIT registry v1**（BASE 快照；现行 = `ASTROCS_DESIGN.md` §6.3 八投影、registry v3）
+  （`:267-273`，原引「宪章 §7.3/§18.1」已废止；现行 = `ASTROCS_DESIGN.md` §6.3 八投影），统一操作面 make/pix2world/world2pix/fits_keywords；
   现状为注册测试面（`ctest p3_projection_units/p3_projection_fault` 本提交 2/2 PASS），
   会话/DLL 挂载未切换（`lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`）。
 - Phase3 writer 现走 CFITSIO 原子写（p3_output.cpp），**未接入 IO-001 流式 FITS**

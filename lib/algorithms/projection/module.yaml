@@ -48,7 +48,7 @@
 # 可变状态"结构性满足）；并行仅上游采样 worker 池（p3_session.cpp
 # :247-253，worker 数=host budget.max_workers，禁 hardware_concurrency）；
 # descriptor parallel_ok=true 承认 const-only 入口并发安全。
-# SCI-FIX-PROJ 增补（2026-09-16）: 投影 registry 权威 = DESIGN §5.3 八投影
+# SCI-FIX-PROJ 增补（2026-09-16）: 投影 registry 权威 = DESIGN §6.3 八投影
 # 冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）。**在役 registry = v6 线**
 # p3_proj.h/.cpp（kProjectionRegistryVersion=3：CAR/AIT 按 Paper II §2.2
 # 三 Euler 角把 CRVAL2（含 LONPOLE 默认）纳入映射、AIT 域界 A≤1、CAR native

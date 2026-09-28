@@ -34,7 +34,7 @@
 - 输入: ICRS celestial HiPS（NESTED ordering 唯一，GLOSSARY `healpix_ordering`）；其他 frame（galactic/ecliptic）**显式拒绝**（alpha 范围，不做旋转）。
 - 输出: FITS-WCS **TAN**（CTYPE1=`RA---TAN`, CTYPE2=`DEC--TAN`, CUNIT=deg）；像素 1-based FITS 约定（GLOSSARY `pixel_coordinate`）。
   **会话面收窄声明**：alpha 会话只接受 TAN（§1/§9a-3），而 projection
-  registry 冻结集合 = ASTROCS_DESIGN §5.3 **八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/
+  registry 冻结集合 = ASTROCS_DESIGN §6.3 **八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/
   ZEA）；registry 已注册 TAN/SIN/CAR/AIT 四条，其余四条注册未实现即显式报不支持，
   会话面只接线 TAN（ALG-P3-PROJ-IMPL-001 §15.1/§15.5）。CRVAL 语义按 Paper I §2.1.1：CRPIX 处 world == CRVAL（含 CRVAL2）。
 
@@ -129,7 +129,7 @@ coverage:
 1. **HiPS 类型/properties/tile**：单通道 image HiPS；必需 keys=`hips_order, hips_tile_width, hips_frame, dataproduct_type=image`（子集见 §4）；NESTED 唯一；tile=HEALPix cell @hips_order 的 W×W FITS float tile；frame=`equatorial`（ICRS）。
 2. **输入坐标系/合法转换**：仅 ICRS 恒等；galactic/ecliptic 显式拒。
 3. **输出投影清单**：**alpha 会话仅 TAN**（`p3_wcs_validate_request` 单值接受）；
-   **registry 冻结集合 = ASTROCS_DESIGN §5.3 八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），
+   **registry 冻结集合 = ASTROCS_DESIGN §6.3 八投影**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），
    registry 已实现 TAN/SIN/CAR/AIT 四条，其余四条（STG/MOL/CEA/ZEA）注册未实现即显式报不支持；
    会话面只接线 TAN（ALG-P3-PROJ-IMPL-001 §15.1）；新增投影必须落在冻结集合内并附独立
    往返 Oracle（支持面 = 冻结集合内的投影）。
@@ -204,20 +204,20 @@ coverage:
 - `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
 - alpha 最小范围 = 单通道 / ICRS / NESTED / TAN / 显式 center-scale-W-H / nearest+bilinear / coverage / float32+64，**收窄不扩大**。
 
-## 16 登记面：§5.3 输入语义守卫与产品 provenance 现状
+## 16 登记面：§6.3 输入语义守卫与产品 provenance 现状
 
-> 本节是**如实登记**（`ASTROCS_DESIGN.md` §12.5 负向状态如实标注 + §5.3），
+> 本节是**如实登记**（`ASTROCS_DESIGN.md` §12.5 负向状态如实标注 + §6.3），
 > **不改动**本文件任何公式、阈值、容差与冻结锚点。实现级判据与逐符号锚见
 > `docs/science/algorithms/PHASE3_PROJ_IMPL.md` §16。
 
 | # | 项 | 实测现状 | 结论 |
 |---|---|---|---|
-| C4 | §5.3 输入语义守卫在**生产路径**的接线面 | **调度节点面已接线、会话面未接线**。已接线：守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp`（`parse_bunit_string`/`resolve_bunit`）随 `astrocs_p3_rsmp` **进生产链接闭包**（`lib/algorithms/resample/CMakeLists.txt`，经根 `CMakeLists.txt` 的 `add_subdirectory`）；`module_adapters.cpp` 的 `p3n_guard_input_units` 在 `p3_op_properties` 与重采样节点两处**先于任何像素读取**调用，失败即 `p3n_guard_fail` fail-closed。未接线：`lib/phase3_session/p3_session.cpp` 只透传 BUNIT、不做语义判定；`lib/phase3_session/p3_export.cpp` 未进构建 | **生效面 = 调度节点面**；会话面归 Phase3 export 域 |
+| C4 | §6.3 输入语义守卫在**生产路径**的接线面 | **调度节点面已接线、会话面未接线**。已接线：守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp`（`parse_bunit_string`/`resolve_bunit`）随 `astrocs_p3_rsmp` **进生产链接闭包**（`lib/algorithms/resample/CMakeLists.txt`，经根 `CMakeLists.txt` 的 `add_subdirectory`）；`module_adapters.cpp` 的 `p3n_guard_input_units` 在 `p3_op_properties` 与重采样节点两处**先于任何像素读取**调用，失败即 `p3n_guard_fail` fail-closed。未接线：`lib/phase3_session/p3_session.cpp` 只透传 BUNIT、不做语义判定；`lib/phase3_session/p3_export.cpp` 未进构建 | **生效面 = 调度节点面**；会话面归 Phase3 export 域 |
 | C5 | 守卫的逐条裁决判据（输入单位） | `BUNIT` 缺失 ⇒ `P3-INPUT-BUNIT-MISSING`（exit 3）；`ADU/px^2` 类非面亮度单位 ⇒ `P3-INPUT-NOT-SURFACE-BRIGHTNESS`（exit 4）；逐字等于 canonical 串 `ADU/sr` ⇒ `ACCEPT`。产品侧单位声明节点 `declare_hips_surface_brightness_units`（`module_adapters.cpp`，标记键 `ASTROCS_SIGNAL_UNIT`）写入 canonical `ADU/sr` + `ASTROCS_PIXEL_SEMANTICS=surface_brightness` + `ASTROCS_PIXEL_AREA_POWER=-2` | **判据已冻结**；产品侧 provenance 缺口 = 未经该节点直出的产品无任何单位键（登记见 ALG 层 §16） |
 | C6 | 上游 P1 产品 | 低覆盖像素 `S=F/D` 分母退化 ⇒ 真实 Phase1 `signal` 含极端量级值 | 归 P1 域单独处理 |
-| — | Phase2 `signal` 量纲 | **面亮度**（分辨率不变密度算子：常量场 `R_cross = 1`；链内零单位换算，FLUX-IN 负例逐像元 ×Ω） | 与 §5.3「导出只接受面亮度语义输入」**一致** |
+| — | Phase2 `signal` 量纲 | **面亮度**（分辨率不变密度算子：常量场 `R_cross = 1`；链内零单位换算，FLUX-IN 负例逐像元 ×Ω） | 与 §6.3「导出只接受面亮度语义输入」**一致** |
 
-- **口径**：§5.3 的**科学语义已冻结且调度节点面已按 fail-closed 执行**；缺的是会话面接线（C4）与部分产品的单位声明（C5），**不是**科学语义。
+- **口径**：§6.3 的**科学语义已冻结且调度节点面已按 fail-closed 执行**；缺的是会话面接线（C4）与部分产品的单位声明（C5），**不是**科学语义。
 - **代码侧缺口（只登记，本文件不改）**：C1a（`module_adapters.cpp` `p2_write_descriptor` 的 `mosaic` 端口仍为 `UnitId::ADU`，应为 `UnitId::SURFACE_BRIGHTNESS`）、C4 的会话面部分、C5 的未声明产品部分、
   C9（HiPS hierarchy 归约用 **f32** 累加器：dk=1 逐位精确、dk=9 有可测偏差；修法 = 用已存在的 `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和）。
   另登记：`p3_order_select`（`p3_resample.cpp`）在无 `k ≤ max_order` 满足 `res_deg ≤ s_out` 时直接返回 `max_order` 且状态 `P3_RS_OK`，**不区分「恰好等于」与「被夹紧」**（欠采样倍率可由 `θ_pix(order_sel)/s_out` 复算，实测最大 14.31×，见 §5 夹紧域）。

@@ -126,6 +126,13 @@ flowchart LR
 | 5 收尾 | run 终止点（成功/失败/取消） | fsync 失败 ⇒ exit 7；磁盘满 ⇒ exit 10 |
 | 6 发布 | 收尾之后 | 哈希失败 ⇒ exit 8（INTEGRITY）；manifest 登记失败 ⇒ exit 7 |
 
+- manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
+  **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
+  （INTEGRITY）。唯一源 = `docs/api/MANIFEST_VERIFY_V1.md` §3「校验序→错误码」
+  （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
+  sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
+  域→码表 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5（IO→7 / INTEGRITY→8）。
+
 **日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
 "日志写不进去就继续跑完"不是可接受行为。
 

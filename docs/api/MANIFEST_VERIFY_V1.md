@@ -67,6 +67,19 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
   `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
   `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
 
+### 2.2 加性顶层键 `storage`（运行级形态事实；R-42/P-181）
+
+`run` 命令在 run manifest 顶层**可选**追加 `storage` 对象（additive，与 §2.1 的
+`provenance` 同形：v1 校验器/`verify` 忽略未知顶层键，向后兼容）。**条款归属**：该键的
+字段词表与不变式 M1..M4 的**唯一正本** = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.3
+（本文件只登记键的存在与归属，不复写字段）；**唯一机器事实源** =
+`eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`；CFG-001
+`eng/contracts/schemas/run_manifest.schema.json` 只登记该键位与类型。
+缺失 ⇒ 无形态事实（**不判红**）；出现 ⇒ 必须逐条满足 M1..M4（`eng/ci/check_run_manifest_schema.py`
+的 `REGISTERED_ADDITIVE` 已登记）。**产品级**完成 manifest（`products/{user_path}/manifest.json`）
+**不承载**该键——其形态事实只在 `tree`/`tree_hash`/`fitsverify` 三项
+（`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §5）。
+
 ## 3 manifest verify 合同(acsd doctor --json --run-manifest <manifest.json>)
 
 独立 `verify` 命令不在命令面上（CLI-001 唯一命令树；verify* 为已删别名 → rc=2，负例锁定于

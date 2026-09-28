@@ -295,7 +295,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   日志文件），IpvWcsResult 无拟合失败标志位——ap_order=0 无法区分"线性
   解"与"网格拟合失败"；cd_inv det<1e-15 跳过 SIP（:322-325）同理。
 - DISP-WCS-005 取消检查点缺失 + OpenMP 未接 ThreadBudget：ipv_triangle
-  .cpp:302/:347、ipv_select.cpp:839/:1123/:1412/:1756 等 #pragma omp 无
+  .cpp:302/:347、ipv_select.cpp:1226/:1526/:1803/:2137 等 #pragma omp 无
   num_threads 注入；长帧求解不可中断。threading_model=host_executor_lease
   为合同值，接线归 P1-WCS-IMPL。
 - DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/algorithms/platesolve/wrapper_phase1，
@@ -350,7 +350,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 科学专项（matrix P1-WCS 行）映射：plate solving TAN+SIP=本 ALG F1-F5 公式
 与 §11.1 生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
-（orchestrator.cpp:2007，ASTROMETRY.md §3a）；degenerate conditions=
+（orchestrator.cpp:2025，ASTROMETRY.md §3a）；degenerate conditions=
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
 ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
 不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor

@@ -15,7 +15,7 @@
 //   D4 AIT 域判据 A<2（正确为 A≤1；接受 |X_v1|>2 rad 的折叠环带）。
 //
 // 权威依据（与 v6 线一致）:
-//   * docs/ASTROCS_DESIGN.md §5.3 八投影冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+//   * docs/ASTROCS_DESIGN.md §6.3 八投影冻结集合（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
 //   * Calabretta & Greisen (2002) FITS WCS Paper II §2.1/§2.2（旋转三 Euler 角、
 //     LONPOLE 默认、各投影 native 层）；
 //   * ALG-P3-PROJ-IMPL-001 §15（v1 偏差表 + v3 冻结口径）。
@@ -27,7 +27,7 @@
 
 namespace astrocs::phase3proj {
 
-// ---- registry 版本（版本化 projection registry，DESIGN §5.3）----
+// ---- registry 版本（版本化 projection registry，DESIGN §6.3）----
 // v1: 首批四投影 TAN/SIN/CAR/AIT（**RETIRED**，见文件头；四项偏差登记于
 //     ALG-P3-PROJ-IMPL-001 §15.9）。表内容或语义不得再变；在役版本 = v6 线 v3。
 constexpr int kP3ProjectionRegistryVersion = 1;
@@ -49,7 +49,7 @@ enum class P3ProjectionStatus {
 };
 
 // ---- registry 记录（编译期冻结表，每投影一条）----
-// 六要素声明（DESIGN §5.3）：code/ctype（经纬方向+CTYPE 规则）、
+// 六要素声明（DESIGN §6.3）：code/ctype（经纬方向+CTYPE 规则）、
 // max_abs_crval_dec_deg（适用天区/极点奇点守卫）、max_fov_deg（合法 FOV
 // 声明，非 make 硬门——FOV 裁决属会话层合同，见 ALG §15）、
 // pix2world/world2pix 函数指针（实现不得散落 switch，registry 驱动 dispatch）。
