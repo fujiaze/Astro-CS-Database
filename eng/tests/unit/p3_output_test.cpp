@@ -224,6 +224,90 @@ int main() {
     }
   }
 
+  // 3c) P-075 (台账 A1) BUNIT 篡改负例: verify 对 BUNIT 有鉴别力（能红能绿）。
+  // 篡改 PRIMARY BUNIT（表外串 / 表内另一 canonical 值）或 VARIANCE BUNIT，
+  // verify_ex 必须 reopen_ok=0；复原后恢复 1。（与 3b WCS 负例同模式:
+  // 文件可读 ⇒ 状态码 OK，鉴别位置 0；verify 不读 CHECKSUM 键，篡改不另破哈希。）
+  {
+    const std::string pb = dir + "/astrocs_p3_out_test_bunit_tamper.fits";
+    std::remove(pb.c_str());
+    std::vector<float> var(static_cast<size_t>(w) * h, 4.0f);
+    std::vector<float> ivar(static_cast<size_t>(w) * h, 0.25f);
+    astrocs::phase3::P3OutputResult rb{};
+    CHECK(astrocs::phase3::p3_output_write_atomic_ex(
+              sig.data(), cov.data(), var.data(), ivar.data(), w, h, &wcs,
+              "ADU", pb.c_str(), &prov, -32, -1, &rb) ==
+          astrocs::phase3::P3_OUT_OK);
+    CHECK(rb.reopen_ok == 1);   // 基线绿
+
+    auto verify_bunit = [&](astrocs::phase3::P3OutputResult* v) {
+      return astrocs::phase3::p3_output_verify_ex(
+          pb.c_str(), &wcs, sig.data(), cov.data(), var.data(), ivar.data(),
+          w, h, v);
+    };
+    // 取句柄失败即致命化（同 2b/3b: nullptr 不得交给 cfitsio）。
+    auto set_primary_bunit = [&](const char* val) -> bool {
+      fitsfile* tf = nullptr; int st = 0;
+      if (fits_open_file(&tf, pb.c_str(), READWRITE, &st) != 0) {
+        std::fprintf(stderr, "REQUIRE failed %s:%d: fits_open_file status=%d\n",
+                     __FILE__, __LINE__, st);
+        ++failures; return false;
+      }
+      const bool ok = fits_update_key(tf, TSTRING, (char*)"BUNIT", (void*)val,
+                                      nullptr, &st) == 0;
+      st = 0;
+      return ok && fits_close_file(tf, &st) == 0;
+    };
+    auto set_variance_bunit = [&](const char* val) -> bool {
+      fitsfile* tf = nullptr; int st = 0;
+      if (fits_open_file(&tf, pb.c_str(), READWRITE, &st) != 0) {
+        std::fprintf(stderr, "REQUIRE failed %s:%d: fits_open_file status=%d\n",
+                     __FILE__, __LINE__, st);
+        ++failures; return false;
+      }
+      bool ok = fits_movnam_hdu(tf, IMAGE_HDU, (char*)"VARIANCE", 0, &st) == 0;
+      st = 0;
+      ok = ok && fits_update_key(tf, TSTRING, (char*)"BUNIT", (void*)val,
+                                 nullptr, &st) == 0;
+      st = 0;
+      return ok && fits_close_file(tf, &st) == 0;
+    };
+
+    // 负例 A: PRIMARY BUNIT → 表外串（写侧禁发布的单位）⇒ 必红。
+    CHECK(set_primary_bunit("Jy/beam"));
+    { astrocs::phase3::P3OutputResult v{};
+      CHECK(verify_bunit(&v) == astrocs::phase3::P3_OUT_OK);
+      CHECK(v.reopen_ok == 0); }   // 表外 BUNIT 必须被检出
+    CHECK(set_primary_bunit("ADU"));   // 复原
+    { astrocs::phase3::P3OutputResult v{};
+      CHECK(verify_bunit(&v) == astrocs::phase3::P3_OUT_OK);
+      CHECK(v.reopen_ok == 1); }   // 复原后绿
+
+    // 负例 B: PRIMARY BUNIT → 表内另一 canonical 值（ADU/sr）—— VARIANCE/IVAR
+    // 的 BUNIT 随之与二次律推导失配 ⇒ 必红（verify_ex 无期望 BUNIT 入参,
+    // 表内值间篡改由二次律交叉对拍检出）。
+    CHECK(set_primary_bunit("ADU/sr"));
+    { astrocs::phase3::P3OutputResult v{};
+      CHECK(verify_bunit(&v) == astrocs::phase3::P3_OUT_OK);
+      CHECK(v.reopen_ok == 0); }
+    CHECK(set_primary_bunit("ADU"));   // 复原
+    { astrocs::phase3::P3OutputResult v{};
+      CHECK(verify_bunit(&v) == astrocs::phase3::P3_OUT_OK);
+      CHECK(v.reopen_ok == 1); }
+
+    // 负例 C: VARIANCE BUNIT 与 PRIMARY 二次律失配（朴素拼接旧缺陷形态）⇒ 必红。
+    CHECK(set_variance_bunit("ADU/sr^2"));
+    { astrocs::phase3::P3OutputResult v{};
+      CHECK(verify_bunit(&v) == astrocs::phase3::P3_OUT_OK);
+      CHECK(v.reopen_ok == 0); }
+    CHECK(set_variance_bunit("ADU^2"));   // 复原（"ADU" 的冻结二次律串）
+    { astrocs::phase3::P3OutputResult v{};
+      CHECK(verify_bunit(&v) == astrocs::phase3::P3_OUT_OK);
+      CHECK(v.reopen_ok == 1); }
+
+    std::remove(pb.c_str());
+  }
+
   // 4) pixel→sky→sample Oracle: WCS roundtrip 后采样信号一致
   {
     double ra, dec, x, y;

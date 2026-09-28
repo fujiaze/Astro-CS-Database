@@ -20,7 +20,7 @@
   D3 写作规则：前向陈述（禁词表 D3a–D3h）
       D3a 绝对日期 20xx-xx-xx（豁免：同行带外部出处指针 DOI/arXiv/RFC/ISO/CCSDS/URL/REC-/WD-）；
       D3b 进程/任务编号：命名空间前缀表（**数据驱动**：由 run/ 与 工程控制/ 的目录名派生）∧ 编号形态
-          ∧ 不在机器登记面（eng/contracts、eng/ci、docs、artifacts/evidence 的 json/yaml/csv）；
+          ∧ 不在机器登记面（eng/contracts、eng/ci、docs、artifacts/evidence、实验/engineering-evidence 的 json/yaml/csv）；
       D3c run/ 路径（证据路径落 artifacts/evidence/）；D3d git sha 字面量（7–64 位十六进制且含 a–f）；
       D3e 历史词（原先/此前/曾经/后来/…/改为）；D3f 负责人引述（负责人+原话|指示|裁决|授权|要求|口径|令|确认）；
       D3g 删除线留档（~~…~~）；D3h 禁令类表述（不得/禁止/严禁/不允许）。
@@ -339,7 +339,8 @@ ENTRY_DOCS = ("README.md", "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md", "ACC
 EXEMPT_LEDGER = "eng/tools/doccheck/doc_hygiene_exempt.json"
 RATCHET_BASELINE = "artifacts/evidence/doc-hygiene/baseline.json"
 FACT_REGISTRY = "eng/tools/doccheck/doc_fact_authority.json"
-REGISTRY_SURFACES = ("eng/contracts", "eng/ci", "docs", "artifacts/evidence")
+REGISTRY_SURFACES = ("eng/contracts", "eng/ci", "docs", "artifacts/evidence",
+                     "实验/engineering-evidence")  # 2026-09-28 artifacts 重组：实测类证据迁此，登记面随迁
 REGISTRY_EXTS = (".json", ".yaml", ".yml", ".csv")
 TASK_FIELD_RE = re.compile(r'"(?:owner|task|by|authoring_task|authoring_owner|reanchored_by)"\s*:')
 FENCE_LINE_RE = re.compile(r"^\s*(?:" + chr(96) * 3 + r"|~~~)")

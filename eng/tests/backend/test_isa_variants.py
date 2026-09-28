@@ -90,10 +90,10 @@ class TestIsaVariants(unittest.TestCase):
         self.assertGreater(imp_hips, 5.0, f"hips 变体应显著更快(实测 {imp_hips:+.1f}%)")
         # 完整测量工件(决策可审计)
         import csv
-        # D-14（GATE-501）：输出统一到已跟踪证据路径（artifacts/evidence/prerelease-v5/），
-        # 陈旧根级 artifacts/prerelease_v5/ 路径清零；写入面在 eng/ci/checks.json
+        # 2026-09-28 artifacts 重组（负责人裁决）：输出随实测类证据迁到
+        # 实验/engineering-evidence/prerelease-v5/；写入面在 eng/ci/checks.json
         # 的 CHK-UNIT dirty_ignore_prefixes 显式登记。
-        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-001",
+        out = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5", "ISA-001",
                            "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:

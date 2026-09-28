@@ -595,7 +595,7 @@ def self_test():
 
 
 MIRROR = ("eng", "docs/ci", "artifacts/evidence/truthful-conclusion-01",
-          "artifacts/evidence/v19r7-quality",
+          "实验/engineering-evidence/v19r7-quality",
           DESIGN, "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md")
 MIRROR_EMPTY = ("lib", "docs")
 

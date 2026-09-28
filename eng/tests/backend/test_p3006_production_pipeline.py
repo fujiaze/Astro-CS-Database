@@ -150,7 +150,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
 # 它守什么: 「P3-006 出现在控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv 的 id 列」。
 # 为何删除(逐条依据):
 #   1) 载体退役 —— evidence/ 目录已不在树内(仓库收敛), 判据无对象, 故原为无条件 skip;
-#   2) 判据退化 —— 审计 V15-N-12 已登记(artifacts/evidence/audit-2026-01/FIX_LEDGER.csv:709,
+#   2) 判据退化 —— 审计 V15-N-12 已登记(实验/engineering-evidence/audit-2026-01/FIX_LEDGER.csv:709,
 #      OPEN): 该用例"只查 task_id 列含 P3-006、完全不查状态列" ⇒ 即使台账在树内, 它也
 #      **从不**能对"状态 IMPLEMENTED 回归"判红 = 恒真门, 无证据资格(AGENTS §5);
 #   3) 规范已改口径 —— docs/ASTROCS_DESIGN §12.5 状态阶梯: "状态由检查与验收现场计算,

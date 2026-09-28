@@ -65,14 +65,14 @@ class TestIsaBitManip(unittest.TestCase):
         # 证据表存在且 instruction_count=0
         # D-14（GATE-501）：读取路径统一到证据树（ISA-005 证据缺位事实不变，
         # 仍按下方显式 skipTest 处理，不静默删除判据）。
-        mea = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-005",
+        mea = os.path.join(REPO, "实验", "engineering-evidence", "prerelease-v5", "ISA-005",
                            "MEASUREMENTS.csv")
         if not os.path.isfile(mea):
             # ISA-005 计数证据不在树内(artifacts/prerelease_v5 仅有 ISA-001/002/003);
             # NOT_APPLICABLE 决定与"不写空 DLL"由 docs/architecture/
             # ISA_BIT_MANIP_VARIANTS.md 台账承载(test_04 断言), 此处保留无空 DLL
             # 断言(上方)后显式跳过计数证据段, 不静默删除判据。
-            self.skipTest("ISA-005 MEASUREMENTS.csv 证据不在树内(artifacts/evidence/prerelease-v5/"
+            self.skipTest("ISA-005 MEASUREMENTS.csv 证据不在树内(实验/engineering-evidence/prerelease-v5/"
                           "ISA-005/ 缺失); NOT_APPLICABLE 决定记录见 "
                           "docs/architecture/ISA_BIT_MANIP_VARIANTS.md")
         for row in csv.reader(open(mea, encoding="utf-8")):

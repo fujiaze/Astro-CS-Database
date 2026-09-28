@@ -31,7 +31,7 @@
     ]
   ],
   "contradiction_docs": [
-    "artifacts/evidence/v19r7-quality/*.json",
+    "实验/engineering-evidence/v19r7-quality/*.json",
     "artifacts/evidence/truthful-conclusion-01/*.json"
   ]
 }

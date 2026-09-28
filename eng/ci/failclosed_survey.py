@@ -20,7 +20,7 @@
 
 用法:
   python3 eng/ci/failclosed_survey.py --json-out run/ci/failclosed-survey/survey.json
-  python3 eng/ci/failclosed_survey.py --md-out artifacts/evidence/release-05/FAILCLOSED_SURVEY.md
+  python3 eng/ci/failclosed_survey.py --md-out 实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md
   python3 eng/ci/failclosed_survey.py --self-test
 exit 0 = 全部适用面判红；1 = 存在适用面判绿（假绿风险）；2 = 输入不可用（fail-closed）。
 """
@@ -160,7 +160,7 @@ def render_md(result: dict) -> str:
     lines = [
         "# 全门禁 fail-closed 普查表（缺失证据 / 坏证据 / 无输出）",
         "",
-        "生成命令：python3 eng/ci/failclosed_survey.py --md-out artifacts/evidence/release-05/FAILCLOSED_SURVEY.md",
+        "生成命令：python3 eng/ci/failclosed_survey.py --md-out 实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md",
         "（判据函数 = eng/ci/run_checks.py::evidence_verdict，run.py / run_checks.py 共用；",
         "权威 ENGINEERING_SPEC.md §10 + docs/ci/CI_SPEC.md §9。）",
         "",

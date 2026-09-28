@@ -3,7 +3,7 @@
 """eng/ci/check_worker_balance.py — worker_balance 利用率指标的判别力门（GATE-501）。
 
 背景（RELEASE-04 偏差 D-10 第二半 / GAP_AUDIT G2-1）
-  artifacts/acceptance/l2_performance/worker_balance/*.csv 的 utilization_pct
+  实验/engineering-evidence/l2_performance/worker_balance/*.csv 的 utilization_pct
   在 11 个 run、680 行上**恒为 50.00**，零判别力。根因（域外，已登记派单）：
     * lib/infrastructure/cli/commands.cpp 调 recorder.set_workers(budget, budget)
       -> active_workers 与 runnable_workers 同源同值；
@@ -43,7 +43,7 @@ import sys
 import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-L2_DIR = "artifacts/acceptance/l2_performance"
+L2_DIR = "实验/engineering-evidence/l2_performance"
 EXIT_PASS, EXIT_RED, EXIT_UNAVAILABLE = 0, 1, 2
 BALANCE_COLUMNS = ("elapsed_seconds", "active_workers", "runnable_workers",
                    "utilization_pct")

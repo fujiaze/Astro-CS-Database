@@ -14,7 +14,7 @@ eng/contracts/resource_gate_v1.json（GATE-FIX-RES / R-4 D-11..D-15 落地）。
 
 record_and_justify（必须记录 + 超标须登记，**不改变退出码**）：
   平均利用率 <85%、p50 <90%、逐样本 ≥85% 占比 <0.70
-  —— 依据：16-worker 真负载实测仅 65.09%（artifacts/evidence/v6/performance/
+  —— 依据：16-worker 真负载实测仅 65.09%（实验/engineering-evidence/v6/performance/
   PERF-SCALE-001.md），未标定前不得硬失败。
 
 验收映射：

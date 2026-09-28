@@ -19,7 +19,7 @@
 
 用法:
   python3 eng/ci/check_frozen_gate.py --self-test
-  python3 eng/ci/check_frozen_gate.py --evidence artifacts/acceptance/l2_performance/gates/real16_w16_gate.json
+  python3 eng/ci/check_frozen_gate.py --evidence 实验/engineering-evidence/l2_performance/gates/real16_w16_gate.json
   python3 eng/ci/check_frozen_gate.py --replay --json-out run/ci/l2-frozen-gate/replay.json
 exit 0 = 通过；1 = 判红（违规/回放不成立）；2 = 输入或依赖不可用（fail-closed）。
 """
@@ -36,7 +36,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import l2_frozen_gate as L  # noqa: E402  (同目录：判定核心，单一实现点)
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-DEFAULT_REPLAY_GLOB = "artifacts/acceptance/l2_performance/gates/*_gate.json"
+DEFAULT_REPLAY_GLOB = "实验/engineering-evidence/l2_performance/gates/*_gate.json"
 EXIT_PASS, EXIT_RED, EXIT_UNAVAILABLE = 0, 1, 2
 
 
