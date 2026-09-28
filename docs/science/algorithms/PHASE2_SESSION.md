@@ -158,7 +158,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
 `output_dir` 即拒（"config missing 'output_dir'"）；cli/runtime_client
 .cpp:30-55 phase_config——run 格式自动补 output_dir（:49），phase2
 格式直通**不自动补**（:51）；session validate 拒缺失（CLI 2，
-runtime_client.cpp:29 注释冻结）。契约面：parse 拒平铺缺键、
+runtime_client.cpp:30 注释冻结）。契约面：parse 拒平铺缺键、
 passthrough 交会话拒——两道防线，语义一致。
 
 ## 6 trace 语义
@@ -180,7 +180,7 @@ passthrough 交会话拒——两道防线，语义一致。
   provenance/拒绝统计等域内 trace **不上浮**会话 manifest（manifest
   仅计数汇总）；sampler 域 stderr 诊断（DISP-P2SMP-003）不经本层。
   manifest 为会话唯一外发 trace（P2Api 经 RT-008 SessionModule 捕获
-  上报，module_adapters.cpp:105 注释）。
+  上报，module_adapters.cpp:681 注释）。
 
 ## 7 NODE-CALL 唯一性（符号×段矩阵）
 

@@ -47,7 +47,7 @@ Registry production 模块(唯一源=module_adapters.cpp:512-526 descriptor)。
 | `wcs` | `DATA-P1-WCS`（DATA_SEMANTICS §18） | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS`（RADESYS=ICRS/EQUINOX=2000 写回） |
 
 invalid = NaN/coverage=0(按 DATA 合同)；求解失败 → PLATESOLVE_FAILED
-不写半成品 WCS 头（orchestrator.cpp:1980/:2003）。
+不写半成品 WCS 头（orchestrator.cpp:1981/:2003）。
 
 ## 公共 header、核心 symbol 与生命周期
 

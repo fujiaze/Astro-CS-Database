@@ -202,8 +202,8 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
     `noao/imred/ccdred/ccdmask.par:3-9`（`ncmed=7`、`ncsig=15`、`lsigma=hsigma=6`、`ngood=5`，
     按像素幅度判）、`pkg/xtools/fixpix/xtfp.gx:139-157`；**Siril** @`6284dc9`
     `src/filters/cosmetic_correction.c:526,545,558`（`.cosme` 逐条记录 `P`/`L`/`C` 缺陷）；
-    **LSST DM** `afw` w.2026.39 @`41b6eb5` `include/lsst/afw/image/Defect.h:39,41-42,51-54`
-    （缺陷 = 显式 bbox 的缺陷表）；**astropy ccdproc** @`0c21068` `ccdproc/core.py:2608-2790`
+    **LSST DM** `afw` w.2026.39 @`41b6eb5` `include/lsst/afw/image/Defect.h`
+    （缺陷 = 显式 bbox 的缺陷表）；**astropy ccdproc** @`0c21068` `ccdproc/core.py`
     （`ccdmask`）。
   - **② 列状缺陷**（坏列/暗列，整列或准整列）：**连通域大小过滤无效**，判据是
     **列统计量的跨列跳变**（`cs[x] = median_y data`；`d[x] = cs[x] − cs[x−1]`；
@@ -218,11 +218,11 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
     （"Sums of pixels along columns are checked at various scales from single pixels to
     whole columns with the sigma level set appropriately"，"Reject over column sums at
     various scales"）+ `ccdmask.par:3-9`；**astropy ccdproc** @`0c21068`
-    `ccdproc/core.py:2746,2777,2787`（中值滤波 `medsub` → 逐列求和 `csum.append` →
+    `ccdproc/core.py`（中值滤波 `medsub` → 逐列求和 `csum.append` →
     `_sigma_mask(csum, csum_sigma, lsigma, hsigma)`）；**Siril** @`6284dc9`
     `src/filters/cosmetic_correction.c:558-578`（`C` 记录 = 坏列，整列替换）；
-    **LSST DM** `pipe_tasks` w.2026.39 @`e6ec3c74` `repair.py:89,169-171` +
-    `meas_algorithms` w.2026.39 @`4a7591d` `src/Interp.cc:2047-2112`（宽缺陷
+    **LSST DM** `pipe_tasks` w.2026.39 @`e6ec3c74` `repair.py` +
+    `meas_algorithms` w.2026.39 @`4a7591d` `src/Interp.cc`（宽缺陷
     `≥ WIDE_DEFECT = 11` 走常数回填）。
 
 ## 6a 暗场-亮场曝光容差的科学判据（冻结）

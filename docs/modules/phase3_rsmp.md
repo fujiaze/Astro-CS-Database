@@ -20,7 +20,7 @@
   threading_model: host_executor_lease（迁移目标合同值；现状=内核
   无内部线程，并行由会话 worker 池每 worker 独立 sampler 组织）。
 - 相邻占位行注记: registry 行 MOD-astrocs-phase3-resample
-  （module_adapters.cpp:362-380 phase3_descriptor，P2 模板复制
+  （module_adapters.cpp:362-379 phase3_descriptor，P2 模板复制
   残留）不属本域页，由 P3-RSMP-INT 对齐处理，本任务零触碰。
 
 ## 2 合同链

@@ -118,7 +118,7 @@
 ## 3 伪代码
 
 ```
-sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1738-2483
+sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1570-1943
   smooth   = GaussianBlur_YvV(image, sigma=2.0)   # :1761-1763（Young-van Vliet IIR）
   bgnoise  = FnNoise1(image)                      # :450-504 行差分+3×5σ clip
   median   = robust_median(image)
@@ -225,7 +225,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1738-2483
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| sdet_detect_impl<T> | sdet_api.cpp:1738-2483 | 生产核心（float/double 双实例调用点 :2921/:2940） |
+| sdet_detect_impl<T> | sdet_api.cpp:1570-1943 | 生产核心（float/double 双实例调用点 :2921/:2940） |
 | YvV 平滑 σ=2.0 | :1761-1763 | 阶段2（sdet_gaussian_blur_yvv/_d） |
 | sdet_compute_bgnoise | :450-504 | 阶段3 行差分 FnNoise1 族 |
 | threshold=median+5·bgnoise | :1779 | 阶段3 全局阈值 |
@@ -251,7 +251,7 @@ fitRadius 仅驱动 auto 半径日志推导（:2145-2163，阶段6 实际用 per
 :2185）；fwhmClipSigma 仅 debug 入口消费（:1213-1216，impl 阶段8 已移除全局
 FWHM clip :2279）；structureLayers/hotPixelFilterRadius/iterativeClipSigma/
 iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
-（sdet_detector.cpp:14-56），生产 impl 不调用结构图。
+（sdet_detector.cpp），生产 impl 不调用结构图。
 
 ### 11.2 状态码/返回码语义
 

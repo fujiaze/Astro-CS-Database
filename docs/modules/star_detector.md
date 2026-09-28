@@ -50,7 +50,7 @@ x,y,flux,mag,saturated,has_saturated）+ star_det_psf_compat FLOAT32 [N,4]。
 ## Ownership
 
 输出十数组模块 malloc，调用方唯一经 `sdet_free_detect_ex` 整组释放
-（sdet_api.cpp:2357-2372），释放一律经该接口整组进行。
+（sdet_api.cpp:2271-2287），释放一律经该接口整组进行。
 
 ## Thread safety
 
@@ -87,7 +87,7 @@ NON_PRODUCTION_TOOL_ONLY 手工验证程序）。
 
 ## Source files
 
-lib/algorithms/star_detection/（生产源 src/sdet_api.cpp:1599-2353 sdet_detect_impl，
+lib/algorithms/star_detection/（生产源 src/sdet_api.cpp:1570-1943 sdet_detect_impl，
 合同头 lib/include/star_detector.h）；lib/algorithms/star_detection/wrapper_phase1/（P1-003 桥接层独立
 sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径，matrix legacy_paths
 第二路径，整合归 P1-STAR-IMPL）。

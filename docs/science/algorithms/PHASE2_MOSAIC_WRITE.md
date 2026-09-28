@@ -385,7 +385,7 @@ main(stage2.json, CLI overrides):
 - 科学数值容差唯一权威 = SCI 层默认容差（INTEGRATION/REJECTION 冻结值）；
   本文只登记测试实测阈值:
   - Phase2IvarWiring: 1T/2T 图层差分阈值 1e-4、差数必须==0
-    （ivar_wiring_test.cpp:311-322）；repeat-2T 阈值 1e-6、差数==0
+    （ivar_wiring_test.cpp:311-321）；repeat-2T 阈值 1e-6、差数==0
     （:339-341，by-construction 位精确注释 :327-328）；帧置换/ivar 局部性
     阈值 1e-4（:383-385/:406-410）。
   - ACR↔CPU 等价: ALG-ACR-EQUIV（docs/science/algorithms/ACR_EQUIVALENCE.md）

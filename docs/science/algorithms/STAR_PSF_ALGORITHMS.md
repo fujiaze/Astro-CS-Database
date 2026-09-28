@@ -45,7 +45,7 @@
   单位 ADU），**不是**中位绝对偏差；`robust_residual_sigma = [7]/0.7316727929211932`
   仅在 Gaussian 残差且 `m ≥ 441` 时具绝对标度意义（`docs/science/PSF.md` §9）。
 - 消费者：PHOTOMETRIC（必需块，缺失退出码 3，orchestrator.cpp:2564-2570）、
-  snr_psf_fit_quality（`snr_estimator.h:57-74` PsfFitQualityRow 同序映射）；
+  snr_psf_fit_quality（`snr_estimator.h:57-73` PsfFitQualityRow 同序映射）；
   逐列 dtype/invalid 权威表见 **DATA_SEMANTICS §15.2 生产表布局 A**
   （该文件在飞，本文件只作消歧引用，不复制其表）。
 
@@ -82,7 +82,7 @@ F5: q_psf=A/residual_scale, q_psf为QA代理不进science weight
 
 ```text
 function detect_centroid(image, sigma_bg):
-  for each pixel: if image > bkg+1.5·σbg → candidate (sdet_detector.cpp:215 THRESH_FACTOR=1.5)
+  for each pixel: if image > bkg+1.5·σbg → candidate (sdet_detector.cpp THRESH_FACTOR=1.5)
   centroid weighted mean of 3×3 neighborhood
   if saturated median+0.7·dynrange reject
 

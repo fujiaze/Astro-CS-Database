@@ -18,7 +18,7 @@
   `AC_API` 符号）+ `lib/algorithms/calibration/src/master_generator.cpp`、
   `lib/algorithms/calibration/src/calibrator.cpp`、`lib/algorithms/calibration/src/cosmetic_corrector.cpp`、
   `lib/algorithms/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
-  清单，CMakeLists.txt:503-523）。
+  清单，CMakeLists.txt:589-598）。
 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
   热像素/冷像素检测与插值修复；Gaia 测光比例标量应用（现状未接线）。
 - 不负责: FITS/XISF 文件读写（astro_image_io，调用方侧）、母版按曝光/滤镜
@@ -171,7 +171,7 @@ F3.2  否则（标准式, dark_opt==0；dark 视为已减 bias）[133-142]:
                  / max(flat[i], 0.1)·[flat!=NULL]
         actual_k = k
 F3.3  参数无效（!light||!out||w<=0||h<=0）: actual_k=k_init，静默返回，
-      out 不写 [116-119]；C API 层先校验并返回 AC_ERR_PARAM（ac_api.cpp:100-101）。
+      out 不写 [116-119]；C API 层先校验并返回 AC_ERR_PARAM（ac_api.cpp:101-101）。
 F3.4  契约边界:
       · bias 项在**两个分支都出现**：标准式 −bias、兼容式 −bias−K(dark−bias)；
         缺 bias（NULL）时该项为 0，且调用方必须在预检/manifest 显式登记"本底未去除"。
@@ -272,7 +272,7 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
 ```
 
 **现状**: `dark_optimizer.cpp` 不在 CMake `astrocs_calibration` 构建清单
-（CMakeLists.txt:503-523），全仓无调用方；`hiss::Stage1Diagnostics` 来自
+（CMakeLists.txt:589-598），全仓无调用方；`hiss::Stage1Diagnostics` 来自
 `lib/infrastructure/aio/include/hiss_format.h`。登记为待迁移符号
 （P1-CAL-IMPL 决定接线或删除），不声明任何生产语义（DISP-CAL-005）。
 
@@ -313,7 +313,7 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | 事实 | 内容 | 锚 |
 |---|---|---|
 | 公共符号 | 14 个 `AC_API`：`ac_generate_master_{bias,dark,flat}`、`ac_calibrate_frame`、`ac_correct_frame` 及 5 个 `_f64` 变体、`ac_set_num_threads`、`ac_version` | astro_calibration.h:33-155 |
-| C++ 接口 | `ac::optimize_dark_k`（头文件声明但无 AC_API 导出宏，dark_optimizer.cpp 未编译） | astro_calibration.h:168-179 |
+| C++ 接口 | `ac::optimize_dark_k`（头文件声明但无 AC_API 导出宏，dark_optimizer.cpp 未编译） | astro_calibration.h:169-179 |
 | 错误码 | AC_OK=0、AC_ERR_PARAM=−1、AC_ERR_MEMORY=−2、AC_ERR_INTERNAL=−3；**−2/−3 从未返回**（见 DISP-CAL-001） | astro_calibration.h:21-24 |
 | FP64 ABI | 仅 `ac_calibrate_frame_f64` 真双精度（calibrate_d）；`ac_generate_master_*_f64`、`ac_correct_frame_f64` 将 double 输入 `static_cast<float>` 走 f32 实现后转回 double（统计/mask 路径降级，头文件 105-115 声明） | ac_api.cpp:147-263 |
 | 输出 dtype/shape | f32 ABI: float32 `[h][w]` 行主序（idx=y·w+x，0-based）；f64 ABI: double 同 shape；stack: `[n_frames][h][w]` 连续 | 各 C API 注释 |
@@ -322,8 +322,8 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:46-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
-| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:503-523；lib/algorithms/calibration/Makefile |
-| 生产调用方 | **calibrate**：`lib/phase1_session/p1_session.cpp:372` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp:2220`（`p1_op_calibrate`，CLI 路径）；**cosmetic**：`p1_session.cpp:462-465` 与 `module_adapters.cpp:2355`（`p1_op_cosmetic`），两处均传 `nullptr, nullptr` 检测源（见 COSMETIC_ALGORITHMS.md §4）；**master 生成**（`ac_generate_master_*`）当前无生产调用方——唯一入口 `lib/algorithms/calibration/src/module_entry.cpp:970-998` 属 `astrocs_p1_calibration` DLL 适配层，该 entrypoint 零调用（`lib/algorithms/calibration/README.md:22`） | p1_session.cpp:372,462-465；module_adapters.cpp:2220,2355；module_entry.cpp:970-998 |
+| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:589-609；lib/algorithms/calibration/Makefile |
+| 生产调用方 | **calibrate**：`lib/phase1_session/p1_session.cpp:372` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp:2220`（`p1_op_calibrate`，CLI 路径）；**cosmetic**：`p1_session.cpp:462-465` 与 `module_adapters.cpp:2355`（`p1_op_cosmetic`），两处均传 `nullptr, nullptr` 检测源（见 COSMETIC_ALGORITHMS.md §4）；**master 生成**（`ac_generate_master_*`）当前无生产调用方——唯一入口 `lib/algorithms/calibration/src/module_entry.cpp:970-998` 属 `astrocs_p1_calibration` DLL 适配层，该 entrypoint 零调用（`lib/algorithms/calibration/README.md:22`） | p1_session.cpp:372,462-465；module_adapters.cpp:2220,2355；lib/algorithms/calibration/src/module_entry.cpp:970-998 |
 
 ### 4.1 非生产双实现：`cpp/cosmetic_corrector.cpp`（cc_* 通道）
 

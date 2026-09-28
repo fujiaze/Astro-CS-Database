@@ -30,7 +30,7 @@
 - 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   (`enum P2RejectReason` = `:94-99` / `enum P2RejectStatus` = `:102-111`)；
 - `P2_STATUS_MIN_SAMPLES=1` 的语义 = **候选数 < 调用方显式 `min_samples`，或 `count==0`**
-  （`rejection.h:104`、`rejection.cpp:2018/:2250-2259`）；样本不足的判定态用
+  （`rejection.h:108`、`rejection.cpp:2018/:2250-2259`）；样本不足的判定态用
   `P2_STATUS_UNDERDETERMINED=4`（`n <= underdetermined_n` ∨ `n < minimum_n`，
   `rejection.cpp:2064-2073`）。**`underdetermined_n` 的默认值随 profile 而定**（`rejection.cpp:1218-1225`）：
   生产档 `astrocs_adaptive_pixel` ∧ AUTO ⇒ 3；该档 ∧ `extreme_value_clip_prior_sigma` ⇒ 1；
@@ -49,7 +49,7 @@
   （显式 opt-in，永不参与任何 AUTO 路由）。
 
 F1: plan resolve（N = 该输出像素的几何覆盖帧数，一次解析；`rejection.cpp:1182-1288`）:
-      生产档 astrocs_adaptive_pixel（`rejection.cpp:1153-1176`）:
+      生产档 astrocs_adaptive_pixel（`rejection.cpp:1154-1176`）:
         1≤N≤3 → none（不排异，直接逆方差加权积分）; 4≤N≤5 → percentile 0.2/0.1;
         N≥6 → winsorized 4/3/8
         （**M3 裁决 2026-09-25：原 `N≥16 → linear_fit 5/3.5/8` 档改投 winsorized**）
@@ -63,7 +63,7 @@ F2: sigma: median ws, MAD→σ=1.482602218505602·MAD, thresholds 4.0 low /3.0 h
 F3: winsorized: winsor at σ阈, 再sigma
 F4: linear_fit: 残差尺度 = **平均绝对残差** mean|stack[i]−fit(i)|（`rejection.cpp:1665-1668`），
       阈值 5.0 low /3.5 high，8 iter；**不是** MAD 尺度
-F5: ESD: Rosner α=0.05 max10；样本标准差用**单次** sqrt（`rejection.cpp:1730-1733`）
+F5: ESD: Rosner α=0.05 max10；样本标准差用**单次** sqrt（`rejection.cpp:1731-1733`）
 F6: RCR: Maples Chauvenet，3-pass 链（Median+DoubleLine → Median+68th → Mean+StdDev，
       `rejection.cpp:1785-1806`）；large_scale trail 仅扩展结构、compact 不生长
 F7: 状态机: n <= underdetermined_n → UNDERDETERMINED（生产档默认 3、对照档 2）；

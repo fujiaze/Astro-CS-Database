@@ -114,7 +114,7 @@
 - 基线算法=peaker 七步候选 + 椭圆高斯自研信赖域 LM（nls_lm）拟合
   （7 参数，`fwhm=2.3548·sx`；高斯拟合 Moffat4 真星质心无偏 median 0.0047 px，
   但 FWHM 报值/真值=1.086、解析流量比=0.902；生产路径
-  `sdet_detect_impl`，`sdet_api.cpp:1738-2483`）。
+  `sdet_detect_impl`，`sdet_api.cpp:1570-1943`）。
 - 现状缺陷不隐瞒（DISP-STAR-001..005 显式登记，ALG-STARDET-001 §11.3）；
   本层不声称缺陷已修复。
 - 本页与 ALG-STARDET-001/DATA-P1-STAR/API-STAR-001 组成 Phase1 星点检测冻结层；

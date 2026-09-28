@@ -109,7 +109,7 @@ module_id=`astrocs.phase2.reject`（占位）；execution_class=
 配置=stage2_common.h reject_method/reject_profile/
 reject_underdetermined_n/reject_normalization(+floor 1e-12)/
 large_scale_*（stage2_common.h:52-63）+ typed params 唯一默认源=
-cfg（stage2.cpp:698-728）。
+cfg（stage2.cpp:698-727）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -129,7 +129,7 @@ cfg（stage2.cpp:698-728）。
 ## 内存/cache/I-O/所有权
 
 无文件 I/O（纯函数）；kernel 内 n≤64 固定 scratch、>64 走堆
-（rejection.h:286）；scratch 所有权=调用方分配（reasons 缓冲等由
+（rejection.h:404）；scratch 所有权=调用方分配（reasons 缓冲等由
 调用方提供，P2CandidateStack/P2RejectionDecision 调用方持有）；
 无内部 cache 与全局状态（reentrant=yes）。
 

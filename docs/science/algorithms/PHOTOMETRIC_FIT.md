@@ -22,7 +22,7 @@ F6: scale = 10^{−location}
 F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·log10(F_instr)−G_Gaia
 ```
 
-来源: `star_matcher.cpp:21,23,25,27,445-464,486-501,518-536,538-590,592-627`；`image_corrector.cpp:62-78`
+来源: `star_matcher.cpp:21,23,25,27,445-464,486-501,518-536,538-590,592-627`；`image_corrector.cpp:62-77`
 
 **逐式的量纲、中心约定、适用域与证据**
 
@@ -36,7 +36,7 @@ F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·l
 - **F4 中心约定与语义**：实现的 `MAD` 中心是 **IRLS 收敛后的 `location`**，不是 `median(r_inliers)`（`star_matcher.cpp:616-621`）。二者相差 `δ=|location−median(r_inliers)|` 时，本式相对标准 MAD 的一阶偏差为 `δ/σ`：合成实验实测纯高斯 5.6e-6、含污染（δ=0.056 dex）0.81%。**适用域**：`δ ≪ σ`（帧内残差近似单峰对称）时与标准 MAD 等价；`δ ≳ 0.1σ` 时必须声明所用中心。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E2_mad_center`。
   **语义**：`sigma_residual` 是**逐星定标散度**（系综量，dex），不是单源通量误差；与 SExtractor 的 `FLUXERR/MAGERR` **同名不同义**，两者各自独立、不可互换。SExtractor 定义见其**用户手册** §2.24.2 式(1.2)（`MAGERR = 2.5/ln10·FLUXERR/FLUX`）与式(1.46)（`FLUXERR = sqrt(Σ(σ_i²+p_i/g_i))`），原文注明该误差「provides a lower limit of the true uncertainty, as it only takes into account photon and detector noise」——即**逐源**量，与本层系综散度不同。
 - **F5 语义与覆盖边界**：`sigma_mag`、`sigma_cal_rel` 是帧级定标散度的线性换算，**不含**参考端（XP 谱解码、Gaia 星表、通带曲线）误差与逐源测量误差；作为单源精度指标使用会低估（误差预算逐项见 `docs/science/PHOTOMETRY.md` §16.4）。
-- **F6 量纲与施加面**：`scale` 单位 `[F_syn 单位]/ADU`，其绝对量级由该帧仪器标度（增益/口径/曝光等不可测量）决定，**无物理意义**（`docs/science/PHOTOMETRY.md` §1/§16.2）；施加式 `I_cal=I·scale` 逐元素（`image_corrector.cpp:62-78`，OpenMP `schedule(static)` :74）。
+- **F6 量纲与施加面**：`scale` 单位 `[F_syn 单位]/ADU`，其绝对量级由该帧仪器标度（增益/口径/曝光等不可测量）决定，**无物理意义**（`docs/science/PHOTOMETRY.md` §1/§16.2）；施加式 `I_cal=I·scale` 逐元素（`image_corrector.cpp:62-77`，OpenMP `schedule(static)` :74）。
 - **F7 适用域**：窗口作用于 `Δ−median(Δ)`，故对 `F_instr` 的**整体乘性标度严格不变**（合成实验：`k=10⁻⁴…10⁶` 下拒绝集逐位相同）；对**与星相关的颜色项不不变**。真实尺度（M42 T2/M1，`1.4826·MAD(Δ)=0.4115 mag`）下窗口 = **7.29×MAD**，高斯触发概率 3.1e-13；合成实验显示需颜色项散度 ≈3.0 mag 才首次触发（斜率 4.0 mag/颜色单位），而实测通带取错（Baader R→Antlia V Pro Series B）的跨星散度仅 **0.449 mag** ⇒ **该窗在本仓真实数据上不承担「防通带失配」职能**；对 6 mag 级粗大离群，其相对 IRLS 的边际贡献不可测（污染 0–49% 时 location RMSE 差 <2%）。`3.0` 为 Project-defined 冻结值。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e1_synthetic_and_realdata.json → E1_mag_prefilter`。
 
 ## 3 伪代码
@@ -205,7 +205,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 
 **生产编排**（pc_api.cpp）: 生产主路径 = `run_with_gaia_impl<T>` :896-1210；参数校验 :941-963；退化（无 PSF :953 / 无光谱星 :1011 / 滤光片-QE 失败 :1054 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5 :977-1006；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）:1071-1096；匹配+清洗 :1113-1122；逐星 PcMatchRecord :1127-1167；f64 内联像素校正 :1168-1173；`make_dr3sp_id` :884-894；v2 封装 :1213-1262 / :1294-1315。旧 ABI 通道：`pc_calibrate_simple` :175、`_with_gaia` :469、`_f64` :510、`_with_gaia_f64` :635。
 
-**图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:62-78，OpenMP static :74-76）。
+**图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:62-77，OpenMP static :74-76）。
 
 **aperture 测光非生产符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.482602218505602·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
 
@@ -309,7 +309,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
 - DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）：仅作行为对照。
-- R `MASS` 7.3-66（GPL-2.0|GPL-3.0，https://cran.r-project.org/package=MASS）`R/rlm.R:171-183`：Tukey biweight 下尺度在迭代内更新（`scale.est="MAD"` 默认）、MM 法末步用固定尺度。statsmodels（BSD-3-Clause，https://github.com/statsmodels/statsmodels）`robust/robust_linear_model.py:229,375,391-392`：`RLM.fit(update_scale=True)` 为默认，`_estimate_scale` 用 `scale.mad(resid, center=0)`。**仅作路线对照，不复制代码。**
+- R `MASS` 7.3-66（GPL-2.0|GPL-3.0，https://cran.r-project.org/package=MASS）`R/rlm.R:171-183`：Tukey biweight 下尺度在迭代内更新（`scale.est="MAD"` 默认）、MM 法末步用固定尺度。statsmodels（BSD-3-Clause，https://github.com/statsmodels/statsmodels）`robust/robust_linear_model.py`：`RLM.fit(update_scale=True)` 为默认，`_estimate_scale` 用 `scale.mad(resid, center=0)`。**仅作路线对照，不复制代码。**
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。

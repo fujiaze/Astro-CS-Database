@@ -44,12 +44,12 @@
 
 | 符号 | 含义 | 单位/域 | 实现锚 |
 |---|---|---|---|
-| y_ik（value） | 控制观测（patch 位置估计，可负） | 面亮度 ADU·sr⁻¹ | upm.h:277（字段 `value`） |
+| y_ik（value） | 控制观测（patch 位置估计，可负） | 面亮度 ADU·sr⁻¹ | upm.h:282（字段 `value`） |
 | uncertainty | control estimator 标准误 = sqrt(control_variance) | 面亮度 ADU·sr⁻¹ | 由 `control_ivar` 反演（`upm.cpp:1665-1681`） |
 | control_variance | k_corr·(π/2)·σ_bg²/N_retained（sampler 域产出） | (ADU·sr⁻¹)² | `upm.cpp:2785`（唯一发布点 `p2_upm_control_variance`） |
-| control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | upm.h:278（字段 `control_ivar`） |
+| control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | upm.h:283（字段 `control_ivar`） |
 | ivar（弃用字段） | 单像素 Phase1 ivar，仅诊断，禁入科学权重 | — | upm.h 冻结注释（禁入科学权重） |
-| M_k | latent unified reference | 面亮度 ADU·sr⁻¹ | upm.cpp:56（`ControlNode::M`） |
+| M_k | latent unified reference | 面亮度 ADU·sr⁻¹ | upm.cpp:65（`ControlNode::M`） |
 | C_i(p) | 每帧空间校正场（centered 双线性 8×8） | 面亮度 ADU·sr⁻¹ | upm.cpp:131-200（`evaluate_field_row`）/ `:202-205`（`evaluate_c_field`） |
 | raw / calibrated | 校准前/后信号 | 面亮度 ADU·sr⁻¹ | upm.cpp:1591-1625 |
 | θ（每帧系数） | C 稀疏矩阵行 = frame 系数 | 面亮度 ADU·sr⁻¹ | upm.cpp:73（`Model::C` [frame][control]） |
@@ -110,7 +110,7 @@
 ## 4 伪代码（build 与 apply 主流程）
 
 ```text
-function build_impl(obs, n_obs, nodes, n_nodes, cfg):            # upm.cpp:219-940
+function build_impl(obs, n_obs, nodes, n_nodes, cfg):            # upm.cpp:255-1370
   校验: out_model/obs/n_obs==0 → rc=1 (:215); target_order<0 → rc=1 (:246-249)
   cfg 缺省修补（:218-245，默认值见 §13）
   装配: nodes 全几何 + obs 按 (tile,gx,gy) cell 去重 (:266-314)
@@ -374,7 +374,7 @@ frames 重复 rc=1、C 行数≠frame 数 rc=1、dense stale rc=2。fixture
 
 ## 13 容差与冻结清单（默认值实测）
 
-**P2UpmBuildConfig 默认值**（`cfg_in` 缺省面 = upm.cpp:254-292 的整块零值回填；
+**P2UpmBuildConfig 默认值**（`cfg_in` 缺省面 = upm.cpp:255-292 的整块零值回填；
 两处生产组装 `p2_session.cpp:199-211` 与 `module_adapters.cpp:7795-7813` 均显式赋
 `zero_anchor_weight=1e-3`、`sigma_floor=1e-3`）：
 
@@ -439,7 +439,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 | DISP-P2UPM-004 | `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 段 | descriptor 端口语义占位：fit 行 upm_model=可选输出、apply 行 upm_model=必选输入，与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件 + `p2_upm_open`）不符 | P2-XX-INT |
 | DISP-P2UPM-005 | upm.h:78-80、:110-112、:143-149 | 收敛面**头文件注释三处漂移**：①`:80` 分母写 `max|M| 或 max|C|`，实现与生产均为 `scale_obs=median(|value|)`（`upm.cpp:707-718/:1024`）；②`:111-112` 写「生产显式 1 + 1e-3」，生产装配实为 `tolerance=1e-6`（`module_adapters.cpp:7808`）；③`:147` 写 `tol_step`/`tol_obj`，实现无此二字段（只有 `tolerance` + `tolerance_relative`） | 头文件注释清理面 |
 | DISP-P2UPM-006 | `module_adapters.cpp:7808-7813` vs `lib/phase2_session/p2_session.cpp:204` | **两个生产入口的收敛判据口径不一致**：适配器 `tolerance=1e-6` ∧ `tolerance_relative=1`（相对）；session `tolerance=1e-6` 且未设 `tolerance_relative`（零初始化 ⇒ 0 ⇒ 绝对）。同段注释（`:7797-7808` 要求回退冻结绝对容差、相对判据待裁决）与 `:7809-7813`（以「定案」名义启用相对判据）**对同一变更的授权状态表述互斥** | 待裁决（§16.3 同项） |
-| DISP-P2UPM-007 | upm.h:277-278 | 观测结构体字段单位注释写 `单位 ADU` / `单位 ADU^-2`，与 SCI §3 冻结面（面亮度 **ADU·sr⁻¹** / **(ADU·sr⁻¹)⁻²**）及上游写盘 BUNIT 冻结集不一致 | 头文件注释清理面 |
+| DISP-P2UPM-007 | upm.h:282-283 | 观测结构体字段单位注释写 `单位 ADU` / `单位 ADU^-2`，与 SCI §3 冻结面（面亮度 **ADU·sr⁻¹** / **(ADU·sr⁻¹)⁻²**）及上游写盘 BUNIT 冻结集不一致 | 头文件注释清理面 |
 
 登记原则：本域只登记不改码；头文件注释类漂移（001/002/005/007）整改编入头文件注释清理面，
 003 归 P2-SESSION-IMPL，004 归 P2-XX-INT 对齐，006 待定案。

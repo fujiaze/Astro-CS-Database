@@ -169,7 +169,7 @@ cell 索引   = c*G² + gy*G + gx                                # :708-709/:870
 - control_id = cells 索引（uint64，稠密 0..n_union×G²-1，含空覆盖
   占位；:947 与 :1031/:1105 一致）；
 - out_n_controls = n_union×G²（几何节点总数，与
-  stats.accepted_controls/overlap_controls 区分；sampler.h:153-154
+  stats.accepted_controls/overlap_controls 区分；sampler.h:153-153
   注释冻结）；
 - P2ControlNode 填充 :1105-1111（control_id=索引、tile_ipix、gx/gy、
   ra/dec、leaf_ipix）。
@@ -377,7 +377,7 @@ uncertainty      = sqrt(control_variance)                  # :878
   引用回退状态时**必须**区分「已打标的域外回退」与「未打标的 provenance 缺失回退」。
   合法 provenance 的键名与量纲：`ASTROCS_DRIZZLE_PIXFRAC`（无量纲，域 (0,1]）、
   `ASTROCS_DRIZZLE_SCALE_ARCSEC`（**角秒/像素**，域 (0,∞)；写侧
-  `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1770-1774`，读侧
+  `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1771-1774`，读侧
   `sampler.cpp:135-140`）。
 - UPMW-004 独立 MC 基线：Var(median) ≈ πσ²/(2N)（先例 `synthetic_gate.cpp`）；
   本式为该基线乘 k_corr 的 Drizzle 相关放大。该基线的成立条件见本节「公式的精确形式

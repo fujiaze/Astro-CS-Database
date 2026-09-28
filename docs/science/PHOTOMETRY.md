@@ -135,7 +135,7 @@ Gaia DR3 官方文档 §5.4.1「External Calibration → Zero points」给出合
 | 合成实验 | 直接链接生产 `spectrum_integrator.cpp` 的解析探针：常数谱 × 常数 `T` × 常数 `Q` 与闭式解**逐位一致**（rel = 0 / 1.4e−16）；误差分解给出 2 nm 网格离散误差 0.66–1.34%、XPSD uint8 量化误差 0.025%；通带全在网格外 ⇒ `F_syn≡0`；`flux_mul≤0`/非有限 ⇒ 显式 0 | `run/SCI-PHOT-FORMULA-01/evidence/c1_analytic_check.json`、`c1_probe_raw.tsv` |
 | 真实数据 | 26211 颗真实 XPSD 星：用官方 G 通带（Riello et al. 2021）+ GaiaXPy `Gaia_DR3_Vega` 零点 −26.4899 复算合成星等，`median(m_syn−G) = −0.0037 mag`、MAD 0.0033 mag（G∈[6,18]、解码谱处处为正，n=11272）；乘 `10^(−0.4G)` 的变体偏移 **+16.34 mag** | `run/SCI-PHOT-FORMULA-01/evidence/a1_xpsd_absolute_check.json`、`a2_bandpass_and_absolute.json` |
 | 真实数据（生产链） | 生产落盘 `ZP_syn` 由 §2a.1 公式**逐位复现**：T2/M1 落盘 `−15.126346726632235` vs 复算 `−15.126346726631280`（Δ=9.5e−13，n=2338）；T3/M1 落盘 `−15.123241368129857` vs 复算 `−15.123241368086541`（n=2309） | `run/SCI-PHOT-FORMULA-01/evidence/d1_zp_sigma_rederive.json` |
-| 官方工具旁证（独立子代理核验，本任务未复跑） | GaiaXPy 2.1.4 `calibrate()` 对 `XP_CONTINUOUS` 系数产出的绝对采样谱 vs 官方 `XP_SAMPLED` 产品 `flux`：比值中位 `1.000000`、最大相对差 `1.01e−4`（float32 存储精度）；源码 `src/gaiaxpy/spectrum/sampled_spectrum.py:114` 为纯线性组合 `coefficients @ design_matrix`，**不含任何星等因子** | 见本任务回执「独立查证子代理」节 |
+| 官方工具旁证（独立子代理核验，本任务未复跑） | GaiaXPy 2.1.4 `calibrate()` 对 `XP_CONTINUOUS` 系数产出的绝对采样谱 vs 官方 `XP_SAMPLED` 产品 `flux`：比值中位 `1.000000`、最大相对差 `1.01e−4`（float32 存储精度）；源码 `src/gaiaxpy/spectrum/sampled_spectrum.py` 为纯线性组合 `coefficients @ design_matrix`，**不含任何星等因子** | 见本任务回执「独立查证子代理」节 |
 
 
 ### 2a.7 通带身份核对（装配期 fail-closed；正向约束）

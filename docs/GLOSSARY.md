@@ -8,7 +8,7 @@
 | term | 含义（唯一） | 单位/极性/域 | legacy alias → 迁移 | 权威锚点 |
 |---|---|---|---|---|
 | adu | 线性信号单位,同滤镜/增益标度下可比 | 信号单位 | DN → 禁用,一律写 ADU | docs/science/CALIBRATION.md#28 |
-| electron | DRIZZLE 域允许的信号等价标注(增益标定后) | 信号单位(=ADU 等价标注) | e⁻ → electron | docs/science/DRIZZLE.md#28 |
+| electron | DRIZZLE 域允许的信号等价标注(增益标定后) | 信号单位(=ADU 等价标注) | e⁻ → electron | docs/science/DRIZZLE.md#29 |
 | variance | 逐像素随机方差,Drizzle 传播 variance_p=Σ v_j·w_jp²/D_p²;无覆盖像素=0 | 信号单位²(ADU²) | - | docs/contracts/DATA_SEMANTICS.md §4a |
 | ivar | 逆方差=1/variance;variance=0/缺失 → ivar=0(显式不可用,状态显式标注);NaN/负 variance=产品损坏 | ADU⁻² | - | docs/contracts/DATA_SEMANTICS.md §4a |
 | pixel_weight | 像素级科学权重=ivar(UPM/integration);snr² 权重只用于 ablation 对照 | 无量纲 | snr²-weight → pixel_weight(ivar) | docs/contracts/DATA_SEMANTICS.md §4a |

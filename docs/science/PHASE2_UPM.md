@@ -50,7 +50,7 @@
   1.3883 是标定几何专属（源 300″/px、nside=512→412.26″/px、pixfrac=0.8、
   全 touched patch N≈225–251、逐实现 MAD 取跨实现中位）的 MC 实测带
   1.27–1.43（中心 1.34±0.04）内的一次实现值；受控复现 1.3445±0.0416（16 相位 × 8 seed）；
-  证据源 control_median_mc_test 已注册（tests/CMakeLists.txt:110-118）⇒ 可复跑。
+  证据源 control_median_mc_test 已注册（lib/algorithms/drizzle/healpix_drizzle/tests/CMakeLists.txt:110-118）⇒ 可复跑。
   生产公式面为**两因子 `k_gauss(N_retained) × k_geo` 几何查表**（k_gauss 表、
   k_geo 域与消费规则见 §5 注；公式与查表由 P3 单元 `实验/healpix-polar` 承载）；
   逐帧标定表的适用域为源像素角尺度 [300,600]″/px，

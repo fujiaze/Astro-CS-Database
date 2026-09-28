@@ -276,7 +276,7 @@
 - 返回码：0=成功，非 0=失败；实测语义——文件通道正值 1..12
   （1=null 参数、2=nside 非 2 幂、3=pixfrac 越界、4=读 FITS 失败、
   5=无 WCS、6/7=SNR 读/尺寸、8/9=权重读/尺寸、10=drizzle 失败、
-  11=写 legacy 容器失败、12=C 边界内部异常，hp_drizzle_api.cpp:185-396
+  11=写 legacy 容器失败、12=C 边界内部异常，hp_drizzle_api.cpp:186-396
   `hp_drizzle_fits_to_ahpx`）；帧通道混用负值 -1..-8（参数/
   块校验）、-9=无 WCS（read_wcs_params_from_frame，hp_drizzle_api.cpp:427-447）、
   -12=HiPS dir 空（:1143-1145）、
@@ -462,7 +462,7 @@
   DISP-NOISE-004；PHASE1_API_V1 §2 "取消点=行带"为计划语义）。
 - 生产调用方：lib/infrastructure/pipeline/orchestrator/src/orchestrator.cpp:4177（stage6 SNR，
   必需 stage）→ dll_loader_ 函数指针 snr_noise_model_v1/_f64/
-  _default_config/_fill/_free（orchestrator.cpp:4242-4251）；DLL 装载
+  _default_config/_fill/_free（orchestrator.cpp:4242-4250）；DLL 装载
   snr_estimator.dll（dll_loader.cpp:59，lib/algorithms/noise_snr/cpp/ :73）。
 - 已登记现状缺陷（使用前按登记项处置，P1-NOISE-IMPL/INT 处理）：ABA 复用与
   并发无锁（DISP-NOISE-001）、build/fill floor 语义不一致（002）、
@@ -560,7 +560,7 @@ ADU；`out_pixels` 未定标/退化=ADU，已定标（scale≠1 且 n_matched>0�
   码 2）→ 函数指针 pc_calibrate_simple_with_gaia_f64_v2（:2714）/_v2
   （:2790）双通道；写 photo_stats KV 块（:2902-2935，N_MATCHED/
   SCALE_FACTOR/SIGMA_RESIDUAL + diag 17 字段）。
-- registry descriptor 占位 ID（module_adapters.cpp:531-548，sci_id=
+- registry descriptor 占位 ID（module_adapters.cpp:531-547，sci_id=
   SCI-P1-PHOT-001/alg_id=ALG-002/data_id=DATA-P1-FLUX/api_id=API-P1-005/
   test_id=TEST-P1-PHOT-001）由 P1-PHOT-INT 对齐本合同；冻结依据只取上游
   依据（DISP-PHOT-007）。
@@ -599,7 +599,7 @@ Phase1 单帧逐星 Moffat4（β=4 固定）PSF 拟合 C ABI：uint16/float32/fl
 （B,A,x0,y0,sx,sy,theta），4 状态码失败语义（STAR_PSF_ALGORITHMS §11.2）。
 不做星检测（禁重检测，orchestrator.cpp:1754-1756）、不做饱和剔除决策
 （star_det v1 [4]/[5] 不消费）、不做 QA 换算（帧级 PSF 质量归
-snr_estimator snr_psf_fit_quality，snr_estimator.h:79，API-NOISE-001
+snr_estimator snr_psf_fit_quality，snr_estimator.h:110，API-NOISE-001
 范围界定）。无取消检查点（DISP-PSF-004）。
 
 
@@ -831,10 +831,10 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 | 符号 | 锚 | 语义 |
 |---|---|---|
 | `sdet_create` | star_detector.h:31 / sdet_api.cpp:954 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:963-975）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
-| `sdet_destroy` | star_detector.h:34 / :984 | 唯一释放对 |
-| `sdet_detect` | star_detector.h:36-40 / :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
+| `sdet_destroy` | star_detector.h:32 / :984 | 唯一释放对 |
+| `sdet_detect` | star_detector.h / :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
 | `sdet_free_coords` | star_detector.h:42 / :1276 | sdet_detect x/y 专用释放 |
-| `sdet_detect_debug` | star_detector.h:44-50 / :1281 | 诊断入口（CC 路径 + 平滑图/detail/binary 导出 + extras） |
+| `sdet_detect_debug` | star_detector.h / :1281 | 诊断入口（CC 路径 + 平滑图/detail/binary 导出 + extras） |
 | `sdet_free_debug_maps` | star_detector.h:52 / :1595 | debug 输出图专用释放 |
 | `sdet_detect_ex` | star_detector.h:54-62 / :2318 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
 | `sdet_detect_ex_f64` | star_detector.h:67-75 / :2343 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
@@ -1438,7 +1438,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 | frame_ids | u64，无量纲稳定帧标识（ESD tie-break/确定性） |
 | reasons | u8 0..3（P2RejectReason） |
 | status | int 0..7（P2RejectStatus 八态） |
-| typed params | 六组结构（rejection.h:99-130）禁跨方法共享字段（:99 注释） |
+| typed params | 六组结构（rejection.h:99-129）禁跨方法共享字段（:99 注释） |
 | 调用粒度 | 单像素栈（kernel）+ strided frame-major gather 批量（生产收集器） |
 
 ### 确定性/并发合同（matrix 专项）
@@ -1500,7 +1500,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在——MISSING 语义，
 > 由 P2-SAMP-IMPL 建立，本节不声明 IMPLEMENTED；descriptor 占位
 > module_id=astrocs.phase2.sample 为编排层词汇，
-> module_adapters.cpp:642-654 p2_sample_descriptor，由 P2-XX-INT
+> module_adapters.cpp:642-653 p2_sample_descriptor，由 P2-XX-INT
 > 对齐）。
 
 ### 导出符号与签名要点（sampler.h 实测锚，冻结）

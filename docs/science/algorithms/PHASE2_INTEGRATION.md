@@ -32,7 +32,7 @@
 | `values[i]` | 候选样本科学值 | **面亮度 ADU·sr⁻¹**（同 UPM 校准后标度），f64 | integrate.h:37 |
 | `weights[i]` | 数值权重（可空=等权 1.0） | **(ADU·sr⁻¹)⁻²**（仅数值域，语义策略在调用方），f64 | integrate.h:38 |
 | `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | integrate.h:39 |
-| `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | integrate.h:40 |
+| `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | integrate.h:49 |
 | `count` | 候选数 | 无量纲 u32 | integrate.h:41 |
 | `signal` | 加权积分输出 | 面亮度 ADU·sr⁻¹，f64 | integrate.h:55 |
 | `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | integrate.h:56 |
