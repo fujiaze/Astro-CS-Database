@@ -71,7 +71,7 @@ PLATFORM-RUNTIME/IO 仍为 SKELETON 且「不伪装实现完成」；
 | 模块 | 路径 | 交付状态 | 职责 | 证据锚 |
 | --- | --- | --- | --- | --- |
 | Runtime / 唯一 executor | `lib/infrastructure/scheduler` | IMPLEMENTED | typed DAG 调度、ThreadBudget 租约、进程唯一 worker 池 | `lib/infrastructure/scheduler/src/executor_runtime.h`、`lib/infrastructure/scheduler/src/module_adapters.cpp`:288-296；ctest `rt001_unique_executor` 实测 PASS |
-| 模块注册表（三 Phase 节点） | `lib/infrastructure/scheduler` | IMPLEMENTED | P1 八节点 / P2 七节点 / P3 五节点，各绑唯一真实 operation（`ASTROCS_DESIGN.md` §4.2/§5.2/§6.2） | `lib/infrastructure/scheduler/src/module_adapters.cpp`:15461/:15483/:15511；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 实测 |
+| 模块注册表（三 Phase 节点） | `lib/infrastructure/scheduler` | IMPLEMENTED | P1 八节点 / P2 七节点 / P3 五节点，各绑唯一真实 operation（`ASTROCS_DESIGN.md` §4.2/§5.2/§6.2） | `lib/infrastructure/scheduler/src/module_adapters.cpp`:15460/:15485/:15512；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 实测 |
 | Phase1 会话 | `lib/phase1_session` | IMPLEMENTED | `io_read → calibrate → cosmetic → io_write` | `lib/phase1_session/p1_session.cpp`（`manifest["stages"]`）；unit `entrypoint: p1_session_run` |
 | Phase1 科学内核 | `lib/phase1` | IMPLEMENTED | noise / photometry / stars / wcs 子目录内核 | `lib/phase1` 下 noise/photometry/stars/wcs 子目录 |
 | Phase2 会话 | `lib/phase2_session` | IMPLEMENTED | 七节点链组装（coverage→sample→upm→reject→integrate→write） | `lib/phase2_session/p2_session.cpp`；ctest `p2001_real_nodes` 实测 |
@@ -93,7 +93,7 @@ PLATFORM-RUNTIME/IO 仍为 SKELETON 且「不伪装实现完成」；
 | p3 fits | `lib/algorithms/fits_output` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_fits.dll`；生产实现在 `lib/algorithms/fits_output/p3_output.cpp`；流式 FITS 接入 NOT_IMPLEMENTED |
 | phase2 upm / samp / rej / int | `lib/algorithms/upm`、`lib/algorithms/sampling`、`lib/algorithms/rejection`、`lib/algorithms/integration` | CONTRACT_READY（合同目录） | 生产实现在 `lib/algorithms/coverage`（节点化已 IMPLEMENTED）；独立 DLL 化为迁移目标 |
 | hips_p2 | `lib/algorithms/coverage/hips_p2` | CONTRACT_READY（合同目录） | Phase2 HiPS 写出目标；生产路径在 `lib/infrastructure/aio` + `lib/algorithms/coverage` |
-| plate_solve / photometric_calib / star_detector / dynamic_psf | `lib/algorithms/platesolve`、`lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf` | IMPLEMENTED（节点内核） | 已作为 Phase1 节点唯一真实 operation 接入（`module_adapters.cpp`:15461）；独立 DLL 化未做（`entrypoint: MISSING` 属实） |
+| plate_solve / photometric_calib / star_detector / dynamic_psf | `lib/algorithms/platesolve`、`lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf` | IMPLEMENTED（节点内核） | 已作为 Phase1 节点唯一真实 operation 接入（`module_adapters.cpp`:15460）；独立 DLL 化未做（`entrypoint: MISSING` 属实） |
 
 ## 4. 非交付面
 

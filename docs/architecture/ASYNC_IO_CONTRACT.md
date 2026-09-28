@@ -73,7 +73,7 @@
   - 读取失败/写入失败传导；
   - 多 worker 并发消费确定性。
 - 已完成：`phase2_async_io` 以上全部通过（见 `lib/algorithms/coverage/tests/async_io_test.cpp`，
-  8 用例），含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、
+  10 用例：TEST 宏位于 :26/:33/:44/:55/:86/:106/:137/:167/:188/:219），含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、
   `WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`。
 - 队列基座测试覆盖容量推导、roundtrip、close/drain、backpressure、cancel/error。
 

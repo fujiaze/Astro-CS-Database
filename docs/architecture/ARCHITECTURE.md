@@ -38,7 +38,7 @@ acsd CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 
 - **配置**：科学 config（用户，schema 校验）与 CPU profile（benchmark 产物，逐内核）**分离**（CLI-003）；profile 缺失→baseline 后端+动态 worker（保守合法）。
 - **manifest**：每次 run 生成 run manifest（版本/输入 hash/参数/软件版本/manifest hash），输出原子落盘（tmp+rename，IO_AND_ATOMICITY.md）；Phase3 额外写 provenance 到 FITS HISTORY（ALG-P3-004）。
-- **artifact**：**产品只落块级 `output_dir`**（最高设计 §10）；`run/` **只放临时产物与日志**（**不是**「唯一运行输出目录」）；失败/取消的 artifact 不落盘（帧/行带/整文件原子单元，见 `PRODUCTION_EXECUTION_INVENTORY.csv` `thread_model` 列）；verify 子命令复算 hash 判定 stale。
+- **artifact**：**产品只落块级 `output_dir`**（最高设计 §10）；`run/` **只放临时产物与日志**（**不是**「唯一运行输出目录」）；失败/取消的 artifact 不落盘（帧/行带/整文件原子单元，见 `PRODUCTION_EXECUTION_INVENTORY.csv` `thread_model` 列）；verify 能力由 **doctor 的机器旗标 `--run-manifest`** 承载（唯一命令树**无独立 verify 命令**，`verify*` 属已删别名 → rc=2，`command_tree.h:67-70`；`commands.cpp:2227` 输出 `{"verify":"ok",...}`）复算 hash 判定 stale。
 
 ## 5 错误/取消/恢复
 
