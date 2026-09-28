@@ -1,6 +1,6 @@
 # CI 门禁与状态（Gates & States）
 
-> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）
+> 上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）
 
 ## 1. 门禁原则
 
@@ -43,7 +43,7 @@
 - 用 waiver 掩盖红灯（未被授权豁免的条款不可豁免）；
 - 把"能编译"当"验收过"（必须跑断言/测试/机器门）；
 - 合成测试标成 VERIFIED；
-- 用历史版本全量重算代替科学 Oracle。
+- 用全量重算代替独立科学 Oracle（Oracle 必须独立于生产实现）。
 
 ## 5. 门禁通过定义
 
@@ -51,7 +51,7 @@
 
 ---
 
-## 6. L2 性能门与监控字段语义（GATE-501 落地）
+## 6. L2 性能门与监控字段语义
 
 > 正本：docs/ci/CI_SPEC.md §9；判据数值源：eng/contracts/resource_gate_v1.json。
 > 本节只登记**门禁事实**（哪条门、什么判据、怎么红），不重复规范正文。
@@ -59,7 +59,7 @@
 ### 6.1 L2 冻结判据（违规必红）
 
 四条判据（平均利用率 ≥0.85 / p50 ≥0.90 / 达标样本占比 ≥0.70 / 无连续 ≥10s
-低利用窗）在 CI 裁决面由 `eng/ci/l2_frozen_gate.py` fail-closed 判定，任一
+低利用窗）在 CI 判定面由 `eng/ci/l2_frozen_gate.py` fail-closed 判定，任一
 违规即红。回放判据正本 = `docs/ci/CI_SPEC.md` §9.2（机器门 `L2-FROZEN-GATE-REPLAY`）。
 生产侧 `run_monitored.py` 的 `record_and_justify` 字段是记录语义，
 **门禁通过的依据 = 机器门 rc=0**。
@@ -91,10 +91,9 @@
 
 ### 6.3 mutates_workspace（真强制）
 
-`mutates_workspace: true` 不再跳过工作区前后对比：可写面 = 登记 `outputs`
-∪ `dirty_ignore_*`，写出该面之外 ⇒ `FAIL(dirty)`。7 个顶层声明
-（CHK-SCI-REF / CHK-CONTRACT-TEST / CHK-UNIT / CHK-SYNTH-P2 / CHK-NWORKER /
-LINUX-MAIN-FIXTURES / LINUX-MAIN-BUILD-TREE）与 6 个 step 声明逐条适用同一判据。
+`mutates_workspace: true` 以工作区前后对比为判据：可写面 = 登记 `outputs`
+∪ `dirty_ignore_*`，写出该面之外 ⇒ `FAIL(dirty)`；顶层声明与 step 声明逐条适用同一判据
+（清单由注册表现场计算）。
 
 ### 6.4 fail-closed 普查
 

@@ -36,8 +36,7 @@
 
 - `ci-linux.yml` 与 `ci-windows.yml` 是两个独立 workflow，各自触发、互不依赖；
 - 每 workflow 单 job，`timeout-minutes: 330`（`ci-linux.yml` / `ci-windows.yml` 一致）；
-- **每 step 的 timeout 上界 = max(60, 3 × 最近一次实测墙钟)**，硬上限 3600 s（`prerelease` 重步骤 10800 s）；
-  阈值与档位取值的唯一源 = `eng/ci/checks.json`（口径正本 = `CI_SPEC.md` §2.5）；
+- 每 step 的 timeout 上界与档位硬上限：口径正本 = `CI_SPEC.md` §2.5，取值唯一源 = `eng/ci/checks.json`；
 - 日志按 job 留存，可下载。
 
 ## 4. 门禁判定

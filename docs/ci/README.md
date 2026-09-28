@@ -1,5 +1,7 @@
 # ci
 
+> 上游：docs/ci/CI_SPEC.md（CI 规范入口与总则）；沿权威链 = docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+
 本目录是 CI 规范层：登记全部检查项、流水线 profile、门禁分级与 CI 工件落位，回答每次提交「查了什么、挡不挡、证据在哪」。
 
 ## 职责边界
@@ -14,7 +16,3 @@
 - `02_PIPELINE.md` —— CI 流水线与 profile 定义。
 - `03_GATES.md` —— 门禁分级与阻断规则。
 - `04_ARTIFACTS.md` —— CI 工件与证据落位规范。
-
-## 上游
-
-上游：docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）、§12.4（验证层级与四层验收）。
