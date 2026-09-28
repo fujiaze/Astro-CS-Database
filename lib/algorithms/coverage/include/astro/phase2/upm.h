@@ -67,8 +67,12 @@ typedef struct {
     char model_hash[65];          // 模型内容 SHA-256
 } P2ModelInfo;
 
-// ===== 构建配置（冻结）=====
-typedef struct {
+// ===== 构建配置（冻结）=====  WIN-PORT C5208: 具名类替代匿名 `typedef struct {`
+// —— 本结构带默认成员初始化器（gs_damping = 1.0 等），而 C++ [dcl.typedef] 禁止
+// "typedef 名建立链接"的匿名类声明"无默认成员初始化器的非静态数据成员"之外的
+// 成员。类型名（P2UpmBuildConfig）、成员顺序/类型/默认值、内存布局与使用点全部
+// 逐位不变，仅去掉匿名类形式（行数保持不变，避免文档行锚漂移）。
+struct P2UpmBuildConfig {
     int    robust_loss;           // 0=huber（首版）
     int    snr_weight_mode;       // 0=snr2_normalized（首版）
     double huber_delta;           // Huber delta（默认 1.345）
@@ -114,7 +118,7 @@ typedef struct {
     // control_grid_per_tile 且 == UPM 网格常数 8；不等时 p2_upm_build* 返回 3
     // （禁静默错格架：control 场会按错误格架插值）。
     int    grid = 8;
-} P2UpmBuildConfig;
+};
 
 // ===== 构建 / 持久化 / 求值 =====
 P2_API int p2_upm_build(
