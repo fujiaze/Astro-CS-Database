@@ -16,10 +16,10 @@
 | 路径 | 调用线程 | 切分单位 | 最大并发 | 调度器 | 同步点 | 证据 |
 |---|---|---|---|---|---|---|
 | Stage1 calibrate | calibrator thread | per-tile OpenMP | 16 | OpenMP parallel for | tile barrier | `calibrator.cpp` `#pragma omp parallel for`（:94/:126/:134） |
-| Stage1 drizzle | drizzle worker | per-source-pixel candidate | n_threads | OpenMP + cache | tile merge serial | `drizzle_engine.cpp:1662 reduction` |
+| Stage1 drizzle | drizzle worker | per-source-pixel candidate（按确定性 stripe 分片） | n_threads | OpenMP + cache（per-stripe scratch 累加，无 reduction 子句） | 按 stripe 索引升序左折叠归约（累加与归约解耦，P15a/P22 形态） | `drizzle_engine.cpp:1923`（主并行区）/ `:1702`（merge_tile_map_into）/ `:2117-2142`（stripe 序归约） |
 | Stage2 sampler | stage2 worker pool | per-control-cell (64 per tile) | budget.max_workers（Runtime lease；1 = 串行 reference） | std::thread pool（无 OpenMP 条件） | cell barrier | `sampler.cpp:924-954`（`cfg.cpu_workers = budget.max_workers`，`next_c.fetch_add(1)` 动态取 cell） |
-| Stage2 UPM solve | stage2 main | full graph | 1 | serial | — | `upm.cpp Huber IRLS` |
-| Stage2 block/reject/integrate | block worker | per-pixel candidate stack | n_threads | OpenMP per-pixel | pixel barrier | `rejection.cpp/integrate.cpp` |
+| Stage2 UPM solve | stage2 main（IRLS 主迭代）；compute_raw/per-obs 权重 = per-call std::thread 池 | full graph；per-obs 权重行 | IRLS 主迭代 = 1；compute_raw/per-obs 权重 = granted_workers（Runtime lease） | IRLS 主迭代 serial；raw/权重按 lease 并行（check_thread_budget 登记在案） | — | `upm.cpp:605`（compute_raw）/ `:747`（per-obs 独立 w 计算注释）/ `:620/:751/:794/:916/:2143`（per-call 池 ×5，cworkers = cfg.cpu_workers ← Runtime lease）；M/C 更新主体串行（cg_solve_frame `:676` 起） |
+| Stage2 block/reject/integrate | block worker（std::thread 池） | per-tile（tile 级动态认领） | workers（Runtime lease） | p2_parallel_for（std::thread + 原子计数动态认领；无 OpenMP、无 barrier） | 无 pixel barrier：每任务只写自己下标的结果槽/输出 offset，跨任务零浮点归约 | `module_adapters.cpp:9045`（p2_parallel_for 定义）；调用点 `:10983`（reject）/ `:11778`（integrate）；`rejection.cpp`/`integrate.cpp` 内 `#pragma omp` 计数 = 0 |
 | ~~ACR Dispatcher~~ **DORMANT** | — | — | — | — | — | 保留源码与隔离测试，**不进生产**（最高设计 §1.4）；原行：acr thread / per-tile chunk (px) / auto / Dispatcher::decide / mixed merge / `acr_kernels.cpp` |
 
 见 `THREADING_MODEL.md` 确定性锚点 ARC-004。
@@ -39,7 +39,7 @@
 |---|---|---|
 | aio_read 读路径 | **无进程级互斥量**（读路径不存在进程级临界区） | 每次调用独立句柄，句柄线程私有、不跨线程转移；剩余串行化点（诊断/写面）统一走计数式 `aio::CfitsioLockGuard`（等待进 `resource_timeseries.csv` 的 `lock_wait_ns`） |
 | rejected_* | `atomic` | per-sample |
-| Drizzle counters | `atomic` / `reduction` | per-tile |
+| Drizzle counters | `atomic`；浮点归约 = thread-local/per-stripe scratch 累加 + stripe 索引升序左折叠（无 OpenMP reduction 子句） | per-tile |
 | Dense cache | `mutex` | per-write |
 | Memory budget | `atomic` counters | per-alloc |
 
@@ -83,8 +83,8 @@
 |---|---|
 | ARC-EXEC-001 | Stage1 per-tile OpenMP calibrate |
 | ARC-EXEC-002 | Stage2 sampler 并发只读（无进程级锁；句柄单线程私有、不跨线程转移；Runtime lease 定 worker 数） |
-| ARC-EXEC-003 | Stage2 UPM serial solve |
-| ARC-EXEC-004 | Phase2 block/reject/integrate per-pixel parallel |
+| ARC-EXEC-003 | Stage2 UPM solve：IRLS 主迭代串行；compute_raw/per-obs 权重按 Runtime lease 并行（per-call std::thread 池 ×5，check_thread_budget 登记在案） |
+| ARC-EXEC-004 | Phase2 block/reject/integrate：p2_parallel_for（std::thread）tile 级并行、原子计数动态认领，无 barrier，跨任务零浮点归约；tile 内逐像素候选栈串行处理 |
 | ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §1.4） |
 | ARC-EXEC-006 | HiPS async I/O transaction |
 | ARC-EXEC-007 | Orchestrator cancel/timeout propagation |

@@ -31,14 +31,14 @@
 
 ## 4 并发正确性合同(承接旧锚点)
 
-- 浮点归约顺序冻结(THREADING_MODEL.md §确定性锚点全部有效: coverage/src/upm.cpp:605/sampler.cpp:924-954 固定槽位/drizzle_engine.cpp:1923,2270,2279);tile 合并=thread-local 累加后 **t=1..num_threads 固定序串行合并**(与线程数无关的确定性: 结果序列由 budget 快照唯一化)。
+- 浮点归约顺序冻结(THREADING_MODEL.md §确定性锚点全部有效: coverage/src/upm.cpp:605/sampler.cpp:924-954 固定槽位/drizzle_engine.cpp:1923,2117-2142,2279);tile 合并=**per-stripe scratch pool 累加 + 按 stripe 索引升序左折叠归约**(累加与归约解耦, drizzle_engine.cpp:1885-1891 pendingStripe/merge_cursor、归约分支 :2117-2142; 与 P15a 左折叠完全同序 ⇒ 浮点结合树逐位一致, **与线程数/调度顺序无关**, 结果序列由 budget 快照唯一化)。注: :2270 现为 prof 计数器合并, 非浮点 tile 合并锚。
 - 计数器: atomic 或 thread-local 聚合;cache(UPM dense/Gaia/tile)线程安全或单线程互斥;无裸 data race。
 - ACR 与浏览器层**dormant/not-shipped**(ACR 不接入;browser 为 tool 分类)。
 
 ## 5 静态 checker 合同(验收)
 
 `eng/tools/arch/check_thread_budget.py`(BENCH-003 前落地,ARCH-004 先立合同):
-1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(当前: orchestrator watchdog/resource_monitor/logger;eng/tests/ 全豁免);
+1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(登记表以 checker 内 THREAD_BUDGET_EXEMPT 为唯一事实源, 随实现演进, 以实跑输出为准; eng/tests/ 为扫描面豁免[测试面豁免=20], 不占登记条目)。当前生产源码面登记实况(实跑汇总=25 键/41 命中), 生产科学模块面核心六条: upm.cpp per-call 池 ×5(:620/:751/:794/:916/:2143, cworkers = Runtime lease) + sampler.cpp:934 per-call 池(workers = Runtime lease); 另有 weight_chain_selfcheck.cpp:479(权重链独立 Oracle 自查池, 不在根构建图内)、cosmetic/module_entry.cpp:64(omp_set_num_threads 租约注入)、历史保留面 orchestrator watchdog 路径级登记(orchestrator.cpp:5201/:5208)与 orchestrator.h:424/resource_monitor.h:135 文件级豁免等;
 2. `omp_set_num_threads(`/`num_threads(` 字面量=0 容忍;
 3. 未登记即 FAIL(exit 1)——保证"未登记线程创建"机器可查。
 
