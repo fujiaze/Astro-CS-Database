@@ -114,7 +114,10 @@ std::vector<double> oracle_ref(const KernelSpec& sp, uint32_t w, uint32_t N,
     case ACS_KOP_PSF_BATCH: {
         const double cx = in0[0], cy = in0[1];
         for (uint32_t i = 0; i < N; ++i) {
-            const double x = static_cast<double>(i % w), y = static_cast<double>(i) / static_cast<double>(w);
+            // 网格点 = 整数像素坐标: x=i%w, y=i/w(kernel 用**整数除**: 
+            // baseline_kernels_impl.inc:150 `i / p->w`; 「于网格点」见 baseline_kernels.h:18)。
+            // 曾写实值 (double)i/(double)w ⇒ oracle 与 kernel 语义不同源, 本机恒 oracle:fail。
+            const double x = static_cast<double>(i % w), y = static_cast<double>(i / w);
             ref[i] = sp.k * std::exp(-((x - cx) * (x - cx) + (y - cy) * (y - cy)) * 0.5);
         }
         break;
@@ -187,8 +190,10 @@ std::vector<double> oracle_ref(const KernelSpec& sp, uint32_t w, uint32_t N,
         if (iw < 2 || ih < 2) break;
         const double s = sp.k;
         for (uint32_t i = 0; i < N; ++i) {
+            // 采样位置 (x*k, y*k), (x,y) = 整数网格坐标 x=i%w, y=i/w
+            // (kernel 整数除: baseline_kernels_impl.inc:211-212; 见 baseline_kernels.h:27)。
             const double x = static_cast<double>(i % w) * s,
-                         y = static_cast<double>(i) / static_cast<double>(w) * s;
+                         y = static_cast<double>(i / w) * s;
             int x0 = static_cast<int>(std::floor(x)), y0i = static_cast<int>(std::floor(y));
             double fx = x - std::floor(x), fy = y - std::floor(y);
             x0 = std::min(std::max(x0, 0), static_cast<int>(iw) - 2);
@@ -328,6 +333,16 @@ std::string profile_invariant_violation(const KernelProfile& kp) {
         return "kernels." + kp.kernel_id + ".median <= 0";
     if (kp.mad_ns < 0) return "kernels." + kp.kernel_id + ".mad < 0";
     return "";
+}
+
+/* Oracle 内省/测试入口(声明与理由见 profile_gen.h): 薄包装, 公式仍只有 oracle_ref 一份。 */
+std::vector<double> oracle_ref_v1(int op, uint32_t frames, float k, uint32_t w, uint32_t N,
+                                  const std::vector<float>& in0,
+                                  const std::vector<float>& in1,
+                                  const std::vector<float>& in2,
+                                  const std::vector<float>& in3) {
+    const KernelSpec sp{"", op, frames, k, "", 0};
+    return oracle_ref(sp, w, N, in0, in1, in2, in3);
 }
 
 ProfileBundle generate_profile_v2(const std::string& mode, const std::string& build_id,
