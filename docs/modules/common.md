@@ -14,7 +14,7 @@
 
 | 头 | 前缀/类型 | 函数/类型(签名节选) | 要点 |
 |---|---|---|---|
-| `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，全仓唯一一套（单源纪律 B4-01，见 `docs/standards/STANDARDS_REGISTRY.md`） |
+| `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，全仓唯一一套（单源纪律，见 `docs/standards/STANDARDS_REGISTRY.md`） |
 | `lib/algorithms/shared/crypto/sha256.h` | `astrocs::crypto` | `sha256_hex/Sha256 {update,final_hex}` | DATA-FRAME-ID-001 frame_id 唯一实现（truncated-64 SHA-256） |
 | `lib/algorithms/shared/include/astro_scalar.h` | `AstroScalarType` | `FP32/FP64, AstroScalarTraits, DISPATCH` | 双精度 ABI 标量分发 |
 | `lib/algorithms/shared/include/precision_context.h` | `PrecisionContext` | `set_scalar_type/scalar_type/is_fp32/is_fp64` | 全链路精度单例（启动写入、数据阶段只读无锁，默认 FP32） |

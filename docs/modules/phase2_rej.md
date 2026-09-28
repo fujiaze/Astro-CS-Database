@@ -2,30 +2,27 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 合同三件套落位 `lib/algorithms/rejection/`
-> （README/module.yaml/memory.md，按 `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/`
-> 先例新建；`lib/algorithms/coverage/` 一目录一套已被 P2-COV 占用，不可覆盖）；
-> 合同权威=三件套 + docs/science/algorithms/PHASE2_REJECTION.md
-> （ALG-P2-REJ-001，CONTRACT_READY）。descriptor 词汇
-> module_id=astrocs.phase2.reject（module_adapters.cpp:700-717，
-> 注册 :785）为编排层占位词汇，其对齐属迁移目标（未落地）；冻结依据 =
-> `docs/science/REJECTION.md`（SCI-REJ-001）与 `docs/science/algorithms/PHASE2_REJECTION.md`（ALG-P2-REJ-001）；迁移矩阵行只作现状说明。
+> 合同三件套落位 `lib/algorithms/rejection/`（README/module.yaml/memory.md；
+> 落位规则见 docs/modules/README.md）。合同权威 = 三件套 +
+> docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001，CONTRACT_READY）。
+> descriptor 词汇 module_id=astrocs.phase2.reject（p2_reject_descriptor）为编排层
+> 口径，其对齐属迁移目标（未落地）；冻结依据 = `docs/science/REJECTION.md`
+> （SCI-REJ-001）与 `docs/science/algorithms/PHASE2_REJECTION.md`（ALG-P2-REJ-001）。
 
 ## 身份与合同落位
 
 - MOD ID：`MOD-astrocs-phase2-reject`（registry 行 ID 沿用，本页与
   registry astrocs.phase2.reject.md 同步合同页）；module_id 合同值=
-  `astrocs.p2.rejection`（矩阵 P2-REJ 行；descriptor 占位
-  `astrocs.phase2.reject` 仅编排层词汇）；dll_target=
+  `astrocs.p2.rejection`（descriptor 占位 `astrocs.phase2.reject` 仅编排层词汇）；
+  dll_target=
   `astrocs_p2_rejection.dll`（合同值，尚未存在；迁移目标未落地）。
-- 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md），按
-  `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 三件套已
-  被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
+- 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md；
+  落位规则见 docs/modules/README.md）。
 - 生产源：`lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists.txt
   :336-346 astrocs_phase2 静态库成员，rejection.cpp 列于 :340）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   （329 行）。模块页=本文件。
-- owner SA-xxx；depends_on_int=P2-UPM;CPU-005（P2-REJ 为 P2-INT 行本域被依赖项，勿混淆；迁移矩阵只作现状说明）；
+- owner SA-xxx；depends_on_int=P2-UPM;CPU-005（P2-REJ 为 P2-INT 行本域被依赖项，勿混淆）；
   legacy_paths="lib/algorithms/coverage rejection sources"。
 
 ## 职责与明确非职责
@@ -55,8 +52,8 @@
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:707-710 实测；占位
-词汇，按 registry 生成词保留）:
+编排层 descriptor 端口表（p2_reject_descriptor；
+词汇按 registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
@@ -76,8 +73,8 @@
   invalid_quality）+ large_scale 原地 u8 mask（low/high 独立半径）。
 - invalid 显式化: 非 finite 输入→INVALID_INPUT；AUTO 入 kernel→
   INVALID_METHOD；PERCENTILE×norm≠MEDIAN_CENTER、RCR×norm≠NONE→
-  INVALID_CONFIGURATION；空栈→MIN_SAMPLES（**非** NO_CANDIDATES，
-  DISP-P2REJ-002；NO_CANDIDATES 属积分域 P2IntegrateStatus）。
+  INVALID_CONFIGURATION；空栈→MIN_SAMPLES（**非** NO_CANDIDATES；
+  NO_CANDIDATES 属积分域 P2IntegrateStatus，见 ALG-P2-REJ-001 §11.3）。
 
 ## 公共 header、核心 symbol 与生命周期
 
@@ -95,7 +92,7 @@
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.reject`（占位）；execution_class=
-`cpu_heavy`；parallel_ok=True（module_adapters.cpp:703-706 实测）。
+`cpu_heavy`；parallel_ok=True（p2_reject_descriptor）。
 配置=stage2_common.h reject_method/reject_profile/
 reject_underdetermined_n/reject_normalization(+floor 1e-12)/
 large_scale_*（stage2_common.h:52-63）+ typed params 唯一默认源=
@@ -113,8 +110,8 @@ cfg（stage2.cpp:698-727）。
   tie-break=frame_id（1e-15 epsilon）、linear_fit 排序
   (value,orig_index) 字典序。
 - worker 数=ThreadBudget.max_workers（禁 hardware_concurrency）；
-  lease/取消检查点接线=迁移整改点（与 DISP-COV-005
-  同构）。determinism=fixed_reduction_order。
+  lease/取消检查点接线=迁移整改点（与 coverage 域同构，见 ALG-COV-001 §11.3）。
+  determinism=fixed_reduction_order。
 
 ## 内存/cache/I-O/所有权
 
@@ -132,18 +129,16 @@ cfg（stage2.cpp:698-727）。
   冻结门）。
 - 无日志/指标输出（纯函数；编排层日志在 stage2.cpp:730-738）；
   无内部取消检查点/checkpoint（迁移 ThreadLease 接线待落地）。
-- known_defects（登记不改码，与 ALG-P2-REJ-001 §7/§11.3 同口径）:
-  DISP-P2REJ-001（rejection.h:118 percentile low_fraction 注释
-  "默认 0.1" vs 实现/SCI 权威 0.2，注释漂移，整改=注释对齐）；DISP-
-  P2REJ-002（SCI §8 "空栈→NO_CANDIDATES" vs 实现 MIN_SAMPLES，
-  NO_CANDIDATES 属积分域，语义权威=ALG §4.1）；DISP-P2REJ-003（SCI
-  §2/§5 行号锚漂移，行号权威=ALG §3 实测 2076/329 行）；DISP-
-  P2REJ-004（minmax 比较器 value-only tie-break 未显式冻结，整改
-  候选=index tie-break + 等值门）；整改面未落地。
+- known_defects（登记不改码；正本 = ALG-P2-REJ-001 §7/§11.3）:
+  percentile low_fraction 注释「默认 0.1」与实现/SCI 权威 0.2 漂移（整改 =
+  注释对齐）；SCI §8「空栈→NO_CANDIDATES」与实现 MIN_SAMPLES 的口径差
+  （NO_CANDIDATES 属积分域，语义权威 = ALG §4.1）；SCI §2/§5 行号锚漂移
+  （行号权威 = ALG §3 实测）；minmax 比较器 value-only tie-break 未显式冻结
+  （整改候选 = index tie-break + 等值门）；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-REJ-001` MISSING（可执行测试待建，不冒认）；
+可执行 `TEST-P2-REJ-001` 待建（不冒认）；
 登记面=TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED（ALG-P2-REJ-001
 §11.4 F1-F8: ESD NIST Rosner 54 值拒集 bitwise、AUTO 路由枚举精确、
 small-N 状态穷尽、卫星注入 mask 精确、置换不变性 decision bitwise、
@@ -157,9 +152,8 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 
 ## 已知限制
 
-- DISP-P2REJ-001/002/003/004（上节，登记不改码）。
-- DISP-P2REJ-001/002/003/004 的现行语义与判据正本 =
-  `docs/science/algorithms/PHASE2_REJECTION.md` §11.3（本页只留指针）。
+- 缺陷与现行语义正本 = `docs/science/algorithms/PHASE2_REJECTION.md` §11.3
+  （本页只留指针）。
 
 ## 链接
 

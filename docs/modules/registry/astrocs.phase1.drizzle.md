@@ -1,18 +1,11 @@
----
-id: MOD-astrocs-phase1-drizzle
----
-
 # 模块 astrocs.phase1.drizzle
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 本页源码核对修订：registry 占位 ID
-> SCI-P1-DRIZ-001/ALG-005/TEST-P1-DRIZ-001 更正为 SCI-DRZ-001/
-> ALG-DRZ-001/TEST-DRZ-DESIGN-001（与 docs/traceability/
-> TRACEABILITY_MATRIX.json P1-DRZ 行、lib/algorithms/drizzle/module.yaml 一致；
-> 旧 ID 不存在于任何权威文档）。事实源：lib/algorithms/drizzle/README.md、
-> docs/science/algorithms/DRIZZLE_GEOMETRY.md、
-> run/local/agent_p1_drz_doc/source_facts.md（行号实测底稿）。
+> 合同：SCI-DRZ-001 / ALG-DRZ-001 / TEST-DRZ-DESIGN-001（与
+> lib/algorithms/drizzle/module.yaml、registry descriptor 同口径）。事实源：
+> lib/algorithms/drizzle/README.md（CONTRACT_READY）、
+> docs/science/algorithms/DRIZZLE_GEOMETRY.md、lib/algorithms/drizzle/src/。
 
 ## 职责与明确非职责
 
@@ -35,9 +28,8 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 | `snr` | `DATA-P1-SNR` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
 | `stacked` | `DATA-P1-STACK` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
 
-> 现状 descriptor（module_adapters.cpp:570-587）data_id=DATA-P1-STACK
-> （编排汇总语义）；模块级数据合同 DATA-P1-DRZ
-> （DATA_SEMANTICS §11，tile 累加量原始和 + finalize 归一在下游），
+> 数据合同：descriptor 的 data_id = DATA-P1-STACK（编排汇总语义）；模块级数据合同
+> = DATA-P1-DRZ（DATA_SEMANTICS §11：tile 累加量为原始和，finalize 归一在下游），
 > 其对齐属迁移目标（未落地）。
 
 invalid：现行实现为
@@ -53,7 +45,7 @@ hp_drizzle_fits_to_ahpx / hp_drizzle_run / hp_drizzle_run_hips /
 hp_drizzle_reverse_run / hp_drizzle_reverse_capability /
 hp_drizzle_reverse_version（API-DRZ-001，PUBLIC_API.md）。编排级
 API-P1-007（区间声明）。迁移生命周期 create→validate→run→inspect→
-destroy 为迁移目标（未落地）（现状 entrypoint=MISSING：descriptor
+destroy 为迁移目标（未落地）（现状 entrypoint 未落地：descriptor
 未接节点，p1_session 无 drizzle stage）。
 
 ## Registry descriptor 与配置 schema
@@ -89,12 +81,10 @@ checkpoint 无（HiPS 由编排层 overwrite 清理）。
 ## 独立 synthetic 验证命令与容差
 
 `TEST-DRZ-DESIGN-001`（DRIZZLE_GEOMETRY.md §9）：FP64 通量闭合
-<1e-6（主域）/逐 leaf <1e-5、方差 α² worst_rel<1e-4、候选零漏选
-9003 例、reverse false_hole/false_fill=0。可执行 TEST-P1-DRZ-001
-待建。
+<1e-6（主域）/逐 leaf <1e-5、方差 α² worst_rel<1e-4、候选零漏选（合成负例，全命中）、reverse false_hole/false_fill=0。
+可执行 TEST-P1-DRZ-001 待建。
 
 ## 已知限制
 
-ALG-DRZ-001 §10（DISP-DRZ-001..008）+ README §9（NaN 无计数、
-pixfrac 双轨、错误码混用、无取消、static 条带负载不均、poly_clip
-零调用）；docs/KNOWN_LIMITATIONS.md。
+ALG-DRZ-001 §10 缺陷登记（NaN 无计数、pixfrac 双轨、错误码混用、无取消、
+static 条带负载不均、poly_clip 零调用）+ README §9；docs/KNOWN_LIMITATIONS.md。

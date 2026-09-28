@@ -1,15 +1,17 @@
----
-id: MOD-astrocs-phase1-calibration
----
-
 # 模块 astrocs.phase1.calibration
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责与明确非职责
 
-Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由
-SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
+Registry production 模块（唯一源 = module_adapters.cpp 的 phase1_descriptor）。
+职责：master 生成（sigma-clip + median/mean 合并）与单帧校准（bias/dark/flat，
+dark_opt 双分支）——生产源 lib/algorithms/calibration/src/，头
+lib/algorithms/calibration/include/astro_calibration.h（12 导出：ac_generate_master_bias/
+dark/flat、ac_calibrate_frame(+_f64)、ac_correct_frame(+_f64)、ac_set_num_threads、
+ac_version）；生产调用 lib/phase1_session/p1_session.cpp（calibrate 阶段
+ac_calibrate_frame + cosmetic 阶段 ac_correct_frame）。不做：天体测量/测光定标、
+FITS 读写（astro_image_io）、母版分组匹配（orchestrator）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -22,8 +24,10 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-由 `API-P1-001` 公共 API 定义(phase session extern "C"); 生命周期 create→validate→
-run→inspect→destroy。
+模块级 API = API-CAL-001（docs/contracts/PUBLIC_API.md；头 astro_calibration.h、
+实现 lib/algorithms/calibration/src/）；编排级 API = API-P1-001（phase session
+extern "C"，签名源 docs/api/PHASE1_API_V1.md）；生命周期
+create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
@@ -33,7 +37,7 @@ parallel_ok=True; 配置=phase config JSON(按 PHASE API 文档)。
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json(absent) 无 astrocs.phase1.calibration.determinism 条目）。
+确定性=NOT_VERIFIED（未取得验收证据）；归约口径 = docs/science/algorithms/CALIBRATION_ALGORITHMS.md §6。
 
 ## 内存/cache/I-O/所有权
 
@@ -45,7 +49,9 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 独立 synthetic 验证命令与容差
 
-测试标识=`TEST-P1-CAL-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json(absent) 无 astrocs.phase1.calibration.verification 条目）；容差=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json(absent) 无 astrocs.phase1.calibration.tolerance 条目）。
+测试标识=`TEST-P1-CAL-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（未取得验收证据）；
+容差=NOT_VERIFIED（未取得验收证据）；设计冻结容差 = TEST-CAL-DESIGN-001
+（CALIBRATION_ALGORITHMS.md §9），既有共址测试 = lib/algorithms/calibration/tests/。
 
 ## 已知限制
 

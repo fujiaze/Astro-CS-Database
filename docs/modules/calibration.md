@@ -33,10 +33,9 @@ astrocs_p1_calibration.dll 为迁移目标（未落地）。
 
 当前生产调用点：
 `lib/phase1_session/p1_session.cpp:243` 调 `ac_calibrate_frame`
-（calibrate stage）与 `:294` 调 `ac_correct_frame`（cosmetic stage，
-c5629be6 引入；master_dark/master_bias 传 nullptr → 检测
-全禁用、恒等 pass，DISP-COS-009——cosmetic 域现状与整改见
-lib/algorithms/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
+（calibrate stage）与 `:294` 调 `ac_correct_frame`（cosmetic stage；
+master_dark/master_bias 传 nullptr → 检测全禁用、恒等 pass；cosmetic 域
+现状见 lib/algorithms/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
 当前无生产调用方（master 由外部预生成；ac_set_num_threads 由
 session budget 注入通道持有）。
 
@@ -63,13 +62,14 @@ orchestrator 层。
 
 全部函数 reentrant、threadsafe（无共享可变全局）；OpenMP parallel-for
 像素/帧域并行（默认 team，线程数非 16 硬编码）。例外：
-ac_set_num_threads 进程级改写 OpenMP ICV（DISP-CAL-002，迁移整改点）。
+ac_set_num_threads 进程级改写 OpenMP ICV（迁移整改点，缺陷登记 =
+CALIBRATION_ALGORITHMS.md §10）。
 
 ## Errors
 
 AC_OK(0)/AC_ERR_PARAM(-1)（astro_calibration.h:21-24）；AC_ERR_MEMORY(-2)/
-AC_ERR_INTERNAL(-3) 定义但从未返回（无 extern "C" 异常屏障，
-DISP-CAL-001）。母版缺失/滤镜不匹配 → orchestrator 层 CONFIG/NO_DATA。
+AC_ERR_INTERNAL(-3) 定义但从未返回（无 extern "C" 异常屏障；缺陷登记 =
+CALIBRATION_ALGORITHMS.md §10）。母版缺失/滤镜不匹配 → orchestrator 层 CONFIG/NO_DATA。
 flat floor 0.1 下界与 median 归一行为见 ALG-CAL §3（F1–F3）。
 cc_* 通道：window 偶数/<3/>15 → −1（cpp/cosmetic_corrector.cpp，
 非 ac_correct_frame）。
@@ -110,7 +110,7 @@ TEST-CAL-DESIGN-001（ALG-CAL 文档 §9：合成 fixture FIX-CAL-A..F、NumPy
 独立 oracle、不变量 I1-I6、负面/串并行/ISA/资源设计与冻结容差）——可执行
 可执行测试待建（TEST-P1-CAL-001）。既有共址测试：
 lib/algorithms/calibration/tests/test_photometry_apply.cpp（未挂接 CMake 测试目标）。
-Python 对照为历史层（当前树无 python/ 目录）。
+Python 对照实现不在本树（无 python/ 目录）。
 
 ## Source files
 

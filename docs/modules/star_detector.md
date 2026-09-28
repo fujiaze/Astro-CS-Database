@@ -2,12 +2,11 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 本页为模块诊断页。模块冻结合同页 =
-> docs/modules/registry/astrocs.phase1.star-detection.md；
-> 合同入口 = lib/algorithms/star_detection/README.md（CONTRACT_READY）+ module.yaml
-> （MOD-astrocs-phase1-star，module_id=astrocs.p1.star_detection，
-> dll_target=astrocs_p1_star_detection.dll，entrypoint=MISSING）。本页
-> 以冻结合同为准，改动一律从合同层发起。
+> 本页为模块诊断页。模块冻结合同 = lib/algorithms/star_detection/README.md
+> （CONTRACT_READY）+ module.yaml（MOD-astrocs-phase1-star，
+> module_id=astrocs.p1.star_detection，dll_target=astrocs_p1_star_detection.dll，
+> entrypoint 未落地）；registry 登记页 = docs/modules/registry/astrocs.phase1.star-detection.md。
+> 本页以冻结合同为准，改动一律从合同层发起。
 
 ## 职责
 
@@ -58,7 +57,8 @@ handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处�
 估计、入口像素类型转换、盲检测候选拟合（dynamic + reduction）、星表引导候选拟合
 （同款 dynamic + reduction，每线程私有 LM 工作区）。dedup/sort/maxStars 截断串行，
 输出 bitwise 与线程数无关；ThreadBudget 接线与取消检查点缺失已登记
-（DISP-STAR；迁移目标未落地）。
+（缺陷登记 = docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.3；
+迁移目标未落地）。
 
 ## Errors
 

@@ -1,29 +1,28 @@
----
-id: MOD-astrocs-phase1-writer
----
-
 # 模块 astrocs.phase1.writer
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责与明确非职责
 
-Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由
-SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
+Registry production 模块（唯一源 = module_adapters.cpp 的 p1_writer_descriptor）。
+职责：把叠加产品写为 FITS（WCS/provenance 关键字随写）——实现面 =
+lib/infrastructure/aio 的 `aio_write_fits`，节点登记名 = astrocs_phase1_writer_v1
+（模块节点绑定表）。不做：像素算法、校准/叠加本身、静默覆盖既有产品。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
-| `stacked` | `DATA-P1-STACK` | 必 | `UnitId::ADU` | `CoordinateFrame::ICRS` |
-| `fits` | `DATA-P1-FITS` | 可 | `UnitId::ADU` | `CoordinateFrame::ICRS` |
+| `stacked` | `DATA-P1-STACK` | 必 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
+| `fits` | `DATA-P1-FITS` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
 
 invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-由 `API-P1-008` 公共 API 定义(phase session extern "C"); 生命周期 create→validate→
-run→inspect→destroy。
+节点入口 = API-P1-008（phase session extern "C"；节点登记名 astrocs_phase1_writer_v1）；
+写出实现 = lib/infrastructure/aio 的 `aio_write_fits`/`aio_read_fits`（FITS/XISF 唯一
+I/O 层，原子发布按 IO-003 合同）；生命周期 create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
@@ -33,7 +32,7 @@ parallel_ok=False; 配置=phase config JSON(按 PHASE API 文档)。
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `io`; parallel=否(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase1.writer.determinism 条目；未读到的结论不写成 PASS/FAIL）。
+确定性=NOT_VERIFIED（未取得验收证据；不写成 PASS/FAIL）。
 
 ## 内存/cache/I-O/所有权
 
@@ -45,7 +44,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 独立 synthetic 验证命令与容差
 
-测试标识=`TEST-P1-WR-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase1.writer.verification 条目）；容差=NOT_VERIFIED（同上）。
+测试标识=`TEST-P1-WR-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（未取得验收证据）；容差=NOT_VERIFIED（同源）。
 
 ## 已知限制
 

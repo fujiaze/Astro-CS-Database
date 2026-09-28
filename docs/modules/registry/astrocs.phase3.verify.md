@@ -1,15 +1,14 @@
----
-id: MOD-astrocs-phase3-verify
----
-
 # 模块 astrocs.phase3.verify
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-## 职责与明确非职责
-
-Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由
-SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
+Registry production 节点（唯一源 = module_adapters.cpp 的 p3_verify_descriptor，
+节点操作 `verify_output`）。职责：对已写 FITS 做独立重开校验（READONLY 重开 →
+逐 HDU 尺寸/像素/哈希比对，`p3_output_verify`/`p3_output_verify_ex`，
+lib/algorithms/fits_output/p3_output.h），出 `verified`（DATA-P3-VER）；
+会话消费面 lib/phase3_session/p3_export.cpp（`aio::verify_fits_file`）。
+不做：写出本身（P3-FITS）、重采样（P3-RSMP）、properties/WCS 计划
+（P3-PROPS/P3-WCS）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -18,22 +17,26 @@ SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
 | `fits` | `DATA-P3-FITS` | 必 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::PIXEL` |
 | `verified` | `DATA-P3-VER` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 
-invalid = NaN/coverage=0(按 DATA 合同)。
+invalid = 重开失败、HDU 尺寸或像素不符、sha256 不匹配即 fail-closed（返回非 OK
+状态，不产出半成品 verified；判据 = `p3_output_verify_ex`）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-由 `API-P3-001` 公共 API 定义(phase session extern "C"); 生命周期 create→validate→
-run→inspect→destroy。
+校验实现 = lib/algorithms/fits_output/p3_output.h 的 `p3_output_verify`/
+`p3_output_verify_ex`（重开路径 `aio::verify_fits_file`，lib/phase3_session/p3_export.cpp）；
+节点入口 = P3NodeOp::Verify（`verify_output`，节点绑定表）；编排级 API = API-P3-001
+（docs/api/PHASE3_API_V1.md，phase session extern "C"）；生命周期
+create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase3.verify`; execution_class=`io`;
-parallel_ok=False; 配置=phase config JSON(按 PHASE API 文档)。
+parallel_ok=False; 配置=phase config JSON（键集 = API-P3-001）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
 `io`; parallel=否(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase3.verify.determinism 条目；未读到的结论不写成 PASS/FAIL）。
+确定性=NOT_VERIFIED（未取得验收证据）；校验面为只读比对（同输入同判定）。
 
 ## 内存/cache/I-O/所有权
 
@@ -45,8 +48,11 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 独立 synthetic 验证命令与容差
 
-测试标识=`TEST-P3-VER-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（证据源 eng/ci/ledgers/module_page_evidence.json 无 astrocs.phase3.verify.verification 条目）；容差=NOT_VERIFIED（同上）。
+测试标识=`TEST-P3-VER-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（未取得验收证据）；
+容差=NOT_VERIFIED（未取得验收证据；尺寸/像素/哈希比对为精确判定）；设计依据 =
+docs/science/algorithms/PHASE3_FITS_IMPL.md（FITS 写出与校验的实现级合同）。
 
 ## 已知限制
 
-见 docs/KNOWN_LIMITATIONS.md 与 `ALG-P3-005` 合同边界。
+见 docs/KNOWN_LIMITATIONS.md 与 `ALG-P3-005` 合同边界
+（docs/science/algorithms/PHASE3_FITS_IMPL.md 的校验条款）。

@@ -2,32 +2,26 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 合同三件套落位
-> `lib/algorithms/sampling/`（README/module.yaml/memory.md，按
-> `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 一目录
-> 一套已被 P2-COV 占用，不可覆盖）；合同权威=三件套 +
-> docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
-> CONTRACT_READY）。descriptor 词汇 module_id=astrocs.phase2.sample
-> （module_adapters.cpp:642-653）为编排层占位词汇，其对齐属迁移目标（未落地）；冻结依据 =
-> `docs/science/algorithms/PHASE2_SAMPLER.md`（ALG-P2-SMP-001）。本页 descriptor 词汇只作对齐说明，以免
-> 反向作为冻结依据。
+> 合同三件套落位 `lib/algorithms/sampling/`（README/module.yaml/memory.md；
+> 落位规则见 docs/modules/README.md）。合同权威 = 三件套 +
+> docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，CONTRACT_READY）。
+> descriptor 词汇 module_id=astrocs.phase2.sample（p2_sample_descriptor）为编排层
+> 口径，其对齐属迁移目标（未落地）；冻结依据 = ALG-P2-SMP-001。本页 descriptor
+> 词汇只作对齐说明，以免反向作为冻结依据。
 
 ## 身份与合同落位
 
 - MOD ID：`MOD-astrocs-phase2-sample`（registry 行 ID 沿用，本页与
   registry astrocs.phase2.sample.md 同步合同页）；module_id 合同值=
-  `astrocs.p2.sampling`（矩阵 P2-SAMP 行；descriptor 占位
-  `astrocs.phase2.sample` 仅编排层词汇）；dll_target=
+  `astrocs.p2.sampling`（descriptor 占位 `astrocs.phase2.sample` 仅编排层词汇）；dll_target=
   `astrocs_p2_sampling.dll`（合同值，尚未存在；迁移目标未落地）。
-- 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md），按
-  `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 三件套已
-  被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
+- 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md；
+  落位规则见 docs/modules/README.md）。
 - 生产源：`lib/algorithms/coverage/src/sampler.cpp`（1156 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，sampler.cpp 列于 :342）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/sampler.h`
   （136 行）。模块页=本文件。
-- owner SA-P2-S20；depends_on_int=P2-COV;CPU-005
-  （MODULE_MIGRATION_MATRIX.csv P2-SAMP 行权威）；
+- owner SA-P2-S20；depends_on_int=P2-COV;CPU-005；
   legacy_paths="lib/algorithms/coverage sampling sources"。
 
 ## 职责与明确非职责
@@ -44,11 +38,11 @@
   权威 = k_corr×(π/2)×σ_bg²/N_retained（:840-842；
   ALG-UPM-CONTROL-IVAR-001；k_corr 逐帧 Drizzle provenance 查表
   :547-555，回退代码默认 1.4 :82）。k_corr 公式面 = 两因子
-  k_gauss(N_retained)×k_geo 几何查表（k_gauss 表与 k_geo 域由 P3 单元 实验/healpix-polar
-  承载；1.3883 = 标定几何专属 MC 实测带 1.27–1.43 内一次实现值；冻结单数 1.4 在其
-  声明标定域两端低估 control_variance 32%/约 2 倍，代码默认 1.4 为实现记录；引用义务 =
-  标定元组 + N_retained 档位声明，不一致时 fail-closed 或现场 MC 重标，见
-  docs/science/PHASE2_UPM.md §4/§5 与 docs/contracts/DATA_SEMANTICS.md §23.1）。
+  k_gauss(N_retained)×k_geo 几何查表（k_gauss 表与 k_geo 域由 实验/healpix-polar
+  承载）；冻结单数 1.4 = 声明标定域内的实现记录值（标定元组、实测带与
+  偏差面见 实验/healpix-polar）；引用义务 = 标定元组 + N_retained 档位声明，
+  不一致时 fail-closed 或现场 MC 重标，见 docs/science/PHASE2_UPM.md §4/§5
+  与 docs/contracts/DATA_SEMANTICS.md §23.1）。
   frame_id 内容稳定身份
   （truncated-64 canonical SHA-256，h:85-93/DATA-FRAME-ID-001）。
 - 工作域纪律：value 为 patch median（可负，ADU）；ivar 弃用仅诊断
@@ -63,8 +57,8 @@
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:642-653 实测；占位
-词汇，按 registry 生成词保留）:
+编排层 descriptor 端口表（p2_sample_descriptor；词汇按 registry
+生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
@@ -77,12 +71,12 @@
 - 输入 P2CoverageResult（n_union 上限 1e6、cells 上限 2e8）+
   hips_paths/frame_ids（cached 版可空=内部重算；0=非法哨兵
   :512-523）+ P2SamplerConfig 15 字段（默认单一来源 :294-312；
-  `<=0→默认` 修补吞显式 0=DISP-P2SMP-001）。
+  `<=0→默认` 修补吞显式 0，登记见 ALG-P2-SMP-001 §11.3）。
 - 输出 P2ControlObservation 13 字段（frame_id/control_id/leaf_ipix
   u64、ra_deg/dec_deg/value/uncertainty/snr/ivar/control_variance/
   control_ivar/support f64、snr_available int、quality_flags u32）
   + P2SampleStats 10 字段 u64 诊断计数（insufficient_retained
-  现状双计数=DISP-P2SMP-002）+ P2ControlNode 7 字段（out_n_controls
+  现状双计数，登记见 ALG-P2-SMP-001 §11.3）+ P2ControlNode 7 字段（out_n_controls
   全几何含空覆盖占位，与 accepted/overlap_controls 区分）。
 - invalid 显式化: bad args/frame_id 0/open failed/n_union>1e6/
   cells>2e8/首 tile 越界/exception → rc=1（err 8KB 文本）；容量
@@ -126,7 +120,7 @@ module_id=`astrocs.phase2.sample`（占位）；execution_class=
   TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism)。
 - worker 数=Runtime lease（cfg.cpu_workers=ThreadBudget.max_workers
   经 stage2.cpp:273-274 透传，模块无 hardware_concurrency 自行开
-  线程 :880-883）；lease/取消检查点接线为迁移整改点（与 DISP-COV-005 同构，未落地）。determinism=fixed_reduction_order。
+  线程 :880-883）；lease/取消检查点接线为迁移整改点（与 coverage 域同构，见 ALG-COV-001 §11.3；未落地）。determinism=fixed_reduction_order。
 
 ## 内存/cache/I-O/所有权
 
@@ -143,19 +137,18 @@ module_id=`astrocs.phase2.sample`（占位）；execution_class=
 - 错误面=rc 二值 + err 8KB 文本（细分语义=DATA §23.5/ALG §11.1）；
   无状态机（accept/reason u8 0..5 逐观测承载，DATA §23.3）；
   容量不足不报错（probe/fill）。
-- 诊断进度日志 17 处直写 stderr（:641-672 等，DISP-P2SMP-003
-  登记；结构化通道整改面未落地）；无内部取消检查点/
+- 诊断进度日志直写 stderr（:641-672 等，结构化通道整改面未落地）；
+  无内部取消检查点/
   checkpoint（迁移 ThreadLease 接线待落地）。
-- known_defects（登记不改码，与 ALG-P2-SMP-001 §11.2 同口径）:
-  DISP-P2SMP-001（cfg `<=0→默认` 吞显式 0 :485-502，bughunt
-  R3-A P3-③）；DISP-P2SMP-002（insufficient_retained 双计数
-  :1006+:1022）；DISP-P2SMP-003（stderr 直写）；DISP-P2SMP-004
-  （veto 阈值 10×frame_snr_med 与半径 0.012° 硬编码 :849-850）；
-  DISP-P2SMP-005（m0≈0 收敛阈值退化全迭代 :818）；整改面未落地。
+- known_defects（登记不改码；正本 = ALG-P2-SMP-001 §11.2/§11.3）:
+  cfg `<=0→默认` 吞显式 0（:485-502）；insufficient_retained 双计数
+  （:1006+:1022）；stderr 直写；veto 阈值 10×frame_snr_med 与半径
+  0.012° 硬编码（:849-850）；m0≈0 收敛阈值退化全迭代（:818）；
+  整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-SMP-001` MISSING（可执行测试待建，不冒认）；
+可执行 `TEST-P2-SMP-001` 待建（不冒认）；
 登记面=TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED（ALG-P2-SMP-001
 §11.3 F1-F9: F1 统计量逐值 bitwise、F2 kcorr 角点 exact/插值
 rtol 1e-12、F3 cvar Python oracle rtol 1e-12 + UPMW-004 MC 3σ、
@@ -170,9 +163,8 @@ lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 
 ## 已知限制
 
-- DISP-P2SMP-001..005（上节，登记不改码）。
-- DISP-P2SMP-001..005 的现行语义与判据正本 =
-  `docs/science/algorithms/PHASE2_SAMPLER.md` §11.3（本页只留指针）。
+- 缺陷与现行语义正本 = `docs/science/algorithms/PHASE2_SAMPLER.md` §11.3
+  （本页只留指针）。
 
 ## 链接
 

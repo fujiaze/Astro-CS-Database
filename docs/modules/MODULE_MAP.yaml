@@ -824,22 +824,22 @@ declared_absent_paths:
     - {module: hips_browser, key: module_yaml, path: lib/infrastructure/hips_browser/module.yaml, owner: RELEASE-04/未覆盖, reason: "module.yaml 未落地（ENGINEERING_SPEC §4 第 2 项；实现缺口）"}
     - {module: hips_browser, key: target_file, path: lib/infrastructure/hips_browser/CMakeLists.txt, owner: RELEASE-04/未覆盖, reason: "逐模块 CMakeLists.txt 不存在（本项目唯一根 CMake，target 定义在根 CMakeLists.txt；实现缺口）"}
     - {module: hips_browser, key: schema_links, path: eng/contracts/schemas/hips_product.schema.json, owner: RELEASE-04/未覆盖, reason: "模块输出 schema 未落地（plugin 文档声明的 legacy 名；现行 canonical 对象 schema = eng/contracts/schemas/unified/**）"}
-    - {module: star_detection, key: target, path: astrocs_p1_star_detection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: psf, key: target, path: astrocs_p1_psf, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: platesolve, key: target, path: astrocs_p1_platesolve, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: photometry, key: target, path: astrocs_p1_photometry, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: noise_snr, key: target, path: astrocs_p1_noise_snr, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: coverage, key: target, path: astrocs_p2_coverage, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: sampling, key: target, path: astrocs_p2_sampling, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: upm, key: target, path: astrocs_p2_upm, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: rejection, key: target, path: astrocs_p2_rejection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: integration, key: target, path: astrocs_p2_integration, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: projection, key: target, path: astrocs_p3_projection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: resample, key: target, path: astrocs_p3_resample, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: aio, key: target, path: astrocs_infra_aio, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: benchmark, key: target, path: astrocs_infra_benchmark, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: observability, key: target, path: astrocs_infra_observability, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
-    - {module: hips_browser, key: target, path: astrocs_infra_hips_browser, owner: RELEASE-04/未覆盖, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.4 独立 target；实现缺口）"}
+    - {module: star_detection, key: target, path: astrocs_p1_star_detection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: psf, key: target, path: astrocs_p1_psf, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: platesolve, key: target, path: astrocs_p1_platesolve, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: photometry, key: target, path: astrocs_p1_photometry, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: noise_snr, key: target, path: astrocs_p1_noise_snr, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: coverage, key: target, path: astrocs_p2_coverage, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: sampling, key: target, path: astrocs_p2_sampling, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: upm, key: target, path: astrocs_p2_upm, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: rejection, key: target, path: astrocs_p2_rejection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: integration, key: target, path: astrocs_p2_integration, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: projection, key: target, path: astrocs_p3_projection, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: resample, key: target, path: astrocs_p3_resample, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: aio, key: target, path: astrocs_infra_aio, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: benchmark, key: target, path: astrocs_infra_benchmark, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: observability, key: target, path: astrocs_infra_observability, owner: BLD-401, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
+    - {module: hips_browser, key: target, path: astrocs_infra_hips_browser, owner: RELEASE-04/未覆盖, reason: "合同声明的独立 CMake target 全仓未定义（DESIGN §8.5 独立 target；实现缺口）"}
 
 # ===========================================================================
 # 声明能力缺失登记（实现缺口，逐条）

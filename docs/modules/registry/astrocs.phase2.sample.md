@@ -1,34 +1,24 @@
----
-id: MOD-astrocs-phase2-sample
-module_id: astrocs.p2.sampling
----
-
 # 模块 astrocs.phase2.sample
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 本页自 gen_module_readmes 派生页事实修订
-> 为手写合同页（手写 registry 先例 astrocs.phase2.reject.md/
-> astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
-> frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
-> 保持不动；合同权威=lib/algorithms/sampling/ 三件套 +
-> docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）。descriptor
-> 词汇（本节标题 module_id=astrocs.phase2.sample、端口表、坐标
-> PIXEL）为编排层占位（module_adapters.cpp:642-653
-> p2_sample_descriptor）为编排层占位词汇，其对齐属迁移目标（未落地）；
-> 冻结依据 = `docs/science/algorithms/PHASE2_SAMPLER.md`（ALG-P2-SMP-001），迁移矩阵行只作现状说明。
+> 合同：LIB 面 = lib/algorithms/sampling/ 三件套（CONTRACT_READY）；
+> 科学/算法正本 = docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；
+> SCI = docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN）；数据合同 = DATA-P2-SMP
+> （DATA_SEMANTICS §23）；C API = API-P2-SMP-001（PUBLIC_API）+ 编排级 API-P2-001
+> （docs/api/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
+> （module_id=astrocs.phase2.sample、端口表、坐标 PIXEL）为编排层口径，
+> 冻结依据 = ALG-P2-SMP-001。
 
 ## 身份与合同落位
 
-- MOD ID：MOD-astrocs-phase2-sample；module_id 合同值=
-  astrocs.p2.sampling（矩阵 P2-SAMP 行）；dll_target=
-  astrocs_p2_sampling.dll（合同值，尚未存在）。
-- 合同三件套：lib/algorithms/sampling/（README/module.yaml/memory.md，按
-  lib/algorithms/integration/→lib/algorithms/coverage/hips_p2/ 先例新建；lib/algorithms/coverage/ 一套已被
-  P2-COV 占用）。
-- 生产源：lib/algorithms/coverage/src/sampler.cpp（1503 行，根 CMakeLists.txt
-  :337-346/:342 astrocs_phase2 静态库成员）+ 签名头正本
-  lib/algorithms/coverage/include/astro/phase2/sampler.h（273 行）。
+- MOD ID：MOD-astrocs-phase2-sample；module_id 合同值 = astrocs.p2.sampling；
+  dll_target = astrocs_p2_sampling.dll（迁移目标，未落地）。
+- 合同三件套：lib/algorithms/sampling/（CONTRACT_READY；落位规则见
+  docs/modules/README.md）。
+- 生产源：lib/algorithms/coverage/src/sampler.cpp + 签名头正本
+  lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists.txt
+  的 astrocs_phase2 静态库成员。
 - 模块页：docs/modules/phase2_samp.md。
 
 ## 职责与明确非职责
@@ -50,8 +40,7 @@ module_id: astrocs.p2.sampling
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:642-653，占位词汇，
-按 frontmatter registry 生成词保留）:
+编排层 descriptor 端口表（p2_sample_descriptor，编排层口径）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
@@ -60,12 +49,12 @@ module_id: astrocs.p2.sampling
 
 内核级真实 I/O 合同=DATA-P2-SMP（DATA_SEMANTICS §23）: 输入
 P2CoverageResult + hips_paths/frame_ids（0=非法哨兵 :512-523）+
-P2SamplerConfig 15 字段（默认单一来源 :294-312；`<=0→默认` 吞显式
-0=DISP-P2SMP-001）；输出 P2ControlObservation 13 字段（value
+P2SamplerConfig 15 字段（默认单一来源 :294-312；`<=0→默认` 吞显式 0，
+缺陷登记 = PHASE2_SAMPLER.md §11.3）；输出 P2ControlObservation 13 字段（value
 f64 ADU 可负 / uncertainty=sqrt(control_variance) / ivar 弃用仅
 诊断、科学权重一律 control_ivar / snr_available=0 时 snr 回退整帧
 中位，禁以 1.0 伪装 unknown，upm.h:51-55）+ P2SampleStats 10 字段
-u64（insufficient_retained 现状双计数=DISP-P2SMP-002）+
+u64（insufficient_retained 现状双计数，缺陷登记 = PHASE2_SAMPLER.md §11.3）+
 P2ControlNode 7 字段。invalid: bad args/frame_id 0/open failed/
 n_union>1e6/cells>2e8/首 tile 越界 → rc=1；容量不足不报错
 （probe/fill 截断 + out_n_* 真实需求）。
@@ -96,15 +85,15 @@ sccfg 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，
 
 - `cpu_heavy`；并行轴=union cell 间（模块内 std::thread 池
   :886-913 动态领取，per-worker 独立 AIO 句柄 :894；=1 串行
-  reference :916-933）；OpenMP 已从实现移除（:882-883 注释），
-  lib/algorithms/coverage/CMakeLists.txt:28 option 仅旧 target 编译面。
+  reference :916-933）；实现无 OpenMP 路径（:882-883 注释），
+  lib/algorithms/coverage/CMakeLists.txt 的 P2_ENABLE_OPENMP 选项只对 legacy
+  target 生效。
 - **输出 obs 序列 bitwise 与 worker 数无关**（1/N 等价）：固定槽位
   写回 cells[idx]（:870-872）+ 第三遍单线程顺序扫描；验证门=F8
   sampler_parallel_consistency_test.cpp:29。
 - worker 数=Runtime lease（cfg.cpu_workers=ThreadBudget.max_workers
-  经 stage2.cpp:273-274 透传，禁 hardware_concurrency）；lease/
-  取消检查点接线=迁移整改点（与 DISP-COV-005 同构）。
-  determinism=fixed_reduction_order。
+  经 stage2.cpp:273-274 透传，禁 hardware_concurrency）；取消检查点接线属
+  迁移整改面（未落地）。determinism=fixed_reduction_order。
 
 ## 内存、cache、I-O、所有权
 
@@ -120,20 +109,18 @@ sccfg 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，
 - 错误面=rc 二值 + err 8KB 文本（细分语义=DATA §23.5/ALG §11.1；
   容量不足不报错=probe/fill）；无状态机（reason u8 0..5 逐观测
   承载，DATA §23.3）。
-- 诊断进度日志 17 处直写 stderr（:641-672 等，DISP-P2SMP-003 登记，
-  结构化通道整改面未落地）；无内部取消检查点（迁移
-  ThreadLease 接线属迁移目标，未落地）。
-- known_defects（登记不改码）: DISP-P2SMP-001（cfg `<=0→默认` 吞
-  显式 0 :485-502）、DISP-P2SMP-002（insufficient_retained 双计数
-  :1006+:1022）、DISP-P2SMP-003（stderr 直写）、DISP-P2SMP-004
-  （veto 阈值/半径硬编码 :849-850）、DISP-P2SMP-005（m0≈0 收敛
-  阈值退化全迭代 :818）；整改面未落地。
+- 诊断进度日志直写 stderr（:641-672 等，缺陷登记 = PHASE2_SAMPLER.md §11.3，
+  结构化通道整改面未落地）；无内部取消检查点（ThreadLease 接线属迁移整改面，
+  未落地）。
+- 已知缺陷（登记不改码，正本 = PHASE2_SAMPLER.md §11.3）：cfg `<=0→默认`
+  吞显式 0（:485-502）、insufficient_retained 双计数（:1006/:1022）、
+  stderr 直写、veto 阈值/半径硬编码（:849-850）、m0≈0 收敛阈值退化
+  全迭代（:818）；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-SMP-001` MISSING（可执行测试待建，不冒认）；
-登记面=TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED，锚=ALG-P2-SMP-001
-§11.3 + 本节（F1 统计量 bitwise、F2 kcorr 角点 exact/插值 rtol
+可执行 `TEST-P2-SMP-001` 待建；设计冻结 = TEST-P2-SMP-DESIGN-001
+（ALG-P2-SMP-001 §11.3 + 本节；F1 统计量 bitwise、F2 kcorr 角点 exact/插值 rtol
 1e-12、F3 cvar oracle rtol 1e-12、F4 坐标 atol 1e-9 deg、F5
 constant/gradient/impulse cvar rtol 1e-12、F6 边界/seam exact、
 F7 missing/invalid exact、F8 串并行 bitwise、F9 计数守恒现状
@@ -146,8 +133,8 @@ sampler_parallel_consistency_test.cpp:29 + ivar_wiring_test.cpp
 
 ## 已知限制
 
-DISP-P2SMP-001..005 的现行语义与判据正本 =
-`docs/science/algorithms/PHASE2_SAMPLER.md` §11.3（本页只留指针）。
+现行语义与判据正本 = `docs/science/algorithms/PHASE2_SAMPLER.md` §11.3
+（本页只留指针）。
 
 ## 链接
 

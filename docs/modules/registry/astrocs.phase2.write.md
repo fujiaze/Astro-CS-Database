@@ -1,23 +1,16 @@
----
-id: MOD-astrocs-phase2-write
----
-
-# 模块 astrocs.p2.hips_writer（registry 行 MOD-astrocs-phase2-write）
+# 模块 astrocs.p2.hips_writer（MOD-astrocs-phase2-write）
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 手写合同页：本页重写 registry
-> 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
-> 词汇只作编排层占位，冻结依据 = 本页手写登记事实；registry 页保留先例
-> astrocs.phase1.session.md / astrocs.phase1.star-detection.md /
-> astrocs.phase2.coverage.md）。模块级事实以 lib/algorithms/coverage/hips_p2/README.md
-> （r1，CONTRACT_READY）+ lib/algorithms/coverage/hips_p2/module.yaml（MOD-astrocs-phase2-
-> hips-writer，module_id=astrocs.p2.hips_writer，dll_target=
-> astrocs_p2_hips_writer.dll，entrypoint=MISSING）为准。唯一生产源
-> lib/algorithms/coverage/tools/stage2.cpp（2015 行，astrocs-stage2 工具，
-> lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
-> lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100），
-> 全部行锚 grep/sed 实测，抄录一律以实测锚为准。
+> 合同：科学/算法正本 = docs/science/algorithms/PHASE2_MOSAIC_WRITE.md
+> （ALG-P2-HIPS-001..004）；数据合同 = DATA-P2-HIPS（DATA_SEMANTICS §20）；
+> C API = API-P2-HIPS-001（PUBLIC_API Phase2 mosaic write 节）。模块级事实以
+> lib/algorithms/coverage/hips_p2/README.md（CONTRACT_READY）+ module.yaml
+> （MOD-astrocs-phase2-hips-writer，module_id=astrocs.p2.hips_writer，
+> dll_target=astrocs_p2_hips_writer.dll）为准；合同三件套落位规则见
+> docs/modules/README.md。唯一生产源 lib/algorithms/coverage/tools/stage2.cpp
+> （astrocs-stage2 工具，lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
+> lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100）。
 
 ## 职责与明确非职责
 
@@ -41,14 +34,13 @@ id: MOD-astrocs-phase2-write
   FITS 序→NESTED 序转换（HIPS-IMG-001，nested_local_to_fits_index
   :1032/:1611）→ aio_hips_write_signal_support_tile/
   aio_hips_finalize；HIPS_VERIFY 回读（:1659-1676）。
-- ivar 权重门（matrix 专项）：缺 ivar 产品（默认）→ rc=7 显式科学错误
-  （:565-578，rc=7 :574）；禁 support 冒充 ivar。
+- ivar 权重门：缺 ivar 产品（默认）→ rc=7 显式科学错误（:565-578，rc=7 :574）；
+  禁 support 冒充 ivar。
 
 **不负责**：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
 aio_hips_writer.cpp，P1-HIPS 域 ALG-HIPS-001..005）；HiPS 格式解析
-（IO-002/aio_hips_reader）；原子发布（IO-003 编排层，DISP-P2HIPS-003
-如实登记；⚠ **待修缺口**：阶段二**直写 out_hips 无 staging**，
-违反最高设计 §9 的原子发布强制条款，最高设计 §9 已如实登记为本期例外。
+（IO-002/aio_hips_reader）；原子发布（IO-003 编排层；阶段二直写 out_hips 无
+staging，不满足最高设计 §9 的原子发布条款，属已登记的例外面）。
 UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
 FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 
@@ -57,13 +49,10 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
 | `integrated` | `DATA-P2-INT` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL`（descriptor 词汇） |
-| `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | **`UnitId::SURFACE_BRIGHTNESS`**（signal = **面亮度**；枚举已存在，`lib/include/astrocs/core/artifact.h:36`，phase3 在用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
+| `mosaic` | `DATA-P2-HIPS`（descriptor 端口词汇 `DATA-P2-RES`；权威 = DATA-P2-HIPS） | 可 | `UnitId::SURFACE_BRIGHTNESS`（signal = 面亮度；枚举源 `lib/include/astrocs/core/artifact.h:36`，phase3 同用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
-权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
-（**`module_adapters.cpp:1040-1057`** `p2_write_descriptor`，坐标 PIXEL 与 NESTED
-球面实际不符）为编排词汇，以 DATA-P2-HIPS 为准修订，对齐。
-（行锚实测 `grep -n 'p2_write_descriptor' →
-`lib/infrastructure/scheduler/src/module_adapters.cpp:1040`。）
+权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）；descriptor 端口表（`p2_write_descriptor`，
+坐标记为 PIXEL）为编排词汇，球面端口以 DATA-P2-HIPS（NESTED 球面）为准。
 invalid = NaN signal + support=0（writer 库 aio_hips_writer.cpp :481-485）；ivar 缺产品=rc=7
 science/degraded（:565-574）。四概念分离红线：signal/variance/support/
 mask 严格分离，mask 不输出产品不入权重式（ALG-P2-HIPS §7）。
@@ -81,10 +70,12 @@ stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 
 ## Registry descriptor 与配置 schema
 
-module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
-沿用 `MOD-astrocs-phase2-write`；descriptor（**`module_adapters.cpp:1040-1057`**，
-module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
-test_id=TEST-P2-WR-001）为编排占位词汇，其与本页及 lib/algorithms/coverage/hips_p2/module.yaml 的对齐属迁移目标（未落地）；冻结依据 = `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md`（ALG-P2-HIPS-001..004）。配置=single JSON
+module_id=`astrocs.p2.hips_writer`；registry 行 ID = `MOD-astrocs-phase2-write`；
+descriptor（p2_write_descriptor：module_id=astrocs.phase2.write、
+sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/test_id=TEST-P2-WR-001）为编排层
+口径，其与 lib/algorithms/coverage/hips_p2/module.yaml 的对齐属迁移目标（未落地）；
+冻结依据 = `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md`（ALG-P2-HIPS-001..004）。
+配置=single JSON
 （P2Stage2Config :16-99：reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
 astrocs_adaptive_pixel）、large_scale 默认关、acr_route=auto、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
@@ -118,18 +109,15 @@ fs::remove_all 修复（orchestrator.cpp:425-484，失败清理 HiPS 目录树�
 
 ## 独立 synthetic 验证命令与容差
 
-`TEST-P2-HIPS-001` 登记面=ALG 文档 §11.4 设计冻结 VERIFIED（COV TEST-COV-DESIGN-001
-先例；可执行测试 MISSING（待建），不冒认）；
-TEST-DESIGN 与容差来源=ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md
-§8/§9：NumPy 参考 signal/sup_max rtol=1e-12、序转换恒等往返、ivar 门
-现状相邻证据（引用不冒认）：phase2_synthetic_gate ACR
+`TEST-P2-HIPS-001` 待建；设计冻结 = ALG-P2-HIPS-001..004
+（PHASE2_MOSAIC_WRITE.md §8/§9：NumPy 参考 signal/sup_max rtol=1e-12、序转换
+恒等往返、ivar 门负例）。现状相邻证据：phase2_synthetic_gate ACR
 mosaic_reject_legacy↔CPU 等价（synthetic_gate.cpp:3021-3160）、
 eng/tests/api/test_reject_integration_oracle.py。
 
 ## 已知限制
 
-DISP-P2HIPS-001..004（lib/algorithms/coverage/hips_p2/README.md §7）：无 variance/ivar 输出
-产品；hash 链未入 HiPS properties provenance；**直写 out_hips 无 staging
-—— 已登记的原子性待修缺口（未闭合；原子发布归 IO-003）**；
-O(T·N) 覆盖帧 probe。迁移目标
-astrocs_p2_hips_writer.dll（迁移目标未落地）；见 docs/KNOWN_LIMITATIONS.md。
+缺陷登记 = lib/algorithms/coverage/hips_p2/README.md §7：无 variance/ivar 输出产品；
+hash 链未入 HiPS properties provenance；阶段二直写 out_hips 无 staging
+（原子发布归 IO-003）；O(T·N) 覆盖帧 probe。迁移目标
+astrocs_p2_hips_writer.dll（未落地）；见 docs/KNOWN_LIMITATIONS.md。

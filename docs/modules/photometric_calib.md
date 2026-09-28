@@ -4,7 +4,7 @@
 
 > 模块合同冻结落位 lib/algorithms/photometry/README.md（CONTRACT_READY）+
 > module.yaml（astrocs.p1.photometry，迁移目标 astrocs_p1_photometry.dll，
-> entrypoint=MISSING）；合同 ID=SCI-PHOT-001 / ALG-PHOT-001..002
+> entrypoint 未落地）；合同 ID=SCI-PHOT-001 / ALG-PHOT-001..002
 > （PHOTOMETRIC_FIT §13 逐符号锚）/ DATA-P1-PHOT（DATA_SEMANTICS §14）/
 > API-PHOT-001（PUBLIC_API，photometric_calib.h 6 导出符号）；算法为
 > 双向最近邻唯一配对（KD-tree，2.0px）+ 星等预过滤 + IRLS/Tukey 稳健
@@ -12,7 +12,7 @@
 > 不足 → 退化 scale=1.0、rc=0，QA 结构体落位 snr_estimator；现状构建=
 > cpp/Makefile:11 + build.ps1:9（photometric_calib.dll），未编入根 CMake
 > 主构建；lib/algorithms/photometry/wrapper_phase1（Photometer aperture 面）合同并入
-> README §9。DISP-PHOT-001..009 见 PHOTOMETRIC_FIT §13.3。
+> README §9；缺陷登记见 PHOTOMETRIC_FIT §13.3。
 
 ## 职责
 

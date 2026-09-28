@@ -7,7 +7,7 @@
 > module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll）；冻结合同
 > SCI-P1-PSF-001 / ALG-STARPSF-001（STAR_PSF_ALGORITHMS §11）/ DATA-P1-PSF
 > （DATA_SEMANTICS §15）/ API-PSF-001（PUBLIC_API）；测试设计
-> TEST-PSF-DESIGN-001；现状缺陷 DISP-PSF-001..006。本页其余章节
+> TEST-PSF-DESIGN-001；现状缺陷登记见 STAR_PSF_ALGORITHMS §11。本页其余章节
 > 以 co-located README 为准。
 
 ## 职责
