@@ -322,6 +322,11 @@ P3ProjectionStatus p3_projection_make(P3ProjectionId id,
                                       const char* parity, double rotation_pa_deg,
                                       P3ProjectionDescriptor* out) {
     if (!out) return P3ProjectionStatus::P3_PROJ_PARAM;
+    // P-079 (台账 B1, v1 同病同修): 本文件已登记退役面（不进生产 target, 仅被
+    // eng/tests/unit/p3_proj 与 backend oracle driver 编译），但同病与 v2 同根:
+    // 旧行为先写 *out 再做四角守卫，守卫失败不回滚 → 半成品 descriptor。
+    // 改 tmp-then-commit（唯一正确样式 = p3_wcs.cpp make :110-165）: 任一门
+    // 失败 ⇒ *out 保持零初始化。
     *out = P3ProjectionDescriptor{};
     const P3ProjectionSpec* spec = p3_projection_registry_find_id(id);
     if (!spec) return P3ProjectionStatus::P3_PROJ_UNSUPPORTED;
@@ -333,14 +338,15 @@ P3ProjectionStatus p3_projection_make(P3ProjectionId id,
     if (width_px < 1 || width_px > kMaxSide || height_px < 1 || height_px > kMaxSide)
         return P3ProjectionStatus::P3_PROJ_PARAM;
 
-    out->crval_ra_deg = centre_ra_deg;
-    out->crval_dec_deg = centre_dec_deg;
-    out->crpix_x = (width_px + 1) / 2.0;
-    out->crpix_y = (height_px + 1) / 2.0;
-    out->width_px = width_px;
-    out->height_px = height_px;
-    out->projection = id;
-    g1_build_cd(scale_deg_per_px, parity, rotation_pa_deg, out->cd);
+    P3ProjectionDescriptor tmp{};
+    tmp.crval_ra_deg = centre_ra_deg;
+    tmp.crval_dec_deg = centre_dec_deg;
+    tmp.crpix_x = (width_px + 1) / 2.0;
+    tmp.crpix_y = (height_px + 1) / 2.0;
+    tmp.width_px = width_px;
+    tmp.height_px = height_px;
+    tmp.projection = id;
+    g1_build_cd(scale_deg_per_px, parity, rotation_pa_deg, tmp.cd);
 
     // 四角投影域守卫（与 TAN 冻结语义同构：任一角越域 → 整体失败不产半成品）
     const double corners[4][2] = {{0, 0}, {double(width_px - 1), 0},
@@ -348,9 +354,10 @@ P3ProjectionStatus p3_projection_make(P3ProjectionId id,
                                   {double(width_px - 1), double(height_px - 1)}};
     for (const auto& c : corners) {
         double ra, dec;
-        const P3ProjectionStatus st = spec->pix2world(out, c[0], c[1], &ra, &dec);
-        if (st != P3ProjectionStatus::P3_PROJ_OK) return st;
+        const P3ProjectionStatus st = spec->pix2world(&tmp, c[0], c[1], &ra, &dec);
+        if (st != P3ProjectionStatus::P3_PROJ_OK) return st;   // *out 保持零初始化
     }
+    *out = tmp;
     return P3ProjectionStatus::P3_PROJ_OK;
 }
 

@@ -8,7 +8,7 @@
 // 结论落入选项 A（差异可忽略/共同因子在 per-control normalization 消去，
 // 并强制 Phase2 group 的 Drizzle 参数一致）或选项 B（k_corr 作
 // per-frame quantity）——证据 JSON 由本测试写出至
-// artifacts/evidence/science/kcorr_matrix.json（judge 判定 + 六格测量
+// 实验/engineering-evidence/science/kcorr_matrix.json（judge 判定 + 六格测量
 // 全量 + 非退化负例面结果）。
 //
 // 非退化判据纪律（判据有牙）：
@@ -37,7 +37,7 @@ constexpr int NSIDE = 512;
 constexpr double SKY = 1000.0;
 constexpr double SIGMA = 10.0;
 constexpr std::size_t EXPECTED_CELLS = 6;  // 3 pixfrac × 2 scale
-const char* EVIDENCE_JSON = "artifacts/evidence/science/kcorr_matrix.json";
+const char* EVIDENCE_JSON = "实验/engineering-evidence/science/kcorr_matrix.json";
 
 void setup_wcs(FitsImage& im, double deg_per_px) {
     im.width = W;
@@ -257,7 +257,7 @@ int main() {
     // 证据 JSON 写出（证据链补全；写失败 = 红）。
     std::error_code ec;
     std::filesystem::create_directories(
-        "artifacts/evidence/science", ec);
+        "实验/engineering-evidence/science", ec);
     std::ofstream of(EVIDENCE_JSON);
     if (!of.is_open()) {
         std::printf("[FAIL] 证据 JSON 无法打开：%s\n", EVIDENCE_JSON);

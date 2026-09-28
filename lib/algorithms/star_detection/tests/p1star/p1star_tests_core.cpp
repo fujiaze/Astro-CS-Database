@@ -39,6 +39,12 @@
 #include "p1star_oracle.hpp"
 #include "p1star_test_main.hpp"
 
+#ifdef SDET_TESTING
+// FIX-P128 负例观察面（生产 TU sdet_api.cpp 在同宏面定义; 全局命名空间）:
+// sdet_detect_impl 检测段每组分 BFS 访问像素数按扫描序记录到此。
+extern std::vector<int>* sdet_test_bfs_sizes;
+#endif
+
 using namespace p1star;
 
 namespace {
@@ -877,6 +883,63 @@ int test_negative() {
     P1STAR_CHECK(cs, !checkpoints.empty(), "oom_graceful_checkpoint_exists");
     // 间隙不得产生 count 异常 (上面逐个断言), 终止集仅登记
     std::printf("[neg] aborts (std::bad_alloc defines exit, logged): %zu\n", aborts.size());
+
+    // ---- FIX-P128 负例: 多连通组分 BFS 尺寸不变量（组分合并回归锁）---------
+    // 构造: 64x64 噪声底（确定性 hash [80,120], MAD≈10 → bgnoise 健康, thr≈
+    // bg+5·bgnoise≈150; 常数底会使 MAD 退化为 0 → thr≈bg → 全帧过阈连成单一
+    // 巨组分, 判据失效）+ 9 个 8x8 常值方块（>=3 组分; 间距 20px, σ=2 平滑尾部
+    // 衰减到阈值下, 相邻组分 blob 不连通）。不变量: 每组分 BFS 访问像素数 ==
+    // 该组分自身像素数。单组分 blob 上界可解析钳定: 方块 600, 过阈需方块贡献
+    // ≥~50 → 距边 ~2σ≈4px → blob ⊆ (8+2·4)² = 256 < 350（噪声平滑尾部
+    // ~100 < thr 不扩展）。原版缺陷（sdet_api.cpp 检测段 BFS queue 声明在
+    // 组分循环外、push 前不清空）把历史组分像素累积并入当前 comp: 组分 i 的
+    // 读数 = 前 i 个组分像素数之和（第 9 号 ≈ 8×200 = 1600 > 350 → 判红）;
+    // 修复后（queue.clear()）各组分读数 ≤ 350 → 判绿。红绿双向由本断言承载
+    // （判红不依赖精确 blob 尺寸, 非退化）。
+    {
+        const int w = 64, hh = 64;
+        const int nblk = 9;  // >=3 组分: 每 8x8 方块一个连通组分
+        auto bgpx = [](int x, int y) {
+            unsigned hsh = (unsigned)x * 73856093u ^ (unsigned)y * 19349663u;
+            hsh ^= hsh >> 13; hsh *= 0x5bd1e995u; hsh ^= hsh >> 15;
+            return 100.0 + (double)(hsh % 41u) - 20.0;   // [80,120] 均匀
+        };
+        std::vector<double> img((size_t)w * hh, 0.0);
+        for (int y = 0; y < hh; ++y)
+            for (int x = 0; x < w; ++x) img[(size_t)y * w + x] = bgpx(x, y);
+        for (int b = 0; b < nblk; ++b) {
+            const int x0 = 6 + (b % 3) * 20, y0 = 6 + (b / 3) * 20;
+            for (int yy = y0; yy < y0 + 8; ++yy)
+                for (int xx = x0; xx < x0 + 8; ++xx)
+                    img[(size_t)yy * w + xx] = 600.0;
+        }
+        StarDetectorHandle h = sdet_create(nullptr);
+        P1STAR_CHECK(cs, h != nullptr, "p128_handle");
+        if (h) {
+#ifdef SDET_TESTING
+            std::vector<int> bfs_sizes;
+            sdet_test_bfs_sizes = &bfs_sizes;
+#endif
+            Det d;
+            const int rc = run_f64(h, img, w, hh, &d);
+            P1STAR_CHECK_EQ(cs, rc, 0, "p128_detect_rc");
+#ifdef SDET_TESTING
+            sdet_test_bfs_sizes = nullptr;
+            P1STAR_CHECK(cs, (int)bfs_sizes.size() >= nblk, "p128_components_scanned");
+            for (int b = 0; b < (int)bfs_sizes.size(); ++b) {
+                // 单组分 blob 上界（含平滑尾部余量）; 原版累积合并的后续组分必越界
+                P1STAR_CHECK(cs, bfs_sizes[(size_t)b] <= 350, "p128_bfs_size_no_accumulation");
+            }
+            if ((int)bfs_sizes.size() >= nblk) {
+                std::printf("[neg] p128 bfs sizes:");
+                for (int b = 0; b < (int)bfs_sizes.size(); ++b) std::printf(" %d", bfs_sizes[(size_t)b]);
+                std::printf("\n");
+            }
+#endif
+            d.free_all();
+            sdet_destroy(h);
+        }
+    }
 
     return cs.failures == 0 ? 0 : 1;
 }

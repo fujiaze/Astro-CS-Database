@@ -439,6 +439,11 @@ ProjStatus make(ProjectionId id, double centre_ra_deg, double centre_dec_deg,
                 double scale_deg_per_px, int width_px, int height_px,
                 const char* parity, double rotation_pa_deg, Descriptor* out) {
     if (!out) return ProjStatus::kParam;
+    // P-079 (台账 B1): 先清零 *out（满足「失败时 *out 零初始化」合同），全部
+    // 构造落在局部 tmp —— tmp-then-commit（唯一正确样式 = p3_wcs.cpp make
+    // :110-165）。旧行为先写 *out 再做四角守卫，守卫失败既不回滚也不清零，
+    // 半成品 descriptor 留在调用方（plan 经 &out->descriptor 承接同一污染）。
+    // 任一门失败 ⇒ *out 保持零初始化，不产半成品。
     *out = Descriptor{};
     const Spec* spec = registry_find_id(id);
     if (!spec) return ProjStatus::kUnsupported;
@@ -453,14 +458,15 @@ ProjStatus make(ProjectionId id, double centre_ra_deg, double centre_dec_deg,
     if (width_px < 1 || width_px > kMaxSide || height_px < 1 || height_px > kMaxSide)
         return ProjStatus::kParam;
 
-    out->id = id;
-    out->crval_ra_deg = centre_ra_deg;
-    out->crval_dec_deg = centre_dec_deg;
-    out->crpix_x = (width_px + 1) / 2.0;
-    out->crpix_y = (height_px + 1) / 2.0;
-    out->width_px = width_px;
-    out->height_px = height_px;
-    g1_build_cd(scale_deg_per_px, parity, rotation_pa_deg, out->cd);
+    Descriptor tmp{};
+    tmp.id = id;
+    tmp.crval_ra_deg = centre_ra_deg;
+    tmp.crval_dec_deg = centre_dec_deg;
+    tmp.crpix_x = (width_px + 1) / 2.0;
+    tmp.crpix_y = (height_px + 1) / 2.0;
+    tmp.width_px = width_px;
+    tmp.height_px = height_px;
+    g1_build_cd(scale_deg_per_px, parity, rotation_pa_deg, tmp.cd);
 
     const double corners[4][2] = {{0, 0},
                                   {double(width_px - 1), 0},
@@ -468,9 +474,10 @@ ProjStatus make(ProjectionId id, double centre_ra_deg, double centre_dec_deg,
                                   {double(width_px - 1), double(height_px - 1)}};
     for (const auto& c : corners) {
         double ra, dec;
-        const ProjStatus st = spec->pix2world(out, c[0], c[1], &ra, &dec);
-        if (st != ProjStatus::kOk) return st;
+        const ProjStatus st = spec->pix2world(&tmp, c[0], c[1], &ra, &dec);
+        if (st != ProjStatus::kOk) return st;   // *out 保持零初始化
     }
+    *out = tmp;
     return ProjStatus::kOk;
 }
 

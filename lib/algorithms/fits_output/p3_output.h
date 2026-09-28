@@ -79,7 +79,10 @@ P3OutputStatus p3_output_verify(const char* output_path, const P3WcsDescriptor* 
  * 双 NULL → 与旧签名完全同面 (unavailable: 无占位 HDU)。
  * verify_ex: 平面非 NULL → 校验 HDU 存在+尺寸+逐像素回环(NaN==NaN 同态);
  * 平面 NULL → 校验无 VARIANCE HDU (双向防: available 静默缺 HDU /
- * unavailable 静默占位)。 */
+ * unavailable 静默占位)。
+ * P-075 (台账 A1): BUNIT 同入读回对拍面 —— PRIMARY BUNIT 必须存在且在冻结
+ * 单位表内 (bunit_square_canonical 可解析), VARIANCE/IVAR BUNIT 必须等于由
+ * 读回 signal BUNIT 经冻结二次律推导的 canonical 串; 不一致 ⇒ reopen_ok=0。 */
 P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* coverage,
                                          const float* variance, const float* ivar,
                                          int width, int height,
@@ -103,9 +106,12 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
  * （矩形区间）喂像素，本类不再要求整幅平面在内存里。
  *   · 写：open 建临时对象并在**首像素写出前**完成 PRIMARY 头组装（合同③）；
  *         begin_hdu 逐个 HDU 建（PRIMARY=signal → COVERAGE → VARIANCE → IVAR，
- *         与整幅路径同序同关键字）；write_block 经 cfitsio fits_write_subset
+ *         与整幅路径同序同关键字；IVAR 要求已收尾的 VARIANCE —— unc 成对序门）；
+ *         write_block 经 cfitsio fits_write_subset
  *         把子块写进该 HDU 的数据区；end_hdu 写该 HDU 的 DATASUM/CHECKSUM；
- *         publish 走 flush → close → fsync → 原子 rename → sha256（IO_003 §4）。
+ *         publish 走发布门（HDU 集合成对完整：unc 模式必须 PRIMARY+COVERAGE
+ *         +VARIANCE+IVAR 全齐，缺任一 ⇒ 拒发布）→ flush → close → fsync →
+ *         原子 rename → sha256（IO_003 §4）。
  *   · 校验：open 独立重开并逐项对拍 WCS/尺寸/HDU 存在性；check_block 读回同一
  *         矩形区间并与期望子块逐像素对拍（NaN==NaN 同态）；close 汇总
  *         reopen_ok/coverage_ok 并重算 sha256。

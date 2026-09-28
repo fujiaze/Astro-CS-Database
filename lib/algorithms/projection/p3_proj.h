@@ -173,7 +173,9 @@ struct Plan {
 };
 
 // make: 校验序（out 非空→registry id→parity→|dec|≤85°→scale>0→W,H∈[1,20000]
-//       →G1 CD 构造→四角投影域守卫）；失败时 *out 零初始化。
+//       →G1 CD 构造→四角投影域守卫）；tmp-then-commit（P-079 台账 B1）——
+//       全部构造落局部对象，成功才提交 *out；任一门失败 ⇒ *out 零初始化
+//       （不产半成品 descriptor）。
 //       四角守卫对 CAR 即「禁触碰 native 极行 |θ|≥90°」（禁止整行塌缩进入产物）。
 ProjStatus make(ProjectionId id,
                 double centre_ra_deg, double centre_dec_deg,
@@ -191,6 +193,8 @@ ProjStatus world2pix(const Descriptor* d, double ra_deg, double dec_deg,
 std::string fits_keywords(const Descriptor* d);
 
 // plan: 构建 descriptor 并做足迹/奇点/wrap/Ω 采样；失败不产半成品。
+//       descriptor 经 make 的 tmp-then-commit 承接（P-079）——make 失败不写
+//       &out->descriptor，Plan 保持零初始化（status 记失败码）。
 ProjStatus plan(ProjectionId id,
                 double centre_ra_deg, double centre_dec_deg,
                 double scale_deg_per_px,

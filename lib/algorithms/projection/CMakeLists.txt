@@ -26,8 +26,17 @@ if(NOT TARGET astrocs_p3_projection_wcs)
   endif()
 endif()
 
-# 共址可复用测试 (ENGINEERING_SPEC §4.6): 仅根图 (ASTROCS_BUILD_TESTS=ON) 注册,
-# 模块独立 configure 时不新增测试面。
-if(ASTROCS_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/eng/tests/CMakeLists.txt)
-  add_subdirectory(tests)
-endif()
+# 共址可复用测试 (ENGINEERING_SPEC §4.6): 唯一注册点 = 根 CMakeLists.txt 的
+# ASTROCS_BUILD_TESTS 段（enable_testing() 之后）—— add_subdirectory(
+# lib/algorithms/projection/tests/p3wcs) 直接挂载本模块 tests/p3wcs/
+# （p3_wcs_test / p3_projection_registry_test / unsupported CLI 负例）。
+# P-083 (台账 B8): 此前此处是一段恒假死守卫 —— EXISTS 指向不存在的
+# <module>/eng/tests/CMakeLists.txt，且 add_subdirectory(tests) 指向无
+# CMakeLists.txt 的 tests/（真体在 tests/p3wcs/），双重死代码。不得在此
+# 重复挂载: 同一源目录只允许 add_subdirectory 一次（根注释同义），且
+# tests/p3wcs 依赖根图 target（acsd / astrocs_common），独立 configure 下
+# 本就无法成立 —— 故按台账 fix「删死代码」分支移除，防后续误激活。
+# P-083 修复注记：本模块唯一测试注册点 = 根 CMakeLists.txt:1122 的
+# add_subdirectory(lib/algorithms/projection/tests/p3wcs)。此处一律不挂载：
+# 模块 CMakeLists 求值早于根图注册 p3_wcs_test（NOT TARGET 恒真），
+# 任何条件挂载都会与根图形成同源目录双挂（binary dir 冲突）。

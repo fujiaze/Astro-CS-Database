@@ -234,11 +234,15 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         return P3_OUT_IO;
     }
     if (bitpix != -32 && bitpix != -64) {
+        // P-076 (台账 A2): 先关闭句柄再删除 —— aio_atomic::remove_file 不关句柄,
+        // 对仍打开的文件 Windows (_unlink) 必败 → tmp 残留 + fd 泄漏; 全平台同理。
+        fits_close_file(f, &status);
         aio_atomic::remove_file(tmp);
         g_last_err = "bitpix must be -32|-64";
         return P3_OUT_PARAM;
     }
     if (fits_create_img(f, bitpix, 2, naxes, &status)) {
+        fits_close_file(f, &status);   // P-076: close 先于 remove (Windows _unlink 必败点)
         aio_atomic::remove_file(tmp);
         g_last_err = "fits_create_img: " + std::to_string(status);
         return P3_OUT_IO;
@@ -325,6 +329,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // 追加 coverage 扩展 HDU
     long cnaxes[2] = {width, height};
     if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
+        fits_close_file(f, &status);   // P-076: close 先于 remove (Windows _unlink 必败点)
         aio_atomic::remove_file(tmp);
         g_last_err = "coverage create_img: " + std::to_string(status);
         return P3_OUT_IO;
@@ -361,6 +366,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         }
         for (int h = 0; h < 2; ++h) {
             if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
+                fits_close_file(f, &status);   // P-076: close 先于 remove (Windows _unlink 必败点)
                 aio_atomic::remove_file(tmp);
                 g_last_err = std::string(h == 0 ? "variance" : "ivar") +
                              " create_img: " + std::to_string(status);
@@ -437,7 +443,9 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++cov;
         result->covered_px = cov;
         result->coverage_ok = 1;
-        // 独立重开读回验证 (dimensions/WCS/BUNIT/checksum/mask/uncertainty HDU 面)
+        // 独立重开读回验证 (dimensions/WCS/BUNIT 冻结表+二次律/mask/uncertainty
+        // HDU 面; FITS DATASUM/CHECKSUM 键由发布序内 fits_write_std_chksum 写入,
+        // 此处以 sha256 重算锚定完整性, 不另读键对拍)
         P3OutputResult v{};
         P3OutputStatus vst = p3_output_verify_ex(output_path, wcs, signal, coverage,
                                                  variance, ivar, width, height, &v);
@@ -463,13 +471,19 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     if ((variance == nullptr) != (ivar == nullptr)) return P3_OUT_PARAM;
     // B2-A9: verify 对 WCS 零鉴别力是审计缺陷（AUD-COORD F-05）。此处读回
     // CTYPE/CUNIT/CRPIX/CRVAL/CD 与传入 descriptor 逐项对拍，任何 CRPIX 平移、
-    // origin 双桥接或 CD 篡改都会被检出并置 reopen_ok=0（AUD-P2P3 F24）。
+    // origin 双桥接或 CD 篮改都会被检出并置 reopen_ok=0（AUD-P2P3 F24）。
+    // P-075 (台账 A1): BUNIT 同入对拍面 —— PRIMARY 要求存在且在冻结单位表内
+    // （bunit_square_canonical 可解析），VARIANCE/IVAR 要求等于从读回 signal
+    // BUNIT 经冻结二次律推导的 canonical 串；不一致 ⇒ reopen_ok=0。
     // 容差来源: 写路径以 TDOUBLE 写 double，读回亦为 double，round-trip 应为
     // 位精确；1e-12(度/像素) / 1e-15(CD deg/px) 仅吸收格式层十进制往返。
     std::memset(result, 0, sizeof(*result));
     long nelem = (long)width * height;
-    int ok = 1, covok = 1, uncok = 1, wcsok = 1;
+    int ok = 1, covok = 1, uncok = 1, wcsok = 1, bunitok = 1;
     int hdus = 1;
+    // P-075: uncertainty BUNIT 的期望串（由读回的 PRIMARY BUNIT 推导）；
+    // PRIMARY BUNIT 表外/缺失时保持空 ⇒ uncertainty 对拍必失败（双重检出）。
+    std::string want_var_bunit, want_ivar_bunit;
 
     fitsfile* f = nullptr; int status = 0;
     if (fits_open_file(&f, output_path, READONLY, &status) != 0) {
@@ -509,6 +523,26 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                 !card_equals(card, sk.want)) {
                 wcsok = 0;
                 break;
+            }
+        }
+        // P-075 (台账 A1): BUNIT 读回对拍 —— 与 CTYPE/CUNIT 同模式（读键→去
+        // 补白→比较）。写侧只发布冻结单位表内的 signal BUNIT（缺省 canonical
+        // "ADU/sr"），故读回要求: 键存在、非空、bunit_square_canonical 可解析；
+        // 表外串只能来自篡改/损坏 ⇒ bunitok=0。二次律期望串由读回的 signal
+        // BUNIT 推导（写侧 VARIANCE/IVAR BUNIT 同源公式），供 uncertainty HDU 对拍。
+        {
+            char bunit_val[81] = {0};
+            status = 0;
+            if (fits_read_key(f, TSTRING, (char*)"BUNIT", bunit_val, nullptr,
+                              &status) != 0) {
+                bunitok = 0;   // BUNIT 缺失 = 对拍面不完整
+            } else {
+                std::string got(bunit_val);
+                while (!got.empty() && (got.back() == ' ' || got.back() == '\t'))
+                    got.pop_back();
+                if (got.empty() || !bunit_square_canonical(got, &want_var_bunit,
+                                                           &want_ivar_bunit))
+                    bunitok = 0;   // 表外/空串单位: 写侧禁发布, 读回即篡改/损坏
             }
         }
         status = 0;
@@ -570,6 +604,23 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                 !std::strstr(card, want[h])) {
                 uncok = 0; break;
             }
+            // P-075 (台账 A1): BUNIT 读回对拍 —— VARIANCE/IVAR 的 BUNIT 必须等于
+            // 从读回 signal BUNIT 经冻结二次律推导的 canonical 串（与 CTYPE/CUNIT
+            // 对拍同模式）; PRIMARY BUNIT 已判表外时期望串为空, 此处必失败。
+            {
+                char bunit_val[81] = {0};
+                status = 0;
+                if (fits_read_key(f, TSTRING, (char*)"BUNIT", bunit_val, nullptr,
+                                  &status) != 0) {
+                    uncok = 0; break;   // BUNIT 缺失
+                }
+                std::string got(bunit_val);
+                while (!got.empty() && (got.back() == ' ' || got.back() == '\t'))
+                    got.pop_back();
+                const std::string& want_bunit = (h == 0) ? want_var_bunit
+                                                         : want_ivar_bunit;
+                if (got != want_bunit) { uncok = 0; break; }
+            }
             status = 0;
             int naxis = 0, imgtype = 0;
             long nax[2] = {0, 0};
@@ -599,7 +650,8 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     }
     fits_close_file(f, &status);
 
-    result->reopen_ok = (ok == 1 && covok == 1 && uncok == 1 && wcsok == 1);
+    result->reopen_ok = (ok == 1 && covok == 1 && uncok == 1 && wcsok == 1 &&
+                         bunitok == 1);
     result->coverage_ok = covok;
     long covn = 0;
     for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++covn;
@@ -641,6 +693,12 @@ struct P3FitsStream::Impl {
     int cur_hdu = 0;          // 0=PRIMARY(signal) 1=COVERAGE 2=VARIANCE 3=IVAR
     bool hdu_open = false;    // 当前 HDU 已建、尚未写 DATASUM/CHECKSUM
     bool failed = false;
+    // P-077 (台账 A3): 发布门状态 —— hdu_done[i] = 第 i 个 HDU 已 end_hdu 收尾
+    // （DATASUM/CHECKSUM 已写）; unc_mode = begin_hdu(2) 成功置位（unc 成对模式）。
+    // publish 据此校验 HDU 集合成对完整: unc 模式必须 PRIMARY+COVERAGE+VARIANCE
+    // +IVAR 全齐才可发布（对齐整幅路径 p3_output_write_atomic 的成对强制语义）。
+    bool hdu_done[4] = {false, false, false, false};
+    bool unc_mode = false;
 };
 
 P3FitsStream::P3FitsStream() : impl_(new Impl()) {}
@@ -759,6 +817,13 @@ P3OutputStatus P3FitsStream::begin_hdu(int plane) {
     if (plane == 1) {
         fits_write_key(f, TSTRING, (char*)"EXTNAME", (void*)"COVERAGE", nullptr, &status);
     } else {
+        // P-077 (台账 A3): unc 成对序门 —— IVAR 不得先于/脱离已收尾的 VARIANCE
+        // 出现（单边 uncertainty HDU = 合同违规, 对齐整幅路径的成对强制语义）。
+        if (plane == 3 && !impl_->hdu_done[2]) {
+            g_last_err = "IVAR requires finished VARIANCE (unc pair violation)";
+            impl_->failed = true;
+            return P3_OUT_PARAM;
+        }
         // 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 表外单位显式拒绝
         std::string var_bunit, ivar_bunit;
         if (!bunit_square_canonical(impl_->bunit, &var_bunit, &ivar_bunit)) {
@@ -780,6 +845,7 @@ P3OutputStatus P3FitsStream::begin_hdu(int plane) {
     }
     impl_->cur_hdu = plane;
     impl_->hdu_open = true;
+    if (plane == 2) impl_->unc_mode = true;   // P-077: 进入 unc 成对模式
     return P3_OUT_OK;
 }
 
@@ -815,11 +881,26 @@ P3OutputStatus P3FitsStream::end_hdu() {
         return P3_OUT_IO;
     }
     impl_->hdu_open = false;
+    impl_->hdu_done[impl_->cur_hdu] = true;   // P-077: 该 HDU 校验和已写、收尾完成
     return P3_OUT_OK;
 }
 
 P3OutputStatus P3FitsStream::publish(P3OutputResult* result) {
     if (!impl_ || !impl_->f || impl_->failed || impl_->hdu_open) return P3_OUT_IO;
+    // P-077 (台账 A3): 发布门 —— HDU 集合成对完整才可发布（对齐整幅路径
+    // p3_output_write_atomic 的 uncertainty 成对强制语义: 双边成对=合法,
+    // 单边/缺失=合同违规）。unc 模式必须 PRIMARY+COVERAGE+VARIANCE+IVAR 全齐;
+    // 缺任一 ⇒ 不发布（fail-closed, 不产半成品产品面）。
+    if (!impl_->hdu_done[0] || !impl_->hdu_done[1]) {
+        g_last_err = "publish gate: PRIMARY+COVERAGE HDUs not both finished";
+        abort();
+        return P3_OUT_IO;
+    }
+    if (impl_->unc_mode && (!impl_->hdu_done[2] || !impl_->hdu_done[3])) {
+        g_last_err = "publish gate: uncertainty pair (VARIANCE+IVAR) incomplete";
+        abort();
+        return P3_OUT_IO;
+    }
     if (result) std::memset(result, 0, sizeof(*result));
     int fstatus = 0;
     if (fits_flush_file(impl_->f, &fstatus)) {
