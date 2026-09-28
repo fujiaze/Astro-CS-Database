@@ -332,6 +332,69 @@ std::string profile_invariant_violation(const KernelProfile& kp) {
     if (kp.correctness_test == "oracle:pass" && !(kp.median_ns > 0))
         return "kernels." + kp.kernel_id + ".median <= 0";
     if (kp.mad_ns < 0) return "kernels." + kp.kernel_id + ".mad < 0";
+    // R-53: 失败必须有可判定证据(第二判据, 唯一出处 oracle_fail_evidence_violation)
+    const std::string ev = oracle_fail_evidence_violation(kp.kernel_id, kp.correctness_test,
+                                                          kp.evidence);
+    if (!ev.empty()) return ev;
+    return "";
+}
+
+/* ── R-53: oracle 失败性质判别(唯一判据; 声明与理由见 profile_gen.h) ──
+ * 判别顺序即优先级: 先看有没有候选真进入内核执行(executed), 再看失败形态。
+ *   executed==0 ∧ culled>0        ⇒ 环境性(本机/本安装树无任何可执行候选; 有正面剔除证据)
+ *   executed>0 ∧ 首次不符        ⇒ 代码性/数值不符(判据或内核/provider 缺陷)
+ *   executed>0 ∧ 非数值执行失败  ⇒ 代码性/内核执行错误(如 kernel rc=<非0>)
+ *   其余(含空证据; 以及"没执行却有首次不符"的自相矛盾) ⇒ 不可判定 ⇒ 判红
+ * 不得反推: "没有 mismatch 证据"绝不等于环境性。 */
+OracleFailClass oracle_fail_class(const OracleFailEvidence& ev) {
+    const bool executed = ev.executed_candidates > 0;
+    const bool culled = ev.culled_candidates > 0;
+    // provider 可用却没有该 kernel = 实现面缺陷, 优先于环境性判定(不得当环境性放行)
+    if (ev.missing_kernel_candidates > 0 && !ev.has_first_mismatch && ev.detail.empty())
+        return OracleFailClass::kCode;
+    if (!executed && culled) return OracleFailClass::kEnvironmental;
+    if (executed && (ev.has_first_mismatch || !ev.detail.empty())) return OracleFailClass::kCode;
+    return OracleFailClass::kUndetermined;
+}
+
+const char* oracle_fail_class_name(OracleFailClass c) {
+    switch (c) {
+        case OracleFailClass::kEnvironmental: return "environmental";
+        case OracleFailClass::kCode: return "code";
+        default: return "undetermined";
+    }
+}
+
+const char* oracle_fail_kind_name(const OracleFailEvidence& ev) {
+    switch (oracle_fail_class(ev)) {
+        case OracleFailClass::kEnvironmental: return "no_candidate_executed";
+        case OracleFailClass::kCode:
+            if (ev.has_first_mismatch) return "numeric_mismatch";
+            if (ev.missing_kernel_candidates > 0 && ev.detail.empty()) return "kernel_missing";
+            return "kernel_error";
+        default: return "undetermined";
+    }
+}
+
+std::string oracle_fail_evidence_violation(const std::string& kernel_id,
+                                           const std::string& correctness_test,
+                                           const OracleFailEvidence& ev) {
+    const std::string kid = kernel_id.empty() ? std::string("<unknown>") : kernel_id;
+    const OracleFailClass cls = oracle_fail_class(ev);
+    if (!ev.present) {
+        if (correctness_test == "oracle:pass") return "";   // 通过且无失败证据 = 正常
+        return "kernels." + kid + ".oracle_fail missing: " + correctness_test +
+               " 无证据(executed_candidates=" + std::to_string(ev.executed_candidates) +
+               ", culled_candidates=" + std::to_string(ev.culled_candidates) +
+               "); 证据缺失不得按环境性放行";
+    }
+    if (cls == OracleFailClass::kUndetermined)
+        return "kernels." + kid + ".oracle_fail 不可判定(executed_candidates=" +
+               std::to_string(ev.executed_candidates) + ", culled_candidates=" +
+               std::to_string(ev.culled_candidates) + ", first_mismatch=" +
+               (ev.has_first_mismatch ? "yes" : "no") + ", detail=" +
+               (ev.detail.empty() ? "none" : ev.detail) +
+               "): class/计数自相矛盾, 证据不得按环境性放行";
     return "";
 }
 
@@ -449,6 +512,19 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                 ? std::string(p.api.backend_sha256) : cli_sha256;
         }
 
+        // R-53: 执行前被剔除的 provider(环境性的**正面证据**)。
+        // 单位 = 候选槽位(provider × workers × block), 与 executed_candidates 同口径。
+        const size_t slots_per_provider = workers_cand.size() * blocks.size();
+        std::vector<std::string> culled_providers;
+        for (const auto& p : providers) {
+            if (std::find(usable_providers.begin(), usable_providers.end(), p.id) !=
+                usable_providers.end())
+                continue;
+            culled_providers.push_back(p.id + ": " +
+                                       (p.ok ? std::string("self_test_fail") : p.fail_reason));
+        }
+        std::map<std::string, OracleFailEvidence> ev_by_kernel;
+
         for (const auto& sc : sizes) {
             Inputs in = build_inputs(sp, sc);
             const uint32_t w = static_cast<uint32_t>(std::sqrt(static_cast<double>(in.N)));
@@ -499,6 +575,60 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
                 }
             }
             bundle.raw.insert(bundle.raw.end(), cands.begin(), cands.end());
+
+            // ── 4b. R-53 证据收集: 本(档)候选里谁真进了内核执行、谁在执行前被剔除、
+            //        首次数值不符在哪里。executed 只认"调用了内核函数"的候选。 ──
+            {
+                OracleFailEvidence ev;
+                ev.tolerance = kOracleRelTol;
+                ev.culled_detail = culled_providers;
+                ev.culled_candidates =
+                    static_cast<uint32_t>(culled_providers.size() * slots_per_provider);
+                for (const auto& c : cands) {
+                    if (c.fallback_reason == "kernel missing from provider") {
+                        ev.culled_candidates += static_cast<uint32_t>(slots_per_provider);
+                        ev.missing_kernel_candidates += static_cast<uint32_t>(slots_per_provider);
+                        ev.culled_detail.push_back(c.provider + ": kernel missing from provider");
+                        continue;   // 未进入内核执行
+                    }
+                    ++ev.executed_candidates;   // bench_kernel 已调用内核函数
+                    uint32_t mi = 0;
+                    double mg = 0, mr = 0;
+                    if (std::sscanf(c.fallback_reason.c_str(), "mismatch at %u: got=%lf ref=%lf",
+                                    &mi, &mg, &mr) == 3) {
+                        // 首次不符 = 索引最小者(bench_kernel 逐元素比较, 报的就是首次)
+                        if (!ev.has_first_mismatch || mi < ev.first_mismatch.index) {
+                            ev.has_first_mismatch = true;
+                            ev.first_mismatch.index = mi;
+                            ev.first_mismatch.got = mg;
+                            ev.first_mismatch.ref = mr;
+                            ev.first_mismatch.size_class = sc;
+                            ev.first_mismatch.provider = c.provider;
+                            ev.first_mismatch.workers = c.workers;
+                            ev.first_mismatch.block = c.block;
+                        }
+                    } else if (!c.fallback_reason.empty() && ev.detail.empty()) {
+                        ev.detail = c.fallback_reason;   // 执行了但非数值失败(kernel rc= 等)
+                    }
+                }
+                // 跨规模档聚合(kernels 对象按 kernel_id 单条; 证据必须覆盖全部已测规模档)
+                OracleFailEvidence& agg = ev_by_kernel[sp.kernel_id];
+                agg.tolerance = kOracleRelTol;
+                agg.executed_candidates += ev.executed_candidates;
+                agg.culled_candidates += ev.culled_candidates;
+                agg.missing_kernel_candidates += ev.missing_kernel_candidates;
+                for (const auto& d : ev.culled_detail)
+                    if (std::find(agg.culled_detail.begin(), agg.culled_detail.end(), d) ==
+                        agg.culled_detail.end())
+                        agg.culled_detail.push_back(d);
+                if (agg.detail.empty()) agg.detail = ev.detail;
+                if (ev.has_first_mismatch &&
+                    (!agg.has_first_mismatch ||
+                     ev.first_mismatch.index < agg.first_mismatch.index)) {
+                    agg.first_mismatch = ev.first_mismatch;
+                    agg.has_first_mismatch = true;
+                }
+            }
 
             // ── 5. winner: 仅 OK 候选可胜出; AVX512 提升<3% 选 AVX2 ──
             std::vector<BenchResult> okres;
@@ -580,6 +710,16 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
             kp.median_ns = winner_median;
             kp.mad_ns = winner_mad;
             kp.fallback_reason = winner.empty() ? "no passing provider" : "";
+            // R-53: 证据落盘(仅当可判定; 不可判定 ⇒ 视为无证据 ⇒ 组装期判据判红)
+            {
+                const auto eit = ev_by_kernel.find(sp.kernel_id);
+                OracleFailEvidence ev = (eit == ev_by_kernel.end()) ? OracleFailEvidence{}
+                                                                    : eit->second;
+                if (oracle_fail_class(ev) != OracleFailClass::kUndetermined) {
+                    ev.present = true;
+                    kp.evidence = ev;
+                }
+            }
             // 组装期不变量(fail-closed, 唯一判据 profile_invariant_violation):
             // 违反即记入 violations ⇒ 调用方在本进程内失败, 不落盘、不等复读层拒收。
             const std::string viol = profile_invariant_violation(kp);
@@ -645,6 +785,29 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
         kentry["mad"] = kp.mad_ns;
         kentry["fallback_reason"] = kp.fallback_reason.empty()
             ? nlohmann::json(nullptr) : nlohmann::json(kp.fallback_reason);
+        // R-53: oracle 失败证据落盘(判据失败时读侧必须能区分环境性/代码性)
+        if (kp.evidence.present) {
+            nlohmann::json of;
+            of["class"] = oracle_fail_class_name(oracle_fail_class(kp.evidence));
+            of["kind"] = oracle_fail_kind_name(kp.evidence);
+            of["executed_candidates"] = kp.evidence.executed_candidates;
+            of["culled_candidates"] = kp.evidence.culled_candidates;
+            of["missing_kernel_candidates"] = kp.evidence.missing_kernel_candidates;
+            of["tolerance"] = kp.evidence.tolerance;
+            of["culled_detail"] = kp.evidence.culled_detail;
+            if (kp.evidence.has_first_mismatch) {
+                const OracleFirstMismatch& fm = kp.evidence.first_mismatch;
+                of["first_mismatch"] = {
+                    {"index", fm.index}, {"got", fm.got}, {"ref", fm.ref},
+                    {"size_class", fm.size_class}, {"provider", fm.provider},
+                    {"workers", fm.workers}, {"block", fm.block},
+                };
+            } else {
+                of["first_mismatch"] = nullptr;
+            }
+            if (!kp.evidence.detail.empty()) of["detail"] = kp.evidence.detail;
+            kentry["oracle_fail"] = of;
+        }
         kernels[kid] = kentry;
     }
     j["kernels"] = kernels;
@@ -745,6 +908,54 @@ std::string verify_profile_v2(const std::string& json_text, const std::string& e
         if (kp.value("mad", -1.0) < 0) return "kernels." + it.key() + ".mad < 0";
         const std::string st = kp.value("self_test_sha256", "");
         if (st.size() != 64) return "kernels." + it.key() + ".self_test_sha256 not 64hex";
+        // R-53: oracle 失败必须带**可判定**证据(唯一判据 oracle_fail_evidence_violation;
+        // 与组装期 profile_invariant_violation 同一条)。class/kind 由证据重算后比对,
+        // 防手改与漂移; "判 FAIL 而无 mismatch 证据"一律判红(不得按环境性放行)。
+        OracleFailEvidence ev;
+        ev.present = kp.contains("oracle_fail");
+        if (ev.present) {
+            const auto& of = kp["oracle_fail"];
+            if (!of.is_object()) return "kernels." + it.key() + ".oracle_fail not object";
+            ev.executed_candidates = of.value("executed_candidates", 0u);
+            ev.culled_candidates = of.value("culled_candidates", 0u);
+            ev.missing_kernel_candidates = of.value("missing_kernel_candidates", 0u);
+            ev.tolerance = of.value("tolerance", 0.0);
+            ev.detail = of.value("detail", std::string());
+            if (of.contains("culled_detail")) {
+                for (const auto& s : of["culled_detail"])
+                    if (s.is_string()) ev.culled_detail.push_back(s.get<std::string>());
+            }
+            if (of.contains("first_mismatch") && !of["first_mismatch"].is_null()) {
+                const auto& fm = of["first_mismatch"];
+                if (!fm.is_object())
+                    return "kernels." + it.key() + ".oracle_fail.first_mismatch not object/null";
+                ev.has_first_mismatch = true;
+                ev.first_mismatch.index = fm.value("index", 0u);
+                ev.first_mismatch.got = fm.value("got", 0.0);
+                ev.first_mismatch.ref = fm.value("ref", 0.0);
+                ev.first_mismatch.size_class = fm.value("size_class", std::string());
+                ev.first_mismatch.provider = fm.value("provider", std::string());
+                ev.first_mismatch.workers = fm.value("workers", 0u);
+                ev.first_mismatch.block = fm.value("block", 0ull);
+                if (ev.first_mismatch.size_class.empty() || ev.first_mismatch.provider.empty() ||
+                    ev.first_mismatch.workers < 1 || ev.first_mismatch.block < 1)
+                    return "kernels." + it.key() +
+                           ".oracle_fail.first_mismatch 不完整(须带 size_class/provider/"
+                           "workers/block)";
+            }
+            if (!(ev.tolerance > 0)) return "kernels." + it.key() + ".oracle_fail.tolerance <= 0";
+            const std::string claim = of.value("class", std::string());
+            if (claim != oracle_fail_class_name(oracle_fail_class(ev)))
+                return "kernels." + it.key() + ".oracle_fail.class 与证据不符: " + claim;
+            const std::string kind = of.value("kind", std::string());
+            if (kind != oracle_fail_kind_name(ev))
+                return "kernels." + it.key() + ".oracle_fail.kind 与证据不符: " + kind;
+        }
+        {
+            const std::string ev_err = oracle_fail_evidence_violation(
+                it.key(), kp.value("correctness_test", ""), ev);
+            if (!ev_err.empty()) return ev_err;
+        }
     }
     const std::string pid = d.value("profile_id", "");
     if (pid.rfind("sha256:", 0) != 0 || pid.size() != 71)

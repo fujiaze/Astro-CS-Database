@@ -184,6 +184,110 @@
               "string",
               "null"
             ]
+          },
+          "oracle_fail": {
+            "description": "R-53: oracle 失败的性质证据（仅 oracle:fail/selftest:fail 的 kernel 出现）。判据唯一出处 = lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:oracle_fail_class —— executed_candidates==0 且 culled_candidates>0 ⇒ environmental（本机/本安装树无任何候选能进入内核执行，culled_detail 给出正面剔除证据）；executed_candidates>0 且 first_mismatch（首次数值不符的索引/got/ref/所属规模档/provider/workers/block）或 detail（非数值执行失败）⇒ code；missing_kernel_candidates>0（provider 可用却未注册该 kernel = 实现面缺陷）⇒ code。class/kind 由计数重算，verify_profile_v2 与声明逐字比对。证据缺失或不可判定一律判红（不得按环境性放行）。",
+            "type": "object",
+            "required": [
+              "class",
+              "kind",
+              "executed_candidates",
+              "culled_candidates",
+              "missing_kernel_candidates",
+              "tolerance"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "class": {
+                "enum": [
+                  "environmental",
+                  "code"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "no_candidate_executed",
+                  "numeric_mismatch",
+                  "kernel_missing",
+                  "kernel_error"
+                ]
+              },
+              "executed_candidates": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "culled_candidates": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "missing_kernel_candidates": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "tolerance": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "culled_detail": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "detail": {
+                "type": "string"
+              },
+              "first_mismatch": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": false,
+                "required": [
+                  "index",
+                  "got",
+                  "ref",
+                  "size_class",
+                  "provider",
+                  "workers",
+                  "block"
+                ],
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "got": {
+                    "type": "number"
+                  },
+                  "ref": {
+                    "type": "number"
+                  },
+                  "size_class": {
+                    "enum": [
+                      "small",
+                      "medium",
+                      "large"
+                    ]
+                  },
+                  "provider": {
+                    "enum": [
+                      "baseline",
+                      "avx2",
+                      "avx512"
+                    ]
+                  },
+                  "workers": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "block": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -683,6 +787,110 @@
             "string",
             "null"
           ]
+        },
+        "oracle_fail": {
+          "description": "R-53: oracle 失败的性质证据（仅 oracle:fail/selftest:fail 的 kernel 出现）。判据唯一出处 = lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:oracle_fail_class —— executed_candidates==0 且 culled_candidates>0 ⇒ environmental（本机/本安装树无任何候选能进入内核执行，culled_detail 给出正面剔除证据）；executed_candidates>0 且 first_mismatch（首次数值不符的索引/got/ref/所属规模档/provider/workers/block）或 detail（非数值执行失败）⇒ code；missing_kernel_candidates>0（provider 可用却未注册该 kernel = 实现面缺陷）⇒ code。class/kind 由计数重算，verify_profile_v2 与声明逐字比对。证据缺失或不可判定一律判红（不得按环境性放行）。",
+          "type": "object",
+          "required": [
+            "class",
+            "kind",
+            "executed_candidates",
+            "culled_candidates",
+            "missing_kernel_candidates",
+            "tolerance"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "class": {
+              "enum": [
+                "environmental",
+                "code"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "no_candidate_executed",
+                "numeric_mismatch",
+                "kernel_missing",
+                "kernel_error"
+              ]
+            },
+            "executed_candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "culled_candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing_kernel_candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tolerance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "culled_detail": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "detail": {
+              "type": "string"
+            },
+            "first_mismatch": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": false,
+              "required": [
+                "index",
+                "got",
+                "ref",
+                "size_class",
+                "provider",
+                "workers",
+                "block"
+              ],
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "got": {
+                  "type": "number"
+                },
+                "ref": {
+                  "type": "number"
+                },
+                "size_class": {
+                  "enum": [
+                    "small",
+                    "medium",
+                    "large"
+                  ]
+                },
+                "provider": {
+                  "enum": [
+                    "baseline",
+                    "avx2",
+                    "avx512"
+                  ]
+                },
+                "workers": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "block": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
         }
       }
     }
