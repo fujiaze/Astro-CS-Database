@@ -214,7 +214,13 @@ set_target_properties(astrocs-stage2 PROPERTIES EXCLUDE_FROM_ALL TRUE)
 # V3 B3-A4: phase2_ivar_wiring 以 std::system("astrocs-stage2 ...") 驱动本
 # compatibility 工具；该工具 EXCLUDE_FROM_ALL，必须由测试目标显式拉建，
 # 否则全量 ctest 中 sh 报 "astrocs-stage2: not found"(rc=32512) 假红。
-add_dependencies(phase2_ivar_wiring astrocs-stage2)
+# FINAL-07 R2：本命令必须与 phase2_ivar_wiring 的**定义守卫**同一条件 —— 该目标只在
+# find_package(GTest) 成功（本文件 :90）且 phase2_ivar_wiring 被定义（:106）时存在；
+# 落在守卫外时，无 GTest / 模块独立 configure / Windows 一律直接报
+# "Cannot add target-level dependencies to non-existent target"（CI 实证）。
+if(TARGET phase2_ivar_wiring)
+  add_dependencies(phase2_ivar_wiring astrocs-stage2)
+endif()
 
 add_executable(calibrated_pair_diag tools/calibrated_pair_diag.cpp)
 target_link_libraries(calibrated_pair_diag PRIVATE phase2

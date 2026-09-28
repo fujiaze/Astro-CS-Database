@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import declared_inputs as _decl_in  # noqa: E402  (eng/ci/declared_inputs.py：声明输入面单一实现点)
 import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
+import run_checks as _rc  # noqa: E402  (eng/ci/run_checks.py：档位门控单一实现点, FINAL-07 R3)
 
 SCHEMA_VERSION = 1
 PROFILES = ("fast", "linux-main", "windows-main", "linux-deep", "fatduck")
@@ -834,8 +835,13 @@ def _tail(data: bytes, limit: int = TAIL_LIMIT) -> str:
 
 
 def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
-                  strict_workspace: bool) -> dict:
-    """执行一项检查并返回 per-check 结果 dict（verdict 全部由执行结果计算）。"""
+                  strict_workspace: bool, profile: str) -> dict:
+    """执行一项检查并返回 per-check 结果 dict（verdict 全部由执行结果计算）。
+
+    `profile` = 本轮档位：既注入子进程（聚合派发据此按 step 自身 profiles 门控，
+    FINAL-07 R3），也用于本函数的**登记产物预期面**核算（档位不执行的 step，其
+    outputs 在本档不产生，不得判 missing_output）。
+    """
     cid = check["id"]
     started = utc_now()
     result: dict = {
@@ -862,6 +868,8 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         "dirty": {"checked": False, "violations": []},
         "outputs_expected": check["outputs"],
         "outputs_missing": [],
+        # 本档**不预期**的登记产物（平台不匹配 / 档位门控不执行的 step 产物），逐条留痕。
+        "outputs_skipped": {"platform": [], "profile": []},
         "prerequisite": {"checked": True, "ok": True, "reason": None},
         # 声明输入面逐条状态（S2-A）：复核者据此核对"这一步到底扫了什么"。
         "inputs_state": None,
@@ -941,6 +949,10 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     # 结果（<out_root>/checks/<id>.json）以判定「失败集 ⊆ 版本化基线」；
     # 该检查在注册表中排在 linux-main 末位，故其执行时同 run 结果已全部落盘。
     env["ASTROCS_CI_OUT_ROOT"] = str(out_root)
+    # FINAL-07 R3：把本轮档位注入聚合派发（command = run_checks.py --check <ID>），
+    # 子进程据此按 step 自身 profiles 门控。用环境变量而非改写 argv —— 注册表登记的
+    # 命令保持与真正执行的命令逐字一致（命令唯一事实源仍是 eng/ci/checks.json）。
+    env[_rc.ENV_PROFILE] = profile
     timed_out = False
     stdout_b, stderr_b = b"", b""
     t0 = time.monotonic()
@@ -1103,16 +1115,27 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         # 平台跳过的 step，其登记 outputs 不得在其它平台被要求：
         # CHK-UNIT 的 WIN-TEST-UNIT（platform=windows）产物在 linux 上永不产生，
         # 而 check 级 outputs 是跨平台并集 ⇒ 历史 FAIL(missing_output) 假红。
+        # FINAL-07 R3：档位门控跳过的 step 同理 —— 被派发的 run_checks 按 step 自身
+        # profiles 过滤（linux-main 不再跑 linux-deep 的 DEEP-CLANG-BUILD），其登记的
+        # run/ci/build-clang-summary.json 等产物在本档本就不产生，不得判 missing_output。
+        # 两个维度都逐条留痕（outputs_skipped），复核者据此核对"本档到底预期哪些产物"。
         _skip_outs, _kept_outs = set(), set()
+        _platform_skipped, _profile_skipped = set(), set()
         for _s in check.get("steps") or []:
             _outs = set(_s.get("outputs") or [])
-            if _s.get("platform", "any") in ("any", platform):
+            _plat_ok = _s.get("platform", "any") in ("any", platform)
+            if _plat_ok and _rc.step_in_profile(_s, profile):
                 _kept_outs.update(_outs)
             else:
                 _skip_outs.update(_outs)
-        _platform_skipped = _skip_outs - _kept_outs
+                (_platform_skipped if not _plat_ok else _profile_skipped).update(_outs)
+        _not_expected = _skip_outs - _kept_outs
+        result["outputs_skipped"] = {
+            "platform": sorted(_platform_skipped - _kept_outs),
+            "profile": sorted(_profile_skipped - _kept_outs),
+        }
         missing = [rel for rel in check["outputs"]
-                   if not _script_exists(repo, rel) and rel not in _platform_skipped]
+                   if not _script_exists(repo, rel) and rel not in _not_expected]
         result["outputs_missing"] = missing
         if missing:
             result["verdict"] = V_MISSING_OUTPUT
@@ -1478,7 +1501,8 @@ def main(argv: list[str] | None = None) -> int:
         # 全量结果（含 known_failures 判定后的 verdict），最终态不变。
         check_results = []
         for check in selected:
-            result = execute_check(check, repo, out_root, platform, args.strict_workspace)
+            result = execute_check(check, repo, out_root, platform, args.strict_workspace,
+                                   args.profile)
             write_check_result(out_root, result)
             check_results.append(result)
         check_results, known_summary = apply_known_failures(

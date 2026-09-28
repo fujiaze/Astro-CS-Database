@@ -89,6 +89,16 @@ set_tests_properties(p1star_units p1star_properties p1star_oracle PROPERTIES
 
 # negative 组: LD_PRELOAD interposer (第 N 次 malloc 失败; interposer 源与本
 # 目标同目录, 参照批次 R 样板 run/local/bughunt_batchR/oom_inject.c)。
+#
+# FINAL-07 R5: 本块整体是 **UNIX 专用路径** —— interposer 用 _GNU_SOURCE + dlfcn.h，
+# launcher 走 /bin/sh + LD_PRELOAD，链接需 GNU ld 的 --no-as-needed；MSVC 既编不过
+# （无 dlfcn.h），也没有 /bin/sh。按 platform 口径显式限定到 UNIX：
+#   * 修前 Windows（VS 2022 多配置生成器）在 **generate 期**即报
+#     "Evaluation file to be written multiple times with different content"
+#     （见下方 file(GENERATE) 处的 R5 注释）；
+#   * 即便过了 generate，add_dependencies 也会强制编 interposer ⇒ build 期失败。
+# 跳过在 else() 分支显式打点（不得静默失效）。
+if(UNIX)
 add_library(p1star_oom_interposer SHARED ${P1STAR_DIR}/sdet_oom_interposer.c)
 set_target_properties(p1star_oom_interposer PROPERTIES
   OUTPUT_NAME sdet_oom_interposer PREFIX "" SUFFIX ".so" LINKER_LANGUAGE C)
@@ -97,7 +107,12 @@ target_link_options(p1star_tests PRIVATE "LINKER:--no-as-needed")
 
 # add_test 需 .so 与 run/ 就绪 → 用 CMake 生成 launcher 脚本设置 LD_PRELOAD
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run)
-set(P1STAR_LAUNCHER ${CMAKE_CURRENT_BINARY_DIR}/p1star_negative_launcher.sh)
+# FINAL-07 R5: 输出路径必须带 $<CONFIG> —— 多配置生成器（VS 17 2022 / Ninja
+# Multi-Config）对同一 OUTPUT 路径**逐配置**求值，而 CONTENT 内含 $<TARGET_FILE:…>
+# （逐配置取值不同）⇒ 路径不含配置维即报
+# "Evaluation file to be written multiple times with different content"。
+set(P1STAR_LAUNCHER
+    ${CMAKE_CURRENT_BINARY_DIR}/p1star_negative_launcher_$<CONFIG>.sh)
 file(GENERATE OUTPUT ${P1STAR_LAUNCHER}
   CONTENT "#!/bin/sh
 # P1-STAR-TEST negative launcher: OOM interposer + 单线程 malloc 序确定性
@@ -118,10 +133,20 @@ export OMP_NUM_THREADS=1
 cd \"\$1\" && shift
 exec \"$<TARGET_FILE:p1star_tests>\" negative
 ")
+# add_test 的 COMMAND 逐配置求值 $<CONFIG>（与 file(GENERATE) 的 OUTPUT 同源）。
 add_test(NAME p1star_negative
   COMMAND /bin/sh ${P1STAR_LAUNCHER} ${CMAKE_CURRENT_BINARY_DIR}/run)
 set_tests_properties(p1star_negative PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run)
+else()
+  # 显式跳过（platform 口径，不得静默失效）：本平台没有 dlfcn.h / LD_PRELOAD /
+  # /bin/sh 这条路径 ⇒ negative 组（F5 合同负例 + OOM 注入扫描）不在本平台注册。
+  # 注册面仍留在 if(UNIX) 内：eng/ci/ctest_baseline.json 的 p1star_negative 是
+  # Linux 面冻结目标，静态扫描（eng/tools/quality/check_ctest_registration.py）仍可见。
+  message(STATUS "P1-STAR-TEST(p1star): negative 组为 UNIX 专用路径"
+                 "（LD_PRELOAD interposer + /bin/sh launcher）⇒ 本平台 "
+                 "${CMAKE_SYSTEM_NAME} 显式跳过注册（FINAL-07 R5）")
+endif()
 
 # performance 基线 (独立可执行, 时长敏感与 core 组隔离)
 add_executable(p1star_perf_test

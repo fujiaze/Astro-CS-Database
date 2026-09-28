@@ -49,7 +49,9 @@ NONPROD = [
     ("orchestrator_legacy_cli", "Phase1 编排工具面（ARCHITECTURE §1 迁移冻结：非入口）"),
     ("calibrated_pair_diag", "标定对诊断工具（非入口）"),
     ("rejection_cli", "排异诊断工具（非入口）"),
-    ("m42_criterion_probe", "判据探针工具（非入口）"),
+    # FINAL-07 R1：m42_criterion_probe 已从根 CMakeLists 删除（其源码在 .gitignore
+    # 的 run/* 下 ⇒ 干净克隆 configure 必红）。这里同步撤销非生产面登记，否则本生成器
+    # 的 fail-closed（登记项不在根构建图 ⇒ 非零退出）会拦住文档再生。
 ]
 
 # 非根图目标：其 CMakeLists 未被根 CMakeLists 的 add_subdirectory 纳入。

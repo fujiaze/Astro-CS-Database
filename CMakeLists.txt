@@ -871,7 +871,13 @@ target_include_directories(astrocs_p1_dpsf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src
   # CLEAN-403: dpsf_log.cpp 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
-target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
+# FINAL-07 R4: 根 find_package(OpenMP) 在 if(UNIX) 内 (:181) ⇒ 该 imported target
+# 在 MSVC 作用域下**不存在**；无守卫引用会在 generate 期硬失败
+# ("Target ... links to target OpenMP::OpenMP_CXX but the target was not found")。
+# 与同文件其余 6 处 (:563/:608/:697/:789/:822/:835) 同款守卫；Linux 行为不变。
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # P1-001: sdet 生产实现（lib/algorithms/star_detection 9 TU, ipv detector_handle;
 # 规范权威源 = docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:8「唯一权威生产源」,
@@ -899,7 +905,11 @@ target_include_directories(astrocs_p1_sdet PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src
   # CLEAN-403: sdet_log.cpp 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
-target_link_libraries(astrocs_p1_sdet PUBLIC OpenMP::OpenMP_CXX)
+# FINAL-07 R4: 同 astrocs_p1_dpsf（:874）—— 守卫与其余 6 处同款，MSVC 下不再
+# 引用根作用域不存在的 OpenMP::OpenMP_CXX；Linux 行为不变。
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_link_libraries(astrocs_p1_sdet PUBLIC OpenMP::OpenMP_CXX)
+endif()
 # GSL-REPLACE-01: PSF 拟合的 trust-region LM 求解器改为仓内自研实现
 # （lib/algorithms/star_detection/src/nls_lm.cpp, 无外部依赖）。
 # **禁止**重新引入 GSL/gslcblas: Windows 无来源, 且其为 GPL 族并经
@@ -1148,13 +1158,14 @@ if(ASTROCS_BUILD_TESTS)
   add_subdirectory(eng/tests/unit/p2_sky_kappa p2_sky_kappa)
   # UPM-KAPPA-UNIFY-01：唯一可辨识性判据（正/负例 + 尺度不变 + Oracle）
   add_subdirectory(eng/tests/unit/p2_identifiability p2_identifiability)
-  # UPM-KAPPA-UNIFY-01 证据探针：真实 M42 上天光面侧的判据读数 / λ 扫描 / 解差异
-  # （只链 astrocs_phase2，不碰编排面；按需构建，不进默认目标）。
-  add_executable(m42_criterion_probe
-    run/UPM-KAPPA-UNIFY-01/tools/m42_criterion_probe.cpp)
-  target_link_libraries(m42_criterion_probe PRIVATE astrocs_phase2)
-  set_property(TARGET m42_criterion_probe PROPERTY CXX_STANDARD 17)
-  set_target_properties(m42_criterion_probe PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  # FINAL-07 R1：UPM-KAPPA-UNIFY-01 的 M42 判据探针曾在此登记为 add_executable，
+  # 但源码在 run/UPM-KAPPA-UNIFY-01/tools/（.gitignore 忽略 run/*）⇒ 干净克隆 / CI
+  # 的 configure 必红（Cannot find source file），违反「构建不得依赖未跟踪路径」。
+  # 该探针是**一次性证据探针**：判据本体的现行回归锁在跟踪面
+  # eng/tests/unit/p2_identifiability（v6_p2_identifiability）与 eng/tests/unit/p2_upm
+  # 的 geo 诊断测试；探针源码与结果留在 run/UPM-KAPPA-UNIFY-01/（该轮 REPORT.md 已留档）。
+  # 若将来要把它作为**现行工具**保留，须先把源码迁入跟踪目录（如 eng/tools/）再重新
+  # 登记，并同步 eng/tools/arch/gen_build_graph_doc.py 的 NONPROD 与再生 BUILD_GRAPH.md。
   add_subdirectory(eng/tests/unit/p3_proj p3_proj)
   add_subdirectory(eng/tests/unit/p3_rsmp p3_rsmp)
   add_subdirectory(eng/tests/integration/p1_integrate p1_integration)
