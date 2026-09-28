@@ -185,7 +185,7 @@ flowchart LR
 
 | 任务 | 状态 | 机器门结果 | 证据路径 | 前台结论 |
 |---|---|---|---|---|
-| XXX-001 | PASS | ctest 全过 | `artifacts/evidence/<控制包>/` | 复跑一致 |
+| XXX-001 | PASS | ctest 全过 | `实验/engineering-evidence/<控制包>/` | 复跑一致 |
 
 ### 7.3 判据边界
 

@@ -145,11 +145,12 @@ eng/packaging/config/  程序全局配置（filters.json / defaults.json）
 docs/                  自解释文档集（science 公式 / algorithms 推导 / plugins 插件 /
                          design 设计 / contracts 合同说明 / ci 规范 / references 文献）
 实验/                   科学实验单元（photometric-magnitude / absolute-snr /
-                         additive-sky-seamless + shared 共用合成数据，可独立复核）
+                         additive-sky-seamless + shared 共用合成数据，可独立复核；
+                         engineering-evidence/ 工程实测留档）
 testdata/              真实数据与外部只读数据集索引（只读；README.md 为入库/下载策略唯一说明，
                          含 BASS_DR3、HST_M16；FITS 大文件不入库）
 gaia/                  根级外部只读星表数据集（GaiaDR3 / GaiaDR3SP，gitignore，只读不入库）
-artifacts/             证据与产物（artifacts/ci/<sha>/ CI 产物；artifacts/evidence/ 证据锚）
+artifacts/             证据与产物（artifacts/ci/<sha>/ CI 产物；artifacts/evidence/ 机器门基线与台账）
 工程控制/               控制包（收口后按 CONTROL_PACK_SPEC §9 清理）
 独立审计/               独立审计交付件（审查报告＋随包取证成稿与复算件；只读参照，不作构建/门禁输入）
 run/                   临时产物/日志（gitignore，不入库）；日志一律落 run/<task>/logs/

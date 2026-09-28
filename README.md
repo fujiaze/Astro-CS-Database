@@ -67,7 +67,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | 跨阶段产品交换与 ABI | `docs/interfaces/` |
 | CLI/API 协议 | `docs/api/CLI_PROTOCOL_V1.md` |
 | 机器门清单与运行方式 | `docs/ci/` |
-| 验收证据与 QA 矩阵 | `docs/validation/`、`artifacts/evidence/` |
+| 验收证据与 QA 矩阵 | `docs/validation/`、`实验/engineering-evidence/` |
 | 术语 | `docs/GLOSSARY.md` |
 | 开发与排查 | `docs/DEVELOPER_GUIDE.md`、`docs/TROUBLESHOOTING.md` |
 
