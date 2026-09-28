@@ -32,6 +32,53 @@ struct RawCandidate {
     std::string fallback_reason;  // 空=通过; 非空=被剔除原因
 };
 
+/* ── R-53: oracle 失败的性质证据(唯一判据源; 门必须能区分环境性与代码性 oracle:fail) ──
+ * 动机: profile 只落 correctness_test="oracle:fail" 时, 读侧无法区分
+ *   ① 环境性 = 没有任何候选能进入内核执行(provider 缺失/self_test/加载/ISA 预检剔除)
+ *      ⇒ 本机/本安装树确实测不了; 与
+ *   ② 代码性 = 候选进入了内核执行且数值不符(判据/内核/provider 缺陷)
+ *      ⇒ 恒红门/真缺陷, 必须判红 —— 两档恒 oracle:fail 的真根因即 ②。
+ * 判据(见 oracle_fail_class): executed==0 ∧ culled>0 ⇒ 环境性;
+ *   executed>0 ∧ (首次不符 ∨ 非数值执行失败) ⇒ 代码性; 其余(含空证据) ⇒ 不可判定。
+ * **不可判定必须判红**: 证据缺失不得按环境性放行(否则就是新的开口子)。 */
+struct OracleFirstMismatch {
+    uint32_t index = 0;              // 逐元素比较中**首次**不符的索引(bench_kernel 报的第一个)
+    double got = 0, ref = 0;         // kernel 实测值 / 独立参考值
+    std::string size_class;          // "small"|"medium"|"large"(所属规模档)
+    std::string provider;            // 该候选 provider
+    uint32_t workers = 0;
+    uint64_t block = 0;
+};
+
+struct OracleFailEvidence {
+    // 证据块是否存在(与"空证据"区分): 复读侧按 JSON 有无 oracle_fail 置位;
+    // 生成侧仅当 class 可判定时才置位 ⇒ "有失败却无证据"必然被判红。
+    bool present = false;
+    uint32_t executed_candidates = 0;   // 真调用过内核的候选数(provider×workers×block 计)
+    uint32_t culled_candidates = 0;     // 执行前被剔除的候选槽位数(同上单位; 含不可用 provider 整槽)
+    // 其中因"provider 可用但未注册该 kernel"被剔除的槽位数: 这是 provider/kernel 实现面
+    // 缺陷, 不是环境能力问题 ⇒ 单列, 只它一个原因时判代码性(不得按环境性放行)。
+    uint32_t missing_kernel_candidates = 0;
+    std::vector<std::string> culled_detail;  // 被剔除原因(provider: reason), 环境性的正面证据
+    double tolerance = 0;               // 判据容差(冻结值 kOracleRelTol=2e-4)
+    bool has_first_mismatch = false;
+    OracleFirstMismatch first_mismatch;
+    std::string detail;                 // 执行了但非数值失败时的原始原因(如 "kernel rc=-1")
+};
+
+enum class OracleFailClass { kUndetermined = 0, kEnvironmental, kCode };
+
+OracleFailClass oracle_fail_class(const OracleFailEvidence& ev);
+const char* oracle_fail_class_name(OracleFailClass c);            // undetermined|environmental|code
+const char* oracle_fail_kind_name(const OracleFailEvidence& ev);  // 之上再分 no_candidate_executed|numeric_mismatch|kernel_error
+
+/* 证据充分性判据(唯一出处; 返回 "" = 合规)。correctness_test 非 "oracle:pass" 时,
+ * 证据不可判定 ⇒ 判红(证据缺失不得按环境性放行)。oracle:pass 携带证据是允许的
+ * (某规模档失败而末档通过), 但同样必须可判定。 */
+std::string oracle_fail_evidence_violation(const std::string& kernel_id,
+                                           const std::string& correctness_test,
+                                           const OracleFailEvidence& ev);
+
 // 单 kernel 的最终选择(profile kernels 对象项)
 struct KernelProfile {
     std::string kernel_id;
@@ -43,6 +90,7 @@ struct KernelProfile {
     std::string self_test_sha256;  // provider self_test 可验证 hash(64hex; 空=未运行)
     double median_ns = 0, mad_ns = 0;
     std::string fallback_reason;   // 空=正常; 非空=逐 kernel 回退原因
+    OracleFailEvidence evidence;   // R-53: 跨规模档聚合的 oracle 失败证据(不可判定 ⇒ 判红)
 };
 
 struct ProfileBundle {

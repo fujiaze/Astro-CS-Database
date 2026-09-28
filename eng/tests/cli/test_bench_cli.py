@@ -113,6 +113,34 @@ class TestBenchCli(unittest.TestCase):
                 self.assertIn(kp.get("fallback_reason"),
                               ("no passing provider", "oracle_failed"),
                               "%s: fallback 证据缺失" % kid)
+                # R-53: 失败必须带**可判定**证据 —— 门据此区分环境性(无候选进入内核执行)
+                # 与代码性(有候选执行且数值不符)。证据缺失即判红, 不得按环境性放行。
+                ev = kp.get("oracle_fail")
+                self.assertIsInstance(ev, dict, "%s: oracle:fail 缺 oracle_fail 证据" % kid)
+                self.assertIn(ev.get("class"), ("environmental", "code"), kid)
+                self.assertIn(ev.get("kind"),
+                              ("no_candidate_executed", "numeric_mismatch",
+                               "kernel_missing", "kernel_error"), kid)
+                self.assertGreater(ev.get("tolerance", 0), 0, kid)
+                self.assertGreaterEqual(ev.get("executed_candidates", -1), 0, kid)
+                self.assertGreaterEqual(ev.get("culled_candidates", -1), 0, kid)
+                self.assertGreaterEqual(ev.get("missing_kernel_candidates", -1), 0, kid)
+                if ev.get("class") == "environmental":
+                    self.assertEqual(ev.get("executed_candidates"), 0,
+                                     "%s: 环境性 = 无候选进入内核执行" % kid)
+                    self.assertGreater(ev.get("culled_candidates"), 0,
+                                       "%s: 环境性须有正面剔除证据" % kid)
+                    self.assertIsNone(ev.get("first_mismatch"), kid)
+                else:
+                    fm = ev.get("first_mismatch")
+                    self.assertIsInstance(fm, dict,
+                                          "%s: 代码性须落首次不符(索引/got/ref)" % kid)
+                    for f in ("index", "got", "ref", "size_class", "provider",
+                              "workers", "block"):
+                        self.assertIn(f, fm, kid)
+                    self.assertIn(fm["size_class"], ("small", "medium", "large"), kid)
+                    self.assertIn(fm["provider"], ("baseline", "avx2", "avx512"), kid)
+                    self.assertGreaterEqual(fm["index"], 0, kid)
 
     # ── 3. 旧子命令/旧模式旗标一律 rc=2（§6.2 唯一命令树） ──
     def test_03_deleted_subcommands_and_mode_flags_exit_2(self):

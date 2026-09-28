@@ -169,11 +169,29 @@ int main() {
     negmad.mad_ns = -1.0;
     CHECK(!astrocs::backend_host::profile_invariant_violation(negmad).empty());
 
-    // 不误判: oracle 失败时 median=0 是合法表达(CPU-003: 错误候选不计时)
+    // 不误判: oracle 失败时 median=0 是合法表达(CPU-003: 错误候选不计时) —— 但按 R-53
+    // 必须同时带**可判定**证据(有候选执行 + 首次数值不符 ⇒ 代码性), 否则判红(见下)。
     astrocs::backend_host::KernelProfile failed = good;
     failed.correctness_test = "oracle:fail";
     failed.median_ns = 0.0;
+    failed.evidence.present = true;
+    failed.evidence.executed_candidates = 36;
+    failed.evidence.tolerance = 2e-4;
+    failed.evidence.has_first_mismatch = true;
+    failed.evidence.first_mismatch.index = 1;
+    failed.evidence.first_mismatch.got = 0.499992;
+    failed.evidence.first_mismatch.ref = 0.410044;
+    failed.evidence.first_mismatch.size_class = "small";
+    failed.evidence.first_mismatch.provider = "baseline";
+    failed.evidence.first_mismatch.workers = 1;
+    failed.evidence.first_mismatch.block = 512;
     CHECK(astrocs::backend_host::profile_invariant_violation(failed).empty());
+
+    // 负例 3(证据缺失 ⇒ 红): 同一失败项拿掉证据即判红 —— 证据缺失不得按环境性放行,
+    // 否则"判 FAIL 而不落 mismatch 证据"就成了新的开口子。
+    astrocs::backend_host::KernelProfile noev = failed;
+    noev.evidence = astrocs::backend_host::OracleFailEvidence{};
+    CHECK(!astrocs::backend_host::profile_invariant_violation(noev).empty());
   }
 
   // 7) Oracle 离散语义正负例(能红能绿): 两档 oracle:fail 的根因是 oracle 把行坐标
@@ -240,8 +258,165 @@ int main() {
     }
   }
 
+  // 8) R-53: oracle 失败性质判别(环境性 vs 代码性)与"无证据 ⇒ 红"的正负例。
+  //    动机: 只落 correctness_test="oracle:fail" 时读侧无法区分"本机测不了(环境性)"
+  //    与"判据/内核真缺陷(代码性)"; 两档恒 oracle:fail 的真根因正是后者。
+  //    判据唯一出处 = profile_gen_v2.cpp:oracle_fail_class / oracle_fail_evidence_violation。
+  {
+    using astrocs::backend_host::KernelProfile;
+    using astrocs::backend_host::OracleFailClass;
+    using astrocs::backend_host::OracleFailEvidence;
+
+    // 8a) 正例·环境性: 没有任何候选进入内核执行, 但有**正面**剔除证据
+    //     (provider 被加载/ISA/self_test 剔除) ⇒ 本机/本安装树确实测不了。
+    {
+      OracleFailEvidence env;
+      env.present = true;
+      env.culled_candidates = 12;
+      env.culled_detail.push_back("baseline: self_test_fail");
+      env.tolerance = 2e-4;
+      CHECK(astrocs::backend_host::oracle_fail_class(env) == OracleFailClass::kEnvironmental);
+      CHECK(std::string(astrocs::backend_host::oracle_fail_class_name(
+                astrocs::backend_host::oracle_fail_class(env))) == "environmental");
+      CHECK(std::string(astrocs::backend_host::oracle_fail_kind_name(env)) ==
+            "no_candidate_executed");
+      CHECK(astrocs::backend_host::oracle_fail_evidence_violation("hips-bulk-transform",
+                                                                 "oracle:fail", env).empty());
+    }
+
+    // 8b) 正例·代码性(数值不符): 有候选进入内核执行且首次不符(索引/got/ref/档/provider 齐)
+    {
+      OracleFailEvidence code;
+      code.present = true;
+      code.executed_candidates = 36;
+      code.tolerance = 2e-4;
+      code.has_first_mismatch = true;
+      code.first_mismatch.index = 1;
+      code.first_mismatch.got = 0.499992;
+      code.first_mismatch.ref = 0.410044;
+      code.first_mismatch.size_class = "small";
+      code.first_mismatch.provider = "baseline";
+      code.first_mismatch.workers = 1;
+      code.first_mismatch.block = 512;
+      CHECK(astrocs::backend_host::oracle_fail_class(code) == OracleFailClass::kCode);
+      CHECK(std::string(astrocs::backend_host::oracle_fail_kind_name(code)) == "numeric_mismatch");
+      CHECK(astrocs::backend_host::oracle_fail_evidence_violation("hips-bulk-transform",
+                                                                 "oracle:fail", code).empty());
+    }
+
+    // 8c) provider 可用却未注册该 kernel = 实现面缺陷 ⇒ 代码性(不得按环境性放行)
+    {
+      OracleFailEvidence miss;
+      miss.present = true;
+      miss.culled_candidates = 12;
+      miss.missing_kernel_candidates = 12;
+      miss.tolerance = 2e-4;
+      CHECK(astrocs::backend_host::oracle_fail_class(miss) == OracleFailClass::kCode);
+      CHECK(std::string(astrocs::backend_host::oracle_fail_kind_name(miss)) == "kernel_missing");
+      CHECK(astrocs::backend_host::oracle_fail_evidence_violation("hips-bulk-transform",
+                                                                 "oracle:fail", miss).empty());
+    }
+
+    // 8d) 执行了但非数值失败(kernel rc=<非0>) ⇒ 代码性/kernel_error
+    {
+      OracleFailEvidence rc;
+      rc.present = true;
+      rc.executed_candidates = 4;
+      rc.tolerance = 2e-4;
+      rc.detail = "kernel rc=-1";
+      CHECK(astrocs::backend_host::oracle_fail_class(rc) == OracleFailClass::kCode);
+      CHECK(std::string(astrocs::backend_host::oracle_fail_kind_name(rc)) == "kernel_error");
+    }
+
+    // 8e) 负例·无证据 ⇒ 红(核心): 判 FAIL 而无 mismatch 证据不得按环境性放行
+    {
+      OracleFailEvidence none;   // present=false 且计数全 0
+      CHECK(astrocs::backend_host::oracle_fail_class(none) == OracleFailClass::kUndetermined);
+      const std::string v = astrocs::backend_host::oracle_fail_evidence_violation(
+          "wcs-psf-batch", "oracle:fail", none);
+      CHECK(!v.empty());
+      CHECK(v.find("证据缺失不得按环境性放行") != std::string::npos);
+      // 通过且无证据 = 正常(不误判)
+      CHECK(astrocs::backend_host::oracle_fail_evidence_violation("wcs-psf-batch", "oracle:pass",
+                                                                 none).empty());
+      // 组装期判据同源: 只写 correctness_test="oracle:fail" 的 kernel 必判红
+      KernelProfile kp0;
+      kp0.kernel_id = "wcs-psf-batch";
+      kp0.correctness_test = "oracle:fail";
+      CHECK(!astrocs::backend_host::profile_invariant_violation(kp0).empty());
+      // 自相矛盾: 声称"没有候选执行"却又报首次不符 ⇒ 不可判定 ⇒ 红
+      OracleFailEvidence contra;
+      contra.present = true;
+      contra.tolerance = 2e-4;
+      contra.has_first_mismatch = true;
+      contra.first_mismatch.index = 3;
+      contra.first_mismatch.size_class = "small";
+      contra.first_mismatch.provider = "baseline";
+      contra.first_mismatch.workers = 1;
+      contra.first_mismatch.block = 512;
+      CHECK(astrocs::backend_host::oracle_fail_class(contra) == OracleFailClass::kUndetermined);
+      CHECK(!astrocs::backend_host::oracle_fail_evidence_violation("wcs-psf-batch", "oracle:fail",
+                                                                  contra).empty());
+    }
+
+    // 8f) 复读层(真 profile 文本上的正负例): 失败可落盘 ⇔ 证据齐; 缺证据/自相矛盾 ⇒ 判红
+    {
+      const std::string build_id = "0.0.0-alpha.0+gabcdef123456";
+      const std::string commit = "abcdef1234567890abcdef1234567890abcdef12";
+      auto pb = astrocs::backend_host::generate_profile_v2("quick", build_id, commit,
+                                                           std::string(64, 'e'), "");
+      const std::string key_pass = "\"correctness_test\": \"oracle:pass\",";
+      const std::size_t pos = pb.json.find(key_pass);
+      CHECK(pos != std::string::npos);
+      auto tamper = [&](const std::string& evidence) {
+        return pb.json.substr(0, pos) + "\"correctness_test\": \"oracle:fail\"," +
+               (evidence.empty()
+                    ? std::string()
+                    : "\n      \"oracle_fail\": " + evidence + ",") +
+               pb.json.substr(pos + key_pass.size());
+      };
+      const std::string env_ev =
+          "{\"class\": \"environmental\", \"kind\": \"no_candidate_executed\", "
+          "\"executed_candidates\": 0, \"culled_candidates\": 12, "
+          "\"missing_kernel_candidates\": 0, \"tolerance\": 0.0002, "
+          "\"culled_detail\": [\"avx512: isa_precheck_failed(avx512f)\"], "
+          "\"first_mismatch\": null}";
+      // 负例 1: 标成 oracle:fail 却不落证据 ⇒ 复读必须判红(且理由指名证据缺失)
+      const std::string e1 = astrocs::backend_host::verify_profile_v2(tamper(""), commit);
+      CHECK(!e1.empty());
+      CHECK(e1.find("oracle_fail missing") != std::string::npos);
+      // 正例: 补上环境性证据 ⇒ 复读通过(失败仍可如实落盘, 不退化成写盘失败)
+      CHECK(astrocs::backend_host::verify_profile_v2(tamper(env_ev), commit).empty());
+      // 负例 2: class 声明与计数矛盾(声称环境性却报 36 个执行 + 首次不符) ⇒ 判红
+      const std::string lie_ev =
+          "{\"class\": \"environmental\", \"kind\": \"no_candidate_executed\", "
+          "\"executed_candidates\": 36, \"culled_candidates\": 0, "
+          "\"missing_kernel_candidates\": 0, \"tolerance\": 0.0002, "
+          "\"first_mismatch\": {\"index\": 1, \"got\": 0.499992, \"ref\": 0.410044, "
+          "\"size_class\": \"small\", \"provider\": \"baseline\", \"workers\": 1, "
+          "\"block\": 512}}";
+      CHECK(!astrocs::backend_host::verify_profile_v2(tamper(lie_ev), commit).empty());
+      // 负例 3: kind 与证据不符(声称 kernel_error 但报的是首次数值不符) ⇒ 判红
+      const std::string badkind_ev =
+          "{\"class\": \"code\", \"kind\": \"kernel_error\", "
+          "\"executed_candidates\": 36, \"culled_candidates\": 0, "
+          "\"missing_kernel_candidates\": 0, \"tolerance\": 0.0002, "
+          "\"first_mismatch\": {\"index\": 1, \"got\": 0.499992, \"ref\": 0.410044, "
+          "\"size_class\": \"small\", \"provider\": \"baseline\", \"workers\": 1, "
+          "\"block\": 512}}";
+      CHECK(!astrocs::backend_host::verify_profile_v2(tamper(badkind_ev), commit).empty());
+      // 负例 4: 容差被抹成 0(证据不完整) ⇒ 判红
+      const std::string notol_ev =
+          "{\"class\": \"environmental\", \"kind\": \"no_candidate_executed\", "
+          "\"executed_candidates\": 0, \"culled_candidates\": 12, "
+          "\"missing_kernel_candidates\": 0, \"tolerance\": 0, "
+          "\"first_mismatch\": null}";
+      CHECK(!astrocs::backend_host::verify_profile_v2(tamper(notol_ev), commit).empty());
+    }
+  }
+
   if (failures == 0) {
-    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例/组装期不变量正负例/oracle 离散语义正负例)\n");
+    std::printf("CPU-003 TESTS PASS (v2 profile 字段全/Oracle 门/winner/AVX512<3%%/verify 正负例/组装期不变量正负例/oracle 离散语义正负例/oracle 失败性质证据正负例)\n");
     return 0;
   }
   std::fprintf(stderr, "CPU-003 TESTS FAIL (%d)\n", failures);

@@ -79,6 +79,20 @@ std::string make_v2_profile(const char* vendor = "GenuineTest",
             {"median", 100.0}, {"mad", 1.0}, {"fallback_reason", nullptr},
         }},
     });
+    // R-53: correctness_test 失败必须带**可判定**的 oracle 失败证据; 否则
+    // verify_profile_v2 判红(证据缺失不得按环境性放行)。本夹具 = 环境性样例。
+    if (std::string(kernel_verdict) != "oracle:pass") {
+        nlohmann::json of;
+        of["class"] = "environmental";
+        of["kind"] = "no_candidate_executed";
+        of["executed_candidates"] = 0;
+        of["culled_candidates"] = 4;
+        of["missing_kernel_candidates"] = 0;
+        of["tolerance"] = 2e-4;
+        of["culled_detail"] = nlohmann::json::array({"baseline: self_test_fail"});
+        of["first_mismatch"] = nullptr;
+        j["kernels"]["calibration-pixel-transform"]["oracle_fail"] = of;
+    }
     return j.dump(2) + "\n";
 }
 

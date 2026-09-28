@@ -264,6 +264,18 @@ int main() {
     const auto pr = full_providers();
     nlohmann::json prof = nlohmann::json::parse(make_profile());
     prof["kernels"][K_HIPS]["correctness_test"] = "oracle:fail";
+    // R-53: 失败的 kernel 必须带可判定证据(否则 verify_profile_v2 判红 → 本层拿不到
+    // "上游已剔除" 的 benchmark 退回路径)。环境性样例: 无候选进入内核执行。
+    nlohmann::json of;
+    of["class"] = "environmental";
+    of["kind"] = "no_candidate_executed";
+    of["executed_candidates"] = 0;
+    of["culled_candidates"] = 4;
+    of["missing_kernel_candidates"] = 0;
+    of["tolerance"] = 2e-4;
+    of["culled_detail"] = nlohmann::json::array({"baseline: self_test_fail"});
+    of["first_mismatch"] = nullptr;
+    prof["kernels"][K_HIPS]["oracle_fail"] = of;
     const auto d = bh::decide_kernel_v1(prof.dump(), K_HIPS, hw, COMMIT, pr, nullptr, 0.03);
     CHECK(is_baseline(d)); CHECK(d.stage == "benchmark");
     CHECK(d.fallback_reason.find("correctness_test") != std::string::npos);
