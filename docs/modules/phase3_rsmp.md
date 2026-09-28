@@ -1,6 +1,6 @@
 # Phase3 HiPS 重采样模块（astrocs.p3.resample）
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 模块总页；registry
 > 手写合同页=docs/modules/registry/astrocs.phase3.resample2.md（行
@@ -12,7 +12,7 @@
 - module_id: astrocs.p3.resample（MODULE_MIGRATION_MATRIX P3-RSMP
   行权威值）；registry 行 MOD-astrocs-phase3-resample2；
   dll_target=astrocs_p3_resample.dll（合同值，尚未存在，
-  entrypoint=MISSING，DISP-P3RSMP-005，由 P3-RSMP-IMPL 建立，
+  entrypoint=MISSING，DISP-P3RSMP-005（迁移目标未落地），
   IMPLEMENTED 只由验收签发）；现状构建=astrocs_phase3_session 静态库
   成员（根 CMakeLists.txt:460-465）。
 - owner: SA-P3-S26；language: c++17；abi_version: 1；
@@ -21,7 +21,7 @@
   无内部线程，并行由会话 worker 池每 worker 独立 sampler 组织）。
 - 相邻占位行注记: registry 行 MOD-astrocs-phase3-resample
   （module_adapters.cpp:362-379 phase3_descriptor，P2 模板复制
-  残留）不属本域页，由 P3-RSMP-INT 对齐处理，本任务零触碰。
+  残留）不属本域页，其对齐属迁移目标（未落地），本页不触碰。
 
 ## 2 合同链
 
@@ -33,8 +33,8 @@
 | API | API-P3-RSMP-001 | docs/contracts/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
 | ARCH | ARCH-001 | docs/contracts/ARCH-001.md | VERIFIED |
-| TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；矩阵 test_status=DORMANT，可执行面升级归 P3-RSMP-TEST | 见左 |
-| EVID | EVID-MISSING | 归 P3-RSMP-INT/验收补 | MISSING |
+| TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；矩阵 test_status=DORMANT，可执行面待落地 | 见左 |
+| EVID | EVID-MISSING | 验收证据待补 | MISSING |
 
 ## 3 职责
 
@@ -78,20 +78,20 @@
 | resampled | DATA-P3-RES | 可 | §29 权威源（value/coverage/单位/dtype/invalid） |
 
 端口词汇为 descriptor 派生（module_adapters.cpp:425-439 占位
-module_id=astrocs.phase3.resample2），由 P3-RSMP-INT 对齐，不作
+module_id=astrocs.phase3.resample2），其对齐属迁移目标（未落地），不作
 冻结依据。
 
 ## 6 实测偏差与整改（不修码）
 
 - DISP-P3RSMP-001: bilinear 离散化=四象限最近中心（cpp:196-230），
-  G4 施工规格写"面积重叠分数"——同族一阶、Σw=1 一致 → P3-RSMP-IMPL。
+  G4 施工规格写"面积重叠分数"——同族一阶、Σw=1 一致 →。
 - DISP-P3RSMP-002: cache 逐出 FIFO（cpp:22-36），ALG §3 写 "LRU"
-  → P3-RSMP-IMPL。
+  →。
 - DISP-P3RSMP-003: p3_resample_check_mode 会话未接线（仅探针消费）
-  → P3-RSMP-INT。
+  →。
 - DISP-P3RSMP-004: provenance.missing_tiles 恒 nullptr（:265-277）
-  → P3-RSMP-IMPL/INT。
-- DISP-P3RSMP-005: DLL/入口未建 → P3-RSMP-IMPL。
+  →。
+- DISP-P3RSMP-005: DLL/入口未建 →。
 - 详见 ALG-P3-RSMP-IMPL-001 §11/§13。
 
 ## 7 链接

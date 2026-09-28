@@ -1,40 +1,37 @@
-# IO-001 FITS 流式接口冻结合同
+# FITS 流式接口合同
 
-> doc_id: DOC-IO-INTERFACE-001
-> doc_status: ACTIVE_NORMATIVE
-> 上游权威：`ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）+ 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品）
 
 ## 1. 目标与范围
 
 IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不含科学算法迁移）：
 
-1. 把 FITS 第三方库（CFITSIO 等）隔离在 `acsd_io.dll` **内部**；公开边界是纯 C ABI，
+1. 把 FITS 第三方库（CFITSIO 等）隔离在动态库（Linux `libacsd_io.so` / Windows `acsd_io.dll`）**内部**；公开边界是纯 C ABI，
    **CFITSIO 类型/句柄（`fitsfile*` 等）绝不跨 DLL 边界**。
 2. 提供 header / plane / chunk 三级读接口、原子写接口、checksum(DATASUM/CHECKSUM)/verify、稳定错误码。
 3. 可观测性：每次 read/write 的 **bytes 累计到 trace 计数器**（宿主注入），供运行时 I/O 监控使用。
 4. 验收负测覆盖：非法 header、截断、dtype/shape/unit mismatch、checksum error、NaN/Inf、取消、磁盘满。
 
-本合同**不改科学公式**（`scientific_change=false`），不迁移任何科学/图像处理算法；
-`lib/infrastructure/aio`（aio_fits 等全图像读写实现）与 `lib/infrastructure/aio/io`（io_adapter）**保持原样**。
+本合同覆盖宿主基础设施面的 FITS 流式读写：科学公式与图像处理算法按 `docs/science/` 与
+`docs/science/algorithms/` 的正本执行，不在本合同范围内。`lib/infrastructure/aio`（aio_fits 等全图像
+读写实现）与 `lib/infrastructure/aio/io`（io_adapter）按各自现行职责运行。
 
 ## 2. 模块归属与目录
 
 | 内容 | 路径 |
 | --- | --- |
-| 本冻结合同 | `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md` |
+| 本合同 | `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md` |
 | io 服务模块骨架（README/module.yaml/CMake/占位入口） | `lib/infrastructure/aio/io/` |
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
-| FITS 流 C ABI（只被 acsd_io.dll 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
+| FITS 流 C ABI（只被动态库 `libacsd_io.so`/`acsd_io.dll` 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
 | 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h`（**该文件不存在**：全仓零命中，如实登记为缺口；现行 io ABI 面 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` + `hips_input_v1.h`） |
 | 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `eng/tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
 
-允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/** lib/infrastructure/aio/io/** eng/tests/io/** docs/interfaces/io/**`。
-
 ## 3. DLL 边界与所有权
 
-- 目标 DLL：`acsd_io.dll`（Windows）/ `libacsd_io.so`（Linux 技术预览）。
-- **第三方隔离**：CFITSIO 只在 `acsd_io.dll` 内部编译；fits_core 不包含任何 CFITSIO 头，
+- 交付形态：Linux `libacsd_io.so`、Windows `acsd_io.dll`，由同一份 C 源码与同一 C ABI 合同构建。
+- **第三方隔离**：CFITSIO 只在动态库内部编译；fits_core 不包含任何 CFITSIO 头，
   不出现 `fitsfile` 等类型；若未来以 CFITSIO 实现读写，均封装在 DLL 内私有层。
 - 跨边界类型：POD 结构 + 固定宽度整数 + 定长 UTF-8 字符数组 + opaque handle + 回调；禁 STL/异常/RTTI。
 - 所有跨边界结构体前两字段为 `struct_size` / `abi_version`（同 `acs_head` 模式）。
@@ -77,7 +74,7 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 
 ## 6. 关键字契约（v1）
 
-- 关键字表为 80 字节卡片顺序视图；卡片 ≤ `ACS_FIO_MAX_CARDS`（1024），超限拒绝。
+- 关键字表为 80 字节卡片顺序视图；卡片 ≤ `ACS_FIO_HEADER_MAX_CARDS`（1024），超限返回 `ACS_FIO_ERR_PARAM`。
 - 读取时 END 卡片之前的所有有效卡片入表；`name`（≤9 字符）、`value`（≤72，原样去首尾空白、去引号）、`comment`。
 - 标准形如 `NAXISn`/`BITPIX`/`BUNIT` 等：v1 **只信任读取时解析出的结构值**；
   调用方以 `fits_get_header` 的结构字段（bitpix/naxis/shape）为准。
@@ -85,18 +82,18 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 - 保留关键字（写路径校验）：`SIMPLE`、`XTENSION`、`BITPIX`、`NAXIS`、`NAXISn`、`PCOUNT`、
   `GCOUNT`、`EXTEND`、`BSCALE`、`BZERO`、`BLANK`、`DATASUM`、`CHECKSUM` —— 由 writer 内建，
   卡片归属 = writer 内建，调用方卡片另占键位时返回 `ACS_FIO_ERR_BAD_HEADER`。
-- 写路径卡片总数（含内建+校验所需）超 1023 拒绝。
+- 写路径卡片总数（含内建卡与校验卡）上限同为 `ACS_FIO_HEADER_MAX_CARDS`（1024），超限返回 `ACS_FIO_ERR_PARAM`。
 - `BUNIT`：写路径从调用方 `bunit` 字段写；读路径在 header 中保留，verify 按 dtype/shape/unit 三项分别校验。
 
 ## 7. 句柄与并发
 
 | 接口 | 并发合同 |
 | --- | --- |
-| `fits_reader_open` | reentrant；返回句柄后与其它调用无共享状态 |
-| `fits_reader_*` 系列 | 同一句柄串行（句柄非共享）；不同句柄可并行 |
-| `fits_writer_*` 系列 | 同上 |
-| `fits_verify_file`/`fits_compute_file_datadigest` | reentrant；调用期间内部文件只读；无全局状态 |
-| `fits_core_trace_*` | reentrant；tls/本地累计，读取函数返回后可见 |
+| `acs_fio_reader_open_v1` | reentrant；返回句柄后与其它调用无共享状态 |
+| `acs_fio_get_header_v1` / `acs_fio_read_plane_v1` / `acs_fio_read_chunk_v1` / `acs_fio_reader_close_v1` | 同一句柄串行（句柄非共享）；不同句柄可并行 |
+| `acs_fio_writer_begin_v1` / `acs_fio_write_plane_v1` / `acs_fio_write_chunk_v1` / `acs_fio_writer_end_v1` / `acs_fio_writer_abort_v1` | 同上 |
+| `acs_fio_verify_file_v1` / `acs_fio_compute_file_datadigest_v1` | reentrant；调用期间内部文件只读；无全局状态 |
+| `acs_fio_reader_bytes_read_v1` / `acs_fio_writer_bytes_written_v1` | reentrant；tls/本地累计，读取函数返回后可见 |
 
 取消：宿主注入 `is_cancelled` 回调（可 NULL）；在 header 解析块、chunk 边界检查；
 置位则返回 `ACS_FIO_ERR_CANCELLED`，读路径句柄保持可继续使用或由调用方关闭。
@@ -120,13 +117,19 @@ typedef struct acs_fio_trace_hooks_v1 {
 - read_bytes 计数：底层字节读取（header 块 + 数据区），与调用方请求的 plane/chunk 元素数换算无关。
 - write_bytes 计数：底层字节写入（含 2880 块填充与校验卡重写）。
 - 计数语义：每次 read/write 调用后 hook 被触发；hook 不保证在调用返回前可见于 trace 记录——
-  由宿主在 trace 落点时取累计值（IO-001 验收：read/write bytes 记录到 trace 由运行时侧 IO-00x 接线）。
+  由宿主在 trace 落点时取累计值；`acs_fio_reader_bytes_read_v1`/`acs_fio_writer_bytes_written_v1`
+  供调用方直接读取句柄累计值（验收见 §12）。
 
 ## 9. 校验与 checksum
 
-- `fits_compute_file_datadigest`：**独立实现**的 FITS DATASUM 算法（32 位 1 的补码块校验，
-  按 2880 字节块、16-bit 大端字累加、进位回卷），返回 10 位十进制字符串；算法独立（不链接 CFITSIO）。
-- `fits_verify_file` 校验顺序：
+- `acs_fio_compute_file_datadigest_v1`：**独立实现**的 FITS DATASUM 算法——按 FITS Standard 4.0
+  §DATASUM/CHECKSUM 关键字约定（条款登记与符合状态见 `docs/standards/STANDARDS_REGISTRY.md` §D.fits）
+  对数据区做 32 位 1 的补码块校验：2880 字节块、
+  16-bit 大端字累加、进位回卷，返回 10 位十进制字符串；算法独立（不链接 CFITSIO）。
+  一手标准与本仓正/负例（`eng/tests/io/test_fits_stream_contract.py` 的
+  `TestFitsCoreContract.test_datasum_cross`：与文件 DATASUM 卡及 astropy 独立算法三方一致；
+  `test_checksum_verify_and_tamper`：篡改一字节即返回 `ACS_FIO_ERR_CHECKSUM`）相互佐证。
+- `acs_fio_verify_file_v1` 校验顺序：
   1. header 结构合法性（非法 header 拒绝）；
   2. 数据区长度 ≥ 声明的 NAXIS 乘积×字节宽（截断拒绝）；
   3. 若卡片含 `DATASUM`：对数据区（含数据填充到 2880 块）重算并比较（checksum error 拒绝）；
@@ -138,7 +141,7 @@ typedef struct acs_fio_trace_hooks_v1 {
 
 ## 10. 原子写
 
-- 目标路径同目录临时文件 `.<name>.tmp.<pid>.<seq>` → 全量写入 → 重读校验（可选项）→
+- 目标路径同目录临时文件 `<target>.tmp.<pid>.<seq>` → 全量写入 → 重读校验（可选项）→
   `rename`（POSIX 原子）→ 完成。
 - 写失败/取消/校验失败：删除临时文件，目标文件保持原状；返回对应错误码。
 - 默认不覆盖已存在目标（`ACS_FIO_ERR_IO`，EACCES 语义）；`overwrite`=1 时允许替换。
@@ -149,41 +152,43 @@ typedef struct acs_fio_trace_hooks_v1 {
 ```text
 读:
   acs_fio_trace_hooks_v1 hooks = ACS_FIO_TRACE_HOOKS(ud, on_read, on_write, is_cancel);
-  int st = fits_reader_open_v1(path, &hooks, &rd, err);
-  fits_header_v1 hdr; st = fits_get_header_v1(rd, &hdr, err);   // 结构 + 关键字
+  int st = acs_fio_reader_open_v1(path, &hooks, &rd, err, sizeof(err));
+  acs_fio_header_v1 hdr; st = acs_fio_get_header_v1(rd, &hdr, err, sizeof(err));   // 结构 + 关键字
   // 平面读（整幅）:
-  st = fits_read_plane_v1(rd, 0, plane_nx, plane_ny, expected_bpix, bunit,
-                          buf, elem_cap, &got, trace, err);
+  st = acs_fio_read_plane_v1(rd, 0, plane_nx, plane_ny, expected_bpix, bunit,
+                             buf, elem_cap, strict_nan, &got, trace, err, sizeof(err));
   // 或 chunk 读:
-  st = fits_read_chunk_v1(rd, plane, first_elem, count, buf, &got, trace, err);
-  fits_reader_close_v1(rd);
+  st = acs_fio_read_chunk_v1(rd, plane, first_elem, count, buf, elem_cap, strict_nan,
+                             &got, trace, err, sizeof(err));
+  acs_fio_reader_close_v1(rd);
 写:
-  fits_writer_begin_v1(path, &hdr_struct, bunit, &trace, &wr, err);
-  fits_write_plane_v1(wr, plane_index, nx, ny, bpix, data_bytes, &trace, err);
-  // 或 fits_write_chunk_v1(wr, elem_count, data_bytes, &trace, err);
-  // write_checksum=0 ⇒ 本文件**不声明**校验和: 实现不落 CHECKSUM 关键字
+  acs_fio_writer_begin_v1(path, &hdr_struct, bunit, overwrite, &hooks, &wr, err, sizeof(err));
+  acs_fio_write_plane_v1(wr, plane_index, data, data_bytes, trace, err, sizeof(err));
+  // 或 acs_fio_write_chunk_v1(wr, data, data_bytes, trace, err, sizeof(err));
+  // write_checksum=0 ⇒ 本文件不声明校验和: 实现不落 CHECKSUM 关键字
   // (预留槽在提交前被抹空), 故以 verify_checksum=1 复核该产物会通过
   // (无可校验的声明), 不会判红。需要可复算校验和时显式传 1。
-  fits_writer_end_v1(wr, 1 /*write_datasum*/, 0 /*write_checksum*/, &trace, err);
-  // 失败路径: fits_writer_abort_v1(wr);
+  acs_fio_writer_end_v1(wr, 1 /*write_datasum*/, 0 /*write_checksum*/,
+                        1 /*verify_before_rename*/, trace, err, sizeof(err));
+  // 失败路径: acs_fio_writer_abort_v1(wr);
 校验:
-  st = fits_verify_file_v1(path, 1 /*verify_checksum*/, err);       // 负测: 篡改数据后返回 ACS_FIO_ERR_CHECKSUM; 含全零 CHECKSUM 占位卡同样判红 (M2b-B-09)
-  st = fits_compute_file_datadigest_v1(path, buf10, &len, err);
+  st = acs_fio_verify_file_v1(path, 1 /*verify_checksum*/, err, sizeof(err));   // 负测: 篡改数据后返回 ACS_FIO_ERR_CHECKSUM; 含全零 CHECKSUM 占位卡同样判红
+  st = acs_fio_compute_file_datadigest_v1(path, buf10, sizeof(buf10), &len, err, sizeof(err));
 ```
 
 ## 12. 契约/负测验收映射（eng/tests/io/）
 
 | 验收 | 测试 |
 | --- | --- |
-| 非法 header | `fits_bad_header_*`（SIMPLE 缺失/BITPIX 非法/无 END/卡片越界）→ `ACS_FIO_ERR_BAD_HEADER` |
-| 截断 | `fits_truncated_*`（截断到 header 中/数据区一半/2880 边界内）→ `ACS_FIO_ERR_TRUNCATED` |
-| dtype/shape/unit mismatch | `fits_mismatch_*`（-32 文件按 -64 读 / NAXIS 不符 / BUNIT 不符）→ `ACS_FIO_ERR_MISMATCH` |
-| checksum error | 写 DATASUM 后篡改一个字节 → `fits_verify_file` = `ACS_FIO_ERR_CHECKSUM`（astropy 交叉验证） |
+| 非法 header | `TestFitsCoreContract.test_bad_header_no_simple`（SIMPLE 缺失/BITPIX 非法/无 END/卡片越界）→ `ACS_FIO_ERR_BAD_HEADER` |
+| 截断 | `TestFitsCoreContract.test_truncated`（截断到 header 中/数据区一半/2880 边界内）→ `ACS_FIO_ERR_TRUNCATED` |
+| dtype/shape/unit mismatch | `TestFitsCoreContract.test_mismatch`（-32 文件按 -64 读 / NAXIS 不符 / BUNIT 不符）→ `ACS_FIO_ERR_MISMATCH` |
+| checksum error | `TestFitsCoreContract.test_checksum_verify_and_tamper`：写 DATASUM 后篡改一个字节 → `acs_fio_verify_file_v1` = `ACS_FIO_ERR_CHECKSUM`；`test_datasum_cross` 与 astropy 交叉验证 |
 | NaN/Inf | 合成含 NaN/Inf 平面，strict 策略 → `ACS_FIO_ERR_NANINF`；默认读策略放行 |
 | 取消 | 注入置位 cancel 回调 → `ACS_FIO_ERR_CANCELLED` |
 | 磁盘满 | 目录权限拒绝（EACCES 写失败）→ `ACS_FIO_ERR_IO`/`ACS_FIO_ERR_DISKFULL` 映射负测 |
 | read/write bytes 入 trace | hook 计数累计与文件实际长度一致断言 |
-| astropy 交叉 oracle | 自产 FITS ↔ astropy 读；astropy 产 FITS（含 DATASUM）→ 本实现 verify |
+| astropy 交叉 oracle | `TestFitsCoreContract.test_astropy_reads_ours` / `test_reads_astropy`：自产 FITS ↔ astropy 读；astropy 产 FITS（含 DATASUM）→ 本实现 verify |
 
 ## 13. 与相邻接口/实现的边界
 
@@ -191,16 +196,16 @@ typedef struct acs_fio_trace_hooks_v1 {
   保留作兼容层；**IO-001 不迁移/不修改**，其内部 CFITSIO 用法同样不跨 DLL 边界。
 - `lib/infrastructure/aio/io` + `lib/include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（IO-001 原型），保留。
 - `lib/infrastructure/aio/io/fits_core.c` 是本接口新增的 fits 流 C 核心（无 CFITSIO 依赖）。
-- DATA-001 `lib/include/astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
-- trace/bytes：由宿主注入 hook（14 标准）；本接口只冻结 hook 契约并累计，运行时落点由 RT 接线。
+- 产物 manifest C ABI（`lib/include/astrocs/contracts/artifact_abi_v1.h`）：fits 流接口不重复其职责。
+- trace/bytes：由宿主注入 hook；本接口只覆盖 hook 契约与累计语义，trace 事件面（取值为现场观测）见 `docs/architecture/observability/RUN_GRAPH_CONTRACT.md`。
 - HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本接口不实现。
 
 ## 14. 已知限制（v1 骨架）
 
-1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + 模块骨架 +
-   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（acsd_io.dll）用同一源码执行。
-2. 只支持基本图像 HDU（NAXIS 0–3）；表/随机群/压缩扩展 → `UNSUPPORTED`（后续任务扩展）。
+1. 本接口交付 C ABI + 模块骨架 + 全部契约/负测；Linux 侧产物 `libacsd_io.so`、Windows 侧产物
+   `acsd_io.dll` 由同一份源码与同一 C ABI 合同构建。
+2. 只支持基本图像 HDU（NAXIS 0–3）；表/随机群/压缩扩展 → `ACS_FIO_ERR_UNSUPPORTED`。
 3. 不自动应用 BSCALE/BZERO（避免隐式标度）；调用方显式处理。
 4. CHECKSUM 卡写路径默认关闭；verify 支持标准 HDU CHECKSUM 校验。
-5. 磁盘满负测用目录权限(EACCES)近似 + ENOSPC 码路径静态覆盖（2c2g 无法真实填满磁盘）。
+5. 磁盘满负测：目录权限拒绝（EACCES）注入真实写失败；ENOSPC 路径以故障注入覆盖。
 6. 取消回调为宿主注入；无宿主时测试注入桩验证语义。

@@ -1,16 +1,10 @@
 ---
 id: MOD-astrocs-phase2-write
-version: 1.0.0
-status: ACTIVE
-owner: SA-P2-I23
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004, API-P2-HIPS-001, API-P2-001]
-downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 ---
 
 # 模块 astrocs.p2.hips_writer（registry 行 MOD-astrocs-phase2-write）
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 手写合同页：本页重写 registry
 > 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
@@ -67,7 +61,7 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 
 权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
 （**`module_adapters.cpp:1040-1057`** `p2_write_descriptor`，坐标 PIXEL 与 NESTED
-球面实际不符）为编排词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
+球面实际不符）为编排词汇，以 DATA-P2-HIPS 为准修订，对齐。
 （行锚实测 `grep -n 'p2_write_descriptor' →
 `lib/infrastructure/scheduler/src/module_adapters.cpp:1040`。）
 invalid = NaN signal + support=0（writer 库 aio_hips_writer.cpp :481-485）；ivar 缺产品=rc=7
@@ -90,8 +84,7 @@ stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
 沿用 `MOD-astrocs-phase2-write`；descriptor（**`module_adapters.cpp:1040-1057`**，
 module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
-test_id=TEST-P2-WR-001）为编排占位词汇；冻结依据 = 该矩阵行本身，由
-P2-XX-INT 对齐本页与 lib/algorithms/coverage/hips_p2/module.yaml。配置=single JSON
+test_id=TEST-P2-WR-001）为编排占位词汇，其与本页及 lib/algorithms/coverage/hips_p2/module.yaml 的对齐属迁移目标（未落地）；冻结依据 = `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md`（ALG-P2-HIPS-001..004）。配置=single JSON
 （P2Stage2Config :16-99：reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
 astrocs_adaptive_pixel）、large_scale 默认关、acr_route=auto、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
@@ -101,7 +94,7 @@ memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
 `io`；writer 单句柄串行（parallel_ok=false；tile 按 cov.n_union_cells
 顺序 :661）；CPU reference 逐像素 OMP 并行仅内部（CON-006 :1288-1317，
 per-worker scratch + thread id 固定顺序定序归并 :1315-1317），large_scale
-激活强制串行；ThreadLease/取消检查点未接线（迁移整改点，P2-HIPS-IMPL）。
+激活强制串行；ThreadLease/取消检查点未接线（迁移整改点）。
 确定性=同输入同 config 同 mosaic（tile 序固定、归并定序、单 writer；
 UTC 时间戳字段除外——writer 合同 ALG-HIPS-005）。
 
@@ -126,7 +119,7 @@ fs::remove_all 修复（orchestrator.cpp:425-484，失败清理 HiPS 目录树�
 ## 独立 synthetic 验证命令与容差
 
 `TEST-P2-HIPS-001` 登记面=ALG 文档 §11.4 设计冻结 VERIFIED（COV TEST-COV-DESIGN-001
-先例；可执行测试 MISSING 归 P2-HIPS-TEST，不冒认）；
+先例；可执行测试 MISSING（待建），不冒认）；
 TEST-DESIGN 与容差来源=ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md
 §8/§9：NumPy 参考 signal/sup_max rtol=1e-12、序转换恒等往返、ivar 门
 现状相邻证据（引用不冒认）：phase2_synthetic_gate ACR
@@ -139,4 +132,4 @@ DISP-P2HIPS-001..004（lib/algorithms/coverage/hips_p2/README.md §7）：无 va
 产品；hash 链未入 HiPS properties provenance；**直写 out_hips 无 staging
 —— 已登记的原子性待修缺口（未闭合；原子发布归 IO-003）**；
 O(T·N) 覆盖帧 probe。迁移目标
-astrocs_p2_hips_writer.dll 归 P2-HIPS-IMPL；见 docs/KNOWN_LIMITATIONS.md。
+astrocs_p2_hips_writer.dll（迁移目标未落地）；见 docs/KNOWN_LIMITATIONS.md。

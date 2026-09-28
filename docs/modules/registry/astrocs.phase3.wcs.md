@@ -1,28 +1,21 @@
 ---
 id: MOD-astrocs-phase3-wcs
 module_id: astrocs.p3.projection
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P3-WCS-001, ALG-P3-002, API-P3-001]
-downstream: [TEST-P3-WCS-001]
 ---
 
 # 模块 astrocs.phase3.wcs
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > Registry 行 ID 沿用 MOD-astrocs-phase3-wcs；矩阵权威 module_id=
 > **astrocs.p3.projection**（MODULE_MIGRATION_MATRIX P3-PROJ 行）。
 > frontmatter upstream/downstream（SCI-P3-WCS-001/ALG-P3-002/API-P3-001/
-> TEST-P3-WCS-001）为 descriptor 占位词汇，保留不改动，由 P3-PROJ-INT
-> 对齐（映射声明=ALG-P3-PROJ-IMPL-001 §5；占位 ID 不入合同）。
+> TEST-P3-WCS-001）为 descriptor 占位词汇，保留不改动，待对齐（映射声明=ALG-P3-PROJ-IMPL-001 §5；占位 ID 不入合同）。
 
 ## 1 身份与合同落位
 
 - 模块: astrocs.p3.projection（dll_target=astrocs_p3_projection.dll
-  为迁移合同值，尚未存在——MISSING 语义，由 P3-PROJ-IMPL 建立，
+  为迁移合同值，尚未存在——MISSING 语义，迁移目标未落地，
   IMPLEMENTED 只由验收签发；现状构建=astrocs_phase3_session 静态库成员，
   根 CMakeLists.txt:460-465，p3_wcs.cpp 为五源文件之一）。
 - 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
@@ -77,7 +70,7 @@ downstream: [TEST-P3-WCS-001]
   出参（FITS 1-based=+1，:97-98/:140-141），crpix 本身 FITS
   1-based pixel-center=(W+1)/2。
 - 端口词汇（props/wcs_plan、DATA-P3-PROPS）为 descriptor 派生
-  （module_adapters.cpp:406-423），由 P3-PROJ-INT 对齐 DATA-P3-WCS，
+  （module_adapters.cpp:406-423），其与 DATA-P3-WCS 的对齐属迁移目标（未落地），
   不作冻结依据。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -104,8 +97,8 @@ downstream: [TEST-P3-WCS-001]
   并发安全，与 §7 结构性一致）；ports props(DATA-P3-PROPS 必)
   +wcs_plan(DATA-P3-WCS 可)；sci_id=SCI-P3-WCS-001、alg_id=
   ALG-P3-002、data_id=DATA-P3-WCS、api_id=API-P3-001、test_id=
-  TEST-P3-WCS-001——占位 ID/端口由 P3-PROJ-INT 对齐本页与
-  lib/algorithms/projection/module.yaml，不作冻结依据。
+  TEST-P3-WCS-001——占位 ID/端口与本页及
+  lib/algorithms/projection/module.yaml 的对齐属迁移目标（未落地），不作冻结依据。
 - 注册序: module_adapters.cpp:816 起序列（phase3_descriptor→
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
   :797-798 收尾）；配置=phase config JSON（按 PHASE API 文档）。
@@ -141,7 +134,7 @@ downstream: [TEST-P3-WCS-001]
 ## 8 实测偏差与整改（不修码，权威源=ALG-P3-PROJ-IMPL-001 §11）
 
 - PA 未接线: p3_session.cpp:160 rotation_pa_deg 恒 0.0（内核能力
-  无会话消费方）→ P3-PROJ-IMPL/INT。
+  无会话消费方）→。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（:18-22）——
   默认值语义如实冻结。
 - 产品声明门 `p3_proj_declare` 对非 TAN 码**显式返回 `P3_WCS_UNSUPPORTED`**
@@ -149,7 +142,7 @@ downstream: [TEST-P3-WCS-001]
   （含已支持清单），`p3_wcs.cpp:98-99` 经 `p3_proj_is_implemented` 产生该状态；
   8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
 - astrocs_p3_projection.dll 未建（entrypoint=MISSING）；探针/
-  回归现状内联编译，DLL 挂载归 P3-PROJ-IMPL。
+  回归现状内联编译，DLL 挂载属迁移目标（未落地）。
 - 本域无 DISP 缺陷登记；其余见 docs/KNOWN_LIMITATIONS.md 与
   ALG-P3-PROJ-IMPL-001 §13 合同边界。
 
@@ -159,13 +152,13 @@ downstream: [TEST-P3-WCS-001]
   roundtrip 1e-8 px 冻结容差/T3 G1 精确断言/T4 手性极性关键词/
   T5 负面清单/T6 oracle=现状独立解析解→验收级 WCSLIB/T7 不变量
   回归）。
-- 双重陈述（C7 锚）: 本节承载 TEST-P3-WCS-001 登记面；可执行面
-  升级归 P3-PROJ-TEST（验收级 oracle=WCSLIB，矩阵 notes）。
+- 双重陈述: 本节承载 TEST-P3-WCS-001 登记面；可执行面待建
+  （验收级 oracle=WCSLIB，迁移矩阵 notes 只作现状说明）。
 - 现状执行测试（相邻证据，引用不冒认）:
   eng/tests/unit/p3_wcs_test.cpp（474 行，WCS 完整性/溢出检查）+
   eng/tests/backend/test_p1002_gaps.py（独立解析解回归 :115-138）+
   eng/tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
-- EVIDENCE: EVID-MISSING（归 P3-PROJ-INT/验收补）。
+- EVIDENCE: EVID-MISSING（验收证据待补）。
 
 ## 10 合同链接
 
@@ -184,4 +177,3 @@ downstream: [TEST-P3-WCS-001]
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - 输出语义守卫：只接受**面亮度**语义输入，端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式
   `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计 §6.3）。
-

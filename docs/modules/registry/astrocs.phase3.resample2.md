@@ -1,29 +1,21 @@
 ---
 id: MOD-astrocs-phase3-resample2
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P3-RES-001, ALG-P3-003, API-P3-001]
-downstream: [TEST-P3-RES-001]
 ---
 
 # 模块 astrocs.phase3.resample2
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > Registry 行 ID 沿用 MOD-astrocs-phase3-resample2；矩阵权威 module_id=
 > **astrocs.p3.resample**（MODULE_MIGRATION_MATRIX P3-RSMP 行）。
 > frontmatter upstream/downstream（SCI-P3-RES-001/ALG-P3-003/API-P3-001/
-> TEST-P3-RES-001）为 descriptor 占位词汇，保留不改动，由 P3-RSMP-INT
-> 对齐（映射声明=ALG-P3-RSMP-IMPL-001 §5：SCI-P3-RES-001⇒SCI-P3-001；
+> TEST-P3-RES-001）为 descriptor 占位词汇，保留不改动，待对齐（映射声明=ALG-P3-RSMP-IMPL-001 §5：SCI-P3-RES-001⇒SCI-P3-001；
 > 占位 ID 不入合同）。
 
 ## 1 身份与合同落位
 
 - 模块: astrocs.p3.resample（dll_target=astrocs_p3_resample.dll
-  为迁移合同值，尚未存在——MISSING 语义（DISP-P3RSMP-005），由
-  P3-RSMP-IMPL 建立，IMPLEMENTED 只由验收签发；现状构建=
+  为迁移合同值，尚未存在——MISSING 语义（DISP-P3RSMP-005），迁移目标未落地，IMPLEMENTED 只由验收签发；现状构建=
   astrocs_phase3_session 静态库成员，根 CMakeLists.txt:460-465，
   p3_resample.cpp 为五源文件之一）。
 - 合同落位: lib/algorithms/resample/ 三件套（README r1 + module.yaml
@@ -44,12 +36,10 @@ downstream: [TEST-P3-RES-001]
   FROZEN）镜像不变。
 - 上游依赖: astrocs_phase3_session（properties 校验经
   p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数）；
-  depends_on_int=P3-PROJ-INT;IO-003;CPU-005（矩阵行；P3-PROJ-INT=
-  上游 WCS 域对齐、IO-003=tile 文件读路径、CPU-005=worker 池并行
+  depends_on_int=P3-PROJ;IO-003;CPU-005（P3-PROJ=上游 WCS 域对齐、IO-003=tile 文件读路径、CPU-005=worker 池并行
   由每 worker 独立 sampler 结构性满足，ALG-P3-RSMP-IMPL-001 §7）。
 - 相邻占位行注记: MOD-astrocs-phase3-resample（module_adapters.cpp:
-  300-318 phase3_descriptor，P2 模板复制残留）不属本页，由
-  P3-RSMP-INT 处理，本任务零触碰。
+  300-318 phase3_descriptor，P2 模板复制残留）不属本页，其对齐属迁移目标（未落地），本页不触碰。
 
 ## 2 职责与明确非职责
 
@@ -86,7 +76,7 @@ downstream: [TEST-P3-RES-001]
   local 坐标 fits_index=(511-x)*512+y（DATA_SEMANTICS §3 CDS
   oracle 冻结，nested_local_to_fits_index 权威函数）。
 - 端口词汇（wcs_plan/hips/resampled）为 descriptor 派生
-  （module_adapters.cpp:425-439），由 P3-RSMP-INT 对齐 DATA-P3-RES，
+  （module_adapters.cpp:425-439），其与 DATA-P3-RES 的对齐属迁移目标（未落地），
   不作冻结依据。
 
 ## 4 公共 header、核心 symbol 与生命周期
@@ -119,8 +109,7 @@ downstream: [TEST-P3-RES-001]
   sampler 的进程内并行安全，与 §7 结构性一致；单实例内无并发）；
   ports wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+resampled
   (DATA-P3-RES 可)；alg_id=ALG-P3-003、data_id=DATA-P3-RES、
-  api_id=API-P3-001、test_id=TEST-P3-RES-001——占位 ID/端口由
-  P3-RSMP-INT 对齐本页与 lib/algorithms/resample/module.yaml，不作冻结
+  api_id=API-P3-001、test_id=TEST-P3-RES-001——占位 ID/端口与本页及 lib/algorithms/resample/module.yaml 的对齐属迁移目标（未落地），不作冻结
   依据。
 - 注册序: module_adapters.cpp:816 起序列（phase3_descriptor→
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
@@ -165,16 +154,16 @@ downstream: [TEST-P3-RES-001]
 
 - DISP-P3RSMP-001: bilinear=切平面四象限最近中心双线性
   （cpp:196-230）；G4 施工规格写"面积重叠分数（投影线性化）"——
-  同族一阶插值、Σw=1 不变量一致 → P3-RSMP-IMPL 决策。
+  同族一阶插值、Σw=1 不变量一致 →决策。
 - DISP-P3RSMP-002: tile cache 逐出 FIFO（cpp:22-36）；ALG §3 伪代码
-  写 "LRU" → P3-RSMP-IMPL。
+  写 "LRU" →。
 - DISP-P3RSMP-003: p3_resample_check_mode 会话编排层无调用点
-  （仅探针 p3_resample_probe_main.cpp:31 消费）→ P3-RSMP-INT 接线。
+  （仅探针 p3_resample_probe_main.cpp:31 消费）→接线。
 - DISP-P3RSMP-004: provenance.missing_tiles 恒 nullptr
   （p3_session.cpp:265-277）——缺 tile 聚合上报未接线（SCI §9a-9）
-  → P3-RSMP-IMPL/INT。
+  →。
 - DISP-P3RSMP-005: astrocs_p3_resample.dll 未建（entrypoint=
-  MISSING）；探针/回归现状内联编译 → P3-RSMP-IMPL。
+  MISSING）；探针/回归现状内联编译 →。
 - 其余见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-RSMP-IMPL-001 §13
   合同边界。
 
@@ -185,7 +174,7 @@ downstream: [TEST-P3-RES-001]
   coverage 值语义全表/④缺 tile→C=0/⑤nearest 精确 cell/⑥bilinear
   Σw=1 与背面跳过/⑦max_tiles FIFO 逐出/⑧open 守卫负面清单）。
 - 双重陈述（C7 锚）: 本节承载 TEST-P3-RES-001 登记面（矩阵
-  test_status=DORMANT）；可执行面升级归 P3-RSMP-TEST。
+  test_status=DORMANT）；可执行面待建。
 - 现状执行测试（相邻证据，引用不冒认）:
   eng/tests/backend/p3_resample_probe_main.cpp（探针六模式）+
   eng/tests/backend/test_p3_resample.py（164 行，test_05_nan_semantics/
@@ -193,7 +182,7 @@ downstream: [TEST-P3-RES-001]
   1e-5°）+ eng/tests/backend/test_p3003_parallel_resampler.py（141 行）+
   eng/tests/unit/p3_interp_test.cpp（137 行）/p3_coverage_test.cpp
   （106 行，独立参考实现非生产自证）。
-- EVIDENCE: EVID-MISSING（归 P3-RSMP-INT/验收补）。
+- EVIDENCE: EVID-MISSING（验收证据待补）。
 
 ## 10 合同链接
 
@@ -212,4 +201,3 @@ downstream: [TEST-P3-RES-001]
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
-

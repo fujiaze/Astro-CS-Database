@@ -1,19 +1,14 @@
-# ARCH-001 — Runtime 与职责边界（V6 目标架构合同）
+# Runtime 与职责边界
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：docs/ASTROCS_DESIGN.md §8（软件架构）
 
-> 上游: 03_TARGET_ARCHITECTURE.md (控制包)  下游: API-001, BLD-001, CORE-*, LEG-*
-> ⚠ **DOC-202 R04 订正（2026-09-20）**：原句「本文件是 V6 架构的**唯一权威**；与
-> docs/architecture/* 冲突时以本文件为准」**已删除**——它与最高设计 §0.1 相抵触（§0.1：每份文档的权威顺序由最高设计唯一给出，任何
-> 下级文档只陈述与本设计一致的细化内容）。本文件是详细文档层的一员，
-> **不另立权威链**；架构问题的权威 = `ASTROCS_DESIGN.md` §7，与本文件冲突时以最高设计为准
-> （§0.1/§0.2）。
+本文件是详细文档层的一员，不另立权威链；架构问题的权威 = `docs/ASTROCS_DESIGN.md` §8，与本文件冲突时以最高设计为准（§0.1/§0.2）。
 
 ## 1. 唯一全局执行平面
 
 - **只有 Pipeline Runtime 拥有全局执行顺序与资源预算**。
 - CLI、I/O、科学模块、计算后端的调度一律走唯一全局执行平面（Pipeline Runtime）。
-- 组件图（冻结）：
+- 组件图（现行）：
 
 ```mermaid
 flowchart TD
@@ -39,6 +34,8 @@ flowchart TD
 
 ## 3. 依赖方向（构建图强制）
 
+依赖方向正本 = `docs/architecture/DEPENDENCY_RULES.md`；本合同的边界条款如下。
+
 ```text
 cli → runtime → registry → modules → cpu_backend
 cli → runtime → services (logger/metrics/resources/artifacts)
@@ -48,15 +45,15 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 
 - 依赖方向只走上图箭头：`io → runtime`、`module → cli`、`backend → pipeline` 属反向边，检出即判红。
 - 目录内容靠显式罗列，`file(GLOB)` 隐式塞目录一律判红；每个模块/I/O adapter/Runtime/CLI/CPU provider
-  是显式 CMake target（BLD-001）。
+  是显式 CMake target。
 
 ## 4. 线程与资源预算
 
-- 只有 Runtime 创建全局 worker pool；线程数基于配额与 profile，不直接用裸
-  `hardware_concurrency`。
-- CPU-heavy 节点按估算 work units 获取 `ThreadLease`；模块只向 lease executor
-  投递 work；线程数只来自 lease（`omp_set_num_threads`、无界 `std::async`、私有永久 pool 均判红）。
-- 保留 OpenMP 内核时由 Runtime 设置 `num_threads(lease.size)`，nested disabled。
+预算、分配与嵌套并行正本 = `docs/architecture/THREAD_BUDGET_ARCH.md`；本合同的边界条款如下。
+
+- 只有 Runtime 创建全局 worker pool；CPU-heavy 节点按估算 work units 获取 `ThreadLease`，
+  模块只向 lease executor 投递 work，线程数只来自 lease（裸 `omp_set_num_threads`、
+  无界 `std::async`、私有永久 pool 均判红）。
 - 生产重计算路径的并行度取自 profile：固定 `workers=1` 一律判红；可用 CPU≥2 且工作量超 `parallel_min_work`
   时 active workers 必须 ≥2。
 
@@ -77,18 +74,16 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 - ACR 源码保留 dormant target，可独立构建/测试，不属本 Alpha 门禁。
 - 未来接入只实现同一 CPU Backend/Compute Provider 上层合同。
 
-## 7. 冻结的现状差距（BAS-002/003 证据）
+## 7. 生产架构硬约束
 
-| 现状 | 违例 | 迁移任务 |
-|---|---|---|
-| lib/infrastructure/cli/main.cpp 顺序调用 3 session 且不传 Artifact ID | 第二套编排 (P0-006) | CLI-002 |
-| aio_pipeline_engine 内置 5-stage 调度 + omp16 | I/O 越权编排 (P1-003) | LEG-003 |
-| orchestrator.cpp 5522 行全局调度 | 第二生产调度器 (P1-002) | LEG-002 |
-| p2_session cpu_workers=1 | 生产串行 (P0-001) | P2-002 |
-| CLI drizzle 直呼 hp_drizzle_run_hips | CLI 直连科学 (P1-005) | LEG-001 |
-| ACR registry 符号在生产 acsd | ACR 生产泄漏 (P1-007) | LEG-004 |
+- 生产只存在一个全局执行平面：全局执行顺序与资源预算归 Pipeline Runtime，CLI 不顺序调用阶段 session，
+  阶段间只经磁盘产品与 manifest 交换。
+- I/O 边界不承担编排：`aio` 只做读写与原子提交，不内置 stage 调度。
+- 科学调用一律经模块入口，CLI 不直呼科学内核。
+- 生产重计算路径的并行度取自 profile，固定串行一律判红。
+- 生产构建的链接图、导出符号与运行模块表内没有 ACR。
 
 ## 8. 验收
 
-- G7 后：canonical run 不链接/调用旧 scheduler/ACR；CLI 薄化；静态图=trace；
+- canonical run 不链接、不调用非 Runtime 调度器与 ACR；CLI 薄化；静态图=trace；
   dependency checker 证明 I/O 无 runtime 依赖。

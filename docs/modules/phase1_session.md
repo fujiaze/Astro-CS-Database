@@ -1,6 +1,6 @@
 # Module: phase1_session
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > Phase1 进程内装配会话模块合同页 =
 > lib/phase1_session/README.md（CONTRACT_READY，assembly 层）+ lib/
@@ -25,7 +25,7 @@ Phase1 装配/编排：四段 io_read→calibrate→cosmetic→io_write 的进�
 不拥有任何算法（校准/星点/PSF/WCS/测光/SNR/drizzle/HiPS 公式均不在本
 层，见各 SCI/ALG 冻结合同）；不描述 Phase2/3；现行 4 段实现不覆盖
 API-P1-001 冻结 7-stage 序列的检测/PSF/platesolve/测光/SNR/Drizzle/HiPS
-段（差距如实登记，补齐归 P1-SESSION-IMPL）。
+段（差距如实登记；补齐属迁移目标，未落地）。
 
 ## Public API
 

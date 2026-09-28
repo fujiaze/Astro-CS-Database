@@ -1,12 +1,13 @@
-# Astro Celestial Sphere Database（ACSD） 结构化日志合同（LOG-001）
+# Astro Celestial Sphere Database（ACSD） 结构化日志合同
 
-> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
-
-> 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（JSON Schema v1）、
-> `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`eng/tools/monitoring/check_log_contract.py`（检查器）。
-> 本文档是视图；字段定义与验收以 schema/检查器为权威（JSON/JSONL 输出为真相）。
+> 上游：docs/ASTROCS_DESIGN.md §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）、§8.4（顶层结构）
 
 ## 1. 目的与边界
+
+机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（字段定义、
+枚举与验收的唯一权威）、`lib/infrastructure/observability/logging/log_event.py`（参考实现）、
+`eng/tools/monitoring/check_log_contract.py`（检查器）。本文件是该合同的说明视图；
+JSON/JSONL 输出为真相，两者不一致时以 schema 与检查器为准。
 
 ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接口：
 
@@ -16,24 +17,25 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 - 日志行可机器校验（schema 检查）且有大小上限；
 - 日志/诊断的敏感路径（绝对用户路径/凭据）与 raw testdata 一律脱敏或省略。
 
-**边界（本任务冻结范围）**：LOG-001 只冻结合同 + schema + 小型验证，**不实现生产 logger、
-不接监控**。LOG-002 把生产 Runtime/模块/资源监控接入本合同的 JSONL 输出。
+**范围**：本合同冻结事件模型、JSONL 行结构与字段语义、事件枚举、error 载荷、顺序键、
+脱敏规则与单行大小上限，并随附 schema、参考实现与机器检查器。生产 Runtime 集成、
+模块与资源监控的接入、以及日志落盘时机与失败语义各有正本，见 §6.1 与 §7。
 
-### 1.1 身份声明：本合同**不是**运行事件流
+### 1.1 身份声明：本合同是结构化日志合同
 
-> ⚠ **强制消歧（唯一口径）**：LOG-001 的身份 = **「结构化日志合同」**（人可读摘要 + 机器 JSONL
-> 双通道同源），**它⛔不是运行事件流（run event stream）**，消费方按结构化日志合同解析。
+> **消歧（唯一口径）**：本合同的工件身份 = **结构化日志 JSONL**（人可读摘要 + 机器 JSONL
+> 双通道同源，工件名 `astrocs.log.event.v1`），消费方按本合同解析。
 
 | 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
 |---|---|---|---|---|
-| **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §6.3） |
-| **结构化日志**（本合同 LOG-001） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
+| **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §7.2） |
+| **结构化日志**（本合同） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
 
 - **两份流各用不同工件名，各自具名**；
 - **键名 `event`（本合同）与 `kind`（运行事件流）各归各流**：本合同的 `event` 字段
   只承载本合同的枚举（`event`），运行事件流的枚举键 = `kind`；
 - 运行事件流的字段名 / 枚举 / 顺序键**唯一**以 `protocol.h` + `jsonl.h` 为源
-  （最高设计 §6.3）；本合同**不复制**其字段表。
+  （最高设计 §7.2）；本合同不复制其字段表。
 
 ## 2. 事件模型
 
@@ -90,7 +92,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 - 进入临界区顺序 = seq 顺序 = 事件接受顺序；**seq 严格递增、无空洞**；
 - 消费方（监控/运行图/审计）以 `seq` 为顺序键重放，不依赖墙钟或线程交错猜测；
 - 墙钟 `ts` 仅用于展示与跨进程比对，不作同进程顺序判定的依据；
-- 生产实现必须保证 emit 在临界区内完成或 seq 与写序一致（LOG-002 强制）。
+- 生产实现必须保证 emit 在临界区内完成或 seq 与写序一致（由 Runtime 集成强制）。
 
 验收样例：两个线程并发各写 N 条 → 合并后 `seq == 1..2N` 且无重复/空洞。
 
@@ -120,37 +122,34 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 ## 6. 大小上限与 schema 检查
 
 - 单行（含 `\n`）上限 **4096 字节**（`MAX_LINE_BYTES`）；超限按 UTF-8 边界截断 + 省略号，不切坏多字节字符；
-- 日志文件总量上限与轮转策略由 LOG-002/运行配置定义（本任务冻结单行上限）；
+- 日志文件总量上限与轮转策略由运行配置定义；本合同冻结单行上限；
 - 机器检查器 `eng/tools/monitoring/check_log_contract.py` 提供：schema 校验（缺字段被拒）、
   seq 单调性、error 载荷、级别/事件枚举、脱敏样例、单行大小；输出机器 JSON 判定。
 
-## 6.1 落盘与错误收敛（LOG-004）
+## 6.1 落盘与错误收敛
 
-本合同的 JSONL 行**写到哪、什么时候写、写失败怎么办**不在 LOG-001 范围内，由
-`ASTROCS_DESIGN.md` §7.3、`docs/design/LOG_AND_ERROR_SYSTEM.md` 与
-`docs/contracts/LOG_AND_ERROR_CONTRACT.md`（LOG-004）冻结：
+本合同的 JSONL 行写到哪、什么时候写、写失败怎么办，正本 = `docs/ASTROCS_DESIGN.md` §7.3、
+`docs/design/LOG_AND_ERROR_SYSTEM.md` 与 `docs/contracts/LOG_AND_ERROR_CONTRACT.md`：
 
 - 运行日志落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（人可读摘要，与 JSONL 同源）；
 - 成功/失败/取消三路都产出，收尾 fsync + 算哈希 + 原子发布，并在 run manifest 的 `log_artifacts[]` 登记；
 - 日志写入失败即运行失败（非 0 退出码），不静默；判据 = `CHK-LOG-SYS`。
 
-LOG-004 **不修改**本合同冻结的字段语义、枚举与 schema：它消费本合同的行格式。
+落点合同消费本合同的行格式：字段语义、枚举与 schema 的正本仍在 §2.2 与本文件的机器事实源。
 
-## 7. 与运行事件流 / 既有 Core 日志的关系
+## 7. 与运行事件流、既有 Core 日志的关系
 
-- **与运行事件流的关系**：本合同**不是**运行事件流，见 §1.1；
+- **与运行事件流的关系**：两条流的身份与工件名各自具名，见 §1.1；
   运行事件流的唯一 schema = `lib/infrastructure/cli/protocol.h` + `jsonl.h`。
   两者**可以并存**（日志面向操作员/审计，事件流面向 GUI/机器消费），消费面各自独立，
   字段名各留在本方工件内。
 
+`lib/include/astrocs/core/logging.h`（`Logger`/`MetricsAggregator`）是本合同事件语义的外部化对象：
+既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的等价语义映射到
+合同字段表 §2.2（`component→module/phase` 归属、`message→diagnostic` 等）。Runtime 集成以
+本合同为单一事实源做适配，映射与双写细节正本 = `docs/design/LOG_AND_ERROR_SYSTEM.md`。
 
-`lib/include/astrocs/core/logging.h`（CORE-008 Logger/MetricsAggregator）是既有运行时组件
-LOG-001 **不修改它**。本合同是其事件语义的冻结外部化：
-既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的
-等价语义映射到合同字段表 2.2（`component→module/phase` 归属、`message→diagnostic` 等）。
-LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/映射细节由 LOG-002 冻结。
-
-## 8. 验收（LOG-001）
+## 8. 验收
 
 | # | 验收点 | 证据 |
 |---|---|---|
@@ -160,10 +159,11 @@ LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/�
 | A4 | 多线程事件顺序有 sequence | 并发 seq 测试（1..2N 无空洞） |
 | A5 | 错误包含 source/symbol/status | error 载荷 schema + 负测 |
 | A6 | 日志 schema 检查和大小上限 | 检查器 PASS/FAIL 样例 + 截断测试 |
-| A7 | 无 raw testdata | 本任务不产生/不引用 raw testdata；全局 forbidden globs 不含本路径数据 |
+| A7 | 无 raw testdata | 日志行不含 raw testdata；全局 forbidden globs 不含本路径数据 |
 
 ## 9. 参考
 
-- 依据：`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
-- 依据：`ASTROCS_DESIGN.md` §7.1a/§9 + `docs/architecture/ARCHITECTURE.md`
+- 依据：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
+- 依据：`docs/ASTROCS_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/architecture/ARCHITECTURE.md`
+- 落点与错误收敛：`docs/design/LOG_AND_ERROR_SYSTEM.md`、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`
 - 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`eng/tools/monitoring/check_log_contract.py`

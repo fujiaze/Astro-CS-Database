@@ -1,6 +1,6 @@
 # Module: phase2
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责
 
@@ -44,7 +44,7 @@ stage2 JSON（模型/integration/output）；typed parser + schema 单源。
 SCI-UPM-001..010、SCI-UPM-PERSIST-001、ALG-UPM-FRAME-BIND-001、
 ALG-REJ-001..008、SCI-INT-001/002/004/008、SCI-NOISE-015、
 SCI-UPM-WEIGHT-001、ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001
-（V19R3 冻结）。
+（合同冻结集合）。
 
 ## ABI 接口（P2ControlObservation 尾部新增 control_variance/control_ivar）
 
@@ -71,9 +71,9 @@ P2.* stage 日志；astrocs-diagnose 支持。
 
 ## Tests
 
-synthetic_gate 89 项（V19R3 新增 UPMW-001..004/006/007）；G5 ivar 真值；
+synthetic_gate 89 项（含 UPMW-001..004/006/007）；G5 ivar 真值；
 SNR-015 ablation；UPMW-005 在 healpix_drizzle/tests/
-control_median_mc_test.cpp（2000 实现 Drizzle MC，k_corr=1.3883——标定几何专属单次 MC 实测）。
+control_median_mc_test.cpp（2000 实现 Drizzle MC；k_corr 规范取值 1.4，实测读数与条件见实验单元 `实验/healpix-polar/`）。
 
 ## Known limitations
 
@@ -85,22 +85,10 @@ lib/algorithms/coverage/{src,lib/include/astro/phase2,tools,tests}/。
 
 ## Coverage 子模块合同
 
-- coverage 环节=astrocs.p2.coverage（matrix P2-COV 行）：生产源
-  lib/algorithms/coverage/src/coverage.cpp（455 行）+ lib/include/astro/phase2/
-  coverage.h（172 行），2 个 C ABI 导出 p2_coverage_build/p2_coverage_free；
-  合同=ALG-COV-001（docs/science/algorithms/PHASE2_COVERAGE.md）/
-  DATA-COV-001（DATA_SEMANTICS §19）/ API-COV-001（PUBLIC_API）/
-  模块合同页 docs/modules/registry/astrocs.phase2.coverage.md + 
-  lib/algorithms/coverage/README.md r1 + module.yaml。
-- 本页早先"coverage → sampler → …"指处理链阶段序，非本模块归属：
-  coverage 仅为几何 union MOC + 兼容校验（hips_order/tile_width=512/
-  hips_version/hips_frame/filter），无权重键参与；输出
-  P2MocCell[P2CoverageResult.n_union_cells]（HEALPix NESTED，坐标
-  非 PIXEL）。coverage/support/validity 三概念分离；coverage 禁作
-  隐式科学权重（w_UPM 唯一冻结式 PHASE2_UPM.md §5）。与 UPM/
-  rejection/integration 各 DOC 任务（P2-UPM/P2-REJ/P2-INT）互不覆盖。
-- 已登记缺陷 DISP-COV-001..005（PHASE2_COVERAGE.md §11.3，不改码：
-  status/rc 分支不一致、frame_id 基名截断、空 filter 放行、
-  intersection/depth/missing-tiles 未输出、两阶段全量重扫/ThreadLease
-  未接线）；测试设计 TEST-COV-DESIGN-001（§11.4，整数/bitwise 零
-  容差）归 P2-COV-TEST。
+- coverage 环节合同（ALG-COV-001 / DATA-COV-001 / API-COV-001、端口与缺陷登记）唯一正本 =
+  `docs/science/algorithms/PHASE2_COVERAGE.md` 与模块合同页
+  `docs/modules/registry/astrocs.phase2.coverage.md`（+ `lib/algorithms/coverage/README.md`、
+  `module.yaml`）；本页只留指针。
+- 本模块归属边界：处理链阶段序为 coverage → sampler → …，非本模块归属；
+  coverage/support/validity 三概念分离，coverage 禁作隐式科学权重
+  （w_UPM 唯一冻结式 = `docs/science/PHASE2_UPM.md` §5）。

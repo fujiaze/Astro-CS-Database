@@ -1,16 +1,6 @@
----
-id: MOD-astrocs-phase2-sample
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P2-SMP-001, ALG-P2-SMP-001, API-P2-001]
-downstream: [TEST-P2-SMP-001]
----
-
 # 模块 astrocs.p2.sampling
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位
 > `lib/algorithms/sampling/`（README/module.yaml/memory.md，按
@@ -18,8 +8,8 @@ downstream: [TEST-P2-SMP-001]
 > 一套已被 P2-COV 占用，不可覆盖）；合同权威=三件套 +
 > docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
 > CONTRACT_READY）。descriptor 词汇 module_id=astrocs.phase2.sample
-> （module_adapters.cpp:642-653）为编排层占位，由 P2-XX-INT 对齐
-> astrocs.p2.sampling（MODULE_MIGRATION_MATRIX P2-SAMP 行）；冻结依据 = 该矩阵行本身，本页 descriptor 词汇只作对齐说明，以免
+> （module_adapters.cpp:642-653）为编排层占位词汇，其对齐属迁移目标（未落地）；冻结依据 =
+> `docs/science/algorithms/PHASE2_SAMPLER.md`（ALG-P2-SMP-001）。本页 descriptor 词汇只作对齐说明，以免
 > 反向作为冻结依据。
 
 ## 身份与合同落位
@@ -28,7 +18,7 @@ downstream: [TEST-P2-SMP-001]
   registry astrocs.phase2.sample.md 同步合同页）；module_id 合同值=
   `astrocs.p2.sampling`（矩阵 P2-SAMP 行；descriptor 占位
   `astrocs.phase2.sample` 仅编排层词汇）；dll_target=
-  `astrocs_p2_sampling.dll`（合同值，尚未存在，迁移归 P2-SAMP-IMPL）。
+  `astrocs_p2_sampling.dll`（合同值，尚未存在；迁移目标未落地）。
 - 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md），按
   `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 三件套已
   被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
@@ -36,7 +26,7 @@ downstream: [TEST-P2-SMP-001]
   :337-346 astrocs_phase2 静态库成员，sampler.cpp 列于 :342）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/sampler.h`
   （136 行）。模块页=本文件。
-- owner SA-P2-S20；depends_on_int=P2-COV-INT;CPU-005
+- owner SA-P2-S20；depends_on_int=P2-COV;CPU-005
   （MODULE_MIGRATION_MATRIX.csv P2-SAMP 行权威）；
   legacy_paths="lib/algorithms/coverage sampling sources"。
 
@@ -136,8 +126,7 @@ module_id=`astrocs.phase2.sample`（占位）；execution_class=
   TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism)。
 - worker 数=Runtime lease（cfg.cpu_workers=ThreadBudget.max_workers
   经 stage2.cpp:273-274 透传，模块无 hardware_concurrency 自行开
-  线程 :880-883）；lease/取消检查点接线=迁移整改点（P2-SAMP-IMPL，
-  与 DISP-COV-005 同构）。determinism=fixed_reduction_order。
+  线程 :880-883）；lease/取消检查点接线为迁移整改点（与 DISP-COV-005 同构，未落地）。determinism=fixed_reduction_order。
 
 ## 内存/cache/I-O/所有权
 
@@ -155,19 +144,18 @@ module_id=`astrocs.phase2.sample`（占位）；execution_class=
   无状态机（accept/reason u8 0..5 逐观测承载，DATA §23.3）；
   容量不足不报错（probe/fill）。
 - 诊断进度日志 17 处直写 stderr（:641-672 等，DISP-P2SMP-003
-  登记；结构化通道整改归 P2-SAMP-IMPL）；无内部取消检查点/
-  checkpoint（迁移 ThreadLease 接线归 P2-SAMP-IMPL）。
+  登记；结构化通道整改面未落地）；无内部取消检查点/
+  checkpoint（迁移 ThreadLease 接线待落地）。
 - known_defects（登记不改码，与 ALG-P2-SMP-001 §11.2 同口径）:
   DISP-P2SMP-001（cfg `<=0→默认` 吞显式 0 :485-502，bughunt
   R3-A P3-③）；DISP-P2SMP-002（insufficient_retained 双计数
   :1006+:1022）；DISP-P2SMP-003（stderr 直写）；DISP-P2SMP-004
   （veto 阈值 10×frame_snr_med 与半径 0.012° 硬编码 :849-850）；
-  DISP-P2SMP-005（m0≈0 收敛阈值退化全迭代 :818）。整改归
-  P2-SAMP-IMPL/TEST。
+  DISP-P2SMP-005（m0≈0 收敛阈值退化全迭代 :818）；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-SMP-001` MISSING（P2-SAMP-TEST 建立，不冒认）；
+可执行 `TEST-P2-SMP-001` MISSING（可执行测试待建，不冒认）；
 登记面=TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED（ALG-P2-SMP-001
 §11.3 F1-F9: F1 统计量逐值 bitwise、F2 kcorr 角点 exact/插值
 rtol 1e-12、F3 cvar Python oracle rtol 1e-12 + UPMW-004 MC 3σ、
@@ -183,9 +171,8 @@ lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 ## 已知限制
 
 - DISP-P2SMP-001..005（上节，登记不改码）。
-- 本页若引用旧派生词汇（"错误码=ACS_ERR_*"、"取消=host cancel
-  回调"等 session 层词汇），以本合同页与 DATA_SEMANTICS §23 为准
-  修订。
+- DISP-P2SMP-001..005 的现行语义与判据正本 =
+  `docs/science/algorithms/PHASE2_SAMPLER.md` §11.3（本页只留指针）。
 
 ## 链接
 

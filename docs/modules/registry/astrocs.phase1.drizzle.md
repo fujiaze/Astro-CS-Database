@@ -1,18 +1,10 @@
 ---
 id: MOD-astrocs-phase1-drizzle
-version: 1.1.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-DRZ-001, ALG-DRZ-001, API-P1-007, API-DRZ-001, DATA-P1-DRZ]
-downstream: [TEST-DRZ-DESIGN-001]
 ---
-
-> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
 
 # 模块 astrocs.phase1.drizzle
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页源码核对修订：registry 占位 ID
 > SCI-P1-DRIZ-001/ALG-005/TEST-P1-DRIZ-001 更正为 SCI-DRZ-001/
@@ -46,7 +38,7 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 > 现状 descriptor（module_adapters.cpp:570-587）data_id=DATA-P1-STACK
 > （编排汇总语义）；模块级数据合同 DATA-P1-DRZ
 > （DATA_SEMANTICS §11，tile 累加量原始和 + finalize 归一在下游），
-> 引用对齐由 P1-DRZ-INT 处理。
+> 其对齐属迁移目标（未落地）。
 
 invalid：现行实现为
 值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1899-1902`；
@@ -61,7 +53,7 @@ hp_drizzle_fits_to_ahpx / hp_drizzle_run / hp_drizzle_run_hips /
 hp_drizzle_reverse_run / hp_drizzle_reverse_capability /
 hp_drizzle_reverse_version（API-DRZ-001，PUBLIC_API.md）。编排级
 API-P1-007（区间声明）。迁移生命周期 create→validate→run→inspect→
-destroy 由 P1-DRZ-IMPL 接线（现状 entrypoint=MISSING：descriptor
+destroy 为迁移目标（未落地）（现状 entrypoint=MISSING：descriptor
 未接节点，p1_session 无 drizzle stage）。
 
 ## Registry descriptor 与配置 schema
@@ -69,7 +61,7 @@ destroy 由 P1-DRZ-IMPL 接线（现状 entrypoint=MISSING：descriptor
 module_id=`astrocs.p1.drizzle`；execution_class=`cpu_heavy`；
 parallel_ok=True；配置=pixfrac（缺省 0.8，CFG-001）、ordering=
 nested（默认）、nside_mode/nside_value、precision（FP32/FP64 经
-header KV "PRECISION"）；版本化 schema 由 P1-DRZ-IMPL 冻结。
+header KV "PRECISION"）；版本化 schema 由冻结。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性
 
@@ -99,7 +91,7 @@ checkpoint 无（HiPS 由编排层 overwrite 清理）。
 `TEST-DRZ-DESIGN-001`（DRIZZLE_GEOMETRY.md §9）：FP64 通量闭合
 <1e-6（主域）/逐 leaf <1e-5、方差 α² worst_rel<1e-4、候选零漏选
 9003 例、reverse false_hole/false_fill=0。可执行 TEST-P1-DRZ-001
-由 P1-DRZ-TEST 建立。
+待建。
 
 ## 已知限制
 

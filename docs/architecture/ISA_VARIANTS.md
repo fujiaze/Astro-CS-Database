@@ -1,85 +1,62 @@
-# ISA 变体决策台账 (ISA-001..004 冻结)
+# ISA 变体与逐 kernel 选路
 
-> 上游：ASTROCS_DESIGN.md §8（软件架构）
+> 上游：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、§8.5（模块与 ABI）
 
-> ID: ARCH-ISA-001  状态: FROZEN  上游: ABI-003  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
-> 原则: 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量。
+## 0 原则
 
-## 0 ISA-002 补充测量与决策(vm-bj, AVX(无 FMA)变体)
+- 先由 profile 证明热点，只为热点做变体；变体与 baseline 共享合同与源，禁复制漂移；
+  逐 kernel 有 Oracle 与确定性判据。
+- 无收益的档位**不登记变体**（`NOT_SHIPPED`），但必须留下完整测量记录（读入 `实验/` 证据面）。
+- 变体一律以 **DSO**（Windows `.dll` / Linux `.so`）随安装树分发；调度器运行时检测 CPU +
+  benchmark 选取，缺库回退基线；主程序保持基线指令集。
 
-- 变体 `lib/infrastructure/benchmark/backend_host/avx_backend.cpp` → `avx_backend.so`, TU 局部旗标 `-mavx`(无 -mfma/-mavx2), 共享 baseline_kernels_impl.inc/backend_table.inc 同源(零复制漂移)。
-- 逐 kernel 实测(median-of-5 × 3 轮, best-of baseline 对变体最保守):
+## 1 测量条件与决策
 
-| kernel | baseline ns | avx 变体 ns | avx 增益 | avx2(SHIP,ISA-001) 增益 | 决策 |
-|---|---|---|---|---|---|
-| calibration-pixel-transform | 1 444 821 | 1 284 850 | **+11.1%** | **+20.7%** | **NOT_SHIPPED** |
-| hips-bulk-transform | 16 896 375 | 12 605 335 | **+25.4%** | **+28.2%** | **NOT_SHIPPED** |
-| drizzle-accumulate | 2 574 195 | 3 001 619 | −16.6% | −15.2% | NOT_SHIPPED |
-| noise-snr-reductions | — | — | — | — | NOT_SHIPPED(排序型) |
-| upm-spmv | — | — | — | — | NOT_SHIPPED(gather 型) |
-| integration-accumulate | — | — | — | — | NOT_SHIPPED |
+- 测量条件：Linux 开发节点（`vm-bj`，2 vCPU，AVX2+FMA+AVX512F）；
+  基准程序 `eng/tests/backend/kernel_bench_main.cpp`，median-of-5 计时 × 多轮，
+  baseline 取最优（对变体最保守）；变体整 TU 局部旗标，共享 `baseline_kernels_impl.inc`
+  同一源（**零复制漂移**）。
+- 变体实现（`lib/infrastructure/benchmark/backend_host/`）：`avx_backend.cpp`（`-mavx`，无 FMA）、
+  `avx2_backend.cpp`（`-mavx2 -mfma`）、`avx512_backend.cpp`
+  （`-mavx512f -mavx512bw -mavx512vl -mavx512dq`）。
+- **SHIP 阈值**：受控热点增益 ≥ +10% 且方向稳定；落在 ±10% 带宽内的记 `REMEASURE`，
+  交 benchmark 逐 kernel 选路。
+- **现行测量口径 = AVX2+FMA 独立复测批**。各批逐 kernel ns 读数、增益、能力证明的反汇编计数
+  与决策原表见测量归档 `实验/engineering-evidence/prerelease-v5/`（`ISA-001` / `ISA-002` /
+  `ISA-003` 三批子目录）。本文件只承载结构决策。
 
-- **决定性判读**: AVX 是 AVX2+FMA 的严格子集(指令集子集)。vm-bj 支持 AVX2+FMA, 而已 SHIP 的 `avx2_backend.so` 在受控热点(calibration/hips)的增益(+20.7%/+28.2%)严格高于 AVX(+11.1%/+25.4%)。故 AVX 无独立收益, 登记 **NOT_SHIPPED**; 选路保持 calibration/hips→avx2(ISA-001), 不机械堆砌更低档变体。
-- 若未来主机仅支持 AVX 而无 AVX2, 应在该主机复测后再决定(本任务 vm-bj 已具备 AVX2, 无法证明"AVX-only 主机"的选路; 记录为边界)。
-- 完整性: ISA-002 完整测量在案（逐 kernel median-of-5 × 3 轮，见上表）。
+| 档位 | 决策 | 依据 |
+|---|---|---|
+| AVX2+FMA（`avx2_backend.so`） | **SHIP** | 受控热点 calibration-pixel-transform 与 hips-bulk-transform 的增益均过阈值且方向稳定；能力证明 = 反汇编含 FMA 特征指令与 256-bit VEX，而 baseline 扫描零 VEX |
+| AVX（无 FMA） | **NOT_SHIPPED** | AVX 是 AVX2+FMA 的严格指令集子集，受控热点的增益被 AVX2+FMA 严格主导 ⇒ 无独立收益 |
+| AVX-512 | **NOT_SHIPPED** | 受控热点无超越 AVX2+FMA 的收益；且 AVX512F 存在已知 downclock / 功耗-频率风险 |
+| drizzle-accumulate | **保持 baseline** | 该 kernel 上变体更慢（方向在两批复测中一致） |
+| noise-snr-reductions / upm-spmv / integration-accumulate | **保持 baseline** | 排序型 / gather 型算子，ISA 变体收益不足 |
+| BMI2 / POPCNT（整数 / 位操作） | **NOT_SHIPPED** | 无整数/位操作热点，见 `docs/architecture/ISA_BIT_MANIP_VARIANTS.md` |
 
-## 1 测量环境与结论(vm-bj, 2 vCPU, AVX2+FMA+AVX512F 实测)
+- **边界（诚实登记）**：测量主机具备 AVX2，无法在「仅支持 AVX 的主机」上证明选路；
+  该情形须在对应主机复测后再决定。Windows 侧能力复核由发行验证承担。
 
-| kernel | baseline ns | avx2 变体 ns | 提升 | 决策 |
-|---|---|---|---|---|
-| calibration-pixel-transform(1M px) | 1 576 742 | 1 250 899 | **+20.7%** | **SHIP(avx2)** |
-| hips-bulk-transform(1M px) | 16 922 530 | 12 145 714 | **+28.2%** | **SHIP(avx2)** |
-| drizzle-accumulate(1M×3) | 2 587 976 | 2 981 571 | −15.2% | NOT_SHIPPED(变体更慢) |
-| noise-snr-reductions(1M×3) | 35 079 711 | — | — | NOT_SHIPPED(排序型, ISA 低收益候选) |
-| upm-spmv(512K nnz) | 1 980 485 | — | — | NOT_SHIPPED(gather 型, ISA 低收益候选) |
-| integration-accumulate(1M×3) | 3 876 266 | — | — | NOT_SHIPPED(同上) |
+## 2 变体注册（capability）
 
-- 方法: eng/tests/backend/kernel_bench_main.cpp, median-of-5 计时×2 轮, baseline 取最优(对变体最保守); 变体=avx2_backend.cpp(-mavx2 -mfma, 共享 baseline_kernels_impl.inc 同一源, **零复制漂移**)。
-- SHIP 阈值: ≥+10% 且方向稳定; REMEASURE 带宽±10% 内交 BENCH-005。
-
-## 1.5 ISA-003 AVX2+FMA 独立复测与 capability 登记(vm-bj)
-
-- ISA-001 已 SHIP `avx2_backend.so`(AVX2+FMA, `-mavx2 -mfma`); ISA-003 独立复测确认该能力 **SHIP** 成立(不重复实现, 只复验+登记 capability)。
-- 能力证明: 反汇编含 **vfnmadd231ss**(FMA 指令, AVX2+FMA 定义特征)+ **34× ymm**(AVX2 256-bit); baseline 扫描零 VEX(`BASELINE_OPCODE_PASS`)。变体"真 AVX2+FMA"成立。
-- 逐 kernel 复测(median, 多轮, best-of baseline 对变体最保守):
-
-| kernel | baseline ns | avx2 变体 ns | 增益 | 决策 |
-|---|---|---|---|---|
-| calibration-pixel-transform | 1 516 920 | 1 340 050 | **+11.7%** | **SHIP(avx2)** |
-| hips-bulk-transform | 16 922 677 | 12 138 884 | **+28.3%** | **SHIP(avx2)** |
-| drizzle-accumulate | 2 608 074 | 2 974 195 | −14.0% | NOT_SHIPPED(变体更慢) |
-
-- 完整性: ISA-003 完整测量在案（逐 kernel median，多轮，见上表）。
-- 与 ISA-002"AVX NOT_SHIPPED"判读一致: AVX2+FMA 是受控热点的最优 SHIP 档; AVX(无FMA)被其严格主导。ISA-004(AVX512)/ISA-005(BMI2/POPCNT)属 Windows 域, 本机不评估。
-
-## 1.6 ISA-004 AVX512 复测与判定(vm-bj)
-
-- vm-bj CPU 支持 AVX512(F/BW/VL/DQ/CD, `/proc/cpuinfo` 验证), 故按任务规则**可以**在 Linux 完整验证(规则要求"CPU 支持时必须验证并如实登记", 本机支持→必须验证)。
-- 变体 `lib/infrastructure/benchmark/backend_host/avx512_backend.cpp` → `avx512_backend.so`(`-mavx512f -mavx512bw -mavx512vl -mavx512dq`), 共享 impl/table 同源。
-- 能力证明(bidirectional): baseline 零 VEX(`BASELINE_OPCODE_PASS`); avx512 变体**含 15× %zmm**(512-bit=AVX512)+ vmovaps/vmovdqu8(EVEX 编码)。真 AVX512 变体成立。
-- 逐 kernel 复测(median, 多轮, best-of baseline), 与 avx2(SHIP) 对照:
-
-| kernel | baseline ns | avx512 变体 ns | 增益 | avx2 增益(ISA-003) | 决策 |
-|---|---|---|---|---|---|
-| calibration-pixel-transform | 1 574 602 | 1 514 723 | +3.8% | +11.7% | **NOT_SHIPPED**(远低于 avx2) |
-| hips-bulk-transform | 16 931 481 | 11 933 586 | +29.5% | +28.3% | **NOT_SHIPPED**(≈avx2 同档, 无额外收益) |
-| drizzle-accumulate | 2 555 247 | 3 129 703 | −22.5% | −14.0% | NOT_SHIPPED(变体更慢) |
-
-- **判定**: AVX512 在受控热点上**(a)** 无超越 AVX2+FMA 的收益(hips 同档 +29.5% vs +28.3%; calibration +3.8% 反而远低), **(b)** AVX512F 存在已知 downclock/功耗-频率风险(WIN-003 亦需检查)。"capability 与热点对应; 无机械指令集堆砌" → 登记 **NOT_SHIPPED**(完整测量在案, 非空判定)。
-- 完整性: 复测数值以本节表格为准（同树在案测量工件为 ISA-001/002/003 三批，属 AVX2 域）。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
-
-## 2 变体注册(capability)
-
-- `lib/infrastructure/benchmark/backend_host/avx2_backend.cpp` → `avx2_backend.so`(DSO, manifest: required=avx2+fma, sha256 实测入 backends.manifest.json); 预检(ABI-002)保证: 不支持 ISA 的主机绝不加载/执行。
-- 逐 kernel 选路(BENCH-005): calibration/hips→avx2 变体; drizzle-accumulate→**保持 baseline**(变体更慢); 其余→baseline。错误变体绝不入候选(hash/ABI/ISA 预检+逐 kernel Oracle)。
-- variant Oracle: 与 baseline 同公式同序(共享源)→输出允许 FMA 舍入差(容差 2e-4 相对, 与 Python 参考比对); 值语义不变。
+- `avx2_backend.cpp` → `avx2_backend.so`（DSO；manifest `required = avx2 + fma`，
+  sha256 入 `backends.manifest.json`）；预检保证**不支持该 ISA 的主机绝不加载/执行**。
+- 逐 kernel 选路：calibration-pixel-transform / hips-bulk-transform → avx2 变体；
+  drizzle-accumulate → **保持 baseline**；其余 → baseline。
+  错误变体绝不入候选（hash / ABI / ISA 预检 + 逐 kernel Oracle）。
+- variant Oracle：与 baseline 同公式同序（共享源）⇒ 输出只允许 FMA 舍入差
+  （容差 2e-4 相对，与 Python 参考比对）；值语义不变。
 
 ## 3 ISA 污染防线
 
-- 主 CLI/baseline TU: 无 -march/-mavx 旗标(测试断言), opcode scanner 禁 VEX/ymm/zmm(test_abi_kernels::test_04)。
-- 变体 TU: 整 TU 局部旗标(-mavx2 -mfma)→反汇编必须含 VEX(test_isa_variants::test_01, 变体"真变体"证明)。
-- Windows 变体(/arch:AVX2)随 WIN/FAT 域同流程登记。
+- 主 CLI / baseline TU：无 `-march` / `-mavx` 旗标（测试断言）；opcode scanner 禁 VEX/ymm/zmm
+  （`eng/tests/backend/test_abi_kernels.py`）。
+- 变体 TU：整 TU 局部旗标（`-mavx2 -mfma`）⇒ 反汇编必须含 VEX
+  （`eng/tests/backend/test_isa_variants.py`，变体「真变体」证明）。
+- Windows 变体（`/arch:AVX2`）随发行链同流程登记。
 
-## 4 与 ABI-003 oracle 的关系
+## 4 与模块边界 Oracle 的关系
 
-- 12 kernel 的 Oracle(独立参考+确定性)在 ABI-003 已立; 变体复用同一 Oracle(共享公式), 变体特有仅舍入差→容差比对; 确定性(budget 1 vs 4 逐位)对变体同样成立(同 impl 外层)。
+- 12 kernel 的 Oracle（独立参考 + 确定性）已在模块边界合同建立；变体复用同一 Oracle
+  （共享公式），变体特有仅舍入差 ⇒ 容差比对；确定性（预算 1 vs 4 逐位）对变体同样成立
+  （同 impl 外层）。

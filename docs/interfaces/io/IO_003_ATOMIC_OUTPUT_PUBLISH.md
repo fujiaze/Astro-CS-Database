@@ -1,13 +1,14 @@
-# IO-003 原子 HiPS/manifest 输出发布冻结合同
+# 原子 HiPS/manifest 输出发布合同
 
-> doc_id: DOC-IO-INTERFACE-003
-> doc_status: ACTIVE_NORMATIVE
-> 上游权威：`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
-> 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
-> A.3/A.4（阶段隔离与原子性）、E（科学公式不变）
-> 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口，fitsverify 算法族）、
-> DOC-IO-INTERFACE-002（IO-002 HiPS 输入合同，读端接收本接口产出）、
-> DATA-003（生产 ArtifactStore 原子 publish 语义）、DATA-004（provenance sidecar）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品）、
+> `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`（fitsverify 算法族）、
+> `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`（读端接收本接口产出）、
+> `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 原子 publish 语义）、
+> `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md`（provenance sidecar）
+
+本合同按 §10（I/O 与原子产品）的发布链执行：阶段隔离由「每次运行私有临时区 + 唯一用户路径」保证，
+原子性由「临时写 → 校验 → fsync → 哈希 → 原子改名 → 完成清单」保证；科学公式与图像算法按
+`docs/science/` 与 `docs/science/algorithms/` 的正本执行，不在本合同范围内。
 
 ## 1. 目标与范围
 
@@ -29,26 +30,23 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 `tree_hash` 等价比对）。产品身份哈希仍取**解压后内容**（§5 `tree_hash`），归档字节
 的 sha256 只作容器指纹记入 `storage` 段，不作产品身份。
 
-本合同**不改科学公式**（`scientific_change=false`），不做 tile 生成/投影（科学层属
-P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原样不修改。本接口冻结**输出端**语义；
-读端（IO-002）与产物交换资格（DATA-002）是独立冻结面，不在此重复。
+本合同覆盖**输出端**的发布语义：tile 生成/投影按 P1/P2/P3 科学模块的正本执行；
+`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 按各自现行职责运行。读端（IO-002）与
+产物交换资格（DATA-002）是独立合同面，不在此重复。
 
 ## 2. 模块归属与目录
 
 | 内容 | 路径 |
 | --- | --- |
-| 本冻结合同 | `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` |
+| 本合同 | `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` |
 | 原子输出发布器（Python 执行形态） | `lib/infrastructure/aio/io/hips_output_store.py` |
 | FITS 独立校验器（fitsverify，与 fits_core 同算法） | `lib/infrastructure/aio/io/fits_verify.py` |
 | 契约/负测（Python） | `eng/tests/io/test_hips_output_contract.py` |
 | 测试 tile fixture（复用 IO-001 fits_core） | `eng/tests/io/hips_output_fixture.py` |
 
-允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** eng/tests/io/** docs/interfaces/io/**`。
-
-> 执行形态说明：`lib/infrastructure/aio/io/hips_output_store.py` + `fits_verify.py` 为纯 Python
-> 语义层（Linux 控制/轻合成节点可完整验证；与 DATA-003 production_store 同模式）。
-> Windows 正式 DLL 交付（acsd_io.dll）由 IO-003 同语义 C 接线复刻同一发布状态机；
-> manifest/tree hash/错误码公式不变，跨 DLL 边界不暴露路径字符串句柄。
+本接口执行形态 = `lib/infrastructure/aio/io/hips_output_store.py`（发布状态机）+
+`lib/infrastructure/aio/io/fits_verify.py`（FITS 结构 + DATASUM 校验）：纯 Python 语义层，
+可在 Linux 控制/轻合成节点完整验证。
 
 ## 3. 唯一目标与 run 隔离
 
@@ -64,6 +62,9 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
   **并发不同 run 绝不共享目标路径** → 不互相覆盖）。
 - `user_path` = 用户路径（相对；可含子目录 `signal`、`signal/Norder0/…` 等
   目录型产物），段词法 `^[A-Za-z0-9._-]+$`。
+- **产物面划分**：本接口的产物面 = `runs/{run_id}/products/{user_path}/`（HiPS 目录产物 +
+  完成 manifest）；typed artifact 面（`objects/` + `manifests/`）的正本 =
+  `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` §2。两面目录不重叠，各由其正本约束。
 
 ### 3.2 词法拒绝（路径穿越）
 
@@ -127,19 +128,30 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
   "product": "signal",
   "publisher": "astrocs.hips-output/v1",
   "tree": [
-    {"path": "Norder0/Dir0/Npix0.fits", "size": 20160, "sha256": "<64hex>"},
-    {"path": "properties", "size": 87, "sha256": "<64hex>"}
+    {"path": "Norder0/Dir0/Npix0.fits", "size": <bytes>, "sha256": "<64hex>"},
+    {"path": "properties", "size": <bytes>, "sha256": "<64hex>"}
   ],
   "tree_hash": "<64hex = sha256(规范 tree)>",
-  "fitsverify": {"performed": true, "checksum": "datasum", "tile_count": 1},
-  "created_utc": "2026-09-02T08:15:00Z",
+  "fitsverify": {"performed": true, "checksum": "datasum", "tile_count": <n>},
+  "created_utc": "<ISO-8601 UTC>",
   "producer": {"module_id": "...", "module_build_id": "..."}
 }
 ```
 
 - `tree` 条目 = `{path, size, sha256}`（稳定排序）。
-- **`storage` 段（加性，形态事实的落点）**：完成 manifest 新增 `storage` 段，记录本次发布生效的落盘形态与容器/索引指纹：`storage_form`（`archive` | `bare`）、`form_source`（`config` = 输入配置显式给出 / `default` = 键缺失或留空 ⇒ 取默认 `archive` 并已报 warn）、`products[]`（逐产品 `product` / `storage_form` / `index_path` / `index_sha256` / `archive_bytes` / `archive_sha256` / `tree_hash`）与 `coverage_index`。字段与不变式（M1..M4）的唯一权威 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.3，机器事实源 = `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`。
-- **形态事实只落 `storage` 段**：`storage_form` / `archive_sha256` / `index_sha256` 只写 `storage` 段与产品级索引；归档内 `properties` 与裸形态逐字节一致（§1 A4 口径）；`properties` 只含标准 `hips_tile_format` token。
+- **`storage` 段（加性，运行级形态事实）**：`storage` 段属**运行级完成清单** `manifest.json#storage`，
+  记录该次运行生效的落盘形态与容器/索引指纹：`storage_form`（`archive` | `bare`）、`form_source`
+  （`config` = 输入配置显式给出 / `default` = 键缺失或留空 ⇒ 取默认 `archive` 并已报 warn）、`products[]`
+  （逐产品 `product` / `storage_form` / `index_path` / `index_sha256` / `archive_bytes` /
+  `archive_sha256` / `tree_hash`）与 `coverage_index`。字段与不变式（M1..M4）的唯一正本 =
+  `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.3，机器事实源 =
+  `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`。
+  本接口的**产品级**完成 manifest（`products/{user_path}/manifest.json`，执行形态
+  `lib/infrastructure/aio/io/hips_output_store.py`）承载 `tree` / `tree_hash` / `fitsverify` 三项与形态无关的事实。
+- **形态事实只落输出清单面**：`storage_form` / `archive_sha256` / `index_sha256` 出现在三处——Phase1
+  输出清单 `p1_products.json#frames[]` 的逐帧四字段、上述运行级 `storage` 段、产品级索引
+  （正本 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.2/§10.3）；归档内 `properties` 与裸形态
+  逐字节一致；`properties` 只含标准 `hips_tile_format` token。
 - **产品身份仍取解压后内容**：`tree` / `tree_hash` 记录解压后 HiPS 的条目（与裸形态相同）；`storage.archive_sha256` 只是容器指纹，产品身份判据 = `tree_hash`。
 - `tree_hash` = sha256(规范 JSON 序列化的 tree 条目数组) → **可重算**：
   同内容重算一致；任何文件改动/增删 → hash 变化。重算 = `tree_hash(tree_entries)`
@@ -176,8 +188,8 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 
 ## 8. 已知限制
 
-1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 Python 语义层 +
-   全部契约/负测。Windows 正式 DLL 构建（acsd_io.dll）用同一状态机源码执行。
+1. 本接口交付 Python 语义层 + 全部契约/负测；Windows 侧交付形态 `acsd_io.dll` 按同一发布
+   状态机由同语义 C 接线复刻（Linux 侧对应产物 `libacsd_io.so`）。
 2. `Moc.fits`（BINTABLE 扩展）不做内容校验（IO-001 §14.2：表扩展 UNSUPPORTED；
    IO-002 MOC optional hint 语义：缺失/损坏不阻塞读/写）。
 3. 并发安全以 run 目录隔离 + 单次发布单线程为前提；单 run 内并发发布同一

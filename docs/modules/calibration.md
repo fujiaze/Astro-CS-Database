@@ -1,6 +1,6 @@
 # Module: calibration
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 本页为 calibration 模块摘要页：生产调用方、线程模型、错误语义、
 > 诊断/测试陈述、现状缺陷一律以 lib/algorithms/calibration 现行源码为准；
@@ -21,7 +21,7 @@
 masterBias/Dark/Flat 生成（sigma-clip + median/mean 合并）、单帧图像校准
 （bias/dark/flat，dark_opt 双分支）、热/冷像素检测与插值修复（cosmetic）。
 模块级状态 CONTRACT_READY；迁移目标 astrocs.p1.calibration /
-astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立。
+astrocs_p1_calibration.dll 为迁移目标（未落地）。
 
 ## 非职责
 
@@ -108,7 +108,7 @@ actual_k/out_hot/out_cold 为可选输出统计。
 
 TEST-CAL-DESIGN-001（ALG-CAL 文档 §9：合成 fixture FIX-CAL-A..F、NumPy
 独立 oracle、不变量 I1-I6、负面/串并行/ISA/资源设计与冻结容差）——可执行
-测试由 P1-CAL-TEST 建立（TEST-P1-CAL-001）。既有共址测试：
+可执行测试待建（TEST-P1-CAL-001）。既有共址测试：
 lib/algorithms/calibration/tests/test_photometry_apply.cpp（未挂接 CMake 测试目标）。
 Python 对照为历史层（当前树无 python/ 目录）。
 

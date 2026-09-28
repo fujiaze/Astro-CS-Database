@@ -1,16 +1,6 @@
----
-id: MOD-astrocs-phase2-upm-fit
-version: 1.0.0
-status: ACTIVE
-owner: SA-P2-U21
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-UPM-001, ALG-P2-UPM-IMPL-001, ALG-UPM-001, API-P2-001]
-downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-UPM-002]
----
-
 # 模块 astrocs.p2.upm
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 冻结合同 `astrocs.p2.upm`
 > （fit/apply 两职能同页，registry 行 ID 沿用
@@ -23,8 +13,8 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
 > docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，实现级
 > 合同，SCI/ALG 占位 ID⇒合同 ID 映射声明在其映射节）。descriptor
 > 词汇 module_id=`astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
-> （module_adapters.cpp:661-678/:680-694）为编排层占位，由 P2-XX-INT
-> 对齐 `astrocs.p2.upm`；冻结依据 = 该矩阵行本身。
+> （module_adapters.cpp:661-678/:680-694）为编排层占位词汇，其对齐属迁移目标（未落地）；冻结依据 =
+> `docs/science/algorithms/PHASE2_UPM_IMPL.md`（ALG-P2-UPM-IMPL-001）与 `docs/science/PHASE2_UPM.md`（SCI-UPM-001）。
 
 ## 身份与合同落位
 
@@ -34,8 +24,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   `astrocs.p2.upm`（矩阵 P2-UPM 行；descriptor 占位
   `astrocs.phase2.upm-fit`/`astrocs.phase2.upm-apply`
   module_adapters.cpp:661-694 仅编排层词汇）；dll_target=
-  `astrocs_p2_upm.dll`（合同值，尚未存在，MISSING 语义归
-  P2-UPM-IMPL）。
+  `astrocs_p2_upm.dll`（合同值，尚未存在；MISSING 语义，迁移目标未落地）。
 - 合同三件套：`lib/algorithms/upm/`（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md），按
   `lib/algorithms/sampling/`→`lib/algorithms/integration/`→`lib/algorithms/rejection/` 先例新建；
@@ -45,7 +34,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
   签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）。模块页=
   本文件。
-- owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005
+- owner SA-P2-U21；depends_on_int=P2-SAMP;CPU-005
   （MODULE_MIGRATION_MATRIX P2-UPM 行权威）；
   legacy_paths="lib/algorithms/coverage upm sources"。
 
@@ -159,7 +148,7 @@ fit descriptor=module_id `astrocs.phase2.upm-fit`（占位）；apply
 descriptor=module_id `astrocs.phase2.upm-apply`（占位）
 （module_adapters.cpp:661-678/:680-694）；两 descriptor 均
 execution_class=`cpu_heavy`、parallel_ok=true、api_id=API-P2-001、
-abi=c++17。占位 ID 清单（旧派生词汇，由 P2-XX-INT 对齐修订）:
+abi=c++17。占位 ID 清单（descriptor 派生词汇，其对齐属迁移目标，未落地）:
 fit=SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001；apply=
 SCI-P2-UPM-002/ALG-P2-UPM-002/DATA-P2-COR/TEST-P2-UPM-002；
 DISP-P2UPM-004=descriptor 端口占位语义 persist→reload（ports 静态
@@ -185,8 +174,7 @@ p2_session.cpp:200-206）。
   reference。
 - 确定性: 聚合=worker-local tsums + **tid 升序归并**（:513 注释，
   determinism class D1=worker 数无关、同 worker 数位精确）；
-  gauge/连通分量/收敛/归并固定顺序；稠密缓存 bit-identical（
-  :1387-1390 冻结注释）；既有验证=eng/tests/api/test_upm_parallel.py
+  gauge/连通分量/收敛/归并固定顺序；稠密缓存 bit-identical（:1387-1390 冻结注释）；既有验证=eng/tests/api/test_upm_parallel.py
   test_02_one_t_same_as_n_t_scientific（1/N 等价）+
   test_01_deterministic_repeat_each_worker；1/N 等价亦见
   eng/tests/backend/test_p2002_parallel_upm.py。
@@ -221,12 +209,11 @@ p2_session.cpp:200-206）。
   :173-175 materialize_dense 重复声明）、DISP-P2UPM-002（upm.h:89-91
   注释漂移 OpenMP vs std::thread 实现）、DISP-P2UPM-003
   （p2_session.cpp:196-204 覆盖键缺口）、DISP-P2UPM-004（descriptor
-  端口占位语义 persist→reload）。整改归 P2-UPM-IMPL。
+  端口占位语义 persist→reload）；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-UPM-001`/`TEST-P2-UPM-002` MISSING（P2-UPM-TEST 建
-立，不冒认）；登记面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 节设计冻结
+可执行 `TEST-P2-UPM-001`/`TEST-P2-UPM-002` MISSING（可执行测试待建，不冒认）；登记面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 节设计冻结
 VERIFIED 承载锚。现状相邻证据（引用不冒认）:
 eng/tests/api/test_upm_recovery_oracle.py（SYN-005 参数恢复 oracle：
 test_01 常数面恢复、test_02 逐帧偏移、test_03 收敛确定性 model_hash
@@ -244,13 +231,12 @@ F6 dense/sparse 1e-12 等价基线）。
   用真实存在 cell，upm.cpp tile_gx/gy_bounds）；单帧区=harmonic
   continuation 非数据约束解（SCI-UPM-001 §4）；quality_mode=1
   snr²/(1+snr²)/unc² 权重仅 ablation/诊断（SNR-015）。
-- 本页若引用旧派生词汇（"错误码=ACS_ERR_*"、"取消=host cancel
-  回调"等 session 层词汇），以本合同页与 SCI-UPM-001/ALG-UPM-001
-  为准修订。
+- DISP-P2UPM-001..004 的现行语义与判据正本 =
+  `docs/science/algorithms/PHASE2_UPM_IMPL.md` §11/§13（本页只留指针）。
 
 ## 链接
 
-- 合同三件套：`lib/algorithms/upm/`（README/module.yaml/memory.md）
+- 合同锚：`lib/algorithms/upm/`（README/module.yaml/memory.md 三件套）
 - registry 手写页：docs/modules/registry/astrocs.phase2.upm-fit.md、
   docs/modules/registry/astrocs.phase2.upm-apply.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零改

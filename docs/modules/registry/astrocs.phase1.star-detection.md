@@ -1,23 +1,16 @@
 ---
 id: MOD-astrocs-phase1-star
 module_id: astrocs.p1.star_detection
-aliases: [astrocs.phase1.star, astrocs.phase1.star-detection]
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P1-STAR-001, ALG-STARDET-001, API-P1-003]
-downstream: [TEST-P1-STAR-001]
 ---
 
 # 模块 astrocs.p1.star_detection
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 手写合同页：registry 无
 > astrocs.p1.star_detection descriptor——现行占位 descriptor 为
 > astrocs.phase1.star-psf（lib/infrastructure/scheduler/src/module_adapters.cpp:492-510，编排层
-> 词汇，占位 ID ALG-002/TEST-P1-PSF-001 由 P1-PSF-INT/P1-STAR-INT 对齐），
+> 词汇，占位 ID ALG-002/TEST-P1-PSF-001 由-STAR-INT 对齐），
 > 本页手写登记，重生成时须保留（astrocs.phase1.session.md 先例）。权威签名头
 > lib/algorithms/star_detection/include/star_detector.h:1-73；模块级事实以
 > lib/algorithms/star_detection/README.md（r1，CONTRACT_READY）+ module.yaml
@@ -47,10 +40,10 @@ downstream: [TEST-P1-STAR-001]
 - 并发：handle 级互斥（PHASE1_API_V1 §2 表行 no/no）；OpenMP 三处
   （sdet_api.cpp:448/:2321-2325/:2042-2044），dedup/sort/maxStars 串行，
   输出 bitwise 与线程数无关（determinism=fixed_reduction_order）；现状
-  无 ThreadBudget 接线（整改归 P1-STAR-IMPL）。
+  无 ThreadBudget 接线，ThreadBudget/取消接线属迁移目标（未落地）。
 - 错误：入口 0（含 0 星空场）/−1；拟合 SDET_FIT_*；质量门 SfError 六码；
   编排 STAR_DETECT_FAILED（:2200-2212）。
 - 已知限制：DISP-STAR-001..005 + ThreadBudget/取消缺失（ALG-STARDET-001
-  §11.3，登记不改码，整改归 P1-STAR-IMPL/INT）。
+  §11.3，现行实现保持此语义；整改面未落地）。
 - 测试设计：TEST-STAR-DESIGN-001（ALG-STARDET-001 §11.4，冻结容差），
-  由 P1-STAR-TEST 执行落 TEST-P1-STAR-001 + EVIDENCE。
+  可执行测试待建（TEST-P1-STAR-001）+ EVIDENCE 待补。

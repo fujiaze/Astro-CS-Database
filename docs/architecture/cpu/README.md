@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：CPU 能力探测矩阵与 AVX2/FMA 后端提供器的合同。
-- 不放：性能基准与优化记录（在 docs/performance/）；基准命令说明（在 docs/plugins/infrastructure/20_benchmark.md）；ISA 总台账（在上级目录 ISA_VARIANTS.md）。
+- 不放：性能基准与优化记录（在 docs/performance/）；基准命令说明（在 docs/plugins/infrastructure/20_benchmark.md）；ISA 变体与逐 kernel 选路结论（在上级目录 ISA_VARIANTS.md）。
 
 ## 内容
 

@@ -1,17 +1,11 @@
 ---
 id: MOD-astrocs-phase2-coverage
 module_id: astrocs.p2.coverage
-version: 1.0.0
-status: ACTIVE
-owner: SA-P2-S20
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P2-COV-001, ALG-COV-001, API-COV-001, API-P2-001]
-downstream: [TEST-P2-COV-001, DATA-COV-001]
 ---
 
 # 模块 astrocs.p2.coverage
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 手写合同页：本页重写 registry
 > 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
@@ -51,7 +45,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
   [n_inputs]`）；出 coverage（union MOC，P2MocCell [K] 无量纲整数，
   **HEALPix NESTED equatorial/ICRS**——旧 descriptor 登记端口坐标
   PIXEL 与实际不符（module_adapters.cpp:623-638），以 DATA-COV-001
-  §19.3 为准，P2-COV-INT 修订；DATA-P2-COV 端口名保留为编排词汇，
+  §19.3 为准，修订；DATA-P2-COV 端口名保留为编排词汇，
   权威定义=DATA-COV-001）。
 - 科学红线（matrix P2-COV 专项，负向条款）：coverage/support/validity
   三概念分离（support=SCI-INT-001 §2 样本级 [0,1]、validity=§5 有效性
@@ -61,19 +55,17 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 - 并发：reentrant=yes / threadsafe=no（独立对象）/ internal_parallel=
   none（单线程整数集合运算，bitwise 确定，determinism=
   fixed_reduction_order）；ThreadLease/取消检查点未接线（阶段级取消
-  由 session 阶段边界 p2_session.cpp:119-121（检查 :120）提供；整改归 P2-COV-IMPL）。
+  由 session 阶段边界 p2_session.cpp:119-121（检查 :120）提供；整改未落地）。
 - 错误：rc 0=成功（含 K=0）/1=失败 + error[512] 载因；status 与 rc
   同步（"no inputs" 分支例外=DISP-COV-001）；编排映射 ACS_ERR_PARAM/
   ACS_ERR_STATE（API-P2-001 §4）。
-- 已知限制：DISP-COV-001..005（ALG-COV-001 §11.3，登记不改码，整改归
-  P2-COV-IMPL/INT）：001 "no inputs" status 不一致 / 002 frame_id 基名
+- 已知限制：DISP-COV-001..005（ALG-COV-001 §11.3，登记不改码；整改未落地）：001 "no inputs" status 不一致 / 002 frame_id 基名
   截断 / 003 空 filter 静默放行 / 004 intersection/depth/missing-tiles
   产品缺失（matrix 四语义仅 union 落地；覆盖度几何≠UPM
   geometric_reliability 权重因子，该乘数恒 1.0 修正归 P2-UPM 域）/
   005 extern "C" include+两阶段全量重扫+ThreadLease。
 - 测试设计：TEST-COV-DESIGN-001（PHASE2_COVERAGE.md §11.4，冻结容差
-  =整数/bitwise 断言零数值容差），由 P2-COV-TEST 执行落
-  TEST-P2-COV-001 + EVIDENCE；gate Phase2Coverage.RealHipsUnion
+  =整数/bitwise 断言零数值容差）；可执行测试待建
+  （TEST-P2-COV-001）+ EVIDENCE 待补；gate Phase2Coverage.RealHipsUnion
   （synthetic_gate.cpp:3374）/ FilterMismatchRejected（:3410）依赖
-  Fatduck 本地路径 GTEST_SKIP（:3376/:3413），合成 fixture 归
-  P2-COV-TEST。
+  Fatduck 本地路径 GTEST_SKIP（:3376/:3413），合成 fixture 待建。

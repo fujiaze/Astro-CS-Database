@@ -1,16 +1,6 @@
----
-id: MOD-astrocs-phase2-reject
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-REJ-001, ALG-P2-REJ-001, API-P2-001]
-downstream: [TEST-P2-REJ-001]
----
-
 # 模块 astrocs.p2.rejection
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位 `lib/algorithms/rejection/`
 > （README/module.yaml/memory.md，按 `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/`
@@ -18,8 +8,8 @@ downstream: [TEST-P2-REJ-001]
 > 合同权威=三件套 + docs/science/algorithms/PHASE2_REJECTION.md
 > （ALG-P2-REJ-001，CONTRACT_READY）。descriptor 词汇
 > module_id=astrocs.phase2.reject（module_adapters.cpp:700-717，
-> 注册 :785）为编排层占位，由 P2-XX-INT 对齐 astrocs.p2.rejection
-> （MODULE_MIGRATION_MATRIX P2-REJ 行）；冻结依据 = 该矩阵行本身。
+> 注册 :785）为编排层占位词汇，其对齐属迁移目标（未落地）；冻结依据 =
+> `docs/science/REJECTION.md`（SCI-REJ-001）与 `docs/science/algorithms/PHASE2_REJECTION.md`（ALG-P2-REJ-001）；迁移矩阵行只作现状说明。
 
 ## 身份与合同落位
 
@@ -27,7 +17,7 @@ downstream: [TEST-P2-REJ-001]
   registry astrocs.phase2.reject.md 同步合同页）；module_id 合同值=
   `astrocs.p2.rejection`（矩阵 P2-REJ 行；descriptor 占位
   `astrocs.phase2.reject` 仅编排层词汇）；dll_target=
-  `astrocs_p2_rejection.dll`（合同值，尚未存在，迁移归 P2-REJ-IMPL）。
+  `astrocs_p2_rejection.dll`（合同值，尚未存在；迁移目标未落地）。
 - 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md），按
   `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 三件套已
   被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
@@ -35,7 +25,7 @@ downstream: [TEST-P2-REJ-001]
   :336-346 astrocs_phase2 静态库成员，rejection.cpp 列于 :340）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   （329 行）。模块页=本文件。
-- owner SA-xxx；depends_on_int=P2-UPM-INT;CPU-005（MODULE_MIGRATION_MATRIX.csv:15 权威；P2-REJ-INT 为 P2-INT 行本域被依赖项，勿混淆）；
+- owner SA-xxx；depends_on_int=P2-UPM;CPU-005（P2-REJ 为 P2-INT 行本域被依赖项，勿混淆；迁移矩阵只作现状说明）；
   legacy_paths="lib/algorithms/coverage rejection sources"。
 
 ## 职责与明确非职责
@@ -43,20 +33,20 @@ downstream: [TEST-P2-REJ-001]
 - 职责：每像素候选栈排异决策——eligibility strided gather 单路径
   （source_indices 权威映射 PHASE2_IVAR_WIRING，rejection.h:252-255，
   compact 后 original slot 只经 source_indices 映射）→ planning 层
-  AUTO 一次解析（生产默认 profile astrocs_adaptive_pixel（自研）：
-  n≤3→NONE、4..7→PERCENTILE、8..15→WINSORIZED、≥16→LINEAR_FIT；
-  对照档 wbpp_2_9_1 / astrocs_adaptive）→ 10 显式方法核
+  AUTO 一次解析（生产默认 profile astrocs_adaptive_pixel（自研），档位表与阈值
+  唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9 与
+  `docs/science/REJECTION.md` §5）→ 10 显式方法核
   （NONE/SIGMA/WINSORIZED/AVERAGED/LINEAR_FIT/ESD/RCR/PERCENTILE/
   MEDIAN_SIGMA/MINMAX，AUTO=10 永不进 kernel；per-sample reason u8
   0..3 与 stack status int 0..7 分离；判向冻结=低于 lower threshold→
   REJECTED_LOW、高于 upper→REJECTED_HIGH，禁原始值正负号判向，
   rejection.h:20-21）→ large_scale 结构生长后处理（trail 扩张只增
   不减，compact cosmic 不生长，默认关闭）。
-- 阈值/迭代权威锚定：rejection.cpp:1-11 冻结头注释"本文件为阈值/
+- 阈值/迭代权威锚定：rejection.cpp:1-12 冻结头注释"本文件为阈值/
   迭代权威实现"（阈值/迭代取值以该冻结头为准，漂移即违约）；AUTO 路由只按 N 的几何值选算法（per-pixel n_eff 不参与重选）。
 - 工作域归一 NONE/MEDIAN_CENTER/MEDIAN_SCALE（floor 1e-12，不除零）；
   mask 应用回原始 calibrated 值（经 source_indices 回映射）。
-- 非职责：不合并/积分样本（P2-INT 下游）；不做权重策略（weights
+- 非职责：不合并/积分样本（下游）；不做权重策略（weights
   数组外置，构造在 Stage2；RCR 核消费同栈 weights 数组
   属官方加权语义，非策略）；不做像素外结构重建（large_scale 仅对
   已拒 mask 做 8 邻域扩张，只增不减）；无 session 依赖（无状态纯
@@ -97,8 +87,8 @@ downstream: [TEST-P2-REJ-001]
   p2_eligibility_filter（:222）、p2_collect_candidate_stack（:263，
   生产 strided gather）、p2_reject_stack_ex（:287，生产入口）、
   p2_rejection_semantic_id（:196）、p2_large_scale_apply（:295，
-  生产 stage2 唯一调用点）；compat p2_reject_stack（:325，仅测试/
-  旧调用，:299 冻结注释"生产 Stage2 不再调用"）。
+  生产 stage2 唯一调用点）；compat p2_reject_stack（:325，仅测试路径调用，
+  :299 冻结注释"生产 Stage2 不调用"）。
 - 生命周期=调用方顺序 plan_resolve→gather→stack_ex→large_scale；
   无 create/destroy，无状态纯函数（reentrant）。
 
@@ -123,7 +113,7 @@ cfg（stage2.cpp:698-727）。
   tie-break=frame_id（1e-15 epsilon）、linear_fit 排序
   (value,orig_index) 字典序。
 - worker 数=ThreadBudget.max_workers（禁 hardware_concurrency）；
-  lease/取消检查点接线=迁移整改点（P2-REJ-IMPL，与 DISP-COV-005
+  lease/取消检查点接线=迁移整改点（与 DISP-COV-005
   同构）。determinism=fixed_reduction_order。
 
 ## 内存/cache/I-O/所有权
@@ -141,8 +131,7 @@ cfg（stage2.cpp:698-727）。
   status ∈ {OK, UNDERDETERMINED} 才可继续积分（stage2.cpp:1189-1195
   冻结门）。
 - 无日志/指标输出（纯函数；编排层日志在 stage2.cpp:730-738）；
-  无内部取消检查点/checkpoint（迁移 ThreadLease 接线归
-  P2-REJ-IMPL）。
+  无内部取消检查点/checkpoint（迁移 ThreadLease 接线待落地）。
 - known_defects（登记不改码，与 ALG-P2-REJ-001 §7/§11.3 同口径）:
   DISP-P2REJ-001（rejection.h:118 percentile low_fraction 注释
   "默认 0.1" vs 实现/SCI 权威 0.2，注释漂移，整改=注释对齐）；DISP-
@@ -150,11 +139,11 @@ cfg（stage2.cpp:698-727）。
   NO_CANDIDATES 属积分域，语义权威=ALG §4.1）；DISP-P2REJ-003（SCI
   §2/§5 行号锚漂移，行号权威=ALG §3 实测 2076/329 行）；DISP-
   P2REJ-004（minmax 比较器 value-only tie-break 未显式冻结，整改
-  候选=index tie-break + 等值门）。整改归 P2-REJ-IMPL/TEST。
+  候选=index tie-break + 等值门）；整改面未落地。
 
 ## 独立 synthetic 验证命令与容差
 
-可执行 `TEST-P2-REJ-001` MISSING（P2-REJ-TEST 建立，不冒认）；
+可执行 `TEST-P2-REJ-001` MISSING（可执行测试待建，不冒认）；
 登记面=TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED（ALG-P2-REJ-001
 §11.4 F1-F8: ESD NIST Rosner 54 值拒集 bitwise、AUTO 路由枚举精确、
 small-N 状态穷尽、卫星注入 mask 精确、置换不变性 decision bitwise、
@@ -169,23 +158,23 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 ## 已知限制
 
 - DISP-P2REJ-001/002/003/004（上节，登记不改码）。
-- 本页若引用旧派生词汇（"错误码=ACS_ERR_*"、"取消=host cancel
-  回调"等 session 层词汇），以本合同页与 DATA_SEMANTICS §22 为准
-  修订。
+- DISP-P2REJ-001/002/003/004 的现行语义与判据正本 =
+  `docs/science/algorithms/PHASE2_REJECTION.md` §11.3（本页只留指针）。
 
 ## 链接
 
-- 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md）
+- 合同锚：`lib/algorithms/rejection/`（README/module.yaml/memory.md 三件套）
 - registry 页：docs/modules/registry/astrocs.phase2.reject.md
-- SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN，零改动；
-  descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射声明=ALG §11.5）
+- SCI：docs/science/REJECTION.md（SCI-REJ-001；descriptor 占位
+  SCI-P2-REJ-001⇒SCI-REJ-001 映射声明=ALG §11.5）
 - ALG：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）；
   DATA：DATA_SEMANTICS §22（DATA-P2-REJ）；API：API-P2-REJ-001
   （PUBLIC_API.md）+ 编排层 API-P2-001（FROZEN）
 
-## 排异档位（权威 = `ASTROCS_DESIGN.md` §5.5 / `docs/science/REJECTION.md`）
+## 排异档位
 
-按 N = 该输出像素的**几何覆盖帧数**自动路由：`1≤N≤3` none（不排异）/ `4≤N≤5` percentile /
-`N≥6` winsorized sigma clipping。
-生产算法集 = none / percentile / winsorized / linear fit（linear fit 仅显式指定）；**min/max 不用于生产**。实际方法、参数与 N 写入 `rejection` provenance。
+按 N = 该输出像素的**几何覆盖帧数**逐像素路由（`1≤N≤3` none（不排异）/ `4≤N≤5` percentile /
+`N≥6` winsorized sigma clipping）；档位表与阈值的唯一正本 =
+`docs/plugins/algorithms_phase2/12_rejection.md` §9 与 `docs/science/REJECTION.md` §5，本页只留指针。
+生产排异算法集 = none / percentile / winsorized / linear fit（`linear_fit` 仅显式指定）；**min/max 极值法不用于生产**。实际方法、参数与 N 写入 `rejection` provenance。
 

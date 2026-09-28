@@ -1,29 +1,21 @@
 ---
 id: MOD-astrocs-phase3-writer
 module_id: astrocs.p3.fits_output
-aliases: [astrocs.p3.fits_writer, astrocs.phase3.writer]
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-P3-WR-001, ALG-P3-004, API-P3-001]
-downstream: [TEST-P3-WR-001]
 ---
 
 # 模块 astrocs.phase3.writer
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > Registry 行 ID 沿用 MOD-astrocs-phase3-writer；矩阵权威 module_id=
 > **astrocs.p3.fits_writer**（MODULE_MIGRATION_MATRIX P3-FITS 行）。
 > frontmatter upstream/downstream（SCI-P3-WR-001/ALG-P3-004/API-P3-001/
-> TEST-P3-WR-001）为 descriptor 占位词汇，保留不改动，由 P3-FITS-INT
-> 对齐（映射声明=ALG-P3-FITS-IMPL-001 §5；占位 ID 不入合同）。
+> TEST-P3-WR-001）为 descriptor 占位词汇，保留不改动，待对齐（映射声明=ALG-P3-FITS-IMPL-001 §5；占位 ID 不入合同）。
 
 ## 1 身份与合同落位
 
 - 模块: astrocs.p3.fits_writer（dll_target=astrocs_p3_fits_writer.dll
-  为迁移合同值，尚未存在——MISSING 语义，由 P3-FITS-IMPL 建立，
+  为迁移合同值，尚未存在——MISSING 语义，迁移目标未落地，
   IMPLEMENTED 只由验收签发；现状构建=astrocs_phase3_session 静态库成员，
   根 CMakeLists.txt:460-465）。
 - 合同落位: lib/algorithms/fits_output/ 三件套（README r1 + module.yaml
@@ -41,8 +33,8 @@ downstream: [TEST-P3-WR-001]
   陈述）；编排面 API-P3-001（p3_session 五段 FROZEN）镜像不变。
 - 上游依赖: astrocs_phase3_session（采样/重采样编排域）+
   astrocs_aio（aio_fits + vendored third_party/cfitsio，
-  CMakeLists.txt:273-296）；depends_on_int=P3-RSMP-INT;IO-003
-  （矩阵行）。
+  CMakeLists.txt:273-296）；depends_on_int=P3-RSMP;IO-003
+  （迁移矩阵行只作现状说明）。
 
 ## 2 职责与明确非职责
 
@@ -69,8 +61,7 @@ downstream: [TEST-P3-WR-001]
   >0.5f（:346）；bitpix∉{-32,-64}→PARAM（:140-145）；WCS 守卫
   abs(dec)≤85°+四角同半球（p3_wcs.h:25-26）。
 - 端口词汇（resampled/fits、DATA-P3-RES、UnitId/CoordinateFrame）
-  为 descriptor 派生（module_adapters.cpp:445-460），由 P3-FITS-INT
-  对齐 DATA-P3-FITS，不作冻结依据。
+  为 descriptor 派生（module_adapters.cpp:445-460），其与 DATA-P3-FITS 的对齐属迁移目标（未落地），不作冻结依据。
 
 ## 4 公共 header、核心 symbol 与生命周期
 
@@ -97,7 +88,7 @@ downstream: [TEST-P3-WR-001]
 - 矩阵权威对齐: module_id=astrocs.p3.fits_writer、
   MOD-astrocs-phase3-writer（本页 registry 行）、SCI-P3-WR-001⇒
   SCI-P3-001、ALG-P3-004⇒ALG-P3-004+ALG-P3-FITS-IMPL-001（映射
-  声明=ALG-P3-FITS-IMPL-001 §5）；由 P3-FITS-INT 对齐修订，占位
+  声明=ALG-P3-FITS-IMPL-001 §5）；其对齐属迁移目标（未落地），占位词汇
   不作冻结依据。
 - 配置=phase config JSON（按 PHASE API 文档）；无独立 schema 文件。
 
@@ -110,8 +101,7 @@ downstream: [TEST-P3-WR-001]
 - 并行仅上游采样（p3_session.cpp:247-253 std::thread 池，worker
   数=host budget.max_workers，:209 注释禁 hardware_concurrency；
   本域源码 0 处 #pragma omp——aio_fits.cpp:1154 唯一 omp 循环属
-  AIO 域非本域）。ThreadLease/取消检查点无接线（迁移整改点，
-  P3-FITS-IMPL）。
+  AIO 域非本域）。ThreadLease/取消检查点无接线（迁移整改点）。
 - 确定性: 固定顺序输出（fits_write_pix 定序 + sha256/fdatasum
   纯函数）；取消点=行（kernel cancelled_at_row h:52；session 层
   取消在采样循环 :228-229），写面发布序不可中断（IO_003 §6）。
@@ -144,10 +134,10 @@ downstream: [TEST-P3-WR-001]
 
 ## 9 独立 synthetic 验证命令与容差
 
-- **双重陈述（照 P2-INT/P2-REJ/P2-UPM registry 页锚先例）**:
+- **双重陈述（照 P2-REJ/P2-UPM registry 页锚先例）**:
   登记面=**TEST-P3-WR-DESIGN-001** 设计冻结 VERIFIED（承载
   ALG-P3-FITS-IMPL-001 §12 T1-T7；本节即锚）；可执行
-  TEST-P3-WR-001 **MISSING** 归 P3-FITS-TEST 落地+EVIDENCE，
+  TEST-P3-WR-001 **MISSING**（可执行测试待建）+ EVIDENCE 待补，
   不冒认。现状执行测试 eng/tests/unit/p3_output_test.cpp（244 行
   4 段，eng/tests/unit/CMakeLists.txt:442-447）=相邻证据引用不冒认。
 - T1 原子写+mask: 64×48 渐变场+分段 mask、BITPIX=-32、prov 全
@@ -158,9 +148,9 @@ downstream: [TEST-P3-WR-001]
   前缀弱匹配偏差 DISP-P3FITS-002 如实，不误报）。
 - T4 WCS roundtrip oracle: pix→world→pix ≤1e-4 px（SCI-P3 §7
   真值阈 ≤1e-6 px）+ 采样值锚 100.0+0.5·32（≤1e-3）。
-- T5-T7 设计面（现状未覆盖，归 P3-FITS-TEST）: 取消不落盘、
+- T5-T7 设计面（现状未覆盖，可执行测试待建）: 取消不落盘、
   sha256 注入失败不产假哈希、bitpix=-64 全链。
-- 命令面（P3-FITS-TEST 落地后冻结）: ctest / pytest 接入
+- 命令面（落地后冻结）: ctest / pytest 接入
   EVIDENCE 域；本任务不落可执行命令。
 
 ## 10 已知限制与缺陷登记（DISP-P3FITS-001..002，不改码）
@@ -174,10 +164,10 @@ downstream: [TEST-P3-WR-001]
   实测 make_temp_path 生成 `out_path.<pid>.tmp`（p3_output.cpp
   :81）；同目录 rename 原子性语义不变，但执行测试残留检查前缀
   （eng/tests/unit/p3_output_test.cpp:102-103）与实际命名恒不匹配→
-  残留检查弱匹配空转；命名统一归 P3-FITS-IMPL（含测试修正）。
+  残留检查弱匹配空转；命名统一属迁移目标（未落地，含测试修正）。
 - 整改项（非缺陷）: prov.manifest_hash 恒 nullptr
   （p3_session.cpp:270，HISTORY manifest 字段写空，SCI-P3 §96
-  接线归 P3-FITS-IMPL）；p3_output_verify 忽略 wcs 参数
+  接线属迁移目标（未落地））；p3_output_verify 忽略 wcs 参数
   （p3_output.cpp:319 (void)wcs，设计如此注释如实）；DATASUM 为
   32-bit 数值校验和非 FITS 标准 ASCII CHECKSUM（如实冻结）。
 - 其余: 见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-FITS-IMPL-001
@@ -189,4 +179,3 @@ downstream: [TEST-P3-WR-001]
   剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
 - signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
   （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
-

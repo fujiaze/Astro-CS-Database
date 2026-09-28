@@ -1,16 +1,10 @@
 ---
 id: MOD-astrocs-phase2-session
-version: 1.0.0
-status: ACTIVE
-owner: SA-P2-X24
-source_commit: dc1ed210fecdd2981d3aaced916b73072e1ca067
-upstream: [SCI-UPM-001, SCI-INT-001, SCI-REJ-001, ARCH-001, API-P2-001]
-downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
 ---
 
 # 模块 astrocs.phase2.session
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 手写合同页：registry
 > descriptor 无 astrocs.p2.session 词汇（module_adapters.cpp:643 起
@@ -21,9 +15,8 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
 
 - 模块词汇：`astrocs.p2.session`（现行 registry descriptor 无此
   module_id，五函数经 module_adapters.cpp:23-26 声明供 IModule 工厂
-  委托；占位词汇对齐归 P2-XX-INT，不作冻结依据）；迁移目标
-  astrocs_p2_session.dll **未建——MISSING 如实登记**，补齐归
-  P2-SESSION-IMPL。
+  委托；占位词汇，其对齐属迁移目标（未落地），不作冻结依据）；迁移目标
+  astrocs_p2_session.dll **未建——MISSING 如实登记**（迁移目标未落地）。
 - 层级：assembly（编排，纯 facade 直调 lib/algorithms/coverage 生产符号，不实现
   科学公式）；构建=静态库 astrocs_phase2_session（根
   CMakeLists.txt:454-458，link astrocs_contracts astrocs_phase2；
@@ -55,8 +48,7 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
 - manifest 状态机：created→complete/failed（p2_session.cpp:253-256/
   :245；段内 running/ok/fail/cancelled；字段表=DATA §24.2）。
 - 已知差距：API-P2-001（PHASE2_API_V1）冻结段集 vs 现状四段
-  （coverage/sample/upm_build/persist）——如实登记，补齐归
-  P2-SESSION-IMPL；另有 h:19"拒未知键"与 validate 实现漂移、
+  （coverage/sample/upm_build/persist）——如实登记，补齐属迁移目标（未落地）；另有 h:19"拒未知键"与 validate 实现漂移、
   run 子键类型错未捕获路径（登记不改码）。
 - 已知缺陷：DISP-P2SES-*（编号见 ALG-P2-SESSION-001 DISP 清单，
   本页不另行编号）。

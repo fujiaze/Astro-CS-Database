@@ -1,16 +1,10 @@
 ---
 id: MOD-astrocs-phase1-session
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
-upstream: [DATA-SEMANTICS-001, ARCH-001, API-P1-001, API-CAL-001, API-COS-001]
-downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
 ---
 
 # 模块 astrocs.phase1.session
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 手写合同页：registry 无
 > astrocs.phase1.session descriptor——gen_module_readmes.py 以
@@ -38,6 +32,6 @@ downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
 - 错误：ACS_ERR_*（PARAM/ABI_MISMATCH/NOMEM/IO/CANCELLED/INTERNAL…）；
   manifest 状态机 created→complete/failed。
 - 已知差距：API-P1-001 冻结 7-stage vs 现状 4 段（CAL+COS）——如实
-  登记（README §3），补齐归 P1-SESSION-IMPL。
+  登记（README §3）；补齐属迁移目标（未落地）。
 - 测试：TEST-P1-SESSION-001=eng/tests/unit/p1_ir_facade_test.cpp；生命周期
   登记=eng/tests/api/test_p1_api.py（API-003）。

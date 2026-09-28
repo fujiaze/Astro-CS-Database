@@ -1,18 +1,18 @@
 # Module: star_detector
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 本页为诊断页（ACTIVE_INFORMATIVE，不属 gen_module_readmes.py 生成范围）。模块冻结合同页 =
+> 本页为模块诊断页。模块冻结合同页 =
 > docs/modules/registry/astrocs.phase1.star-detection.md；
-> 合同入口 = lib/algorithms/star_detection/README.md r1（CONTRACT_READY）+ module.yaml
+> 合同入口 = lib/algorithms/star_detection/README.md（CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase1-star，module_id=astrocs.p1.star_detection，
 > dll_target=astrocs_p1_star_detection.dll，entrypoint=MISSING）。本页
 > 以冻结合同为准，改动一律从合同层发起。
 
 ## 职责
 
-Phase1 单帧 light **全图盲检测**（本实现 = 最高设计 §4.2 所述全图盲检测路径的生产源；**权威检测范式 = 星表引导拟合**——检测定义域是
-星表位置、用本帧 WCS 反向投影 Gaia 星表，见 `ASTROCS_DESIGN.md` §4.2；全图盲检测连通域**不是**权威路径）：peaker 七步候选（11×11 局部极大/3×3
+Phase1 单帧 light **全图检测**（本实现为全图检测路径；**权威检测范式 = 星表引导拟合**——检测定义域是
+星表位置、用本帧 WCS 反向投影 Gaia 星表，见 `docs/ASTROCS_DESIGN.md` §4.2；全图连通域检测**不是**权威路径）：peaker 七步候选（11×11 局部极大/3×3
 meanhigh/二阶导零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R=ceil(3.7172·S)/对称门/候选
 去重）+ Moffat4（GSL trust-region LM，7 参数）逐候选拟合 + 饱和星
 （edge-walking 中心、A>dynrange 标记）+ mag 排序去重截断（SDetParams.maxStars）；
@@ -26,13 +26,11 @@ FP32/FP64 双通道（sdet_detect_ex / sdet_detect_ex_f64）；一帧一次权�
 
 ## Public API
 
-API-STAR-001（docs/contracts/PUBLIC_API.md）：6 导出符号（P-133 修订：4 个旧 CC
-路径死符号 sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps
-已随 e891df28 重写注销）
+API-STAR-001（docs/contracts/PUBLIC_API.md）：现行 6 导出符号 =
 `sdet_create/sdet_destroy/sdet_detect_ex/sdet_detect_ex_f64/
 sdet_detect_guided_ex_f64/sdet_free_detect_ex`（签名头正本
-lib/algorithms/star_detection/include/star_detector.h，
-按符号名定位；全量清单见 docs/architecture/api_inventory.csv）。
+lib/algorithms/star_detection/include/star_detector.h，按符号名定位；全量清单见
+docs/architecture/api_inventory.csv）。
 
 `sdet_detect_guided_ex_f64` = **权威路径入口**（星表引导拟合）：调用方给出星表预测
 位置数组（本帧近似 WCS 把星表逆投影到像素域的结果），只对该位置做饱和判定、σ 估计、
@@ -60,7 +58,7 @@ handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处�
 估计、入口像素类型转换、盲检测候选拟合（dynamic + reduction）、星表引导候选拟合
 （同款 dynamic + reduction，每线程私有 LM 工作区）。dedup/sort/maxStars 截断串行，
 输出 bitwise 与线程数无关；ThreadBudget 接线与取消检查点缺失已登记
-（DISP-STAR，整改归 P1-STAR-IMPL）。
+（DISP-STAR；迁移目标未落地）。
 
 ## Errors
 
@@ -73,8 +71,7 @@ STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
 
 ## Science IDs
 
-SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 SCI
-引用不改动）；ALG-STARDET-001（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md
+SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，共享 SCI 引用）；ALG-STARDET-001（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md
 §11 逐符号锚）；DATA-P1-STAR（DATA_SEMANTICS §17）；API-STAR-001
 （PUBLIC_API）。「SCI-PSF-001 输入侧」为共享 SCI 引用关系（检测为 PSF 拟合
 与 plate solve 提供候选/中心），保留于 ALG 文档 §1。
@@ -83,7 +80,7 @@ SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 S
 
 TEST-STAR-DESIGN-001（STAR_DETECTION_ALGORITHMS §11.4，冻结测试设计：
 合成场质心/FWHM/召回/虚警、饱和/混合/边缘专项、确定性 bitwise、FP64 独立
-oracle、负例、回归锚）；可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 落地
+oracle、负例、回归锚）；可执行 TEST-P1-STAR-001 待建
 （现状无共址测试套件；lib/algorithms/star_detection/test/sdet_fp64_test.cpp 为
 NON_PRODUCTION_TOOL_ONLY 手工验证程序）。
 
@@ -92,4 +89,4 @@ NON_PRODUCTION_TOOL_ONLY 手工验证程序）。
 lib/algorithms/star_detection/（生产源 src/sdet_api.cpp:1570-1943 sdet_detect_impl，
 合同头 lib/include/star_detector.h）；lib/algorithms/star_detection/wrapper_phase1/（P1-003 桥接层独立
 sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径，matrix legacy_paths
-第二路径，整合归 P1-STAR-IMPL）。
+第二路径；迁移目标未落地）。

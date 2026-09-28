@@ -1,18 +1,10 @@
 ---
 id: MOD-astrocs-phase3-properties
-version: 1.0.0
-status: NOT_VERIFIED
-owner: astrocs-core
-source_commit: 822b9c5391a14cc36979a7c550984f6ce363c713
-upstream: [SCI-P3-PROPS-001, ALG-P3-001, API-P3-001]
-downstream: [TEST-P3-PROPS-001]
 ---
-
-<!-- GENERATED-ANCHOR tool=eng/tools/quality/gen_module_readmes.py tool-sha256=4fb971add4d7449dd4b58ca4d2af74c7b8eaeca5924ec940b488dcda0f864402 source=lib/infrastructure/scheduler/src/module_adapters.cpp source-sha256=db3a8ed2fc7e26f232145d7e1e8b020f17c5a555f156a10290aec2a630c29979 ownership=docs/DOCUMENT_INDEX.yaml status=GENERATED evidence=eng/ci/ledgers/module_page_evidence.json evidence-sha256=- regenerate="python3 eng/tools/quality/gen_module_readmes.py" not-verified=status,determinism,verification,tolerance body-sha256=e8efdb5f9c29f322b2a8334155658703573712d7be9d512c763fbf349db2eef3 -->
 
 # 模块 astrocs.phase3.properties
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 ## 职责与明确非职责
 

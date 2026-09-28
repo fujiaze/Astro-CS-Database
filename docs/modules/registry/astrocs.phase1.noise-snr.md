@@ -1,20 +1,11 @@
 ---
 id: MOD-astrocs-phase1-noise-snr
 module_id: astrocs.p1.noise_snr
-aliases: [astrocs.p1.noise, astrocs.phase1.noise]
-version: 1.0.0
-status: ACTIVE
-owner: astrocs-core
-source_commit: 5ecc60df2d5021d18be04e0e6359d45b7b125b33
-upstream: [SCI-NOISE-001, ALG-NOISE-001, API-NOISE-001]
-downstream: [TEST-P1-SNR-001]
 ---
-
-> 人工内容（MANUAL）：本页无 GENERATED-ANCHOR，非生成器所有；重跑 eng/tools/quality/gen_module_readmes.py 不会覆盖本页。
 
 # 模块 astrocs.phase1.noise-snr
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同 ID = SCI-NOISE-001..015 / ALG-NOISE-001..003 / DATA-P1-NOISE /
 > API-NOISE-001；模块级事实以 lib/algorithms/noise_snr/README.md（r1，
