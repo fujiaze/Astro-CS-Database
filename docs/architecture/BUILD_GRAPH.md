@@ -83,7 +83,6 @@ target_link_libraries 的传递闭包内的全部 target；唯一事实源 = 根
 | orchestrator_legacy_cli | Phase1 编排工具面（ARCHITECTURE §1 迁移冻结：非入口） |
 | calibrated_pair_diag | 标定对诊断工具（非入口） |
 | rejection_cli | 排异诊断工具（非入口） |
-| m42_criterion_probe | 判据探针工具（非入口） |
 <!-- BUILD-GRAPH-NONPROD:END -->
 
 ## 3 非根图目标（子项目自有 CMakeLists）

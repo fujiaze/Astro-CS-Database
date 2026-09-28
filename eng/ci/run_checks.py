@@ -81,6 +81,45 @@ RUNNER = "eng/ci/run_checks.py"
 # L2 性能、sanitizer、coverage、nwoker/invariant 只在此档，不得留在常跑档。
 PROFILES = ("fast", "integration", "linux-main", "windows-main",
             "linux-deep", "prerelease", "fatduck")
+
+# ── FINAL-07 R3：聚合派发的**档位门控**（按 step 自身 profiles 过滤子步） ────────
+# 缺陷：聚合注册项（command = `run_checks.py --check <ID>`）把该项的**全部** step 一并
+# 执行，不看 step 自己的 profiles ⇒ linux-main 的 push 运行会连带执行 linux-deep 的
+# DEEP-CLANG-BUILD（clang 无 libomp 时 configure 直接红，而 libomp 只在 linux-deep 的
+# 供应步里装）。口径依据 CI_SPEC.md §2.3「候选 = profiles 含本轮 profile 的 step」——
+# 同口径早已在 --changed 选择器里实现，只有聚合派发面漏了。
+PROFILE_INHERITS = {
+    "linux-main": ("fast", "windows-main"),
+    "windows-main": ("fast", "linux-main"),
+    "linux-deep": ("fast", "integration", "linux-main", "windows-main"),
+    "prerelease": ("fast", "integration", "linux-main", "windows-main", "linux-deep"),
+}
+# 档位阶梯（CI_SPEC.md §2.6）：fast ⊂ linux-main / windows-main ⊂ linux-deep ⊂ prerelease。
+# 高阶梯档继承低阶梯档的执行面；**同阶梯档（linux-main ↔ windows-main）互为继承面**——
+# 跨平台差异由 step 的 platform 字段裁决（execute_step 的 SKIPPED(platform)），不由档位
+# 重复表达。不设继承就会把「跨档执行」换成「覆盖缺口」：实测纯成员过滤会让 linux-deep
+# 丢掉 CHK-STATIC 的三个基础静态门、windows-main 丢 15 条（证据见
+# run/FINAL-07/审核包/构建/BUILD-ROOT-CAUSE_修复报告.md §R3）。
+#
+# 门控只在宿主持久档生效：fast / integration 是本地与 agent 的「点名即执行」档
+# （CI_SPEC.md §2.1 explicit 语义），在那里门控会把本地点名跑单项静默置空。
+PROFILE_GATING_LANES = ("linux-main", "windows-main", "linux-deep", "prerelease")
+# eng/ci/run.py 派发聚合项时注入本轮 profile（子命令 argv 保持注册表原样，不改登记命令）。
+ENV_PROFILE = "ASTROCS_CI_PROFILE"
+
+
+def step_in_profile(step: dict, profile: str | None) -> bool:
+    """step 是否落在档位 `profile` 的执行面内（含档位阶梯继承）。
+
+    profile=None ⇒ 不做档位门控（恒 True）：无档位上下文的裸 `--check` 保持
+    CI_SPEC.md §2.1 的 explicit 语义（点名即执行）。
+    """
+    if profile is None or profile not in PROFILE_GATING_LANES:
+        return True
+    profs = list(step.get("profiles") or [])
+    if profile in profs:
+        return True
+    return bool(set(profs) & set(PROFILE_INHERITS.get(profile, ())))
 ALLOWED_PLATFORM = ("any", "linux", "windows", "fatduck")
 
 EXIT_OK = 0
@@ -147,6 +186,8 @@ SILENT_OK_UNITS = frozenset({
 # fail-closed 判据 ID（CI_SPEC.md §2.4）；命中即判红，不允许静默跳过。
 SCOPE_UNCOVERED = "UNCOVERED_CHANGED_PATHS"
 SCOPE_EMPTY = "EMPTY_SELECTION"
+# FINAL-07 R3：档位门控把点名的注册项过滤成 0 个执行单元 ⇒ 判红（不是静默空跑）。
+SCOPE_NO_STEP_FOR_PROFILE = "NO_STEP_FOR_PROFILE"
 SCOPE_BUDGET = "BUDGET_EXCEEDED"
 
 DEFAULT_INCREMENTAL_BUDGET_SECONDS = 120
@@ -1049,6 +1090,12 @@ def scheduler_self_test() -> list:
 def scope_failures(meta: dict, selected: list) -> list:
     """fail-closed 判据（CI_SPEC.md §2.4）。返回命中的判据 ID 列表（空 = 不判红）。"""
     codes: list = []
+    # FINAL-07 R3：档位门控把**点名的注册项**过滤成 0 个执行单元 ⇒ 判红。否则该情形
+    # 会退化成「exit 0 但什么都没跑」的静默空转（假绿）。实测四个门控档
+    # （linux-main / windows-main / linux-deep / prerelease）在现行注册表下均无此情形，
+    # 故本判据不误伤现状，只在注册表声明出现缺口时亮出来。
+    if meta.get("steps_gated_to_empty"):
+        codes.append(SCOPE_NO_STEP_FOR_PROFILE)
     if meta.get("scope") != "changed":
         return codes
     if meta.get("no_changes"):
@@ -1170,7 +1217,8 @@ def is_ctest_step(step: dict) -> bool:
 
 
 def select(registry: dict, *, mode: str, check_args: list, profile: str, platform: str,
-           change: dict | None = None, repo: Path | None = None, graph=None) -> tuple:
+           change: dict | None = None, repo: Path | None = None, graph=None,
+           step_profile: str | None = None) -> tuple:
     steps, owner, dupes = index_steps(registry)
     if dupes:
         raise RunnerError(f"step id 在多处重复（收敛未完成）：{sorted(dupes)}")
@@ -1192,13 +1240,41 @@ def select(registry: dict, *, mode: str, check_args: list, profile: str, platfor
         wanted_steps = {x for x in check_args if x in by_step}
         selected = [s for s in steps
                     if s["parent_id"] in wanted_entries or s["id"] in wanted_steps]
+        # FINAL-07 R3：聚合派发带档位（runner 注入 ASTROCS_CI_PROFILE）时，按 step 自身
+        # profiles 过滤子步（含档位阶梯继承）。无档位上下文（step_profile=None）时保持
+        # CI_SPEC.md §2.1 的 explicit 语义不变 —— 裸 `--check` 仍点名即执行。
+        skipped_by_profile: list = []
+        if step_profile is not None:
+            kept = []
+            for s in selected:
+                if step_in_profile(s, step_profile):
+                    kept.append(s)
+                else:
+                    skipped_by_profile.append({
+                        "id": s["id"],
+                        "parent_id": s["parent_id"],
+                        "profiles": list(s["profiles"]),
+                        "reason": ("step profiles=%s 不含档位 %s（含档位阶梯继承）⇒ 本档不执行"
+                                   % (list(s["profiles"]), step_profile)),
+                    })
+            selected = kept
+        # 点名的注册项在本档下一个执行单元都不剩 ⇒ 判红（见 scope_failures）。
+        gated_to_empty = []
+        if step_profile is not None:
+            for entry_id in sorted(wanted_entries):
+                if not any(s["parent_id"] == entry_id for s in selected) and \
+                        any(s["parent_id"] == entry_id for s in steps):
+                    gated_to_empty.append(entry_id)
         selection = {
             "mode": "explicit",
             "scope": "explicit",
             "profile": profile,
             "platform": platform,
             "requested": list(check_args),
-            "profile_filter_applied": False,
+            "profile_filter_applied": step_profile is not None,
+            "step_profile": step_profile,
+            "steps_skipped_by_profile": skipped_by_profile,
+            "steps_gated_to_empty": gated_to_empty,
             "entries": sorted({s["parent_id"] for s in selected}),
         }
         return selected, selection
@@ -1246,6 +1322,12 @@ def explain_lines(selection: dict, selected: list) -> list:
         if row.get("affected_tests_sample"):
             extra = " affected_sample=" + ",".join(row["affected_tests_sample"][:3])
         out.append(f"  {mark} {row['id']:38s} [{row.get('parent_id')}] {row.get('basis')}{extra}")
+    # FINAL-07 R3：档位门控的逐条留痕（跳过必须可见，不得静默）。
+    for row in selection.get("steps_skipped_by_profile") or []:
+        out.append(f"  skip   {row['id']:38s} [{row['parent_id']}] {row['reason']}")
+    for entry_id in selection.get("steps_gated_to_empty") or []:
+        out.append(f"  EMPTY  {entry_id:38s} 本档下该注册项没有任何执行单元"
+                   f"（fail-closed: {SCOPE_NO_STEP_FOR_PROFILE}）")
     out.append(f"selected_steps={len(selected)}")
     return out
 
@@ -1633,6 +1715,126 @@ def declared_inputs_self_test() -> list:
     return cases
 
 
+def profile_gating_self_test(registry: dict) -> list:
+    """FINAL-07 R3 可执行正/负例面：聚合派发（--check）的档位门控。
+
+    判据来源：
+      * CI_SPEC.md §2.1 —— explicit（--check）点名即执行，不受 profile 过滤；
+      * CI_SPEC.md §2.3 —— 候选 = profiles 含本轮 profile 的 **step**（注意是 step 不是 entry）；
+      * 本次修复把两者合成一条规则：**有档位上下文**（runner 派发时注入 ASTROCS_CI_PROFILE）
+        才按 step profiles 过滤（含档位阶梯继承），**无档位上下文**（裸 --check / 本地点名）
+        保持老语义逐字不变；点名的注册项被过滤成 0 个执行单元 ⇒ fail-closed 判红，不静默空跑。
+    正例必须绿、负例必须红；任何一条退化本自检自身即红。
+    """
+    cases: list = []
+
+    def fix(sid, parent, profiles):
+        return {"id": sid, "parent_id": parent, "profiles": list(profiles), "platform": "any",
+                "command": ["true"], "timeout_seconds": 1, "outputs": [], "heavy": False,
+                "mutates_workspace": False, "waivable": False, "requires_monitor": False}
+
+    entry = {"id": "FIX-ENTRY", "profiles": ["fast", "linux-main", "linux-deep"],
+             "platform": "any", "command": ["true"], "timeout_seconds": 1, "outputs": [],
+             "heavy": False, "mutates_workspace": False, "waivable": False,
+             "requires_monitor": False,
+             "steps": [fix("FIX-BASE", "FIX-ENTRY", ["fast"]),
+                       fix("FIX-MAIN", "FIX-ENTRY", ["fast", "linux-main"]),
+                       fix("FIX-DEEP", "FIX-ENTRY", ["linux-deep"])]}
+    fixture = {"schema_version": 1, "checks": [entry]}
+
+    def run(reg, lane):
+        return select(reg, mode="check", check_args=["FIX-ENTRY"], profile=lane,
+                      platform="linux", step_profile=lane)
+
+    # P1 正例：主档下深档单元被门控掉，且必须逐条留痕（不得静默）
+    sel, meta = run(fixture, "linux-main")
+    ids = [s["id"] for s in sel]
+    cases.append({"case": "P1_r3_deep_step_gated_out_of_main_lane",
+                  "ok": ids == ["FIX-BASE", "FIX-MAIN"]
+                        and [r["id"] for r in meta["steps_skipped_by_profile"]] == ["FIX-DEEP"]
+                        and meta["profile_filter_applied"] and not meta["steps_gated_to_empty"]
+                        and not scope_failures(meta, sel),
+                  "selected": ids,
+                  "skipped": [r["id"] for r in meta["steps_skipped_by_profile"]]})
+
+    # P2 正例：深档继承主档/fast 面 ⇒ 三个单元全在（覆盖不回退）
+    sel, meta = run(fixture, "linux-deep")
+    ids = [s["id"] for s in sel]
+    cases.append({"case": "P2_r3_deep_lane_inherits_main_and_fast_units",
+                  "ok": ids == ["FIX-BASE", "FIX-MAIN", "FIX-DEEP"]
+                        and not meta["steps_skipped_by_profile"] and not scope_failures(meta, sel),
+                  "selected": ids})
+
+    # N1 负例：裸 --check（无档位上下文）不得过滤 —— CI_SPEC.md §2.1 explicit 语义
+    sel, meta = select(fixture, mode="check", check_args=["FIX-ENTRY"], profile="fast",
+                       platform="linux", step_profile=None)
+    ids = [s["id"] for s in sel]
+    cases.append({"case": "N1_r3_bare_check_not_filtered",
+                  "ok": ids == ["FIX-BASE", "FIX-MAIN", "FIX-DEEP"]
+                        and meta["profile_filter_applied"] is False
+                        and meta["steps_gated_to_empty"] == []
+                        and not scope_failures(meta, sel),
+                  "selected": ids, "profile_filter_applied": meta["profile_filter_applied"]})
+
+    # N2 负例：fast/integration 档不门控（本地点名即执行，行为与修复前一致）
+    sel, meta = run(fixture, "fast")
+    cases.append({"case": "N2_r3_fast_lane_not_gated",
+                  "ok": [s["id"] for s in sel] == ["FIX-BASE", "FIX-MAIN", "FIX-DEEP"]
+                        and not scope_failures(meta, sel),
+                  "selected": [s["id"] for s in sel]})
+
+    # N3 负例：点名的注册项被过滤成 0 个执行单元 ⇒ fail-closed 判红（防"exit 0 空跑"假绿）
+    only_deep = {"schema_version": 1,
+                 "checks": [dict(entry, steps=[fix("FIX-DEEP", "FIX-ENTRY", ["linux-deep"])])]}
+    sel, meta = run(only_deep, "linux-main")
+    cases.append({"case": "N3_r3_entry_gated_to_empty_fails_closed",
+                  "ok": sel == [] and meta["steps_gated_to_empty"] == ["FIX-ENTRY"]
+                        and scope_failures(meta, sel) == [SCOPE_NO_STEP_FOR_PROFILE],
+                  "gated_to_empty": meta["steps_gated_to_empty"],
+                  "failures": scope_failures(meta, sel)})
+
+    # N4 负例：无档位上下文时不得报 gated_to_empty（否则本地点名会被误判红）
+    sel, meta = select(fixture, mode="check", check_args=["FIX-ENTRY"], profile="fast",
+                       platform="windows", step_profile=None)
+    cases.append({"case": "N4_r3_no_profile_context_never_gated_to_empty",
+                  "ok": meta["steps_gated_to_empty"] == [] and len(sel) == 3
+                        and not scope_failures(meta, sel),
+                  "selected": len(sel), "selection_scope": meta["scope"]})
+
+    # P3 正例（真实注册表锚定）：主档下此注册项只应留 gcc 面（R3 回归锁）
+    if any(c["id"] == "CHK-BUILD-LINUX" for c in registry["checks"]):
+        sel, meta = select(registry, mode="check", check_args=["CHK-BUILD-LINUX"],
+                           profile="linux-main", platform="linux", step_profile="linux-main")
+        ids = [s["id"] for s in sel]
+        cases.append({"case": "P3_r3_registry_chk_build_linux_main_is_gcc_only",
+                      "ok": ids == ["BUILD-GCC-RELEASE"]
+                            and [r["id"] for r in meta["steps_skipped_by_profile"]]
+                            == ["DEEP-CLANG-BUILD"] and not scope_failures(meta, sel),
+                      "selected": ids,
+                      "skipped": [r["id"] for r in meta["steps_skipped_by_profile"]]})
+        sel, meta = select(registry, mode="check", check_args=["CHK-BUILD-LINUX"],
+                           profile="linux-deep", platform="linux", step_profile="linux-deep")
+        cases.append({"case": "P4_r3_registry_chk_build_deep_lane_keeps_both",
+                      "ok": sorted(s["id"] for s in sel) == ["BUILD-GCC-RELEASE", "DEEP-CLANG-BUILD"]
+                            and not meta["steps_skipped_by_profile"],
+                      "selected": sorted(s["id"] for s in sel)})
+
+    # P5 正例（真实注册表不变量）：四个门控档下不得存在"注册项被点名但在本档零执行单元"
+    gapped = []
+    for lane in PROFILE_GATING_LANES:
+        for c in registry["checks"]:
+            if lane not in c.get("profiles") or not (c.get("steps") or []):
+                continue
+            _sel, meta = select(registry, mode="check", check_args=[c["id"]], profile=lane,
+                                platform="linux" if lane.startswith("linux") else "windows",
+                                step_profile=lane)
+            if meta["steps_gated_to_empty"]:
+                gapped.append([lane, c["id"]])
+    cases.append({"case": "P5_r3_real_registry_no_entry_gated_to_empty",
+                  "ok": not gapped, "gapped": gapped[:5]})
+    return cases
+
+
 def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) -> int:
     """fail-closed 负例面（CI_SPEC.md §2.4 末段）：必须能红，且正例能绿。"""
     steps, _owner, _dupes = index_steps(registry)
@@ -1679,6 +1881,7 @@ def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) ->
     cases.extend(declared_inputs_self_test())
     cases.extend(crash_tristate_self_test())
     cases.extend(gate_trust_contract_self_test())
+    cases.extend(profile_gating_self_test(registry))
     passed = sum(1 for c in cases if c["ok"])
     for c in cases:
         if 'scope' in c:
@@ -1715,7 +1918,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--explain", action="store_true",
                    help="逐条打印选中/跳过 + 依据（不执行）；fail-closed 命中时 rc=1")
     p.add_argument("--self-test", action="store_true", dest="self_test",
-                   help="跑 fail-closed 负例/正例面（未覆盖路径 / 敏感面升级 / 恒空选择器 + 2 正例）")
+                   help="跑 fail-closed 负例/正例面（未覆盖路径 / 敏感面升级 / 恒空选择器 / "
+                         "FINAL-07 R3 档位门控 + 正例）")
     p.add_argument("--jobs", type=int, default=None, metavar="N",
                    help="并行道并发度（默认 min(8, cpu_count)）；独占道与屏障不受影响")
     p.add_argument("--serial", action="store_true",
@@ -1726,8 +1930,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "超出即判红并提示应拆分")
     p.add_argument("--build-dir", default="build", metavar="DIR",
                    help="构建图反查用的构建目录（默认 build）")
-    p.add_argument("--profile", choices=PROFILES, default="fast",
-                   help="profile 选择（默认 fast；--check 时不做 profile 过滤）")
+    p.add_argument("--profile", choices=PROFILES, default=None,
+                   help="profile 选择（缺省 fast）。--check 一律按注册项点名；"
+                        "另见环境变量 " + ENV_PROFILE + "（eng/ci/run.py 注入本轮档位）："
+                        "带档位上下文时按 step 自身 profiles 过滤子步（FINAL-07 R3）")
     p.add_argument("--json-out", default=None, metavar="PATH",
                    help="机器可读 JSON 输出路径（原子写；目录自动创建）")
     p.add_argument("--plan-only", action="store_true",
@@ -1754,8 +1960,15 @@ def main(argv: list | None = None) -> int:
     try:
         registry = load_registry(registry_path)
         platform = current_platform(args.platform)
+        # FINAL-07 R3：档位来源 = 显式 --profile ∪ runner 注入的 ASTROCS_CI_PROFILE。
+        # 聚合派发（run.py → `--check <ID>`）据此按 step 自身 profiles 门控；两者都
+        # 没给（裸 `--check`）时 requested_profile=None ⇒ 保持 CI_SPEC.md §2.1 的
+        # explicit 语义（点名即执行，不做档位过滤）。
+        requested_profile = args.profile or os.environ.get(ENV_PROFILE) or None
+        effective_profile = requested_profile or "fast"
         if args.self_test:
-            return run_self_test(repo, registry, profile=args.profile, platform=platform)
+            return run_self_test(repo, registry, profile=effective_profile,
+                                 platform=platform)
 
         # --check 多值 + 可重复：append+nargs 得到 list[list[str]]，此处展平；
         # 选择仍按注册表顺序（确定性），重复 ID 由 index 去重。
@@ -1772,13 +1985,15 @@ def main(argv: list | None = None) -> int:
             graph = _inc.BuildGraph(repo / args.build_dir, repo).load()
 
         selected, selection = select(registry, mode=mode, check_args=check_args,
-                                     profile=args.profile, platform=platform,
-                                     change=change, repo=repo, graph=graph)
+                                     profile=effective_profile, platform=platform,
+                                     change=change, repo=repo, graph=graph,
+                                     step_profile=(requested_profile
+                                                   if mode == "check" else None))
         scope = selection.get("scope", "full" if mode == "all" else "explicit")
         registry_sha = sha256_file(registry_path)
         all_steps = index_steps(registry)[0]
         integration_pending = [s["id"] for s in all_steps if "integration" in s["profiles"]]
-        integration_not_run = (args.profile == "fast" and bool(integration_pending))
+        integration_not_run = (effective_profile == "fast" and bool(integration_pending))
         fails = scope_failures(selection, selected)
 
         if args.explain:
@@ -1850,6 +2065,12 @@ def main(argv: list | None = None) -> int:
                 why += [f"    - {p}" for p in selection["uncovered_paths"]]
             if SCOPE_EMPTY in fails:
                 why.append("改动集非空但选中检查数为 0（选择器退化，fail-closed）")
+            if SCOPE_NO_STEP_FOR_PROFILE in fails:
+                why.append("档位 %s 下点名的注册项没有任何执行单元"
+                           "（注册表 profiles 声明缺口，fail-closed）："
+                           % selection.get("step_profile"))
+                why += [f"    - {eid}" for eid in
+                        (selection.get("steps_gated_to_empty") or [])]
             for line in why:
                 print(line, file=sys.stderr)
             scope_entries.append({
@@ -1861,7 +2082,7 @@ def main(argv: list | None = None) -> int:
                 "steps": [{
                     "id": "SCOPE-FAIL-CLOSED", "parent_id": "SCOPE-FAIL-CLOSED",
                     "command": [], "timeout_seconds": 0, "platform": platform,
-                    "profiles": [args.profile], "waivable": False, "heavy": False,
+                    "profiles": [effective_profile], "waivable": False, "heavy": False,
                     "mutates_workspace": False, "requires_monitor": False, "outputs": [],
                     "started_utc": utc_iso(started), "finished_utc": utc_iso(utc_now()),
                     "duration_seconds": 0.0, "exit_code": EXIT_FAIL, "timed_out": False,
@@ -1947,7 +2168,7 @@ def main(argv: list | None = None) -> int:
                 "steps": [{
                     "id": "SCOPE-BUDGET", "parent_id": "SCOPE-BUDGET",
                     "command": [], "timeout_seconds": args.budget_seconds, "platform": platform,
-                    "profiles": [args.profile], "waivable": False, "heavy": False,
+                    "profiles": [effective_profile], "waivable": False, "heavy": False,
                     "mutates_workspace": False, "requires_monitor": False, "outputs": [],
                     "started_utc": utc_iso(started), "finished_utc": utc_iso(finished),
                     "duration_seconds": elapsed, "exit_code": EXIT_FAIL, "timed_out": False,
@@ -2035,6 +2256,7 @@ def main(argv: list | None = None) -> int:
               f"pass={counts[V_PASS]} fail={counts[V_FAIL]} timeout={counts[V_TIMEOUT]} "
               f"crash={counts[V_CRASH]} "
               f"prereq={counts[V_PREREQ]} skip_platform={counts[V_SKIP_PLATFORM]} "
+              f"skip_profile={len(selection.get('steps_skipped_by_profile') or [])} "
               f"skip_waivable={counts[V_SKIP_WAIVABLE]} "
               f"skip_optional_input={counts[V_SKIP_OPTIONAL_INPUT]} "
               f"inputs_missing={counts[V_INPUTS_MISSING]} "
