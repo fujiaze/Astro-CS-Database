@@ -5,8 +5,9 @@
 ## 职责边界
 
 - 放：随仓库维护的实验单元——固定 seed 的实验代码（code/）、输入数据（data/）、结果与判据表（results/）、支撑推导（docs/）、文献台账（refs.md）、REPORT_experiment.md 与 REPORT_paper.md。
+- 放：工程实测类证据留档（engineering-evidence/）——测量结果 / 基准数值 / 质量实测 / 审计时点证据，按负责人裁决（2026-09-28，artifacts 重组）自 artifacts/{evidence,acceptance} 迁入留档，历史记录不改写。
 - 不放：科学公式正本与推导（docs/science/、docs/science/algorithms/）；单元报告只引用这些权威，不复制正文。
-- 不放：一次性运行产物与日志（run/）、CI 与验收证据（artifacts/）。
+- 不放：一次性运行产物与日志（run/）、CI 运行产物（artifacts/ci/）、机器门基线与台账（artifacts/evidence/）。
 - 自包含要求：仅凭一个单元目录即可回答假说、方法、数据、结果、诚实边界、复现命令与佐证来源，不依赖单元之外的临时文件。
 
 ## 内容
@@ -19,6 +20,7 @@
 - cone-search-constants/ —— 锥形搜索四项常数的论文式精读报告单元。
 - m42-realdata/ —— M42 真实数据腿单元，为创新点提供第三类数据佐证。
 - shared/ —— 各单元共用的合成数据生成器（synthetic/）、共用数据（data/）与参考文献（references/）。
+- engineering-evidence/ —— 工程实测证据留档（ISA 性能实测、质量审计、压缩评估、L2 性能门读数、发布验收证据等；自 artifacts/{evidence,acceptance} 迁入，归属口径见其 README）。
 
 ## 上游
 

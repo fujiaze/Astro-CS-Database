@@ -10,7 +10,10 @@ import json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DATA = os.path.join(ROOT, "data")
-DEFAULT_DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(HERE)))),
+# 2026-09-28 artifacts 重组：本脚本自 artifacts/evidence/v6/qa-design/oracle 迁至
+# 实验/engineering-evidence/v6/qa-design/oracle，向上抵仓库根多一层 engineering-evidence。
+DEFAULT_DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.dirname(HERE))))),
                             "docs", "validation", "v6")
 
 M_QA_TABLE = ("<!-- QA-MATRIX-TABLE-BEGIN -->", "<!-- QA-MATRIX-TABLE-END -->")
