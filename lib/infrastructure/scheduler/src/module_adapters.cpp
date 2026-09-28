@@ -2215,7 +2215,7 @@ static uint32_t p1_workers(const Json& doc) {
 //     跨通带曲线**的对照 —— 两跑 k_photo 差 ×2.457905（0.86 mag），signal 逐像素 A/B 比值
 //     恰为该刻度比（min/p50/max = 2.4579049/2.4579051/2.4579053）⇒ 残差归零；
 //     且祖先归约按 s 互斥（aio_hips_writer.cpp:771-777；HIPS-DETERMINISM-01 已证
-//     "tile 到达序 +=" 形态在生产不存在）、跨帧零浮点归约（本文件 :6203-6206）。
+//     "tile 到达序 +=" 形态在生产不存在）、跨帧零浮点归约（本文件 :7607-7609）。
 //   · **受控扫描直接反证**：同帧集 8 帧、同一二进制、只变 in_flight(2/4/8) 与 inner_omp(1/2)
 //     ⇒ **FITS 差异 0/5916、必同 JSON 差异 0**（含全部 HiPS 层级、calibrated/photoapplied
 //     科学帧与组级星表聚合），仅 10 个含 output_dir 路径串的 JSON 在掩码后逐键相同。
@@ -6363,7 +6363,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
 // 半径上界 / 天空与 patch 预算 / 饱和电平解析 / 逐星掩膜四路输入）：
 //   ① p1_op_noise   —— 帧级标量 + noise_* 诊断（写 p1_snr.json）
 //   ② p1_op_drizzle —— 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ
-//      §11.1:295「variance 面（可选，帧内块）float32，随 data 布局，ADU²」；
+//      §11.1:380「variance 面（可选，帧内块）float32，随 data 布局，ADU²」；
 //      消费侧 = hp_drizzle_api.cpp:1018-1052，零改动）
 // data/data_is_f64: 必须与 drizzle 的 "data" 块**同一数组**（同 dtype），使逐像素
 //   方差的帧身份与标度自动一致。
@@ -7875,7 +7875,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       return;
     }
     // ── 逐像素方差接入（docs/ASTROCS_DESIGN §8.2:526-527）──
-    // 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ §11.1:295 逐字
+    // 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ §11.1:380 逐字
     // 「variance 面（可选，帧内块）| float32，随 data 布局 | ADU²」）。
     // 生产者 = A（snr_noise_model_v1/_fill; 与 p1_op_noise 共用
     //   p1_noise_model_for_frame, 零策略副本）; 消费侧 = hp_drizzle_api.cpp:1018-1052
@@ -7959,7 +7959,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         var_status = "skipped_no_star_mask_input";
         var_reason = "p1_sources.json has no entry for this frame; the blank-sky"
                      " model would be unmasked (optimistic-biased) => refuse to"
-                     " publish a science variance plane (DATA-P1-DRZ 11.1:295"
+                     " publish a science variance plane (DATA-P1-DRZ 11.1:380"
                      " optional frame block)";
       } else if (nm_data == nullptr) {
         var_status = "skipped_no_pixel_array";
@@ -8154,7 +8154,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                 frame, "variance", AIO_BLOCK_FLOAT32, var_plane.data(),
                 static_cast<int64_t>(n_px), dims, 2,
                 "定案2 NoiseWeightModelV1 blank-sky variance (ADU^2,"
-                " DATA-P1-DRZ 11.1:295 frame block)");
+                " DATA-P1-DRZ 11.1:380 frame block)");
             if (vrc != 0) {
               snr_noise_model_v1_free(&nmc.model);
               aio_pipeline_frame_destroy(frame);
