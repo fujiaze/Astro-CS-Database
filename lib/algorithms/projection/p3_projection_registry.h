@@ -1,8 +1,8 @@
 // lib/algorithms/projection/p3_projection_registry.h — Phase3 投影「产品声明注册表」
-// （docs/ASTROCS_DESIGN.md §5.3 的唯一产品声明权威）
+// （docs/ASTROCS_DESIGN.md §6.3 的唯一产品声明权威）
 //
 // 规范依据:
-//   * docs/ASTROCS_DESIGN.md §5.3: 首批冻结 8 投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA;
+//   * docs/ASTROCS_DESIGN.md §6.3: 首批冻结 8 投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA;
 //     「已实现并可作为产品声明的以实际注册表为准; 未实现的必须显式报「不支持」,
 //     禁止声称支持」(当前登记: 仅 TAN 已实现); 每种投影必须声明适用域
 //     (含 TAN 的 |dec|≤85°、FOV≤20°、手性 det(CD)<0、CRPIX 用 FITS 1-based
@@ -13,14 +13,14 @@
 //
 // 三层集合（本文件是唯一权威; 机器判据见 p3_proj_registry_selfcheck 与共址测试
 // lib/algorithms/projection/tests/p3wcs/p3_projection_registry_test.cpp）:
-//   ① 冻结集 F = DESIGN §5.3 八投影（p3_proj_frozen_table）;
+//   ① 冻结集 F = DESIGN §6.3 八投影（p3_proj_frozen_table）;
 //   ② 实现集 I = 生产路径真正有内核的码（p3_proj_is_implemented）;
 //   ③ 声明集 D = 可作为产品声明的码（p3_proj_is_declared）。
 //   判据: D == I == 实际可运行集 R（R = 生产路径黑盒实跑 p3_proj_probe 通过的码）。
 //   任一不等即判红: 声明未实现 = 假声称（禁止）; 实现未声明 = 隐藏能力（禁止）。
 //
 // fail-closed: 未冻结码 / 冻结未实现码 / 冻结仅内核码一律显式拒绝并给出
-// 已支持清单; **不得**静默回落 TAN, **不得**声称支持（DESIGN §5.3）。
+// 已支持清单; **不得**静默回落 TAN, **不得**声称支持（DESIGN §6.3）。
 //
 // 实现形态 = header-only（inline）: 生产内核 p3_wcs.cpp 被多个 target 以「同 TU
 // 直编」方式复用（如 eng/tests/unit/p3_projection_test），头内实现使这些既有 target
@@ -62,7 +62,7 @@ inline bool in_list(const char* const* list, int n, const char* code) {
 
 }  // namespace p3_proj_registry_detail
 
-// ---- 冻结集 F（DESIGN §5.3 八投影, 冻结序）----
+// ---- 冻结集 F（DESIGN §6.3 八投影, 冻结序）----
 inline const P3ProjFrozenEntry* p3_proj_frozen_table(int* count) {
     // reason 串同时用于文档与拒绝消息; CLI 错误文本上限 200 字节
     // (parser.cpp sanitize), 故消息把「请求码 + 不支持 + 已支持清单」前置。
@@ -118,7 +118,7 @@ inline const char* p3_proj_frozen_list() {
 
 // ---- 声明集 D（唯一权威; 产品可声明码）----
 inline const char* const* p3_proj_declared_codes(int* count) {
-    // 当前仅 TAN（DESIGN §5.3「当前登记: 仅 TAN 已实现」）。
+    // 当前仅 TAN（DESIGN §6.3「当前登记: 仅 TAN 已实现」）。
     static constexpr const char* kDeclared[1] = {"TAN"};
     if (count) *count = 1;
     return kDeclared;

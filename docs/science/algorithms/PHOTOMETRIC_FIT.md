@@ -201,7 +201,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 **生产路径的实证判据**（真实 M42 产物；读数与证据正本 = 实验/photometric-magnitude/results/）：
 `zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 必须由上式**逐位复现**（落盘值与复算值相对差 ≤1e-12）。
 
-**生产编排**（pc_api.cpp）: 生产主路径 = `run_with_gaia_impl<T>` :896-1210；参数校验 :941-963；退化（无 PSF :953 / 无光谱星 :1011 / 滤光片-QE 失败 :1054 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5 :977-1006；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）:1071-1096；匹配+清洗 :1113-1122；逐星 PcMatchRecord :1127-1167；f64 内联像素校正 :1168-1173；`make_dr3sp_id` :884-894；v2 封装 :1213-1262 / :1294-1315。旧 ABI 通道：`pc_calibrate_simple` :175、`_with_gaia` :469、`_f64` :510、`_with_gaia_f64` :635。
+**生产编排**（pc_api.cpp，实测行号）: 生产主路径 = `run_with_gaia_impl<T>` :896-1186；参数校验 :926-946；退化（无 PSF :953 / 无光谱星 :1011 / 滤光片-QE 失败 :1054 → scale=1.0、rc=0）；自适应锥搜 `mag_max_arr{12..16}`×5 :977-1006；F_syn OpenMP `schedule(dynamic,64)` 逐星（整数 `reduction(+:n_valid_fsyn)`）:1071-1096；匹配+清洗 :1113-1122；逐星 PcMatchRecord :1127-1167；f64 内联像素校正 :1168-1173；`make_dr3sp_id` :884-893；v2 封装 :1193-1237（`pc_calibrate_simple_with_gaia_v2`）/ :1239-1283（`_f64_v2`）/ :1294-1336（`_f64_v2_qf`）。旧 ABI 通道：`pc_calibrate_simple` :175、`_with_gaia` :469、`_f64` :510、`_with_gaia_f64` :635。
 
 **图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:62-77，OpenMP static :74-76）。
 

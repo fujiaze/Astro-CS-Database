@@ -3,7 +3,7 @@
 """FIX-205 端到端负例: 请求未实现投影 ⇒ rc≠0 + 明确原因（不得静默回落 TAN）。
 
 规范依据:
-  * docs/ASTROCS_DESIGN.md §5.3（8 投影冻结; 未实现的必须显式报「不支持」,
+  * docs/ASTROCS_DESIGN.md §6.3（8 投影冻结; 未实现的必须显式报「不支持」,
     禁止声称支持; 当前登记仅 TAN 已实现）;
   * CONTROL_PACK_SPEC.md §5（验收门必须机器可复跑）。
 

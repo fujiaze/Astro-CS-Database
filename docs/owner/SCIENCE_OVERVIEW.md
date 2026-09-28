@@ -100,12 +100,12 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | SCI-P3 / ALG-P3 权威冻结 | PASS | `docs/science/PHASE3_HIPS_TO_FITS.md`、`docs/science/algorithms/PHASE3_RESAMPLE.md`、`docs/api/PHASE3_API_V1.md` |
 | 会话路径 TAN 投影 + WCS + nearest/bilinear 重采样 + FITS 原子写 | `IMPLEMENTED` | `lib/phase3_session/{p3_session,p3_wcs,p3_resample,p3_output}.cpp`（会话路径仍 TAN-only，`p3_wcs.cpp`:36）；ctest `p3_wcs`/`p3_interp`/`p3_output` 家族在本提交全量构建中 rc=0 |
 | **Phase3 节点化（IR 五节点唯一真实 operation）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4309 五节点（properties/wcs/resample/writer/verify）各绑唯一真实 operation；typed artifact 链 `p3_props.json→p3_wcs.json→p3_resampled.{json,bin}→output_phase3.fits→p3_verify.json`，节点 call_count=1；ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 PASS（P3-002 `1a56ffb7`，科学面 `9662afa8`） |
-| **投影集合** | **`CONTRACT_READY`**（声明面）/ **仅 TAN `IMPLEMENTED`** | **设计冻结 8 种** = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`（`ASTROCS_DESIGN.md` §5.3）；**当前登记：仅 `TAN` 已实现**（声明集 D = 实现集 I = `{TAN}`，`lib/algorithms/projection/p3_projection_registry.h`；在役 registry = `p3_proj.cpp`（v3）；`p3_projection.cpp` 的 v1 四行 registry 已 `RETIRED`，仅历史测试面/偏差对照）。**未实现的必须显式报「不支持」**（`p3_proj_declare` → `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml` `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 表述面 = 未安装/未验证。 |
+| **投影集合** | **`CONTRACT_READY`**（声明面）/ **仅 TAN `IMPLEMENTED`** | **设计冻结 8 种** = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`（`ASTROCS_DESIGN.md` §6.3）；**当前登记：仅 `TAN` 已实现**（声明集 D = 实现集 I = `{TAN}`，`lib/algorithms/projection/p3_projection_registry.h`；在役 registry = `p3_proj.cpp`（v3）；`p3_projection.cpp` 的 v1 四行 registry 已 `RETIRED`，仅历史测试面/偏差对照）。**未实现的必须显式报「不支持」**（`p3_proj_declare` → `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml` `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 表述面 = 未安装/未验证。 |
 | Phase3 合成/单元测试文件在位 | `IMPLEMENTED` | `eng/tests/unit/p3_{assembly,coverage,interp,output,wcs}_test.cpp`、`eng/tests/api/test_p3_api.py`、`eng/tests/unit/p3002_*_test.cpp`、`eng/tests/unit/p3_projection_test.cpp` 存在于当前提交 |
 | **`healpix_interp4` 四点插值** | **`NOT_IMPLEMENTED`** | `lib/`、`cli/`、`lib/include/`、`runtime/` 全域无 `interp4` 实现符号；当前采样为 nearest/bilinear（G4 冻结权重） |
 | **流式 FITS 输出接入 Phase3 writer** | **`NOT_IMPLEMENTED`** | IO-001 冻结 `astrocs.io.fits_stream_v1`（`runtime/io/fits_core.c` + 头 + 契约测试，接口面 `IMPLEMENTED`）；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`），未见流式写接线 |
 
-> 诚实标注：原宪章 §18.1（已废止）冻结的首批投影为 **TAN+SIN+CAR+AIT**（现行 = `ASTROCS_DESIGN.md` §5.3 八投影），其 registry 实现
+> 诚实标注：原宪章 §18.1（已废止）冻结的首批投影为 **TAN+SIN+CAR+AIT**（现行 = `ASTROCS_DESIGN.md` §6.3 八投影），其 registry 实现
 > 已落位并通过独立 Oracle 与故障注入（`IMPLEMENTED`），但**生产会话路径与 DLL 挂载
 > 尚未切换**（`entrypoint: MISSING`），故状态词只到 `CONTRACT_READY`；
 > `healpix_interp4` 与 Phase3 流式 FITS 接入属后续扩展，当前 `NOT_IMPLEMENTED`。

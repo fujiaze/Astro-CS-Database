@@ -418,6 +418,47 @@ class Ctx:
                 for pth, msg in self.jsm.validate(instance, schema, schema)]
 
 
+def tile_format_map(ctx: "Ctx") -> dict:
+    """P-179 两档词表（唯一源 = schema 的 x-astrocs-field-vocabulary）；缺 ⇒ fail-closed。"""
+    vocab = ctx.schema.get("x-astrocs-field-vocabulary") or {}
+    m = ((vocab.get("hips_tile_format_two_tiers") or {}).get("by_subproduct"))
+    if not isinstance(m, dict) or not m:
+        raise RuntimeError("词表缺 hips_tile_format_two_tiers.by_subproduct（档位判据失效，fail-closed）")
+    return m
+
+
+def validate_subproduct_formats(ctx: "Ctx", prod: Path) -> list:
+    """判据 P-179：逐**子产品**校验 hips_tile_format 档位（signal 由主路径覆盖，此处跳过）。
+
+    两档词表：Image 产品子产品（support/variance/ivar）固定 `fits`；HiPS 目录子产品
+    `snr` 固定 `tsv`（承载 SNR-PREC-001 精度锚）。未登记子产品名 ⇒ 按 fail-closed 判红
+    （无档位可判，不得静默放过）。非退化：档位值写错（snr 写 fits / signal 写 tsv）必红。
+    """
+    errs = []
+    m = tile_format_map(ctx)
+    if not prod.is_dir():
+        return errs
+    for sub in sorted(p for p in prod.iterdir() if p.is_dir()):
+        if sub.name == SUBPRODUCT:
+            continue
+        pp = sub / "properties"
+        if not pp.is_file():
+            continue
+        if sub.name not in m:
+            errs.append(f"{prod}: 未登记的子产品目录 {sub.name!r}"
+                        "（无 hips_tile_format 档位可判，fail-closed）")
+            continue
+        props = parse_properties(pp)
+        if "hips_tile_format" not in props:
+            errs.append(f"{prod}: 子产品 {sub.name} 的 properties 缺必填键 hips_tile_format")
+            continue
+        if props["hips_tile_format"] != m[sub.name]:
+            errs.append(f"{prod}: 子产品 {sub.name} 的 hips_tile_format="
+                        f"{props['hips_tile_format']} ≠ 该子产品档位值 {m[sub.name]}"
+                        "（P-179 两档词表：Image 产品 fits / HiPS 目录 snr=tsv）")
+    return errs
+
+
 def validate_hips_dir(ctx: Ctx, prod: Path) -> list:
     """既有 HiPS 校验：properties 必填键 + NESTED 布局 + 每瓦片过既有 FITS 校验器。"""
     errs = []
@@ -437,8 +478,10 @@ def validate_hips_dir(ctx: Ctx, prod: Path) -> list:
         return errs
     if not props["hips_version"].startswith("1.4"):
         errs.append(f"{prod}: hips_version={props['hips_version']} 非 1.4")
-    if props["hips_tile_format"] != "fits":
-        errs.append(f"{prod}: hips_tile_format={props['hips_tile_format']} 非既有读端接受的 fits")
+    want = tile_format_map(ctx)[SUBPRODUCT]
+    if props["hips_tile_format"] != want:
+        errs.append(f"{prod}: hips_tile_format={props['hips_tile_format']} ≠ 该子产品"
+                    f"（{SUBPRODUCT}）档位值 {want}（P-179 两档词表）")
     tw = int(props["hips_tile_width"])
     if tw <= 0 or (tw & (tw - 1)) != 0:
         errs.append(f"{prod}: hips_tile_width={tw} 非 2 的幂")
@@ -472,6 +515,7 @@ def validate_hips_dir(ctx: Ctx, prod: Path) -> list:
             errs.append(f"{prod}: {rel} FITS 校验失败：{exc}")
     if n_leaf == 0:
         errs.append(f"{prod}: 无叶级瓦片")
+    errs += validate_subproduct_formats(ctx, prod)
     return errs
 
 
@@ -590,6 +634,7 @@ def load_form_vocabulary(schema: dict) -> dict:
         raise RuntimeError("schema 缺 x-astrocs-field-vocabulary（字段词表锚缺失，fail-closed）")
     for need in ("phase1_input_form_key", "frame_fields", "manifest_storage_section",
                  "manifest_storage_fields", "coverage_index_ref_fields",
+                 "hips_tile_format_two_tiers",
                  "index_name_suffix", "coverage_index_name", "layers"):
         if need not in vocab:
             raise RuntimeError("字段词表缺 %s（fail-closed）" % need)
@@ -1004,6 +1049,36 @@ def self_test(repo: Path) -> list:
                    "frames": ["f00"], "blocks": [{"ipix": 0, "frames": [{"f": "f00", "frac": 255}]}]}
             return ctx.validator(cov, ctx.schema["$defs"]["coverage_index"], "$.coverage_index")
         case("N11 覆盖索引非块粒度 → 红", False, n11)
+
+        # ============ P-179 hips_tile_format 两档（Image 产品 fits / 目录 snr=tsv）============
+        def _add_snr_subproduct(prod, tile_format):
+            sub = prod / "snr"
+            write_properties(sub / "properties", 1, TILE_WIDTH_DEFAULT, tile_format)
+            write_fits_tile(sub / "Norder1" / "Dir0" / "Npix0.fits", TILE_WIDTH_DEFAULT, 0)
+            return sub
+
+        # --- P14 目录子产品 snr 收 tsv（正例；真值无效应时判据须归零）---
+        def p14():
+            d = tmp / "p179a"
+            prod = build_min_hips(d, "frame179", order=1, ipixs=(0, 1))
+            _add_snr_subproduct(prod, "tsv")
+            return validate_hips_dir(ctx, prod)
+        case("P14 目录子产品 snr 的 hips_tile_format=tsv 被接受（P-179）", True, p14)
+
+        # --- N19 目录子产品 snr 写成 fits ⇒ 红（档位不符）---
+        def n19():
+            d = tmp / "p179b"
+            prod = build_min_hips(d, "frame179b", order=1, ipixs=(0, 1))
+            _add_snr_subproduct(prod, "fits")
+            return validate_hips_dir(ctx, prod)
+        case("N19 目录子产品 snr 写 fits ⇒ 红（档位不符）", False, n19)
+
+        # --- N20 Image 子产品 signal 写成 tsv ⇒ 红（Image 产品档固定 fits）---
+        def n20():
+            d = tmp / "p179c"
+            prod = build_min_hips(d, "frame179c", order=1, ipixs=(0, 1), tile_format="tsv")
+            return validate_hips_dir(ctx, prod)
+        case("N20 Image 子产品 signal 写 tsv ⇒ 红（档位不符）", False, n20)
 
         # ================= 形态输入配置 / 输出清单字段（合同 §10） =================
         vocab = load_form_vocabulary(ctx.schema)

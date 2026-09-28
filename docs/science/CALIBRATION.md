@@ -293,7 +293,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | `w<=0`/`h<=0`/空指针 | 返回 `AC_ERR_PARAM`，不写 `out` | `ac_generate_master_bias` 参数校验 |
-| `median(flat)<=0` | `normalize_flat` 不归一，保持原样 | `calibrator.cpp if(!(med>0)) return` |
+| `median(flat)<=0` | `normalize_flat` 不归一，保持原样 | `calibrator.cpp:91 if(!(med>0)) return` |
 | `flat_norm` 过小 | `max(...,0.1)` floor 避免极大放大 | `calibrator.cpp` |
 | `MAD=0` (无离散度) | sigma-clip 提前终止，不再剔除 | `master_generator.cpp: sigma<=0 break` |
 | `t_light/t_dark` 极端 | `K` 仍按比值应用，溢出由 FP32 饱和语义界定，不静默 clamp | `calibrate: k=k_init` 直通 |
@@ -303,7 +303,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 | 母版标度与亮场不一致但**已显式声明** `master_units=normalized` + `master_scale`（如 65535） | 按声明换算到 ADU 后消费；换算因子与声明写入 manifest（可审计） | §3；ALG DISP-CAL-013 |
 | 平场母版未归一（`median` 落在 `master_flat_median_range` 外）且未声明 `master_flat_normalize` | **fail-closed**：DATA 拒绝（rc=2），诊断点名文件 + 实测 median + 区间 | §6；ALG DISP-CAL-013 |
 | 平场母版未归一但已声明 `master_flat_normalize="median"` | 按 §5 `flat_norm` 归一（幂等）后消费；归一动作写入 manifest | §5/§7 |
-| 坏点全帧 | `cc_correct_median` 仅修复 `bad_mask=1` 像素，其余不变 | `cosmetic_corrector.cpp` |
+| 坏点全帧 | `ac::interpolate_pixels`（经 `ac::correct_frame` 编排）仅修复 `bad_mask=1` 像素，其余不变 | `lib/algorithms/calibration/src/cosmetic_corrector.cpp:161`（`correct_frame` 编排 `:230`） |
 
 ## 9 精度策略
 
@@ -409,7 +409,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 - `ALG-CAL-001` MasterBias/Dark 生成（sigma-clip+合并）
 - `ALG-CAL-002` MasterFlat 生成（减 Bias→逐帧归一→sigma-clip+mean→再归一）
 - `ALG-CAL-003` 单帧校准 `calibrate/calibrate_d`（双分支除法+floor）
-- `ALG-CAL-004` 坏点检测/修复 `cc_detect_hot/cold + cc_correct_median`
+- `ALG-CAL-004` 坏点检测/修复 `ac::detect_hot_pixels` / `ac::detect_cold_pixels`（`cosmetic_corrector.cpp:119` / `:140`）+ `ac::interpolate_pixels`（`:161`）；C ABI 面 = `ac_correct_frame`（`astro_calibration.h:124`）、`ac_correct_columns`（`:161`）、`ac_detect_bad_columns_from_master`（`:184`）、`ac_column_variance_inflate`（`:311`）。`cc_*` 命名（`cc_correct_median` / `cc_detect_hot` / `cc_detect_cold`）属**已退役通道**，不在任何 CMake 目标内，不再作在役证据引用
 
 ## 13 追溯与测试
 

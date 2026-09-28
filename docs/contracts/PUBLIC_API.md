@@ -212,7 +212,7 @@
 
 ## On-disk 格式
 
-- HiPS：IVOA 1.4（signal/support/snr 产品，NESTED，512 tile）。
+- HiPS：**IVOA HiPS 1.0** 标准 + properties 修订 1.4（产品属性 `hips_version="1.4"`，不是标准号；signal/support/snr 产品，NESTED，512 tile）。
 - UPM：`astrocs-upm-v2` JSON（sparse）+ dense cache（checksum 校验）。
 - Manifest：`manifest.json` / `diagnostics.json` / `controls_accept.json`。
 
@@ -223,7 +223,7 @@
 
 > 签名只取该头；六导出 :42,62,70,130,139,140）
 > SRC: lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp（CMake 静态库
-> astrocs_drizzle，CMakeLists.txt:356-366）；SCI: SCI-DRZ-001；
+> astrocs_drizzle，CMakeLists.txt:701-711）；SCI: SCI-DRZ-001；
 > ALG: ALG-DRZ-001；DATA: DATA-P1-DRZ（DATA_SEMANTICS §11）；
 > MOD: astrocs.p1.drizzle（目标 DLL = astrocs_p1_drizzle.dll）。编排级合同见 API-P1-007（PHASE1_API_V1，
 > 区间 API-P1-001..010 声明，无独立小节）；生产调用方
@@ -278,7 +278,7 @@
 - 接受面与诊断面边界：错误码值像素 NaN 经 `F_p` 传播、不掩膜
   （`docs/science/DRIZZLE.md:116`；实现
   `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902`；回归
-  `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`
+  `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:518-537`
   `p1drz_negative`）；shim 对非法 nside 容忍不抛。完整清单见 ALG-DRZ-001 §10。
 - 并行通道（不在本合同）：模块 Makefile 产物 healpix_drizzle.dll
   （Python ctypes 专用，与 CMake 静态库同源码）。
@@ -291,7 +291,7 @@
 > 他版；九导出 :104,121,130,135,144,149,152,163,177，AIO_HIPS_EXPORT
 > extern "C" :24-30）
 > SRC: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake 静态库
-> astrocs_hips，CMakeLists.txt:298-309）；SCI: SCI-DRZ-001；ALG:
+> astrocs_hips，CMakeLists.txt:599-618）；SCI: SCI-DRZ-001；ALG:
 > ALG-HIPS-001..005；DATA: DATA-P1-HIPS（DATA_SEMANTICS §12）；MOD:
 > astrocs.p1.hips_writer（目标 DLL = astrocs_p1_hips_writer.dll）。编排级无独立 hips stage——经 API-P1-007
 > hp_drizzle_run_hips 由 astro_sphere_sink（astro_sphere_sink.cpp:97，
@@ -532,7 +532,7 @@ ADU；`out_pixels` 未定标/退化=ADU，已定标（scale≠1 且 n_matched>0�
 
 > DPSF_EXPORT extern "C"（_WIN32 下 __declspec(dllexport) :8，否则
 > __attribute__((visibility("default"))) :10））
-> SRC: lib/algorithms/psf/src/dpsf_psf.cpp（1146 行）
+> SRC: lib/algorithms/psf/src/dpsf_psf.cpp（1432 行）
 > SCI: SCI-P1-PSF-001；ALG: ALG-STARPSF-001
 > （STAR_PSF_ALGORITHMS §11 逐符号锚）；DATA: DATA-P1-PSF
 > （DATA_SEMANTICS §15，双 [N,9] 布局权威）；编排级合同 API-P1-003
@@ -559,7 +559,7 @@ snr_estimator snr_psf_fit_quality，snr_estimator.h:110，API-NOISE-001
 | dpsf_fit | :44-47 | dpsf_psf.cpp:428 | uint16 单星拟合，DPSFFitResult 输出 |
 | dpsf_fit_batch | :49-52 | dpsf_psf.cpp:482 | uint16 批量（逐星 float patch），DPSFFitResult*[] |
 | dpsf_fit_batch_f | :59-63 | dpsf_psf.cpp:580 | float32 图 + (cx[],cy[])，DPSFFitResult*[]（FP32 生产通道） |
-| dpsf_free_results | :64 | dpsf_psf.cpp:599 | 释放批量 DPSFFitResult 数组 |
+| dpsf_free_results | :64 | dpsf_psf.cpp:983 | 释放批量 DPSFFitResult 数组 |
 | dpsf_fit_batch_f32 | :122-131 | dpsf_psf.cpp:713 | float32 图 + star_det v1 → out_psf_params[N,9]（compact）+ 可选 out_status[N] |
 | dpsf_fit_batch_f64 | :160-169 | dpsf_psf.cpp:968 | float64 图 + star_det v1 → [N,9]（compact；moffat4_fit_d 不降级）+ 可选 out_status[N] |
 | dpsf_fit_batch_d | :181-188 | dpsf_psf.cpp:612 | float64 图 + (cx[],cy[])，DPSFFitResult*[]（FP64 生产通道） |
@@ -662,12 +662,12 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
 
 | 符号 | 锚 | 语义 |
 |---|---|---|
-| `p1_session_create` | p1_session.h:16 / p1_session.cpp:90 | host services 单结构注入（struct_size/ABI 校验 :91-93）；opaque handle，owner=创建者 |
-| `p1_session_validate` | p1_session.h:19 / :103 | 纯读无 IO 幂等；config 键集校验（DATA-P1-SESSION §16.1）；缺必需键/类型错→PARAM，无 silent default |
-| `p1_session_run` | p1_session.h:23 / :149 | 四段执行 io_read→calibrate→cosmetic→io_write（:168/:195/:283/:319）；async_io_depth∈{0,1,2}（:152） |
-| `p1_session_inspect` | p1_session.h:26 / :339 | manifest JSON（dump(2)）；out=host alloc，调用方经 host free 释放（:349-357） |
-| `p1_session_destroy` | p1_session.h:28 / :358 | 唯一释放对（delete SessionState） |
-| `astrocs::phase1::last_error` | p1_session.h:36 / :368 | C++ 诊断：脱敏摘要，handle 空→空串；非科学接口 |
+| `p1_session_create` | p1_session.h:16 / p1_session.cpp:159 | host services 单结构注入（struct_size/ABI 校验 :91-93）；opaque handle，owner=创建者 |
+| `p1_session_validate` | p1_session.h:19 / p1_session.cpp:172 | 纯读无 IO 幂等；config 键集校验（DATA-P1-SESSION §16.1）；缺必需键/类型错→PARAM，无 silent default |
+| `p1_session_run` | p1_session.h:23 / p1_session.cpp:238 | 四段执行 io_read→calibrate→cosmetic→io_write（:168/:195/:283/:319）；async_io_depth∈{0,1,2}（:152） |
+| `p1_session_inspect` | p1_session.h:26 / p1_session.cpp:547 | manifest JSON（dump(2)）；out=host alloc，调用方经 host free 释放（:349-357） |
+| `p1_session_destroy` | p1_session.h:28 / p1_session.cpp:566 | 唯一释放对（delete SessionState） |
+| `astrocs::phase1::last_error` | p1_session.h:36 / p1_session.cpp:576 | C++ 诊断：脱敏摘要，handle 空→空串；非科学接口 |
 
 ### 签名要点与内存所有权
 
@@ -729,7 +729,7 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   `ipv_solve_from_memory_with_callback_d`（sdet + gaia_client 句柄注入）；两平台同源、
   同一组生产 C API（源内无平台 stub）；缺求解参数时按 DATA 拒绝。
 - writer：drizzle 节点经 `hp_drizzle_run_phase1_hips` 直写 `AstroSphereTileView` →
-  `aio_hips_product_begin/write_signal_support_tile/finalize`（IVOA 1.4 标准 512×512
+  `aio_hips_product_begin/write_signal_support_tile/finalize`（**IVOA HiPS 1.0** 标准、产品属性 `hips_version="1.4"`；512×512
   HiPS）；writer 节点只校验产物并落 p1_final.json。三域模块库 =
   astrocs_p1_dpsf/astrocs_p1_ipv/astrocs_p1_sdet（CMakeLists.txt）。
 - 段面：session 现行段序 = 4 段（CAL+COS）；六域真实节点委托由 B 线 registry 通道
@@ -768,12 +768,12 @@ sdet_detect_debug/sdet_free_debug_maps 四条 CC 路径符号不在导出面内�
 
 | 符号 | 锚 | 语义 |
 |---|---|---|
-| `sdet_create` | star_detector.h:31 / sdet_api.cpp:968 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:977-989）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
-| `sdet_destroy` | star_detector.h:32 / :998 | 唯一释放对 |
-| `sdet_detect_ex` | star_detector.h:38-43 / :2232 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
-| `sdet_detect_ex_f64` | star_detector.h:47-52 / :2257 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
-| `sdet_free_detect_ex` | star_detector.h:54-56 / :2271 | 10 数组唯一释放（extras 同组；释放单位 = 整组） |
-| `sdet_detect_guided_ex_f64` | star_detector.h:84-93 / :2208 | 星表引导检测权威路径入口（SDetGuidedStats 六计数；n_pred=0 返回 rc=0 + count=0） |
+| `sdet_create` | star_detector.h:31 / sdet_api.cpp:990 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:977-989）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
+| `sdet_destroy` | star_detector.h:32 / sdet_api.cpp:1020 | 唯一释放对 |
+| `sdet_detect_ex` | star_detector.h:38-43 / sdet_api.cpp:2305 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
+| `sdet_detect_ex_f64` | star_detector.h:47-52 / sdet_api.cpp:2330 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
+| `sdet_free_detect_ex` | star_detector.h:54-56 / sdet_api.cpp:2344 | 10 数组唯一释放（extras 同组；释放单位 = 整组） |
+| `sdet_detect_guided_ex_f64` | star_detector.h:84-93 / sdet_api.cpp:2281 | 星表引导检测权威路径入口（SDetGuidedStats 六计数；n_pred=0 返回 rc=0 + count=0） |
 
 SDetParams 9 字段（star_detector.h:13-24）：maxStars/maxAxisRatio 生产路径
 完整消费；fwhmClipSigma 与 structureLayers 等 5 字段不进生产路径；
@@ -1052,7 +1052,7 @@ registry descriptor 像素登记面）。
 - 编排 session: lib/phase2_session/p2_session.cpp:119-148 —— coverage
   为 Phase2 DAG 首阶段（阶段边界取消检查 :120，manifest 登记
   n_union_cells/target_order :146-147）；两阶段调用 :125/:138。
-- 下游模块消费: sampler p2_sample_controls*（sampler.cpp:464/:504/:632/
+- 下游模块消费: sampler p2_sample_controls*（sampler.cpp:473/:1236/:1255/
   :1138）、stage2 正式入口（lib/algorithms/coverage/tools/stage2.cpp:189-200/
   :212-213）、registry
   descriptor astrocs.phase2.coverage（module_adapters.cpp:623-638，
@@ -1123,7 +1123,7 @@ registry descriptor 像素登记面）。
 | reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "astrocs_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；**工具链默认仍 "wbpp_2_9_1"（对照档），分歧已登记**） | 无量纲 | planning 层 rejection 解析（profile 版本化；自研档 `underdetermined_n` 默认 3） |
 | reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一（mask 应用回原始值） |
 | large_scale_enabled（+ min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭 |
-| 键面 | — | — | 不含 `weight_mode` / `legacy_allow_weight_fallback` 键；ivar 产品缺失时按 rc=7 失败（stage2.cpp:565-578） |
+| 键面 | — | — | 不含 `weight_mode`（**已按 §9.73 A44 作废**） / `legacy_allow_weight_fallback` 键；ivar 产品缺失时按 rc=7 失败（stage2.cpp:565-578） |
 | acr_route | "auto"（:95） | cpu/auto/cuda 族 | 集成执行路由 |
 | out_hips | —（:97） | 路径 | 输出 HiPS 产品集根目录 |
 | diagnostics | true（:98） | bool | true → 落 diagnostics.json（本节键集） |
@@ -1191,7 +1191,7 @@ registry descriptor 像素登记面）。
 > ABI**）；编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，
 > 内核本身无 session 依赖（无状态纯函数）。
 > SRC: lib/algorithms/coverage/src/integrate.cpp（89 行，astrocs_phase2 静态库
-> 成员，根 CMakeLists.txt:336-346/:344）；唯一权威签名头
+> 成员，根 CMakeLists.txt:652-661/:660）；唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行: P2PixelStack
 > :36-42 / P2IntegrateStatus :45-51 / P2PixelResult :53-63 / 函数
 > 声明 :58-66）；DATA: DATA-P2-INT（DATA_SEMANTICS §21，单位/dtype/
@@ -1242,10 +1242,13 @@ registry descriptor 像素登记面）。
 - 负向条款: **不新增、不修改任何公共 C 头/C ABI**——既有清单（:17-29）
   与本节为同一 ABI 的展开冻结，定义只有这一份；policy/reducer 分离：本层
   的权重策略面 = 空（weights 数组外置，由 Stage2 现场构造）。
-- 行为边界：`sup_max` 不计零权重 accepted 样本，输出 support 在保守方向
-  偏低（integrate.h:17 为冻结文本；Stage2/ACR 直接消费，回归门 =
-  ALG-P2-INT-001 §11.4 F5）；`INTEGRATION.md:58` 与 `integrate.h:17` 的表述
-  差异以 `integrate.h:17` 为准（语义权威 = SCI-INT-001，FROZEN）。
+- 行为边界：`sup_max` 的作用域 = 通过资格门（`accepted ∧ values finite ∧
+  support finite 且 >0`）的**全部**样本，**含**零权重 accepted 样本（覆盖并集
+  保守下界；`integrate.h:26-27` 为冻结文本，`integrate.cpp:44-50` 为唯一实现
+  位置，更新位于权重分支之前）；全零权（ZERO_VALID_WEIGHT）仍发布该 max
+  （`integrate.cpp:79-80`），ALL_REJECTED 保持 0（`integrate.cpp:21`）；
+  Stage2/ACR 直接消费，回归门 = ALG-P2-INT-001 §11.4 F4/F5 +
+  `eng/tests/unit/p2_output_semantics_test.cpp`（语义权威 = SCI-INT-001，FROZEN）。
 - 上游：SCI-INT-001（共享 FROZEN）/ ALG-P2-INT-001；验收面设计 =
   ALG-P2-INT-001 §11.4。
 
@@ -1256,8 +1259,8 @@ registry descriptor 像素登记面）。
 > 冻结（既有符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；
 > 编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，kernel
 > 无 session 依赖（无状态纯函数）。
-> SRC: lib/algorithms/coverage/src/rejection.cpp（2956 行，astrocs_phase2 静态库
-> 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
+> SRC: lib/algorithms/coverage/src/rejection.cpp（2962 行，astrocs_phase2 静态库
+> 成员，根 CMakeLists.txt:656-677/:660）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）；DATA:
 > DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-REJ-001（docs/science/algorithms/PHASE2_REJECTION.md，
@@ -1268,12 +1271,12 @@ registry descriptor 像素登记面）。
 ### 导出符号与签名要点（rejection.h 实测锚，冻结）
 
 - `int p2_reject_plan_resolve(const P2RejectionPlanRequest*,
-  P2RejectionPlan*, char* err, std::size_t err_size)`（:191-193 声明，
-  注释 :182-190 路由 + profile 语义）: AUTO 一次解析为
-  显式方法（nominal_contributors=u32 几何可贡献数 :174-177；
+  P2RejectionPlan*, char* err, std::size_t err_size)`（:272-274 声明，
+  注释 :247-263 路由 + profile 语义）: AUTO 一次解析为
+  显式方法（nominal_contributors=u32 几何可贡献数 :234-238；
   kernel 永不接收 AUTO）；**生产默认 profile = `astrocs_adaptive_pixel`
-  （自研：n≤3 → NONE、4..7 → PERCENTILE、8..15 → WINSORIZED、
-  ≥16 → LINEAR_FIT）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
+  （自研：1≤N≤3 → NONE、N<6 → PERCENTILE、N≥6 → WINSORIZED_SIGMA；
+  原四档表已作废，档界唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
   6..15 → WINSORIZED、>15 → LINEAR_FIT）与 `astrocs_adaptive`；
   非法 profile → 非零 rc。rc=0 OK；rc=1 null
   请求/plan、request 出界或 profile 非法（err 仅日志文本）。线程
@@ -1601,7 +1604,7 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 > upm.h 为唯一权威签名头，184 行）。
 > SRC: lib/algorithms/coverage/src/upm.cpp（2981 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:337-346/:338）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（449 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/upm.h（453 行）；DATA:
 > DATA-P2-UPM（DATA_SEMANTICS §25，fit/persist 域单位/dtype/invalid
 > 唯一权威）/ DATA-P2-COR（DATA_SEMANTICS §26，apply 域唯一权威）；
 > ALG: ALG-P2-UPM-IMPL-001（docs/science/algorithms/PHASE2_UPM_IMPL.md，
@@ -1731,7 +1734,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   占位词汇（module_id=astrocs.phase2.upm-fit/upm-apply，
   module_adapters.cpp:661-696，ports samples/upm_model/calibrated_frames/
   corrected）不作冻结依据；上游 SCI-UPM-001（FROZEN）引用不改动。
-- 行为边界：`materialize_dense` 在 upm.h:154-156 与 :173-175 各有一次声明；
+- 行为边界：`materialize_dense` 在 upm.h:197-198 与 :216-217 各有一次声明；
   upm.h:89-91 注释按 OpenMP 措辞、实现用 std::thread；会话 upm 覆盖键仅
   `max_iterations`/`huber_delta`/`smoothing_lambda` 三个
   （p2_session.cpp:196-202）；材料化 `workers` 注释（h:176）与实现（:1478）
@@ -1746,9 +1749,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （**不新增、不修改任何 C 头/C ABI**；p3_output.h 为唯一权威签名
 > 头，64 行，C++ namespace astrocs::phase3；编排面 p3_session.h
 > 五段式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
-> SRC: lib/algorithms/fits_output/p3_output.cpp（1082 行，astrocs_phase3_session
+> SRC: lib/algorithms/fits_output/p3_output.cpp（1270 行，astrocs_phase3_session
 > 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（166 行）+ WCS 关键字源 p3_wcs.h
+> lib/algorithms/fits_output/p3_output.h（176 行）+ WCS 关键字源 p3_wcs.h
 > （50 行）；DATA: DATA-P3-FITS（DATA_SEMANTICS §27，单位/dtype/
 > invalid 唯一权威）；ALG: ALG-P3-FITS-IMPL-001
 > （docs/science/algorithms/PHASE3_FITS_IMPL.md，逐符号锚与消费链）；
@@ -1829,7 +1832,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （DATA_SEMANTICS §28，单位/dtype/invalid 唯一权威）；ALG:
 > ALG-P3-PROJ-IMPL-001（docs/science/algorithms/PHASE3_PROJ_IMPL.md，逐符号
 > 锚与 G1/G2 冻结式）；MOD: astrocs.p3.projection（目标 DLL = astrocs_p3_projection.dll；descriptor 占位
-> module_id=astrocs.phase3.wcs，module_adapters.cpp:406-423
+> module_id=astrocs.phase3.wcs，module_adapters.cpp:776-793
 > p3_wcs_descriptor）。
 
 ### 内核符号与签名要点（p3_wcs.h 实测锚，冻结）
@@ -1998,21 +2001,21 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > 词表与映射：`eng/contracts/data/clause_registry.json#weight_vocabulary` / `#migration_map`。
 > 本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
 
-### 1. 权重来源配置面（`weight_mode` 键不存在）
+### 1. 权重来源配置面（`weight_mode` 键不存在：**已按 §9.73 A44 作废**）
 
 | 项 | 内容 |
 |---|---|
 | 有效来源 | `point_information` / `surface_gls`（显式声明，切换只经配置） |
 | 拒绝来源 | `psfsw_robust` / `auto` / `support_x_snr2` / `psf_snr_power` / legacy 整数 `0` / `1` / `2` / 未知串：声明即**显式拒绝并返回迁移提示**（迁移到 `point_information` / `surface_gls`），接受集 = 空 |
 | 文档基线值 | `equal` / `pixel_ivar`（仅作基线对照，非科学最优声明） |
-| 键面 | Phase2 mosaic write 消费面 `P2Stage2Config` 不含 `weight_mode` 字段（`stage2_common.h`）；`integration.weight_mode` 出现即拒绝（本文「Phase2 mosaic write 公共消费面」；`DATA_SEMANTICS` §20/§30.3） |
+| 键面 | Phase2 mosaic write 消费面 `P2Stage2Config` 不含 `weight_mode`（**已按 §9.73 A44 作废**）字段（`stage2_common.h`）；`integration.weight_mode` 出现即拒绝（本文「Phase2 mosaic write 公共消费面」；`DATA_SEMANTICS` §20/§30.3） |
 | 词表落点 | `eng/contracts/data/clause_registry.json#weight_vocabulary`（`canonical_fields` + `dual_mapping` + `legacy_integer`） |
 
 **legacy 整数处置（reader 规则，唯一）**：**全值域一律拒绝** —— `0=support×snr²`、`1=equal`、`2=pixel_ivar` **三者同等拒绝**。
 
 判据依据：该字段**不存在任何合法取值** ⇒ 出现即 fail-closed 具名拒绝（`docs/ASTROCS_DESIGN.md` §3.1:267「权重的产生链固定为两步、**没有可选择项**」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」）。实现事实源：`lib/algorithms/coverage/src/stage2_common.cpp` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp`（键出现即拒绝）；CLI 面 `lib/infrastructure/cli/runtime_contract.h` 的 `route_legacy_weight_mode_int` 是**纯拒绝面**（0/1/2 与任意整数 → `kReject`）。
 
-**登记面与输入路径的分界**：「登记面」= 描述既有数据对象形态的名词；「输入路径」= 决定生产接受什么的动词。冻结适用面 = 后者；`eng/contracts/data/clause_registry.json#weight_modes` 与 `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的词表登记不构成接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（`auto` / `ivar` / `equal` / `support_x_snr2` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键）一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。生产 writer 只写显式字符串来源。
+**登记面与输入路径的分界**：「登记面」= 描述既有数据对象形态的名词；「输入路径」= 决定生产接受什么的动词。冻结适用面 = 后者；`eng/contracts/data/clause_registry.json#weight_modes` 与 `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的词表登记不构成接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（`auto` / `ivar` / `equal` / `support_x_snr2` / 整数 `0`|`1`|`2` / `weight_mode`（**已按 §9.73 A44 作废**）键 / `legacy_allow_weight_fallback` 键）一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，生产可用的判据 = 接受集本身。生产 writer 只写显式字符串来源。
 
 ### 2. 权重对象的归属
 

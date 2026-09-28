@@ -14,7 +14,7 @@
     "docs/ASTROCS_DESIGN.md §3.3（三命令通用输入合同：顶层 blocks[] 或平铺单块简写，二者互斥；块内运行参数平铺；第三件 = 阶段三 source（一个输入产品））",
     "docs/ASTROCS_DESIGN.md §3.3「三命令通用输入合同」（mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一；旧合同不退役）",
     "lib/infrastructure/cli/session_commands.h config_fields()（键集唯一声明）+ parser.cpp input_contract(SESSION_EXPORT)={source, hips_dir} / block_keys()（块内键集派生与拒绝面）",
-    "docs/ASTROCS_DESIGN.md §5.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
+    "docs/ASTROCS_DESIGN.md §6.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
     "docs/ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
@@ -25,7 +25,7 @@
     "块内键集（唯一声明，禁止第二份副本）= lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_EXPORT) 键 − schema_version + parser.cpp block_keys() = {name, output_dir}；与 parser.cpp session_blocks_errors() 的块内允许键集逐字同面（schema 通过 ⇒ CLI 通过）。块面**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
     "第三件 = source: {hips_dir} **单值**（一个输入产品）。依据：docs/ASTROCS_DESIGN.md §3.3 明文「阶段三 source（一个输入产品）」（最高权威）+ CLI input_contract(SESSION_EXPORT)={source, hips_dir}（对象 + 必需非空子键，唯一声明，lib/** 只读）。「一组帧」在阶段三的落地 = 一组退化为一个产品（N=1）；**多产品用多块表达**（每块独立 output_dir / 独立 run manifest），不得把 source 改成数组（那会与 CLI 合同分叉，属顶层合同结构性变更，须先上呈）。",
     "块内运行参数的**值域不另写一份**：凡旧合同 $defs.export_config / $defs.export_wcs 已定义的键（output_mode / width_px / height_px / rotation_deg / crpix_px），块内属性以 $ref 指向该唯一定义（防漂移；同时保住 config_registry.json 的登记点与 CFG002 的值域判据）。仅 CLI 独有、旧合同未定义的键（source / center / scale_deg_per_px / projection / sampler / longitude_parity / coverage_output）新增 $defs。",
-    "**projection 大小写**：新分支用注册码**大写**八投影（与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面；生产精确匹配 \"TAN\"，§5.3 当前仅 TAN 已实现，其余运行期显式报「不支持」）；旧合同分支的 wcs.projection 小写 enum **保持原样不改**（config_registry.json 的 declared_default=tan 与 CFG002 值域判据依赖它）——两分支大小写不一致是**既有历史留痕**，收口属投影注册表任务。",
+    "**projection 大小写**：新分支用注册码**大写**八投影（与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面；生产精确匹配 \"TAN\"，§6.3 当前仅 TAN 已实现，其余运行期显式报「不支持」）；旧合同分支的 wcs.projection 小写 enum **保持原样不改**（config_registry.json 的 declared_default=tan 与 CFG002 值域判据依赖它）——两分支大小写不一致是**既有历史留痕**，收口属投影注册表任务。",
     "旧合同分支**保留**的机器理由：① config_registry.json 的登记点（#/$defs/export_config/properties/output_mode、#/$defs/export_wcs/properties/{projection,crpix_px,center_deg,rotation_deg}）与 eng/packaging/config/defaults.json 的引用必须继续可解析；② 跨类不相交门（phase_config ∩ cpu_profile == {precision}）由 $defs.precision 承载；③ 旧合同不退役。CLI 会话面不消费该分支（显式拒绝 + 迁移提示）。",
     "平铺简写分支按设计「与多块形态等价」取块内键集 ⇒ 比 CLI 的平铺门**严**：CLI 平铺门 = parser.cpp session_keys() 全局并集（含 bitpix / max_tiles / frame 等 config_fields 未列的会话键）。方向是 fail-closed（schema 通过 ⇒ CLI 通过）；CLI 平铺门收敛为按会话的 config_fields 属 lib/** 后续项。",
     "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = source.hips_dir。",
@@ -174,7 +174,7 @@
             "point_source_flux",
             "visualization"
           ],
-          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §5.3:267）；默认 surface_brightness 见 docs/plugins/algorithms_phase3/16_fits_output.md:45"
+          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/plugins/algorithms_phase3/16_fits_output.md:45"
         },
         "wcs": {
           "$ref": "#/$defs/export_wcs"
@@ -203,7 +203,7 @@
             "cea",
             "zea"
           ],
-          "description": "投影选择，缺省 TAN（docs/ASTROCS_DESIGN.md §5.3:264-266；docs/plugins/algorithms_phase3/14_projection.md:34）"
+          "description": "投影选择，缺省 TAN（docs/ASTROCS_DESIGN.md §6.3:493-495；docs/plugins/algorithms_phase3/14_projection.md:37）"
         },
         "center_deg": {
           "type": "array",
@@ -242,7 +242,7 @@
         },
         "rotation_deg": {
           "type": "number",
-          "description": "旋转角（若用 CD）；默认 0（docs/plugins/algorithms_phase3/14_projection.md:38）"
+          "description": "旋转角（若用 CD）；默认 0（docs/plugins/algorithms_phase3/14_projection.md:41）"
         },
         "crpix_px": {
           "type": "array",
@@ -256,7 +256,7 @@
               "type": "number"
             }
           ],
-          "description": "参考像素（FITS 1-based）；缺省=中心（docs/plugins/algorithms_phase3/14_projection.md:35）"
+          "description": "参考像素（FITS 1-based）；缺省=中心（docs/plugins/algorithms_phase3/14_projection.md:38）"
         }
       }
     },
@@ -337,7 +337,7 @@
         "CEA",
         "ZEA"
       ],
-      "description": "投影注册码（大写，精确匹配无 fallback）：docs/ASTROCS_DESIGN.md §5.3 首批冻结八投影；enum 与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面（机器断言）。**当前仅 TAN 已实现**，其余必须由运行期显式报「不支持」（§5.3）——缺省 TAN"
+      "description": "投影注册码（大写，精确匹配无 fallback）：docs/ASTROCS_DESIGN.md §6.3 首批冻结八投影；enum 与 eng/contracts/schemas/projection_registry.schema.json 的 code enum 同面（机器断言）。**当前仅 TAN 已实现**，其余必须由运行期显式报「不支持」（§6.3）——缺省 TAN"
     },
     "sampler": {
       "enum": [

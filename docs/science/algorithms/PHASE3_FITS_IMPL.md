@@ -8,8 +8,8 @@
 > 集合 SCI-P3-001..020，零改动）；推导级算法权威=ALG-P3-001..004
 > （docs/science/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本域不改动其
 > 公式；G1/G2 WCS 构造与 G5 FITS 写公式的本域实现子面由本文档承接）。
-> 实现源: lib/algorithms/fits_output/p3_output.cpp（1172 行）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（172 行）+ WCS 关键字源
+> 实现源: lib/algorithms/fits_output/p3_output.cpp（1270 行）+ 唯一权威签名头
+> lib/algorithms/fits_output/p3_output.h（176 行）+ WCS 关键字源
 > lib/algorithms/projection/p3_wcs.h；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
 > DATA: DATA-P3-FITS（DATA_SEMANTICS §27）；MOD: astrocs.p3.fits_writer
@@ -33,22 +33,22 @@
 
 | 符号 | 类型 | 单位/值域 | 锚 |
 |---|---|---|---|
-| signal | f32 [W·H] | **面亮度**（surface brightness）；BUNIT 一律写 canonical `ADU/sr`（DATA_SEMANTICS §31.1/§31.1a：计数按立体角归一；裸 `ADU` 是每像素计数口径，与本平面数值不符且量纲不可判） | p3_output.cpp:302-305 |
+| signal | f32 [W·H] | **面亮度**（surface brightness）；BUNIT 一律写 canonical `ADU/sr`（DATA_SEMANTICS §31.1/§31.1a：计数按立体角归一；裸 `ADU` 是每像素计数口径，与本平面数值不符且量纲不可判） | p3_output.cpp:340-341 |
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | p3_output.cpp:333/:374-375 |
 | width,height | int px | [1,20000]（会话层 :113-114；内核 width<1 拒 :207） | p3_output.h:59-60 |
 | bitpix | int | -32 \| -64（真实决定 buffer，h:64） | p3_output.cpp:236-245 |
-| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，取值 TDOUBLE） | p3_output.cpp:278-280 |
+| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，取值 TDOUBLE） | p3_output.cpp:329-336 |
 | BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 cpp:284-285，与 DATA_SEMANTICS §31.1a「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（p3_resample.cpp:293），会话 `p3_session.cpp:396` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | p3_output.cpp:284-285 / p3_resample.cpp:293 |
-| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:17-18 / p3_output.cpp:263-264 |
-| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:15-16 / p3_output.cpp:265-266 |
-| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:19 / p3_output.cpp:267-270 |
-| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:252-253 |
-| CUNIT1/2 | string | deg | p3_output.cpp:255-256 |
-| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（禁占位串） | p3_output.h:19-33 / p3_output.cpp:288-295 |
+| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:17-18 / p3_output.cpp:319-320 |
+| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:15-16 / p3_output.cpp:321-322 |
+| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:19 / p3_output.cpp:323-326 |
+| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:308-309 |
+| CUNIT1/2 | string | deg | p3_output.cpp:311-312 |
+| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（禁占位串） | p3_output.h:19-33 / p3_output.cpp:344-350 |
 | DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | p3_output.cpp:142-149 / :314-323 / :339-347 / :378-386 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:36 / :166-176 |
 
-## 3 逐符号锚（p3_output.cpp 1172 行 / p3_output.h 172 行 / p3_wcs.h 373 行）
+## 3 逐符号锚（p3_output.cpp 1270 行 / p3_output.h 176 行 / p3_wcs.h 373 行）
 
 > 行锚按 `grep -n` 现址登记，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；**语义不变**（`ANCHOR_CONTRACT.md` §2/§5：只改数字、不动符号/公式/门）。
 
@@ -87,11 +87,15 @@
   7. signal 像素 :302-305（fits_write_pix TFLOAT 一次全帧行主序）。
   8. 取消门 :307-312（cancelled_at_row≥0 → close+unlink+返回
      P3_OUT_CANCELLED，输出不落盘）。
-  9. COVERAGE 扩展 HDU :325-333（fits_create_img 同 bitpix + EXTNAME=
-     "COVERAGE" :332 + fits_write_pix :333）。
-  10. 标准校验和: PRIMARY 在写 signal 后调 `fits_write_std_chksum`
-      （:314-323，cfitsio `fits_write_chksum` → DATASUM+CHECKSUM 逐 HDU），
-      COVERAGE :334-345、VARIANCE/IVAR :376-383 同。
+  9. **PRIMARY 标准校验和 :370-379**（`fits_write_std_chksum`；cfitsio
+     `fits_write_chksum` → DATASUM+CHECKSUM，**逐 HDU**）。顺序冻结：
+     PRIMARY 的校验和**必须写在其后追加 COVERAGE 之前**——cfitsio 按当前
+     HDU 写卡，先建 COVERAGE 再补 PRIMARY 会让 PRIMARY 的 DATASUM/CHECKSUM
+     落到 COVERAGE 头上（本文 §4 旧版伪代码正是这个错序，DISP-P3FITS-001
+     勘误；本节与实现一致）。
+  10. COVERAGE 扩展 HDU :381-390（fits_create_img 同 bitpix :383 +
+      EXTNAME="COVERAGE" :389 + fits_write_pix :390），
+      随后 COVERAGE 校验和 :391-400；VARIANCE/IVAR :376-383 同型。
   11. 原子发布序 :387-423（注释 :387-392 冻结：cfitsio 内部
       缓冲 flush → fsync(fd) → 原子 rename；仅 close 前 fsync
       只能落已入内核页缓存前缀，崩溃可丢数据或留半成品，违反
@@ -136,9 +140,10 @@ function p3_output_write_atomic(signal, coverage, W, H, wcs, bunit, path, prov, 
   if prov: write HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER + HISTORY(source,manifest)  # :287-299
   fits_write_pix(f, TFLOAT, signal)                                           # :302-305
   if cancelled_at_row >= 0: close; unlink; return P3_OUT_CANCELLED             # :307-312 不落盘
-  fits_create_img(f, bitpix, [W,H]); write EXTNAME="COVERAGE"                  # :327-332
-  fits_write_pix(f, TFLOAT, coverage)                                          # :333
-  write_std_chksum(PRIMARY)  # cfitsio fits_write_chksum → DATASUM+CHECKSUM  # :314-323
+  write_std_chksum(PRIMARY)  # PRIMARY 校验和必须在**追加 COVERAGE 之前**    # :370-379
+  fits_create_img(f, bitpix, [W,H]); write EXTNAME="COVERAGE"                  # :381-389
+  fits_write_pix(f, TFLOAT, coverage)                                          # :390
+  write_std_chksum(COVERAGE)                                                   # :391-400
   fits_flush_file(f) else IO            # ① cfitsio 缓冲全部到 OS              # :395-402
   fits_close_file(f) else IO                                                   # :403-404
   fsync(open(tmp))  else IO             # ② fd 级落盘(机制在 aio)               # :405-416
@@ -242,7 +247,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   | `hardware_concurrency` | p3_session.cpp:242（仅注释，禁用声明） | 合规 |
   | `std::thread` | p3_session.cpp:335（采样池，非写面） | §8 声明面 |
   | `#pragma omp`（AIO 域） | aio_fits.cpp:1154 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
-  | `CfitsioLockGuard`（计数式 `cfitsio_io_mutex` 守卫） | p3_output.cpp:222 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:32（`cfitsio_io_mutex` 定义）/:82（`CfitsioLockGuard` 定义） | RT-008 合规；PERF-401 起取锁点统一走计数式守卫，阻塞等待进 `resource_timeseries.csv` 的 `lock_wait_ns`（**Phase2 读路径已不使用本锁**，见 EXECUTION_MODEL §2/§3） |
+  | `CfitsioLockGuard`（计数式 `cfitsio_io_mutex` 守卫） | p3_output.cpp:274 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:32（`cfitsio_io_mutex` 定义）/:82（`CfitsioLockGuard` 定义） | RT-008 合规；PERF-401 起取锁点统一走计数式守卫，阻塞等待进 `resource_timeseries.csv` 的 `lock_wait_ns`（**Phase2 读路径已不使用本锁**，见 EXECUTION_MODEL §2/§3） |
 - **取消点**：内核级 cancelled_at_row 参数（h:65，行粒度，session
   层恒 -1 :397）；会话级取消在采样循环 :277；写面一旦进入
   R10-C 发布序不可中断（半成品不可见，符合 IO_003 §6）。
@@ -432,4 +437,19 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - BUNIT/VARIANCE/IVAR 扩展：DATA_SEMANTICS §30；FITS Standard 3.0 §4.3。
 
 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+
+---
+
+## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
+
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
+`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
+（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
+variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
+diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
+（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
+键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
+
 

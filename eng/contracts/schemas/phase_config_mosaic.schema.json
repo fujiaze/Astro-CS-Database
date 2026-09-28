@@ -46,7 +46,7 @@
       "$ref": "#/$defs/mosaic_config/properties/algorithm_rejection_method"
     },
     "coverage_index": {
-      "$ref": "#/$defs/coverage_index_ref"
+      "$ref": "#/$defs/coverage_index_path"
     },
     "hips_paths": {
       "$ref": "#/$defs/hips_paths"
@@ -215,10 +215,10 @@
       "type": "object",
       "description": "可选 rejection 配置块（逐样本接受掩码等）；CLI 只识别并透传，消费在 scheduler 面"
     },
-    "coverage_index_ref": {
+    "coverage_index_path": {
       "type": "string",
       "minLength": 1,
-      "description": "**加性可选键**：数据集级覆盖索引 coverage.index.json 的路径（块 → 帧集合 + 覆盖分数；唯一词表见 eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（有依据的回退，不静默降级为逐瓦片探测）。**不改变 hips_paths 的元素类型**：元素仍是字符串，逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json，见 IO-002 §1）。"
+      "description": "**加性可选键**：数据集级覆盖索引 coverage.index.json 的路径（块 → 帧集合 + 覆盖分数；唯一词表见 eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（有依据的回退，不静默降级为逐瓦片探测）。**不改变 hips_paths 的元素类型**：元素仍是字符串，逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json，见 IO-002 §1）。**分名消歧（P-180）**：本 `$defs` = **字符串**「输入配置里的覆盖索引路径」；`eng/contracts/schemas/hips_storage_form.schema.json#/$defs.coverage_index_ref` = **对象**「输出清单里的运行级索引引用」（含 `sha256`/`n_frames`/`n_blocks`，见 `HIPS_STORAGE_FORM_CONTRACT.md` §10.3）——两者同名异型是机器可读面的最坏形态，故本处改名为 `coverage_index_path`，机器事实源各归其位。"
     },
     "mosaic_block": {
       "type": "object",
@@ -233,7 +233,7 @@
           "$ref": "#/$defs/mosaic_config/properties/algorithm_rejection_method"
         },
         "coverage_index": {
-          "$ref": "#/$defs/coverage_index_ref"
+          "$ref": "#/$defs/coverage_index_path"
         },
         "hips_paths": {
           "$ref": "#/$defs/hips_paths"

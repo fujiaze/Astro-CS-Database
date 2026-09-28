@@ -52,7 +52,7 @@
 - 维度 `h>0,w>0`，`data` 非空且含有限值；`min_samples`（patch 样本数阈）默认 64；`rmax` 是**逐星掩膜半径的硬上界**（默认 60 px），实际半径 `r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)` 由源通量、PSF 尺度与天空预算导出（§5/§5a）；调用方应提供逐星通量与 FWHM（生产调用点 psf 块 `row[2]=flux` / `row[5]=fwhm`，见 §6），未提供时按 §5a 回调规则降级并置 `MASK_LEGACY` 诊断标。**饱和域（SAT-001）**：`x ≥ saturation_level` 的像素为**饱和像素**，**不参与 blank-sky 统计**（输入有效域规则，**无条件生效**；§5 的 5σ 裁剪不是它的替代品——裁剪的崩溃点是样本中位数，饱和核+源翼一旦占 patch 多数即双双失效）。电平来源优先级 = 显式 `cfg.saturation_level>0` > 帧元数据 FITS `SATURATE` > `DATAMAX`。**`0`/负/非有限 = 「未提供电平」（unset），不等于「无饱和」**；未提供时调用方**必须**在帧产品写显式降级声明 `NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`（降级逐条登记），并由 §11 饱和域 oracle 的负例约束。（依据：`DATA_SEMANTICS` §13.1「data 行：饱和像素过滤不统计」、`NOISE_ESTIMATION` §13.4「饱和电平以上像素排除」；外部标准 LSST `ip_isr.IsrTaskConfig.doSaturation` 默认 `True` 且置 `SAT` 面。）
 
 - 平面场仅 `enable_spatial_field==1 && n_control_points>=4`（`n_control_points` = 经 §5d① 保留的控制点数）**且控制点几何张成二维**时启用，否则退化为全局常量场（`has_spatial_field=0`）；几何判据 = 中心化控制点点云 Gram 矩阵特征值比 `λlo/λhi ≥ 1/16`（等价点云条件数 `κ=√(λhi/λlo) ≤ 4`，无量纲；绝对阈值 `|det|>1e-24` 已废除，DISP-NOISE-010）。
-- `variance_floor` **必须有限且 > 0**（单位 ADU²）：非有限或 ≤0 时 build 与 fill **都**显式拒绝（`SNR_FLOOR_UNBOUND(-10)`），不产出模型、不静默回退到任何常数（`noise_model.cpp` build 侧与 fill 侧）。`max(var,floor)` 只作用于**可用**方差（§5/§7）。
+- `variance_floor` **必须有限且 > 0**（单位 ADU²）：非有限或 ≤0 时 build 与 fill **都**显式拒绝（`SNR_FLOOR_UNBOUND(-10)`），不产出模型、不静默回退到任何常数（`noise_model.cpp:805-807` build 侧；`:1362` 为 `fill_impl` 侧——注册表地板读不到即拒，`:1433` 为显式绑定入口 `snr_noise_model_v1_bind_variance_floor` 的同判据）。`max(var,floor)` 只作用于**可用**方差（§5/§7）。
 - `gain<=0` 时 `snr_noise_gain_variance` 返回 0；**加权方差面**（§5c）在 `gain` 不可用时必须显式降级并具名登记（0 的语义 = `gain<=0` 的返回值；降级状态另具名）。
 
 ## 5 连续定义
@@ -168,7 +168,8 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
 **文献口径**：暗流倍温律 `I_d(T) = I_d(T_ref)·2^((T−T_ref)/T_d)`——**`T_d` 是待测参数、无默认值**；
 文献实测范围为 **5–10 °C 翻倍**（多源不一致，取值随传感器与温度段变化；无单一权威区间）。因此 `T_d` **一律**按待测参数处理，本仓不设默认倍温，取值以现场暗流-温度曲线（或 PTC）为准。
 DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜率 1）。
-**未核验声明**：量化项的具体形式（`1/12 DN²` / `(1/12)^{1/2}` / `(g²−1)/12 e⁻²`）与
+**未核验声明**：量化项的具体形式（`1/12 ADU²` / `(1/12)^{1/2}` / `(g²−1)/12 e⁻²`；
+第一式单位名按本仓正典 `ADU` 写，同名换算 1:1 ⇒ 数值 `1/12` 不变）与
 暗电流 FPN 的 `(D·D_N)²` 引式**尚未取得原文**（EMVA 1288 正文需注册、Janesick 2007 付费墙）
 ⇒ **核验前的断言面 = 空（"一手文献写…"的口吻以核验为前提）**。1/f 噪声只有定性描述，**无可引用的解析方差式**。
 

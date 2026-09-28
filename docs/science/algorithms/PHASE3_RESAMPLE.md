@@ -193,3 +193,18 @@ function phase3_resample(hips_dir, params):
 
 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
 
+---
+
+## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
+
+本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
+`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
+（或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
+variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +
+diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式
+（禁占位子产品、禁静默缺键、禁用常量 0 冒充）。
+键名与取值口径以 `DATA_SEMANTICS.md` 为唯一权威，本层不另立第二套
+（本层此前零承接，P-154/DISP-P3UNC-001 勘误）。
+
+

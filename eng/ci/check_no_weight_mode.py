@@ -10,11 +10,23 @@
   - `ENGINEERING_SPEC.md` §8（每项检查有正例与负例、能红能绿；fail-closed；锚存活）；
   - `工程控制/RELEASE-03/tasks/DOC-201.md`（验收门 1/2 + 「新增负例 ⇒ 检查器判红」）。
 
-判据（确定性，与 `grep -rn` 同口径）
-  R1  ASCII 键族：`docs/**` 与 `README.md` 中**每一行**含 `weight_mode` 的行，
-      必须同行含留痕串「已按 §9.73 A44 作废」；否则判红。
+判据（确定性；R-49 改判据不改文档：限域 + 去字面化，负例面同步扩充）
+  R1  ASCII 键族（**限域到「键名语境」**）：`docs/**` 与 `README.md` 中，只有
+      `weight_mode` 处于**键名形态**的行才要求同行含留痕串「已按 §9.73 A44 作废」：
+        ① 键值/赋值形态（`weight_mode:` / `weight_mode =`）；
+        ② 反引号包裹的独立键名（反引号 + weight_mode + 反引号）；
+        ③ 表格键列（行首单元格即该键名）；
+        ④ 键名词紧跟其后（键/字段/家族/词表/开关/属性/标识）。
+      **机器可读数据面不判**（R-49）：CSV **数据行**、schema/JSON 指针
+      （`…#/$defs/weight_mode`）、路径字面量、函数**签名形参**里的标识符
+      —— 它们不是"配置键被登记"，不得要求中文留痕。
       （历史/归档/冻结层允许保留原文 + 同行留痕；活文档层应当无该串。）
-  R2  中文概念：同一扫描面中每一行含「权重模式」的行，必须同行含「不存在」或「已作废」。
+  R2  中文概念（**去字面化**，R-49）：同一扫描面中含「权重模式」的行，同行含
+      **等价表述**之一即通过：`不存在` / `已作废` / `没有…这个概念` / `已按…作废`；
+      无任何等价表述的提及仍判红。
+  R5  数据面：`.csv` 的**数据行**（第 2 行起）不做中文留痕要求；**表头行照判**（列名 = 键表）。
+  R1/R2 的**不对称是有意设计**（R-49 认可）：键名面求**确定**（字面统一留痕串，可 grep 可机器复核），
+  散文面求**语义**（等价表述即通过；字面匹配在散文面才是误判源）——不得为「对称」统一两侧。
   R3  fail-closed：`docs/` 或 `README.md` 缺失 ⇒ rc=2（禁止把「文件不存在」当「无违规」）。
   R4  派生登记地图收窄（BLD-401 R4）：`docs/DOCUMENT_INDEX.yaml` 的**登记字段行**
       （path/status/duty/upstream/downstream/notes）与注释行是"地图"内容 —— 路径
@@ -46,8 +58,35 @@ ASCII_TOKEN = "weight_mode"
 # `weight_mode: 2`）仍是命中，判据不会因此放过任何活键。
 ASCII_KEY_RE = re.compile(r"(?<![-_A-Za-z0-9])" + re.escape(ASCII_TOKEN) + r"(?![-_])")
 ASCII_MARK = "已按 §9.73 A44 作废"
+# ── R1 与 R2 的不对称是**有意设计**（R-49 原话：保持不对称；禁止「顺手统一」）──
+# 两侧各按**其语境的观测方式**设计判据：
+#   R1（ASCII 键族）的语境 = **键名面**（键表行 / REJECT 表行 / 句内键名）——
+#     那里要的是**可 grep、可机器复核、判据确定**；一个**字面统一**的留痕串正是为此服务，
+#     引入等价类会把「脚本能搜到」降级成「要靠语义判断」。
+#   R2（中文概念）的语境 = **散文面**——自然语言天然多样，**字面匹配在那里才是误判源**，
+#     故接受等价表述。
+# 任何「统一两侧」的改动都是判据变更，须走裁决；不得为对称打开 R1 等价类或收回 R2。
+# R1 键名语境（R-49 限域）：只判「键名形态」的出现。判据是**正面清单**——
+# 清单之外的提及（schema/JSON 指针、路径字面量、函数形参、散文里的普通提及）
+# 不再是本门的对象；这比"任意提及都判红"更精确，不是更宽松：
+# 任何**活键**（配置键 / 键表列 / 注册表键名）仍会被下列形态命中。
+KEY_CTX_RES = (
+    re.compile(r"(?<![-_A-Za-z0-9])" + re.escape(ASCII_TOKEN) + r"(?![-_])\s*[:=](?!=)"),
+    re.compile(r"`\s*" + re.escape(ASCII_TOKEN) + r"\s*`"),
+    re.compile(r"^\s*\|\s*`?" + re.escape(ASCII_TOKEN) + r"`?\s*(?:\||[（(])"),
+    re.compile(r"(?<![-_A-Za-z0-9])" + re.escape(ASCII_TOKEN)
+               + r"(?![-_])\s*`?\s*(?:键|字段|家族|词表|开关|属性|标识)"),
+)
 ZH_TOKEN = "权重模式"
-ZH_MARKS = ("不存在", "已作废")
+# R2 等价表述（R-49 去字面化）：语义等价即通过；无等价表述仍判红（见 --self-test）。
+ZH_EQUIV_RES = (
+    re.compile(r"不存在"),
+    re.compile(r"已作废"),
+    re.compile(r"没有[^。\n]{0,16}概念"),
+    re.compile(r"已按[^。\n]{0,24}作废"),
+)
+# R5 机器可读数据面：CSV 数据行（第 2 行起）不判；表头行照判。
+DATA_ROW_SKIP_EXT = {".csv"}
 SCAN_DIR = "docs"
 SCAN_FILE = "README.md"
 SKIP_DIRS = {".git", "build", "run", "__pycache__", ".venv", "node_modules"}
@@ -108,18 +147,27 @@ def scan(root):
             return None, 0, 0
         rel = os.path.relpath(path, root).replace(os.sep, "/")
         is_derived_map = (rel == DERIVED_MAP_REL)
+        ext = os.path.splitext(path)[1].lower()
+        skip_data_rows = ext in DATA_ROW_SKIP_EXT
         for idx, line in enumerate(lines, start=1):
             lines_total += 1
             if is_derived_map and DERIVED_MAP_FIELD_RE.match(line):
                 continue  # R4：地图的登记字段行/注释行（路径字面量与标题截断副本）
-            if ASCII_KEY_RE.search(line) and ASCII_MARK not in line:
+            if skip_data_rows and idx > 1:
+                continue  # R5：CSV 数据行 = 机器可读数据面（表头行照判）
+            # 表头行（列名 = 键表）：裸键即判；其余按 R1 键名语境判（R-49 限域）
+            if skip_data_rows:
+                ascii_key_ctx = ASCII_KEY_RE.search(line) is not None
+            else:
+                ascii_key_ctx = any(r.search(line) for r in KEY_CTX_RES)
+            if ascii_key_ctx and ASCII_MARK not in line:
                 findings.append({"rule": "R1-ASCII-KEY", "file": rel, "line": idx,
                                  "observed": line.strip()[:160],
-                                 "expected": "同行含「%s」留痕（§9.73 A44）" % ASCII_MARK})
-            if ZH_TOKEN in line and not any(m in line for m in ZH_MARKS):
+                                 "expected": "键名语境同行含「%s」留痕（§9.73 A44；R-49 限域）" % ASCII_MARK})
+            if ZH_TOKEN in line and not any(r.search(line) for r in ZH_EQUIV_RES):
                 findings.append({"rule": "R2-ZH-CONCEPT", "file": rel, "line": idx,
                                  "observed": line.strip()[:160],
-                                 "expected": "同行含「不存在」或「已作废」留痕（§9.73 A44）"})
+                                 "expected": "同行含等价表述（不存在／没有…这个概念／已作废／已按…作废；R-49 去字面化）"})
     findings.sort(key=lambda f: (f["file"], f["line"], f["rule"]))
     return findings, len(files), lines_total
 
@@ -133,7 +181,8 @@ def run(root, json_out=None):
     result = {
         "tool": "check_no_weight_mode",
         "authority": ["GAP_AUDIT.md §9.73 A44", "docs/ASTROCS_DESIGN.md §2.1",
-                      "工程控制/RELEASE-03/tasks/DOC-201.md"],
+                      "工程控制/RELEASE-03/tasks/DOC-201.md",
+                      "R-49（改判据不改文档：R1 限域到键名语境 / R2 去字面化 / 保留负例）"],
         "root": os.path.abspath(root),
         "files_scanned": nfiles,
         "lines_scanned": nlines,
@@ -246,6 +295,50 @@ def self_test():
         _write(os.path.join(green3, "README.md"), "# 仓库\n")
         rc = run(green3)
         cases.append(("green_compound_check_id", rc, 0))
+        # ── R-49 新增正例/负例：限域（数据面/形参）与去字面化都必须能红能绿 ──
+        # 正例（绿）：CSV **数据行**里的标识符 = 机器可读数据面，不得要求中文留痕
+        green4 = os.path.join(tmp, "green-csv-data-row")
+        _write(os.path.join(green4, "docs", "contracts", "api.csv"),
+               "id,signature,notes\n"
+               "API-x,f,\"weight_mode/weight_data/grid_w 不进 C ABI\"\n")
+        _write(os.path.join(green4, "README.md"), "# 仓库\n")
+        cases.append(("green_csv_data_row", run(green4), 0))
+        # 负例（红）：CSV **表头**列名 = 键表 ⇒ 裸键判红（数据面限域不得变成免检区）
+        red6 = os.path.join(tmp, "red-csv-header")
+        _write(os.path.join(red6, "docs", "contracts", "api.csv"),
+               "id,weight_mode,notes\nAPI-x,2,—\n")
+        _write(os.path.join(red6, "README.md"), "# 仓库\n")
+        cases.append(("red_csv_header_key", run(red6), 1))
+        # 正例（绿）：函数**签名形参**里的同名标识符（形参名 ≠ 配置键被登记）
+        green5 = os.path.join(tmp, "green-signature-param")
+        _write(os.path.join(green5, "docs", "contracts", "api.md"),
+               "# 接口\n```c\nint aio_w(const float *snr, float weight_mode, int n);\n```\n")
+        _write(os.path.join(green5, "README.md"), "# 仓库\n")
+        cases.append(("green_signature_param", run(green5), 0))
+        # 正例（绿）：schema / JSON 指针（`…#/$defs/<key>`）不是活键
+        green6 = os.path.join(tmp, "green-schema-pointer")
+        _write(os.path.join(green6, "docs", "contracts", "c.md"),
+               "# 合同\n属性见 `eng/contracts/schemas/x.schema.json#/$defs/weight_mode` 的词表登记。\n")
+        _write(os.path.join(green6, "README.md"), "# 仓库\n")
+        cases.append(("green_schema_pointer", run(green6), 0))
+        # 负例（红）：散文里的**活键赋值**（限域后仍必须判红）
+        red7 = os.path.join(tmp, "red-prose-assign")
+        _write(os.path.join(red7, "docs", "live", "e.md"),
+               "# 活文档\n生产读 `weight_mode = point_information` 作为归约口径。\n")
+        _write(os.path.join(red7, "README.md"), "# 仓库\n")
+        cases.append(("red_prose_key_assign", run(red7), 1))
+        # 正例（绿）：R2 等价表述之一「没有…这个概念」
+        green7 = os.path.join(tmp, "green-zh-equiv")
+        _write(os.path.join(green7, "docs", "live", "f.md"),
+               "# 活文档\n全程只有 SNR，没有「权重模式」这个概念。\n")
+        _write(os.path.join(green7, "README.md"), "# 仓库\n")
+        cases.append(("green_zh_equiv_phrase", run(green7), 0))
+        # 负例（红）：R2 去字面化**不得变成恒绿** —— 无等价表述的提及仍判红
+        red8 = os.path.join(tmp, "red-zh-no-equiv")
+        _write(os.path.join(red8, "docs", "live", "g.md"),
+               "# 活文档\n权重模式的作用是选择归约口径。\n")
+        _write(os.path.join(red8, "README.md"), "# 仓库\n")
+        cases.append(("red_zh_mention_without_equiv", run(red8), 1))
         # fail-closed：缺 docs/
         bad = os.path.join(tmp, "failclosed")
         _write(os.path.join(bad, "README.md"), "# 仓库\n")

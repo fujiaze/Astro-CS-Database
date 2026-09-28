@@ -2,7 +2,7 @@
 // 共址测试: 产品声明注册表 + 显式「不支持」 + 适用域 + 机器判据
 //
 // 规范依据:
-//   * docs/ASTROCS_DESIGN.md §5.3（8 投影冻结; 未实现必须显式报「不支持」, 禁止声称
+//   * docs/ASTROCS_DESIGN.md §6.3（8 投影冻结; 未实现必须显式报「不支持」, 禁止声称
 //     支持; 每种投影声明适用域, 违反 ⇒ 拒绝）;
 //   * MOD-01 🔴P17 / ARCH-01 🔴14（文档说 1、代码说 4 ⇒ 以可运行验证为准）;
 //   * ENGINEERING_SPEC §8（每项检查能红能绿; 可执行负例入口 --self-test）。
@@ -128,7 +128,7 @@ void test_registry_equals_runnable() {
     CHECK_MSG(criterion_holds(d, i, r),
               "机器判据: 声明集 == 实现集 == 实际可运行集");
     CHECK_MSG(d.size() == 1 && d[0] == "TAN",
-              "声明集当前 = {TAN}（DESIGN §5.3 当前登记仅 TAN）");
+              "声明集当前 = {TAN}（DESIGN §6.3 当前登记仅 TAN）");
     CHECK_MSG(astrocs::phase3::p3_proj_registry_selfcheck() == 0,
               "registry 自检全过");
 }
@@ -137,7 +137,7 @@ void test_registry_equals_runnable() {
 void test_unsupported_negative() {
     int n = 0;
     const P3ProjFrozenEntry* tab = astrocs::phase3::p3_proj_frozen_table(&n);
-    CHECK_MSG(n == 8, "冻结表 8 行（DESIGN §5.3）");
+    CHECK_MSG(n == 8, "冻结表 8 行（DESIGN §6.3）");
     int n_neg = 0;
     for (int i = 0; i < n; ++i) {
         const char* code = tab[i].code;
@@ -328,6 +328,39 @@ void test_cross_registry() {
         CHECK_MSG(astrocs::phase3::p3_proj_declare(code, &why) !=
                       P3WcsStatus::P3_WCS_OK,
                   "v6 内核码不得经产品声明门放行");
+    }
+
+    // ---- C5b: max_fov_deg 的**直径惯例**与逐投影声明值锁（R-40 / P-081）----
+    // 惯例 = 球面上离参考点的最大合法角距 ×2；域界为整球者上限即 180°（= 2×90°）。
+    // 负例内建: 改前 AIT=360.0 使 (a) 判红（360 > 180 = 整球直径）。
+    const astrocs::phase3proj::v6::Spec* s_tan =
+        astrocs::phase3proj::v6::registry_find("TAN");
+    const astrocs::phase3proj::v6::Spec* s_sin =
+        astrocs::phase3proj::v6::registry_find("SIN");
+    const astrocs::phase3proj::v6::Spec* s_car =
+        astrocs::phase3proj::v6::registry_find("CAR");
+    const astrocs::phase3proj::v6::Spec* s_ait =
+        astrocs::phase3proj::v6::registry_find("AIT");
+    CHECK_MSG(s_tan && s_sin && s_car && s_ait, "四行声明值可按 code 查到");
+    if (s_tan && s_sin && s_car && s_ait) {
+        CHECK_MSG(s_tan->max_fov_deg == 20.0,
+                  "TAN 合法 FOV 声明 = 20°（SCI §9a-12 alpha 冻结，禁放宽）");
+        CHECK_MSG(s_sin->max_fov_deg == 60.0, "SIN 合法 FOV 声明 = 60°（声明值）");
+        CHECK_MSG(s_car->max_fov_deg == 180.0,
+                  "CAR 合法 FOV 声明 = 180°（native |θ|<90° ⇒ 直径 2×90°）");
+        CHECK_MSG(s_ait->max_fov_deg == 180.0,
+                  "AIT 合法 FOV 声明 = 180°（椭圆域 |φ|≤180° ⇒ 参考点最大角距 90° 的"
+                  "直径；改前 360 把整球角周长当成了视场直径）");
+        // (a) 惯例上界: 声明值不得超整球直径 180°（AIT 改前 360 在此判红）
+        for (int i = 0; i < nv; ++i) {
+            CHECK_MSG(v6[i].max_fov_deg <= 180.0,
+                      "合法 FOV 声明 <= 整球直径 180°（直径惯例上界）");
+            CHECK_MSG(v6[i].max_fov_deg > 0.0, "合法 FOV 声明 > 0");
+        }
+        // (b) 判据非退化: 椭圆平面半轴 162.0569° 与整球角周长 360° 都不是本字段取值
+        CHECK_MSG(s_ait->max_fov_deg != 360.0 &&
+                      s_ait->max_fov_deg != 162.0569,
+                  "AIT 声明值既非整球角周长 360° 亦非椭圆平面半轴 162.0569°");
     }
 }
 

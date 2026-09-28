@@ -2,7 +2,7 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §3.1（数据对象）。
 > 上位正本：`docs/design/UNIFIED_MODEL.md` §2（对象集与逐对象语义）。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
-> 现行对象集 = **13 个**；`weight_mode` 家族与 `sci_weight_mode` 键**不存在**（权重是阶段二现场派生量）。
+> 现行对象集 = **13 个**；`weight_mode` 家族（**已按 §9.73 A44 作废**）与 `sci_weight_mode` 键**不存在**（权重是阶段二现场派生量）。
 
 ## 1. 唯一事实源声明
 

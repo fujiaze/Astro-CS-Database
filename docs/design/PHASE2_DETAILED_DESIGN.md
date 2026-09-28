@@ -51,7 +51,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 - 移动源等科学信号可选择保留到独立层，不默认当缺陷删除；
 - NaN 采用**样本级掩膜**：污染样本掩除后**重归一**、覆盖级缺数置 NaN 并**强制计数**，掩膜动作逐条计数。
 
-### 5.1 逐像素排异路由（最终五档表）
+### 5.1 逐像素排异路由（生产三档表）
 
 路由依据 `N` = 该输出像素的**几何覆盖帧数**（coverage footprint 一次解析），与掩膜后存活数、整组帧数都无关：
 
@@ -61,7 +61,7 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 | 4 ≤ N ≤ 5 | percentile clipping |
 | N ≥ 6 | winsorized sigma clipping |
 
-生产排异算法集 = none / percentile / winsorized / linear fit（linear fit 仅显式指定）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
+生产档（`astrocs_adaptive_pixel`）的 **AUTO 路由 = 三档**（`1≤N≤3` none / `4≤N≤5` percentile / `N≥6` winsorized）；`linear fit` 仍是合法**显式**方法（`request=linear_fit`），AUTO 在生产档不产出该档（档界与算法名的唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9，本节不另立）；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
 
 ## 6. 两类目标产品，不能混用权重
 

@@ -120,19 +120,19 @@
     - **归属/去向**：合同 schema 面 + 门禁判据面（须可红可绿：注入悬空路径必须判红）；补 schema 与改引用二选一，且**补门判据**「文档中形如 `eng/contracts/**.schema.json` 或 `schemas/*.schema.json` 的路径必须存在」属门禁面变更——待裁决。
 
 40. **`PHASE3_HIPS_TO_FITS §16` 与 `PHASE3_PROJ_IMPL §16` 的 C4/C5 登记面已被反证**
-    - **现象**：两处 §16 C4 称「§5.3 输入语义守卫在生产 export 路径**未生效（守卫未接线）**…守卫内核 `p3_rsmp_units.cpp` 与会话接线层 `p3_export.cpp` 未进构建」；C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」。**已过期的一半**：`lib/algorithms/resample/CMakeLists.txt` 已把 `p3_rsmp_units.cpp` 编入 `astrocs_p3_rsmp`；`module_adapters.cpp#p3n_guard_input_units` 已被生产 IR 节点链 properties/resample2/writer 调用（`#resolve_bunit` + 冻结串 `kP3BunitSurfaceBrightness`，缺 BUNIT/不可判 → fail-closed）；`#p3_op_writer` 强制 `p3_resampled.json#bunit` 校验。**仍然成立的一半**：`p3_export.cpp` 仍未进构建（`grep -c p3_export CMakeLists.txt` = 0，文件抬头自述「未接入生产」），该半已由 `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06` 登记。
+    - **现象**：两处 §16 C4 称「§6.3 输入语义守卫在生产 export 路径**未生效（守卫未接线）**…守卫内核 `p3_rsmp_units.cpp` 与会话接线层 `p3_export.cpp` 未进构建」；C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」。**已过期的一半**：`lib/algorithms/resample/CMakeLists.txt` 已把 `p3_rsmp_units.cpp` 编入 `astrocs_p3_rsmp`；`module_adapters.cpp#p3n_guard_input_units` 已被生产 IR 节点链 properties/resample2/writer 调用（`#resolve_bunit` + 冻结串 `kP3BunitSurfaceBrightness`，缺 BUNIT/不可判 → fail-closed）；`#p3_op_writer` 强制 `p3_resampled.json#bunit` 校验。**仍然成立的一半**：`p3_export.cpp` 仍未进构建（`grep -c p3_export CMakeLists.txt` = 0，文件抬头自述「未接入生产」），该半已由 `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06` 登记。
     - **规范依据**：`ASTROCS_DESIGN.md §0.2`（同一主题只有一份正本）、`§12.5`；`ENGINEERING_SPEC.md §8`「文档集随代码持续维护更新，保持自解释」。
     - **归属/去向**：订正 §16（两处，两文档「同一实验单元只有一套文字」），必须按「生产链已接线 / v6 shell 仍未接线」**分开陈述**，文字逐段保留；登记面已由 `SNI-S4-P3X-06` 承载。
 
 41. **SIN / CAR / AIT 缺「往返误差上界 + 尺度域」声明**
     - **现象**：`lib/algorithms/projection/p3_wcs.cpp#p3_wcs_applicability()` 只对 **TAN** 返回非空，SIN/CAR/AIT 返回 `nullptr`（`p3_proj_probe`/`p3_wcs_check_applicability` 因此 fail-closed，**不静默回落 TAN**）；v6 投影 Spec 结构体字段只有 `max_abs_crval_dec_deg` / `max_fov_deg` / `singularity_kind` 三项——**没有往返容差字段、没有尺度下限字段**。`max_fov_deg` 是**声明字段而非 make 硬门**（文档 §15.1 明说，实测一致）。
-    - **规范依据**：`ASTROCS_DESIGN.md §5.3`「每种投影必须声明适用域（**含往返误差上界**），违反⇒拒绝」、`§6.3`；`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.1`。
+    - **规范依据**：`ASTROCS_DESIGN.md §6.3`「每种投影必须声明适用域（**含往返误差上界**），违反⇒拒绝」、`§6.3`；`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.1`。
     - **风险面**：三者为内核-only（非产品声明）且 make 的四角域守卫 + `|CRVAL2|≤85°` 仍在 ⇒ 风险 = 「**内核被接线时缺门**」，不是「当前产品缺门」。
     - **归属/去向**：接线任务必须同时补 `P3WcsApplicability` 行（往返紧门 + 全局门 + `min_scale`），否则 `p3_proj_probe` 永远 UNSUPPORTED。
 
 42. **v6 T2 往返判据对 SIN 缺陷零区分力 + 文档 §15.6 与实现值不一致**
     - **现象**：`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15.6` 写「每投影 pixel→world→pixel **< 1e-8 px**」，实现是 `eng/tests/unit/p3_proj/p3_proj_test.cpp` 的 `kRoundtripTolPx = 1e-6`（`p3_proj_wcs_oracle.py::roundtrip_tol_px` 对非 TAN 取 `contract["global"]` = 1e-6）⇒ **文档值与实现值不符**。T2 用例表给 SIN 的尺度是 0.02 deg/px = 72″/px，该尺度下 SIN 误差 2.1e-9 px ⇒ **判据恒绿**，对 world→pixel 条件数缺陷零区分力（该缺陷由反向门 `sin_roundtrip_gate.py` 承担，§16 已登记）。
-    - **规范依据**：`AGENTS.md §5`「判据必须非退化」；`ASTROCS_DESIGN.md §5.3`；`ENGINEERING_SPEC.md §8`（文档随代码维护）。
+    - **规范依据**：`AGENTS.md §5`「判据必须非退化」；`ASTROCS_DESIGN.md §6.3`；`ENGINEERING_SPEC.md §8`（文档随代码维护）。
     - **归属/去向**：§15.6 改为实测门值并注明「T2 不覆盖 world→pixel 条件数缺陷，后者由反向门承担」；若要 T2 具备区分力，需把 SIN 用例尺度压到 ≤0.9″/px 并配尺度感知门（判据面变更）。
 
 43. **AIT 可构造域（表述已订正，守卫不动）**
@@ -194,3 +194,5 @@
     - **占位注册行 `astrocs.phase3.resample`** → `eng/ci/ledgers/registry_ir_parity.json#registered_not_in_ir:astrocs.phase3.resample` 与 `eng/contracts/block_flow/conformance_deviations.json#BFD-C1`（同一事实的端口面双登记）。
     - **v6 shell `p3_export.cpp` 未进构建（第 40 条的一半）** → `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06`。
     - **同族已在控制包差距清单登记、本节不另立条目**：命名块内存管线未落地、三阶段无独立调度器、块生命周期未实现、性能探针不成体系、L2 性能门恒真、空断言/恒真测试普查、docs/contracts ↔ eng/contracts 双向对应无机器校验；以及控制包未决问题清单的「端口声明 vs 真实数据流」与 OQ-10 两条。
+
+49. **数据集级覆盖索引 `coverage.index.json` 零生产者（发布路径已指定、未实现；R-47）**：该索引的登记名与字段模型已冻结（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §4.2：`index_schema`/`granularity`/`frames[]`/`blocks[].{ipix,frames[].{f,frac}}`），但**全仓无生产者**——写出发布清单的同一条命令（`mosaic`）尚未在其发布步内写它（`lib/` 侧零写入点；产品级 `<name>.hips.index.json` 同样只有门禁夹具会写临时样例，无生产写入点）。R-47 已指定发布路径：生产者 = `mosaic` 发布步，写出**运行输出根层** `coverage.index.json`，与产品集清单**同一次原子发布**；仍**单判据**裁决、**不设豁免名单**，**不得**以放宽 `IO_003` §4（发布清单必含 `properties`）或把产品集判定改成白名单的方式消解张力。消费面 `coverage_index`（加性可选键）因此仍在死键台账：`eng/ci/ledgers/dead_config_keys.json#dead_config_key:coverage_index`（与本条同一事实的两面登记，双面均须显式、不得静默留白）。**下一动作与判据（R-47.4）**：实现该发布路径时须同时给出**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）并进机器门；在此之前不得声称覆盖索引可用，也不得把「CLI 认识该键」当成「已消费」。

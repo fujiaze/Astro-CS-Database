@@ -79,8 +79,12 @@
 | 非法字符段 | `a b`、`a*b`（段外 ASCII 可见字符一律拒） |
 
 文件名（products 内相对名）额外约束为 HiPS 目录产物形态：
-`properties` | `Moc.fits` | `NorderK/DirD/NpixN.fits`（K/D/N 为十进制数字）——
-其它文件名（如 `notes.txt`、任意 `.fits` 布局）发布前拒绝（`PublishError`）。
+`properties` | `Moc.fits` | `NorderK/DirD/NpixN.fits`（K/D/N 为十进制数字）|
+`coverage.index.json`（**数据集级**覆盖索引，只认**根层**这一个名；P-178 扩项）——
+其它文件名（如 `notes.txt`、任意 `.fits` 布局、带子目录或改名的覆盖索引）发布前拒绝（`PublishError`）。
+
+`coverage.index.json` 为何在白名单里：它是数据集级产物，按 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §4.2/A5 位于**归档之外**（与产品同级、运行输出根）；发布它的清单仍是同一份「HiPS 目录产物」清单（`properties` 必在，见 §4），故必须与产品文件同名法登记，否则同一发布路径上「文档允许而发布器拒绝」。
+**仍只有一条判据、无豁免名单**：白名单按**形态**判定，不为任何产品/场景开逐名豁免；产品树内的 `metadata.fits`、产品集 `manifest.json`、`snr/**`（`.tsv`/`metadata.xml`）面的登记以各自正本为准（`DATA_SEMANTICS.md` §12.2、`HIPS_STORAGE_FORM_CONTRACT.md` §10），本次不改。
 
 ### 3.3 文件系统层拒绝（权限/符号链接）
 
@@ -116,6 +120,28 @@
 任一步失败/中断（KeyboardInterrupt/SystemExit/异常）→ 无 COMPLETE manifest、
 无成功对象；可恢复（`cleanup()` 清 stage / 新 Store `start()` 不索引残留 /
 同 run 重发）。
+
+### 4.1 机制层步序与"两序关系"的唯一正本（P-205/P-174 收口）
+
+上表 6 步是**生产者协议正本**（P3 写路径按 P-205 已对齐：校验/哈希**先于** rename，
+故校验失败时目标位置从不出现半成品）。**机制层**（`lib/infrastructure/aio/product_io/` 的
+`atomic_publish_file`/`atomic_publish_directory`，即 `atomic_publish.h`）执行同一组步骤，
+但**重开验证读的是已发布对象**（rename 之后，由调用方的 `verify_fn` 提供），验证失败即撤销。
+两序的保证关系（本处是**唯一**声明处；`atomic_publish.h` 只引用不复写）：
+
+- **内容面等价**：同目录（同文件系统）rename 不改变字节，机制层校验的 inode 内容与
+  tmp 阶段写入的内容相同；
+- **检测面：机制层更强**——它能检出"rename 之后才发生"的损坏（外部进程截断/改写目标、
+  回写上出现的坏块），生产者序（先校验后 rename）在这一窗口无观测点；
+- **可见性/破坏面：机制层更弱**——存在"未验证对象短暂可见"的窗口，且撤销会删除
+  已被 rename 替换掉的目标位置。故机制层**必须**用 `PublishResult::durability` 三态约束调用方
+  （见 `atomic_publish.h` P-174 段）：`kNotDurable` = 已发布但持久化未确认，**不得回滚删除**、
+  不得静默当成功。
+
+**能区分两序的判据（同一提交内补用例）**：在 rename **成功之后**破坏目标内容
+（LD_PRELOAD 注入器加一档 `ASTROCS_TEST_CORRUPT_AFTER_RENAME=1`，在 rename 返回后向目标追加坏字节），
+机制层必须**检出并撤销**（`status=ERR_*` + `renamed=false`）；生产者序在该情形下无法检出
+（校验点已在 rename 之前）——该用例即"机制层检测面更强"的可执行证据。
 
 ## 5. 完成 manifest 形态
 

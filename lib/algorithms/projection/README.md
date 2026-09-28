@@ -4,7 +4,7 @@
 > 合同落位（三件套：README + module.yaml + memory.md），照
 > lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→phase3_fits 迁移
 > 目录先例新建。**SCI-FIX-PROJ 增补（2026-09-16）**：投影集合权威 =
-> docs/ASTROCS_DESIGN.md §5.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
+> docs/ASTROCS_DESIGN.md §6.3 首批八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；
 > **在役 registry = v6 线 p3_proj.h/.cpp（kProjectionRegistryVersion=3）**
 > ——CAR/AIT 按 Calabretta & Greisen (2002) Paper II §2.2 三 Euler 角把
 > CRVAL2（含 LONPOLE 默认 0/180）纳入映射、AIT 椭圆域 A≤1、CAR native 极行
@@ -32,7 +32,7 @@
   P3-PROJ-INT 对齐，不作冻结依据）。
 - registry 行: MOD-astrocs-phase3-wcs；dll_target:
   astrocs_p3_projection.dll（合同值，未建）。
-- 域: 天球投影/WCS。**内核面**：在役 v3（DESIGN §5.3 八投影冻结集合）
+- 域: 天球投影/WCS。**内核面**：在役 v3（DESIGN §6.3 八投影冻结集合）
   已实现 TAN/SIN/CAR/AIT，STG/MOL/CEA/ZEA 未实现（registry_find 返回
   nullptr，fail-closed；实施归 P3-001/GAP-011）。新增投影必须落在冻结集合内
   并附独立往返 Oracle。**legacy v1 已 RETIRED**（见上，仅作偏差对照）。
@@ -114,7 +114,7 @@
 
 ## 7 产品声明注册表与适用域门
 
-- 权威: `p3_projection_registry.h`（header-only/inline；DESIGN §5.3）。
+- 权威: `p3_projection_registry.h`（header-only/inline；DESIGN §6.3）。
   API: p3_proj_{frozen_table,is_frozen_code,frozen_list,declared_codes,
   is_declared,declared_list,implemented_codes,is_implemented,
   canonical_code,declare,probe,registry_selfcheck}（namespace astrocs::phase3）。
@@ -122,7 +122,7 @@
   **请求码 + 原因（冻结未实现/仅内核/未知码）+ 已支持清单**；
   `p3_wcs_validate_request`（CLI 配置面与节点面唯一语义源）委托本门，
   `p3_wcs_make` 另加声明/实现分离守卫 ⇒ 不产 TAN 半成品。
-- 适用域门（DESIGN §5.3「违反 ⇒ 拒绝」，`p3_wcs_check_applicability`）:
+- 适用域门（DESIGN §6.3「违反 ⇒ 拒绝」，`p3_wcs_check_applicability`）:
   |CRVAL2|≤85°、FOV≤20°（`p3_wcs_fov_deg` = scale×√(W²+H²) 帧对角全视场）、
   手性 det(CD)<0、CRPIX=(W+1)/2,(H+1)/2（FITS 1-based 像素中心）、
   往返 <1e-8 px（`p3_wcs_roundtrip_max_error_px`，9 点采样；`kTanApplicability.roundtrip_tol_px`）。

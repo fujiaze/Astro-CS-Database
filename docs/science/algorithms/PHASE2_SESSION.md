@@ -17,8 +17,8 @@
 > 模块: astrocs.p2.session（本任务冻结的合同模块词汇）——迁移目标
 > astrocs_p2_session.dll 为 MODULE_MIGRATION_MATRIX 矩阵合同值，
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
-> astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 acsd
-> 可执行（:501-506）。权威源: lib/phase2_session/p2_session.h（39 行）
+> astrocs_phase2_session（根 CMakeLists.txt:1092-1098），编入 acsd
+> 可执行（:1148-1183）。权威源: lib/phase2_session/p2_session.h（39 行）
 > + p2_session.cpp（318 行，实测；本文件行号一律照录实测值）。
 
 ## 1 目的与非目标
@@ -136,10 +136,19 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
    适用域=标准化残差 z=r/sigma_eff 且 sigma_eff 由观测标度主导，见
    `docs/science/PHASE2_UPM.md` §7）、max_iterations=100（无量纲；域 ≥1，
    达上限时 converged 必须记 0=max_iter 而非「已收敛」）、
-   tolerance=1e-6（**相对量**：判据 `max_dM/max(scale_obs,eps) < tol_step`，
-   见 `docs/science/PHASE2_UPM.md` §5；绝对容差在面亮度 ADU·sr⁻¹ 标度上
-   永不收敛，实测 300 次迭代 converged=0）、
-   sigma_floor=1e-3（**量纲 = 面亮度 ADU·sr⁻¹**，与 `uncertainty` 同标度；
+   tolerance=1e-6（**本入口为绝对阈值**：`p2_session.cpp:204` 只赋 `uc.tolerance`，
+   **未设** `uc.tolerance_relative`（`P2UpmBuildConfig uc{}` 零初始化 ⇒ 0），
+   故判据 = `max_dM < tol ∧ max_dC < tol`（`upm.cpp:1031,1034-1035`，legacy 绝对口径）。
+   相对口径（阈值 = `tolerance × max(scale_obs, 1.0)`，**floor = 1.0 而非 eps**）
+   仅在 `tolerance_relative=1` 时生效（`upm.cpp:1036-1040`，default 0 :284/:305），
+   由编排入口显式 opt-in（`module_adapters.cpp:9636`；opt-in 覆盖键 :9715-9716）——
+   **口径依入口而变，引用 `converged`/`tolerance_relative` 必须先写明入口**
+   （`docs/science/PHASE2_UPM.md` §16 正向约束）。在面亮度 ADU·sr⁻¹ 标度上
+   绝对 1e-6 低于 ULP 5–8 个数量级、原理上不可达（`upm.cpp:1026-1027`；
+   实测 iterations=100, converged=0））、
+   sigma_floor=1e-3（**量纲 = σ(ADU)，帧面标度**，与所消费的 `uncertainty` 同标度；
+   权威 = `DATA_SEMANTICS.md` §25.3 标度条与 :2081「三地板互不代用」条
+   （**不是**面亮度 ADU·sr⁻¹；`photo_scaled_adu` 时按 α 换算）；
    当 `|uncertainty| < sigma_floor` 时 Huber 的 z 失去统计尺度意义，
    见 `docs/science/PHASE2_UPM.md` §7）、support_power=1.0、use_ivar_weight=1、
    control_reliability=1.0、target_order=cov 实测值（:189）；config
@@ -373,17 +382,17 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   （P2-SESSION-TEST 落地）；`TEST-P2-SESSION-DESIGN-001` = 本文件
   §11.5（双面登记不冒认）。
 - `SRC-P2-SESSION-001` = lib/phase2_session/ 源码实测面（p2_session.h
-  39 行 + p2_session.cpp 318 行（复测）+ 根 CMakeLists.txt:454-458/:501-506/
-  :517-529），本文件全部行号锚的权威。
+  39 行 + p2_session.cpp 318 行（复测）+ 根 CMakeLists.txt:1092-1098/
+  :1148-1183/:204-208），本文件全部行号锚的权威。
 - `MOD-astrocs-phase2-session` = lib/phase2_session/module.yaml（本
   任务同批建立）+ registry 页（并行任务生成）。
 
 ## 13 追溯
 
 - 实现：lib/phase2_session/p2_session.h（39 行）+ p2_session.cpp
-  （298 行，复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
-  :454-458）→ acsd 可执行（:501-506）+ QA-001 严格警告层
-  （:517-529）。
+  （318 行，复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
+  :1092-1098）→ acsd 可执行（:1148-1183）+ QA-001 严格警告层
+  （:204-208）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
   （module_adapters.cpp:777-784 P2Api，注册 :746-751/:782-794）。
 - 对拍先例：lib/phase1_session/ + registry 页
