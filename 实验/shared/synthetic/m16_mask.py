@@ -83,7 +83,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[3]                      # 仓库根
+ROOT = HERE.parents[2]                      # 仓库根
 
 # --- 位标志 ---------------------------------------------------------------
 F_NONFINITE = 1
