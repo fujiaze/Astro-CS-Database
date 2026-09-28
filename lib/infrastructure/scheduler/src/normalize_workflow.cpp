@@ -9,6 +9,8 @@
 #include <thread>
 #include <vector>
 #include "aio_atomic_file.h"   // aio 唯一 I/O：原子文本落盘（CLEAN-403）
+// 受控编排参数（唯一数值源 = eng/packaging/config/runtime_resources.json#orchestration_params）。
+#include "runtime_resources_generated.h"
 
 namespace astrocs::core {
 namespace {
@@ -463,7 +465,18 @@ std::vector<FrameOutcome> NormalizeWorkflowScheduler::run() {
   pool.reserve(static_cast<std::size_t>(n));
   std::vector<std::thread> prefetch_pool;
   if (cfg_.prefetch_enabled) {
-    const int np = cfg_.prefetch_threads;
+    // 预取线程上限（受控配置键 scheduler_prefetch_threads_max；0 = 不设上限）：clamp + 留痕。
+    // 依据 docs/ASTROCS_DESIGN.md §8.3:643（预取下一帧、I/O 预取与计算重叠）与 §8.3:647
+    // （线程池的唯一来源是调度器、单进程唯一预算源）⇒ 预取并发不得无上界地由调用方指定。
+    int requested = cfg_.prefetch_threads;
+    const std::uint32_t prefetch_cap =
+        astrocs::runtime_resources::kSchedulerPrefetchThreadsMax;
+    if (prefetch_cap > 0u && requested > static_cast<int>(prefetch_cap)) {
+      std::fprintf(stderr, "[prefetch] 受控上限生效 prefetch_threads=%d -> %u\n",
+                   requested, prefetch_cap);
+      requested = static_cast<int>(prefetch_cap);
+    }
+    const int np = requested;
     prefetch_pool.reserve(static_cast<std::size_t>(np));
     for (int i = 0; i < np; ++i) prefetch_pool.emplace_back([this, i] { prefetch_loop(i); });
   }
