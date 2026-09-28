@@ -71,9 +71,9 @@
     },
     "machine_consistency": {
       "checks": 9,
-      "checks_live": 11,
+      "checks_live": 12,
       "version_live": "2.0.0",
-      "superseded_by": "eng/tools/docs_machine_consistency.py（现役 version=2.0.0 / checks=11；本件 checks=9 为工具 v1.0.0 时代快照，TRUTHFUL-CONCLUSION-01 登记为需与现役对齐的快照面）",
+      "superseded_by": "eng/tools/docs_machine_consistency.py（现役 version=2.0.0 / checks=12；本件 checks=9 为工具 v1.0.0 时代快照，TRUTHFUL-CONCLUSION-01 登记为需与现役对齐的快照面）",
       "broken": 0,
       "pass": true,
       "checks_detail": ["config_weight_mode_ivar", "frame_id_contract_exact", "error_taxonomy_exit_codes", "integration_status_full_set", "rejection_status_full_set", "stage_ids_docs_vs_orchestrator", "snr_constants", "product_contracts", "drizzle_variance_formula"]

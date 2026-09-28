@@ -2524,7 +2524,13 @@ int dispatch(const Parsed& p) {
     for (const auto& s : astrocs::cli::cmd::session_commands()) {
         if (joined != s.name) continue;
         const astrocs::cli::cmd::Subcommand sub{s.name, s.session};
-        return sub.dispatch(p, ev);
+        // P-163: 事件流发布面退出码 —— 事件流（stdout JSONL）是本次运行的默认输出，
+        // 「成功」必须包含事件已写出：stdout 管道对端关闭 / 重定向到满盘（ENOSPC）
+        // 时 emit 写失败已被 JsonlEmitter 登记，这里把名义 rc=0 改成写失败码
+        // （IO=7；磁盘满=10，docs/plugins/infrastructure/21_observability.md:45-46）。
+        // 名义 rc 已非 0 时原码保留（run 自身失败更具体，不被写失败掩盖）。
+        const int rc = sub.dispatch(p, ev);
+        return ev.publication_exit_code(rc);
     }
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");

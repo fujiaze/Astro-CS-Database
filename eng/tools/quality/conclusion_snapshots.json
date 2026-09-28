@@ -18,7 +18,7 @@
       },
       "recorded": {
         "version": "2.0.0",
-        "checks": 11
+        "checks": 12
       },
       "registration_check_id": "CHK-DOCS-MACHINE-CONSISTENCY",
       "recorded_in": [
@@ -30,7 +30,7 @@
           }
         }
       ],
-      "note": "v19r7 证据面记录 machine_consistency.checks=9（工具 v1.0.0 时代快照），现役 v2.0.0 为 11 项。审查节点指出的「快照停在旧版本」即此处：原为无人核对的手抄值与零登记门。"
+      "note": "v19r7 证据面记录 machine_consistency.checks=9（工具 v1.0.0 时代快照），现役 v2.0.0 为 12 项（第 12 项 `input_manifest_hash_single_formula` 为工具扩容新增，前 11 项逐项未动、无一删除；本值由 snapshots[0].live_command 实测取得）。审查节点指出的「快照停在旧版本」即此处：原为无人核对的手抄值与零登记门。"
     }
   ]
 }

@@ -13,9 +13,11 @@
 // 不得互相冒充（本文件禁止把 LOG-001 的 seq/event/level 键名当作运行事件字段）。
 #pragma once
 #include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <regex>
 #include <string>
@@ -157,7 +159,13 @@ public:
     // kind 基础事件(progress/resource/artifact/backend 由 extra 扩展; final 见 emit_final)。
     // CLI-004: 发送侧协议自检硬闸 —— 违反冻结合同(10 必含字段/sequence 单调/kind 扩展
     // 字段/final.exit_code 域)的事件拒绝发出(stderr 诊断), stdout 保持纯 JSONL。
-    void emit(const std::string& kind, const std::string& severity, const std::string& stage,
+    //
+    // P-163: 返回值 = 本事件是否**完整写出**（机器通道 + 人可读通道都成功）。
+    //   false 的两种来源可区分：协议硬闸拒发（不置 write_failed_）与 I/O 写失败
+    //   （置 write_failed_/write_exit_code_）。写失败**不吞**：fputs 与 fflush 的
+    //   返回值都查，失败即落可查询状态 + stderr 结构化诊断行；诊断只走 stderr，
+    //   stdout 恒为纯 JSONL（docs/ASTROCS_DESIGN §6.3）。
+    bool emit(const std::string& kind, const std::string& severity, const std::string& stage,
               const std::string& message, const nlohmann::json& extra = {}) {
         nlohmann::json ev = {
             {"schema_version", "1"},
@@ -181,14 +189,31 @@ public:
             std::fprintf(stderr, "acsd: protocol: event dropped (kind=%s seq=%llu)\n",
                          kind.c_str(), static_cast<unsigned long long>(seq_));
             ++seq_;  // 保持 sequence 单调性不变(violation 仍占序)
-            return;
+            return false;  // 协议拒发不是 I/O 写失败: 不置 write_failed_
         }
-        // 机器通道(stdout): 单行 ≤ 4096 字节。
-        std::fputs(fit_event_line(ev).c_str(), stdout);
-        std::fflush(stdout);
-        // 人可读通道(stderr): 与上面同一事件对象同源生成。
-        std::fputs(human_summary_of(ev).c_str(), stderr);
+        // 机器通道(stdout): 单行 ≤ 4096 字节。fputs/fflush 返回值都查(P-163)。
+        std::string io_err;
+        int io_errno = 0;
+        const bool machine_ok = write_all(stdout, fit_event_line(ev), "stdout", &io_err, &io_errno);
+        // 人可读通道(stderr): 与上面同一事件对象同源生成（同样查返回值）。
+        std::string human_err;
+        int human_errno = 0;
+        const bool human_ok = write_all(stderr, human_summary_of(ev), "stderr", &human_err, &human_errno);
+        if (!machine_ok) {
+            last_write_error_ = io_err;
+            if (!write_failed_) {   // 首个失败 = 根因; 后续失败多为同一根因的后果
+                write_failed_ = true;
+                write_exit_code_ = exit_code_for_write_errno(io_errno);
+            }
+            report_write_failure("stdout", io_err, write_exit_code_, seq_);
+        }
+        if (!human_ok) {
+            human_channel_failed_ = true;
+            last_write_error_ = human_err;
+            report_write_failure("stderr", human_err, exit_code_for_write_errno(human_errno), seq_);
+        }
         ++seq_;
+        return machine_ok && human_ok;
     }
 
     // §4 progress 事件扩展字段冻结: {completed,total,unit,rate,eta_seconds}。
@@ -231,11 +256,74 @@ public:
         emit("final", exit_code == OK ? "info" : "error", "n/a", summary, extra);
     }
 
+    // ── P-163: 写失败可查询状态（只增不减；emitter 生命周期内）──
+    // 机器通道（stdout JSONL = 事件流合同面）写失败过 ⇒ write_failed() == true。
+    bool write_failed() const { return write_failed_; }
+    // 人可读通道（stderr 摘要）写失败过。**只登记**，不驱动退出码：诊断通道缺失
+    // 不得把机器合同已成功的 run 判成 IO(7)（见 publication_exit_code 注释）。
+    bool human_channel_failed() const { return human_channel_failed_; }
+    // 首个机器通道失败的退出码：ENOSPC（磁盘满）→ 10(RESOURCE)，其它写失败 → 7(IO)。
+    int write_exit_code() const { return write_exit_code_; }
+    const std::string& last_write_error() const { return last_write_error_; }
+
+    // 发布面退出码（P-163）：事件流是本次运行的默认输出通道（docs/ASTROCS_DESIGN §6.3），
+    // 因此「成功」必须包含事件已写出 —— 名义 rc == OK 而事件流写失败时改报写失败码
+    // （IO=7；磁盘满 ENOSPC → 10，docs/plugins/infrastructure/21_observability.md:45-46）。
+    // 名义 rc 已非 0 时保留原码：run 自身的失败更具体，不被写失败掩盖（且已非 0）。
+    int publication_exit_code(int nominal_rc) const {
+        if (!write_failed_ || nominal_rc != astrocs::OK) return nominal_rc;
+        return write_exit_code_;
+    }
+
 private:
+    // 单通道写：fputs 与 fflush 的返回值都查（P-163 核心）。失败时填 *out_err/*out_errno。
+    static bool write_all(std::FILE* stream, const std::string& text, const char* channel,
+                          std::string* out_err, int* out_errno) {
+        std::clearerr(stream);
+        errno = 0;
+        if (std::fputs(text.c_str(), stream) == EOF) {
+            const int e = errno;
+            if (out_errno) *out_errno = e;
+            if (out_err) *out_err = std::string(channel) + ":fputs:errno=" + std::to_string(e) +
+                                    ":" + std::strerror(e);
+            return false;
+        }
+        errno = 0;
+        if (std::fflush(stream) != 0) {
+            const int e = errno;
+            if (out_errno) *out_errno = e;
+            if (out_err) *out_err = std::string(channel) + ":fflush:errno=" + std::to_string(e) +
+                                    ":" + std::strerror(e);
+            return false;
+        }
+        return true;
+    }
+
+    // 写失败 → 退出码：磁盘满 = RESOURCE(10)，其它 I/O 写失败 = IO(7)。
+    // 码值唯一源 = exit_codes.h；判据语义 = 21_observability.md:45-46。
+    static int exit_code_for_write_errno(int e) {
+        return e == ENOSPC ? astrocs::RESOURCE : astrocs::IO;
+    }
+
+    // 结构化诊断行（stderr；机器可解析的 key=value 前缀）。只走 stderr —— stdout
+    // 必须保持纯 JSONL。stderr 自身坏掉时本行写失败即可忽略（状态已可查询）。
+    static void report_write_failure(const char* channel, const std::string& err, int exit_code,
+                                     unsigned long long seq) {
+        std::fprintf(stderr,
+                     "acsd: io_error symbol=JsonlEmitter::emit channel=%s exit_code=%d seq=%llu"
+                     " detail=%s\n",
+                     channel, exit_code, seq, err.c_str());
+        std::fflush(stderr);
+    }
+
     std::string run_id_;
     std::string phase_;
     std::string run_manifest_path_;
     unsigned long long seq_ = 0;
+    bool write_failed_ = false;
+    bool human_channel_failed_ = false;
+    int write_exit_code_ = astrocs::IO;
+    std::string last_write_error_;
 };
 
 }  // namespace astrocs
