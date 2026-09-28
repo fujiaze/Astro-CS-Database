@@ -329,3 +329,34 @@ set_tests_properties(drizzle_pf_sb_gate_legacy_injection PROPERTIES
   WILL_FAIL TRUE
   ENVIRONMENT "ASTROCS_DRZ_SB_FAULT=legacy_dp_normalization")
 
+
+# ============================================================================
+# 11. P3-01 / P3-06 守恒闭合回归门（极区 / u+v=1 接缝 / face 角点 / |z|=2/3 位置集）
+# ----------------------------------------------------------------------------
+# 背景: 原冻结门 (drizzle_freeze) 的位置集不含极点与 face 接缝，故在生产快路径
+#   返回解析叶面积 π/(3N²)（与裁剪路径不同口径）时仍全绿；本门把该位置集与
+#   订正后的判据一并锁进机器门。
+# 判据口径 = docs/science/algorithms/DRIZZLE_GEOMETRY.md §9「面积守恒闭合」:
+#   逐 drop |Σ_j a_jp − A_drop,p| ≤ max(1e-6·A_drop,p, 1e-15 sr)；帧级 ≤ 1e-4。
+# 参考面积由门内自算（long double VOS），不复用被测路径。
+# 负例（同一可执行 + 同一判据）: ASTROCS_DRZ_P3_FAULT=legacy_corner_fast 注入
+#   订正前行为（叶多边形顶点全含判定 + 返回 π/(3N²)）⇒ 必须判红（WILL_FAIL）。
+# self-test: 判据正例/负例/边界 + "旧相对口径在接缝域结构性不可达"对照。
+# ============================================================================
+add_executable(p3_conservation_gate ${DRZ_TESTS_DIR}/p3_conservation_gate.cpp)
+target_include_directories(p3_conservation_gate PRIVATE ${DRZ_MODULE_DIR})
+target_compile_definitions(p3_conservation_gate PRIVATE
+  AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(p3_conservation_gate PRIVATE
+  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+add_test(NAME drizzle_p3_conservation COMMAND p3_conservation_gate)
+set_tests_properties(drizzle_p3_conservation PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
+add_test(NAME drizzle_p3_conservation_self_test COMMAND p3_conservation_gate --self-test)
+set_tests_properties(drizzle_p3_conservation_self_test PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 1800)
+add_test(NAME drizzle_p3_conservation_legacy_injection COMMAND p3_conservation_gate --quiet)
+set_tests_properties(drizzle_p3_conservation_legacy_injection PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 900
+  ENVIRONMENT "ASTROCS_DRZ_P3_FAULT=legacy_corner_fast"
+  WILL_FAIL TRUE)

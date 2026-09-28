@@ -119,6 +119,7 @@ static int t12_sweep(uint32_t Ns, double scale, double lo, double hi, double ste
     if (fp) std::fprintf(fp, "corner,ra,dec,n,worst_v0,worst_rec1,worst_oracle,"
                              "n_fail_v0,n_fail_rec1,n_fail_oracle,seg_per_leaf\n");
     int bad = 0;
+    long long total_f0 = 0, total_f1 = 0, total_fo = 0;
     for (size_t ci = 0; ci < C.size(); ++ci) {
         double ra0, dec0; vec_to_radec(C[ci], ra0, dec0);
         TanWcs w = make_wcs(ra0, dec0, scale, 23.5);
@@ -153,11 +154,15 @@ static int t12_sweep(uint32_t Ns, double scale, double lo, double hi, double ste
         if (fp) std::fprintf(fp, "%zu,%.6f,%.6f,%d,%.6e,%.6e,%.6e,%d,%d,%d,%.2f\n",
                              ci, ra0, dec0, n, w0, w1, wo, f0, f1, fo,
                              (double)seg/(double)std::max(1LL,nl));
-        if (f1 != 0) ++bad;
-        if (fo != 0) ++bad;
+        // P3-05 订正: SUMMARY 判据原先只读 REC-1 与 oracle，V0（生产口径）破门
+        // 被排除在判定之外 ⇒ 该行对 V0 恒真。订正后三者任一破门即整轮判红，
+        // 且 SUMMARY 行显式回显三路破门总数（不得再出现"V0 破门≠0 却 PASS"）。
+        bad += f0 + f1 + fo;
+        total_f0 += f0; total_f1 += f1; total_fo += fo;
     }
     if (fp) std::fclose(fp);
-    printf("# SUMMARY T12: %s\n", bad == 0 ? "PASS" : "FAIL");
+    printf("# SUMMARY T12: %s  (V0 破门合计=%lld, REC-1=%lld, oracle=%lld)\n",
+           bad == 0 ? "PASS" : "FAIL", total_f0, total_f1, total_fo);
     return bad == 0 ? 0 : 1;
 }
 

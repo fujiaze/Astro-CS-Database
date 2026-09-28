@@ -513,6 +513,116 @@ static void test_science_fidelity() {
     }
 }
 
+
+// ============================================================================
+// T8: 极区/接缝位置集守恒闭合（P3-01 / P3-06 订正；判据 = DRIZZLE_GEOMETRY §9）
+// ----------------------------------------------------------------------------
+// 背景: 原冻结验收的位置集不含极点与 u+v=1 接缝，而生产在 nside>=256 曾走
+//   "叶多边形顶点全含 ⇒ 返回解析叶面积 π/(3N²)" 的旧快路径 —— 返回口径与裁剪
+//   路径不同（弦表示亏缺至 ~9.97%/叶），极点栅格实测 376/1089 破门、最坏
+//   2.5172e-02，本门却全绿。T8 把该位置集与订正后的混合判据锁进冻结门：
+//     逐 drop |Σ_j a_jp − A_drop,p| ≤ max(1e-6·A_drop,p, 1e-15 sr)
+//     帧级    |Σ_p (Σ_j a_jp − A_drop,p)| / Σ_p A_drop,p ≤ 1e-4
+//   参考面积由本测试自算（long double Van Oosterom 扇形），不复用被测路径。
+// 完备位置集（极点邻域 / 接缝 / face 角点 / HST 0.04″ 尺度 / 负例注入）与
+//   逐组判定在 ctest 门 drizzle_p3_conservation（tests/p3_conservation_gate.cpp）；
+//   本 T8 保留为冻结验收里的最小位置集与同判据抽查。
+// ============================================================================
+static double t8_ref_area_sr(const std::vector<spherical::Vec3>& poly) {
+    const int n = (int)poly.size();
+    if (n < 3) return 0.0;
+    long double tot = 0.0L;
+    for (int i = 1; i < n - 1; ++i) {
+        const spherical::Vec3& A = poly[0];
+        const spherical::Vec3& B = poly[i];
+        const spherical::Vec3& C = poly[i + 1];
+        const long double bx = (long double)B.y * C.z - (long double)B.z * C.y;
+        const long double by = (long double)B.z * C.x - (long double)B.x * C.z;
+        const long double bz = (long double)B.x * C.y - (long double)B.y * C.x;
+        const long double det = (long double)A.x * bx + (long double)A.y * by +
+                                (long double)A.z * bz;
+        const long double den =
+            1.0L + ((long double)A.x * B.x + (long double)A.y * B.y + (long double)A.z * B.z) +
+                   ((long double)B.x * C.x + (long double)B.y * C.y + (long double)B.z * C.z) +
+                   ((long double)C.x * A.x + (long double)C.y * A.y + (long double)C.z * A.z);
+        tot += 2.0L * atan2l(det, den);
+    }
+    return std::fabs((double)tot);
+}
+
+// TAN (gnomonic) 足迹: p = normalize(T + ξ·e1 + η·e2)（不经 (ra,dec) 往返）
+static std::vector<spherical::Vec3> t8_make_drop(double ra_deg, double dec_deg,
+                                                 double arcsec_per_px,
+                                                 double px, double py) {
+    const double a = ra_deg * PI_ / 180.0, d = dec_deg * PI_ / 180.0;
+    const spherical::Vec3 T{std::cos(d) * std::cos(a), std::cos(d) * std::sin(a), std::sin(d)};
+    const spherical::Vec3 e1{-std::sin(a), std::cos(a), 0.0};
+    const spherical::Vec3 e2{-std::sin(d) * std::cos(a), -std::sin(d) * std::sin(a), std::cos(d)};
+    const double s = arcsec_per_px * PI_ / (180.0 * 3600.0);
+    const double h = 0.5;
+    const double c[4][2] = {{px - h, py - h}, {px + h, py - h}, {px + h, py + h}, {px - h, py + h}};
+    std::vector<spherical::Vec3> out;
+    out.reserve(4);
+    for (int i = 0; i < 4; ++i) {
+        const double xi = c[i][0] * s, eta = c[i][1] * s;
+        spherical::Vec3 v{T.x + xi * e1.x + eta * e2.x,
+                          T.y + xi * e1.y + eta * e2.y,
+                          T.z + xi * e1.z + eta * e2.z};
+        const double l = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        out.push_back({v.x / l, v.y / l, v.z / l});
+    }
+    return out;
+}
+
+static void test_pole_seam_closure() {
+    printf("=== T8: 极区/接缝位置集守恒闭合（冻结判据） ===\n");
+    const double rel_budget = 1e-6, abs_budget = 1e-15, frame_budget = 1e-4;
+    struct P { const char* tag; double ra, dec; };
+    const P pos[2] = {{"极点(0,90)", 0.0, 90.0},
+                      {"u+v=1 接缝(45,41.810315)", 45.0, 41.810315}};
+    const int nside = 2097152;                       // 2^21, hp_res ≈ 0.1006"
+    healpix::HealpixCore hp(nside);
+    const double hp_res_as = hp.pixelResolutionArcsec();
+    const double hp_res = hp_res_as * PI_ / (180.0 * 3600.0);
+    for (int pi = 0; pi < 2; ++pi) {
+        const P& p = pos[pi];
+        spherical::TargetGeomCache cache(8192);
+        double worst_abs = 0.0, worst_rel = 0.0, worst_ratio = 0.0, sum_da = 0.0, sum_a = 0.0;
+        int n = 0;
+        for (double k : {0.3, 1.0, 3.0}) {           // drop 尺度 0.3 / 1 / 3 × hp_res
+            for (int ix = -2; ix <= 2; ++ix)
+                for (int iy = -2; iy <= 2; ++iy) {
+                    const std::vector<spherical::Vec3> drop =
+                        t8_make_drop(p.ra, p.dec, k * hp_res_as, (double)ix, (double)iy);
+                    const double a_ref = t8_ref_area_sr(drop);
+                    std::vector<spherical::Vec3> d = drop, dd = drop;
+                    spherical::DropGeometryT<double> pg;
+                    spherical::build_drop_geometry_into<double>(pg, d, &dd);
+                    std::vector<uint64_t> cands;
+                    spherical::query_candidate_pixels<double>(dd, hp, cands);
+                    double sum = 0.0;
+                    for (uint64_t ipix : cands)
+                        sum += spherical::compute_overlap_area_g_ctx_cached<double>(
+                            pg, hp, ipix, hp_res, cache);
+                    const double da = sum - a_ref;
+                    const double lim = std::max(rel_budget * a_ref, abs_budget);
+                    worst_abs = std::max(worst_abs, std::fabs(da));
+                    worst_rel = std::max(worst_rel, std::fabs(da) / a_ref);
+                    worst_ratio = std::max(worst_ratio, std::fabs(da) / lim);
+                    sum_da += da; sum_a += a_ref; ++n;
+                }
+        }
+        const double frame_rel = std::fabs(sum_da) / sum_a;
+        char msg[256];
+        std::snprintf(msg, sizeof(msg),
+                      "T8 %s: n=%d 最坏|dA|=%.3e sr 最坏相对=%.3e |dA|/判据限=%.4f (须<=1) "
+                      "帧级=%.3e (须<=%.1e, 判据 max(%.0e·A, %.0e sr))",
+                      p.tag, n, worst_abs, worst_rel, worst_ratio,
+                      frame_rel, frame_budget, rel_budget, abs_budget);
+        CHECK(worst_ratio <= 1.0 && frame_rel <= frame_budget, msg);
+    }
+}
+
 int main() {
     printf("=== Drizzle Phase1 最终冻结验收 (合成真值) ===\n");
     test_coverage_oracle();
@@ -522,6 +632,7 @@ int main() {
     test_reverse();
     test_hiss_roundtrip();
     test_science_fidelity();
+    test_pole_seam_closure();
     printf("== 冻结验收结果: %d 通过, %d 失败 ==\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }
