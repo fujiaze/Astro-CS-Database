@@ -24,7 +24,8 @@
 
 - 职责：逐像素加权积分 reducer——signal=Σwᵢxᵢ/Σwᵢ（仅 eligible ∧
   正权重样本，候选索引固定序）+ support canonical reducer
-  （integrate.h:17 "max(accepted support)" 冻结语义）+ 五态显式
+  （integrate.h:26-27 "max(accepted support)" 冻结语义，零权重 accepted
+  样本计入、全零权仍发布，integrate.cpp:44-50/:79-80）+ 五态显式
   status + p2_validate_candidate_weights 输入预检（:10-17）。
 - 非职责：权重策略（外部 numeric weights，构造在 Stage2
   :1106-1140，policy/reducer 分离冻结）、排异/eligibility gather
@@ -90,9 +91,12 @@ P2PixelResult 调用方分配，integrate.h:36-42/:53-63）；无内部 cache
 
 - 错误面=五态 status + rc=1（null 栈，:20-21）；无日志/指标输出
   （纯函数）；无内部取消检查点/checkpoint（迁移 ThreadLease 接线属迁移目标，未落地）。
-- 已知缺陷（登记不改码，正本 = PHASE2_INTEGRATION.md §11.3）：sup_max 漏计零权重
-  accepted 样本（integrate.cpp:54-55 vs integrate.h:17，保守方向）、
-  INTEGRATION.md:58 与 integrate.h:17 的 support 表述差异；整改面未落地。
+- 已知缺陷：无未决项。原 `DISP-P2INT-001`/`DISP-P2INT-002` 已落地——sup_max
+  更新位于权重分支之前（integrate.cpp:44-50），零权重 accepted 样本计入 max，
+  全零权（ZERO_VALID_WEIGHT）仍发布该 max（:79-80）、ALL_REJECTED 保持 0（:21）；
+  support 表述已三面同步（INTEGRATION.md:85-90 / integrate.h:26-27 /
+  DATA_SEMANTICS.md §21.2/§21.5）。正本 = PHASE2_INTEGRATION.md §11.3（约束 + 回归门
+  eng/tests/unit/p2_output_semantics_test.cpp 4b/4c/4d）。
 
 ## 独立 synthetic 验证命令与容差
 

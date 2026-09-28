@@ -31,22 +31,6 @@
       ]
     },
     {
-      "id": "dead_config_key:snr_path",
-      "kind": "dead_key",
-      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct）+ eng/packaging/config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target）+ eng/packaging/config/templates/mosaic.phase_config.json#config.snr_path。**FIX-203 后状态（2026-09-20）**：CLI 可达性已闭合——snr_path 已进 lib/infrastructure/cli/parser.cpp#session_keys() 白名单（:305）与 session_commands.h#config_fields(kMosaic)（:195，--help/--template 同源），配置不再被判 unknown key 退出 3。但**生产科学消费点仍为零**（Phase2 叠加现场按 snr_path 消费/重建 SNR = 变更 claim FIX-SCI-SNR-CANON-001 §4.2 跟随项；lib/** 内带引号 \"snr_path\" token 只出现在 CLI 键表声明处，hp_drizzle_api 的同名形参不是配置读取面）⇒ 本条**保留**，防止把「CLI 认识」误当成「已消费」。",
-      "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45/§9.46）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）；CLI 键面落地 = FIX-203（RELEASE-03）",
-      "exit_condition": "Phase2 叠加现场按 snr_path 消费/重建 SNR（含无稀疏层时显式记录 snr_path_effective、损坏层 fail-closed）出现生产读取点后删除本条（CLI 可达性部分已由 FIX-203 完成）。",
-      "consumed_as": "（无：生产零读取；CLI 只识别并透传，见 FIX-203）",
-      "template": "eng/packaging/config/templates/mosaic.phase_config.json",
-      "evidence": [
-        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
-        "eng/packaging/config/defaults.json#fields[].key=snr.path",
-        "lib/infrastructure/cli/session_commands.h:195",
-        "lib/infrastructure/cli/parser.cpp:305",
-        "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2"
-      ]
-    },
-    {
       "id": "dead_config_key:rotation_deg",
       "kind": "dead_key",
       "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg（number；description「旋转角（若用 CD）；默认 0」）+ eng/packaging/config/config_registry.json#export.config.wcs.rotation_deg + docs/contracts/CONFIG_CONTRACT.md §3（export 配置键 wcs.{rotation_deg,crpix_px}）+ docs/plugins/algorithms_phase3/14_projection.md:38（rotation 默认 0）。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已按「键名以命令行实际认的键为准」（docs/ASTROCS_DESIGN §3.3）提升为 CLI export 平铺顶层键 rotation_deg（session_commands.h#config_fields(kExport) :234 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影/重采样链（p3_session.cpp parse_request、module_adapters P3 节点）不读 rotation_deg，lib/** 内带引号 \"rotation_deg\" token 只出现在 CLI 键表声明处（aio_wcs_rotation_deg 是另一函数名，不是配置读取面）⇒ 本键当前为 no-op，登记在此，不得静默。",
