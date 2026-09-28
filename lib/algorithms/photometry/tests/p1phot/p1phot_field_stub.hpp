@@ -7,6 +7,7 @@
 #define P1PHOT_FIELD_STUB_HPP
 
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 #include "p1phot_fixtures.hpp"
@@ -23,6 +24,16 @@ inline stub::FakeClientConfig make_config(const fix::StarField& f,
                                           float flux_min, float flux_mul,
                                           int wl_start = 336, int wl_step = 2,
                                           int wl_count = 343) {
+    // 前置条件: (wl_start, wl_step, wl_count) 是本 fixture 的波长栅格定义,
+    // count 非正即调用方契约违规。原实现直接 assign((std::size_t)wl_count, ...),
+    // 负值经 size_t 加宽放大成 ~2^64 量级 (GCC -Wstringop-overflow 实测区间
+    // [18446744071562067968, 18446744073709551615]); 虽由 vector 自身的
+    // length_error 兜住、不至于越界写, 但报错与真实原因无关。此处显式 fail-fast,
+    // 把前置条件写成代码事实 (默认 343; 本仓全部调用点均用默认值)。
+    if (wl_count <= 0) {
+        throw std::invalid_argument(
+            "p1phot::bridge::make_config: wl_count 必须 > 0 (波长栅格定义, 默认 343)");
+    }
     stub::FakeClientConfig cfg;
     cfg.wl_start = wl_start;
     cfg.wl_step = wl_step;

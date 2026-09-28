@@ -2381,13 +2381,35 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     int cached_count = 0;
     if (query_cache_lookup(client, ra, dec, radius_deg, mag_low, mag_high,
                             &cached_ra, &cached_dec, &cached_mag, &cached_count)) {
-        /* 缓存命中: 构造GaiaStar数组返回 */
-        if (cached_count > 0 && !cached_ra) { cache_unlock(client); return -1; }
-        *out_stars = (GaiaStar *)calloc((size_t)cached_count, sizeof(GaiaStar)); /* CAT-GAIA-IMPL: 契约要求 parallax/pmra/pmdec 显式置 0 */
-        if (cached_count > 0 && !*out_stars) {
+        /* 缓存命中: 构造GaiaStar数组返回。
+         * 守卫顺序 (缺陷修复): 校验必须发生在 (size_t) 加宽与 calloc **之前**。
+         *   ① cached_count 是缓存条目的星数, 恒 >= 0; 负值经 (size_t) 加宽会放大成
+         *      ~2^64 量级 (GCC 实测区间 [18446744071562067968, 18446744073709551615])。
+         *      旧写法下"负计数 + calloc 失败"不会被 `cached_count > 0` 分支覆盖,
+         *      会以 rc=0 返回负的 out_count (静默错值), 违反既有断言
+         *      eng/tests/unit/gaia_cat_test.c:799 的 n >= 0。
+         *   ② 命中条目由 query_cache_insert 事务式插入 (三通道先全分配成功再提交),
+         *      故 count > 0 ⇒ ra/dec/mag 指针全部非空; 任一为空即条目不自洽 ⇒ fail-closed。
+         *   ③ count == 0 不进入分配: calloc(0) 的返回值是实现定义 (glibc 返回唯一指针,
+         *      部分平台返回 NULL), 空结果一律以 (NULL, 0) 表达, 与查询入口置空及既有
+         *      断言 "无结果 ⇒ res == NULL" 一致 (消除平台差异)。 */
+        if (cached_count < 0 ||
+            (cached_count > 0 && (!cached_ra || !cached_dec || !cached_mag))) {
             cache_unlock(client);
-            *out_count = 0;
             return -1;
+        }
+        if (cached_count > 0) {
+            /* 溢出守卫: 计数 × 元素大小不得溢出 size_t (真实条目上界远小于此) */
+            if ((size_t)cached_count > (size_t)-1 / sizeof(GaiaStar)) {
+                cache_unlock(client);
+                return -1;
+            }
+            *out_stars = (GaiaStar *)calloc((size_t)cached_count, sizeof(GaiaStar)); /* CAT-GAIA-IMPL: 契约要求 parallax/pmra/pmdec 显式置 0 */
+            if (!*out_stars) {
+                cache_unlock(client);
+                *out_count = 0;
+                return -1;
+            }
         }
         *out_count = cached_count;
         for (int i = 0; i < cached_count; i++) {
@@ -2414,8 +2436,10 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
     if (!sc_arr) return -1;
     for (int i = 0; i < nfiles; i++) collector_init(&sc_arr[i], 4096);
 
+    int f;
+    /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int f = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
-    for (int f = 0; f < nfiles; f++) {
+    for (f = 0; f < nfiles; f++) {
         if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
         /* G1: 星等 shard 剪枝——每个 XPSD 文件是按星等切片的 shard, 文件声明
@@ -2676,8 +2700,10 @@ int gaia_client_cone_search_with_spectrum(
         spec_collector_init(&sc_arr[i], 4096, spec_count);
     }
 
+    int f;
+    /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int f = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
-    for (int f = 0; f < nfiles; f++) {
+    for (f = 0; f < nfiles; f++) {
         if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;
@@ -2868,8 +2894,10 @@ int gaia_client_query_spectrum_by_coords(
     drop_ledger_init(&q_drop);
 
     /* 并行搜索: 每个坐标独立搜索所有文件，找角距离最近的星 */
+    int i;
+    /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int i = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
-    for (int i = 0; i < n_coords; i++) {
+    for (i = 0; i < n_coords; i++) {
         if (gaia_cancel_hit()) continue;   /* 迁移: 坐标迭代边界取消检查点 */
         double ra = ra_list[i];
         double dec = dec_list[i];
@@ -3034,8 +3062,10 @@ int gaia_client_cone_search_with_photometry(
         phot_collector_init(&pc_arr[i], 4096);
     }
 
+    int f;
+    /* WIN-PORT: MSVC 传统 OpenMP (=2.0) 的 C 前端不接受 for-init 里的变量声明 (for (int f = 0; ...) ⇒ C3015 "initialization ... improper form"); 将索引变量提到 pragma 之前声明、init 用纯赋值即可被 2.0 接受；循环体与语义逐字不变。 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
-    for (int f = 0; f < nfiles; f++) {
+    for (f = 0; f < nfiles; f++) {
         if (gaia_cancel_hit()) continue;   /* 迁移: 文件循环边界取消检查点 */
         XPSDFileInternal *xf = &client->files[f];
         uint32_t scratch_size = xf->global_max_block_size;

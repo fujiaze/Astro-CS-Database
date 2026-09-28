@@ -97,6 +97,7 @@ double t_quantile(double p, double nu) {
 }
 
 // 标准正态 CDF（P(Z <= x)）。std::erfc 为标准库实现，FP64 精度。
+// 消费者: norm_quantile 的 Halley 精修下尾残差 (Φ(x) − p)。
 double norm_cdf(double x) {
     return 0.5 * std::erfc(-x / std::sqrt(2.0));
 }
@@ -143,10 +144,12 @@ double norm_quantile(double p) {
             ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0);
     }
     // Halley 精修：x ← x − (Φ(x) − p)/(φ(x)) · 1/(1 + x·(Φ(x)−p)/(2φ(x)))
-    // 上尾用 1−Φ(x)=½·erfc(x/√2) 直接算残差，避免 p→1 时的灾难性相消。
+    // 残差中的 Φ(x) 取本文件唯一实现 norm_cdf (:100-102), 不再就地重写表达式;
+    // 上尾用 1−Φ(x)=½·erfc(x/√2) 直接算残差, 避免 p→1 时的灾难性相消
+    // (两者数学等价, 但上尾用 erfc 精度更高, 故不写成 1.0 - norm_cdf(x))。
     const double e = (x >= 0.0)
         ? ((1.0 - p) - 0.5 * std::erfc(x / std::sqrt(2.0)))
-        : (0.5 * std::erfc(-x / std::sqrt(2.0)) - p);
+        : (norm_cdf(x) - p);
     const double u = e * std::sqrt(2.0 * 3.14159265358979323846) *
                      std::exp(0.5 * x * x);
     const double r2 = 1.0 + 0.5 * x * u;
@@ -1482,8 +1485,12 @@ namespace {
 
 // ---- 内部方法 kernel。working[] 为判定工作域；reasons 按原样本序。 ----
 
+// WIN-PORT C4244: reasons[] 的存储面按合同是 std::uint8_t（rejection.h:395/:551），
+// 而 P2RejectReason 是普通 enum（底层类型 int）。MSVC /W4 对每次 enum→uint8_t 的
+// 隐式窄化转换报 C4244（GCC 不报）。此处按存储合同显式收窄，语义逐位不变
+// （枚举值域见 rejection.h:98-103 的 0..3）。
 void reject_none_impl(std::uint32_t n, std::uint8_t* reason) {
-    std::fill(reason, reason + n, P2_REASON_ACCEPTED);
+    std::fill(reason, reason + n, static_cast<std::uint8_t>(P2_REASON_ACCEPTED));
 }
 
 // robust_mad_clip：median + MAD 迭代 clip（Astropy mad_std oracle）
@@ -1525,9 +1532,9 @@ void reject_robust_mad_impl(const double* w, std::uint32_t n,
     }
     *iterations = (std::uint32_t)it;
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (w[i] < m) ? P2_REASON_REJECTED_LOW
-                                    : P2_REASON_REJECTED_HIGH;
+        if (accept[i]) reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
+        else reason[i] = static_cast<std::uint8_t>(
+            (w[i] < m) ? P2_REASON_REJECTED_LOW : P2_REASON_REJECTED_HIGH);
     }
 }
 
@@ -1587,9 +1594,9 @@ void reject_winsorized_impl(const double* w, std::uint32_t n,
     }
     *iterations = (std::uint32_t)iters;
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
-                                      : P2_REASON_REJECTED_HIGH;
+        if (accept[i]) reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
+        else reason[i] = static_cast<std::uint8_t>(
+            (w[i] < med) ? P2_REASON_REJECTED_LOW : P2_REASON_REJECTED_HIGH);
     }
 }
 
@@ -1625,9 +1632,9 @@ void reject_averaged_impl(const double* w, std::uint32_t n,
     }
     *iterations = (std::uint32_t)it;
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (w[i] < mean) ? P2_REASON_REJECTED_LOW
-                                       : P2_REASON_REJECTED_HIGH;
+        if (accept[i]) reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
+        else reason[i] = static_cast<std::uint8_t>(
+            (w[i] < mean) ? P2_REASON_REJECTED_LOW : P2_REASON_REJECTED_HIGH);
     }
 }
 
@@ -1643,7 +1650,7 @@ void reject_linear_fit_impl(const double* w, std::uint32_t n,
                             ScratchVec<std::uint8_t>& keep,
                             ScratchVec<double>& ns,
                             ScratchVec<std::size_t>& ni) {
-    std::fill(reason, reason + n, P2_REASON_ACCEPTED);
+    std::fill(reason, reason + n, static_cast<std::uint8_t>(P2_REASON_ACCEPTED));
     const std::uint32_t n0 = n;
     stack.resize(n0);
     orig.resize(n0);
@@ -1694,12 +1701,12 @@ void reject_linear_fit_impl(const double* w, std::uint32_t n,
             const double fit = slope * (double)j + intercept;
             if (fit - stack[j] > sigma * siglow) {
                 keep[j] = 0;
-                reason[orig[j]] = P2_REASON_REJECTED_LOW;
+                reason[orig[j]] = static_cast<std::uint8_t>(P2_REASON_REJECTED_LOW);
                 ++r;
                 changed = true;
             } else if (stack[j] - fit > sigma * sighigh) {
                 keep[j] = 0;
-                reason[orig[j]] = P2_REASON_REJECTED_HIGH;
+                reason[orig[j]] = static_cast<std::uint8_t>(P2_REASON_REJECTED_HIGH);
                 ++r;
                 changed = true;
             }
@@ -1724,7 +1731,7 @@ void reject_linear_fit_impl(const double* w, std::uint32_t n,
     for (std::uint32_t i = 0; i < n; ++i) {
         if (reason[i] != P2_REASON_REJECTED_LOW &&
             reason[i] != P2_REASON_REJECTED_HIGH)
-            reason[i] = P2_REASON_ACCEPTED;
+            reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
     }
 }
 
@@ -1795,9 +1802,9 @@ void reject_esd_impl(const double* w, std::uint32_t n, const P2EsdParams& prm,
     for (std::uint32_t i = 0; i < n; ++i) med_scratch[i] = w[i];
     const double med = scratch_median(med_scratch.data(), n);
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
-                                      : P2_REASON_REJECTED_HIGH;
+        if (accept[i]) reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
+        else reason[i] = static_cast<std::uint8_t>(
+            (w[i] < med) ? P2_REASON_REJECTED_LOW : P2_REASON_REJECTED_HIGH);
     }
 }
 
@@ -1819,9 +1826,9 @@ void reject_rcr_impl(const double* w, std::uint32_t n, const double* weights,
     for (std::uint32_t i = 0; i < n; ++i) med_scratch[i] = w[i];
     const double med = scratch_median(med_scratch.data(), n);
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
-                                      : P2_REASON_REJECTED_HIGH;
+        if (accept[i]) reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
+        else reason[i] = static_cast<std::uint8_t>(
+            (w[i] < med) ? P2_REASON_REJECTED_LOW : P2_REASON_REJECTED_HIGH);
     }
 }
 
@@ -1838,11 +1845,11 @@ void reject_percentile_impl(const double* w, std::uint32_t n,
     for (std::uint32_t i = 0; i < n; ++i) {
         (void)orig_vals;
         if (w[i] < -scale * plow) {
-            reason[i] = P2_REASON_REJECTED_LOW;
+            reason[i] = static_cast<std::uint8_t>(P2_REASON_REJECTED_LOW);
         } else if (w[i] > scale * phigh) {
-            reason[i] = P2_REASON_REJECTED_HIGH;
+            reason[i] = static_cast<std::uint8_t>(P2_REASON_REJECTED_HIGH);
         } else {
-            reason[i] = P2_REASON_ACCEPTED;
+            reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
         }
     }
     (void)scratch;
@@ -1888,9 +1895,9 @@ void reject_median_sigma_impl(const double* w, std::uint32_t n,
     }
     *iterations = (std::uint32_t)iters;
     for (std::uint32_t i = 0; i < n; ++i) {
-        if (accept[i]) reason[i] = P2_REASON_ACCEPTED;
-        else reason[i] = (w[i] < med) ? P2_REASON_REJECTED_LOW
-                                      : P2_REASON_REJECTED_HIGH;
+        if (accept[i]) reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
+        else reason[i] = static_cast<std::uint8_t>(
+            (w[i] < med) ? P2_REASON_REJECTED_LOW : P2_REASON_REJECTED_HIGH);
     }
 }
 
@@ -1900,7 +1907,7 @@ void reject_minmax_impl(const double* w, std::uint32_t n,
                         std::uint32_t* iterations,
                         ScratchVec<std::size_t>& order,
                         ScratchVec<std::uint8_t>& accept) {
-    std::fill(reason, reason + n, P2_REASON_ACCEPTED);
+    std::fill(reason, reason + n, static_cast<std::uint8_t>(P2_REASON_ACCEPTED));
     const int k_low = std::max(0, prm.reject_low_count);
     const int k_high = std::max(0, prm.reject_high_count);
     const std::uint32_t min_kept = (std::uint32_t)std::max(1, prm.min_kept);
@@ -1908,7 +1915,7 @@ void reject_minmax_impl(const double* w, std::uint32_t n,
                                                     min_kept) {
         // 不满足"删除后 >= min_kept"：全部 UNDERDETERMINED（调用方处理）
         for (std::uint32_t i = 0; i < n; ++i)
-            reason[i] = P2_REASON_UNDERDETERMINED;
+            reason[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         *iterations = 0;
         return;
     }
@@ -1919,11 +1926,13 @@ void reject_minmax_impl(const double* w, std::uint32_t n,
     accept.resize(n);
     accept.fill(1);
     for (int k = 0; k < k_low; ++k) {
-        reason[order[static_cast<std::size_t>(k)]] = P2_REASON_REJECTED_LOW;
+        reason[order[static_cast<std::size_t>(k)]] =
+            static_cast<std::uint8_t>(P2_REASON_REJECTED_LOW);
         accept[order[static_cast<std::size_t>(k)]] = 0;
     }
     for (int k = 0; k < k_high; ++k) {
-        reason[order[n - 1 - static_cast<std::size_t>(k)]] = P2_REASON_REJECTED_HIGH;
+        reason[order[n - 1 - static_cast<std::size_t>(k)]] =
+            static_cast<std::uint8_t>(P2_REASON_REJECTED_HIGH);
         accept[order[n - 1 - static_cast<std::size_t>(k)]] = 0;
     }
     *iterations = 1;
@@ -1977,9 +1986,9 @@ void reject_extreme_prior_impl(const double* vals, std::uint32_t n,
             center = stack_med;  // center_mode==0 时已由 valid 门拦下
         }
         const double z = (vals[i] - center) / sigma;
-        if (z > k) reason[i] = P2_REASON_REJECTED_HIGH;
-        else if (z < -k) reason[i] = P2_REASON_REJECTED_LOW;
-        else reason[i] = P2_REASON_ACCEPTED;
+        if (z > k) reason[i] = static_cast<std::uint8_t>(P2_REASON_REJECTED_HIGH);
+        else if (z < -k) reason[i] = static_cast<std::uint8_t>(P2_REASON_REJECTED_LOW);
+        else reason[i] = static_cast<std::uint8_t>(P2_REASON_ACCEPTED);
     }
     *iterations = 1;
 }
@@ -2025,7 +2034,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         out->reasons = reasons_out;
         if (reasons_out != nullptr && stack->count > 0) {
             for (std::uint32_t i = 0; i < stack->count; ++i)
-                reasons_out[i] = P2_REASON_UNDERDETERMINED;
+                reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         }
         out->accepted_count = stack->count;
         out->status = P2_STATUS_INVALID_METHOD;
@@ -2046,7 +2055,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         if (!std::isfinite(stack->values[i]) ||
             (stack->weights != nullptr && !std::isfinite(stack->weights[i]))) {
             for (std::uint32_t j = 0; j < n; ++j)
-                reasons_out[j] = P2_REASON_UNDERDETERMINED;
+                reasons_out[j] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
             out->accepted_count = n;
             out->status = P2_STATUS_INVALID_INPUT;
             return 0;
@@ -2058,14 +2067,14 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     if (plan->method == P2_REJECT_PERCENTILE &&
         norm != P2_NORMALIZE_MEDIAN_CENTER) {
         for (std::uint32_t i = 0; i < n; ++i)
-            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+            reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         out->accepted_count = n;
         out->status = P2_STATUS_INVALID_CONFIGURATION;
         return 0;
     }
     if (plan->method == P2_REJECT_RCR && norm != P2_NORMALIZE_NONE) {
         for (std::uint32_t i = 0; i < n; ++i)
-            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+            reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         out->accepted_count = n;
         out->status = P2_STATUS_INVALID_CONFIGURATION;
         return 0;
@@ -2075,7 +2084,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     if (plan->method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA &&
         norm != P2_NORMALIZE_NONE) {
         for (std::uint32_t i = 0; i < n; ++i)
-            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+            reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         out->accepted_count = n;
         out->status = P2_STATUS_INVALID_CONFIGURATION;
         return 0;
@@ -2086,7 +2095,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         plan->minimum_n > 0 ? (std::uint32_t)plan->minimum_n : 0u;
     if (n <= plan->underdetermined_n || (min_n > 0 && n < min_n)) {
         for (std::uint32_t i = 0; i < n; ++i)
-            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+            reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         out->accepted_count = n;
         out->status = P2_STATUS_UNDERDETERMINED;
         return 0;
@@ -2097,7 +2106,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     if (plan->method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA &&
         !extreme_prior_valid(stack, plan)) {
         for (std::uint32_t i = 0; i < n; ++i)
-            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+            reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
         out->accepted_count = n;
         out->status = P2_STATUS_UNDERDETERMINED;
         return 0;
@@ -2205,7 +2214,7 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
     if (accepted_count == 0) {
         if (n <= 4) {
             for (std::uint32_t i = 0; i < n; ++i)
-                reasons_out[i] = P2_REASON_UNDERDETERMINED;
+                reasons_out[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
             out->accepted_count = n;
             out->rejected_low = 0;
             out->rejected_high = 0;
@@ -2508,7 +2517,7 @@ void rej_all_underdetermined(P2RejectClassifyOutput* out, std::uint32_t n,
                              int status) {
     if (out->reasons != nullptr)
         for (std::uint32_t i = 0; i < n; ++i)
-            out->reasons[i] = P2_REASON_UNDERDETERMINED;
+            out->reasons[i] = static_cast<std::uint8_t>(P2_REASON_UNDERDETERMINED);
     if (out->reason_classes != nullptr)
         for (std::uint32_t i = 0; i < n; ++i)
             out->reason_classes[i] = P2_CLASS_NONE;
