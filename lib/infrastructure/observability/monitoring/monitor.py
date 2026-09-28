@@ -86,8 +86,9 @@ assert len(HEADER) == len(set(HEADER)), "HEADER 不得重复列"
 # 合法区间（I/O 区间与初始化区间分开 = 独立阶段，各自样本带自身阶段标签）
 PHASES = ("init", "active", "io", "flush")
 
-# 指纹轮换参数（fixed salt 保证跨进程稳定可复验）
-_FP_SALT = b"astrocs-log002-v1"
+# 指纹轮换参数：冻结格式常量，保证同一采样格式跨进程、跨运行可复验；
+# 改动此值即改变指纹链口径，须同步刷新既有 CSV 的核验基线。
+_FP_SALT = b"astrocs-monitor-v1"
 
 
 def _fingerprint(prev_fp: str, row_str: Dict[str, str], seq: int) -> str:
