@@ -78,7 +78,7 @@ flowchart LR
 3. **空选择**：改动集非空而选中检查数为 0 ⇒ 判红（`EMPTY_SELECTION`）。改动集为空是唯一合法情形，
    必须显式打印 `no_changes` 并以 rc=0 结束（不跑任何检查）。
 
-三条各配 `--self-test` 负例（人为构造"改动落在未覆盖路径"/"改动命中敏感面"/"选择器被改成恒空"），必须判红。
+三条各配 `--self-test` 负例（人为构造"改动落在未覆盖路径"/"改动命中敏感面"/"选择器被置为恒空"），必须判红。
 
 ### 2.5 超时预算
 
@@ -184,7 +184,7 @@ flowchart TD
 
 ---
 
-## 9. 监控字段语义与 L2 冻结判据裁决面（fail-closed）
+## 9. 监控字段语义与 L2 冻结判据（fail-closed）
 
 > 上游：ENGINEERING_SPEC.md §10（fail-closed）、§12（资源与性能）；数值源
 > eng/contracts/resource_gate_v1.json。本节是监控字段语义与 L2 冻结判据的唯一正本。
@@ -201,7 +201,7 @@ flowchart TD
 - 实现单一事实源：`eng/ci/monitor_evidence.py`（`eng/ci/run.py` 与
   `eng/ci/run_checks.py` 共用）；正负例面 `CHK-GATE-FAILCLOSED-SELFTEST`。
 - `heavy: true` ⇒ `requires_monitor: true`（注册表校验器 R7），故所有重步骤
-  必须携带 `eng/ci/resource_monitor.py` 监控包装（11 个执行单元已逐个核对）。
+  必须携带 `eng/ci/resource_monitor.py` 监控包装；逐个执行单元的对照由注册表现场计算。
 
 ### 9.2 L2 冻结判据（违规必红）
 
@@ -214,9 +214,9 @@ flowchart TD
 | 3 | 单样本利用率 ≥0.85 的样本占比 ≥ 0.70 | `sample_pass_fraction_ge_min` |
 | 4 | 无连续 ≥10s 且利用率 <60% 的低利用窗（**无就绪积压同样计违规**：串行/停顿与 CPU 饥饿同属性能缺陷） | `no_low_utilization_window` |
 
-- 裁决面：`eng/ci/l2_frozen_gate.py::adjudicate` + `eng/ci/check_frozen_gate.py`；
+- 判定面：`eng/ci/l2_frozen_gate.py::adjudicate` + `eng/ci/check_frozen_gate.py`；
   任一判据违规 ⇒ `verdict=red`（生产侧 `run_monitored` 的
-  `*_enforcement=record_and_justify` 只是**记录语义**，不再决定 CI 裁决）。
+  `*_enforcement=record_and_justify` 只是**记录语义**，不参与 CI 判定）。
 - 门不适用（`effective_cpus<2` 或区间 ≤10s）是**显式分类**；作为 L2 验收证据
   提交时按红处理（`gate_not_applicable`），作为常规监控检查时记
   `not_applicable`（非豁免）。
@@ -229,7 +229,7 @@ flowchart TD
 
 - 语义：**声明可写面**。`mutates_workspace: true` 的执行单元可写面 =
   登记 `outputs` ∪ `dirty_ignore_exact`/`dirty_ignore_prefixes`；
-  **不再**无条件跳过执行前后的工作区对比（旧行为是自我豁免）。
+  执行前后的工作区对比对两类取值一律生效，声明可写面不构成自我豁免。
 - 写出可写面之外的任何路径 ⇒ `FAIL(dirty)`（与 `mutates_workspace: false`
   同判据）；`eng/ci/run_checks.py` 另按同一字段把"真写跟踪树"的单元排入
   独占道，避免并发写冲突。

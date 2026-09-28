@@ -107,7 +107,7 @@
 | CHK-NO-WEIGHT-MODE-SELFTEST | 文档一致性 | 上项（A44 门；该概念**已按 §9.73 A44 作废**，不存在）的可执行负例面：临时目录正例 + 3 类负例 + 缺 docs 的 fail-closed | `python3 eng/ci/check_no_weight_mode.py --self-test` | P0 |
 | CHK-NO-WEIGHT-MODE-CODE | 代码一致性 | 代码面「单一权重口径」（FZ-WEIGHT-SINGLE-PATH）：`lib/**` + `eng/tools/**` 无模式选择机制（枚举 / 解析路由 / 口径门 / 口径集合 API / 生产模式列表成员），且逆方差链路在位（稀疏控制点重建器 → `compute_inverse_variance_weights` → 生产集成调用点）；退役对象拒绝面必须存活；fail-closed（扫描面或锚缺失判红）；含 --self-test | `python3 eng/ci/check_no_weight_mode_code.py` | P0 |
 | CHK-NO-WEIGHT-MODE-CODE-SELFTEST | 代码一致性 | 上项的可执行负例面：注入模式选择 ⇒ 红；拆除逆方差链路 ⇒ 红；删除退役对象拒绝面 ⇒ 红；扫描面缺失 ⇒ fail-closed；干净树 ⇒ 绿 | `python3 eng/ci/check_no_weight_mode_code.py --self-test` | P0 |
-| AHPX-WEIGHT-RETIRED | 合同/ABI | HiPS 格式内部权重枚举不存在（登记编号 FIX-202；负例面 `ASTROCS_AHPX_FAULT=accept_legacy\|writer_accept_legacy_meta\|writer_drop_snr` 各期望 rc=1） | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target ahpx_hips_format` | P0 |
+| AHPX-WEIGHT-RETIRED | 合同/ABI | HiPS 格式内部权重枚举不存在（负例面 `ASTROCS_AHPX_FAULT=accept_legacy\|writer_accept_legacy_meta\|writer_drop_snr` 各期望 rc=1） | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target ahpx_hips_format` | P0 |
 | CHK-DRZ-DISP009 | 模块数值 | DISP-DRZ-009 面亮度保持权重回归门：`w_jp=a_jp/A_pixel,j`；判据 = 常量面亮度 `| `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target p1drz_disp009` |<1e-3`（pixfrac∈{1.0,0.8,0.6,0.5}）+ "分母取 A_drop 必判红"负例控制 + `pixfrac=1` 端点退化；`pixfrac=1` 产物逐字节不变 | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target p1drz_disp009` | P0 |
 | CHK-FIX203-PROMOTED-KEYS | 治理 | 提升键落地三方一致（CLI 键表 ↔ 生产消费 ↔ 死键台账；内建 test_04 负例面，纯源码级不需构建） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix203_*.py` | P1 |
 | CHK-P3-PROJ-DECL | 合同/ABI | 投影注册表声明集 == 实际可运行集（FIX-205；未实现投影显式报「不支持」，静默回落 TAN 即判红） | `python3 eng/ci/run_checks.py --check CHK-P3-PROJ-DECL --quiet` |^p3_projection_unsupported_cli$" --output-on-failure` | P0 |
@@ -126,7 +126,7 @@
 | WORKER-BALANCE-METRIC-REPLAY | 资源 | 上项对归档证据的回放：11 份退化 `worker_balance.csv`（同源 16/16 恒 50.00）必须判红；权威 `resource_timeseries.csv` 按正确算法复算必须非常数 | `python3 eng/ci/check_worker_balance.py --replay-archived` | P0 |
 | CHK-GATE-FAILCLOSED-SELFTEST | 治理 | 门禁 fail-closed 契约红绿自测（8 例）：requires_monitor 缺监控证据判红 / 证据违反 L2 冻结判据判红 / 合规证据绿 / 纯采样留证绿 / 请求判定无 frozen_gate 判红 / mutates_workspace 写出登记面判红 / 写登记 outputs 绿 / 登记输出缺失判红 | `python3 -B -m unittest discover -s eng/ci/tests -t eng/ci/tests -p test_gate_failclosed_selftest.py` | P0 |
 | CHK-DEEP-PROFILES-TESTS | 治理 | deep/main profile 注册与档位选择单测（33 例）：prerequisite_tools 探测三分支（工具齐备 PASS / 缺失 waivable SKIPPED / 缺失不可豁免 FAIL(prerequisite)）、注册表 strict 接受与拒绝、plan-only 档位选择（fast 不含任何真跑 CTEST-*，linux-main 含全量门，linux-deep 恰好 7 个 deep 门）、工具行为（complexity 基线合同 /deep_ci_driver 越界 build-dir 受控报错与步骤超时 124 / ci_coverage_runner 越界 exit 2） | `python3 -B -m unittest discover -s eng/ci/tests -t eng/ci/tests -p test_deep_profiles.py` | P0 |
-| CHK-FAILCLOSED-SURVEY | 治理 | 全门禁 fail-closed 普查：对每个执行单元（230 个 / 78 个注册项）注入「缺失证据 / 坏证据 / 无输出」三面，适用面必须全部判红（判绿即假绿风险；表落 实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md）；含普查自身的红绿自证（恒绿注入必被抓） | `python3 eng/ci/run_checks.py --check CHK-FAILCLOSED-SURVEY --quiet` | P0 |
+| CHK-FAILCLOSED-SURVEY | 治理 | 全门禁 fail-closed 普查：对每个执行单元注入「缺失证据 / 坏证据 / 无输出」三面，适用面必须全部判红（判绿即假绿风险）；普查面由注册表现场计算，表落 `实验/engineering-evidence/`；含普查自身的红绿自证（恒绿注入必被抓） | `python3 eng/ci/run_checks.py --check CHK-FAILCLOSED-SURVEY --quiet` | P0 |
 | CHK-ARCH501-BLOCK-FRAME | 架构 | 命名块与块生命周期回归锁：创建-消费-销毁状态机、消费者引用计数即时归还、DAG 四条非法图判据（消费不存在/重复生产/生命周期不一致/名字非法）、provenance 流转、显式降级、取消路径无泄漏；负例注入实测能红 | `python3 eng/ci/run_checks.py --check CHK-ARCH501-BLOCK-FRAME --quiet` | P0 |
 | CHK-SCI502-SKY-KAPPA | 科学 | 天光面 κ 专项：κ 可观测、门控 κ 取**求解矩阵**（λ=0 判红 / 生产 λ 判绿）、正则化方向有效、κ_data 与 λ 无关、拒绝原因点名 kappa 而非 rank | `python3 eng/ci/run_checks.py --check CHK-SCI502-SKY-KAPPA --quiet` | P0 |
 | CHK-TEST-DISCRIMINATIVE | 质量 | 空断言静态门：Python AST 扫 test_* 与 C++ 剥注释扫恒真形态（CHECK/ASSERT/EXPECT/REQUIRE/VERIFY/TEST_CHECK 的 (true)/(1)/static_assert/assert），findings 必须为 0；含 --self-test 2 正例必绿 + 6 负例逐条必红 | `python3 eng/ci/run_checks.py --check CHK-TEST-DISCRIMINATIVE --quiet` | P0 |
@@ -152,7 +152,7 @@
 | CHK-MODULE-ID-NORMALIZATION-SELFTEST | 文档一致性 | 上项的可执行正/负例面 | `python3 eng/tools/quality/check_module_id_normalization.py --self-test` | P1 |
 | CHK-MASTER-UNIT-GUARD | 科学 | 母版单位守卫：母版归一化单位口径与消费面一致（含真二进制端到端） | `python3 eng/tools/quality/check_master_unit_guard.py --repo .` | P0 |
 | CHK-MASTER-UNIT-GUARD-SELFTEST | 科学 | 上项的可执行正/负例面 | `python3 eng/tools/quality/check_master_unit_guard.py --self-test` | P0 |
-| CHK-GATES-AND-TOLERANCES | 科学 | 门与容差表 vs 实现一致（该表此前没有任何门校验） | `python3 eng/tools/check_gates_and_tolerances.py` | P0 |
+| CHK-GATES-AND-TOLERANCES | 科学 | 门与容差表 vs 实现一致（表↔实现双向核对，含负例面） | `python3 eng/tools/check_gates_and_tolerances.py` | P0 |
 | CHK-GATES-AND-TOLERANCES-SELFTEST | 科学 | 上项的可执行正/负例面（7 组注入） | `python3 eng/tools/check_gates_and_tolerances.py --self-test` | P0 |
 | CHK-VERSION-CONSISTENCY-VER001 | 治理 | 版本一致性 VER-001：版本号唯一源与全库字面量一致 | `python3 eng/tools/check_version_consistency.py` | P0 |
 | CHK-VERSION-CONSISTENCY-VER001-SELFTEST | 治理 | 上项的可执行正/负例面（12 组） | `python3 eng/tools/check_version_consistency.py --self-test` | P0 |

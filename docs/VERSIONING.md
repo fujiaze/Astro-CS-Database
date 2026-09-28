@@ -1,7 +1,7 @@
 # Astro Celestial Sphere Database（ACSD） 版本合同
 
 > 上游：docs/ASTROCS_DESIGN.md §13（版本与发布权）
-> 唯一正本：本文件是版本合同 `VER-001` 的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（`eng/tools/check_version_consistency.py`）。
+> 唯一正本：本文件是版本合同的唯一正本；机器门 = `CHK-VERSION-CONSISTENCY-VER001`（`eng/tools/check_version_consistency.py`）。
 
 ## 1. 唯一版本源
 
@@ -16,7 +16,7 @@
   - 开发构建：`X.Y.Z-alpha.N+g<commit12>.dirty`（工作树有未提交修改）。
   - 正式 alpha 包：必须来自 clean main，显示 `X.Y.Z-alpha.N+g<commit12>`。
 - `--version --json` 输出至少：`version, prerelease(=alpha), commit, dirty, build_id, abi_version, cli_schema_version`，schema 见 `schemas/version.schema.json`。
-- `abi_version` / `cli_schema_version` 的唯一定义点在 `eng/tools/gen_version.py`；C ABI 版本字段（`ABI-001`）与 CLI schema 版本字段（`API-002`）冻结时置 1。
+- `abi_version` / `cli_schema_version` 的唯一定义点在 `eng/tools/gen_version.py`；C ABI 版本字段与 CLI schema 版本字段冻结时置 1。
 
 ## 2.1 构建指纹合同
 
@@ -50,8 +50,8 @@
 | 消费点 | 同步方式 | 检查 |
 |---|---|---|
 | CLI `--version`/`--version --json` | 构建期由 gen_version 注入 | schema 校验 + DOCCHK |
-| alpha 包名/清单（LNX-005/WIN-009） | 打包脚本必须调用 gen_version | 打包校验器 |
-| run_manifest.json | 运行期调 gen_version | CLI-003 |
+| alpha 包名/清单 | 打包脚本必须调用 gen_version | 打包校验器 |
+| run_manifest.json | 运行期调 gen_version | 运行清单 schema 校验器（`eng/ci/check_run_manifest_schema.py`） |
 | run_manifest.provenance / run_context.json 的构建指纹 | 构建期由 gen_build_stamp.py 烙入（§2.1） | CHK-BUILD-PROVENANCE |
 | 文档 | 只允许出现当前基础号 | 本 checker |
 
