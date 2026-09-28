@@ -238,11 +238,23 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   对每个 8-连通检出组分，在检测阈值与峰值之间取 **30 个指数间隔阈值**
       t(i) = tdet · (Smax/tdet)^(i/30)，i = 1..30
   重建亮度树；自枝叶向根，在任一结点阈值 t(i) 处，若某枝满足
-  (1) 该枝高于 t(i) 的积分流量 > δc × 枝自身组分总流量，且
+  (1) 该枝高于 t(i) 的积分流量 > δc × **父（根）复合天体在检出阈值之上的总流量**，且
   (2) 同层至少另有枝同样满足 (1)，
-  （权重基准 = 枝自身积分流量 `bflow`；
-  `sdet_deblend_leaf` 的 `total_flux` 形参保持签名兼容，实现不消费该值）。
-  则判为独立成分（B&A96 §4.1 双准则，原文建议 δc = 5×10⁻³）。
+  （**权重基准 = 父复合天体总流量**，不是枝自身流量；两侧刻意不对称。B&A96 §4.1 原文
+  p.395 逐字：「(1) the integrated pixel intensity (above t_i) of the branch is greater
+  than a certain fraction δ_c of **the total intensity of the composite object**;
+  (2) condition (1) is verified for at least one more branch at the same level i.」
+  ——「(above t_i)」只修饰判据左端的枝流量，δc 的乘数是整块复合天体的总强度。参照实现
+  逐字同构：SExtractor 2.28.2 `src/refine.c:97`
+  `value0 = objlist[0].obj[0].fdflux*prefs.deblend_mincont;` 与 `:159`
+  `obj[j].fdflux - obj[j].dthresh*obj[j].fdnpix > value0`（`objlist[0].obj[0]` = 根复合
+  天体，`fdflux` = 其在检出阈值之上的积分流量；`obj[j].dthresh` = 当前层阈值）；
+  SEP v1.4.1 `src/deblend.c:116/:179` 与之逐行同构。本项目实现取
+  `total_flux = Σ_{comp}(smooth − thr)`（父组分在检出阈之上的积分流量），与 SExtractor
+  `fdflux`（阈值像素值直接求和，含阈底）存在有界约定偏差（实测样例帧约 13%，见
+  run/FINAL-07/审核包/ 报告）。）
+  则判为独立成分（B&A96 §4.1 双准则；原文 p.395：「we find a good value for δ_c of
+  5 10⁻³」，与 SExtractor/SEP 默认 DEBLEND_MINCONT = 0.005 同值）。
   两项操作化规则（B&A96 §4.1–4.2 语义）：
   - **未存活枝归父**：任一枝在结点 t(i) 不满足双准则时不生成独立成分，其像素并入其父枝，
     父枝以并入后的积分流量继续沿树向根参与上层双准则评估；直至树根仍单枝的组分即单星，
@@ -262,9 +274,17 @@ R = σp·√(2 ln 1000) = σp·3.71692）加工程钳位 R ≤ 200。
   （O15 承接，冻结）；F2 饱和优先语义由 O15 保持。
 - **影响面**：多组分检出场景的行为统计锚（多星计数等）属实验证据面，由实验单元按各自协议重取；
   阈表不移动（见上）。
-- 注：SExtractor 软件参数文档记 DEBLEND_NTHRESH 默认 32，与论文正文「30 levels」不一致；
-  本设计按论文正文 30 层实现；B&A96 原文页码级核验未达，软件默认 32 的旁证见 §8-3；
-  若后续取到原文确认 32，按 §4 条款重标定后全链改写。
+- 注 1（层数）：B&A96 原文 p.394 逐字「re-thresholded at **30 levels** exponentially spaced
+  between its primary extraction threshold and its peak value」⇒ 论文正文 = 30 层；
+  SExtractor v2 的软件默认 DEBLEND_NTHRESH = 32（`src/preflist.h:207-208`、
+  `config/default.sex:23`）。二者为版本差异、不矛盾；本设计按论文正文 30 层实现。
+  原文页码级核验已完成（ADS 影印原页 p.394-395，400 dpi 读图 + 独立 OCR 交叉核对）。
+- 注 2（公式出处）：指数阈值公式 t(i) = tdet·(Smax/tdet)^(i/30) **未印在论文正文**，
+  其出处是作者实现（SExtractor `src/refine.c:112`，PHOTO 型走线性 `:110`）与 SExtractor
+  手册 v2.3 §6.4；引用时不得标注为论文原句。
+- 注 3（条件 (2) 的实现化）：原文条件 (2) 为「同一层 i 至少另有一枝满足 (1)」；本项目实现
+  在单根组分的层内以「满足 (1) 的枝数 ≥ 2」近似（等价于原文，因单根组分的同层枝集即
+  原文的 branch set at level i）。
 
 ### 5.12 O12 椭圆高斯 LM 拟合 —— [论文锚定]
 
