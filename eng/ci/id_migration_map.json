@@ -4652,6 +4652,24 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "provider 清单门的可执行负例面（自检 5 红 1 绿）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-STALL-EQUIV",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "滞回等价的 ctest 执行单元（正例与注入负例）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-STALL-EQUIV-INJECT",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "滞回等价的 ctest 执行单元（正例与注入负例）"
     }
   ],
   "coverage": {
@@ -4662,7 +4680,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。 新增 1 个执行单元（PROVIDER-MANIFESTS-NEG，CHK-PROVIDER-MANIFESTS 的负例面）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。 新增 1 个执行单元（PROVIDER-MANIFESTS-NEG，CHK-PROVIDER-MANIFESTS 的负例面）登记为 absorbed。 新增 2 个 ctest 执行单元（CTEST-P1PSF-STALL-EQUIV / -INJECT，CHK-INVARIANT）登记为 absorbed。",
     "absorbed_entries": [
       "AHPX-WEIGHT-RETIRED",
       "AIO-IO-BOUNDARY-SELFTEST",
@@ -4836,7 +4854,9 @@
       "CHK-FROZEN-STRING-DISAMBIG",
       "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",
       "CHK-L4-SEAM-FOOTPRINT",
-      "PROVIDER-MANIFESTS-NEG"
+      "PROVIDER-MANIFESTS-NEG",
+      "CTEST-P1PSF-STALL-EQUIV",
+      "CTEST-P1PSF-STALL-EQUIV-INJECT"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

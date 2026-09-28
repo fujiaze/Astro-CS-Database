@@ -3183,6 +3183,13 @@
           "platform": "any",
           "command": [
             "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "1200",
+            "--output",
+            "run/ci/monitor/TEST-INDEX-LIVE.json",
+            "--",
+            "python3",
             "eng/tools/doccheck/check_test_index_live.py",
             "--exclude-suites",
             "arch",
@@ -3193,7 +3200,8 @@
           "heavy": true,
           "mutates_workspace": false,
           "outputs": [
-            "run/ci/test-index-live/test_index_live.json"
+            "run/ci/test-index-live/test_index_live.json",
+            "run/ci/monitor/TEST-INDEX-LIVE.json"
           ],
           "waivable": false,
           "changed_paths": [
@@ -4390,6 +4398,8 @@
         "p1psf_centroid_gate",
         "p1psf_centroid_gate_neg",
         "p1psf_prodpath_centroid",
+        "p1psf_stall_equiv",
+        "p1psf_stall_equiv_inject",
         "p1snr_frame_parity",
         "p1star_angle_guard",
         "p1star_guided",
@@ -6046,6 +6056,76 @@
           "requires_monitor": false,
           "ctest_targets": [
             "ipv_platform_binding"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-STALL-EQUIV",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_stall_equiv",
+            "--output",
+            "run/ci/ctest/p1psf_stall_equiv.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_stall_equiv.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_centroid_gate"
+          ]
+        },
+        {
+          "id": "CTEST-P1PSF-STALL-EQUIV-INJECT",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1psf_stall_equiv_inject",
+            "--output",
+            "run/ci/ctest/p1psf_stall_equiv_inject.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1psf_stall_equiv_inject.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1psf_centroid_gate"
           ]
         }
       ]
