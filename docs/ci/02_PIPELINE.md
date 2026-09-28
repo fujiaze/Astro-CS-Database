@@ -1,6 +1,6 @@
 # CI 流水线定义（Pipeline）
 
-> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+> 上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、§12.5（状态阶梯）
 
 ## 1. 触发与范围
 
@@ -17,9 +17,7 @@
 
 - 两平台 workflow 的 `on:` 面只含 `push`（`main`）、`workflow_dispatch`、`schedule`，均未配置 `pull_request` 触发；合并前验证由提交前本地 / agent 运行（`fast` + `integration` 两档）承担。
 
-- 增量档 fail-closed 三条（未覆盖路径判红 / 敏感面强制升级全量 / 空选择判红）见 `CI_SPEC.md §2.4`；
-- 结果 JSON 顶层 `scope` 必须如实反映本轮范围（`full` / `changed` / `explicit`）；
-- 增量档总预算 `--budget-seconds`（默认 120 s）：超出即判红并提示"应拆分"。
+- scope 语义、fail-closed 三条与超时／预算取值 = `CI_SPEC.md` §2（唯一正本）；本节只写"什么事件跑哪个范围"。
 
 ## 2. Job 结构
 
@@ -39,8 +37,7 @@
 - `ci-linux.yml` 与 `ci-windows.yml` 是两个独立 workflow，各自触发、互不依赖；
 - 每 workflow 单 job，`timeout-minutes: 330`（`ci-linux.yml` / `ci-windows.yml` 一致）；
 - **每 step 的 timeout 上界 = max(60, 3 × 最近一次实测墙钟)**，硬上限 3600 s（`prerelease` 重步骤 10800 s）；
-  逐项改前/改后数值见 `eng/ci/checks.json` 与 `run/CI-INCREMENTAL/EVIDENCE.md`；
-- **增量档总预算**：`--budget-seconds`（默认 120 s），实际耗时超出即判红并提示"应拆分"；
+  阈值与档位取值的唯一源 = `eng/ci/checks.json`（口径正本 = `CI_SPEC.md` §2.5）；
 - 日志按 job 留存，可下载。
 
 ## 4. 门禁判定

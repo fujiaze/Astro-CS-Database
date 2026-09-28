@@ -19,7 +19,7 @@
 
 - 产物名含 commit SHA 短 8（Alpha 前无版本号；可发布 Alpha 后按 §12 加版本）；
 - 每产物附 `SHA256SUMS.txt`；
-- 发布候选与普通构建分开存放（`artifacts/release-candidates/` vs `artifacts/builds/`）。
+- 发布候选与普通构建分栏存放；落点登记面 = `ENGINEERING_SPEC.md` §7。
 
 ## 3. 留存策略
 
