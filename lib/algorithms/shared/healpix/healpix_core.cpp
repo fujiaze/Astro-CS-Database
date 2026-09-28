@@ -450,7 +450,11 @@ std::vector<uint64_t> query_disc(uint32_t nside, double ra_deg, double dec_deg,
         return result;
     }
     if (radius_rad >= kPi) {
-        const uint64_t ntotal = 12ULL * uint64_t(uint32_t(1) << order) * (uint32_t(1) << order);
+        // WIN-PORT C4334: nside = 2^order，像素数 = 12*nside² 是 HEALPix 定义式。
+        // 原式用 uint32_t(1) << order 再提升到 64 位 ⇒ order ≥ 31 时 32 位移位溢出
+        // (UB)，且 MSVC /W4 对"32 位移位结果隐式转 64 位"报 C4334。改用 64 位移位后
+        // 公式与全部合法域 (order ≤ 29) 的取值逐位不变，溢出域从 UB 变为定义良好。
+        const uint64_t ntotal = 12ULL * (uint64_t(1) << order) * (uint64_t(1) << order);
         result.resize(ntotal);
         for (uint64_t i = 0; i < ntotal; ++i) result[i] = i;
         return result;

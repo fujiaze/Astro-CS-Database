@@ -39,7 +39,9 @@ if(NOT TARGET astrocs_phase1_product)
     # CLEAN-403: phase1_product.cpp 的文本读写经 aio 机制原语
     # (aio_atomic_file.h / aio_file_io.h, header-only)。
     "${P1_REPO}/lib/infrastructure/aio/src"
-    "${P1_REPO}/third_party"
+    # WIN-PORT 缺陷⑤: 同上 —— nlohmann/json.hpp 在 lib/third_party/ 下;
+    # 原 ${P1_REPO}/third_party 是根目录整合后遗留的死路径 ⇒ MSVC C1083。
+    "${P1_REPO}/lib/third_party"
     "${P1_REPO}/lib/algorithms/calibration/include"
     "${P1_REPO}/lib/algorithms/psf/include"
     "${P1_REPO}/lib/algorithms/noise_snr/include"

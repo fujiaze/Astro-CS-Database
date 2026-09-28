@@ -2637,6 +2637,14 @@ int dispatch(const Parsed& p) {
         const std::string cli_sha = astrocs::backend_host::file_sha256_hex(cli_bin);
         auto pb = astrocs::backend_host::generate_profile_v2(
             "full", ASTROCS_VERSION_STRING, ASTROCS_COMMIT_SHA, cli_sha, install_dir);
+        // R-52：组装期不变量 fail-closed（唯一判据 = profile_invariant_violation）。
+        // 本进程内失败、不写盘、不降级——把违反项落盘再等复读层拒收属"放行式默认值兜底"。
+        if (!pb.violations.empty()) {
+            std::fprintf(stderr, "acsd: cpu_profile assembly invariant violated (R-52):");
+            for (const auto& v : pb.violations) std::fprintf(stderr, " %s;", v.c_str());
+            std::fprintf(stderr, "\n");
+            return astrocs::INTERNAL;   // 70: 组装期不变量违反 = 未分类内部软件错误
+        }
         std::string verdict;
         nlohmann::json doc;
         try {
@@ -2660,6 +2668,8 @@ int dispatch(const Parsed& p) {
         if (!sr.ok) {
             // 显式降级（不静默换落点）：安装目录不可写/位于源码树 ⇒ 用户级落点。
             const std::string fb = cli_fallback_cpu_profile_path();
+            // §9：降级时必须在 **stderr** 明示「未落安装目录 + 原因 + 实际落点」。
+            // 实际落点此处尚在解析中，下一句在成功后再补一行（drop-in 落点披露）。
             std::fprintf(stderr,
                          "acsd: cpu_profile not stored at '%s' (%s) — falling back\n",
                          install_path.c_str(), sr.reason.c_str());
@@ -2676,8 +2686,15 @@ int dispatch(const Parsed& p) {
             }
             out_path = fb;
             out_source = "user-data-fallback";
+            // §9「实际落点」在 stderr 明示（落点来源只走 stderr，不占 stdout 字段）。
+            std::fprintf(stderr, "acsd: cpu_profile written to '%s'\n", out_path.c_str());
         }
-        std::printf("%s %s source=%s\n", out_path.c_str(), verdict.c_str(), out_source.c_str());
+        // stdout 布局 = "<路径> <verdict>"：人类模式 stdout 只承载**简洁结果**，
+        // 且「末 token = verdict」是机器可读的单源口径
+        // （eng/tests/cli/test_bench_cli.py:108 正字断言；路径可含空格故须末位）。
+        // 落点来源（install-dir / user-data-fallback）不是结果而是诊断 ⇒ 走 stderr。
+        std::printf("%s %s\n", out_path.c_str(), verdict.c_str());
+        (void)out_source;
         if (verdict != "PASS") return astrocs::SCIENCE;
         return astrocs::OK;
     }

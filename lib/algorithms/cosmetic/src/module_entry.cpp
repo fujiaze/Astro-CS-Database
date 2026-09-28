@@ -624,6 +624,8 @@ acs_status build_out_manifest(const exec_cfg& c, int is_f64,
                               const uint8_t* out_plane, uint64_t plane_bytes,
                               int64_t hot, int64_t cold,
                               std::string* out_json, acs_error_info_v1* err) {
+    /* WIN-PORT C4100: 同上（calibration 侧同款）—— err 按 ABI 保留但本函数不读。 */
+    (void)err;
     std::string s = "{\"schema_version\":1,\"width\":";
     {
         char b[32];
@@ -852,6 +854,8 @@ extern "C" {
 static acs_status cos_describe(const acs_module_api_v1* self,
                                acs_str_v1 module_id,
                                acs_module_descriptor_v1* out_desc) {
+    /* WIN-PORT C4100: 同上（calibration 侧同款）—— describe 不使用实例指针。 */
+    (void)self;
     try {
         if (!out_desc) return ACS_ERR_PARAM;
         /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe

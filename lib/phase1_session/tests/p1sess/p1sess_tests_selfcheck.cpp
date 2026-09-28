@@ -10,8 +10,15 @@
 // 注入名与 faultname 注册处 (各测试 TU P1SESS_CHECK 第三参) 对齐;
 // ASTROCS_P1SESS_SELFCHECK_FAULT 可覆盖阶段 2 注入名。
 // 注: POSIX fork/execve (Linux CI 主路径); Windows CI 本组不注册。
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下方 fork 块）。
+#include <cstdint>
+#include <cstdlib>   // _pgmptr（等价 /proc/self/exe 的可执行文件路径）
+#include <process.h>
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -51,6 +58,13 @@ int run_injected_child(const char* group, const std::string& fault_name) {
     char* child_argv[] = {arg0, arg1, nullptr};
     char* child_env[] = {fbuf.data(), nullptr};
 
+    #ifdef _WIN32
+    // WIN-PORT: Windows 无 fork/execve/waitpid。_spawnve(_P_WAIT, ...) 给出等价语义：以同一
+    // 可执行文件（_pgmptr）与同一 argv/env 起子进程并阻塞等待，直接取子进程退出码 ——
+    // 与 POSIX 支路「注入环境重跑 + 等子进程 + 取退出码」同一判据面。
+    const intptr_t rc_win = _spawnve(_P_WAIT, _pgmptr, child_argv, child_env);
+    return rc_win < 0 ? 127 : static_cast<int>(rc_win);
+    #else
     const pid_t pid = fork();
     if (pid < 0) {
         std::perror("fork");
@@ -63,6 +77,7 @@ int run_injected_child(const char* group, const std::string& fault_name) {
     int status = 0;
     waitpid(pid, &status, 0);
     return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    #endif
 }
 
 int run_selfcheck() {

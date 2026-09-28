@@ -113,7 +113,7 @@ std::vector<TileAccumulatorT<double>> make_tile(uint32_t nside, double pixfrac,
 
     std::vector<TileAccumulatorT<double>> tiles(1);
     tiles[0].parent_ipix = 0;
-    // 同一 tile 内 4 个叶, 覆盖 D_p=touched 的校验面
+    // 同一 tile 内 4 个叶, 只校验 touched 叶的覆盖面积 D_p = Σ_j a_jp
     const uint32_t locals[1] = {0};
     for (uint32_t local : locals) {
         TileLeafAccumulatorT<double>& acc = tiles[0].leaf(local);

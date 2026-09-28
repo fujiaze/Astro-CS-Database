@@ -25,6 +25,7 @@
 
 #include "aio_util.h"
 
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <cstdint>
@@ -37,6 +38,9 @@
 #include <direct.h>
 #include <fcntl.h>
 #include <io.h>
+/* WIN-PORT: _getpid 的声明在 <process.h>（UCRT 里 <io.h>/<direct.h> 都不带它），
+ * 缺此头 ⇒ MSVC C3861「_getpid 找不到标识符」(原 :64 的 make_tmp_path)。 */
+#include <process.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <windows.h>
@@ -54,9 +58,13 @@
 namespace aio_atomic {
 
 // 进程内单调序号: 与 pid 联合规避同进程并发写同名目标的临时名冲突。
+// P-173 (台账 §3 表): 原实现是裸 `static uint64_t seq` + `++seq` ——
+// 非原子的读-改-写, 多线程并发取号会撕裂/重复 (C++ 数据竞争 ⇒ UB), 而本函数
+// 的头注正把「并发写同一目标」当作存在前提。改用 std::atomic 的 fetch_add
+// (seq_cst, 默认序), 保证唯一且单调; 语义面 (从 1 起、每次 +1) 逐位不变。
 inline uint64_t next_seq() {
-    static uint64_t seq = 0;
-    return ++seq;
+    static std::atomic<uint64_t> seq{0};
+    return seq.fetch_add(1, std::memory_order_seq_cst) + 1;
 }
 
 inline std::string make_tmp_path(const std::string& final_path) {

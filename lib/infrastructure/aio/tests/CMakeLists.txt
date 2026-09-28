@@ -35,7 +35,17 @@ endforeach()
 #   用例: 正常发布 / 无清单拒绝（能绿能红）/ 中途 SIGKILL 无半成品且重跑不消费残留 /
 #   磁盘满等五个注入必败且正式目录零 .fits / 截断 tile 判别力红锚。
 # ----------------------------------------------------------------------------
+# WIN-PORT (FINAL-07 可移植性): 本用例的核心锚是"写入进程中途被 SIGKILL ⇒ 正式目录零半成品、
+# 无私有临时文件残留、重跑不消费残留" —— 需要 fork 子进程 + kill(pid,SIGKILL) 的进程级强杀，
+# 且被强杀的写盘体是本进程内的 C++ 代码（无法跨进程度传递）。Windows 无 fork/SIGKILL 等价
+# 原语（TerminateProcess 只能作用在自我 spawn 的独立进程上，需把写盘体拆成独立入口），
+# ⇒ 等价语义不可表达。整块按 platform 口径显式限定到 UNIX；目标与 add_test 仍留在 if(UNIX)
+# 文本内（eng/ci/checks.json CHK-UNIT 的 ctest_targets 登记与静态扫描仍可见，计数口径不变）。
+if(UNIX)
 add_executable(aio_hips_atomic_publish
   ${AIO_TESTS_DIR}/test_hips_atomic_publish.cpp)
 target_link_libraries(aio_hips_atomic_publish PRIVATE astrocs_hips)
 add_test(NAME aio_hips_atomic_publish COMMAND aio_hips_atomic_publish)
+else()
+message(STATUS "AIO(aio_hips_atomic_publish): 原子发布 + 中途 SIGKILL 崩溃一致性用例依赖 POSIX fork/kill ⇒ 本平台 ${CMAKE_SYSTEM_NAME} 显式跳过注册（FINAL-07 WIN-PORT）")
+endif()

@@ -13,7 +13,16 @@
 #include "p1hips_oracle.hpp"
 
 #include <sys/stat.h>
-#include <unistd.h>
+
+#ifdef _WIN32
+// WIN-PORT: 本文件用到的 POSIX 面在 MSVC 侧的落点 —— 权限面 (mkdir/chmod) 是测试的
+// "非 root 下写只读目录应失败" 装置: Windows 无 mode 位语义 (chmod 只作用于只读位) 且无
+// geteuid ⇒ is_root() 恒 false, 用例在该平台仍按"尝试写只读目录"路径运行, 不伪绿。
+#include <direct.h>
+#include <io.h>
+#else
+#include <unistd.h>   // geteuid (is_root 判据; Windows 侧无此概念)
+#endif
 
 #include <cerrno>
 #include <cstdio>
@@ -26,6 +35,12 @@
 
 #include "aio_hips.h"
 
+#ifdef _WIN32
+// 宏只放在**全部 include 之后**: 避免与 MSVC 标准库头里可能出现的同名标识符相互干扰。
+#define mkdir(path, mode) _mkdir(path)
+#define chmod(path, mode) _chmod(path, mode)
+#endif
+
 using namespace p1hips;
 using namespace p1hips::oracle;
 
@@ -33,7 +48,13 @@ namespace {
 
 CheckState g_cs;
 
-bool is_root() { return ::geteuid() == 0; }
+bool is_root() {
+#ifdef _WIN32
+    return false;  // WIN-PORT: Windows 无 geteuid/uid 概念 (亦无 root 特权差别)
+#else
+    return ::geteuid() == 0;
+#endif
+}
 
 // 预建只读目录 (chmod 500) —— 非 root 下 fopen 失败
 bool make_ro_dir(const std::string& path) {

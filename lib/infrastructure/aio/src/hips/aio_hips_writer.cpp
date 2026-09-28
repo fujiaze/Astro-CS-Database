@@ -1808,11 +1808,17 @@ int aio_hips_write_snr_points(AioHipsProductSet* ps,
 // 覆盖率、平台变化。修复前 properties 走 std::to_string (6dp, 半量化步长
 // 5e-7 = 容差 500 倍)、manifest 走 %.8f (5e-9 = 5 倍) ⇒ 双面字面量分叉。
 // ---------------------------------------------------------------------------
+/* WIN-PORT C4190: 本文件级 `extern "C" {`(:1169-:2874) 内的定义会继承 C 语言
+ * 链接；fmt_sky_fraction 返回 std::string，C 链接下 MSVC 报 C4190（C 链接的
+ * 返回类型与 C 不兼容）。它是文件内助手（仅 :1898/:2062/:2418 调用），按 C++
+ * 链接编译才是本意 —— 用嵌套链接说明指定（最内层为准），签名/调用点/行为不变。 */
+extern "C++" {
 static std::string fmt_sky_fraction(double v) {
     char b[40];
     std::snprintf(b, sizeof(b), "%.17g", v);
     return std::string(b);
 }
+}  // extern "C++"
 
 // ---------------------------------------------------------------------------
 // 内部: 写一个子产品的 properties / metadata / MOC / hierarchy
@@ -2489,6 +2495,12 @@ int aio_hips_abort(AioHipsProductSet* ps)  {
 }
 
 // ── DATA-UNC-001 §30.2/§30.3 产品集双向一致性核验 ─────────────────────────
+/* WIN-PORT C2526/C2562/C2440: 本匿名命名空间整体位于文件级 `extern "C" {`
+ * (:1169-:2874) 之内 ⇒ 内部助手继承 C 语言链接。read_props_file 返回
+ * std::map<std::string,std::string>，C 链接下 MSVC 逐条报 C2526（C 链接函数
+ * 不能返回 C++ 类）/C2562（返回类型与声明不符）/C2440（无法转换返回类型）。
+ * 这些助手是本文件私有实现（仅 :2583 调用），按 C++ 链接编译才是本意。 */
+extern "C++" {
 namespace {
 // properties 文本键解析 (与 reader 同口径: k=v, 去空白, 忽略 '#' 行)
 std::map<std::string, std::string> read_props_file(const std::string& path) {
@@ -2560,6 +2572,7 @@ int count_prov_keys(const std::map<std::string, std::string>& props) {
     return n;
 }
 } // namespace
+}  // extern "C++"
 
 int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  {
     // P1 (R9-A) 同款 C 边界异常屏障

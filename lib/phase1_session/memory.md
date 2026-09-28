@@ -15,10 +15,10 @@
 
 ### 源码实测要点（行号锚逐条 grep，写文档前复核）
 
-- p1_session.cpp（372 行）四段编排：io_read(:168-192) → calibrate
-  (:195-280) → cosmetic(:283-317) → io_write(:319-330)；算法委托仅
-  `ac_calibrate_frame`(:243) 与 `ac_correct_frame`(:294，master 实参
-  nullptr→DISP-COS-009 恒等 pass)。
+- p1_session.cpp（580 行，复测；旧记 372 行已过期）四段编排；算法委托仅
+  `ac_calibrate_frame`(:378) 与 `ac_correct_frame`(:481，master 实参 =
+  resolve_master 载入的 dark/bias 平面 :479-480，**不是** nullptr；
+  旧记"nullptr→DISP-COS-009 恒等 pass"已作废注销)。
 - 五导出 C API（p1_session.h:16-28）+ `astrocs::phase1::last_error`
   （p1_session.cpp:368-371）；create 校验 host struct_size/ABI（:91-93）；
   validate 键集 input_lights/output_dir 必需 + master_*/cosmetic/

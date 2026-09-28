@@ -359,10 +359,18 @@ static void make_vote_matrix(
         }
     }
 
-    // 合并线程局部矩阵到 votes (并行 collapse(2) 加速)
-    #pragma omp parallel for collapse(2) schedule(static)
-    for (int i = 0; i < numA; ++i) {
-        for (int j = 0; j < numB; ++j) {
+    // 合并线程局部矩阵到 votes。
+    // WIN-PORT: MSVC 传统 OpenMP (=2.0) 无 collapse 子句 —— 原写法被静默忽略并产生
+    // C4849《"collapse"指令中忽略 OpenMP"parallel for"子句》, 阻断零告警门禁。展平为
+    // 一维等价循环: 迭代集合 {(i,j)} 与二维形式逐一对应 (k = i*numB + j), 每轮只写
+    // votes[i][j] 这一个互不重叠的元素、只读 local_votes ⇒ 结果逐位不变; 并行度与 GCC
+    // 的 collapse(2) 等价 (MSVC 旧行为下只并行外层, 本改动同时修掉该性能回退)。
+    const int acs_total = numA * numB;   // numB == 0 ⇒ 不进入循环, 无除零
+    #pragma omp parallel for schedule(static)
+    for (int acs_k = 0; acs_k < acs_total; ++acs_k) {
+        const int i = acs_k / numB;
+        const int j = acs_k % numB;
+        {
             int sum = 0;
             size_t idx = (size_t)i * numB + j;
             for (int t = 0; t < n_threads; ++t) {

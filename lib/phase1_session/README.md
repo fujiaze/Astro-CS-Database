@@ -229,9 +229,13 @@ module_adapters.cpp:61-91）：
    注释（:442/:484/:503），冻结 ALG 以 §2 节点表"冻结合同"列为权威，
    由各域 INT 任务对齐（P1-PSF-DOC 同先例）；`TEST-P1-*-001` registry
    词汇对应可执行测试待各 TEST 任务落地。
-3. **cosmetic 恒等现状**：master_dark/master_bias 传 nullptr（:295-296
-   调用实参）→检测全禁用，即 DISP-COS-009（lib/algorithms/cosmetic/README.md 登记）；
-   接通 cosmetic master 属 P1-COS-INT 整改。
+3. **cosmetic 母版接线现状（已更正）**：master_dark/master_bias 经
+   resolve_master 载入后作**实参**传入（p1_session.cpp:479-484；旧版
+   "传 nullptr → 检测全禁用"与 DISP-COS-009 均已作废注销，现场锚
+   :295-296 漂到 :479-484）；列修复走 ac_correct_columns_ex2 三路径并集
+   （module_adapters.cpp:2929-2930 载入、:3002 调用）。检测源以
+   st["hot_source"]/["cold_source"] 显式可见（p1_session.cpp:499-500），
+   不存在"恒等 pass 却看起来跑过"。
 4. **dark_scale_factor 未验**：validate 不校验该键类型，run `value()`
    兜底 1.0（:225）——键集与验面的不一致如实登记，整改归
    P1-SESSION-IMPL。

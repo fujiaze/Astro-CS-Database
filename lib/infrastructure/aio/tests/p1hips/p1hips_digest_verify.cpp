@@ -24,8 +24,6 @@
 // 单翻译单元收编实现: 访问匿名 namespace 归一化内核
 #include "p1hips_tests_units.cpp"
 
-#include <unistd.h>
-
 #include <cstdio>
 #include <string>
 #include <vector>

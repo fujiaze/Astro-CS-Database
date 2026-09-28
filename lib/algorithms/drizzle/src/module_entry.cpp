@@ -34,6 +34,11 @@ extern "C" {
 #ifdef _WIN32
 #include <io.h>
 #define DRZ_ACCESS _access
+/* WIN-PORT: UCRT 的 <io.h> 不定义 POSIX F_OK；_access(p, 0) 语义即"存在性检查"，
+ * F_OK 在 POSIX 下的取值也是 0 ⇒ 同名同值补齐，Linux 侧行为逐位不变。 */
+#ifndef F_OK
+#define F_OK 0
+#endif
 #else
 #include <unistd.h>
 #define DRZ_ACCESS access

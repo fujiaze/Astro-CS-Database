@@ -68,8 +68,10 @@ public:
         sink_ = log_sink_open(path);
         if (sink_) {
             // UTF-8 BOM
-            const char bom[] = {(char)0xEF, (char)0xBB, (char)0xBF};
-            log_sink_write(sink_, bom, 3);
+            // WIN-PORT C4310: (char)0xEF/0xBB/0xBF 落在 signed char 的截断面
+            // ⇒ 改用 unsigned char 载体 + 显式字节重解释，写出的 3 字节逐位不变。
+            const unsigned char bom[3] = {0xEFu, 0xBBu, 0xBFu};
+            log_sink_write(sink_, reinterpret_cast<const char*>(bom), 3);
             const char kHeader[] = "=== IPV Plate Solve Log ===\n";
             log_sink_write(sink_, kHeader, sizeof(kHeader) - 1);
             log_sink_flush(sink_);

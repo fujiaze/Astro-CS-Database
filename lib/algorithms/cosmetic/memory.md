@@ -19,10 +19,12 @@ lib/algorithms/cosmetic/ 是 astrocs.p1.cosmetic / astrocs_p1_cosmetic.dll 的
   （SCI §12 仅将坏点检测登记为 ALG-CAL-004 摘要），ALG 层独立冻结为
   ALG-COS-001..005（ALG-CAL-004 与之描述同一现行实现，重叠界定见
   COSMETIC_ALGORITHMS.md §0）。
-- **生产调用现状如实登记（no fabrication of valid coverage）**：
-  p1_session.cpp:294-307 cosmetic stage 传 master_dark/master_bias=
-  nullptr → 检测全禁用、恒等 pass（DISP-COS-009）；检测从未在生产
-  生效，母版接线归 P1-COS-IMPL/编排层。文档不美化该事实。
+- **生产调用现状如实登记（no fabrication of valid coverage）**：生产两处
+  调用点的检测源均为**真实母版参考平面**（p1_session.cpp:465-490 取已加载
+  母版帧、尺寸不符显式判红 ACS_ERR_PARAM；调度器路径见
+  COSMETIC_ALGORITHMS.md:212-220）⇒ 检测在生产生效。旧登记「传 nullptr →
+  检测全禁用、恒等 pass、检测从未在生产生效（DISP-COS-009）」**已作废**
+  （WIRING-AUDIT-01 整改）；master 缺席时的恒等通道是 API/配置面语义。
 - **method=1 名义 bilinear 实为 4 方向 1/dist IDW**（DISP-COS-003）：
   作为冻结现状行为登记；修正需 SCI/控制包变更，DOC 阶段禁止改码。
 - **threading_model=host_executor_lease** 为迁移目标合同值（11 号

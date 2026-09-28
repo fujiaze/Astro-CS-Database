@@ -791,6 +791,10 @@ acs_status build_out_manifest(const exec_cfg& c, int is_f64,
                               const uint8_t* out_plane, uint64_t plane_bytes,
                               double actual_k, int64_t hot, int64_t cold,
                               std::string* out_json, acs_error_info_v1* err) {
+    /* WIN-PORT C4100: 本函数是"只产出成功 manifest"的事务性构造器 —— 任一环节
+     * 失败即返回空串由调用方回填错误详情，故 err 形参按 ABI 保留但从不读取。
+     * 显式标记未使用，形参不改（签名属冻结的模块内部接口）。 */
+    (void)err;
     std::string s = "{\"schema_version\":1,\"width\":";
     {
         char b[32];
@@ -1076,6 +1080,9 @@ extern "C" {
 static acs_status cal_describe(const acs_module_api_v1* self,
                                acs_str_v1 module_id,
                                acs_module_descriptor_v1* out_desc) {
+    /* WIN-PORT C4100: describe 是 vtable 的静态操作，不需要实例指针；形参按
+     * module_api_v1 冻结签名保留，显式标记未使用。 */
+    (void)self;
     try {
         if (!out_desc) return ACS_ERR_PARAM;
         /* MOD-001 加载验证对齐: ABI-003 安全 loader 以 empty module_id 调 describe

@@ -209,7 +209,9 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},
         {"hips_paths", "[]", "输入 HiPS 产品目录数组（必填非空；properties 严格校验）"},
         // 索引引用键（HIPS-IDX-01）：合同声明 = phase_config_mosaic.schema.json
-        // #/$defs/coverage_index_ref。**加性可选键**：指向数据集级覆盖索引
+        // #/$defs/coverage_index_path（P-180 分名：字符串输入路径；勿与
+        // hips_storage_form.schema.json#/$defs/coverage_index_ref 对象混读）。
+        // **加性可选键**：指向数据集级覆盖索引
         // coverage.index.json；hips_paths 的元素**保持字符串**（不做元素对象化），
         // 逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst →
         // <name>.hips.index.json）。缺失 ⇒ 规定回退 = 读全部产品级索引现场倒排。

@@ -148,6 +148,58 @@ bool fits_write_std_chksum(fitsfile* f, std::string* why) {
     return true;
 }
 
+// P-206 (台账 B-1 = 在册 P-085): verify 面的 DATASUM/CHECKSUM 对拍。
+// 与写侧 fits_write_chksum 同一 cfitsio 实现（标准 FITS 1 补码 32-bit 累加），
+// 读回重算并与关键字比对 —— 此前 verify 只比像素/关键字，对「数据被改成另一份
+// 合法数值」或「DATASUM 卡被篡改」零鉴别力（sha256 只对文件整体成立，
+// 改写方重算一次 sha256 即可盖过）。
+// 标准语义（cfitsio quick.tex fits_verify_chksum）: dataok/hduok = 1 校验通过,
+// 0 关键字缺失, -1 校验不符。合同判据（IO_003 §8.4）: 写入侧恒写 DATASUM 卡
+// ⇒ DATASUM 必须存在且正确（0/-1 皆判红）；CHECKSUM 卡存在且非占位时同样校验
+// （缺失 = 0 可接受，不符 = -1 判红）。
+bool verify_hdu_chksum(fitsfile* f, std::string* why) {
+    int dataok = 0, hduok = 0, status = 0;
+    if (fits_verify_chksum(f, &dataok, &hduok, &status)) {
+        if (why) *why = "fits_verify_chksum: " + std::to_string(status);
+        return false;
+    }
+    if (dataok != 1) {
+        if (why) *why = std::string("DATASUM ") +
+                        (dataok == 0 ? "missing" : "mismatch");
+        return false;
+    }
+    if (hduok == -1) {
+        if (why) *why = "CHECKSUM mismatch";
+        return false;
+    }
+    return true;
+}
+
+// P-205/P-206 (流式面): 发布前对 tmp 逐 HDU 做结构 + DATASUM/CHECKSUM 对拍
+// （IO_003 §4 的「fitsverify（结构 + DATASUM）」步骤，位于 rename 之前）。
+// 直接 cfitsio 调用: 调用方（P3FitsStream::publish/open）已持进程级 cfitsio 锁
+// (RT-008)，CfitsioLockGuard 不可重入。
+bool verify_tmp_chksums(const std::string& path, std::string* why) {
+    fitsfile* f = nullptr;
+    int status = 0;
+    if (fits_open_file(&f, path.c_str(), READONLY, &status) != 0) {
+        if (why) *why = "pre-publish open(tmp) failed: " + std::to_string(status);
+        return false;
+    }
+    int hdus = 0;
+    status = 0;
+    fits_get_num_hdus(f, &hdus, &status);
+    bool ok = hdus >= 1;
+    for (int i = 1; i <= hdus && ok; ++i) {
+        status = 0;
+        if (fits_movabs_hdu(f, i, nullptr, &status) != 0) { ok = false; break; }
+        ok = verify_hdu_chksum(f, why);
+    }
+    status = 0;
+    fits_close_file(f, &status);
+    return ok;
+}
+
 bool make_temp_path(const std::string& out, std::string* tmp) {
     // 死变量清理: 原实现取 hostname 到 host[] 后从未读取, 且该
     // 取值不参与临时名 ⇒ 删除 (临时名语义逐位不变: <out>.<pid>.tmp)。
@@ -390,8 +442,12 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         }
     }
 
-    // fsync + rename 原子替换
-    // R10-C: 顺序必须是 cfitsio 缓冲 flush → fsync(fd) → 原子 rename。
+    // 发布序（正本 = IO_003 §4 / ASTROCS_DESIGN.md §10:732）:
+    //   私有临时区 → 关闭/fsync → 校验（结构 + DATASUM/CHECKSUM）→ 算哈希 → 原子改名
+    // P-205 (台账 A-4): 原序是 flush → close → fsync → **rename → sha256/校验**
+    // —— 哈希与校验落在 rename 之后，与 §10 及 IO_003 §4 的逐步骤序相悖（rename
+    // 先于完整性判据 ⇒ 校验/哈希失败时正式路径已出现对象，只能回滚删除）。
+    // R10-C 子序（cfitsio 缓冲 flush → fsync(fd)）保持不变。
     // 原实现在 fits_close_file 之前对 fd 做 fsync —— cfitsio 的 IO 缓冲
     // (2880B 扇区 buffer) 尚未写出, fd 级 fsync 只能落已写入内核页缓存的
     // 前缀, 崩溃时可丢失数据或留半成品 (违反 IO_003 §4 "关闭/fsync → … →
@@ -421,35 +477,54 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
             }
         }
     }
-    // 原子 rename 机制在 aio (aio_atomic::atomic_replace)。
+    // ③ 校验（rename 之前，针对 tmp）：独立重开回环 —— dimensions/WCS/
+    //    BUNIT 冻结表+二次律/mask/uncertainty HDU 面 + **DATASUM/CHECKSUM
+    //    对拍**（P-206）。任一判据不过 ⇒ 删 tmp、正式路径零出现，绝不把
+    //    「无完整性锚/自证失败」的对象放到用户路径上（fail-closed）。
+    {
+        P3OutputResult v{};
+        const P3OutputStatus vst = p3_output_verify_ex(
+            tmp.c_str(), wcs, signal, coverage, variance, ivar, width, height, &v);
+        if (vst != P3_OUT_OK) {
+            g_last_err = "pre-publish verify(tmp) failed: " + g_last_err;
+            aio_atomic::remove_file(tmp);
+            return vst;
+        }
+        if (v.reopen_ok != 1) {
+            g_last_err = "pre-publish verify(tmp): reopen_ok=0 (integrity)";
+            aio_atomic::remove_file(tmp);
+            return P3_OUT_IO;
+        }
+        if (result) {
+            result->reopen_ok = v.reopen_ok;
+            result->total_px = v.total_px;
+            result->covered_px = v.covered_px;
+            result->coverage_ok = v.coverage_ok;
+        }
+    }
+    // ④ 内容哈希（rename 之前，针对 tmp）：仅完整读出后填写；失败 = 完整性锚
+    //    缺失 ⇒ 整体失败，不写空串/前缀哈希（R10-C 语义不变，位置移到发布前）。
+    std::string pub_sha;
+    if (!sha256_file_checked(tmp.c_str(), &pub_sha)) {
+        g_last_err = "sha256_file(tmp) failed";
+        aio_atomic::remove_file(tmp);
+        return P3_OUT_IO;
+    }
+    // ⑤ 原子 rename 机制在 aio (aio_atomic::atomic_replace)。此前所有判据已过，
+    //    故 rename 之后不再有任何可能导致「已发布但无效」的判据。
     if (aio_atomic::atomic_replace(tmp, output_path) != 0) {
         g_last_err = std::string("rename: ") + std::strerror(errno);
         aio_atomic::remove_file(tmp);
         return P3_OUT_IO;
     }
-
-    // 计算 sha256(重新读出的完整文件) 并独立重开验证(重开验证)
     if (result) {
-        std::string h;
-        // R10-C: 哈希失败 = 完整性锚缺失 → 不写空串/前缀哈希, 整体输出失败
-        if (!sha256_file_checked(output_path, &h)) {
-            g_last_err = "sha256_file(published output) failed";
-            aio_atomic::remove_file(output_path);
-            return P3_OUT_IO;
-        }
-        std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
-        result->total_px = (long)width * height;
+        std::snprintf(result->sha256, sizeof(result->sha256), "%s", pub_sha.c_str());
         long cov = 0;
         for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++cov;
+        result->total_px = (long)width * height;
         result->covered_px = cov;
         result->coverage_ok = 1;
-        // 独立重开读回验证 (dimensions/WCS/BUNIT 冻结表+二次律/mask/uncertainty
-        // HDU 面; FITS DATASUM/CHECKSUM 键由发布序内 fits_write_std_chksum 写入,
-        // 此处以 sha256 重算锚定完整性, 不另读键对拍)
-        P3OutputResult v{};
-        P3OutputStatus vst = p3_output_verify_ex(output_path, wcs, signal, coverage,
-                                                 variance, ivar, width, height, &v);
-        result->reopen_ok = (vst == P3_OUT_OK) ? v.reopen_ok : 0;
+        result->reopen_ok = 1;
     }
     return P3_OUT_OK;
 }
@@ -480,6 +555,8 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     std::memset(result, 0, sizeof(*result));
     long nelem = (long)width * height;
     int ok = 1, covok = 1, uncok = 1, wcsok = 1, bunitok = 1;
+    // P-206 (在册 P-085): 逐 HDU 的 DATASUM/CHECKSUM 对拍位（含于 reopen_ok）。
+    int chksumok = 1;
     int hdus = 1;
     // P-075: uncertainty BUNIT 的期望串（由读回的 PRIMARY BUNIT 推导）；
     // PRIMARY BUNIT 表外/缺失时保持空 ⇒ uncertainty 对拍必失败（双重检出）。
@@ -494,6 +571,8 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 
     // primary (HDU 1) = signal: 读像素 + WCS 关键字(C1 对拍)
     if (fits_movabs_hdu(f, 1, nullptr, &status) == 0) {
+        // P-206: PRIMARY 的 DATASUM/CHECKSUM 对拍（与像素/关键字对拍同面）
+        if (!verify_hdu_chksum(f, nullptr)) chksumok = 0;
         // B2-A9: 期望值由 descriptor 的冻结写码决定（与写路径同一公式），
         // 仅读回对比，不改写。
         const std::string pj = (wcs->projection && *wcs->projection)
@@ -579,6 +658,8 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 
     // extension (HDU 2) = coverage
     if (hdus >= 2 && fits_movabs_hdu(f, 2, nullptr, &status) == 0) {
+        // P-206: COVERAGE HDU 的 DATASUM/CHECKSUM 对拍
+        if (!verify_hdu_chksum(f, nullptr)) chksumok = 0;
         int naxis = 0, imgtype = 0;
         long nax[2] = {0, 0};
         fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
@@ -599,6 +680,8 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
             if (hdus < 3 + h || fits_movabs_hdu(f, 3 + h, nullptr, &status) != 0) {
                 uncok = 0; break;          // 静默缺 HDU
             }
+            // P-206: VARIANCE/IVAR HDU 的 DATASUM/CHECKSUM 对拍
+            if (!verify_hdu_chksum(f, nullptr)) chksumok = 0;
             char card[81] = {0};
             if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) != 0 ||
                 !std::strstr(card, want[h])) {
@@ -651,7 +734,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
     fits_close_file(f, &status);
 
     result->reopen_ok = (ok == 1 && covok == 1 && uncok == 1 && wcsok == 1 &&
-                         bunitok == 1);
+                         bunitok == 1 && chksumok == 1);
     result->coverage_ok = covok;
     long covn = 0;
     for (long i = 0; i < nelem; ++i) if (coverage[i] > 0.5f) ++covn;
@@ -925,28 +1008,43 @@ P3OutputStatus P3FitsStream::publish(P3OutputResult* result) {
         abort();
         return P3_OUT_IO;
     }
-    // ② 内容已完整写出后再 fsync（机制在 aio）；③ 原子 rename。
+    // 发布序（正本 = IO_003 §4 / ASTROCS_DESIGN.md §10:732）:
+    //   临时写 → 关闭/fsync → 校验（结构 + DATASUM/CHECKSUM）→ 算哈希 → 原子改名
+    // P-205 (台账 A-4): 原序把 rename 排在哈希之前 ⇒ 与 §10/IO_003 §4 相悖。
+    // ② 内容已完整写出后再 fsync（机制在 aio）。
     const int frc = aio_atomic::fsync_path(impl_->tmp, 0);
     if (frc != 0) {
         g_last_err = std::string("fsync(tmp): ") + std::strerror(frc);
         abort();
         return P3_OUT_IO;
     }
+    // ③ 校验（rename 之前，针对 tmp）: 逐 HDU 结构 + DATASUM/CHECKSUM 对拍。
+    {
+        std::string why;
+        if (!verify_tmp_chksums(impl_->tmp, &why)) {
+            g_last_err = "pre-publish verify(tmp): " + why;
+            abort();
+            return P3_OUT_IO;
+        }
+    }
+    // ④ 内容哈希（rename 之前，针对 tmp）: 失败即整体失败，不留无完整性锚输出。
+    {
+        std::string h;
+        if (!sha256_file_checked(impl_->tmp.c_str(), &h)) {
+            g_last_err = "sha256_file(tmp) failed";
+            abort();
+            return P3_OUT_IO;
+        }
+        if (result) {
+            std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
+            result->total_px = (long)impl_->width * impl_->height;
+        }
+    }
+    // ⑤ 原子 rename（此前所有判据已过 ⇒ rename 后不再有「已发布但无效」窗口）。
     if (aio_atomic::atomic_replace(impl_->tmp, impl_->out) != 0) {
         g_last_err = std::string("rename: ") + std::strerror(errno);
         abort();
         return P3_OUT_IO;
-    }
-    if (result) {
-        std::string h;
-        if (!sha256_file_checked(impl_->out.c_str(), &h)) {
-            g_last_err = "sha256_file(published output) failed";
-            aio_atomic::remove_file(impl_->out);
-            abort();
-            return P3_OUT_IO;
-        }
-        std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
-        result->total_px = (long)impl_->width * impl_->height;
     }
     published_ = true;
     impl_->lock.reset();
