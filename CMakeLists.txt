@@ -169,6 +169,17 @@ string(JSON ASTROCS_RR_MEMORY_PRESSURE_HIGH_DWELL GET "${ASTROCS_RUNTIME_RESOURC
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_LOW_DWELL GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_low_dwell_samples)
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_EVICT_AFTER GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_evict_after_samples)
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_sample_interval_ms)
+# 编排参数受控化（docs/contracts/SCHEDULER_CONTRACT.md §3「由配置/资源门决定」/ R-27）：
+# tile span / sub_block_px / queue_depth 的
+# 唯一数值源同样是本文件；原先只以 constexpr 字面量存在于 module_adapters.cpp。
+string(JSON ASTROCS_RR_P2_TILE_LEAF_SPAN GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p2_tile_leaf_span)
+string(JSON ASTROCS_RR_P2_TILE_SHIFT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p2_tile_shift)
+string(JSON ASTROCS_RR_P3_DEFAULT_SUB_BLOCK_PX GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p3_default_sub_block_px)
+string(JSON ASTROCS_RR_P3_MIN_SUB_BLOCK_PX GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p3_min_sub_block_px)
+string(JSON ASTROCS_RR_P3_MAX_SUB_BLOCK_PX GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p3_max_sub_block_px)
+string(JSON ASTROCS_RR_P3_DEFAULT_QUEUE_DEPTH GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p3_default_queue_depth)
+string(JSON ASTROCS_RR_P1_MAX_FRAMES_IN_FLIGHT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p1_max_frames_in_flight)
+string(JSON ASTROCS_RR_SCHEDULER_PREFETCH_THREADS_MAX GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params scheduler_prefetch_threads_max)
 configure_file(eng/packaging/config/runtime_resources_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/runtime_resources_generated.h @ONLY)
 
