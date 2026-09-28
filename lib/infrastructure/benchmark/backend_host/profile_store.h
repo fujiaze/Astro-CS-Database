@@ -27,7 +27,7 @@
 //   版本要么是新完整版本 —— "半写文件不被使用"由此结构性保证(不依赖读侧容错)。
 //
 // 失效隔离(CPU-007 验收核心): 损坏/旧版本/机器变化/半写 不被使用 —— load 返回
-//   LoadResult.valid=false + 精确 reason(机器可查); 隔离 = 重命名失效文件为
+//   ProfileLoadResult.valid=false + 精确 reason(机器可查); 隔离 = 重命名失效文件为
 //   <target>.rejected-<utc>(不删除, 供审计/取证; 静默删除会丢失"为什么失效"证据),
 //   下次 load 视为无 profile; 消费方按 V8-CPU-002 回落 generic + 动态多线程。
 //
@@ -85,7 +85,9 @@ SaveResult save_profile_atomic_v1(const std::string& json_text,
 // hw_json/current_commit 传空串则相应校验跳过(仅文本级 + 消费级)。
 // check_consumer: 消费级校验开关(CPU-005 profile_kernel_benchmark_valid); 对
 //   kernel_ids 中每个 kernel 校验 oracle/median 完整性, 任一失败 → rejected。空表=跳过。
-struct LoadResult {
+// 类型名带 Profile 域前缀（DYN-740 收口）：`backend_loader.h` 在**同一命名空间**里另有
+// 一个 `LoadResult`（装载裁决），两者同名同型别会 redefinition；改名后两公开头可共存于同一 TU。
+struct ProfileLoadResult {
     bool valid = false;
     std::string status;          // "ok" | "missing" | "rejected"
     std::string reason;          // rejected 时的精确原因(机器可查)
@@ -93,7 +95,7 @@ struct LoadResult {
     std::string json_text;       // valid=true 时为 profile 全文(否则空)
     std::string rejected_path;   // rejected 时失效文件隔离路径(空=未改名/missing)
 };
-LoadResult load_profile_checked_v1(const std::string& target_path,
+ProfileLoadResult load_profile_checked_v1(const std::string& target_path,
                                    const std::string& hw_json,
                                    const std::string& current_commit,
                                    const std::vector<std::string>& check_consumer);
