@@ -9577,6 +9577,64 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-PROVIDER-MANIFESTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_provider_manifests.py",
+        "--repo",
+        ".",
+        "--json-out",
+        "run/ci/provider_manifests.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/provider_manifests.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "eng/tools/gen_provider_manifests.py",
+        "lib/infrastructure/benchmark/**",
+        "CMakeLists.txt",
+        "eng/cmake/install_layout.cmake",
+        "eng/packaging/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "PROVIDER-MANIFESTS-NEG",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_provider_manifests.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_provider_manifests.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-CONFIG-DEFAULTS",
       "profiles": [
         "fast",

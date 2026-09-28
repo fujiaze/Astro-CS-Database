@@ -737,14 +737,21 @@ target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 # 变体与 baseline 共享 baseline_kernels_impl.inc/backend_table.inc 同一源(零复制漂移),
 # 仅编译旗标与 ASTROCS_BACKEND_ID 不同 → 每条路径独立编译成不同目标并各自 self-test。
 # 注意: acsd(主 CLI) 的链接闭包只含基线段 — 两个变体 target 由 check_isa_leak 的 link map 验证把关。
-add_library(astrocs_cpu_avx2 STATIC lib/infrastructure/benchmark/backend_host/avx2_backend.cpp)
+#
+# 交付形态 = SHARED（docs/architecture/ISA_VARIANTS.md §0 第 3 条「变体一律以 DSO
+# （Windows .dll / Linux .so）随安装树分发」）：
+# 变体必须是**可运行时装载**的动态库（Linux .so / Windows .dll），随安装树分发到
+# providers/ 并由 providers/backends.manifest.json 登记（实测 sha256 + required_features_bits），
+# 运行期经 backend_loader 预检→dlopen→self_test 后按 cpu_profile/能力探测选取，缺库即回退基线。
+# 变体不进入 acsd 链接闭包（闭包仍只含基线段；check_isa_leak 把关口径不变）。
+add_library(astrocs_cpu_avx2 SHARED lib/infrastructure/benchmark/backend_host/avx2_backend.cpp)
 target_include_directories(astrocs_cpu_avx2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
 target_compile_options(astrocs_cpu_avx2 PRIVATE -mavx2 -mfma)
 target_link_libraries(astrocs_cpu_avx2 PUBLIC astrocs_contracts astrocs_common)
 
-add_library(astrocs_cpu_avx512 STATIC lib/infrastructure/benchmark/backend_host/avx512_backend.cpp)
+add_library(astrocs_cpu_avx512 SHARED lib/infrastructure/benchmark/backend_host/avx512_backend.cpp)
 target_include_directories(astrocs_cpu_avx512 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
@@ -754,6 +761,121 @@ target_include_directories(astrocs_cpu_avx512 PUBLIC
 target_compile_options(astrocs_cpu_avx512 PRIVATE
   -mavx512f -mavx512bw -mavx512vl -mavx512dq)
 target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)
+
+# ── provider DSO 共同交付面（docs/architecture/ISA_VARIANTS.md §0/§2；与 astrocs_cpu_baseline 同款命名/RPATH）──
+# 产物落 <build>/providers/，与同目录的 backends.manifest.json 构成"清单 + 裸文件名同目录"
+# 语义（backend_loader 的唯一基准）。原实现清单找在 install_dir 根、DSO 装在 providers/
+# ⇒ 目录口径两套；本处统一到 providers/（构建树与安装树同构）。
+# PREFIX "" 去 lib 前缀: providers/astrocs_cpu_avx2.so（Windows: astrocs_cpu_avx2.dll）。
+set(ASTROCS_ISA_PROVIDER_DIR "${CMAKE_CURRENT_BINARY_DIR}/providers")
+foreach(_acs_isa_tgt astrocs_cpu_avx2 astrocs_cpu_avx512)
+  set_target_properties(${_acs_isa_tgt} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
+    PREFIX "")
+  if(MSVC)
+    # provider ABI 入口 (astrocs_backend_get_api_v1) 是 C 链接符号，须显式导出；
+    # 与 astrocs_cpu_baseline 同一处置。
+    set_property(TARGET ${_acs_isa_tgt} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  endif()
+  if(UNIX AND NOT APPLE)
+    # RPATH (12 §6): 安装后 DSO 依赖以 $ORIGIN 解析。
+    set_target_properties(${_acs_isa_tgt} PROPERTIES
+      INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
+  endif()
+endforeach()
+
+# providers/backends.manifest.json：只登记**可选变体**（baseline 恒为进程内置，见
+# profile_gen_v2 的 LoadedProvider base；把基线 DSO 写进清单会造出第二个同 ABI 的
+# baseline 候选，其 id 也不符路由词表 "baseline"|"avx2"|"avx512"）。
+# 每条目的 sha256 实测取得；required_features_bits 与 cpu_features.h 逐位同源
+# （avx2 = AVX2|FMA = 24；avx512 = F|BW|DQ|VL = 928）。
+# 清单与 DSO 同目录安装，使 benchmark / doctor / 运行期选取三处读同一份基准。
+set(ASTROCS_BACKENDS_MANIFEST "${ASTROCS_ISA_PROVIDER_DIR}/backends.manifest.json")
+add_custom_command(OUTPUT "${ASTROCS_BACKENDS_MANIFEST}"
+  COMMAND ${ASTROCS_STAMP_PYTHON}
+          ${CMAKE_CURRENT_SOURCE_DIR}/eng/tools/gen_provider_manifests.py
+          --repo ${CMAKE_CURRENT_SOURCE_DIR}
+          --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+          --providers-dir ${ASTROCS_ISA_PROVIDER_DIR}
+          --isa-only
+          --out ${ASTROCS_BACKENDS_MANIFEST}
+          --compiler "${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}"
+          --commit "${ASTROCS_GIT_COMMIT}"
+  DEPENDS astrocs_cpu_avx2 astrocs_cpu_avx512
+  COMMENT "生成 providers/backends.manifest.json (实测 sha256 + 能力位)"
+  VERBATIM)
+add_custom_target(astrocs_backends_manifest ALL DEPENDS "${ASTROCS_BACKENDS_MANIFEST}")
+
+# ── provider 第二族入图（DYN-740 / C-03 裁决：**属** ISA provider 集合 ⇒ 必须入图，不得游离）──
+# 族 = lib/infrastructure/benchmark/cpu/<id>/src/<id>_provider.cpp（+ common/src/capability_detect.c），
+# 入口 = astrocs_provider_query_v1（lib/include/astrocs/abi/module_api_v1.h 冻结；
+# docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md:96-98 与 CPU_003_AVX2_PROVIDER.md:13 指定的
+# provider 实现面；被测于 UT-CPU-AVX2 / UT-CPU-AVX512 与 baseline 三门）。
+# 入图前：三个 TU 零 CMake 命中（CHK-RETIRED-CODE R4 逐条列为"未被任何 CMakeLists.txt 引用"），
+# 属游离；入图后：进构建目标 + 进清单（providers/providers.manifest.json，实测 sha256 +
+# 实测入口符号）+ 随安装树分发（eng/cmake/install_layout.cmake）。
+# 交付名与 backend 家族**不同名**（astrocs_cpuprov_<id>.so vs astrocs_cpu_<id>.so）：两族 ABI
+# 不同、消费者不同（secure_loader vs backend_loader），同名会在 providers/ 互相覆盖。
+# 两族都**不进** acsd 链接闭包（check_isa_leak 把关口径不变）。
+set(ASTROCS_CPU_PROVIDER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/cpu")
+# 源文件**逐条显式列出**（不拼名字）：R4 生产可达性检测按文件名在 CMakeLists.txt 中的出现判定
+# "是否被引用"，拼接路径会让入图在门禁报表里仍显示为游离（假游离）。
+set(ASTROCS_CPU_PROVIDER_TU_baseline "${ASTROCS_CPU_PROVIDER_SRC_DIR}/baseline/src/baseline_provider.cpp")
+set(ASTROCS_CPU_PROVIDER_TU_avx2 "${ASTROCS_CPU_PROVIDER_SRC_DIR}/avx2/src/avx2_provider.cpp")
+set(ASTROCS_CPU_PROVIDER_TU_avx512 "${ASTROCS_CPU_PROVIDER_SRC_DIR}/avx512/src/avx512_provider.cpp")
+add_library(astrocs_cpuprov_common OBJECT
+  "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/src/capability_detect.c")
+target_include_directories(astrocs_cpuprov_common PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/include")
+foreach(_acs_cp_variant baseline avx2 avx512)
+  add_library(astrocs_cpuprov_${_acs_cp_variant} SHARED
+    "${ASTROCS_CPU_PROVIDER_TU_${_acs_cp_variant}}"
+    $<TARGET_OBJECTS:astrocs_cpuprov_common>)
+  target_include_directories(astrocs_cpuprov_${_acs_cp_variant} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+    "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/include"
+    "${ASTROCS_CPU_PROVIDER_SRC_DIR}/${_acs_cp_variant}/include"
+    "${ASTROCS_CPU_PROVIDER_SRC_DIR}/baseline/include")
+  set_target_properties(astrocs_cpuprov_${_acs_cp_variant} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
+    PREFIX "")
+  if(MSVC)
+    set_property(TARGET astrocs_cpuprov_${_acs_cp_variant} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  endif()
+  if(UNIX AND NOT APPLE)
+    set_target_properties(astrocs_cpuprov_${_acs_cp_variant} PROPERTIES
+      INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
+  endif()
+endforeach()
+# 编译隔离：高级旗标只作用于对应 variant target（PRIVATE）；baseline 保持最低 amd64/SSE2。
+if(NOT MSVC)
+  target_compile_options(astrocs_cpuprov_avx2 PRIVATE -mavx2 -mfma)
+  # 子集与 CPU_003/AVX-512 provider 头声明的编译合同逐字同源（F+CD+BW+DQ+VL）。
+  target_compile_options(astrocs_cpuprov_avx512 PRIVATE
+    -mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl)
+endif()
+
+# providers/providers.manifest.json：provider 家族清单（module_api_v1 ABI）。
+# 与 backends.manifest.json 并列同目录但**互不混装**：每族的 entrypoint 字段实测于 DSO
+# 本身（生成期 dlopen + 取符号），eng/ci/check_provider_manifests.py 双向校验家族归属。
+set(ASTROCS_PROVIDERS_MANIFEST "${ASTROCS_ISA_PROVIDER_DIR}/providers.manifest.json")
+add_custom_command(OUTPUT "${ASTROCS_PROVIDERS_MANIFEST}"
+  COMMAND ${ASTROCS_STAMP_PYTHON}
+          ${CMAKE_CURRENT_SOURCE_DIR}/eng/tools/gen_provider_manifests.py
+          --repo ${CMAKE_CURRENT_SOURCE_DIR}
+          --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+          --providers-dir ${ASTROCS_ISA_PROVIDER_DIR}
+          --family provider
+          --out ${ASTROCS_PROVIDERS_MANIFEST}
+          --compiler "${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}"
+          --commit "${ASTROCS_GIT_COMMIT}"
+  DEPENDS astrocs_cpuprov_baseline astrocs_cpuprov_avx2 astrocs_cpuprov_avx512
+  COMMENT "生成 providers/providers.manifest.json (provider ABI: astrocs_provider_query_v1)"
+  VERBATIM)
+add_custom_target(astrocs_providers_manifest ALL DEPENDS "${ASTROCS_PROVIDERS_MANIFEST}")
 
 # phase1 wcs + photometry (P1-004)
 add_library(astrocs_phase1_wcs STATIC lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp)
