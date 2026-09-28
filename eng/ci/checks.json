@@ -3766,6 +3766,108 @@
           "ctest_targets": [
             "fix402_phase3_semantic_guard"
           ]
+        },
+        {
+          "id": "CTEST-AIO-ATOMIC-DURABILITY",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_atomic_durability",
+            "--output",
+            "run/ci/ctest/aio_atomic_durability.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_atomic_durability.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/unit/aio/**",
+            "docs/interfaces/io/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_atomic_durability"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-ATOMIC-DURABILITY-MUTATION",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_atomic_durability_mutation",
+            "--output",
+            "run/ci/ctest/aio_atomic_durability_mutation.json"
+          ],
+          "timeout_seconds": 1500,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_atomic_durability_mutation.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/unit/aio/**",
+            "docs/interfaces/io/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_atomic_durability_mutation"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-VERIFY-ORDER",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_verify_order",
+            "--output",
+            "run/ci/ctest/aio_verify_order.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_verify_order.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/**",
+            "eng/tests/unit/aio/**",
+            "docs/interfaces/io/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_verify_order"
+          ]
         }
       ]
     },
@@ -11649,6 +11751,41 @@
             "eng/tools/**"
           ],
           "requires_monitor": false
+        },
+        {
+          "id": "NEG-P3-PUBLISH-ORDER",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "900",
+            "--output",
+            "run/ci/monitor/P3-PUBLISH-ORDER.json",
+            "--",
+            "python3",
+            "eng/tests/backend/p3_publish_order_negative.py"
+          ],
+          "timeout_seconds": 1200,
+          "heavy": true,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/monitor/P3-PUBLISH-ORDER.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/fits_output/**",
+            "lib/infrastructure/aio/src/**",
+            "eng/tests/backend/**",
+            "docs/interfaces/io/**"
+          ],
+          "requires_monitor": true,
+          "prerequisite_tools": [
+            "g++"
+          ]
         }
       ]
     },

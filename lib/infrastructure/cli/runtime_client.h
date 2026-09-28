@@ -13,6 +13,13 @@
 
 namespace astrocs::cli {
 
+// P-158: ErrorDomain → CLI 退出码（docs/contracts/LOG_AND_ERROR_CONTRACT.md §5 唯一映射表；
+// 码值语义唯一源 = lib/infrastructure/cli/exit_codes.h，本层不重定义数值）。
+// 未列出的域一律 INTERNAL(70)（§5 末条）。**仅用于 load_pipeline 失败面**：
+// run_pipeline 内 rt_ret 失败 switch 的既有域映射偏差（F-EXIT-MAP：
+// CONFIG/BACKEND→70、RESOURCE→5）按台账保持不动，不在本任务改码。
+int exit_code_for_error_domain(astrocs::core::ErrorDomain domain);
+
 // preset → PipelineIR（RT-008: run --phases 解析 preset→IR→Runtime；单 phase 命令用同一 IR 子图）
 // phases: 1|2|3 组合（如 {1}, {2}, {3}, {2,3}, {1,2,3}）
 // config_json: 运行配置（inputs/output_dir/phaseN 子对象等）

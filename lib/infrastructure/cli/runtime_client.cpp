@@ -3,6 +3,7 @@
 
 #include "astrocs/core/context.h"
 #include "cancel_token.h"
+#include "exit_codes.h"   // P-158: 退出码唯一源（域→码映射不重定义数值）
 // MEMGOV-01: 压力分子（进程树 RSS）唯一实现收在 aio 边界（§10 文件级唯一 I/O 边界）。
 #include "aio_sysinfo.h"
 #include "p3_wcs.h"   // B2-A4/A5: 请求层投影/frame/coverage_output 唯一校验源
@@ -23,6 +24,26 @@ using astrocs::core::Result;
 
 astrocs::core::Result<void> register_cli_modules(ModuleRegistry& reg) {
   return astrocs::core::register_phase_modules(reg);
+}
+
+// P-158: ErrorDomain → 退出码。唯一依据 = docs/contracts/LOG_AND_ERROR_CONTRACT.md §5
+// 的「域 → 码」表（码值语义本身以 exit_codes.h 为准，本函数只做映射，不重定义数值）。
+// 上游事实：pipeline 解析/静态验证（lib/infrastructure/scheduler/src/pipeline.cpp:55-189
+// 与 runtime.cpp:133-149）一律构造 ErrorDomain::DATA ⇒ 取值 2(ARGS)；
+// 旧实现在 load_pipeline 失败处无条件 return 4（SCIENCE_PRECONDITION）⇒ 域被误判。
+int exit_code_for_error_domain(astrocs::core::ErrorDomain domain) {
+  using astrocs::core::ErrorDomain;
+  switch (domain) {
+    case ErrorDomain::CONFIG:                return astrocs::ARGS;       // §5: 2（ARGS）
+    case ErrorDomain::DATA:                  return astrocs::ARGS;       // §5: 2（ARGS）
+    case ErrorDomain::SCIENCE_PRECONDITION:  return astrocs::SCIENCE;    // §5: 4（SCIENCE）
+    case ErrorDomain::BACKEND:               return astrocs::BACKEND;    // §5: 5（BACKEND）
+    case ErrorDomain::IO:                    return astrocs::IO;         // §5: 7（IO）
+    case ErrorDomain::RESOURCE:              return astrocs::RESOURCE;   // §5: 10（RESOURCE）
+    case ErrorDomain::CANCELLED:             return astrocs::CANCELLED;  // §5: 9（CANCELLED）
+    case ErrorDomain::INTERNAL:              return astrocs::INTERNAL;   // §5: 70（INTERNAL）
+  }
+  return astrocs::INTERNAL;   // §5 末条: 未列出的域一律 70
 }
 
 namespace {
@@ -421,15 +442,49 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     return 70;
   }
   std::string err;
-  const std::string ir_json = build_pipeline_ir(phases, config_json, &err);
+  std::string ir_json = build_pipeline_ir(phases, config_json, &err);
+  // P-158 测试钩子(非用户接口; 不设环境变量时零影响, 与既有
+  // ASTROCS_TEST_PIPELINE_SLEEP_MS 同款): 直接注入 PipelineIR 文本。preset 生成的 IR
+  // 结构恒合法 ⇒ load_pipeline 失败面在配置面无入口, 负例需要此注入点。
+  if (const char* ir_inject = std::getenv("ASTROCS_TEST_PIPELINE_IR");
+      ir_inject != nullptr && *ir_inject != '\0') {
+    ir_json.assign(ir_inject);
+    err.clear();
+  }
   if (ir_json.empty()) {
     if (fail_reason) *fail_reason = err;
     return 2;
   }
+  // F-EXIT-MAP 可达矩阵测试钩子(非用户接口; 不设环境变量时零影响, 与
+  // ASTROCS_TEST_PIPELINE_SLEEP_MS / ASTROCS_TEST_PIPELINE_IR 同款): 强制一个
+  // ErrorDomain，用于端到端验证「域 → 退出码」在 run_pipeline 实际可达且等于 §5 表。
+  if (const char* dom_env = std::getenv("ASTROCS_TEST_FORCE_ERROR_DOMAIN");
+      dom_env != nullptr && *dom_env != '\0') {
+    using astrocs::core::ErrorDomain;
+    const std::string d(dom_env);
+    ErrorDomain forced = ErrorDomain::INTERNAL;
+    if (d == "CONFIG") forced = ErrorDomain::CONFIG;
+    else if (d == "DATA") forced = ErrorDomain::DATA;
+    else if (d == "SCIENCE_PRECONDITION") forced = ErrorDomain::SCIENCE_PRECONDITION;
+    else if (d == "BACKEND") forced = ErrorDomain::BACKEND;
+    else if (d == "IO") forced = ErrorDomain::IO;
+    else if (d == "RESOURCE") forced = ErrorDomain::RESOURCE;
+    else if (d == "CANCELLED") forced = ErrorDomain::CANCELLED;
+    else if (d == "INTERNAL") forced = ErrorDomain::INTERNAL;
+    else {
+      if (fail_reason) *fail_reason = "unknown forced ErrorDomain: " + d;
+      return 70;
+    }
+    if (fail_reason) *fail_reason = "forced ErrorDomain=" + d;
+    return exit_code_for_error_domain(forced);
+  }
   auto load = rt.value()->load_pipeline(ir_json, reg);
   if (load.failed()) {
     if (fail_reason) *fail_reason = load.error().message();
-    return 4;  // 静态验证失败 → 科学/配置错误
+    // P-158: 退出码按**错误域**映射（§5 表，唯一实现 = exit_code_for_error_domain）——
+    // 解析/静态验证失败一律 DATA 域 ⇒ 2(ARGS)。旧实现无条件 return 4 把 DATA 错判成
+    // SCIENCE_PRECONDITION（科学前置条件）。
+    return exit_code_for_error_domain(load.error().domain());
   }
   astrocs::core::RunContext ctx;
   // QA-002/LNX-004: cancel 接线 — SIGINT/SIGTERM 置位 CLI cancel_flag 后，
@@ -489,17 +544,16 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
       if (disk_full) return 10;
       if (input_err) return 3;
     }
-    switch (rt_ret.error().domain()) {
-      case astrocs::core::ErrorDomain::DATA: return 2;
-      // docs/ASTROCS_DESIGN §7.2「4 = 科学验证或不变量失败」——此前
-      // SCIENCE_PRECONDITION 落 default→70, 使语义守卫（非面亮度输入/不变量
-      // 违例）无法按合同给 4。仅补齐该域映射, 不改其它域语义。
-      case astrocs::core::ErrorDomain::SCIENCE_PRECONDITION: return 4;
-      case astrocs::core::ErrorDomain::IO: return 7;
-      case astrocs::core::ErrorDomain::CANCELLED: return 9;
-      case astrocs::core::ErrorDomain::RESOURCE: return 5;
-      default: return 70;
-    }
+    // F-EXIT-MAP 归零（P-158 同因）：域→码不再各自硬编码，一律走
+    // exit_code_for_error_domain（唯一实现，依据 docs/contracts/LOG_AND_ERROR_CONTRACT.md §5
+    // 的「域 → 码」表）。旧实现的三处偏差已由此消除：
+    //   CONFIG  → default 70（合同 2(ARGS)）
+    //   BACKEND → default 70（合同 5(BACKEND)）
+    //   RESOURCE→ 5（合同 10(RESOURCE)，exit_codes.h 的 RESOURCE=10）
+    // DATA→2 / SCIENCE_PRECONDITION→4 / IO→7 / CANCELLED→9 / INTERNAL→70 语义不变；
+    // 上面 :507-523 的 error_kind 改判（input→3、disk_full→10）仍先于本映射，与 §5
+    // DATA/IO 两行的"改判"注一致。
+    return exit_code_for_error_domain(rt_ret.error().domain());
   }
   return 0;
 }
