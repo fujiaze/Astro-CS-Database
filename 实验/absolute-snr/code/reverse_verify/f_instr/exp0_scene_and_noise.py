@@ -132,7 +132,7 @@ def main():
         real = scene["patch_" + tag]
         sky = scene["sky_" + tag]
         rng = np.random.default_rng(12345)
-        sim, sat = nm.render(sky, None, None, rng)
+        sim, sat = nm.render(sky, None, None, rng=rng)
         # 只统计天光区 (掩掉真实源)
         m_med, m_sig = robust_sky_stats(real)
         s_med, s_sig = robust_sky_stats(sim)

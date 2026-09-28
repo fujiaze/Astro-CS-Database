@@ -188,8 +188,8 @@ def template_noise_model(template_adu, G=1.3, RN=10.0, n_frames=4,
 # --------------------------------------------------------------------------- #
 def simulate_frame(template_adu, template_sigma_adu, G=1.3, RN=10.0,
                    sky_scale=1.0, sky_gradient_adu=(0.0, 0.0), dark_e=0.0,
-                   sigma_flat=0.0, flat_field=None, rng=None,
-                   quantise=True, return_components=False, source_e=None):
+                   sigma_flat=0.0, flat_field=None, *,
+                   rng, quantise=True, return_components=False, source_e=None):
     """One physical realisation of a calibrated frame.
 
     Parameters
@@ -203,9 +203,11 @@ def simulate_frame(template_adu, template_sigma_adu, G=1.3, RN=10.0,
     dark_e              : dark current [e-] (uniform)
     sigma_flat          : rms of the flat-field response residual (multiplicative)
     flat_field          : optional precomputed (1+eps) map (overrides sigma_flat)
+    rng                 : REQUIRED keyword-only numpy.random.Generator.
+                          必填关键字参数、**无默认值**：本函数绝不自行构造未 seed
+                          的生成器。传 np.random.default_rng(<固定 seed>) 保证逐位
+                          可复现；漏传即 TypeError（fail-closed），不是静默回落。
     """
-    if rng is None:
-        rng = np.random.default_rng()
     h, w = template_adu.shape
     yy, xx = np.mgrid[0:h, 0:w]
     gx, gy = sky_gradient_adu
@@ -255,15 +257,16 @@ def simulate_frame(template_adu, template_sigma_adu, G=1.3, RN=10.0,
     return obs, var_tot, comp
 
 
-def simulate_quantisation_pair(template_adu, G=1.3, RN=0.0, rng=None,
-                               source_e=None):
+def simulate_quantisation_pair(template_adu, G=1.3, RN=0.0, *,
+                               rng, source_e=None):
     """One electron draw, both ADC treatments -> isolates the quantisation term.
 
     Returns (adu_quantised, adu_not_quantised) from the SAME Poisson/Gaussian
     realisation, so their variance difference has no Monte-Carlo scatter.
+
+    rng : REQUIRED keyword-only numpy.random.Generator（**无默认值**）。
+          本函数绝不自行构造未 seed 的生成器；漏传即 TypeError（fail-closed）。
     """
-    if rng is None:
-        rng = np.random.default_rng()
     mu_e = np.maximum(template_adu, 0.0) * G
     if source_e is not None:
         mu_e = mu_e + source_e

@@ -1,0 +1,4150 @@
+{
+ "experiment": "P2-M5 闭环：冻结默认算子在真实控制点网格上的传递检查（生产 SparseSnrReconstructor 直调）",
+ "finding": "run/FINAL-07/审核包/科研审查/SCI-702_P2_跨帧绝对SNR_审查报告.md §6 P2-M5",
+ "seed": 20260926,
+ "claimed_ctrl_noise_rel": 0.015,
+ "frozen_operator_tokens": [
+  "natural_bicubic_spline_clip_v1",
+  "natural_bicubic_spline_clip_mesh_median_v1",
+  "bilinear_regular_grid_v1",
+  "nearest_control_point_v1"
+ ],
+ "production_link": {
+  "header": "/workspace/Astro CS Database/lib/algorithms/integration/phase2_integrate/include/astrocs/weight_chain.h",
+  "source": "/workspace/Astro CS Database/lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp",
+  "sha256_source": "3dba6d8223018b1271b838766829e507cc3f987bb3e5ac11146ffa6c88026133",
+  "sha256_header": "a30ec199151f7b692e69be218b01fe6c6e06c14a3b595b7a8243699125a42955",
+  "driver_source": "/workspace/Astro CS Database/实验/absolute-snr/code/exp11_recon_driver.cpp",
+  "driver_build": "/workspace/Astro CS Database/实验/absolute-snr/code/exp11_build_driver.sh",
+  "driver_binary": "/workspace/Astro CS Database/run/FINAL-07/审核包/科研审查/P2_订正/evidence/prod/exp11_recon_driver",
+  "compile": "g++ -O2 -std=c++17 -I <phase2_integrate>/include exp11_recon_driver.cpp <phase2_integrate>/src/weight_chain.cpp -o exp11_recon_driver",
+  "api": "astrocs::v6::p2weight::SparseSnrReconstructor::prepare/eval（等价单调用 reconstruct_sparse_snr）"
+ },
+ "sections_s": {
+  "H0": 18.503481504973024,
+  "H1": 62.63534348097164,
+  "H5a": 66.42290937097277,
+  "H3H4": 67.89174429792911,
+  "H2": 476.54463301901706,
+  "H5b": 480.4510326120071
+ },
+ "wall_s": 480.46308435697574,
+ "headline_primary_frame": {
+  "delta_64_same_family_sigma|natural_bicubic_spline_clip_v1": {
+   "disc_rel_rms": 0.9895009467063276,
+   "gain_mul": 1.1853201400531483,
+   "gain_add": 0.8810891502563514,
+   "gain_mul_self": 0.9109348518959056,
+   "inflation_ratio": 0.9996998664799525,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+   "disc_rel_rms": 0.9972120352034,
+   "gain_mul": 0.7474973395442769,
+   "gain_add": 0.7526347830924424,
+   "gain_mul_self": 0.5744619999958978,
+   "inflation_ratio": 0.9999993035029583,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_sigma|bilinear_regular_grid_v1": {
+   "disc_rel_rms": 0.99085179789776,
+   "gain_mul": 0.8322376751146795,
+   "gain_add": 0.6652716525972441,
+   "gain_mul_self": 0.639586114928234,
+   "inflation_ratio": 0.9998649343144139,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_sigma|nearest_control_point_v1": {
+   "disc_rel_rms": 0.9904802617060967,
+   "gain_mul": 1.3012128557669864,
+   "gain_add": 1.0040315958335244,
+   "gain_mul_self": 0.9999999999999998,
+   "inflation_ratio": 0.9997145094305828,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_sigma|natural_bicubic_spline_clip_v1": {
+   "disc_rel_rms": 0.989561856877711,
+   "gain_mul": 1.1880254944388344,
+   "gain_add": 0.8818379942927714,
+   "gain_mul_self": 0.9093410738302062,
+   "inflation_ratio": 0.9997015591336658,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+   "disc_rel_rms": 0.9973088511870375,
+   "gain_mul": 0.8115540243525695,
+   "gain_add": 0.8239395743957354,
+   "gain_mul_self": 0.6211814573260287,
+   "inflation_ratio": 1.0000008402888372,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_sigma|bilinear_regular_grid_v1": {
+   "disc_rel_rms": 0.9909286969592406,
+   "gain_mul": 0.8352580054428359,
+   "gain_add": 0.6652716525972441,
+   "gain_mul_self": 0.6393250104059693,
+   "inflation_ratio": 0.9998653880931575,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_sigma|nearest_control_point_v1": {
+   "disc_rel_rms": 0.9905349655147014,
+   "gain_mul": 1.3064685282880608,
+   "gain_add": 1.0040315958335244,
+   "gain_mul_self": 1.0,
+   "inflation_ratio": 0.9997154048372456,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_sigma|natural_bicubic_spline_clip_v1": {
+   "disc_rel_rms": 0.9133785212165463,
+   "gain_mul": 1.655413326462923,
+   "gain_add": 0.8870361495493455,
+   "gain_mul_self": 0.8870546177580138,
+   "inflation_ratio": 1.0007231441255557,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+   "disc_rel_rms": 0.9901852565128396,
+   "gain_mul": 0.8278918900041826,
+   "gain_add": 0.8385320598356597,
+   "gain_mul_self": 0.44362656280033763,
+   "inflation_ratio": 1.000053164318274,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_sigma|bilinear_regular_grid_v1": {
+   "disc_rel_rms": 0.9311674901668395,
+   "gain_mul": 1.2341188784852686,
+   "gain_add": 0.629095066838615,
+   "gain_mul_self": 0.6613036348824015,
+   "inflation_ratio": 1.0005551992148816,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_sigma|nearest_control_point_v1": {
+   "disc_rel_rms": 0.9011641806859033,
+   "gain_mul": 1.8661909800400989,
+   "gain_add": 1.0030201050056673,
+   "gain_mul_self": 1.0,
+   "inflation_ratio": 1.0006592922895705,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+   "disc_rel_rms": 0.8598760593173896,
+   "gain_mul": 0.8838582686636528,
+   "gain_add": 0.9312669970627362,
+   "gain_mul_self": 0.8761181784216618,
+   "inflation_ratio": 1.0072434011962057,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+   "disc_rel_rms": 0.8950140202765088,
+   "gain_mul": 0.7393877555025058,
+   "gain_add": 0.7530229943203721,
+   "gain_mul_self": 0.7329128169808972,
+   "inflation_ratio": 0.9878679712633629,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+   "disc_rel_rms": 0.8512120486533643,
+   "gain_mul": 0.6675283950189211,
+   "gain_add": 0.703216753861155,
+   "gain_mul_self": 0.661682740574403,
+   "inflation_ratio": 1.0043776740260943,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_same_family_inv_sigma_Fref1|nearest_control_point_v1": {
+   "disc_rel_rms": 0.8768693037180885,
+   "gain_mul": 1.0088345276158235,
+   "gain_add": 1.0627711339378383,
+   "gain_mul_self": 1.0000000000000002,
+   "inflation_ratio": 1.0090581517629027,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+   "disc_rel_rms": 0.9258009613712158,
+   "gain_mul": 0.8835898133877391,
+   "gain_add": 0.9318799290683021,
+   "gain_mul_self": 0.8759795839258787,
+   "inflation_ratio": 1.0056988121382762,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+   "disc_rel_rms": 0.9302126765342412,
+   "gain_mul": 0.7990783425750868,
+   "gain_add": 0.829333750793303,
+   "gain_mul_self": 0.7921959980155859,
+   "inflation_ratio": 0.9935262843245648,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+   "disc_rel_rms": 0.9147557358496231,
+   "gain_mul": 0.6673803371581917,
+   "gain_add": 0.7029624656566353,
+   "gain_mul_self": 0.6616322882024951,
+   "inflation_ratio": 1.0033782708767287,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_64_holdout_1px_inv_sigma_Fref1|nearest_control_point_v1": {
+   "disc_rel_rms": 0.9428958440134152,
+   "gain_mul": 1.0086876790298627,
+   "gain_add": 1.0625495671812029,
+   "gain_mul_self": 1.0000000000000002,
+   "inflation_ratio": 1.0068813629270559,
+   "n_control_points": 4096,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+   "disc_rel_rms": 0.7436349567843373,
+   "gain_mul": 0.8808119299476146,
+   "gain_add": 0.9503374279121982,
+   "gain_mul_self": 0.8735525807836126,
+   "inflation_ratio": 1.0104504861639214,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+   "disc_rel_rms": 0.8423750294227904,
+   "gain_mul": 0.815194261411978,
+   "gain_add": 0.8464422006299331,
+   "gain_mul_self": 0.8084757105172006,
+   "inflation_ratio": 0.9839226155975648,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+   "disc_rel_rms": 0.7427407738110497,
+   "gain_mul": 0.6318675981496762,
+   "gain_add": 0.6828581393893969,
+   "gain_mul_self": 0.6266599625983951,
+   "inflation_ratio": 1.0054895709571274,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  },
+  "delta_32_same_family_inv_sigma_Fref1|nearest_control_point_v1": {
+   "disc_rel_rms": 0.7534502064318096,
+   "gain_mul": 1.0083101456325505,
+   "gain_add": 1.089941624750659,
+   "gain_mul_self": 1.0000000000000004,
+   "inflation_ratio": 1.013019147626577,
+   "n_control_points": 16384,
+   "n_invalid_control_points": 0
+  }
+ },
+ "H0_driver_integrity": {
+  "banded_sigma": {
+   "size": [
+    2048,
+    2048
+   ],
+   "finite_input_bitwise_equal": true,
+   "nan_input_bitwise_equal": true,
+   "max_abs_diff": 0.0
+  },
+  "constant_grid_zero_negative": {
+   "natural_bicubic_spline_clip_v1": {
+    "mode": "regular_grid",
+    "prod": {
+     "operator_id": "natural_bicubic_spline_clip_v1",
+     "clipped": 1,
+     "clip_low": 20.0,
+     "clip_high": 20.0,
+     "mesh_median": 0,
+     "n_filled": 0,
+     "cell_center_offset": 0.0,
+     "node_residual": 0.0,
+     "n_ok": 262144,
+     "n_err": 0,
+     "n_out_of_domain": 0,
+     "min_v": 20.0,
+     "max_v": 20.0,
+     "mean_v": 20.0
+    },
+    "max_abs_dev_from_const": 0.0,
+    "disc_rel_mean": 0.0,
+    "n": 262144,
+    "n_query": 262144
+   },
+   "natural_bicubic_spline_clip_mesh_median_v1": {
+    "mode": "regular_grid",
+    "prod": {
+     "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+     "clipped": 1,
+     "clip_low": 20.0,
+     "clip_high": 20.0,
+     "mesh_median": 1,
+     "n_filled": 0,
+     "cell_center_offset": 0.0,
+     "node_residual": 0.0,
+     "n_ok": 262144,
+     "n_err": 0,
+     "n_out_of_domain": 0,
+     "min_v": 20.0,
+     "max_v": 20.0,
+     "mean_v": 20.0
+    },
+    "max_abs_dev_from_const": 0.0,
+    "disc_rel_mean": 0.0,
+    "n": 262144,
+    "n_query": 262144
+   },
+   "bilinear_regular_grid_v1": {
+    "mode": "regular_grid",
+    "prod": {
+     "operator_id": "bilinear_regular_grid_v1",
+     "clipped": 0,
+     "clip_low": 20.0,
+     "clip_high": 20.0,
+     "mesh_median": 0,
+     "n_filled": 0,
+     "cell_center_offset": 0.0,
+     "node_residual": 0.0,
+     "n_ok": 262144,
+     "n_err": 0,
+     "n_out_of_domain": 0,
+     "min_v": 20.0,
+     "max_v": 20.0,
+     "mean_v": 20.0
+    },
+    "max_abs_dev_from_const": 0.0,
+    "disc_rel_mean": 0.0,
+    "n": 262144,
+    "n_query": 262144
+   },
+   "nearest_control_point_v1": {
+    "mode": "scattered",
+    "prod": {
+     "operator_id": "nearest_control_point_v1",
+     "clipped": 0,
+     "clip_low": 0.0,
+     "clip_high": 0.0,
+     "mesh_median": 0,
+     "n_filled": 0,
+     "cell_center_offset": 0.0,
+     "node_residual": 0.0,
+     "n_ok": 262144,
+     "n_err": 0,
+     "n_out_of_domain": 0,
+     "min_v": 20.0,
+     "max_v": 20.0,
+     "mean_v": 20.0
+    },
+    "max_abs_dev_from_const": 0.0,
+    "disc_rel_mean": 0.0,
+    "n": 262144,
+    "n_query": 262144
+   }
+  },
+  "truth_estimator_se": {
+   "P16_n256": {
+    "n_samples_in_cell": 256,
+    "n_repeats": 24,
+    "n_estimates": 6144,
+    "rel_se": 0.07318494362724177,
+    "rel_bias": -0.002538542816055478,
+    "rel_se_of_se": 0.0006602622798405573
+   },
+   "P8_n64": {
+    "n_samples_in_cell": 64,
+    "n_repeats": 24,
+    "n_estimates": 24576,
+    "rel_se": 0.1434319349564297,
+    "rel_bias": -0.01153044968207284,
+    "rel_se_of_se": 0.000646969930407421
+   },
+   "ratio_se_64_over_256": 1.9598557824541352,
+   "theory_1_over_sqrt_N_ratio": 2.0,
+   "use": "P=16 cell（256 px）真值场的单 cell 相对标准误；用于把 disc_rel_rms 的「估计器噪声污染」从读数里扣掉：disc_corrected = sqrt(max(disc²-se²,0))。噪声传递读数（gain / noise_rel_rms）两臂共用同一真值 ⇒ 不受此污染。"
+  }
+ },
+ "H1_exp04_grid": {
+  "metric_parity_idw_exp04": {
+   "n_control_points": 64,
+   "node_convention": "exp04 逐字 32+64k",
+   "vectorized_vs_verbatim_max_rel_dev": 0.0,
+   "vectorized_vs_verbatim_n_points": 4096,
+   "dense_rel_rms_noiseless_negative": 0.2287350195578427,
+   "dense_rel_rms_with_ctrl_noise": 0.24247489181656756,
+   "noise_inflation_over_noiseless": 1.060068949150352,
+   "archived_exp04": {
+    "dense_rel_rms_with_ctrl_noise": 0.24247489181656756,
+    "dense_rel_rms_noiseless_negative": 0.2287350195578427,
+    "noise_inflation_over_noiseless": 1.060068949150352
+   },
+   "rel_dev_vs_archived": {
+    "noiseless": 0.0,
+    "with_noise": 0.0,
+    "inflation": 0.0
+   }
+  },
+  "frozen_operators_on_exp04_field": {
+   "delta_64": {
+    "delta_px": 64,
+    "n_control_points": 64,
+    "geometry": "节点在 cell 中心 31.5+64·k",
+    "rows": {
+     "natural_bicubic_spline_clip_v1": {
+      "prod": {
+       "operator_id": "natural_bicubic_spline_clip_v1",
+       "clipped": 1,
+       "clip_low": 14.852807524148544,
+       "clip_high": 25.147192475851455,
+       "mesh_median": 0,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 3.552713678800501e-15,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 14.852807524148544,
+       "max_v": 25.147192475851455,
+       "mean_v": 19.99999950696207
+      },
+      "mode": "regular_grid",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.12058561462679596,
+       "disc_rel_mean": 0.018087842639920873,
+       "noise_rel_rms": 0.013004405224298882,
+       "noise_abs_rms": 0.2600880980742859,
+       "gain": 0.8669603482865922,
+       "inflation_ratio": 1.1232563053508982,
+       "rms_clean_vs_truth": 0.3617568438803878,
+       "rms_noisy_vs_truth": 0.40634565589248606,
+       "mean_recon": 19.999999506960016,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.12058561462679596,
+       "disc_rel_mean": 0.018087842639920873,
+       "noise_rel_rms": 0.012565072705493723,
+       "noise_abs_rms": 0.2513014479147912,
+       "gain": 0.8376715136995815,
+       "inflation_ratio": 1.1186549940761055,
+       "rms_clean_vs_truth": 0.3617568438803878,
+       "rms_noisy_vs_truth": 0.40468110004800584,
+       "mean_recon": 19.999999506960016,
+       "std_ref": 2.9999999999999996
+      }
+     },
+     "natural_bicubic_spline_clip_mesh_median_v1": {
+      "prod": {
+       "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+       "clipped": 1,
+       "clip_low": 17.841865041583198,
+       "clip_high": 22.158134958416802,
+       "mesh_median": 1,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 3.552713678800501e-15,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 17.841865041583198,
+       "max_v": 22.158134958416802,
+       "mean_v": 19.999493573545337
+      },
+      "mode": "regular_grid",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.5167756471638092,
+       "disc_rel_mean": 0.07751830994070974,
+       "noise_rel_rms": 0.013105281539884672,
+       "noise_abs_rms": 0.262098993936444,
+       "gain": 0.8736854359923115,
+       "inflation_ratio": 0.9101075021022458,
+       "rms_clean_vs_truth": 1.5503269414914274,
+       "rms_noisy_vs_truth": 1.4109641801625774,
+       "mean_recon": 19.999493573546722,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.5167756471638092,
+       "disc_rel_mean": 0.07751830994070974,
+       "noise_rel_rms": 0.013005120914545561,
+       "noise_abs_rms": 0.260095832153652,
+       "gain": 0.8670080609697041,
+       "inflation_ratio": 0.9104780195897356,
+       "rms_clean_vs_truth": 1.5503269414914274,
+       "rms_noisy_vs_truth": 1.4115386034057267,
+       "mean_recon": 19.999493573546722,
+       "std_ref": 2.9999999999999996
+      }
+     },
+     "bilinear_regular_grid_v1": {
+      "prod": {
+       "operator_id": "bilinear_regular_grid_v1",
+       "clipped": 0,
+       "clip_low": 14.852807524148544,
+       "clip_high": 25.147192475851455,
+       "mesh_median": 0,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 0.0,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 14.853011414982717,
+       "max_v": 25.14698858501728,
+       "mean_v": 20.000000000001084
+      },
+      "mode": "regular_grid",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.14441011698496717,
+       "disc_rel_mean": 0.02166151754774507,
+       "noise_rel_rms": 0.01001173358219195,
+       "noise_abs_rms": 0.20023467164383899,
+       "gain": 0.6674489054794633,
+       "inflation_ratio": 1.055786844479528,
+       "rms_clean_vs_truth": 0.4332303509549014,
+       "rms_noisy_vs_truth": 0.45739890516743387,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.14441011698496717,
+       "disc_rel_mean": 0.02166151754774507,
+       "noise_rel_rms": 0.009846122479151119,
+       "noise_abs_rms": 0.19692244958302238,
+       "gain": 0.6564081652767413,
+       "inflation_ratio": 1.0682887179953724,
+       "rms_clean_vs_truth": 0.4332303509549014,
+       "rms_noisy_vs_truth": 0.46281509621829686,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      }
+     },
+     "nearest_control_point_v1": {
+      "prod": {
+       "operator_id": "nearest_control_point_v1",
+       "clipped": 0,
+       "clip_low": 0.0,
+       "clip_high": 0.0,
+       "mesh_median": 0,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 0.0,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 14.852807524148544,
+       "max_v": 25.147192475851455,
+       "mean_v": 19.99999999999978
+      },
+      "mode": "scattered",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.3173227962277284,
+       "disc_rel_mean": 0.04759841943415925,
+       "noise_rel_rms": 0.013843170953312504,
+       "noise_abs_rms": 0.27686341906625006,
+       "gain": 0.9228780635541669,
+       "inflation_ratio": 1.0429635025366026,
+       "rms_clean_vs_truth": 0.9519683886831851,
+       "rms_noisy_vs_truth": 0.9928682849651406,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.3173227962277284,
+       "disc_rel_mean": 0.04759841943415925,
+       "noise_rel_rms": 0.01364004439951704,
+       "noise_abs_rms": 0.2728008879903408,
+       "gain": 0.909336293301136,
+       "inflation_ratio": 1.0397982025255414,
+       "rms_clean_vs_truth": 0.9519683886831851,
+       "rms_noisy_vs_truth": 0.9898550194139119,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      }
+     }
+    }
+   },
+   "delta_32": {
+    "delta_px": 32,
+    "n_control_points": 256,
+    "geometry": "节点在 cell 中心 15.5+32·k",
+    "rows": {
+     "natural_bicubic_spline_clip_v1": {
+      "prod": {
+       "operator_id": "natural_bicubic_spline_clip_v1",
+       "clipped": 1,
+       "clip_low": 14.214481758580353,
+       "clip_high": 25.785518241419645,
+       "mesh_median": 0,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 3.552713678800501e-15,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 14.214481758580353,
+       "max_v": 25.785518241419645,
+       "mean_v": 19.99999995786723
+      },
+      "mode": "regular_grid",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.04037940036440299,
+       "disc_rel_mean": 0.006056910067419919,
+       "noise_rel_rms": 0.013715513857891487,
+       "noise_abs_rms": 0.2743102765799684,
+       "gain": 0.9143675905260992,
+       "inflation_ratio": 2.4811868341666106,
+       "rms_clean_vs_truth": 0.12113820109320896,
+       "rms_noisy_vs_truth": 0.30056650966709736,
+       "mean_recon": 19.999999957868052,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.04037940036440299,
+       "disc_rel_mean": 0.006056910067419919,
+       "noise_rel_rms": 0.013867748399955132,
+       "noise_abs_rms": 0.2773549674148274,
+       "gain": 0.9245165599970089,
+       "inflation_ratio": 2.501514427389839,
+       "rms_clean_vs_truth": 0.12113820109320896,
+       "rms_noisy_vs_truth": 0.30302895774271377,
+       "mean_recon": 19.999999957868052,
+       "std_ref": 2.9999999999999996
+      }
+     },
+     "natural_bicubic_spline_clip_mesh_median_v1": {
+      "prod": {
+       "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+       "clipped": 1,
+       "clip_low": 15.081168926614684,
+       "clip_high": 24.91883107338532,
+       "mesh_median": 1,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 3.552713678800501e-15,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 15.081168926614684,
+       "max_v": 24.91883107338532,
+       "mean_v": 19.99999238875719
+      },
+      "mode": "regular_grid",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.12677350071172805,
+       "disc_rel_mean": 0.019016032343540868,
+       "noise_rel_rms": 0.012015653875646853,
+       "noise_abs_rms": 0.24031298605888182,
+       "gain": 0.8010435917097902,
+       "inflation_ratio": 1.123559240766683,
+       "rms_clean_vs_truth": 0.3803205021351841,
+       "rms_noisy_vs_truth": 0.4273126146270111,
+       "mean_recon": 19.999992388757516,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.12677350071172805,
+       "disc_rel_mean": 0.019016032343540868,
+       "noise_rel_rms": 0.012418956011069534,
+       "noise_abs_rms": 0.2483790256977051,
+       "gain": 0.827930400737969,
+       "inflation_ratio": 1.1459156621623574,
+       "rms_clean_vs_truth": 0.3803205021351841,
+       "rms_noisy_vs_truth": 0.43581522003815976,
+       "mean_recon": 19.999992388757516,
+       "std_ref": 2.9999999999999996
+      }
+     },
+     "bilinear_regular_grid_v1": {
+      "prod": {
+       "operator_id": "bilinear_regular_grid_v1",
+       "clipped": 0,
+       "clip_low": 14.214481758580353,
+       "clip_high": 25.785518241419645,
+       "mesh_median": 0,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 0.0,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 14.214702157617358,
+       "max_v": 25.78529784238264,
+       "mean_v": 20.000000000000522
+      },
+      "mode": "regular_grid",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.047200503848100796,
+       "disc_rel_mean": 0.0070800755772151185,
+       "noise_rel_rms": 0.010817353168122101,
+       "noise_abs_rms": 0.21634706336244203,
+       "gain": 0.7211568778748068,
+       "inflation_ratio": 1.903669020645687,
+       "rms_clean_vs_truth": 0.14160151154430237,
+       "rms_noisy_vs_truth": 0.269562410803491,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.047200503848100796,
+       "disc_rel_mean": 0.0070800755772151185,
+       "noise_rel_rms": 0.01095096049027779,
+       "noise_abs_rms": 0.2190192098055558,
+       "gain": 0.730064032685186,
+       "inflation_ratio": 1.932223399082246,
+       "rms_clean_vs_truth": 0.14160151154430237,
+       "rms_noisy_vs_truth": 0.2736057539513158,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      }
+     },
+     "nearest_control_point_v1": {
+      "prod": {
+       "operator_id": "nearest_control_point_v1",
+       "clipped": 0,
+       "clip_low": 0.0,
+       "clip_high": 0.0,
+       "mesh_median": 0,
+       "n_filled": 0,
+       "cell_center_offset": 0.0,
+       "node_residual": 0.0,
+       "n_ok": 262144,
+       "n_err": 0,
+       "n_out_of_domain": 0,
+       "min_v": 14.214481758580353,
+       "max_v": 25.785518241419645,
+       "mean_v": 20.000000000000075
+      },
+      "mode": "scattered",
+      "mul": {
+       "n": 262144,
+       "disc_rel_rms": 0.15982978283814908,
+       "disc_rel_mean": 0.02397446742572236,
+       "noise_rel_rms": 0.015552274144842265,
+       "noise_abs_rms": 0.3110454828968453,
+       "gain": 1.0368182763228178,
+       "inflation_ratio": 1.1871790656098877,
+       "rms_clean_vs_truth": 0.4794893485144472,
+       "rms_noisy_vs_truth": 0.5692397167392752,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      },
+      "add": {
+       "n": 262144,
+       "disc_rel_rms": 0.15982978283814908,
+       "disc_rel_mean": 0.02397446742572236,
+       "noise_rel_rms": 0.01574587651994442,
+       "noise_abs_rms": 0.31491753039888837,
+       "gain": 1.049725101329628,
+       "inflation_ratio": 1.1904305581941454,
+       "rms_clean_vs_truth": 0.4794893485144472,
+       "rms_noisy_vs_truth": 0.5707987728002005,
+       "mean_recon": 20.0,
+       "std_ref": 2.9999999999999996
+      }
+     }
+    }
+   }
+  },
+  "idw_proxy_on_production_geometry": {
+   "delta_64": {
+    "delta_px": 64,
+    "n_control_points": 64,
+    "disc_rel_rms": 0.22872051349863246,
+    "noise_rel_rms": 0.009110040681838827,
+    "gain": 0.6073360454559218,
+    "inflation_ratio": 1.019699247151328,
+    "note": "代理算子（不在冻结词表）——只用于说明 exp04 的 0.2287/1.06× 出自 IDW 自身离散化"
+   },
+   "delta_32": {
+    "delta_px": 32,
+    "n_control_points": 256,
+    "disc_rel_rms": 0.08772776118869574,
+    "noise_rel_rms": 0.009854133686768293,
+    "gain": 0.6569422457845528,
+    "inflation_ratio": 1.3016572174009269,
+    "note": "代理算子（不在冻结词表）——只用于说明 exp04 的 0.2287/1.06× 出自 IDW 自身离散化"
+   }
+  },
+  "field": "20*(1+0.3*sin(2*pi*x/512)*cos(2*pi*y/512))",
+  "note": "exp04 的 32+64k 节点几何只用于 IDW 复现门；冻结算子必须用生产几何（cell 中心 31.5+64k / 15.5+32k），否则会被 cell 中心门 fail-closed 拒绝。"
+ },
+ "H5a_impulse_analytic": {
+  "frame_px": 512,
+  "delta_px": 64,
+  "query_stride": 4,
+  "n_query": 16384,
+  "query_set": "512² 像素网格按步长 4 抽样（16384 点）",
+  "analytic": {
+   "bilinear_closed_form": 0.7087249755859375,
+   "nearest_closed_form": 1.0,
+   "bilinear_detail": {
+    "n_edge_queries": 3840,
+    "n_query": 16384,
+    "interior_mean_w2": 0.4450414329767227
+   },
+   "derivation": "Σw² = [(1-fx)²+fx²][(1-fy)²+fy²]（双线性四点权重，2D 可分离）"
+  },
+  "rows": {
+   "nearest_control_point_v1": {
+    "predicted_gain": 0.9999999999621423,
+    "impulse_mean_sumw2": 0.9999999999240288,
+    "prediction_valid": true,
+    "prediction_note": "",
+    "measured_gain_mean_of_R": 1.0,
+    "measured_gain_std_of_R": 1.32697032177375e-16,
+    "R_realizations": 8,
+    "ctrl_perturbation_rel": 1e-06
+   },
+   "natural_bicubic_spline_clip_v1": {
+    "predicted_gain": 0.8539448985668509,
+    "impulse_mean_sumw2": 0.7292218897883541,
+    "prediction_valid": true,
+    "prediction_note": "",
+    "measured_gain_mean_of_R": 0.8627486481345994,
+    "measured_gain_std_of_R": 0.016044563506316226,
+    "R_realizations": 8,
+    "ctrl_perturbation_rel": 1e-06
+   },
+   "natural_bicubic_spline_clip_mesh_median_v1": {
+    "predicted_gain": 0.0,
+    "impulse_mean_sumw2": 0.0,
+    "prediction_valid": false,
+    "prediction_note": "mesh_median 对单节点脉冲响应恒为 0（3×3 中值吃掉单点扰动）⇒ 脉冲/线性预测对该非线性算子无效，只记实测",
+    "measured_gain_mean_of_R": 0.4676185707758282,
+    "measured_gain_std_of_R": 0.09421534731227856,
+    "R_realizations": 8,
+    "ctrl_perturbation_rel": 1e-06
+   },
+   "bilinear_regular_grid_v1": {
+    "predicted_gain": 0.7087249755548085,
+    "impulse_mean_sumw2": 0.502291090975167,
+    "prediction_valid": true,
+    "prediction_note": "",
+    "measured_gain_mean_of_R": 0.7026585682711918,
+    "measured_gain_std_of_R": 0.02889784619919342,
+    "R_realizations": 8,
+    "ctrl_perturbation_rel": 1e-06
+   }
+  }
+ },
+ "H3_fail_closed": {
+  "out_of_domain_query_all": {
+   "expectation": "all_query_fail",
+   "prepare_ok": true,
+   "prepare_err": "",
+   "n_query": 3,
+   "n_ok": 0,
+   "n_err": 3,
+   "n_out_of_domain": 3,
+   "first_err": "query pixel outside sparse SNR layer domain (no extrapolation; frame-level fallback forbidden)",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "in_domain_boundary_ok": {
+   "expectation": "all_query_ok",
+   "prepare_ok": true,
+   "prepare_err": "",
+   "n_query": 4,
+   "n_ok": 4,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "unknown_token_idw_power2_k8_v1": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "unknown reconstruction_operator token 'idw_power2_k8_v1' (fail-closed; no silent fallback to the default operator)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "unknown_token_idw": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "unknown reconstruction_operator token 'idw' (fail-closed; no silent fallback to the default operator)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "unknown_token_NATURAL_BICUBIC_SPLINE_CLIP_V1": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "unknown reconstruction_operator token 'NATURAL_BICUBIC_SPLINE_CLIP_V1' (fail-closed; no silent fallback to the default operator)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "unknown_token_kriging_v1": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "unknown reconstruction_operator token 'kriging_v1' (fail-closed; no silent fallback to the default operator)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "nearest_on_regular_grid": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "reconstruction_operator nearest_control_point_v1 is scattered-mode only (regular_grid=true)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "control_value_zero": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "sparse layer control point SNR non-finite/non-positive (corrupt)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "control_value_negative": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "sparse layer control point SNR non-finite/non-positive (corrupt)",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "nx_too_small": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "regular-grid sparse layer needs nx>=2 and ny>=2 for interpolation",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "all_nan_control_grid": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "all sparse layer control points are invalid (NaN); nothing to reconstruct",
+   "n_query": 2,
+   "n_ok": 0,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 0,
+   "keep_fail_closed": true
+  },
+  "partial_nan_filled": {
+   "expectation": "all_query_ok",
+   "prepare_ok": true,
+   "prepare_err": "",
+   "n_query": 2,
+   "n_ok": 2,
+   "n_err": 0,
+   "n_out_of_domain": 0,
+   "first_err": "",
+   "n_filled": 3,
+   "keep_fail_closed": true,
+   "expect_n_filled": 3,
+   "n_filled_ok": true
+  },
+  "corner_anchored_grid": {
+   "expectation": "prepare_fail",
+   "prepare_ok": false,
+   "prepare_err": "regular-grid sparse layer control points are not at their cell centers (max offset 31.500000 px; a corner-anchored grid shifts the whole field by half a cell; require x0 = grid_origin_x + (dx-1)/2)",
+   "keep_fail_closed": true
+  }
+ },
+ "H4_clip": {
+  "realistic_lognormal": {
+   "natural_bicubic_spline_clip_v1": {
+    "value_range_clipped": 1,
+    "clip_low": 7.3389700795361765,
+    "clip_high": 41.83316454269462,
+    "ctrl_min": 7.3389700795361765,
+    "ctrl_max": 41.83316454269462,
+    "recon_min": 7.3389700795361765,
+    "recon_max": 41.83316454269462,
+    "n_below_clip": 0,
+    "n_above_clip": 0,
+    "n_at_clip_low": 416,
+    "n_at_clip_high": 224,
+    "within_clip_range": true
+   },
+   "natural_bicubic_spline_clip_mesh_median_v1": {
+    "value_range_clipped": 1,
+    "clip_low": 14.859940124083803,
+    "clip_high": 31.86862262060665,
+    "ctrl_min": 7.3389700795361765,
+    "ctrl_max": 41.83316454269462,
+    "recon_min": 14.859940124083803,
+    "recon_max": 31.868622620606647,
+    "n_below_clip": 0,
+    "n_above_clip": 0,
+    "n_at_clip_low": 3108,
+    "n_at_clip_high": 1024,
+    "within_clip_range": true
+   },
+   "bilinear_regular_grid_v1": {
+    "value_range_clipped": 0,
+    "clip_low": 7.3389700795361765,
+    "clip_high": 41.83316454269462,
+    "ctrl_min": 7.3389700795361765,
+    "ctrl_max": 41.83316454269462,
+    "recon_min": 7.387226158534381,
+    "recon_max": 41.67386534870151,
+    "n_below_clip": 0,
+    "n_above_clip": 0,
+    "n_at_clip_low": 0,
+    "n_at_clip_high": 0,
+    "within_clip_range": true
+   }
+  },
+  "stress_deep_dip": {
+   "natural_bicubic_spline_clip_v1": {
+    "value_range_clipped": 1,
+    "clip_low": 0.36694850397680884,
+    "clip_high": 41.83316454269462,
+    "ctrl_min": 0.36694850397680884,
+    "ctrl_max": 41.83316454269462,
+    "recon_min": 0.36694850397680884,
+    "recon_max": 41.83316454269462,
+    "n_below_clip": 0,
+    "n_above_clip": 0,
+    "n_at_clip_low": 5,
+    "n_at_clip_high": 224,
+    "within_clip_range": true
+   },
+   "natural_bicubic_spline_clip_mesh_median_v1": {
+    "value_range_clipped": 1,
+    "clip_low": 14.844951150869768,
+    "clip_high": 31.86862262060665,
+    "ctrl_min": 0.36694850397680884,
+    "ctrl_max": 41.83316454269462,
+    "recon_min": 14.844951150869768,
+    "recon_max": 31.868622620606647,
+    "n_below_clip": 0,
+    "n_above_clip": 0,
+    "n_at_clip_low": 3890,
+    "n_at_clip_high": 1024,
+    "within_clip_range": true
+   },
+   "bilinear_regular_grid_v1": {
+    "value_range_clipped": 0,
+    "clip_low": 0.36694850397680884,
+    "clip_high": 41.83316454269462,
+    "ctrl_min": 0.36694850397680884,
+    "ctrl_max": 41.83316454269462,
+    "recon_min": 0.6631349850761412,
+    "recon_max": 41.67386534870151,
+    "n_below_clip": 0,
+    "n_above_clip": 0,
+    "n_at_clip_low": 0,
+    "n_at_clip_high": 0,
+    "within_clip_range": true
+   }
+  },
+  "clip_can_be_disabled_independently": false,
+  "evidence": "weight_chain.h:117-118 sparse_recon_operator_clips_to_ctrl_range()：仅 natural_bicubic_spline_clip_v1 / ..._mesh_median_v1 为真；weight_chain.cpp:654-656 在 eval 内按 clips_ 施加；API 无独立开关。故「关掉钳制」在生产不可表达，只能以 bilinear 无钳制档 + 值域界核验代替。"
+ },
+ "H2_real_grid": {
+  "query_points": {
+   "n": 65536,
+   "patch_px": 16,
+   "coords": "P=16 cell 中心 (16k+7.5, 16l+7.5)，k,l=0..255"
+  },
+  "config": {
+   "delta_default": 64,
+   "delta_extra": 32,
+   "ctrl_noise_rel": 0.015,
+   "seed": 20260926,
+   "max_radius_px": 100.0,
+   "frame_policy": "主帧：Δ=64 与 Δ=32 × {同族真值, 1px 棋盘 hold-out 真值} + 正齐次性；其余帧：Δ=64 同族真值（覆盖生产全帧与多帧）"
+  },
+  "frames": [
+   {
+    "meta": {
+     "file": "M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+     "exptime": 300.0,
+     "filter": "Red",
+     "naxis": [
+      4096,
+      4096
+     ]
+    },
+    "sigma_fields_s": 109.55093567899894,
+    "n_valid_cells": {
+     "full_16": 65536,
+     "full_64": 4096,
+     "full_32": 16384,
+     "fam1_16": 65536,
+     "fam0_64": 4096
+    },
+    "arms": {
+     "delta_64_same_family_sigma": {
+      "delta_px": 64,
+      "truth_variant": "same_family",
+      "representation": "sigma",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 14.470212131151964,
+       "std": 7.342421139208637,
+       "min": 11.860817748044816,
+       "max": 296.5204437011204
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 296.5204437011204,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 3.552713678800501e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 296.5204437011204,
+         "mean_v": 14.463937395393078
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9895009467063276,
+         "disc_rel_mean": 11.396957972350279,
+         "noise_rel_rms": 0.017779802100797226,
+         "noise_abs_rms": 0.2571659444884077,
+         "gain": 1.1853201400531483,
+         "inflation_ratio": 0.9996998664799525,
+         "rms_clean_vs_truth": 164.84488660999938,
+         "rms_noisy_vs_truth": 164.7954111339193,
+         "mean_recon": 14.463937395392982,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.0195181928365048,
+         "gain_selfnormalized": 0.9109348518959056
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9895009467063276,
+         "disc_rel_mean": 11.396957972350279,
+         "noise_rel_rms": 0.01321633725384527,
+         "noise_abs_rms": 0.19116027463601798,
+         "gain": 0.8810891502563514,
+         "inflation_ratio": 0.9999847757621962,
+         "rms_clean_vs_truth": 164.84488660999938,
+         "rms_noisy_vs_truth": 164.8423769722449,
+         "mean_recon": 14.463937395392982,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015060473937502863,
+         "gain_selfnormalized": 0.8775512184204632
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 88.95613311033613,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.7763568394002505e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.902569717494732,
+         "max_v": 88.95613311033613,
+         "mean_v": 14.030073525219004
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9972120352034,
+         "disc_rel_mean": 11.840957720049197,
+         "noise_rel_rms": 0.011212460093164152,
+         "noise_abs_rms": 0.15731163950567617,
+         "gain": 0.7474973395442769,
+         "inflation_ratio": 0.9999993035029583,
+         "rms_clean_vs_truth": 166.12950742129894,
+         "rms_noisy_vs_truth": 166.12939171258847,
+         "mean_recon": 14.030073525218931,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.0195181928365048,
+         "gain_selfnormalized": 0.5744619999958978
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9972120352034,
+         "disc_rel_mean": 11.840957720049197,
+         "noise_rel_rms": 0.011289521746386635,
+         "noise_abs_rms": 0.15839282016636252,
+         "gain": 0.7526347830924424,
+         "inflation_ratio": 0.9999977460260375,
+         "rms_clean_vs_truth": 166.12950742129894,
+         "rms_noisy_vs_truth": 166.12913296971482,
+         "mean_recon": 14.030073525218931,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015060473937502863,
+         "gain_selfnormalized": 0.7496126478645545
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 11.860817748044816,
+         "clip_high": 296.5204437011204,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 277.9763331399683,
+         "mean_v": 14.470212131151309
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.99085179789776,
+         "disc_rel_mean": 11.40756809718472,
+         "noise_rel_rms": 0.012483565126720192,
+         "noise_abs_rms": 0.18063983553669213,
+         "gain": 0.8322376751146795,
+         "inflation_ratio": 0.9998649343144139,
+         "rms_clean_vs_truth": 165.06993026682446,
+         "rms_noisy_vs_truth": 165.04763498352332,
+         "mean_recon": 14.470212131151964,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.0195181928365048,
+         "gain_selfnormalized": 0.639586114928234
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.99085179789776,
+         "disc_rel_mean": 11.40756809718472,
+         "noise_rel_rms": 0.009979074788958662,
+         "noise_abs_rms": 0.14439932906886235,
+         "gain": 0.6652716525972441,
+         "inflation_ratio": 0.9999933660224287,
+         "rms_clean_vs_truth": 165.06993026682446,
+         "rms_noisy_vs_truth": 165.06883519660937,
+         "mean_recon": 14.470212131151964,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015060473937502863,
+         "gain_selfnormalized": 0.6626003159242719
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 296.5204437011204,
+         "mean_v": 14.470212131146704
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9904802617060967,
+         "disc_rel_mean": 11.40329064175096,
+         "noise_rel_rms": 0.019518192836504796,
+         "noise_abs_rms": 0.28243239076095505,
+         "gain": 1.3012128557669864,
+         "inflation_ratio": 0.9997145094305828,
+         "rms_clean_vs_truth": 165.00803457931642,
+         "rms_noisy_vs_truth": 164.96092634156597,
+         "mean_recon": 14.470212131151964,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.0195181928365048,
+         "gain_selfnormalized": 0.9999999999999998
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9904802617060967,
+         "disc_rel_mean": 11.40329064175096,
+         "noise_rel_rms": 0.015060473937502865,
+         "noise_abs_rms": 0.21792825267135194,
+         "gain": 1.0040315958335244,
+         "inflation_ratio": 0.9999861974346479,
+         "rms_clean_vs_truth": 165.00803457931642,
+         "rms_noisy_vs_truth": 165.0057570451355,
+         "mean_recon": 14.470212131151964,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015060473937502863,
+         "gain_selfnormalized": 1.0000000000000002
+        },
+        "n_scattered_points": 4096,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_64_holdout_1px_sigma": {
+      "delta_px": 64,
+      "truth_variant": "holdout_1px",
+      "representation": "sigma",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 14.519620139654409,
+       "std": 7.40264474212684,
+       "min": 11.860817748044816,
+       "max": 300.9682503566372
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 300.9682503566372,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 7.105427357601002e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 300.9682503566372,
+         "mean_v": 14.513942643794815
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.989561856877711,
+         "disc_rel_mean": 11.495744570505964,
+         "noise_rel_rms": 0.017820382416582514,
+         "noise_abs_rms": 0.25864400828477013,
+         "gain": 1.1880254944388344,
+         "inflation_ratio": 0.9997015591336658,
+         "rms_clean_vs_truth": 166.84857734404045,
+         "rms_noisy_vs_truth": 166.79878291007125,
+         "mean_recon": 14.513942643794921,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.01959702792432091,
+         "gain_selfnormalized": 0.9093410738302062
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.989561856877711,
+         "disc_rel_mean": 11.495744570505964,
+         "noise_rel_rms": 0.013227569914391571,
+         "noise_abs_rms": 0.19198419105426656,
+         "gain": 0.8818379942927714,
+         "inflation_ratio": 0.999984846221602,
+         "rms_clean_vs_truth": 166.84857734404045,
+         "rms_noisy_vs_truth": 166.84604895767336,
+         "mean_recon": 14.513942643794921,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.015060473937502865,
+         "gain_selfnormalized": 0.8782970555430474
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 87.47353089183052,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 3.552713678800501e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 87.47353089183052,
+         "mean_v": 14.081085190108144
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9973088511870375,
+         "disc_rel_mean": 11.941891157779635,
+         "noise_rel_rms": 0.012173310365288542,
+         "noise_abs_rms": 0.17141342029925674,
+         "gain": 0.8115540243525695,
+         "inflation_ratio": 1.0000008402888372,
+         "rms_clean_vs_truth": 168.15478672369647,
+         "rms_noisy_vs_truth": 168.15492802228667,
+         "mean_recon": 14.081085190108332,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.01959702792432091,
+         "gain_selfnormalized": 0.6211814573260287
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9973088511870375,
+         "disc_rel_mean": 11.941891157779635,
+         "noise_rel_rms": 0.012359093615936031,
+         "noise_abs_rms": 0.17402945007851928,
+         "gain": 0.8239395743957354,
+         "inflation_ratio": 0.9999982890499788,
+         "rms_clean_vs_truth": 168.15478672369647,
+         "rms_noisy_vs_truth": 168.15449901926056,
+         "mean_recon": 14.081085190108332,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.015060473937502865,
+         "gain_selfnormalized": 0.8206311213858957
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 11.860817748044816,
+         "clip_high": 300.9682503566372,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 281.64809019673606,
+         "mean_v": 14.519620139653526
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9909286969592406,
+         "disc_rel_mean": 11.50712185608242,
+         "noise_rel_rms": 0.012528870081642537,
+         "noise_abs_rms": 0.18191443436453056,
+         "gain": 0.8352580054428359,
+         "inflation_ratio": 0.9998653880931575,
+         "rms_clean_vs_truth": 167.07903825103173,
+         "rms_noisy_vs_truth": 167.05654742309935,
+         "mean_recon": 14.519620139654409,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.01959702792432091,
+         "gain_selfnormalized": 0.6393250104059693
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9909286969592406,
+         "disc_rel_mean": 11.50712185608242,
+         "noise_rel_rms": 0.009979074788958662,
+         "noise_abs_rms": 0.14489237528088175,
+         "gain": 0.6652716525972441,
+         "inflation_ratio": 0.9999933975102058,
+         "rms_clean_vs_truth": 167.07903825103173,
+         "rms_noisy_vs_truth": 167.07793511338684,
+         "mean_recon": 14.519620139654409,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.015060473937502865,
+         "gain_selfnormalized": 0.6626003159242719
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 300.9682503566372,
+         "mean_v": 14.519620139648936
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9905349655147014,
+         "disc_rel_mean": 11.502549664637378,
+         "noise_rel_rms": 0.01959702792432091,
+         "noise_abs_rms": 0.28454140132733974,
+         "gain": 1.3064685282880608,
+         "inflation_ratio": 0.9997154048372456,
+         "rms_clean_vs_truth": 167.01265176804395,
+         "rms_noisy_vs_truth": 166.96512077523198,
+         "mean_recon": 14.519620139654409,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.01959702792432091,
+         "gain_selfnormalized": 1.0
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9905349655147014,
+         "disc_rel_mean": 11.502549664637378,
+         "noise_rel_rms": 0.015060473937502865,
+         "noise_abs_rms": 0.21867236069570692,
+         "gain": 1.0040315958335244,
+         "inflation_ratio": 0.9999862200358742,
+         "rms_clean_vs_truth": 167.01265176804395,
+         "rms_noisy_vs_truth": 167.01035033969404,
+         "mean_recon": 14.519620139654409,
+         "std_ref": 168.60853738894608,
+         "ctrl_noise_rel_actual": 0.015060473937502865,
+         "gain_selfnormalized": 1.0
+        },
+        "n_scattered_points": 4096,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_32_same_family_sigma": {
+      "delta_px": 32,
+      "truth_variant": "same_family",
+      "representation": "sigma",
+      "n_control_points": 16384,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 14.836564370020369,
+       "std": 32.68538906794648,
+       "min": 11.860817748044816,
+       "max": 3388.4873703945536
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 3388.4873703945536,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.4210854715202004e-14,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 3086.8120283193743,
+         "mean_v": 14.876271626011782
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9133785212165463,
+         "disc_rel_mean": 10.22859448301807,
+         "noise_rel_rms": 0.024831199896943844,
+         "noise_abs_rms": 0.36939567446673205,
+         "gain": 1.655413326462923,
+         "inflation_ratio": 1.0007231441255557,
+         "rms_clean_vs_truth": 152.1633498817022,
+         "rms_noisy_vs_truth": 152.27338591429404,
+         "mean_recon": 14.876271626011768,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.027992864700601482,
+         "gain_selfnormalized": 0.8870546177580138
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9133785212165463,
+         "disc_rel_mean": 10.22859448301807,
+         "noise_rel_rms": 0.013305542243240182,
+         "noise_abs_rms": 0.1979368605418149,
+         "gain": 0.8870361495493455,
+         "inflation_ratio": 1.0000057969861889,
+         "rms_clean_vs_truth": 152.1633498817022,
+         "rms_noisy_vs_truth": 152.16423197053993,
+         "mean_recon": 14.876271626011768,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015045301575085008,
+         "gain_selfnormalized": 0.8843652735598292
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 290.590034827098,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 3.552713678800501e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 290.590034827098,
+         "mean_v": 14.056911300379777
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9901852565128396,
+         "disc_rel_mean": 11.73507358546547,
+         "noise_rel_rms": 0.012418378350062738,
+         "noise_abs_rms": 0.17456404296138975,
+         "gain": 0.8278918900041826,
+         "inflation_ratio": 1.000053164318274,
+         "rms_clean_vs_truth": 164.958888494319,
+         "rms_noisy_vs_truth": 164.96765842116903,
+         "mean_recon": 14.05691130037988,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.027992864700601482,
+         "gain_selfnormalized": 0.44362656280033763
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9901852565128396,
+         "disc_rel_mean": 11.73507358546547,
+         "noise_rel_rms": 0.012577980897534894,
+         "noise_abs_rms": 0.17680756181452054,
+         "gain": 0.8385320598356597,
+         "inflation_ratio": 1.0000009222938022,
+         "rms_clean_vs_truth": 164.958888494319,
+         "rms_noisy_vs_truth": 164.9590406348795,
+         "mean_recon": 14.05691130037988,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015045301575085008,
+         "gain_selfnormalized": 0.8360072302149136
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 11.860817748044816,
+         "clip_high": 3388.4873703945536,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 2339.360975524527,
+         "mean_v": 14.83656437002064
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9311674901668395,
+         "disc_rel_mean": 10.45571473914305,
+         "noise_rel_rms": 0.01851178317727903,
+         "noise_abs_rms": 0.2746512627135605,
+         "gain": 1.2341188784852686,
+         "inflation_ratio": 1.0005551992148816,
+         "rms_clean_vs_truth": 155.1268847618666,
+         "rms_noisy_vs_truth": 155.2130110864934,
+         "mean_recon": 14.836564370020369,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.027992864700601482,
+         "gain_selfnormalized": 0.6613036348824015
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9311674901668395,
+         "disc_rel_mean": 10.45571473914305,
+         "noise_rel_rms": 0.009436426002579225,
+         "noise_abs_rms": 0.14000414181020066,
+         "gain": 0.629095066838615,
+         "inflation_ratio": 1.0000035660131439,
+         "rms_clean_vs_truth": 155.1268847618666,
+         "rms_noisy_vs_truth": 155.12743794637663,
+         "mean_recon": 14.836564370020369,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015045301575085008,
+         "gain_selfnormalized": 0.6272008543986868
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 3388.4873703945536,
+         "mean_v": 14.836564370014628
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9011641806859033,
+         "disc_rel_mean": 10.118819337965881,
+         "noise_rel_rms": 0.027992864700601482,
+         "noise_abs_rms": 0.4153179390317448,
+         "gain": 1.8661909800400989,
+         "inflation_ratio": 1.0006592922895705,
+         "rms_clean_vs_truth": 150.12851445633768,
+         "rms_noisy_vs_truth": 150.22749302836343,
+         "mean_recon": 14.836564370020367,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.027992864700601482,
+         "gain_selfnormalized": 1.0
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9011641806859033,
+         "disc_rel_mean": 10.118819337965881,
+         "noise_rel_rms": 0.01504530157508501,
+         "noise_abs_rms": 0.22322058528511757,
+         "gain": 1.0030201050056673,
+         "inflation_ratio": 1.000003202722016,
+         "rms_clean_vs_truth": 150.12851445633768,
+         "rms_noisy_vs_truth": 150.12899527623617,
+         "mean_recon": 14.836564370020367,
+         "std_ref": 166.59396553252964,
+         "ctrl_noise_rel_actual": 0.015045301575085008,
+         "gain_selfnormalized": 1.0000000000000002
+        },
+        "n_scattered_points": 16384,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_64_same_family_inv_sigma_Fref1": {
+      "delta_px": 64,
+      "truth_variant": "same_family",
+      "representation": "inv_sigma_Fref1",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 0.07127089086897039,
+       "std": 0.007322009015719979,
+       "min": 0.003372448750980408,
+       "max": 0.08431121877451021
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 0.003372448750980408,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.003372448750980408,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07128752745976405
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.8598760593173896,
+         "disc_rel_mean": 0.1072123111246362,
+         "noise_rel_rms": 0.013257874029954791,
+         "noise_abs_rms": 0.0009451210589684969,
+         "gain": 0.8838582686636528,
+         "inflation_ratio": 1.0072434011962057,
+         "rms_clean_vs_truth": 0.007642900573322286,
+         "rms_noisy_vs_truth": 0.007698261168477569,
+         "mean_recon": 0.0712875274597642,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015132517914237349,
+         "gain_selfnormalized": 0.8761181784216618
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.8598760593173896,
+         "disc_rel_mean": 0.1072123111246362,
+         "noise_rel_rms": 0.013969004955941042,
+         "noise_abs_rms": 0.0009958158243822293,
+         "gain": 0.9312669970627362,
+         "inflation_ratio": 1.0088101318525717,
+         "rms_clean_vs_truth": 0.007642900573322286,
+         "rms_noisy_vs_truth": 0.007710235535109352,
+         "mean_recon": 0.0712875274597642,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.01594156700906757,
+         "gain_selfnormalized": 0.8762629764059873
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 0.01124149583660136,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.01124149583660136,
+         "max_v": 0.08404740639062491,
+         "mean_v": 0.07230667721336569
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.8950140202765088,
+         "disc_rel_mean": 0.1100205436285773,
+         "noise_rel_rms": 0.011090816332537586,
+         "noise_abs_rms": 0.0008019400765895187,
+         "gain": 0.7393877555025058,
+         "inflation_ratio": 0.9878679712633629,
+         "rms_clean_vs_truth": 0.007955219934990548,
+         "rms_noisy_vs_truth": 0.007858706978132974,
+         "mean_recon": 0.07230667721336562,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015132517914237349,
+         "gain_selfnormalized": 0.7329128169808972
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.8950140202765088,
+         "disc_rel_mean": 0.1100205436285773,
+         "noise_rel_rms": 0.01129534491480558,
+         "noise_abs_rms": 0.0008167288587684778,
+         "gain": 0.7530229943203721,
+         "inflation_ratio": 0.9868726021896169,
+         "rms_clean_vs_truth": 0.007955219934990548,
+         "rms_noisy_vs_truth": 0.007850788598234838,
+         "mean_recon": 0.07230667721336562,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.01594156700906757,
+         "gain_selfnormalized": 0.7085467136562412
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 0.003372448750980408,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.003684477654922582,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07127089086897413
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.8512120486533643,
+         "disc_rel_mean": 0.1061568265566185,
+         "noise_rel_rms": 0.010012925925283817,
+         "noise_abs_rms": 0.0007136301508999874,
+         "gain": 0.6675283950189211,
+         "inflation_ratio": 1.0043776740260943,
+         "rms_clean_vs_truth": 0.007565891600512975,
+         "rms_noisy_vs_truth": 0.0075990126076567865,
+         "mean_recon": 0.0712708908689704,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015132517914237349,
+         "gain_selfnormalized": 0.661682740574403
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.8512120486533643,
+         "disc_rel_mean": 0.1061568265566185,
+         "noise_rel_rms": 0.010548251307917325,
+         "noise_abs_rms": 0.0007517832678250499,
+         "gain": 0.703216753861155,
+         "inflation_ratio": 1.0048781660460901,
+         "rms_clean_vs_truth": 0.007565891600512975,
+         "rms_noisy_vs_truth": 0.007602799276026996,
+         "mean_recon": 0.0712708908689704,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.01594156700906757,
+         "gain_selfnormalized": 0.6616822111601373
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.003372448750980408,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07127089086901446
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.8768693037180885,
+         "disc_rel_mean": 0.10935660830328646,
+         "noise_rel_rms": 0.01513251791423735,
+         "noise_abs_rms": 0.0010785080328383494,
+         "gain": 1.0088345276158235,
+         "inflation_ratio": 1.0090581517629027,
+         "rms_clean_vs_truth": 0.007793942896184268,
+         "rms_noisy_vs_truth": 0.007864541613769302,
+         "mean_recon": 0.07127089086897037,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015132517914237349,
+         "gain_selfnormalized": 1.0000000000000002
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.8768693037180885,
+         "disc_rel_mean": 0.10935660830328646,
+         "noise_rel_rms": 0.015941567009067573,
+         "noise_abs_rms": 0.0011361696825836333,
+         "gain": 1.0627711339378383,
+         "inflation_ratio": 1.011029712665514,
+         "rms_clean_vs_truth": 0.007793942896184268,
+         "rms_noisy_vs_truth": 0.007879907846860604,
+         "mean_recon": 0.07127089086897037,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.01594156700906757,
+         "gain_selfnormalized": 1.0000000000000002
+        },
+        "n_scattered_points": 4096,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_64_holdout_1px_inv_sigma_Fref1": {
+      "delta_px": 64,
+      "truth_variant": "holdout_1px",
+      "representation": "inv_sigma_Fref1",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 0.0710342773182076,
+       "std": 0.007350369700931104,
+       "min": 0.0033226096068772496,
+       "max": 0.08431121877451021
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 0.0033226096068772496,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0033226096068772496,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07104897965737414
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9258009613712158,
+         "disc_rel_mean": 0.136175645867089,
+         "noise_rel_rms": 0.013253847200816087,
+         "noise_abs_rms": 0.0009416723201527328,
+         "gain": 0.8835898133877391,
+         "inflation_ratio": 1.0056988121382762,
+         "rms_clean_vs_truth": 0.009675140693040648,
+         "rms_noisy_vs_truth": 0.009730277502261677,
+         "mean_recon": 0.07104897965737456,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.015130315185447935,
+         "gain_selfnormalized": 0.8759795839258787
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9258009613712158,
+         "disc_rel_mean": 0.136175645867089,
+         "noise_rel_rms": 0.013978198936024531,
+         "noise_abs_rms": 0.0009931367718523415,
+         "gain": 0.9318799290683021,
+         "inflation_ratio": 1.0041496406805228,
+         "rms_clean_vs_truth": 0.009675140693040648,
+         "rms_noisy_vs_truth": 0.009715289050450271,
+         "mean_recon": 0.07104897965737456,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.01593824350771804,
+         "gain_selfnormalized": 0.877022548266102
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 0.011432029664340367,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.011432029664340367,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07205166920689919
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9302126765342412,
+         "disc_rel_mean": 0.1349204772704809,
+         "noise_rel_rms": 0.011986175138626301,
+         "noise_abs_rms": 0.0008636239261442657,
+         "gain": 0.7990783425750868,
+         "inflation_ratio": 0.9935262843245648,
+         "rms_clean_vs_truth": 0.0097212455975297,
+         "rms_noisy_vs_truth": 0.009658313017520216,
+         "mean_recon": 0.07205166920689955,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.015130315185447935,
+         "gain_selfnormalized": 0.7921959980155859
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9302126765342412,
+         "disc_rel_mean": 0.1349204772704809,
+         "noise_rel_rms": 0.012440006261899544,
+         "noise_abs_rms": 0.000896323216114145,
+         "gain": 0.829333750793303,
+         "inflation_ratio": 0.9913399165903581,
+         "rms_clean_vs_truth": 0.0097212455975297,
+         "rms_noisy_vs_truth": 0.009637058799809478,
+         "mean_recon": 0.07205166920689955,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.01593824350771804,
+         "gain_selfnormalized": 0.7805130004366864
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 0.0033226096068772496,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0036406123472247,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.0710342773182092
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9147557358496231,
+         "disc_rel_mean": 0.13457885735874378,
+         "noise_rel_rms": 0.010010705057372875,
+         "noise_abs_rms": 0.0007111031991962082,
+         "gain": 0.6673803371581917,
+         "inflation_ratio": 1.0033782708767287,
+         "rms_clean_vs_truth": 0.009559711874788511,
+         "rms_noisy_vs_truth": 0.009592007171005027,
+         "mean_recon": 0.0710342773182076,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.015130315185447935,
+         "gain_selfnormalized": 0.6616322882024951
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9147557358496231,
+         "disc_rel_mean": 0.13457885735874378,
+         "noise_rel_rms": 0.010544436984849529,
+         "noise_abs_rms": 0.0007490164609461664,
+         "gain": 0.7029624656566353,
+         "inflation_ratio": 1.0022074075405814,
+         "rms_clean_vs_truth": 0.009559711874788511,
+         "rms_noisy_vs_truth": 0.009580814054866703,
+         "mean_recon": 0.0710342773182076,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.01593824350771804,
+         "gain_selfnormalized": 0.6615808686662004
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0033226096068772496,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07103427731824949
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.9428958440134152,
+         "disc_rel_mean": 0.13871882987186196,
+         "noise_rel_rms": 0.015130315185447938,
+         "noise_abs_rms": 0.0010747710047949964,
+         "gain": 1.0086876790298627,
+         "inflation_ratio": 1.0068813629270559,
+         "rms_clean_vs_truth": 0.009853791830375101,
+         "rms_noisy_vs_truth": 0.00992159934816757,
+         "mean_recon": 0.07103427731820759,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.015130315185447935,
+         "gain_selfnormalized": 1.0000000000000002
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.9428958440134152,
+         "disc_rel_mean": 0.13871882987186196,
+         "noise_rel_rms": 0.015938243507718042,
+         "noise_abs_rms": 0.001132161609292365,
+         "gain": 1.0625495671812029,
+         "inflation_ratio": 1.0054581319676879,
+         "rms_clean_vs_truth": 0.009853791830375101,
+         "rms_noisy_vs_truth": 0.009907575126567413,
+         "mean_recon": 0.07103427731820759,
+         "std_ref": 0.010450562374347367,
+         "ctrl_noise_rel_actual": 0.01593824350771804,
+         "gain_selfnormalized": 1.0000000000000002
+        },
+        "n_scattered_points": 4096,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_32_same_family_inv_sigma_Fref1": {
+      "delta_px": 32,
+      "truth_variant": "same_family",
+      "representation": "inv_sigma_Fref1",
+      "n_control_points": 16384,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 0.07132857885827953,
+       "std": 0.0072388548358858565,
+       "min": 0.0002951169329232473,
+       "max": 0.08431121877451021
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 0.0002951169329232473,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0002951169329232473,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07133131032456906
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.7436349567843373,
+         "disc_rel_mean": 0.09266205924796285,
+         "noise_rel_rms": 0.01321217894921422,
+         "noise_abs_rms": 0.0009424420366901371,
+         "gain": 0.8808119299476146,
+         "inflation_ratio": 1.0104504861639214,
+         "rms_clean_vs_truth": 0.006609706103530035,
+         "rms_noisy_vs_truth": 0.0066787807457125625,
+         "mean_recon": 0.07133131032456898,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015124652184488253,
+         "gain_selfnormalized": 0.8735525807836126
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.7436349567843373,
+         "disc_rel_mean": 0.09266205924796285,
+         "noise_rel_rms": 0.014255061418682973,
+         "noise_abs_rms": 0.0010168322097518657,
+         "gain": 0.9503374279121982,
+         "inflation_ratio": 1.0115487859822185,
+         "rms_clean_vs_truth": 0.006609706103530035,
+         "rms_noisy_vs_truth": 0.006686040184725067,
+         "mean_recon": 0.07133131032456898,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.016349124371259877,
+         "gain_selfnormalized": 0.8719158956146877
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 0.003441274235694294,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.003441274235694294,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07235028116879443
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.8423750294227904,
+         "disc_rel_mean": 0.10348743283080437,
+         "noise_rel_rms": 0.01222791392117967,
+         "noise_abs_rms": 0.0008846930103051627,
+         "gain": 0.815194261411978,
+         "inflation_ratio": 0.9839226155975648,
+         "rms_clean_vs_truth": 0.007487344862745406,
+         "rms_noisy_vs_truth": 0.00736696794123345,
+         "mean_recon": 0.07235028116879426,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015124652184488253,
+         "gain_selfnormalized": 0.8084757105172006
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.8423750294227904,
+         "disc_rel_mean": 0.10348743283080437,
+         "noise_rel_rms": 0.012696633009448996,
+         "noise_abs_rms": 0.0009186049681306293,
+         "gain": 0.8464422006299331,
+         "inflation_ratio": 0.9844490233355356,
+         "rms_clean_vs_truth": 0.007487344862745406,
+         "rms_noisy_vs_truth": 0.007370909337506055,
+         "mean_recon": 0.07235028116879426,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.016349124371259877,
+         "gain_selfnormalized": 0.7765940683507433
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 0.0002951169329232473,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0007475545241759339,
+         "max_v": 0.08431121877451023,
+         "mean_v": 0.07132857885829734
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.7427407738110497,
+         "disc_rel_mean": 0.09255418201123648,
+         "noise_rel_rms": 0.009478013972245142,
+         "noise_abs_rms": 0.0006760532670391629,
+         "gain": 0.6318675981496762,
+         "inflation_ratio": 1.0054895709571274,
+         "rms_clean_vs_truth": 0.006601758270252039,
+         "rms_noisy_vs_truth": 0.006637999090718391,
+         "mean_recon": 0.07132857885827953,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015124652184488253,
+         "gain_selfnormalized": 0.6266599625983951
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.7427407738110497,
+         "disc_rel_mean": 0.09255418201123648,
+         "noise_rel_rms": 0.010242872090840953,
+         "noise_abs_rms": 0.0007306095096668195,
+         "gain": 0.6828581393893969,
+         "inflation_ratio": 1.0056900020403687,
+         "rms_clean_vs_truth": 0.006601758270252039,
+         "rms_noisy_vs_truth": 0.006639322288279794,
+         "mean_recon": 0.07132857885827953,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.016349124371259877,
+         "gain_selfnormalized": 0.6265089100947141
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0002951169329232473,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07132857885831907
+        },
+        "mul": {
+         "n": 65536,
+         "disc_rel_rms": 0.7534502064318096,
+         "disc_rel_mean": 0.09388870249397904,
+         "noise_rel_rms": 0.015124652184488259,
+         "noise_abs_rms": 0.0010788199460453204,
+         "gain": 1.0083101456325505,
+         "inflation_ratio": 1.013019147626577,
+         "rms_clean_vs_truth": 0.006696947719743329,
+         "rms_noisy_vs_truth": 0.006784136270754137,
+         "mean_recon": 0.07132857885827952,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.015124652184488253,
+         "gain_selfnormalized": 1.0000000000000004
+        },
+        "add": {
+         "n": 65536,
+         "disc_rel_rms": 0.7534502064318096,
+         "disc_rel_mean": 0.09388870249397904,
+         "noise_rel_rms": 0.016349124371259884,
+         "noise_abs_rms": 0.0011661598069792301,
+         "gain": 1.089941624750659,
+         "inflation_ratio": 1.0148757242905404,
+         "rms_clean_vs_truth": 0.006696947719743329,
+         "rms_noisy_vs_truth": 0.006796569667610394,
+         "mean_recon": 0.07132857885827952,
+         "std_ref": 0.008888374656447096,
+         "ctrl_noise_rel_actual": 0.016349124371259877,
+         "gain_selfnormalized": 1.0000000000000004
+        },
+        "n_scattered_points": 16384,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     }
+    },
+    "homogeneity_check": {
+     "statement": "R(K·v) = K·R(v)（K=1000；含钳制：clip 界随网格等比缩放）",
+     "pointwise_max_rel_dev": 8.236838120574577e-16,
+     "clip_low_ratio": 999.9999999999999,
+     "clip_high_ratio": 1000.0,
+     "disc_scaled_rel": 0.8598760593173898,
+     "disc_base_rel": 0.8598760593173896,
+     "rel_dev": 2.220446049250313e-16,
+     "note": "此门可红：若算子非正齐次（或钳制界不随幅度缩放），控制值幅度（含 F_ref 因子）就会改变相对传递读数。"
+    }
+   },
+   {
+    "meta": {
+     "file": "M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
+     "exptime": 300.0,
+     "filter": "Red",
+     "naxis": [
+      4096,
+      4096
+     ]
+    },
+    "sigma_fields_s": 67.97918905003462,
+    "n_valid_cells": {
+     "full_16": 65501,
+     "full_64": 4093
+    },
+    "arms": {
+     "delta_64_same_family_sigma": {
+      "delta_px": 64,
+      "truth_variant": "same_family",
+      "representation": "sigma",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 3,
+      "ctrl_stats": {
+       "mean": 67.10975578312105,
+       "std": 474.87526498500205,
+       "min": 11.860817748044816,
+       "max": 16258.215928132431
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 16258.215928132431,
+         "mesh_median": 0,
+         "n_filled": 3,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.8189894035458565e-12,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 16258.215928132431,
+         "mean_v": 74.9910312101731
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 1.1619901974293558,
+         "disc_rel_mean": 4.3653505168230256,
+         "noise_rel_rms": 0.07190910871880778,
+         "noise_abs_rms": 4.949789197195618,
+         "gain": 4.793940581253852,
+         "inflation_ratio": 1.00026811065734,
+         "rms_clean_vs_truth": 300.4843922435028,
+         "rms_noisy_vs_truth": 300.5649553114276,
+         "mean_recon": 68.83396673085178,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.07984647522851251,
+         "gain_selfnormalized": 0.9005921490336449
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 1.1619901974293558,
+         "disc_rel_mean": 4.3653505168230256,
+         "noise_rel_rms": 0.012475324389921582,
+         "noise_abs_rms": 0.858726064012446,
+         "gain": 0.8316882926614388,
+         "inflation_ratio": 1.000023596286256,
+         "rms_clean_vs_truth": 300.4843922435028,
+         "rms_noisy_vs_truth": 300.4914825592376,
+         "mean_recon": 68.83396673085178,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.014670488168634883,
+         "gain_selfnormalized": 0.8503687298281932
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 13.343419966550417,
+         "clip_high": 9732.542263380024,
+         "mesh_median": 1,
+         "n_filled": 3,
+         "cell_center_offset": 0.0,
+         "node_residual": 9.094947017729282e-13,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 13.343419966550417,
+         "max_v": 9732.542263380024,
+         "mean_v": 67.63243653565193
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 0.9045884474124122,
+         "disc_rel_mean": 3.740297307105256,
+         "noise_rel_rms": 0.07111037506516901,
+         "noise_abs_rms": 4.447309315602779,
+         "gain": 4.740691671011268,
+         "inflation_ratio": 1.0045320232372748,
+         "rms_clean_vs_truth": 233.92168922985917,
+         "rms_noisy_vs_truth": 234.98182776115144,
+         "mean_recon": 62.54093458974233,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.07984647522851251,
+         "gain_selfnormalized": 0.8905887813038501
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 0.9045884474124122,
+         "disc_rel_mean": 3.740297307105256,
+         "noise_rel_rms": 0.009653606499311719,
+         "noise_abs_rms": 0.6037455726285657,
+         "gain": 0.6435737666207813,
+         "inflation_ratio": 1.000126981396333,
+         "rms_clean_vs_truth": 233.92168922985917,
+         "rms_noisy_vs_truth": 233.95139293259012,
+         "mean_recon": 62.54093458974233,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.014670488168634883,
+         "gain_selfnormalized": 0.6580289891069117
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 11.860817748044816,
+         "clip_high": 16258.215928132431,
+         "mesh_median": 0,
+         "n_filled": 3,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 12.046143025358017,
+         "max_v": 15044.215672489372,
+         "mean_v": 74.89306951322936
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 1.1183132183900688,
+         "disc_rel_mean": 4.185882792510483,
+         "noise_rel_rms": 0.05785916024836641,
+         "noise_abs_rms": 3.9973113361196435,
+         "gain": 3.857277349891094,
+         "inflation_ratio": 1.0000327626182683,
+         "rms_clean_vs_truth": 289.18976124688436,
+         "rms_noisy_vs_truth": 289.1992358606392,
+         "mean_recon": 69.08692277870561,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.07984647522851251,
+         "gain_selfnormalized": 0.7246301115081081
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 1.1183132183900688,
+         "disc_rel_mean": 4.185882792510483,
+         "noise_rel_rms": 0.009421445097959655,
+         "noise_abs_rms": 0.6508986499465532,
+         "gain": 0.6280963398639771,
+         "inflation_ratio": 1.0000245968626438,
+         "rms_clean_vs_truth": 289.18976124688436,
+         "rms_noisy_vs_truth": 289.19687440771975,
+         "mean_recon": 69.08692277870561,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.014670488168634883,
+         "gain_selfnormalized": 0.6422039259813083
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 16258.215928132431,
+         "mean_v": 75.41492275077714
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 1.2297468413045523,
+         "disc_rel_mean": 4.6372182660162595,
+         "noise_rel_rms": 0.07977370991062399,
+         "noise_abs_rms": 5.470630996546982,
+         "gain": 5.318247327374933,
+         "inflation_ratio": 1.0000806647219542,
+         "rms_clean_vs_truth": 318.0058945766029,
+         "rms_noisy_vs_truth": 318.0315464336687,
+         "mean_recon": 68.57686577039112,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.07984647522851251,
+         "gain_selfnormalized": 0.9990886846578978
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 1.2297468413045523,
+         "disc_rel_mean": 4.6372182660162595,
+         "noise_rel_rms": 0.014356030871884891,
+         "noise_abs_rms": 0.9844916020968412,
+         "gain": 0.9570687247923261,
+         "inflation_ratio": 1.0000177298817265,
+         "rms_clean_vs_truth": 318.0058945766029,
+         "rms_noisy_vs_truth": 318.0115327835021,
+         "mean_recon": 68.57686577039112,
+         "std_ref": 258.59460166553686,
+         "ctrl_noise_rel_actual": 0.014670488168634883,
+         "gain_selfnormalized": 0.9785653147233169
+        },
+        "n_scattered_points": 4093,
+        "n_dropped_invalid": 3,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_64_same_family_inv_sigma_Fref1": {
+      "delta_px": 64,
+      "truth_variant": "same_family",
+      "representation": "inv_sigma_Fref1",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 3,
+      "ctrl_stats": {
+       "mean": 0.058479775385517886,
+       "std": 0.022101090377292958,
+       "min": 6.150736368740486e-05,
+       "max": 0.08431121877451021
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 6.150736368740486e-05,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 3,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 6.150736368740486e-05,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.05844358188420504
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 0.5073948504852046,
+         "disc_rel_mean": 0.16539644854032992,
+         "noise_rel_rms": 0.013768605204430082,
+         "noise_abs_rms": 0.000805115848086758,
+         "gain": 0.9179070136286722,
+         "inflation_ratio": 1.002206576337774,
+         "rms_clean_vs_truth": 0.009671517191461044,
+         "rms_noisy_vs_truth": 0.009692858132446098,
+         "mean_recon": 0.05847475732892029,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.015767668761838462,
+         "gain_selfnormalized": 0.8732175575474674
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 0.5073948504852046,
+         "disc_rel_mean": 0.16539644854032992,
+         "noise_rel_rms": 0.06640221246842853,
+         "noise_abs_rms": 0.0038828532601947637,
+         "gain": 4.426814164561902,
+         "inflation_ratio": 1.0778677660430926,
+         "rms_clean_vs_truth": 0.009671517191461044,
+         "rms_noisy_vs_truth": 0.01042461662940748,
+         "mean_recon": 0.05847475732892029,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.0759204204775636,
+         "gain_selfnormalized": 0.8746291452383627
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 0.00010274807680647142,
+         "clip_high": 0.07494330557734241,
+         "mesh_median": 1,
+         "n_filled": 3,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.00010274807680647142,
+         "max_v": 0.07494330557734241,
+         "mean_v": 0.05891829958277742
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 0.5011358252938222,
+         "disc_rel_mean": 0.16204000838590035,
+         "noise_rel_rms": 0.010406118071512992,
+         "noise_abs_rms": 0.0006134377466234515,
+         "gain": 0.6937412047675329,
+         "inflation_ratio": 0.9964459421345371,
+         "rms_clean_vs_truth": 0.009552213123470689,
+         "rms_noisy_vs_truth": 0.00951826400528664,
+         "mean_recon": 0.05894972000200081,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.015767668761838462,
+         "gain_selfnormalized": 0.6599655426995202
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 0.5011358252938222,
+         "disc_rel_mean": 0.16204000838590035,
+         "noise_rel_rms": 0.037332808950451137,
+         "noise_abs_rms": 0.0022007586345172843,
+         "gain": 2.488853930030076,
+         "inflation_ratio": 1.0161258098148873,
+         "rms_clean_vs_truth": 0.009552213123470689,
+         "rms_noisy_vs_truth": 0.009706250295611047,
+         "mean_recon": 0.05894972000200081,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.0759204204775636,
+         "gain_selfnormalized": 0.49173606673429743
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 6.150736368740486e-05,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 3,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 7.324833194473177e-05,
+         "max_v": 0.08314022962486424,
+         "mean_v": 0.058437023405809224
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 0.49805323484383923,
+         "disc_rel_mean": 0.16236957427890894,
+         "noise_rel_rms": 0.010428093270920352,
+         "noise_abs_rms": 0.0006097117617745214,
+         "gain": 0.6952062180613567,
+         "inflation_ratio": 1.0010314717547963,
+         "rms_clean_vs_truth": 0.0094934554784084,
+         "rms_noisy_vs_truth": 0.009503247709589794,
+         "mean_recon": 0.0584681922125453,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.015767668761838462,
+         "gain_selfnormalized": 0.6613592299807082
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 0.49805323484383923,
+         "disc_rel_mean": 0.16236957427890894,
+         "noise_rel_rms": 0.05042594228406933,
+         "noise_abs_rms": 0.0029483136859636814,
+         "gain": 3.3617294856046223,
+         "inflation_ratio": 1.0461184182189711,
+         "rms_clean_vs_truth": 0.0094934554784084,
+         "rms_noisy_vs_truth": 0.009931278628504821,
+         "mean_recon": 0.0584681922125453,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.0759204204775636,
+         "gain_selfnormalized": 0.6641947181914182
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 6.150736368740486e-05,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.05843702099867587
+        },
+        "mul": {
+         "n": 65501,
+         "disc_rel_rms": 0.5156142961598159,
+         "disc_rel_mean": 0.16809460749357755,
+         "noise_rel_rms": 0.015769225396140826,
+         "noise_abs_rms": 0.0009219982197563719,
+         "gain": 1.0512816930760551,
+         "inflation_ratio": 1.0032541078293722,
+         "rms_clean_vs_truth": 0.00982818908135166,
+         "rms_noisy_vs_truth": 0.009860171068389838,
+         "mean_recon": 0.05846819971144625,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.015767668761838462,
+         "gain_selfnormalized": 1.000098723173722
+        },
+        "add": {
+         "n": 65501,
+         "disc_rel_rms": 0.5156142961598159,
+         "disc_rel_mean": 0.16809460749357755,
+         "noise_rel_rms": 0.07592791554603134,
+         "noise_abs_rms": 0.004439368529819185,
+         "gain": 5.06186103640209,
+         "inflation_ratio": 1.0974954118939961,
+         "rms_clean_vs_truth": 0.00982818908135166,
+         "rms_noisy_vs_truth": 0.010786392424010117,
+         "mean_recon": 0.05846819971144625,
+         "std_ref": 0.0190611260287969,
+         "ctrl_noise_rel_actual": 0.0759204204775636,
+         "gain_selfnormalized": 1.0000987226943765
+        },
+        "n_scattered_points": 4093,
+        "n_dropped_invalid": 3,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     }
+    }
+   },
+   {
+    "meta": {
+     "file": "M42_M4_T2_flying_dutchman-20251224@045919-300S-Red.fts",
+     "exptime": 300.0,
+     "filter": "Red",
+     "naxis": [
+      4096,
+      4096
+     ]
+    },
+    "sigma_fields_s": 74.42121098400094,
+    "n_valid_cells": {
+     "full_16": 65534,
+     "full_64": 4096
+    },
+    "arms": {
+     "delta_64_same_family_sigma": {
+      "delta_px": 64,
+      "truth_variant": "same_family",
+      "representation": "sigma",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 16.39658151759894,
+       "std": 56.95132003399442,
+       "min": 11.860817748044816,
+       "max": 3270.620494023358
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 3270.620494023358,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 7.105427357601002e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 3199.331417317673,
+         "mean_v": 16.422909675312717
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.9675770620731093,
+         "disc_rel_mean": 17.86709749696918,
+         "noise_rel_rms": 0.05185655980186094,
+         "noise_abs_rms": 0.8468963621197642,
+         "gain": 3.4571039867907296,
+         "inflation_ratio": 1.0001377593412206,
+         "rms_clean_vs_truth": 291.7968320621092,
+         "rms_noisy_vs_truth": 291.8370298014644,
+         "mean_recon": 16.33151842998602,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.06059844106369768,
+         "gain_selfnormalized": 0.8557408225626173
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.9675770620731093,
+         "disc_rel_mean": 17.86709749696918,
+         "noise_rel_rms": 0.013693085757329514,
+         "noise_abs_rms": 0.22362888240920603,
+         "gain": 0.9128723838219677,
+         "inflation_ratio": 0.9999941536502297,
+         "rms_clean_vs_truth": 291.7968320621092,
+         "rms_noisy_vs_truth": 291.7951261157671,
+         "mean_recon": 16.33151842998602,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.015150127502504688,
+         "gain_selfnormalized": 0.9038264367785492
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 11.860817748044816,
+         "clip_high": 349.1528224580693,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 7.105427357601002e-15,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 349.1528224580693,
+         "mean_v": 14.635551870884678
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.9942083945107419,
+         "disc_rel_mean": 20.500590794750515,
+         "noise_rel_rms": 0.017234705535191776,
+         "noise_abs_rms": 0.25206347827394443,
+         "gain": 1.148980369012785,
+         "inflation_ratio": 1.0000315241190125,
+         "rms_clean_vs_truth": 299.8281700748606,
+         "rms_noisy_vs_truth": 299.8376218937774,
+         "mean_recon": 14.625342902392655,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.06059844106369768,
+         "gain_selfnormalized": 0.28440839785095495
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.9942083945107419,
+         "disc_rel_mean": 20.500590794750515,
+         "noise_rel_rms": 0.01143723017346812,
+         "noise_abs_rms": 0.16727341314056307,
+         "gain": 0.7624820115645413,
+         "inflation_ratio": 1.000003411348123,
+         "rms_clean_vs_truth": 299.8281700748606,
+         "rms_noisy_vs_truth": 299.8291928931259,
+         "mean_recon": 14.625342902392655,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.015150127502504688,
+         "gain_selfnormalized": 0.7549263312521471
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 11.860817748044816,
+         "clip_high": 3270.620494023358,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044814,
+         "max_v": 2703.478814125637,
+         "mean_v": 16.396581517600108
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.9725469451854379,
+         "disc_rel_mean": 17.969352226533015,
+         "noise_rel_rms": 0.04019729832536628,
+         "noise_abs_rms": 0.6560999820077315,
+         "gain": 2.6798198883577524,
+         "inflation_ratio": 1.0001635286453388,
+         "rms_clean_vs_truth": 293.29562342947514,
+         "rms_noisy_vs_truth": 293.34358566545836,
+         "mean_recon": 16.321992007948037,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.06059844106369768,
+         "gain_selfnormalized": 0.663338818949371
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.9725469451854379,
+         "disc_rel_mean": 17.969352226533015,
+         "noise_rel_rms": 0.01003372928244507,
+         "noise_abs_rms": 0.16377044915798264,
+         "gain": 0.668915285496338,
+         "inflation_ratio": 0.9999971465994174,
+         "rms_clean_vs_truth": 293.29562342947514,
+         "rms_noisy_vs_truth": 293.2947865395724,
+         "mean_recon": 16.321992007948037,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.015150127502504688,
+         "gain_selfnormalized": 0.6622867880673776
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 11.860817748044816,
+         "max_v": 3270.620494023358,
+         "mean_v": 16.396581517596715
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.9676163869165586,
+         "disc_rel_mean": 17.905375380339184,
+         "noise_rel_rms": 0.058011861169194934,
+         "noise_abs_rms": 0.9454348169954012,
+         "gain": 3.8674574112796622,
+         "inflation_ratio": 1.000189355506612,
+         "rms_clean_vs_truth": 291.8086914428135,
+         "rms_noisy_vs_truth": 291.8639470254154,
+         "mean_recon": 16.297267454288118,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.06059844106369768,
+         "gain_selfnormalized": 0.9573160654119158
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.9676163869165586,
+         "disc_rel_mean": 17.905375380339184,
+         "noise_rel_rms": 0.015242393547664112,
+         "noise_abs_rms": 0.24840936428979754,
+         "gain": 1.0161595698442742,
+         "inflation_ratio": 0.9999968409916902,
+         "rms_clean_vs_truth": 291.8086914428135,
+         "rms_noisy_vs_truth": 291.80776961673234,
+         "mean_recon": 16.297267454288118,
+         "std_ref": 301.57477218084495,
+         "ctrl_noise_rel_actual": 0.015150127502504688,
+         "gain_selfnormalized": 1.006090116742857
+        },
+        "n_scattered_points": 4096,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     },
+     "delta_64_same_family_inv_sigma_Fref1": {
+      "delta_px": 64,
+      "truth_variant": "same_family",
+      "representation": "inv_sigma_Fref1",
+      "n_control_points": 4096,
+      "n_invalid_control_points": 0,
+      "ctrl_stats": {
+       "mean": 0.07250733870204328,
+       "std": 0.010746930495314775,
+       "min": 0.0003057523799619591,
+       "max": 0.08431121877451021
+      },
+      "additive_model": "σ 域加性：σ'=σ+1.5%·mean(σ)·ξ，再映射回本表示（两种表示下同一物理扰动；避免层值被推成非正）",
+      "additive_arm_note": null,
+      "rows": {
+       "natural_bicubic_spline_clip_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_v1",
+         "clipped": 1,
+         "clip_low": 0.0003057523799619591,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0003057523799619591,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07247413215508694
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.7616863008533038,
+         "disc_rel_mean": 0.11641438062066642,
+         "noise_rel_rms": 0.013733280707499589,
+         "noise_abs_rms": 0.0009953378480759367,
+         "gain": 0.9155520471666393,
+         "inflation_ratio": 1.007783829865234,
+         "rms_clean_vs_truth": 0.008437287605196256,
+         "rms_noisy_vs_truth": 0.008502962016439151,
+         "mean_recon": 0.0724763346264665,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.015408133170547702,
+         "gain_selfnormalized": 0.8913007536662809
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.7616863008533038,
+         "disc_rel_mean": 0.11641438062066642,
+         "noise_rel_rms": 0.017088771859976266,
+         "noise_abs_rms": 0.0012385315476789842,
+         "gain": 1.1392514573317511,
+         "inflation_ratio": 1.0121496564725303,
+         "rms_clean_vs_truth": 0.008437287605196256,
+         "rms_noisy_vs_truth": 0.008539797751159327,
+         "mean_recon": 0.0724763346264665,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.019115269394622464,
+         "gain_selfnormalized": 0.8939854054467945
+        }
+       },
+       "natural_bicubic_spline_clip_mesh_median_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "natural_bicubic_spline_clip_mesh_median_v1",
+         "clipped": 1,
+         "clip_low": 0.002864075372382512,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 1,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 1.3877787807814457e-17,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.002864075372382512,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07309089910699955
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.7892659822073583,
+         "disc_rel_mean": 0.1196118079114486,
+         "noise_rel_rms": 0.010762766819512971,
+         "noise_abs_rms": 0.000786683370672579,
+         "gain": 0.7175177879675314,
+         "inflation_ratio": 0.9907044224513887,
+         "rms_clean_vs_truth": 0.00874279093823919,
+         "rms_noisy_vs_truth": 0.008661521647081491,
+         "mean_recon": 0.07309304232498251,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.015408133170547702,
+         "gain_selfnormalized": 0.6985120585591612
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.7892659822073583,
+         "disc_rel_mean": 0.1196118079114486,
+         "noise_rel_rms": 0.012413843952717774,
+         "noise_abs_rms": 0.0009073656214517284,
+         "gain": 0.8275895968478516,
+         "inflation_ratio": 0.9897728851786536,
+         "rms_clean_vs_truth": 0.00874279093823919,
+         "rms_noisy_vs_truth": 0.00865337741145479,
+         "mean_recon": 0.07309304232498251,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.019115269394622464,
+         "gain_selfnormalized": 0.6494202983197326
+        }
+       },
+       "bilinear_regular_grid_v1": {
+        "mode": "regular_grid",
+        "prod": {
+         "operator_id": "bilinear_regular_grid_v1",
+         "clipped": 0,
+         "clip_low": 0.0003057523799619591,
+         "clip_high": 0.08431121877451021,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0005439608116484968,
+         "max_v": 0.08431121877451023,
+         "mean_v": 0.07250733870206309
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.7537873716158847,
+         "disc_rel_mean": 0.11515438047460168,
+         "noise_rel_rms": 0.010155943923510049,
+         "noise_abs_rms": 0.0007364027420416136,
+         "gain": 0.6770629282340033,
+         "inflation_ratio": 1.0036200180882326,
+         "rms_clean_vs_truth": 0.008349790248772047,
+         "rms_noisy_vs_truth": 0.00838001664050555,
+         "mean_recon": 0.07250953211123104,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.015408133170547702,
+         "gain_selfnormalized": 0.6591287738168635
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.7537873716158847,
+         "disc_rel_mean": 0.11515438047460168,
+         "noise_rel_rms": 0.012619860311597838,
+         "noise_abs_rms": 0.0009150601665030536,
+         "gain": 0.8413240207731892,
+         "inflation_ratio": 1.0060367504735277,
+         "rms_clean_vs_truth": 0.008349790248772047,
+         "rms_noisy_vs_truth": 0.008400195849010179,
+         "mean_recon": 0.07250953211123104,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.019115269394622464,
+         "gain_selfnormalized": 0.6601978790394697
+        }
+       },
+       "nearest_control_point_v1": {
+        "mode": "scattered",
+        "prod": {
+         "operator_id": "nearest_control_point_v1",
+         "clipped": 0,
+         "clip_low": 0.0,
+         "clip_high": 0.0,
+         "mesh_median": 0,
+         "n_filled": 0,
+         "cell_center_offset": 0.0,
+         "node_residual": 0.0,
+         "n_ok": 65536,
+         "n_err": 0,
+         "n_out_of_domain": 0,
+         "min_v": 0.0003057523799619591,
+         "max_v": 0.08431121877451021,
+         "mean_v": 0.07250733870209387
+        },
+        "mul": {
+         "n": 65534,
+         "disc_rel_rms": 0.7841032489347801,
+         "disc_rel_mean": 0.11978565138195105,
+         "noise_rel_rms": 0.015407900037071267,
+         "noise_abs_rms": 0.0011172197777486266,
+         "gain": 1.0271933358047511,
+         "inflation_ratio": 1.0078337055933915,
+         "rms_clean_vs_truth": 0.008685602742257641,
+         "rms_noisy_vs_truth": 0.008753643197041642,
+         "mean_recon": 0.07250954218683961,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.015408133170547702,
+         "gain_selfnormalized": 0.9999848694534338
+        },
+        "add": {
+         "n": 65534,
+         "disc_rel_rms": 0.7841032489347801,
+         "disc_rel_mean": 0.11978565138195105,
+         "noise_rel_rms": 0.019114980176401435,
+         "noise_abs_rms": 0.0013860184615013826,
+         "gain": 1.2743320117600958,
+         "inflation_ratio": 1.0131142956636707,
+         "rms_clean_vs_truth": 0.008685602742257641,
+         "rms_noisy_vs_truth": 0.008799508304636798,
+         "mean_recon": 0.07250954218683961,
+         "std_ref": 0.011077116124766995,
+         "ctrl_noise_rel_actual": 0.019115269394622464,
+         "gain_selfnormalized": 0.9999848697805374
+        },
+        "n_scattered_points": 4096,
+        "n_dropped_invalid": 0,
+        "scattered_note": "散点模式要求逐点 positive_finite（无 NaN 填充）⇒ invalid 点先剔除；同一掩膜用于三臂"
+       }
+      }
+     }
+    }
+   }
+  ]
+ },
+ "H5b_real": {
+  "representation": "inv_sigma_Fref1（层标量 SNR ∝ 1/σ）",
+  "window_px": 1024,
+  "window_origin_px": [
+   0,
+   0
+  ],
+  "n_nodes": 256,
+  "n_query": 4096,
+  "impulse_eps": 7.413348814089765e-06,
+  "note": "Σ_k w_k(q)² 需要**完整**节点集，故窗口取 16×16 个 Δ=64 单元（1024² px），并选主帧上第一个**全有效**（无 invalid 控制点）的 16×16 块 ⇒ 窗口位置随帧数据而定（window_origin_px 记录实际位置；脉冲分析与平移无关）。",
+  "default_operator": {
+   "predicted_gain": 0.8687382726589126,
+   "impulse_mean_sumw2": 0.7547061863823915,
+   "impulse_n_ok": 4096,
+   "impulse_n_query": 4096,
+   "measured_additive_gain": 0.8793750229526932,
+   "pred_vs_measured_rel_dev": 0.012243906627050242
+  },
+  "linearity": {
+   "natural_bicubic_spline_clip_v1": {
+    "max_rel_superposition_residual": 0.0030465804961588073,
+    "n_query": 4096
+   },
+   "natural_bicubic_spline_clip_mesh_median_v1": {
+    "max_rel_superposition_residual": 0.007134280326429271,
+    "n_query": 4096
+   },
+   "bilinear_regular_grid_v1": {
+    "max_rel_superposition_residual": 3.746136146835706e-16,
+    "n_query": 4096
+   }
+  },
+  "linearity_note": "线性叠加检验（同一窗口的完整节点集；含 NaN 的网格会让 NaN 填充破坏「0.5(a+b)」的构造，故用全有效窗口）："
+ },
+ "gates": {
+  "G0_banded_sigma_bitwise_equal": {
+   "green": true,
+   "value": {
+    "size": [
+     2048,
+     2048
+    ],
+    "finite_input_bitwise_equal": true,
+    "nan_input_bitwise_equal": true,
+    "max_abs_diff": 0.0
+   },
+   "requirement": "分带 σ 场与整幅计算逐位相等（含 NaN 输入）"
+  },
+  "G1_constant_grid_zero_negative": {
+   "green": true,
+   "value": {
+    "natural_bicubic_spline_clip_v1": {
+     "disc_rel_mean": 0.0,
+     "dev": 0.0,
+     "n": 262144,
+     "n_query": 262144
+    },
+    "natural_bicubic_spline_clip_mesh_median_v1": {
+     "disc_rel_mean": 0.0,
+     "dev": 0.0,
+     "n": 262144,
+     "n_query": 262144
+    },
+    "bilinear_regular_grid_v1": {
+     "disc_rel_mean": 0.0,
+     "dev": 0.0,
+     "n": 262144,
+     "n_query": 262144
+    },
+    "nearest_control_point_v1": {
+     "disc_rel_mean": 0.0,
+     "dev": 0.0,
+     "n": 262144,
+     "n_query": 262144
+    }
+   },
+   "requirement": "常数控制网格 ⇒ 重建场逐点=常数（4 个 token 全绿），512² 全部 262144 查询点在域内"
+  },
+  "G15_truth_estimator_se_model": {
+   "green": true,
+   "value": {
+    "P16_n256": {
+     "n_samples_in_cell": 256,
+     "n_repeats": 24,
+     "n_estimates": 6144,
+     "rel_se": 0.07318494362724177,
+     "rel_bias": -0.002538542816055478,
+     "rel_se_of_se": 0.0006602622798405573
+    },
+    "P8_n64": {
+     "n_samples_in_cell": 64,
+     "n_repeats": 24,
+     "n_estimates": 24576,
+     "rel_se": 0.1434319349564297,
+     "rel_bias": -0.01153044968207284,
+     "rel_se_of_se": 0.000646969930407421
+    },
+    "ratio_se_64_over_256": 1.9598557824541352,
+    "theory_1_over_sqrt_N_ratio": 2.0,
+    "use": "P=16 cell（256 px）真值场的单 cell 相对标准误；用于把 disc_rel_rms 的「估计器噪声污染」从读数里扣掉：disc_corrected = sqrt(max(disc²-se²,0))。噪声传递读数（gain / noise_rel_rms）两臂共用同一真值 ⇒ 不受此污染。"
+   },
+   "requirement": "真值 σ 估计器的相对标准误随每 cell 像素数按 1/√N 缩放（实测 64px/256px 之比 ≈2）⇒ 该 SE 可作为 disc_rel_rms 污染量的实测标定；此门可红"
+  },
+  "G2_metric_definition_parity_with_exp04": {
+   "green": true,
+   "value": {
+    "rel_dev_vs_archived": {
+     "noiseless": 0.0,
+     "with_noise": 0.0,
+     "inflation": 0.0
+    },
+    "vectorized_vs_verbatim": 0.0,
+    "archived": {
+     "dense_rel_rms_with_ctrl_noise": 0.24247489181656756,
+     "dense_rel_rms_noiseless_negative": 0.2287350195578427,
+     "noise_inflation_over_noiseless": 1.060068949150352
+    }
+   },
+   "requirement": "本脚本度量定义逐位复现 exp04 H3 存档的 IDW 读数（否则与 0.2287/1.06× 不可比）"
+  },
+  "G3_bilinear_closed_form": {
+   "green": true,
+   "value": {
+    "measured": 0.7087249755548085,
+    "closed_form": 0.7087249755859375,
+    "detail": {
+     "n_edge_queries": 3840,
+     "n_query": 16384,
+     "interior_mean_w2": 0.4450414329767227
+    }
+   },
+   "requirement": "双线性 Σw² 的解析闭式（含两端半 cell 端点带）必须与生产算子脉冲响应一致"
+  },
+  "G4_nearest_identity": {
+   "green": true,
+   "value": 0.9999999999621423,
+   "requirement": "最近点算子 Σw²≡1 ⇒ 传递增益≡1（容差 1e-8 覆盖脉冲差商舍入）"
+  },
+  "G5_impulse_predicts_measured_gain": {
+   "green": true,
+   "value": {
+    "bilinear_regular_grid_v1": {
+     "measured": 0.7026585682711918,
+     "predicted": 0.7087249755548085,
+     "rel_dev": 0.008559607030735434
+    },
+    "nearest_control_point_v1": {
+     "measured": 1.0,
+     "predicted": 0.9999999999621423,
+     "rel_dev": 3.7857716962731345e-11
+    }
+   },
+   "requirement": "线性算子（bilinear/nearest）的 R 实现实测增益必须命中脉冲预测（3% 内）"
+  },
+  "G6_fail_closed_negatives": {
+   "green": true,
+   "value": {
+    "out_of_domain_query_all": true,
+    "in_domain_boundary_ok": true,
+    "unknown_token_idw_power2_k8_v1": true,
+    "unknown_token_idw": true,
+    "unknown_token_NATURAL_BICUBIC_SPLINE_CLIP_V1": true,
+    "unknown_token_kriging_v1": true,
+    "nearest_on_regular_grid": true,
+    "control_value_zero": true,
+    "control_value_negative": true,
+    "nx_too_small": true,
+    "all_nan_control_grid": true,
+    "partial_nan_filled": true,
+    "corner_anchored_grid": true
+   },
+   "requirement": "全部退化/未知/越界输入 fail-closed（含 IDW token 被拒）；部分 NaN 必须按最近有效点填充"
+  },
+  "G7_clip_in_range_and_binding": {
+   "green": true,
+   "value": {
+    "binding_stress": {
+     "natural_bicubic_spline_clip_v1": {
+      "low": 5,
+      "high": 224
+     },
+     "natural_bicubic_spline_clip_mesh_median_v1": {
+      "low": 3890,
+      "high": 1024
+     },
+     "bilinear_regular_grid_v1": {
+      "low": 0,
+      "high": 0
+     }
+    },
+    "clipped_flags": {
+     "natural_bicubic_spline_clip_v1": 1,
+     "natural_bicubic_spline_clip_mesh_median_v1": 1,
+     "bilinear_regular_grid_v1": 0
+    }
+   },
+   "requirement": "钳制档重建值落在 [min,max] 有效控制值内、且深凹陷用例下钳制边界确实被触发；bilinear 档 clipped=0（无钳制分支）"
+  },
+  "G8_real_arm_positive_and_finite": {
+   "green": true,
+   "value": {
+    "n_arms": 40,
+    "min_gain": 0.6318675981496762,
+    "max_gain": 5.318247327374933
+   },
+   "requirement": "真实帧 × 真实控制网格上 1.5% 控制噪声必须产生有限、正的传递读数"
+  },
+  "G9_metric_non_degenerate_on_real_data": {
+   "green": true,
+   "value": {
+    "n_disc_positive": 40,
+    "n_total": 40
+   },
+   "requirement": "真实数据上离散化相对 RMS 必须 >0（否则度量退化）"
+  },
+  "G10_nearest_additive_gain_identity_real": {
+   "green": true,
+   "value": [
+    {
+     "arm": "delta_64_same_family_sigma",
+     "gain_self": 1.0000000000000002
+    },
+    {
+     "arm": "delta_64_holdout_1px_sigma",
+     "gain_self": 1.0
+    },
+    {
+     "arm": "delta_32_same_family_sigma",
+     "gain_self": 1.0000000000000002
+    },
+    {
+     "arm": "delta_64_same_family_inv_sigma_Fref1",
+     "gain_self": 1.0000000000000002
+    },
+    {
+     "arm": "delta_64_holdout_1px_inv_sigma_Fref1",
+     "gain_self": 1.0000000000000002
+    },
+    {
+     "arm": "delta_32_same_family_inv_sigma_Fref1",
+     "gain_self": 1.0000000000000004
+    },
+    {
+     "arm": "delta_64_same_family_sigma",
+     "gain_self": 0.9785653147233169
+    },
+    {
+     "arm": "delta_64_same_family_inv_sigma_Fref1",
+     "gain_self": 1.0000987226943765
+    }
+   ],
+   "requirement": "真实网格上最近点算子加性噪声自归一化增益≡1（±5% 采样误差）"
+  },
+  "G13_positive_homogeneity": {
+   "green": true,
+   "value": {
+    "statement": "R(K·v) = K·R(v)（K=1000；含钳制：clip 界随网格等比缩放）",
+    "pointwise_max_rel_dev": 8.236838120574577e-16,
+    "clip_low_ratio": 999.9999999999999,
+    "clip_high_ratio": 1000.0,
+    "disc_scaled_rel": 0.8598760593173898,
+    "disc_base_rel": 0.8598760593173896,
+    "rel_dev": 2.220446049250313e-16,
+    "note": "此门可红：若算子非正齐次（或钳制界不随幅度缩放），控制值幅度（含 F_ref 因子）就会改变相对传递读数。"
+   },
+   "requirement": "R(K·v)=K·R(v) 逐点（K=1000，含钳制界等比缩放）且相对读数逐位不变 ⇒ 控制值幅度（含 F_ref 因子）不改变相对传递读数"
+  },
+  "G11_nonlinearity_is_detectable": {
+   "green": true,
+   "value": {
+    "natural_bicubic_spline_clip_v1": 0.0030465804961588073,
+    "natural_bicubic_spline_clip_mesh_median_v1": 0.007134280326429271,
+    "bilinear_regular_grid_v1": 3.746136146835706e-16
+   },
+   "requirement": "mesh_median 档叠加残差必须显著 >1e-8（否则说明该检验对非线性不敏感 ⇒ 判红）"
+  },
+  "G12_linear_operators_superpose": {
+   "green": true,
+   "value": {
+    "natural_bicubic_spline_clip_v1": 0.0030465804961588073,
+    "natural_bicubic_spline_clip_mesh_median_v1": 0.007134280326429271,
+    "bilinear_regular_grid_v1": 3.746136146835706e-16
+   },
+   "requirement": "唯一无钳制/无滤波的线性算子（bilinear）叠加残差 ~1e-16；钳制样条档 3e-3、mesh 档 7e-3 的残差即其非线性量级（按实测报告，不作门）"
+  },
+  "G14_impulse_predicts_gain_on_real_window": {
+   "green": true,
+   "value": {
+    "predicted_gain": 0.8687382726589126,
+    "impulse_mean_sumw2": 0.7547061863823915,
+    "impulse_n_ok": 4096,
+    "impulse_n_query": 4096,
+    "measured_additive_gain": 0.8793750229526932,
+    "pred_vs_measured_rel_dev": 0.012243906627050242
+   },
+   "requirement": "真实帧 1024² 全节点窗口上，默认算子的实测加性增益必须命中脉冲预测（5% 内）"
+  }
+ },
+ "transfer_summary": {
+  "truth_estimator_rel_se_P16": 0.07318494362724177,
+  "transfer_factor_definition": "RMS(R_noisy−R_clean)/RMS(控制值扰动) —— 与真值无关、与扰动模型无关的算子传递因子（= nominal_gain / ctrl_cv）",
+  "disc_correction": "disc_estimator_floor = se(P16)/CV(truth)（把真值估计器的相对 SE 折算到以 std(truth) 为单位）⇒ disc_corrected = sqrt(max(disc² − floor², 0))。注意控制点与真值场由**同一批像素**算出、其估计噪声正相关，故真实 disc 介于未订正与全订正之间；disc/floor 同量级即说明真实帧 disc 主要不是算子误差。",
+  "rows": {
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_sigma|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.9895009467063276,
+    "cv_truth": 11.517884859318649,
+    "disc_estimator_floor": 0.0063540263269805854,
+    "disc_corrected": 0.9894805454793715,
+    "transfer_factor_mul": 0.9109348518959056,
+    "transfer_factor_add": 0.8775512184204632,
+    "nominal_gain_mul": 1.1853201400531483,
+    "nominal_gain_add": 0.8810891502563514,
+    "ctrl_cv": 0.5074162750801438,
+    "inflation_ratio": 0.9996998664799525
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.9972120352034,
+    "cv_truth": 11.874062187420364,
+    "disc_estimator_floor": 0.006163429370007466,
+    "disc_corrected": 0.997192987988237,
+    "transfer_factor_mul": 0.5744619999958978,
+    "transfer_factor_add": 0.7496126478645545,
+    "nominal_gain_mul": 0.7474973395442769,
+    "nominal_gain_add": 0.7526347830924424,
+    "ctrl_cv": 0.5074162750801438,
+    "inflation_ratio": 0.9999993035029583
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_sigma|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.99085179789776,
+    "cv_truth": 11.512890344840246,
+    "disc_estimator_floor": 0.006356782826481207,
+    "disc_corrected": 0.990831406804064,
+    "transfer_factor_mul": 0.639586114928234,
+    "transfer_factor_add": 0.6626003159242719,
+    "nominal_gain_mul": 0.8322376751146795,
+    "nominal_gain_add": 0.6652716525972441,
+    "ctrl_cv": 0.5074162750801438,
+    "inflation_ratio": 0.9998649343144139
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_sigma|nearest_control_point_v1": {
+    "disc_rel_rms": 0.9904802617060967,
+    "cv_truth": 11.512890344840246,
+    "disc_estimator_floor": 0.006356782826481207,
+    "disc_corrected": 0.9904598629633988,
+    "transfer_factor_mul": 0.9999999999999998,
+    "transfer_factor_add": 1.0000000000000002,
+    "nominal_gain_mul": 1.3012128557669864,
+    "nominal_gain_add": 1.0040315958335244,
+    "ctrl_cv": 0.5074162750801438,
+    "inflation_ratio": 0.9997145094305828
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_sigma|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.989561856877711,
+    "cv_truth": 11.617004526404857,
+    "disc_estimator_floor": 0.006299811923193809,
+    "disc_corrected": 0.98954180354192,
+    "transfer_factor_mul": 0.9093410738302062,
+    "transfer_factor_add": 0.8782970555430474,
+    "nominal_gain_mul": 1.1880254944388344,
+    "nominal_gain_add": 0.8818379942927714,
+    "ctrl_cv": 0.5098373560000747,
+    "inflation_ratio": 0.9997015591336658
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.9973088511870375,
+    "cv_truth": 11.974115283912212,
+    "disc_estimator_floor": 0.006111929098057808,
+    "disc_corrected": 0.9972901227720592,
+    "transfer_factor_mul": 0.6211814573260287,
+    "transfer_factor_add": 0.8206311213858957,
+    "nominal_gain_mul": 0.8115540243525695,
+    "nominal_gain_add": 0.8239395743957354,
+    "ctrl_cv": 0.5098373560000747,
+    "inflation_ratio": 1.0000008402888372
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_sigma|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.9909286969592406,
+    "cv_truth": 11.612462018097895,
+    "disc_estimator_floor": 0.00630227625400917,
+    "disc_corrected": 0.9909086556143086,
+    "transfer_factor_mul": 0.6393250104059693,
+    "transfer_factor_add": 0.6626003159242719,
+    "nominal_gain_mul": 0.8352580054428359,
+    "nominal_gain_add": 0.6652716525972441,
+    "ctrl_cv": 0.5098373560000747,
+    "inflation_ratio": 0.9998653880931575
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_sigma|nearest_control_point_v1": {
+    "disc_rel_rms": 0.9905349655147014,
+    "cv_truth": 11.612462018097895,
+    "disc_estimator_floor": 0.00630227625400917,
+    "disc_corrected": 0.9905149162032992,
+    "transfer_factor_mul": 1.0,
+    "transfer_factor_add": 1.0,
+    "nominal_gain_mul": 1.3064685282880608,
+    "nominal_gain_add": 1.0040315958335244,
+    "ctrl_cv": 0.5098373560000747,
+    "inflation_ratio": 0.9997154048372456
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_sigma|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.9133785212165463,
+    "cv_truth": 11.198636978450521,
+    "disc_estimator_floor": 0.006535165285567447,
+    "disc_corrected": 0.913355141571128,
+    "transfer_factor_mul": 0.8870546177580138,
+    "transfer_factor_add": 0.8843652735598292,
+    "nominal_gain_mul": 1.655413326462923,
+    "nominal_gain_add": 0.8870361495493455,
+    "ctrl_cv": 2.2030295055365037,
+    "inflation_ratio": 1.0007231441255557
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.9901852565128396,
+    "cv_truth": 11.851391957494071,
+    "disc_estimator_floor": 0.006175219239202045,
+    "disc_corrected": 0.9901660006699613,
+    "transfer_factor_mul": 0.44362656280033763,
+    "transfer_factor_add": 0.8360072302149136,
+    "nominal_gain_mul": 0.8278918900041826,
+    "nominal_gain_add": 0.8385320598356597,
+    "ctrl_cv": 2.2030295055365037,
+    "inflation_ratio": 1.000053164318274
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_sigma|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.9311674901668395,
+    "cv_truth": 11.22860801043395,
+    "disc_estimator_floor": 0.0065177218368684875,
+    "disc_corrected": 0.9311446794379853,
+    "transfer_factor_mul": 0.6613036348824015,
+    "transfer_factor_add": 0.6272008543986868,
+    "nominal_gain_mul": 1.2341188784852686,
+    "nominal_gain_add": 0.629095066838615,
+    "ctrl_cv": 2.2030295055365037,
+    "inflation_ratio": 1.0005551992148816
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_sigma|nearest_control_point_v1": {
+    "disc_rel_rms": 0.9011641806859033,
+    "cv_truth": 11.22860801043395,
+    "disc_estimator_floor": 0.0065177218368684875,
+    "disc_corrected": 0.9011406104783829,
+    "transfer_factor_mul": 1.0,
+    "transfer_factor_add": 1.0000000000000002,
+    "nominal_gain_mul": 1.8661909800400989,
+    "nominal_gain_add": 1.0030201050056673,
+    "ctrl_cv": 2.2030295055365037,
+    "inflation_ratio": 1.0006592922895705
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.8598760593173896,
+    "cv_truth": 0.12468344706532056,
+    "disc_estimator_floor": 0.5869659954853577,
+    "disc_corrected": 0.6283770822771038,
+    "transfer_factor_mul": 0.8761181784216618,
+    "transfer_factor_add": 0.8762629764059873,
+    "nominal_gain_mul": 0.8838582686636528,
+    "nominal_gain_add": 0.9312669970627362,
+    "ctrl_cv": 0.10273491640761578,
+    "inflation_ratio": 1.0072434011962057
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.8950140202765088,
+    "cv_truth": 0.12292605605729748,
+    "disc_estimator_floor": 0.5953574528831324,
+    "disc_corrected": 0.6682810784303471,
+    "transfer_factor_mul": 0.7329128169808972,
+    "transfer_factor_add": 0.7085467136562412,
+    "nominal_gain_mul": 0.7393877555025058,
+    "nominal_gain_add": 0.7530229943203721,
+    "ctrl_cv": 0.10273491640761578,
+    "inflation_ratio": 0.9878679712633629
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.8512120486533643,
+    "cv_truth": 0.1247125516192597,
+    "disc_estimator_floor": 0.5868290134153555,
+    "disc_corrected": 0.6165984599288405,
+    "transfer_factor_mul": 0.661682740574403,
+    "transfer_factor_add": 0.6616822111601373,
+    "nominal_gain_mul": 0.6675283950189211,
+    "nominal_gain_add": 0.703216753861155,
+    "ctrl_cv": 0.10273491640761578,
+    "inflation_ratio": 1.0043776740260943
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|nearest_control_point_v1": {
+    "disc_rel_rms": 0.8768693037180885,
+    "cv_truth": 0.12471255161925975,
+    "disc_estimator_floor": 0.5868290134153553,
+    "disc_corrected": 0.651560806691905,
+    "transfer_factor_mul": 1.0000000000000002,
+    "transfer_factor_add": 1.0000000000000002,
+    "nominal_gain_mul": 1.0088345276158235,
+    "nominal_gain_add": 1.0627711339378383,
+    "ctrl_cv": 0.10273491640761578,
+    "inflation_ratio": 1.0090581517629027
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.9258009613712158,
+    "cv_truth": 0.1470895489948482,
+    "disc_estimator_floor": 0.49755366120406747,
+    "disc_corrected": 0.7807354060744879,
+    "transfer_factor_mul": 0.8759795839258787,
+    "transfer_factor_add": 0.877022548266102,
+    "nominal_gain_mul": 0.8835898133877391,
+    "nominal_gain_add": 0.9318799290683021,
+    "ctrl_cv": 0.10347637758041985,
+    "inflation_ratio": 1.0056988121382762
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.9302126765342412,
+    "cv_truth": 0.14504261302174853,
+    "disc_estimator_floor": 0.5045754630486973,
+    "disc_corrected": 0.7814724727552402,
+    "transfer_factor_mul": 0.7921959980155859,
+    "transfer_factor_add": 0.7805130004366864,
+    "nominal_gain_mul": 0.7990783425750868,
+    "nominal_gain_add": 0.829333750793303,
+    "ctrl_cv": 0.10347637758041985,
+    "inflation_ratio": 0.9935262843245648
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.9147557358496231,
+    "cv_truth": 0.14711999289487618,
+    "disc_estimator_floor": 0.49745070120779367,
+    "disc_corrected": 0.767672362494352,
+    "transfer_factor_mul": 0.6616322882024951,
+    "transfer_factor_add": 0.6615808686662004,
+    "nominal_gain_mul": 0.6673803371581917,
+    "nominal_gain_add": 0.7029624656566353,
+    "ctrl_cv": 0.10347637758041985,
+    "inflation_ratio": 1.0033782708767287
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_64_holdout_1px_inv_sigma_Fref1|nearest_control_point_v1": {
+    "disc_rel_rms": 0.9428958440134152,
+    "cv_truth": 0.1471199928948762,
+    "disc_estimator_floor": 0.49745070120779356,
+    "disc_corrected": 0.8009964872118012,
+    "transfer_factor_mul": 1.0000000000000002,
+    "transfer_factor_add": 1.0000000000000002,
+    "nominal_gain_mul": 1.0086876790298627,
+    "nominal_gain_add": 1.0625495671812029,
+    "ctrl_cv": 0.10347637758041985,
+    "inflation_ratio": 1.0068813629270559
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.7436349567843373,
+    "cv_truth": 0.12460691687848655,
+    "disc_estimator_floor": 0.5873264940710301,
+    "disc_corrected": 0.45611461094101724,
+    "transfer_factor_mul": 0.8735525807836126,
+    "transfer_factor_add": 0.8719158956146877,
+    "nominal_gain_mul": 0.8808119299476146,
+    "nominal_gain_add": 0.9503374279121982,
+    "ctrl_cv": 0.10148603759887752,
+    "inflation_ratio": 1.0104504861639214
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.8423750294227904,
+    "cv_truth": 0.12285197117216985,
+    "disc_estimator_floor": 0.5957164783679161,
+    "disc_corrected": 0.5955817052226967,
+    "transfer_factor_mul": 0.8084757105172006,
+    "transfer_factor_add": 0.7765940683507433,
+    "nominal_gain_mul": 0.815194261411978,
+    "nominal_gain_add": 0.8464422006299331,
+    "ctrl_cv": 0.10148603759887752,
+    "inflation_ratio": 0.9839226155975648
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.7427407738110497,
+    "cv_truth": 0.12461168859269049,
+    "disc_estimator_floor": 0.587304003771719,
+    "disc_corrected": 0.45468435670819557,
+    "transfer_factor_mul": 0.6266599625983951,
+    "transfer_factor_add": 0.6265089100947141,
+    "nominal_gain_mul": 0.6318675981496762,
+    "nominal_gain_add": 0.6828581393893969,
+    "ctrl_cv": 0.10148603759887752,
+    "inflation_ratio": 1.0054895709571274
+   },
+   "M42_M1_T2_flying_dutchman-2025|delta_32_same_family_inv_sigma_Fref1|nearest_control_point_v1": {
+    "disc_rel_rms": 0.7534502064318096,
+    "cv_truth": 0.1246116885926905,
+    "disc_estimator_floor": 0.587304003771719,
+    "disc_corrected": 0.4719758687961124,
+    "transfer_factor_mul": 1.0000000000000004,
+    "transfer_factor_add": 1.0000000000000004,
+    "nominal_gain_mul": 1.0083101456325505,
+    "nominal_gain_add": 1.089941624750659,
+    "ctrl_cv": 0.10148603759887752,
+    "inflation_ratio": 1.013019147626577
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_sigma|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 1.1619901974293558,
+    "cv_truth": 3.7567877306369626,
+    "disc_estimator_floor": 0.019480723659314466,
+    "disc_corrected": 1.1618268891395236,
+    "transfer_factor_mul": 0.9005921490336449,
+    "transfer_factor_add": 0.8503687298281932,
+    "nominal_gain_mul": 4.793940581253852,
+    "nominal_gain_add": 0.8316882926614388,
+    "ctrl_cv": 7.076098839037039,
+    "inflation_ratio": 1.00026811065734
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.9045884474124122,
+    "cv_truth": 4.134805521565556,
+    "disc_estimator_floor": 0.017699730554565925,
+    "disc_corrected": 0.9044152689612743,
+    "transfer_factor_mul": 0.8905887813038501,
+    "transfer_factor_add": 0.6580289891069117,
+    "nominal_gain_mul": 4.740691671011268,
+    "nominal_gain_add": 0.6435737666207813,
+    "ctrl_cv": 7.076098839037039,
+    "inflation_ratio": 1.0045320232372748
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_sigma|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 1.1183132183900688,
+    "cv_truth": 3.7430325633962442,
+    "disc_estimator_floor": 0.01955231283396513,
+    "disc_corrected": 1.1181422814153825,
+    "transfer_factor_mul": 0.7246301115081081,
+    "transfer_factor_add": 0.6422039259813083,
+    "nominal_gain_mul": 3.857277349891094,
+    "nominal_gain_add": 0.6280963398639771,
+    "ctrl_cv": 7.076098839037039,
+    "inflation_ratio": 1.0000327626182683
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_sigma|nearest_control_point_v1": {
+    "disc_rel_rms": 1.2297468413045523,
+    "cv_truth": 3.7708722724564665,
+    "disc_estimator_floor": 0.01940796143157794,
+    "disc_corrected": 1.2295936827796383,
+    "transfer_factor_mul": 0.9990886846578978,
+    "transfer_factor_add": 0.9785653147233169,
+    "nominal_gain_mul": 5.318247327374933,
+    "nominal_gain_add": 0.9570687247923261,
+    "ctrl_cv": 7.076098839037039,
+    "inflation_ratio": 1.0000806647219542
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.5073948504852046,
+    "cv_truth": 0.32597187058987076,
+    "disc_estimator_floor": 0.22451306456231357,
+    "disc_corrected": 0.4550202392638613,
+    "transfer_factor_mul": 0.8732175575474674,
+    "transfer_factor_add": 0.8746291452383627,
+    "nominal_gain_mul": 0.9179070136286722,
+    "nominal_gain_add": 4.426814164561902,
+    "ctrl_cv": 0.3779270736181066,
+    "inflation_ratio": 1.002206576337774
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.5011358252938222,
+    "cv_truth": 0.32334548880215114,
+    "disc_estimator_floor": 0.2263366775221108,
+    "disc_corrected": 0.44711164579014523,
+    "transfer_factor_mul": 0.6599655426995202,
+    "transfer_factor_add": 0.49173606673429743,
+    "nominal_gain_mul": 0.6937412047675329,
+    "nominal_gain_add": 2.488853930030076,
+    "ctrl_cv": 0.3779270736181066,
+    "inflation_ratio": 0.9964459421345371
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.49805323484383923,
+    "cv_truth": 0.32600847242728714,
+    "disc_estimator_floor": 0.22448785788401535,
+    "disc_corrected": 0.44459220236196073,
+    "transfer_factor_mul": 0.6613592299807082,
+    "transfer_factor_add": 0.6641947181914182,
+    "nominal_gain_mul": 0.6952062180613567,
+    "nominal_gain_add": 3.3617294856046223,
+    "ctrl_cv": 0.3779270736181066,
+    "inflation_ratio": 1.0010314717547963
+   },
+   "M42_M2_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|nearest_control_point_v1": {
+    "disc_rel_rms": 0.5156142961598159,
+    "cv_truth": 0.32600843061472484,
+    "disc_estimator_floor": 0.2244878866759473,
+    "disc_corrected": 0.4641802356199038,
+    "transfer_factor_mul": 1.000098723173722,
+    "transfer_factor_add": 1.0000987226943765,
+    "nominal_gain_mul": 1.0512816930760551,
+    "nominal_gain_add": 5.06186103640209,
+    "ctrl_cv": 0.3779270736181066,
+    "inflation_ratio": 1.0032541078293722
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_sigma|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.9675770620731093,
+    "cv_truth": 18.465813419230432,
+    "disc_estimator_floor": 0.003963266711610247,
+    "disc_corrected": 0.9675689451232932,
+    "transfer_factor_mul": 0.8557408225626173,
+    "transfer_factor_add": 0.9038264367785492,
+    "nominal_gain_mul": 3.4571039867907296,
+    "nominal_gain_add": 0.9128723838219677,
+    "ctrl_cv": 3.4733654678487023,
+    "inflation_ratio": 1.0001377593412206
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_sigma|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.9942083945107419,
+    "cv_truth": 20.620013779745868,
+    "disc_estimator_floor": 0.0035492189485890704,
+    "disc_corrected": 0.9942020593221894,
+    "transfer_factor_mul": 0.28440839785095495,
+    "transfer_factor_add": 0.7549263312521471,
+    "nominal_gain_mul": 1.148980369012785,
+    "nominal_gain_add": 0.7624820115645413,
+    "ctrl_cv": 3.4733654678487023,
+    "inflation_ratio": 1.0000315241190125
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_sigma|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.9725469451854379,
+    "cv_truth": 18.47659109464043,
+    "disc_estimator_floor": 0.003960954878114437,
+    "disc_corrected": 0.9725388791333645,
+    "transfer_factor_mul": 0.663338818949371,
+    "transfer_factor_add": 0.6622867880673776,
+    "nominal_gain_mul": 2.6798198883577524,
+    "nominal_gain_add": 0.668915285496338,
+    "ctrl_cv": 3.4733654678487023,
+    "inflation_ratio": 1.0001635286453388
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_sigma|nearest_control_point_v1": {
+    "disc_rel_rms": 0.9676163869165586,
+    "cv_truth": 18.504621896077122,
+    "disc_estimator_floor": 0.003954954823624717,
+    "disc_corrected": 0.9676083043059306,
+    "transfer_factor_mul": 0.9573160654119158,
+    "transfer_factor_add": 1.006090116742857,
+    "nominal_gain_mul": 3.8674574112796622,
+    "nominal_gain_add": 1.0161595698442742,
+    "ctrl_cv": 3.4733654678487023,
+    "inflation_ratio": 1.000189355506612
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_v1": {
+    "disc_rel_rms": 0.7616863008533038,
+    "cv_truth": 0.1528376977375718,
+    "disc_estimator_floor": 0.47884091890014685,
+    "disc_corrected": 0.5923490485300476,
+    "transfer_factor_mul": 0.8913007536662809,
+    "transfer_factor_add": 0.8939854054467945,
+    "nominal_gain_mul": 0.9155520471666393,
+    "nominal_gain_add": 1.1392514573317511,
+    "ctrl_cv": 0.14821852087934823,
+    "inflation_ratio": 1.007783829865234
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|natural_bicubic_spline_clip_mesh_median_v1": {
+    "disc_rel_rms": 0.7892659822073583,
+    "cv_truth": 0.151548160706138,
+    "disc_estimator_floor": 0.4829154196674961,
+    "disc_corrected": 0.6242863830944194,
+    "transfer_factor_mul": 0.6985120585591612,
+    "transfer_factor_add": 0.6494202983197326,
+    "nominal_gain_mul": 0.7175177879675314,
+    "nominal_gain_add": 0.8275895968478516,
+    "ctrl_cv": 0.14821852087934823,
+    "inflation_ratio": 0.9907044224513887
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|bilinear_regular_grid_v1": {
+    "disc_rel_rms": 0.7537873716158847,
+    "cv_truth": 0.15276772311500345,
+    "disc_estimator_floor": 0.4790602499989359,
+    "disc_corrected": 0.5819765274291918,
+    "transfer_factor_mul": 0.6591287738168635,
+    "transfer_factor_add": 0.6601978790394697,
+    "nominal_gain_mul": 0.6770629282340033,
+    "nominal_gain_add": 0.8413240207731892,
+    "ctrl_cv": 0.14821852087934823,
+    "inflation_ratio": 1.0036200180882326
+   },
+   "M42_M4_T2_flying_dutchman-2025|delta_64_same_family_inv_sigma_Fref1|nearest_control_point_v1": {
+    "disc_rel_rms": 0.7841032489347801,
+    "cv_truth": 0.1527677018870694,
+    "disc_estimator_floor": 0.4790603165670604,
+    "disc_corrected": 0.6207407817122583,
+    "transfer_factor_mul": 0.9999848694534338,
+    "transfer_factor_add": 0.9999848697805374,
+    "nominal_gain_mul": 1.0271933358047511,
+    "nominal_gain_add": 1.2743320117600958,
+    "ctrl_cv": 0.14821852087934823,
+    "inflation_ratio": 1.0078337055933915
+   }
+  }
+ },
+ "gates_all_green": true,
+ "red_gates": [],
+ "honesty_boundaries": [
+  "① 真实帧无逐像素真值：稠密参考是 P=16 稳健 σ 估计场（1.4826×MAD，256 px/cell），其单 cell 相对标准误由 H0b 的 MC 实测给出（约 6%）⇒ disc_rel_rms 含「参考估计噪声」上界；而 gain / noise_rel_rms / inflation 两臂共用同一参考 ⇒ 噪声传递读数不受该污染。",
+  "② 查询点 = P=16 cell 中心（256²=65536），不是全部 4096² 像素；未做逐像素全帧扫描。",
+  "③ Δ=32 只作加密对照（冻结默认是 sparse_snr.spacing_px=64，eng/packaging/config/defaults.json）。",
+  "④ 4 个 token 全部实测，但 nearest_control_point_v1 在生产里是散点模式算子，在规则网格上被 fail-closed 拒绝（H3 已实测）⇒ 其传递读数取自「同一节点集的散点模式」，另以 H3 的拒绝行给出规则网格上的行为。",
+  "⑤ 值域钳制不可单独关闭（生产把核/滤波/钳制绑成 token，weight_chain.h:88-118）⇒ 「无钳制样条」在生产不可表达，只以 bilinear 无钳制档 + 值域界与钳制触发核验代替。",
+  "⑥ H5b 的脉冲 Σw² 需要完整节点集，故只在主帧左上 1024²（16×16 个 Δ=64 单元）窗口上做；H5a 的脉冲在 512²/Δ64 全节点、16384 个抽样查询点上做。",
+  "⑦ IDW 行是**代理算子**读数（不在冻结词表内），只用于解释 exp04 的 0.2287 与 1.06× 的出处，不作为本单元任何主张的依据。",
+  "⑧ 控制值用 σ[ADU]（而非 SNR）：算子正齐次（含钳制与中值），H2 的同质性门验证了σ 与 SNR=K/σ 两种表示给出同一结论（相对偏差 <1e-9）。",
+  "⑨ route3 其余审计脚本遵循「零仓库 import」；本脚本必须调用生产重建器，故 import 实验侧 sci_b_common + 编译生产源为独立只读驱动——这是本脚本与路线约定的已知偏差。"
+ ],
+ "reproduce": {
+  "build": "bash 实验/absolute-snr/code/exp11_build_driver.sh",
+  "run": "python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 4 --timeout 900 -- python3 实验/absolute-snr/code/audit/route3/exp11_frozen_operator_transfer.py",
+  "quick_repro": "... 同前，附加 --skip-real（只跑 H0/H1/H5a/H3/H4，约 60 s）",
+  "results_json": "/workspace/Astro CS Database/实验/absolute-snr/code/audit/results/route3/exp11_frozen_operator_transfer.json",
+  "driver_work_dir": "/workspace/Astro CS Database/run/FINAL-07/审核包/科研审查/P2_订正/evidence/prod/exp11_work"
+ }
+}

@@ -15,14 +15,15 @@ B experiment leg  : closed-form derivation + numerical verification.
   integral diverges logarithmically (truncated integral grows without bound).
 C seed             : no randomness (deterministic quadrature); SEED recorded as
                      20260926 for harness consistency (unused).
-D outputs          : results/exp04_moffat4_sigma.json
+D outputs          : results/route2/exp04_moffat4_sigma.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt
 
-OUT = "results/exp04_moffat4_sigma.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp04_moffat4_sigma.json")
 SEED = 20260926
 BETA = 4.0
 

@@ -53,7 +53,7 @@ def measure_all(frame, pos, sigma_sky, fwhm_fit=FWHM_TRUE, beta_fit=BETA):
 def frame_sigma(sky, nm, seed=4242, grad=None):
     """帧内真实天光噪声: 渲染一帧纯天光, 量其 sigma-clip 散度 (不用平滑图的散度!)."""
     sk = sky if grad is None else sky * grad
-    f, _ = nm.render(sk, None, None, np.random.default_rng(seed))
+    f, _ = nm.render(sk, None, None, rng=np.random.default_rng(seed))
     _, s = robust_sky_stats(f)
     return float(s)
 
@@ -79,7 +79,7 @@ def run_case(sky, pos, sn_list, fwhm_true=FWHM_TRUE, beta=BETA, nm=None,
             for (x, y) in pos:
                 src += render_psf(sky.shape, x, y, fwhm_true, total=F, beta=beta)
             sk = sky if grad is None else sky * grad
-            frame, _ = nm.render(sk, src, None, rng)
+            frame, _ = nm.render(sk, src, None, rng=rng)
             m = measure_all(frame, pos, sigma_sky, fwhm_fit=fwhm_fit, beta_fit=beta)
             for name, vals in m.items():
                 acc.setdefault(name, []).extend(dmag(np.array(vals), F).tolist())

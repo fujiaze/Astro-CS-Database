@@ -53,7 +53,7 @@ def main():
     d = np.load(os.path.join(OUT, "scene.npz"))
     sky = d["sky_good"]
     nm = NoiseModel()
-    f0, _ = nm.render(sky, None, None, np.random.default_rng(4242))
+    f0, _ = nm.render(sky, None, None, rng=np.random.default_rng(4242))
     sig = float(1.4826 * np.median(np.abs(f0 - np.median(f0))))
     FWHM_T, BETA_T = 2.5, 3.5
     rng = np.random.default_rng(11)
@@ -73,7 +73,7 @@ def main():
         src = np.zeros(sky.shape)
         for (x, y) in pos:
             src += render_psf(sky.shape, x, y, FWHM_T, total=F, beta=BETA_T)
-        frame, _ = nm.render(sky, src, None, rng2)
+        frame, _ = nm.render(sky, src, None, rng=rng2)
         for (x, y) in pos:
             for (name, kind, beta, fw0, free) in cfgs:
                 A, fwf = fit_free(frame, x, y, kind, beta, fw0, free_fwhm=free)

@@ -18,15 +18,16 @@ B experiment leg  : closed-form evaluation + numerical verification + MC.
        Gaussian and Moffat beta=2.5 (no production consumer).
   Negative controls: sigma_true -> 0 gives estimator -> 0 (effect-free => 0).
 C seed             : SEED = 20260926.
-D outputs          : results/exp03_closed_form_constants.json
+D outputs          : results/route2/exp03_closed_form_constants.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt, pi, exp, log
 
 SEED = 20260926
-OUT = "results/exp03_closed_form_constants.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp03_closed_form_constants.json")
 
 def norm_pdf(x):
     return exp(-x * x / 2.0) / sqrt(2.0 * pi)

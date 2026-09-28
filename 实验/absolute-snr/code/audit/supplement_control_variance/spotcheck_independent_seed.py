@@ -11,7 +11,7 @@ import numpy as np
 K_PI_HALF = math.pi / 2.0
 K_MAD = 1.482602218505602
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "results", "spotcheck_independent_seed.json")
+OUT = os.path.join(HERE, "..", "results", "supplement_control_variance", "spotcheck_independent_seed.json")
 
 CASES = [  # (N, R_total)
     (5, 4_000_000), (20, 4_000_000), (100, 1_000_000), (201, 1_000_000),

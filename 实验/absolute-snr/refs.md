@@ -24,9 +24,9 @@
 | 14 | Goldberg, D. (1991), ACM Comput. Surv. 23(1), 5–48 | 无 DOI（公认综述） | 标准综述 + np.finfo(float64).eps 实测双锚（路线2 R11） | P-CST-13：浮点门值 2.22×10⁻¹⁶ = 1 ulp [文献] |
 | 15 | Janesick (2001), Scientific Charge-Coupled Devices, SPIE PM83；Howell (2006), Handbook of CCD Astronomy, 2nd ed. | 标准专著 | 专著（路线2 R12） | P-CST-11/15：CCD 噪声组成通行出处 [文献] |
 | 16 | Zackay & Ofek (2017), ApJ 836, 187/188 | arXiv:1512.06872、arXiv:1512.06879 | arXiv 摘要页（路线1 R5；II 明确 background dominated noise limit） | SNR 传递链与背景主导极限的相容性佐证 [文献] |
-| 17 | Pinelis, I. (2022), ALEA Lat. Am. J. Probab. Math. Stat. 19, 359 | 期刊全文取回 | 全文 PDF（补实验 refs） | control_variance 渐近系数 (π/2) 的样本中位数方差依据 [文献] |
+| 17 | Christoph, G., Ulyanov, V. V., & Bening, V. E. (2022), "Second Order Expansions for Sample Median with Random Sample Size", ALEA Lat. Am. J. Probab. Math. Stat. 19, 339–365 | DOI 10.30757/ALEA.v19-13 | 期刊全文 PDF 取回（alea.impa.br/articles/v19/19-13.pdf，74 208 字符）：首页题名/作者/卷页年逐字段命中；Crossref 同 DOI 作者字段 = Christoph/Ulyanov/Bening、v19、p339、2022；ALEA v19 全卷目（Crossref 期刊 ISSN 1980-0436 枚举 69 篇）中 **无以 p359 起篇的条目**，p339–365 即本篇 | control_variance 渐近系数 (π/2) 的样本中位数方差依据 [文献] |
 | 18 | Akinshin, A. | arXiv:2209.12268、arXiv:2207.12005 | arXiv 摘要级（补实验 refs） | MAD 有限样本偏置修正因子现象（N=5 时 c_mad2=0.906 的文献旁证） [文献] |
-| 19 | Shepard, D. (1968), Proc. 23rd ACM Nat. Conf., 517–524 | 无 DOI | **二手核验**（ACM DL 反爬；方法命名页确认归属无疑义） | P-CST-24：IDW 出处（配置级，插值参数已批配置化，P4 承载） |
+| 19 | Shepard, D. (1968), Proc. 23rd ACM Nat. Conf., 517–524 | DOI 10.1145/800186.810616 | Crossref 逐字段（题名 "A two-dimensional interpolation function for irregularly-spaced data"/卷名/页 517–524/1968/proceedings-article） | P-CST-24：IDW 出处（配置级，插值参数已批配置化，P4 承载） |
 
 ## B. 标注级引用（负责人批准后进入科学文档，核验层级不足，如实声明）
 
@@ -54,7 +54,14 @@
 5. P-CST-23 声称三数的生成配置（S2 语义 + β≈2.5 + 窗帽 256 下部分复原：3 点同号同单调、2 点同量级）。
 6. Moffat 1969 逐页公式核验（ADS 反爬）；Huber 1981 p.128 Eq.(33) 页码级定位。
 
-## E. 核验方法备注
+## E. 复审补记（SCI-702 科研对抗审查的 blocker P2-B1 订正轮）
+
+- **全条目再核验**：本次对台账 A/B 段全部条目逐条重查，方式 = Crossref REST（`api.crossref.org/works/<DOI>` 的题名/作者/刊名/卷/页/年/type 全字段）＋ arXiv 官方 API（`export.arxiv.org/api/query` 的 id/题名/作者/日期）＋ ALEA 期刊全文 PDF；逐条命中记录见 `run/FINAL-07/审核包/科研审查/P2_订正/evidence/f1_citation_recheck.json`。结论：#17 外的条目字段与原文一致（其中 A#19 Shepard 1968 由"二手核验"升级为 Crossref DOI 级）；上一版 #17 的作者/题名/页码三处均系**张冠李戴**，已按实查订正。
+- **#17 订正依据**：① Crossref `10.30757/ALEA.v19-13` = "Second Order Expansions for Sample Median with Random Sample Size"，作者 Christoph/Ulyanov/Bening，ALEA v19、p339、2022；② 期刊全文 PDF 首页逐字为 "ALEA, Lat. Am. J. Probab. Math. Stat. 19, 339–365 (2022), DOI: 10.30757/ALEA.v19-13"，全文 74 208 字符内 "Pinelis" 命中 **0** 次；③ ALEA v19 全卷目（Crossref 期刊枚举 69 篇）页号序列中 p311→p339→p367 相邻，**无以 p359 起篇的条目**；④ 该文正文同时逐字引 "Cramér (1946, Chapter 28.5)" 与 "Serfling (1980, Section 2.3.3)"，故它作为 (π/2) 样本中位数方差腿的**用途**成立，但著者信息必须按 ①②③ 书写。
+- **Serfling 小节号（原 UNRESOLVED #2）**：该 ALEA 全文两处逐字引 "Theorem A in Serfling (1980, Section 2.3.3)" 与 "Theorem C in Serfling (1980, Section 2.3.3)"（样本分位数渐近正态与其收敛率）⇒ 该结果位于 **§2.3.3**。仓内 `docs/algorithms/PHASE2_SAMPLER.md:260` 所引 "§2.3.2" 与此不一致（**只登记，不改**，交前台）。
+- **Moffat 1969（A#6）与 Horne 1986（A#7）逐字核验**：两文 ADS 扫描件已取回（`articles.adsabs.harvard.edu/cgi-bin/nph-iarticle_query?<bibcode>&data_type=PDF_HIGH&...`，各 7 页 / 9 页），扫描件**无文本层**，改用 300 dpi 栅格化 + OCR 复核；命令与原始输出见 `run/FINAL-07/审核包/科研审查/P2_订正/evidence/ocr_primaries.sh` 与其日志。OCR 复核结论：Horne 1986 的方差式归属（§2 的 `Var = 1/Σ(P_i²/σ_i²)` 型最优提取）与 D1 独立推导一致；Moffat 1969 给出的是**含自由参数 β 的轮廓族**，"`β=4`" 非该文结论而是项目/工具约定（见 `REPORT_paper` 参考文献 8 注）。
+
+## F. 核验方法备注
 
 - Crossref REST API：https://api.crossref.org/works/<DOI> 逐条解析题名/作者/刊名/卷页/年；arXiv 官方 abs 页；IVOA 官方 PDF 流级解压全文检索。
 - 三路独立核验（互不通信）交叉一致方为 VERIFIED；单路核验条目已注明路线来源。

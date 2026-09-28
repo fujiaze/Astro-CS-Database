@@ -91,7 +91,7 @@ out["c4_pipeline_median_patchvar"] = {
 flat = np.full((50, 64), 2.9)
 out["null_zero_noise"] = {"metric": float(np.abs(mad_sigma(flat, clip=True)).max())}
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp03_sky_budget_constant.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp03_sky_budget_constant.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

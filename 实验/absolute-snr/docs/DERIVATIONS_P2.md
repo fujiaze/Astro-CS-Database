@@ -32,7 +32,7 @@
 
 ## D6. m_ref 依赖与权重比值不变性（P-CST-19）
 
-F_ref,k = 10^(−0.4(m_ref−ZP_k))，故 frame_snr = F_ref/σ_F 每 mag 单调降 10^0.4 = 2.5118864… 倍（16 位一致）[实验:code/audit/route3/exp04_refmag_chain.py]。而换算权 w = SNR²/F_ref² = 1/σ_F² 不含 F_ref ⇒ 逐帧权比对 m_ref/ZP 完全不变（实测 rel ≤3.3×10⁻¹⁶，同帧配对更细）。由此：跨帧叠加与重建不依赖 m_ref 档位，但 frame_snr 的绝对数值比较必须同档；m_ref=6.0 为单位制锚点（冻结纪律）。
+F_ref,k = 10^(−0.4(m_ref−ZP_k))，故 frame_snr = F_ref/σ_F 在**天光限**（σ_F ∝ F_ref）下每 mag 单调降 10^0.4 = 2.5118864… 倍（16 位一致；同门负控：施于生产组成必红，实测 rel 0.3686）[实验:code/audit/route3/exp04_refmag_chain.py]；而在**生产组成**（方差含源泊松项 ⇒ σ_F 有非标度分量）下每 mag 实测 1.5853~1.5859（≈10^0.2）[实验:code/audit/route1/exp05_mref_and_reference_flux.py]。换算权 w = SNR²/F_ref² = 1/σ_F² 不含 F_ref ⇒ 逐帧权比对对 m_ref/ZP 是**代数恒等**（实测 rel ≤3.3×10⁻¹⁶），但生产组成下只是近似：m_ref 档漂移实测 1.9%~4.2%（生产驱动 f4 最大 4.20%），零点灵敏度 ZP±0.02 mag 为 1.85%（另一量）[实验:code/audit/route3/exp04_refmag_chain.py]。由此：跨帧叠加与重建**必须同档 m_ref 且该档随产品落盘**，frame_snr 的绝对数值比较亦然；m_ref=6.0 为单位制锚点（冻结纪律）。（P2-M2 订正）
 
 ## D7. 5σ 裁剪误剔率与掩膜 r_local（P-CST-09/15）
 

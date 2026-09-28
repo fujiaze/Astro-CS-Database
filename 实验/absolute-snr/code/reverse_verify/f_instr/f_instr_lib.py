@@ -122,9 +122,14 @@ class NoiseModel:
         return {"gain_e_per_adu": self.gain, "read_noise_e": self.rn,
                 "dark_e": self.dark, "saturation_adu": self.sat}
 
-    def render(self, sky_adu, src_adu=None, response=None, rng=None, quantize=True):
-        """正向渲染一帧. 返回 (adu, saturated_mask)."""
-        rng = np.random.default_rng() if rng is None else rng
+    def render(self, sky_adu, src_adu=None, response=None, quantize=True, *, rng):
+        """正向渲染一帧. 返回 (adu, saturated_mask).
+
+        rng : REQUIRED keyword-only numpy.random.Generator（**无默认值**）。
+              本渲染器绝不自行构造未 seed 的生成器 —— EXP-05 §9.4 曾因同类
+              无 seed 熵源问题全量重跑一次。漏传即 TypeError（fail-closed）；
+              调用点必须显式传 np.random.default_rng(<固定 seed>)。
+        """
         g = self.gain
         R = np.ones_like(sky_adu) if response is None else response
         src = 0.0 if src_adu is None else src_adu

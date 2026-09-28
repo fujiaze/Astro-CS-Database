@@ -165,7 +165,7 @@ out = {
     "H4_kcorr": h4,
 }
 here = os.path.dirname(os.path.abspath(__file__))
-path = os.path.join(here, "..", "results", "exp05_doublecount_corr.json")
+path = os.path.join(here, "..", "results", "route3", "exp05_doublecount_corr.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=1, ensure_ascii=False)

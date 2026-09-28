@@ -23,7 +23,7 @@ CLIP_ITERS = 3
 MIN_SAMPLES = 5
 SEED = 20260605
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "results", "production_chain_control_variance.json")
+OUT = os.path.join(HERE, "..", "results", "supplement_control_variance", "production_chain_control_variance.json")
 
 
 def med_even(a_sorted, nk):

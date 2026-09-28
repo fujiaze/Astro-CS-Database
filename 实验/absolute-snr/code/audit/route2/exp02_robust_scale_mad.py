@@ -18,10 +18,11 @@ B experiment leg  : MC with fixed seed.
   Negative control (both 03/08): constant input => sigma_hat = 0 exactly
        (true-zero-effect => metric zero).
 C seed             : SEED = 20260926.
-D outputs          : results/exp02_robust_scale_mad.json
+D outputs          : results/route2/exp02_robust_scale_mad.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt
 
@@ -30,7 +31,7 @@ KAPPA = 1.482602218505602        # P-CST-03
 EFF_MEDIAN = 1.25                # median efficiency factor (P-CST-08)
 EPS_TARGET = 0.015
 REPO_ZETA = 1.152
-OUT = "results/exp02_robust_scale_mad.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp02_robust_scale_mad.json")
 SIGMA = 5.0
 
 def sigma_hat_mad(x, clip=None, rounds=2):

@@ -21,15 +21,16 @@ B experiment leg  : closed form + genuine Monte Carlo (N_MC and rel SE reported,
   anchor is verified).
   NEGATIVE CONTROL: correct combination (shot_noise_only declaration) => bias 0.
 C seed             : SEED = 20260926.
-D outputs          : results/exp06_doublecount_bias.json
+D outputs          : results/route2/exp06_doublecount_bias.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 from math import sqrt
 
 SEED = 20260926
-OUT = "results/exp06_doublecount_bias.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp06_doublecount_bias.json")
 N_MC = 20000
 N_PIX = 64
 

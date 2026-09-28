@@ -20,14 +20,15 @@ B experiment leg  : theory + algebraic MC. Frame model: frame k is a linear
     noise-source mixes; NEGATIVE CONTROL: g_k = 1 => all gamma agree (zero
     effect => zero deviation).
 C seed             : SEED = 20260926.
-D outputs          : results/exp12_weight_gamma.json
+D outputs          : results/route2/exp12_weight_gamma.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp12_weight_gamma.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp12_weight_gamma.json")
 
 def sigma_F_frame(P2, S_common, R_common, g):
     """sigma_F (ADU, frame scale) for a control point whose profile has

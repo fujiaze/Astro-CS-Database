@@ -18,14 +18,15 @@ B experiment leg  : sparse control points on the Delta = 64 cell-centre grid of
                     gamma < 1e-10 threshold separates "all distances degenerate"
                     from normal operation.
 C seed             : SEED = 20260926.
-D outputs          : results/exp11_idw_reconstruction.json
+D outputs          : results/route2/exp11_idw_reconstruction.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 
 SEED = 20260926
-OUT = "results/exp11_idw_reconstruction.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp11_idw_reconstruction.json")
 DELTA = 64
 N = 512
 

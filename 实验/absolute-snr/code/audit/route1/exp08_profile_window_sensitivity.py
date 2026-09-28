@@ -63,7 +63,7 @@ for fwhm in (60.0, 260.0):
     d.append(abs(float(b1)))
 out["null_bigwindow_metric"] = {"max_abs": float(max(d))}
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp08_profile_window_sensitivity.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp08_profile_window_sensitivity.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

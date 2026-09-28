@@ -128,7 +128,7 @@ out["mc_note"] = ("mc_var_ratio_minus1_doubleweights = realized variance inflati
                   "different quantity from the formula bias (predicted sigma_F "
                   "inflation), both are reported.")
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp04_double_count_bias.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp04_double_count_bias.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

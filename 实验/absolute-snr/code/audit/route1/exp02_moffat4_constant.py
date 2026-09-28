@@ -102,7 +102,7 @@ out["flux_closure"] = {"numeric": flux_num, "analytic": float(flux_ana),
                        "note": "0.25 px sub-sampled Riemann sum; residual is "
                                "discretization of the peak, not a formula error"}
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "exp02_moffat4_constant.json")
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route1", "exp02_moffat4_constant.json")
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as fh:
     json.dump(out, fh, indent=1)

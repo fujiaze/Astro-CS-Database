@@ -10,16 +10,17 @@ B experiment leg  : (i) algebraic identity & round-trip of the mag<->flux map,
                     model: frame_snr = F_ref/(sigma_bg*sqrt(sum P^2)) and
                     per-pixel weight w = SNR_src^2/F_ref^2.
 C seed             : SEED = 20260926 (fixed).
-D outputs          : results/exp01_mag_scale_identities.json
+D outputs          : results/route2/exp01_mag_scale_identities.json
 Pure python + numpy; imports nothing from the repository.
 """
 import json
+import os
 import numpy as np
 
 SEED = 20260926
 K_MAG = 2.5                 # P-CST-01
 INV = -0.4                  # P-CST-02
-OUT = "results/exp01_mag_scale_identities.json"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results", "route2", "exp01_mag_scale_identities.json")
 
 def main():
     rng = np.random.default_rng(SEED)
