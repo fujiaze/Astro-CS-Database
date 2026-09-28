@@ -1,22 +1,12 @@
 # 统一数据对象合同（UNIFIED_MODEL §2 的 **13** 个对象）
 
-> 上游：ASTROCS_DESIGN.md §3.1（数据对象）
+> 上游：docs/ASTROCS_DESIGN.md §3.1（数据对象）。
+> 上位正本：`docs/design/UNIFIED_MODEL.md` §2（对象集与逐对象语义）。本文是**索引与语义登记**，不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
+> 现行对象集 = **13 个**；`weight_mode` 家族与 `sci_weight_mode` 键**不存在**（权重是阶段二现场派生量）。
 
-> **退役与身份（DOC-203 / Q2 前置裁决 2026-09-20；GAP_AUDIT §4.1/§4.5）**
-> ① canonical 数据对象 = **13 个**（原 14 个）；`psfsw_robust_weight` **已真删**（变更 claim `CHG-2026-09-20-PSFSW-RETIRE`；退役记录
-> `eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries`）。上位正本 =
-> `docs/design/UNIFIED_MODEL.md` §2。
-> ② **V6 合同层的语义已自解释合并进现行合同链**（`CHG-2026-09-22-V6-CONTRACT-MERGE`）：条款注册表见
-> `docs/contracts/DATA_SEMANTICS.md` §31.10，字段级判据落点见本文 §4；生效与退役条件由**变更编号**决定，
-> **表达只用变更编号**（`ASTROCS_DESIGN.md` §12）。
-> ③ v6 内的 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），作废留痕见
-> `docs/contracts/DATA_SEMANTICS.md` §31.3。
+## 1. 唯一事实源声明
 
-- 性质：**索引与语义登记**。本文不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
-
-## 1. 唯一事实源声明（U-02 口径）
-
-`eng/contracts/schemas/` 是数据合同的**唯一事实源**（ENGINEERING_SPEC §4.7）。对 UNIFIED_MODEL §2 的 **13** 个对象（\(psfsw_robust_weight\) 已于 2026-09-20 退役，见文首）：
+`eng/contracts/schemas/` 是数据合同的**唯一事实源**（ENGINEERING_SPEC §4.7）。对 UNIFIED_MODEL §2 的 **13** 个对象：
 
 ```text
 canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
@@ -26,7 +16,7 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
                   且不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠）。
 ```
 
-**U-02 结论（唯一性判定标准）**：单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。
+**唯一性判定标准**：对 UNIFIED_MODEL §2 的 13 个对象，eng/contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，其对象判别字段与 canonical 分立（除 schema_version 外 required/properties 词表两两不重叠），且 eng/contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。
 
 机器可复跑断言（`python3 -m unittest discover -s eng/tests/contracts -t eng/tests/contracts`）：
 
@@ -44,9 +34,8 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
 | `ivar` | `https://astrocs.local/schemas/unified/ivar/v1` | `eng/contracts/schemas/unified/ivar.schema.json` | **1/signal单位^2**：面亮度域 = `sr^2/ADU^2`；像素域帧面 = `ADU^-2`（无 sr 幂）；与同承载面的 variance 严格互倒（有限域） | `0` = 显式不可用（禁 `1/0→Inf`）；`null` = 缺失；无覆盖 = `NaN`（同 signal） | float32|float64 | 对该估计目标可以 | `DATA-OBJ-IVAR-001` |
 | `source_snr` | `https://astrocs.local/schemas/unified/source_snr/v1` | `eng/contracts/schemas/unified/source_snr.schema.json` | 1（F_hat/sigma_F 无量纲） | null | float32|float64 | 不直接作帧权重 | `DATA-OBJ-SOURCE-SNR-001` |
 | `depth_m5` | `https://astrocs.local/schemas/unified/depth_m5/v1` | `eng/contracts/schemas/unified/depth_m5.schema.json` | mag | null | float32|float64 | 摘要，不作权重 | `DATA-OBJ-DEPTH-M5-001` |
-| `frame_snr` | `https://astrocs.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比，`SNR = F_signal/σ_F`，**无量纲**）。**对象身份的两个必要条件（正向约束）**：① `F_signal` **必须已扣独立估计的局部背景**，天光**只作为噪声项**进入 `σ_F`（红线见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1）——未扣背景的比值**不是** `frame_snr`，本对象只接受已扣背景的比值；② 本对象是**点源（PSF）**量，与面亮度 SNR **各自独立、互不宣称等价**。参考通量基准（`reference_baseline`）见 `DATA_SEMANTICS.md` §13.4 | null | float32|float64 | 唯一帧级参考；权重由 Phase 2 逆方差叠加从 SNR 计算（SNR 本身**不是**权重） | `DATA-OBJ-FRAME-SNR-001` |
+| `frame_snr` | `https://astrocs.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比，`SNR = F_signal/σ_F`，**无量纲**）。**对象身份的两个必要条件（正向约束）**：① `F_signal` **必须已扣独立估计的局部背景**，天光**只作为噪声项**进入 `σ_F`（红线见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1）——未扣背景的比值**不是** `frame_snr`，本对象只接受已扣背景的比值；② 本对象是**点源（PSF）**量，与面亮度 SNR **各自独立、互不宣称等价**。参考通量基准（`reference_baseline`）见 `DATA_SEMANTICS.md` §13.4 | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算（SNR 本身**不是**权重） | `DATA-OBJ-FRAME-SNR-001` |
 | `point_information` | `https://astrocs.local/schemas/unified/point_information/v1` | `eng/contracts/schemas/unified/point_information.schema.json` | ADU^-2（=1/Var(F_hat)，点源通量口径；**不是**面亮度 `signal^-2`——后者为 sr^2/ADU^2，见 `DATA_SEMANTICS.md` §31.1a）。**标度 = 与 `F_hat` 同承载面**（帧面为 `photo_scaled_adu` 时随 1/α² 换算） | null | float32|float64 | 点源目标的严格权重。**估计域（正向约束）**：`Var(F_hat)` 是**PSF 拟合域**内的通量估计方差（`F_hat` 单位 ADU），**不含**像素间相关核的贡献；把本对象当权重消费前，消费侧必须确认 ① 估计域与目标一致（点源、非面亮度）、② 是否已含相关核（未含时按 `DATA_SEMANTICS.md` §31.5 的 `k_corr ≠ 1` 条款补核或拒绝）、③ 与 `W_info` 消费面（`DATA_SEMANTICS.md` §28.6）的量纲一致。三条缺一即 fail-closed，默认代入一律判红 | `DATA-OBJ-POINT-INFORMATION-001` |
-| ~~`psfsw_robust_weight`~~ **已退役** | ~~`https://astrocs.local/schemas/unified/psfsw_robust_weight/v1`~~ | ~~`eng/contracts/schemas/unified/psfsw_robust_weight.schema.json`~~（**已删除**） | — | — | — | **对象已不存在**（14→13；`ASTROCS_DESIGN.md` §3.1:173-174 + §9.73 A44） | ~~`DATA-OBJ-PSFSW-ROBUST-WEIGHT-001`~~（INDEX 已置 `OBSOLETE`） |
 | `sparse_snr_layer` | `https://astrocs.local/schemas/unified/sparse_snr_layer/v1` | `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` | 1 | null | float32|float64 | 帧内精细参考 | `DATA-OBJ-SPARSE-SNR-LAYER-001` |
 | `support` | `https://astrocs.local/schemas/unified/support/v1` | `eng/contracts/schemas/unified/support.schema.json` | 1（[0,1]） | 0=无覆盖 | float32|float64|integer | 否 | `DATA-OBJ-SUPPORT-001` |
 | `coverage` | `https://astrocs.local/schemas/unified/coverage/v1` | `eng/contracts/schemas/unified/coverage.schema.json` | 1（几何有效域） | 0=无覆盖（空域） | float32|float64|integer | 否 | `DATA-OBJ-COVERAGE-001` |
@@ -80,25 +69,21 @@ UNIFIED_MODEL §2 末条：**一个字段只承载一个含义**（模糊名 `we
 「产品族专用投影」或「兼容期映射」，必须在 `docs/contracts/unified_object_registry.json#canonical_object_classes`
 登记归属，且对象判别字段与 canonical 分立（除 `schema_version` 外 required/properties 词表两两不重叠）。
 
-V6 合同层的语义已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` **自解释合并进现行合同链**，其字段级判据按两层落点承载，判据强度不变：
+合同条款的字段级判据按两层落点承载：
 
-| 判据面 | 现行落点 | 归属类型 | 变更编号 |
-|---|---|---|---|
-| canonical 对象级判据（BUNIT 量纲可判、`k_corr != 1`、对角表示 ⇒ 必带相关核/算子描述、`W_info` 单位锚、`validity.reason` 白名单、模糊字段名禁令） | `eng/contracts/schemas/unified/*.schema.json` 的 `allOf` | object_contract | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 产品族记录级判据（`units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录的字段级约束） | `eng/contracts/schemas/product_family_field_constraints.schema.json`（`$defs` 逐件） | product_family_field_constraints（**非对象**合同，**不**定义对象判别字段） | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 条款注册表 / 单位表 / 词表 / 迁移映射 / 待签与开放项登记 | `eng/contracts/data/clause_registry.json` | machine_registration_table | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 条款注册表、签字项与开放项的**正文承载页** | `docs/contracts/DATA_SEMANTICS.md` §31.10（+ §31.1–§31.9、§28.6） | human_readable_contract | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 产品族正例 | `eng/contracts/data/examples/` | positive_fixtures | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/` | verification | CHG-2026-09-22-V6-CONTRACT-MERGE |
-| 共享校验器 | `eng/tests/common/jsonschema_min.py` | shared_validator | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 判据面 | 现行落点 | 归属类型 |
+|---|---|---|
+| canonical 对象级判据（BUNIT 量纲可判、`k_corr != 1`、对角表示 ⇒ 必带相关核/算子描述、`W_info` 单位锚、`validity.reason` 白名单、模糊字段名禁令） | `eng/contracts/schemas/unified/*.schema.json` 的 `allOf` | object_contract |
+| 产品族记录级判据（`units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录的字段级约束） | `eng/contracts/schemas/product_family_field_constraints.schema.json`（`$defs` 逐件） | product_family_field_constraints（**非对象**合同，**不**定义对象判别字段） |
+| 条款注册表 / 单位表 / 词表 / 迁移映射 / 待签与开放项登记 | `eng/contracts/data/clause_registry.json` | machine_registration_table |
+| 条款注册表、签字项与开放项的**正文承载页** | `docs/contracts/DATA_SEMANTICS.md` §31.10（+ §31.1–§31.9、§28.6） | human_readable_contract |
+| 产品族正例 | `eng/contracts/data/examples/` | positive_fixtures |
+| 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/` | verification |
+| 共享校验器 | `eng/tests/common/jsonschema_min.py` | shared_validator |
 
 > 产品族记录级合同与被其引用的 canonical 对象合同**不等价**（前者含 49 条 `PENDING_OWNER_SIGNOFF` 条款，
 > fail-closed），因此以「非对象合同」身份在 ownership 索引中登记；其读写规则、fail-closed 门与词表不变。
->
-> **生效与退役条件**：由**变更编号**决定，**表达只用变更编号**（`ASTROCS_DESIGN.md` §12）。
-> **`weight_mode` 家族**：已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），作废留痕见
-> `docs/contracts/DATA_SEMANTICS.md` §31.3；`psfsw_robust_weight` 对象已真删
-> （14→13；`CHG-2026-09-20-PSFSW-RETIRE`），其负例见 `eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json`。
+> `psfsw_robust_weight` 对象的负例见 `eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json`。
 
 ## 4b. `sparse_snr_layer` 的重建声明面（算子词表与层几何）
 
@@ -109,57 +94,44 @@ V6 合同层的语义已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` **自解释合并
 | 重建算子 | `reconstruction_operator` | `natural_bicubic_spline_clip_v1`（默认档）/ `natural_bicubic_spline_clip_mesh_median_v1`（高对比域档）/ `bilinear_regular_grid_v1`（对照·回退）/ `nearest_control_point_v1`（散点层） | `natural_bicubic_spline_clip_v1` | schema `enum`；消费侧未识别 token ⇒ fail-closed（默认档不作回退目标） |
 | 层几何 | `control_point_geometry` | `spacing_px`（>0）、`node_placement`（`const: cell_center_v1`）、`origin_x`/`origin_y`（缺省 0） | origin 0 + `cell_center_v1` | schema `const`；消费侧「节点—cell 中心」一致性门 ⇒ 角点锚定（半 cell 相位）fail-closed |
 
-- **为什么把「是否开 3×3 mesh 中值前置滤波」编码进算子标识，而不是另开一个布尔字段**：① **值域钳制不是可选项**——去掉它，光滑插值类在病态控制网格上的权重效率损失 E 由 1.007 / 0.294 升到 1.44e4 / 2.48e4，并会给出负的 σ；把钳制与核绑成一个标识后，「无钳制的样条」在合同层**不可表达**；② **mesh 中值滤波只在特定域必需**——HST 类高对比域必需，默认目标域（地面/seeing-limited）有害（真实地面帧上劣 39–74%），因此必须是**按数据来源的显式开关**且默认关；③ 独立布尔可组合出**从未实测**的配置（如双线性+滤波），标识化后不可表达。算子标识随层入 manifest（`SparseReconstruction.operator_id`）。
-  - **① 的判据强度（正向约束，防单判据过强）**：权重效率损失 `E = Var_w/Var_opt − 1` 对**整体乘性缩放完全相消**（`w = 1/σ̂²` 的比值定义）⇒ **E 单独不足以**排除水平偏差：实测两臂可以 E 完全相同（均 0.0530）而水平偏差相差 **8.7 倍**（0.094 vs 0.818 dex）。因此「钳制不可省」的结论必须**同时**报 E 与水平偏差（正本 = `docs/science/CONTROL_WEIGHT_SNR.md` §8b）；**「E 相同」只允许推出「E 相同」**（两臂等价须另有水平偏差证据）。
+- **为什么把「是否开 3×3 mesh 中值前置滤波」编码进算子标识，而不是另开一个布尔字段**：① **值域钳制不是可选项**——去掉它，光滑插值类在病态控制网格上的权重效率损失 E 急剧放大并会给出非正的 σ；把钳制与核绑成一个标识后，「无钳制的样条」在合同层**不可表达**；② **mesh 中值滤波只在特定域必需**——HST 类高对比域必需，默认目标域（地面/seeing-limited）有害，因此必须是**按数据来源的显式开关**且默认关；③ 独立布尔可组合出未经验证的配置（如双线性+滤波），标识化后不可表达。算子标识随层入 manifest（`SparseReconstruction.operator_id`）。逐域实测代价见 `实验/absolute-snr`。
+  - **① 的判据强度（正向约束，防单判据过强）**：权重效率损失 `E = Var_w/Var_opt − 1` 对**整体乘性缩放完全相消**（`w = 1/σ̂²` 的比值定义）⇒ **E 单独不足以**排除水平偏差：两臂可以 E 相同而水平偏差差出数倍。因此「钳制不可省」的结论必须**同时**报 E 与水平偏差（正本 = `docs/science/CONTROL_WEIGHT_SNR.md` §8b）；**「E 相同」只允许推出「E 相同」**（两臂等价须另有水平偏差证据）。
   - **σ 正值守卫（强制）**：重建场必须满足 `isfinite(σ) ∧ σ > 0`；任何产生非正或非有限 σ 的配置一律 fail-closed 具名拒绝，**防线 = 门本身**（「实测会给出负 σ」是观测事实，不构成门）。
 - **选择规则**：可判定 cell 内含未分辨点源（空间高分辨率 / HST 类）⇒ `..._mesh_median_v1`；地面 seeing-limited 与一般情形 ⇒ 默认档；无法判断 ⇒ 默认档。该判定只取自声明面（控制网格自身不是判据来源：两个候选标量诊断都不能把「滤波有益」与「滤波有害」的域分开，且在 16-bit 整数真实数据上失效）。
   - **判据来源与责任方（强制，缺一即 fail-closed）**：域判定的**许可证据只有两类**——① 上游数据来源标识（空间高分辨率任务 / HST 类，随输入产品 provenance 携带）；② 由**操作者显式声明**（配置或命令行）。**第三类** = 从控制点值、控制网格几何或任何帧内标量诊断**推断**该判定：一律判红。责任方 = 声明该判定的操作者/上游 provenance；消费侧只做「已声明即采信、未声明即取默认档」的二值路由；自行推断属判红面。
-  - **默认档的适用域（正向约束）**：`natural_bicubic_spline_clip_v1` 的适用域 = **地面 seeing-limited 与一般情形**。在 HST 类高对比域上，其 Δ*（E 首次劣于帧级臂的最小控制点间隔）实测 **32 px**，生产 Δ=64 落在失效区内（劣 2.6 倍）⇒ 该域**必须**显式改用 `..._mesh_median_v1`（Δ* = 128 px，Δ=64 在其有效区内）。默认档是**回退**，不是「域无关的安全选择」；未声明域时取默认档属**显式降级**，必须随层入 manifest 可追溯。
-- **几何**：控制点坐标是像素中心坐标；规则网格下节点落在**所属 Δ×Δ cell 的中心**（cell i 覆盖 `[origin_x + i·Δ, origin_x + (i+1)·Δ − 1]`）。把节点当 cell 角点会使重建场整体平移半个 cell（Δ=64 时 31.5 px）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。
+  - **默认档的适用域（正向约束）**：`natural_bicubic_spline_clip_v1` 的适用域 = **地面 seeing-limited 与一般情形**。在 HST 类高对比域上，其 Δ*（E 首次劣于帧级臂的最小控制点间隔）小于生产控制点间隔，落于失效区 ⇒ 该域**必须**显式改用 `..._mesh_median_v1`（其 Δ* 大于生产控制点间隔，处于有效区）。默认档是**回退**，不是「域无关的安全选择」；未声明域时取默认档属**显式降级**，必须随层入 manifest 可追溯。逐域 Δ* 与失效倍数见 `实验/absolute-snr`。
+- **几何**：控制点坐标是像素中心坐标；规则网格下节点落在**所属 Δ×Δ cell 的中心**（cell i 覆盖 `[origin_x + i·Δ, origin_x + (i+1)·Δ − 1]`）。把节点当 cell 角点会使重建场整体平移半个 cell（Δ/2）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。
   - **与 Phase2 UPM 控制网格的关系（强制，同一约定）**：默认 Δ = `hips.tile_width / 8 = 512 / 8 = 64` px 复用 Phase2 UPM 的 8×8/tile 控制网格 ⇒ **两处必须是同一套几何约定**：节点 = 所属 cell 的**中心**、cell 编号自 `origin` 起、`origin` 缺省 0、层定义域 = cell 并集。稀疏层一侧的约定按本行；UPM 一侧按 `DATA_SEMANTICS.md` §25.1（控制点几何）——**两处不一致即 fail-closed**：同一套几何约定在两处逐项相同，换算不在消费侧发生。
-- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5。合同机器门：`eng/tests/contracts/test_unified_object_contract.py`（对象级）与 `lib/algorithms/integration/phase2_integrate/oracle/recon_contract_gate.py`（本次新增声明面）。
+- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5。合同机器门：`eng/tests/contracts/test_unified_object_contract.py`（对象级）与 `lib/algorithms/integration/phase2_integrate/oracle/recon_contract_gate.py`（声明面门）。
 
-## 4a. 旧合同 ID → 统一对象映射（MODULE_MAP 引用面，负责人裁决）
+## 4a. 合同 ID → 统一对象映射（MODULE_MAP 引用面）
 
-MOD-001 的 `docs/modules/MODULE_MAP.yaml` 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无法解析。负责人裁决：权威=统一对象合同，`MODULE_MAP` 引用的 ID 一律取自权威面。逐条结论：
+`docs/modules/MODULE_MAP.yaml` 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无法直接解析，本节逐条给出其统一对象映射；`MODULE_MAP` 引用的 ID 一律取自统一对象权威面。逐条结论：
 
-| 旧 ID | 结论 | canonical 映射 | 关系 | 旧合同面（证据位置） |
+| 合同 ID | 结论 | canonical 映射 | 关系 | 合同面（条款位置） |
 |---|---|---|---|---|
-| `DATA-P1-CAL` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | single_object | `docs/contracts/DATA_SEMANTICS.md:174（§9 ID 定义节，:135 状态 CONTRACT_READY）`<br>`docs/contracts/PUBLIC_API.md:102`<br>`docs/modules/registry/astrocs.phase1.calibration.md:24（端口 calibrated）`<br>`docs/modules/registry/astrocs.phase1.cosmetic.md:34（端口 calibrated）`<br>`docs/modules/registry/astrocs.phase1.drizzle.md:35（端口 calibrated）`<br>`docs/modules/registry/astrocs.phase2.resample.md:22（端口 calibrated）`<br>`docs/modules/calibration.md:8/:53` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`
-| `DATA-P1-COS` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | single_object | `docs/contracts/DATA_SEMANTICS.md:262（§10 ID 定义节，:182 状态 CONTRACT_READY）`<br>`docs/contracts/PUBLIC_API.md:152/:177`<br>`docs/modules/registry/astrocs.phase1.cosmetic.md:36（端口 cleaned）/:38-40（权威名说明）`<br>`docs/modules/calibration.md:12` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`
-| `DATA-P1-COSMETIC` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | superseded_placeholder | `docs/modules/registry/astrocs.phase1.cosmetic.md:39（descriptor 占位名说明）`<br>`docs/modules/registry/astrocs.phase1.star-psf.md:33（端口 cleaned）`<br>`docs/modules/registry/astrocs.phase1.star-detection.md:38（端口 image）` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`
-| `DATA-P1-DRZ` | mapped | `eng/contracts/schemas/unified/signal.schema.json`；`eng/contracts/schemas/unified/variance.schema.json`；`eng/contracts/schemas/unified/ivar.schema.json`；`eng/contracts/schemas/unified/support.schema.json`；`eng/contracts/schemas/unified/coverage.schema.json` | composite | `docs/contracts/DATA_SEMANTICS.md:339（§11 ID 定义节，:228 状态 CONTRACT_READY）`<br>`docs/contracts/PUBLIC_API.md:214`<br>`docs/modules/registry/astrocs.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）`<br>`docs/modules/registry/astrocs.phase1.hips-writer.md:7/:34（端口 stacked）`<br>`docs/modules/healpix_drizzle.md:32/:62` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-DRZ'`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`
-| `DATA-P1-SOURCES` | no_canonical | **无 canonical 对应**（descriptor_port_catalog） | orchestration_port_catalog_name | `docs/contracts/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）`<br>`docs/contracts/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）`<br>`docs/contracts/DATA_SEMANTICS.md:531（§15 端口链）`<br>`docs/contracts/PUBLIC_API.md:636（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）`<br>`docs/modules/MODULE_MAP.yaml:151（psf 模块）` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）`
-| `DATA-P2-SMP` | no_canonical | **无 canonical 对应**（module_io_contract） | module_io_contract_without_object_semantics | `docs/contracts/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）`<br>`docs/contracts/PUBLIC_API.md:1447/:1556/:1701`<br>`docs/modules/phase2_samp.md:74/:76/:189`<br>`docs/modules/phase2_upm.md:52/:73/:90/:101/:249`<br>`docs/modules/registry/astrocs.phase2.sample.md:63/:64/:164`<br>`docs/modules/registry/astrocs.phase2.upm-fit.md:46` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`
-| `DATA-GAIA-001` | no_canonical | **无 canonical 对应**（external_catalog_contract） | external_catalog_service_contract | `docs/contracts/DATA_SEMANTICS.md:87（§8 ID 定义节，:88 状态 CONTRACT_READY）`<br>`docs/contracts/PUBLIC_API.md:71`<br>`docs/contracts/DATA_ARTIFACTS.md:29（登记行）`<br>`docs/traceability/TRACEABILITY_MATRIX.csv 第 2 行（DATA=DATA-GAIA-001, VERIFIED）`<br>`docs/modules/gaia_xpsd_client.md:23/:40` |
-　└ 本次新增索引（`new_index_added_by_DATA001`，不计入旧面证据）：`docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）`
+| `DATA-P1-CAL` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | single_object | `docs/contracts/DATA_SEMANTICS.md` §9（ID 定义节）；`docs/contracts/PUBLIC_API.md`（calibration 条款）；`docs/modules/registry/astrocs.phase1.calibration.md`（端口 calibrated）；`docs/modules/registry/astrocs.phase1.cosmetic.md`（端口 calibrated）；`docs/modules/registry/astrocs.phase1.drizzle.md`（端口 calibrated）；`docs/modules/registry/astrocs.phase2.resample.md`（端口 calibrated）；`docs/modules/calibration.md` |
+| `DATA-P1-COS` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | single_object | `docs/contracts/DATA_SEMANTICS.md` §10（ID 定义节）；`docs/contracts/PUBLIC_API.md`（cosmetic 条款）；`docs/modules/registry/astrocs.phase1.cosmetic.md`（端口 cleaned、权威名说明）；`docs/modules/calibration.md` |
+| `DATA-P1-COSMETIC` | mapped | `eng/contracts/schemas/unified/signal.schema.json` | superseded_placeholder | `docs/modules/registry/astrocs.phase1.cosmetic.md`（descriptor 占位名说明）；`docs/modules/registry/astrocs.phase1.star-psf.md`（端口 cleaned）；`docs/modules/registry/astrocs.phase1.star-detection.md`（端口 image） |
+| `DATA-P1-DRZ` | mapped | `eng/contracts/schemas/unified/signal.schema.json`；`eng/contracts/schemas/unified/variance.schema.json`；`eng/contracts/schemas/unified/ivar.schema.json`；`eng/contracts/schemas/unified/support.schema.json`；`eng/contracts/schemas/unified/coverage.schema.json` | composite | `docs/contracts/DATA_SEMANTICS.md` §11（ID 定义节）；`docs/contracts/PUBLIC_API.md`（drizzle 条款）；`docs/modules/registry/astrocs.phase1.drizzle.md`（upstream 引用、模块级数据合同说明）；`docs/modules/registry/astrocs.phase1.hips-writer.md`（端口 stacked）；`docs/modules/healpix_drizzle.md` |
+| `DATA-P1-SOURCES` | no_canonical | **无 canonical 对应**（descriptor_port_catalog） | orchestration_port_catalog_name | `docs/contracts/DATA_SEMANTICS.md` §14（下游计数行 n_sources 的引用、端口链 psf→sources→fluxes）、§15（端口链）；`docs/contracts/PUBLIC_API.md`（photometry descriptor 端口编目，带 data_id）；`docs/modules/MODULE_MAP.yaml`（psf 模块） |
+| `DATA-P2-SMP` | no_canonical | **无 canonical 对应**（module_io_contract） | module_io_contract_without_object_semantics | `docs/contracts/DATA_SEMANTICS.md` §23（ID 定义节）；`docs/contracts/PUBLIC_API.md`（sampling 条款）；`docs/modules/phase2_samp.md`；`docs/modules/phase2_upm.md`；`docs/modules/registry/astrocs.phase2.sample.md`；`docs/modules/registry/astrocs.phase2.upm-fit.md` |
+| `DATA-GAIA-001` | no_canonical | **无 canonical 对应**（external_catalog_contract） | external_catalog_service_contract | `docs/contracts/DATA_SEMANTICS.md` §8（ID 定义节）；`docs/contracts/PUBLIC_API.md`（目录访问条款）；`docs/contracts/DATA_ARTIFACTS.md`（登记行）；`docs/traceability/TRACEABILITY_MATRIX.csv`（DATA 行）；`docs/modules/gaia_xpsd_client.md` |
 
-逐条判定依据（含证据原文）：`docs/contracts/unified_object_registry.json#legacy_contract_ids`；机器可读副本：`eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map`；INDEX.yaml 同段：`legacy_contract_id_map`（含逐行 `# DATA001-LEGACY-ID: <旧ID> -> ...`）。
+逐条判定依据（含证据原文与逐行锚）：`docs/contracts/unified_object_registry.json#legacy_contract_ids`；机器可读副本：`eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map`；`docs/contracts/INDEX.yaml#legacy_contract_id_map`（逐行 `# DATA001-LEGACY-ID: <合同ID> -> ...`）。
 
 小结：**mapped = 4**（DATA-P1-CAL / DATA-P1-COS / DATA-P1-COSMETIC / DATA-P1-DRZ），**无 canonical 对应 = 3**（DATA-P1-SOURCES / DATA-P2-SMP / DATA-GAIA-001）。机器断言：`eng/tests/contracts/test_unified_object_contract.py::TestRegistryIndex::test_legacy_ids_are_decided_not_pending` 与 `::test_legacy_id_map_written_into_index_and_compat_map`。
 
 ## 5. 三类配置分离锚点（配置 schema 本体归 CFG-001）
 
-机器索引：`docs/contracts/config_separation_anchors.json`（`IDX-CONFIG-SEPARATION`）。本任务**不建** `eng/packaging/config/**`、**不建** phase_config schema。
+机器索引：`docs/contracts/config_separation_anchors.json`（`IDX-CONFIG-SEPARATION`）。`eng/packaging/config/**` 与 phase_config schema 的建立见 `docs/contracts/CONFIG_CONTRACT.md`。
 
 | 配置类 | 语义 | schema owner | 字段名命名空间 | 混入即 REJECT 的字段 |
 |---|---|---|---|---|
 | `phase_config` | 科学参数 / 输入输出 / 算法选择；可跨机器复现；无硬件字段（硬件字段归 cpu_profile） | CFG-001 | `^sci_[a-z0-9_]+$`；`^(input|output)_[a-z0-9_]+$`；`^algorithm_[a-z0-9_]+$`；`^phase_name$` | `isa`、`isa_level`、`workers`、`worker_count`、`block`、`block_size`、`cpu_model`、`cpu_vendor`、`thread_budget`、`affinity_mask` |
-| `cpu_profile` | ISA / workers / block / 机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile → 保守运行不阻塞 | CFG-001 | `^isa(_[a-z0-9_]+)?$`；`^(workers|worker_count)$`；`^block(_[a-z0-9_]+)?$`；`^cpu_[a-z0-9_]+$`；`^thread_budget$`；`^profile_hash$` | `sci_algorithm_id`、`sci_rejection_profile`、`algorithm_choice`（原示例 `sci_weight_mode` 已删 （已按 §9.73 A44 作废：键不存在；权重是派生量）） |
-| `run_manifest` | 本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优 | CFG-001 | `^manifest_(input|output)_hashes$`；`^software_sha$`；`^config_hash$`；`^toolchain_[a-z0-9_]+$`；`^run_id$` | `isa`、`workers`、`block`、`sci_algorithm_id`（原示例 `sci_weight_mode` 已删 （已按 §9.73 A44 作废：键不存在；权重是派生量）） |
+| `cpu_profile` | ISA / workers / block / 机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile → 保守运行不阻塞 | CFG-001 | `^isa(_[a-z0-9_]+)?$`；`^(workers|worker_count)$`；`^block(_[a-z0-9_]+)?$`；`^cpu_[a-z0-9_]+$`；`^thread_budget$`；`^profile_hash$` | `sci_algorithm_id`、`sci_rejection_profile`、`algorithm_choice`、`sci_weight_mode`（该键不存在；权重是阶段二现场派生量） |
+| `run_manifest` | 本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优 | CFG-001 | `^manifest_(input|output)_hashes$`；`^software_sha$`；`^config_hash$`；`^toolchain_[a-z0-9_]+$`；`^run_id$` | `isa`、`workers`、`block`、`sci_algorithm_id`、`sci_weight_mode`（该键不存在；权重是阶段二现场派生量） |
 
 硬规则：三类配置的字段名模式两两互斥（同名即同义）；`cpu_profile` 的硬件字段出现在 `phase_config` 即 REJECT。
 机器断言：`eng/tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors`。
-
-## 6. 边界声明
-
-- 本任务只写 `eng/contracts/schemas/**`、`eng/contracts/data/**`、`eng/contracts/config/**`、`docs/contracts/**`、`eng/tests/contracts/**`；
-- 未改 `lib/**`、`lib/infrastructure/cli/**`、`eng/tools/**`、`eng/ci/**`、`runtime/**`、`eng/packaging/config/**`、`docs/science/**`、`docs/science/algorithms/**`、`docs/plugins/**`、根 `CMakeLists.txt`、仓库根条目、`工程控制/**`、`reports/**`、`.github/**`；
-- 未改任何公式、阈值、默认容差、排异规则或归约顺序；未 commit / push / 建分支 / stash / reset / clean / checkout。
 

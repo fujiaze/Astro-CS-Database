@@ -1,7 +1,6 @@
 {
   "schema": "astrocs/doc-symbol-namespaces/v1",
   "note": "check_doc_symbols.py 的**非 API 符号命名空间**登记表。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
-  "task": "W4-A3",
   "auto_domains": [
     {
       "id": "document_stems",
@@ -27,22 +26,52 @@
       "reason": "SCI-CW 域科学量（帧质量权重 = support×snr_v²），术语权威 docs/GLOSSARY.md:15（frame_quality_weight 行）"
     },
     {
-      "token": "snr_v²",
-      "namespace": "science_quantity",
-      "evidence": "docs/GLOSSARY.md:15",
-      "reason": "同上（含上标写法）"
-    },
-    {
       "token": "p2_write_descriptor",
       "namespace": "registry_descriptor",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:1161",
       "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = 同面实测 `grep -n p2_write_descriptor → :1161`（函数定义行；调用点 :15492 p2_nodes[] 表）"
     },
     {
+      "token": "p2_parallel_for",
+      "namespace": "orchestration_helper",
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9054",
+      "reason": "Phase2 tile 级并行原语（翻译单元内 static，非公开 ABI ⇒ 不进 api_inventory）。行锚 = 定义行 :9054；调用点 :10421（write）/ :11026（reject）/ :12182（integrate）"
+    },
+    {
+      "token": "sdet_deblend_leaf",
+      "namespace": "algorithm_helper",
+      "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp:1063",
+      "reason": "多阈值 deblending 树的叶级递归（翻译单元内 static 模板 ⇒ 不进 api_inventory）。行锚 = 定义行 :1063；调用点 :1723；权重基准注释见 :1052"
+    },
+    {
       "token": "snr_path_effective",
       "namespace": "doc_header_kv",
       "evidence": "docs/design/PHASE2_DETAILED_DESIGN.md:21",
       "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/contracts/PIPELINE_BLOCK_CONTRACT.md:58 与 docs/plugins/algorithms_phase1/07_noise_snr.md:97"
+    },
+    {
+      "token": "P1.HIPS_WRITE",
+      "namespace": "stage_id",
+      "evidence": "docs/architecture/ERROR_MODEL.md:21",
+      "reason": "阶段 ID（normalize 阶段的 HiPS 写出节点），节点名与 docs/modules/registry/ 注册表一致；阶段 ID 面唯一清单 = docs/architecture/ERROR_MODEL.md「阶段 ID」节"
+    },
+    {
+      "token": "P2.HIPS_WRITE",
+      "namespace": "stage_id",
+      "evidence": "docs/architecture/ERROR_MODEL.md:22",
+      "reason": "阶段 ID（mosaic 阶段的 HiPS 写出节点），节点名与 docs/modules/registry/ 注册表一致；阶段 ID 面唯一清单 = docs/architecture/ERROR_MODEL.md「阶段 ID」节"
+    },
+    {
+      "token": "COUNT_FIELD_MISSING",
+      "namespace": "verdict_id",
+      "evidence": "eng/tools/quality/check_p3_rejection_count.py:157",
+      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。判据由 eng/tools/quality/check_p3_rejection_count.py 产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/contracts/DATA_ARTIFACTS.md"
+    },
+    {
+      "token": "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
+      "namespace": "verdict_id",
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:5842",
+      "reason": "组内模型通带唯一性的帧级失败码（某帧解析出的通带与组内首帧不一致 ⇒ 该帧判此码；帧间独立，不阻塞其他帧）。由 mark_frame_fail 在编排层产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/contracts/CONFIG_CONTRACT.md 与 docs/science/PHOTOMETRY.md"
     }
   ]
 }
