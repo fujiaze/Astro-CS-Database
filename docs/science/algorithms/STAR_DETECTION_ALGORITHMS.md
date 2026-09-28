@@ -82,6 +82,10 @@
 - 二阶导数零交叉宽度/振幅（:1980-2057）: 对平滑图 smooth 逐方向找二阶导零交叉
   `Sr,Sc`（平滑图 σ 估计）与 `Ar,Ac`；平滑 PSF 估计量
   `Sr=(−srl+srr)/2`、`Ar=(Arl+Arr)/2`、`Sc=(−scu+scd)/2`、`Ac=(Acu+Acd)/2`；
+  符号约定：单侧读数 `srl/srr/scu/scd`（及 `Arl/...`）记录**有符号差分读数**，
+  距离量取正值为有效（实现 `sdet_zero_cross_dir` 返回 `dist = |峰−零交叉| ≥ 1.0`，
+  缺失侧回落 1.0）；对称合成取两侧均值 `Sr = 0.5·(drl + drr)`（sdet_api.cpp
+  O7 段，`c.Sr = 0.5 * (drl + drr)`），同式得 `Sc`；
   `SQRT_EXP1=√e`（:1808）。
 - 拟合盒半径（:2059-2070）: `s_factor=√(−2·ln 0.001)=3.7172`（:1812）；
   `R=max(ceil(3.7172·Sr), ceil(3.7172·Sc), r)`，钳位 `R≤200`（MAX_BOX_RADIUS），
@@ -212,7 +216,11 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1570-1943
 ## 10 关联 ARC/API/TST
 
 - ARC: ARCH-001（Phase1 模块链边界）。
-- API: API-STAR-001（PUBLIC_API，sdet_* 9 导出符号 + 常量）；编排合同
+- API: API-STAR-001（PUBLIC_API，sdet_* 6 导出符号：sdet_create/sdet_destroy/
+  sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex/sdet_detect_guided_ex_f64，
+  与 star_detector.h 现行 SDET_EXPORT 面一致；4 个旧 CC 路径符号
+  sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps 已随重写
+  注销为死符号）+ 常量；编排合同
   PHASE1_API_V1 §2 表行 `sdet_create/destroy/detect/detect_ex`（handle 级
   并发合同）。
 - TST: TEST-STAR-DESIGN-001（§11.4 冻结测试设计）；可执行 TEST-P1-STAR-001

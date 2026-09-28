@@ -9,8 +9,7 @@
 > 实现: lib/infrastructure/benchmark/cpu/avx2/（include/astrocs/cpu/avx2_provider_v1.h + src/avx2_provider.cpp；target 单独
 >       `-mavx2 -mfma`；Windows `/arch:AVX2`）
 > 测试: eng/tests/cpu/avx2/（gate stub 负测 + handshake + so_load + 对照 oracle runner）
-> profile 台账: docs/architecture/ISA_VARIANTS.md（ISA-001/003 实测）·
->       artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv
+> profile 台账: docs/architecture/ISA_VARIANTS.md（ISA-001/003 实测）
 
 ## 1. 目标与验收
 
@@ -29,8 +28,7 @@ target 单独 `/arch:AVX2`（Linux `-mavx2 -mfma`）；函数入口由 provider 
 ## 2. 热点 kernel profile（ISA-001/003 实测台账，只迁移这些）
 
 `docs/architecture/ISA_VARIANTS.md` 冻结的 ISA-001/003 实测（vm-bj，
-median-of-5，best-of baseline 对变体最保守；工件
-`artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv`）：
+median-of-5，best-of baseline 对变体最保守）：
 
 | kernel | baseline ns | avx2 变体 ns | 增益 | 决策 |
 |---|---|---|---|---|

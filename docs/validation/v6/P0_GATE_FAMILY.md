@@ -5,7 +5,7 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 依据：`artifacts/evidence/v6/review-audit/03_缺陷账本_重开清单.md` §2 根因表、`artifacts/evidence/v6/review-audit/05_未决风险与控制器裁决事项.md` §3 E2/E3、
+- 依据：`实验/engineering-evidence/v6/review-audit/03_缺陷账本_重开清单.md` §2 根因表、`实验/engineering-evidence/v6/review-audit/05_未决风险与控制器裁决事项.md` §3 E2/E3、
   `SCI-ADJ-001_CONFLICT_MATRIX.md` §5（AR-032/AR-034/AR-035/AR-051）。
 - 定位：**建议 + 登记**。销账任务与处置权在控制器/负责人（ADJ-AR-03）；本任务不改 CI、不改账本 id、不宣布销账。
 

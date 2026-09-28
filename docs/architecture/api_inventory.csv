@@ -1,3 +1,4 @@
+# NOTE (P-133, 2026-09-29): export 列标 RETIRED 的行 = 已注销死符号（e891df28 重写注销, grep 实测无定义无引用），仅保留作历史引用白名单（check_doc_symbols api_syms 面），不计入现行导出计数；现行导出面以各头 SDET_EXPORT/SNR_API 等宏实测为准。
 symbol,header,signature,export
 ACS_ERR_CANCELLED,lib/include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_CANCELLED = 6 },
 ACS_ERR_BUDGET,lib/include/astrocs/abi/status_codes.h,enum acs_status { ACS_ERR_BUDGET = 8 },
@@ -418,13 +419,13 @@ snr_phot_cal_quality,lib/algorithms/noise_snr/cpp/include/snr_estimator.h,"SNR_A
 snr_psf_fit_quality,lib/algorithms/noise_snr/cpp/include/snr_estimator.h,"SNR_API int snr_psf_fit_quality(const double* psf, int n_stars, const int64_t* star_ids, const uint32_t* quality_flags, PsfFitQualityRow* out);",SNR_API
 sdet_create,lib/algorithms/star_detection/include/star_detector.h,SDET_EXPORT StarDetectorHandle sdet_create(const SDetParams *params);,
 sdet_destroy,lib/algorithms/star_detection/include/star_detector.h,SDET_EXPORT void sdet_destroy(StarDetectorHandle handle);,
-sdet_detect,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect(StarDetectorHandle handle, const uint16_t *image, int width, int height, double **out_x, double **out_y, int *out_count);",
-sdet_detect_debug,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle, const uint16_t *image, int width, int height, double **out_x, double **out_y, int *out_count, float **out_mag, int **out_has_saturated, float **out_detail, float **out_smap, float **out_binary, const char **extra_names, int extra_count, float ***out_extras);",
+sdet_detect,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect(StarDetectorHandle handle, const uint16_t *image, int width, int height, double **out_x, double **out_y, int *out_count);",RETIRED
+sdet_detect_debug,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect_debug(StarDetectorHandle handle, const uint16_t *image, int width, int height, double **out_x, double **out_y, int *out_count, float **out_mag, int **out_has_saturated, float **out_detail, float **out_smap, float **out_binary, const char **extra_names, int extra_count, float ***out_extras);",RETIRED
 sdet_detect_ex,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect_ex(StarDetectorHandle handle, const uint16_t *image, int width, int height, double **out_x, double **out_y, float **out_flux, int **out_saturated, float **out_mag, int **out_has_saturated, int *out_count, const char **extra_names, int extra_count, float ***out_extras);",
 sdet_detect_ex_f64,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect_ex_f64(StarDetectorHandle handle, const double *image, int width, int height, double **out_x, double **out_y, float **out_flux, int **out_saturated, float **out_mag, int **out_has_saturated, int *out_count, const char **extra_names, int extra_count, float ***out_extras);",
 sdet_detect_guided_ex_f64,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT int sdet_detect_guided_ex_f64(StarDetectorHandle handle, const double *image, int width, int height, const double *pred_x, const double *pred_y, int n_pred, double **out_x, double **out_y, float **out_flux, int **out_saturated, float **out_mag, int **out_has_saturated, int *out_count, const char **extra_names, int extra_count, float ***out_extras, SDetGuidedStats *out_stats);",
-sdet_free_coords,lib/algorithms/star_detection/include/star_detector.h,SDET_EXPORT void sdet_free_coords(double *coords);,
-sdet_free_debug_maps,lib/algorithms/star_detection/include/star_detector.h,SDET_EXPORT void sdet_free_debug_maps(float *maps);,
+sdet_free_coords,lib/algorithms/star_detection/include/star_detector.h,SDET_EXPORT void sdet_free_coords(double *coords);,RETIRED
+sdet_free_debug_maps,lib/algorithms/star_detection/include/star_detector.h,SDET_EXPORT void sdet_free_debug_maps(float *maps);,RETIRED
 sdet_free_detect_ex,lib/algorithms/star_detection/include/star_detector.h,"SDET_EXPORT void sdet_free_detect_ex(double *x, double *y, float *flux, int *saturated, float *mag, int *has_saturated, float **extras, int extra_count);",
 GAIA_EXPORT,lib/infrastructure/gaia_xpsd_client/src/gaia_client.h,#define GAIA_EXPORT __attribute__((visibility("default"))) / __declspec(dllexport) (Windows),GAIA_EXPORT
 gaia_client_create,lib/infrastructure/gaia_xpsd_client/src/gaia_client.h,"GAIA_EXPORT GaiaClient *gaia_client_create(const char *data_dir);",GAIA_EXPORT

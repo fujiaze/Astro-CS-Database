@@ -26,10 +26,12 @@ FP32/FP64 双通道（sdet_detect_ex / sdet_detect_ex_f64）；一帧一次权�
 
 ## Public API
 
-API-STAR-001（docs/contracts/PUBLIC_API.md）：10 导出符号
-`sdet_create/sdet_destroy/sdet_detect/sdet_free_coords/sdet_detect_debug/
-sdet_free_debug_maps/sdet_detect_ex/sdet_detect_ex_f64/sdet_detect_guided_ex_f64/
-sdet_free_detect_ex`（签名头正本 lib/algorithms/star_detection/include/star_detector.h，
+API-STAR-001（docs/contracts/PUBLIC_API.md）：6 导出符号（P-133 修订：4 个旧 CC
+路径死符号 sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps
+已随 e891df28 重写注销）
+`sdet_create/sdet_destroy/sdet_detect_ex/sdet_detect_ex_f64/
+sdet_detect_guided_ex_f64/sdet_free_detect_ex`（签名头正本
+lib/algorithms/star_detection/include/star_detector.h，
 按符号名定位；全量清单见 docs/architecture/api_inventory.csv）。
 
 `sdet_detect_guided_ex_f64` = **权威路径入口**（星表引导拟合）：调用方给出星表预测

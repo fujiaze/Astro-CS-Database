@@ -32,7 +32,7 @@
 
 | 路径 | 入口符号 | 说明 |
 |---|---|---|
-| 权威（星表引导拟合） | `sdet_detect_guided_ex_f64`（声明 `lib/algorithms/star_detection/include/star_detector.h`） | 定义域 = 调用方给的星表预测位置；逐位置做饱和判定、σ 估计、椭圆高斯拟合（与盲检测同一 `sdet_gauss_fit`/GSL TR-LM 7 参）与 `reject_star` 质量门；拟合失败直接丢弃。统计量 `SDetGuidedStats{n_predicted,n_dropped,n_fit_failed,n_rejected,n_fit_ok,n_output}` |
+| 权威（星表引导拟合） | `sdet_detect_guided_ex_f64`（声明 `lib/algorithms/star_detection/include/star_detector.h`） | 定义域 = 调用方给的星表预测位置；逐位置做饱和判定、σ 估计、椭圆高斯拟合（与盲检测同一 `sdet_gauss_fit`/仓内自研 trust-region LM（`src/nls_lm.cpp`）7 参，CR-29-04 整改）与 `reject_star` 质量门；拟合失败直接丢弃。统计量 `SDetGuidedStats{n_predicted,n_dropped,n_fit_failed,n_rejected,n_fit_ok,n_output}` |
 | 诊断/初值（全图盲检测） | `sdet_detect_ex[_f64]` | 平滑 → 局部极大 → 二阶导数零交叉宽度 → 连通域/解混 → 拟合；保留，**不是**权威路径 |
 
 节点侧接线在 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_op_star_psf_impl`：

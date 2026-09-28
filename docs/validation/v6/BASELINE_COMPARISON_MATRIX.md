@@ -3,7 +3,7 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 机器规格：`artifacts/evidence/v6/qa-design/data/baseline_matrix.json`；渲染块由 `render_docs.py` 机械写入，`check_docs.py` 校验逐字一致。
+- 机器规格：`实验/engineering-evidence/v6/qa-design/data/baseline_matrix.json`；渲染块由 `render_docs.py` 机械写入，`check_docs.py` 校验逐字一致。
 - 上位锚：`FZ-MODE-PRODUCTION`/`FZ-MODE-BASELINE`/`FZ-MODE-DEFERRED`、`ADJ-S1`、`ADJ-P2-01/02/03`、
   `PSF_SIGNAL_WEIGHT.md` §4/§7、`DESIGN-P2-001` §6.3、控制器 C-004.1。
 

@@ -1,7 +1,7 @@
 # HiPS 压缩基准：分层 / 分阶原始数字表
 
 > 上游：ASTROCS_DESIGN.md §8.3（异步与压缩）、§9（内存极简化）。
-> 本文是**机器生成的汇总表**（`artifacts/evidence/compress-01/code/analyze.py` 从基准 CSV 生成，勿手工编辑）；
+> 本文是**机器生成的汇总表**（`实验/engineering-evidence/compress-01/code/analyze.py` 从基准 CSV 生成，勿手工编辑）；
 > 结论与读法见 `docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md`；原始 CSV 未入库，重建见该文 §7。
 
 ### zstd 数据段 (shuffle=0)

@@ -1086,7 +1086,7 @@ doc_index:
       notes: "GOV-004 L0 负责人发布状态"
     - path: "docs/owner/SCIENCE_OVERVIEW.md"
       status: ACTIVE_NORMATIVE
-      duty: "L0 科学汇总层（三创新点的顶层复述）"
+      duty: "L0 科学汇总层（五创新点的顶层复述）"
       upstream: "docs/ASTROCS_DESIGN.md §2（核心科学方法）"
       downstream: "eng/ci/check_version.py、docs/DOCUMENT_INDEX.yaml、eng/tools/check_l0_docs.py"
       notes: "GOV-004 L0 负责人科学总览"
@@ -1284,7 +1284,7 @@ doc_index:
       duty: "HiPS 稠密数据层与内存累加器的压缩编码评估（zstd / Rice / TRIM / FITS tile-compression）"
       upstream: "docs/ASTROCS_DESIGN.md §8.3（异步只用于能隐藏延迟的 I/O、预取与压缩）、§9（内存极简化）、§10（aio 是文件级唯一 I/O 边界）、§13（发布决定只属负责人）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/research/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md、docs/research/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md"
-      notes: "结论：zstd 压缩的 FITS 瓦片不可作为 HiPS 产品默认格式（REC-HIPS-1.0 §4.2.1.3 扩展名 MUST + §4.4.1 hips_tile_format 词表封闭 + FITS 4.0 §10.4 ZCMPTYPE 穷举 + 生态零支持）；标准内替代 = 传输层压缩 / 归档容器 / FITS GZIP_2+quantize_level=0（本机净亏）/ TRIM（省 13.3%，零 CPU）；内存累加器不采用（收益 20.0% 卡门槛、writer CPU +103%、B 流式写出 0 字节更优）。证据锚 artifacts/evidence/compress-01/（final_numbers.json 为整产物数字唯一来源）"
+      notes: "结论：zstd 压缩的 FITS 瓦片不可作为 HiPS 产品默认格式（REC-HIPS-1.0 §4.2.1.3 扩展名 MUST + §4.4.1 hips_tile_format 词表封闭 + FITS 4.0 §10.4 ZCMPTYPE 穷举 + 生态零支持）；标准内替代 = 传输层压缩 / 归档容器 / FITS GZIP_2+quantize_level=0（本机净亏）/ TRIM（省 13.3%，零 CPU）；内存累加器不采用（收益 20.0% 卡门槛、writer CPU +103%、B 流式写出 0 字节更优）。证据锚 实验/engineering-evidence/compress-01/（final_numbers.json 为整产物数字唯一来源）"
     - path: "docs/research/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md"
       status: ACTIVE_INFORMATIVE
       duty: "IVOA HiPS 标准对瓦片（tile）文件格式的规定（21 条带英文原文引文与 URL 的一手查证）"
@@ -1296,7 +1296,7 @@ doc_index:
       duty: "HiPS 压缩基准的分层/分阶原始数字汇总表（机器生成）"
       upstream: "docs/ASTROCS_DESIGN.md §8.3（异步与压缩）、§9（内存极简化）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md"
-      notes: "由 artifacts/evidence/compress-01/code/analyze.py 从基准 CSV 自动生成（勿手工编辑）；原始 CSV 未入库，重建见 COMPRESSION_CODEC_RESEARCH_PACK.md §7"
+      notes: "由 实验/engineering-evidence/compress-01/code/analyze.py 从基准 CSV 自动生成（勿手工编辑）；原始 CSV 未入库，重建见 COMPRESSION_CODEC_RESEARCH_PACK.md §7"
     - path: "docs/science/ACR_EQUIVALENCE.md"
       status: ACTIVE_NORMATIVE
       duty: "ACR 等价性的科学边界（生产不可达）"
@@ -1365,7 +1365,7 @@ doc_index:
       downstream: "docs/ASTROCS_DESIGN.md、eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_mosaic.schema.json 等 35 处"
     - path: "docs/science/SCIENCE_SCOPE.md"
       status: ACTIVE_NORMATIVE
-      duty: "科学范围与三个创新点的边界"
+      duty: "科学范围与五个创新点的边界"
       upstream: "docs/ASTROCS_DESIGN.md §1（项目定位）、§2（核心科学方法）"
       downstream: "eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_export.schema.json、eng/contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml 等 16 处"
     - path: "docs/science/STAR_DETECTION.md"

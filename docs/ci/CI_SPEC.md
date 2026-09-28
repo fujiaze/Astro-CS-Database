@@ -243,7 +243,7 @@ flowchart TD
 | B 坏证据 | `requires_monitor: true` | `FAIL(monitor_gate_missing)`（注入违反 §9.2 的证据） |
 | C 无输出 | `outputs` 为空且非 waivable | `FAIL(empty_outputs)` |
 
-普查表落 `artifacts/evidence/release-05/FAILCLOSED_SURVEY.md`（机器可读面
+普查表落 `实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md`（机器可读面
 `run/ci/failclosed-survey/survey.json`）；适用面判绿即假绿风险，检查判红。
 显式登记豁免（`SILENT_OK_UNITS`：`API-DOCS`、`UNIT-CLOSURE`）
 在表中标注来源，不冒充已覆盖。

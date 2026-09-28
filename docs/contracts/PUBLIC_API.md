@@ -814,7 +814,7 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 > ID: API-STAR-001  状态: CONTRACT_READY（P1-STAR-DOC 冻结，2026-09-07）
 > 模块: lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1（MOD-astrocs-phase1-star，matrix
 > P1-STAR，迁移目标 astrocs_p1_star_detection.dll；唯一权威签名头
-> lib/algorithms/star_detection/include/star_detector.h:1-73，签名只取该头）。
+> lib/algorithms/star_detection/include/star_detector.h:1-99，签名只取该头）。
 > 编排级上游合同 API-P1-003（PHASE1_API_V1 §2：一帧只做一次权威检测）；
 > 数据面 DATA-P1-STAR（DATA_SEMANTICS §17）；算法权威 ALG-STARDET-001
 > （STAR_DETECTION_ALGORITHMS §11 逐符号锚）；SCI-P1-STAR-001（本任务
@@ -822,28 +822,32 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 
 ### 范围界定
 
-本节只登记星点检测 9 导出符号 + SDetParams 合同；不定义任何算法
+本节登记星点检测现行 6 导出符号 + SDetParams 合同（P-133 修订：原 9 导出登记中
+4 个旧 CC 路径符号 sdet_detect/sdet_free_coords/sdet_detect_debug/
+sdet_free_debug_maps 已随 e891df28 重写注销为死符号，从现行清单移除；补入
+sdet_detect_guided_ex_f64 权威路径入口）；不定义任何算法
 （ALG-STARDET-001 权威）；不含 Phase2/3 接口。编排级合同 API-P1-003
 引用本模块符号，生产调用点在「生产调用方与编排现状」小节。
 
-### 导出符号（9 C API 全部当前真实存在）
+### 导出符号（6 C API 全部当前真实存在；P-133 修订 = star_detector.h SDET_EXPORT 实测）
 
 | 符号 | 锚 | 语义 |
 |---|---|---|
-| `sdet_create` | star_detector.h:31 / sdet_api.cpp:954 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:963-975）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
-| `sdet_destroy` | star_detector.h:32 / :984 | 唯一释放对 |
-| `sdet_detect` | star_detector.h / :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
-| `sdet_free_coords` | star_detector.h:42 / :1276 | sdet_detect x/y 专用释放 |
-| `sdet_detect_debug` | star_detector.h / :1281 | 诊断入口（CC 路径 + 平滑图/detail/binary 导出 + extras） |
-| `sdet_free_debug_maps` | star_detector.h:52 / :1595 | debug 输出图专用释放 |
-| `sdet_detect_ex` | star_detector.h:54-62 / :2318 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
-| `sdet_detect_ex_f64` | star_detector.h:67-75 / :2343 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
-| `sdet_free_detect_ex` | star_detector.h:77-79 / :2357 | 10 数组唯一释放（extras 同组；释放单位 = 整组） |
+| `sdet_create` | star_detector.h:31 / sdet_api.cpp:968 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:977-989）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
+| `sdet_destroy` | star_detector.h:32 / :998 | 唯一释放对 |
+| `sdet_detect_ex` | star_detector.h:38-43 / :2232 | 生产 FP32 入口（uint16→float 转换后 impl<float>；10 数组输出 + extras） |
+| `sdet_detect_ex_f64` | star_detector.h:47-52 / :2257 | 生产 FP64 入口（全程 double 不降级，PREC-105；out_flux/out_mag 仍 float32 ABI 协议） |
+| `sdet_free_detect_ex` | star_detector.h:54-56 / :2271 | 10 数组唯一释放（extras 同组；释放单位 = 整组） |
+| `sdet_detect_guided_ex_f64` | star_detector.h:84-93 / :2208 | 星表引导检测权威路径入口（SDetGuidedStats 六计数；n_pred=0 返回 rc=0 + count=0） |
 
-SDetParams 9 字段（star_detector.h:13-24）：maxStars/maxAxisRatio 生产路径
-完整消费；fitRadius 仅驱动 auto 半径推导（ALG-STARDET-001 §11.1）；fwhmClipSigma
-仅 debug 入口消费；structureLayers/hotPixelFilterRadius/iterativeClipSigma/
-iterativeMaxRounds/medianFilterDetail 仅旧 CC 路径消费——消费面缺口=DISP-STAR-003。
+已注销死符号（原登记 9 导出中的 4 个，e891df28 重写注销；grep 实测无定义无引用，
+DISP-STAR-005 历史语义）：`sdet_detect`（旧 uint16 入口）、`sdet_free_coords`、
+`sdet_detect_debug`（诊断入口）、`sdet_free_debug_maps`。
+
+SDetParams 9 字段（star_detector.h:13-24；P-133 同步：fwhmClipSigma 原消费点
+sdet_detect_debug 与 structureLayers 等 5 字段原消费点旧 CC 路径均随死符号注销
+失去现役消费者，消费面缺口=DISP-STAR-003 如实扩大）：maxStars/maxAxisRatio 生产
+路径完整消费；fitRadius 仅驱动 auto 半径推导（ALG-STARDET-001 §11.1）。
 
 ### 签名要点与内存所有权
 
