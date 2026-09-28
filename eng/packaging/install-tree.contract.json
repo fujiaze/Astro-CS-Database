@@ -25,6 +25,10 @@
     { "unit_id": "SCHEMA-DEPLOCK", "kind": "schema", "install_path": "schemas/dependency-lock.schema.json", "required": false },
     { "unit_id": "SCHEMA-PRESET", "kind": "schema", "install_path": "schemas/preset-contract.json", "required": false },
     { "unit_id": "MANIFEST-PRODUCT", "kind": "manifest", "install_path": "astrocs.product.json", "required": true },
-    { "unit_id": "MANIFEST-BACKENDS", "kind": "manifest", "install_path": "providers/backends.manifest.json", "required": true }
+    { "unit_id": "MANIFEST-BACKENDS", "kind": "manifest", "install_path": "providers/backends.manifest.json", "required": true },
+    { "unit_id": "PROV-QUERYV1-BASELINE", "kind": "provider", "install_path": "providers/astrocs_cpuprov_baseline.so", "required": true },
+    { "unit_id": "PROV-QUERYV1-AVX2", "kind": "provider", "install_path": "providers/astrocs_cpuprov_avx2.so", "required": true },
+    { "unit_id": "PROV-QUERYV1-AVX512", "kind": "provider", "install_path": "providers/astrocs_cpuprov_avx512.so", "required": true },
+    { "unit_id": "MANIFEST-PROVIDERS", "kind": "manifest", "install_path": "providers/providers.manifest.json", "required": true }
   ]
 }

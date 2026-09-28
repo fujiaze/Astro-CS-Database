@@ -17,6 +17,10 @@
     { "unit_id": "PROV-CPU-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpu_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
     { "unit_id": "PROV-CPU-AVX2", "kind": "provider", "rel_path": "providers/astrocs_cpu_avx2.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
     { "unit_id": "PROV-CPU-AVX512", "kind": "provider", "rel_path": "providers/astrocs_cpu_avx512.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
-    { "unit_id": "MANIFEST-BACKENDS", "kind": "manifest", "rel_path": "providers/backends.manifest.json", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" }
+    { "unit_id": "MANIFEST-BACKENDS", "kind": "manifest", "rel_path": "providers/backends.manifest.json", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "PROV-QUERYV1-BASELINE", "kind": "provider", "rel_path": "providers/astrocs_cpuprov_baseline.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "PROV-QUERYV1-AVX2", "kind": "provider", "rel_path": "providers/astrocs_cpuprov_avx2.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "PROV-QUERYV1-AVX512", "kind": "provider", "rel_path": "providers/astrocs_cpuprov_avx512.so", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" },
+    { "unit_id": "MANIFEST-PROVIDERS", "kind": "manifest", "rel_path": "providers/providers.manifest.json", "abi_version": 1, "module_id": null, "sha256": null, "status": "IMPLEMENTED" }
   ]
 }

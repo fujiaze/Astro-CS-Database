@@ -25,6 +25,7 @@
 退出码: 0=成功; 2=用法/IO 错误; 3=文件不存在或 hash 实测失败。
 """
 import argparse
+import ctypes
 import hashlib
 import json
 import os
@@ -129,6 +130,54 @@ def git_commit(repo):
     return r.stdout.strip() if r.returncode == 0 else "0000000000000000000000000000000000000000"
 
 
+# ── provider 家族表 (DYN-740 / P4-M05 交接项 1「C-03 入图」) ──────────────────
+# 全仓存在**两个** CPU provider 家族，各带自己的 C ABI 入口；两者都必须进构建图与
+# 清单校验，不得游离 (裁决：属 ISA provider 集合 ⇒ 必须入图)：
+#   backend  家族 = lib/infrastructure/benchmark/backend_host/*_backend.cpp
+#                入口 astrocs_backend_get_api_v1 (lib/include/astrocs/common_abi_v1.h:164)
+#                消费者 = lib/.../backend_host/backend_loader + cpu_routing + CLI 选取；
+#                交付名 providers/astrocs_cpu_<id>.so + providers/backends.manifest.json。
+#   provider 家族 = lib/infrastructure/benchmark/cpu/<id>/src/<id>_provider.cpp (+ common/src)
+#                入口 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结)
+#                消费者 = lib/infrastructure/pipeline/module_loader/secure_loader；
+#                交付名 providers/astrocs_cpuprov_<id>.so + providers/providers.manifest.json。
+# 两族清单互不混装 (backend 清单里出现 provider 入口 = 预检必然拒绝的游离项) ⇒
+# eng/ci/check_provider_manifests.py 逐条校验入口符号与家族归属。
+FAMILIES = {
+    "backend": {
+        "kind": "astrocs_backends_manifest",
+        "entrypoint": "astrocs_backend_get_api_v1",
+        "abi": "backend_host_v1",
+        "file_prefix": "astrocs_cpu_",
+        "skip_baseline_when_isa_only": True,
+    },
+    "provider": {
+        "kind": "astrocs_providers_manifest",
+        "entrypoint": "astrocs_provider_query_v1",
+        "abi": "module_provider_v1",
+        "file_prefix": "astrocs_cpuprov_",
+        "skip_baseline_when_isa_only": False,
+    },
+}
+
+
+def verify_entrypoint(lib_path, symbol):
+    """实测 DSO 是否真的导出 symbol（不是"声称导出"）。
+
+    用 dlopen + 取符号：清单里写 entrypoint 字段而文件不导出它 ⇒ 生成期即失败，
+    不留到运行期被 dlopen 打回。返回 True/False。
+    """
+    try:
+        lib = ctypes.CDLL(lib_path)
+    except OSError:
+        return False
+    try:
+        getattr(lib, symbol)
+    except AttributeError:
+        return False
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True, help="仓库根目录(找 git commit / lib)")
@@ -136,7 +185,9 @@ def main():
     ap.add_argument("--providers-dir", default="",
                     help="SHARED provider 目录(含 astrocs_cpu_<id>.so|.dll, 与清单同目录)")
     ap.add_argument("--isa-only", action="store_true",
-                    help="只登记可选 ISA 变体(baseline 恒为进程内置, 不进清单)")
+                    help="只登记可选 ISA 变体(baseline 恒为进程内置, 不进清单; 仅 backend 家族适用)")
+    ap.add_argument("--family", choices=sorted(FAMILIES), default="backend",
+                    help="provider 家族: backend=astrocs_backend_get_api_v1 / provider=astrocs_provider_query_v1")
     ap.add_argument("--out", required=True, help="输出 manifest JSON 路径")
     ap.add_argument("--compiler", default="", help="编译器标识(如 g++-14)")
     ap.add_argument("--commit", default="", help="覆盖 git commit(默认取 HEAD)")
@@ -146,6 +197,7 @@ def main():
         print(f"ERROR: build dir not found: {args.build_dir}", file=sys.stderr)
         return 3
     commit = args.commit or git_commit(args.repo)
+    fam = FAMILIES[args.family]
 
     flags_per_provider = {
         "baseline": "(none; amd64 SSE2 基线)",
@@ -159,14 +211,19 @@ def main():
     if providers_dir and not os.path.isdir(providers_dir):
         print(f"ERROR: providers dir not found: {providers_dir}", file=sys.stderr)
         return 3
-    ids = [b for b in PROVIDER_REQUIRED if not (args.isa_only and b == "baseline")]
+    ids = [b for b in PROVIDER_REQUIRED
+           if not (args.isa_only and fam["skip_baseline_when_isa_only"] and b == "baseline")]
+    if args.family == "provider" and not providers_dir:
+        print("ERROR: provider 家族只以 SHARED DSO 交付 ⇒ 必须给 --providers-dir", file=sys.stderr)
+        return 2
+    provider_entrypoint = fam["entrypoint"]
     backends = []
     for backend_id in ids:
         feats = PROVIDER_REQUIRED[backend_id]
         if providers_dir:
             lib = ""
             for ext in (".so", ".dll"):
-                cand = os.path.join(providers_dir, f"astrocs_cpu_{backend_id}{ext}")
+                cand = os.path.join(providers_dir, f"{fam['file_prefix']}{backend_id}{ext}")
                 if os.path.isfile(cand):
                     lib = cand
                     break
@@ -177,12 +234,18 @@ def main():
         if not lib or not os.path.isfile(lib):
             print(f"ERROR: provider library not found: {lib}", file=sys.stderr)
             return 3
+        # 实测入口符号：清单声称的 entrypoint 必须真的在文件里（否则生成期即失败）。
+        if not verify_entrypoint(lib, provider_entrypoint):
+            print(f"ERROR: provider library {lib} 未导出 {provider_entrypoint}", file=sys.stderr)
+            return 4
         bits = 0
         for name in PROVIDER_REQUIRED_BITS[backend_id]:
             bits |= FEATURE_BITS[name]
         backends.append({
             "file": os.path.basename(lib),
             "backend_id": backend_id,
+            "entrypoint": provider_entrypoint,
+            "abi": fam["abi"],
             "sha256": sha256_file(lib),
             "abi_version": ACS_ABI_VERSION_V1,
             "required_features_bits": bits,
@@ -195,9 +258,11 @@ def main():
 
     doc = {
         "schema_version": "1",
-        "kind": "astrocs_backends_manifest",
+        "kind": fam["kind"],
+        "family": args.family,
+        "entrypoint": fam["entrypoint"],
         "build": {
-            "build_id": f"{commit[:12]}-{'-'.join(flags_per_provider.keys())}",
+            "build_id": f"{commit[:12]}-{args.family}-{'-'.join(flags_per_provider.keys())}",
             "abi_version": ACS_ABI_VERSION_V1,
             "compiler": args.compiler,
             "commit": commit,
@@ -209,7 +274,8 @@ def main():
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=2)
         f.write("\n")
-    print(f"MANIFEST_OK {args.out} backends={len(backends)}")
+    print(f"MANIFEST_OK {args.out} family={args.family} kind={fam['kind']} "
+          f"entrypoint={fam['entrypoint']} backends={len(backends)}")
     return 0
 
 

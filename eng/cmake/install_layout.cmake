@@ -117,6 +117,26 @@ if(TARGET astrocs_backends_manifest)
     COMPONENT acsd_runtime)
 endif()
 
+# ── provider 第二族 DSO + 清单（DYN-740 / C-03 裁决：属 ISA provider 集合 ⇒ 入图并随树分发）──
+# 族 = lib/infrastructure/benchmark/cpu/<id>/src/<id>_provider.cpp（+ common/src），入口
+# astrocs_provider_query_v1（lib/include/astrocs/abi/module_api_v1.h 冻结）；消费者 =
+# lib/infrastructure/pipeline/module_loader/secure_loader。产物名与 backend 家族不同名
+# （astrocs_cpuprov_<id> vs astrocs_cpu_<id>），两族 ABI 不同故在 providers/ 并列而不覆盖。
+# 与 backends.manifest.json 同步安装：清单与 DSO 同目录（清单 + 裸文件名同目录语义）。
+foreach(_acs_cpuprov astrocs_cpuprov_baseline astrocs_cpuprov_avx2 astrocs_cpuprov_avx512)
+  if(TARGET ${_acs_cpuprov})
+    acsd_apply_install_rpath(${_acs_cpuprov})
+    install(TARGETS ${_acs_cpuprov}
+      LIBRARY DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime
+      RUNTIME DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR} COMPONENT acsd_runtime)
+  endif()
+endforeach()
+if(TARGET astrocs_providers_manifest)
+  install(FILES ${ASTROCS_PROVIDERS_MANIFEST}
+    DESTINATION ${ASTROCS_INSTALL_PROVIDER_SUBDIR}
+    COMPONENT acsd_runtime)
+endif()
+
 # ── 科学模块 DLL (MOD-001: 宪章 §8.4 科学模块独立 DLL/SO 安装面) ──
 # 契约: astrocs_catalog_gaia (CAT-GAIA-IMPL) 与 astrocs_p1_{drizzle,calibration,
 # cosmetic,hips_writer} (P1-*迁移面) 均为 SHARED target (各子目录 CMakeLists

@@ -65,6 +65,26 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 **avx512 的档位状态**：§1 表判 avx512 = NOT_SHIPPED（无超越 AVX2+FMA 的收益）。
 「随构建交付为可测量 DSO」与「档位是否发布」是两件事：本节只登记前者，后者以 §1 决策为准。
 
+### 2.2 两族 provider 的登记与清单校验（DYN-740 / C-03）
+
+安装树的 `providers/` 目录内**并存两族** DSO，各有**独立冻结的 C ABI 与消费方**——不可混装、
+不可互相代替（混装由机器门判红）：
+
+| 族 | 文件 | 唯一入口符号 | ABI 正本 | 消费方 | 清单 | 构建产物名 |
+|---|---|---|---|---|---|---|
+| backend（逐 kernel 路由） | `astrocs_cpu_{baseline,avx2,avx512}.so` | `astrocs_backend_get_api_v1` | `lib/include/astrocs/common_abi_v1.h` | `backend_host/backend_loader.cpp` + `cpu_routing` | `backends.manifest.json` | `ASTROCS_BACKENDS_MANIFEST` |
+| provider（能力探测/变体查询） | `astrocs_cpuprov_{baseline,avx2,avx512}.so` | `astrocs_provider_query_v1` | `lib/include/astrocs/abi/module_api_v1.h`（冻结） | `lib/infrastructure/pipeline/module_loader/secure_loader.c` | `providers.manifest.json` | `ASTROCS_PROVIDERS_MANIFEST` |
+
+- **入图口径（C-03 判词）**：provider 族是设计文档指定的 provider 实现面
+  （`docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md:96-98`、`CPU_003_AVX2_PROVIDER.md:13,88`），
+  且已被 `UT-CPU-BASELINE / UT-CPU-AVX2 / UT-CPU-AVX512` 覆盖，此前只是**未进构建目标**
+  （`CHK-RETIRED-CODE` R4 把它列为未引用）⇒ 按裁决「属安装树分发的 ISA provider 集则必须入图」，
+  本轮补入构建目标 + 清单校验 + 安装树登记，**不退役**（退役会删掉活的 CI 覆盖面并与 CPU 文档冲突）。
+- **校验**：`eng/ci/check_provider_manifests.py`（`CHK-PROVIDER-MANIFESTS`）逐条校验清单自洽、
+  实测 sha256、声明的入口符号**确实可由 dlopen 解析**、`providers/*.so|*.dll` 与清单条目一一对应
+  （游离或双登记判红）、能力位与 `features_defined` 一致；配 `--self-test`（5 红 1 绿）作负例面。
+- **隔离**：两族都在 `acsd` 链接闭包之外（`check_isa_leak.py` 的报错面不变）；主程序保持基线指令集。
+
 ## 3 ISA 污染防线
 
 - 主 CLI / baseline TU：无 `-march` / `-mavx` 旗标（测试断言）；opcode scanner 禁 VEX/ymm/zmm
