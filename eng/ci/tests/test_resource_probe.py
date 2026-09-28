@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-003 单元测试：eng/tools/monitoring/resource_probe.py（owner=SA-CI-32）。
+"""单元测试：eng/tools/monitoring/resource_probe.py。
 
-覆盖（tasks/02_CI_TASKS.md V8-CI-003 验收）：
+覆盖（probe 对外契约逐条验收）：
   - probe() 全字段齐全与取值自洽（核数 >=1、max_workers >=1、quota 不可得时
     effective == affinity）；
   - 解析器函数级测试：parse_cpu_max / parse_cfs_quota / parse_meminfo /

@@ -20,6 +20,11 @@
  10. numeric_constants_single_spelling — **新增门**：同一科学常数只允许一种全精度写法；
        截断字面量只能在「≈/简写」语境出现（同给权威值或实测偏差），或落显式登记的非判定面。
  11. source_paths_alive            — **fail-closed / 锚存活**：必需源文件在当前树解析不到即红。
+ 12. input_manifest_hash_single_formula — **新增门（P-170）**：同名键 input_manifest_hash
+       在两个面各有一条公式（DATA_SEMANTICS「input_manifest_hash」面区分条款 = 单源正本）；
+       P2 面的两处实现（stage2.cpp 公式锚 + module_adapters.cpp p2_input_manifest_hash）
+       必须**同形**（frame_id 取十进制数值文本、同拼接语句形状、不得回退 016llx 十六进制
+       文本形态），P3 面必须走文件字节公式；任一面缺条款/公式分叉 ⇒ 判红。
 
 设计约束（ENGINEERING_SPEC §8 五条）:
   * 可执行负例面：--self-test（tempfile mini-repo 正/负例）与 --fault-inject（真仓副本注入必红）。
@@ -218,12 +223,29 @@ SOURCES = [
     ("drizzle_doc", "DRIZZLE.md", ("sumVarNum",), "docs/science/DRIZZLE.md"),
     ("drizzle_engine_h", "drizzle_engine.h", ("sumVarNum",),
      "lib/healpix_db/healpix_drizzle/drizzle_engine.h"),
+    ("stage2_tool", "stage2.cpp", ("input_manifest_hash",),
+     "lib/algorithms/coverage/tools/stage2.cpp"),
+    ("module_adapters_cpp", "module_adapters.cpp", ("p3n_input_manifest_hash",),
+     "lib/infrastructure/scheduler/src/module_adapters.cpp"),
 ]
 
 
 # ---------------------------------------------------------------------------
 # 通用工具
 # ---------------------------------------------------------------------------
+# P-170：P2 面 input_manifest_hash 的拼接语句形状（变量名不限，语句逐字同形）。
+P2_FID_STMT = re.compile(r'\w+ \+= std::to_string\(e\.first\) \+ "\|" \+ e\.second \+ ";";')
+
+
+def _p2_hash_body(text: str) -> str:
+    """抽取 p2_input_manifest_hash 的函数体（签名起至紧随的列 0 收尾花括号）。"""
+    i = text.find("p2_input_manifest_hash(")
+    if i < 0:
+        return ""
+    j = text.find("\n}", i)
+    return text[i:j] if j > i else ""
+
+
 def check(name: str, ok: bool, detail: str) -> dict:
     return {"check": name, "pass": bool(ok), "detail": detail}
 
@@ -393,6 +415,24 @@ def run_checks(root: str) -> dict:
         "product_contracts", prod_ok,
         "DATA_CONTRACTS products <-> aio_hips.h product flags"))
 
+    # ---- 门 12（P-170）：input_manifest_hash 单源（同名键面内单一公式）----
+    s2 = r.read(p["stage2_tool"])
+    ma = r.read(p["module_adapters_cpp"])
+    body = _p2_hash_body(ma)
+    face_clause = all(m in data_sem for m in (
+        "不得跨面比较", "P2 面", "P3 面", "filter=;order=;frame=;", "Moc.fits"))
+    p2_same_form = (bool(P2_FID_STMT.search(s2)) and bool(P2_FID_STMT.search(body))
+                    and "016llx" not in body)
+    p3_face = ('"/signal/properties", "/signal/Moc.fits"' in ma
+               and "p3n_input_manifest_hash" in ma)
+    results.append(check(
+        "input_manifest_hash_single_formula",
+        face_clause and p2_same_form and p3_face,
+        "P-170 单源：DATA_SEMANTICS 面区分条款=%s；P2 面两处实现同形(十进制 fid 拼接)=%s"
+        "（stage2.cpp 语句=%s, module_adapters 函数体=%s）；P3 面文件字节公式锚=%s"
+        % (face_clause, p2_same_form, bool(P2_FID_STMT.search(s2)),
+           bool(P2_FID_STMT.search(body)), p3_face)))
+
     drz_doc = r.read(p["drizzle_doc"])
     eng = r.read(p["drizzle_engine_h"])
     results.append(check(
@@ -473,7 +513,24 @@ MINI_FILES = {
         "constexpr double kTrimMeanToSigma = 0.7316727929211932;\n"
         "constexpr double kMadToSigma = 1.482602218505602;\n",
     "docs/development/CONFIG_SCHEMA.md": "# weight_mode(auto)\n",
-    "docs/contracts/DATA_SEMANTICS.md": "frame_id SHA-256\n| signal | support | variance | ivar |\n",
+    "docs/contracts/DATA_SEMANTICS.md":
+        "frame_id SHA-256\n| signal | support | variance | ivar |\n"
+        "- input_manifest_hash：P2 面 sha256(canonical(sorted(frame_id|filter=;order=;frame=;)))，"
+        "P3 面 sha256(signal/properties ‖ signal/Moc.fits)；两面值不得跨面比较。\n",
+    "lib/algorithms/coverage/tools/stage2.cpp":
+        "// input_manifest_hash (P2 面公式锚)\n"
+        "manifest_payload += std::to_string(e.first) + \"|\" + e.second + \";\";\n",
+    "lib/infrastructure/scheduler/src/module_adapters.cpp":
+        "// P2 面 input_manifest_hash 实现：\n"
+        "std::string p2_input_manifest_hash(const P2CoverageView& view) {\n"
+        "  payload += std::to_string(e.first) + \"|\" + e.second + \";\";\n"
+        "  return astrocs::crypto::sha256_hex(payload);\n"
+        "}\n"
+        "// P3 面：\n"
+        "std::string p3n_input_manifest_hash(const std::string& hips_dir) {\n"
+        "  const char* parts[] = {\"/signal/properties\", \"/signal/Moc.fits\"};\n"
+        "  return std::string();\n"
+        "}\n",
     "docs/science/PHASE2_UPM.md": "DATA-FRAME-ID-001 control cell\n",
     "docs/architecture/ERROR_MODEL.md":
         "## 进程退出码（唯一源）\n> OK=0  ARGS=2  INPUT=3  SCIENCE=4  BACKEND=5  COMPUTE=6\n"
@@ -576,6 +633,36 @@ def self_test() -> int:
         cases.append(("F_benign_surface_green",
                       "numeric_constants_single_spelling" not in _reds(res), _reds(res)))
 
+        # H 负例（P-170）：P2 面实现回退十六进制 fid 文本 ⇒ 单源门必红
+        repo = _mini_repo(os.path.join(tmp, "hexfid"))
+        with open(os.path.join(repo, "lib/infrastructure/scheduler/src/module_adapters.cpp"),
+                  "w", encoding="utf-8") as fh:
+            fh.write("// P2 面回退实现：\n"
+                     "std::string p2_input_manifest_hash(const P2CoverageView& view) {\n"
+                     "  char hex[17];\n"
+                     "  std::snprintf(hex, sizeof(hex), \"%016llx\", (unsigned long long)e.first);\n"
+                     "  payload += std::string(hex) + \"|\" + e.second + \";\";\n"
+                     "  return astrocs::crypto::sha256_hex(payload);\n"
+                     "}\n"
+                     "std::string p3n_input_manifest_hash(const std::string& hips_dir) {\n"
+                     "  const char* parts[] = {\"/signal/properties\", \"/signal/Moc.fits\"};\n"
+                     "  return std::string();\n"
+                     "}\n")
+        subprocess.run(["git", "add", "-A"], cwd=repo, capture_output=True, timeout=120)
+        res = run_checks(repo)
+        cases.append(("H_p2_hash_hex_fid_red",
+                      "input_manifest_hash_single_formula" in _reds(res), _reds(res)))
+
+        # I 负例（P-170）：DATA_SEMANTICS 面区分条款缺失（跨面比较未禁）⇒ 单源门必红
+        repo = _mini_repo(os.path.join(tmp, "noclause"))
+        with open(os.path.join(repo, "docs/contracts/DATA_SEMANTICS.md"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("frame_id SHA-256\n| signal | support | variance | ivar |\n")
+        subprocess.run(["git", "add", "-A"], cwd=repo, capture_output=True, timeout=120)
+        res = run_checks(repo)
+        cases.append(("I_manifest_face_clause_missing_red",
+                      "input_manifest_hash_single_formula" in _reds(res), _reds(res)))
+
         # G 负例：三族截断全覆盖（0.6745 / 0.7316728 / 11 位简写）
         res = run_checks(_mini_repo(
             os.path.join(tmp, "fam"),
@@ -619,6 +706,13 @@ INJECTIONS = {
         'const std::string wm = in.value("weight_mode", std::string("auto"));\n'
         '        if (wm == "auto" || wm == "ivar") { }',
     ),
+    # P-170 单源门的可执行负例（注入后必须判红）
+    "p2-hash-hex-fid-regression": (
+        "lib/infrastructure/scheduler/src/module_adapters.cpp",
+        'payload += std::to_string(e.first) + "|" + e.second + ";";',
+        'char hex[17]; std::snprintf(hex, sizeof(hex), "%016llx", '
+        '(unsigned long long)e.first); '
+        'payload += std::string(hex) + "|" + e.second + ";";'),
     "drop-weight-reject-face": (
         "lib/algorithms/coverage/src/stage2_common.cpp",
         'if (in.contains("weight_mode")) {',

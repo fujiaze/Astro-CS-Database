@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""deep_ci_driver.py — V8-CI-005 linux-deep/linux-main hosted 检查驱动（owner=SA-CI-32）。
+"""deep_ci_driver.py — linux-deep/linux-main hosted 检查驱动。
 
-控制包依据（02_CI_TASKS.md V8-CI-005「GitHub Linux」）：
+运行面依据（GitHub Linux）：
   - ubuntu-24.04；main push：Release GCC configure/build、轻量单测、
     全合成 Oracle、文档/合同/调用图检查（后三者已由 fast/linux-main 现有检查覆盖，
     本驱动只补真实构建链检查 BUILD-GCC-RELEASE）；
   - manual/schedule deep：Clang、ASan+UBSan、目标 TSan、coverage、complexity；
   - heavy 子项必须使用监控（checks.json 中这些项的 command 显式包
-    eng/ci/resource_monitor.py --，V8-CI-003 统一监控）。
+    eng/ci/resource_monitor.py --，统一监控）。
 
 子命令（每个 = 若干顺序步骤，argv 数组、shell=False、逐步超时）：
   build-gcc-release : Release GCC configure + build 全图（BUILD-GCC-RELEASE）
@@ -17,7 +17,7 @@
                       复用根 CMakeLists QA-002/QA-006 接线，独立 build dir）
   qa-sanitize-tsan  : clang TSan 同上（DEEP-SAN-TSAN；与 ASan 分 build dir，单选）
   coverage-cpp      : LLVM source-based 覆盖（DEEP-COV-CPP，ccov 目标，产物拷贝到
-                      --output-dir 供 run.py outputs 校验；V8-CI-012 修复轮 2：
+                      --output-dir 供 run.py outputs 校验；第二轮修复：
                       ctest 失败仍执行 merge/report 与产物归集——failing tests
                       不阻止覆盖率测量，驱动退出码仍取首个失败步骤）
   ctest-full        : 全量 CTest 门（CTEST-LINUX-FULL，CI-REG-002）：configure +

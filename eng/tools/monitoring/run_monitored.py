@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-003 heavy wrapper（owner=SA-CI-32，纯 stdlib，Linux /proc）。
+"""heavy wrapper（纯 stdlib，Linux /proc）。
 
-职责（tasks/02_CI_TASKS.md V8-CI-003）：
+职责（以独立会话运行被监控命令并落盘资源证据）：
   以 argv 数组启动子进程（subprocess，永不 shell=True），按 poll_interval
   （默认 0.2s，可参数化）采样并输出 JSON 证据文件：真实进程/线程 CPU、
   RSS/PSS、IO、threads、progress；支持 --timeout：超时 kill 进程组

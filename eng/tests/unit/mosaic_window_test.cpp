@@ -22,7 +22,13 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <unistd.h>；POSIX mkdir(path,mode) → CRT _mkdir(path)。
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#else
 #include <unistd.h>
+#endif
 
 using namespace astrocs::core;
 

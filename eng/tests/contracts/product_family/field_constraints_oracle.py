@@ -289,6 +289,7 @@ class Oracle:
         self._o05_modes()
         self._o07_forbidden()
         self._o11_provenance()
+        self._o23_norm_version_domain()
         self._o14_covariance()
         self._o16_psfsw()
         self._o17_point_information()
@@ -421,6 +422,35 @@ class Oracle:
                  len(reg["declared_weight_sources"]) >= 5
                  and all(k in ds or True for k in reg["declared_weight_sources"]),
                  "declared_weight_sources drifted")
+
+    def _o23_norm_version_domain(self):
+        """O23（P-187 / R-42）：normalization_version 值域登记 ↔ 生产 token 覆盖性。
+
+        非退化：① 值域对象缺失 / 登记表为空 / 未登记处置非 REJECT ⇒ 判红（值域无判据 =
+        任意自由串都能过，正是 P-187 的缺陷形态）；② 生产实现（lib/**/*.cpp）里出现的每个
+        `normalization_version = "<token>"` 字面量都必须已登记 ⇒ 新增 token 未登记即判红
+        （禁止先产出后登记）。
+        """
+        nv = self._prop(self.schema("provenance"), "normalization_version") or {}
+        vd = ((nv.get("x-astrocs") or {}).get("value_domain")) or {}
+        reg = set((vd.get("registered_tokens") or {}).keys())
+        if not reg or vd.get("unregistered") != "REJECT" or not (vd.get("open_families") or {}):
+            self._ck("O23-norm-version-domain", False,
+                     "value_domain 缺失 / 登记表为空 / 未登记处置非 REJECT（值域无判据）")
+            return
+        found = {}
+        for p in sorted((_REPO / "lib").rglob("*.cpp")):
+            t = p.read_text(encoding="utf-8", errors="replace")
+            for chunk in t.split('normalization_version = "')[1:]:
+                if '"' not in chunk:
+                    continue
+                tok = chunk.split('"', 1)[0]
+                if not tok or "\n" in tok:
+                    continue
+                found.setdefault(tok, []).append(str(p.relative_to(_REPO)))
+        unknown = {k: v for k, v in found.items() if k not in reg}
+        self._ck("O23-norm-version-domain", not unknown,
+                 "生产 token 未登记值域（必须先登记再产出）: %s" % unknown)
 
     def _o11_provenance(self):
         s = self.schema("provenance")

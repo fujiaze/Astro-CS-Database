@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-009 负向测试（owner=SA-CI-32）：离线注入违反守卫的样例并确认拒绝路径。
+"""负向测试：离线注入违反守卫的样例并确认拒绝路径。
 
-- 矩阵编号 N01..N13 与 evidence/v8_1_ci_control/tasks/V8-CI-009/NEGATIVE_MATRIX.md 对齐。
+- 矩阵编号 N01..N13 逐条对应一个拒绝路径断言（注入面与期望判词在本文件内给出）。
 - 所有注入仅在 tempfile 临时副本 / fixture 仓库上进行，绝不改动主仓库既有守卫脚本、
   workflow 与 registry 的生效内容。
 - GAP 补齐轮（前台裁决）：

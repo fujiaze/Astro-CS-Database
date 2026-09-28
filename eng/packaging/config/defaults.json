@@ -47,10 +47,10 @@
       "unit": "sigma",
       "constraint": "threshold = median(img) + 5.0 * bgnoise（全局检测阈值语义）",
       "authority_status": "sourced",
-      "source": "docs/science/STAR_DETECTION.md:21（threshold = median(img) + 5.0·bgnoise，5σ 语义）",
+      "source": "docs/science/STAR_DETECTION.md:64（`threshold = median(img) + 5.0·bgn）",
       "source_ref": {
         "path": "docs/science/STAR_DETECTION.md",
-        "line": 65
+        "line": 64
       },
       "pending_task": null,
       "note": ""
@@ -75,10 +75,10 @@
       "unit": "1",
       "constraint": "== 4.0；改变 Moffat beta != 4 而无 SCI 变更属不可接受变化",
       "authority_status": "sourced",
-      "source": "docs/science/PSF.md:94（改变 Moffat β≠4 或 FWHM_FACTOR 而无 SCI 变更）",
+      "source": "docs/science/PSF.md:152（- 改变 Moffat β≠4 或 `FWHM_FACTOR` 而无）",
       "source_ref": {
         "path": "docs/science/PSF.md",
-        "line": 23
+        "line": 152
       },
       "pending_task": null,
       "note": ""
@@ -134,10 +134,10 @@
       "unit": "sigma",
       "constraint": ">= 1；patch 内 |v - med| > clip_sigma*sigma 掩膜（NOISE_ESTIMATION.md:36）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:56（§5 冻结定义 稳健裁剪 5σ 阈）",
+      "source": "docs/science/NOISE_MODEL.md:63（稳健裁剪: cosmic/hot 5σ 阈，≤2 轮）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 56
+        "line": 63
       },
       "pending_task": null,
       "note": "同文件 :54（§5 稳健裁剪 5σ 阈）、:126（§9 5σ 裁剪 ≤2 轮）。行锚 +6（claim SC-007）。"
@@ -162,10 +162,10 @@
       "unit": "rounds",
       "constraint": ">= 0；patch 内裁剪迭代轮数上限（默认 2）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:56（§5 冻结定义 ≤2 轮）",
+      "source": "docs/science/NOISE_MODEL.md:63（稳健裁剪: cosmic/hot 5σ 阈，≤2 轮）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 56
+        "line": 63
       },
       "pending_task": null,
       "note": "同文件 :54（§5 ≤2 轮）、:126（§9）。行锚 +6（claim SC-007）。"
@@ -190,10 +190,10 @@
       "unit": "bool",
       "constraint": "0/1；1 且 n_ctrl >= 4 时用 LS 平面 var(x,y)=a+b*x+c*y，否则全局中位数兜底（NOISE_ESTIMATION.md:20,:38）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:47（§4 平面场启用条件）",
+      "source": "docs/science/NOISE_MODEL.md:54（- 平面场仅 `enable_spatial_field==1 &&）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 47
+        "line": 54
       },
       "pending_task": null,
       "note": ""
@@ -218,10 +218,10 @@
       "unit": "sigma",
       "constraint": "> 0；掩膜边缘残余面亮度系数 k：逐星半径由「源面亮度 = k·σ_bg」导出（k=0.1 ⇒ 残余方差污染 < 1%·σ_bg² ⇒ σ_bg 偏差 ≤ 0.5%）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:84（§5a 冻结式 k = 0.1，claim SC-007）",
+      "source": "docs/science/NOISE_MODEL.md:281（- 掩膜半径**随源通量与 PSF 尺度变化**(§5a)：`r_i）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 84
+        "line": 281
       },
       "pending_task": null,
       "note": "导出判据：以 SCI §11 源污染 oracle 为判据取 σ_bg 偏差 ≤ 0.5%（5% oracle 的 1/10 余量）；MASK-001 §3.3 实测 k=0.1 下 r=10 px 偏差 +0.13%。"
@@ -232,10 +232,10 @@
       "unit": "px",
       "constraint": ">= 1；逐星半径下界 r_min = max(mask_r_min_px, mask_fwhm_floor_scale·FWHM_i)（至少覆盖 PSF 核心）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:85（§5a r_min = max(1.5 px, 0.75·FWHM_i)，claim SC-007）",
+      "source": "docs/science/NOISE_MODEL.md:96（r_min = max(1.5 px, 0.75·FWHM_i) #）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 85
+        "line": 96
       },
       "pending_task": null,
       "note": "与 mask_fwhm_floor_scale 同式两参数，二者取 max；FWHM_i 缺失时不参与（走 §5a 回调规则）。"
@@ -246,10 +246,10 @@
       "unit": "1",
       "constraint": "> 0；无量纲；r_min 的 FWHM 项系数（0.75·FWHM_i）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:85（§5a 同式，claim SC-007）",
+      "source": "docs/science/NOISE_MODEL.md:96（r_min = max(1.5 px, 0.75·FWHM_i) #）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 85
+        "line": 96
       },
       "pending_task": null,
       "note": "F_i 缺失 ⇒ 4·FWHM_i；F_i 与 FWHM_i 皆缺 ⇒ 统一 rmax + MASK_LEGACY（§5a）。"
@@ -260,10 +260,10 @@
       "unit": "count",
       "constraint": ">= 4；天空预算：合格 patch 数下限 n_qualified ≥ 8（中位数稳健 + 空间场可辨识，后者需 ≥4 个非共线控制点）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:87（§5a n_qualified(s) ≥ 8，claim SC-007）",
+      "source": "docs/science/NOISE_MODEL.md:98（天空预算收缩: 取最大 s∈(0,1] 使 n_qualified(）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 87
+        "line": 98
       },
       "pending_task": null,
       "note": "不满足 ⇒ 按 §5a 收缩半径；收缩到 r_min 仍不满足 ⇒ rc=1（空 support 不传播）；收缩生效但 n_qualified<8 ⇒ MASK_DEGRADED。"
@@ -274,10 +274,10 @@
       "unit": "px",
       "constraint": ">= 1；天空预算：未被掩膜的合法像素数下限 N_sky ≥ 9216（由 SE(σ̂)/σ ≈ 1.44/√N_sky ≤ 1.5% 导出）；同时收紧 §8 全帧兜底阈（nq==0 时要求 max(min_patch_samples, mask_budget_min_sky)，取代 min_samples/2=32）",
       "authority_status": "sourced",
-      "source": "docs/science/NOISE_MODEL.md:87（§5a N_sky(s) ≥ 9216 与预算推导行，claim SC-007）",
+      "source": "docs/science/NOISE_MODEL.md:98（天空预算收缩: 取最大 s∈(0,1] 使 n_qualified(）",
       "source_ref": {
         "path": "docs/science/NOISE_MODEL.md",
-        "line": 87
+        "line": 98
       },
       "pending_task": null,
       "note": "a priori 推导：单 patch 相对误差 c≈1.152/√N、中位数效率 1.25 ⇒ SE(σ̂)/σ≈1.44/√N_sky；取 SE≤1.5% ⇒ 9216。全帧兜底走 MAD 路径（解析 SE≈1.144/√N ⇒ 9216 时 1.19%）同样满足。MASK-001 §5.3/§3.5(c)2。"
@@ -288,10 +288,10 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 115
+        "line": 106
       },
       "pending_task": null,
       "note": "verbatim='sigma/winsorized/averaged 4.0/3.0/8'；三元组记为 (lower_sigma, upper_sigma, max_iterations)，三方法共用，按文档自身引用的冻结锚点 rejection.cpp:1053-1062 逐项核对。"
@@ -302,10 +302,10 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": "同上；三元组第二位。"
@@ -316,10 +316,10 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": "同上；三元组第三位。"
@@ -330,10 +330,10 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": "同 rejection.sigma 记录；三方法共用三元组。"
@@ -344,10 +344,10 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": ""
@@ -358,10 +358,10 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": ""
@@ -372,10 +372,10 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": ""
@@ -386,10 +386,10 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": ""
@@ -400,10 +400,10 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:97（§5 阈值冻结锚点 sigma/winsorized/averaged 4.0/3.0/8）",
+      "source": "docs/science/REJECTION.md:106（sigma/winsorized/averaged: 4.0/3.0）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 68
+        "line": 106
       },
       "pending_task": null,
       "note": ""
@@ -414,10 +414,10 @@
       "unit": "sigma",
       "constraint": "低侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:59（§5 阈值冻结锚点 linear_fit 5.0/3.5/8）",
+      "source": "docs/science/REJECTION.md:107（linear_fit: 5.0/3.5/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 59
+        "line": 107
       },
       "pending_task": null,
       "note": "verbatim='linear_fit 5.0/3.5/8'；三元组 (lower_sigma, upper_sigma, max_iterations)。"
@@ -428,10 +428,10 @@
       "unit": "sigma",
       "constraint": "高侧 σ 阈值（正数）",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:59（§5 阈值冻结锚点 linear_fit 5.0/3.5/8）",
+      "source": "docs/science/REJECTION.md:107（linear_fit: 5.0/3.5/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 59
+        "line": 107
       },
       "pending_task": null,
       "note": "实现侧注释记 'WBPP Light 默认'（rejection.cpp:1058），非本表来源。"
@@ -442,10 +442,10 @@
       "unit": "iterations",
       "constraint": ">= 1；迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:59（§5 阈值冻结锚点 linear_fit 5.0/3.5/8）",
+      "source": "docs/science/REJECTION.md:107（linear_fit: 5.0/3.5/8）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 59
+        "line": 107
       },
       "pending_task": null,
       "note": ""
@@ -512,10 +512,10 @@
       "unit": "count",
       "constraint": ">= 1；极值拒保留下限",
       "authority_status": "sourced",
-      "source": "docs/science/REJECTION.md:60（§5 阈值冻结锚点 minmax 1/1/4）",
+      "source": "docs/science/REJECTION.md:110（minmax: reject_low 1 / reject_high）",
       "source_ref": {
         "path": "docs/science/REJECTION.md",
-        "line": 166
+        "line": 110
       },
       "pending_task": null,
       "note": "同文件 §9a 记 minmax=极值拒（min_kept=4）。"
@@ -554,10 +554,10 @@
       "unit": "1",
       "constraint": "> 0；Tukey biweight 形状参数",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:21（Tukey 形状参数 4.685）",
+      "source": "docs/science/PHOTOMETRY.md:30（| `c` | Tukey 形状参数 `4.685` | 同上 |）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 24
+        "line": 30
       },
       "pending_task": null,
       "note": "同文件 §5 :54（u=(r-location)/(c*S), c=4.685）。"
@@ -568,10 +568,10 @@
       "unit": "iterations",
       "constraint": ">= 1；S>0 时 IRLS 迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:192（S>0 时迭代 max_iter=50, tol=1e-6）",
+      "source": "docs/science/PHOTOMETRY.md:183（- `S>0` 时迭代 `max_iter=50, tol=1e-6）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 192
+        "line": 183
       },
       "pending_task": null,
       "note": "同文件 §5 :53（迭代直到 |loc_new-loc_old|<1e-6 或 50 步）。"
@@ -582,10 +582,10 @@
       "unit": "dex",
       "constraint": "> 0；IRLS location 收敛门",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:192（tol=1e-6）",
+      "source": "docs/science/PHOTOMETRY.md:183（- `S>0` 时迭代 `max_iter=50, tol=1e-6）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 192
+        "line": 183
       },
       "pending_task": null,
       "note": ""
@@ -596,10 +596,10 @@
       "unit": "count",
       "constraint": ">= 1；|r_consistent| >= 3 才进 IRLS，否则 NO_DATA",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:44（参考星数 |r_consistent|>=3 才进 IRLS）",
+      "source": "docs/science/PHOTOMETRY.md:182（- 参考星数 `|r_consistent|>=3` 才进 IRLS）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 44
+        "line": 182
       },
       "pending_task": null,
       "note": ""
@@ -610,10 +610,10 @@
       "unit": "count",
       "constraint": ">= 1；|r_inliers| >= 2 才估计 sigma_residual，否则 sigma_residual=0",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:44（|r_inliers|>=2 才估计 sigma_residual）",
+      "source": "docs/science/PHOTOMETRY.md:182（- 参考星数 `|r_consistent|>=3` 才进 IRLS）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 44
+        "line": 182
       },
       "pending_task": null,
       "note": ""
@@ -624,10 +624,10 @@
       "unit": "1",
       "constraint": "枚举 id {fp32, fp64}；FP32 仅显式等价路径（SparseEqualsDense 1e-12 门）",
       "authority_status": "sourced",
-      "source": "docs/science/SCIENCE_SCOPE.md:56（默认 FP64 科学计算）",
+      "source": "docs/science/SCIENCE_SCOPE.md:97（**稀疏/有限数据**(帧级 SNR、WCS 解、星表匹配、测光定标）",
       "source_ref": {
         "path": "docs/science/SCIENCE_SCOPE.md",
-        "line": 92
+        "line": 97
       },
       "pending_task": null,
       "note": "docs/ASTROCS_DESIGN.md §3.3 的 JSON 示例写 fp32，属示例取值；默认值以本条为准（SCIENCE_SCOPE 为科学权威）。"
@@ -666,10 +666,10 @@
       "unit": "1",
       "constraint": "0 < pixfrac <= 1（严格校验，非法值显式 NO_DATA，不静默夹逼；DRIZZLE.md:31,:92；DRIZZLE_GEOMETRY.md:61,:102）",
       "authority_status": "owner_adjudicated",
-      "source": "docs/science/DRIZZLE.md §4/§7（0<pixfrac<=1，非法 NO_DATA，不静默夹逼；核按 drop 面积归一时 Σ_p F_p=Σ_j x_j 对全部 pixfrac∈(0,1] 严格成立，provenance.flux_conservation_factor 恒 1）；docs/contracts/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
+      "source": "docs/science/DRIZZLE.md:26（| `pixfrac` | drop 收缩因子 (0,1](`dri）；docs/science/DRIZZLE.md §4/§7（0<pixfrac<=1，非法 NO_DATA，不静默夹逼；核按 drop 面积归一时 Σ_p F_p=Σ_j x_j 对全部 pixfrac∈(0,1] 严格成立，provenance.flux_conservation_factor 恒 1）；docs/contracts/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
       "source_ref": {
         "path": "docs/science/DRIZZLE.md",
-        "line": 35
+        "line": 26
       },
       "pending_task": null,
       "note": "pixfrac 收缩输入像素的**投影足迹**（drop 边长 = pixfrac × 像素边长），**总通量由核面积归一保证、与 pixfrac 无关**（Fruchter & Hook 2002 §7.2：权重按 drop 与输出像素的重叠面积占比归一，Σ_o a_io = 1；§5 在 pixfrac=0.6 下实测孔径测光 RMS 0.004 mag）。默认 0.8：drop 相互重叠，输出网格无未覆盖缝隙；取 1.0 时相邻 drop 仅边界相接，源像素落点错位处出现无覆盖缝隙。"
@@ -754,10 +754,10 @@
       "unit": "1",
       "constraint": "bool；false 时列状缺陷路径逐位不生效",
       "authority_status": "owner_adjudicated",
-      "source": "docs/contracts/DATA_SEMANTICS.md §10.4（列状缺陷路径）",
+      "source": "docs/contracts/DATA_SEMANTICS.md:321（### 10.4 列状缺陷路径(bad column)）；docs/contracts/DATA_SEMANTICS.md §10.4（列状缺陷路径）",
       "source_ref": {
         "path": "docs/contracts/DATA_SEMANTICS.md",
-        "line": 304
+        "line": 321
       },
       "pending_task": null,
       "note": "列状缺陷（整列或列内一段）的连通域尺寸与天体源在大尺寸端重合，连通域尺寸过滤对它无效，故独立成路径。默认启用，配置可关闭。"
@@ -768,10 +768,10 @@
       "unit": "MAD 倍数",
       "constraint": "> 0；列统计量跨列跳变与帧内稳健尺度比对的阈值",
       "authority_status": "sourced",
-      "source": "docs/contracts/DATA_SEMANTICS.md §10.4（判据）；docs/science/CALIBRATION.md（缺陷形态可分性）",
+      "source": "docs/contracts/DATA_SEMANTICS.md:321（### 10.4 列状缺陷路径(bad column)）；docs/contracts/DATA_SEMANTICS.md §10.4（判据）；docs/science/CALIBRATION.md（缺陷形态可分性）",
       "source_ref": {
         "path": "docs/contracts/DATA_SEMANTICS.md",
-        "line": 304
+        "line": 321
       },
       "pending_task": null,
       "note": "与点状缺陷的 hot_sigma/cold_sigma 同量纲（稳健尺度倍数），作用对象为列统计量而非逐像素。"
@@ -782,10 +782,10 @@
       "unit": "列数",
       "constraint": ">= 1；每侧参与列统计量估计的列数",
       "authority_status": "sourced",
-      "source": "docs/contracts/DATA_SEMANTICS.md §10.4（邻域宽度）",
+      "source": "docs/contracts/DATA_SEMANTICS.md:321（### 10.4 列状缺陷路径(bad column)）；docs/contracts/DATA_SEMANTICS.md §10.4（邻域宽度）",
       "source_ref": {
         "path": "docs/contracts/DATA_SEMANTICS.md",
-        "line": 304
+        "line": 321
       },
       "pending_task": null,
       "note": "与修复算子同构：修复用左右两邻，统计用每侧 k 列以抵抗单列污染。"
@@ -796,10 +796,10 @@
       "unit": "MAD 倍数",
       "constraint": "> 0；母版路径（暗/偏置母版）专用的列状缺陷判据阈值",
       "authority_status": "measured",
-      "source": "按路径对等判据用生产实现在真实母版上标定：母版每路已修列数不超过同一帧科学帧路径已修列数",
+      "source": "docs/science/CALIBRATION.md:206（`σ_d = 1.482602218505602·MAD(d)`；`）；按路径对等判据用生产实现在真实母版上标定：母版每路已修列数不超过同一帧科学帧路径已修列数",
       "source_ref": {
-        "path": "run/LINDEF-CLOSE-01/REPORT.md",
-        "line": 1
+        "path": "docs/science/CALIBRATION.md",
+        "line": 206
       },
       "pending_task": null,
       "note": "母版与科学帧的列统计量尺度不同（母版经叠加，标度与噪声结构都变），故单独取值；取值来自实测标定曲线而非拍数。"
@@ -810,10 +810,10 @@
       "unit": "1",
       "constraint": ">= 1/Σw²（单列两邻算术平均 ⇒ >= 2）；修复像素方差 = (Σw²·var)·κ",
       "authority_status": "derived",
-      "source": "推导：修复值是两个邻居的确定性函数，不得声称比一次独立测量携带更多信息 ⇒ var >= σ² ⇒ κ >= 1/Σw² = 2；见 docs/contracts/DATA_SEMANTICS.md §10.5",
+      "source": "docs/contracts/DATA_SEMANTICS.md:347（被修复像素的方差按传播式 `var = (Σ w² · var) ·）；推导：修复值是两个邻居的确定性函数，不得声称比一次独立测量携带更多信息 ⇒ var >= σ² ⇒ κ >= 1/Σw² = 2；见 docs/contracts/DATA_SEMANTICS.md §10.5",
       "source_ref": {
         "path": "docs/contracts/DATA_SEMANTICS.md",
-        "line": 328
+        "line": 347
       },
       "pending_task": null,
       "note": "对照实验测得估计量误差 0.5502σ² ≈ Σw²σ²，即纯噪声项支持 κ=1；两者语义不同（估计量误差 vs 像素携带的独立信息量）。取保守侧以避免稠密 SNR 重建把插值像素当成比干净像素更可靠。"
@@ -824,10 +824,10 @@
       "unit": "1",
       "constraint": "0 < x <= 1；母版路径「仅标记不修」列数的声明上界（占帧宽）",
       "authority_status": "measured",
-      "source": "实测母版列统计量在重尾分布上存在就近反号配对事故：阈值微调下仅标记列数在 0 与 1419 之间跳变 ⇒ 该量本身不稳定，必须设可声明上界并在超界时整类丢弃并记账",
+      "source": "docs/science/CALIBRATION.md:207（段长 ≤ 2k−1 且不满宽才判坏)。 尺寸面无效 有两条互相独立的）；实测母版列统计量在重尾分布上存在就近反号配对事故：阈值微调下仅标记列数在 0 与 1419 之间跳变 ⇒ 该量本身不稳定，必须设可声明上界并在超界时整类丢弃并记账",
       "source_ref": {
-        "path": "run/LINDEF-CLOSE-01/REPORT.md",
-        "line": 1
+        "path": "docs/science/CALIBRATION.md",
+        "line": 207
       },
       "pending_task": null,
       "note": "加守卫前真实数据母版路径标记 1192 列；加守卫后整类丢弃并记账。科学帧路径同形处置由 docs/science/CALIBRATION.md 的缺陷形态可分性条款约束。"

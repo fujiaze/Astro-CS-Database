@@ -135,5 +135,75 @@
     "新增 ctest SKIP 目前无机器门拦截（本文件为人工登记）——建议加 checker：读 ctest JUnit 的 skipped 集, 未登记即 FAIL。",
     "FilterMismatchRejected 负例必须尽快解除 skip（负例保护当前为零）。",
     "真实 HiPS fixture（FIX-B）到位后 6 条 FIXTURE_MISSING 必须转执行并通过。"
-  ]
+  ],
+  "platform_excluded_targets": {
+      "purpose": "WIN-PORT（Windows/MSVC 可移植化）｜**编译期平台排除**的 ctest 注册项登记（与上面的运行期 SKIP 分开计数，不改 skip_count=12 的口径）。判据：该用例的**核心断言**依赖 POSIX 进程模型（fork + 信号终止语义），Windows 无可表达等价物；故 add_test 保留在 CMake 的 if(UNIX) 内（静态注册面仍可见，CI-REG-002 不破），else() 分支必须显式 message(STATUS) 打点，禁止静默失效。",
+      "counts": {
+          "measured_utc": "2026-10-02",
+          "windows_excluded_ctest_registrations": 4,
+          "linux_ctest_registrations_unchanged": true,
+          "windows_vs_linux_ctest_registration_delta": -4,
+          "checks_json_platform_window_before": {
+              "any": 122,
+              "linux": 25,
+              "windows": 3
+          },
+          "checks_json_platform_window_after": {
+              "any": 122,
+              "linux": 25,
+              "windows": 3
+          },
+          "note": "本登记**不改** checks.json 的 platform 窗口（无检查项在任一平台被关停）；差额落在 ctest 注册面而非检查面。排除本轮 3 项 + 既有 FINAL-07 R5 p1star_negative。"
+      },
+      "targets": [
+          {
+              "test": "p1drz_negative",
+              "platform_scope": "linux-only",
+              "round": "WIN-PORT (本轮新增)",
+              "cmake_anchor": "lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt",
+              "semantic_gap": "非法 nside 的拒绝路径是**进程级终止**（OpenMP region 内 abort 逃逸），判据靠 fork+waitpid 的 WIFEXITED/WIFSIGNALED 区分",
+              "equivalence_gap": "Windows 无 fork（子进程体是本进程内的 C++ 代码，无法跨进程传递）、无信号终止语义；同目标 units/properties/oracle 三组照常运行",
+              "unblock": "在 Linux 节点执行（linux-main 档）",
+              "owner": "WIN-PORT",
+              "report_ref": "run/FINAL-07/审核包/构建/WIN-PORT_可移植性修复报告.md#3"
+          },
+          {
+              "test": "p1wcs_negative",
+              "platform_scope": "linux-only",
+              "round": "WIN-PORT (本轮新增)",
+              "cmake_anchor": "eng/tests/unit/p1wcs/CMakeLists.txt",
+              "semantic_gap": "run_forked(fn) 隔离「疑缺陷路径可能段错误」的被测函数，判据含 signaled/sig 维（WIFSIGNALED/WTERMSIG）",
+              "equivalence_gap": "同上；Windows 侧 run_forked 退化为就地执行（崩溃 ⇒ ctest 立刻红，**不伪绿**），但 signaled 维无法表达",
+              "unblock": "Linux 节点执行",
+              "owner": "WIN-PORT",
+              "report_ref": "同上#3"
+          },
+          {
+              "test": "aio_hips_atomic_publish",
+              "platform_scope": "linux-only",
+              "round": "WIN-PORT (本轮新增)",
+              "cmake_anchor": "lib/infrastructure/aio/tests/CMakeLists.txt",
+              "semantic_gap": "核心锚 = 写入进程中途被 SIGKILL 后「正式目录零半成品、无私有临时残留、重跑不消费残留」",
+              "equivalence_gap": "需 fork+kill(SIGKILL)；TerminateProcess 只能作用于自我 spawn 的独立进程（需把写盘体拆成独立入口，本轮不做）",
+              "unblock": "拆独立写盘入口后可在 Windows 重新注册；当前 Linux 节点执行",
+              "owner": "WIN-PORT / aio",
+              "report_ref": "同上#3"
+          },
+          {
+              "test": "p1star_negative",
+              "platform_scope": "linux-only",
+              "round": "FINAL-07 R5 (既有)",
+              "cmake_anchor": "lib/algorithms/star_detection/tests/p1star/CMakeLists.txt",
+              "semantic_gap": "同类：进程级崩溃/信号终止判据",
+              "equivalence_gap": "同上",
+              "unblock": "Linux 节点执行",
+              "owner": "FINAL-07 R5",
+              "report_ref": "run/FINAL-07/审核包/构建/WIN-BLD_环境落实与冒烟构建.md"
+          }
+      ],
+      "open_items_platform": [
+          "本节目前无机器门拦截（同 §open_items 第 1 条）；建议 checker 同时读取 JUnit 的 skipped 集与 CMake 的 else() 打点消息，未登记即 FAIL。",
+          "若后续将 Windows 写盘体拆为独立入口，aio_hips_atomic_publish 可在 Windows 重新注册（无需 fork）；屚余两项在纯 Windows 上仍不可表达。"
+      ]
+  }
 }

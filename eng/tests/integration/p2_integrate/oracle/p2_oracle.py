@@ -73,7 +73,7 @@ def unit_exponents(u):
 PROV_MIN = [
     "product", "software_sha", "run_id", "input_product_hashes", "config_hash", "units",
     "coordinate", "pixel_semantics", "sampling", "algorithm_ids", "module", "provider",
-    "approximations", "degradations", "normalization_version", "weight_mode_version",
+    "approximations", "degradations", "normalization_version",
     "correlation_summary", "flux_conservation_factor", "k_corr", "generated_utc", "output_hash",
 ]
 

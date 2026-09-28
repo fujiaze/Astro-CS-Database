@@ -22,7 +22,12 @@ class TestGlossary(unittest.TestCase):
         r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "eng", "tools", "check_glossary.py")],
                                          capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("GLOSSARY_PASS terms=18/18", r.stdout)
+        # 断言「词典通过 + 必备术语一条不缺」，不比总数：词典允许登记扩展术语
+        # （现行 20 条 = 18 必备 + projection/stacking），比总数会把合法增补判红。
+        m = re.match(r"GLOSSARY_PASS terms=(\d+)/(\d+) ", r.stdout)
+        self.assertIsNotNone(m, r.stdout)
+        self.assertEqual(int(m.group(2)), len(cg.REQUIRED), r.stdout)
+        self.assertGreaterEqual(int(m.group(1)), int(m.group(2)), r.stdout)
 
     def test_02_duplicate_term_must_fail(self):
         dup = REAL + "|adu | 伪造重复 | 单位 | - | docs/science/CALIBRATION.md#27 |\n"

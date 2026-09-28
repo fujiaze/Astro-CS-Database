@@ -43,6 +43,15 @@ else()
   target_link_libraries(runtime_resource_record_test PRIVATE m)
 endif()
 
+# P-163: 事件流写失败（fputs/fflush 返回值）必须被检出，并在发布面变成非 0 退出码
+# （IO=7 / 磁盘满 ENOSPC=10）。头文件依赖 jsonl.h（header-only）+ nlohmann/json。
+add_executable(runtime_event_stream_test runtime_event_stream_test.cpp)
+target_include_directories(runtime_event_stream_test PRIVATE
+  "${V6RT_REPO}/lib/infrastructure/cli"
+  "${V6RT_REPO}/lib/third_party")
+set_target_properties(runtime_event_stream_test PROPERTIES
+  CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
 # ---- 契约检查项（每项独立 ctest 目标, 便于 CI 逐名验收） ----
 add_test(NAME runtime_contract_units      COMMAND runtime_contract_test units)
 add_test(NAME runtime_weight_token_routing        COMMAND runtime_contract_test modes)
@@ -51,6 +60,9 @@ add_test(NAME runtime_so05_policy         COMMAND runtime_contract_test so05)
 add_test(NAME runtime_phase_isolation     COMMAND runtime_contract_test isolation)
 add_test(NAME runtime_metric_fields       COMMAND runtime_contract_test metrics)
 add_test(NAME runtime_contract_negative   COMMAND runtime_contract_test negative)
+
+# ---- P-163 事件流写失败（/dev/full 与 fd 关闭注入；spawn 子进程验退出码）----
+add_test(NAME runtime_event_stream COMMAND runtime_event_stream_test)
 
 # ---- 并行确定性回归锁 ----
 add_test(NAME runtime_determinism_positive
@@ -61,7 +73,7 @@ add_test(NAME runtime_determinism_negative
 set_tests_properties(
   runtime_contract_units runtime_weight_token_routing runtime_budget_single_source
   runtime_so05_policy runtime_phase_isolation runtime_metric_fields
-  runtime_contract_negative
+  runtime_contract_negative runtime_event_stream
   PROPERTIES LABELS "runtime;RUNTIME-CI-001" TIMEOUT 120)
 add_test(NAME runtime_resource_record_positive
   COMMAND runtime_resource_record_test positive "${CMAKE_CURRENT_BINARY_DIR}/rec_pos")

@@ -22,6 +22,10 @@
   L3 symbol_drift      逐符号表中「列头声明了文件」的锚：该行首列符号必须逐字出现在
                        该锚的行范围内。符号整体不在目标文件 ⇒ L3 symbol_absent。
                        作用域 = SYMBOL_GLOB（**有意保持** docs/science/algorithms/*.md，见常量注释）。
+  L1b bare_range_oob    **邻接**裸行号锚（紧贴文件名的 `file:N` / `file:N-M`，含 :N-M 裸写形态）必须
+                       1 <= start <= end <= 目标文件实测行数。作用域 = DOC_GLOB。
+                       绑定规则保守到"只判紧贴"（文件名 token 后仅允许反引号/星号/空白 + 至多一个
+                       冒号）；未解析的同名 token 不报（本 pass 只判界内，不扩 L2 解析面）。
   L2 target_unresolved 锚目标必须解析到唯一**被 git 跟踪**的仓库文件（exact →
                        doc-relative → unique basename）；解析不到/未跟踪 ⇒ 判红。
 
@@ -31,8 +35,15 @@
     unresolved_registry，本门无）；本门不重复实现，避免第二套解析口径；
   - `docs/contracts/DATA_SEMANTICS.md` 的逐符号表漂移（实测 35 条）本门**当前不判**
     （L3 作用域未扩），见模块常量注释与 DOC-DRIFT-FIX-01 回执的「发现但未改」；
-  - 散文正文里不带文件列的裸行号（如 `# :555` 代码注释式锚）**无法在无符号绑定的
-    前提下自动核对**，本门不计入判据，清单见 RELEASE-02 guard-tools-fix.md（已退役，见仓库 git 历史）。
+  - 散文/表格里**非邻接**的裸行号**不判**：跨格引用、文档自定义文件别名（如 `ex :1706`、
+    `compat :1896-1907`、`h:89-91`）、以及一行内出现多个文件名时的后续裸行号，都无法在无
+    符号绑定的前提下唯一确定目标。实测「同一行最近文件名」绑定口径会**误绑 69 条**，抽样 11
+    条全部为跨格/别名误绑（典型：`p1_session.h:19 / :103` 的 `:103` 实指 `p1_session.cpp`，
+    绑到 40 行的 `p1_session.h` 即假红）⇒ 本门**不猜**，如实不计入判据；
+    同类实测：`docs/science/algorithms/PHASE2_INTEGRATION.md` §9「实现锚」列的裸 `:N`（行内无文件名，
+    实现在文档头声明）既非邻接也无行内绑定 ⇒ 不判（FINAL-07 实测该列 7 格中 4 格行号陈旧，已人工订正，
+    留档见 run/FINAL-07/审核包/CI/文档与登记类红项收口报告.md §1）。
+    该「发现但未判」清单见 RELEASE-02 guard-tools-fix.md（已退役，见仓库 git 历史）。
 
 用法
   python3 eng/tools/doccheck/check_alg_line_anchors.py [--root .] [--json-out F]
@@ -72,6 +83,11 @@ FILE_RE = re.compile(_FILE)
 COUNT_RE = re.compile(_FILE + r"[ \t]*[（(]?[ \t]*(\d+)[ \t]*行")
 # 裸行号范围：:N / :N-M / :N–M
 RANGE_RE = re.compile(r":L?(\d+)(?:\s*[-\u2013]\s*L?(\d+))?")
+# L1b **邻接**裸行号锚：文件名 token 之后仅允许反引号/星号/空白 + 至多一个冒号，紧随 `:N` / `:N-M`。
+# 只判这一确凿形态；跨格/别名/一行多文件名的非邻接裸行号不可自动判定（见文件头「不覆盖」）。
+# 注：分隔类用 \x60 表示反引号，以免依赖在其后才定义的 BT 常量。
+BARE_ADJ_RE = re.compile(r"^[\s\x60*]{0,2}[:：]?[\s\x60*]{0,2}"
+                         r"(:L?\d+(?:\s*[-\u2013]\s*L?\d+)?)")
 SEP_RE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)?$")
 ARCHIVE_MARKERS = ("/archive/", "/legacy/", "/.git/", "/third_party/",
@@ -136,7 +152,7 @@ def scan_doc(root, doc, basename_index, tracked_set, symbol_scope=True):
     """Return (findings, counters, records). symbol_scope=False ⇒ 只跑 L1（行数锚）。"""
     findings = []
     lines = read_lines(os.path.join(root, doc))
-    counts = {"count_anchors": 0, "symbol_anchors": 0}
+    counts = {"count_anchors": 0, "symbol_anchors": 0, "bare_range_anchors": 0}
     records = []
 
     def resolve_or_fail(lineno, base, kind):
@@ -168,6 +184,39 @@ def scan_doc(root, doc, basename_index, tracked_set, symbol_scope=True):
                 findings.append({"code": "L1_count_mismatch",
                                  "detail": "%s:%d %s -> 文档 %d 行 / 实测 %d 行 (delta %+d)"
                                            % (doc, i, base, claimed, actual, actual - claimed)})
+            else:
+                rec["status"] = "OK"
+            records.append(rec)
+
+    # L1b：**邻接**裸行号锚界内判定（紧贴文件名的 `file:N` / `file:N-M`）。
+    # 绑定规则保守到"只判紧贴"：文件名 token 之后仅允许反引号/星号/空白 + 至多一个冒号，
+    # 紧随 `:N`/`:N-M`。跨格、文件别名（ex/compat/h）、一行内多文件名的非邻接裸行号不判
+    # （实测按"同行最近文件名"绑定会误绑 69 条，抽样 11/11 为跨格/别名误绑，见文件头「不覆盖」）。
+    # 未解析的同名 token 不在此报错：本 pass 只判**界内**，不扩 L2 解析面（避免把散文里的
+    # 文件名提及误判为锚）。
+    for i, line in enumerate(lines, 1):
+        for fmo in FILE_RE.finditer(line):
+            base = fmo.group(1)
+            msep = BARE_ADJ_RE.match(line[fmo.end():])
+            if not msep:
+                continue
+            path, _how = resolve(root, doc, base, basename_index)
+            if path is None:
+                continue
+            m = RANGE_RE.match(msep.group(1))
+            if not m:
+                continue
+            s0 = int(m.group(1))
+            e0 = int(m.group(2) or m.group(1))
+            body = read_lines(os.path.join(root, path))
+            counts["bare_range_anchors"] += 1
+            rec = {"doc": doc, "doc_line": i, "raw": "%s%s" % (base, m.group(0)),
+                   "kind": "bare_range", "target": path, "start": s0, "end": e0}
+            if s0 < 1 or e0 < s0 or e0 > len(body):
+                rec["status"] = "OUT_OF_BOUNDS"
+                findings.append({"code": "L2_range_out_of_bounds_bare",
+                                 "detail": "%s:%d %s%s -> %s has %d lines"
+                                           % (doc, i, base, m.group(0), path, len(body))})
             else:
                 rec["status"] = "OK"
             records.append(rec)
@@ -250,7 +299,7 @@ def check_root(root):
         errors.append({"code": "L0_scan_floor", "detail": "ANCHOR_STALE: 0 篇文档命中 " + DOC_GLOB})
     if not symbol_docs:
         errors.append({"code": "L0_scan_floor", "detail": "ANCHOR_STALE: 0 篇文档命中 " + SYMBOL_GLOB})
-    counters = {"count_anchors": 0, "symbol_anchors": 0}
+    counters = {"count_anchors": 0, "symbol_anchors": 0, "bare_range_anchors": 0}
     anchors = []
     for d in docs:
         f, c, r = scan_doc(root, d, basename_index, tracked_set, symbol_scope=(d in symbol_docs))
@@ -264,6 +313,9 @@ def check_root(root):
     if counters["symbol_anchors"] == 0:
         errors.append({"code": "L0_scan_floor",
                        "detail": "逐符号表行号锚提取数 = 0（扫描面塌缩，禁止空转判绿）"})
+    if counters["bare_range_anchors"] == 0:
+        errors.append({"code": "L0_scan_floor",
+                       "detail": "邻接裸行号锚提取数 = 0（扫描面塌缩，禁止空转判绿）"})
     errors.sort(key=lambda e: (e["code"], e["detail"]))
     return {"verdict": "PASS" if not errors else "FAIL",
             "documents": len(docs), "counters": counters,
@@ -300,9 +352,11 @@ def emit(result, json_out):
         for e in result["errors"]:
             print("  [%s] %s" % (e["code"], e["detail"]))
         return 1
-    print("ALG_LINE_ANCHORS_PASS: %d docs, 行数锚 %d, 逐符号行号锚 %d, 全部与源文件实测一致"
+    print("ALG_LINE_ANCHORS_PASS: %d docs, 行数锚 %d, 逐符号行号锚 %d, 邻接裸行号锚 %d, "
+          "全部与源文件实测一致"
           % (report["documents"], report["counters"].get("count_anchors", 0),
-             report["counters"].get("symbol_anchors", 0)))
+             report["counters"].get("symbol_anchors", 0),
+             report["counters"].get("bare_range_anchors", 0)))
     return 0
 
 
@@ -317,6 +371,8 @@ _SYNTH_DOC = """# SYNTH ALG
 |---|---|---|---|
 | p2_synth_run | :2 | :3-4 | 入口 |
 | kSynthMagic | :3 | :2 | 常量 |
+
+> 邻接裸行号锚（L1b）: lib/x/synth.cpp:3-4（入口实现区）。
 """
 _SYNTH_H = "// synth.h\nint p2_synth_run(void);\nstatic const int kSynthMagic = 7;\n// end\n"
 _SYNTH_CPP = "// synth.cpp\nstatic const int kSynthMagic = 7;\nint p2_synth_run(void) {\n  return kSynthMagic;\n}\n"
@@ -403,6 +459,19 @@ def self_test():
         _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
         os.remove(os.path.join(root, "lib/x/extra.cpp"))
         expect("N7' 恢复后回绿", root, "PASS")
+        # N8 邻接裸行号锚（L1b）：该类锚在本次修判据前**完全无判据**（判据缺口）。
+        #   正例 = 界内必须判绿（防止新判据误伤既有文档）；
+        #   负例 = 越界必须判红（证明新判据有判别力，不是恒绿装饰）。
+        _write(root, "docs/science/algorithms/SYNTH.md",
+               _SYNTH_DOC + "\n> 旁证 lib/x/synth.cpp:1-5 与 lib/x/synth.h:2（均为实测界内）。\n")
+        expect("N8 邻接裸行号锚界内", root, "PASS")
+        _write(root, "docs/science/algorithms/SYNTH.md",
+               _SYNTH_DOC + "\n> 旁证 lib/x/synth.cpp:1-99（超出实测 5 行）。\n")
+        expect("N8' 邻接裸行号锚越界", root, "FAIL", "L2_range_out_of_bounds_bare")
+        _write(root, "docs/science/algorithms/SYNTH.md",
+               _SYNTH_DOC + "\n> 旁证 lib/x/synth.cpp:1-5 与 lib/x/synth.h:2（均为实测界内）。\n")
+        expect("N8'' 恢复后回绿", root, "PASS")
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

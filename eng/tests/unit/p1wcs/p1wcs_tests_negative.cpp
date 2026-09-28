@@ -18,8 +18,13 @@
 #include "p1wcs_fixtures.hpp"
 #include "p1wcs_oracle.hpp"
 
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>。fork 隔离在本平台不可得（见 run_forked）。
+#include <cstdio>
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cmath>
 #include <cstdio>
@@ -50,6 +55,16 @@ struct ForkOutcome {
 
 ForkOutcome run_forked(int (*fn)(void)) {
     ForkOutcome out;
+#ifdef _WIN32
+    // WIN-PORT: MSVC 无 fork/waitpid，且 fn 是本进程内的函数指针，无法跨进程度传递
+    // （Windows 也没有等价的"复制地址空间"原语）⇒ 就地执行，隔离面缺失是**已知边界**：
+    //   · fn 正常返回 → 与 POSIX 支路同判据（exited=true, rc=返回值）；
+    //   · fn 崩溃（段错误等）→ 整个测试进程终止 = ctest 立刻红，**不会伪绿**。
+    // 该差异已在 WIN-PORT 报告登记；若需真实隔离，须把子进程体拆成独立入口 + 自我 spawn。
+    out.exited = true;
+    out.rc = fn();
+    return out;
+#else
     const pid_t pid = fork();
     if (pid < 0) {
         std::perror("p1wcs fork");
@@ -69,6 +84,7 @@ ForkOutcome run_forked(int (*fn)(void)) {
         out.sig = WTERMSIG(status);
     }
     return out;
+#endif
 }
 
 // B2-A1: 两天球坐标角距 (deg, haversine; 经度环绕安全) — 绝对正确性门度量。

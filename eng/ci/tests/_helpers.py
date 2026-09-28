@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""V8-CI-002 单测共享 fixture 工具（owner=SA-CI-32）。
+"""单测共享 fixture 工具。
 
 所有测试在 tempfile 临时目录中构建独立 git 仓库并注入小型 checks fixture，
 绝不写主工作区 tracked 文件；所有外部命令均带 timeout。
@@ -88,7 +88,7 @@ def write_ci_result_schema(repo: Path) -> Path:
 
     runner 在 write_outputs 前从 <repo>/ci/ci_result.schema.json 加载结果 schema
     自校验（run.py:1049），fixture 仓库必须带副本；执行模式测试统一调用。
-    （V8-CI-002 attempt3 最小扩展：新增函数，不改任何既有签名。）
+    （最小扩展：新增函数，不改任何既有签名。）
     """
     reg_dir = repo / "eng" / "ci"
     reg_dir.mkdir(parents=True, exist_ok=True)

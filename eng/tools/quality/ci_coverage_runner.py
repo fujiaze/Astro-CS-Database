@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ci_coverage_runner.py — V8-CI-005 linux-deep 覆盖率检查驱动（owner=SA-CI-32）。
+"""ci_coverage_runner.py — linux-deep 覆盖率检查驱动。
 
 合同（07_CI_MACHINE_CONTRACT.md）：第一次 deep CI 只测量并记录覆盖基线，
 不虚构覆盖率阈值。本驱动是 pytest-cov 的薄封装：

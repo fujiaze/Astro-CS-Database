@@ -14,22 +14,37 @@
      不得出现未登记的新键（已登记的加性扩展见 REGISTERED_ADDITIVE）。缺字段/类型错/新键 ⇒ 判红。
   T2 CFG-001 偏差棘轮（登记制）：把每个 manifest 对 eng/contracts/schemas/run_manifest.schema.json
      的偏差（缺必填 / 多余属性）与 eng/ci/ledgers/run_manifest_schema_deviations.json 逐项比对；
-     **偏差集必须与登记集完全相等**——出现任何未登记的新偏差、或登记项已消失（陈旧）⇒ 判红。
+     **未登记的新偏差 ⇒ 恒判红**；**登记项已消失（陈旧）⇒ 只在产物语料在场时判红**：
+     干净检出里 run/**、artifacts/** 没有产物语料，唯一的真实 manifest 是入库 fixture，它天然
+     缺 uncertainty_available 这类只在真实运行里出现的键 ⇒ 按「陈旧」判红是假红（同一提交在
+     CI 与开发机上结论相反）。自测接缝 --assume-product-corpus 只把判红面放大（strictness-only）。
      登记集是「两份冻结合同对同名对象约定不同」的冲突台账，每条带冲突权威与处置状态；处置需要
      改 CFG-001 冻结 schema（方案见 run/RULING-DOC-01/REPORT.md），不得自行改冻结合同。
+  语料面：run/**、artifacts/**、eng/ci/fixtures/run_manifest/**（外加 --corpus-dir）。其中
+     run/<轮次>/wsrc/** 是取证用的**整棵工作树快照**（见 eng/tools/audit_intake.py），里面的
+     astrocs_run_*.json 只反映快照当时的仓库状态（可含 .gitignore 的陈旧残留），不是本仓运行
+     产物 ⇒ 语料剔除，剔除条数**可见登记**（stdout + 报告），不得静默。
 
 用法:
   python3 eng/ci/check_run_manifest_schema.py [--json-out <path>] [--self-test]
+    [--corpus-dir <dir>] [--no-default-corpus] [--assume-product-corpus]
+自测面（--self-test，隔离语料，不依赖本机 run/** 现状）: T1 正/负例 + T2 正/负例 +
+  wsrc 快照命中被剔除判绿 / 同一 manifest 落产物目录仍判红 / 无产物语料陈旧不致命但可见登记 /
+  加严接缝下陈旧致命 / 新偏差恒致命 / 登记项在场不再陈旧。
 exit 0 = T1 与 T2 全过；1 = 判红；2 = 环境/用法错误。
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.util
+import io
 import json
 import pathlib
 import re
+import shutil
 import sys
+import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 SCHEMA = REPO / "eng/contracts/schemas/run_manifest.schema.json"
@@ -38,6 +53,12 @@ FIXTURES = REPO / "eng/ci/fixtures/run_manifest"
 VALIDATOR = REPO / "eng/tests/common/jsonschema_min.py"
 
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
+
+# 取证用工作树快照的路径成分（现约定 run/<轮次>/wsrc/**，见 eng/tools/audit_intake.py 说明）：
+# 快照是整棵工作树的只读拷贝，里面的 manifest 命名文件只反映快照当时的仓库状态（可含
+# .gitignore 的陈旧残留），不是本仓运行产物 ⇒ 不参与合同判定（否则门不 hermetic：同一提交
+# 在「本机有旧快照」与「CI 干净检出」上结论不同）。
+SNAPSHOT_COMPONENTS = ("wsrc",)
 
 # CLI-003 §2 必填（含类型/值域）。值 = 人类可读判据说明（判定在 _check_cli003 内实现）。
 CLI003_REQUIRED = {
@@ -75,6 +96,8 @@ REGISTERED_ADDITIVE = {
     "uncertainty_available": "FIX-E2E B1-A5/A10：节点级科学事实并入 manifest",
     "log_artifacts": "docs/contracts/LOG_AND_ERROR_CONTRACT.md §4（每次运行必填）",
     "budget_alloc": "docs/architecture/THREAD_BUDGET_ARCH.md（分配快照）",
+    "storage": "R-42/P-181：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.3（运行级形态事实；"
+               "机器事实源 hips_storage_form.schema.json#/$defs.manifest_storage）",
 }
 
 
@@ -162,30 +185,49 @@ def _cfg001_deviation(man: dict, schema: dict, validator) -> dict:
     return {"missing_required": sorted(set(missing)), "extra_properties": sorted(set(extra))}
 
 
-def _discover(extra_dirs=None, use_default=True) -> list:
-    out = []
+def _is_worktree_snapshot(p: pathlib.Path) -> bool:
+    """路径是否落在取证用的**工作树快照**目录里（run/<轮次>/wsrc/**）。"""
+    return any(part in SNAPSHOT_COMPONENTS for part in p.parts)
+
+
+def _discover(extra_dirs=None, use_default=True) -> tuple:
+    """返回 (语料, 被剔除的快照命中, 产物语料条数)。
+
+    产物语料 = 来自 run/**、artifacts/** 的**未剔除**命中（fixture 与 --corpus-dir 不算）；
+    它是「陈旧偏差是否构成证据」的判据面：没有产物语料就没有可陈旧的载体。
+    """
+    cands, product_cands = [], set()
     if use_default:
         for base in ("run", "artifacts"):
             root = REPO / base
             if root.is_dir():
-                out += sorted(root.rglob("astrocs_run_*.json"))
+                hits = sorted(root.rglob("astrocs_run_*.json"))
+                cands += hits
+                product_cands |= {str(h) for h in hits}
         if FIXTURES.is_dir():
-            out += sorted(FIXTURES.glob("*.json"))
+            cands += sorted(FIXTURES.glob("*.json"))
     for d in extra_dirs or []:
         p = pathlib.Path(d)
         if p.is_dir():
-            out += sorted(p.rglob("astrocs_run_*.json")) + sorted(p.rglob("*.json"))
-    return sorted(set(out))
+            cands += sorted(p.rglob("astrocs_run_*.json")) + sorted(p.rglob("*.json"))
+    kept, pruned = [], []
+    for f in sorted(set(cands)):
+        (pruned if _is_worktree_snapshot(f) else kept).append(f)
+    n_products = sum(1 for f in kept if str(f) in product_cands)
+    return kept, pruned, n_products
 
 
-def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True) -> int:
+def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True,
+        assume_product_corpus: bool = False) -> int:
+    """assume_product_corpus：**只加严**的自测接缝（强制「产物语料在场」语义，使陈旧即致命），
+    用来自证棘轮在产物语料缺席时不会退化成永不判红；发布/CI 调用不得置位。"""
     validator = _load_validator()
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     ledger = json.loads(LEDGER.read_text(encoding="utf-8"))
     reg_missing = set(ledger["registered_missing_required"])
     reg_extra = set(ledger["registered_extra_properties"])
 
-    files = _discover(corpus_dirs, use_default_corpus)
+    files, pruned_snapshots, n_products = _discover(corpus_dirs, use_default_corpus)
     if not files:
         print("RUN-MANIFEST-SCHEMA_FAIL: no manifest corpus found (run/**, artifacts/**, fixtures)",
               file=sys.stderr)
@@ -227,9 +269,12 @@ def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True) -> int:
     t2_new_extra = sorted(measured_extra - reg_extra)
     t2_stale_missing = sorted(reg_missing - measured_missing)
     t2_stale_extra = sorted(reg_extra - measured_extra)
-    # new_* 永远致命；stale_*（登记项已消失）只在**全仓语料**下致命——缩窄语料时
-    # 「某偏差不再出现」不构成陈旧证据（负例注入模式必须能单独判绿）。
-    stale_fatal = bool(use_default_corpus)
+    # new_* 永远致命；stale_*（登记项已消失）只在**产物语料在场**时致命——干净检出没有
+    # run/**、artifacts/** 产物，唯一的真实 manifest 是入库 fixture，它天然不含
+    # uncertainty_available 这类只在真实运行里出现的键；把「fixture 里没有」当陈旧证据，
+    # 会让同一提交在 CI 与开发机上得出相反结论（非 hermetic 的假红）。缩窄语料（--corpus-dir
+    # 负例注入）同样不构成陈旧证据。
+    stale_fatal = bool(n_products) or bool(assume_product_corpus)
     t2_ok = not (t2_new_missing or t2_new_extra
                  or (stale_fatal and (t2_stale_missing or t2_stale_extra)))
     t1_ok = not t1_bad and n_manifest >= 1
@@ -237,6 +282,10 @@ def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True) -> int:
     report = {
         "schema": "astrocs.run-manifest-schema-check/v1",
         "n_files_scanned": len(files),
+        "n_pruned_worktree_snapshot_hits": len(pruned_snapshots),
+        "pruned_worktree_snapshot_hits": [str(p) for p in pruned_snapshots[:20]],
+        "n_product_corpus_files": n_products,
+        "assume_product_corpus": bool(assume_product_corpus),
         "n_manifests": n_manifest,
         "skipped_non_manifest": skipped,
         "artifacts_role_coverage": {"n_artifacts": n_artifacts,
@@ -264,8 +313,11 @@ def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True) -> int:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("scanned=%d manifests=%d skipped_non_manifest=%d  T1(CLI-003)=%s  T2(CFG-001 ratchet)=%s"
+          " pruned_snapshot_hits=%d product_corpus=%d stale_fatal=%s"
           % (len(files), n_manifest, len(skipped), "PASS" if t1_ok else "FAIL",
-             "PASS" if t2_ok else "FAIL"))
+             "PASS" if t2_ok else "FAIL", len(pruned_snapshots), n_products, stale_fatal))
+    for p in pruned_snapshots[:5]:
+        print("  PRUNED 非产物语料（取证工作树快照）: %s" % p)
     for f, ps in list(t1_bad.items())[:6]:
         for msg in ps[:6]:
             print("  T1 %s: %s" % (f, msg))
@@ -332,6 +384,107 @@ def self_test(json_out: str = "") -> int:
     rec("cfg001_missing_required_detected", True,
         [] if det2 else ["missing required NOT detected (gate is blind)"])
 
+    # ---- 语料面与棘轮语义（能红能绿；用 --corpus-dir 隔离，不依赖本机 run/** 现状）----
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="run-manifest-selftest-"))
+    try:
+        def corpus(name, layout):
+            """layout: {相对路径: 文档} ⇒ 建一个隔离语料目录。"""
+            root = tmp / name
+            for rel, doc in layout.items():
+                p = root / rel
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+            return root
+
+        def judge(name, root, *, assume=False):
+            out = tmp / ("%s.report.json" % name)
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = run(str(out), [str(root)], False, assume_product_corpus=assume)
+            rep = json.loads(out.read_text(encoding="utf-8")) if out.is_file() else {}
+            return rc, rep
+
+        t1_bad_man = dict(fixture)
+        t1_bad_man.pop("provenance")          # 缺必填 ⇒ T1 必须红
+        # CFG-001 必填齐备的 manifest（隔离 T2：missing_required 为空，只剩 extra 面）
+        cfg_ok = dict(fixture, manifest_schema="astrocs.run-manifest/v1",
+                      software_sha="a" * 40, config_hash="b" * 64,
+                      manifest_input_hashes=[{"path": "in.fits", "sha256": "c" * 64}],
+                      manifest_output_hashes=[{"path": "out.fits", "sha256": "d" * 64}],
+                      toolchain_version="gcc 13.2", created_utc="2026-09-22T00:00:00Z")
+        new_key_man = dict(cfg_ok, zzz_brand_new_prop=1)
+
+        # 正例：run/<轮次>/wsrc/** 里的取证快照命中被剔除 ⇒ 判绿（且剔除条数可见）
+        root = corpus("prune", {"R1/wsrc/eng/tests/cli/astrocs_run_stale.json": t1_bad_man,
+                                "R1/out/astrocs_run_ok.json": fixture})
+        rc, rep = judge("prune", root)
+        problems = []
+        if rc != 0:
+            problems.append("rc=%s want 0（快照命中应被剔除）" % rc)
+        if rep.get("n_pruned_worktree_snapshot_hits") != 1:
+            problems.append("n_pruned_worktree_snapshot_hits=%r want 1"
+                            % rep.get("n_pruned_worktree_snapshot_hits"))
+        if not (rep.get("t1_cli003") or {}).get("ok"):
+            problems.append("T1 未绿：%s" % list((rep.get("t1_cli003") or {}).get("offenders", {}))[:1])
+        rec("wsrc_snapshot_hits_pruned_green", True, problems)
+
+        # 负例: 同一份不合规 manifest 落在**产物**目录 ⇒ 必须红（剔除不是普适豁免）
+        rc, rep = judge("product", corpus("product",
+                                         {"R1/out/astrocs_run_bad.json": t1_bad_man}))
+        problems = []
+        if rc != 1:
+            problems.append("rc=%s want 1（产物面 T1 必须红）" % rc)
+        if (rep.get("t1_cli003") or {}).get("ok") is not False:
+            problems.append("T1 未红：offenders=%s"
+                            % list((rep.get("t1_cli003") or {}).get("offenders", {}))[:1])
+        rec("product_manifest_still_red", True, problems)
+
+        # 正例: 无产物语料（干净检出形态）时登记项「陈旧」不致命，但如实登记
+        rc, rep = judge("stale", corpus("stale", {"fx/real_manifest_sample.json": fixture}))
+        t2 = rep.get("t2_cfg001") or {}
+        problems = []
+        if rc != 0:
+            problems.append("rc=%s want 0（无产物语料不应按陈旧判红）" % rc)
+        if t2.get("stale_fatal") is not False:
+            problems.append("stale_fatal=%r want False" % t2.get("stale_fatal"))
+        if "uncertainty_available" not in (t2.get("stale_extra_properties") or []):
+            problems.append("陈旧项未可见登记: %s" % t2.get("stale_extra_properties"))
+        rec("stale_nonfatal_without_product_corpus", True, problems)
+
+        # 负例: 同一语料 + 只加严接缝 ⇒ 陈旧必须致命（证明接缝有效、棘轮未退化）
+        rc, rep = judge("stale_strict",
+                        corpus("stale_strict", {"fx/real_manifest_sample.json": fixture}),
+                        assume=True)
+        t2 = rep.get("t2_cfg001") or {}
+        problems = []
+        if rc != 1 or t2.get("stale_fatal") is not True or t2.get("ok") is not False:
+            problems.append("rc=%s stale_fatal=%r t2.ok=%r（want 1/True/False）"
+                            % (rc, t2.get("stale_fatal"), t2.get("ok")))
+        rec("stale_fatal_with_assume_seam", True, problems)
+
+        # 负例: 未登记的新偏差即使无产物语料也恒致命
+        rc, rep = judge("newdev", corpus("newdev", {"fx/new.json": new_key_man}))
+        t2 = rep.get("t2_cfg001") or {}
+        problems = []
+        if t2.get("new_extra_properties") != ["zzz_brand_new_prop"]:
+            problems.append("new_extra_properties=%r" % t2.get("new_extra_properties"))
+        if t2.get("ok") is not False:
+            problems.append("T2 未红（新偏差必须致命），stale_fatal=%r" % t2.get("stale_fatal"))
+        rec("new_deviation_fatal_without_product_corpus", True, problems)
+
+        # 正例: 登记项真的出现在语料里 ⇒ 不再是陈旧项，判绿
+        rc, rep = judge("registered", corpus(
+            "registered", {"fx/unc.json": dict(fixture, uncertainty_available=True)}))
+        t2 = rep.get("t2_cfg001") or {}
+        problems = []
+        if rc != 0 or t2.get("ok") is not True:
+            problems.append("rc=%s t2.ok=%r（want 0/True）" % (rc, t2.get("ok")))
+        if "uncertainty_available" in (t2.get("stale_extra_properties") or []):
+            problems.append("登记项已在场却仍记陈旧: %s" % t2.get("stale_extra_properties"))
+        rec("registered_deviation_present_green", True, problems)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
     ok = all(c["ok"] == c["expect_ok"] for c in cases)
     report = {"schema": "astrocs.run-manifest-schema-selftest/v1", "cases": cases,
               "n_cases": len(cases), "verdict": "PASS" if ok else "FAIL"}
@@ -354,10 +507,13 @@ def main(argv=None) -> int:
                     help="追加语料目录（负例注入用；可重复）")
     ap.add_argument("--no-default-corpus", action="store_true",
                     help="只用语料目录（负例隔离；正例/发布态不得使用）")
+    ap.add_argument("--assume-product-corpus", action="store_true",
+                    help="只加严的自测接缝：强制「产物语料在场」（陈旧即致命）；发布态不得使用")
     args = ap.parse_args(argv)
     if args.self_test:
         return self_test(args.json_out)
-    return run(args.json_out, args.corpus_dir, not args.no_default_corpus)
+    return run(args.json_out, args.corpus_dir, not args.no_default_corpus,
+               args.assume_product_corpus)
 
 
 if __name__ == "__main__":

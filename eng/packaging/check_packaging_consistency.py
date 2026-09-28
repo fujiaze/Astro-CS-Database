@@ -377,12 +377,38 @@ def _linked_external_tokens(cmake_text: str) -> set:
     return linked
 
 
+# 依赖锁的**身份/登记字段**（判据面）。**不含** policy/usage/build/license/source 等叙述字段：
+# 旧实现用整份 lock 文件文本做 in 判定 ⇒ 只要叙述里提过库名，删掉该依赖条目也不报红
+# （根因：CHK-PKG-CONSISTENCY 自测「C5 CMake 外部库漏登记」负例退化判绿；
+#  负例失去判别力而门面看起来完好）。判据必须只看登记本身，不看关于登记的说明文字。
+LOCK_IDENTITY_FIELDS = ("name", "referenced_token", "vendored_path", "license_file",
+                        "referenced_by", "aggregate_sha256")
+LOCK_DEP_SECTIONS = ("production_dependencies", "system_dependencies",
+                     "test_only_oracles")
+
+
+def _lock_registration_face(root: Path) -> str:
+    """依赖锁登记面（小写）：只取各依赖条目的身份字段，供 C5 锁漏列判定。"""
+    parts = []
+    for key in LOCK_DEP_SECTIONS:
+        for dep in load_json(root, LOCK).get(key) or []:
+            if not isinstance(dep, dict):
+                continue
+            for f in LOCK_IDENTITY_FIELDS:
+                v = dep.get(f)
+                if isinstance(v, str):
+                    parts.append(v)
+                elif isinstance(v, list):
+                    parts.extend(x for x in v if isinstance(x, str))
+    return "\n".join(parts).lower()
+
+
 def check_lock_vs_cmake(root: Path, findings: list):
-    lock_text = read_text(root, LOCK)
+    lock_face = _lock_registration_face(root)
     for tok in sorted(_linked_external_tokens(read_text(root, ROOT_CMAKE))):
         names = TOKEN_ALIASES.get(tok, (tok,))
-        if not any(n.lower() in lock_text.lower() for n in names):
-            findings.append(("C5", f"CMake 链接的外部库 {tok!r} 在依赖锁零登记（锁漏列）"))
+        if not any(n.lower() in lock_face for n in names):
+            findings.append(("C5", f"CMake 链接的外部库 {tok!r} 在依赖锁登记面零登记（锁漏列）"))
 
     src_texts = {}
     for p in _declared_source_roots(root):
@@ -555,22 +581,49 @@ def _require_anchor(repo: Path, rel: str, const_name: str) -> Path:
     return p
 
 
+def _same_file(a, b) -> bool:
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
 def _link_or_copy(s, d):
-    """copytree copy_function: 同盘硬链接（大 vendored 树零拷贝）, 跨盘回退复制。"""
+    """copytree copy_function: 同盘硬链接（大 vendored 树零拷贝）, 跨盘回退复制。
+
+    **同一目标被复制两次**时必须幂等（CI 崩溃点，判词 = CRASH 而非 finding）：
+    eng/packaging/licenses/** 既落在 _selftest_dirs() 的 eng/packaging 整树复制内，
+    又在 dependency-lock 的 license_file 消费者清单内 ⇒ 同一目的文件被第二次写入。
+    同盘（CI runner 的 /tmp 与工作树同 fs）时第一次留下**硬链接**，第二次
+    os.link 抛 FileExistsError；旧实现直接回退 shutil.copy2，而后者发现 src/dst
+    同 inode ⇒ 抛 shutil.SameFileError（在 except 处理器内抛出，不被外层捕获）
+    ⇒ traceback，runner error。跨盘（本地 /tmp = tmpfs）时 os.link 抛 EXDEV、目标
+    不存在，故本地复现不出 —— 判据必须与盘布局无关。
+    处置：same-file ⇒ 幂等返回；目标已存在但非同文件（陈旧/异内容）⇒ 显式替换，
+    不静默保留旧内容（否则沙箱带着被污染的登记面继续自测，自测失去判别力）。
+    """
+    if os.path.exists(d) and _same_file(s, d):
+        return                                  # 幂等：已是同一 inode
     try:
         os.link(s, d)
+        return
+    except FileExistsError:
+        try:
+            os.unlink(d)                        # 陈旧/异内容目标：显式替换
+            os.link(s, d)
+            return
+        except OSError:
+            pass
     except OSError:
-        shutil.copy2(s, d)
+        pass
+    shutil.copy2(s, d)
 
 
 def _copy(src: Path, dest: Path, repo: Path):
     rel = src.relative_to(repo)
     out = dest / rel
     out.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        os.link(src, out)          # 同盘硬链接: 大 vendored 树零拷贝
-    except OSError:
-        shutil.copy2(src, out)
+    _link_or_copy(src, out)
 
 
 def _sandbox_lock_consumers(repo: Path):
@@ -624,23 +677,47 @@ def build_sandbox(repo: Path, dest: Path):
                                 copy_function=_link_or_copy, dirs_exist_ok=True)
 
 
+def _write_detached(path: Path, text: str) -> None:
+    """写沙箱副本而**不穿透硬链接**：临时文件 + os.replace ⇒ 目标路径换新 inode。
+
+    沙箱用硬链接零拷贝复制（同盘尤其大：vendored cfitsio）。若就地 write_text，
+    截断的是**同一个 inode** ⇒ 故障注入直接写回**源仓库**。实测事故：TMPDIR 与工作树
+    同盘（CI runner 的 /tmp 即如此）时 `--self-test` 把 product_version=9.9.9、
+    ghost schema 条目、全零哈希等写进真实仓库文件，而门面仍报 SELFTEST PASS ——
+    即"自测污染被检对象"。注入必须是沙箱私有的：换 inode 后源文件链接计数减一、
+    内容逐字节不变。跨盘（copy2 已产出真副本）时行为不变。
+    """
+    tmp = path.with_name(path.name + ".acsd-sandbox-tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def _fingerprint(path: Path) -> str:
+    """内容指纹（inode 会因换 inode 而变，故只取内容哈希 + 大小）。"""
+    try:
+        b = path.read_bytes()
+    except OSError as e:
+        return f"<unreadable {type(e).__name__}>"
+    return f"{len(b)}:{hashlib.sha256(b).hexdigest()}"
+
+
 def _mutate_json(path: Path, fn):
     d = json.loads(path.read_text(encoding="utf-8"))
     fn(d)
-    path.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_detached(path, json.dumps(d, ensure_ascii=False, indent=2))
 
 
 def _inject_status_flip(r: Path):
     t = read_text(r, WIN_TEMPLATE)
     assert '"status": "SKELETON"' in t, "夹具无 SKELETON 状态可翻转"
-    (r / WIN_TEMPLATE).write_text(
-        t.replace('"status": "SKELETON"', '"status": "IMPLEMENTED"', 1), encoding="utf-8")
+    _write_detached(r / WIN_TEMPLATE,
+                    t.replace('"status": "SKELETON"', '"status": "IMPLEMENTED"', 1))
 
 
 def _inject_wildcard(r: Path):
     t = read_text(r, INSTALL_RULES)
-    (r / INSTALL_RULES).write_text(
-        'install(DIRECTORY x FILES_MATCHING PATTERN "*.json")\n' + t, encoding="utf-8")
+    _write_detached(r / INSTALL_RULES,
+                    'install(DIRECTORY x FILES_MATCHING PATTERN "*.json")\n' + t)
 
 
 def self_test(repo: Path) -> int:
@@ -650,10 +727,10 @@ def self_test(repo: Path) -> int:
         ("C1 manifest 版本漂移", lambda r: _mutate_json(
             r / LINUX_MANIFEST,
             lambda d: d.__setitem__("product_version", "9.9.9")), "C1"),
-        ("C1 schema 写死版本常量", lambda r: (r / SCHEMA_DIR / "astrocs-product.schema.json")
-            .write_text(read_text(r, SCHEMA_DIR + "/astrocs-product.schema.json")
-                        .replace('"type": "string"', '"const": "0.11.0-alpha.1"', 1),
-                        encoding="utf-8"), "C1"),
+        ("C1 schema 写死版本常量", lambda r: _write_detached(
+            r / SCHEMA_DIR / "astrocs-product.schema.json",
+            read_text(r, SCHEMA_DIR + "/astrocs-product.schema.json")
+            .replace('"type": "string"', '"const": "0.11.0-alpha.1"', 1)), "C1"),
         ("C2 合同漏列（删一个 schema 单元）", lambda r: _mutate_json(
             r / CONTRACT, lambda d: d.__setitem__(
                 "units", [u for u in d["units"]
@@ -685,6 +762,16 @@ def self_test(repo: Path) -> int:
          "ANCHOR_STALE"),
     )
     anchor_stale = False
+    # 注射面源文件快照：硬链接零拷贝沙箱若"就地写"，注入会穿透写回**源仓库**
+    # （实测事故：同盘 TMPDIR 下自测把 product_version=9.9.9 / ghost schema / 全零哈希
+    #  写进真实仓库文件，而门面照样报 SELFTEST PASS）。下面在跑完全部注射后逐字节核对，
+    # 任何一条源文件变了即判红 —— 这是"自测不得污染被检对象"的机器守卫。
+    inject_targets = [LINUX_MANIFEST, CONTRACT, LOCK, WIN_TEMPLATE, INSTALL_RULES]
+    inject_targets += [str(p.relative_to(repo)) for p in
+                       sorted((repo / SCHEMA_DIR).glob("*.json"))]
+    inject_targets += [str(p.relative_to(repo)) for p in
+                       sorted((repo / LICENSE_DIR).glob("*"))]
+    snap_before = {t: _fingerprint(repo / t) for t in inject_targets}
     with tempfile.TemporaryDirectory(prefix="astrocs-pkg-selftest-") as tmp:
         base = Path(tmp)
         for case, mutate, expect in cases:
@@ -716,6 +803,75 @@ def self_test(repo: Path) -> int:
                 detail = f"应命中 {expect}, 实得 {sorted(codes)}"
             print(("SELFTEST PASS " if good else "SELFTEST FAIL ") + f"{case}: {detail}")
             ok = ok and good
+    # ── 硬链接穿透守卫（正例：注射面源文件必须逐字节不变）────────────────────
+    changed = [t for t in inject_targets if _fingerprint(repo / t) != snap_before[t]]
+    print(("SELFTEST PASS " if not changed else "SELFTEST FAIL ")
+          + "注射未写穿源仓库: 全部注射目标逐字节不变"
+          + ("" if not changed else f" [被写穿: {changed[:5]}]"))
+    ok = ok and not changed
+
+    # ── 原子写 / 就地写 正负例（与盘布局无关：显式 os.link 造硬链接）──────────
+    with tempfile.TemporaryDirectory(prefix="astrocs-pkg-selftest-atomic-") as tmp:
+        base = Path(tmp)
+        src = base / "src.txt"
+        src.write_text("ORIG\n", encoding="utf-8")
+        sib = base / "sib.txt"                 # 正例：改副本不得穿透同 inode 的源
+        os.link(src, sib)
+        before = _fingerprint(src)
+        _write_detached(sib, "SAFE\n")
+        isolated = (_fingerprint(src) == before
+                    and sib.read_text(encoding="utf-8") == "SAFE\n")
+        print(("SELFTEST PASS " if isolated else "SELFTEST FAIL ")
+              + "原子写隔离: 注入沙箱副本不得改动同 inode 的源文件")
+        ok = ok and isolated
+        sib2 = base / "sib2.txt"               # 负例：就地写必然穿透，守卫必须能看见
+        os.link(src, sib2)
+        before2 = _fingerprint(src)
+        sib2.write_text("LEAK\n", encoding="utf-8")
+        detected = _fingerprint(src) != before2
+        print(("SELFTEST PASS " if detected else "SELFTEST FAIL ")
+              + "就地写穿透可检: 守卫必须看得见源文件被改（负例）")
+        ok = ok and detected
+
+    # ── 崩溃点回归（CHK-PKG-CONSISTENCY 判词 CRASH 的根因面）─────────────────
+    # 夹具内构造「同一目标被复制两次」的确切条件：第一次写成功（同盘 = 硬链接），
+    # 第二次目标已存在。旧实现在此抛 shutil.SameFileError ⇒ runner error 而非 finding。
+    # 正例：第二次复制必须幂等成功且内容与源逐字一致（同盘时即同 inode）；
+    # 负例：目的文件被污染为异内容 ⇒ 必须被**替换**回源内容，静默保留旧内容即判红
+    # （保留会令沙箱带着被污染的登记面继续自测，后续全部自测失去判别力）。
+    with tempfile.TemporaryDirectory(prefix="astrocs-pkg-selftest-samefile-") as tmp:
+        base = Path(tmp)
+        fake_repo = base / "repo"
+        src = fake_repo / "eng" / "packaging" / "licenses" / "L.txt"
+        src.parent.mkdir(parents=True)
+        src.write_text("SRC\n", encoding="utf-8")
+        sandbox = base / "sandbox"
+        sandbox.mkdir()
+        dst = sandbox / src.relative_to(fake_repo)
+        try:
+            _copy(src, sandbox, fake_repo)          # 正例 1: 首次复制
+            _copy(src, sandbox, fake_repo)          # 正例 2: 同一目标再复制（CI 崩溃点）
+            idem, err = True, ""
+        except Exception as e:                      # noqa: BLE001 - 自测需报告任何崩溃
+            idem, err = False, f"{type(e).__name__}: {e}"
+        content_ok = dst.is_file() and dst.read_text(encoding="utf-8") == "SRC\n"
+        good = idem and content_ok
+        print(("SELFTEST PASS " if good else "SELFTEST FAIL ")
+              + "same-file 幂等（同盘 FileExistsError / 跨盘 EXDEV）: "
+              + ("重复复制不崩且内容与源一致" if good else f"崩溃或内容不符 [{err}]"))
+        ok = ok and good
+        os.unlink(dst)                              # 断开硬链接: 写目的文件不得污染源
+        dst.write_text("POISON\n", encoding="utf-8")
+        try:
+            _copy(src, sandbox, fake_repo)
+            replaced = dst.read_text(encoding="utf-8") == "SRC\n"
+            err2 = ""
+        except Exception as e:                      # noqa: BLE001
+            replaced, err2 = False, f"{type(e).__name__}: {e}"
+        print(("SELFTEST PASS " if replaced else "SELFTEST FAIL ")
+              + "陈旧目标替换: 异内容目的文件必须被替换为源内容（禁静默保留）"
+              + ("" if replaced else f" [{err2 or '旧内容未被替换'}]"))
+        ok = ok and replaced
     print("SELFTEST " + ("PASS (全部注入均判红, 正例判绿)" if ok else "FAIL"))
     return 2 if anchor_stale else (0 if ok else 1)
 

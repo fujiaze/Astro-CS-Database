@@ -62,7 +62,10 @@
     "p1_max_frames_in_flight_constraint": "整数 ≥ 0；0 = 策略值（帧级并行宽度由 Runtime lease 与内存闸门共同决定，见 docs/architecture/THREADING_MODEL.md「并行轴分配」）。>0 时**只收紧**帧级在飞宽度（实现侧 fail-closed：绝不放大到超预算，也不改帧内轴分配公式）。依据 docs/ASTROCS_DESIGN.md §8.3:652「编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测」+ docs/contracts/SCHEDULER_CONTRACT.md:38（最终取值由性能门定，合同只保证机制正确）。",
     "scheduler_prefetch_threads_max": 4,
     "scheduler_prefetch_threads_max_constraint": "整数 ≥ 0；0 = 不设上限。未接线调度器 lib/infrastructure/scheduler/src/normalize_workflow.cpp 的**预取线程数上限**（NormalizeWorkflowConfig::prefetch_threads 的受控上界）：实现侧把请求值 clamp 到本键并留痕，不再出现无上界的并发预取。依据 docs/ASTROCS_DESIGN.md §8.3:643（normalize「异步启动其他独立工作流（预取下一帧…）；I/O 预取与计算重叠」）+ §8.3:647（线程池唯一来源是调度器、单进程唯一预算源）。",
-    "work_steal_policy": "gap:未落地（键位方案见 config_registry.json#orchestration_params.gaps；生产无实现，不落死键）"
+    "work_steal_policy": "gap:未落地（键位方案见 config_registry.json#orchestration_params.gaps；生产无实现，不落死键）",
+    "cpu_budget_max": 0,
+    "cpu_budget_max_constraint": "整数 ≥ 0；0 = 不设上限。进程有效 CPU 预算的**配置上限**（docs/standards/CONCURRENCY_STANDARD.md「默认」节：「线程数：外部可配置，默认 min(可用核, 配置上限)」）——预算唯一来源仍是运行期配额（调度器 lease / CLI 注入的可用核），本键只提供上限，不引入第二个数值来源。消费面 = lib/infrastructure/scheduler/src/cpu_budget.cpp#process_cpu_budget（生成头 kCpuBudgetMax）。",
+    "x-cpu-budget-note": "X1 节点并行预算接线：旧实现在直接调用 op（无调度器 lease、config 无 __workers）时恒取 1 ⇒ 节点内 omp parallel for 继承 ICV=1 ⇒ 整批科学内核单线程（PSF 域实测 1,086.0 s vs 16 线程探针 101.2 s）。现按运行期预算解析：lease 存在则以其为准（只收紧），否则取 min(可用核, 本上限)。"
   },
   "frame_memory_gate": {
     "bytes_per_pixel": 116.0,

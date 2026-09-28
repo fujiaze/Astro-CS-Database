@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""eng/ci/resource_monitor.py — 统一资源监控桥接入口（V8-CI-005，owner=SA-CI-32）。
+"""eng/ci/resource_monitor.py — 统一资源监控桥接入口。
 
 背景：eng/ci/run.py:52 定义 MONITOR_SCRIPT = "eng/ci/resource_monitor.py"，真实执行
 heavy 检查前的前置探测（probe_prerequisite）要求该文件存在；而统一监控包装器
-的实体在 eng/tools/monitoring/run_monitored.py（V8-CI-003 产物）。本文件是二者的
+的实体在 eng/tools/monitoring/run_monitored.py（统一监控包装器）。本文件是二者的
 桥接 shim：
 
   * 无参数运行 → 打印能力说明 JSON 并 exit 0（被 run.py 存在性探测覆盖；

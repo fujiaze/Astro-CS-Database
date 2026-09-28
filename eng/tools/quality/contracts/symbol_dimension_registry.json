@@ -138,7 +138,7 @@
         "sr": 1
       },
       "meaning": "Phase 1 drizzle 覆盖球面面积 covered_area（分母）",
-      "evidence": "docs/contracts/DATA_SEMANTICS.md:48",
+      "evidence": "docs/contracts/DATA_SEMANTICS.md:50",
       "forbidden_context_phrases": [
         "权重和",
         "weight sum",

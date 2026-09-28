@@ -8,7 +8,14 @@
 
   [1] `ENGINEERING_SPEC.md` 在位、受 Git 跟踪、含 §2/§3/§4/§5/§6/§7/§8 七节；
   [2] §7 根白名单可机械抽取：固定条目 + 其他固定目录 + gitignore 目录；
-  [3] §7 要求存在的根条目必须齐备（缺一即红）；
+  [3] §7 要求存在的根条目必须齐备（缺一即红）；**外部只读数据集根目录豁免存在性**
+      （§7 末段：不由本仓生成、不随仓库分发、仅供本地实验引用 ⇒ 干净检出必然没有它，
+      把「本地摆着 48 GB 星表」与「CI 干净检出」判成两种结论是判据缺陷）；
+  [3b] 外部只读数据集（登记面 = §7 末段「已登记：」逐字清单）：缺失 ⇒ 不判红；存在 ⇒
+      ① 必须登记于 `root_manifest.json` 的 `allowed_dirs` 且出现在 §7 目录清单里；
+      ② git 不得跟踪其中任何文件（**不入库**）；③ 必须由 `.gitignore` 排除（⇒ 不被
+      仓库内容扫描面当作仓库内容）；④ 不得被根构建入口引用（**只读引用**）；
+      目录存在而根不是 git 工作树 ⇒ 判红 fail-closed（判不了 ≠ 无违规，§8）。
   [4] §7 之外的顶层条目必须已登记（`eng/ci/root_manifest.json` 的
       registered_local_retention / ignored_patterns），未登记即红；
       -> 新增根条目须"先登记并经负责人确认"（§7 原文）由本项机器化；
@@ -33,11 +40,22 @@
   python3 eng/tools/doccheck/check_engineering_constraints.py --self-test
 
 --self-test（ENGINEERING_SPEC §8「可执行负例面」）：在 tempfile 造的 mini-repo 上跑
-3 正例 + 8 负例（未登记根条目 / 台账比 §7 更宽 / 悬空登记 / 同名异内容不豁免 /
+5 正例 + 14 负例（未登记根条目 / 台账比 §7 更宽 / 悬空登记 / 同名异内容不豁免 /
 「本文档」自称唯一最高 / 旧权威对象同名重建 / 扫描面为空 fail-closed），
+其中外部只读数据集判据 2 正例 + 6 负例：缺失判绿 / 存在且未入库判绿 / 已 tracked 判红 /
+未由 .gitignore 排除判红 / 被根构建入口引用判红 / 非 git 工作树 fail-closed 判红 /
+登记清单被删 fail-closed 判红 / 未登记于 §7 目录清单判红，
 全部符合预期则自身 exit 0。
 能红能绿历史证据（1 正例 + 8 负例）：run/PROJECT-GOVERNANCE-01/GOV-001/fixtures/
 （runtime 验证脚本 verify_checkers.py；正例 = 真实仓库 rc=0）。
+
+2026-09-29 ENG-CONSTRAINTS 收口实测：修前 --self-test **恒红**（3 个正例全红 + N5 从未真正
+触发），根因全是**夹具缺陷**、不是判据放宽：① 夹具台账 allowed_files 含嵌套路径
+docs/ASTROCS_DESIGN.md（§7 口径 = 路径首段是根条目 ⇒ 每次都被判 manifest_not_wider_than_spec7）；
+② 独立审计/ 被 §7 目录清单要求却没建（spec7_required_dirs_present）；③ N5 没删
+docs/ASTROCS_DESIGN.md ⇒ docs/** 扫描面非空、scanned≥1，fail-closed 那条从未被触发。
+本轮修的是夹具本身（判据一条未放宽），修后 5 正例全绿 + 14 负例逐条判红；证据
+run/FINAL-07/审核包/CI/eng_constraints_after_selftest.json。
 exit 0 = PASS；任一断言不成立 = exit 1（打印机器 JSON）。
 """
 from __future__ import annotations
@@ -80,6 +98,65 @@ NON_BINDING_MARKERS = ["ARCHIVED_NON_NORMATIVE", "ARCHIVED", "已删", "已删�
 LEGACY_BINDING_STRONG = ["权威", "上位", "最高", "FROZEN", "ACTIVE_NORMATIVE", "必读",
                          "冻结", "约束", "依据"]
 SELF_AUTHORITY_RE = re.compile(r"唯一\s*最高(权威|约束|规范|文档)")
+
+# ---- §7「外部只读数据集」判据面 -------------------------------------------------
+# ENGINEERING_SPEC §7 末段原文口径：外部只读数据集（不由本仓生成、不随仓库分发、仅供本地
+# 实验引用）在根目录以具名目录放置，登记于本节与 eng/ci/root_manifest.json 的 allowed_dirs，
+# 全部由 .gitignore 排除；判据 = 只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容。
+# ⇒ 机器口径：**允许缺失**（它不随仓库分发，干净检出必然没有）；存在时按「不入库 + 不被仓库
+#   消费」判红/判绿（run_check [3b]）。缺失豁免的依据是 §7 的「已登记：」逐字清单 ⇒ 该清单
+#   被删时 fail-closed 判红（豁免不得无依据地生效）。
+EXTERNAL_DATASET_REGISTRY_RE = re.compile(r"外部只读数据集[^\n]*?已登记[：:]\s*([^。；;]*)")
+# 「被仓库消费」的机器面 = 根构建入口（§7 逐字要求「不被根 CMake 引用」）。
+# 残余边界（如实登记）：eng/ci/checks.json 中把 `<dataset>/**` 写进 changed_paths 的是
+# **监听域**声明（例：CHK-PATH-DOMAIN-ANCHORS 的 gaia/**），不等于把数据集当仓库内容消费，
+# 故不列入本判红面；「不被检查器当作仓库内容」由「.gitignore 排除 + git 不跟踪」覆盖
+# （仓库内容扫描面按跟踪面枚举）。
+CONSUMPTION_FACES = ("CMakeLists.txt", "CMakePresets.json")
+
+
+def external_readonly_roots(sec7: str) -> set:
+    """从 §7「外部只读数据集」条款抽取**根级**数据集目录名（路径首段）。
+
+    §7 是唯一登记面：「已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`」⇒ {gaia}。
+    抽不到「已登记：」清单 ⇒ 返回空集，由 run_check 判 red
+    （external_dataset_registry_missing，fail-closed：清单被删不得让缺失豁免无依据地生效）。
+    """
+    roots: set = set()
+    m = EXTERNAL_DATASET_REGISTRY_RE.search(sec7)
+    if not m:
+        return roots
+    seg = m.group(1)
+    toks = re.findall(r"`([^`]+)`", seg)
+    if not toks:
+        toks = [t for t in re.split(r"[、,，\s]+", seg) if t]
+    for tok in toks:
+        tok = tok.strip().strip("/")
+        if not tok:
+            continue
+        seg0 = tok.split("/")[0]
+        # 只认目录名形态（排除 root_manifest.json / .gitignore 这类文件名与相对路径记号）
+        if re.fullmatch(r"[\w\u4e00-\u9fff\-]+", seg0, re.UNICODE) and seg0 not in (".", ".."):
+            roots.add(seg0)
+    return roots
+
+
+def build_consumption_hits(root: str, name: str) -> list:
+    """根构建入口里对 `<name>/` 的逐字引用（`文件:行` 面）。"""
+    pat = re.compile(r"(?<![A-Za-z0-9_.\-])" + re.escape(name) + r"/")
+    hits = []
+    for rel in CONSUMPTION_FACES:
+        p = os.path.join(root, rel)
+        if not os.path.isfile(p):
+            continue
+        for i, line in enumerate(read(p).splitlines(), 1):
+            if pat.search(line):
+                hits.append("%s:%d" % (rel, i))
+    return hits
+
+
+def git_run(root: str, *args):
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
 
 
 def read(path: str) -> str:
@@ -280,9 +357,11 @@ def run_check(root: str):
                               "detail": "§%d %s 缺失或为空" % (n, name)})
 
     files, dirs, ignored = spec_whitelist(secs[7])
+    ext_roots = external_readonly_roots(secs[7])
     notes["spec7_files"] = sorted(files)
     notes["spec7_dirs"] = sorted(dirs)
     notes["spec7_gitignored"] = sorted(ignored)
+    notes["spec7_external_readonly_roots"] = sorted(ext_roots)
     if not files or not dirs:
         violations.append({"check": "spec7_parse", "detail": "§7 白名单无法机械抽取"})
 
@@ -297,14 +376,77 @@ def run_check(root: str):
         violations.append({"check": "manifest_exists", "detail": "缺 " + MANIFEST})
 
     # [3] §7 要求存在的条目
+    # 例外：§7「外部只读数据集」不由本仓生成、不随仓库分发（§7 末段）⇒ **豁免存在性**；
+    # 对它判「缺失即红」会把「本机摆着星表」与「CI 干净检出」判成两种结论（判据缺陷），
+    # 它的判据在 [3b]（不入库 / 只读引用）。其余 §7 目录仍必须齐备。
     missing_required = [n for n in sorted(files) if n not in present]
-    missing_dirs = [n for n in sorted(dirs) if n not in present or not os.path.isdir(os.path.join(root, n))]
+    missing_dirs = [n for n in sorted(dirs)
+                    if n not in ext_roots
+                    and (n not in present or not os.path.isdir(os.path.join(root, n)))]
     if missing_required:
         violations.append({"check": "spec7_required_files_present",
                           "detail": "§7 要求存在但缺失的文件: %s" % ",".join(missing_required)})
     if missing_dirs:
         violations.append({"check": "spec7_required_dirs_present",
                           "detail": "§7 要求存在但缺失的目录: %s" % ",".join(missing_dirs)})
+
+    # [3b] 外部只读数据集（§7 末段）：允许缺失；存在 ⇒ 只读引用 / 不入库 / 非仓库内容
+    if "外部只读数据集" in secs[7] and not ext_roots:
+        violations.append({"check": "external_dataset_registry_missing",
+                          "detail": "§7 声明了「外部只读数据集」条款但抽不到「已登记：」清单；"
+                                    "缺失豁免不得无登记依据地生效（fail-closed）"})
+    man_dirs = set(man.get("allowed_dirs", []) or [])
+    for name in sorted(ext_roots):
+        if name not in dirs:
+            violations.append({"check": "external_dataset_not_in_spec7_dirs",
+                              "detail": "外部只读数据集 %s/ 未出现在 §7 根目录清单里（§7 要求"
+                                        "「登记于本节与 root_manifest.json 的 allowed_dirs」）" % name})
+    ext_present, ext_absent = [], []
+    for name in sorted(ext_roots):
+        if not os.path.isdir(os.path.join(root, name)):
+            ext_absent.append(name)
+            continue
+        ext_present.append(name)
+        if name not in man_dirs:
+            violations.append({"check": "external_dataset_unregistered",
+                              "detail": "外部只读数据集 %s/ 存在但未登记于 %s 的 allowed_dirs（§7）"
+                                        % (name, MANIFEST)})
+        if not os.path.isdir(os.path.join(root, ".git")):
+            violations.append({"check": "external_dataset_unjudgeable",
+                              "detail": "外部只读数据集 %s/ 存在但 %s 不是 git 工作树 ⇒ 无法判定"
+                                        "「不入库 / 被 .gitignore 排除」；判不了 ≠ 无违规（§8 fail-closed）"
+                                        % (name, root)})
+            continue
+        ls = git_run(root, "ls-files", "--", name)
+        if ls.returncode != 0:
+            violations.append({"check": "external_dataset_unjudgeable",
+                              "detail": "git ls-files -- %s 失败（rc=%d）: %s"
+                                        % (name, ls.returncode, (ls.stderr or "").strip()[:120])})
+        elif ls.stdout.strip():
+            tracked = ls.stdout.strip().splitlines()
+            violations.append({"check": "external_dataset_tracked",
+                              "detail": "外部只读数据集 %s/ 已入库（git 跟踪 %d 个文件，前 3 例: %s）；"
+                                        "§7 要求「不入库」，一旦需入库必须移入 testdata/ 或 artifacts/"
+                                        % (name, len(tracked), ", ".join(tracked[:3]))})
+        # --no-index：只问「忽略规则命中不命中」，不被"已跟踪即不算忽略"掩盖
+        # （跟踪面由上面的 ls-files 独立判；两条断言互不替代 ⇒ 更严，不是放宽）
+        ci = git_run(root, "check-ignore", "--no-index", "-q", "--", name)
+        if ci.returncode == 1:
+            violations.append({"check": "external_dataset_not_gitignored",
+                              "detail": "外部只读数据集 %s/ 未被 .gitignore 排除（§7 要求「全部由 "
+                                        ".gitignore 排除」）；未排除即进入仓库内容扫描面" % name})
+        elif ci.returncode != 0:
+            violations.append({"check": "external_dataset_unjudgeable",
+                              "detail": "git check-ignore -- %s 失败（rc=%d）: %s"
+                                        % (name, ci.returncode, (ci.stderr or "").strip()[:120])})
+        hits = build_consumption_hits(root, name)
+        if hits:
+            violations.append({"check": "external_dataset_consumed_by_build",
+                              "detail": "外部只读数据集 %s/ 被根构建入口引用（%s）；§7 要求「不被根 "
+                                        "CMake 引用」，一旦被消费必须移入 testdata/ 或 artifacts/"
+                                        % (name, ", ".join(hits[:3]))})
+    notes["spec7_external_readonly_present"] = ext_present
+    notes["spec7_external_readonly_absent"] = ext_absent
 
     # [4] 未登记条目
     entries = man.get("registered_local_retention", []) or []
@@ -465,15 +607,17 @@ SELFTEST_SPEC = """# ENGINEERING_SPEC（mini-repo 夹具）
 ```text
 仓库根固定条目：
 README.md / AGENTS.md / docs/ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
-CONTROL_PACK_SPEC.md / memory.md / CMakeLists.txt
+CONTROL_PACK_SPEC.md / memory.md / CMakeLists.txt / .gitignore
 
 lib/
 ├── algorithms/
 └── infrastructure/
 
-其他固定目录：docs/ eng/tools/ eng/ci/
+其他固定目录：docs/ eng/tools/ eng/ci/ gaia/ 独立审计/
 run/（gitignore：临时产物/日志）  logs/（gitignore）
 ```
+
+- **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`。判据：只读引用、不入库、不被根 CMake 引用。
 
 ## 8. 机器一致性检查
 
@@ -494,10 +638,20 @@ SELFTEST_README = """# README（mini-repo 夹具）
 """
 
 SELFTEST_FILES = ["README.md", "AGENTS.md", "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md",
-                  "CONTROL_PACK_SPEC.md", "memory.md", "CMakeLists.txt"]
+                  "CONTROL_PACK_SPEC.md", "memory.md", "CMakeLists.txt", ".gitignore"]
+# §7 现行口径 = 「路径首段是根条目」⇒ 台账白名单只登记**根条目**：docs/ASTROCS_DESIGN.md
+# 由根条目 docs 覆盖，不得再作为独立白名单条目出现（否则 manifest_not_wider_than_spec7
+# 判红——夹具的基线正例必须自身合规，判据未放宽）。
+SELFTEST_MANIFEST_FILES = [f for f in SELFTEST_FILES if "/" not in f]
 # 2026-09-21 根目录整合：夹具根目录同步为整合后布局（tools/ci → eng/，
 # 并补上 §7 显式登记的 CJK 目录 实验/）。
-SELFTEST_DIRS = ["docs", "eng", "工程控制", "实验", "lib"]
+SELFTEST_DIRS = ["docs", "eng", "工程控制", "实验", "独立审计", "lib"]
+# §7 登记面 vs 实际创建面：gaia/ 是「已登记的外部只读数据集」——**登记在案但不创建**
+# （夹具基线正例必须证明「登记而未创建 ⇒ 判绿」；创建它反而要另配 git 面，见 P4/P5）。
+SELFTEST_MANIFEST_DIRS = SELFTEST_DIRS + ["gaia"]
+# 夹具外部只读数据集内容（存在 / 已入库两类夹具共用）
+SELFTEST_DATASET_FILE = os.path.join("gaia", "GaiaDR3", "gdr3-1.0.0-01.xpsd")
+SELFTEST_GITIGNORE_GAIA = "gaia/\n"
 
 
 def selftest_manifest(allowed_files=None, allowed_dirs=None, retention=None,
@@ -505,8 +659,8 @@ def selftest_manifest(allowed_files=None, allowed_dirs=None, retention=None,
     return {
         "schema_version": 1,
         "spec": "ENGINEERING_SPEC.md §7（mini-repo 夹具）",
-        "allowed_files": list(SELFTEST_FILES) if allowed_files is None else allowed_files,
-        "allowed_dirs": list(SELFTEST_DIRS) if allowed_dirs is None else allowed_dirs,
+        "allowed_files": list(SELFTEST_MANIFEST_FILES) if allowed_files is None else allowed_files,
+        "allowed_dirs": list(SELFTEST_MANIFEST_DIRS) if allowed_dirs is None else allowed_dirs,
         "implicit_entries": [".git"],
         "runtime_product_patterns": ["astrocs_run_*.json"],
         "ignored_patterns": list(ignored_patterns or []),
@@ -535,19 +689,51 @@ def _write(path: str, text: str) -> None:
         fh.write(text)
 
 
-def _mini_repo(base: str, manifest: dict = None) -> None:
-    """造一个 ENG-CONSTRAINTS 应 rc=0 的 mini-repo（§7 白名单 + 台账 + README 权威入口）。"""
+def _git_fixture(root: str, gitignore_text: str = None, track_dataset: bool = False) -> None:
+    """把 mini-repo 变成**真实 git 工作树**（外部只读数据集判据要 git 面才可判）。
+
+    只写索引、不 commit：判据读的是 `git ls-files` / `git check-ignore`，无需提交，
+    也就不依赖宿主机 git 的 user.name/user.email（自测不因机器配置漂移）。
+    gitignore_text=None ⇒ 不建 .gitignore（负例：数据集未被排除）；
+    track_dataset=True ⇒ 再把 gaia/ 强制加入索引（负例：已入库）。
+    数据集文件的存在时点由调用方决定：**入库/忽略夹具在 add 之前写**，
+    「未跟踪但未被排除」夹具在 add 之后写（否则 `git add -A` 会顺带把它加入索引）。
+    """
+    env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
+
+    def run(*args) -> None:
+        r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, env=env)
+        if r.returncode != 0:
+            raise RuntimeError("self-test 夹具 git %s 失败: %s" % (" ".join(args),
+                                                                  (r.stderr or "").strip()[:200]))
+
+    run("-c", "init.defaultBranch=main", "init", "-q")
+    if gitignore_text is not None:
+        _write(os.path.join(root, ".gitignore"), gitignore_text)
+    run("add", "-A", "--", ".")
+    if track_dataset:
+        run("add", "-f", "--", "gaia")
+
+
+def _mini_repo(base: str, manifest: dict = None, spec: str = None) -> None:
+    """造一个 ENG-CONSTRAINTS 应 rc=0 的 mini-repo（§7 白名单 + 台账 + README 权威入口）。
+
+    spec 覆盖 §7 文本（负例：删「已登记：」清单 / 把数据集根移出 §7 目录清单）。
+    注意：**不创建 gaia/**——它是 §7 登记但允许缺失的外部件（见 SELFTEST_MANIFEST_DIRS）。
+    """
     for d in SELFTEST_DIRS:
         os.makedirs(os.path.join(base, d), exist_ok=True)
     os.makedirs(os.path.join(base, "docs", "ci"), exist_ok=True)
     os.makedirs(os.path.join(base, "docs", "plugins"), exist_ok=True)
-    _write(os.path.join(base, SPEC), SELFTEST_SPEC)
+    _write(os.path.join(base, SPEC), SELFTEST_SPEC if spec is None else spec)
     _write(os.path.join(base, "README.md"), SELFTEST_README)
     _write(os.path.join(base, "AGENTS.md"), "# AGENTS（mini-repo 夹具）\n\n- 只 main 开发。\n")
     _write(os.path.join(base, "docs/ASTROCS_DESIGN.md"), "# docs/ASTROCS_DESIGN（mini-repo 夹具）\n")
     _write(os.path.join(base, "CONTROL_PACK_SPEC.md"), "# CONTROL_PACK_SPEC（mini-repo 夹具）\n")
     _write(os.path.join(base, "memory.md"), "# memory（mini-repo 夹具）\n")
     _write(os.path.join(base, "CMakeLists.txt"), "# mini-repo 夹具\n")
+    # .gitignore 是 §7 固定条目 ⇒ 夹具树也必须有（git 夹具按用例覆写其内容）
+    _write(os.path.join(base, ".gitignore"), "build/\n")
     _write(os.path.join(base, "docs", "design", "UNIFIED_MODEL.md"),
            "# UNIFIED_MODEL（mini-repo 夹具）\n")
     _write(os.path.join(base, MANIFEST),
@@ -559,7 +745,7 @@ def self_test() -> int:
     tmp = tempfile.mkdtemp(prefix="eng-constraints-selftest-")
     results = []
 
-    def case(name: str, expect: str, root: str, want=None) -> None:
+    def case(name: str, expect: str, root: str, want=None, notes_want=None) -> None:
         v, notes, _checks = run_check(root)
         codes = sorted({x["check"] for x in v})
         if expect == "pass":
@@ -568,6 +754,13 @@ def self_test() -> int:
         else:
             ok = want in codes
             detail = "codes=" + (",".join(codes) or "(空)")
+        # notes_want：断言判据**真的生效**（例如 gaia 被识别为外部只读数据集根且缺席），
+        # 堵住「把该项从 §7 删掉也同样判绿」这类把判据做没的假绿。
+        if notes_want:
+            mism = {k: notes.get(k) for k, exp in notes_want.items() if notes.get(k) != exp}
+            if mism:
+                ok = False
+                detail += " notes_mismatch=" + json.dumps(mism, ensure_ascii=False, sort_keys=True)
         results.append({"case": name, "expect": expect, "want": want,
                         "rc": 0 if not v else 1, "ok": ok, "detail": detail,
                         "unique_authority_scanned": notes.get("unique_authority_scanned")})
@@ -590,7 +783,7 @@ def self_test() -> int:
 
         # N2：台账 allowed_files 比 §7 宽
         n2 = os.path.join(tmp, "n2-wider")
-        _mini_repo(n2, selftest_manifest(allowed_files=list(SELFTEST_FILES) + ["EXTRA_ROOT.md"]))
+        _mini_repo(n2, selftest_manifest(allowed_files=list(SELFTEST_MANIFEST_FILES) + ["EXTRA_ROOT.md"]))
         case("N2 台账白名单比 §7 更宽", "fail", n2, "manifest_not_wider_than_spec7")
 
         # N3：悬空登记（不存在、无归档同名）
@@ -627,6 +820,9 @@ def self_test() -> int:
                     "memory.md"):
             os.remove(os.path.join(n5, rel))
         os.remove(os.path.join(n5, "docs", "design", "UNIFIED_MODEL.md"))
+        # docs/** 走的是目录遍历，docs/ASTROCS_DESIGN.md 也在扫描面里——不删它就等于
+        # scanned>=1，"扫描面为空" 这条 fail-closed 从未真正被触发过（夹具缺陷，本轮修）。
+        os.remove(os.path.join(n5, "docs", "ASTROCS_DESIGN.md"))
         case("N5 唯一权威扫描面为空 ⇒ fail-closed", "fail", n5, "unique_authority_scan_empty")
 
         # N6：已删除旧治理对象同名重建到根（登记进 ignored_patterns 后旧版 rc=0，内容从不被读）
@@ -642,6 +838,73 @@ def self_test() -> int:
         _mini_repo(p3, selftest_manifest(ignored_patterns=legacy_ign))
         _write(os.path.join(p3, "AstroCS_ENGINEERING_CONSTRAINTS.md"), SELFTEST_LEGACY_ARCHIVED)
         case("P3 同名重建但正文标明历史参照（正例）", "pass", p3)
+
+        # ---- 外部只读数据集判据面（P4/P5 + N7..N12）---------------------------
+        # P4：数据集**缺失** ⇒ 判绿（§7 允许缺失；CI 干净检出即此形态）
+        p4 = os.path.join(tmp, "p4-ext-absent")
+        _mini_repo(p4)
+        _git_fixture(p4, gitignore_text=SELFTEST_GITIGNORE_GAIA)
+        case("P4 外部只读数据集缺失 ⇒ 判绿（§7 允许缺失）", "pass", p4,
+             notes_want={"spec7_external_readonly_roots": ["gaia"],
+                         "spec7_external_readonly_absent": ["gaia"],
+                         "spec7_external_readonly_present": []})
+
+        # P5：数据集存在且**未入库**（被 .gitignore 排除 + git 不跟踪）⇒ 判绿
+        p5 = os.path.join(tmp, "p5-ext-present")
+        _mini_repo(p5)
+        _write(os.path.join(p5, SELFTEST_DATASET_FILE), "外部只读数据集夹具\n")
+        _git_fixture(p5, gitignore_text=SELFTEST_GITIGNORE_GAIA)
+        case("P5 外部只读数据集存在且未入库 ⇒ 判绿", "pass", p5,
+             notes_want={"spec7_external_readonly_roots": ["gaia"],
+                         "spec7_external_readonly_present": ["gaia"],
+                         "spec7_external_readonly_absent": []})
+
+        # N7：存在且**已 tracked**（即便同时被 .gitignore 覆盖，强制加入索引仍是「已入库」）⇒ 判红
+        n7 = os.path.join(tmp, "n7-ext-tracked")
+        _mini_repo(n7)
+        _write(os.path.join(n7, SELFTEST_DATASET_FILE), "外部只读数据集夹具\n")
+        _git_fixture(n7, gitignore_text=SELFTEST_GITIGNORE_GAIA, track_dataset=True)
+        case("N7 外部只读数据集存在且已 tracked ⇒ 判红", "fail", n7, "external_dataset_tracked")
+
+        # N8：存在但**未被 .gitignore 排除**（未跟踪也不豁免：它已进入仓库内容扫描面）⇒ 判红
+        n8 = os.path.join(tmp, "n8-ext-unignored")
+        _mini_repo(n8)
+        _git_fixture(n8, gitignore_text="build/\n")
+        _write(os.path.join(n8, SELFTEST_DATASET_FILE), "外部只读数据集夹具\n")
+        case("N8 外部只读数据集未被 .gitignore 排除 ⇒ 判红", "fail", n8,
+             "external_dataset_not_gitignored")
+
+        # N9：存在、未入库、已忽略，但被**根构建入口**引用 ⇒ 判红（「只读引用」判据非退化）
+        n9 = os.path.join(tmp, "n9-ext-consumed")
+        _mini_repo(n9)
+        _write(os.path.join(n9, SELFTEST_DATASET_FILE), "外部只读数据集夹具\n")
+        _write(os.path.join(n9, "CMakeLists.txt"),
+               "# 夹具：把外部只读数据集当构建输入（违规）\nadd_subdirectory(gaia/GaiaDR3)\n")
+        _git_fixture(n9, gitignore_text=SELFTEST_GITIGNORE_GAIA)
+        case("N9 外部只读数据集被根构建入口引用 ⇒ 判红", "fail", n9,
+             "external_dataset_consumed_by_build")
+
+        # N10：数据集存在但根**不是 git 工作树** ⇒ fail-closed 判红（判不了 ≠ 无违规）
+        n10 = os.path.join(tmp, "n10-ext-no-git")
+        _mini_repo(n10)
+        _write(os.path.join(n10, SELFTEST_DATASET_FILE), "外部只读数据集夹具\n")
+        case("N10 外部只读数据集存在而根非 git 工作树 ⇒ fail-closed", "fail", n10,
+             "external_dataset_unjudgeable")
+
+        # N11：§7 有条款但「已登记：」清单被删 ⇒ fail-closed 判红（缺失豁免必须有登记依据）
+        n11 = os.path.join(tmp, "n11-ext-registry-gone")
+        _mini_repo(n11, spec=SELFTEST_SPEC.replace("；已登记：`gaia/GaiaDR3/`。", "。"))
+        case("N11 §7 外部只读数据集登记清单被删 ⇒ fail-closed", "fail", n11,
+             "external_dataset_registry_missing")
+
+        # N12：数据集根未登记于 §7 目录清单 ⇒ 判红（豁免只对 §7 登记在案的根条目生效）
+        n12 = os.path.join(tmp, "n12-ext-not-registered")
+        _mini_repo(n12, spec=SELFTEST_SPEC.replace("docs/ eng/tools/ eng/ci/ gaia/",
+                                                   "docs/ eng/tools/ eng/ci/"),
+                   manifest=selftest_manifest(
+                       allowed_dirs=[d for d in SELFTEST_MANIFEST_DIRS if d != "gaia"]))
+        case("N12 外部只读数据集未登记于 §7 目录清单 ⇒ 判红", "fail", n12,
+             "external_dataset_not_in_spec7_dirs")
 
         ok = all(r["ok"] for r in results)
         report = {"tool": "eng/tools/doccheck/check_engineering_constraints.py", "mode": "self-test",
@@ -686,7 +949,7 @@ def main() -> int:
     uniq, notes, checks = run_check(root)
     out = {
         "tool": "eng/tools/doccheck/check_engineering_constraints.py",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "task": "GOV-001",
         "root": root,
         "authority_object": SPEC,

@@ -1654,13 +1654,60 @@ target_include_directories(w34_dpsf_nan_sort PRIVATE
 target_link_libraries(w34_dpsf_nan_sort PRIVATE astrocs_p1_dpsf)
 add_test(NAME w34_dpsf_nan_sort COMMAND w34_dpsf_nan_sort)
 
+# FINAL-07 δc 基准锚: 本用例场景2 需要 O11 判据观察面（sdet_test_probe.h 的
+# sdet_test_deblend_probe / sdet_test_deblend_leaves, 生产 src 内 #ifdef
+# SDET_TESTING 钩子）⇒ 与 p1star_tests 同构, 生产 4 src 直接编入并定义宏;
+# 不再链 astrocs_p1_sdet（同一批 TU 会重复符号）。
+# 修复：W34_SDET_SRC_DIR 原先只在下方的 w34_sdet_deblend_contrast_oracle 之前
+# set，本 target 先用后定义 ⇒ CMake 生成期报 "Cannot find source file:
+# //sdet_api.cpp" 并使整棵构建树无法 regenerate。改为在此以同一取值定义
+# （下方改为复用本定义，单一定义点）。
+set(W34_SDET_SRC_DIR ${ACS_W34_REPO}/lib/algorithms/star_detection/src)
 add_executable(w34_sdet_saturation_cursor
-  ${ACS_W34_REPO}/lib/algorithms/star_detection/test/sdet_saturation_cursor_test.cpp)
+  ${ACS_W34_REPO}/lib/algorithms/star_detection/test/sdet_saturation_cursor_test.cpp
+  ${W34_SDET_SRC_DIR}/sdet_api.cpp
+  ${W34_SDET_SRC_DIR}/sdet_image.cpp
+  ${W34_SDET_SRC_DIR}/sdet_log.cpp
+  ${W34_SDET_SRC_DIR}/nls_lm.cpp)
 target_include_directories(w34_sdet_saturation_cursor PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/star_detection/include
+  ${W34_SDET_SRC_DIR}
+  ${ACS_W34_REPO}/lib/infrastructure/aio/src
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_sdet_saturation_cursor PRIVATE astrocs_p1_sdet)
+target_compile_definitions(w34_sdet_saturation_cursor PRIVATE SDET_TESTING)
+target_link_libraries(w34_sdet_saturation_cursor PRIVATE ${ASTROCS_OMP_TARGET})
+if(UNIX)
+  target_link_libraries(w34_sdet_saturation_cursor PRIVATE m)
+endif()
 add_test(NAME w34_sdet_saturation_cursor COMMAND w34_sdet_saturation_cursor)
+set_tests_properties(w34_sdet_saturation_cursor PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# O11 delta_c 权重基准 Oracle（B&A96 §4; 参照实现 SExtractor src/refine.c:97/:159
+# 与 SEP src/deblend.c:116/:179）: 判据 = 枝在当前层阈值之上的流量 >
+# delta_c * 父组分检出阈上总流量。生产 4 src 直接编入（SDET_TESTING 观察面,
+# 与 p1star_tests 同构）。
+set(W34_SDET_SRC_DIR ${ACS_W34_REPO}/lib/algorithms/star_detection/src)
+add_executable(w34_sdet_deblend_contrast_oracle
+  ${ACS_W34_REPO}/lib/algorithms/star_detection/test/sdet_deblend_contrast_oracle_test.cpp
+  ${W34_SDET_SRC_DIR}/sdet_api.cpp
+  ${W34_SDET_SRC_DIR}/sdet_image.cpp
+  ${W34_SDET_SRC_DIR}/sdet_log.cpp
+  ${W34_SDET_SRC_DIR}/nls_lm.cpp)
+target_include_directories(w34_sdet_deblend_contrast_oracle PRIVATE
+  ${ACS_W34_REPO}/lib/algorithms/star_detection/include
+  ${W34_SDET_SRC_DIR}
+  ${ACS_W34_REPO}/lib/infrastructure/aio/src
+  ${ACS_W34_REPO}/lib/include)
+target_compile_definitions(w34_sdet_deblend_contrast_oracle PRIVATE SDET_TESTING)
+target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE ${ASTROCS_OMP_TARGET})
+if(UNIX)
+  target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE m)
+endif()
+add_test(NAME w34_sdet_deblend_contrast_oracle
+  COMMAND w34_sdet_deblend_contrast_oracle)
+set_tests_properties(w34_sdet_deblend_contrast_oracle PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(w34_p3_nan_mask_test
   ${ACS_W34_REPO}/lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp)

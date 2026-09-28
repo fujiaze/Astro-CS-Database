@@ -19,8 +19,16 @@
                  registry 里的快照必须与解析结果相等 ⇒ 词汇表无法单方面漂移）；越词即红。
   T2 surface   ：豁免/权威引用必须解析到**真实载体**；登记的别名（如 waivers.json）
                  出现在在役面即红；载体文件缺失、不可解析或零引用同样红。
-  T3 same_src  ：覆盖度结论的分子与分母必须由**同一条命令**产出，且能被该命令**复算**；
-                 并禁止「工具缺失却覆盖达标」这类自相矛盾并存键。
+  T3 same_src  ：覆盖度结论的分子与分母必须由**同一条命令**产出，且能被该命令在
+                 **产物自己登记的输入快照**上复算（复算输入取自产物的 {artifact:/...}
+                 指针，不得悄悄换成现时工作树）；产物必须登记输入快照的 revision 与指纹，
+                 计数或指纹不符即红；并禁止「工具缺失却覆盖达标」这类自相矛盾并存键。
+                 事由：计数依赖"已跟踪文件全集"，该输入**每次提交都会漂移**。旧口径
+                 「产物 vs. 现时工作树计数」把"快照漂移"与"数字被改写"混为一谈 ——
+                 实测 0f884df5 产出的 (3731, 3887) 在 CI 提交上被判 (3732, 3888) 不等
+                 （漂移 +1）、其后 +30 叫作「结论不可核」，而该结论在它自己的快照上
+                 完全可复算。新口径分别判定：按登记快照复算（漂移不影响）、指纹与计数
+                 逐位相符（改写即红）、快照指针缺失或不可解析（fail-closed 判红）。
   T4 snapshot  ：被登记的门必须在 checks.json 有注册承载；其对外快照必须与**现役**输出
                  逐项相等；记录面里残留旧快照即红。
 
@@ -255,6 +263,32 @@ def check_surfaces(root):
 
 
 # ── T3 分子/分母同源 + 并存键自洽 ────────────────────────────────────────────
+# recompute_command 里"取自产物"的参数（复算输入快照必须由产物给出，不得硬编现时值）
+ARG_FROM_ARTIFACT_RE = re.compile(r"^\{artifact:(/[^}]*)\}$")
+
+
+def _subst_argv(claim, art, cid, fails):
+    """把 recompute_command 的 {artifact:<json-pointer>} 词元换成产物里该指针的字符串值。
+
+    返回 None = 复算参数无法重建（指针缺失/非串）⇒ fail-closed 判红，**不**退回
+    现时工作树（那正是"分母与分子不同源"要消灭的形态）。
+    """
+    cmd, ok = [], True
+    for tok in claim["recompute_command"]:
+        m = ARG_FROM_ARTIFACT_RE.match(str(tok))
+        if not m:
+            cmd.append(str(tok))
+            continue
+        val = _ptr(art, m.group(1))
+        if not isinstance(val, str) or not val:
+            fails.append("%s: 复算参数 %s 在产物中缺失/非串（实际 %r）⇒ 复算的输入快照"
+                         "无法重建（fail-closed，禁退回现时工作树）" % (cid, tok, val))
+            ok = False
+            continue
+        cmd.append(val)
+    return cmd if ok else None
+
+
 def _walk_dicts(node):
     stack = [node]
     while stack:
@@ -317,7 +351,9 @@ def check_claims(root, recompute=True):
             if not _ptr(art, claim["denominator_definition_pointer"]):
                 fails.append("%s: 分母无定义（分母必须随产物落盘定义）" % cid)
         if recompute and claim.get("recompute_command"):
-            cmd = [str(x) for x in claim["recompute_command"]]
+            cmd = _subst_argv(claim, art, cid, fails)
+            if cmd is None:
+                continue
             with tempfile.TemporaryDirectory() as td:
                 tmp = os.path.join(td, "recomputed.json")
                 cmd = [tmp if x == "{tmp}" else x for x in cmd]
@@ -334,8 +370,15 @@ def check_claims(root, recompute=True):
             fn = _ptr(fresh, claim["numerator_pointer"])
             fd = _ptr(fresh, claim["denominator_pointer"])
             if (fn, fd) != (num, den):
-                fails.append("%s: 产物 %r 与同一命令复算 %r 不等（结论不可核）"
+                fails.append("%s: 产物 %r 与同一命令按登记快照复算 %r 不等（结论不可核）"
                              % (cid, (num, den), (fn, fd)))
+            snap_ptr = claim.get("snapshot_pointer")
+            if snap_ptr:
+                want_snap = _ptr(art, snap_ptr)
+                got_snap = _ptr(fresh, snap_ptr)
+                if not isinstance(got_snap, str) or got_snap != want_snap:
+                    fails.append("%s: 输入快照指纹不符（产物 %r，按登记快照复算 %r）"
+                                 "⇒ 产物数字不是该快照的产出" % (cid, want_snap, got_snap))
     # 并存键自洽：工具缺失却「覆盖达标」这类自相矛盾
     pairs = [tuple(p) for p in reg.get("contradiction_pairs", [])]
     for pattern in reg.get("contradiction_docs", []):
@@ -488,6 +531,40 @@ LADDER_DOC = """# 设计
 """
 
 
+# T3「按产物登记的输入快照复算」夹具：mk.py 以 --at-revision 取快照，快照不存在即 rc≠0。
+MK_PINNED = ("import argparse, json\n"
+             "p = argparse.ArgumentParser()\n"
+             "p.add_argument('--out')\n"
+             "p.add_argument('--at-revision')\n"
+             "a = p.parse_args()\n"
+             "db = {'R1': {'counts': {'n': 9, 'd': 10}, 'snap': 'SNAP-R1',\n"
+             "             'cmd': ['git', 'ls-files', '-z']}}\n"
+             "if a.at_revision not in db:\n"
+             "    raise SystemExit('unknown revision: %s' % a.at_revision)\n"
+             "json.dump(db[a.at_revision], open(a.out, 'w'))\n")
+
+PINNED_CLAIM = {
+    "id": "c", "artifact": "ev/a.json",
+    "numerator_pointer": "/counts/n", "denominator_pointer": "/counts/d",
+    "source_command_pointer": "/cmd",
+    "expected_source_command": ["git", "ls-files", "-z"],
+    "snapshot_revision_pointer": "/rev", "snapshot_pointer": "/snap",
+    "recompute_command": ["python3", "mk.py", "--out", "{tmp}",
+                          "--at-revision", "{artifact:/rev}"],
+}
+
+
+def _pinned(root, doc):
+    """造一个把复算输入钉在产物 /rev 上的 mini 仓（产物 = doc）。"""
+    _mini(root, claims={"schema_version": 1, "claims": [dict(PINNED_CLAIM)],
+                        "contradiction_pairs": [], "contradiction_docs": []})
+    os.makedirs(os.path.join(root, "ev"), exist_ok=True)
+    with open(os.path.join(root, "ev/a.json"), "w") as f:
+        json.dump(doc, f)
+    with open(os.path.join(root, "mk.py"), "w", encoding="utf-8") as f:
+        f.write(MK_PINNED)
+
+
 def _mini(root, *, ladder=None, verdict=None, denylist=None, surfaces=None,
           claims=None, snaps=None, checks_text="{}"):
     os.makedirs(root, exist_ok=True)
@@ -525,6 +602,13 @@ def self_test():
         with open(os.path.join(pos, "eng/ci/gate_ok.py"), "w", encoding="utf-8") as f:
             f.write('r = {"status": "PASS", "passed": True}\n')
         cases.append(("pos-clean", run(pos)["pass"], True))
+        # 回归锁：夹具写入 docs/ 子目录前必须自建父目录（否则 _mini 即
+        # FileNotFoundError 崩溃 —— CI 首现场 TRUTH-CONCLUSION-SELFTEST 的成因）。
+        deep = os.path.join(td, "deep", "a", "b")
+        _mini(deep)
+        with open(os.path.join(deep, "eng/ci/gate_ok.py"), "w", encoding="utf-8") as f:
+            f.write('r = {"status": "PASS", "passed": True}\n')
+        cases.append(("pos-fixture-nested-root", run(deep)["pass"], True))
         n1 = os.path.join(td, "n1")
         _mini(n1)
         with open(os.path.join(n1, "eng/ci/gate_bad.py"), "w", encoding="utf-8") as f:
@@ -571,6 +655,24 @@ def self_test():
                     "p=argparse.ArgumentParser();p.add_argument('--out');a=p.parse_args()\n"
                     "json.dump({'counts':{'n':8,'d':10}},open(a.out,'w'))\n")
         cases.append(("neg-recompute-drift", run(n5)["pass"], False))
+        # T3 新口径：复算的输入快照由产物登记（{artifact:/rev}），按该快照重建输入。
+        good = {"counts": {"n": 9, "d": 10}, "cmd": ["git", "ls-files", "-z"],
+                "rev": "R1", "snap": "SNAP-R1"}
+        p7 = os.path.join(td, "p7")
+        _pinned(p7, dict(good))
+        cases.append(("pos-snapshot-pinned-recompute", run(p7)["pass"], True))
+        n7 = os.path.join(td, "n7")   # 负例：产物数字被改写（计数不复算）
+        _pinned(n7, {"counts": {"n": 8, "d": 10}, "cmd": ["git", "ls-files", "-z"],
+                     "rev": "R1", "snap": "SNAP-R1"})
+        cases.append(("neg-pinned-count-rewritten", run(n7)["pass"], False))
+        n8 = os.path.join(td, "n8")   # 负例：输入快照指纹不符
+        _pinned(n8, {"counts": {"n": 9, "d": 10}, "cmd": ["git", "ls-files", "-z"],
+                     "rev": "R1", "snap": "SNAP-R0"})
+        cases.append(("neg-pinned-digest-drift", run(n8)["pass"], False))
+        n9 = os.path.join(td, "n9")   # 负例：产物未登记输入快照 ⇒ 复算输入无法重建
+        _pinned(n9, {"counts": {"n": 9, "d": 10}, "cmd": ["git", "ls-files", "-z"],
+                     "snap": "SNAP-R1"})
+        cases.append(("neg-pinned-revision-missing", run(n9)["pass"], False))
         snap6 = {"id": "prod", "registration_check_id": "CHK-NOT-REGISTERED",
                  "recorded": {"checks": 11},
                  "recorded_in": [{"path": "ev/b.json", "pointer": "/mc",

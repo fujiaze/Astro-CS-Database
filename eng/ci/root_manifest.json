@@ -6,7 +6,6 @@
   "allowed_files": [
     "README.md",
     "AGENTS.md",
-    "docs/ASTROCS_DESIGN.md",
     "ENGINEERING_SPEC.md",
     "CONTROL_PACK_SPEC.md",
     "ACCEPTANCE_SPEC.md",
@@ -100,6 +99,7 @@
   ],
   "notes": {
     "strictness": "allowed_files/allowed_dirs 逐条等于 ENGINEERING_SPEC §7 字面清单，未新增任何白名单条目；registered_local_retention 是「已登记待裁决」台账（只减不增），不是白名单扩展。",
+    "allowed_files_root_entry_scope": "2026-09-29 ENG-CONSTRAINTS 收口：白名单口径 = §7「路径首段＝根条目」，故 allowed_files **删除** docs/ASTROCS_DESIGN.md —— 它不是根条目（§7 固定条目 `docs/ASTROCS_DESIGN.md` 的根条目是 `docs`，已由 allowed_dirs 的 docs 覆盖），留着它会让 check_engineering_constraints.py::manifest_not_wider_than_spec7 判「白名单比 §7 更宽」。此为**收窄**（只减不增，未放宽任何判据）；该文件的存在性仍由 §7 逐字清单与 required_files 保证。",
     "runtime_products": "runtime_product_patterns 命中即红（无论是否被 .gitignore 覆盖）——依据 docs/ASTROCS_DESIGN §6.3 与 eng/ci/ci_repair_round.py:118「目标目录解析为 CWD(=仓库根)」缺陷认定。",
     "ignored_patterns": "ignored_patterns 为 .gitignore 已覆盖的本地目录（build/ 是 eng/ci/steps 与 CMakePresets 的既定构建目录），出现时记 tolerated_present 并上报，不判红；未登记的新条目仍判红。",
     "growth_rule": "新增根条目必须先经负责人确认并同步 ENGINEERING_SPEC §7，再改本清单；禁止把本清单当只增不减的豁免表。",
