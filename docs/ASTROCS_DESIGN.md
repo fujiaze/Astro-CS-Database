@@ -712,6 +712,10 @@ run/                            临时产物与日志（gitignore）
 
 - 生产仅纯 CPU；支持 amd64 baseline、AVX2/FMA、AVX-512 子集；"支持"是能力上限，发货档由 benchmark 实测台账决定，baseline 不泄漏高级指令旗标。
 - `benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽，生成绑定 CPU 特征/OS/provider 哈希的 `cpu_profile`，输出到安装目录；选择用稳定统计。
+  - **安装目录口径的适用域（R-52 裁决，2026-09-29）**：本条的"安装目录"是**发行布局概念**——装载二进制与随行资产的那个目录（§11 交付形态：解压即用、不用安装器）。
+    **输出路径一律相对发行布局解析；在源码树内运行一个构建期二进制不构成产品契约面。**
+  - **不可写或落在版本控制工作树内时**：以用户可写落点承载（Linux `$XDG_DATA_HOME/ACSD`，Windows `%LOCALAPPDATA%\ACSD`），并在 stderr 明示"未落安装目录 + 原因 + 实际落点"；**不静默换落点、不把原始样本或 profile 写入版本控制工作树**（`AGENTS.md` §6 运行产物不入库）。
+  - **唯一落点解析实现** = 程序安装目录推导（`lib/infrastructure/cli/commands.cpp` 的 `cli_install_dir()` / `cli_default_cpu_profile_path()` / `cli_fallback_cpu_profile_path()`）；本层不复制其判据细节，只声明口径与适用域。
 - 一个进程一个资源调度器与线程预算源：可用 CPU = 亲和性 ∩ cgroup ∩ Job Object；worker 数只来自 profile 与预算对象，模块不硬编码线程数、不私建长期线程池；CPU 密集路径多线程。
 - 串行 I/O 与控制面单线程，异步 I/O 一个专用线程，科学计算里不用 async/future，不嵌套并行。
 - **内存极简化**：工作集只保留当前分块所需，流式读取、分块处理、用完即释；可由确定性公式现场求值的内容（稠密权重、稠密天光面）不预计算、不整体驻留；缓存只保留复用收益高于重算成本的对象（Gaia 查询、PSF 模型、标定母版），受字节预算与 LRU 约束，任何缓存具备容量、身份、失效、线程模型四要素。

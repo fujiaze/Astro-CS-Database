@@ -29,6 +29,7 @@ acsd benchmark
 - `--help` 子命令帮助与字段说明；
 - 三个命令**平级独立**：各自独立进程、**独立重跑**（**无断点续算**：重跑 = 新运行目录 + 新 manifest）、独立验收，**串接一律显式**（`ASTROCS_DESIGN.md` §1.2）；
 - `benchmark` 生成/更新**安装目录** cpu_profile（后续运行自动读取）。
+  - **适用域（R-52）**："安装目录" = 发行布局概念，输出路径相对发行布局解析；源码树内运行构建期二进制不构成产品契约面，此时落点转用户可写目录并在 stderr 明示原因与实际落点。细则与唯一实现见 `ASTROCS_DESIGN.md` §9「安装目录口径的适用域」；消费点 = `lib/infrastructure/cli/commands.cpp`（`cli_resolve_cpu_profile_path()`）。
 
 handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(会话1)；mosaic→API-004(会话2)；export→API-005(会话3)；benchmark→BENCH-001..004 harness(内部)。
 

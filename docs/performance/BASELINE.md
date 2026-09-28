@@ -11,7 +11,7 @@ Phase2 t4 overlap / GC 3-panel
 Browser GC wide / pan / zoom / STF
 ```
 
-完整数值见 `evidence/performance/*.json`（V14 交付）。
+完整数值见 `实验/engineering-evidence/**`（实测类证据的唯一留档区，登记 = `ENGINEERING_SPEC.md` §7（:151））。原引 `evidence/performance/*.json`（V14 交付）**在本仓不存在**（死指针，本行原句已订正）⇒ 下文 V14 / V18R2 读数为**历史读数、原始 JSON 未入库**，只作历史参照，不作现行基线证据；补做现行基线须重跑并按 `ENGINEERING_SPEC.md` §7 落 `实验/engineering-evidence/`。
 
 V14 首轮结果：
 
@@ -31,6 +31,8 @@ Browser shot      2.43s；zoom 0.30s/f；pan 0.22s/f
 ---
 
 ## V18R2 资源驱动轮（性能基线）
+
+> **口径诚实边界**：本节数值为**单次读数**，不满足上文「每 benchmark ≥3 次、记 median/p95」的自订口径 ⇒ 只作历史参照，不构成现行基线结论；原始读数工件未登记入库。
 
 ```text
 Phase1            ~67.35 s/frame

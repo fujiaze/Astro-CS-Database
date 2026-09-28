@@ -85,6 +85,12 @@
       "why": "同上"
     },
     {
+      "doc": "docs/science/algorithms/HEALPIX_MAPPING.md",
+      "basename": "healpix_core.cpp",
+      "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
+      "why": "BASENAME-AMBIGUOUS 消歧：仓内 healpix_core.cpp 有两处（lib/algorithms/shared/healpix 与 lib/algorithms/drizzle/healpix_drizzle）；本文档的 ang2pix/ring-nest 排布口径取自 shared/healpix 权威实现（由 lib/common/healpix 纯移动而来）"
+    },
+    {
       "doc": "docs/science/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "DRIZZLE.md",
       "path": "docs/science/DRIZZLE.md",
@@ -170,22 +176,6 @@
     }
   ],
   "exemptions": [
-    {
-      "doc": "docs/science/INTEGRATION.md",
-      "raw": "lib/algorithms/coverage/src/integrate.cpp:10-79",
-      "kind": "FROZEN_SCI_CLAIM",
-      "reason": "SCI §5:63 冻结声明原文（实际 76 行）；ALG 侧已登记为已知漂移，修改方向 = 从 SCI 到 ALG",
-      "owner": "SCI-INT owner",
-      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
-    },
-    {
-      "doc": "docs/science/INTEGRATION.md",
-      "raw": "lib/algorithms/coverage/include/astro/phase2/integrate.h:1-75",
-      "kind": "FROZEN_SCI_CLAIM",
-      "reason": "同上（实际 74 行）",
-      "owner": "SCI-INT owner",
-      "evidence": "docs/science/algorithms/PHASE2_INTEGRATION.md:182"
-    },
     {
       "doc": "docs/science/algorithms/INTEGRATION_ALGORITHMS.md",
       "raw": "integrate.cpp:10-79",

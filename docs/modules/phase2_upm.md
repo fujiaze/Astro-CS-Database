@@ -113,7 +113,7 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（449 行；
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（453 行；
   P2ControlObservation :31-57、P2ModelInfo :60-68、P2UpmBuildConfig
   :71-92、build :95-98、build_geo :103-107、save/open/info
   :108-110、calibrate_block :113-、evaluate_c :122、
@@ -121,15 +121,16 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
   geometry_hash :146、component_gauges :150、
   materialize_dense 重复声明 :154-156/:173-178（登记见 ALG-P2-UPM-IMPL-001）、
   dense_info :159-、dense_read_block :166-、close :180）。
-- 核心 symbol（lib/algorithms/coverage/src/upm.cpp 16 导出，extern "C"）:
-  p2_upm_build（:929）、p2_upm_build_geo（:934）、p2_upm_save
-  （:940）、p2_upm_open（:1008）、p2_upm_info（:1233）、
-  p2_upm_calibrate_block（:1240）、p2_upm_evaluate_c（:1271）、
-  p2_upm_raw_weight（:1292）、p2_upm_normalized_weights（:1325）、
-  p2_upm_geometry_hash（:1346）、p2_upm_component_gauges（:1369）、
-  p2_upm_materialize_dense_n（:1390）、p2_upm_materialize_dense
-  （:1518，wrap 到 workers=0 auto）、p2_upm_dense_info（:1523）、
-  p2_upm_dense_read_block（:1542）、p2_upm_close（:1559）。
+- 核心 symbol（lib/algorithms/coverage/src/upm.cpp 导出，extern "C"；行锚为本轮实测重算）:
+  p2_upm_build（:1372）、p2_upm_build_geo（:1377）、p2_upm_save
+  （:1383）、p2_upm_open（:1506）、p2_upm_info（:1803）、
+  p2_upm_calibrate_block（:1907）、p2_upm_evaluate_c（:1943）、
+  p2_upm_raw_weight（:1966）、p2_upm_geometry_hash（:2001）、
+  p2_upm_component_gauges（:2024）、p2_upm_materialize_dense_n（:2045）、
+  p2_upm_materialize_dense（:2177-2180）、p2_upm_dense_info（:2182）、
+  p2_upm_dense_read_block（:2201）、p2_upm_close（:2218）。
+  `p2_upm_normalized_weights` 已于 2026-09-25 退役（`upm.cpp:1999` / `upm.h:184` 的 RETIRED 注记，全仓零消费者），本表不再列为在役导出。
+  **`p2_upm_materialize_dense` 的 worker 语义（本轮实测订正）**：该 wrap 恒传 `workers=0`（`upm.cpp:2177-2180`），而实现取 `nw = (workers > 0) ? workers : 1`（`upm.cpp:2137`）⇒ `workers=0` = **单线程串行**，**不是 auto**；同一约定见 `upm.cpp:614/:749/:791/:913`（`cfg.cpu_workers > 0 ? cfg.cpu_workers : 1`）。
 - C API 面: API-P2-UPM-001（PUBLIC_API.md，16 导出符号锚）+ 编排级
   API-P2-001（FROZEN）。
 - 生命周期=build/build_geo（调用方持有 void* model）→ info/
@@ -165,8 +166,9 @@ p2_session.cpp:200-206）。
   :89-91 注释仍写 OpenMP，属注释漂移，登记见 ALG-P2-UPM-IMPL-001）。
 - worker 数=Runtime lease 唯一来源：cfg.cpu_workers=ThreadBudget.
   max_workers 经 p2_session.cpp:197（§3 blocks=budget）与 stage2.cpp
-  :482 传入；模块无 hardware_concurrency 自行开线程；0=auto、1=串行
-  reference。
+  :482 传入；模块无 hardware_concurrency 自行开线程；**0 = 单线程串行**
+  （`nw = (workers > 0) ? workers : 1`，`upm.cpp:2137`；同 `:614/:749/:791/:913`）、
+  1 = 单线程 reference，>1 = 调用方显式给定的线程数——"0=auto" 的旧述已按实测订正。
 - 确定性: 聚合=worker-local tsums + **tid 升序归并**（:513 注释，
   determinism class D1=worker 数无关、同 worker 数位精确）；
   gauge/连通分量/收敛/归并固定顺序；稠密缓存 bit-identical（:1387-1390 冻结注释）；既有验证=eng/tests/api/test_upm_parallel.py
@@ -201,7 +203,7 @@ p2_session.cpp:200-206）。
 - 无段内 checkpoint（dense 物化整缓存一次写）；stage2 消费链逐阶段
   stage 日志由会话/编排层承载，非模块内输出。
 - known_defects（登记不改码；正本 = ALG-P2-UPM-IMPL-001 缺陷清单）:
-  upm.h:154-156/:173-175 materialize_dense 重复声明；upm.h:89-91 注释漂移
+  upm.h:197-198/:216-217 materialize_dense 重复声明；upm.h:89-91 注释漂移
   （OpenMP vs std::thread 实现）；p2_session.cpp:196-204 覆盖键缺口；
   descriptor 端口静态声明的 persist→reload 语义；整改面未落地。
 
@@ -222,8 +224,12 @@ F6 dense/sparse 1e-12 等价基线）。
 
 - ALG 边界: 覆盖并集非凸区外推仅经 tile 内 cell 界锚点（外推锚只引
   用真实存在 cell，upm.cpp tile_gx/gy_bounds）；单帧区=harmonic
-  continuation 非数据约束解（SCI-UPM-001 §4）；quality_mode=1
-  snr²/(1+snr²)/unc² 权重仅 ablation/诊断（SNR-015）。
+  continuation 非数据约束解（SCI-UPM-001 §4）；legacy
+  snr²/(1+snr²)/unc² 权重（含 support^p 与 σ_floor 分母）由 **`use_ivar_weight=0`** 选择、
+  仅 ablation/诊断（SNR-015）——**不是** `quality_mode`：`quality_mode` 只决定 quality 因子的
+  分支，实现在 `quality_factor(flags, mode)` 内 `(void)mode` **恒忽略该参数**（`upm.cpp:220-221`），
+  生产默认 `cfg.quality_mode = 0` + `cfg.use_ivar_weight = 1`（`upm.cpp:1975-1976`），
+  真开关 = `upm.cpp:1981` 的 `if (cfg.use_ivar_weight != 0)`。
 - 缺陷与现行语义正本 = `docs/science/algorithms/PHASE2_UPM_IMPL.md`
   §11/§13（本页只留指针）。
 

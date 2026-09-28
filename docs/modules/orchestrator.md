@@ -57,7 +57,7 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
 
 ## 归属与构建（ORCH-001 落位）
 
-- **§7.1 目标家（职责家）= `lib/infrastructure/scheduler/**`**：`ASTROCS_DESIGN.md:656-657`
+- **§7.1 目标家（职责家）= `lib/infrastructure/scheduler/**`**：`ASTROCS_DESIGN.md:656`
   目录树 scheduler/ 行，与本模块职责逐条对应 ——
   注册 = `cpp/src/dll_loader.cpp`（模块动态加载 + 函数指针注册表）；
   资源预算 = `cpp/include/admission_controller.h` + `cpp/include/resource_monitor.h`；

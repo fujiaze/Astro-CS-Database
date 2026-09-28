@@ -24,8 +24,8 @@ lease，CMakeLists.txt:379-382；ThreadLease 接线为迁移目标（未落地�
 
 ## Public API
 
-hp_drizzle_api 六导出（extern "C"，hp_drizzle_api.h:43,62,70,130,
-139,140；合同 API-DRZ-001，docs/contracts/PUBLIC_API.md）；球面
+hp_drizzle_api 六导出（extern "C"，hp_drizzle_api.h:58,78,86,102,
+131,187；合同 API-DRZ-001，docs/contracts/PUBLIC_API.md）；球面
 几何接口（spherical_overlap.h: compute_overlap_area_g_ctx_cached、
 radec_to_vec、HP_CIRCUMRADIUS_FACTOR=1.25）。
 
@@ -98,6 +98,6 @@ TEST-P1-DRZ-001 可执行面待建）；Monte Carlo 方差
 ## Source files
 
 lib/algorithms/drizzle/healpix_drizzle/（10 源文件编入根 CMake 静态库
-astrocs_drizzle，CMakeLists.txt:356-366；poly_clip.cpp 编入但
+astrocs_drizzle，CMakeLists.txt:701-711；poly_clip.cpp 编入但
 生产路径零调用，登记见 DRIZZLE_GEOMETRY.md）；模块合同
 lib/algorithms/drizzle/。

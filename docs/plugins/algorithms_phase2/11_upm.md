@@ -89,11 +89,14 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 
 ### 4.6 收敛判据与拟合质量（**无量纲**）
 
-- **停止判据必须无量纲**，分母用**观测量的尺度**（`max|M|` 属另一口径）：
-  `max_dM / max(scale_obs, eps) < tol_step` 且 `|obj_new − obj_old| / max(|obj_old|, eps) < tol_obj`；
+- **停止判据必须无量纲**，分母用**观测量的尺度**（`max|M|` 属另一口径）。判据式与字段名的**唯一正本 = `docs/science/PHASE2_UPM.md` §「收敛与容差（SCI-UPM-CONV-001）」**（本节不另立、不复制配置面）：
+  **步长判据（`converged=1` 的唯一判据）**：`tolerance_relative=0` 时 `max_dM < tolerance ∧ max_dC < tolerance`；`tolerance_relative=1` 时两项各自的右端改为 `tolerance·max(scale_obs,1)`（生产必须 `tolerance_relative=1`）；
+  **目标判据（`converged=2` 的唯一判据）**：`|Δobj| / max(|obj_old|, 1e-300) < 1e-12` **连续 5 次** ⇒ `stalled`；
+   配置面 = `P2UpmBuildConfig` 的 `tolerance`（默认 `1e-6`，标量，同时作步长判据的容差）与 `tolerance_relative`（默认 0）。**不存在 `tol_step`/`tol_obj` 两个字段**——它们是本页此前的自造名，已按正本订正（`lib/algorithms/coverage/src/upm.cpp` 中两个名字的命中数 = 0）；
 - `converged` 为**状态枚举**：`0 = max_iter` / `1 = converged` / `2 = stalled` / `3 = invalid`；
 - **拟合质量三元组独立落盘**（写进 `p2_upm_model.json`）：`rms_z`、`Σw/Σraw_w`、`sigma_residual_dex`；
   **门 = 拟合质量三元组本身**；「帧间残差 `mean|Δ|`」只作诊断读数；
+  - ⚠ **实现现状（零承载，登记为缺口）**：本三元组在当前实现中**不产出**——`grep -rn "rms_z" lib/` = 0 命中，`p2_upm_model.json` 的现行键表（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 upm 落盘段）不含这三个键；当前数据面只落 `iterations`/`objective`/`converged` 与 §4.7 的可辨识性读数。**判据口径不在本页改动**（「门 = 三元组」是判据，删改属科学口径变更）：本条按「只登记、须走变更流程」处置——补实现三键 + 在合同/schema 侧登记键面，须经负责人变更流程批准后落地。
 - ⚠ **`tol = 1e-6` 不是硬门**：判据 = **拟合正确**；做法参考 PMM；
   `tolerance_relative` 字段与其生产取值登记于 `PHASE2_UPM_IMPL.md` + `DATA_SEMANTICS` 字段表。
 - **不收敛/判红不阻塞**：`converged != 1` 或可辨识性判红时产品**照出**，构建 rc **不变**，但必须在产品里落**机器可检**的警告：`p2_upm_model.json` 顶层 `warnings[]` / `warning_codes[]` / `upm_converged_warning`（警告码 `P2-UPM-NOT-CONVERGED` / `P2-UPM-NOT-IDENTIFIABLE`）；**无警告时 `warning_codes` 为空数组**（可断言的成功态，不存在「没写就是没问题」的歧义）。
@@ -135,7 +138,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 | `frame_gradient_order` | 1 | —— | 逐帧梯度修正 δ_k 的阶数（0=仅偏移，1=平面） |
 | `rank_rtol` | 1e-10 | —— | **唯一**判据阈值 τ（相对量，冻结值 `FZ-AP2S-RANK-RTOL`）：`identifiable ⟺ r_eff == n_free ⟺ κ(H_red) < 1/τ`。绝对条件数上限（`kappa_max` 类常数）与求解矩阵上的门均属另一口径（§4.7） |
 | `max_iter` | —— | —— | 稳健拟合迭代上限 |
-| `convergence_gate` | —— | —— | 收敛门（**无量纲**，见 §4.6）：`max_dM/max(scale_obs,eps) < tol_step` 且 `|Δobj|/max(|obj_old|,eps) < tol_obj`；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。**`tol=1e-6` 不是硬门** |
+| `convergence_gate` | —— | —— | 收敛门（**无量纲**，见 §4.6；判据式唯一正本 = `docs/science/PHASE2_UPM.md` SCI-UPM-CONV-001）：步长判据 `max_dM < tolerance·max(scale_obs,1) ∧ max_dC < tolerance·max(scale_obs,1)`（生产 `tolerance_relative=1`）+ 目标判据 `|Δobj|/max(|obj_old|,1e-300) < 1e-12` 连续 5 次；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。**`tol=1e-6` 不是硬门** |
 | `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。施加侧默认 `delta`（实现锚 = 阶段二 apply 节点的 `seam.additive_mode` 读取与施加分支，按**符号**定位）；无天光面产物时 `delta`/`both` 显式退化为 `c` 并登记 `additive_mode_effective`（不校正、双重扣除均属另一形态）。该退化**判红**（§7）：登记面 = `degraded_reason=no_sky_plane_artifact` + `warning_codes` 含 `P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE` |
 | `sky_plane.enabled` | 随 `additive_mode ∈ {delta, both}` | —— | 是否构建/落盘公共天光面 `B_ref` 产品；缺省 = 「要施加 `δ_k` 才构建」，显式值优先（实现 `module_adapters.cpp` 的 `sp_cfg.value("enabled", delta_wanted)`） |
 | `smoothing_lambda` | 键缺省时编译期默认 **0.0**；`P2_SMOOTHING_LAMBDA_AUTO` = 0.1 仅在 auto 路径生效| —— | **UPM 图平滑权重**（`upm.h:75` 逐字「图平滑权重（默认 0=关闭）」）。仓库里有三个互不相同、并存不冲突的量——① **阻尼 `α≈0.5`** = 迭代阻尼（naive Gauss-Seidel `α=1` 在链式/二部覆盖图上特征值 −1 ⇒ 周期 2 振荡）；② **本键 `smoothing_lambda`** = 对天光/δ 面**拟合的正则项**（现行机制）；③ **堆叠平滑项** = 拟合目标里的新项，本期不加，做实验验证。实现常量 `P2_SMOOTHING_LAMBDA_AUTO = 0.1`（`lib/algorithms/coverage/include/astro/phase2/stage2_common.h:30`）。|

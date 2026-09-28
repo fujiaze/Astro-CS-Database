@@ -28,20 +28,14 @@
     {
       "token": "p2_write_descriptor",
       "namespace": "registry_descriptor",
-      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:1161",
-      "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = 同面实测 `grep -n p2_write_descriptor → :1161`（函数定义行；调用点 :15492 p2_nodes[] 表）"
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:1166",
+      "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = 同面实测 `grep -n p2_write_descriptor → :1166`（函数定义行；调用点 :15991 p2_nodes[] 表）"
     },
     {
       "token": "p2_parallel_for",
       "namespace": "orchestration_helper",
-      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9054",
-      "reason": "Phase2 tile 级并行原语（翻译单元内 static，非公开 ABI ⇒ 不进 api_inventory）。行锚 = 定义行 :9054；调用点 :10421（write）/ :11026（reject）/ :12182（integrate）"
-    },
-    {
-      "token": "sdet_deblend_leaf",
-      "namespace": "algorithm_helper",
-      "evidence": "lib/algorithms/star_detection/src/sdet_api.cpp:1063",
-      "reason": "多阈值 deblending 树的叶级递归（翻译单元内 static 模板 ⇒ 不进 api_inventory）。行锚 = 定义行 :1063；调用点 :1723；权重基准注释见 :1052"
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:9068",
+      "reason": "Phase2 tile 级并行原语（翻译单元内 static，非公开 ABI ⇒ 不进 api_inventory）。行锚 = 定义行 :9068；调用点 :10435（write）/ :11040（reject）/ :12211（integrate）"
     },
     {
       "token": "snr_path_effective",
@@ -70,8 +64,44 @@
     {
       "token": "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
       "namespace": "verdict_id",
-      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:5842",
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:5856",
       "reason": "组内模型通带唯一性的帧级失败码（某帧解析出的通带与组内首帧不一致 ⇒ 该帧判此码；帧间独立，不阻塞其他帧）。由 mark_frame_fail 在编排层产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/contracts/CONFIG_CONTRACT.md 与 docs/science/PHOTOMETRY.md"
+    },
+    {
+      "token": "ARCHIVE_MARKERS",
+      "namespace": "checker_constant",
+      "evidence": "docs/algorithms/anchors/check_doc_line_anchors.py:82",
+      "reason": "锚合同 checker 的归档标记目录常量（resolver 第 4 步 basename-unique 的排除面清单），ANCHOR_CONTRACT.md §3 规则 4 逐字转述其取值；Python 常量非 API 符号 ⇒ 显式登记命名空间。行锚 = 定义行 :82（该文件在飞改动中，行号按 grep 实测刷新）"
+    },
+    {
+      "token": "FROZEN_SCI_CLAIM",
+      "namespace": "anchor_contract_kind",
+      "evidence": "docs/algorithms/anchors/anchor_contract.json:176",
+      "reason": "锚合同 exemptions 的豁免取值（ALG 文档引述 SCI 冻结声明原文，原文行号漂移属 SCI 侧已知，修改方向 = SCI→ALG）；文档承载 = ANCHOR_CONTRACT.md §4.1。行锚 = exemptions 内首条 kind 行 :176"
+    },
+    {
+      "token": "EXTERNAL_REFERENCE",
+      "namespace": "anchor_contract_kind",
+      "evidence": "docs/algorithms/anchors/anchor_contract.json:216",
+      "reason": "外部引用取值（未 vendor 进仓的外部开源实现 / 外部许可证据），两个登记面各自成条：anchor_contract.json.exemptions（本条 evidence）与 unresolved_registry.json.entries；文档承载 = ANCHOR_CONTRACT.md §4.1。行锚 = exemptions 内该 kind 行 :216"
+    },
+    {
+      "token": "HISTORICAL_NARRATION",
+      "namespace": "anchor_contract_kind",
+      "evidence": "docs/algorithms/anchors/unresolved_registry.json:15",
+      "reason": "未解析登记台账的取值：正文订正叙述里被引的订正前旧锚（被引文件不在本仓），随该叙述段删除而同提交删除登记项；文档承载 = ANCHOR_CONTRACT.md §4.1。行锚 = entries 内首条 kind 行 :15"
+    },
+    {
+      "token": "ASTROCS_BACKENDS_MANIFEST",
+      "namespace": "cmake_variable",
+      "evidence": "CMakeLists.txt:811",
+      "reason": "backend 族清单（backends.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:115）；文档承载 = docs/architecture/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :811"
+    },
+    {
+      "token": "ASTROCS_PROVIDERS_MANIFEST",
+      "namespace": "cmake_variable",
+      "evidence": "CMakeLists.txt:881",
+      "reason": "provider 族清单（providers.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:135）；文档承载 = docs/architecture/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :881"
     }
   ]
 }

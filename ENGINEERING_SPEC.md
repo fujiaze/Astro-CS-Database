@@ -8,6 +8,24 @@
 - 公共 C ABI 版本化；跨 DLL 不传 STL/异常/RTTI/编译器私有类型；
 - Windows 10+ amd64 下限、Windows 11 主验证（平台下限的取值与理由 = `docs/owner/ARCHITECTURE_OVERVIEW.md`）；Linux amd64；
 - 构建系统：唯一根 CMake（`CMakeLists.txt`）+ presets；不引入第二套构建入口。
+- **MSVC 工具集 pin**：Windows 正式平台的 MSVC 版本 = 契约冻结值 **14.44.35207**（工具集族
+  `19.44`）。不显式指定时 MSBuild 取 `Microsoft.VCToolsVersion.v143.default.props` 的默认
+  值（实测可落到 `14.40.33807` / cl `19.40.33820.0`，与契约不一致 = 漂移面 U-1）。故由
+  `eng/tools/quality/ci_windows_driver.py` 的 `MSVC_TOOLSET_VERSION` 显式 pin 死：configure/
+  build 子进程注入环境变量 `VCToolsVersion`（等价 `vcvars64 -vcvars_ver=14.44`，亦即该 props
+  文件自身承认的覆盖入口），build 成功后从构建产物的 `CL.command.1.tlog` **实测**实际 cl.exe
+  的 toolset 目录并与 pin 比对；未命中或测不到证据 → 驱动 exit 7。禁止依赖主机默认 toolset
+  隐式命中，也禁止为"跑绿"把版本值放宽到实测漂移值。
+- **MSVC C4996 咨询面策略**：`C4996`（`strncpy`/`fopen`/`getenv`/`_open`/`strerror`/`strdup`
+  等 ISO C / POSIX 名）是 MSVC 的**咨询性**告警，同一份代码在 Linux/GCC 侧零告警 —— 属平台
+  口径差而非代码缺陷。处置 = 在 MSVC 配置面（根 `CMakeLists.txt` 的 `else()` 分支）项目级
+  定义 `_CRT_SECURE_NO_WARNINGS` 与 `_CRT_NONSTDC_NO_WARNINGS`，**不逐点重写调用点**（206 处
+  重写的回归风险高于收益）。该豁免**只覆盖这两类咨询宏**：其余告警类别
+  （C4244/C4334/C4324/C4310/C4190/C4100/C4127/C4456 等）一律逐点真修或按语言标准正当处理，
+  禁止 `/w`、`/W0` 一类整目标/全局降级掩盖本项目源码的告警。
+- **第三方头告警隔离**：vendored 第三方头（如 `nanoflann.hpp`）按其自身触发的诊断在**引入点**
+  做窄隔离（`#pragma warning(push/pop)` 或 `SYSTEM` include 面），并在注释中写明"第三方头 +
+  依据 + 影响面"；不得据此降级本项目源码的告警口径。
 
 ---
 
@@ -141,7 +159,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，`hips_tile_format` 取标准词表值（词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
-- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**（默认值来源 = `eng/packaging/config/defaults.json`））；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引，**字段名、取值与清单段结构的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`**（本节不复制字段清单；逐帧与运行级字段见该词表）；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
+- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**（默认值与取值域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/storage_form`（:480-492），不在 `eng/packaging/config/defaults.json` 内））；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引，**字段名、取值与清单段结构的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`**（本节不复制字段清单；逐帧与运行级字段见该词表）；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
 - **版本信息按阶段出现**（最高设计 §13）：alpha 阶段之前代码与产物中不含任何版本信息；进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/owner/RELEASE_STATUS.md` §2），CLI `--version` 输出该源派生的生成串。
 
@@ -205,7 +223,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
   日志落点的唯一来源 = 块级 `<output_dir>`；日志写失败即运行失败（非 0 退出码）；
 - 日志经 `aio` 唯一 I/O 边界写出；模块不自建文本 logger、不自持日志文件句柄、不自行决定落点；
 - 输出临时文件 + 原子提交；失败时不留可被误认成正式产品的半成品；
-- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且文件字节逐字节不变**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename）；读回不一致 ⇒ 不发布。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
+- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且文件字节逐字节不变**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename；逐步骤序正本 = `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §4，本处只声明该写端接线的次序）；读回不一致 ⇒ 不发布。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
 - 未捕获异常 → exit 70 + 脱敏 crash report（不泄露凭据）；日志/诊断不含凭据与绝对用户路径；
 - 判据 `CHK-LOG-SYS`（`eng/ci/checks.json`）：R1 错误不吞 / R2 降级显式 / R3 日志落点 / R4 台账完整 / R5 合同锚，
   每项带可执行负例（`--self-test`）；登记台账 `eng/ci/ledgers/log_system_ledger.json` 只减不增。

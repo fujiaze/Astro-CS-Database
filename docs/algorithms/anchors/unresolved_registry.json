@@ -4,11 +4,19 @@
   "purpose": "未解析锚登记台账（C8 只减不增）：doc_globs 扩到 docs/** 后，全量锚中解析不到仓库跟踪文件的锚必须逐条登记 kind/reason/owner/handoff；新出现的未解析锚 ⇒ C2+C8 判红，登记项不再命中 ⇒ STALE_REGISTRY 判红。",
   "scope": "docs/**/*.md 的全部行号锚；不含 exemptions（另见 anchor_contract.json）",
   "owner_summary": {
-    "EXTERNAL_REFERENCE": 23,
-    "HISTORICAL_NARRATION": 3
+    "EXTERNAL_REFERENCE": 24,
+    "HISTORICAL_NARRATION": 1
   },
-  "max_entries": 26,
+  "max_entries": 25,
   "entries": [
+    {
+      "doc": "docs/design/STAR_DETECTION_IMPL_DESIGN.md",
+      "raw": "src/preflist.h:207-208",
+      "kind": "EXTERNAL_REFERENCE",
+      "reason": "SExtractor 源码头 src/preflist.h 未 vendor 进本仓（仓内无该路径；取证副本 run/VAR-CALIBER-REVIEW-01/evidence/sub_oss/sextractor/preflist.h 未跟踪、不作锚目标），属外部开源实现的源码行号引用，非本仓源码锚",
+      "owner": "SCI-STARDET / DOC-DRIFT-FIX-01",
+      "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor SExtractor 头，同提交改为 resolver + 活锚并删除本登记项。"
+    },
     {
       "doc": "docs/algorithms/anchors/ANCHOR_CONTRACT.md",
       "raw": "api.cpp:88-92",
@@ -16,22 +24,6 @@
       "reason": "§6 订正留痕原文「DISP-DRZ-001 双方锚由 api.cpp:88-92 订正为 hp_drizzle_api.cpp:98-103」——被引 api.cpp 在本仓不存在，该 token 是**订正前的旧锚**记录，不是现行锚",
       "owner": "SCI-ANCHOR-001 / DOC-DRIFT-FIX-01",
       "handoff": "留痕按原样保留；若 §6 重写则同提交删除本登记项（C8 会判 STALE）。"
-    },
-    {
-      "doc": "docs/contracts/PUBLIC_API.md",
-      "raw": "api.cpp:168-352",
-      "kind": "HISTORICAL_NARRATION",
-      "reason": "PUBLIC_API.md:251 的旧锚留痕注已写明「原文锚 api.cpp:168-352 / api.cpp:39-143 中的 api.cpp 在本仓不存在…且行号已随实现漂移；上列为按现行文件复核后的锚」——这两条是**订正前的旧锚**记录，不是现行锚",
-      "owner": "SCI-ANCHOR-001 / DOC-DRIFT-FIX-01",
-      "handoff": "留痕按原样保留；若该订正注删除则同提交删除本登记项（C8 会判 STALE）。"
-    },
-    {
-      "doc": "docs/contracts/PUBLIC_API.md",
-      "raw": "api.cpp:39-143",
-      "kind": "HISTORICAL_NARRATION",
-      "reason": "PUBLIC_API.md:251 的旧锚留痕注已写明「原文锚 api.cpp:168-352 / api.cpp:39-143 中的 api.cpp 在本仓不存在…且行号已随实现漂移；上列为按现行文件复核后的锚」——这两条是**订正前的旧锚**记录，不是现行锚",
-      "owner": "SCI-ANCHOR-001 / DOC-DRIFT-FIX-01",
-      "handoff": "留痕按原样保留；若该订正注删除则同提交删除本登记项（C8 会判 STALE）。"
     },
     {
       "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
