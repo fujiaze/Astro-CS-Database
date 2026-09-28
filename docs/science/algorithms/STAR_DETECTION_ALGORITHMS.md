@@ -6,7 +6,7 @@
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2307 行；源文件唯一在役副本）；合同头
+> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2360 行；源文件唯一在役副本）；合同头
 > lib/algorithms/star_detection/include/star_detector.h（102 行）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
@@ -23,7 +23,7 @@
 - 生产调用: orchestrator.cpp:2067 run_stage_psf（PSF/STAR_MEASURE 阶段，一帧一次
   权威检测）→ :2153-2157 sdet_detect_ex / sdet_detect_ex_f64 / sdet_free_detect_ex
   函数指针 → star_det 权威块 FLOAT64[N,6]（orchestrator.cpp:2237-2246）。
-- descriptor astrocs.phase1.star-psf（module_adapters.cpp:496-514）为编排层词汇，
+- descriptor astrocs.phase1.star-psf（module_adapters.cpp:872-897）为编排层词汇，
   不含独立 star_detection descriptor；本模块合同以 ALG-STARDET-001/DATA-P1-STAR/
   API-STAR-001 为准。
 

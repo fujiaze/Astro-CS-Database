@@ -25,11 +25,33 @@
 #include <cstring>
 #include <limits>
 #include <string>
-#include <unistd.h>
 #include <vector>
 
+#ifdef _WIN32
+// WIN-PORT: MSVC 无 <unistd.h>/<dlfcn.h>/<sys/wait.h>。本文件的 POSIX 面只有 OOM 注入
+// 探测（fork+exec 自我重入 + LD_PRELOAD interposer），见 oom_child_main / oom_probe_once：
+// Windows 侧用 CRT 等价物（_pipe/_dup2/_spawnv/_cwait/_read + GetProcAddress）。
+// 边界：negative 组的 ctest 注册面本身就限定在 UNIX（p1star/CMakeLists.txt FINAL-07 R5
+// —— interposer 需 _GNU_SOURCE+LD_PRELOAD+/bin/sh），本支路只为让该 TU 在 Windows 图里
+// 可编译，不在 Windows 上运行注入扫描。
+#include <cstdint>
+#include <cstdlib>
+#include <fcntl.h>
+#include <io.h>
+#include <process.h>
+#include <windows.h>
+static inline void* acs_dlsym_main_module(const char* name) {
+    // dlsym(RTLD_DEFAULT, N) 的红外等价物：主模块导出查找（Windows 上 interposer 不存在
+    // ⇒ 恒 nullptr，与"未预载即找不到"同一语义）。
+    return reinterpret_cast<void*>(GetProcAddress(GetModuleHandleA(nullptr), name));
+}
+#define RTLD_DEFAULT 0
+#define dlsym(handle, name) acs_dlsym_main_module(name)
+#else
 #include <dlfcn.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -771,6 +793,43 @@ struct OomProbe {
 // OOM_TOTAL 文件, 供统计模式实测 detect 段分配总数)
 OomProbe oom_probe_once(long fail_at, const char* total_path = nullptr) {
     int fds[2];
+#ifdef _WIN32
+    // WIN-PORT: 与 POSIX 支路逐条对应 —— _pipe≈pipe、_dup2(1)≈子进程 dup2(stdout)、
+    // _spawnv(_P_NOWAIT)≈fork+execv（同一可执行文件 _pgmptr + 同 argv）、_read≈read、
+    // _cwait≈waitpid。差异：子进程环境只能在父进程侧临时设置 OOM_TOTAL 后 _spawnv
+    // （_spawnv 继承 environ）再恢复原值。
+    if (_pipe(fds, 4096, _O_BINARY) != 0) return {};
+    char nbuf[32];
+    std::snprintf(nbuf, sizeof(nbuf), "%ld", fail_at);
+    char arg0[] = "p1star-tests";
+    char a1[] = "oom-child";
+    char* argv2[] = {arg0, a1, nbuf, nullptr};
+    const char* prev = std::getenv("OOM_TOTAL");
+    const std::string prev_s = prev ? prev : "";
+    _putenv_s("OOM_TOTAL", total_path ? total_path : "");
+    const int saved_stdout = _dup(1);
+    _dup2(fds[1], 1);
+    const intptr_t child = _spawnv(_P_NOWAIT, _pgmptr, argv2);
+    _dup2(saved_stdout, 1);
+    _close(saved_stdout);
+    _close(fds[1]);
+    _putenv_s("OOM_TOTAL", prev_s.c_str());
+    OomProbe p;
+    if (child < 0) { _close(fds[0]); return p; }
+    std::string out;
+    char buf[512];
+    int k;
+    while ((k = _read(fds[0], buf, sizeof(buf))) > 0) out.append(buf, (std::size_t)k);
+    _close(fds[0]);
+    int status = 0;
+    _cwait(&status, child, 0);
+    p.shell_rc = status;
+    const std::size_t tag = out.find("OOMCHILD ");
+    if (tag != std::string::npos) {
+        std::sscanf(out.c_str() + tag, "OOMCHILD rc=%d count=%d nulls=%d", &p.rc, &p.count, &p.nulls);
+    }
+    return p;
+#else
     if (pipe(fds) != 0) return {};
     const pid_t pid = fork();
     if (pid < 0) { close(fds[0]); close(fds[1]); return {}; }
@@ -804,6 +863,7 @@ OomProbe oom_probe_once(long fail_at, const char* total_path = nullptr) {
         std::sscanf(out.c_str() + tag, "OOMCHILD rc=%d count=%d nulls=%d", &p.rc, &p.count, &p.nulls);
     }
     return p;
+#endif
 }
 
 int test_negative() {

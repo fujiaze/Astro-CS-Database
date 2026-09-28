@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 #include <omp.h>
@@ -742,9 +743,16 @@ void sdet_dynamic_regional_background(const float* src, float* out_detail, int w
     // 预计算所有块的med/mad和类型
     struct BlockInfo { int x0, y0, x1, y1; float med, mad; bool is_normal; };
     std::vector<BlockInfo> blocks(n_blocks);
-    #pragma omp parallel for schedule(dynamic) collapse(2)
-    for (int by = 0; by < n_by; by++) {
-        for (int bx = 0; bx < n_bx; bx++) {
+    // WIN-PORT: MSVC 传统 OpenMP (=2.0) 无 collapse 子句 —— 原写法被静默忽略并产生
+    // C4849《"collapse"指令中忽略 OpenMP"parallel for"子句》, 阻断零告警门禁。展平为
+    // 一维等价循环: 迭代集合 {(by,bx)} 与二维形式逐一对应 (k = by*n_bx + bx), 每轮只写
+    // blocks[by*n_bx+bx] 这一个互不重叠的元素、只读 src ⇒ 结果逐位不变; 并行度与 GCC
+    // 的 collapse(2) 等价 (MSVC 旧行为下只并行外层, 本改动同时修掉该性能回退)。
+    #pragma omp parallel for schedule(dynamic)
+    for (int acs_k = 0; acs_k < n_blocks; acs_k++) {
+        const int by = acs_k / n_bx;   // n_bx >= 1 (std::max(1, ...)) ⇒ 无除零
+        const int bx = acs_k % n_bx;
+        {
             int x0 = bx * step;
             int y0 = by * step;
             int x1 = std::min(x0 + block_size, w);
@@ -830,7 +838,9 @@ void sdet_dynamic_regional_background(const float* src, float* out_detail, int w
     }
 
     #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < n; i++) {
+    // WIN-PORT: MSVC 传统 OpenMP (=2.0) 的索引**必须是有符号整型** (C3016); size_t 不合法。
+    // 改 ptrdiff_t 后端与初值都保持同一循环语义 (increment/termination 不变, n<PTRDIFF_MAX)。
+    for (ptrdiff_t i = 0; i < (ptrdiff_t)n; i++) {
         if (wt[i] > 0) {
             med_map[i] /= wt[i];
             mad_map[i] /= wt[i];
@@ -842,7 +852,9 @@ void sdet_dynamic_regional_background(const float* src, float* out_detail, int w
     uint8_t* star_mask = new uint8_t[n]();
     size_t mask_count = 0;
     #pragma omp parallel for schedule(static) reduction(+:mask_count)
-    for (size_t i = 0; i < n; i++) {
+    // WIN-PORT: MSVC 传统 OpenMP (=2.0) 的索引**必须是有符号整型** (C3016); size_t 不合法。
+    // 改 ptrdiff_t 后端与初值都保持同一循环语义 (increment/termination 不变, n<PTRDIFF_MAX)。
+    for (ptrdiff_t i = 0; i < (ptrdiff_t)n; i++) {
         if (src[i] > med_map[i] + clip_sigma * mad_map[i]) {
             star_mask[i] = 1;
             mask_count++;
@@ -917,7 +929,9 @@ void sdet_dynamic_regional_background(const float* src, float* out_detail, int w
     }
 
     #pragma omp parallel for schedule(static)
-    for (size_t i = 0; i < n; i++) {
+    // WIN-PORT: MSVC 传统 OpenMP (=2.0) 的索引**必须是有符号整型** (C3016); size_t 不合法。
+    // 改 ptrdiff_t 后端与初值都保持同一循环语义 (increment/termination 不变, n<PTRDIFF_MAX)。
+    for (ptrdiff_t i = 0; i < (ptrdiff_t)n; i++) {
         out_detail[i] = src[i] - background[i];
     }
 

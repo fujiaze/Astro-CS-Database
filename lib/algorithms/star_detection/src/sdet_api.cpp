@@ -13,6 +13,7 @@
 #include "sdet_image.h"
 #include "sdet_log.h"
 #include "sdet_angle_guard.h"   // SDET-ANGLE-001: 有界/fail-closed 朝向角归一化
+#include "sdet_test_probe.h"    // O11 判据测试观察面（仅 SDET_TESTING 定义, 见该头）
 #include <cstdlib>
 #include <cstring>
 #include <chrono>
@@ -55,6 +56,10 @@
 // 行为与 ABI 零影响）: sdet_detect_impl 检测段每组分 BFS 访问像素数
 // （= 该组分 comp.size()）按扫描序记录到此; 测试断言各组分数值即组分自身像素数。
 std::vector<int>* sdet_test_bfs_sizes = nullptr;
+// O11 判据观察面: 逐组分 × 逐层 × 逐枝的判据读数与实现判定（见 sdet_test_probe.h）
+std::vector<SdetDeblendProbe>* sdet_test_deblend_probe = nullptr;
+// 每组分经 O11 分裂后的叶数（判据基准的行为级读数）
+std::vector<int>* sdet_test_deblend_leaves = nullptr;
 #endif
 
 // FIX-P174: 原语收编——旧 sdet_detector.h 的类型与连通域原语迁入本文件（O4a 饱和岛消费；SPEC: ALG §3 8-连通语义）
@@ -787,10 +792,22 @@ bool sdet_detect_saturated_stars(const float* fimg, int width, int height,
 
     // 计算动态范围 + median (:, bg 用 median 而非 img_min)
     float img_min = 1e30f, img_max = -1e30f;
-    #pragma omp parallel for reduction(min:img_min) reduction(max:img_max) schedule(static)
-    for (int i = 0; i < (int)n; i++) {
-        if (fimg[i] < img_min) img_min = fimg[i];
-        if (fimg[i] > img_max) img_max = fimg[i];
+    // WIN-PORT: MSVC 传统 OpenMP (=2.0) 不支持 reduction(min:/max:) ⇒ C7660
+    // ("需要 -openmp:llvm")。改为 2.0 可表达的等价形式: 线程私有极值 + critical 归并。
+    // 语义等价: min/max 只做比较与赋值, 无浮点重结合误差 ⇒ 结果与并行归约逐位相同。
+    #pragma omp parallel
+    {
+        float lmin = 1e30f, lmax = -1e30f;
+        #pragma omp for schedule(static) nowait
+        for (int i = 0; i < (int)n; i++) {
+            if (fimg[i] < lmin) lmin = fimg[i];
+            if (fimg[i] > lmax) lmax = fimg[i];
+        }
+        #pragma omp critical
+        {
+            if (lmin < img_min) img_min = lmin;
+            if (lmax > img_max) img_max = lmax;
+        }
     }
     // 计算 median 作为背景估计
     std::vector<float> img_copy(fimg, fimg + n);
@@ -1047,9 +1064,10 @@ const double SDET_SQRT_EXP1       = 1.6487212707001281468;  // sqrt(e)（O7 振�
 const double SDET_S_FACTOR = std::sqrt(2.0 * std::log(1000.0));
 
 // ---- SPEC: §5.11 O11 deblending 树（B&A96 §4; 设计稿 §5.11）----
-// t(i) = thr*(Smax/thr)^(i/30), i = 1..30 自高向低; 首个满足「>= 2 枝且枝积分
-// 流量 > delta_c * 枝自身组分总流量」的层执行分裂: 存活枝 → 独立成分（迭代
-// 实现, 权重基准 = 枝自身 bflow, 见 sdet_deblend_leaf）; 未存活/低于分离阈值
+// t(i) = thr*(Smax/thr)^(i/30), i = 1..30 自高向低; 首个满足「>= 2 枝且枝在
+// 当前层阈值之上的积分流量 > delta_c * 父组分检出阈上总流量」的层执行分裂:
+// 存活枝 → 独立成分（迭代实现, 权重基准 = 父组分 total_flux = Σ(smooth − thr),
+// 见 sdet_deblend_leaf）; 未存活/低于分离阈值
 // 的像素按双变量高斯 argmax 重分配
 // （mu = 叶峰位, sigma^2 = 叶内权重二阶矩 + 0.25 下限）, 平局判归登记序靠前
 // （确定性, 项目定义）。全层不满足 → 单成分（B&A96 §4.3: 间隔 < 2 sigma 不可分,
@@ -1064,10 +1082,16 @@ static void sdet_deblend_leaf(const T* smooth, int w,
                               const std::vector<int>& pix,
                               double thr, double total_flux, int depth,
                               std::vector<SdetLeaf>* out_leaves) {
-    // P-131/P-140: total_flux（历史「根组分总流量」参照）与 depth（历史「递归深度
-    // 上限」）两形参在现行迭代实现中均未使用, 以 (void) 显式弃用——δc 权重实际
-    // 基准 = 枝自身 bflow（步 (1)）; 形参保留以不改动调用面。
-    (void)total_flux;
+    // P-140: depth（历史「递归深度上限」）形参在现行迭代实现中未使用, 以 (void)
+    // 显式弃用; total_flux（父组分在检出阈值之上的总流量 = Σ(smooth − thr)）为
+    // δc 的权重基准（步 (1)）。
+    // 判据两侧刻意不对称（B&A96 §4）: 分子 = 枝在**当前层阈值**之上的流量,
+    // 基准 = 父组分在**检出阈值**之上的总流量。参照实现:
+    //   SExtractor 2.28.2 src/refine.c parcelout() :97 value0 =
+    //     objlist[0].obj[0].fdflux * prefs.deblend_mincont; :159/:166 判式
+    //     obj[j].fdflux − obj[j].dthresh*obj[j].fdnpix > value0; :163 if (m>1);
+    //   SEP 1.4.1 src/deblend.c deblend() :116/:173-190 同式。
+    // 形参保留以不改动调用面。
     (void)depth;
     // FIX-R3: 成分内极大 = O11 树阈值层基准 smax（B&A96 §4.1, t(i) 以其为标度）;
     // 候选峰选择不再消费 leaf.peak——O8 冻结语义 = 检测段叶循环 11x11 局部极大
@@ -1140,16 +1164,40 @@ static void sdet_deblend_leaf(const T* smooth, int w,
         if (brs.empty()) continue;
         const double t = thr * std::pow(smax / thr,
                                         (double)i / (double)SDET_DEBLEND_LEVELS);
-        // (1) 每枝积分流量判据（枝自身组分总流量为基准, B&A96 递归 object 语义）
+        // (1) 每枝积分流量判据: 分子 = 枝在当前层阈值 t 之上的积分流量,
+        //     权重基准 = 父组分在检出阈值之上的总流量 total_flux（B&A96 §4;
+        //     参照实现 SExtractor 2.28.2 src/refine.c:97/:159 与 SEP 1.4.1
+        //     src/deblend.c:116/:179 —— 两侧刻意不对称, 与「枝自身流量比」
+        //     形态不同, 后者会把任意枝判为显著）。
         std::vector<char> sat1(brs.size(), 0);
         int n_sat1 = 0;
         for (size_t b = 0; b < brs.size(); ++b) {
-            double fsum = 0.0, bflow = 0.0;
+            double fsum = 0.0;
+#ifdef SDET_TESTING
+            // bflow = 枝自身在检出阈值之上的流量: 旧权重基准, 仅作观察面对照读数
+            // （生产编译无此分支, 避免未读变量告警）
+            double bflow = 0.0;
+#endif
             for (size_t k = 0; k < brs[b].size(); ++k) {
                 fsum += (double)smooth[brs[b][k]] - t;
+#ifdef SDET_TESTING
                 bflow += (double)smooth[brs[b][k]] - thr;
+#endif
             }
-            if (fsum > SDET_DELTA_C * bflow) { sat1[b] = 1; ++n_sat1; }
+            if (fsum > SDET_DELTA_C * total_flux) { sat1[b] = 1; ++n_sat1; }
+#ifdef SDET_TESTING
+            // O11 判据观察面（仅测试目标）: 记录逐枝判据读数与实现判定
+            if (sdet_test_deblend_probe) {
+                SdetDeblendProbe pr_rec;
+                pr_rec.t = t;
+                pr_rec.fsum = fsum;
+                pr_rec.bflow = bflow;
+                pr_rec.total_flux = total_flux;
+                pr_rec.nbrs = (int)brs.size();
+                pr_rec.sat1 = sat1[b] ? 1 : 0;
+                sdet_test_deblend_probe->push_back(pr_rec);
+            }
+#endif
         }
         const bool can_spawn = (n_sat1 >= 2);
         for (size_t b = 0; b < brs.size(); ++b) {
@@ -1721,6 +1769,11 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                     total_flux += (double)smooth[comp[k]] - thr;
                 std::vector<SdetLeaf> leaves;
                 sdet_deblend_leaf<T>(smooth, w, comp, thr, total_flux, 0, &leaves);
+#ifdef SDET_TESTING
+                // O11 判据观察面（仅测试目标）: 本组分分裂后的叶数
+                if (sdet_test_deblend_leaves)
+                    sdet_test_deblend_leaves->push_back((int)leaves.size());
+#endif
                 // FIX-R3: 每叶做 11x11 局部极大扫描——一叶可产多候选（B&A96
                 // 根不分裂 → 单星 = 常规域单叶单局部极大的特例）
                 std::vector<int> leaf_peaks;
