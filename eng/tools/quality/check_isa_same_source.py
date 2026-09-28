@@ -372,6 +372,8 @@ def _mini(root, *, decl_body="(ACS_FEAT_AVX2 | ACS_FEAT_FMA)", flags=("-mavx2", 
           reg_flags=None, posture="product_graph", status="IMPLEMENTED", extra_input=None):
     os.makedirs(os.path.join(root, "eng/tools/quality"), exist_ok=True)
     os.makedirs(os.path.join(root, "lib/x"), exist_ok=True)
+    # DESIGN 位于 docs/ 子目录：父目录必须先建，否则自证夹具写入即 FileNotFoundError（门崩）。
+    os.makedirs(os.path.join(root, os.path.dirname(DESIGN)), exist_ok=True)
     with open(os.path.join(root, DESIGN), "w", encoding="utf-8") as f:
         f.write(MINI_DESIGN)
     with open(os.path.join(root, "CMakeLists.txt"), "w", encoding="utf-8") as f:

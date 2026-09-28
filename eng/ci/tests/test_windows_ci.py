@@ -471,5 +471,64 @@ class TestPlatformGating(unittest.TestCase):
                              "CI-001 收紧后 platform_mismatch 不再计入 skipped_waivable")
 
 
+class TestMsvcToolsetPin(unittest.TestCase):
+    """R-31 工具集 pin 的证据面：tlog 实测 + fail-closed（能红能绿）。
+
+    背景：不显式指定时 MSBuild 取 Microsoft.VCToolsVersion.v143.default.props 的
+    默认 toolset，实测可落到 14.40.33807（与合同 14.44.35207 不一致 = U-1 漂移）。
+    驱动以 VCToolsVersion 环境增量 pin 死合同值，并从构建产物里**测**出实际
+    cl.exe；pin 未命中或测不到证据一律判红（无证据不得当合规）。
+    """
+
+    def _tlog(self, root: Path, text: str) -> Path:
+        d = root / "CMakeFiles" / "t.dir" / "RelWithDebInfo" / "t.tlog"
+        d.mkdir(parents=True)
+        p = d / "CL.command.1.tlog"
+        p.write_bytes(text.encode("utf-16"))   # MSBuild tlog 实物为 UTF-16LE
+        return p
+
+    def test_plan_pins_toolset_env_on_configure_and_build(self):
+        plan = {s["name"]: s for s in DRV.stage_plan(["configure", "build", "test"])}
+        self.assertEqual(plan["configure"]["env"],
+                         {"VCToolsVersion": DRV.MSVC_TOOLSET_VERSION})
+        self.assertEqual(plan["build"]["env"],
+                         {"VCToolsVersion": DRV.MSVC_TOOLSET_VERSION})
+        # 只给增量（子进程环境由调用方 os.environ 打底），其余阶段不带 env
+        self.assertNotIn("env", plan["test"])
+        self.assertEqual(DRV.MSVC_TOOLSET_VERSION, "14.44.35207")
+        self.assertEqual(DRV.MSVC_TOOLSET_FAMILY, "19.44")
+
+    def test_verify_green_when_tlog_shows_pinned_toolset(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._tlog(root, "^C:\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe\r\n")
+            v = DRV.verify_msvc_toolset(root)
+            self.assertTrue(v["ok"], v)
+            self.assertEqual(v["measured"], "14.44.35207")
+            self.assertTrue(v["evidence"].startswith("tlog:"), v)
+
+    def test_verify_red_when_tlog_shows_drifted_toolset(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._tlog(root, "C:\\VC\\Tools\\MSVC\\14.40.33807\\bin\\Hostx64\\x64\\cl.exe")
+            v = DRV.verify_msvc_toolset(root)
+            self.assertFalse(v["ok"], v)
+            self.assertEqual(v["measured"], "14.40.33807")
+
+    def test_verify_falls_back_to_cmake_cache_then_red_without_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "CMakeCache.txt").write_text(
+                "CMAKE_CXX_COMPILER:FILEPATH=C:/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe\n",
+                encoding="utf-8")
+            v = DRV.verify_msvc_toolset(root)
+            self.assertTrue(v["ok"], v)
+            self.assertTrue(v["evidence"].startswith("cmake-cache:"), v)
+        with tempfile.TemporaryDirectory() as td:
+            v = DRV.verify_msvc_toolset(Path(td))
+            self.assertFalse(v["ok"], v)      # 测不到证据 ⇒ 判红，不静默放行
+            self.assertIsNone(v["measured"])
+
+
 if __name__ == "__main__":
     unittest.main()

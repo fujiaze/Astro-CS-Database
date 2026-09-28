@@ -42,6 +42,7 @@ import json
 import pathlib
 import re
 import sys
+import warnings
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 
@@ -100,7 +101,13 @@ def _class_bases_index(root: pathlib.Path) -> dict:
     idx: dict = {}
     for f in sorted(root.rglob("*.py")):
         try:
-            tree = ast.parse(f.read_text(encoding="utf-8", errors="ignore"))
+            # FINAL-07：ast.parse 不给 filename 时告警落成 `<unknown>:14`，无法定位。
+            # 只做静态解析、不执行被扫代码，故把该文件的 SyntaxWarning 归到文件名上
+            # 并就地静音（不是本工具要判的问题；真语法错误仍走 SyntaxError 分支）。
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", SyntaxWarning)
+                tree = ast.parse(f.read_text(encoding="utf-8", errors="ignore"),
+                                 filename=str(f))
         except (SyntaxError, OSError):
             continue
         for node in ast.walk(tree):
@@ -153,7 +160,10 @@ def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list
     for f in _collect_test_files(target, pattern):
         rel = f.relative_to(REPO)
         try:
-            tree = ast.parse(f.read_text(encoding="utf-8", errors="ignore"))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", SyntaxWarning)
+                tree = ast.parse(f.read_text(encoding="utf-8", errors="ignore"),
+                                 filename=str(rel))
         except SyntaxError as exc:
             problems.append(f"R11 {where}: {rel} 解析失败: {exc}")
             continue
@@ -253,6 +263,26 @@ def _cmd_errors(where: str, cid: str, cmd, strict: bool) -> list[str]:
     return errors
 
 
+# R13（FINAL-07 G3）：宿主档 ↔ platform 一致性。
+# 反例（修复前实测）：CHK-ALGO-WIRING 标 platform=linux、waivable=false，却把
+# windows-main 写进 profiles ⇒ 该档下 run.py 对"非 waivable 的平台不匹配"判
+# FAIL(prerequisite)，与代码质量无关、且**永远不可能全绿**。
+# 口径：宿主档（linux-main/linux-deep = linux 宿主，windows-main = windows 宿主）
+# 只能收编 platform 属于 {该宿主, any} 的条目/步骤。
+HOST_LANE_PLATFORM = {"linux-main": "linux", "linux-deep": "linux", "windows-main": "windows"}
+
+
+def _host_lane_errors(where: str, obj: dict) -> list:
+    platform = obj.get("platform")
+    profs = obj.get("profiles") if isinstance(obj.get("profiles"), list) else []
+    out = []
+    for lane, plat in HOST_LANE_PLATFORM.items():
+        if lane in profs and platform not in (plat, "any"):
+            out.append("R13 %s: profiles 含宿主档 %r 但 platform=%r ⇒ 该档下结构性必红"
+                       "（宿主档只能收编 platform in (%r, 'any')）" % (where, lane, platform, plat))
+    return out
+
+
 def _step_errors(where: str, step, strict: bool) -> list[str]:
     """R2（CI-001 收敛）：step 结构 + 与注册项同判据的命令规则。"""
     errors: list[str] = []
@@ -290,6 +320,7 @@ def _step_errors(where: str, step, strict: bool) -> list[str]:
         if f in step and not isinstance(step[f], bool):
             errors.append(f"R2 {where}.{f}: must be boolean")
     errors.extend(_cmd_errors(f"{where}.steps[{sid}]", sid, step.get("command"), strict))
+    errors.extend(_host_lane_errors(f"{where}.steps[{sid}]", step))
     return errors
 
 
@@ -361,6 +392,8 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
             bad = [p for p in profs if p not in ALLOWED_PROFILES]
             if bad:
                 errors.append(f"R5 {where}.profiles: unknown values {bad}")
+            # R13（FINAL-07 G3）：宿主档 ↔ platform 一致性
+            errors.extend(_host_lane_errors(where, c))
 
         # R4/R6 command（CI-001 ID 收敛后：注册项与其每个 step 的命令同一判据）
         cmd = c.get("command")
@@ -547,15 +580,61 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
     return errors, len(checks)
 
 
+def self_test() -> int:
+    """R13（宿主档 ↔ platform）的可执行正/负例；并断言真仓注册表 0 例 R13 违规。"""
+    cases, failures = 0, []
+
+    # 负例：linux 宿主档 + platform=linux ⇒ 必须报（修复前的 CHK-ALGO-WIRING 正是此形）
+    cases += 1
+    if _host_lane_errors("fixture", {"platform": "linux",
+                                     "profiles": ["fast", "windows-main"]}):
+        print("SELFTEST_PASS r13_flags_cross_host_lane")
+    else:
+        failures.append("r13_flags_cross_host_lane: windows-main 落在 platform=linux 上未被判红")
+
+    # 负例（step 面，反方向）：windows 项不得收编 linux 宿主档（step 与注册项同判据）
+    cases += 1
+    if _host_lane_errors("fixture.step", {"platform": "windows", "profiles": ["linux-deep"]}):
+        print("SELFTEST_PASS r13_flags_linux_lane_on_windows")
+    else:
+        failures.append("r13_flags_linux_lane_on_windows: 反向跨宿主未被判红")
+
+    # 正例：宿主档配同宿主 platform（或 any）⇒ 不得报
+    cases += 1
+    ok = [{"platform": "linux", "profiles": ["fast", "linux-main", "linux-deep"]},
+          {"platform": "windows", "profiles": ["fast", "windows-main"]},
+          {"platform": "any", "profiles": ["fast", "integration", "prerelease"]}]
+    hits = [e for obj in ok for e in _host_lane_errors("fixture", obj)]
+    if not hits:
+        print("SELFTEST_PASS r13_accepts_host_matched_lanes")
+    else:
+        failures.append("r13_accepts_host_matched_lanes: 误报 %s" % hits)
+
+    print("SELFTEST cases=%d" % cases)
+    if failures:
+        print("SELFTEST_FAIL:")
+        for item in failures:
+            print("  " + item)
+        return 1
+    print("SELFTEST_PASS: all %d cases match expectation" % cases)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Validate eng/ci/checks.json registry")
     ap.add_argument("--registry", required=True, help="registry JSON path (repo-relative or absolute)")
     ap.add_argument("--strict", action="store_true", help="fail on any rule violation")
+    ap.add_argument("--self-test", action="store_true", dest="self_test",
+                    help="先跑规则 R13 的正/负例夹具，再照常校验注册表")
     args = ap.parse_args(argv)
 
     reg = pathlib.Path(args.registry)
     if not reg.is_absolute():
         reg = (pathlib.Path.cwd() / reg).resolve()
+    if args.self_test:
+        rc_st = self_test()
+        if rc_st != 0:
+            return rc_st
     errors, n = validate(reg, args.strict)
     summary = {
         "registry": str(reg),

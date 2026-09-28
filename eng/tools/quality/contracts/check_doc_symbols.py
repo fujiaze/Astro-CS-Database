@@ -76,6 +76,11 @@ def _glossary_tokens(repo):
     return toks
 
 
+def _line_of(text: str, offset: int) -> int:
+    """字符偏移 → 1 基行号（判词要能定位到 文件:行，偏移对人不友好）。"""
+    return text.count("\n", 0, offset) + 1
+
+
 def _load_symbol_namespaces(repo, findings):
     """读命名空间登记表并逐条校验 evidence（fail-closed）。返回 (tokens, ok)。"""
     p = repo / NAMESPACES_REL
@@ -242,7 +247,7 @@ def main():
                         # third_party 同类）。判据只对**在版本库保留面内**的路径生效。
                         _nonret = ("archive", "third_party", "run/")
                         if not any(k in token for k in _nonret):
-                            findings.append({"id":"DOC-BAD-FILE","severity":"P1","file":str(doc.relative_to(repo)),"symbol":token,"observed":"file not found","expected":"exists"})
+                            findings.append({"id":"DOC-BAD-FILE","severity":"P1","file":str(doc.relative_to(repo)),"line":_line_of(text, m.start()),"symbol":token,"observed":"file not found","expected":"exists"})
                             status="FAIL"
                 continue
             # Skip pure header filenames (contain .h)
@@ -297,7 +302,7 @@ def main():
                             # (Windows CI R8 实测误报 AIO_HIPS_RD_IVAR/SNR)。
                             if _defined_in_public_header(repo, token):
                                 continue
-                            findings.append({"id":"DOC-BAD-SYMBOL","severity":"P1","file":str(doc.relative_to(repo)),"symbol":token,"observed":"symbol not in API inventory","expected":"exists"})
+                            findings.append({"id":"DOC-BAD-SYMBOL","severity":"P1","file":str(doc.relative_to(repo)),"line":_line_of(text, m.start()),"symbol":token,"observed":"symbol not in API inventory","expected":"exists"})
                             status="FAIL"
     # Check archive symbols should not be in active docs (exclude archive docs themselves)
     # 登记项只减不增守卫 — 登记了却在扫描面从未出现的 token 判红
@@ -320,6 +325,21 @@ def main():
         pathlib.Path(args.out_json).write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     else:
         print(json.dumps(result, indent=2, ensure_ascii=False))
+    # FINAL-07（前台交办）：判词必须**任何模式下**都上流。原实现有 --out-json 就只写
+    # 文件、stdout 一条判词都没有 ⇒ CI 里 CHK-DANGLING / CON-DOC-SYMBOLS 判红却无法
+    # 定位（汇总层只能记"检查器未打印可识别判词"）。JSON 面完全不变，这里只补逐条
+    # 「文件:行 符号 判定」；PASS 打一行摘要。
+    if status == "FAIL":
+        print("CON-DOC-SYMBOLS_FAIL: %d finding(s) / %d doc(s) scanned"
+              % (len(findings), len(docs)))
+        for f in findings:
+            print("  - %s:%s [%s/%s] symbol=%s observed=%s expected=%s"
+                  % (f.get("file", "?"), f.get("line", 1), f.get("id", "?"),
+                     f.get("severity", "?"), f.get("symbol", "?"),
+                     f.get("observed", ""), f.get("expected", "")))
+    else:
+        print("CON-DOC-SYMBOLS_PASS: docs_scanned=%d namespaces=%s"
+              % (len(docs), result["namespaces_domains"]))
     if args.out_junit:
         pathlib.Path(args.out_junit).parent.mkdir(parents=True, exist_ok=True)
         failures = len([f for f in findings if f["severity"] in ("P0","P1")])

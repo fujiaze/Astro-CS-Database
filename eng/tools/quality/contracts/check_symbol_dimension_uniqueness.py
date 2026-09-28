@@ -516,6 +516,20 @@ def main():
         pathlib.Path(args.out_json).write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     else:
         print(json.dumps(result, indent=2, ensure_ascii=False))
+    # FINAL-07 G10-①：判词必须**任何模式下**都上流。原实现有 --out-json 就只写文件、
+    # 一个判词都不打印 ⇒ CI 里该门 rc=1 但 stdout/stderr 全空，汇总层只能记
+    # "检查器未打印可识别判词"，红项无法定位到 文件:行（信息本来就在 findings 里）。
+    # 摘要行自带 _FAIL 词元 + 每条 finding 的 文件:行（逐条不截断，全量仍在 JSON）。
+    if status == "FAIL":
+        print("SYM-DIM-UNIQUE_FAIL: %d finding(s) / %d file(s) scanned" % (len(findings), nfiles))
+        for f in findings:
+            loc = "%s:%s" % (f.get("file", "?"), f.get("line", "?"))
+            extra = [str(f[k]) for k in ("symbol", "claim", "expr", "phrase", "context")
+                     if f.get(k)]
+            print("  - %s [%s] %s" % (loc, f.get("id", "?"), " | ".join(extra)[:300]))
+    else:
+        print("SYM-DIM-UNIQUE_PASS: files_scanned=%d symbols=%d"
+              % (nfiles, len(result["symbols"])))
     return 0 if status == "PASS" else 1
 
 

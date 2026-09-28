@@ -15,7 +15,9 @@ sys.path.insert(0, str(HERE))
 import field_constraints_oracle as oracle_mod  # noqa: E402
 import jsonschema_min as jm  # noqa: E402
 
-EXAMPLES = REPO / "eng/contracts/data/examples/v6"
+# 3a7dc4cc「去版本化」把样例从 examples/v6/ 移到 examples/，测试路径未随之更新
+# ⇒ setUpClass FileNotFoundError（CI UT-CONTRACTS 2 ERROR）。载体目录以后者为准。
+EXAMPLES = REPO / "eng/contracts/data/examples"
 PF = REPO / "eng/contracts/schemas/product_family_field_constraints.schema.json"
 REG = REPO / "eng/contracts/data/clause_registry.json"
 UNIFIED = REPO / "eng/contracts/schemas/unified"
@@ -79,8 +81,18 @@ class TestFieldConstraintsExamples(unittest.TestCase):
             self.assertEqual([], jm.validate(doc, defs[key]), "%s should validate" % ex)
 
     def test_example_count_is_ten(self):
+        """十个产品族样例**齐备**（判据：TARGETS ⊆ 目录内 *.example.json）。
+
+        判据口径修正（3a7dc4cc 去版本化）：样例目录 examples/v6/ 被合并为共享的
+        examples/，其中另有其它合同族的 *.example.json（external_fixture_hips /
+        frame_hips_manifest …）。原判据要求**目录内容与 TARGETS 集合逐一相等**，
+        在共享目录下恒红且与被检要求（"十个样例齐备"）不是同一件事；
+        这里改为"十个必须在场"，逐文件的可校验性仍由本类其余用例负责。
+        """
         self.assertEqual(10, len(TARGETS))
-        self.assertEqual(sorted(TARGETS), sorted(p.name for p in EXAMPLES.glob("*.example.json")))
+        present = {p.name for p in EXAMPLES.glob("*.example.json")}
+        missing = sorted(set(TARGETS) - present)
+        self.assertEqual([], missing, f"产品族样例缺失（examples/ 共享目录）: {missing}")
 
     def test_differential_with_official_jsonschema_if_available(self):
         """自带校验器与官方 Draft202012Validator 在正/负语料上判词一致（官方可用时）。"""

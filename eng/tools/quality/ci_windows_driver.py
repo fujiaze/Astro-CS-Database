@@ -21,8 +21,12 @@
 
 阶段语义（--stages 逗号选择，按 canonical 顺序执行）：
   configure : cmake --preset win-msvc-17.14.39-x64（binaryDir 由 preset 决定）
+              + 子进程环境注入 VCToolsVersion=<MSVC_TOOLSET_VERSION>（pin 死
+              合同冻结的 MSVC 14.44.35207；见常量区注释）
   build     : cmake --build <build_dir> --config RelWithDebInfo --parallel
               （并行度经 NUMBER_OF_PROCESSORS/os.cpu_count() 探测，不硬编码）
+              成功后强制核对"实际使用的 cl.exe toolset == pin"（_verify_msvc_toolset），
+              未命中或测不到证据 → exit 7（无证据不得当合规）
   test      : ctest --preset win-rel --output-junit <junit>（CTest 单测集）
   install   : cmake --install <build_dir> --config RelWithDebInfo
               --prefix <candidate>（BLD-003 白名单树）
@@ -32,8 +36,9 @@
 退出码（受控，不依赖 traceback）：
   0=成功；1=--stages 解析失败；2=目录校验失败（仓库外/candidate 不存在）；
   3=依赖工具缺失（cmake 不在 PATH）；5=candidate 校验失败（Windows 主机
-  executed 项 FAIL）；6=package 组装失败；124=阶段超时；其他=首个失败
-  eng/cmake/ctest 步骤的原始退出码。
+  executed 项 FAIL）；6=package 组装失败；7=MSVC 工具集 pin 未命中/不可测
+  （见 MSVC_TOOLSET_VERSION；Windows 主机 build 成功后强制核对）；
+  124=阶段超时；其他=首个失败 eng/cmake/ctest 步骤的原始退出码。
 
 硬性纪律：所有子进程 argv 数组 + shell=False + 逐阶段 timeout；
 JSON summary（阶段/退出码/时长/产物路径）；仅 stdlib。
@@ -79,6 +84,24 @@ DEFAULT_JUNIT = "run/ci/win-test-junit.xml"
 DEFAULT_OUTPUT = "run/ci/win-driver-summary.json"
 # V8-CI-007 连带：--zip 打包输出（candidate zip 交 eng/ci/validate_candidate.py 校验）
 DEFAULT_ZIP = "artifacts/candidate/AstroCS-candidate.zip"
+
+# ── R-31 工具链 pin：Windows 正式平台唯一 MSVC 工具集版本 ────────────────────
+# 冻结契约值（preset-contract.json / CMakePresets.json vendor.windows_formal）
+# = MSVC 14.44.35207（工具集族 19.44）。**不显式指定**时 MSBuild 取
+# VC\Auxiliary\Build\Microsoft.VCToolsVersion.v143.default.props 的默认值 ——
+# 实测（U-1 漂移面）该默认值可落到 14.40.33807（cl 19.40.33820.0），与契约
+# 不一致。本驱动的职责是把该版本**显式 pin 死并测出来**，不靠主机默认隐式命中。
+#
+# 机制 = vcvars64.bat -vcvars_ver=14.44 的同一环境变量：VCToolsVersion 是
+# Microsoft.VCToolsVersion.v143.default.props 自己承认的覆盖入口
+# （Content 处 Condition="'$(VCToolsVersion)' == ''"），vcvars64 亦以该变量
+# 实现工具集选择 ⇒ configure/build 子进程注入该变量即等价于 vcvars64 选择。
+# 只注入环境增量，不改 preset/argv（argv 形状是 stage_plan 单测的断言面），
+# 也不改 preset-contract.json 的合同值。
+MSVC_TOOLSET_VERSION = "14.44.35207"
+MSVC_TOOLSET_FAMILY = "19.44"
+# 退出码：pin 未命中或测不到证据（区别于 6=package 组装失败）
+MSVC_PIN_EXIT_CODE = 7
 
 # 逐阶段默认 timeout 秒（逐阶段超时纪律；checks.json 的外层 timeout 更大）
 STAGE_TIMEOUTS = {
@@ -321,6 +344,105 @@ def msvc_compiler_probe() -> dict:
     return {"cl_exe": exe, "cl_version": m.group(1) if m else None}
 
 
+def msvc_pin_env() -> dict:
+    """configure/build 子进程的工具集 pin 环境增量（调用方与 os.environ 合并）。
+
+    只给增量、不复制整份环境：调用方以 os.environ.copy() 合并本增量，避免驱动把
+    自己的环境当成子进程环境的唯一事实源。
+    """
+    return {"VCToolsVersion": MSVC_TOOLSET_VERSION}
+
+
+# tlog 里 cl.exe 路径形态：... VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe
+_CL_TOOLSET_RE = re.compile(r"[\\/]MSVC[\\/]([0-9]+\.[0-9]+\.[0-9]+)[\\/]",
+                            re.IGNORECASE)
+
+
+def _decode_any(raw: bytes) -> str | None:
+    for enc in ("utf-16", "utf-8", "latin-1"):
+        try:
+            return raw.decode(enc)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return None
+
+
+def measure_msvc_toolset(build_dir: Path) -> dict:
+    """测出 build 实际使用的 cl.exe toolset 版本（证据优先序：tlog > CMakeCache）。
+
+    tlog（MSBuild CL 任务追踪器写出的 CL.command.1.tlog，记录每个 TU 的真实命令行）
+    是"MSBuild 实际用了哪个 cl.exe"的直接证据。CMakeCache 的 CMAKE_CXX_COMPILER
+    只是 configure 期探测值 —— VS 生成器下 MSBuild 的编译器由工具集属性决定，两者
+    可以不一致（U-1 漂移面即此形态），故仅作回退，并把来源如实登记在 evidence 里。
+    """
+    for tlog in sorted(build_dir.rglob("CL.command.1.tlog")):
+        try:
+            raw = tlog.read_bytes()
+        except OSError:
+            continue
+        text = _decode_any(raw)
+        if not text:
+            continue
+        m = _CL_TOOLSET_RE.search(text)
+        if m:
+            return {"version": m.group(1),
+                    "evidence": "tlog:" + tlog.as_posix(),
+                    "cl_dir": _cl_dir_of(text)}
+    cache = build_dir / "CMakeCache.txt"
+    if cache.is_file():
+        try:
+            txt = cache.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            txt = ""
+        m = _CL_TOOLSET_RE.search(txt)
+        if m:
+            return {"version": m.group(1),
+                    "evidence": "cmake-cache:" + cache.as_posix(),
+                    "cl_dir": _cl_dir_of(txt)}
+    return {"version": None, "evidence": None, "cl_dir": None}
+
+
+def _cl_dir_of(text: str) -> str | None:
+    """从含 cl.exe 路径的文本里取出该路径（用于上溯已安装 toolset 列表）。"""
+    m = re.search(r"[A-Za-z]:[\\/][^\r\n\t\"]*?MSVC[\\/][0-9.]+[\\/][^\r\n\t\"]*?cl\.exe",
+                  text, re.IGNORECASE)
+    return m.group(0) if m else None
+
+
+def installed_msvc_toolsets(cl_exe: str | None = None) -> list:
+    """列出已安装的 MSVC toolset 版本（fail-closed 报告面）。"""
+    roots = []
+    if cl_exe:
+        p = Path(cl_exe.replace("\\", os.sep))
+        for anc in [p, *p.parents]:
+            if anc.name.upper() == "MSVC":
+                roots.append(anc)
+                break
+    env_dir = os.environ.get("VCToolsInstallDir")
+    if env_dir:
+        q = Path(env_dir.rstrip("\\/"))
+        if q.name and q.parent.name.upper() == "MSVC":
+            roots.append(q.parent)
+    for r in roots:
+        if r.is_dir():
+            return sorted(x.name for x in r.iterdir() if x.is_dir())
+    return []
+
+
+def verify_msvc_toolset(build_dir: Path) -> dict:
+    """核对实际 toolset == pin；未命中或**测不到证据**均判 fail-closed。"""
+    got = measure_msvc_toolset(build_dir)
+    ok = got["version"] == MSVC_TOOLSET_VERSION
+    if got["version"]:
+        detail = "实际 cl.exe toolset %s（证据 %s）" % (got["version"], got["evidence"])
+    else:
+        detail = "未能在构建产物里测得实际 cl.exe toolset（无 .tlog / 无 CMakeCache 记录）"
+    return {"pinned": MSVC_TOOLSET_VERSION, "family": MSVC_TOOLSET_FAMILY,
+            "measured": got["version"], "evidence": got["evidence"], "ok": ok,
+            "installed_toolsets": installed_msvc_toolsets(got.get("cl_dir")),
+            "detail": detail}
+
+
 # ------------------------------------------------------------------ 阶段计划 ----
 
 def stage_plan(stages: list[str], *, preset: str = DEFAULT_PRESET,
@@ -334,13 +456,17 @@ def stage_plan(stages: list[str], *, preset: str = DEFAULT_PRESET,
     for stage in stages:
         timeout = STAGE_TIMEOUTS[stage]
         if stage == "configure":
+            # R-31: 环境里注入 VCToolsVersion=<pin>（等价 vcvars64 -vcvars_ver）——
+            # 不改 argv 形状（stage_plan 的 argv 是单测断言面），只加环境增量。
             plan.append({"name": stage, "timeout": timeout,
-                         "argv": ["cmake", "--preset", preset]})
+                         "argv": ["cmake", "--preset", preset],
+                         "env": msvc_pin_env()})
         elif stage == "build":
             argv = ["cmake", "--build", build_dir, "--config", BUILD_CONFIG]
             if jobs:
                 argv += ["--parallel", str(jobs)]  # 探测所得并行度
-            plan.append({"name": stage, "timeout": timeout, "argv": argv})
+            plan.append({"name": stage, "timeout": timeout, "argv": argv,
+                         "env": msvc_pin_env()})
         elif stage == "test":
             # --output-on-failure: 失败用例的 stderr/断言细节进 stage tee 日志
             # 与 junit（run 5e457d425fc8 的 7 failed 无断言细节可查，即缺此项）。
@@ -798,8 +924,13 @@ def _run_stages(stages: list[str], plan: list[dict], *, output: Path | None,
             # F-R4-03：子进程阶段全量 tee 到 run/ci/win-stage-<name>.log，
             # summary 记录 log 路径（相对仓库根）供 artifact 上传与离线诊断。
             log_rel = STAGE_LOG_TEMPLATE.format(name=step["name"])
+            # 步骤带 env 时以 os.environ 为底叠加增量（不整份替换子进程环境）。
+            step_env = None
+            if step.get("env"):
+                step_env = os.environ.copy()
+                step_env.update(step["env"])
             res = run_step(step["argv"], timeout=step["timeout"],
-                           log_path=_resolve(log_rel))
+                           env=step_env, log_path=_resolve(log_rel))
             stage_res = {"name": step["name"], "argv": step["argv"],
                          "exit_code": res["exit_code"],
                          "timed_out": res["timed_out"],
@@ -807,6 +938,20 @@ def _run_stages(stages: list[str], plan: list[dict], *, output: Path | None,
                          "output_tail": res["output_tail"],
                          "error_lines": res["error_lines"],
                          "log": log_rel}
+            if step["name"] == "build" and stage_res["exit_code"] == 0 \
+                    and platform.system() == "Windows":
+                pin = verify_msvc_toolset(_resolve(build_dir))
+                summary["msvc_toolset"] = pin
+                stage_res["msvc_toolset"] = {"ok": pin["ok"],
+                                             "measured": pin["measured"],
+                                             "evidence": pin["evidence"]}
+                if not pin["ok"]:
+                    # 无证据不得当合规：pin 未命中/测不到 ⇒ 受控失败。
+                    stage_res["exit_code"] = MSVC_PIN_EXIT_CODE
+                    stage_res["output_tail"] = (
+                        "MSVC 工具集 pin 未命中：pin=%s，%s；已安装 toolset=%s"
+                        % (pin["pinned"], pin["detail"],
+                           ",".join(pin["installed_toolsets"]) or "未知"))
         summary["stages"].append(stage_res)
         if stage_res["exit_code"] != 0:
             rc = stage_res["exit_code"]

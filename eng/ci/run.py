@@ -41,10 +41,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import declared_inputs as _decl_in  # noqa: E402  (eng/ci/declared_inputs.py：声明输入面单一实现点)
 import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
+import proc_teardown as _teardown  # noqa: E402  (eng/ci/proc_teardown.py：显式回收单一实现点)
 import run_checks as _rc  # noqa: E402  (eng/ci/run_checks.py：档位门控单一实现点, FINAL-07 R3)
 
 SCHEMA_VERSION = 1
-PROFILES = ("fast", "linux-main", "windows-main", "linux-deep", "fatduck")
+# 档位词汇**单一来源** = run_checks.py（eng/ci/run_checks.py:PROFILES）。
+# 缺陷型（FINAL-07 G2）：本文件曾自持一份子集（缺 integration/prerelease），
+# 而 checks.json 与 docs/ci/CI_SPEC.md §2.6 都要求这两档 ⇒ 文档—注册表—执行器三面漂移，
+# 按文档跑 `run.py --profile integration` 会 argparse rc=2。
+PROFILES = _rc.PROFILES
 
 EXIT_OK = 0            # verdict PASS / FATDUCK_PENDING
 EXIT_FAIL = 1          # 任一检查失败（含 KNOWN_FAIL，计数分离但 verdict 仍 FAIL）
@@ -684,23 +689,12 @@ def detect_dirty(before: dict, after: dict, ignore_prefixes: list[str],
 
 
 def _terminate(process: subprocess.Popen) -> None:
-    """终止检查进程树（POSIX 杀进程组；Windows 退回 kill）。"""
-    try:
-        if os.name == "posix":
-            import errno
-            try:
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                return
-            except OSError as exc:  # 进程组已退出
-                if exc.errno != errno.ESRCH:
-                    process.kill()
-        else:  # pragma: no cover - Windows 路径
-            process.kill()
-    except Exception:
-        try:
-            process.kill()
-        except OSError:
-            pass
+    """终止检查进程树（实现单一来源 = eng/ci/proc_teardown.py:kill_group）。
+
+    超时路径只覆盖"step 自己超时"；驱动被外部 TERM/INT 打断时的整组回收由
+    proc_teardown 的进程账 + 信号处理器负责（FINAL-07 §7 孤儿实录的修法）。
+    """
+    _teardown.kill_group(process)
 
 
 # --------------------------------------------------------------- 门崩识别 ----
@@ -733,9 +727,19 @@ _JUDGMENT_RE = re.compile(
     r"|(\b[A-Z][A-Z0-9]*[_-][A-Z0-9_]*(?:FAIL|FAILED|VIOLATION|RED|ERROR)\b\s*:?)"
     r"|(\bverdict\"?\s*[:=]\s*\"?\s*(?:FAIL|FAILED|RED))"
     r"|(\"pass\"\s*:\s*false)"
+    # FINAL-07 G10-②：构建/编译失败形态。CI 实证 LINUX-MAIN-BUILD-TREE 的 stderr 是
+    # `CMake Error at CMakeLists.txt:1153 (add_executable): Cannot find source file: ...`
+    # —— 该行自带 文件:行，却因正则不认而被记成"检查器未打印可识别判词"（judgment_lines=[]）。
+    r"|(^\s*CMake (?:Error|Warning) at [^\n:]+:[0-9]+)"
+    r"|(^\s*[^\s:][^\n:]*\.[A-Za-z0-9]+:[0-9]+(?::[0-9]+)?:\s*(?:fatal )?(?:error|warning)\b)"
+    # FINAL-07 G10-⑤：结构化判定形态（status/passed 与 verdict 同族）。
+    r"|(\"status\"\s*:\s*\"?(?:FAIL|FAILED|ERROR|RED))"
+    r"|(\"passed\"\s*:\s*false)"
     r"|(^\s*\{\s*\"check\"\s*:)",
     re.I | re.M)
 BANNER_MAX = 200
+# 单条判词块的字节上限（FINAL-07 G9：防一篇缩进 JSON 被吞成一条 5 MB 判词）。
+JUDGMENT_CHUNK_MAX = 8192
 _DETAIL_KEY_RE = re.compile(r'"(?:detail|check|reason|message)"\s*:')
 
 
@@ -763,9 +767,19 @@ def judgment_lines(*blobs) -> list:
                         break
             elif len(line) <= BANNER_MAX:
                 # 判词横幅 + 其下缩进列出的逐条 finding；口径与 run_checks.py 一致。
+                # FINAL-07 G9 防线：单块硬上限（原实现把整篇缩进 JSON 吞成一条判词，
+                # 实测 CHK-SECRET-HYGIENE 单条判词 5.0 MB，真判词被淹没）。判词行本身
+                # 一条不丢，超出上限时显式标注截断点与完整输出的落点。
+                merged_bytes = len(line)
                 for nxt in lines[i + 1:]:
                     if nxt.strip() and not nxt[:1].isspace():
                         break
+                    if merged_bytes + len(nxt) > JUDGMENT_CHUNK_MAX:
+                        chunk.append("    …[判词块超过 %d 字节，余下缩进行省略；"
+                                     "完整输出见本次运行的 check 日志]"
+                                     % JUDGMENT_CHUNK_MAX)
+                        break
+                    merged_bytes += len(nxt)
                     chunk.append(nxt.rstrip())
             elif re.match(r"^\s*(?:ERROR|FAIL):\s", line, re.I):
                 frames = []
@@ -957,7 +971,8 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     stdout_b, stderr_b = b"", b""
     t0 = time.monotonic()
     try:
-        proc = subprocess.Popen(
+        # 登记进进程账：外部 SIGTERM/SIGINT 与 atexit 都会对仍在跑的登记项整组回收。
+        proc = _teardown.spawn(
             check["command"], cwd=str(repo), env=env,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             shell=False, start_new_session=(os.name == "posix"),
@@ -982,6 +997,7 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     duration = time.monotonic() - t0
     finished = utc_now()
     returncode = proc.returncode
+    _teardown.release(proc)   # 已收尾：从进程账注销（避免 atexit 重复回收）
 
     result["exit_code"] = returncode
     result["timed_out"] = timed_out
@@ -1425,6 +1441,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     started = utc_now()
+    # FINAL-07 §7：驱动被 CI 取消（SIGTERM）或人工 Ctrl-C（SIGINT）打断时，
+    # 超时回收路径不会执行 ⇒ 登记的子进程组会逃逸成 PPID=1 孤儿。
+    # 装信号处理器 + atexit 兜底：日志里必有 TEARDOWN 行，孤儿可从日志判定。
+    _teardown.install_handlers()
 
     repo = Path(args.repo_root).resolve() if args.repo_root else \
         Path(__file__).resolve().parent.parent.parent

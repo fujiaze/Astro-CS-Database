@@ -491,6 +491,8 @@ LADDER_DOC = """# 设计
 def _mini(root, *, ladder=None, verdict=None, denylist=None, surfaces=None,
           claims=None, snaps=None, checks_text="{}"):
     os.makedirs(root, exist_ok=True)
+    # DESIGN 位于 docs/ 子目录：父目录必须先建，否则自证夹具写入即 FileNotFoundError（门崩）。
+    os.makedirs(os.path.join(root, os.path.dirname(DESIGN)), exist_ok=True)
     with open(os.path.join(root, DESIGN), "w", encoding="utf-8") as f:
         f.write(LADDER_DOC)
     os.makedirs(os.path.join(root, "eng/tools/quality"), exist_ok=True)

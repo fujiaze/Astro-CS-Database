@@ -312,7 +312,17 @@ def main():
     repo = Path(args.repo).resolve()
     binary = Path(args.binary) if args.binary else repo / "build/acsd"
     if not binary.is_file():
-        print(f"environment: binary missing: {binary}", file=sys.stderr)
+        # FINAL-07 G10-③：原判词 `environment: binary missing: <绝对路径>` 既无
+        # FAIL/prerequisite 词元（汇总层认不出是判定还是日志）、也无仓库相对定位。
+        # 三态语义要保住：这是"前置输入缺失"，不是"判据崩了"，也不是"门判红"。
+        try:
+            rel = binary.relative_to(repo)
+        except ValueError:
+            rel = binary
+        print("FAIL(prerequisite): 前置二进制缺失 %s:1（build/acsd 不存在）"
+              "—— 先跑 python3 eng/ci/run_checks.py --check CHK-BUILD-LINUX 备好构建树"
+              % rel, file=sys.stderr)
+        print("MASTER-UNIT-GUARD_FAIL: prerequisite_missing %s" % rel)
         return 2
     work = Path(args.work) if args.work else repo / "run/master_unit_guard"
     work.mkdir(parents=True, exist_ok=True)
