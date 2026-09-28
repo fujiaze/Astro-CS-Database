@@ -106,6 +106,25 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 同批受控化的还有未接线调度器的预取线程上限 `scheduler_prefetch_threads_max`。
 **工作窃取策略**：生产**无实现**（全仓唯一命中在 ACR，而 ACR 生产不可达）⇒ 键位方案已登记于
 `config_registry.json#orchestration_params.gaps`，不落无读取面的死键，待实现后同批落键。）
+
+**节点内并行度来自运行期预算（X1 接线，冻结）**：节点线程预算的唯一解析面 =
+`lib/infrastructure/scheduler/src/cpu_budget.h#node_thread_budget`（消费面
+`module_adapters.cpp#node_thread_budget_of`，全部 `__workers` 读取点共用）：
+
+1. 调度器 `execute` 注入的 lease（节点 config 的 `__workers`）**存在** ⇒ 以它为准，只收紧不放大
+   （`1` 显式表示串行 reference；非数值 fail-closed 视为显式串行）；
+2. lease **不存在**（直接调用 op 的非调度路径：门禁/单元/集成，如
+   `p1_op_star_psf_precise_json`）⇒ 取「进程有效 CPU 预算」= 进程注入的可用核（亲和性 ∩ cgroup），
+   未注入则现算同一口径 `min(可用核, 配置上限)`（配置键 `cpu_budget_max`，`0` = 不设上限）
+   ⇒ **缺省不是 1**。
+
+理由：「快慢」不得建立在使用方是否传参上。旧实现在第 2 条上恒取 1 ⇒ P1 帧轴 `budget=1`
+⇒ `p1_parallel_for` 的 `frame_w<=1` 分支把帧内 ICV 置 1 ⇒ 节点内 `omp parallel for`
+（如 `dpsf_fit_batch_f64`）整批单线程（PSF 域实测 1,086.0 s vs 16 线程探针 101.2 s，10.7×）。
+机器门 = `CHK-NODE-BUDGET-WIRING`（静态：调度器内不得存在"缺省即串行"的 `__workers` 读取；
+动态：探针链接**真实**解析面，断言无 lease 时预算 = 进程有效 CPU 预算、`inner_omp > 1`、
+lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须判红）。
+
 故任何「并发度 A vs B」的对照必须同时满足下列四条，缺一即不成立：
 
 1. **钉住**：`taskset -c <掩码>` 钉 CPU 掩码（Runtime 线程预算 = 掩码内的 CPU 数 ⇒ `lease` 确定）；

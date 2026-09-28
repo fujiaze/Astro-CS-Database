@@ -29,11 +29,14 @@
 | CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG；含 ACR/编排层退出面（`ACR-DORMANT` = `eng/tools/check_legacy_exit.py`，LEG-002..004）；其执行单元 `DOC-LINE-ANCHORS` = 全库文档行号锚 vs 源文件实测（扫描面 `docs/**/*.md`；C1 目标 tracked / C2 锚可解析且未解析须逐条登记 / C3 区间在界内 / C4 逐符号绑定 / C5 豁免项仍是活锚 / C6 锚的起止行**取非空行** / C7 `ANCHOR_CONTRACT.md` §1 规模声明与实测逐字相等 / C8 未解析登记台账只减不增；9 豁免 + 26 未解析逐条点名；fail-closed） | `python3 eng/ci/run_checks.py --check CHK-SCI-REF --quiet` | P0 |
 | CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试 | `python3 eng/ci/run_checks.py --check CHK-CONTRACT-TEST --quiet` | P0 |
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | `python3 eng/ci/run_checks.py --check CHK-DANGLING --quiet` | P1 |
+| CON-DOC-SYMBOLS-SELFTEST | 文档一致性 | 上项的可执行正/负例面（9 例：同名符号跨命名空间 / 未登记符号 / 扫描面为空时 fail-closed 判红等） | `python3 eng/tools/quality/contracts/check_doc_symbols.py --self-test` | P1 |
 | DOC-INDEX | 文档一致性 | 双向层级索引闭合（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed；跨域未修项台账 `eng/tools/doccheck/dangling_ledger.json` 只减不增） | `python3 eng/tools/doccheck/check_doc_index.py --strict` | P0 |
 | DOC-INDEX-SELFTEST | 文档一致性 | 上项的可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失各自判红） | `python3 eng/tools/doccheck/check_doc_index.py --self-test` | P0 |
 | CHK-DOCS-MACHINE-CONSISTENCY | 文档一致性 | 机器一致性扫描（docs/**+lib/**） | `python3 eng/tools/docs_machine_consistency.py --quiet` | P0 |
 | CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST | 文档一致性 | 上项的可执行正/负例面（`--self-test`） | `python3 eng/tools/docs_machine_consistency.py --self-test` | P0 |
-| ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚（扫描面 `docs/**/*.md`，与上项同面）+ `docs/science/algorithms/*.md` 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；空行判据归上项 C6，本项不重复；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
+| CHK-MANIFEST-EXIT-CODES | 文档一致性 | manifest 面退出码「合同行→实现行」一致（P-159 定一：登记/写入=7、verify/完整性=8）；合同行逐字 + 代码锚符号 + 两文档条款逐字相同，锚缺失即判红 | `python3 eng/ci/run_checks.py --check CHK-MANIFEST-EXIT-CODES --quiet` | P0 |
+| CHK-NODE-BUDGET-WIRING | 并发与预算 | 节点线程预算真正被消费（缺租约键时取进程有效 CPU 预算，不得静默退回串行；只收紧不放大） | `python3 eng/ci/run_checks.py --check CHK-NODE-BUDGET-WIRING --quiet` | P0 |
+| ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚（扫描面 `docs/**/*.md`，与上项同面）+ `docs/science/algorithms/*.md` 逐符号表行号范围 + **紧贴文件名的邻接裸行号锚**（`L1b`，FINAL-07 补入）vs 源文件实测（L0 fail-closed / L1 行数 / L1b 邻接裸行号 / L2 目标解析 / L3 符号漂移；空行判据归上项 C6，本项不重复；非邻接裸行号如实不判，见该门头部「不覆盖」；14 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
 | CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 的判红面 = 裁决类逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与已知限制台账 §1 编号表双向一致（台账落点 = `ENGINEERING_SPEC.md` §7 证据面）、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py` | P0 |
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
 | CON-SYMBOL-DIM-UNIQUE | 合同一致性 | 符号量纲唯一性门：同一符号在全仓只指一个量纲。三条子判据为定义站点量纲代数求值 / 显式量纲断言 / 共现短语判据（带否定式豁免，避免把正确的消歧写法判红）。 |
@@ -79,6 +82,7 @@
 | CHK-TRUTHFUL-CONCLUSION | 治理 | 结论真实性门（结论词汇/权威面/覆盖声明/快照逐项核；含 self-test 与 fault-inject all 负例面） | `python3 eng/ci/run_checks.py --check CHK-TRUTHFUL-CONCLUSION --quiet` | P0 |
 | VERSION-CONSISTENCY | 文档一致性 | 版本注入链单一真源 + 现行活动文档集完整性 | `python3 eng/ci/check_version.py`（缺省 expected = 根 `VERSION`，不写死字面量） | P1 |
 | VERSION-NAMESPACES | 文档一致性 | 版本命名空间一致性（陈旧版本号） | `python3 eng/tools/doccheck/check_version_namespaces.py` | P1 |
+| VERSION-NAMESPACES-SELFTEST | 文档一致性 | 上项的可执行正/负例面（2 正 4 负：扫描面越出仓库 / 结构性 DOI 排除 / `scanned==0` fail-closed 等各自判红） | `python3 eng/tools/doccheck/check_version_namespaces.py --self-test` | P1 |
 | DOC-L0 | 文档一致性 | L0 现行文档集（docs/owner/**）与索引 active 登记完整性 | `python3 eng/tools/check_l0_docs.py` | P1 |
 | GLOSSARY-DOCS | 文档一致性 | 词典锚点/别名唯一性（报告项） | `python3 eng/tools/check_glossary.py` | P2 |
 | LINUX-MAIN-FIXTURES | 构建 | linux-main 夹具准备（wf_step） | `python3 eng/ci/wf_step.py --step LINUX-PREPARE-FIXTURES` | P0 |
