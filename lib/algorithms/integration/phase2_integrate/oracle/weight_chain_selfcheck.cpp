@@ -183,6 +183,8 @@ FrameWeightInput mk(const std::string& id, double snr) {
 SparseSnrLayer grid2x2() {
   SparseSnrLayer L;
   L.present = true;
+  /* 冻结语义：控制点值是**绝对**通量型 SNR（与 frame_snr 同口径、同逐帧 F_ref）。 */
+  L.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
   L.regular_grid = true;
   L.nx = 2; L.ny = 2;
   L.x0 = 0.0; L.y0 = 0.0; L.dx = 1.0; L.dy = 1.0;
@@ -195,6 +197,7 @@ SparseSnrLayer grid2x2() {
 SparseSnrLayer grid4x4() {
   SparseSnrLayer L;
   L.present = true;
+  L.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
   L.regular_grid = true;
   L.nx = 4; L.ny = 4;
   L.dx = 8.0; L.dy = 8.0;
@@ -261,32 +264,76 @@ int main() {
           "SNR_combined^2 = Sum SNR_k^2 identity holds");
   }
 
-  /* ---------- 正例 3: 稀疏层 帧级×帧内（默认算子 = 自然样条 + 钳制） ---------- */
+  /* ---------- 正例 3: 稀疏层走**逐像素**权重面（层值 = 绝对 SNR） ----------
+   * 冻结语义（eng/contracts/schemas/unified/sparse_snr_layer.schema.json）：
+   * 控制点值 = F_ref/σ_F(x,y) 本身；消费时**不得**乘/除帧级 SNR。
+   * ⇒ 本正例同时是「口径/量纲一致性」判据：w(x,y) = (SNR_layer/F_ref,k)²·g_k²，
+   *   并与 frame_snr 无关（下面的负例把它变成可判红的反例）。 */
   {
-    std::printf("[positive] sparse layer composition (frame x intra, default operator)\n");
+    std::printf("[positive] sparse layer -> per-pixel weight w=(SNR_layer/F_ref,k)^2*g^2\n");
     const double fref = 1000.0;
     SparseSnrLayer L = grid2x2();
+    const double px = 0.5, py = 0.5;
+    const double layer_oracle = oracle_bilinear(L, px, py);   /* 绝对 SNR，单位 [1] */
+    const double g = 41.0;
+    /* (a) 层逐像素面：唯一消费面 */
+    astrocs::v6::p2weight::PixelWeightInput pin;
+    pin.frame_id = "f0";
+    pin.layer = &L;
+    pin.x = px; pin.y = py;
+    pin.ref_flux_k = fref;
+    pin.gain = &g;
+    const astrocs::v6::p2weight::PixelWeightResult pr =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    check(pr.ok && pr.weight_chain_closed && pr.production_allowed,
+          "per-pixel layer weight closed and production allowed");
+    check(pr.closure == WeightClosure::kClosed, "closure token = closed");
+    check(pr.weight_source == "sparse_snr_layer_absolute_snr",
+          "weight_source = sparse_snr_layer_absolute_snr");
+    check(close(pr.layer_snr, layer_oracle, 1e-12),
+          "reconstructed layer value = absolute SNR (independent bilinear oracle)");
+    check(close(pr.weight, oracle_weight_from_snr(layer_oracle, fref) * g * g),
+          "w = (SNR_layer/F_ref)^2 * g^2 matches independent oracle");
+    check(close(pr.reference_flux_k, fref), "per-frame F_ref,k carried through");
+    check(pr.sparse_operator_id == "natural_bicubic_spline_clip_v1",
+          "default reconstruction operator id recorded (natural_bicubic_spline_clip_v1)");
+    check(pr.sparse_node_residual <= 1e-9, "node reproduction residual ~ 0");
+    /* 量纲自证：w[ADU^-2]·F_ref[ADU]^2 - SNR^2[1]·g^2 == 0 */
+    check(close(pr.dimensional_identity, 0.0, 1e-15) ||
+              std::fabs(pr.dimensional_identity) < 1e-15,
+          "dimensional identity w*F_ref^2 - SNR^2*g^2 == 0 (units consistent)");
+    check(std::string(pr.weight_units) == "ADU^-2" &&
+              std::string(pr.snr_units) == "dimensionless" &&
+              std::string(pr.reference_flux_units) == "ADU",
+          "unit tokens: w[ADU^-2] from SNR[1] / F_ref[ADU]");
+    /* 非退化：层值确实随像素变化（否则逐像素面无意义）。2x2 网格上样条/双线性
+       处处等于同一线性场，故用 4x4 网格验「逐像素」确有区分度。 */
+    SparseSnrLayer L4 = grid4x4();
+    astrocs::v6::p2weight::PixelWeightInput pin4 = pin;
+    pin4.layer = &L4;
+    pin4.x = 3.5; pin4.y = 3.5;
+    const astrocs::v6::p2weight::PixelWeightResult p4a =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin4);
+    pin4.x = 11.5; pin4.y = 3.5;
+    const astrocs::v6::p2weight::PixelWeightResult p4b =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin4);
+    check(p4a.ok && p4b.ok, "4x4 layer per-pixel weights closed at both pixels");
+    check(!close(p4a.layer_snr, p4b.layer_snr, 1e-9),
+          "layer value varies across pixels (per-pixel face is non-degenerate)");
+    check(!close(p4a.weight, p4b.weight, 1e-9), "per-pixel weight varies across pixels");
+
+    /* (b) 与标量链的一致性：标量链不得再产出「帧级 x 层值」的权重 */
     std::vector<FrameWeightInput> frames;
-    FrameWeightInput a = mk("f0", 200.0); a.sparse = &L; a.x = 0.5; a.y = 0.5;
-    FrameWeightInput b = mk("f1", 100.0); b.sparse = &L; b.x = 0.25; b.y = 0.5;
-    frames = {a, b};
+    FrameWeightInput a = mk("f0", 200.0); a.sparse = &L;
+    frames = {a};
     const WeightChainResult r =
         astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
-    check(r.ok && r.weight_chain_closed, "sparse chain closed");
-    check(r.weight_source == "frame_snr_x_sparse_snr", "weight_source = frame_snr_x_sparse_snr");
-    /* 2x2 控制网格上自然样条退化为双线性（M ≡ 0）⇒ 期望值仍可用独立双线性复算。
-       注意：默认算子已从 bilinear_regular_grid_v1 改为
-       natural_bicubic_spline_clip_v1（实验 EXP-04 §4.1 推荐），本行断言随之更新。 */
-    const double intra0 = oracle_bilinear(L, 0.5, 0.5);
-    const double intra1 = oracle_bilinear(L, 0.25, 0.5);
-    check(close(r.intra_snr[0], intra0), "intra[0] matches independent oracle");
-    check(close(r.intra_snr[1], intra1), "intra[1] matches independent oracle");
-    check(close(r.actual_snr[0], 200.0 * intra0), "actual SNR = frame x intra (f0)");
-    check(close(r.weights[0], oracle_weight_from_snr(200.0 * intra0, fref)),
-          "weight[0] from composed SNR matches oracle");
-    check(r.sparse_operator_ids[0] == "natural_bicubic_spline_clip_v1",
-          "default reconstruction operator id recorded (natural_bicubic_spline_clip_v1)");
-    check(r.sparse_node_residual[0] <= 1e-9, "node reproduction residual ~ 0");
+    check(r.ok && r.weight_chain_closed, "scalar chain closed with a layer present");
+    check(r.weight_source == "sparse_snr_layer_absolute_snr",
+          "scalar chain reports the layer as the weight source");
+    check(r.weight_deferred_to_pixel_path[0] == true,
+          "layer frame's weight is deferred to the per-pixel path");
+    check(close(r.weights[0], 0.0), "scalar chain emits NO frame-level scalar for a layer frame");
   }
 
   /* ---------- 正例 4: 4x4 网格上默认算子 = 独立复算的自然样条 + 钳制 ---------- */
@@ -533,35 +580,42 @@ int main() {
     }
   }
 
-  /* ---------- 负例 4: 稀疏层存在但损坏/空 ---------- */
+  /* ---------- 负例 4: 稀疏层存在但损坏/空（逐像素面） ---------- */
   {
-    std::printf("[negative] corrupt/empty sparse layer -> fail-closed, no frame fallback\n");
+    std::printf("[negative] corrupt/empty sparse layer -> fail-closed on the per-pixel face\n");
     const double fref = 1000.0;
     SparseSnrLayer empty;
-    empty.present = true; /* present but empty */
-    std::vector<FrameWeightInput> frames = {mk("f0", 200.0)};
-    frames[0].sparse = &empty; frames[0].x = 0.5; frames[0].y = 0.5;
-    const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
-    check(!r.ok, "present-but-empty layer is fail-closed");
-    check(r.closure == WeightClosure::kUnclosedSparseLayerUnreconstructible,
+    empty.present = true; /* present but empty: prepare() must reject it */
+    empty.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kAbsoluteFluxTypeSnr;
+    astrocs::v6::p2weight::PixelWeightInput pin;
+    pin.frame_id = "f0"; pin.layer = &empty; pin.x = 0.5; pin.y = 0.5;
+    pin.ref_flux_k = fref;
+    const astrocs::v6::p2weight::PixelWeightResult pr =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    check(!pr.ok, "present-but-empty layer is fail-closed");
+    check(pr.closure == WeightClosure::kUnclosedSparseLayerUnreconstructible,
           "closure = sparse_layer_unreconstructible");
-    check(r.weights.empty(), "no silent fallback to frame-level weights");
+    check(close(pr.weight, 0.0), "no weight emitted for a corrupt layer");
+    check(pr.weight_source == "none", "weight_source = none (not a frame-level value)");
+    check(pr.error.find("unreconstructible") != std::string::npos,
+          "explicitly names the failure (no silent frame-level fallback)");
   }
 
-  /* ---------- 负例 5: 稀疏层越界 ---------- */
+  /* ---------- 负例 5: 稀疏层越界（逐像素面） ---------- */
   {
-    std::printf("[negative] sparse layer out-of-domain -> fail-closed\n");
+    std::printf("[negative] sparse layer out-of-domain -> fail-closed on the per-pixel face\n");
     const double fref = 1000.0;
     SparseSnrLayer L = grid2x2();
-    std::vector<FrameWeightInput> frames = {mk("f0", 200.0)};
-    frames[0].sparse = &L; frames[0].x = 5.0; frames[0].y = 0.5;
-    const WeightChainResult r =
-        astrocs::v6::p2weight::compute_inverse_variance_weights(frames, fref);
-    check(!r.ok && r.closure == WeightClosure::kUnclosedSparseLayerUnreconstructible,
+    astrocs::v6::p2weight::PixelWeightInput pin;
+    pin.frame_id = "f0"; pin.layer = &L; pin.x = 5.0; pin.y = 0.5;   /* 定义域 = [-0.5, 1.5] */
+    pin.ref_flux_k = fref;
+    const astrocs::v6::p2weight::PixelWeightResult pr =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    check(!pr.ok && pr.closure == WeightClosure::kUnclosedSparseLayerUnreconstructible,
           "out-of-domain is fail-closed");
-    check(r.error.find("fallback") != std::string::npos,
-          "explicitly states frame-level fallback forbidden");
+    check(pr.error.find("unreconstructible") != std::string::npos &&
+              pr.weight_source == "none",
+          "explicitly states the layer path failed (no frame-level fallback)");
   }
 
   /* ---------- 负例 6: SNR 语义冒充 ---------- */
@@ -735,6 +789,210 @@ int main() {
               std::string(astrocs::v6::p2weight::sparse_recon_operator_for_source(true)) ==
                   std::string("natural_bicubic_spline_clip_mesh_median_v1"),
           "source-based selection rule: ground -> default, high-contrast -> mesh median");
+  }
+
+  /* ================================================================
+   * M06 判据①：逐像素消费面的量纲/口径一致性 + 「层值缺失 = 显式降级而非乘 1」
+   * 依据：docs/science/UNIFIED_SCIENCE_MODEL.md:59（w = SNR^2/F_ref^2 = 1/sigma_F^2）、
+   *       docs/science/PSF_SIGNAL_WEIGHT.md:87、ASTROCS_DESIGN.md 3.1:264（层值是绝对
+   *       量本身，不乘/除帧级标量）、eng/contracts/schemas/unified/sparse_snr_layer.schema.json
+   * ================================================================ */
+  {
+    std::printf("[criterion 1] per-pixel face: dimensional/scale consistency\n");
+    const double fref = 1000.0;
+    SparseSnrLayer L = grid4x4();
+    const double qs[5][2] = {{3.5, 3.5}, {11.5, 3.5}, {19.5, 11.5}, {3.5, 27.5}, {31.0, 31.0}};
+    bool all_units = true, all_ident = true, all_sigma = true;
+    double worst_rel = 0.0;
+    for (const auto& q : qs) {
+      astrocs::v6::p2weight::PixelWeightInput pin;
+      pin.frame_id = "f0"; pin.layer = &L; pin.x = q[0]; pin.y = q[1];
+      pin.ref_flux_k = fref;
+      const astrocs::v6::p2weight::PixelWeightResult pr =
+          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      if (!pr.ok) { all_units = false; continue; }
+      /* (a) 单位 token 必须是 [ADU^-2] / [1] / [ADU] */
+      all_units = all_units && std::string(pr.weight_units) == "ADU^-2" &&
+                  std::string(pr.snr_units) == "dimensionless" &&
+                  std::string(pr.reference_flux_units) == "ADU";
+      /* (b) 量纲自证：w[ADU^-2] * F_ref[ADU]^2 - SNR^2[1] * g^2 == 0 */
+      all_ident = all_ident && std::fabs(pr.dimensional_identity) <=
+                                   1e-15 * std::max(1.0, std::fabs(pr.weight) * fref * fref);
+      /* (c) 口径自证：sigma_F = F_ref/SNR_layer ⇒ 1/sigma_F^2 == w（独立复算） */
+      const double sigma_f = fref / pr.layer_snr;
+      const double w_from_sigma = 1.0 / (sigma_f * sigma_f);
+      const double rel = std::fabs(w_from_sigma - pr.weight) / pr.weight;
+      worst_rel = std::max(worst_rel, rel);
+      all_sigma = all_sigma && rel <= 1e-12;
+    }
+    check(all_units, "unit tokens consistent: w[ADU^-2] from SNR[1]/F_ref[ADU]");
+    check(all_ident, "dimensional identity w*F_ref^2 - SNR^2*g^2 == 0 at all pixels");
+    check(all_sigma, "w == 1/sigma_F^2 with sigma_F = F_ref/SNR_layer (scale consistent)");
+    std::printf("        (max relative deviation vs 1/sigma_F^2: %.3e)\n", worst_rel);
+
+    /* (d) 层值缺失：显式降级（policy 默认）——**不是**「层值 = 1」 */
+    {
+      astrocs::v6::p2weight::PixelWeightInput pin;
+      pin.frame_id = "f0"; pin.layer = nullptr; pin.x = 3.5; pin.y = 3.5;
+      pin.ref_flux_k = fref;
+      const astrocs::v6::p2weight::PixelWeightResult pr =
+          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      check(!pr.ok, "absent layer is NOT a successful layer weight");
+      check(pr.generated_from_absent_layer,
+            "absent layer flags explicit degradation (generated_from_absent_layer)");
+      check(pr.weight_source == "frame_level_degraded",
+            "absent layer names the degraded source explicitly");
+      check(close(pr.weight, 0.0),
+            "absent layer emits NO weight (must not silently use 1/sigma_F(frame) or 1)");
+      check(pr.closure == WeightClosure::kUnclosedSparseLayerRequiredMissing,
+            "absent-layer closure token = unclosed_sparse_layer_required_missing");
+    }
+    /* (e) 层值缺失：policy 要求层时必须判红（同一函数、另一分支） */
+    {
+      astrocs::v6::p2weight::WeightChainPolicy pol;
+      pol.require_sparse_layer_for_pixel_weights = true;
+      astrocs::v6::p2weight::PixelWeightInput pin;
+      pin.frame_id = "f0"; pin.layer = nullptr; pin.x = 3.5; pin.y = 3.5;
+      pin.ref_flux_k = fref;
+      const astrocs::v6::p2weight::PixelWeightResult pr =
+          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin, pol);
+      check(!pr.ok && !pr.generated_from_absent_layer,
+            "policy-required layer missing -> hard fail (no degradation)");
+      check(pr.closure == WeightClosure::kUnclosedSparseLayerRequiredMissing,
+            "policy-required missing layer closure token");
+      check(pr.error.find("treated as 1") != std::string::npos,
+            "error text explicitly rules out treating the layer value as 1");
+    }
+    /* (f) 相对语义层（非 absolute_flux_type_snr）必须判红 */
+    {
+      SparseSnrLayer rel = grid4x4();
+      rel.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kRelativeToFrameSnr;
+      astrocs::v6::p2weight::PixelWeightInput pin;
+      pin.frame_id = "f0"; pin.layer = &rel; pin.x = 3.5; pin.y = 3.5;
+      pin.ref_flux_k = fref;
+      const astrocs::v6::p2weight::PixelWeightResult pr =
+          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      check(!pr.ok && pr.closure == WeightClosure::kUnclosedWrongSnrSemantics,
+            "relative-semantics layer is fail-closed (wrong_snr_semantics)");
+      check(pr.error.find("absolute_flux_type_snr") != std::string::npos,
+            "error names the frozen required semantics");
+      SparseSnrLayer unspec = grid4x4();
+      unspec.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kUnspecified;
+      pin.layer = &unspec;
+      const astrocs::v6::p2weight::PixelWeightResult pu =
+          astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+      check(!pu.ok && pu.closure == WeightClosure::kUnclosedWrongSnrSemantics,
+            "unspecified semantics is fail-closed too (no assumed default at the consumer)");
+    }
+  }
+
+  /* ================================================================
+   * M06 判据②（反例，可判红）：若**误乘帧级标量**则本条判红
+   * 注入方式（两种，都真实存在于历史实现/常见误改中）：
+   *   (I) 把层当「帧内相对因子」乘到帧级 SNR 上：w_wrong = ((frame * layer)/F_ref)^2
+   *       —— 即已删除的 compose_actual_snr(frame, intra) 组合式；
+   *   (II) 在逐像素面上额外乘 frame^2：w_wrong = (layer/F_ref)^2 * frame^2
+   * 判红输出：与独立 oracle（w_true = (layer/F_ref)^2）相对偏差远超容差。
+   * ================================================================ */
+  {
+    std::printf("[criterion 2] counter-example: multiplying by the frame-level SNR must go RED\n");
+    const double fref = 1000.0;
+    const double frame_snr = 200.0;          /* 帧级 SNR（独立对象，不得进入逐像素面） */
+    SparseSnrLayer L = grid4x4();
+    const double qx = 11.5, qy = 3.5;
+    astrocs::v6::p2weight::PixelWeightInput pin;
+    pin.frame_id = "f0"; pin.layer = &L; pin.x = qx; pin.y = qy; pin.ref_flux_k = fref;
+    const astrocs::v6::p2weight::PixelWeightResult pr =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+    check(pr.ok, "baseline per-pixel layer weight closed (needed for a meaningful counter-example)");
+
+    const double layer = pr.layer_snr;
+    const double w_true = oracle_weight_from_snr(layer, fref);          /* 独立 oracle */
+    check(close(pr.weight, w_true, 1e-12),
+          "GREEN: w(x,y) == (SNR_layer/F_ref)^2 (independent oracle)");
+
+    /* 注入 (I)：帧级 x 层值（旧 compose_actual_snr 语义） */
+    const double w_inject_I = oracle_weight_from_snr(frame_snr * layer, fref);
+    const double rel_I = std::fabs(w_inject_I - w_true) / w_true;
+    const bool red_I = rel_I > 1e-6;
+    check(red_I, "RED as expected: injection (I) frame*layer deviates from the oracle");
+    check(red_I && !close(w_inject_I, w_true, 1e-6),
+          "injection (I) is detected by the tolerance check (red is reachable)");
+
+    /* 注入 (II)：逐像素面上额外乘 frame^2 */
+    const double w_inject_II = w_true * frame_snr * frame_snr;
+    const double rel_II = std::fabs(w_inject_II - w_true) / w_true;
+    check(rel_II > 1e-6,
+          "RED as expected: injection (II) extra frame^2 deviates from the oracle");
+    std::printf("        (injection I  : w_wrong/w_true = %.6e, rel dev = %.3e)\n",
+                w_inject_I / w_true, rel_I);
+    std::printf("        (injection II : w_wrong/w_true = %.6e, rel dev = %.3e)\n",
+                w_inject_II / w_true, rel_II);
+
+    /* 反向锚：接口面根本不给帧级 SNR 入口 ⇒ 「忘了乘」在本 API 上不可表达 */
+    check(pr.layer_snr > 0.0 && close(pr.reference_flux_k, fref),
+          "per-pixel result carries only the layer SNR and F_ref,k (no frame-level term)");
+    /* 帧级支路（无层）仍必须保留 frame_snr 的作用，证明两口径不是同一件事 */
+    const double w_frame_only = oracle_weight_from_snr(frame_snr, fref);
+    check(!close(w_frame_only, w_true, 1e-6),
+          "frame-level branch and layer branch are numerically distinct (non-vacuous)");
+  }
+
+  /* ================================================================
+   * M06 判据③：两条逐像素入口一致（direct layer vs prepared reconstructor）
+   * 生产侧（module_adapters.cpp 的逐像素面）走
+   * weight_from_sparse_layer_pixel_prepared（复用已 prepare 的重建器），
+   * 判据侧走 weight_from_sparse_layer_pixel（层直入）。两者必须逐像素一致 ——
+   * 且都与独立 oracle 一致（同帧同层，w 逐像素相等）。
+   * ================================================================ */
+  {
+    std::printf("[criterion 3] the two per-pixel entries agree pixel-by-pixel\n");
+    const double fref = 1000.0;
+    const double g = 41.0;
+    const double fref_k = 812.5;           /* 逐帧 F_ref,k：与组标量不同，验证逐帧耦合 */
+    SparseSnrLayer L = grid4x4();
+    astrocs::v6::p2weight::SparseSnrReconstructor rec;
+    std::string perr;
+    check(rec.prepare(L, &perr), std::string("prepared reconstructor: ") + perr);
+    check(rec.ready(), "prepared reconstructor ready()");
+
+    int n_checked = 0, n_mismatch = 0, n_oracle_mismatch = 0;
+    double worst_diff = 0.0;
+    for (int j = 0; j < 4; ++j) {
+      for (int i = 0; i < 4; ++i) {
+        const double x = 3.5 + 8.0 * i, y = 3.5 + 8.0 * j;
+        astrocs::v6::p2weight::PixelWeightInput pin;
+        pin.frame_id = "f0"; pin.layer = &L; pin.x = x; pin.y = y;
+        pin.ref_flux_k = fref_k; pin.gain = &g;
+        const astrocs::v6::p2weight::PixelWeightResult a =
+            astrocs::v6::p2weight::weight_from_sparse_layer_pixel(pin);
+        const astrocs::v6::p2weight::PixelWeightResult b =
+            astrocs::v6::p2weight::weight_from_sparse_layer_pixel_prepared(rec, pin, {});
+        ++n_checked;
+        if (!a.ok || !b.ok) { ++n_mismatch; continue; }
+        const double diff = std::fabs(a.weight - b.weight);
+        worst_diff = std::max(worst_diff, diff);
+        /* 逐像素**位级**一致（两入口共用同一算子与同一换算） */
+        if (a.weight != b.weight || a.layer_snr != b.layer_snr) ++n_mismatch;
+        const double w_oracle = oracle_weight_from_snr(a.layer_snr, fref_k) * g * g;
+        if (!close(a.weight, w_oracle, 1e-12)) ++n_oracle_mismatch;
+      }
+    }
+    check(n_checked == 16, "16 pixels compared (non-vacuous)");
+    check(n_mismatch == 0, "both per-pixel entries produce bit-identical weights at 16 pixels");
+    check(n_oracle_mismatch == 0,
+          "both entries match the independent oracle w = (SNR_layer/F_ref,k)^2 * g^2");
+    std::printf("        (max |direct - prepared| over 16 pixels: %.3e)\n", worst_diff);
+
+    /* 反向：把 prepared 入口指向**语义不符**的层也必须判红（两入口的守卫一致） */
+    SparseSnrLayer rel = L;
+    rel.semantics = astrocs::v6::p2weight::SparseSnrSemantics::kRelativeToFrameSnr;
+    astrocs::v6::p2weight::PixelWeightInput bad;
+    bad.frame_id = "f0"; bad.layer = &rel; bad.x = 11.5; bad.y = 3.5; bad.ref_flux_k = fref_k;
+    const astrocs::v6::p2weight::PixelWeightResult pb =
+        astrocs::v6::p2weight::weight_from_sparse_layer_pixel_prepared(rec, bad, {});
+    check(!pb.ok && pb.closure == WeightClosure::kUnclosedWrongSnrSemantics,
+          "prepared entry rejects wrong semantics too (same guard, same closure token)");
   }
 
   std::printf("\n== summary: %d passed, %d failed ==\n", g_pass, g_fail);

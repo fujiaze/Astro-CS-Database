@@ -3,8 +3,10 @@
 #
 # 独立性边界:
 #   - 本脚本不 import/link/exec 任何被测 C++ 实现；
-#   - 从权威公式独立复算: w = SNR^2/F_ref^2 = 1/sigma_F^2 (Horne 1986 通量型口径)，
-#     稀疏层 实际 SNR = 帧级 x 帧内；
+#   - 从权威公式独立复算: w = SNR^2/F_ref^2 = 1/sigma_F^2 (Horne 1986 通量型口径)；
+#     稀疏层消费面: 层值即**绝对** SNR，w(x,y) = (SNR_layer(x,y)/F_ref)^2 ——
+#     **不乘**帧级标量（冻结 schema sparse_snr_semantics = absolute_flux_type_snr；
+#     docs/ASTROCS_DESIGN.md 3.1:264）。旧「实际 SNR = 帧级 x 帧内」合成已作废；
 #   - 重建算子独立复算：自然边界三次样条用 **numpy.linalg.solve 稠密求解**
 #     （不复用被测 C++ 的 Thomas 消元），值域钳制与 3x3 mesh 中值独立手写；
 #   - C++ 侧对拍由 oracle/weight_chain_selfcheck.cpp 用其自身独立复算路径完成；
@@ -220,33 +222,43 @@ def contract_compute(frames, fref, legacy_allow_weight_fallback=False):
         s = f.get("frame_snr")
         if not (isinstance(s, (int, float)) and math.isfinite(s) and s > 0):
             raise Unclosed("unclosed_invalid_frame_snr", tag + ": frame SNR invalid")
-        intra = 1.0
+        # 稀疏层（存在时）：层值就是**绝对** SNR 本身 —— 逐像素消费面按
+        #   w(x,y) = (SNR_layer(x,y)/F_ref)^2
+        # 换算，**不得**再乘/除帧级标量（冻结 schema sparse_snr_semantics =
+        # absolute_flux_type_snr；ASTROCS_DESIGN 3.1:264）。无层时才走帧级标量路径。
+        layer_snr = 0.0
         if f.get("sparse") is not None:
             L = dict(f["sparse"])
             L["_x"], L["_y"] = f["x"], f["y"]
             _check_layer(L, tag)
             if L.get("regular_grid"):
-                intra = oracle_reconstruct(L, f["x"], f["y"])
+                layer_snr = oracle_reconstruct(L, f["x"], f["y"])
             else:
                 d2 = min((f["x"] - p["x"]) ** 2 + (f["y"] - p["y"]) ** 2 for p in L["points"])
                 if d2 > L["max_radius_px"] ** 2 * (1 + 1e-12):
                     raise Unclosed("unclosed_sparse_layer_unreconstructible", tag + ": out of radius")
                 nearest = min(L["points"],
                               key=lambda p: (f["x"] - p["x"]) ** 2 + (f["y"] - p["y"]) ** 2)
-                intra = nearest["snr"]
+                layer_snr = nearest["snr"]
+            if not (math.isfinite(layer_snr) and layer_snr > 0):
+                raise Unclosed("unclosed_invalid_layer_snr", tag + ": layer SNR invalid")
             any_sparse = True
-        if not (math.isfinite(intra) and intra > 0):
-            raise Unclosed("unclosed_invalid_intra_snr", tag + ": intra invalid")
-        actual = s * intra
-        if not (math.isfinite(actual) and actual > 0):
-            raise Unclosed("unclosed_invalid_intra_snr", tag + ": composed invalid")
-        out.append({"frame_id": tag, "intra_snr": intra, "actual_snr": actual,
-                    "weight": oracle_weight_from_snr(actual, fref)})
+            out.append({"frame_id": tag, "snr_used": layer_snr, "layer_snr": layer_snr,
+                        "frame_snr_used": False,
+                        "weight": oracle_weight_from_snr(layer_snr, fref)})
+            continue
+        snr_used = s
+        if not (math.isfinite(snr_used) and snr_used > 0):
+            raise Unclosed("unclosed_invalid_frame_snr", tag + ": frame SNR invalid")
+        out.append({"frame_id": tag, "snr_used": snr_used, "layer_snr": 0.0,
+                    "frame_snr_used": True,
+                    "weight": oracle_weight_from_snr(snr_used, fref)})
     if legacy_allow_weight_fallback:
         pass  # 成功路径无需降级；失败路径在调用点已 Unclosed
     return {"ok": True, "weight_chain_closed": True, "production_allowed": True,
             "closure": "closed",
-            "weight_source": "frame_snr_x_sparse_snr" if any_sparse else "frame_snr",
+            "weight_source": ("sparse_snr_layer_absolute_snr" if any_sparse
+                              else "frame_snr"),
             "reference_flux": fref, "frames": out}
 
 
@@ -328,15 +340,21 @@ def main():
               {"frame_id": "f1", "kind": "flux_type_unweighted_snr", "has_frame_snr": True,
                "frame_snr": 100.0, "sparse": L, "x": 0.25, "y": 0.5}]
     r = contract_compute(frames, fref)
-    check(r["weight_source"] == "frame_snr_x_sparse_snr", "weight_source = frame_snr_x_sparse_snr")
+    check(r["weight_source"] == "sparse_snr_layer_absolute_snr",
+          "weight_source = sparse_snr_layer_absolute_snr")
     # 2x2 上自然样条退化为双线性（M ≡ 0）⇒ 期望值仍可用独立双线性复算
     i0 = oracle_bilinear(L, 0.5, 0.5)
     i1 = oracle_bilinear(L, 0.25, 0.5)
-    check(rel_close(r["frames"][0]["intra_snr"], i0), "intra[0] matches independent oracle")
-    check(rel_close(r["frames"][1]["intra_snr"], i1), "intra[1] matches independent oracle")
-    check(rel_close(r["frames"][0]["actual_snr"], 200.0 * i0), "actual = frame x intra")
-    check(rel_close(r["frames"][0]["weight"], oracle_weight_from_snr(200.0 * i0, fref)),
-          "weight from composed SNR")
+    check(rel_close(r["frames"][0]["layer_snr"], i0), "layer[0] matches independent oracle")
+    check(rel_close(r["frames"][1]["layer_snr"], i1), "layer[1] matches independent oracle")
+    check(r["frames"][0]["frame_snr_used"] is False and r["frames"][1]["frame_snr_used"] is False,
+          "frame-level SNR is NOT consumed on the layer face")
+    # 反例（可判红）：若把帧级 SNR 当帧内相对因子乘进层值 ⇒ 权重偏 frame^2
+    w_wrong = oracle_weight_from_snr(200.0 * i0, fref)
+    check(not rel_close(w_wrong, oracle_weight_from_snr(i0, fref)),
+          "RED as expected: multiplying the frame-level SNR into the layer is detected")
+    check(rel_close(r["frames"][0]["weight"], oracle_weight_from_snr(i0, fref)),
+          "w(x,y) = (SNR_layer/F_ref)^2 (independent oracle, no frame-level factor)")
     # 节点复现
     node_ok = all(rel_close(oracle_reconstruct(L, p["x"], p["y"]), p["snr"], 1e-12)
                   for p in L["points"])
@@ -485,7 +503,9 @@ def main():
 
     result = {
         "oracle": "weight_chain_oracle.py",
-        "formula": "w = SNR^2 / F_ref^2 = 1/sigma_F^2; sparse: actual = frame_snr * intra_snr",
+        "formula": ("w = SNR^2 / F_ref^2 = 1/sigma_F^2; sparse layer face: "
+                    "w(x,y) = (SNR_layer(x,y)/F_ref)^2 (absolute layer SNR, "
+                    "no frame-level factor)"),
         "default_operator": DEFAULT_OPERATOR,
         "operator_tokens": list(OPERATORS),
         "passed": passed, "failed": failed,

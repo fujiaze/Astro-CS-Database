@@ -21,7 +21,9 @@
 - `lib/algorithms/coverage/src/{sampler,coverage}.cpp`（IMPL-P2-SAMP-001）：`p2_spatial_model_eval|summary`、
   `p2_scalar_degrade_gate`、`p2_coverage_support_classify`、`p2_weight_source_token_reject`
 - `lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp`：稠密 SNR 重建 + 逆方差权重链
-  （`SparseSnrReconstructor` / `compute_inverse_variance_weights`）
+  （`SparseSnrReconstructor` / `compute_inverse_variance_weights`）+ **稀疏层逐像素消费面**
+  `weight_from_sparse_layer_pixel[_prepared]`（生产侧 `module_adapters.cpp` 的逐像素权重
+  直接调它 ⇒ 两条入口是同一实现）
 - `lib/{dynamic_psf,snr_estimator,photometric_calib}`（IMPL-P1-PSFW-001）：
   `conventional_coadd`、`propagate_covariance`、`conventional_effective_psf`、
   `compute_psfsw_weights`、`validate_psfsw_record`
@@ -35,7 +37,8 @@
 | 环节 | 权威式 | 说明 |
 |---|---|---|
 | 稠密 SNR 重建 | `SparseSnrReconstructor::eval`（算子由层显式声明，默认 `natural_bicubic_spline_clip_v1`） | 控制点存**绝对** SNR，直接重建，不乘帧级标量 |
-| 逆方差定权 | `w_k = SNR_k^2/F_ref,k^2 = 1/sigma_F,k^2`（`compute_inverse_variance_weights`） | 逐帧 `F_ref,k` 同源配对；缺任一帧即 fail-closed |
+| **稀疏层逐像素定权** | `w(x,y) = (SNR_layer(x,y)/F_ref,k)^2 * g_k^2`（`weight_from_sparse_layer_pixel[_prepared]`） | 层值是绝对 SNR 本身；**不得**再乘/除帧级标量（冻结 schema）。缺层/语义不符/越界/非正值 ⇒ 显式降级或判红，**不当作「乘 1」** |
+| 逆方差定权（帧级标量路径） | `w_k = SNR_k^2/F_ref,k^2 = 1/sigma_F,k^2`（`compute_inverse_variance_weights`） | 逐帧 `F_ref,k` 同源配对；缺任一帧即 fail-closed。**该函数不消费稀疏层**（层所在帧的权释放到逐像素面：`weight_deferred_to_pixel_path[k]=true`、`weights[k]=0`） |
 | 点源组合 | `Q=ΣQ_k; W=ΣW_info,k; F=Q/W; Var=1/W`（相关帧 `W=A^T C^-1 A`） | covariance 由 `R C_in R^T` 实际系数传播 |
 
 退役对象 `psfsw_robust_weight` 的声明 token 一律显式拒绝 + 迁移提示

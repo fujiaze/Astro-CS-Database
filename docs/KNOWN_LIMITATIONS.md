@@ -1,6 +1,6 @@
 # Astro Celestial Sphere Database（ACSD） 已知限制（Known Limitations）
 
-> 上游：ASTROCS_DESIGN.md §1.3（非目标）
+> 上游：ASTROCS_DESIGN.md §1.4（非目标）
 
 > 口径：本页只登记**现行**限制（限制内容 + 现状 + 归属/去向），不复制历史报告原文；历史过程由 git 历史承载。
 > 只登记**仍成立**的限制；已失效的限制不再登记。
@@ -159,14 +159,18 @@
     - **归属/去向**：§6 订正为「跨线程数 bitwise 一致，由 `p1drz_merge_pipeline_lock` 回归锁守护」；`08_drizzle.md §7` 按接线现状订正。若第 2 处实为「接线已落地但未跑通」则需上呈。
 
 48. **P4→P5 稀疏层生产接线（`in.sparse`）与 IDW 参数配置面：两条跨域前置（P4-M05/M06）**
-    - **M06 现象**：`lib/infrastructure/scheduler/src/module_adapters.cpp:11893` 的 `in.sparse = nullptr`
-      是**有意的 fail-safe**，不是漏写：控制点值的冻结语义 = `absolute_flux_type_snr`
-      （`eng/contracts/schemas/unified/sparse_snr_layer.schema.json:300-302`：「与 frame_snr 同口径…
-      **消费时不得乘/除帧级 SNR 做还原**」），而消费者把稀疏层当**帧内（相对）**因子并与帧级 SNR 相乘
-      （`lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:715-743` + `compose_actual_snr:116`
-      ⇒ `actual = frame_snr × intra`）。按现状接线即违反冻结 schema（跨域缺陷 P2-N1）。
-      另：该链的产物是**逐帧标量**权重（`r.intra_snr[k]`/`r.actual_snr[k]`），与稀疏层的**逐像素**消费面
-      （`w(x,y)=SNR_layer(x,y)²/F_ref,k²·g_k²`，13_integration §4.0）结构不同 ⇒ 真实落点 = 集成/drizzle 单元。
+    - **M06 现象（已闭环，2026-02 整改）**：原缺陷 = `module_adapters.cpp` 的 `in.sparse = nullptr` 是
+      **有意的 fail-safe**（控制点冻结语义 = `absolute_flux_type_snr`，而当时消费者把层当**帧内相对因子**
+      与帧级 SNR 相乘：`weight_chain.cpp` 的 `compose_actual_snr` ⇒ `actual = frame_snr × intra`，
+      跨域缺陷 P2-N1）。**现行接线**：已删除 `compose_actual_snr`（帧级×帧内合成作废），
+      稀疏层的唯一消费面 = 集成侧逐像素权重 API
+      `weight_from_sparse_layer_pixel[_prepared]`（`weight_chain.cpp:225/256`）：
+      `w(x,y) = (SNR_layer(x,y)/F_ref,k)²·g_k²`——层值即**绝对** SNR，**不乘/除**帧级标量；
+      `module_adapters.cpp:12384` 的逐像素面直接调同一生产实现（单一实现 ⇒ 两入口口径不可能分叉）。
+      帧级标量链（`compute_inverse_variance_weights`）**不再消费**稀疏层：层所在帧的权释放到逐像素面
+      （`weight_deferred_to_pixel_path[k]=true`、`weights[k]=0`、`weight_source="sparse_snr_layer_absolute_snr"`）。
+      判据：ctest `p2_pixel_weight`（量纲/口径一致 + 缺层显式降级 + 误乘帧级标量的可判红反例 +
+      两条逐像素入口逐像素一致）与 `p2_pixel_weight_wiring`（生产侧接线核对，带 `--self-test`）。
     - **M05 现象**：`idw_power` 在 `eng/packaging/config/**` **零命中**（`grep -rn idw_power eng/packaging/config` = 0），
       无法直接登记为受控键：`eng/tests/config/check_cfg002_registry.py:186-191` 要求
       `docs/plugins/**` 配置项表与 `config_registry.json#plugin_knobs` **一一对应**（文档有、登记册无 ⇒ 红；
@@ -177,7 +181,8 @@
       生产侧仍硬写 2.0（`lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:593,730,833`）。
     - **规范依据**：`docs/plugins/algorithms_phase1/07_noise_snr.md:192`（插值设置配置化 + 日志输出 `p*`，不随产物落盘）；
       `eng/contracts/schemas/unified/sparse_snr_layer.schema.json`（层语义冻结）；`AGENTS.md §6`（不动科学默认值）。
-    - **归属/去向**：M06 = 集成/drizzle 单元（消费语义）+ 合同/科学面裁决；M05 = 文档单元（`07_noise_snr.md` 补表格行
+    - **归属/去向**：M06 = **已落地**（集成侧逐像素消费面 + 生产接线 + 双向判据；本条目余下部分已不再是前置）；
+      M05 = 文档单元（`07_noise_snr.md` 补表格行
       与现状句订正）+ 算法单元（生产默认值与配置读取面、`p*` 日志）；两条落地后，配置键登记面（`eng/packaging/config/**`）
       才可加键（否则该键无生产读取面 ⇒ `CHK-CONFIG-CONSUMED` 判死键）。
 
