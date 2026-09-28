@@ -69,6 +69,9 @@ def main():
         "se_on_constant": float(np.median(const, axis=1).std()),
         "criterion": "无散度 ⇒ SE=0(归零)",
         "pass": True,
+        # P1-m09: 常数序列 ⇒ 标准误恒 0（且 pass 被硬编码为 True）⇒ 自洽守卫,
+        # 无判别力; 保留字段用于回归, 引用时不得当作证据。
+        "discriminating_power": "none (自洽守卫: 常数序列 SE=0, 且 pass 硬编码)",
     }
 
     out["verdict"] = {"H11": out["H11"]["pass"], "negative_zero": True,

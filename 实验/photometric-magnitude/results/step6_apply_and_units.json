@@ -4,11 +4,11 @@
   "apply": {
     "tag": "A",
     "apply_photometry": {
-      "k_photo": 2.07278579295233e-17,
+      "k_photo": 2.0727857954580256e-17,
       "m_degree": 2,
       "m_hat_range": [
-        0.962037878015391,
-        1.0791649856214218
+        0.962037876996974,
+        1.0791649812411634
       ],
       "m_hat_semantics": "m(x,y) = 10^(+0.4·poly(x,y)) = 1/m_gain(x,y)：设计 §4.2 里的 m 是**归一化修正场**（乘性改正），不是仪器增益本身",
       "independent_recompute_max_rel_diff": 0.0,
@@ -16,22 +16,22 @@
     },
     "downstream_consumption": {
       "note": "drizzle 式重采样与帧级 SNR 都消费归一化后的像素；未启用时显式 degraded_reason 且 fail-closed",
-      "drizzle_scale_ratio_median": 2.0605959498598527e-17,
-      "drizzle_scale_ratio_expected": 2.0605814118015737e-17,
+      "drizzle_scale_ratio_median": 2.060595952041598e-17,
+      "drizzle_scale_ratio_expected": 2.060581413367482e-17,
       "star_flux_before": 61816.0,
-      "star_flux_after": 1.2693036554566164e-12,
-      "flux_ratio_after_over_before": 2.0533577964549896e-17,
+      "star_flux_after": 1.2693036569166425e-12,
+      "flux_ratio_after_over_before": 2.0533577988168798e-17,
       "degraded_reason_on_disabled_path": "fail-closed: 产品未归一化到测光星等坐标系，禁止继续下游",
       "fail_closed": true
     },
     "magnitude_only": {
-      "note": "产物只以星等/相对星等表达：标定后星等对合成星等的残差即测光一致性",
+      "note": "定标坐标系（星等面）以星等/相对星等表达：标定后星等对合成星等的残差即测光一致性；**像素承载面是线性标度面** I_photo=k_photo·m(x,y)·I_cal（photo_scaled_adu），星等属表达层、只派生不落盘（PHOTOMETRY.md §1/§16.1⑥；订正 P1-M06：历史写法『产物只以星等表达』与冻结口径相反）",
       "n": 48,
-      "resid_mag_median": 0.005106310487555277,
-      "resid_mag_mad_sigma": 0.0197324689456575,
-      "resid_mag_mad_sigma_no_m": 0.04534425693654346,
+      "resid_mag_median": 0.0051063156424273615,
+      "resid_mag_mad_sigma": 0.019732467901193842,
+      "resid_mag_mad_sigma_no_m": 0.045344249082970134,
       "m_correction_improves": true,
-      "sigma_obs_mag": 0.045344256936544786,
+      "sigma_obs_mag": 0.04534424908296618,
       "n_inliers": 48
     }
   },
@@ -43,11 +43,11 @@
         "exp_time": 300.0,
         "gain": 1.333,
         "A_t_over_g": 225.05626406601652,
-        "median_flux_adu": 4831.245542507086,
-        "scatter_F_adu": 5766.965635714945,
-        "k_photo": 3.4213218332047574e-16,
-        "sigma_obs_mag": 0.018911341581220396,
-        "resid_mag_mad": 0.02063656868909552,
+        "median_flux_adu": 4831.245541589481,
+        "scatter_F_adu": 5766.965631014018,
+        "k_photo": 3.421321831604103e-16,
+        "sigma_obs_mag": 0.01891134155113446,
+        "resid_mag_mad": 0.020636568959853812,
         "note": "标定后星等 = -2.5log10(F·k_photo)，与仪器参数无关"
       },
       {
@@ -56,11 +56,11 @@
         "exp_time": 600.0,
         "gain": 1.333,
         "A_t_over_g": 225.05626406601652,
-        "median_flux_adu": 4865.119392561064,
-        "scatter_F_adu": 5799.310011128387,
-        "k_photo": 3.421433619328531e-16,
-        "sigma_obs_mag": 0.018118954342609933,
-        "resid_mag_mad": 0.019736868147803833,
+        "median_flux_adu": 4865.119393894457,
+        "scatter_F_adu": 5799.310015579406,
+        "k_photo": 3.421433619958712e-16,
+        "sigma_obs_mag": 0.018118954469478504,
+        "resid_mag_mad": 0.019736868243462564,
         "note": "标定后星等 = -2.5log10(F·k_photo)，与仪器参数无关"
       },
       {
@@ -69,11 +69,11 @@
         "exp_time": 600.0,
         "gain": 2.666,
         "A_t_over_g": 225.05626406601652,
-        "median_flux_adu": 4840.249463808985,
-        "scatter_F_adu": 5711.388498277238,
-        "k_photo": 3.418050700778876e-16,
-        "sigma_obs_mag": 0.013437813591311475,
-        "resid_mag_mad": 0.014842230707352647,
+        "median_flux_adu": 4840.249463855562,
+        "scatter_F_adu": 5711.388498449924,
+        "k_photo": 3.4180507008335403e-16,
+        "sigma_obs_mag": 0.013437813318783381,
+        "resid_mag_mad": 0.014842230707355282,
         "note": "标定后星等 = -2.5log10(F·k_photo)，与仪器参数无关"
       }
     ],
@@ -81,9 +81,9 @@
     "zero_point_shift_invariance": {
       "note": "SCI-PHOT-001 §7 零点平移不变量：F_instr 同乘 c ⇒ location 增 log10 c、k_photo 除 c、sigma_residual 不变",
       "shift_applied": 7.3,
-      "location_delta": 0.8633228601204621,
+      "location_delta": 0.8633228601204568,
       "location_delta_expected": 0.8633228601204559,
-      "k_photo_ratio": 0.13698630136986106,
+      "k_photo_ratio": 0.13698630136986273,
       "k_photo_ratio_expected": 0.136986301369863,
       "sigma_residual_delta": 0.0
     },

@@ -5,7 +5,8 @@
 假说 H8a: 阶梯的最坏情况 = 固定单次 mag_max=16 查询(末档必跑), 早停只减查询数不减样本
         ⇒ 阶梯相对固定 16 的"星样本无效应", 其唯一效应是省成本(结构性事实)。
 假说 H8b: 早停阈 N=2000 与零点精度地板直接挂钩: sigma_kappa ≈ 1.2533·sigma_residual/√N
-        (02 式-4 消费口径); N=2000, sigma_res=0.02 dex ⇒ SE≈4.5e-4 dex=1.1 mmag ——
+        (02 式-4 消费口径); N=2000, sigma_res=0.02 dex ⇒ SE≈5.6e-4 dex=1.4 mmag ——
+        口径统一(P1-M05): 两消费面共用 sigma_ZP(N)=1.2533*sigma_star/sqrt(N), 见 H8d
         若降到 200, SE 退 3.2 倍 ⇒ 2000 是"精度地板 vs 成本"的精度侧理由。
 假说 H8c: 拥挤场(M42 类)无论阈取 2000 或 500 都跑满 5 档 ⇒ 该参数只影响稀疏场成本。
 背景密度模型: Gaia DR3 约 1.8e9 源(Lindegren 2021 / Montegriffo 2023 摘要),
@@ -70,7 +71,7 @@ def main():
     out["H8b"] = {
         "zero_point_se_by_N": table,
         "gain_2000_vs_200": float(table["200"]["se_dex"] / table["2000"]["se_dex"]),
-        "criterion": "N=2000 ⇒ SE≈1.1 mmag, 处于 XP 合成测光 mmag 精度档;"
+        "criterion": "N=2000 ⇒ SE≈1.4 mmag(订正 P1-M05: 统一式 1.2533*0.05/sqrt(2000)=1.4e-3 mag), 处于 XP 合成测光 mmag 精度档;"
                      "N=200 时 SE 退 3.2 倍 ⇒ 早停阈有精度侧理由",
         "pass": bool(2.5 < table["200"]["se_dex"] / table["2000"]["se_dex"] < 4),
     }
@@ -108,7 +109,42 @@ def main():
         "criterion": "极稀疏场两阈值行为相同(样本同) ⇒ 无效应时成本差=0, 归零",
     }
 
-    out["verdict"] = {"H8a": out["H8a"]["pass"], "H8b": out["H8b"]["pass"]}
+    # H8d: σ_ZP 口径统一(P1-M05) + 反例(旧 route1 变体必须判红)
+    # 统一式(两消费面共用, 单位随输入域): sigma_ZP(N) = 1.2533 * sigma_star / sqrt(N)
+    #   sigma_star = 0.05 mag ≡ 0.02 dex(route3 H8b 自洽取值)
+    MEDIAN_FACTOR = 1.2533          # = 1/Phi^{-1}(3/4) ... 中位数绝对偏差 -> 标准差的渐近因子
+    SIGMA_STAR_MAG = 0.05
+    unified = {str(N): float(MEDIAN_FACTOR * SIGMA_STAR_MAG / np.sqrt(N))
+
+               for N in (200, 500, 1000, 2000, 5000, 10000, 20000)}
+    # 旧口径(route1 REPORT_route1.md §5.4): 0.045/sqrt(N), 缺 1.2533 中位数因子且 sigma_star 取 0.045
+    legacy = {str(N): float(0.045 / np.sqrt(N)) for N in (1000, 5000, 10000, 20000)}
+    ratio_5000 = float(unified["5000"] / legacy["5000"])
+    # 反例: 若把旧变体当作同一约定 => 一致性门必须在 5000 处判红
+    def _consistency_gate(se_mag, N=5000, tol=0.05):
+        want = MEDIAN_FACTOR * SIGMA_STAR_MAG / np.sqrt(N)
+        return "PASS" if abs(se_mag / want - 1.0) <= tol else "RED"
+    out["H8d"] = {
+        "unified_formula": "sigma_ZP(N) = 1.2533 * sigma_star / sqrt(N)",
+        "sigma_star_mag": SIGMA_STAR_MAG,
+        "sigma_star_dex": float(SIGMA_STAR_MAG / 2.5),
+        "sigma_ZP_unified_mag": unified,
+        "sigma_ZP_legacy_route1_mag": legacy,
+        "legacy_note": "route1 的 0.045/sqrt(N) 变体缺 1.2533 中位数因子, sigma_star 也取 0.045 而非 0.05",
+        "unified_over_legacy_at_5000": ratio_5000,
+        "legacy_underestimate_factor": ratio_5000,
+        "gate_unified_at_5000": _consistency_gate(unified["5000"]),
+        "gate_legacy_at_5000": _consistency_gate(legacy["5000"]),
+        "criterion": "统一式自洽(绿); 旧变体在同一门判红 => 该门能红能绿, 非恒真",
+        "pass": bool(abs(unified["5000"] - 8.8622e-4) / 8.8622e-4 < 0.01
+                      and ratio_5000 > 1.3
+                      and _consistency_gate(unified["5000"]) == "PASS"
+                      and _consistency_gate(legacy["5000"]) == "RED"),
+    }
+
+    out["verdict"] = {"H8a": out["H8a"]["pass"], "H8b": out["H8b"]["pass"],
+
+                       "H8d": out["H8d"]["pass"]}
     res = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
     os.makedirs(res, exist_ok=True)
     p = os.path.join(res, "exp_S08_ladder.json")

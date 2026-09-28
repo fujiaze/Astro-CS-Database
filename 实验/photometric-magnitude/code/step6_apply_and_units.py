@@ -112,7 +112,10 @@ def apply_photometry_checks(tag="A"):
             degraded_reason_on_disabled_path=degraded,
             fail_closed=degraded is not None),
         magnitude_only=dict(
-            note="产物只以星等/相对星等表达：标定后星等对合成星等的残差即测光一致性",
+            note="定标坐标系（星等面）以星等/相对星等表达：标定后星等对合成星等的残差即"
+                 "测光一致性；**像素承载面是线性标度面** I_photo=k_photo·m(x,y)·I_cal"
+                 "（photo_scaled_adu），星等属表达层、只派生不落盘（PHOTOMETRY.md §1/§16.1⑥；"
+                 "订正 P1-M06：历史写法『产物只以星等表达』与冻结口径相反）",
             n=int(sel.sum()), resid_mag_median=float(np.median(resid_mag)),
             resid_mag_mad_sigma=float(sc.mad_sigma(resid_mag)),
             resid_mag_mad_sigma_no_m=float(sc.mad_sigma(resid_nom)),

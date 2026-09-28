@@ -13,6 +13,14 @@ CODE="$HERE"
 LOG="run/SCI-401/logs"
 mkdir -p "$LOG" run/SCI-401/sim run/SCI-401/data_cache run/SCI-401/bin
 
+echo "== 0a) 本地星表自检（XPSD 目录解析；不依赖调用者 cwd） =="
+python3 - "$CODE" <<'PYEOF' | tee "$LOG/selfcheck_gaia.log"
+import sys
+sys.path.insert(0, sys.argv[1])
+import scia_gaia as sg
+print("[selfcheck] XPSD_DIR =", sg.XPSD_DIR, sg.check_xpsd_dir())
+PYEOF
+
 echo "== 0) 外部参考数据（唯一需要网络的步骤；缓存 + SHA256 固定） =="
 bash "$CODE/step0_fetch_refs.sh" | tee "$LOG/step0.log"
 

@@ -960,10 +960,10 @@
   "guided_vs_blind_real": {
     "guided_candidates": 434,
     "guided_fit_ok": 434,
-    "guided_wall_time_s": 2.0716970049979864,
-    "guided_sec_per_fit": 0.0047734954032211665,
+    "guided_wall_time_s": 7.66923516895622,
+    "guided_sec_per_fit": 0.01767104877639682,
     "blind_detections": 13163,
-    "blind_wall_time_s": 3.187498871004209,
+    "blind_wall_time_s": 7.014049213961698,
     "matched_guided_to_blind": 196,
     "guided_completeness_vs_blind": 0.45161290322580644,
     "blind_precision_vs_guided": 0.01489022259363367,
@@ -971,24 +971,63 @@
   },
   "single_frame_gate": {
     "n": 157,
-    "k_photo": 2.7222903965242346e-17,
-    "sigma_obs_mag": 0.02651983775720457,
+    "k_photo": 2.722290396191929e-17,
+    "sigma_obs_mag": 0.026519837508444995,
     "n_inliers": 151,
-    "sigma_floor": 0.0060077521779886974,
-    "sigma_ceiling": 0.03245606320978601,
-    "verdict": "PASS",
+    "sigma_floor": 0.0060077521784322315,
+    "sigma_ceiling": 0.020560838265260225,
+    "verdict": "ABOVE_CEILING",
+    "gate_scope": "two_sided",
+    "lower_bound_defined": true,
     "items": {
       "sigma_pix_e": 40.93963971507321,
       "structure_factor": 1.0,
-      "sigma_psfsys_inframe": 0.013668277171208108,
-      "sigma_flat": 0.019560614628425153,
+      "sigma_psfsys_inframe": 0.013668277986773102,
+      "sigma_flat": 0.0007,
+      "sigma_flat_source": "06_photometry.md §4.1 权威预算表 σ_flat,hf（同帧族），独立于被测样本",
+      "delta_after_m_diagnostic": 0.019560615424196688,
+      "delta_after_m_role": "diagnostic_only（与被测统计量同源，不进预算）",
       "sigma_color": null,
       "sigma_gaia": null
     },
+    "sigma_flat_flip_threshold": 0.013057009966734104,
+    "sigma_flat_sweep": [
+      {
+        "sigma_flat": 0.0,
+        "sigma_ceiling": 0.020541163404082612,
+        "verdict": "ABOVE_CEILING"
+      },
+      {
+        "sigma_flat": 0.0007,
+        "sigma_ceiling": 0.020560838265260225,
+        "verdict": "ABOVE_CEILING"
+      },
+      {
+        "sigma_flat": 0.005,
+        "sigma_ceiling": 0.021522044108633166,
+        "verdict": "ABOVE_CEILING"
+      },
+      {
+        "sigma_flat": 0.01,
+        "sigma_ceiling": 0.02422757413519021,
+        "verdict": "ABOVE_CEILING"
+      },
+      {
+        "sigma_flat": 0.013057009966734104,
+        "sigma_ceiling": 0.026519837508444995,
+        "verdict": "PASS"
+      },
+      {
+        "sigma_flat": 0.02,
+        "sigma_ceiling": 0.0328950332409755,
+        "verdict": "PASS"
+      }
+    ],
     "unavailable_items": [
       "sigma_color（真实帧无注入通带真值，不可自算）",
-      "sigma_gaia（真实帧无参考侧真值，不可自算）"
+      "sigma_gaia（真实帧无参考侧真值，不可自算）",
+      "平场大尺度残差（无 repeat-flat/sky-flat 对照 ⇒ 判不了）"
     ],
-    "note": "σ_flat 由帧内 m(x,y) 拟合残差自算；σ_color/σ_gaia 不可自算 ⇒ 上界不完整。若判定为 ABOVE_CEILING，必须先归因到「上界缺项」而不是直接判失败。"
+    "note": "σ_flat 取权威预算表值（独立于被测样本）；σ_color/σ_gaia/大尺度平场残余不可自算 ⇒ 上界不完整（偏严方向）。判定为 ABOVE_CEILING 时如实报出，与 06_photometry.md §4.1 的 L4 49 帧『PASS 1/49』同归因：未消系统项超预算。"
   }
 }

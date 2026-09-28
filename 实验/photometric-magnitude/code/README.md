@@ -42,7 +42,7 @@ bash 实验/photometric-magnitude/code/run_all.sh quick
 本机实测环境（`python3 -c "import sys,numpy,scipy,astropy; print(...)"`）：
 **Python 3.13.5 / numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1**。
 未使用 photutils / sep（避免引入未登记依赖）；`results/` 中引用的 photutils 3.0.0 / sep 1.4.1
-行号来自**文献与上游源码核对**，不是本机安装版本（见 `run/SCI-401/lit/verified_refs.md`）。
+行号来自**文献与上游源码核对**，不是本机安装版本（见 `../refs.md`；原指向 `run/SCI-401/lit/verified_refs.md`，该路径已随 `run/` 回收，P1-m10 订正）。
 `gaia_xp_dump.c` 用 `gcc` 编译，输出到 `run/SCI-401/bin/`。
 
 ## 约定与陷阱（轮次 1 审稿后补记）

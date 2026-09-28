@@ -146,14 +146,22 @@ double simpson_integrate(const std::vector<double>& x, const std::vector<double>
     }
 
     // 奇数区间: 前 n_int-3 用 Simpson 1/3, 末尾 3 用 Simpson 3/8
+    //
+    // n_int == 3（4 点）是退化分支: 前段区间数 n_13 == 0 ⇒ 1/3 部分**必须为 0**。
+    // 历史实现在该分支先把 y[0] 计入一次（sum = y[0] + y[0] = 2·y[0]），再叠加 3/8，
+    // 使常数被积函数得 3.6667 而真值 3.0（+22.2%）。XPSD 343 点网格 n_int = 342 为偶，
+    // 不触发该分支；订正见变更 claim PHOT-SIMPSON-N3-001（33/8 与 1/3 对三次式均精确，
+    // 故该分支的正确值可由闭式独立给出）。
     if (n_int >= 3) {
-        int n_13 = n_int - 3; // 前 n_13 个区间用 Simpson 1/3 (必须为偶数)
-        // n_13 此时为偶数
-        sum = y[0] + y[n_13];
-        for (int i = 1; i < n_13; ++i) {
-            sum += (i % 2 == 1 ? 4.0 : 2.0) * y[i];
+        const int n_13 = n_int - 3; // 前 n_13 个区间用 Simpson 1/3 (n_13 为偶数)
+        sum = 0.0;
+        if (n_13 > 0) {
+            double s13 = y[0] + y[n_13];
+            for (int i = 1; i < n_13; ++i) {
+                s13 += (i % 2 == 1 ? 4.0 : 2.0) * y[i];
+            }
+            sum = s13 * h / 3.0;
         }
-        sum = sum * h / 3.0;
 
         // Simpson 3/8: 3 区间, 4 点 (y[n_13], y[n_13+1], y[n_13+2], y[n_pts-1])
         sum += (y[n_13] + 3.0 * y[n_13 + 1] + 3.0 * y[n_13 + 2] + y[n_pts - 1]) * 3.0 * h / 8.0;
