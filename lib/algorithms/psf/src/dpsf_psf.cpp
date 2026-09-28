@@ -17,6 +17,154 @@
 #include <cstdlib>
 #include <omp.h>
 
+// ════════════════════════════════════════════════════════════════════════════
+// PSF-DIAG-001 — opt-in 逐候选拟合诊断面（编译期 DPSF_FIT_DIAG + 运行期
+//                DPSF_DIAG_PATH）
+// ----------------------------------------------------------------------------
+// 依据: AGENTS.md §3「重计算必须先把测量落盘」/ ENGINEERING_SPEC.md §7（运行
+//       产物区登记）。用途: 把批拟合的**真实工作量**逐候选落盘（候选序 / 矩形
+//       尺寸 / 逐候选耗时 / 状态 / 局部背景与峰值 / LM 迭代数 / 退化阶段），
+//       供节点级门（p1stardet_node_gate）900 s 级超时做定量定位。
+// 边界（先例 = lib/algorithms/star_detection/src/sdet_api.cpp 的 #ifdef
+//       SDET_TESTING 审计钩子: 「生产构建不含此定义, ABI/行为零影响」）:
+//   * 生产 target astrocs_p1_dpsf **不定义** DPSF_FIT_DIAG ⇒ 本块整段不编入,
+//     生产二进制的数值、状态码、时序与判据逐位不变;
+//   * 编入后仍要运行期 DPSF_DIAG_PATH 非空才记录, 否则每次拟合只多一次
+//     cached 环境查询;
+//   * 只**读**拟合内部量, 不改任何判据、分支、返回值与浮点运算顺序。
+// ════════════════════════════════════════════════════════════════════════════
+// 拟合退化阶段编码（= moffat4_fit_tmpl_core 的返回点，便于按阶段归因）。
+// 常量在两种编译形态下都存在（诊断面关闭时只是不被读取）。
+enum DpsfDiagStage {
+    DPSF_STAGE_OK            = 0,   // 过验证链一~三（status 由 lm_status 决定）
+    DPSF_STAGE_RECT_TOO_SMALL= 1,
+    DPSF_STAGE_RECT_OOB      = 2,
+    DPSF_STAGE_ALL_NONFINITE = 3,
+    DPSF_STAGE_AMPLITUDE_LE0 = 4,   // A0 = max - bkg0 <= 0
+    DPSF_STAGE_INVALID_PARAMS= 5,   // 非有限 / A<=0 / sx<=0.3 / sy<=0.3
+    DPSF_STAGE_FWHM_GT_RECT  = 6,
+    DPSF_STAGE_BKG_CONSTRAINT= 7,
+    DPSF_STAGE_ITER_LIMIT    = 8    // 过验证链但 LM 未收敛（ITERATION_LIMIT）
+};
+
+#ifdef DPSF_FIT_DIAG
+#include "aio_atomic_file.h"
+
+#include <atomic>
+#include <cstdio>
+#include <mutex>
+#include <string>
+
+namespace {
+
+// 线程局部暂存: 核心函数写入, 包装层读取（thread_local ⇒ OpenMP 下无竞争）
+struct DpsfDiagScratch {
+    int    rw = 0, rh = 0;
+    int    n_nonfinite = 0;
+    double bkg0 = 0.0;
+    double a0 = 0.0;
+    double mad_lh = 0.0;
+    double max_val = 0.0;
+    int    lm_iter = 0;
+    int    stall_max = 0;   // PSF-PERF-001: 最长"无进展"连续迭代数
+    int    stage = DPSF_STAGE_OK;
+};
+thread_local DpsfDiagScratch t_dpsf_diag;
+
+struct DpsfDiagRec {
+    long long seq = 0;
+    double cx = 0.0, cy = 0.0;
+    int    rw = 0, rh = 0;
+    int    stage = 0, lm_status = 0;
+    int    lm_iter = 0;
+    int    stall_max = 0;
+    int    n_nonfinite = 0;
+    double bkg0 = 0.0, a0 = 0.0, mad_lh = 0.0, max_val = 0.0;
+    double B = 0.0, A = 0.0, x0 = 0.0, y0 = 0.0, sx = 0.0, sy = 0.0, theta = 0.0;
+    double fwhm_x = 0.0, fwhm_y = 0.0, mad = 0.0, flux = 0.0;
+    double ms = 0.0;
+};
+
+// 注意（故意的泄漏，不是疏忽）: 三个单例都用 new 且**永不 delete**。
+// 原因: 落盘发生在 atexit（进程退出）阶段，而函数局部 static 的析构顺序与
+// 构造顺序相反——互斥量与记录数组若作为普通 static，会先于 atexit 处理器被
+// 析构，flush 就会读到已析构对象（实测表现: 段错误或静默不落盘）。
+// 让它们活到进程尾声是 exit-time flush 的标准做法。
+std::mutex& dpsf_diag_mutex() { static std::mutex* m = new std::mutex(); return *m; }
+std::vector<DpsfDiagRec>& dpsf_diag_recs() {
+    static std::vector<DpsfDiagRec>* v = new std::vector<DpsfDiagRec>();
+    return *v;
+}
+
+const std::string& dpsf_diag_path() {
+    static const std::string* p = new std::string([] {
+        const char* e = std::getenv("DPSF_DIAG_PATH");
+        return std::string(e ? e : "");
+    }());
+    return *p;
+}
+
+void dpsf_diag_flush() {
+    const std::string& path = dpsf_diag_path();
+    if (path.empty()) return;
+    std::string out;
+    {
+        std::lock_guard<std::mutex> lock(dpsf_diag_mutex());
+        auto& recs = dpsf_diag_recs();
+        out.reserve(recs.size() * 192 + 256);
+        out += "seq,cx,cy,rw,rh,stage,lm_status,lm_iter,stall_max,n_nonfinite,bkg0,a0,mad_lh,max_val,"
+               "B,A,x0,y0,sx,sy,theta,fwhm_x,fwhm_y,mad,flux,ms\n";
+        char buf[512];
+        for (const DpsfDiagRec& r : recs) {
+            const int n = std::snprintf(buf, sizeof(buf),
+                "%lld,%.6f,%.6f,%d,%d,%d,%d,%d,%d,%d,%.6f,%.6f,%.6f,%.6f,"
+                "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n",
+                r.seq, r.cx, r.cy, r.rw, r.rh, r.stage, r.lm_status, r.lm_iter, r.stall_max, r.n_nonfinite,
+                r.bkg0, r.a0, r.mad_lh, r.max_val,
+                r.B, r.A, r.x0, r.y0, r.sx, r.sy, r.theta, r.fwhm_x, r.fwhm_y, r.mad, r.flux, r.ms);
+            if (n > 0) out.append(buf, static_cast<size_t>(n));
+        }
+        recs.clear();
+        recs.shrink_to_fit();
+    }
+    std::string err;
+    aio_atomic::AppendSink* s = aio_atomic::write_open_trunc(path, &err);
+    if (!s) {
+        std::fprintf(stderr, "[DPSF-DIAG-001] flush open failed: %s (%s)\n",
+                     path.c_str(), err.c_str());
+        return;
+    }
+    const int wrc = aio_atomic::append_write_str(s, out);
+    if (wrc != 0) std::fprintf(stderr, "[DPSF-DIAG-001] flush write rc=%d\n", wrc);
+    (void)aio_atomic::append_close(s);
+}
+
+void dpsf_diag_record(const DpsfDiagRec& r) {
+    static const bool registered = [] {
+        std::atexit(dpsf_diag_flush);
+        return true;
+    }();
+    (void)registered;
+    std::lock_guard<std::mutex> lock(dpsf_diag_mutex());
+    dpsf_diag_recs().push_back(r);
+}
+
+}  // namespace
+
+// DPSF_DIAG_STAGE(阶段, 返回值): 记阶段但**返回真实状态码**。
+// 注意: 曾经写成只返回阶段编码 —— 那会改掉 moffat4_fit/fit_d 的返回契约
+// （例如 5/6/7 这类不存在的状态码），是"零影响插桩"的典型陷阱。见报告 §6。
+#define DPSF_DIAG_ON()            (!dpsf_diag_path().empty())
+#define DPSF_DIAG_SET(field, val) (t_dpsf_diag.field = (val))
+#define DPSF_DIAG_STAGE(st, ret)  (t_dpsf_diag.stage = (st), (ret))
+#define DPSF_DIAG_ITER(i)         (t_dpsf_diag.lm_iter = (i))
+#else
+#define DPSF_DIAG_ON()            (false)
+#define DPSF_DIAG_SET(field, val) ((void)0)
+#define DPSF_DIAG_STAGE(st, ret)  (ret)
+#define DPSF_DIAG_ITER(i)         ((void)0)
+#endif  // DPSF_FIT_DIAG
+
 // Moffat4 (beta=4) FWHM 因子。sigma 约定(冻结, PSF.md §16): sigma = 模型参数
 // Q = 0.5*r^2/sigma^2 中的 sigma, 等于 rms 半径 sqrt(<r^2>) = alpha/sqrt(2);
 // 标准 Moffat: M = A/(1 + r^2/alpha^2)^beta, FWHM = 2*alpha*sqrt(2^(1/beta)-1)
@@ -117,9 +265,34 @@ static void moffat4_residual(double* params, int m, void* userdata, double* fvec
     }
 }
 
+// ── PSF-PERF-001（DISP-PSF-003 整改之一）: 批路径的"无进展"提前退出 ───────────
+// 动机（实测 run/FINAL-07/logs/PSF-DIAG-01）: 96k 盲候选中 36.86% 把 max_iter=200
+// 耗满后被丢弃，占全部拟合 CPU 时间 56%（908/1613 core·s），而它们的产物是 NaN。
+// 语义: stall_iters>0 时，若连续 stall_iters 次迭代都没把代价压到
+//       best_cost*(1-kDpsfStallRel) 以下，判定无进展并提前结束，**返回码与
+//       200 次耗尽相同 = DPSF_FIT_ITERATION_LIMIT(3)**。
+// 等价性: §11.2 冻结语义——批接口对 status!=OK 一律写 NaN、不计 valid、out_status
+//       置 FIT_FAILED ⇒ 批产物只取决于"是否 status==0"。本退出只可能把"本就会返回 3
+//       的星提前结束"，且从不触碰 status==0 的星（单星路径 stall_iters=0，逐位不变）。
+static constexpr double kDpsfStallRel = 1e-6;        // 相对代价进展阈值
+// ── 批路径无进展提前退出的阈值。默认 **0 = 关闭**（判定: 不可采纳）────────────
+// 结论（证据 run/FINAL-07/logs/PSF-DIAG-01/，报告 §5.4）: 真实 4096² 帧的 95,997 个
+// 盲候选中，7,621 个 status=0 的"真 OK"拟合里有 30.78% 需要 ≥60 次迭代才收敛
+// （lm_iter p50=33、p90=125、max=199）⇒ 任何 <200 的提前退出都会把它们从 status 0
+// 改成 3，从而改变批产物（n_valid / out_status 数组）。
+// p1psf_stall_equiv 的注入相（-DDPSF_BATCH_STALL_ITERS=2）实测必红，非恒真。
+// 因此本机制在生产路径**关闭**；保留仅为 §8 变更流程评估用，生产 target
+// astrocs_p1_dpsf 与 DPSF_FIT_DIAG 均不定义该宏。关闭时全部相关分支不参与
+// 任何算术语义 ⇒ 与整改前逐位相同（实测证据见报告 §5.5）。
+#ifndef DPSF_BATCH_STALL_ITERS
+#define DPSF_BATCH_STALL_ITERS 0
+#endif
+static constexpr int kDpsfBatchStallIters = DPSF_BATCH_STALL_ITERS;
+
 static int lm_solve(int m, int n, double* x, void* userdata,
                     void (*residual_func)(double*, int, void*, double*),
-                    double tol, int max_iter) {
+                    double tol, int max_iter, int stall_iters = 0,
+                    int* out_stall_max = nullptr) {
     std::vector<double> fvec(m), fvec_new(m);
     std::vector<double> J((std::size_t)m * (std::size_t)n);
     std::vector<double> JtJ((std::size_t)n * (std::size_t)n), Jtf(n),
@@ -135,6 +308,11 @@ static int lm_solve(int m, int n, double* x, void* userdata,
     residual_func(x, m, userdata, fvec.data());
     double cost = 0;
     for (int i = 0; i < m; i++) cost += fvec[i] * fvec[i];
+
+    // PSF-PERF-001: 无进展检测状态（stall_iters<=0 时全为惰性变量）
+    double best_cost = cost;
+    int stall = 0, stall_max = 0, iters_used = max_iter;
+    bool aborted = false;
 
     for (int iter = 0; iter < max_iter; iter++) {
         for (int j = 0; j < n; j++) {
@@ -169,6 +347,14 @@ static int lm_solve(int m, int n, double* x, void* userdata,
 
         if (!gauss_solve_buf(n, A.data(), rhs.data(), delta.data(), aug.data())) {
             lambda *= 10.0;
+            // 奇异矩阵连发: λ 只增 ⇒ 步长趋 0 会先被收敛判据接住；长连发说明
+            // JᵀJ 含 NaN/Inf，永远不可能收敛 ⇒ 可安全提前结束。
+            if (stall_iters > 0 && ++stall >= stall_iters) {
+                aborted = true;
+                iters_used = iter + 1;
+                break;
+            }
+            if (stall > stall_max) stall_max = stall;
             continue;
         }
 
@@ -182,6 +368,7 @@ static int lm_solve(int m, int n, double* x, void* userdata,
 
         if (norm_delta < tol * (norm_x + 1e-30)) {
             dpsf_log(LOG_DEBUG, "DPSF", "LM converged at iter %d, cost=%.6f", iter, cost);
+            DPSF_DIAG_ITER(iter);
             return DPSF_FIT_OK;
         }
 
@@ -201,9 +388,26 @@ static int lm_solve(int m, int n, double* x, void* userdata,
         } else {
             lambda *= 10.0;
         }
+
+        // PSF-PERF-001: 无进展计数。best_cost<=0（残差全 0）时任何 cost 都不算进展，
+        // 但那时 J=0 ⇒ delta=0 ⇒ 上面的收敛判据必然先行返回 OK，故不构成风险。
+        if (stall_iters > 0) {
+            if (cost < best_cost * (1.0 - kDpsfStallRel)) {
+                best_cost = cost;
+                stall = 0;
+            } else if (++stall >= stall_iters) {
+                aborted = true;
+                iters_used = iter + 1;
+                break;
+            }
+            if (stall > stall_max) stall_max = stall;
+        }
     }
 
-    dpsf_log(LOG_DEBUG, "DPSF", "LM hit iteration limit, cost=%.6f", cost);
+    if (out_stall_max) *out_stall_max = stall_max;
+    dpsf_log(LOG_DEBUG, "DPSF", "LM hit iteration limit%s, cost=%.6f, stall_max=%d",
+           aborted ? " (no-progress abort)" : "", cost, stall_max);
+    DPSF_DIAG_ITER(iters_used);
     return DPSF_FIT_ITERATION_LIMIT;
 }
 
@@ -256,12 +460,25 @@ static double compute_trimmed_mad(const SamplePixel* samples, int m, const doubl
 // 模板版本: 支持 float/double 输入 ( 双精度 ABI 改造)
 // ImageT = float -> moffat4_fit (向后兼容)
 // ImageT = double -> moffat4_fit_d (双精度, 不降级)
+//
+// PSF-DIAG-001: 原函数体改名为 moffat4_fit_tmpl_core，外面套一层**测量包装**
+// （只在编译期开启 DPSF_FIT_DIAG 时记录；关闭时包装层是纯透传，编译器可内联
+//  消除 ⇒ 生产路径与修复前逐位等价）。判据逻辑全部在 core 内，包装层不参与。
 template<typename ImageT>
-static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
+static int moffat4_fit_tmpl_core(const ImageT* image, int width, int height,
                             double cx, double cy,
                             int rect_x0, int rect_y0, int rect_x1, int rect_y1,
-                            DPSFFitResult* result) {
+                            DPSFFitResult* result, int stall_iters = 0) {
     auto t0 = std::chrono::high_resolution_clock::now();
+    DPSF_DIAG_SET(rw, rect_x1 - rect_x0);
+    DPSF_DIAG_SET(rh, rect_y1 - rect_y0);
+    DPSF_DIAG_SET(n_nonfinite, 0);
+    DPSF_DIAG_SET(bkg0, 0.0);
+    DPSF_DIAG_SET(a0, 0.0);
+    DPSF_DIAG_SET(mad_lh, 0.0);
+    DPSF_DIAG_SET(max_val, 0.0);
+    DPSF_DIAG_SET(lm_iter, 0);
+    DPSF_DIAG_SET(stage, DPSF_STAGE_OK);
     std::memset(result, 0, sizeof(DPSFFitResult));
     result->status = DPSF_FIT_INVALID_PARAMS;
 
@@ -270,12 +487,12 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
 
     if (rw * rh < 9) {
         dpsf_log(LOG_WARN, "DPSF", "Rect area too small: %d", rw * rh);
-        return DPSF_FIT_INVALID_PARAMS;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_RECT_TOO_SMALL, DPSF_FIT_INVALID_PARAMS);
     }
     if (rect_x0 < 0 || rect_y0 < 0 || rect_x1 > width || rect_y1 > height) {
         dpsf_log(LOG_WARN, "DPSF", "Rect out of image bounds: [%d,%d]-[%d,%d] img=%dx%d",
                rect_x0, rect_y0, rect_x1, rect_y1, width, height);
-        return DPSF_FIT_INVALID_PARAMS;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_RECT_OOB, DPSF_FIT_INVALID_PARAMS);
     }
 
     // B4-P1-1: 采样阶段过滤非有限像素 (NaN/Inf, 含坏像元标记)。
@@ -307,7 +524,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         dpsf_log(LOG_WARN, "DPSF", "All pixels non-finite in rect [%d,%d]-[%d,%d]",
                rect_x0, rect_y0, rect_x1, rect_y1);
         result->status = DPSF_FIT_INVALID_PARAMS;
-        return DPSF_FIT_INVALID_PARAMS;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_ALL_NONFINITE, DPSF_FIT_INVALID_PARAMS);
     }
 
     dpsf_log(LOG_DEBUG, "DPSF", "Sampled %d pixels from rect [%d,%d]-[%d,%d], center=(%.2f,%.2f)",
@@ -360,9 +577,13 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         if (samples[i].val > max_val) max_val = samples[i].val;
 
     double A0 = max_val - bkg0;
+    DPSF_DIAG_SET(mad_lh, mad_lh);
+    DPSF_DIAG_SET(max_val, max_val);
+    DPSF_DIAG_SET(bkg0, bkg0);
+    DPSF_DIAG_SET(a0, A0);
     if (A0 <= 0) {
         dpsf_log(LOG_WARN, "DPSF", "Amplitude <= 0: A=%.2f max=%.2f bkg=%.2f", A0, max_val, bkg0);
-        return DPSF_FIT_INVALID_PARAMS;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_AMPLITUDE_LE0, DPSF_FIT_INVALID_PARAMS);
     }
 
     double sx0 = 0.15 * rw;
@@ -371,8 +592,10 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     dpsf_log(LOG_INFO, "DPSF", "Initial params: B=%.2f A=%.2f x0=0 y0=0 sx=%.2f sy=%.2f theta=0",
            bkg0, A0, sx0, sx0);
 
+    int stall_max_local = 0;
     int lm_status = lm_solve(m, NPARAMS, params, static_cast<void*>(samples.data()),
-                              moffat4_residual, 1e-8, 200);
+                              moffat4_residual, 1e-8, 200, stall_iters, &stall_max_local);
+    DPSF_DIAG_SET(stall_max, stall_max_local);
 
     dpsf_log(LOG_INFO, "DPSF", "LM result: status=%d B=%.2f A=%.2f x0=%.4f y0=%.4f sx=%.4f sy=%.4f theta=%.4f",
            lm_status, params[0], params[1], params[2], params[3], params[4], params[5], params[6]);
@@ -387,7 +610,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         dpsf_log(LOG_WARN, "DPSF", "Invalid fit params: finite=%d A=%.2f sx=%.4f sy=%.4f",
                all_finite, A, sx, sy);
         result->status = DPSF_FIT_NO_CONVERGENCE;
-        return DPSF_FIT_NO_CONVERGENCE;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_INVALID_PARAMS, DPSF_FIT_NO_CONVERGENCE);
     }
 
     double fwhm_x = MOFFAT4_FWHM_FACTOR * sx;
@@ -397,7 +620,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         dpsf_log(LOG_WARN, "DPSF", "FWHM exceeds rect: fwhm_x=%.2f fwhm_y=%.2f rect=%dx%d",
                fwhm_x, fwhm_y, rw, rh);
         result->status = DPSF_FIT_NO_CONVERGENCE;
-        return DPSF_FIT_NO_CONVERGENCE;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_FWHM_GT_RECT, DPSF_FIT_NO_CONVERGENCE);
     }
 
     double bkg_range = std::max(bkg0, 0.01);
@@ -405,7 +628,7 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
         dpsf_log(LOG_WARN, "DPSF", "Background constraint violated: B=%.4f bkg0=%.4f ratio=%.4f",
                B, bkg0, std::abs(B - bkg0) / bkg_range);
         result->status = DPSF_FIT_NO_CONVERGENCE;
-        return DPSF_FIT_NO_CONVERGENCE;
+        return DPSF_DIAG_STAGE(DPSF_STAGE_BKG_CONSTRAINT, DPSF_FIT_NO_CONVERGENCE);
     }
 
     double thetas[4] = { theta, M_PI / 2.0 - theta, M_PI / 2.0 + theta, M_PI - theta };
@@ -459,6 +682,49 @@ static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
     return result->status;
 }
 
+// PSF-DIAG-001: 测量包装层（编译期关闭时 = 纯透传；开启时逐候选落一条记录）
+template<typename ImageT>
+static int moffat4_fit_tmpl(const ImageT* image, int width, int height,
+                            double cx, double cy,
+                            int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                            DPSFFitResult* result, int stall_iters = 0) {
+    if (!DPSF_DIAG_ON()) {
+        return moffat4_fit_tmpl_core<ImageT>(image, width, height, cx, cy,
+                                             rect_x0, rect_y0, rect_x1, rect_y1, result,
+                                             stall_iters);
+    }
+#ifdef DPSF_FIT_DIAG
+    const auto t0 = std::chrono::high_resolution_clock::now();
+    const int st = moffat4_fit_tmpl_core<ImageT>(image, width, height, cx, cy,
+                                                 rect_x0, rect_y0, rect_x1, rect_y1, result,
+                                                 stall_iters);
+    const auto t1 = std::chrono::high_resolution_clock::now();
+    static std::atomic<long long> seq{0};
+    DpsfDiagRec r;
+    r.seq = seq.fetch_add(1, std::memory_order_relaxed);
+    r.cx = cx; r.cy = cy;
+    r.rw = t_dpsf_diag.rw; r.rh = t_dpsf_diag.rh;
+    r.stage = t_dpsf_diag.stage;
+    r.lm_status = st;
+    r.lm_iter = t_dpsf_diag.lm_iter;
+    r.stall_max = t_dpsf_diag.stall_max;
+    r.n_nonfinite = t_dpsf_diag.n_nonfinite;
+    r.bkg0 = t_dpsf_diag.bkg0; r.a0 = t_dpsf_diag.a0;
+    r.mad_lh = t_dpsf_diag.mad_lh; r.max_val = t_dpsf_diag.max_val;
+    r.B = result->B; r.A = result->A; r.x0 = result->cx; r.y0 = result->cy;
+    r.sx = result->sx; r.sy = result->sy; r.theta = result->theta;
+    r.fwhm_x = result->fwhm_x; r.fwhm_y = result->fwhm_y;
+    r.mad = result->mad; r.flux = result->flux;
+    r.ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    dpsf_diag_record(r);
+    return st;
+#else
+    return moffat4_fit_tmpl_core<ImageT>(image, width, height, cx, cy,
+                                         rect_x0, rect_y0, rect_x1, rect_y1, result,
+                                         stall_iters);
+#endif
+}
+
 // float 版本 (向后兼容, 原有签名)
 int moffat4_fit(const float* image, int width, int height,
                 double cx, double cy,
@@ -476,6 +742,26 @@ int moffat4_fit_d(const double* image, int width, int height,
                   DPSFFitResult* result) {
     return moffat4_fit_tmpl<double>(image, width, height, cx, cy,
                                      rect_x0, rect_y0, rect_x1, rect_y1, result);
+}
+
+// ── PSF-PERF-001: 批拟合**专用**入口（开启无进展提前退出）─────────────────────
+// 为什么只给批路径开: §11.2 里 status=3 在**单星**接口下"仍回填当前最优参数"
+// （对调用方可观测），而**批**接口对 status!=OK 一律 NaN + FIT_FAILED（不可观测）。
+// 故只有批路径能给出"按位不变"的保证；单星 ABI 保持 200 次耗尽的旧行为。
+static int moffat4_fit_batch_cell_f(const float* image, int width, int height,
+                                    double cx, double cy,
+                                    int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                                    DPSFFitResult* result) {
+    return moffat4_fit_tmpl<float>(image, width, height, cx, cy, rect_x0, rect_y0,
+                                   rect_x1, rect_y1, result, kDpsfBatchStallIters);
+}
+
+static int moffat4_fit_batch_cell_d(const double* image, int width, int height,
+                                    double cx, double cy,
+                                    int rect_x0, int rect_y0, int rect_x1, int rect_y1,
+                                    DPSFFitResult* result) {
+    return moffat4_fit_tmpl<double>(image, width, height, cx, cy, rect_x0, rect_y0,
+                                    rect_x1, rect_y1, result, kDpsfBatchStallIters);
 }
 
 DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
@@ -645,7 +931,7 @@ static int fit_batch_float_image(const float *float_image, int width, int height
             double local_cx = cx - x0;
             double local_cy = cy - y0;
 
-            moffat4_fit(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
+            moffat4_fit_batch_cell_f(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
         } catch (const std::exception &e) {
             dpsf_log(LOG_ERROR, "DPSF", "fit_batch_float_image: star %d allocation failed (%s)",
                      i, e.what());
@@ -770,7 +1056,7 @@ DPSF_EXPORT int dpsf_fit_batch_d(const double *image, int width, int height,
             double local_cx = cx - x0;
             double local_cy = cy - y0;
 
-            moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
+            moffat4_fit_batch_cell_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &results[i]);
         } catch (const std::exception &e) {
             dpsf_log(LOG_ERROR, "DPSF", "dpsf_fit_batch_d: star %d allocation failed (%s)",
                      i, e.what());
@@ -912,7 +1198,7 @@ DPSF_EXPORT int dpsf_fit_batch_f32(
             double local_cy = cy - y0;
 
             DPSFFitResult result;
-            moffat4_fit(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
+            moffat4_fit_batch_cell_f(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
 
             if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
                 // 把局部坐标转回图像坐标
@@ -1081,7 +1367,7 @@ DPSF_EXPORT int dpsf_fit_batch_f64(
             double local_cy = cy - y0;
 
             DPSFFitResult result;
-            moffat4_fit_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
+            moffat4_fit_batch_cell_d(patch.data(), rw, rh, local_cx, local_cy, 0, 0, rw, rh, &result);
 
             if (result.status == DPSF_FIT_OK || result.status == DPSF_FIT_ITERATION_LIMIT) {
                 result.cx += x0;
