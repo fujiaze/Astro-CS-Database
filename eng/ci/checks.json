@@ -9586,11 +9586,10 @@
       "platform": "any",
       "command": [
         "python3",
-        "eng/ci/check_provider_manifests.py",
-        "--repo",
-        ".",
-        "--json-out",
-        "run/ci/provider_manifests.json"
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-PROVIDER-MANIFESTS",
+        "--quiet"
       ],
       "timeout_seconds": 300,
       "heavy": false,

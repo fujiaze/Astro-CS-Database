@@ -53,6 +53,7 @@
 | CHK-SYNTH-P3 | 科学 | export 合成全链 | `python3 eng/ci/run_checks.py --check CHK-SYNTH-P3 --quiet` | P0 |
 | CHK-ISA-EQ | 科学 | baseline/AVX2/AVX-512 等价 | `python3 eng/ci/run_checks.py --check CHK-ISA-EQ --quiet` | P1 |
 | CHK-ISA-SAME-SOURCE | 科学 | ISA 单一来源（`isa_sites.json` ↔ 构建面 ↔ backend_host/cpu 源逐点一致；含 self-test 与 fault-inject 负例面） | `python3 eng/ci/run_checks.py --check CHK-ISA-SAME-SOURCE --quiet` | P1 |
+| CHK-PROVIDER-MANIFESTS | 治理 | ISA provider/backend 交付面清单双向校验（清单条目 ↔ 构建目标 ↔ 磁盘产物 ↔ 入口符号；清单缺失即 fail-closed；含 `--self-test` 5 红 1 绿） | `python3 eng/ci/check_provider_manifests.py --repo . --json-out run/ci/provider_manifests.json` | P0 |
 | CHK-DRZ-PF-AREA-S1 | 科学 | drizzle 逐帧子块判据面 | `python3 eng/tools/quality/deep_ci_driver.py ctest-target --build-dir build --target drizzle_pf_sb.*` | P0 |
 | CHK-NWORKER | 科学 | 1 vs N worker 数值等价（判据 = 事前冻结的浮点容差，非逐位一致；口径见 `docs/contracts/SCHEDULER_CONTRACT.md` §2.1） | `python3 eng/ci/run_checks.py --check CHK-NWORKER --quiet` | P0 |
 | CHK-NWORKER-TOLERANCE | 科学 | 1/N worker 数值等价的**判据非退化面**：分层容差比较器自检（float64 用 `rtol=1e-12`；float32 产品用 `rtol=5e-6`；整型/掩码/索引/计数/端口逐位；NaN/Inf **位置**必须精确一致；易变卡 `DATE/CHECKSUM/DATASUM/CHECKVER` 除外）；**负例**：扰动一个浮点载荷必须被检出 | `python3 eng/tools/quality/numeric_equiv.py --self-test` | P0 |

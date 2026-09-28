@@ -101,10 +101,13 @@ class ProcessLedger:
                 proc.wait(timeout=10)   # 收割直接子进程，避免驱动自身留下僵尸
             except Exception:  # noqa: BLE001 - 已死/无法收割都不影响后续回收
                 pass
+            # 诊断行走 stderr：stdout 是驱动与检查器的机读契约（--plan-only/--json-out
+            # 直接解析），任何多余行都会让消费者的 JSON 解析失败。
             print("TEARDOWN %s pid=%d tag=%s reason=%s"
-                  % (self.driver, pid, tag, reason), flush=True)
+                  % (self.driver, pid, tag, reason), file=sys.stderr, flush=True)
         if not killed:
-            print("TEARDOWN %s none-live reason=%s" % (self.driver, reason), flush=True)
+            print("TEARDOWN %s none-live reason=%s" % (self.driver, reason),
+                  file=sys.stderr, flush=True)
         return killed
 
     def install_handlers(self) -> None:
@@ -119,7 +122,8 @@ class ProcessLedger:
         self._installed = True
         if os.environ.get("ASTROCS_CI_NO_TEARDOWN") == "1":
             print("WARNING %s: ASTROCS_CI_NO_TEARDOWN=1 ⇒ 关闭显式回收"
-                  "（仅用于负例对照；逃逸孤儿将不被回收）" % self.driver, flush=True)
+                  "（仅用于负例对照；逃逸孤儿将不被回收）" % self.driver,
+                  file=sys.stderr, flush=True)
             return
 
         def _handler(signum, _frame):
