@@ -56,5 +56,5 @@
     "negative_control_collapses": true
   },
   "all_gates_pass": true,
-  "runtime_s": 7.33978533744812
+  "runtime_s": 34.39712381362915
 }

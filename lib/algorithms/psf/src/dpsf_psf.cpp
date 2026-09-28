@@ -17,11 +17,11 @@
 #include <cstdlib>
 #include <omp.h>
 
-// Moffat4 (beta=4) FWHM 因子
-// 模型使用 Q = 0.5 * r^2 / sigma^2 (注意 1/(2*sigma^2) 系数)
+// Moffat4 (beta=4) FWHM 因子。sigma 约定(冻结, PSF.md §16): sigma = 模型参数
+// Q = 0.5*r^2/sigma^2 中的 sigma, 等于 rms 半径 sqrt(<r^2>) = alpha/sqrt(2);
 // 标准 Moffat: M = A/(1 + r^2/alpha^2)^beta, FWHM = 2*alpha*sqrt(2^(1/beta)-1)
 // 由 Q = r^2/(2*sigma^2) = r^2/alpha^2 得 alpha = sqrt(2)*sigma
-// 故 FWHM = 2*sqrt(2)*sigma*sqrt(2^(1/4)-1) = 0.87 * sqrt(2) * sigma ≈ 1.2303 * sigma
+// 故 FWHM = 2*sqrt(2)*sigma*sqrt(2^(1/4)-1) ≈ 1.2303077*sigma (他域口径 sigma_g=alpha/2 -> 1.7399178, 禁用)
 static const double MOFFAT4_FWHM_FACTOR = 1.230310;
 static const int NPARAMS = 7;
 

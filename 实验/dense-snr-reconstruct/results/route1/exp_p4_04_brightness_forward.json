@@ -162,5 +162,5 @@
     "oracle_bglim_suboptimal": true
   },
   "all_gates_pass": true,
-  "runtime_s": 2.706840753555298
+  "runtime_s": 4.075383424758911
 }

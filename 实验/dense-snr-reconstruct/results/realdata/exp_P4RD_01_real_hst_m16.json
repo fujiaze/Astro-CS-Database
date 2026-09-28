@@ -1,0 +1,90 @@
+{
+  "seed": 20260928,
+  "frame": "testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f502n_v1_drz.fits",
+  "frame_bunit": "ELECTRONS/S",
+  "frame_exptime": 16000.0,
+  "crop": [
+    6144,
+    6144
+  ],
+  "delta": 64,
+  "patch": 8,
+  "estimator": "8x8 patch 1.4826*MAD 平方（生产配方）",
+  "reference": "局部 MAD^2 代理（含散粒噪声 + 真实小尺度结构，非绝对真方差）",
+  "field_stats_patch_var": {
+    "p01": 1.333358640647273e-06,
+    "p50": 5.802001097652791e-06,
+    "p99": 2.424643990627942e-05,
+    "max": 4081.527966466511,
+    "p99_over_p50": 4.178978855431165
+  },
+  "A_control_point_representativeness_real": {
+    "E_eff_node_plane_vs_cell_mean": 1.1691663780899475e-05,
+    "dex_node_plane_vs_cell_mean": 0.0026482754915228774,
+    "cell_mean_p99_over_p50": 13.183455827658227
+  },
+  "D_cell_scale_vs_sub_cell_scale_real": {
+    "cell_scale_representativeness_dex": 0.0026482754915228774,
+    "sub_cell_median_abs_dex": 0.2541795089189307,
+    "interpretation": "cell 尺度（P4 的目标粒度）上控制点配方代表性 0.0026 dex；亚 cell 尺度（8×8 patch，含真实星云纤维结构与恒星核）中位 |Δdex| ≈ 0.25 dex ⇒ 稠密 SNR 场**不得在 cell 以下尺度解读**（与 §7-1 的 3.8 dex PSF 尺度边界同源，本读数给出真实数据侧量化）。"
+  },
+  "B_reconstruction_fidelity_real": {
+    "E_eff_spline64_vs_fine_full_field": 8598.671632233712,
+    "rms_dex_full_field": 8.307554100420605,
+    "median_abs_dex_full_field": 0.2541795089189307,
+    "frac_abs_dex_gt_0.5_full_field": 0.2781151665581597,
+    "max_over_p50_fine_field": 703469009.7038589,
+    "bands_by_cell_quantile": [
+      {
+        "cell_var_lo": 1.1715739996325106e-06,
+        "cell_var_hi": 6.5609835318251024e-06,
+        "n_pix": 294912,
+        "median_abs_dex": 0.2719767090771237,
+        "frac_abs_dex_gt_0.5": 0.2936774359809028,
+        "E_eff_within_band": 1538.906652635471,
+        "shuffled_E_eff_within_band": 2589.0028063252835
+      },
+      {
+        "cell_var_lo": 6.5609835318251024e-06,
+        "cell_var_hi": 1.0556983328280325e-05,
+        "n_pix": 235904,
+        "median_abs_dex": 0.22188941611132895,
+        "frac_abs_dex_gt_0.5": 0.24869438415626696,
+        "E_eff_within_band": 2156.6289343112044,
+        "shuffled_E_eff_within_band": 30278.305371791725
+      },
+      {
+        "cell_var_lo": 1.0556983328280325e-05,
+        "cell_var_hi": 8.64964365778093e-05,
+        "n_pix": 53056,
+        "median_abs_dex": 0.2919521246044523,
+        "frac_abs_dex_gt_0.5": 0.2951975271411339,
+        "E_eff_within_band": 871.1685542940605,
+        "shuffled_E_eff_within_band": 3003.1621844995357
+      },
+      {
+        "cell_var_lo": 8.64964365778093e-05,
+        "cell_var_hi": 138.70620841368066,
+        "n_pix": 5952,
+        "median_abs_dex": 0.5327703625180744,
+        "frac_abs_dex_gt_0.5": 0.5208333333333334,
+        "E_eff_within_band": 5028768.484225479,
+        "shuffled_E_eff_within_band": 197973.19207987248
+      }
+    ],
+    "discriminative_scope": "打乱臂判别力只在背景~亮带（前三个分位带）成立；最亮 1% 带（恒星核，PSF 尺度）内 E_eff 与打乱检验都无意义——该尺度在本单元有效域之外。",
+    "note": "全域 RMS-dex 与全域 E_eff 被极少数恒星核 patch（PSF 尺度结构，跨 9 个数量级）完全主导，而该尺度本就在本单元声明的有效域之外（§1/§7-1：稀疏控制格不表示 PSF 尺度）。判据因此用分位分带内的中位 |Δdex| 与带内 E_eff；全域值只作尾部指示。"
+  },
+  "C_synthetic_controls_same_pipeline": {
+    "flat_field": {
+      "E_eff_node_plane_vs_cell_mean": 1.9664827863863366e-06,
+      "dex_node_plane_vs_cell_mean": 0.0006088667260219614
+    },
+    "smooth_field_512px_period": {
+      "E_eff_node_plane_vs_cell_mean": 1.926529760831741e-06,
+      "dex_node_plane_vs_cell_mean": 0.0006030352558029699
+    },
+    "flat_field_prediction": "平坦场：三段偏差应落在 MC 噪声内（E ~ 1e-3 量级、dex ~ 1e-3 量级）"
+  },
+  "all_pass": true
+}

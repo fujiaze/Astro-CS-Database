@@ -135,6 +135,23 @@ inline const Tolerances& tol() {
     return t;
 }
 
+// ---------------------------------------------------------------------------
+// Moffat4 σ 约定锁（P4-B01 订正；权威 docs/science/PSF.md §16）
+//   σ ≡ 模型参数（通用参数化 Q = 0.5·r²/σ²），β=4 时 σ = √⟨r²⟩ = α/√2；
+//   逐轴高斯口径 σ_g = α/2 属**他域**约定，两者比值恒为 √2。
+// ---------------------------------------------------------------------------
+inline double kMoffat4HalfMaxRoot() { return std::sqrt(std::pow(2.0, 0.25) - 1.0); }
+// 精确 FWHM/σ（模型参数口径）= 2√2·√(2^{1/4}−1) = 1.230307652590102
+inline double oracle_fwhm_factor_exact() { return 2.0 * std::sqrt(2.0) * kMoffat4HalfMaxRoot(); }
+// 他域口径 FWHM/σ_g = 4·√(2^{1/4}−1) = 1.7399178387（生产禁用）
+inline double oracle_fwhm_factor_peraxis_sigma() { return 4.0 * kMoffat4HalfMaxRoot(); }
+// 生产参数化半高往返残差：σ = fwhm/C 时剖面 (1+r²/(2σ²))^{−4} 在 r = fwhm/2 处的 |值 − 0.5|
+inline double oracle_halfmax_roundtrip_residual(double fwhm, double C) {
+    const double sigma = fwhm / C;
+    const double q = 0.5 * (0.5 * fwhm) * (0.5 * fwhm) / (sigma * sigma);
+    return std::fabs(1.0 / std::pow(1.0 + q, 4.0) - 0.5);
+}
+
 }  // namespace p1psf
 
 #endif  // P1PSF_ORACLE_HPP

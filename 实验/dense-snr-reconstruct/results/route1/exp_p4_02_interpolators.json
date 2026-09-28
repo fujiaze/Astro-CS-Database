@@ -19,7 +19,7 @@
         "nonpos_frac": 0.0,
         "E_after_clip": 5.1327773259002285e-05,
         "overshoot_frac_after_clip": 0.0,
-        "runtime_s": 0.417025089263916
+        "runtime_s": 7.4458167552948
       },
       "spline_noclip": {
         "node_max_abs_err": 4.440892098500626e-16,
@@ -29,7 +29,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.001148223876953125,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.37020325660705566
+        "runtime_s": 5.166311025619507
       },
       "bilinear": {
         "node_max_abs_err": 0.0,
@@ -39,7 +39,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0008087158203125,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.022418498992919922
+        "runtime_s": 0.063934326171875
       },
       "idw_p1": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -49,7 +49,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.29019880294799805
+        "runtime_s": 2.864985704421997
       },
       "idw_p2": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -59,7 +59,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.24969244003295898
+        "runtime_s": 2.6944758892059326
       },
       "idw_p4": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -69,7 +69,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.31886744499206543
+        "runtime_s": 4.279227256774902
       }
     },
     "delta_32": {
@@ -83,7 +83,7 @@
         "nonpos_frac": 0.0,
         "E_after_clip": 0.003208496230704183,
         "overshoot_frac_after_clip": 0.0,
-        "runtime_s": 0.2088627815246582
+        "runtime_s": 1.4081306457519531
       },
       "spline_noclip": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -93,7 +93,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.007938385009765625,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.24934816360473633
+        "runtime_s": 1.4507346153259277
       },
       "bilinear": {
         "node_max_abs_err": 0.0,
@@ -103,7 +103,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.009063720703125,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.021681785583496094
+        "runtime_s": 0.04422402381896973
       },
       "idw_p1": {
         "node_max_abs_err": 4.440892098500626e-16,
@@ -113,7 +113,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.27541637420654297
+        "runtime_s": 3.0583815574645996
       },
       "idw_p2": {
         "node_max_abs_err": 4.440892098500626e-16,
@@ -123,7 +123,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.25362586975097656
+        "runtime_s": 1.5436060428619385
       },
       "idw_p4": {
         "node_max_abs_err": 4.440892098500626e-16,
@@ -133,7 +133,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.32350707054138184
+        "runtime_s": 4.144467830657959
       }
     },
     "delta_64": {
@@ -147,7 +147,7 @@
         "nonpos_frac": 0.00386810302734375,
         "E_after_clip": 0.12366020656806032,
         "overshoot_frac_after_clip": 0.0,
-        "runtime_s": 0.19680023193359375
+        "runtime_s": 1.3139142990112305
       },
       "spline_noclip": {
         "node_max_abs_err": 3.552713678800501e-15,
@@ -157,7 +157,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.042888641357421875,
         "nonpos_frac": 0.00386810302734375,
-        "runtime_s": 0.18480873107910156
+        "runtime_s": 2.0116629600524902
       },
       "bilinear": {
         "node_max_abs_err": 0.0,
@@ -167,7 +167,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.036342620849609375,
         "nonpos_frac": 0.00052642822265625,
-        "runtime_s": 0.014539957046508789
+        "runtime_s": 0.10471606254577637
       },
       "idw_p1": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -177,7 +177,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.23493146896362305
+        "runtime_s": 3.5606260299682617
       },
       "idw_p2": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -187,7 +187,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.234100341796875
+        "runtime_s": 2.9777109622955322
       },
       "idw_p4": {
         "node_max_abs_err": 8.881784197001252e-16,
@@ -197,7 +197,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.3141288757324219
+        "runtime_s": 3.585667371749878
       }
     },
     "delta_128": {
@@ -211,7 +211,7 @@
         "nonpos_frac": 0.0,
         "E_after_clip": 1.8295210797692008,
         "overshoot_frac_after_clip": 0.0,
-        "runtime_s": 0.14926505088806152
+        "runtime_s": 0.4251587390899658
       },
       "spline_noclip": {
         "node_max_abs_err": 1.7763568394002505e-15,
@@ -221,7 +221,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.09759902954101562,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.14013075828552246
+        "runtime_s": 0.4871373176574707
       },
       "bilinear": {
         "node_max_abs_err": 0.0,
@@ -231,7 +231,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0523834228515625,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.018120765686035156
+        "runtime_s": 0.057253122329711914
       },
       "idw_p1": {
         "node_max_abs_err": 0.0,
@@ -241,7 +241,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.2435920238494873
+        "runtime_s": 3.9252047538757324
       },
       "idw_p2": {
         "node_max_abs_err": 0.0,
@@ -251,7 +251,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.2434220314025879
+        "runtime_s": 3.4595212936401367
       },
       "idw_p4": {
         "node_max_abs_err": 0.0,
@@ -261,7 +261,7 @@
         "n_eval": 16384,
         "overshoot_frac": 0.0,
         "nonpos_frac": 0.0,
-        "runtime_s": 0.309950590133667
+        "runtime_s": 2.5446438789367676
       }
     }
   },
@@ -319,5 +319,5 @@
     "corner_convention_degrades": true
   },
   "all_gates_pass": true,
-  "runtime_s": 6.731751203536987
+  "runtime_s": 70.5569806098938
 }

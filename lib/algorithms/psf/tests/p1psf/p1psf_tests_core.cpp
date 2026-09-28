@@ -18,9 +18,6 @@
 #include <cstring>
 #include <vector>
 
-#include <sys/wait.h>
-#include <unistd.h>
-
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -613,6 +610,25 @@ int test_oracle() {
             }
             dpsf_free_results(rs);
         }
+    }
+
+    // O-σ: Moffat4 σ 约定锁（P4-B01 订正；docs/science/PSF.md §16）——
+    // 正例锁生产口径（σ = 模型参数 = √⟨r²⟩ = α/√2），负例锁他域口径
+    // （σ_g = α/2，FWHM/σ_g = 1.7399178）在生产参数化下必须判红。
+    {
+        const double C_prod = kMoffat4FwhmFactor;                  // 1.230310（实现常量）
+        const double C_exact = oracle_fwhm_factor_exact();         // 1.230307652590102（闭式）
+        const double C_perax = oracle_fwhm_factor_peraxis_sigma(); // 1.7399178387（他域）
+        P1PSF_CHECK_MSG(cs, std::fabs(C_prod - C_exact) / C_exact <= 3.0e-6, F_ORC,
+                        "O-σ: 生产常量 %.9f 偏离闭式 %.9f 超 3e-6(相对)", C_prod, C_exact);
+        P1PSF_CHECK_MSG(cs, std::fabs(C_perax / C_exact - std::sqrt(2.0)) <= 1e-12, F_ORC,
+                        "O-σ: 两口径比 %.15g != sqrt(2)", C_perax / C_exact);
+        const double res_prod = oracle_halfmax_roundtrip_residual(3.0, C_prod);
+        P1PSF_CHECK_MSG(cs, res_prod <= 2.0e-6, F_ORC,
+                        "O-σ: 生产口径半高往返残差 %.3e > 2e-6（σ 约定被改？）", res_prod);
+        const double res_bad = oracle_halfmax_roundtrip_residual(3.0, C_perax);
+        P1PSF_CHECK_MSG(cs, res_bad > 0.2, F_ORC,
+                        "O-σ: σ_g 口径常量未判红（残差 %.3e <= 0.2）——判据失去判别力", res_bad);
     }
 
     return cs.failures == 0 ? 0 : 1;
