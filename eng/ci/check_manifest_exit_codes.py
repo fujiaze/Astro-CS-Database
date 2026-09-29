@@ -13,7 +13,14 @@
     「登记/写入失败 = exit 7（IO）；verify/完整性失败 = exit 8（INTEGRITY）」条款。
 
 判据（fail-closed，锚点缺失即 FAIL，不静默通过）:
-  C1 exit_codes.h 中 OK/ARGS/INPUT/BACKEND/IO/INTEGRITY 的数值 = 0/2/3/5/7/8；
+  C1 exit_codes.h 的**全部 11 个**退出码：符号=数值绑定逐个核对
+     （OK=0/ARGS=2/INPUT=3/SCIENCE=4/BACKEND=5/COMPUTE=6/IO=7/INTEGRITY=8/
+       CANCELLED=9/RESOURCE=10/INTERNAL=70）——**全覆盖，缺一即判红**；
+     并附三条**不依赖本表副本**的结构判据（防「加码 / 删码 / 同值异名」绕过逐项核对）：
+       C1a 枚举项数 = 11（少一项 = 删码，多一项 = 发明新码 → 判红）；
+       C1b 11 个数值**两两互异**（把某码数值复制给另一符号 = 同值异名 → 判红）；
+       C1c 头文件自述「11 个退出码」与实际枚举项数一致（自述漂移 → 判红）。
+     数值本身属冻结面：本门**只核对既有绑定，不新增码、不改任何码值**。
   C2 commands.cpp 的 manifest verify（cmd_verify）里，每条 stderr 诊断锚之后**紧随**的
      return 必须是合同行规定的符号（例如 status!=complete 的锚之后必须是 INTEGRITY）；
   C3 MANIFEST_VERIFY_V1.md §3 含逐字合同行（顺序与码值同时被锁）；
@@ -67,7 +74,20 @@ CODE_ANCHORS = [
 ]
 OK_ANCHOR = 'nlohmann::json out = {{"verify", "ok"}'
 
-EXIT_VALUES = {"OK": 0, "ARGS": 2, "INPUT": 3, "BACKEND": 5, "IO": 7, "INTEGRITY": 8}
+# 冻结的 11 码「符号→数值」绑定表（数值属冻结面；本表只用于**核对**，不得改数值）。
+# 2026-09-XX 覆盖面修复：本表此前只有 6 项（OK/ARGS/INPUT/BACKEND/IO/INTEGRITY），
+#   SCIENCE/COMPUTE/CANCELLED/RESOURCE/INTERNAL 五码无任何门守护 ⇒ 可静默漂移。
+#   现补齐为全部 11 项；并加 C1a/C1b/C1c 三条结构判据，使「加码 / 删码 / 同值异名」
+#   即使绕过本表副本也被抓住（不依赖本表是否同步更新）。
+EXIT_VALUES = {
+    "OK": 0, "ARGS": 2, "INPUT": 3, "SCIENCE": 4, "BACKEND": 5, "COMPUTE": 6,
+    "IO": 7, "INTEGRITY": 8, "CANCELLED": 9, "RESOURCE": 10, "INTERNAL": 70,
+}
+EXIT_COUNT = len(EXIT_VALUES)          # = 11，冻结条数
+# 头文件自述的条数（用于 C1c：自述与实际项数必须一致）
+EXIT_SELF_DECLARED_RE = re.compile(r"本文件是\s*(\d+)\s*个退出码")
+# 头文件 enum 枚举项：SYM = NUM,  （只认顶格枚举行；注释行不含「= 数字,」形态）
+ENUM_ITEM_RE = re.compile(r"^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(\d+)\s*,", re.M)
 
 CLAUSE_MARK = "manifest 面两码分立（P-159 定一"
 CLAUSE_END = "（IO→7 / INTEGRITY→8）。"
@@ -105,7 +125,39 @@ def check(root: pathlib.Path):
             fails.append("C1 exit_codes.h 未声明 %s" % sym)
         elif int(m.group(1)) != val:
             fails.append("C1 exit_codes.h %s=%s，合同要求 %d" % (sym, m.group(1), val))
-    notes.append("C1 exit_codes.h 符号-数值绑定 %d 项" % len(EXIT_VALUES))
+    notes.append("C1 exit_codes.h 符号-数值绑定 %d/%d 项（全 %d 码逐个核对）"
+                 % (len(EXIT_VALUES), len(EXIT_VALUES), EXIT_COUNT))
+
+    # ── C1a/C1b/C1c：结构判据（不依赖本表副本是否同步更新） ─────────────────
+    enum_items = [(m.group(1), int(m.group(2))) for m in ENUM_ITEM_RE.finditer(ex)]
+    enum_names = [s for s, _ in enum_items]
+    if len(enum_items) != EXIT_COUNT:
+        dup = sorted({s for s in enum_names if enum_names.count(s) > 1})
+        fails.append("C1a exit_codes.h 枚举项 %d 项，要求恰好 %d 项%s"
+                     % (len(enum_items), EXIT_COUNT,
+                        "（重复符号: %s）" % ", ".join(dup) if dup else
+                        "（少项=删码 / 多项=发明新码）"))
+    else:
+        notes.append("C1a exit_codes.h 枚举项 %d/%d 项（无删码 / 无新码）"
+                     % (len(enum_items), EXIT_COUNT))
+    byval = {}
+    for s, v in enum_items:
+        byval.setdefault(v, []).append(s)
+    collide = {v: ns for v, ns in byval.items() if len(ns) > 1}
+    if collide:
+        for v in sorted(collide):
+            fails.append("C1b exit_codes.h 数值 %d 被多个符号占用（同值异名/同值多名）: %s"
+                         % (v, ", ".join(collide[v])))
+    else:
+        notes.append("C1b exit_codes.h 数值两两互异 %d/%d" % (len(byval), len(enum_items)))
+    msd = EXIT_SELF_DECLARED_RE.search(ex)
+    if not msd:
+        fails.append("C1c exit_codes.h 缺自述锚「本文件是 N 个退出码」（自述不可核对 → fail-closed）")
+    elif int(msd.group(1)) != len(enum_items):
+        fails.append("C1c exit_codes.h 自述「%s 个退出码」与实际枚举项数 %d 不一致"
+                     % (msd.group(1), len(enum_items)))
+    else:
+        notes.append("C1c 头文件自述条数与实际项数一致（%d）" % len(enum_items))
 
     cmd = _read(root, "cmd")
     hits = 0
@@ -160,10 +212,82 @@ MUTANTS = {
     # 名称 -> (相对路径键, 旧串, 新串)：注入即必须判红
     "doc-clause-missing": ("doca", "manifest 面两码分立（P-159 定一", "manifest 面（措辞已删）"),
     "doc-clause-diverged": ("docb", "不匹配等）= exit 8", "不匹配等）= exit 7"),
-    "code-status-to-input": ("cmd", 'return astrocs::INPUT;\n', 'return astrocs::INTEGRITY;\n'),
+    "code-status-to-input": ("cmd", "return astrocs::INPUT;\n", "return astrocs::INTEGRITY;\n"),
     "doc-seq-code-wrong": ("docv", "(否则 8)", "(否则 3)"),
     "exit-value-drift": ("exit", "INTEGRITY     = 8", "INTEGRITY     = 7"),
 }
+
+# 正则替换型注入（C1 覆盖面修复的鉴别力面）：对 **11 个码逐个**注入数值漂移。
+# 修复前只有 6 个码有判据 ⇒ 这 11 例里有 5 例（SCIENCE/COMPUTE/CANCELLED/
+# RESOURCE/INTERNAL）注入后 rc=0（零鉴别力）。修复后 11 例必须**全部**判红。
+DRIFT_VALUE = 42
+VALUE_DRIFT_SYMS = tuple(sorted(EXIT_VALUES))          # 11 个，逐个注入
+
+# 结构型注入：加码 / 删码 / 同值异名 / 自述漂移 —— 不依赖本表副本即可被抓。
+# kind: "add-dup" 追加新符号并复制 COMPUTE 的数值；"drop" 删整行；
+#       "dup-value" 改成与既有码撞值；"self-declared" 改自述条数。
+STRUCT_MUTANTS = {
+    "exit-add-duplicate-code": ("add-dup", "COMPUTE", None),
+    "exit-drop-code": ("drop", "SCIENCE", None),
+    "exit-drop-code-cancelled": ("drop", "CANCELLED", None),
+    "exit-drop-code-internal": ("drop", "INTERNAL", None),
+    "exit-dup-value": ("dup-value", "COMPUTE", 7),
+    "exit-self-declared-drift": ("self-declared", None, 12),
+}
+
+# 每条注入**必须由哪条判据**抓住（自检按判据代号断言，避免"抓住但抓错地方"）。
+MUTANT_EXPECT = {
+    "exit-add-duplicate-code": "C1a",     # 加码（复制 COMPUTE 数值）→ 项数判据
+    "exit-drop-code": "C1",               # 删码 → 未声明
+    "exit-drop-code-cancelled": "C1",
+    "exit-drop-code-internal": "C1",
+    "exit-dup-value": "C1b",             # 撞值（COMPUTE 改成 IO 的 7）→ 互异性判据
+    "exit-self-declared-drift": "C1c",    # 自述漂移 → 自述判据
+}
+
+
+def expect_token(name: str) -> str | None:
+    """该注入应由哪条判据抓住；None = 不指定。"""
+    if name in MUTANT_EXPECT:
+        return MUTANT_EXPECT[name]
+    if name.startswith("exit-value-drift-"):
+        return "C1 "
+    return None
+
+
+def _literal_mutate(text: str, mutation: str, keym: str, key: str) -> str:
+    """字面替换型注入（MUTANTS 表）。只对 keym 命中的那个输入文件生效。"""
+    if keym != key:
+        return text
+    _, old, new = MUTANTS[mutation]
+    # code-status-to-input 用唯一锚（status!=complete 分支）定向替换
+    if mutation == "code-status-to-input":
+        anchor = "acsd: run manifest status="
+        k = text.find(anchor)
+        if k < 0:
+            raise SystemExit("[fail-closed] 注入锚缺失: %s" % anchor)
+        m = RET_RE.search(text, k)
+        if not m:
+            raise SystemExit("[fail-closed] 注入锚后无 return")
+        return text[:m.start()] + "return astrocs::INPUT;" + text[m.end():]
+    n = text.count(old)
+    if n != 1:
+        raise SystemExit("[fail-closed] 注入锚命中 %d 次（要求恰好 1）: %s"
+                         % (n, old[:40]))
+    return text.replace(old, new)
+
+
+def _apply_mutation(text: str, key: str, mutation: str) -> str:
+    """把一次注入施加到某个输入文件上（分派三种注入形态）。"""
+    if mutation.startswith("exit-value-drift-"):
+        if key == "exit":
+            return _drift_exit_value(text, mutation[len("exit-value-drift-"):], DRIFT_VALUE)
+        return text
+    if mutation in STRUCT_MUTANTS:
+        if key == "exit":
+            return _struct_mutate_exit(text, mutation)
+        return text
+    return _literal_mutate(text, mutation, MUTANTS[mutation][0], key)
 
 
 def _fixture(dst: pathlib.Path, mutation: str | None = None):
@@ -175,56 +299,95 @@ def _fixture(dst: pathlib.Path, mutation: str | None = None):
         tgt.parent.mkdir(parents=True, exist_ok=True)
         text = src.read_text(encoding="utf-8", errors="ignore")
         if mutation:
-            keym, old, new = MUTANTS[mutation]
-            if keym == key:
-                # code-status-to-input 用唯一锚（status!=complete 分支）定向替换
-                if mutation == "code-status-to-input":
-                    anchor = "acsd: run manifest status="
-                    k = text.find(anchor)
-                    if k < 0:
-                        raise SystemExit("[fail-closed] 注入锚缺失: %s" % anchor)
-                    m = RET_RE.search(text, k)
-                    if not m:
-                        raise SystemExit("[fail-closed] 注入锚后无 return")
-                    text = text[:m.start()] + "return astrocs::INPUT;" + text[m.end():]
-                else:
-                    n = text.count(old)
-                    if n != 1:
-                        raise SystemExit("[fail-closed] 注入锚命中 %d 次（要求恰好 1）: %s"
-                                         % (n, old[:40]))
-                    text = text.replace(old, new)
+            text = _apply_mutation(text, key, mutation)
         tgt.write_text(text, encoding="utf-8")
 
 
+def all_mutants():
+    """全部注入名 = 字面替换型 + 结构型 + 11 例逐码数值漂移。"""
+    names = list(MUTANTS) + list(STRUCT_MUTANTS)
+    names += ["exit-value-drift-" + s for s in VALUE_DRIFT_SYMS]
+    return names
+
+
+def _drift_exit_value(text: str, sym: str, newval: int) -> str:
+    """把 exit_codes.h 里符号 sym 的枚举值改成 newval（正则在临时夹具上跑，不碰真仓）。"""
+    pat = re.compile(r"^(\s*%s\s*=\s*)\d+" % re.escape(sym), re.M)
+    if not pat.search(text):
+        raise SystemExit("[fail-closed] 数值漂移锚缺失: %s" % sym)
+    return pat.sub(lambda m: m.group(1) + str(newval), text, count=1)
+
+
+def _struct_mutate_exit(text: str, mutation: str) -> str:
+    """结构型注入（加码 / 删码 / 撞值 / 自述漂移）。"""
+    kind, arg, extra = STRUCT_MUTANTS[mutation]
+    if kind == "add-dup":
+        if "BRAND_NEW" in text:
+            raise SystemExit("[fail-closed] BRAND_NEW 已存在")
+        return text.replace(
+            "    INTERNAL      = 70,",
+            "    INTERNAL      = 70,\n    BRAND_NEW    = 6,   // 注入: 复制 COMPUTE 的数值",
+            1)
+    if kind == "drop":
+        lines = text.split("\n")
+        keep = [l for l in lines if not re.match(r"^\s*%s\s*=\s*\d+" % re.escape(arg), l)]
+        if len(keep) == len(lines):
+            raise SystemExit("[fail-closed] 删码锚缺失: %s" % arg)
+        return "\n".join(keep)
+    if kind == "dup-value":
+        return _drift_exit_value(text, arg, extra)
+    if kind == "self-declared":
+        pat = EXIT_SELF_DECLARED_RE
+        if not pat.search(text):
+            raise SystemExit("[fail-closed] 自述锚缺失")
+        return pat.sub(lambda m: "本文件是 %d 个退出码" % extra, text, count=1)
+    raise SystemExit("[fail-closed] 未知结构注入 kind: %s" % kind)
+
+
 def self_test() -> int:
+    """正例 + 全部负例（含 11 例逐码数值漂移）必须给出逐例判词，不做「全通过」式汇总。"""
     bad = 0
+    names = all_mutants()
     with tempfile.TemporaryDirectory(prefix="p159_selftest_") as td:
         base = pathlib.Path(td)
         _fixture(base)
-        fails, _ = check(base)
+        fails, notes = check(base)
         if fails:
             bad += 1
             print("SELFTEST 正例 FAIL: %s" % fails[:3])
         else:
-            print("SELFTEST 正例 PASS（干净夹具必须绿）")
-        for name in MUTANTS:
+            print("SELFTEST 正例 PASS（干净夹具必须绿）  分母：负例 %d 例" % len(names))
+            for n in notes:
+                print("         | %s" % n)
+        n_drift = 0
+        for name in names:
             root = base.parent / (base.name + "_" + name)
             root.mkdir(parents=True, exist_ok=True)
             _fixture(root, name)
             f2, _ = check(root)
-            if f2:
-                print("SELFTEST 负例 %s PASS（判红: %s）" % (name, f2[0][:80]))
+            tag = "（逐码漂移）" if name.startswith("exit-value-drift-") else ""
+            n_drift += name.startswith("exit-value-drift-")
+            want = expect_token(name)
+            if f2 and (want is None or any(l.startswith(want) for l in f2)):
+                print("SELFTEST 负例 %-28s PASS%s [%s] 判红: %s"
+                      % (name, tag, want or "-", f2[0][:70]))
+            elif not f2:
+                bad += 1
+                print("SELFTEST 负例 %-28s FAIL（注入未被抓住 = 零鉴别力）" % name)
             else:
                 bad += 1
-                print("SELFTEST 负例 %s FAIL（注入未被抓住 = 零鉴别力）" % name)
+                print("SELFTEST 负例 %-28s FAIL（判红但抓错判据: 期望 %s / 实际 %s）"
+                      % (name, want, "; ".join(l[:40] for l in f2)))
             shutil.rmtree(root, ignore_errors=True)
+    print("SELFTEST 逐码数值漂移 %d/%d 例判红" % (n_drift, len(VALUE_DRIFT_SYMS)))
     print("SELFTEST_%s" % ("FAIL" if bad else "PASS"))
     return 1 if bad else 0
 
 
 def fault_inject(name: str) -> int:
-    if name not in MUTANTS:
-        print("未知注入名，可选: %s" % ", ".join(sorted(MUTANTS)))
+    names = all_mutants()
+    if name not in names:
+        print("未知注入名，可选: %s" % ", ".join(sorted(names)))
         return 2
     with tempfile.TemporaryDirectory(prefix="p159_inject_") as td:
         root = pathlib.Path(td)

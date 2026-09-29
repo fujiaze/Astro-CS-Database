@@ -12,7 +12,7 @@
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
 - 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
-- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 162 个目标，其中 140 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 49。
+- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 165 个目标，其中 143 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 52。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
 ## 2. 覆盖计数（`coverage` 块逐字引用，本文件不重算该块）
@@ -29,9 +29,9 @@
 | silent_drops | 0 |
 | result_entry_count | 112 |
 
-- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 404 条 —— KEPT 237 / KEPT-PENDING-MERGE 3 / MERGED-INTO 162 / RETAINED 2；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 198 条。
-- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 206 == 404 − 198）；本文件**逐字引用**该块，不用逐条计数覆盖它。
-- `absorbed_entries`：198 条登记（唯一 198 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
+- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 411 条 —— KEPT 244 / KEPT-PENDING-MERGE 3 / MERGED-INTO 162 / RETAINED 2；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 205 条。
+- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 206 == 411 − 205）；本文件**逐字引用**该块，不用逐条计数覆盖它。
+- `absorbed_entries`：205 条登记（唯一 205 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
 - `retired` = 0：本波无退役项；基线前退役 1 项单列于 §2.1，**不得**计为本波丢失的注册项。
 - 覆盖口径注（`coverage.note` 逐字）：覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。 新增 1 个执行单元（PROVIDER-MANIFESTS-NEG，CHK-PROVIDER-MANIFESTS 的负例面）登记为 absorbed。 新增 2 个 ctest 执行单元（CTEST-P1PSF-STALL-EQUIV / -INJECT，CHK-INVARIANT）登记为 absorbed。 W4-A3（P-159 定一）：新增 2 个执行单元（MANIFEST-EXIT-CODES / -SELFTEST，CHK-MANIFEST-EXIT-CODES）登记为 absorbed；判据 = 合同行逐字 + 代码锚符号一致。 新增节点并行预算接线门与其负例、两个检查器自检单元的登记面。 P-205/P-206 负例接线：新增 1 个执行单元（NEG-P3-PUBLISH-ORDER，CHK-P3-EXPORT-STREAM-PROD）登记为 absorbed（避免负例成为无接线孤儿脚本）。 本轮新增 CTest 单元接线：P-174 三终态正/负例 + 变异判红 + ④两序区分用例共 3 个执行单元（CTEST-AIO-*，CHK-UNIT）登记为 absorbed。 P-173 接线：next_seq 唯一性正例面（CTEST-AIO-TMP-PATH-UNIQUENESS）+ TSan 竞态判红面（NEG-P173-TSAN，自建迷你 TSan 编译，不建全量 TSan 树）登记为 absorbed。 配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed。 FINAL-07 注册面三面交叉判据：新增 1 顶层项 + 3 执行单元登记为 absorbed；判据把「配置期注册面」「既有门枚举面」「按名引用面」互为交叉判据（X1..X9），并补登记第 4 个面：发现期注册面（gtest_discover_tests 宿主与名字前缀）。 FINAL-07 batch1: 新增 2 个执行单元 (CHK-CFITSIO-PLATFORM-SURFACE 及其 SELFTEST) 登记为 absorbed。 FINAL-07 batch2: 新增 2 个执行单元 (CHK-PLATFORM-SYSLIB-LINKS 及其 SELFTEST) 登记为 absorbed —— 系统库链接面平台判断唯一性；与 batch1 同批入库 (实现 + 被判定的构建改动 + 登记)。 2026-09-29 复验补记: batch2 判据在复验中发现并修掉一处**恒绿面** —— 逐行匹配命令名漏掉跨行链接语句的**续行** (实测漏网 = lib/algorithms/psf/tests/p1psf/CMakeLists.txt:192 的裸 m, 该目标正是 Windows 冷构建 LNK1104 m.lib 的 11 个目标之一; eng/tests/unit/p2_samp/CMakeLists.txt:43 的裸 pthread/m/z 同形态)。判据改为按括号配平覆盖续行, 并补 2 正例 2 负例 (N6/N7/P2/P3)。
 
@@ -43,7 +43,7 @@
 
 ## 3. 目标项 → 归并的旧 ID
 
-### 3.1 `targets` 声明了 `steps` 的 65 个目标（JSON 逐字）
+### 3.1 `targets` 声明了 `steps` 的 67 个目标（JSON 逐字）
 
 | 目标 ID | 类型 | 级 | 名称 | steps（旧 ID，按执行序） |
 |---|---|---|---|---|
@@ -51,6 +51,8 @@
 | `CHK-BUILD-WIN` | doc | P0 | Windows Release 构建 | `WIN-BUILD-RELEASE` |
 | `CHK-WARN` | doc | P0 | 编译警告 | `WARNING-SUPPRESSION` |
 | `CHK-STATIC` | doc | P1 | 静态分析 | `DUPLICATION`、`CON-FORBIDDEN-PATTERNS`、`PROD-REACH-SELFTEST`、`DEEP-COMPLEXITY` |
+| `CHK-MUTATION-GATES` | doc | P1 | 变异门登记册的登记项必须仍有对象，且 ctest_name 绑定到独立枚举面（能判红、能查未运行） | `CHK-MUTATION-GATES`、`CHK-MUTATION-GATES-SELFTEST`、`CHK-MUTATION-GATES-INJECT` |
+| `CHK-CTEST-SKIP-REGISTER` | ci | P0 | ctest SKIP 登记册的消费者门：逐条登记 + 名字存在性独立面核对 + 未登记 SKIP 即红 + 行锚存活 + 计数自洽 | `CHK-CTEST-SKIP-REGISTER`、`CHK-CTEST-SKIP-REGISTER-SELFTEST`、`CHK-CTEST-SKIP-REGISTER-INJECT` |
 | `CHK-MODULE-MANIFEST` | doc | P0 | 模块 manifest/注册表/构建 target/产品清单一致 | `CHK-MODULE-MANIFEST`、`MODULE-READMES`、`CTEST-REGISTRATION`、`CON-BUILD-GRAPH`、`P3-STATUS`、`WORKFLOW-REGISTRY-BINDING`、`CI-BINDING-TESTS`、`CTEST-SCI-EVIDENCE-REGISTRATION` |
 | `CHK-CONTRACT-REF` | doc | P0 | 端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json） | `CONTRACT-GRAPH`、`DATA-ARTIFACTS` |
 | `CHK-SCI-REF` | doc | P0 | 算法引用有效 SCI/ALG | `TRACEABILITY`、`CON-TRACEABILITY`、`PRODUCTION-GRAPH`、`PIPELINE-TRACE`、`CON-SCIENCE-UNITS`、`UNIT-CLOSURE`、`ACR-DORMANT`、`DOC-LINE-ANCHORS` |
@@ -131,10 +133,12 @@
 | `CHK-CITE-CLAIM-MARK-CONSISTENCY` | CHK-CITE-CLAIM-MARK-CONSISTENCY | `CITE-CLAIM-MARK-CONSISTENCY`、`CITE-CLAIM-MARK-CONSISTENCY-SELFTEST` |
 | `CHK-DOC-UNVERIFIED-CITE` | CHK-DOC-UNVERIFIED-CITE | `DOC-UNVERIFIED-CITE`、`DOC-UNVERIFIED-CITE-SELFTEST` |
 
-### 3.3 两份登记的差异（22 个目标；注册表实际 `steps` 以 `eng/ci/checks.json` 为准，本文件不读它做内容，故此处只并列两侧登记、不断言谁对）
+### 3.3 两份登记的差异（24 个目标；注册表实际 `steps` 以 `eng/ci/checks.json` 为准，本文件不读它做内容，故此处只并列两侧登记、不断言谁对）
 
 | 目标 ID | 仅 `targets.steps` 列（mappings 未指向该 target） | 仅 `mappings` 指向（`targets.steps` 未列） |
 |---|---|---|
+| `CHK-MUTATION-GATES` | `CHK-MUTATION-GATES` |  |
+| `CHK-CTEST-SKIP-REGISTER` | `CHK-CTEST-SKIP-REGISTER` |  |
 | `CHK-MODULE-MANIFEST` | `CHK-MODULE-MANIFEST` | `CON-BUILD-GRAPH-SELFTEST` |
 | `API-DOCS` | `API-DOCS` |  |
 | `CHK-UNIT` |  | `CTEST-AIO-ATOMIC-DURABILITY`、`CTEST-AIO-ATOMIC-DURABILITY-MUTATION`、`CTEST-AIO-VERIFY-ORDER`、`CTEST-AIO-TMP-PATH-UNIQUENESS`、`NEG-P173-TSAN` |
@@ -166,7 +170,7 @@
 | `CHK-DUAL-TOL` | P1 | 双平台允许误差 | 现注册表零双平台数值对比命令；Windows 复验面（REAL-001/负责人触发） | REAL-001 / 负责人触发复验 |
 | `CHK-AGENT-HARD-RULES` | P0 | AGENTS.md 硬禁令存在 | 唯一实现者 eng/tools/check_agents_gov.py 本波按裁决冻结（RETIRE-PENDING-GOV-001，W2 GOV-001 执行迁移） | GOV-001（W2） |
 
-## 5. 逐条映射明细（`mappings`，404 条）
+## 5. 逐条映射明细（`mappings`，411 条）
 
 | 旧 ID | 决策 | 目标/预留位 | 类型 | 级 | 备注（JSON note 逐字） |
 |---|---|---|---|---|---|
@@ -196,6 +200,8 @@
 | `CHK-BUILD-PROVENANCE-SELFTEST` | KEPT | `CHK-BUILD-PROVENANCE-SELFTEST` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
 | `CHK-CFITSIO-PLATFORM-SURFACE` | KEPT | `CHK-CFITSIO-PLATFORM-SURFACE` | code | P1 |  |
 | `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | KEPT | `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | code | P1 |  |
+| `CHK-CI-PROFILE-COVERAGE` | KEPT | `CHK-CI-PROFILE-COVERAGE` | ci | P0 |  |
+| `CHK-CI-PROFILE-COVERAGE-SELFTEST` | KEPT | `CHK-CI-PROFILE-COVERAGE-SELFTEST` | ci | P0 |  |
 | `CHK-CMAKE-USEBEFOREDEF` | KEPT | `CHK-CMAKE-USEBEFOREDEF` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-CMAKE-USEBEFOREDEF-SELFTEST` | KEPT | `CHK-CMAKE-USEBEFOREDEF-SELFTEST` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-CONFIG-CONSUMED` | KEPT | `CHK-CONFIG-CONSUMED` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
@@ -203,6 +209,9 @@
 | `CHK-CTEST-REG-CONDITION` | KEPT | `CHK-CTEST-REG-CONDITION` | ci | P0 | 配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed |
 | `CHK-CTEST-REG-CONDITION-INJECT` | KEPT | `CHK-CTEST-REG-CONDITION` | ci | P0 | 配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed |
 | `CHK-CTEST-REG-CONDITION-SELFTEST` | KEPT | `CHK-CTEST-REG-CONDITION` | ci | P0 | 配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed |
+| `CHK-CTEST-SKIP-REGISTER` | KEPT | `CHK-CTEST-SKIP-REGISTER` | ci | P0 | FINAL-07 R2：ctest_skip_register.json 是 authority_surfaces.json 登记的在役权威面，却零机器消费方（design_clauses DESIGN-12.4-THREE-ERROR-SEMANTICS 已按 unwired 记录）。本门补上消费者：逐条登记 + 名字存在性独立面核对 + 未登记 SKIP 即红 + 行锚存活 + 计数自洽 + 登记口径不重叠。 |
+| `CHK-CTEST-SKIP-REGISTER-INJECT` | KEPT | `CHK-CTEST-SKIP-REGISTER` | ci | P0 | FINAL-07 R2：真仓注入负例（ghost 名字 / 计数不符 / 行锚失效 / 类别越界 / 缺字段）必须逐例判红，并带正例。 |
+| `CHK-CTEST-SKIP-REGISTER-SELFTEST` | KEPT | `CHK-CTEST-SKIP-REGISTER` | ci | P0 | FINAL-07 R2：K1..K7 逐条内存 fixture 正负例（含判别力自证：真名绿 / 假名红 / 面不可用 fail-closed）。 |
 | `CHK-DEEP-PROFILES-TESTS` | KEPT | `CHK-DEEP-PROFILES-TESTS` | extension | P0 | 并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项 |
 | `CHK-DESIGN-CLAUSE-WIRING` | KEPT | `CHK-INVARIANT` | ci | P0 |  |
 | `CHK-DESIGN-CLAUSE-WIRING-SELFTEST` | KEPT | `CHK-INVARIANT` | ci | P0 |  |
@@ -233,6 +242,8 @@
 | `CHK-MODULE-ID-NORMALIZATION-SELFTEST` | KEPT | `CHK-MODULE-ID-NORMALIZATION-SELFTEST` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-MODULE-MANIFEST` | MERGED-INTO | `CHK-MODULE-MANIFEST` | doc | P0 | 模块 manifest/注册表/构建 target/产品清单一致 |
 | `CHK-MUTATION-GATES` | KEPT | `CHK-MUTATION-GATES` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
+| `CHK-MUTATION-GATES-INJECT` | KEPT | `CHK-MUTATION-GATES` | doc | P1 | FINAL-07 R1：真仓注入负例（ghost 假名 / 行锚指向别的名字 / 谎称在跑 / 谎称不在跑 / 缺 reason）必须逐例判红，并带正例（未注入时 0 问题）。 |
+| `CHK-MUTATION-GATES-SELFTEST` | KEPT | `CHK-MUTATION-GATES` | doc | P1 | FINAL-07 R1：gates[].ctest_name 此前零消费者（改了字段无人知道）。CHK-MUTATION-GATES 新增 A6（行锚一致 / 存在性 / 在跑性 / 未运行面），核对面是 eng/ci/ctest_face.py 的两个独立面；本执行单元跑 A1..A6 的内存 fixture 正负例。 |
 | `CHK-NAMING-SURFACE` | KEPT | `CHK-NAMING-SURFACE` | ci | P0 |  |
 | `CHK-NAMING-SURFACE-SELFTEST` | KEPT | `CHK-NAMING-SURFACE` | ci | P0 |  |
 | `CHK-NO-WEIGHT-MODE` | KEPT | `CHK-NO-WEIGHT-MODE` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
@@ -575,7 +586,7 @@
 | `WORKFLOW-REGISTRY-BINDING` | MERGED-INTO | `CHK-MODULE-MANIFEST` | doc | P0 | 模块 manifest/注册表/构建 target/产品清单一致 |
 | `WORKSPACE-ADOPTION` | MERGED-INTO | `CHK-ENV-ADOPTION` | extension | P1 | CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账） |
 
-### 5.1 判据实现者 / 归属 / 原始 reason（51 条）
+### 5.1 判据实现者 / 归属 / 原始 reason（54 条）
 
 | 旧 ID | 判据实现者（checker） | 归属（owner） | reason（JSON 逐字） |
 |---|---|---|---|
@@ -602,6 +613,7 @@
 | `CHK-BASELINE-OPCODES` | `（JSON 未登记）` | ORPHAN-PREREQ-01 | 基线目标指令集：该判据面此前没有任何在册门承接。 |
 | `CHK-LINK-SCAN` | `（JSON 未登记）` | ORPHAN-PREREQ-01 | 链接面扫描：该判据面此前没有任何在册门承接。 |
 | `CHK-MUTATION-GATES` | `eng/ci/check_mutation_gates.py` | DEFECT-REPRO-01 | 该登记册此前全仓零机器消费方，且它的设计依据（设计文档某节的行号引文）整条不存在，另有 6 条登记产物路径早已消失——登记了却不再有对象，且没人会发现。新判据做四查锚存活 + 产物路径存在性棘轮。 |
+| `CHK-CTEST-SKIP-REGISTER` | `eng/ci/check_ctest_skip_register.py` |  |  |
 | `CHK-REGISTRY-IR-PARITY` | `eng/ci/check_registry_ir_parity.py` | RELEASE-02 fix-gates | RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_registry_ir_parity.py --self-test。 |
 | `DOC-L0` | `eng/tools/check_l0_docs.py` | GOV-001 (W2) | L0 固定文档/链接完整性；悬空引用门归 CHK-DANGLING（GOV-001 迁移） |
 | `ENG-CONSTRAINTS` | `eng/tools/doccheck/check_engineering_constraints.py` | GOV-001 (W2) | 旧权威绑定（AstroCS_ENGINEERING_CONSTRAINTS.md 文本快照）清理归 GOV-001；语义继任者 = AGENTS.md 硬禁令门 |
@@ -630,6 +642,8 @@
 | `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | `eng/ci/check_cfitsio_platform_surface.py` | FINAL-07 batch1 | 第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查 |
 | `CHK-PLATFORM-SYSLIB-LINKS` | `eng/ci/check_platform_syslib_links.py` | FINAL-07 batch2 | 系统库链接面（libm/libpthread/libz）平台判断唯一性：三个共用件只在根 CMakeLists 声明一次，全仓链接面（含**跨行**链接语句的续行）不得出现裸 m/pthread/z |
 | `CHK-PLATFORM-SYSLIB-LINKS-SELFTEST` | `eng/ci/check_platform_syslib_links.py` | FINAL-07 batch2 | 系统库链接面（libm/libpthread/libz）平台判断唯一性：三个共用件只在根 CMakeLists 声明一次，全仓链接面（含**跨行**链接语句的续行）不得出现裸 m/pthread/z |
+| `CHK-CI-PROFILE-COVERAGE` | `eng/tools/quality/check_ci_profile_coverage.py` | self-test 派发面 | run.py:480 顶层选择点为严格成员判定、零继承展开，run_checks.py:123 的 PROFILE_INHERITS 只对已派发判据的子步生效；叶判据只挂 fast 时任何 CI 腿都选不到。本门按档位闭包断言覆盖完整，补 profiles 即可，不改执行器 |
+| `CHK-CI-PROFILE-COVERAGE-SELFTEST` | `eng/tools/quality/check_ci_profile_coverage.py` | self-test 派发面 | 上项的可执行负例面：注入负例把真注册表某条判据的 profiles 改成只挂 fast 必须在隔离树副本上判红，另含 4 例 fail-closed（注册表缺失/不可解析/缺 checks 键/阶梯模块不可 import） |
 
 ## 6. 本波无 RETIRE-PENDING 项：原 GOV-001 冻结门已改判 KEPT（保留并修判据）
 

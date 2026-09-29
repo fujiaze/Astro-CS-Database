@@ -58,7 +58,7 @@
       "id": "ctest_skip_register",
       "canonical": "eng/ci/ctest_skip_register.json",
       "aliases": [],
-      "authority": "docs/ci/CI_SPEC.md（skip 必须显式登记）"
+      "authority": "eng/ci/check_ctest_skip_register.py（CHK-CTEST-SKIP-REGISTER：逐条登记 + 名字存在性独立面核对 + 未登记 SKIP 即红 + 行锚存活 + 计数自洽）；docs/ci/CI_SPEC.md（skip 必须显式登记）"
     },
     {
       "id": "toolchain_lock",
@@ -82,7 +82,7 @@
       "id": "mutation_gates",
       "canonical": "eng/ci/mutation_gates.json",
       "aliases": [],
-      "authority": "eng/ci/check_mutation_gates.py"
+      "authority": "eng/ci/check_mutation_gates.py（CHK-MUTATION-GATES：A1..A5 登记项仍有对象 + A6 ctest_name 绑定到 eng/ci/ctest_face.py 的独立枚举面）"
     },
     {
       "id": "design_clauses_ledger",

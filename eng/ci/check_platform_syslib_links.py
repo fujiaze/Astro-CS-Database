@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sys
@@ -51,7 +52,27 @@ SHARED = {"astrocs_platform_math": "m",
 BARE = {"m", "pthread", "z"}
 START_MARK = "平台系统库唯一判定点"
 END_MARK = "END 平台系统库唯一判定点"
-SKIP_DIRS = {"build", "run", ".git", "node_modules"}
+# ── 构建输出识别: 按**内容**, 不按目录名 ─────────────────────────────────────
+# 为什么必须内容判 (FINAL-07 实测的真实假红, 不是假想):
+#   本仓的构建目录名**不固定**。根入口约定是 `build`, 但任务模板与多份隔离树脚本
+#   默认 `-B b`, 另有人用 `out` / `cmake-build-debug` / `_build`。按目录名白名单
+#   ⇒ 只要不叫 `build` 就**整体漏过**, 于是门去扫 CMake **自己生成**的探针文件。
+#   实测 (`cmake -S . -B out` 后跑本核查器, 改前判红):
+#     R2 out/CMakeFiles/3.31.6/CMakeCXXCompiler.cmake:91 链接语句含裸系统库名 'm'
+#        set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "stdc++;m;gcc_s;gcc;c;gcc_s;gcc")
+#   ⇒ **门在真实仓库上恒红** (rc=1), 且红的是生成物不是声明面。
+# 内容判据 = CMake 构建树的定义性产物: 构建树根必有 CMakeCache.txt (cmake 的
+#   构建缓存文件), 它只由 CMake 写入、源码树里不会有 ⇒ 按它识别与目录名无关。
+#   这**只扩大对生成物的跳过**, 不触碰任何仓库声明面 (见下方 cmake_files 与
+#   证据 run/FINAL-07/syslib-guard/evidence/)。
+CMAKE_BUILD_CACHE = "CMakeCache.txt"
+# 仍按名跳过的只有**非源码基础设施目录** (不是"猜测这是构建输出"):
+#   .git         版本库元数据
+#   node_modules 依赖安装树
+#   run          过程产物区 (gitignore; ENGINEERING_SPEC.md §7; 非仓库声明面)
+# 三者都不承载本仓声明面; 判据"只加严不放宽"针对的是**声明面**, 而把 gitignore
+# 的过程产物区拉回扫描面只会在别的轮次留下陈旧 CMakeLists.txt 时造假红。
+SKIP_DIRS = {".git", "node_modules", "run"}
 # 排除的路径前缀（**前缀**匹配，不是全仓 third_party 通配）。
 # 实测事实（2026-09-29 核对，注释按事实写，不按意图写）: 本仓真正的 vendored 第三方树
 #   在 lib/infrastructure/aio/third_party/cfitsio/** 与
@@ -136,15 +157,32 @@ def link_stmt_spans(lines) -> list:
 
 
 def cmake_files(root: Path):
-    for p in sorted(root.rglob("*")):
-        if not p.is_file() or p.suffix.lower() != ".cmake" and p.name != "CMakeLists.txt":
+    """产出仓库内全部 .cmake / CMakeLists.txt **声明面**文件 (已排序)。
+
+    跳过两类, 两类都不是仓库声明面:
+      1) 非源码基础设施目录 (SKIP_DIRS, 按名: .git / node_modules / run);
+      2) CMake 构建树 —— 按**内容**判: 树根含 CMakeCache.txt 则整棵子树剪掉
+         (含 FetchContent 的 _deps/、编译器探针 CMakeCXXCompiler.cmake 等)。
+    第 2 类就地剪枝, 顺带避免把构建树上万个文件逐个 stat —— 这也正是改前
+    `rglob("*")` 在 `build/` 上要遍历全部生成物的原因。
+    """
+    root = Path(root)
+    for dirpath, dirnames, filenames in os.walk(root):
+        d = Path(dirpath)
+        # (1) 非源码基础设施目录
+        dirnames[:] = [n for n in sorted(dirnames) if n not in SKIP_DIRS]
+        # (2) CMake 构建树: 按内容 (与目录名无关)
+        if CMAKE_BUILD_CACHE in filenames:
+            dirnames[:] = []
             continue
-        rel = p.relative_to(root)
-        if any(part in SKIP_DIRS for part in rel.parts):
-            continue
-        if any(rel.parts[: len(sp)] == sp for sp in SKIP_PATH_PARTS):
-            continue
-        yield p
+        for fn in sorted(filenames):
+            p = d / fn
+            if fn != "CMakeLists.txt" and p.suffix.lower() != ".cmake":
+                continue
+            rel = p.relative_to(root)
+            if any(rel.parts[: len(sp)] == sp for sp in SKIP_PATH_PARTS):
+                continue
+            yield p
 
 
 def shared_region(lines):

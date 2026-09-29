@@ -709,12 +709,20 @@
       "anchor": "docs/ASTROCS_DESIGN.md:840",
       "text_sha256": "365c7df0962cf7c24dac97fa83d92041a5f1550cf2af21c59b2505c12903d75f",
       "requirement": "三层错误语义：成功 / 可恢复科学状态（状态字段）/ 硬错误（显式错误码）；测试不可用就跳过并如实标注，不伪造通过。",
-      "status": "unwired",
-      "production_anchor": [],
-      "anchor_tokens": {},
-      "assertion": "",
-      "reason": "硬错误域在生产在位（lib/include/astrocs/core/contracts.h:17-26 的 ErrorDomain 区分 CONFIG/DATA/SCIENCE_PRECONDITION/IO/RESOURCE/BACKEND/CANCELLED/INTERNAL，配显式错误码），但本条后半「测试不可用就跳过并如实标注，不伪造通过」无实现面：eng/ci/ctest_skip_register.json 存在却没有任何检查器读取它（grep 全 eng/ci/*.py 零命中）⇒ 跳过登记不受门约束，SKIP 无法被判红。",
-      "exit_condition": "出现门读 eng/ci/ctest_skip_register.json 并断言「每个 SKIP 逐条登记 + 未登记 SKIP 即红 + 登记只减不增」（可挂在 CHK-EXIT-CONSISTENCY 族）；届时给出 production_anchor 与 assertion 并改 wired。"
+      "status": "wired",
+      "production_anchor": [
+        "eng/ci/check_ctest_skip_register.py",
+        "eng/ci/ctest_face.py",
+        "eng/ci/ctest_skip_register.json"
+      ],
+      "anchor_tokens": {
+        "CTEST_SKIP_REGISTER_GATE": "eng/ci/checks.json:CHK-CTEST-SKIP-REGISTER",
+        "SKIP_UNKNOWN_NAME_TOKEN": "SKIP_SKIP_NAME_UNKNOWN",
+        "SKIP_UNREGISTERED_TOKEN": "SKIP_UNREGISTERED"
+      },
+      "assertion": "CHK-CTEST-SKIP-REGISTER（eng/ci/checks.json 已注册，profiles fast/linux-main/windows-main，3 个执行单元）读 eng/ci/ctest_skip_register.json 并断言：K1 每条 SKIP 逐条登记（test/class/source/reason/owner/unblock 齐全、class 在 classes 词表内）；K2 名字存在性用独立面核对（eng/ci/ctest_face.py 的面 A 配置期注册面 ∪ 面 B 实际配置面 ctest -N --show-only=json-v1），不拿登记册自证；K3 skip_count 与 summary 计数自洽；K4 运行期 SKIP 与编译期平台排除不得混登；K5 source 行锚在提交树里仍有对象；K6 给了运行期证据（--disabled-log/--junit）时未登记的 disabled/skipped 即红；K7 登记册缺失或两面皆空 fail-closed。",
+      "reason": "2026-09-29 闭合（FINAL-07 R2）：此前 eng/ci/ctest_skip_register.json 是 eng/tools/quality/authority_surfaces.json 登记的在役权威面却零机器消费方（grep 全 eng/ci/*.py 零命中），跳过登记不受门约束、SKIP 无法被判红。现由 CHK-CTEST-SKIP-REGISTER 消费，并补上原缺失的「名字真实存在」核对（12 条 SKIP 里 11 条是 gtest_discover_tests 的发现期名字，静态 CMake 文本正则看不见）。",
+      "exit_condition": "已闭合（2026-09-29，FINAL-07 R2）。残余项（不阻塞本条 wired，不作豁免使用）：(1) K5 只核「行锚仍有对象」，不核「该行是否仍是 skip 站点」——实测 12 条 source 行锚里 8 条已随 lib/algorithms/coverage/tests/synthetic_gate.cpp 的改动漂移（例如 :3342 现为 EXPECT_LT 而非 GTEST_SKIP），刷新行锚属 lib/** 域；(2) K6 的运行期证据目前按需传入（--disabled-log/--junit），未在注册表里固定为某个 step 的输入。两条均已在 eng/ci/check_ctest_skip_register.py 的 K5 注释与本文件登记。"
     },
     {
       "id": "DESIGN-12.4-RELEASE-OWNER",

@@ -1,7 +1,7 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "cca44fb16c00f0c0e31f354ec104a96f9c452fff",
+  "source_commit": "574d2669e5ac4102eb3efa7d9c54cce7b15005ed",
   "finding_count": 40,
   "reproduced_count": 16,
   "findings": [
@@ -185,7 +185,7 @@
       "status": "NOT_REPRODUCED_WITH_EVIDENCE",
       "minimal_command": "wc -l lib/infrastructure/cli/main.cpp",
       "evidence": [
-        "lib/infrastructure/cli/main.cpp 103 行（>400 判定为超厚）"
+        "lib/infrastructure/cli/main.cpp 112 行（>400 判定为超厚）"
       ],
       "note": "薄 CLI 要求未满足"
     },
@@ -195,7 +195,7 @@
       "status": "NOT_REPRODUCED_WITH_EVIDENCE",
       "minimal_command": "grep -nE 'add_(library|executable).*astrocs_cpu_(baseline|avx2|avx512)' CMakeLists.txt",
       "evidence": [
-        "独立 provider targets: ['add_library(astrocs_cpu_baseline SHARED', 'add_library(astrocs_cpu_avx2 STATIC lib/infrastructure/benchmark/backend_host/avx2_backend.cpp)', 'add_library(astrocs_cpu_avx512 STATIC lib/infrastructure/benchmark/backend_host/avx512_backend.cpp)']"
+        "独立 provider targets: ['add_library(astrocs_cpu_baseline SHARED', 'add_library(astrocs_cpu_avx2_kernels OBJECT', 'add_library(astrocs_cpu_avx2 SHARED', 'add_library(astrocs_cpu_avx512_kernels OBJECT', 'add_library(astrocs_cpu_avx512 SHARED']"
       ],
       "note": "无编译的 AVX2/AVX512 provider targets"
     },
@@ -245,7 +245,7 @@
       "status": "REPRODUCED",
       "minimal_command": "grep -n 'ALG-P3-001\\|status: DRAFT' docs/contracts/INDEX.yaml; ls docs/science/algorithms/*.md",
       "evidence": [
-        "docs/algorithms 现有 1 份",
+        "docs/algorithms 现有 0 份",
         "ALG-P3-001 状态 DRAFT（审核指出 15 个 ALG/MOD 引用路径在快照缺失、Phase3 ALG 仍 DRAFT）"
       ],
       "note": "合同图不完整：Phase3 ALG 仍 DRAFT，审核快照缺算法文档"
@@ -256,7 +256,7 @@
       "status": "REPRODUCED",
       "minimal_command": "grep -c 'ADU/pixel/deg per header' docs/contracts/API_CONTRACTS.csv",
       "evidence": [
-        "占位行数=381"
+        "占位行数=376"
       ],
       "note": "422 行批量占位语义"
     },
