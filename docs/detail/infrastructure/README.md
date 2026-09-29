@@ -7,7 +7,7 @@
 ## 职责边界
 
 - 放：基建模块各自的职责、输入输出与边界说明。
-- 不放：科学算法模块（在同级 algorithms_phase1/2/3 子目录）；I/O 合同条款正文（在 docs/contracts/ 与 docs/interfaces/）；模块代码说明（在 docs/modules/）。
+- 不放：科学算法模块（在同级 algorithms_phase1/2/3 子目录）；I/O 合同条款正文（在 docs/contracts/ 与 docs/engineering/README.md）；模块代码说明（在 docs/modules/）。
 
 ## 内容
 

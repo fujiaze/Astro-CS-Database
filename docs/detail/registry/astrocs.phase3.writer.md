@@ -15,7 +15,7 @@
   astrocs_p3_fits_writer.dll 为迁移合同值，未落地，IMPLEMENTED 只由验收签发；
   现状构建 = astrocs_phase3_session 静态库成员）。
 - 合同落位: lib/algorithms/fits_output/ 三件套（CONTRACT_READY；落位规则见
-  docs/modules/README.md）。
+  docs/detail/README.md）。
 - 生产源: lib/algorithms/fits_output/p3_output.cpp + 签名头正本 p3_output.h
   + WCS 关键字源 p3_wcs.h。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→

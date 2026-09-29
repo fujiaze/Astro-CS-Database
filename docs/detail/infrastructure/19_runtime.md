@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §8.1（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
-- `docs/design/*_DETAILED_DESIGN.md`（节点与先后关系）
+- `docs/detail/README.md`（节点与先后关系）
 - `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）
 
 ## 3. 输入/输出数据合同
@@ -105,7 +105,7 @@ flowchart LR
 - 1 worker vs N worker 数值一致；
 - 取消/checkpoint 恢复无半成品，且取消/失败路径的运行日志仍发布并登记；
 - **错误上行**：每个节点的失败路径测试断言"返回稳定错误码 + CLI 退出码正确"，负例注入（吞掉错误码）必红；
-- **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/ci/`）；
+- **降级显式**：构造上游产物缺失场景，断言 `degraded_reason` 落盘且 manifest 记录；注入静默回退（不写 `degraded_reason`）必红（判据见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`）；
 - 资源监控记录完整性；磁盘门测试（能红能绿）。
 
 ---

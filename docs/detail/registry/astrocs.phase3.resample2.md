@@ -15,7 +15,7 @@
   为迁移合同值，未落地，IMPLEMENTED 只由验收签发；现状构建 =
   astrocs_phase3_session 静态库成员，p3_resample.cpp 为其五源文件之一）。
 - 合同落位: lib/algorithms/resample/ 三件套（CONTRACT_READY；落位规则见
-  docs/modules/README.md）。
+  docs/detail/README.md）。
 - 生产源: lib/algorithms/resample/p3_resample.cpp + 权威签名头 p3_resample.h。
   签名头 p3_resample.h（202 行）。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→
@@ -176,7 +176,7 @@
 - DATA: docs/science/DATA_SEMANTICS.md §29
 - API: docs/engineering/PUBLIC_API.md（API-P3-RSMP-001 节）
 - 模块总页: docs/detail/phase3_rsmp.md；合同三件套:
-  lib/algorithms/resample/（落位规则见 docs/modules/README.md）
+  lib/algorithms/resample/（落位规则见 docs/detail/README.md）
 
 ## NaN 与写端口
 

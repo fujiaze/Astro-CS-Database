@@ -3,7 +3,7 @@
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位 `lib/algorithms/cosmetic/`（README/module.yaml/memory.md；
-> 落位规则见 docs/modules/README.md）。合同权威 = 三件套 +
+> 落位规则见 docs/detail/README.md）。合同权威 = 三件套 +
 > docs/science/algorithms/COSMETIC_ALGORITHMS.md（ALG-COS-001..005，CONTRACT_READY）。
 > descriptor 词汇 module_id=astrocs.phase1.cosmetic（p1_cosmetic_descriptor）为
 > 编排层口径；模块级事实以三件套与现行生产实现

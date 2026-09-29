@@ -3,7 +3,7 @@
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同三件套落位 `lib/algorithms/sampling/`（README/module.yaml/memory.md；
-> 落位规则见 docs/modules/README.md）。合同权威 = 三件套 +
+> 落位规则见 docs/detail/README.md）。合同权威 = 三件套 +
 > docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，CONTRACT_READY）。
 > descriptor 词汇 module_id=astrocs.phase2.sample（p2_sample_descriptor）为编排层
 > 口径，其对齐属迁移目标（未落地）；冻结依据 = ALG-P2-SMP-001。本页 descriptor
@@ -16,7 +16,7 @@
   `astrocs.p2.sampling`（descriptor 占位 `astrocs.phase2.sample` 仅编排层词汇）；dll_target=
   `astrocs_p2_sampling.dll`（合同值，尚未存在；迁移目标未落地）。
 - 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md；
-  落位规则见 docs/modules/README.md）。
+  落位规则见 docs/detail/README.md）。
 - 生产源：`lib/algorithms/coverage/src/sampler.cpp`（1156 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，sampler.cpp 列于 :342）+
   签名头正本 `lib/algorithms/coverage/include/astro/phase2/sampler.h`

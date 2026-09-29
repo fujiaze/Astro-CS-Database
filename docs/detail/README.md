@@ -62,6 +62,14 @@
 - 合并后的排障手册 `merged_TROUBLESHOOTING.md` —— 由原两篇同名文件合并，
   一篇是「症状 → 定位 → 修复」速查，一篇是「高风险故障场景覆盖门 + 通用定位顺序」。见 §5 待裁决。
 
+## 2.1 合同三件套落位规则
+
+每个模块的合同三件套（`README.md` / `module.yaml` / `memory.md`）落在该模块独立的
+`lib/algorithms/<module>/` 目录；目录名按模块域命名，已被同域模块占用的目录不复用
+（既有落位：`lib/algorithms/coverage/hips_p2/`、`lib/algorithms/upm/`、
+`lib/algorithms/sampling/`、`lib/algorithms/rejection/`、`lib/algorithms/integration/`、
+`lib/algorithms/fits_output/`）。各模块页只引用本规则，不复述。
+
 ## 3 从哪看起
 
 **要改某个算法模块**：从 `registry/` 找到该模块的说明卡，卡里给出边界与依赖；

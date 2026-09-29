@@ -15,7 +15,7 @@
   astrocs_p3_projection.dll 为迁移合同值，未落地，IMPLEMENTED 只由验收签发；
   现状构建 = astrocs_phase3_session 静态库成员，p3_wcs.cpp 为其五源文件之一）。
 - 合同落位: lib/algorithms/projection/ 三件套（CONTRACT_READY；落位规则见
-  docs/modules/README.md）。
+  docs/detail/README.md）。
 - 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本 p3_wcs.h；
   同批迁入共址测试 eng/tests/p3wcs/（ctest p3_wcs）。
 - 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→
@@ -155,7 +155,7 @@
 - DATA: docs/science/DATA_SEMANTICS.md §28
 - API: docs/engineering/PUBLIC_API.md（API-P3-PROJ-001 节）
 - 模块总页: docs/detail/phase3_proj.md；合同三件套:
-  lib/algorithms/projection/（落位规则见 docs/modules/README.md）
+  lib/algorithms/projection/（落位规则见 docs/detail/README.md）
 
 ## NaN 与输出语义
 

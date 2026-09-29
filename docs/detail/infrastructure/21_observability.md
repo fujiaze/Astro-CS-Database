@@ -171,7 +171,7 @@ G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能�
 - 事件 schema 校验；
 - 事件与 run 产物一致性（trace 反映实际）；
 - 取消/失败路径事件完整，且**失败与取消路径同样产出 `<output_dir>/logs/` 两工件**并在 manifest 登记（sha256/行数/级别分布与磁盘一致）；
-- 日志落点测试：`log_dir` 缺省落 `<output_dir>/logs`；显式 `log_dir` 越出 `output_dir` 判 exit 2；**注入"落 `run/`/CWD/源码树"必红**（日志落点判据见 `docs/ci/`）；
+- 日志落点测试：`log_dir` 缺省落 `<output_dir>/logs`；显式 `log_dir` 越出 `output_dir` 判 exit 2；**注入"落 `run/`/CWD/源码树"必红**（日志落点判据见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`）；
 - 日志写失败不静默：注入只读日志目录 ⇒ 运行非 0 退出 + stderr 有脱敏摘要；
 - 脱敏测试（无凭据泄漏）；
 - G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 见 `eng/tests/monitoring/test_frozen_gate.py`。

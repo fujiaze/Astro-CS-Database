@@ -7,7 +7,7 @@
 > （docs/science/algorithms/UPM_SOLVER.md）/ DATA-P2-UPM（DATA_SEMANTICS §25）/
 > DATA-P2-COR（§26）/ API-P2-UPM-001（PUBLIC_API）+ 编排级 API-P2-001
 > （docs/engineering/PHASE2_API_V1.md，FROZEN）。合同落位 = lib/algorithms/upm/ 三件套
-> （CONTRACT_READY，规则见 docs/modules/README.md）；生产源 =
+> （CONTRACT_READY，规则见 docs/detail/README.md）；生产源 =
 > lib/algorithms/coverage/src/upm.cpp + 头
 > lib/algorithms/coverage/include/astro/phase2/upm.h。本页为 apply 职能；
 > fit 职能见 astrocs.phase2.upm-fit.md，模块总页 = docs/detail/phase2_upm.md。
@@ -18,7 +18,7 @@
   descriptor 词汇 `astrocs.phase2.upm-apply` 仅编排层口径；dll_target =
   `astrocs_p2_upm.dll`（迁移目标，未落地）。
 - 合同三件套：lib/algorithms/upm/（CONTRACT_READY；落位规则见
-  docs/modules/README.md）。
+  docs/detail/README.md）。
 - 生产源：lib/algorithms/coverage/src/upm.cpp + 权威签名头
   lib/algorithms/coverage/include/astro/phase2/upm.h；构建 = 根 CMakeLists.txt 的
   astrocs_phase2 静态库成员。

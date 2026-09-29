@@ -143,7 +143,7 @@ P2_API int p2_upm_info(const void* model, P2ModelInfo* out_info);
 // 收敛与否必须由本访问器显式读取，禁止用 rc=0 冒充"已收敛"）。
 //   out_iterations：实际执行迭代数（1..cfg.max_iterations）
 //   out_objective ：末轮 Huber 目标值（ADU² 量纲）
-//   out_converged ：**状态枚举**（唯一口径见 docs/plugins/algorithms_phase2/
+//   out_converged ：**状态枚举**（唯一口径见 docs/detail/algorithms_phase2/
 //                   11_upm.md §4.6 与 docs/science/PHASE2_UPM.md §5）：
 //                     0 = max_iter（迭代耗尽未达容差；模型文件未记录时同样读作 0，
 //                         一律按"未证明收敛"处理）
