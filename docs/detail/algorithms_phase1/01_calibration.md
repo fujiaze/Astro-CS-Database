@@ -11,14 +11,14 @@
 
 - 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：校准方差传播）
 - `docs/science/NOISE_MODEL.md`（噪声模型与方差传播公式）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §4（校准与方差传播）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §4（校准与方差传播）
 - `docs/science/CALIBRATION.md`（SCI-CAL-001 测光校准冻结正本：bias/dark/flat 顺序、`K=t_light/t_dark`、方差传播）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：原始 light（float 语义）、master bias/dark/flat、cosmetic map、曝光/增益/读出噪声/饱和/非线性/温度/滤镜/观测站元数据（输入为参数 + 路径，见最高设计 §4.3）。
 - **输出**：定标信号 `y`（单位声明）、`V(y)`/ivar、validity 标志、写入 manifest 的校准口径。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §9（DATA-P1-CAL：模块输入/输出数据合同正本；数据对象 canonical = `eng/contracts/schemas/unified/{signal,variance}.schema.json`）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §9（DATA-P1-CAL：模块输入/输出数据合同正本；数据对象 canonical = `eng/contracts/schemas/unified/{signal,variance}.schema.json`）。
 
 ## 4. 算法与公式要点
 

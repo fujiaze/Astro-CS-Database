@@ -12,15 +12,15 @@
 - 最高设计 `ASTROCS_DESIGN.md` §5.4（天光平面与统一相对模型 UPM）
 - `docs/science/PHASE2_UPM.md`（SCI-UPM-001 冻结模型：**纯加性** `calibrated=raw−C_f(p)`；§1/§5/§14a）。
   ⚠ **表示层消歧**：`C_k ≡ B_ref + δ_k` 是**表示层全量**，**实际施加量为 `δ_k`**（**保留公共天光面 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）不是默认路径。公式正本见 `docs/science/PHASE2_UPM.md`（本文件只登记插件侧口径，不复制公式）
-- `docs/design/PHASE2_DETAILED_DESIGN.md` §4
+- `docs/detail/PHASE2_DETAILED_DESIGN.md` §4
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（参数协方差）
-- `docs/plugins/algorithms_phase2/10_sampling.md`（采样点与点权重）
+- `docs/detail/algorithms_phase2/10_sampling.md`（采样点与点权重）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：Phase1 产品组、coverage、星点掩膜、光度控制点、天光背景采样点（每点带值/variance/SNR 权重）。
 - **输出**：每帧**加性**校正场参数（8×8 control cell 的 `C_f`；等价表示为**公共参考天光面系数 `B_ref` + 每帧平缓梯度修正系数 `δ_k`**）及协方差、gauge 约束、**可辨识性判决与读数**（`identifiable` / `rank_eff` / `n_params` / `n_unidentified` / `rank_rtol` / `rank_rtol_effective` / `kappa` / `dof_eff` / `chi2_red`，见 §4.7）、连通性、加权残差 RMS、拟合质量三元组（见 §4.6）；施加归一化后的产品（**施加量 = `δ_k`**，`B_ref` 保留）。**不输出** `g_k`（本期恒等）。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §25（DATA-P2-UPM：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §25（DATA-P2-UPM：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -197,5 +197,5 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
    `m_full_frame=1` 时近似 no-op（3.7e-3 e⁻）且不能修复子集依赖。该域内的恒真结果只作域内观察而不足以
    充作两要素的证据。
 5. **工程等价性**：dense cache 与 sparse `calibrate_block` 在 1,048,576 点上 max|Δ| = 3.1e-15；
-   稀疏模型体积 0.167%、峰值内存更低（见 `docs/plugins/algorithms_phase2/10_sampling.md` §9）。
+   稀疏模型体积 0.167%、峰值内存更低（见 `docs/detail/algorithms_phase2/10_sampling.md` §9）。
 

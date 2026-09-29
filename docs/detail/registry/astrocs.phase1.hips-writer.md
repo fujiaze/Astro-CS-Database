@@ -3,8 +3,8 @@
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 合同：ALG-HIPS-001（docs/science/algorithms/HIPS_WRITER.md）/
-> DATA-HIPS-001（docs/contracts/DATA_SEMANTICS.md §12）/ API-HIPS-001
-> （docs/contracts/PUBLIC_API.md）。事实源：lib/algorithms/drizzle/hips/README.md
+> DATA-HIPS-001（docs/science/DATA_SEMANTICS.md §12）/ API-HIPS-001
+> （docs/engineering/PUBLIC_API.md）。事实源：lib/algorithms/drizzle/hips/README.md
 > （CONTRACT_READY）、module.yaml、lib/infrastructure/aio/src/hips/aio_hips_writer.cpp。
 
 ## 职责与明确非职责

@@ -6,7 +6,7 @@
 > 科学/算法正本 = docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；
 > SCI = docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN）；数据合同 = DATA-P2-SMP
 > （DATA_SEMANTICS §23）；C API = API-P2-SMP-001（PUBLIC_API）+ 编排级 API-P2-001
-> （docs/api/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
+> （docs/engineering/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
 > （module_id=astrocs.phase2.sample、端口表、坐标 PIXEL）为编排层口径，
 > 冻结依据 = ALG-P2-SMP-001。
 
@@ -19,7 +19,7 @@
 - 生产源：lib/algorithms/coverage/src/sampler.cpp + 签名头正本
   lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists.txt
   的 astrocs_phase2 静态库成员。
-- 模块页：docs/modules/phase2_samp.md。
+- 模块页：docs/detail/phase2_samp.md。
 
 ## 职责与明确非职责
 
@@ -139,7 +139,7 @@ sampler_parallel_consistency_test.cpp:29 + ivar_wiring_test.cpp
 ## 链接
 
 - 合同锚：`lib/algorithms/sampling/`（README/module.yaml/memory.md 三件套）
-- 模块页：docs/modules/phase2_samp.md
+- 模块页：docs/detail/phase2_samp.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG
   §11.4）

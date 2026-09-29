@@ -10,9 +10,9 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §5.3（SNR 重建与逆方差叠加）、§5.6（硬约束：Phase2 信号为面亮度量纲）
-- `docs/design/UNIFIED_MODEL.md`（frame_snr、sparse_snr_layer）
+- `docs/detail/UNIFIED_MODEL.md`（frame_snr、sparse_snr_layer）
 - `docs/science/INTEGRATION.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`
-- `docs/design/PHASE2_DETAILED_DESIGN.md` §6
+- `docs/detail/PHASE2_DETAILED_DESIGN.md` §6
 
 ## 3. 输入/输出数据合同
 
@@ -28,7 +28,7 @@
   2. `point_source`：Q、W、flux、detection statistic、effective/proper PSF；
   3. `psfsw_integration`（被选择时）：四分量、相对权重、conventional coadd、variance/correlation、effective PSF、基线比较；
   4. support、coverage、validity、rejection；UPM 参数/协方差/残差；manifest。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §21（DATA-P2-INT：马赛克产品族输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §21（DATA-P2-INT：马赛克产品族输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -36,8 +36,8 @@
 
 - **分工固定**：阶段一**只生产信噪比**（稀疏 SNR 控制点）；阶段二在叠加前**先算真实信号面** —— 用**每帧的稀疏控制点重建出稠密控制点 / 稠密 SNR 面**，再按**逆方差（最优功率）**定权后叠加。没有可选的权重口径、口径选择键、口径枚举或口径配置项；越界 token 一律 fail-closed（`FZ-WEIGHT-SINGLE-PATH` / `FZ-MODE-RETIRED` / `FZ-FIELD-WEIGHTMODE`）。
 - `sparse_reconstruct`（默认）→ 由稀疏**绝对** SNR 控制点重建为稠密 `SNR(x,y)`（控制点值是绝对量本身，**不乘/不除帧级标量**）；
-  - **重建算子由层显式声明**（`sparse_snr_layer.reconstruction_operator`）；实际生效算子标识与重建误差入 manifest（`SparseReconstruction.operator_id` / `node_reproduction_max_abs`）；未识别标识或声明与层形态不符 ⇒ fail-closed。冻结词表（算子标识与语义）**唯一正本 = `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5**，本页不复制；
-  - **层几何**：控制点坐标是像素中心坐标，规则网格下落在所属 cell 中心；定义域 = 层覆盖的 cell 并集，越出即 fail-closed（不外推、不回退帧级）。算子定义、钳制必要性、mesh 滤波开关的按域规则与几何约定正本见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5；
+  - **重建算子由层显式声明**（`sparse_snr_layer.reconstruction_operator`）；实际生效算子标识与重建误差入 manifest（`SparseReconstruction.operator_id` / `node_reproduction_max_abs`）；未识别标识或声明与层形态不符 ⇒ fail-closed。冻结词表（算子标识与语义）**唯一正本 = `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5**，本页不复制；
+  - **层几何**：控制点坐标是像素中心坐标，规则网格下落在所属 cell 中心；定义域 = 层覆盖的 cell 并集，越出即 fail-closed（不外推、不回退帧级）。算子定义、钳制必要性、mesh 滤波开关的按域规则与几何约定正本见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5；
 - `frame_reconstruct` → 帧级 SNR 重建/直接参与（等权重面）；
 - 路径由配置显式选择（默认 `sparse_reconstruct`），是 Phase2 **标准行为**；无稀疏层时按帧级执行并**显式记录实际路径**（不静默）；
 - **逆方差叠加**：每个天球像素的多个源像素输入，由各自 SNR 计算对应权重（SNR → 逆方差权重），非直接 SNR 加权；
@@ -98,7 +98,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 ### 权重来源受限表的锁定状态
 
-- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/contracts/DATA_SEMANTICS.md` §31.8（`G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT`）与 `docs/science/PSF_SIGNAL_WEIGHT.md` §8 **在役判据的执行面**——**不是死代码**，删除路径 = 变更流程。
-- **收缩路径**：`docs/contracts/DATA_SEMANTICS.md` §31.8 受限来源表与代码词表**同源**——任一侧收缩一律走变更流程，并在**同一次提交**内同步另一侧；两侧不同步会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
+- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/science/DATA_SEMANTICS.md` §31.8（`G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT`）与 `docs/science/PSF_SIGNAL_WEIGHT.md` §8 **在役判据的执行面**——**不是死代码**，删除路径 = 变更流程。
+- **收缩路径**：`docs/science/DATA_SEMANTICS.md` §31.8 受限来源表与代码词表**同源**——任一侧收缩一律走变更流程，并在**同一次提交**内同步另一侧；两侧不同步会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
 - 生产权重来源仍是单一现场派生量（逐样本 ivar）；该受限来源表只负责**拒绝**非法来源，不产生权重。
 

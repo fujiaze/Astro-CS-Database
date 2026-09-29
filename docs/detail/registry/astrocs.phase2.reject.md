@@ -5,7 +5,7 @@
 > 合同：LIB 面 = lib/algorithms/rejection/ 三件套（CONTRACT_READY）；
 > 科学/算法正本 = docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）；
 > 数据合同 = DATA-P2-REJ（DATA_SEMANTICS §22）；C API = API-P2-REJ-001（PUBLIC_API）
-> + 编排级 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
+> + 编排级 API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
 > （module_id=astrocs.phase2.reject、端口表、坐标 PIXEL）为编排层口径，
 > 冻结依据 = ALG-P2-REJ-001。
 
@@ -18,14 +18,14 @@
 - 生产源：lib/algorithms/coverage/src/rejection.cpp + 签名头正本
   lib/algorithms/coverage/include/astro/phase2/rejection.h；构建 = 根 CMakeLists.txt
   的 astrocs_phase2 静态库成员。
-- 模块页：docs/modules/phase2_rej.md。
+- 模块页：docs/detail/phase2_rej.md。
 
 ## 职责与明确非职责
 
 - 职责：eligibility strided gather（source_indices 权威映射
   PHASE2_IVAR_WIRING，rejection.h:252-255）→ planning AUTO 一次解析
   （生产默认 profile astrocs_adaptive_pixel（自研），档位表与阈值唯一正本 =
-  `docs/plugins/algorithms_phase2/12_rejection.md` §9 / `docs/science/REJECTION.md` §5）
+  `docs/detail/algorithms_phase2/12_rejection.md` §9 / `docs/science/REJECTION.md` §5）
   → 10 显式方法核（per-sample reason
   u8 0..3 与 stack status int 0..7 分离；判向=低于 lower→
   REJECTED_LOW/高于 upper→REJECTED_HIGH，禁原始值正负号判向，
@@ -127,6 +127,6 @@ eng/tests/unit/p2_rejection_test.cpp。
 ## 排异档位
 
 按 N = 该输出像素的**几何覆盖帧数**逐像素路由。档位表与阈值的唯一正本 =
-`docs/plugins/algorithms_phase2/12_rejection.md` §9（科学条款 = `docs/science/REJECTION.md` §5），
+`docs/detail/algorithms_phase2/12_rejection.md` §9（科学条款 = `docs/science/REJECTION.md` §5），
 本页只留指针。生产排异算法集 = none / percentile / winsorized / linear fit
 （`linear_fit` 仅显式指定）；**min/max 极值法不用于生产**。

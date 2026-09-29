@@ -22,7 +22,7 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-编排级 API = API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN；phase session
+编排级 API = API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN；phase session
 extern "C"）；生命周期 create→validate→run→inspect→destroy 由会话承接。
 
 ## Registry descriptor 与配置 schema

@@ -11,7 +11,7 @@
 
 - 最高设计 `ASTROCS_DESIGN.md` §8.1（顶层结构：scheduler + pipeline 职责名全仓唯一）、§9（CPU 后端与资源：内存极简化、编排连续性）
 - `docs/design/*_DETAILED_DESIGN.md`（节点与先后关系）
-- `docs/plugins/infrastructure/21_observability.md` §8（G-RES-01 资源门）
+- `docs/detail/infrastructure/21_observability.md` §8（G-RES-01 资源门）
 
 ## 3. 输入/输出数据合同
 
@@ -30,8 +30,8 @@
   `in_flight = min(n, frame_workers)`、`inner_omp = max(1, thread_budget / in_flight)`，
   两轴之积 ≤ 预算。帧级被 `p1_memory_cap`（内存闸门）压低时必须把剩余预算转给帧内轴，
   否则出现「预算未用满」的利用率塌陷。
-  语义与不变式见 `docs/architecture/THREADING_MODEL.md` §并行轴分配（冻结口径）；
-  冻结标定值见 `docs/architecture/PERFORMANCE_MODEL.md` §1.2（冻结参数）；
+  语义与不变式见 `docs/engineering/THREADING_MODEL.md` §并行轴分配（冻结口径）；
+  冻结标定值见 `docs/engineering/PERFORMANCE_MODEL.md` §1.2（冻结参数）；
   观测面 `ASTROCS_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
 
 ### 4.2 编排连续性与数据局部性
@@ -91,7 +91,7 @@ flowchart LR
 - **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**（与资源门判定域内的 exit 10 相互独立，见 `21_observability.md` §8.4）；内存/CPU/线程不设门（最高设计 §4.5，退出码见 §7.2）；
 - 取消/超时 → exit 9（CANCELLED）；
 - 内存预算内无法安排最小工作集时：调度器对就绪队列回压——谓词挂起等待在途节点释放内存（非自旋），并在无在途节点或取消时放行队首以保证推进；不静默退化、不改写数值路径。
-- **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5。
+- **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表）；域→码映射唯一源 = `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5。
 - **模块错误必须上行到 CLI**（最高设计 §7.3）：节点/模块的失败以稳定错误码返回并终止本阶段；**错误码一律上行**（空 catch、忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内）；
 - **降级必须显式**：上游产物/能力缺失时改走替代路径并继续运行，只允许在"显式写 `degraded_reason` + manifest 记录 + 不改变科学语义"三要件齐备时发生（合同 §6）；改变科学语义的降级 = 故障，必须 fail-closed；
 - **节点运行日志**：节点事件经 `observability` 汇聚落 `<output_dir>/logs`（最高设计 §7.3）；节点不自行开文件写日志、不自行决定落点。
@@ -117,6 +117,6 @@ flowchart LR
   物理位 `lib/infrastructure/pipeline`），依据最高设计 §8.4（顶层结构）与 §7.1（命令树）。
 - 对应登记：`docs/modules/MODULE_MAP.yaml` 条目 `id: scheduler` /
   `module_id: astrocs.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
-  `docs/plugins/00_INDEX.md` §2 第 2 列 = `scheduler`。
+  `docs/detail/00_INDEX.md` §2 第 2 列 = `scheduler`。
 - `runtime` **不是模块名**，其用途仅限路径；本页文件名 `19_runtime.md` 是 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
 - `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中登记；本页与 `00_INDEX.md` 已覆盖其名。

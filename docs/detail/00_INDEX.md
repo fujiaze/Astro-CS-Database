@@ -1,19 +1,26 @@
-# Astro Celestial Sphere Database（ACSD） 插件文档集（docs/plugins）
+# Astro Celestial Sphere Database（ACSD） 详细设计集 · 插件域索引（docs/detail）
 
 > 上游：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）
+> 本索引只覆盖 `docs/detail/` 下的**插件域**四个目录。本集其余篇目（三阶段详细设计、
+> 阶段专用设计、模块说明卡 `registry/`、锚设施 `anchors/`、根级模块页与合同页）不在本索引范围。
 
 ---
 
 ## 1. 模块归属
 
 ```text
-docs/plugins/
+docs/detail/                    本索引覆盖范围 = 下列插件域四个目录
 ├── 00_INDEX.md                 本文
-├── algorithms_phase1/          normalize 相关科学模块（8 篇）
-├── algorithms_phase2/          mosaic 相关科学模块（5 篇）
-├── algorithms_phase3/          export 相关科学模块（3 篇）
-└── infrastructure/             基建模块（7 篇）
+├── algorithms_phase1/          normalize 相关科学模块（8 篇）+ 集 README
+├── algorithms_phase2/          mosaic 相关科学模块（5 篇）+ 集 README
+├── algorithms_phase3/          export 相关科学模块（3 篇）+ 集 README
+├── infrastructure/             基建模块（7 篇）+ 集 README
+├── registry/                   模块说明卡 26 张 + 集 README（不在本索引范围）
+└── anchors/                    锚合同与机读登记（不在本索引范围）
 ```
+
+各目录的「+ 集 README」是有意合并的产物：迁移 A 段把原 26 份目录级招牌件
+消化为 3 份集 README 与 1 份 `merged_TROUBLESHOOTING.md`，故每目录文件数 = 声明篇数 + 1。
 
 **代码落位**：所有科学算法模块在 `lib/algorithms/` 下**并联放置**；`phase1/2/3` 是设计层面的内部指代，代码目录统一为 `lib/algorithms/` 平铺 + `lib/infrastructure/cli/{normalize,mosaic,export}`，引用对应算法模块。（见最高设计 §7.1/§8.4）
 
@@ -85,7 +92,7 @@ docs/plugins/
 
 ## 4. 每篇文档必须回答的问题
 
-- 本模块的**输入对象**和**输出对象**分别是什么（用 `docs/design/UNIFIED_MODEL.md` 的术语）？
+- 本模块的**输入对象**和**输出对象**分别是什么（用 `docs/detail/UNIFIED_MODEL.md` 的术语）？
 - 本模块**不做什么**（边界，防止越界改科学）？
 - 本模块的**验收门**是什么（可复跑命令）？
 - 本模块的**配置**哪些字段、默认值、单位？

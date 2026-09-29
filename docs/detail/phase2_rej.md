@@ -31,7 +31,7 @@
   （source_indices 权威映射 PHASE2_IVAR_WIRING，rejection.h:252-255，
   compact 后 original slot 只经 source_indices 映射）→ planning 层
   AUTO 一次解析（生产默认 profile astrocs_adaptive_pixel（自研），档位表与阈值
-  唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9 与
+  唯一正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9 与
   `docs/science/REJECTION.md` §5）→ 10 显式方法核
   （NONE/SIGMA/WINSORIZED/AVERAGED/LINEAR_FIT/ESD/RCR/PERCENTILE/
   MEDIAN_SIGMA/MINMAX，AUTO=10 永不进 kernel；per-sample reason u8
@@ -158,7 +158,7 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 ## 链接
 
 - 合同锚：`lib/algorithms/rejection/`（README/module.yaml/memory.md 三件套）
-- registry 页：docs/modules/registry/astrocs.phase2.reject.md
+- registry 页：docs/detail/registry/astrocs.phase2.reject.md
 - SCI：docs/science/REJECTION.md（SCI-REJ-001；descriptor 占位
   SCI-P2-REJ-001⇒SCI-REJ-001 映射声明=ALG §11.5）
 - ALG：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）；
@@ -169,6 +169,6 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 
 按 N = 该输出像素的**几何覆盖帧数**逐像素路由（`1≤N≤3` none（不排异）/ `4≤N≤5` percentile /
 `N≥6` winsorized sigma clipping）；档位表与阈值的唯一正本 =
-`docs/plugins/algorithms_phase2/12_rejection.md` §9 与 `docs/science/REJECTION.md` §5，本页只留指针。
+`docs/detail/algorithms_phase2/12_rejection.md` §9 与 `docs/science/REJECTION.md` §5，本页只留指针。
 生产排异算法集 = none / percentile / winsorized / linear fit（`linear_fit` 仅显式指定）；**min/max 极值法不用于生产**。实际方法、参数与 N 写入 `rejection` provenance。
 

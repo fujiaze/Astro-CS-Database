@@ -2,7 +2,7 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 模块总页；registry 登记页 = docs/modules/registry/astrocs.phase3.resample2.md；
+> 模块总页；registry 登记页 = docs/detail/registry/astrocs.phase3.resample2.md；
 > 合同三件套 = lib/algorithms/resample/（落位规则见 docs/modules/README.md）。
 
 ## 1 身份
@@ -25,10 +25,10 @@
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN；映射声明 SCI-P3-RES-001⇒SCI-P3-001 见 ALG §5） | FROZEN |
 | ALG | ALG-P3-RSMP-IMPL-001 | docs/science/algorithms/PHASE3_RSMP_IMPL.md（兼承接 ALG-P3-003 G3/G4 本域子面） | CONTRACT_READY |
-| DATA | DATA-P3-RES | docs/contracts/DATA_SEMANTICS.md §29 | CONTRACT_READY |
-| API | API-P3-RSMP-001 | docs/contracts/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
+| DATA | DATA-P3-RES | docs/science/DATA_SEMANTICS.md §29 | CONTRACT_READY |
+| API | API-P3-RSMP-001 | docs/engineering/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
-| ARCH | ARCH-001 | docs/contracts/ARCH-001.md | VERIFIED |
+| ARCH | ARCH-001 | docs/engineering/ARCH-001.md | VERIFIED |
 | TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；矩阵 test_status=DORMANT，可执行面待落地 | 见左 |
 | EVID | 执行证据 | 验收证据待补（未取得） | NOT_VERIFIED |
 
@@ -88,12 +88,12 @@ module_id=astrocs.phase3.resample2），其对齐属迁移目标（未落地）�
 
 ## 7 链接
 
-- registry 登记页: docs/modules/registry/astrocs.phase3.resample2.md
+- registry 登记页: docs/detail/registry/astrocs.phase3.resample2.md
 - ALG: docs/science/algorithms/PHASE3_RSMP_IMPL.md
-- DATA: docs/contracts/DATA_SEMANTICS.md §29
-- API: docs/contracts/PUBLIC_API.md（API-P3-RSMP-001）
+- DATA: docs/science/DATA_SEMANTICS.md §29
+- API: docs/engineering/PUBLIC_API.md（API-P3-RSMP-001）
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
-- 同域: docs/modules/phase3_proj.md（WCS 域）、
-  docs/modules/phase3_fits.md（写出域）、
+- 同域: docs/detail/phase3_proj.md（WCS 域）、
+  docs/detail/phase3_fits.md（写出域）、
   phase3_session 模块页未建（会话编排层不单独成模块）；会话编排面现行权威 =
-  `docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`。
+  `docs/engineering/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`。

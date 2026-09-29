@@ -9,10 +9,10 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §4.4（输出合同：帧级 SNR 入文件头、稀疏层插入）与 §2.2（创新点二：跨帧可用的绝对信噪比）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（重采样线性算子）
-- `docs/design/UNIFIED_MODEL.md`（数据对象表）
+- 最高设计 `ASTROCS_DESIGN.md` §4.4（输出合同：帧级 SNR 入文件头、稀疏层插入）与 §2.2（创新点二：跨帧可用的绝对信噪比）；数据对象见 `docs/detail/UNIFIED_MODEL.md` §1（重采样线性算子）
+- `docs/detail/UNIFIED_MODEL.md`（数据对象表）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（重采样方差传播）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §9
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §9
 
 ## 3. 输入/输出数据合同
 
@@ -21,7 +21,7 @@
   - **HiPS 文件**：signal、pixel variance/ivar、support、coverage/validity、drizzle correlation/transfer 描述、PSF 模型、photometric response、point_information map、psfsw、depth、**帧级 SNR（信噪比）写入文件头**、**[稀疏帧内 SNR 层（控制点存绝对 SNR）作为标准层]**、source catalog、manifest；
   - **结构化 JSON**：输出路径信息，符合 Phase2 输入格式；逐帧产品清单 `p1_products.json` 登记帧清单与 HiPS 路径（`frames` / `hips_paths` / `filter_passband`）；产品级索引（`index_path` / `index_sha256` / `archive_sha256`）与运行级覆盖索引（`coverage_index`，含 `path` / `sha256` / `n_frames` / `n_blocks`）属归档形态写出侧的待实现项，字段词表 = `eng/contracts/schemas/hips_storage_form.schema.json`；
   - **落盘形态**：输入配置键 `storage_form` 取 `archive`（`<name>.hips.zst`，整包 tar + 逐成员 zstd 帧）或 `bare`（`<name>.hips/`），schema 缺省 = `archive`；键缺失或留空 ⇒ 取默认并报 warn（不静默取默认）。**生产写出侧当前只落裸形态**——`storage_form` 在写出侧无读取点，归档形态的写出与读取、产品级索引与运行级覆盖索引均属待实现项，按变更流程推进；归档形态落地时，其归档内 `properties` 必须与裸形态逐字节一致。
-- 参考：`eng/contracts/schemas/hips_storage_form.schema.json`（落盘形态与索引字段词表）、`eng/contracts/schemas/run_manifest.schema.json`、`docs/contracts/DATA_SEMANTICS.md` §11（DATA-P1-DRZ：模块输入/输出数据合同正本）。
+- 参考：`eng/contracts/schemas/hips_storage_form.schema.json`（落盘形态与索引字段词表）、`eng/contracts/schemas/run_manifest.schema.json`、`docs/science/DATA_SEMANTICS.md` §11（DATA-P1-DRZ：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 

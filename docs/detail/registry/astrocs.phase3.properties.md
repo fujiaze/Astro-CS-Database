@@ -23,7 +23,7 @@ false + 错误文本），不产出半成品 props（ALG-P3-001：非法显式�
 
 解析实现 = lib/algorithms/coverage/hips_properties.h 的 `hips_properties_parse`；节点入口 =
 P3NodeOp::Properties（`read_properties`，节点绑定表）；编排级 API = API-P3-001
-（docs/api/PHASE3_API_V1.md，phase session extern "C"）；生命周期
+（docs/engineering/PHASE3_API_V1.md，phase session extern "C"）；生命周期
 create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema

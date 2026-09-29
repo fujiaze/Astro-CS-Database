@@ -24,9 +24,9 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-CAL-001（docs/contracts/PUBLIC_API.md；头 astro_calibration.h、
+模块级 API = API-CAL-001（docs/engineering/PUBLIC_API.md；头 astro_calibration.h、
 实现 lib/algorithms/calibration/src/）；编排级 API = API-P1-001（phase session
-extern "C"，签名源 docs/api/PHASE1_API_V1.md）；生命周期
+extern "C"，签名源 docs/engineering/PHASE1_API_V1.md）；生命周期
 create→validate→run→inspect→destroy。
 
 ## Registry descriptor 与配置 schema

@@ -236,8 +236,8 @@ F6 dense/sparse 1e-12 等价基线）。
 ## 链接
 
 - 合同锚：`lib/algorithms/upm/`（README/module.yaml/memory.md 三件套）
-- registry 登记页：docs/modules/registry/astrocs.phase2.upm-fit.md、
-  docs/modules/registry/astrocs.phase2.upm-apply.md
+- registry 登记页：docs/detail/registry/astrocs.phase2.upm-fit.md、
+  docs/detail/registry/astrocs.phase2.upm-apply.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零改
   动；descriptor 占位 SCI-P2-UPM-001/002⇒SCI-UPM-001 映射声明=
   PHASE2_UPM_IMPL.md 映射节）

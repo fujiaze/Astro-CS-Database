@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §5.5（逐像素排异：按几何覆盖帧数 N 自动选择算法）
-- `docs/science/REJECTION.md`、`docs/design/PHASE2_DETAILED_DESIGN.md` §5
+- `docs/science/REJECTION.md`、`docs/detail/PHASE2_DETAILED_DESIGN.md` §5
 
 ## 3. 输入/输出数据合同
 

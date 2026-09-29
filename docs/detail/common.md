@@ -14,7 +14,7 @@
 
 | 头 | 前缀/类型 | 函数/类型(签名节选) | 要点 |
 |---|---|---|---|
-| `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，全仓唯一一套（单源纪律，见 `docs/standards/STANDARDS_REGISTRY.md`） |
+| `lib/algorithms/shared/healpix/healpix_core.h` | `astrocs::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，全仓唯一一套（单源纪律，见 `docs/engineering/STANDARDS_REGISTRY.md`） |
 | `lib/algorithms/shared/crypto/sha256.h` | `astrocs::crypto` | `sha256_hex/Sha256 {update,final_hex}` | DATA-FRAME-ID-001 frame_id 唯一实现（truncated-64 SHA-256） |
 | `lib/algorithms/shared/include/astro_scalar.h` | `AstroScalarType` | `FP32/FP64, AstroScalarTraits, DISPATCH` | 双精度 ABI 标量分发 |
 | `lib/algorithms/shared/include/precision_context.h` | `PrecisionContext` | `set_scalar_type/scalar_type/is_fp32/is_fp64` | 全链路精度单例（启动写入、数据阶段只读无锁，默认 FP32） |
@@ -23,7 +23,7 @@
 
 ## Data contract
 
-- HEALPix `order K → nside=2^K`，`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`，非法 `pix2ang` 返回 `0`；NESTED leaf local 18 bits `interleave(x,y)`，FITS index `(511-x)*512+y` 由 CDS Hipsgen oracle 冻结（`docs/contracts/DATA_SEMANTICS.md §2-3`）。
+- HEALPix `order K → nside=2^K`，`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`，非法 `pix2ang` 返回 `0`；NESTED leaf local 18 bits `interleave(x,y)`，FITS index `(511-x)*512+y` 由 CDS Hipsgen oracle 冻结（`docs/science/DATA_SEMANTICS.md §2-3`）。
 - frame_id = truncated-64(canonical SHA-256 of science payload)（`DATA-FRAME-ID-001`）。
 - 标量精度 `FP32/FP64` 经 `aio_set_precision_mode` 跨 DLL 传递。
 
@@ -49,7 +49,7 @@
 
 ## Science IDs
 
-SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；详见 `docs/science/DRIZZLE.md` / `PHASE2_UPM.md` / `docs/contracts/DATA_SEMANTICS.md` §5 + `docs/science/algorithms/HEALPIX_MAPPING.md`。
+SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；详见 `docs/science/DRIZZLE.md` / `PHASE2_UPM.md` / `docs/science/DATA_SEMANTICS.md` §5 + `docs/science/algorithms/HEALPIX_MAPPING.md`。
 
 ## Tests
 

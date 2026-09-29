@@ -9,16 +9,16 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：PSF 产品）与 §4.2（星表引导检测：候选星来自星表位置拟合）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（观测模型）
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：PSF 产品）与 §4.2（星表引导检测：候选星来自星表位置拟合）；数据对象见 `docs/detail/UNIFIED_MODEL.md` §1（观测模型）
 - `docs/science/PSF_SIGNAL_WEIGHT.md`（PSF 与信息权重）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §6（PSF 模型）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §6（PSF 模型）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：定标信号（拟合窗口像素值）、检测目录（候选星位置与拟合窗口；来自星表引导检测，检测定义域 = 星表位置，最高设计 §4.2）、初始参数、配置。逐像素 variance/ivar 加权拟合与 validity 掩膜为待实现项——现行 `moffat4_fit` 的输入面 = 图像 + 窗口几何 + 初值。
 - **输出**：PSF 家族、参数、FWHM/椭率、有效域、拟合残差；空间变化模型及协方差（目标态，未落码——现实现仅帧级 Moffat4，见 §4）；`A_NEA = 1/ΣP²`（白噪声）；信息核 `PᵀC⁻¹P`。
 - 产品至少提供 PSF 模型/地图 + 摘要。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §15（DATA-P1-PSF：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §15（DATA-P1-PSF：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -39,7 +39,7 @@
 ## 6. 接口/ABI
 
 - entrypoint：信号 + 候选星窗口 + 初值 → PSF 模型/参数（帧级 Moffat4）；
-- 输出模型的**生产消费者 = 零**：节点注册表**不声明** `artifact:p1_psf` 输入端口——`lib/infrastructure/scheduler/src/module_adapters.cpp:932-933` 逐字记「该边在注册表里不存在（`astrocs.phase1.star-psf` 的 `p1_psf` 端口"生产链路零消费者"）」，`docs/contracts/PIPELINE_BLOCK_CONTRACT.md:110` 亦把 `photometry ← p1_psf` 列作自测负例（幻边）。`p1_psf.json` 只经 `star_id` 关联作**本插件内部**的 PSF 域复核读数（`module_adapters.cpp:4295` 落的 `p1_psf.json` / `:5588` 的关联读）；noise_snr 的交付样本与深度按测光有效源独立构造，与 PSF 参数面解耦。
+- 输出模型的**生产消费者 = 零**：节点注册表**不声明** `artifact:p1_psf` 输入端口——`lib/infrastructure/scheduler/src/module_adapters.cpp:932-933` 逐字记「该边在注册表里不存在（`astrocs.phase1.star-psf` 的 `p1_psf` 端口"生产链路零消费者"）」，`docs/engineering/PIPELINE_BLOCK_CONTRACT.md:110` 亦把 `photometry ← p1_psf` 列作自测负例（幻边）。`p1_psf.json` 只经 `star_id` 关联作**本插件内部**的 PSF 域复核读数（`module_adapters.cpp:4295` 落的 `p1_psf.json` / `:5588` 的关联读）；noise_snr 的交付样本与深度按测光有效源独立构造，与 PSF 参数面解耦。
 
 ## 7. 错误与边界
 

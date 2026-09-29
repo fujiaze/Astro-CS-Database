@@ -10,15 +10,15 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §6.2（流程：反向映射 + 重采样）与 §6.3（投影算法：输入语义守卫与输出模式）
-- `docs/design/PHASE3_DETAILED_DESIGN.md` §3-§4
+- `docs/detail/PHASE3_DETAILED_DESIGN.md` §3-§4
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（重采样方差传播）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：合同兼容 HiPS（signal、variance/correlation、coverage/validity、PSF 或 point-source statistics）、WCS 计划、采样核、配置。
 - **输出**：平面重采样产品（信号/统计、variance、correlation、coverage、validity、effective PSF 或明确不支持点源）。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §29（DATA-P3-RES：模块输入/输出数据合同正本）。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/contracts/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §29（DATA-P3-RES：模块输入/输出数据合同正本）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
 
 ## 4. 算法与公式要点
 

@@ -7,7 +7,7 @@
 > phase1_session/module.yaml（astrocs.phase1.session，静态库
 > astrocs_phase1_session，根 CMakeLists.txt:448-452）。合同 ID：
 > DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION（PUBLIC_API）；
-> 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md，FROZEN）；不设
+> 编排级上游合同 API-P1-001（docs/engineering/PHASE1_API_V1.md，FROZEN）；不设
 > 独立 DLL（本会话不设独立 DLL 目标）。registry 关系：
 > 五函数经 P1Api（lib/infrastructure/scheduler/src/module_adapters.cpp 的工厂注册面）被 8 个
 > Phase1 descriptor 工厂委托（p1_nodes 表＋register_factory，:15462-15478；make_p1_node_module

@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：星表引导检测细则）、§4.2（节点流程：星表引导检测与 WCS 解算）与 §2.1（创新点一：测光校准到测光星等坐标系，星点位置由星表逆映射获得）；硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md` §1（语义要求）、`docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md` §2（离散公式）、`docs/science/algorithms/GATES_AND_TOLERANCES.md` §3（冻结门表）。
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
 
 ## 3. 输入/输出数据合同
@@ -18,7 +18,7 @@
 - **输入**：定标+cosmetic 后信号、variance/ivar、validity、背景模型（若已有）、配置。
 - **输出**：source catalog（源 ID、像素坐标、天球坐标、质心/矩、局部 SNR、flags）+ selection function/completeness 参数。
 - 检测、PSF、WCS、测光、SNR 的 source row 绑定同一 `frame_id/source_id`。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §17（DATA-P1-STAR：源目录行结构与合同域正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §17（DATA-P1-STAR：源目录行结构与合同域正本）。
 
 ## 4. 算法与公式要点
 

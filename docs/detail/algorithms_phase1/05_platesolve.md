@@ -10,16 +10,16 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：WCS 为 ICRS）与 §4.2（WCS 解算：近似指向 + 星表匹配精化）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §7（天体测量与测光）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §7（天体测量与测光）
 - `docs/science/algorithms/PLATESOLVE.md`（解算算法推导）
-- `docs/plugins/infrastructure/22_gaia_xpsd_client.md`（星表查询依赖）
+- `docs/detail/infrastructure/22_gaia_xpsd_client.md`（星表查询依赖）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：检测目录（像素坐标）、参考星表匹配集、初始猜测（可空）、配置。生产节点（`astrocs.phase1.wcs-platesolve`）按帧读**校准后像素**自行做星点检测与匹配（实现 = 注入的 sdet 检测算子句柄：`module_adapters.cpp` 调 `ipv_solve_from_memory_with_callback_d`，内部单次检测 + callback 同步导出供 PSF 复用），**不消费** `star_detection` 节点的星表 ⇒ 本节点在节点序上先于 `star-psf`（最高设计 §4.2）。
 - **输出**：WCS（ICRS，像素中心/轴向/单位/SIP/PV 域明确）、匹配表、残差统计、验证记录。
 - 正反变换一致，独立星表残差验证。近似指向由 `wcs.init_source`（`header_pointing` / `config` / `neighbor_crval`）给出，只用于星表逆映射的初值；权威 WCS 是求解器在该指向下完成星表匹配与稳健迭代精化后的唯一输出（最高设计 §4.2）。解算轮次数是求解器实现细节，不是流程语义。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §18（DATA-P1-WCS：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §18（DATA-P1-WCS：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 

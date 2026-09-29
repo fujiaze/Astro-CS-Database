@@ -42,7 +42,7 @@
   承载）；冻结单数 1.4 = 声明标定域内的实现记录值（标定元组、实测带与
   偏差面见 实验/healpix-polar）；引用义务 = 标定元组 + N_retained 档位声明，
   不一致时 fail-closed 或现场 MC 重标，见 docs/science/PHASE2_UPM.md §4/§5
-  与 docs/contracts/DATA_SEMANTICS.md §23.1）。
+  与 docs/science/DATA_SEMANTICS.md §23.1）。
   frame_id 内容稳定身份
   （truncated-64 canonical SHA-256，h:85-93/DATA-FRAME-ID-001）。
 - 工作域纪律：value 为 patch median（可负，ADU）；ivar 弃用仅诊断
@@ -169,7 +169,7 @@ lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 ## 链接
 
 - 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md）
-- registry 页：docs/modules/registry/astrocs.phase2.sample.md
+- registry 页：docs/detail/registry/astrocs.phase2.sample.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG
   §11.4）

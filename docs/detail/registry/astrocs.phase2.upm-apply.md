@@ -6,11 +6,11 @@
 > （docs/science/algorithms/PHASE2_UPM_IMPL.md）/ ALG-UPM-001
 > （docs/science/algorithms/UPM_SOLVER.md）/ DATA-P2-UPM（DATA_SEMANTICS §25）/
 > DATA-P2-COR（§26）/ API-P2-UPM-001（PUBLIC_API）+ 编排级 API-P2-001
-> （docs/api/PHASE2_API_V1.md，FROZEN）。合同落位 = lib/algorithms/upm/ 三件套
+> （docs/engineering/PHASE2_API_V1.md，FROZEN）。合同落位 = lib/algorithms/upm/ 三件套
 > （CONTRACT_READY，规则见 docs/modules/README.md）；生产源 =
 > lib/algorithms/coverage/src/upm.cpp + 头
 > lib/algorithms/coverage/include/astro/phase2/upm.h。本页为 apply 职能；
-> fit 职能见 astrocs.phase2.upm-fit.md，模块总页 = docs/modules/phase2_upm.md。
+> fit 职能见 astrocs.phase2.upm-fit.md，模块总页 = docs/detail/phase2_upm.md。
 
 ## 身份与合同落位
 
