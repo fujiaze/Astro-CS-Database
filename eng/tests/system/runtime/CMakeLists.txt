@@ -22,7 +22,16 @@ if(UNIX)
   target_link_libraries(runtime_contract_test PRIVATE Threads::Threads)
 endif()
 # 系统数学库: 平台判断收在共用件 astrocs_platform_math（根 CMakeLists 唯一判定点）
-target_link_libraries(runtime_contract_test PRIVATE astrocs_platform_math)
+# 本目录**可被独立 configure** (行 7 的「当前目录即工程根」守卫 + 独立 project());
+# 那种情况下没有根入口 ⇒ 共用件未定义, 直接写 astrocs_platform_math 会被 CMake 当
+# 成**普通库名**展开成 -lastrocs_platform_math ⇒ 链接期 ld: cannot find。实测
+# (FINAL-07): 独立 configure 后未守卫时 build rc=1, 链接行含 -lastrocs_platform_math。
+# 故按「目标是否存在」守卫, 不按平台守卫 (平台判断仍只在共用件内部一处)。
+# 守卫**不**取代上面那段 if(UNIX): 那里是 find_package(Threads) 查出的导入目标
+# Threads::Threads, 不属裸系统库名面, 该平台条件是既有语义, 原样保留。
+if(TARGET astrocs_platform_math)
+  target_link_libraries(runtime_contract_test PRIVATE astrocs_platform_math)
+endif()
 
 add_executable(runtime_determinism_test runtime_determinism_test.cpp)
 target_include_directories(runtime_determinism_test PRIVATE "${V6RT_REPO}/lib/infrastructure/cli")
@@ -40,8 +49,12 @@ if(UNIX)
   target_link_libraries(runtime_resource_record_test PRIVATE Threads::Threads)
 endif()
 # 系统数学库: 平台判断收在共用件 astrocs_platform_math（根 CMakeLists 唯一判定点）
-target_link_libraries(runtime_determinism_test PRIVATE astrocs_platform_math)
-target_link_libraries(runtime_resource_record_test PRIVATE astrocs_platform_math)
+# 同上: 独立 configure 面上共用件不存在, 按目标存在性守卫 (不按平台守卫)。
+# 守卫放在上面那段 if(UNIX)...endif() **之后**, Threads::Threads 平台分支原样保留。
+if(TARGET astrocs_platform_math)
+  target_link_libraries(runtime_determinism_test PRIVATE astrocs_platform_math)
+  target_link_libraries(runtime_resource_record_test PRIVATE astrocs_platform_math)
+endif()
 
 # P-163: 事件流写失败（fputs/fflush 返回值）必须被检出，并在发布面变成非 0 退出码
 # （IO=7 / 磁盘满 ENOSPC=10）。头文件依赖 jsonl.h（header-only）+ nlohmann/json。

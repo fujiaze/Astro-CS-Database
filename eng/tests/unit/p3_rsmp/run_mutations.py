@@ -4,24 +4,49 @@
 对 lib/algorithms/resample 的影子副本注入违反冻结条款的实现，重新编译并运行本任务
 共址测试；断言至少一个测试变红（rc!=0）。原始树只读，不修改。
 
-证据：run/v6/p3-rsmp/mutants/<id>/、run/v6/p3-rsmp/logs/、mutation_summary.json
+证据：run/FINAL-07/p3-mutation-open/p3-rsmp/mutants/<id>/、同目录 logs/、mutation_summary.json
+
+FINAL-07 打开变异驱动时修正的三处（均只加严不放宽）：
+  1. LIB 原指向 lib/phase3_rsmp —— 该目录在本仓**不存在**（该树早已并入
+     lib/algorithms/resample），stage() 在 os.listdir 即抛 FileNotFoundError，
+     20 条注入一条都跑不到（此前从未真正执行过）。
+  2. stage 原为整目录 *.cpp/*.h 通吃，会把同目录的 p3_resample.cpp 一并编入；
+     它 include healpix_core.h，不属本单元编译集（CMakeLists V6_P3RSMP_SOURCES
+     只有 6 个 p3_rsmp_*.cpp），单编必然失败 ⇒ 20 条全落 COMPILE_FAIL（恒红假象）。
+  3. WORK 改落本轮次：run/v6/p3-rsmp/mutation_summary.json 已被 eng/tools/run_gc.py
+     回收并在 eng/ci/mutation_gates.json 的 gone_artifacts 登记，再写回会把
+     CHK-MUTATION-GATES 的 A3 棘轮判红（MUTATION_GATE_GONE_OBSOLETE）。
 """
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
-LIB = os.path.join(ROOT, "lib", "phase3_rsmp")
-WORK = os.path.join(ROOT, "run", "v6", "p3-rsmp")
+LIB = os.path.join(ROOT, "lib", "algorithms", "resample")
+WORK = os.path.join(ROOT, "run", "FINAL-07", "p3-mutation-open", "p3-rsmp")
 MUT = os.path.join(WORK, "mutants")
 LOGS = os.path.join(WORK, "logs")
 BIN = os.path.join(WORK, "mutants_bin")
 TESTS = ["p3_rsmp_core_test", "p3_rsmp_oracle_test", "p3_rsmp_gate_test"]
 CXXFLAGS = ["-std=c++17", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-Wconversion"]
+
+# 必须与 eng/tests/unit/p3_rsmp/CMakeLists.txt 的 V6_P3RSMP_SOURCES 逐个一致：
+# 驱动复编译的正是 ctest 默认面那一批 TU，多一个少一个都让「注入⇒变红」失去对照。
+# fail-closed：任一源缺失即拒绝开跑，不静默少编。
+P3RSMP_SOURCES = [
+    "p3_rsmp_units.cpp",
+    "p3_rsmp_kernel_registry.cpp",
+    "p3_rsmp_operator.cpp",
+    "p3_rsmp_covariance.cpp",
+    "p3_rsmp_propagation.cpp",
+    "p3_rsmp_failclosed.cpp",
+]
+P3RSMP_HEADERS = ["p3_rsmp.h"]
 
 # (id, frozen_node, [(relative_file, old, new), ...])
 MUTATIONS = [
@@ -122,9 +147,11 @@ def run(cmd, cwd=None):
 
 def stage(dst):
     os.makedirs(dst, exist_ok=True)
-    for name in os.listdir(LIB):
-        if name.endswith(".cpp") or name.endswith(".h"):
-            shutil.copy(os.path.join(LIB, name), os.path.join(dst, name))
+    for name in P3RSMP_SOURCES + P3RSMP_HEADERS:
+        src = os.path.join(LIB, name)
+        if not os.path.isfile(src):
+            raise RuntimeError("影子源缺失: %s（fail-closed，不静默少编）" % src)
+        shutil.copy(src, os.path.join(dst, name))
 
 
 def apply_patches(dst, patches):
@@ -148,7 +175,7 @@ def build_and_run(tag, libdir):
         exe = os.path.join(outdir, t)
         src = os.path.join(HERE, t + ".cpp")
         cxx = ["g++"] + CXXFLAGS + ["-I", libdir, "-I", HERE, src]
-        cxx += [os.path.join(libdir, f) for f in sorted(os.listdir(libdir)) if f.endswith(".cpp")]
+        cxx += [os.path.join(libdir, f) for f in P3RSMP_SOURCES]
         cxx += ["-o", exe]
         rc, log = run(cxx)
         if rc != 0:
@@ -165,6 +192,7 @@ def main():
     os.makedirs(MUT, exist_ok=True)
     os.makedirs(LOGS, exist_ok=True)
     summary = {"task": "IMPL-P3-RSMP-001", "pristine": None, "mutations": []}
+    t_all = time.monotonic()
 
     # 1) 原始（未注入）影子副本：必须全绿
     pristine = os.path.join(MUT, "pristine", "lib")
@@ -189,7 +217,9 @@ def main():
             print("[%s] PATCH ERROR: %s" % (mid, exc))
             all_ok = False
             continue
+        t0 = time.monotonic()
         res, log = build_and_run(mid, dstdir)
+        dt = round(time.monotonic() - t0, 2)
         compile_fail = any(v[0] == "compile_fail" for v in res.values())
         caught = (not compile_fail) and any(v[0] == "fail" for v in res.values())
         summary["mutations"].append({
@@ -199,6 +229,7 @@ def main():
             "compile_fail": compile_fail,
             "results": {k: v[0] for k, v in res.items()},
             "caught_red": caught,
+            "duration_s": dt,
         })
         with open(os.path.join(LOGS, "21_mutation_%s.log" % mid), "w", encoding="utf-8") as f:
             f.write(log + "\n")
@@ -212,8 +243,9 @@ def main():
                          "pristine_ok": pristine_ok}
     with open(os.path.join(WORK, "mutation_summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=1, ensure_ascii=False)
-    print("SUMMARY: %d/%d mutations red; pristine_ok=%s -> %s" %
-          (n_caught, len(MUTATIONS), pristine_ok, "PASS" if all_ok else "FAIL"))
+    print("SUMMARY: %d/%d mutations red; pristine_ok=%s total=%.1fs -> %s" %
+          (n_caught, len(MUTATIONS), pristine_ok, time.monotonic() - t_all,
+           "PASS" if all_ok else "FAIL"))
     return 0 if all_ok else 1
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CLI 命令面语义（原 CLI-001 validate|plan|inspect 冻结文件，按 §6.2 新树同步）。
 
-权威: docs/ASTROCS_DESIGN §6.2（唯一七行命令树; phase 仅为内部指代）、§3.5（预检阻断）、
+权威: docs/ASTROCS_DESIGN §6.2（唯一七行命令树; phase 仅为内部指代）、§4.5（预检阻断）、
 §6.3（stdout/退出码）、docs/api/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（依据 §6.2 唯一命令树 + CLI-001 rc 矩阵）:
@@ -127,7 +127,7 @@ class TestCliCommandSurface(unittest.TestCase):
         self.assertEqual([f for f in os.listdir(self.out) if f.startswith("astrocs_run_")], [],
                          "模板/帮助不得写 run manifest")
 
-    # ── 4. 预检阻断：error 时 rc=2、零产物（-y 也不能越过, §3.5） ──
+    # ── 4. 预检阻断：error 时 rc=2、零产物（-y 也不能越过, §4.5） ──
     def test_04_precheck_error_blocks_even_with_yes(self):
         cfg = self._cfg("empty.json")
         snap = tree_snapshot(self.out)
