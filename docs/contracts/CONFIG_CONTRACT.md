@@ -33,7 +33,10 @@
   `weight.default_mode` 另有 `enum_token`/`enum_target`（SCI 产品名 → phase_config 字段取值 token 的唯一登记，见 §9）。
   `authority_status ∈ {sourced, owner_adjudicated, pending_authority}`。
 - 机器门（`TestDefaultsContract`）：字段数 == 带 unit 数 == 带 source 或 pending_authority 数，来源不明字段 == 0；
-  且**非 pending 字段的 unit 一律为具体单位**（`unspecified` 只属 pending 字段）；每个 `source_ref` 的文件:行必须真实存在，12 个关键锚点逐行核对 token。
+  且**非 pending 字段的 unit 一律为具体单位**（`unspecified` 只属 pending 字段）；每个 `source_ref` 必须是**内容锚**
+  `{id,path,quote,sha256,value_text}`——引文在目标文档内**唯一**命中（区分力自检）、指纹自洽、`value_text` 落在引文内；
+  11 个关键锚点按「文件 + 值文本 + 内容指纹」核对。锚形态规则正本 = `docs/algorithms/anchors/ANCHOR_CONTRACT.md` §9；
+  登记面与测试期望一律**不内嵌行号**（R-54 §4：需要位置信息时用「锚 id + 内容指纹」）。
 - 分组与来源（只转录，不改数值）：
 
 | 组 | 字段数 | 权威锚点 |
@@ -155,24 +158,28 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 | 三模板通过对应 schema | 逐模板 `validate()==[]`；phase 身份：mosaic/export 由 `phase_name`、normalize 由 `x-astrocs-phase` + 非空 `blocks[]` | `TestPhaseConfigFamily::test_templates_pass_their_schema` |
 | 负例必败 | 未知滤镜/缺 output_dir/precision_mode 越界/硬件字段混入/多块与平铺互斥/块内未知键/逐帧 `inputs[]` 形态被拒，各自命中预期错误串 | `TestNegativeFixturesMustFail::test_negative_01..04`、`TestMultiBlockForm::test_03..06` |
 | defaults 计数 | 字段数 == 带 unit 数 == 带 source 或 pending 数；来源不明 == 0 | `TestDefaultsContract::test_counts_and_no_unknown_source` |
-| 转录保真 | 11 个关键 source 锚点 (文件:行:token) 逐行成立；pending 值必为 null | `test_every_source_ref_resolves_and_key_anchors_hold`、`test_pending_items_are_the_adjudicated_gap_set` |
+| 转录保真 | 11 个关键 source 锚点（文件 + 值文本 + 内容指纹）成立；全部 `source_ref` 内容锚存活；pending 值必为 null | `test_every_source_ref_resolves_and_key_anchors_hold`、`test_pending_items_are_the_adjudicated_gap_set` |
 | 跨类不相交 | phase_config ∩ cpu_profile(v2) == ∅；∩ run_manifest == ∅；∩ cpu_profile(全体) == {precision}（登记） | `TestCrossClassDisjointness` |
 | 滤镜库 | 45/45 逐字一致 + provenance unverified/GAP-025 + 无零点键 + enum==库键 | `TestFiltersLibrary` |
 | cpu_profile | 单一定义、benchmark-only、v1/v2 双分支可绿、缺必有字段可红 | `TestCpuProfileMigration`、`test_cpu_profile_v1_missing_required_still_fails` |
-| CFG002-01 登记对应 | `docs/plugins/**` 配置表全集 ↔ `eng/packaging/config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/行号漂移/summary 撒谎均判红） | `check_cfg002_registry.py` CFG002-01 |
-| CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / `blocks[]` 项属性存在 / cpu_profile 指针存在 / 文档 文件:行 非空）；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
+| CFG002-01 登记对应 | `docs/plugins/**` **配置表**（表头白名单 = `字段|默认|单位|说明`、`字段|默认|说明`、`字段|说明`）全集 ↔ `eng/packaging/config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/**表行内容指纹漂移**/登记行内嵌行号/summary 撒谎均判红）；位置由内容锚实时解析，不再断言行号 | `check_cfg002_registry.py` CFG002-01 |
+| CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / `blocks[]` 项属性存在 / cpu_profile 指针存在 / 文档路径存在且带内容锚）；登记点内嵌行号即红；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
 | CFG002-03 默认值→值域 | `fields[].enum_target` 指针落到含 enum 节点且 `enum_token` ∈ enum | 同上 CFG002-03 |
 | CFG002-04 滤镜名语义 | `match=exact` / `case_sensitive=true` / `normalization=none` / `aliases={}`；三 schema enum == 库键；6 反例必拒、4 正例必过；`non_key_examples` 锚点成立；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
 | CFG002-05 os_abi 值域 | schema enum == 生产者字面量集合 == 登记册；profile_gen_v2 回落字面量 ∈ enum；负例必拒、正例必过 | 同上 CFG002-05 |
 | CFG002-06 module.yaml 键闭包 | 20 份 `lib/**/module.yaml` 顶层键 ⊆ 登记键集；出现 knobs/params/config/defaults 等旋钮声明键即红 | 同上 CFG002-06 |
 | CFG002-07 索引归属 | `eng/packaging/config/**` 无 schema、`eng/contracts/config/**` 全 schema、两侧无同名文件；DOCUMENT_INDEX 中本文件恰一次且 ACTIVE_NORMATIVE；`eng/tests/test_index.csv` 登记 eng/tests/config 且未登记目录 ⊆ 已登记缺口清单 | 同上 CFG002-07 |
 | CFG002-08 文档锚 | 本文件 5 条 `CFG002-ANCHOR:` 标记行恰一次且指向登记册 | 同上 CFG002-08 |
-| CFG002-09 锚存活 | defaults 每个 `source_ref` 行存在且非空；`source` 的 path:line 提示 token 落在该行；paraphrase 例外清单只减不增 | 同上 CFG002-09 |
+| CFG002-09 内容锚存活 | defaults 每个 `source_ref` 形态完整（`id/path/quote/sha256/value_text`）；引文在目标文档内唯一命中（0 次 = 锚不成立，≥2 次 = 无区分力）；指纹自洽；`value_text` 落在引文内；`source` 描述内嵌 文件:行 即红；`defaults_anchor_exceptions.paraphrase` 非空即红（内容锚形态下无豁免面） | 同上 CFG002-09 |
 | CFG002-10 kernel 接线 pin | `$defs.kernel_v1`/`kernel_v2` 的 `$ref` 计数与 kernels 接线状态 == 登记册 | 同上 CFG002-10 |
+| CFG002-11 科学锚 | `contract_doc_citations.token_anchors` 每条 = 内容锚（`{id,path,quote,sha256,value_text}`，零行号）：引文唯一命中、`value_text` 落在引文内、本文件在**文件级**仍引用该 path | 同上 CFG002-11 |
+| CFG002-12 锚形态与区分力 | ① 登记面递归扫描**零 文件:行**；② 四个锚面（defaults/token_anchors/filters.non_key_examples/declared_negatives）全过内容锚判据；③ `plugin_knobs[].anchor` = 「模块.字段」复合键路径 + 16 位指纹；④ `retired_knobs` 行**只减不增**（复活即判红：既不在 `plugin_knobs` 也不在文档配置表）；⑤ 非白名单表头的 `字段` 表必须显式登记在 `non_config_tables`（悬空声明亦判红） | 同上 CFG002-12 |
 
 ## 9 旋钮与默认登记册 `eng/packaging/config/config_registry.json`（`astrocs.config-registry/v1`）
 
-- **覆盖面**：`docs/plugins/*/*.md` 的配置项表**全集**逐行登记，一行一个 `(module, field)`，字段：`doc/line/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict`；行数与分组计数由登记册与机器门按登记行实时给出，本节不复制计数。
+- **覆盖面**：`docs/plugins/*/*.md` 的**配置项表**（表头白名单见 §8 门表 CFG002-01）**全集**逐行登记，一行一个 `(module, field)`，字段：`doc/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict/anchor`；`anchor = {id, sha256}` 是**内容锚**（`id` = 复合键路径 `模块.字段`，`sha256` = 对应文档表行按 `ANCHOR_CONTRACT.md` §9 归一化后的内容指纹），**位置不入册**——行号由锚实时解析，文档重排不再让登记失效，而表行**内容**一改指纹即不符。行数与分组计数由登记册与机器门按登记行实时给出，本节不复制计数。
+- **退役面**：`retired_knobs[]` 保留「无对应文档行的存量登记」这一事实（`reason/evidence/retired_at/review`），门 CFG002-12 断言该集合与 `plugin_knobs`／文档配置表**无交集**——退役留痕，不删事实。
+- **非配置表面**：`non_config_tables[]` 显式登记 `docs/plugins/**` 内**不是**配置键的表（如事件协议字段表 `字段|承载事实`），含权威来源；未登记的白名单外表头即判红（fail-closed）。
 - **owner_class**（归属类，一行恰一个）：`science_param`（影响科学结果，必须有 SCI/ALG 条款或已登记配置类承载）· `runtime_policy`（运行期/实现/IO/观测策略，权威 = 插件文档或 algorithms/contracts 文档，**禁入 phase_config**）· `cli_surface`（命令行参数面）· `resource_binding`（线程/资源预算，cpu_profile 或调度器，禁硬编码、禁入 phase_config）。
 - **finding**：`none`（已闭合）· `gap`（插件声明了默认值但无 SCI/ALG 权威、未进任何配置类）· `unregistered`（无默认且字段本身未登记）· `conflict`（与 SCI/ALG 权威或已登记配置冲突，必须带 `conflict.{kind,evidence,owner}`）。
 - **分布**：行数与 `finding` / `owner_class` / `registration` 分组计数由门 CFG002-01 按登记行实时重算并与登记册比对；本节不复制计数。
@@ -191,7 +198,7 @@ negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baad
 ```
 
 - 三份 phase_config schema 的 `filter` 字段 enum 必须逐项等于库键（45），门同时断言 `enum == keys(filters)`。
-- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒、正例必须通过；`non_key_examples` 的 `where` 锚点必须指向**本文件 §10 负例表所在行**且该行必须真的含该串（最高设计不含这两个反例串，故锚点 = 本文件 §10 负例表所在行）。
+- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒、正例必须通过；`non_key_examples` 的 `where` 是**内容锚**（`{id,path,quote,sha256,value_text}`）：引文必须在本文件内**唯一**命中且含该反例串（`value_text` 逐字相等）。最高设计不含这两个反例串，故锚点只落在本文件（规则正本 = `docs/algorithms/anchors/ANCHOR_CONTRACT.md` §9；R-54 §1：位置优先用内容锚表达，不写行号）。
 - 归一化被**显式拒绝**（不是「暂未实现」）：`aliases` 为空对象即声明「无别名」；将来要支持别名必须先登记（登记=改合同，需权威条款 + 机器门 + 迁移说明）。
 
 ## 11 `cpu_profile.host.os_abi` 值域（冻结）
