@@ -57,7 +57,11 @@ SCAN_DIRS = ["docs/owner"]
 # history 命名空间合法驻留点; 其历史轮次/外部组件版本由 GOV-005 收敛,
 # GOV-003 不硬判 FAIL, 只报告警告)。
 LOG_FILES = ["memory.md", "CHANGELOG.md"]
-ARCHIVE_HINT = ("/archive/", "ARCHIVED", "NON_NORMATIVE")
+# 注：此处原有「归档提示」三元组（目录标记 + 两个文字标记），**整份从不被读取** ——
+# 生效的归档判定是下面那个函数，且它**只按目录形态**判（是否位于 archive/ 下），
+# 不看文件名或正文里有没有那两个文字标记。
+# **是否要把豁免面扩到文字标记，属判据口径变更，需裁决**（会让非归档位置的文档也免检）。
+# 删除本常量以免让人以为改它能调整豁免范围。
 
 SEMVER_ALPHA = re.compile(r"^(\d+)\.(\d+)\.(\d+)-alpha\.(\d+)$")
 ALPHA_INLINE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)-alpha\.(\d+)(?![\w.])")
