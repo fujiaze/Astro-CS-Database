@@ -62,7 +62,7 @@ Fallback: if 逐样本 ivar 权重 → cpu_only; if !model_trusted → OpenMP fa
 
 ## 9 容差来源
 
-- 1e-6 float32 (depth≤32累积), 1e-12 float64, support exact, 预冻结.
+- 1e-6 float32 = 8·ulp_fp32(s) 的相对预算（严格界 `8×2^-23 = 9.536743e-7 ≤ 1e-6`，裕量 1.0486；与 depth、像素数无关）；1e-12 float64；support exact；预冻结。推导正本见 `docs/science/ACR_EQUIVALENCE.md` §9。
 
 ## 10 关联 ARC/API/TST
 
