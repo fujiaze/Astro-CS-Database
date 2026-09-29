@@ -370,6 +370,7 @@ def _load_symbol_namespaces(repo, findings, lstat):
         _bkind, _bmembers = _brace_form(rel)
         _rel_list = _bmembers if _bkind == "set" else [rel]
         _ev_ok = True
+        _ev_err = ""
         for _r in _rel_list:
             try:
                 if not (repo / _r).is_file():
@@ -380,9 +381,17 @@ def _load_symbol_namespaces(repo, findings, lstat):
                 _ev_err = "%s（%s）" % (_r, exc)
                 break
         if not _ev_ok:
-            findings.append({"id": "DOC-SYMBOL-REGISTRY-EVIDENCE", "severity": "P1",
-                             "file": NAMESPACES_REL, "symbol": tok,
-                             "observed": "evidence 文件不存在 %s" % ev, "expected": "exists"})
+            # 区分「不存在」与「判不出来」：OSError（权限 / 路径过长 / 编码）不是缺失，
+            # 把它报成「不存在」会把无法判读说成已判定的结论。
+            if _ev_err:
+                findings.append({"id": "DOC-SYMBOL-REGISTRY-UNDECIDABLE", "severity": "P1",
+                                 "file": NAMESPACES_REL, "symbol": tok,
+                                 "observed": "evidence 无法判读 %s（%s）" % (ev, _ev_err),
+                                 "expected": "exists and readable"})
+            else:
+                findings.append({"id": "DOC-SYMBOL-REGISTRY-EVIDENCE", "severity": "P1",
+                                 "file": NAMESPACES_REL, "symbol": tok,
+                                 "observed": "evidence 文件不存在 %s" % ev, "expected": "exists"})
             ok = False
             continue
         evp = repo / _rel_list[0]
