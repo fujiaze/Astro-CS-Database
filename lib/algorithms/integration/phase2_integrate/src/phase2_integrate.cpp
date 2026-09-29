@@ -510,6 +510,22 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
     PublishOptions po;
     const PublishResult pr = publish_fits_product(fits_path, layers,
                                                   expected_from_layers(layers), po, CancelFn());
+    /* P-174（内层 staging 发布）：此处的 durability **不是**产品面的持久化事实 ——
+     * 目标落在 stage_dir 内，该目录随后由外层 atomic_publish_directory 整树 rename
+     * 提升（失败则整树删除）。产品面的第三态由外层那次发布负责。
+     *   · 仍校验自洽：矛盾终态 ⇒ 判红；
+     *   · **不**对 kNotDurable 判红：staging 目录项事实随后被整树 rename 覆盖，回滚
+     *     staging 删的是未发布对象（合法）；且 _WIN32 下本分支根本不会执行
+     *     （atomic_publish_directory 在 Windows 直接返回 kErrUnsupported，短路在
+     *     调用 builder 之前，atomic_publish.cpp:519-528），在此判红反而会在 POSIX
+     *     上误杀 opts.fsync_directory=false 的配置。
+     */
+    if (!publish_result_consistent(pr)) {
+      *err = std::string("mosaic.fits staging publish result self-inconsistent: renamed=") +
+             (pr.renamed ? "true" : "false") + " durability=" +
+             publish_durability_name(pr.durability);
+      return false;
+    }
     if (pr.status != PublishStatus::kOk) { *err = "mosaic.fits publish failed: " + pr.message; return false; }
     std::string fits_sha;
     if (!sha256_file_hex(fits_path, &fits_sha)) { *err = "mosaic sha256 failed"; return false; }
@@ -777,6 +793,23 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
   opts.fsync_directory = true;
   opts.remove_on_verify_failure = true;
   const PublishResult pr = atomic_publish_directory(target_dir, builder, verify, opts, CancelFn());
+  /* P-174（外层目录发布 = 产品面的真实终态）：
+   *   · 自洽破裂 ⇒ 判红（renamed 与 durability 互相否认 ⇒ 目标根有无正式产品不可知）。
+   *   · kNotDurable ⇒ **不判红**：合法终态。_WIN32 下 confirm_dir_durability() 恒 false
+   *     且 status 仍 kOk（无目录 fsync 等价物，atomic_publish.cpp:154-160）；POSIX 上
+   *     对应 rename 后目录 fsync 真失败，status 已 fail-closed 为 kErrIo，由下一段接住。
+   *     按 atomic_publish.h:28-31「不得回滚删除、不得静默当成功、须显式可见」：不删
+   *     目标、不改主流程；第三态随 pr 经 out.publish 传播到 ProductResult.publish，
+   *     可读留痕由 run_point_information 写进 res.evidence（那里才是 evidence 的
+   *     最终装配点，见该函数内 res.evidence = fs.evidence 会覆盖本函数内的任何追加）。
+   */
+  if (!publish_result_consistent(pr)) {
+    out.error = std::string("phase2 product publish result self-inconsistent: renamed=") +
+                (pr.renamed ? "true" : "false") + " durability=" +
+                publish_durability_name(pr.durability);
+    out.publish = pr;
+    return out;
+  }
   if (pr.status != PublishStatus::kOk) {
     out.error = pr.message.empty() ? "atomic publish failed" : pr.message;
     out.publish = pr;
@@ -1013,6 +1046,20 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
   res.evidence.push_back(joint_used ? "joint C_in GLS used (FZ-FORMULA-QW-04)"
                                     : "independent frame merge Q=Sum Q_k,W=Sum W_info,k");
   res.evidence.push_back("FZ-FORMULA-COV-PROP: C_out=R C_in R^T from actual coefficients");
+  /* P-174 第九消费点：ProductResult.publish 由 :1018 从 po.publish 搬运而来，第三态
+   * 随 PublishResult 到达本函数。此处是 evidence 的**最终装配点**（上方
+   * res.evidence = fs.evidence 会覆盖上游任何追加），所以「持久化未确认」的显式留痕
+   * 只能落在这里 —— 否则第三态虽被搬运却仍然不可见。
+   * kNotDurable 表示产品已可见且不可回滚、但目录项持久化无证据：按 atomic_publish.h
+   * :28-31 不得回滚删除、不得静默当成功。此处只登记，不改 res.ok（判红会误杀 Windows：
+   * _WIN32 下每次发布都落在 kNotDurable）。
+   */
+  if (po.publish.durability == PublishDurability::kNotDurable) {
+    res.evidence.push_back(
+        "P-174 durability=NOT_DURABLE: product tree VISIBLE and MUST NOT be rolled back; "
+        "directory-entry persistence unconfirmed (may vanish after crash) — re-run fsync "
+        "on the parent directory to confirm");
+  }
   res.ok = true;
   return res;
 }

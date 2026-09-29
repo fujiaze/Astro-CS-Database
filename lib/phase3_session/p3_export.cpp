@@ -416,6 +416,45 @@ aio::PublishResult publish_provenance(const std::string& target,
   return aio::atomic_write_bytes(target, text, verify, opts, cancel);
 }
 
+/* ============================================================================
+ * P-174 第三态接线（消费方侧）。两种处置刻意分开，不要合并：
+ *
+ * ① 自洽性破裂（!publish_result_consistent）⇒ **判红**。
+ *    这不是合法的第三态，而是生产者返回了**自相矛盾**的终态：renamed 与 durability
+ *    互相否认，于是「目标根此刻还有没有正式产品」这件事无法从返回值得知。此时无论
+ *    status 说什么都不能信任 ⇒ fail-closed，专用错误码，不让调用方误以为已处理。
+ *
+ * ② kNotDurable 且 status==kOk ⇒ **不判红、只留痕**。
+ *    这是本平台上的**合法**终态，不是错误：confirm_dir_durability() 在 _WIN32 下
+ *    **恒返回 false**（Windows 无目录 fsync 等价物，atomic_publish.cpp:154-160 明写
+ *    「不得把无失败证据当成已确认落盘」），故 Windows 上每一次文件发布都必然落在
+ *    kNotDurable。若照搬「第三态即判红」会让 Windows 端**永远产不出产品**，属重大
+ *    行为回归。故按 atomic_publish.h:28-31「不得回滚删除、不得静默当成功、须显式
+ *    可见」执行：登记到 durability_notes —— 既不冒充「已确认落盘」，也不破坏可用性，
+ *    同时给下游留了对父目录重跑 fsync 确认的抓手。
+ * ========================================================================== */
+
+// ① 自洽破裂时的可读诊断（两处 publish 点共用）。
+std::string durability_inconsistent_msg(const char* what,
+                                       const aio::PublishResult& r) {
+  return std::string("publish result self-inconsistent: ") + what +
+         " renamed=" + (r.renamed ? "true" : "false") +
+         " durability=" + aio::publish_durability_name(r.durability) +
+         " (violates renamed == (durability != kNotPublished))";
+}
+
+// ② 第三态留痕：仅 kNotDurable 登记；kDurable 不留痕（正常路径不产生噪声）。
+void note_publish_durability(ExportResult* out, const char* what,
+                             const aio::PublishResult& r) {
+  if (out == nullptr) return;
+  if (r.durability != aio::PublishDurability::kNotDurable) return;
+  out->durability_notes.push_back(
+      std::string("P-174 ") + what +
+      ": durability=NOT_DURABLE — product is VISIBLE and MUST NOT be rolled back; "
+      "directory-entry persistence unconfirmed (may vanish after a crash). "
+      "Re-run fsync on the parent directory to confirm.");
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -552,19 +591,35 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
     mkdirs(product_dir);
     const aio::PublishResult pub = publish_layers_streaming(
         out.fits_path, layers, expected, opts, cancel, kRowsPerBand, false);
+    /* P-174：先落载体再判自洽 —— 不得让第三态在「只读 status」的写法里蒸发。 */
+    out.publish = pub;
+    if (!aio::publish_result_consistent(pub)) {
+      out.status = p3rsmp::Status::Reject;
+      out.code = "G-P3-DURABILITY-INCONSISTENT";
+      out.reason = durability_inconsistent_msg("product.fits", pub);
+      return out;
+    }
     if (pub.status != aio::PublishStatus::kOk) {
       out.status = p3rsmp::Status::Reject;
       out.code = "G-P3-IO";
       out.reason = pub.message;
-      out.publish = pub;
       return out;
     }
-    out.publish = pub;
+    note_publish_durability(&out, "product.fits", pub);
     prov.output_hash = "sha256:" + pub.sha256_hex;
     json pj2 = aio::provenance_to_json(prov);
     if (!in.omit_provenance_key.empty()) pj2.erase(in.omit_provenance_key);
     const aio::PublishResult ppub =
         publish_provenance(out.provenance_path, pj2.dump(2), opts, cancel);
+    /* P-174：provenance 是第二次独立发布，此前只取 status/message ⇒ durability 无载体
+     * 直接蒸发。补载体 + 同样两条处置。 */
+    out.provenance_publish = ppub;
+    if (!aio::publish_result_consistent(ppub)) {
+      out.status = p3rsmp::Status::Reject;
+      out.code = "G-P3-DURABILITY-INCONSISTENT";
+      out.reason = durability_inconsistent_msg("provenance.json", ppub);
+      return out;
+    }
     if (ppub.status != aio::PublishStatus::kOk) {
       std::remove(out.fits_path.c_str());
       out.status = p3rsmp::Status::Reject;
@@ -572,6 +627,7 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
       out.reason = ppub.message;
       return out;
     }
+    note_publish_durability(&out, "provenance.json", ppub);
     out.provenance_reopen_check = verify_product_on_disk(product_dir, expected, &out.reopen);
     out.status = p3rsmp::Status::Ok;
     return out;
@@ -726,14 +782,21 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
   const aio::PublishResult pub = publish_layers_streaming(
       out.fits_path, layers, expected, opts, cancel, kRowsPerBand,
       in.force_publish_verify_fail);
+  /* P-174：先落载体再判自洽 —— 不得让第三态在「只读 status」的写法里蒸发。 */
+  out.publish = pub;
+  if (!aio::publish_result_consistent(pub)) {
+    out.status = p3rsmp::Status::Reject;
+    out.code = "G-P3-DURABILITY-INCONSISTENT";
+    out.reason = durability_inconsistent_msg("product.fits", pub);
+    return out;
+  }
   if (pub.status != aio::PublishStatus::kOk) {
     out.status = p3rsmp::Status::Reject;
     out.code = "G-P3-IO";
     out.reason = pub.message;
-    out.publish = pub;
     return out;
   }
-  out.publish = pub;
+  note_publish_durability(&out, "product.fits", pub);
   out.wrote_variance = in.uncertainty_available;
   out.wrote_flux = (mode == ExportMode::kPointSourceFlux);
   out.wrote_effective_psf = (mode == ExportMode::kPointSourceFlux);
@@ -743,6 +806,15 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
   if (!in.omit_provenance_key.empty()) pj2.erase(in.omit_provenance_key);
   const aio::PublishResult ppub =
       publish_provenance(out.provenance_path, pj2.dump(2), opts, cancel);
+  /* P-174：provenance 是第二次独立发布，此前只取 status/message ⇒ durability 无载体
+   * 直接蒸发。补载体 + 同样两条处置。 */
+  out.provenance_publish = ppub;
+  if (!aio::publish_result_consistent(ppub)) {
+    out.status = p3rsmp::Status::Reject;
+    out.code = "G-P3-DURABILITY-INCONSISTENT";
+    out.reason = durability_inconsistent_msg("provenance.json", ppub);
+    return out;
+  }
   if (ppub.status != aio::PublishStatus::kOk) {
     std::remove(out.fits_path.c_str());
     out.status = p3rsmp::Status::Reject;
@@ -750,6 +822,7 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
     out.reason = ppub.message;
     return out;
   }
+  note_publish_durability(&out, "provenance.json", ppub);
   out.provenance_reopen_check = verify_product_on_disk(product_dir, expected, &out.reopen);
   if (!out.provenance_reopen_check.ok() || !out.reopen.ok) {
     out.status = p3rsmp::Status::Reject;
