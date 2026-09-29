@@ -62,10 +62,15 @@ AVX512_ONLY = re.compile(
 FEATURE_EVIDENCE = {
     "avx2": ("256-bit 或 AVX2 专属整数指令", re.compile(r"%(?:y)mm|\bymm\d|\bv(?:psub|vpadd|padd|psub|extracti128|inserti128|perm2i128|perm|broadcast|blend|gather)[a-z0-9]*")),
     "fma": ("FMA 融合乘加助记符", re.compile(r"\bv(?:fmadd|fmsub|fnmadd|fnmsub|fmaddsub|fnmsubadd)[a-z0-9]*\b")),
-    "avx512f": ("512-bit（zmm）指令；vmovdqu64/32 等 F 档助记符",
-                re.compile(r"%(?:z)mm|\bzmm\d|\bv(?:movdqu(?:8|16|32|64)|movdqa(?:32|64)|pternlog[qd]|por[qd]|pand[qd]|pxor[qd]|padd[qd]|psub[qd]|broadcast[dfi]?[0-9]*(?:x[0-9]+)?)[a-z0-9]*\b")),
+    # 只收「本档才可能发射」的证据: zmm 寄存器，或 EVEX 专有助记符。
+    # 按助记符**名字**认会假绿 —— vpaddd/vpaddq/vpsubd 等 AVX2 就能合法发射，
+    # vbroadcastss/vbroadcastsd 亦然。实测: 低档变体产物里 7 条这类指令
+    # 让「声明了高档位却没用」这条判据整条失效(判绿)。凡跨档共享的助记符一律不收。
+    "avx512f": ("512-bit（zmm）指令，或 EVEX 专有 F 档助记符",
+                re.compile(r"%(?:z)mm|\bzmm\d|\bv(?:movdqu(?:8|16|32|64)|movdqa(?:32|64)|pternlog[qd]|por[qd]|pand[qd]|pxor[qd]|broadcast[a-z]*x[0-9]+)[a-z0-9]*\b")),
     "avx512cd": ("CD 专属助记符（冲突检测/前导零计数）", re.compile(r"\bv(?:pconflict|plzcnt)[a-z0-9]*\b")),
-    "avx512bw": ("BW 专属助记符（字节/字粒度）", re.compile(r"\bv(?:movdqu8|movdqu16|pcmpeq[bdw]|pcmp[bdw]|pmovm2b|pmovm2w|psllvw|psrlvw|psravw|packuswb|punpcklbw)[a-z0-9]*\b")),
+    # packuswb/punpcklbw 是跨档共享助记符(AVX2 合法)，不得作为本档证据（同 F 档注释）。
+    "avx512bw": ("BW 专属助记符（字节/字粒度，EVEX 专有）", re.compile(r"\bv(?:movdqu8|movdqu16|pcmpeq[bdw]|pcmp[bdw]|pmovm2b|pmovm2w|psllvw|psrlvw|psravw)[a-z0-9]*\b")),
     # DQ = 64 位整数/双精度专有算子（注意 vmovdqu64/vmovdqa64 属 F，不归 DQ —— 归口错误会让
     # 「有使用证据」变成假绿）。
     "avx512dq": ("DQ 专属助记符（64 位整数/转换）", re.compile(r"\bv(?:pmullq|pmovqd|pmovm2q|pmovq2m|cvtqq2pd|cvtpd2qq|vpcmpq|vpcmpuq|vextracti64x|vinserti64x|vbroadcasti64x)[a-z0-9]*\b")),
@@ -278,6 +283,19 @@ SELFTEST_TEXT = """0000000000001000 <good256>:
     1209:\tc3                   \tret
 """
 
+# 低档专用夹具: **只含跨档共享助记符**（AVX2 就能合法发射），一条高档证据都没有。
+# 用途 = 钉死「按助记符名字认高档位」这一类假绿：同一份文本上
+# fma/avx2 必须判绿，而 avx512f/avx512bw 必须判红。
+SELFTEST_TEXT_LOWONLY = """0000000000002000 <lowonly>:
+    2000:	c5 f8 77             	vzeroupper
+    2003:	c5 fd d4 c1          	vpaddq %ymm1,%ymm0,%ymm0
+    2007:	c5 fd fb c1          	vpsubq %ymm1,%ymm0,%ymm0
+    200b:	c4 e2 7d 18 05 00    	vbroadcastss 0x0(%rip),%ymm0
+    2011:	c4 e2 75 a8 c2       	vfmadd213ss %xmm2,%xmm1,%xmm0
+    2016:	c5 f9 63 c1          	vpackuswb %xmm1,%xmm0,%xmm0
+    201a:	c3                   	ret
+"""
+
 
 def self_test():
     """判据自证：同一份文本上八个断言必须各自给出预期的红/绿。"""
@@ -305,6 +323,16 @@ def self_test():
                       main(base + ["--require-feature", "sse4_2"]), 1))
         cases.append(("neg-clean-text",
                       main(base + ["--clean-text"]), 1))
+        # 低档专用文本: 跨档共享助记符不得被当成高档位证据（这一类曾整条假绿）
+        p2 = pathlib.Path(td) / "low.txt"
+        p2.write_text(SELFTEST_TEXT_LOWONLY, encoding="utf-8")
+        base2 = ["--text", str(p2), "--quiet"]
+        cases.append(("pos-lowonly-fma",
+                      main(base2 + ["--require-feature", "fma"]), 0))
+        cases.append(("neg-lowonly-not-avx512f",
+                      main(base2 + ["--require-feature", "avx512f"]), 1))
+        cases.append(("neg-lowonly-not-avx512bw",
+                      main(base2 + ["--require-feature", "avx512bw"]), 1))
     ok = all(got == want for _, got, want in cases)
     for name, got, want in cases:
         print("SELFTEST_%s %s (rc=%d want=%d)" % ("PASS" if got == want else "FAIL", name, got, want))
