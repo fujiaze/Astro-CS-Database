@@ -790,7 +790,13 @@ astrocs-star-measurements-1，orchestrator.cpp:2411-2419 注释）**：列
 协方差/不确定度输出，故不存在 flux_uncertainty 这一科学量；**禁用列名** `flux_uncertainty`（会把 MAD 当流量误差，缺 √N_eff 与沿 A/sx/sy 的传播），列名一律按量纲命名；列值本身与数值语义不变），[5]=background（PSF B），[6]=psf_status，
 [7]=fwhm，[8]=A，[9]=B，[10]=mad（与 [4] 同源，保留为兼容别名），[11]=eccentricity，[12]=mag（detector），
 [13]=saturated，[14]=has_saturated。PSF 不输出独立 background_rms，SNR 使用
-A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.482602218505602；
+A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、
+sigma_bg=mad/0.7316727929211932；**列名 `mad` 是本节 :788 定义的 10–90% 截尾均值 |残差|
+（residual_scale）的历史别名，不是中位绝对偏差**，故用截尾均值→σ 因子而非 MAD 因子；
+实现锚 lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:83、noise_model.cpp:95,1232，
+统计量定义 lib/algorithms/psf/src/dpsf_psf.cpp:426-458；本节原读法 `mad·1.482602218505602`
+已废止（历史读法，缺陷 R6-02），MAD 因子只作用于真 MAD，互斥条款见
+docs/science/NOISE_MODEL.md:313）；
 唯一冻结定义见 docs/science/algorithms/GATES_AND_TOLERANCES.md §2，**表述须带落点**）；下游必须经 star_id 连接，连接键 = star_id，非数组
 行号隐式连接（:2409-2411）。该块列语义由 star-psf 域端口合同承接，不与 `star_id` 连接键混用。
 
