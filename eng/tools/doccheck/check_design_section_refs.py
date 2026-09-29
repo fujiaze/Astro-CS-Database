@@ -234,7 +234,7 @@ def _bindable(gap, toks, lo, hi, allow_sec=False):
     return len(gap) <= BIND_GAP_MAX
 
 
-def attribute(line, limit=32, right_limit=6):
+def attribute(line, limit=32, right_limit=RIGHT_FALLBACK_MAX):
     """v2.1 归属：§ token 认「紧邻绑定 / 链首继承」的文档类 token。
 
     返回 [(sec_text, sec_num, owner_kind, owner_text, col)]，owner_kind 取值：
