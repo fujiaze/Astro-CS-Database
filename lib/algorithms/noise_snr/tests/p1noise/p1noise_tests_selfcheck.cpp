@@ -1,7 +1,6 @@
 // P1-NOISE-TEST · 故障注入自检 (selfcheck): 验证注入机制必败 + 基线对照
 //
-// 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS
-// 的占位"。本可执行两阶段:
+// 验收 (模板 <prefix>-TEST): "故障注入能让测试失败" + "不得写永远 PASS\n// 的占位"。本可执行两阶段:
 //   1) 基线: 无注入跑 units 组 → 必 PASS (排除恒 FAIL 侧)。
 //   2) 注入: 子进程以 ASTROCS_P1NOISE_FAULT=<name> 重跑本二进制 → 必 FAIL
 //      (排除恒 PASS 侧), stderr 含 FAULT-INJECT 行。
@@ -17,6 +16,8 @@
 // f2_scale_roundtrip / f4_scale_nan_passthrough / g1_const_fill /
 // g2_plane_fill_refbitwise / g3_nullable_outputs / g4_nospatial_const / ...
 //   (P1NOISE_SELFCHECK_FAULT 可覆盖注入名; 默认 a1_sigma_rtol)
+#include "p1noise_test_main.hpp"
+
 #ifdef _WIN32
 // WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下方 fork 块）。
 #include <cstdint>
@@ -37,6 +38,53 @@ int p1noise_run_core_groups(int argc, char** argv);
 
 namespace {
 
+// guard-path 相 (TAUT-NULL-GUARD): 证明「故障名不可用」这条失败路径**可被触发**。
+// 旧写法 (faultname) != nullptr 是对字面量地址的编译期恒真比较, 该路径从未被执行过
+//（恒真门没有证据资格, AGENTS.md §5）。三态: 合法名⇒0 失败（行为与改写前一致）;
+// 空串名⇒1 失败（此前不可达的路径）; nullptr 名⇒0 失败（「非注入点」约定仍然有效）。
+static int check_guard_path() {
+    {
+        p1noise::CheckState cs;
+        P1NOISE_CHECK(cs, 1 == 1, "guard_path_positive");
+        if (cs.failures != 0) {
+            std::fprintf(stderr, "GUARD-PATH FAIL positive: failures=%d\n", cs.failures);
+            return 1;
+        }
+    }
+    {
+        p1noise::CheckState cs;
+        P1NOISE_CHECK(cs, 1 == 1, "");
+        if (cs.failures != 1 || cs.fault_reported) {
+            std::fprintf(stderr,
+                         "GUARD-PATH FAIL empty_faultname: failures=%d reported=%d\n",
+                         cs.failures, static_cast<int>(cs.fault_reported));
+            return 1;
+        }
+        std::fprintf(stdout, "GUARD-PATH empty_faultname reached (failures=1)\n");
+    }
+
+    {
+        p1noise::CheckState cs;
+        P1NOISE_CHECK(cs, 1 == 1, nullptr);
+        if (cs.failures != 0) {
+            std::fprintf(stderr, "GUARD-PATH FAIL null_faultname: failures=%d\n", cs.failures);
+            return 1;
+        }
+    }
+    {
+        p1noise::FaultRegistry::instance().active.push_back("guard_path_live");
+        p1noise::CheckState cs;
+        P1NOISE_CHECK(cs, 1 == 1, "guard_path_live");
+        if (cs.failures != 1 || !cs.fault_reported) {
+            std::fprintf(stderr, "GUARD-PATH FAIL live injection: failures=%d reported=%d\n",
+                         cs.failures, static_cast<int>(cs.fault_reported));
+            return 1;
+        }
+        p1noise::FaultRegistry::instance().active.pop_back();
+    }
+    std::fprintf(stdout, "GUARD-PATH PASS (empty name reachable + null convention kept)\n");
+    return 0;
+}
 int run_selfcheck() {
     // 阶段 1: 基线 units 组必 PASS
     {
@@ -194,6 +242,14 @@ int run_selfcheck() {
         }
     }
 
+    // guard-path 相: 失败路径可被触发的证据（TAUT-NULL-GUARD 判据要求）
+    {
+        const int guard_rc = check_guard_path();
+        if (guard_rc != 0) {
+            std::fprintf(stderr, "GUARD-PATH phase FAIL (rc=%d)\n", guard_rc);
+            return 1;
+        }
+    }
     std::fprintf(stdout, "P1NOISE SELFCHECK PASS (baseline + fault-injection both verified)\n");
     return 0;
 }

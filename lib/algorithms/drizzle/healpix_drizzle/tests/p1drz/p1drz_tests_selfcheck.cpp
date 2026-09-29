@@ -6,6 +6,8 @@
 //              (排除恒 PASS 侧)
 // 注册表 (p1drz_test_main.hpp): flux_closure, uniformity, impulse,
 //   nonfinite, determinism, variance, negative_matrix, sip_active, adu_inverse
+#include "p1drz_test_main.hpp"
+
 #ifdef _WIN32
 // WIN-PORT: MSVC 无 <sys/wait.h>/<unistd.h>；子进程重跑改用 CRT spawn（见下方 fork 块）。
 #include <cstdint>
@@ -47,9 +49,74 @@ int run_child_phase(const char* fault) {
     return p1drz_run_core_groups(2, argv2);
 }
 
+
+// guard-path 相 (TAUT-NULL-GUARD): 证明「故障名不可用」这条失败路径**可被触发**。
+// 旧写法 (faultname) != nullptr 是对字面量地址的编译期恒真比较, 该路径从未被执行过
+//（恒真门没有证据资格, AGENTS.md §5）。三态: 合法名⇒0 失败（行为与改写前一致）;
+// 空串名⇒1 失败（此前不可达的路径）; nullptr 名⇒0 失败（「非注入点」约定仍然有效）。
+static int check_guard_path() {
+    {
+        p1drz::CheckState cs;
+        P1DRZ_CHECK(cs, 1 == 1, "guard_path_positive");
+        if (cs.failures != 0) {
+            std::fprintf(stderr, "GUARD-PATH FAIL positive: failures=%d\n", cs.failures);
+            return 1;
+        }
+    }
+    {
+        p1drz::CheckState cs;
+        P1DRZ_CHECK(cs, 1 == 1, "");
+        if (cs.failures != 1 || cs.fault_reported) {
+            std::fprintf(stderr,
+                         "GUARD-PATH FAIL empty_faultname: failures=%d reported=%d\n",
+                         cs.failures, static_cast<int>(cs.fault_reported));
+            return 1;
+        }
+        std::fprintf(stdout, "GUARD-PATH empty_faultname reached (failures=1)\n");
+    }
+    {
+        p1drz::CheckState cs;
+        P1DRZ_CHECK_MSG(cs, 1 == 1, "", "guard path msg %d", 1);
+        if (cs.failures != 1) {
+            std::fprintf(stderr, "GUARD-PATH FAIL empty_faultname_msg: %d\n", cs.failures);
+            return 1;
+        }
+    }
+
+    {
+        p1drz::CheckState cs;
+        P1DRZ_CHECK(cs, 1 == 1, nullptr);
+        if (cs.failures != 0) {
+            std::fprintf(stderr, "GUARD-PATH FAIL null_faultname: failures=%d\n", cs.failures);
+            return 1;
+        }
+    }
+    {
+        p1drz::FaultRegistry::instance().active.push_back("guard_path_live");
+        p1drz::CheckState cs;
+        P1DRZ_CHECK(cs, 1 == 1, "guard_path_live");
+        if (cs.failures != 1 || !cs.fault_reported) {
+            std::fprintf(stderr, "GUARD-PATH FAIL live injection: failures=%d reported=%d\n",
+                         cs.failures, static_cast<int>(cs.fault_reported));
+            return 1;
+        }
+        p1drz::FaultRegistry::instance().active.pop_back();
+    }
+    std::fprintf(stdout, "GUARD-PATH PASS (empty name reachable + null convention kept)\n");
+    return 0;
+}
 }  // namespace
 
 int main(int argc, char** argv) {
+    // guard-path 相: 失败路径可被触发的证据（TAUT-NULL-GUARD 判据要求）
+    {
+        const int guard_rc = check_guard_path();
+        if (guard_rc != 0) {
+            std::fprintf(stderr, "GUARD-PATH phase FAIL (rc=%d)\n", guard_rc);
+            return 1;
+        }
+    }
+
     // -- 注入相: execve 子进程以 env=ASTROCS_P1DRZ_FAULT=<name> 重入, 直接
     //    跑 core 组 (**不得**走 run_child_phase(nullptr) — 那会 unsetenv
     //    清掉注入变量, 使注入失效)

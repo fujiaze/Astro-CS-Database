@@ -81,12 +81,29 @@ struct CheckState {
     }
 };
 
+// 故障名的可注入性判定（**运行期**）。
+//
+// 旧写法是 (faultname) != nullptr: 本仓全部调用点都传字符串字面量, 字面量地址
+// 永不为 null ⇒ 该比较编译期恒真, 「故障名不可用」这条失败路径**从未被执行过**
+//（恒真门没有证据资格, AGENTS.md §5）。改为对**故障名内容**的运行期判定, 并把
+// 注入与否交给注册表实际查询（不是对字面量地址的常量比较）:
+//   * nullptr = 明确的「本断言不属于任何注入点」约定（注入分支不生效, 断言照常求值）;
+//   * 空串名 = 注入注册错误（永远匹配不到任何注入名）⇒ **判失败**; 该路径可被触发,
+//     证据见本套件 selfcheck 的 guard-path 相。
+inline bool fault_name_usable(const char* name) {
+    return name != nullptr && name[0] != '\0';
+}
+
 #define P1PSF_CHECK(cs, cond, faultname)                                  \
     do {                                                                  \
-        if ((faultname) != nullptr &&                                     \
-            p1psf::FaultRegistry::instance().injected(faultname)) {       \
-            (cs).note_injected(faultname);                                \
-            ++(cs).failures;                                              \
+        const char* const fn_ = (faultname);                             \
+        if (fn_ != nullptr && !p1psf::fault_name_usable(fn_)) {          \
+            std::fprintf(stderr, "CHECK failed %s:%d: empty fault name\n", \
+                         __FILE__, __LINE__);                            \
+            ++(cs).failures;                                             \
+        } else if (p1psf::FaultRegistry::instance().injected(fn_)) {     \
+        (cs).note_injected(fn_);                                        \
+        ++(cs).failures;                                                \
         } else if (!(cond)) {                                             \
             std::fprintf(stderr, "CHECK failed %s:%d: %s\n",              \
                          __FILE__, __LINE__, #cond);                      \
@@ -111,10 +128,14 @@ struct CheckState {
     do {                                                                  \
         char _m[512];                                                     \
         std::snprintf(_m, sizeof(_m), __VA_ARGS__);                       \
-        if ((faultname) != nullptr &&                                     \
-            p1psf::FaultRegistry::instance().injected(faultname)) {       \
-            (cs).note_injected(faultname);                                \
-            ++(cs).failures;                                              \
+        const char* const fn_ = (faultname);                            \
+        if (fn_ != nullptr && !p1psf::fault_name_usable(fn_)) {         \
+            std::fprintf(stderr, "CHECK failed %s:%d: empty fault name\n", \
+                         __FILE__, __LINE__);                           \
+            ++(cs).failures;                                            \
+        } else if (p1psf::FaultRegistry::instance().injected(fn_)) {    \
+        (cs).note_injected(fn_);                                       \
+        ++(cs).failures;                                               \
         } else if (!(cond)) {                                             \
             std::fprintf(stderr, "CHECK failed %s:%d: %s | %s\n",         \
                          __FILE__, __LINE__, #cond, _m);                  \

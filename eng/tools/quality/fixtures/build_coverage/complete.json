@@ -1,0 +1,13 @@
+{
+  "registered": [
+    "tgt_1",
+    "tgt_2",
+    "tgt_3",
+    "tgt_4",
+    "tgt_5",
+    "tgt_6",
+    "tgt_7",
+    "tgt_8"
+  ],
+  "log": "[1/8] Building CXX object tgt_1.cpp.o\n[2/8] Building CXX object tgt_2.cpp.o\n[3/8] Building CXX object tgt_3.cpp.o\n[4/8] Building CXX object tgt_4.cpp.o\n[5/8] Building CXX object tgt_5.cpp.o\n[6/8] Building CXX object tgt_6.cpp.o\n[7/8] Building CXX object tgt_7.cpp.o\n[8/8] Building CXX object tgt_8.cpp.o\n"
+}

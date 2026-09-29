@@ -107,11 +107,24 @@ static void *const pc_abi_probe_with_gaia_v2 =
     reinterpret_cast<void *>(&pc_calibrate_simple_with_gaia_v2);
 static void *const pc_abi_probe_with_gaia_f64_v2 =
     reinterpret_cast<void *>(&pc_calibrate_simple_with_gaia_f64_v2);
-static_assert(&pc_abi_probe_simple != nullptr, "B4 ABI: pc_calibrate_simple 缺失");
+
+
+
+// ── B4 ABI 探针的**真实状态**（如实登记, 不掩盖）──────────────────────────────
+// 上面的 pc_abi_probe_* 指针持有者是**未被读取**的静态对象: 编译器会把它们优化掉,
+// 因此它们**从未**向链接器发射对 pc_calibrate_simple* 的引用（实测: 把它们改成被
+// 运行期检查读取后, 本 target 立刻链接失败 —— pc_calibrate_simple / _f64 /
+// _with_gaia / _with_gaia_f64 / _with_gaia_v2 / _with_gaia_f64_v2 在本 target 全部
+// 未定义）。也就是说: B4 的「ABI 探针」一直是**空探针**, 六个入口从未被验证过。
+// 旧写法 static_assert(&pc_abi_probe_simple != nullptr) 还额外是**编译期恒真**比较
+//（静态对象地址永不为 null ⇒ 假分支不可达; 恒真门没有证据资格, AGENTS.md §5）,
+// 已移除并在本注释中登记。收口需要动构建面（本 target 链接 photometric 校准实现）,
+// 超出本次判据改动面, 已上呈负责人。
 
 }  // namespace
 
 int main() {
+
     std::printf("[B4-2/B4-3] SCI-PHOT 参考星数门 + 饱和质量位门 回归锁\n");
 
     // ── B4-2 (a): |r_consistent| = 2 < 3 → NO_DATA 必拒 ──────────────────
