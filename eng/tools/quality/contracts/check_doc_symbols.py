@@ -3,6 +3,7 @@
 
 Checks: 文档中反引号符号、文件和 config key 均可解析；排除 archive 清单
         扫描面完整性：权威域目录缺失 / 扫到 0 份文档 ⇒ 判红（静默退化为恒真门的防线）
+        登记表行锚：evidence 形如 <file>:<行号> 时该行须逐字含该 token（FINAL-07/line-anchor）
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
   python3 eng/tools/quality/contracts/check_doc_symbols.py              # 判据本体
   python3 eng/tools/quality/contracts/check_doc_symbols.py --self-test  # 正例绿/负例红夹具面
@@ -239,7 +240,92 @@ def _file_ref_exists(repo, rel, known_files):
     return any(k.replace("\\", "/").endswith("/" + rel) for k in known_files)
 
 
-def _load_symbol_namespaces(repo, findings):
+# ── 行锚判据（FINAL-07 / line-anchor）────────────────────────────────────
+# 事由：_load_symbol_namespaces 里 `rel, _, line_s = ev.rpartition(":")` 把行号切出来
+# 后，**`line_s` 全程未被引用**（AST 死存储实测：赋值 1 次、读取 0 次）—— 本门对
+# 登记项只判 ① evidence 文件存在 ② **整份文件**逐字含该 token，**从不判行号**。
+# ⇒ 登记表里的行号是**死字段**：写成任何值门都不红（文件级仍含该 token）。
+# 实测（上一单）：把某条 evidence 改回**同文件但错 7 行**的锚点，门**不红**；
+# 改成「存在但不含 token 的文件」才红 ⇒ **文件级承重、行级不承重**。
+# 独立审计早已记录同一形态：独立审计/证据/AUD-101-DB-05.md:56
+# 「门只判文件级出现，行锚不受判据保护」（并实测 4 条登记里 3 条行锚漂移）。
+# 修法（**收严，不放宽**）：evidence 形如 `<file>:<行号>` 时**逐字读该行**，
+# 要求该行含该 token；不含即判红。
+#
+# 判词单列 DOC-SYMBOL-REGISTRY-LINEANCHOR，**不与文件级 EVIDENCE 混同**：
+# 「文件没了」与「行漂了」是两种故障、两种修法，混同则回归对比无法逐项归因。
+_LINE_EXPECT = "该行逐字含 token（<file>:<行号> 的行锚是判据，不是注记）"
+_ANCHOR_NUM = re.compile(r"^[+-]?[0-9]+$")
+# 注释行识别只认**该文件语言下确实是注释**的行首。
+# ⚠ 绝不能「行首是 # 就当注释」一刀切 —— 本仓 46 条行锚里有 **4 条落在 C/C++
+#    预处理指令上**（P2_SEMANTIC_ → rejection.h:66 `#define`；__AVX512CD__ →
+#    avx512_backend.cpp:27 `#if defined(...)`；__AVX512F__ →
+#    avx512_backend_kernels.cpp:17 `#if defined(_MSC_VER)`；RICE_1 → fitsio.h:296
+#    `#define`）。`#define` 是**定义**不是注释，一刀切会当场造 4 条假红。
+_CPP_DIRECTIVE = re.compile(
+    r"^#\s*(?:define|include|include_next|undef|if|ifdef|ifndef|elif|else|endif|"
+    r"pragma|error|warning|line)\b")
+# 这些扩展名里 `#` 就是注释（Python/CMake）。Markdown 的 `#` 是标题、
+# JSON/CSV/YAML/TXT 的 `#` 是数据 —— **都不是注释**，不得一刀切。
+_HASH_IS_COMMENT_EXT = (".py", ".pyi", ".cmake")
+
+
+def _parse_line_anchor(line_s):
+    """evidence 行号后缀 → 声称的 1 基行号；**不是**纯数字则 None（= 没有行锚）。
+
+    区分两件事：
+      · `line_s` 为空 / 非数字（路径自带冒号如 `docs/a:b.md`、区间写法 `12-15`）
+        ⇒ 判为「这条 evidence 没有行锚」，不判红、计数留痕。
+      · `line_s` 是数字（哪怕 0 或负数）⇒ 登记表**声称**了一个行锚，越界即硬错判红。
+    绝不能把越界值当成「没有行锚」—— 那等于给 `:0` 留了一条逃逸后门。
+    """
+    if not _ANCHOR_NUM.match(line_s or ""):
+        return None
+    return int(line_s)
+
+
+def _is_comment_line(rel, line):
+    """该行是否是该文件语言下的注释行（被注释掉的出现不承重）。"""
+    s = line.lstrip()
+    if not s:
+        return False                      # 空行不判注释（否则报一个无意义的红）
+    if s.startswith("//") or s.startswith("/*"):
+        return True
+    if s.startswith("*") and not s.startswith("*/"):
+        return True                       # 块注释续行
+    if s.startswith("#"):
+        low = rel.lower()
+        if low.endswith(_HASH_IS_COMMENT_EXT) or low.rsplit("/", 1)[-1].startswith("cmake"):
+            return not s.startswith("#!")  # Python/CMake：# 就是注释（shebang 除外）
+        return _CPP_DIRECTIVE.match(s) is None   # C/C++：预处理指令不是注释
+    return False
+
+
+def _line_anchor_fault(repo, rel, line_no, tok, lines_of):
+    """核对 `rel:line_no` 这一行是否**逐字承载** tok。
+
+    返回判红理由串；承载则返回 None。lines_of 是**按 rel 缓存**的取行函数
+    （同一份大文件被多条登记项引用时只读一次 —— 与文件级检查共用同一份语料）。
+    """
+    try:
+        lines = lines_of(rel)
+    except OSError as exc:
+        return "evidence 文件读不出: %s（%s）" % (rel, exc)
+    if not 1 <= line_no <= len(lines):
+        return "行锚越界: %s:%d，文件共 %d 行" % (rel, line_no, len(lines))
+    hit = lines[line_no - 1]
+    if tok in hit:
+        if _is_comment_line(rel, hit):
+            return "行锚行是注释行（被注释掉的不承重）: %s:%d = %r" % (
+                rel, line_no, hit.strip()[:80])
+        return None
+    hint = ""
+    if line_no < len(lines) and tok in lines[line_no]:
+        hint = "；该 token 实际出现在 :%d" % (line_no + 1)
+    return "行锚行不含该 token: %s:%d = %r%s" % (rel, line_no, hit.strip()[:80], hint)
+
+
+def _load_symbol_namespaces(repo, findings, lstat):
     """读命名空间登记表并逐条校验 evidence（fail-closed）。返回 (tokens, ok)。"""
     p = repo / NAMESPACES_REL
     if not p.is_file():
@@ -255,6 +341,16 @@ def _load_symbol_namespaces(repo, findings):
                          "observed": "不可解析: %s" % exc, "expected": "valid JSON"})
         return set(), False
     toks, ok = set(), True
+    # 行锚语料按 rel 缓存：同一份大文件（module_adapters.cpp 有 5 条登记项指向它）
+    # 只读一次，行级与文件级共用同一份 splitlines 结果。
+    _lines_cache = {}
+
+    def _lines_of(_r):
+        if _r not in _lines_cache:
+            _lines_cache[_r] = (repo / _r).read_text(
+                encoding="utf-8", errors="ignore").splitlines()
+        return _lines_cache[_r]
+
     for ent in doc.get("registered_symbols", []):
         tok = ent.get("token")
         ev = ent.get("evidence", "")
@@ -298,6 +394,41 @@ def _load_symbol_namespaces(repo, findings):
                              "expected": "token 出现在 evidence"})
             ok = False
             continue
+        # ⚠ **判据次序**：文件级在前、行级在后，这是**有意**的，不是随手写的。
+        # 「该 token 整个文件里都没有」⇒ 报 EVIDENCE（词准：文件里根本没有）；
+        # 「该 token 在文件里但不在这一行」⇒ 报 LINEANCHOR（词准：行漂了）。
+        # 若把两级调换，前者会被误报成「行漂了」，而后者的真正原因被掩盖。
+        # token 折行书写（`FOO_` / `BAR = 1`）落在前者：判红，但判词是 EVIDENCE。
+        # ── 行锚承重（FINAL-07 / line-anchor）：line_s 从此**是**判据 ──────────
+        # 上游 :352 把行号切出来后从未引用 ⇒ 行号是死字段（见本节上方判据说明）。
+        # 现在逐字读该行核对。并集写法（brace set）与文件级判据同口径：
+        # **全部成员**的行锚都要命中，任一不命中即判红。
+        _anchor = _parse_line_anchor(line_s)
+        if _anchor is None:
+            # 纯文件级 evidence（无行号 / 后缀非纯数字，如路径自带冒号）
+            # ⇒ **不判红**（保持兼容），但**计数留痕**并在 stdout 打出，
+            #    否则「一条都没判过」与「判据坏了」在输出上不可区分（恒真门形态）。
+            lstat["no_line"] += 1
+        else:
+            _anchor_ok = True
+            for _r in _rel_list:
+                _bad = _line_anchor_fault(repo, _r, _anchor, tok, _lines_of)
+                if _bad is None:
+                    lstat["pass"] += 1
+                    continue
+                findings.append({"id": "DOC-SYMBOL-REGISTRY-LINEANCHOR", "severity": "P1",
+                                 "file": NAMESPACES_REL, "symbol": tok,
+                                 "observed": _bad, "expected": _LINE_EXPECT})
+                lstat["fault"] += 1
+                _anchor_ok = False
+            lstat["claimed"] += 1
+            if not _anchor_ok:
+                # fail-closed 与文件级 EVIDENCE 失败**同口径**：行锚未过审的登记项
+                # 不得进解析面（否则它仍在替文档里的 token 挡 DOC-BAD-SYMBOL，
+                # 那就是一条没审过的豁免）。连带效应：引用该 token 的文档会同时
+                # 报 DOC-BAD-SYMBOL —— 这是同一次故障的级联，不是误报。
+                ok = False
+                continue
         toks.add(tok)
     return toks, ok
 
@@ -355,8 +486,14 @@ def _fixture_run(root, name, **kw):
 
 def self_test():
     """正例判绿 / 负例判红 / 恢复判绿；任一例不符预期 ⇒ rc=1。"""
+    # ⚠ 夹具 evidence **故意写成 3 行**且 token 只落在**第 2 行**。
+    # 理由：行锚判据的核心断言是「偏 1 行必须判红」。若夹具文件只有 1 行，
+    # 「偏 1 行」就等于「越界」，测的就不是行锚漂移而是越界，两种故障混在一起
+    # 就分不清哪条判据在起作用。3 行 + token 在中间 ⇒ :1 与 :3 是**纯偏移**，
+    # :9999 才是**越界**，两者可分别证伪。
     common_files = (
-        ("fixture_evidence.py", "FIXTURE_REGISTERED_TOKEN = 1\n"),
+        ("fixture_evidence.py",
+         "FIXTURE_UNRELATED_A = 1\nFIXTURE_REGISTERED_TOKEN = 2\nFIXTURE_UNRELATED_B = 3\n"),
         ("lib/include/fixture_case.h", "#define FIXTURE_HEADER_CONST 1\n"),
         (_dp("architecture", "api_inventory.csv"),
          "symbol,signature\nFIXTURE_API_SYMBOL,int fixture_api_symbol(void)\n"),
@@ -366,13 +503,28 @@ def self_test():
     live_tokens = ("FIXTURE_REGISTERED_TOKEN", "FIXTURE_HEADER_CONST",
                    "FIXTURE_API_SYMBOL", "FIXTURE_GLOSSARY_TERM")
     reg_ok = _registry([{"token": "FIXTURE_REGISTERED_TOKEN", "namespace": "fixture",
-                         "evidence": "fixture_evidence.py:1",
-                         "reason": "夹具登记项：evidence 文件逐字含该 token"}])
+                         "evidence": "fixture_evidence.py:2",
+                         "reason": "夹具登记项：evidence 该行逐字含该 token"}])
     reg_stale = _registry([
         {"token": "FIXTURE_REGISTERED_TOKEN", "namespace": "fixture",
-         "evidence": "fixture_evidence.py:1", "reason": "夹具登记项"},
+         "evidence": "fixture_evidence.py:2", "reason": "夹具登记项"},
         {"token": "FIXTURE_STALE_TOKEN", "namespace": "fixture",
          "evidence": "fixture_stale_evidence.py:1", "reason": "夹具登记项"}])
+    # 行锚判据的夹具面（FINAL-07 / line-anchor）。每一例的 evidence 都指向
+    # **同一个 3 行文件**，token 恒在第 2 行 ⇒ 只有行号在变，故障类型单一可归因。
+    def _reg_at(line_s, tok="FIXTURE_REGISTERED_TOKEN"):
+        return _registry([{"token": tok, "namespace": "fixture",
+                           "evidence": "fixture_evidence.py:%s" % line_s,
+                           "reason": "夹具登记项：行锚用例"}])
+    # 注释 / 预处理指令的载体：必须**真的**有第二行非注释定义，
+    # 否则「注释掉了」与「文件里根本没有」两种故障分不开。
+    commented_files = (
+        ("fixture_commented.py",
+         "# FIXTURE_COMMENTED_TOKEN = 1\nFIXTURE_COMMENTED_TOKEN = 2\n"),)
+    defined_files = (
+        ("fixture_defined.h", "#define FIXTURE_DEFINED_TOKEN 1\n"),)
+    wrapped_files = (
+        ("fixture_wrapped.py", "FIXTURE_WRAPPED_\nTOKEN = 1\n"),)
     cases = (
         ("正例-四类命名空间全可解析", 0, None,
          dict(doc_tokens=live_tokens, registry=reg_ok, extra_files=common_files)),
@@ -388,6 +540,54 @@ def self_test():
               registry=_registry([{"token": "FIXTURE_EV_TOKEN", "namespace": "fixture",
                                    "evidence": "fixture_evidence.py:1",
                                    "reason": "夹具登记项"}]),
+              extra_files=common_files)),
+        # ── 行锚判据（FINAL-07 / line-anchor）可证伪面 ──────────────────────
+        # 负例①**本次的核心断言**：行号偏 1 行（向前）必须判红。改动前 line_s 从
+        # 不被引用 ⇒ 这条必绿 ⇒ 改后必须由 DOC-SYMBOL-REGISTRY-LINEANCHOR 变红。
+        ("负例-行锚偏 1 行(向前 :1)", 1, "DOC-SYMBOL-REGISTRY-LINEANCHOR",
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",), registry=_reg_at(1),
+              extra_files=common_files)),
+        ("负例-行锚偏 1 行(向后 :3)", 1, "DOC-SYMBOL-REGISTRY-LINEANCHOR",
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",), registry=_reg_at(3),
+              extra_files=common_files)),
+        ("负例-行锚越界(超出文件行数)", 1, "DOC-SYMBOL-REGISTRY-LINEANCHOR",
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",), registry=_reg_at(9999),
+              extra_files=common_files)),
+        ("负例-行锚越界(:0 不是合法 1 基行号)", 1, "DOC-SYMBOL-REGISTRY-LINEANCHOR",
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",), registry=_reg_at(0),
+              extra_files=common_files)),
+        # token 被**折行**书写（`FIXTURE_WRAPPED_` / `TOKEN = 1`）⇒ 两行都不逐字
+        # 含它，**整份文件**也不逐字含它 ⇒ 命中的是**文件级** EVIDENCE，不是行锚判词。
+        # 这条记录的是**判据次序**（见 _load_symbol_namespaces 里的次序说明）：
+        # 文件级在前 ⇒ 「token 整个文件里都没有」报 EVIDENCE（词更准），
+        # 「token 在文件里但不在该行」报 LINEANCHOR（词也准）。两者都是红。
+        ("负例-token 折行(文件级先命中)", 1, "DOC-SYMBOL-REGISTRY-EVIDENCE",
+         dict(doc_tokens=("FIXTURE_WRAPPED_TOKEN",),
+              registry=_registry([{"token": "FIXTURE_WRAPPED_TOKEN", "namespace": "fixture",
+                                   "evidence": "fixture_wrapped.py:1",
+                                   "reason": "夹具登记项：token 折行"}]),
+              extra_files=common_files + wrapped_files)),
+        # 注释掉的承载不承重。
+        ("负例-行锚行被注释掉", 1, "DOC-SYMBOL-REGISTRY-LINEANCHOR",
+         dict(doc_tokens=("FIXTURE_COMMENTED_TOKEN",),
+              registry=_registry([{"token": "FIXTURE_COMMENTED_TOKEN", "namespace": "fixture",
+                                   "evidence": "fixture_commented.py:1",
+                                   "reason": "夹具登记项：锚在被注释掉的行"}]),
+              extra_files=common_files + commented_files)),
+        # 防误红（**正控**）：`#define` 是定义不是注释，锚在它上面必须判绿。
+        # 没有这一例，一刀切的「行首 # 即注释」判据会静默地把真锚判红。
+        ("正例-行锚在 #define 上(预处理指令非注释)", 0, None,
+         dict(doc_tokens=("FIXTURE_DEFINED_TOKEN",),
+              registry=_registry([{"token": "FIXTURE_DEFINED_TOKEN", "namespace": "fixture",
+                                   "evidence": "fixture_defined.h:1",
+                                   "reason": "夹具登记项：锚在 #define 上"}]),
+              extra_files=common_files + defined_files)),
+        # 兼容面（**正控**）：不带行号的纯文件级 evidence **不判红**，只计数留痕。
+        ("正例-evidence 不带行号(保持兼容)", 0, None,
+         dict(doc_tokens=("FIXTURE_REGISTERED_TOKEN",),
+              registry=_registry([{"token": "FIXTURE_REGISTERED_TOKEN", "namespace": "fixture",
+                                   "evidence": "fixture_evidence.py",
+                                   "reason": "夹具登记项：纯文件级 evidence"}]),
               extra_files=common_files)),
         ("负例-evidence 文件不存在", 1, "DOC-SYMBOL-REGISTRY-EVIDENCE",
          dict(doc_tokens=("FIXTURE_EV_FILE_TOKEN",),
@@ -431,8 +631,11 @@ def self_test():
         for item in bad:
             print("  - " + item)
         return 1
-    print("DOC-SYMBOL-SELFTEST_PASS: %d/%d 例（正例/恢复 2 例须绿，负例 %d 例须红且命中指定判词）"
-          % (len(cases), len(cases), len(cases) - 2))
+    # 正/负例数**从 cases 导出**，不写死 —— 写死「2 例」在本单加入行锚正控
+    # （#define 锚、无行号 evidence）之后就会说出一句与夹具面不符的话。
+    _n_pos = sum(1 for c in cases if c[1] == 0)
+    print("DOC-SYMBOL-SELFTEST_PASS: %d/%d 例（正例 %d 例须绿且零 finding，负例 %d 例须红且命中指定判词）"
+          % (len(cases), len(cases), _n_pos, len(cases) - _n_pos))
     return 0
 
 
@@ -451,7 +654,11 @@ def main():
     status = "PASS"
     doc_stems = _doc_stem_index(repo)
     glossary_toks = _glossary_tokens(repo)
-    ns_tokens, ns_ok = _load_symbol_namespaces(repo, findings)
+    # 行锚判定账（FINAL-07 / line-anchor）。刻意**与 brace_forms 平级**单列：
+    # 「46 条登记项里 0 条带行锚」这种状态必须看得见，否则「判据没跑」和
+    # 「登记表本来就没写行号」在输出上完全一样 —— 这正是恒真门的形态。
+    _lstat = {"claimed": 0, "pass": 0, "fault": 0, "no_line": 0}
+    ns_tokens, ns_ok = _load_symbol_namespaces(repo, findings, _lstat)
     if not ns_ok:
         status = "FAIL"
     seen_tokens = set()
@@ -746,6 +953,7 @@ def main():
                                     # 「api_inventory 面恒空」这类恒真门当场可见。
                                     "api_inventory_symbols":len(api_syms)},
               "brace_forms":_bstat,
+              "line_anchors":_lstat,
               "findings":findings,"passed": status=="PASS"}
     if args.out_json:
         pathlib.Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
@@ -766,6 +974,15 @@ def main():
     # eng/tools/quality/contracts/generate_contract_report.py:47 取
     # out.stdout.strip().split(chr(10))[-1] 当 JSON 解析。把末行换成这一行
     # 同样会解析失败落到 except 兜底，但那是撞运气；保持判词在末行才是稳的。
+    # 行锚判定账（FINAL-07 / line-anchor）。同样**必须排在 PASS/FAIL 判词之前**，
+    # 且**排在 BRACE 行之前** —— BRACE 行是「stdout 末行之前的最后一条非判词行」
+    # （见下方 ⚠ 与 generate_contract_report.py:47），本行插在它前面不破坏该契约。
+    # claimed=登记项声称带行锚的条数 pass=其中行逐字含 token 的成员数
+    # fault=判红的成员数 no_line=没有行锚（不判红、仅留痕）的条数。
+    # claimed 与 pass 同时为 0 ⇒ 登记表一条行锚都没有，本门这一面**没在判**
+    # （恒真门形态），必须一眼看得见。
+    print("CON-DOC-SYMBOL-LINEANCHOR: claimed=%d pass=%d fault=%d no-line=%d"
+          % (_lstat["claimed"], _lstat["pass"], _lstat["fault"], _lstat["no_line"]))
     print("CON-DOC-SYMBOLS_BRACE: sets=%d members=%d missing=%d | not-a-set: template=%d regex=%d prose=%d unbalanced=%d overflow=%d exempt=%d"
           % (_bstat["sets_expanded"], _bstat["members_expanded"], _bstat["members_missing"],
              _bstat["template"], _bstat["regex"], _bstat["prose"],
