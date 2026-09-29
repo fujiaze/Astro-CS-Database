@@ -456,6 +456,33 @@ MASK_CALL = "for m in BASE_RE.finditer(scan_line):"
 # BLD-401 R3: 第三方工具版本豁免在 scan_line 组装链上（锚必须逐字命中现行源码）
 EXT_MASK_CALL = ("scan_line = mask_external_tool_versions("
                  "mask_lifecycle_boundaries(mask_standard_clause_numbers(line)))")
+class TestSectionNumberNotAVersion(unittest.TestCase):
+    """"外部文档的**章节号**不是产品版本，不得判红。
+
+    依据: 正本逐字引用上游文档时写「as seen in Section 5.4.1」
+    (docs/science/PHOTOMETRY.md:299) —— 那是章节号，不是任何产品的版本声明。
+    与「外部工具版本是溯源证据、严禁为过检查改写正文」同款口径。
+    """
+
+    def test_section_number_must_pass(self):
+        import re as _re
+        m = load_checker()
+        line = 'Note however that as seen in Section 5.4.1 Gaia fluxes are published.'
+        self.assertEqual(_re.findall(m.BASE_RE, line), ['5.4.1'],
+                         '对照组前提失效: 原文里已不再含该章节号形态')
+        self.assertEqual(_re.findall(m.BASE_RE,
+                                       m.mask_standard_clause_numbers(line)), [],
+                         '章节号被当成产品版本判红（应被遮蔽）')
+
+    def test_real_version_on_same_line_still_caught(self):
+        "收窄约束: 同行**真的**产品版本字面量仍必须被抓。"
+        import re as _re
+        m = load_checker()
+        line = '见 Section 5.4.1；本项目版本 9.9.9'
+        masked = m.mask_standard_clause_numbers(line)
+        self.assertIn('9.9.9', _re.findall(m.BASE_RE, masked),
+                      '遮蔽过宽: 同行真实版本字面量被一并放行')
+
 MUTATIONS = {
     # 过窄: 取消条款号豁免 → §2.1.1 等再现 19 条误报
     "masking_disabled": (MASK_CALL, "for m in BASE_RE.finditer(line):"),
