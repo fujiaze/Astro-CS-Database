@@ -875,6 +875,30 @@ struct AncestorAcc {
     }
 };
 
+// 层级桶 (hier[k] = order k 上所有祖先 cell 的累加器) 的**显式不可拷贝**外壳。
+//
+// WIN-PORT 批次三 (R-5) 根因: AncestorAcc 的 3 张块表 = std::array<unique_ptr<double[]>,64>
+// ⇒ AncestorAcc 与以其为值类型的 std::map 都**不可拷贝**; 但"可拷贝"这一事实在两套
+// 标准库上判定不同 —— MSVC 的 map 拷贝构造处于声明状态 (is_copy_constructible_v<map>
+// = true) 且其移动构造**非 noexcept**, libstdc++ 的 map 移动构造是 noexcept 的。于是
+// std::vector<std::map<...>> 扩容搬迁时的分支
+//     if constexpr (is_nothrow_move_constructible_v<_Ty> || !is_copy_constructible_v<_Ty>)
+// 在 MSVC 上取**假** ⇒ 实例化 _Uninitialized_copy ⇒ allocator construct 落到
+// std::pair<const uint64_t, AncestorAcc> 的拷贝构造 (已删除) ⇒ C2280 (报在
+// [MSVC-STL]/include/xmemory:732)。libstdc++ 走 move_if_noexcept 的移动分支, 故 Linux 面
+// 一直是绿的 —— 平台差异来自重载/分支选择, 不是来自代码语义。
+//
+// 处置: 把"不可拷贝"显式写进元素类型 (两平台同一份代码, 无 #ifdef)。此后任何实现、
+// 任何扩容/搬迁/插入路径都只可能走移动, 不再依赖标准库的分支选择。
+struct HierLevel {
+    std::map<uint64_t, AncestorAcc> cells;
+    HierLevel() = default;
+    HierLevel(HierLevel&&) = default;
+    HierLevel& operator=(HierLevel&&) = default;
+    HierLevel(const HierLevel&) = delete;
+    HierLevel& operator=(const HierLevel&) = delete;
+};
+
 // 注入面判定 (测试专用): 生产默认全 false; 见 AncestorAcc 注释。
 HierFaults hier_faults() {
     HierFaults f;
@@ -928,7 +952,7 @@ struct AioHipsProductSet {
 
     std::set<uint64_t> moc_cells;          // 叶级 tile cells @ order K (有数据)
     std::vector<uint64_t> leaf_ipix_list;  // 写入顺序
-    std::vector<std::map<uint64_t, AncestorAcc>> hier;  // hier[k] for k<K
+    std::vector<HierLevel> hier;           // hier[k].cells for k<K (元素显式不可拷贝, 见 HierLevel)
     std::vector<AioHipsSnrPoint> snr;
     double moc_area_sr = 0.0;              // Σ moc cell 面积 (order K)
     double covered_area_sr = 0.0;          // Σ covered_area (真实覆盖)
@@ -1117,8 +1141,8 @@ static bool stream_flush_ready_cells(AioHipsProductSet* ps, uint64_t leaf_ipix) 
     for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
         const uint64_t shift = 2ULL * (uint64_t)((int)ps->tile_order - k);
         const uint64_t A = leaf_ipix >> shift;
-        auto it = ps->hier[(size_t)k].find(A);
-        if (it == ps->hier[(size_t)k].end()) continue;
+        auto it = ps->hier[(size_t)k].cells.find(A);
+        if (it == ps->hier[(size_t)k].cells.end()) continue;
         AncestorAcc& acc = it->second;
         if (acc.flushed || acc.slots_total == 0 ||
             acc.slots_seen != acc.slots_total)
@@ -1142,8 +1166,8 @@ static bool hier_duplicate_allowed(AioHipsProductSet* ps, uint64_t leaf_ipix) {
     for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
         const uint64_t shift = 2ULL * (uint64_t)((int)ps->tile_order - k);
         const uint64_t A = leaf_ipix >> shift;
-        auto it = ps->hier[(size_t)k].find(A);
-        if (it != ps->hier[(size_t)k].end() && it->second.flushed) {
+        auto it = ps->hier[(size_t)k].cells.find(A);
+        if (it != ps->hier[(size_t)k].cells.end() && it->second.flushed) {
             set_error("重复写叶 tile " + std::to_string(leaf_ipix) +
                       ": 其祖先 cell (Norder" + std::to_string(k) + " ipix=" +
                       std::to_string(A) + ") 已完备并流式写出 (MEM-DESIGN-01 (B)), "
@@ -1409,7 +1433,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
             uint64_t A = view->parent_ipix >> shift;
             uint64_t s = view->parent_ipix & mask;
-            AncestorAcc& acc = ps->hier[(size_t)k][A];
+            AncestorAcc& acc = ps->hier[(size_t)k].cells[A];
             if (acc.flushed) {
                 // 该 cell 已写出并释放: 新贡献无处可加 (重复叶写已在上面拦截,
                 // 故此处只可能是调用时序被破坏) ⇒ fail-closed, 禁静默丢贡献。
@@ -1619,7 +1643,7 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
             uint64_t mask = (shift >= 64) ? ~0ULL : ((1ULL << shift) - 1ULL);
             uint64_t A = view->parent_ipix >> shift;
             uint64_t s = view->parent_ipix & mask;
-            AncestorAcc& acc = ps->hier[(size_t)k][A];
+            AncestorAcc& acc = ps->hier[(size_t)k].cells[A];
             if (acc.flushed) {
                 // 该 cell 已写出并释放。产品位未含 variance/ivar 时 var 数据本就
                 // 不发布 (finalize 不读 var 通道) ⇒ 与旧语义无可观测差异, 静默跳过;
@@ -1983,7 +2007,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
 // 每个 cell 写出后立即 release() (finalize 阶段峰值不再整层常驻)。
 static bool finalize_hierarchy(AioHipsProductSet* ps) {
     for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
-        for (auto& kv : ps->hier[(size_t)k]) {
+        for (auto& kv : ps->hier[(size_t)k].cells) {
             AncestorAcc& acc = kv.second;
             if (acc.flushed) continue;   // 已在写叶过程中流式写出并释放
             if (!write_hierarchy_cell(ps, k, kv.first, acc)) return false;
@@ -2295,7 +2319,7 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
         // 计入, 此处只补**未写出**的 cell ⇒ 与"全部 cell 一次性全扫描"同值
         // (纯计数, 与扫描顺序无关; 稀疏实现只遍历已分配子块, 未分配块恒零)。
         for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
-            for (auto& hkv : ps->hier[(size_t)k]) {
+            for (auto& hkv : ps->hier[(size_t)k].cells) {
                 AncestorAcc& acc = hkv.second;
                 if (acc.flushed) continue;
                 ps->coverage_gt1_pixels += count_coverage_gt1(acc, k);

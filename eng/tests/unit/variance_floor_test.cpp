@@ -103,8 +103,12 @@ int main() {
         CHECK_MSG((float)abs_floor_alpha2 == 0.0f,
                   "float32(alpha^2*1e-12)=%.6e (expect exact 0)",
                   (double)(float)abs_floor_alpha2);
-        CHECK_MSG(1.0 / (double)(float)abs_floor_alpha2 ==
-                      std::numeric_limits<double>::infinity(),
+        // WIN-PORT 批次三 (R-7): 除数若直接写成编译期常量, MSVC 按 C2124
+        // 「常量除零」判**编译错误**(GCC 仅告警) —— 下溢到 0 是**本用例要断言的
+        // 事实**, 不能因为它是常量就消失。落到运行期变量(非 const ⇒ 非常量表达式)
+        // 再取倒数: 取值逐位相同, 断言语义与判别力不变(下溢未发生时该式必判红)。
+        double f32_abs_floor = (double)(float)abs_floor_alpha2;
+        CHECK_MSG(1.0 / f32_abs_floor == std::numeric_limits<double>::infinity(),
                   "1/float32(alpha^2*1e-12) 必须为 inf（证明绝对常数不可实现）");
         // 该帧真实可用方差（数组标度）：M42 实测 ~2.1e-29 ~ 3e-31 量级
         std::vector<double> frame(1000, 3.0e-31);
