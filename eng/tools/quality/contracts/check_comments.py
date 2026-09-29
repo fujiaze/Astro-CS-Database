@@ -6,11 +6,9 @@ Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
 """
 import argparse, json, pathlib, sys, re
 
-STALE_PATTERNS = [
-    (r"V1[0-9]R[0-9]", "stale audit round V19R2/V19R3"),
-    (r"TODO.*fix|FIXME.*legacy", "code复述 fix/legacy"),
-    (r"thread.*16.*hard.*code|num_threads\(16\)", "hardcoded 16 threads"),
-]
+# 注：此处原有「陈旧声明」模式清单（审计轮次号 / 复述待办 / 硬编码线程数），
+# **整份清单从不被读取**（ast 读取 0、无动态取用）—— 即**本门从未检查过这三类陈旧声明**。
+# 删除它是为了不让人以为该检查存在；**是否补上这三类检查属判据口径变更，需裁决。**
 # Require ID near complex invariants: check that invariant-adjacent comments have SCI/ALG ID
 REQUIRE_ID_NEAR = ["invariant", "不变量", "conservative", "false_negative"]
 
