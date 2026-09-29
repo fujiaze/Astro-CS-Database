@@ -7,7 +7,7 @@ Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
   python3 eng/tools/quality/contracts/check_doc_symbols.py              # 判据本体
   python3 eng/tools/quality/contracts/check_doc_symbols.py --self-test  # 正例绿/负例红夹具面
 """
-import argparse, json, pathlib, re, sys, csv
+import argparse, itertools, json, pathlib, re, sys, csv
 import shutil, subprocess, tempfile
 
 # 权威文档域（判定面 = 这些目录下的 *.md）。改判定面必须显式改本常量：
@@ -117,6 +117,128 @@ def _line_of(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
 
+# ── 花括号形态的路径字面量（FINAL-07 / braces-crash）────────────────────
+# 事由：:403 把抽取到的 token **原样**交给 Path.exists()。扫描面扩到 249 篇后首次
+# 包含 docs/engineering/DUAL_LINE_CONTRACT.md，其 §2.1 点名清单用
+# `docs/engineering/{A,B,C}.md` 记法，basename 281/406 **字节超 NAME_MAX(255)**
+# ⇒ os.stat 抛 `OSError 36 File name too long` ⇒ **整门 traceback 退出**（不是判红）。
+# 修法**不是** try/except 包住：那是把崩溃换成静默通过，等于造一个假绿。改为
+# **先分类再判**：真正的「并集写法」展开后逐成员判存在，任一成员缺失即判红。
+#
+# 分类（返回 (kind, members)）：
+#   none       —— 不含 { }，交给后续原有分支；
+#   set        —— 真正的并集写法：**每一个**顶层 {…} 成员以 "," 分隔、成员内不含
+#                { } 与空白 ⇒ 按**笛卡尔积**展开（支持**多个并列**花括号组，
+#                如 widgets/{a,b,c}.{h,cpp} ⇒ 6 个成员；**不支持**花括号内再嵌套）。
+#                展开规则有意覆盖本仓真实写法：**花括号可出现在路径中段**
+#                （DUAL_LINE_CONTRACT.md 的 {abi/ABI_003_SECURE_LOADER,…}），
+#                成员可自带 "/"；花括号外的前后缀原样保留
+#                （PHASE{1,2,3}_API_V1.md ⇒ PHASE1_API_V1.md …）。
+#   template   —— 占位符（{idx}/{ext}，无逗号）⇒ 不是集合，也不是"文件必须存在"
+#                的判据对象（与 <out_hips>/x.json 同族）；
+#   regex      —— 含正则字符类 [...]（[A-Za-z0-9/%._-]{0,32}）：{0,32} 是量词
+#                不是集合，展开会造出假红；
+#   prose      —— token 内含空白：路径字面量不含空白，含空白即散文里夹的枚举；
+#   unbalanced —— 括号不配平 / 成员内含嵌套花括号 / 有空成员 ⇒ 同 template 处理；
+#   overflow   —— 展开后成员数超 _BRACE_MAX_MEMBERS：防组合爆炸，同 template 处理。
+# 后五类**既不判红也不判绿**，但一律计入 result["brace_forms"] 并打印
+# CON-DOC-SYMBOLS_BRACE: 一行 —— 静默放过必须留痕，否则扫描面一变宽又成恒真门。
+_BRACE_MAX_MEMBERS = 256
+
+
+def _brace_form(token):
+    """把含 { } 的 token 分类。返回 (kind, members)；非花括号 token 返回 ("none", [])。"""
+    if "{" not in token and "}" not in token:
+        return "none", []
+    if "[" in token and "]" in token:
+        return "regex", []          # 正则字符类 ⇒ 量词，不是集合
+    if " " in token or chr(10) in token:
+        return "prose", []          # 路径字面量不含空白
+    groups, i, n = [], 0, len(token)
+    while i < n:
+        if token[i] == "{":
+            j = token.find("}", i + 1)
+            if j < 0:
+                return "unbalanced", []
+            groups.append((i, j, token[i + 1:j]))
+            i = j + 1
+        else:
+            i += 1
+    if not groups:
+        return "template", []
+    alts = []
+    for _, _, inner in groups:
+        parts = inner.split(",")
+        if len(parts) < 2 or any((not q) or (" " in q) or ("{" in q) or ("}" in q)
+                                 for q in parts):
+            return "template", []   # 无逗号 ⇒ 占位符；空/嵌套成员 ⇒ 不展开
+        alts.append(parts)
+    total = 1
+    for a in alts:
+        total *= len(a)
+    if total > _BRACE_MAX_MEMBERS:
+        return "overflow", []
+    members, seen = [], set()
+    for combo in itertools.product(*alts):
+        buf, prev = [], 0
+        for (s, e, _), q in zip(groups, combo):
+            buf.append(token[prev:s])
+            buf.append(q)
+            prev = e + 1
+        buf.append(token[prev:])
+        m = "".join(buf)
+        if m not in seen:
+            seen.add(m)
+            members.append(m)
+    return "set", members
+
+
+def _exempt_form(token):
+    """token **自身**可判定的「不是『文件必须存在』的判据对象」形态。返回理由串或 None。
+
+    ① 历史引证：token 带 已删除/已归档/deleted/removed（文档已声明该文件不存在）；
+    ② 通配：* 或 ?（花括号并集**不**在此豁免 —— 它已被 _brace_form 展开并逐成员判）；
+    ③ 含空白的命令行 / 散文。
+    三者都只看 token 自身，不需要外部豁免表。
+    """
+    if any(k in token for k in ("已删除", "已归档", "deleted", "removed")):
+        return "历史引证标记"
+    if "*" in token or "?" in token:
+        return "通配"
+    if " " in token:
+        return "含空白(命令行/散文)"
+    return None
+
+
+class _Undecidable(Exception):
+    """单个路径**判不出来**（OS 层拒绝该名字，如 ENAMETOOLONG）。
+
+    与「不存在」是两件事：既不能放行（假绿），也不该冒到 main 外（整门崩）。
+    调用方据此记 DOC-FILE-UNDECIDABLE（判红）。
+    """
+
+
+def _file_ref_exists(repo, rel, known_files):
+    """文件引用的四步解析（known_files → 仓根相对 → lib 前缀 → 后缀匹配）。
+
+    抽成函数是为了让**普通 token 与花括号展开出的成员走同一套**判据，
+    免得两条路径日后各自漂移。返回 True/False，判不出来时抛 _Undecidable。
+    """
+    if rel in known_files:
+        return True
+    probes = (lambda: (repo / rel).exists(),
+              lambda: (repo / "lib/algorithms/coverage" / rel).exists(),
+              lambda: (repo / "lib" / rel).exists())
+    for probe in probes:
+        try:
+            if probe():
+                return True
+        except OSError as exc:     # ENAMETOOLONG(36)/EINVAL/ENAMETOOLONG… 如实上抛
+            raise _Undecidable("%s（%s）" % (rel, exc)) from exc
+    # rglob 相对路径在 Windows 是 backslash —— 统一正斜杠再匹配
+    return any(k.replace("\\", "/").endswith("/" + rel) for k in known_files)
+
+
 def _load_symbol_namespaces(repo, findings):
     """读命名空间登记表并逐条校验 evidence（fail-closed）。返回 (tokens, ok)。"""
     p = repo / NAMESPACES_REL
@@ -143,13 +265,31 @@ def _load_symbol_namespaces(repo, findings):
             ok = False
             continue
         rel, _, line_s = ev.rpartition(":")
-        evp = repo / (rel or ev)
-        if not evp.is_file():
+        rel = rel or ev
+        # FINAL-07（braces-crash）同形态加固：evidence 也是一条路径，若登记表里
+        # 出现 `docs/{A,B}.py:3` 这类并集写法，`.is_file()` 同样会 OSError 36 崩掉
+        # 整门（doc_symbol_namespaces.json 正在被别人编辑 ⇒ 同一形态随时可复现）。
+        # 这里按同一规则展开：并集写法要求**全部成员**都命中，否则判红（不放宽）。
+        # 实测当前登记表 0 条 brace evidence ⇒ 本加固不改今日判定结果。
+        _bkind, _bmembers = _brace_form(rel)
+        _rel_list = _bmembers if _bkind == "set" else [rel]
+        _ev_ok = True
+        for _r in _rel_list:
+            try:
+                if not (repo / _r).is_file():
+                    _ev_ok = False
+                    break
+            except OSError as exc:
+                _ev_ok = False
+                _ev_err = "%s（%s）" % (_r, exc)
+                break
+        if not _ev_ok:
             findings.append({"id": "DOC-SYMBOL-REGISTRY-EVIDENCE", "severity": "P1",
                              "file": NAMESPACES_REL, "symbol": tok,
                              "observed": "evidence 文件不存在 %s" % ev, "expected": "exists"})
             ok = False
             continue
+        evp = repo / _rel_list[0]
         evtext = evp.read_text(encoding="utf-8", errors="ignore")
         if tok not in evtext:
             findings.append({"id": "DOC-SYMBOL-REGISTRY-EVIDENCE", "severity": "P1",
@@ -350,11 +490,38 @@ def main():
     # Extract backtick symbols like `p2_integrate_pixel` or `docs/...` or `lib/...`
     backtick_re = re.compile(r'`([^`]+)`')
     # Load known symbols from API inventory
+    #
+    # FINAL-07（braces-crash）**同批修**：原实现这一面恒为空集，是恒真门。
+    # ① docs/architecture/api_inventory.csv 第 1 行是 `#` 注释行（行内自述
+    #    「保留作符号解析白名单（check_doc_symbols api_syms 面）」，即**设计意图**
+    #    就是喂给本门），而 `csv.DictReader` 直接吃文件 ⇒ 该行被当**表头**；
+    # ② 表头因此没有 `symbol` 列 ⇒ `r["symbol"]` 抛 KeyError；
+    # ③ 那个**裸 `except: pass`** 把 KeyError 静默吞掉 ⇒ api_syms = set()。
+    # 净效果：本门自述的 5 个命名空间里 `api_inventory` 那一面**恒为 0 个符号**
+    # （实测 CSV 有 448 条已登记符号，一条都没进解析面）——判据看着在跑，
+    # 实际这一面根本没判，与 AGENTS.md §5/§9 的「恒真门」形态同型。
+    # 修法（**不放宽**）：跳过前导 `#` 注释行；文件缺失 / 不可解析 / 表头无
+    # `symbol` 列 / 过滤后 0 条数据行 —— 一律**显式判红**，绝不退化为空集。
     api_syms = set()
+    _INV_REL = "docs/architecture/api_inventory.csv"
     try:
-        inv = list(csv.DictReader(open(repo/"docs/architecture/api_inventory.csv", encoding="utf-8")))
-        api_syms = set(r["symbol"] for r in inv)
-    except: pass
+        _raw = [ln for ln in (repo / _INV_REL).read_text(encoding="utf-8").splitlines()
+                if ln.strip() and not ln.lstrip().startswith("#")]
+        _rdr = csv.DictReader(_raw)
+        if not _rdr.fieldnames or "symbol" not in _rdr.fieldnames:
+            raise ValueError("表头无 symbol 列（实际表头=%r，注释行是否已过滤？）"
+                             % (_rdr.fieldnames,))
+        api_syms = {(r.get("symbol") or "").strip() for r in _rdr}
+        api_syms.discard("")
+        if not api_syms:
+            raise ValueError("去掉 # 注释行后 0 条数据行")
+    except Exception as exc:      # noqa: BLE001 —— 任何解析失败都必须显式判红
+        api_syms = set()
+        findings.append({"id": "DOC-SYMBOL-API-INVENTORY", "severity": "P1",
+                         "file": _INV_REL, "symbol": _INV_REL,
+                         "observed": "API 符号面不可用: %s" % exc,
+                         "expected": "带 symbol 列的 CSV，且至少 1 个符号"})
+        status = "FAIL"
     # Load known files
     # 原实现对**整仓** rglob("*")（含 build/ run/ .git/ 问题扫描/），
     # 187 份文档 × 全树遍历 ⇒ 单跑 4 分钟，CI 120s timeout 直接判 TIMEOUT。
@@ -376,6 +543,12 @@ def main():
         if rel.split("/", 1)[0] in _skip or rel.startswith(_skip_prefix):
             continue
         known_files.add(rel)
+    # 花括号形态的判定账（FINAL-07 / braces-crash；分类定义见 _brace_form）。
+    # 全部进 result["brace_forms"] 并打印成独立一行 —— 「静默放过必须留痕」，
+    # 否则扫描面一变宽（正是本次崩溃的成因）就会重演恒真门。
+    _bstat = {"sets_expanded": 0, "members_expanded": 0, "members_missing": 0,
+              "sets_exempted": 0, "template": 0, "regex": 0, "prose": 0,
+              "unbalanced": 0, "overflow": 0}
     for doc in docs:
         text = doc.read_text(encoding="utf-8", errors="ignore")
         for m in backtick_re.finditer(text):
@@ -398,41 +571,86 @@ def main():
             # Check if token looks like file path
             if "/" in token and "." in token:
                 # File reference: check exists or is doc-relative
+                #
+                # ── 花括号形态（FINAL-07 / braces-crash）────────────────────
+                # 放在"是否文件引用"这条判定**之内**、扩展名白名单**之前**：
+                #   ① 崩溃点（下方四步解析第一步）把 token 原样喂 Path.exists()，
+                #      basename 281/406 字节超 NAME_MAX(255) ⇒ OSError 36 ⇒
+                #      整门 traceback 退出（那不是判红，是崩）；
+                #   ② 原兜底把"含 { }"当通配一律放过（旧的 _glob 分支），是**恒真门**：
+                #      并集里写错一个成员，文档照样判绿。
+                # 现在：set ⇒ 展开后**逐成员**走 _file_ref_exists（与普通 token 同一套），
+                # **任一成员解析不到即判红**；非 set ⇒ 不判红也不判绿，但计数留痕。
+                # ⚠ 位置是判据的一部分，不能挪到"是不是文件路径"判定**之外**：
+                # 挪出去会把 acr_route∈{auto,cpu}、MAD({fhat})、{−0.274,0.774} 这类
+                # **数学集合记法**也当路径并集展开 —— 实测那样会造出 97 个根本不存在
+                # 的"成员" ⇒ 97 条假红（判据没坏，是分类面放错了）。
+                _bkind, _bmembers = _brace_form(token)
+                if _bkind != "none":
+                    _bexempt = _exempt_form(token)
+                    if _bkind == "set" and not _bexempt:
+                        _miss, _undet = [], []
+                        for _m in _bmembers:
+                            try:
+                                if not _file_ref_exists(repo, _m, known_files):
+                                    _miss.append(_m)
+                            except _Undecidable as _u:
+                                _undet.append(str(_u))
+                        _bstat["sets_expanded"] += 1
+                        _bstat["members_expanded"] += len(_bmembers)
+                        _bstat["members_missing"] += len(_miss)
+                        if _miss:
+                            findings.append({"id": "DOC-BAD-FILE", "severity": "P1",
+                                             "file": str(doc.relative_to(repo)),
+                                             "line": _line_of(text, m.start()), "symbol": token,
+                                             "observed": "花括号并集 %d 个成员中 %d 个不存在: %s"
+                                                         % (len(_bmembers), len(_miss),
+                                                            ", ".join(_miss)),
+                                             "expected": "exists（并集写法要求全部成员在位）"})
+                            status = "FAIL"
+                        for _u in _undet:
+                            findings.append({"id": "DOC-FILE-UNDECIDABLE", "severity": "P1",
+                                             "file": str(doc.relative_to(repo)),
+                                             "line": _line_of(text, m.start()), "symbol": token,
+                                             "observed": "路径判定不可完成: %s" % _u,
+                                             "expected": "stat 成功且存在"})
+                            status = "FAIL"
+                    else:
+                        _bstat["sets_exempted" if _bkind == "set" else _bkind] += 1
+                    continue
                 if token.endswith(".md") or token.endswith(".h") or token.endswith(".cpp") or token.endswith(".json"):
-                    # Try alternative: token may be relative like eng/tools/stage2.cpp -> lib/algorithms/coverage/tools/stage2.cpp
-                    found = token in known_files or (repo / token).exists()
-                    if not found:
-                        # Try lib/algorithms/coverage/tools/ prefix
-                        alt = repo / "lib/algorithms/coverage" / token
-                        if alt.exists():
-                            found = True
-                        alt2 = repo / "lib" / token
-                        if alt2.exists():
-                            found = True
-                    if not found:
-                        # 文档常写模块内相对路径(如 healpix_drizzle/xxx.cpp,
-                        # 真实位于 lib/algorithms/drizzle/healpix_drizzle/) — 以
-                        # known_files 后缀匹配兜底(消 Windows CI R8 实测误报)。
-                        # rglob 相对路径在 Windows 是 backslash — 统一正斜杠
-                        # 再匹配(否则 Linux 过 Windows 挂, R9 34178712916 实证)。
-                        if not found and any(k.replace("\\", "/").endswith("/" + token) for k in known_files):
-                            found = True
+                    # 四步解析抽成 _file_ref_exists（known_files → 仓根相对 →
+                    # lib/algorithms/coverage 前缀 → lib 前缀 → known_files 后缀匹配）。
+                    # 文档常写模块内相对路径(如 healpix_drizzle/xxx.cpp,
+                    # 真实位于 lib/algorithms/drizzle/healpix_drizzle/)，后缀匹配
+                    # 兜底消 Windows CI R8 实测误报；rglob 相对路径在 Windows 是
+                    # backslash — 统一正斜杠再匹配(R9 34178712916 实证)。
+                    # 抽函数的唯一理由：让上面花括号展开出的成员与普通 token 走
+                    # **同一套**判据，避免两条路径日后各自漂移。
+                    try:
+                        found = _file_ref_exists(repo, token, known_files)
+                    except _Undecidable as _u:
+                        # OS 层判不出来（ENAMETOOLONG 等）：既不静默放过（假绿），
+                        # 也不让异常冒到 main 外（整门崩）——如实记判红。
+                        findings.append({"id": "DOC-FILE-UNDECIDABLE", "severity": "P1",
+                                         "file": str(doc.relative_to(repo)),
+                                         "line": _line_of(text, m.start()), "symbol": token,
+                                         "observed": "路径判定不可完成: %s" % _u,
+                                         "expected": "stat 成功且存在"})
+                        status = "FAIL"
+                        found = False
                     if not found:
                         # 占位符路径(如 <out_hips>/diagnostics.json)非真实引用
                         if "<" in token or ">" in token:
                             found = True
                     if not found:
-                        # 三种形态**明确不是**"文件必须存在"的判据对象：
-                        #   ① 历史引证：token 自身带"已删除/已归档/deleted"标记
-                        #      （如历史控制包目录下的 tasks/x.md）
-                        #      —— 文档已声明该文件不存在，拿"存在"判它是错口径；
-                        #   ② 花括号展开/通配（`docs/design/PHASE{1,2,3}_.md`）；
+                        # 形态**明确不是**"文件必须存在"的判据对象（判据见 _exempt_form）：
+                        #   ① 历史引证：token 自身带"已删除/已归档/deleted"标记；
+                        #   ② 通配 * ?（**花括号已不在此** —— 它在上一段被展开并逐成员判红，
+                        #      保留原豁免就是把并集写法重新变成恒真门）；
                         #   ③ 含空格的命令行（`grep -c gate2 eng/ci/checks.json`）。
                         # 三者都在 token 自身可判定，无需外部豁免表。
-                        _hist = any(k in token for k in ("已删除", "已归档", "deleted", "removed"))
-                        _glob = ("{" in token and "}" in token) or "*" in token or "?" in token
-                        _cmd = " " in token
-                        if _hist or _glob or _cmd:
+                        if _exempt_form(token):
                             found = True
                     if not found:
                         # Allow if is a non-retention namespace doc.
@@ -522,7 +740,12 @@ def main():
     result = {"tool":"check_doc_symbols","status":status,"docs_scanned":len(docs),
               "namespaces_domains":{"document_stems":len(doc_stems),
                                     "glossary_tokens":len(glossary_toks),
-                                    "registered_symbols":len(ns_tokens)},
+                                    "registered_symbols":len(ns_tokens),
+                                    # FINAL-07（braces-crash）：这一格以前恒为 0 且
+                                    # **没人看得见**（裸 except 吞掉）。显式报出来，
+                                    # 「api_inventory 面恒空」这类恒真门当场可见。
+                                    "api_inventory_symbols":len(api_syms)},
+              "brace_forms":_bstat,
               "findings":findings,"passed": status=="PASS"}
     if args.out_json:
         pathlib.Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
@@ -533,6 +756,20 @@ def main():
     # 文件、stdout 一条判词都没有 ⇒ CI 里 CHK-DANGLING / CON-DOC-SYMBOLS 判红却无法
     # 定位（汇总层只能记"检查器未打印可识别判词"）。JSON 面完全不变，这里只补逐条
     # 「文件:行 符号 判定」；PASS 打一行摘要。
+    # 花括号形态的判定账（**排在 PASS/FAIL 判词之前**，见下方注意）：
+    # sets=展开判过的并集数 members=展开出的成员数 missing=其中解析不到的成员数；
+    # not-a-set: template/regex/prose/unbalanced/overflow=识别为「不是并集写法」
+    # 而未展开的数量。这些数字若全 0，说明扫描面里一条花括号路径都没有 ——
+    # 该状态必须看得见，才能区分「确实没有」与「解析器坏了静默放过」。
+    #
+    # ⚠ 本行**必须是 stdout 末行之前的最后一条非判词行** —— 判词留在末行：
+    # eng/tools/quality/contracts/generate_contract_report.py:47 取
+    # out.stdout.strip().split(chr(10))[-1] 当 JSON 解析。把末行换成这一行
+    # 同样会解析失败落到 except 兜底，但那是撞运气；保持判词在末行才是稳的。
+    print("CON-DOC-SYMBOLS_BRACE: sets=%d members=%d missing=%d | not-a-set: template=%d regex=%d prose=%d unbalanced=%d overflow=%d exempt=%d"
+          % (_bstat["sets_expanded"], _bstat["members_expanded"], _bstat["members_missing"],
+             _bstat["template"], _bstat["regex"], _bstat["prose"],
+             _bstat["unbalanced"], _bstat["overflow"], _bstat["sets_exempted"]))
     if status == "FAIL":
         print("CON-DOC-SYMBOLS_FAIL: %d finding(s) / %d doc(s) scanned"
               % (len(findings), len(docs)))
