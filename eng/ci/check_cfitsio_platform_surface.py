@@ -57,6 +57,8 @@ SHIM_DIR_REL = "eng/cmake/win32_pthread_shim"
 SHIM_FUNC = "astrocs_cfitsio_apply_platform_shim"
 DEPS_FUNC = "astrocs_cfitsio_apply_third_party_deps"
 WARN_FUNC = "astrocs_cfitsio_isolate_warnings"
+# 该函数名仅作**文档锚**保留（判据的豁免按**路径**判定，见 FLAG_HOME_REL；
+# 下方常量此前零读，易被误以为改它能改豁免范围 —— 实际不会）。
 OPENMP_FUNC = "astrocs_openmp_link_if_unix"
 # 允许出现裸 `-fopenmp` 字面量而**不**要求同文件内平台门控的收口文件:
 #   平台模块把所有"门控 + 旗标"收成 `astrocs_openmp_link_if_unix()` 一处。
@@ -559,7 +561,7 @@ def _gated_above(lines: list[str], lineno: int) -> bool:
     若它是别的 if (例如只有 OpenMP_CXX_FOUND), 继续向上找它的父块。
     """
     depth = 0
-    for i in range(lineno - 2, max(-1, lineno - 2 - 200), -1):
+    for i in range(lineno - 2, max(-1, lineno - 2 - FLAG_GATE_LOOKBACK), -1):
         if i < 0:
             break
         code = lines[i].split("#", 1)[0].strip()
