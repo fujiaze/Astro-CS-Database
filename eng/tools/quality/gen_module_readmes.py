@@ -39,7 +39,10 @@ import sys
 SOURCE_REL = "lib/infrastructure/scheduler/src/module_adapters.cpp"
 LEGACY_SOURCE_REL = "lib/core/src/module_adapters.cpp"      # 已消失；仅用于报错提示
 INDEX_REL = "docs/DOCUMENT_INDEX.yaml"
-OUT_DIR_REL = "docs/modules/registry"
+# 27 份模块页已随迁移迁至 docs/detail/registry/（旧位只余一份 baseline json，仍在原处）。
+# 本生成器**写页面**，故指向新落点；否则它会把页面重新生成进已废目录，
+# 而它自述的「未写盘（docs/modules/registry 保持原样）」也会变成假话。
+OUT_DIR_REL = "docs/detail/registry"
 GENERATOR_REL = "eng/tools/quality/gen_module_readmes.py"
 EVIDENCE_REL = "eng/ci/ledgers/module_page_evidence.json"
 REGEN_CMD = "python3 eng/tools/quality/gen_module_readmes.py"
