@@ -64,10 +64,9 @@ PATHTOK_RE = re.compile(
     r"(?<![A-Za-z0-9_])((?:[\w.-]+/)+[\w.-]+\.(?:h|hpp|cpp|cc|cxx|py|json|yaml|yml|cmake|txt))")
 QUAL_RE = re.compile(r"\b([A-Za-z_][\w]*(?:::[A-Za-z_~][\w]*)+)\b")
 CALL_RE = re.compile(r"\b([A-Za-z_][\w]{2,})\s*\(")
-PATH_PREFIXES = ["", "lib/", "lib/include/astrocs/", "eng/", "eng/tools/", "docs/"]
-# 模块内相对路径（第③层常写 src/xxx.cpp 而不写全路径）=> 逐个模块目录解析
-MODULE_DIR_GLOBS = ["lib/algorithms", "lib/infrastructure", "lib"]
-# 科学符号：名字若已出现在 docs/science/** 则是科学量符号，不是代码符号
+# 注：此处原有「按前缀猜路径」与「按模块目录逐个解析」两份清单常量，**它们从不被读取** ——
+# 路径判定已改由后缀精确解析承担（见下方 build_path_index 的说明）。
+# 保留那两份会让人以为调它们能改解析范围，实际不会，故删除。
 SCIENCE_TOKENS_REL = "docs/science"
 PATH_EXEMPT = {
     "README/module.yaml": "MODULE_MAP 八元组模板位，不是真实文件",
