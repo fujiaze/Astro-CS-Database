@@ -88,7 +88,7 @@ EXEMPT_KINDS = {"conformance", "service", "provider"}
 # 合法模块来源目录：矩阵模块清单须能在其中发现（防孤行/防遗漏）
 MODULE_ANCHOR_DIRS = [
     "eng/tests/conformance", "lib/infrastructure/aio/io", "lib/infrastructure/benchmark/cpu",
-    "docs/modules/registry",  # registry production 模块（module_adapters.cpp 唯一源）
+    "docs/detail/registry",  # registry production 模块（module_adapters.cpp 唯一源）
 ]
 AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其中一个文件文本中出现）
     # 锚存活（docs/engineering/01_CHECKS.md §1）：本表每条**必须**是当前树里存在的目录；
@@ -114,12 +114,12 @@ AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其�
     "SCI": ["docs/science"],
     "ALG": ["docs/algorithms", "docs/science"],
     "DATA": ["docs/engineering", "docs/science", "docs/contracts"],
-    "API": ["docs/engineering", "docs/contracts", "docs/modules/registry",
+    "API": ["docs/engineering", "docs/contracts", "docs/detail/registry",
             "eng/tests/conformance", "lib/infrastructure/benchmark/cpu"],
     "ARCH": ["docs/architecture", "docs/engineering", "docs/contracts"],
-    "MOD": ["eng/tests/conformance", "lib/infrastructure", "docs/modules/registry"],
+    "MOD": ["eng/tests/conformance", "lib/infrastructure", "docs/detail/registry"],
     "SRC": ["lib"],
-    "TEST": ["eng/tests", "lib", "docs/engineering", "docs/contracts", "docs/modules/registry"],
+    "TEST": ["eng/tests", "lib", "docs/engineering", "docs/contracts", "docs/detail/registry"],
     "EVID": ["artifacts/evidence"],
 }
 
@@ -834,7 +834,7 @@ def _id_has_authority(root, layer, ident, pathhint):
 def _check_module_coverage(root, rows, results):
     """已知模块清单（真实目录/registry front-matter）必须在矩阵中有一行。"""
     known = set()
-    reg = os.path.join(root, "docs/modules/registry")
+    reg = os.path.join(root, "docs/detail/registry")
     if os.path.isdir(reg):
         for fn in sorted(os.listdir(reg)):
             if fn.endswith(".md"):
