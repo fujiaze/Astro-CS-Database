@@ -38,8 +38,8 @@ docs/
 | 层 | 准入 | 退出 |
 |---|---|---|
 | 科学线（`docs/science/`） | 载有公式、常数、判据、容差、冻结定义的科学正文；每篇可溯源到实验单元与一手资料佐证 | 内容降级为接线说明 ⇒ 移出科学线 |
-| 工程线（`docs/contracts/`、`docs/api/`、`docs/design/`、`docs/plugins/`、`docs/ci/`、`docs/standards/`） | 载有行为合同、命令树、调度/资源/AIO 边界的工程权威正文 | 内容降级为流水说明 ⇒ 并入对应细节面 |
-| 细节与运维（`docs/modules/`、`docs/architecture/`、`docs/development/`、`docs/validation/`、`docs/operations/`、`docs/traceability/` 等） | 上层文档的落地细化、模块工作细节、机器合同说明；与上层口径冲突的内容不成立 | 被晋升为上层（须有上层条款承载） |
+| 工程线（`docs/engineering/`；机器合同件留原位：`docs/contracts/`、`docs/standards/`、`docs/architecture/`） | 载有行为合同、命令树、调度/资源/AIO 边界的工程权威正文 | 内容降级为流水说明 ⇒ 并入对应细节面 |
+| 细节与运维（`docs/detail/`；机器件留原位：`docs/modules/`、`docs/traceability/`） | 上层文档的落地细化、模块工作细节、机器合同说明；与上层口径冲突的内容不成立 | 被晋升为上层（须有上层条款承载） |
 
 - 细节面每篇抬头有「上游：〈上层文档 §条〉」区；科学线与工程线每篇抬头有「上游：docs/ASTROCS_DESIGN.md §条」区（机器判红）；
 - **科学佐证纪律（全局）**：科学线每篇的一级断言须能被 `实验/` 单元与一手公开资料支撑；非创新点算法（校准、platesolve、cosmetic 等）同样要求「一手文献 + 成熟开源实现 + `实验/` 复算」三支撑，文献与项目版本写入文档头部佐证来源区并进 `docs/DOCUMENT_INDEX.yaml`；
