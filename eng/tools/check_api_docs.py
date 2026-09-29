@@ -7,7 +7,10 @@
   [A] 命令树  : docs/api/CLI_PROTOCOL_V1.md §1 每命令与 CLI 产物 --help 一致。
         CLI 产物候选（产品图优先）见 Checker.CLI_EXE_CANDIDATES；候选全缺/跑不起来/
         --help 无可解析命令树 → FAIL（fail-closed，禁止静默跳过让门退化为 0 检查）。
-  [B] 退出码  : docs 列出的 0/2/3/4/5/6/7/8/9/10/70 与唯一源 exit_codes.h 一致。
+  [B] 退出码  : 退出码面**双向 + 名字**对账（doc ↔ 唯一源 exit_codes.h ↔ 本门内嵌表）：
+        ① doc 列出的码 头文件必须有定义；② 头文件每个码 doc §2 必须也登记（反向，闭合单向盲面）；
+        ③ 本门内嵌 EXIT_NAMES 表与头文件**双向逐符号逐数值**一致（同值异名/漏项/多项 → FAIL）。
+        0/2/3/4/5/6/7/8/9/10/70 全部 11 码，逐码核对，不做「全通过」式汇总。
   [C] session 签名(§1 生命周期): 每 `p1/p2/p3_session_*` 函数存在于 session 头文件,
        且参数数(按 '(' 后匹配 ')' 的顶层逗号)与文档 §1 一致。  ← 合同③ 签名一致
   [D] 底层函数登记(§2 表): 每个登记符号存在于真实头文件(合同①); 文档表行存在(合同②);
@@ -26,7 +29,11 @@ import re
 import subprocess
 import sys
 
-EXIT_NAMES = {0: "OK", 2: "ARGS", 3: "INPUT", 4: "SCIENCE", 5: "BACKEND", 6: "EXEC",
+# 退出码「数值→符号名」表。这是 exit_codes.h 的**副本**，只用于与权威表双向对账，
+# 不得成为第二份定义源。2026-09-XX 修复：6 原写成 "EXEC"，头文件真值是 COMPUTE=6 ——
+# 因原判据只取 EXIT_NAMES 的**键**、从不比较名字，这类**同值异名**永远不可见；
+# 现已由 check_exit_codes() 的 B③a/B③b 双向逐符号逐数值抓住。
+EXIT_NAMES = {0: "OK", 2: "ARGS", 3: "INPUT", 4: "SCIENCE", 5: "BACKEND", 6: "COMPUTE",
               7: "IO", 8: "INTEGRITY", 9: "CANCELLED", 10: "RESOURCE", 70: "INTERNAL"}
 
 
@@ -188,28 +195,74 @@ class Checker:
         if missing:
             self.fail("命令树 doc 有但 CLI --help 缺(或文本差): %s" % "; ".join(missing[:6]))
 
-    # ── [B] 退出码唯一源 exit_codes.h ──
+    # ── [B] 退出码唯一源 exit_codes.h（**双向 + 名字**对账） ──────────────
+    #
+    # 历史盲面（本节修复前）：原实现只做**单向**「doc 里的码 ⇒ 头文件有定义」，且
+    #     defined = {头文件里 "=数字" 的取值} ∩ {EXIT_NAMES 的**键**}
+    # —— EXIT_NAMES 的**值（码名）从不参与比较**。于是本文件内嵌表把 6 写成
+    # "EXEC"（头文件真值是 COMPUTE=6）这类**同值异名**永远不可见；删掉/加多
+    # 表项也只会改变 defined 过滤集、或完全不可见。现补三个方向：
+    #     B①（原有，保留）doc → 头文件：doc 出现的每个码，头文件必须有定义；
+    #     B②（新增，反向）头文件 → doc：头文件每个码，doc §2 必须也登记（闭合单向盲面）；
+    #     B③（新增，名字）本文件内嵌 EXIT_NAMES 表 ↔ 头文件 **双向逐符号逐数值**：
+    #         ③a 表 ⇒ 头文件：每个符号必须存在且数值相等（抓同值异名 EXEC/COMPUTE）；
+    #         ③b 头文件 ⇒ 表：每个码必须在表里（抓漏项 / 多项）。
+    # 判据只加严不放宽：原 B① 的「doc 有而头文件无」判红路径逐字保留。
+    ENUM_ITEM_RE = re.compile(r"^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(\d+)\s*,", re.M)
+
+    def _exit_codes_h_path(self):
+        if self.exit_codes_h and os.path.isfile(self.exit_codes_h):
+            return self.exit_codes_h
+        for cand in (os.path.join(self.repo, "include", "acsd", "exit_codes.h"),
+                     os.path.join(self.repo, "lib", "infrastructure", "cli", "exit_codes.h"),
+                     os.path.join(self.repo, "include", "acsd", "exit_codes.hpp")):
+            if os.path.isfile(cand):
+                return cand
+        return None
+
     def check_exit_codes(self):
         doc = os.path.join(self.doc_api, "CLI_PROTOCOL_V1.md")
+        if not os.path.isfile(doc):
+            return self.fail("缺少 CLI_PROTOCOL_V1.md（[B] 退出码门无对账对象 → FAIL）")
         doc_text = open(doc, encoding="utf-8", errors="ignore").read()
-        doc_codes = set(int(m) for m in re.findall(r"\b(0|2|3|4|5|6|7|8|9|10|70)\b", doc_text))
-        hdr = None
-        if self.exit_codes_h and os.path.isfile(self.exit_codes_h):
-            hdr = self.exit_codes_h
-        else:
-            for cand in (os.path.join(self.repo, "include", "acsd", "exit_codes.h"),
-                         os.path.join(self.repo, "lib", "infrastructure", "cli", "exit_codes.h"),
-                         os.path.join(self.repo, "include", "acsd", "exit_codes.hpp")):
-                if os.path.isfile(cand):
-                    hdr = cand
-                    break
+        hdr = self._exit_codes_h_path()
         if hdr is None:
             return self.fail("缺少 exit_codes.h(lib/include/astrocs/ 或 lib/infrastructure/cli/)")
         hdr_text = open(hdr, encoding="utf-8", errors="ignore").read()
-        defined = set(int(d) for d in re.findall(r"=\s*(\d{1,2})\b", hdr_text) if int(d) in EXIT_NAMES)
-        for code in doc_codes:
-            if code not in defined:
+
+        # 头文件 enum 真解析（不再用 "= 数字" 的正则汤：那会把 #define 之类也吞进来）
+        hdr_table = {m.group(1): int(m.group(2))
+                     for m in self.ENUM_ITEM_RE.finditer(hdr_text)}
+        if not hdr_table:
+            return self.fail("exit_codes.h 解析不到任何枚举项（%s）—— [B] fail-closed" % hdr)
+        hdr_values = set(hdr_table.values())
+
+        # doc 侧的码集合：取值域从权威表派生，不再把 0/2/3/…/70 硬编码成正则
+        alt = "|".join(str(v) for v in sorted(hdr_values))
+        doc_codes = set(int(m) for m in re.findall(r"\b(%s)\b" % alt, doc_text))
+
+        # B① doc → 头文件（原判据，逐字保留）
+        for code in sorted(doc_codes):
+            if code not in hdr_values:
                 self.fail("exit code %d 在 doc 出现但 exit_codes.h 未定义" % code)
+        # B② 头文件 → doc（反向：闭合单向盲面）
+        for sym, val in sorted(hdr_table.items(), key=lambda kv: kv[1]):
+            if val not in doc_codes:
+                self.fail("exit code %d（%s）在 exit_codes.h 定义但 CLI_PROTOCOL_V1.md §2 未登记"
+                          % (val, sym))
+        # B③ 内嵌 EXIT_NAMES 表 ↔ 头文件（双向逐符号逐数值）
+        for val, sym in sorted(EXIT_NAMES.items()):
+            if sym not in hdr_table:
+                others = sorted(s for s, v in hdr_table.items() if v == val)
+                self.fail("退出码 %d 的符号名 %r 不在 exit_codes.h（同值异名；头文件同值符号=%s）"
+                          % (val, sym, "/".join(others) or "无"))
+            elif hdr_table[sym] != val:
+                self.fail("退出码 %r 在 exit_codes.h 是 %d，内嵌表写 %d，数值不符"
+                          % (sym, hdr_table[sym], val))
+        for sym, val in sorted(hdr_table.items(), key=lambda kv: kv[1]):
+            if EXIT_NAMES.get(val) != sym:
+                self.fail("exit_codes.h 的 %s=%d 未在内嵌 EXIT_NAMES 表登记（表内该值写的是 %r）"
+                          % (sym, val, EXIT_NAMES.get(val)))
 
     # ── [C/D] session 生命周期 + 底层函数登记 ──
     def _count_params_in(self, inner: str) -> int:

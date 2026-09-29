@@ -44,6 +44,47 @@ REG_WIDE = re.compile(r"%(?:y|z)mm\d+|\b(?:y|z)mm\d+\b")
 ADDR = re.compile(r"^[0-9a-fA-F]+:\s*")
 BYTE2 = re.compile(r"[0-9a-fA-F]{2}")
 
+# ── 指令**编码**判定（ground truth，不看助记符表）──────────────────────────
+# VEX/EVEX 是前缀字节，不是助记符：x86-64 下 0x62 = EVEX、0xC4/0xC5 = VEX。
+# objdump/llvm-objdump 与 dumpbin /disasm **都把指令字节列出来**，故同一判据在
+# ELF 与 PE/COFF 两腿通用（助记符表会随汇编器方言漂移，字节前缀不会）。
+# 用途: 「这条指令是不是真的需要目标 ISA」在**编码层**可判定 —— 例: 同一助记符
+# vmulss 有 VEX(AVX) 与 EVEX(AVX-512F) 两种编码，按助记符名字分不开，按首字节
+# 0x62 却分得开。这是 --require-evex/--require-vex 的判据基座。
+EVEX_BYTE, VEX_BYTES = "62", ("c4", "c5")
+
+
+def lead_bytes(line):
+    """该行指令的编码字节序列（去地址后、助记符前的十六进制字节）。"""
+    out = []
+    for tok in ADDR.sub("", line.strip()).split():
+        if BYTE2.fullmatch(tok):
+            out.append(tok.lower())
+        else:
+            break
+    return out
+
+
+def encoding_of(line):
+    """'evex' | 'vex' | 'legacy'。无字节列（去字节的反汇编文本）⇒ 'unknown'。"""
+    b = lead_bytes(line)
+    if not b:
+        return "unknown"
+    if b[0] == EVEX_BYTE:
+        return "evex"
+    return "vex" if b[0] in VEX_BYTES else "legacy"
+
+
+def is_evex(line):
+    """该行指令是否 EVEX(0x62 前缀)编码。无字节列 ⇒ False（证据不可判，不许充数）。"""
+    return encoding_of(line) == "evex"
+
+
+# AVX-512 档位的证据规则**一律**要求 EVEX 编码（AVX512_* 前缀的位）。
+# 理由: 助记符名字跨档共享，编码字节不共享。0x62 前缀在无 AVX-512F 的机器上同样
+# #UD，故它是"本档才可能发射"的最小可靠判据。
+EVEX_ONLY_FEATURES = ("avx512f", "avx512cd", "avx512bw", "avx512dq", "avx512vl")
+
 # 档位专属助记符（仅用于加档；VEX/EVEX 的"是否宽指令"判定不依赖本表）
 AVX2_ONLY = re.compile(
     r"^(?:v(?:p(?:sub|add|and|or|xor|mull|cmpeq|cmpgt|cmp|sll|srl|sra|blend|broadcast|perm|extract|insert|gather|pack|unpack|abs|min|max|avg|test)[a-z0-9]*"
@@ -56,7 +97,8 @@ AVX512_ONLY = re.compile(
     r"|shuff(?:32|64)x|blendm[a-z0-9]*|compress[a-z0-9]*|expand[a-z0-9]*|scatter[a-z0-9]*"
     r"|pblendm[a-z0-9]*|pmullq|pandn[qd]|pand[qd]|por[qd]|pxor[qd]|padd[qd]|psub[qd]|psll[qd]|psrl[qd]"
     r"|prol[qd]|pror[qd]|pshld[a-z0-9]*|pshrd[a-z0-9]*|cvtqq2pd|pmovqd|fpclass[a-z0-9]*|rangeps[a-z0-9]*"
-    r"|reduceps[a-z0-9]*|rcp14[a-z0-9]*|rsqrt14[a-z0-9]*|getexp[a-z0-9]*|getmant[a-z0-9]*|fixupimm[a-z0-9]*))$")
+    r"|reduceps[a-z0-9]*|rcp14[a-z0-9]*|rsqrt14[a-z0-9]*|getexp[a-z0-9]*|getmant[a-z0-9]*|fixupimm[a-z0-9]*"
+    r"|rndscale(?:ss|ps|sd|pd)|cvtusi2(?:ss|ps|sd|pd)))$")
 
 # 声明位 → 使用证据（判据 4；每条都必须能在产物里找到至少一条，否则判红）
 FEATURE_EVIDENCE = {
@@ -66,8 +108,12 @@ FEATURE_EVIDENCE = {
     # 按助记符**名字**认会假绿 —— vpaddd/vpaddq/vpsubd 等 AVX2 就能合法发射，
     # vbroadcastss/vbroadcastsd 亦然。实测: 低档变体产物里 7 条这类指令
     # 让「声明了高档位却没用」这条判据整条失效(判绿)。凡跨档共享的助记符一律不收。
-    "avx512f": ("512-bit（zmm）指令，或 EVEX 专有 F 档助记符",
-                re.compile(r"%(?:z)mm|\bzmm\d|\bv(?:movdqu(?:8|16|32|64)|movdqa(?:32|64)|pternlog[qd]|por[qd]|pand[qd]|pxor[qd]|broadcast[a-z]*x[0-9]+)[a-z0-9]*\b")),
+    "avx512f": ("512-bit（zmm）指令；EVEX 专有 F 档助记符（含标量 EVEX-only 的 "
+                "VRNDSCALE/VCVTUSI2 —— 第二族 provider 的热点 kernel（hips 双线性重采样，"
+                "含 % 与 floor）在 -mavx512* 下不被宽向量化，编译器只把 floor/无符号转换"
+                "发射成 EVEX 标量形式，实测 vrndscaless/vcvtusi2ss，首字节 0x62；"
+                "只认 zmm 会把这个真用了 AVX-512F 的产物判成假变体）；或**编码层** 0x62 前缀",
+                re.compile(r"%(?:z)mm|\bzmm\d|\bv(?:movdqu(?:8|16|32|64)|movdqa(?:32|64)|pternlog[qd]|por[qd]|pand[qd]|pxor[qd]|broadcast[a-z]*x[0-9]+|rndscale(?:ss|ps|sd|pd)|cvtusi2(?:ss|ps|sd|pd))[a-z0-9]*\b")),
     "avx512cd": ("CD 专属助记符（冲突检测/前导零计数）", re.compile(r"\bv(?:pconflict|plzcnt)[a-z0-9]*\b")),
     # packuswb/punpcklbw 是跨档共享助记符(AVX2 合法)，不得作为本档证据（同 F 档注释）。
     "avx512bw": ("BW 专属助记符（字节/字粒度，EVEX 专有）", re.compile(r"\bv(?:movdqu8|movdqu16|pcmpeq[bdw]|pcmp[bdw]|pmovm2b|pmovm2w|psllvw|psrlvw|psravw)[a-z0-9]*\b")),
@@ -183,6 +229,12 @@ def main(argv=None):
     ap.add_argument("--isa", choices=("avx2", "avx512"), default="avx512")
     ap.add_argument("--hit", action="append", default=[], help="函数体必须含该档宽指令（可重复）")
     ap.add_argument("--clean-symbol", action="append", default=[], help="函数体必须零 VEX/EVEX（可重复）")
+    ap.add_argument("--require-evex", action="append", default=[],
+                    help="SYM 函数体必须含 ≥1 条 EVEX(首字节 0x62)编码指令 —— **编码层**真值"
+                         "（不依赖助记符表; ELF 与 PE/COFF/dumpbin 文本通用）。标量 EVEX"
+                         "（vrndscaless/vcvtusi2ss 等）也算: 它在无 AVX-512F 的机器上同样 #UD")
+    ap.add_argument("--require-vex", action="append", default=[],
+                    help="SYM 函数体必须含 ≥1 条 VEX(首字节 0xC4/0xC5)编码指令（同上, 编码层）")
     ap.add_argument("--require-text", action="store_true", help="整份文本必须含该档宽指令")
     ap.add_argument("--clean-text", action="store_true", help="整份文本必须零 VEX/EVEX")
     ap.add_argument("--declared-features", default="",
@@ -227,6 +279,31 @@ def main(argv=None):
                              % (s, len(ops), ops[0][1][:96]))
             else:
                 logs.append("%s: 零 VEX/EVEX（基线可执行）" % s)
+    # 编码层断言（--require-evex / --require-vex）: 唯一不受助记符表漂移影响的档位证明。
+    # 无字节列 ⇒ fail-closed 判红（不得把"判不出"当成"没有"）。
+    for enc_opt, syms in (("evex", a.require_evex), ("vex", a.require_vex)):
+        for sym in syms:
+            cand = [s for s in order if sym in s]
+            if not cand:
+                fails.append("--require-%s %s: 符号不存在于产物（断言不得空转）" % (enc_opt, sym))
+                continue
+            for s in cand:
+                lines = [ln for ln in funcs[s] if ln.strip()]
+                encs = [encoding_of(ln) for ln in lines]
+                if encs and all(e == "unknown" for e in encs):
+                    fails.append("--require-%s %s: 反汇编文本**无指令字节列**（编码层判据不可判）"
+                                 "—— fail-closed 判红；请用 objdump/llvm-objdump/dumpbin /disasm 的"
+                                 "带字节输出" % (enc_opt, s))
+                    continue
+                n = sum(1 for e in encs if e == enc_opt)
+                if n == 0:
+                    fails.append("--require-%s %s: 函数体无该编码指令（%s 档真变体证明不成立）"
+                                 % (enc_opt, s, enc_opt.upper()))
+                else:
+                    logs.append("%s: %s 编码指令 %d 条（示例: %s）"
+                                % (s, enc_opt.upper(), n,
+                                   next(ln.strip()[:96] for ln, e in zip(lines, encs)
+                                        if e == enc_opt)))
     if a.require_text and not class_ops(text.splitlines(), a.isa):
         fails.append("--require-text: 整份产物无 %s 档宽指令" % a.isa)
     if a.clean_text:

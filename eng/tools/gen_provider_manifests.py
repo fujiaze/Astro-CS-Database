@@ -33,45 +33,58 @@ import re
 import subprocess
 import sys
 
-# 与 lib/backend_host/cpu_features.h 冻结的位定义**逐位同源** (禁止漂移)。
-# 订正 (DYN-740 / R-28): 原表 avx512bw=1<<6 / dq=1<<7 / vl=1<<8 与 cpu_features.h
-# (CD=1<<6 / BW=1<<7 / DQ=1<<8 / VL=1<<9) 冲突 —— 同一位号两名两义，生成出来的
-# required_features_bits 会被预检按**另一个能力**判读。现按 cpu_features.h 逐位抄录。
-FEATURE_BITS = {
-    "sse2": 1 << 0,
-    "sse4_1": 1 << 1,
-    "avx": 1 << 2,
-    "avx2": 1 << 3,
-    "fma": 1 << 4,
-    "avx512f": 1 << 5,
-    "avx512cd": 1 << 6,
-    "avx512bw": 1 << 7,
-    "avx512dq": 1 << 8,
-    "avx512vl": 1 << 9,
-}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import isa_sites  # noqa: E402
+from isa_feature_bits import FeatureBits, UnknownFeature  # noqa: E402
+
+# 位表**不抄**，从唯一事实源解析（eng/tools/isa_feature_bits.py → cpu_features.h）。
+# 抄一份的历史代价: DYN-740 / R-28 —— 本文件旧表把 avx512bw/dq/vl 写成 1<<6/1<<7/1<<8，
+# 与 cpu_features.h 的 CD=1<<6 / BW=1<<7 / DQ=1<<8 / VL=1<<9 冲突: 同一位号两名两义，
+# 生成出来的 required_features_bits 会被加载预检按**另一个能力**判读。
+_FB = FeatureBits.load()
+FEATURE_BITS = _FB.bit_by_name
 ACS_ABI_VERSION_V1 = 1
 
-# 各 provider 的 required feature 声明 (与 CMake target 编译旗标一一对应)
-# baseline: 最低 amd64(SSE2 基线, 恒置位), 无附加位
-# avx2: AVX2 + FMA 分别声明 (ISA-001)
-# avx512: AVX512F 实际使用子集 F/DQ/BW/VL (ISA-004)
-PROVIDER_REQUIRED = {
-    "baseline": [],
-    "avx2": ["avx2", "fma"],
-    "avx512": ["avx512f", "avx512bw", "avx512dq", "avx512vl"],
+# 后端 id 全集（遍历序 + build_id 的族标识后缀；baseline 恒为进程内置）。
+BACKEND_IDS = ("baseline", "avx2", "avx512")
+
+# 预检匹配面 = cpu_features.h 的实测检测位（DYN-740 / R-28: 旧实现把 avx512 的声明收窄到
+# avx512f，而产物以 -mavx512f/-bw/-dq/-vl 编译 ⇒「声明 ⊊ 编译」，出厂机器（如 KNL: 有 F
+# 无 BW/DQ/VL）上加载放行、首调撞非法指令）。
+DETECTABLE_FEATURES = set(FEATURE_BITS.keys())
+
+# ── 声明面记录 ↔ 构建口径（R-60: 清单的 ISA 声明位必须**推导**，不得手抄）──────────────
+# DECLARED_BITS = 每个家族/变体在 DSO 源码里**自陈**的需求位（加载预检 required ⊆ detected
+# 的左边），按平台分开写。它不是数据源，而是与构建口径逐位核对的**期望值**:
+# 口径来自 eng/tools/quality/isa_sites.json 的旗标站点（该表由 check_isa_same_source.py
+# 强制与根 CMakeLists.txt 的 target_compile_options 对齐）。两边不等即拒出清单（rc=5），
+# 并指明方向:
+#   · 声明 ⊄ 编译（"声明了但没编进去"）= 虚假能力声明;
+#   · 编译 ⊄ 声明（少声明）= 加载放行后首调撞非法指令（DYN-740 原始事故）。
+# 两族的 avx512 记录不同是**合法**差异，依据在各自源码与旗标里:
+#   backend  家族: -mavx512f -bw -dq -vl 编译（无 CD），声明宏 ASTROCS_BACKEND_REQUIRED_FEATURES
+#     按 __AVX512CD__ 两分支 ⇒ GNU 928 / MSVC 992;
+#   provider 家族: 五个子集旗标编译（含 -mavx512cd），声明宏 ACS_CPU_AVX512_REQUIRED_FEATURES
+#     = ACS_CAP_GROUP_AVX512_SUBSET = F|CD|BW|DQ|VL ⇒ **两平台都是 992**（旧清单此处写 928，
+#     与该 DSO 的自陈宏和自身编译旗标都不符 —— 属"清单声明位没从构建口径推导"的同类缺口）。
+DECLARED_BITS = {
+    "backend": {
+        "baseline": {"*": ()},
+        "avx2": {"*": ("avx2", "fma")},
+        "avx512": {isa_sites.GNU_PLATFORM: ("avx512f", "avx512bw", "avx512dq", "avx512vl"),
+                   isa_sites.MSVC_PLATFORM: ("avx512f", "avx512cd", "avx512bw", "avx512dq", "avx512vl")},
+    },
+    "provider": {
+        "baseline": {"*": ()},
+        "avx2": {"*": ("avx2", "fma")},
+        "avx512": {"*": ("avx512f", "avx512cd", "avx512bw", "avx512dq", "avx512vl")},
+    },
 }
 
-# 预检匹配面 = cpu_features.h 的实测检测位。订正 (DYN-740 / R-28): 旧注释称"检测面 v1
-# 只暴露 avx512f 位"，据此把 avx512 的 required_features_bits 收窄到 avx512f ——
-# 而 cpu_features.cpp 自 TRUTHFUL-CONCLUSION-01 起逐位实测 BW/DQ/VL，且 avx512
-# provider 以 -mavx512f/-bw/-dq/-vl 编译 ⇒「声明 ⊊ 编译」，出厂机器（如 KNL：有 F 无
-# BW/DQ/VL）上加载放行、首调撞非法指令。现声明 = 编译 = 检测三侧同源
-# (ACS_FEAT_AVX512_PROVIDER_REQUIRED = F|BW|DQ|VL = 928)。
-DETECTABLE_FEATURES = set(FEATURE_BITS.keys())
-PROVIDER_REQUIRED_BITS = {
-    "baseline": [],
-    "avx2": ["avx2", "fma"],
-    "avx512": ["avx512f", "avx512bw", "avx512dq", "avx512vl"],
+# 清单条目 ↔ 旗标站点（baseline 无旗标站点: 它本身就是基线 ISA 面）。
+SITE_BY_FAMILY = {
+    "backend": {"avx2": "product-avx2", "avx512": "product-avx512"},
+    "provider": {"avx2": "product-cpuprov-avx2", "avx512": "product-cpuprov-avx512"},
 }
 
 # kernel 表 (与 lib/backend_host/backend_table.inc 注册序一致; hash 校验防漂移)
@@ -191,6 +204,8 @@ def main():
     ap.add_argument("--out", required=True, help="输出 manifest JSON 路径")
     ap.add_argument("--compiler", default="", help="编译器标识(如 g++-14)")
     ap.add_argument("--commit", default="", help="覆盖 git commit(默认取 HEAD)")
+    ap.add_argument("--sites-file", default=isa_sites.DEFAULT_SITES,
+                    help="ISA 旗标站点口径表(默认 eng/tools/quality/isa_sites.json)")
     args = ap.parse_args()
 
     if not os.path.isdir(args.build_dir):
@@ -199,19 +214,26 @@ def main():
     commit = args.commit or git_commit(args.repo)
     fam = FAMILIES[args.family]
 
-    flags_per_provider = {
-        "baseline": "(none; amd64 SSE2 基线)",
-        # avx512 全子集(与 PROVIDER_REQUIRED_BITS 及根 CMake target 编译旗标同源)
-        "avx2": "-mavx2 -mfma",
-        "avx512": "-mavx512f -mavx512bw -mavx512vl -mavx512dq",
-    }
+    # R-60: 旗标与声明面**同源同平台**。MSVC 没有 AVX-512 子集档位旗标 —— /arch:AVX512 的
+    # 许可面是 F+CD+BW+DQ+VL（MS docs /arch (x64) 预定义宏段 + C++ 团队博客），比 GCC 腿的
+    # 四子集旗标多 CD；变体 DSO 的声明（avx512_backend.cpp 的 ASTROCS_BACKEND_REQUIRED_FEATURES
+    # 按 __AVX512CD__ 取平台精确值）因此含 CD ⇒ 清单必须同步，否则一边「声明了产物没用上的位」、
+    # 另一边「产物声明了清单不认」。GNU/Clang(Linux) 腿的输出逐字节不变。
+    platform = isa_sites.platform_of(args.compiler)
+    try:
+        sites_reg = isa_sites.load(args.sites_file)
+    except (OSError, ValueError) as e:
+        print(f"ERROR: 读不到 ISA 旗标口径表 {args.sites_file}: {e}", file=sys.stderr)
+        return 2
+    # 逐变体的**真实构建旗标**（来自站点登记，平台分支已解析）；不是手抄的字符串。
+    flags_by_backend = {"baseline": "(none; amd64 SSE2 基线)"}
     # 交付形态选择: --providers-dir ⇒ SHARED DSO(astrocs_cpu_<id>.so|.dll, PREFIX 已去 lib);
     # 否则沿用旧静态库面(libastrocs_cpu_<id>.a)。
     providers_dir = args.providers_dir
     if providers_dir and not os.path.isdir(providers_dir):
         print(f"ERROR: providers dir not found: {providers_dir}", file=sys.stderr)
         return 3
-    ids = [b for b in PROVIDER_REQUIRED
+    ids = [b for b in BACKEND_IDS
            if not (args.isa_only and fam["skip_baseline_when_isa_only"] and b == "baseline")]
     if args.family == "provider" and not providers_dir:
         print("ERROR: provider 家族只以 SHARED DSO 交付 ⇒ 必须给 --providers-dir", file=sys.stderr)
@@ -219,7 +241,44 @@ def main():
     provider_entrypoint = fam["entrypoint"]
     backends = []
     for backend_id in ids:
-        feats = PROVIDER_REQUIRED[backend_id]
+        # 声明面记录（按平台取；"*" = 两平台同值）
+        expect = DECLARED_BITS[args.family][backend_id]
+        expect = tuple(expect.get(platform, expect.get("*")))
+        # 构建口径推导（站点旗标 ⊆> 位面）；站点缺失/旗标未映射 ⇒ fail-closed
+        site_id = SITE_BY_FAMILY[args.family].get(backend_id, "")
+        if site_id:
+            site = isa_sites.site_of(sites_reg, site_id)
+            if site is None:
+                print(f"ERROR: 口径表 {args.sites_file} 里没有站点 {site_id}"
+                      f"（家族 {args.family} 变体 {backend_id}）—— 站点未登记不得凭空出清单",
+                      file=sys.stderr)
+                return 2
+            try:
+                applicable, derived, _derived_bits = isa_sites.permitted(sites_reg, site,
+                                                                        platform, _FB)
+            except (isa_sites.UnknownSite, UnknownFeature) as e:
+                print(f"ERROR: 站点 {site_id} 推导失败: {e}", file=sys.stderr)
+                return 2
+            flags_by_backend[backend_id] = " ".join(applicable)
+        else:
+            derived = ()
+        if tuple(derived) != expect:
+            extra = [n for n in expect if n not in derived]        # 声明 ⊄ 编译
+            missing = [n for n in derived if n not in expect]      # 编译 ⊄ 声明
+            if extra:
+                print(f"ERROR: 声明了但没编进去（虚假能力声明）: {extra} —— "
+                      f"家族 {args.family} 变体 {backend_id} 在平台 {platform} 的站点 "
+                      f"{site_id or '(无)'} 旗标只许可 {list(derived)}", file=sys.stderr)
+            if missing:
+                print(f"ERROR: 编进去了却没声明（加载会放行到不支持的机器）: {missing} —— "
+                      f"家族 {args.family} 变体 {backend_id} 平台 {platform} 的站点旗标许可 "
+                      f"{list(derived)}，声明记录只有 {list(expect)}", file=sys.stderr)
+            if not extra and not missing:
+                print(f"ERROR: 声明面与构建口径不等: {list(expect)} vs {list(derived)}",
+                      file=sys.stderr)
+            return 5
+        feats = list(expect)
+        req_bits = list(expect)
         if providers_dir:
             lib = ""
             for ext in (".so", ".dll"):
@@ -238,9 +297,11 @@ def main():
         if not verify_entrypoint(lib, provider_entrypoint):
             print(f"ERROR: provider library {lib} 未导出 {provider_entrypoint}", file=sys.stderr)
             return 4
-        bits = 0
-        for name in PROVIDER_REQUIRED_BITS[backend_id]:
-            bits |= FEATURE_BITS[name]
+        try:
+            bits = _FB.bits_of(req_bits)
+        except UnknownFeature as e:
+            print(f"ERROR: 声明位不在 cpu_features.h: {e}", file=sys.stderr)
+            return 2
         backends.append({
             "file": os.path.basename(lib),
             "backend_id": backend_id,
@@ -262,7 +323,8 @@ def main():
         "family": args.family,
         "entrypoint": fam["entrypoint"],
         "build": {
-            "build_id": f"{commit[:12]}-{args.family}-{'-'.join(flags_per_provider.keys())}",
+            "build_id": f"{commit[:12]}-{args.family}-{'-'.join(BACKEND_IDS)}",
+            "flags": flags_by_backend,
             "abi_version": ACS_ABI_VERSION_V1,
             "compiler": args.compiler,
             "commit": commit,

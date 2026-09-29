@@ -57,8 +57,24 @@
     "CHK-MUTATION-GATES": {
       "kind": "doc",
       "grade": "P1",
-      "name": "变异门登记册的登记项必须仍有对象",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "name": "变异门登记册的登记项必须仍有对象，且 ctest_name 绑定到独立枚举面（能判红、能查未运行）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CHK-MUTATION-GATES",
+        "CHK-MUTATION-GATES-SELFTEST",
+        "CHK-MUTATION-GATES-INJECT"
+      ]
+    },
+    "CHK-CTEST-SKIP-REGISTER": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "ctest SKIP 登记册的消费者门：逐条登记 + 名字存在性独立面核对 + 未登记 SKIP 即红 + 行锚存活 + 计数自洽",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CHK-CTEST-SKIP-REGISTER",
+        "CHK-CTEST-SKIP-REGISTER-SELFTEST",
+        "CHK-CTEST-SKIP-REGISTER-INJECT"
+      ]
     },
     "CHK-MODULE-MANIFEST": {
       "kind": "doc",
@@ -1372,6 +1388,18 @@
       "grade": "P0",
       "name": "系统库链接面（libm/libpthread/libz）平台判断唯一性核查（共用件唯一声明 + 全仓链接面无裸系统库名，含跨行续行）",
       "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-CI-PROFILE-COVERAGE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CI 档位覆盖闭包门：按继承闭包应被宿主持久档派发、却无任何持久档挂载的判据逐条点名判红",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-CI-PROFILE-COVERAGE-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "上项的可执行负例面（9 例，含把真注册表某条判据改成只挂 fast 的注入负例）",
+      "doc": "docs/ci/01_CHECKS.md §2"
     }
   },
   "reserved_targets": {
@@ -1875,6 +1903,52 @@
       "owner": "DEFECT-REPRO-01",
       "reason": "该登记册此前全仓零机器消费方，且它的设计依据（设计文档某节的行号引文）整条不存在，另有 6 条登记产物路径早已消失——登记了却不再有对象，且没人会发现。新判据做四查锚存活 + 产物路径存在性棘轮。",
       "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-MUTATION-GATES-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-MUTATION-GATES",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "FINAL-07 R1：gates[].ctest_name 此前零消费者（改了字段无人知道）。CHK-MUTATION-GATES 新增 A6（行锚一致 / 存在性 / 在跑性 / 未运行面），核对面是 eng/ci/ctest_face.py 的两个独立面；本执行单元跑 A1..A6 的内存 fixture 正负例。"
+    },
+    {
+      "old_id": "CHK-MUTATION-GATES-INJECT",
+      "decision": "KEPT",
+      "target": "CHK-MUTATION-GATES",
+      "kind": "doc",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "FINAL-07 R1：真仓注入负例（ghost 假名 / 行锚指向别的名字 / 谎称在跑 / 谎称不在跑 / 缺 reason）必须逐例判红，并带正例（未注入时 0 问题）。"
+    },
+    {
+      "old_id": "CHK-CTEST-SKIP-REGISTER",
+      "decision": "KEPT",
+      "target": "CHK-CTEST-SKIP-REGISTER",
+      "checker": "eng/ci/check_ctest_skip_register.py",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "FINAL-07 R2：ctest_skip_register.json 是 authority_surfaces.json 登记的在役权威面，却零机器消费方（design_clauses DESIGN-12.4-THREE-ERROR-SEMANTICS 已按 unwired 记录）。本门补上消费者：逐条登记 + 名字存在性独立面核对 + 未登记 SKIP 即红 + 行锚存活 + 计数自洽 + 登记口径不重叠。"
+    },
+    {
+      "old_id": "CHK-CTEST-SKIP-REGISTER-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-CTEST-SKIP-REGISTER",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "FINAL-07 R2：K1..K7 逐条内存 fixture 正负例（含判别力自证：真名绿 / 假名红 / 面不可用 fail-closed）。"
+    },
+    {
+      "old_id": "CHK-CTEST-SKIP-REGISTER-INJECT",
+      "decision": "KEPT",
+      "target": "CHK-CTEST-SKIP-REGISTER",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "FINAL-07 R2：真仓注入负例（ghost 名字 / 计数不符 / 行锚失效 / 类别越界 / 缺字段）必须逐例判红，并带正例。"
     },
     {
       "old_id": "CHK-REGISTRY-IR-PARITY",
@@ -4957,6 +5031,26 @@
       "checker": "eng/ci/check_platform_syslib_links.py",
       "owner": "FINAL-07 batch2",
       "reason": "系统库链接面（libm/libpthread/libz）平台判断唯一性：三个共用件只在根 CMakeLists 声明一次，全仓链接面（含**跨行**链接语句的续行）不得出现裸 m/pthread/z"
+    },
+    {
+      "old_id": "CHK-CI-PROFILE-COVERAGE",
+      "decision": "KEPT",
+      "target": "CHK-CI-PROFILE-COVERAGE",
+      "kind": "ci",
+      "grade": "P0",
+      "checker": "eng/tools/quality/check_ci_profile_coverage.py",
+      "owner": "self-test 派发面",
+      "reason": "run.py:480 顶层选择点为严格成员判定、零继承展开，run_checks.py:123 的 PROFILE_INHERITS 只对已派发判据的子步生效；叶判据只挂 fast 时任何 CI 腿都选不到。本门按档位闭包断言覆盖完整，补 profiles 即可，不改执行器"
+    },
+    {
+      "old_id": "CHK-CI-PROFILE-COVERAGE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-CI-PROFILE-COVERAGE-SELFTEST",
+      "kind": "ci",
+      "grade": "P0",
+      "checker": "eng/tools/quality/check_ci_profile_coverage.py",
+      "owner": "self-test 派发面",
+      "reason": "上项的可执行负例面：注入负例把真注册表某条判据的 profiles 改成只挂 fast 必须在隔离树副本上判红，另含 4 例 fail-closed（注册表缺失/不可解析/缺 checks 键/阶梯模块不可 import）"
     }
   ],
   "coverage": {
@@ -5166,7 +5260,14 @@
       "CHK-CFITSIO-PLATFORM-SURFACE",
       "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST",
       "CHK-PLATFORM-SYSLIB-LINKS",
-      "CHK-PLATFORM-SYSLIB-LINKS-SELFTEST"
+      "CHK-PLATFORM-SYSLIB-LINKS-SELFTEST",
+      "CHK-CI-PROFILE-COVERAGE",
+      "CHK-CI-PROFILE-COVERAGE-SELFTEST",
+      "CHK-MUTATION-GATES-SELFTEST",
+      "CHK-MUTATION-GATES-INJECT",
+      "CHK-CTEST-SKIP-REGISTER",
+      "CHK-CTEST-SKIP-REGISTER-SELFTEST",
+      "CHK-CTEST-SKIP-REGISTER-INJECT"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

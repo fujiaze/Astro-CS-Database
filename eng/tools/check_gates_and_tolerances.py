@@ -13,9 +13,12 @@
   G4 量测域显式（R3）：必须含域关键词之一（合成/图像块/真实帧/产品级/
      契约函数级/导出边界/独立密集域/任意帧/FP64 通道/FP32 通道）；
      且「量测域」不得以拟合采样网格作检验域（出现 7×7 网格 而无 ≥/独立 ⇒ 红）；
-  G5 证据（R2）：发布门=Y ⇒ 证据ID 不得为 UNJUSTIFIED；`ctest:<name>` 必须是仓内
-     CMakeLists 里真实存在的 add_test 名；路径型证据必须真实存在（run/** 允许）；
-     UNJUSTIFIED 只允许出现在 发布门=N 的行；
+  G5 证据（R2）：发布门=Y ⇒ 证据ID 不得为 UNJUSTIFIED；`ctest:<name>` 必须是**真实存在
+     的 ctest 目标** —— 核对面 = eng/ci/ctest_face.py 的面 A（配置期注册面，foreach 已
+     求值）∪ 面 B（实际配置面 = `ctest -N --show-only=json-v1` 的真实产出），两者都拿
+     不到 ⇒ fail-closed 点名（FINAL-07 R4：原实现是从 CMake 文本正则抽名的盲面，会把
+     `p1_psfw_${g}` 截成不存在的 `p1_psfw_` 而判绿，同时看不见 8 个 foreach 真名）；
+     路径型证据必须真实存在（run/** 允许）；UNJUSTIFIED 只允许出现在 发布门=N 的行；
   G6 登记：本表必须在 docs/DOCUMENT_INDEX.yaml 活动区登记（GOV-002 规则 6）。
 
 用法：
@@ -24,7 +27,9 @@
 """
 from __future__ import annotations
 
+import importlib.util
 import os
+import pathlib
 import re
 import sys
 
@@ -39,6 +44,10 @@ DOMAIN_TOKENS = [
     "独立密集域", "任意帧", "FP64 通道", "FP32 通道",
 ]
 GATE_ID_RE = re.compile(r"^G-P1-[A-Z0-9-]+$")
+
+
+class _FaceUnavailable(RuntimeError):
+    """独立枚举面不可用 —— fail-closed，不得退化成「G5 存在性检查全通过」。"""
 
 
 def split_row(line: str) -> list[str]:
@@ -93,19 +102,62 @@ def parse_table(text: str) -> tuple[list[str], list[list[str]]]:
     return header, rows
 
 
-def collect_ctest_names() -> set[str]:
-    names: set[str] = set()
+def _resolve_face(ctest_face_json=None, run_ctest=True):
+    here = os.path.join(ROOT, "eng", "ci", "ctest_face.py")
+    if not os.path.isfile(here):
+        raise _FaceUnavailable("核对面实现点不存在：%s" % here)
+    spec = importlib.util.spec_from_file_location("gates_ctest_face", here)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["gates_ctest_face"] = mod
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as exc:  # noqa: BLE001
+        raise _FaceUnavailable("核对面实现点加载失败：%s: %s"
+                               % (exc.__class__.__name__, exc)) from None
+    try:
+        return mod.resolve(pathlib.Path(ROOT), json_path=ctest_face_json,
+                           run_ctest=run_ctest)
+    except mod.Unavailable as exc:
+        raise _FaceUnavailable(str(exc)) from None
+
+
+def collect_ctest_names() -> set:
+    r"""G5 `ctest:<名>` 证据的存在性核对面（FINAL-07 R4：换掉正则盲面）。
+
+    原实现用 `add_test\(\s*NAME\s+([A-Za-z0-9_.\-]+)` 从 **CMake 文本**抽名字，
+    是结构上的盲面：
+      ① `add_test(NAME p1_psfw_${g} …)` 里的 foreach 变量名会被字符类截成
+         **不存在的** `p1_psfw_` ⇒ 文档引一个假名也能判绿；
+      ② 8 个真名 p1_psfw_{anea,winfo,oracle,components,common,gates,record,negative}
+         与 `gtest_discover_tests` 的发现期名一个都看不见 ⇒ 真名反而被误判为不存在。
+    判据只加严不下放 ⇒ 不能简单放宽字符类，必须换成**独立枚举面**：
+    eng/ci/ctest_face.py 的面 A（配置期注册面，foreach 已求值）∪ 面 B
+    （实际配置面 = `ctest -N --show-only=json-v1` 的真实产出）。
+    两个面都拿不到 ⇒ 抛 _FaceUnavailable，由 main 显式 fail-closed 点名。
+    """
+    face = _resolve_face()
+    return set(face.names)
+
+
+def _blind_face_names() -> set:
+    r"""修复前的正则盲面（原样保留，用于判别力自证对照）。
+
+    `add_test\(\s*NAME\s+([A-Za-z0-9_.\-]+)` —— 字符类不含 `$`/`{`，
+    于是 `add_test(NAME p1_psfw_${g} …)` 被读成 **p1_psfw_**（不存在的名字）。
+    """
+    names: set = set()
     for dirpath, dirnames, filenames in os.walk(ROOT):
-        dirnames[:] = [
-            d for d in dirnames
-            if d not in (".git", "build", "run", "third_party", "__pycache__", "node_modules")
-        ]
+        dirnames[:] = [d for d in dirnames
+                       if d not in (".git", "build", "run", "third_party",
+                                    "__pycache__", "node_modules")]
         for fn in filenames:
             if fn != "CMakeLists.txt":
                 continue
             try:
-                with open(os.path.join(dirpath, fn), encoding="utf-8", errors="ignore") as f:
-                    for m in re.finditer(r"add_test\(\s*NAME\s+([A-Za-z0-9_.\-]+)", f.read()):
+                with open(os.path.join(dirpath, fn), encoding="utf-8",
+                          errors="ignore") as f:
+                    for m in re.finditer(r"add_test\(\s*NAME\s+([A-Za-z0-9_.\-]+)",
+                                         f.read()):
                         names.add(m.group(1))
             except OSError:
                 continue
@@ -123,7 +175,7 @@ def check_evidence(token: str, ctest_names: set[str], release: bool) -> tuple[bo
     if tok.startswith("ctest:"):
         name = tok[len("ctest:"):].strip()
         if name not in ctest_names:
-            return False, f"ctest 目标不存在于任何 CMakeLists: {name}"
+            return False, f"ctest 目标不存在于配置期注册面/实际配置面: {name}"
         return True, "ctest 目标存在"
     # 路径型证据（允许 '路径（说明）' 与 '路径::symbol' 形式）
     path = re.split(r"[（(]", tok)[0].split("::")[0].strip()
@@ -222,14 +274,35 @@ def self_test(text: str, index_text: str, ctest_names: set[str]) -> int:
     print(f"  [{'PASS' if detected else 'FAIL'}] 注入必红: 文档索引未登记")
     if not detected:
         bad += 1
-    print(f"SELF-TEST {'PASS' if bad == 0 else 'FAIL'} ({len(cases) + 1} 注入, {bad} 未检出)")
+    # 判别力自证（FINAL-07 R4）：盲面正则**接受**的假名 `p1_psfw_`（`p1_psfw_${g}`
+    # 被字符类截断的产物），新枚举面必须判红；反之 foreach 求值出的真名
+    # `p1_psfw_anea` 盲面看不见、新面必须接受。两向都证，才不是恒真门。
+    blind = _blind_face_names()
+    mutated = text.replace("| ctest:p1psf_centroid_gate | Y |", "| ctest:p1_psfw_ | Y |", 1)
+    new_red = any("p1_psfw_" in f for f in validate(mutated, index_text, ctest_names)[0])
+    old_green = not any("p1_psfw_" in f
+                        for f in validate(mutated, index_text, blind)[0])
+    print(f"  [{'PASS' if (new_red and old_green) else 'FAIL'}] 判别力自证: "
+          f"新面判红={new_red} 旧盲面判绿={old_green}")
+    if not (new_red and old_green):
+        bad += 1
+    ok, _why = check_evidence("ctest:p1_psfw_anea", ctest_names, True)
+    print(f"  [{'PASS' if ok else 'FAIL'}] 判别力自证: foreach 真名 p1_psfw_anea 被接受")
+    if not ok:
+        bad += 1
+    print(f"SELF-TEST {'PASS' if bad == 0 else 'FAIL'} ({len(cases) + 3} 注入, {bad} 未检出)")
     return 0 if bad == 0 else 1
 
 
 def main() -> int:
     text = read(TABLE_DOC)
     index_text = read(INDEX_DOC)
-    ctest_names = collect_ctest_names()
+    try:
+        ctest_names = collect_ctest_names()
+    except _FaceUnavailable as exc:
+        print(f"GATES TABLE GATE FAIL fail-closed: 独立枚举面不可用（{exc}）——"
+              f"G5 的 ctest 存在性核对不得退化成「全通过」", file=sys.stderr)
+        return 2
     if "--self-test" in sys.argv:
         return self_test(text, index_text, ctest_names)
     fails, passes = validate(text, index_text, ctest_names)

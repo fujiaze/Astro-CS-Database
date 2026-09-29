@@ -22,6 +22,16 @@
 模式（--mode，默认 legacy）：
   verify    静态校验基线文件自身（结构、首次登记 commit 可达性、unit 存在性、
             expiry、类别白名单/黑名单）；任何违规 → exit 1。
+            **V3 的 unit 存在性核对面（FINAL-07 R3 换面）**：原实现是「冻结基线 ∪ 注册表
+            ctest_targets 模式**在该集合上**展开」——自指，只能证明基线自洽。
+            现改为 eng/ci/ctest_face.py 的两个独立面：面 A 配置期注册面（静态，永远可用）
+            ∪ 面 B 实际配置面（ctest -N --show-only=json-v1 的真实产出；可用 --ctest-face
+            注入已抓取产物，无构建树时不可用）。两个面都取不到 ⇒ fail-closed 点名。
+            **V9（新增，只加严）**：expected=fail 的 ctest 条目必须**此刻真的会被执行**
+            （在面 B 上）；只在面 A 上静态可见（option 门卫关闭/条件分支未命中）时，该豁免
+            覆盖的是一个不会失败的空目标 ⇒ 无界豁免，判红。expected=conditional 允许只在
+            面 A 可见（与 activation 字段一致），但记 conditional_armed 留痕。
+  新增开关：--ctest-face（注入面 B 产物）/ --no-ctest-probe（不跑 ctest -N）。
   check     动态判定：读全量测试结果（ctest JUnit XML = 全量 CTest 结果；
             CI_RESULT.json = 全部登记检查的 verdict），与基线比较 → exit 0/1。
   legacy    原 R0-004 findings 复现冻结报告。
@@ -41,6 +51,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import fnmatch
+import importlib.util
 import json
 import os
 import pathlib
@@ -195,49 +206,70 @@ def registry_units(repo: pathlib.Path) -> tuple[set[str], list[str]]:
     return {i for i in ids if isinstance(i, str) and i}, []
 
 
-def ctest_units(repo: pathlib.Path) -> tuple[set[str], list[str]]:
-    """已知 CTest 目标名集合 = eng/ci/ctest_baseline.json 冻结存量 ∪ 注册表
-    ctest_targets 显式模式展开（模式只在存量集合上展开，不做 CMake 重扫——
-    活动 CTest 面漂移由 eng/tools/quality/check_ctest_registration.py C5/C6 守卫）。"""
-    known: set[str] = set()
-    errors: list[str] = []
-    base_path = repo / CTEST_BASELINE_REL
-    if base_path.is_file():
-        try:
-            known |= {t for t in load_json(base_path).get("targets", []) if isinstance(t, str)}
-        except Exception as exc:
-            errors.append(CTEST_BASELINE_REL + " 无法解析：" + str(exc))
+def ctest_units(repo: pathlib.Path) -> tuple:
+    """**已退役**（FINAL-07 R3）：原实现「eng/ci/ctest_baseline.json 冻结存量 ∪ 注册表
+    ctest_targets 显式模式展开（模式只在存量集合上展开）」是**自指**核面对 ——
+    展开只能在该集合自身上进行，永远加不进新名字；于是 V3 只能证明
+    「基线里有的名字还在基线里」。保留函数体只为让历史调用方拿到明确错误信号；
+    判据面已改为 ctest_unit_faces()。"""
+    return set(), ["ctest_units() 已退役：自指核对面不得作判据（改用 ctest_unit_faces）"]
+
+
+_FACE_MODULE = None
+
+
+def _face_module():
+    """eng/ci/ctest_face.py 的单例加载（核对面单一实现点）。"""
+    global _FACE_MODULE
+    if _FACE_MODULE is not None:
+        return _FACE_MODULE
+    here = REPO / "eng" / "ci" / "ctest_face.py"
+    if not here.is_file():
+        raise RuntimeError("核对面实现点不存在：%s" % here)
+    spec = importlib.util.spec_from_file_location("known_failures_ctest_face", here)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["known_failures_ctest_face"] = mod
+    spec.loader.exec_module(mod)
+    _FACE_MODULE = mod
+    return mod
+
+
+def ctest_unit_faces(repo: pathlib.Path, ctest_face_json=None,
+                     run_ctest=True) -> tuple:
+    """V3 的**独立**核对面（FINAL-07 R3：核对面自指 ⇒ 换面）。
+
+    返回 (faces, errors)。面由 eng/ci/ctest_face.py 提供，与本基线文件**无依赖
+    关系**（不自指）：面 A = 配置期注册面（静态，永远可用），面 B = 实际配置面
+    （ctest -N --show-only=json-v1 的真实产出；无构建树时 configured=None）。
+    """
+    errors = []
     try:
-        reg = load_json(repo / REGISTRY_REL)
-    except Exception as exc:
-        errors.append("检查注册表无法解析：" + str(exc))
-        reg = {}
-    patterns: list[str] = []
-    for check in reg.get("checks", []) if isinstance(reg, dict) else []:
-        if not isinstance(check, dict):
-            continue
-        for pat in check.get("ctest_targets", []) or []:
-            if isinstance(pat, str) and pat:
-                patterns.append(pat)
-                if not any(ch in pat for ch in "*?["):
-                    known.add(pat)
-    for pat in patterns:
-        known |= {t for t in list(known) if fnmatch.fnmatchcase(t, pat)}
-    return known, errors
+        face = _face_module().resolve(pathlib.Path(repo), json_path=ctest_face_json,
+                                      run_ctest=run_ctest)
+    except Exception as exc:  # noqa: BLE001 - 依赖不可用 ⇒ fail-closed 点名
+        return {"static": set(), "configured": None, "union": set()}, [
+            "V3 核对面不可用（面 A/面 B 都取不到 ctest 名字）：%s: %s"
+            % (exc.__class__.__name__, exc)]
+    errors.extend("V3 核对面告警：%s" % e for e in face.errors)
+    return ({"static": set(face.static), "configured": face.configured,
+             "union": set(face.names),
+             "configured_source": face.configured_source}, errors)
 
 
 # ------------------------------------------------------------------- verify ----
 
 def verify_baseline(repo: pathlib.Path, baseline_path: pathlib.Path,
-                    now: _dt.datetime | None = None) -> dict:
-    """静态校验版本化基线（V1..V8）。纯函数（除只读 git 查询）。"""
+                    now: _dt.datetime | None = None, ctest_face_json=None,
+                    run_ctest=True) -> dict:
+    """静态校验版本化基线（V1..V9）。纯函数（除只读 git 查询）。"""
     now = now or utc_now()
     repo = pathlib.Path(repo)
     baseline_path = pathlib.Path(baseline_path)
     entries, errors = load_baseline(baseline_path)
     meta = baseline_meta(baseline_path)
     check_ids, reg_err = registry_units(repo)
-    ctest_known, ct_err = ctest_units(repo)
+    ctest_faces, ct_err = ctest_unit_faces(repo, ctest_face_json=ctest_face_json,
+                                           run_ctest=run_ctest)
     errors.extend(reg_err)
     errors.extend(ct_err)
 
@@ -294,12 +326,31 @@ def verify_baseline(repo: pathlib.Path, baseline_path: pathlib.Path,
         if expected == EXPECT_CONDITIONAL and not str(entry.get("activation", "")).strip():
             errors.append("V7 %s (%s) expected=conditional 必须给出 activation"
                           "（条目在何种条件下才会出现失败），否则等于无界豁免" % (where, unit))
-        # V3 unit 存在性
+        # V3 unit 存在性（FINAL-07 R3：核对面换成 eng/ci/ctest_face.py 的两个独立面，
+        # 不再用「冻结基线 ∪ 模式在基线集合上展开」那个自指集合）
         if kind == KIND_CHECK and unit not in check_ids:
             errors.append("V3 %s (%s) 不是 eng/ci/checks.json 已登记检查 id" % (where, unit))
-        if kind == KIND_CTEST and unit not in ctest_known:
-            errors.append("V3 %s (%s) 不在已知 CTest 目标集"
-                          "（%s 冻结存量 ∪ 注册表 ctest_targets）" % (where, unit, CTEST_BASELINE_REL))
+        if kind == KIND_CTEST:
+            _union = set(ctest_faces.get("union") or ())
+            _cfg = ctest_faces.get("configured")
+            if unit not in _union:
+                errors.append(
+                    "V3 %s (%s) 不在配置期注册面上（面 A 静态名 ∪ 面 B 实际配置面）"
+                    "——基线豁免了一个不存在的 ctest 目标（自指核对面时期的遗留登记）"
+                    % (where, unit))
+            elif expected == EXPECT_FAIL:
+                # V9：expected=fail 声称「它现在就在失败」⇒ 它必须**此刻真的会被执行**。
+                # 只在静态注册面上存在（option 门卫关闭 / 条件分支未命中）时，这条豁免
+                # 覆盖的是一个不会失败的空目标 —— 无界豁免，必须判红。
+                if _cfg is not None and unit not in _cfg:
+                    errors.append(
+                        "V9 %s (%s) expected=fail 但 %s 不在实际配置面（ctest -N 的真实"
+                        "产出）——豁免了一个当前根本不会被执行的目标，无界豁免"
+                        % (where, unit, unit))
+            elif _cfg is not None and unit not in _cfg:
+                # expected=conditional 且当前不在配置面：与登记的 activation 一致，
+                # 但必须显式留痕（「不出现＝绿」的前提是 activation 真的会触发它）。
+                detail.append({"unit": unit, "index": idx, "status": "conditional_armed"})
         # V4 同 kind 重复
         key = (kind, unit)
         if key in seen:
@@ -596,6 +647,11 @@ def run_selftest(tmp_root: pathlib.Path | None = None) -> int:
             p.write_text(text, encoding="utf-8")
             return p
 
+        def write_json(obj) -> str:
+            p = tmp / ("face_%d.json" % (len(list(tmp.glob("face_*.json"))) + 1))
+            p.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+            return str(p)
+
         # S1 基线项失败 → 全绿（known，verdict PASS）
         junit_known = write_junit(FIXTURE_JUNIT_FAIL, "known.xml")
         rep = run_check(REPO, write_baseline([dict(FIXTURE_ENTRY)]), junit_known, None)
@@ -680,6 +736,48 @@ def run_selftest(tmp_root: pathlib.Path | None = None) -> int:
             '  <testcase name="a" classname="c" status="run"><skipped/></testcase>\n'
             '  <testcase name="b" classname="c" status="run"/></testsuite>\n', "mix.xml"))
         case("S14_junit_status_parse", not errs and statuses == {"a": "skip", "b": "pass"}, statuses)
+
+        # S15..S19：V3 核对面（FINAL-07 R3）—— 自指集合退役后的独立面判定。
+        # 用**真仓真实存在的目标名**做 fixture：V3 判的是「这个名字在枚举面上吗」，
+        # 造一个假名会让所有用例都栽在 V3 上、掩盖 V9 的判别力。
+        real_unit = "p1star_units"
+        _rc, _head = git(REPO, "rev-parse", "HEAD")
+        _sha = _head if _rc == 0 and len(_head) == 40 else FIXTURE_ENTRY["first_seen_commit"]
+        entry = dict(FIXTURE_ENTRY, unit=real_unit, check_id=real_unit,
+                     first_seen_commit=_sha, source_sha=_sha)
+        face_json = write_json({"version": {"major": 1},
+                                "tests": [{"name": real_unit}]})
+        rep = verify_baseline(REPO, write_baseline([entry]),
+                              ctest_face_json=face_json)
+        case("S15_v3_face_accepts_real_name",
+             rep["verdict"] == "PASS"
+             and not any(e.startswith("V3") or e.startswith("V9") for e in rep["errors"]),
+             rep["errors"])
+        rep = verify_baseline(
+            REPO, write_baseline([dict(entry, unit="ghost_target_zzz",
+                                       check_id="ghost_target_zzz")]),
+            ctest_face_json=face_json)
+        case("S16_v3_rejects_nonexistent_name", rep["verdict"] == "FAIL"
+             and any("V3" in e and "ghost_target_zzz" in e for e in rep["errors"]),
+             rep["errors"])
+        face_off = write_json({"version": {"major": 1},
+                                "tests": [{"name": "something_else"}]})
+        rep = verify_baseline(REPO, write_baseline([entry]),
+                              ctest_face_json=face_off)
+        case("S17_v9_expected_fail_not_configured_fails",
+             rep["verdict"] == "FAIL" and any("V9" in e for e in rep["errors"]),
+             rep["errors"])
+        rep = verify_baseline(REPO, write_baseline([dict(
+            entry, expected=EXPECT_CONDITIONAL, activation="门卫激活时")]),
+            ctest_face_json=face_off)
+        armed = any(d.get("status") == "conditional_armed" for d in rep["entry_detail"])
+        case("S18_conditional_armed_is_green_with_trace",
+             rep["verdict"] == "PASS" and armed, rep["errors"])
+        a = verify_baseline(REPO, write_baseline([entry]),
+                            ctest_face_json=face_off)["verdict"]
+        b = verify_baseline(REPO, write_baseline([entry]),
+                            ctest_face_json=face_json)["verdict"]
+        case("S19_disc_face_b_is_not_constant", a == "FAIL" and b == "PASS", (a, b))
 
     failed = [r for r in results if not r["ok"]]
     print(json.dumps({"tool": "known_failures_baseline.py", "mode": "selftest",
@@ -1112,6 +1210,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--allow-missing-source", action="store_true",
                     help="check 模式：允许基线中某 kind 无对应结果来源（默认 fail-closed）")
     ap.add_argument("--output", default=None, help="证据 JSON 落盘路径（run/ 下；默认只打印）")
+    ap.add_argument("--ctest-face", default=None, dest="ctest_face",
+                    help="verify 模式：面 B 的已抓取产物（ctest -N --show-only=json-v1 的"
+                         " JSON）。不给则自动发现构建树；两者都无 ⇒ V3 面 B 记不可用")
+    ap.add_argument("--no-ctest-probe", action="store_true", dest="no_ctest_probe",
+                    help="verify 模式：不跑 ctest -N（面 B 不可用；V9 不判，V3 仍用面 A）")
     ap.add_argument("--selftest", action="store_true", help="负例自检（内存 fixture，零副作用）")
     return ap
 
@@ -1136,7 +1239,9 @@ def main(argv: list[str] | None = None) -> int:
         baseline_path = repo / baseline_path
 
     if args.mode == "verify":
-        report = verify_baseline(repo, baseline_path)
+        report = verify_baseline(repo, baseline_path,
+                                  ctest_face_json=args.ctest_face,
+                                  run_ctest=not args.no_ctest_probe)
     else:
         junit = pathlib.Path(args.ctest_junit) if args.ctest_junit else None
         if junit is not None and not junit.is_absolute():
