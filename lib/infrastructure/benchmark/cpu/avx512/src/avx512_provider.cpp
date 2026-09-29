@@ -42,6 +42,7 @@
 //     baseline 对照容差 2e-4 相对冻结 (avx512_provider_v1.h 头注释 §6)。
 #include "astrocs/cpu/avx512_provider_v1.h"
 #include "astrocs/cpu/capability_v1.h"
+#include "astrocs/cpu/cpuprov_kernels_v1.h"   /* R-60: 计算面跨 TU 桥 */
 
 #include <algorithm>
 #include <cmath>
@@ -197,44 +198,16 @@ static void gather_ptrs(const acs_cpu_baseline_params_v1* P,
  * (scientific_change=false), 差异仅编译旗标 (-mavx512* 自动向量化 + FMA
  * 收缩; 可能每元素 ≤ 数十 ULP 舍入差, 容差 2e-4 冻结)。
  * 标量源码 + TU 局部旗标 (同 avx2/legacy ISA-004 策略), 不手写 intrinsic。 */
-static void kernel_pixel_range(const acs_cpu_baseline_params_v1* P, uint32_t kidx,
-                               const float* const* in, float* const* out,
-                               uint64_t i0, uint64_t i1) {
-    const float kf = P->k;
-    switch (kidx) {
-    case ACS_CPU_AVX512_KIDX_HIPS_BULK: {
-        const uint64_t iw = P->aux0, ih = P->aux1;
-        const float s = kf;
-        const float* src = in[0]; float* o = out[0];
-        const uint32_t w = P->w;
-        for (uint64_t i = i0; i < i1; ++i) {
-            const float x = static_cast<float>(i % w) * s;
-            const float y = static_cast<float>(i / w) * s;
-            const float flx = std::floor(x), fly = std::floor(y);
-            int x0 = static_cast<int>(flx);
-            int y0 = static_cast<int>(fly);
-            float fx = x - flx, fy = y - fly;
-            x0 = std::min(std::max(x0, 0), static_cast<int>(iw) - 2);
-            y0 = std::min(std::max(y0, 0), static_cast<int>(ih) - 2);
-            fx = std::min(std::max(fx, 0.0f), 1.0f);
-            fy = std::min(std::max(fy, 0.0f), 1.0f);
-            const uint64_t r0 = static_cast<uint64_t>(y0) * iw;
-            const uint64_t r1 = r0 + iw;
-            const uint64_t x0s = static_cast<uint64_t>(x0);
-            const float v00 = src[r0 + x0s], v10 = src[r0 + x0s + 1];
-            const float v01 = src[r1 + x0s], v11 = src[r1 + x0s + 1];
-            /* 固定项序: v00 → v10 → v01 → v11 (与 baseline/avx2 同式;
-             * AVX-512/FMA 只收缩乘加, 不重排项序) */
-            o[i] = (1.0f - fx) * (1.0f - fy) * v00 + fx * (1.0f - fy) * v10 +
-                   (1.0f - fx) * fy * v01 + fx * fy * v11;
-        }
-        break;
-    }
-    default:
-        break;   /* 不可达 (avx512_validate 已挡) */
-    }
-}
-
+/* ───────────────────────── 热点 kernel 数值实现（已移出本 TU） ─────────────────────────
+ * R-60 配方: 非 GCC 工具链没有函数级指令集覆盖（pragma 全表无 target、
+ * __declspec 全表无 cpu_specific/cpu_dispatch、/arch: 的作用域是整个 TU）
+ * ⇒ 若计算循环与 query/self_test/cap_gate 同 TU，握手入口在高 ISA 主机上会与
+ * 变体同码（改前产物自证: cap_gate 函数体含 18 处 VEX/EVEX）—— 能力预检不过
+ * 则应"干净拒绝"，同码则退化成本不该发生的指令集要求。
+ * 现计算面在 lib/infrastructure/benchmark/cpu/avx512/src/avx512_kernels.cpp
+ * （唯一带 ISA 旗标的 TU），本 TU（门面）零 ISA 旗标，两者只经唯一跨 TU 桥
+ * astrocs_cpuprov_kernel_range_v1 相连（见 astrocs/cpu/cpuprov_kernels_v1.h）。
+ * 数值源码逐字符搬移: 公式/项序/容差零变更。 */
 /* ───────────────────────── 并行执行 (host executor 租借) ─────────────────────────
  * 同 baseline/avx2 语义: 行带划分, 每输出独立 → bitwise 确定; 全或无租借。 */
 static uint32_t run_banded(const acs_host_api_v1* host,
@@ -272,9 +245,9 @@ static uint32_t run_banded(const acs_host_api_v1* host,
     ths.reserve(workers > 1 ? workers - 1 : 0);
     for (uint32_t t = 1; t < workers; ++t)
         ths.emplace_back([&, t]() {
-            kernel_pixel_range(P, kidx, ip, op, start[t], start[t + 1]);
+            astrocs_cpuprov_kernel_range_v1(P, kidx, ip, op, start[t], start[t + 1]);
         });
-    kernel_pixel_range(P, kidx, ip, op, start[0], start[1]);
+    astrocs_cpuprov_kernel_range_v1(P, kidx, ip, op, start[0], start[1]);
     for (auto& th : ths) th.join();
 
     if (host != nullptr && host->executor != nullptr &&
