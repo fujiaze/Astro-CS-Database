@@ -65,6 +65,27 @@ TREE_READ_VERBS = ("aio_hips_open", "aio_hips_read_tile_f32", "p3_sampler_open_e
                    "p2_coverage_build")
 TREE_WRITE_VERBS = ("aio_hips_product_begin", "hp_drizzle_run_phase1_hips")
 
+# ── C3b 覆盖式常量（FINAL-07/carrier-conformance 加严）──────────────────────
+# 依据：carrier_contract.carriers.hips_product_tree 的成员清单（已写明层级）。
+# 物理事实（可复核）：树根层只有产品子目录 signal/ support/ variance/ ivar/ 与
+# manifest.json；properties / Moc.fits / metadata.fits 是**每个产品子目录各一份**、
+# 位于该子目录内（aio_hips_writer.cpp:1969/1974/2001 写 dir + "/<name>"，dir = 子目录；
+# :13 头注释「每个子产品独立」；reader 侧按 <root>/<subdir>/properties 取用）。
+# 声明约定：树根层写 <frame_key>/<name>；每子产品层写 <frame_key>/*/<name>（通配）。
+TREE_ROOT_MEMBERS = ("signal", "support", "variance", "ivar")
+# 读侧只有「按瓦片/子产品取数」的动词才要求覆盖全树成员；只读 manifest 的节点
+# （p3n_input_manifest_hash / aio_fs::walk_tree / p3_uncertainty_open）不读瓦片，
+# 对它们强加覆盖是**超出事实的断言**，故读侧覆盖只对 TILE_READ_VERBS 生效。
+TREE_TILE_READ_VERBS = ("aio_hips_open", "aio_hips_read_tile_f32",
+                        "p3_sampler_open_ex", "p2_coverage_build")
+TREE_PER_SUBDIR_MEMBERS = ("properties", "Moc.fits", "metadata.fits")
+# 写树节点必须覆盖的**全部**树成员（代码侧确实逐个写出，故并集必须全覆盖）
+TREE_WRITE_REQUIRED = tuple("<frame_key>/" + m for m in TREE_ROOT_MEMBERS) + \
+                      tuple("<frame_key>/*/" + m for m in TREE_PER_SUBDIR_MEMBERS)
+# 每子产品层成员若被声明，**必须**用通配层级；写成树根层即层级不符（可断言项）
+_PER_SUBDIR_SUFFIX = tuple("/*/" + m for m in TREE_PER_SUBDIR_MEMBERS)
+_ROOT_LEVEL_WRONG = tuple("<frame_key>/" + m for m in TREE_PER_SUBDIR_MEMBERS)
+
 READ_VERBS = ("aio_fs::exists", "aio_fs::read_all", "aio_file::read_all", "aio_file::read_range",
               "p2_read_json", "p3n_read_json", "aio_read_fits", "aio_read_metadata", "p1_read_image",
               "aio_hips_open", "p2_upm_open", "p2_sky_plane_open", "p3_sampler_open_ex",
@@ -357,17 +378,73 @@ def evaluate(repo):
                 continue   # 由 C2 锚点负责（声明⇒实现方向）
             errs.append("C4 %s declares artifact %r but %s() never touches it"
                         % (mid, key, fn))
-        # C3b 载体一致：节点触碰 HiPS 产品树 ⇒ 必须有对应 carrier 的端口
+        # C3b 载体一致（FINAL-07/carrier-conformance 加严为**覆盖式**）：
+        #   旧实现只问「有没有至少一个 tree 端口」⇒ 节点有 2 个树端口时删掉 1 个不判红
+        #   （负例与被测判据共享同一偶然基数）。现改为：
+        #   (W) 写树节点：tree output 端口的 artifacts 并集必须**覆盖代码写出的每个树成员**，
+        #       并**逐成员报告缺哪一项**；
+        #   (R) 读树节点：至少声明一个树根层产品子目录；
+        #   (L) 层级校验：每子产品层成员（properties/Moc.fits/metadata.fits）若被声明，
+        #       必须用通配层级 <frame_key>/*/<name>；写成树根层即判红（把「声明 vs 事实」
+        #       的层级不符固化成可检项）。
         body_txt = "\n".join(code_lines[s0 - 1:s1])
         ports = op.get("ports") or []
+
+        def _tree_artifacts(direction):
+            out = set()
+            for p in ports:
+                if p.get("carrier") == "hips_product_tree" and p.get("direction") == direction:
+                    for a in (p.get("artifacts") or []):
+                        out.add(a)
+            return out
+
+        def _basename(a):
+            return a.rsplit("/", 1)[-1]
+
+        def _level(a):
+            """'root' = 树根层成员；'subdir' = 每子产品层成员（父目录段是通配 '*'）。
+
+            形如 '<frame_key>/*/<name>'（逐帧树约定）与 '*/<name>'（树根无前缀约定）
+            都是合法的每子产品层写法：**父目录段以 '*' 结尾**即判 subdir。
+            写成 '<frame_key>/<name>' 或裸 '<name>' 一律是树根层 —— 与事实不符。
+            """
+            b = _basename(a)
+            if b in TREE_PER_SUBDIR_MEMBERS:
+                parent = a.rsplit("/", 2)[-2] if a.count("/") >= 1 else ""
+                return "subdir" if parent.endswith("*") else "root"
+            if b in TREE_ROOT_MEMBERS:
+                return "root"
+            return None
+
+        # (L) 层级校验：两侧都做 —— 层级写错就是「声明与事实不符」。
+        for direction in ("input", "output"):
+            for a in sorted(_tree_artifacts(direction)):
+                b = _basename(a)
+                if b in TREE_PER_SUBDIR_MEMBERS and _level(a) != "subdir":
+                    errs.append("C3b %s declares per-subproduct tree member %r at tree-root "
+                                "level (must be '<tree>/*/%s': aio_hips_writer.cpp:1969/1974/2001 "
+                                "write dir + '/%s' where dir is the product subdirectory)"
+                                % (mid, a, b, b))
+
         if any(v + "(" in body_txt for v in TREE_WRITE_VERBS):
-            if not any(p.get("carrier") == "hips_product_tree" and p.get("direction") == "output"
-                       for p in ports):
-                errs.append("C3b %s writes a HiPS product tree but declares no "
-                            "hips_product_tree output port" % mid)
+            declared_out = _tree_artifacts("output")
+            have_root = {a for a in declared_out if _level(a) == "root"}
+            have_sub = {a for a in declared_out if _level(a) == "subdir"}
+            missing = [m for m in TREE_ROOT_MEMBERS
+                       if not any(_basename(a) == m for a in have_root)]
+            missing += [m for m in TREE_PER_SUBDIR_MEMBERS
+                        if not any(_basename(a) == m for a in have_sub)]
+            if missing:
+                errs.append("C3b %s writes a HiPS product tree but its tree output port "
+                            "artifacts do not cover code-written member(s): %s"
+                            % (mid, ", ".join("<frame_key>/" + m for m in missing)))
         elif any(v + "(" in body_txt for v in TREE_READ_VERBS):
-            if not any(p.get("carrier") == "hips_product_tree" and p.get("direction") == "input"
-                       for p in ports):
+            # 读侧只做**存在性**判据：各节点读树的子集**本就不同**且是合理事实
+            # （phase2.reject 只读 support 掩膜面、phase2.integrate 读 signal/support/ivar），
+            # 对读侧强加「覆盖全部树成员」是**超出事实的断言**，实测会把 4 个正当节点判红。
+            # 读侧的层级正确性由上面的 (L) 覆盖；写侧的全覆盖由 (W) 覆盖。
+            declared_in = _tree_artifacts("input")
+            if not declared_in:
                 errs.append("C3b %s reads a HiPS product tree but declares no "
                             "hips_product_tree input port" % mid)
 
@@ -437,7 +514,10 @@ CASE_KIND = {
     "S2-empty-registry-red": KIND_DISCRIMINATING,
     "S3-declared-edge-without-implementation-red": KIND_DISCRIMINATING,
     "S4-undeclared-real-flow-red": KIND_DISCRIMINATING,
-    "S4b-undeclared-hips-tree-red": KIND_DISCRIMINATING,
+    "S4b1-drop-all-tree-output-ports-red": KIND_DISCRIMINATING,
+    "S4b2-carrier-rollback-red": KIND_DISCRIMINATING,
+    "S4b3-level-rollback-red": KIND_DISCRIMINATING,
+    "S4b4-missing-tree-member-red": KIND_DISCRIMINATING,
     "S5-direction-flipped-red": KIND_DISCRIMINATING,
     "S6-anchor-token-deleted-red": KIND_DISCRIMINATING,
     "S7-token-outside-symbol-red": KIND_DISCRIMINATING,
@@ -527,13 +607,54 @@ def _self_test(json_out=None):
     cases.append(("S4-undeclared-real-flow-red",
                   any(x.startswith("C3 ") for x in errs_of(json.dumps(doc)))))
 
-    # S4b 负例：漏声明 HiPS 产品树输出 ⇒ C3b 判红（载体面不得漏）
+    # ── S4b 负例组（FINAL-07/carrier-conformance 重做）────────────────────
+    # 旧 S4b 的缺陷：它只删掉**一个**名为 frame_hips 的端口，而该节点现有 **2** 个
+    # 树输出端口（frame_hips + p1_stack），于是「至少一个」仍被满足 ⇒ 负例红灯不亮。
+    # 根因：**负例与被测判据共享了同一个偶然基数**。三条新负例一律不依赖当前基数：
+    #   N1 破坏**全部**同类（删光该节点所有 tree output 端口）
+    #   N2a 载体回退（把已对齐端口的 carrier 改回 output_dir_file）
+    #   N2b 层级回退（把每子产品层成员改写成树根层）
+    def _drizzle_op(doc):
+        for m in doc["modules"]:
+            if m["module_id"] == "astrocs.phase1.drizzle":
+                return m["operations"][0]
+        return None
+
+    # N1：破坏全部同类 —— 删光 drizzle 的所有 hips_product_tree output 端口
     doc = json.loads(reg_txt)
-    for m in doc["modules"]:
-        if m["module_id"] == "astrocs.phase1.drizzle":
-            m["operations"][0]["ports"] = [p for p in m["operations"][0]["ports"]
-                                           if p["name"] != "frame_hips"]
-    cases.append(("S4b-undeclared-hips-tree-red",
+    op = _drizzle_op(doc)
+    op["ports"] = [p for p in op["ports"]
+                   if not (p.get("carrier") == "hips_product_tree"
+                           and p.get("direction") == "output")]
+    cases.append(("S4b1-drop-all-tree-output-ports-red",
+                  any(x.startswith("C3b") for x in errs_of(json.dumps(doc)))))
+
+    # N2a：载体回退 —— frame_hips 载体改回 output_dir_file（覆盖式 C3b 必须抓）
+    doc = json.loads(reg_txt)
+    op = _drizzle_op(doc)
+    for p in op["ports"]:
+        if p.get("name") == "frame_hips":
+            p["carrier"] = "output_dir_file"
+    cases.append(("S4b2-carrier-rollback-red",
+                  any(x.startswith("C3b") for x in errs_of(json.dumps(doc)))))
+
+    # N2b：层级回退 —— 把每子产品层成员改写成树根层（层级校验必须抓）
+    doc = json.loads(reg_txt)
+    op = _drizzle_op(doc)
+    for p in op["ports"]:
+        if p.get("name") == "frame_hips":
+            p["artifacts"] = [a.replace("/*/", "/") for a in p["artifacts"]]
+    cases.append(("S4b3-level-rollback-red",
+                  any(x.startswith("C3b") for x in errs_of(json.dumps(doc)))))
+
+    # N2c：成员覆盖残缺 —— 从并集里删掉一个每子产品层成员（逐成员报告必须抓）
+    doc = json.loads(reg_txt)
+    op = _drizzle_op(doc)
+    for p in op["ports"]:
+        if p.get("name") == "frame_hips":
+            p["artifacts"] = [a for a in p["artifacts"]
+                              if not a.endswith("/*/Moc.fits")]
+    cases.append(("S4b4-missing-tree-member-red",
                   any(x.startswith("C3b") for x in errs_of(json.dumps(doc)))))
 
     # S5 负例：方向写反（把 p1_flux 从 output 改成 input）
