@@ -4905,26 +4905,6 @@
       "grade": "P0",
       "order_in_target": 2,
       "note": "FINAL-07 注册面三面交叉判据：新增 1 顶层项 + 3 执行单元登记为 absorbed；判据把「配置期注册面」「既有门枚举面」「按名引用面」互为交叉判据（X1..X9），并补登记第 4 个面：发现期注册面（gtest_discover_tests 宿主与名字前缀）"
-    },
-    {
-      "old_id": "CHK-CFITSIO-PLATFORM-SURFACE",
-      "decision": "KEPT",
-      "target": "CHK-CFITSIO-PLATFORM-SURFACE",
-      "kind": "code",
-      "grade": "P1",
-      "checker": "eng/ci/check_cfitsio_platform_surface.py",
-      "owner": "FINAL-07 batch1",
-      "reason": "第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查"
-    },
-    {
-      "old_id": "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST",
-      "kind": "code",
-      "grade": "P1",
-      "checker": "eng/ci/check_cfitsio_platform_surface.py",
-      "owner": "FINAL-07 batch1",
-      "reason": "第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查"
     }
   ],
   "coverage": {
@@ -5130,9 +5110,7 @@
       "CTEST-P1STAR-PSF-SHAPE-GATE",
       "CHK-REG-SURFACE-CROSS",
       "CHK-REG-SURFACE-CROSS-SELFTEST",
-      "CHK-REG-SURFACE-CROSS-INJECT",
-      "CHK-CFITSIO-PLATFORM-SURFACE",
-      "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST"
+      "CHK-REG-SURFACE-CROSS-INJECT"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

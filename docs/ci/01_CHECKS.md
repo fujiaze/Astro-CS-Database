@@ -43,8 +43,8 @@
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
 | CON-SYMBOL-DIM-UNIQUE | 合同一致性 | 符号量纲唯一性门：同一符号在全仓只指一个量纲。三条子判据为定义站点量纲代数求值 / 显式量纲断言 / 共现短语判据（带否定式豁免，避免把正确的消歧写法判红）。 |
 | CON-SYMBOL-DIM-UNIQUE-SELFTEST | 合同一致性 | 上项的可执行正/负例面（含恒真守卫、判别力守卫与恒假守卫三类）。 |
-| CHK-CFITSIO-PLATFORM-SURFACE | 构建一致性 | 第三方 vendored cfitsio 源的**平台面**四判据（同一份声明面在 Linux 上也逐条可判定）：I1 编入该源清单且定义 `_REENTRANT` 的目标必须接 pthread 垫片包含面；I2 编入 `#include "zlib.h"` 的 TU 的目标必须接 zlib 依赖包含面（兼容两条合同注入布局 `<root>/include` 与 `<root>/lib/include`）；I3 编入第三方源的目标必须声明第三方告警隔离（`astrocs_cfitsio_isolate_warnings()` / 属性 `ASTROCS_WARNINGS_OFF=1`）；I4 GCC 专有旗标 `-fopenmp` 必须落在按平台的门控块内。判据不使用系统默认搜索路径（Linux 上 `/usr/include` 会掩盖 Windows 的缺失） | `python3 eng/ci/check_cfitsio_platform_surface.py --json` | P0 |
-| CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST | 构建一致性 | 上项的可执行正/负例面（正例 2：齐备必绿 / 门控内的 `-fopenmp` 不误伤；负例 6：缺垫片 / 缺依赖包含面 / 源清单缺失判输入不可用 / 真实仓抽垫片 / 缺第三方告警隔离 / 裸 `-fopenmp` 未门控，各自必红） | `python3 eng/ci/check_cfitsio_platform_surface.py --self-test` | P0 |
+| CHK-PLATFORM-SYSLIB-LINKS | 构建一致性 | 系统库链接面平台判断唯一性：三方共用件 `astrocs_platform_{math,pthread,zlib}` 只在根 `CMakeLists.txt` 的标记区块声明一次；全仓任何链接语句（`target_link_libraries` / `list(APPEND *_LINK*)` / `set(*_LINK*)` / `find_library`）不得出现裸 `m`/`pthread`/`z`；平台条件块内亦不得出现（堵「换个 if 再写一遍」第二形态）；`find_library(... NAMES …)` 候选发现面豁免。Windows 实测根因（`LNK1104: cannot open file 'm.lib'`）的可回归判据 | `python3 eng/ci/check_platform_syslib_links.py --json` | P0 |
+| CHK-PLATFORM-SYSLIB-LINKS-SELFTEST | 构建一致性 | 上项的可执行正/负例面（7 例：引用共用件必绿；裸 `m` / `if(UNIX)`+裸 `m` / `list(APPEND … z)` / 共用件重复声明 / 唯一判定点标记缺失 各自必红） | `python3 eng/ci/check_platform_syslib_links.py --self-test` | P0 |
 | CHK-FROZEN-STRING-DISAMBIG | 文档一致性 | 冻结串一致性门：冻结串在 schema 常量、登记表与示例三处必须逐字相同（改写即重新冻结，须走变更流程）；其单位读法消歧说明必须在位并逐字含冻结串、单位读法、数值反例与逐字冻结条款。 |
 | CHK-FROZEN-STRING-DISAMBIG-SELFTEST | 文档一致性 | 上项的可执行正/负例面（含判别力自检：删去消歧段后必须精确判红，其余子判据保持绿）。 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | `python3 eng/ci/run_checks.py --check CHK-STALE-DOC --quiet` | P1 |
