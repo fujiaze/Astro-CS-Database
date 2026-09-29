@@ -32,7 +32,7 @@
 
 | 名称 | 定义式 | 单位 | 计算面（列/来源） |
 |---|---|---|---|
-| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:606` 的 `sdet_compute_bgnoise()`，函数体 :605-657）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad·1.482602218505602`（star_measurements 列 [4]/[10]） |
+| `SNR_peak` | `A_fit / sigma_bg` | 无量纲 | 检测侧: `A_fit` = 椭圆高斯拟合峰值振幅（star_det `flux` 列，DATA-P1-STAR §17.2:703；**不是**解析积分流量）、`sigma_bg` = 背景噪声 RMS = `bgnoise`（行差分 FnNoise1 族，`sdet_api.cpp:606` 的 `sdet_compute_bgnoise()`，函数体 :605-657）。PSF 侧: `A_fit` = Moffat4 振幅 `A`、`sigma_bg` = `mad/0.7316727929211932`（star_measurements 列 [4]/[10]；**列名 `mad` 是 10–90% 截尾均值 \|残差\|（`residual_scale`）的历史别名，不是中位绝对偏差**，故用截尾均值→σ 因子而非 MAD 因子；实现锚 `lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:83`（`sigma_sky_adu = residual_scale/0.7316727929211932`）、`noise_model.cpp:95,1232`、统计量定义 `lib/algorithms/psf/src/dpsf_psf.cpp:426-458`；本行原读法 `mad·1.482602218505602` **已废止（历史读法，R6-02）**：MAD 因子只作用于真 MAD，互斥条款见 `docs/science/NOISE_MODEL.md:313`） |
 | `SNR_phot` | `F / sigma_F`（Horne 1986） | 无量纲 | 测光域（DATA-P1-SNR §13.4），**与本表门无关**，列此仅作区分 |
 | `SNR_det` | `(peak − background) / noise_sigma` | 无量纲 | 检出目录列（`p1_sources.json` 的 `sources[].snr`）：`peak` = **未平滑原图**上检出像素峰值、`background`/`noise_sigma` = 该帧背景与背景 RMS；实现 `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp:240`（`s.snr = (peak − cat.background) / cat.noise_sigma`）。**与 `SNR_peak` 不同源**：`SNR_peak` 用椭圆高斯拟合振幅 `A_fit`（检测侧 `flux` 列），`SNR_det` 用原始峰值 ⇒ 两列**各自具名**；凡门写「SNR>x」必须点名用哪一行 |
 
