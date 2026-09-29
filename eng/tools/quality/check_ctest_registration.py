@@ -71,6 +71,98 @@ SKIP_PATH_SUBSTR = ("archive", "superseded")
 ADD_TEST_NAME_RE = re.compile(r"add_test\s*\(\s*NAME\s+([^\s()#]+)")
 ADD_TEST_ANY_RE = re.compile(r"(?<![A-Za-z0-9_.])add_test\s*\(")
 GLOB_CHARS = "*?["
+PARSER_MODES = ("grammar", "legacy", "auto")
+# 只属于"正则面求不出 foreach 头"的判红标记：grammar 面用更强解析器取代它们，
+# 合并结构判据时必须滤掉，否则对 grammar 已解析出的循环重复判红。
+_FOREACH_FACE_MARKERS = ("foreach 头", "目标名位置残留未求值变量", "foreach 嵌套深度")
+# 完备枚举面（C1 的首选事实源）：与「配置期注册一致性」判据共用同一套 CMake 解析器，
+# 它按命令/块结构求值（foreach 头变量、变量派生、跨目录作用域、条件上下文）而不是按文本
+# 正则取字面量。见 C1 说明与 docstring 的「C1 枚举完备性」一节。
+COND_TOOL_REL = "eng/tools/quality/check_ctest_reg_condition.py"
+
+
+class GrammarUnavailable(RuntimeError):
+    """完备枚举面的解析器不可用 —— 由 --parser 决定 fallback 还是 fail-closed。"""
+
+
+_grammar_mod = None
+
+
+def load_grammar():
+    """惰性加载完备枚举面的 CMake 解析器（保持被依赖方为叶子模块，无循环 import）。"""
+    global _grammar_mod
+    if _grammar_mod is not None:
+        return _grammar_mod
+    path = REPO / COND_TOOL_REL
+    if not path.is_file():
+        raise GrammarUnavailable("完备枚举面工具 %s 不存在" % COND_TOOL_REL)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ctest_reg_grammar", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["ctest_reg_grammar"] = mod
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as exc:  # noqa: BLE001 —— 依赖不可用一律 fail-closed，不吞不猜
+        raise GrammarUnavailable(
+            "完备枚举面工具 %s 加载失败（%s: %s）"
+            % (COND_TOOL_REL, exc.__class__.__name__, exc)) from None
+    _grammar_mod = mod
+    return mod
+
+
+def parse_targets_grammar(sources: dict):
+    """完备枚举面：复用 CMake 解析器求值 add_test(NAME …) 的名字集合。
+
+    返回 (targets, errors)。名字位置不可静态枚举时该工具**已经** fail-closed（它的 C6），
+    此处把它的 errors 原样并入本门的 C1 判红面；名字位置不可能返回带 ${…} 的假名。
+    """
+    mod = load_grammar()
+    an = mod.analyze(sources, root=REPO)
+    reg, _ref, _vio, errors, _summary, _runtime = mod.judge(an, root=REPO)
+    targets = {}
+    for name in sorted(reg):
+        occ = reg[name]
+        targets[name] = occ[0].path if occ else "?"
+    # 只并入**名字枚举不可信**的那类错误（该工具 C6 的子集），不并它自己的引用面
+    # 非退化守卫（C7）：那条是"引用面为空"的自守，与名字枚举完备性无关，并进来会
+    # 把没有引用面的最小复现 fixture 判成红（假红）。
+    keep = ("名字", "未解析变量", "不可静态求值", "未闭合", "结构不可信",
+            "扫描面为空", "元素过多", "括号未闭合", "foreach 变量名")
+    name_errors = [e for e in errors
+                   if e.startswith("C6") and any(k in e for k in keep)]
+    if not targets and not name_errors:
+        name_errors.append("C1 完备枚举面未解析出任何 add_test(NAME …) 名字 —— ")
+    return targets, ["C1 " + e for e in name_errors]
+
+
+def parse_targets_legacy(sources: dict):
+    """遗留路径：文本级正则 + foreach 头求值（保留供 --parser legacy 复现与对照）。"""
+    targets, errors = _parse_targets_regex(sources)
+    return targets, errors
+
+
+def parse_targets(sources: dict, parser: str = "grammar"):
+    """C1 名字枚举：parser=grammar（默认，完备）| legacy（正则）| auto（grammar 失败即回退）。"""
+    if parser not in PARSER_MODES:
+        raise ValueError("未知 parser 模式 %r（可选 %s）" % (parser, "/".join(PARSER_MODES)))
+    if parser == "legacy":
+        return parse_targets_legacy(sources)
+    try:
+        targets, gerrs = parse_targets_grammar(sources)
+    except GrammarUnavailable as exc:
+        if parser == "auto":
+            targets, errors = parse_targets_legacy(sources)
+            return targets, errors + [
+                "C1 完备枚举面不可用，已回退遗留正则面（%s）—— 回退面可能有枚举盲点，"
+                "CI 不得使用 auto：%s" % (exc.__class__.__name__, exc)]
+        raise
+    # 名字枚举面换成完备解析器，**房规结构判据不放松**：正则面里与 foreach 头求值无关的
+    # 结构违规（非 NAME 形式的 add_test、括号结构等）继续并入 C1 判红面。只滤掉
+    # 「foreach 头不可静态枚举」这一类 —— 那一类正是 grammar 面用更强解析器取代的部分，
+    # 留着会把 grammar 已解析出来的循环重复判红（假红）。
+    _t, lerrs = parse_targets_legacy(sources)
+    structural = [e for e in lerrs if not any(m in e for m in _FOREACH_FACE_MARKERS)]
+    return targets, gerrs + structural
 
 
 def _utc_now() -> str:
@@ -151,33 +243,191 @@ def _visible_text(text: str) -> str:
 
 
 FOREACH_RE = re.compile(r'foreach\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^)]*?)\s*\)(.*?)endforeach\s*\(', re.S)
+# 循环头的**值列表可以来自变量**（`set(NAME a b c)` / `set(NAME "a;b;c")`）。
+# 这里只做「set(字面量 …) 的迭代求值」这一最小静态面；其它派生（list(APPEND …)、
+# function 参数、宏体）不求值，走 fail-closed 点名，**不再**把 ${VAR} 当成一个目标名收下。
+SET_VAR_RE = re.compile(
+    r'(?<![A-Za-z0-9_])set\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)[ \t]+([^()]*?)\s*\)')
+_VAR_REF_RE = re.compile(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}')
+_INLINE_COMMENT_RE = re.compile(r'(?:^|[ \t])#[^\n]*')
+_MAX_VAR_PASSES = 8
 
 
-def expand_foreach(text, depth=0):
+def _split_values(tok):
+    """CMake 值列表 → 逐值：空白与分号皆分隔；去引号；丢空串；保序去重。"""
+    out = []
+    for part in re.split(r'[ \t\r\n;]+', tok.strip()):
+        part = part.strip().strip('"')
+        if part and part not in out:
+            out.append(part)
+    return out
+
+
+def set_vars(text):
+    """源内 `set(VAR value…)` → {VAR: 值列表}；同名后写覆盖前写（CMake 同作用域语义）。"""
+    found = {}
+    for var, body in SET_VAR_RE.findall(_INLINE_COMMENT_RE.sub(chr(39)+chr(39), text)):
+        found[var] = _split_values(body)
+    return found
+
+
+def _dir_parent(rel):
+    """仓库相对路径 → 父目录（Toposix，根为 ""）。"""
+    d = str(pathlib.PurePosixPath(rel).parent)
+    return "" if d == "." else d
+
+
+def _unique_value(v):
+    """变量值列表 → 唯一取值（多值即为不同取值，返回 None）。"""
+    if len(v) != 1:
+        return None
+    return v[0]
+
+
+def _scope_values(var, rel, file_vars, scope_vars):
+    """变量在 `rel` 处的取值列表：本源后写覆盖为最高优先，其次向外逐级目录（CMake 目录作用域）。
+
+    跨目录求值只用于**补足本源无法定值的循环头**（同仓实证：lib/algorithms/drizzle/CMakeLists.txt:68
+    的 `foreach(_f ${ASTROCS_CFITSIO_SOURCES})`，其值由 eng/cmake/cfitsio_sources.cmake:3 提供、
+    经根 CMakeLists.txt:66 的 include 进入根作用域）。本源已能定值的名字**不**看外层，
+    避免把子目录里合法的同名遮蔽误判成同名多值。
+    """
+    own_dir = _dir_parent(rel)
+    vals = [file_vars[var]] if var in file_vars else []
+    d = own_dir
+    first = True
+    while True:
+        if not (first and var in file_vars):   # 本源已收过自己目录的 set，不重复计
+            vals += scope_vars.get((d, var), [])
+        first = False
+        if d == "":
+            break
+        d = _dir_parent(d)
+    return vals
+
+
+def _resolve_loop_values(tok, file_vars, scope_vars, rel, errors, line):
+    """foreach 头的值列表记号 → 字面值列表；不可静态枚举返回 None（由调用方判红）。"""
+    cur = _split_values(tok)
+    for _ in range(_MAX_VAR_PASSES):
+        refs = []
+        for tokv in cur:
+            refs += _VAR_REF_RE.findall(tokv)
+        if not refs:
+            return cur
+        nxt = []
+        for tokv in cur:
+            parts = [tokv]
+            for ref in refs:
+                vals = _scope_values(ref, rel, file_vars, scope_vars)
+                if not vals:
+                    continue
+                if _unique_value(vals) is None:
+                    # 同名多值 ⇒ 生效值取决于求值顺序，不得猜：fail-closed 点名
+                    errors.append(
+                        "C1 %s:%d: foreach 头变量 ${%s} 有 %d 个不同取值（%s）—— "
+                        "同名 set 的生效值取决于扫描顺序，无法静态定名 ⇒ fail-closed"
+                        % (rel, line, ref, len(vals), " | ".join(" ".join(v) for v in vals[:4])))
+                    return None
+                prevals = vals[0]
+                newparts = []
+                for pt in parts:
+                    if "${" + ref + "}" in pt:
+                        newparts += [pt.replace("${" + ref + "}", v) for v in prevals]
+                    else:
+                        newparts.append(pt)
+                parts = newparts
+            nxt += parts
+        if nxt == cur:
+            break
+        cur = nxt
+    for tokv in cur:
+        if _VAR_REF_RE.search(tokv):
+            # 残留未求值变量：取值集合不可静态枚举。**不在此处报错** —— 报不报红
+            # 取决于循环体是否含 add_test(NAME …)（见 expand_foreach.repl），
+            # 由那里按块上下文点名，免得对与 CTest 面无关的循环产生假红。
+            return None
+    return cur
+
+
+def expand_foreach(text, depth=0, errors=None, rel="?", scope_vars=None, file_vars=None):
     """把 foreach(var a b c) ... endforeach() 展开成逐值副本。
 
     解析器原先只取字面量名，于是
     lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt 的
     foreach(orch_test logger checkpoint) 生成的 orchestrator_logger_units /
     orchestrator_checkpoint_units 两条真实 ctest 在扫描面上不可见 —— 这正是
-    空/不透明扫描面那一类失效（看不见的东西永远不会被判红）。"""
+    空/不透明扫描面那一类失效（看不见的东西永远不会被判红）。
+
+    **循环头来自变量**是同一类失效里更隐蔽的一种：eng/tests/unit/p1_psfw/CMakeLists.txt:51
+    的 `foreach(g ${V6_P1_PSFW_GROUPS})`（列表在 :50 的 set 里）原先只替换 ${g}、
+    把 ${V6_P1_PSFW_GROUPS} 原样留在目标名里 ⇒ 判定面出现一个**不存在的目标名**
+    `p1_psfw_${V6_P1_PSFW_GROUPS}`（假条目虚增面，还被 glob 结构性命中、随基线冻结固化），
+    而 8 个**真实**注册名 p1_psfw_{anea,winfo,oracle,components,common,gates,record,negative}
+    从未进入判定面（真名若被删/改名，本门永不判红）。现按 `set(VAR …)` 求值循环头；
+    求不出即 fail-closed 点名（C1），绝不把带 ${…} 的字面量当目标名。
+    """
     if depth > 4:
+        if errors is not None:
+            errors.append('C1 %s: foreach 嵌套深度 > 4，展开不可控 ⇒ fail-closed' % rel)
         return text
 
+    if file_vars is None:
+        file_vars = set_vars(text)
+    if scope_vars is None:
+        scope_vars = {}
+
     def repl(m):
-        var, vals, body = m.group(1), m.group(2).split(), m.group(3)
-        return "\n".join(body.replace("${" + var + "}", v) for v in vals)
+        var, tok, body = m.group(1), m.group(2), m.group(3)
+        line = text[:m.start()].count(chr(10)) + 1
+        before = len(errors) if errors is not None else 0
+        original = m.group(0)
+        vals = _resolve_loop_values(tok, file_vars, scope_vars, rel, errors, line)
+        if vals is None:
+            # 求不出循环头取值 ⇒ 不产出任何目标名（绝不产出假名）。而只有**循环体里
+            # 真有 add_test(NAME …)** 时才判红：本门的判定面只由 add_test(NAME …) 构成，
+            # 循环体只做 add_executable/源列表拼接的（同仓实证：
+            # lib/algorithms/drizzle/**/CMakeLists.txt 与
+            # lib/algorithms/integration/phase2_integrate/ 的 ${ASTROCS_CFITSIO_SOURCES}
+            # 循环、DRZ_EXTRA_TESTS / DRZ_PROBE_TESTS 循环）与 CTest 目标集合无关，
+            # 对它判红是假红 —— 那会把门变成噪声门。
+            if ADD_TEST_NAME_RE.search(body):
+                if errors is not None and len(errors) == before:
+                    errors.append(
+                        'C1 %s: foreach 头 %s 的值集合无法静态枚举，且循环体含 '
+                        'add_test(NAME …) —— 该 ctest 目标名不可枚举：既不得占位收下，'
+                        '也不得静默丢弃 ⇒ fail-closed（循环头须可在本源或目录作用域内静态求值）'
+                        % (rel, tok.strip()))
+                return original
+            # 体与 CTest 目标集合无关：原样保留（不删体），免得把里面的 add_test 静默丢出扫描面。
+            return body
+        return chr(10).join(body.replace('${' + var + '}', v) for v in vals)
 
     expanded = FOREACH_RE.sub(repl, text)
-    return expand_foreach(expanded, depth + 1) if expanded != text else expanded
+    if expanded != text:
+        return expand_foreach(expanded, depth + 1, errors, rel, scope_vars, file_vars)
+    return expanded
 
 
-def parse_targets(sources: dict) -> tuple:
-    """返回 (target -> 仓库相对源路径, 结构违规列表)。"""
+def _parse_targets_regex(sources: dict) -> tuple:
+    """返回 (target -> 仓库相对源路径, 结构违规列表)。
+
+    循环头变量的求值需要两个作用域面（CMake 目录作用域）：`file_vars` = 本源 `set()`
+    的后写覆盖结果；`scope_vars` = 逐目录的 `set()` 集合（跨文件形态，例如
+    eng/cmake/cfitsio_sources.cmake 提供、根 CMakeLists.txt include 后被子目录引用）。
+    """
     targets: dict = {}
     errors: list = []
+    scope_vars: dict = {}
     for rel, raw in sorted(sources.items()):
-        text = expand_foreach(_visible_text(raw))
+        for var, vals in set_vars(_visible_text(raw)).items():
+            entries = scope_vars.setdefault((_dir_parent(rel), var), [])
+            if vals not in entries:
+                entries.append(vals)
+    for rel, raw in sorted(sources.items()):
+        text = _visible_text(raw)
+        text = expand_foreach(text, errors=errors, rel=rel, scope_vars=scope_vars,
+                              file_vars=set_vars(text))
         names = ADD_TEST_NAME_RE.findall(text)
         total = len(ADD_TEST_ANY_RE.findall(text))
         if total != len(names):
@@ -187,6 +437,16 @@ def parse_targets(sources: dict) -> tuple:
         for name in names:
             name = name.strip().strip('"')
             if not name:
+                continue
+            if '${' in name or '$(' in name or '$<' in name:
+                # 假名守卫：名字位置残留变量/生成器表达式 ⇒ 它**不是一个目标名**。
+                # 不得当成目标收下（假条目虚增判定面、被 glob 结构性命中、并随
+                # ctest_baseline 冻结固化），也不得静默丢弃 ⇒ fail-closed 点名。
+                errors.append(
+                    "C1 %s: 目标名位置残留未求值变量/生成器表达式 %r —— "
+                    "它不是任何真实 ctest 目标；既不得当假条目收下，也不得静默"
+                    "丢弃 ⇒ fail-closed（如为 foreach 头变量，须可在本源内静态求值）"
+                    % (rel, name))
                 continue
             prev = targets.get(name)
             if prev is not None and prev != rel:
@@ -250,6 +510,18 @@ def evaluate(targets: dict, registry: dict, baseline: dict) -> dict:
             "C0 扫描面为空：版本库面内未解析出任何 add_test(NAME …) 目标 —— "
             "fail-closed 拒绝空扫描判绿（若确实无测试，请显式登记豁免面）")
 
+    # C7 假名守卫（裁定一）：目标名里带未求值变量/生成器表达式 ⇒ 它**不是**任何真实
+    # ctest 目标。假条目的危害不是"多一条"，而是**覆盖面虚增**：一个不存在的东西
+    # 会被名字通配结构性命中（本仓实证：CHK-UNIT 的 `p1_psfw_*` 与 CHK-NWORKER 的
+    # `p1_*` 双双命中 `p1_psfw_${V6_P1_PSFW_GROUPS}`），于是"已覆盖"是假的、
+    # 还可能随 ctest_baseline 冻结固化。判定面必须由真实名字构成，故一律判红。
+    for name in sorted(targets):
+        if "${" in name or "$(" in name or "$<" in name:
+            errors.append(
+                "C7 目标名 %r 含未求值变量/生成器表达式（源 %s）—— 它不是真实 ctest "
+                "目标；名字通配会把它当成已覆盖，覆盖面虚增：不得收下，也不得静默丢弃"
+                % (name, targets[name]))
+
     explicit: dict = {}
     dangling: list = []
     not_in_command: list = []
@@ -299,7 +571,7 @@ def evaluate(targets: dict, registry: dict, baseline: dict) -> dict:
 
 # --------------------------------------------------------------------- 真实数据面 ----
 
-def collect_real(repo: pathlib.Path, *, tracked_only: bool = True) -> tuple:
+def collect_real(repo: pathlib.Path, *, tracked_only: bool = True, parser: str = "grammar") -> tuple:
     """真实数据面：(targets, structural_errors, untracked_cmake_sources)。
 
     tracked_only=True（默认，CI 面）= 只判**版本库**内的 CMake 源；未跟踪的
@@ -310,13 +582,14 @@ def collect_real(repo: pathlib.Path, *, tracked_only: bool = True) -> tuple:
     for path in paths:
         rel = str(path.relative_to(repo)).replace("\\", "/")
         sources[rel] = path.read_text(encoding="utf-8", errors="replace")
-    targets, errors = parse_targets(sources)
+    targets, errors = parse_targets(sources, parser=parser)
     return targets, errors, untracked
 
 
 def write_baseline(repo: pathlib.Path, targets: dict, explicit: set, previous: dict = None) -> pathlib.Path:
     """重算存量基线：现存目标 − 显式登记目标（显式登记者不进基线）。"""
-    entries = sorted(t for t in targets if t not in explicit)
+    entries = sorted(t for t in targets
+                     if t not in explicit and "${" not in t and "$(" not in t and "$<" not in t)
     try:
         sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
                              capture_output=True, text=True, timeout=30).stdout.strip()
@@ -349,6 +622,20 @@ FIXTURE_CMAKE = (
     "add_test(NAME brand_new_target COMMAND demo_test new)\n"
 )
 FIXTURE_CMAKE_STALE = "add_test(NAME demo_units COMMAND demo_test units)\n"
+# S9/S10：循环头来自变量（实证形态 eng/tests/unit/p1_psfw/CMakeLists.txt:50-54）。
+# 旧解析器只替换循环变量、把头变量原样留在名字里 ⇒ 产出一个假名（**不存在的目标**），
+# 而 2 个真名从未进入判定面。
+FIXTURE_LOOP_VAR = (
+    "set(DEMO_GROUPS anea winfo)\n"
+    "foreach(g " + __import__("builtins").chr(36) + "{DEMO_GROUPS})\n"
+    "  add_test(NAME demo_" + __import__("builtins").chr(36) + "{g} COMMAND demo_test " + __import__("builtins").chr(36) + "{g})\n"
+    "endforeach()\n")
+FIXTURE_LOOP_VAR_UNRESOLVED = (
+    "foreach(g " + __import__("builtins").chr(36) + "{DEMO_MISSING_GROUPS})\n"
+    "  add_test(NAME demo_" + __import__("builtins").chr(36) + "{g} COMMAND demo_test " + __import__("builtins").chr(36) + "{g})\n"
+    "endforeach()\n")
+FIXTURE_FAKE_NAME = "add_test(NAME demo_" + __import__("builtins").chr(36) + "{LATE_VAR} COMMAND demo_test)\n"
+
 FIXTURE_CMAKE_ONE = "add_test(NAME demo_units COMMAND demo_test units)\n"
 
 
@@ -386,8 +673,9 @@ def _fixture_registry(target=None, command_name=None, *, via_step=False) -> dict
 def run_selftest() -> int:
     results: list = []
 
-    def case(name: str, sources: dict, registry: dict, baseline: dict, expect_pass: bool) -> None:
-        targets, structural = parse_targets(sources)
+    def case(name: str, sources: dict, registry: dict, baseline: dict, expect_pass: bool,
+             parser: str = "legacy") -> None:
+        targets, structural = parse_targets(sources, parser=parser)
         verdict = evaluate(targets, registry, baseline)
         errs = structural + verdict["errors"]
         ok = (not errs) if expect_pass else bool(errs)
@@ -411,7 +699,39 @@ def run_selftest() -> int:
     case("S8_pattern_in_step_command", {"CMakeLists.txt": FIXTURE_CMAKE_ONE},
          _fixture_registry("demo_units", via_step=True), {"targets": []}, True)
 
-    targets, structural, untracked_real = collect_real(REPO)
+    # S9：循环头来自变量的循环（"+" 号面）—— legacy 与 grammar 两条路径都必须枚举出两个真名。
+    for _p in ("legacy", "grammar"):
+        _t, _e = parse_targets({"CMakeLists.txt": FIXTURE_LOOP_VAR}, parser=_p)
+        _ok = (sorted(_t) == ["demo_anea", "demo_winfo"]
+               and not any("${" in n for n in _t) and not _e)
+        results.append({"case": "S9_loop_header_variable_%s" % _p, "expect": "PASS",
+                        "actual": "PASS" if _ok else "FAIL", "ok": _ok,
+                        "errors": [] if _ok else ["targets=%r errors=%r" % (sorted(_t), _e)]})
+    # S10：循环头变量**不可静态枚举** ⇒ 该处名字集合看不见 ⇒ 必须判红（不得静默丢）。
+    for _p in ("legacy", "grammar"):
+        _t, _e = parse_targets({"CMakeLists.txt": FIXTURE_LOOP_VAR_UNRESOLVED}, parser=_p)
+        _ok = bool(_e) and not _t
+        results.append({"case": "S10_loop_header_unresolved_%s" % _p, "expect": "FAIL",
+                        "actual": "FAIL" if _ok else "PASS", "ok": _ok,
+                        "errors": _e or ["targets=%r（未被判红）" % sorted(_t)]})
+    # S11：名字位置残留变量 ⇒ 假名不得被当成目标（C7）。
+    for _p in ("legacy", "grammar"):
+        _t, _e = parse_targets({"CMakeLists.txt": FIXTURE_FAKE_NAME}, parser=_p)
+        _v = evaluate(_t, empty_reg, {"targets": []})
+        _errs = _e + _v["errors"]
+        _ok = bool(_errs) and not any("${" in n for n in _t)
+        results.append({"case": "S11_fake_name_rejected_%s" % _p, "expect": "FAIL",
+                        "actual": "FAIL" if _errs else "PASS", "ok": _ok,
+                        "errors": _errs})
+    # S12：假名若混进目标集，**结构性命中**（glob）不得把它洗成"已覆盖"（C7 必红）。
+    _v = evaluate({"demo_" + __import__("builtins").chr(36) + "{LATE_VAR}": "CMakeLists.txt"},
+                  _fixture_registry("demo_*"), {"targets": []})
+    _ok = any("C7" in e for e in _v["errors"])
+    results.append({"case": "S12_glob_must_not_whitewash_fake", "expect": "FAIL",
+                    "actual": "FAIL" if _ok else "PASS", "ok": _ok,
+                    "errors": _v["errors"]})
+
+    targets, structural, untracked_real = collect_real(REPO, parser="grammar")
     verdict = evaluate(targets, load_json(REPO / REGISTRY_REL),
                        load_json(REPO / BASELINE_REL))
     errs = structural + verdict["errors"]
@@ -437,6 +757,9 @@ def main(argv=None) -> int:
     ap.add_argument("--write-baseline", action="store_true",
                     help="维护面：按当前源码重算 eng/ci/ctest_baseline.json（CI 不调用）")
     ap.add_argument("--selftest", action="store_true", help="负例自检（内存 fixture）")
+    ap.add_argument("--parser", choices=list(PARSER_MODES), default="grammar",
+                    help="名字枚举面：grammar=完备（默认，复用 CMake 解析器）；"
+                         "legacy=遗留正则；auto=grammar 不可用即回退 legacy（仅诊断用）")
     args = ap.parse_args(argv)
 
     if args.selftest:
@@ -444,7 +767,7 @@ def main(argv=None) -> int:
 
     repo = pathlib.Path(args.repo).resolve()
     try:
-        targets, structural, untracked = collect_real(repo)
+        targets, structural, untracked = collect_real(repo, parser=args.parser)
     except GitUnavailable as exc:
         # 依赖不可用 ⇒ 点名 + fail-closed（rc=2）。**不得**退化成"空版本库面 ⇒ 全部目标
         # 未注册/陈旧"（原缺陷：282 条错误全部指向「target 消失」而真因是「git 不可用」）。

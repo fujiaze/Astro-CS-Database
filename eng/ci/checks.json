@@ -14795,6 +14795,169 @@
       ]
     },
     {
+      "id": "CHK-REG-SURFACE-CROSS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-REG-SURFACE-CROSS",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/reg-surface-cross/reg_surface_cross.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "eng/ci/checks.json",
+        "eng/ci/ctest_baseline.json",
+        "eng/tests/**",
+        "lib/**",
+        "eng/tools/quality/check_reg_surface_cross.py",
+        "eng/tools/quality/check_ctest_registration.py",
+        "eng/tools/quality/check_ctest_reg_condition.py"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-REG-SURFACE-CROSS",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_reg_surface_cross.py",
+            "--json-out",
+            "run/ci/reg-surface-cross/reg_surface_cross.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/reg-surface-cross/reg_surface_cross.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_reg_surface_cross.py",
+            "eng/tools/quality/check_ctest_registration.py",
+            "eng/tools/quality/check_ctest_reg_condition.py",
+            "eng/ci/checks.json"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-REG-SURFACE-CROSS-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_reg_surface_cross.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_reg_surface_cross.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-REG-SURFACE-CROSS-INJECT",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_reg_surface_cross.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_reg_surface_cross.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "requires_monitor": false,
+      "id": "CHK-CFITSIO-PLATFORM-SURFACE",
+      "command": [
+        "python3",
+        "eng/ci/check_cfitsio_platform_surface.py",
+        "--json"
+      ],
+      "timeout_seconds": 180,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "eng/cmake/**",
+        "eng/ci/check_cfitsio_platform_surface.py",
+        "lib/infrastructure/aio/third_party/cfitsio/**"
+      ]
+    },
+    {
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "requires_monitor": false,
+      "id": "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST",
+      "command": [
+        "python3",
+        "eng/ci/check_cfitsio_platform_surface.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "eng/cmake/**",
+        "eng/ci/check_cfitsio_platform_surface.py"
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
