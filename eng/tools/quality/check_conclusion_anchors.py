@@ -40,7 +40,9 @@ import gen_module_readmes as G                                            # noqa
 
 ANCHOR_MARK = G.ANCHOR_MARK
 ANCHOR_RE = G.ANCHOR_RE
-DEFAULT_SURFACE = "docs/modules/registry"
+# 27 份模块页已随迁移迁至 docs/detail/registry/（旧位只剩一份基线登记文件，不含 .md）。
+# 原指向使本门扫到 **0 篇**文档却仍报 PASS（恒真面：判红器失明而自身显示通过）。
+DEFAULT_SURFACE = "docs/detail/registry"
 
 # R2 结论词（冻结表）：只收「断言某动作已被验证/已通过」的词，避免误伤普通叙述。
 CONCLUSION_TOKENS = (
@@ -326,7 +328,15 @@ def run(root: pathlib.Path, surface: str, strict_freshness: bool = False):
         "stale": stale,
         "producers_scanned": len(srcs),
     }
-    report["verdict"] = "FAIL" if report["violations"] else "PASS"
+    # 恒真门守卫（两个维度都要）：
+    #   1) 扫描面为空  => violations 必为空，原判据会报 PASS，那是「什么都没扫到」被说成「没问题」；
+    #   2) 扫到文档但**一篇都没带锚** => 本门实际未检查任何内容（它只查生成器产的页），
+    #      同样是把「没查」说成「查过且没问题」。实测 27 篇模块页无一带 GENERATED-ANCHOR。
+    report["empty_surface"] = report["scanned"]["surface_docs"] == 0
+    report["no_anchored_docs"] = report["scanned"]["anchored_docs"] == 0
+    report["verdict"] = ("FAIL" if (report["violations"] or report["empty_surface"]
+                                  or report["no_anchored_docs"])
+                         else "PASS")
     return report, None
 
 
@@ -456,6 +466,18 @@ def main() -> int:
         for v in report["violations"]:
             print("  [%s] %s:%s %s" % (v["rule"], v["file"], v.get("line", "-"),
                                        v["detail"]))
+        return 1
+    # 恒真门守卫（真正的判红点在此：上面的 verdict 字段只被 json_out 消费，
+    # main 的退出码历来只看 violations）。扫不到文档、或扫到却一篇都没带锚，
+    # 都是「没有检查任何内容」，不能报成「检查通过」。
+    if report.get("empty_surface"):
+        print("CONCLUSION_ANCHORS_FAIL INPUT_EMPTY surface=%s 扫到 0 篇文档，"
+              "本门未检查任何内容（不是「无问题」）" % report["surface"])
+        return 1
+    if report.get("no_anchored_docs"):
+        print("CONCLUSION_ANCHORS_FAIL NO_ANCHORED_DOCS surface=%s 扫到 %d 篇但 0 篇带锚标记，"
+              "本门只检查带锚的页面，等于未检查任何内容"
+              % (report["surface"], report["scanned"]["surface_docs"]))
         return 1
     print("CONCLUSION_ANCHORS_PASS anchored_docs=%d surface_docs=%d producers=%d stale=%d"
           % (report["scanned"]["anchored_docs"], report["scanned"]["surface_docs"],
