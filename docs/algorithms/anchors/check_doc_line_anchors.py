@@ -592,7 +592,7 @@ def main(argv=None):
         scale_line = raw
         if nums != want:
             errors.append(fail("C7_contract_scale",
-                               "§1 声明 %s ≠ 实测 %s（文档/锚/目标锚/登记豁免/未解析登记）；"
+                               "§1 声明 %s ≠ 实测 %s（文档/锚/目标锚/登记豁免/已登记但解析未收敛）；"
                                "用 --print-scale 取现行行" % (nums, want)))
 
     registry_rows = sorted(
