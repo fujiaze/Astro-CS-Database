@@ -52,7 +52,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 > 本节是它的**人类可读合同**（同源；字段名 / 枚举 / 顺序键以 `protocol.h` + `jsonl.h` 为准，
 > 冲突时以实现正本为准）。机器 schema = `eng/contracts/schemas/jsonl_event_v1.schema.json`（**派生件**，
 > 定义只有这一份）。
-> **与结构化日志分属两份合同**：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001，
+> **与结构化日志分属两份合同**：`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001，
 > `astrocs.log.event.v1`）是**结构化日志**合同，**显式声明它不是运行事件流**；其事件键名 `event`
 > 与本流的 `kind` **各自独立**，两份流各用**不同工件名**、**各自具名**。
 
@@ -68,7 +68,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
   - `stage_start` / `stage_end`：阶段起止（无扩展字段）；
   - `graph`：运行图落盘（path）；
   - `resource_gate`：资源门判定记录（诊断 / 强制口径 / 工作量下界 / SO-05 签字证据）；
-    逐键语义与必含集见 `docs/plugins/infrastructure/21_observability.md` §8.4「事件面登记」；
+    逐键语义与必含集见 `docs/detail/infrastructure/21_observability.md` §8.4「事件面登记」；
   - `v6_mode_route`：V6 路由登记（route_kind / token / surface / 来源 / 预算归属）。
   **kind 集合与逐 kind 字段集由机器门 `eng/ci/check_event_field_sets.py`（EVT-FIELD-SETS）守
   五面一致**（正本 kExt / schema `allOf[].then.required` / schema `x-astrocs-event-kind-registry` /
@@ -110,7 +110,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 >   `elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress,threads,active_compute_threads,per_thread_cpu_max_pct,per_thread_cpu_sum_pct,io_wait_pct`
 >   （**run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖）；`lib/infrastructure/cli/resource_events.h:6` 明文
 >   「资源时序曲线的**唯一载体** = 磁盘工件 `resource_timeseries.csv`」。
-> - `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`（LOG-002）的「每秒采样 + seed 行 + 指纹链」
+> - `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`（LOG-002）的「每秒采样 + seed 行 + 指纹链」
 >   CSV 是**监控伴随器的原始数据**，**不是同一工件** ⇒ 其工件名固定为 **`monitor_timeseries.csv`**。
 > - **两工件不同名、不互替**：`resource_timeseries.csv`（20 列，收尾一次性）与 `monitor_timeseries.csv`
 >   （每秒采样 + 指纹链）**各自具名、各自独立**：列定义与采样语义各一套。
@@ -135,7 +135,7 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
 > 权威口径：默认导出要求边框不得裁剪任何有效像素（允许含黑边，到平面域后手动剪裁）；
 > 同时支持手动输入裁剪范围；GUI HiPS 浏览器的框选直接导出依赖此接口，接口须保留。
 > 上游：本文件 §1（命令树）/ §7（配置与 `output_dir`）+ `ASTROCS_DESIGN.md` §6/§7.2。
-> 设计正本：`docs/design/PHASE3_DETAILED_DESIGN.md` §8；字段合同：
+> 设计正本：`docs/detail/PHASE3_DETAILED_DESIGN.md` §8；字段合同：
 > `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；
 > 字段说明（`--help` 同源）：`lib/infrastructure/cli/session_commands.h` 的
 > `config_fields(SESSION_EXPORT)`。

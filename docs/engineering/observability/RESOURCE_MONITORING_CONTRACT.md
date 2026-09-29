@@ -159,7 +159,7 @@ exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 
 可选的 metric 事件输出（`trace_feed.emit_metric_event`）复用 `astrocs.log.event.v1` 语义
 （phase=`monitoring`、event=`metric`），字段语义与枚举的正本 =
-`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` §2.2；生产 Runtime 把
+`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2.2；生产 Runtime 把
 monitor 摘要写入统一 JSONL 时按该合同适配。本合同的交付面 = CSV 列合同 + 指纹链 + 校验闭环。
 
 ## 9. 验收
@@ -177,6 +177,6 @@ monitor 摘要写入统一 JSONL 时按该合同适配。本合同的交付面 =
 ## 10. 参考
 
 - 依据：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、§10（I/O 与原子产品）
-- 结构化日志合同：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
+- 结构化日志合同：`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`
 - trace 事件：`lib/include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`

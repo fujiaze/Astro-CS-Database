@@ -5,7 +5,7 @@
 > 权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§6.2（唯一命令树）、
 > `docs/contracts/{ARCH-001,RT-001,DATA_ARTIFACTS,DATA_SEMANTICS}.md`、
 > `docs/api/{PHASE1_API_V1,PHASE2_API_V1,PHASE3_API_V1,CLI_PROTOCOL_V1}.md`、
-> `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`。
+> `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`。
 > 状态词约定同 RELEASE_STATUS §0（DOC-CONV-001 唯一口径）：
 > `CONTRACT_READY` / `IMPLEMENTED` / `INSTALLED` / `VERIFIED` /
 > `NOT_IMPLEMENTED` / `NOT_VERIFIED` / `DEFERRED` / `DORMANT` / `FAIL`；
@@ -33,7 +33,7 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2）
 
 | 隔离要求 | 状态 | 依据（当前提交内静态可核） |
 |---|---|---|
-| 唯一命令树 `normalize/mosaic/export`（+ `help/--version/doctor/benchmark`）存在 | `INSTALLED` | CLI-001 切换为 `ASTROCS_DESIGN.md` §6.2 唯一命令树：旧 `phase1/2/3` 用户命令与 `validate/plan/inspect` 全部删除且 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1）；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS |
+| 唯一命令树 `normalize/mosaic/export`（+ `help/--version/doctor/benchmark`）存在 | `INSTALLED` | CLI-001 切换为 `ASTROCS_DESIGN.md` §6.2 唯一命令树：旧 `phase1/2/3` 用户命令与 `validate/plan/inspect` 全部删除且 rc=2（`docs/engineering/CLI_PROTOCOL_V1.md` §1）；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS |
 | **三命令平级独立（唯一命令树，无跨阶段连跑入口）** | `IMPLEMENTED` | `run`/`graph` 不在命令树内（CLI-002，`a6c39cc1`）；实测 `run --phases` → rc=2 `unknown command 'run'`，与 `ASTROCS_DESIGN.md` §1.2/§7.1（唯一命令树、串接一律显式）一致 |
 | 单 Phase 命令走独立进程/独立 Runtime 实例 | `IMPLEMENTED` | `normalize/mosaic/export` 子命令（`cli/commands.cpp`，handler 名经 CLI-001 切换）各启动单 Phase 运行 |
 | RT-001 类型化 DAG 拒绝跨 Phase edge | PASS | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`（module 带 phase 字段，跨 Phase edge 拒绝，见 RT-001 集成 commit requirements） |
@@ -47,7 +47,7 @@ Phase1 目标链（`ASTROCS_DESIGN.md` §4.2）：
 → drizzle → hips_writer`。
 解算节点按帧自读校准后像素自行检测与匹配，不消费检测产物；权威检测的星表逆投影需要含取向的完整 WCS
 （取自本帧解算产物）⇒ 解算在检测与 PSF 建模之前。节点序与依赖边的机器判据见
-`docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7.1。
+`docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §7.1。
 
 当前基线的实际装配（BASE=`da3c4b4a`）：
 - CLI 层 Phase1 IR：`cli/runtime_client.cpp`:92-114 两节点链
@@ -130,7 +130,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
 - 唯一 executor 与实测资源门（RT-001 `91440c16`）：`lib/infrastructure/scheduler/src/executor_runtime.h`
   + `lib/infrastructure/scheduler/src/module_adapters.cpp`:3777-3793（Phase3 resample 行带提交唯一池，
   每任务经 `ThreadBudget acquire(1,1)` 恰租 1 槽）；`eng/tools/monitoring/run_monitored.py`
-  `evaluate_frozen_gate()` 按 **`docs/plugins/infrastructure/21_observability.md` §8（G-RES-01）**
+  `evaluate_frozen_gate()` 按 **`docs/detail/infrastructure/21_observability.md` §8（G-RES-01）**
   判定（判据语义权威），阈值唯一数值源 = `eng/contracts/resource_gate_v1.json`；
   硬失败 = 单活跃计算线程 / 连续≥10s<60% 且队列有工作 / 无界内存增长，均值≥85% 等为
   record_and_justify。`ASTROCS_DESIGN.md` §8 只作定性要求与指针、**不含阈值数字**
@@ -139,7 +139,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
 
 ## 6. 与发布形态的关系
 
-- 用户命令面以 `docs/api/CLI_PROTOCOL_V1.md`（API-CLI-001 冻结）为准：
+- 用户命令面以 `docs/engineering/CLI_PROTOCOL_V1.md`（API-CLI-001 冻结）为准：
   `normalize/mosaic/export`、`help`、`--version`、`doctor`、`benchmark`（唯一命令树）。
 - 目标发布安装树（03 §4）：`acsd.exe` + runtime/io/科学模块/provider DLL；
   HiPS Browser、ACR/CUDA 不入 product manifest。当前根 CMake（BLD-002）唯一

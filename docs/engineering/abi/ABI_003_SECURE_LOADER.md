@@ -1,7 +1,7 @@
 # Secure Module Loader
 
-> 上游: `docs/ASTROCS_DESIGN.md` §8.5（模块与 ABI）/ `docs/standards/C_ABI_STANDARD.md`
->       / `docs/contracts/ARCH-001.md`（模块边界合同）
+> 上游: `docs/ASTROCS_DESIGN.md` §8.5（模块与 ABI）/ `docs/engineering/C_ABI_STANDARD.md`
+>       / `docs/engineering/ARCH-001.md`（模块边界合同）
 
 ## 1. 目标与验收
 

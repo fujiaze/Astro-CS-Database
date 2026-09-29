@@ -77,7 +77,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
 
 - **NaN/Inf 契约（样本级掩膜口径，依据 `ASTROCS_DESIGN.md` §5.5）**：
   输入校验返回显式 `INVALID_*` 状态。重采样 / 集成的 NaN 处置**唯一口径** =
-  **rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（**唯一正本 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
+  **rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（**唯一正本 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
   §2a 的 `invalid_handling` 块**；科学正本见 `docs/science/DRIZZLE.md`）：
   - **样本级掩膜 + 重归一**：不合格样本（`¬isfinite(x_j)`，**只看值是否有限**）
     从该输出像素的**分子、分母、方差三项中一并剔除**并**重新归一**；
@@ -92,7 +92,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
       `D_p` 在 Phase 2/3 分支**不成立**（那里分母是权重和，不是球面面积）。代入错误相差
       `A_cell²` —— `nside = 2^18` 时 `1/A_cell² = 4.306e21`，即 **21.63 dex**（数值与推导见本文件
       「面亮度标度律」）。正本 = `DATA_SEMANTICS` §4a 与
-      `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a。
+      `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a。
   - **方差可用性是独立通道，不参与合格性判定**：`V_j` **有限且 ≤ 0** = 「有覆盖但
     方差不可用」⇒ 信号与几何权重照常计入 `F_p` 与该分支的分母（Phase 1 为 `D_p`、
     Phase 2/3 为 `W_p`）（保信号、保覆盖），不计入
@@ -107,7 +107,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
   - NaN 只作无效标记出现，合法产品只含有效值。
     与此相反的 `DISP-DRZ-004`「NaN 经 `F_p` 传播、不掩膜」状态为 **CLOSED**（唯一口径 =
     rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数），
-    见 `docs/standards/STANDARDS_REGISTRY.md` D.drizzle 偏差表与 §3 索引。
+    见 `docs/engineering/STANDARDS_REGISTRY.md` D.drizzle 偏差表与 §3 索引。
   - **本文件不复制第二套**：三处（本文件、DATA-002 §2a、STANDARDS_REGISTRY D.drizzle）
     必须逐字同口径；如有分歧以 DATA-002 §2a 的 `invalid_handling` 块为准。
 - division by zero：显式守卫或状态。
@@ -121,7 +121,7 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
   （最高设计 §2.1）；**权重 = 阶段二在集成时，按某个天球像素对应的那组输入帧现场算出的
   派生量**，**由 SNR 计算**（`w = 1/σ² = SNR²/F_ref²`；最高设计 §4.3/§4.4）。
 - **阶段一、阶段三不产生、也不消费任何权重**（最高设计 §2.1）。
-- `ivar` 与 `uncertainty` 是**数据对象**（各有正本定义，见 `docs/contracts/DATA_SEMANTICS.md`），
+- `ivar` 与 `uncertainty` 是**数据对象**（各有正本定义，见 `docs/science/DATA_SEMANTICS.md`），
   **不是**两个可回退的权重来源档位；不存在「权重模式」（`ASTROCS_DESIGN.md` §3.1）。
 - 权重必须**正有限**；全 0 / NaN / Inf 权重 → `ZERO_VALID_WEIGHT` / `INVALID_INPUT`。
 - 权重取值为正有限值；`support` / `coverage` / `validity` / `mask` 与权重各自独立（四概念分离，最高设计 §4.4）。
@@ -129,4 +129,4 @@ Var(S) = Var(F) / A_cell²          A_cell = 4π / (12·nside²)   [sr]
 ## 关联
 
 - docs/science/UNCERTAINTY_AND_COVARIANCE.md；docs/science/DRIZZLE.md；
-- docs/standards/CODE_STANDARD.md；docs/standards/STANDARDS_REGISTRY.md。
+- docs/engineering/CODE_STANDARD.md；docs/engineering/STANDARDS_REGISTRY.md。

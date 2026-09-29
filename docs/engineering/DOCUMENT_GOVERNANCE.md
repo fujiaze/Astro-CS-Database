@@ -47,7 +47,7 @@ docs/
 
 ## 3. 锚纪律与机器门
 
-- 行锚/符号锚门（`ALG-LINE-ANCHORS`、`DOC-LINE-ANCHORS`）全量生效；锚的路径与行号随文档维护同提交更新（锚合同的唯一正本 = `docs/algorithms/anchors/ANCHOR_CONTRACT.md`）；
+- 行锚/符号锚门（`ALG-LINE-ANCHORS`、`DOC-LINE-ANCHORS`）全量生效；锚的路径与行号随文档维护同提交更新（锚合同的唯一正本 = `docs/detail/anchors/ANCHOR_CONTRACT.md`）；
 - 重锚只改路径与行号，锚语义保持不变；正文内容订正走订正流程并复跑门禁，不借重锚顺带改内容；
 - 门的 `doc_glob` / `changed_paths` 面与文档路径改动同提交生效。
 

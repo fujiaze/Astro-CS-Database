@@ -2,9 +2,9 @@
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> 权威：`ASTROCS_DESIGN.md` §8（软件架构）、`ENGINEERING_SPEC.md` §7/§10、`docs/contracts/ARCH-001.md`、
+> 权威：`ASTROCS_DESIGN.md` §8（软件架构）、`ENGINEERING_SPEC.md` §7/§10、`docs/engineering/ARCH-001.md`、
 > `docs/architecture/*.md`、`docs/api/*`、`eng/contracts/config/module_dll_contract.schema.json`。
-> 状态词约定同 `docs/owner/RELEASE_STATUS.md` §0（DOC-CONV-001 唯一口径）。
+> 状态词约定同 `docs/engineering/RELEASE_STATUS.md` §0（DOC-CONV-001 唯一口径）。
 
 ## 1. 平台与发布形态（验收项：Windows 优先）
 
@@ -80,7 +80,7 @@
   `astrocs_core`（CMake 注释：IO-001 定 core <- io 依赖方向）——该方向与
   ARCH-001 §3（io 不依赖 runtime/core）存在表述差异，属架构域待审项，本文如实记录。
 - DLL 边界、C ABI、所有权规则以 `docs/standards/{C_ABI_STANDARD,API_STANDARD,
-  CONCURRENCY_STANDARD,ERROR_HANDLING_STANDARD}.md` 与 `docs/api/COMMON_ABI_V1.md` 为准
+  CONCURRENCY_STANDARD,ERROR_HANDLING_STANDARD}.md` 与 `docs/engineering/COMMON_ABI_V1.md` 为准
   （合同冻结 PASS）。
 
 ## 5. 关键契约文件索引（负责人可直达）
@@ -88,12 +88,12 @@
 | 契约 | 路径 | 状态 |
 |---|---|---|
 | 最高设计（根权威）+ 工程规范 | `ASTROCS_DESIGN.md`、`ENGINEERING_SPEC.md` | ACTIVE_NORMATIVE |
-| Runtime/模块公共合同 | `docs/contracts/RT-001.md` | ACTIVE_NORMATIVE |
-| 架构职责边界 | `docs/contracts/ARCH-001.md` | ACTIVE_NORMATIVE |
-| 数据语义/产物 | `docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md` | ACTIVE_NORMATIVE |
-| CLI 协议 | `docs/api/CLI_PROTOCOL_V1.md` | ACTIVE_NORMATIVE |
+| Runtime/模块公共合同 | `docs/engineering/RT-001.md` | ACTIVE_NORMATIVE |
+| 架构职责边界 | `docs/engineering/ARCH-001.md` | ACTIVE_NORMATIVE |
+| 数据语义/产物 | `docs/science/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md` | ACTIVE_NORMATIVE |
+| CLI 协议 | `docs/engineering/CLI_PROTOCOL_V1.md` | ACTIVE_NORMATIVE |
 | Phase API | `docs/api/PHASE{1,2,3}_API_V1.md` | ACTIVE_NORMATIVE |
-| 版本命名空间 | `docs/owner/RELEASE_STATUS.md` §2 | 见 `docs/DOCUMENT_INDEX.yaml` 登记 |
+| 版本命名空间 | `docs/engineering/RELEASE_STATUS.md` §2 | 见 `docs/DOCUMENT_INDEX.yaml` 登记 |
 | DLL 边界 schema | `eng/contracts/config/module_dll_contract.schema.json` | 机器 schema |
 
 ## 6. 架构状态汇总

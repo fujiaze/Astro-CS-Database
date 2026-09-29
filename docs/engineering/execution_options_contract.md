@@ -38,7 +38,7 @@
 
 ## CLI 面
 
-**唯一产品 CLI 入口 = `acsd`**（`normalize` / `mosaic` / `export` 三个子命令，最高设计 §7.1），其命令面**不接受** worker 数或确定性旗标——预算由机器 profile 与全局预算对象给出，不由命令行覆盖（命令树正本 = `lib/infrastructure/cli/command_tree.h`，接口面 = `docs/api/CLI_PROTOCOL_V1.md`）。
+**唯一产品 CLI 入口 = `acsd`**（`normalize` / `mosaic` / `export` 三个子命令，最高设计 §7.1），其命令面**不接受** worker 数或确定性旗标——预算由机器 profile 与全局预算对象给出，不由命令行覆盖（命令树正本 = `lib/infrastructure/cli/command_tree.h`，接口面 = `docs/engineering/CLI_PROTOCOL_V1.md`）。
 
 `--cpu-workers` / `--io-workers` / `--deterministic` 属**工具面 `astrocs-stage2` 的旗标**（`lib/algorithms/coverage/tools/stage2.cpp`），供分阶段调试与基准使用，不属产品 CLI 面，也不进入发布安装面。合同面**不存在** `--gpu-route`。
 

@@ -11,21 +11,21 @@
     验证方式 = 与穷举候选集比对时 **false negative 恒为 0**（本仓 oracle）。
   - **UPM dense cache**：稠密缓存与逐点稀疏求值必须给出同一结果；
     验证方式 = 缓存命中域上的最大相对偏差 ≤ 1e-12。定义与适用域见
-    `docs/plugins/algorithms_phase2/11_upm.md`、`docs/science/PHASE2_UPM.md`。
+    `docs/detail/algorithms_phase2/11_upm.md`、`docs/science/PHASE2_UPM.md`。
   - **NoiseWeightModelV1**：权重模型以 oracle 矩阵与 Monte Carlo 双向核对；
     定义见 `docs/science/NOISE_MODEL.md`。
   - **Gaia 极区 prune**：剪枝用**可证明保守**的球面判据（不丢候选）；cache 键精确匹配，
     实现锚 = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 的 `query_cache_lookup()`。
 
-- 性能基线与回归判据见 `docs/performance/BASELINE.md`；超过基线回归阈值（<5%）即判红。
+- 性能基线与回归判据见 `docs/engineering/BASELINE.md`；超过基线回归阈值（<5%）即判红。
 - 编排与内存的实测读数、拟合与逐档墙钟见 `实验/engineering-evidence/l2_performance/`；
   本文件只承载结构结论与冻结参数。
 
 ## 1 编排参数标定（探针驱动）
 
-> 上游条款：`docs/contracts/SCHEDULER_CONTRACT.md` §3（编排参数的**最终取值**由探针基于
+> 上游条款：`docs/engineering/SCHEDULER_CONTRACT.md` §3（编排参数的**最终取值**由探针基于
 > 实测数据确定，合同只保证机制正确与探针齐全）；`docs/ASTROCS_DESIGN.md` §9（探针驱动优化）。
-> 并行轴语义（含帧内 OpenMP 度公式与轴不变式）唯一正本 = `docs/architecture/THREADING_MODEL.md`；
+> 并行轴语义（含帧内 OpenMP 度公式与轴不变式）唯一正本 = `docs/engineering/THREADING_MODEL.md`；
 > 本节只给编排参数的结构结论与冻结取值，不复制轴公式。
 
 ### 1.1 结构性根因
@@ -41,7 +41,7 @@
 
 | 参数 | 值 | 落点 | 依据 |
 |---|---|---|---|
-| 帧内 OpenMP 度 | 见 `docs/architecture/THREADING_MODEL.md`「并行轴分配」 | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 帧级被内存压低时把剩余预算转给帧内轴；帧级未压低时退化为 1 |
+| 帧内 OpenMP 度 | 见 `docs/engineering/THREADING_MODEL.md`「并行轴分配」 | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 帧级被内存压低时把剩余预算转给帧内轴；帧级未压低时退化为 1 |
 | `kP1FrameBytesPerPixel` | **116.0** | 同上 | 单帧驻留字节数的标定值；取保守上界（内存模型见 §2） |
 | `kP1FrameMemSafetyFrac` | 0.75 | 同上 | 留基础占用与运行波动 |
 | 内存预算百分比 | 95 | `eng/packaging/config/runtime_resources.json` | 单一来源；准入预算 = `MemAvailable` 按该比例的派生值 |
@@ -80,7 +80,7 @@ W_eff = F × min(I, K)                                    // drizzle 节点；K 
    标定必须实测、不能外推。
 2. **内核并行效率随宽度衰减**：帧内 stripe 数超过约 4 后进入收益递减区，
    且机器级负载噪声会污染更高档位的测量（须在静默机上复测）。每帧存在**不可并行的串行段**
-   （FITS 读、`hips_write`、星表查询、`wcs-platesolve`），见 `docs/architecture/THREADING_MODEL.md`。
+   （FITS 读、`hips_write`、星表查询、`wcs-platesolve`），见 `docs/engineering/THREADING_MODEL.md`。
 3. **内存闸门是准入边界**：若某档的 `F` 使需求 RSS 超过 `kP1FrameMemSafetyFrac·A`，
    该档不采纳 —— 安全边界优先于并行宽度。
 4. **`hips_write` 串行**是 drizzle 帧时的固定占比项，不随 `F` 缩小。
@@ -103,7 +103,7 @@ W_eff = F × min(I, K)                                    // drizzle 节点；K 
 `kScratchPoolCap` 取**派生值 `num_threads`**，不硬钉。定理（§2 记号）：
 `W_eff = in_flight × min(inner_omp, K)` ⇒ 要 `W_eff` 达到帧内轴宽度必须 `K ≥ inner_omp`；
 而 `K = inner_omp = num_threads` 时同时在飞的 scratch 份数 = `in_flight × inner_omp ≤ lease`
-（`docs/architecture/THREADING_MODEL.md`「并行轴分配」的轴不变式）
+（`docs/engineering/THREADING_MODEL.md`「并行轴分配」的轴不变式）
 ⇒ **`K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关**；
 `K < inner_omp` 会让多余线程在池上空等。
 在标定形态（`I = 2`）下 `K = num_threads` 与 `K = 2` 等价（no-op）；
@@ -119,10 +119,10 @@ W_eff = F × min(I, K)                                    // drizzle 节点；K 
 
 ## 4 关联锚
 
-- 编排参数语义与轴分配不变式：`docs/architecture/THREADING_MODEL.md`。
+- 编排参数语义与轴分配不变式：`docs/engineering/THREADING_MODEL.md`。
 - 跨帧零浮点归约（帧结果按下标写各自槽位、join 后帧序归约）：
   `lib/infrastructure/scheduler/src/module_adapters.cpp`。
 - 生产实现的 z 映射按 `s` 互斥、祖先归约是互不相交的散射（不存在跨瓦片求和形态）：
   `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（确定性注入面注释）。
-- 性能基线与回归判据：`docs/performance/BASELINE.md`。
+- 性能基线与回归判据：`docs/engineering/BASELINE.md`。
 - 编排/内存实测读数与拟合：`实验/engineering-evidence/l2_performance/`。

@@ -7,7 +7,7 @@
 ## 职责边界
 
 - 放：日志 schema、运行图渲染、资源监控伴随器的合同正文。
-- 不放：日志与错误系统的整体设计（在 docs/design/LOG_AND_ERROR_SYSTEM.md）；日志字段合同（在 docs/contracts/LOG_AND_ERROR_CONTRACT.md）；观测工作细节（在 docs/plugins/infrastructure/21_observability.md）。
+- 不放：日志与错误系统的整体设计（在 docs/detail/LOG_AND_ERROR_SYSTEM.md）；日志字段合同（在 docs/engineering/LOG_AND_ERROR_CONTRACT.md）；观测工作细节（在 docs/detail/infrastructure/21_observability.md）。
 
 ## 内容
 

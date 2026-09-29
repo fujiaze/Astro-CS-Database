@@ -8,13 +8,13 @@ docs、tests 必须一致；一致性由 `eng/tools/config_consistency_check.py`
 > **文档范围与 `output_mode` 口径（依 `ASTROCS_DESIGN.md` §0.2「详细层只陈述与本设计一致的细化内容」）**
 > - 本文描述的是 **orchestrator 的 Stage2 配置**（parser = `lib/algorithms/coverage/src/stage2_common.cpp`，
 >   struct = `stage2_common.h`），**不是**三命令 `phase_config` 合同；后者的语义与索引唯一权威 =
->   `docs/contracts/CONFIG_CONTRACT.md` §3。
+>   `docs/engineering/CONFIG_CONTRACT.md` §3。
 > - 本文的 `precision(fp32)` 是 **orchestrator** 的解析缺省（仅用于「doc ↔ parser/struct 一致」门）；
 >   三命令 `phase_config` 的精度**必须显式**（normalize = 块级 `drizzle.precision_mode`；mosaic/export =
 >   位深键（`config.precision` 为死键，不得再于配置中使用），见 `CONFIG_CONTRACT.md` §3「精度显式声明」。
 > - **`output_mode` 不属本文范围**（它只出现在 export 的 `phase_config`）：**必填且必须显式** ——
 >   `blocks[]` 分支、平铺单块简写分支、`{phase_name, config, inputs[]}` 简写分支的 `required`
->   **都含 `output_mode`**（fail-closed；`docs/contracts/CONFIG_CONTRACT.md` §3 末条）；
+>   **都含 `output_mode`**（fail-closed；`docs/engineering/CONFIG_CONTRACT.md` §3 末条）；
 >   合同登记的 `surface_brightness` **只作 `--template` 骨架值**，运行期缺省另有显式来源。
 >   ⇒ 本文与 `CONFIG_CONTRACT.md` 在此点上**两边同向**。
 
@@ -105,11 +105,11 @@ output.hips / diagnostics
 > `kPixelSmallNPolicy`。上方 fenced 块是 `eng/tools/config_consistency_check.py` 的 docs 腿输入，
 > 其 `astrocs_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述
 > `wbpp_2_9_1` 对照 profile 自身。
-> `docs/contracts/DATA_SEMANTICS.md` §22 首注同面。
+> `docs/science/DATA_SEMANTICS.md` §22 首注同面。
 
 ## Stage1 config
 
 见 `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json` 模板。
 
 - `drizzle.pixfrac` (0,1]：`stage1.schema.json` 默认 0.8（生产默认收缩滴落，`stage1.template.json` 同）；
-  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/infrastructure/pipeline/orchestrator/configs/` 并存，`docs/architecture/ARCHITECTURE.md §6` 同步说明。
+  银心三面板 `stage1_gc_panel{1,2,3}_Red.json` 为 `pixfrac=1.0` 无收缩分支（最大覆盖/GC 专用），与默认分支在 `lib/infrastructure/pipeline/orchestrator/configs/` 并存，`docs/engineering/ARCHITECTURE.md §6` 同步说明。

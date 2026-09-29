@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）
 
-> 详细设计：`docs/design/LOG_AND_ERROR_SYSTEM.md`
+> 详细设计：`docs/detail/LOG_AND_ERROR_SYSTEM.md`
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行格式正本，LOG-001）、
 > `eng/ci/ledgers/log_system_ledger.json`（登记台账）、`eng/tools/quality/check_log_system.py`（判据）。
 
@@ -28,7 +28,7 @@
 
 | 项 | 正本 |
 |---|---|
-| 字段表、语义、枚举、error 载荷 | `docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` §2 |
+| 字段表、语义、枚举、error 载荷 | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` §2 |
 | JSON Schema（draft-07） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` |
 | 参考实现与校验器 | `lib/infrastructure/observability/logging/log_event.py`、`eng/tools/monitoring/check_log_contract.py` |
 
@@ -125,7 +125,7 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 `upstream_artifact_absent`、`optional_keyword_unparsed`、`cache_miss_recompute`。
 新增词先在本文档登记再使用。`photscale_incomplete` 为**读侧保留词**（兼容期产物仍可解释），生产写侧不产生它：
 测光拟合失败属**显式失败**，按 §5 口径逐帧记 `status=fail` + `error_domain`/`error_status`/`error`，
-不写 `degraded_reason`（失败 ≠ 降级，判据见 §6 D1–D3 与 `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）。
+不写 `degraded_reason`（失败 ≠ 降级，判据见 §6 D1–D3 与 `docs/detail/LOG_AND_ERROR_SYSTEM.md` §10）。
 
 **三种情形一律具名上行**：回退到低优先输入、保持缺省值、跳过校验都属故障，必须上行到 CLI。
 
@@ -169,4 +169,4 @@ python3 eng/tools/quality/check_log_system.py --json-out run/ci/log-system/log_s
 python3 eng/tools/quality/check_log_system.py --self-test
 ```
 
-注册项 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/ci/01_CHECKS.md` §2）。
+注册项 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/engineering/01_CHECKS.md` §2）。

@@ -62,7 +62,7 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 - Phase3 writer 节点另落 `run_context.json`（`<out_dir>/run_context.json`，原子写：
   `schema_version/kind/run_id/software_version/source_sha` + 构建指纹
   `build_source_digest/build_head_sha/build_dirty/configure_head_sha`，语义见
-  `docs/VERSIONING.md` §2.1；构建指纹缺失时写入 fail-closed，不产出不可锚的上下文）；
+  `docs/engineering/VERSIONING.md` §2.1；构建指纹缺失时写入 fail-closed，不产出不可锚的上下文）；
   `p3_op_writer` 在缺失或
   `run_id`/`software_version` 为空时 fail-closed，把输入 HiPS `signal/properties` +
   `signal/Moc.fits` 的 sha256 作为 `input_manifest_hash` 注入 FITS HISTORY 与 provenance。
@@ -71,14 +71,14 @@ cpu profile(独立文件): **契约唯一源 = `eng/contracts/schemas/cpu_profil
 
 `run` 命令在 run manifest 顶层**可选**追加 `storage` 对象（additive，与 §2.1 的
 `provenance` 同形：v1 校验器/`verify` 忽略未知顶层键，向后兼容）。**条款归属**：该键的
-字段词表与不变式 M1..M4 的**唯一正本** = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.3
+字段词表与不变式 M1..M4 的**唯一正本** = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10.3
 （本文件只登记键的存在与归属，不复写字段）；**唯一机器事实源** =
 `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`；CFG-001
 `eng/contracts/schemas/run_manifest.schema.json` 只登记该键位与类型。
 缺失 ⇒ 无形态事实（**不判红**）；出现 ⇒ 必须逐条满足 M1..M4（`eng/ci/check_run_manifest_schema.py`
 的 `REGISTERED_ADDITIVE` 已登记）。**产品级**完成 manifest（`products/{user_path}/manifest.json`）
 **不承载**该键——其形态事实只在 `tree`/`tree_hash`/`fitsverify` 三项
-（`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §5）。
+（`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §5）。
 
 ## 3 manifest verify 合同(acsd doctor --json --run-manifest <manifest.json>)
 

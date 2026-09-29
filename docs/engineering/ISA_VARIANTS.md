@@ -35,7 +35,7 @@
 | AVX-512 | **NOT_SHIPPED** | 受控热点无超越 AVX2+FMA 的收益；且 AVX512F 存在已知 downclock / 功耗-频率风险 |
 | drizzle-accumulate | **保持 baseline** | 该 kernel 上变体更慢（方向在两批复测中一致） |
 | noise-snr-reductions / upm-spmv / integration-accumulate | **保持 baseline** | 排序型 / gather 型算子，ISA 变体收益不足 |
-| BMI2 / POPCNT（整数 / 位操作） | **NOT_SHIPPED** | 无整数/位操作热点，见 `docs/architecture/ISA_BIT_MANIP_VARIANTS.md` |
+| BMI2 / POPCNT（整数 / 位操作） | **NOT_SHIPPED** | 无整数/位操作热点，见 `docs/engineering/ISA_BIT_MANIP_VARIANTS.md` |
 
 - **边界（诚实登记）**：测量主机具备 AVX2，无法在「仅支持 AVX 的主机」上证明选路；
   该情形须在对应主机复测后再决定。Windows 侧能力复核由发行验证承担。
@@ -55,7 +55,7 @@
 **交付形态**：两个变体 target 为 SHARED，安装树 `providers/` 目录内落
 `astrocs_cpu_avx2.so` / `astrocs_cpu_avx512.so`（Windows：同目录 `.dll`），与清单
 `backends.manifest.json`（生成器 = `eng/tools/gen_backends_manifest.py`）**同目录**安装——
-加载器语义要求清单与裸文件名同目录（见 `docs/architecture/CPU_BACKEND_ARCH.md` §3 信任边界）。
+加载器语义要求清单与裸文件名同目录（见 `docs/engineering/CPU_BACKEND_ARCH.md` §3 信任边界）。
 
 **能力位**：清单的 `required_features_bits` 由构建期实测填充；avx2 = `avx2|fma` = 24，
 avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需集会放过 KNL 型主机，
@@ -80,7 +80,7 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 | provider（能力探测/变体查询） | `astrocs_cpuprov_{baseline,avx2,avx512}.so` | `astrocs_provider_query_v1` | `lib/include/astrocs/abi/module_api_v1.h`（冻结） | `lib/infrastructure/pipeline/module_loader/secure_loader.c` | `providers.manifest.json` | `ASTROCS_PROVIDERS_MANIFEST` |
 
 - **入图口径（C-03 判词）**：provider 族是设计文档指定的 provider 实现面
-  （`docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md:96-98`、`CPU_003_AVX2_PROVIDER.md:13,88`），
+  （`docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md:96-98`、`CPU_003_AVX2_PROVIDER.md:13,88`），
   且已被 `UT-CPU-BASELINE / UT-CPU-AVX2 / UT-CPU-AVX512` 覆盖，此前只是**未进构建目标**
   （`CHK-RETIRED-CODE` R4 把它列为未引用）⇒ 按裁决「属安装树分发的 ISA provider 集则必须入图」，
   本轮补入构建目标 + 清单校验 + 安装树登记，**不退役**（退役会删掉活的 CI 覆盖面并与 CPU 文档冲突）。

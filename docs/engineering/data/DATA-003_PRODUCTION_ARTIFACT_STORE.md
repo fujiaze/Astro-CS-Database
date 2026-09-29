@@ -1,8 +1,8 @@
 # 生产 ArtifactStore 接线
 
 > 上游：docs/ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品）、
-> `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换、跨 Phase 仅磁盘交换）、
-> `docs/architecture/PIPELINE.md`（phase-isolated Runtime 的调度与运行结构）
+> `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换、跨 Phase 仅磁盘交换）、
+> `docs/engineering/PIPELINE.md`（phase-isolated Runtime 的调度与运行结构）
 
 权威文档形态 = 本文；执行形态 = `lib/infrastructure/aio/runtime/artifact_store/production_store.py`。
 实现锚 = `ArtifactStore` / `Writer` / `StoreIO` 的公开方法名（`start` / `new_writer` /
@@ -19,7 +19,7 @@
 
 约束来源：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三 Phase
 隔离产品命令；阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
-`docs/architecture/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
+`docs/engineering/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
 （`eng/contracts/data/artifact_manifest.schema.json` 与 `eng/contracts/data/artifact_types.registry.json`；
 `storage_uri` 解析只发生在 Store 内部）。
 
@@ -37,7 +37,7 @@ Runtime 启动（每次 phase run）
 
 模块 `execute` 只接触上述 handle/reader/writer；任何真实文件系统路径解析只发生在
 `ArtifactStore`/`StoreIO` 内部（artifact manifest 合同冻结语义）。跨 Phase 消费 = 进程外读取
-已发布 COMPLETE manifest + 内容（`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 交换对象），不共享进程内对象。
+已发布 COMPLETE manifest + 内容（`docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 交换对象），不共享进程内对象。
 
 磁盘布局（每 run 私有）:
 
@@ -49,7 +49,7 @@ Runtime 启动（每次 phase run）
 ```
 
 两面划分：typed artifact 面 = `objects/` + `manifests/`（本文正本）；HiPS 目录产物面 =
-`products/{user_path}/`（正本 = `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §3.1）。
+`products/{user_path}/`（正本 = `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §3.1）。
 两面目录在同一 `runs/{run_id}/` 根下互不重叠，各由其正本约束。
 
 ## 3. 写路径（临时对象 → 完整校验 → hash → 原子 publish）
@@ -72,7 +72,7 @@ Runtime 启动（每次 phase run）
 ## 4. 读路径（消费前必须经 Store 校验）
 
 - `bind_as_input(id, expected_type_id)`：仅索引内 COMPLETE manifest + type_id 匹配
-  才允许绑定（跨 Phase 资格 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 交换资格；不要求 run ID 匹配）。
+  才允许绑定（跨 Phase 资格 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 交换资格；不要求 run ID 匹配）。
 - `read_verified(id, type)`：绑定通过后经 Store 读字节并重算 sha256 与 manifest
   声明一致；不匹配 → 硬失败。
 - 绕过 Store 直读 `objects/` 目录的文件不在索引内 → bind/consume 一律失败
@@ -112,7 +112,7 @@ spy.writes/reads/publishes 非空，且内容字节只经 Store 事件读取 —
 
 - 本合同覆盖 Store 的执行语义；科学公式/常数按 `docs/science/` 正本执行，artifact manifest 与
   三阶段产品交换合同的 schema/registry/validator/C ABI 按各自机器正本执行；checkpoint 表、日志与 trace
-  溯源字段属 `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md` 与
-  `docs/design/LOG_AND_ERROR_SYSTEM.md` 范围。
+  溯源字段属 `docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md` 与
+  `docs/detail/LOG_AND_ERROR_SYSTEM.md` 范围。
 - Windows 侧交付形态 `acsd_runtime.dll`（Linux 侧 `libacsd_runtime.so`）按本文同一状态机
   由同语义 C 接线复刻。

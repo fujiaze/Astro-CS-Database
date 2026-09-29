@@ -129,7 +129,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 ## 6.1 落盘与错误收敛
 
 本合同的 JSONL 行写到哪、什么时候写、写失败怎么办，正本 = `docs/ASTROCS_DESIGN.md` §7.3、
-`docs/design/LOG_AND_ERROR_SYSTEM.md` 与 `docs/contracts/LOG_AND_ERROR_CONTRACT.md`：
+`docs/detail/LOG_AND_ERROR_SYSTEM.md` 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md`：
 
 - 运行日志落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（人可读摘要，与 JSONL 同源）；
 - 成功/失败/取消三路都产出，收尾 fsync + 算哈希 + 原子发布，并在 run manifest 的 `log_artifacts[]` 登记；
@@ -147,7 +147,7 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 `lib/include/astrocs/core/logging.h`（`Logger`/`MetricsAggregator`）是本合同事件语义的外部化对象：
 既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的等价语义映射到
 合同字段表 §2.2（`component→module/phase` 归属、`message→diagnostic` 等）。Runtime 集成以
-本合同为单一事实源做适配，映射与双写细节正本 = `docs/design/LOG_AND_ERROR_SYSTEM.md`。
+本合同为单一事实源做适配，映射与双写细节正本 = `docs/detail/LOG_AND_ERROR_SYSTEM.md`。
 
 ## 8. 验收
 
@@ -164,6 +164,6 @@ ACSD 需要一个跨 run/任务/节点/模块/线程的统一结构化日志接�
 ## 9. 参考
 
 - 依据：`docs/ASTROCS_DESIGN.md` §7.2（配置、事件与退出码）、§7.3（错误传播与运行日志）
-- 依据：`docs/ASTROCS_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/architecture/ARCHITECTURE.md`
-- 落点与错误收敛：`docs/design/LOG_AND_ERROR_SYSTEM.md`、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`
+- 依据：`docs/ASTROCS_DESIGN.md` §7.1（命令树）、§8.1（总原则：唯一 CLI 入口、阶段独立调度器）+ `docs/engineering/ARCHITECTURE.md`
+- 落点与错误收敛：`docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`
 - 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`eng/tools/monitoring/check_log_contract.py`

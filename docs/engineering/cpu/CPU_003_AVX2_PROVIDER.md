@@ -1,8 +1,8 @@
 # CPU AVX2/FMA provider（热点 kernel 后端）
 
 > 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、ENGINEERING_SPEC.md §10（资源与性能）、
->       docs/architecture/CPU_BACKEND_ARCH.md、docs/architecture/ISA_VARIANTS.md（逐 kernel 选路）、
->       docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md（os_safe 能力平面）
+>       docs/engineering/CPU_BACKEND_ARCH.md、docs/engineering/ISA_VARIANTS.md（逐 kernel 选路）、
+>       docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md（os_safe 能力平面）
 
 ## 1. 目标与验收
 
@@ -25,7 +25,7 @@ target 单独 `/arch:AVX2`（Linux `-mavx2 -mfma`）；函数入口由 provider 
 ## 2. 注册热点与选路（冻结）
 
 注册热点 = `calibration-pixel-transform` 与 `hips-bulk-transform`，**恰 2 个 kernel**；
-其余 kernel 不注册（回落 baseline）。逐 kernel 选路正本 = `docs/architecture/ISA_VARIANTS.md`
+其余 kernel 不注册（回落 baseline）。逐 kernel 选路正本 = `docs/engineering/ISA_VARIANTS.md`
 §1/§2：这两个 kernel 登记 avx2 变体；`drizzle-accumulate` 保持 baseline；
 `noise-snr-reductions`（排序型）、`upm-spmv`（gather 型）、`integration-accumulate`
 保持 baseline；AVX（无 FMA）与 AVX-512 不登记变体。逐 kernel 计时读数、增益与反汇编计数见
@@ -64,7 +64,7 @@ AVX 家族整组仅在 `OSXSAVE=1 且 XCR0.XMM|YMM (0x6)` 时进入 os_safe
 正测经真实 CPUID/XGETBV。
 
 加载成功后才提供 kernel 服务；`self_test` 失败 / ABI 失配按 provider 装载合同拒绝
-（`docs/architecture/CPU_BACKEND_ARCH.md`）。编译隔离：本 provider TU 仅以 `-mavx2 -mfma`
+（`docs/engineering/CPU_BACKEND_ARCH.md`）。编译隔离：本 provider TU 仅以 `-mavx2 -mfma`
 编译，`-mavx*` 不作用于 baseline/主 CLI（核对方式见 §8）。
 
 ## 5. 函数入口由 provider 表查询
@@ -94,7 +94,7 @@ IEEE 754-2019 的 fusedMultiplyAdd 条款（融合乘加只做一次舍入）；
   科学 oracle（Python f64 参考实现）同规 —— baseline 已与 f64 独立参考一致，故 avx2 相对
   baseline 在容差内 ⇔ 相对科学参考在容差内。
 - 容差依据：`calibration-pixel-transform` 与 `hips-bulk-transform` 离散公式的 f32 数值
-  路径；与 `docs/architecture/ISA_VARIANTS.md` §2 的 variant Oracle 口径一致（与 baseline
+  路径；与 `docs/engineering/ISA_VARIANTS.md` §2 的 variant Oracle 口径一致（与 baseline
   同公式同序、共享源，只允许 FMA 舍入差 2e-4 相对）。
 - 确定性：无跨线程归约 ⇒ 输出不随 worker 数变化，无需并行归约容差。
 

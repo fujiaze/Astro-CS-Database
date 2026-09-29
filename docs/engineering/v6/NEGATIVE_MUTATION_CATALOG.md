@@ -13,7 +13,7 @@
 |---|---:|---|---|
 | `science` | 39 | `qa_oracle.py` 的被测 subject（解析/MC/注入/基线/结构记录） | 目标门至少一个 check 变红（rc=1），且每个 target gate 都被覆盖 |
 | `spec` | 14 | `qa_matrix.json` 结构/合同字段 | `validate_spec.py` 报违规（rc=1） |
-| `doc` | 3 | `docs/validation/v6/QA_MATRIX.md` 渲染块 | `check_docs.py` 报人读/机读不一致（rc=1） |
+| `doc` | 3 | `docs/engineering/v6/QA_MATRIX.md` 渲染块 | `check_docs.py` 报人读/机读不一致（rc=1） |
 
 ## 2. 关键 science mutation（摘要，完整清单见 JSON）
 

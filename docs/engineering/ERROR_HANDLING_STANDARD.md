@@ -19,6 +19,6 @@
 
 ## 每个 error-sensitive 模块
 
-- diagnostics stage ID（P1.* / P2.*，见 `docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md`；原引 `DIAGNOSTICS_STANDARD` 仓内不存在，已订正为实际文件名）；
+- diagnostics stage ID（P1.* / P2.*，见 `docs/engineering/LOGGING_DIAGNOSTICS_STANDARD.md`；原引 `DIAGNOSTICS_STANDARD` 仓内不存在，已订正为实际文件名）；
 - stable error category/code；
 - troubleshooting 条目（docs/diagnostics/TROUBLESHOOTING.md）。

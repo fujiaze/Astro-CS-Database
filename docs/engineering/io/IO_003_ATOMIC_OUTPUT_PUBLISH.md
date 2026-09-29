@@ -1,10 +1,10 @@
 # 原子 HiPS/manifest 输出发布合同
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品）、
-> `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`（fitsverify 算法族）、
-> `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`（读端接收本接口产出）、
-> `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 原子 publish 语义）、
-> `docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md`（provenance sidecar）
+> `docs/science/IO_001_FITS_STREAM_INTERFACE.md`（fitsverify 算法族）、
+> `docs/science/IO_002_HIPS_INPUT_INTERFACE.md`（读端接收本接口产出）、
+> `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 原子 publish 语义）、
+> `docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md`（provenance sidecar）
 
 本合同按 §10（I/O 与原子产品）的发布链执行：阶段隔离由「每次运行私有临时区 + 唯一用户路径」保证，
 原子性由「临时写 → 校验 → fsync → 哈希 → 原子改名 → 完成清单」保证；科学公式与图像算法按
@@ -16,13 +16,13 @@
 输出发布** 合同（宿主基础设施，不含科学算法迁移）：把"磁盘上产出的 HiPS 子产品目录
 （properties + NorderK/DirD/NpixN.fits tiles + 可选 Moc.fits）"以 **原子、可恢复、
 唯一目标** 的方式发布，并在发布完成后落 **完成 manifest**（唯一完成标记）。HiPS 输入
-读端/跨 Phase 消费只接受本接口发布的完整产物（`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 的 `R-DISK-ONLY`）。
+读端/跨 Phase 消费只接受本接口发布的完整产物（`docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` 的 `R-DISK-ONLY`）。
 
 发布流水线（每个产物文件）：
 `临时写（run 私有 stage）→ 关闭/fsync → fitsverify（结构 + DATASUM）→ sha256 →
 原子 rename → 最后原子落 manifest.json(COMPLETE) = 完成标记`。
 
-**落盘形态**（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：产品以裸
+**落盘形态**（`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`）：产品以裸
 `<name>.hips/` 或归档 `<name>.hips.zst` 发布，二者互斥；归档形态的发布次序是
 「stage 内先按裸形态写出并逐瓦片 fitsverify → 打包为逐成员独立 zstd 帧 → 写产品级
 索引 → 归档与索引 fsync + 原子 rename → 完成 manifest」。**归档解压后的合法性在
@@ -31,14 +31,14 @@
 的 sha256 只作容器指纹记入 `storage` 段，不作产品身份。
 
 本合同覆盖**输出端**的发布语义：tile 生成/投影按 P1/P2/P3 科学模块的正本执行；
-`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 按各自现行职责运行。读端（`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`）与
-产物交换资格（`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`）是独立合同面，不在此重复。
+`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 按各自现行职责运行。读端（`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`）与
+产物交换资格（`docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`）是独立合同面，不在此重复。
 
 ## 2. 模块归属与目录
 
 | 内容 | 路径 |
 | --- | --- |
-| 本合同 | `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` |
+| 本合同 | `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` |
 | 原子输出发布器（Python 执行形态） | `lib/infrastructure/aio/io/hips_output_store.py` |
 | FITS 独立校验器（fitsverify，与 fits_core 同算法） | `lib/infrastructure/aio/io/fits_verify.py` |
 | 契约/负测（Python） | `eng/tests/io/test_hips_output_contract.py` |
@@ -64,7 +64,7 @@
   目录型产物），段词法 `^[A-Za-z0-9._-]+$`。
 - **产物面划分**：本接口的产物面 = `runs/{run_id}/products/{user_path}/`（HiPS 目录产物 +
   完成 manifest）；typed artifact 面（`objects/` + `manifests/`）的正本 =
-  `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` §2。两面目录不重叠，各由其正本约束。
+  `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` §2。两面目录不重叠，各由其正本约束。
 
 ### 3.2 词法拒绝（路径穿越）
 
@@ -83,7 +83,7 @@
 `coverage.index.json`（**数据集级**覆盖索引，只认**根层**这一个名；P-178 扩项）——
 其它文件名（如 `notes.txt`、任意 `.fits` 布局、带子目录或改名的覆盖索引）发布前拒绝（`PublishError`）。
 
-`coverage.index.json` 为何在白名单里：它是数据集级产物，按 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §4.2/A5 位于**归档之外**（与产品同级、运行输出根）；发布它的清单仍是同一份「HiPS 目录产物」清单（`properties` 必在，见 §4），故必须与产品文件同名法登记，否则同一发布路径上「文档允许而发布器拒绝」。
+`coverage.index.json` 为何在白名单里：它是数据集级产物，按 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §4.2/A5 位于**归档之外**（与产品同级、运行输出根）；发布它的清单仍是同一份「HiPS 目录产物」清单（`properties` 必在，见 §4），故必须与产品文件同名法登记，否则同一发布路径上「文档允许而发布器拒绝」。
 **仍只有一条判据、无豁免名单**：白名单按**形态**判定，不为任何产品/场景开逐名豁免；产品树内的 `metadata.fits`、产品集 `manifest.json`、`snr/**`（`.tsv`/`metadata.xml`）面的登记以各自正本为准（`DATA_SEMANTICS.md` §12.2、`HIPS_STORAGE_FORM_CONTRACT.md` §10），本次不改。
 
 ### 3.3 文件系统层拒绝（权限/符号链接）
@@ -101,7 +101,7 @@
    文件名形态）→ 符号链接检查。全部通过才进入写。
 2. **覆盖清理**：默认不覆盖——目标为**成功对象**（含 COMPLETE manifest）且
    `overwrite=False` → `PublishError`。中断/cancel 残留（目录存在但无 COMPLETE
-   manifest）= **非成功对象**（`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 语义）→ 自动清残重发；成功对象仅在显式
+   manifest）= **非成功对象**（`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 语义）→ 自动清残重发；成功对象仅在显式
    `overwrite=True` 时清除后重建。
 3. **stage 临时写**：每个文件写入 `{run}/stage/`（O_EXCL；临时名带内容 sha256
    前缀防碰撞）；写后 `fsync` 关闭（关闭 = 内容完整落盘）。
@@ -172,14 +172,14 @@
   （`config` = 输入配置显式给出 / `default` = 键缺失或留空 ⇒ 取默认 `archive` 并已报 warn）、`products[]`
   （逐产品 `product` / `storage_form` / `index_path` / `index_sha256` / `archive_bytes` /
   `archive_sha256` / `tree_hash`）与 `coverage_index`。字段与不变式（M1..M4）的唯一正本 =
-  `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.3，机器事实源 =
+  `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10.3，机器事实源 =
   `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`。
   本接口的**产品级**完成 manifest（`products/{user_path}/manifest.json`，执行形态
   `lib/infrastructure/aio/io/hips_output_store.py`）承载 `tree` / `tree_hash` / `fitsverify` 三项与形态无关的事实。
 
 - **形态事实只落输出清单面**：`storage_form` / `archive_sha256` / `index_sha256` 出现在三处——Phase1
   输出清单 `p1_products.json#frames[]` 的逐帧四字段、上述运行级 `storage` 段、产品级索引
-  （正本 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.2/§10.3）；归档内 `properties` 与裸形态
+  （正本 = `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §10.2/§10.3）；归档内 `properties` 与裸形态
   逐字节一致；`properties` 只含标准 `hips_tile_format` token。
 - **产品身份仍取解压后内容**：`tree` / `tree_hash` 记录解压后 HiPS 的条目（与裸形态相同）；`storage.archive_sha256` 只是容器指纹，产品身份判据 = `tree_hash`。
 - `tree_hash` = sha256(规范 JSON 序列化的 tree 条目数组) → **可重算**：
@@ -222,6 +222,6 @@
 2. `Moc.fits`（BINTABLE 扩展）不做内容校验（FITS 流式接口 §14.2：表扩展 UNSUPPORTED；
    HiPS 输入读端 MOC optional hint 语义：缺失/损坏不阻塞读/写）。
 3. 并发安全以 run 目录隔离 + 单次发布单线程为前提；单 run 内并发发布同一
-   user_path 由调用方串行化（与 `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 的 writer 唯一 producer 同纪律）。
+   user_path 由调用方串行化（与 `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 的 writer 唯一 producer 同纪律）。
 4. CHECKSUM 卡写路径沿用 FITS 流式接口默认关闭；fitsverify 校验 DATASUM（写入侧恒写
    DATASUM 卡），CHECKSUM 卡存在且非占位时同样校验。
