@@ -299,13 +299,30 @@ def self_test() -> int:
     for name, files, tracked, exp in cases:
         if not _selftest_case(name, files, tracked, exp):
             bad += 1
+
+    # T1 回归（本门自身的洞，FINAL-07）：前 6 例全部直接调 check()，**从不调 main()**，
+    # 于是 argparse 的 --root 默认值零覆盖 —— 默认取 __file__.parent 时会拼出
+    # eng/tools/quality/eng/ci/checks.json 而必然 exit 2，但 6 例照样全绿。
+    # 这里补一条**按文档写的用法直接跑 main()** 的正例：不传 --root，断言它能在
+    # 真实仓库里定位到注册表并给出结论（不要求 pass，只要求不是「缺注册表」误报）。
+    rc = main([])
+    if rc == 2:
+        print("  T1 回归：默认形态 main() 返回 fail-closed(2)"
+              "⇒ --root 默认值仍不能定位注册表")
+        bad += 1
+    else:
+        print("  T1 回归：默认形态 main() 可用（rc=%d，非缺注册表误报）" % rc)
+
     print("SELFTEST_%s" % ("FAIL" if bad else "PASS"))
     return 1 if bad else 0
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="判据登记面不变式门（INV-REG-001）")
-    ap.add_argument("--root", default=str(pathlib.Path(__file__).resolve().parent))
+    # 默认为**仓库根**而不是脚本所在目录：注册表在 <root>/eng/ci/checks.json，
+    # 取 __file__.parent 会拼出 eng/tools/quality/eng/ci/checks.json ⇒ 默认形态必然 exit 2
+    # 「缺注册表」。FINAL-07 实测。判定面必须能在**按文档写的用法直接跑**时可用。
+    ap.add_argument("--root", default=str(pathlib.Path(__file__).resolve().parents[3]))
     ap.add_argument("--json-out")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
