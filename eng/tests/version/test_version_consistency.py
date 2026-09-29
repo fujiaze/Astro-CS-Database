@@ -420,9 +420,9 @@ class TestExternalToolVersionExemption(unittest.TestCase):
         m = load_checker()
         b, a = _base_alpha()
         packs = {
-            os.path.join("docs", "research", "PHOTOMETRY_RESEARCH_PACK.md"):
+            os.path.join("docs", "science", "PHOTOMETRY_RESEARCH_PACK.md"):
                 ("**SWarp**（GPL-3.0） | 2.41.5",),
-            os.path.join("docs", "research", "SNR_WEIGHT_RESEARCH_PACK.md"):
+            os.path.join("实验", "absolute-snr", "docs", "SNR_WEIGHT_RESEARCH_PACK.md"):
                 ("SWarp 2.41.5", "DeepSkyStacker/DSS 6.2.2", "SExtractor 2.28.2"),
         }
         for rel, anchors in packs.items():
