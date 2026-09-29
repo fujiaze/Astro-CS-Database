@@ -10,7 +10,7 @@
 ## 职责与明确非职责
 
 生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake
-astrocs_hips 静态库 CMakeLists.txt:298-309；registry descriptor 无本模块
+astrocs_hips 静态库 CMakeLists.txt:599-610；registry descriptor 无本模块
 页项——astrocs_p1_hips_writer.dll 为迁移目标，entrypoint 未落地）。
 职责：IVOa HiPS 1.4 产品集写入（signal/support/variance/ivar Image HiPS +
 SNR Catalogue HiPS、叶级 tile FITS（NESTED→FITS 序映射、checksum）、低阶

@@ -719,6 +719,7 @@
         "snr",
         "photometry",
         "star_detection",
+        "noise",
         "sparse_snr_layer",
         "sparse_snr_spacing_px",
         "algorithm_drizzle_pixfrac",

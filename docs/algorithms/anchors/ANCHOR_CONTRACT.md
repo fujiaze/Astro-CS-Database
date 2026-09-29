@@ -30,11 +30,15 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须写 `docs/contracts/DATA_SEMANTICS.md §4a`，
 章节引用一律写全路径；`…#4a` 形态会被扫描器把章节号当行号判界内/判空行（GLOSSARY.md 曾有 12 处此类碰撞）。
 
-现行规模（C7 逐字复测）：**97 文档 / 2122 锚** = 2092 目标锚 + 4 登记豁免 + 25 未解析登记。
+现行规模（C7 逐字复测）：**97 文档 / 2122 锚** = 2093 目标锚 + 4 登记豁免 + 25 未解析登记。
 
 > C7 逐字复测本行：数字必须等于检查器实测（口径 = 检查器自己的扫描器；改锚后跑
 > `check_doc_line_anchors.py --print-scale` 取现行行替换，口径唯一 = 检查器自己的扫描器）。
 > 「文档」= 至少含 1 个锚的文档数（与旧读法一致）；锚总数含豁免与未解析登记。
+> 目标锚 2092 → 2093 的原因（FINAL-07 域外既有红收口，同一批次）：`docs/science/CALIBRATION.md`
+> 的 ALG-CAL-004 行锚（裸 basename = cosmetic_corrector.cpp，指生产源 detect_hot_pixels 定义行）
+> 由 C2 同名分歧（basename 双候选）经 §3.3 resolver 钉死后判为 OK，由 UNRESOLVED 迁入目标锚；
+> 锚总数 2122 与文档数 97 不变。本节留痕不写成可解析锚形态（同 §7 末段的写法纪律）。
 
 ## 2 锚的语义义务
 

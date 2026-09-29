@@ -204,6 +204,20 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "[20000,50000])/approx_wcs{crval1,crval2,cd11,cd12,cd21,cd22}/rotation_deg/"
          "parity(pos|neg)/limiting_mag/limiting_mag_safety/query_radius_factor/"
          "limiting_mag_max_iter；缺段 = 取编译期默认", "block"},
+        // WIRING-W34-01（W3-CHK-PROD-WIRING）：噪声模型配置段（SCI-NOISE /
+        //   docs/science/NOISE_MODEL.md §4/§5/§5a）。段内键 = 生产节点
+        //   p1_noise_cfg_apply（lib/infrastructure/scheduler/src/module_adapters.cpp）
+        //   实际写入 SnrNoiseModelConfig 的**封闭词表** 14 键；合同声明 =
+        //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/noise_config。
+        //   缺段 = 全取冻结默认（不是错误）⇒ json == nullptr（只进 --help 字段说明，
+        //   不进 --template 骨架）。与 parser.cpp session_keys() 的 "noise" 逐字同名：
+        //   两形态（平铺/块内）同源一份按会话键表，缺一声明即用户拿到 rc=3。
+        {"noise", nullptr,
+         "可选噪声模型配置段（docs/science/NOISE_MODEL.md §4/§5/§5a）："
+         "patch_grid/clip_sigma/spatial_field_enabled/mask_k_sigma/mask_r_min_px/"
+         "mask_fwhm_floor_scale/mask_budget_min_patches/mask_budget_min_sky/"
+         "min_patch_samples/max_clip_rounds/source_mask_radius_px/mask_radius_scale/"
+         "variance_floor/saturation_level；段内未知键 ⇒ 节点 rc=3；缺段 = 取冻结默认", "block"},
     };
     static const std::vector<ConfigField> kMosaic = {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},

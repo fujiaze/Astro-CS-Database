@@ -28,9 +28,9 @@
 - 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   (`enum P2RejectReason` = `:94-99` / `enum P2RejectStatus` = `:102-111`)；
 - `P2_STATUS_MIN_SAMPLES=1` 的语义 = **候选数 < 调用方显式 `min_samples`，或 `count==0`**
-  （`rejection.h:108`、`rejection.cpp:2018/:2250-2259`）；样本不足的判定态用
+  （`rejection.h:108`、`rejection.cpp:2018/:2251-2261`）；样本不足的判定态用
   `P2_STATUS_UNDERDETERMINED=4`（`n <= underdetermined_n` ∨ `n < minimum_n`，
-  `rejection.cpp:2064-2073`）。**`underdetermined_n` 的默认值随 profile 而定**（`rejection.cpp:1218-1225`）：
+  `rejection.cpp:2065-2074`）。**`underdetermined_n` 的默认值随 profile 而定**（`rejection.cpp:1218-1225`）：
   生产档 `astrocs_adaptive_pixel` ∧ AUTO ⇒ 3；该档 ∧ `extreme_value_clip_prior_sigma` ⇒ 1；
   `wbpp_2_9_1`/`wbpp_current`/`astrocs_adaptive` ⇒ 2。**本层无 `NO_CANDIDATES` 状态**
   （该名属积分域 `P2IntegrateStatus`，`integrate.h`）。
@@ -162,7 +162,7 @@ function p2_reject(stack, plan):
 - 阈值不变量：同 `n` 的 `plan.resolve` 输出 method 唯一（`synthetic_gate`）；非有限
   weights/support → `INVALID_INPUT` hard fail。
 - 误差排序：**数值 FP64 ≪ 统计阈值(冻结) ≪ 门禁容差**；卫星线受控注入 recall=1.0。
-- 各 F 映射：`p2_collect_candidate_stack`→`rejection.cpp:1372-1455`（gather，共享）；
+- 各 F 映射：`p2_collect_candidate_stack`→`rejection.cpp:1373-1455`（gather，共享）；
   `reject_linear_fit_impl`→`rejection.cpp:1615-1709`；`reject_esd_impl`→`rejection.cpp:1712-1782`
   （`rejection_oracle_compare` NIST 对照）；计划路由→`p2_reject_plan_resolve`（`synthetic_gate`）。
 
