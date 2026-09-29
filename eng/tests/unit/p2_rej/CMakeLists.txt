@@ -15,9 +15,7 @@ add_executable(p2_rej_test p2_rej_test.cpp ${P2_REJ_V6_SRC})
 target_include_directories(p2_rej_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${P2_REJ_V6_INC})
-if(UNIX)
-  target_link_libraries(p2_rej_test PRIVATE m)
-endif()
+target_link_libraries(p2_rej_test PRIVATE astrocs_platform_math)
 
 add_test(NAME p2_rej_units       COMMAND p2_rej_test units)
 add_test(NAME p2_rej_oracle      COMMAND p2_rej_test oracle)

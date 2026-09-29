@@ -1871,6 +1871,58 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-PLATFORM-SYSLIB-LINKS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_platform_syslib_links.py",
+        "--json"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "eng/cmake/**",
+        "eng/ci/check_platform_syslib_links.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-PLATFORM-SYSLIB-LINKS-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_platform_syslib_links.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "eng/cmake/**",
+        "eng/ci/check_platform_syslib_links.py"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-FROZEN-STRING-DISAMBIG",
       "profiles": [
         "fast",
@@ -14902,6 +14954,59 @@
           ],
           "requires_monitor": false
         }
+      ]
+    },
+    {
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "requires_monitor": false,
+      "id": "CHK-CFITSIO-PLATFORM-SURFACE",
+      "command": [
+        "python3",
+        "eng/ci/check_cfitsio_platform_surface.py",
+        "--json"
+      ],
+      "timeout_seconds": 180,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "eng/cmake/**",
+        "eng/ci/check_cfitsio_platform_surface.py",
+        "lib/infrastructure/aio/third_party/cfitsio/**"
+      ]
+    },
+    {
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "requires_monitor": false,
+      "id": "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST",
+      "command": [
+        "python3",
+        "eng/ci/check_cfitsio_platform_surface.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "**/CMakeLists.txt",
+        "eng/cmake/**",
+        "eng/ci/check_cfitsio_platform_surface.py"
       ]
     },
     {

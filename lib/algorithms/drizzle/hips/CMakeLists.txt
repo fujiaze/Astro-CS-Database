@@ -58,6 +58,20 @@ foreach(_f ${ASTROCS_CFITSIO_SOURCES})
 endforeach()
 target_sources(astrocs_p1_hips_writer PRIVATE ${HIPS_CFITSIO_SOURCES})
 
+# ── 第三方源的平台面: 与根 astrocs_cfitsio **同一份**实现 ────────────────
+# 本目标同样把 vendored cfitsio 整套源再编一遍 (含 zcompress.c/zuncompress.c,
+# 二者 #include "zlib.h"), 故必须接上同一份平台垫片与 zlib 依赖包含面。
+# 注: 本目标未定义 _REENTRANT (源集只编 fitsio.h 消费面), 垫片注入在非 MSVC
+# 与不需要时均为空操作, 口径仍与全仓一致 —— 不在调用点另写平台判断。
+if(NOT COMMAND astrocs_cfitsio_apply_platform_shim)
+  include("${CMAKE_SOURCE_DIR}/eng/cmake/cfitsio_platform.cmake")
+endif()
+astrocs_cfitsio_apply_platform_shim(astrocs_p1_hips_writer)
+astrocs_cfitsio_apply_third_party_deps(astrocs_p1_hips_writer)
+# 第三方告警隔离 (与基准目标 astrocs_cfitsio 同一份实现): 本目标编的是 vendored
+# cfitsio 源, 不该把 drvrnet.c C4206 / zuncompress.c C4267 之类灌进项目告警面。
+astrocs_cfitsio_isolate_warnings(astrocs_p1_hips_writer)
+
 set_target_properties(astrocs_p1_hips_writer PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     PREFIX ""
@@ -98,9 +112,7 @@ if(ZLIB_FOUND)
     # zlib 仅被 cfitsio 使用 (与根 astrocs_cfitsio 链路面一致)
     list(APPEND HIPS_LINK_LIBS ZLIB::ZLIB)
 endif()
-if(UNIX)
-    list(APPEND HIPS_LINK_LIBS m)
-endif()
+  list(APPEND HIPS_LINK_LIBS astrocs_platform_math)
 target_link_libraries(astrocs_p1_hips_writer PRIVATE ${HIPS_LINK_LIBS})
 
 # ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──

@@ -95,6 +95,33 @@ if(NOT TARGET ZLIB::ZLIB)
     endif()
     find_package(ZLIB REQUIRED)
 endif()
+# ── zlib 依赖包含面: 与根/共用模块**同一份**判定 (eng/cmake/cfitsio_platform.cmake) ──
+# 事实(改前): win32_pthread_shim 与 zlib 包含面只在根 astrocs_cfitsio 段内联写一遍;
+#   本目录的 gaia_client.c 以 `<zlib.h>` 直接消费 zlib, 其目标靠 find_package(ZLIB) 的
+#   imported target 兜底 —— 但 gaia_client.c 的**直接消费者**(eng/tests/unit 的 5 个用例)
+#   只链裸 `z` 库、`ZLIB::ZLIB` 的 INTERFACE include 传不到它们 ⇒ Windows/MSVC 下
+#   C1083 "zlib.h" (Linux 靠 /usr/include 兜底, 静默)。
+# 现口径: 包含面与根段/重编译点同源同判 (两条合同注入布局都认), 由本 INTERFACE
+#   target 显式承载, 5 个用例显式链接 —— 不靠"恰好已存在的 imported target"。
+add_library(astrocs_gaia_zlib_include INTERFACE)
+if(NOT COMMAND astrocs_cfitsio_apply_third_party_deps)
+    # 回归门会把本文件复制进临时源树跑 configure, 那里 CMAKE_SOURCE_DIR 指向临时根。
+    # 先认根入口落点 <src>/eng/cmake/, 再退回**本目录相对**落点 —— 两个落点必须
+    # 不同: 修复前两处 include 写的是逐字相同的路径, 第二次是纯死代码, 而注释却
+    # 声称"也认另一个落点" (注释与代码相反, 2026-09-29 复验时发现并修正)。
+    include("${CMAKE_SOURCE_DIR}/eng/cmake/cfitsio_platform.cmake"
+            OPTIONAL RESULT_VARIABLE _acs_platform_module)
+    if(NOT _acs_platform_module)
+        include("${CMAKE_SOURCE_DIR}/../../../eng/cmake/cfitsio_platform.cmake"
+                OPTIONAL RESULT_VARIABLE _acs_platform_module)
+    endif()
+endif()
+# 裸 configure 本文件 (无根入口, 例如回归门把本文件复制进临时源树跑 configure)
+# 时不注入任何包含面 —— 宁可零改动, 也不静默指到不存在的目录。
+if(COMMAND astrocs_cfitsio_apply_third_party_deps)
+    astrocs_cfitsio_apply_third_party_deps(astrocs_gaia_zlib_include)
+endif()
+
 target_link_libraries(astrocs_catalog_gaia PRIVATE ZLIB::ZLIB)
 
 # MOD-001 依赖闭包收口: gaia_client.c 使用 GNU libm 扩展 sincos (RTLD_NOW 下
@@ -103,9 +130,7 @@ target_link_libraries(astrocs_catalog_gaia PRIVATE ZLIB::ZLIB)
 # exe (链 m) 侥幸可载 — 违反 §8.4 "独立加载" 依赖闭包完备要求。显式链 m 使
 # 模块 DLL 自包含 (libm.so.6 入 DT_NEEDED), 由 eng/tests/abi/mod001_install_load_check.py
 # 安装树逐 unit 加载验证闭环。
-if(UNIX AND NOT APPLE)
-    target_link_libraries(astrocs_catalog_gaia PRIVATE m)
-endif()
+  target_link_libraries(astrocs_catalog_gaia PRIVATE astrocs_platform_math)
 
 # OpenMP: legacy 生产实现使用 (4 个文件级并行循环; 迁移不改并行结构)。
 # 无 OpenMP 时退化为串行 (gaia_client.c 对 _OPENMP 有条件编译)。

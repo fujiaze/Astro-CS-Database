@@ -77,10 +77,7 @@ find_package(Threads REQUIRED)
 
 # ── 链接依赖 (闭包自包含; 只剩系统库; 零 OMP) ──
 set(NOISE_LINK_LIBS Threads::Threads)
-if(UNIX)
-    # libm: 生产 TU 的 sqrt/fabs/nth-element 面数学依赖
-    list(APPEND NOISE_LINK_LIBS m)
-endif()
+  list(APPEND NOISE_LINK_LIBS astrocs_platform_math)
 target_link_libraries(astrocs_p1_noise PRIVATE ${NOISE_LINK_LIBS})
 
 # ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──

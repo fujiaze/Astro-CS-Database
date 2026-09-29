@@ -201,6 +201,16 @@ configure_file(eng/packaging/config/runtime_resources_generated.h.in
 # vendored cfitsio 显式清单 (BLD-001 禁 GLOB; 由 eng/tools/gen_cfitsio_list.py 生成)
 include(${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/cfitsio_sources.cmake)
 
+# 第三方源的**平台适配与依赖包含面** = 唯一实现 (eng/cmake/cfitsio_platform.cmake)。
+# 事实(改前): pthread 垫片与 zlib 包含面此前只在根 astrocs_cfitsio 段内联写一遍,
+#   vendored cfitsio 的其他重编译点 (astrocs_phase2_integrate / astrocs_p1_drizzle /
+#   astrocs_p1_hips_writer) 或另写一遍、或干脆没写 ⇒ 同一判断多处两套口径。
+#   Windows 全量构建实测: astrocs_phase2_integrate 编入 60 个 cfitsio TU 且定义
+#   _REENTRANT, 却无垫片包含面 ⇒ 55 条 C1083 "pthread.h"; 同目标自编 zcompress.c /
+#   zuncompress.c 却无 zlib 包含面 ⇒ C1083 "zlib.h"。
+# 现口径: 平台判断与依赖定位只在该模块内出现一次, 各重编译点只调用函数、不复制路径。
+include(${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/cfitsio_platform.cmake)
+
 # OpenMP 探测提前: 遗留模块 (calibration/aio/drizzle) 含 omp pragma, 编译需 -fopenmp
 # (QA-001: 自有遗留 target target-local 编译, 不污染主程序; 第三方 cfitsio 仍 -w 隔离)
 if(UNIX)
@@ -298,10 +308,37 @@ endif()
 if(WIN32)
   set_target_properties(acsd_io PROPERTIES OUTPUT_NAME "acsd_io")
 endif()
-# fits_core.c 需数学库 (Linux); Windows CRT 自带
-if(NOT WIN32)
-  target_link_libraries(acsd_io PRIVATE m)
+# fits_core.c 需数学库; 平台判断收在共用件 astrocs_platform_math（见下）
+target_link_libraries(acsd_io PRIVATE astrocs_platform_math)
+
+# ── 平台系统库唯一判定点 (FINAL-07 WIN-PORT 批次二) ────────────────────────────
+# 依据: ENGINEERING_SPEC.md §1「正式平台 Windows x64 (MSVC) / Linux amd64」。
+#   三个系统库的可达性在两侧不同 —— libm / libpthread 只在类 UNIX 存在 (Windows
+#   的数学函数在 CRT 内、线程原语在 kernel32 内, 都不需要单独链接库名); zlib 在
+#   Windows 侧的唯一来源是 ACS_ZLIB_LIBRARY (本文件下方的 zlib 发现块)。
+# 事实(改前): 同一判断散落在 20 余处链接面, 形态有 if(UNIX) / if(NOT WIN32) /
+#   if(MSVC)…else() 三种口径, 另有相当一部分**根本没写**平台判断 ⇒ Windows 链接期
+#   LNK1104 "cannot open file 'm.lib'" (实测 11 条) 及同类的 z.lib / pthread.lib。
+# 现口径: 平台判断**只写在下面这一处**; 全仓链接面一律引用这三个 INTERFACE 目标,
+#   调用点不得再写 if(UNIX)/if(MSVC) 分支 (撤除后的可执行判据 =
+#   eng/ci/check_platform_syslib_links.py, 带正例/负例注射)。
+#   空载荷 INTERFACE 目标在链接面展开为空, 且不会触发 target_link_libraries 的
+#   参数个数校验 (裸变量展开为空则会)。
+#   空载荷不是豁免: 目标若真消费 zlib 而构建未提供 ACS_ZLIB_ROOT, 缺失会在链接期
+#   以未解析符号暴露 —— 不静默降级。
+add_library(astrocs_platform_math INTERFACE)
+add_library(astrocs_platform_pthread INTERFACE)
+add_library(astrocs_platform_zlib INTERFACE)
+if(WIN32)
+  # Windows: 三者都无独立链接期库名 ⇒ 保持空载荷。
+  #   zlib 的 MSVC 载荷在下方 zlib 发现块内赋值 (那里是唯一知道 ACS_ZLIB_LIBRARY
+  #   的位置); 该赋值只**传值**, 不重复平台判断。
+else()
+  target_link_libraries(astrocs_platform_math INTERFACE m)
+  target_link_libraries(astrocs_platform_pthread INTERFACE pthread)
+  target_link_libraries(astrocs_platform_zlib INTERFACE z)
 endif()
+# ── END 平台系统库唯一判定点 ─────────────────────────────────────────────────
 
 # astrocs_noop: conformance module SHARED (模块 CMakeLists 只声明本 target,
 # BLD-002: 子目录 CMakeLists 非产品事实源; 见 eng/tests/conformance/noop/README)
@@ -522,17 +559,17 @@ if(MSVC)
   # _REENTRANT 需 pthread.h → 用 eng/cmake/win32_pthread_shim (SRWLOCK 映射, MSVC 专用);
   # zcompress.c 需 zlib (ACS_ZLIB_ROOT, MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
   # 注意: 不可用 MSYS2 mingw64 include (gcc 头无法被 MSVC 编译)。
-  # /W0 而非 /w: 对第三方目标二者等效（都完全不收本项目告警），
-  # 但 /W0 是 CMake 认识的告警级旗标，会被翻成 <WarningLevel>TurnOffAllWarnings</WarningLevel>，
-  # 不再落进 AdditionalOptions；否则 MSBuild 在缺 <WarningLevel> 元素时默认 /W1，
-  # 与显式 /w 相撞产生 D9025 "overriding /W1 with /w"。
-  target_compile_options(astrocs_cfitsio PRIVATE /W0)
-  # 第三方隔离 (见根 add_compile_options): 本目标不收项目 /W4。
-  set_target_properties(astrocs_cfitsio PROPERTIES ASTROCS_WARNINGS_OFF 1)
-  target_include_directories(astrocs_cfitsio PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/win32_pthread_shim)
-  target_link_libraries(astrocs_cfitsio PUBLIC kernel32)  # SRWLock API (shim)
-  set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (lib/include/zlib.h + lib/<zlib>.lib)；hosted runner 经 vcpkg 注入 env")
+  # 第三方告警隔离 = 与**所有**重编译点同一份实现 (属性 ASTROCS_WARNINGS_OFF=1
+  # 退出项目 /W4 + /W0 而非 /w, 理由见函数内注释), 见
+  # eng/cmake/cfitsio_platform.cmake:astrocs_cfitsio_isolate_warnings()。
+  astrocs_cfitsio_isolate_warnings(astrocs_cfitsio)
+  # 平台垫片 (pthread.h) 与 zlib 依赖包含面 = 与**所有**重编译点同一份实现,
+  # 见 eng/cmake/cfitsio_platform.cmake (此处不再内联路径字面量)。
+  astrocs_cfitsio_apply_platform_shim(astrocs_cfitsio)
+  astrocs_cfitsio_apply_third_party_deps(astrocs_cfitsio)
+  # ACS_ZLIB_ROOT 仅作**链接库名**的 cache 兜底 (env 层 ACS_ZLIB_LIB 优先);
+  # 头文件包含面由上面的共用函数按"头实际落点"判定 ⇒ 不在此再写目录名。
+  set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (<root>/include/zlib.h + <root>/lib/<zlib>.lib)；hosted runner 经 vcpkg 注入 env")
   if(ACS_ZLIB_ROOT)
     # HOSTFIX-23④ (run 34039050194): env 层确定性优先 —— hosted runner 的
     # "Provide zlib (vcpkg)" 步骤列出 installed/x64-windows-static-md/lib 下
@@ -552,11 +589,22 @@ if(MSVC)
     endif()
   endif()
   if(ACS_ZLIB_ROOT)
-    target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/lib/include")
+    # 事实(改前): 本行写 "${ACS_ZLIB_ROOT}/lib/include" —— 对**合同声明的两条注入布局
+    # 都错**。① hosted runner (.github/workflows/ci-windows.yml:49) 注入
+    # ACS_ZLIB_ROOT=<vcpkg>/installed/x64-windows-static-md, 头在 <root>/include/zlib.h;
+    # ② 本机 prefix 安装同为 <root>/include/zlib.h (对照 Linux 的 /usr)。
+    # 现口径: 头包含面由 astrocs_cfitsio_apply_third_party_deps 统一判定 (两条布局都认,
+    # 都不命中即 configure 期 fail-fast), 本处只剩链接面。
     target_link_libraries(astrocs_cfitsio PUBLIC "${ACS_ZLIB_LIBRARY}")
   endif()
+  # 共用件 zlib 载荷: ACS_ZLIB_LIBRARY 只在本块内可知 ⇒ 载荷在此赋值。
+  # 这里只**传值**; 平台判断仍在文件头的共用件段一处 (不重复判平台)。
+  if(ACS_ZLIB_LIBRARY)
+    target_link_libraries(astrocs_platform_zlib INTERFACE "${ACS_ZLIB_LIBRARY}")
+  endif()
 else()
-  target_compile_options(astrocs_cfitsio PRIVATE -w)
+  # 非 MSVC 侧同一份告警隔离实现 (GCC/Clang 用 -w)。
+  astrocs_cfitsio_isolate_warnings(astrocs_cfitsio)
 endif()
 # IO-003: CFITSIO 显式 reentrant 构建 (fits_is_reentrant() 必须返回 1)
 target_compile_definitions(astrocs_cfitsio PRIVATE _REENTRANT)
@@ -587,16 +635,12 @@ target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
-if(MSVC AND ACS_ZLIB_LIBRARY)
-  target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio "${ACS_ZLIB_LIBRARY}")
-else()
-  target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio z)
-endif()
-# QA-001: aio_fits.cpp 含 omp pragma → -fopenmp 编译消除 unknown-pragmas
-if(UNIX AND OpenMP_CXX_FOUND)
-  target_compile_options(astrocs_aio PRIVATE -fopenmp)
-  target_link_libraries(astrocs_aio PRIVATE OpenMP::OpenMP_CXX)
-endif()
+# zlib 链接面 = 共用件（Windows 侧取 ACS_ZLIB_LIBRARY，见文件头共用件段）
+target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio astrocs_platform_zlib)
+# QA-001: aio_fits.cpp 含 omp pragma → 由 imported target 自带平台对应的并行旗标。
+# 门控与旗标收在 eng/cmake/cfitsio_platform.cmake 的 astrocs_openmp_link_if_unix()
+# 一处 (改前此处既手写 `-fopenmp` 又链 imported target ⇒ 命令行出现两次)。
+astrocs_openmp_link_if_unix(astrocs_aio)
 
 # io/hips: HiPS reader/writer + hiss (无科学积分)
 add_library(astrocs_hips STATIC
@@ -637,11 +681,8 @@ target_include_directories(astrocs_calibration PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/calibration/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include)
 target_link_libraries(astrocs_calibration PUBLIC astrocs_aio astrocs_common)
-# QA-001: calibrator/cosmetic_corrector/master_generator 含 omp pragma → -fopenmp
-if(UNIX AND OpenMP_CXX_FOUND)
-  target_compile_options(astrocs_calibration PRIVATE -fopenmp)
-  target_link_libraries(astrocs_calibration PRIVATE OpenMP::OpenMP_CXX)
-endif()
+# QA-001: calibrator/cosmetic_corrector/master_generator 含 omp pragma → 同上, 走共用件。
+astrocs_openmp_link_if_unix(astrocs_calibration)
 
 # PHOT-MXY-01: 仓内**唯一**「可辨识性/病态」判据 (identifiability.cpp) 抽成独立
 # 小库, 供 astrocs_phase2 (天光面/UPM) 与 astrocs_phase1_photcal (Phase1 低阶空间
@@ -725,12 +766,9 @@ target_include_directories(astrocs_drizzle SYSTEM PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle)
 target_compile_definitions(astrocs_drizzle PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(astrocs_drizzle PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
-# QA-001: drizzle_engine/snr_evaluator 含 omp pragma → -fopenmp 编译消除 unknown-pragmas
+# QA-001: drizzle_engine/snr_evaluator 含 omp pragma → 同上, 走共用件。
 # (omp 并行仅为遗留 drizzle 内部; 生产调度走 Runtime lease, 见 MON/CHK 系列)
-if(UNIX AND OpenMP_CXX_FOUND)
-  target_compile_options(astrocs_drizzle PRIVATE -fopenmp)
-  target_link_libraries(astrocs_drizzle PRIVATE OpenMP::OpenMP_CXX)
-endif()
+astrocs_openmp_link_if_unix(astrocs_drizzle)
 
 # backends/cpu: provider ABI + baseline (AVX2/512 见 CPU-003/004)
 add_library(astrocs_cpu STATIC
@@ -924,14 +962,44 @@ set(ASTROCS_CPU_PROVIDER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure
 set(ASTROCS_CPU_PROVIDER_TU_baseline "${ASTROCS_CPU_PROVIDER_SRC_DIR}/baseline/src/baseline_provider.cpp")
 set(ASTROCS_CPU_PROVIDER_TU_avx2 "${ASTROCS_CPU_PROVIDER_SRC_DIR}/avx2/src/avx2_provider.cpp")
 set(ASTROCS_CPU_PROVIDER_TU_avx512 "${ASTROCS_CPU_PROVIDER_SRC_DIR}/avx512/src/avx512_provider.cpp")
+# ── R-60: cpuprov 变体族的 TU 级 ISA 隔离（门面 TU 零旗标 / 计算面 TU 目标 ISA）────────
+# 与第一族 backend 变体同因同法（见本文件上游 backend 段的 R-60 注释；
+# run/FINAL-07/审核包/工程/变体能力面一致性报告.md §2）：MSVC/clang-cl **没有**函数级指令集
+# 覆盖（pragma 全表无 target、__declspec 全表无 cpu_specific/cpu_dispatch、/arch: 的作用域是
+# **整个 TU**）⇒ 要让 acs_cpu_*_cap_gate / astrocs_provider_query_v1 / *_self_test 在仅 SSE2
+# 的主机上可执行（干净拒绝而不是撞非法指令），唯一可控手段是让它们与高 ISA 旗标**不在同一 TU**。
+# 改前缺陷（实测，产物级）: 整 TU 带 -mavx2 时 acs_cpu_avx2_cap_gate 函数体含 15 处宽寄存器
+# 引用、avx2_self_test 含 5 处；且 MSVC 腿被 if(NOT MSVC) 门控 ⇒ **连旗标都没有**，两个变体库
+# 与基线同码却仍在清单里声明 ISA 能力（虚假能力声明 = R-60 裁决所禁的"维持现状"）。
+set(ASTROCS_CPU_PROVIDER_KERNELS_TU_avx2
+  "${ASTROCS_CPU_PROVIDER_SRC_DIR}/avx2/src/avx2_kernels.cpp")
+set(ASTROCS_CPU_PROVIDER_KERNELS_TU_avx512
+  "${ASTROCS_CPU_PROVIDER_SRC_DIR}/avx512/src/avx512_kernels.cpp")
+add_library(astrocs_cpuprov_avx2_kernels OBJECT "${ASTROCS_CPU_PROVIDER_KERNELS_TU_avx2}")
+add_library(astrocs_cpuprov_avx512_kernels OBJECT "${ASTROCS_CPU_PROVIDER_KERNELS_TU_avx512}")
+set_target_properties(astrocs_cpuprov_avx2_kernels astrocs_cpuprov_avx512_kernels
+  PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# 计算面 TU 的 include 面与门面 TU 逐条同源（下面门面 target 的 PRIVATE include 面）。
+foreach(_acs_cp_kv avx2 avx512)
+  target_include_directories(astrocs_cpuprov_${_acs_cp_kv}_kernels PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+    "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/include"
+    "${ASTROCS_CPU_PROVIDER_SRC_DIR}/${_acs_cp_kv}/include"
+    "${ASTROCS_CPU_PROVIDER_SRC_DIR}/baseline/include")
+endforeach()
 add_library(astrocs_cpuprov_common OBJECT
   "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/src/capability_detect.c")
 target_include_directories(astrocs_cpuprov_common PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/include")
+# 计算面 OBJ 逐变体挂载（baseline 无计算面目标 —— 它本身就是基线 ISA 面）。
+set(ASTROCS_CPU_PROVIDER_KERNELS_OBJ_baseline "")
+set(ASTROCS_CPU_PROVIDER_KERNELS_OBJ_avx2 "$<TARGET_OBJECTS:astrocs_cpuprov_avx2_kernels>")
+set(ASTROCS_CPU_PROVIDER_KERNELS_OBJ_avx512 "$<TARGET_OBJECTS:astrocs_cpuprov_avx512_kernels>")
 foreach(_acs_cp_variant baseline avx2 avx512)
   add_library(astrocs_cpuprov_${_acs_cp_variant} SHARED
     "${ASTROCS_CPU_PROVIDER_TU_${_acs_cp_variant}}"
+    ${ASTROCS_CPU_PROVIDER_KERNELS_OBJ_${_acs_cp_variant}}
     $<TARGET_OBJECTS:astrocs_cpuprov_common>)
   target_include_directories(astrocs_cpuprov_${_acs_cp_variant} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
@@ -948,11 +1016,24 @@ foreach(_acs_cp_variant baseline avx2 avx512)
       INSTALL_RPATH "$ORIGIN" BUILD_RPATH_USE_ORIGIN YES)
   endif()
 endforeach()
-# 编译隔离：高级旗标只作用于对应 variant target（PRIVATE）；baseline 保持最低 amd64/SSE2。
-if(NOT MSVC)
-  target_compile_options(astrocs_cpuprov_avx2 PRIVATE -mavx2 -mfma)
+# 编译隔离：高级旗标只作用于对应变体的**计算面** target（PRIVATE）；门面 TU 与 baseline 保持
+# 最低 amd64/SSE2（R-60 硬约束 1 —— 门面带旗标 = 自检/握手入口可能与高指令集同码）。
+if(MSVC)
+  # 官方口径（MS Learn /arch (x64) 档位表与预定义宏段 + MSVC C++ 团队博客，见报告 §2）:
+  #   /arch:AVX2   = 同时许可 AVX2 与 FMA 指令面（MSVC 无独立 /mfma 类开关）；
+  #   /arch:AVX512 = 许可面 F+CD+BW+DQ+VL（无子集档位旗标）。
+  # /fp:contract **仅 VS2022 起需要**（该版起 /fp:precise 默认不再生成 FMA 收缩，而 Linux 腿
+  # GCC 默认 -ffp-contract=fast 会收缩）；更早版本无此旗标且默认就收缩 ⇒ 按版本分支，
+  # 不写会被静默忽略的旗标（未知 /arch: 取值只报 D9002 且 rc=0）。
+  target_compile_options(astrocs_cpuprov_avx2_kernels PRIVATE /arch:AVX2)
+  if(MSVC_VERSION GREATER_EQUAL 1930)
+    target_compile_options(astrocs_cpuprov_avx2_kernels PRIVATE /fp:contract)
+  endif()
+  target_compile_options(astrocs_cpuprov_avx512_kernels PRIVATE /arch:AVX512)
+else()
+  target_compile_options(astrocs_cpuprov_avx2_kernels PRIVATE -mavx2 -mfma)
   # 子集与 CPU_003/AVX-512 provider 头声明的编译合同逐字同源（F+CD+BW+DQ+VL）。
-  target_compile_options(astrocs_cpuprov_avx512 PRIVATE
+  target_compile_options(astrocs_cpuprov_avx512_kernels PRIVATE
     -mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl)
 endif()
 
@@ -1089,7 +1170,7 @@ target_include_directories(astrocs_p1_ipv PUBLIC
   # CLEAN-403: ipv_log.h 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
-target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
+target_link_libraries(astrocs_p1_ipv PUBLIC astrocs_platform_zlib Threads::Threads)
 # WIN-PORT C2491: ipv_api.h 用 IPV_EXPORTS 区分 dllexport/dllimport —— 本 target
 # 编入的是**定义侧** TU (ipv_entry.cpp 等), Windows 下不定义该宏就会把定义
 # 声明成 __declspec(dllimport) ⇒ MSVC C2491「不允许 dllimport 函数的定义」×12。
@@ -1151,7 +1232,7 @@ endif()
 # （lib/algorithms/star_detection/src/nls_lm.cpp, 无外部依赖）。
 # **禁止**重新引入 GSL/gslcblas: Windows 无来源, 且其为 GPL 族并经
 # astrocs_p1_sdet → astrocs_module_adapters → astrocs 进入产品 exe 动态链。
-target_link_libraries(astrocs_p1_sdet PUBLIC m)
+target_link_libraries(astrocs_p1_sdet PUBLIC astrocs_platform_math)
 
 # phases sessions (facade, 后续迁移为 preset)
 add_library(astrocs_phase1_session STATIC lib/phase1_session/p1_session.cpp)
@@ -1258,13 +1339,7 @@ target_link_libraries(acsd PRIVATE
   # normalize|mosaic|export 三子目录的扁平头名经此解析)。
   astrocs_cli_subcommands
   ${CMAKE_DL_LIBS})
-if(MSVC)
-  if(ACS_ZLIB_LIBRARY)
-    target_link_libraries(acsd PRIVATE "${ACS_ZLIB_LIBRARY}")
-  endif()
-else()
-  target_link_libraries(acsd PRIVATE m z)
-endif()
+target_link_libraries(acsd PRIVATE astrocs_platform_math astrocs_platform_zlib)
 
 # ── QA-001: 自有生产 targets 分层严格 warning (GCC/Clang; MSVC 用 /W4) ──
 # 第三方 (cfitsio) 与遗留 (aio/hips/drizzle/calibration) 已 target-local 隔离:
@@ -1275,7 +1350,10 @@ if(NOT MSVC)
   foreach(tgt astrocs_core astrocs_common astrocs_phase2 astrocs_phase3_session
               astrocs_cpu astrocs_phase1_wcs astrocs_phase1_phot astrocs_phase1_noise
               astrocs_phase1_stars astrocs_phase1_session astrocs_phase2_session
-              astrocs_module_adapters astrocs_cli_runtime astrocs_cpu_avx2 astrocs_cpu_avx512)
+              astrocs_module_adapters astrocs_cli_runtime astrocs_cpu_avx2 astrocs_cpu_avx512
+              # R-60: 变体计算面 TU 独立成 OBJECT target ⇒ 与门面 TU 同收严格 warning 面
+              # （少一个 target 就等于悄悄放松了 -Wconversion 的覆盖面）。
+              astrocs_cpu_avx2_kernels astrocs_cpu_avx512_kernels)
     if(TARGET ${tgt})
       target_compile_options(${tgt} PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
     endif()

@@ -94,11 +94,14 @@ IF(USE_BZIP2)
    ADD_DEFINITIONS(-DHAVE_BZIP2=1)
 ENDIF(USE_BZIP2)
 
-# Math library (not available in MSVC or MINGW)
-IF(MSVC OR MINGW)
-   SET(M_LIB "")
-ELSE()
-   FIND_LIBRARY(M_LIB m)
+# Math library: 平台判断**不在本文件** —— 收在根 CMakeLists 的共用件
+# astrocs_platform_math (FINAL-07 WIN-PORT 批次二)。此前本处自建一份
+# IF(MSVC OR MINGW) 判断, 与根构建的另一份口径并存 ⇒ 同族两处两套口径。
+# 经根入口配置时该目标必然已定义 (根 CMakeLists 在首个 add_subdirectory 之前声明);
+# 裸配置本目录 (无根入口) 时目标不存在 ⇒ 不链接数学库, 缺失会在链接期以未解析
+# 符号暴露 (不静默降级)。
+IF(NOT TARGET astrocs_platform_math)
+   MESSAGE(STATUS "cfitsio(third_party): 未经根入口配置 => 数学库链接面由调用方提供")
 ENDIF()
 
 # Support for remote file drivers is not implemented for native Windows:
@@ -256,8 +259,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 
 ADD_LIBRARY(${LIB_NAME} ${LIB_TYPE} ${H_FILES} ${SRC_FILES})
 
-# Math:
-TARGET_LINK_LIBRARIES(${LIB_NAME} ${M_LIB})
+# Math: 共用件 (平台判断见上方说明)
+IF(TARGET astrocs_platform_math)
+   TARGET_LINK_LIBRARIES(${LIB_NAME} astrocs_platform_math)
+ENDIF()
 # zlib:
 IF (ZLIB_FOUND)
     TARGET_INCLUDE_DIRECTORIES(${LIB_NAME} PUBLIC ${ZLIB_INCLUDE_DIR})

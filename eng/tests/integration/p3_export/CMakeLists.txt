@@ -47,9 +47,7 @@ target_include_directories(p3_export_test PRIVATE
 )
 target_compile_features(p3_export_test PRIVATE cxx_std_17)
 target_link_libraries(p3_export_test PRIVATE astrocs_product_io)
-if(UNIX)
-  target_link_libraries(p3_export_test PRIVATE m)
-endif()
+target_link_libraries(p3_export_test PRIVATE astrocs_platform_math)
 
 set(P3_ARTIFACT_DIR "${CMAKE_CURRENT_BINARY_DIR}/artifacts")
 set(P3_NEG_DIR      "${CMAKE_CURRENT_BINARY_DIR}/neg_artifacts")

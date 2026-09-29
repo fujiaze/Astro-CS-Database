@@ -16,9 +16,7 @@ target_include_directories(weight_chain_selfcheck PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 set_target_properties(weight_chain_selfcheck PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-if(UNIX)
-  target_link_libraries(weight_chain_selfcheck PRIVATE m)
-endif()
+target_link_libraries(weight_chain_selfcheck PRIVATE astrocs_platform_math)
 
 # 重建算子 dump harness：供 recon_exp04_parity.py 与实验单元 EXP-04 的 Python
 # 算子实现逐像素对拍（证明生产实现 = 实验被测算子）。非生产路径。
@@ -29,6 +27,4 @@ target_include_directories(recon_dump PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 set_target_properties(recon_dump PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-if(UNIX)
-  target_link_libraries(recon_dump PRIVATE m)
-endif()
+target_link_libraries(recon_dump PRIVATE astrocs_platform_math)

@@ -54,7 +54,5 @@ if(NOT TARGET astrocs_phase1_product)
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
-  if(UNIX)
-    target_link_libraries(astrocs_phase1_product PUBLIC m)
-  endif()
+  target_link_libraries(astrocs_phase1_product PUBLIC astrocs_platform_math)
 endif()

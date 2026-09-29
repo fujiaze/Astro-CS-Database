@@ -24,7 +24,5 @@ if(NOT TARGET astrocs_product_io)
   set_target_properties(astrocs_product_io PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON)
-  if(UNIX)
-    target_link_libraries(astrocs_product_io PUBLIC m)
-  endif()
+  target_link_libraries(astrocs_product_io PUBLIC astrocs_platform_math)
 endif()

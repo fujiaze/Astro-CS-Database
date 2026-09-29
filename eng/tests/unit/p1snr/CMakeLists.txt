@@ -19,9 +19,7 @@
 # ============================================================================
 add_executable(p1snr_linux_test p1snr_linux_test.cpp)
 target_link_libraries(p1snr_linux_test PRIVATE astrocs_phase1_noise)
-if(UNIX)
-  target_link_libraries(p1snr_linux_test PRIVATE m)
-endif()
+target_link_libraries(p1snr_linux_test PRIVATE astrocs_platform_math)
 add_test(NAME p1snr_linux_units COMMAND p1snr_linux_test units)
 add_test(NAME p1snr_linux_oracle COMMAND p1snr_linux_test oracle)
 add_test(NAME p1snr_linux_contract COMMAND p1snr_linux_test contract)

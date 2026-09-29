@@ -79,9 +79,7 @@ add_executable(p1noise_tests
 target_include_directories(p1noise_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_link_libraries(p1noise_tests PRIVATE p1noise_under_test)
-if(UNIX)
-  target_link_libraries(p1noise_tests PRIVATE m)
-endif()
+target_link_libraries(p1noise_tests PRIVATE astrocs_platform_math)
 # 单组单跑: ctest -R p1noise_units / p1noise_properties / p1noise_oracle /
 #            p1noise_negative / p1noise_scale_law / p1noise_fill / p1noise_mask
 add_test(NAME p1noise_units COMMAND p1noise_tests units)
@@ -106,9 +104,7 @@ add_test(NAME p1noise_abi_layout
 add_executable(p1noise_perf_test
   ${P1NOISE_DIR}/p1noise_tests_perf.cpp)
 target_link_libraries(p1noise_perf_test PRIVATE p1noise_under_test)
-if(UNIX)
-  target_link_libraries(p1noise_perf_test PRIVATE m)
-endif()
+target_link_libraries(p1noise_perf_test PRIVATE astrocs_platform_math)
 add_test(NAME p1noise_performance COMMAND p1noise_perf_test)
 
 # 故障注入必败自检 (验收: baseline 必 PASS + 注入必 FAIL 双向排除恒常)
@@ -118,9 +114,7 @@ add_executable(p1noise_selfcheck_test
 target_include_directories(p1noise_selfcheck_test PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
 target_link_libraries(p1noise_selfcheck_test PRIVATE p1noise_under_test)
-if(UNIX)
-  target_link_libraries(p1noise_selfcheck_test PRIVATE m)
-endif()
+target_link_libraries(p1noise_selfcheck_test PRIVATE astrocs_platform_math)
 add_test(NAME p1noise_selfcheck COMMAND p1noise_selfcheck_test)
 # ============================================================================
 # P5-SNR: 逐源 SNR 科学修正回归锁 (TEST-P5-SNR)
@@ -139,9 +133,7 @@ set_target_properties(p5snr_under_test PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
-if(UNIX)
-  target_link_libraries(p5snr_under_test PUBLIC m)
-endif()
+target_link_libraries(p5snr_under_test PUBLIC astrocs_platform_math)
 
 add_executable(p1snr_science_test ${P1NOISE_DIR}/p1snr_science_test.cpp)
 target_link_libraries(p1snr_science_test PRIVATE p5snr_under_test)
@@ -164,9 +156,7 @@ add_executable(p1noise_saturation_test ${P1NOISE_DIR}/p1noise_saturation_test.cp
 target_link_libraries(p1noise_saturation_test PRIVATE p1noise_under_test)
 target_include_directories(p1noise_saturation_test PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
-if(UNIX)
-  target_link_libraries(p1noise_saturation_test PRIVATE m)
-endif()
+target_link_libraries(p1noise_saturation_test PRIVATE astrocs_platform_math)
 add_test(NAME p1noise_saturation COMMAND p1noise_saturation_test contract)
 add_test(NAME p1noise_saturation_selfcheck COMMAND p1noise_saturation_test selfcheck)
 
