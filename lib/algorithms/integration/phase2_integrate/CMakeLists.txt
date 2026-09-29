@@ -103,5 +103,23 @@ astrocs_cfitsio_isolate_warnings(astrocs_phase2_integrate)
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
-  target_link_libraries(astrocs_phase2_integrate PUBLIC astrocs_platform_math astrocs_platform_zlib)
+  # 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件。
+  # 本目录**可被独立 configure** (本文件顶部的「当前目录即工程根」守卫 + 独立 project()):
+  # 那种情况下没有根入口 ⇒ 共用件未定义, 直接写 astrocs_platform_math 会被 CMake 当成
+  # **普通库名**展开成 -lastrocs_platform_math ⇒ 链接期 ld: cannot find。实测 (FINAL-07):
+  # 独立 configure 后未守卫时链接 rc=2, 链接行含 -lastrocs_platform_math 与
+  # -lastrocs_platform_zlib。故按「目标是否存在」守卫, 不按平台守卫
+  # (平台判断仍只在共用件内部一处)。
+  foreach(_p2_plat_lib astrocs_platform_math astrocs_platform_zlib)
+    if(TARGET ${_p2_plat_lib})
+      target_link_libraries(astrocs_phase2_integrate PUBLIC ${_p2_plat_lib})
+    endif()
+  endforeach()
+  # 独立 configure 下 astrocs_platform_zlib 缺席, 而本目标自编的 vendored cfitsio 里
+  # zcompress.c 需要 zlib ⇒ 链接期 undefined reference to deflateEnd (FINAL-07 实测 rc=2)。
+  # 回落到系统 zlib, 保持「本目录可独立 configure」这一既有承诺; 平台判断仍只在共用件内部一处。
+  if(NOT TARGET astrocs_platform_zlib)
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(astrocs_phase2_integrate PUBLIC ZLIB::ZLIB)
+  endif()
 endif()
