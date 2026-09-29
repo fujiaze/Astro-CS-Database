@@ -36,9 +36,10 @@ target_include_directories(astrocs_orchestrator_jsv PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json-schema-validator
   ${CMAKE_SOURCE_DIR}/lib/third_party)
 if(MSVC)
-  target_compile_options(astrocs_orchestrator_jsv PRIVATE /w)
-  # 第三方隔离 (见根 CMakeLists add_compile_options 的 ASTROCS_WARNINGS_OFF):
-  # 本目标不收项目 /W4, 只留 /w, 消除 D9025 "overriding '/W4' with '/w'"。
+  # /W0 而非 /w: 等效于第三方目标完全关闭告警，但走的是告警级元素而非附加选项，
+  # 避免 MSBuild 缺省 /W1 与显式旗标相撞的 D9025。
+  target_compile_options(astrocs_orchestrator_jsv PRIVATE /W0)
+  # 第三方隔离 (见根 CMakeLists add_compile_options 的 ASTROCS_WARNINGS_OFF): 本目标不收项目 /W4。
   set_target_properties(astrocs_orchestrator_jsv PROPERTIES ASTROCS_WARNINGS_OFF 1)
 else()
   target_compile_options(astrocs_orchestrator_jsv PRIVATE -w)

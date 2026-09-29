@@ -522,9 +522,12 @@ if(MSVC)
   # _REENTRANT 需 pthread.h → 用 eng/cmake/win32_pthread_shim (SRWLOCK 映射, MSVC 专用);
   # zcompress.c 需 zlib (ACS_ZLIB_ROOT, MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
   # 注意: 不可用 MSYS2 mingw64 include (gcc 头无法被 MSVC 编译)。
-  target_compile_options(astrocs_cfitsio PRIVATE /w)
-  # 第三方隔离 (见根 add_compile_options): 本目标不收项目 /W4, 只留 /w,
-  # 消除 D9025 "overriding '/W4' with '/w'"。
+  # /W0 而非 /w: 对第三方目标二者等效（都完全不收本项目告警），
+  # 但 /W0 是 CMake 认识的告警级旗标，会被翻成 <WarningLevel>TurnOffAllWarnings</WarningLevel>，
+  # 不再落进 AdditionalOptions；否则 MSBuild 在缺 <WarningLevel> 元素时默认 /W1，
+  # 与显式 /w 相撞产生 D9025 "overriding /W1 with /w"。
+  target_compile_options(astrocs_cfitsio PRIVATE /W0)
+  # 第三方隔离 (见根 add_compile_options): 本目标不收项目 /W4。
   set_target_properties(astrocs_cfitsio PROPERTIES ASTROCS_WARNINGS_OFF 1)
   target_include_directories(astrocs_cfitsio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/win32_pthread_shim)
@@ -769,7 +772,11 @@ add_library(astrocs_cpu_avx2 SHARED lib/infrastructure/benchmark/backend_host/av
 target_include_directories(astrocs_cpu_avx2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
-target_compile_options(astrocs_cpu_avx2 PRIVATE -mavx2 -mfma)
+# 旗标按平台门控（与同族第二族 provider 同口径）: 非 MSVC 用 -m* 形式；
+# MSVC 不认这些旗标（忽略并告警 D9002），其等价能力面另案处置（已登记平台能力口径差）。
+if(NOT MSVC)
+  target_compile_options(astrocs_cpu_avx2 PRIVATE -mavx2 -mfma)
+endif()
 target_link_libraries(astrocs_cpu_avx2 PUBLIC astrocs_contracts astrocs_common)
 
 add_library(astrocs_cpu_avx512 SHARED lib/infrastructure/benchmark/backend_host/avx512_backend.cpp)
@@ -779,8 +786,10 @@ target_include_directories(astrocs_cpu_avx512 PUBLIC
 # AVX512 实际使用子集: F + DQ + BW + VL (ISA-004)。检测面 = cpu_features.h 的
 # ACS_FEAT_AVX512_PROVIDER_REQUIRED（原注释称"与 cpu_features.h 检测面一致"，而该头当时
 # 只有 ACS_FEAT_AVX512F 一位 ⇒ 注释与事实相反；TRUTHFUL-CONCLUSION-01 已补位并改为同源宏）。
-target_compile_options(astrocs_cpu_avx512 PRIVATE
-  -mavx512f -mavx512bw -mavx512vl -mavx512dq)
+if(NOT MSVC)
+  target_compile_options(astrocs_cpu_avx512 PRIVATE
+    -mavx512f -mavx512bw -mavx512vl -mavx512dq)
+endif()
 target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)
 
 # ── provider DSO 共同交付面（docs/architecture/ISA_VARIANTS.md §0/§2；与 astrocs_cpu_baseline 同款命名/RPATH）──
