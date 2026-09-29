@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>   // std::uncaught_exceptions()：守卫判「异常是否正在展开」
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -36,6 +37,49 @@ std::string dirname_of(const std::string& p) {
 }
 
 }  // namespace
+
+// ── worker 线程入口守卫（RAII，**只对异常生效**）─────────────────────────────
+// 构造点 = reader_loop / compute_loop / writer_loop 的**第一条语句**。这个位置有两层意义：
+//   ① 它比函数体内所有局部 std::lock_guard / std::unique_lock 活得久（后构造先析构）
+//      ⇒ 析构执行时 mu_ 必为未持有（内层锁已在展开中先析构），
+//      signal_stop() 里的 lock_guard 不会自死锁；
+//   ② loop 体内任何 return / break / throw 都绕不开它（不需要在每个出口手写收尾）。
+//
+// 语义（析构时 std::uncaught_exceptions() > 构造时深度 ⇒ 有异常逃出 loop 体）：
+//   1) 记错误痕迹：record_worker_failure()（首个异常胜出，后到异常不覆盖根因）；
+//   2) signal_stop()：cancel_ 置位 + results_done_ = jobs_total_ + cv_done_/cv_item_/cv_space_
+//      三次 notify_all ⇒ run() 主线程 cv_done_ 的等待谓词**必然**满足（不会挂死）；
+//   3) 异常就此终止展开，**不再逃出线程入口** ⇒ 不再有 std::terminate()/abort。
+//
+// ⚠ 为什么**不能**做成「无论是否异常都收尾」：三个 loop 的正常退出路径各自已有完成协议
+//   （reader 末尾的 cv_item_/cv_space_ notify_all；writer_loop_raw 末尾与 writer_loop_sink
+//   末尾的 results_done_ = jobs_total_ + notify）。若在正常路径也 signal_stop()，
+//   cancel_ 会被无谓置位 ⇒ 主线程 run() 里 was_cancelled 读到 true ⇒ 正常成功的 run 被
+//   误报成 "cancelled"(exit 130)。**正常路径必须一个状态都不动。**
+// ⚠ 守卫**不取** what()：在纯析构路径上，异常对象已不可得（C++ 没有可移植手段在不新增
+//   catch 的前提下从析构里取回 in-flight 异常），故归因粒度是「哪个 loop 抛的」。
+//   要更细的 what() 文本，见交付 run/FINAL-07/stream-guard/未验证项清单.md 的建议节。
+struct ExportStreamScheduler::WorkerEntryGuard {
+  WorkerEntryGuard(ExportStreamScheduler* owner, const char* entry) noexcept
+      : owner_(owner), entry_(entry), depth_(std::uncaught_exceptions()) {}
+  ~WorkerEntryGuard() noexcept {
+    if (std::uncaught_exceptions() == depth_) return;   // 正常返回：一个状态都不动
+    // 顺序要紧：**先 signal_stop()**（放行等待者 = 不挂死，本守卫的首要职责），
+    // 再记痕迹（归因）。record_worker_failure 自身 noexcept（内部吞掉分配失败），
+    // 故这里的 catch 只兜 signal_stop() 里 lock_guard 构造抛 std::system_error 的
+    // 极小概率情形：析构中绝不能抛出（抛出即 terminate，比现状更糟）。
+    try {
+      owner_->signal_stop();
+    } catch (...) {
+    }
+    owner_->record_worker_failure(entry_);   // noexcept，不会再抛
+  }
+  WorkerEntryGuard(const WorkerEntryGuard&) = delete;              // 不可拷贝
+  WorkerEntryGuard& operator=(const WorkerEntryGuard&) = delete;   // 不可赋值
+  ExportStreamScheduler* owner_;
+  const char* entry_;
+  int depth_;   // 构造时的未捕获异常深度（深度比较而非「> 0」⇒ 构造点若本就在展开中也不误判）
+};
 
 ExportStreamScheduler::ExportStreamScheduler(ExportStreamConfig cfg)
     : cfg_(std::move(cfg)), probes_(cfg_.probe_path) {
@@ -94,6 +138,7 @@ void ExportStreamScheduler::write_manifest() const {
 }
 
 void ExportStreamScheduler::reader_loop() {
+  WorkerEntryGuard guard{this, "reader_loop"};   // 异常守卫：详见本 TU 内该类注释
   const int s = cfg_.sub_block_px;
   std::size_t idx = 0;
   for (int y0 = 0; y0 < height_; y0 += s) {
@@ -142,6 +187,7 @@ void ExportStreamScheduler::reader_loop() {
 }
 
 void ExportStreamScheduler::compute_loop() {
+  WorkerEntryGuard guard{this, "compute_loop"};   // 异常守卫：详见本 TU 内该类注释
   for (;;) {
     Job j;
     {
@@ -216,7 +262,30 @@ void ExportStreamScheduler::signal_stop() {
   cv_space_.notify_all();
 }
 
+// worker 入口异常的错误痕迹（由守卫析构调用 ⇒ noexcept）。
+// ① 首个异常胜出：后到的异常不覆盖根因（可能是次生异常，例如析构里的连带失败）。
+// ② worker_failed_ 在 try 之外无条件置位：**即使错误文本分配失败**，「本次 run 有异常」
+//    这一事实也不会丢 ⇒ run() 归因链仍能判失败（不会出现「异常被当成全部成功」）。
+// ③ 写 mu_ 之下：守卫可能来自 reader / compute / writer 三个线程中的任意一个。
+//    读侧不需要锁：run() 在 join 全部线程之后才读（join 给出 happens-before）。
+// ④ 刻意不写 sink_error_ —— 那是 writer 线程的无锁 std::string（见本 TU 里 writer 的
+//    "sink open failed" 等几处），compute/reader 线程并发写它 = 数据竞争（UB）。
+void ExportStreamScheduler::record_worker_failure(const char* entry) noexcept {
+  try {
+    std::lock_guard<std::mutex> lk(mu_);
+    if (worker_error_.empty()) {
+      worker_error_ = std::string("worker_exception: ") + entry;
+    }
+  } catch (...) {
+    // 分配失败/加锁失败：痕迹退化为「只有 worker_failed_ 位」，归因仍是失败而非成功。
+  }
+  worker_failed_.store(true);
+}
+
 void ExportStreamScheduler::writer_loop() {
+  // 守卫只放在线程入口这一层即可：writer_loop_sink / writer_loop_raw 内部的 mu_
+  // 在展开中先于本守卫析构（后构造先析构）⇒ 析构里 signal_stop() 不会自死锁。
+  WorkerEntryGuard guard{this, "writer_loop"};   // 异常守卫：详见本 TU 内该类注释
   if (cfg_.sink) writer_loop_sink();
   else writer_loop_raw();
 }
@@ -498,8 +567,10 @@ ExportOutcome ExportStreamScheduler::run() {
     peak_resident_ = 0;
     inflight_bytes_ = 0;
     inflight_count_ = 0;
+    worker_error_.clear();      // 每次 run 重新归因（此时尚无 worker 线程 ⇒ 独占）
   }
   disk_full_.store(false);
+  worker_failed_.store(false);  // 同上：上一轮的异常痕迹不得渗进本次 run
   bytes_written_.store(0);
   sink_published_ = false;
   sink_error_.clear();
@@ -563,8 +634,26 @@ ExportOutcome ExportStreamScheduler::run() {
   if (disk_full_.load()) {
     o.ok = false;
     o.error = "disk_full";
-    o.exit_code = 10;          // 保持已修语义
+    o.exit_code = 10;          // 保持已修语义（合同 §5「磁盘满：exit 10」）
     o.published = false;
+  } else if (worker_failed_.load()) {
+    // worker 线程入口抛过异常（守卫已收尾，本次 run 必然失败）。
+    // 为什么**不能**只靠 cancel_ 位归因（cancel_ 是 signal_stop() 唯一留下的痕迹）：
+    //   · was_cancelled 在上面只**采样一次**，若等待谓词是被 writer 自己的
+    //     "results_done_ = jobs_total_"（正常收尾，无条件置位）先满足的，
+    //     这次采样可能早于守卫置位 ⇒ was_cancelled 读到 false；
+    //   · 即使读到 true，后面的 !sink_error_ / (cfg_.sink && !sink_published_)
+    //     两个分支排在 was_cancelled **之前**，异常会被洗成 sink/cancel 泛化文案。
+    // 故必须留独立痕迹（本分支），且必须排在 sink 未发布分支之前。
+    // exit 70 = INTERNAL「未分类内部软件错误」，唯一源 lib/infrastructure/cli/exit_codes.h:18
+    // （此 TU 不 include 该头：astrocs_core 的 include 面只有 lib/include 与
+    //  lib/third_party，见根 CMakeLists.txt 的 target_include_directories）。
+    o.ok = false;
+    o.error = worker_error_.empty() ? std::string("worker_exception") : worker_error_;
+    o.exit_code = 70;
+    // 刻意**不**覆写 o.published：raw 通道若异常发生在 rename 之后，文件确已在盘上，
+    // 但保守方向（不宣称已发布）比误报成功安全；sink 通道由本函数末尾既有的
+    // 「if (cfg_.sink) o.published = sink_published_;」给出真值，不受本分支影响。
   } else if (!header_ok) {
     o.ok = false;
     o.error = cfg_.sink ? ("sink_header_not_ready: " + sink_error_)
