@@ -13,9 +13,10 @@
 //                              必须是一个**运行期可读的量**，而不是一次性快照
 //   * **docs/contracts/SCHEDULER_CONTRACT.md:14/:38**：「线程数、内存上限、队列深度一律
 //     从配置/资源门读取」「线程预算、内存上限（峰值工作集）、队列深度……」
-//   * **docs/ASTROCS_DESIGN.md §3.5 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json
-//     #disk_gate.no_gate**：资源门只管磁盘，内存/CPU/线程不设门 ⇒ 本单元是**调度准入
-//     与编排处置**，不产生退出码、不阻断运行、不让 run 失败。
+//   * **docs/ASTROCS_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 +
+//     eng/contracts/resource_gate_v1.json #disk_gate.no_gate**：资源门只管磁盘，
+//     内存/CPU/线程不设门 ⇒ 本单元是**调度准入与编排处置**，不产生退出码、
+//     不阻断运行、不让 run 失败。
 //   * **docs/ASTROCS_DESIGN.md §8.3:616 不变量**：数值结果与并发度无关 ⇒ 丢弃并重跑一帧
 //     不得改变任何帧的科学结果（丢弃只改变「何时算」，不改变「算什么」）。
 //

@@ -41,7 +41,7 @@ inline const std::set<std::string>& boolean_flags() {
         // （docs/ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，
         // 不再需要旗标开启；本旗标保留接受（等价默认行为，不再是开启开关）。
         "--events-jsonl",
-        // （docs/ASTROCS_DESIGN §3.5/§6.3）：一般性资源超限门（内存/CPU/线程）
+        // （docs/ASTROCS_DESIGN §4.5/§6.3）：一般性资源超限门（内存/CPU/线程）
         // 已取消 ⇒ 本旗标保留接受但**不再**改变裁决（恒 record-only，无 rc=10 路径）；
         // 登记为「历史复现开关，已退役」。消费者见 commands.cpp。
         "--strict-resource-gate",

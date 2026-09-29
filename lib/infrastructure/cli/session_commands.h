@@ -404,7 +404,7 @@ inline std::string config_field_help(SessionId s) {
     return out;
 }
 
-// 运行确认页（§6.1 / §3.5）：绿色 correct / 橘色 optimize / 红色 error 三级。
+// 运行确认页（§6.1 / §4.5）：绿色 correct / 橘色 optimize / 红色 error 三级。
 // 本层只做**预检提示与确认**；科学判定不在这里（薄入口）。
 struct CheckLine { std::string level; std::string text; };
 

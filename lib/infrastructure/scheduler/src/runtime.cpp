@@ -391,7 +391,7 @@ class RuntimeImpl final : public Runtime {
     j["memory_limit_bytes_requested"] = memory_limit_bytes_;
     j["memory_limit_source"] = memory_source_;
     // MEMGOV-01: 压力治理观测面（压力实测值、水位、决策计数、台账路径）。
-    // 只读快照；不参与任何判据（§3.5 内存不设门），供判据与报告核对"治理确实生效"。
+    // 只读快照；不参与任何判据（§4.5 内存不设门），供判据与报告核对"治理确实生效"。
     if (governor_) {
       j["memory_pressure"] = json::parse(governor_->status_json(), nullptr, false);
     }

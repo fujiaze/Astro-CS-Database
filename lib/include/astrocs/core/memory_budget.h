@@ -13,10 +13,11 @@
 //     决定**，禁止硬编码」。
 //   * docs/ASTROCS_DESIGN.md §9「一个进程一个资源调度器与线程预算源」—— 内存与 CPU 预算同源
 //     （机器绑定配置 + 实测探测）。
-//   * docs/ASTROCS_DESIGN.md §3.5 / ENGINEERING_SPEC.md §12 / eng/contracts/resource_gate_v1.json
-//     的 disk_gate.no_gate = [memory, cpu, threads]「资源门只管磁盘」⇒ 本预算是**调度准入
-//     输入**，**不是门禁判据**：不产生退出码、不阻断运行、不让 run 失败。
-//     （§3.5 与 §8.3 不互斥：前者约束「门禁语义」，后者约束「调度准入语义」。）
+//   * docs/ASTROCS_DESIGN.md §4.5 运行前预检 / ENGINEERING_SPEC.md §12 /
+//     eng/contracts/resource_gate_v1.json 的 disk_gate.no_gate = [memory, cpu, threads]
+//     「资源门只管磁盘」⇒ 本预算是**调度准入输入**，**不是门禁判据**：不产生退出码、
+//     不阻断运行、不让 run 失败。
+//     （§4.5 与 §8.3 不互斥：前者约束「门禁语义」，后者约束「调度准入语义」。）
 //
 // 本文件只做一件事：把「可用内存」与「比例」折成一个预算值 + 一个可观测的来源标签。
 // **不含任何内存上限字面量**。
