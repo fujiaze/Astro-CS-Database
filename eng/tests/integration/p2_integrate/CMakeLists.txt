@@ -30,6 +30,25 @@ add_test(NAME p2_singlepath COMMAND p2_integrate_test singlepath "${P2_WORK}")
 add_test(NAME p2_write COMMAND p2_integrate_test write "${P2_WORK}")
 add_test(NAME p2_negative COMMAND p2_integrate_test negative "${P2_WORK}")
 add_test(NAME p2_halfproduct COMMAND p2_integrate_test halfproduct "${P2_WORK}")
+# 权重来源 token 门的「能红能绿」判据面（PROD-WIRING 曾判它 unbuildable）。
+# 判据 1 链期验证两道门的返回码语义（合法来源 rc=0 / 冻结禁词 rc=1 / 实参错 rc=2）；
+# 判据 2 读接线层源码验证那两个 rc **被消费**（不得再出现丢弃 rc 的裸调用）。
+# 符号由 astrocs_phase2_integrate 提供（它自身已编译 coverage/src/{coverage,rejection}.cpp），
+# 只需补 coverage 的公开头路径。
+add_executable(p2_weight_token_gate_negative_test
+               "${P2_IT_DIR}/p2_weight_token_gate_negative_test.cpp")
+target_link_libraries(p2_weight_token_gate_negative_test
+                      PRIVATE astrocs_phase2_integrate)
+target_include_directories(p2_weight_token_gate_negative_test PRIVATE
+                           "${P2_REPO}/lib/algorithms/coverage/include")
+set_target_properties(p2_weight_token_gate_negative_test PROPERTIES
+  CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+# 判据 2 的默认源路径是仓库相对路径，故 cwd 取仓库根；本用例只读源码、不写产物。
+add_test(NAME p2_weight_token_gate_negative
+         COMMAND p2_weight_token_gate_negative_test)
+set_tests_properties(p2_weight_token_gate_negative PROPERTIES
+  TIMEOUT 300 WORKING_DIRECTORY "${P2_REPO}")
+
 set_tests_properties(p2_singlepath PROPERTIES TIMEOUT 300)
 set_tests_properties(p2_write PROPERTIES TIMEOUT 900)
 set_tests_properties(p2_negative PROPERTIES TIMEOUT 900)
