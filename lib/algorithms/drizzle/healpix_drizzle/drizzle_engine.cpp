@@ -68,20 +68,37 @@ struct LeafRec {
     uint32_t nContrib = 0;
 };
 
-static bool g_enabled = false;
+// M42-CONC-FIX-01 (缺陷 B) 同步口径:
+//   6 个进程级全局量的跨帧并发保护, 全部落在本模块**既有**同步原语上
+//   (std::mutex g_mtx + std::atomic), 不引入任何新依赖。
+//   跨帧并发前提: scheduler/src/module_adapters.cpp 的 p1_parallel_for 并发跑多帧,
+//   每帧进 run() 都会 init_from_env / ensure_selection / selected / push_source,
+//   并在帧末 flush + clear_buffers —— 因此读写两侧都必须是线程安全的。
+//
+//   - g_enabled / g_fallback_needed: 标量标志 => std::atomic<bool> (acquire/release)。
+//     enabled() 位于逐源像素热路径, 原子读在关闭态 (默认) 几乎零成本。
+//   - g_dir / g_selected / g_sources / g_leaves: 非标量 => 一律 g_mtx 保护。
+//     flush() 改为在锁内取**快照副本**、锁外写文件: 保持"快照语义"
+//     (写出的一定是完整一致的某一时刻状态), 又不会把慢速 I/O 压在锁上
+//     阻塞其它帧的 push_*。
+static std::atomic<bool> g_enabled{false};
 static std::string g_dir;
 static std::unordered_set<uint64_t> g_selected;   // key = y * width + x
 static std::mutex g_mtx;
 static std::vector<SourceRec> g_sources;          // 并行期 mutex 追加 (样本量小)
 static std::vector<LeafRec> g_leaves;
-static bool g_fallback_needed = false;
+static std::atomic<bool> g_fallback_needed{false};
+
+inline bool trace_enabled() noexcept {
+    return g_enabled.load(std::memory_order_acquire);
+}
 
 // 加载 orchestrator 写入的选择集; 无则标记 fallback
 static void load_selection(const std::string& dir) {
     g_selected.clear();
     std::string path = dir + "/trace_selection.tsv";
-    std::ifstream f(path);
-    if (!f.is_open()) { g_fallback_needed = true; return; }
+    std::ifstream f(path);  // 调用方 (init_from_env) 已持 g_mtx
+    if (!f.is_open()) { g_fallback_needed.store(true, std::memory_order_relaxed); return; }
     std::string line;
     std::getline(f, line);  // 头行
     while (std::getline(f, line)) {
@@ -90,28 +107,46 @@ static void load_selection(const std::string& dir) {
             g_selected.insert((uint64_t)y * 1000000ULL + (uint64_t)x);
         }
     }
-    g_fallback_needed = g_selected.empty();
+    g_fallback_needed.store(g_selected.empty(), std::memory_order_relaxed);
 }
 
 void init_from_env() {
-    if (g_enabled) return;
+    if (g_enabled.load(std::memory_order_acquire)) return;
     const char* dir = std::getenv("ASTROCS_DRIZZLE_TRACE");
     if (!dir || !*dir) return;
+    // 跨帧并发: 多帧可能同时进 run() => 同一个进程级 trace 状态被多个线程初始化。
+    // 全部状态迁移在 g_mtx 下完成; g_enabled 最后以 release 置位, 作为"状态已就绪"
+    // 的发布点, 读者用 acquire 观察。
+    std::lock_guard<std::mutex> lk(g_mtx);
+    if (g_enabled.load(std::memory_order_relaxed)) return;  // 另一线程已完成初始化
     g_dir = dir;
-    load_selection(g_dir);
-    g_enabled = true;
+    load_selection(g_dir);          // 调用方已持 g_mtx（内部只做局部 set/标志写入）
     g_sources.clear();
     g_leaves.clear();
+    g_enabled.store(true, std::memory_order_release);
     fprintf(stderr, "[drizzle_trace] enabled dir=%s selected=%zu fallback=%d\n",
-            g_dir.c_str(), g_selected.size(), g_fallback_needed ? 1 : 0);
+            g_dir.c_str(), g_selected.size(),
+            g_fallback_needed.load(std::memory_order_relaxed) ? 1 : 0);
 }
 
-bool enabled() { return g_enabled; }
+bool enabled() { return trace_enabled(); }
 
 // 确保选择集存在 (fallback: 确定性 xorshift ~1024 点, 并回写 trace_selection)
+// 跨帧并发: 每帧进 run() 都会调本函数, 而其它帧此刻可能正在逐源像素读
+// g_selected => 选择集的**构建**与**读取**必须互斥。选中判定的结果对所有帧
+// 一致 (确定性 xorshift + 相同 w/h), 因此这里用 test-and-set 抢占: 抢到的
+// 帧在锁内构建, 抢不到的帧在锁内复查 —— 谁先谁建, 其余帧随后立刻可见,
+// 不存在"读到半成品 unordered_set"的窗口。
 void ensure_selection(int width, int height) {
-    if (!g_enabled || !g_fallback_needed) return;
-    g_fallback_needed = false;
+    if (!trace_enabled()) return;
+    {
+        // 快速路径: 已有选择集 (前序帧已建好) 时只做一次原子读, 不碰互斥量。
+        if (!g_fallback_needed.load(std::memory_order_acquire)) return;
+    }
+    std::lock_guard<std::mutex> lk(g_mtx);
+    if (!g_fallback_needed.load(std::memory_order_relaxed)) return;
+    // 关闭回退标志 = 抢占到构建权; 随后在同一临界区内完成构建。
+    g_fallback_needed.store(false, std::memory_order_release);
     uint64_t s = 20260809ULL;
     int64_t total = (int64_t)width * height;
     int64_t want = std::min<int64_t>(total, 1024);
@@ -149,12 +184,19 @@ void ensure_selection(int width, int height) {
             g_selected.size(), width, height);
 }
 
+// 逐源像素热路径的读者。
+// 关闭态 (默认) 只做一次 acquire 原子读即短路, 零锁零分配。
+// 开启态才取 g_mtx 查表 —— 与 ensure_selection() 的构建严格互斥,
+// 避免读到 insert/rehash 进行中的 unordered_set (数据竞争 + 悬垂桶链)。
 inline bool selected(int x, int y) {
-    return g_enabled && g_selected.count((uint64_t)y * 1000000ULL + (uint64_t)x) > 0;
+    if (!trace_enabled()) return false;
+    const uint64_t key = (uint64_t)y * 1000000ULL + (uint64_t)x;
+    std::lock_guard<std::mutex> lk(g_mtx);
+    return g_selected.count(key) > 0;
 }
 
 void push_source(SourceRec&& r) {
-    if (!g_enabled) return;
+    if (!trace_enabled()) return;
     std::lock_guard<std::mutex> lk(g_mtx);
     g_sources.push_back(std::move(r));
 }
@@ -163,7 +205,7 @@ void push_source(SourceRec&& r) {
 static constexpr size_t kMaxTraceLeaves = 20000;
 
 void push_leaf(const LeafRec& r) {
-    if (!g_enabled) return;
+    if (!trace_enabled()) return;
     std::lock_guard<std::mutex> lk(g_mtx);
     if (g_leaves.size() >= kMaxTraceLeaves) return;
     g_leaves.push_back(r);
@@ -175,12 +217,31 @@ static std::string fmt(const char* fmt_s, double v) {
     return std::string(buf);
 }
 
+// 缺陷 B 的核心: 修复前本函数**无锁遍历** g_sources / g_leaves, 而 push_source /
+// push_leaf 持 g_mtx 写入、clear_buffers 持 g_mtx clear+shrink_to_fit。
+// 跨帧并发下 (p1_parallel_for 多帧) 帧 A 的遍历与帧 B 的追加/释放直接竞争:
+//   - push_back 触发 vector 扩容 => 遍历中的迭代器全部悬垂 (脏读或崩);
+//   - shrink_to_fit 释放底层缓冲 => use-after-free。
+// 改为: 锁内取**快照副本**, 锁外做慢速文件 I/O。
+//   - 快照语义不变: 写出的仍是本 run 完整一致的记录集（与串行时的结果同构）;
+//   - 锁的临界区只有一次 vector 拷贝, 不会被 I/O 拖长而阻塞其它帧的 push_*。
 void flush() {
-    if (!g_enabled) return;
+    if (!trace_enabled()) return;
+    std::string dir;
+    std::vector<SourceRec> sources_snapshot;
+    std::vector<LeafRec> leaves_snapshot;
+    {
+        std::lock_guard<std::mutex> lk(g_mtx);
+        dir = g_dir;
+        sources_snapshot = g_sources;
+        leaves_snapshot = g_leaves;
+    }
+    const std::vector<SourceRec>& g_sources_view = sources_snapshot;
+    const std::vector<LeafRec>& g_leaves_view = leaves_snapshot;
     // drizzle_lineage.jsonl
     {
-        std::ofstream f(g_dir + "/drizzle_lineage.jsonl");
-        for (const auto& r : g_sources) {
+        std::ofstream f(dir + "/drizzle_lineage.jsonl");
+        for (const auto& r : g_sources_view) {
             f << "{\"x\":" << fmt("%.6f", r.px)
               << ",\"y\":" << fmt("%.6f", r.py)
               << ",\"value\":" << fmt("%.17g", r.value)
@@ -209,8 +270,8 @@ void flush() {
     }
     // leaf_internal.jsonl
     {
-        std::ofstream f(g_dir + "/leaf_internal.jsonl");
-        for (const auto& r : g_leaves) {
+        std::ofstream f(dir + "/leaf_internal.jsonl");
+        for (const auto& r : g_leaves_view) {
             f << "{\"parent\":" << r.parent
               << ",\"local\":" << r.local
               << ",\"ipix\":" << r.ipix
@@ -221,7 +282,7 @@ void flush() {
         }
     }
     fprintf(stderr, "[drizzle_trace] flushed sources=%zu leaves=%zu\n",
-            g_sources.size(), g_leaves.size());
+            sources_snapshot.size(), leaves_snapshot.size());
 }
 
 // PERF-MEM-FIX-01 (F6): 每个 run 结束 (flush 之后) 清空逐帧缓冲。
@@ -232,7 +293,7 @@ void flush() {
 // 的 drizzle_lineage.jsonl / leaf_internal.jsonl 只含本 run 记录, 缓冲峰值与
 // run 数解耦。仅作用于 ASTROCS_DRIZZLE_TRACE 诊断路径 (默认关闭)。
 void clear_buffers() {
-    if (!g_enabled) return;
+    if (!trace_enabled()) return;
     std::lock_guard<std::mutex> lk(g_mtx);
     g_sources.clear();
     g_sources.shrink_to_fit();
@@ -242,12 +303,14 @@ void clear_buffers() {
 
 void reset() {
     std::lock_guard<std::mutex> lk(g_mtx);
-    g_enabled = false;
+    // 先关闸门 (release 发布"状态已回到初始"), 再在锁内拆状态:
+    // 并发读者要么看到 false 直接短路, 要么在锁上等待, 不会看到半拆状态。
+    g_enabled.store(false, std::memory_order_release);
+    g_fallback_needed.store(false, std::memory_order_relaxed);
     g_dir.clear();
     g_selected.clear();
     g_sources.clear();
     g_leaves.clear();
-    g_fallback_needed = false;
 }
 
 } // namespace drizzle_trace
