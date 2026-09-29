@@ -51,6 +51,16 @@ except Exception:  # noqa: BLE001
 REG = "eng/tools/quality/isa_sites.json"
 DESIGN = "docs/ASTROCS_DESIGN.md"
 ISA_FLAG = re.compile(r"(?<![\w-])-m(arch|tune|sse[0-9a-z._]*|avx[0-9a-z]*|fma|bmi[12]|f16c|popcnt)(=\S+)?")
+# R-60: 非 GCC 工具链（MSVC / clang-cl）的 ISA 开关不是 -m* 形式，而是 /arch:<档>。
+# 不认它 ⇒ MSVC 分支整体成为**扫描盲区**（站点不可见 ⇒ 旗标一致与三侧同源判据全部空转），
+# 等于对「Windows 变体与基线同码」零把关。本处只**扩识别面**（收紧），不放宽任何既有判据。
+MSVC_ARCH_FLAG = re.compile(r"/arch:(?:AVX10\.[0-9]+|AVX512|AVX2|AVX|SSE4\.2|SSE2|IA32|SSE)(?![\w.])")
+
+
+def _isa_flags(text):
+    """一个文本片段里的全部 ISA 旗标（GCC/Clang 的 -m* 与 MSVC/clang-cl 的 /arch: 并集）。"""
+    return (set(m.group(0) for m in ISA_FLAG.finditer(text))
+            | set(m.group(0) for m in MSVC_ARCH_FLAG.finditer(text)))
 HOST_ISA = re.compile(r"(?<![\w-])-march(=\S+)?")
 # 两套命名同源：backend_host 装载面用 ACS_FEAT_*，CPU-001 探测面用 ACS_CAP_FEAT_*，
 # 由 registry 的 feature_aliases 归一，判据不承认"两套各自成立"。
@@ -124,22 +134,21 @@ def scan_sites(root, build_inputs):
         if is_cmake:
             hit = False
             for m in CMAKE_TARGET_OPTS.finditer(text):
-                flags = set(x.group(0) for x in ISA_FLAG.finditer(m.group(2)))
+                flags = _isa_flags(m.group(2))
                 if flags:
                     sites.setdefault((rel, m.group(1)), set()).update(flags)
                     hit = True
             for m in CMAKE_GLOBAL_OPTS.finditer(text):
-                flags = set(x.group(0) for x in ISA_FLAG.finditer(
-                    (m.group(2) or "") + (m.group(3) or "")))
+                flags = _isa_flags((m.group(2) or "") + (m.group(3) or ""))
                 if flags:
                     sites.setdefault((rel, "<global>"), set()).update(flags)
                     hit = True
             if not hit:
-                flags = set(x.group(0) for x in ISA_FLAG.finditer(text))
+                flags = _isa_flags(text)
                 if flags:
                     sites.setdefault((rel, ""), set()).update(flags)
         else:
-            flags = set(x.group(0) for x in ISA_FLAG.finditer(text))
+            flags = _isa_flags(text)
             if flags:
                 sites.setdefault((rel, ""), set()).update(flags)
     return sites
@@ -286,8 +295,14 @@ def run(root, build_inputs=None):
             if bit is None:
                 fails.append("%s: 旗标 %s 未登记到 feature 位（flag_feature_map 缺项）"
                              % (s["id"], f))
-            else:
-                need.add(bit)
+                continue
+            # 一个旗标可同时许可多个位（R-60: MSVC /arch:AVX2 的官方口径是同时开 AVX2 与
+            # FMA 指令面）⇒ 映射值允许是「位名列表」或「组宏名」，逐项展开为位名。
+            for name in ([bit] if isinstance(bit, str) else list(bit)):
+                if name in macro_raw:
+                    need |= _canon(_header_bits(macro_raw, name), aliases)
+                else:
+                    need |= _canon({name}, aliases)
         for label, node in sides:
             if not node:
                 continue
@@ -320,10 +335,62 @@ def run(root, build_inputs=None):
             if missing:
                 fails.append("%s: %s(%s) 未覆盖编译旗标的位 %s —— 声明/编译不同源"
                              % (s["id"], label, node["macro"], missing))
+            # 注（R-60）: 反方向（"声明了却没用"）**不在此处把关** —— 声明位可以合理地
+            # 大于旗标位（例: GCC 的 -mavx2 隐含 -mavx，第二族 provider 头据此把
+            # ACS_FEAT_AVX 一并声明；而第一族 backend 变体的声明只有 AVX2|FMA，二者
+            # 在"隐含位"上的口径本就允许不同，Linux 侧声明位不得因此改动）。
+            # 该方向由**产物级**判据把关（eng/tools/quality/check_variant_isa_disasm.py
+            # --require-feature: 每一条声明位都必须在产物里找到使用证据），
+            # 因为 R-60 约束 4 说的正是"制品声明 ↔ 产物实际指令集"的一致性。
             unaware = sorted(t for t in have if aliases.get(t, t) not in header_defs
                              and t not in header_defs)
             if unaware:
                 fails.append("%s: %s 声明了检测位面不存在的位 %s" % (s["id"], label, unaware))
+    # S8 平台分支许可位（R-60 约束 4 的正向半边）: 某些工具链没有子集档位旗标，一个旗标会
+    # **多**许可若干位（MSVC /arch:AVX512 的许可面比 GCC 四子集旗标多 CD）。这类位不进
+    # flag_feature_map 的通用映射（否则检测/路由侧也被迫逐个覆盖它，而它们各按平台写、
+    # 且加载前预检以 DSO 自陈声明为准），但**必须**出现在声明侧 —— 缺了就是"用了却没声明"。
+    for s in reg.get("sites", []):
+        pex = s.get("platform_extra_bits") or {}
+        if not pex:
+            continue
+        decl = s.get("declaration")
+        if not decl:
+            fails.append("%s: 登记了 platform_extra_bits 却无 declaration（无从把关）" % s["id"])
+            continue
+        raw = dict(macro_raw)
+        raw.update(_header_groups(root, decl["file"])[0])
+        if decl.get("definition_file"):
+            raw.update(_header_groups(root, decl["definition_file"])[0])
+        body = _macro_body(root, decl["file"], decl["macro"])
+        if body is None:
+            body = _macro_body(root, decl.get("definition_file") or header_rel, decl["macro"])
+        if body is None:
+            fails.append("%s: platform_extra_bits 的声明宏 %s 无定义可解析" % (s["id"], decl["macro"]))
+            continue
+        have = set()
+        for t in _features_of(body):
+            have |= _canon(_header_bits(raw, t), aliases) if t in raw else _canon({t}, aliases)
+        for plat in sorted(pex):
+            miss = sorted({aliases.get(b, b) for b in pex[plat]} - have)
+            if miss:
+                fails.append("%s: 平台 %s 的许可位 %s 未出现在声明 %s 里 —— 用了却没声明"
+                             % (s["id"], plat, miss, decl["macro"]))
+    # S7 TU 级隔离（R-60 硬约束 1）: 变体 DSO 的**门面 TU**（握手/自检/注册表）不得带任何
+    # ISA 旗标。非 GCC 工具链没有函数级指令集覆盖（GCC 侧靠函数级属性），门面 TU 一旦与高 ISA
+    # 旗标同 TU，自检入口就可能被生成高指令集指令 ⇒「不支持该 ISA 的机器上干净拒绝」会退化成
+    # 「加载期撞非法指令」。本判据在**构建输入**层把关；产物层由
+    # eng/tools/quality/check_variant_isa_disasm.py（符号级反汇编断言）复核。
+    for iso in (reg.get("tu_isolation") or []):
+        key_k = (iso.get("build_input", ""), iso.get("kernels_target", ""))
+        key_f = (iso.get("build_input", ""), iso.get("face_target", ""))
+        if key_k not in sites:
+            fails.append("%s: 计算面 target %s 无 ISA 旗标 —— 变体产物将与基线同码"
+                         % (iso.get("id"), iso.get("kernels_target")))
+        if key_f in sites:
+            fails.append("%s: 门面 target %s 带了 ISA 旗标 %s —— 自检/握手入口与高指令集同 TU"
+                         "（R-60 硬约束 1 违反）"
+                         % (iso.get("id"), iso.get("face_target"), sorted(sites[key_f])))
     # S4 宿主 ISA
     exemptions = set(reg.get("exemptions") or [])
     for rel in build_inputs:
@@ -369,7 +436,8 @@ MINI_DESIGN = """# d
 
 
 def _mini(root, *, decl_body="(ACS_FEAT_AVX2 | ACS_FEAT_FMA)", flags=("-mavx2", "-mfma"),
-          reg_flags=None, posture="product_graph", status="IMPLEMENTED", extra_input=None):
+          reg_flags=None, posture="product_graph", status="IMPLEMENTED", extra_input=None,
+          fmap=None, cmake_extra="", extra_reg=None):
     os.makedirs(os.path.join(root, "eng/tools/quality"), exist_ok=True)
     os.makedirs(os.path.join(root, "lib/x"), exist_ok=True)
     # DESIGN 位于 docs/ 子目录：父目录必须先建，否则自证夹具写入即 FileNotFoundError（门崩）。
@@ -377,7 +445,8 @@ def _mini(root, *, decl_body="(ACS_FEAT_AVX2 | ACS_FEAT_FMA)", flags=("-mavx2", 
     with open(os.path.join(root, DESIGN), "w", encoding="utf-8") as f:
         f.write(MINI_DESIGN)
     with open(os.path.join(root, "CMakeLists.txt"), "w", encoding="utf-8") as f:
-        f.write("# c\nadd_library(t x.cpp)\ntarget_compile_options(t PRIVATE %s)\n" % " ".join(flags))
+        f.write("# c\nadd_library(t x.cpp)\ntarget_compile_options(t PRIVATE %s)\n%s"
+                % (" ".join(flags), cmake_extra))
     with open(os.path.join(root, "lib/x/backend.cpp"), "w", encoding="utf-8") as f:
         f.write("#define ASTROCS_BACKEND_REQUIRED_FEATURES %s\n" % decl_body)
     with open(os.path.join(root, "lib/x/provider.h"), "w", encoding="utf-8") as f:
@@ -385,7 +454,8 @@ def _mini(root, *, decl_body="(ACS_FEAT_AVX2 | ACS_FEAT_FMA)", flags=("-mavx2", 
     with open(os.path.join(root, "lib/x/capability_v1.h"), "w", encoding="utf-8") as f:
         f.write("enum { ACS_FEAT_AVX2 = 1u << 4, ACS_FEAT_FMA = 1u << 5 };\n")
     reg = {"schema_version": 1, "baseline_flags": ["-msse2"],
-           "flag_feature_map": {"-mavx2": "ACS_FEAT_AVX2", "-mfma": "ACS_FEAT_FMA"},
+           "flag_feature_map": (fmap if fmap is not None else
+                                {"-mavx2": "ACS_FEAT_AVX2", "-mfma": "ACS_FEAT_FMA"}),
            "feature_bit_header": "lib/x/capability_v1.h", "exemptions": [],
            "sites": [{"id": "s", "build_input": "CMakeLists.txt", "posture": posture,
                       "target": "t", "flags": list(reg_flags if reg_flags is not None else flags),
@@ -396,6 +466,8 @@ def _mini(root, *, decl_body="(ACS_FEAT_AVX2 | ACS_FEAT_FMA)", flags=("-mavx2", 
                       "status": status}]}
     if extra_input:
         reg["sites"].append(extra_input)
+    for k, v in (extra_reg or {}).items():
+        reg[k] = v
     with open(os.path.join(root, REG), "w", encoding="utf-8") as f:
         json.dump(reg, f)
     return ["CMakeLists.txt"] + ([extra_input["build_input"]] if extra_input else [])
@@ -426,6 +498,42 @@ def self_test():
         n5 = os.path.join(td, "n5")
         bi = _mini(n5, status="SHIPPED")
         cases.append(("neg-status-out-of-ladder", run(n5, bi)["pass"], False))
+        # R-60: MSVC /arch: 识别面（不认它 = 整条 MSVC 分支成为扫描盲区）
+        m1 = os.path.join(td, "m1")
+        bi = _mini(m1, flags=("/arch:AVX2",),
+                   fmap={"/arch:AVX2": ["ACS_FEAT_AVX2", "ACS_FEAT_FMA"]})
+        cases.append(("pos-msvc-arch-flag", run(m1, bi)["pass"], True))
+        m2 = os.path.join(td, "m2")
+        bi = _mini(m2, flags=("/arch:AVX2",))  # /arch: 未登记到 feature 位 ⇒ 必须红
+        cases.append(("neg-msvc-arch-unmapped", run(m2, bi)["pass"], False))
+        # R-60: S7 TU 级隔离（门面 TU 不得带 ISA 旗标）
+        t1 = os.path.join(td, "t1")
+        bi = _mini(t1, cmake_extra="add_library(t_face x.cpp)\n",
+                   extra_reg={"tu_isolation": [{"id": "iso", "build_input": "CMakeLists.txt",
+                                                "face_target": "t_face", "kernels_target": "t"}]})
+        cases.append(("pos-tu-isolation", run(t1, bi)["pass"], True))
+        t2 = os.path.join(td, "t2")
+        bi = _mini(t2, cmake_extra="add_library(t_face x.cpp)\n",
+                   extra_reg={"tu_isolation": [{"id": "iso", "build_input": "CMakeLists.txt",
+                                                "face_target": "t", "kernels_target": "t"}]})
+        cases.append(("neg-tu-isolation-face-flagged", run(t2, bi)["pass"], False))
+        # R-60: S8 平台分支许可位（声明侧必须含该位）
+        p1 = os.path.join(td, "p1")
+        bi = _mini(p1, extra_reg={"platform_extra_bits": {}})
+        with open(os.path.join(p1, REG), encoding="utf-8") as f:
+            reg_p1 = json.load(f)
+        reg_p1["sites"][0]["platform_extra_bits"] = {"MSVC/clang-cl": ["ACS_FEAT_FMA"]}
+        with open(os.path.join(p1, REG), "w", encoding="utf-8") as f:
+            json.dump(reg_p1, f)
+        cases.append(("pos-platform-extra-bits", run(p1, bi)["pass"], True))
+        p2 = os.path.join(td, "p2")
+        bi = _mini(p2, decl_body="(ACS_FEAT_AVX2)", extra_reg={"platform_extra_bits": {}})
+        with open(os.path.join(p2, REG), encoding="utf-8") as f:
+            reg_p2 = json.load(f)
+        reg_p2["sites"][0]["platform_extra_bits"] = {"MSVC/clang-cl": ["ACS_FEAT_AVX512CD"]}
+        with open(os.path.join(p2, REG), "w", encoding="utf-8") as f:
+            json.dump(reg_p2, f)
+        cases.append(("neg-platform-extra-bits-missing", run(p2, bi)["pass"], False))
     ok = all(got is want for _, got, want in cases)
     for name, got, want in cases:
         print("SELFTEST_%s %s (pass=%s want=%s)" % ("PASS" if got is want else "FAIL",
@@ -439,7 +547,8 @@ MIRROR_KEEP = (REG, DESIGN)
 
 def fault_inject(name, root):
     """真仓构建输入复制到临时树后注入违规，目标判据必须判红。"""
-    names = ("unregistered", "flag-drift", "declaration", "march")
+    names = ("unregistered", "flag-drift", "declaration", "march", "tu-isolation",
+             "arch-flag-drift")
     if name == "all":
         rc = 0
         for nm in names:
@@ -487,6 +596,17 @@ def fault_inject(name, root):
             t = re.sub(r"\(ACS_FEAT_AVX512F(?:\s*\|[^)]*)?\)", "(ACS_FEAT_AVX512F)", t)
             with open(p, "w", encoding="utf-8") as f:
                 f.write(t)
+        elif name == "tu-isolation":
+            # R-60: 把 ISA 旗标挂到**门面** target 上（自检/握手入口与高指令集同 TU）⇒ 必须红
+            p = os.path.join(dst, "CMakeLists.txt")
+            with open(p, "a", encoding="utf-8") as f:
+                f.write("\ntarget_compile_options(astrocs_cpu_avx2 PRIVATE /arch:AVX2)\n")
+        elif name == "arch-flag-drift":
+            # R-60: MSVC 侧旗标从登记表里掉一个（/arch:AVX512 被删）⇒ 旗标不一致必须红
+            reg["sites"][1]["flags"] = [f for f in reg["sites"][1]["flags"]
+                                        if f != "/arch:AVX512"]
+            with open(os.path.join(dst, REG), "w", encoding="utf-8") as f:
+                json.dump(reg, f)
         elif name == "march":
             p = os.path.join(dst, "lib/algorithms/psf/Makefile")
             os.makedirs(os.path.dirname(p), exist_ok=True)

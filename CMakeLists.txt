@@ -768,28 +768,85 @@ target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 # providers/ 并由 providers/backends.manifest.json 登记（实测 sha256 + required_features_bits），
 # 运行期经 backend_loader 预检→dlopen→self_test 后按 cpu_profile/能力探测选取，缺库即回退基线。
 # 变体不进入 acsd 链接闭包（闭包仍只含基线段；check_isa_leak 把关口径不变）。
-add_library(astrocs_cpu_avx2 SHARED lib/infrastructure/benchmark/backend_host/avx2_backend.cpp)
+# ── R-60: 变体 DSO 的 TU 级 ISA 隔离（门面 TU 基线 / 计算面 TU 目标 ISA）──────────────
+# 为什么必须按**源文件**隔离而不是按函数覆盖: GCC/Clang 有函数级指令集覆盖（同族第二族
+# provider 的 ACS_CPU_AVX512_CAP_GATE_NOEVEX 即此机制），MSVC 没有 —— pragma 全表无 target、
+# __declspec 全表无 cpu_specific/cpu_dispatch、/arch: 的作用域是**整个 TU**（TU 内任意函数，
+# 含握手/自检/结构体清零内联，都可能被生成宽向量指令）⇒ 要让 astrocs_backend_get_api_v1 /
+# backend_self_test 这些「能力自检/握手入口」在仅 SSE2 的主机上也能安全执行（干净拒绝而不是
+# 撞非法指令），唯一可控手段就是让它与高 ISA 旗标**不在同一个 TU**:
+#   astrocs_cpu_avx2_kernels (OBJECT, ISA 旗标) = 计算面 TU（baseline_kernels_impl.inc）
+#   astrocs_cpu_avx2         (SHARED, 基线旗标) = 门面 TU（backend_table.inc）+ 上面这个 OBJ
+# 平台旗标口径（官方依据见 run/FINAL-07/审核包/工程/变体能力面一致性报告.md §2）:
+#   · GCC/Clang: -mavx2 -mfma（既有口径未变）
+#   · MSVC     : /arch:AVX2（官方: AVX2 档 "enables use of Fused Multiply-Add (FMA) instructions"；
+#                /arch 各档单调累积，MSVC 无独立 /mfma 类开关）
+#                + /fp:contract（**仅 VS2022 起需要**，即 MSVC_VERSION>=1930: 该版起 /fp:precise
+#                默认不生成 FMA 收缩，而 Linux 腿 GCC 默认 -ffp-contract=fast 会收缩；更早版本
+#                该旗标不存在——传了会被 D9002 静默忽略——且当时默认就收缩 ⇒ 按版本分支，
+#                不写会被静默忽略的旗标）
+# 旗标失效不得静默（R-60 硬约束 2）: 计算面 TU 内有
+#   #if defined(_MSC_VER) && !defined(__AVX2__) ⇒ #error
+# 把「旗标被忽略 / 工具链过老」变成编译期红灯 —— 不得以基线同码产物冒充变体。
+add_library(astrocs_cpu_avx2_kernels OBJECT
+  lib/infrastructure/benchmark/backend_host/avx2_backend_kernels.cpp)
+set_target_properties(astrocs_cpu_avx2_kernels PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(astrocs_cpu_avx2_kernels PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
+# 计算面 TU 的 include 面与门面 TU 同源（lib/include 等经这两个 target 的 INTERFACE 传递）。
+target_link_libraries(astrocs_cpu_avx2_kernels PRIVATE astrocs_contracts astrocs_common)
+if(MSVC)
+  target_compile_options(astrocs_cpu_avx2_kernels PRIVATE /arch:AVX2)
+  if(MSVC_VERSION GREATER_EQUAL 1930)
+    target_compile_options(astrocs_cpu_avx2_kernels PRIVATE /fp:contract)
+  endif()
+else()
+  target_compile_options(astrocs_cpu_avx2_kernels PRIVATE -mavx2 -mfma)
+endif()
+
+add_library(astrocs_cpu_avx2 SHARED
+  lib/infrastructure/benchmark/backend_host/avx2_backend.cpp
+  $<TARGET_OBJECTS:astrocs_cpu_avx2_kernels>)
 target_include_directories(astrocs_cpu_avx2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
-# 旗标按平台门控（与同族第二族 provider 同口径）: 非 MSVC 用 -m* 形式；
-# MSVC 不认这些旗标（忽略并告警 D9002），其等价能力面另案处置（已登记平台能力口径差）。
-if(NOT MSVC)
-  target_compile_options(astrocs_cpu_avx2 PRIVATE -mavx2 -mfma)
-endif()
 target_link_libraries(astrocs_cpu_avx2 PUBLIC astrocs_contracts astrocs_common)
 
-add_library(astrocs_cpu_avx512 SHARED lib/infrastructure/benchmark/backend_host/avx512_backend.cpp)
+# ── R-60: avx512 变体同款 TU 级 ISA 隔离（理由与旗标口径见上一条注释）──────────────
+#   astrocs_cpu_avx512_kernels (OBJECT, ISA 旗标) = 计算面 TU
+#   astrocs_cpu_avx512         (SHARED, 基线旗标) = 门面 TU + OBJ
+# GCC/Clang 旗标口径未变: F + DQ + BW + VL (ISA-004)。检测面 = cpu_features.h 的
+# ACS_FEAT_AVX512_PROVIDER_REQUIRED（原注释称"与 cpu_features.h 检测面一致"，而该头当时
+# 只有 ACS_FEAT_AVX512F 一位 ⇒ 注释与事实相反；TRUTHFUL-CONCLUSION-01 已补位并改为同源宏）。
+# MSVC: /arch:AVX512 —— MSVC 无子集档位旗标，官方许可面 = F+CD+BW+DQ+VL（比 GCC 腿多 CD）
+#   ⇒ 声明面按 __AVX512CD__ 取平台精确值（avx512_backend.cpp），保证「用了就已声明」。
+# 旗标失效不得静默: 计算面 TU 内有
+#   #if defined(_MSC_VER) && !defined(__AVX512F__) ⇒ #error
+# （不支持的 /arch: 取值在 MSVC 下只是 D9002 警告并**被忽略**，故必须实测而不能写了个旗标了事）。
+add_library(astrocs_cpu_avx512_kernels OBJECT
+  lib/infrastructure/benchmark/backend_host/avx512_backend_kernels.cpp)
+set_target_properties(astrocs_cpu_avx512_kernels PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(astrocs_cpu_avx512_kernels PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
+# 计算面 TU 的 include 面与门面 TU 同源（lib/include 等经这两个 target 的 INTERFACE 传递）。
+target_link_libraries(astrocs_cpu_avx512_kernels PRIVATE astrocs_contracts astrocs_common)
+if(MSVC)
+  # /arch:AVX512 的自动向量化面自 VS2019 16.3（MSVC 1923）起；官方未把版本钉到 _MSC_VER
+  # ⇒ 用计算面 TU 的 __AVX512F__ 实测把关，不用版本号猜。
+  target_compile_options(astrocs_cpu_avx512_kernels PRIVATE /arch:AVX512)
+else()
+  target_compile_options(astrocs_cpu_avx512_kernels PRIVATE
+    -mavx512f -mavx512bw -mavx512vl -mavx512dq)
+endif()
+
+add_library(astrocs_cpu_avx512 SHARED
+  lib/infrastructure/benchmark/backend_host/avx512_backend.cpp
+  $<TARGET_OBJECTS:astrocs_cpu_avx512_kernels>)
 target_include_directories(astrocs_cpu_avx512 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
-# AVX512 实际使用子集: F + DQ + BW + VL (ISA-004)。检测面 = cpu_features.h 的
-# ACS_FEAT_AVX512_PROVIDER_REQUIRED（原注释称"与 cpu_features.h 检测面一致"，而该头当时
-# 只有 ACS_FEAT_AVX512F 一位 ⇒ 注释与事实相反；TRUTHFUL-CONCLUSION-01 已补位并改为同源宏）。
-if(NOT MSVC)
-  target_compile_options(astrocs_cpu_avx512 PRIVATE
-    -mavx512f -mavx512bw -mavx512vl -mavx512dq)
-endif()
 target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)
 
 # ── provider DSO 共同交付面（docs/architecture/ISA_VARIANTS.md §0/§2；与 astrocs_cpu_baseline 同款命名/RPATH）──

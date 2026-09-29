@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """ISA-004 测试: AVX512F 变体 — zmm/AVX512 能力证明(bidirectional)+测量工件+决策台账登记。
 vm-bj 支持 AVX512(F/BW/VL/DQ/CD)故可在 Linux 完整验证; 判定=AVX512 对已 SHIP avx2 无额外收益→NOT_SHIPPED(完整测量在案)。"""
-import csv, os, re, shutil, subprocess, tempfile, unittest
+import csv, os, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from variant_build import build_variant  # noqa: E402  (R-60 拆 TU 后统一构建入口)
 
 
 @unittest.skipUnless(os.path.exists("/proc/cpuinfo") and
@@ -16,13 +19,8 @@ class TestIsaAvx512(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="isa_avx512_")
         cls.vso = os.path.join(cls.tmp, "avx512_backend.so")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG",
-                            "-mavx512f", "-mavx512bw", "-mavx512vl", "-mavx512dq",
-                            "-fPIC", "-shared", "-Wall", "-Wextra",
-                            f"-I{INC}", f"-I{HOST}",
-                            os.path.join(HOST, "avx512_backend.cpp"), "-o", cls.vso],
-                           capture_output=True, text=True, timeout=180)
-        assert r.returncode == 0, r.stderr
+        rc, err = build_variant(HOST, INC, "avx512", cls.vso)
+        assert rc == 0, err
         cls.base_obj = os.path.join(cls.tmp, "base.o")
         subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", f"-I{INC}", f"-I{HOST}", "-c",
                         os.path.join(HOST, "baseline_backend.cpp"), "-o", cls.base_obj],
@@ -52,10 +50,12 @@ class TestIsaAvx512(unittest.TestCase):
                                 "AVX512 变体必须含 zmm(512-bit) 寄存器")
 
     def test_02_shared_contract_single_source(self):
+        # R-60: 门面/计算面拆 TU —— 共享 impl 源在计算面 TU, 注册表与 ID 在门面 TU。
         v = open(os.path.join(HOST, "avx512_backend.cpp"), encoding="utf-8").read()
-        self.assertIn('#include "baseline_kernels_impl.inc"', v)
+        k = open(os.path.join(HOST, "avx512_backend_kernels.cpp"), encoding="utf-8").read()
         self.assertIn('#include "backend_table.inc"', v)
         self.assertIn('ASTROCS_BACKEND_ID "avx512"', v)
+        self.assertIn('#include "baseline_kernels_impl.inc"', k)
 
     def test_03_bench_and_measurement_artifact(self):
         r = subprocess.run([self.bench, "--variant", self.vso],

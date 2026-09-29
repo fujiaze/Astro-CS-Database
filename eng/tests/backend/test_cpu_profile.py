@@ -26,7 +26,9 @@ SCHEMA = json.load(open(os.path.join(
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"],
                         capture_output=True, text=True).stdout.strip()
 sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
+sys.path.insert(0, os.path.join(REPO, "eng", "tests", "backend"))
 import gen_version  # noqa: E402  # 版本单源派生（与 VER-001 根 VERSION 一致）
+from variant_build import build_variant  # noqa: E402  # R-60 拆 TU 后统一构建入口
 
 
 def common_srcs():
@@ -177,11 +179,9 @@ class TestCpuProfile(unittest.TestCase):
                            capture_output=True, text=True, timeout=240)
         self.assertEqual(r.returncode, 0, r.stderr)
         vso = os.path.join(self.tmp, "avx2_backend.so")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-mavx2", "-mfma",
-                            "-fPIC", "-shared", f"-I{INC}", f"-I{HOST}",
-                            os.path.join(HOST, "avx2_backend.cpp"), "-o", vso],
-                           capture_output=True, text=True, timeout=240)
-        self.assertEqual(r.returncode, 0, r.stderr)
+        # R-60: 变体拆门面/计算面两 TU，测试侧构建统一走 variant_build（不得再单 TU 直编）。
+        rc, err = build_variant(HOST, INC, "avx2", vso)
+        self.assertEqual(rc, 0, err)
         run = subprocess.run([bench, "--variant", vso], capture_output=True, text=True,
                              timeout=300)
         self.assertIn("VARIANT_LOADED avx2", run.stdout)
