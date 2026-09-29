@@ -119,9 +119,9 @@ doc_index:
       duty: "docs/TRACEABILITY.csv"
       upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）"
       downstream: "eng/ci/checks.json、eng/ci/impact_map.json、eng/ci/polarity_evidence.json、eng/ci/polarity_probe.py 等 20 处"
-    - path: "docs/TROUBLESHOOTING.md"
+    - path: "docs/detail/merged_TROUBLESHOOTING.md"
       status: ACTIVE_INFORMATIVE
-      duty: "常见故障的现象—诊断—处置对照"
+      duty: "常见故障的现象—诊断—处置对照（由原两篇同名排障手册合并：症状速查 + 高风险故障覆盖门）"
       upstream: "docs/ASTROCS_DESIGN.md §7.2（配置、事件与退出码）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、eng/tools/astrocs_diagnose.py"
     - path: "docs/VERSIONING.md"
@@ -519,10 +519,10 @@ doc_index:
       duty: "HiPS 浏览器的职责边界与用法"
       upstream: "docs/ASTROCS_DESIGN.md §8.1（顶层结构）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/audit/inventory.csv"
-    - path: "docs/ci/README.md"
+    - path: "docs/engineering/README.md"
       status: ACTIVE_INFORMATIVE
-      duty: "CI 规范层入口：职责边界与各篇分工"
-      upstream: "docs/ci/CI_SPEC.md（CI 规范入口与总则）；沿权威链 = docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
+      duty: "工程集入口：行为合同、架构、标准注册、CI 门禁、追溯、版本与状态登记（由原 15 个工程类目录的招牌件合并消化）"
+      upstream: "docs/ASTROCS_DESIGN.md §8（架构与工程口径）"
     - path: "docs/ci/01_CHECKS.md"
       status: ACTIVE_NORMATIVE
       duty: "检查项目录（eng/ci/checks.json 的文档侧双向登记）"
@@ -705,11 +705,6 @@ doc_index:
       duty: "Testing"
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/DATA_SEMANTICS.md"
-    - path: "docs/diagnostics/TROUBLESHOOTING.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "诊断与故障处置细则"
-      upstream: "docs/ASTROCS_DESIGN.md §7.2（配置、事件与退出码）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/standards/ERROR_HANDLING_STANDARD.md"
     - path: "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md"
       status: ACTIVE_NORMATIVE
       duty: "阶段间产品交换合同"
@@ -746,10 +741,10 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "README.md、eng/cmake/ARCH-001-migration-manifest.md、eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/schemas/projection_registry.schema.json 等 21 处"
       notes: "模块八元组映射（MOD-001；指向 docs/plugins 23 篇）"
-    - path: "docs/modules/README.md"
+    - path: "docs/detail/README.md"
       status: ACTIVE_INFORMATIVE
-      duty: "模块说明层入口：目录职责边界、内容清单与合同三件套落位规则"
-      upstream: "docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）"
+      duty: "详细设计集入口：模块说明卡与注册卡、插件工作细节、阶段详细设计、接口落地、验收细则与运维诊断（由原 6 个详细设计类目录的招牌件合并消化）"
+      upstream: "docs/science/ 与 docs/engineering/（本集向下对齐，不另立权威）"
     - path: "docs/modules/acr.md"
       status: ACTIVE_INFORMATIVE
       duty: "异构计算运行时：kernel registry、CPU/GPU 调度、device executor、"

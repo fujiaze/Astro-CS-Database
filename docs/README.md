@@ -15,7 +15,7 @@
 - **科学线**：`docs/science/` 公式与科学定义权威，`docs/science/algorithms/` 算法推导与实现锚定，佐证要求见 `docs/DOCUMENT_GOVERNANCE.md` §2；
 - **工程线**：行为合同与机器可校验 schema 的文档化说明（`docs/contracts/`、`docs/api/`），CI 规范与检查入口（`docs/ci/`，流程与范围见 `docs/ci/CI_SPEC.md` §2），标准与锚合同（`docs/standards/`）；
 - **模块与架构**：`docs/plugins/`（模块工作细节）、`docs/architecture/`、`docs/modules/`、`docs/design/`；
-- **验证与运维**：`docs/validation/`、`docs/quality/`、`docs/operations/`、`docs/diagnostics/`、`docs/performance/`；
+- **验证与运维**：验证矩阵、磁盘与资源门、排障手册分别在本集的对应条目下（排障手册入口 = `docs/detail/merged_TROUBLESHOOTING.md`）；
 - **研究与追溯**：`docs/research/`（方法选型一手查证）、`docs/references/`（文献）、`docs/traceability/`（需求—文档—代码追溯）；
 - **文档体系治理**：分层准入、上游抬头、正向书写与佐证纪律 = `docs/DOCUMENT_GOVERNANCE.md`；索引与登记规则 = `ENGINEERING_SPEC.md` §8。
 

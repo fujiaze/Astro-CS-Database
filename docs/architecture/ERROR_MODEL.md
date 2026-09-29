@@ -27,7 +27,7 @@ SCIENCE_PRECONDITION / IO / RESOURCE / BACKEND / CANCELLED / INTERNAL），域�
 - C API：0=success；非 0=hard error（类别由调用上下文/troubleshooting 定位）。
 - 可恢复科学状态经 status 字段（UNDERDETERMINED / NO_CANDIDATES /
   ALL_REJECTED / ZERO_VALID_WEIGHT / INVALID_INPUT）。
-- 每个 high-risk error → troubleshooting 条目（`docs/diagnostics/TROUBLESHOOTING.md`）。
+- 每个 high-risk error → troubleshooting 条目（`docs/detail/merged_TROUBLESHOOTING.md`）。
 
 ## 进程退出码（唯一源）
 

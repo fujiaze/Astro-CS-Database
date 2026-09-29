@@ -1,7 +1,7 @@
 # REL-790 成品帧视觉验收 · 证据包清单
 
-> 上游：`ACCEPTANCE_SPEC.md` §6.1（产品生成链）/ §6.2（视觉验收清单六项）/ §6.3（验收与发布决策）、
-> `run/FINAL-07/pkg/tasks/REL-790_目视验收收口.md`（控制包任务）
+> 上游：`docs/ASTROCS_DESIGN.md` §12.4（验证层级与四层验收）→ `ACCEPTANCE_SPEC.md` §6.1（产品生成链）/ §6.2（视觉验收清单六项）/ §6.3（验收与发布决策）
+> 控制包任务书：`run/FINAL-07/pkg/tasks/REL-790_目视验收收口.md`（过程件，非权威锚）
 > 机器实现：`eng/tools/acceptance/rel790_pack_check.py`（RP-01..RP-08）
 > 清单（机器可读）：`eng/tools/acceptance/rel790_checklist.json`（帧清单 81 帧 + 必记字段）
 > 纪律：本清单**只规定必须看什么、必须记什么**，不改任何冻结阈值，不代替负责人目检。
