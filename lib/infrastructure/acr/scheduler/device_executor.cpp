@@ -20,9 +20,11 @@ namespace astro::compute::scheduler {
 void try_append_cuda_bridge_executors(ExecutorRegistry& registry);
 
 #if defined(_MSC_VER)
-// MSVC 无 __attribute__((weak))：ASan 独立构建只编译本文件（不含 loader），
-// 此处给出普通空定义；完整构建（acr_scheduler PUBLIC 链接 loader，其提供强定义）
-// 由 CMake 定义 ACR_WITH_BRIDGE_LOADER，本 no-op 不再编译，避免 LNK2005 重复符号。
+// MSVC 无 __attribute__((weak))：开关是编译期的，语义是「本目标内是否已含强定义」。
+// 凡在**同一目标内**编入 loader 源的目标，必须定义 ACR_WITH_BRIDGE_LOADER：
+// 否则同一符号在本链接闭包内出现两个强定义（重复符号告警，且取哪个定义取决于顺序）。
+// 注意这是**本目标内部**的性质，与「是否链接 loader 库」是两回事——
+// 后者受目标定序影响（目标尚未定义时会被当成裸库名，接口属性根本不生效）。
 #ifndef ACR_WITH_BRIDGE_LOADER
 void try_append_cuda_bridge_executors(ExecutorRegistry&) {}
 #endif
