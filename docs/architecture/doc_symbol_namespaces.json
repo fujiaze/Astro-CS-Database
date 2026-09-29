@@ -40,32 +40,32 @@
     {
       "token": "snr_path_effective",
       "namespace": "doc_header_kv",
-      "evidence": "docs/design/PHASE2_DETAILED_DESIGN.md:21",
-      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/contracts/PIPELINE_BLOCK_CONTRACT.md:58 与 docs/plugins/algorithms_phase1/07_noise_snr.md:97"
+      "evidence": "docs/detail/PHASE2_DETAILED_DESIGN.md:21",
+      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/engineering/PIPELINE_BLOCK_CONTRACT.md:58 与 docs/detail/algorithms_phase1/07_noise_snr.md:97"
     },
     {
       "token": "P1.HIPS_WRITE",
       "namespace": "stage_id",
-      "evidence": "docs/architecture/ERROR_MODEL.md:21",
-      "reason": "阶段 ID（normalize 阶段的 HiPS 写出节点），节点名与 docs/modules/registry/ 注册表一致；阶段 ID 面唯一清单 = docs/architecture/ERROR_MODEL.md「阶段 ID」节"
+      "evidence": "docs/engineering/ERROR_MODEL.md:21",
+      "reason": "阶段 ID（normalize 阶段的 HiPS 写出节点），节点名与 docs/modules/registry/ 注册表一致；阶段 ID 面唯一清单 = docs/engineering/ERROR_MODEL.md「阶段 ID」节"
     },
     {
       "token": "P2.HIPS_WRITE",
       "namespace": "stage_id",
-      "evidence": "docs/architecture/ERROR_MODEL.md:22",
-      "reason": "阶段 ID（mosaic 阶段的 HiPS 写出节点），节点名与 docs/modules/registry/ 注册表一致；阶段 ID 面唯一清单 = docs/architecture/ERROR_MODEL.md「阶段 ID」节"
+      "evidence": "docs/engineering/ERROR_MODEL.md:22",
+      "reason": "阶段 ID（mosaic 阶段的 HiPS 写出节点），节点名与 docs/modules/registry/ 注册表一致；阶段 ID 面唯一清单 = docs/engineering/ERROR_MODEL.md「阶段 ID」节"
     },
     {
       "token": "COUNT_FIELD_MISSING",
       "namespace": "verdict_id",
       "evidence": "eng/tools/quality/check_p3_rejection_count.py:157",
-      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。判据由 eng/tools/quality/check_p3_rejection_count.py 产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/contracts/DATA_ARTIFACTS.md"
+      "reason": "DATA-P3-REJ-001 的判据名（产品缺 diagnostic_planes.n_rejected_nonfinite 时判红；「0 与字段缺失必须可区分」，DATA-002 §2a 规则 3）。判据由 eng/tools/quality/check_p3_rejection_count.py 产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/engineering/DATA_ARTIFACTS.md"
     },
     {
       "token": "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
       "namespace": "verdict_id",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:5856",
-      "reason": "组内模型通带唯一性的帧级失败码（某帧解析出的通带与组内首帧不一致 ⇒ 该帧判此码；帧间独立，不阻塞其他帧）。由 mark_frame_fail 在编排层产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/contracts/CONFIG_CONTRACT.md 与 docs/science/PHOTOMETRY.md"
+      "reason": "组内模型通带唯一性的帧级失败码（某帧解析出的通带与组内首帧不一致 ⇒ 该帧判此码；帧间独立，不阻塞其他帧）。由 mark_frame_fail 在编排层产出，非 API 符号 ⇒ 显式登记命名空间；文档承载 = docs/engineering/CONFIG_CONTRACT.md 与 docs/science/PHOTOMETRY.md"
     },
     {
       "token": "ARCHIVE_MARKERS",
@@ -95,13 +95,13 @@
       "token": "ASTROCS_BACKENDS_MANIFEST",
       "namespace": "cmake_variable",
       "evidence": "CMakeLists.txt:811",
-      "reason": "backend 族清单（backends.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:115）；文档承载 = docs/architecture/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :811"
+      "reason": "backend 族清单（backends.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:115）；文档承载 = docs/engineering/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :811"
     },
     {
       "token": "ASTROCS_PROVIDERS_MANIFEST",
       "namespace": "cmake_variable",
       "evidence": "CMakeLists.txt:881",
-      "reason": "provider 族清单（providers.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:135）；文档承载 = docs/architecture/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :881"
+      "reason": "provider 族清单（providers.manifest.json）的 CMake 变量，生成与安装两处消费（eng/cmake/install_layout.cmake:135）；文档承载 = docs/engineering/ISA_VARIANTS.md §2.2 表「构建产物名」列。行锚 = set() 定义行 :881"
     }
   ]
 }
