@@ -4,7 +4,7 @@
   "task": "CFG-001",
   "authority": {
     "design": "docs/ASTROCS_DESIGN.md §3.3（eng/packaging/config/filters.json 滤镜库：型号、通带、波长等；滤镜型号必须与滤镜库匹配，未知滤镜 -> error）",
-    "preflight": "docs/ASTROCS_DESIGN.md §3.5（滤镜不匹配/未知滤镜 -> 红色 error，强制阻断，-y 亦不可越过）"
+    "preflight": "docs/ASTROCS_DESIGN.md §4.5（滤镜不匹配/未知滤镜 -> 红色 error，强制阻断，-y 亦不可越过）"
   },
   "transcription": {
     "source_path": "lib/algorithms/photometry/data/response_curves/filters.json",
