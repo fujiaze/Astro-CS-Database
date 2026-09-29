@@ -117,6 +117,63 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
   清单 `required_features_bits` 由 `eng/tools/gen_provider_manifests.py` 按 `--compiler` 同步
   （GNU 腿输出逐字节不变）。
 
+### 3.3 第二族：CPU provider 变体族（astrocs_cpuprov_*）同配方隔离（R-60）
+
+第一族的 TU 级隔离配方**已推广到第二族**（`lib/infrastructure/benchmark/cpu/{avx2,avx512}/`）：
+
+| | 门面 TU（零 ISA 旗标） | 计算面 TU（唯一带旗标） | 跨 TU 桥 |
+|---|---|---|---|
+| avx2 | `avx2/src/avx2_provider.cpp`（`astrocs_provider_query_v1` / `acs_cpu_avx2_cap_gate` / `*_self_test` / kernel 注册表） | `avx2/src/avx2_kernels.cpp` | `astrocs_cpuprov_kernel_range_v1` |
+| avx512 | `avx512/src/avx512_provider.cpp` | `avx512/src/avx512_kernels.cpp` | 同上 |
+
+- **平台旗标形态**（唯一登记点 = 根 `CMakeLists.txt` 的 `astrocs_cpuprov_<v>_kernels`）：
+  GCC/Clang = `-mavx2 -mfma` / `-mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl`；
+  MSVC/clang-cl = `/arch:AVX2`（+ VS2022 起 `/fp:contract`）/ `/arch:AVX512`。
+  **改前该族的旗标被 `if(NOT MSVC)` 门控 ⇒ Windows 腿压根没有 ISA 旗标**，两个变体库与基线
+  同码却仍在清单里声明 ISA 能力（虚假能力声明）。
+- **旗标失效不得静默**：计算面 TU 顶部有 `_MSC_VER && !defined(__AVX2__)` / `__AVX512F__`
+  （及 AVX-512 的 CD/BW/DQ/VL 齐套）`#error` —— `/arch:` 取值不被识别只报 D9002 且 rc=0，
+  不得以「基线同码产物」冒充变体。
+- **ABI 零变化**：导出面仍是 provider ABI 白名单（`astrocs_provider_query_v1` + `acs_cpu_*_cap_gate`
+  + `acs_cap_*` 探测面）；跨 TU 桥在非 MSVC 下 `hidden visibility` ⇒ **不进动态符号表**
+  （Linux 侧导出面与改前逐条相同，实测 `nm -D` 集合一致）。
+  Windows 侧 DSO 以 `WINDOWS_EXPORT_ALL_SYMBOLS` 构建，导出表会多一条桥符号，与第一族
+  `astrocs_variant_kernel_dispatch_v1` 同款处置（加载器按名字取 `astrocs_provider_query_v1`，
+  多一条不改变任何加载/选路语义）。
+- **数值零变更**：kernel 实现从门面 TU **逐字符搬移**到计算面 TU（只去掉 `static`、改名为桥入口）；
+  科学公式 / 项序 / 容差（2e-4 冻结）不动。实测 `CPU-003 AVX2 PASS`（两热点 oracle
+  `max_rel` 4.47e-06 / 0、预算 1 vs 4 逐位相同）。
+- **产物级判据落点**（本族此前无人承担）：
+  - `eng/tests/backend/test_cpuprov_isa_variants.py` —— 正例 P1（计算面含本档档位证据、门面
+    `query`/`cap_gate` 零 VEX/EVEX）+ 负例 N1（旗标挂回门面 ⇒ 判红）/ N2（计算面不编旗标 ⇒
+    判红）/ N3（门面代码行出现旗标字面量 ⇒ 判红）+ S1（唯一桥、不复制实现）/ S2（导出面白名单、
+    桥不进 `.dynsym`）/ S3（声明位 = 站点推导位，两族 × 两平台）。
+  - `eng/tests/backend/test_cpuprov_manifest.py` —— 声明面端到端（真 cpuprov DSO + 真
+    `gen_provider_manifests.py --family provider`，两腿位值/旗标逐条核对 + 站点缺失 rc=2 /
+    旗标少一位 rc=5 两条负例）。
+  - `eng/tests/cpu/avx2/run_provider_avx2_checks.py` 与
+    `eng/tests/cpu/avx512/run_provider_avx512_checks.py` 改走**同一份**编译配方
+    (`eng/tests/backend/variant_build.py`)，测试产物形态 = 发行产物形态。
+  - `check_isa_same_source.py --fault-inject` 新增 4 条本族注入：
+    `cpuprov-tu-isolation` / `cpuprov-kernels-unflagged` / `cpuprov-arch-flag-drift` /
+    `cpuprov-declaration-cd`（逐条必红，见 `--fault-inject all`）。
+- **已登记差异（产品缺陷，非判据缺陷）**：▭check_manifest_isa_artifact.py 的 M5 对本族判红一处，
+  登记如下，不得用改判据消红：
+
+  | 项 | 实测 | 判定 |
+  |---|---|---|
+  | astrocs_cpuprov_avx512 产物实测发射 FMA3（vfmadd132ss ×2 / vfmadd231ss ×1，VEX.FMA 编码），
+    而清单声明 {avx512f, avx512cd, avx512bw, avx512dq, avx512vl}=992（**不含 FMA**） |
+    本机 GCC 14.2 / astrocs_cpuprov_avx512.so 实测 3 条 | **用了却没声明**。根因：isa_sites.json 的
+    flag_feature_map["-mavx512f"] = ACS_FEAT_AVX512F 把许可面记窄（实测 GCC 14.2 与 clang 18.1.8
+    在 -mavx512f 下都会发射 FMA3）。**实际可达性低**（同时具备 F+CD+BW+DQ+VL 的商用 CPU 均同时具备 FMA3），
+    但声明面确实少一位。随第一族同因的裁决一并处置；**未裁决前保持判红**。本轮未改 flag_feature_map
+    （共享表，属第一族裁决范围）。 |
+
+- **与第一族的产品差异（合法，判据只要求各自同源）**：本族确实带 `-mavx512cd` 编译且 DSO 自陈宏取
+  `ACS_CAP_GROUP_AVX512_SUBSET`，故两平台清单位都是 `F|CD|BW|DQ|VL = 992`；第一族 GCC 腿是 928、
+  MSVC 腿 992。
+
 ## 4 与模块边界 Oracle 的关系
 
 - 12 kernel 的 Oracle（独立参考 + 确定性）已在模块边界合同建立；变体复用同一 Oracle
