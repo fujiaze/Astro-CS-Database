@@ -450,8 +450,8 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 > **权威依据**：`ASTROCS_DESIGN.md §6.3`（原文：内置多种投影算法，
 > 首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**，每种声明适用域、
 > 奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT/CTYPE；新增投影经
-> projection registry 注册并附独立往返 Oracle）+ `docs/plugins/algorithms_phase3/
-> 14_projection.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
+> projection registry 注册并附独立往返 Oracle）+
+> `docs/detail/algorithms_phase3/14_projection.md`（⑥ 级）+ Calabretta & Greisen (2002) FITS WCS Paper II。
 > 投影集合按 DESIGN §6.3 的**八投影**为准。
 > **可执行标准**：astropy 7.0.1（WCSLIB）逐点对拍，22 组配置最大球面偏差
 > 6.854e-13°；证据与逐项判据见 `docs/science/PHASE3_HIPS_TO_FITS.md` §14/§15。

@@ -1185,9 +1185,9 @@ P2HipsInputInfo 逐字段（coverage.h:32-44，回填锚 :113-143）:
 > PHASE2_MOSAIC_WRITE.md，算法级逐符号锚由该文档登记）；编排级合同
 > API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）；§4/§4a 的
 > signal/support/invalid 与 variance/ivar 产品语义在此落地为 Phase2
-> 输出侧逐文件语义；输入读合同: IO-002（docs/interfaces/io/
-> IO_002_HIPS_INPUT_INTERFACE.md）；发布合同: IO-003（docs/interfaces/
-> io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，§20.3 对齐边界）；配置 schema
+> 输出侧逐文件语义；输入读合同: IO-002
+> （docs/science/IO_002_HIPS_INPUT_INTERFACE.md）；发布合同: IO-003
+> （docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，§20.3 对齐边界）；配置 schema
 > 唯一权威签名源 lib/algorithms/coverage/include/astro/phase2/stage2_common.h
 > :16-99（P2Stage2Config），公共消费面同步冻结于 PUBLIC_API.md
 > API-P2-HIPS-001。
@@ -3335,7 +3335,7 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
   （nused/nrej/`n_rejected_nonfinite`）不进该枚举；`sparse_snr_layer` 是 HiPS 文件内标准层，
   不是 exchange `planes` 成员（§30.2/§30.7）。
 - 上游：`docs/ASTROCS_DESIGN.md` §0/§1/§2/§9/§11/§12；`docs/engineering/PROJECT_SPEC.md`
-  §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；
+  §3/§4/§5/§7/§11；`docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md`；
   `docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/detail/UNIFIED_MODEL.md`。
 - 消费面（配置/CLI 语义）见 `docs/engineering/PUBLIC_API.md` 的权重与模式配置节；兼容期映射与归属登记见
   `docs/engineering/UNIFIED_OBJECTS.md` §4。
