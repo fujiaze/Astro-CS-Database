@@ -164,5 +164,5 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 - **饱和/边缘处理**：无直接文献，Project-defined（ALG-STARDET-001 §2）；对照见 Stetson 1987 与 IRAF/DAOPHOT（IRAF/NOAO 许可，非 OSI）。
 - **与 PSF 侧的模型差**：检测侧椭圆高斯 FWHM=2.3548·σ 与 PSF 侧 Moffat4 FWHM=1.230310·σ 相差 1.9140×（DISP-STAR-007），两列不可跨块比较；Moffat 出处见 Moffat 1969, A&A 3, 455 与 docs/science/PSF.md §14。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

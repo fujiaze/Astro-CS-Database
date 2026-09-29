@@ -175,5 +175,5 @@
 - **并行执行语义**：OpenMP Application Programming Interface（OpenMP ARB）——本模块 fallback 路径（§5）的语义基础；ACR 为隔离实验，生产不可达（`ASTROCS_DESIGN.md` §1.3/§8.1）。
 - **CPU reference 为权威 science semantics**：Project-defined（§5）；GPU/Mixed 仅加速热点，不改变 rejection/integrate 语义。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

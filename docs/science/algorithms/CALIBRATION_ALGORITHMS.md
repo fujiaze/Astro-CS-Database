@@ -339,7 +339,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0` 回退总体
 标准差 vs 生产源的 `σ=0`、窗口 clamp vs 镜像反射、参数化窗口 vs 固定
 5×5）见 COSMETIC_ALGORITHMS.md §8，现状依据与 oracle 一律取自生产源。
-`docs/modules/calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此通道，
+`docs/detail/calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此通道，
 非 ac_correct_frame。
 
 ## 5 复杂度
@@ -410,7 +410,7 @@ MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0
   ——**SHARED 目标已在位**（`lib/algorithms/calibration/CMakeLists.txt:30`
   `add_library(astrocs_p1_calibration SHARED)`，生产源独立重编译；Linux 产物
   `astrocs_p1_calibration.so`，Windows 链接脚本 `src/astrocs_p1_calibration.def`），
-  `docs/architecture/MODULE_MAP.md:17` 已登记为 `modules/astrocs_p1_calibration.so`；
+  `docs/engineering/MODULE_MAP.md:17` 已登记为 `modules/astrocs_p1_calibration.so`；
   legacy 静态库 `astrocs_calibration`（CMakeLists.txt:621-641）与非生产 MinGW DLL 并存。
   **未闭合的是运行期绑定**：entrypoint `astrocs_module_query_v1`
   （`lib/algorithms/calibration/src/module_entry.cpp:1487`）零调用 ⇒ `astrocs.p1.*` 身份
@@ -620,11 +620,11 @@ oracle 同容差；actual_k 精确相等。
 ## 11 关联
 
 - SCI: SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN）
-- DATA: DATA-P1-CAL（docs/contracts/DATA_SEMANTICS.md §9）；输入帧端口 DATA-P1-FRAME
-- API: API-P1-001（docs/api/PHASE1_API_V1.md，编排合同 §2 已登记 ac_*）；API-CAL-001（docs/contracts/PUBLIC_API.md，现状 C API 合同）
+- DATA: DATA-P1-CAL（docs/science/DATA_SEMANTICS.md §9）；输入帧端口 DATA-P1-FRAME
+- API: API-P1-001（docs/engineering/PHASE1_API_V1.md，编排合同 §2 已登记 ac_*）；API-CAL-001（docs/engineering/PUBLIC_API.md，现状 C API 合同）
 - MOD/SRC: MOD-astrocs-phase1-calibration；SRC-CAL-001（astro_calibration.h 14 符号）
 - 测试: TEST-CAL-DESIGN-001（本文 §9，P1-CAL-TEST 落地可执行 TEST-P1-CAL-001）；既有共址测试 lib/algorithms/calibration/tests/test_photometry_apply.cpp
-- ARCH: ARCH-001（docs/contracts/ARCH-001.md）
+- ARCH: ARCH-001（docs/engineering/ARCH-001.md）
 
 ## 参考文献与参考代码库（含许可证）
 
@@ -636,5 +636,5 @@ oracle 同容差；actual_k 精确相等。
 - XISF bounds 与 65535：XISF 1.0 Spec（PixInsight；PCL 自定义 source-available 许可）。
 - IRAF ccdproc/zerocombine（IRAF/NOAO 许可，非 OSI）：经典归约顺序对照。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

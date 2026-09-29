@@ -194,5 +194,5 @@ function p2_reject(stack, plan):
 - **预测残差方差阈值/最优检验**：Zackay et al. 2016（DOI 10.3847/0004-637X/830/1/27）为方法学候选，
   本层当前不采用。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

@@ -17,7 +17,7 @@
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
 > module_id=astrocs.phase2.reject（module_adapters.cpp:705-724）由
 > P2-XX-INT 对齐，不作冻结依据。
-> 关联: DATA=DATA-P2-REJ（docs/contracts/DATA_SEMANTICS.md §22）；API=API-P2-REJ-001（docs/contracts/PUBLIC_API.md 末节）；MOD 页=docs/modules/phase2_rej.md + registry docs/modules/registry/astrocs.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
+> 关联: DATA=DATA-P2-REJ（docs/science/DATA_SEMANTICS.md §22）；API=API-P2-REJ-001（docs/engineering/PUBLIC_API.md 末节）；MOD 页=docs/detail/phase2_rej.md + registry docs/detail/registry/astrocs.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
 ## 1 目的与非目标
 
@@ -683,7 +683,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   F7 = rtol 1e-12（Python 参考域）；large_scale=mask 精确。本层
   禁引入其他 epsilon（ESD tie 1e-15、RCR isEqual rel 1e-8、winsor
   收敛 5e-4·σ 为实现内部冻结常数，非门容差）。
-- 登记面: 本节容差同步登记于 docs/modules/registry/astrocs.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
+- 登记面: 本节容差同步登记于 docs/detail/registry/astrocs.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
 
 ### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
@@ -730,7 +730,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - 合同: DATA-P2-REJ（DATA_SEMANTICS §22）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
   承载页 §独立验证节；可执行落地归 P2-REJ-TEST + EVIDENCE）。
-- 交叉: docs/modules/phase2_rej.md + lib/algorithms/rejection/ 三件套
+- 交叉: docs/detail/phase2_rej.md + lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
   astrocs.phase2.reject.md；REJECTION_ALGORITHMS.md（旧 L2，ID
@@ -746,17 +746,17 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 14 合同落位
 
-- DATA-P2-REJ = docs/contracts/DATA_SEMANTICS.md §22：输入
+- DATA-P2-REJ = docs/science/DATA_SEMANTICS.md §22：输入
   eligibility/gather/kernel 三层 + P2RejectionDecision 输出 +
   八态状态机 + 单位/确定性唯一权威；与 §21 DATA-P2-INT 的消费
   边界 = accepted mask → P2PixelStack.accepted。
-- API-P2-REJ-001 = docs/contracts/PUBLIC_API.md 末节：
+- API-P2-REJ-001 = docs/engineering/PUBLIC_API.md 末节：
   planning/eligibility/gather/kernel/large_scale 导出符号冻结；
   compat p2_reject_stack 冻结两符号；与 API-P2-001 编排面并存。
-- MOD = docs/modules/phase2_rej.md（模块页）+ lib/algorithms/rejection/
+- MOD = docs/detail/phase2_rej.md（模块页）+ lib/algorithms/rejection/
   三件套（README/module.yaml CONTRACT_READY entrypoint=MISSING/
   memory.md，按 lib/algorithms/integration/ 先例）+ registry
-  docs/modules/registry/astrocs.phase2.reject.md（手写合同页
+  docs/detail/registry/astrocs.phase2.reject.md（手写合同页
   重写；TEST 登记面承载）。
 - 一致性声明: 本文件（ALG）与上述同批产物冲突时以本文件为
   算法/锚权威，DATA/API 以各自文件为单位/dtype/消费面权威；
@@ -771,7 +771,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   p2_reject_stack_ex,p2_collect_candidate_stack,
   p2_eligibility_filter,p2_large_scale_apply,
   p2_rejection_semantic_id）/test_id=TEST-P2-REJ-001
-  （test_path=docs/modules/registry/astrocs.phase2.reject.md::
+  （test_path=docs/detail/registry/astrocs.phase2.reject.md::
   TEST-P2-REJ-001，设计冻结 VERIFIED + 可执行 MISSING 双
   statement）——由主控写入，本节仅声明预期终态。
 
@@ -788,7 +788,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - **档界来源**：PixInsight WBPP **2.5.9** `WeightedBatchPreprocessing-engine.js:1421-1429` `bestRejectionMethod()`（官方包 sha1 `712cc7c3fdb523643ad0e685104592d511996f82`；非学术软件来源）。IRAF `combine`/`imcombine`（方法族命名来源；`reject` 值域 `none|minmax|ccdclip|crreject|sigclip|avsigclip|pclip`，**无 `lfitclip`/`winsorize`**）。
 - **核语义来源**：`linear_fit` = 官方**式[21]/[22]** + NR 3rd ed. §15.7.3；`winsorized_sigma` = 官方式[18]/[19]（Huber 体系）；`percentile` = `docs/science/REJECTION.md` §5/§8a 本层定义。**Siril 1.4.3 是次生参考实现**（上列 `:31-44` 用于掩码逐元素对拍），**不是核语义归属**。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

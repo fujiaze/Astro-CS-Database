@@ -78,5 +78,5 @@ Fallback: if 逐样本 ivar 权重 → cpu_only; if !model_trusted → OpenMP fa
 - 并行执行语义：OpenMP Application Programming Interface（OpenMP ARB）；ACR 现处 dormant（AGENTS §2）。
 - CPU reference = 权威 science semantics：Project-defined（本文件 §5）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

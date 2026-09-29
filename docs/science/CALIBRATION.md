@@ -46,7 +46,7 @@
   - **量纲与标度类别**：本层输出 `cal` 的标度类别 = **`calibrated_adu`**（ADU，像素域，量纲无 sr 幂）；
     逐帧测光标度 `x′ = α·x`（标度类别 `photo_scaled_adu`）由下游 photometry 节点施加，**本层不施加**；
     HiPS 产品面为 `surface_brightness`（`ADU/sr`）。标度词表、线性标度律与面亮度标度律见
-    `docs/standards/NUMERIC_STANDARD.md`「量纲与标度」节。
+    `docs/engineering/NUMERIC_STANDARD.md`「量纲与标度」节。
 - **标度/域声明**：本层（calibration C ABI）是**单位盲**的逐像素算术
   层——入参按 §5 输入合同已经同标度；**把磁盘文件解释成该合同是调用方（io_read/编排）的义务**。
   两类母版文件的解释规则：
@@ -64,11 +64,11 @@
 - **标度一致性门（具名拒绝）**：母版与亮场标度不一致（典型：XISF [0,1] 归一化母版 + ADU 亮场）时，
   按原样相减/相除会得到标度错的产物（实测 T2：master_flat median 0.206381 ⇒ 整帧被 ×4.845；
   master_bias 中位 0.015288 ⇒ 本底只减 0.0153 而应减 1001.87 ADU）。消费边界必须
-  **声明 + 校验 + fail-closed**（§5/§6/§8、`docs/contracts/DATA_SEMANTICS.md` §9 DATA-P1-CAL 标度条款）。
+  **声明 + 校验 + fail-closed**（§5/§6/§8、`docs/science/DATA_SEMANTICS.md` §9 DATA-P1-CAL 标度条款）。
 
 ## 3a 坐标 frame
 
-校准为逐像素独立算术，**无坐标变换、无 WCS 处理**：输入帧与输出 `cal` 为同一 frame identity（`frame_id` 定义见 `docs/contracts/DATA_SEMANTICS.md §5`，payload 变化才变）；像素坐标语义沿用词典 `pixel_coordinate`（内部 0-based）。
+校准为逐像素独立算术，**无坐标变换、无 WCS 处理**：输入帧与输出 `cal` 为同一 frame identity（`frame_id` 定义见 `docs/science/DATA_SEMANTICS.md §5`，payload 变化才变）；像素坐标语义沿用词典 `pixel_coordinate`（内部 0-based）。
 
 ## 4 输入有效域
 
@@ -168,7 +168,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 - **单位一致（机器门）**：`raw/bias/dark/flat` 与 `cal` 同标度、同增益（ADU；§3）。
   母版与亮场标度不一致（如 XISF [0,1] 归一化浮点母版配 ADU 亮场）属**输入合同违背**：
   本层仍不作自动换算（C ABI 单位盲），但**消费边界（io_read/编排）必须显式声明标度并校验，
-  违反即 fail-closed**（结构化诊断点名文件 + 观测中位数 + 应声明项；见 §8 表与 `docs/contracts/DATA_SEMANTICS.md` §9 DATA-P1-CAL 标度条款）。
+  违反即 fail-closed**（结构化诊断点名文件 + 观测中位数 + 应声明项；见 §8 表与 `docs/science/DATA_SEMANTICS.md` §9 DATA-P1-CAL 标度条款）。
   声明面：`master_units`（各帧类单位 token）/`master_scale`（到 ADU 的线性换算因子）/
   `master_flat_normalize`（平场是否按 median 归一，枚举 `none`|`median`）；
 - **平场已归一（机器门）**：`flat` 约定为 `median≈1.0`（ALG-CAL-002 产物）。
@@ -401,7 +401,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
 - **曝光容差门（非退化，可执行）**：必须按 §6a 的 `|K·Δb| ≤ ε·σ_frame` 判定，判据输入 = 母版实测 `Δb` + 亮场实测 `σ_frame`。
   **仅按 `|t_light − t_dark|` 判定的门不具备判别力**（§6a 表：判 PASS 的两例残留为 1.83σ / 1.88σ 非零，
   判 WARN 的一例残留逐位为零）；科学判据面 = §6a 的 `|K·Δb| ≤ ε·σ_frame`。
-- **标度类别门（可执行）**：`cal` 面与所消费母版的标度类别必须同属 `calibrated_adu`（`docs/standards/NUMERIC_STANDARD.md`
+- **标度类别门（可执行）**：`cal` 面与所消费母版的标度类别必须同属 `calibrated_adu`（`docs/engineering/NUMERIC_STANDARD.md`
   标度词表）；标度不可判定 ⇒ 显式拒绝（`rc=2`）。
 
 ## 12 关联 ALG ID
@@ -460,7 +460,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   **不传播母版方差至 `cal`**：`cal` 只承载校准后的信号值，其不确定度由
   `snr_estimator` 独立估计（§1 非目标、§9a variance 传播）。**项目内不存在**
   要求 master calibration 参数不确定度进入 variance/covariance 的冻结条文——
-  `docs/design/UNIFIED_MODEL.md`（§1–§3）无此条文。⇒ 现状是**口径缺口而非条文冲突**：母版由有限
+  `docs/detail/UNIFIED_MODEL.md`（§1–§3）无此条文。⇒ 现状是**口径缺口而非条文冲突**：母版由有限
   帧数合并产生，其自身不确定度（`σ²/N_master`）与**与科学帧共享的相关系统项**
   （平场形状误差、暗电流标度误差）在 `cal` 面与下游 variance 中都未建模，
   下游据此得到的 SNR 在母版主导的系统项上偏乐观。
@@ -470,7 +470,7 @@ cal_pipe − cal_true = (t_light/t_d)·(b_light − b0) = −K·Δb          Δb
   可对照 ccdproc / LSST ip_isr（二者同样不传播母版方差，属行业普遍简化）
   与 Howell 2006 Ch.4 的校准误差预算讨论。**证据面不足，结论面 = 待定项登记。**
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

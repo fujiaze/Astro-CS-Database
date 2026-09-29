@@ -25,9 +25,9 @@
 
 ## 3 物理量和单位
 
-- `S`: **`ADU/sr`**（面亮度语义：计数按**立体角**归一，与输出像元尺度无关 ⇒ 跨像元尺度可比；写端口单位 = `SURFACE_BRIGHTNESS`，BUNIT 透传输入 properties，canonical 串 `ADU/sr`，单位口径唯一权威 = `docs/contracts/DATA_SEMANTICS.md` §31.1a；**非积分通量**，禁 flux-per-pixel 解释）；`s_out`: deg/px；`center/CRVAL/RA,Dec`: deg（ICRS）；坐标: px；coverage: 无量纲 {0,1}。
+- `S`: **`ADU/sr`**（面亮度语义：计数按**立体角**归一，与输出像元尺度无关 ⇒ 跨像元尺度可比；写端口单位 = `SURFACE_BRIGHTNESS`，BUNIT 透传输入 properties，canonical 串 `ADU/sr`，单位口径唯一权威 = `docs/science/DATA_SEMANTICS.md` §31.1a；**非积分通量**，禁 flux-per-pixel 解释）；`s_out`: deg/px；`center/CRVAL/RA,Dec`: deg（ICRS）；坐标: px；coverage: 无量纲 {0,1}。
   **输入单位的判定来源（正向约束）**：导出侧的单位语义**只由输入 `signal/properties` 的 `BUNIT` 承载**，不做任何推断。合法形态有两种，其余一律显式拒绝（`exit 3/4`，无静默默认）：① 逐字等于 canonical 串 `ADU/sr`；② 逐字等于 `ADU` **且**同时声明 `ASTROCS_PIXEL_SEMANTICS=surface_brightness` 与 `ASTROCS_PIXEL_AREA_POWER=-2`。缺 `BUNIT` ⇒ `P3-INPUT-BUNIT-MISSING`；`BUNIT` 存在但不可判或非面亮度语义 ⇒ `P3-INPUT-BUNIT-UNDECIDABLE` / `P3-INPUT-NOT-SURFACE-BRIGHTNESS` / `P3-INPUT-UNIT-UNSUPPORTED`。
-  **`ADU/px^2` 属拒绝项而非面亮度别名**：FITS 约定下 `pix` 已是**面积**单位，故 `ADU/px^2` 读作「ADU 每（像素面积）²」，既非面亮度量纲，也与写盘数值（按 sr 归一）不符（`docs/contracts/DATA_SEMANTICS.md` §31.1a 反例条）。实现锚：`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3n_guard_input_units`。
+  **`ADU/px^2` 属拒绝项而非面亮度别名**：FITS 约定下 `pix` 已是**面积**单位，故 `ADU/px^2` 读作「ADU 每（像素面积）²」，既非面亮度量纲，也与写盘数值（按 sr 归一）不符（`docs/science/DATA_SEMANTICS.md` §31.1a 反例条）。实现锚：`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p3n_guard_input_units`。
 
 ## 3a 坐标 frame
 
@@ -144,7 +144,7 @@ coverage:
    不作逐位断言）两种；**alpha 默认=bilinear**。
 8. **SB/flux/未知输入**：tile 值=面亮度（HiPS image 语义）；**flux-per-pixel 输入不支持→显式拒绝**（不做面积换算，flux 与 SB 各自具名）。
 9. **NaN/missing/coverage/mask/alpha channel/blank**：§5/§8——coverage 二值 mask；NaN 传播；missing tile=无覆盖+provenance；alpha channel HiPS 与 BLANK int tile 显式拒绝。
-10. **variance/ivar/support 输入（DATA-UNC-001 更新块口径）**：Phase3 输入 HiPS **含 variance/ivar 子产品时必须显式消费传播**（输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时显式 `unavailable`（不静默）；唯一权威 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（Phase3 节，DATA-P3-UNC-001）+ `docs/contracts/DATA_SEMANTICS.md` §30.4。**weight/support tile 输入仍不支持→显式拒绝**（拒绝逐条登记）；flux-per-pixel 输入仍显式拒绝（§9a-8）。
+10. **variance/ivar/support 输入（DATA-UNC-001 更新块口径）**：Phase3 输入 HiPS **含 variance/ivar 子产品时必须显式消费传播**（输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时显式 `unavailable`（不静默）；唯一权威 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（Phase3 节，DATA-P3-UNC-001）+ `docs/science/DATA_SEMANTICS.md` §30.4。**weight/support tile 输入仍不支持→显式拒绝**（拒绝逐条登记）；flux-per-pixel 输入仍显式拒绝（§9a-8）。
 11. **FITS 关键字**：`BITPIX=-32/-64`；`BSCALE=1,BZERO=0`；`BUNIT` 按 properties，**缺失 ⇒ 显式拒绝 `P3-INPUT-BUNIT-MISSING`（见 C5）**；调用方**显式传空串**时按 `ADU/sr` 归一，两者不得混同（**不是**裸 `ADU`——裸 `ADU` 无法量纲可判且与写盘数值不符，见 §3）；WCS=`CRPIX/CRVAL/CD1_1,1_2,2_1,2_2/CTYPE=TAN/CUNIT=deg`；`HISTORY+provenance`（源 HiPS 标识/order_sel/sampler/软件版本/manifest hash）必写。实现锚：缺省串 `p3_resample.cpp`、`p3_output.cpp`；variance/ivar 的 BUNIT 由二次律 canonical 推导（`p3_output.cpp`），不在冻结单位表内的串显式拒绝。
     `CRVAL=(center.RA, center.Dec)` 且**两个分量都进映射**；LONPOLE 取标准默认（`δ0 ≥ θ0 ⇒ φ0`，否则 `φ0+180°`；`φ0` 由 `PVi_1a` 给出、通常为 0。该口径是 Paper II §2.2 的**现行有效形式**，与 FITS Standard 4.0 §8.3 及官方勘误件「Corrections and clarifications for FITS WCS papers I, II, & III」一致。TAN 为天顶投影 ⇒ `θ0 = 90°`，本合同 `|CRVAL2| ≤ 85°` 排除 `δ0 = θ0` ⇒ **默认恒为 `φ0+180° = 180°`**）
     （δ0≥θ0 ⇒ 0° 否则 180°），读方无需额外关键字即可复现。
@@ -195,7 +195,7 @@ coverage:
 - **FITS 独立读取器**：CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - **order_needed/leaf_order=order_sel+log2(W)/sqrt(π/3) cell 宽度**：Project-defined（§5/§14 第 6 条），与 DATA_SEMANTICS §3 冻结公式一致。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

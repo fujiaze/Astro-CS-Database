@@ -51,7 +51,7 @@ Var(F_hat_k) = 1/W_k
 
 **权重与 SNR 的换算口径（P-055 收窄，定义不变）**：`SNR²=F_ref²W` 只在**该帧固定的逐帧参考通量** `F_ref` 下成立；由此得到的帧权重是
 `w = SNR²/F_ref² = W = 1/σ_F²`，即**已归一的逆方差**（归一化因子 `F_ref²` 必须显式带上）。**裸 `SNR²` 不是权重**——
-`w = SNR²/F_ref²` 与 `w = SNR²` 只有在 `F_ref ≡ 1` 的约定下才数值同一，任何跨帧/跨路径代入都必须携带 `F_ref²`（禁令措辞同 `docs/plugins/algorithms_phase2/11_upm.md:76`）。
+`w = SNR²/F_ref²` 与 `w = SNR²` 只有在 `F_ref ≡ 1` 的约定下才数值同一，任何跨帧/跨路径代入都必须携带 `F_ref²`（禁令措辞同 `docs/detail/algorithms_phase2/11_upm.md:76`）。
 
 ## 4.1 叠加权重的来源
 
@@ -86,7 +86,7 @@ Cov(x_hat) = (Aᵀ C⁻¹ A)⁻¹
 
 重采样是线性算子 R：C_out=R C_in Rᵀ。输出只存对角 variance 时，必须另存 correlation kernel/scale 或可重建算子摘要。Drizzle 的 signal 单位、源/目标像素面积、pixfrac 和归一必须统一；常量面亮度和总积分通量 Oracle 同时成立。
 
-非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**剔除项逐条进场级日志并计数**（`ASTROCS_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
+非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**剔除项逐条进场级日志并计数**（`ASTROCS_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
 
 ## 8. 空间模型与标量压缩
 
@@ -131,7 +131,7 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - **广义最小二乘 x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d、Cov=(AᵀC⁻¹A)⁻¹**：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。，GLS 原始出处）；教科书级。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
 - **5σ 深度 m5**：Tonry et al. 2012, ApJ 750, 99；Ivezić et al. 2019, ApJ 873, 111。
-- **跨文档口径**：`frame_snr` 的字段定义与数据对象归属见 `docs/design/UNIFIED_MODEL.md` §2（数据对象）；同名两义**必须**分别命名——Phase1 HiPS 文件头的 `frame_snr` = 未加权原始信噪比（科学量，本文件 §3 的 `source SNR`/`depth m5` 口径），`docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` = 相对质量权重场（非科学信噪比）；二者是不同对象，各自独立消费、取值互不代用；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
+- **跨文档口径**：`frame_snr` 的字段定义与数据对象归属见 `docs/detail/UNIFIED_MODEL.md` §2（数据对象）；同名两义**必须**分别命名——Phase1 HiPS 文件头的 `frame_snr` = 未加权原始信噪比（科学量，本文件 §3 的 `source SNR`/`depth m5` 口径），`docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` = 相对质量权重场（非科学信噪比）；二者是不同对象，各自独立消费、取值互不代用；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

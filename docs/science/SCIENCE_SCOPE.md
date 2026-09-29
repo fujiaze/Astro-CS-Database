@@ -22,7 +22,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
 
 ## 变量/单位
 
-- **标度类别封闭词表**（唯一权威 = `docs/standards/NUMERIC_STANDARD.md`「量纲与标度」节）：
+- **标度类别封闭词表**（唯一权威 = `docs/engineering/NUMERIC_STANDARD.md`「量纲与标度」节）：
   `raw_adu` / `calibrated_adu` / `photo_scaled_adu` / `surface_brightness` / `synthetic_flux`。
 - 信号链：`raw_adu`（输入亮场）→ `calibrated_adu`（校准后，ADU）→
   **`photo_scaled_adu`（施加逐帧测光标度后，`x′ = α·x`，`α = frame photscal`，逐帧取值）** →
@@ -33,7 +33,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
   - **α 是逐帧量，不是全仓常数**：其取值逐帧由 `p1_phot.json`（`photscales`）判定，
     不存在可用的全仓常数（实测取值范围与帧标识正本见 `实验/photometric-magnitude/` results）。
 - **标度律（强制）**：`x′ = α·x ⇒ Var′ = α²·Var`、`ivar′ = ivar/α²`；`S = F/A_cell ⇒ Var(S) = Var(F)/A_cell²`。
-  一手证据（JCGM 100 §5.1.2 式(10)）、合成实验与真实数据推导见 `docs/standards/NUMERIC_STANDARD.md`。
+  一手证据（JCGM 100 §5.1.2 式(10)）、合成实验与真实数据推导见 `docs/engineering/NUMERIC_STANDARD.md`。
 - 位置：RA/Dec 度（J2000）、HEALPix NESTED、tile+local xy；
 - 光度：dex log10 比值、mag；variance：**面亮度域 `ADU^2/sr^2`，像素域 `ADU^2`**（量纲随承载面，见上）。
 - 帧级 SNR / `source_snr` / `sparse_snr_layer`：无量纲比值（同一线性标度下 α 相消，故与标度类别无关）。
@@ -74,7 +74,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
 - 无合格控制点/无重叠 → NO_DATA / UNDERDETERMINED 显式状态；
 - 输入损坏 → INPUT_CORRUPT 显式错误（状态只出自输入校验面）；
 - **标度不可判定**（无法从产品自身声明判定其标度类别）→ 显式拒绝（`rc=2`），
-  消费前提 = 标度类别可判定（`docs/standards/NUMERIC_STANDARD.md`）；
+  消费前提 = 标度类别可判定（`docs/engineering/NUMERIC_STANDARD.md`）；
 - **局部平稳前提被违反**（patch 尺度结构污染，见 §假设的 `γ` 判据）→ 噪声场显式降级并登记，
   消费口径 = 显式降级的噪声场。
 
@@ -112,7 +112,7 @@ ACSD 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal）�
 - IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）与 IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）：HiPS/MOC 互操作。
 - Padmanabhan, N. et al. 2008, ApJ 674, 1217；Bertin, E. 2006, ASPC 351, 112（SCAMP）：相对光度联合定标。
 - Rosner, B. 1983, Technometrics 25, 165；Maples et al. 2018, ApJS 238, 2：ESD/RCR 排异。
-- 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+- 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ## 本文件条款族

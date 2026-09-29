@@ -1,14 +1,14 @@
 # HiPS 输入读取接口合同
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）、§10（I/O 与原子产品）、
-> `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`（tile FITS 平面读取全部复用其 fits_core 契约与错误码）
+> `docs/science/IO_001_FITS_STREAM_INTERFACE.md`（tile FITS 平面读取全部复用其 fits_core 契约与错误码）
 
 本合同按 §8.5（模块与 ABI）逐项明确接口的字段/单位/shape/坐标/invalid/所有权，并按 §10（I/O 与原子产品）
 只经磁盘产品交换：入参只出现磁盘上的 HiPS 产品，不出现进程内对象或句柄。
 
 ## 1. 目标与范围
 
-本合同在 `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**（宿主基础设施，
+本合同在 `docs/science/IO_001_FITS_STREAM_INTERFACE.md`（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**（宿主基础设施，
 不含科学算法迁移）：给定一个 IVOA HiPS 1.4 兼容目录（Phase1/Phase2 在磁盘上产出的
 标准 HiPS 产品集或子产品目录），本合同负责：
 
@@ -30,22 +30,22 @@
    本合同对两者给同一读语义（形态由落盘名判定，调用方不感知形态）。归档形态的
    瓦片读取 = 按产品级索引定位表 `pread` 单帧解压；**覆盖查询不触碰归档字节**；
    归档形态**必须**有产品级索引，缺失即 fail-closed（不回退为扫描归档或逐瓦片探测）。
-   形态合同见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`，设计见
-   `docs/design/PRODUCT_STORAGE_FORM.md`。
+   形态合同见 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`，设计见
+   `docs/detail/PRODUCT_STORAGE_FORM.md`。
    **产品级索引路径由命名规则派生**（唯一规则，调用方不需要额外的形态或索引入参）：
    `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（同父目录）。读端不消费
    任何形态配置键（`storage_form` 是**写出侧**的 Phase1 输入配置项，不是读端入参）；
    Phase2 / Phase3 的输入合同同样不设该键（出现即 REJECT），形态一律由落盘名判定。
 
 本合同覆盖 HiPS 产品的输入读取语义；tiles 解码、投影/天球坐标转换按 P1/P2/P3 科学模块的正本执行，
-HiPS 输出/原子发布见 `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`；
+HiPS 输出/原子发布见 `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`；
 `lib/infrastructure/aio`（aio_hips_*，CFITSIO 静态链）与 `lib/infrastructure/aio/healpix_db` 按各自现行职责运行。
 
 ## 2. 模块归属与目录
 
 | 内容 | 路径 |
 | --- | --- |
-| 本合同 | `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md` |
+| 本合同 | `docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
 | HiPS 输入 C ABI | `lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h` |
 | HiPS 输入核心（C 实现、私有、DLL 内） | `lib/infrastructure/aio/io/hips_core.c` |
 | 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | `eng/tests/io/` |
@@ -56,7 +56,7 @@ HiPS 输出/原子发布见 `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`
 
 本合同读取的 HiPS 产品是 **磁盘上已发布的 HiPS 产品**，落盘形态为裸目录或 zstd 归档包（§1 第 8 条）。两档入口：
 
-- **子产品目录**（`aio_hips_*` 产线布局，`docs/architecture/ARCHITECTURE.md` §3 Phase 数据流）：
+- **子产品目录**（`aio_hips_*` 产线布局，`docs/engineering/ARCHITECTURE.md` §3 Phase 数据流）：
   `<out>/signal|support|variance|ivar/` —— 目录内含 `properties`、可选 `Moc.fits`、
   `NorderK/DirD/NpixN.fits` tile 树。子产品目录与 `properties` 同层。
 - **产品集根目录**（Phase1 输出根，含多个子产品目录）：入口接受
@@ -115,13 +115,13 @@ tile FITS 头内卡（存在时校验一致）：
 ### 3.4 科学平面（FITS-only）与 dtype
 
 - 只有 `hips_tile_format=fits` 的 tile 被接受；读 plane 走 FITS 流式接口的 `acs_fio_reader_*`。
-- 支持的 dtype：`-32`(f32)/`-64`(f64)（与 `docs/contracts/DATA_ARTIFACTS.md` 的 DATA-HIPS-* 登记一致：signal f32/f64，
+- 支持的 dtype：`-32`(f32)/`-64`(f64)（与 `docs/engineering/DATA_ARTIFACTS.md` 的 DATA-HIPS-* 登记一致：signal f32/f64，
   support f32/u8 但 HiPS 标准存 f32/f64；variance/ivar f32/f64）。u8 仅按 BITPIX=8
   读取为字节平面并以 `expected_bitpix=8` 声明（支持域内，不自动转换）。
 - 其它 BITPIX（16/32/64）→ `ACS_HIPS_ERR_TILE_INVALID`（布局不符拒绝）。
 - tile FITS 必须是 2D 图像 HDU（NAXIS=2），`NAXIS1=NAXIS2=TW`，否则布局不符拒绝。
 - 单元（BUNIT）不强制：signal 面亮度、support 无量纲[0,1]等单元语义由
-  `docs/contracts/DATA_ARTIFACTS.md` 与 `docs/contracts/DATA_SEMANTICS.md` 登记；
+  `docs/engineering/DATA_ARTIFACTS.md` 与 `docs/science/DATA_SEMANTICS.md` 登记；
   读端透出 header 供上层比对，不隐式做单位换算。
 
 ### 3.5 partial tree / MOC optional hint / 缺 tile 状态
@@ -267,7 +267,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 
 ## 9. 与相邻接口/实现的边界
 
-- FITS 流式接口（`docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md`）的 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
+- FITS 流式接口（`docs/science/IO_001_FITS_STREAM_INTERFACE.md`）的 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
 - `lib/infrastructure/aio`（aio_hips_*，CFITSIO 链）：HiPS 读写实现（writer 产线、
   reader 供浏览器）；**本合同不修改该实现**。本合同是 `lib/infrastructure/aio/io` 下与 FITS 流式接口
   同层的输入合同骨架；产线 writer 与本合同的磁盘布局合同相同（§3.3）。
@@ -275,7 +275,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 - 产物 manifest 机器形态（`eng/contracts/data/artifact_manifest.schema.json`、
   `eng/contracts/data/artifact_types.registry.json`）与 DATA-HIPS-*：科学 dtype/unit/invalid 语义权威；
   本合同只透出 header/plane，不做单位换算。
-- `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（HiPS 原子输出/manifest）：在本读端之外；本接口不实现写端。
+- `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（HiPS 原子输出/manifest）：在本读端之外；本接口不实现写端。
 - MOC 解析：读端只解析本合同支持的叶级 UNIQ 集合（BINTABLE+`UNIQ`+`MOCORDER`），
   与 `aio_hips_reader` 的 MOC 用法语义一致（optional）。
 
@@ -292,6 +292,6 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 4. 不做父 order 静默回退；也**不提供**显式父 tile 定位/层级回退接口（v1 最小合同；
    浏览器 LOD 需要时由上层按 Norder 拼接，超出本接口范围）。
 5. `tile_status` 只区分 PRESENT/MISSING/INVALID；不细分 FITS 内部错误（透传 err 文本）。
-6. u8 tile（BITPIX=8）在支持域内（support 面 u8 语义见 `docs/contracts/DATA_ARTIFACTS.md`），但 HiPS 标准
+6. u8 tile（BITPIX=8）在支持域内（support 面 u8 语义见 `docs/engineering/DATA_ARTIFACTS.md`），但 HiPS 标准
    图像产品一般存 f32/f64；f32/f64 接口读取时提升。
 7. 大数据 tile 树扫描/远程 HiPS（http）不在本接口（磁盘输入合同；网络属未来 GUI/服务层）。

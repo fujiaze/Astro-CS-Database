@@ -136,10 +136,10 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
   §2 的 **G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
   其全部公式（零改动，§6 给出等价性核对）。G1/G2（投影）属
   ALG-P3-PROJ-IMPL-001，G5（FITS 写）属 writer 域，不在本合同。
-- DATA 层: 输出张量语义 = DATA-P3-RES（docs/contracts/DATA_SEMANTICS.md
+- DATA 层: 输出张量语义 = DATA-P3-RES（docs/science/DATA_SEMANTICS.md
   §29，本任务新建）；输入 properties/tile 语义 = DATA-HIPS-001/
   DATA-TILE-001（§3 冻结）。
-- API 层: 公共消费合同 = API-P3-RSMP-001（docs/contracts/PUBLIC_API.md
+- API 层: 公共消费合同 = API-P3-RSMP-001（docs/engineering/PUBLIC_API.md
   本任务新节），登记上面 10 符号。
 
 ## 6 逐符号冻结（公式与实现等价性）
@@ -414,14 +414,14 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - 双线性采样核与 tile 寻址：Project-defined（本文件 §6.4/§6.5，SCI-P3 §5）。
 - FITS tile 读取：FITS Standard 3.0；CFITSIO（宽松许可）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
 `:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +

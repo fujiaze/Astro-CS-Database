@@ -411,5 +411,5 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 - FITS checksum：FITS Standard 3.0 §5.5（DATASUM/CHECKSUM）；CFITSIO（宽松许可）。
 - 取消/生命周期语义：Project-defined（本文件 §5/§9）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

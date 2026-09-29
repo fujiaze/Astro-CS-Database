@@ -20,7 +20,7 @@
 
 | 内容 | 路径 |
 | --- | --- |
-| 本合同 | `docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md` |
+| 本合同 | `docs/science/IO_001_FITS_STREAM_INTERFACE.md` |
 | io 服务模块骨架（README/module.yaml/CMake/占位入口） | `lib/infrastructure/aio/io/` |
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
 | FITS 流 C ABI（只被动态库 `libacsd_io.so`/`acsd_io.dll` 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
@@ -123,7 +123,7 @@ typedef struct acs_fio_trace_hooks_v1 {
 ## 9. 校验与 checksum
 
 - `acs_fio_compute_file_datadigest_v1`：**独立实现**的 FITS DATASUM 算法——按 FITS Standard 4.0
-  §DATASUM/CHECKSUM 关键字约定（条款登记与符合状态见 `docs/standards/STANDARDS_REGISTRY.md` §D.fits）
+  §DATASUM/CHECKSUM 关键字约定（条款登记与符合状态见 `docs/engineering/STANDARDS_REGISTRY.md` §D.fits）
   对数据区做 32 位 1 的补码块校验：2880 字节块、
   16-bit 大端字累加、进位回卷，返回 10 位十进制字符串；算法独立（不链接 CFITSIO）。
 
@@ -198,8 +198,8 @@ typedef struct acs_fio_trace_hooks_v1 {
 - `lib/infrastructure/aio/io` + `lib/include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（本接口的原型实现），保留。
 - `lib/infrastructure/aio/io/fits_core.c` 是本接口新增的 fits 流 C 核心（无 CFITSIO 依赖）。
 - 产物 manifest C ABI（`lib/include/astrocs/contracts/artifact_abi_v1.h`）：fits 流接口不重复其职责。
-- trace/bytes：由宿主注入 hook；本接口只覆盖 hook 契约与累计语义，trace 事件面（取值为现场观测）见 `docs/architecture/observability/RUN_GRAPH_CONTRACT.md`。
-- HiPS/manifest 输入输出（`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`）在本接口之上扩展，本接口不实现。
+- trace/bytes：由宿主注入 hook；本接口只覆盖 hook 契约与累计语义，trace 事件面（取值为现场观测）见 `docs/engineering/observability/RUN_GRAPH_CONTRACT.md`。
+- HiPS/manifest 输入输出（`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`）在本接口之上扩展，本接口不实现。
 
 ## 14. 已知限制（v1 骨架）
 

@@ -180,9 +180,9 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 
 ## 3. 数据与 API 契约
 
-- DATA 合同：DATA-GAIA-001（docs/contracts/DATA_SEMANTICS.md §6）——输入
+- DATA 合同：DATA-GAIA-001（docs/science/DATA_SEMANTICS.md §6）——输入
   XPSD 目录、输出星表行单位/dtype/shape/invalid。
-- API 合同：API-GAIA-001（docs/contracts/PUBLIC_API.md §gaia-client）——
+- API 合同：API-GAIA-001（docs/engineering/PUBLIC_API.md §gaia-client）——
   12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
 - 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md §6、
   module.yaml `source_symbols`。
@@ -270,8 +270,8 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 ## 6. ID 索引
 
 - ALG-GAIA-001（本文件）；SCI 上游 SCI-AST-001；
-- DATA-GAIA-001（docs/contracts/DATA_SEMANTICS.md §6）；
-- API-GAIA-001（docs/contracts/PUBLIC_API.md）；
+- DATA-GAIA-001（docs/science/DATA_SEMANTICS.md §6）；
+- API-GAIA-001（docs/engineering/PUBLIC_API.md）；
 - TEST-GAIA-DESIGN-001（本文 §5，设计冻结；可执行 TEST-GAIA-* 待
   CAT-GAIA-TEST）。
 
@@ -284,5 +284,5 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 - 锥搜索/球面几何：astropy（BSD-3-Clause）SkyCoord/cone search 作独立 Oracle；HEALPix 见 Górski et al. 2005。
 - 极冠平面剪枝：Project-defined（本文件 §2.5）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

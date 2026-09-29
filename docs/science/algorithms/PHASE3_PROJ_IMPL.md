@@ -428,8 +428,8 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   建库——均归 P3-PROJ-IMPL/TEST/INT，本合同层不修码。
 - 边界: 不改 vendored 第三方；不改 SCI 公式（§14）；跨域消费
   （p3_session/p3_output）只登记不修；模块页=
-  docs/modules/phase3_proj.md + registry 手写页
-  docs/modules/registry/astrocs.phase3.wcs.md。
+  docs/detail/phase3_proj.md + registry 手写页
+  docs/detail/registry/astrocs.phase3.wcs.md。
 
 ## 14 SCI 侧一致性：以独立证据判定，不预设谁为准
 
@@ -692,16 +692,16 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
-| C1 | `docs/modules/registry/astrocs.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
+| C1 | `docs/detail/registry/astrocs.phase2.write.md:51` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
-| C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
-| C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
+| C2 | `astrocs.phase2.write.md:41` / `docs/detail/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
+| C3 | `docs/science/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
-| C8 | `docs/contracts/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `astrocs_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
+| C8 | `docs/science/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `astrocs_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |
 | **C9** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:495-499,776-800` | hierarchy 归约在 **f32** 累加器上做：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；`f32_accum_repro.json` 复现发布值到 1.5e-9，float64 理想值差 2.52e-3 | **lib/** ⇒ FIX（本包只登记；修法 = `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和） |
 
 - **判据冻结**：`docs/science/PHASE3_HIPS_TO_FITS.md` §16 结论表 + 实验/engineering-evidence/ 的 `results/PREREGISTRATION*`。
@@ -717,14 +717,14 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 各投影原始定义（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）见 Paper II Table 1 及其引用（Aitoff 1889；Mollweide 1805；Lambert 1772 等）；Astro Celestial Sphere Database（ACSD） 逐式以 Paper II 为准。
 - 3D 向量 oracle：Project-defined 第一性原理推导（§15.8）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
 `:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +

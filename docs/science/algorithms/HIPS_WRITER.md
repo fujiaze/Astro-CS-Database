@@ -8,7 +8,7 @@
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
 > 实现源（逐公式锚定）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
 > （合同头 lib/infrastructure/aio/include/aio_hips.h）。
-> 数据语义权威: docs/contracts/DATA_SEMANTICS.md §12（DATA-P1-HIPS；上游 §11 DATA-P1-DRZ、
+> 数据语义权威: docs/science/DATA_SEMANTICS.md §12（DATA-P1-HIPS；上游 §11 DATA-P1-DRZ、
 > §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、§3 FITS 局部像素映射、§5 帧身份）。
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
 > （Górski et al. 2005）——经 SCI-P3-001 :120-124 收录的文献锚，本文件不另立外部断言。
@@ -34,7 +34,7 @@
 SNR/manifest 收尾（ALG-HIPS-005）。不覆盖：tile 累加产生 AstroSphereTileView 的
 drizzle 引擎公式（ALG-DRZ-001 权威）；HiPS 读侧（aio_hips_reader.cpp，P3 链）；
 IO-003 Python 发布层（原子 rename/manifest COMPLETE 语义在
-docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边界）。
+docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边界）。
 
 ## 1. ALG-HIPS-001 — 产品生命周期与叶级几何基数
 
@@ -378,7 +378,7 @@ round-trip（(5c)）。容差冻结见 §9。
 | DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；aio_hips.h:151 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | aio_hips_writer.cpp:1140-1144; aio_hips.h:151 | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
 | DISP-HIPS-002 | 中 | properties `hips_estsize="1000000"`、`hips_initial_fov="60"`（image 与 SNR 两处）硬编码占位，无真实估算/校验 | :721; :745; :954 | 按产品目录真实字节数与天区极值估算；eng/tests/io/make_hips_fixture.py:168/:170 照抄需同步 |
 | DISP-HIPS-003 | 低 | properties `hips_status` 恒 "private master"，无公开/克隆状态参数化 | :718; :931 | 参数化或确认产品定位恒私有 |
-| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写（:185-186/:251/:770）、make_dirs 无 fsync（:110-133）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（hiss_stream_writer.cpp:259-260,:644-655）但 writer 未采用 | :185-186,:251,:770,:110-133,:1086-1128; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
+| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写（:185-186/:251/:770）、make_dirs 无 fsync（:110-133）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（hiss_stream_writer.cpp:259-260,:644-655）但 writer 未采用 | :185-186,:251,:770,:110-133,:1086-1128; docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
 | DISP-HIPS-005 | 低/中 | 入参 moc_order 静默 clamp（min 与 tile_order）无告警；且 moc_order<K 时 Moc.fits 含低阶 UNIQ，而自家读侧 aio_hips_reader.cpp:166-175 仅保留 order==K——低阶 MOC 对自家 reader 无效（Moc.fits 为 optional hint，不影响覆盖判定） | :419; aio_hips_reader.cpp:166-175 | 强制 moc_order=K 或 reader 兼容低阶 UNIQ |
 | DISP-HIPS-006 | 中 | CFITSIO 裸调未包装进程级互斥锁（同库 aio_fits.cpp:502、aio_hips_reader.cpp:162-163/:620 均用 aio::cfitsio_io_mutex）——writer 写路径完全无锁；单句柄串行使用无影响，未来多句柄/多线程写同进程将静默竞争（现生产链=drizzle 合并后单线程写，astro_sphere_sink.cpp:97，暂无并发场景） | aio_hips_writer.cpp 全文件无 mutex | 统一包装 mutex 或显式登记单句柄使用约束 |
 | DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−9（含 ABI 不匹配 −9，V11-N-01）vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | :398/:426/:573, :513/:521/:632/:648/:658/:1036-1072, :1007-1016 | 集中枚举 + 头文件公开 |
@@ -423,5 +423,5 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 - MOC/properties：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
 - dtype/精度与 hierarchy 聚合：Project-defined（本文件 §2/§4/§8）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

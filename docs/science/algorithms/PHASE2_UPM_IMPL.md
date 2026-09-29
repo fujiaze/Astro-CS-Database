@@ -502,7 +502,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - TEST：TEST-P2-UPM-001（fit 面）/ TEST-P2-UPM-002（apply 面）
   ——设计冻结=本文档 §12；可执行 MISSING 归 P2-UPM-TEST。
 - MOD：astrocs.p2.upm（fit/apply 两模块页
-  docs/modules/registry/astrocs.phase2.upm-fit.md /
+  docs/detail/registry/astrocs.phase2.upm-fit.md /
   astrocs.phase2.upm-apply.md）。
 
 ## 17 追溯
@@ -528,7 +528,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - 共轭梯度（C 更新）：Hestenes & Stiefel 1952, J. Res. NBS 49, 409。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

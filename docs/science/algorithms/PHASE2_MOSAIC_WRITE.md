@@ -12,7 +12,7 @@
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
 > no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
 > 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS）、
-> API-P2-001（docs/api/PHASE2_API_V1.md）+ PUBLIC_API Phase2 mosaic write 节、
+> API-P2-001（docs/engineering/PHASE2_API_V1.md）+ PUBLIC_API Phase2 mosaic write 节、
 > 模块 MOD-astrocs-phase2-hips-writer（registry 现状实测 astrocs.phase2.write.md =
 > MOD-astrocs-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=astrocs.phase2.write 现状域）。
@@ -417,14 +417,14 @@ main(stage2.json, CLI overrides):
 - DATA: DATA-P2-INT（integrated，registry astrocs.phase2.integrate.md:43）、
   DATA-P2-RES（mosaic，astrocs.phase2.write.md:23）；逐字段唯一权威见
   DATA_SEMANTICS §20。
-- API: API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权/并发合同）+
+- API: API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN，所有权/并发合同）+
   PUBLIC_API Phase2 mosaic write 节（生产入口 = `acsd phase2 run` 编排；
   本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。
 - 模块: MOD-astrocs-phase2-hips-writer（registry 现状实测
   astrocs.phase2.write.md，module_id=astrocs.phase2.write，execution_class=io；
   对齐归 P2-HIPS-INT，见 §11.6）。
-- IO: IO-002（docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md，读输入）、
-  IO-003（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，发布层，
+- IO: IO-002（docs/science/IO_002_HIPS_INPUT_INTERFACE.md，读输入）、
+  IO-003（docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，发布层，
   DISP-P2HIPS-003 承接方）。
 - 相邻不改: aio_hips_reader.cpp（P3/HIPS_VERIFY 后端）、
   lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp（P1 写通道）、
@@ -462,7 +462,7 @@ main(stage2.json, CLI overrides):
 |---|---|---|---|---|
 | DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费逐样本 ivar（生产权重 = Phase2 按该天球像素对应帧集合现场算出的派生量）但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1067-1073）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1067-1073 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
 | DISP-P2HIPS-002 | 中 | input_manifest_hash 与 model_hash 仅进入 UPM 持久层与 diagnostics.json，未写入 HiPS properties/manifest.json——全文件 `aio_hips_set_drizzle_provenance` grep 零命中（实测 0 处），provenance 链断在 products 元数据层，跨 run 溯源依赖 run 目录约定 | stage2.cpp:245; :427-430; :1746; 全文件 grep 零命中 | P2-HIPS-INT 经 writer provenance 通道接线（aio_hips.h provenance API），不改 SCI |
-| DISP-P2HIPS-003 | 低 | stage2 直写 cfg.out_hips（aio_hips_product_begin :592），无 staging 目录；原子发布语义依赖 IO-003 Python 发布层（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）在编排层承接，stage2 单体运行时无该保护；与 writer 层 DISP-HIPS-004 同源 | stage2.cpp:592; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P2-HIPS-INT 编排层接线（与 DISP-HIPS-004 整改同域） |
+| DISP-P2HIPS-003 | 低 | stage2 直写 cfg.out_hips（aio_hips_product_begin :592），无 staging 目录；原子发布语义依赖 IO-003 Python 发布层（docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）在编排层承接，stage2 单体运行时无该保护；与 writer 层 DISP-HIPS-004 同源 | stage2.cpp:592; docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P2-HIPS-INT 编排层接线（与 DISP-HIPS-004 整改同域） |
 | DISP-P2HIPS-004 | 低 | 覆盖帧探测逐 tile 逐帧 aio_hips_read_tile_f32 probe，n 帧×n_tile 次重复 FITS 读，大 N 输入时 I/O 放大（O(T·N) probe）；无 MOC 缓存探测 | stage2.cpp:663-668 | P2-HIPS-IMPL 引入逐帧 MOC/tile 集合缓存（coverage 层已有逐帧 tile 列表可复用，ALG-COV-001 输出） |
 
 ### 11.4 TEST-P2-HIPS-001 设计冻结（MISSING，可执行测试归 P2-HIPS-TEST）
@@ -517,5 +517,5 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - FITS 关键字/写出：FITS Standard 3.0；CFITSIO（宽松许可）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
