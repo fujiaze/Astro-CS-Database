@@ -43,8 +43,6 @@
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
 | CON-SYMBOL-DIM-UNIQUE | 合同一致性 | 符号量纲唯一性门：同一符号在全仓只指一个量纲。三条子判据为定义站点量纲代数求值 / 显式量纲断言 / 共现短语判据（带否定式豁免，避免把正确的消歧写法判红）。 |
 | CON-SYMBOL-DIM-UNIQUE-SELFTEST | 合同一致性 | 上项的可执行正/负例面（含恒真守卫、判别力守卫与恒假守卫三类）。 |
-| CHK-PLATFORM-SYSLIB-LINKS | 构建一致性 | 系统库链接面平台判断唯一性：三方共用件 `astrocs_platform_{math,pthread,zlib}` 只在根 `CMakeLists.txt` 的标记区块声明一次；全仓任何链接语句（`target_link_libraries` / `list(APPEND *_LINK*)` / `set(*_LINK*)` / `find_library`）不得出现裸 `m`/`pthread`/`z`；平台条件块内亦不得出现（堵「换个 if 再写一遍」第二形态）；`find_library(... NAMES …)` 候选发现面豁免。Windows 实测根因（`LNK1104: cannot open file 'm.lib'`）的可回归判据 | `python3 eng/ci/check_platform_syslib_links.py --json` | P0 |
-| CHK-PLATFORM-SYSLIB-LINKS-SELFTEST | 构建一致性 | 上项的可执行正/负例面（7 例：引用共用件必绿；裸 `m` / `if(UNIX)`+裸 `m` / `list(APPEND … z)` / 共用件重复声明 / 唯一判定点标记缺失 各自必红） | `python3 eng/ci/check_platform_syslib_links.py --self-test` | P0 |
 | CHK-FROZEN-STRING-DISAMBIG | 文档一致性 | 冻结串一致性门：冻结串在 schema 常量、登记表与示例三处必须逐字相同（改写即重新冻结，须走变更流程）；其单位读法消歧说明必须在位并逐字含冻结串、单位读法、数值反例与逐字冻结条款。 |
 | CHK-FROZEN-STRING-DISAMBIG-SELFTEST | 文档一致性 | 上项的可执行正/负例面（含判别力自检：删去消歧段后必须精确判红，其余子判据保持绿）。 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | `python3 eng/ci/run_checks.py --check CHK-STALE-DOC --quiet` | P1 |
