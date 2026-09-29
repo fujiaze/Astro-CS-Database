@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
 
 > 实现源: lib/algorithms/coverage/src/rejection.cpp（2962 行，astrocs_phase2 静态库
-> 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
+> 成员，根 CMakeLists.txt:337-344/:340）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
 > （docs/science/REJECTION.md，FROZEN，集合

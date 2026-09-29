@@ -1198,7 +1198,7 @@ registry descriptor 像素登记面）。
 > shape 唯一权威）；ALG: ALG-P2-INT-001（docs/science/algorithms/
 > PHASE2_INTEGRATION.md，逐符号锚与并行 tolerance 合同）；MOD:
 > astrocs.p2.integration（目标 DLL = astrocs_p2_integration.dll；descriptor 占位 module_id=astrocs.phase2.
-> integrate 为编排层词汇，module_adapters.cpp:719-737。
+> integrate 为编排层词汇，module_adapters.cpp:719-736。
 
 ### 导出符号与签名要点（integrate.h:58-65，冻结）
 

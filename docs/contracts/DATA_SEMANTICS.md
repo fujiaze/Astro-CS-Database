@@ -2288,7 +2288,7 @@ source_hash=model_hash stale 判定）。sparse 与 dense 同一科学语义
 char[65] SHA-256，h:67）。
 
 **(2) calibrated_frames**（DATA-P2-CAL 域，descriptor 端口词汇
-module_adapters.cpp:689）: 逐帧 signal f64 数组 input_signal[count]
+module_adapters.cpp:690）: 逐帧 signal f64 数组 input_signal[count]
 + frame_id（u64，模型 frames[] 绑定成员，DATA-FRAME-ID-001 身份）+
 leaf_ipix[count]（NESTED leaf 像素，tile=leaf>>18，tile_shift=9，
 :1254/:1258）。dtype=FP64；单位=ADU（§25.3 口径）。生产消费链=

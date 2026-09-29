@@ -173,6 +173,12 @@
       "basename": "module_entry.cpp",
       "path": "lib/algorithms/drizzle/src/module_entry.cpp",
       "why": "DISP-P3RSMP-006 行自述「drizzle 先例 module_entry.cpp:971 的 n_rejected_nonfinite」；全仓 5 个 module_entry.cpp 中只有 lib/algorithms/drizzle/src/module_entry.cpp:971 是 \"n_rejected_nonfinite\" 聚合键，其余 4 个该行无此键"
+    },
+    {
+      "doc": "docs/science/CALIBRATION.md",
+      "basename": "cosmetic_corrector.cpp",
+      "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
+      "why": "BASENAME-AMBIGUOUS 消歧：CALIBRATION.md §12 的 ALG-CAL-004 行自述「cc_* 命名属已退役通道，不在任何 CMake 目标内」——同名另一候选 lib/algorithms/calibration/cpp/cosmetic_corrector.cpp 正是该退役通道（全仓无 add_library/add_subdirectory 引用它，根 CMakeLists.txt:624 与 lib/algorithms/calibration/CMakeLists.txt:23 的生产源均为 src/）；锚 :119/:140/:161 逐字命中生产源 detect_hot_pixels/detect_cold_pixels/interpolate_pixels 定义行 ⇒ 生产唯一源。同 COSMETIC_ALGORITHMS.md / CALIBRATION_ALGORITHMS.md 两条既有规则"
     }
   ],
   "exemptions": [

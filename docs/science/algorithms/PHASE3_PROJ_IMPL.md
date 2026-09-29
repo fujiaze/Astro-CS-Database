@@ -355,7 +355,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - 内核纯函数: p3_wcs.cpp grep 实测 0 处 thread/mutex/atomic/omp、
   0 处全局可变状态（匿名命名空间常量+纯函数 :12-28）——const-only
   入口（descriptor 只读）多线程并发安全，descriptor parallel_ok=
-  true（module_adapters.cpp:410-427 占位）与此结构性一致。
+  true（module_adapters.cpp:411-427 占位）与此结构性一致。
 - RT-006（线程泄漏守卫）由"无内部线程+无全局可变状态"结构性满足；
   depends_on_int 矩阵值 ABI-005;DATA-004;RT-006 之 RT-006 锚本节。
 - 并行仅上游采样 worker 池（p3_session.cpp:247-253，worker 数=
@@ -383,7 +383,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - descriptor 占位词汇（module_id=astrocs.phase3.wcs、sci_id=
   SCI-P3-WCS-001、alg_id=ALG-P3-002、test_id=TEST-P3-WCS-001、
   端口 props(DATA-P3-PROPS 必)+wcs_plan(DATA-P3-WCS 可)）为编排层
-  词汇（module_adapters.cpp:410-427），由 P3-PROJ-INT 对齐
+  词汇（module_adapters.cpp:411-427），由 P3-PROJ-INT 对齐
   astrocs.p3.projection；冻结依据唯一 = 本合同。
 
 ## 12 TEST-P3-WCS-DESIGN-001 设计冻结（登记面 VERIFIED）
@@ -696,7 +696,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:100` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:1166-1188` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
-| C3 | `docs/contracts/DATA_SEMANTICS.md:1114` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
+| C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_export.cpp` **未进构建**（`grep -c p3_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；§6.3 生效与否以接线实测为准） |
 | **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
