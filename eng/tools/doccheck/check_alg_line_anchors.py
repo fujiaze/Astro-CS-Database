@@ -19,8 +19,12 @@
                        git 不可用 ⇒ 判红（无法判定锚目标是否 tracked）。
   L1 count_mismatch    行数锚 `<file>（N 行` 的 N 必须 == 目标文件实测行数（去尾换行）。
                        作用域 = DOC_GLOB（现 docs/**/*.md，含 docs/contracts、docs/modules）。
-  L3 symbol_drift      逐符号表中「列头声明了文件」的锚：该行首列符号必须逐字出现在
-                       该锚的行范围内。符号整体不在目标文件 ⇒ L3 symbol_absent。
+  L3 symbol_drift      逐符号表中「列头声明了文件」的锚：该行首列符号必须作为**代码 token**
+                       出现在该锚的行范围内（口径见下方「L3 匹配规则」）。符号整体不在目标
+                       文件 ⇒ L3 symbol_absent。
+  L3 prose_only        符号只在区间的**注释/字符串**里出现（散文命中）⇒ 判红：该锚没有指向
+                       符号的实现站点，属「无区分力锚」。旧口径（区间原文子串）对这一形态
+                       静默判绿——实测两例见下方「L3 匹配规则」。
                        作用域 = SYMBOL_GLOB（**有意保持** docs/science/algorithms/*.md，见常量注释）。
   L1b bare_range_oob    **邻接**裸行号锚（紧贴文件名的 `file:N` / `file:N-M`，含 :N-M 裸写形态）必须
                        1 <= start <= end <= 目标文件实测行数。作用域 = DOC_GLOB。
@@ -93,6 +97,113 @@ IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)?$")
 ARCHIVE_MARKERS = ("/archive/", "/legacy/", "/.git/", "/third_party/",
                    "/build/", "/out/", "/run/", "/worktrees/")
 BT = chr(96)
+
+# ---- L3 匹配规则（「有区分力」的唯一口径；FINAL-07 收紧，只加严不放松） ----
+# 旧口径 = 符号子串出现在**区间原文**里即判绿。两处实测假绿（同一张表、同一棵树）：
+#   `INVALID_INPUT :2045-2054`：区间内只有 :2051 的**注释**提到该字样，而实现站点在 :2060；
+#   `INVALID_METHOD :2020-2033（status :2037）`：status 赋值在 :2040，区间内只有 :2030 的注释命中。
+# ⇒ 旧口径对「锚停在散文上」的形态没有判别力（无区分力 token 的等价形态）。
+# 新口径两步：① 先剥掉注释与字符串字面量（code_lines）；② 再要求标识符**段**命中
+# （sym_in_code 三种形态，皆为**代码内**逐字可复测的标识符，不是散文 token）：
+#   ① 本形：匹配段两侧不得再是 [A-Za-z0-9]，下划线计边界 ⇒ `MIN_SAMPLES` 命中
+#      `P2_STATUS_MIN_SAMPLES`；
+#   ② 前缀族：以 `_` 结尾者按前缀匹配 ⇒ `P2_SEMANTIC_` 命中 `P2_SEMANTIC_NONE`；
+#   ③ 形态族：严格小驼峰字段名（`^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+$`）额外接受其
+#      snake_case 写法 ⇒ 字段 `maxStars` 命中其传递参数 `max_stars`（同一实体在代码里的
+#      两种拼写；实测例 = STAR_DETECTION_ALGORITHMS.md:279 的截断段 `sdet_emit_records`，
+#      其区间内只有参数 `max_stars`，字段名本身只出现在注释里）。
+#      形态族**不**放行散文：snake 形态同样必须落在代码行，否则仍判 L3_prose_only。
+# 命中仅落在注释/字符串 ⇒ L3_prose_only。
+# 不覆盖（如实声明）：本规则不判首列 token 的**语义歧义**（`OK` 与 `P2_STATUS_OK` 视为同段，
+# 这是本表头「首列 = 文档侧状态名」的既有约定）；残余风险 = 区间内出现同段名的**其他**标识符，
+# 实测本仓 0 例。
+C_LIKE_EXT = ("c", "cc", "cpp", "cxx", "h", "hh", "hpp", "in")
+HASH_COMMENT_EXT = ("cmake", "ps1", "py", "sh", "yaml", "yml")
+
+
+def _skip_literal(line, i):
+    """跳过 line[i] 起的字符串字面量，返回其后的下标（未闭合则到行尾）。"""
+    quote = line[i]
+    j = i + 1
+    while j < len(line):
+        if line[j] == "\\":
+            j += 2
+            continue
+        if line[j] == quote:
+            return j + 1
+        j += 1
+    return len(line)
+
+
+def code_lines(path, body):
+    """剥掉注释与字符串字面量后的行文本；非源码扩展名原样返回（无注释语法）。"""
+    ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+    if ext not in C_LIKE_EXT and ext not in HASH_COMMENT_EXT:
+        return list(body)
+    out = []
+    in_block = False
+    for line in body:
+        buf = []
+        i = 0
+        if ext in C_LIKE_EXT:
+            while i < len(line):
+                if in_block:
+                    j = line.find("*/", i)
+                    if j < 0:
+                        i = len(line)
+                        break
+                    in_block = False
+                    i = j + 2
+                    continue
+                if line.startswith("//", i):
+                    break
+                if line.startswith("/*", i):
+                    in_block = True
+                    i += 2
+                    continue
+                if line[i] in "\"'":
+                    i = _skip_literal(line, i)
+                    continue
+                buf.append(line[i])
+                i += 1
+        else:
+            while i < len(line):
+                if line[i] in "\"'":
+                    i = _skip_literal(line, i)
+                    continue
+                if line[i] == "#":
+                    break
+                buf.append(line[i])
+                i += 1
+        out.append("".join(buf))
+    return out
+
+
+CAMEL_RE = re.compile(r"^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+$")
+
+
+def snake_form(sym):
+    """严格小驼峰字段名 -> 其 snake_case 写法；非该形态返回 None（口径见「L3 匹配规则」）。"""
+    if not CAMEL_RE.match(sym):
+        return None
+    return re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", sym).lower()
+
+
+def sym_in_code(sym, text):
+    """符号在**代码文本**里的标识符段/前缀族/形态族命中（口径见上方「L3 匹配规则」）。"""
+    cands = [sym]
+    snake = snake_form(sym)
+    if snake and snake != sym:
+        cands.append(snake)
+    for cand in cands:
+        prefix_family = cand.endswith("_")
+        for m in re.finditer(re.escape(cand), text):
+            if m.start() > 0 and text[m.start() - 1].isalnum():
+                continue
+            if not prefix_family and m.end() < len(text) and text[m.end()].isalnum():
+                continue
+            return True
+    return False
 
 
 def read_lines(path):
@@ -246,6 +357,7 @@ def scan_doc(root, doc, basename_index, tracked_set, symbol_scope=True):
                     if path is None:
                         continue
                     body = read_lines(os.path.join(root, path))
+                    code = code_lines(path, body)
                     for m in RANGE_RE.finditer(cells[k]):
                         s0 = int(m.group(1))
                         e0 = int(m.group(2) or m.group(1))
@@ -258,8 +370,17 @@ def scan_doc(root, doc, basename_index, tracked_set, symbol_scope=True):
                             findings.append({"code": "L2_range_out_of_bounds",
                                              "detail": "%s:%d %s -> %s has %d lines"
                                                        % (doc, j + 1, rec["raw"], path, len(body))})
-                        elif any(sym in b for b in body[s0 - 1:e0]):
+                        elif any(sym_in_code(sym, b) for b in code[s0 - 1:e0]):
                             rec["status"] = "OK"
+                        elif any(sym in b for b in body[s0 - 1:e0]):
+                            hits = [q + 1 for q, b in enumerate(code) if sym_in_code(sym, b)]
+                            rec["status"] = "PROSE_ONLY"
+                            rec["actual_lines"] = hits[:6]
+                            findings.append({"code": "L3_prose_only",
+                                             "detail": "%s:%d sym=%s %s:%d-%d 区间内仅注释/字符串"
+                                                       "命中（散文命中无区分力；实现站点不在该区间，"
+                                                       "实测代码行 %s）"
+                                                       % (doc, j + 1, sym, path, s0, e0, hits[:6])})
                         elif any(sym in b for b in body):
                             hits = [q + 1 for q, b in enumerate(body) if sym in b]
                             rec["status"] = "SYMBOL_DRIFT"
@@ -377,6 +498,63 @@ _SYNTH_DOC = """# SYNTH ALG
 _SYNTH_H = "// synth.h\nint p2_synth_run(void);\nstatic const int kSynthMagic = 7;\n// end\n"
 _SYNTH_CPP = "// synth.cpp\nstatic const int kSynthMagic = 7;\nint p2_synth_run(void) {\n  return kSynthMagic;\n}\n"
 
+# N9 夹具（FINAL-07 收紧后的 L3 匹配规则）：同名符号同时有「注释里的散文命中」（:2）
+# 与「代码站点」（:3 定义 / :3-4 使用），用来证明「散文命中不构成绑定」既有判别力、
+# 又不误伤前缀族写法（`P2_SEMANTIC_` 形态）。
+_SYNTH_CPP_PROSE = ("// synth.cpp\n"
+                    "// 说明: kSynthMagic 取 7（本行是注释，不是实现站点）\n"
+                    "static const int kSynthMagic = 7;\n"
+                    "int p2_synth_run(void) {\n"
+                    "  return kSynthMagic;\n"
+                    "}\n")
+_SYNTH_DOC_PROSE = """# SYNTH ALG
+
+> 模块: lib/x/synth.cpp（6 行）+ 头 lib/x/synth.h（4 行，实测 2026-01-01）
+
+| 符号 | 声明（synth.h） | 实现（synth.cpp） | 语义 |
+|---|---|---|---|
+| kSynthMagic | :3 | :2 | 常量（负例：锚停在注释行） |
+
+> 邻接裸行号锚（L1b）: lib/x/synth.cpp:3-6（入口实现区）。
+"""
+_SYNTH_DOC_CODE = _SYNTH_DOC_PROSE.replace(
+    "| :2 |", "| :3 |").replace("常量（负例：锚停在注释行）", "常量（正例：锚在代码站点）")
+_SYNTH_DOC_FAMILY = _SYNTH_DOC_CODE.replace(
+    "| kSynthMagic | :3 | :3 | 常量（正例：锚在代码站点） |",
+    "| kSynthMagic | :3 | :3 | 常量（正例：锚在代码站点） |\n"
+    "| p2_synth_ | :2 | :4-5 | 前缀族（形如 P2_SEMANTIC_ 命中 P2_SEMANTIC_NONE） |")
+
+
+# N10 夹具（形态族）：字段名 maxStars 只作为**注释**出现于实现文件，代码里只有其
+# 传递参数 max_stars（同一实体的 snake_case 拼写）。证明形态族①接受代码内的另一拼写、
+# ②不放行散文命中、③不放行符号缺失。
+_SYNTH_H_CAMEL = "// synth.h\nlong long maxStars;\n// end\n"
+_SYNTH_CPP_CAMEL = ("// synth_camel.cpp\n"
+                    "static long long sanitize(long long max_stars) {\n"
+                    "    if (max_stars < 0) return 0;\n"
+                    "    return max_stars;\n"
+                    "}\n")
+_SYNTH_CPP_CAMEL_PROSE = ("// synth_camel.cpp\n"
+                          "// 说明: maxStars 在输出段截断（本行是注释）\n"
+                          "static long long sanitize(long long v) {\n"
+                          "    return v;\n"
+                          "}\n")
+_SYNTH_CPP_CAMEL_NONE = ("// synth_camel.cpp\n"
+                         "// 说明: 与统计无关\n"
+                         "static long long sanitize(long long v) {\n"
+                         "    return v;\n"
+                         "}\n")
+_SYNTH_DOC_CAMEL = """# SYNTH ALG
+
+> 模块: lib/x/synth.cpp（5 行）+ 头 lib/x/synth.h（3 行，实测 2026-01-01）
+
+| 符号 | 声明（synth.h） | 实现（synth.cpp） | 语义 |
+|---|---|---|---|
+| maxStars | :2 | :2-4 | 形态族（字段 maxStars vs 传递参数 max_stars） |
+
+> 邻接裸行号锚（L1b）: lib/x/synth.cpp:2-4（形态族代码站点）。
+"""
+
 
 def _write(root, rel, text):
     p = os.path.join(root, rel)
@@ -471,7 +649,30 @@ def self_test():
         _write(root, "docs/science/algorithms/SYNTH.md",
                _SYNTH_DOC + "\n> 旁证 lib/x/synth.cpp:1-5 与 lib/x/synth.h:2（均为实测界内）。\n")
         expect("N8'' 恢复后回绿", root, "PASS")
+        # N9 L3「有区分力」口径：符号只在**注释**里出现 ⇒ 必红（L3_prose_only，旧口径假绿）；
+        #   锚改到代码站点 ⇒ 回绿；前缀族符号（以 _ 结尾）在代码站点 ⇒ 绿（防新口径误伤）。
+        _write(root, "lib/x/synth.cpp", _SYNTH_CPP_PROSE)
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC_PROSE)
+        expect("N9 散文命中（锚停在注释行）", root, "FAIL", "L3_prose_only")
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC_CODE)
+        expect("N9' 锚改到代码站点后回绿", root, "PASS")
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC_FAMILY)
+        expect("N9'' 前缀族符号（P2_SEMANTIC_ 形态）不误伤", root, "PASS")
+        _write(root, "lib/x/synth.cpp", _SYNTH_CPP)
         _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
+        # N10 形态族（camelCase 字段 vs snake_case 传递参数）
+        _write(root, "lib/x/synth.h", _SYNTH_H_CAMEL)
+        _write(root, "lib/x/synth.cpp", _SYNTH_CPP_CAMEL)
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC_CAMEL)
+        expect("N10 形态族（代码内 snake 拼写）", root, "PASS")
+        _write(root, "lib/x/synth.cpp", _SYNTH_CPP_CAMEL_PROSE)
+        expect("N10' 形态族只命中注释", root, "FAIL", "L3_prose_only")
+        _write(root, "lib/x/synth.cpp", _SYNTH_CPP_CAMEL_NONE)
+        expect("N10'' 形态族符号缺失", root, "FAIL", "L3_symbol_absent")
+        _write(root, "lib/x/synth.h", _SYNTH_H)
+        _write(root, "lib/x/synth.cpp", _SYNTH_CPP)
+        _write(root, "docs/science/algorithms/SYNTH.md", _SYNTH_DOC)
+        expect("N10''' 恢复后回绿", root, "PASS")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -483,7 +684,8 @@ def self_test():
         for f in fails:
             print("  " + f)
         return 1
-    print("ALG_LINE_ANCHORS_SELFTEST_PASS: %d 组（正例 1 + 负例/恢复 6 类）全部符合预期" % len(checks))
+    print("ALG_LINE_ANCHORS_SELFTEST_PASS: %d 组（正例/负例/恢复三态；含 L3 散文命中、"
+          "前缀族、形态族三个判别力用例）全部符合预期" % len(checks))
     return 0
 
 
