@@ -814,8 +814,12 @@ class TestRegistryIndex(unittest.TestCase):
         reg = load(REPO / REGISTRY_REL)
         m = load(REPO / "eng/contracts/data/unified_object_compatibility_map_v1.json")
         rows = {r["legacy_id"]: r for r in m["legacy_contract_id_map"]}
+        # docs/detail/ 是 docs/modules/ 的迁入面：registry 的 old_contract_face 已被迁移改写到
+        # docs/detail/*.md 与 docs/detail/registry/*，白名单未同步 ⇒ 70 条证据里 36 条不匹配（假红）。
+        # docs/modules/MODULE_MAP.yaml 保留：MODULE_MAP.yaml 是 .yaml，未随 .md 迁出，仍真实存在于旧位。
         allowed = ("docs/science/DATA_SEMANTICS.md", "docs/engineering/PUBLIC_API.md",
-                   "docs/engineering/DATA_ARTIFACTS.md", "docs/modules/MODULE_MAP.yaml",
+                   "docs/engineering/DATA_ARTIFACTS.md", "docs/detail/",
+                   "docs/modules/MODULE_MAP.yaml",
                    "docs/modules/registry/", "docs/modules/", "docs/traceability/TRACEABILITY_MATRIX")
         for e in reg["legacy_contract_ids"]["entries"]:
             lid = e["legacy_id"]
