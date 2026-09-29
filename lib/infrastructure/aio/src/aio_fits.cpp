@@ -11,6 +11,7 @@ extern "C" int aio_internal_is_fp64();
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -158,8 +159,56 @@ static int parse_fits_header(FILE *fp, FITSHeader &hdr) {
             else if (key == "NAXIS1") hdr.naxis1 = std::atoi(kw.value);
             else if (key == "NAXIS2") hdr.naxis2 = std::atoi(kw.value);
             else if (key == "NAXIS3") hdr.naxis3 = std::atoi(kw.value);
-            else if (key == "BSCALE") { try { hdr.bscale = std::stod(kw.value); } catch (...) {} }
-            else if (key == "BZERO") { try { hdr.bzero = std::stod(kw.value); } catch (...) {} }
+            // BSCALE/BZERO 是**数值变换**关键字, 不是描述性元数据: 读入后物理值
+            // = BSCALE*样本 + BZERO (DATA-IMG-RAW-001 / DATA-IMG-CAL-001, 读时
+            // 已施加; ADU 域冻结定义 docs/science/CALIBRATION.md)。因此解析失败
+            // **不能**静默落缺省 —— 那会让读路径的
+            // "if (bscale != 1.0 || bzero != 0.0)" 缩放守卫判假而整幅跳过缩放,
+            // 像素以错比例 (原始 ADU) 进入 M42 端到端数值, 且不产生任何日志
+            // (INFO 缩放日志位于该守卫内, 同样被跳过), 非法输入与"文件本就没有
+            // BSCALE" 完全不可区分。
+            //
+            // 口径: 损坏头的既有失败路径 = aio_log(AIO_LOG_ERROR) + return -1
+            // (同本函数 :129 头读不完整、:177/:181/:185 NAXIS 超限), 调用方
+            // (:803 / :959) 据此 fclose+return -1, 故本模块对调用方是"输入不可用"。
+            // 仅捕获 std::invalid_argument / std::out_of_range —— 不吞
+            // std::bad_alloc 等非解析性失败 (旧 catch(...) 会把它们一并吞掉)。
+            //
+            // 另拒非有限值: std::stod 接受 "NAN"/"INF" 而不抛异常, 若放行则
+            // bscale=NaN 会静默通过 != 1.0 守卫并把整幅像素污染为 NaN, 与本缺陷
+            // 同一失效面。FITS 4.0 §4.4.2.5 规定 BSCALE 为有限实数。
+            //
+            // 合法缺省 (无 BSCALE 关键字) 不变: 保持 :117-118 初值 1.0/0.0,
+            // 缩放守卫判假即恒等 —— 这是标准规定的缺省, 非解析失败。
+            else if (key == "BSCALE" || key == "BZERO") {
+                double sv = 0.0;
+                try {
+                    size_t idx = 0;
+                    sv = std::stod(kw.value, &idx);
+                    // 尾随垃圾 (如 "2.0abc"): stod 不抛异常但只消费前缀 -> 视同非法
+                    while (idx < std::strlen(kw.value) &&
+                           std::isspace((unsigned char)kw.value[idx])) ++idx;
+                    if (idx != std::strlen(kw.value)) {
+                        aio_log(AIO_LOG_ERROR, "FITS",
+                                "Malformed %s value '%s': trailing garbage", key.c_str(), kw.value);
+                        return -1;
+                    }
+                } catch (const std::invalid_argument &) {
+                    aio_log(AIO_LOG_ERROR, "FITS",
+                            "Malformed %s value '%s': not a number", key.c_str(), kw.value);
+                    return -1;
+                } catch (const std::out_of_range &) {
+                    aio_log(AIO_LOG_ERROR, "FITS",
+                            "Malformed %s value '%s': out of range", key.c_str(), kw.value);
+                    return -1;
+                }
+                if (!std::isfinite(sv)) {
+                    aio_log(AIO_LOG_ERROR, "FITS",
+                            "Malformed %s value '%s': not finite", key.c_str(), kw.value);
+                    return -1;
+                }
+                if (key == "BSCALE") hdr.bscale = sv; else hdr.bzero = sv;
+            }
         }
     }
 
