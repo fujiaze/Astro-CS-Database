@@ -207,7 +207,7 @@ find_package(OpenMP)
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_unshuffle_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_unshuffle_test PRIVATE z m Threads::Threads)
+target_link_libraries(gaia_unshuffle_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
 add_test(NAME gaia_unshuffle COMMAND gaia_unshuffle_test)
 
 add_executable(io_adapter_test io_adapter_test.cpp)
@@ -225,15 +225,13 @@ add_test(NAME io_ownership COMMAND io_ownership_test)
 add_executable(io_reentrant_test io_reentrant_test.cpp)
 target_include_directories(io_reentrant_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/third_party/cfitsio)
-if(MSVC AND ACS_ZLIB_ROOT)
-  # HOSTFIX (WIN-BUILD LNK1104): 不可硬编码 libz.lib —— fatduck 本机 zlib-msvc
-  # 布局是 libz.lib, hosted runner 的 vcpkg x64-windows-static-md 实际产物是
-  # zs.lib/zlib.lib; 父 CMakeLists 的 ACS_ZLIB_LIBRARY (ACS_ZLIB_LIB 注入 /
-  # find_library z/libz/zlib/zlibstatic/zs) 是唯一已解析的 zlib 库路径, 直接复用。
-  target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio "${ACS_ZLIB_LIBRARY}")
-else()
-  target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio z m)
-endif()
+# HOSTFIX (WIN-BUILD LNK1104): 不可硬编码 libz.lib —— fatduck 本机 zlib-msvc
+# 布局是 libz.lib, hosted runner 的 vcpkg x64-windows-static-md 实际产物是
+# zs.lib/zlib.lib; 父 CMakeLists 的 ACS_ZLIB_LIBRARY (ACS_ZLIB_LIB 注入 /
+# find_library z/libz/zlib/zlibstatic/zs) 是唯一已解析的 zlib 库路径, 直接复用。
+# 链接面的平台判断收在共用件 astrocs_platform_zlib / astrocs_platform_math（根
+# CMakeLists 唯一判定点）⇒ 本处不再写 if(MSVC)/else 两套口径。
+target_link_libraries(io_reentrant_test PRIVATE astrocs_cfitsio astrocs_platform_zlib astrocs_platform_math)
 add_test(NAME io_reentrant COMMAND io_reentrant_test)
 
 # B13-R13-3: executor observed_provider_ 数据竞争回归 (TSAN 可复现:
@@ -935,7 +933,7 @@ add_test(NAME p15_artifact_collect COMMAND p15_artifact_collect_test)
 # ----------------------------------------------------------------------------
 set(GAIA_CAT_DATA ${CMAKE_CURRENT_BINARY_DIR}/gaia_cat_test_data)
 add_executable(gaia_xpsd_fixture_gen gaia_xpsd_fixture_gen.c)
-target_link_libraries(gaia_xpsd_fixture_gen PRIVATE z m)
+target_link_libraries(gaia_xpsd_fixture_gen PRIVATE astrocs_platform_zlib astrocs_platform_math)
 set(GAIA_CAT_CLEAN ${GAIA_CAT_DATA}/cat/clean)
 set(GAIA_CAT_TRUNC ${GAIA_CAT_DATA}/cat/truncdb)
 set(GAIA_CAT_FIXTURES
@@ -972,7 +970,10 @@ foreach(gt gaia_cat_test gaia_cat_polar_ref)
   if(OpenMP_C_FOUND)
     target_link_libraries(${gt} PRIVATE OpenMP::OpenMP_C)
   endif()
-  target_link_libraries(${gt} PRIVATE z m Threads::Threads)
+  # gaia_client.c (直编入本用例) 以 <zlib.h> 消费 zlib; 包含面由 gaia 模块的
+  # astrocs_gaia_zlib_include 携带 (口径 = eng/cmake/cfitsio_platform.cmake 的
+  # 合同两条注入布局; 不靠系统 /usr/include 兜底 —— 那在 Windows 上不存在)。
+  target_link_libraries(${gt} PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads astrocs_gaia_zlib_include)
   add_dependencies(${gt} gaia_cat_fixtures)
 endforeach()
 
@@ -1024,7 +1025,10 @@ target_include_directories(gaia_adapter_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_adapter_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_adapter_test PRIVATE z m Threads::Threads)
+# gaia_client.c (本用例直编) 以 <zlib.h> 消费 zlib: 包含面由 gaia 模块的
+# astrocs_gaia_zlib_include 携带 (合同两条注入布局, 见 eng/cmake/cfitsio_platform.cmake),
+# 不靠系统 /usr/include 兜底 —— 那在 Windows 上不存在。
+target_link_libraries(gaia_adapter_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads astrocs_gaia_zlib_include)
 add_dependencies(gaia_adapter_test gaia_cat_fixtures astrocs_catalog_gaia)
 add_test(NAME gaia_cat_adapter
   COMMAND gaia_adapter_test ${GAIA_CAT_CLEAN})
@@ -1048,7 +1052,7 @@ target_compile_definitions(gaia_integration_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_integration_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_integration_test PRIVATE ${CMAKE_DL_LIBS} z m Threads::Threads)
+target_link_libraries(gaia_integration_test PRIVATE ${CMAKE_DL_LIBS} astrocs_platform_zlib astrocs_platform_math Threads::Threads)
 add_dependencies(gaia_integration_test gaia_cat_fixtures astrocs_catalog_gaia)
 add_test(NAME gaia_integration
   COMMAND gaia_integration_test ${GAIA_CAT_CLEAN})
@@ -1076,7 +1080,8 @@ target_compile_definitions(gaia_module_manifest_bounds_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_module_manifest_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_module_manifest_bounds_test PRIVATE z m Threads::Threads)
+# 同上: 本 target 显式编入 gaia_client.c ⇒ 必须接同一份 zlib 包含面。
+target_link_libraries(gaia_module_manifest_bounds_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads astrocs_gaia_zlib_include)
 # GAIA-FAILCLOSED-01: 本测试原与 xpsd_spectrum_count_bounds 共用
 # ${GAIA_CAT_DATA}/bounds_work —— 后者会写入 7 个**故意畸形**的 *.xpsd
 # (spnone/sp0/spneg/spabc/sp344/sp100000/spgarbage)。装载 fail-closed 后,
@@ -1092,7 +1097,7 @@ target_include_directories(xpsd_spectrum_count_bounds_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE z m Threads::Threads)
+target_link_libraries(xpsd_spectrum_count_bounds_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
 add_test(NAME xpsd_spectrum_count_bounds
   COMMAND xpsd_spectrum_count_bounds_test ${GAIA_CAT_DATA}/bounds_work)
 
@@ -1109,7 +1114,7 @@ target_include_directories(gaia_magnitude_range_bounds_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE z m Threads::Threads)
+target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
 add_test(NAME gaia_magnitude_range_bounds
   COMMAND gaia_magnitude_range_bounds_test ${GAIA_CAT_DATA}/magrange_bounds_work)
 
@@ -1128,7 +1133,7 @@ target_include_directories(gaia_shard_coverage_gate_test PRIVATE
 if(OpenMP_C_FOUND)
   target_link_libraries(gaia_shard_coverage_gate_test PRIVATE OpenMP::OpenMP_C)
 endif()
-target_link_libraries(gaia_shard_coverage_gate_test PRIVATE z m Threads::Threads)
+target_link_libraries(gaia_shard_coverage_gate_test PRIVATE astrocs_platform_zlib astrocs_platform_math Threads::Threads)
 add_test(NAME gaia_shard_coverage
   COMMAND gaia_shard_coverage_gate_test ${GAIA_CAT_DATA}/shard_coverage_work)
 add_test(NAME gaia_shard_coverage_self_test
@@ -1629,7 +1634,7 @@ foreach(_t w34_p0_pc_api_exception_barrier w34_p0_sip_order_guard)
     ${ACS_W34_REPO}/lib/include)
   # pc::WcsTransform / pc_api 的唯一实现编在 astrocs_phase1_photcal (非 wrapper
   # 库 astrocs_phase1_phot) —— 以 nm 实测定义符号所在归档为准。
-  target_link_libraries(${_t} PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} m)
+  target_link_libraries(${_t} PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} astrocs_platform_math)
 endforeach()
 add_test(NAME w34_p0_pc_api_exception_barrier
   COMMAND w34_p0_pc_api_exception_barrier)
@@ -1676,9 +1681,7 @@ target_include_directories(w34_sdet_saturation_cursor PRIVATE
   ${ACS_W34_REPO}/lib/include)
 target_compile_definitions(w34_sdet_saturation_cursor PRIVATE SDET_TESTING)
 target_link_libraries(w34_sdet_saturation_cursor PRIVATE ${ASTROCS_OMP_TARGET})
-if(UNIX)
-  target_link_libraries(w34_sdet_saturation_cursor PRIVATE m)
-endif()
+target_link_libraries(w34_sdet_saturation_cursor PRIVATE astrocs_platform_math)
 add_test(NAME w34_sdet_saturation_cursor COMMAND w34_sdet_saturation_cursor)
 set_tests_properties(w34_sdet_saturation_cursor PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
@@ -1701,9 +1704,7 @@ target_include_directories(w34_sdet_deblend_contrast_oracle PRIVATE
   ${ACS_W34_REPO}/lib/include)
 target_compile_definitions(w34_sdet_deblend_contrast_oracle PRIVATE SDET_TESTING)
 target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE ${ASTROCS_OMP_TARGET})
-if(UNIX)
-  target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE m)
-endif()
+target_link_libraries(w34_sdet_deblend_contrast_oracle PRIVATE astrocs_platform_math)
 add_test(NAME w34_sdet_deblend_contrast_oracle
   COMMAND w34_sdet_deblend_contrast_oracle)
 set_tests_properties(w34_sdet_deblend_contrast_oracle PROPERTIES
@@ -1823,8 +1824,11 @@ foreach(_t w34_gaia_race w34_gaia_spec_collector_ownership)
     ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
     ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/include
     ${ACS_W34_REPO}/lib/include)
-  target_link_libraries(${_t} PRIVATE z pthread m)
+  target_link_libraries(${_t} PRIVATE astrocs_platform_zlib astrocs_platform_pthread astrocs_platform_math)
 endforeach()
+# 仅 w34_gaia_race 直编 gaia_client.c (以 <zlib.h> 消费 zlib) ⇒ 只有它需要第三方
+# 包含面; 同一 foreach 内的 spec_collector 用例不收 zlib, 不跟着放宽。
+target_link_libraries(w34_gaia_race PRIVATE astrocs_gaia_zlib_include)
 add_test(NAME w34_gaia_race COMMAND w34_gaia_race)
 add_test(NAME w34_gaia_spec_collector_ownership
   COMMAND w34_gaia_spec_collector_ownership)
@@ -1849,7 +1853,7 @@ target_include_directories(w34_p1_qf_oracle PRIVATE
   ${ACS_W34_REPO}/lib/algorithms/photometry/tests/p1phot
   ${ACS_W34_REPO}/lib/infrastructure/gaia_xpsd_client/src
   ${ACS_W34_REPO}/lib/include)
-target_link_libraries(w34_p1_qf_oracle PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} m)
+target_link_libraries(w34_p1_qf_oracle PRIVATE astrocs_phase1_photcal ${ASTROCS_OMP_TARGET} astrocs_platform_math)
 
 # （原 unc_prop_oracle / p1_apply_oracle 两条 RELEASE-02 oracle 的处置见下）
 

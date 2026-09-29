@@ -43,9 +43,7 @@ target_include_directories(p1_psfw_tests PRIVATE
   "${ASTROCS_REPO_ROOT}/lib/algorithms/noise_snr/include"
   "${ASTROCS_REPO_ROOT}/lib/algorithms/photometry/include")
 target_compile_features(p1_psfw_tests PRIVATE cxx_std_17)
-if(UNIX)
-  target_link_libraries(p1_psfw_tests PRIVATE m)
-endif()
+target_link_libraries(p1_psfw_tests PRIVATE astrocs_platform_math)
 
 set(V6_P1_PSFW_GROUPS anea winfo oracle components common gates record negative)
 foreach(g ${V6_P1_PSFW_GROUPS})

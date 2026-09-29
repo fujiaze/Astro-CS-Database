@@ -81,11 +81,27 @@ if(NOT TARGET astrocs_phase2_integrate)
 
   target_compile_definitions(astrocs_phase2_integrate PRIVATE
     AIO_ENABLE_FITS AIO_ENABLE_XISF _REENTRANT)
+
+  # ── 第三方源的平台面: 与根 astrocs_cfitsio **同一份**实现 ────────────────
+  # 事实(改前): 本目标把 vendored cfitsio 的**整套源**再编一遍 (60 TU, 见上方
+  #   ${_P2_CFITSIO_ABS}) 并定义 _REENTRANT, 却没有根目标那份平台垫片包含面
+  #   ⇒ Windows/MSVC 全量构建报 55 条 C1083 "pthread.h" (fitsio2.h 的
+  #   `#ifdef _REENTRANT` / `#include <pthread.h>` 分支被 _REENTRANT 打开);
+  #   同目标还自编 zcompress.c/zuncompress.c 却未接 zlib 包含面 ⇒ C1083 "zlib.h"。
+  #   根站点 (CMakeLists.txt 的 astrocs_cfitsio) 本就做了平台隔离 ⇒ 同族两处两套口径。
+  # 现口径: 两处都调用 eng/cmake/cfitsio_platform.cmake 的同名函数 (唯一实现),
+  #   不再各自内联路径字面量; 该模块由根 CMake 入口 include, 独立构建本目录时自补。
+  if(NOT COMMAND astrocs_cfitsio_apply_platform_shim)
+    include("${P2_REPO}/eng/cmake/cfitsio_platform.cmake")
+  endif()
+  astrocs_cfitsio_apply_platform_shim(astrocs_phase2_integrate)
+  astrocs_cfitsio_apply_third_party_deps(astrocs_phase2_integrate)
+# 第三方告警隔离 (与基准目标 astrocs_cfitsio 同一份实现): 本目标编的是 vendored
+# cfitsio 源, 不该把 drvrnet.c C4206 / zuncompress.c C4267 之类灌进项目告警面。
+astrocs_cfitsio_isolate_warnings(astrocs_phase2_integrate)
   set_target_properties(astrocs_phase2_integrate PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
-  if(UNIX)
-    target_link_libraries(astrocs_phase2_integrate PUBLIC m z)
-  endif()
+  target_link_libraries(astrocs_phase2_integrate PUBLIC astrocs_platform_math astrocs_platform_zlib)
 endif()

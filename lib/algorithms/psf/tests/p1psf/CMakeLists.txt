@@ -188,8 +188,13 @@ target_include_directories(p1psf_centroid_gate_test PRIVATE
   ${P1PSF_GATE_SDET_DIR}/include
   ${P1PSF_GATE_SDET_DIR}/src
   ${P1PSF_GATE_ORCH_INC})
+# 系统数学库: 平台判断收在共用件 astrocs_platform_math（根 CMakeLists 唯一判定点）
+# —— 与本文件 :241 的 p1psf_center_contract_gate_test 同一口径。
+# 事实(改前): 裸 m 落在**续行**（命令名在上一行），Windows 冷构建对本目标
+#   实报 LNK1104 "cannot open file 'm.lib'"，而 eng/ci/check_platform_syslib_links.py
+#   逐行匹配命令名 ⇒ 当时对此判绿（恒绿面）。判据已改为按括号配平覆盖续行。
 target_link_libraries(p1psf_centroid_gate_test PRIVATE
-  m ${ASTROCS_OMP_TARGET})
+  astrocs_platform_math ${ASTROCS_OMP_TARGET})
 # sdet_log 写 CWD 相对日志 → WORKING_DIRECTORY 隔离; OMP_NUM_THREADS=1 固定
 # 候选拟合归约序 (门要求逐位可复现)。
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run)
@@ -238,7 +243,7 @@ target_include_directories(p1psf_center_contract_gate_test PRIVATE
   ${P1PSF_CC_TAN_DIR}
   ${P1PSF_CC_ORCH_INC}
   ${P1PSF_DIR})
-target_link_libraries(p1psf_center_contract_gate_test PRIVATE m ${ASTROCS_OMP_TARGET})
+target_link_libraries(p1psf_center_contract_gate_test PRIVATE astrocs_platform_math ${ASTROCS_OMP_TARGET})
 add_test(NAME p1psf_center_contract_gate COMMAND p1psf_center_contract_gate_test)
 add_test(NAME p1psf_center_contract_gate_neg
   COMMAND p1psf_center_contract_gate_test negative-injection)

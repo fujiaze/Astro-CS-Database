@@ -87,20 +87,13 @@ find_package(Threads REQUIRED)
 
 # ── 链接依赖 (闭包自包含; 只剩系统库 + OpenMP) ──
 set(COS_LINK_LIBS Threads::Threads)
-if(UNIX)
-    list(APPEND COS_LINK_LIBS m)
-endif()
+  list(APPEND COS_LINK_LIBS astrocs_platform_math)
 target_link_libraries(astrocs_p1_cosmetic PRIVATE ${COS_LINK_LIBS})
 
-# QA-001 同口径: cosmetic_corrector 含 omp pragma; 根 STATIC 库
-# (UNIX AND OpenMP_CXX_FOUND) → -fopenmp 编译 + 链接 (DLL 自链 libgomp)
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(astrocs_p1_cosmetic PRIVATE OpenMP::OpenMP_CXX)
-    if(UNIX)
-        target_compile_options(astrocs_p1_cosmetic PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:-fopenmp>)
-    endif()
-endif()
+# QA-001 同口径: cosmetic_corrector 含 omp pragma; 门控与旗标收在
+# eng/cmake/cfitsio_platform.cmake 的 astrocs_openmp_link_if_unix() 一处
+# (非 UNIX / 无 OpenMP 时空操作; DLL 在 UNIX 下自链 libgomp)。
+astrocs_openmp_link_if_unix(astrocs_p1_cosmetic)
 
 # ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──
 if(WIN32)

@@ -34,13 +34,26 @@ else()
   if(NOT ASTROCS_PREBUILT_DIR)
     set(ASTROCS_PREBUILT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../build")
   endif()
+  # 平台系统库面: 取**同一份**共用件（根 CMakeLists 唯一判定点）。本分支链接的是
+  # 根构建产出的 .a 归档, 其系统库面与根构建逐字一致 ⇒ 必须用同一份共用件, 不能在
+  # 这里写裸 pthread/m/z (那正是 Windows 侧 LNK1104 "cannot open file 'm.lib'" 的根因面;
+  # 事实上这三个裸名正落在**续行**上, 逐行匹配的旧判据对它 findings=0 = 恒绿面,
+  # 判据已改为按括号配平覆盖续行, 见 eng/ci/check_platform_syslib_links.py)。
+  # 裸 configure 本文件（无根入口 ⇒ 共用件不存在）时 fail-fast, **不静默退回裸库名**。
+  if(NOT TARGET astrocs_platform_math OR NOT TARGET astrocs_platform_pthread
+     OR NOT TARGET astrocs_platform_zlib)
+    message(FATAL_ERROR
+      "p2_samp 独立复跑需要平台系统库共用件 astrocs_platform_{math,pthread,zlib}，"
+      "它们只在根 CMakeLists 声明。裸 configure 本文件时共用件不存在 ⇒ 请经根入口配置"
+      "（或把本文件复制进带根入口的临时源树再 configure）；本线不提供第二处平台判断。")
+  endif()
   target_link_libraries(p2_samp_test PRIVATE
     ${ASTROCS_PREBUILT_DIR}/libastrocs_phase2.a
     ${ASTROCS_PREBUILT_DIR}/libastrocs_aio.a
     ${ASTROCS_PREBUILT_DIR}/libastrocs_hips.a
     ${ASTROCS_PREBUILT_DIR}/libastrocs_common.a
     ${ASTROCS_PREBUILT_DIR}/libastrocs_cfitsio.a
-    pthread m z)
+    astrocs_platform_pthread astrocs_platform_math astrocs_platform_zlib)
 endif()
 
 enable_testing()

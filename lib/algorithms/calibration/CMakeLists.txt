@@ -66,20 +66,13 @@ find_package(Threads REQUIRED)
 
 # ── 链接依赖 (闭包自包含; 只剩系统库 + OpenMP) ──
 set(CAL_LINK_LIBS Threads::Threads)
-if(UNIX)
-    list(APPEND CAL_LINK_LIBS m)
-endif()
+  list(APPEND CAL_LINK_LIBS astrocs_platform_math)
 target_link_libraries(astrocs_p1_calibration PRIVATE ${CAL_LINK_LIBS})
 
 # QA-001 同口径: calibrator/cosmetic_corrector/master_generator 含 omp pragma;
-# 根 STATIC 库 (UNIX AND OpenMP_CXX_FOUND) → -fopenmp 编译 + 链接
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(astrocs_p1_calibration PRIVATE OpenMP::OpenMP_CXX)
-    if(UNIX)
-        target_compile_options(astrocs_p1_calibration PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:-fopenmp>)
-    endif()
-endif()
+# 门控与旗标收在 eng/cmake/cfitsio_platform.cmake 的 astrocs_openmp_link_if_unix()
+# 一处 (非 UNIX / 无 OpenMP 时空操作), 与根 STATIC 库段及同族调用点同口径。
+astrocs_openmp_link_if_unix(astrocs_p1_calibration)
 
 # ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──
 if(WIN32)

@@ -17,9 +17,7 @@
 # =============================================================================
 add_executable(p2_upm_ma_test p2_upm_ma_test.cpp)
 target_link_libraries(p2_upm_ma_test PRIVATE astrocs_phase2)
-if(UNIX)
-  target_link_libraries(p2_upm_ma_test PRIVATE m)
-endif()
+target_link_libraries(p2_upm_ma_test PRIVATE astrocs_platform_math)
 
 add_test(NAME p2_upm_ma_units COMMAND p2_upm_ma_test units)
 add_test(NAME p2_upm_ma_structure COMMAND p2_upm_ma_test structure)
@@ -41,9 +39,7 @@ set_tests_properties(
 # =============================================================================
 add_executable(p2_upm_geo_diag_test p2_upm_geo_diag_test.cpp)
 target_link_libraries(p2_upm_geo_diag_test PRIVATE astrocs_phase2)
-if(UNIX)
-  target_link_libraries(p2_upm_geo_diag_test PRIVATE m)
-endif()
+target_link_libraries(p2_upm_geo_diag_test PRIVATE astrocs_platform_math)
 add_test(NAME p2_upm_geo_identifiability COMMAND p2_upm_geo_diag_test identifiability)
 add_test(NAME p2_upm_geo_warning COMMAND p2_upm_geo_diag_test warning)
 add_test(NAME p2_upm_geo_warning_consistency COMMAND p2_upm_geo_diag_test warning_consistency)

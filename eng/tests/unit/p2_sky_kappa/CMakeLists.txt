@@ -4,8 +4,6 @@ target_include_directories(p2_sky_kappa_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/coverage/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib/algorithms/shared)
 target_link_libraries(p2_sky_kappa_test PRIVATE astrocs_phase2)
-if(UNIX)
-  target_link_libraries(p2_sky_kappa_test PRIVATE m)
-endif()
+target_link_libraries(p2_sky_kappa_test PRIVATE astrocs_platform_math)
 add_test(NAME p2_sky_kappa COMMAND p2_sky_kappa_test)
 set_tests_properties(p2_sky_kappa PROPERTIES LABELS "p2_sky;sci502")

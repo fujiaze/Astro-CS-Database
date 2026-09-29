@@ -57,7 +57,7 @@ set(SDET_SRC
   ${SDET_SRC_DIR}/nls_lm.cpp)
 
 # 拟合后端无外部库依赖, 仅需 libm。
-set(SDET_FIT_LINK m)
+set(SDET_FIT_LINK astrocs_platform_math)
 
 # core 组可执行 (units/properties/oracle/negative 共享执行器框架;
 # main 与组注册表在 p1star_tests_main.cpp — selfcheck 目标共享 core TUs

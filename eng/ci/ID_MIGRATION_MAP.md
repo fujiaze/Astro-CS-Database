@@ -12,7 +12,7 @@
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
 - 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
-- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 160 个目标，其中 138 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 49。
+- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 162 个目标，其中 140 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 49。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
 ## 2. 覆盖计数（`coverage` 块逐字引用，本文件不重算该块）
@@ -29,11 +29,11 @@
 | silent_drops | 0 |
 | result_entry_count | 112 |
 
-- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 400 条 —— KEPT 233 / KEPT-PENDING-MERGE 3 / MERGED-INTO 162 / RETAINED 2；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 194 条。
-- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 206 == 400 − 194）；本文件**逐字引用**该块，不用逐条计数覆盖它。
-- `absorbed_entries`：194 条登记（唯一 194 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
+- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 404 条 —— KEPT 237 / KEPT-PENDING-MERGE 3 / MERGED-INTO 162 / RETAINED 2；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 198 条。
+- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 206 == 404 − 198）；本文件**逐字引用**该块，不用逐条计数覆盖它。
+- `absorbed_entries`：198 条登记（唯一 198 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
 - `retired` = 0：本波无退役项；基线前退役 1 项单列于 §2.1，**不得**计为本波丢失的注册项。
-- 覆盖口径注（`coverage.note` 逐字）：覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。 新增 1 个执行单元（PROVIDER-MANIFESTS-NEG，CHK-PROVIDER-MANIFESTS 的负例面）登记为 absorbed。 新增 2 个 ctest 执行单元（CTEST-P1PSF-STALL-EQUIV / -INJECT，CHK-INVARIANT）登记为 absorbed。 W4-A3（P-159 定一）：新增 2 个执行单元（MANIFEST-EXIT-CODES / -SELFTEST，CHK-MANIFEST-EXIT-CODES）登记为 absorbed；判据 = 合同行逐字 + 代码锚符号一致。 新增节点并行预算接线门与其负例、两个检查器自检单元的登记面。 P-205/P-206 负例接线：新增 1 个执行单元（NEG-P3-PUBLISH-ORDER，CHK-P3-EXPORT-STREAM-PROD）登记为 absorbed（避免负例成为无接线孤儿脚本）。 本轮新增 CTest 单元接线：P-174 三终态正/负例 + 变异判红 + ④两序区分用例共 3 个执行单元（CTEST-AIO-*，CHK-UNIT）登记为 absorbed。 P-173 接线：next_seq 唯一性正例面（CTEST-AIO-TMP-PATH-UNIQUENESS）+ TSan 竞态判红面（NEG-P173-TSAN，自建迷你 TSan 编译，不建全量 TSan 树）登记为 absorbed。 配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed。 FINAL-07 注册面三面交叉判据：新增 1 顶层项 + 3 执行单元登记为 absorbed；判据把「配置期注册面」「既有门枚举面」「按名引用面」互为交叉判据（X1..X9），并补登记第 4 个面：发现期注册面（gtest_discover_tests 宿主与名字前缀）。 FINAL-07 batch1: 新增 2 个执行单元 (CHK-CFITSIO-PLATFORM-SURFACE 及其 SELFTEST) 登记为 absorbed。
+- 覆盖口径注（`coverage.note` 逐字）：覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。 新增 1 个执行单元（PROVIDER-MANIFESTS-NEG，CHK-PROVIDER-MANIFESTS 的负例面）登记为 absorbed。 新增 2 个 ctest 执行单元（CTEST-P1PSF-STALL-EQUIV / -INJECT，CHK-INVARIANT）登记为 absorbed。 W4-A3（P-159 定一）：新增 2 个执行单元（MANIFEST-EXIT-CODES / -SELFTEST，CHK-MANIFEST-EXIT-CODES）登记为 absorbed；判据 = 合同行逐字 + 代码锚符号一致。 新增节点并行预算接线门与其负例、两个检查器自检单元的登记面。 P-205/P-206 负例接线：新增 1 个执行单元（NEG-P3-PUBLISH-ORDER，CHK-P3-EXPORT-STREAM-PROD）登记为 absorbed（避免负例成为无接线孤儿脚本）。 本轮新增 CTest 单元接线：P-174 三终态正/负例 + 变异判红 + ④两序区分用例共 3 个执行单元（CTEST-AIO-*，CHK-UNIT）登记为 absorbed。 P-173 接线：next_seq 唯一性正例面（CTEST-AIO-TMP-PATH-UNIQUENESS）+ TSan 竞态判红面（NEG-P173-TSAN，自建迷你 TSan 编译，不建全量 TSan 树）登记为 absorbed。 配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed。 FINAL-07 注册面三面交叉判据：新增 1 顶层项 + 3 执行单元登记为 absorbed；判据把「配置期注册面」「既有门枚举面」「按名引用面」互为交叉判据（X1..X9），并补登记第 4 个面：发现期注册面（gtest_discover_tests 宿主与名字前缀）。 FINAL-07 batch1: 新增 2 个执行单元 (CHK-CFITSIO-PLATFORM-SURFACE 及其 SELFTEST) 登记为 absorbed。 FINAL-07 batch2: 新增 2 个执行单元 (CHK-PLATFORM-SYSLIB-LINKS 及其 SELFTEST) 登记为 absorbed —— 系统库链接面平台判断唯一性；与 batch1 同批入库 (实现 + 被判定的构建改动 + 登记)。 2026-09-29 复验补记: batch2 判据在复验中发现并修掉一处**恒绿面** —— 逐行匹配命令名漏掉跨行链接语句的**续行** (实测漏网 = lib/algorithms/psf/tests/p1psf/CMakeLists.txt:192 的裸 m, 该目标正是 Windows 冷构建 LNK1104 m.lib 的 11 个目标之一; eng/tests/unit/p2_samp/CMakeLists.txt:43 的裸 pthread/m/z 同形态)。判据改为按括号配平覆盖续行, 并补 2 正例 2 负例 (N6/N7/P2/P3)。
 
 ### 2.1 基线前退役（`pre_baseline_retirements`）
 
@@ -166,7 +166,7 @@
 | `CHK-DUAL-TOL` | P1 | 双平台允许误差 | 现注册表零双平台数值对比命令；Windows 复验面（REAL-001/负责人触发） | REAL-001 / 负责人触发复验 |
 | `CHK-AGENT-HARD-RULES` | P0 | AGENTS.md 硬禁令存在 | 唯一实现者 eng/tools/check_agents_gov.py 本波按裁决冻结（RETIRE-PENDING-GOV-001，W2 GOV-001 执行迁移） | GOV-001（W2） |
 
-## 5. 逐条映射明细（`mappings`，400 条）
+## 5. 逐条映射明细（`mappings`，404 条）
 
 | 旧 ID | 决策 | 目标/预留位 | 类型 | 级 | 备注（JSON note 逐字） |
 |---|---|---|---|---|---|
@@ -179,7 +179,7 @@
 | `AHPX-WEIGHT-RETIRED` | KEPT | `AHPX-WEIGHT-RETIRED` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `AIO-IO-BOUNDARY-SELFTEST` | KEPT | `AIO-IO-BOUNDARY-SELFTEST` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `AIO-OWNERSHIP` | MERGED-INTO | `CHK-RESOURCE` | doc | P0 | 内存/线程/利用率门禁 |
-| `ALG-LINE-ANCHORS` | KEPT | `ALG-LINE-ANCHORS` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）；FINAL-07 收紧 L3 匹配口径（命中须落在代码行，注释/字符串命中判 L3_prose_only；符号形态含本形/前缀族/形态族），自测 21 组。 |
+| `ALG-LINE-ANCHORS` | KEPT | `ALG-LINE-ANCHORS` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）；FINAL-07 收紧 L3 匹配口径（命中须落在代码行，注释/字符串命中判 L3_prose_only；符号形态含本形/前缀族/形态族）；ALG-ANCHOR-02 再加严两处：① 多符号首列不再整行跳过，改逐符号判 + 锚与实体的位置配对（并实体化括号内简写 `X(/_w)`、限定名 `Ns::m` 的类内成员定义形态）；② 同表**列头未声明文件**的列里的内联锚按格内显式指称绑定后判区间（形态 A 紧贴文件名 / 形态 B 紧贴强形态标识符），未判者必须逐条登记进判据头部的「不覆盖」清单并由双向棘轮强制清单与实测相等。逐符号行号锚覆盖 152→215、内联锚 0→20。自测 30 组。 |
 | `API-DOCS` | MERGED-INTO | `API-DOCS` | doc | P0 | doc↔code 命令树/签名/退出码/schema 一致 |
 | `AST-API` | MERGED-INTO | `CHK-ABI` | doc | P0 | C ABI 兼容性 |
 | `BUDGET-SINGLE-SOURCE-GATE` | KEPT | `CHK-BUDGET-SINGLE-SOURCE` | ci | P0 | CHK-BUDGET-SINGLE-SOURCE |
@@ -194,6 +194,8 @@
 | `CHK-BLOCKFLOW-SPEC-STEP` | KEPT | `CHK-BLOCKFLOW-SPEC` | doc | P0 | ARCH-505 新增执行单元 |
 | `CHK-BUILD-PROVENANCE` | KEPT | `CHK-BUILD-PROVENANCE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
 | `CHK-BUILD-PROVENANCE-SELFTEST` | KEPT | `CHK-BUILD-PROVENANCE-SELFTEST` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
+| `CHK-CFITSIO-PLATFORM-SURFACE` | KEPT | `CHK-CFITSIO-PLATFORM-SURFACE` | code | P1 |  |
+| `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | KEPT | `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | code | P1 |  |
 | `CHK-CMAKE-USEBEFOREDEF` | KEPT | `CHK-CMAKE-USEBEFOREDEF` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-CMAKE-USEBEFOREDEF-SELFTEST` | KEPT | `CHK-CMAKE-USEBEFOREDEF-SELFTEST` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-CONFIG-CONSUMED` | KEPT | `CHK-CONFIG-CONSUMED` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
@@ -240,6 +242,8 @@
 | `CHK-NWORKER-TOLERANCE` | KEPT | `CHK-NWORKER-TOLERANCE` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/quality/numeric_equiv.py --self-test |
 | `CHK-PATH-DOMAIN-ANCHORS` | KEPT | `CHK-PATH-DOMAIN-ANCHORS` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-PHOTOMETRY-APPLY-SELFTEST` | KEPT | `CHK-PHOTOMETRY-APPLY-SELFTEST` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 B（合并 photometry 与施加为一步，须保留像素级可核对判据） |
+| `CHK-PLATFORM-SYSLIB-LINKS` | KEPT | `CHK-PLATFORM-SYSLIB-LINKS` | code | P0 |  |
+| `CHK-PLATFORM-SYSLIB-LINKS-SELFTEST` | KEPT | `CHK-PLATFORM-SYSLIB-LINKS-SELFTEST` | code | P0 |  |
 | `CHK-PROD-SCALE` | KEPT | `CHK-PROD-SCALE` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-PROVENANCE-CONSISTENCY` | KEPT | `CHK-PROVENANCE-CONSISTENCY` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-PSFSW-RETIRED-NEGATIVE` | KEPT | `CHK-PSFSW-RETIRED-NEGATIVE` | extension | P1 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
@@ -571,7 +575,7 @@
 | `WORKFLOW-REGISTRY-BINDING` | MERGED-INTO | `CHK-MODULE-MANIFEST` | doc | P0 | 模块 manifest/注册表/构建 target/产品清单一致 |
 | `WORKSPACE-ADOPTION` | MERGED-INTO | `CHK-ENV-ADOPTION` | extension | P1 | CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账） |
 
-### 5.1 判据实现者 / 归属 / 原始 reason（47 条）
+### 5.1 判据实现者 / 归属 / 原始 reason（51 条）
 
 | 旧 ID | 判据实现者（checker） | 归属（owner） | reason（JSON 逐字） |
 |---|---|---|---|
@@ -622,6 +626,10 @@
 | `CHK-FROZEN-STRING-DISAMBIG` | `eng/tools/doccheck/check_frozen_string_disambiguation.py` |  |  |
 | `CHK-FROZEN-STRING-DISAMBIG-SELFTEST` | `eng/tools/doccheck/check_frozen_string_disambiguation.py` |  |  |
 | `CHK-L4-SEAM-FOOTPRINT` | `eng/tools/e2e/seam_footprint.py` | SCI-C / L4 | L4 seam criterion changed from variance ratio to level step along real frame footprints. |
+| `CHK-CFITSIO-PLATFORM-SURFACE` | `eng/ci/check_cfitsio_platform_surface.py` | FINAL-07 batch1 | 第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查 |
+| `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | `eng/ci/check_cfitsio_platform_surface.py` | FINAL-07 batch1 | 第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查 |
+| `CHK-PLATFORM-SYSLIB-LINKS` | `eng/ci/check_platform_syslib_links.py` | FINAL-07 batch2 | 系统库链接面（libm/libpthread/libz）平台判断唯一性：三个共用件只在根 CMakeLists 声明一次，全仓链接面（含**跨行**链接语句的续行）不得出现裸 m/pthread/z |
+| `CHK-PLATFORM-SYSLIB-LINKS-SELFTEST` | `eng/ci/check_platform_syslib_links.py` | FINAL-07 batch2 | 系统库链接面（libm/libpthread/libz）平台判断唯一性：三个共用件只在根 CMakeLists 声明一次，全仓链接面（含**跨行**链接语句的续行）不得出现裸 m/pthread/z |
 
 ## 6. 本波无 RETIRE-PENDING 项：原 GOV-001 冻结门已改判 KEPT（保留并修判据）
 

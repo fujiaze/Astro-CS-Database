@@ -70,6 +70,20 @@ foreach(_f ${ASTROCS_CFITSIO_SOURCES})
 endforeach()
 target_sources(astrocs_p1_drizzle PRIVATE ${DRZ_CFITSIO_SOURCES})
 
+# ── 第三方源的平台面: 与根 astrocs_cfitsio **同一份**实现 ────────────────
+# 本目标同样把 vendored cfitsio 整套源再编一遍 (含 zcompress.c/zuncompress.c,
+# 二者 #include "zlib.h"), 故必须接上同一份平台垫片与 zlib 依赖包含面 ——
+# 判据与清单见 eng/cmake/cfitsio_platform.cmake 抬头 (核查器
+# eng/ci/check_cfitsio_platform_surface.py 的 I1/I2 对本目标逐条判定)。
+if(NOT COMMAND astrocs_cfitsio_apply_platform_shim)
+  include("${CMAKE_SOURCE_DIR}/eng/cmake/cfitsio_platform.cmake")
+endif()
+astrocs_cfitsio_apply_platform_shim(astrocs_p1_drizzle)
+astrocs_cfitsio_apply_third_party_deps(astrocs_p1_drizzle)
+# 第三方告警隔离 (与基准目标 astrocs_cfitsio 同一份实现): 本目标编的是 vendored
+# cfitsio 源, 不该把 drvrnet.c C4206 / zuncompress.c C4267 之类灌进项目告警面。
+astrocs_cfitsio_isolate_warnings(astrocs_p1_drizzle)
+
 set_target_properties(astrocs_p1_drizzle PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     PREFIX ""
@@ -116,18 +130,20 @@ find_package(ZLIB QUIET)
 
 # ── 链接依赖 (闭包源已重编译; 只剩系统库) ──
 set(DRZ_LINK_LIBS Threads::Threads)
-if(OpenMP_CXX_FOUND)
-    # QA-001 同口径: omp pragma 编译消除 unknown-pragmas; 并行归并按线程序固定
-    list(APPEND DRZ_LINK_LIBS OpenMP::OpenMP_CXX)
-    target_compile_options(astrocs_p1_drizzle PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fopenmp>)
-endif()
+# 事实(改前): 本处只判 OpenMP_CXX_FOUND 就无条件传 GCC 旗标 `-fopenmp`, 没有平台
+#   门控 —— 与根 5 个静态库段的 `if(UNIX AND OpenMP_CXX_FOUND)` 以及本目录同族
+#   (lib/algorithms/calibration、lib/algorithms/cosmetic 都嵌套了 if(UNIX)) **两套
+#   口径**。Windows/MSVC 全量构建实测: 该旗标被交给 cl.exe (D9002 unknown option),
+#   pragma omp 仍被消除。
+# 现口径: 门控与旗标收在 eng/cmake/cfitsio_platform.cmake 的
+#   astrocs_openmp_link_if_unix() 一处 (非 UNIX / 无 OpenMP 时空操作),
+#   调用点不再各写一份判断。同族另两处同步收敛到同一函数。
+astrocs_openmp_link_if_unix(astrocs_p1_drizzle)
 if(ZLIB_FOUND)
     list(APPEND DRZ_LINK_LIBS ZLIB::ZLIB)
 endif()
 # cfitsio 需要的数学库 (与根 STATIC 链路面一致)
-if(UNIX)
-    list(APPEND DRZ_LINK_LIBS m)
-endif()
+  list(APPEND DRZ_LINK_LIBS astrocs_platform_math)
 target_link_libraries(astrocs_p1_drizzle PRIVATE ${DRZ_LINK_LIBS})
 
 # ── 导出面净化 (唯一导出 astrocs_module_query_v1; ABI-006) ──

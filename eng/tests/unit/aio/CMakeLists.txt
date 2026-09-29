@@ -22,9 +22,7 @@ add_subdirectory("${AIO_PRODUCT_IO_LIB_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/produc
 
 add_executable(aio_test aio_test.cpp)
 target_link_libraries(aio_test PRIVATE astrocs_product_io)
-if(UNIX)
-  target_link_libraries(aio_test PRIVATE m)
-endif()
+target_link_libraries(aio_test PRIVATE astrocs_platform_math)
 
 if(AIO_PRODUCT_IO_STANDALONE)
   enable_testing()

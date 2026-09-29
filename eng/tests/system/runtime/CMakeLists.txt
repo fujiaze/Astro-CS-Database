@@ -19,10 +19,10 @@ set_target_properties(runtime_contract_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(UNIX)
   find_package(Threads REQUIRED)
-  target_link_libraries(runtime_contract_test PRIVATE Threads::Threads m)
-else()
-  target_link_libraries(runtime_contract_test PRIVATE m)
+  target_link_libraries(runtime_contract_test PRIVATE Threads::Threads)
 endif()
+# 系统数学库: 平台判断收在共用件 astrocs_platform_math（根 CMakeLists 唯一判定点）
+target_link_libraries(runtime_contract_test PRIVATE astrocs_platform_math)
 
 add_executable(runtime_determinism_test runtime_determinism_test.cpp)
 target_include_directories(runtime_determinism_test PRIVATE "${V6RT_REPO}/lib/infrastructure/cli")
@@ -36,12 +36,12 @@ set_target_properties(runtime_resource_record_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(UNIX)
   find_package(Threads REQUIRED)
-  target_link_libraries(runtime_determinism_test PRIVATE Threads::Threads m)
-  target_link_libraries(runtime_resource_record_test PRIVATE Threads::Threads m)
-else()
-  target_link_libraries(runtime_determinism_test PRIVATE m)
-  target_link_libraries(runtime_resource_record_test PRIVATE m)
+  target_link_libraries(runtime_determinism_test PRIVATE Threads::Threads)
+  target_link_libraries(runtime_resource_record_test PRIVATE Threads::Threads)
 endif()
+# 系统数学库: 平台判断收在共用件 astrocs_platform_math（根 CMakeLists 唯一判定点）
+target_link_libraries(runtime_determinism_test PRIVATE astrocs_platform_math)
+target_link_libraries(runtime_resource_record_test PRIVATE astrocs_platform_math)
 
 # P-163: 事件流写失败（fputs/fflush 返回值）必须被检出，并在发布面变成非 0 退出码
 # （IO=7 / 磁盘满 ENOSPC=10）。头文件依赖 jsonl.h（header-only）+ nlohmann/json。
