@@ -14615,6 +14615,112 @@
       ]
     },
     {
+      "id": "CHK-CTEST-REG-CONDITION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-CTEST-REG-CONDITION",
+        "--quiet"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest-reg-condition/ctest_reg_condition.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "eng/ci/checks.json",
+        "eng/tests/**",
+        "lib/**",
+        "eng/tools/quality/check_ctest_reg_condition.py",
+        "eng/tools/quality/check_ctest_registration.py"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-CTEST-REG-CONDITION",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_ctest_reg_condition.py",
+            "--json-out",
+            "run/ci/ctest-reg-condition/ctest_reg_condition.json"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest-reg-condition/ctest_reg_condition.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_ctest_reg_condition.py",
+            "eng/tools/quality/check_ctest_registration.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-CTEST-REG-CONDITION-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_ctest_reg_condition.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_ctest_reg_condition.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-CTEST-REG-CONDITION-INJECT",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_ctest_reg_condition.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 180,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_ctest_reg_condition.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
