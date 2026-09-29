@@ -107,7 +107,7 @@ Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept;
 //   cpu_budget          : 有效 CPU 配额（>0；CLI 侧 = 亲和性 ∩ cgroup，见 cli_affinity_cpu_count）
 //   memory_limit_bytes  : 峰值工作集上限（0 = 未提供 ⇒ 不启用内存回压）
 //   memory_source       : 上限来源标签（"profile"/"probe"/"none"；观测用，见 memory_budget.h）
-// 语义边界（docs/ASTROCS_DESIGN §3.5）：内存预算是**调度准入输入**，不是门禁判据 ——
+// 语义边界（docs/ASTROCS_DESIGN §4.5 运行前预检）：内存预算是**调度准入输入**，不是门禁判据 ——
 // 超限只让节点排队等待，绝不改退出码、绝不阻断、绝不让 run 失败。
 struct RuntimeResourceBudget {
   uint32_t cpu_budget = 1;

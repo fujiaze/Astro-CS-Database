@@ -221,17 +221,30 @@ void finalize_event(const std::shared_ptr<EventImpl>& ev) {
     }
 }
 
+// 排空闸门守卫（arena_parallel_for / arena_parallel_reduce 共用唯一口径）：
+// - 在 gate 上持 shared 锁并**保持到 arena 内 kernel 执行完毕**；
+// - 关闭闸门（shutdown 的 unique 锁）由此保证 arena 存活到 kernel 结束，
+//   消除 "s.arena->execute(...)" 与 "s.arena.reset()" 的竞态（空指针 + UAF）；
+// - 未初始化 / arena 为空（shutdown 与 submit 交错的窗口）返回 nullptr，
+//   调用方降级到全局并行域 —— 语义等价，仅线程槽不再受 arena 限制。
+// 返回的裸指针在 gate 释放前始终有效。
+tbb::task_arena* acquire_kernel_arena(std::shared_lock<std::shared_mutex>& gate) {
+    auto& s = runtime_state();
+    gate = std::shared_lock<std::shared_mutex>(s.kernel_gate);
+    if (!s.initialized.load(std::memory_order_acquire) || !s.arena) {
+        return nullptr;
+    }
+    return s.arena.get();
+}
+
 // 在 arena 内执行 parallel_for，根据 grainsize 选择 partitioner
 template<class Body>
 void arena_parallel_for(std::size_t begin, std::size_t end,
                         std::uint32_t grainsize, Body&& body) {
-    auto& s = runtime_state();
-    // 排空闸门：持 shared 锁覆盖整个 kernel 执行（tbb::execute 阻塞直至
-    // parallel_for 完成），shutdown 的 unique 锁由此保证 arena 存活到 kernel 结束。
-    // 未初始化（shutdown 后 submit 重新 init 竞态窗口）降级为全局并行域。
-    std::shared_lock<std::shared_mutex> gate(s.kernel_gate);
-    if (!s.initialized.load(std::memory_order_acquire) || !s.arena) {
-        // 降级：无 arena 时用全局并行域，语义等价（仅线程槽不受限）
+    std::shared_lock<std::shared_mutex> gate;
+    tbb::task_arena* arena = acquire_kernel_arena(gate);
+    // 降级：无 arena 时用全局并行域，语义等价（仅线程槽不受限）
+    auto run = [&] {
         if (grainsize > 0) {
             tbb::parallel_for(
                 tbb::blocked_range<std::size_t>(begin, end, grainsize),
@@ -242,20 +255,33 @@ void arena_parallel_for(std::size_t begin, std::size_t end,
                 tbb::blocked_range<std::size_t>(begin, end),
                 std::forward<Body>(body));
         }
+    };
+    if (arena == nullptr) {
+        run();
         return;
     }
-    s.arena->execute([&] {
-        if (grainsize > 0) {
-            tbb::parallel_for(
-                tbb::blocked_range<std::size_t>(begin, end, grainsize),
-                std::forward<Body>(body),
-                tbb::simple_partitioner{});
-        } else {
-            tbb::parallel_for(
-                tbb::blocked_range<std::size_t>(begin, end),
-                std::forward<Body>(body));
-        }
-    });
+    arena->execute(run);
+}
+
+// 在 arena 内执行 parallel_reduce（与 arena_parallel_for 同一排空闸门口径）。
+// identity_value / reduce_fn / combine_fn 与 tbb::parallel_reduce functional 形式
+// 一一对应；归约顺序仍由 tbb 决定，闸门不改变任何数值语义。
+template<class Acc, class RedFn, class CombFn>
+Acc arena_parallel_reduce(std::size_t begin, std::size_t end, std::size_t grainsize,
+                          Acc identity_value, RedFn&& reduce_fn, CombFn&& combine_fn) {
+    std::shared_lock<std::shared_mutex> gate;
+    tbb::task_arena* arena = acquire_kernel_arena(gate);
+    auto run = [&] {
+        return tbb::parallel_reduce(
+            tbb::blocked_range<std::size_t>(begin, end, grainsize),
+            identity_value,
+            std::forward<RedFn>(reduce_fn),
+            std::forward<CombFn>(combine_fn));
+    };
+    if (arena == nullptr) {
+        return run();
+    }
+    return arena->execute(run);
 }
 
 } // anonymous namespace
@@ -473,27 +499,27 @@ void submit_reduce(Range1D range, const void* identity, std::size_t elem_size,
 
     run_kernel(ev, [&] {
         const std::size_t gs = hints.grainsize > 0 ? hints.grainsize : 64;
-        auto& s = runtime_state();
-        s.arena->execute([&] {
-            // identity 值（oneTBB functional 形式：range, identity_value, reduce, combine）
-            std::vector<unsigned char> identity_acc(elem_size);
-            std::memcpy(identity_acc.data(), identity, elem_size);
-            auto final_acc = tbb::parallel_reduce(
-                tbb::blocked_range<std::size_t>(range.begin, range.end, gs),
-                identity_acc,
-                [&](const tbb::blocked_range<std::size_t>& r,
-                    std::vector<unsigned char> acc) -> std::vector<unsigned char> {
-                    if (ev->cancelled.load(std::memory_order_relaxed)) return acc;
-                    reduce_fn(r.begin(), r.end(), acc.data(), user_data);
-                    return acc;
-                },
-                [&](std::vector<unsigned char> a,
-                    const std::vector<unsigned char>& b) -> std::vector<unsigned char> {
-                    combine_fn(a.data(), b.data(), user_data);
-                    return a;
-                });
-            std::memcpy(result_out, final_acc.data(), elem_size);
-        });
+        // identity 值（oneTBB functional 形式：range, identity_value, reduce, combine）
+        std::vector<unsigned char> identity_acc(elem_size);
+        std::memcpy(identity_acc.data(), identity, elem_size);
+        // 与 arena_parallel_for 同一排空闸门口径：持 shared 锁 + 查 initialized/arena +
+        // 无 arena 时降级全局并行域，杜绝 "s.arena->execute" 与 shutdown 的 "s.arena.reset()"
+        // 竞态（空指针 / UAF）。归约顺序仍由 tbb 决定，闸门不改变数值语义。
+        auto final_acc = arena_parallel_reduce(
+            range.begin, range.end, gs,
+            std::move(identity_acc),
+            [&](const tbb::blocked_range<std::size_t>& r,
+                std::vector<unsigned char> acc) -> std::vector<unsigned char> {
+                if (ev->cancelled.load(std::memory_order_relaxed)) return acc;
+                reduce_fn(r.begin(), r.end(), acc.data(), user_data);
+                return acc;
+            },
+            [&](std::vector<unsigned char> a,
+                const std::vector<unsigned char>& b) -> std::vector<unsigned char> {
+                combine_fn(a.data(), b.data(), user_data);
+                return a;
+            });
+        std::memcpy(result_out, final_acc.data(), elem_size);
     });
 
     finalize_event(ev);
@@ -784,26 +810,25 @@ void submit_reduce_with_desc(OperationId id, Range1D range, TaskTraits traits,
     const std::size_t gs = grainsize > 0 ? static_cast<std::size_t>(grainsize) : 64;
 
     run_kernel(ev, [&] {
-        auto& s = runtime_state();
-        s.arena->execute([&] {
-            std::vector<unsigned char> identity_acc(elem_size);
-            std::memcpy(identity_acc.data(), identity, elem_size);
-            auto final_acc = tbb::parallel_reduce(
-                tbb::blocked_range<std::size_t>(range.begin, range.end, gs),
-                identity_acc,
-                [&](const tbb::blocked_range<std::size_t>& r,
-                    std::vector<unsigned char> acc) -> std::vector<unsigned char> {
-                    if (ev->cancelled.load(std::memory_order_relaxed)) return acc;
-                    reduce_fn(r.begin(), r.end(), acc.data(), user_data);
-                    return acc;
-                },
-                [&](std::vector<unsigned char> a,
-                    const std::vector<unsigned char>& b) -> std::vector<unsigned char> {
-                    combine_fn(a.data(), b.data(), user_data);
-                    return a;
-                });
-            std::memcpy(result_out, final_acc.data(), elem_size);
-        });
+        std::vector<unsigned char> identity_acc(elem_size);
+        std::memcpy(identity_acc.data(), identity, elem_size);
+        // 与 arena_parallel_for 同一排空闸门口径（见 submit_reduce 的同款说明）:
+        // 持 shared 锁 + 查 initialized/arena + 无 arena 时降级全局并行域。
+        auto final_acc = arena_parallel_reduce(
+            range.begin, range.end, gs,
+            std::move(identity_acc),
+            [&](const tbb::blocked_range<std::size_t>& r,
+                std::vector<unsigned char> acc) -> std::vector<unsigned char> {
+                if (ev->cancelled.load(std::memory_order_relaxed)) return acc;
+                reduce_fn(r.begin(), r.end(), acc.data(), user_data);
+                return acc;
+            },
+            [&](std::vector<unsigned char> a,
+                const std::vector<unsigned char>& b) -> std::vector<unsigned char> {
+                combine_fn(a.data(), b.data(), user_data);
+                return a;
+            });
+        std::memcpy(result_out, final_acc.data(), elem_size);
     });
 
     finalize_event(ev);

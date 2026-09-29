@@ -131,7 +131,97 @@ TEST(ResourceControl, ReleaseCacheHookCalled) {
 
     EXPECT_TRUE(r.run_result.all_done);
     EXPECT_GT(release_calls.load(), 0);
+    // 装 hook 时必须记账，且只记一条带实际字节数的记录（不得双写）
+    int release_records = 0;
+    for (const auto& a : r.resource_control.control_actions) {
+        if (a.rfind("release_cache", 0) == 0) {
+            ++release_records;
+            EXPECT_EQ(a, "release_cache:1024") << "记账必须携带实际释放字节数";
+        }
+    }
+    EXPECT_GT(release_records, 0) << "hook 真实执行过，必须记账";
     runtime_shutdown();
+}
+
+// ============================================================================
+// 4b. 生产形态（未注册 hook）：缓解动作未执行 ⇒ 不得记入 control_actions
+// ----------------------------------------------------------------------------
+// set_cache_release_hook 在全仓（git ls-files 口径）只有定义、声明与本文件的
+// 调用点，生产调用点为 0 ⇒ cache_release_hook 恒空 ⇒ ReleaseCache 分支里
+// 释放缓存这一动作根本没有执行。此用例覆盖「不装 hook」这一生产真实形态，
+// 而不是只覆盖测试自己造出的装 hook 形态。
+// 策略层的「本轮触发 ReleaseCache」由 mem_actions / mem_peak_actions 承载，
+// 不复用自述为「已执行」的 control_actions。
+// ============================================================================
+TEST(ResourceControl, ReleaseCacheNotRecordedWithoutHook) {
+    DispatcherConfig cfg;
+    cfg.memory_sampler_override = [] {
+        // used=950, limit=800 → over_ratio=0.1875 ∈ [0.15,0.30) → ReleaseCache
+        return make_memory(950, 800, 1000);
+    };
+
+    // run_dispatch 不注册任何 hook —— 这就是生产形态
+    auto r = run_dispatch(cfg, 100000, 1024);
+    EXPECT_TRUE(r.run_result.all_done);
+
+    // 动作未执行 ⇒ 不得出现在「已执行控制动作序列」
+    for (const auto& a : r.resource_control.control_actions) {
+        EXPECT_NE(a.rfind("release_cache", 0), 0u)
+            << "未注册 hook 时释放缓存未执行，不应记入 control_actions：" << a;
+    }
+    // 策略层：确实触发了 ReleaseCache（动作未被丢弃，只是换了字段承载）
+    bool policy_triggered = false;
+    for (const auto& a : r.resource_control.mem_actions) {
+        if (a == "release_cache") policy_triggered = true;
+    }
+    EXPECT_TRUE(policy_triggered)
+        << "策略层应记录本轮触发 release_cache（mem_actions）";
+}
+
+// ============================================================================
+// 4c. 生产形态（未注册 hook）· claim 前峰值预算路径：同上，且锁第二处
+//     release_cache 记账点（该路径带 TaskTraits，peak > 0 才进入）
+// ============================================================================
+TEST(ResourceControl, ReleaseCachePreClaimNotRecordedWithoutHook) {
+    DispatcherConfig cfg;
+    cfg.memory_sampler_override = [] {
+        // 时间窗采样：over_ratio=0.15001 ∈ [0.15,0.30) → ReleaseCache
+        // claim 前（+peak 16726）：over_ratio≈0.1517 → ReleaseCache
+        return make_memory(11500100, 10000000, 100000000);
+    };
+
+    runtime_init();
+    Dispatcher d;
+    cfg.devices = {{"cpu", 0, 0, 50.0, true}};
+    cfg.fallback_strategy = FallbackStrategy::ToCpu;
+    d.configure(cfg);
+    // 不注册 hook（生产形态）；提供每项字节信息以进入 claim 前峰值检查
+    TaskDescriptor task;
+    task.range = Range1D{0, 100000};
+    task.traits.bytes_read_per_item = 4;
+    task.traits.bytes_written_per_item = 4;
+    auto est = make_cpu_only_estimate(1024);
+    std::vector<int> data(100000, 0);
+    auto fn = +[](std::size_t, std::size_t b, std::size_t e, void* ud) {
+        auto* d = static_cast<std::vector<int>*>(ud);
+        for (std::size_t i = b; i < e; ++i) (*d)[i] = 1;
+    };
+    auto r = d.dispatch_range_cost_aware(task, est, fn, &data);
+    runtime_shutdown();
+
+    EXPECT_TRUE(r.run_result.all_done);
+    for (const auto& a : r.resource_control.control_actions) {
+        EXPECT_NE(a.rfind("release_cache", 0), 0u)
+            << "未注册 hook 时释放缓存未执行，不应记入 control_actions：" << a;
+    }
+    // claim 前峰值检查确实触发过（peak > 0 且动作已记录）
+    EXPECT_FALSE(r.resource_control.mem_peak_estimates.empty());
+    bool peak_policy_triggered = false;
+    for (const auto& a : r.resource_control.mem_peak_actions) {
+        if (a == "release_cache") peak_policy_triggered = true;
+    }
+    EXPECT_TRUE(peak_policy_triggered)
+        << "claim 前策略层应记录 release_cache（mem_peak_actions）";
 }
 
 // ============================================================================
