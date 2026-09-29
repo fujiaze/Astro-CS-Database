@@ -17,9 +17,13 @@ class TestDataArtifactsNegative(unittest.TestCase):
     def _run(self, artifacts_text, semantics_text="", extra_lines=""):
         with tempfile.TemporaryDirectory() as td:
             d = pathlib.Path(td)
-            (d / "docs").mkdir(); (d / "docs" / "contracts").mkdir()
-            (d / "docs" / "contracts" / "DATA_ARTIFACTS.md").write_text(artifacts_text + extra_lines)
-            (d / "docs" / "contracts" / "DATA_SEMANTICS.md").write_text(semantics_text)
+            # 夹具布局必须与 eng/tools/check_data_artifacts.py:validate() 的读取面一致：
+            # 校验器读 docs/engineering/DATA_ARTIFACTS.md 与 docs/science/DATA_SEMANTICS.md。
+            # 迁移后曾停留在 docs/contracts/，致校验器在首个 is_file() 处短路，
+            # 只回一条「不存在」，四条按错误子串断言的负例全部假红。
+            (d / "docs").mkdir(); (d / "docs" / "engineering").mkdir(); (d / "docs" / "science").mkdir()
+            (d / "docs" / "engineering" / "DATA_ARTIFACTS.md").write_text(artifacts_text + extra_lines)
+            (d / "docs" / "science" / "DATA_SEMANTICS.md").write_text(semantics_text)
             return cda.validate(d)
 
     def test_duplicate_id(self):
