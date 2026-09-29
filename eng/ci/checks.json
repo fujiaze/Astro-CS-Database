@@ -2469,7 +2469,9 @@
     {
       "id": "CHK-RETIRED-CODE-SELFTEST",
       "profiles": [
-        "fast"
+        "fast",
+        "linux-main",
+        "windows-main"
       ],
       "platform": "any",
       "command": [
@@ -8152,7 +8154,9 @@
     {
       "id": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
       "profiles": [
-        "fast"
+        "fast",
+        "linux-main",
+        "windows-main"
       ],
       "platform": "any",
       "command": [
@@ -10479,7 +10483,9 @@
     {
       "id": "CHK-NO-WEIGHT-MODE-SELFTEST",
       "profiles": [
-        "fast"
+        "fast",
+        "linux-main",
+        "windows-main"
       ],
       "platform": "any",
       "command": [
@@ -10529,7 +10535,9 @@
     {
       "id": "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
       "profiles": [
-        "fast"
+        "fast",
+        "linux-main",
+        "windows-main"
       ],
       "platform": "any",
       "command": [
@@ -10875,7 +10883,9 @@
     {
       "id": "AIO-IO-BOUNDARY-SELFTEST",
       "profiles": [
-        "fast"
+        "fast",
+        "linux-main",
+        "windows-main"
       ],
       "platform": "any",
       "command": [
@@ -13425,20 +13435,109 @@
       "platform": "any",
       "command": [
         "python3",
-        "eng/ci/check_mutation_gates.py"
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-MUTATION-GATES",
+        "--quiet"
       ],
-      "timeout_seconds": 120,
+      "timeout_seconds": 300,
       "heavy": false,
       "mutates_workspace": false,
-      "outputs": [],
+      "outputs": [
+        "run/ci/mutation-gates/mutation_gates.json"
+      ],
       "waivable": false,
       "changed_paths": [
         "eng/ci/mutation_gates.json",
         "eng/ci/check_mutation_gates.py",
+        "eng/ci/ctest_face.py",
+        "eng/tests/**",
+        "lib/**",
         "docs/ASTROCS_DESIGN.md",
         "ENGINEERING_SPEC.md"
       ],
-      "requires_monitor": false
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-MUTATION-GATES",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_mutation_gates.py",
+            "--json-out",
+            "run/ci/mutation-gates/mutation_gates.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/mutation-gates/mutation_gates.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/mutation_gates.json",
+            "eng/ci/check_mutation_gates.py",
+            "eng/ci/ctest_face.py",
+            "eng/tests/**",
+            "lib/**",
+            "docs/ASTROCS_DESIGN.md",
+            "ENGINEERING_SPEC.md"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-MUTATION-GATES-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_mutation_gates.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_mutation_gates.py",
+            "eng/ci/ctest_face.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-MUTATION-GATES-INJECT",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_mutation_gates.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_mutation_gates.py",
+            "eng/ci/ctest_face.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
     },
     {
       "id": "CHK-REGISTRATION-ANCHORS",
@@ -15007,6 +15106,171 @@
         "**/CMakeLists.txt",
         "eng/cmake/**",
         "eng/ci/check_cfitsio_platform_surface.py"
+      ]
+    },
+    {
+      "id": "CHK-CI-PROFILE-COVERAGE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_ci_profile_coverage.py",
+        "--json-out",
+        "run/ci/ci-profile-coverage/coverage.json"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ci-profile-coverage/coverage.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/checks.json",
+        "eng/ci/run_checks.py",
+        "eng/tools/quality/check_ci_profile_coverage.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CI-PROFILE-COVERAGE-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_ci_profile_coverage.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_ci_profile_coverage.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CTEST-SKIP-REGISTER",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-CTEST-SKIP-REGISTER",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest-skip-register/skip_register.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/ctest_skip_register.json",
+        "eng/ci/ctest_face.py",
+        "eng/ci/check_ctest_skip_register.py",
+        "eng/tests/**",
+        "lib/algorithms/coverage/tests/**",
+        "lib/algorithms/star_detection/tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-CTEST-SKIP-REGISTER",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_ctest_skip_register.py",
+            "--json-out",
+            "run/ci/ctest-skip-register/skip_register.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest-skip-register/skip_register.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/ctest_skip_register.json",
+            "eng/ci/ctest_face.py",
+            "eng/ci/check_ctest_skip_register.py",
+            "eng/tests/**",
+            "lib/algorithms/coverage/tests/**",
+            "lib/algorithms/star_detection/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-CTEST-SKIP-REGISTER-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_ctest_skip_register.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_ctest_skip_register.py",
+            "eng/ci/ctest_face.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CHK-CTEST-SKIP-REGISTER-INJECT",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_ctest_skip_register.py",
+            "--fault-inject",
+            "all"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_ctest_skip_register.py",
+            "eng/ci/ctest_face.py"
+          ],
+          "requires_monitor": false
+        }
       ]
     },
     {
