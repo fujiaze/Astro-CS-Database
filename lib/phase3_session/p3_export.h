@@ -197,6 +197,15 @@ struct ExportResult {
 
   // 原子发布
   astrocs::aio::PublishResult publish;
+  // P-174：provenance.json 是**第二次独立发布**，其终态此前在本结构里**没有载体** ——
+  // 调用点只取 status/message 两个字段，durability 连同 renamed 一起直接蒸发，第三态
+  // 在这条路径上不可判。此字段补上载体，使 provenance 的三态与 product.fits 同构可取。
+  astrocs::aio::PublishResult provenance_publish;
+  // P-174 第三态显式留痕：两次发布中任一落在 kNotDurable（产品已可见、不可回滚，但
+  // 目录项持久化无证据）时逐条登记；为空 ⇒ 两次发布都已确认落盘（kDurable）。
+  // 按 atomic_publish.h:28-31「不得静默当成功、须显式可见」：此处只留痕、**不**改主
+  // 流程控制流（kNotDurable 在 _WIN32 是每次文件发布的常态，见 atomic_publish.cpp:154-160）。
+  std::vector<std::string> durability_notes;
   std::string product_dir;   // 目标目录（产物 = product_dir/product.fits + provenance.json）
   std::string fits_path;
   std::string provenance_path;

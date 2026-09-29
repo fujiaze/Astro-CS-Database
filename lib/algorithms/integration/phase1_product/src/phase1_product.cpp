@@ -586,6 +586,21 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     PublishOptions po;
     const PublishResult pr = publish_fits_product(
         sci, layers, expected_from_layers(layers), po, CancelFn());
+    /* P-174（内层 staging 发布）：此处的 durability **不是**产品面的持久化事实 ——
+     * 目标 sci 落在 staging 目录内，该目录随后由外层 atomic_publish_directory 整树
+     * rename 提升（失败则整树删除）。产品面的第三态由外层那次发布负责（见本文件
+     * write_phase1_product 末尾的 atomic_publish_directory 调用）。因此：
+     *   · 仍校验自洽：自相矛盾的终态说明 staging 里「文件到底在不在」不可知 ⇒ 判红；
+     *   · **不**对 kNotDurable 判红也不在此处置：staging 的目录项持久化事实随后被
+     *     整树 rename 覆盖，且回滚 staging（remove_tree）删的是**未发布**对象、合法。
+     *   · 若在此对 kNotDurable 判红，opts.fsync_directory=false 的配置会被整树误杀。
+     */
+    if (!publish_result_consistent(pr)) {
+      *err = std::string("science.fits staging publish result self-inconsistent: renamed=") +
+             (pr.renamed ? "true" : "false") + " durability=" +
+             publish_durability_name(pr.durability);
+      return false;
+    }
     if (pr.status != PublishStatus::kOk) {
       *err = "science.fits publish failed: " + pr.message;
       return false;
@@ -960,9 +975,31 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
   opts.remove_on_verify_failure = true;
   const PublishResult pr = atomic_publish_directory(target_dir, builder, verify,
                                                     opts, CancelFn());
+  /* P-174（外层目录发布 = 产品面的真实终态）：
+   *   · 自洽破裂 ⇒ 判红（renamed 与 durability 互相否认 ⇒ 目标根有无正式产品不可知）。
+   *   · kNotDurable ⇒ **不判红、只留痕**。它是本平台合法终态：_WIN32 下
+   *     confirm_dir_durability() 恒 false（无目录 fsync 等价物，status 仍为 kOk），
+   *     POSIX 上则对应 rename 后目录 fsync 真失败（status 已 fail-closed 为 kErrIo，
+   *     由上一段 status 检查接住）。按 atomic_publish.h:28-31「不得回滚删除、不得静默
+   *     当成功、须显式可见」：此处不删目标、不改主流程，只把「持久化未确认」写进
+   *     evidence 留痕，让下游知道该产品崩溃后可能消失、需对父目录重跑 fsync 确认。
+   *     若照搬「第三态即判红」，Windows 端将永远产不出产品。
+   */
+  if (!publish_result_consistent(pr)) {
+    res.error = std::string("phase1 product publish result self-inconsistent: renamed=") +
+                (pr.renamed ? "true" : "false") + " durability=" +
+                publish_durability_name(pr.durability);
+    return res;
+  }
   if (pr.status != PublishStatus::kOk) {
     res.error = pr.message.empty() ? "atomic publish failed" : pr.message;
     return res;
+  }
+  if (pr.durability == PublishDurability::kNotDurable) {
+    res.evidence.push_back(
+        "P-174 durability=NOT_DURABLE: product tree VISIBLE and MUST NOT be rolled back; "
+        "directory-entry persistence unconfirmed (may vanish after crash) — re-run fsync "
+        "on the parent directory to confirm");
   }
   res.ok = true;
   res.output_sha256 = pr.sha256_hex;
