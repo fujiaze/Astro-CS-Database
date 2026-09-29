@@ -61,10 +61,16 @@
 本子域只承载佐证，**不定义公式、常数与门限**（`DOCUMENT_GOVERNANCE.md` §2）。
 
 - `PHOTOMETRY_RESEARCH_PACK.md` —— 测光标定：Gaia XP 与系统响应到测光星等坐标系的文献与开源对照。
-- `SNR_WEIGHT_RESEARCH_PACK.md` —— 帧级 SNR、PSF 权重与逆方差叠加的研究包。
 - `IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` —— IVOA HiPS 标准瓦片格式条款的一手查证。
-- `COMPRESSION_CODEC_RESEARCH_PACK.md` —— 压缩编码（zstd/Rice/TRIM/FITS tile-compression）评估。
 - `CCD_LINEAR_DEFECT_LITERATURE.md` —— CCD/CMOS 线性缺陷（坏列/坏行/拖尾列）检测与修复的一手文献证据。
+
+已迁出本子域的佐证件（其内容仍有效，落点见括注）：
+
+- 帧级 SNR、PSF 权重与逆方差叠加的研究包 → `实验/absolute-snr/docs/SNR_WEIGHT_RESEARCH_PACK.md`
+  （实验证据区，非本集规范文档；该件首行自承已作废，仅作历史留痕）。
+- 压缩编码（zstd/Rice/TRIM/FITS tile-compression）评估 → `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`
+  （支撑的是压缩与落盘形态这类工程裁决，故归工程正本；其表件在
+  `实验/engineering-evidence/compress-01/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md`）。
 
 ## 3 从哪看起
 
