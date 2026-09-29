@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：算法推导、实现级算法合同（ALG-* 条款）、门与容差表、文档—代码锚的机器校验。
-- 不放：科学公式正本（在 docs/science/）；模块工作细节（在 docs/plugins/）；工程检查器实现（在 eng/）；文献查证（在 docs/research/ 与 docs/references/）。
+- 不放：科学公式正本（在 docs/science/）；模块工作细节（在 docs/detail/）；工程检查器实现（在 eng/）；文献查证（在 docs/science/ 与 docs/engineering/）。
 
 ## 内容
 
