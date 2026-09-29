@@ -1,0 +1,16 @@
+{
+  "warning_keys": [
+    "lib/algorithms/calibration/src/cal_core.cpp:120:C4267",
+    "lib/algorithms/calibration/src/cal_core.cpp:133:C4267",
+    "lib/algorithms/calibration/src/cal_core.cpp:120:C4267",
+    "lib/algorithms/calibration/src/cal_core.cpp:140:C4267",
+    "lib/algorithms/cosmetic/src/cos_core.cpp:88:C4244",
+    "lib/third_party/nlohmann/json.hpp:9001:C4996",
+    "lib/third_party/nlohmann/json.hpp:9100:C4996",
+    "eng/tests/unit/calib_test.cpp:44:C4100",
+    "eng/tests/unit/calib_test.cpp:99:C4100"
+  ],
+  "suppression_tokens": [
+    "D9025"
+  ]
+}

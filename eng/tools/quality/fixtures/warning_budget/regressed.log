@@ -1,0 +1,4 @@
+[1/40] Building CXX object lib/foo.cpp.o
+lib/algorithms/calibration/src/cal_core.cpp(120,5): warning C4267: 'conversion from 'size_t' to 'int', possible loss of data'
+lib/algorithms/cosmetic/src/cos_core.cpp(88,9): warning C4244: 'conversion' conversion from 'double' to 'float'
+lib/algorithms/photometry/src/pho_core.cpp(300,1): warning C4189: local variable is initialized but not referenced
