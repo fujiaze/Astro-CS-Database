@@ -1,5 +1,5 @@
 // JSONL 事件协议 v1 冻结合同 — CLI-004 (GUI 可调用进程协议, 控制包 02 CLI-004)
-// 权威: docs/api/CLI_PROTOCOL_V1.md §4 (上游 04 §4 字段冻结) + schemas/jsonl_event_v1.schema.json
+// 权威: docs/engineering/CLI_PROTOCOL_V1.md §4 (上游 04 §4 字段冻结) + schemas/jsonl_event_v1.schema.json
 // 职责: 协议面唯一验证点 —— 外部 harness/GUI 只消费本协议面(禁链接科学库绕过 CLI)。
 // 语义冻结, 发送侧 ValidateEventV1 自检硬闸: 非法事件拒发(stderr 诊断, stdout 纯净),
 // 机器一致性校验(测试/CI)用 ValidateEventV1(读侧, 独立重实现协议文本, 防同源盲区)。
@@ -38,7 +38,7 @@ inline bool is_frozen_exit_code_v1(int c) {
 // §4 kind 注册表 v1 —— **10 类开放 kind 全登记**。
 // 登记面 = 实现正本（本表）↔ 机器 schema（eng/contracts/schemas/jsonl_event_v1.schema.json
 // 的 properties.kind.enum + 同名 allOf 分支）↔ 人类可读合同
-// （docs/api/CLI_PROTOCOL_V1.md §4）；三者必须同面。
+// （docs/engineering/CLI_PROTOCOL_V1.md §4）；三者必须同面。
 // 未登记 kind ⇒ ValidateEventV1 拒发（fail-closed；新增 kind 必须同时登记两处，只增不改）。
 inline const std::vector<std::string>& registered_event_kinds_v1() {
     static const std::vector<std::string> k = {
@@ -82,7 +82,7 @@ inline std::string missing_required_extension_v1(const std::string& kind,
                            "work_core_seconds", "workload_floor_core_seconds",
                            "workload_floor_reached",
                            // SO-05 记录/裁决分离的证据面（B4 登记；语义 =
-                           // docs/plugins/infrastructure/21_observability.md §8.4）：
+                           // docs/detail/infrastructure/21_observability.md §8.4）：
                            // 未签字前资源判据恒 record_only，这三键使该事实在事件上可审计
                            // （缺任一键即发送侧拒发，fail-closed）。
                            "so05_signoff_id", "so05_signoff_status",
@@ -123,7 +123,7 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
     const std::string kind = ev.value("kind", std::string());
     // kind 注册表硬闸 —— 未登记 kind 一律拒发（fail-closed）。
     // 注册面 = registered_event_kinds_v1()（与 eng/contracts/schemas/jsonl_event_v1.schema.json
-    // 的 kind enum + docs/api/CLI_PROTOCOL_V1.md §4 同面）。
+    // 的 kind enum + docs/engineering/CLI_PROTOCOL_V1.md §4 同面）。
     if (!is_registered_event_kind_v1(kind)) {
         std::fprintf(stderr,
                      "acsd: protocol: unregistered event kind '%s' rejected "

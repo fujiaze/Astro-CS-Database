@@ -177,7 +177,7 @@ photometric scale、新 runtime I/O DLL。
   docs/science/algorithms/PHASE2_COVERAGE.md（§2 逐公式行号锚 + §11.3
   DISP-COV-001..005 + §11.4 TEST-COV-DESIGN-001）；DATA-COV-001=
   DATA_SEMANTICS.md §19；API-COV-001=PUBLIC_API.md；registry 页
-  docs/modules/registry/astrocs.phase2.coverage.md 事实修订 + 矩阵行
+  docs/detail/registry/astrocs.phase2.coverage.md 事实修订 + 矩阵行
   MOD-astrocs-phase2-coverage 更新（SCI/ALG/SRC/TEST 转 Verified）。
 - SCI 层：零改动——SCI-P2-COV-001 指向既有 FROZEN 共享 SCI
   （PHASE2_UPM.md §1 覆盖并集 / INTEGRATION.md §5 support「覆盖并集

@@ -308,7 +308,7 @@ SNR_API double snr_noise_gain_variance(double signal,
 //   snr_* [无量纲]; sigma_f_* [ADU]; flux5_adu [ADU]; m5_mag [mag]
 // ============================================================================
 
-// σ_sky 入参语义 (SCI-B D1 定案; 口径正本 docs/plugins/algorithms_phase1/07_noise_snr.md §4.2a):
+// σ_sky 入参语义 (SCI-B D1 定案; 口径正本 docs/detail/algorithms_phase1/07_noise_snr.md §4.2a):
 //   逐像素噪声 sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g  —— **读噪只出现一次**。
 //   sigma_sky_source 声明 sigma_sky 承载哪一种语义, 调用方**必须显式给出**:
 //     SHOT_ONLY            : 天光+暗流**散粒**(不含读噪) => 组合时加 (RN/g)^2

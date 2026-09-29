@@ -3,7 +3,7 @@
  * 权威依据（只读，不改）:
  *   - lib/algorithms/coverage/include/astro/phase2/upm.h:225-228
  *       C_theta=(JᵀWJ)^-1；C_out=C_stat+J_out C_theta J_outᵀ；禁止权重反推 variance
- *   - docs/plugins/algorithms_phase2/11_upm.md §4.1（校准参数不确定度必须传播）
+ *   - docs/detail/algorithms_phase2/11_upm.md §4.1（校准参数不确定度必须传播）
  *
  * 科学形式（本模块唯一实现，不得旁路）:
  *   归一化把观测 y 映射到被扣除的校正场  ĝ = H y；输出

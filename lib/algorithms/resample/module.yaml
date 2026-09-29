@@ -102,8 +102,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE3_HIPS_TO_FITS.md
   alg: docs/science/algorithms/PHASE3_RSMP_IMPL.md
-  data: docs/contracts/DATA_SEMANTICS.md#§29
-  api: docs/contracts/PUBLIC_API.md#API-P3-RSMP-001
+  data: docs/science/DATA_SEMANTICS.md#§29
+  api: docs/engineering/PUBLIC_API.md#API-P3-RSMP-001
 contract_ids:
   sci: SCI-P3-001
   alg: ALG-P3-RSMP-IMPL-001

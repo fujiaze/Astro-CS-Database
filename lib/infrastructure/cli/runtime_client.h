@@ -13,7 +13,7 @@
 
 namespace astrocs::cli {
 
-// P-158: ErrorDomain → CLI 退出码（docs/contracts/LOG_AND_ERROR_CONTRACT.md §5 唯一映射表；
+// P-158: ErrorDomain → CLI 退出码（docs/engineering/LOG_AND_ERROR_CONTRACT.md §5 唯一映射表；
 // 码值语义唯一源 = lib/infrastructure/cli/exit_codes.h，本层不重定义数值）。
 // 未列出的域一律 INTERNAL(70)（§5 末条）。**仅用于 load_pipeline 失败面**：
 // run_pipeline 内 rt_ret 失败 switch 的既有域映射偏差（F-EXIT-MAP：

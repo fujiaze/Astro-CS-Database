@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // 规范依据:
 //   - ENGINEERING_SPEC「文件编码 UTF-8」;
-//   - docs/contracts/LOG_AND_ERROR_CONTRACT.md §8「超限按 UTF-8 边界截断」;
+//   - docs/engineering/LOG_AND_ERROR_CONTRACT.md §8「超限按 UTF-8 边界截断」;
 //   - ALG-WCS-001 §4b(本仓算法层细化): IpvWcsResult.error_msg 恒为合法 UTF-8。
 // 断言面:
 //   1) utf8_safe_copy 在定长缓冲上的行为 (码点边界截断 / 非法字节替换 / NUL);

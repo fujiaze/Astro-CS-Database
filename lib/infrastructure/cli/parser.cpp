@@ -315,7 +315,7 @@ const std::set<std::string>& session_keys() {
         //   不是错误。合同声明 =
         //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
         //   规范：docs/ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
-        //   + docs/plugins/algorithms_phase1/03_star_detection.md §5.1。
+        //   + docs/detail/algorithms_phase1/03_star_detection.md §5.1。
         "star_detection",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
@@ -352,7 +352,7 @@ const std::set<std::string>& session_keys() {
         //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 同 snr_path：CLI 只识别并透传，生产消费点未落地 ⇒ 死键台账已登记。
         "rotation_deg", "crpix_px",
-        // EXPORT-CROP-01（依据 docs/design/PHASE3_DETAILED_DESIGN.md §8.1/§8.2）：
+        // EXPORT-CROP-01（依据 docs/detail/PHASE3_DETAILED_DESIGN.md §8.1/§8.2）：
         // 导出裁剪范围键（可选，缺省不裁剪）。
         // 合同声明 = phase_config_export.schema.json#/$defs/export_crop（键名逐字取
         // 合同声明名，禁新造同义键）；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
@@ -417,7 +417,7 @@ std::string retired_perframe_form_message(const std::string& session_name) {
                "one group of input frames}); the unified key-name scheme is a frontend decision. "
                "Use the block form "
                "{\"schema_version\":\"1\",\"blocks\":[{...}]}; "
-               "see docs/contracts/CONFIG_CONTRACT.md §3";
+               "see docs/engineering/CONFIG_CONTRACT.md §3";
     }
     return "config uses the retired per-frame phase_config form "
            "{phase_name, config, inputs[]} — one entry per light is no longer supported; "
@@ -550,7 +550,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     return errs;
 }
 
-// pipeline_config.json v1 全量校验(合同: docs/api/MANIFEST_VERIFY_V1.md §1)
+// pipeline_config.json v1 全量校验(合同: docs/engineering/MANIFEST_VERIFY_V1.md §1)
 // 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
 // session_mode=true (phaseN run): 追加接受两种会话格式 —— RT-008 平铺直通
 // (runtime_client phase_config 平铺分支) 与 CLI-MULTIBLOCK 多块形态 (顶层 blocks[]）

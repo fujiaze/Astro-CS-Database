@@ -74,8 +74,8 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 |---|---|---|
 | SCI | SCI-DRZ-001 | docs/science/DRIZZLE.md（FROZEN T105 2026-08-23；SCI-DRZ-001/014/015/016 集合） |
 | ALG | ALG-DRZ-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md（逐公式源码锚定 + DISP-DRZ 清单） |
-| DATA | DATA-P1-DRZ | docs/contracts/DATA_SEMANTICS.md §11（上游 DATA-P1-CAL §9；编排现状引用 DATA-P1-STACK） |
-| API | API-DRZ-001 / API-P1-007 | docs/contracts/PUBLIC_API.md / docs/api/PHASE1_API_V1.md（区间 API-P1-001..010） |
+| DATA | DATA-P1-DRZ | docs/science/DATA_SEMANTICS.md §11（上游 DATA-P1-CAL §9；编排现状引用 DATA-P1-STACK） |
+| API | API-DRZ-001 / API-P1-007 | docs/engineering/PUBLIC_API.md / docs/engineering/PHASE1_API_V1.md（区间 API-P1-001..010） |
 | MOD/SRC | MOD-astrocs-phase1-drizzle / SRC-DRZ-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
 | TEST | TEST-DRZ-DESIGN-001 | docs/science/algorithms/DRIZZLE_GEOMETRY.md §9（可执行 TEST-P1-DRZ-001 由 P1-DRZ-TEST 落地） |
 

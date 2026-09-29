@@ -1,7 +1,7 @@
 // acsd G-RES-01 资源门阈值生成头 —— 由 CMake 从唯一数值源生成。
 //
 // 唯一数值源: eng/contracts/resource_gate_v1.json
-// 判据语义权威: docs/plugins/infrastructure/21_observability.md §8
+// 判据语义权威: docs/detail/infrastructure/21_observability.md §8
 //   「重计算负载资源门（G-RES-01）」
 //
 // GATE-FIX-RES（R-4 D-11）: 阈值此前以字面量散落在 cli/resource_gate.h 与

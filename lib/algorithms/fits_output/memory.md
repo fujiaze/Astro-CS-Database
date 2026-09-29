@@ -30,8 +30,8 @@
   p3_writer_descriptor）为编排层词汇，由 P3-FITS-INT 对齐，不入合同。
 - MOD ID 决策: registry 现有行 MOD-astrocs-phase3-writer（单
   descriptor 域），module.yaml id 与之一致；registry 页手写化
-  （docs/modules/registry/astrocs.phase3.writer.md），模块总页新建
-  docs/modules/phase3_fits.md。
+  （docs/detail/registry/astrocs.phase3.writer.md），模块总页新建
+  docs/detail/phase3_fits.md。
 - 本任务 ID 决策（唯一方案，避免与既有占位冲突）:
   SCI=SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN
   V5 SCI-007 2026-08-28，集合 SCI-P3-001..020；descriptor 占位

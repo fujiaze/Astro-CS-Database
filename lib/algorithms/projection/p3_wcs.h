@@ -166,11 +166,11 @@ P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
 // 与 p3_wcs_validate_request 同款「唯一语义源，CLI 配置面与节点面共用」：
 // 调用方 = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p3 节点链
 // （p3n_crop_shape / p3n_crop_window / p3n_crop_from_plan / p3_crop_apply_wcs）。
-// 规范正本 = docs/design/PHASE3_DETAILED_DESIGN.md §8 +
-// docs/contracts/CONFIG_CONTRACT.md §3（export 行 crop）；
+// 规范正本 = docs/detail/PHASE3_DETAILED_DESIGN.md §8 +
+// docs/engineering/CONFIG_CONTRACT.md §3（export 行 crop）；
 // 字段合同 = eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop。
 //
-// 语义（依据 docs/design/PHASE3_DETAILED_DESIGN.md §8「导出裁剪范围（crop）」：
+// 语义（依据 docs/detail/PHASE3_DETAILED_DESIGN.md §8「导出裁剪范围（crop）」：
 // §8.1 语义 + §8.2 两种输入形式（互斥）+ §8.3 fail-closed 判据 + §8.4 落点与不变式。
 // 默认导出不得裁剪任何有效像素、允许黑边；裁剪为可选手动范围；GUI 框选导出直接填本键）：
 //   ① 默认**不裁剪**（active=false；整幅导出，允许黑边，不得裁掉任何有效像素）；

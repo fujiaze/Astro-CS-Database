@@ -22,9 +22,9 @@
   memory.md（本文件）。
 - docs/science/algorithms/HIPS_WRITER.md 新建：ALG-HIPS-001..005 逐公式源码
   锚定 + TEST-HIPS-DESIGN-001（§9）+ DISP-HIPS-001..008（§10）。
-- docs/contracts/DATA_SEMANTICS.md 追加 §12（DATA-P1-HIPS）。
-- docs/contracts/PUBLIC_API.md 追加 API-HIPS-001 节（9 符号现状 C API）。
-- docs/modules/registry/astrocs.phase1.hips-writer.md 新建。phase3 registry
+- docs/science/DATA_SEMANTICS.md 追加 §12（DATA-P1-HIPS）。
+- docs/engineering/PUBLIC_API.md 追加 API-HIPS-001 节（9 符号现状 C API）。
+- docs/detail/registry/astrocs.phase1.hips-writer.md 新建。phase3 registry
   页 `DATA-HIPS-001` 引用**经查非悬空**：该 ID 是既有自洽语义（matrix
   services-io 行 data=DATA-HIPS-001 VERIFIED、TRACEABILITY_SPEC.md:74
   示例、生产源码 lib/infrastructure/scheduler/src/module_adapters.cpp:300/:323 端口表在用，
@@ -72,7 +72,7 @@
   注释与实现不符，DISP-HIPS-001）；FITS/MOC/metadata 先 remove 后 create
   （:185-186/:251/:770）；finalize 中途失败已写子产品残留；manifest.json
   （:1086-1128）无 COMPLETE 状态字。原子发布语义层由 IO-003
-  （docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md：临时写→fsync→
+  （docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md：临时写→fsync→
   fitsverify→sha256→原子 rename→manifest COMPLETE）在 Python 发布层
   承接，两合同对齐边界登记于 DATA-P1-HIPS §12.5。
 - **tree hash/provenance 现状**：C++ writer 无整树哈希——仅 per-tile FITS

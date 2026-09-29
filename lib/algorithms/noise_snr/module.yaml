@@ -21,7 +21,7 @@
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
 # 现状实现为单线程顺序（noise_model_impl 无 omp pragma），唯一共享可变状态
 # g_model_floor 进程级无锁 unordered_map（DISP-NOISE-001），ThreadLease 接线为
-# 迁移整改点（见 docs/contracts/PUBLIC_API.md API-NOISE-001 与
+# 迁移整改点（见 docs/engineering/PUBLIC_API.md API-NOISE-001 与
 # docs/science/algorithms/NOISE_ESTIMATION.md §13.3 DISP-NOISE-001..009）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:489-503 p1_noise_snr_descriptor 的
@@ -56,8 +56,8 @@ api_contracts:
 doc_links:
   sci: docs/science/NOISE_MODEL.md
   alg: docs/science/algorithms/NOISE_ESTIMATION.md#§13
-  data: docs/contracts/DATA_SEMANTICS.md#§13
-  api: docs/contracts/PUBLIC_API.md#API-NOISE-001
+  data: docs/science/DATA_SEMANTICS.md#§13
+  api: docs/engineering/PUBLIC_API.md#API-NOISE-001
 contract_ids:
   sci: SCI-NOISE-001..015
   alg: ALG-NOISE-001..003

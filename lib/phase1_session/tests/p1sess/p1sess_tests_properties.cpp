@@ -24,7 +24,7 @@
 //   ALG-COS-001..005 — docs/science/algorithms/COSMETIC_ALGORITHMS.md §6
 //     (复杂度/确定性/并行归约汇总) —— 本组 config 内 cosmetic 段上位。
 //   装配层契约 (非 SCI/ALG, 本层无算法公式, 见 lib/phase1_session/module.yaml):
-//     API-P1-SESSION (docs/contracts/PUBLIC_API.md「Phase1 装配会话」节)、
+//     API-P1-SESSION (docs/engineering/PUBLIC_API.md「Phase1 装配会话」节)、
 //     DATA-P1-SESSION (DATA_SEMANTICS §16)、
 //     lib/phase1_session/README.md §4 (外部输入/async_io_depth)、
 //     §5 (错误与取消传播、ABI 校验)、§6 (并发与资源/线程预算注入)。

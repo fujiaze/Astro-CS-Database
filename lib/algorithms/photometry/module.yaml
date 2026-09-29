@@ -32,7 +32,7 @@
 # schedule(dynamic,64)、:1023/image_corrector.cpp:74 像素 schedule(static)，
 # star_matcher 匹配与 IRLS 单线程），科学结果 bitwise 与线程数无关，但
 # ThreadLease/omp_set_num_threads 无接线（迁移整改点，见
-# docs/contracts/PUBLIC_API.md API-PHOT-001 与
+# docs/engineering/PUBLIC_API.md API-PHOT-001 与
 # docs/science/algorithms/PHOTOMETRIC_FIT.md §13.3 DISP-PHOT-001..009）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
 # （lib/infrastructure/scheduler/src/module_adapters.cpp:469-486 p1_photometry_descriptor 的
@@ -44,7 +44,7 @@ id: MOD-astrocs-phase1-photometry
 module_id: astrocs.p1.photometry
 owner: SA-P1-N17
 language: c++17
-# module_version 属 module 命名空间（docs/owner/RELEASE_STATUS.md §2），取值须与
+# module_version 属 module 命名空间（docs/engineering/RELEASE_STATUS.md §2），取值须与
 # docs/modules/MODULE_MAP.yaml 登记值一致。
 module_version: 0.1.0-alpha.1
 abi_version: 1
@@ -72,8 +72,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHOTOMETRY.md
   alg: docs/science/algorithms/PHOTOMETRIC_FIT.md#§13
-  data: docs/contracts/DATA_SEMANTICS.md#§14
-  api: docs/contracts/PUBLIC_API.md#API-PHOT-001
+  data: docs/science/DATA_SEMANTICS.md#§14
+  api: docs/engineering/PUBLIC_API.md#API-PHOT-001
 contract_ids:
   sci: SCI-PHOT-001
   alg: ALG-PHOT-001..002

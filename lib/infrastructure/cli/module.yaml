@@ -26,7 +26,7 @@ data_contracts:
 authority:
   - docs/ASTROCS_DESIGN.md §1.2（三命令平级、禁止隐式串接）
   - docs/ASTROCS_DESIGN.md §6.1/§6.2/§6.3（薄入口、唯一命令树、退出码）
-  - docs/plugins/infrastructure/18_cli.md
+  - docs/detail/infrastructure/18_cli.md
 threading_model: host_executor_lease
 notes: |
   三个子命令（normalize/mosaic/export）由同一命令树表 command_tree.h 声明；

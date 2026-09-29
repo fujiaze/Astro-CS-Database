@@ -24,10 +24,10 @@
 - docs/science/algorithms/NOISE_ESTIMATION.md §13 增补（ALG-NOISE-001..003 逐符号
   源码锚定 + §13.3 DISP-NOISE-001..009 + §13.4 TEST-NOISE-DESIGN-001
   冻结容差）。
-- docs/contracts/DATA_SEMANTICS.md §13（DATA-P1-NOISE）。
-- docs/contracts/PUBLIC_API.md API-NOISE-001 节（snr_estimator.h 7 noise
+- docs/science/DATA_SEMANTICS.md §13（DATA-P1-NOISE）。
+- docs/engineering/PUBLIC_API.md API-NOISE-001 节（snr_estimator.h 7 noise
   导出现状 C API）。
-- docs/modules/registry/astrocs.phase1.noise-snr.md 事实修订（front-matter
+- docs/detail/registry/astrocs.phase1.noise-snr.md 事实修订（front-matter
   upstream 更正 + 引言块，占位 ID 收敛声明）。
 
 ### 源码核对结论（摘要，行号以实测为准）
@@ -106,7 +106,7 @@
 - 无 git commit/push（子 agent 不提交）；写入一律 LF（Windows CRLF
   仓库，core.autocrlf=false，不动 .gitattributes）。
 - 新建/修改仅限 4 文件：lib/algorithms/noise_snr/README.md、module.yaml、
-  memory.md、docs/modules/registry/astrocs.phase1.noise-snr.md（仅
+  memory.md、docs/detail/registry/astrocs.phase1.noise-snr.md（仅
   front-matter upstream 更正 + `---` 后插引言块，其余正文不动）。
 
 ### 待后续任务

@@ -63,8 +63,8 @@
 - 产物：README.md r1（10 固定章节，全行号锚实测）、module.yaml（CONTRACT_READY，
   schema astrocs.module-manifest/v1）、本文件增补、docs/science/algorithms/
   STAR_PSF_ALGORITHMS.md §11（SCI-P1-PSF-001/ALG-STARPSF-001/SRC-PSF-001/
-  TEST-PSF-DESIGN-001/DISP-PSF-001..006）、docs/contracts/DATA_SEMANTICS.md §15
-  （DATA-P1-PSF）、docs/contracts/PUBLIC_API.md API-PSF-001。
+  TEST-PSF-DESIGN-001/DISP-PSF-001..006）、docs/science/DATA_SEMANTICS.md §15
+  （DATA-P1-PSF）、docs/engineering/PUBLIC_API.md API-PSF-001。
 - 科学专项落点：known Gaussian/Moffat parameters=README §5/§6（参数序/初值链/
   常量/错误码）；fit failure semantics=4 状态码语义冻结（OK/NO_CONVERGENCE/
   INVALID_PARAMS/ITERATION_LIMIT，README §6）；covariance=现状缺失，登记为

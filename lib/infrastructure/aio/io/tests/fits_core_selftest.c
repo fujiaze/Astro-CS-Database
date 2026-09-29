@@ -1,6 +1,6 @@
 /* IO-001 fits_core 自检驱动 — lib/infrastructure/aio/io/tests/fits_core_selftest.c
  *
- * 覆盖验收映射 (docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md §12):
+ * 覆盖验收映射 (docs/science/IO_001_FITS_STREAM_INTERFACE.md §12):
  *   - 非法 header (SIMPLE 缺失/无 END/BITPIX 非法)  → BAD_HEADER
  *   - 截断 (header 内/数据区一半)                   → TRUNCATED
  *   - dtype/shape/unit mismatch                     → MISMATCH

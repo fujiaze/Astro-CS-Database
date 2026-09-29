@@ -4,7 +4,7 @@
 > 写域：`lib/algorithms/resample/`、`eng/tests/unit/p3_rsmp/`（本文件与生产源、共址测试同域）
 > 基线 HEAD：`44e1cb65`（开工时 `git rev-parse HEAD` 复核；未 commit/push）
 > 上位：`docs/science/algorithms/PHASE3_RESAMPLE.md`、`docs/science/algorithms/PHASE3_RSMP_IMPL.md`、
-> `docs/contracts/DATA_SEMANTICS.md §31`、`docs/science/algorithms/GATES_AND_TOLERANCES.md`、`docs/design/PHASE3_DETAILED_DESIGN.md`
+> `docs/science/DATA_SEMANTICS.md §31`、`docs/science/algorithms/GATES_AND_TOLERANCES.md`、`docs/detail/PHASE3_DETAILED_DESIGN.md`
 
 ## 1. 生产面
 

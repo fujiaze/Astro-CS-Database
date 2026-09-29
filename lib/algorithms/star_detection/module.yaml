@@ -32,7 +32,7 @@
 # 现状实现为 OpenMP 三处（sdet_api.cpp:448 行差分 static、:2321-2325 入口转换、
 # :2042-2044 候选拟合 dynamic + reduction(+:fit_ok_count)，逐候选独立按索引写回，
 # dedup/sort/maxStars 截断串行 :2224-2242，输出 bitwise 与线程数无关），无取消
-# 检查点，ThreadBudget 接线为迁移整改点（见 docs/contracts/PUBLIC_API.md
+# 检查点，ThreadBudget 接线为迁移整改点（见 docs/engineering/PUBLIC_API.md
 # API-STAR-001 与 docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §11.3
 # DISP-STAR-001..005）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID（lib/infrastructure/scheduler/src/
@@ -46,7 +46,7 @@ id: MOD-astrocs-phase1-star
 module_id: astrocs.p1.star_detection
 owner: SA-P1-S15
 language: c++17
-# module_version 属 module 命名空间（docs/owner/RELEASE_STATUS.md §2），取值须与
+# module_version 属 module 命名空间（docs/engineering/RELEASE_STATUS.md §2），取值须与
 # docs/modules/MODULE_MAP.yaml 登记值一致。
 module_version: 0.1.0-alpha.1
 abi_version: 1
@@ -73,8 +73,8 @@ api_contracts:
 doc_links:
   sci: docs/science/STAR_DETECTION.md
   alg: docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md#§11
-  data: docs/contracts/DATA_SEMANTICS.md#§17
-  api: docs/contracts/PUBLIC_API.md#API-STAR-001
+  data: docs/science/DATA_SEMANTICS.md#§17
+  api: docs/engineering/PUBLIC_API.md#API-STAR-001
 contract_ids:
   sci: SCI-P1-STAR-001
   alg: ALG-STARDET-001

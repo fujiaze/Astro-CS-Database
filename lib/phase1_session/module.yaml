@@ -63,8 +63,8 @@ api_contracts:
 doc_links:
   sci: docs/science/CALIBRATION.md
   alg: docs/science/algorithms/CALIBRATION_ALGORITHMS.md
-  data: docs/contracts/DATA_SEMANTICS.md#§16
-  api: docs/contracts/PUBLIC_API.md#API-P1-SESSION
+  data: docs/science/DATA_SEMANTICS.md#§16
+  api: docs/engineering/PUBLIC_API.md#API-P1-SESSION
 contract_ids:
   sci: MISSING
   alg: MISSING
@@ -112,7 +112,7 @@ notes: >-
   冻结 ALG，不新设装配算法；INDEX.yaml 无 ALG-P1-SESSION 条目，决策见
   控制报告）。四段编排与 manifest/artifact schema 权威=DATA_SEMANTICS §16
   （DATA-P1-SESSION）；入口符号/时序/并发合同权威=PUBLIC_API.md
-  API-P1-SESSION；编排级上游合同=API-P1-001（docs/api/PHASE1_API_V1.md，
+  API-P1-SESSION；编排级上游合同=API-P1-001（docs/engineering/PHASE1_API_V1.md，
   FROZEN）。
   如实差距（P1-001 后更新）：API-P1-001 §1 冻结序列为校准→检测/PSF→plate
   solve→测光→SNR→Drizzle→HiPS 7-stage，本 session run 仍仅落 CAL+COS 4

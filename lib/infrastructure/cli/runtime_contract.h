@@ -9,7 +9,7 @@
 //     → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加。没有可选择项 ⇒
 //     phase2 的 --mode <token> 一律 fail-closed 拒绝（不存在任何合法 token）；
 //     FZ-MODE-RETIRED psfsw_robust 不是现行对象（docs/ASTROCS_DESIGN.md §3.1；
-//     docs/design/UNIFIED_MODEL.md:58），拒绝消息带迁移提示；
+//     docs/detail/UNIFIED_MODEL.md:58），拒绝消息带迁移提示；
 //     FZ-FIELD-WEIGHTMODE legacy 整数 weight_mode 与 auto / support_x_snr2 / equal /
 //     pixel_ivar **全部**拒绝（无任何合法取值，含原 1|2 → baseline
 //     的非生产放行面）。
@@ -105,7 +105,7 @@ struct ModeRoute {
 // 依据：docs/ASTROCS_DESIGN.md §3.1（权重只能来自纯净信号/噪声之比的逆方差，跨帧绝对
 // 标定，不基于参考帧；全程只有 SNR）+ docs/science/PSF_SIGNAL_WEIGHT.md §4（单一
 // 权重口径，无模式选择）。psfsw_robust_weight 不是现行对象
-// （docs/design/UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示，不得静默接受。
+// （docs/detail/UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示，不得静默接受。
 inline ModeRoute route_phase2_weight_token(const std::string& raw) {
     ModeRoute r;
     r.surface = "phase2_weight";
@@ -176,7 +176,7 @@ inline ModeRoute route_phase3_mode(const std::string& raw) {
 // 之比）保留**更具体**的拒绝理由，便于用户按提示改对。
 // 依据：docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
 // docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、口径配置项
-// 或口径产物」；docs/contracts/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
+// 或口径产物」；docs/science/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
 inline ModeRoute route_legacy_weight_mode_int(int v) {
     ModeRoute r;
     r.surface = "phase2_legacy_int";

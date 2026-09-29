@@ -102,7 +102,7 @@ set_tests_properties(orchestrator_saturation_wiring_gate PROPERTIES
 # 门内三类判据: 绿（两版 filters.json 都取到声明的 Baader R）、红（修复前的文本
 # 搜索口径在同一文件上取到 Antlia V Pro Series B）、负例（不存在名/非库键反例/
 # provenance 有名字而 filters 段没有 ⇒ 显式报错）。依据 ENGINEERING_SPEC.md:175
-# 「每项检查有正例与负例（能红能绿）」+ docs/standards/CODE_STANDARD.md §MUST
+# 「每项检查有正例与负例（能红能绿）」+ docs/engineering/CODE_STANDARD.md §MUST
 # 「禁止重复 production science implementation（单一实现 + oracle）」。
 # 注: 本 TU 无文件系统原语（读文件经 aio_file::read_all）⇒ 不触发
 # AIO-IO-BOUNDARY 台账 N2「未登记文件出现命中」。
@@ -130,7 +130,7 @@ set_tests_properties(orchestrator_curve_resolve_gate_fault_inject PROPERTIES
 # （scheduler/module_adapters.cpp 的 photometry 节点 → 本入口）。判据: 配置声明
 # 的通带名与 FILTER 关键字解析出的库键不一致 ⇒ 拒绝产出标度（具名、环境作用域）;
 # 一致 ⇒ 身份门放行。依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5 +
-# docs/contracts/CONFIG_CONTRACT.md §4（名字解析字节精确、无别名）。
+# docs/engineering/CONFIG_CONTRACT.md §4（名字解析字节精确、无别名）。
 # gaia 客户端由既有共享库 astrocs_catalog_gaia 提供（生产源零改动）。
 add_executable(p1phot_passband_identity_gate
   test_p1phot_passband_identity.cpp

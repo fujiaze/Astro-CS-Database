@@ -104,7 +104,7 @@ struct Model {
     double objective{0.0};
     // M7-H-101: 收敛状态（1 = 在 cfg.max_iterations 内 max_dM/max_dC 均达到
     // cfg.tolerance；0 = 迭代耗尽未达容差，或旧模型文件未记录该标志）。
-    // SCI-502（状态枚举 0/1/2/3，见 docs/plugins/algorithms_phase2/11_upm.md 4.6）:
+    // SCI-502（状态枚举 0/1/2/3，见 docs/detail/algorithms_phase2/11_upm.md 4.6）:
     //   0 = max_iter（迭代耗尽未达容差）
     //   1 = converged（tol_step 与 tol_obj 同时满足）
     //   2 = stalled（目标相对改善量连续 stall_patience 次低于数值地板）
@@ -2225,7 +2225,7 @@ int p2_upm_close(void* model) {
 
 // ===========================================================================
 // V6 目标态：UPM 乘法/加性分离求解器（ALG-P2S-UPM.1..8）
-// 见 lib/algorithms/coverage/include/astro/phase2/upm.h 顶部契约与 docs/contracts/DATA_SEMANTICS.md §31。
+// 见 lib/algorithms/coverage/include/astro/phase2/upm.h 顶部契约与 docs/science/DATA_SEMANTICS.md §31。
 // ===========================================================================
 namespace {
 

@@ -21,4 +21,4 @@
 
 上游：docs/ASTROCS_DESIGN.md §8.4（algorithms/shared：共享数学实现）、§8.5（模块与 ABI）。
 
-科学断言以 docs/science/ 为权威，佐证要求见 docs/DOCUMENT_GOVERNANCE.md §2。
+科学断言以 docs/science/ 为权威，佐证要求见 docs/engineering/DOCUMENT_GOVERNANCE.md §2。

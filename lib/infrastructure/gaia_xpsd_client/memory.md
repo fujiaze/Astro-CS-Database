@@ -28,8 +28,8 @@ Gaia DR3/DR3SP星表C客户端，解析XPSD格式星表文件，提供锥形查�
 - 全面重写 README.md + 新建 module.yaml（MOD-astrocs-catalog-gaia，
   CONTRACT_READY，不声明 IMPLEMENTED）；修订 docs/science/algorithms/GAIA_QUERY.md
   （ALG-GAIA-001：真实离散公式/剪枝/复杂度/误差来源 + TEST-GAIA-DESIGN-001
-  测试设计与容差冻结）；docs/contracts/DATA_SEMANTICS.md §8（DATA-GAIA-001）、
-  PUBLIC_API.md（API-GAIA-001）、docs/modules/gaia_xpsd_client.md 事实修订；
+  测试设计与容差冻结）；docs/science/DATA_SEMANTICS.md §8（DATA-GAIA-001）、
+  PUBLIC_API.md（API-GAIA-001）、docs/detail/gaia_xpsd_client.md 事实修订；
   追溯矩阵加行 MOD-astrocs-catalog-gaia（SRC=gaia_client.c 8 符号）。
 - 如实登记的现状缺陷（迁移处理，不在 DOC 改）：GaiaStar.parallax/pmra/pmdec
   输出未初始化、source_id 恒 0、空目录 Win NULL vs POSIX 空 client 平台差异、

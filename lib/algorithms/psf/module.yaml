@@ -26,7 +26,7 @@
 # 现状实现为 OpenMP parallel for schedule(dynamic) 4 处（dpsf_psf.cpp:593,718,
 # 842,986，reduction(+:success_count) 仅计数，逐星输出按索引写入互不共享可变
 # 状态，逐星独立拟合结果确定），无取消检查点，ThreadLease 接线为迁移整改点
-# （见 docs/contracts/PUBLIC_API.md API-PSF-001 与
+# （见 docs/engineering/PUBLIC_API.md API-PSF-001 与
 # docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11.3 DISP-PSF-001..006）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID（lib/infrastructure/scheduler/src/
 # module_adapters.cpp:430-448 p1_star_psf_descriptor：module_id=
@@ -66,8 +66,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PSF.md
   alg: docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11
-  data: docs/contracts/DATA_SEMANTICS.md#§15
-  api: docs/contracts/PUBLIC_API.md#API-PSF-001
+  data: docs/science/DATA_SEMANTICS.md#§15
+  api: docs/engineering/PUBLIC_API.md#API-PSF-001
 contract_ids:
   sci: SCI-P1-PSF-001
   alg: ALG-STARPSF-001

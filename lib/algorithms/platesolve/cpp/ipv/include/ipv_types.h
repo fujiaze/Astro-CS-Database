@@ -225,7 +225,7 @@ struct FlipModeResult {
 //   log_only:       vote_threshold (仅日志; 判据为字面量 3)
 //   shadowed:       img_n_target (=60 硬覆盖), log_dir (上游清零)
 //   代码真实消费但配置不可达: gaia_* 两项 + m_lim_* 全部 + density_tolerance
-// 详见 ipv_api.h 尾部 [P27-DEAD-PARAMS] 注释、docs/contracts/PUBLIC_API.md §P27、
+// 详见 ipv_api.h 尾部 [P27-DEAD-PARAMS] 注释、docs/engineering/PUBLIC_API.md §P27、
 // run/perf-fix/P27-dead-params/REPORT.md。不改变任何默认值/公式/容差。
 // IPVSolver 参数
 struct IPVSolverParams {

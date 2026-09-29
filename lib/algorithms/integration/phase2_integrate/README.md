@@ -42,7 +42,7 @@
 | 点源组合 | `Q=ΣQ_k; W=ΣW_info,k; F=Q/W; Var=1/W`（相关帧 `W=A^T C^-1 A`） | covariance 由 `R C_in R^T` 实际系数传播 |
 
 退役对象 `psfsw_robust_weight` 的声明 token 一律显式拒绝 + 迁移提示
-（FZ-MODE-RETIRED；`docs/design/UNIFIED_MODEL.md:58`）。
+（FZ-MODE-RETIRED；`docs/detail/UNIFIED_MODEL.md:58`）。
 
 ## 构建 / 测试
 

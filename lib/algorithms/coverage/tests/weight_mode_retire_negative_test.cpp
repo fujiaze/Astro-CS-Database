@@ -11,7 +11,7 @@
 //     跨帧可用、不基于参考帧、绝对标定；PSF 拟合质量代理只作诊断。
 //   docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（§4 为单一权重口径：阶段1 稀疏 SNR 控制点
 //     → 阶段2 重建稠密 SNR 面 → 逆方差定权 → 叠加；无模式选择）。
-//   docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示）。
+//   docs/detail/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 //   ENGINEERING_SPEC.md §8（每项检查有正例与负例，能红能绿）。
 //
 // 能红能绿：

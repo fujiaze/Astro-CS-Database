@@ -4,7 +4,7 @@
  *
  * 纪律: 不接线 Phase session；不改 legacy ac_* 实现；不发明 DI-03（共享低秩/
  *       相关核数据面实例化）未冻结的核函数或秩上限；所有 fail-closed 按
- *       docs/contracts/DATA_SEMANTICS.md 实现。
+ *       docs/science/DATA_SEMANTICS.md 实现。
  *
  * 测试用故障注入: 仅当环境变量 ASTROCS_V6_CAL_FAULT 被显式设置时改变行为，
  *       默认（未设置）为严格正确实现。对齐仓库既有先例 ASTROCS_RT001_FAULT。
@@ -53,7 +53,7 @@ bool is_allowed_variance_from(const std::string& v) {
 
 /* 退役对象（PSFSW-RETIRE-01；口径「只要纯净信号/噪声的信噪比……绝对标定」）：
  * psfsw_robust_weight **不是现行对象**（docs/ASTROCS_DESIGN.md §3.1 订正后；
- * docs/design/UNIFIED_MODEL.md:58；统一对象 14→13，CHG-2026-09-20-PSFSW-RETIRE）。
+ * docs/detail/UNIFIED_MODEL.md:58；统一对象 14→13，CHG-2026-09-20-PSFSW-RETIRE）。
  * 旧产品若在 variance_from 声明该对象 ⇒ 显式拒绝 + 迁移提示，不得静默接受，
  * 也不得再把它当作"在役的相对复合权重"（它连对象都不存在了）。 */
 bool is_retired_canonical_object(const std::string& token) {

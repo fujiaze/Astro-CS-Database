@@ -74,7 +74,7 @@ inline const char* session_cli_name(SessionId s) {
 //                 见 config_fields 的 scope=="block" —— 预检逐块判定）
 //   * mosaic    → hips_paths  （p2_session 消费的路径数组）
 //   * export    → source.hips_dir（p3_session.cpp parse_request 的对象字段；
-//                权威 docs/api/PHASE3_API_V1.md §请求 与 MANIFEST_VERIFY_V1 样例）
+//                权威 docs/engineering/PHASE3_API_V1.md §请求 与 MANIFEST_VERIFY_V1 样例）
 // GAP-034 事实: 旧 precheck 把 source 当 array|string 计数（对象形态 n=0 → 恒
 // 「source 为空」），而 export 模板又写 "source": ""/"center": [..]，三处口径互斥，
 // 导致 export 无任何配置可在不加 -force 时进入会话。现收敛为「同一声明 + 同一字段」。
@@ -277,7 +277,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         //   eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
         // —— 三命令通用输入合同「块内运行参数平铺、取消 config 子对象」。
-        // rotation_deg 模板值 0.0 = 合同默认（docs/plugins/algorithms_phase3/14_projection.md:38）。
+        // rotation_deg 模板值 0.0 = 合同默认（docs/detail/algorithms_phase3/14_projection.md:38）。
         // crpix_px 模板值 [512.5, 512.5] = 本模板 1024×1024 输出的几何中心（FITS 1-based，
         // (1+1024)/2；「缺省 = 中心」），是示例占位、不是数值默认。
         // ⚠ 两键生产科学消费点尚未落地（p3 投影/重采样面）⇒ 已在
@@ -288,7 +288,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"crpix_px", "[512.5, 512.5]",
          "参考像素（FITS 1-based；示例值 = 本模板 1024×1024 输出的几何中心，缺省 = 中心；"
          "合同声明 = phase_config_export.schema.json；生产消费点未落地，见死键台账）"},
-        // EXPORT-CROP-01（依据 docs/design/PHASE3_DETAILED_DESIGN.md §8.1「导出裁剪
+        // EXPORT-CROP-01（依据 docs/detail/PHASE3_DETAILED_DESIGN.md §8.1「导出裁剪
         // 范围（crop）」+ §8.2 两种输入形式（互斥）+ §8.4 落点与不变式）：
         // 默认导出**不得裁剪任何有效像素**（允许黑边），裁剪为**可选**手动范围，
         // 两种形式都要有（平面像素矩形 / 天球矩形，供 GUI 框选导出直接填）。
@@ -327,7 +327,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // surface_brightness」；config_registry.json:1238-1241 同源登记「默认
         // surface_brightness 与插件一致」）。缺键即 REJECT（FZ-P3-MODES）⇒ 模板必须
         // 给出该键（docs/ASTROCS_DESIGN §3.3「模板与 --help 由同一份键表生成」；
-        // docs/contracts/CONFIG_CONTRACT.md:81 旧合同 required 即含 output_mode）。
+        // docs/engineering/CONFIG_CONTRACT.md:81 旧合同 required 即含 output_mode）。
         {"output_mode", "\"surface_brightness\"",
          "输出模式（必填；合同默认 surface_brightness）：surface_brightness / "
          "point_source_flux / visualization（缺所选模式所需信息 → 拒绝或明确 unavailable）"},

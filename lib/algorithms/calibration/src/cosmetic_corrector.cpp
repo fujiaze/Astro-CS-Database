@@ -336,7 +336,7 @@ void detect_bad_columns(const float* data, int w, int h,
     if (!data || !col_mask || w <= 0 || h <= 0) return;
     for (int x = 0; x < w; x++) col_mask[x] = 0;
     if (column_sigma <= 0.0f) return;   // 显式禁用（不是降级）
-    // 段长上限（依据 docs/contracts/DATA_SEMANTICS.md §10.4「修复」行：**只修单列**，
+    // 段长上限（依据 docs/science/DATA_SEMANTICS.md §10.4「修复」行：**只修单列**，
     // 按左右两邻算术平均；相邻多列不属本路径）
     //   <=0 ⇒ 默认 1（只判单列缺陷）。超限的段**不修复**，仅以掩膜值 2 标记
     //   并置 AC_COLSTAT_WIDE_DEFECT，如实登记而不静默。

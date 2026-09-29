@@ -6,13 +6,13 @@
 //   （orchestrator 的 run_stage_photometric 与 frame_photometry_fit 都只做委托）。
 // 规范依据:
 //   - ENGINEERING_SPEC.md:175「每项检查有正例与负例（能红能绿）」；
-//   - docs/standards/CODE_STANDARD.md §MUST「禁止重复 production science
+//   - docs/engineering/CODE_STANDARD.md §MUST「禁止重复 production science
 //     implementation（单一实现 + oracle）」+「禁止 silent config fallback 改变
 //     科学语义」；
 //   - eng/packaging/config/filters.json#lookup.resolution_rule 逐字:
 //     「resolve(name) = filters[name] if name in keys(filters) else
 //       ERROR(unknown_filter)」+ 同文件 lookup.non_key_examples（"bader r" 等
-//     非库键串的 resolution = ERROR）；文档化说明 docs/contracts/CONFIG_CONTRACT.md §4。
+//     非库键串的 resolution = ERROR）；文档化说明 docs/engineering/CONFIG_CONTRACT.md §4。
 // 判据（逐条可红）:
 //   [G1] 绿: 转录版 filters.json + "Baader R" ⇒ 73 点 / [572,716] nm
 //   [G2] 绿: 原始版 filters.json + "Baader R" ⇒ 73 点 / [572,716] nm（无回归）
@@ -281,7 +281,7 @@ int main(int argc, char** argv) {
     //   [I3] provenance 声明与曲线不符 / [I4] provenance 缺该条目
     //   [I5] 名字检查能过、但曲线不是声明那条（身份门唯一能抓的一类）
     //   [I6] 恒真自检: 正例与全部错误输入的判定**必须不同**
-    // 依据: docs/contracts/CONFIG_CONTRACT.md §4（名字解析 = 字节精确、无别名；
+    // 依据: docs/engineering/CONFIG_CONTRACT.md §4（名字解析 = 字节精确、无别名；
     //   provenance 的 curve_stats 由机器门与曲线逐条对账）+ docs/science/
     //   PHOTOMETRY.md §2a.4/§2a.5（通带形状不被零点吸收；比较 sigma_residual
     //   必须声明所用模型通带）+ ENGINEERING_SPEC「每项检查有正例与负例」。

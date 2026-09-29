@@ -10,7 +10,7 @@
 //        都不存在。**库层内部** (pc::StarMatcher::cleanAndScale 8 参重载 +
 //        PC_QF_* 位定义) 增质量位有效域过滤, 含 PC_QF_SATURATED/
 //        PC_QF_HAS_SATURATED 的星不进入零点拟合, 计 rejected_quality。
-//        注意 (依据 docs/contracts/PUBLIC_API.md §「C ABI（extern "C"，不跨边界
+//        注意 (依据 docs/engineering/PUBLIC_API.md §「C ABI（extern "C"，不跨边界
 //        抛 C++ exception）」+ docs/ASTROCS_DESIGN.md §8.5「模块与 ABI」):
 //        **不新增/不修改任何 C 导出 ABI**。
 //        orchestrator 用 raw 函数指针按位置调用既有导出, 给它们加尾部形参
@@ -89,7 +89,7 @@ std::vector<int> make_rows(int n) {
 }
 
 // ==========================================================================
-// ABI 冻结锁 (依据 docs/contracts/PUBLIC_API.md §「C ABI」+ docs/ASTROCS_DESIGN.md §8.5):
+// ABI 冻结锁 (依据 docs/engineering/PUBLIC_API.md §「C ABI」+ docs/ASTROCS_DESIGN.md §8.5):
 // 既有 6 个 C 导出不得新增形参 (不改 ABI)。
 // 断言面: 6 个导出的符号地址在编译期可解析 —— 任何删除/改名都会让本 TU 编译
 // 失败; 调用侧 (orchestrator 的 raw 函数指针) 若与公共头形参不符, 会在自己

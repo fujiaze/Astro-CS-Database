@@ -97,7 +97,7 @@
 
 ## 3. 输入/输出 ports、DATA ID、单位、dtype、shape、invalid
 
-唯一权威 = DATA-P2-HIPS（docs/contracts/DATA_SEMANTICS.md §20）。端口
+唯一权威 = DATA-P2-HIPS（docs/science/DATA_SEMANTICS.md §20）。端口
 词汇（module_adapters.cpp:1040-1057 p2_write_descriptor：integrated
 DATA-P2-INT in / mosaic DATA-P2-RES out，UnitId::SURFACE_BRIGHTNESS、
 CoordinateFrame::PIXEL）为编排层词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。

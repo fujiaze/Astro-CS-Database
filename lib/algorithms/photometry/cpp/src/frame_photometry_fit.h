@@ -162,7 +162,7 @@ struct FramePhotFitResult {
   // 全局路径（calibration::apply_photometry），以保证与改动前逐位一致。
   SpatialGainField spatial;
   // true ⇒ 调用方**必须把该帧判 fail**（几何充分但空间拟合数值失败 = 缺陷；
-  // 帧级失败作用域，见 docs/design/LOG_AND_ERROR_SYSTEM.md §10）。
+  // 帧级失败作用域，见 docs/detail/LOG_AND_ERROR_SYSTEM.md §10）。
   bool spatial_frame_fail = false;
 };
 

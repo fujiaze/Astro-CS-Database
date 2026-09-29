@@ -114,7 +114,7 @@ add_test(NAME p1phot_properties COMMAND p1phot_tests properties)
 add_test(NAME p1phot_oracle COMMAND p1phot_tests oracle)
 add_test(NAME p1phot_negative COMMAND p1phot_tests negative)
 # 到达顺序不变性 + 线程数扫描 (1/2/4/8): §13.4 I5 只扫线程数、样本序恒定 ⇒
-# 本组把"样本序"变成被控自变量 (判据口径 = docs/contracts/TEST_MATRIX.md §2)。
+# 本组把"样本序"变成被控自变量 (判据口径 = docs/engineering/TEST_MATRIX.md §2)。
 add_test(NAME p1phot_determinism COMMAND p1phot_tests determinism)
 # PHOT-MXY-01: 低阶乘性空间增益 m(x,y) —— 正例恢复 + 四条负例（真值无效应归零 /
 # 分布不足声明降级 / 开关关闭逐位一致 / 判据能红能绿）。

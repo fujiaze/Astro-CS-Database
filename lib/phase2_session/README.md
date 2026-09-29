@@ -30,7 +30,7 @@
   装配会话 C API」节）→ TEST-P2-SESSION-001（可执行测试 MISSING，
   P2-SESSION-DOC 登记归 P2-SESSION-TEST，不冒认；设计冻结面=
   ALG 文档 TEST-DESIGN 节 + registry 页）；编排上游 API-P2-001
-  （docs/api/PHASE2_API_V1.md，FROZEN 引用不改动）。
+  （docs/engineering/PHASE2_API_V1.md，FROZEN 引用不改动）。
 
 ## 职责（摘要，权威=ALG-P2-SESSION-001）
 

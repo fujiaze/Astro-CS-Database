@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """DATA-004 product provenance 层（执行形态；权威文档形态 =
-docs/interfaces/data/DATA-004_PRODUCT_PROVENANCE.md + 本文件 docstring）。
+docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md + 本文件 docstring）。
 
 冻结语义（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-004 + 约束 A.6）：
   - 区分 revision 类别 product/module/ABI/data schema/doc revision/history：

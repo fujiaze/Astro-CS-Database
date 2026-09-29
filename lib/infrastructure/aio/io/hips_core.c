@@ -774,7 +774,7 @@ int acs_hips_open_v1(const char* base_dir_utf8,
    *      (2) DISP-HIPS-005 已登记「低阶 UNIQ 对自家 reader 无效」——自家产物的
    *         MOC 可能合法存在而本 reader 不可用, 若 fail-closed 会把可读产品判死;
    *      (3) 因此 MOC 解析失败只降级为「枚举面 0 tile」, 不改变单 tile 读取语义。
-   * 该降级面已登记在 docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md §5 限制 3。 */
+   * 该降级面已登记在 docs/science/IO_002_HIPS_INPUT_INTERFACE.md §5 限制 3。 */
   (void)hips_parse_moc(h, err, err_cap);
   *out = h;
   return ACS_HIPS_OK;

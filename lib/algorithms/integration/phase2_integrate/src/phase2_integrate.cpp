@@ -196,7 +196,7 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
  *        标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重 psfsw_robust_weight
  *        **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
  *        之比……任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
- *        docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
+ *        docs/detail/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
  *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径）。
  * 纪律:  不得静默接受；本常量只用于**拒绝**路径，不得用于放行。
  * 迁移:  Phase2 由重建的稠密 SNR 面现场取逆方差（w = SNR^2/F_ref^2 = 1/sigma_F^2）；
@@ -1044,7 +1044,7 @@ Phase2OpenResult open_phase2_product(const std::string& target_dir) {
    * 权重只有一个口径 —— Phase1 产稀疏 SNR 控制点 → Phase2 重建稠密 SNR 面 →
    * 取逆方差（最优功率）定权 → 叠加。记录里的身份常量**不是可选项**：取值必须是
    * canonical 的 "point_information"；旧产品若声明退役对象 psfsw_robust ⇒ 显式拒绝 +
-   * 迁移提示（docs/design/UNIFIED_MODEL.md:58），不得静默接受。
+   * 迁移提示（docs/detail/UNIFIED_MODEL.md:58），不得静默接受。
    * 能红能绿：把身份常量改成任何其它值（或退役 token），本门立即判红。 */
   {
     const std::string m = doc.value("weight_mode", std::string());
@@ -1475,10 +1475,10 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
    *   · 合法来源探针 tokens_ok 必须 rc=0：非 0 ⇒ 冻结词表误杀合法权重来源（过杀）；
    *   · 禁来源探针 tokens_bad 必须 rc=1：非 1 ⇒ 冻结词表被放宽，本门已失效（漏杀）。
    * 判红时按 p2_upm_ma_param_cov 的同型收尾（:1305）写 r.error、关模型、提前返回。
-   * 冻结依据：docs/contracts/DATA_SEMANTICS.md §31.8
+   * 冻结依据：docs/science/DATA_SEMANTICS.md §31.8
    * 「weight 来源含诊断量（median(SNR_F)/support/coverage/FWHM/residual）→ REJECT；
    *  G-WEIGHT-SOURCES / G-DIAGNOSTIC-NOT-WEIGHT」+ §31.3/§31.7，
-   * docs/plugins/algorithms_phase2/13_integration.md「权重来源受限表的锁定状态」。 */
+   * docs/detail/algorithms_phase2/13_integration.md「权重来源受限表的锁定状态」。 */
   {
     char eb[256] = {0};
     const char* tokens_ok[] = {"psf", "photometric_response", "noise_covariance"};

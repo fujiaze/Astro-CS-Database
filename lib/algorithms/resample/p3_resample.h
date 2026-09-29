@@ -149,12 +149,12 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
 
 /* ── 样本级掩膜强制计数 (rule_id NAN-SAMPLE-MASK-COVERAGE-NAN) ───────────────
  * 权威 (逐字同口径三处; 分歧以 DATA-002 §2a 为准):
- *   · docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
+ *   · docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
  *     `invalid_handling` 块 —— **唯一正本**: rule_id / aggregation=
  *     sample_level_mask_with_renormalisation / zero_eligible_samples=
  *     nan_signal_support_le_0 / zero_substitution=forbidden /
  *     rejection_counting=mandatory / **count_field=n_rejected_nonfinite**;
- *   · docs/standards/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
+ *   · docs/engineering/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
  *   · ALG-P3-003 §2 G4 + §4 (docs/science/algorithms/PHASE3_RESAMPLE.md) —— 本核冻结口径
  *     (样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数; 禁「零填」替代语义)。
  * 分类为**互斥、可加**三项 (DATA-002 §2a 规则 3): 值非有限 / 方差非有限 / 权重非正。

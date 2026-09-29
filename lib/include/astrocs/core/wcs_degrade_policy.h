@@ -88,8 +88,8 @@ struct WcsSolveEvidence {
 // status 沿用既有词表 "ok" | "fail"（下游 drizzle :7711 / photometry :5551 已在按
 // status=="fail" 选输入面 ⇒ 复用即得「下游正确接收」，不需要改任何下游判据）。
 // wcs_status 是本节点特有的**坐标态**，与 status 正交：solved=已解出；unsolved=未解出。
-// **刻意不写 degraded_reason**：docs/design/LOG_AND_ERROR_SYSTEM.md:209 与
-// docs/design/PHASE1_DETAILED_DESIGN.md:73 明文「帧级失败不是降级, 不写
+// **刻意不写 degraded_reason**：docs/detail/LOG_AND_ERROR_SYSTEM.md:209 与
+// docs/detail/PHASE1_DETAILED_DESIGN.md:73 明文「帧级失败不是降级, 不写
 // degraded_reason」；本节点对未解出帧**从不**编造替代 WCS（改变科学语义的降级
 // 不是降级 ⇒ docs/ASTROCS_DESIGN.md:563-564），故它是帧级失败而非降级。
 // 「不阻塞运行」是**节点行为**（continue，不 return fail），由 status 之外的

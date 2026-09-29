@@ -2,7 +2,7 @@
  *
  * 任务: IMPL-AIO-001 (Wave 5)。写域: lib/infrastructure/aio/product_io/。
  * 语义锚 (ALG-P3-008 §7.3, 宪章 §4.3/§14.4)。
- * **步序正本唯一** = docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（生产者协议
+ * **步序正本唯一** = docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（生产者协议
  * 6 步序）+ §4.1（机制层步序与"两序关系"的唯一声明处）—— 本文件**不复写步序表**，
  * 只记机制层的实际顺序与调用方约束：
  *   写 tmp(同目录) -> flush/close/fsync(+DATASUM/CHECKSUM 由 fits 写进 tmp) ->

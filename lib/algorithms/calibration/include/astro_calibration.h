@@ -41,7 +41,7 @@ extern "C" {
                                            *  bad_column_edge_columns_excluded） */
 #define AC_COLSTAT_WIDE_DEFECT        32  /* 检出宽度 > max_seg_len 的缺陷段：**未修复**，
                                            * 仅在 col_mask 里以值 2 标记（依据
-                                           * docs/contracts/DATA_SEMANTICS.md §10.4
+                                           * docs/science/DATA_SEMANTICS.md §10.4
                                            * 产物表：值 2 = 仅标记未修；只修单列）。
                                            * 该位只声明"存在被跳过的宽段"，不静默。 */
 
@@ -277,7 +277,7 @@ AC_API int ac_correct_columns_ex2(
  *     单列段（本层默认 max_seg_len=1）⇒ w_L=w_R=1/2 ⇒ Σw² = 1/2；
  *     贴边单侧复制 ⇒ w=1 ⇒ Σw² = 1。
  *
- * 【三个量必须并列写清，不得只留一个（依据 docs/contracts/DATA_SEMANTICS.md
+ * 【三个量必须并列写清，不得只留一个（依据 docs/science/DATA_SEMANTICS.md
  *   §10.5「列状缺陷的方差处置」：Σw²、κ 与实测口径三者并列）】
  *   (Q1) **Σw² = 1/2**（传播式）：单列段两侧锚点各 1/2 ⇒ 权重平方和 1/2。
  *        这是"把修复算子自己的插值权重施加到方差面"（与 LSST meas_algorithms

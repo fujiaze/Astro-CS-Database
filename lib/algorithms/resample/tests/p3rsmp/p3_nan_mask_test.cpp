@@ -2,9 +2,9 @@
 // ── NAN-SAMPLE-MASK-COVERAGE-NAN 内核 Oracle + 负例 (ALG-P3-003 §2 G4 / §4) ──
 //
 // 权威 (逐字同口径三处; 分歧以 DATA-002 §2a 为准):
-//   · docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a invalid_handling:
+//   · docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a invalid_handling:
 //     样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 (count_field=n_rejected_nonfinite);
-//   · docs/standards/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
+//   · docs/engineering/NUMERIC_STANDARD.md §MUST「NaN/Inf 契约」;
 //   · docs/science/algorithms/PHASE3_RESAMPLE.md §2 G4 / §4 (禁「零填」替代语义)。
 //
 // 判据 (非退化; 真值无效应/实现退回旧口径时必判红):

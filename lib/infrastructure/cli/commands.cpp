@@ -120,7 +120,7 @@ static uint32_t cli_affinity_cpu_count() {
 //     该比例可配置、默认 95%，全链不写死内存上限字面量。
 //   * docs/ASTROCS_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
 //     调度器与线程预算源）、§4.5（资源门只管磁盘 ⇒ 本预算是调度准入输入，不是门禁）
-//   * docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限由配置/资源门决定，禁止硬编码）
+//   * docs/engineering/SCHEDULER_CONTRACT.md §3（内存上限由配置/资源门决定，禁止硬编码）
 // 两个输入：
 //   ① 可用内存 = aio_system_available_memory_bytes()（aio 是文件级唯一 I/O 边界；
 //      Linux 口径 = MemAvailable（含可回收 page cache）∩ cgroup 内存余量；
@@ -156,8 +156,8 @@ static uint32_t cli_memory_budget_percent(const std::string& cpu_profile_path) {
 
 // ── 安装目录 / cpu_profile 路径 / ISA provider 选取（R-28/R-29）──────────────────
 // 落点依据：docs/ASTROCS_DESIGN.md:524,714（benchmark 生成/更新**安装目录** cpu_profile）+
-//           docs/api/CLI_PROTOCOL_V1.md:31（同上，「后续运行自动读取」）+
-//           docs/architecture/ISA_VARIANTS.md §0 第 3 条 / §2（DSO 随安装树、运行期检测选取）。
+//           docs/engineering/CLI_PROTOCOL_V1.md:31（同上，「后续运行自动读取」）+
+//           docs/engineering/ISA_VARIANTS.md §0 第 3 条 / §2（DSO 随安装树、运行期检测选取）。
 // 三处路径约定此前各写一套（--cpu-profile 旗标 / benchmark 写死 install_dir+"/cpu_profile.json"
 // / profile_store 的 XDG 口径），口径不统一 ⇒ 这里收敛为**唯一函数面**：
 //   install_dir  = 主 CLI 可执行文件所在目录（benchmark 结果缓存的唯一落点，
@@ -250,7 +250,7 @@ static std::string cli_backend_id_for_provider(const std::string& provider) {
 // CPU-005 决策门限：与 bench_report 的冻结噪声门限同源（唯一拼写点）。
 static constexpr double kCliMinGainRel = 0.03;
 
-// 运行期 ISA 选取（docs/architecture/ISA_VARIANTS.md §2/§3）：manifest → 预检（含能力位）→ dlopen+self_test →
+// 运行期 ISA 选取（docs/engineering/ISA_VARIANTS.md §2/§3）：manifest → 预检（含能力位）→ dlopen+self_test →
 // 逐 kernel 路由决策（cpu_routing，profile 驱动）→ 选址；任一步失败即回退基线。
 // 生产调用点 = run_with_resource_gate（三命令共同的运行路径），非测试专用。
 static CliBackendSelection cli_select_backend(const std::string& profile_path) {
@@ -1015,11 +1015,11 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
     // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§4.5 内存不设门）。
     // R-29：cpu_profile 路径唯一口径 —— 显式 --cpu-profile 优先，否则取**安装目录**下的
-    // benchmark 结果缓存（docs/ASTROCS_DESIGN.md:524 / docs/api/CLI_PROTOCOL_V1.md:31：
+    // benchmark 结果缓存（docs/ASTROCS_DESIGN.md:524 / docs/engineering/CLI_PROTOCOL_V1.md:31：
     // benchmark 生成/更新安装目录 cpu_profile，后续运行自动读取）。
     // 缺失/失配**不阻塞**：打印经过并走保守口径（回落语义正本 =
-    // docs/architecture/EXECUTION_MODEL.md §5「无 cpu_profile → baseline 后端 + 动态 worker」
-    // 与 docs/architecture/CPU_BACKEND_ARCH.md §6「失败与回退」；V8-CPU-002）。
+    // docs/engineering/EXECUTION_MODEL.md §5「无 cpu_profile → baseline 后端 + 动态 worker」
+    // 与 docs/engineering/CPU_BACKEND_ARCH.md §6「失败与回退」；V8-CPU-002）。
     std::string prof_source;
     const std::string prof_path = cli_resolve_cpu_profile_path(cpu_profile_path, &prof_source);
     std::fprintf(stderr, "session run: cpu_profile source=%s path=%s\n",
@@ -1049,7 +1049,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     }
     astrocs::core::MemoryBudget mb;
     cli_resolve_memory_budget(prof_path, &mb);
-    // 运行期 ISA 选取（docs/architecture/ISA_VARIANTS.md §2 / R-28）：能力探测 + benchmark profile + 已装载 provider
+    // 运行期 ISA 选取（docs/engineering/ISA_VARIANTS.md §2 / R-28）：能力探测 + benchmark profile + 已装载 provider
     // DSO → 逐 kernel 路由；缺库/不支持/收益不足回退基线。句柄活到本函数返回。
     CliBackendSelection backend_sel = cli_select_backend(prof_path);
     std::fprintf(stderr, "session run: backend=%s provider=%s (%s)\n",
@@ -2477,15 +2477,15 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 }
 
 // config init / config validate / config show-effective 与 verify / verify profile 同属
-// CLI-001 已删命令面（docs/api/CLI_PROTOCOL_V1.md §1 已删除别名 → rc=2；docs/ASTROCS_DESIGN
+// CLI-001 已删命令面（docs/engineering/CLI_PROTOCOL_V1.md §1 已删除别名 → rc=2；docs/ASTROCS_DESIGN
 // §6.2 唯一命令树无 config */verify*）。全仓零调用点，按 ENGINEERING_SPEC §8 显式退役；
 // 现行校验入口 = 会话命令预检（subcommand.h precheck_config）+ doctor --json +
 // export 的 resume/manifest 校验（cmd_session3_run）。
 
 // cmd_drizzle / RT-009 graph / CLI-001 modules list·verify·selftest 三个命令面（连同只
-// 服务它们的 cli_exe_dir() 清单/模块发现根）同为已删能力（docs/api/CLI_PROTOCOL_V1.md §1
+// 服务它们的 cli_exe_dir() 清单/模块发现根）同为已删能力（docs/engineering/CLI_PROTOCOL_V1.md §1
 // 已删除别名 → rc=2）。零调用点死代码按 ENGINEERING_SPEC §8 显式退役，能力去向见下条注释。
-// CLI-001 已删除 modules list/verify/selftest 用户命令（docs/api/CLI_PROTOCOL_V1.md §1
+// CLI-001 已删除 modules list/verify/selftest 用户命令（docs/engineering/CLI_PROTOCOL_V1.md §1
 // 明列 modules */selftest 为已删除别名 → rc=2；docs/ASTROCS_DESIGN §6.2 命令树只有
 // normalize/mosaic/export/help/--version/doctor/benchmark）。原实现
 // （cmd_modules_list / cmd_modules_verify / cmd_selftest 及 locate_product_manifest /
@@ -2527,7 +2527,7 @@ int dispatch(const Parsed& p) {
         // P-163: 事件流发布面退出码 —— 事件流（stdout JSONL）是本次运行的默认输出，
         // 「成功」必须包含事件已写出：stdout 管道对端关闭 / 重定向到满盘（ENOSPC）
         // 时 emit 写失败已被 JsonlEmitter 登记，这里把名义 rc=0 改成写失败码
-        // （IO=7；磁盘满=10，docs/plugins/infrastructure/21_observability.md:45-46）。
+        // （IO=7；磁盘满=10，docs/detail/infrastructure/21_observability.md:45-46）。
         // 名义 rc 已非 0 时原码保留（run 自身失败更具体，不被写失败掩盖）。
         const int rc = sub.dispatch(p, ev);
         return ev.publication_exit_code(rc);
@@ -2538,7 +2538,7 @@ int dispatch(const Parsed& p) {
         // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（docs/ASTROCS_DESIGN
         // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
         // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见
-        // docs/api/CLI_PROTOCOL_V1.md §1 + eng/tests/cli/test_cli_protocol.py
+        // docs/engineering/CLI_PROTOCOL_V1.md §1 + eng/tests/cli/test_cli_protocol.py
         // test_03 的负例 ("verify", "--run-manifest", ...) → 2）。
         // 语义 = 04 §3 manifest→status→version→输入 hash→逐 artifact
         // （存在→sha256→size_bytes）；退出码：参数 2 / 输入 3 / 版本 5 /
@@ -2572,7 +2572,7 @@ int dispatch(const Parsed& p) {
             aio_file::read_all((pdir + "/backends.manifest.json").c_str(), &mbuf);
         // 交付面 fail-closed：清单缺失 = ISA 变体分发面不完整（安装树缺 providers/*.so
         // 或未构建 astrocs_backends_manifest）⇒ 判 fail，不得静默记 skipped/pass。
-        // 依据：docs/architecture/ISA_VARIANTS.md §0 第 3 条（变体随安装树分发）+ §2；
+        // 依据：docs/engineering/ISA_VARIANTS.md §0 第 3 条（变体随安装树分发）+ §2；
         // AGENTS.md §9「检查器静默退化算未完成」。
         checks.push_back(nlohmann::json{{"name", "backend_provider_dir"},
                                         {"status", have_manifest ? "pass" : "fail"},

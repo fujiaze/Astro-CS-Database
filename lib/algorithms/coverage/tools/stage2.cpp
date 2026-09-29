@@ -390,7 +390,7 @@ int main(int argc, char** argv) {
     // ⇒ 原 local_snr_map 的构造与其权重消费点一并删除，不留"建了不用"的死面。
     // 仅保留「无局部星点的 control observation 回退整帧 SNR median」这一
     // **UPM 控制权重**语义（UPM 拟合内部诊断开关，不是 Phase2 集成权重枚举；
-    // docs/contracts/PUBLIC_API.md「边界登记」冻结两者不得互相映射）。
+    // docs/engineering/PUBLIC_API.md「边界登记」冻结两者不得互相映射）。
     std::uint64_t local_snr_unavailable = 0;
     for (const auto& o : obs) {
         if (!o.snr_available) ++local_snr_unavailable;

@@ -487,7 +487,7 @@ static void case_disk_full_classified_at_failure() {
 }
 
 // ── A7: **帧级归因协议** —— 并发帧各自的磁盘满判定互不覆盖/互不抢占 ──────────
-// 依据: docs/contracts/LOG_AND_ERROR_CONTRACT.md §5「`IO` | 7（IO）| I/O 失败;
+// 依据: docs/engineering/LOG_AND_ERROR_CONTRACT.md §5「`IO` | 7（IO）| I/O 失败;
 // **失败节点 manifest** 的 `error_kind==disk_full` 时改判 10」——判定属于**失败的
 // 那一帧/那个节点**, 不是"进程里发生过一次磁盘满"的运行级事实。
 // 旧实现 (进程级单比特 + aio_hips_product_begin 里的 reset() + exchange 语义的

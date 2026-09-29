@@ -18,4 +18,4 @@ ACSD 公共头文件域：定义跨动态库边界的版本化 C ABI 合同与�
 ## 上游
 
 - 本目录不是检查器，未注册于 `eng/ci/checks.json` 的命令面；`lib/include/**` 作为改动影响面登记在 `CHK-BUILD-LINUX`、`CHK-STATIC` 等检查项的 `changed_paths` 中。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

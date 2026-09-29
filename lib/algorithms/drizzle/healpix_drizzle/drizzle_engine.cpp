@@ -1214,7 +1214,7 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     bool photometry_done = config.apply_photometry || config.photometry_applied_upstream;
     hmeta.photscal   = config.photscal;
     hmeta.photappl   = photometry_done ? 1 : 0;
-    // BUNIT: canonical 面亮度串（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810
+    // BUNIT: canonical 面亮度串（docs/science/DATA_SEMANTICS.md §31.1a:2808-2810
     // 「产品 FITS/HiPS 写盘 BUNIT 一律取该串」+ :2827-2830「测光归一化是线性乘性标度，
     // 只改零点、不改量纲类别，标度由 PHOTSCAL/PHOTAPPL 承载」）——测光是否施加**不改变**
     // BUNIT。本路径为 legacy .hiss 容器出口（hp_drizzle_run 零生产调用者，已在
@@ -1924,11 +1924,11 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // K=2 保留"一份在累加、一份在归约"的重叠; 池不再随 worker 数放大。
     // 归约流水线的线程预算不变式由 p1drz_merge_pipeline_lock 回归锁守。
     // P1-PARALLEL-AXIS-REDESIGN-01: 池上限由**帧内轴宽度**决定，不再硬钉 2。
-    //   定理（有效宽度口径见 docs/architecture/PERFORMANCE_MODEL.md §5）:
+    //   定理（有效宽度口径见 docs/engineering/PERFORMANCE_MODEL.md §5）:
     //     W_eff = in_flight × min(inner_omp, K) ⇒ 要 W_eff 达到帧内轴宽度必须 K ≥ inner_omp;
     //     而 K = inner_omp = num_threads 时，同时在飞的 scratch 份数
     //     = in_flight × inner_omp ≤ lease（p1_parallel_for 的轴不变式，
-    //     docs/architecture/THREADING_MODEL.md「并行轴分配」）
+    //     docs/engineering/THREADING_MODEL.md「并行轴分配」）
     //   ⇒ **K = num_threads 是达成满宽的唯一最小取值**，且总份数与轴形态无关。
     //   旧值 2 是「帧内轴尚未按剩余预算分配」时代的补丁：那时每帧线程数 = 进程默认
     //   （硬件并发），K 不压就会 16 帧 × 16 线程 = 256 份（8 GB 地址空间下 bad_alloc）。
@@ -2085,7 +2085,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
 
         for (int x = 0; x < img.width; x++) {
             // ── 样本级掩膜 / DISP-DRZ-004 收口 ───────────────────────────────────
-            // 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
+            // 冻结合同（唯一口径文字 = docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
             // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN）:
             //   合格样本 = isfinite(x_j)（值有限即合格）；
             //   不合格样本 → **样本级掩膜**（从分子 F_p、分母 D_p、方差项

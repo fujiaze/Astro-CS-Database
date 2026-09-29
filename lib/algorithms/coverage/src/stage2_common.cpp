@@ -240,7 +240,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     cfg->reject_method = P2_REJECT_PERCENTILE;
                 else if (method == "median_sigma")
                     cfg->reject_method = P2_REJECT_MEDIAN_SIGMA;
-                // FZ-REJ-NO-MINMAX（docs/contracts/DATA_SEMANTICS.md §22 首注）:
+                // FZ-REJ-NO-MINMAX（docs/science/DATA_SEMANTICS.md §22 首注）:
                 // min/max 在合同层不可选。phase_config schema 的
                 // algorithm_rejection_method 枚举已删 minmax，但本键
                 // （integration.rejection.method）不在该 schema 的键集内
@@ -251,7 +251,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "rejection.method=minmax 不可选 (FZ-REJ-NO-MINMAX): "
                            "min/max 不得用于生产；AUTO 路由值域恒为 "
                            "{percentile, winsorized_sigma, linear_fit}。"
-                           "见 docs/contracts/DATA_SEMANTICS.md §22 首注。";
+                           "见 docs/science/DATA_SEMANTICS.md §22 首注。";
                     return false;
                 }
                 // FIX-REJ n=2 档: 已知先验 σ 的极值检验（显式方法）
@@ -438,7 +438,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
         //   · docs/ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
         //   · docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72「单一权重口径（无模式选择）」
         //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」；
-        //   · docs/ci/01_CHECKS.md CHK-NO-WEIGHT-MODE-CODE（FZ-WEIGHT-SINGLE-PATH）。
+        //   · docs/engineering/01_CHECKS.md CHK-NO-WEIGHT-MODE-CODE（FZ-WEIGHT-SINGLE-PATH）。
         // 原实现把 integration.weight_mode ∈ {auto,ivar,equal,support_x_snr2} 映射为
         // 整数域 {2,2,1,0}：equal 直接开等权、support_x_snr2 开 support×snr²
         // （无量纲、非信号/噪声之比）——两者都与「没有可选择项」直接冲突。

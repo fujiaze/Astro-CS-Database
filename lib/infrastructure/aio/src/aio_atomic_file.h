@@ -8,7 +8,7 @@
 // - docs/ASTROCS_DESIGN.md §9: 所有产品 = 临时文件/目录 + 校验 + fsync + 原子 rename 提交;
 //   失败/取消不得留下可被误认为正式产品的半成品。
 // - ENGINEERING_SPEC.md §9: 输出临时文件 + 原子提交; 错误通过统一状态码+结构化诊断传播。
-// - docs/plugins/infrastructure/17_aio.md §4: 写 = 分层写 + flush/close/fsync + checksum
+// - docs/detail/infrastructure/17_aio.md §4: 写 = 分层写 + flush/close/fsync + checksum
 //   + 原子 rename; §8: 长路径 / Windows+Linux 双平台。
 //
 // 语义:

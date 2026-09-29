@@ -4,7 +4,7 @@
 //
 // 退役对象口径：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。
 // 而是绝对标定。」⇒ psfsw_robust_weight 不是现行对象（docs/ASTROCS_DESIGN.md §3.1 订正后；
-// docs/design/UNIFIED_MODEL.md:58：旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示）。
+// docs/detail/UNIFIED_MODEL.md:58：旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 //
 // 为什么本文件落在 lib/algorithms/coverage/tests/：
 //   本任务写域不含 eng/tests/**，而 resample 模块没有共址测试子目录（根 CMakeLists

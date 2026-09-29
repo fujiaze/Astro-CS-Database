@@ -17,7 +17,7 @@
 # 现状实现为 config.threads 驱动的 omp parallel for num_threads(...) 局部子句
 # （drizzle_engine.cpp:1639-1644，不改全局 ICV；config.threads=0 退化
 # omp_get_max_threads()），ThreadLease 接线为迁移整改点（见
-# docs/contracts/PUBLIC_API.md API-DRZ-001 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md）。
+# docs/engineering/PUBLIC_API.md API-DRZ-001 与 docs/science/algorithms/DRIZZLE_GEOMETRY.md）。
 # entrypoint=astrocs_module_query_v1（2026-09-17 LEDGER-DOC 订正：旧值 MISSING 已被实测反证）：
 # 模块 DLL astrocs_p1_drizzle（SHARED，lib/algorithms/drizzle/CMakeLists.txt:61）与
 # src/module_entry.cpp 导出 astrocs_module_query_v1 在位；但该函数体零调用

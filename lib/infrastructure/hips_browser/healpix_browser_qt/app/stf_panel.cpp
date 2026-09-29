@@ -2,7 +2,7 @@
 // 功能: 实现 QDockWidget, 包含单条渐变三控制点 (STFBar) + 自动拉伸按钮
 // 用途: 用户调整 STF 显示拉伸参数, 实时更新渲染
 // 依赖: Qt6::Widgets, core/ (STFEngine)
-// 设计文档: docs/modules/healpix_browser_qt.md
+// 设计文档: docs/detail/healpix_browser_qt.md
 
 #include "stf_panel.h"
 #include "stf_bar.h"

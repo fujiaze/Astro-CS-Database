@@ -2,7 +2,7 @@
 //
 // 依据：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.2（阶段内命名块
 //       内存管线与块生命周期）；ENGINEERING_SPEC.md §4.1（管线纪律）；
-//       CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md（块元数据 9 字段、
+//       CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md（块元数据 9 字段、
 //       创建-消费-销毁状态机、DAG 四条非法图判据、provenance 流转、显式降级）。
 //
 // 边界：本模块**不做科学计算**，也不装配三阶段生产节点（ARCH-505）；它只提供

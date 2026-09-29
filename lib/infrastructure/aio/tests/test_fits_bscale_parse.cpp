@@ -13,7 +13,7 @@
 //       非法输入与 "文件本来就没有 BSCALE" 完全无法区分 —— 输入面静默错误。
 //
 // 权威依据:
-//   docs/contracts/DATA_ARTIFACTS.md DATA-IMG-RAW-001 / DATA-IMG-CAL-001 ——
+//   docs/engineering/DATA_ARTIFACTS.md DATA-IMG-RAW-001 / DATA-IMG-CAL-001 ——
 //   读入后物理值 = BSCALE*样本 + BZERO, "在读取时已施加", 实现锚即本文件。
 //   docs/science/CALIBRATION.md §ADU 域 (冻结) = FITS 物理值域。
 //   FITS Standard 4.0 §4.4.2.5: BSCALE 缺省 1.0 (合法缺省), 但**存在而非法**

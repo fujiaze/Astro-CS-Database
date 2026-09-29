@@ -34,10 +34,10 @@
   由 P3-PROJ-INT 对齐，不入合同。
 - MOD ID 决策: registry 现有行 MOD-astrocs-phase3-wcs（单
   descriptor 域），module.yaml id 与之一致；registry 页手写化
-  （docs/modules/registry/astrocs.phase3.wcs.md，原 GENERATED
+  （docs/detail/registry/astrocs.phase3.wcs.md，原 GENERATED
   风格改 ACTIVE_INFORMATIVE 手写合同页，照
   astrocs.phase3.writer.md 先例），模块总页新建
-  docs/modules/phase3_proj.md。
+  docs/detail/phase3_proj.md。
 - 本任务 ID 决策（唯一方案，避免与既有占位冲突）:
   SCI=SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md 共享 FROZEN
   V5 SCI-007 2026-08-28，集合 SCI-P3-001..020；descriptor 占位
