@@ -1067,34 +1067,45 @@ def main(argv=None) -> int:
 # --------------------------------------------------------------------------- #
 # 可执行负例面（ENGINEERING_SPEC §10）：tempfile mini-repo，不依赖真仓状态
 # --------------------------------------------------------------------------- #
-OWNER_DOCS = ("SCIENCE_OVERVIEW.md", "PIPELINE_OVERVIEW.md", "ARCHITECTURE_OVERVIEW.md",
-              "RELEASE_STATUS.md", "CHANGE_REVIEW.md")
+# 概览页的落位目录。真仓 2026-09 文档迁移后五份概览都在 docs/engineering/（docs/owner/ 已出库，
+# 磁盘上残留的空目录对门不可见：git 不跟踪空目录）。mini-repo 必须与真仓同向，
+# 否则 ROOT_DOC_FILES 里的 docs/engineering/SCIENCE_OVERVIEW.md 会指向不存在的文件。
+OVERVIEW_DIR = "docs/engineering"
+OVERVIEW_DOCS = ("SCIENCE_OVERVIEW.md", "PIPELINE_OVERVIEW.md", "ARCHITECTURE_OVERVIEW.md",
+                 "RELEASE_STATUS.md", "CHANGE_REVIEW.md")
 ROOT_DOC_FILES = {
     "docs/ASTROCS_DESIGN.md": "# 最高设计\n\n科学公式见 docs/engineering/SCIENCE_OVERVIEW.md；"
                          "索引见 docs/DOCUMENT_INDEX.yaml。\n" + ("顶层设计正文。 " * 30) + "\n",
     "AGENTS.md": "# AGENTS\n\n读法见 docs/DOCUMENT_INDEX.yaml。\n" + ("干活手册。 " * 30) + "\n",
-    "ENGINEERING_SPEC.md": "# 工程规范\n\n文档集见 docs/ci/。\n" + ("工程规范正文。 " * 30) + "\n",
+    # docs/ci/ 在真仓是**空目录残留**（test -e EXISTS 但 git ls-files 0 行）——空目录不提供
+    # 内容，git 不跟踪它 ⇒ 对本门等同于不存在。迁移后的文档集在 docs/engineering/。
+    "ENGINEERING_SPEC.md": "# 工程规范\n\n文档集见 docs/engineering/。\n" + ("工程规范正文。 " * 30) + "\n",
     "CONTROL_PACK_SPEC.md": "# 控制包规范\n\n" + ("控制包规范正文。 " * 30) + "\n",
     "ACCEPTANCE_SPEC.md": "# 验收规范\n\n" + ("验收规范正文。 " * 30) + "\n",
     "README.md": "# README\n\n导航见 docs/DOCUMENT_INDEX.yaml。\n" + ("入口说明。 " * 30) + "\n",
     "DEPENDENCIES.md": "# 依赖\n\n" + ("依赖清单。 " * 30) + "\n",
 }
+
+
+def _idx_entry(path: str, status: str = "ACTIVE_NORMATIVE") -> str:
+    """一条 DOCUMENT_INDEX.yaml 条目（夹具用）。"""
+    return "    - path: \"" + path + "\"\n      status: " + status + "\n"
+
+
+# 概览页**逐篇**登记，不登记 docs/engineering 目录。两个理由：
+#   ① 迁移前登记的是 docs/owner 目录，迁移后目录本身已出库，逐篇登记与之等价；
+#   ② 若登记 docs/engineering 目录，S6（docs/engineering/CONFIG_CONTRACT.md 应当
+#      暴露 docs_fully_covered 缺口）会被目录覆盖面吞掉 —— 负例会失去牙。
 BASE_INDEX = (
     "doc_index:\n"
     "  active:\n"
-    "    - path: \"docs/ASTROCS_DESIGN.md\"\n"
-    "      status: ACTIVE_NORMATIVE\n"
-    "    - path: \"docs/owner\"\n"
-    "      status: ACTIVE_NORMATIVE\n"
-    "    - path: \"docs/engineering/01_CHECKS.md\"\n"
-    "      status: ACTIVE_NORMATIVE\n"
-    "    - path: \"docs/DOC-L0.md\"\n"
-    "      status: ACTIVE_NORMATIVE\n"
-    "  archived:\n"
-    "    - path: \"docs/archive\"\n"
-    "      status: ARCHIVED_NON_NORMATIVE\n"
-    "    - path: \"docs/review\"\n"
-    "      status: ARCHIVED_NON_NORMATIVE\n"
+    + _idx_entry("docs/ASTROCS_DESIGN.md")
+    + "".join(_idx_entry(OVERVIEW_DIR + "/" + d) for d in OVERVIEW_DOCS)
+    + _idx_entry("docs/engineering/01_CHECKS.md")
+    + _idx_entry("docs/DOC-L0.md")
+    + "  archived:\n"
+    + _idx_entry("docs/archive", "ARCHIVED_NON_NORMATIVE")
+    + _idx_entry("docs/review", "ARCHIVED_NON_NORMATIVE")
 )
 LEDGER_JSON = {
     "tool": "eng/tools/doccheck/dangling_ledger.json",
@@ -1108,8 +1119,12 @@ CONTENT_LEDGER_JSON = {
     "tool": "eng/tools/doccheck/content_truth_ledger.json",
     "max_entries": 1,
     "entries": [
-        {"file": "lib/x/foo.cpp", "target": "docs/owner/DEAD.md", "section": "9.9",
-         "owner": "FIX-CT", "reason": "自检夹具：已登记的真死锚"},
+        # 本门判的是「路径可达但目标页没有该节号」，所以登记的**目标文件必须存在**。
+        # 原夹具写 docs/owner/DEAD.md（文件根本不存在）⇒ 那是一条路径级悬空，
+        # 由 docs_path_refs_resolve 判红，不是本门要测的东西。改指真实存在、
+        # 但确实没有 §9.9 的 docs/engineering/SCIENCE_OVERVIEW.md。
+        {"file": "lib/x/foo.cpp", "target": OVERVIEW_DIR + "/SCIENCE_OVERVIEW.md",
+         "section": "9.9", "owner": "FIX-CT", "reason": "自检夹具：已登记的真死锚"},
     ],
 }
 
@@ -1150,14 +1165,19 @@ def _skip_exact(value):
 
 
 def _mk(root: str) -> None:
-    for d in ("docs/owner", "docs/ci", "docs/archive", "docs/contracts",
-              "lib/x", "eng/tools/doccheck"):
+    # 只建**会被写入文件**的目录。docs/owner/ 与 docs/ci/ 刻意不建：它们在真仓都是
+    # 空目录残留（test -e EXISTS 但 git ls-files 0 行），而 git 不跟踪空目录 ⇒ 对本门
+    # 等同于不存在。建一个空目录只会制造「目录在 ⇒ 路径可达」的错觉，这正是本次
+    # 4 个正例变红的根因之一。docs/engineering/ 由下面的 _write 顺带建出。
+    for d in ("docs/archive", "docs/contracts", "lib/x", "eng/tools/doccheck"):
         os.makedirs(os.path.join(root, d), exist_ok=True)
     _write(os.path.join(root, INDEX_PATH), BASE_INDEX)
     for name, text in ROOT_DOC_FILES.items():
         _write(os.path.join(root, name), text)
-    for d in OWNER_DOCS:
-        _write(os.path.join(root, "docs/owner", d),
+    # 概览页落位 docs/engineering/（迁移后形态），与 ROOT_DOC_FILES 里的指针、
+    # 与 BASE_INDEX 里的逐篇登记三处同源；任一处不同源都会让正例假红。
+    for d in OVERVIEW_DOCS:
+        _write(os.path.join(root, OVERVIEW_DIR, d),
                "# " + d + "\n\n> 上游：docs/ASTROCS_DESIGN.md §2（核心科学方法）\n\n"
                + ("owner L0 overview content. " * 20) + "\n")
     _write(os.path.join(root, "docs/engineering/01_CHECKS.md"),
