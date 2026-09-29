@@ -40,13 +40,26 @@ add_test(NAME p3_rsmp_oracle COMMAND p3_rsmp_oracle_test)
 p3rsmp_test(p3_rsmp_gate_test p3_rsmp_gate_test.cpp)
 add_test(NAME p3_rsmp_gate COMMAND p3_rsmp_gate_test)
 
-# 负向 mutation 驱动（20 条注入 → 测试必红）不进 ctest 默认面（耗时）；
-# 由 eng/tests/unit/p3_rsmp/run_verification.sh 调用，证据落 run/quality/p3-rsmp/。
-option(P3RSMP_ENABLE_MUTATION_DRIVER "register mutation driver as a ctest case" OFF)
+# 负向 mutation 驱动（20 条注入 → 测试必红）自 FINAL-07 起进 ctest **默认面**。
+# 前台裁决（FINAL-07；依据三条：①下方实测数据；②同族既有先例 aio_impl_mutations 默认 ON；
+# ③负责人本轮授权「工程层由前台自决」）：默认关闭 → 默认开启。此前默认 OFF 不是「跑过没红」，而是驱动根本没有
+# 任何执行单元：eng/ci/ctest_face.py 的面 B（ctest -N 实际配置面）里查无此名，而同族
+# p3_rsmp_core/oracle/gate 都在跑 —— 即「有测试、无变异面」的发布面风险
+# （check_mutation_gates.py 的 A6d 当时直接点名本条）。
+#
+# 实测代价（FINAL-07；mem_guard 进程树 RSS 采样，16 核开发节点，gcc 14.2 -O2）：
+#   墙钟 527.7 s；进程树 RSS 峰值 0.146 GiB（单进程 133 MiB）；退出码 0。
+#   21 变体 × 3 用例 = 63 次 g++ 复编译，驱动内部串行，墙钟由单核速度而非核数决定。
+#   内存面无风险；耗时面在 ctest 默认 1500 s 之下（2.8x 余量）。
+#
+# 档位与超时照抄本仓既有的重型 mutation 惯例 eng/tests/unit/aio/CMakeLists.txt:65
+# （aio_impl_mutations：默认 ON + LABELS <族名>_slow + TIMEOUT 2400），不自创分档。
+option(P3RSMP_ENABLE_MUTATION_DRIVER "register mutation driver as a ctest case" ON)
 if(P3RSMP_ENABLE_MUTATION_DRIVER)
   find_program(PYTHON3_EXECUTABLE python3)
   if(PYTHON3_EXECUTABLE)
     add_test(NAME p3_rsmp_mutation_driver
       COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/run_mutations.py)
+    set_tests_properties(p3_rsmp_mutation_driver PROPERTIES TIMEOUT 2400 LABELS "p3_rsmp_slow")
   endif()
 endif()

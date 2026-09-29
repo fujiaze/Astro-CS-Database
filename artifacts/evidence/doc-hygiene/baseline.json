@@ -159,6 +159,9 @@
    "docs/science/algorithms/PHASE3_RSMP_IMPL.md": [
     "0d27a562bf91d9e0"
    ],
+   "docs/science/algorithms/PHOTOMETRIC_FIT.md": [
+    "f835ed940f25541a"
+   ],
    "docs/standards/STANDARDS_REGISTRY.md": [
     "7f780c923753d993",
     "d71d607cadb83a11"
@@ -445,6 +448,9 @@
    "docs/quality/complexity_baseline_v1.md": [
     "56f12c1e48d57f93"
    ],
+   "docs/science/PSF_SIGNAL_WEIGHT.md": [
+    "e382f1c894253a27"
+   ],
    "docs/science/algorithms/CALIBRATION_ALGORITHMS.md": [
     "ed39f15b2dadc149"
    ],
@@ -702,6 +708,12 @@
    ],
    "docs/plugins/algorithms_phase2/11_upm.md": [
     "c784dd75c42409ca"
+   ],
+   "docs/science/PHASE3_HIPS_TO_FITS.md": [
+    "8f946e795e174dfe"
+   ],
+   "docs/science/PHOTOMETRY.md": [
+    "0d8e08a5131612ba"
    ],
    "docs/science/algorithms/DRIZZLE_GEOMETRY.md": [
     "dc35982a740479ef"
