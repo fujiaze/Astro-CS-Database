@@ -1,17 +1,17 @@
 # eng/ci/checks.json ID 收敛迁移映射（人读摘要）
 
-> 本文件由 `eng/ci/gen_id_migration_map_doc.py` 从 `/tmp/fix2_map.json` 生成，请勿手改；改 JSON 后重跑生成器：`python3 eng/ci/gen_id_migration_map_doc.py`。
+> 本文件由 `eng/ci/gen_id_migration_map_doc.py` 从 `eng/ci/id_migration_map.json` 生成，请勿手改；改 JSON 后重跑生成器：`python3 eng/ci/gen_id_migration_map_doc.py`。
 >
 > 判绿：`python3 eng/ci/gen_id_migration_map_doc.py --check`（逐字节比对磁盘 md 与生成结果，不一致 exit 1）；自检：`python3 eng/ci/gen_id_migration_map_doc.py --self-test`。
 
-任务：CI-001（控制包 PROJECT-GOVERNANCE-01）。机器可读事实源：`/tmp/fix2_map.json`（`schema_version` = 1）。
+任务：CI-001（控制包 PROJECT-GOVERNANCE-01）。机器可读事实源：`eng/ci/id_migration_map.json`（`schema_version` = 1）。
 
 ## 1. 口径
 
-- 机器可读事实源：`/tmp/fix2_map.json`；本文件是它的人读摘要，**不含**任何未登记在该 JSON 里的映射事实。
+- 机器可读事实源：`eng/ci/id_migration_map.json`；本文件是它的人读摘要，**不含**任何未登记在该 JSON 里的映射事实。
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
-- 写后快照 ↔ 当前注册表交叉核对（生成器实测 `/tmp/fix2_checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
+- 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
 - 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 160 个目标，其中 138 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 49。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
@@ -648,10 +648,10 @@
 
 ## 7. 再生成与门禁
 
-- 生成：`python3 eng/ci/gen_id_migration_map_doc.py`（读 `/tmp/fix2_map.json`，写 `/tmp/fix2_mapdoc.md`）。
+- 生成：`python3 eng/ci/gen_id_migration_map_doc.py`（读 `eng/ci/id_migration_map.json`，写 `eng/ci/ID_MIGRATION_MAP.md`）。
 - 判绿：`python3 eng/ci/gen_id_migration_map_doc.py --check` —— 逐字节比对磁盘 md 与生成结果，不一致 exit 1；fail-closed：事实源缺失/不可解析/生成结果为空 exit 2。
 - 自检：`python3 eng/ci/gen_id_migration_map_doc.py --self-test` —— 「生成→check 绿」「手改一行→check 红」「缺 md→exit 2」「两次生成字节相同」四向。
 - 注册表登记：本门由 `CHK-REGISTRY-DOC-SYNC` 的 step `ID-MIGRATION-MAP-DOC-SYNC` 承载（profiles: fast, linux-main, windows-main）。
 - 注册表登记：本门由 `CHK-REGISTRY-DOC-SYNC` 的 step `ID-MIGRATION-MAP-DOC-SYNC-SELFTEST` 承载（profiles: fast）。
-- 确定性：本文件是 `/tmp/fix2_map.json` 的纯函数（无时间戳、无随机、无环境相关字段；checks.json 只以「写后快照是否仍一致」的谓词与门禁回读进入），同一输入两次运行字节相同。
+- 确定性：本文件是 `eng/ci/id_migration_map.json` 的纯函数（无时间戳、无随机、无环境相关字段；checks.json 只以「写后快照是否仍一致」的谓词与门禁回读进入），同一输入两次运行字节相同。
 - 文档索引：`docs/DOCUMENT_INDEX.yaml` 引用本文件，故本文件**不得删除**，只能由本生成器改写。
