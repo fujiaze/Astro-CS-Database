@@ -95,8 +95,14 @@ int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out) {
      * options，inline 进本函数报 "target specific option mismatch"。
      * __builtin_memset 是编译器内建、不经 fortify 宏重载，遵守当前函数
      * target 展开(通用 SSE2 mov / rep stosb)，EVEX 门禁语义不变
-     * (eng/tests/cpu/avx512/check_avx512_illegal_instr.py: cap_gate 零 %zmm)。 */
+     * (eng/tests/cpu/avx512/check_avx512_illegal_instr.py: cap_gate 零 %zmm)。
+     * 该理由只对 glibc/GCC 成立（MSVC 既无 fortify 宏重载、也不提供该内建），
+     * 故按平台分支；两支都是"把这块栈结构清零"的等价语义。 */
+#if defined(__GNUC__) || defined(__clang__)
     __builtin_memset(&c, 0, sizeof(c));
+#else
+    std::memset(&c, 0, sizeof(c));
+#endif
     c.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
     c.abi_version = ACS_CAP_ABI_VERSION_V1;
     const int rc = acs_cap_detect_v1(&c);
