@@ -85,7 +85,10 @@ if [ ! -f lib/infrastructure/aio/astro_image_io.dll ]; then
   timeout 1800 make -C lib/infrastructure/aio -j 2 all
 fi
 if [ ! -f build/linux-openmp-on/libphase2.a ]; then
-  timeout 900 cmake -S lib/phase2 -B build/linux-openmp-on \
+  # ARCH-001 目录等价迁移：lib/phase2 已迁至 lib/algorithms/coverage（target 名 phase2
+  # 与产物名 libphase2.a 均未变，见该目录 CMakeLists 的 add_library(phase2 STATIC ...)）。
+  # 同本脚本 :82-83 的 ROOT-008 收口同型 —— 旧路径引用使本步在干净树恒红。
+  timeout 900 cmake -S lib/algorithms/coverage -B build/linux-openmp-on \
     -DP2_ENABLE_OPENMP=ON -DCMAKE_BUILD_TYPE=Release
   timeout 900 cmake --build build/linux-openmp-on --target phase2 -j 2
 fi
