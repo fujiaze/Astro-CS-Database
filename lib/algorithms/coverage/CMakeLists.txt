@@ -52,7 +52,8 @@ add_library(phase2 STATIC
     src/acr_kernels.cpp
     src/async_io.cpp
     ../../infrastructure/acr/api/kernel_registry.cpp
-    # Windows: real DLL loader; Linux: stub (bridge always unavailable, CPU path)
+    # 桥接追加函数的定义来源：Windows 在本目标内直接编 loader 源（强定义在本目标内），
+    # Linux 用 stub（桥接恒不可达，走 CPU 路径）。
     $<$<PLATFORM_ID:Windows>:../../infrastructure/acr/backends/cuda/cuda_bridge_loader.cpp>
     $<$<NOT:$<PLATFORM_ID:Windows>>:src/cuda_bridge_stub.cpp>
     ../../infrastructure/acr/scheduler/device_executor.cpp
@@ -80,6 +81,13 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algor
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)
+# 本目标在 Windows 上**自己编入** loader 源 ⇒ 强定义就在本目标内 ⇒ 必须抑制
+# device_executor.cpp 的平台兜底空定义，否则同一符号在本链接闭包内出现两个强定义
+# （重复符号告警，且最终取哪一个取决于目标/对象顺序）。
+# 判据是「强定义是否在本目标内」，与「是否链接 loader 库」无关：
+# 后者受目标定序影响——被引用的目标若尚未定义，名字会被当成裸库名，接口属性根本不生效。
+# Linux 侧由 stub 提供强定义、device_executor.cpp 的 weak 定义被强定义覆盖，故无需本宏。
+target_compile_definitions(phase2 PRIVATE $<$<PLATFORM_ID:Windows>:ACR_WITH_BRIDGE_LOADER=1>)
     # CON-004: 把 P2_ENABLE_OPENMP 作为编译宏定义（原为装饰性 option，源内 #if 恒假）。
     # 仅 ON 且找到 OpenMP 时定义 => 源内 #if defined(P2_ENABLE_OPENMP) 才真正激活并行路径。
     target_compile_definitions(phase2 PRIVATE P2_ENABLE_OPENMP=1)
