@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """ISA-003 测试: AVX2+FMA 变体(capability 复验+登记) — FMA 指令/ymm 证明(双向)+测量工件+决策台账冻结。
 ISA-001 已 SHIP avx2_backend.so; 本任务独立复测确认 AVX2+FMA SHIP 成立, 不重复实现。"""
-import csv, os, re, shutil, subprocess, tempfile, unittest
+import csv, os, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from variant_build import build_variant  # noqa: E402  (R-60 拆 TU 后统一构建入口)
 
 
 class TestIsaAvx2Fma(unittest.TestCase):
@@ -13,12 +16,8 @@ class TestIsaAvx2Fma(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="isa_avx2fma_")
         cls.vso = os.path.join(cls.tmp, "avx2_backend.so")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-mavx2", "-mfma",
-                            "-fPIC", "-shared", "-Wall", "-Wextra",
-                            f"-I{INC}", f"-I{HOST}",
-                            os.path.join(HOST, "avx2_backend.cpp"), "-o", cls.vso],
-                           capture_output=True, text=True, timeout=180)
-        assert r.returncode == 0, r.stderr
+        rc, err = build_variant(HOST, INC, "avx2", cls.vso)
+        assert rc == 0, err
         cls.base_obj = os.path.join(cls.tmp, "base.o")
         subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", f"-I{INC}", f"-I{HOST}", "-c",
                         os.path.join(HOST, "baseline_backend.cpp"), "-o", cls.base_obj],
@@ -50,10 +49,12 @@ class TestIsaAvx2Fma(unittest.TestCase):
                                 "AVX2+FMA 变体必须含 ymm(256-bit) 寄存器")
 
     def test_02_shared_contract_single_source(self):
+        # R-60: 门面/计算面拆 TU —— 共享 impl 源在计算面 TU, 注册表与 ID 在门面 TU。
         v = open(os.path.join(HOST, "avx2_backend.cpp"), encoding="utf-8").read()
-        self.assertIn('#include "baseline_kernels_impl.inc"', v)
+        k = open(os.path.join(HOST, "avx2_backend_kernels.cpp"), encoding="utf-8").read()
         self.assertIn('#include "backend_table.inc"', v)
         self.assertIn('ASTROCS_BACKEND_ID "avx2"', v)
+        self.assertIn('#include "baseline_kernels_impl.inc"', k)
 
     def test_03_bench_and_measurement_artifact(self):
         r = subprocess.run([self.bench, "--variant", self.vso],

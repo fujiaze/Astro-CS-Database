@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """ISA-001 测试: 热点 profile→变体编译→真变体证明→共享合同 Oracle→SHIPPED/NOT_SHIPPED 决策。"""
-import json, os, re, shutil, subprocess, tempfile, unittest
+import json, os, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
@@ -10,6 +10,9 @@ INC = os.path.join(REPO, "lib", "include")
 # （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
 # 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
 # （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from variant_build import build_variant, isa_flags  # noqa: E402  (R-60 拆 TU 后统一构建入口)
+
 AIO_INCS = [
     f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
     f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
@@ -27,12 +30,8 @@ class TestIsaVariants(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="isa_")
         # 变体 DSO(局部旗标; 共享 impl+table 源)
         cls.vso = os.path.join(cls.tmp, "avx2_backend.so")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-mavx2", "-mfma",
-                            "-fPIC", "-shared", "-Wall", "-Wextra",
-                            f"-I{INC}", f"-I{HOST}", *AIO_INCS,
-                            os.path.join(HOST, "avx2_backend.cpp"), "-o", cls.vso],
-                           capture_output=True, text=True, timeout=180)
-        assert r.returncode == 0, r.stderr
+        rc, err = build_variant(HOST, INC, "avx2", cls.vso, extra_inc=AIO_INCS)
+        assert rc == 0, err
         # bench 可执行(基线)
         cls.bench = os.path.join(cls.tmp, "kbench")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
@@ -63,13 +62,38 @@ class TestIsaVariants(unittest.TestCase):
         dis = self._objdump(self.vso)
         vex = re.findall(r"\bv[a-z0-9]{2,}\b", dis)  # VEX 编码助记符(vmovss/vfmadd/vaddps...)
         self.assertTrue(vex, "变体必须真含 VEX/AVX 指令(否则是假变体)")
+        # R-60: 产物级双向证明 —— 计算面 TU 真含 AVX2 档指令, 门面(自检/握手)零 VEX/EVEX。
+        dp = os.path.join(self.tmp, "avx2.dis")
+        open(dp, "w", encoding="utf-8").write(dis)
+        chk = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "quality",
+                                                      "check_variant_isa_disasm.py"),
+                              "--text", dp, "--isa", "avx2",
+                              "--hit", "astrocs_variant_kernel_dispatch_v1",
+                              "--clean-symbol", "astrocs_backend_get_api_v1",
+                              "--clean-symbol", "backend_self_test",
+                              "--require-feature", "fma", "--quiet"],
+                             capture_output=True, text=True, timeout=120)
+        self.assertEqual(chk.returncode, 0, f"产物级 ISA 面判据未过: {chk.stdout} {chk.stderr}")
 
     def test_02_shared_contract_single_source(self):
         """变体与 baseline 共享同一 impl 源(零复制漂移)。"""
+        # R-60: 共享 impl 源改为跨 TU 证明 —— 计算面 TU 含 impl, 门面 TU 含注册表与桥接声明。
         v = open(os.path.join(HOST, "avx2_backend.cpp"), encoding="utf-8").read()
-        self.assertIn('#include "baseline_kernels_impl.inc"', v)
+        k = open(os.path.join(HOST, "avx2_backend_kernels.cpp"), encoding="utf-8").read()
         self.assertIn('#include "backend_table.inc"', v)
-        self.assertNotIn("float calibration_impl", v, "变体不得复制实现")
+        self.assertIn('#include "backend_variant_kernels.h"', v, "门面 TU 必须走跨 TU 桥")
+        self.assertIn('#include "baseline_kernels_impl.inc"', k)
+        self.assertNotIn("float calibration_impl", k, "变体不得复制实现")
+        self.assertNotIn("target_compile_options", v)
+        # 门面 TU 不得带 ISA 旗标(硬约束 1): 由 check_isa_same_source.py 的 S7 判据静态把关,
+        # 此处补一道"文件里不许出现 ISA 旗标"的文本禁令。
+        # 注释里可以（也必须）说明旗标口径，代码行里不行 —— 只看非注释行。
+        for line in v.splitlines():
+            s = line.strip()
+            if s.startswith("//") or s.startswith("*") or s.startswith("#if 0"):
+                continue
+            for flag in isa_flags("avx2"):
+                self.assertNotIn(flag, s, f"门面 TU 的代码行不得带 {flag}: {s[:60]}") 
 
     def test_03_bench_and_measurement_artifact(self):
         r = subprocess.run([self.bench, "--variant", self.vso],

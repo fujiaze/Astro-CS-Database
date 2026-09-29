@@ -22,11 +22,15 @@
   交 benchmark 逐 kernel 选路。
 - **现行测量口径 = AVX2+FMA 独立复测批**。各批逐 kernel ns 读数、增益、能力证明的反汇编计数
   与决策原表见测量归档 `实验/engineering-evidence/prerelease-v5/`（`ISA-001` / `ISA-002` /
-  `ISA-003` 三批子目录）。本文件只承载结构决策。
+  `ISA-003` 三批子目录），逐批读数与决策列落 `ISA-00x/MEASUREMENTS.csv`。本文件只承载结构决策。
+- **批间数值差异（诚实登记）**：hips-bulk-transform 增益 `ISA-001/002` 批记为 **+28.2%/+28.3%**
+  （两条腿；热点 profile 注释正本 = `lib/infrastructure/benchmark/cpu/avx2/include/astrocs/cpu/avx2_provider_v1.h`），
+  现行 `ISA-003` 批记为 **+39.8%**（`ISA-003/MEASUREMENTS.csv`）。两者是**不同批次的实测值**，
+  不是同一口径的两份读数；决策只取"过阈值且方向稳定"，不取具体数。
 
 | 档位 | 决策 | 依据 |
 |---|---|---|
-| AVX2+FMA（`avx2_backend.so`） | **SHIP** | 受控热点 calibration-pixel-transform 与 hips-bulk-transform 的增益均过阈值且方向稳定；能力证明 = 反汇编含 FMA 特征指令与 256-bit VEX，而 baseline 扫描零 VEX |
+| AVX2+FMA（`avx2_backend.so`） | **SHIP(avx2)** | 受控热点 calibration-pixel-transform 与 hips-bulk-transform 的增益均过阈值且方向稳定；能力证明 = 反汇编含 FMA 特征指令与 256-bit VEX，而 baseline 扫描零 VEX |
 | AVX（无 FMA） | **NOT_SHIPPED** | AVX 是 AVX2+FMA 的严格指令集子集，受控热点的增益被 AVX2+FMA 严格主导 ⇒ 无独立收益 |
 | AVX-512 | **NOT_SHIPPED** | 受控热点无超越 AVX2+FMA 的收益；且 AVX512F 存在已知 downclock / 功耗-频率风险 |
 | drizzle-accumulate | **保持 baseline** | 该 kernel 上变体更慢（方向在两批复测中一致） |
@@ -89,9 +93,29 @@ avx512 = `avx512f|avx512bw|avx512dq|avx512vl` = 928（声明集 ⊊ 编译所需
 
 - 主 CLI / baseline TU：无 `-march` / `-mavx` 旗标（测试断言）；opcode scanner 禁 VEX/ymm/zmm
   （`eng/tests/backend/test_abi_kernels.py`）。
-- 变体 TU：整 TU 局部旗标（`-mavx2 -mfma`）⇒ 反汇编必须含 VEX
-  （`eng/tests/backend/test_isa_variants.py`，变体「真变体」证明）。
-- Windows 变体（`/arch:AVX2`）随发行链同流程登记。
+- 变体 = **两个 TU**（R-60）：**门面 TU**（`astrocs_cpu_avx2` / `astrocs_cpu_avx512`：`*_backend.cpp`
+  的 get_api / self_test / kernel 注册表）**零 ISA 旗标**，**计算面 TU**（`*_backend_kernels.cpp`，
+  与 baseline 共用 `baseline_kernels_impl.inc`）是唯一带 ISA 旗标的 TU，两者经唯一跨 TU 符号
+  `astrocs_variant_kernel_dispatch_v1`（`backend_variant_kernels.h`）相连。
+  **为什么按源文件隔离**：MSVC 没有函数级指令集覆盖（无 `#pragma GCC target` 对应物），若自检/握手
+  入口与计算面同 TU，则「能力预检不过 ⇒ 干净拒绝」会退化成「加载即撞非法指令」。
+  机器判据：`eng/tools/quality/check_isa_same_source.py` 的 `tu_isolation`（S7，门面 TU 带旗标即红）
+  + 站点登记 `eng/tools/quality/isa_sites.json`。
+- 变体 TU：门面走基线旗标，计算面 TU 局部旗标（GCC/Clang：`-mavx2 -mfma` /
+  `-mavx512f -mavx512bw -mavx512vl -mavx512dq`）。**产物级双向判据** =
+  `eng/tools/quality/check_variant_isa_disasm.py`（工具无关，吃 objdump / llvm-objdump / dumpbin 文本）：
+  计算面必须含该档宽指令（`--hit`），自检/握手入口必须**零 VEX/EVEX**（`--clean-symbol`），
+  且每条**有使用证据的声明位**都要在产物里找到证据（`--require-feature`；
+  `--declared-features` 逐位登记"许可面 vs 实际发射面"的差异，不得静默）。
+- **非 GCC 平台（R-60）**：MSVC/clang-cl 走 `/arch:` 档位 —— `/arch:AVX2`（官方口径同时开 FMA）
+  与 `/arch:AVX512`（许可面 = F+CD+BW+DQ+VL，**没有** F 子集档位）；未知 `/arch:` 值只报 D9002
+  且 rc=0（静默忽略）⇒ **不得**用 `check_cxx_compiler_flag` 判支持，必须"版本门槛 + 预定义宏
+  `#error` 自检 + 产物级反汇编断言"三处闭合，且 MSVC 腿需 `/fp:contract`（VS2022 起
+  `/fp:precise` 不再默认收缩，GCC 默认 `-ffp-contract=fast` 会收缩）。
+- Windows 变体（`/arch:AVX2` `/arch:AVX512`）随发行链同流程登记；avx512 的**声明面按平台精确值**
+  取（`__AVX512CD__` 分支）：GCC 腿 = F|BW|DQ|VL = 928，MSVC 腿 = F|CD|BW|DQ|VL = 992，
+  清单 `required_features_bits` 由 `eng/tools/gen_provider_manifests.py` 按 `--compiler` 同步
+  （GNU 腿输出逐字节不变）。
 
 ## 4 与模块边界 Oracle 的关系
 

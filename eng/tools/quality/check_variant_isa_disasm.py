@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+"""check_variant_isa_disasm.py — 变体 DSO 的**产物级**ISA 面判据（R-60）。
+
+为什么需要它（与既有判据的分工）:
+  · eng/tools/quality/check_isa_same_source.py 管**构建输入**（旗标站点 ↔ 声明 ↔ 检测三侧同源）；
+  · eng/tools/check_isa_leak.py 管主 CLI 的泄漏与 provider 库必须含对应指令（GNU/ELF 专用路径）；
+  · eng/tests/cpu/avx512/check_avx512_illegal_instr.py 管第二族 AVX-512 provider 的 %zmm 面；
+  · 本脚本补的是**第一族 backend 变体 DSO 的 TU 级隔离**这件事在**产物**上的双向证明，
+    且与反汇编工具**解耦**（接受任意已导出的反汇编文本）—— 以便同一判据在
+    Linux（objdump）与 Windows（llvm-objdump / dumpbin /disasm）两腿上跑同一份断言。
+
+判据（红/绿都真实）:
+  1) --hit SYM --isa avx2|avx512      : SYM 函数体**必须**含该档的宽向量指令（"真变体"正例）；
+  2) --clean-symbol SYM               : SYM 函数体**必须零** VEX/EVEX 指令（自检/握手入口负例）；
+  3) --clean-text / --require-text     : 整份反汇编文本的同型断言（单 TU 目标/基线产物用）；
+  4) --require-feature NAME           : 每一条**声明位**都要在产物里找到使用证据 ——
+                                        直接对应 R-60 约束 4「不得声明了却没用」。
+  VEX/EVEX 判定 = 助记符以 v 开头（objdump/dumpbin 两种语法下 VEX/EVEX 指令均以 v 开头）
+  或出现 ymm/zmm 寄存器（含/不含 % 前缀两种写法）。该口径与 check_isa_leak.py 的
+  「ymm/zmm 或专属助记符」一致，只强不弱。
+
+用法:
+  check_variant_isa_disasm.py --binary build/providers/astrocs_cpu_avx512.so \
+      --hit astrocs_variant_kernel_dispatch_v1 --isa avx512 \
+      --clean-symbol astrocs_backend_get_api_v1 --clean-symbol backend_self_test \
+      --require-feature avx512f --require-feature avx512vl
+  check_variant_isa_disasm.py --text /tmp/dumpbin_disasm.txt --isa avx512 --hit FUNC --clean-symbol FUNC2
+  check_variant_isa_disasm.py --self-test
+退出码: 0 = 全 PASS；1 = 有 FAIL；2 = 用法/输入错误。
+"""
+from __future__ import annotations
+
+import argparse
+import pathlib
+import re
+import subprocess
+import sys
+
+# ── 反汇编文本解析 ───────────────────────────────────────────────────────────
+# GNU objdump / llvm-objdump: "0000000000001234 <sym>:"；dumpbin /disasm: "sym:" 或 "?sym@@...:"
+GNU_LABEL = re.compile(r"^[0-9a-fA-F]+\s+<([^>]+)>:")
+MSVC_LABEL = re.compile(r"^([?A-Za-z_][\w?@$]*):\s*$")
+REG_WIDE = re.compile(r"%(?:y|z)mm\d+|\b(?:y|z)mm\d+\b")
+ADDR = re.compile(r"^[0-9a-fA-F]+:\s*")
+BYTE2 = re.compile(r"[0-9a-fA-F]{2}")
+
+# 档位专属助记符（仅用于加档；VEX/EVEX 的"是否宽指令"判定不依赖本表）
+AVX2_ONLY = re.compile(
+    r"^(?:v(?:p(?:sub|add|and|or|xor|mull|cmpeq|cmpgt|cmp|sll|srl|sra|blend|broadcast|perm|extract|insert|gather|pack|unpack|abs|min|max|avg|test)[a-z0-9]*"
+    r"|broadcast[a-z0-9]*|perm[a-z0-9]*|extracti128|inserti128|perm2i128|fmadd[a-z0-9]*|fmsub[a-z0-9]*"
+    r"|fnmadd[a-z0-9]*|fnmsub[a-z0-9]*|fmaddsub[a-z0-9]*|fnmsubadd[a-z0-9]*))$")
+AVX512_ONLY = re.compile(
+    r"^(?:v(?:movdqu(?:8|16|32|64)|movdqa(?:32|64)|pternlog[qd]|pconflict[qd]|plzcnt[qd]"
+    r"|pcmpeq[u]?[bwdq]|pcmp[u]?[bwdq]|pmovm2[a-z0-9]*|pmov[a-z0-9]*2m|permi2[a-z0-9]*|permt2[a-z0-9]*"
+    r"|extracti(?:32|64)x|extractf(?:32|64)x|inserti(?:32|64)x|insertf(?:32|64)x|broadcasti(?:32|64)x"
+    r"|shuff(?:32|64)x|blendm[a-z0-9]*|compress[a-z0-9]*|expand[a-z0-9]*|scatter[a-z0-9]*"
+    r"|pblendm[a-z0-9]*|pmullq|pandn[qd]|pand[qd]|por[qd]|pxor[qd]|padd[qd]|psub[qd]|psll[qd]|psrl[qd]"
+    r"|prol[qd]|pror[qd]|pshld[a-z0-9]*|pshrd[a-z0-9]*|cvtqq2pd|pmovqd|fpclass[a-z0-9]*|rangeps[a-z0-9]*"
+    r"|reduceps[a-z0-9]*|rcp14[a-z0-9]*|rsqrt14[a-z0-9]*|getexp[a-z0-9]*|getmant[a-z0-9]*|fixupimm[a-z0-9]*))$")
+
+# 声明位 → 使用证据（判据 4；每条都必须能在产物里找到至少一条，否则判红）
+FEATURE_EVIDENCE = {
+    "avx2": ("256-bit 或 AVX2 专属整数指令", re.compile(r"%(?:y)mm|\bymm\d|\bv(?:psub|vpadd|padd|psub|extracti128|inserti128|perm2i128|perm|broadcast|blend|gather)[a-z0-9]*")),
+    "fma": ("FMA 融合乘加助记符", re.compile(r"\bv(?:fmadd|fmsub|fnmadd|fnmsub|fmaddsub|fnmsubadd)[a-z0-9]*\b")),
+    "avx512f": ("512-bit（zmm）指令；vmovdqu64/32 等 F 档助记符",
+                re.compile(r"%(?:z)mm|\bzmm\d|\bv(?:movdqu(?:8|16|32|64)|movdqa(?:32|64)|pternlog[qd]|por[qd]|pand[qd]|pxor[qd]|padd[qd]|psub[qd]|broadcast[dfi]?[0-9]*(?:x[0-9]+)?)[a-z0-9]*\b")),
+    "avx512cd": ("CD 专属助记符（冲突检测/前导零计数）", re.compile(r"\bv(?:pconflict|plzcnt)[a-z0-9]*\b")),
+    "avx512bw": ("BW 专属助记符（字节/字粒度）", re.compile(r"\bv(?:movdqu8|movdqu16|pcmpeq[bdw]|pcmp[bdw]|pmovm2b|pmovm2w|psllvw|psrlvw|psravw|packuswb|punpcklbw)[a-z0-9]*\b")),
+    # DQ = 64 位整数/双精度专有算子（注意 vmovdqu64/vmovdqa64 属 F，不归 DQ —— 归口错误会让
+    # 「有使用证据」变成假绿）。
+    "avx512dq": ("DQ 专属助记符（64 位整数/转换）", re.compile(r"\bv(?:pmullq|pmovqd|pmovm2q|pmovq2m|cvtqq2pd|cvtpd2qq|vpcmpq|vpcmpuq|vextracti64x|vinserti64x|vbroadcasti64x)[a-z0-9]*\b")),
+    # VL 没有"专属助记符"可认：判据是**EVEX 专有指令用在 128/256 位寄存器上** ——
+    # 任何 EVEX-only 助记符（带 ymm/xmm 且行内无 zmm）都证明用上了 AVX512VL。
+    "avx512vl": ("VL 证据（EVEX-only 指令落在 xmm/ymm 上）", "vl_callable"),
+}
+
+
+def read_text(args):
+    if args.text:
+        return pathlib.Path(args.text).read_text(encoding="utf-8", errors="replace")
+    if not args.binary:
+        print("FAIL: 需要 --binary 或 --text", file=sys.stderr)
+        sys.exit(2)
+    objdump = args.objdump
+    if not objdump:
+        objdump = "llvm-objdump" if not args.gnu_objdump else "objdump"
+    flags = ["-d", str(args.binary)] if not args.gnu_objdump else ["-d", str(args.binary)]
+    r = subprocess.run([objdump] + flags, capture_output=True, text=True)
+    if r.returncode != 0:
+        print("FAIL: %s 失败 on %s: %s" % (objdump, args.binary, r.stderr.strip()[:300]))
+        sys.exit(2)
+    return r.stdout
+
+
+def parse_funcs(text):
+    funcs, order, cur = {}, [], None
+    for ln in text.splitlines():
+        m = GNU_LABEL.match(ln) or MSVC_LABEL.match(ln)
+        if m:
+            cur = m.group(1)
+            if cur not in funcs:
+                funcs[cur] = []
+                order.append(cur)
+            continue
+        if cur is not None:
+            funcs[cur].append(ln)
+    return funcs, order
+
+
+def mnemonic_of(line):
+    """取该行助记符：去地址后跳过十六进制字节对，第一个非字节记号即助记符。
+
+    两种反汇编文本同规则：objdump/llvm-objdump（ADDR:\tBYTES\tMNEMONIC）与
+    dumpbin /disasm（ADDR: BB BB BB BB  MNEMONIC）。逐记号判定而不是正则整行匹配 ——
+    后者在 "c4 e2 7d …" 这类字节串上会把十六进制字节误当助记符（e2 也会被 [a-z] 吃掉）。"""
+    s = ADDR.sub("", line.strip())
+    for tok in s.split():
+        t = tok.strip()
+        if BYTE2.fullmatch(t):
+            continue
+        return t.lower()
+    return ""
+
+
+def wide_ops(lines):
+    out = []
+    for ln in lines:
+        if not ln.strip():
+            continue
+        m = mnemonic_of(ln)
+        if REG_WIDE.search(ln) or (m.startswith("v") and len(m) > 1):
+            out.append((m, ln.strip()))
+    return out
+
+
+def _vl_evidence(line):
+    if re.search(r"%?zmm\d", line):
+        return False
+    if not re.search(r"%(?:y|x)mm\d|\b(?:y|x)mm\d", line):
+        return False
+    return bool(AVX512_ONLY.match(mnemonic_of(line)))
+
+
+def _count_evidence(text, matcher):
+    if callable(matcher):
+        return sum(1 for ln in text.splitlines() if matcher(ln))
+    if matcher == "vl_callable":
+        return sum(1 for ln in text.splitlines() if _vl_evidence(ln))
+    return sum(1 for ln in text.splitlines() if matcher.search(ln))
+
+
+def class_ops(lines, isa):
+    """该档位的专属使用证据。"""
+    hits = []
+    for m, ln in wide_ops(lines):
+        if isa == "avx2":
+            # 口径与 eng/tools/check_isa_leak.py 的 scan_avx2 一致（只强不弱）:
+            # ≥256-bit（ymm）向量使用 或 AVX2 专属助记符。FMA 由 --require-feature fma 单独断言。
+            # 带 zmm 的行属 AVX-512 面（vpaddd 之类的助记符在 512 位宽度下是 EVEX 形态），
+            # 不得算作 AVX2 证据 —— 否则档位判据会被高位的指令"蹭绿"。
+            if re.search(r"%?zmm\d", ln):
+                continue
+            if re.search(r"%?ymm\d", ln) or AVX2_ONLY.match(m):
+                hits.append((m, ln))
+        elif isa == "avx512":
+            if re.search(r"%?zmm\d", ln) or AVX512_ONLY.match(m):
+                hits.append((m, ln))
+    return hits
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="变体 DSO 产物级 ISA 面判据（R-60）")
+    ap.add_argument("--binary", type=pathlib.Path, default=None)
+    ap.add_argument("--text", type=pathlib.Path, default=None,
+                    help="已导出的反汇编文本（Windows 腿: llvm-objdump -d / dumpbin /disasm）")
+    ap.add_argument("--objdump", default="objdump")
+    ap.add_argument("--gnu-objdump", action="store_true", help="强制 objdump（默认同）")
+    ap.add_argument("--isa", choices=("avx2", "avx512"), default="avx512")
+    ap.add_argument("--hit", action="append", default=[], help="函数体必须含该档宽指令（可重复）")
+    ap.add_argument("--clean-symbol", action="append", default=[], help="函数体必须零 VEX/EVEX（可重复）")
+    ap.add_argument("--require-text", action="store_true", help="整份文本必须含该档宽指令")
+    ap.add_argument("--clean-text", action="store_true", help="整份文本必须零 VEX/EVEX")
+    ap.add_argument("--declared-features", default="",
+                    help="声明全集（逗号分隔）: 逐位登记「有/无使用证据」。无证据的位**不判红**"
+                         "（声明位按编译许可面口径合法大于实际使用面），但必须显式打出，"
+                         "以便报告登记该差异，不得静默")
+    ap.add_argument("--require-feature", action="append", default=[],
+                    help="声明位必须找到使用证据（可重复: avx2/fma/avx512f/cd/bw/dq/vl）")
+    ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--self-test", action="store_true")
+    a = ap.parse_args(argv)
+    if a.self_test:
+        return self_test()
+    text = read_text(a)
+    funcs, order = parse_funcs(text)
+    fails, logs = [], []
+    if not funcs and (a.hit or a.clean_symbol):
+        fails.append("反汇编文本里解析不到任何符号标签 —— 无法做符号级断言（fail-closed）")
+    for sym in a.hit:
+        cand = [s for s in order if sym in s]
+        if not cand:
+            fails.append("--hit %s: 符号不存在于产物（断言不得空转）" % sym)
+            continue
+        ok = False
+        for s in cand:
+            hits = class_ops(funcs[s], a.isa)
+            if hits:
+                ok = True
+                logs.append("%s: %s 档证据 %d 条，例: %s" % (s, a.isa, len(hits), hits[0][1][:96]))
+        if not ok:
+            fails.append("--hit %s: 无 %s 档宽指令 —— 产物与基线同码（真变体证明不成立）"
+                         % (sym, a.isa))
+    for sym in a.clean_symbol:
+        cand = [s for s in order if sym in s]
+        if not cand:
+            fails.append("--clean-symbol %s: 符号不存在于产物（断言不得空转）" % sym)
+            continue
+        for s in cand:
+            ops = wide_ops(funcs[s])
+            if ops:
+                fails.append("--clean-symbol %s: 函数体含 VEX/EVEX 指令 %d 条（自检/握手入口必须基线可执行），例: %s"
+                             % (s, len(ops), ops[0][1][:96]))
+            else:
+                logs.append("%s: 零 VEX/EVEX（基线可执行）" % s)
+    if a.require_text and not class_ops(text.splitlines(), a.isa):
+        fails.append("--require-text: 整份产物无 %s 档宽指令" % a.isa)
+    if a.clean_text:
+        ops = wide_ops(text.splitlines())
+        if ops:
+            fails.append("--clean-text: 产物含 VEX/EVEX 指令 %d 条，例: %s" % (len(ops), ops[0][1][:96]))
+    for feat in a.require_feature:
+        key = feat.lower().replace("acs_feat_", "").replace("avx512", "avx512")
+        ent = FEATURE_EVIDENCE.get(key)
+        if ent is None:
+            fails.append("--require-feature %s: 判据表无此位（fail-closed，不静默放过）" % feat)
+            continue
+        label, rx = ent
+        n = _count_evidence(text, rx)
+        if n == 0:
+            fails.append("--require-feature %s: 产物无使用证据（%s）—— 声明了却没用"
+                         % (feat, label))
+        else:
+            logs.append("declared %s: 使用证据 %d 条（%s）" % (feat, n, label))
+    for feat in [x.strip().lower() for x in a.declared_features.split(",") if x.strip()]:
+        key = feat.replace("acs_feat_", "")
+        ent = FEATURE_EVIDENCE.get(key)
+        if ent is None:
+            fails.append("--declared-features %s: 判据表无此位（fail-closed）" % feat)
+            continue
+        label, rx = ent
+        n = _count_evidence(text, rx)
+        logs.append("declared %s: %s（证据 %d 条）"
+                    % (key, "有使用证据" if n else "无使用证据（编译许可面位，非实际发射位）", n))
+    for m in logs:
+        if not a.quiet:
+            print("  ok  %s" % m)
+    for m in fails:
+        print("FAIL %s" % m)
+    print("VARIANT_ISA_DISASM %s checks=%d fails=%d"
+          % ("PASS" if not fails else "FAIL",
+             len(a.hit) + len(a.clean_symbol) + len(a.require_feature) + int(a.require_text)
+             + int(a.clean_text), len(fails)))
+    return 0 if not fails else 1
+
+
+SELFTEST_TEXT = """0000000000001000 <good256>:
+    1000:\tc5 f8 77             \tvzeroupper
+    1003:\tc4 e2 7d 18 05 00    \tvbroadcastss 0x0(%rip),%ymm0
+    1009:\tc4 e2 75 a8 c2       \tvfmadd213ss %xmm2,%xmm1,%xmm0
+    100e:\tc3                   \tret
+0000000000001100 <good512>:
+    1100:\t62 f1 7c 48 28 c1    \tvmovaps %zmm1,%zmm0
+    1106:\t62 f2 7d 48 58 c1    \tvpaddd %zmm1,%zmm0,%zmm0
+    110c:\tc3                   \tret
+0000000000001200 <clean>:
+    1200:\tf3 0f 1f 44 00 00    \tnopl 0x0(%rax,%rax,1)
+    1206:\t0f 28 c1             \tmovaps %xmm1,%xmm0
+    1209:\tc3                   \tret
+"""
+
+
+def self_test():
+    """判据自证：同一份文本上八个断言必须各自给出预期的红/绿。"""
+    import tempfile
+    cases = []
+    with tempfile.TemporaryDirectory() as td:
+        p = pathlib.Path(td) / "d.txt"
+        p.write_text(SELFTEST_TEXT, encoding="utf-8")
+        base = ["--text", str(p), "--quiet"]
+        cases.append(("pos-hit-avx2", main(base + ["--isa", "avx2", "--hit", "good256"]), 0))
+        cases.append(("pos-hit-avx512", main(base + ["--isa", "avx512", "--hit", "good512"]), 0))
+        cases.append(("neg-hit-avx512-on-avx2-func",
+                      main(base + ["--isa", "avx512", "--hit", "good256"]), 1))
+        cases.append(("neg-hit-avx2-on-avx512-func",
+                      main(base + ["--isa", "avx2", "--hit", "good512"]), 1))
+        cases.append(("pos-clean", main(base + ["--clean-symbol", "clean"]), 0))
+        cases.append(("neg-clean-vio", main(base + ["--clean-symbol", "good512"]), 1))
+        cases.append(("pos-require-feature-fma",
+                      main(base + ["--require-feature", "fma"]), 0))
+        cases.append(("neg-require-feature-cd",
+                      main(base + ["--require-feature", "avx512cd"]), 1))
+        cases.append(("neg-hit-missing-symbol",
+                      main(base + ["--hit", "no_such_symbol"]), 1))
+        cases.append(("neg-unknown-feature",
+                      main(base + ["--require-feature", "sse4_2"]), 1))
+        cases.append(("neg-clean-text",
+                      main(base + ["--clean-text"]), 1))
+    ok = all(got == want for _, got, want in cases)
+    for name, got, want in cases:
+        print("SELFTEST_%s %s (rc=%d want=%d)" % ("PASS" if got == want else "FAIL", name, got, want))
+    print("SELF_TEST %s cases=%d" % ("PASS" if ok else "FAIL", len(cases)))
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
