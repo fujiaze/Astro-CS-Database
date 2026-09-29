@@ -35,7 +35,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 配置不用手写：`acsd <命令> --template [-o <path>]` 生成可改的完整 JSON 模板，`--help` 给字段说明。
 运行前有配置预检三档（correct / warn / error，error 阻塞），事件流是默认输出（stdout 每行一个 JSON
 事件，GUI 可直接捕获）。退出码全 11 条冻结（0 成功 … 10 磁盘写满、70 未分类内部错误），唯一源
-`lib/infrastructure/cli/exit_codes.h`；完整协议见 `docs/api/CLI_PROTOCOL_V1.md`。
+`lib/infrastructure/cli/exit_codes.h`；完整协议见 `docs/engineering/CLI_PROTOCOL_V1.md`。
 
 ## 文档与权威链
 
@@ -49,39 +49,39 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) | 代码、测试、提交、目录与 CI 规则 |
 | [`CONTROL_PACK_SPEC.md`](CONTROL_PACK_SPEC.md) | 控制包的制作与执行规范 |
 | [`ACCEPTANCE_SPEC.md`](ACCEPTANCE_SPEC.md) | 四层验收标准与预览版发布门 |
-| [`docs/ci/CI_SPEC.md`](docs/ci/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
-| [`docs/plugins/00_INDEX.md`](docs/plugins/00_INDEX.md) | 逐模块工作细节 |
+| [`docs/engineering/CI_SPEC.md`](docs/engineering/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
+| [`docs/detail/00_INDEX.md`](docs/detail/00_INDEX.md) | 逐模块工作细节 |
 
 与上述入口并列的下级权威：`docs/science/`（科学公式与定义式）、`docs/science/algorithms/`（算法推导与符号表）、
-`docs/design/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/contracts/`（合同说明，与 `eng/contracts/`
-机器 schema 双向对应）；科学佐证纪律见 `docs/DOCUMENT_GOVERNANCE.md`。
+`docs/detail/UNIFIED_MODEL.md`（数据对象与三类配置）、`docs/contracts/`（合同说明，与 `eng/contracts/`
+机器 schema 双向对应）；科学佐证纪律见 `docs/engineering/DOCUMENT_GOVERNANCE.md`。
 
 | 要读什么 | 去哪读 |
 |---|---|
-| 数据对象、三类配置、逐阶段详细设计 | `docs/design/` |
+| 数据对象、三类配置、逐阶段详细设计 | `docs/detail/UNIFIED_MODEL.md`、`docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md` |
 | 科学定义式、单位、适用域 | `docs/science/` |
 | 算法推导、符号表、算法级边界 | `docs/science/algorithms/` |
 | 产品字段、键集、值域（文档侧） | `docs/contracts/` |
 | 机器校验 schema（机器侧唯一事实源） | `eng/contracts/` |
-| 模块工作细节 | `docs/plugins/`、`docs/modules/` |
+| 模块工作细节 | `docs/detail/`、`docs/modules/` |
 | 架构与不变量 | `docs/architecture/` |
-| 跨阶段产品交换与 ABI | `docs/interfaces/` |
-| CLI/API 协议 | `docs/api/CLI_PROTOCOL_V1.md` |
-| 机器门清单与运行方式 | `docs/ci/` |
-| 验收证据与 QA 矩阵 | `docs/validation/`、`实验/engineering-evidence/` |
+| 跨阶段产品交换与 ABI | `docs/engineering/io/`、`docs/science/IO_001_FITS_STREAM_INTERFACE.md`、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` |
+| CLI/API 协议 | `docs/engineering/CLI_PROTOCOL_V1.md` |
+| 机器门清单与运行方式 | `docs/engineering/CI_SPEC.md`、`docs/engineering/01_CHECKS.md` |
+| 验收证据与 QA 矩阵 | `docs/engineering/v6/QA_MATRIX.md`、`实验/engineering-evidence/` |
 | 术语 | `docs/GLOSSARY.md` |
-| 开发与排查 | `docs/DEVELOPER_GUIDE.md`、`docs/detail/merged_TROUBLESHOOTING.md` |
+| 开发与排查 | `docs/engineering/DEVELOPER_GUIDE.md`、`docs/detail/merged_TROUBLESHOOTING.md` |
 
 ## 仓库布局
 
 算法在 `lib/algorithms/`（并联放置），基建与 CLI 在 `lib/infrastructure/`，工程支撑面在 `eng/`
 （合同 schema、机器门、构建与质量工具、程序全局配置），自解释文档集在 `docs/`；科学实验单元在
 `实验/`，证据在 `artifacts/`，控制包工作区在 `工程控制/`，过程产物在 `run/`（不入库）。
-模块索引权威 = `docs/architecture/MODULE_MAP.md`；根目录固定条目见 `ENGINEERING_SPEC.md` §7。
+模块索引权威 = `docs/engineering/MODULE_MAP.md`；根目录固定条目见 `ENGINEERING_SPEC.md` §7。
 
 ## 状态与版本
 
-状态词表唯一口径 = `docs/ASTROCS_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/owner/RELEASE_STATUS.md`
+状态词表唯一口径 = `docs/ASTROCS_DESIGN.md` §12.5；逐模块状态与证据锚见 `docs/engineering/RELEASE_STATUS.md`
 与 `docs/modules/MODULE_MAP.yaml`。产品版本唯一事实源 = 仓库根 `VERSION`，CMake、CLI、产品 manifest
 由该源派生。已知限制台账：`docs/KNOWN_LIMITATIONS.md`。
 
@@ -161,4 +161,4 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | [CFITSIO](https://heasarc.gsfc.nasa.gov/fitsio/) | 随库条款 | FITS I/O（随仓 third_party） |
 | [nlohmann/json](https://github.com/nlohmann/json) | MIT | JSON（随仓 third_party） |
 
-> 完整佐证映射（哪篇支撑我们哪条断言）见 `docs/references/` 与 `实验/` 各单元的佐证来源区。
+> 完整佐证映射（哪篇支撑我们哪条断言）见 `docs/engineering/SCIENTIFIC_REFERENCES.md` 与 `实验/` 各单元的佐证来源区。

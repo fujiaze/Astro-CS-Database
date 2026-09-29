@@ -219,8 +219,8 @@ flowchart LR
 | 文档 | 关系 |
 |---|---|
 | docs/ASTROCS_DESIGN.md | 差距与任务的权威来源 |
-| 插件文档 docs/plugins/ | 任务"允许改什么"与"验收什么"的细节依据 |
+| 插件文档 docs/detail/ | 任务"允许改什么"与"验收什么"的细节依据（入口 = `docs/detail/00_INDEX.md`） |
 | ENGINEERING_SPEC.md | 代码/测试/提交/CI/清理的具体规则 |
 | AGENTS.md | 前台与 SubAgent 的执行纪律 |
 | ACCEPTANCE_SPEC.md | 四层验收与创新点实验单元 |
-| docs/ci/ | 验收机器门的定义与运行方式 |
+| docs/engineering/CI_SPEC.md | 验收机器门的定义与运行方式 |

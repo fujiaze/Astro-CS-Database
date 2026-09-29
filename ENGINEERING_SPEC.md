@@ -6,7 +6,7 @@
 
 - C++17 双平台；MSVC v143（Windows）/ GCC 或 Clang（Linux）；
 - 公共 C ABI 版本化；跨 DLL 不传 STL/异常/RTTI/编译器私有类型；
-- Windows 10+ amd64 下限、Windows 11 主验证（平台下限的取值与理由 = `docs/owner/ARCHITECTURE_OVERVIEW.md`）；Linux amd64；
+- Windows 10+ amd64 下限、Windows 11 主验证（平台下限的取值与理由 = `docs/engineering/ARCHITECTURE_OVERVIEW.md`）；Linux amd64；
 - 构建系统：唯一根 CMake（`CMakeLists.txt`）+ presets；不引入第二套构建入口。
 - **MSVC 工具集 pin**：Windows 正式平台的 MSVC 版本 = 契约冻结值 **14.44.35207**（工具集族
   `19.44`）。不显式指定时 MSBuild 取 `Microsoft.VCToolsVersion.v143.default.props` 的默认
@@ -52,7 +52,7 @@
 - **科学正确性优先**：独立证据（外部标准、文献、可复现实验）证明文档与事实不符时，订正文档是义务，记录证据、影响面并做一致性回归；文档正确而实现不符时改实现；
 - 架构改动与科学语义改动分开提交；保持数值等价，顺序变化时先冻结容差并登记于合同；
 - 模块按声明精度与公式执行，计算结果与 CPU 型号无关；`cpu_profile` 只影响并行/ISA；
-- 数据对象按 `docs/design/UNIFIED_MODEL.md` 区分，一个字段只承载一个含义。
+- 数据对象按 `docs/detail/UNIFIED_MODEL.md` 区分，一个字段只承载一个含义。
 
 ---
 
@@ -87,7 +87,7 @@
 - 不调用生产实现的独立 Oracle 或解析解；
 - 科学不变量/性质测试；
 - 边界、NaN/Inf、空输入、极端参数、错误输入；
-- 1 worker 与 N worker 数值一致性（判据 = **事前冻结的浮点容差**，不是逐位一致；容差来源与可满足性下限按 `docs/contracts/SCHEDULER_CONTRACT.md` §2.1 与 `docs/contracts/TEST_MATRIX.md` §2）；
+- 1 worker 与 N worker 数值一致性（判据 = **事前冻结的浮点容差**，不是逐位一致；容差来源与可满足性下限按 `docs/engineering/SCHEDULER_CONTRACT.md` §2.1 与 `docs/engineering/TEST_MATRIX.md` §2）；
 - baseline/AVX2/AVX-512 等价性；
 - 双平台允许误差合同；
 - 性能、线程与资源利用验证。
@@ -158,10 +158,10 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - `eng/build/toolchain.ps1` 是**现役固定条目**（Windows 侧构建/自检脚本）；其依赖面只允许仓内 vendored 依赖与系统工具链（见 `eng/packaging/dependency-lock.json` 的 `msys2_mingw: FORBIDDEN` 与 `machine_absolute_path: FORBIDDEN`）；
 - **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
-- **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，`hips_tile_format` 取标准词表值（词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
+- **产品落盘形态**（`docs/detail/PRODUCT_STORAGE_FORM.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，`hips_tile_format` 取标准词表值（词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
 - **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**（默认值与取值域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/storage_form`（:480-492），不在 `eng/packaging/config/defaults.json` 内））；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引，**字段名、取值与清单段结构的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`**（本节不复制字段清单；逐帧与运行级字段见该词表）；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
-- **版本信息按阶段出现**（最高设计 §13）：alpha 阶段之前代码与产物中不含任何版本信息；进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/owner/RELEASE_STATUS.md` §2），CLI `--version` 输出该源派生的生成串。
+- **版本信息按阶段出现**（最高设计 §13）：alpha 阶段之前代码与产物中不含任何版本信息；进入 alpha 阶段后一律由根 `VERSION` 派生或与其一致（单源条款 = `docs/engineering/RELEASE_STATUS.md` §2），CLI `--version` 输出该源派生的生成串。
 
 ---
 
@@ -173,12 +173,12 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - **docs/**：science（公式权威）、algorithms（推导权威）、plugins（模块工作细节）、design（数据对象与设计）、architecture、interfaces、standards、modules、contracts、development、validation、ci、research、references、api；
 - **索引地图**：`docs/DOCUMENT_INDEX.yaml` 是全文档集的唯一索引地图；目录招牌件（各目录 `README.md`）按"每目录必有 README"治理，登记于目录本身而不入规范索引段。
 
-本节是文档索引与登记规则的**唯一正本**；文档体系的分层准入、上游抬头、正向书写与科学佐证条款的唯一正本 = `docs/DOCUMENT_GOVERNANCE.md`。
+本节是文档索引与登记规则的**唯一正本**；文档体系的分层准入、上游抬头、正向书写与科学佐证条款的唯一正本 = `docs/engineering/DOCUMENT_GOVERNANCE.md`。
 
 - **双向索引**：最高设计每节末尾指向对应下级文档；每份下级文档抬头标注上游最高设计条款；
 - **悬空即缺陷**：索引指向的文件/章节必须存在，文档引用的代码路径必须真实；跨域未修项登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增；
 - 代码改动改变行为时，同一提交内更新对应文档与索引；
-- 机器检查项：`DOC-INDEX`（索引闭合）、`DOC-INDEX-SELFTEST`（可执行正/负例面）、`CHK-DOC-HYGIENE`（写作规则与过程痕迹）、`CHK-DANGLING`（悬空引用），注册面 = `eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md` §2。
+- 机器检查项：`DOC-INDEX`（索引闭合）、`DOC-INDEX-SELFTEST`（可执行正/负例面）、`CHK-DOC-HYGIENE`（写作规则与过程痕迹）、`CHK-DANGLING`（悬空引用），注册面 = `eng/ci/checks.json` 与 `docs/engineering/01_CHECKS.md` §2。
 
 ---
 
@@ -198,7 +198,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 - **可执行负例面**：每项检查提供机器可执行负例入口（`--self-test` 或 `--fault-inject`）；
 - **fail-closed**：检查器在输入缺失、路径不存在、依赖不可用时判红；"文件不存在"按"无违规"通过视为假绿；
 - **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时报 `ANCHOR_STALE`；
-- **注册表双向一致**：`eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐；
+- **注册表双向一致**：`eng/ci/checks.json` 与 `docs/engineering/01_CHECKS.md §2` 双向对齐；
 - **悬空引用台账**：跨域未修的悬空引用登记于 `eng/tools/doccheck/dangling_ledger.json`，只减不增；台账缺失或不可解析按 fail-closed 判红；
 - 修改代码/测试后本地复跑对应检查项；
 - 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、实现处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）、**交付共享对象符号闭包**（`CHK-PLUGIN-SYMBOL-CLOSURE`：产品清单登记的每个 plugin .so 的强未定义符号可在 DT_NEEDED 闭包内解析、DT_NEEDED 可解析、`dlopen(RTLD_NOW)` 成功，含正例与负例注入）。
@@ -207,23 +207,23 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 
 ## 11. 日志、诊断与错误
 
-规范依据：最高设计 §7.3（错误传播与运行日志）、`docs/design/LOG_AND_ERROR_SYSTEM.md`、
-`docs/contracts/LOG_AND_ERROR_CONTRACT.md`。
+规范依据：最高设计 §7.3（错误传播与运行日志）、`docs/detail/LOG_AND_ERROR_SYSTEM.md`、
+`docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
 
 - 统一状态码（最高设计 §7.2 退出码表），跨平台同失败同码；退出码唯一源 `lib/infrastructure/cli/exit_codes.h`，
-  域→码映射的唯一数值表 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5；
+  域→码映射的唯一数值表 = `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5；
 - 结构化日志走 JSONL 事件（唯一 schema，见 eng/contracts/schemas）；运行日志行格式正本 =
   `lib/infrastructure/observability/logging/log_event_v1.schema.json`（LOG-001）是日志事件 schema 的唯一来源；
 - **错误必须上行到 CLI**：模块不吞错（空 catch、忽略返回码）、不只写日志不返回错误、
   不把故障降级为"警告后继续"；错误通过统一状态码 + 结构化诊断传播；不跨 C ABI 抛异常；
 - **降级必须显式**：写 `degraded_reason` + manifest 记录 + 不改变科学语义，三者齐备才允许继续运行；
   改变科学语义的降级按故障处理（fail-closed）；
-- **运行日志落输出目录**：成功/失败/取消三路都产出日志工件，**工件名、目录结构与清单字段的唯一正本 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md`**（本节不复制工件名）；
+- **运行日志落输出目录**：成功/失败/取消三路都产出日志工件，**工件名、目录结构与清单字段的唯一正本 = `docs/engineering/LOG_AND_ERROR_CONTRACT.md`**（本节不复制工件名）；
   收尾 fsync + 算哈希 + 原子发布并在 run manifest 的 `log_artifacts[]` 登记；
   日志落点的唯一来源 = 块级 `<output_dir>`；日志写失败即运行失败（非 0 退出码）；
 - 日志经 `aio` 唯一 I/O 边界写出；模块不自建文本 logger、不自持日志文件句柄、不自行决定落点；
 - 输出临时文件 + 原子提交；失败时不留可被误认成正式产品的半成品；
-- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且文件字节逐字节不变**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename；逐步骤序正本 = `docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §4，本处只声明该写端接线的次序）；读回不一致 ⇒ 不发布。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
+- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且文件字节逐字节不变**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename；逐步骤序正本 = `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md` §4，本处只声明该写端接线的次序）；读回不一致 ⇒ 不发布。细则与判据见 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
 - 未捕获异常 → exit 70 + 脱敏 crash report（不泄露凭据）；日志/诊断不含凭据与绝对用户路径；
 - 判据 `CHK-LOG-SYS`（`eng/ci/checks.json`）：R1 错误不吞 / R2 降级显式 / R3 日志落点 / R4 台账完整 / R5 合同锚，
   每项带可执行负例（`--self-test`）；登记台账 `eng/ci/ledgers/log_system_ledger.json` 只减不增。
@@ -242,7 +242,7 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 
 ## 13. 与 CI 的关系
 
-- 本文定义"检查什么"；`docs/ci/` 定义"CI 怎么组织、哪些是门禁、流水线如何跑"；
+- 本文定义"检查什么"；`docs/engineering/CI_SPEC.md` 定义"CI 怎么组织、流水线如何跑"、`docs/engineering/03_GATES.md` 定义"哪些是门禁"；
 - 本地必跑：格式、构建、单测、机器一致性检查（§10）；
 - CI 必跑：双平台构建、静态检查、文档/合同/ABI 检查（含悬空索引）、单测、合成科学测试、sanitizer/coverage、候选打包、结果留存。
 
@@ -256,8 +256,8 @@ run/（gitignore：开发/CI 过程产物与过程日志，与块级 output_dir 
 | AGENTS.md | 干活纪律（本文的可执行补充） |
 | CONTROL_PACK_SPEC.md | 任务拆分与验收如何引用本文规则 |
 | ACCEPTANCE_SPEC.md | 四层验收与发布门 |
-| docs/ci/ | CI 组织与门禁定义 |
-| docs/plugins/ | 各模块具体规范（README/module.yaml/测试） |
+| docs/engineering/CI_SPEC.md、docs/engineering/03_GATES.md | CI 组织与门禁定义 |
+| docs/detail/ | 各模块具体规范（README/module.yaml/测试），入口 = `docs/detail/00_INDEX.md` |
 
 
 ---

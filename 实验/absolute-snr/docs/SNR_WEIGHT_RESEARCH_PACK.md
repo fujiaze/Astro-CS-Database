@@ -142,7 +142,7 @@
 
 **PSF 有效面积 / 功率口径的对应**（术语对齐，避免混用）：
 
-- 本项目的“PSF 有效面积”是 `A_NEA = 1/Σ_p P_p²`（噪声等效面积），出现在白噪声近似的点源信息 `W_psf = a²/(σ_pix²·A_NEA)`（`docs/science/PSF_SIGNAL_WEIGHT.md` §2；`docs/plugins/algorithms_phase1/07_noise_snr.md` §4）——它是**通量型**口径的方差因子，与“随帧级 SNR 一并落盘”的产品字段同源（`ASTROCS_DESIGN.md` §4.4）；
+- 本项目的“PSF 有效面积”是 `A_NEA = 1/Σ_p P_p²`（噪声等效面积），出现在白噪声近似的点源信息 `W_psf = a²/(σ_pix²·A_NEA)`（`docs/science/PSF_SIGNAL_WEIGHT.md` §2；`docs/detail/algorithms_phase1/07_noise_snr.md` §4）——它是**通量型**口径的方差因子，与“随帧级 SNR 一并落盘”的产品字段同源（`ASTROCS_DESIGN.md` §4.4）；
 - PixInsight 的“功率口径”指 `(Σf)²/σ_n²` 这一 **ratio-of-powers** 形态（上表），它没有显式的 `A_NEA` 因子，且不能再做 `SNR²/F_ref²` 换算（`07_noise_snr.md` §4.1 口径澄清）；
 - 因此两者**不可互换**：引用 PixInsight 常数或公式时必须带版本，且不得把功率比数值与本项目通量型 SNR 直接比较。
 

@@ -10,7 +10,7 @@
 | 组件 | 冻结值 | 说明 |
 |------|--------|------|
 | 目标架构 | AMD64/x86-64 | 不构建 Win32/ARM/ARM64 |
-| 技术兼容下限 | Windows 10 22H2 x64 (OS build 19045) | 主验证环境为 Windows 11 x64；平台下限的取值与理由落点 = `docs/owner/ARCHITECTURE_OVERVIEW.md` |
+| 技术兼容下限 | Windows 10 22H2 x64 (OS build 19045) | 主验证环境为 Windows 11 x64；平台下限的取值与理由落点 = `docs/engineering/ARCHITECTURE_OVERVIEW.md` |
 | Visual Studio | VS 2022 Build Tools `17.14.39` | installationVersion `17.14.37614.0` |
 | 正式 generator | `Visual Studio 17 2022` | 唯一正式 generator（VS17 2022），`-A x64`，host tool `x64` |
 | platform toolset | `v143,host=x64,version=14.44.35207` | compiler family `19.44` |
@@ -44,7 +44,7 @@ Linux preset `linux-control` 仅供静态检查/轻量编译/小合成实验；L
 - Debug: -DCMAKE_BUILD_TYPE=Debug (clang++)
 
 ## 复现
-- build id = VERSION + g<commit>（生成模板 = `lib/infrastructure/cli/version_generated.h.in`；单源条款 = `docs/owner/RELEASE_STATUS.md` §2）
+- build id = VERSION + g<commit>（生成模板 = `lib/infrastructure/cli/version_generated.h.in`；单源条款 = `docs/engineering/RELEASE_STATUS.md` §2）
 - 同 commit 重构建 → 相同 build id
 - SBOM: 输入 = build/sbom-input.jsonl（`eng/packaging/gen_sbom_input.py` 现行产物, 不入库）;
   发布候选 SBOM 文档在发布流程内生成（发布决定权属负责人）

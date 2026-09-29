@@ -24,7 +24,7 @@ flowchart TB
 | L3 | 可行性 + 科学性 + 性能 | testdata 小批量真实帧 | 机器 + agent 抽检 |
 | L4 | 视觉正确性 + 发布决策 | testdata 的 M42、Galaxy Center 全量（本版仅 R 通道） | agent 初审 + 验收方目检 |
 
-每层验收由 agent 先行自修到位后提交，提交时附完整证据：实验单元与工程实测证据落 `实验/`（性能实测读数留档 `实验/engineering-evidence/l2_performance/`），分层证据与验收报告由验收流程产出，按发布候选归档面留存（归档面定义 = `docs/ci/04_ARTIFACTS.md`）；机器层全绿是提交上一层的前提。
+每层验收由 agent 先行自修到位后提交，提交时附完整证据：实验单元与工程实测证据落 `实验/`（性能实测读数留档 `实验/engineering-evidence/l2_performance/`），分层证据与验收报告由验收流程产出，按发布候选归档面留存（归档面定义 = `docs/engineering/04_ARTIFACTS.md`）；机器层全绿是提交上一层的前提。
 
 ---
 
@@ -58,7 +58,7 @@ flowchart TB
 | 非退化负例 | 平场残差/天光梯度注入时度量如实变大；真值无效应场景度量归零 |
 | 判据的名词口径 | 「星等」「线性」「绝对数值窗口」三词只取最高设计 §2.1/§4.4 冻结语句之义：星等是**表达层**、像素与 HiPS signal 面**保持线性**、**无绝对数值窗口**（绝对值不可辨识，非「不许出现数值」）；反义表述由 `check_spec_polarity_consistency.py` 判红 |
 
-**SCI-A 口径锚**：`k_photo` 是线性乘性标度、`I_photo = k_photo·I_cal`；星等只按 `m = ZP_k − 2.5·log10 F` 现场派生、不作为数据形态落盘（正本 = 最高设计 §2.1「数据形态」「必须保持线性」两条 + §4.4 测光输出语义 + `docs/contracts/DATA_SEMANTICS.md` §31.1/§31.1a）。检测定义域上限的合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json`，数值与推导见 `docs/plugins/algorithms_phase1/03_star_detection.md` §5.1。
+**SCI-A 口径锚**：`k_photo` 是线性乘性标度、`I_photo = k_photo·I_cal`；星等只按 `m = ZP_k − 2.5·log10 F` 现场派生、不作为数据形态落盘（正本 = 最高设计 §2.1「数据形态」「必须保持线性」两条 + §4.4 测光输出语义 + `docs/science/DATA_SEMANTICS.md` §31.1/§31.1a）。检测定义域上限的合同域正本 = `eng/contracts/schemas/phase_config_normalize.schema.json`，数值与推导见 `docs/detail/algorithms_phase1/03_star_detection.md` §5.1。
 
 ### 2.2 P2 与 P4 / SCI-B：跨帧绝对 SNR 传递链
 
@@ -122,7 +122,7 @@ flowchart TB
 | 科学不变量 | 校准通量守恒；帧级 SNR 定义与计算；Phase2 逆方差叠加（权重由各源像素 SNR 导出）；drizzle 面亮度与总积分通量守恒；投影正反互逆；HiPS 层级像素面积关系 |
 | 精度 | FP32/FP64 两条路径分别满足合同容差；常数使用全精度字面量 |
 | 判据判别力 | 每个度量有"真值无效应 ⇒ 归零/判红"的负例，恒真门不计证据 |
-| 统计与排异 | σ-clipping/MAD 口径、排异**四档**路由（N 为该输出像素的几何可贡献帧数）、归约顺序与科学文档逐项一致；逐像素档位表正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9（本节不复制档界） |
+| 统计与排异 | σ-clipping/MAD 口径、排异**四档**路由（N 为该输出像素的几何可贡献帧数）、归约顺序与科学文档逐项一致；逐像素档位表正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9（本节不复制档界） |
 | 边界 | NaN（样本级掩膜 + 重归一 + 覆盖级 NaN + 计数）/Inf、空输入、极端参数、错误输入均有确定行为 |
 | 并行确定性 | 同一输入 1 worker 与 N worker 结果数值一致（容差按合同） |
 
@@ -132,7 +132,7 @@ flowchart TB
 
 ### 3.1 落盘形态验收（两种形态都能读写、解压后合法）
 
-权威：`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`。
+权威：`docs/detail/PRODUCT_STORAGE_FORM.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`。
 
 | 判据 | 通过条件 |
 |---|---|
@@ -155,7 +155,7 @@ flowchart TB
 
 ### 3.2 裸形态体积削减验收（打洞）
 
-权威：`docs/design/PRODUCT_STORAGE_FORM.md` §9、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7。
+权威：`docs/detail/PRODUCT_STORAGE_FORM.md` §9、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §7。
 
 | 判据 | 通过条件 |
 |---|---|
@@ -165,7 +165,7 @@ flowchart TB
 | 只打全零块 | 只对 4 KiB 对齐的整块全零区域打洞；**负例**：对含非零字节的块打洞必须被判红（字节改变 + 校验和失效） |
 | 降级不 fail-closed | 卷不支持稀疏（`EOPNOTSUPP` 等）⇒ 跳过打洞、产品保持完整可读、provenance 记 `trim=skipped(reason)`，运行照常成功 |
 | 产品身份不受影响 | 打洞产物与未打洞同源产物的产品哈希（`tree_hash` / `canonical_sha256`）相同 |
-| 口径不混用 | 报告与 provenance 取打洞口径：**包围盒 TRIM**（改 NAXIS）与打洞是两种机制，收益口径不混用；机制、口径、数值与实测落点 = `docs/design/PRODUCT_STORAGE_FORM.md` §9（本节不复制数值）。**适用域**：打洞收益在 Linux 成立；**Windows 面未实测**（见本节末"未实测项如实登记"） |
+| 口径不混用 | 报告与 provenance 取打洞口径：**包围盒 TRIM**（改 NAXIS）与打洞是两种机制，收益口径不混用；机制、口径、数值与实测落点 = `docs/detail/PRODUCT_STORAGE_FORM.md` §9（本节不复制数值）。**适用域**：打洞收益在 Linux 成立；**Windows 面未实测**（见本节末"未实测项如实登记"） |
 
 **判据入口（机器）**：
 
@@ -184,13 +184,13 @@ flowchart TB
 
 **目标**：证明重计算负载下 CPU 利用率接近满载、内存占用合理且无无界增长。
 
-**数据**：规模化合成数据，使每段重计算区间严格大于 10 s（数值来源 = `eng/contracts/resource_gate_v1.json` 与 `docs/plugins/infrastructure/21_observability.md`），覆盖 normalize/mosaic/export 典型负载。
+**数据**：规模化合成数据，使每段重计算区间严格大于 10 s（数值来源 = `eng/contracts/resource_gate_v1.json` 与 `docs/detail/infrastructure/21_observability.md`），覆盖 normalize/mosaic/export 典型负载。
 
 | 类别 | 内容 |
 |---|---|
-| CPU 利用率 | 无单线程跑满全程、无连续 ≥10 s 低利用窗且队列有工作（判据口径与阈值来源 = `eng/contracts/resource_gate_v1.json`、`docs/plugins/infrastructure/21_observability.md`）；均值/p50/逐样本利用率记录达标或超标登记有合理解释 |
+| CPU 利用率 | 无单线程跑满全程、无连续 ≥10 s 低利用窗且队列有工作（判据口径与阈值来源 = `eng/contracts/resource_gate_v1.json`、`docs/detail/infrastructure/21_observability.md`）；均值/p50/逐样本利用率记录达标或超标登记有合理解释 |
 | 内存工作集 | 峰值工作集随分块大小而非总数据量增长（成倍增大输入帧数，峰值 RSS 不线性膨胀）；稠密权重/天光面按需现场求值、无整轮驻留 |
-| 线程扩展 | 多个 worker 档位测量吞吐与加速比，档位取自 `benchmark` 生成的 `cpu_profile`（`docs/plugins/infrastructure/20_benchmark.md`），不硬编码并行度（最高设计 §9）；worker 均衡度由 `worker_balance.csv` 佐证 |
+| 线程扩展 | 多个 worker 档位测量吞吐与加速比，档位取自 `benchmark` 生成的 `cpu_profile`（`docs/detail/infrastructure/20_benchmark.md`），不硬编码并行度（最高设计 §9）；worker 均衡度由 `worker_balance.csv` 佐证 |
 | 编排连续性 | 同一数据块连续节点在同一 worker 完成；worker 空转率、块重载次数、跨 worker 搬运量归档，无"A 做一半切 B 再回 A" |
 | 缓存复用 | Gaia/星表同组查询外部请求计数为 1（查询合并 + 两级缓存）；命中率归档 |
 | I/O | 读写带宽与 I/O wait 记录在案；aio 不构成不可解释瓶颈；磁盘门零违约 |
@@ -255,7 +255,7 @@ flowchart LR
 |---|---|
 | 无"黑洞" | 无异常零值/死区/未填充孔洞；稀疏区与重叠区过渡自然，无不自然暗斑 |
 | 无亮斑 | 无宇宙线/卫星线残留、校准伪影、饱和溢出形成的异常亮点；星云高亮区有层次而非死白 |
-| 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）**：沿**真实帧足迹**取法向 ±`d` 差分（`d` = 法向差分半距，单位像素，正本 = 机器门实现 `eng/tools/e2e/seam_footprint.py --norm-d`），判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+d] − img[−d]) / bg`，门 `max|rel_step| ≤ 1e-2`（相对口径，无量纲、可跨产品比）。**判据取值与默认参数的唯一数值来源 = 机器门实现** `eng/tools/e2e/seam_footprint.py`（`--norm-d` 默认 2 px、`--ctrl-shift` 默认 200 px、`--min-samples` 默认 20；本节不复制取值），**门限 `1e-2` 的推导与实测标定正本 = `docs/science/PHASE2_UPM.md` §17**（观测量与零假设分布、虚警率、可检出下限、漏检面；本节与 `docs/ci/01_CHECKS.md` 都不复制 §17 的数值结论），阈值口径与运行方式见 `docs/ci/01_CHECKS.md`。**适用域**：只对**两侧都在数据内部**的帧边界计入（法向 ±`ctrl_shift` 两侧都能放对照线且各 ≥ `min_samples` 个有效样本；`N = ctrl_shift` 从输入导出。**注意同名异域**：本门的 `min_samples` 属帧足迹接缝域，与 `docs/science/PHASE2_UPM.md` §7 的 UPM patch 域 `min_samples` 不是同一个量），被排除的边界仍**逐条落盘**（`exclude` / `margin_px`），不静默丢弃。噪声比、扣对照线的净台阶、`d` 扫描与旧 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），只作诊断量（无接缝证据取有符号台阶 `rel_step`） |
+| 无接缝 | 帧间、块间无亮度/灰度阶跃，无重影、错位与重复星点。**可执行门槛（机器门 `CHK-L4-SEAM-FOOTPRINT`）**：沿**真实帧足迹**取法向 ±`d` 差分（`d` = 法向差分半距，单位像素，正本 = 机器门实现 `eng/tools/e2e/seam_footprint.py --norm-d`），判据 = **有符号台阶** / 边界处局部背景电平，`rel_step = median(img[+d] − img[−d]) / bg`，门 `max|rel_step| ≤ 1e-2`（相对口径，无量纲、可跨产品比）。**判据取值与默认参数的唯一数值来源 = 机器门实现** `eng/tools/e2e/seam_footprint.py`（`--norm-d` 默认 2 px、`--ctrl-shift` 默认 200 px、`--min-samples` 默认 20；本节不复制取值），**门限 `1e-2` 的推导与实测标定正本 = `docs/science/PHASE2_UPM.md` §17**（观测量与零假设分布、虚警率、可检出下限、漏检面；本节与 `docs/engineering/01_CHECKS.md` 都不复制 §17 的数值结论），阈值口径与运行方式见 `docs/engineering/01_CHECKS.md`。**适用域**：只对**两侧都在数据内部**的帧边界计入（法向 ±`ctrl_shift` 两侧都能放对照线且各 ≥ `min_samples` 个有效样本；`N = ctrl_shift` 从输入导出。**注意同名异域**：本门的 `min_samples` 属帧足迹接缝域，与 `docs/science/PHASE2_UPM.md` §7 的 UPM patch 域 `min_samples` 不是同一个量），被排除的边界仍**逐条落盘**（`exclude` / `margin_px`），不静默丢弃。噪声比、扣对照线的净台阶、`d` 扫描与旧 `excess` 口径**全部只作诊断量、不判红**；**方差比对电平阶跃原理性失明**（阶跃不改变方差），只作诊断量（无接缝证据取有符号台阶 `rel_step`） |
 | 星点质量 | 星点圆锐、无拖尾/拉伸/双线，跨帧星点重合 |
 | 背景与几何 | 背景均匀、天光结构连续；无明显投影畸变，WCS 网格与星点位置吻合 |
 | 全局观感 | 整幅缩略图上天区结构正确（M42 星云形态、银心带与星场分布），灰度/动态范围自然 |
@@ -274,8 +274,8 @@ flowchart LR
 | 项 | 落位 | 内容 |
 |---|---|---|
 | 创新点实验 | `实验/<单元>/`（单元清单 = 最高设计 §12.3） | 报告、code、results、data、审稿记录 |
-| 分层证据 | `实验/`（实验单元 + 工程实测，性能读数留档 `实验/engineering-evidence/l2_performance/`）；分层证据与验收记录按发布候选归档面留存（`docs/ci/04_ARTIFACTS.md`） | 日志、产品、Oracle 结果、资源时序、PNG 与脚本 |
-| 验收报告 | 发布候选归档面（登记 = `docs/ci/04_ARTIFACTS.md`） | 四层逐项结论（通过/不通过 + 证据链接）、已知问题清单、运行环境（CPU/OS/构建指纹） |
+| 分层证据 | `实验/`（实验单元 + 工程实测，性能读数留档 `实验/engineering-evidence/l2_performance/`）；分层证据与验收记录按发布候选归档面留存（`docs/engineering/04_ARTIFACTS.md`） | 日志、产品、Oracle 结果、资源时序、PNG 与脚本 |
+| 验收报告 | 发布候选归档面（登记 = `docs/engineering/04_ARTIFACTS.md`） | 四层逐项结论（通过/不通过 + 证据链接）、已知问题清单、运行环境（CPU/OS/构建指纹） |
 | 性能基线 | 安装目录（benchmark 产物） | L2/L3 扩展曲线与内存曲线，供后续版本自动对比 |
 
 验收报告只记录结论与证据；问题修复走标准任务流程（`AGENTS.md`、`CONTROL_PACK_SPEC.md`）。
@@ -291,7 +291,7 @@ flowchart LR
 3. L2 性能验收磁盘门零违约、资源指标无未解释异常；
 4. L3 小批量端到端跑通且抽检合格；
 5. L4 M42 与 Galaxy Center 两组视觉验收由验收方逐项确认；
-6. 机器门（`docs/ci/03_GATES.md` 的 P0）全绿、零 waiver；
+6. 机器门（`docs/engineering/03_GATES.md` 的 P0）全绿、零 waiver；
 7. 仓库整洁（退役实现与治理工件按 ENGINEERING_SPEC §2/§9 处置完毕）；
 8. 版本纪律满足（发布版本号取自根 `VERSION` 单源，见 `docs/ASTROCS_DESIGN.md` §13；alpha 阶段前程序与产物中不出现版本信息）；
 9. 日志与错误系统验收全绿（§9）。
@@ -302,7 +302,7 @@ flowchart LR
 
 ## 9. 日志与错误系统验收
 
-依据：最高设计 §7.3、`docs/design/LOG_AND_ERROR_SYSTEM.md`、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`。
+依据：最高设计 §7.3、`docs/detail/LOG_AND_ERROR_SYSTEM.md`、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`。
 
 | # | 验收点 | 判定方式（可复跑） |
 |---|---|---|
@@ -314,4 +314,4 @@ flowchart LR
 | E6 | **判据自身能红能绿** | `python3 eng/tools/quality/check_log_system.py --self-test` 全绿（含全部故障注入必红；注入清单与条数 = 该工具的 `--self-test`，本节不复制条数） |
 | E7 | **台账只减不增、锚存活** | 同上（R4/R5）；台账条目数超过基线或锚失效 ⇒ 判红 |
 
-E1–E7 的机器入口 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/ci/01_CHECKS.md` §2）；证据落 `实验/engineering-evidence/` 与发布候选归档面。
+E1–E7 的机器入口 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/engineering/01_CHECKS.md` §2）；证据落 `实验/engineering-evidence/` 与发布候选归档面。
