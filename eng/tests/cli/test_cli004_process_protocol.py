@@ -174,7 +174,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         # FIX-E2E B1-A1/A9: phase1 正式链为 8 节点端口链, drizzle/wcs 为链上必填科学配置。
         # 新树扁平会话形态（input_lights 在顶层; 预检按键名计数）。
         cfg = os.path.join(self.tmp, "cfg_%s.json" % os.path.basename(out))
-        # SMOKE-001 D4: normalize 预检对缺失标定帧判 error（§3.5，仅 -force 可越），
+        # SMOKE-001 D4: normalize 预检对缺失标定帧判 error（§4.5，仅 -force 可越），
         # 故配置须显式给三个 master（fixture --make 真实产出 bias/dark/flat）。
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1",
@@ -211,7 +211,7 @@ class TestCli004ProcessProtocol(unittest.TestCase):
                          "预检阻断不得写 manifest")
         # 1b. 输入文件缺失 → 预检 rc=3（写盘前阻断）：无事件流、无 manifest。
         #     2026-09-18 预检 fail-closed 修复后，路径不存在/不可读在 precheck_config
-        #     阶段即判 error（docs/ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122），-y 不可越；
+        #     阶段即判 error（docs/ASTROCS_DESIGN §4.5 + ENGINEERING_SPEC:122），-y 不可越；
         #     旧断言（完整事件流 + incomplete manifest）固化的是修复前 fail-open 行为。
         out = os.path.join(self.tmp, "o1"); os.makedirs(out)
         cfg = self._cfg(out, [os.path.join(self.data, "does_not_exist.fits")])

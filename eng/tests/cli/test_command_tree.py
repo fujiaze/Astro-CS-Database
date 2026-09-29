@@ -213,7 +213,7 @@ class TestCommandTree(unittest.TestCase):
     def _complete_config(cmd, doc, out_dir):
         """把模板补成「结构完整」（输入非空、output_dir 非空）——只有结构完整才会走到
         键白名单校验（validate_config_full）；路径故意指向不存在处，使失败原因是
-        「输入路径不存在」（§3.5 error）而不是「unknown key」。"""
+        「输入路径不存在」（§4.5 error）而不是「unknown key」。"""
         d = json.loads(json.dumps(doc))
         if "blocks" in d:  # normalize 多块形态（块间 output_dir 不得重复）
             for i, b in enumerate(d["blocks"]):

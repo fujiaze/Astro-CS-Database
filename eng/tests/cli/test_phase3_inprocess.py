@@ -7,7 +7,7 @@
   * fixture 源码路径: ARCH-001 迁移后布局（lib/infrastructure/aio +
     lib/algorithms/shared/healpix）, 旧路径回退。
 
-**export 缺陷（显式红, 归属 CLI-002; 依据 docs/ASTROCS_DESIGN §3.5/§6.1 + §6.2）**:
+**export 缺陷（显式红, 归属 CLI-002; 依据 docs/ASTROCS_DESIGN §4.5/§6.1 + §6.2）**:
   新树 export 的预检(lib/infrastructure/cli/subcommand.h precheck_config)只把 source 当
   array/string 计数, 而 phase3 会话(lib/phase3_session/p3_session.cpp)要求
   source.hips_dir 对象 ⇒ **没有任何 source 形态能同时过两层**:

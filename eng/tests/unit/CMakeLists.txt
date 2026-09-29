@@ -1860,3 +1860,26 @@ target_link_libraries(w34_p1_qf_oracle PRIVATE astrocs_phase1_photcal ${ASTROCS_
 # ── F. CPU baseline provider 三门: 由 eng/tests/cpu/baseline/run_cpu_baseline_checks.py
 #  逐行真编真跑（本机无法用根构建图 —— baseline/avx2/avx512 三档都走各自的
 #  runner，见 WIRING-W34-01 报告 §W4-B）—— 故此处不重复建 target。
+
+# ── aio FITS BSCALE/BZERO 解析失败负例（输入面静默错误回归） ────────────────
+# 缺陷: aio_fits.cpp parse_fits_header 手工解析路径对 BSCALE/BZERO 的 std::stod
+# 用 catch(...) 静默吞异常 => bscale/bzero 停在初值 1.0/0.0 => 读路径缩放守卫
+# ("if (bscale != 1.0 || bzero != 0.0)") 判假而整幅跳过缩放, 像素以错比例进
+# M42 端到端数值, 且 INFO 缩放日志位于守卫内同样被跳过 => 零日志。
+# 修复: 解析失败走本模块既有损坏头失败路径 aio_log(AIO_LOG_ERROR)+return -1
+#       (对齐 :129 头读不完整 / :177 NAXIS 超限), 调用方据此 fclose+return -1。
+# 判据: 负例必须干净拒绝并有 ERROR; 正例（合法缩放/缺省/恒等）逐位不变, 校验不得误伤。
+# 权威: docs/contracts/DATA_ARTIFACTS.md DATA-IMG-RAW-001/CAL-001（读时已施加
+#       BSCALE*样本+BZERO）+ docs/science/CALIBRATION.md（ADU 域冻结）。
+# fixture 进程内现写于系统临时目录并退出前清理（不读 testdata/; 根 .gitignore:66
+#       全局 *.fits => 仓内不跟踪 FITS 夹具）。
+add_executable(aio_fits_bscale_parse_test
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/infrastructure/aio/tests/test_fits_bscale_parse.cpp)
+target_include_directories(aio_fits_bscale_parse_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
+target_compile_definitions(aio_fits_bscale_parse_test PRIVATE AIO_ENABLE_FITS)
+target_link_libraries(aio_fits_bscale_parse_test PRIVATE astrocs_aio astrocs_common)
+add_test(NAME aio_fits_bscale_parse COMMAND aio_fits_bscale_parse_test)

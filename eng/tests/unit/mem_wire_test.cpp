@@ -17,7 +17,7 @@
 //      在「上限=0」下并发 = 8（对照），两者数值结果**逐位一致**。
 //   W4 1/N worker 逐位一致：budget ∈ {1,2,4,8} × 同一内存上限 ⇒ 每节点输出逐位相同。
 //
-// 依据：docs/ASTROCS_DESIGN.md §8.3/§9/§3.5；docs/contracts/SCHEDULER_CONTRACT.md §3；
+// 依据：docs/ASTROCS_DESIGN.md §8.3/§9/§4.5；docs/contracts/SCHEDULER_CONTRACT.md §3；
 //       内存上限 = 空闲内存 × 可配置比例（默认 95，比例可配置）；**不设固定上限**。
 #include "astrocs/core/memory_budget.h"
 #include "astrocs/core/module.h"
@@ -331,7 +331,7 @@ static void test_w3_runtime_path() {
     CHECK(lp.ok());
     RunContext ctx;
     const auto r = rt->run(ctx);
-    CHECK(r.ok());                                  // 节流不改退出语义（§3.5 内存不设门）
+    CHECK(r.ok());                                  // 节流不改退出语义（§4.5 内存不设门）
     const auto insp = rt->inspect();
     CHECK(insp.ok());
     std::string why;

@@ -2,7 +2,7 @@
 """CLI golden 测试（按 CLI-001 §6.2 新树同步）: help 树/版本 JSON/parser 拒绝面/模板/
 配置错误映射/stdout 纪律/crash boundary 70/Unicode/退出码单源 + incomplete manifest。
 
-权威: docs/ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§3.5（预检阻断）、
+权威: docs/ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§4.5（预检阻断）、
 docs/api/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（旧命令面已被 CLI-001 删除，依据 §6.2 + CLI-001 rc 矩阵；原用例前提=命令存在）:
@@ -270,7 +270,7 @@ class TestGolden(unittest.TestCase):
         with open(uni, encoding="utf-8") as fh:
             self.assertEqual(json.load(fh)["schema_version"], "1")
         # 非 ASCII 配置路径可被解析（预检读到块级 input_lights, 而不是 config not found）:
-        # 模板占位路径不在盘上 ⇒ 路径门 rc=3（§3.5 文件找不到），且诊断必须落在 blocks[0]
+        # 模板占位路径不在盘上 ⇒ 路径门 rc=3（§4.5 文件找不到），且诊断必须落在 blocks[0]
         r = run("normalize", "--json", uni, "-y")
         self.assertEqual(r.returncode, 3, r.stderr[-300:])
         self.assertNotIn("config not found", r.stderr)
@@ -311,7 +311,7 @@ class TestGolden(unittest.TestCase):
 class TestManifestIncomplete(unittest.TestCase):
     """预检 fail-closed 数据面: 输入路径不存在 → rc=3, 写 manifest 之前阻断。
 
-    2026-09-18 CLI 预检修复（docs/ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122 fail-closed）：
+    2026-09-18 CLI 预检修复（docs/ASTROCS_DESIGN §4.5 + ENGINEERING_SPEC:122 fail-closed）：
     路径不存在/不可读在 precheck_config 阶段即判 error，`-y` 不可越，进程在
     session_dispatch（任何产品/manifest 落盘）之前返回 rc=3。
     旧断言（落 1 个 incomplete manifest + final 事件 exit_code=3）固化的是修复前的
@@ -333,7 +333,7 @@ class TestManifestIncomplete(unittest.TestCase):
     def test_01_missing_input_blocked_before_manifest(self):
         cfg = os.path.join(self.tmp, "cfg.json")
         # 标定帧与 light 均给出但盘上不存在 ⇒ precheck_config 的 input_path_errors
-        # 判 error（§3.5 fail-closed），-y 不可越，rc=3 且写盘前返回。
+        # 判 error（§4.5 fail-closed），-y 不可越，rc=3 且写盘前返回。
         na = os.path.join(self.tmp, "nope.fits")
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1",

@@ -82,7 +82,8 @@ OPS = {
 EDGES = {
     "coverage": {"frame_hips": "artifact:p1_hips"},             # seed 输入(无 producer)
     "sample": {"p2_coverage": "artifact:coverage"},
-    "upm_fit": {"p2_samples": "artifact:samples"},
+    "upm_fit": {"p2_samples": "artifact:samples",
+                "frame_hips": "artifact:p1_hips"},
     "upm_apply": {"p2_upm_model": "artifact:upm_model",
                   "p2_sky_plane": "artifact:sky_plane",
                   "p2_coverage": "artifact:coverage",
@@ -96,6 +97,7 @@ EDGES = {
               "p2_coverage": "artifact:coverage",
               "p2_samples": "artifact:samples",
               "p2_upm_model": "artifact:upm_model",
+              "p2_sky_plane": "artifact:sky_plane",
               "p2_rejection": "artifact:rejection"},
 }
 OUT_ART = {

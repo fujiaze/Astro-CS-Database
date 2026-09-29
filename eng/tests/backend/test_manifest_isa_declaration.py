@@ -25,6 +25,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 GEN = os.path.join(REPO, "eng", "tools", "gen_provider_manifests.py")
+# 第二族（CPU provider 变体族 astrocs_cpuprov_*）的声明面端到端在独立文件
+# eng/tests/backend/test_cpuprov_manifest.py（真 cpuprov DSO + 真 provider 清单生成器）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from variant_build import build_variant  # noqa: E402
 
@@ -96,6 +98,11 @@ class TestManifestIsaDeclaration(unittest.TestCase):
         g, m = self.manifests["gnu"], self.manifests["msvc"]
         for doc in (g, m):
             doc["build"]["compiler"] = "X"
+            # 平台旗标按平台不同是**设计**（GNU: -m*；MSVC: /arch:），不是漂移 ⇒ 归一。
+            # build.flags 是生成器从旗标站点表推导出的**活字段**（见 gen_provider_manifests.py
+            # 的 flags_by_backend），R-60 起不再手抄；它的正确性由 test_cpuprov_manifest.py
+            # 与 M6 类交叉判据逐条核。
+            doc["build"]["flags"] = "X"
             for b in doc["backends"]:
                 if b["backend_id"] == "avx512":
                     for k in ("required_features_bits", "required_features_names",

@@ -6,7 +6,7 @@
 //   2) 工作量下限口径: 显式 work_core_seconds 与 avg_equivalent_cores×window 回算,
 //      低于下限/恰好下限/未提供 active 窗三态;
 //   3) 记录/裁决分离(**唯一**处置 = RecordOnly): 默认与 strict 参数下、Ok 与非 Ok 判定
-//      一律 RecordOnly（§9.74 裁决 10 + docs/ASTROCS_DESIGN §3.5/§6.3「内存/CPU/线程不设门；
+//      一律 RecordOnly（§9.74 裁决 10 + docs/ASTROCS_DESIGN §4.5/§6.3「内存/CPU/线程不设门；
 //      exit 10 = 磁盘写满/写盘失败」）—— 正例(违规→RecordOnly)与阴性对照(Ok→RecordOnly)
 //      同时锁死, 排除「恒真/恒假」判定。Enforced 枚举值保留仅为兼容引用, 无生产路径。
 //   4) 判定本体未被削弱: 旧的 LowAvgCores 失败案例仍失败, 旧的 Ok 案例仍通过,
