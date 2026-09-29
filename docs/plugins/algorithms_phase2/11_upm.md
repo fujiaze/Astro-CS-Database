@@ -74,7 +74,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 ```
 
 - ⚠ **权重口径 = 逆方差，禁止读作裸 SNR²**：`w_ki = 1/σ²_ki` 是 GLS 最优权重
-  （Aitken 1935, Proc. R. Soc. Edinburgh A **55**, 42, DOI 10.1017/S0370164600014346），
+  （Aitken 1935, Proc. R. Soc. Edinburgh A **55**, 42, DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。），
   与正本 `docs/science/PHASE2_UPM.md` §5/§10 的禁令一致；无 F_ref 归一的 `w ∝ SNR²`
   与该逆方差口径互斥（本几何下 SNR² 权重的伪影泄漏仅比 ivar 高 18%、幅度不可迁移到
   其他几何）。

@@ -128,26 +128,26 @@
 > 许可证均以仓库内 LICENSE/COPYING 原文或托管 API 的 SPDX 标识为准；[V] = 逐字/接口核验，[U] = 需网络核验。
 > **GPL/共版许可代码仅作理解与数值行为对照，本仓代码面只含自研实现**（控制包任务边界）。
 
-- Astropy — **BSD-3-Clause** [V]（https://github.com/astropy/astropy）。对照面：WCS/投影（astropy/wcs）、统计、单位。SCI-WCS/SCI-P3/数据口径。
-- photutils — **BSD-3-Clause** [V]（https://github.com/astropy/photutils）。对照面：DAOStarFinder/IRAFStarFinder、MoffatPSF/GaussianPSF、孔径与 PSF 测光、背景估计。SCI-PSF/SCI-PHOT/SCI-P1-STAR。
-- astropy-healpix — **BSD-3-Clause** [V]（https://github.com/astropy/astropy-healpix）。对照面：ang2pix/pix2ang NESTED、层级。SCI-DRZ/SCI-P3。
-- healpy / HEALPix — **GPL-2.0** [V]（https://github.com/healpy/healpy）。对照面：Górski et al. 2005 参考实现的球面几何与 ang2pix。SCI-DRZ/SCI-P3（GPL：只对照不复制）。
+- Astropy — **BSD-3-Clause** [V]（https://github.com/astropy/astropy，**版本 v7.0.1 = commit c1bf7267dbc19c0bc38cace4ec9b4f19108e7561**；文件位置 astropy/wcs/wcs.py(class WCS)/astropy/wcs/utils.py/astropy/wcs/wcsapi/high_level_api.py/astropy/stats/funcs.py/astropy/units/quantity.py。对照面：WCS/投影（astropy/wcs）、统计、单位。SCI-WCS/SCI-P3/数据口径。
+- photutils — **BSD-3-Clause** [V]（https://github.com/astropy/photutils，**版本 3.0.0 = commit a89accd29395defa162eed71df462419859cbe22**；文件位置 photutils/background/core.py(class SExtractorBackground)/photutils/detection/core.py/photutils/psf/photometry.py。对照面：DAOStarFinder/IRAFStarFinder、MoffatPSF/GaussianPSF、孔径与 PSF 测光、背景估计。SCI-PSF/SCI-PHOT/SCI-P1-STAR。
+- astropy-healpix — **BSD-3-Clause** [V]（https://github.com/astropy/astropy-healpix，**版本 v2.0.1 = commit 0e2455577192e10bc7a404ce9b55ca1fd3df928e**；文件位置 astropy_healpix/core.py/astropy_healpix/healpy.py(def ang2pix)/astropy_healpix/__init__.py。对照面：ang2pix/pix2ang NESTED、层级。SCI-DRZ/SCI-P3。
+- healpy / HEALPix — **GPL-2.0** [V]（https://github.com/healpy/healpy，**版本 1.20.0 = commit fc67691f1870063c8b9f56abf008c8f2711e8fb0**；文件位置 lib/healpy/pixelfunc.py(def ang2pix)/lib/healpy/rotator.py。对照面：Górski et al. 2005 参考实现的球面几何与 ang2pix。SCI-DRZ/SCI-P3（GPL：只对照不复制）。
 - HEALPix C++（Healpix_3.83） — **GPL-2.0** [U]（https://sourceforge.net/projects/healpix/）。对照面：src/cxx/healpix_base.cc；本仓 healpix_core.cpp:338-340 自述移植自 Healpix_3.83。
 - CDS Hipsgen / Aladin — **GPL-3.0** [U]（https://github.com/cds-astro/）。对照面：MAPTILES/properties 生成器（tile 内 FITS 序、properties 键值）；HiPS 互操作基准。
-- DrizzlePac（drizzlepac） — **BSD-3-Clause** [V]（https://github.com/spacetelescope/drizzlepac）。对照面：drizzle/astrodrizzle 的 pixfrac、drop、权重与相关噪声。SCI-DRZ。
-- SWarp — **GPL-3.0** [V]（https://github.com/astromatic/swarp）。对照面：重采样核、逐帧背景扣除、coadd 权重与 clipped-mean 排异。SCI-PHASE2_UPM/SCI-INT。
-- SExtractor（sextractor/source-extractor） — **GPL-3.0** [V]（https://github.com/astromatic/sextractor）。对照面：背景网格、检测/去混叠阈值、FLUXERR/MAGERR、FLUX_AUTO。SCI-NOISE/SCI-PHOT/SCI-P1-STAR。
+- DrizzlePac（drizzlepac） — **BSD-3-Clause** [V]（https://github.com/spacetelescope/drizzlepac，**版本 3.11.0 = commit 8431c6b858b06e2fd1261f88d61869aee44ffbed**；文件位置 src/cdrizzlebox.c(update_data()/do_kernel_square())。对照面：drizzle/astrodrizzle 的 pixfrac、drop、权重与相关噪声。SCI-DRZ。
+- SWarp — **GPL-3.0** [V]（https://github.com/astromatic/swarp，**版本 2.41.5 = commit 5c927e8a9312576b8618bf2480be1b9867d2483c**；文件位置 src/resample.c/src/coadd.c/src/back.c。对照面：重采样核、逐帧背景扣除、coadd 权重与 clipped-mean 排异。SCI-PHASE2_UPM/SCI-INT。
+- SExtractor（sextractor/source-extractor） — **GPL-3.0** [V]（https://github.com/astromatic/sextractor，**版本 2.8.6 = commit 827f8a502356669bb684c7a12d470f058e94bf7a**；文件位置 src/back.c(makeback)/src/scan.c/src/extract.c/src/photom.c/src/analyse.c。对照面：背景网格、检测/去混叠阈值、FLUXERR/MAGERR、FLUX_AUTO。SCI-NOISE/SCI-PHOT/SCI-P1-STAR。
 - PSFEx — **GPL-3.0** [V]（https://github.com/astromatic/psfex）。对照面：PSF 采样与空间变异多项式基。SCI-PSF。
-- SCAMP — **GPL-3.0** [V]（https://github.com/astromatic/scamp）。对照面：多帧相对天体/光度联合定标、gauge/连通分量。SCI-PHASE2_UPM/SCI-WCS。
-- ccdproc — **BSD-3-Clause** [V]（https://github.com/astropy/ccdproc）。对照面：subtract_bias/subtract_dark(scale=True)/flat_correct 与母版约定。SCI-CAL。
-- LSST Science Pipelines lsst.ip.isr — **GPL-3.0** [V]（https://github.com/lsst/ip_isr）。对照面：ISR 顺序（bias→dark×K→flat）、饱和掩膜/SAT 面。SCI-CAL/SCI-NOISE（GPL：只对照不复制）。
+- SCAMP — **GPL-3.0** [V]（https://github.com/astromatic/scamp，**版本 v2.14.0 = commit ef915ded7fcf3e5dde6cf3b523ae4dc132ec2c39**；文件位置 src/photsolve.c。对照面：多帧相对天体/光度联合定标、gauge/连通分量。SCI-PHASE2_UPM/SCI-WCS。
+- ccdproc — **BSD-3-Clause** [V]（https://github.com/astropy/ccdproc，**版本 2.5.1 = commit f078a443076ad87ba4bf9250d525f0c9ff68c3cf**；文件位置 ccdproc/core.py(def subtract_dark/def flat_correct)/ccdproc/ccddata.py。对照面：subtract_bias/subtract_dark(scale=True)/flat_correct 与母版约定。SCI-CAL。
+- LSST Science Pipelines lsst.ip.isr — **GPL-3.0** [V]（https://github.com/lsst/ip_isr，**版本 commit 28faec7dd2297d2ff9f108e543b2d55fdb046345（该仓只发 w.YYYY.WW 周版本、无 release tag；对应 tag w.2026.39）**；文件位置 python/lsst/ip/isr/isrFunctions.py(def biasCorrection/def darkCorrection/def flatCorrection)/python/lsst/ip/isr/isrTask.py(class IsrTaskConfig 的 doSaturation)。对照面：ISR 顺序（bias→dark×K→flat）、饱和掩膜/SAT 面。SCI-CAL/SCI-NOISE（GPL：只对照不复制）。
 - Siril — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril，GitLab API license.key=gpl-3.0）。对照面：winsorized/averaged sigma、linear-fit 排异与叠加。SCI-REJ。
 - WCSLIB — **LGPL-3.0** [V*]（官方 https://www.atnf.csiro.au/people/mcalabre/WCS/ ；GitHub 镜像 Punzo/wcslib 的 SPDX = LGPL-3.0）。对照面：Paper I/II 的可执行标准、投影实现。SCI-WCS/SCI-P3。（*镜像核验，官方下载页未逐字取原文。）
-- CFITSIO — **CFITSIO Software License（类 MIT/宽松，NASA/HEASARC）** [U]（https://heasarc.gsfc.nasa.gov/fitsio/）。对照面：FITS HDU/关键字/BSCALE/BZERO/checksum。SCI-CAL/SCI-P3。
-- reproject（astropy） — **BSD-3-Clause** [V]（https://github.com/astropy/reproject）。对照面：WCS→WCS 重采样与方差传播。SCI-DRZ/SCI-P3 重采样。
+- CFITSIO — **CFITSIO Software License（类 MIT/宽松，NASA/HEASARC）** [U]（https://heasarc.gsfc.nasa.gov/fitsio/，**版本 4.6.4**（一手依据 = 仓内 eng/packaging/dependency-lock.json 的 production_dependencies 段登记版本号 + fitsio.h CFITSIO_VERSION））。对照面：FITS HDU/关键字/BSCALE/BZERO/checksum。SCI-CAL/SCI-P3。
+- reproject（astropy） — **BSD-3-Clause** [V]（https://github.com/astropy/reproject，**版本 v0.21.0 = commit 642008f8454b7dc93a494b07650ea571b086d18a**；文件位置 reproject/interpolation/core.py/reproject/adaptive/core.py/reproject/common.py。对照面：WCS→WCS 重采样与方差传播。SCI-DRZ/SCI-P3 重采样。
 - SEP（Source Extraction and Photometry） — **LGPL-3.0** [V]（https://github.com/kbarbary/sep；证据 `src/sep.h:9-10` 与 `licenses/LGPL_LICENSE.txt`，SCI-001-S1 复核）。对照面：SExtractor 算法的 C/Python 重实现（背景/检测/去混叠/孔径方差）。SCI-PHOT/SCI-P1-STAR。
 - DAOPHOT / IRAF — **IRAF/NOAO 许可（非 OSI 开源）** [U]（https://iraf-community.github.io/）。对照面：拥挤场 PSF 测光（Stetson 1987）。仅文献/行为对照，**不引入代码**。
-- PixInsight Class Library（PCL） — **PixInsight 自定义 source-available 许可（非 OSI）** [U]（https://gitlab.com/pixinsight/PCL）。对照面：XISF NormalizeSamples/MaxSampleValue（SCI-CAL §14 第 7 条）与 ImageWeighting 方法学（SCI-CW/PSFSW）。**只作声明制换算因子的取证来源，不复制**。
+- PixInsight Class Library（PCL） — **PixInsight 自定义 source-available 许可（非 OSI）** [U]（https://gitlab.com/pixinsight/PCL，**版本 commit 5a3902196a7d7a701385a7113cbdce2976ae1a85（git ls-remote --tags 实测 tag 数 = 0，故钉 commit；该 commit 的 src/pcl/XISFReader.cpp 头横幅逐字自述 PCL 2.11.0）**；文件位置 src/pcl/XISFReader.cpp(NormalizeSamples)/LICENSE(逐字 PixInsight Class Library License + Version 2.0.1, 29 December 2025)/include/pcl/Version.h。对照面：XISF NormalizeSamples/MaxSampleValue（SCI-CAL §14 第 7 条）与 ImageWeighting 方法学（SCI-CW/PSFSW）。**只作声明制换算因子的取证来源，不复制**。
 - 数值/统计基础：NumPy（BSD-3-Clause）、SciPy（BSD-3-Clause）——独立 Python Oracle（FP64 复算）；NIST/SEMATECH e-Handbook——ESD/RCR Oracle。
 
 > 说明：许可证与仓库路径已核验；引用具体代码行号时应回到对应版本的不可变提交或发布 tag，并在报告中登记版本。
@@ -157,7 +157,7 @@
 ### N.1 方法学一手来源（PixInsight，公开文档）
 
 - **PixInsight Reference: New Image Weighting Algorithms**（Juan Conejero 等，Pleiades Astrophoto）。官网 <https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html>；**官方源文件**（含 LaTeX 原文）GitLab `Reference-Documentation/docs/ImageWeighting/`：`01-Introduction.pidoc`、`02-PSF_Flux_Weighting_Algorithms.pidoc`、`03-Implementation.pidoc`、`04-Examples.pidoc`、`05-Linear_Regression_Analysis.pidoc`（master）。用途：PSFSW 式[16]、PSFSNR 式[18]、标准 SNR 式[20]、PSF flux 式[7]、mean PSF flux 式[8]、`M*` 式[13]、`N*` 式[14][15]、FITS 关键字表（PSFFLX/PSFMFL/PSFMST/PSFNST/NOISE 等）。**ACSD 不照抄其标定常数**（见 §N.3）。
-- **PCL 2.10.4** `pcl::PSFSignalEstimator`（Doxygen `PSFSignalEstimator.h`，2026 年发布）。用途：核对文章版与实现版常数差异（c1=5.326e-6、c3=1.316e-7 vs 文章 c1=8.0832e-6、c3=1.350e-7）；`NStar_MAD=2.48308·MAD`、`NStar_Sn=2.03636·Sn`。**只作方法学取证，不复制**（PCL 为 PixInsight 自定义 source-available 许可，非 OSI）。
+- **PCL 2.11.0** `pcl::PSFSignalEstimator`（**版本漂移已更正**：本文原写 2.10.4；上游仓 `pixinsight/PCL` 的 commit `5a3902196a7d7a701385a7113cbdce2976ae1a85` 的 `src/pcl/XISFReader.cpp` 头横幅逐字自述 `PCL 2.11.0`， 且 `include/pcl/Version.h` 逐字符核；引用任何 PCL 常数须带 commit）（Doxygen `PSFSignalEstimator.h`，2026 年发布）。用途：核对文章版与实现版常数差异（c1=5.326e-6、c3=1.316e-7 vs 文章 c1=8.0832e-6、c3=1.350e-7）；`NStar_MAD=2.48308·MAD`、`NStar_Sn=2.03636·Sn`。**只作方法学取证，不复制**（PCL 为 PixInsight 自定义 source-available 许可，非 OSI）。
 
 ### N.2 学术文献
 
@@ -174,11 +174,11 @@
 ### N.3 参考代码库（含许可证；GPL 只对照不复制）
 
 - **Siril** — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril）。对照面：帧级权重 `compute_noise_weights` `w=1/(pscale²·bgnoise²)`（`src/stacking/median_and_mean.c:1080-1104`（式 `:1092-1094`））、wFWHM/星数权重、IKSS 稳健尺度、多项式/RBF 背景。与 ACSD 差异：Siril 把权重直接当叠加系数、按帧均值归一；ACSD 的 `W_psfsw` 为组内中值归一无量纲量。
-- **SWarp** — **GPL-3.0** [V]（https://github.com/astromatic/swarp）。对照面：`COADD_WEIGHTED` 逆方差组合与输出方差 `1/Σ(1/var_k)`（`src/coadd.c:1279-1311`）、`RESCALE_WEIGHTS` 实测噪声重标定 `sigfac`（`src/back.c:361-389`）。
+- **SWarp** — **GPL-3.0** [V]（https://github.com/astromatic/swarp，**版本 2.41.5 = commit 5c927e8a9312576b8618bf2480be1b9867d2483c**）。对照面：`COADD_WEIGHTED` 逆方差组合与输出方差 `1/Σ(1/var_k)`（`src/coadd.c:1279-1311`）、`RESCALE_WEIGHTS` 实测噪声重标定 `sigfac`（`src/back.c:361-389`）。
 - **DeepSkyStacker（DSS）** — **BSD-3-Clause** [V]（https://github.com/deepskystacker/DSS）。**更正**：`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §4 表把它标为 GPL v3 且 URL `github.com/DeepSkyStacker/DeepSkyStacker`（404）——实际为 BSD-3-Clause（LICENSE 全文 + `README.md:13`），仓库 `deepskystacker/DSS`。对照面：帧评分 `ComputeScore`（圆度加权，`RegisterEngine.cpp:86-118`）、自适应加权平均 `w=1/(1+(x−µ)²/σ²)`（`avx_output.cpp:463-575`）。其 quality 与 SNR/FWHM 乘积无关。
-- **SExtractor** — **GPL-3.0** [V]（https://github.com/astromatic/sextractor）。对照面：背景网格/众数估计（`src/back.c:449-743`）、`Var(F)=Σ(σ_bkg²+F_pix/gain)`（`src/analyse.c:200-203,304-310`）。
+- **SExtractor** — **GPL-3.0** [V]（https://github.com/astromatic/sextractor，**版本 2.8.6 = commit 827f8a502356669bb684c7a12d470f058e94bf7a**）。对照面：背景网格/众数估计（`src/back.c:449-743`）、`Var(F)=Σ(σ_bkg²+F_pix/gain)`（`src/analyse.c:200-203,304-310`）。
 - **SEP** — **LGPL-3.0** [V]（https://github.com/kbarbary/sep）。对照面：孔径方差 `σ²_sum=Σvar_pix·w²+Σ/gain`（`src/aperture.c:516-570`）、背景网格（`src/background.c:277-790`）。
-- **photutils / astropy** — **BSD-3-Clause** [V]（https://github.com/astropy/photutils）。对照面：`Background2D` + `SExtractorBackground`（`photutils/background/core.py:464-531`）、孔径误差 `σ²=Σw_frac²·error²`（`_batch_photometry.pyx:273-277`）、总误差 `σ_tot²=σ_bkg²+I/g_eff`（`photutils/utils/errors.py:91-92`）。本分片已用 photutils 3.0.0 做数值对拍（见报告 §3.6）。
+- **photutils / astropy** — **BSD-3-Clause** [V]（https://github.com/astropy/photutils，**版本 3.0.0 = commit a89accd29395defa162eed71df462419859cbe22**）。对照面：`Background2D` + `SExtractorBackground`（`photutils/background/core.py:464-531`）、孔径误差 `σ²=Σw_frac²·error²`（`_batch_photometry.pyx:273-277`）、总误差 `σ_tot²=σ_bkg²+I/g_eff`（`photutils/utils/errors.py:91-92`）。本分片已用 photutils 3.0.0 做数值对拍（见报告 §3.6）。
 - **properimage** — **BSD-3-Clause** [V]（https://github.com/quatrope/properimage，PyPI 0.7.2）。对照面：Zackay & Ofek proper coaddition 的 Python 参考实现（`properimage/operations.py:457-577` 的 `R=IFFT(Ŝ/√P̂)` 与有效 PSF `P_r`），与 ACSD `C_out=R C_in Rᵀ` 最接近的开源实现。
-- **SCAMP** — **GPL-3.0** [V]（https://github.com/astromatic/scamp）。对照面：相对光度零点与相对天体测量（`src/photsolve.c:117-409,437-570,782-785`）。**边界**：在核心源文件中未发现像素背景估计/归一代码（SCI-001-S1 复核，未做全仓穷举），故 UPM 的背景归一不应引 SCAMP 为依据。
+- **SCAMP** — **GPL-3.0** [V]（https://github.com/astromatic/scamp，**版本 v2.14.0 = commit ef915ded7fcf3e5dde6cf3b523ae4dc132ec2c39**）。对照面：相对光度零点与相对天体测量（`src/photsolve.c:117-409,437-570,782-785`）。**边界**：在核心源文件中未发现像素背景估计/归一代码（SCI-001-S1 复核，未做全仓穷举），故 UPM 的背景归一不应引 SCAMP 为依据。
 
