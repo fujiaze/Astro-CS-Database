@@ -173,9 +173,9 @@
 - ALG: docs/science/algorithms/PHASE3_RSMP_IMPL.md；承接:
   docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 G3/G4 施工规格，
   零改动）
-- DATA: docs/contracts/DATA_SEMANTICS.md §29
-- API: docs/contracts/PUBLIC_API.md（API-P3-RSMP-001 节）
-- 模块总页: docs/modules/phase3_rsmp.md；合同三件套:
+- DATA: docs/science/DATA_SEMANTICS.md §29
+- API: docs/engineering/PUBLIC_API.md（API-P3-RSMP-001 节）
+- 模块总页: docs/detail/phase3_rsmp.md；合同三件套:
   lib/algorithms/resample/（落位规则见 docs/modules/README.md）
 
 ## NaN 与写端口

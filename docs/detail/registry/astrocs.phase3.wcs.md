@@ -152,9 +152,9 @@
 - ALG: docs/science/algorithms/PHASE3_PROJ_IMPL.md；承接:
   docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-002 G1/G2 施工规格，
   零改动）
-- DATA: docs/contracts/DATA_SEMANTICS.md §28
-- API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001 节）
-- 模块总页: docs/modules/phase3_proj.md；合同三件套:
+- DATA: docs/science/DATA_SEMANTICS.md §28
+- API: docs/engineering/PUBLIC_API.md（API-P3-PROJ-001 节）
+- 模块总页: docs/detail/phase3_proj.md；合同三件套:
   lib/algorithms/projection/（落位规则见 docs/modules/README.md）
 
 ## NaN 与输出语义

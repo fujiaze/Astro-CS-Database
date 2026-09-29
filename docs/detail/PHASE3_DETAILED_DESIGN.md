@@ -13,8 +13,8 @@
 - `visualization`：允许显示型降级，类别字段标为显示型，与测量产品分列。
 
 - 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ASTROCS_DESIGN.md` §6.3 输入语义守卫 / §6.4 硬约束；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
-- 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（`docs/contracts/DATA_SEMANTICS.md` §31.1a/§31.2）。
-- 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/design/PRODUCT_STORAGE_FORM.md`）。
+- 输入的 signal 是**线性**面亮度（Phase1 面亮度产品为 `ADU/sr`）：本阶段只做坐标/采样/格式变换，采样核是输入的**凸组合**，因此**不改量纲类别、不做星等换算**；输出 `BUNIT` 透传输入语义，variance/ivar 按二次律同幂传播（`docs/science/DATA_SEMANTICS.md` §31.1a/§31.2）。
+- 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/detail/PRODUCT_STORAGE_FORM.md`）。
 - **Phase3 产物是交付物**：输出为**裸 FITS 文件，不压缩、不套壳**（用户与外部工具直接打开）；Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。输入合同**不设** `storage_form` 键（形态由落盘名判定、对调用方透明），出现即 REJECT。
 
 缺少所选模式所需的不确定度/PSF 信息时拒绝或明确输出 unavailable。
@@ -54,10 +54,10 @@ C_y = R C_x Rᵀ
 ## 5. FITS 产品
 
 - PRIMARY：所选科学 signal/flux/statistic；
-- 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；**其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/contracts/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同**（本节不预设 HDU 清单；现行落盘面 = PRIMARY + COVERAGE + VARIANCE/IVAR + 标准 WCS/BUNIT/DATASUM/CHECKSUM + provenance，口径与 `docs/plugins/algorithms_phase3/16_fits_output.md` 同源）；
+- 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；**其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/science/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同**（本节不预设 HDU 清单；现行落盘面 = PRIMARY + COVERAGE + VARIANCE/IVAR + 标准 WCS/BUNIT/DATASUM/CHECKSUM + provenance，口径与 `docs/detail/algorithms_phase3/16_fits_output.md` 同源）；
 - 标准 WCS、BUNIT（面亮度语义，写端口单位 `SURFACE_BRIGHTNESS`）、DATASUM/CHECKSUM；
 - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似和生成时间。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/contracts/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
 
 所有 HDU shape/WCS 对齐。写临时文件、flush/close/fsync、标准 checksum、原子 rename、重开独立验证；失败/取消无可见半成品。
 
@@ -104,7 +104,7 @@ C_y = R C_x Rᵀ
 - `sky` 的转换 = 边界**加密采样**（每边 257 点，确定性）→ 逐点 `world2pix` → **外扩**整数
   包围盒（`floor(min)` / `floor(max)+1`）⇒ 保证不切掉任何**中心落在矩形内**的像素。
 - 判别键名取 `crop_form` 而非 `mode`：`cpu_profile` 的 `legacy_v1`/`kernel_v1` 已占用
-  `mode`，同名异义与 `docs/design/UNIFIED_MODEL.md` §3 冲突（与 export 用 `output_mode`
+  `mode`，同名异义与 `docs/detail/UNIFIED_MODEL.md` §3 冲突（与 export 用 `output_mode`
   避开 `mode` 同一处置）。
 
 ### 8.3 fail-closed 判据（全部具名报错，禁静默夹取）
@@ -127,7 +127,7 @@ C_y = R C_x Rᵀ
   `writer` 只按窗口写出（流式读起点按窗口原点平移）；`verify` 独立重开对**裁剪后画幅**
   逐像素对拍。`resample` **不变**（仍按未裁剪画幅产出平面）⇒ 窗口内像素与不裁剪逐位相同。
 - **接口稳定性**：键形固定、可机器生成，GUI 的 HiPS 浏览器框选导出将来直接填该键
-  （登记见 `docs/api/CLI_PROTOCOL_V1.md` §7.1；字段合同见
+  （登记见 `docs/engineering/CLI_PROTOCOL_V1.md` §7.1；字段合同见
   `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`）。
 
 ## 9. 导出产品的视觉验收判据（V1a / V1b）

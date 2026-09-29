@@ -17,7 +17,7 @@
 - 合同：ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md）/
   DATA-P2-SESSION（DATA_SEMANTICS §24）/ API-P2-SESSION-001
   （PUBLIC_API「Phase2 装配会话 C API」节）/ 编排上游 API-P2-001
-  （docs/api/PHASE2_API_V1.md，FROZEN，引用不改动）。
+  （docs/engineering/PHASE2_API_V1.md，FROZEN，引用不改动）。
 - 节点：canonical 4 段 coverage→sample→upm_build→persist
   （p2_session.cpp:119-148/:150-178/:180-219/:221-240 实测；科学实现
   委托 p2_coverage_build/:125/:138、p2_sample_controls/:158/:167、

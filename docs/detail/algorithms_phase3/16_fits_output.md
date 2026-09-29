@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §6.2（export 流程：投影到平面、WCS 直接计算生成）、§6.3（输出模式显式声明）、§10（I/O 与原子产品：输出不带权重、原子提交）
-- `docs/design/PHASE3_DETAILED_DESIGN.md` §5-§6
+- `docs/detail/PHASE3_DETAILED_DESIGN.md` §5-§6
 - FITS Standard v4.0（IAU FITS Working Group, 2016；Pence et al. 2010, A&A 524, A42）
 
 ## 3. 输入/输出数据合同
@@ -20,14 +20,14 @@
 - **输出**：
   - **输出不需要带权重**——上游已完成叠加，这里只投影到平面并直接计算生成对应 WCS；
   - PRIMARY：所选科学 signal/flux/statistic；
-  - 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/contracts/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同；
+  - 扩展 HDU：COVERAGE、VARIANCE/IVAR（语义择一且一致）；其余候选面（VALIDITY、SUPPORT、REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，落盘前须先在 `docs/science/DATA_SEMANTICS.md` §27 立输出行与 HDU 合同；
   - 标准 WCS（**直接计算生成**）、BUNIT（写端口单位 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area` = 面亮度，canonical 串 **`ADU/sr`**）、DATASUM/CHECKSUM；
-    **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的 canonical 串（canonical 值 `ADU/sr`）；缺声明时按 `docs/contracts/DATA_SEMANTICS.md` §31.2(b) 处理——`BUNIT = "ADU"` 要求 provenance 声明 `pixel_semantics = "surface_brightness"`；`VARIANCE`/`IVAR` 扩展 HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一权威 = `docs/contracts/DATA_SEMANTICS.md` §31.1a（单位定义）/ §31.2（BUNIT 语义）；
+    **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的 canonical 串（canonical 值 `ADU/sr`）；缺声明时按 `docs/science/DATA_SEMANTICS.md` §31.2(b) 处理——`BUNIT = "ADU"` 要求 provenance 声明 `pixel_semantics = "surface_brightness"`；`VARIANCE`/`IVAR` 扩展 HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一权威 = `docs/science/DATA_SEMANTICS.md` §31.1a（单位定义）/ §31.2（BUNIT 语义）；
   - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似、生成时间。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/contracts/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
 - 节点产物：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`（独立复核面）；
 - 所有 HDU shape/WCS 对齐。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §27（DATA-P3-FITS：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §27（DATA-P3-FITS：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 

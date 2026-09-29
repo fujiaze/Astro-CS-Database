@@ -65,7 +65,7 @@ eng/tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141）。
 ## 链接
 
 - 合同三件套：`lib/algorithms/integration/`（README/module.yaml/memory.md）
-- registry 页：docs/modules/registry/astrocs.phase2.integrate.md
+- registry 页：docs/detail/registry/astrocs.phase2.integrate.md
 - SCI：docs/science/INTEGRATION.md（FROZEN，零改动）
 - ALG：docs/science/algorithms/PHASE2_INTEGRATION.md；DATA：§21；
   API：PUBLIC_API API-P2-INT-001

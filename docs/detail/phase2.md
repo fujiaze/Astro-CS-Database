@@ -87,7 +87,7 @@ lib/algorithms/coverage/{src,lib/include/astro/phase2,tools,tests}/。
 
 - coverage 环节合同（ALG-COV-001 / DATA-COV-001 / API-COV-001、端口与缺陷登记）唯一正本 =
   `docs/science/algorithms/PHASE2_COVERAGE.md`；模块合同 = `lib/algorithms/coverage/`
-  （README + module.yaml）；registry 登记页 = docs/modules/registry/astrocs.phase2.coverage.md。
+  （README + module.yaml）；registry 登记页 = docs/detail/registry/astrocs.phase2.coverage.md。
   本页只留指针。
 - 本模块归属边界：处理链阶段序为 coverage → sampler → …，非本模块归属；
   coverage/support/validity 三概念分离，coverage 禁作隐式科学权重

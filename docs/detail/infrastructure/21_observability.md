@@ -10,15 +10,15 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§7.3（错误传播与运行日志）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
-- `docs/design/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`（日志行/落点/降级/退出码映射合同）
+- `docs/detail/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/engineering/LOG_AND_ERROR_CONTRACT.md`（日志行/落点/降级/退出码映射合同）
 - `eng/contracts/schemas/jsonl_event_v1.schema.json`（运行事件流唯一 schema）
 - `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
 
 ## 3. 输入/输出数据合同
 
 - **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、运行图三件（`graph/static_graph.json`、`graph/observed_trace.json`、`graph/graph_sidecar.json`）、`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`；
-- **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `astrocs.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §4）。
-- 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`、`eng/contracts/schemas/run_manifest.schema.json`、`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件单行；合同说明见 `docs/contracts/SCHEDULER_CONTRACT.md`）、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
+- **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `astrocs.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §4）。
+- 参考：`eng/contracts/schemas/jsonl_event_v1.schema.json`、`eng/contracts/schemas/run_manifest.schema.json`、`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件单行；合同说明见 `docs/engineering/SCHEDULER_CONTRACT.md`）、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -46,12 +46,12 @@
 - 日志目录解析失败 → exit 2（ARGS）；目录创建失败 → exit 7（IO）；收尾 fsync 失败 → exit 7；manifest 登记失败 → exit 7（IO）；哈希失败 → exit 8（INTEGRITY）；
 - manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
   **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
-  （INTEGRITY）。唯一源 = `docs/api/MANIFEST_VERIFY_V1.md` §3「校验序→错误码」
+  （INTEGRITY）。唯一源 = `docs/engineering/MANIFEST_VERIFY_V1.md` §3「校验序→错误码」
   （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
   sha256/size 不匹配=8、全过=0；实现 `lib/infrastructure/cli/commands.cpp` :2396-2476）+
-  域→码表 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5（IO→7 / INTEGRITY→8）。
-- 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6）；
-- 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §8）。
+  域→码表 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5（IO→7 / INTEGRITY→8）。
+- 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/engineering/LOG_AND_ERROR_CONTRACT.md` §6）；
+- 日志/事件/诊断一律走脱敏处理，凭据、密钥与绝对用户路径按规则替换（脱敏规则唯一源 = `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §8）。
 
 ## 8. 重计算负载资源门（G-RES-01）
 
@@ -106,7 +106,7 @@
 
 - **程序内恒 record_only**（`ASTROCS_DESIGN.md` §4.5「资源门只管磁盘…内存、CPU、线程不设门」；数值与判据唯一源 = `eng/contracts/resource_gate_v1.json#enforcement`）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变门结论**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
 - **唯一判定点 = CI 重计算检查 + 发布验收**（判定参数与阈值唯一源 = `eng/contracts/resource_gate_v1.json`），以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
-- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于 CI 判定点**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` §7 与 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5）。
+- **exit 10（RESOURCE）在资源门判定域内的充分条件**：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于 CI 判定点**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。本节只界定资源门判定域内的 exit 10；**磁盘写满 / 写盘失败 ⇒ exit 10** 是独立触发路径（`19_runtime.md` §7 与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5）。
 
 **事件面登记（`resource` / `resource_gate`）**
 

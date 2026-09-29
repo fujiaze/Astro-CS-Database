@@ -27,7 +27,7 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 回归保护 = `--self-test` 的枚举正例与「续锚被贪心正则吞掉」负例（详见 §7.1）。
 
 **`#N` 是行号锚，`§N` 是章节引用——两者各自独立、取值互不代用**（DOC-DRIFT-FIX-01 消歧）：
-C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须写 `docs/contracts/DATA_SEMANTICS.md §4a`，
+C 头文件/脚本里的 `#158` 指第 158 行；指向 Markdown 章节时必须写 `docs/science/DATA_SEMANTICS.md §4a`，
 章节引用一律写全路径；`…#4a` 形态会被扫描器把章节号当行号判界内/判空行（GLOSSARY.md 曾有 12 处此类碰撞）。
 
 现行规模（C7 逐字复测）：**99 文档 / 2125 锚** = 2096 目标锚 + 4 登记豁免 + 25 未解析登记。

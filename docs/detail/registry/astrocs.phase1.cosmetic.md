@@ -33,7 +33,7 @@ DATA-P1-COS 为准）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级: API-COS-001（docs/contracts/PUBLIC_API.md，ac_correct_frame/
+模块级: API-COS-001（docs/engineering/PUBLIC_API.md，ac_correct_frame/
 ac_correct_frame_f64/ac_set_num_threads，头
 lib/algorithms/calibration/include/astro_calibration.h）；编排级: API-P1-002
 （PHASE1_API_V1 §2，生命周期 create→validate→run→inspect→destroy，

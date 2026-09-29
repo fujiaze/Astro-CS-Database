@@ -10,8 +10,8 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §5.2（固定科学流程：控制采样）、§5.4（天光平面与统一相对模型）
-- `docs/design/PHASE2_DETAILED_DESIGN.md` §4（UPM 控制点要求）
-- `docs/plugins/algorithms_phase1/07_noise_snr.md`（帧级/帧内 SNR）
+- `docs/detail/PHASE2_DETAILED_DESIGN.md` §4（UPM 控制点要求）
+- `docs/detail/algorithms_phase1/07_noise_snr.md`（帧级/帧内 SNR）
 
 ## 3. 输入/输出数据合同
 
@@ -21,7 +21,7 @@
   - `phot_control_points`：光度控制点集（坐标、值、噪声、mask）；
   - `sky_samples`：**天光背景采样点集**（每帧一批；坐标（帧像素 + WCS 天球）、背景估计值、variance、该点 SNR、参与标记）；
   - 覆盖与统计（每帧点数、空间分布、SNR 分布）。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §23（DATA-P2-SMP：控制点字段与 control_variance 合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §23（DATA-P2-SMP：控制点字段与 control_variance 合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -44,9 +44,9 @@ flowchart LR
 - **稀疏而非稠密**：按空间分层网格在每帧掩膜外取一批采样点（数量由天光面自由度决定，远少于像素数）；不生成逐像素背景栅格；
 - 每点在格内做局部稳健背景估计（如 σ-clipping/中位数小窗），记录值与 variance；
 - 每点携带该位置的 SNR：有稀疏绝对 SNR 层时由控制点重建得到 `SNR(x,y)`，无稀疏层时用帧级标量；
-- **采样点权重 = 逆方差**：`w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)`（= `1/control_variance`，冻结式 `control_variance = k_corr·(π/2)·σ_bg²/N_retained` 见 `docs/modules/phase2_samp.md` §6 / `docs/contracts/DATA_SEMANTICS.md` §23）——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高。
-- **k_corr 是两因子公式＋几何查表，不是普适常数**：`k_corr = k_gauss(N_retained) × k_geo`——`k_gauss`（有限 N 估计器偏置，**主导因子**；N=5→1.637、N≥121→≈1.00，全表由 `docs/contracts/DATA_SEMANTICS.md` §23 control_k_corr 行承载）；`k_geo`（几何相关因子）随 (ρ = 输出/源尺度比, pixfrac, 帧数/dither, patch 构成) 变化（紧凑 patch ≈1.27、全 touched ≈1.43–1.45、空间分散 ≈1.00、几何扫描全域 1.00–5.0），查表本体由 P3 实验单元（守恒映射算子）承载。附带说明（**非公式因子**）：非高斯边际形状效应 ≤±5%（N≥9）可忽略。历史冻结值 1.4 与单次 MC 读数 1.3883 的身份 = 标定几何专属实测带 1.27–1.43 内的一次实现；在其声明标定域两端冻结 1.4 低估定权 32%（N=5 紧凑端）/约 2 倍（源 583–600″/px 端）。**引用义务**：① 声明标定元组；② 声明 N_retained 档位（N≤25 时高斯有限样本因子 k_gauss(N) > 1.08 不可忽略；N=5 紧凑 patch 须 ≥1.6、空间分散 1.54）；③ 几何不匹配时 fail-closed 拒绝或现场 MC 重标。公式本体在 N_retained ≥ 65 域内 MC 偏差 <2%；N=5 处渐近式对 Var(median) 为**高估 ≈9.5%**（保守方向；端到端口径 ≤±1.5%）。
-- **为什么不是 `SNR²`**：`w = 1/σ² = SNR²/F_ref² ∝ SNR²` 的 `∝` 以**固定参考通量** `F_ref` 为前提，而天光控制点的**被估量本身在变**（估的是天光面/背景电平，不是固定源通量）⇒ `SNR²` **不是**有效逆方差代理；控制点权重一律取 `control_ivar`，SNR 只作 veto/质量门（推导与依据见 `docs/science/CONTROL_WEIGHT_SNR.md` 与 `docs/modules/phase2_samp.md` §6）。
+- **采样点权重 = 逆方差**：`w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)`（= `1/control_variance`，冻结式 `control_variance = k_corr·(π/2)·σ_bg²/N_retained` 见 `docs/detail/phase2_samp.md` §6 / `docs/science/DATA_SEMANTICS.md` §23）——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高。
+- **k_corr 是两因子公式＋几何查表，不是普适常数**：`k_corr = k_gauss(N_retained) × k_geo`——`k_gauss`（有限 N 估计器偏置，**主导因子**；N=5→1.637、N≥121→≈1.00，全表由 `docs/science/DATA_SEMANTICS.md` §23 control_k_corr 行承载）；`k_geo`（几何相关因子）随 (ρ = 输出/源尺度比, pixfrac, 帧数/dither, patch 构成) 变化（紧凑 patch ≈1.27、全 touched ≈1.43–1.45、空间分散 ≈1.00、几何扫描全域 1.00–5.0），查表本体由 P3 实验单元（守恒映射算子）承载。附带说明（**非公式因子**）：非高斯边际形状效应 ≤±5%（N≥9）可忽略。历史冻结值 1.4 与单次 MC 读数 1.3883 的身份 = 标定几何专属实测带 1.27–1.43 内的一次实现；在其声明标定域两端冻结 1.4 低估定权 32%（N=5 紧凑端）/约 2 倍（源 583–600″/px 端）。**引用义务**：① 声明标定元组；② 声明 N_retained 档位（N≤25 时高斯有限样本因子 k_gauss(N) > 1.08 不可忽略；N=5 紧凑 patch 须 ≥1.6、空间分散 1.54）；③ 几何不匹配时 fail-closed 拒绝或现场 MC 重标。公式本体在 N_retained ≥ 65 域内 MC 偏差 <2%；N=5 处渐近式对 Var(median) 为**高估 ≈9.5%**（保守方向；端到端口径 ≤±1.5%）。
+- **为什么不是 `SNR²`**：`w = 1/σ² = SNR²/F_ref² ∝ SNR²` 的 `∝` 以**固定参考通量** `F_ref` 为前提，而天光控制点的**被估量本身在变**（估的是天光面/背景电平，不是固定源通量）⇒ `SNR²` **不是**有效逆方差代理；控制点权重一律取 `control_ivar`，SNR 只作 veto/质量门（推导与依据见 `docs/science/CONTROL_WEIGHT_SNR.md` 与 `docs/detail/phase2_samp.md` §6）。
 - 采样点经 WCS 映射到天球坐标，供跨帧联合拟合。
 - **公共面与逐帧梯度的分工**：采样点用于**全部帧联合**拟合公共天光面 `B_ref(x)`；每帧只在其上拟合平缓梯度 `δ_k(x)`，归一施加量为 `δ_k`（**保留 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）不是默认路径（详见 `11_upm.md` §4.1/§5）。
 

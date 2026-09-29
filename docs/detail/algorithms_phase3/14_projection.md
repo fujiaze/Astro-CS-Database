@@ -10,14 +10,14 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §6.3（投影算法：内置多种）
-- `docs/design/PHASE3_DETAILED_DESIGN.md` §2
+- `docs/detail/PHASE3_DETAILED_DESIGN.md` §2
 - FITS WCS Paper I：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（[全文](https://www.aanda.org/articles/aa/full/2002/45/aah3859/aah3859.html)）；Paper II：Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（[全文](https://www.aanda.org/articles/aa/full/2002/45/aah3860/aah3860.right.html)）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：用户 WCS 计划（中心、尺度、shape、旋转、投影或足够约束）。
 - **输出**：注册的投影定义（CTYPE、正反变换、适用域、奇点处理、CRPIX/CRVAL/CD/PC/CDELT）。
-- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/contracts/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
+- **不确定度可得性（fail-closed，唯一出口）**：输入 HiPS 不含 variance/ivar 子产品（或权重非纯逆方差、发生 fallback 等 §30 规则项）时 → **不写** VARIANCE/IVAR 扩展 HDU（禁静默丢弃、禁用常量 0 冒充）+ manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登记模式。正本：`docs/science/DATA_SEMANTICS.md:2733-2739`（规则）与 `:2837-2839`（显式登记，禁占位/静默缺键/空输出冒充）。
 - 参考：`eng/contracts/schemas/projection_registry.schema.json`（registry 冻结集合，机器可校验导出 schema）。
 - 权威落位：`docs/science/algorithms/PHASE3_PROJ_IMPL.md §15`（registry 冻结表 + 逐投影六要素）+ `lib/algorithms/projection/`（`Spec` 六要素字段与 `registry_frozen_set()` 导出；schema 不复制公式）。
 

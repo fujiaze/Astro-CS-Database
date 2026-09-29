@@ -6,9 +6,9 @@
 > 诊断/测试陈述、现状缺陷一律以 lib/algorithms/calibration 现行源码为准；
 > 模块级合同与算法细节见
 > docs/science/algorithms/CALIBRATION_ALGORITHMS.md
-> （ALG-CAL-001..006）；数据语义见 docs/contracts/DATA_SEMANTICS.md §9
-> （DATA-P1-CAL）；API 合同见 docs/contracts/PUBLIC_API.md（API-CAL-001）
-> 与 docs/api/PHASE1_API_V1.md（API-P1-001）。
+> （ALG-CAL-001..006）；数据语义见 docs/science/DATA_SEMANTICS.md §9
+> （DATA-P1-CAL）；API 合同见 docs/engineering/PUBLIC_API.md（API-CAL-001）
+> 与 docs/engineering/PHASE1_API_V1.md（API-P1-001）。
 > cosmetic 域合同已独立冻结为
 > astrocs.p1.cosmetic（lib/algorithms/cosmetic/，ALG-COS-001..005 =
 > docs/science/algorithms/COSMETIC_ALGORITHMS.md，DATA-P1-COS = DATA_SEMANTICS
@@ -43,14 +43,14 @@ session budget 注入通道持有）。
 
 astro_calibration.h：12 个科学/工具导出（5 f32 科学 + 5 f64 变体 +
 ac_set_num_threads + ac_version）。登记合同 API-CAL-001
-（docs/contracts/PUBLIC_API.md；cosmetic 路径 ac_correct_frame(+_f64)/
+（docs/engineering/PUBLIC_API.md；cosmetic 路径 ac_correct_frame(+_f64)/
 ac_set_num_threads 另由 API-COS-001 独立登记，模块级合同视角）。
 未编译进 CMake 主构建：cc_* DLL、optimize_dark_k、apply_photometry。
 
 ## Data contract
 
 输入/输出为内存数组（float32/64，ADU，行主序 0-based），非 FITS：
-DATA-P1-CAL（docs/contracts/DATA_SEMANTICS.md §9）。落盘由调用方完成
+DATA-P1-CAL（docs/science/DATA_SEMANTICS.md §9）。落盘由调用方完成
 （phase1_session 写 calibrated_<原名>.fits）。母版分组（曝光/滤镜）在
 orchestrator 层。
 

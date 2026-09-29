@@ -5,7 +5,7 @@
 > 本页为模块诊断页。模块冻结合同 = lib/algorithms/star_detection/README.md
 > （CONTRACT_READY）+ module.yaml（MOD-astrocs-phase1-star，
 > module_id=astrocs.p1.star_detection，dll_target=astrocs_p1_star_detection.dll，
-> entrypoint 未落地）；registry 登记页 = docs/modules/registry/astrocs.phase1.star-detection.md。
+> entrypoint 未落地）；registry 登记页 = docs/detail/registry/astrocs.phase1.star-detection.md。
 > 本页以冻结合同为准，改动一律从合同层发起。
 
 ## 职责
@@ -25,7 +25,7 @@ FP32/FP64 双通道（sdet_detect_ex / sdet_detect_ex_f64）；一帧一次权�
 
 ## Public API
 
-API-STAR-001（docs/contracts/PUBLIC_API.md）：现行 6 导出符号 =
+API-STAR-001（docs/engineering/PUBLIC_API.md）：现行 6 导出符号 =
 `sdet_create/sdet_destroy/sdet_detect_ex/sdet_detect_ex_f64/
 sdet_detect_guided_ex_f64/sdet_free_detect_ex`（签名头正本
 lib/algorithms/star_detection/include/star_detector.h，按符号名定位；全量清单见
@@ -40,7 +40,7 @@ count=0（空定义域非错误）；指针参数非法返回 −1。输出仍�
 
 ## Data contract
 
-DATA-P1-STAR（docs/contracts/DATA_SEMANTICS.md §17）：输入 image
+DATA-P1-STAR（docs/science/DATA_SEMANTICS.md §17）：输入 image
 [uint16|double] [h·w] ADU 行主序；输出 x/y double pixel（0-based，像素中心=
 索引+0.5）、flux float ADU（正常星=振幅 A）、mag float（NaN=无效）、
 saturated/has_saturated int 0/1；编排序列化 star_det FLOAT64 [N,6]（列
@@ -65,7 +65,7 @@ handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处�
 入口 rc：0=成功（含 0 星空场：输出全 NULL + count=0，非错误）；−1=参数
 无效/句柄 NULL/分配失败（`sdet_detect_guided_ex_f64` 在 `pred_x/pred_y` 为 NULL 且
 `n_pred>0` 时同样返回 −1）。节点侧的权威路径 fail-closed 语义（星表缺失/空/部分装载、
-取向先验缺失、0 星存活）见 docs/plugins/algorithms_phase1/03_star_detection.md §7.1。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
+取向先验缺失、0 星存活）见 docs/detail/algorithms_phase1/03_star_detection.md §7.1。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
 reject_star SfError 六码；编排级 det_ret≠0 或 count≤0 → 退出码
 STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
 

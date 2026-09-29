@@ -5,7 +5,7 @@
 > 本页为模块导览页；冻结合同落位
 > lib/algorithms/platesolve/（README.md + module.yaml + memory.md 三件套，
 > CONTRACT_READY，entrypoint 未落地）；registry 登记页 =
-> docs/modules/registry/astrocs.phase1.wcs-platesolve.md。
+> docs/detail/registry/astrocs.phase1.wcs-platesolve.md。
 
 ## 职责
 
@@ -19,12 +19,12 @@ rms_px/rms_arcsec/n_pairs/trans_order）。
 
 ## Public API
 
-API-WCS-001（docs/contracts/PUBLIC_API.md；ipv_api.h 签名头正本，
+API-WCS-001（docs/engineering/PUBLIC_API.md；ipv_api.h 签名头正本，
 12 导出，生产入口 ipv_solve_from_detections_v1）。
 
 ## Data contract
 
-DATA-P1-WCS（docs/contracts/DATA_SEMANTICS.md §18；detections [n,6]
+DATA-P1-WCS（docs/science/DATA_SEMANTICS.md §18；detections [n,6]
 +0.5 契约 → IpvWcsResult POD + inlier [n,9]；编排写回 CTYPE/CRVAL/
 CRPIX/CD/RADESYS=ICRS/EQUINOX=2000/SIP）。
 

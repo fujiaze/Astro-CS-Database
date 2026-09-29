@@ -22,7 +22,7 @@ invalid = 上游 `props`/`wcs_plan` 非法即显式拒（fail-closed，无 silen
 
 ## 公共 header、核心 symbol 与生命周期
 
-编排级 API = API-P3-001（docs/api/PHASE3_API_V1.md，phase session extern "C"）；
+编排级 API = API-P3-001（docs/engineering/PHASE3_API_V1.md，phase session extern "C"）；
 本模块无独立 C ABI（会话委托注册）；实际重采样入口 =
 lib/algorithms/resample/p3_resample.h（`open_ex`/`p3_order_select` + 逐像素
 nearest/bilinear 分派）；生命周期 create→validate→run→inspect→destroy。

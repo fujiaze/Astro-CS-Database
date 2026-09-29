@@ -118,9 +118,9 @@
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN）
 - ALG: docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
   + docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-001..004，零改动）
-- DATA: docs/contracts/DATA_SEMANTICS.md §27（DATA-P3-FITS）
-- API: docs/contracts/PUBLIC_API.md API-P3-FITS-001 节 +
+- DATA: docs/science/DATA_SEMANTICS.md §27（DATA-P3-FITS）
+- API: docs/engineering/PUBLIC_API.md API-P3-FITS-001 节 +
   API-P3-001（FROZEN 镜像）
 - TEST: TEST-P3-WR-DESIGN-001（ALG-P3-FITS-IMPL-001 §12）/
   TEST-P3-WR-001（待建）
-- Registry 登记页: docs/modules/registry/astrocs.phase3.writer.md
+- Registry 登记页: docs/detail/registry/astrocs.phase3.writer.md

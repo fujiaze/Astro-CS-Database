@@ -34,7 +34,7 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-PHOT-001（docs/contracts/PUBLIC_API.md 测光节；头
+模块级 API = API-PHOT-001（docs/engineering/PUBLIC_API.md 测光节；头
 lib/algorithms/photometry/cpp/include/photometric_calib.h：PC_API/extern "C" 不抛异常，
 gaia_client_handle 借用不持有，spec_stars/spectra_buf 调用内释放，out_* 调用方分配）；
 编排级 = API-P1-005（phase session extern "C"）；生命周期 create→validate→run→inspect→destroy。

@@ -14,7 +14,7 @@
   （根 CMakeLists.txt:448-452）。
 - 合同：DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION
   （PUBLIC_API「Phase1 装配会话 C API」节）/ 编排上游 API-P1-001
-  （docs/api/PHASE1_API_V1.md FROZEN）。
+  （docs/engineering/PHASE1_API_V1.md FROZEN）。
 - 节点：canonical 4 段 io_read→calibrate→cosmetic→io_write
   （p1_session.cpp:168/:195/:283/:319；eng/tests/unit/p1_ir_facade_test.cpp:33-40
   断言）；科学实现委托 ac_calibrate_frame（:243）/ac_correct_frame（:294）。

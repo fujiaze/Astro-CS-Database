@@ -5,7 +5,7 @@
 > 合同：LIB 面 = lib/algorithms/integration/ 三件套（CONTRACT_READY）；
 > 科学/算法正本 = docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）；
 > 数据合同 = DATA-P2-INT（DATA_SEMANTICS §21）；C API = API-P2-INT-001（PUBLIC_API）
-> + 编排级 API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
+> + 编排级 API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）。descriptor 词汇
 > （module_id=astrocs.phase2.integrate、端口表、坐标 PIXEL）为编排层口径，
 > 冻结依据 = ALG-P2-INT-001。
 
@@ -18,7 +18,7 @@
 - 生产源：lib/algorithms/coverage/src/integrate.cpp + 签名头正本
   lib/algorithms/coverage/include/astro/phase2/integrate.h；构建 = 根 CMakeLists.txt
   的 astrocs_phase2 静态库成员。
-- 模块页：docs/modules/phase2_int.md。
+- 模块页：docs/detail/phase2_int.md。
 
 ## 职责与明确非职责
 

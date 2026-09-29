@@ -2,7 +2,7 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
-> 模块总页；registry 登记页 = docs/modules/registry/astrocs.phase3.wcs.md；
+> 模块总页；registry 登记页 = docs/detail/registry/astrocs.phase3.wcs.md；
 > 合同三件套 = lib/algorithms/projection/（落位规则见 docs/modules/README.md）。
 
 ## 1 身份
@@ -22,10 +22,10 @@
 |---|---|---|---|
 | SCI | SCI-P3-001 | docs/science/PHASE3_HIPS_TO_FITS.md（共享 FROZEN；映射声明 SCI-P3-WCS-001⇒SCI-P3-001 见 ALG §5） | FROZEN |
 | ALG | ALG-P3-PROJ-IMPL-001 | docs/science/algorithms/PHASE3_PROJ_IMPL.md（兼承接 ALG-P3-002 G1/G2 本域子面） | CONTRACT_READY |
-| DATA | DATA-P3-WCS | docs/contracts/DATA_SEMANTICS.md §28 | CONTRACT_READY |
-| API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
+| DATA | DATA-P3-WCS | docs/science/DATA_SEMANTICS.md §28 | CONTRACT_READY |
+| API | API-P3-PROJ-001 | docs/engineering/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
-| ARCH | ARCH-001 | docs/contracts/ARCH-001.md | VERIFIED |
+| ARCH | ARCH-001 | docs/engineering/ARCH-001.md | VERIFIED |
 | TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；可执行面待落地 | 见左 |
 | EVID | 执行证据 | 验收证据待补（未取得） | NOT_VERIFIED |
 
@@ -81,11 +81,11 @@ module_id=astrocs.phase3.wcs），其对齐属迁移目标（未落地），不�
 
 ## 7 链接
 
-- registry 登记页: docs/modules/registry/astrocs.phase3.wcs.md
+- registry 登记页: docs/detail/registry/astrocs.phase3.wcs.md
 - ALG: docs/science/algorithms/PHASE3_PROJ_IMPL.md
-- DATA: docs/contracts/DATA_SEMANTICS.md §28
-- API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001）
+- DATA: docs/science/DATA_SEMANTICS.md §28
+- API: docs/engineering/PUBLIC_API.md（API-P3-PROJ-001）
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
-- 同域: docs/modules/phase3_fits.md（写出域）、
+- 同域: docs/detail/phase3_fits.md（写出域）、
   phase3_session 模块页未建（会话编排层不单独成模块）；会话编排面现行权威 =
-  `docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`。
+  `docs/engineering/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`。

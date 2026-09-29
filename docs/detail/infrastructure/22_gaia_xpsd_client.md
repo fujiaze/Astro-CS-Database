@@ -11,9 +11,9 @@
 
 - 最高设计 `ASTROCS_DESIGN.md` §3.3（星表只解析**本地**星表文件，离线、零网络）、§8.4（`gaia_xpsd_client/` 本地星表解析）、§9（CPU 后端与资源：缓存复用、编排连续性）
 - `docs/science/algorithms/GAIA_QUERY.md`（缓存契约/复杂度/并发模型/不变量正本）
-- `docs/architecture/CACHE_POLICY.md`（Gaia 查询缓存行）
-- `docs/plugins/algorithms_phase1/05_platesolve.md`（消费方）
-- Gaia DR3 数据模型：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3 发布与内容综述，DOI: 10.1051/0004-6361/202243940）；XPSD 本地编码合同 = `docs/standards/STANDARDS_REGISTRY.md`（catalog 行）
+- `docs/engineering/CACHE_POLICY.md`（Gaia 查询缓存行）
+- `docs/detail/algorithms_phase1/05_platesolve.md`（消费方）
+- Gaia DR3 数据模型：Gaia Collaboration et al. 2023, A&A 674, A1（Gaia DR3 发布与内容综述，DOI: 10.1051/0004-6361/202243940）；XPSD 本地编码合同 = `docs/engineering/STANDARDS_REGISTRY.md`（catalog 行）
 
 ## 3. 输入/输出数据合同
 

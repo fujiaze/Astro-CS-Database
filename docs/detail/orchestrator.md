@@ -84,5 +84,5 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
 
 C++17 (`-std=c++17`, 见 `lib/infrastructure/pipeline/orchestrator/cpp/Makefile:CXXFLAGS`；
 正式构建入口 = 根 CMake 的 `astrocs_infra_orchestrator`)；C ABI 经 `DllLoader`
-纯 C 调用（`docs/standards/C_ABI_STANDARD.md`）；退出码与 `docs/architecture/ERROR_MODEL.md`
+纯 C 调用（`docs/engineering/C_ABI_STANDARD.md`）；退出码与 `docs/engineering/ERROR_MODEL.md`
 全集合一致（`eng/tools/docs_machine_consistency.py` 校验）。

@@ -10,9 +10,9 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §2.2（跨帧可用的绝对信噪比）、§3.1（全程只有 SNR）、§4.4（输出合同）
-- `docs/design/UNIFIED_MODEL.md`（数据对象表：frame_snr、sparse_snr_layer）
+- `docs/detail/UNIFIED_MODEL.md`（数据对象表：frame_snr、sparse_snr_layer）
 - `docs/science/NOISE_MODEL.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`（噪声模型与帧级 SNR 公式正本）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §8（SNR 与 PSF 信号权重）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §8（SNR 与 PSF 信号权重）
 - `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`（PixInsight 公开方法学、开源对照实现与文献研究包）
 
 ## 3. 输入/输出数据合同
@@ -25,7 +25,7 @@
   - **`frame_snr`**：帧级 SNR，**写入 HiPS 文件头**；语义 = **点源（PSF）信号 SNR**（纯信号/噪声，红线见 §4.1）；与 `sparse_snr_layer` 是**相互独立**的两个对象，**不作**稀疏层的尺度基准；
   - **`sparse_snr_layer`**（`sparse_snr_layer=true` 时）：帧内稀疏控制点 SNR 层，作为标准层插入 HiPS 文件内；控制点值 = 该点的**绝对**通量型 SNR `F_ref/σ_F(x,y)`（与帧级 SNR 同口径、同逐帧参考通量 `F_ref`，无量纲），消费时由控制点**直接重建**为稠密 SNR 场；**默认产出**（默认稀疏路径，§4.2）。
   - **不输出**：Phase2/Phase3 产物不含 SNR 面/块；Phase2 只在集成中现场消费本模块产出的单帧 SNR 换算逆方差权重，不复用本模块的 SNR 产物。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §13（DATA-P1-NOISE：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §13（DATA-P1-NOISE：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -138,7 +138,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一像素必须落在两态之一 —— **可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`；**不可用** `variance=0 ∧ ivar=0`。
   平面预测 ≤ 0、或生效 floor / 输出值在 float32 中不可表示（下溢为 0 / 上溢为非有限）的像素取不可用态；不可用方差的落盘值 = 显式不可用态本身——
   floor clamp 会把「模型在此处失效」发布成 `ivar=1/floor` 的极大权重；`(0, +inf)` 这类自相矛盾的对同样按不可用态处理。
-  正本 = `docs/science/NOISE_MODEL.md` §5/§7/§9 与 `docs/contracts/DATA_SEMANTICS.md` §4a 三态表；
+  正本 = `docs/science/NOISE_MODEL.md` §5/§7/§9 与 `docs/science/DATA_SEMANTICS.md` §4a 三态表；
   门 = `ctest -R p1noise_negative`（`n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`）+ `ctest -R p1noise_selfcheck`（证明判据能红，非恒真）。
 - **影响面**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；逐像素**不确定度产品面**由生产调度路径经 A 的插件路径产出（接线在场：`module_adapters.cpp`）。凡「逐像素方差/不确定度已传播到产品」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据。
 

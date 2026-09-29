@@ -25,7 +25,7 @@ lease，CMakeLists.txt:379-382；ThreadLease 接线为迁移目标（未落地�
 ## Public API
 
 hp_drizzle_api 六导出（extern "C"，hp_drizzle_api.h:58,78,86,102,
-131,187；合同 API-DRZ-001，docs/contracts/PUBLIC_API.md）；球面
+131,187；合同 API-DRZ-001，docs/engineering/PUBLIC_API.md）；球面
 几何接口（spherical_overlap.h: compute_overlap_area_g_ctx_cached、
 radec_to_vec、HP_CIRCUMRADIUS_FACTOR=1.25）。
 

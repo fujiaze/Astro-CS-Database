@@ -34,7 +34,7 @@ invalid = NaN/coverage=0(按 DATA 合同)。
 
 ## 公共 header、核心 symbol 与生命周期
 
-模块级 API = API-NOISE-001（docs/contracts/PUBLIC_API.md 噪声/SNR 节；头
+模块级 API = API-NOISE-001（docs/engineering/PUBLIC_API.md 噪声/SNR 节；头
 include/astrocs/information_weight.h、include/astrocs/noise/{types,variance_plane_policy,saturation_policy}.h，
 入口 src/module_entry.cpp，导出面 src/astrocs_p1_noise.def）；编排级 = API-P1-006
 （phase session extern "C"）；生命周期 create→validate→run→inspect→destroy。

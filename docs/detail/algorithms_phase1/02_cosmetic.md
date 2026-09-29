@@ -10,7 +10,7 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：cosmetic/validity）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §5（有效性域）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §5（有效性域）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（修正对协方差的影响）
 - `docs/science/algorithms/COSMETIC_ALGORITHMS.md`（ALG-COS 冻结正本：检测统计/插值修复口径）
 
@@ -18,7 +18,7 @@
 
 - **输入**：定标信号 `y`、cosmetic map、饱和/非线性状态、坏点列表（可含注入）。
 - **输出**：修正后信号（`cleaned_<base>`；非坏点逐像素恒等，坏点 = 插值或原值回退）、坏列掩膜（`badcol_<base>`，取值语义 1=已修 / 2=仅标记）、坏点计数（`out_hot`/`out_cold`，结构过滤后掩码像素数）；坏列 provenance（列索引、已修列数与仅标记列数分账）与计数写入 manifest。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §10（DATA-P1-COS：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §10（DATA-P1-COS：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 

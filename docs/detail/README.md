@@ -18,16 +18,42 @@
 
 ## 2 篇目清单
 
-按子域组织。模块说明卡与注册卡各有独立目录，数量多且由模块域驱动，不在 README 逐个列举。
+按子域组织。全集共 90 篇 = 88 篇迁入件 + 本 README 与 `00_INDEX.md` 两份招牌件。
+各插件目录的「集 README」是有意合并的产物：迁移 A 段把原 26 份目录级招牌件消化为
+3 份集 README 与 1 份 `merged_TROUBLESHOOTING.md`，故每目录文件数 = 声明篇数 + 1。
 
 | 子域 | 目录 | 解决什么问题 |
 |---|---|---|
 | 三阶段详细设计 | `PHASE1_DETAILED_DESIGN.md`、`PHASE2_DETAILED_DESIGN.md`、`PHASE3_DETAILED_DESIGN.md`、`PRODUCT_STORAGE_FORM.md` | 每一阶段的目标态怎么落地、阶段边界在哪 |
 | 阶段专用详细设计 | `UNIFIED_MODEL.md`、`STAR_DETECTION_IMPL_DESIGN.md`、`LOG_AND_ERROR_SYSTEM.md` | 统一配置模型、星检测实现、日志与错误系统怎么设计 |
-| 模块说明卡 | `registry/` | 每个算法模块解决什么问题、边界在哪、依赖什么 |
+| 模块说明卡（按 module_id） | `registry/` | 生产实现登记：每个算法模块解决什么问题、落位在哪、依赖什么 |
 | 插件工作细节 | `algorithms_phase1/`、`algorithms_phase2/`、`algorithms_phase3/`、`infrastructure/` | 每个阶段的具体步骤、算子次序、参数与失败处置 |
-| 文档—代码锚设施 | `anchors/` | 行锚合同、锚检查器、未解析锚登记（见 §5 待裁决） |
-| 索引 | `00_INDEX.md` | 本集的入口索引 |
+| 文档—代码锚设施 | `anchors/` | 行锚合同与机读登记（另 3 件机读件与检查器未迁入，见 §5 待裁决 6） |
+| 插件域索引 | `00_INDEX.md` | 四个插件目录 23 篇的模块总表（**只覆盖插件域**；集入口是本 README） |
+
+根级另有两类卡片，**不在任何子目录内**，故在此逐条列出（此前被「都在独立目录里」一句免列，导致 23 篇不可达）：
+
+**模块说明卡（`# Module: <名>` 体例，职责 / 非职责 / Public API / Data contract），15 篇**：
+
+| 篇 | 解决什么问题 | 篇 | 解决什么问题 |
+|---|---|---|---|
+| `acr.md` | 异构计算运行时：kernel registry、CPU/GPU 调度、device executor | `orchestrator.md` | Phase1 编排：stage1.json 驱动各节点 |
+| `astro_image_io.md` | 唯一 I/O 层：FITS/XISF/ahpx 读写、压缩、HiPS 读/写 | `phase1_session.md` | Phase1 装配：io_read→calibrate→cosmetic→io_write |
+| `calibration.md` | masterBias/Dark/Flat 生成与单帧图像校准 | `phase2.md` | Phase2 多帧统一模型编排 |
+| `common.md` | 共享基础库：HEALPix 核心、SHA-256、标量精度抽象 | `photometric_calib.md` | 测光定标：星表配对与稳健零点求解 |
+| `dynamic_psf.md` | Moffat4 动态 PSF 建模与拟合质量代理 | `plate_solve.md` | 星表匹配 + TAN/SIP plate solve → WCS |
+| `gaia_xpsd_client.md` | 本地星表解析、缓存、坐标/历元语义（离线零网络） | `snr_estimator.md` | 三层噪声模型与质量结构体落位 |
+| `healpix_browser_qt.md` | HiPS/HEALPix 球面浏览器（Qt6 + OpenGL） | `star_detector.md` | Phase1 单帧 light 全图检测 |
+| `healpix_drizzle.md` | 球面 Drizzle：HEALPix NESTED 重投影与通量守恒累加 | | |
+
+**模块合同页（`# 模块 astrocs.pX.Y` 体例，身份与合同落位），8 篇**：
+
+| 篇 | 对应 module_id 合同值 | 篇 | 对应 module_id 合同值 |
+|---|---|---|---|
+| `phase2_samp.md` | `astrocs.p2.sampling` | `phase3_proj.md` | `astrocs.p3.projection` |
+| `phase2_upm.md` | `astrocs.p2.upm` | `phase3_rsmp.md` | `astrocs.p3.resample` |
+| `phase2_rej.md` | `astrocs.p2.rejection` | `phase3_fits.md` | `astrocs.p3.fits_writer` |
+| `phase2_int.md` | `astrocs.p2.integration` | `hips_p2.md` | `astrocs.p2.hips_writer` |
 
 另有：
 
@@ -77,8 +103,17 @@
    还是拆回两篇——「症状速查」与「高风险故障覆盖门」是两种阅读用途，合在一篇会互相稀释。
 5. **根级两篇排障手册的现状缺陷（迁移时已查明，合并稿已修正）**：
    合并前其中一篇的常用命令段有 4 条死路径，3 条指向早已不存在的旧目录结构，
-   另 1 条是路径漂移（文件存在，目录已迁移）；已用文件系统与版本库索引两种读法核实，
-   分母 6231 个跟踪文件。`docs/detail/merged_TROUBLESHOOTING.md` 已把它们改写为 `ctest --test-dir build -R` 调用。
+   另 1 条是路径漂移（文件存在，目录已迁移）；已用文件系统与版本库索引两种读法核实。
+   `docs/detail/merged_TROUBLESHOOTING.md` 已把它们改写为 `ctest --test-dir build -R` 调用。
+6. **`anchors/` 迁移只完成一半**：集 README 声明 4 件，实际迁入 2 件。
+   `anchor_contract.json`、`unresolved_registry.json`、`check_doc_line_anchors.py`
+   仍留在 `docs/algorithms/anchors/`。需裁决是补迁到 `docs/detail/anchors/`，
+   还是正式承认锚机读件与检查器归工程集治理面（与本条第 3 项的归属裁决合并处理）。
+   现状：`anchors/README.md` 已按实际落点改写，**未擅自搬动文件**。
+7. **根级两类卡片（15 篇模块说明卡 + 8 篇模块合同页）散在集根目录、不在任何子目录内**：
+   迁移前它们应是各模块目录的说明页，迁移后留在 `docs/detail/` 根级。需裁决是就地保留
+   （本 README §2 已逐条列出），还是收进 `registry/` 或新设 `modules/` 子目录。
+   在裁决前本 README 按「实际落点」如实列出，不替负责人决定归属。
 
 ## 6 下钻指引
 

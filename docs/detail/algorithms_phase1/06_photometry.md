@@ -9,15 +9,15 @@
 
 ## 2. 权威依据
 
-- 最高设计 §4.6（硬约束：测光）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（观测模型）
-- `docs/design/PHASE1_DETAILED_DESIGN.md` §7（测光）
+- 最高设计 §4.6（硬约束：测光）；数据对象见 `docs/detail/UNIFIED_MODEL.md` §1（观测模型）
+- `docs/detail/PHASE1_DETAILED_DESIGN.md` §7（测光）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（通量方差）
 
 ## 3. 输入/输出数据合同
 
 - **输入**：定标信号、variance/ivar、validity、PSF 模型、WCS、检测目录、配置。
 - **输出**：源通量 `F`、通量方差 `Var(F)`、`a_k`（光度响应）及其不确定度、颜色项、有效域、测光 flags、**通带身份块** `passband_identity`（声明通带名、`FILTER` 关键字、解析出的库键、曲线自述名与采样点数、波长范围、曲线来源）。
-- 参考：`docs/contracts/DATA_SEMANTICS.md` §14（DATA-P1-PHOT：模块输入/输出数据合同正本）。
+- 参考：`docs/science/DATA_SEMANTICS.md` §14（DATA-P1-PHOT：模块输入/输出数据合同正本）。
 
 ## 4. 算法与公式要点
 
@@ -83,7 +83,7 @@
 - 源太暗/太亮 → 测光 flags，不产出无意义通量；
 - `a_k` 不确定度缺失 → 标记不可跨帧合并；
 - 饱和/拖线源标记，不进默认路径。
-- **失败作用域（帧级 vs 全局，各自具名；正本见 `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）**：
+- **失败作用域（帧级 vs 全局，各自具名；正本见 `docs/detail/LOG_AND_ERROR_SYSTEM.md` §10）**：
   - **帧级失败**（该帧自身条件不成立）⇒ 该帧记 `status=fail` + `error_domain`/`error_status`/`error`、
     不产出 `photoapplied_<base>`、不进 `photscales`，**其余帧照常拟合与施加**。稳定错误码：
     `PHOT_SOURCES_FRAME_MISSING`、`PHOT_WCS_UNUSABLE`、`PHOT_WCS_SIP_INVALID`、`PHOT_FRAME_UNREADABLE`、

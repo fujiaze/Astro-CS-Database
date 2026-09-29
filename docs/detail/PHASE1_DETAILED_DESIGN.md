@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §4（normalize：单帧标准化）
 
-上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）、`docs/owner/PROJECT_SPEC.md`  
+上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）、`docs/engineering/PROJECT_SPEC.md`  
 下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，目标只由本文件定义。
 
 ## 1. 使命与科学产品
@@ -44,7 +44,7 @@ ingest → calibration → cosmetic/validity → background/noise
 **序的依据**：`platesolve` 按帧读校准后像素自行做星点检测与星表匹配，**不消费** `star_detection` 的产物；
 而权威检测的星表逆投影需要**含取向**的完整 WCS（取自本帧解算产物）⇒ 解算必须在检测之前。
 `psf` 的唯一消费者是 `photometry`（本就在解算之后），故该序不延长关键路径。
-节点序与依赖边由注册表端口图唯一确定，机器判据见 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7.1。
+节点序与依赖边由注册表端口图唯一确定，机器判据见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §7.1。
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，整段 Phase1 逐 operation 执行一次。
 **photometry 为什么是一步（不是两步）**：拟合出的归一化标度 `k_photo` 必须真正落到像素，但**施加不需要独立的节点**——
@@ -68,10 +68,10 @@ ingest → calibration → cosmetic/validity → background/noise
   `k_photo` 非物理、帧内残差散度超 `P1_PHOT_MAX_SIGMA_DEX`）⇒ **该帧 fail，其余帧照常完成**：
   失败帧不产出 `photoapplied_<base>`、不进入 `photscales`，其判决逐帧落 `p1_phot.json.frames[]`
   （`status=fail` + `error_domain`/`error_status`/`error`，error_report 口径见
-  `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5）与节点 manifest（`frame_status`/`frame_errors`/
+  `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5）与节点 manifest（`frame_status`/`frame_errors`/
   `failed_frames`/`n_frames_failed`/`n_frames_ok`/`n_frames_applied`）。
   帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见该合同 §6 D1–D3 与
-  `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）。
+  `docs/detail/LOG_AND_ERROR_SYSTEM.md` §10）。
 - **全局失败**（换任何一帧都不会好：星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json`
   配置缺项、冻结 C 入口返回非零）⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），
   不把整批帧逐帧判 fail。
@@ -134,7 +134,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 **“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/PHOTOMETRY.md` §3/§5）
 是**线性乘性因子**（单位 [F_syn 单位]/ADU），作用是把各帧对齐到**统一相对测光零点**；它不把数据变成星等。
-逐层承载的物理量与单位（唯一正本 = `docs/contracts/DATA_SEMANTICS.md` §31.1/§31.1a）：
+逐层承载的物理量与单位（唯一正本 = `docs/science/DATA_SEMANTICS.md` §31.1/§31.1a）：
 
 | 层 | 物理量 | 单位 | 口径 |
 |---|---|---|---|
@@ -157,7 +157,7 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 
 **星等的换算位置与公式**（派生表达，不改变产品 `BUNIT`、不改变数据面形态）：
 
-- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`（`docs/contracts/DATA_SEMANTICS.md` §13.4）；
+- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`（`docs/science/DATA_SEMANTICS.md` §13.4）；
 - 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（§31.1a）；
 - 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` §2/§5）。
 
@@ -212,7 +212,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
 
-产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）。
+产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（取默认动作一律记 warn，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/detail/PRODUCT_STORAGE_FORM.md`、`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`）。
 
 上述对象各自具名字段，`snr` 只承载其中之一。
 
