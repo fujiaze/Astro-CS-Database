@@ -13,9 +13,41 @@
 | 线 | 文件域（glob） | 内容 |
 |---|---|---|
 | A（代码架构） | `lib/**`、`实验/**/code`、`实验/**/results` | 命名块机制、三阶段调度器、节点改写、探针性能优化 |
-| B（门禁测试合同） | `eng/ci/**`、`eng/tests/**`、`eng/contracts/**`、`docs/contracts/**`、`docs/ci/**` | 门禁与测试的合理性审计与补充、合同预先约定、双向对应 |
-| shared（共享面） | `docs/science/**`、`docs/plugins/**`、`docs/architecture/**`、`docs/owner/**` | 改动走登记，串行合并 |
+| B（门禁测试合同） | `eng/ci/**`、`eng/tests/**`、`eng/contracts/**`、`docs/contracts/**`、§2.1 B 域 19 篇 | 门禁与测试的合理性审计与补充、合同预先约定、双向对应 |
+| shared（共享面） | `docs/science/**`、`docs/architecture/**`、§2.1 shared 域 60 篇 | 改动走登记，串行合并 |
 | report（实验报告面） | `实验/**/REPORT_paper.md` | 只增不改 |
+
+glob 记法：`X/**` = 该目录下全部跟踪文件；`{a,b}` = 并集。§2.1 的两份点名清单是本表的组成部分。
+
+## 2.1 文件域点名清单
+
+文档迁移把说明文档从 docs 树下的 `ci/`、`contracts/`、`architecture/`、`owner/`、`plugins/` 五处迁到 `docs/engineering/` 与 `docs/detail/`。其中 `ci/`、`owner/`、`plugins/` 三处现为空目录（两读法复核：`test -e` 判 EXISTS，`git ls-files --cached` 判 0 篇）；`contracts/`、`architecture/` 两处仍各有在位机器可读件（4 件 / 6 件，见本节末条）。归属按各文件的迁移前文件域平移，线的定义不变。
+
+旧目录在本节只写目录名、不写完整路径：文档索引门把正文里出现的 docs 完整路径一律按可达性引用判定，溯源散文同样判红；写全路径会让本文件凭空产生未登记悬空。
+
+B 域 19 篇：
+
+`docs/engineering/{01_CHECKS,02_PIPELINE,03_GATES,04_ARTIFACTS,CI_SPEC,API-001,ARCH-001,CONFIG_CONTRACT,DATA_ARTIFACTS,DUAL_LINE_CONTRACT,HIPS_STORAGE_FORM_CONTRACT,LOG_AND_ERROR_CONTRACT,PERF_GATE_CONTRACT,PIPELINE_BLOCK_CONTRACT,PUBLIC_API,RT-001,SCHEDULER_CONTRACT,TEST_MATRIX,UNIFIED_OBJECTS}.md`
+
+来源：原 `ci/` 5 篇 ＋ `contracts/` 的说明文档 14 篇。
+
+shared 域 60 篇：
+
+`docs/engineering/{ARCHITECTURE,ARCHITECTURE_OVERVIEW,ASYNC_IO_CONTRACT,BUILD_GRAPH,CACHE_POLICY,COMPATIBILITY_POLICY,CPU_BACKEND_ARCH,DATA_FLOW,DEPENDENCY_RULES,ERROR_MODEL,EXECUTION_MODEL,IO_AND_ATOMICITY,ISA_BIT_MANIP_VARIANTS,ISA_VARIANTS,MODULE_MAP,OWNERSHIP_AND_LIFETIME,PERFORMANCE_MODEL,PHASE3_MODULE_ARCH,PIPELINE,THREADING_MODEL,THREAD_BUDGET_ARCH,PIPELINE_OVERVIEW,PROJECT_SPEC,RELEASE_STATUS,SCIENCE_OVERVIEW}.md`
+
+`docs/engineering/{abi/ABI_003_SECURE_LOADER,cpu/CPU_001_CAPABILITY_PROBE,cpu/CPU_003_AVX2_PROVIDER,execution_options_contract,observability/RESOURCE_MONITORING_CONTRACT,observability/RUN_GRAPH_CONTRACT,observability/STRUCTURED_LOGGING_CONTRACT}.md`
+
+`docs/detail/{algorithms_phase1,algorithms_phase2,algorithms_phase3,infrastructure}/**`
+
+`docs/detail/00_INDEX.md`
+
+来源：原 `architecture/` 27 篇 ＋ `owner/` 5 篇 ＋ `plugins/` 24 篇 ＋ `docs/detail/` 四目录各 1 篇目录招牌。
+
+docs/contracts/ 与 docs/architecture/ 留在表内：两处各有在位机器可读件（4 件 / 6 件）。
+
+本节的生效文件域只有上面两份点名清单的反引号行（B 域 19 篇 1 条、shared 域 60 篇 4 条，共五条）；其余各行（含「来源」行与旧目录溯源说明）是溯源散文，不参与归属判定。
+
+（`DATA_SEMANTICS.md` 现位于 `docs/science/DATA_SEMANTICS.md`，随 `docs/science/` 计入 shared 域；其迁移前的 `contracts/` 位置已无此文件，归属待裁。）
 
 ## 3 域边界纪律
 
