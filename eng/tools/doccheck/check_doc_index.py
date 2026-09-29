@@ -188,6 +188,10 @@ SKIP_EXACT = (
     # `def _self_test(`/`def self_test(` 实现体（skip_exact_reason 机器自证）。
     "eng/tools/doccheck/check_version_namespaces.py",          # ② --self-test 夹具面
     "eng/tools/quality/contracts/check_traceability.py",        # ② --self-test 夹具面
+    # 该门同样自带 --self-test 入口与实现体，其注释里用**故意不存在的路径**举例说明
+    # 两条边界（花括号写法的 basename 超长、路径自带冒号）。同族另两个符号门已在上面按 ② 登记，
+    # 此前只漏了它 ⇒ 补登记以对齐口径，不新开口子。
+    "eng/tools/quality/contracts/check_doc_symbols.py",            # ② --self-test 夹具面
 )
 
 # ②的机器判据：既要有 --self-test 入口，又要有 self_test()/_self_test() 实现体 ——
