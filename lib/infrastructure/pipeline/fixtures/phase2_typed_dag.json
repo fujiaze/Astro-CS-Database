@@ -48,7 +48,8 @@
     "phase": 2
    },
    "inputs": {
-    "p2_samples": "artifact:samples"
+    "p2_samples": "artifact:samples",
+    "frame_hips": "artifact:p1_hips"
    },
    "outputs": {
     "p2_upm_model": "artifact:upm_model",
@@ -132,7 +133,8 @@
     "p2_coverage": "artifact:coverage",
     "p2_samples": "artifact:samples",
     "p2_upm_model": "artifact:upm_model",
-    "p2_rejection": "artifact:rejection"
+    "p2_rejection": "artifact:rejection",
+    "p2_sky_plane": "artifact:sky_plane"
    },
    "outputs": {
     "mosaic_hips": "artifact:mosaic"
