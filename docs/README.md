@@ -7,17 +7,26 @@
 ## 权威链入口
 
 - 最高设计：`docs/ASTROCS_DESIGN.md`（项目是什么、做到什么、CLI/架构/验收）；
-- 一级工程文档：`AGENTS.md`（机器干活手册）、`ENGINEERING_SPEC.md`（工程规范）、`CONTROL_PACK_SPEC.md`（控制包规范）、`ACCEPTANCE_SPEC.md`（验收规范）、本目录 `docs/ci/`（CI 规范）；
+- 一级工程文档：`AGENTS.md`（机器干活手册）、`ENGINEERING_SPEC.md`（工程规范）、`CONTROL_PACK_SPEC.md`（控制包规范）、`ACCEPTANCE_SPEC.md`（验收规范）、本目录 `docs/engineering/CI_SPEC.md`（CI 规范）；
 - 阅读方式：从最高设计起沿各篇末尾的索引指针逐层下钻，`docs/DOCUMENT_INDEX.yaml` 提供全量文档的双向索引。
 
 ## 文档分层
 
-- **科学线**：`docs/science/` 公式与科学定义权威，`docs/science/algorithms/` 算法推导与实现锚定，佐证要求见 `docs/engineering/DOCUMENT_GOVERNANCE.md` §2；
-- **工程线**：行为合同与机器可校验 schema 的文档化说明（`docs/contracts/`、`docs/api/`），CI 规范与检查入口（`docs/ci/`，流程与范围见 `docs/engineering/CI_SPEC.md` §2），标准与锚合同（`docs/standards/`）；
-- **模块与架构**：`docs/plugins/`（模块工作细节）、`docs/architecture/`、`docs/modules/`、`docs/design/`；
-- **验证与运维**：验证矩阵、磁盘与资源门、排障手册分别在本集的对应条目下（排障手册入口 = `docs/detail/merged_TROUBLESHOOTING.md`）；
-- **研究与追溯**：`docs/research/`（方法选型一手查证）、`docs/references/`（文献）、`docs/traceability/`（需求—文档—代码追溯）；
-- **文档体系治理**：分层准入、上游抬头、正向书写与佐证纪律 = `docs/engineering/DOCUMENT_GOVERNANCE.md`；索引与登记规则 = `ENGINEERING_SPEC.md` §8。
+本集按**三个一级目录**组织，每个目录一件事、职责不重叠：
+
+- **`docs/science/` —— 科学正本（只读）**：公式与科学定义的唯一权威。
+  其 `algorithms/` 子目录承载算法推导与实现锚定。佐证要求见 `docs/engineering/DOCUMENT_GOVERNANCE.md` §2。
+  科学断言、容差与系数一律以本集为准；其它集引用而不复制。
+- **`docs/engineering/` —— 工程正本（只读）**：行为合同、机器可校验 schema 的文档化说明、
+  CI 规范与门禁定义、标准与锚合同、验证矩阵、模块与架构图、资源门与磁盘布局、排障手册。
+  门禁级别与发布口径以本集为准。
+- **`docs/detail/` —— 细节实施（可写）**：模块级工作细节与逐项实施说明，
+  承接上两个正本但不复述其定义；只写「怎么落地」，不写「是什么」。
+  排障手册入口 = `docs/detail/merged_TROUBLESHOOTING.md`。
+- **追溯与登记**：`docs/traceability/`（需求—文档—代码追溯）；
+  `docs/DOCUMENT_INDEX.yaml` 是全量文档的双向索引，登记规则见 `ENGINEERING_SPEC.md` §8。
+- **方法选型一手查证与文献**：已并入上面两个正本集（科学正本承载文献与查证结论，
+  工程正本承载门禁与验收依据），不再单设研究与参考文献目录。
 
 ## 纪律
 

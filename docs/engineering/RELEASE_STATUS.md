@@ -102,7 +102,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
 | FITS 流式接口 | `IMPLEMENTED` | IO-001（接口 + 实现 + 契约测试）；**未接入 Phase3 writer**（见 §4） |
-| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 与旧轮次评审副本已删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/owner/**`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
+| L0 负责人入口 | `CONTRACT_READY` | `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 与旧轮次评审副本已删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
 
 > 本表"实测"级证据（IMPLEMENTED/INSTALLED）全部来自 BASE=`da3c4b4a` 的命令日志
 > `run/docconv001/logs/{focused_rebuild_test.log,mod001_install_check.log,cli001_vpi.log}`；

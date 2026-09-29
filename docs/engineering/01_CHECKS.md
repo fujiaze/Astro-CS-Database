@@ -89,7 +89,7 @@
 | VERSION-CONSISTENCY | 文档一致性 | 版本注入链单一真源 + 现行活动文档集完整性 | `python3 eng/ci/check_version.py`（缺省 expected = 根 `VERSION`，不写死字面量） | P1 |
 | VERSION-NAMESPACES | 文档一致性 | 版本命名空间一致性（陈旧版本号） | `python3 eng/tools/doccheck/check_version_namespaces.py` | P1 |
 | VERSION-NAMESPACES-SELFTEST | 文档一致性 | 上项的可执行正/负例面（2 正 4 负：扫描面越出仓库 / 结构性 DOI 排除 / `scanned==0` fail-closed 等各自判红） | `python3 eng/tools/doccheck/check_version_namespaces.py --self-test` | P1 |
-| DOC-L0 | 文档一致性 | L0 现行文档集（docs/owner/**）与索引 active 登记完整性 | `python3 eng/tools/check_l0_docs.py` | P1 |
+| DOC-L0 | 文档一致性 | L0 现行文档集（docs/engineering/{SCIENCE_OVERVIEW,PIPELINE_OVERVIEW,ARCHITECTURE_OVERVIEW,RELEASE_STATUS}.md）与索引 active 登记完整性 | `python3 eng/tools/check_l0_docs.py` | P1 |
 | GLOSSARY-DOCS | 文档一致性 | 词典锚点/别名唯一性（报告项） | `python3 eng/tools/check_glossary.py` | P2 |
 | LINUX-MAIN-FIXTURES | 构建 | linux-main 夹具准备（wf_step） | `python3 eng/ci/wf_step.py --step LINUX-PREPARE-FIXTURES` | P0 |
 | LINUX-MAIN-BUILD-TREE | 构建 | linux-main 根构建图（wf_step） | `python3 eng/ci/wf_step.py --step LINUX-BUILD-ROOT-GRAPH` | P0 |

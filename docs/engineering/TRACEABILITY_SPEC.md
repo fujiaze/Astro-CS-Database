@@ -131,7 +131,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 
 - `lib/infrastructure/aio/io`（IO-001/IO-002 落地）：`astrocs.services.io`
 - `eng/tests/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
-- `docs/modules/registry/astrocs.phase*.md` 声明的 22 个 registry 生产模块
+- `docs/detail/registry/astrocs.phase*.md` 声明的 22 个 registry 生产模块
   （module_id 以 `astrocs.phase1./phase2./phase3.` 开头，唯一源 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
 - `lib/infrastructure/benchmark/cpu`（CPU-001 落地，provider 能力清单）
 

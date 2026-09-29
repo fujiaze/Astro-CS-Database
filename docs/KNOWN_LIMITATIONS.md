@@ -115,7 +115,7 @@
     - **归属/去向**：按 SCI §9a-10 订正 API-P3-001 §4 行（variance/ivar 移出拒绝清单，改为「必须消费/传播」）；不改代码。
 
 39. **Phase3 三处文档引用的机器 schema 不存在（断链）+ 门禁盲区**
-    - **现象**：`docs/engineering/PHASE3_API_V1.md §2` 引 `schemas/phase3_request_v1.schema.json`、`docs/detail/algorithms_phase3/15_resample.md §3` 引 `eng/contracts/schemas/export_product.schema.json`、`docs/detail/algorithms_phase3/16_fits_output.md §3` 引 `eng/contracts/schemas/fits_product.schema.json` —— **三者均不存在**（实测；`eng/contracts` 下 export/fits/p3 名式只命中 `data/examples/phase3_planar_fits_v1.example.json` 与 `schemas/phase_config_export.schema.json`）。**判据盲区（已实测）**：`python3 eng/tools/doccheck/check_doc_index.py --strict` **rc=0 / DOC_INDEX_PASS**，输出不含这三个路径；`CHK-CONTRACT-REF` 的实现是合同 **ID** 图（`eng/tools/check_contract_graph.py` + `check_data_artifacts.py`），其 `changed_paths` 不含 `docs/plugins/**`、`docs/api/**` ⇒ 三处断链落在覆盖面之外。
+    - **现象**：`docs/engineering/PHASE3_API_V1.md §2` 引 `schemas/phase3_request_v1.schema.json`、`docs/detail/algorithms_phase3/15_resample.md §3` 引 `eng/contracts/schemas/export_product.schema.json`、`docs/detail/algorithms_phase3/16_fits_output.md §3` 引 `eng/contracts/schemas/fits_product.schema.json` —— **三者均不存在**（实测；`eng/contracts` 下 export/fits/p3 名式只命中 `data/examples/phase3_planar_fits_v1.example.json` 与 `schemas/phase_config_export.schema.json`）。**判据盲区（已实测）**：`python3 eng/tools/doccheck/check_doc_index.py --strict` **rc=0 / DOC_INDEX_PASS**，输出不含这三个路径；`CHK-CONTRACT-REF` 的实现是合同 **ID** 图（`eng/tools/check_contract_graph.py` + `check_data_artifacts.py`），其 `changed_paths` 不含 `docs/detail/**`、`docs/engineering/**` ⇒ 三处断链落在覆盖面之外。
     - **规范依据**：`ASTROCS_DESIGN.md §0.2`「docs/contracts/（合同说明，对应 eng/contracts/ 的 schema）…**双向可追溯**」「每份文档、每个机制都能追溯到本设计的一条要点」；`AGENTS.md §9`。
     - **归属/去向**：合同 schema 面 + 门禁判据面（须可红可绿：注入悬空路径必须判红）；补 schema 与改引用二选一，且**补门判据**「文档中形如 `eng/contracts/**.schema.json` 或 `schemas/*.schema.json` 的路径必须存在」属门禁面变更——待裁决。
 
@@ -173,7 +173,7 @@
       两条逐像素入口逐像素一致）与 `p2_pixel_weight_wiring`（生产侧接线核对，带 `--self-test`）。
     - **M05 现象**：`idw_power` 在 `eng/packaging/config/**` **零命中**（`grep -rn idw_power eng/packaging/config` = 0），
       无法直接登记为受控键：`eng/tests/config/check_cfg002_registry.py:186-191` 要求
-      `docs/plugins/**` 配置项表与 `config_registry.json#plugin_knobs` **一一对应**（文档有、登记册无 ⇒ 红；
+      `docs/detail/**` 配置项表与 `config_registry.json#plugin_knobs` **一一对应**（文档有、登记册无 ⇒ 红；
       登记册有、文档无 ⇒ 红），而 `07_noise_snr.md` 只在正文 `:192` 提到 `idw_power`，**无表格行**；
       且 `defaults.json` 的 `authority.transcription_rule` 要求取值只从 `docs/science/**` 逐字转录 ⇒
       插件文档来源的默认值不能直接进 defaults 数值面。代码侧现状：消费侧已是规范默认 1.0

@@ -30,7 +30,7 @@
 
 - 冻结宪章 `ASTROCS_PROJECT_CONSTITUTION-001` §4.1（量不混名）/§5.3（Drizzle 单位与误差传播）/§6.3（support/coverage 非权重）/§14.2（零用例即红）。
 - `docs/engineering/PROJECT_SPEC.md` §3（任何近似须有适用域与误差门）/§4/§5/§7/§8（科学正确性门）。
-- `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md` 的验收节（P1 §11、P2 §10、P3 §7）。
+- `docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md` 的验收节（P1 §11、P2 §10、P3 §7）。
 - `docs/science/UNIFIED_SCIENCE_MODEL.md` §4/§5/§6/§7/§8/§10/§11。
 - `docs/science/PSF_SIGNAL_WEIGHT.md` §2/§3/§4/§5/§6/§7/§8。
 - `docs/engineering/SCIENCE_FREEZE.md` 与 `docs/science/DATA_SEMANTICS.md` §31（冻结状态与 `FZ-*` 条款面）。

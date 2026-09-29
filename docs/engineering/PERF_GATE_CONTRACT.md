@@ -46,4 +46,4 @@ utilization_pct = 100 × mean_over_windows( busy_workers_in_window / n_workers )
 
 ## 5 fail-closed 普查（全部门禁）
 
-每门必须对三种情况判红：**缺失证据** / **坏证据（不可解析、空文件）** / **无输出**；普查表见 `docs/ci/`。
+每门必须对三种情况判红：**缺失证据** / **坏证据（不可解析、空文件）** / **无输出**；普查表见 `实验/engineering-evidence/`。

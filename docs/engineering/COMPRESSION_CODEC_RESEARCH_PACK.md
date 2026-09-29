@@ -678,4 +678,4 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
 | `data/` | 1 MiB 级语料（188 真实瓦片数据段 + 载荷副本 + 7 个对照/负例块，383 输入 / 288 MiB） |
 | `files_real_fits.txt` | 152 个真实整 .fits 文件清单（`make_filelist.py` 重建） |
 | `bin/` | 编译产物（`build.sh` 重建） |
-| `evidence/tables.md` | 分层/分阶原始数字汇总表（`analyze.py` 生成；已入库为 `docs/research/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md`） |
+| `evidence/tables.md` | 分层/分阶原始数字汇总表（`analyze.py` 生成；已入库为 `实验/engineering-evidence/compress-01/COMPRESSION_CODEC_RESEARCH_PACK_TABLES.md`） |
