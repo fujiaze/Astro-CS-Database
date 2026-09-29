@@ -8,25 +8,21 @@
 
 ```text
 docs/
-├── ASTROCS_DESIGN.md        最高设计（权威链顶点）
-├── DOCUMENT_INDEX.yaml      全文档机器索引（唯一索引地图）
-├── GLOSSARY.md              术语表（全局）
-├── science/                 科学线：公式与推导权威（只读权威，改动走变更流程）
-│   └── algorithms/          算法推导与逐符号实现锚定
-├── contracts/              合同说明层（与 eng/contracts/ 的 schema 双向对应）
-├── api/                    对外接口细节
-├── architecture/           架构细节
-├── design/                 数据对象与设计细节
-├── plugins/                模块工作细节（与 lib/ 模块共址可复用）
-├── modules/                模块登记与注册表说明
-├── standards/              工程标准与锚合同
-├── ci/                     CI 规范、检查项目录、流水线、门禁与工件
-├── development/            开发流程细节
-├── validation/             验收细节（含 v6 活动设计档案）
-├── traceability/           需求—文档—代码追溯
-├── research/ references/   方法选型一手查证与文献
-├── operations/ diagnostics/ performance/ quality/  运维、诊断、性能与质量面
-├── owner/ browser/ audit/  负责人视图、可视化组件说明、文档分类与审计留档
+  ├── ASTROCS_DESIGN.md         最高设计（权威链顶点）
+  ├── DOCUMENT_INDEX.yaml       全文档机器索引（唯一索引地图）
+  ├── GLOSSARY.md               术语表（全局）
+  ├── KNOWN_LIMITATIONS.md      已知偏差与限制
+  ├── science/                  科学正本：公式、常数、判据与算法推导（只读权威）
+  │   └── algorithms/              算法推导与逐符号实现锚定
+  ├── engineering/              工程正本：合同、架构、标准、CI 门禁规范
+  │   └── abi/ checks/ cpu/ data/ io/ observability/ v6/
+  ├── detail/                   细节实施：模块页、算法与插件实现设计、阶段详细设计、锚契约
+  │   └── registry/                模块登记与注册表说明
+  ├── traceability/             需求—文档—代码追溯（CSV 台账）
+
+# 迁移后仍留原位的机器合同件（按扩展名分流：md 已全部归入上面三集）：
+#   contracts/  standards/  architecture/  modules/
+#   它们被代码按固定路径读取，不由本文档的层归属覆盖。
 ```
 
 - 每层由上层推出；下层可补充细节，但与上层一致、不遗漏上层的实施项；
