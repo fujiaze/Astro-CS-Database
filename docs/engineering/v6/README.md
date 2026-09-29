@@ -1,5 +1,5 @@
 
-# docs/validation/v6 索引（QA-MATRIX-001）
+# docs/engineering/v6 索引（QA-MATRIX-001）
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 

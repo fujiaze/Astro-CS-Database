@@ -7,7 +7,7 @@
 ## 职责边界
 
 - 放：交换格式、工件库路径布局、provenance 字段的合同正文。
-- 不放：数据语义正本（在 docs/science/DATA_SEMANTICS.md）；产品工件清单（在 docs/engineering/DATA_ARTIFACTS.md）；阶段详细设计（在 docs/design/）。
+- 不放：数据语义正本（在 docs/science/DATA_SEMANTICS.md）；产品工件清单（在 docs/engineering/DATA_ARTIFACTS.md）；阶段详细设计（在 docs/detail/PHASE{1,2,3}_DETAILED_DESIGN.md）。
 
 ## 内容
 

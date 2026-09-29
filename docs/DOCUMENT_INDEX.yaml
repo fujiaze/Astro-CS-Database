@@ -1405,6 +1405,26 @@ doc_index:
       duty: "docs/traceability/traceability_warn_baseline.json"
       upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
       downstream: "eng/tools/traceability/check_traceability_matrix.py"
+    - path: "docs/engineering/FROZEN_GATE_INVENTORY.md"
+      status: ACTIVE_NORMATIVE
+      duty: "冻结门台账（表内唯一来源与证据必需的正本登记）"
+      upstream: "docs/ASTROCS_DESIGN.md §12.1（科学正确性）、docs/engineering/SCIENCE_FREEZE.md（冻结基线）、docs/science/algorithms/GATES_AND_TOLERANCES.md §1 R1/R2（表内唯一来源、证据必需）"
+      downstream: "docs/DOCUMENT_INDEX.yaml"
+    - path: "docs/engineering/P1_SIGMA_GATE_PROVENANCE.md"
+      status: ACTIVE_NORMATIVE
+      duty: "P1 sigma 门的判据形态与逐项预算的溯源"
+      upstream: "docs/ASTROCS_DESIGN.md §2（核心科学方法）、docs/science/PHOTOMETRY.md（SCI-PHOT-001 §5，公式正本）"
+      downstream: "docs/detail/algorithms_phase1/06_photometry.md §4.1（判据形态与逐项预算，冻结）"
+    - path: "docs/engineering/REL790_VISUAL_EVIDENCE_CHECKLIST.md"
+      status: ACTIVE_NORMATIVE
+      duty: "目视验收清单六项与产品生成链的对照"
+      upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、ACCEPTANCE_SPEC.md §6.1/§6.2/§6.3（产品生成链/视觉验收清单六项/验收与发布决策）"
+      downstream: "docs/DOCUMENT_INDEX.yaml"
+    - path: "docs/engineering/TIER_VERDICT_CRITERIA.md"
+      status: ACTIVE_NORMATIVE
+      duty: "四层验收的档位判据（TV-01..TV-12）"
+      upstream: "docs/ASTROCS_DESIGN.md §12.4（四层验收与验证层级）、ACCEPTANCE_SPEC.md §5/§6（L3/L4）"
+      downstream: "eng/tools/acceptance/tier_verdict_gate.py（本文件 §3 逐条对应）"
     - path: "docs/engineering/SCIENCE_FREEZE.md"
       status: ACTIVE_INFORMATIVE
       duty: "科学冻结面与三重佐证登记"

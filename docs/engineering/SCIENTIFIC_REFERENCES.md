@@ -50,7 +50,7 @@
 
 项目既有测光专项调查已逐条登记 B1–B90 项书目、DOI/URL、定量结论与更正记录。为避免在多个活动文件复制后漂移，该原始档案保留于：
 
-- 唯一来源 `docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md`，§“来源与引用” [B1]–[B90]。
+- 唯一来源 `实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md`，§2 文献清单 [B1]–[B90]。
 
 这些专项资料被本总档案整体纳入，重点包括：Bessell & Murphy 2012（光子/能量通带与零点）、Gaia EDR3/DR3 测光与 XP 外部定标、CALSPEC、Stetson/Anderson & King/Dolphin/Naylor 的 PSF/拥挤/欠采样测光、Howell/Newberry 的 CCD SNR、Fruchter & Hook/Zackay 等的相关噪声，以及 Pan-STARRS/HSC/LSST 的深度定义。
 
@@ -163,7 +163,7 @@
 
 61. Zackay, B. & Ofek, E. O. 2017, “How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images”, ApJ 836, 187（DOI 10.3847/1538-4357/836/2/187；arXiv:1512.06872）。用途：每帧按自身 PSF matched filter 后再加权求和才最优；PSF 均质化/先叠加后滤波损失灵敏度。
 62. Zackay, B. & Ofek, E. O. 2017, “How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit”, ApJ 836, 188（DOI 10.3847/1538-4357/836/2/188；arXiv:1512.06879）。用途：proper coaddition、方差归一与有效 PSF。
-63. **（消歧）** Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction—Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）——这是 **ZOGY 图像相减**论文，**不是** “How to coadd images? I”。`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §5.1 第 1 条曾把两者混引，引用时须拆开。
+63. **（消歧）** Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction—Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）——这是 **ZOGY 图像相减**论文，**不是** “How to coadd images? I”。`实验/absolute-snr/docs/SNR_WEIGHT_RESEARCH_PACK.md` §5.1 第 1 条曾把两者混引，引用时须拆开。
 64. Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124）。用途：MRS/starlet 小波稳健噪声（PixInsight 默认噪声估计的方法学来源）。
 65. Rousseeuw, P. J. & Croux, C. 1993, “Alternatives to the Median Absolute Deviation”, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。用途：MAD 的 σ 一致化常数（文献作 `1.4826`，4 位截断展示；权威全精度 `1.482602218505602`）与 Sn/Qn 尺度估计；ACSD 用标准 MAD→σ，**未采用** PixInsight 的 2.48308/2.03636。
 66. Moffat, A. F. J. 1969, A&A 3, 455（见 §I 第 21 条）。用途：Moffat 轮廓；ACSD 取 β=4，FWHM=1.230310·σ。
@@ -175,7 +175,7 @@
 
 - **Siril** — **GPL-3.0** [V]（https://gitlab.com/free-astro/siril）。对照面：帧级权重 `compute_noise_weights` `w=1/(pscale²·bgnoise²)`（`src/stacking/median_and_mean.c:1080-1104`（式 `:1092-1094`））、wFWHM/星数权重、IKSS 稳健尺度、多项式/RBF 背景。与 ACSD 差异：Siril 把权重直接当叠加系数、按帧均值归一；ACSD 的 `W_psfsw` 为组内中值归一无量纲量。
 - **SWarp** — **GPL-3.0** [V]（https://github.com/astromatic/swarp，**版本 2.41.5 = commit 5c927e8a9312576b8618bf2480be1b9867d2483c**）。对照面：`COADD_WEIGHTED` 逆方差组合与输出方差 `1/Σ(1/var_k)`（`src/coadd.c:1279-1311`）、`RESCALE_WEIGHTS` 实测噪声重标定 `sigfac`（`src/back.c:361-389`）。
-- **DeepSkyStacker（DSS）** — **BSD-3-Clause** [V]（https://github.com/deepskystacker/DSS）。**更正**：`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` §4 表把它标为 GPL v3 且 URL `github.com/DeepSkyStacker/DeepSkyStacker`（404）——实际为 BSD-3-Clause（LICENSE 全文 + `README.md:13`），仓库 `deepskystacker/DSS`。对照面：帧评分 `ComputeScore`（圆度加权，`RegisterEngine.cpp:86-118`）、自适应加权平均 `w=1/(1+(x−µ)²/σ²)`（`avx_output.cpp:463-575`）。其 quality 与 SNR/FWHM 乘积无关。
+- **DeepSkyStacker（DSS）** — **BSD-3-Clause** [V]（https://github.com/deepskystacker/DSS）。**更正**：`实验/absolute-snr/docs/SNR_WEIGHT_RESEARCH_PACK.md` §4 表把它标为 GPL v3 且 URL `github.com/DeepSkyStacker/DeepSkyStacker`（404）——实际为 BSD-3-Clause（LICENSE 全文 + `README.md:13`），仓库 `deepskystacker/DSS`。对照面：帧评分 `ComputeScore`（圆度加权，`RegisterEngine.cpp:86-118`）、自适应加权平均 `w=1/(1+(x−µ)²/σ²)`（`avx_output.cpp:463-575`）。其 quality 与 SNR/FWHM 乘积无关。
 - **SExtractor** — **GPL-3.0** [V]（https://github.com/astromatic/sextractor，**版本 2.8.6 = commit 827f8a502356669bb684c7a12d470f058e94bf7a**）。对照面：背景网格/众数估计（`src/back.c:449-743`）、`Var(F)=Σ(σ_bkg²+F_pix/gain)`（`src/analyse.c:200-203,304-310`）。
 - **SEP** — **LGPL-3.0** [V]（https://github.com/kbarbary/sep）。对照面：孔径方差 `σ²_sum=Σvar_pix·w²+Σ/gain`（`src/aperture.c:516-570`）、背景网格（`src/background.c:277-790`）。
 - **photutils / astropy** — **BSD-3-Clause** [V]（https://github.com/astropy/photutils，**版本 3.0.0 = commit a89accd29395defa162eed71df462419859cbe22**）。对照面：`Background2D` + `SExtractorBackground`（`photutils/background/core.py:464-531`）、孔径误差 `σ²=Σw_frac²·error²`（`_batch_photometry.pyx:273-277`）、总误差 `σ_tot²=σ_bkg²+I/g_eff`（`photutils/utils/errors.py:91-92`）。本分片已用 photutils 3.0.0 做数值对拍（见报告 §3.6）。

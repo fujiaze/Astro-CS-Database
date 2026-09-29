@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
 
 权威链（`ASTROCS_DESIGN.md` §0，唯一）：`ASTROCS_DESIGN.md` → `AGENTS.md` →
-`ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/` → `docs/plugins/`；
+`ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/engineering/` → `docs/detail/`；
 另立 `docs/science/`（公式权威）、`docs/science/algorithms/`（推导权威）、
 `docs/detail/UNIFIED_MODEL.md`（数据对象与三类配置分离）。与其他文档冲突时以
 `ASTROCS_DESIGN.md` 为准。

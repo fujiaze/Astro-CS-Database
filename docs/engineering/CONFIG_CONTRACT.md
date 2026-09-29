@@ -63,7 +63,7 @@
 | `scalar_gate.trend` | unspecified | 待 `docs/science/**` 给出数值来源 | 同上（`07_noise_snr.md:62`） |
 
 - `calibration.dark_light_exposure_tolerance = 5 s`：**sourced**（值 5、单位 s）。**科学判据落 `docs/science/CALIBRATION.md` §6a**（判据式、推导与两档反例齐备，证据面读数见该节）。**适用域**：本键只作**预检面**（判定变量 `|t_light − t_dark|`，🟠 warn、不阻塞、不参与科学可信判定）。**科学面判据的唯一承担者 = §6a**——两者判定变量不相关，预检面判 PASS 不蕴含科学面残留达标（§6a 的反例读数见 `实验/` 证据面）。
-- 负空间：`docs/plugins/**` 的 plugin 级默认**不进** `fields[]`（本文件 source 规则限定 docs/science|docs/algorithms）；它们由 `eng/packaging/config/config_registry.json#plugin_knobs` 逐行登记（归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → eng/packaging/config/config_registry.json
+- 负空间：`docs/detail/**` 的 plugin 级默认**不进** `fields[]`（本文件 source 规则限定 docs/science|docs/algorithms）；它们由 `eng/packaging/config/config_registry.json#plugin_knobs` 逐行登记（归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → eng/packaging/config/config_registry.json
 - **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）的 token = `point_information`（同一口径的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:56` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
 - **登记册指针**：`registry_ref` 指向 `eng/packaging/config/config_registry.json`（plugin 级默认 / 旋钮归属 / 滤镜名语义 / os_abi / 索引归属的登记面）；本文件与登记册**各自只引用数值**（数值唯一源 = defaults.json 与 phase_config schema）。
 
@@ -162,7 +162,7 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 | 跨类不相交 | phase_config ∩ cpu_profile(v2) == ∅；∩ run_manifest == ∅；∩ cpu_profile(全体) == {precision}（登记） | `TestCrossClassDisjointness` |
 | 滤镜库 | 45/45 逐字一致 + provenance unverified/GAP-025 + 无零点键 + enum==库键 | `TestFiltersLibrary` |
 | cpu_profile | 单一定义、benchmark-only、v1/v2 双分支可绿、缺必有字段可红 | `TestCpuProfileMigration`、`test_cpu_profile_v1_missing_required_still_fails` |
-| CFG002-01 登记对应 | `docs/plugins/**` **配置表**（表头白名单 = `字段|默认|单位|说明`、`字段|默认|说明`、`字段|说明`）全集 ↔ `eng/packaging/config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/**表行内容指纹漂移**/登记行内嵌行号/summary 撒谎均判红）；位置由内容锚实时解析，不再断言行号 | `check_cfg002_registry.py` CFG002-01 |
+| CFG002-01 登记对应 | `docs/detail/**` **配置表**（表头白名单 = `字段|默认|单位|说明`、`字段|默认|说明`、`字段|说明`）全集 ↔ `eng/packaging/config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/**表行内容指纹漂移**/登记行内嵌行号/summary 撒谎均判红）；位置由内容锚实时解析，不再断言行号 | `check_cfg002_registry.py` CFG002-01 |
 | CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / `blocks[]` 项属性存在 / cpu_profile 指针存在 / 文档路径存在且带内容锚）；登记点内嵌行号即红；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
 | CFG002-03 默认值→值域 | `fields[].enum_target` 指针落到含 enum 节点且 `enum_token` ∈ enum | 同上 CFG002-03 |
 | CFG002-04 滤镜名语义 | `match=exact` / `case_sensitive=true` / `normalization=none` / `aliases={}`；三 schema enum == 库键；6 反例必拒、4 正例必过；`non_key_examples` 锚点成立；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
@@ -177,9 +177,9 @@ timeout 60 python3 eng/tests/config/run_validation.py eng/contracts/schemas/phas
 
 ## 9 旋钮与默认登记册 `eng/packaging/config/config_registry.json`（`astrocs.config-registry/v1`）
 
-- **覆盖面**：`docs/plugins/*/*.md` 的**配置项表**（表头白名单见 §8 门表 CFG002-01）**全集**逐行登记，一行一个 `(module, field)`，字段：`doc/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict/anchor`；`anchor = {id, sha256}` 是**内容锚**（`id` = 复合键路径 `模块.字段`，`sha256` = 对应文档表行按 `ANCHOR_CONTRACT.md` §9 归一化后的内容指纹），**位置不入册**——行号由锚实时解析，文档重排不再让登记失效，而表行**内容**一改指纹即不符。行数与分组计数由登记册与机器门按登记行实时给出，本节不复制计数。
+- **覆盖面**：`docs/detail/*/*.md` 的**配置项表**（表头白名单见 §8 门表 CFG002-01）**全集**逐行登记，一行一个 `(module, field)`，字段：`doc/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict/anchor`；`anchor = {id, sha256}` 是**内容锚**（`id` = 复合键路径 `模块.字段`，`sha256` = 对应文档表行按 `ANCHOR_CONTRACT.md` §9 归一化后的内容指纹），**位置不入册**——行号由锚实时解析，文档重排不再让登记失效，而表行**内容**一改指纹即不符。行数与分组计数由登记册与机器门按登记行实时给出，本节不复制计数。
 - **退役面**：`retired_knobs[]` 保留「无对应文档行的存量登记」这一事实（`reason/evidence/retired_at/review`），门 CFG002-12 断言该集合与 `plugin_knobs`／文档配置表**无交集**——退役留痕，不删事实。
-- **非配置表面**：`non_config_tables[]` 显式登记 `docs/plugins/**` 内**不是**配置键的表（如事件协议字段表 `字段|承载事实`），含权威来源；未登记的白名单外表头即判红（fail-closed）。
+- **非配置表面**：`non_config_tables[]` 显式登记 `docs/detail/**` 内**不是**配置键的表（如事件协议字段表 `字段|承载事实`），含权威来源；未登记的白名单外表头即判红（fail-closed）。
 - **owner_class**（归属类，一行恰一个）：`science_param`（影响科学结果，必须有 SCI/ALG 条款或已登记配置类承载）· `runtime_policy`（运行期/实现/IO/观测策略，权威 = 插件文档或 algorithms/contracts 文档，**禁入 phase_config**）· `cli_surface`（命令行参数面）· `resource_binding`（线程/资源预算，cpu_profile 或调度器，禁硬编码、禁入 phase_config）。
 - **finding**：`none`（已闭合）· `gap`（插件声明了默认值但无 SCI/ALG 权威、未进任何配置类）· `unregistered`（无默认且字段本身未登记）· `conflict`（与 SCI/ALG 权威或已登记配置冲突，必须带 `conflict.{kind,evidence,owner}`）。
 - **分布**：行数与 `finding` / `owner_class` / `registration` 分组计数由门 CFG002-01 按登记行实时重算并与登记册比对；本节不复制计数。

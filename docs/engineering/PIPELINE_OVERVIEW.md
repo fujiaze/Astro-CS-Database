@@ -3,8 +3,8 @@
 > 上游：ASTROCS_DESIGN.md §1.2（三个命令，三个独立产品）、§8.2（数据流形态）
 
 > 权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§6.2（唯一命令树）、
-> `docs/contracts/{ARCH-001,RT-001,DATA_ARTIFACTS,DATA_SEMANTICS}.md`、
-> `docs/api/{PHASE1_API_V1,PHASE2_API_V1,PHASE3_API_V1,CLI_PROTOCOL_V1}.md`、
+> `docs/engineering/{ARCH-001,RT-001,DATA_ARTIFACTS}.md`、`docs/science/DATA_SEMANTICS.md`、
+> `docs/engineering/{PHASE1_API_V1,PHASE2_API_V1,PHASE3_API_V1,CLI_PROTOCOL_V1}.md`、
 > `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`。
 > 状态词约定同 RELEASE_STATUS §0（DOC-CONV-001 唯一口径）：
 > `CONTRACT_READY` / `IMPLEMENTED` / `INSTALLED` / `VERIFIED` /
