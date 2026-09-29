@@ -42,6 +42,9 @@
 // UNIT-001: 母版单位/归一化消费门（纯规则；SCI-CAL-001 §3/§6/§8/§11 +
 // ALG-CAL-001 §2 标度声明表 + DISP-CAL-013 + DATA-P1-CAL §9.1a）。
 #include "astrocs/core/master_unit_guard.h"
+// SOLVE-DEGRADE-01: WCS/板解**逐帧降级契约**（解算质量不阻塞运行; 唯一权威实现
+// = 该头文件, 生产与判据共用同一份, 不存在第二套口径）。
+#include "astrocs/core/wcs_degrade_policy.h"
 
 // B2-A10: 构建期版本单源（与 CLI 共用同一生成头）——节点 manifest 自报
 // module build ID 需要 ASTROCS_VERSION_STRING。
@@ -4964,10 +4967,35 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   // ── P0-21 §3.4: 逐帧独立求解循环 ───────────────────────────────────────
   // 每帧: 读入 → 该帧指向（header_pointing 逐帧; eng/packaging/config/neighbor 同源）→ 真实
   // ipv 求解 → roundtrip/前向交叉绝对门 → 落 output_dir/<frame_key>/p1_wcs.json。
-  // 任一帧不可读/不可解 ⇒ 立即 DATA/IO fail-closed（不产出部分产品却报成功）。
+  //
+  // SOLVE-DEGRADE-01（**推翻**原「任一帧不可解 ⇒ 立即 fail-closed」口径）:
+  //   本层现在区分两类失败, 处置完全不同:
+  //   (A) **输入完整性类** —— 帧不可读、frame_key 重复、指向/板尺度缺失或非有限、
+  //       星表目录空或不全、sdet/gaia/ipv 句柄创建失败、产物写不出。
+  //       ⇒ **仍然硬失败**（中止运行）。换一帧也不会好, 属环境/数据问题。
+  //   (B) **解算质量类** —— 求解器在稳健化阶梯上穷尽后仍未给出可接受解
+  //       （残差超限 / 配对数不足 / 尺度越域 / 票数不足 / 星表饥饿 / 源数不足）。
+  //       ⇒ **不中止**: 逐帧判 status="unsolved" + 稳定错误码 + 证据, 落该帧
+  //         p1_wcs.json（**不带 wcs 对象** ⇒ 下游按「该帧未解出」fail-closed）,
+  //         继续处理后续帧与阶段。负责人裁定: 有假星、真星不足时足够强的求解器
+  //         仍应解出坐标, 因此这类情况不得阻塞流水线。
+  //   下游接收面已就位（无需改动语义, 只需让原因码可追）:
+  //     star-psf : p1_guided_wcs_product_prior 读不到 wcs 对象 ⇒ 该帧无解算先验
+  //                ⇒ auto 模式走既有显式降级 (degraded_reason);
+  //     photometry: PHOT_WCS_UNUSABLE 逐帧 fail, **不中止节点** (:5707-5712);
+  //     drizzle   : 上游判 fail 的帧按 FAILSEM-01 跳过 (:7709-7717);
+  //     writer    : 依 docs/ASTROCS_DESIGN §4.4「任何一帧未被处理/跳过/失败都显式
+  //                 判红」在**数据集完整性**面判红（与本条「不中止解算」正交）——
+  //                 该条款是否随本条订正, 由负责人裁定（见回执, 本轮未擅自改动）。
+  // 逐帧判决的形状与落位沿用 FAILSEM-01（manifest.frame_status / frame_errors /
+  // failed_frames）, 不新造并行体系。
+  const std::vector<astrocs::core::WcsSolveStrategy> solve_ladder =
+      astrocs::core::WcsDefaultSolveLadder();
+  std::vector<astrocs::core::WcsFrameVerdict> wcs_verdicts(doc["input_lights"].size());
   Json artifacts = Json::array();
   bool have_first = false;
-  for (const auto& l : doc["input_lights"]) {
+  for (size_t frame_i = 0; frame_i < doc["input_lights"].size(); ++frame_i) {
+    const auto& l = doc["input_lights"][frame_i];
     const std::string lp = l.get<std::string>();
     // [probe] 逐帧热点: wcs
     ASTROCS_PROBE_SCOPE_CTX(_probe_wcs_frame, "phase1", "wcs.frame");
@@ -5010,24 +5038,135 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     // FP64 内存求解（double 图像全链不降级）
     std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
     for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
+    // ── SOLVE-DEGRADE-01 契约(3)「先尽力再降级」: 稳健化阶梯 ─────────────
+    // 每一级 = 一个**采集广度**策略（检测星数上限 / Gaia 锥半径因子 / 极限星等迭代
+    // 次数）。**任何验收门都不动** —— rms_px>0.5、n_pairs<12、尺度比 [0.8,1.25]、
+    // 票数≥3、iter_trans order 3→2→1 回退仍由 ALG-WCS-001 与 DISP-WCS-001 拥有
+    // （ipv_wcs.cpp:732-770 / ipv_solver.cpp:1260,1281-1294）。本层只回答
+    // 「还没解出时, 再多看/多找一些星有没有用」, 不回答「多差算好」。
+    // 第 0 级恒 = 生产现行采集面 ⇒ 成功路径**零行为变化**; 只有失败才进入更宽级。
     IpvWcsResult r;
-    std::memset(&r, 0, sizeof(r));
-    const int src = ipv_solve_from_memory_with_callback_d(
-        ipv, dbuf.data(), im.w(), im.h(), f_ra0, f_dec0, f_focal, f_pixel,
-        &ip, nullptr, nullptr, &r);
-    if (src != 1 || r.success != 1) {
-      cleanup();
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          // 判词只陈述**已知为真**的两件事: 求解器返回失败、以及求解器自报的原因。
-          // 求解器内部的失败点有多处（星表查询返回数不足、三角形匹配不足、RANSAC、
-          // 以及 parity/尺度合理性闸门），本层无法区分，故不得替它归因到其中任一处
-          // —— 早先这里把「星表查询返回 0」误报成「被 parity/尺度闸门拒绝」，
-          // 直接把定位方向带偏（OPEN_QUESTIONS OQ-10）。
-          std::string("ipv_solve_from_memory_with_callback_d failed: ") +
-          (r.error_msg[0] ? r.error_msg : "solver returned failure") +
-          " (ipv 真实求解器链失败; 具体失败点以求解器自报原因与求解日志为准; frame " +
-          frame_path + ")"));
+    int src = 0;
+    std::vector<astrocs::core::WcsSolveAttempt> wcs_attempts;
+    for (size_t si = 0; si < solve_ladder.size(); ++si) {
+      const astrocs::core::WcsSolveStrategy& strat = solve_ladder[si];
+      IpvParams ip_s = ip;
+      ip_s.gaia_query_radius_factor = strat.query_radius_factor;
+      ip_s.m_lim_max_iter           = strat.mag_lim_max_iter;
+      StarDetectorHandle rung_sdet = nullptr;
+      if (strat.max_stars != static_cast<int>(sp.maxStars)) {
+        // 只在采集面与节点默认句柄不同的级上另建检测句柄（第 0 级复用 = 零行为变化）
+        SDetParams sp_s;
+        std::memset(&sp_s, 0, sizeof(sp_s));
+        sp_s.structureLayers      = 5;
+        sp_s.hotPixelFilterRadius = 2;
+        sp_s.iterativeClipSigma   = 5.0f;
+        sp_s.iterativeMaxRounds   = 3;
+        sp_s.medianFilterDetail   = 2;
+        sp_s.maxStars             = strat.max_stars;
+        sp_s.fitRadius            = 0;
+        sp_s.fwhmClipSigma        = 3.0f;
+        sp_s.maxAxisRatio         = 2.0f;
+        rung_sdet = sdet_create(&sp_s);
+        if (!rung_sdet) {
+          // 句柄创建失败 = **输入完整性/环境类**（不是解算质量）⇒ 硬失败
+          if (rung_sdet) sdet_destroy(rung_sdet);
+          cleanup();
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "sdet_create failed for robustness rung '" + strat.name + "'"));
+        }
+        ipv_set_detector_handle(ipv, reinterpret_cast<intptr_t>(rung_sdet));
+      }
+      std::memset(&r, 0, sizeof(r));
+      src = ipv_solve_from_memory_with_callback_d(
+          ipv, dbuf.data(), im.w(), im.h(), f_ra0, f_dec0, f_focal, f_pixel,
+          &ip_s, nullptr, nullptr, &r);
+      astrocs::core::WcsSolveAttempt at;
+      at.strategy     = strat.name;
+      at.rc           = src;
+      at.success      = (src == 1 && r.success == 1);
+      at.sip_order    = r.sip_order;
+      at.trans_order  = r.trans_order;
+      at.n_pairs      = r.n_pairs;
+      at.rms_px       = r.rms_px;
+      // 求解器自报原因逐字保留（不解析、不改写、不替它归因到某个内部失败点 ——
+      // 早先这里把「星表查询返回 0」误报成「被 parity/尺度闸门拒绝」, 把定位带偏
+      // （OPEN_QUESTIONS OQ-10）; 现改为原文进 attempts[].error）。
+      at.error        = r.error_msg[0] ? std::string(r.error_msg) : std::string();
+      wcs_attempts.push_back(at);
+      if (rung_sdet) {
+        sdet_destroy(rung_sdet);
+        ipv_set_detector_handle(ipv, reinterpret_cast<intptr_t>(sdet));
+      }
+      if (at.success) break;
     }
+    if (src != 1 || r.success != 1) {
+      // ── SOLVE-DEGRADE-01 契约(1)(2): 降级, **不中止** ─────────────────────
+      // 阶梯已穷尽 ⇒ 该帧判 unsolved（机读: 稳定错误码 + 证据 + 逐级留痕）,
+      // 落该帧 p1_wcs.json（**不带 wcs 对象**, 下游据此对该帧 fail-closed）,
+      // 然后继续下一帧。运行继续; 数据集完整性由 writer 节点按 ASTROCS_DESIGN §4.4
+      // 独立判红（与本条正交）。
+      const astrocs::core::WcsSolveEvidence ev = astrocs::core::WcsMakeEvidence(
+          r.n_detected, r.n_catalog, r.n_pairs, r.best_inliers, r.trans_order,
+          r.sip_order, r.rms_px, r.rms_arcsec);
+      astrocs::core::WcsFrameVerdict v = astrocs::core::WcsMakeVerdict(
+          false, ev, wcs_attempts,
+          r.error_msg[0] ? std::string(r.error_msg) : std::string());
+      wcs_verdicts[frame_i] = v;
+      Json att_json = Json::array();
+      for (const auto& a : wcs_attempts) {
+        att_json.push_back(Json{{"strategy", a.strategy}, {"rc", a.rc},
+                                {"success", a.success}, {"sip_order", a.sip_order},
+                                {"trans_order", a.trans_order},
+                                {"n_pairs", a.n_pairs}, {"rms_px", a.rms_px},
+                                {"error", a.error}});
+      }
+      Json unsolved = Json{{"schema", "DATA-P1-WCS"},
+                           {"solver", "ipv_solve_from_memory_with_callback_d"},
+                           {"wcs_source", "ipv"},
+                           {"wcs_status", "unsolved"},
+                           {"status", v.status},
+                           {"error_domain", v.error_domain},
+                           {"error_status", v.error_status},
+                           {"error", v.error},
+                           {"robustness_ladder", att_json},
+                           {"n_attempts", static_cast<uint64_t>(wcs_attempts.size())},
+                           {"n_detected", ev.n_detected},
+                           {"n_catalog", ev.n_catalog},
+                           {"n_pairs", ev.n_pairs},
+                           {"best_inliers", ev.n_inliers},
+                           {"trans_order", ev.trans_order},
+                           {"rms_px", ev.rms_px},
+                           {"rms_arcsec", ev.rms_arcsec},
+                           {"fake_fraction", ev.fake_fraction_valid
+                                                 ? Json(ev.fake_fraction) : Json(nullptr)},
+                           {"wcs_init_source", init_source},
+                           {"wcs_init_center_src", f_center_src},
+                           {"wcs_init_ra0_deg", f_ra0},
+                           {"wcs_init_dec0_deg", f_dec0},
+                           {"wcs_init_s0_arcsec_px", f_s0}};
+      // 注: 产物**刻意不含** "wcs" 键 —— 下游 p1_wcs_astrometry_usable /
+      // p1_guided_wcs_product_prior 读不到它 ⇒ 该帧按「未解出」fail-closed,
+      // 不会把一个不存在的解当成可用 WCS（改变科学语义的降级不是降级）。
+      const std::string udir = p1_frame_dir(doc, lp);
+      (void)aio_fs::make_dirs(udir);
+      const std::string upath = udir + "/p1_wcs.json";
+      if (!p1_write_text(upath, unsolved.dump(2))) {
+        cleanup();
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            "artifact write failed: " + upath));
+      }
+      artifacts.push_back(upath);
+      std::fprintf(stderr,
+                   "[wcs] DEGRADED (not blocking): frame %s unsolved after %zu "
+                   "robustness attempt(s); status=%s n_pairs=%d rms_px=%.4f "
+                   "n_detected=%d (continue with next frame)\n",
+                   p1_frame_key(lp).c_str(), wcs_attempts.size(),
+                   v.error_status.c_str(), ev.n_pairs, ev.rms_px, ev.n_detected);
+      continue;
+    }
+    wcs_verdicts[frame_i].status     = "ok";
+    wcs_verdicts[frame_i].wcs_status = "solved";
     // 解算结果 → WcsTan 自检: 次级 roundtrip (<1e-6 px) + B2-A1 绝对
     // 前向交叉门 (<=1e-9 deg, 独立 gnomonic 参考解)
     astrocs::phase1::WcsTan wcs;
