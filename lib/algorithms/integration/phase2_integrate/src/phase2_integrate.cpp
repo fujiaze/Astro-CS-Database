@@ -1463,14 +1463,56 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
 
   /* 权重来源 token 门（FZ-GATE-*）：诊断量不得进权重/方差来源。
    * 单一口径本身不需要"模式门"——它由 p2weight 的逆方差权重链与产品校验面强制
-   * （FZ-WEIGHT-SINGLE-PATH；见 weight_chain.h 与 open_phase2_product）。 */
+   * （FZ-WEIGHT-SINGLE-PATH；见 weight_chain.h 与 open_phase2_product）。
+   *
+   * 消费口径：两门都是纯谓词，返回码 rc = 0 放行 / 1 命中冻结禁词 / 2 实参错误
+   * （p2_weight_source_token_reject 见 lib/algorithms/coverage/src/coverage.cpp:414，
+   *  p2_rejection_weight_surface_guard 见 lib/algorithms/coverage/src/rejection.cpp:2623；
+   *  既定口径 = eng/tests/unit/p2_samp/p2_samp_test.cpp:147-181、
+   *  eng/tests/unit/p2_rej/p2_rej_test.cpp:438-469：合法 token 必须 rc=0、
+   *  禁 token 必须 rc!=0、rc=2 是实参错误）。**每个返回码都必须被裁决**——
+   * 恒真门没有证据资格（AGENTS.md §5「判据必须非退化」）。故本块两个方向都可红：
+   *   · 合法来源探针 tokens_ok 必须 rc=0：非 0 ⇒ 冻结词表误杀合法权重来源（过杀）；
+   *   · 禁来源探针 tokens_bad 必须 rc=1：非 1 ⇒ 冻结词表被放宽，本门已失效（漏杀）。
+   * 判红时按 p2_upm_ma_param_cov 的同型收尾（:1305）写 r.error、关模型、提前返回。
+   * 冻结依据：docs/contracts/DATA_SEMANTICS.md §31.8
+   * 「weight 来源含诊断量（median(SNR_F)/support/coverage/FWHM/residual）→ REJECT；
+   *  G-WEIGHT-SOURCES / G-DIAGNOSTIC-NOT-WEIGHT」+ §31.3/§31.7，
+   * docs/plugins/algorithms_phase2/13_integration.md「权重来源受限表的锁定状态」。 */
   {
     char eb[256] = {0};
     const char* tokens_ok[] = {"psf", "photometric_response", "noise_covariance"};
     const char* tokens_bad[] = {"support", "coverage", "median_source_snr", "fwhm", "residual"};
+    eb[0] = '\0';
     const int tok_ok_rc = p2_weight_source_token_reject(tokens_ok, 3, eb, sizeof(eb));
-    (void)tok_ok_rc;
-    p2_rejection_weight_surface_guard(tokens_bad, 5, eb, sizeof(eb));
+    if (tok_ok_rc != 0) {
+      r.error = "p2_weight_source_token_reject rejected a legal weight source rc=" +
+                std::to_string(tok_ok_rc) + ": " + eb;
+      p2_upm_ma_close(model); return r;
+    }
+    eb[0] = '\0';
+    const int tok_bad_rc = p2_weight_source_token_reject(tokens_bad, 5, eb, sizeof(eb));
+    if (tok_bad_rc != 1) {
+      r.error = "p2_weight_source_token_reject no longer rejects forbidden weight "
+                "sources rc=" + std::to_string(tok_bad_rc) +
+                " (FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE relaxed)";
+      p2_upm_ma_close(model); return r;
+    }
+    eb[0] = '\0';
+    const int surf_ok_rc = p2_rejection_weight_surface_guard(tokens_ok, 3, eb, sizeof(eb));
+    if (surf_ok_rc != 0) {
+      r.error = "p2_rejection_weight_surface_guard rejected a legal weight surface rc=" +
+                std::to_string(surf_ok_rc) + ": " + eb;
+      p2_upm_ma_close(model); return r;
+    }
+    eb[0] = '\0';
+    const int surf_bad_rc = p2_rejection_weight_surface_guard(tokens_bad, 5, eb, sizeof(eb));
+    if (surf_bad_rc != 1) {
+      r.error = "p2_rejection_weight_surface_guard no longer rejects forbidden weight "
+                "sources rc=" + std::to_string(surf_bad_rc) +
+                " (FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE relaxed)";
+      p2_upm_ma_close(model); return r;
+    }
   }
 
   p2_upm_ma_close(model);
