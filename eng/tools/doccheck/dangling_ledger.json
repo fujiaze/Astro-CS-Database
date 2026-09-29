@@ -358,6 +358,30 @@
    }
   },
   {
+   "file": "eng/tools/check_p1_symbol_map.py",
+   "token": "docs/refactor",
+   "owner": "BLD-401",
+   "reason": "故意保留的失效路径字面量：迁移后自检 S7 判据要求已失效的门如实标注失效、不得改写为新路径（改写即把失效伪装成有效，会让门禁报告通过）。该字面量出现在文件头说明与失效标注中，是标注的一部分而非活动指针。",
+   "former_owner": "FIX-404",
+   "classification": "intentional_stale_literal",
+   "handoff": {
+    "to": "BLD-401",
+    "reason": "与同文件 docs/refactor/P1_SYMBOL_MAP.md 条目同源；S7 判据要求保留该字面量"
+   }
+  },
+  {
+   "file": "eng/tools/check_p1_symbol_map.py",
+   "token": "docs/refactor/",
+   "owner": "BLD-401",
+   "reason": "故意保留的失效路径字面量：迁移后自检 S7 判据要求已失效的门如实标注失效、不得改写为新路径（改写即把失效伪装成有效，会让门禁报告通过）。该字面量出现在文件头说明与失效标注中，是标注的一部分而非活动指针。",
+   "former_owner": "FIX-404",
+   "classification": "intentional_stale_literal",
+   "handoff": {
+    "to": "BLD-401",
+    "reason": "与同文件 docs/refactor/P1_SYMBOL_MAP.md 条目同源；S7 判据要求保留该字面量"
+   }
+  },
+  {
    "file": "eng/tools/check_p2_symbol_map.py",
    "token": "docs/archive/refactor/",
    "owner": "BLD-401",
