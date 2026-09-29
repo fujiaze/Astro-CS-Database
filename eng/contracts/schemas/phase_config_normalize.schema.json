@@ -14,7 +14,7 @@
     "docs/ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：多块 blocks[] + 平铺单块简写 + 互斥规则）",
     "docs/ASTROCS_DESIGN.md §3.3（三命令同构块结构 —— 一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一）",
     "normalize 配置 = 多数据块 JSON（同一组校准帧和运行参数支持一组 light）",
-    "docs/ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
+    "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"
