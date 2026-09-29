@@ -9,7 +9,7 @@
 `ASTROCS_DESIGN.md` 为准。
 
 ~~~text
-L0 最高设计/纪律   ASTROCS_DESIGN.md / AGENTS.md / ENGINEERING_SPEC.md / CONTROL_PACK_SPEC.md
+L0 最高设计/纪律   docs/ASTROCS_DESIGN.md / AGENTS.md / ENGINEERING_SPEC.md / CONTROL_PACK_SPEC.md
 L0 项目入口        README.md / docs/engineering/RELEASE_STATUS.md / docs/KNOWN_LIMITATIONS.md /
                    docs/engineering/DEVELOPER_GUIDE.md / memory.md
 L1 科学规范        docs/science/*.md（定义/公式/变量/单位/假设/域/误差/ID；权威）
