@@ -134,10 +134,19 @@ def is_legend(text):
 def evaluate(root):
     files = list(iter_doc_files(root))
     red, reported, legends = [], [], 0
+    # 语境分母 = 命中 LIC_CTX 的条目总数（不论是否命中未闭环措辞）。
+    # 原实现把分母算成「命中未闭环的条目 + 图例行」，于是：
+    #   1) 印出来的数不是分母（FINAL-07 实测真实语境条目 66，原印成 1）；
+    #   2) 一个干净仓（无未闭环措辞、无图例行）会让该数=0，被 C1 当成
+    #      「解析器空转」而 exit 2 —— 方向反了，干净仓被判红。
+    # C1 的本意是防解析器静默退化，判据应是语境分母，与红线数无关。
+    ctx_total = 0
     for path in files:
         with open(path, "r", encoding="utf-8") as fh:
             rel = os.path.relpath(path, root)
             for text, lineno in iter_entries(fh.read()):
+                if LIC_CTX.search(text):
+                    ctx_total += 1
                 hits = [m.group(0) for m in UNCLOSED_RE.finditer(text)]
                 if not hits:
                     continue
@@ -153,7 +162,7 @@ def evaluate(root):
                     "excerpt": text.strip()[:150],
                     "verdict": "FAIL",
                 })
-    return {"files": len(files), "lic_entries": len(red) + legends,
+    return {"files": len(files), "lic_entries": ctx_total,
             "legends_excluded": legends, "red": red, "reported": reported}
 
 
