@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""STD-REG-001 机器检查器：国际标准冻结注册表（docs/standards/STANDARDS_REGISTRY.md）。
+"""STD-REG-001 机器检查器：国际标准冻结注册表（docs/engineering/STANDARDS_REGISTRY.md）。
 
-合同（docs/standards/STANDARDS_REGISTRY.md §1/§2 冻结）：
+合同（docs/engineering/STANDARDS_REGISTRY.md §1/§2 冻结）：
   C1  注册表文件存在且登记为 ACTIVE_NORMATIVE（docs/DOCUMENT_INDEX.yaml 机器可解析）；
   C2  六个必需域齐备且与 §2 域表逐行一致（domain key 集合相等）；
   C3  每域字段面完整（DOMAIN/STANDARD/VERSION/CLAUSES/COMPLIANCE/EVIDENCE/DEVIATION）
@@ -56,7 +56,7 @@ import re
 import subprocess
 import sys
 
-REGISTRY_REL = "docs/standards/STANDARDS_REGISTRY.md"
+REGISTRY_REL = "docs/engineering/STANDARDS_REGISTRY.md"
 INDEX_REL = "docs/DOCUMENT_INDEX.yaml"
 
 # 必需锚（fail-closed）：文件不存在 / 未跟踪 ⇒ ANCHOR_STALE + exit 2。

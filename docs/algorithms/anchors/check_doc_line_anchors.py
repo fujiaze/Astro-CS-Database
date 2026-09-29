@@ -5,7 +5,7 @@
 任务：冻结文档行号锚（作用域 = anchor_contract.json.doc_globs，现为 docs/**/*.md）
 全量复测——锚指向的符号/行为与文档一致；漂移锚更新行号并保持语义不变。
 
-规则（详见 docs/algorithms/anchors/ANCHOR_CONTRACT.md）：
+规则（详见 docs/detail/anchors/ANCHOR_CONTRACT.md）：
   C1 docs_tracked      作用域文档存在且被 Git 跟踪
   C2 anchor_resolved   每个锚解析到唯一真实目标文件（exact → doc-relative →
                        contract.resolvers → unique basename）；无法解析即 FAIL
@@ -57,7 +57,7 @@ import tempfile
 
 CONTRACT_REL = "docs/algorithms/anchors/anchor_contract.json"
 REGISTRY_REL = "docs/algorithms/anchors/unresolved_registry.json"
-CONTRACT_DOC_REL = "docs/algorithms/anchors/ANCHOR_CONTRACT.md"
+CONTRACT_DOC_REL = "docs/detail/anchors/ANCHOR_CONTRACT.md"
 EXTS = ("cpp", "cc", "cxx", "h", "hpp", "hh", "py", "sh", "ps1", "txt",
         "json", "yaml", "yml", "md", "cmake", "in")
 _FILE = (r"(?<![\w./-])((?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*"

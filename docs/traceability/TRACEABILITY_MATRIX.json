@@ -55,7 +55,7 @@
       "test_status": "VERIFIED",
       "evidence_id": "EVID-IO-001",
       "evidence_status": "VERIFIED",
-      "notes": "服务/宿主基础设施(IO-001 FITS 流接口冻结): 不承载科学算法 → SCI/ALG MISSING(显式); 数据语义 DATA-HIPS-001(docs/contracts/DATA_SEMANTICS.md); API 锚取 fits_stream_v1 头(API-IO-STREAM-V1, docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md 冻结); SRC 实现 lib/infrastructure/aio/io/fits_core.c。"
+      "notes": "服务/宿主基础设施(IO-001 FITS 流接口冻结): 不承载科学算法 → SCI/ALG MISSING(显式); 数据语义 DATA-HIPS-001(docs/science/DATA_SEMANTICS.md); API 锚取 fits_stream_v1 头(API-IO-STREAM-V1, docs/science/IO_001_FITS_STREAM_INTERFACE.md 冻结); SRC 实现 lib/infrastructure/aio/io/fits_core.c。"
     },
     {
       "module_id": "MOD-astrocs-providers-cpu",
@@ -81,12 +81,12 @@
       "test_status": "VERIFIED",
       "evidence_id": "EVID-CPU-001",
       "evidence_status": "VERIFIED",
-      "notes": "CPU capability provider(CPU-001 ISA/OS 安全探测): 宿主能力探测无科学公式 → SCI/ALG MISSING(显式); API-CPU-001 + ARCH-CPU-001 见 docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md; 证据 returns/CPU-001 EVID-CPU-001。"
+      "notes": "CPU capability provider(CPU-001 ISA/OS 安全探测): 宿主能力探测无科学公式 → SCI/ALG MISSING(显式); API-CPU-001 + ARCH-CPU-001 见 docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md; 证据 returns/CPU-001 EVID-CPU-001。"
     },
     {
       "module_id": "MOD-astrocs-phase1-calibration",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.calibration.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.calibration.md",
       "science_id": "SCI-CAL-001",
       "science_doc": "docs/science/CALIBRATION.md",
       "science_status": "VERIFIED",
@@ -112,7 +112,7 @@
     {
       "module_id": "MOD-astrocs-phase1-cosmetic",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.cosmetic.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.cosmetic.md",
       "science_id": "SCI-CAL-001",
       "science_doc": "docs/science/CALIBRATION.md",
       "science_status": "VERIFIED",
@@ -138,7 +138,7 @@
     {
       "module_id": "MOD-astrocs-phase1-drizzle",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.drizzle.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.drizzle.md",
       "science_id": "SCI-DRZ-001",
       "science_doc": "docs/science/DRIZZLE.md",
       "science_status": "VERIFIED",
@@ -164,7 +164,7 @@
     {
       "module_id": "MOD-astrocs-phase1-hips-writer",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.hips-writer.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.hips-writer.md",
       "science_id": "SCI-DRZ-001",
       "science_doc": "docs/science/DRIZZLE.md",
       "science_status": "VERIFIED",
@@ -190,7 +190,7 @@
     {
       "module_id": "MOD-astrocs-phase1-noise-snr",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.noise-snr.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.noise-snr.md",
       "science_id": "SCI-NOISE-001",
       "science_doc": "docs/science/NOISE_MODEL.md",
       "science_status": "VERIFIED",
@@ -216,7 +216,7 @@
     {
       "module_id": "MOD-astrocs-phase1-photometry",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.photometry.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.photometry.md",
       "science_id": "SCI-PHOT-001",
       "science_doc": "docs/science/PHOTOMETRY.md",
       "science_status": "VERIFIED",
@@ -242,7 +242,7 @@
     {
       "module_id": "MOD-astrocs-phase1-star-psf",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.star-psf.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.star-psf.md",
       "science_id": "SCI-P1-PSF-001",
       "science_doc": "docs/science/algorithms/STAR_PSF_ALGORITHMS.md::SCI-P1-PSF-001",
       "science_status": "VERIFIED",
@@ -268,7 +268,7 @@
     {
       "module_id": "MOD-astrocs-phase1-wcs-platesolve",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.wcs-platesolve.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.wcs-platesolve.md",
       "science_id": "SCI-WCS-001",
       "science_doc": "docs/science/ASTROMETRY.md",
       "science_status": "VERIFIED",
@@ -294,7 +294,7 @@
     {
       "module_id": "MOD-astrocs-phase1-writer",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.writer.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.writer.md",
       "science_id": "SCI-P1-WR-001",
       "science_doc": "MISSING",
       "science_status": "MISSING",
@@ -320,7 +320,7 @@
     {
       "module_id": "MOD-astrocs-phase2-coverage",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.coverage.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.coverage.md",
       "science_id": "SCI-UPM-001",
       "science_doc": "docs/science/PHASE2_UPM.md",
       "science_status": "VERIFIED",
@@ -346,7 +346,7 @@
     {
       "module_id": "MOD-astrocs-phase2-integrate",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.integrate.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.integrate.md",
       "science_id": "SCI-INT-001",
       "science_doc": "docs/science/INTEGRATION.md",
       "science_status": "VERIFIED",
@@ -363,16 +363,16 @@
       "src_path": "lib/algorithms/coverage/include/astro/phase2/integrate.h::p2_integrate_pixel,p2_validate_candidate_weights",
       "src_status": "VERIFIED",
       "test_id": "TEST-P2-INT-001",
-      "test_path": "docs/modules/registry/astrocs.phase2.integrate.md::TEST-P2-INT-001",
+      "test_path": "docs/detail/registry/astrocs.phase2.integrate.md::TEST-P2-INT-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "integrate 模块合同（冻结）: science_id=SCI-INT-001=既有共享 FROZEN SCI(docs/science/INTEGRATION.md, 加权 estimator/ivar 语义/支撑-有效性分离, 零 SCI 改动, 映射声明 SCI-P2-INT-001⇒SCI-INT-001 于 PHASE2_INTEGRATION.md §11.5; descriptor 占位 SCI-P2-INT-001 不入矩阵因其无 docs/science 权威页; SCI §5:136 引用 integrate.cpp 行段 10-79 滞后于实测 89 行（为其子集, 非越界）, 行号权威=ALG 文档 §3); ALG-P2-INT-001(docs/science/algorithms/PHASE2_INTEGRATION.md, 逐符号源码行号锚 integrate.cpp 89 行+integrate.h 83 行, 五态状态机/signal=vs/wsum/support canonical/policy-reducer 分离/并行 tolerance; DISP-P2INT-001（sup_max 漏计零权重 accepted 样本）与 DISP-P2INT-002（support 表述矛盾）均已落地闭环：sup_max 更新位于权重分支之前、零权重 accepted 样本计入 max、全零权仍发布该 max、ALL_REJECTED 保持 0，回归门 eng/tests/unit/p2_output_semantics_test.cpp，口径正本 docs/contracts/DATA_SEMANTICS.md §21.5 + docs/science/INTEGRATION.md §7「支撑单调性」; §11.3); DATA-P2-INT=DATA_SEMANTICS.md §21(P2PixelStack in/P2PixelResult out 单位/dtype/shape/invalid/五态/确定性=fixed_reduction_order bitwise); API-P2-INT-001=PUBLIC_API.md 节(p2_integrate_pixel/p2_validate_candidate_weights 导出签名消费面, V17 清单行 17-29 展开, 不新增 C ABI); API-P2-001 编排面 FROZEN; ARCH-001 承载边界。SRC 锚=integrate.h 函数声明符号(path::symbol 口径; 生产源 integrate.cpp astrocs_phase2 静态库成员 根 CMakeLists.txt:336-346/:344); TEST 层锚=registry 手写合同页 docs/modules/registry/astrocs.phase2.integrate.md(git-tracked 承载) §独立 synthetic 验证节 TEST-P2-INT-DESIGN-001 设计冻结 VERIFIED(fixture/NumPy oracle rtol 1e-12/五态穷尽/并行 1..N bitwise), 可执行 TEST-P2-INT-001 待落地; EVIDENCE 待补。合同三件套落位 lib/algorithms/integration/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING; lib/algorithms/coverage/ 三件套已被 P2-COV 占用); 迁移目标 astrocs_p2_integration.dll 未建; 生产调用现状 stage2.cpp:1213-1223/:1288/:1515-1527 与 acr_kernels.cpp:189-195/:218(schedule(static)); ThreadLease 零命中(待迁移, 与 DISP-COV-005 同构); known_defects=无未决项（DISP-P2INT-001/002 已落地，见 ALG 文档 §11.3）。"
+      "notes": "integrate 模块合同（冻结）: science_id=SCI-INT-001=既有共享 FROZEN SCI(docs/science/INTEGRATION.md, 加权 estimator/ivar 语义/支撑-有效性分离, 零 SCI 改动, 映射声明 SCI-P2-INT-001⇒SCI-INT-001 于 PHASE2_INTEGRATION.md §11.5; descriptor 占位 SCI-P2-INT-001 不入矩阵因其无 docs/science 权威页; SCI §5:136 引用 integrate.cpp 行段 10-79 滞后于实测 89 行（为其子集, 非越界）, 行号权威=ALG 文档 §3); ALG-P2-INT-001(docs/science/algorithms/PHASE2_INTEGRATION.md, 逐符号源码行号锚 integrate.cpp 89 行+integrate.h 83 行, 五态状态机/signal=vs/wsum/support canonical/policy-reducer 分离/并行 tolerance; DISP-P2INT-001（sup_max 漏计零权重 accepted 样本）与 DISP-P2INT-002（support 表述矛盾）均已落地闭环：sup_max 更新位于权重分支之前、零权重 accepted 样本计入 max、全零权仍发布该 max、ALL_REJECTED 保持 0，回归门 eng/tests/unit/p2_output_semantics_test.cpp，口径正本 docs/science/DATA_SEMANTICS.md §21.5 + docs/science/INTEGRATION.md §7「支撑单调性」; §11.3); DATA-P2-INT=DATA_SEMANTICS.md §21(P2PixelStack in/P2PixelResult out 单位/dtype/shape/invalid/五态/确定性=fixed_reduction_order bitwise); API-P2-INT-001=PUBLIC_API.md 节(p2_integrate_pixel/p2_validate_candidate_weights 导出签名消费面, V17 清单行 17-29 展开, 不新增 C ABI); API-P2-001 编排面 FROZEN; ARCH-001 承载边界。SRC 锚=integrate.h 函数声明符号(path::symbol 口径; 生产源 integrate.cpp astrocs_phase2 静态库成员 根 CMakeLists.txt:336-346/:344); TEST 层锚=registry 手写合同页 docs/detail/registry/astrocs.phase2.integrate.md(git-tracked 承载) §独立 synthetic 验证节 TEST-P2-INT-DESIGN-001 设计冻结 VERIFIED(fixture/NumPy oracle rtol 1e-12/五态穷尽/并行 1..N bitwise), 可执行 TEST-P2-INT-001 待落地; EVIDENCE 待补。合同三件套落位 lib/algorithms/integration/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING; lib/algorithms/coverage/ 三件套已被 P2-COV 占用); 迁移目标 astrocs_p2_integration.dll 未建; 生产调用现状 stage2.cpp:1213-1223/:1288/:1515-1527 与 acr_kernels.cpp:189-195/:218(schedule(static)); ThreadLease 零命中(待迁移, 与 DISP-COV-005 同构); known_defects=无未决项（DISP-P2INT-001/002 已落地，见 ALG 文档 §11.3）。"
     },
     {
       "module_id": "MOD-astrocs-phase2-reject",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.reject.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.reject.md",
       "science_id": "SCI-REJ-001",
       "science_doc": "docs/science/REJECTION.md",
       "science_status": "VERIFIED",
@@ -389,16 +389,16 @@
       "src_path": "lib/algorithms/coverage/include/astro/phase2/rejection.h::p2_reject_plan_resolve,p2_reject_stack_ex,p2_collect_candidate_stack,p2_eligibility_filter,p2_large_scale_apply,p2_rejection_semantic_id",
       "src_status": "VERIFIED",
       "test_id": "TEST-P2-REJ-001",
-      "test_path": "docs/modules/registry/astrocs.phase2.reject.md::TEST-P2-REJ-001",
+      "test_path": "docs/detail/registry/astrocs.phase2.reject.md::TEST-P2-REJ-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "reject 模块合同（冻结）: science_id=SCI-REJ-001=既有共享 FROZEN SCI(docs/science/REJECTION.md, 集合 SCI-REJ-001..008, 排异公式/阈值/判向/eligibility 分层/large_scale 语义, 零 SCI 改动, 映射声明 SCI-P2-REJ-001⇒SCI-REJ-001 于 PHASE2_REJECTION.md §11.5; descriptor 占位 SCI-P2-REJ-001 不入矩阵因其无 docs/science 权威页; SCI/REJECTION_ALGORITHMS 行号锚漂移=DISP-P2REJ-003, 行号权威=ALG 文档 §3); ALG-P2-REJ-001(docs/science/algorithms/PHASE2_REJECTION.md, 逐符号源码行号锚 rejection.cpp 2076 行+rejection.h 329 行+synthetic_gate.cpp 31 测试锚, 10 方法核公式阈值冻结/AUTO 路由按 ASTROCS_DESIGN.md §5.5 五档表(N=几何覆盖帧数: 1≤N≤3 none / 4≤N≤5 percentile / 6≤N≤15 winsorized sigma / N≥16 linear fit)/八态状态机/判向冻结 rejection.h:20-21 禁原始值正负号/工作域归一 floor 1e-12/置换不变性 fixed_reduction_order bitwise 独立于 worker 数/测试设计 §11.4 F1-F8 冻结容差; 实现偏差 DISP-P2REJ-001..004 §7 登记不改码); DATA-P2-REJ=DATA_SEMANTICS.md §22(eligibility/gather/kernel 三层输入+P2RejectionDecision 输出+八态+单位/dtype/确定性权威源); API-P2-REJ-001=PUBLIC_API.md 节(planning/eligibility/gather/kernel/large_scale 导出符号消费面冻结, 不新增 C ABI; compat p2_reject_stack 冻结两符号仅测试/兼容调用 rejection.h:299); API-P2-001 编排面 FROZEN; ARCH-001 承载边界。SRC 锚=rejection.h 函数声明符号 6 个(path::symbol 口径; 生产源 rejection.cpp astrocs_phase2 静态库成员 根 CMakeLists.txt:336-346/:340); TEST 层锚=registry 手写合同页 docs/modules/registry/astrocs.phase2.reject.md(git-tracked 承载) §独立 synthetic 验证节: TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P2-REJ-001 §11.4 F1-F8: ESD NIST Rosner 54 值拒集 bitwise/AUTO 路由枚举精确/small-N 状态穷尽/卫星注入 mask 精确/置换不变性 decision bitwise/typed params 逐位/Python oracle rtol 1e-12/gather 逐元素精确), 可执行 TEST-P2-REJ-001 MISSING 待落地——dual statement 不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/rejection/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/algorithms/coverage/ 三件套已被 P2-COV 占用不可覆盖); 迁移目标 astrocs_p2_rejection.dll 未建; depends_on_int=P2-UPM-INT;CPU-005(MODULE_MIGRATION_MATRIX.csv:15 P2-REJ 行权威值); 生产消费现状 stage2.cpp:643-759(group/tile plan resolve+typed params 唯一默认源 :698-728)/:1085-1201(CPU gather :1101+ivar 回映射 :1098/ex :1184/status 门 :1189-1195)/:1280-1317(OMP 像素间并行+per-thread 定序归并 :1310-1317, large_scale 强制串行 :1280)/:1449-1560(gate2/apply/二次积分) 与 acr_kernels.cpp:110-210(ACR 桥 ex :174-176/status 门 :177-183); ThreadLease 零命中(待迁移, 与 DISP-COV-005 同构); known_defects=DISP-P2REJ-001(h:118 low_fraction 注释漂移)/DISP-P2REJ-002(空栈 MIN_SAMPLES 非 NO_CANDIDATES)/DISP-P2REJ-003(行号锚漂移)/DISP-P2REJ-004(minmax value-only tie-break 未显式冻结) 登记不改码。"
+      "notes": "reject 模块合同（冻结）: science_id=SCI-REJ-001=既有共享 FROZEN SCI(docs/science/REJECTION.md, 集合 SCI-REJ-001..008, 排异公式/阈值/判向/eligibility 分层/large_scale 语义, 零 SCI 改动, 映射声明 SCI-P2-REJ-001⇒SCI-REJ-001 于 PHASE2_REJECTION.md §11.5; descriptor 占位 SCI-P2-REJ-001 不入矩阵因其无 docs/science 权威页; SCI/REJECTION_ALGORITHMS 行号锚漂移=DISP-P2REJ-003, 行号权威=ALG 文档 §3); ALG-P2-REJ-001(docs/science/algorithms/PHASE2_REJECTION.md, 逐符号源码行号锚 rejection.cpp 2076 行+rejection.h 329 行+synthetic_gate.cpp 31 测试锚, 10 方法核公式阈值冻结/AUTO 路由按 ASTROCS_DESIGN.md §5.5 五档表(N=几何覆盖帧数: 1≤N≤3 none / 4≤N≤5 percentile / 6≤N≤15 winsorized sigma / N≥16 linear fit)/八态状态机/判向冻结 rejection.h:20-21 禁原始值正负号/工作域归一 floor 1e-12/置换不变性 fixed_reduction_order bitwise 独立于 worker 数/测试设计 §11.4 F1-F8 冻结容差; 实现偏差 DISP-P2REJ-001..004 §7 登记不改码); DATA-P2-REJ=DATA_SEMANTICS.md §22(eligibility/gather/kernel 三层输入+P2RejectionDecision 输出+八态+单位/dtype/确定性权威源); API-P2-REJ-001=PUBLIC_API.md 节(planning/eligibility/gather/kernel/large_scale 导出符号消费面冻结, 不新增 C ABI; compat p2_reject_stack 冻结两符号仅测试/兼容调用 rejection.h:299); API-P2-001 编排面 FROZEN; ARCH-001 承载边界。SRC 锚=rejection.h 函数声明符号 6 个(path::symbol 口径; 生产源 rejection.cpp astrocs_phase2 静态库成员 根 CMakeLists.txt:336-346/:340); TEST 层锚=registry 手写合同页 docs/detail/registry/astrocs.phase2.reject.md(git-tracked 承载) §独立 synthetic 验证节: TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P2-REJ-001 §11.4 F1-F8: ESD NIST Rosner 54 值拒集 bitwise/AUTO 路由枚举精确/small-N 状态穷尽/卫星注入 mask 精确/置换不变性 decision bitwise/typed params 逐位/Python oracle rtol 1e-12/gather 逐元素精确), 可执行 TEST-P2-REJ-001 MISSING 待落地——dual statement 不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/rejection/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/algorithms/coverage/ 三件套已被 P2-COV 占用不可覆盖); 迁移目标 astrocs_p2_rejection.dll 未建; depends_on_int=P2-UPM-INT;CPU-005(MODULE_MIGRATION_MATRIX.csv:15 P2-REJ 行权威值); 生产消费现状 stage2.cpp:643-759(group/tile plan resolve+typed params 唯一默认源 :698-728)/:1085-1201(CPU gather :1101+ivar 回映射 :1098/ex :1184/status 门 :1189-1195)/:1280-1317(OMP 像素间并行+per-thread 定序归并 :1310-1317, large_scale 强制串行 :1280)/:1449-1560(gate2/apply/二次积分) 与 acr_kernels.cpp:110-210(ACR 桥 ex :174-176/status 门 :177-183); ThreadLease 零命中(待迁移, 与 DISP-COV-005 同构); known_defects=DISP-P2REJ-001(h:118 low_fraction 注释漂移)/DISP-P2REJ-002(空栈 MIN_SAMPLES 非 NO_CANDIDATES)/DISP-P2REJ-003(行号锚漂移)/DISP-P2REJ-004(minmax value-only tie-break 未显式冻结) 登记不改码。"
     },
     {
       "module_id": "MOD-astrocs-phase2-resample",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.resample.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.resample.md",
       "science_id": "SCI-P2-RES-001",
       "science_doc": "MISSING",
       "science_status": "MISSING",
@@ -424,7 +424,7 @@
     {
       "module_id": "MOD-astrocs-phase2-session",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.session.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.session.md",
       "science_id": "SCI-UPM-001",
       "science_doc": "docs/science/PHASE2_UPM.md",
       "science_status": "VERIFIED",
@@ -441,16 +441,16 @@
       "src_path": "lib/phase2_session/p2_session.h::p2_session_create,p2_session_validate,p2_session_run,p2_session_inspect,p2_session_destroy",
       "src_status": "VERIFIED",
       "test_id": "TEST-P2-SESSION-001",
-      "test_path": "docs/modules/registry/astrocs.phase2.session.md::TEST-P2-SESSION-001",
+      "test_path": "docs/detail/registry/astrocs.phase2.session.md::TEST-P2-SESSION-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "session 模块合同（冻结）: science_id=SCI-UPM-001=既有共享 FROZEN SCI(docs/science/PHASE2_UPM.md, 集合 SCI-UPM-001..010+SCI-UPM-WEIGHT-001+SCI-UPM-PERSIST-001; 与 SCI-INT-001/SCI-REJ-001 同为装配会话四段消费的共享 SCI 层, 零 SCI 改动, registry descriptor 占位词汇 SCI-P2-RES-001 等不作冻结依据); ALG-P2-SESSION-001(docs/science/algorithms/PHASE2_SESSION.md, 装配算法页: 四段 canonical 序 coverage→sample→upm_build→persist 逐符号源码行号锚 p2_session.cpp 282 行+p2_session.h 39 行+module_adapters.cpp P2Api 委托+CMake astrocs_phase2_session 静态库, probe/fill 两遍/预算绑定 budget.max_workers/取消=阶段边界 upm 整模型不写半成品/upm 装配常量冻结 :184-194/model 所有权 p2_upm_close/manifest 状态机 created→complete|failed/错误映射 rc=1→PARAM rc=2→STATE[合同§4]; DISP-P2SES-001..004 登记不改码); DATA-P2-SESSION=DATA_SEMANTICS.md §24(config JSON 键集/manifest JSON 字段/ACS_ERR 错误语义/各段数据面单位 dtype shape 透传口径权威源); API-P2-SESSION-001=PUBLIC_API.md 节(五导出 C API p2_session_create/validate/run/inspect/destroy 消费面冻结, 不新增 C ABI); API-P2-001 编排面 FROZEN 不变(docs/api/PHASE2_API_V1.md); ARCH-001 承载边界。SRC 锚=p2_session.h 五函数声明符号 5 个(path::symbol 口径; 生产源 p2_session.cpp astrocs_phase2_session 静态库成员 根 CMakeLists.txt:454-458); TEST 层锚=registry 手写合同页 docs/modules/registry/astrocs.phase2.session.md(git-tracked 承载): TEST-P2-SESSION-001 设计冻结 VERIFIED(设计面=ALG-P2-SESSION-001 §11.5: T1 node call-count 唯一性锚台账 :186 'coverage through hips writer each once'/T2 typed DAG full execution 锚 :187/T3 validate 负面矩阵+取消注入+manifest 状态机+output_dir 注入面锚 :188; 容差=装配层零科学数值容差 bitwise), 可执行 TEST-P2-SESSION-001 MISSING 待落地——dual statement 不冒认; 共址旁证=eng/tests/unit/p2_ir_facade_test.cpp(静态 facade 断言, ctest p2_ir_facade, eng/tests/unit/CMakeLists.txt:407-409, 现状仅 4 节点静态门); EVIDENCE 待补。合同三件套落位 lib/phase2_session/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md, 源码同目录与 lib/phase1_session 同构); 迁移目标 astrocs_p2_session.dll 未建; registry 现状无 astrocs.phase2.session 独立 descriptor——phase2.resample 占位 descriptor(module_adapters.cpp:345-359)与 canonical 7 节点链 descriptors(:763-776)工厂经 P2Api(:711-720)委托五函数, 无第二调度顺序, 占位词汇待对齐; 生产消费现状 lib/infrastructure/cli/parser.cpp:344 output_dir 必填+lib/infrastructure/cli/runtime_client.cpp:29/:75 phase2 config 直通; known_defects=DISP-P2SES-001(validate 未拒未知键)/DISP-P2SES-002(run 异常可穿 C ABI)/DISP-P2SES-003(取消后 manifest 状态歧义)/DISP-P2SES-004(persist 组合静默跳过)/DISP-P2SES-005(UPM 常量硬编码仅 3 键可覆盖)/DISP-P2SES-006(error_kind 粗粒度)/DISP-P2SES-007(probe-fill 部分失败容错未合同化)/DISP-P2SES-008(预算头注释与实现矛盾) 共 8 条登记不改码, 另注 output_dir 必填未消费=现状差距登记(ALG §5/DATA §24.1)。"
+      "notes": "session 模块合同（冻结）: science_id=SCI-UPM-001=既有共享 FROZEN SCI(docs/science/PHASE2_UPM.md, 集合 SCI-UPM-001..010+SCI-UPM-WEIGHT-001+SCI-UPM-PERSIST-001; 与 SCI-INT-001/SCI-REJ-001 同为装配会话四段消费的共享 SCI 层, 零 SCI 改动, registry descriptor 占位词汇 SCI-P2-RES-001 等不作冻结依据); ALG-P2-SESSION-001(docs/science/algorithms/PHASE2_SESSION.md, 装配算法页: 四段 canonical 序 coverage→sample→upm_build→persist 逐符号源码行号锚 p2_session.cpp 282 行+p2_session.h 39 行+module_adapters.cpp P2Api 委托+CMake astrocs_phase2_session 静态库, probe/fill 两遍/预算绑定 budget.max_workers/取消=阶段边界 upm 整模型不写半成品/upm 装配常量冻结 :184-194/model 所有权 p2_upm_close/manifest 状态机 created→complete|failed/错误映射 rc=1→PARAM rc=2→STATE[合同§4]; DISP-P2SES-001..004 登记不改码); DATA-P2-SESSION=DATA_SEMANTICS.md §24(config JSON 键集/manifest JSON 字段/ACS_ERR 错误语义/各段数据面单位 dtype shape 透传口径权威源); API-P2-SESSION-001=PUBLIC_API.md 节(五导出 C API p2_session_create/validate/run/inspect/destroy 消费面冻结, 不新增 C ABI); API-P2-001 编排面 FROZEN 不变(docs/engineering/PHASE2_API_V1.md); ARCH-001 承载边界。SRC 锚=p2_session.h 五函数声明符号 5 个(path::symbol 口径; 生产源 p2_session.cpp astrocs_phase2_session 静态库成员 根 CMakeLists.txt:454-458); TEST 层锚=registry 手写合同页 docs/detail/registry/astrocs.phase2.session.md(git-tracked 承载): TEST-P2-SESSION-001 设计冻结 VERIFIED(设计面=ALG-P2-SESSION-001 §11.5: T1 node call-count 唯一性锚台账 :186 'coverage through hips writer each once'/T2 typed DAG full execution 锚 :187/T3 validate 负面矩阵+取消注入+manifest 状态机+output_dir 注入面锚 :188; 容差=装配层零科学数值容差 bitwise), 可执行 TEST-P2-SESSION-001 MISSING 待落地——dual statement 不冒认; 共址旁证=eng/tests/unit/p2_ir_facade_test.cpp(静态 facade 断言, ctest p2_ir_facade, eng/tests/unit/CMakeLists.txt:407-409, 现状仅 4 节点静态门); EVIDENCE 待补。合同三件套落位 lib/phase2_session/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md, 源码同目录与 lib/phase1_session 同构); 迁移目标 astrocs_p2_session.dll 未建; registry 现状无 astrocs.phase2.session 独立 descriptor——phase2.resample 占位 descriptor(module_adapters.cpp:345-359)与 canonical 7 节点链 descriptors(:763-776)工厂经 P2Api(:711-720)委托五函数, 无第二调度顺序, 占位词汇待对齐; 生产消费现状 lib/infrastructure/cli/parser.cpp:344 output_dir 必填+lib/infrastructure/cli/runtime_client.cpp:29/:75 phase2 config 直通; known_defects=DISP-P2SES-001(validate 未拒未知键)/DISP-P2SES-002(run 异常可穿 C ABI)/DISP-P2SES-003(取消后 manifest 状态歧义)/DISP-P2SES-004(persist 组合静默跳过)/DISP-P2SES-005(UPM 常量硬编码仅 3 键可覆盖)/DISP-P2SES-006(error_kind 粗粒度)/DISP-P2SES-007(probe-fill 部分失败容错未合同化)/DISP-P2SES-008(预算头注释与实现矛盾) 共 8 条登记不改码, 另注 output_dir 必填未消费=现状差距登记(ALG §5/DATA §24.1)。"
     },
     {
       "module_id": "MOD-astrocs-phase2-sample",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.sample.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.sample.md",
       "science_id": "SCI-P2-SMP-001",
       "science_doc": "MISSING",
       "science_status": "MISSING",
@@ -476,7 +476,7 @@
     {
       "module_id": "MOD-astrocs-phase2-upm-apply",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.upm-apply.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.upm-apply.md",
       "science_id": "SCI-UPM-001",
       "science_doc": "docs/science/PHASE2_UPM.md",
       "science_status": "VERIFIED",
@@ -502,7 +502,7 @@
     {
       "module_id": "MOD-astrocs-phase2-upm-fit",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.upm-fit.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.upm-fit.md",
       "science_id": "SCI-UPM-001",
       "science_doc": "docs/science/PHASE2_UPM.md",
       "science_status": "VERIFIED",
@@ -528,7 +528,7 @@
     {
       "module_id": "MOD-astrocs-phase2-write",
       "module_kind": "phase2",
-      "module_anchor": "docs/modules/registry/astrocs.phase2.write.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase2.write.md",
       "science_id": "SCI-UPM-001",
       "science_doc": "docs/science/PHASE2_UPM.md",
       "science_status": "VERIFIED",
@@ -545,7 +545,7 @@
       "src_path": "lib/algorithms/coverage/tools/stage2.cpp::main, P2Stage2Config, p2_stage2_parse_config, p2_stage2_make_upm_cfg, p2_acr_block_eligible",
       "src_status": "VERIFIED",
       "test_id": "TEST-P2-HIPS-001",
-      "test_path": "docs/modules/registry/astrocs.phase2.write.md::TEST-P2-HIPS-001",
+      "test_path": "docs/detail/registry/astrocs.phase2.write.md::TEST-P2-HIPS-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
@@ -554,7 +554,7 @@
     {
       "module_id": "MOD-astrocs-phase3-properties",
       "module_kind": "phase3",
-      "module_anchor": "docs/modules/registry/astrocs.phase3.properties.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase3.properties.md",
       "science_id": "SCI-P3-PROPS-001",
       "science_doc": "MISSING",
       "science_status": "MISSING",
@@ -580,7 +580,7 @@
     {
       "module_id": "MOD-astrocs-phase3-resample",
       "module_kind": "phase3",
-      "module_anchor": "docs/modules/registry/astrocs.phase3.resample.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase3.resample.md",
       "science_id": "SCI-P3-RES-001",
       "science_doc": "MISSING",
       "science_status": "MISSING",
@@ -606,7 +606,7 @@
     {
       "module_id": "MOD-astrocs-phase3-resample2",
       "module_kind": "phase3",
-      "module_anchor": "docs/modules/registry/astrocs.phase3.resample2.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase3.resample2.md",
       "science_id": "SCI-P3-001",
       "science_doc": "docs/science/PHASE3_HIPS_TO_FITS.md",
       "science_status": "VERIFIED",
@@ -623,16 +623,16 @@
       "src_path": "lib/algorithms/resample/p3_resample.h::p3_sampler_open_ex,p3_order_select,p3_resample_check_mode,p3_sample_nearest,p3_sample_bilinear",
       "src_status": "VERIFIED",
       "test_id": "TEST-P3-RES-001",
-      "test_path": "docs/modules/registry/astrocs.phase3.resample2.md::TEST-P3-RSMP-DESIGN-001",
+      "test_path": "docs/detail/registry/astrocs.phase3.resample2.md::TEST-P3-RSMP-DESIGN-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "resample2 模块合同（冻结）: science_id=SCI-P3-001=既有共享 FROZEN SCI(docs/science/PHASE3_HIPS_TO_FITS.md V5 SCI-007, §5 连续定义+§9a 十二项冻结, 零 SCI 改动; 映射声明 SCI-P3-RES-001⇒SCI-P3-001 于 PHASE3_RSMP_IMPL.md §5; descriptor 占位 SCI-P3-RES-001 不入矩阵因其无独立 docs/science 权威页); ALG-P3-RSMP-IMPL-001(docs/science/algorithms/PHASE3_RSMP_IMPL.md, 逐符号源码行号锚 p3_resample.cpp 239 行+p3_resample.h 58 行 十符号, G3 order 选择 pixel_resolution_arcsec 对拍等价(nside=W·2^k)+G4 采样核 NEAREST 精确 cell/BILINEAR 四象限最近中心切平面双线性 Σw=1 冻结不变量+tile 寻址 leaf>>18/fits_index=(511-x)*512+y+值语义表(NaN→NaN C=1/缺 tile→C=0)+TileCache FIFO 并发确定性合同(单实例非线程安全/每 worker 独立)+会话编排消费链逐点锚(p3_session.cpp :171/:179-194/:196-199/:217-244/:236-237/:258-263/:265-277)+错误语义表+实测偏差 DISP-P3RSMP-001..005(bilinear 离散化 vs 面积重叠分数/cache FIFO vs LRU/check_mode 未接线/missing_tiles 恒 nullptr/dll 未建) §11 不修码; 兼承接 ALG-P3-003 本域子面 G3/G4(PHASE3_RESAMPLE.md 施工规格, G1-G5 公式零改动; §3 伪代码 FIFO)); DATA-P3-RES=DATA_SEMANTICS.md §29(in hips_dir/max_order/scale/input_mode/max_tiles/sampler/P3WcsDescriptor+out value SURFACE_BRIGHTNESS FP32/coverage 二值/out_bunit 缺省 ADU 绝不 Jy/beam/order_sel/mask; invalid=缺 tile C=0 非错误); API-P3-RSMP-001=PUBLIC_API.md 节(p3_sampler_open/open_ex/order_select/check_mode/set_max_tiles/nearest/bilinear/close 消费面冻结, 不新增 C ABI; API-P3-001 编排面 FROZEN 镜像不变); ARCH-001 承载边界。SRC 锚=p3_resample.h 函数声明符号(path::symbol 口径; 生产源 p3_resample.cpp astrocs_phase3_session 静态库成员 根 CMakeLists.txt:460-465); TEST 层锚=registry 手写合同页 docs/modules/registry/astrocs.phase3.resample2.md(ACTIVE_INFORMATIVE 手写页) §9: TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P3-RSMP-IMPL-001 §12 八条: order 等价性对拍/seam 连续性 SYN-007/值语义全表/缺 tile C=0/nearest 精确 cell/bilinear Σw=1/FIFO 逐出/守卫负面清单), 可执行面待落地(test_status 语义=登记面 VERIFIED 双重陈述, 可执行 MISSING 不冒认)——dual statement 不冒认, 现状执行测试 eng/tests/backend/p3_resample_probe_main.cpp 探针+eng/tests/backend/test_p3_resample.py 156 行(seam 域界 1e-5°)+test_p3003_parallel_resampler.py 104 行+eng/tests/unit/p3_interp_test.cpp 109 行/p3_coverage_test.cpp 106 行(独立参考实现)=相邻证据引用不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/resample/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/phase3_session/ 会话编排域共享源不整目录归属, legacy_paths='lib/phase3_session resample sources' 只圈 resample sources); 迁移目标 astrocs_p3_resample.dll 未建; depends_on_int=P3-PROJ-INT;IO-003;CPU-005(MODULE_MIGRATION_MATRIX.csv P3-RSMP 行权威值); module_id=astrocs.p3.resample(矩阵权威, descriptor 占位 astrocs.phase3.resample2 待对齐); 相邻占位行 MOD-astrocs-phase3-resample(module_adapters.cpp:362-380 P2 模板残留)保持零触碰; MOD anchor=registry 手写页; INDEX.yaml 含条目 ALG-P3-003/ALG-P3-RSMP-IMPL-001/DATA-P3-RES/API-P3-RSMP-001/TEST-P3-RES-001, ALG-P3-003 downstream 含 SCI-P3-001; 模块页=docs/modules/phase3_rsmp.md"
+      "notes": "resample2 模块合同（冻结）: science_id=SCI-P3-001=既有共享 FROZEN SCI(docs/science/PHASE3_HIPS_TO_FITS.md V5 SCI-007, §5 连续定义+§9a 十二项冻结, 零 SCI 改动; 映射声明 SCI-P3-RES-001⇒SCI-P3-001 于 PHASE3_RSMP_IMPL.md §5; descriptor 占位 SCI-P3-RES-001 不入矩阵因其无独立 docs/science 权威页); ALG-P3-RSMP-IMPL-001(docs/science/algorithms/PHASE3_RSMP_IMPL.md, 逐符号源码行号锚 p3_resample.cpp 239 行+p3_resample.h 58 行 十符号, G3 order 选择 pixel_resolution_arcsec 对拍等价(nside=W·2^k)+G4 采样核 NEAREST 精确 cell/BILINEAR 四象限最近中心切平面双线性 Σw=1 冻结不变量+tile 寻址 leaf>>18/fits_index=(511-x)*512+y+值语义表(NaN→NaN C=1/缺 tile→C=0)+TileCache FIFO 并发确定性合同(单实例非线程安全/每 worker 独立)+会话编排消费链逐点锚(p3_session.cpp :171/:179-194/:196-199/:217-244/:236-237/:258-263/:265-277)+错误语义表+实测偏差 DISP-P3RSMP-001..005(bilinear 离散化 vs 面积重叠分数/cache FIFO vs LRU/check_mode 未接线/missing_tiles 恒 nullptr/dll 未建) §11 不修码; 兼承接 ALG-P3-003 本域子面 G3/G4(PHASE3_RESAMPLE.md 施工规格, G1-G5 公式零改动; §3 伪代码 FIFO)); DATA-P3-RES=DATA_SEMANTICS.md §29(in hips_dir/max_order/scale/input_mode/max_tiles/sampler/P3WcsDescriptor+out value SURFACE_BRIGHTNESS FP32/coverage 二值/out_bunit 缺省 ADU 绝不 Jy/beam/order_sel/mask; invalid=缺 tile C=0 非错误); API-P3-RSMP-001=PUBLIC_API.md 节(p3_sampler_open/open_ex/order_select/check_mode/set_max_tiles/nearest/bilinear/close 消费面冻结, 不新增 C ABI; API-P3-001 编排面 FROZEN 镜像不变); ARCH-001 承载边界。SRC 锚=p3_resample.h 函数声明符号(path::symbol 口径; 生产源 p3_resample.cpp astrocs_phase3_session 静态库成员 根 CMakeLists.txt:460-465); TEST 层锚=registry 手写合同页 docs/detail/registry/astrocs.phase3.resample2.md(ACTIVE_INFORMATIVE 手写页) §9: TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P3-RSMP-IMPL-001 §12 八条: order 等价性对拍/seam 连续性 SYN-007/值语义全表/缺 tile C=0/nearest 精确 cell/bilinear Σw=1/FIFO 逐出/守卫负面清单), 可执行面待落地(test_status 语义=登记面 VERIFIED 双重陈述, 可执行 MISSING 不冒认)——dual statement 不冒认, 现状执行测试 eng/tests/backend/p3_resample_probe_main.cpp 探针+eng/tests/backend/test_p3_resample.py 156 行(seam 域界 1e-5°)+test_p3003_parallel_resampler.py 104 行+eng/tests/unit/p3_interp_test.cpp 109 行/p3_coverage_test.cpp 106 行(独立参考实现)=相邻证据引用不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/resample/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/phase3_session/ 会话编排域共享源不整目录归属, legacy_paths='lib/phase3_session resample sources' 只圈 resample sources); 迁移目标 astrocs_p3_resample.dll 未建; depends_on_int=P3-PROJ-INT;IO-003;CPU-005(MODULE_MIGRATION_MATRIX.csv P3-RSMP 行权威值); module_id=astrocs.p3.resample(矩阵权威, descriptor 占位 astrocs.phase3.resample2 待对齐); 相邻占位行 MOD-astrocs-phase3-resample(module_adapters.cpp:362-380 P2 模板残留)保持零触碰; MOD anchor=registry 手写页; INDEX.yaml 含条目 ALG-P3-003/ALG-P3-RSMP-IMPL-001/DATA-P3-RES/API-P3-RSMP-001/TEST-P3-RES-001, ALG-P3-003 downstream 含 SCI-P3-001; 模块页=docs/detail/phase3_rsmp.md"
     },
     {
       "module_id": "MOD-astrocs-phase3-verify",
       "module_kind": "phase3",
-      "module_anchor": "docs/modules/registry/astrocs.phase3.verify.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase3.verify.md",
       "science_id": "SCI-P3-VER-001",
       "science_doc": "MISSING",
       "science_status": "MISSING",
@@ -658,7 +658,7 @@
     {
       "module_id": "MOD-astrocs-phase3-wcs",
       "module_kind": "phase3",
-      "module_anchor": "docs/modules/registry/astrocs.phase3.wcs.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase3.wcs.md",
       "science_id": "SCI-P3-001",
       "science_doc": "docs/science/PHASE3_HIPS_TO_FITS.md",
       "science_status": "VERIFIED",
@@ -675,16 +675,16 @@
       "src_path": "lib/algorithms/projection/p3_wcs.h::p3_wcs_make,p3_wcs_pix2world,p3_wcs_world2pix,p3_wcs_fits_keywords",
       "src_status": "VERIFIED",
       "test_id": "TEST-P3-WCS-001",
-      "test_path": "docs/modules/registry/astrocs.phase3.wcs.md::TEST-P3-WCS-DESIGN-001",
+      "test_path": "docs/detail/registry/astrocs.phase3.wcs.md::TEST-P3-WCS-DESIGN-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "projection 模块合同（冻结）: science_id=SCI-P3-001=既有共享 FROZEN SCI(docs/science/PHASE3_HIPS_TO_FITS.md V5 SCI-007, 集合 SCI-P3-001..020, §5 连续定义+§9a-4 CRPIX/CD-only/parity+§9a-6 极点半球+§7 roundtrip<1e-6px, 零 SCI 改动; 映射声明 SCI-P3-WCS-001⇒SCI-P3-001 于 PHASE3_PROJ_IMPL.md §5; descriptor 占位 SCI-P3-WCS-001 不入矩阵因其无独立 docs/science 权威页); ALG-P3-PROJ-IMPL-001(docs/science/algorithms/PHASE3_PROJ_IMPL.md, 逐符号源码行号锚 p3_wcs.cpp 165 行+p3_wcs.h 50 行, G1 CD 构造/east_left diag(-s,+s)·east_right diag(+s,-s)/PA≠0 推广 CD=R(-PA)·diag(sgn_x·s,sgn_y·s) 展开式+det(CD)=-s²<0 手性冻结+P0 bughunt_p0_wcs 修复已合并+G2 正反映射冻结式(Calabretta & Greisen 2002 形式, RA wrap [0,360))+错误语义表 P3_WCS_OK/PARAM/UNSUPPORTED(无产生点)/HEMISPHERE+并发确定性合同(纯函数无状态, RT-006 结构性满足)+实测偏差登记(PA 未接线 p3_session.cpp:160 恒 0.0/kMaxSide ASTROCS_P3_MAX_SIDE 编译期覆盖/projection 硬编码 TAN/dll 未建) §11 不修码; 兼承接 ALG-P3-002 本域子面 G1/G2(PHASE3_RESAMPLE.md 施工规格, 公式零改动)); DATA-P3-WCS=DATA_SEMANTICS.md §28(in centre/scale/W/H/parity/PA+out P3WcsDescriptor/ra dec/x y/fits_keywords/std::string, 单位 deg/px/deg/px 权威源, 0-based 与 FITS 1-based 并存如实冻结); API-P3-PROJ-001=PUBLIC_API.md 节(p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/p3_wcs_fits_keywords 导出符号消费面冻结, 不新增 C ABI; API-P3-001 编排面 FROZEN 不变); ARCH-001 承载边界。SRC 锚=p3_wcs.h 函数声明符号 4 个(path::symbol 口径; 生产源 p3_wcs.cpp astrocs_phase3_session 静态库成员 根 CMakeLists.txt:460-465); TEST 层锚=registry 手写合同页 docs/modules/registry/astrocs.phase3.wcs.md(ACTIVE_INFORMATIVE 手写页, git-tracked 承载) §9: TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P3-PROJ-IMPL-001 §12 T1-T7: 正向解析解/roundtrip 1e-6 px SCI §7 冻结容差/G1 精确断言含 crpix 奇偶/手性极性关键词/负面清单/oracle 现状独立解析解→验收级 WCSLIB(矩阵 notes)/不变量回归), 可执行面待落地——dual statement 不冒认, 现状执行测试 eng/tests/unit/p3_wcs_test.cpp 90 行+eng/tests/backend/test_p1002_gaps.py 独立解析解回归+eng/tests/backend/p3_wcs_main.cpp 探针=相邻证据引用不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/projection/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/phase3_session/ 会话编排域共享源不整目录归属, legacy_paths='lib/phase3_session projection sources' 只圈 projection sources); 迁移目标 astrocs_p3_projection.dll 未建; depends_on_int=ABI-005;DATA-004;RT-006(MODULE_MIGRATION_MATRIX.csv:18 P3-PROJ 行权威值); module_id=astrocs.p3.projection(矩阵权威, descriptor 占位 astrocs.phase3.wcs 待对齐); 合同落位 lib/algorithms/projection/ 三件套(module.yaml CONTRACT_READY entrypoint=MISSING astrocs_p3_projection.dll 未建；状态词只到 CONTRACT_READY); SCI/ALG/DATA/API 权威页齐备; descriptor 占位词汇(SCI-P3-WCS-001/ALG-P3-002 直锚/端口 props+wcs_plan)待对齐; MOD anchor=registry 手写页; 模块页=docs/modules/phase3_proj.md; INDEX.yaml 含条目 ALG-P3-PROJ-IMPL-001/DATA-P3-WCS/API-P3-PROJ-001/TEST-P3-WCS-001, ALG-P3-002 ACTIVE 且 downstream 含 SCI-P3-001"
+      "notes": "projection 模块合同（冻结）: science_id=SCI-P3-001=既有共享 FROZEN SCI(docs/science/PHASE3_HIPS_TO_FITS.md V5 SCI-007, 集合 SCI-P3-001..020, §5 连续定义+§9a-4 CRPIX/CD-only/parity+§9a-6 极点半球+§7 roundtrip<1e-6px, 零 SCI 改动; 映射声明 SCI-P3-WCS-001⇒SCI-P3-001 于 PHASE3_PROJ_IMPL.md §5; descriptor 占位 SCI-P3-WCS-001 不入矩阵因其无独立 docs/science 权威页); ALG-P3-PROJ-IMPL-001(docs/science/algorithms/PHASE3_PROJ_IMPL.md, 逐符号源码行号锚 p3_wcs.cpp 165 行+p3_wcs.h 50 行, G1 CD 构造/east_left diag(-s,+s)·east_right diag(+s,-s)/PA≠0 推广 CD=R(-PA)·diag(sgn_x·s,sgn_y·s) 展开式+det(CD)=-s²<0 手性冻结+P0 bughunt_p0_wcs 修复已合并+G2 正反映射冻结式(Calabretta & Greisen 2002 形式, RA wrap [0,360))+错误语义表 P3_WCS_OK/PARAM/UNSUPPORTED(无产生点)/HEMISPHERE+并发确定性合同(纯函数无状态, RT-006 结构性满足)+实测偏差登记(PA 未接线 p3_session.cpp:160 恒 0.0/kMaxSide ASTROCS_P3_MAX_SIDE 编译期覆盖/projection 硬编码 TAN/dll 未建) §11 不修码; 兼承接 ALG-P3-002 本域子面 G1/G2(PHASE3_RESAMPLE.md 施工规格, 公式零改动)); DATA-P3-WCS=DATA_SEMANTICS.md §28(in centre/scale/W/H/parity/PA+out P3WcsDescriptor/ra dec/x y/fits_keywords/std::string, 单位 deg/px/deg/px 权威源, 0-based 与 FITS 1-based 并存如实冻结); API-P3-PROJ-001=PUBLIC_API.md 节(p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/p3_wcs_fits_keywords 导出符号消费面冻结, 不新增 C ABI; API-P3-001 编排面 FROZEN 不变); ARCH-001 承载边界。SRC 锚=p3_wcs.h 函数声明符号 4 个(path::symbol 口径; 生产源 p3_wcs.cpp astrocs_phase3_session 静态库成员 根 CMakeLists.txt:460-465); TEST 层锚=registry 手写合同页 docs/detail/registry/astrocs.phase3.wcs.md(ACTIVE_INFORMATIVE 手写页, git-tracked 承载) §9: TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P3-PROJ-IMPL-001 §12 T1-T7: 正向解析解/roundtrip 1e-6 px SCI §7 冻结容差/G1 精确断言含 crpix 奇偶/手性极性关键词/负面清单/oracle 现状独立解析解→验收级 WCSLIB(矩阵 notes)/不变量回归), 可执行面待落地——dual statement 不冒认, 现状执行测试 eng/tests/unit/p3_wcs_test.cpp 90 行+eng/tests/backend/test_p1002_gaps.py 独立解析解回归+eng/tests/backend/p3_wcs_main.cpp 探针=相邻证据引用不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/projection/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/phase3_session/ 会话编排域共享源不整目录归属, legacy_paths='lib/phase3_session projection sources' 只圈 projection sources); 迁移目标 astrocs_p3_projection.dll 未建; depends_on_int=ABI-005;DATA-004;RT-006(MODULE_MIGRATION_MATRIX.csv:18 P3-PROJ 行权威值); module_id=astrocs.p3.projection(矩阵权威, descriptor 占位 astrocs.phase3.wcs 待对齐); 合同落位 lib/algorithms/projection/ 三件套(module.yaml CONTRACT_READY entrypoint=MISSING astrocs_p3_projection.dll 未建；状态词只到 CONTRACT_READY); SCI/ALG/DATA/API 权威页齐备; descriptor 占位词汇(SCI-P3-WCS-001/ALG-P3-002 直锚/端口 props+wcs_plan)待对齐; MOD anchor=registry 手写页; 模块页=docs/detail/phase3_proj.md; INDEX.yaml 含条目 ALG-P3-PROJ-IMPL-001/DATA-P3-WCS/API-P3-PROJ-001/TEST-P3-WCS-001, ALG-P3-002 ACTIVE 且 downstream 含 SCI-P3-001"
     },
     {
       "module_id": "MOD-astrocs-phase3-writer",
       "module_kind": "phase3",
-      "module_anchor": "docs/modules/registry/astrocs.phase3.writer.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase3.writer.md",
       "science_id": "SCI-P3-001",
       "science_doc": "docs/science/PHASE3_HIPS_TO_FITS.md",
       "science_status": "VERIFIED",
@@ -701,11 +701,11 @@
       "src_path": "lib/algorithms/fits_output/p3_output.h::p3_output_write_atomic,p3_output_verify",
       "src_status": "VERIFIED",
       "test_id": "TEST-P3-WR-001",
-      "test_path": "docs/modules/registry/astrocs.phase3.writer.md::TEST-P3-WR-DESIGN-001",
+      "test_path": "docs/detail/registry/astrocs.phase3.writer.md::TEST-P3-WR-DESIGN-001",
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "fits writer 模块合同（冻结）: science_id=SCI-P3-001=既有共享 FROZEN SCI(docs/science/PHASE3_HIPS_TO_FITS.md V5 SCI-007, 集合 SCI-P3-001..020, §9a-11 G5 FITS 写公式+§96 关键字面, 零 SCI 改动; 映射声明 SCI-P3-WR-001⇒SCI-P3-001 于 PHASE3_FITS_IMPL.md §5; descriptor 占位 SCI-P3-WR-001 不入矩阵因其无独立 docs/science 权威页); ALG-P3-FITS-IMPL-001(docs/science/algorithms/PHASE3_FITS_IMPL.md, 逐符号源码行号锚 p3_output.cpp 370 行+p3_output.h 64 行+p3_wcs.h 50 行, F1-F4 实现级合同: R10-C 原子发布序 flush→fsync→rename/CFITSIO 进程锁 RT-008/sha256 严格封装禁假哈希/coverage 二值门>0.5f/NaN==NaN 回环, 并行语义 cfitsio 串行+上游采样 std::thread 池禁 hardware_concurrency, TEST-DESIGN §12 T1-T7 冻结容差; 实现偏差 DISP-P3FITS-001..002 §14 登记不改码; 兼承接 ALG-P3-002/004 本域子面); DATA-P3-FITS=DATA_SEMANTICS.md §27(in signal f32[W·H] BUNIT 缺省 ADU/coverage f32 二值/P3WcsDescriptor+out FITS BITPIX=-32|-64/WCS/BUNIT/provenance/DATASUM/sha256, 单位/dtype/确定性权威源); API-P3-FITS-001=PUBLIC_API.md 节(p3_output_write_atomic/p3_output_verify 导出符号消费面冻结, 不新增 C ABI; p3_wcs_* 随本域公共头一并冻结; API-P3-001 编排面 FROZEN 不变); ARCH-001 承载边界。SRC 锚=p3_output.h 函数声明符号 2 个(path::symbol 口径; 生产源 p3_output.cpp astrocs_phase3_session 静态库成员 根 CMakeLists.txt:460-465); TEST 层锚=registry 手写合同页 docs/modules/registry/astrocs.phase3.writer.md(git-tracked 承载) §独立 synthetic 验证节: TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P3-FITS-IMPL-001 §12 T1-T7: 原子写+mask/独立 verify/无 tmp 残留/WCS roundtrip 1e-4 px 观测阈+采样值锚 1e-3/取消不落盘/sha256 注入失败/bitpix=-64 全链), 可执行 TEST-P3-WR-001 MISSING 待落地——dual statement 不冒认, 现状执行测试 eng/tests/unit/p3_output_test.cpp 4 段=相邻证据引用不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/fits_output/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/phase3_session/ 会话编排域共享源不整目录归属, legacy_paths='lib/phase3_session fits sources' 只圈 fits sources); 迁移目标 astrocs_p3_fits_writer.dll 未建; depends_on_int=P3-RSMP-INT;IO-003(MODULE_MIGRATION_MATRIX.csv:20 P3-FITS 行权威值); 生产消费现状 p3_session.cpp:97-129(parse 拒绝清单)/:179-199(max_tiles 可降不可升/order≤20)/:247-253(行带 std::thread 池 worker=budget.max_workers)/:265-277(provenance 填充 manifest_hash 恒 nullptr :270 SCI-P3 §96 接线整改点)/:287-292(p3_output_write_atomic cancelled_at_row 恒 -1); ThreadLease 零命中(待迁移); known_defects=DISP-P3FITS-001(astro_image_io/README.md 零依赖 cfitsio 表述与 vendored lib/infrastructure/aio/third_party/cfitsio 矛盾, CMakeLists.txt:273-296)/DISP-P3FITS-002(tmp 命名 p3_output.h:41-44 协议注 <dir>/.<base>.<pid>.tmp vs make_temp_path p3_output.cpp:81 out_path.<pid>.tmp 实现, 执行测试残留检查前缀 eng/tests/unit/p3_output_test.cpp:102-103 弱匹配空转) 登记不改码。"
+      "notes": "fits writer 模块合同（冻结）: science_id=SCI-P3-001=既有共享 FROZEN SCI(docs/science/PHASE3_HIPS_TO_FITS.md V5 SCI-007, 集合 SCI-P3-001..020, §9a-11 G5 FITS 写公式+§96 关键字面, 零 SCI 改动; 映射声明 SCI-P3-WR-001⇒SCI-P3-001 于 PHASE3_FITS_IMPL.md §5; descriptor 占位 SCI-P3-WR-001 不入矩阵因其无独立 docs/science 权威页); ALG-P3-FITS-IMPL-001(docs/science/algorithms/PHASE3_FITS_IMPL.md, 逐符号源码行号锚 p3_output.cpp 370 行+p3_output.h 64 行+p3_wcs.h 50 行, F1-F4 实现级合同: R10-C 原子发布序 flush→fsync→rename/CFITSIO 进程锁 RT-008/sha256 严格封装禁假哈希/coverage 二值门>0.5f/NaN==NaN 回环, 并行语义 cfitsio 串行+上游采样 std::thread 池禁 hardware_concurrency, TEST-DESIGN §12 T1-T7 冻结容差; 实现偏差 DISP-P3FITS-001..002 §14 登记不改码; 兼承接 ALG-P3-002/004 本域子面); DATA-P3-FITS=DATA_SEMANTICS.md §27(in signal f32[W·H] BUNIT 缺省 ADU/coverage f32 二值/P3WcsDescriptor+out FITS BITPIX=-32|-64/WCS/BUNIT/provenance/DATASUM/sha256, 单位/dtype/确定性权威源); API-P3-FITS-001=PUBLIC_API.md 节(p3_output_write_atomic/p3_output_verify 导出符号消费面冻结, 不新增 C ABI; p3_wcs_* 随本域公共头一并冻结; API-P3-001 编排面 FROZEN 不变); ARCH-001 承载边界。SRC 锚=p3_output.h 函数声明符号 2 个(path::symbol 口径; 生产源 p3_output.cpp astrocs_phase3_session 静态库成员 根 CMakeLists.txt:460-465); TEST 层锚=registry 手写合同页 docs/detail/registry/astrocs.phase3.writer.md(git-tracked 承载) §独立 synthetic 验证节: TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED(设计面=ALG-P3-FITS-IMPL-001 §12 T1-T7: 原子写+mask/独立 verify/无 tmp 残留/WCS roundtrip 1e-4 px 观测阈+采样值锚 1e-3/取消不落盘/sha256 注入失败/bitpix=-64 全链), 可执行 TEST-P3-WR-001 MISSING 待落地——dual statement 不冒认, 现状执行测试 eng/tests/unit/p3_output_test.cpp 4 段=相邻证据引用不冒认; EVIDENCE 待补。合同三件套落位 lib/algorithms/fits_output/(README r1+module.yaml CONTRACT_READY entrypoint=MISSING+memory.md; lib/phase3_session/ 会话编排域共享源不整目录归属, legacy_paths='lib/phase3_session fits sources' 只圈 fits sources); 迁移目标 astrocs_p3_fits_writer.dll 未建; depends_on_int=P3-RSMP-INT;IO-003(MODULE_MIGRATION_MATRIX.csv:20 P3-FITS 行权威值); 生产消费现状 p3_session.cpp:97-129(parse 拒绝清单)/:179-199(max_tiles 可降不可升/order≤20)/:247-253(行带 std::thread 池 worker=budget.max_workers)/:265-277(provenance 填充 manifest_hash 恒 nullptr :270 SCI-P3 §96 接线整改点)/:287-292(p3_output_write_atomic cancelled_at_row 恒 -1); ThreadLease 零命中(待迁移); known_defects=DISP-P3FITS-001(astro_image_io/README.md 零依赖 cfitsio 表述与 vendored lib/infrastructure/aio/third_party/cfitsio 矛盾, CMakeLists.txt:273-296)/DISP-P3FITS-002(tmp 命名 p3_output.h:41-44 协议注 <dir>/.<base>.<pid>.tmp vs make_temp_path p3_output.cpp:81 out_path.<pid>.tmp 实现, 执行测试残留检查前缀 eng/tests/unit/p3_output_test.cpp:102-103 弱匹配空转) 登记不改码。"
     },
     {
       "module_id": "MOD-astrocs-catalog-gaia",
@@ -736,7 +736,7 @@
     {
       "module_id": "MOD-astrocs-phase1-session",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.session.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.session.md",
       "science_id": "SCI-CAL-001",
       "science_doc": "docs/science/CALIBRATION.md",
       "science_status": "VERIFIED",
@@ -757,12 +757,12 @@
       "test_status": "VERIFIED",
       "evidence_id": "EVID-MISSING",
       "evidence_status": "MISSING",
-      "notes": "Phase1 进程内装配会话合同（冻结）: (assembly 层, matrix 无 P1-SESSION 行 → 不设独立 DLL, 现状=静态库 astrocs_phase1_session 根 CMakeLists.txt:448-452)。合同: DATA-P1-SESSION=DATA_SEMANTICS.md §16 (config 键集/host services/manifest/校准 artifact schema, 单位/dtype/shape 逐项); API-P1-SESSION=PUBLIC_API.md (五导出 C API p1_session_create/validate/run/inspect/destroy + astrocs::phase1::last_error, p1_session.h:16-37); 编排级上游 API-P1-001(docs/api/PHASE1_API_V1.md FROZEN); ARCH-001 承载 assembly 边界。四段 canonical 节点 io_read→calibrate→cosmetic→io_write (p1_session.cpp:168/:195/:283/:319, facade 测试 :33-40 断言), 科学实现委托既有冻结 C API ac_calibrate_frame(:243)/ac_correct_frame(:294) → SCI/ALG 锚=被委托域既有冻结合同 SCI-CAL-001+ALG-CAL-001(docs/science/algorithms/CALIBRATION_ALGORITHMS.md, INDEX.yaml 既有), 不新设装配 ALG (INDEX.yaml 无 ALG-P1-SESSION 条目; ALG-P1-SESSION-001 不属现行 INDEX); algorithm_contracts 另引 ALG-COS-001 (lib/phase1_session/module.yaml)。registry: 无独立 session descriptor, 五函数经 P1Api(module_adapters.cpp:755-762) 被 8 个 Phase1 descriptor 工厂委托(:728-735/:755-770); descriptor 占位词汇(ALG-002/ALG-004/ALG-005/TEST-P1-*-001)不作冻结依据。如实差距: API-P1-001 冻结 7-stage 序列 vs 现状 4 段(CAL+COS), 检测/PSF/WCS/测光/SNR/Drizzle/HiPS 无执行段, 本行不宣称 session 完成 7-stage。SRC 锚=p1_session.cpp 五导出符号(path::symbol 口径, p1_session.h:16-28)。TEST 锚=eng/tests/unit/p1_ir_facade_test.cpp(facade 语义/canonical 节点集/委托+TEST-P1-SESSION-001 词汇已登记该文件与 registry 页); 生命周期登记 eng/tests/api/test_p1_api.py 为旁证; EVIDENCE 待补。已知现状缺陷(登记不改码): cosmetic master 实参 nullptr→DISP-COS-009 恒等 pass(:295-296); dark_scale_factor validate 不验(:225 run 兜底 1.0); async_io_depth∈{0,1,2} 强校验(:152)但预读未按 depth 启用; 输出仅 FITS(aio_write_fits :262)。取消=io_read 文件粒度(:177-181)/calibrate 帧粒度(:228-231)/cosmetic 帧粒度(:289); 并发=budget.max_workers 注入 ac_set_num_threads(:162-165)+B 线 ThreadLease(module_adapters.cpp:156-162); determinism=fixed_reduction_order(module.yaml)。"
+      "notes": "Phase1 进程内装配会话合同（冻结）: (assembly 层, matrix 无 P1-SESSION 行 → 不设独立 DLL, 现状=静态库 astrocs_phase1_session 根 CMakeLists.txt:448-452)。合同: DATA-P1-SESSION=DATA_SEMANTICS.md §16 (config 键集/host services/manifest/校准 artifact schema, 单位/dtype/shape 逐项); API-P1-SESSION=PUBLIC_API.md (五导出 C API p1_session_create/validate/run/inspect/destroy + astrocs::phase1::last_error, p1_session.h:16-37); 编排级上游 API-P1-001(docs/engineering/PHASE1_API_V1.md FROZEN); ARCH-001 承载 assembly 边界。四段 canonical 节点 io_read→calibrate→cosmetic→io_write (p1_session.cpp:168/:195/:283/:319, facade 测试 :33-40 断言), 科学实现委托既有冻结 C API ac_calibrate_frame(:243)/ac_correct_frame(:294) → SCI/ALG 锚=被委托域既有冻结合同 SCI-CAL-001+ALG-CAL-001(docs/science/algorithms/CALIBRATION_ALGORITHMS.md, INDEX.yaml 既有), 不新设装配 ALG (INDEX.yaml 无 ALG-P1-SESSION 条目; ALG-P1-SESSION-001 不属现行 INDEX); algorithm_contracts 另引 ALG-COS-001 (lib/phase1_session/module.yaml)。registry: 无独立 session descriptor, 五函数经 P1Api(module_adapters.cpp:755-762) 被 8 个 Phase1 descriptor 工厂委托(:728-735/:755-770); descriptor 占位词汇(ALG-002/ALG-004/ALG-005/TEST-P1-*-001)不作冻结依据。如实差距: API-P1-001 冻结 7-stage 序列 vs 现状 4 段(CAL+COS), 检测/PSF/WCS/测光/SNR/Drizzle/HiPS 无执行段, 本行不宣称 session 完成 7-stage。SRC 锚=p1_session.cpp 五导出符号(path::symbol 口径, p1_session.h:16-28)。TEST 锚=eng/tests/unit/p1_ir_facade_test.cpp(facade 语义/canonical 节点集/委托+TEST-P1-SESSION-001 词汇已登记该文件与 registry 页); 生命周期登记 eng/tests/api/test_p1_api.py 为旁证; EVIDENCE 待补。已知现状缺陷(登记不改码): cosmetic master 实参 nullptr→DISP-COS-009 恒等 pass(:295-296); dark_scale_factor validate 不验(:225 run 兜底 1.0); async_io_depth∈{0,1,2} 强校验(:152)但预读未按 depth 启用; 输出仅 FITS(aio_write_fits :262)。取消=io_read 文件粒度(:177-181)/calibrate 帧粒度(:228-231)/cosmetic 帧粒度(:289); 并发=budget.max_workers 注入 ac_set_num_threads(:162-165)+B 线 ThreadLease(module_adapters.cpp:156-162); determinism=fixed_reduction_order(module.yaml)。"
     },
     {
       "module_id": "MOD-astrocs-phase1-star",
       "module_kind": "phase1",
-      "module_anchor": "docs/modules/registry/astrocs.phase1.star-detection.md",
+      "module_anchor": "docs/detail/registry/astrocs.phase1.star-detection.md",
       "science_id": "SCI-P1-STAR-001",
       "science_doc": "docs/science/STAR_DETECTION.md::SCI-P1-STAR-001",
       "science_status": "VERIFIED",

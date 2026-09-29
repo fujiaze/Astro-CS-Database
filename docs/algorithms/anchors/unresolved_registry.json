@@ -7,10 +7,10 @@
     "EXTERNAL_REFERENCE": 24,
     "HISTORICAL_NARRATION": 1
   },
-  "max_entries": 25,
+  "max_entries": 14,
   "entries": [
     {
-      "doc": "docs/design/STAR_DETECTION_IMPL_DESIGN.md",
+      "doc": "docs/detail/STAR_DETECTION_IMPL_DESIGN.md",
       "raw": "src/preflist.h:207-208",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "SExtractor 源码头 src/preflist.h 未 vendor 进本仓（仓内无该路径；取证副本 run/VAR-CALIBER-REVIEW-01/evidence/sub_oss/sextractor/preflist.h 未跟踪、不作锚目标），属外部开源实现的源码行号引用，非本仓源码锚",
@@ -18,7 +18,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor SExtractor 头，同提交改为 resolver + 活锚并删除本登记项。"
     },
     {
-      "doc": "docs/algorithms/anchors/ANCHOR_CONTRACT.md",
+      "doc": "docs/detail/anchors/ANCHOR_CONTRACT.md",
       "raw": "api.cpp:88-92",
       "kind": "HISTORICAL_NARRATION",
       "reason": "§6 订正留痕原文「DISP-DRZ-001 双方锚由 api.cpp:88-92 订正为 hp_drizzle_api.cpp:98-103」——被引 api.cpp 在本仓不存在，该 token 是**订正前的旧锚**记录，不是现行锚",
@@ -26,7 +26,7 @@
       "handoff": "留痕按原样保留；若 §6 重写则同提交删除本登记项（C8 会判 STALE）。"
     },
     {
-      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "doc": "docs/engineering/SCIENTIFIC_REFERENCES.md",
       "raw": "RegisterEngine.cpp:86-118",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "外部开源实现的源码行号引用（DeepSkyStacker / photutils / astropy / properimage / SEP），该代码未 vendor 进本仓，属 SCI-001 文献与开源对照锚，非本仓源码锚",
@@ -34,7 +34,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor 对照代码，同提交改为 resolver + 活锚。"
     },
     {
-      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "doc": "docs/engineering/SCIENTIFIC_REFERENCES.md",
       "raw": "avx_output.cpp:463-575",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "外部开源实现的源码行号引用（DeepSkyStacker / photutils / astropy / properimage / SEP），该代码未 vendor 进本仓，属 SCI-001 文献与开源对照锚，非本仓源码锚",
@@ -42,7 +42,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor 对照代码，同提交改为 resolver + 活锚。"
     },
     {
-      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "doc": "docs/engineering/SCIENTIFIC_REFERENCES.md",
       "raw": "photutils/background/core.py:464-531",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "外部开源实现的源码行号引用（DeepSkyStacker / photutils / astropy / properimage / SEP），该代码未 vendor 进本仓，属 SCI-001 文献与开源对照锚，非本仓源码锚",
@@ -50,7 +50,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor 对照代码，同提交改为 resolver + 活锚。"
     },
     {
-      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "doc": "docs/engineering/SCIENTIFIC_REFERENCES.md",
       "raw": "photutils/utils/errors.py:91-92",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "外部开源实现的源码行号引用（DeepSkyStacker / photutils / astropy / properimage / SEP），该代码未 vendor 进本仓，属 SCI-001 文献与开源对照锚，非本仓源码锚",
@@ -58,7 +58,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor 对照代码，同提交改为 resolver + 活锚。"
     },
     {
-      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "doc": "docs/engineering/SCIENTIFIC_REFERENCES.md",
       "raw": "properimage/operations.py:457-577",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "外部开源实现的源码行号引用（DeepSkyStacker / photutils / astropy / properimage / SEP），该代码未 vendor 进本仓，属 SCI-001 文献与开源对照锚，非本仓源码锚",
@@ -66,7 +66,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor 对照代码，同提交改为 resolver + 活锚。"
     },
     {
-      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "doc": "docs/engineering/SCIENTIFIC_REFERENCES.md",
       "raw": "src/sep.h:9-10",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "外部开源实现的源码行号引用（DeepSkyStacker / photutils / astropy / properimage / SEP），该代码未 vendor 进本仓，属 SCI-001 文献与开源对照锚，非本仓源码锚",
@@ -74,7 +74,7 @@
       "handoff": "外部引用不设 resolver（无可解析目标）。若将来 vendor 对照代码，同提交改为 resolver + 活锚。"
     },
     {
-      "doc": "docs/research/PHOTOMETRY_RESEARCH_PACK.md",
+      "doc": "docs/science/PHOTOMETRY_RESEARCH_PACK.md",
       "raw": "astropy/wcs/wcs.py:1669",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "研究包登记的外部开源实现定位锚（photutils 3.0.0 / astropy v8.0.1），未 vendor 进本仓，仅作数值对拍对象的版本化定位",
@@ -82,7 +82,7 @@
       "handoff": "同上；研究包锚只作版本化出处留痕，不参与本仓行号复测。"
     },
     {
-      "doc": "docs/research/PHOTOMETRY_RESEARCH_PACK.md",
+      "doc": "docs/science/PHOTOMETRY_RESEARCH_PACK.md",
       "raw": "astropy/wcs/wcs.py:359",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "研究包登记的外部开源实现定位锚（photutils 3.0.0 / astropy v8.0.1），未 vendor 进本仓，仅作数值对拍对象的版本化定位",
@@ -90,7 +90,7 @@
       "handoff": "同上；研究包锚只作版本化出处留痕，不参与本仓行号复测。"
     },
     {
-      "doc": "docs/research/PHOTOMETRY_RESEARCH_PACK.md",
+      "doc": "docs/science/PHOTOMETRY_RESEARCH_PACK.md",
       "raw": "photutils/aperture/photometry.py:30",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "研究包登记的外部开源实现定位锚（photutils 3.0.0 / astropy v8.0.1），未 vendor 进本仓，仅作数值对拍对象的版本化定位",
@@ -98,7 +98,7 @@
       "handoff": "同上；研究包锚只作版本化出处留痕，不参与本仓行号复测。"
     },
     {
-      "doc": "docs/research/PHOTOMETRY_RESEARCH_PACK.md",
+      "doc": "docs/science/PHOTOMETRY_RESEARCH_PACK.md",
       "raw": "photutils/background/background_2d.py:33",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "研究包登记的外部开源实现定位锚（photutils 3.0.0 / astropy v8.0.1），未 vendor 进本仓，仅作数值对拍对象的版本化定位",
@@ -106,7 +106,7 @@
       "handoff": "同上；研究包锚只作版本化出处留痕，不参与本仓行号复测。"
     },
     {
-      "doc": "docs/research/PHOTOMETRY_RESEARCH_PACK.md",
+      "doc": "docs/science/PHOTOMETRY_RESEARCH_PACK.md",
       "raw": "photutils/detection/daofinder.py:26",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "研究包登记的外部开源实现定位锚（photutils 3.0.0 / astropy v8.0.1），未 vendor 进本仓，仅作数值对拍对象的版本化定位",
@@ -114,100 +114,12 @@
       "handoff": "同上；研究包锚只作版本化出处留痕，不参与本仓行号复测。"
     },
     {
-      "doc": "docs/research/PHOTOMETRY_RESEARCH_PACK.md",
+      "doc": "docs/science/PHOTOMETRY_RESEARCH_PACK.md",
       "raw": "photutils/psf/photometry.py:217",
       "kind": "EXTERNAL_REFERENCE",
       "reason": "研究包登记的外部开源实现定位锚（photutils 3.0.0 / astropy v8.0.1），未 vendor 进本仓，仅作数值对拍对象的版本化定位",
       "owner": "SCI-401 / DOC-404",
       "handoff": "同上；研究包锚只作版本化出处留痕，不参与本仓行号复测。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "RegisterEngine.cpp:86-118",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "RegisterEngine.cpp:86-118",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "avx_output.cpp:463-575",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "avx_output.cpp:463-575",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "background/background_2d.py:33",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "background/core.py:464-531",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "operations.py:457-577",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "photutils/background/core.py:464-531",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "photutils/utils/errors.py:91-92",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "properimage/operations.py:457-577",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
-    },
-    {
-      "doc": "docs/research/SNR_WEIGHT_RESEARCH_PACK.md",
-      "raw": "utils/errors.py:91-92",
-      "kind": "EXTERNAL_REFERENCE",
-      "reason": "研究包登记的外部开源实现定位锚（DeepSkyStacker 6.2.2 / photutils 3.0.0 / properimage 0.7.2），未 vendor 进本仓；本文件已按 GAP_AUDIT §9.73 A44 作废并保持历史原样，锚不构成现行规范",
-      "owner": "GAP-AUDIT §9.73 A44（历史冻结层）",
-      "handoff": "同上；本文件为作废历史层，现行 SCI/ALG 只按自身正本修改。"
     }
   ]
 }

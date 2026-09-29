@@ -137,7 +137,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/algorithms/anchors/ANCHOR_CONTRACT.md
+    path: docs/detail/anchors/ANCHOR_CONTRACT.md
     upstream: []
     downstream: []
   - id: ALG-CAL-001
@@ -161,7 +161,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-W16
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-WCS-001]
     downstream: []
   - id: API-WCS-001
@@ -169,7 +169,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-W16
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-WCS-001]
     downstream: []
   - id: ALG-PHOT-001
@@ -265,7 +265,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-U21
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P2-UPM-IMPL-001]
     downstream: [API-P2-UPM-001]
   - id: DATA-P2-COR
@@ -273,7 +273,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-U21
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P2-UPM-IMPL-001]
     downstream: [API-P2-UPM-001]
   - id: API-P2-UPM-001
@@ -281,7 +281,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-U21
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P2-UPM-IMPL-001, DATA-P2-UPM, DATA-P2-COR]
     downstream: [TEST-P2-UPM-001, TEST-P2-UPM-002]
   - id: TEST-P2-UPM-001
@@ -305,7 +305,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-F27
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P3-FITS-IMPL-001]
     downstream: [API-P3-FITS-001]
   - id: API-P3-FITS-001
@@ -313,7 +313,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-F27
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P3-FITS-IMPL-001, DATA-P3-FITS]
     downstream: [TEST-P3-WR-001]
   - id: TEST-P3-WR-001
@@ -329,7 +329,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-P25
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P3-PROJ-IMPL-001]
     downstream: [API-P3-PROJ-001]
   - id: API-P3-PROJ-001
@@ -337,7 +337,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-P25
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P3-PROJ-IMPL-001, DATA-P3-WCS]
     downstream: [TEST-P3-WCS-001]
   - id: TEST-P3-WCS-001
@@ -353,7 +353,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-S26
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P3-003, ALG-P3-RSMP-IMPL-001]
     downstream: [API-P3-RSMP-001]
   - id: API-P3-RSMP-001
@@ -361,7 +361,7 @@ contracts:
     status: ACTIVE
     owner: SA-P3-S26
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P3-RSMP-IMPL-001, DATA-P3-RES]
     downstream: [TEST-P3-RES-001]
   - id: TEST-P3-RES-001
@@ -385,7 +385,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-S20
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-COV-001]
     downstream: []
   - id: API-COV-001
@@ -393,7 +393,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-S20
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-COV-001]
     downstream: []
   - id: ALG-P2-HIPS-001
@@ -433,7 +433,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
     downstream: []
   - id: API-P2-HIPS-001
@@ -441,7 +441,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P2-HIPS-001, ALG-P2-HIPS-002, ALG-P2-HIPS-003, ALG-P2-HIPS-004]
     downstream: []
   - id: ALG-REJ-001
@@ -473,7 +473,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P2-INT-001]
     downstream: [API-P2-INT-001]
   - id: API-P2-INT-001
@@ -481,7 +481,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-I23
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P2-INT-001, DATA-P2-INT]
     downstream: [TEST-P2-INT-001]
   - id: TEST-P2-INT-001
@@ -505,7 +505,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-R22
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P2-REJ-001]
     downstream: [API-P2-REJ-001]
   - id: API-P2-REJ-001
@@ -513,7 +513,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-R22
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P2-REJ-001, DATA-P2-REJ]
     downstream: [TEST-P2-REJ-001]
   - id: TEST-P2-REJ-001
@@ -537,7 +537,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-X24
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-P2-SESSION-001]
     downstream: [API-P2-SESSION-001]
   - id: API-P2-SESSION-001
@@ -545,7 +545,7 @@ contracts:
     status: ACTIVE
     owner: SA-P2-X24
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-P2-SESSION-001, DATA-P2-SESSION]
     downstream: [TEST-P2-SESSION-001]
   - id: TEST-P2-SESSION-001
@@ -643,7 +643,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: []
     downstream: [DATA-ARTIFACTS-001, DATA-P1-SESSION]
   - id: DATA-P1-NOISE
@@ -651,7 +651,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-NOISE-001, ALG-NOISE-002]
     downstream: []
   - id: API-NOISE-001
@@ -659,7 +659,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-NOISE-001, ALG-NOISE-002, ALG-NOISE-003]
     downstream: []
   - id: DATA-P1-PHOT
@@ -667,7 +667,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-N17
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-PHOT-001, ALG-PHOT-002]
     downstream: []
   - id: API-PHOT-001
@@ -675,7 +675,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-N17
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-PHOT-001, ALG-PHOT-002]
     downstream: []
   - id: DATA-P1-HIPS
@@ -683,7 +683,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-HIPS-001]
     downstream: []
   - id: DATA-P1-PSF
@@ -691,7 +691,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-S15
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-STARPSF-001]
     downstream: []
   - id: API-PSF-001
@@ -699,7 +699,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-S15
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-STARPSF-001]
     downstream: []
   - id: ALG-STARDET-001
@@ -715,7 +715,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-S15
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [ALG-STARDET-001]
     downstream: []
   - id: API-STAR-001
@@ -723,7 +723,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-S15
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ALG-STARDET-001]
     downstream: []
   - id: DATA-ARTIFACTS-001
@@ -731,7 +731,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_ARTIFACTS.md
+    path: docs/engineering/DATA_ARTIFACTS.md
     upstream: [DATA-SEMANTICS-001]
     downstream: []
   - id: DATA-P1-SESSION
@@ -739,7 +739,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-R19
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [DATA-SEMANTICS-001, ARCH-001]
     downstream: []
 
@@ -749,7 +749,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/ARCH-001.md
+    path: docs/engineering/ARCH-001.md
     upstream: []
     downstream: [API-001, DATA-P1-SESSION, API-P1-SESSION]
 
@@ -767,7 +767,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/API-001.md
+    path: docs/engineering/API-001.md
     upstream: [ARCH-001]
     downstream: [API-P1-SESSION]
   - id: API-P1-SESSION
@@ -775,7 +775,7 @@ contracts:
     status: ACTIVE
     owner: SA-P1-R19
     version: 1.0.0
-    path: docs/contracts/PUBLIC_API.md
+    path: docs/engineering/PUBLIC_API.md
     upstream: [ARCH-001, API-001]
     downstream: []
 
@@ -785,7 +785,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: []
     downstream: [DATA-P2-VAR-001, DATA-P2-REJ-001, DATA-P2-PROV-001, DATA-P3-UNC-001]
   - id: DATA-P2-VAR-001
@@ -793,7 +793,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001, SCI-INT-001, SCI-DRZ-001, SCI-NOISE-001]
     downstream: []
   - id: DATA-P2-REJ-001
@@ -801,7 +801,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001, SCI-REJ-001]
     downstream: []
   - id: DATA-P2-PROV-001
@@ -809,7 +809,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001]
     downstream: []
   - id: DATA-P3-UNC-001
@@ -817,7 +817,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/DATA_SEMANTICS.md
+    path: docs/science/DATA_SEMANTICS.md
     upstream: [DATA-UNC-001, SCI-P3-001, SCI-DRZ-001, SCI-NOISE-001]
     downstream: []
 
@@ -951,7 +951,7 @@ contracts:
     status: ACTIVE
     owner: ACSD
     version: 1.0.0
-    path: docs/contracts/TEST_MATRIX.md
+    path: docs/engineering/TEST_MATRIX.md
     upstream: []
     downstream: []
 

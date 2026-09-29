@@ -4,7 +4,7 @@
 
 > 口径：本页只登记**现行**限制（限制内容 + 现状 + 归属/去向），不复制历史报告原文；历史过程由 git 历史承载。
 > 只登记**仍成立**的限制；已失效的限制不再登记。
-> 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；发布结论见 `docs/owner/RELEASE_STATUS.md`。
+> 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；发布结论见 `docs/engineering/RELEASE_STATUS.md`。
 > 条目的**过程台账**（严重度 / 状态 / 发现任务 / 裁决出处）按同一条目号登记在 `artifacts/evidence/known-limitations-ledger/LEDGER.md`。
 
 ## A. 平台与验证面
@@ -27,8 +27,8 @@
 13. **Phase1 不确定度子产品缺失（未关，P0 级）**：CLI `normalize` 产出的 `p1_final.json` 实测 `n_variance_tiles=0` / `n_ivar_tiles=0`；写出器本身具备产出 variance/ivar 子产品的能力，缺口在 p1 节点未向 PipelineFrame 注入 variance 块。**最高设计 §3.1 规定不存在「权重模式」概念（全程只有 SNR）**，故该缺口的影响面 = 绝对 SNR / 不确定度链的可达性。
 15. **接缝残余未随天光面修复消失（未关；证据口径已按 P5-08 改写）**：真实帧足迹域上，「无接缝」主张**不成立**——门内读数 `max|rel_step| = 7.2561e-03` 未超门，但同一次读数块的**三个独立诊断量全部越门**（`rel_step_net_max = 1.2948e-02`、`rel_step_d4x_max = 2.1915e-02`、`legacy_rel_max = 2.6110e-02`），且门只覆盖 **114/196** 条边界（82 条 `not_interior` 不进判据）。**订正**：原登记文字（幅度 1–3%、水平带 +1.06%→−2.39%、"根因不是 sky_plane 回退"）一律撤下——① 该文字记录的是已被后续轮次取代的 M42-E2E-01 产品（legacy 口径随后由 0.10838 降到 0.02611、历史带判 0/17 超门）；② 其数字在仓内**无任何可复核载体**（产品 FITS 已随源 run 树回收）；③ 其归因被 `run/SCI-SEAM-Y2309-01` 的一手结论反证（真因是 node_spacing 取 1.0°，HEAD 已改为几何导出）。现行可核对面 = `实验/additive-sky-seamless/results/production_e2e_seam_record.json`（逐字冻结 + 4 个源 sha256 + 17 项自检，正/负例均可跑）。
 16a. **天光面生效后的负值像素属读取约定（保留原归类）**：加性天光面生效后背景归零 ⇒ 产品出现负值像素，占比 **48.4%**（`full_neg_frac = 0.4839820861816406`；来源 `实验/additive-sky-seamless/code/c3_public_plane.py:131` → `results/c3_public_plane.json` 的 `/product/full_neg_frac`；HEAD 复跑同口径 0.4851）；下游读取与判据须按「允许负像素」的约定解释。**订正**：原条目写的「0.459（46%）」在仓内无来源——0.45988 实为 `实验/additive-sky-seamless/results/c7_realdata.json` 的 `d_step`（δ 臂校正后的**接缝台阶**，单位 e⁻，见 `results/REVIEW.md` 的「step 20.8858 → 0.4599」），与负值像素**占比**是两个量，该数字与「46%」一并撤下。
-16b. **契约面缺陷：请求 δ 而无天光面产物时的降级（未关，major）**：`additive_mode=delta` 且无可用天光面时，`additive_mode_effective` 只能降为 `"c"`（全减、背景归零），而 `docs/plugins/algorithms_phase2/11_upm.md` §7 明令该情形**判红**；全减正是本单元判定的**退化路径**（背景近 0 ⇒ 判据量分母病态、`rel_step` 无界）⇒ 负值像素是**退化路径被触发的症状**，不只是约定变更。现状：该降级已改为**具名判红面**（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `degraded_reason=no_sky_plane_artifact` + `warning_codes=["P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE"]`，随 `p2_corrected.json` 与节点 manifest 落盘，产品照出、rc 不变），自相矛盾的旧注释已撤下。**仍缺**：① 全仓无任何测试/门禁**读取**该码（grep `lib/ eng/ docs/ 实验/` 只命中生产者）⇒ 判红面**恒绿**，不可判据；② 承载原 46% 数字的 `additive_mode_effective` 落盘证据（源 run 树已回收）⇒ 该数字按「未验证」处理。补可判红负例属 P2 文件域（`module_adapters.cpp` 不在本单元文件域），已在 P5 订正报告中登记。
-17. **`drizzle_scale_arcsec` 合法域**：NaN / ≤0 / >824.52″ 一律 `rc=2` + `set_error`（契约侧登记；去向 `docs/contracts/DATA_SEMANTICS.md`，由前台合并）。
+16b. **契约面缺陷：请求 δ 而无天光面产物时的降级（未关，major）**：`additive_mode=delta` 且无可用天光面时，`additive_mode_effective` 只能降为 `"c"`（全减、背景归零），而 `docs/detail/algorithms_phase2/11_upm.md` §7 明令该情形**判红**；全减正是本单元判定的**退化路径**（背景近 0 ⇒ 判据量分母病态、`rel_step` 无界）⇒ 负值像素是**退化路径被触发的症状**，不只是约定变更。现状：该降级已改为**具名判红面**（`lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `degraded_reason=no_sky_plane_artifact` + `warning_codes=["P2-ADDITIVE-MODE-DEGRADED-NO-SKY-PLANE"]`，随 `p2_corrected.json` 与节点 manifest 落盘，产品照出、rc 不变），自相矛盾的旧注释已撤下。**仍缺**：① 全仓无任何测试/门禁**读取**该码（grep `lib/ eng/ docs/ 实验/` 只命中生产者）⇒ 判红面**恒绿**，不可判据；② 承载原 46% 数字的 `additive_mode_effective` 落盘证据（源 run 树已回收）⇒ 该数字按「未验证」处理。补可判红负例属 P2 文件域（`module_adapters.cpp` 不在本单元文件域），已在 P5 订正报告中登记。
+17. **`drizzle_scale_arcsec` 合法域**：NaN / ≤0 / >824.52″ 一律 `rc=2` + `set_error`（契约侧登记；去向 `docs/science/DATA_SEMANTICS.md`，由前台合并）。
 
 ## C. 工程与产品面
 
@@ -57,7 +57,7 @@
 
 30. **内存静态预算与内存回压（调度准入）**
     - **现行口径**：内存预算是**调度准入输入**（在途节点估算峰值之和 > 预算 ⇒ 就绪节点排队等待，不拒绝、不改退出码），**不是资源门**（`ASTROCS_DESIGN.md §4.5` 运行前预检的「内存不设门」约束门禁语义，与 §8.3 的调度语义不互斥）；预算 = 实测可用内存（`lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes`，aio 是文件级唯一 I/O 边界）× 可配置比例（默认 95，唯一数值源 `eng/packaging/config/runtime_resources.json`）；节点 `estimated_memory_bytes` 由 `lib/infrastructure/scheduler/src/plan_estimator.cpp` 真实估算给出，取值 = 实测估算（0 不作占位值）。
-    - **规范依据**：`ASTROCS_DESIGN.md §8.3`「静态预算…内存占用永不越界」、`§9`；`ENGINEERING_SPEC.md §12`「队列有容量/背压」；`docs/contracts/PIPELINE_BLOCK_CONTRACT.md §5`；`docs/contracts/SCHEDULER_CONTRACT.md §3`。
+    - **规范依据**：`ASTROCS_DESIGN.md §8.3`「静态预算…内存占用永不越界」、`§9`；`ENGINEERING_SPEC.md §12`「队列有容量/背压」；`docs/engineering/PIPELINE_BLOCK_CONTRACT.md §5`；`docs/engineering/SCHEDULER_CONTRACT.md §3`。
     - **残余**：P1（normalize）节点的帧尺寸只在 FITS 头里，核心层无 IO 面 ⇒ 这些节点**的静态估算仍为 0**（`unestimable_reason` 显式登记），解除路径仍是 CLI 在 IR 侧带帧形状或模块 `plan()` 自报 `estimated_memory_bytes`。该缺口使**节点级回压在 P1 上恒不生效**（`0 + 0 ≤ limit` 恒真）；该缺口由**实测压力面**兜住：帧级并发闸门按「进程树 RSS / 预算」的运行期实测值决定（`lib/include/astrocs/core/memory_pressure.h`，实现 `lib/infrastructure/scheduler/src/memory_pressure.cpp`；帧轴接线点 `lib/infrastructure/scheduler/src/module_adapters.cpp#p1_parallel_for`，压力分子 `lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_process_tree_rss_bytes`）。**节点级静态回压仍按原样保留**（两条面互不替代：静态面管节点准入，实测面管帧级并发）。
     - **残余（丢弃安全点边界，MEMGOV-01 如实登记）**：§8.3「可丢弃重跑」的丢弃只允许发生在 op 帧体的**安全点**（尚未落盘任何本帧产物、且尚未进入 noise floor 全局注册表的注册→释放区间）。因此：① `wcs`/`writer` 两个 op 走串行帧循环、不经过帧级派发点，其帧体不参与丢弃重跑；② noise/drizzle 帧体在**越过注册表区间之后**不再可丢弃（该注册表以帧体栈地址为键，中途放弃会留下悬挂键并改变下一帧的方差数值 = 科学面污染）；③ 第 0 帧恒不作为牺牲帧（承载帧序基准与 drizzle 首帧 provenance，代价不对称）。上述三个边界是**设计的适用域**，不是待修缺陷；如后续要把丢弃窗口推到注册表区间之内，须先改注册表键（栈地址 → 显式生命周期 id）。
     - **ACR 同名常数（0.95）的归属**：仓内另有一处内存比例常数 `0.95`，在 `lib/infrastructure/acr/utilization/memory_budget.hpp`（`MemoryBudgetController`）。二者**不是同一口径**：ACR 的是「物理内存总量 × ratio，再减固定预留」的**异构消费模型**（调用点 `lib/infrastructure/acr/scheduler/dispatcher.cpp`），生产口径是「实测**可用**内存 × ratio」（含可回收页缓存 ∩ cgroup 余量）。该常数**有意原样保留、不做合并**：ACR 状态为 `DORMANT`（见本页条目 4，`ASTROCS_ENABLE_ACR=OFF` + `lib/infrastructure/acr/CMakeLists.txt` 的 FATAL_ERROR 守卫），且该文件含未加 `#ifdef` 的 `<windows.h>` ⇒ Linux 下根本无法编译，改动它无法在本机验证。**约束**：生产消费点的唯一预算来源是本报口径（`resolve_memory_budget`）；ACR 的 `MemoryBudgetController`只服务 ACR 自身；生产唯一预算来源 = `eng/packaging/config/runtime_resources.json`（经生成头 `runtime_resources_generated.h` 消费，实现侧零字面量）。
@@ -70,7 +70,7 @@
 
 32. **块流合同不可机器判定 + 门无完整性判据**
     - **现象**：`eng/contracts/block_flow/stage_block_flow.json` 的声明块名（**逻辑端口名**）与实现面（**产品文件名**）之间无机器可读映射；`eng/tools/quality/gen_block_flow_spec.py` docstring 自认该限制，判据实测 78 token / 75 未匹配。`eng/tools/quality/check_block_flow_conformance.py` 的 D1–D8 **不含**「登记册完整性」判据 ⇒ 漏登记（BFD-A11..A16 即人工补登）不会被门发现。
-    - **规范依据**：`docs/contracts/PIPELINE_BLOCK_CONTRACT.md §1/§3`；`AGENTS.md §9`「判据必须非退化…门禁本身不合理时改进门禁本身」。
+    - **规范依据**：`docs/engineering/PIPELINE_BLOCK_CONTRACT.md §1/§3`；`AGENTS.md §9`「判据必须非退化…门禁本身不合理时改进门禁本身」。
     - **归属/去向**：`eng/contracts/block_flow/**` + `eng/tools/quality/check_block_flow_conformance.py`（补「登记册完整性」正例/负例）。同族事实（`BFD-A17` 的降级显式性无判据）已写入该登记册的 `note`。
 
 33. **`build_pipeline_ir` 保留多阶段串联面、生产侧该约束缺门**
@@ -86,8 +86,8 @@
       `runtime_resources_generated.h`）；归属登记 = `eng/packaging/config/config_registry.json#orchestration_params`。
       值域守卫仍在编译期 fail-closed（生成头 `static_assert`：span == (2^shift)²、min ≤ default ≤ max、qd ≥ 1），
       红/绿证据 = `run/FINAL-07/logs/DYN-740_R27_orchestration_params.log`。
-    - **规范依据**：`docs/contracts/SCHEDULER_CONTRACT.md §3`「线程预算、内存上限…队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定」；
-      `docs/standards/CONCURRENCY_STANDARD.md`「默认」节（取值来源 = 配置）；`AGENTS.md §6`「不硬编码 block」。
+    - **规范依据**：`docs/engineering/SCHEDULER_CONTRACT.md §3`「线程预算、内存上限…队列深度、分块/窗口/子块大小；上述参数由配置/资源门决定」；
+      `docs/engineering/CONCURRENCY_STANDARD.md`「默认」节（取值来源 = 配置）；`AGENTS.md §6`「不硬编码 block」。
     - **仍未覆盖（诚实边界）**：① 分块**随内存动态重规划**仍未接线——内存驱动的 `p2_block_plan`
       （`lib/algorithms/coverage/include/astro/phase2/block.h`）仍在 `eng/ci/ledgers/dormant_algorithms.json`
       登记为生产不可达；本轮只把**取值**受控化，未引入按内存改块的路径；
@@ -95,7 +95,7 @@
 
 35. **`CHK-ARCH503-MOSAIC-WIN` 的峰值驻留判据（已收敛为唯一实现）**
     - **现行口径**：`lib/infrastructure/scheduler/src/mosaic_window.cpp` 的峰值驻留取**实测值**（窗口输出像素缓冲 `capacity()` + 路由指针向量 + 标量局部，循环内取最大）；判据收敛为唯一实现 `window_peak_residency_ok`——peak>0 / peak≤解析上界 / 与总图规模解耦 / 装满时 `window_tiles` 更大 ⇒ peak **严格更大**，四条同时成立才绿；两条负例（常量驻留 `sizeof(double)*4`、零驻留注入）必须判红。
-    - **规范依据**：`AGENTS.md §5`「判据必须非退化…恒真门没有证据资格」、`§9`；`docs/contracts/SCHEDULER_CONTRACT.md §6`（负例要求）。
+    - **规范依据**：`AGENTS.md §5`「判据必须非退化…恒真门没有证据资格」、`§9`；`docs/engineering/SCHEDULER_CONTRACT.md §6`（负例要求）。
     - **残余**：`eng/ci/mutation_gates.json` 的判据已机器化 —— `eng/ci/check_mutation_gates.py` 断言 design_claim 锚存活（doc/§节号/行号/引文四查）、登记项仍有对象（driver/registration/evidence 的路径必须存在或在 gone_artifacts 显式登记）、gone_artifacts 棘轮（只减不增），带 `--self-test`。该 checker **尚未**在 `eng/ci/checks.json` 注册；真仓库当前判红：design_claim 原引的 `ASTROCS_DESIGN.md §11.1` 在现行设计中不存在，且 6 条登记产物（`run/v6/**` 与 `eng/tests/contracts/product_family/evidence/mutations.json`）的路径已消失。
     - **归属/去向**：mosaic_window 判据面 + `eng/ci`；同族已在控制包差距清单登记（「L2 性能门恒真」「空断言/恒真测试普查」）。
 
@@ -106,16 +106,16 @@
 
 37. **缺 tile 未进产品 provenance**
     - **现象**：`lib/infrastructure/scheduler/src/module_adapters.cpp#p3_op_writer` 硬编 `prov.missing_tiles = nullptr; prov.missing_count = 0;` ⇒ `P3Provenance` 的 missing 字段恒空，FITS HISTORY/manifest 不携带任何缺失信息。**可判据其实已在**：`lib/algorithms/resample/p3_resample.h#p3_sampler_cache_stats()` 的 `absent_reads`/`absent_entries` 已被 `#p3_op_resample` 调用并落进**中间节点 manifest** `tile_cache.absent_reads`，只是**没有**沿 `p3_resampled.json → p3_writer.json → FITS provenance` 链传下去。已由 `lib/algorithms/resample/module.yaml` 的 `known_defects: DISP-P3RSMP-004` 在**模块面**登记。
-    - **规范依据**：`docs/science/PHASE3_HIPS_TO_FITS.md §8`（SCI-P3-001，FROZEN）「缺 tile → coverage=0, S=NaN，**provenance 记录 missing**，不中断」、`§9a-9`；`ASTROCS_DESIGN.md §10`「请求的 tile 缺失时如实报缺失，不返回父层内容冒充」；`docs/api/PHASE3_API_V1.md §4`。
+    - **规范依据**：`docs/science/PHASE3_HIPS_TO_FITS.md §8`（SCI-P3-001，FROZEN）「缺 tile → coverage=0, S=NaN，**provenance 记录 missing**，不中断」、`§9a-9`；`ASTROCS_DESIGN.md §10`「请求的 tile 缺失时如实报缺失，不返回父层内容冒充」；`docs/engineering/PHASE3_API_V1.md §4`。
     - **归属/去向**：Phase3 resample/writer 域（接线 `absent_reads`/`absent_entries` + 补「缺失 tile 时 provenance 必非空」负例）。
 
 38. **`API-P3-001 §4` 的拒绝清单与 `SCI-P3 §9a-10` 正面冲突（API 文档过期）**
-    - **现象**：`docs/api/PHASE3_API_V1.md §4`（API-P3-001，**FROZEN**）把 variance/weight/ivar/flux-per-pixel 输入模式列为 `ACS_ERR_UNSUPPORTED`；`docs/science/PHASE3_HIPS_TO_FITS.md §1`（SCI-P3-001，**FROZEN**）括注「variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，**不属拒绝项**」，`§9a-10` 明文「含 variance/ivar 子产品时必须显式消费传播（输出 VARIANCE/IVAR 扩展 HDU）」；`docs/contracts/DATA_SEMANTICS.md §27.2` 同旨（禁静默丢弃）。**代码事实已按 SCI §9a-10 实现**：`p3_uncertainty_open`/`p3_uncertainty_propagate` 被 `#p3_op_resample` 调用、`#p3_op_writer` 写 VARIANCE/IVAR HDU。
+    - **现象**：`docs/engineering/PHASE3_API_V1.md §4`（API-P3-001，**FROZEN**）把 variance/weight/ivar/flux-per-pixel 输入模式列为 `ACS_ERR_UNSUPPORTED`；`docs/science/PHASE3_HIPS_TO_FITS.md §1`（SCI-P3-001，**FROZEN**）括注「variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，**不属拒绝项**」，`§9a-10` 明文「含 variance/ivar 子产品时必须显式消费传播（输出 VARIANCE/IVAR 扩展 HDU）」；`docs/science/DATA_SEMANTICS.md §27.2` 同旨（禁静默丢弃）。**代码事实已按 SCI §9a-10 实现**：`p3_uncertainty_open`/`p3_uncertainty_propagate` 被 `#p3_op_resample` 调用、`#p3_op_writer` 写 VARIANCE/IVAR HDU。
     - **规范依据**：`ASTROCS_DESIGN.md §0.2`「同一主题只有一份正本」「双向对应」；`ENGINEERING_SPEC.md §3`（科学正确性优先；文档与事实不符时订正文档是义务）。
     - **归属/去向**：按 SCI §9a-10 订正 API-P3-001 §4 行（variance/ivar 移出拒绝清单，改为「必须消费/传播」）；不改代码。
 
 39. **Phase3 三处文档引用的机器 schema 不存在（断链）+ 门禁盲区**
-    - **现象**：`docs/api/PHASE3_API_V1.md §2` 引 `schemas/phase3_request_v1.schema.json`、`docs/plugins/algorithms_phase3/15_resample.md §3` 引 `eng/contracts/schemas/export_product.schema.json`、`docs/plugins/algorithms_phase3/16_fits_output.md §3` 引 `eng/contracts/schemas/fits_product.schema.json` —— **三者均不存在**（实测；`eng/contracts` 下 export/fits/p3 名式只命中 `data/examples/phase3_planar_fits_v1.example.json` 与 `schemas/phase_config_export.schema.json`）。**判据盲区（已实测）**：`python3 eng/tools/doccheck/check_doc_index.py --strict` **rc=0 / DOC_INDEX_PASS**，输出不含这三个路径；`CHK-CONTRACT-REF` 的实现是合同 **ID** 图（`eng/tools/check_contract_graph.py` + `check_data_artifacts.py`），其 `changed_paths` 不含 `docs/plugins/**`、`docs/api/**` ⇒ 三处断链落在覆盖面之外。
+    - **现象**：`docs/engineering/PHASE3_API_V1.md §2` 引 `schemas/phase3_request_v1.schema.json`、`docs/detail/algorithms_phase3/15_resample.md §3` 引 `eng/contracts/schemas/export_product.schema.json`、`docs/detail/algorithms_phase3/16_fits_output.md §3` 引 `eng/contracts/schemas/fits_product.schema.json` —— **三者均不存在**（实测；`eng/contracts` 下 export/fits/p3 名式只命中 `data/examples/phase3_planar_fits_v1.example.json` 与 `schemas/phase_config_export.schema.json`）。**判据盲区（已实测）**：`python3 eng/tools/doccheck/check_doc_index.py --strict` **rc=0 / DOC_INDEX_PASS**，输出不含这三个路径；`CHK-CONTRACT-REF` 的实现是合同 **ID** 图（`eng/tools/check_contract_graph.py` + `check_data_artifacts.py`），其 `changed_paths` 不含 `docs/plugins/**`、`docs/api/**` ⇒ 三处断链落在覆盖面之外。
     - **规范依据**：`ASTROCS_DESIGN.md §0.2`「docs/contracts/（合同说明，对应 eng/contracts/ 的 schema）…**双向可追溯**」「每份文档、每个机制都能追溯到本设计的一条要点」；`AGENTS.md §9`。
     - **归属/去向**：合同 schema 面 + 门禁判据面（须可红可绿：注入悬空路径必须判红）；补 schema 与改引用二选一，且**补门判据**「文档中形如 `eng/contracts/**.schema.json` 或 `schemas/*.schema.json` 的路径必须存在」属门禁面变更——待裁决。
 
@@ -154,7 +154,7 @@
 46. **drizzle 两处文档漂移**
     - **现象（两处，均为文档滞后于代码）**：
       1. `docs/science/algorithms/DRIZZLE_GEOMETRY.md §6` 曾写「跨线程数时 leaf 内浮点和顺序不同，**不保证 bitwise**」——该表述是 P15a/P22 修复前的状态；现行代码跨 worker 逐位一致（实测 stripe 归约跨 worker digest 集合大小 = 1，且以 legacy 归约 5 个 worker 数 → 5 个不同 digest 为**负例**自证非退化）。
-      2. `docs/plugins/algorithms_phase1/08_drizzle.md §7` 曾写「生产调度路径不挂 variance 块 ⇒ has_variance=0 ⇒ uncertainty_available=false」——与工作区现状（`module_adapters.cpp` 的 variance 块接线**已存在**，定案 2 / NoiseWeightModelV1 blank-sky variance，且 fail-closed）**不符**。
+      2. `docs/detail/algorithms_phase1/08_drizzle.md §7` 曾写「生产调度路径不挂 variance 块 ⇒ has_variance=0 ⇒ uncertainty_available=false」——与工作区现状（`module_adapters.cpp` 的 variance 块接线**已存在**，定案 2 / NoiseWeightModelV1 blank-sky variance，且 fail-closed）**不符**。
     - **规范依据**：`ENGINEERING_SPEC.md §8`（文档集随代码持续维护更新，保持自解释）；`ASTROCS_DESIGN.md §0.2`。
     - **归属/去向**：§6 订正为「跨线程数 bitwise 一致，由 `p1drz_merge_pipeline_lock` 回归锁守护」；`08_drizzle.md §7` 按接线现状订正。若第 2 处实为「接线已落地但未跑通」则需上呈。
 
@@ -179,7 +179,7 @@
       插件文档来源的默认值不能直接进 defaults 数值面。代码侧现状：消费侧已是规范默认 1.0
       （`lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.h:110`、`snr_evaluator.cpp:212,268`），
       生产侧仍硬写 2.0（`lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp:593,730,833`）。
-    - **规范依据**：`docs/plugins/algorithms_phase1/07_noise_snr.md:192`（插值设置配置化 + 日志输出 `p*`，不随产物落盘）；
+    - **规范依据**：`docs/detail/algorithms_phase1/07_noise_snr.md:192`（插值设置配置化 + 日志输出 `p*`，不随产物落盘）；
       `eng/contracts/schemas/unified/sparse_snr_layer.schema.json`（层语义冻结）；`AGENTS.md §6`（不动科学默认值）。
     - **归属/去向**：M06 = **已落地**（集成侧逐像素消费面 + 生产接线 + 双向判据；本条目余下部分已不再是前置）；
       M05 = 文档单元（`07_noise_snr.md` 补表格行
@@ -195,4 +195,4 @@
     - **v6 shell `p3_export.cpp` 未进构建（第 40 条的一半）** → `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06`。
     - **同族已在控制包差距清单登记、本节不另立条目**：命名块内存管线未落地、三阶段无独立调度器、块生命周期未实现、性能探针不成体系、L2 性能门恒真、空断言/恒真测试普查、docs/contracts ↔ eng/contracts 双向对应无机器校验；以及控制包未决问题清单的「端口声明 vs 真实数据流」与 OQ-10 两条。
 
-49. **数据集级覆盖索引 `coverage.index.json` 零生产者（发布路径已指定、未实现；R-47）**：该索引的登记名与字段模型已冻结（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §4.2：`index_schema`/`granularity`/`frames[]`/`blocks[].{ipix,frames[].{f,frac}}`），但**全仓无生产者**——写出发布清单的同一条命令（`mosaic`）尚未在其发布步内写它（`lib/` 侧零写入点；产品级 `<name>.hips.index.json` 同样只有门禁夹具会写临时样例，无生产写入点）。R-47 已指定发布路径：生产者 = `mosaic` 发布步，写出**运行输出根层** `coverage.index.json`，与产品集清单**同一次原子发布**；仍**单判据**裁决、**不设豁免名单**，**不得**以放宽 `IO_003` §4（发布清单必含 `properties`）或把产品集判定改成白名单的方式消解张力。消费面 `coverage_index`（加性可选键）因此仍在死键台账：`eng/ci/ledgers/dead_config_keys.json#dead_config_key:coverage_index`（与本条同一事实的两面登记，双面均须显式、不得静默留白）。**下一动作与判据（R-47.4）**：实现该发布路径时须同时给出**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）并进机器门；在此之前不得声称覆盖索引可用，也不得把「CLI 认识该键」当成「已消费」。
+49. **数据集级覆盖索引 `coverage.index.json` 零生产者（发布路径已指定、未实现；R-47）**：该索引的登记名与字段模型已冻结（`docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md` §4.2：`index_schema`/`granularity`/`frames[]`/`blocks[].{ipix,frames[].{f,frac}}`），但**全仓无生产者**——写出发布清单的同一条命令（`mosaic`）尚未在其发布步内写它（`lib/` 侧零写入点；产品级 `<name>.hips.index.json` 同样只有门禁夹具会写临时样例，无生产写入点）。R-47 已指定发布路径：生产者 = `mosaic` 发布步，写出**运行输出根层** `coverage.index.json`，与产品集清单**同一次原子发布**；仍**单判据**裁决、**不设豁免名单**，**不得**以放宽 `IO_003` §4（发布清单必含 `properties`）或把产品集判定改成白名单的方式消解张力。消费面 `coverage_index`（加性可选键）因此仍在死键台账：`eng/ci/ledgers/dead_config_keys.json#dead_config_key:coverage_index`（与本条同一事实的两面登记，双面均须显式、不得静默留白）。**下一动作与判据（R-47.4）**：实现该发布路径时须同时给出**正例**（索引存在且同批清单含 `properties`、随清单原子落盘）与**负例**（索引缺失或与清单不同批 ⇒ 判红）并进机器门；在此之前不得声称覆盖索引可用，也不得把「CLI 认识该键」当成「已消费」。
