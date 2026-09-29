@@ -355,6 +355,126 @@ struct StarRecord {
     float cand_R;        // 候选阶段 R (mag box 半径, star_finder.c:529)
 };
 
+// ============================================================================
+// R-58-1: O13b 点源形状门（盲检测路径; O13 五码排异门之后的第二道形状判据）
+// ----------------------------------------------------------------------------
+// 依据: run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.1（R-58 裁决 1）。
+// 事实: M42_M5 帧上新检测器把星云核弥散发射切成一簇 fwhm 195-338 px 的"源"
+// 并按星等排进最亮序列（帧 1 的 U=60 最亮非饱和里 5 颗 fwhm>50 px）, 同时把
+// 次点源伪检（单像素尖峰, pf 0.5-0.99）从每帧约 20 颗抬到 200 颗以上; 这些
+// 非点源成员进入 WCS 解算的 U/池 ⇒ 帧 M42_M5@035959 最终 rms 由 0.106 抬到
+// 0.6554 px 触发冻结门 DISP-WCS-001。既有 O13 门拦不住: 次点源尖峰的拟合
+// fwhm 0.52-0.87 px 高于 0.5 px 绝对下限, 星云团块的 fwhm 上限判式是
+// se_smax 的对数函数（读数随尺度过宽同步放宽）。
+// 判据设计: 全部相对本帧点源参考, 不用全局常数 ——
+//   ① 半高宽比例窗 f0 = 过既有门的候选 fwhm 中位数（中位数对 <50% 的伪检污染
+//      稳健; **不得用亮度作参考**: 单像素尖峰的孔径星等比真实星更"亮"）
+//   ② 峰占比上限 pf = (峰值像素 - B)/(拟合盒内正通量和)
+//   ③ 最小像素数 n_quarter = #{pixel > B + 0.25*(peak-B)}
+// 参数约定与既有 maxAxisRatio 门一致: 0 = 用内置默认, 负值 = 显式关闭该子门
+// （四个子门全关 ⇒ 本函数是零成本直通, 与改动前逐位等价）。
+// 负例/正例回归锁: tests/p1star/p1star_psf_shape_gate_test.cpp。
+// ============================================================================
+static const double SDET_SHAPE_FWHM_LO_DEFAULT = 0.5;
+static const double SDET_SHAPE_FWHM_HI_DEFAULT = 2.5;
+static const double SDET_SHAPE_PF_DEFAULT = 0.35;
+static const int    SDET_SHAPE_NQUARTER_DEFAULT = 4;
+static const int    SDET_SHAPE_WINDOW_DEFAULT = 6;   // = 默认拟合盒半径 (13x13)
+static const int    SDET_SHAPE_WINDOW_MAX = 12;
+
+struct SdetShapeMetrics {
+    double fwhm;            // 0.5*(fwhm_x+fwhm_y)
+    double peak_fraction;   // 峰值像素占盒内正通量比
+    int n_quarter;          // 高于（背景 + 1/4 峰）的像素数
+};
+
+// 盒内形状量（两遍扫描同一盒, 无分配）。中心像素 = lround(cx-0.5)
+// （与 O14 孔径盒同约定: 像素索引 i 的中心在 i+0.5）。
+template <typename T>
+static SdetShapeMetrics sdet_shape_metrics(const T* src, int w, int h,
+                                           double cx, double cy, double bg,
+                                           int radius) {
+    SdetShapeMetrics m;
+    m.fwhm = 0.0;
+    m.peak_fraction = 0.0;
+    m.n_quarter = 0;
+    if (!src || w <= 0 || h <= 0 || radius <= 0) return m;
+    if (radius > SDET_SHAPE_WINDOW_MAX) radius = SDET_SHAPE_WINDOW_MAX;
+    const int bx = (int)std::lround(cx - 0.5);
+    const int by = (int)std::lround(cy - 0.5);
+    double peak = 0.0, pos_sum = 0.0;
+    for (int yy = by - radius; yy <= by + radius; ++yy) {
+        if (yy < 0 || yy >= h) continue;
+        const T* row = src + (size_t)yy * (size_t)w;
+        for (int xx = bx - radius; xx <= bx + radius; ++xx) {
+            if (xx < 0 || xx >= w) continue;
+            const double v = (double)row[xx] - bg;
+            if (v > peak) peak = v;
+            if (v > 0.0) pos_sum += v;
+        }
+    }
+    if (peak > 0.0) {
+        if (pos_sum > 0.0) m.peak_fraction = peak / pos_sum;
+        const double quarter = 0.25 * peak;
+        for (int yy = by - radius; yy <= by + radius; ++yy) {
+            if (yy < 0 || yy >= h) continue;
+            const T* row = src + (size_t)yy * (size_t)w;
+            for (int xx = bx - radius; xx <= bx + radius; ++xx) {
+                if (xx < 0 || xx >= w) continue;
+                if ((double)row[xx] - bg > quarter) ++m.n_quarter;
+            }
+        }
+    }
+    return m;
+}
+
+// 就地点源形状门: 返回被拒数（stars 已收缩）。
+template <typename T>
+static int sdet_apply_psf_shape_gate(std::vector<StarRecord>& stars, const T* src,
+                                     int w, int h, const SDetParams& params) {
+    const size_t n = stars.size();
+    if (n == 0) return 0;
+    const bool lo_on = !(params.psfFwhmLoRatio < 0.0f);
+    const bool hi_on = !(params.psfFwhmHiRatio < 0.0f);
+    const bool pf_on = !(params.maxPeakFraction < 0.0f);
+    const bool np_on = !(params.minQuarterMaxPixels < 0);
+    if (!lo_on && !hi_on && !pf_on && !np_on) return 0;   // 直通（零成本）
+    const double lo = (params.psfFwhmLoRatio > 0.0f) ? (double)params.psfFwhmLoRatio
+                                                     : SDET_SHAPE_FWHM_LO_DEFAULT;
+    const double hi = (params.psfFwhmHiRatio > 0.0f) ? (double)params.psfFwhmHiRatio
+                                                     : SDET_SHAPE_FWHM_HI_DEFAULT;
+    const double pf_max = (params.maxPeakFraction > 0.0f) ? (double)params.maxPeakFraction
+                                                          : SDET_SHAPE_PF_DEFAULT;
+    const int n_min = (params.minQuarterMaxPixels > 0) ? params.minQuarterMaxPixels
+                                                    : SDET_SHAPE_NQUARTER_DEFAULT;
+    const int radius = (params.fitRadius > 0) ? params.fitRadius
+                                              : SDET_SHAPE_WINDOW_DEFAULT;
+    std::vector<double> fw(n);
+    for (size_t i = 0; i < n; ++i)
+        fw[i] = 0.5 * ((double)stars[i].fwhm_x + (double)stars[i].fwhm_y);
+    const double f0 = sdet_median_of(fw);
+    const double f_lo = f0 * lo, f_hi = f0 * hi;
+    size_t wr = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const StarRecord& s = stars[i];
+        bool drop = false;
+        if (lo_on || hi_on) {
+            const double f = 0.5 * ((double)s.fwhm_x + (double)s.fwhm_y);
+            if ((lo_on && f < f_lo) || (hi_on && f > f_hi)) drop = true;
+        }
+        if (!drop && (pf_on || np_on)) {
+            const SdetShapeMetrics m = sdet_shape_metrics<T>(
+                src, w, h, s.cx, s.cy, (double)s.background, radius);
+            if ((pf_on && m.peak_fraction > pf_max) || (np_on && m.n_quarter < n_min))
+                drop = true;
+        }
+        if (!drop) stars[wr++] = s;
+    }
+    const int n_rej = (int)(n - wr);
+    stars.resize(wr);
+    return n_rej;
+}
+
 struct LMWorkspace {
     std::vector<double> fvec, fvec_new, J, JtJ, Jtf, delta, x_new, rhs, A_aug;
     void resize(int m, int n) {
@@ -1005,6 +1125,12 @@ SDET_EXPORT StarDetectorHandle sdet_create(const SDetParams *params)
         defaults.fitRadius = 6;
         defaults.fwhmClipSigma = 3.0f;
         defaults.maxAxisRatio = 2.0f;
+        // R-58-1 点源形状门默认（0 = 用内置默认; 详见 star_detector.h 与
+        // sdet_apply_psf_shape_gate 抬头）
+        defaults.psfFwhmLoRatio = 0.5f;
+        defaults.psfFwhmHiRatio = 2.5f;
+        defaults.maxPeakFraction = 0.35f;
+        defaults.minQuarterMaxPixels = 4;
         sd->internal.params = defaults;
     }
 
@@ -2007,6 +2133,17 @@ static int sdet_detect_impl(StarDetectorHandle handle,
                                       : (float)std::nan("");
         }
         stars.push_back(rec);
+    }
+
+    // ---- O13b 点源形状门（R-58-1; 只作用于盲检测路径, 去重/截断之前）----
+    {
+        const size_t n_before = stars.size();
+        const int n_shape_rej = sdet_apply_psf_shape_gate<T>(stars, src, w, h, params);
+        if (n_shape_rej > 0) {
+            sdet_log(SDET_LOG_INFO, "SDET",
+                     "O13b point-source shape gate: rejected %d of %zu stars",
+                     n_shape_rej, n_before);
+        }
     }
 
     // ---- O15 dedup/排序/截断 + 事务化输出 ----

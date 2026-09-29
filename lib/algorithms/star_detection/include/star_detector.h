@@ -24,6 +24,28 @@ typedef struct {
     int fitRadius;
     float fwhmClipSigma;
     float maxAxisRatio;
+    // ── R-58-1 点源形状门（盲检测路径 O13b; 0 = 用内置默认, <0 = 显式关闭该子门）──
+    // 依据: run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.1（R-58 裁决 1）。
+    // 语义（判据相对本帧点源参考, 不用全局常数）:
+    //   ① 半高宽比例窗: f0 = 本帧过既有 O13 门的候选 fwhm 中位数;
+    //      fwhm = 0.5*(fwhm_x+fwhm_y); 拒 fwhm < psfFwhmLoRatio*f0
+    //      或 > psfFwhmHiRatio*f0（默认 0.5 / 2.5）
+    //   ② 峰占比上限: pf = (峰值像素 - 拟合背景)/(拟合盒内正通量和);
+    //      拒 pf > maxPeakFraction（默认 0.35; 真实 PSF 中位 0.08-0.14,
+    //      单像素尖峰 0.5-0.99）
+    //   ③ 最小像素数: n_quarter = #{pixel > B + 0.25*(peak-B)}（1/4 峰）;
+    //      拒 n_quarter < minQuarterMaxPixels（默认 4）。
+    //      实测依据: 本采样下“半高”判据对 sigma 0.8 px 的真实窄星只给 1
+    //      （半高等高线半径 1.177*sigma = 0.94 px < 1 px，无相邻像素过线）,
+    //      与单像素尖峰不可分 ⇒ 改用 1/4 峰（半径 1.665*sigma）:
+    //      真实窄星 5, 生产帧实测尖峰族 1-2, 阈值 4 落在中间且两侧都有裕度。
+    // 适用面: 只作用于全图盲检测 sdet_detect_ex[_f64]（WCS 解算的检测输入）;
+    // 星表引导路径 sdet_detect_guided_ex_f64（权威测光路径）不经本门, 其
+    // 检测定义域由星表位置给定, 语义不受影响。
+    float psfFwhmLoRatio;
+    float psfFwhmHiRatio;
+    float maxPeakFraction;
+    int   minQuarterMaxPixels;
 } SDetParams;
 
 typedef struct StarDetectorHandle_s *StarDetectorHandle;
