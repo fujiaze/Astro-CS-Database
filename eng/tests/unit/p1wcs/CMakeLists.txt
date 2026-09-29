@@ -149,10 +149,17 @@ add_test(NAME p1wcs_astropy_cross
           P1WCS_TESTS_BIN=$<TARGET_FILE:p1wcs_tests>
           python3 ${P1WCS_DIR}/p1wcs_astropy_cross.py)
 
-set_tests_properties(p1wcs_units p1wcs_properties p1wcs_oracle
-                     p1wcs_negative p1wcs_performance p1wcs_selfcheck
-                     p1wcs_apbp p1wcs_astropy_cross
-                     PROPERTIES LABELS "p1wcs")
+# 属性面必须与注册面同条件: negative 组在非 UNIX 平台不注册（见上），
+# 若此处无条件列出该名，非 UNIX 平台 configure 期会因找不到该测试而直接失败。
+# 故标签按实际注册集派生，注册与属性只有一处平台判断。
+set(P1WCS_LABELLED_TESTS
+  p1wcs_units p1wcs_properties p1wcs_oracle
+  p1wcs_performance p1wcs_selfcheck
+  p1wcs_apbp p1wcs_astropy_cross)
+if(UNIX)
+  list(APPEND P1WCS_LABELLED_TESTS p1wcs_negative)
+endif()
+set_tests_properties(${P1WCS_LABELLED_TESTS} PROPERTIES LABELS "p1wcs")
 
 # ---------------------------------------------------------------------------
 # STD-F1 导出边界 +1 桥接第三方交叉 + 九宫格显式判定 (前台裁决 R-02 方案 b)
