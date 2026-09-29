@@ -70,7 +70,7 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 | 机器门清单与运行方式 | `docs/ci/` |
 | 验收证据与 QA 矩阵 | `docs/validation/`、`实验/engineering-evidence/` |
 | 术语 | `docs/GLOSSARY.md` |
-| 开发与排查 | `docs/DEVELOPER_GUIDE.md`、`docs/TROUBLESHOOTING.md` |
+| 开发与排查 | `docs/DEVELOPER_GUIDE.md`、`docs/detail/merged_TROUBLESHOOTING.md` |
 
 ## 仓库布局
 
