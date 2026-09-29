@@ -360,3 +360,27 @@ set_tests_properties(drizzle_p3_conservation_legacy_injection PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 900
   ENVIRONMENT "ASTROCS_DRZ_P3_FAULT=legacy_corner_fast"
   WILL_FAIL TRUE)
+
+# ============================================================================
+# 11. M42-CONC-FIX-01 / 缺陷 B: drizzle_trace 全局量跨帧并发回归
+# ----------------------------------------------------------------------------
+# 打开 ASTROCS_DRIZZLE_TRACE 后多帧并发跑 drizzleTiled, 覆盖 init_from_env /
+# ensure_selection / selected / push_source / push_leaf / flush / clear_buffers
+# 的**读写两侧**并发 (跨帧并发形态 = scheduler module_adapters 的 p1_parallel_for)。
+# 修复前 flush() 无锁遍历 g_sources/g_leaves, 与 push_source 追加、clear_buffers
+# 的 clear+shrink_to_fit 直接竞争 (遍历迭代器悬垂 / UAF)。
+# 判据: 每轮 jsonl 逐行可解析且括号自洽 (脏读/撕裂即红)。
+# TSAN 检测: run/M42-CONC-FIX-01/build_tsan_drizzle_trace.sh 插桩重编本 TU。
+# ============================================================================
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/drizzle_trace_conc)
+add_executable(drizzle_trace_concurrency_test
+  ${DRZ_TESTS_DIR}/drizzle_trace_concurrency_test.cpp)
+target_include_directories(drizzle_trace_concurrency_test PRIVATE ${DRZ_MODULE_DIR})
+target_compile_definitions(drizzle_trace_concurrency_test PRIVATE
+  AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(drizzle_trace_concurrency_test PRIVATE
+  astrocs_drizzle ${ASTROCS_OMP_TARGET})
+add_test(NAME drizzle_trace_concurrency
+  COMMAND drizzle_trace_concurrency_test ${CMAKE_BINARY_DIR}/drizzle_trace_conc)
+set_tests_properties(drizzle_trace_concurrency PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 900)
