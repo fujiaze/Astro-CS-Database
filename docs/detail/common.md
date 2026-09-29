@@ -62,4 +62,4 @@ SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；�
 
 ## Source files
 
-`lib/algorithms/shared/{healpix/healpix_core.h,healpix_core.cpp,crypto/sha256.h,sha256.cpp,lib/include/astro_scalar.h,lib/include/precision_context.h,Makefile}`。
+以 `lib/algorithms/shared/` 为根的 7 件：`Makefile`、`healpix/healpix_core.h`、`healpix/healpix_core.cpp`、`crypto/sha256.h`、`crypto/sha256.cpp`、`include/astro_scalar.h`、`include/precision_context.h`。
