@@ -40,18 +40,19 @@
 #include <io.h>
 #include <process.h>
 #include <windows.h>
-static inline void* acs_dlsym_main_module(const char* name) {
-    // dlsym(RTLD_DEFAULT, N) 的红外等价物：主模块导出查找（Windows 上 interposer 不存在
-    // ⇒ 恒 nullptr，与"未预载即找不到"同一语义）。
-    return reinterpret_cast<void*>(GetProcAddress(GetModuleHandleA(nullptr), name));
-}
-#define RTLD_DEFAULT 0
-#define dlsym(handle, name) acs_dlsym_main_module(name)
+/* dlsym/RTLD_DEFAULT 由 eng/tests/support/astrocs_test_posix_compat.h 统一提供
+ * （RTLD_DEFAULT ⇒ 主模块句柄；与原先的 acs_dlsym_main_module 同语义），本处不再写。 */
 #else
 #include <dlfcn.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
+
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * dlopen/dlsym/dlerror、setenv/unsetenv、popen/pclose、目录遍历与文件属性等只在类 UNIX
+ * 存在的接口经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物；本 TU 不再写
+ * 平台分支。无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
+#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -576,7 +577,9 @@ int test_properties() {
 
     // ---- maxStars 截断保最亮 (F3): 25 星场 maxStars=10 --------------------
     {
-        SDetParams p;
+        // 值初始化（非 memset）: 四个形状门子参数取 0 = 用内置默认，与生产一致。
+        // 原先 SDetParams p; 未初始化 → 读栈垃圾 → 形状门随机阈值（UB）。
+        SDetParams p{};
         p.structureLayers = 5; p.hotPixelFilterRadius = 1; p.iterativeClipSigma = 9.0f;
         p.iterativeMaxRounds = 5; p.medianFilterDetail = 1;
         p.maxStars = 10; p.fitRadius = 6; p.fwhmClipSigma = 3.0f; p.maxAxisRatio = 2.0f;
