@@ -11,6 +11,7 @@ import os
 import re
 import unittest
 
+import cfg_anchors as anchors
 import cfg_common as C
 
 PHASE_SCHEMAS = {
@@ -31,22 +32,25 @@ FILTERS = "eng/packaging/config/filters.json"
 FIELDS_TRANSCRIBED = ["name", "channel", "wavelength_nm", "value", "n_points"]
 MIN_EXPECTED_FILTERS = 45   # 编制时实测条数；少于该数说明转录丢失（滤镜库可扩充，多于不算失败）
 
-# 负责人实测指认的权威锚点（仍须逐条核对原文）——(字段, 文件, 行, 该行必须出现的 token)
+# 负责人实测指认的权威锚点（仍须逐条核对原文）——R-54 形态：(字段, 文件, 值文本, 内容指纹)。
+# 位置不再由行号断言：引文 + 指纹在 defaults.json#fields[].source_ref 内，此处断言的是
+# 「负责人指认的那条权威锚仍是登记的那一条」——目标文件、锁住的值文本、内容指纹三者同时相符。
+# 指纹算法与归一化规则正本 = docs/algorithms/anchors/ANCHOR_CONTRACT.md §9。
 KEY_ANCHORS = [
-    ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", 65, "5.0"),
-    ("psf.default_model", "docs/science/PSF.md", 9, "Moffat4"),
-    ("psf.moffat_beta", "docs/science/PSF.md", 23, "4"),
-    ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", 28, "rmax"),
-    ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 30, "1e-12"),
-    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 115, "4.0/3.0/8"),
-    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 34, "3.0 mag"),
+    ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", "5.0", "1ee8a504a9719e69"),
+    ("psf.default_model", "docs/science/PSF.md", "Moffat4", "fff3055bb84190f8"),
+    ("psf.moffat_beta", "docs/science/PSF.md", "4", "b6d5ab32689712cf"),
+    ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", "10", "8becd53e14a908d1"),
+    ("noise.variance_floor", "docs/science/NOISE_MODEL.md", "1e-12", "dabe6c0944595306"),
+    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", "4.0", "8464bc8325f7cc48"),
+    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", "3.0", "d97a4b7e39573a0a"),
     # §9.73 裁决 A44（不存在「权重模式」）：weight.default_mode 组与
     # phase_config_mosaic 的 algorithm_weight_mode 已同批注销（eng/packaging/config/defaults.json
     # field_count 53→52；config_registry.json 登记注销），故此处不再登记其权威锚点。
-    ("precision.default", "docs/science/SCIENCE_SCOPE.md", 92, "FP64"),
-    ("upm.k_corr", "docs/science/PHASE2_UPM.md", 24, "1.4"),
-    ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 17, "512"),
-    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 35, "pixfrac"),
+    ("precision.default", "docs/science/SCIENCE_SCOPE.md", "FP64", "fe438f8e0e1b5535"),
+    ("upm.k_corr", "docs/science/PHASE2_UPM.md", "1.4", "9d76f4972f7c2941"),
+    ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", "512", "42dda9afc81eb70b"),
+    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", "0.8", "e40a6bdb15702c37"),
 ]
 PENDING_EXPECTED = {
     # drizzle.pixfrac 已于 DOC-SCI-001 §3 裁决落地（defaults.json value=1.0，
@@ -204,29 +208,32 @@ class TestDefaultsContract(unittest.TestCase):
 
     def test_every_source_ref_resolves_and_key_anchors_hold(self):
         _doc, fields = defaults_fields()
+        # 一次报告全部锚点失败（fail-fast 会掩盖后续漂移：CFG-002 实测 3 处漂移只报第 1 处）
+        failures = []
         for key, f in fields.items():
             ref = f.get("source_ref")
             if ref is None:
                 self.assertNotEqual("sourced", f["authority_status"],
-                                    "%s 标 sourced 但没有 source_ref（文件:行）" % key)
+                                    "%s 标 sourced 但没有 source_ref（内容锚）" % key)
                 continue
-            lines = C.read_lines(ref["path"])
-            self.assertGreaterEqual(ref["line"], 1)
-            self.assertLessEqual(ref["line"], len(lines), "%s 的 source_ref 行号越界" % key)
-        # 一次报告全部锚点失败（fail-fast 会掩盖后续漂移：CFG-002 实测 3 处漂移只报第 1 处）
-        failures = []
-        for key, path, line, token in KEY_ANCHORS:
+            # R-54 §1/§4：source_ref = {id,path,quote,sha256,value_text}；位置由引文实时解析，
+            # 登记面与测试期望都不内嵌行号。判据实现唯一：eng/tests/config/cfg_anchors.py。
+            ok, detail = anchors.judge_value(C.REPO, ref, ref.get("value_text"), label="cfg001")
+            if not ok:
+                failures.append("%s 的内容锚不成立：%s" % (key, detail))
+        for key, path, value_text, sha in KEY_ANCHORS:
             if key not in fields:
                 failures.append("权威锚点字段缺失: %s" % key)
                 continue
-            if not C.grep_line(path, line, token):
-                failures.append("%s 的 source_ref 不成立：%s:%d 不含 %r" % (key, path, line, token))
-            if path != fields[key]["source_ref"]["path"]:
-                failures.append("%s 的 source_ref.path 漂移：测试期望 %s，登记 %s"
-                                % (key, path, fields[key]["source_ref"]["path"]))
-            if line != fields[key]["source_ref"]["line"]:
-                failures.append("%s 的 source_ref.line 漂移：测试期望 %d，登记 %d"
-                                % (key, line, fields[key]["source_ref"]["line"]))
+            ref = fields[key]["source_ref"]
+            if ref.get("path") != path:
+                failures.append("%s 的锚目标漂移：测试期望 %s，登记 %s" % (key, path, ref.get("path")))
+            if ref.get("value_text") != value_text:
+                failures.append("%s 的锚值文本漂移：测试期望 %r，登记 %r"
+                                % (key, value_text, ref.get("value_text")))
+            if ref.get("sha256") != sha:
+                failures.append("%s 的锚内容指纹漂移：测试期望 %s，登记 %s（引文被改 ⇒ 必须复审该锚）"
+                                % (key, sha, ref.get("sha256")))
         self.assertEqual([], failures, "锚点失败 %d 条：\n  - %s" % (len(failures), "\n  - ".join(failures)))
 
     def test_design_named_defaults_all_present(self):

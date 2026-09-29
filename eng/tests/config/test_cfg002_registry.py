@@ -4,7 +4,7 @@
 
 跑法（与 CFG-001 同目录，一次发现全跑）：
   python3 -m unittest discover -s eng/tests/config -t eng/tests/config
-本文件只调用同目录 check_cfg002_registry.py 的 10 项检查与 15 类故障注入，
+本文件只调用同目录 check_cfg002_registry.py 的 12 项检查与 25 类故障注入，
 不重复实现断言（单一事实源）；负例入口见测试 test_self_test_injections_all_red。
 """
 import os
@@ -15,7 +15,7 @@ import check_cfg002_registry as K
 
 
 class TestCfg002Registry(unittest.TestCase):
-    """10 项检查在真实仓库必须全绿。"""
+    """12 项检查在真实仓库必须全绿。"""
 
     def test_all_ten_checks_green(self):
         results = K.run_checks(C.REPO)
@@ -24,7 +24,7 @@ class TestCfg002Registry(unittest.TestCase):
 
     def test_check_inventory_is_exactly_registered(self):
         """检查清单按名登记：新增/删改检查必须先改这里（防漏测）。"""
-        expected = ["CFG002-%02d" % i for i in range(1, 12)]
+        expected = ["CFG002-%02d" % i for i in range(1, 13)]
         self.assertEqual(expected, [cid for cid, _ in K.CHECKS])
 
     def test_every_check_has_a_fault_injection(self):
@@ -33,7 +33,7 @@ class TestCfg002Registry(unittest.TestCase):
         self.assertEqual({cid for cid, _ in K.CHECKS}, covered)
 
     def test_self_test_injections_all_red(self):
-        """负例注入：真实仓库全绿 + 15 类故障在沙箱中逐条必红（rc 语义）。"""
+        """负例注入：真实仓库全绿 + 25 类故障在沙箱中逐条必红（rc 语义）。"""
         ok, problems, _real = K.self_test(C.REPO, verbose=False)
         self.assertTrue(ok, "自检失败：%s" % problems)
 

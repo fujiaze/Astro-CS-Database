@@ -11,6 +11,9 @@
   CFG002-06  lib/**/module.yaml 键闭包（旋钮声明字段出现即判红）
   CFG002-07  索引归属唯一（eng/packaging/config/** vs eng/contracts/config/**；DOCUMENT_INDEX；eng/tests/test_index.csv）
   CFG002-08  docs/contracts/CONFIG_CONTRACT.md 的 CFG002-ANCHOR 标记行存活（文档承诺与登记一致）
+  CFG002-09  defaults.json#source_ref 内容锚存活（引文唯一命中 / 指纹自洽 / 登记面零行号）
+  CFG002-11  CONFIG_CONTRACT 引用的科学锚（内容锚 face：引文唯一 + 取值文本落引文内）
+  CFG002-12  锚形态与区分力自检（R-54：内容锚 >> 行号；≥2 字符；同面唯一；退役行不得复活；非配置表须显式声明）
 
 用法：
   python3 eng/tests/config/check_cfg002_registry.py                # 跑真实仓库，rc=0 全绿
@@ -28,6 +31,9 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_DEFAULT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import cfg_anchors as anchors  # noqa: E402  （内容锚判据的唯一机器实现，规则正本 = ANCHOR_CONTRACT.md §9）
 
 REGISTRY = "eng/packaging/config/config_registry.json"
 DEFAULTS = "eng/packaging/config/defaults.json"
@@ -93,9 +99,24 @@ def cell_norm(v):
     return v
 
 
+# 配置表表头白名单（R-54 §3）：只有这些表头是「配置键表」；其余 字段 开头的表必须在
+# config_registry.json#non_config_tables 显式登记，否则 fail-closed（不得默默当成配置表或默默跳过）。
+CONFIG_TABLE_HEADERS = ("字段|默认|单位|说明", "字段|默认|说明", "字段|说明")
+
+
+def declared_non_config_tables(repo):
+    path = os.path.join(repo, REGISTRY)
+    if not os.path.isfile(path):
+        return set()
+    with open(path, encoding="utf-8") as fh:
+        reg = json.load(fh)
+    return {(t.get("doc", ""), t.get("header", "")) for t in reg.get("non_config_tables", [])}
+
+
 def parse_plugin_tables(repo):
-    """docs/plugins/*/*.md 的配置项表 -> 行清单（field/doc/line/default/unit）。"""
+    """docs/plugins/*/*.md 的配置项表 -> 行清单（field/doc/line/default/unit/raw/anchor）。"""
     import glob
+    declared = declared_non_config_tables(repo)
     rows = []
     for path in sorted(glob.glob(os.path.join(repo, "docs", "plugins", "*", "*.md"))):
         rel = os.path.relpath(path, repo).replace(os.sep, "/")
@@ -105,16 +126,28 @@ def parse_plugin_tables(repo):
         while i < len(lines):
             if re.match(r"^\|\s*字段\s*\|", lines[i]):
                 hdr = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                hdr_key = "|".join(hdr)
                 j = i + 1
                 if j < len(lines) and re.match(r"^\|[-\s|]+\|$", lines[j].strip()):
                     j += 1
+                if hdr_key not in CONFIG_TABLE_HEADERS:
+                    if (rel, hdr_key) not in declared:
+                        raise Fail("非配置表头 %r（%s）未在 config_registry.json#non_config_tables 显式登记"
+                                   "（fail-closed：新增 字段 表必须显式声明是配置表还是事件/协议表）" % (hdr_key, rel))
+                    i = j
+                    continue
                 while j < len(lines) and lines[j].strip().startswith("|"):
                     cells = [c.strip() for c in lines[j].strip().strip("|").split("|")]
                     d = dict(zip(hdr, cells))
-                    rows.append({"doc": rel, "line": j + 1, "module": os.path.basename(rel)[:-3],
-                                 "field": field_key(d.get("字段")),
+                    module = os.path.basename(rel)[:-3]
+                    fld = field_key(d.get("字段"))
+                    rows.append({"doc": rel, "line": j + 1, "module": module,
+                                 "field": fld,
                                  "declared_default": cell_norm(d.get("默认")),
-                                 "unit": cell_norm(d.get("单位"))})
+                                 "unit": cell_norm(d.get("单位")),
+                                 "raw": lines[j],
+                                 "anchor": {"id": "%s.%s" % (module, fld),
+                                            "sha256": anchors.fingerprint(lines[j])}})
                     j += 1
                 i = j
             else:
@@ -169,10 +202,13 @@ def check_01_registry_correspondence(repo):
         doc_by_key[k] = r
     reg_by_key = {}
     for r in rows:
-        for f in ("module", "doc", "line", "field", "declared_default", "unit",
-                  "owner_class", "registration", "finding", "note"):
+        for f in ("module", "doc", "field", "declared_default", "unit",
+                  "owner_class", "registration", "finding", "note", "anchor"):
             if f not in r:
                 raise Fail("登记行缺字段 %s: %r" % (f, r))
+        if "line" in r:
+            raise Fail("%s/%s 登记行仍内嵌行号 line（R-54 §4：登记面不得内嵌行号；位置由锚实时解析）"
+                       % (r["module"], r["field"]))
         if r["owner_class"] not in OWNER_CLASSES:
             raise Fail("未知 owner_class %r (%s/%s)" % (r["owner_class"], r["module"], r["field"]))
         if r["registration"] not in REGISTRATIONS:
@@ -191,9 +227,18 @@ def check_01_registry_correspondence(repo):
         raise Fail("多登记 %d 行（登记册有、文档无）: %s" % (len(phantom), phantom[:8]))
     for k, d in sorted(doc_by_key.items()):
         r = reg_by_key[k]
-        for f in ("doc", "line", "declared_default", "unit"):
+        for f in ("doc", "declared_default", "unit"):
             if r[f] != d[f]:
                 raise Fail("%s/%s 的 %s 漂移: 文档=%r 登记=%r" % (k[0], k[1], f, d[f], r[f]))
+        # 位置不再断言（R-54 §4）；内容必须锁死：文档表行内容一改，指纹即不符
+        got = r["anchor"].get("sha256")
+        want = d["anchor"]["sha256"]
+        if got != want:
+            raise Fail("%s/%s 的内容指纹漂移: 文档行重算=%s 登记=%s（表行内容已改，须复审锚并同步指纹）"
+                       % (k[0], k[1], want, got))
+        if r["anchor"].get("id") != d["anchor"]["id"]:
+            raise Fail("%s/%s 的锚 id 必须是复合键路径 %r，登记为 %r"
+                       % (k[0], k[1], d["anchor"]["id"], r["anchor"].get("id")))
     # finding 与登记点必须自洽（禁止用 none 掩盖未登记）
     for k, r in sorted(reg_by_key.items()):
         if r["registration"] == "none" and r["finding"] == "none":
@@ -215,7 +260,8 @@ def check_01_registry_correspondence(repo):
         got = dict(collections.Counter(r[key] for r in rows))
         if t.get(name) != got:
             raise Fail("totals.%s 与重算不一致: %r != %r" % (name, t.get(name), got))
-    return "rows=%d documents=%d missing=0 phantom=0 drift=0" % (len(rows), len(doc_by_key))
+    return ("rows=%d documents=%d missing=0 phantom=0 drift=0 anchor=%s"
+            % (len(rows), len(doc_by_key), anchors.FINGERPRINT_ALGO))
 
 
 # 单位归一别名表（登记册/文档用中文或符号写法，defaults 用 ASCII token）
@@ -330,14 +376,17 @@ def _resolve_registration(repo, r, schemas, defaults_keys):
             return False, "cpu_profile 指针不可解析: %s" % at
         return True, at
     if reg in ("plugin_doc", "contracts_doc"):
-        m = re.match(r"^(.+?):(\d+)(?:,\d+)*$", at or "")
-        if not m:
-            return False, "%s 登记点必须是 文件:行 形式: %r" % (reg, at)
-        path, line = m.group(1), int(m.group(2))
-        lines = read_text(repo, path).split("\n")
-        if line < 1 or line > len(lines) or not lines[line - 1].strip():
-            return False, "%s:%d 越界或空行" % (path, line)
-        return True, at
+        # R-54 §4：登记点写文档路径即可，位置由内容锚（r["anchor"]）实时解析；
+        # 行号不再进入登记面——文档重排不该让登记失效。
+        if not isinstance(at, str) or not at.strip():
+            return False, "%s 登记点缺文档路径: %r" % (reg, at)
+        if re.search(r":\d+", at):
+            return False, "%s 登记点仍内嵌行号（R-54 §4）: %r" % (reg, at)
+        path = at.split("#")[0]
+        if not os.path.isfile(os.path.join(repo, path)):
+            return False, "%s 登记文档不存在: %s" % (reg, path)
+        aid = (r.get("anchor") or {}).get("id", "?")
+        return True, "%s（锚 %s；行号由内容锚实时解析）" % (path, aid)
     if reg == "cli":
         lines = read_text(repo, at.split(":")[0]).split("\n")
         return True, at
@@ -565,18 +614,18 @@ def check_04_filter_name_policy(repo):
             problems.append("non_key_examples 含库键 %r（示例不得是合法键）" % lit)
         if lit.lower() in low_keys or " ".join(lit.split()).lower() in fold_keys:
             problems.append("non_key_examples %r 可被大小写/空白折叠解析为库键（归一化必须保持关闭）" % lit)
-        m = re.match(r"^(.+?):(\d+)$", ex.get("where", ""))
-        if not m:
-            problems.append("non_key_examples %r 的 where 不是「文件:行」锚点: %r"
-                            % (lit, ex.get("where")))
+        # R-54 §1/§4：where 改为**内容锚**（引文本身 + 指纹），行号不再进入登记面；
+        # 判据 = 引文在目标文档内唯一命中（有区分力）∧ 引文含该反例字面量 ∧ 指纹自洽。
+        wa = ex.get("where")
+        if not isinstance(wa, dict):
+            problems.append("non_key_examples %r 的 where 不是内容锚（R-54 §1）：%r" % (lit, wa))
             continue
-        anchor_rel, anchor_ln = m.group(1), int(m.group(2))
-        if not os.path.isfile(os.path.join(repo, anchor_rel)):
-            problems.append("non_key_examples %r 的 where 文件不存在: %s" % (lit, anchor_rel))
-            continue
-        lines = read_text(repo, anchor_rel).split("\n")
-        if anchor_ln > len(lines) or lit not in lines[anchor_ln - 1]:
-            problems.append("non_key_examples %r 的 where 锚点不成立: %s" % (lit, ex.get("where")))
+        if wa.get("value_text") != lit:
+            problems.append("non_key_examples %r 的锚 value_text=%r 与 literal 不符"
+                            % (lit, wa.get("value_text")))
+        ok, detail = anchors.judge_value(repo, wa, lit, label="filters.non_key_examples")
+        if not ok:
+            problems.append("non_key_examples %r 的 where 内容锚不成立: %s" % (lit, detail))
     # 现行库派生的近失配反例（不依赖任何历史文档示例；GATE-502 按任务书「改用现行
     # filters.json 中真实存在的失配反例」补）：真键的大小写/空白变体 + 一个「品牌在库、
     # 型号不在库」的缺号反例。它们必须既不等于库键，也不可被已登记归一化解析回库键。
@@ -694,67 +743,44 @@ def check_10_cpu_profile_kernel_link(repo):
         reg["refs"]["kernel_v1"], reg["refs"]["kernel_v2"], reg["status"])
 
 
-def _anchor_hint_ok(txt, hint):
-    """hint（source 里 path:line 后的括号文本）必须在该行留下可核token；CJK 允许前缀匹配。"""
-    toks = [t for t in re.split(r"[^\w\u4e00-\u9fff./+\-]+", hint)
-            if len(t) >= 2 and not re.fullmatch(r"§\d+", t)]
-    for t in toks:
-        if t in txt:
-            return True
-        if len(t) >= 3 and t[:2] in txt:
-            return True
-        if re.search(r"[\u4e00-\u9fff]", t) and t[:2] in txt:
-            return True
-    return False
-
-
 def check_09_defaults_anchor_survival(repo):
-    """defaults.json 的每个 source_ref 必须存活（行存在且非空）+ hint token 可核（ENGG_SPEC §8 锚存活）。
+    """defaults.json#source_ref 必须是存活的内容锚（R-54 §1/§2/§4）。
 
-    例外的 paraphrase 清单必须显式登记且只减不增：新增 paraphrase 即判红。
+    判据（每条都能红）：① 形态 {id,path,quote,sha256,value_text}，零行号；
+    ② 区分力自检 = 引文在目标文档内**唯一**命中（0 次=锚不成立，≥2 次=无区分力；D2）；
+    ③ 指纹自洽（D3）；④ value_text 必须落在引文内（锚锁住的是那个值/判据文本，而不是任意 token）。
+    paraphrase 豁免面在内容锚形态下不再需要：清单非空即判红（R-54 §5：不得新增豁免，只减不增）。
     """
     doc = load_json(repo, DEFAULTS)
     reg = load_json(repo, REGISTRY)
-    exceptions = set(reg.get("defaults_anchor_exceptions", {}).get("paraphrase", []))
-    problems, checked, paraphrase = [], 0, []
+    problems, checked = [], 0
+    exc = reg.get("defaults_anchor_exceptions", {}).get("paraphrase", [])
+    if exc:
+        problems.append("defaults_anchor_exceptions.paraphrase 非空 %r：内容锚形态下不存在「hint 不在被引文本」"
+                        "的豁免面（R-54 §5 不得新增豁免；只减不增）" % exc)
     for f in doc["fields"]:
         ref = f.get("source_ref")
         if not ref:
             continue
         checked += 1
-        path, line = ref.get("path"), ref.get("line")
-        if not isinstance(path, str) or not isinstance(line, int):
-            problems.append("%s: source_ref 形态错误 %r" % (f["key"], ref))
+        if ref.get("id") != f["key"]:
+            problems.append("%s: source_ref.id=%r 必须是键路径（锚 id = 复合键路径）" % (f["key"], ref.get("id")))
+        ok, detail = anchors.judge_value(repo, ref, ref.get("value_text"), label="defaults.source_ref")
+        if not ok:
+            problems.append("%s: %s" % (f["key"], detail))
             continue
-        try:
-            lines = read_text(repo, path).split("\n")
-        except Fail as exc:
-            problems.append("%s: %s" % (f["key"], exc))
-            continue
-        if not (1 <= line <= len(lines)) or not lines[line - 1].strip():
-            problems.append("%s: source_ref %s:%d 越界或空行" % (f["key"], path, line))
-            continue
-        txt = lines[line - 1]
+        src = f.get("source") or ""
+        m = re.search(r"[A-Za-z0-9_./-]+\.(?:md|json|py|cpp|h):\d+", src)
+        if m:
+            problems.append("%s: source 描述仍内嵌 文件:行 %r（R-54 §4：位置信息用「锚 id + 内容指纹」）"
+                            % (f["key"], m.group(0)))
         if f.get("authority_status") == "pending_authority":
             leaf = f["key"].split(".")[-1]
-            if leaf not in txt:
-                problems.append("%s: pending 字段的 source_ref 行不含字段名 %r" % (f["key"], leaf))
-            continue
-        m = re.search(r":\d+（([^）]*)）", f.get("source") or "")
-        hint = m.group(1) if m else ""
-        if not hint:
-            problems.append("%s: sourced 字段的 source 缺 path:line（hint）" % f["key"])
-            continue
-        if not _anchor_hint_ok(txt, hint):
-            paraphrase.append(f["key"])
-            if f["key"] not in exceptions:
-                problems.append("%s: source_ref %s:%d 的 hint %r 无 token 落在该行（锚漂移或需登记 paraphrase）"
-                                % (f["key"], path, line, hint[:40]))
+            if leaf not in anchors.norm_quote(ref["quote"]):
+                problems.append("%s: pending 字段的引文不含字段名 %r" % (f["key"], leaf))
     if problems:
-        raise Fail("defaults 锚存活问题 %d 条: %s" % (len(problems), problems[:6]))
-    stale = sorted(exceptions - set(paraphrase))
-    return "anchors=%d paraphrase=%d registered_exceptions=%d stale_exceptions=%s" % (
-        checked, len(paraphrase), len(exceptions), stale)
+        raise Fail("defaults 内容锚问题 %d 条: %s" % (len(problems), problems[:6]))
+    return "anchors=%d form=content_anchor line_numbers=0 algo=%s" % (checked, anchors.FINGERPRINT_ALGO)
 
 
 SKIP_DIRS = (".git", "build", "run", "node_modules", "__pycache__", ".venv")
@@ -805,22 +831,23 @@ def check_11_contract_doc_citations(repo):
     if not isinstance(reg, dict) or not reg.get("token_anchors"):
         problems.append("config_registry.contract_doc_citations.token_anchors 缺失")
     else:
+        # R-54 §1/§4：科学锚改为**内容锚**（引文 + 指纹 + value_text），登记面零行号；
+        # 判据 = 引文在目标文档内唯一命中 ∧ value_text 落在引文内 ∧ 指纹自洽 ∧
+        # CONFIG_CONTRACT 在文件级仍引用该 path（文件级引用被删即判红）。
         for item in reg["token_anchors"]:
-            ref, token = item["ref"], item["token"]
-            if ref not in text:
-                problems.append("正文已不含引用 %s（引用被删/改写需同步登记）" % ref)
-            path, n = ref.rsplit(":", 1)
-            n = n.split("-")[0]
-            lines = read_text(repo, path).split("\n")
-            ln = int(item.get("token_line", n))
-            found = _find_citation(repo, path)
-            if found:
-                lines = read_text(repo, found[0]).split("\n")
-            if not found or ln > len(lines) or token not in lines[ln - 1]:
-                problems.append("%s 被引行不含 token %r（锚漂移）" % (ref, token))
+            if "ref" in item or "token_line" in item:
+                problems.append("token_anchors 条目仍带 文件:行 形态 %r（R-54 §4）" % item.get("id"))
+                continue
+            ok, detail = anchors.judge_value(repo, item, item.get("value_text"),
+                                             label="contract_doc_citations.token_anchors")
+            if not ok:
+                problems.append("科学锚 %s 不成立: %s" % (item.get("id"), detail))
+                continue
+            if item.get("path") not in text:
+                problems.append("正文已不含对 %s 的引用（文件级引用被删/改写需同步登记）" % item.get("path"))
     if problems:
         raise Fail("CONFIG_CONTRACT 引用问题 %d 条: %s" % (len(problems), problems[:6]))
-    return "citations=%d token_anchors=%d" % (len(cites), len(reg["token_anchors"]))
+    return "citations=%d token_anchors=%d form=content_anchor" % (len(cites), len(reg["token_anchors"]))
 
 
 def _os_name_literals(repo):
@@ -1015,6 +1042,137 @@ def check_08_contract_doc_anchors(repo):
     return "anchors=%d" % len(ANCHORS)
 
 
+def _all_field_tables(repo):
+    """docs/plugins/** 内所有 字段 开头的表：(rel, header, line, rows)。"""
+    import glob
+    out = []
+    for path in sorted(glob.glob(os.path.join(repo, "docs", "plugins", "*", "*.md"))):
+        rel = os.path.relpath(path, repo).replace(os.sep, "/")
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.read().split("\n")
+        i = 0
+        while i < len(lines):
+            if re.match(r"^\|\s*字段\s*\|", lines[i]):
+                hdr = "|".join(c.strip() for c in lines[i].strip().strip("|").split("|"))
+                j = i + 2
+                n = 0
+                while j < len(lines) and lines[j].strip().startswith("|"):
+                    n += 1
+                    j += 1
+                out.append((rel, hdr, i + 1, n))
+                i = j
+            else:
+                i += 1
+    return out
+
+
+def check_12_content_anchor_form(repo):
+    """锚形态与区分力自检（R-54 §1/§2/§4）：跨面内容锚复核 + 退役行不得复活 + 非配置表显式声明。
+
+    ① 登记面零行号（递归扫描；位置信息一律用「锚 id + 内容指纹」）；
+    ② 四个锚面（defaults.source_ref / token_anchors / filters.non_key_examples / declared_negatives）
+       必须全过内容锚判据：形态完整、引文唯一命中、指纹自洽、value_text 落在引文内；
+    ③ plugin_knobs.anchor 必须是复合键路径 id + 内容指纹（不是行号、不是无区分力 token）；
+    ④ retired_knobs 行不得重新出现在 plugin_knobs 或文档配置表（退役事实保留、不得复活）；
+    ⑤ 非配置表（非白名单表头）必须逐条在 config_registry.json#non_config_tables 显式声明，
+       且声明项必须真的存在（悬空声明亦判红）。
+    """
+    problems = []
+    reg = load_json(repo, REGISTRY)
+    doc = load_json(repo, DEFAULTS)
+    filt = load_json(repo, FILTERS)
+
+    # 全face扫描：三个登记面 JSON 的**所有字符串**（含 note/constraint/source 等散文字段）都不许写行号。
+    # 只扫锚形态字段会留恒真面：散文里写「文件:行」同样是行号硬绑，文档一重排就是错地址。
+    line_ref = re.compile(r"[A-Za-z0-9_./\-]+\.[A-Za-z][A-Za-z0-9]*:\d+")
+    sect_ref = re.compile(r"§[0-9A-Za-z]+:\d+")
+    hits = []
+
+    def walk(node, where):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, "%s.%s" % (where, k))
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                walk(v, "%s[%d]" % (where, i))
+        elif isinstance(node, str):
+            for rx in (line_ref, sect_ref):
+                for m in rx.finditer(node):
+                    hits.append("%s -> %s" % (where, m.group(0)))
+
+    walk(reg, "config_registry")
+    walk(doc, "defaults")
+    walk(filt, "filters")
+    if hits:
+        problems.append("登记面仍内嵌 行号 %d 处（R-54 §4，含散文字段）：%s" % (len(hits), hits[:6]))
+
+    faces = [
+        ("defaults.json#fields[].source_ref",
+         [(f["key"], f.get("source_ref")) for f in doc["fields"] if f.get("source_ref")]),
+        ("contract_doc_citations.token_anchors",
+         [(i.get("id"), i) for i in reg.get("contract_doc_citations", {}).get("token_anchors", [])]),
+        ("filters.lookup.non_key_examples[].where",
+         [(e.get("literal"), e.get("where")) for e in filt["lookup"].get("non_key_examples", [])]),
+        ("filter_name_policy.declared_negatives[].anchor",
+         [(e.get("literal"), e.get("anchor")) for e in reg["filter_name_policy"]["declared_negatives"]
+          if e.get("anchor")]),
+    ]
+    for e in reg["filter_name_policy"]["declared_negatives"]:
+        has_a, has_w = bool(e.get("anchor")), bool(str(e.get("why") or "").strip())
+        if has_a == has_w:
+            problems.append("declared_negatives %r 必须恰好给出一种定位：文档内容锚 anchor（文档里确有该串）"
+                            "或 why（库事实派生串的理由标签），当前 anchor=%s why=%s"
+                            % (e.get("literal"), has_a, has_w))
+
+    anchors_seen = 0
+    for face, items in faces:
+        # 面级判据（唯一命中 D2 / 指纹 D3 / 值覆盖 D4 / 同面 id 唯一 D6）走同一份实现：
+        # 先逐条 judge_value 保 value_text 覆盖，再用 judge_face 出面级判定。
+        for label, a in items:
+            anchors_seen += 1
+            vt = a.get("value_text") if isinstance(a, dict) else None
+            ok, detail = anchors.judge_value(repo, a, vt, label=face)
+            if not ok:
+                problems.append("[%s] %s: %s" % (face, label, detail))
+        problems += anchors.judge_face(repo, [a for _l, a in items], label=face)[0]
+
+    doc_rows = parse_plugin_tables(repo)
+    doc_keys = {(r["module"], r["field"]) for r in doc_rows}
+    live = {(r["module"], r["field"]) for r in reg["plugin_knobs"]}
+    for r in reg["plugin_knobs"]:
+        a = r.get("anchor") or {}
+        aid = str(a.get("id", ""))
+        if aid.count(".") < 1 or not aid.startswith(r["module"] + "."):
+            problems.append("plugin_knobs %s/%s 的锚 id %r 不是「模块.字段」复合键路径（R-54 §2）"
+                            % (r["module"], r["field"], aid))
+        if not re.fullmatch(r"[0-9a-f]{16}", str(a.get("sha256", ""))):
+            problems.append("plugin_knobs %s/%s 的锚 sha256 形态错误: %r" % (r["module"], r["field"], a.get("sha256")))
+
+    for t in reg.get("retired_knobs", []):
+        k = (t.get("module"), t.get("field"))
+        if not t.get("reason") or not t.get("evidence"):
+            problems.append("retired_knobs %s/%s 缺 reason/evidence（退役必须留事实）" % k)
+        if k in live:
+            problems.append("retired_knobs %s/%s 复活：仍在 plugin_knobs 内（不得静默再生）" % k)
+        if k in doc_keys:
+            problems.append("retired_knobs %s/%s 复活：文档配置表又出现该行（须重新登记或改退役登记）" % k)
+
+    tables = _all_field_tables(repo)
+    declared = {(t.get("doc", ""), t.get("header", "")) for t in reg.get("non_config_tables", [])}
+    actual = {(rel, hdr) for rel, hdr, _ln, _n in tables}
+    for rel, hdr in sorted(actual - declared):
+        if hdr not in CONFIG_TABLE_HEADERS:
+            problems.append("非配置表头 %r（%s）未在 non_config_tables 显式声明（fail-closed）" % (hdr, rel))
+    for rel, hdr in sorted(declared - actual):
+        problems.append("non_config_tables 悬空声明：%s 内已无表头 %r" % (rel, hdr))
+
+    if problems:
+        raise Fail("锚形态/区分力问题 %d 条: %s" % (len(problems), problems[:6]))
+    return ("anchors=%d faces=%d retired=%d non_config_tables=%d line_numbers=0 algo=%s"
+            % (anchors_seen, len(faces), len(reg.get("retired_knobs", [])),
+               len(reg.get("non_config_tables", [])), anchors.FINGERPRINT_ALGO))
+
+
 CHECKS = [
     ("CFG002-01", check_01_registry_correspondence),
     ("CFG002-02", check_02_registration_targets),
@@ -1027,6 +1185,7 @@ CHECKS = [
     ("CFG002-09", check_09_defaults_anchor_survival),
     ("CFG002-10", check_10_cpu_profile_kernel_link),
     ("CFG002-11", check_11_contract_doc_citations),
+    ("CFG002-12", check_12_content_anchor_form),
 ]
 
 
@@ -1044,6 +1203,9 @@ def run_checks(repo):
 
 SANDBOX_FILES = [
     "docs/DOCUMENT_INDEX.yaml", "docs/contracts/CONFIG_CONTRACT.md",
+    # R-54：cosmetic.bad_column_* 的 defaults 内容锚落在 DATA_SEMANTICS §10.4 表，沙箱必须含它
+    # （否则沙箱基线红 ⇒ 负例面整体失效）。
+    "docs/contracts/DATA_SEMANTICS.md",
     "docs/ASTROCS_DESIGN.md", "eng/tests/test_index.csv", HW_CPP, PROFILE_CPP, STAGE1_TPL,
     "ENGINEERING_SPEC.md", "docs/development/CONFIG_SCHEMA.md",
     "eng/tests/backend/test_cpu_profile.py", "eng/tests/unit/cpu007_profile_store_test.cpp",
@@ -1174,6 +1336,46 @@ def _row(doc, module, field):
     raise Fail("registry row not found: %s/%s" % (module, field))
 
 
+def _inject_id_collision(root):
+    """D6 注入：同一面内同一 id 指向两个**各自都成立**的目标（两条锚都能唯一命中）。
+
+    若复制项自身不成立（指纹/唯一性不过），它会先被逐条判据拦下、D6 永远走不到 —— 那就是
+    「负例没打到判据」的恒真面，故这里给复制项算一个真指纹。
+    """
+    reg_path = os.path.join(root, REGISTRY)
+    with open(reg_path, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    ta = doc["contract_doc_citations"]["token_anchors"]
+    dup = dict(ta[0])
+    text = read_text(root, dup["path"])
+    for ln in text.split("\n"):
+        s = ln.strip()
+        if len(s) >= 4 and text.count(s) == 1:
+            dup["quote"] = s
+            dup["sha256"] = anchors.fingerprint(s)
+            dup["value_text"] = s
+            break
+    else:
+        raise Fail("no unique line to clone in %s" % dup["path"])
+    ta.append(dup)
+    with open(reg_path, "w", encoding="utf-8") as fh:
+        json.dump(doc, fh, ensure_ascii=False, indent=2)
+
+
+def _ambig_quote(root, rel):
+    """返回 rel 内一个出现 >= 2 次的短片段（用于注入「无区分力引文」：同面多目标）。"""
+    text = read_text(root, rel)
+    for cand in ("默认", "必须", "文档", "参数", "说明"):
+        if text.count(cand) >= 2:
+            return cand
+    for ln in text.split("\n"):
+        s = ln.strip()
+        for n in (8, 6, 4, 2):
+            if len(s) >= n and text.count(s[:n]) >= 2:
+                return s[:n]
+    raise Fail("no ambiguous fragment in %s" % rel)
+
+
 INJECTIONS = [
     ("plugin_table_row_added", "CFG002-01",
      lambda root: _edit_text(root, "docs/plugins/algorithms_phase1/03_star_detection.md",
@@ -1185,12 +1387,21 @@ INJECTIONS = [
      lambda root: _edit_json(root, REGISTRY,
                              lambda d: _row(d, "03_star_detection", "min_area").__setitem__(
                                  "declared_default", "DRIFT"))),
+    # R-54：登记行不再有 line；多登记注入改成内容锚形态（否则会先被「登记面零行号」判红，
+    # 靶点从「多登记」漂移到别处）。
     ("registry_phantom_row", "CFG002-01",
      lambda root: _edit_json(root, REGISTRY, lambda d: d["plugin_knobs"].append(
-         {"module": "99_fake", "doc": "docs/plugins/algorithms_phase1/99_fake.md", "line": 1,
+         {"module": "99_fake", "doc": "docs/plugins/algorithms_phase1/99_fake.md",
           "field": "ghost", "declared_default": None, "unit": None, "owner_class": "science_param",
           "registration": "none", "registered_at": None, "registered_key": None,
-          "finding": "unregistered", "note": "注入负例", "conflict": None}))),
+          "finding": "unregistered", "note": "注入负例", "conflict": None,
+          "anchor": {"id": "99_fake.ghost", "sha256": "0" * 16}}))),
+    # R-54 形态迁移后位置不再断言（行漂移不再判红）⇒ 反向加固：文档表行**内容**一改，
+    # 内容指纹必红。本注入只改该行的说明文字（默认值/单位都没动）⇒ 只有指纹判据能抓到。
+    ("plugin_row_content_drift", "CFG002-01",
+     lambda root: _edit_text(root, "docs/plugins/algorithms_phase1/03_star_detection.md",
+                             lambda t: t.replace("是否输出 selection function",
+                                                 "是否输出 selection function（注入：描述漂移）"))),
     ("registration_target_missing", "CFG002-02",
      lambda root: _edit_json(root, REGISTRY,
                              lambda d: _row(d, "11_upm", "gauge").__setitem__(
@@ -1246,10 +1457,64 @@ INJECTIONS = [
      lambda root: _edit_text(root, CONTRACT_DOC, lambda t: t.replace(
          "docs/science/PHOTOMETRY.md:7",
          "docs/science/PHOTOMETRY.md:%d" % _blank_line_in(root, "docs/science/PHOTOMETRY.md", 7)))),
-    ("defaults_anchor_drift", "CFG002-09",
+    # R-54：source_ref 已从「文件:行」改为内容锚，负例面随之整组重建（每条对应一条判据）。
+    ("defaults_anchor_quote_drift", "CFG002-09",
      lambda root: _edit_json(root, DEFAULTS, lambda d: [
-         f.__setitem__("source_ref", {"path": "docs/science/STAR_DETECTION.md", "line": 1})
+         f["source_ref"].__setitem__("quote", f["source_ref"]["quote"] + "（注入）")
          for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
+    ("defaults_anchor_ambiguous", "CFG002-09",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f["source_ref"].__setitem__("quote", _ambig_quote(root, "docs/science/STAR_DETECTION.md"))
+         for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
+    ("defaults_anchor_short_quote", "CFG002-09",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f["source_ref"].__setitem__("quote", "4")
+         for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
+    ("defaults_anchor_value_text_gone", "CFG002-09",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f["source_ref"].__setitem__("value_text", "NOT_THE_VALUE")
+         for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
+    ("defaults_source_line_embedded", "CFG002-09",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f.__setitem__("source", (f.get("source") or "") + " docs/science/STAR_DETECTION.md:64")
+         for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
+    ("defaults_anchor_fingerprint_stale", "CFG002-09",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f["source_ref"].__setitem__("sha256", "0" * 16)
+         for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
+    # R-54 §4：登记面零行号（登记点写 文件:行 即判红）
+    # 散文字段（note）里的行号同样算「登记面内嵌行号」：只扫锚形态字段会留恒真面
+    ("registry_prose_line_embedded", "CFG002-12",
+     lambda root: _edit_json(root, REGISTRY, lambda d: d["plugin_knobs"][0].__setitem__(
+         "note", "见 docs/science/PSF.md:81 的 7 参数 Moffat4 路径"))),
+    ("registry_line_embedded", "CFG002-12",
+     lambda root: _edit_json(root, REGISTRY, lambda d: _row(d, "03_star_detection", "min_area").__setitem__(
+         "registered_at", "docs/plugins/algorithms_phase1/03_star_detection.md:34"))),
+    # R-54：退役事实不得复活（旧行重新塞回 plugin_knobs）
+    ("retired_knob_revived", "CFG002-12",
+     lambda root: _edit_json(root, REGISTRY, lambda d: d["plugin_knobs"].append(
+         dict([(k, v) for k, v in d["retired_knobs"][0].items()
+               if k in ("module", "field", "doc")],
+              declared_default=None, unit=None, owner_class="science_param", registration="none",
+              registered_at=None, registered_key=None, finding="unregistered",
+              note="注入负例：复活退役行", conflict=None,
+              anchor={"id": "%s.%s" % (d["retired_knobs"][0]["module"], d["retired_knobs"][0]["field"]),
+                      "sha256": "0" * 16})))),
+    # R-54 §3：非配置表必须显式声明（新增 字段 表而未登记即判红，fail-closed）
+    ("non_config_table_undeclared", "CFG002-12",
+     lambda root: _edit_text(root, "docs/plugins/algorithms_phase1/06_photometry.md",
+                             lambda t: t + "\n| 字段 | 承载事实 |\n| --- | --- |\n| injected | 注入负例 |\n")),
+    # R-54 §2：每个 declared_negative 必须恰好给出「文档锚」或「库事实理由」，二者皆无即判红
+    ("declared_negative_unanchored", "CFG002-12",
+     lambda root: _edit_json(root, REGISTRY, lambda d: [
+         e.pop("anchor", None) for e in d["filter_name_policy"]["declared_negatives"]
+         if e["literal"] == "bader r"])),
+    # 面级判据 D6：同一 id 在同一面指向两个不同目标（锚 id 失去区分力）
+    ("anchor_id_collision", "CFG002-12", _inject_id_collision),
+    ("filter_negative_where_is_line", "CFG002-04",
+     lambda root: _edit_json(root, FILTERS, lambda d: [
+         e.__setitem__("where", "docs/contracts/CONFIG_CONTRACT.md:198")
+         for e in d["lookup"]["non_key_examples"] if e["literal"] == "bader r"])),
     # W5-CPU-001 接线后本注入改为「接线状态变化未登记」的退化方向：拆掉 kernel_v1 的
     # $ref 而不改登记册（原变异对已接线状态是无操作 → 负例面失效，故随接线同步更新）。
     ("kernel_link_degraded_without_registration", "CFG002-10",
