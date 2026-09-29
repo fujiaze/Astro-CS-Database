@@ -37,6 +37,10 @@ import subprocess
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+# R-60: 变体 DSO 的唯一测试侧编译配方（门面 TU 零 ISA 旗标 / 计算面 TU 唯一带旗标）;
+# 本 runner 与产物级 ISA 判据测试共用它, 测试产物形态 = 发行产物形态。
+sys.path.insert(0, os.path.join(REPO, "eng", "tests", "backend"))
+import variant_build as vb  # noqa: E402
 AVX512_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx512", "src",
                           "avx512_provider.cpp")
 AVX2_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "src",
@@ -66,8 +70,8 @@ FAILURES = []
 HW = os.cpu_count() or 1
 TOL = 2e-4  # baseline 对照容差 (ALG oracle 同规, 冻结于 avx512 头 §6)
 
-AVX512_FLAGS = ["-mavx512f", "-mavx512cd", "-mavx512bw",
-                "-mavx512dq", "-mavx512vl"]
+AVX512_FLAGS = list(vb.cpuprov_isa_flags("avx512"))   # 旗标唯一取数口 = 根 CMakeLists 同名 target
+AVX2_FLAGS = list(vb.cpuprov_isa_flags("avx2"))
 
 
 def log(msg):
@@ -186,26 +190,35 @@ def main():
         fail("baseline .so 编译")
         return 1
 
-    # 2) 编译 avx2 .so (仅此 target 带 -mavx2 -mfma; 编译隔离 15 §6)
-    r = run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-mavx2", "-mfma",
-             "-fPIC", "-shared", "-Wall", "-Wextra", "-Wpedantic",
-             f"-I{INC_ROOT}", f"-I{INC_BASE}", f"-I{INC_AVX2}", f"-I{INC_CAP}",
-             AVX2_SRC, cap_obj, "-o", so_a, "-lpthread"], timeout=300)
-    if r.returncode != 0:
-        fail("avx2 .so 编译 (-mavx2 -mfma)")
+    # 2) 编译 avx2 .so —— R-60 TU 级隔离: 门面 TU **零 ISA 旗标**（query /
+    #    self_test / cap_gate 必须在仅 SSE2 的主机上可执行 = 干净拒绝而不是 #UD）+
+    #    计算面 TU **唯一**带 -mavx2 -mfma（编译隔离 15 §6 + R-60 配方）;
+    #    两者只经唯一跨 TU 桥 astrocs_cpuprov_kernel_range_v1 相连。
+    #    配方不在本文件重写: 唯一取数口 = eng/tests/backend/variant_build.py。
+    rc, err = vb.build_cpuprov_variant("avx2", so_a,
+                                       extra_link_inputs=[cap_obj], ld_extra=["-lpthread"])
+    if rc != 0:
+        log("$ build_cpuprov_variant avx2")
+        log("  stderr: " + (err or "")[-2000:])
+        fail("avx2 .so 编译 (门面零旗标 + 计算面 -mavx2 -mfma)")
         return 1
+    log("$ build_cpuprov_variant avx2 (face: 零 ISA 旗标 / kernels: "
+        + " ".join(AVX2_FLAGS) + ")")
+    log("  exit=0")
 
-    # 3) 编译 avx512 .so (唯一带 -mavx512* 的 target; 编译隔离 15 §6)。
-    #    capability_detect.o 独立链接 (无 -mavx512* 旗标) —— 探测路径
-    #    零 EVEX; 见 check_avx512_illegal_instr.py
-    r = run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-fPIC", "-shared",
-             "-Wall", "-Wextra", "-Wpedantic"] + AVX512_FLAGS +
-            [f"-I{INC_ROOT}", f"-I{INC_BASE}", f"-I{INC_AVX512}",
-             f"-I{INC_CAP}", AVX512_SRC, cap_obj, "-o", so_x, "-lpthread"],
-            timeout=300)
-    if r.returncode != 0:
-        fail("avx512 .so 编译 (-mavx512*)")
+    # 3) 编译 avx512 .so —— 同型: 门面 TU 零 ISA 旗标 + 计算面 TU 唯一带
+    #    -mavx512*（编译隔离 15 §6 + R-60 配方）; capability_detect.o 独立链接
+    #    (无 -mavx512* 旗标) —— 探测路径零 EVEX; 见 check_avx512_illegal_instr.py
+    rc, err = vb.build_cpuprov_variant("avx512", so_x,
+                                       extra_link_inputs=[cap_obj], ld_extra=["-lpthread"])
+    if rc != 0:
+        log("$ build_cpuprov_variant avx512")
+        log("  stderr: " + (err or "")[-2000:])
+        fail("avx512 .so 编译 (门面零旗标 + 计算面 -mavx512*)")
         return 1
+    log("$ build_cpuprov_variant avx512 (face: 零 ISA 旗标 / kernels: "
+        + " ".join(AVX512_FLAGS) + ")")
+    log("  exit=0")
 
     # 4) 非法指令保护静态检查 (反汇编; 本机全 AVX-512 无 #UD, 指令位置合同)
     r = run(["python3", ILLEGAL, so_x], timeout=300)
@@ -304,10 +317,17 @@ def main():
             f" 差异仅 FMA/EVEX 单次舍入 (见 avx512_provider_v1.h §6)")
 
     # 7) capability gate stub 负测 (缺子集/OS 无 ZMM/无 hw 拒绝; 全通过)
+    #    cap_gate 恰是"判定本 CPU 是否支持 AVX-512"的函数: R-60 起它所在的门面 TU
+    #    **零 ISA 旗标**, 风险在构建输入层被消除; 下面只按发行口径补上计算面对象。
+    kern512 = os.path.join(tmp, "cpuprov_avx512_kernels_link.o")
+    rc, err = vb.compile_cpuprov_kernels("avx512", kern512)
+    if rc != 0:
+        fail("avx512 计算面 TU 编译: " + (err or "")[-400:])
+        return 1
     gate_exe = os.path.join(tmp, "avx512_gate")
     r = run(["g++", "-std=c++17", "-Wall", "-Wextra", "-Wpedantic",
              f"-I{INC_AVX512}", f"-I{INC_CAP}", f"-I{INC_BASE}",
-             f"-I{INC_ROOT}", GATE, AVX512_SRC,
+             f"-I{INC_ROOT}", GATE, AVX512_SRC, kern512,
              "-o", gate_exe, "-lstdc++", "-lpthread"], timeout=300)
     if r.returncode != 0:
         fail("capability gate 编译")
@@ -320,7 +340,7 @@ def main():
     hs_exe = os.path.join(tmp, "avx512_handshake")
     r = run(["g++", "-std=c++17", "-Wall", "-Wextra", "-Wpedantic",
              f"-I{INC_AVX512}", f"-I{INC_CAP}", f"-I{INC_BASE}",
-             f"-I{INC_ROOT}", HANDSHAKE, AVX512_SRC, cap_obj,
+             f"-I{INC_ROOT}", HANDSHAKE, AVX512_SRC, kern512, cap_obj,
              "-o", hs_exe, "-lstdc++", "-lpthread"], timeout=300)
     if r.returncode != 0:
         fail("handshake 编译")

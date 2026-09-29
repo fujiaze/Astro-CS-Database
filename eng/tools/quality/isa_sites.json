@@ -49,6 +49,20 @@
       "face_target": "astrocs_cpu_avx512",
       "kernels_target": "astrocs_cpu_avx512_kernels",
       "note": "R-60: 同型隔离。avx512 的声明面按 __AVX512CD__ 取平台精确值（MSVC /arch:AVX512 许可面比 GCC 四子集旗标多 CD），门面 TU 仍为零 ISA 旗标。"
+    },
+    {
+      "id": "cpuprov-avx2",
+      "build_input": "CMakeLists.txt",
+      "face_target": "astrocs_cpuprov_avx2",
+      "kernels_target": "astrocs_cpuprov_avx2_kernels",
+      "note": "第二族 provider（astrocs_cpuprov_*）同款隔离：门面 TU avx2_provider.cpp（query/self_test/cap_gate/注册表，零 ISA 旗标）+ 计算面 TU avx2_kernels.cpp（热点 kernel 数值循环，唯一带 -mavx2 -mfma / MSVC /arch:AVX2 的 TU），两者经唯一跨 TU 桥 astrocs_cpuprov_kernel_range_v1 相连。改前整 TU 带旗标 ⇒ acs_cpu_avx2_cap_gate 函数体含 18 处 VEX/EVEX（产物级实测），在仅 SSE2 主机上会在「判定自身」前撞非法指令；且 MSVC 腿被 if(NOT MSVC) 门控 ⇒ 连旗标都没有。"
+    },
+    {
+      "id": "cpuprov-avx512",
+      "build_input": "CMakeLists.txt",
+      "face_target": "astrocs_cpuprov_avx512",
+      "kernels_target": "astrocs_cpuprov_avx512_kernels",
+      "note": "第二族 avx512 同型隔离：门面 TU avx512_provider.cpp 零 ISA 旗标（cap_gate 的 GCC target 属性保留为冗余保险），计算面 TU avx512_kernels.cpp 唯一带 -mavx512{f,cd,bw,dq,vl} / MSVC /arch:AVX512。MSVC 腿的合法指令面只能靠 TU 拆分保证（无函数级指令集覆盖）。"
     }
   ],
   "sites": [
@@ -125,10 +139,11 @@
       "id": "product-cpuprov-avx2",
       "build_input": "CMakeLists.txt",
       "posture": "product_graph",
-      "target": "astrocs_cpuprov_avx2",
+      "target": "astrocs_cpuprov_avx2_kernels",
       "flags": [
         "-mavx2",
-        "-mfma"
+        "-mfma",
+        "/arch:AVX2"
       ],
       "declaration": {
         "file": "lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp",
@@ -140,19 +155,20 @@
         "macro": "ACS_CPU_AVX2_REQUIRED_FEATURES"
       },
       "status": "IMPLEMENTED",
-      "note": "第二族 provider（astrocs_cpuprov_*）。R-60 补齐登记：此前该 target 的旗标站点**未登记**（门禁基线即红的两条之一）。声明面 = 加载时 os_safe 能力预检（acs_cap_os_safe_satisfies_v1），故同一宏既是声明也是检测。flags 只列 GCC 分支（该目标目前无 MSVC 分支）——MSVC 侧缺 ISA 旗标属 R-60 同类缺口，已在变体能力面一致性报告中登记为剩余项。"
+      "note": "第二族 provider（astrocs_cpuprov_*）。R-60 补齐登记：改前该 target 的旗标站点**未登记**。声明面 = 加载时 os_safe 能力预检（acs_cap_os_safe_satisfies_v1），故同一宏既是声明也是检测。flags 是**平台分支并集**：GCC/Clang 走 -mavx2 -mfma，MSVC 走 /arch:AVX2（官方口径同时含 FMA 指令面）—— 改前该目标被 if(NOT MSVC) 门控，MSVC 腿**连旗标都没有**（变体与基线同码）。target 自本轮起为**计算面 TU**（门面 TU astrocs_cpuprov_avx2 必须零旗标，见 tu_isolation cpuprov-avx2）。"
     },
     {
       "id": "product-cpuprov-avx512",
       "build_input": "CMakeLists.txt",
       "posture": "product_graph",
-      "target": "astrocs_cpuprov_avx512",
+      "target": "astrocs_cpuprov_avx512_kernels",
       "flags": [
         "-mavx512f",
         "-mavx512cd",
         "-mavx512bw",
         "-mavx512dq",
-        "-mavx512vl"
+        "-mavx512vl",
+        "/arch:AVX512"
       ],
       "declaration": {
         "file": "lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp",
@@ -164,7 +180,13 @@
         "macro": "ACS_CPU_AVX512_REQUIRED_FEATURES"
       },
       "status": "IMPLEMENTED",
-      "note": "第二族 provider。R-60 补齐登记（此前未登记，门禁基线即红）。声明面 = 组宏 ACS_CAP_GROUP_AVX512_SUBSET 全五子集（F/CD/BW/DQ/VL），与编译旗标逐位对齐（含 -mavx512cd）；这是与第一族 backend 变体声明集不同的**合法**差异：两族的编译许可面本身不同（本目标确实带 CD 旗标），判据只要求各自同源。"
+      "note": "第二族 provider。R-60 补齐登记。声明面 = 组宏 ACS_CAP_GROUP_AVX512_SUBSET 全五子集（F/CD/BW/DQ/VL），与编译旗标逐位对齐（含 -mavx512cd）；这是与第一族 backend 变体声明集不同的**合法**差异：两族的编译许可面本身不同（本目标确实带 CD 旗标），判据只要求各自同源。flags 为平台分支并集（GCC 五子集 / MSVC /arch:AVX512）；target 自本轮起为**计算面 TU**（门面 TU astrocs_cpuprov_avx512 必须零旗标，见 tu_isolation cpuprov-avx512）。",
+      "platform_extra_bits": {
+        "MSVC/clang-cl": [
+          "ACS_FEAT_AVX512CD"
+        ]
+      },
+      "platform_extra_bits_note": "MSVC 无 AVX-512 子集档位旗标：/arch:AVX512 的许可面 = F+CD+BW+DQ+VL（MS docs /arch (x64) 预定义宏段），故 MSVC 腿多许可 CD。本族声明面（组宏全五子集）**本就含 CD** ⇒ S8 只需确认它没被删掉；计算面 TU 另有编译期自检（_MSC_VER 下 CD/BW/DQ/VL 宏缺任一即 #error）把「声明 ⊋ 编译」挡在编译期。"
     }
   ],
   "macro_sources": [

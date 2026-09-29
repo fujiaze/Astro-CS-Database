@@ -547,8 +547,11 @@ MIRROR_KEEP = (REG, DESIGN)
 
 def fault_inject(name, root):
     """真仓构建输入复制到临时树后注入违规，目标判据必须判红。"""
+    # 第二族（CPU provider 变体族）的同型注入：S1/S2/S7/S8 对该族同样必须能红，
+    # 否则「判据只覆盖第一族」会退化成第二族无人把关。
     names = ("unregistered", "flag-drift", "declaration", "march", "tu-isolation",
-             "arch-flag-drift")
+             "arch-flag-drift", "cpuprov-tu-isolation", "cpuprov-kernels-unflagged",
+             "cpuprov-arch-flag-drift", "cpuprov-declaration-cd")
     if name == "all":
         rc = 0
         for nm in names:
@@ -607,6 +610,54 @@ def fault_inject(name, root):
                                         if f != "/arch:AVX512"]
             with open(os.path.join(dst, REG), "w", encoding="utf-8") as f:
                 json.dump(reg, f)
+        elif name == "cpuprov-tu-isolation":
+            # R-60 第二族: 把 ISA 旗标挂回 **cpuprov 门面** target
+            # （改前形态: astrocs_cpuprov_avx2 整 TU 带 -mavx2，握手入口与高指令集同 TU）
+            # ⇒ S7 必须红。
+            p = os.path.join(dst, "CMakeLists.txt")
+            with open(p, "a", encoding="utf-8") as f:
+                f.write(chr(10) + "target_compile_options(astrocs_cpuprov_avx2 PRIVATE -mavx2 -mfma)" + chr(10))
+        elif name == "cpuprov-kernels-unflagged":
+            # 第二族: 把计算面 target 的旗标整条摘掉（变体与基线同码 = 假变体）⇒ S7 必须红
+            # （"kernels_target 无 ISA 旗标"分支，与"门面带旗标"分支互为反面）。
+            # 两平台分支的旗标行都注掉（CMake 注释行不参与站点扫描），否则只剩
+            # /arch:AVX2 时站点仍有旗标、只触发 S2 而碰不到 S7 这一分支。
+            p = os.path.join(dst, "CMakeLists.txt")
+            t = _read(p)
+            for line in ("  target_compile_options(astrocs_cpuprov_avx2_kernels PRIVATE /arch:AVX2)",
+                         "  target_compile_options(astrocs_cpuprov_avx2_kernels PRIVATE -mavx2 -mfma)"):
+                t = t.replace(line, "# INJ " + line.strip())
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(t)
+        elif name == "cpuprov-arch-flag-drift":
+            # 第二族: MSVC 侧 /arch:AVX512 从登记表掉一个 ⇒ S2 旗标不一致必须红
+            # （改前该族的 MSVC 腿被 if(NOT MSVC) 门控、**连旗标都没有**，
+            #   登记表补上 /arch: 后若构建输入没同步，这里立刻判红）。
+            site = next(s for s in reg["sites"] if s["id"] == "product-cpuprov-avx512")
+            site["flags"] = [f for f in site["flags"] if f != "/arch:AVX512"]
+            with open(os.path.join(dst, REG), "w", encoding="utf-8") as f:
+                json.dump(reg, f)
+        elif name == "cpuprov-declaration-cd":
+            # 第二族声明面: 把 provider 的 AVX-512 声明退回"只看一个子集"的原缺陷形态
+            # （ACS_CAP_GROUP_AVX512_SUBSET 去掉 CD）⇒ S3/S8 必须红
+            # （该族确实带 -mavx512cd 编译，声明少一位 = "用了却没声明"）。
+            site = next(s for s in reg["sites"] if s["id"] == "product-cpuprov-avx512")
+            # 组宏 ACS_CAP_GROUP_AVX512_SUBSET 定义在 macro_sources 的 capability_v1.h,
+            # 必须一并改；只改声明头不碰组宏定义 = 注入不生效（实测踩过: red=0）。
+            for rel in {site["declaration"]["file"], site["detection"]["file"],
+                        site["declaration"].get("definition_file") or "",
+                        *(reg.get("macro_sources") or [])}:
+                if not rel:
+                    continue
+                fp = os.path.join(dst, rel)
+                if not os.path.isfile(fp):
+                    continue
+                t = _read(fp)
+                t2 = re.sub(r"(ACS_CAP_FEAT_AVX512CD\s*\|\s*)", "", t)
+                t2 = re.sub(r"(\|\s*ACS_CAP_FEAT_AVX512CD\b)", "", t2)
+                if t2 != t:
+                    with open(fp, "w", encoding="utf-8") as f:
+                        f.write(t2)
         elif name == "march":
             p = os.path.join(dst, "lib/algorithms/psf/Makefile")
             os.makedirs(os.path.dirname(p), exist_ok=True)
