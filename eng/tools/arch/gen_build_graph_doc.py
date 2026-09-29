@@ -138,6 +138,13 @@ def render_blocks(repo, mod):
         "BUILD-GRAPH-NONROOT": md_table(["target", "cmakelists", "理由"], nonroot),
     }
     counts = {"prod": len(prod), "nonprod": len(nonprod), "nonroot": len(nonroot)}
+    # MARKERS 此前是**零读的死常量**（块名在下面的字面量里各写一遍，
+    # 检查器那边还有第三份）。此处断言「字面量块名集合 == 已声明的 MARKERS」，
+    # 让该常量**承重**：将来增删块而漏改 MARKERS（或反过来）会立刻显形，
+    # 而不是静默留下一个改了没用的配置面。跨文件收敛到单一源仍待裁决。
+    if tuple(blocks) != MARKERS:
+        raise SystemExit("块名与 MARKERS 不一致: 实际 %s 声明 %s"
+                         % (tuple(blocks), MARKERS))
     return blocks, counts
 
 
