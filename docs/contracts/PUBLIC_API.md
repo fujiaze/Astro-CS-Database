@@ -1259,7 +1259,7 @@ registry descriptor 像素登记面）。
 > 冻结（既有符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；
 > 编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，kernel
 > 无 session 依赖（无状态纯函数）。
-> SRC: lib/algorithms/coverage/src/rejection.cpp（2962 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/rejection.cpp（2965 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:656-677/:660）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）；DATA:
 > DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一

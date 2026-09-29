@@ -208,7 +208,8 @@ GLOSSARY 里指向 CALIBRATION / DRIZZLE 的 `#27` 两处（§3 标题已下移�
 `check_doc_line_anchors.py --self-test` 另覆盖**枚举正例/负例**（一行三锚必须逐 token 各成一条记录；
 贪婪正则吞掉续锚 ⇒ 必红），共 7 组三态自检（正例绿 → 负例红 → 还原回绿）。
 `eng/tools/doccheck/check_alg_line_anchors.py --self-test` 覆盖行数锚、逐符号锚与
-**紧贴文件名的邻接裸行号锚**（`L1b`，FINAL-07 补入）的正例/负例/恢复三态（14 组）。确定性：同 cwd 双跑与跨 cwd 跑的 JSON 输出逐字节相同
+**紧贴文件名的邻接裸行号锚**（`L1b`，FINAL-07 补入）的正例/负例/恢复三态（21 组）；其中 L3 逐符号锚的命中口径为**代码 token**
+（命中仅落在注释/字符串 ⇒ `L3_prose_only` 判红），符号形态含本形/前缀族（`P2_SEMANTIC_`）/形态族（`maxStars` ↔ `max_stars`）三种，各配一红一绿判别力用例。确定性：同 cwd 双跑与跨 cwd 跑的 JSON 输出逐字节相同
 （检查器单进程串行，1/N worker parity 不适用）。
 
 ## 9 内容锚（content anchor，R-54 首选形态）

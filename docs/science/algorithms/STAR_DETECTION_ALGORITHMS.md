@@ -6,8 +6,8 @@
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2360 行；源文件唯一在役副本）；合同头
-> lib/algorithms/star_detection/include/star_detector.h（102 行）；取值与签名一律以本头文件为唯一来源。
+> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2497 行；源文件唯一在役副本）；合同头
+> lib/algorithms/star_detection/include/star_detector.h（124 行）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
 > 迁移目标 astrocs_p1_star_detection.dll）。
@@ -252,34 +252,34 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1630（模板�
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| sdet_detect_impl<T> | sdet_api.cpp:1629-2016 | 生产核心（float/double 双实例调用点 :2319/:2338） |
-| YvV 平滑 σ=2.0 | sdet_api.cpp:1497-1502 | 阶段2 **调用面**（sdet_gaussian_blur_yvv/_d；**实现不在本文件**：sdet_image.cpp:176-186） |
-| sdet_compute_bgnoise | :605-657 | 阶段3 行差分 FnNoise1 族 |
-| threshold=median+5·bgnoise | :1529 | 阶段3 全局阈值（locthreshold :1528） |
-| peaker 主扫描 | :1691-1930 | 阶段4 七步（§2 候选公式锚） |
-| 候选 mag_est 降序（impl 无截断） | :1937-1939 | 阶段5 排序闸门 |
-| sdet_gauss_fit | :659-728 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
-| sdet_lm_fit（自研 TR-LM 7 参） | :387-604 | 阶段6 拟合主体（halfA :415） |
+| sdet_detect_impl<T> | sdet_api.cpp:1755-2153 | 生产核心（float/double 双实例调用点 :2456/:2475） |
+| YvV 平滑 σ=2.0 | sdet_api.cpp:1623-1628 | 阶段2 **调用面**（sdet_gaussian_blur_yvv/_d；**实现不在本文件**：sdet_image.cpp:176-186） |
+| sdet_compute_bgnoise | :725-777 | 阶段3 行差分 FnNoise1 族 |
+| threshold=median+5·bgnoise | :1655 | 阶段3 全局阈值（locthreshold :1654） |
+| peaker 主扫描 | :1817-2056 | 阶段4 七步（§2 候选公式锚） |
+| 候选 mag_est 降序（impl 无截断） | :2063-2065 | 阶段5 排序闸门 |
+| sdet_gauss_fit | :779-848 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
+| sdet_lm_fit（自研 TR-LM 7 参） | :507-724 | 阶段6 拟合主体（halfA :535） |
 | reject_star | :319-341 | 阶段8 质量门（SfError 码 :297-318） |
-| StarRecord 构建+mag | :1960-2010 | 阶段8（is_saturated :1979、mag :1990-2008） |
-| sdet_dedup_stars | :952-979 | 阶段10a（语义见 §2） |
-| sdet_sort_stars | :980-1037 | 阶段10b（mag 升序 NaN 末尾） |
-| 输出构造 10 数组 | :1537-1623 | `sdet_emit_records`：malloc+赋值+extras（:1553-1620） |
-| sdet_detect_ex（FP32 入口） | :2305-2323 | uint16→float 转换后 impl<float>（:2319） |
-| sdet_detect_ex_f64（FP64 入口） | :2330-2342 | impl<double> 全程双精度（:2338） |
-| sdet_create / sdet_destroy | :990-1034 | 句柄生命周期（默认参数 :998-1008） |
-| edge_walking_center | :736-784 | 独立饱和中心实现（**现仅由下一行消费**，见 §10） |
-| sdet_detect_saturated_stars | :785-904 | 半阈值 CC 饱和检测（**本文件内零调用者**；其 debug 入口已注销，见 §10） |
-| get_extra_field / parse_extra_name | :931-951 / :918-930 | extras 列解析 |
+| StarRecord 构建+mag | :2086-2136 | 阶段8（is_saturated :2105、mag :2116-2134） |
+| sdet_dedup_stars | :1072-1099 | 阶段10a（语义见 §2） |
+| sdet_sort_stars | :1100-1163 | 阶段10b（mag 升序 NaN 末尾） |
+| 输出构造 10 数组 | :1663-1749 | `sdet_emit_records`：malloc+赋值+extras（:1679-1746） |
+| sdet_detect_ex（FP32 入口） | :2442-2460 | uint16→float 转换后 impl<float>（:2456） |
+| sdet_detect_ex_f64（FP64 入口） | :2467-2479 | impl<double> 全程双精度（:2475） |
+| sdet_create / sdet_destroy | :1110-1160 | 句柄生命周期（默认参数 :1118-1134） |
+| edge_walking_center | :856-904 | 独立饱和中心实现（**现仅由下一行消费**，见 §10） |
+| sdet_detect_saturated_stars | :905-1024 | 半阈值 CC 饱和检测（**本文件内零调用者**；其 debug 入口已注销，见 §10） |
+| get_extra_field / parse_extra_name | :1051-1071 / :1038-1050 | extras 列解析 |
 
 SDetParams 9 字段（star_detector.h:14-23）生产消费面（DISP-STAR-003；实测口径，`grep params\.` 于 sdet_api.cpp）:
 
 | 字段 | sdet_api.cpp 内的消费面 |
 |---|---|
-| `maxStars` | sdet_api.cpp:2013、sdet_api.cpp:2272（传入 `sdet_emit_records`）；截断段 sdet_api.cpp:1536-1547 |
-| `maxAxisRatio` | :1952/:1966-1969（impl）、:2196/:2200-2203（guided）活门 |
-| `fitRadius`、`fwhmClipSigma` | **本文件内零消费面**：只出现在创建默认值 :1005/:1006 与创建日志 :1015-1016（原注的「auto 半径日志推导」与「debug 入口消费」两处消费面均随重写注销） |
-| `structureLayers`、`hotPixelFilterRadius`、`iterativeClipSigma`、`iterativeMaxRounds`、`medianFilterDetail` | **本文件内零消费面**：仅创建默认值 :999-1003 |
+| `maxStars` | sdet_api.cpp:2150、sdet_api.cpp:2409（传入 `sdet_emit_records`）；截断段 sdet_api.cpp:1662-1673 |
+| `maxAxisRatio` | :2078/:2092-2095（impl）、:2333/:2337-2340（guided）活门 |
+| `fitRadius`、`fwhmClipSigma` | **本文件内零消费面**：只出现在创建默认值 :1125/:1126 与创建日志 :1141-1142（原注的「auto 半径日志推导」与「debug 入口消费」两处消费面均随重写注销） |
+| `structureLayers`、`hotPixelFilterRadius`、`iterativeClipSigma`、`iterativeMaxRounds`、`medianFilterDetail` | **本文件内零消费面**：仅创建默认值 :1119-1123 |
 
 ⇒ 生产 impl 在本文件内实际消费 **2/9** 字段（`maxStars`、`maxAxisRatio`）。
 **悬空引用登记**：原注点名的 `sdet_detector.cpp` 与 `sdet_get_structure_map` 在

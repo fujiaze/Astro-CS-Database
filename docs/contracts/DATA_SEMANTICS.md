@@ -1484,7 +1484,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 ## 22. Phase2 rejection（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-REJ）
 
 > ID: DATA-P2-REJ  状态: CONTRACT_READY
-> 模块: lib/algorithms/coverage/src/rejection.cpp（2962 行）+ 唯一权威签名头
+> 模块: lib/algorithms/coverage/src/rejection.cpp（2965 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）
 > （astrocs.p2.rejection；合同三件套 lib/algorithms/rejection/，迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在；
