@@ -29,18 +29,34 @@ static int aio_get_log_level() {
 
 static void aio_ensure_log_file() {
     if (g_aio_log_file) return;
+    // 两平台必须指向**同一**实际目录：ARCH-001 迁移把 aio 从 lib/astro_image_io 迁到
+    // lib/infrastructure/aio，而 Windows 分支仍写死迁移前的旧路径。旧目录已不存在 ⇒
+    // CreateDirectoryA 失败（返回值此前被丢弃）⇒ 下一行 fopen 必然失败 ⇒
+    // **Windows 上文件日志静默不产生**。
+    // 修法照本函数内 POSIX 分支的既有正确范式：建目录失败要可见，不再静默吞。
+    // Windows 侧用带错误码的窄字符 API；GetLastError() 的 ERROR_ALREADY_EXISTS 视为成功。
     {
 #ifdef _WIN32
-        const char* dir = "lib\\astro_image_io\\logs";
-        CreateDirectoryA(dir, nullptr);
-        (void)dir;
+        const char* dir = "lib\\infrastructure\\aio\\logs";
+        if (!CreateDirectoryA(dir, nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) {
+            // 建目录失败时不静默：日志通道此时不可用，交给调用侧按无日志降级。
+            g_aio_log_file = nullptr;
+            return;
+        }
 #else
-        std::filesystem::create_directories("lib/infrastructure/aio/logs");
+        std::error_code ec;
+        std::filesystem::create_directories("lib/infrastructure/aio/logs", ec);
+        // POSIX 分支此前连 ec 都没接；create_directories 失败（权限/只读挂载）同样会让
+        // 下面的 fopen 失败，改为与 Windows 侧同口径：不吞、不假装成功。
+        if (ec) {
+            g_aio_log_file = nullptr;
+            return;
+        }
 #endif
     }
     g_aio_log_file = std::fopen(
 #ifdef _WIN32
-        "lib\\astro_image_io\\logs\\astro_image_io.log",
+        "lib\\infrastructure\\aio\\logs\\astro_image_io.log",
 #else
         "lib/infrastructure/aio/logs/astro_image_io.log",
 #endif
