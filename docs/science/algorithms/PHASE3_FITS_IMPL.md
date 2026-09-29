@@ -314,7 +314,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - T3 原子性：无 .tmp 残留（filesystem 目录遍历，WIN-001 替代
   popen；前缀匹配弱匹配偏差 DISP-P3FITS-002 如实，不误报）
   （:174-185）。
-- T4 WCS roundtrip oracle：pix→world→pix <1e-4 px + 采样值锚
+- T4 WCS roundtrip oracle：pix→world→pix <1e-4 px + 采样值锚（**本条阈为观测阈**，只用于是否触发人工复核；**合同紧门 = `roundtrip_tol_px = 1e-8 px`，唯一事实源见 §13 容差与冻结清单）
   sig[24,32]=100.0+0.5·32（:227-235）。
 - T5（设计面，现状未覆盖）取消不落盘：cancelled_at_row≥0 → rc=3
   且产物不存在、无 tmp 残留（:307-312 语义；归 P3-FITS-TEST）。

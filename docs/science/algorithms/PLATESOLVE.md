@@ -364,8 +364,8 @@ API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 - WCS 框架/TAN/SIP：Paper I §2.1.1；Paper II §2.1/§2.2/Table 1；Shupe et al. 2005, ASPC 347, 491（SIP）。
 - 可执行标准：WCSLIB（LGPL-3.0）、astropy.wcs（BSD-3-Clause）≥7.0.1。
 - 三角匹配/星表求解：Groth 1986, AJ 91, 1244（DOI 10.1086/114099）；Valdes et al. 1995, PASP 107, 1119（DOI 10.1086/133667）。
-- 多帧联合校准：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）。
-- Astrometry.net 语义对照（本文件 §8）：Astrometry.net（https://astrometry.net，许可证需网络核验）。
+- 多帧联合校准：SCAMP（GPL-3.0，https://github.com/astromatic/scamp，tag v2.14.0 = 控制节点实测；文件位置 `src/photsolve.c`；Bertin 2006, ASPC 351, 112）。
+- Astrometry.net 语义对照（本文件 §8）：Astrometry.net（GPL-3.0-or-later，https://github.com/dstndstn/astrometry.net，tag 0.98 = commit `1398028b`；文件位置 `solver/solve-field.c`、`solver/solver.c`、`solver/verify.c`（quad 匹配 `verify_field_preprocess`）、`solver/quad-builder.c`、`util/quadfile.c`、`libkd/dualtree.c`；**核验状态**：三腿已按 tag 0.98 文件树逐条实测）。 **许可证判定（已闭环，一手来源）**：上游 LICENSE 原文 "Parts of the code written by the Astrometry.net Team are licensed under the 3-clause BSD-style license below. HOWEVER, since this code uses libraries licensed under the GNU GPL (including a vendored GSL), the whole work must be distributed under the GPL version 3 or later." ⇒ 上游**整体分发形态取 GPL-3.0-or-later**；团队自写文件为 BSD-3-Clause，而 Debian 因剥离 vendored GSL（`Files-Excluded: demo gsl-an`）才整体标 BSD-3-Clause。仓址一手依据 = astrometry.net/use.html 逐字 "development version on github: github astrometry.net" 指向该仓；版本腿 tag 0.98 = commit `1398028b`。
 - Huber IRLS（SIP 拟合）：Huber 1964, Ann. Math. Statist. 35, 73。
 
 参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。

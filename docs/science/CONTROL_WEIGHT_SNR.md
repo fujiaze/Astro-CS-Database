@@ -238,7 +238,7 @@ w(x,y) = SNR(x,y)^2 / F_ref^2   ≡   1 / sigma_F(x,y)^2
   由恒等式 `w = SNR²/F_ref² = 1/σ_F²` **唯一确定**——四路独立恒等式复核偏差在 2–5 ulp
   （γ=2 时 w=1/σ_F² 偏差 4.4e-16 = 2 ulp）。γ≠2 等价于放弃 GLS 最优性
   （γ=1 相对最优效率 3.73、等权 104.58），不是更保守的选项；最优性的理论依据 =
-  Aitken 1935, Proc. R. Soc. Edinburgh A **55**, 42–48（DOI 10.1017/S0370164600014346，
+  Aitken 1935, Proc. R. Soc. Edinburgh A **55**, 42–48（DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。，
   广义最小二乘的逆方差最优权重）。
 
 - **生产默认组合**：阶段一产**稀疏** SNR 控制点（控制点存**绝对** SNR，不乘/除帧级标量）→ 阶段二用**每帧的稀疏控制点重建稠密 SNR 面** → 取逆方差定权 → 叠加。`frame_reconstruct` 是"输入无稀疏层"时的显式回退（必须记录 `snr_path_effective` + 计数，回退逐条登记）；它同样产出稠密 SNR 场，因此**不改变**定权式。
