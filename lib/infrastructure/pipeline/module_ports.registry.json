@@ -744,9 +744,9 @@
                 "<frame_key>/support",
                 "<frame_key>/variance",
                 "<frame_key>/ivar",
-                "<frame_key>/properties",
-                "<frame_key>/Moc.fits",
-                "<frame_key>/metadata.fits"
+                "<frame_key>/*/properties",
+                "<frame_key>/*/Moc.fits",
+                "<frame_key>/*/metadata.fits"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -765,7 +765,7 @@
             {
               "name": "p1_stack",
               "direction": "output",
-              "carrier": "output_dir_file",
+              "carrier": "hips_product_tree",
               "artifacts": [
                 "<frame_key>/p1_stack.json"
               ],
@@ -781,7 +781,7 @@
                   "token": "/p1_stack.json"
                 }
               ],
-              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。"
+              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，理由二条可机检复核。① 物理位置在 HiPS 树内：p1_op_drizzle 把 fdir 当 HiPS 产品集根传给 hp_drizzle_run_phase1_hips(..., fdir.c_str(), ...)（module_adapters.cpp:8468；该 API 形参 hips_dir 即「HiPS 产品集根目录」，hp_drizzle_hips_api.cpp:31/36），随后用 fdir + '/p1_stack.json' 落盘（module_adapters.cpp:8485），而 fdir = p1_frame_dir(doc,lp) = output_dir + '/' + frame_key（module_adapters.cpp:1434）⇒ 本文件与 signal/support/variance/ivar 同处 <frame_key>/ 根。磁盘实测：run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/ 目录清单为 ivar/ manifest.json p1_final.json p1_stack.json p1_wcs.json signal/ support/ variance/，p1_stack.json 与四个 HiPS 产品子目录同级。② 合同依据：docs/contracts/PIPELINE_BLOCK_CONTRACT.md §1.1「跨阶段唯一载体 = HiPS 产品树」；同一路径 <frame_key>/p1_stack.json 在 astrocs.phase2.upm-fit 侧本就声明为 frame_hips / hips_product_tree，两处同指一个物理事实却用两种载体口径，按前台裁决对齐事实。边界声明：它不是 manifest.products 成员（那里只列 signal/support/variance/ivar），而是 HiPS 树根的 provenance 旁挂文件；这一点 astrocs.phase2.upm-fit 的同名 note 已有记录，不靠本字段单独承担。"
             }
           ]
         }
@@ -805,9 +805,9 @@
                 "<frame_key>/support",
                 "<frame_key>/variance",
                 "<frame_key>/ivar",
-                "<frame_key>/properties",
-                "<frame_key>/Moc.fits",
-                "<frame_key>/metadata.fits"
+                "<frame_key>/*/properties",
+                "<frame_key>/*/Moc.fits",
+                "<frame_key>/*/metadata.fits"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -826,7 +826,7 @@
             {
               "name": "p1_stack",
               "direction": "input",
-              "carrier": "output_dir_file",
+              "carrier": "hips_product_tree",
               "artifacts": [
                 "<frame_key>/p1_stack.json"
               ],
@@ -841,7 +841,8 @@
                   "symbol": "p1_op_writer",
                   "token": "/p1_stack.json"
                 }
-              ]
+              ],
+              "note": "carrier 口径修订（FINAL-07/carrier-conformance）：output_dir_file → hips_product_tree，与生产端 astrocs.phase1.drizzle/p1_stack 同步对齐。本节点从 fdir + \"/p1_stack.json\" 逐字读回（module_adapters.cpp:8737），fdir = p1_frame_dir(doc,lp) = output_dir + \"/\" + frame_key（:1434），与它同处 <frame_key>/ 的 signal/support/variance/ivar 同为 HiPS 树根内容 ⇒ 物理位置在 HiPS 树内；依据 docs/contracts/PIPELINE_BLOCK_CONTRACT.md §1.1「跨阶段唯一载体 = HiPS 产品树」。本节点同时已有 frame_hips/hips_product_tree 输入端口读同一棵树，两个端口是同一棵树的两个读面（tile 校验面 / provenance 面），不是两棵不同的树。"
             },
             {
               "name": "p1_phot",
@@ -926,7 +927,7 @@
               "artifacts": [
                 "<frame_key>/signal",
                 "<frame_key>/support",
-                "<frame_key>/properties"
+                "<frame_key>/*/properties"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -1047,6 +1048,27 @@
                   "token": "/p2_samples.json"
                 }
               ]
+            },
+            {
+              "name": "frame_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/p1_stack.json"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_fit",
+                  "token": "/p1_stack.json"
+                }
+              ],
+              "note": "只取逐帧 HiPS 产品树内的 <frame_key>/p1_stack.json（nside/精度/SIP/测光 provenance 编排证据），路径由 coverage 清单的 hips_paths 定位，代码只读 finest_input_arcsec 导出天光面样条节点几何（CHAIN-WIRE-ADAPT-01/W4）。它物理上就写在 drizzle 的产品树根目录 fdir 内（与 signal/support/variance 同层），故按合同 §1.1「跨阶段唯一载体 = HiPS 产品树」归入 frame_hips 块，不另开跨阶段块。"
             },
             {
               "name": "p2_upm_model",
@@ -1585,6 +1607,27 @@
               "note": "只取 model_hash 作 provenance。"
             },
             {
+              "name": "p2_sky_plane",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_sky_plane.bin"
+              ],
+              "data_schema_id": "DATA-P2-UPM",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_sky_plane.bin"
+                }
+              ],
+              "note": "只取 SCI-UPM §7a phase2_audit 的天光面审计面：从求解器自己落盘的磁盘产品逐字读回（p2_read_json），不重新求解、不由本节点写出。"
+            },
+            {
               "name": "p2_rejection",
               "direction": "input",
               "carrier": "output_dir_file",
@@ -1618,9 +1661,9 @@
                 "support",
                 "variance",
                 "ivar",
-                "properties",
-                "Moc.fits",
-                "metadata.fits"
+                "*/properties",
+                "*/Moc.fits",
+                "*/metadata.fits"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -1678,8 +1721,8 @@
                 "support",
                 "variance",
                 "ivar",
-                "properties",
-                "Moc.fits"
+                "*/properties",
+                "*/Moc.fits"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -1832,7 +1875,7 @@
                 "support",
                 "variance",
                 "ivar",
-                "properties"
+                "*/properties"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -1959,8 +2002,8 @@
               "direction": "input",
               "carrier": "hips_product_tree",
               "artifacts": [
-                "properties",
-                "Moc.fits"
+                "*/properties",
+                "*/Moc.fits"
               ],
               "data_schema_id": "DATA-HIPS-001",
               "unit": "SURFACE_BRIGHTNESS",
@@ -2144,10 +2187,10 @@
     }
   ],
   "carrier_contract": {
-    "statement": "阶段内节点间的唯一载体是 output_dir 文件约定：每个端口对应 output_dir 下的一个具体产品（文件或产品目录），生产者按该路径写、消费者按同一路径读；节点间不存在内存块传递。跨阶段的唯一载体是 HiPS 产品树（磁盘目录 + manifest + 哈希）：normalize 产出逐帧 HiPS 树（frame_hips），mosaic 产出马赛克 HiPS 树（mosaic_hips），export 只读 mosaic_hips。命名块（PipelineFrame 的 data/variance）只存在于单节点执行期的内存中，不落盘、不跨节点、不跨阶段。",
+    "statement": "阶段内节点间的唯一载体是 output_dir 文件约定：每个端口对应 output_dir 下的一个具体产品（文件或产品目录），生产者按该路径写、消费者按同一路径读；节点间不存在内存块传递。跨阶段的唯一载体是 HiPS 产品树（磁盘目录 + manifest + 哈希）：normalize 产出逐帧 HiPS 树（frame_hips），mosaic 产出马赛克 HiPS 树（mosaic_hips），export 只读 mosaic_hips。命名块（PipelineFrame 的 data/variance）只存在于单节点执行期的内存中，不落盘、不跨节点、不跨阶段。判别式（逐字可判，防重犯）：端口载体由**是否跨阶段**决定——被**其它阶段**消费的产物用 HiPS 产品树载体（hips_product_tree）；**阶段内**节点间流转的产物、以及**无任何消费者**的产物，用 output_dir 文件约定（output_dir_file）。**物理存放位置不构成判据**：产物落在 HiPS 树根目录内（如 <frame_key>/ 下与 signal/support/variance/ivar 同级）并不使其成为 HiPS 产品树成员；判跨阶段只看**消费者所属阶段**。正例：<frame_key>/p1_stack.json 被 astrocs.phase2.upm-fit 消费 ⇒ 跨阶段 ⇒ hips_product_tree；反例：<frame_key>/p1_wcs.json 的生产者与三个消费者（star-psf / photometry / drizzle）**全在 normalize**、<frame_key>/p1_final.json **无任何消费者** ⇒ 阶段内/无消费者 ⇒ output_dir_file（FINAL-07/carrier-conformance：前台曾按「物理同级」判其不符，经对抗复核以消费者证据推翻，裁决已撤销）。",
     "carriers": {
       "output_dir_file": "节点产物文件：<output_dir>/<artifact>。生产者写入、消费者按同一路径读取（output_dir 文件约定）。",
-      "hips_product_tree": "IVOA HiPS 产品目录树（signal/ support/ variance/ ivar/ + properties + Moc.fits + metadata.fits）。阶段内按目录路径传递；跨阶段时该树本身即交换载体。",
+      "hips_product_tree": "IVOA HiPS 产品目录树。**树根层**成员 = 产品子目录 signal/ support/ variance/ ivar/（各为 <tree>/*/ 下的一个子目录）与树根 manifest.json；**每个产品子目录层**成员 = <tree>/*/properties、<tree>/*/Moc.fits、<tree>/*/metadata.fits（即 properties / Moc.fits / metadata.fits 是**每子产品各一份**、位于该产品子目录内，树根没有这三者）。层级证据：aio_hips_writer.cpp:1969/1974/2001 一律写 dir + \"/properties\"、dir + \"/metadata.fits\"、dir + \"/Moc.fits\"（dir = 产品子目录），:13 头注释「每个子产品独立 properties / Moc.fits / 低阶 hierarchy tiles」；reader 侧 aio_hips_reader.cpp:423 与 aio_hips_writer.cpp:2620/2652/2716 一律按 <root>/<subdir>/properties 取用。磁盘实测两棵独立树（run/VAR-SEMANTICS-APPLY-01/probe/cur_pos/hips、run/FINAL-07-e2e/evidence/face/t2_ab_p1_B/<frame_key>/）根层均只有 ivar/ manifest.json signal/ support/ variance/，三份每子产品成员均在各自子目录内。声明约定：树根层成员写 <frame_key>/<name>，每子产品层成员写 <frame_key>/*/<name>（通配，不逐子目录列——产品数会变、逐列会漂）。阶段内按目录路径传递；跨阶段时该树本身即交换载体。",
       "config_path": "阶段外部输入：路径由配置或上游命令给出（原始亮场、母版帧、run_context.json）；本阶段内无生产者。"
     }
   }
