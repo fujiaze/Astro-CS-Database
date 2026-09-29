@@ -9,7 +9,7 @@
 //
 // 语义（冻结）：
 // - 稀疏模型为权威形态：JSON 文本（format=astrocs-upm-v2，
-// 读兼容 astrocs-upm-v1，见 docs/modules/astro_image_io.md），
+// 读兼容 astrocs-upm-v1，见 docs/detail/astro_image_io.md），
 // model_hash 由 phase2 计算（内容哈希）并随 JSON 保存；
 // - dense cache 是同一 UPM 的**空间求值缓存**：按
 // (frame_id, target_order, tile) 保存 C_i(p) 的 evaluated values，
@@ -22,7 +22,7 @@
 // 读取时校验完整性；
 // - 本模块只做容器/文件层，不解释模型科学语义。
 //
-// 调用顺序/所有权（与 docs/architecture/OWNERSHIP_AND_LIFETIME.md 一致）：
+// 调用顺序/所有权（与 docs/engineering/OWNERSHIP_AND_LIFETIME.md 一致）：
 // - sparse: aio_upm_write_sparse 原子写；aio_upm_open →
 // aio_upm_read_info / aio_upm_read_all / aio_upm_read_all_dynamic
 // → aio_upm_close；aio_upm_read_all_dynamic 以 new char[] 分配，
@@ -71,7 +71,7 @@ AIO_UPM_EXPORT int aio_upm_read_info(
 AIO_UPM_EXPORT int aio_upm_read_all(AioUpmSparse* f, char* buf, int buf_size);
 
 // 动态读取完整内容（以 new char[] 分配，调用方须 delete[] *out；含 '\0'，out_len 不含 '\0'）。返回 0=ok。
-// 所有权: owned(*out) — 见 docs/architecture/OWNERSHIP_AND_LIFETIME.md
+// 所有权: owned(*out) — 见 docs/engineering/OWNERSHIP_AND_LIFETIME.md
 AIO_UPM_EXPORT int aio_upm_read_all_dynamic(AioUpmSparse* f, char** out,
                                             size_t* out_len);
 

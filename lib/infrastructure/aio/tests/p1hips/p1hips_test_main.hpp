@@ -4,7 +4,7 @@
 // P1-HIPS-DOC 闭环)。合同锚: docs/science/algorithms/HIPS_WRITER.md §9
 // TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结, 2026-09-07); 矩阵行 P1-HIPS
 // (MOD astrocs.phase1.hips-writer, TEST-P1-HIPS-001); 模块登记页
-// docs/modules/registry/astrocs.phase1.hips-writer.md。
+// docs/detail/registry/astrocs.phase1.hips-writer.md。
 //
 // 单跑方式 (每个测试组 == 独立可执行 ctest 名, 二进制内按 --group 单跑):
 //   ./p1hips_tests units|properties|oracle|negative

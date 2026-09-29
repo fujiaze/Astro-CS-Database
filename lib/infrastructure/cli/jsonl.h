@@ -268,7 +268,7 @@ public:
 
     // 发布面退出码（P-163）：事件流是本次运行的默认输出通道（docs/ASTROCS_DESIGN §6.3），
     // 因此「成功」必须包含事件已写出 —— 名义 rc == OK 而事件流写失败时改报写失败码
-    // （IO=7；磁盘满 ENOSPC → 10，docs/plugins/infrastructure/21_observability.md:45-46）。
+    // （IO=7；磁盘满 ENOSPC → 10，docs/detail/infrastructure/21_observability.md:45-46）。
     // 名义 rc 已非 0 时保留原码：run 自身的失败更具体，不被写失败掩盖（且已非 0）。
     int publication_exit_code(int nominal_rc) const {
         if (!write_failed_ || nominal_rc != astrocs::OK) return nominal_rc;

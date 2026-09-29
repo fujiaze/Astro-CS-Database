@@ -50,7 +50,7 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 // Oracle 数值对照容差(冻结, 唯一出处): 2e-4 相对, |a−b|/max(1,|b|) ≤ tol。
-// 锚: docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md §7 容差冻结节(同 cpu_routing.h:68、
+// 锚: docs/engineering/cpu/CPU_003_AVX2_PROVIDER.md §7 容差冻结节(同 cpu_routing.h:68、
 // 旧接口 profile_gen.cpp:129)。任何 profile 生成路径不得偏离此值。
 constexpr double kOracleRelTol = 2e-4;
 

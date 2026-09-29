@@ -11,7 +11,7 @@
 //       :612「探针校正」   —— 压力与决策「随事件流落盘」（本单元的台账即该落盘面）
 //       :680               —— 并行度按「内存闸门 × Runtime lease」联合确定 ⇒ 内存闸门
 //                              必须是一个**运行期可读的量**，而不是一次性快照
-//   * **docs/contracts/SCHEDULER_CONTRACT.md:14/:38**：「线程数、内存上限、队列深度一律
+//   * **docs/engineering/SCHEDULER_CONTRACT.md:14/:38**：「线程数、内存上限、队列深度一律
 //     从配置/资源门读取」「线程预算、内存上限（峰值工作集）、队列深度……」
 //   * **docs/ASTROCS_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 +
 //     eng/contracts/resource_gate_v1.json #disk_gate.no_gate**：资源门只管磁盘，

@@ -368,7 +368,7 @@ AIO_EXPORT int aio_hiss_write(const char* path, uint32_t nside, int nested,
         hmeta.radesys = 0;
         hmeta.pixfrac = 1.0;
         hmeta.photappl = 0;
-        // 单位口径 = canonical 面亮度串（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810）：
+        // 单位口径 = canonical 面亮度串（docs/science/DATA_SEMANTICS.md §31.1a:2808-2810）：
         // 本入口写出的 signal 面是 writer 归一后的面亮度，未测光只意味着标度未变，
         // 不改变量纲类别 ⇒ BUNIT 仍是 "ADU/sr"，不得写裸 "ADU"（§31.2 裸 ADU 需
         // provenance 声明，本容器无该面）。

@@ -3,8 +3,8 @@
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器)
-// - docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (流式写入/原子替换)
-// - docs/architecture/IO_AND_ATOMICITY.md (流式写入)
+// - docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (流式写入/原子替换)
+// - docs/engineering/IO_AND_ATOMICITY.md (流式写入)
 //
 // 实现要点:
 // 1. 临时子块池 (temp_pool) 是一个独立文件, add_tile 时压缩数据立即追加
@@ -639,7 +639,7 @@ int HissStreamWriter::finalize(const HissGridSpec& grid, const HissMetadata& met
     }
 
     // 8. 内容落盘 (P-175): 「关闭/fsync」的 fsync 步此前在本函数全文缺失
-    // (grep fsync = 0)。依据 docs/plugins/infrastructure/17_aio.md:26「所有产品:
+    // (grep fsync = 0)。依据 docs/detail/infrastructure/17_aio.md:26「所有产品:
     // 临时文件/目录 + 校验 + fsync + 原子 rename 提交」与 IO_003 §4 步骤序:
     // 流式面此前只有 fflush + fclose (用户态缓冲 → 内核页缓存)，rename 之后
     // 没有任何落盘保证。机制在 aio (aio_atomic::fsync_path)，本模块不自持

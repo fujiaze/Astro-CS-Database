@@ -4,7 +4,7 @@
 // 依据:
 // - docs/science/algorithms/NOISE_ESTIMATION.md (SNR 块语义)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §17 (SNR 控制点), §13 (独立子块)
-// - docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (SNR 子块发布边界)
+// - docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (SNR 子块发布边界)
 //
 // 测试范围:
 // 1. SNR 往返: 10 个控制点 → n_points 一致, 每点 local_ipix 和 snr 一致

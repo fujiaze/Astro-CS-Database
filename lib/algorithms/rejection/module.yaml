@@ -68,8 +68,8 @@ api_contracts:
 doc_links:
   sci: docs/science/REJECTION.md
   alg: docs/science/algorithms/PHASE2_REJECTION.md
-  data: docs/contracts/DATA_SEMANTICS.md#§22
-  api: docs/contracts/PUBLIC_API.md#API-P2-REJ-001
+  data: docs/science/DATA_SEMANTICS.md#§22
+  api: docs/engineering/PUBLIC_API.md#API-P2-REJ-001
 contract_ids:
   sci: SCI-REJ-001
   alg: ALG-P2-REJ-001

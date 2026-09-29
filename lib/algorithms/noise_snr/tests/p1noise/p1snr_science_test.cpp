@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     }
 
     // ── SCI-501: sigma_sky 语义 / 读噪双计负例保护 ──────────────
-    // 口径正本: docs/plugins/algorithms_phase1/07_noise_snr.md 4.2a（DOC-502 冻结）。
+    // 口径正本: docs/detail/algorithms_phase1/07_noise_snr.md 4.2a（DOC-502 冻结）。
     // 逐像素噪声 sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g，读噪只出现一次。
     // 本组：① 双计臂（经验总 rms 再加 (RN/g)^2）必须被判红（MC 3sigma 外）；
     //       ② 正确口径臂与独立 Monte Carlo 真值在 3sigma 内；

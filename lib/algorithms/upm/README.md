@@ -100,7 +100,7 @@
   upm.cpp）+ :454 astrocs_phase2_session STATIC（:458 链接
   astrocs_phase2）。
 - entrypoint=MISSING：registry 入口未接（registry 页
-  docs/modules/registry/astrocs.phase2.upm-fit.md /
+  docs/detail/registry/astrocs.phase2.upm-fit.md /
   astrocs.phase2.upm-apply.md 已存在， descriptor 现状为占位词汇，
   见下节）。
 - threading_model=host_executor_lease 为迁移目标合同值（11 号标准
@@ -176,11 +176,11 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 - ALG：docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，
   P2-UPM-DOC 新建）；承接 docs/science/algorithms/UPM_SOLVER.md
   （ALG-UPM-001）
-- DATA：docs/contracts/DATA_SEMANTICS.md §25（DATA-P2-UPM）/
+- DATA：docs/science/DATA_SEMANTICS.md §25（DATA-P2-UPM）/
   §26（DATA-P2-COR）
-- API：docs/contracts/PUBLIC_API.md API-P2-UPM-001；
-  API-P2-001（docs/api/PHASE2_API_V1.md，编排上游）
-- 模块页：docs/modules/registry/astrocs.phase2.upm-fit.md /
+- API：docs/engineering/PUBLIC_API.md API-P2-UPM-001；
+  API-P2-001（docs/engineering/PHASE2_API_V1.md，编排上游）
+- 模块页：docs/detail/registry/astrocs.phase2.upm-fit.md /
   astrocs.phase2.upm-apply.md
 - ARCH：ARCH-001
 

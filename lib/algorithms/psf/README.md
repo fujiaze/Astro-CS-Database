@@ -54,9 +54,9 @@ registry descriptor ports（module_adapters.cpp:437-441）：
 |---|---|---|---|
 | SCI | SCI-P1-PSF-001（文档合同 SCI-PSF-001） | MISSING→本任务冻结（见 §10） | docs/science/PSF.md；docs/science/algorithms/STAR_PSF_ALGORITHMS.md §11 |
 | ALG | ALG-STARPSF-001（descriptor 占位 ALG-002 同文档） | MISSING→本任务冻结 | docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11 |
-| DATA | DATA-P1-PSF（descriptor 占位 DATA-P1-SOURCES 为编排层误配） | VERIFIED | docs/contracts/DATA_SEMANTICS.md#§15 |
-| API | API-PSF-001（descriptor 占位 API-P1-003 仍有效） | VERIFIED | docs/contracts/PUBLIC_API.md#API-PSF-001；docs/api/PHASE1_API_V1.md |
-| ARCH | ARCH-001 | VERIFIED | docs/architecture/ARCHITECTURE.md |
+| DATA | DATA-P1-PSF（descriptor 占位 DATA-P1-SOURCES 为编排层误配） | VERIFIED | docs/science/DATA_SEMANTICS.md#§15 |
+| API | API-PSF-001（descriptor 占位 API-P1-003 仍有效） | VERIFIED | docs/engineering/PUBLIC_API.md#API-PSF-001；docs/engineering/PHASE1_API_V1.md |
+| ARCH | ARCH-001 | VERIFIED | docs/engineering/ARCHITECTURE.md |
 | SRC | SRC-PSF-001 | VERIFIED | lib/algorithms/psf/src/dpsf_psf.cpp（本 README 全部行号锚） |
 | TEST | TEST-PSF-DESIGN-001 | VERIFIED（设计） | docs/science/algorithms/STAR_PSF_ALGORITHMS.md#§11.4 |
 | EVIDENCE | EVID-MISSING | MISSING | 待 P1-PSF-TEST |

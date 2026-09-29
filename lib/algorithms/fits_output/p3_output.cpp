@@ -52,7 +52,7 @@ std::string g_last_err;
 // 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
 // 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
 // 报 Datasum verification failed），已删除。
-// FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1/§31.1a:
+// FZ-P3-BUNIT-QUADRATIC / docs/science/DATA_SEMANTICS.md §31.1/§31.1a:
 // variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
 // 串**（ADU^a × 立体角幂次代数；写侧一律 "sr"），禁朴素字符串拼接（"ADU/sr" + "^2"
 // = "ADU/sr^2" 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，
@@ -758,7 +758,7 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
 //
 // 规范：docs/ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
 // FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成
-// 正比、与总图大小无关」；docs/contracts/SCHEDULER_CONTRACT.md §2 export 行同文。
+// 正比、与总图大小无关」；docs/engineering/SCHEDULER_CONTRACT.md §2 export 行同文。
 // 产品语义与整幅 API 逐条同面（FITS 关键字、BSCALE/BZERO、HISTORY provenance、
 // 逐 HDU DATASUM/CHECKSUM、flush→close→fsync→rename 原子发布序、独立重开
 // 对拍），差别只在**驻留面**：像素按矩形子块经 cfitsio 子集接口进出，

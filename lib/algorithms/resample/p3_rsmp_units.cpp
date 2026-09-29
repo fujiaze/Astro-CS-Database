@@ -1,5 +1,5 @@
 // lib/algorithms/resample/p3_rsmp_units.cpp
-// 单位表 / BUNIT 二次律 / 模式枚举（冻结表 docs/contracts/DATA_SEMANTICS.md §31）。
+// 单位表 / BUNIT 二次律 / 模式枚举（冻结表 docs/science/DATA_SEMANTICS.md §31）。
 #include "p3_rsmp.h"
 
 #include <cctype>
@@ -52,7 +52,7 @@ Status parse_mode(const std::string& token, P3Mode* out) {
 // ---------------------------------------------------------------------------
 // Bunit
 // ---------------------------------------------------------------------------
-// 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1/§31.1a）:
+// 冻结单位表 canonical **产品 BUNIT 串**（docs/science/DATA_SEMANTICS.md §31.1/§31.1a）:
 // 面亮度链（ADU 承载）的立体角维一律写 "sr"，符号幂次 = px_power/2
 // （px_power = -2 ⇔ "/sr"、-4 ⇔ "/sr^2"、+4 ⇔ "sr^2/…"；px_power 是内部线性像元幂次编码）；
 // 纯像元面积单位（adu_power == 0，support/coverage 的 px^2，§12.2）保持冻结符号 "px^2"。

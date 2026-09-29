@@ -433,12 +433,12 @@ int test_properties() {
     // 顺序, 要求产品树逐位相同。
     //
     // 规范依据:
-    //   docs/contracts/SCHEDULER_CONTRACT.md §2.1:28「结构性不变量(必须满足, 判红项):
+    //   docs/engineering/SCHEDULER_CONTRACT.md §2.1:28「结构性不变量(必须满足, 判红项):
     //     归约顺序按帧 ID/块 ID/窗口 ID/像素序固定; 跨 worker 无共享浮点累加器;
     //     异步与工作窃取只改变执行顺序, 不改变结合顺序」+ §6:71「归约顺序随
     //     worker 数变化(共享浮点累加器/动态归约序) ⇒ 判红」;
     //   docs/science/algorithms/HIPS_WRITER.md §9「f64 通路逐像素 bitwise(同序确定性)」;
-    //   docs/contracts/DATA_SEMANTICS.md §12.3:414「astrocs_covered_sky_fraction
+    //   docs/science/DATA_SEMANTICS.md §12.3:414「astrocs_covered_sky_fraction
     //     = covered_area_sr/4π」(契约键, 归约须与到达序无关)。
     //
     // 几何 nside=2048 (tile_order=2), 4 个叶 tile (parent_ipix 0..3):

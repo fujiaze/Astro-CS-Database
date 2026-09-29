@@ -8,7 +8,7 @@
 > 权威来源: SCI=docs/science/PHOTOMETRY.md（SCI-PHOT-001，FROZEN T103
 > 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PHOTOMETRIC_FIT.md
 > （ALG-PHOT-001..002 + §13 逐符号源码锚定）；DATA=docs/contracts/
-> DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/contracts/PUBLIC_API.md
+> DATA_SEMANTICS.md §14（DATA-P1-PHOT）；API=docs/engineering/PUBLIC_API.md
 > （API-PHOT-001）；矩阵行=docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase1-photometry。
 > 唯一权威签名头: lib/algorithms/photometry/cpp/include/photometric_calib.h

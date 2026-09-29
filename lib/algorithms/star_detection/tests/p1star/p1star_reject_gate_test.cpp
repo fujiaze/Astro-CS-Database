@@ -5,7 +5,7 @@
 //   R1: O13 五码排异门在盲路径装配环缺失 + reject_star 第 5 判式
 //       (SF_FWHM_TOO_LARGE) 被删。对齐 ALG
 //       docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md §3 :143-148、
-//       设计稿 docs/design/STAR_DETECTION_IMPL_DESIGN.md §5.13。
+//       设计稿 docs/detail/STAR_DETECTION_IMPL_DESIGN.md §5.13。
 //   R2: 装配环 maxAxisRatio 死块 (只计算 smax/smin 未判定) 激活
 //       (ALG :2282-2284; guided 活门对称)。
 //   R3: O8 冻结语义恢复——11x11 局部极大扫描 (±5 全图窗、平局决胜左上、

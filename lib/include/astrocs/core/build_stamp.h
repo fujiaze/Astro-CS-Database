@@ -1,6 +1,6 @@
 // ACSD Core — 构建期指纹（RUN-PROVENANCE-01）
 //
-// 语义权威: docs/VERSIONING.md「构建指纹合同」；证据: run/RUN-PROVENANCE-01/REPORT.md。
+// 语义权威: docs/engineering/VERSIONING.md「构建指纹合同」；证据: run/RUN-PROVENANCE-01/REPORT.md。
 //
 // 为什么需要它：version_generated.h 里的 ASTROCS_COMMIT_SHA 由 **CMake configure 期**
 // 的 git rev-parse HEAD 采样一次，而 Ninja 的 RERUN_CMAKE 规则只依赖 CMake 输入

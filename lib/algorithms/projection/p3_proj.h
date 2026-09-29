@@ -45,8 +45,8 @@
 //   * ALG-P3-001 §1.3（统一线性模型：Ω'_i=|det(d sky/d pixel)|_i、
 //     R_ij=|Ω_j∩Ω'_i|/Ω'_i 行归一、S_ij=|Ω_j∩Ω'_i|/Ω_j 列归一、S_ij=R_ij Ω'_i/Ω_j）
 //     §2.4（逐像素面积元必须真实计算；禁常数 Ω）+ 独立 Oracle 实测值。
-//   * docs/contracts/DATA_SEMANTICS.md §31.1（Omega 单位 sr；
-//     phase3_var_out BUNIT=(signal BUNIT)²）；docs/contracts/DATA_SEMANTICS.md §28.6 §2。
+//   * docs/science/DATA_SEMANTICS.md §31.1（Omega 单位 sr；
+//     phase3_var_out BUNIT=(signal BUNIT)²）；docs/science/DATA_SEMANTICS.md §28.6 §2。
 //   * FZ-P3-OMEGA-NONCONST（FROZEN）：常数 Ω 冒充逐像素面积元 → REJECT。
 //   * 单位表: signal_sb=ADU/sr, sb_variance_out=ADU^2/sr^2, W_info=ADU^-2,
 //     psfsw_robust_weight=1；本层 Ω 单位 = sr（phase3.v1.omega.units="sr"）。
@@ -104,7 +104,7 @@ constexpr int kFrozenProjectionCount = 8;
 const char* const* registry_frozen_set(int* count);
 bool registry_is_frozen_code(const char* code);   // 冻结集合成员判定（大小写敏感）
 
-// phase3.v1.omega 单位（docs/contracts/DATA_SEMANTICS.md §28.6 §2）。
+// phase3.v1.omega 单位（docs/science/DATA_SEMANTICS.md §28.6 §2）。
 constexpr const char* kUnitOmegaSr = "sr";
 
 enum class ProjectionId : int {

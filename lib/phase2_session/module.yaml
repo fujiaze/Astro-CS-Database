@@ -73,8 +73,8 @@ api_contracts:
 doc_links:
   sci: "docs/science/PHASE2_UPM.md"
   alg: "docs/science/algorithms/PHASE2_SESSION.md"
-  data: "docs/contracts/DATA_SEMANTICS.md#§24"
-  api: "docs/contracts/PUBLIC_API.md#API-P2-SESSION-001"
+  data: "docs/science/DATA_SEMANTICS.md#§24"
+  api: "docs/engineering/PUBLIC_API.md#API-P2-SESSION-001"
 contract_ids:
   sci: SCI-UPM-001
   alg: ALG-P2-SESSION-001

@@ -1,6 +1,6 @@
 /* IO-002 hips_core 自检驱动 — lib/infrastructure/aio/io/tests/hips_core_selftest.c
  *
- * 覆盖验收映射 (docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md §8):
+ * 覆盖验收映射 (docs/science/IO_002_HIPS_INPUT_INTERFACE.md §8):
  *   - properties 解析/必填键校验 (缺/非法 → PROPERTIES/UNSUPPORTED)
  *   - tile width 非 2 次幂 / 未知 frame / png-only / snr 产品 → 拒绝
  *   - NESTED tile address: ipix 越界 → ADDRESS; 布局 Norder/Dir/Npix 定位

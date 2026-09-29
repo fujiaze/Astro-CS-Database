@@ -667,7 +667,7 @@ const std::vector<std::string>& forbidden_weight_source_aliases() {
  * WHY:   「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是
  *        绝对标定。」⇒ docs/ASTROCS_DESIGN.md §3.1：权重只能来自纯净信号与噪声
  *        之比（逆方差），任何使偏差随帧而变的量（含 PSF 拟合质量代理）不得进入科学
- *        叠加权重；docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 +
+ *        叠加权重；docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 +
  *        迁移提示，不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
  * 口径:  FZ-WEIGHT-SINGLE-PATH —— 权重只有一个口径，**不存在**任何"生产权重口径"
  *        集合（该集合与成员函数已删除）；本文件保留"能识别 + 给迁移提示"的

@@ -6,8 +6,8 @@
 //
 // 依据:
 // - docs/ASTROCS_DESIGN.md §10「I/O 与原子产品」(裸形态体积削减两种机制的分工);
-// - docs/design/PRODUCT_STORAGE_FORM.md §9.1 (何时 / 对谁 / 失败怎么办 / 如何验证);
-// - docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 (冻结规则 + 判据);
+// - docs/detail/PRODUCT_STORAGE_FORM.md §9.1 (何时 / 对谁 / 失败怎么办 / 如何验证);
+// - docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 (冻结规则 + 判据);
 // - ENGINEERING_SPEC.md §11 (打洞在 fsync 之后、算哈希与原子发布之前完成)。
 //
 // 语义:
@@ -16,7 +16,7 @@
 //   IEEE-754 的 -0.0 在浮点比较下等于 0.0，但其位型 0x80000000 含非零字节；
 //   若用浮点等值判定可打洞，就会把 -0.0 区打成洞并**改变文件字节**。
 // - signal 层边距是 IEEE NaN (0x7FC00000 等)，其位型含非零字节 ⇒ 按构造落入
-//   「不可打洞」。合同要求 signal 边距必须是 NaN (docs/contracts/DATA_SEMANTICS.md)，
+//   「不可打洞」。合同要求 signal 边距必须是 NaN (docs/science/DATA_SEMANTICS.md)，
 //   把它改写成 0.0 会把「无覆盖」变成「有效零流量」⇒ 语义破坏，禁止。
 // - 文件逻辑尺寸 (st_size) 与整文件字节**逐字节不变**；只有文件分配层变化。
 // - 卷/文件系统不支持 (EOPNOTSUPP 等) ⇒ 返回 PUNCH_UNSUPPORTED，**一个字节都不动**，
@@ -162,7 +162,7 @@ inline void report(int level, const std::string& msg) {
 }
 
 // ── 运行级策略（默认启用；调用方按形态显式关闭）────────────────────────────
-// 归档形态不实施打洞（docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7「生效面」）。
+// 归档形态不实施打洞（docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7「生效面」）。
 inline bool& punch_enabled_ref() {
     static bool v = true;
     return v;

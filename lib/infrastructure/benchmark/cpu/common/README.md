@@ -52,7 +52,7 @@
 
 | 链 | ID | 落点 |
 |---|---|---|
-| ARCH | DOC-ARCH-CPU-001 | `docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md` |
+| ARCH | DOC-ARCH-CPU-001 | `docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md` |
 | API | API-CPU-001 | `lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h` |
 | DATA | CPU-CAP-JSON-001 | `lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json` |
 | TEST | TEST-CPU001-* | `eng/tests/cpu/dispatch/`（probe + feature matrix 模拟 + schema 校验） |

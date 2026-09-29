@@ -42,6 +42,15 @@
 #include <string>
 #include <vector>
 
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * Windows 侧的 mkdir(path, mode) 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物:
+ * 垫片的 `#define mkdir(path, mode) _mkdir(path)` 是函数式宏, 故三参调用
+ * `::mkdir(x, 0755)` 展开为 `::_mkdir(x)`, 丢弃 mode 属 Windows CRT 既有语义, 不是缺陷。
+ * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 (sys/stat.h 提供 ::mkdir) => Linux 预处理零 delta。
+ *
+ * 注: S_ISREG 不在垫片能力内 (B-5 清单 T-B 档, 本轮未做), 该符号本 TU 未用。 */
+#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+
 #include "aio_hips.h"
 #include "aio_hips_reader.h"
 #include "healpix/healpix_core.h"

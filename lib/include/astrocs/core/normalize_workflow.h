@@ -2,7 +2,7 @@
 //
 // 依据：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器）、§8.3（normalize =
 //       异步工作流编排）、§9（探针驱动优化）；ENGINEERING_SPEC.md §4.1（管线纪律）；
-//       CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md（统一 entrypoint、DAG 声明、
+//       CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md（统一 entrypoint、DAG 声明、
 //       资源声明、探针事件 schema、取消与原子性）。
 //
 // 边界（本任务不做的事）：不做科学计算；不改三阶段装配（ARCH-505）；不做性能调优

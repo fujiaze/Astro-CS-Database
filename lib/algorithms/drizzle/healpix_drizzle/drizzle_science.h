@@ -111,7 +111,7 @@ bool unit_law_holds(UnitId signal, UnitId variance, UnitId ivar);
 // ── 退役对象显式拒绝（PSFSW-RETIRE-01）────────────────────────
 // psfsw_robust_weight **不是现行对象**：docs/ASTROCS_DESIGN.md §3.1（权重只能来自纯净
 // 信号与噪声之比的逆方差，跨帧绝对标定，不基于参考帧；PSF 拟合质量代理只作诊断）、
-// docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
+// docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 // PSFSW-RETIRE-03：该对象已**物理删除**——冻结单位表无其行、UnitId 无其项
 // （因此不再有 is_retired_unit_id）。识别面只剩字符串面：调用方解析到该符号时
 // 必须 fail-closed，不得静默接受、不得回退默认单位。

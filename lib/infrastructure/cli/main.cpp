@@ -1,7 +1,7 @@
 // acsd CLI — 单一用户入口 (V5, CLI-002)
 // 统一 parser + JSON/JSONL writer + 退出码映射 + 协作取消 + crash boundary。
 // 命令树唯一权威: docs/ASTROCS_DESIGN §6.2（落在 lib/infrastructure/cli/command_tree.h）；
-// 协议/退出码唯一权威: 控制包 04 + docs/api/CLI_PROTOCOL_V1.md。
+// 协议/退出码唯一权威: 控制包 04 + docs/engineering/CLI_PROTOCOL_V1.md。
 // Windows Unicode: wmain → UTF-16 argv 转 UTF-8, 文件经 std::filesystem::u8path 打开。
 //
 // RT-008: 本文件仅保留入口壳(crash boundary + 平台入口)与薄 include 面;
@@ -101,7 +101,7 @@ int wmain(int argc, wchar_t** argv) {
 }
 #else
 int main(int argc, char** argv) {
-    // P-163 / docs/plugins/infrastructure/21_observability.md §7：日志/事件写入失败必须
+    // P-163 / docs/detail/infrastructure/21_observability.md §7：日志/事件写入失败必须
     // "记 stderr 脱敏摘要 + 以非 0 退出码结束（IO=7；磁盘满=10）"。POSIX 对 SIGPIPE 的默认
     // 处置是**直接终止进程**，会让写入路径的 EPIPE 分支永不可达（实测 rc=-13 被信号杀死，
     // 合同要求的 IO(7) 映射不可达）⇒ 忽略 SIGPIPE，使写调用返回 -1/EPIPE，

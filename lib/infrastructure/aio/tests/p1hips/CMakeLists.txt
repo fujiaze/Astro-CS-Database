@@ -5,7 +5,7 @@
 # P1-HIPS-DOC 闭环)。合同锚: docs/science/algorithms/HIPS_WRITER.md §9
 # TEST-HIPS-DESIGN-001 (P1-HIPS-DOC 冻结, 2026-09-07); 矩阵行 P1-HIPS
 # (MOD astrocs.phase1.hips-writer, registry 页
-# docs/modules/registry/astrocs.phase1.hips-writer.md)。
+# docs/detail/registry/astrocs.phase1.hips-writer.md)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1hips/p1hips_fixtures.hpp     — FIX-HIPS-A..F 固定 seed fixture

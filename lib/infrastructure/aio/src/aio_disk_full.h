@@ -19,7 +19,7 @@
 // (EACCES / EXDEV / EIO / 注入的合成写失败) 两条都不成立 ⇒ 不置位 ⇒ 仍走 exit 7。
 //
 // 归因粒度 = **帧级**(合同唯一口径, 不是运行级):
-//   docs/contracts/LOG_AND_ERROR_CONTRACT.md §5「`IO` | 7（IO）| I/O 失败;
+//   docs/engineering/LOG_AND_ERROR_CONTRACT.md §5「`IO` | 7（IO）| I/O 失败;
 //   **失败节点 manifest** 的 `error_kind==disk_full` 时改判 10」——判定挂在
 //   **失败的那一帧 / 那个节点**上, CLI 只做运行级聚合
 //   (lib/infrastructure/cli/runtime_client.cpp::pipeline_exit_code_from_error:

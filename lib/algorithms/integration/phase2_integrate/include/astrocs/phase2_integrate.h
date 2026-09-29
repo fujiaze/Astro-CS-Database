@@ -59,7 +59,7 @@ namespace v6 {
 namespace p2int {
 
 /* ------------------------------------------------------------------ */
-/* 冻结常数（逐字来自 docs/contracts/DATA_SEMANTICS.md §31，不重新定值）             */
+/* 冻结常数（逐字来自 docs/science/DATA_SEMANTICS.md §31，不重新定值）             */
 /* ------------------------------------------------------------------ */
 constexpr double kEpsPixivar = 0.05;      /* FZ-AP2S-EPS-PIXIVAR */
 constexpr double kEpsPixivarSup = 0.20;   /* FZ-AP2S-EPS-PIXIVAR-SUP */

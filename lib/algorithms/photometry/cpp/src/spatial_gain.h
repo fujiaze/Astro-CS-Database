@@ -145,7 +145,7 @@ struct SpatialGainField {
   // 降级/失败（具名，机器可读）
   std::string degraded_reason;
   // true ⇒ 调用方**必须把该帧判 fail**（几何充分但数值求解失败 = 缺陷, fail-closed；
-  // 见 docs/design/LOG_AND_ERROR_SYSTEM.md §10 帧级失败作用域）。分布/几何不足的
+  // 见 docs/detail/LOG_AND_ERROR_SYSTEM.md §10 帧级失败作用域）。分布/几何不足的
   // 降级**不**置此位（那是声明过的降级，不是缺陷）。
   bool frame_fail = false;
 };

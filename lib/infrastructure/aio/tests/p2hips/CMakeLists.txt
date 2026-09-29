@@ -2,7 +2,7 @@
 # SCI-F3-001 — lib/infrastructure/aio/src/hips NREJ/NUSED + §30.3 provenance 通道
 # 验收测试 (TEST-P2HIPS-UNC-PROV-001)
 # ----------------------------------------------------------------------------
-# 合同锚: docs/contracts/DATA_SEMANTICS.md §30.2 (DATA-P2-REJ-001) /
+# 合同锚: docs/science/DATA_SEMANTICS.md §30.2 (DATA-P2-REJ-001) /
 #         §30.3 (DATA-P2-PROV-001), DATA-UNC-001 FROZEN。
 # 被测面: astrocs_hips (根 CMakeLists.txt, aio_hips_writer.cpp +
 #         aio_hips_reader.cpp C ABI 导出面)。

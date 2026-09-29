@@ -19,7 +19,7 @@
  *       sparse_snr_semantics const = "absolute_flux_type_snr"；控制点值 =
  *       F_ref/sigma_F,c（与 frame_snr 同口径、同逐帧 F_ref）；
  *       「消费时**不得**乘/除帧级 SNR 做还原」
- *   - docs/plugins/algorithms_phase2/13_integration.md §4.0（稀疏层逐像素消费面）
+ *   - docs/detail/algorithms_phase2/13_integration.md §4.0（稀疏层逐像素消费面）
  *
  * 本模块只做「SNR 元数据 → 逆方差权重」的换算，不做排异、不做叠加；调用方
  * （scheduler / stage2 接线）按报告给出的约定取用。
@@ -117,7 +117,7 @@ struct SparseSnrPoint {
 /* ------------------------------------------------------------------ */
 /* 每个算子把「核 + 是否开 3×3 mesh 中值前置滤波 + 是否做值域钳制」**整组**
  * 绑成一个不可拆分的标识。为什么不做成独立布尔开关（见
- * docs/plugins/algorithms_phase1/07_noise_snr.md §4.5、实验 EXP-04 §2.7/§4.4）：
+ * docs/detail/algorithms_phase1/07_noise_snr.md §4.5、实验 EXP-04 §2.7/§4.4）：
  *   ① 值域钳制**不是可选项**：去掉它，光滑插值类在病态控制网格上失控
  *      （E 达 2.48e4），且会给出**负的 σ**（实测 min = −0.5585，非物理）；
  *   ② 中值前置滤波在默认目标域（地面/seeing-limited）**有害**
@@ -391,7 +391,7 @@ WeightChainResult compute_inverse_variance_weights(
 /* 稀疏层的**唯一**消费面 = 逐输出像素的权重路径。层值已是**绝对** SNR，故
  *   w(x,y) = (SNR_layer(x,y) / F_ref,k)² · g_k²   ≡   1/σ_F(x,y)²
  * （docs/science/UNIFIED_SCIENCE_MODEL.md:59、PSF_SIGNAL_WEIGHT.md:87、
- *   docs/plugins/algorithms_phase2/13_integration.md §4.0）。
+ *   docs/detail/algorithms_phase2/13_integration.md §4.0）。
  * **不得**再乘/除帧级 SNR：层与帧级是两个独立对象，共用同一物理定义与同一逐帧
  * F_ref（ASTROCS_DESIGN §3.1:264；冻结 schema 明文「消费时不得乘/除帧级 SNR」）。 */
 struct PixelWeightInput {

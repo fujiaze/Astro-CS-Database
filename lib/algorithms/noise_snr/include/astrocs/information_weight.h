@@ -1,6 +1,6 @@
 /* information_weight.h - Phase1/V6 W_info / Q / F_hat (IMPL-P1-PSFW-001)
  *
- * 合同锚 (docs/contracts/DATA_SEMANTICS.md（FZ-FORMULA-WINFO/Q/FHAT 条款面）;
+ * 合同锚 (docs/science/DATA_SEMANTICS.md（FZ-FORMULA-WINFO/Q/FHAT 条款面）;
  *         docs/science/algorithms/GATES_AND_TOLERANCES.md):
  *   - FZ-FORMULA-WINFO : W_info,k = a_k^2 P_k^T C_k^-1 P_k = 1 / Var(F_hat_k)   [ADU^-2]
  *   - FZ-FORMULA-Q     : Q_k      = a_k P_k^T C_k^-1 d_k                      [ADU^-1]

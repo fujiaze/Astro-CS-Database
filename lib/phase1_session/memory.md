@@ -50,7 +50,7 @@
   CLI 键白名单 parser.cpp 补 drizzle/wcs。
 - 构建：根 CMakeLists.txt:448-452 STATIC astrocs_phase1_session；
   :496/:514/:530 编入主可执行。
-- 如实差距：API-P1-001（docs/api/PHASE1_API_V1.md FROZEN）冻结 7-stage
+- 如实差距：API-P1-001（docs/engineering/PHASE1_API_V1.md FROZEN）冻结 7-stage
   序列 vs 现状 4 段——README §3 声明，不宣称 session 完成 7-stage；
   descriptor 占位 ALG-002/004/005 不作冻结依据（P1-PSF-DOC 先例）。
 
@@ -60,15 +60,15 @@
   module.yaml（11 号标准 §4 manifest；dll_name=MISSING——迁移矩阵无
   P1-SESSION 行，不设独立 DLL；entrypoint=p1_session_run 真实符号）、
   memory.md（本文件）。
-- docs/contracts/DATA_SEMANTICS.md 追加 §16（DATA-P1-SESSION：config
+- docs/science/DATA_SEMANTICS.md 追加 §16（DATA-P1-SESSION：config
   键集/host services/manifest schema/artifact 命名与 dtype）。
-- docs/contracts/PUBLIC_API.md 追加 API-P1-SESSION 节（五入口符号/生命周期
+- docs/engineering/PUBLIC_API.md 追加 API-P1-SESSION 节（五入口符号/生命周期
   时序/错误码映射/并发合同）。
 - docs/contracts/INDEX.yaml 新增 DATA-P1-SESSION / API-P1-SESSION 条目
   （不设 ALG-P1-SESSION：assembly 无新算法推导，ALG 引用既有冻结 ALG；
   归档映射表 ALG-P1-SESSION-001 为 P1-001 旧词汇，不进现行 INDEX）。
-- docs/modules/phase1_session.md 新建（模块页摘要，指向 co-located 合同）；
-  docs/modules/registry/astrocs.phase1.session.md 新建（手写合同页；
+- docs/detail/phase1_session.md 新建（模块页摘要，指向 co-located 合同）；
+  docs/detail/registry/astrocs.phase1.session.md 新建（手写合同页；
   gen_module_readmes.py 以 module_adapters.cpp 为源会生成 calibration 等
   8 页，本页 registry 无 descriptor 源，重生成时须排除/保留）。
 - docs/traceability/TRACEABILITY_MATRIX.json 新增

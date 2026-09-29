@@ -11,7 +11,7 @@
  * baseline (02_CURRENT_BASELINE_AUDIT §10.1 / 15 §1)。
  *
  * 冻结合同:
- *   - docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md (DOC-ARCH-CPU-003;
+ *   - docs/engineering/cpu/CPU_003_AVX2_PROVIDER.md (DOC-ARCH-CPU-003;
  *     热点 profile 台账 = ISA-001/003 实测（测量工件留档 实验/engineering-evidence/prerelease-v5/）
  *     ISA-001/MEASUREMENTS.csv);
  *   - lib/include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /

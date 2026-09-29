@@ -8,7 +8,7 @@
 //   - docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的 sigma_residual 时
 //     必须声明所用模型通带」+ §2a.5「通带形状不被零点吸收」（合成 F_syn 用的
 //     通带不是配置声明的那条 ⇒ 结果不可比, 必须拒绝）;
-//   - docs/contracts/CONFIG_CONTRACT.md §4（滤镜名解析 = 字节精确、无别名；
+//   - docs/engineering/CONFIG_CONTRACT.md §4（滤镜名解析 = 字节精确、无别名；
 //     provenance 的 curve_stats 与曲线逐条对账）;
 //   - eng/packaging/config/filters.json#lookup.resolution_rule
 //     「resolve(name) = filters[name] if name in keys(filters) else ERROR」。

@@ -18,7 +18,7 @@
 # 两行：MOD-astrocs-phase2-upm-fit / MOD-astrocs-phase2-upm-apply）。
 # 一个 manifest 只能一个 id，本文件 id 取 MOD-astrocs-phase2-upm-fit；
 # apply 对应 MOD-astrocs-phase2-upm-apply，其 ports/ids 见
-# docs/modules/registry/astrocs.phase2.upm-apply.md 与本目录
+# docs/detail/registry/astrocs.phase2.upm-apply.md 与本目录
 # README.md §fit/apply descriptor 现状；本 manifest 其余字段
 # （module_id / dll_target 等）用域值 astrocs.p2.upm /
 # astrocs_p2_upm.dll（MODULE_MIGRATION_MATRIX P2-UPM 行）。
@@ -97,8 +97,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE2_UPM.md
   alg: docs/science/algorithms/PHASE2_UPM_IMPL.md
-  data: docs/contracts/DATA_SEMANTICS.md#§25
-  api: docs/contracts/PUBLIC_API.md#API-P2-UPM-001
+  data: docs/science/DATA_SEMANTICS.md#§25
+  api: docs/engineering/PUBLIC_API.md#API-P2-UPM-001
 contract_ids:
   sci: SCI-UPM-001
   alg: ALG-P2-UPM-IMPL-001

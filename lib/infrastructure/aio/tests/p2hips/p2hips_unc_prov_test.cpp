@@ -2,7 +2,7 @@
 // p2hips_unc_prov_test.cpp — SCI-F3-001 验收测试 (TEST-P2HIPS-UNC-PROV-001)
 //
 // 合同锚: DATA-UNC-001 §30.2 (DATA-P2-REJ-001) / §30.3 (DATA-P2-PROV-001)
-//         docs/contracts/DATA_SEMANTICS.md:2259-2305
+//         docs/science/DATA_SEMANTICS.md:2259-2305
 // 被测面: astrocs_hips = lib/infrastructure/aio/src/hips/aio_hips_{writer,reader}.cpp
 //         C ABI 导出面 (aio_hips.h / aio_hips_reader.h)。
 //

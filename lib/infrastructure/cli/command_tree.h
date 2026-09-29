@@ -69,7 +69,7 @@ inline const std::set<std::string>& value_flags() {
         // 故 verify 作为 **doctor 的机器旗标** --run-manifest <manifest.json>
         // 提供（doctor --json --run-manifest <p>：manifest→status→version→输入
         // hash→逐 artifact(存在→sha→size) 校验，退出码同 §7.2）。
-        // 不写进 help：help 文本 golden = docs/api/CLI_PROTOCOL_V1.md §1
+        // 不写进 help：help 文本 golden = docs/engineering/CLI_PROTOCOL_V1.md §1
         // 「acsd doctor [--json]」逐行一致，新增命令条目或改 help 行会判红。
         "--run-manifest",
     };

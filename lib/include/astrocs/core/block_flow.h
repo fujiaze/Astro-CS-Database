@@ -1,7 +1,7 @@
 // ACSD Core — ARCH-505 阶段块流执行器（生产节点命名块装配）
 //
 // 依据：docs/ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线与块生命周期）、§8.3（三阶段调度器）、
-//       §10.3；ENGINEERING_SPEC.md §2；CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md；
+//       §10.3；ENGINEERING_SPEC.md §2；CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md；
 //       块流规格唯一事实源：eng/contracts/block_flow/stage_block_flow.json（由注册表派生，
 //       机器门 eng/tools/quality/check_block_flow_spec.py 校验，禁止手改漂移）。
 //

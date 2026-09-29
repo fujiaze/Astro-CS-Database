@@ -453,7 +453,7 @@ bool write_moc_fits_raw(const std::string& path,
 //   * P-084 (台账 C2): 步序含 punch 步 —— fsync 之后、原子 rename 之前对块对齐
 //     字面全零区域打洞（aio_sparse::punch_all_zero_blocks, verify=true; 读回
 //     不一致 ⇒ 拒发布, 卷不支持 ⇒ 降级 warn 不阻断）。依据
-//     docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与 ENGINEERING_SPEC §11。
+//     docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与 ENGINEERING_SPEC §11。
 // 注入面 (测试专用, 未设置时逐行零行为差异): ASTROCS_HIPS_TILE_FAULT =
 //   tile_write_fail | tile_diskfull | tile_checksum_fail | tile_fsync_fail |
 //   tile_rename_fail。每个注入名必败 (无恒 PASS 占位), 用于负例判别力证明。
@@ -590,7 +590,7 @@ bool write_fits_atomic(const std::string& final_path,
         return false;
     }
     // 裸形态体积削减（打洞）：fsync 之后、原子发布之前。
-    // 依据 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与
+    // 依据 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与
     // ENGINEERING_SPEC.md §11：只对块对齐的**字面全零**区域打洞；文件字节与
     // st_size 不变；打洞后读回复算，不一致 ⇒ 不得发布（硬错误）；卷不支持 ⇒
     // 跳过并记 warn（trim=skipped(<reason>)），不 fail-closed。

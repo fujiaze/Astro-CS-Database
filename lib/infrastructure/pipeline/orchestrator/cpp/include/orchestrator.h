@@ -21,11 +21,11 @@
 //             ② DOC-403 从 eng/ci/checks.json 移除上述 6 个 ctest_targets 及 CHK-CONTRACT-TEST
 //                的对应 step；
 //             ③ 同步移除 CMakeLists.txt:347-359 与 :952-954 两处 add_subdirectory，
-//                并更新 docs/modules/orchestrator.md、eng/ci/id_migration_map.json 登记项。
+//                并更新 docs/detail/orchestrator.md、eng/ci/id_migration_map.json 登记项。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；docs/ASTROCS_DESIGN.md §8.1/§8.2
 //             （生产链路由 scheduler 注册与编排、pipeline 提供 typed DAG 与命名块）；
 //             lib/infrastructure/pipeline/PENDING.md:10（orchestrator/ 属 §7.1 退役计划内）；
-//             docs/modules/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）。
+//             docs/detail/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）。
 // ──────────────────────────────────────────────────────────────────────
 // ============================================================================
 // orchestrator.h - 编排器核心类
@@ -37,7 +37,7 @@
 // 本类统一调度各 C++ DLL 模块：run_stage_* 经 DllLoader 动态加载模块
 // 并执行真实流水线（生产入口见 cli_command.cpp / orchestrator.cpp）。
 // [B4-24 C++17/C ABI/错误码 契约锚点 — 不改语义仅文档化]:
-// C++17 (CODE_STANDARD §MUST: MSYS2 MinGW64 g++16.1 -std=c++17, 见 Makefile CXXFLAGS): 本头仅用 C++17 std::filesystem(经 orchestrator.cpp)+RAII(unique_ptr)/atomic/mutex/chrono，未用 optional/variant/string_view/if constexpr 等 — 合规；C ABI 边界清: 类不跨 DLL, 全部模块调用经 DllLoader::get_function 纯 C ABI(extern "C", POD/指针/整型, 禁止异常跨界, 单出口), 见 dll_loader.h/C_ABI_STANDARD；错误码与 docs/architecture/ERROR_MODEL.md 全集合一致(AstroCsExitCode 0-10进程码+20-28 numeric_code+100预留, TIMEOUT=9/CANCELLED=10), 由 eng/tools/docs_machine_consistency.py error_taxonomy 全集合校验。
+// C++17 (CODE_STANDARD §MUST: MSYS2 MinGW64 g++16.1 -std=c++17, 见 Makefile CXXFLAGS): 本头仅用 C++17 std::filesystem(经 orchestrator.cpp)+RAII(unique_ptr)/atomic/mutex/chrono，未用 optional/variant/string_view/if constexpr 等 — 合规；C ABI 边界清: 类不跨 DLL, 全部模块调用经 DllLoader::get_function 纯 C ABI(extern "C", POD/指针/整型, 禁止异常跨界, 单出口), 见 dll_loader.h/C_ABI_STANDARD；错误码与 docs/engineering/ERROR_MODEL.md 全集合一致(AstroCsExitCode 0-10进程码+20-28 numeric_code+100预留, TIMEOUT=9/CANCELLED=10), 由 eng/tools/docs_machine_consistency.py error_taxonomy 全集合校验。
 // ============================================================================
 
 #pragma once

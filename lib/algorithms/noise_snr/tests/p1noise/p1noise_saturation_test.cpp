@@ -2,7 +2,7 @@
 //
 // 权威: docs/science/NOISE_MODEL.md §4「饱和域」/§8 首行/§11 饱和域 oracle（claim SC-008）
 //       docs/science/algorithms/NOISE_ESTIMATION.md §13.2/§13.4
-//       docs/contracts/DATA_SEMANTICS.md §13.1（data / cfg 行）
+//       docs/science/DATA_SEMANTICS.md §13.1（data / cfg 行）
 // 被测面: 生产源零改动 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
 //         + 策略头 lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h
 //

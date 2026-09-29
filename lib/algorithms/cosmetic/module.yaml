@@ -8,7 +8,7 @@
 # （P1-COS-DOC，2026-09-07，7 个生产符号），禁止手抄他版。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4 值域）；
 # adapter 经 host executor acquire/release 租约 + ac_set_num_threads 注入
-# OMP ICV（不改生产源；见 docs/contracts/PUBLIC_API.md API-COS-001 与
+# OMP ICV（不改生产源；见 docs/engineering/PUBLIC_API.md API-COS-001 与
 # COSMETIC_ALGORITHMS.md §7/§10）。
 id: MOD-astrocs-phase1-cosmetic
 module_id: astrocs.p1.cosmetic

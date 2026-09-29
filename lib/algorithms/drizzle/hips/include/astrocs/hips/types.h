@@ -9,7 +9,7 @@
  * 生产源零改动)。
  *
  * 合同链: SCI-DRZ-001 -> ALG-HIPS-001..005 -> API-HIPS-001
- *         (docs/contracts/PUBLIC_API.md) -> lib/algorithms/drizzle/hips/module.yaml
+ *         (docs/engineering/PUBLIC_API.md) -> lib/algorithms/drizzle/hips/module.yaml
  *         (module_id=astrocs.p1.hips_writer, dll_name=astrocs_p1_hips_writer.dll,
  *          threading_model=host_executor_lease, determinism=fixed_reduction_order)
  */

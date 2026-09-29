@@ -22,7 +22,7 @@
 
 #include "memory_report.h"   // MON-002 RSS/allocation report 阈值常量同源
 // G-RES-01 阈值唯一数值源（CMake 从 eng/contracts/resource_gate_v1.json 生成；
-// 判据语义权威 = docs/plugins/infrastructure/21_observability.md §8）。
+// 判据语义权威 = docs/detail/infrastructure/21_observability.md §8）。
 #include "resource_gate_thresholds_generated.h"
 
 namespace astrocs {
@@ -273,7 +273,7 @@ inline const char* gate_enforcement_name(GateEnforcement e) {
 }
 
 // 已分配容量(allocated capacity)分母 —— G-RES-01「已分配容量」的单一实现点。
-// 取义已在 docs/plugins/infrastructure/21_observability.md §8 定稿
+// 取义已在 docs/detail/infrastructure/21_observability.md §8 定稿
 // （写入契约 denominator）:
 //   primary  = granted_workers（真实观测到的租约授予宽度峰值）
 //   sentinel = 0（未观测; **不得**以配置值回填, lib/include/astrocs/core/context.h:93-103）

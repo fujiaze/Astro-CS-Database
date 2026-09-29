@@ -23,7 +23,7 @@
 //   SCI-P3-001 — docs/science/PHASE3_HIPS_TO_FITS.md: HiPS 读侧消费合同
 //     (本文件 §4 读回解析器所对拍的产物语义上位)。
 //   SCI-SCOPE-001 — docs/science/SCIENCE_SCOPE.md: 产品目标 (HiPS 科学产品)。
-//   DATA-P1-HIPS — docs/contracts/DATA_SEMANTICS.md §12 (读路径 §3 FITS
+//   DATA-P1-HIPS — docs/science/DATA_SEMANTICS.md §12 (读路径 §3 FITS
 //     tile 局部映射 = (511−x)·512+y, CDS Hipsgen 冻结): 本文件 §1 闭式的
 //     数据层权威 (DATA 层, 非 SCI/ALG)。
 //   hierarchy 低阶聚合 (I7) 与 SNR catalogue 在 SCI 层无独立条目 ——

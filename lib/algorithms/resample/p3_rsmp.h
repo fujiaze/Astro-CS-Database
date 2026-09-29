@@ -11,7 +11,7 @@
 //   * 采样核 registry（FZ-P3-KERNEL-REGISTRY；bilinear_4quad 须独立 Oracle+误差界+边界）
 //   * 三模式 fail-closed 12 门 + kernel/covariance/QW/epsf/provenance 扩展门（FZ-P3-FAILCLOSED）
 //
-// 单位（冻结表 docs/contracts/DATA_SEMANTICS.md §31.1 §1）：
+// 单位（冻结表 docs/science/DATA_SEMANTICS.md §31.1 §1）：
 //   signal_sb=ADU/sr、pixel_variance_in=ADU²、sb_variance_out=ADU²/sr²、
 //   sb_ivar_out=sr²/ADU²、W_info=ADU⁻²、Q=ADU⁻¹、flux=ADU、psfsw=1、
 //   phase3_var_out=(主 HDU signal BUNIT)²（FZ-P3-BUNIT-QUADRATIC）。
@@ -480,7 +480,7 @@ const std::vector<std::string>& forbidden_psfsw_product_keys();
 bool token_is_forbidden_weight_source(const std::string& token);
 
 // 退役对象（PSFSW-RETIRE-01）：psfsw_robust_weight **不是现行对象**
-// （docs/ASTROCS_DESIGN.md §3.1 订正后；docs/design/UNIFIED_MODEL.md:58；统一对象 14→13）。
+// （docs/ASTROCS_DESIGN.md §3.1 订正后；docs/detail/UNIFIED_MODEL.md:58；统一对象 14→13）。
 // 旧产品若在 variance_from / weight_sources 声明该对象 ⇒ 显式拒绝 + 迁移提示，
 // 不得静默接受，也不得再把它当作"在役的相对复合权重"。
 // 注意：它同时仍在 forbidden_weight_source_tokens 里（拒绝面），本函数只提供

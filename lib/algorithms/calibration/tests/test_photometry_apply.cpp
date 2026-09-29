@@ -255,7 +255,7 @@ static void test_large_dynamic_range() {
 // ============================================================================
 
 // 测试 6: Writer: apply_photometry=true + BUNIT=ADU/sr → 成功
-// 口径 = docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 BUNIT 一律取 canonical
+// 口径 = docs/science/DATA_SEMANTICS.md §31.1a:2808-2810（产品 BUNIT 一律取 canonical
 // 面亮度串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由 PHOTSCAL/PHOTAPPL 承载）
 static void test_writer_photappl_true_canonical_sb() {
     hiss::HissGridSpec grid;
@@ -343,7 +343,7 @@ static void test_writer_photappl_false_canonical_sb() {
 }
 
 // 测试 8b: Writer: BUNIT=ADU（裸计数，无 provenance 声明）→ 拒绝
-// 依据 = docs/contracts/DATA_SEMANTICS.md §31.2 FZ-BUNIT-SEMANTICS：裸 "ADU" 必须配
+// 依据 = docs/science/DATA_SEMANTICS.md §31.2 FZ-BUNIT-SEMANTICS：裸 "ADU" 必须配
 // provenance 声明 pixel_semantics="surface_brightness" + pixel_area_power=-2；HISS 容器
 // 无该 provenance 面 ⇒ 单位不可判 ⇒ fail-closed 拒发（不得静默落盘）。
 static void test_writer_bare_adu_rejected() {

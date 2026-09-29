@@ -8,7 +8,7 @@
 //   pc_api.cpp 内部一律以 quality_flags=nullptr 调 cleanAndScale ⇒
 //   star_matcher.cpp:428-438 的 SCI-PHOT-001 §4/§10 饱和/质量位有效域过滤
 //   （PC_QF_SATURATED|PC_QF_HAS_SATURATED）在**生产路径上不生效**。
-//   依据 docs/contracts/PUBLIC_API.md §「C ABI（extern "C"…）」+ docs/ASTROCS_DESIGN.md
+//   依据 docs/engineering/PUBLIC_API.md §「C ABI（extern "C"…）」+ docs/ASTROCS_DESIGN.md
 //   §8.5「模块与 ABI」（版本化头以 C ABI 标记声明的函数面）: 不得新增/修改任何
 //   **C 导出 ABI**（orchestrator 用 raw 函数指针按位置调用既有导出）。
 //

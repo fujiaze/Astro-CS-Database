@@ -1,7 +1,7 @@
 // ACSD Core — ARCH-504 export 子块流式调度器
 //
 // 依据：docs/ASTROCS_DESIGN.md §6（投影导出）、§8.3（export = 子块流式）；ENGINEERING_SPEC.md
-//       §4.1；CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md。
+//       §4.1；CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md。
 //
 // 核心机制（合同条款，测试逐条锁）：
 //   ① 输出平面按子块划分，HiPS 读取按子块范围路由（只读必要切片）；

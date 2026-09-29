@@ -1346,7 +1346,7 @@ static double parse_dec_dms(const char* s) {
 // ============================================================================
 // 辅助: 滤光片名称映射 + 响应曲线装载
 // **唯一实现** = lib/algorithms/photometry/cpp/src/filter_curve_json.h
-// 依据: docs/standards/CODE_STANDARD.md §MUST「禁止重复 production science
+// 依据: docs/engineering/CODE_STANDARD.md §MUST「禁止重复 production science
 //   implementation（单一实现 + oracle）」+ 「禁止 silent config fallback 改变科学
 //   语义」；键解析规则 = eng/packaging/config/filters.json#lookup.resolution_rule
 //   （字节精确、无别名、未知滤镜 -> error）。

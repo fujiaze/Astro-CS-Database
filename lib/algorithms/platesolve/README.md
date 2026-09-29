@@ -7,7 +7,7 @@
 > 权威来源: SCI=docs/science/ASTROMETRY.md（SCI-WCS-001，FROZEN T102
 > 2026-08-23，共享引用不改动）；ALG=docs/science/algorithms/PLATESOLVE.md
 > （ALG-WCS-001 + §11 逐符号源码锚定）；DATA=docs/contracts/
-> DATA_SEMANTICS.md §18（DATA-P1-WCS）；API=docs/contracts/PUBLIC_API.md
+> DATA_SEMANTICS.md §18（DATA-P1-WCS）；API=docs/engineering/PUBLIC_API.md
 > （API-WCS-001）；矩阵行=docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase1-wcs-platesolve。
 > 唯一权威签名头: lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h（238 行；

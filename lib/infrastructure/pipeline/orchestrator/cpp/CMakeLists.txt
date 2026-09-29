@@ -17,7 +17,7 @@
 #   登记 ORCH-HOME-01 另行处置（目录搬迁 = git mv，非本任务权限）。
 #   本 target 名取 MODULE_MAP 的 infrastructure 约定（docs/modules/MODULE_MAP.yaml
 #   conventions: target_infrastructure = astrocs_infra_<id>），id = orchestrator
-#   （模块文档 docs/modules/orchestrator.md），**不写死 pipeline 或 scheduler 任意一侧**。
+#   （模块文档 docs/detail/orchestrator.md），**不写死 pipeline 或 scheduler 任意一侧**。
 #
 # 契约（BLD-002）：本文件只声明本模块 target；唯一 project()/唯一产品可执行
 # acsd 仍只在根 CMakeLists.txt。
@@ -93,7 +93,7 @@ endif()
 
 # ── 3) legacy CLI 入口（非产品；不进 install 白名单）──
 # docs/ASTROCS_DESIGN §6.2 的唯一命令树 = 产品 acsd（normalize|mosaic|export）；
-# 本可执行是 docs/modules/orchestrator.md 记载的 legacy「stage1.json 入口」，
+# 本可执行是 docs/detail/orchestrator.md 记载的 legacy「stage1.json 入口」，
 # 仅用于共址冒烟测试与诊断，**不 install、不进产品 manifest**。其退场与否
 # （§7.1 收编入 scheduler 后的形态）登记为 ORCH-HOME-01 的一部分另行处置。
 add_executable(orchestrator_legacy_cli src/main.cpp)

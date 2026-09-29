@@ -1,6 +1,6 @@
 /* psf_information.h - Phase1/V6 A_NEA 与 effective PSF (IMPL-P1-PSFW-001)
  *
- * 合同锚 (docs/design/PHASE1_DETAILED_DESIGN.md;
+ * 合同锚 (docs/detail/PHASE1_DETAILED_DESIGN.md;
  *         docs/science/PSF_SIGNAL_WEIGHT.md):
  *   - FZ-COND-WHITENOISE : P_k(u,v) >= 0, Sum_p P_k,p = 1 ;
  *                          A_NEA,k = 1 / Sum_p P_k,p^2   [px^2]

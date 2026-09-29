@@ -12,15 +12,15 @@
 //      load_filter_curve / load_qe_curve —— legacy 编排入口 run_stage_photometric
 //
 // 规范依据（逐条）:
-//   - docs/standards/CODE_STANDARD.md §MUST「禁止重复 production science
+//   - docs/engineering/CODE_STANDARD.md §MUST「禁止重复 production science
 //     implementation（单一实现 + oracle）」——本头即该条的落点：曲线解析只能有
 //     一份实现，两份独立实现是同类缺陷复发的根源。
-//   - docs/standards/CODE_STANDARD.md §MUST「禁止 silent config fallback 改变
+//   - docs/engineering/CODE_STANDARD.md §MUST「禁止 silent config fallback 改变
 //     科学语义」——曲线名解析不到时必须报错，不得静默取到别的曲线。
 //   - eng/packaging/config/filters.json#lookup.resolution_rule 逐字:
 //     「resolve(name) = filters[name] if name in keys(filters) else
 //       ERROR(unknown_filter)。比较为字节精确：不折叠大小写、不折叠空白、
-//       不做 Unicode 归一、不解析别名」+ docs/contracts/CONFIG_CONTRACT.md §4
+//       不做 Unicode 归一、不解析别名」+ docs/engineering/CONFIG_CONTRACT.md §4
 //     （同一合同的文档化说明）。本头按该规则**只认曲线库内的对象键**。
 //   - docs/ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界：任何文件读写必须经 aio」
 //     —— 读取经 aio_file::read_all（aio 内唯一实现, header-only），本头不自持

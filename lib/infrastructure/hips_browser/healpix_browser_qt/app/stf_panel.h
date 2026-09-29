@@ -3,7 +3,7 @@
 // 用途: 用户调整 STF 显示拉伸参数, 实时更新渲染
 // 依赖: Qt6::Widgets (QDockWidget/QSlider/QComboBox/QPushButton/QLabel),
 // core/ (STFParams/STFEngine)
-// 设计文档: docs/modules/healpix_browser_qt.md
+// 设计文档: docs/detail/healpix_browser_qt.md
 // v3: 三控制点（暗部截止/中间调/亮部截止），替代 4 滑块
 
 #ifndef STF_PANEL_H

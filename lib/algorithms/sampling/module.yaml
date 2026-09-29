@@ -8,7 +8,7 @@
 # astrocs_p2_sampling.dll / C ABI adapter / plan-execute-cancel-inspect /
 # ThreadLease 接线）由 P2-SAMP-IMPL 执行；可执行测试由 P2-SAMP-TEST
 # 建立（TEST-P2-SMP-001 MISSING，不冒认；设计冻结
-# TEST-P2-SMP-DESIGN-001 见 docs/modules/registry/astrocs.phase2.sample.md）。
+# TEST-P2-SMP-DESIGN-001 见 docs/detail/registry/astrocs.phase2.sample.md）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码
 # 核对清单（P2-SAMP-DOC，2026-09-09，grep 实测），禁止手抄他版。
 # 落位依据：MODULE_MIGRATION_MATRIX.csv P2-SAMP 行 owner=SA-P2-S20、
@@ -74,8 +74,8 @@ api_contracts:
 doc_links:
   sci: docs/science/PHASE2_UPM.md
   alg: docs/science/algorithms/PHASE2_SAMPLER.md
-  data: docs/contracts/DATA_SEMANTICS.md#§23
-  api: docs/contracts/PUBLIC_API.md#API-P2-SMP-001
+  data: docs/science/DATA_SEMANTICS.md#§23
+  api: docs/engineering/PUBLIC_API.md#API-P2-SMP-001
 contract_ids:
   sci: SCI-UPM-001
   alg: ALG-P2-SMP-001

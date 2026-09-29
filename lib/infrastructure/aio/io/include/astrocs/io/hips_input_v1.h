@@ -1,7 +1,7 @@
 /* ACSD HiPS 输入读取 C ABI v1 — lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h
  *
  * 角色: acsd_io.dll 对外的 HiPS 输入读取合同 (IO-002 冻结)。
- * 冻结合同见 docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md (DOC-IO-INTERFACE-002)。
+ * 冻结合同见 docs/science/IO_002_HIPS_INPUT_INTERFACE.md (DOC-IO-INTERFACE-002)。
  *
  * 关键约束 (v1 不可变; 扩展须升版本):
  *   1) tile FITS 平面读取全部复用 IO-001 fits_core (fits_stream_v1.h) —— 本头不重复

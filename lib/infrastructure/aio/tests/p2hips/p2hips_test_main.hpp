@@ -2,7 +2,7 @@
 // p2hips/p2hips_test_main.hpp — SCI-F3-001 harness (组 runner + 故障注入框架)
 // ----------------------------------------------------------------------------
 // 合同锚: DATA-UNC-001 §30.2 (DATA-P2-REJ-001) / §30.3 (DATA-P2-PROV-001),
-// docs/contracts/DATA_SEMANTICS.md:2259-2305。
+// docs/science/DATA_SEMANTICS.md:2259-2305。
 // 被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp +
 //         lib/infrastructure/aio/src/hips/aio_hips_reader.cpp (astrocs_hips)。
 // 结构对齐 P1-HIPS-TEST 先例 (lib/infrastructure/aio/tests/p1hips/)。

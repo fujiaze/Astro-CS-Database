@@ -161,7 +161,7 @@ P2_API int p2_deterministic_reduction_order(
 // 起不再表示"在役的相对复合权重"，而是**退役对象的显式拒绝面**——旧产品若把该
 // 对象写进 weight.sources/variance_from，必须在此判红（不得静默接受）。该两 token
 // 因此不得按"残留清理"删除。依据 docs/ASTROCS_DESIGN.md §3.1（订正后）+
-// docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
+// docs/detail/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
 // 返回 0=通过；1=命中禁止 token；2=参数错误（tokens==NULL 且 n>0）。
 P2_API int p2_weight_source_token_reject(
     const char* const* tokens, std::uint64_t n,

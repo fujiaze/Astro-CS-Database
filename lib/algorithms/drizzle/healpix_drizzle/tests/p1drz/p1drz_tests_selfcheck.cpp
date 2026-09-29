@@ -24,6 +24,12 @@
 #include <string>
 #include <vector>
 
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * Windows 侧的 setenv/unsetenv 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物。
+ * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 (sys/wait.h / unistd.h 已在上面
+ * 的 _WIN32 分支里) => Linux 预处理零 delta。 */
+#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+
 int p1drz_run_core_groups(int argc, char** argv);
 
 namespace {

@@ -77,7 +77,7 @@ kernel 词汇（各域冻结 ALG 以"冻结合同"列为准，由各 INT 任务�
 | 5 | `astrocs.phase1.photometry`（:469） | `psf`(DATA-P1-PSF)+`sources`(DATA-P1-SOURCES) → `fluxes`(DATA-P1-FLUX/ELECTRON/ICRS) | SCI-P1-PHOT-001 / ALG-002（占位）/ API-P1-005 / TEST-P1-PHOT-001 | SCI-P1-PHOT-001；ALG-PHOT-001..002（PHOTOMETRIC_FIT.md）；DATA-P1-PHOT（DATA_SEMANTICS §14）；API-PHOT-001（PUBLIC_API） | P1-001 后=Photometer::measure（p1_nodes[]）；A 线生产调用锚 orchestrator.cpp:2474 → :2714（FP64 `pc_calibrate_simple_with_gaia_f64_v2`）/:2790（FP32 `pc_calibrate_simple_with_gaia_v2`） | TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT.md） |
 | 6 | `astrocs.phase1.noise-snr`（:489） | `fluxes`(DATA-P1-FLUX) → `snr`(DATA-P1-SNR/DIMENSIONLESS/ICRS) | SCI-P1-SNR-001 / ALG-004（占位）/ API-P1-006 / TEST-P1-SNR-001 | ALG-NOISE-001..003（NOISE_ESTIMATION.md）；DATA-P1-NOISE（DATA_SEMANTICS §13）；API-NOISE-001（PUBLIC_API） | P1-001 后=NoiseModel::estimate（p1_nodes[]）| TEST-NOISE-DESIGN-001（NOISE_ESTIMATION.md） |
 | 7 | `astrocs.phase1.drizzle`（:508） | `calibrated`(DATA-P1-CAL) → `stacked`(DATA-P1-STACK/ADU/ICRS) | SCI-P1-DRIZ-001 / ALG-005（占位）/ API-P1-007 / TEST-P1-DRIZ-001 | ALG-DRZ-001（DRIZZLE_GEOMETRY.md）；DATA-P1-DRZ（DATA_SEMANTICS §11）；API-DRZ-001（PUBLIC_API） | P1-001 后=hp_drizzle_run（p1_nodes[] 直调；IVOA nside>=512 合同由下游 writer fail-closed 校验）| TEST-DRZ-DESIGN-001（DRIZZLE_GEOMETRY.md） |
-| 8 | `astrocs.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/modules/registry/astrocs.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=hiss_support_ratio_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
+| 8 | `astrocs.phase1.writer`（:527） | `stacked`(DATA-P1-STACK) → `fits`(DATA-P1-FITS/ADU/ICRS) | SCI-P1-WR-001 / ALG-P1-WR-001 / API-P1-008 / TEST-P1-WR-001 | HiPS 写出域：ALG-HIPS-001..005（HIPS_WRITER.md）；DATA-P1-HIPS（DATA_SEMANTICS §12）；API-HIPS-001（PUBLIC_API）；writer/hips registry 无独立 descriptor（hips 页 docs/detail/registry/astrocs.phase1.hips-writer.md 为手写合同页） | P1-001 attempt 2 后=aio_hiss_inspect/read_tile_* → AstroSphereTileView → `aio_hips_product_begin/write_signal_support_tile/finalize`（消费 p1_stack.hiss；NESTED 聚合 → IVOA 1.4 标准 512×512 HiPS signal/+support/+properties/MOC；covered_area_model=hiss_support_ratio_x_A_cell 单帧语义） | TEST-HIPS-DESIGN-001（HIPS_WRITER.md §9） |
 
 **A 线（CLI 生产编排，现行唯一 7-stage 全链）**：
 docs/architecture/production_call_paths_stage1.csv 登记 7 条生产调用路径
@@ -118,7 +118,7 @@ DLL 显式加载（dll_loader），与本库（B 线静态库）并存；两条�
 数据流为严格线性（无分支/无循环依赖）；失败即短路返回（§5），
 不留伪完整产物（头注释 p1_session.cpp:4）。
 
-**如实差距声明（不宣称 session 完成 7-stage）**：docs/api/PHASE1_API_V1.md
+**如实差距声明（不宣称 session 完成 7-stage）**：docs/engineering/PHASE1_API_V1.md
 （API-P1-001，FROZEN）§1 声明 run 内部阶段序列=校准→检测/PSF→plate
 solve→测光定标→SNR→Drizzle→HiPS；**现行实现仅落 CAL+COS 域 4 段**，
 photometry/psf/wcs/noise/drizzle/hips 在 B 线 session 内无执行段（其
@@ -206,8 +206,8 @@ module_adapters.cpp:61-91）：
 - 生产可达性：`eng/tools/quality/check_prod_reachability.py:42` 与
   `eng/tools/check_pipeline_trace.py:16` 将 lib/phase1_session/p1_session.cpp
   列为 p1 生产锚。
-- 本合同验收：DATA-P1-SESSION=docs/contracts/DATA_SEMANTICS.md §16；
-  API-P1-SESSION=docs/contracts/PUBLIC_API.md「Phase1 装配会话」节；
+- 本合同验收：DATA-P1-SESSION=docs/science/DATA_SEMANTICS.md §16；
+  API-P1-SESSION=docs/engineering/PUBLIC_API.md「Phase1 装配会话」节；
   矩阵行=MOD-astrocs-phase1-session（docs/traceability/）。
   TEST-P1-SESSION-001 锚 eng/tests/unit/p1_ir_facade_test.cpp（可执行测试
   已接线登记）。
@@ -258,9 +258,9 @@ module_adapters.cpp:61-91）：
 
 - 头文件：`p1_session.h`（五 C API :16-28；并发合同 :15；inspect
   所有权 :25；C++ last_error :33-37）。
-- 编排合同：docs/api/PHASE1_API_V1.md（API-P1-001..010，FROZEN）。
-- 数据语义：docs/contracts/DATA_SEMANTICS.md §16（DATA-P1-SESSION）。
-- 公共 API：docs/contracts/PUBLIC_API.md（API-P1-SESSION 节）。
-- 架构：docs/contracts/ARCH-001.md；生产路径表
+- 编排合同：docs/engineering/PHASE1_API_V1.md（API-P1-001..010，FROZEN）。
+- 数据语义：docs/science/DATA_SEMANTICS.md §16（DATA-P1-SESSION）。
+- 公共 API：docs/engineering/PUBLIC_API.md（API-P1-SESSION 节）。
+- 架构：docs/engineering/ARCH-001.md；生产路径表
   docs/architecture/production_call_paths_stage1.csv。
 - 旧映射（历史）：归档映射表 P1_SYMBOL_MAP.md（已删，见 git 历史）。

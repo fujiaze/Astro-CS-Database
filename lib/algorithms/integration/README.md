@@ -78,7 +78,7 @@ DRIVER_SRC 积分段 :66-126，含 max(accepted support) 注释 :124）。
 - README/module.yaml/memory.md：`lib/algorithms/integration/`（本目录）
 - SCI：docs/science/INTEGRATION.md（FROZEN，零改动）
 - ALG：docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）
-- DATA：docs/contracts/DATA_SEMANTICS.md §21（DATA-P2-INT）
-- API：docs/contracts/PUBLIC_API.md API-P2-INT-001
-- 模块页：docs/modules/phase2_int.md；
-  docs/modules/registry/astrocs.phase2.integrate.md
+- DATA：docs/science/DATA_SEMANTICS.md §21（DATA-P2-INT）
+- API：docs/engineering/PUBLIC_API.md API-P2-INT-001
+- 模块页：docs/detail/phase2_int.md；
+  docs/detail/registry/astrocs.phase2.integrate.md

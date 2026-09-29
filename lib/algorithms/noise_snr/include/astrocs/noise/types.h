@@ -10,7 +10,7 @@
  *
  * 合同链: SCI-NOISE-001..015 (NOISE_MODEL.md FROZEN T104 2026-08-23)
  *         -> ALG-NOISE-001..003 (NOISE_ESTIMATION.md §13)
- *         -> API-NOISE-001 (docs/contracts/PUBLIC_API.md)
+ *         -> API-NOISE-001 (docs/engineering/PUBLIC_API.md)
  *         -> lib/algorithms/noise_snr/module.yaml
  *            (module_id=astrocs.p1.noise, dll_name=astrocs_p1_noise.dll,
  *             threading_model=host_executor_lease,

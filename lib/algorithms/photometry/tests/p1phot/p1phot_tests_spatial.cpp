@@ -279,7 +279,7 @@ int test_spatial() {
             dev1 = std::max(dev1, std::fabs(got - want));
         }
         // 声明判据（事前写定）: 最大偏差 ≤ 4×点态噪声底上界（4σ 抽样包络，
-        // 与 docs/plugins/algorithms_phase1/06_photometry.md §4.1 的「3× = 3σ 抽样
+        // 与 docs/detail/algorithms_phase1/06_photometry.md §4.1 的「3× = 3σ 抽样
         // 允差」同类，唯一约定性选择；噪声底由被测实现按系数协方差解析给出）。
         const double tol1 = 4.0 * f1.noise_floor_max_dex;
         std::fprintf(stdout,

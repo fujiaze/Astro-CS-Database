@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：日志事件定义与 schema（logging/）、资源与轨迹监控（monitoring/）、探针实现（probes/），以及本目录的迁移登记文件。
-- 不放：门禁与监控字段的注册（eng/ci/）、日志契约正文（docs/contracts/LOG_AND_ERROR_CONTRACT.md）、科学算法（lib/algorithms/）。
+- 不放：门禁与监控字段的注册（eng/ci/）、日志契约正文（docs/engineering/LOG_AND_ERROR_CONTRACT.md）、科学算法（lib/algorithms/）。
 
 ## 内容
 

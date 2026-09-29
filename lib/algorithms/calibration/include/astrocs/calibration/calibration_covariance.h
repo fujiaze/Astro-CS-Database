@@ -23,9 +23,9 @@
  *
  * 权威锚（冻结，不得偏离）:
  *   docs/science/algorithms/CALIBRATION_ALGORITHMS.md
- *   docs/contracts/DATA_SEMANTICS.md  FZ-PROV-SHARED-SYSTEMATIC /
+ *   docs/science/DATA_SEMANTICS.md  FZ-PROV-SHARED-SYSTEMATIC /
  *       FZ-FORMULA-COV-PROP / FZ-CAL-FLOOR / FZ-CAL-QUANTUM-DEFAULT
- *   docs/contracts/DATA_SEMANTICS.md §31.6 ; 01_units_and_bunit.md
+ *   docs/science/DATA_SEMANTICS.md §31.6 ; 01_units_and_bunit.md
  *   实验/engineering-evidence/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md  DI-03 (OPEN, fail-closed)
  *
  * 单位（冻结）: light/master signal = ADU ; variance = ADU^2 ;
