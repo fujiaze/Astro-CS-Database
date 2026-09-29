@@ -90,7 +90,7 @@ def make_fake_tree(dst, *, version=EXPECTED, project=BASE,
             with open(os.path.join(full, "placeholder.md"), "w",
                       encoding="utf-8") as f:
                 f.write("t\n")
-    with open(os.path.join(dst, "docs", "owner", "RELEASE_STATUS.md"),
+    with open(os.path.join(dst, "docs", "engineering", "RELEASE_STATUS.md"),
               "w", encoding="utf-8") as f:
         f.write(f"# govn\n\n- 根 VERSION：`{doc}`\n")
 
