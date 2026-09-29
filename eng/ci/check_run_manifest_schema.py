@@ -21,16 +21,20 @@
      登记集是「两份冻结合同对同名对象约定不同」的冲突台账，每条带冲突权威与处置状态；处置需要
      改 CFG-001 冻结 schema（方案见 run/RULING-DOC-01/REPORT.md），不得自行改冻结合同。
   语料面：run/**、artifacts/**、eng/ci/fixtures/run_manifest/**（外加 --corpus-dir）。其中
-     run/<轮次>/wsrc/** 是取证用的**整棵工作树快照**（见 eng/tools/audit_intake.py），里面的
-     astrocs_run_*.json 只反映快照当时的仓库状态（可含 .gitignore 的陈旧残留），不是本仓运行
-     产物 ⇒ 语料剔除，剔除条数**可见登记**（stdout + 报告），不得静默。
+     取证/自测用的**整棵工作树快照**里的 astrocs_run_*.json 只反映快照当时的仓库状态（可含
+     .gitignore 的陈旧残留），不是本仓运行产物 ⇒ 语料剔除。快照目录**名会变**
+     （run/<轮次>/wsrc/** 是现约定，见 eng/tools/audit_intake.py；run/FINAL-07/
+     doc-migration/selftest/** 是同一种东西换了名字），所以剔除**按属性判定**、不按目录名
+     枚举（否则换名即复现漏判：同一 run_id 3577873f85f6 的同一份物理文件落在 wsrc/ 下被剔、
+     落在 selftest/ 下未被剔）。剔除条数**可见登记**（stdout + 报告），不得静默。
 
 用法:
   python3 eng/ci/check_run_manifest_schema.py [--json-out <path>] [--self-test]
     [--corpus-dir <dir>] [--no-default-corpus] [--assume-product-corpus]
 自测面（--self-test，隔离语料，不依赖本机 run/** 现状）: T1 正/负例 + T2 正/负例 +
-  wsrc 快照命中被剔除判绿 / 同一 manifest 落产物目录仍判红 / 无产物语料陈旧不致命但可见登记 /
-  加严接缝下陈旧致命 / 新偏差恒致命 / 登记项在场不再陈旧。
+  源树复制体命中被剔除判绿 / **快照目录改名（非 wsrc）仍被剔除**（判据不靠名字） /
+  **目录名不构成豁免**（叫 wsrc 但无源树属性仍照常判定）/ 同一 manifest 落产物目录仍判红 /
+  无产物语料陈旧不致命但可见登记 / 加严接缝下陈旧致命 / 新偏差恒致命 / 登记项在场不再陈旧。
 exit 0 = T1 与 T2 全过；1 = 判红；2 = 环境/用法错误。
 """
 from __future__ import annotations
@@ -54,11 +58,34 @@ VALIDATOR = REPO / "eng/tests/common/jsonschema_min.py"
 
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 
-# 取证用工作树快照的路径成分（现约定 run/<轮次>/wsrc/**，见 eng/tools/audit_intake.py 说明）：
+# ── 非产物语料（源树复制体）的剔除：**按属性判定**，不按目录名字面量枚举 ──
 # 快照是整棵工作树的只读拷贝，里面的 manifest 命名文件只反映快照当时的仓库状态（可含
 # .gitignore 的陈旧残留），不是本仓运行产物 ⇒ 不参与合同判定（否则门不 hermetic：同一提交
 # 在「本机有旧快照」与「CI 干净检出」上结论不同）。
-SNAPSHOT_COMPONENTS = ("wsrc",)
+# 旧口径 SNAPSHOT_COMPONENTS = ("wsrc",) 只认一个字面目录名：快照换个名（selftest/ 等）就漏判，
+# 于是同一个 run_id 3577873f85f6 的**同一份物理文件**在 4 处 wsrc/ 下被剔、在 1 处
+# selftest/ 下未被剔而判红 ⇒ 判据缺陷，不是流程缺陷。
+# 改为按**与目录名无关的可判定目录属性**判定「是否落在源树复制体里」，三条签名任一命中即剔：
+#   S1 检出根属性：祖先目录直接含 `.git`（git 检出/克隆根）
+#   S2 构建根属性：祖先目录直接含 `CMakeLists.txt`（本仓唯一根构建文件）
+#   S3 源树布局属性：祖先目录同时含 `docs/` 与 `eng/`（本仓文档面与工具面并置）
+# 祖先链在**语料根**处截止（语料根本身不算复制体），否则 run/ 下每个 manifest 都会被剔。
+# 剔除仍**可见登记**（stdout + 报告的 n_pruned_* / pruned_* / pruned_reasons），不得静默。
+SOURCE_COPY_SIGNATURES = (
+    (".git", lambda a: (a / ".git").exists()),
+    ("CMakeLists.txt", lambda a: (a / "CMakeLists.txt").is_file()),
+    ("docs+eng", lambda a: (a / "docs").is_dir() and (a / "eng").is_dir()),
+)
+
+
+def _source_copy_signatures(anc: pathlib.Path) -> list:
+    """祖先目录上命中的「源树/构建根」属性名（空列表 = 不像复制体）。
+
+    每一项是「目录属性」判定式而不是目录名 ⇒ 判据与快照目录叫什么无关；新增属性只改
+    SOURCE_COPY_SIGNATURES 一处（登记式）。
+    """
+    return [name for name, hit in SOURCE_COPY_SIGNATURES if hit(anc)]
+
 
 # CLI-003 §2 必填（含类型/值域）。值 = 人类可读判据说明（判定在 _check_cli003 内实现）。
 CLI003_REQUIRED = {
@@ -185,9 +212,23 @@ def _cfg001_deviation(man: dict, schema: dict, validator) -> dict:
     return {"missing_required": sorted(set(missing)), "extra_properties": sorted(set(extra))}
 
 
-def _is_worktree_snapshot(p: pathlib.Path) -> bool:
-    """路径是否落在取证用的**工作树快照**目录里（run/<轮次>/wsrc/**）。"""
-    return any(part in SNAPSHOT_COMPONENTS for part in p.parts)
+def _nonproduct_reason(p: pathlib.Path, corpus_roots: set) -> str:
+    """该 manifest 是否落在**源树复制体**里 -> 剔除理由（空串 = 产物语料，参与 T1/T2）。
+
+    按属性判定（见 SOURCE_COPY_SIGNATURES 处的说明）：自文件所在目录向上走，
+    在语料根处截止；任一祖先目录命中源树/构建根签名即判非产物语料。目录名不参与判定。
+    """
+    anc = p.parent
+    while True:
+        if anc in corpus_roots:
+            return ""
+        hits = _source_copy_signatures(anc)
+        if hits:
+            return "SOURCE_COPY_ROOT ancestor=%s signatures=%s" % (anc, "+".join(hits))
+        nxt = anc.parent
+        if nxt == anc:
+            return ""
+        anc = nxt
 
 
 def _discover(extra_dirs=None, use_default=True) -> tuple:
@@ -196,7 +237,7 @@ def _discover(extra_dirs=None, use_default=True) -> tuple:
     产物语料 = 来自 run/**、artifacts/** 的**未剔除**命中（fixture 与 --corpus-dir 不算）；
     它是「陈旧偏差是否构成证据」的判据面：没有产物语料就没有可陈旧的载体。
     """
-    cands, product_cands = [], set()
+    cands, product_cands, roots = [], set(), set()
     if use_default:
         for base in ("run", "artifacts"):
             root = REPO / base
@@ -204,15 +245,19 @@ def _discover(extra_dirs=None, use_default=True) -> tuple:
                 hits = sorted(root.rglob("astrocs_run_*.json"))
                 cands += hits
                 product_cands |= {str(h) for h in hits}
+                roots.add(root)
         if FIXTURES.is_dir():
             cands += sorted(FIXTURES.glob("*.json"))
+            roots.add(FIXTURES)
     for d in extra_dirs or []:
         p = pathlib.Path(d)
         if p.is_dir():
             cands += sorted(p.rglob("astrocs_run_*.json")) + sorted(p.rglob("*.json"))
+            roots.add(p)
     kept, pruned = [], []
     for f in sorted(set(cands)):
-        (pruned if _is_worktree_snapshot(f) else kept).append(f)
+        why = _nonproduct_reason(f, roots)
+        (pruned.append((f, why)) if why else kept.append(f))
     n_products = sum(1 for f in kept if str(f) in product_cands)
     return kept, pruned, n_products
 
@@ -283,7 +328,11 @@ def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True,
         "schema": "astrocs.run-manifest-schema-check/v1",
         "n_files_scanned": len(files),
         "n_pruned_worktree_snapshot_hits": len(pruned_snapshots),
-        "pruned_worktree_snapshot_hits": [str(p) for p in pruned_snapshots[:20]],
+        "pruned_worktree_snapshot_hits": [str(p) for p, _ in pruned_snapshots[:20]],
+        "pruned_reasons": [{"path": str(p), "rule": "source_copy_root", "why": why}
+                           for p, why in pruned_snapshots[:20]],
+        "prune_rule": "按属性判定（祖先目录的源树/构建根签名 .git / CMakeLists.txt / docs+eng），"
+                      "不按目录名字面量枚举；语料根处截止",
         "n_product_corpus_files": n_products,
         "assume_product_corpus": bool(assume_product_corpus),
         "n_manifests": n_manifest,
@@ -316,8 +365,8 @@ def run(json_out: str = "", corpus_dirs=None, use_default_corpus=True,
           " pruned_snapshot_hits=%d product_corpus=%d stale_fatal=%s"
           % (len(files), n_manifest, len(skipped), "PASS" if t1_ok else "FAIL",
              "PASS" if t2_ok else "FAIL", len(pruned_snapshots), n_products, stale_fatal))
-    for p in pruned_snapshots[:5]:
-        print("  PRUNED 非产物语料（取证工作树快照）: %s" % p)
+    for p, why in pruned_snapshots[:5]:
+        print("  PRUNED 非产物语料（源树复制体属性命中）: %s  [%s]" % (p, why))
     for f, ps in list(t1_bad.items())[:6]:
         for msg in ps[:6]:
             print("  T1 %s: %s" % (f, msg))
@@ -387,13 +436,23 @@ def self_test(json_out: str = "") -> int:
     # ---- 语料面与棘轮语义（能红能绿；用 --corpus-dir 隔离，不依赖本机 run/** 现状）----
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="run-manifest-selftest-"))
     try:
-        def corpus(name, layout):
-            """layout: {相对路径: 文档} ⇒ 建一个隔离语料目录。"""
+        def corpus(name, layout, snapshot_roots=()):
+            """layout: {相对路径: 文档} ⇒ 建一个隔离语料目录。
+
+            snapshot_roots: 这些相对路径额外建成**源树复制体**（写入 CMakeLists.txt 并建出
+            docs/ 与 eng/），用来在**任意目录名**下模拟工作树拷贝——判据必须按属性识别它，
+            不能靠名字。
+            """
             root = tmp / name
             for rel, doc in layout.items():
                 p = root / rel
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+            for rel in snapshot_roots:
+                (root / rel / "CMakeLists.txt").write_text("# copied worktree root\n",
+                                                           encoding="utf-8")
+                (root / rel / "docs").mkdir(parents=True, exist_ok=True)
+                (root / rel / "eng" / "tests" / "cli").mkdir(parents=True, exist_ok=True)
             return root
 
         def judge(name, root, *, assume=False):
@@ -414,9 +473,10 @@ def self_test(json_out: str = "") -> int:
                       toolchain_version="gcc 13.2", created_utc="2026-09-22T00:00:00Z")
         new_key_man = dict(cfg_ok, zzz_brand_new_prop=1)
 
-        # 正例：run/<轮次>/wsrc/** 里的取证快照命中被剔除 ⇒ 判绿（且剔除条数可见）
+        # 正例：源树复制体（run/<轮次>/wsrc/**，现约定名）里的命中被剔除 ⇒ 判绿（且剔除条数可见）
         root = corpus("prune", {"R1/wsrc/eng/tests/cli/astrocs_run_stale.json": t1_bad_man,
-                                "R1/out/astrocs_run_ok.json": fixture})
+                                "R1/out/astrocs_run_ok.json": fixture},
+                      snapshot_roots=("R1/wsrc",))
         rc, rep = judge("prune", root)
         problems = []
         if rc != 0:
@@ -427,6 +487,35 @@ def self_test(json_out: str = "") -> int:
         if not (rep.get("t1_cli003") or {}).get("ok"):
             problems.append("T1 未绿：%s" % list((rep.get("t1_cli003") or {}).get("offenders", {}))[:1])
         rec("wsrc_snapshot_hits_pruned_green", True, problems)
+
+        # 负例（判据自证的核心）：快照目录**改名**——不叫 wsrc、叫别的名字，源树属性齐备 ⇒
+        # 仍必须照样剔掉。这条红了就说明剔除规则又退化成「字面目录名枚举」，换个目录名即复现。
+        rc, rep = judge("prune_renamed", corpus(
+            "prune_renamed",
+            {"R9/evidence_tree_7f3a/eng/tests/cli/astrocs_run_stale.json": t1_bad_man,
+             "R9/out/astrocs_run_ok.json": fixture},
+            snapshot_roots=("R9/evidence_tree_7f3a",)))
+        problems = []
+        if rc != 0:
+            problems.append("rc=%s want 0（改名后的源树复制体仍应被剔除）" % rc)
+        if rep.get("n_pruned_worktree_snapshot_hits") != 1:
+            problems.append("n_pruned_worktree_snapshot_hits=%r want 1（剔除规则依赖目录名）"
+                            % rep.get("n_pruned_worktree_snapshot_hits"))
+        if not any("SOURCE_COPY_ROOT" in (e or {}).get("why", "")
+                   for e in rep.get("pruned_reasons") or []):
+            problems.append("剔除理由未按属性登记: %s" % rep.get("pruned_reasons"))
+        rec("renamed_snapshot_dir_still_pruned", True, problems)
+
+        # 负例：目录名叫 wsrc 但**没有**任何源树属性 ⇒ 名字不构成豁免，必须照常判定
+        rc, rep = judge("nameonly", corpus(
+            "nameonly", {"R1/wsrc/eng/tests/cli/astrocs_run_bad.json": t1_bad_man}))
+        problems = []
+        if rc != 1:
+            problems.append("rc=%s want 1（目录名不构成豁免）" % rc)
+        if rep.get("n_pruned_worktree_snapshot_hits") != 0:
+            problems.append("n_pruned_worktree_snapshot_hits=%r want 0（无源树属性却被剔）"
+                            % rep.get("n_pruned_worktree_snapshot_hits"))
+        rec("snapshot_dir_name_alone_is_not_exemption", True, problems)
 
         # 负例: 同一份不合规 manifest 落在**产物**目录 ⇒ 必须红（剔除不是普适豁免）
         rc, rep = judge("product", corpus("product",

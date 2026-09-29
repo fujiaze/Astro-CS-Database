@@ -11,8 +11,11 @@
 
 判据（任一不满足 ⇒ 非零退出；全部机器可执行）：
   C0 锚存活: 产品清单与构建图存在且可解析；缺失以 ANCHOR_STALE 显式判红。
-  C1 登记面闭合: 产品清单里每个 kind != exe 的 unit（运行期 dlopen 载入的共享对象）
-     都能在构建图里定位到其 .so 产物；缺一判红。
+  C1 登记面闭合: 产品清单里每个**可载入共享对象** unit（kind ∈ LOADABLE_KINDS，即运行期
+     dlopen 载入的 ELF 共享对象）都能在构建图里定位到其 .so 产物；缺一判红。
+     非共享对象不参与 C1..C4：exe = 宿主可执行文件；manifest = JSON 清单数据文件（对 .json
+     做 dlopen 恒抛 OSError: invalid ELF header，那是判据口径错而非产品缺陷）。
+     白名单之外、且不属已知非共享对象集的 kind 一律 fail-closed 判红（口径未登记，不得静默跳过）。
   C2 闭包解析（静态判据）: 每个 .so 的**强未定义符号**必须能在其依赖闭包内解析。
      依赖闭包 = DT_NEEDED 传递闭包（ld.so 解析出的绝对路径）∪ 宿主基线库
      {libc, libm, libstdc++, libgcc_s, libdl, libpthread, librt, libatomic}。
@@ -55,6 +58,14 @@ BASELINE_HOST_LIBS = (
 # 弱未定义符号在 ELF 语义下解析为 0，不构成载入期失败。
 WEAK_TYPES = ("w", "v")
 TOOL_TIMEOUT = 60
+
+# 可载入共享对象的 kind **白名单**（C1..C4 全部面向 dlopen 载入的 ELF 共享对象）。
+# 旧口径只有「kind != exe」这一个否定式条件，于是 kind=manifest 的 JSON 清单数据文件也被
+# 送进 C4 动态确认，对非 ELF 输入恒红（DLOPEN_FAILED OSError: invalid ELF header）。
+LOADABLE_KINDS = ("runtime", "io", "module", "provider")
+# 已知**非**可载入共享对象的 kind：exe = 宿主可执行文件（本门不判其符号闭包）；
+# manifest = 产品清单数据文件（JSON 清单，其合同判据是字段/schema，不在 C1..C4 的面）。
+KNOWN_NONLOADABLE_KINDS = ("exe", "manifest")
 
 PASS, FAIL, INPUT = 0, 1, 2
 
@@ -195,10 +206,30 @@ def target_candidates(rel_path: str) -> list:
     return cands
 
 
+def select_loadable_units(units: list) -> tuple:
+    """按 kind **白名单**挑出可载入共享对象的 unit -> (选中列表, 未知 kind 列表)。
+
+    未知 kind = 既不在 LOADABLE_KINDS、也不在 KNOWN_NONLOADABLE_KINDS 的 kind（含缺 kind）。
+    它意味着「本门口径尚未覆盖这种产物形态」，静默跳过会让 C1..C4 悄悄少扫单元（非退化缺口），
+    故必须单列出来交调用方 fail-closed 判红，而不是并入白名单或忽略。
+    """
+    selected, unknown = [], []
+    for u in units:
+        kind = str(u.get("kind", ""))
+        if kind in LOADABLE_KINDS:
+            selected.append(u)
+        elif kind not in KNOWN_NONLOADABLE_KINDS and kind not in unknown:
+            unknown.append(kind or "<missing>")
+    return selected, unknown
+
+
 def collect_units(repo: pathlib.Path, build_dir: pathlib.Path) -> tuple:
-    """产品清单登记的非 exe unit -> [(unit_id, rel_path, 产物绝对路径 或 None)]。"""
+    """产品清单登记的可载入共享对象 unit -> [(unit_id, rel_path, 产物绝对路径 或 None)]。
+
+    返回 (units, 构建图 target 数, 未知 kind 列表)；未知 kind 由调用方 fail-closed 判红。
+    """
     product = json.loads((repo / PRODUCT_ANCHOR).read_text(encoding="utf-8"))
-    units = [u for u in product.get("units", []) if u.get("kind") != "exe"]
+    units, unknown_kinds = select_loadable_units(product.get("units", []))
     mapping = phony_targets(build_dir)
     out = []
     for unit in units:
@@ -211,7 +242,7 @@ def collect_units(repo: pathlib.Path, build_dir: pathlib.Path) -> tuple:
         if found is None and (build_dir / rel).is_file():
             found = str(build_dir / rel)
         out.append((unit.get("unit_id", "?"), rel, found))
-    return out, len(mapping)
+    return out, len(mapping), unknown_kinds
 
 
 def verdict_of(entry: dict) -> list:
@@ -257,12 +288,17 @@ def run_real(repo: pathlib.Path, build_dir: pathlib.Path, *, probe: bool,
     if not (build_dir / BUILD_GRAPH_FILE).is_file():
         print("ANCHOR_STALE: BUILD_GRAPH " + str(build_dir / BUILD_GRAPH_FILE), flush=True)
         return INPUT, {"error": "build_graph_missing", "build_dir": str(build_dir)}
-    units, graph_targets = collect_units(repo, build_dir)
+    units, graph_targets, unknown_kinds = collect_units(repo, build_dir)
+    if unknown_kinds:
+        print("[FAIL] PLUGIN-CLOSURE 产品清单出现未登记的 unit kind（本门口径未覆盖该产物形态，"
+              "不得静默跳过）: " + ",".join(unknown_kinds), flush=True)
+        return FAIL, {"error": "unknown_unit_kind", "unknown_kinds": unknown_kinds}
     if graph_targets == 0:
         print("ANCHOR_STALE: BUILD_GRAPH_EMPTY " + str(build_dir / BUILD_GRAPH_FILE), flush=True)
         return INPUT, {"error": "build_graph_empty", "build_dir": str(build_dir)}
     if not units:
-        print("[FAIL] PLUGIN-CLOSURE 产品清单未登记任何非 exe unit（空集不得当通过）", flush=True)
+        print("[FAIL] PLUGIN-CLOSURE 产品清单未登记任何可载入共享对象 unit（kind ∈ "
+              + "/".join(LOADABLE_KINDS) + "；空集不得当通过）", flush=True)
         return FAIL, {"error": "empty_unit_set"}
 
     results, skipped = [], []
@@ -355,6 +391,28 @@ def run_self_test() -> tuple:
              bool(broken["missing_needed"]) and "fx_dep" in broken["gaps"],
              "missing=" + str(broken["missing_needed"]))
         os.rename(str(work / "libfxdep.so.off"), str(work / "libfxdep.so"))
+
+        # C1..C4 的**口径**自证：按 kind 白名单选取，manifest/exe 不进动态确认面；
+        # 白名单外的 kind（含缺 kind）必须被点名判红，不得静默跳过。
+        sel, unknown = select_loadable_units([
+            {"unit_id": "EXE", "kind": "exe", "rel_path": "acsd"},
+            {"unit_id": "MAN", "kind": "manifest",
+             "rel_path": "providers/backends.manifest.json"},
+            {"unit_id": "MOD", "kind": "module", "rel_path": "modules/astrocs_noop.so"},
+            {"unit_id": "PROV", "kind": "provider", "rel_path": "providers/astrocs_cpu_avx2.so"},
+            {"unit_id": "RT", "kind": "runtime", "rel_path": "libacsd_runtime.so"},
+            {"unit_id": "IO", "kind": "io", "rel_path": "libacsd_io.so"},
+        ])
+        case("kind 白名单: manifest/exe 不进 C1..C4（.json 做 dlopen 恒 invalid ELF header）",
+             [u["unit_id"] for u in sel] == ["MOD", "PROV", "RT", "IO"] and unknown == [],
+             "selected=" + ",".join(u["unit_id"] for u in sel) + " unknown=" + str(unknown))
+        _, unknown_kind = select_loadable_units(
+            [{"unit_id": "X", "kind": "plugin", "rel_path": "p.so"}])
+        case("负例红: 白名单外的 kind 被点名（fail-closed，不得静默跳过）",
+             unknown_kind == ["plugin"], "unknown=" + str(unknown_kind))
+        _, unknown_nokind = select_loadable_units([{"unit_id": "Y", "rel_path": "no_kind.so"}])
+        case("负例红: 缺 kind 的 unit 被点名（fail-closed）",
+             unknown_nokind == ["<missing>"], "unknown=" + str(unknown_nokind))
 
     rc_empty, _ = run_real(REPO, pathlib.Path(tempfile.mkdtemp(prefix="pscc-nograph-")),
                            probe=False, quiet=True, extra_so=[])
