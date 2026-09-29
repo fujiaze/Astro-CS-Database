@@ -14,10 +14,9 @@ L0 项目入口        README.md / docs/engineering/RELEASE_STATUS.md / docs/KNO
                    docs/engineering/DEVELOPER_GUIDE.md / memory.md
 L1 科学规范        docs/science/*.md（定义/公式/变量/单位/假设/域/误差/ID；权威）
 L2 算法规范        docs/science/algorithms/*.md（输入/输出/前后置/不变量/伪代码/复杂度/oracle；权威）
-L3 数据与设计      docs/detail/UNIFIED_MODEL.md / docs/contracts/*.md / docs/interfaces/** /
-                   docs/api/*.md（CLI 协议与 Phase API）/ docs/architecture/*.md
-L4 CI 与插件       docs/ci/**（怎么查、哪些是门禁）/ docs/plugins/**（模块规范）
-L5 模块文档        docs/modules/**（module 页 + MODULE_MAP.yaml + registry/**）
+L3 数据与设计      docs/detail/**（详细设计正本）/ docs/contracts/*.md / docs/architecture/*.md
+L4 CI 与插件       docs/engineering/**（怎么查、哪些是门禁、正本与模块规范）
+L5 模块文档        docs/detail/registry/**（module 页 + MODULE_MAP.yaml + registry/**）
 历史（非权威）      docs/**/v6/**（V6 产品族冻结/设计档案，仍在活动索引）；其余历史由 git 承载
 ~~~
 
