@@ -165,21 +165,57 @@ add_executable(acsd app/main.cpp)
 target_link_libraries(acsd PRIVATE fx_algo)
 add_executable(fx_cli app/extra.cpp)
 """
+# 负例**刻意**指向的不存在路径：它是「被测对象」（锚失效），不是夹具义务，
+# 故不计入 _required_fixture_paths()（否则会把「期望缺失」当成「夹具缺失」）。
+_ABSENT_CMAKE = "sub/cmake/__no_such_cmake__.txt"
+_FIXTURE_ABSENT = frozenset((_ABSENT_CMAKE,))
+
+
+def _write(root, rel, text):
+    """夹具写一个文件：先建父目录，再写。
+
+    为什么不是「先 mkdir 一份目录清单、再逐个 write_text」：那份清单是判据读面的
+    **手写副本**。判据改一次指向（DOC 从迁移前的 docs/architecture/ 落到
+    docs/engineering/，fef78f90）、清单没跟着改，夹具就写到不存在的目录上，
+    2026-09-30 崩 1 = FileNotFoundError。让写文件自带 mkdir，这一类
+    「清单与读面脱节」在结构上就发生不了。
+    """
+    p = pathlib.Path(root) / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+def _anchor_dirs():
+    """夹具要建的目录：**从判据自己的路径常量派生**，不手写第二份。
+
+    evaluate() 的仓库内读面只有三个锚：DOC、cg.ENTRY_REGISTRY（生产入口登记表）、
+    根 CMakeLists.txt。后两个与 DOC 的父目录都在这里派生 ⇒ 判据改指向，夹具自动跟着走。
+    其余目录（app / lib/algo / sub/cmake）是夹具自己的源集与「非根图」证据，
+    与判据读面无关，可以手写。
+    """
+    out = {"app", "lib/algo", "sub/cmake"}
+    for rel in (DOC, cg.ENTRY_REGISTRY):
+        parent = pathlib.PurePosixPath(rel).parent.as_posix()
+        if parent not in (".", "", "/"):
+            out.add(parent)
+    return sorted(out)
 
 
 def _fixture(root, *, doc_rows=None, nonprod_rows=(), nonroot_rows=()):
     root = pathlib.Path(root)
-    for sub in ("app", "lib/algo", "eng/ci", "docs/architecture", "sub/cmake"):
+    for sub in _anchor_dirs():
         (root / sub).mkdir(parents=True, exist_ok=True)
-    (root / "CMakeLists.txt").write_text(_FIXTURE_CMAKE, encoding="utf-8")
-    (root / "app/main.cpp").write_text("int main(){return 0;}", encoding="utf-8")
-    (root / "app/extra.cpp").write_text("int main(){return 0;}", encoding="utf-8")
-    (root / "lib/algo/impl.cpp").write_text("int f(){return 1;}", encoding="utf-8")
-    (root / "lib/algo/tool.cpp").write_text("int g(){return 1;}", encoding="utf-8")
-    (root / "sub/cmake/CMakeLists.txt").write_text("add_executable(legacy_cli x.cpp)",
-                                                   encoding="utf-8")
-    (root / cg.ENTRY_REGISTRY).write_text(
-        json.dumps({"production_entry": "acsd", "entries": []}), encoding="utf-8")
+    _write(root, "CMakeLists.txt", _FIXTURE_CMAKE)
+    _write(root, "app/main.cpp", "int main(){return 0;}")
+    _write(root, "app/extra.cpp", "int main(){return 0;}")
+    _write(root, "lib/algo/impl.cpp", "int f(){return 1;}")
+    _write(root, "lib/algo/tool.cpp", "int g(){return 1;}")
+    # 非根图目标 legacy_cli 的定义处：根 CMakeLists 不 add_subdirectory(sub/cmake)，
+    # 故它不在根构建图内 —— C5「非根图面」用例的锚（迁移后这项夹具面不再空挂）。
+    _write(root, "sub/cmake/CMakeLists.txt", "add_executable(legacy_cli x.cpp)")
+    _write(root, cg.ENTRY_REGISTRY,
+           json.dumps({"production_entry": "acsd", "entries": []}))
     graph = cg.parse_cmake_graph(root)
     closure = cg.production_closure(graph, "acsd")
     if doc_rows is None:
@@ -201,8 +237,75 @@ def _fixture(root, *, doc_rows=None, nonprod_rows=(), nonroot_rows=()):
               "| target | cmakelists | 理由 |", "|---|---|---|"]
     lines += ["| " + " | ".join(r) + " |" for r in nonroot_rows]
     lines.append("<!-- BUILD-GRAPH-NONROOT:END -->")
-    (root / DOC).write_text(chr(10).join(lines) + chr(10), encoding="utf-8")
+    _write(root, DOC, chr(10).join(lines) + chr(10))
     return root
+
+
+# 用例表（**唯一一份**）：(name, kind, 夹具子目录, inject, want_red, probe)
+_CASES = (
+    ("pos_doc_matches_graph", gt.KIND_PROTECTIVE, "ok", {}, False, None),
+    ("neg_doc_target_wrong_kind", gt.KIND_DISCRIMINATING, "kind",
+     {"doc_rows": [["acsd", "add_library", "CMakeLists.txt", "1", "x"],
+                   ["fx_algo", "add_library", "lib/algo/CMakeLists.txt", "1", "y"]]},
+     True, lambda g: any(s.startswith("C3") for s in g)),
+    ("neg_doc_missing_production_target", gt.KIND_DISCRIMINATING, "missing",
+     {"doc_rows": [["acsd", "add_executable", "CMakeLists.txt", "2", "x"]]},
+     True, lambda g: any(s.startswith("C2") for s in g)),
+    ("neg_doc_extra_target", gt.KIND_DISCRIMINATING, "extra",
+     {"doc_rows": [["acsd", "add_executable", "CMakeLists.txt", "2", "x"],
+                   ["fx_tool", "add_library", "lib/algo/CMakeLists.txt", "1", "y"]]},
+     True, lambda g: any(s.startswith("C2") for s in g)),
+    ("neg_source_digest_drift", gt.KIND_DISCRIMINATING, "digest",
+     {"doc_rows": [["acsd", "add_executable", "CMakeLists.txt", "2", "0"]]},
+     True, lambda g: any(s.startswith("C3") for s in g)),
+    ("exemption_neg_production_marked_nonprod", gt.KIND_EXEMPTION, "nonprod_leak",
+     {"nonprod_rows": [["fx_algo", "宣称非生产"]]},
+     True, lambda g: any(s.startswith("C4") for s in g)),
+    ("exemption_pos_real_nonprod_declared", gt.KIND_PROTECTIVE, "nonprod_ok",
+     {"nonprod_rows": [["fx_tool", "非生产静态库"]]}, False, None),
+    # 非根图面两条：C5 两个分支原本一条没测（负例声明的 CMakeLists 夹具根本没建，
+    # 而 sub/cmake 这张夹具面自建立起就空挂，无人引用）。
+    ("pos_nonroot_real_nonroot_target", gt.KIND_PROTECTIVE, "nonroot_ok",
+     {"nonroot_rows": [["legacy_cli", "sub/cmake/CMakeLists.txt", "不由根图构建"]]},
+     False, None),
+    ("neg_nonroot_claims_target_already_in_graph", gt.KIND_DISCRIMINATING, "nonroot",
+     {"nonroot_rows": [["fx_tool", "CMakeLists.txt", "宣称不由根图构建"]]},
+     True, lambda g: any(s.startswith("C5") for s in g)),
+    ("neg_nonroot_cmakelists_anchor_missing", gt.KIND_DISCRIMINATING, "nonroot_anchor",
+     {"nonroot_rows": [["legacy_cli", _ABSENT_CMAKE, "指向不存在的 CMakeLists"]]},
+     True, lambda g: any(s.startswith("C5") for s in g)),
+)
+
+
+def _required_fixture_paths():
+    """夹具**必须**提供的文件 = 判据要读的锚 + 用例自己声明的 CMakeLists 锚。
+
+    目录清单随 DOC 走，这份清单也随 DOC 与 cg.ENTRY_REGISTRY 走 —— 两者同源，
+    夹具因此不可能再与判据读面脱节（崩 1 的形态）。用例声明的 CMakeLists 也计入：
+    负例指向一个夹具根本没建的文件时，本函数会让 fixture_layout_complete 判红，
+    逼用例改成自己真正想测的那一条（而不是顺手测到「锚失效」）。
+    """
+    req = {DOC, cg.ENTRY_REGISTRY, "CMakeLists.txt",
+           "app/main.cpp", "app/extra.cpp",
+           "lib/algo/impl.cpp", "lib/algo/tool.cpp",
+           "sub/cmake/CMakeLists.txt"}
+    for _name, _kind, _sub, inject, _red, _probe in _CASES:
+        for row in inject.get("nonroot_rows") or ():
+            if len(row) >= 2 and row[1] not in _FIXTURE_ABSENT:
+                req.add(row[1])
+    return sorted(req)
+
+
+def _layout_case(root):
+    """夹具布局完整性：判据要读的锚一个都不许缺。
+
+    夹具与判据脱节时本条**判红**并指名缺哪个（KIND_PROTECTIVE ⇒ 汇总为 rc=3 CRASH，
+    「门自身不可信」），而不是让后续用例崩出 traceback。
+    """
+    missing = [rel for rel in _required_fixture_paths()
+               if not (pathlib.Path(root) / rel).is_file()]
+    return gt.Case("fixture_layout_complete", not missing, gt.KIND_PROTECTIVE,
+                   "missing=%r" % (missing,))
 
 
 def _selftest():
@@ -227,42 +330,18 @@ def _selftest():
 
     with tempfile.TemporaryDirectory() as td:
         base = pathlib.Path(td)
-        case("pos_doc_matches_graph", gt.KIND_PROTECTIVE, base / "ok",
-             inject={}, want_red=False)
-        case("neg_doc_target_wrong_kind", gt.KIND_DISCRIMINATING, base / "kind",
-             inject={"doc_rows": [["acsd", "add_library", "CMakeLists.txt", "1", "x"],
-                                  ["fx_algo", "add_library", "lib/algo/CMakeLists.txt",
-                                   "1", "y"]]},
-             want_red=True, probe=lambda g: any(s.startswith("C3") for s in g))
-        case("neg_doc_missing_production_target", gt.KIND_DISCRIMINATING, base / "missing",
-             inject={"doc_rows": [["acsd", "add_executable", "CMakeLists.txt", "2", "x"]]},
-             want_red=True, probe=lambda g: any(s.startswith("C2") for s in g))
-        case("neg_doc_extra_target", gt.KIND_DISCRIMINATING, base / "extra",
-             inject={"doc_rows": [["acsd", "add_executable", "CMakeLists.txt", "2", "x"],
-                                  ["fx_tool", "add_library", "lib/algo/CMakeLists.txt",
-                                   "1", "y"]]},
-             want_red=True, probe=lambda g: any(s.startswith("C2") for s in g))
-        case("neg_source_digest_drift", gt.KIND_DISCRIMINATING, base / "digest",
-             inject={"doc_rows": [["acsd", "add_executable", "CMakeLists.txt", "2", "0"]]},
-             want_red=True, probe=lambda g: any(s.startswith("C3") for s in g))
-        case("exemption_neg_production_marked_nonprod", gt.KIND_EXEMPTION,
-             base / "nonprod_leak",
-             inject={"nonprod_rows": [["fx_algo", "宣称非生产"]]},
-             want_red=True, probe=lambda g: any(s.startswith("C4") for s in g))
-        case("exemption_pos_real_nonprod_declared", gt.KIND_PROTECTIVE, base / "nonprod_ok",
-             inject={"nonprod_rows": [["fx_tool", "非生产静态库"]]}, want_red=False)
-        case("neg_nonroot_claims_target_already_in_graph", gt.KIND_DISCRIMINATING,
-             base / "nonroot", inject={"nonroot_rows": [["fx_tool", "lib/algo/CMakeLists.txt",
-                                                         "宣称不由根图构建"]]},
-             want_red=True, probe=lambda g: any(s.startswith("C5") for s in g))
-        case("failclosed_doc_block_missing", gt.KIND_DISCRIMINATING, base / "noblock",
-             inject={}, want_red=True)
+        # 夹具布局体检先跑：它回答「夹具还对不对得上判据」，脱节时立刻判红并指名缺哪条。
+        _fixture(base / "layout")
+        cases.append(_layout_case(base / "layout"))
+        for name, kind, sub, inject, want_red, probe in _CASES:
+            case(name, kind, base / sub, inject=inject, want_red=want_red, probe=probe)
         # 去掉机器块 ⇒ 必须 fail-closed 判红（不是判绿）
-        (base / "noblock" / DOC).write_text("# build graph" + chr(10), encoding="utf-8")
+        _fixture(base / "noblock")
+        _write(base / "noblock", DOC, "# build graph" + chr(10))
         got = run(base / "noblock")
-        cases[-1] = gt.Case("failclosed_doc_block_missing",
-                            bool(got) and str(got).startswith("GateError"),
-                            gt.KIND_DISCRIMINATING, "got=%r" % (got,))
+        cases.append(gt.Case("failclosed_doc_block_missing",
+                             bool(got) and str(got).startswith("GateError"),
+                             gt.KIND_DISCRIMINATING, "got=%r" % (got,)))
     return gt.emit(cases, tool=CHECK_ID)
 
 

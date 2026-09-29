@@ -27,24 +27,47 @@ def _read(p):
     try: return open(p,encoding="utf-8",errors="ignore").read()
     except Exception: return None
 
+# 注入用例造不出被注对象时的记号：picks 里的这条让调用方**显式判红**，
+# 而不是让 compute 在 [0]/[1] 上越界崩出（IndexError 不是判据结论，
+# 也不是「没查到」——崩 2，2026-09-30）。
+INJECT_UNAVAILABLE="INJECT_UNAVAILABLE"
+
 def compute(repo,inject=None):
     map_ids,pages=load(repo)
     picks={}
+    def unbuildable(why): picks[INJECT_UNAVAILABLE]=why
     if inject=="drop-page-module":
-        k=sorted(pages)[0]; picks["page"]=k; pages[k]["module_id"]=None
+        ks=sorted(pages)
+        if not ks: unbuildable("%s 下 0 个 .md 模块页（pages=0）：drop-page-module 无可注对象" % REGDIR)
+        else:
+            k=ks[0]; picks["page"]=k; pages[k]["module_id"]=None
     elif inject=="unknown-page-module":
-        k=sorted(pages)[0]; picks["page"]=k; picks["id"]="astrocs.p9.nonexistent"; pages[k]["module_id"]=picks["id"]
+        ks=sorted(pages)
+        if not ks: unbuildable("%s 下 0 个 .md 模块页（pages=0）：unknown-page-module 无可注对象" % REGDIR)
+        else:
+            k=ks[0]; picks["page"]=k; picks["id"]="astrocs.p9.nonexistent"; pages[k]["module_id"]=picks["id"]
     elif inject=="dup-alias":
-        ks=sorted(map_ids)[:2]; picks["module"]=ks[0]; picks["module2"]=ks[1]; picks["alias"]="astrocs.phase9.dup"
-        for k in ks: map_ids[k]["aliases"].append(picks["alias"])
+        ks=sorted(map_ids)[:2]
+        if len(ks)<2: unbuildable("%s 只解析出 %d 个 module_id（<2）：dup-alias 需两个可注对象" % (MAP,len(map_ids)))
+        else:
+            picks["module"]=ks[0]; picks["module2"]=ks[1]; picks["alias"]="astrocs.phase9.dup"
+            for k in ks: map_ids[k]["aliases"].append(picks["alias"])
     elif inject=="alias-collides":
-        k=sorted(map_ids)[0]; picks["module"]=k; picks["alias"]=sorted(map_ids)[1]; map_ids[k]["aliases"].append(picks["alias"])
+        ks=sorted(map_ids)[:2]
+        if len(ks)<2: unbuildable("%s 只解析出 %d 个 module_id（<2）：alias-collides 需两个可注对象" % (MAP,len(map_ids)))
+        else:
+            picks["module"]=ks[0]; picks["alias"]=ks[1]; map_ids[ks[0]]["aliases"].append(picks["alias"])
     elif inject=="unmapped-module":
         picks["module"]="astrocs.p9.orphan"; map_ids[picks["module"]]={"aliases":[],"id":"orphan","entry":{"module_id":picks["module"]}}
     elif inject=="authority-missing":
         picks["module"]="astrocs.p9.fake"
         map_ids[picks["module"]]={"aliases":[],"id":"fake","entry":{"module_id":picks["module"],"added_by":"MOD-002","target_dir":"lib/algorithms/__no_such_dir__","module_yaml":"lib/algorithms/__no_such_dir__/module.yaml","authority_note":"fault-inject probe"}}
     errs=[]
+    if not map_ids:
+        # 判据的证据基为空 ⇒ 六类判据一条都跑不了、findings 恒为空 ⇒ 恒真门。
+        # 显式判红（不静默返回空）：类别名不与 baseline 的任何类同名，
+        # 故只在证据基真的为空时才出现（改后逐项对照：当前仓 findings 不变）。
+        errs.append("INPUT_EMPTY %s 解析出 0 个 module_id（判据无证据基，禁止空转判绿）" % MAP)
     for fn,p in pages.items():
         if p["class"]=="non_module": continue
         if not p["module_id"]: errs.append("PAGE_MISSING_MODULE_ID %s"%fn)
@@ -99,6 +122,12 @@ def main():
         ok=True
         for case,cls in EXPECT.items():
             errs,stat,picks=compute(a.root,case)
+            if INJECT_UNAVAILABLE in picks:
+                # 造不出被注对象 = 判据在这份输入上没有证据基 ⇒ 显式判红，
+                # 不跳过后当通过（跳过后当通过 = 恒绿自测）。
+                print("SELFTEST %-20s expect=%-30s rc=0 errors=0 named=0 UNBUILDABLE %s"%(case,cls,picks[INJECT_UNAVAILABLE]))
+                ok=False
+                continue
             hit=[e for e in errs if e.startswith(cls) and any(str(v) in e for v in picks.values())]
             active=bool(hit) and bool(errs)
             print("SELFTEST %-20s expect=%-30s rc=%d errors=%d named=%d %s"%(case,cls,1 if errs else 0,len(errs),len(hit),"ACTIVE" if active else "DEAD(空匹配)"))
