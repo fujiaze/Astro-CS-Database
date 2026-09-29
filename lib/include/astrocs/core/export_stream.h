@@ -120,12 +120,22 @@ class ExportStreamScheduler {
     std::vector<double> data;
   };
 
+  // worker 线程入口守卫（**仅前向声明**：完整定义在 export_stream.cpp 的类作用域，
+  // 故守卫类型不进入公开 API 面）。三个 loop 的**第一条语句**即构造它：
+  //   · 异常逃出 loop ⇒ 记错误痕迹 + signal_stop()，异常不再逃出线程入口
+  //     ⇒ 既不 std::terminate（abort），也不会「results_done_ 永不推进」把主线程挂死；
+  //   · 正常返回时它**不动任何状态**（正常路径无条件收尾会把成功的 run 误报成
+  //     cancelled —— 理由与展开见 export_stream.cpp 内该类注释）。
+  struct WorkerEntryGuard;
+
   void reader_loop();
   void compute_loop();
   void writer_loop();
   void writer_loop_raw();    // 内建通道（WCS 头 + properties + 行主序 double 像素）
   void writer_loop_sink();   // 生产通道（ExportSink：子块写进 FITS 数据区）
   void signal_stop();        // 失败/取消统一收尾（不发布、不留半成品）
+  // worker 入口异常的错误痕迹（守卫析构中调用 ⇒ noexcept；首个异常胜出）
+  void record_worker_failure(const char* entry) noexcept;
 
   ExportStreamConfig cfg_;
   ProbeSink probes_;
@@ -153,6 +163,16 @@ class ExportStreamScheduler {
   // 完成）后置位；error 供 run() 归因（不改 exit_code 语义）。
   bool sink_published_ = false;
   std::string sink_error_;
+  // worker 入口异常的错误痕迹（守卫写入，run() 归因时读；每次 run 重置）：
+  //   worker_failed_ —— 无条件置位，保证「本次 run 有异常」这一事实不丢
+  //                     （即使错误文本分配失败）；原子读，run() 归因链用。
+  //   worker_error_  —— 首个异常的阶段归因文本（"worker_exception: <loop 名>"），
+  //                     在 mu_ 之下写（守卫可能来自任意 worker 线程），
+  //                     run() 在 join 全部线程之后读（join 提供 happens-before）。
+  // 刻意**不**复用 sink_error_：那是 writer 线程的无锁 std::string，
+  // compute/reader 线程并发写它 = 数据竞争（UB）。
+  std::atomic<bool> worker_failed_{false};
+  std::string worker_error_;
 
   // 线程池形态（RT-004 架构约束，不得回退）：本调度器**不持有**线程池成员。
   // 每次 run() 在实现文件内建立 run 作用域的**有界**池（worker 数 = cfg_.workers，
