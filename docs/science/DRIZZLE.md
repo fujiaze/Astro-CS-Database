@@ -224,7 +224,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
   DrizzlePac Handbook §2.3.2（p.17）“the weights of the individual output pixels … are independent of the choice of p [pixfrac]”；
   SWarp `src/resample.c` 以 `A_out/A_in` 面积比保面亮度（无 drop/pixfrac 概念）。
   **禁用** **「drop 面积归一核 + 覆盖面积分母」的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ_j a_jp`）：它给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确（`DISP-DRZ-009` 负例判据）。canonical 口径 = 核 `w_jp=a_jp/A_drop,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `weight=overlap_area/drop_area`）配**面亮度归一分母** `N_p=Σ_j w_jp·A_pixel,j`（`acc.sumNorm`），回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取覆盖面积必判红"的负例控制）。
-- **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac，tag 3.11.0；文件位置 `src/cdrizzlebox.c` 的 `update_data()` / `do_kernel_square()`）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
 - **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207）——本模块按其平面三角形立体角式实现
   Sutherland–Hodgman 球面裁剪 + 扇形三角剖分（spherical_overlap.cpp）。

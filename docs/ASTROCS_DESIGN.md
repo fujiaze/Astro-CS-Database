@@ -220,7 +220,7 @@ I = O + N_e/g + N_read,      N_e = N_src + N_sky + N_dark
 - **问题**：全天 HEALPix 产品的每个输出像素都需要"源像素 drop 与该 leaf 的交叠面积"这一几何量。它必须在**全天任意位置**（含极点、face 角点、face 缝）都满足冻结的 FP64 通量闭合门，且逐像素成本不随天区位置变化。
 - **方法**：把 12 个 HEALPix 基面各自的等面积 chart 作为坐标域——每个面是单位正方形，Jacobian 恒为 π/3；leaf 在 chart 内是轴对齐正方形。drop 的球面足迹映射进 chart 后，交叠退化为二维轴对齐裁剪 + 鞋带公式，逐 leaf 面积以**绝对立体角口径**累加。
 - **创新边界（只有以下五条，其余均不主张）**：
-  1. **leaf 边界精确**：Górski et al. 2005 §5.3 明确 HEALPix 像素边界不是大圆（本模块逐点实测确认）；chart 内以直线段表达 leaf 边界是本方案的几何口径，生产 leaf 是 4 角大圆弦四边形——其相对亏缺的极限为 −9.968368384e-2、不随 nside 收缩，绝对亏缺按 0.1043885/N² 衰减；完整亏缺表与适用域见 `实验/healpix-polar/`。
+  1. **leaf 边界精确**：Górski et al. 2005 §5.3 明确 HEALPix 像素边界不是大圆（本模块逐点实测确认）；chart 内以直线段表达 leaf 边界是本方案的几何口径，生产 leaf 是 4 角大圆弦四边形——其相对亏缺**不随 nside 收缩**、绝对亏缺**随 nside 衰减**（本节不复制数值）；亏缺的**闭式、系数取值与适用域**见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`，完整亏缺表与逐档实测见 `实验/healpix-polar/`。
   2. **绝对立体角口径下的构造闭合**：Σ_p a_jp = (π/3)·|D ∩ face| 由裁剪与鞋带公式的代数结构直接成立，不依赖数值逼近或迭代收敛。
   3. **每候选零超越函数、逐像素成本与天区位置无关**：候选判定只用叉积/点积与比较，无 atan2/acos/asin 等超越函数；单 face 内的逐像素成本不随赤纬或 face 内位置变化。
   4. **首次落地到天文 HEALPix drizzle 场景**：把该分配方式用于源像素 drop × NESTED leaf 的权重累加与 weight/variance 链（同类几何在地球科学栅格重采样中已有应用）。
@@ -436,7 +436,7 @@ flowchart TD
 ```
 
 - 三种 SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。
-- 实际 SNR 由所选口径**直接给出**：`dense` 用 Phase1 稠密面、`sparse_reconstruct` 用稀疏绝对 SNR 控制点重建、`frame_reconstruct` 用帧级标量；三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 `w = 1/σ² = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权；反方差（逆方差）最优加权的经典文献锚为 Aitken 1935（卷期页与 DOI 10.1017/S0370164600014346 经 INSPIRE 核验；出版年 INSPIRE 记 1936——卷 55 跨 1935–36，1936 通行注同文）。
+- 实际 SNR 由所选口径**直接给出**：`dense` 用 Phase1 稠密面、`sparse_reconstruct` 用稀疏绝对 SNR 控制点重建、`frame_reconstruct` 用帧级标量；三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 `w = 1/σ² = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权；反方差（逆方差）最优加权的经典文献锚为 Aitken 1935（卷期页与 DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。 经 INSPIRE 核验；出版年 INSPIRE 记 1936——卷 55 跨 1935–36，1936 通行注同文）。
 - 拟合权重与堆叠权重是两个量：拟合用 `1/σ²`（可加 Huber），堆叠用残差制造者方差并含拟合参数协方差，公式见 `docs/science/CONTROL_WEIGHT_SNR.md`。
 - **稀疏重建算子按冻结词表显式声明**（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5。
 - **三种口径没有全局最优，只有适用域**：地面视宁度受限且噪声场平滑可分辨时，稀疏重建精度最好；高分辨率、高对比结构（如 HST 数据）上帧级口径最好——**该结论与重建算子绑定**（`..._mesh_median_v1` 下稀疏反而更优）；稠密口径存储代价高。完整适用域图谱由实验单元二给出，作为默认值与文档口径的依据。

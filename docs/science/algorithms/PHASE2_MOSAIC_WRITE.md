@@ -49,7 +49,7 @@
 
 - **target_order 决议与分辨率上限（插值不提升分辨率）**: `target_order =
   cfg.target_order ≥ 0 ? cfg.target_order : cov.target_order`（:203-204）；
-  `target_order > cov.target_order`（高于输入最高 order）→ 显式拒绝 rc=3，
+  `target_order > cov.target_order`（高于**最低输入 order**）→ 显式拒绝 rc=3，
   log "target_order 高于输入最高 order，禁止插值伪装分辨率"（:205-208）。
 - **输入哈希链**（ALG-P2-HIPS-001 专有语义）:
   - `fid_i = p2_frame_id(path_i)`（:222，缓存 :219-229）；`fid_i == 0` → rc=4
@@ -198,7 +198,7 @@ main(stage2.json, CLI overrides):
   日志 <output_dir>/logs/phase2/stage2.log           # :168-173
   # ALG-P2-HIPS-001 编排生命周期
   coverage 两阶段（容量+填充, p2_coverage_build）失败 → rc=3   # :189-202
-  target_order 决议；高于输入最高 order → rc=3（禁伪装分辨率）  # :203-208
+  target_order 决议；高于最低输入 order → rc=3（禁伪装分辨率）  # :203-208
   for f: fid=p2_frame_id(path); fid==0 → rc=4;        # :221-229
         manifest_entry = fid|filter=;order=;frame=;    # :230-236
   sort by fid → canonical payload → input_manifest_hash=sha256_hex  # :238-245
@@ -334,7 +334,7 @@ main(stage2.json, CLI overrides):
 - **no root science formula change**: w_UPM（PHASE2_UPM.md §5）、signal/sup_max
   （INTEGRATION.md §5）、rejection 判据（REJECTION.md SCI-REJ-001..008）
   一律不改；本模块实现锚只登记 stage2 侧编排语义。
-- **分辨率上限 = 输入最高 order**: target_order ≤ 输入最高 order，违者 rc=3
+- **分辨率上限 = 最低输入 order**: target_order ≤ 输入最高 order，违者 rc=3
   （:205-208）。
 - **输出确定性**: 同输入同 config → 同 mosaic（固定 tile 序 :659、固定
   chunk 划分 :795-799、OMP 定序归并 :1310-1317、单线程 writer 调用

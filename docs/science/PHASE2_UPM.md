@@ -348,8 +348,8 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 ## 14a 参考文献与参考代码库（含许可证）
 
-- **多帧相对光度/天体联合定标**：SCAMP（GPL-3.0，https://github.com/astromatic/scamp；Bertin, E. 2006, ASP Conf. Ser. 351, 112，标题经 aspbooks.org 逐字核验）；Padmanabhan, N. et al. 2008, ApJ 674, 1217（SDSS 重叠观测联合相对定标、gauge/连通性）。
-- **马赛克逐帧背景扣除/coadd 权重**：SWarp（GPL-3.0，https://github.com/astromatic/swarp；Bertin, E. et al. 2002, ASP Conf. Ser. 281, 228）；Gruen et al. 2014, PASP 126, 158。
+- **多帧相对光度/天体联合定标**：SCAMP（GPL-3.0，https://github.com/astromatic/scamp，tag v2.14.0 = 控制节点实测（`scamp -v` 自述 "SCAMP version 2.14.0"）；文件位置 `src/photsolve.c`；Bertin, E. 2006, ASP Conf. Ser. 351, 112，标题经 aspbooks.org 逐字核验）；Padmanabhan, N. et al. 2008, ApJ 674, 1217（SDSS 重叠观测联合相对定标、gauge/连通性）。
+- **马赛克逐帧背景扣除/coadd 权重**：SWarp（GPL-3.0，https://github.com/astromatic/swarp，tag 2.41.5 = 控制节点实测（`dpkg -s swarp` → Source `swarp (2.41.5-1)`）；文件位置 `src/resample.c`、`src/coadd.c`、`src/back.c`；Bertin, E. et al. 2002, ASP Conf. Ser. 281, 228）；Gruen et al. 2014, PASP 126, 158。
 - **Huber IRLS**：Huber, P. J. 1964, Ann. Math. Statist. 35, 73（DOI 10.1214/aoms/1177703732）；Holland, P. W. & Welsch, R. E. 1977, Communications in Statistics A6, 813（DOI 10.1080/03610927708827533，δ=1.345 的 IRLS 出处）；Huber & Ronchetti 2009, Robust Statistics, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
 - **弱零锚（弱 Tikhonov/岭正则）**：Tikhonov, A. N. 1963, Soviet Math. Dokl. 4, 1035（**核验状态**：文章级，卷页需网络核验）。
 - **var(median)≈πσ²/(2N)**：正态样本中位数渐近方差的教科书结论（Hoaglin et al. 1983；Kendall & Stuart, The Advanced Theory of Statistics Vol.1）；UPMW-004 实证 ratio 0.997。

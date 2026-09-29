@@ -186,20 +186,20 @@ flux = 2πA·sxsy/3   (整平面延伸假设；对任意 sx,sy,θ 成立，见�
 - **β=4 解析通量 flux=2πA·sxsy/3 与 FWHM/σ=1.230310**：**Project-defined 解析积分**（对 (1+Q)^(−4) 的整平面积分）；建议用独立符号/数值积分（SciPy quad 或 sympy，BSD-3-Clause）复算，不作文献引用。
 - **LM 阻尼最小二乘**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105。实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - **10–90% trimmed mean → σ 常数 0.7316727929211932**：**Project-defined 高斯分位积分**（可用 scipy.stats.truncnorm 复算）；**注意**该常数是 trimmed mean 的标准化因子，与 MAD 常数 1.482602218505602 **不可互换**（NOISE_MODEL §9）。
-- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>）；photutils（BSD-3-Clause）MoffatPSF/GaussianPSF。**差异**：Astro Celestial Sphere Database（ACSD） 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
+- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>）；photutils（BSD-3-Clause，tag 3.0.0）MoffatPSF/GaussianPSF（文件位置 `photutils/psf/functional_models.py`）。**差异**：Astro Celestial Sphere Database（ACSD） 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
 - **拥挤场 PSF 拟合测光**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）。
 - **q_psf=A/residual_scale**：**Project-defined 质量代理**，非 SNR、非 Fisher information（UNIFIED_SCIENCE_MODEL §3/§11；SCI-PSF §1 非目标）。
 
-参考代码库（含许可证；仅对照不复制 GPL 代码）：
-- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
-- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
-- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
-- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
-- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
-- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
-- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
-- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
-- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+参考代码库（含许可证；仅对照不复制 GPL 代码）。**三腿（R-16）= 仓库 + 版本 + 文件位置**；版本与文件位置取自上游仓库自身的 tag/commit 树实测（`git ls-tree` 逐路径存在性 + `git show` 逐字符号命中），控制节点实测版本另注：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy，7.0.1 = 控制节点实测，`eng/packaging/dependency-lock.json` 登记）：WCS/投影、统计、单位；文件位置 `astropy/wcs/wcs.py`（`class WCS`）/ `astropy/stats/funcs.py` / `astropy/units/quantity.py`。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils，tag 3.0.0）：检测/质心、背景估计、PSF 与孔径测光；文件位置 `photutils/background/core.py`（`SExtractorBackground`）/ `photutils/detection/daofinder.py`（`DAOStarFinder`）/ `photutils/detection/irafstarfinder.py`（`IRAFStarFinder`）/ `photutils/psf/photometry.py`。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor，tag 2.8.6）：背景网格、检测/去混叠、FLUXERR；文件位置 `src/back.c`（`makeback`）/ `src/scan.c` / `src/extract.c` / `src/photom.c` / `src/analyse.c`。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc，tag 2.5.1）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr，commit `28faec7d`）：母版约定与 ISR 顺序；文件位置 `ccdproc/core.py`（`subtract_dark`/`flat_correct`）、`python/lsst/ip/isr/isrFunctions.py`（`biasCorrection`/`darkCorrection`/`flatCorrection`）、`python/lsst/ip/isr/isrTask.py`（`class IsrTaskConfig`）。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp，tag 2.41.5）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp，tag v2.14.0）：马赛克背景与相对定标；文件位置 `src/resample.c`、`src/coadd.c`、`src/back.c`（SWarp）、`src/photsolve.c`（SCAMP）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac，tag 3.11.0）：drizzle 与相关噪声；文件位置 `src/cdrizzlebox.c`（`update_data()` / `do_kernel_square()`）。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix，2.0.1 = 控制节点实测）/ healpy（GPL-2.0，https://github.com/healpy/healpy，tag 1.20.0）：HEALPix 几何；文件位置 `astropy_healpix/core.py`、`astropy_healpix/healpy.py`（`ang2pix`）（astropy-healpix）、`lib/healpy/pixelfunc.py`（`ang2pix`）（healpy）。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject，tag v0.21.0）：WCS 重采样与方差传播；文件位置 `reproject/interpolation/core.py`、`reproject/adaptive/core.py`、`reproject/common.py`。
+- NumPy（BSD-3-Clause，2.2.4 = 控制节点实测，`eng/packaging/dependency-lock.json` 登记）/ SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
 
 ## 15 Acceptance
 
