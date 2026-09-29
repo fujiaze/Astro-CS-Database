@@ -57,7 +57,9 @@ UPSTREAM_RE = re.compile(
     r"上游\s*[:：]\s*([^\n|]{0,160}?\.(?:md|yaml|json|py|csv))\s*"
     r"(?:[^\n|]{0,40}?)?§\s*([0-9]+(?:\.[0-9]+)*)")
 UPSTREAM_MENTION_RE = re.compile(r"上游\s*[:：]")
-SEC_RE = re.compile(r"§\s*([0-9]+(?:\.[0-9]+)*)")
+# 注：此处原先有一份独立的「节号」正则（SEC_RE），但**它从不被读取** ——
+# 真正生效的是上面 UPSTREAM_RE 内联的同一段模式（取其第 2 个分组）。
+# 保留它会让人以为改那一处能调整节号识别，实际不会，故删除。
 PATHTOK_RE = re.compile(
     r"(?<![A-Za-z0-9_])((?:[\w.-]+/)+[\w.-]+\.(?:h|hpp|cpp|cc|cxx|py|json|yaml|yml|cmake|txt))")
 QUAL_RE = re.compile(r"\b([A-Za-z_][\w]*(?:::[A-Za-z_~][\w]*)+)\b")
