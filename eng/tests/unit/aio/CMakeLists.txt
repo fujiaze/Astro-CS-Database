@@ -22,7 +22,16 @@ add_subdirectory("${AIO_PRODUCT_IO_LIB_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/produc
 
 add_executable(aio_test aio_test.cpp)
 target_link_libraries(aio_test PRIVATE astrocs_product_io)
-target_link_libraries(aio_test PRIVATE astrocs_platform_math)
+# 平台系统库面: 引用根 CMakeLists 唯一判定点声明的共用件 astrocs_platform_math。
+# 独立 configure 本文件 (AIO_PRODUCT_IO_STANDALONE, 例如 mutations/*.py 的变异
+# harness 用 `cmake -S eng/tests/unit/aio -B build` 重编) 时根入口不存在 ⇒
+# 共用件未定义, 此时若仍写 astrocs_platform_math, CMake 会把它当**普通库名**
+# 展开成 -lastrocs_platform_math ⇒ 链接期 ld: cannot find -lastrocs_platform_math。
+# 故按「目标是否存在」守卫, 不按平台守卫 —— 平台判断仍只在共用件内部一处。
+# 与 eng/cmake/cfitsio_platform.cmake 同族口径 (IF(TARGET astrocs_platform_math))。
+if(TARGET astrocs_platform_math)
+  target_link_libraries(aio_test PRIVATE astrocs_platform_math)
+endif()
 
 if(AIO_PRODUCT_IO_STANDALONE)
   enable_testing()
