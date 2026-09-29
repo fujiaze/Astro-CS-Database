@@ -10,16 +10,19 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <sstream>   // WIN-PORT 批次三 (R-10): read_file() 用 std::ostringstream;
+                     // libstdc++ 经 <fstream> 间接带入, MSVC 不带 ⇒ C2079 + C2297
 #include <string>
 #include <vector>
-
-#ifdef _WIN32
-// WIN-PORT: MSVC 无 <unistd.h>；getpid() → CRT _getpid()（进程唯一名用）。
-#include <process.h>
-#define getpid() _getpid()
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #endif
+
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * dlopen/dlsym/dlerror、setenv/unsetenv、popen/pclose、目录遍历与文件属性等只在类 UNIX
+ * 存在的接口经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物；本 TU 不再写
+ * 平台分支。无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
+#include "../support/astrocs_test_posix_compat.h"
 
 #include <nlohmann/json.hpp>
 

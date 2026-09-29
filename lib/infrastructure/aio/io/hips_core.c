@@ -461,7 +461,11 @@ static int hips_parse_moc(acs_hips_handle_v1 h, char* err, size_t cap) {
   c = moc_find(cards, ncards, "XTENSION");
   if (c && !hips_card_val_eq("BINTABLE", c->value)) { rc = ACS_HIPS_OK; goto done; }
   /* 数据区起点 = 当前文件位置 (读 header 已停在块边界) */
-  data_start = (off_t)hips_ftello(f);
+  /* WIN-PORT 批次三 (R-9): `off_t` 是 POSIX 类型, MSVC 无该拼写 (C2065) ⇒ 其后的
+   * `_ftelli64` 被当成标识符续读 (C2146)。data_start 本就声明为 int64_t, 且两侧的
+   * hips_ftello 都返回 64 位量 (_ftelli64 → __int64 / ftello → off_t@LP64) ⇒ 直接以
+   * int64_t 显式收窄为同一拼写, 两平台同一个转换, 不再依赖平台类型名。 */
+  data_start = (int64_t)hips_ftello(f);
   if (data_start < 0) { rc = ACS_HIPS_OK; goto done; }
 
   /* --- 解析扩展头字段 --- */

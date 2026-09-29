@@ -165,7 +165,10 @@ static void test_concurrent_begin_unique_tmp() {
   std::vector<std::string> got(static_cast<size_t>(kThreads * kPer));
   std::vector<std::thread> pool;
   for (int t = 0; t < kThreads; ++t) {
-    pool.emplace_back([&got, t] {
+    // WIN-PORT 批次三 (R-8): `kPer` 是局部 constexpr, 按 C++17 [basic.def.odr]
+    // 常量表达式中的使用不算 odr-use ⇒ libstdc++ 无需捕获; MSVC 仍以
+    // 「未指定默认捕获模式」报 C3493 ⇒ 显式按值捕获(常量副本, 循环上界逐位相同)。
+    pool.emplace_back([&got, t, kPer] {
       for (int i = 0; i < kPer; ++i) {
         ArtifactTransaction tx;
         auto b = tx.begin(tmp_dir() + "/acsd_io_test_seq.bin");

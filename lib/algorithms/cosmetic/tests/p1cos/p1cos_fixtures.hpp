@@ -105,14 +105,18 @@ inline FixCosB fix_cos_b_spike_field(std::uint64_t seed, std::size_t w, std::siz
         const std::size_t y = 3 + static_cast<std::size_t>(uniform01(st) * static_cast<double>(h - 6));
         const std::size_t idx = y * w + x;
         if (used[idx]) continue;
-        bool far = true;
+        // WIN-PORT 批次三 (R-6): 变量名不得取 `far`/`near` —— MSVC/Windows SDK 头链
+        // 把 `far` 定义为**空宏**(16 位段寻址遗留), `bool far = true;` 展开成
+        // `bool = true;` ⇒ C2513 (+后续 C2059)。改名为平台无冲突的 `isolated`,
+        // 判定语义逐字不变(两平台同一份代码, 无 #ifdef / 无 #undef)。
+        bool isolated = true;
         for (const std::size_t s : fx.spikes) {
             const std::size_t sx = s % w, sy = s / w;
             std::size_t dx = (sx > x) ? sx - x : x - sx;
             std::size_t dy = (sy > y) ? sy - y : y - sy;
-            if (dx < 3 && dy < 3) { far = false; break; }  // 5×5 邻域重叠
+            if (dx < 3 && dy < 3) { isolated = false; break; }  // 5×5 邻域重叠
         }
-        if (!far) continue;
+        if (!isolated) continue;
         used[idx] = 1;
         fx.spikes.push_back(idx);
     }

@@ -25,13 +25,29 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#ifndef _WIN32
+/* FINAL-07 WIN-PORT 批次二: 兼容头在类 UNIX 侧**整头为空** (只有 ASTROCS_TEST_HAS_*
+ * 能力标记), 不再代各 TU 包含系统头 ⇒ POSIX 头由本 TU 自留 (Windows 侧由该头提供
+ * DIR/opendir/readdir/closedir/mkdir/unlink 等价物)。 */
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
+#endif
 
 #include <pthread.h>
-#include <unistd.h>
 #include <zlib.h>
+
+/* WIN-PORT 批次三 (R-11): 目录遍历/文件属性面不再由本 TU 各写一套平台分支, 改走
+ * FINAL-07 WIN-PORT 批次二收敛出的**唯一判定点** eng/tests/support/astrocs_test_posix_compat.h:
+ * 它在 Windows 侧自足 (自己包含所需 CRT/Win32 头), 并在两侧提供同一组调用名; 类 UNIX 侧
+ * 整头为空 ⇒ 本 TU 自留原有 POSIX 头 (下方 #ifndef _WIN32 块, 包含顺序与改动前一致) ——
+ * opendir/readdir/closedir/struct dirent/DIR、mkdir(path, mode)、unlink。类 UNIX 侧
+ * 只做与改动前完全相同的系统头包含 (Linux 编译面零 delta); Windows 侧给 CRT/Win32
+ * 的语义等价物 (含「空目录 opendir 必须成功」这一 POSIX 语义) ⇒ 不再有
+ * C1083 "无法打开包括文件: dirent.h"。无等价语义的能力见该头文末「无等价物清单」。
+ * 位置 = 该头使用约定 #2: 放在所有其它头之后。 */
+#include "../../../../eng/tests/support/astrocs_test_posix_compat.h"
 
 /* ---------- 最小 XPSD fixture 生成 (Equirectangular, NOSP, zlib) ---------- */
 
