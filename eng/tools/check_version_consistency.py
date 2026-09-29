@@ -107,6 +107,11 @@ STANDARD_NAME_CLAUSE_RE = re.compile(
     r"(?:Paper\s+(?:I|II|III|IV|V)|HiPS|SIP|IVOA\s+HiPS|HEALPix|Drizzle|"
     r"FITS\s+(?:WCS\s+)?Standard)\s+(\d+(?:\.\d+){2,})(?![\d.])")
 
+# 外部文档的章节号：只认**紧贴节标记**且**至少两段数字**的形态（Section 5.4.1 / Chapter 3.2），
+# 避免把「Section 5 里的 3.11.0 版」这类跨语义组合误当章节号。
+SECTION_NUMBER_RE = re.compile(r"(?:Section|Chapter|Sec\.)\s+(\d+(?:\.\d+)+)")
+
+
 def clause_number_spans(line):
     """行内标准条款号的字符下标区段 [(start, end), ...] (含 § 锚点及其枚举续项)。"""
     spans = []
@@ -124,6 +129,13 @@ def clause_number_spans(line):
         spans.append((m.start(), end))
         pos = end
     spans.extend(m.span(1) for m in STANDARD_NAME_CLAUSE_RE.finditer(line))
+    # 外部文档的**章节号**同样不是产品版本：正本逐字引用上游文档时写
+    # 「as seen in Section 5.4.1」（docs/science/PHOTOMETRY.md:299）。
+    # 收窄约束：只认**紧贴节标记、且至少两段数字**者；同行其它位置的真实
+    # 版本字面量不在 span 内，照旧被抓（正控见 test_version_consistency.py
+    # 的 TestSectionNumberNotAVersion）。
+    for m in SECTION_NUMBER_RE.finditer(line):
+        spans.append((m.start(1), m.end(1)))
     return spans
 
 
