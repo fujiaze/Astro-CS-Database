@@ -788,12 +788,25 @@ target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common
 # 语义（backend_loader 的唯一基准）。原实现清单找在 install_dir 根、DSO 装在 providers/
 # ⇒ 目录口径两套；本处统一到 providers/（构建树与安装树同构）。
 # PREFIX "" 去 lib 前缀: providers/astrocs_cpu_avx2.so（Windows: astrocs_cpu_avx2.dll）。
+# 多配置生成器（VS/Xcode）会在通用输出目录之后自动追加 /<CONFIG>，而清单生成器与
+# 运行期加载器都按扁平 providers/ 取裸文件名（见上"清单 + 裸文件名同目录"口径）
+# ⇒ 仅设通用属性不够，必须逐档钉死；否则非默认配置下 DSO 落进子目录、清单找不到它。
+# 单一出处：两族 provider 共用本函数，避免各自再写一份配置判断。
+function(acs_pin_provider_output_dir tgt dir)
+  set_target_properties(${tgt} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${dir}"
+    RUNTIME_OUTPUT_DIRECTORY "${dir}")
+  foreach(_acs_cfg DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set_target_properties(${tgt} PROPERTIES
+      LIBRARY_OUTPUT_DIRECTORY_${_acs_cfg} "${dir}"
+      RUNTIME_OUTPUT_DIRECTORY_${_acs_cfg} "${dir}")
+  endforeach()
+endfunction()
+
 set(ASTROCS_ISA_PROVIDER_DIR "${CMAKE_CURRENT_BINARY_DIR}/providers")
 foreach(_acs_isa_tgt astrocs_cpu_avx2 astrocs_cpu_avx512)
-  set_target_properties(${_acs_isa_tgt} PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
-    PREFIX "")
+  acs_pin_provider_output_dir(${_acs_isa_tgt} "${ASTROCS_ISA_PROVIDER_DIR}")
+  set_target_properties(${_acs_isa_tgt} PROPERTIES PREFIX "")
   if(MSVC)
     # provider ABI 入口 (astrocs_backend_get_api_v1) 是 C 链接符号，须显式导出；
     # 与 astrocs_cpu_baseline 同一处置。
@@ -859,10 +872,8 @@ foreach(_acs_cp_variant baseline avx2 avx512)
     "${ASTROCS_CPU_PROVIDER_SRC_DIR}/common/include"
     "${ASTROCS_CPU_PROVIDER_SRC_DIR}/${_acs_cp_variant}/include"
     "${ASTROCS_CPU_PROVIDER_SRC_DIR}/baseline/include")
-  set_target_properties(astrocs_cpuprov_${_acs_cp_variant} PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY "${ASTROCS_ISA_PROVIDER_DIR}"
-    PREFIX "")
+  acs_pin_provider_output_dir(astrocs_cpuprov_${_acs_cp_variant} "${ASTROCS_ISA_PROVIDER_DIR}")
+  set_target_properties(astrocs_cpuprov_${_acs_cp_variant} PROPERTIES PREFIX "")
   if(MSVC)
     set_property(TARGET astrocs_cpuprov_${_acs_cp_variant} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
   endif()
