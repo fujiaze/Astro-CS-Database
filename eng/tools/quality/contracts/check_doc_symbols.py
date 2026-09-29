@@ -12,7 +12,16 @@ import shutil, subprocess, tempfile
 
 # 权威文档域（判定面 = 这些目录下的 *.md）。改判定面必须显式改本常量：
 # 目录缺失或一份文档都没扫到 ⇒ 本门没有判据对象，此时判 PASS 就是恒真门。
-AUTH_DIRS = ("science", "algorithms", "architecture", "contracts", "modules", "design")
+#
+# FINAL-07（lead-01/auth-dirs）：判定面随文档迁移改指**新三集**。
+# 旧值 ("science","algorithms","architecture","contracts","modules","design") 是**迁移前**
+# 的目录名 —— 迁移后除 science 外**五个目录的 .md 数全为 0**（实测：algorithms 0 / architecture 0 /
+# contracts 0 / modules 0 / design 0，跟踪件分别 3/6/4/2/0 且**无一是 .md**）。
+# 本门扫的判据对象是 **.md**，故旧值实际只扫到 docs/science 的 52 篇（+2 篇 extras 共 54 份，
+# 去重 53 份），而 docs/ 下 .md 共 253 篇 ⇒ **约 196 篇文档从未受本门判过**，
+# 即「门绿」与「文档合规」之间存在约 78% 的盲区（恒真门形态）。
+# 新值 = 迁移后的三个一级目录，判定面 249 篇（去重）/253 份（含 extras 重复）。
+AUTH_DIRS = ("science", "engineering", "detail")
 
 _HEADER_CORPUS = {}
 
@@ -64,8 +73,28 @@ def _doc_stem_index(repo):
     return {p.stem for p in repo.glob("docs/**/*.md")}
 
 
+_DOC_SUFFIXES = (".md", ".markdown")
+
+
 def _stem_resolves(token, stems):
-    return any(token == s or s.endswith("_" + token) for s in stems)
+    """token 能否解析到 docs/ 的某个文档词干。
+
+    FINAL-07（lead-01/auth-dirs）补齐：文档引用**带扩展名**时（`gaia_xpsd_client.md`）
+    原实现只拿**无扩展名**词干集（`p.stem`）比对 ⇒ 永远匹配不上；该 token 又因「无 `/`」
+    进不了上面的文件引用分支（该分支要求 `"/" in token and "." in token`）⇒ 一篇
+    **真实存在**的兄弟文档被判 DOC-BAD-SYMBOL（实测 docs/detail/README.md:45 两例，
+    两篇均 test -e EXISTS 且 git ls-files 各 1 行）。
+
+    这**不是豁免**：剥扩展名后仍必须在词干集里精确命中，指向不存在文档的 `FOO.md`
+    照旧判红。属把实现补齐到 doc_symbol_namespaces.json auto_domains[0] 的自述
+    （「docs/**/*.md 的词干」），判据不放宽。
+    """
+    cands = [token]
+    for suf in _DOC_SUFFIXES:
+        if token.endswith(suf):
+            cands.append(token[: -len(suf)])
+            break
+    return any(any(c == s or s.endswith("_" + c) for s in stems) for c in cands)
 
 
 def _glossary_tokens(repo):
@@ -302,12 +331,21 @@ def main():
                          "symbol": ",".join(missing_domains) or "docs_scanned=0",
                          "observed": ("权威域目录缺失: " + ",".join(missing_domains))
                                      if missing_domains else "扫描面为 0 份文档",
-                         "expected": "六个权威域目录齐备，且至少扫到 1 份 md"})
+                         # 域个数从 AUTH_DIRS **导出**，不写死 —— 旧实现写死「六个」，
+                         # 迁移后 AUTH_DIRS 已是三集，写死会把判词说成与判定面不符的话。
+                         "expected": "AUTH_DIRS 的 %d 个权威域目录齐备，且至少扫到 1 份 md"
+                                     % len(AUTH_DIRS)})
         status = "FAIL"
     # Also include top-level docs that are authoritative: TRACEABILITY, PUBLIC_API etc handled via contracts
     # Only add if exists (fixtures may not have)
+    #
+    # FINAL-07（lead-01/auth-dirs）去重：迁移后 science 与 engineering **都在** AUTH_DIRS 内，
+    # 这两篇早被上面的 rglob 收进扫描面，再 append 等于**同一份文档被扫两遍** ——
+    # 后果是 docs_scanned 虚高、同一 (file,line,symbol) 的 finding **成对重复**。
+    # 去重**不缩小判定面**（去重前后是同一集合的不同元素），只消除重复计数。
+    # 按解析后真实路径去重，避免同一文件经不同拼写混入两次。
     for extra in [repo / "docs/engineering/PUBLIC_API.md", repo / "docs/science/DATA_SEMANTICS.md"]:
-        if extra.exists():
+        if extra.exists() and extra.resolve() not in {p.resolve() for p in docs}:
             docs.append(extra)
     # Extract backtick symbols like `p2_integrate_pixel` or `docs/...` or `lib/...`
     backtick_re = re.compile(r'`([^`]+)`')
@@ -452,7 +490,16 @@ def main():
                         if token in {"AC_ERR_PARAM","AC_OK","AC_ERR_MEMORY","AC_ERR_INTERNAL","NO_DATA","NO_CANDIDATES","INVALID_INPUT","INVALID_CONFIGURATION","INVALID_METHOD","AC_ERR","TIMEOUT","CANCELLED","OK","ALL_REJECTED","ZERO_VALID_WEIGHT","UNDERDETERMINED","P2_INTEGRATE_OK","P2_INTEGRATE_NO_CANDIDATES","P2_STATUS_OK","MOFFAT4_FWHM_FACTOR","DPSF_ERR_PARAM","NO_SOLUTION","PC_API","P2_API","AC_API","SNR_API","CC_EXPORT","DPSF_EXPORT","SDET_EXPORT","IPV_API","AIO_EXPORT","HIO_EXPORT","THREAD_BUDGET_EXEMPT","BASELINE_OPCODE_PASS","LD_LIBRARY_PATH","backend_math_contract.h","PLAN_ONLY"}:
                             continue
                         # Only flag UPPER_CASE or known API prefix; lowercase vars like t_light/hp_res are sci params not API symbols
-                        is_api_like = (token.isupper() and "_" in token and len(token) >= 6) or token.startswith(("p2_","aio_","ac_","cc_","dpsf_","sdet_","ipv_","pc_","snr_","gaia_"))
+                        #
+                        # FINAL-07（lead-01/auth-dirs）补齐：token 带**小写扩展名**时
+                        # `token.isupper()` 恒为 False（`FOO_BAR.md` 的 `md` 是小写）⇒
+                        # 哪怕词干是纯 UPPER_CASE、且**仓内根本不存在**，该 token 也永不进
+                        # is_api_like ⇒ **静默免判**。实测 `GHOST_DOC_NO_SUCH_FILE.md` 判绿
+                        # （可证伪性用例④）。判据本意是「UPPER_CASE 形态的符号」⇒ 判形态前
+                        # 先剥扩展名。此处只**收严**（增红方向），不放宽任何一格。
+                        _shape = token.rsplit(".", 1)[0] if "." in token else token
+                        is_api_like = ((token.isupper() or _shape.isupper()) and "_" in _shape
+                                       and len(_shape) >= 6) or token.startswith(("p2_","aio_","ac_","cc_","dpsf_","sdet_","ipv_","pc_","snr_","gaia_"))
                         if is_api_like:
                             # 公开头内真实定义的枚举常量/宏是合法公开符号
                             # (api_inventory 只登记函数签名) — 库头全文核实放行
