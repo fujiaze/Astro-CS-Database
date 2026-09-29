@@ -4,7 +4,7 @@
 
 ## 1 设计结论
 
-- 变体集合：baseline / AVX / AVX2+FMA / AVX-512，**profile 先行**——只对实测热点 kernel 做变体；每变体独立 Oracle；benchmark 只在正确变体间选最快；AVX-512 无实测收益则不选（原因、测量读数与代码去留见 `docs/architecture/ISA_VARIANTS.md`）。逐 kernel 选路结论为现行口径的唯一正本，本文件不复制读数。
+- 变体集合：baseline / AVX / AVX2+FMA / AVX-512，**profile 先行**——只对实测热点 kernel 做变体；每变体独立 Oracle；benchmark 只在正确变体间选最快；AVX-512 无实测收益则不选（原因、测量读数与代码去留见 `docs/engineering/ISA_VARIANTS.md`）。逐 kernel 选路结论为现行口径的唯一正本，本文件不复制读数。
 
 ## 2 编译隔离
 
@@ -42,10 +42,10 @@
 
 | 条款 | 落点 |
 |---|---|
-| §1 变体策略 | `docs/architecture/ISA_VARIANTS.md`（逐 kernel 选路结论）、`docs/architecture/ISA_BIT_MANIP_VARIANTS.md`；读数与决策原表 = `实验/engineering-evidence/prerelease-v5/` |
-| §2 编译隔离 | `docs/architecture/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_isa_variants.py`（opcode 扫描与变体证明） |
-| §3 六查 + 信任边界 | `docs/architecture/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_loader.py`（fake manifest / hash / ISA / path injection 负例） |
-| §4 C ABI v1 | `docs/architecture/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_v1.py`（ABI layout 与异常不跨边界） |
+| §1 变体策略 | `docs/engineering/ISA_VARIANTS.md`（逐 kernel 选路结论）、`docs/engineering/ISA_BIT_MANIP_VARIANTS.md`；读数与决策原表 = `实验/engineering-evidence/prerelease-v5/` |
+| §2 编译隔离 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_isa_variants.py`（opcode 扫描与变体证明） |
+| §3 六查 + 信任边界 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_loader.py`（fake manifest / hash / ISA / path injection 负例） |
+| §4 C ABI v1 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md`、`eng/tests/backend/test_abi_v1.py`（ABI layout 与异常不跨边界） |
 | §5 kernel 表 | `eng/tests/backend/test_abi_kernels.py`（baseline 全 kernel + affinity 多线程） |
 | §6 回退 | `eng/tests/backend/test_cpu_profile.py`（profile 失效 / fallback）+ `docs/ASTROCS_DESIGN.md` §7.2（退出码） |
 | §7 发布 | `eng/packaging/verify_install_tree.py`、`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`（打包面登记） |

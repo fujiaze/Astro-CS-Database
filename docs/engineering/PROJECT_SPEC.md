@@ -9,11 +9,11 @@
 1. 最高权威是根 `ASTROCS_DESIGN.md`（§0 权威链）；本文是其下的项目目标态细节总入口。
 2. 本文冻结产品目标、科学目标、Phase 边界和目标态组成。
 3. 三阶段详细设计分别位于：
-   - `docs/design/PHASE1_DETAILED_DESIGN.md`
-   - `docs/design/PHASE2_DETAILED_DESIGN.md`
-   - `docs/design/PHASE3_DETAILED_DESIGN.md`
+   - `docs/detail/PHASE1_DETAILED_DESIGN.md`
+   - `docs/detail/PHASE2_DETAILED_DESIGN.md`
+   - `docs/detail/PHASE3_DETAILED_DESIGN.md`
 4. 跨阶段科学量与公式由 `docs/science/UNIFIED_SCIENCE_MODEL.md` 统一；专项 SCI/ALG/DATA/API 必须向它收敛。
-5. 文献总档案为 `docs/references/SCIENTIFIC_REFERENCES.md`；现行目标只由本设计文档集定义。
+5. 文献总档案为 `docs/engineering/SCIENTIFIC_REFERENCES.md`；现行目标只由本设计文档集定义。
 
 ## 2. 项目使命
 

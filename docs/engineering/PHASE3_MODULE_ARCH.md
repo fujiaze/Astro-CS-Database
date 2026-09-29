@@ -39,7 +39,7 @@
 - TileCache 共享读 + 互斥加载（未命中加载持共享缓存锁，命中走每线程热缓存无锁）。
 - 写面：像素经 cfitsio 子集接口写进目标 HDU 的**数据区**（子块索引升序、单写者、区间互不重叠 ⇒ 输出与 worker 数无关）；PRIMARY 头（WCS/BUNIT/provenance/HISTORY）在**首像素写出前**组装完成。
 - 内存上界（冻结）：`M ≤ max_tiles·W²·(4|8) + Σ_per-worker(热缓存 ≤ kHotSlots 槽·W²·(4|8)) + 常数`，**与输出总图大小 W_out·H_out 无关**（`ASTROCS_DESIGN.md` §8.3 export 行）。
-- `max_tiles` 默认 `min(1024, ceil(W_out·H_out/W²)+16)`，配置**可降不可升**：请求超出内存守卫上限 → 记 last_error + `ACS_ERR_BUDGET` fail-closed（不静默换页）。资源门联动见 `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`。
+- `max_tiles` 默认 `min(1024, ceil(W_out·H_out/W²)+16)`，配置**可降不可升**：请求超出内存守卫上限 → 记 last_error + `ACS_ERR_BUDGET` fail-closed（不静默换页）。资源门联动见 `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`。
 - 中间产物 `p3_resampled.bin` 由子块**位置写**装配（平面 = 行主序连续区，子块行区间互不重叠 ⇒ 与写出顺序、worker 数无关），全部子块成功后才 fsync + 原子 rename（失败不留半成品）。调度器适配层的 artifact 约定见 `lib/infrastructure/scheduler/src/module_adapters.cpp`（`p3_props.json` → `p3_wcs.json` → `p3_resampled.{json,bin}` → `output_phase3.fits` → `p3_verify.json`）。
 - 独立重开 verify 同样按子块读回对拍（尺寸 / WCS 关键字 / HDU 面 / 逐像素 / NaN 同态 / COVERAGE 掩码）。
 - I/O 线程 1（异步预取深度 = 1，见 `THREAD_BUDGET_ARCH.md`）；取消 = 子块粒度，取消时 FitsWriter 不发生（tmp 删除），TileCache 丢弃未引用项。
@@ -47,7 +47,7 @@
 ## 4 错误与回退
 
 - reader 拒绝类（properties 非法 / lossy tile / `hips_frame` ∉ {equatorial, icrs}）= 启动前显式拒（拒绝码正本 = `docs/science/algorithms/PHASE3_RESAMPLE.md` §9a），**不进入半成品 run**；
-- 运行中 tile IO 错误（非缺失）= stage 安全中止（禁静默降级 nearest；错误码与传播链见 `docs/architecture/ERROR_MODEL.md`）；
+- 运行中 tile IO 错误（非缺失）= stage 安全中止（禁静默降级 nearest；错误码与传播链见 `docs/engineering/ERROR_MODEL.md`）；
 - FitsWriter 落盘失败 = tmp 清理 + 错误码，目录无残留产物。
 
 ## 5 追溯（逐条到算法正本）

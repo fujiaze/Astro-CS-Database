@@ -1,7 +1,7 @@
 # 三阶段产品交换合同（Phase Product Exchange）
 
 > 上游：`docs/ASTROCS_DESIGN.md` §1.2（三命令平级独立）、§8.1（一次 CLI 调用只驱动一个阶段）、§10（I/O 与原子产品）、
-> `docs/contracts/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
+> `docs/science/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
 > `docs/science/PHASE3_HIPS_TO_FITS.md`（SCI-P3 units/planes）、
 > `eng/contracts/data/artifact_types.registry.json` 与 `eng/contracts/data/artifact_manifest.schema.json`（类型登记与合并 manifest 形态真源）
 
@@ -21,9 +21,9 @@
 | `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` | 执行校验器（与 schema 一一对应；须同步修改） |
 | `eng/contracts/data/examples/*.example.json` | 示例（phase1/phase2/phase3 产品 + 外部 fixture） |
 
-下游接线：`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 接线）、
-`docs/architecture/PIPELINE.md`（阶段隔离运行时）、`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md` 与
-`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（HiPS 输入 / 原子输出）。
+下游接线：`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 接线）、
+`docs/engineering/PIPELINE.md`（阶段隔离运行时）、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` 与
+`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（HiPS 输入 / 原子输出）。
 
 ## 1. 阶段产品角色与 type 绑定（role ↔ type）
 
@@ -98,7 +98,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
   - **稀疏绝对 SNR 控制点层（`sparse_snr_layer`，可选标准层）**：**不是**交换对象 `planes` 枚举的一员，
     而是插入 HiPS 文件内的标准层；对象形态与机器校验承载于
     `eng/contracts/schemas/unified/sparse_snr_layer.schema.json`（统一对象 `sparse_snr_layer`，
-    对象语义见 `docs/design/UNIFIED_MODEL.md` §2）：
+    对象语义见 `docs/detail/UNIFIED_MODEL.md` §2）：
     - 层语义（最高设计 §4.4，强制）：控制点值 = 该点的**绝对**通量型 SNR `SNR_c = F_ref / σ_F,c`
       （与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`），`units` = `dimensionless`（无量纲信噪比）。
       消费时由控制点**直接重建**为稠密 SNR 场 `SNR(p)`（重建算子显式声明、在控制点处精确复现节点值、
@@ -172,7 +172,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
     3. **强制计数（剔除一律显式计数）**：每个输出像素**必须**同时暴露被剔除样本的计数
        `n_rejected_nonfinite`（按原因分类：值非有限 / 方差非有限 / 权重非正）。
        计数为 0 与「字段缺失」**必须可区分**；满足本规则的判据 = 该计数字段在场。
-       **Phase3 承载面（冻结）**：`docs/contracts/DATA_SEMANTICS.md`
+       **Phase3 承载面（冻结）**：`docs/science/DATA_SEMANTICS.md`
        §30.7 —— 诊断统计平面 `<p3 out_dir>/p3_rejection.bin`
        （int32、W×H、行主序，0 即「无」、禁 −1 哨兵）+ `p3_resampled.json`
        顶层 `diagnostic_planes.n_rejected_nonfinite`（`count_field` 逐字等于
@@ -199,13 +199,13 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
     **下游可判定性**：下游可仅凭 `(isnan(signal), support, n_rejected, variance==0 ∧ ivar==0)`
     四元组（`n_rejected` 取 §规则 3 的该像素计数）把上表六行**完全分开**
     （判据 = `eng/tests/artifact/test_phase_product_exchange.py` 的逐行正/负例，
-    受 `docs/contracts/DATA_SEMANTICS.md` §4a 三态表与本节规则 1/1a/2 约束；「有覆盖但方差不可用」行由
+    受 `docs/science/DATA_SEMANTICS.md` §4a 三态表与本节规则 1/1a/2 约束；「有覆盖但方差不可用」行由
     `signal` 有限 ∧ `support>0` ∧ `variance=0 ∧ ivar=0` 与「全部样本合格」行的
     `variance>0` 区分，与「无覆盖」行的 `signal=NaN` 区分，与「坏样本」行的
     `n_rejected>0` 区分）。因此「无覆盖」与「有覆盖但全坏」在**诊断层**可区分，在
     **科学语义层**同为「无效」；「有覆盖但方差不可用」在**科学语义层**为**有效**
     （`signal` 有限、`support>0`），只在**方差面**显式不可用 —— 这与
-    `docs/contracts/DATA_SEMANTICS.md` §4a 三态表一致（无覆盖 ⇒ `NaN`；有覆盖但方差不可用 ⇒
+    `docs/science/DATA_SEMANTICS.md` §4a 三态表一致（无覆盖 ⇒ `NaN`；有覆盖但方差不可用 ⇒
     `variance=0 ∧ ivar=0`），并与该文件 §20.1（`ivar==0` = 合法零权重、`variance==0` = 无信息）一致。
 
     **一句话版本**：**NaN 在重采样与集成中按「样本级掩膜、重归一、覆盖级 NaN、强制计数」处置**：
@@ -216,7 +216,7 @@ role 与 type 逐一对应（同名必同 type / 同 type 必同 role，无歧�
     方差面写 `variance=0 ∧ ivar=0`（显式不可用，取值与 clamp/常数/地板结果可区分）。
 
     **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ASTROCS_DESIGN.md` §5.5）；
-    `docs/standards/NUMERIC_STANDARD.md`（§MUST）与 `docs/standards/STANDARDS_REGISTRY.md`
+    `docs/engineering/NUMERIC_STANDARD.md`（§MUST）与 `docs/engineering/STANDARDS_REGISTRY.md`
     （D.drizzle `DISP-DRZ-004`）引用同一份文字。
     **机器形态**：`invalid_handling` 是本节规则块的名称（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`），
     **不是**交换对象的文档键；机器强制面 = 诊断统计平面的 `diagnostic_planes.n_rejected_nonfinite`
@@ -242,7 +242,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 - **rule_id `R-DISK-ONLY`**：任一 Phase 进程只接受另一 Phase 通过原子发布 + 完整 manifest
   （hash/provenance）产生的**磁盘产品**；跨 Phase 传输面限于磁盘产品（进程内对象 / ArtifactHandle / run 上下文不承载交换）；
   单进程串联不在合同面内（最高设计 §8.1：一次 CLI 调用只驱动一个阶段、无 `--phases 1,2,3`；
-  阶段隔离运行时见 `docs/architecture/PIPELINE.md`）。
+  阶段隔离运行时见 `docs/engineering/PIPELINE.md`）。
 - 磁盘交换是唯一跨 Phase 通道：无共享内存、无进程内 registry 直连、无隐式文件路径猜测。
 - 交换对象文档中的 `artifact_manifest.run.run_id` **仅溯源**，绝不作为接收方进程内匹配依据。
 
@@ -304,7 +304,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 | D4c 缺 schema 拒绝 | `X-NO-SCHEMA`；测试 `test_missing_schema_rejected`（role↔type 解耦 / 未登记 type） |
 | D4d 缺 units 拒绝 | `X-NO-UNITS`；测试 `test_missing_units_rejected` |
 | D5 无隐式 artifact name binding | `R-NO-NAME-BINDING`；validator 无路径/名称派生代码；测试 `TestNoImplicitNameBinding.test_artifact_id_arbitrary_does_not_affect_qualification`（详见 §5） |
-| D6 跨 Phase 仅磁盘交换 | `R-DISK-ONLY`；§3；阶段隔离运行时由进程边界强制（见 `docs/architecture/PIPELINE.md` 与 `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`） |
+| D6 跨 Phase 仅磁盘交换 | `R-DISK-ONLY`；§3；阶段隔离运行时由进程边界强制（见 `docs/engineering/PIPELINE.md` 与 `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`） |
 
 测试：`eng/tests/artifact/test_phase_product_exchange.py`（正/负测，无第三方依赖）。
 
@@ -325,5 +325,5 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 ## 8. 文档追溯
 
 SCI-P3（`docs/science/PHASE3_HIPS_TO_FITS.md`）/ SCI-DRZ（`docs/science/algorithms/DRIZZLE_GEOMETRY.md`）/
-`docs/contracts/DATA_SEMANTICS.md` → 本交换合同（本文档 + schema + matrix） →
+`docs/science/DATA_SEMANTICS.md` → 本交换合同（本文档 + schema + matrix） →
 `phase_product_exchange_validator.py` → `test_phase_product_exchange.py`。

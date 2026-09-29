@@ -68,7 +68,7 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
   `THREAD_BUDGET_ARCH.md` §1「消除嵌套并行与不可预算并发」）。两轴相乘 = 同时真正在算的线程数，
   其积仍是**同一预算内的分配**，不是预算翻倍。
 - **三命令进程边界**：`normalize`/`mosaic`/`export` 各自独立进程、一次调用只驱动一个阶段
-  （`docs/api/CLI_PROTOCOL_V1.md` §1「三个命令平级独立：各自独立进程…」、
+  （`docs/engineering/CLI_PROTOCOL_V1.md` §1「三个命令平级独立：各自独立进程…」、
   `docs/ASTROCS_DESIGN.md` §1.2）⇒ 线程预算**不跨命令、不跨阶段共享**；
   「两轴相乘」只在同一次调用内的同一预算上成立。
 
@@ -83,7 +83,7 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 **观测面**：`ASTROCS_LEASE_TRACE=1` 给租约（`[lease] ... cap=`）、`ASTROCS_NODE_TRACE=1`
 给节点执行窗口、`ASTROCS_P1CAP_TRACE=1` 给本分配快照（`[p1cap] ...`）。三者由
 `eng/tools/monitoring/node_waterfall.py` 合成为节点级瀑布 + 逐节点并行宽度表。
-标定值（`kP1FrameBytesPerPixel` 等）与实测依据见 `docs/architecture/PERFORMANCE_MODEL.md`。
+标定值（`kP1FrameBytesPerPixel` 等）与实测依据见 `docs/engineering/PERFORMANCE_MODEL.md`。
 
 **轴形态的受控 A/B 旋钮**：
 `ASTROCS_P1_AXIS_FRAME_WORKERS` / `ASTROCS_P1_AXIS_INNER_OMP`
@@ -102,7 +102,7 @@ W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODE
 → 生成头 → `module_adapters.cpp#p1_parallel_for`）；缺省 `0` = 不设上限，派生口径与本节不变，
 且实现侧只收紧不放大（fail-closed：收紧后 `in_flight × inner_u ≤ budget` 不变）。
 依据 `docs/ASTROCS_DESIGN.md` §8.3:652（帧并发度属编排参数，基于探针实测迭代）与
-`docs/contracts/SCHEDULER_CONTRACT.md`:38（最终取值由性能门定，合同只保证机制正确）。
+`docs/engineering/SCHEDULER_CONTRACT.md`:38（最终取值由性能门定，合同只保证机制正确）。
 同批受控化的还有未接线调度器的预取线程上限 `scheduler_prefetch_threads_max`。
 **工作窃取策略**：生产**无实现**（全仓唯一命中在 ACR，而 ACR 生产不可达）⇒ 键位方案已登记于
 `config_registry.json#orchestration_params.gaps`，不落无读取面的死键，待实现后同批落键。）
@@ -130,7 +130,7 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
 1. **钉住**：`taskset -c <掩码>` 钉 CPU 掩码（Runtime 线程预算 = 掩码内的 CPU 数 ⇒ `lease` 确定）；
    需要更高的 `p1_memory_cap` 时下调标定值 `kP1FrameBytesPerPixel`（它只是**闸门旋钮**，
    不进任何数值路径），但改标定值 = 改源码 ⇒ 必须**重新记录构建指纹**。
-2. **判同一二进制**：以 `build_source_digest` 相等为前提（`docs/VERSIONING.md` §2.1）；
+2. **判同一二进制**：以 `build_source_digest` 相等为前提（`docs/engineering/VERSIONING.md` §2.1）；
    `run_context.json.source_sha` 相等**不构成**前提。
 3. **记生效值、且按 `in_flight` 判档**：从 `[p1cap] frame_workers … memory_cap=… n_units=…`
    取实际值，档位判据是 **`in_flight = min(n_units, frame_workers)`**，**不是** `frame_workers`。
@@ -152,8 +152,8 @@ lease 存在时恒等且不被放大；`--self-test` 注入未接线状态必须
 
 ## 确定性锚点
 
-- Phase2 UPM 权重归一：`lib/algorithms/coverage/src/upm.cpp:605` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/modules/phase2.md`（SCI-UPM-WEIGHT-001）。
-- Phase2 sampler：`lib/algorithms/coverage/src/sampler.cpp` **std::thread worker 池**（`:924-954`）——worker 数只来自 Runtime lease（`cfg.cpu_workers = budget.max_workers`，模块不取 `hardware_concurrency`）；`workers == 1` 走同一 `pass1_cell` 的串行 reference 分支（`init_shared` 复用 setup 句柄）。cell 由 `next_c.fetch_add(1)` 动态领取，结果写回 `cells[idx]`（`idx = c·grid² + g`，`sampler.cpp:744-745`）固定槽位 ⇒ 归约顺序与线程调度无关，1 worker 与 N worker 逐位一致。`P2_ENABLE_OPENMP`（`lib/algorithms/coverage/CMakeLists.txt:28` 默认 OFF）只保留 compile/link 接线，代码内无 OpenMP 并行区。**读路径无进程级锁**：每 worker 自己的 `AioHipsDataset` 句柄（`:938` `rdr.init_own`），每次 tile 读各自 open→read→close，句柄线程私有、不跨线程转移（见 `docs/architecture/EXECUTION_MODEL.md` §2/§3）。确定性契约见 `docs/modules/phase2.md`（SCI-UPM-WEIGHT-001）。
+- Phase2 UPM 权重归一：`lib/algorithms/coverage/src/upm.cpp:605` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/detail/phase2.md`（SCI-UPM-WEIGHT-001）。
+- Phase2 sampler：`lib/algorithms/coverage/src/sampler.cpp` **std::thread worker 池**（`:924-954`）——worker 数只来自 Runtime lease（`cfg.cpu_workers = budget.max_workers`，模块不取 `hardware_concurrency`）；`workers == 1` 走同一 `pass1_cell` 的串行 reference 分支（`init_shared` 复用 setup 句柄）。cell 由 `next_c.fetch_add(1)` 动态领取，结果写回 `cells[idx]`（`idx = c·grid² + g`，`sampler.cpp:744-745`）固定槽位 ⇒ 归约顺序与线程调度无关，1 worker 与 N worker 逐位一致。`P2_ENABLE_OPENMP`（`lib/algorithms/coverage/CMakeLists.txt:28` 默认 OFF）只保留 compile/link 接线，代码内无 OpenMP 并行区。**读路径无进程级锁**：每 worker 自己的 `AioHipsDataset` 句柄（`:938` `rdr.init_own`），每次 tile 读各自 open→read→close，句柄线程私有、不跨线程转移（见 `docs/engineering/EXECUTION_MODEL.md` §2/§3）。确定性契约见 `docs/detail/phase2.md`（SCI-UPM-WEIGHT-001）。
 - Drizzle 浮点归约：`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1923` 主并行区 `#pragma omp parallel num_threads(num_threads)`（per-stripe scratch 累积，无浮点 reduction 子句）；tile 合并 = **per-stripe scratch pool + 按 stripe 索引升序左折叠归约**（累加与归约解耦：`:1857-1859` 注释「合并仍由 merge_cursor 强制按 stripe 索引升序左折叠」、`:1889-1891` `pendingStripe`/`merge_cursor`、归约分支 `:2117-2142`；与 drizzle 主并行区的 per-stripe 左折叠完全同序 ⇒ 浮点结合树逐位一致，**与线程数/调度顺序无关**）。注：`:2270` 现为 prof 计数器合并（非浮点 tile 合并锚）；`:2279` `#pragma omp parallel reduction(+:n_quick,n_fully,n_dropin,n_sh)` 为整数计数器统计（非浮点归约）与 `atomic` 计时累加 — 浮点累积顺序固定，归约顺序已文档化。
 
 ## 契约

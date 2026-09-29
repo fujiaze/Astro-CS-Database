@@ -62,7 +62,7 @@
   时函数必须仍能正常执行并返回状态码。缓冲区所有权/容量/生命周期由各头
   文件声明，无隐式全局错误对象。
 - **日志与状态分离**：日志落点派生自 `output_dir`（正本见
-  `docs/contracts/LOG_AND_ERROR_CONTRACT.md`；不落进程 CWD、源码树与开发/CI 过程产物区），
+  `docs/engineering/LOG_AND_ERROR_CONTRACT.md`；不落进程 CWD、源码树与开发/CI 过程产物区），
   返回状态只经返回值传递；模块内部日志级别只作用于日志面，控制流只经返回值。
 - **C ABI 不抛异常**：`extern "C"` 边界全部捕获并转换为返回码；`buffer
   ownership/lifetime/nullable/单位` 在头文件逐参数注释。
@@ -647,7 +647,7 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
 ## Phase1 装配会话 C API（API-P1-SESSION）
 
 > 权威签名头 lib/phase1_session/p1_session.h:16-37，签名只取该头）。
-> 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md FROZEN）；数据面
+> 编排级上游合同 API-P1-001（docs/engineering/PHASE1_API_V1.md FROZEN）；数据面
 > DATA-P1-SESSION（DATA_SEMANTICS §16）。registry 关系：五函数经 P1Api
 > （lib/infrastructure/scheduler/src/module_adapters.cpp:755-762）被 8 个 Phase1 descriptor
 > 工厂委托（:728-735/:755-770）。
@@ -963,7 +963,7 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
 > 引用不改动，SCI 层声明=PHASE2_COVERAGE.md §11.5）；ALG: ALG-COV-001
 > （PHASE2_COVERAGE.md §2/§11 逐符号锚）；DATA: DATA-COV-001
 > （DATA_SEMANTICS §19，单位/dtype/shape/坐标契约唯一权威）；编排级
-> 合同 API-P2-001（docs/api/PHASE2_API_V1.md FROZEN §1 所有权图/
+> 合同 API-P2-001（docs/engineering/PHASE2_API_V1.md FROZEN §1 所有权图/
 > §2 并发五字段行 1/§4 错误码映射，与本节并行不互斥）；MOD:
 > MOD-astrocs-phase2-coverage（module.yaml CONTRACT_READY，
 > 注册面尚未登记其 descriptor；编排消费 lib/phase2_session/p2_session.cpp:119-148）
@@ -1009,7 +1009,7 @@ status/error[512]）。字段级单位/值域唯一权威=DATA_SEMANTICS §19.2�
 - P2CoverageResult 及全部数组由调用方分配（coverage.h:42/:44 注释）；
   p2_coverage_free 仅 `memset(out,0,sizeof(*out))`（coverage.cpp:235）
   ——与 PHASE2_API_V1 §1 所有权图 Coverage 行（build 创建/调用方持有/
-  p2_coverage_free 释放/下游只读借用，docs/api/PHASE2_API_V1.md:15）
+  p2_coverage_free 释放/下游只读借用，docs/engineering/PHASE2_API_V1.md:15）
   一致；无 malloc/无异常跨界。
 - 错误通道: rc=1 + out->error[512]（"no inputs"/"empty path at index
   %llu"/"missing hips_order"/"unsupported tile_width"/"missing
@@ -1276,7 +1276,7 @@ registry descriptor 像素登记面）。
   显式方法（nominal_contributors=u32 几何可贡献数 :234-238；
   kernel 永不接收 AUTO）；**生产默认 profile = `astrocs_adaptive_pixel`
   （自研：1≤N≤3 → NONE、N<6 → PERCENTILE、N≥6 → WINSORIZED_SIGMA；
-  原四档表已作废，档界唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
+  原四档表已作废，档界唯一正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
   6..15 → WINSORIZED、>15 → LINEAR_FIT）与 `astrocs_adaptive`；
   非法 profile → 非零 rc。rc=0 OK；rc=1 null
   请求/plan、request 出界或 profile 非法（err 仅日志文本）。线程
@@ -1435,7 +1435,7 @@ registry descriptor 像素登记面）。
   按 capacity 截断拷贝、out_n_* 返回真实需求量（:1098-1117）。
   线程安全=reentrant yes / threadsafe yes（读路径**不存在进程级串行锁**、无进程级共享可变状态；per-worker 独立 AIO
   句柄 :938，每次读各自 open→read→close、句柄线程私有不跨线程转移；
-  依据见 `docs/architecture/EXECUTION_MODEL.md` §2/§3）；无取消
+  依据见 `docs/engineering/EXECUTION_MODEL.md` §2/§3）；无取消
   检查点（ThreadLease 由 host 侧提供，与重扫行为
   同构）。
 
@@ -1491,7 +1491,7 @@ registry descriptor 像素登记面）。
 > upm_build → persist 四段编排的会话生命周期五导出符号冻结（既有
 > 符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；会话本身无
 > 科学实现（纯编排 facade，直调 lib/algorithms/coverage 生产符号），编排上游=
-> API-P2-001（PHASE2_API_V1 phase session，docs/api/PHASE2_API_V1.md
+> API-P2-001（PHASE2_API_V1 phase session，docs/engineering/PHASE2_API_V1.md
 > FROZEN，引用不改动）。
 > SRC: lib/phase2_session/p2_session.cpp（318 行，静态库
 > astrocs_phase2_session 成员，根 CMakeLists.txt:454-458）+ 唯一
@@ -1588,7 +1588,7 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 - 负向条款: **不新增、不修改任何公共 C 头/C ABI**——p2_session.h 既有五
   函数声明与本节为同一 ABI 的展开冻结，定义只有这一份；registry
   descriptor astrocs.phase2.session 占位词汇不作冻结依据；编排上游
-  API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN）引用不改动；会话冻结默认
+  API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）引用不改动；会话冻结默认
   （upm 参数/tolerance/sigma_floor 等）非 config 覆盖键的部分禁改。
 - 行为边界：`p2_session_validate` 不拒绝未知键（p2_session.h:19 与 :69-98
   的注释/实现差异）；`run` 对子键类型错的路径不捕获；h:4 预算绑定注释与
@@ -1993,7 +1993,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 
 ## 消费面权重口径（API-V6-WEIGHTMODE-001）
 
-> 语义权威：`docs/contracts/DATA_SEMANTICS.md` §31；最高设计
+> 语义权威：`docs/science/DATA_SEMANTICS.md` §31；最高设计
 > `docs/ASTROCS_DESIGN.md` §3.1（权重的产生链固定为两步）与
 > `docs/science/PSF_SIGNAL_WEIGHT.md` §4（单一权重口径）。
 > 生产 schema：canonical 对象层 `eng/contracts/schemas/unified/*.schema.json` 的 `allOf`；

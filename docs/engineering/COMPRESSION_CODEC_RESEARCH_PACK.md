@@ -46,7 +46,7 @@
 | 最高设计 | ASTROCS_DESIGN.md §9 | 「内存极简化：工作集只保留当前分块所需，流式读取、分块处理、用完即释」 |
 | 最高设计 | ASTROCS_DESIGN.md §10 | aio 是文件级唯一 I/O 边界；产品只落 output_dir；run/ 只放临时产物 |
 | 最高设计 | ASTROCS_DESIGN.md §13 | Alpha 前产物不出现版本信息；发布决定只属负责人（本文不下发布结论） |
-| 产品语义 | docs/contracts/DATA_SEMANTICS.md §12.2/§12.4 | signal 无效像素 **IEEE NaN 填充**；support 无效 0.0；variance/ivar 无信息 0.0；逐 tile DATASUM/CHECKSUM |
+| 产品语义 | docs/science/DATA_SEMANTICS.md §12.2/§12.4 | signal 无效像素 **IEEE NaN 填充**；support 无效 0.0；variance/ivar 无信息 0.0；逐 tile DATASUM/CHECKSUM |
 | 算法登记 | docs/science/algorithms/HIPS_WRITER.md | ALG-HIPS-001..005；§0 范围界定 |
 | 前序实测 | 内存累加器方案评估 MEM-DESIGN-01（产物在 run/，可能已被 run_gc 回收），§1.4/§2.4/§5 | zlib9 0.90 / lzma 0.82~0.85 载荷压缩率；A+C+B(cons) 峰值 1708.0→186.9 MB；优化后 user time 27.68 s |
 | 仓内先例 | lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md §5.4 | 「数组不压缩…如需进一步压缩体积，可在**传输层（HTTP gzip）或归档层**（外层 zstd 包）处理」——与本文结论同向 |
@@ -558,8 +558,8 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
 
 | 内容 | 位置 |
 |---|---|
-| 本评估结论（zstd / Rice / TRIM / 内存累加器） | `docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md`（本文） |
-| 标准兼容性查证全文（21 条带英文原文引文） | `docs/research/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` |
+| 本评估结论（zstd / Rice / TRIM / 内存累加器） | `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`（本文） |
+| 标准兼容性查证全文（21 条带英文原文引文） | `docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md` |
 | 机器可读证据锚 | `实验/engineering-evidence/compress-01/`：`final_numbers.json`、`fill_scan.json`、`trim_scan.json`、`acc_roundtrip.json`、`product_level.json`、`verify/final_numbers.py`、`MANIFEST.sha256` |
 | 全部复现脚本 | `实验/engineering-evidence/compress-01/code/` |
 | 未入库（可由下列命令重建） | `data/`（1 MiB 级语料 288 MiB）、`evidence/*.csv`（原始基准数据）、`bin/`（编译产物）、`logs/` |
@@ -609,7 +609,7 @@ NaN 往返在传对 nulval 时归零而在不传时判红（说明该判据能�
     python3 run/COMPRESS-01/verify/final_numbers.py   # 读 evidence/*.csv (步骤 3-4) + fill_scan.json (步骤 2)
 
     # --- 8. 标准兼容性查证 (无脚本; 21 条带引文证据见) ---
-    # docs/research/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md
+    # docs/science/IVOA_HIPS_TILE_FORMAT_RESEARCH_PACK.md
 
 **环境准备（一次性）**：本机 python 无 zstandard 模块且 python3 -m venv 不可用（缺 ensurepip），
 故用 python3 -m pip install --target run/COMPRESS-01/pylib zstandard（0.25.0，封装 libzstd 1.5.7）。

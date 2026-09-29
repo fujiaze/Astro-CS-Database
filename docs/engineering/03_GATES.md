@@ -53,14 +53,14 @@
 
 ## 6. L2 性能门与监控字段语义
 
-> 正本：docs/ci/CI_SPEC.md §9；判据数值源：eng/contracts/resource_gate_v1.json。
+> 正本：docs/engineering/CI_SPEC.md §9；判据数值源：eng/contracts/resource_gate_v1.json。
 > 本节只登记**门禁事实**（哪条门、什么判据、怎么红），不重复规范正文。
 
 ### 6.1 L2 冻结判据（违规必红）
 
 四条判据（平均利用率 ≥0.85 / p50 ≥0.90 / 达标样本占比 ≥0.70 / 无连续 ≥10s
 低利用窗）在 CI 判定面由 `eng/ci/l2_frozen_gate.py` fail-closed 判定，任一
-违规即红。回放判据正本 = `docs/ci/CI_SPEC.md` §9.2（机器门 `L2-FROZEN-GATE-REPLAY`）。
+违规即红。回放判据正本 = `docs/engineering/CI_SPEC.md` §9.2（机器门 `L2-FROZEN-GATE-REPLAY`）。
 生产侧 `run_monitored.py` 的 `record_and_justify` 字段是记录语义，
 **门禁通过的依据 = 机器门 rc=0**。
 

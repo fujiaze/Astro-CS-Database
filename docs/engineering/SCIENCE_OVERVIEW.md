@@ -10,7 +10,7 @@
 > `docs/science/algorithms/`（推导），与本设计冲突时以本设计为准。
 >
 > 状态词约定（全任务统一，DOC-CONV-001 起唯一口径见
-> `docs/owner/RELEASE_STATUS.md` §0）：`CONTRACT_READY`=合同/权威文档冻结在位；
+> `docs/engineering/RELEASE_STATUS.md` §0）：`CONTRACT_READY`=合同/权威文档冻结在位；
 > `IMPLEMENTED`=源码在位且**当前提交内实际执行通过**（给出命令与 rc）；
 > `INSTALLED`=已进安装树/产品清单且可被 CLI/loader 发现；`VERIFIED`=正式平台
 > （Windows x64）与真实数据验收通过；`NOT_IMPLEMENTED`=符号/路径不存在；
@@ -53,11 +53,11 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 ## 3. 数据语义与产品合同（合同冻结 = PASS）
 
 - 数据语义权威（**依最高设计 §2 的引用，不是本文自立的权威链**）：
-  `docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md`。
+  `docs/science/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md`。
 - DATA-001 类型化产物合同：`eng/contracts/data/artifact_manifest.schema.json`、
   `artifact_types.registry.json`（type_id schema_version=1）。
 - DATA-002 三阶段产品交换合同：`eng/contracts/data/phase_product_exchange.schema.json` +
-  `phase_product_exchange_matrix.json` + `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`；
+  `phase_product_exchange_matrix.json` + `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`；
   角色 `phase1_product_v1 / phase2_mosaic_v1 / phase3_planar_fits_v1` 与 registry type
   强绑定，跨 Phase **仅磁盘交换**（约束 §A.6）。
 - DATA-002/RT-001 等在集成提交中已由前台跑过验收（pytest 32/32、24/24，见返回包与
@@ -80,8 +80,8 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | 合成/单元测试文件在位 | `IMPLEMENTED` | `eng/tests/unit/p1_*.cpp`、`eng/tests/api/test_p1_api.py` 存在于当前提交 |
 | **Phase1 节点化（IR 节点唯一真实 operation，`ASTROCS_DESIGN.md` §3.2；原引「宪章 §F.1」已废止）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257 八节点（calibrate/cosmetic/star-psf/wcs/photo/noise-snr/drizzle/writer）各绑唯一真实 operation；ctest `p1001_real_nodes` 本提交实测 PASS（P1-001 `9e09941a`） |
 | 合成执行验收（当前提交复跑） | 部分 `IMPLEMENTED` | 节点化/消费者用例本提交实测绿（`p1001_real_nodes`）；原生像素域全量合成链路（真实数据）仍未复跑 → 见下 |
-| 真实数据（BASS/32R）验证 | `NOT_VERIFIED` | `docs/owner/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据集审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
-| 真实数据（BASS/32R）验证 | NOT_VERIFIED | `docs/owner/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING |
+| 真实数据（BASS/32R）验证 | `NOT_VERIFIED` | `docs/engineering/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据集审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
+| 真实数据（BASS/32R）验证 | NOT_VERIFIED | `docs/engineering/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING |
 
 ### Phase2（多帧 HiPS → 马赛克 HiPS：UPM/排异/积分）
 
@@ -97,7 +97,7 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 
 | 项 | 状态 | 依据（当前提交内可核） |
 |---|---|---|
-| SCI-P3 / ALG-P3 权威冻结 | PASS | `docs/science/PHASE3_HIPS_TO_FITS.md`、`docs/science/algorithms/PHASE3_RESAMPLE.md`、`docs/api/PHASE3_API_V1.md` |
+| SCI-P3 / ALG-P3 权威冻结 | PASS | `docs/science/PHASE3_HIPS_TO_FITS.md`、`docs/science/algorithms/PHASE3_RESAMPLE.md`、`docs/engineering/PHASE3_API_V1.md` |
 | 会话路径 TAN 投影 + WCS + nearest/bilinear 重采样 + FITS 原子写 | `IMPLEMENTED` | `lib/phase3_session/{p3_session,p3_wcs,p3_resample,p3_output}.cpp`（会话路径仍 TAN-only，`p3_wcs.cpp`:36）；ctest `p3_wcs`/`p3_interp`/`p3_output` 家族在本提交全量构建中 rc=0 |
 | **Phase3 节点化（IR 五节点唯一真实 operation）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4309 五节点（properties/wcs/resample/writer/verify）各绑唯一真实 operation；typed artifact 链 `p3_props.json→p3_wcs.json→p3_resampled.{json,bin}→output_phase3.fits→p3_verify.json`，节点 call_count=1；ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 PASS（P3-002 `1a56ffb7`，科学面 `9662afa8`） |
 | **投影集合** | **`CONTRACT_READY`**（声明面）/ **仅 TAN `IMPLEMENTED`** | **设计冻结 8 种** = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`（`ASTROCS_DESIGN.md` §6.3）；**当前登记：仅 `TAN` 已实现**（声明集 D = 实现集 I = `{TAN}`，`lib/algorithms/projection/p3_projection_registry.h`；在役 registry = `p3_proj.cpp`（v3）；`p3_projection.cpp` 的 v1 四行 registry 已 `RETIRED`，仅历史测试面/偏差对照）。**未实现的必须显式报「不支持」**（`p3_proj_declare` → `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml` `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 表述面 = 未安装/未验证。 |

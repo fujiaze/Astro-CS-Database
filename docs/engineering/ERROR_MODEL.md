@@ -5,16 +5,16 @@
 ## 类别
 
 硬错误类别 = CONFIG / INPUT_CORRUPT / DEPENDENCY / NUMERIC / NO_DATA / RESOURCE /
-TIMEOUT / IO / SCIENCE_GATE / INTERNAL（口径 = `docs/standards/ERROR_HANDLING_STANDARD.md` 的三层语义）。
+TIMEOUT / IO / SCIENCE_GATE / INTERNAL（口径 = `docs/engineering/ERROR_HANDLING_STANDARD.md` 的三层语义）。
 
 机器面错误域 = `lib/include/astrocs/core/contracts.h` 的 `ErrorDomain` 枚举（CONFIG / DATA /
 SCIENCE_PRECONDITION / IO / RESOURCE / BACKEND / CANCELLED / INTERNAL），域→退出码唯一表
-= `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5。
+= `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5。
 
 ## 阶段 ID
 
 每阶段一个阶段 ID 前缀，逐节点一枚，节点名与 `docs/modules/registry/` 的注册表节点一致
-（日志面口径 = `docs/standards/LOGGING_DIAGNOSTICS_STANDARD.md`）：
+（日志面口径 = `docs/engineering/LOGGING_DIAGNOSTICS_STANDARD.md`）：
 
 | 阶段 | 阶段 ID |
 | --- | --- |

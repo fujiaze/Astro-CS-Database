@@ -22,7 +22,7 @@
 | `DORMANT` | 保留源码但**不**进生产构建/加载/发布 | CMake/preset 排除 + 隔离测试 |
 | `FAIL` | 已执行但不符合要求 | 执行证据 + 不符合项 |
 
-> 与 `docs/standards/STANDARDS_REGISTRY.md` §1.4 的**标准符合性**取值域
+> 与 `docs/engineering/STANDARDS_REGISTRY.md` §1.4 的**标准符合性**取值域
 > （`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）是两个独立轴：
 > 本表描述"交付到什么程度"，注册表描述"与外部标准条款的关系"，不互相替代。
 > 历史口径 `PASS`（合同冻结/源码在位/执行验收三级）自 DOC-CONV-001 起由本表取代，
@@ -35,7 +35,7 @@
 工具链 preset/DLL schema/FITS 流接口/内核标准注册表）冻结在位；三 Phase 节点化、
 Phase3 四投影 registry、RT 唯一 executor + 实测资源门、MOD 科学模块安装面、
 CLI 命令面 = `normalize`/`mosaic`/`export` + `doctor`/`benchmark` 五入口（唯一命令树 = `docs/ASTROCS_DESIGN.md` §7.1）；
-独立 `validate`/`plan`/`inspect` 命令面**无载体**、调用返回 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1），
+独立 `validate`/`plan`/`inspect` 命令面**无载体**、调用返回 rc=2（`docs/engineering/CLI_PROTOCOL_V1.md` §1），
 其职责由 §4.5 预检三档页面与产物 `run-plan.json`/`run-graph.json` 承接；遗留 run --phases
 连跑已删除。**本节不主张「当前提交复跑」**：`IMPLEMENTED`/`INSTALLED` 级证据的基准 = §3 注
 （BASE=`da3c4b4a` 的命令日志 `run/docconv001/logs/`），本提交未复跑的面一律不写实测绿。
@@ -78,7 +78,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 - 生成串形态：clean main 为 `0.1.0-alpha.1+g<commit12>`，dirty 工作树追加 `.dirty`。
 - **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
 - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
-- 已知他人路径遗留：`docs/VERSIONING.md`、CMake `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 —— 由版本检查器 `known_legacy_reported` 输出登记（见检查器 `out_of_scope` 列表）。
+- 已知他人路径遗留：`docs/engineering/VERSIONING.md`、CMake `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 —— 由版本检查器 `known_legacy_reported` 输出登记（见检查器 `out_of_scope` 列表）。
 
 ## 3. 冻结与落地面清单（状态词见 §0；证据指 BASE=`da3c4b4a`）
 
@@ -87,7 +87,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | 最高设计 | `CONTRACT_READY` | `docs/ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
 | 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已退役（历史条目） |
 | 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
-| 内核标准注册表 | `CONTRACT_READY` | `docs/standards/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
+| 内核标准注册表 | `CONTRACT_READY` | `docs/engineering/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
 | 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0 |
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/astrocs/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
@@ -96,7 +96,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 | RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `ENGINEERING_SPEC.md` §10；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
 | MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/astrocs.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
-| CLI 薄命令面（normalize/mosaic/export + doctor/benchmark） | `INSTALLED` | `command_tree.h` 唯一命令树（golden = `docs/api/CLI_PROTOCOL_V1.md` §1；`eng/tests/cli/test_cli_protocol.py` test_01/test_07） |
+| CLI 薄命令面（normalize/mosaic/export + doctor/benchmark） | `INSTALLED` | `command_tree.h` 唯一命令树（golden = `docs/engineering/CLI_PROTOCOL_V1.md` §1；`eng/tests/cli/test_cli_protocol.py` test_01/test_07） |
 | 三 Phase 隔离（三个独立命令，一次调用只驱动一个阶段） | `IMPLEMENTED` | `normalize`/`mosaic`/`export` 各拉起本阶段调度器（`ASTROCS_DESIGN.md` §1.2/§8.1）；`run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002）；DATA-002 磁盘交换合同冻结 |
 | 结构化日志合同 | `CONTRACT_READY` | LOG-001（schema/JSONL 契约） |
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |

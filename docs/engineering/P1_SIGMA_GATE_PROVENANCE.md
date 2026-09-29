@@ -1,7 +1,7 @@
 # P1 测光 σ 判据口径核实（σ_obs vs σ_ceiling）
 
 > 上游：`docs/ASTROCS_DESIGN.md` §2（核心科学方法）→ `docs/science/PHOTOMETRY.md`（SCI-PHOT-001 §5，公式正本）
-> 实施侧对照：`docs/plugins/algorithms_phase1/06_photometry.md` §4.1（判据形态与逐项预算，冻结）
+> 实施侧对照：`docs/detail/algorithms_phase1/06_photometry.md` §4.1（判据形态与逐项预算，冻结）
 > `docs/science/REJECTION.md` 无关（本件只核 P1 测光面）
 > 机器可读证据：`实验/photometric-magnitude/results/step8_real_frame.json`（`single_frame_gate`）、
 `实验/photometric-magnitude/results/gates.json`（G1..G8/G7）

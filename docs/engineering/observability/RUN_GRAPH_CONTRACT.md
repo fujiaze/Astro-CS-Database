@@ -136,7 +136,7 @@ hash 等观测字段一律只来自 trace 事件。
 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）：
 
 - 可审计事实 = 重跑生成的 `graph-runtime.{json,dot}`；`graph-runtime.svg` 是派生展示物；
-- 静态架构示意图（`docs/architecture/DATA_FLOW.md` 等 ASCII 流程、`docs/architecture/ARCHITECTURE.md`
+- 静态架构示意图（`docs/engineering/DATA_FLOW.md` 等 ASCII 流程、`docs/engineering/ARCHITECTURE.md`
   的 mermaid 图）是**信息性视图**，不承载运行事实；
 - 运行图语义的变更 = 改本工具 + 改本合同 + 重跑验证；证据面只用重跑生成的图作证。
 
@@ -160,5 +160,5 @@ hash 等观测字段一律只来自 trace 事件。
   `lib/infrastructure/pipeline/trace_replay.py`
 - typed DAG 编译：`lib/infrastructure/pipeline/typed_dag.py`、
   `lib/infrastructure/pipeline/typed_dag.schema.json`
-- 资源监控伴随器：`docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`
-- 结构化日志：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
+- 资源监控伴随器：`docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`
+- 结构化日志：`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`

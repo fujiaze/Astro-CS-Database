@@ -13,7 +13,7 @@
   自动经该路径；失败分类（ENOSPC/写失败）在清理前完成（`aio_disk_full.h` 语义）；
   负例可红：`lib/infrastructure/aio/tests/test_hips_atomic_publish.cpp`
   （`tile_diskfull` / `tile_write_fail` 注入）。
-- **阶段二直写缺口登记**：阶段二马赛克直写输出目录、无 staging；缺口登记面 = `docs/modules/registry/astrocs.phase2.write.md`；
+- **阶段二直写缺口登记**：阶段二马赛克直写输出目录、无 staging；缺口登记面 = `docs/detail/registry/astrocs.phase2.write.md`；
 - dense cache：固定 512B 头部 + 二进制块 + streaming checksum；打开校验
   checksum 与 source_hash。
 - HiPS 写：先 tiles/properties 到目标目录，最后 properties/index；

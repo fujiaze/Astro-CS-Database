@@ -1,6 +1,6 @@
 # 整数/位操作 ISA 变体评估
 
-> 上游：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、`docs/architecture/ISA_VARIANTS.md`（逐 kernel 选路）
+> 上游：`docs/ASTROCS_DESIGN.md` §9（CPU 后端与资源）、`docs/engineering/ISA_VARIANTS.md`（逐 kernel 选路）
 
 ## 0 评估口径
 
@@ -48,4 +48,4 @@
 ## 4 与预检/模块边界的关系
 
 - 未新增变体 ⇒ 无新 manifest 行、无新增预检负担；逐 kernel 选路见
-  `docs/architecture/ISA_VARIANTS.md` §2。
+  `docs/engineering/ISA_VARIANTS.md` §2。

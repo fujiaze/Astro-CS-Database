@@ -89,28 +89,28 @@
 - VERSION: HiPS 1.0 (PR-HiPS-1.0-20161122) + properties hips_version="1.4"
 - CLAUSES: HiPS 1.0 §3（层级索引与目录结构）/§4.1（tile）/§4.2.1（properties）/§4.4.1（all-sky map）/§6.3.1（客户端绘制）；properties 1.4 键集
 - COMPLIANCE: PARTIAL
-- EVIDENCE: docs/science/algorithms/HIPS_WRITER.md；docs/science/PHASE3_HIPS_TO_FITS.md；docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；docs/contracts/PUBLIC_API.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；eng/tests/unit/CMakeLists.txt
+- EVIDENCE: docs/science/algorithms/HIPS_WRITER.md；docs/science/PHASE3_HIPS_TO_FITS.md；docs/science/IO_002_HIPS_INPUT_INTERFACE.md；docs/engineering/PUBLIC_API.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；eng/tests/unit/CMakeLists.txt
 - DEVIATION: STD-F4；DISP-HIPS-001；DISP-HIPS-002；DISP-HIPS-003；DISP-HIPS-004；DISP-HIPS-005；DISP-HIPS-006；DISP-HIPS-007；DISP-HIPS-008；DISP-HIPS-009；DISP-HIPS-010；DISP-HIPS-011；DISP-HIPS-012
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| §3（层级索引与 NorderK/DirD/NpixN 目录结构） | 层级 tile 目录命名与 NESTED 地址编码固定 | CONFORMANT | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；eng/tests/unit/CMakeLists.txt | 无（§4.1 标准式 D=(ipix/10000)*10000、Npix=ipix；Dir=商/Npix=余数仅作只读回退） |
+| §3（层级索引与 NorderK/DirD/NpixN 目录结构） | 层级 tile 目录命名与 NESTED 地址编码固定 | CONFORMANT | docs/science/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；eng/tests/unit/CMakeLists.txt | 无（§4.1 标准式 D=(ipix/10000)*10000、Npix=ipix；Dir=商/Npix=余数仅作只读回退） |
 | §4.1（tile 为 W×W FITS 单元，tile_width=512） | tile 宽为 2 的幂、标准 512；tile 内 NESTED 序 | CONFORMANT | docs/science/algorithms/HIPS_WRITER.md；eng/tests/unit/CMakeLists.txt | DISP-HIPS-006；DISP-HIPS-008（写路径无互斥包装；兼容入口 8bit support 语义并存） |
-| §4.2.1（properties 必需键集） | `hips_version/hips_order/hips_tile_width/hips_tile_format/hips_frame` 必需且自洽 | PARTIAL | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp | STD-F4（写出侧键集缺 em_min/em_max/obs_bandpass 等推荐键；META-002 禁伪造，待 index.json 真实滤镜元数据接通） |
+| §4.2.1（properties 必需键集） | `hips_version/hips_order/hips_tile_width/hips_tile_format/hips_frame` 必需且自洽 | PARTIAL | docs/science/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp | STD-F4（写出侧键集缺 em_min/em_max/obs_bandpass 等推荐键；META-002 禁伪造，待 index.json 真实滤镜元数据接通） |
 | §4.2.1（properties 可选/推荐键：hips_status/hips_estsize/hips_initial_fov） | 可选键存在时须自洽、非占位 | PARTIAL | docs/science/algorithms/HIPS_WRITER.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp | DISP-HIPS-002（hips_estsize="1000000"、hips_initial_fov="60" 硬编码占位）；DISP-HIPS-003（hips_status 恒 "private master"） |
 | §4.4.1（all-sky map 与 MOC 关系） | 覆盖由 MOC 表达；低阶像素=子像素聚合 | CONFORMANT | docs/science/algorithms/HIPS_WRITER.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp | DISP-HIPS-005（moc_order 静默 clamp；低阶 UNIQ 对自家 reader 无效，Moc.fits 为 optional hint） |
 | §6.3.1（客户端绘制所需的初始视场/像素尺度元数据） | 提供 `hips_pixel_scale`/`hips_initial_fov` 等客户端键 | CONFORMANT | lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；docs/science/algorithms/HIPS_WRITER.md | DISP-HIPS-012（FIRSTPIX/LASTPIX 声明性头卡无消费方） |
-| properties 1.4（hips_version="1.4" 与 hierarchy 聚合） | 1.4 修订的 properties 版本字面量与层级聚合语义 | CONFORMANT | lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；docs/science/algorithms/HIPS_WRITER.md；docs/contracts/PUBLIC_API.md | DISP-HIPS-009（f32 产品层级累加为 float 求和，多子 tile 舍入漂移） |
+| properties 1.4（hips_version="1.4" 与 hierarchy 聚合） | 1.4 修订的 properties 版本字面量与层级聚合语义 | CONFORMANT | lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；docs/science/algorithms/HIPS_WRITER.md；docs/engineering/PUBLIC_API.md | DISP-HIPS-009（f32 产品层级累加为 float 求和，多子 tile 舍入漂移） |
 
 ### D.hips 偏差表
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| STD-F4 | 中（P2） | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md | HiPS 域原子任务（以 testdata/index.json 真实滤镜元数据接通 em_min/em_max/obs_bandpass，取值一律取自真实元数据） |
+| STD-F4 | 中（P2） | docs/science/IO_002_HIPS_INPUT_INTERFACE.md | HiPS 域原子任务（以 testdata/index.json 真实滤镜元数据接通 em_min/em_max/obs_bandpass，取值一律取自真实元数据） |
 | DISP-HIPS-001 | 高 | docs/science/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL / P1-HIPS-INT（abort 不删除已写文件，无 rollback） |
 | DISP-HIPS-002 | 中 | docs/science/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（hips_estsize/hips_initial_fov 硬编码占位） |
 | DISP-HIPS-003 | 低 | docs/science/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（hips_status 恒值未参数化） |
-| DISP-HIPS-004 | 高 | docs/science/algorithms/HIPS_WRITER.md；docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P1-HIPS-INT（C++ 写出无原子发布；原子语义由 IO-003 发布层承接） |
+| DISP-HIPS-004 | 高 | docs/science/algorithms/HIPS_WRITER.md；docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P1-HIPS-INT（C++ 写出无原子发布；原子语义由 IO-003 发布层承接） |
 | DISP-HIPS-005 | 低/中 | docs/science/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（moc_order 静默 clamp 与读侧兼容性） |
 | DISP-HIPS-006 | 中 | docs/science/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（CFITSIO 写路径无进程级互斥包装） |
 | DISP-HIPS-007 | 低 | docs/science/algorithms/HIPS_WRITER.md | P1-HIPS-IMPL（错误码无集中枚举、正负混用） |
@@ -158,9 +158,9 @@
 - EVIDENCE: docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz
 - DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；DISP-DRZ-004；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
   （**`DISP-DRZ-004` 口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 =
-  `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling` 块：
+  `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling` 块：
   样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；
-  `docs/standards/NUMERIC_STANDARD.md` §MUST 引用同一份文字，**口径只有一套**）。
+  `docs/engineering/NUMERIC_STANDARD.md` §MUST 引用同一份文字，**口径只有一套**）。
   **禁用**把值 NaN 经 `F_p` 传播——会污染整像素信号与几何支撑。）
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
@@ -169,7 +169,7 @@
 | §3（线性重建 w_jp = a_jp / A_drop 与面亮度语义） | 核按 drop 面积归一（`Σ_p w_jp=1`）⇒ `Σ_p F_p=Σ_j x_j`；面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j` ⇒ `S_p=Σ_j B_j a_jp/Σ_j a_jp`；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz；lib/algorithms/drizzle/healpix_drizzle/tests（drizzle_acceptance_test） | DISP-DRZ-009（CLOSED：**正向**核 `w=a/A_drop` 配分母 `N_p`、**反向**为 `Σ B·a/Σ a`；**禁用**把正向分母换成覆盖面积 `D_p=Σ_j a_jp`——pixfrac<1 时偏 1/pixfrac²；反向路径改变仍使输出随源 nside 变化）；DRZ-FLUX-FIX-01（口径订正：通量守恒为严格不变量、`flux_conservation_factor≡1`）；DISP-DRZ-002（TRACKED：源码注释写「Girard 定理」而实现为 S-H 裁剪 + Van Oosterom & Strackee 扇形剖分，注释须同步） |
 | §3（球面交叠面积与微小 drop 数值路径） | 交叠面积计算须数值稳定 | PROJECT_DEFINED | docs/science/algorithms/DRIZZLE_GEOMETRY.md | DISP-DRZ-005（角跨度 <1e-3 rad 时切平面分支为真路径，注释论证偏差 <4e-8；禁删） |
 | §4（欠采样重建与候选枚举完备性） | 重建须覆盖全部候选源像素，零漏选 | CONFORMANT | lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；docs/science/algorithms/DRIZZLE_GEOMETRY.md | 无（9003 例全枚举 false_negative=0：4 pixfrac × 5 尺度 × 7 nside × RA 跨 0 × 极区 × face 边界） |
-| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | PARTIAL | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | DISP-DRZ-004（CLOSED：口径 = `NAN-SAMPLE-MASK-COVERAGE-NAN`，样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数，实现锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` §5/§10）；DISP-DRZ-007（TRACKED：方差锚行号漂移） |
+| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | PARTIAL | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；docs/engineering/NUMERIC_STANDARD.md | DISP-DRZ-004（CLOSED：口径 = `NAN-SAMPLE-MASK-COVERAGE-NAN`，样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数，实现锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` §5/§10）；DISP-DRZ-007（TRACKED：方差锚行号漂移） |
 | §2/§3（SIP 畸变场下的 drop 映射） | 源像素角点经 WCS 映射到球面多边形 | PARTIAL | docs/science/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests | DISP-DRZ-001（SIP 阶数校验 [0,5] 与注释 0..4 不符） |
 
 ### D.drizzle 偏差表
@@ -179,7 +179,7 @@
 | DISP-DRZ-001 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（SIP 阶数注释与校验不一致） |
 | DISP-DRZ-002 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | TRACKED（残留 = 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写「Girard 定理」，实现为 S-H 球面裁剪 + Van Oosterom & Strackee 扇形剖分；文档侧命名已与实现一致） |
 | DISP-DRZ-003 | 中 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（pixfrac 双轨边界） |
-| DISP-DRZ-004 | **高** | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | CLOSED：**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；`NUMERIC_STANDARD.md` §MUST 引用同一份文字）。**禁用**把值 NaN 经 `F_p` 传播（负例判据；实现锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` §5/§10） |
+| DISP-DRZ-004 | **高** | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md；docs/engineering/NUMERIC_STANDARD.md | CLOSED：**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；`NUMERIC_STANDARD.md` §MUST 引用同一份文字）。**禁用**把值 NaN 经 `F_p` 传播（负例判据；实现锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md` §5/§10） |
 | DISP-DRZ-005 | 中 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL / P1-DRZ-INT（微小 drop 切平面真路径须守护，**禁用**删除该分支） |
 | DISP-DRZ-006 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（累加器字段数注释漂移） |
 | DISP-DRZ-007 | 低 | docs/science/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（方差锚行号漂移） |
@@ -195,23 +195,23 @@
 - VERSION: Gaia DR3（Gaia Collaboration et al. 2023, A&A 674, A1）+ XPSD 本地编码合同
 - CLAUSES: DR3 source 列面（ra/dec 参考历元 J2016.0、phot_g_mean_mag/phot_bp_mean_mag/phot_rp_mean_mag）；本地 XPSD 记录布局（ALG-GAIA-001 §2）
 - COMPLIANCE: PARTIAL
-- EVIDENCE: docs/science/algorithms/GAIA_QUERY.md；docs/modules/gaia_xpsd_client.md；docs/science/ASTROMETRY.md；lib/infrastructure/gaia_xpsd_client/src/gaia_client.c；eng/tests/unit/CMakeLists.txt
+- EVIDENCE: docs/science/algorithms/GAIA_QUERY.md；docs/detail/gaia_xpsd_client.md；docs/science/ASTROMETRY.md；lib/infrastructure/gaia_xpsd_client/src/gaia_client.c；eng/tests/unit/CMakeLists.txt
 - DEVIATION: DISP-GAIA-001
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
 | DR3 source 位置列（ra/dec，ICRS，参考历元 J2016.0） | 位置以 ICRS 表达，RA∈[0,360)、Dec∈[-90,90] | CONFORMANT | docs/science/algorithms/GAIA_QUERY.md；docs/science/ASTROMETRY.md；lib/infrastructure/gaia_xpsd_client/src/gaia_client.c | 无（RA 归一到 [0,360)；frame 契约与 SCI-WCS-001 §3a 一致） |
 | DR3 测光列（phot_g_mean_mag / phot_bp_mean_mag / phot_rp_mean_mag） | G/BP/RP 星等语义与量化解码 | PARTIAL | docs/science/algorithms/GAIA_QUERY.md；lib/infrastructure/gaia_xpsd_client/src/gaia_client.c | DISP-GAIA-001（本地 XPSD 以 uint16×0.001−1.5 量化表达；非官方 archive 数据模型，仓库无版本化 DR3 data model 文档） |
-| DR3 source 列面完备性（source_id 等主键列） | 星表主键与列面可追溯 | NON_CONFORMANT | docs/science/algorithms/GAIA_QUERY.md；docs/modules/gaia_xpsd_client.md | DISP-GAIA-001（本地 XPSD 仅存位置/星等/光谱子集，无 source_id 主键列；跨表身份靠位置匹配） |
+| DR3 source 列面完备性（source_id 等主键列） | 星表主键与列面可追溯 | NON_CONFORMANT | docs/science/algorithms/GAIA_QUERY.md；docs/detail/gaia_xpsd_client.md | DISP-GAIA-001（本地 XPSD 仅存位置/星等/光谱子集，无 source_id 主键列；跨表身份靠位置匹配） |
 | XPSD 本地编码（2 µas/LSB 位置量化、10 µas/LSB dra、0.001 mag 星等） | 本地编码须与标准列语义无损对应并写明换算 | CONFORMANT | docs/science/algorithms/GAIA_QUERY.md；lib/infrastructure/gaia_xpsd_client/src/gaia_client.c | 无（2 µas/LSB 位置量化按实测锚登记） |
-| DR3SP 光谱量化解码（F(λ)=byte·fluxMul+fluxMin） | 光谱量化残差须量化登记 | PARTIAL | docs/science/algorithms/GAIA_QUERY.md；docs/modules/gaia_xpsd_client.md | DISP-GAIA-001（8-bit 量化残差 median 0.21%/p95 1.8%，属本地编码损失） |
+| DR3SP 光谱量化解码（F(λ)=byte·fluxMul+fluxMin） | 光谱量化残差须量化登记 | PARTIAL | docs/science/algorithms/GAIA_QUERY.md；docs/detail/gaia_xpsd_client.md | DISP-GAIA-001（8-bit 量化残差 median 0.21%/p95 1.8%，属本地编码损失） |
 | 查询锥与星等窗语义（角距 ≤ρ、m_lo≤m_G≤m_hi 闭区间） | 球面角距定义与闭区间边界 | CONFORMANT | docs/science/algorithms/GAIA_QUERY.md；eng/tests/unit/CMakeLists.txt | 无（含极区/跨 RA=0 边界用例） |
 
 ### D.catalog 偏差表
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| DISP-GAIA-001 | 中 | docs/science/algorithms/GAIA_QUERY.md；docs/modules/gaia_xpsd_client.md | catalog 域原子任务（登记 Gaia DR3 data model 版本化列面映射：官方列 → XPSD 本地字段，并显式声明 source_id 主键缺失与量化损失） |
+| DISP-GAIA-001 | 中 | docs/science/algorithms/GAIA_QUERY.md；docs/detail/gaia_xpsd_client.md | catalog 域原子任务（登记 Gaia DR3 data model 版本化列面映射：官方列 → XPSD 本地字段，并显式声明 source_id 主键缺失与量化损失） |
 
 ---
 
@@ -222,23 +222,23 @@
 - VERSION: FITS 4.0（IAU FWG，2016-07-22 批准版）
 - CLAUSES: §3.1（基本文件结构/80 字节卡）/§4.2（SIMPLE/BITPIX/NAXIS 基本头）/§4.4（扩展 HDU）/§5（表扩展）/§6（DATASUM/CHECKSUM）
 - COMPLIANCE: PARTIAL
-- EVIDENCE: docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；docs/contracts/DATA_SEMANTICS.md；lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py
+- EVIDENCE: docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；docs/science/DATA_SEMANTICS.md；lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py
 - DEVIATION: DISP-FITS-001
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| §3.1（基本文件结构：80 字节卡、END、2880 字节块） | header 卡固定 80 字节、以 END 结束、按 2880 字节补齐 | CONFORMANT | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；eng/tests/io/test_fits_stream_contract.py | 无（含非法 header/END 缺失负面用例） |
-| §4.2（SIMPLE/BITPIX/NAXIS 基本头与基本图像 HDU） | 基本 HDU 头卡合法且维度一致 | CONFORMANT | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；eng/tests/io/test_fits_stream_contract.py | 无（NAXIS≥0、≤3；dtype/shape 失配显式拒绝） |
+| §3.1（基本文件结构：80 字节卡、END、2880 字节块） | header 卡固定 80 字节、以 END 结束、按 2880 字节补齐 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；eng/tests/io/test_fits_stream_contract.py | 无（含非法 header/END 缺失负面用例） |
+| §4.2（SIMPLE/BITPIX/NAXIS 基本头与基本图像 HDU） | 基本 HDU 头卡合法且维度一致 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/algorithms/PHASE3_FITS_IMPL.md；eng/tests/io/test_fits_stream_contract.py | 无（NAXIS≥0、≤3；dtype/shape 失配显式拒绝） |
 | §4.4/§5（扩展 HDU 与表扩展） | 扩展 HDU/BINTABLE 结构与 EXTNAME/BUNIT 语义 | PARTIAL | docs/science/algorithms/PHASE3_FITS_IMPL.md；eng/tests/io/test_fits_stream_contract.py | DISP-FITS-001（扩展 HDU 面按产品子集实现：仅登记 EXTNAME/BUNIT/DATASUM 面，未覆盖通用表扩展全集） |
-| §6（DATASUM/CHECKSUM 校验和） | 数据与头校验和须可复算、校验失败显式报错 | CONFORMANT | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；docs/contracts/DATA_SEMANTICS.md；eng/tests/io/test_fits_stream_contract.py | 无（内容哈希流式重算复核在位） |
-| §3.1/§4.2（错误语义：截断/坏头/不支持位深） | 违规输入显式错误码，禁静默降级 | CONFORMANT | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py | 无（ACS_FIO_ERR_* 17 码，含 TRUNCATED/BAD_HEADER/UNSUPPORTED） |
-| §4.2（BITPIX 与像素中心/值域语义） | 位深与数据类型显式，单位与 BUNIT 一致 | PARTIAL | docs/contracts/DATA_SEMANTICS.md；docs/science/algorithms/PHASE3_FITS_IMPL.md | DISP-FITS-001（科学产品的 BITPIX/BUNIT 面按 Phase 子集登记，全通用位深面归 IO 域后续任务） |
+| §6（DATASUM/CHECKSUM 校验和） | 数据与头校验和须可复算、校验失败显式报错 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/DATA_SEMANTICS.md；eng/tests/io/test_fits_stream_contract.py | 无（内容哈希流式重算复核在位） |
+| §3.1/§4.2（错误语义：截断/坏头/不支持位深） | 违规输入显式错误码，禁静默降级 | CONFORMANT | docs/science/IO_001_FITS_STREAM_INTERFACE.md；lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h；eng/tests/io/test_fits_stream_contract.py | 无（ACS_FIO_ERR_* 17 码，含 TRUNCATED/BAD_HEADER/UNSUPPORTED） |
+| §4.2（BITPIX 与像素中心/值域语义） | 位深与数据类型显式，单位与 BUNIT 一致 | PARTIAL | docs/science/DATA_SEMANTICS.md；docs/science/algorithms/PHASE3_FITS_IMPL.md | DISP-FITS-001（科学产品的 BITPIX/BUNIT 面按 Phase 子集登记，全通用位深面归 IO 域后续任务） |
 
 ### D.fits 偏差表
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| DISP-FITS-001 | 低 | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md；docs/contracts/DATA_SEMANTICS.md | IO 域原子任务（扩展 HDU/表扩展与全通用位深面按 FITS 4.0 全集收敛；当前为显式产品子集，非静默偏差） |
+| DISP-FITS-001 | 低 | docs/science/IO_001_FITS_STREAM_INTERFACE.md；docs/science/DATA_SEMANTICS.md | IO 域原子任务（扩展 HDU/表扩展与全通用位深面按 FITS 4.0 全集收敛；当前为显式产品子集，非静默偏差） |
 
 ---
 
@@ -295,7 +295,7 @@
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| STD-F6 | CLOSED | docs/standards/STANDARDS_REGISTRY.md（本注册表 §1.2/§3.1） | STD-REG-001（本注册表建立即关闭；依据 = `STD-F6`「国际标准冻结注册表缺失」处置面） |
+| STD-F6 | CLOSED | docs/engineering/STANDARDS_REGISTRY.md（本注册表 §1.2/§3.1） | STD-REG-001（本注册表建立即关闭；依据 = `STD-F6`「国际标准冻结注册表缺失」处置面） |
 
 
 ---
@@ -304,12 +304,12 @@
 
 | `ASTROCS_DESIGN.md` 附录 B 条目 | 本注册表域 | 落地文档 |
 |---|---|---|
-| IVOA HiPS 1.0 Recommendation | hips | docs/science/algorithms/HIPS_WRITER.md；docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md |
+| IVOA HiPS 1.0 Recommendation | hips | docs/science/algorithms/HIPS_WRITER.md；docs/science/IO_002_HIPS_INPUT_INTERFACE.md |
 | Fernique et al. 2015, Hierarchical progressive surveys | hips | docs/science/PHASE3_HIPS_TO_FITS.md |
 | Górski et al. 2005, HEALPix | healpix | docs/science/algorithms/HEALPIX_MAPPING.md；lib/algorithms/shared/healpix/healpix_core.h |
 | Greisen & Calabretta 2002, FITS WCS Paper I | spherical-projection | docs/science/ASTROMETRY.md；docs/science/algorithms/PHASE3_PROJ_IMPL.md |
 | Calabretta & Greisen 2002, FITS WCS Paper II | spherical-projection | docs/science/algorithms/PHASE3_PROJ_IMPL.md |
-| IAU FITS Working Group / FITS Standard | fits | docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md |
+| IAU FITS Working Group / FITS Standard | fits | docs/science/IO_001_FITS_STREAM_INTERFACE.md |
 | Fruchter & Hook 2002, Drizzle | drizzle | docs/science/DRIZZLE.md；docs/science/algorithms/DRIZZLE_GEOMETRY.md |
 
 ---
@@ -387,7 +387,7 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 - 域文档：docs/science/ASTROMETRY.md、docs/science/DRIZZLE.md、docs/science/PHASE3_HIPS_TO_FITS.md、
   docs/science/algorithms/PLATESOLVE.md、docs/science/algorithms/PHASE3_PROJ_IMPL.md、docs/science/algorithms/HIPS_WRITER.md、
   docs/science/algorithms/HEALPIX_MAPPING.md、docs/science/algorithms/DRIZZLE_GEOMETRY.md、docs/science/algorithms/GAIA_QUERY.md、
-  docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md、docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md。
+  docs/science/IO_001_FITS_STREAM_INTERFACE.md、docs/science/IO_002_HIPS_INPUT_INTERFACE.md。
 - 机器检查：docs/standards/checks/check_standards_registry.py；docs/DOCUMENT_INDEX.yaml（DOC-INDEX 检查项）。
 - 本文件不修改任何 SCI/ALG 公式、默认容差或冻结门；冲突一律登记偏差（§1.2/§1.5）。
 
@@ -399,6 +399,6 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 - 本表**不写**交付状态阶梯（§12.5 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `eng/tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `eng/tools/doccheck/check_doc_index.py` 为准。
 - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：
-  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 `check_standards_registry.py` C4/C5 现场判（`docs/owner/RELEASE_STATUS.md` §0 已声明两轴独立）；
+  - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 `check_standards_registry.py` C4/C5 现场判（`docs/engineering/RELEASE_STATUS.md` §0 已声明两轴独立）；
   - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 现场判。
 - 若后续要求连这两列也改为「检查器现场计算」，须先改 `docs/standards/checks/check_standards_registry.py` 的 C4/C6 判据并同步 `eng/ci/checks.json` 的 STD-REG 项——属门禁改造，不在本文件域内。

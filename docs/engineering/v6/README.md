@@ -16,7 +16,7 @@
 `data/*.json`、`oracle/*.py`、`evidence/`。
 
 **条款 id 落点**：本目录各文引用的 `FZ-*` 条款 id 的
-登记解析权威 = `docs/contracts/DATA_SEMANTICS.md` §31（§31.10 = 条款注册表与待签登记，
+登记解析权威 = `docs/science/DATA_SEMANTICS.md` §31（§31.10 = 条款注册表与待签登记，
 含 `CHG-2026-09-22-V6-CONTRACT-MERGE` 的 V6 合同层设计档案与冻结 JSON 出库清单）；
 本目录内条款 id 一律按 §31.10 解析。
 

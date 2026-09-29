@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：接口签名、流式读写语义、输入解析与原子发布规则的合同正文。
-- 不放：数据对象语义（在 docs/contracts/）；aio 模块工作细节（在 docs/plugins/infrastructure/17_aio.md）；落盘形态设计（在 docs/design/PRODUCT_STORAGE_FORM.md）。
+- 不放：数据对象语义（在 docs/contracts/）；aio 模块工作细节（在 docs/detail/infrastructure/17_aio.md）；落盘形态设计（在 docs/detail/PRODUCT_STORAGE_FORM.md）。
 
 ## 内容
 

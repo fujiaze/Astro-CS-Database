@@ -34,7 +34,7 @@ flowchart TD
 
 ## 3. 依赖方向（构建图强制）
 
-依赖方向正本 = `docs/architecture/DEPENDENCY_RULES.md`；本合同的边界条款如下。
+依赖方向正本 = `docs/engineering/DEPENDENCY_RULES.md`；本合同的边界条款如下。
 
 ```text
 cli → runtime → registry → modules → cpu_backend
@@ -49,7 +49,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 
 ## 4. 线程与资源预算
 
-预算、分配与嵌套并行正本 = `docs/architecture/THREAD_BUDGET_ARCH.md`；本合同的边界条款如下。
+预算、分配与嵌套并行正本 = `docs/engineering/THREAD_BUDGET_ARCH.md`；本合同的边界条款如下。
 
 - 只有 Runtime 创建全局 worker pool；CPU-heavy 节点按估算 work units 获取 `ThreadLease`，
   模块只向 lease executor 投递 work，线程数只来自 lease（裸 `omp_set_num_threads`、

@@ -24,7 +24,7 @@ flowchart LR
 - **节点序（8 个生产节点）**：`calibrate → cosmetic_correct → plate_solve → detect_sources → measure_flux → estimate_snr → drizzle_stack → write_hips`。
   节点序 = 注册表端口图 DAG 的拓扑序，并与注册表 `modules` 数组的声明序一致；
   注册表（`lib/infrastructure/pipeline/module_ports.registry.json`）是节点序与依赖边的唯一事实源，
-  机器判据见 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7、§7.1。
+  机器判据见 `docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §7、§7.1。
 - **WCS 解算只有一个节点、一个权威解**（最高设计 §4.2）：近似指向由 `wcs.init_source`
   （`header_pointing` / `config` / `neighbor_crval`）给出，不是独立的解算节点；
   `plate_solve` 在该指向下完成星表匹配与稳健迭代精化，其输出即唯一权威 WCS。
@@ -53,7 +53,7 @@ flowchart LR
 
 - 该阶段的唯一用户命令：`mosaic --json <config.json>`。
 - **排异不是「7 种任选」**：排异算法**逐像素按该像素的几何可贡献帧数 N 自动选择**；
-  档界与算法名的唯一正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9
+  档界与算法名的唯一正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9
   （向该正本引用，不复制档界与取值；注册表路由表与该正本逐项一致）。
   生产排异算法集为 none / percentile / winsorized / linear fit；min/max 极值法不用于生产。
 

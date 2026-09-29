@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
 
-> 权威: docs/contracts/DATA_SEMANTICS.md（语义）+ 本表（artifact schema 登记 + 歧义映射）
+> 权威: docs/science/DATA_SEMANTICS.md（语义）+ 本表（artifact schema 登记 + 歧义映射）
 
 ## 1. DataArtifact schema 清单
 
@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|---|---|---|
 | DATA-IMG-RAW-001 | raw 亮场 | f32/f64/u16 | [H,W], y,x | ADU，**标度类别 `raw_adu`**：u16 整数样本的物理值 = `BSCALE·样本 + BZERO`，即 `BSCALE/BZERO` **在读取时已施加**（实现锚 = `lib/infrastructure/aio/src/aio_fits.cpp` 的 f32/f64 两条读路径；FITS Standard 4.0 §4.4.2.5 同口径）⇒ 读入后 u16 与 f32/f64 落在**同一 ADU 物理标度**上，可逐值比较 | pixel(0-based) | NaN=invalid | unique→borrowed | FITS/XISF |
 | DATA-IMG-CAL-001 | calibrated 亮场 | f32/f64 | [H,W], y,x | ADU（标度类别 `calibrated_adu`：已过 `BSCALE/BZERO`、未施加测光标度 α）；e⁻ **只在调用方另行给出 gain 换算后**才成立，换算责任方 = 消费方（本层不建模 gain，`docs/science/CALIBRATION.md` §1 非目标） | pixel | NaN=invalid; 负值保留 | unique | FITS |
-| DATA-IMG-VAR-001 | variance（逐帧/逐帧内平面，**帧内块**） | f32/f64 | [H,W] | **量纲 `ADU^2`（像素域，无 sr 幂）；标度 = 与同帧 `data` 面同一标度**：`calibrated_adu` ⇒ ADU²；`photo_scaled_adu` ⇒ α²·ADU²（α = frame photscal，**逐帧量**，见 `docs/standards/NUMERIC_STANDARD.md` 标度词表） | pixel | **无方差信息 = 0（显式不可用，§4a）**；NaN/负 = 损坏（写侧 rc=−6 硬失败） | unique | FITS |
+| DATA-IMG-VAR-001 | variance（逐帧/逐帧内平面，**帧内块**） | f32/f64 | [H,W] | **量纲 `ADU^2`（像素域，无 sr 幂）；标度 = 与同帧 `data` 面同一标度**：`calibrated_adu` ⇒ ADU²；`photo_scaled_adu` ⇒ α²·ADU²（α = frame photscal，**逐帧量**，见 `docs/engineering/NUMERIC_STANDARD.md` 标度词表） | pixel | **无方差信息 = 0（显式不可用，§4a）**；NaN/负 = 损坏（写侧 rc=−6 硬失败） | unique | FITS |
 | DATA-IMG-IVAR-001 | inverse variance（帧内块） | f32/f64 | [H,W] | **量纲 `ADU^-2`（像素域）；标度与同帧 variance 严格互倒**（`ivar = 1/variance`，有限域） | pixel | **ivar=0 = 显式不可用**（禁 `1/0→Inf`）；NaN/负 = 损坏 | unique | FITS |
 | DATA-IMG-WEIGHT-001 | quality weight | f32 | [H,W] | 无量纲[0,1] | pixel | 0=不合格 | unique | FITS |
 | DATA-IMG-SUPPORT-001 | support | f32/u8 | [H,W] | [0,1] | pixel | 0=无覆盖 | unique | FITS/HiPS |
@@ -18,19 +18,19 @@
 | DATA-WCS-001 | WCS 描述 | struct | n/a | deg/px | ICRS | 无解=显式错误 | shared | header/JSON |
 | DATA-CAT-PSF-001 | PSF catalog | struct[] | [N] | px,deg,ADU | ICRS+pixel | 失败不输出伪有效 | unique | FITS/CSV |
 | DATA-CAT-PHOT-001 | photometry catalog | struct[] | [N] | **通量标度 = `calibrated_adu`（ADU）；`e⁻` 只在调用方另行给出 gain 换算后才成立，换算责任方 = 消费方**（本层不建模 gain：`docs/science/CALIBRATION.md` §1 非目标、§9a「gain 不在本层建模」）；星等无量纲 | ICRS | 饱和拒=rejected_quality | unique | FITS/CSV |
-| DATA-HIPS-SIGNAL-001 | HiPS signal 数据集 | f32/f64 | HEALPix NESTED | **`ADU/sr`**（线性计数面亮度；立体角幂不可省。**标度类别 = `surface_brightness`**，逐帧乘性因子由 `PHOTSCAL`/`PHOTAPPL` 承载 —— `BUNIT` 相同**不**蕴含标度相同，见 `docs/contracts/DATA_SEMANTICS.md` §31.1a/§31.2） | ICRS | NaN/support=0 | shared/persisted | HiPS |
-| DATA-HIPS-VAR-001 | HiPS variance 子产品 | f32/f64 | HEALPix NESTED tile | **`ADU^2/sr^2`（面亮度方差 = `var_num_sum/covered_area²`；立体角幂不可省，见 `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律）** | ICRS | **无覆盖（covered_area≤0）= NaN（与 signal 同态）**；有覆盖但无方差信息（covered_area>0 ∧ var_num_sum≤0）= **0**（显式不可用）；负 = 损坏。编码权威 = `DATA_SEMANTICS` §11.2/§12.2/§4a | persisted | HiPS |
+| DATA-HIPS-SIGNAL-001 | HiPS signal 数据集 | f32/f64 | HEALPix NESTED | **`ADU/sr`**（线性计数面亮度；立体角幂不可省。**标度类别 = `surface_brightness`**，逐帧乘性因子由 `PHOTSCAL`/`PHOTAPPL` 承载 —— `BUNIT` 相同**不**蕴含标度相同，见 `docs/science/DATA_SEMANTICS.md` §31.1a/§31.2） | ICRS | NaN/support=0 | shared/persisted | HiPS |
+| DATA-HIPS-VAR-001 | HiPS variance 子产品 | f32/f64 | HEALPix NESTED tile | **`ADU^2/sr^2`（面亮度方差 = `var_num_sum/covered_area²`；立体角幂不可省，见 `docs/engineering/NUMERIC_STANDARD.md` 面亮度标度律）** | ICRS | **无覆盖（covered_area≤0）= NaN（与 signal 同态）**；有覆盖但无方差信息（covered_area>0 ∧ var_num_sum≤0）= **0**（显式不可用）；负 = 损坏。编码权威 = `DATA_SEMANTICS` §11.2/§12.2/§4a | persisted | HiPS |
 | DATA-HIPS-IVAR-001 | HiPS ivar 子产品 | f32/f64 | HEALPix NESTED tile | **`sr^2/ADU^2`（= 1/variance，有限域互为倒数）** | ICRS | **无覆盖 = NaN（同 signal）**；有覆盖但无方差信息 = **0**（禁 `1/0→Inf`）；负 = 损坏。编码权威 = `DATA_SEMANTICS` §11.2/§12.2/§4a | persisted | HiPS |
 | DATA-UPM-MODEL-001 | UPM 加性模型 | double[] | [n_frame×n_cell] | ADU | control cell | NO_DATA 显式 | persisted | UPM file |
-| DATA-UPM-CONTROL-UNC-001 | control variance/ivar | f64 | [n_control] | **`ADU^2` / `ADU^-2`（像素域，无 sr 幂）；标度 = 与所消费的 Phase1 帧面同一标度**（帧已施加测光时随 `photo_scaled_adu` 一并缩放，`Var ∝ α²`）。**几何口径**：`[n_control]` 的每一元素对应一个 **control cell**（tile 内 8×8 网格的 cell，编号自 tile 原点起），不是源像素也不是 leaf ipix；**`k_corr` 放大已含在值内**（`control_variance = k_corr·(π/2)·σ_bg²/N_retained`，适用域见 `docs/contracts/DATA_SEMANTICS.md` §25.2 的 `control_k_corr` 行）⇒消费侧**取用含 `k_corr` 的值**| control cell | ivar≤0→rc=2 | unique | JSON |
+| DATA-UPM-CONTROL-UNC-001 | control variance/ivar | f64 | [n_control] | **`ADU^2` / `ADU^-2`（像素域，无 sr 幂）；标度 = 与所消费的 Phase1 帧面同一标度**（帧已施加测光时随 `photo_scaled_adu` 一并缩放，`Var ∝ α²`）。**几何口径**：`[n_control]` 的每一元素对应一个 **control cell**（tile 内 8×8 网格的 cell，编号自 tile 原点起），不是源像素也不是 leaf ipix；**`k_corr` 放大已含在值内**（`control_variance = k_corr·(π/2)·σ_bg²/N_retained`，适用域见 `docs/science/DATA_SEMANTICS.md` §25.2 的 `control_k_corr` 行）⇒消费侧**取用含 `k_corr` 的值**| control cell | ivar≤0→rc=2 | unique | JSON |
 | DATA-REJ-MAP-001 | rejection map | u8 | [H,W] | 位掩码 | pixel | reason code 每样本 | persisted | FITS |
 | DATA-FRAME-ID-001 | frame identity | uint64 | scalar | 无量纲 | 科学 payload 派生 | 重复拒绝 | shared | JSON/manifest |
 | DATA-P3-FITS-001 | 平面 FITS | f32/f64 | [W_out,H_out] | 面亮度(禁默认 Jy/beam) | TAN/ICRS | NaN+coverage | persisted | FITS |
-| DATA-P1-PHOTPROV-001 | Phase1 测光 provenance sidecar(p1_phot.json; B2-A14 关闭伪造 PHOTAPPL) | 无标量(标签+比例) | n/a | **逐字段量纲**：`photometry_applied`/`pixel_scaling`/`status` 等标签 = 无量纲；**`photscal`（= `k_photo`）= `[F_syn 单位]/ADU`**（F_syn 单位 = 模型通带积分辐照度 `W·m^-2·nm^-1`，见 `docs/contracts/DATA_SEMANTICS.md` §14.3），**不是**无量纲、**不是**其倒数；`len(photscales)` 与 `frames[]` 的逐帧对应见 invalid 列 | n/a | 缺文件=未应用测光(允许显式 ADU 降级); schema≠DATA-P1-PHOTPROV-001 / photscal 非有限或≤0 → drizzle DATA 拒绝; PHOTAPPL=1 取显式值。该「缺文件」分支只允许是**显式**状态——CLI 链上 phot→drz 有 typed 依赖边（phot 输出端口 p1_phot → drz 输入端口 p1_phot, artifact:p1_phot），调度器保证 phot 落盘后才执行 drz，存在性判定 = typed 依赖边。**逐帧判决**：`frames[]` 逐帧记 `status ∈ {ok, fail}`，`status=fail` 必须带 `error_domain`/`error_status`（稳定错误码）/\`error\` 且 `photometry_applied=false`、不产出 `photoapplied_<base>`、不写 `degraded_reason`（失败≠降级）；`photometry_applied` 是**组级摘要**（至少一帧已施加，`pixel_scaling` ∈ applied/partial/none），逐帧真相只在 `frames[]`；不变量 `n_frames_ok + n_frames_failed == n_frames`、`len(photscales) == n_frames_applied`、`failed_frames` 与 `frames[]` 一致（门禁 `CHK-PROVENANCE-CONSISTENCY` P3b/P3b-2） | unique(p1_op_photometry 原子写) | JSON |
+| DATA-P1-PHOTPROV-001 | Phase1 测光 provenance sidecar(p1_phot.json; B2-A14 关闭伪造 PHOTAPPL) | 无标量(标签+比例) | n/a | **逐字段量纲**：`photometry_applied`/`pixel_scaling`/`status` 等标签 = 无量纲；**`photscal`（= `k_photo`）= `[F_syn 单位]/ADU`**（F_syn 单位 = 模型通带积分辐照度 `W·m^-2·nm^-1`，见 `docs/science/DATA_SEMANTICS.md` §14.3），**不是**无量纲、**不是**其倒数；`len(photscales)` 与 `frames[]` 的逐帧对应见 invalid 列 | n/a | 缺文件=未应用测光(允许显式 ADU 降级); schema≠DATA-P1-PHOTPROV-001 / photscal 非有限或≤0 → drizzle DATA 拒绝; PHOTAPPL=1 取显式值。该「缺文件」分支只允许是**显式**状态——CLI 链上 phot→drz 有 typed 依赖边（phot 输出端口 p1_phot → drz 输入端口 p1_phot, artifact:p1_phot），调度器保证 phot 落盘后才执行 drz，存在性判定 = typed 依赖边。**逐帧判决**：`frames[]` 逐帧记 `status ∈ {ok, fail}`，`status=fail` 必须带 `error_domain`/`error_status`（稳定错误码）/\`error\` 且 `photometry_applied=false`、不产出 `photoapplied_<base>`、不写 `degraded_reason`（失败≠降级）；`photometry_applied` 是**组级摘要**（至少一帧已施加，`pixel_scaling` ∈ applied/partial/none），逐帧真相只在 `frames[]`；不变量 `n_frames_ok + n_frames_failed == n_frames`、`len(photscales) == n_frames_applied`、`failed_frames` 与 `frames[]` 一致（门禁 `CHK-PROVENANCE-CONSISTENCY` P3b/P3b-2） | unique(p1_op_photometry 原子写) | JSON |
 | DATA-GAIA-001 | Gaia XPSD 星表行(C ABI 输出) | f64/i32/u8[] | [out_count]; 光谱 [out_count×spec_n] | deg,mag,W·m⁻²·nm⁻¹,nm | ICRS J2000 | out_match_idx=−1 未匹配; out_count=0 空结果合法; DR3 下 BP/RP=0 sentinel; 无光谱 flux_min/mul=0 | caller free(顶层 malloc) | in-memory(不落盘, §8.3) |
 | DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h:27-48) | in-memory(不落盘) |
 | DATA-UNC-001 | Phase2/Phase3 不确定度产品合同容器(DATA_SEMANTICS §30, 目标态) | 容器(无标量) | n/a | n/a | 跨域(见各子 schema) | 合同先行（实现随后）; unavailable 显式登记模式 | owner(DATA-001 冻结) | DATA_SEMANTICS.md §30 |
-| DATA-P2-VAR-001 | Phase2 马赛克 variance/ivar 子产品(目标态) | f32/f64 | HEALPix NESTED 512 tile | **`ADU^2/sr^2` / `sr^2/ADU^2`**（面亮度方差/逆方差；立体角幂不可省，见 `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律） | ICRS | 无有效样本=NaN(signal=NaN 同态); 非有限合成=NaN; 禁 0/±Inf 伪装 | persisted(variance/,ivar/ 目录) | HiPS(AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16) |
+| DATA-P2-VAR-001 | Phase2 马赛克 variance/ivar 子产品(目标态) | f32/f64 | HEALPix NESTED 512 tile | **`ADU^2/sr^2` / `sr^2/ADU^2`**（面亮度方差/逆方差；立体角幂不可省，见 `docs/engineering/NUMERIC_STANDARD.md` 面亮度标度律） | ICRS | 无有效样本=NaN(signal=NaN 同态); 非有限合成=NaN; 禁 0/±Inf 伪装 | persisted(variance/,ivar/ 目录) | HiPS(AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16) |
 | DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
 | DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
 | DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | **`ADU^2/sr^2` / `sr^2/ADU^2`**（BUNIT 派生；立体角幂不可省） | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
@@ -40,8 +40,8 @@
 
 ### 1.2 统一对象合同登记（DATA-001，UNIFIED_MODEL §2，canonical 在 eng/contracts/schemas/）
 
-本表第二节：UNIFIED_MODEL §2 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://astrocs.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = `docs/contracts/UNIFIED_OBJECTS.md` §2）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
-上位锚：`docs/design/UNIFIED_MODEL.md` §2；`ASTROCS_DESIGN.md` §2；`ENGINEERING_SPEC.md` §3/§4.7。机器门：`eng/tests/contracts/test_unified_object_contract.py`。
+本表第二节：UNIFIED_MODEL §2 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://astrocs.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = `docs/engineering/UNIFIED_OBJECTS.md` §2）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
+上位锚：`docs/detail/UNIFIED_MODEL.md` §2；`ASTROCS_DESIGN.md` §2；`ENGINEERING_SPEC.md` §3/§4.7。机器门：`eng/tests/contracts/test_unified_object_contract.py`。
 
 | schema_id | 内容 | scalar | shape/axis | unit | coordinate | invalid | ownership | serialization |
 |---|---|---|---|---|---|---|---|---|
@@ -66,7 +66,7 @@
 DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
 （lib/infrastructure/scheduler/src/module_adapters.cpp:498-499 与 :459/:498）、
 lib/infrastructure/pipeline/module_ports.registry.json:246/:277、
-端口合同页（`docs/modules/phase3_rsmp.md`、`docs/modules/phase3_proj.md`）、
+端口合同页（`docs/detail/phase3_rsmp.md`、`docs/detail/phase3_proj.md`）、
 eng/tests/unit/core_pipeline_test.cpp:66-67 在用，并在
 docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
 
@@ -86,7 +86,7 @@ docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
   `fits_index=(511−x)·512+y`）与 SCI-P3-001 §9a-1/-8；descriptor 单位
   `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
   （module_adapters.cpp:499）；"tile 读路径权威=DATA_SEMANTICS §3"
-  （docs/modules/phase3_rsmp.md:75）。
+  （docs/detail/phase3_rsmp.md:75）。
 
 **端口词汇面偏差（登记 finding）**：`DATA-HIPS-001` 的
 coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`

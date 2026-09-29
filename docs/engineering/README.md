@@ -81,7 +81,7 @@
 3. **`KNOWN_LIMITATIONS` 的分面**：它横跨科学/工程/产品三面（B 类条目是科学口径限制）。
    需裁决整篇留工程集，还是按面拆分。
 4. **`audit/` 的去留**：只有 CSV 无散文。需裁决是否仍单列，还是并入 `traceability/`。
-5. **两篇 `TROUBLESHOOTING.md` 的处置**：原 `docs/TROUBLESHOOTING.md` 与
+5. **两篇 `TROUBLESHOOTING.md` 的处置**：原 `docs/detail/merged_TROUBLESHOOTING.md` 与
    `docs/diagnostics/TROUBLESHOOTING.md` 内容互补不重叠，迁移合并为
    `docs/detail/merged_TROUBLESHOOTING.md`。需裁决是否保留合并形态，还是按「症状表」与
    「故障覆盖门」拆成两篇分置。
@@ -93,9 +93,9 @@
 - 索引规则正本：`ENGINEERING_SPEC.md` §8（仓库根，链外）。
 - 架构总原则与分层准入判据：`docs/ASTROCS_DESIGN.md` §8；文档分层判据见
   `DOCUMENT_GOVERNANCE.md` §2。
-- 科学佐证纪律：见 `docs/DOCUMENT_GOVERNANCE.md` §2（科学佐证纪律，全局）。
+- 科学佐证纪律：见 `docs/engineering/DOCUMENT_GOVERNANCE.md` §2（科学佐证纪律，全局）。
 - 门禁入口：`eng/ci/run_checks.py`；注册表与说明见 `01_CHECKS.md` 与
-  `docs/ci/CI_SPEC.md`（后者已迁入本集）。
+  `docs/engineering/CI_SPEC.md`（后者已迁入本集）。
 - 需要公式与容差时，离开本集去 `docs/science/`；需要函数名与算子级规范时，去 `docs/detail/`。
 
 ---

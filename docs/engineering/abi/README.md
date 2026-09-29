@@ -5,7 +5,7 @@
 ## 职责边界
 
 - 放：模块加载与 ABI 边界相关的合同。
-- 不放：公共 API 合同正文（在 docs/api/COMMON_ABI_V1.md）；C ABI 编码规范（在 docs/standards/C_ABI_STANDARD.md）；模块清单（在 docs/modules/）。
+- 不放：公共 API 合同正文（在 docs/engineering/COMMON_ABI_V1.md）；C ABI 编码规范（在 docs/engineering/C_ABI_STANDARD.md）；模块清单（在 docs/modules/）。
 
 ## 内容
 

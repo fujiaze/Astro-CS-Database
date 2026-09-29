@@ -4,8 +4,8 @@
 
 ## 1 全局 thread budget
 
-- **预算对象与字段合同**正本 = `docs/architecture/execution_options_contract.md`；
-  **并行轴分配与轴不变式**正本 = `docs/architecture/THREADING_MODEL.md`「并行轴分配」。
+- **预算对象与字段合同**正本 = `docs/engineering/execution_options_contract.md`；
+  **并行轴分配与轴不变式**正本 = `docs/engineering/THREADING_MODEL.md`「并行轴分配」。
   本节只写与执行架构相关的正向条款，不复制两处合同文本。
 - 预算基量 `available_cpus = affinity ∩ cgroup ∩ Job Object`（不是机器总核数）；
   预算按 `phase → stage → kernel` 层级显式分配，任何时刻 Σ(活动 worker) ≤ budget。
@@ -41,7 +41,7 @@
 - **Phase3**：子块流式 + 有界队列背压，内存占用 ∝ 子块大小、与总图大小无关。
 
 - 每阶段在 run manifest 记录 `budget_alloc`（分配快照）；资源监控以同一对象为唯一事实来源
-  （见 `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`）。
+  （见 `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`）。
 
 ## 3 异步与取消架构
 
@@ -54,7 +54,7 @@
 
 ## 4 并发正确性合同
 
-- 浮点归约顺序冻结（`docs/architecture/THREADING_MODEL.md`「确定性锚点」全部有效）：
+- 浮点归约顺序冻结（`docs/engineering/THREADING_MODEL.md`「确定性锚点」全部有效）：
   `lib/algorithms/coverage/src/upm.cpp` 的 `compute_raw`、`lib/algorithms/coverage/src/sampler.cpp`
   的固定槽位回写、`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 的 per-stripe 路径；
   tile 合并 = **per-stripe scratch pool 累加 + 按 stripe 索引升序左折叠归约**
@@ -85,7 +85,7 @@
 
 ## 6 关联
 
-- 文档：`docs/architecture/THREADING_MODEL.md`（分层 + 轴分配 + 确定性锚点）、
-  `docs/architecture/EXECUTION_MODEL.md`、`docs/architecture/ASYNC_IO_CONTRACT.md`、
-  `docs/architecture/OWNERSHIP_AND_LIFETIME.md`、
-  `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`。
+- 文档：`docs/engineering/THREADING_MODEL.md`（分层 + 轴分配 + 确定性锚点）、
+  `docs/engineering/EXECUTION_MODEL.md`、`docs/engineering/ASYNC_IO_CONTRACT.md`、
+  `docs/engineering/OWNERSHIP_AND_LIFETIME.md`、
+  `docs/engineering/observability/RESOURCE_MONITORING_CONTRACT.md`。

@@ -2,19 +2,19 @@
 
 > 上游：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三阶段仅通过
 > 原子发布、哈希与 provenance 完整的磁盘产品/manifest 交换）、
-> `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、
-> `docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore：原子发布 + 唯一 producer + manifest hash sidecar）
+> `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、
+> `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore：原子发布 + 唯一 producer + manifest hash sidecar）
 
 ## 0. 目的与范围
 
 执行形态 = `lib/infrastructure/aio/runtime/artifact_store/provenance.py`（provenance 层与校验器）+
 `lib/infrastructure/aio/runtime/artifact_store/production_store.py`（provenance sidecar / 版本门 / 消费门接线）；
 验收测试 = `eng/tests/artifact/test_provenance.py`；typed manifest 机器形态 =
-`eng/contracts/data/artifact_manifest.schema.json`。下游接线：`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`
-（原子 HiPS/manifest 输出复用 provenance sidecar 语义）、`docs/architecture/PIPELINE.md`（phase-isolated runtime
-消费门接线）、`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`（脱敏语义对齐）。
+`eng/contracts/data/artifact_manifest.schema.json`。下游接线：`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`
+（原子 HiPS/manifest 输出复用 provenance sidecar 语义）、`docs/engineering/PIPELINE.md`（phase-isolated runtime
+消费门接线）、`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（脱敏语义对齐）。
 
-`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 定义生产 ArtifactStore 的原子发布与校验读；本合同在其上
+`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 定义生产 ArtifactStore 的原子发布与校验读；本合同在其上
 定义**产物溯源（provenance）与版本语义**：
 
 1. 区分 **revision 类别**：product / module / ABI / data schema / doc revision /
@@ -29,9 +29,9 @@
 5. **privacy scan**：provenance 相关文本/诊断不泄露绝对用户路径与凭据。
 
 约束来源：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（阶段间只通过原子发布、哈希
-和 provenance 完整的磁盘产品/manifest 交换）；`docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
+和 provenance 完整的磁盘产品/manifest 交换）；`docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
 的 `R-EVIDENCE-REQUIRED`（缺 manifest / 缺 hash / 缺 schema / 缺 units → 拒绝）；
-`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 接线冻结语义（发布物保持严格
+`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 接线冻结语义（发布物保持严格
 `eng/contracts/data/artifact_manifest.schema.json` 形态，不附加字段——provenance 以独立
 sidecar 旁路持久化，manifest hash 语义不变）。
 
@@ -106,7 +106,7 @@ provenance_digest = sha256(canonical_json({
   provenance 语义门（§4）；
 - 未配置溯源事实源的 Store 发布行为完全不变——`eng/tests/artifact/test_production_store.py` 基线不受影响；
 - 恢复（`start()`）：成功对象基线 = 内容 + COMPLETE manifest + hash sidecar
-  （`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 冻结形态）；provenance sidecar 存在则加载到
+  （`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 冻结形态）；provenance sidecar 存在则加载到
   `_provenance`（损坏 → 不加载，对象仍按基线索引）；带 provenance 的产品消费必须走 `bind_product_input`（要求 provenance
   完整 + digest 复算一致 + data_schema 绑定 + 可选 min_product_version）。
 
@@ -130,7 +130,7 @@ provenance_digest = sha256(canonical_json({
 ## 5. privacy scan（不泄露绝对用户路径/凭据）
 
 `provenance.scan_privacy(text)` 对自由文本/诊断做敏感模式扫描（与
-`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` 的 redact 模式对齐）：绝对类 Unix 路径（`/home/…`、`/Users/…`、`/tmp/…`）、Windows 盘符
+`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` 的 redact 模式对齐）：绝对类 Unix 路径（`/home/…`、`/Users/…`、`/tmp/…`）、Windows 盘符
 绝对路径、UNC 路径、URL 用户信息、Bearer、形似凭据键值（password/token/secret/
 api_key/credential/private_key 等）→ 命中即报告泄露（不静默改写）。`make_provenance_doc`
 在生成时对文档全部字符串字段执行结构扫描（`scan_privacy_doc`），命中 → 拒绝发布。
@@ -160,12 +160,12 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 - source_commit 由调用方/运行图显式给出；本模块绝不自行执行 git 或猜测 commit；
 - provenance digest 公式按 §2 冻结；未来扩展（新类别/新字段）必须升 provenance
   `version`（当前 1）并同步本文档与执行形态；
-- trace 溯源字段与脱敏接线属 `docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
-  与 `docs/design/LOG_AND_ERROR_SYSTEM.md` 的范围（本层为纯 Python 执行语义，Linux 控制/
+- trace 溯源字段与脱敏接线属 `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`
+  与 `docs/detail/LOG_AND_ERROR_SYSTEM.md` 的范围（本层为纯 Python 执行语义，Linux 控制/
   轻合成节点可完整验证）。
 
 ## 8. 文档追溯
 
-`eng/contracts/data/artifact_manifest.schema.json` / `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` /
-`docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` → 本溯源合同（本文档 + provenance.py +
+`eng/contracts/data/artifact_manifest.schema.json` / `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` /
+`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` → 本溯源合同（本文档 + provenance.py +
 production_store 接线） → `eng/tests/artifact/test_provenance.py`。

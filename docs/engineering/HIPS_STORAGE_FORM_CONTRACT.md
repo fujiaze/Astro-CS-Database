@@ -1,9 +1,9 @@
 # 落盘形态合同：扩展名、归档布局、索引 schema 与哈希口径
 
-> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、docs/design/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001）
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、docs/detail/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001）
 
-> 上位：`ASTROCS_DESIGN.md` §10；`docs/design/PRODUCT_STORAGE_FORM.md`
-下游：`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/plugins/infrastructure/17_aio.md`、`docs/plugins/algorithms_phase1/08_drizzle.md`、`docs/plugins/algorithms_phase2/09_coverage.md`
+> 上位：`ASTROCS_DESIGN.md` §10；`docs/detail/PRODUCT_STORAGE_FORM.md`
+下游：`docs/science/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/detail/infrastructure/17_aio.md`、`docs/detail/algorithms_phase1/08_drizzle.md`、`docs/detail/algorithms_phase2/09_coverage.md`
 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
 机器检查器：`eng/tools/hipsform/check_hips_storage_form.py`（CI 检查 `CHK-HIPS-STORAGE-FORM`）
 
@@ -59,7 +59,7 @@
 
 ### 3.3 压缩档位
 
-- 默认 **zstd level 3**；档位依据（各档体积与压缩时间的实测读数与取舍）见 `docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md`，本节只冻结默认档位。
+- 默认 **zstd level 3**；档位依据（各档体积与压缩时间的实测读数与取舍）见 `docs/engineering/COMPRESSION_CODEC_RESEARCH_PACK.md`，本节只冻结默认档位。
 - 档位是**打包参数**，不进产品身份哈希（§5）。
 
 ## 4. 索引 schema（MUST）
@@ -147,7 +147,7 @@
 
 ## 7. 体积削减（裸形态）
 
-**两种机制，冻结口径与判据如下**（机制与推导见 `docs/design/PRODUCT_STORAGE_FORM.md` §9；读数复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`）：
+**两种机制，冻结口径与判据如下**（机制与推导见 `docs/detail/PRODUCT_STORAGE_FORM.md` §9；读数复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`）：
 
 | 机制 | 作用层 | 冻结规则 | 失败语义 | 判据（机器可校验） |
 |---|---|---|---|---|
@@ -156,7 +156,7 @@
 
 - **生效面**：仅**裸形态** `<name>.hips/`。**归档形态 `<name>.hips.zst` 两种都不实施**（收益被 zstd 吸收）。
 - **产品身份不受影响（T1）**：字节不变 ⇒ 产品哈希不变。**T2 改变内容** ⇒ 启用 T2 的产品与未 TRIM 的同源产品**不同身份**，必须在 `properties` 与 manifest 的 `storage` 段显式区分（两个身份都须显式具名，静默分化判红）。
-- **T1 与 T2 的收益口径分立对照**：T1 的整产物收益与 T2 的缩小-NAXIS 收益是两个独立口径，各自成立，只允许在同一机制内引用；T1 的收益只在 Linux 面有可核验读数（Windows 面无可核验读数，其等价实现只有一手文档依据），signal/variance/ivar 三层的收益口径另计。**实测读数与逐层数值见 `实验/engineering-evidence/`**；收益数值的复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`（Linux），机制与口径正本 = `docs/design/PRODUCT_STORAGE_FORM.md` §9。
+- **T1 与 T2 的收益口径分立对照**：T1 的整产物收益与 T2 的缩小-NAXIS 收益是两个独立口径，各自成立，只允许在同一机制内引用；T1 的收益只在 Linux 面有可核验读数（Windows 面无可核验读数，其等价实现只有一手文档依据），signal/variance/ivar 三层的收益口径另计。**实测读数与逐层数值见 `实验/engineering-evidence/`**；收益数值的复现判据 = 机器门 `CHK-SPARSE-PUNCH-PROBE`（Linux），机制与口径正本 = `docs/detail/PRODUCT_STORAGE_FORM.md` §9。
 - **降级**：T1 在卷不支持稀疏（`EOPNOTSUPP` 等）时跳过，产品保持完整可读；T2 在读端不支持时拒绝，不降级为"读小图"。
 
 ## 8. 错误语义
@@ -192,7 +192,7 @@
 | 键名 | `storage_form` |
 | 取值 | `archive`（默认）\| `bare` |
 | 落点 | Phase1（normalize）输入 JSON 的**块内**键（多块形态 `blocks[].storage_form`）与平铺单块简写的顶层键 |
-| 缺省语义 | **键缺失、空串 `""` 或 `null` ⇒ 取默认 `archive`，并报一条 `level=warn` / `event=warn` 事件**（日志合同 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §2 与 LOG-001 事件模型）；**取默认与 warn 事件成对出现** |
+| 缺省语义 | **键缺失、空串 `""` 或 `null` ⇒ 取默认 `archive`，并报一条 `level=warn` / `event=warn` 事件**（日志合同 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §2 与 LOG-001 事件模型）；**取默认与 warn 事件成对出现** |
 | 显式语义 | 显式给出 `archive` / `bare` ⇒ 按该形态落盘，**不报** warn |
 | 形态来源登记 | 运行完成清单 `manifest.json#storage.form_source` = `config`（显式）/ `default`（缺省）；`default` 是 warn 必须存在的机器证据（§10.3 M2） |
 | 键域 | 该键**只**属 Phase1。Phase2 / Phase3 的输入合同不设该键，出现即 REJECT（§10.5） |

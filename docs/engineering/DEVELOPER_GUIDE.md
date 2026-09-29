@@ -9,7 +9,7 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build
 ```
 
-模块地图见 `docs/architecture/MODULE_MAP.md`；机器一致性检查见 `docs/ci/CI_SPEC.md`（范围与门禁口径 = 该文件 §2）。
+模块地图见 `docs/engineering/MODULE_MAP.md`；机器一致性检查见 `docs/engineering/CI_SPEC.md`（范围与门禁口径 = 该文件 §2）。
 
 ## 测试
 
@@ -33,5 +33,5 @@ python3 eng/ci/run_checks.py --check CHK-INVARIANT --quiet  # 科学不变量面
 
 ## 参考面
 
-- 标准与锚合同：`docs/standards/`、`docs/algorithms/anchors/ANCHOR_CONTRACT.md`；
-- 追溯：`docs/traceability/TRACEABILITY_MATRIX.json`（机器真相）、`docs/traceability/TRACEABILITY_SPEC.md`（合同）。
+- 标准与锚合同：`docs/standards/`、`docs/detail/anchors/ANCHOR_CONTRACT.md`；
+- 追溯：`docs/traceability/TRACEABILITY_MATRIX.json`（机器真相）、`docs/engineering/TRACEABILITY_SPEC.md`（合同）。

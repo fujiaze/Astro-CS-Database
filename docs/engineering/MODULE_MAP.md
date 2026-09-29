@@ -69,7 +69,7 @@
 | Phase2 内核 | `lib/algorithms/coverage` | `lib/algorithms/coverage/src` 下 coverage / sampler / upm / rejection / integrate / stage2_common 源文件 | 同上 + `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` |
 | Phase3 会话 | `lib/phase3_session` | properties / WCS（TAN）/ nearest+bilinear 重采样 / CFITSIO 原子写 / verify | `lib/phase3_session` 的 p3_session / p3_wcs / p3_resample / p3_output 四源文件；ctest `p3002_real_nodes` / `p3002_uncertainty` |
 | 三阶段产品交换 | `lib/infrastructure/aio/runtime/artifact_store` | 跨 Phase 仅磁盘产品交换（role ↔ type 强绑定） | `eng/contracts/data/phase_product_exchange.schema.json` + `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` |
-| 结构化日志 | `lib/infrastructure/observability/logging` | JSONL 事件合同 | `docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` + 其 schema |
+| 结构化日志 | `lib/infrastructure/observability/logging` | JSONL 事件合同 | `docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md` + 其 schema |
 | 监控与资源门 | `eng/tools/monitoring` | 冻结阈值判定（`docs/ASTROCS_DESIGN.md` §8 + `eng/contracts/resource_gate_v1.json`） | `eng/tools/monitoring/run_monitored.py` 的 `evaluate_frozen_gate()`；pytest `eng/tests/monitoring` |
 | AIO 图像 I/O | `lib/infrastructure/aio` | FITS / XISF / HiPS 读写、唯一 AIO C ABI v1 | `lib/infrastructure/aio/src/aio_abi.cpp`（编入生产 target `astrocs_aio`） |
 | HEALPix / Drizzle 内核 | 生产实现 = `lib/algorithms/drizzle/healpix_drizzle`；归档面 = `lib/infrastructure/aio/healpix_db/archive`（`healpix_io` 与 `healpix_browser_qt` 不重建） | HEALPix 球面重采样、drizzle 累加与归并 | `lib/algorithms/drizzle/healpix_drizzle`；归档目录 `lib/infrastructure/aio/healpix_db/archive` |

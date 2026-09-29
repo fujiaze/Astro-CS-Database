@@ -9,7 +9,7 @@
 
 | 载体 | 范围 | 形态 | 规范依据 |
 | --- | --- | --- | --- |
-| 命名块（`PipelineFrame`） | 阶段内节点之间 | 内存对象，带冻结元数据（名字/形状/类型/单位/可缺性/生产者/消费者/生命周期） | `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §1、§2 |
+| 命名块（`PipelineFrame`） | 阶段内节点之间 | 内存对象，带冻结元数据（名字/形状/类型/单位/可缺性/生产者/消费者/生命周期） | `docs/engineering/PIPELINE_BLOCK_CONTRACT.md` §1、§2 |
 | HiPS 产品树 | 跨阶段 | 磁盘目录 + manifest + 哈希 | 最高设计 §8.1、§10 |
 | 运行配置 | 阶段入口 | JSON（块列表形态，每块一块级 `output_dir`） | 最高设计 §3.2、§4.3 |
 
@@ -37,9 +37,9 @@
 
 - 该阶段的唯一用户命令 = `mosaic --json <config.json>`（最高设计 §7.1 命令树）。
 - UPM 的模型语义（加性天光面 + 逐帧偏差、`calibrated = raw − δ_k`、保留公共天光面）
-  正本 = `docs/plugins/algorithms_phase2/11_upm.md` 与 `docs/science/PHASE2_UPM.md`。
+  正本 = `docs/detail/algorithms_phase2/11_upm.md` 与 `docs/science/PHASE2_UPM.md`。
 - 排异与集成的数据对象语义（逐像素按几何可贡献帧数路由、逆方差加权、support 归约）
-  正本 = `docs/plugins/algorithms_phase2/12_rejection.md` §9 与 `docs/plugins/algorithms_phase2/13_integration.md`。
+  正本 = `docs/detail/algorithms_phase2/12_rejection.md` §9 与 `docs/detail/algorithms_phase2/13_integration.md`。
 
 ## Phase3（export）
 
@@ -57,4 +57,4 @@
 
 ## 数据契约
 
-见 `docs/contracts/DATA_SEMANTICS.md` 与 `docs/TRACEABILITY.csv` 的 `DATA-*` 行。
+见 `docs/science/DATA_SEMANTICS.md` 与 `docs/TRACEABILITY.csv` 的 `DATA-*` 行。
