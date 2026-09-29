@@ -209,7 +209,7 @@ struct MemoryPressureGovernor::Impl {
     push_line(o.str());
     // 状态转移/丢弃**即时落盘**（§8.3:612）：进程被外部看门狗杀死时证据仍在。
     // 持有 mu 调用是刻意的（本函数只在锁内被调），落盘失败不回滚、不抛、不阻断调度
-    // —— 台账是证据面，不是判据（§3.5 内存不设门）。
+    // —— 台账是证据面，不是判据（§4.5 内存不设门）。
     std::string ferr;
     (void)flush_locked(&ferr);
   }

@@ -1,7 +1,7 @@
 // lib/infrastructure/cli/disk_gate.h — 磁盘门（**唯一资源判据**）
 //
 // 规范依据（逐条）：
-//   * docs/ASTROCS_DESIGN.md §3.5「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
+//   * docs/ASTROCS_DESIGN.md §4.5 运行前预检「资源门只管磁盘：运行前磁盘余量不足 ⇒ 报 warn（不阻断）；
 //     运行中写盘失败/磁盘满 ⇒ 报错（fail-closed）；内存 / CPU / 线程不设门」；
 //   * docs/ASTROCS_DESIGN.md §6.3 退出码表「10 = 磁盘写满 / 写盘失败（一般性资源超限门已取消）」；
 //   * 资源门口径：「不应该有资源超限（除非存储不足）。
@@ -239,7 +239,7 @@ inline WriteProbe probe_writable(const std::string& dir) {
     return pr;
 }
 
-// ── 预检面文案（§3.5「详细预估」；warn 不阻断）──
+// ── 预检面文案（§4.5「详细预估」；warn 不阻断）──
 // 返回空串 = 余量充足（调用方按 correct 行呈现预估事实）。
 inline std::string disk_precheck_warning(const DiskSpace& sp, const DiskEstimate& est,
                                          const std::string& out_dir) {
@@ -259,7 +259,7 @@ inline std::string disk_precheck_warning(const DiskSpace& sp, const DiskEstimate
     return {};
 }
 
-// 预估事实行（无论余量是否充足都呈现；§3.5「详细预估」）。
+// 预估事实行（无论余量是否充足都呈现；§4.5「详细预估」）。
 inline std::string disk_estimate_line(const DiskSpace& sp, const DiskEstimate& est,
                                       const std::string& out_dir) {
     const std::string avail = sp.probed

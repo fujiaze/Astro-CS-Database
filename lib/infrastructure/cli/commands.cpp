@@ -119,7 +119,7 @@ static uint32_t cli_affinity_cpu_count() {
 //   * **不设固定上限**：预算动态取自**当前可用内存** × **可配置比例**（默认 95%）——
 //     该比例可配置、默认 95%，全链不写死内存上限字面量。
 //   * docs/ASTROCS_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
-//     调度器与线程预算源）、§3.5（资源门只管磁盘 ⇒ 本预算是调度准入输入，不是门禁）
+//     调度器与线程预算源）、§4.5（资源门只管磁盘 ⇒ 本预算是调度准入输入，不是门禁）
 //   * docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限由配置/资源门决定，禁止硬编码）
 // 两个输入：
 //   ① 可用内存 = aio_system_available_memory_bytes()（aio 是文件级唯一 I/O 边界；
@@ -493,7 +493,7 @@ nlohmann::json build_run_provenance(
     return p;
 }
 
-// ── 磁盘门运行期臂（docs/ASTROCS_DESIGN §3.5「运行中写盘失败/磁盘满 ⇒ 报错
+// ── 磁盘门运行期臂（docs/ASTROCS_DESIGN §4.5「运行中写盘失败/磁盘满 ⇒ 报错
 // （fail-closed）」+ §6.3「exit 10 = 磁盘写满 / 写盘失败」）──
 // 判定唯一实现 = lib/infrastructure/cli/disk_gate.h（classify_write_failure / probe_writable）；
 // 本函数只做「落退出码 + 发 error 事件」，不重复实现判据，也不引入任何内存/CPU/线程门。
@@ -1013,7 +1013,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     // （取消源恒 nullptr）；计算不再因利用率被判据提前打断（记录与裁决分离）。
     // 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
-    // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§3.5 内存不设门）。
+    // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§4.5 内存不设门）。
     // R-29：cpu_profile 路径唯一口径 —— 显式 --cpu-profile 优先，否则取**安装目录**下的
     // benchmark 结果缓存（docs/ASTROCS_DESIGN.md:524 / docs/api/CLI_PROTOCOL_V1.md:31：
     // benchmark 生成/更新安装目录 cpu_profile，后续运行自动读取）。
@@ -1325,7 +1325,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         {"one_budget_source_rule", astrocs::v6runtime::kOneBudgetSourceRule},
         {"determinism_contract", astrocs::v6runtime::kDeterminismContractId},
     });
-    // （docs/ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
+    // （docs/ASTROCS_DESIGN §4.5/§6.3）: 一般性资源超限门已取消 ⇒ 资源判据
     // **恒为 record-only**（完整记录，不改变退出码，无 rc=10 路径）。阈值/判定式一字未改;
     // 工作量下限(负责人 2.A)作为事实字段一并记录。--strict-resource-gate/--on-resource-gate
     // 保留接受（登记现状）: strict_flag_requested 如实入事件，但不再改变裁决。
