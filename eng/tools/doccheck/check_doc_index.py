@@ -103,6 +103,46 @@ SCAN_EXT = (".md", ".txt", ".json", ".yaml", ".yml", ".py", ".sh", ".h", ".hpp",
 LEDGER_PATH = "eng/tools/doccheck/dangling_ledger.json"
 LEDGER_MAX = 104  # 冻结上限（只减不增；增加须显式评审并同步本常量）
 
+# --- 内容真实性门（CONTENT-TRUTH）：路径可达但目标页没有该内容 -------------------------
+#
+# 为什么另立判据（本门存在理由，见 run/FINAL-07/content-truth/语义边界与可行性判定.md）：
+#   scan_dangling() 只判「路径能否解析」。全函数从不开目标文件看内容 ⇒
+#   「目标文件存在、路径可达、但那一页根本没有这句话讲的东西」在设计上门就抓不到。
+#   已发生的真实实例：docs/detail/ 下 11 处模块页写「落位规则见 docs/detail/README.md」，
+#   而那一节在当时的现行树里不存在（迁移重写的招牌件没带上原文）—— 门当时不红。
+#
+# 判据 T1（节号锚存活）：扫描面内形如 `<docs 路径> §<N[.N...]>` / `第 N 节` / ` N 节` 的引用，
+#   目标必须**真有其节**。三种解析模式（任一命中即存活）：
+#     模式 A 目标有编号标题 `#{1,6} <N[.N...]>`（多级节号必须能表达）；
+#     模式 B 目标某标题正文里带显式节号 `（§<N>）`（仓内实测存在，见 01_CHECKS「（§2.1.1）」）；
+#     模式 C 父节 <N> 正文里有有序列表第 <M> 项（仓内「§14.2 = §14 第 2 条」惯例，见 NOISE_MODEL §14）。
+#   A/B/C 全不命中 => CONTENT_REF_DEAD，逐条点名「文件:行号 + 引用号 + 该目标实际有的同层节号」。
+#
+# 判据的语义边界（**这一段是判据成立的前提，不是事后说明**）：
+#   本门只判「**可枚举定位符**」——节号。节号是文档自证的、可被机器穷举的地址。
+#   本门**不判**「具名条款」（如「落位规则」「本节」）：那类指代词与目标标题之间没有可枚举的
+#   对应关系，实测宽词表命中率仅 0.39（见交付文档），做进去就是用误报换命中。
+#   本门**不判**行号锚内容：`ALG-LINE-ANCHORS`/`DOC-LINE-ANCHORS` 已覆盖行锚界内与符号绑定，
+#   本仓实测 270 条行锚**超界 0 条**，重复实现既无信号又制造第二套解析口径。
+#
+# 与既有门的分工（**不重复造已有的那部分**）：
+#   `check_design_section_refs.py` 的 S2 目标面**只有** docs/ASTROCS_DESIGN.md，
+#   且其 S3 只判最高设计的节号存活。§N 指向**任何其它** docs 页时全仓无门 —— 本门补的就是这一面。
+#   因此本门**主动排除** ASTROCS_DESIGN.md 目标（避免与该门重复判红、避免两套节号口径）。
+CONTENT_TRUTH_LEDGER = "eng/tools/doccheck/content_truth_ledger.json"
+# 冻结上限（只减不增）。台账键 = (file, target, section)，当前真死锚 10 处出现合并为 6 条。
+CONTENT_TRUTH_LEDGER_MAX = 6
+DESIGN_DOC = "docs/ASTROCS_DESIGN.md"
+HEAD_NUM_RE = re.compile(r"^\s{0,3}#{1,6}\s*(\d+(?:\.\d+)*)(?![0-9])")
+HEAD_ANY_RE = re.compile(r"^\s{0,3}#{1,6}\s+(.*)$")
+INLINE_SEC_RE = re.compile(r"§\s*(\d+(?:\.\d+)*)")
+LIST_ITEM_RE = re.compile(r"^\s*(\d+)\.\s")
+# 节号锚：路径 token 之后**紧邻**（只隔空白/反引号/括号）的节号。
+# 「紧邻」是绑定规则：同句左侧出现过别的文档名时，不得把该行的 § 号算到本路径头上
+# （与 check_design_section_refs.py v2.1「归属必须可绑定」同源，不引入第二套猜测口径）。
+SEC_ANCHOR_RE = re.compile(r"§\s*(\d+(?:\.\d+)*)|第\s*(\d+(?:\.\d+)*)\s*节"
+                           r"|(\d+(?:\.\d+)*)\s*节")
+
 # 现行控制包（ENGINEERING_SPEC §7：工程控制/ = 控制包工作区，收口后按
 # CONTROL_PACK_SPEC §9 清理）。本目录以外的 工程控制/** 一律视为旧包残留。
 CURRENT_CONTROL_PACK = "工程控制/RELEASE-05"
@@ -301,6 +341,189 @@ def scan_dangling(root: str, rel: str, files: set, dirs: set) -> list:
     return out
 
 
+# --------------------------------------------------------------------------- #
+# 内容真实性门（CONTENT-TRUTH）：节号锚存活
+# --------------------------------------------------------------------------- #
+# --- 折行补偿（前台 2026-09-30 点名的盲区）--------------------------------------
+# TOKEN_RE 的字符类 [A-Za-z0-9_./-] **不含换行**：被 markdown 软折行切断的路径只会
+# 匹配到前半截**目录**，紧随其后的 §N 锚整条丢失（漏报）；且 _oneline() 会把折行
+# 归一成空格（`docs/science/ PHASE2_UPM.md`），即使匹配到也解析不出目标。
+# 本门自带下列常量自处理折行，**只喂 section_anchor_refs**，不改动既有
+# docs_path_refs_resolve 的匹配面（那是别人的门，判定行为不得被单方面改写）。
+#
+# 收紧口径（防误报，均为有意为之的保守选择）：
+#   (1) 路径续行必须以 [A-Za-z0-9_.] 起头 —— `//`、`/*`、`#`、`>`、`-`
+#       一律不算续行（否则 C++ 注释标记会被吞进路径，产出垃圾 token）；
+#   (2) §N 跨行绑定只允许**一次**换行，且续行在 §N 之前只能是空白、或只含注释/列表标记；
+#       出现任何正文实词即视为无关段落，**不绑定**（宁可漏，不可凭空造锚）；
+#   (3) 续接后的路径若解析不到被跟踪 md，**不**回退到折行前的半截 token。
+TOKEN_RE_WRAP = re.compile(
+    r"(?<![A-Za-z0-9_./-])docs/[A-Za-z0-9_./-]*"
+    r"(?:\n[ \t\u3000]+[A-Za-z0-9_.][A-Za-z0-9_./-]*)*")
+ANCHOR_GAP_WRAP_RE = re.compile(
+    r"(?:[ \t\u3000\x60(\uff08])*"
+    r"(?:\n[ \t\u3000]*(?:(?://|/\*|\*|#|>|\|)[ \t\u3000]*)*)?"
+    r"(?:[ \t\u3000\x60(\uff08])*")
+
+
+def _unwrap_path(tok: str) -> str:
+    """折行路径归一：**删除**换行与续行缩进（不是折叠成空格）。"""
+    return re.sub(r"\n[ \t\u3000]*", "", tok)
+
+
+def doc_section_index(root: str, rel: str) -> tuple:
+    """解析目标文档的节号索引。返回 (模式A节号集, 模式B节号集, 模式C键集)。
+
+    模式 A = 编号标题（`## 4.5 ...` 多级）；模式 B = 标题正文里的显式 `（§N）`；
+    模式 C = 父节正文里的有序列表第 M 项（键为 "<父节>.<项号>"）。
+    """
+    nums, inline, items = set(), set(), set()
+    cur = None
+    for ln in _read(os.path.join(root, rel)).splitlines():
+        m = HEAD_NUM_RE.match(ln)
+        if m:
+            nums.add(m.group(1))
+            cur = m.group(1)
+            continue
+        h = HEAD_ANY_RE.match(ln)
+        if h:
+            # 标题行里的显式节号（模式 B）。cur 保持不变，`（§2.1.1）` 挂在当前父节下。
+            for im in INLINE_SEC_RE.finditer(h.group(1)):
+                inline.add(im.group(1))
+                if cur:
+                    inline.add(cur + "." + im.group(1).split(".")[-1])
+            continue
+        if cur:
+            li = LIST_ITEM_RE.match(ln)
+            if li:
+                items.add(cur + "." + li.group(1))
+    return nums, inline, items
+
+
+def section_anchor_refs(root: str, rel: str, files: set) -> list:
+    """扫出一个文件里的节号锚引用。
+
+    返回 [(num, target_rel, line, wrapped)]，只含「目标解析得到一个被跟踪的 md 文件」的引用。
+    绑定规则 = **紧邻 + 折行补偿**：路径 token 之后只允许空白/反引号/圆括号再接 §N；
+    额外允许 TOKEN_RE_WRAP / ANCHOR_GAP_WRAP_RE 描述的**一次** markdown 软折行
+    （口径与理由见本节上方注释）。wrapped=True 表示这条锚是靠折行补偿才捞回来的。
+    """
+    text = _read(os.path.join(root, rel))
+    out = []
+    for m in TOKEN_RE_WRAP.finditer(text):
+        raw = m.group(0)
+        gap = text[m.end():m.end() + 64]
+        gm = ANCHOR_GAP_WRAP_RE.match(gap)
+        if not gm:
+            continue
+        mm = SEC_ANCHOR_RE.match(gap[gm.end():])
+        if not mm:
+            continue
+        num = next(g for g in mm.groups() if g)
+        wrapped = "\n" in raw or "\n" in gap[:gm.end()]
+        base = _strip_tok(_unwrap_path(raw))
+        if not base or any(p in base for p in PLACEHOLDER_MARKERS):
+            continue
+        # 目标解析：只接受**被 git 跟踪的 md 文件**。非 md（yaml/csv/…）与目录不可判，
+        # 由调用方计入 undecidable 面并打印（不得静默）。
+        # 折行续接后若解析不到 ⇒ **不回退**到半截 token（回退会把目录当文件，制造假绿）。
+        tgt = None
+        for ext in RESOLVE_EXTS:
+            cand = base + ext
+            if cand in files and cand.endswith(".md"):
+                tgt = cand
+                break
+        if not tgt:
+            continue
+        out.append((num, tgt, text.count("\n", 0, m.start()) + 1, wrapped))
+    return out
+
+
+def check_content_truth(root: str, scan_files: list, tset: set) -> dict:
+    """T1 节号锚存活：路径可达但目标页没有该节号 ⇒ 判红。
+
+    fail-closed：台账不可读 / 扫描面为空 / 归属到本门的节号锚总数为 0 ⇒ 判红
+    （解析器空转不得判绿，见 run/FINAL-07/content-truth/实现说明.md §判别力）。
+    """
+    ledger, ldetail = _load_content_ledger(root)
+    if ledger is None:
+        return check("docs_section_refs_resolve", False,
+                     "内容台账不可用（fail-closed）：" + ldetail)
+
+    cache = {}
+
+    def idx(t):
+        if t not in cache:
+            cache[t] = doc_section_index(root, t)
+        return cache[t]
+
+    judged = dead = total = undecidable = design_excluded = 0
+    wrapped = 0
+    findings = []
+    for rel, _scope in scan_files:
+        for num, tgt, ln, is_wrapped in section_anchor_refs(root, rel, tset):
+            total += 1
+            if is_wrapped:
+                wrapped += 1
+            if tgt == DESIGN_DOC:
+                # 归兄弟门面 check_design_section_refs.py 专责（其 S2/S3 已判）。
+                # 显式排除而非静默跳过：口径写在代码常量里，不做暗箱。
+                design_excluded += 1
+                continue
+            A, B, C = idx(tgt)
+            if not A and not B and not C:
+                # 目标整篇没有编号标题（无章法文档）⇒ 不可判，不判红也不静默。
+                undecidable += 1
+                continue
+            judged += 1
+            if num in A or num in B or num in C:
+                continue
+            key = (rel, tgt, num)
+            if key in ledger:
+                continue
+            dead += 1
+            same_level = sorted(x for x in (A | B | C)
+                                if x.split(".")[0] == num.split(".")[0])[:8]
+            findings.append("%s:%d §%s -> %s（该目标实际有的同层节号=%s）"
+                            % (rel, ln, num, tgt, repr(same_level)))
+
+    detail = ("节号锚 %d 条（归本门判 %d；其中折行补偿捞回 %d 条；"
+              "ASTROCS_DESIGN 归兄弟门面 %d 条不计；目标无章法不可判 %d 条）；"
+              "真死锚 %d 条；台账=%s"
+              % (total, judged, wrapped, design_excluded, undecidable, dead, ldetail))
+    if total == 0:
+        return check("docs_section_refs_resolve", False,
+                     "扫描面为空（fail-closed）：归属到本门的节号锚 0 条，解析器不得空转判绿；"
+                     + detail)
+    if dead:
+        return check("docs_section_refs_resolve", False,
+                     "CONTENT_REF_DEAD " + str(dead) + " 条：" + repr(findings[:12]) + "；"
+                     + detail)
+    return check("docs_section_refs_resolve", True, detail)
+
+
+def _load_content_ledger(root: str) -> tuple:
+    """内容真实性台账：已登记的真死锚（跨域未修项）。读不到 ⇒ (None, 原因) 判红。"""
+    full = os.path.join(root, CONTENT_TRUTH_LEDGER)
+    if not os.path.isfile(full):
+        return None, CONTENT_TRUTH_LEDGER + " 不存在"
+    try:
+        data = json.loads(_read(full))
+    except Exception as exc:  # noqa: BLE001
+        return None, "台账不可解析: " + str(exc)
+    entries = data.get("entries")
+    if not isinstance(entries, list) or not entries:
+        return None, "台账 entries 为空"
+    if int(data.get("max_entries", -1)) > CONTENT_TRUTH_LEDGER_MAX:
+        return None, ("台账 max_entries 超过冻结上限 " + str(CONTENT_TRUTH_LEDGER_MAX)
+                      + "（只减不增）")
+    for e in entries:
+        if not all(e.get(k) for k in ("file", "target", "section", "owner", "reason")):
+            return None, "台账条目缺 file/target/section/owner/reason: " + repr(e)[:120]
+    return ({(e["file"], e["target"], e["section"]): e for e in entries},
+            str(len(entries)) + " 条（上限 " + str(CONTENT_TRUTH_LEDGER_MAX) + "）")
+
+
 def load_ledger(root: str) -> tuple:
     """跨域未修悬空引用台账（收口域）。读不到 ⇒ (None, 原因)，调用方判红。"""
     full = os.path.join(root, LEDGER_PATH)
@@ -405,6 +628,7 @@ def run_checks(root: str, strict: bool) -> tuple:
                      "yaml_parse", "index_entry_paths_exist", "docs_fully_covered",
                      "root_docs_doc_links_resolve", "subordinate_docs_registered",
                      "subordinate_docs_upstream_header", "docs_path_refs_resolve",
+                     "docs_section_refs_resolve",
                      "skip_exact_justified"):
             results.append(check(name, False, "仓库根不存在（fail-closed）：" + root))
         results.append(check("retired_authority_not_reintroduced", True,
@@ -532,24 +756,27 @@ def run_checks(root: str, strict: bool) -> tuple:
     results.append(check_skip_exact_justified(root))
 
     # --- 文档与代码注释中的 docs/ 路径可达（跨域未修项走显式台账）---
+    # 扫描面构建与既有 docs_path_refs_resolve 共用（CONTENT-TRUTH 门复用同一份面，
+    # 保证两门分母同源；**判定逻辑未变**，只是把构建提到分支之前）。
+    scan_files = []
+    for p in ROOT_DOCS:
+        if os.path.isfile(os.path.join(root, p)):
+            scan_files.append((p, "root"))
+    for p in tracked_all:
+        if (p.startswith(SKIP_DIRS) or not p.endswith(SCAN_EXT) or p in SKIP_EXACT
+                or p.endswith(SKIP_SUFFIX) or any(s in p for s in SKIP_CONTAINS)):
+            continue  # 台账/自检夹具/历史命名空间/第三方源码不入扫描面
+        if p.startswith("docs/"):
+            if p.endswith(".md"):
+                scan_files.append((p, "docs"))
+        elif p.startswith(CODE_SCAN_DIRS):
+            scan_files.append((p, "code"))
+
     ledger, ledger_detail = load_ledger(root)
     if ledger is None:
         results.append(check("docs_path_refs_resolve", False,
                              "台账不可用（fail-closed）：" + ledger_detail))
     else:
-        scan_files = []
-        for p in ROOT_DOCS:
-            if os.path.isfile(os.path.join(root, p)):
-                scan_files.append((p, "root"))
-        for p in tracked_all:
-            if (p.startswith(SKIP_DIRS) or not p.endswith(SCAN_EXT) or p in SKIP_EXACT
-                    or p.endswith(SKIP_SUFFIX) or any(s in p for s in SKIP_CONTAINS)):
-                continue  # 台账/自检夹具/历史命名空间/第三方源码不入扫描面
-            if p.startswith("docs/"):
-                if p.endswith(".md"):
-                    scan_files.append((p, "docs"))
-            elif p.startswith(CODE_SCAN_DIRS):
-                scan_files.append((p, "code"))
         dangling_all = []
         for rel, scope in scan_files:
             for tok, ln in scan_dangling(root, rel, tset, dirs):
@@ -566,6 +793,10 @@ def run_checks(root: str, strict: bool) -> tuple:
                              ("未登记悬空=" + repr(rendered) + " 共"
                               + str(len(new_dangling)) + "；" + detail)
                              if new_dangling else ("未登记悬空=0；" + detail)))
+
+    # --- 内容真实性：节号锚存活（路径可达但目标页没有该节号 ⇒ 判红）---
+    results.append(check_content_truth(root, scan_files, tset))
+
 
     # --- 归档边界 ---
     archive_md = [p for p in tracked_all if p.startswith("docs/archive/") and p.endswith(".md")]
@@ -873,6 +1104,14 @@ LEDGER_JSON = {
          "owner": "FIX-404", "reason": "自检夹具：跨域未修悬空引用"},
     ],
 }
+CONTENT_LEDGER_JSON = {
+    "tool": "eng/tools/doccheck/content_truth_ledger.json",
+    "max_entries": 1,
+    "entries": [
+        {"file": "lib/x/foo.cpp", "target": "docs/owner/DEAD.md", "section": "9.9",
+         "owner": "FIX-CT", "reason": "自检夹具：已登记的真死锚"},
+    ],
+}
 
 
 def _write(path: str, text: str) -> None:
@@ -931,6 +1170,9 @@ def _mk(root: str) -> None:
            "// legacy pointer docs/legacy/OLD.md (跨域未修，台账登记)\nint x = 1;\n")
     _write(os.path.join(root, LEDGER_PATH),
            json.dumps(LEDGER_JSON, ensure_ascii=False, indent=1) + "\n")
+    # 内容真实性台账（mini-repo 必须与真仓同构，否则 docs_section_refs_resolve fail-closed 判红）。
+    _write(os.path.join(root, CONTENT_TRUTH_LEDGER),
+           json.dumps(CONTENT_LEDGER_JSON, ensure_ascii=False, indent=1) + "\n")
     # SKIP_EXACT 的「自带夹具面」条目必须在位且自带 --self-test 实现（与真仓同构）。
     for rel in SKIP_EXACT:
         if rel != LEDGER_PATH:
@@ -971,9 +1213,58 @@ def _red(root: str, name: str, strict: bool, needle: str) -> tuple:
         + " needle(" + needle + ")=" + str(hit)
 
 
+def _ct(root: str, expect_pass: bool) -> tuple:
+    """断言**单个 check** 的 pass 取值（CONTENT-TRUTH 正例专用）。
+
+    为什么不用 _res()：mini-repo 的既有夹具在 HEAD 就让 4 个正例红（S0/S4/S14b/S16，
+    根因是夹具自身的悬空指针，见 run/FINAL-07/content-truth/三步验收实跑.md §3）。
+    正例若断言全局 rc=0，会把「既有夹具红」误记成本判据的红 —— 那是不诚实的对照。
+    因此本判据的正例只断言 docs_section_refs_resolve 这一项，判别力由 S21（注入前绿、
+    注入后红）单独锁住。
+    """
+    results, _ = run_checks(root, True)
+    row = next((r for r in results
+                if r["check"] == "docs_section_refs_resolve"), None)
+    if row is None:
+        return False, "docs_section_refs_resolve 未出现在结果面（门自身坏了）"
+    return row["pass"] == expect_pass, ("pass=" + repr(row["pass"]) + " expect="
+                                        + repr(expect_pass) + " | " + row["detail"][:200])
+
+
+def _ct_pass(root: str):
+    """只取 docs_section_refs_resolve 的 pass 取值（用于非退化自证的正控）。"""
+    results, _ = run_checks(root, True)
+    row = next((r for r in results
+                if r["check"] == "docs_section_refs_resolve"), None)
+    return row["pass"] if row else None
+
+
+def _scan_surface_for_fixture(root: str) -> list:
+    """mini-repo 的扫描面（与 run_checks 同一份构造，逐条同构）。S28 用它找可改写的文件。"""
+    tracked = git_ls(root)
+    out = []
+    for p in ROOT_DOCS:
+        if os.path.isfile(os.path.join(root, p)):
+            out.append((p, "root"))
+    for p in tracked:
+        if (p.startswith(SKIP_DIRS) or not p.endswith(SCAN_EXT) or p in SKIP_EXACT
+                or p.endswith(SKIP_SUFFIX) or any(s in p for s in SKIP_CONTAINS)):
+            continue
+        if p.startswith("docs/"):
+            if p.endswith(".md"):
+                out.append((p, "docs"))
+        elif p.startswith(CODE_SCAN_DIRS):
+            out.append((p, "code"))
+    return out
+
+
 def self_test() -> int:
     """mini-repo 正/负例：索引合法⇒绿；悬空条目/悬空指针/缺抬头/漏登记/代码注释悬空/
-    非 ASCII 旧控制包残留/台账缺失 ⇒ 分别判红。"""
+    非 ASCII 旧控制包残留/台账缺失 ⇒ 分别判红。
+
+    CONTENT-TRUTH 新增（S21..S28）：死节号锚判红 / 真实节号锚不误红 / ASTROCS 目标不归本门 /
+    内容台账缺失与畸形 fail-closed / 模式 B、C 命中 / 节号锚分母为 0 时 fail-closed。
+    """
     import tempfile
 
     cases = []
@@ -1174,6 +1465,95 @@ def self_test() -> int:
         cases.append(("S20-selftest-entry-criterion", ok20,
                       "self_test()=%r _self_test()=%r no_impl=%r"
                       % (why_a, why_b, why_c[:60])))
+
+        # 正则哨：匹配一切节号锚形态。S28 用它把扫描面清空到分母 0。
+        CONTENT_SCAN_RE = re.compile(r"§\s*\d+(?:\.\d+)*|第\s*\d+(?:\.\d+)*\s*节")
+        N = chr(10)
+        OWN_HEAD = "# SCI" + N + N + "> 上游：docs/ASTROCS_DESIGN.md §2" + N + N
+
+        # S21 负例（可证伪）：路径可达但目标页没有该节号 ⇒ docs_section_refs_resolve 判红。
+        #     非退化自证：同一 mini-repo 在注入**前**该 check 必须为绿 ——
+        #     红只能由注入产生（恒真门守卫：判据不是恒绿的）。
+        r21 = _mk_repo(tmp, "s21")
+        _write(os.path.join(r21, "docs/engineering/SCIENCE_OVERVIEW.md"),
+               OWN_HEAD + "## 1 起" + N + "正文" + N + "### 2.1 子节" + N + "正文" + N)
+        _git_init(r21)
+        pos21 = _ct_pass(r21)
+        _write(os.path.join(r21, "lib/x/foo.cpp"),
+               "// 规范见 docs/engineering/SCIENCE_OVERVIEW.md §7.3（该节不存在）" + T + "int x = 1;" + T)
+        _git_init(r21)
+        ok21, d21 = _ct(r21, False)
+        cases.append(("S21-content-ref-dead-section",
+                      bool(ok21) and pos21 is True,
+                      "注入后判红=" + repr(bool(ok21)) + " | 正控(注入前 pass)="
+                      + repr(pos21) + " | " + d21[:160]))
+
+        # S22 正例（误报对照）：节号**真实存在**（§1 与多级 §2.1）⇒ 不得判红。
+        r22 = _mk_repo(tmp, "s22")
+        _write(os.path.join(r22, "docs/engineering/SCIENCE_OVERVIEW.md"),
+               OWN_HEAD + "## 1 起" + N + "正文" + N + "### 2.1 子节" + N + "正文" + N)
+        _write(os.path.join(r22, "lib/x/foo.cpp"),
+               "// 口径见 docs/engineering/SCIENCE_OVERVIEW.md §2.1 与 §1" + T + "int x = 1;" + T)
+        _git_init(r22)
+        ok22, d22 = _ct(r22, True)
+        cases.append(("S22-content-ref-live-section", ok22, d22[:160]))
+
+        # S23 正例（误报对照）：ASTROCS_DESIGN.md 目标**不归本门** ⇒ 即便节号不存在也不判红
+        #     （兄弟门面 check_design_section_refs.py 专责；本门显式排除，不造第二套口径）。
+        r23 = _mk_repo(tmp, "s23")
+        _write(os.path.join(r23, "lib/x/foo.cpp"),
+               "// 权威见 docs/ASTROCS_DESIGN.md §99.99" + T + "int x = 1;" + T)
+        _git_init(r23)
+        ok23, d23 = _ct(r23, True)
+        cases.append(("S23-astrocs-target-not-ours", ok23, d23[:160]))
+
+        # S24 负例：内容台账缺失 ⇒ fail-closed 判红（不得把「台账读不到」当无违规）。
+        r24 = _mk_repo(tmp, "s24")
+        os.remove(os.path.join(r24, CONTENT_TRUTH_LEDGER))
+        _git_init(r24)
+        cases.append(("S24-content-ledger-missing-fail-closed",)
+                      + _red(r24, "s24", True, "docs_section_refs_resolve"))
+
+        # S25 负例：内容台账条目缺必填字段 ⇒ 判红（防台账被塞成空壳绕过）。
+        r25 = _mk_repo(tmp, "s25")
+        _write(os.path.join(r25, CONTENT_TRUTH_LEDGER),
+               json.dumps({"max_entries": 1, "entries": [{"file": "a"}]},
+                          ensure_ascii=False) + T)
+        _git_init(r25)
+        cases.append(("S25-content-ledger-malformed",)
+                      + _red(r25, "s25", True, "docs_section_refs_resolve"))
+
+        # S26 正例（误报对照）：§N.M 命中模式 B（标题正文带显式 `（§N.M）`）⇒ 不得判红。
+        r26 = _mk_repo(tmp, "s26")
+        _write(os.path.join(r26, "docs/engineering/SCIENCE_OVERVIEW.md"),
+               OWN_HEAD + "## 2 清单" + N + "正文" + N + "#### 处置面（§2.1.1）" + N + "正文" + N)
+        _write(os.path.join(r26, "lib/x/foo.cpp"),
+               "// 登记见 docs/engineering/SCIENCE_OVERVIEW.md §2.1.1" + T + "int x = 1;" + T)
+        _git_init(r26)
+        ok26, d26 = _ct(r26, True)
+        cases.append(("S26-inline-section-anchor-live", ok26, d26[:160]))
+
+        # S27 正例（误报对照）：§N.M 命中模式 C（父节正文的有序列表第 M 项）⇒ 不得判红。
+        r27 = _mk_repo(tmp, "s27")
+        _write(os.path.join(r27, "docs/engineering/SCIENCE_OVERVIEW.md"),
+               OWN_HEAD + "## 14 文献" + N + "1. 一" + N + "2. 二（冻结）" + N + "3. 三" + N)
+        _write(os.path.join(r27, "lib/x/foo.cpp"),
+               "// 常量见 docs/engineering/SCIENCE_OVERVIEW.md §14.2" + T + "int x = 1;" + T)
+        _git_init(r27)
+        ok27, d27 = _ct(r27, True)
+        cases.append(("S27-list-item-section-live", ok27, d27[:160]))
+
+        # S28 负例（判别力）：扫描面节号锚分母为 0 ⇒ fail-closed 判红。
+        #     锁住「解析器空转不得判绿」——否则删光全仓节号锚即可让本门恒绿。
+        r28 = _mk_repo(tmp, "s28")
+        _git_init(r28)  # 先 init：扫描面依赖 git ls-files
+        for rel, _s in _scan_surface_for_fixture(r28):
+            full = os.path.join(r28, rel)
+            if os.path.isfile(full):
+                _write(full, CONTENT_SCAN_RE.sub("", _read(full)))
+        _git_init(r28)
+        cases.append(("S28-zero-anchor-scan-floor",)
+                      + _red(r28, "s28", True, "docs_section_refs_resolve"))
 
     bad = [(n, m) for n, ok, m in cases if not ok]
     for n, ok, m in cases:

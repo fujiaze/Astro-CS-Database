@@ -81,10 +81,9 @@
 3. **`KNOWN_LIMITATIONS` 的分面**：它横跨科学/工程/产品三面（B 类条目是科学口径限制）。
    需裁决整篇留工程集，还是按面拆分。
 4. **`audit/` 的去留**：只有 CSV 无散文。需裁决是否仍单列，还是并入 `traceability/`。
-5. **两篇 `TROUBLESHOOTING.md` 的处置**：原 `docs/detail/merged_TROUBLESHOOTING.md` 与
-   `docs/diagnostics/TROUBLESHOOTING.md` 内容互补不重叠，迁移合并为
-   `docs/detail/merged_TROUBLESHOOTING.md`。需裁决是否保留合并形态，还是按「症状表」与
-   「故障覆盖门」拆成两篇分置。
+5. **两篇 `TROUBLESHOOTING.md` 的处置**：原两篇（篇名同为 `TROUBLESHOOTING.md`，分处不同目录）
+   内容互补不重叠，迁移时已合并为 `docs/detail/merged_TROUBLESHOOTING.md`（原第二篇的目录已随迁移消解）。
+   需裁决是否保留合并形态，还是按「症状表」与「故障覆盖门」拆成两篇分置。
 6. **子目录形态**：`abi/`、`cpu/`、`data/`、`io/`、`observability/`、`v6/`、`checks/` 保留为
    子目录。若改为平铺，本集导航与各子域招牌件的相对链接都要重写。
 
