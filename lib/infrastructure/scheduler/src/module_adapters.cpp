@@ -14246,7 +14246,7 @@ bool p3n_sub_block_px(const Json& doc, int* out, std::string* err) {
 }
 
 // ── EXPORT-CROP-01：导出裁剪范围（默认不裁剪）──────────────────────────────
-// 权威：docs/engineering/CONFIG_CONTRACT.md §3（export 行 crop）+ docs/design/
+// 权威：docs/engineering/CONFIG_CONTRACT.md §3（export 行 crop）+ docs/detail/
 // PHASE3_DETAILED_DESIGN.md §8；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
 // （CLI 配置面与节点面共用，禁第二份）。依据 docs/detail/PHASE3_DETAILED_DESIGN.md
 // §8：默认导出不得裁剪任何有效像素（允许黑边），裁剪为**可选**参数，且两种形式都要有。

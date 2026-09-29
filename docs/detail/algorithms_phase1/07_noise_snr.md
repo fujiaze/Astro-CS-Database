@@ -13,7 +13,7 @@
 - `docs/detail/UNIFIED_MODEL.md`（数据对象表：frame_snr、sparse_snr_layer）
 - `docs/science/NOISE_MODEL.md`、`docs/science/PSF_SIGNAL_WEIGHT.md`（噪声模型与帧级 SNR 公式正本）
 - `docs/detail/PHASE1_DETAILED_DESIGN.md` §8（SNR 与 PSF 信号权重）
-- `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`（PixInsight 公开方法学、开源对照实现与文献研究包）
+- `实验/absolute-snr/docs/SNR_WEIGHT_RESEARCH_PACK.md`（PixInsight 公开方法学、开源对照实现与文献研究包）
 
 ## 3. 输入/输出数据合同
 

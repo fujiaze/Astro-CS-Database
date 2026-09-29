@@ -248,7 +248,7 @@ set_tests_properties(p1star_nls_lm PROPERTIES
 
 # ----------------------------------------------------------------------------
 # STARDET-01：星表引导检测（权威路径）判据 —— sdet_detect_guided_ex_f64
-# 规范锚 docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
+# 规范锚 docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/detail/algorithms_phase1/
 # 03_star_detection.md §4：检测定义域 = 星表位置，只对该位置做质心/PSF 拟合，
 # 失败直接丢弃（不计虚警、不报错）；全图盲检测降级为诊断/初值路径（保留）。
 # 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 生产 TU 集（生产源零改动）。

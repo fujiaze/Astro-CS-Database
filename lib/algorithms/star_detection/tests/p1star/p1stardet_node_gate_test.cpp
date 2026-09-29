@@ -2,7 +2,7 @@
 // p1stardet_node_gate_test.cpp — STARDET-01 节点级门：
 //   star-psf 节点的星表引导检测（权威路径）fail-closed 与"不得静默降级"
 // ----------------------------------------------------------------------------
-// 规范锚: docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
+// 规范锚: docs/ASTROCS_DESIGN.md §4.2/§2.1 + docs/detail/algorithms_phase1/
 //   03_star_detection.md §4 —— 权威路径 = 星表位置逆投影 + 只对该位置拟合；
 //   全图盲检测 = 诊断/初值路径（保留，但不再是权威路径）。
 // 被测面: p1_op_star_psf_precise_json（= p1_op_star_psf_impl(..., n_fit_limit=0)，

@@ -26,7 +26,7 @@
   仅编排层词汇）；dll_target=`astrocs_p2_upm.dll`（合同值，尚未存在，
   迁移目标未落地）。
 - 合同三件套：`lib/algorithms/upm/`（README + module.yaml CONTRACT_READY，
-  entrypoint 未落地 + memory.md）；落位规则见 docs/modules/README.md。
+  entrypoint 未落地 + memory.md）；落位规则见 docs/detail/README.md。
 - 生产源：`lib/algorithms/coverage/src/upm.cpp`（1565 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
   签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）。模块页=

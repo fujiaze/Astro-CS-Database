@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DATA-003 生产 ArtifactStore（执行形态；权威文档形态 = docs/interfaces/data/
+"""DATA-003 生产 ArtifactStore（执行形态；权威文档形态 = docs/engineering/data/
 DATA-003_PRODUCTION_ARTIFACT_STORE.md + 本目录 README.md）。
 
 冻结语义（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-003 + 约束 A.3/A.4/A.6 +

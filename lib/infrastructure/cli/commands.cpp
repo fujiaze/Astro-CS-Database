@@ -1347,7 +1347,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                  {"work_core_seconds", g.work_core_seconds},
                  {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
                  {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
-                 // SO-05 记录/裁决分离（docs/plugins/infrastructure/
+                 // SO-05 记录/裁决分离（docs/detail/infrastructure/
                  // 21_observability.md §8.3/§8.4）：资源判据**恒 record-only**，CLI 面不存在
                  // enforce 路径（resource_gate.h::gate_enforcement 恒 RecordOnly）。原先写的
                  // would_fail_if_so05_signed=true 已删：它对 §8.3 的 record_and_justify 判据

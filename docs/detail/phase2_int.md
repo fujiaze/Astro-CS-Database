@@ -4,7 +4,7 @@
 
 > 合同三件套落位
 > `lib/algorithms/integration/`（README + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint 未落地）；落位规则见 docs/modules/README.md。生产源 `lib/algorithms/coverage/src/integrate.cpp`（76 行，根 CMakeLists
+> entrypoint 未落地）；落位规则见 docs/detail/README.md。生产源 `lib/algorithms/coverage/src/integrate.cpp`（76 行，根 CMakeLists
 > astrocs_phase2 静态库成员 :336-346/:344；lib/algorithms/coverage/CMakeLists.txt:42-49
 > 兼容 target :49 同文件）+ 签名头正本
 > `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）。

@@ -149,7 +149,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
             qe_wl.clear();
             qe_trans.clear();
             // 曲线名/文件存在但解析失败 ⇒ 不得静默退化为 Q(λ)≡1（通带错配是合成
-            // 测光定标的主误差项，见 docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md
+            // 测光定标的主误差项，见 实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md
             // §1.4）；如实报出，由调用方决定是否判红。
             std::fprintf(stderr, "[photometry] WARNING: QE 曲线 '%s' 在 %s 中解析失败, "
                                  "按 Q(lambda)=1 继续 (显式未建模项)\n",

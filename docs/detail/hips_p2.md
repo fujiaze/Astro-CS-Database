@@ -4,7 +4,7 @@
 
 > 合同三件套落位
 > `lib/algorithms/coverage/hips_p2/`（README + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint 未落地）；落位规则见 docs/modules/README.md。
+> entrypoint 未落地）；落位规则见 docs/detail/README.md。
 > 唯一生产源 `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，astrocs-stage2 工具，
 > lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
 > `lib/algorithms/coverage/include/astro/phase2/stage2_common.h`；共用 writer 库

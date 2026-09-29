@@ -8,7 +8,7 @@
 > lib/algorithms/coverage/hips_p2/README.md（CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase2-hips-writer，module_id=astrocs.p2.hips_writer，
 > dll_target=astrocs_p2_hips_writer.dll）为准；合同三件套落位规则见
-> docs/modules/README.md。唯一生产源 lib/algorithms/coverage/tools/stage2.cpp
+> docs/detail/README.md。唯一生产源 lib/algorithms/coverage/tools/stage2.cpp
 > （astrocs-stage2 工具，lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
 > lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100）。
 

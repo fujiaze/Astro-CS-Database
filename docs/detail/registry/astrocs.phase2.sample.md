@@ -15,7 +15,7 @@
 - MOD ID：MOD-astrocs-phase2-sample；module_id 合同值 = astrocs.p2.sampling；
   dll_target = astrocs_p2_sampling.dll（迁移目标，未落地）。
 - 合同三件套：lib/algorithms/sampling/（CONTRACT_READY；落位规则见
-  docs/modules/README.md）。
+  docs/detail/README.md）。
 - 生产源：lib/algorithms/coverage/src/sampler.cpp + 签名头正本
   lib/algorithms/coverage/include/astro/phase2/sampler.h；构建 = 根 CMakeLists.txt
   的 astrocs_phase2 静态库成员。

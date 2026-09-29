@@ -3,7 +3,7 @@
 > 上游：docs/ASTROCS_DESIGN.md §8.5（模块与 ABI）
 
 > 模块总页；registry 登记页 = docs/detail/registry/astrocs.phase3.resample2.md；
-> 合同三件套 = lib/algorithms/resample/（落位规则见 docs/modules/README.md）。
+> 合同三件套 = lib/algorithms/resample/（落位规则见 docs/detail/README.md）。
 
 ## 1 身份
 
@@ -96,4 +96,4 @@ module_id=astrocs.phase3.resample2），其对齐属迁移目标（未落地）�
 - 同域: docs/detail/phase3_proj.md（WCS 域）、
   docs/detail/phase3_fits.md（写出域）、
   phase3_session 模块页未建（会话编排层不单独成模块）；会话编排面现行权威 =
-  `docs/engineering/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`。
+  `docs/engineering/RT-001.md` + `docs/detail/registry/astrocs.phase3.*`。

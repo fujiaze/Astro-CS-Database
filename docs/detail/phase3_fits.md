@@ -7,7 +7,7 @@
 > ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，实现级合同，
 > SCI-P3-WR-001⇒SCI-P3-001 映射声明在其 §5）。合同三件套落位
 > `lib/algorithms/fits_output/`（README/module.yaml/memory.md，CONTRACT_READY；
-> 落位规则见 docs/modules/README.md）；legacy 生产源在 `lib/phase3_session/`
+> 落位规则见 docs/detail/README.md）；legacy 生产源在 `lib/phase3_session/`
 > （astrocs_phase3_session 五源同库，其中 fits 写出源归属本模块）。descriptor 词汇
 > module_id=`astrocs.phase3.writer`（p3_writer_descriptor）为编排层口径，其对齐属
 > 迁移目标（未落地）；冻结依据 = ALG-P3-FITS-IMPL-001。
