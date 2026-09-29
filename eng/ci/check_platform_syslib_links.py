@@ -85,9 +85,11 @@ SKIP_DIRS = {".git", "node_modules", "run"}
 SKIP_PATH_PARTS = {("lib", "third_party")}
 
 # 词表只有 BARE 一处：此前这里又把 "(m|pthread|z)" 手抄了一遍，
-# 改 BARE 词表零效果（死配置）。改为从 BARE 生成，行为逐字节不变
-# （两侧都是完整 token 的边界断言，与分支顺序无关）。
-BARE_RE = re.compile(r"(?<![A-Za-z0-9_./$-])(?:"
+# 改 BARE 词表零效果（死配置）。改为从 BARE 生成。
+# ⚠ 交替必须是**捕获组**：负例路径用 `mm.group(1)` 取库名写进判词，
+# 改成非捕获组会让该路径在自测面上抛 IndexError。
+# 顺序无关：两侧都是完整词的边界断言。
+BARE_RE = re.compile(r"(?<![A-Za-z0-9_./$-])("
                      + "|".join(sorted(BARE, key=len, reverse=True))
                      + r")(?![A-Za-z0-9_])")
 LINK_STMT_RE = re.compile(r"(?:target_link_libraries|TARGET_LINK_LIBRARIES)\s*\(|"
