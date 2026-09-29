@@ -66,7 +66,9 @@ void add_gauss(std::vector<double>& img, double cx, double cy, double amp,
 // 盲路径检测 (FP64 全程), 返回 count; extras 取 fwhm_x/fwhm_y 供判别输出
 int detect_blind(const std::vector<double>& img, float max_axis_ratio,
                  int* count_out) {
-    SDetParams p;
+    // 值初始化（非 memset）: 四个形状门子参数取 0 = 用内置默认，与生产 memset(0)
+    // 后逐位一致。原先 SDetParams p; 未初始化 → 读栈垃圾 → 形状门用随机阈值判星（UB）。
+    SDetParams p{};
     p.structureLayers = 5; p.hotPixelFilterRadius = 1;
     p.iterativeClipSigma = 9.0f; p.iterativeMaxRounds = 5;
     p.medianFilterDetail = 1; p.maxStars = 2000;
@@ -206,7 +208,8 @@ int main() {
         auto img = base;
         add_gauss(img, 47.5, CY, 2800.0, 1.5, 1.5);
         add_gauss(img, 47.5, CY, 900.0, 9.0, 9.0);
-        SDetParams p;
+        // 同上: 值初始化，四个形状门子参数取 0 = 用内置默认（原为未初始化 ⇒ UB）。
+        SDetParams p{};
         p.structureLayers = 5; p.hotPixelFilterRadius = 1;
         p.iterativeClipSigma = 9.0f; p.iterativeMaxRounds = 5;
         p.medianFilterDetail = 1; p.maxStars = 2000;
