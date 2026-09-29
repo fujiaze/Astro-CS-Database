@@ -14,6 +14,7 @@
 #ifndef P1PSF_ORACLE_HPP
 #define P1PSF_ORACLE_HPP
 
+#include <algorithm>  // std::max (rel_err:81 / close_hybrid:89 / oracle_sigma_axes:103)
 #include <cmath>
 
 #ifndef M_PI
