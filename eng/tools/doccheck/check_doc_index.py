@@ -1234,21 +1234,28 @@ def _red(root: str, name: str, strict: bool, needle: str) -> tuple:
 
 
 def _ct(root: str, expect_pass: bool) -> tuple:
-    """断言**单个 check** 的 pass 取值（CONTENT-TRUTH 正例专用）。
+    """断言**全局退出码**（CONTENT-TRUTH 正例专用）。
 
-    为什么不用 _res()：mini-repo 的既有夹具在 HEAD 就让 4 个正例红（S0/S4/S14b/S16，
-    根因是夹具自身的悬空指针，见 run/FINAL-07/content-truth/三步验收实跑.md §3）。
-    正例若断言全局 rc=0，会把「既有夹具红」误记成本判据的红 —— 那是不诚实的对照。
-    因此本判据的正例只断言 docs_section_refs_resolve 这一项，判别力由 S21（注入前绿、
-    注入后红）单独锁住。
+    为什么用全局而不是单个 check：单个 check 的 pass 只说明**那一条**判据的结论，
+    发现不了「夹具树自身带悬空或缺件导致别条判据红」——那会让正例在坏基线上判绿，
+    把基线缺陷记成本判据的绿。
+
+    依据：本判据上线时 mini-repo 夹具确实让 4 个正例红（S0/S4/S14b/S16），
+    当时据此退让为单项断言。**该基线缺陷已修复**（夹具补成迁移后形态，
+    --self-test 32/32 全绿、rc=0），故此处改回更强的全局断言。
+    判别力仍由 S21（注入前绿、注入后红）与 S28（扫描面下限）单独锁住。
     """
     results, _ = run_checks(root, True)
-    row = next((r for r in results
-                if r["check"] == "docs_section_refs_resolve"), None)
-    if row is None:
-        return False, "docs_section_refs_resolve 未出现在结果面（门自身坏了）"
-    return row["pass"] == expect_pass, ("pass=" + repr(row["pass"]) + " expect="
-                                        + repr(expect_pass) + " | " + row["detail"][:200])
+    bad = [r["check"] for r in results if not r["pass"]]
+    ok = (not bad) if expect_pass else bool(bad)
+    detail = ("全部 %d 项子检查通过" % len(results)) if (ok and expect_pass) else ("判红的子检查 = %r" % bad[:6])
+    if not expect_pass:
+        row = next((r for r in results
+                    if r["check"] == "docs_section_refs_resolve"), None)
+        if row is None:
+            return False, "docs_section_refs_resolve 未出现在结果面（门自身坏了）"
+        detail += " | 本判据 pass=" + repr(row["pass"])
+    return ok, detail
 
 
 def _ct_pass(root: str):
