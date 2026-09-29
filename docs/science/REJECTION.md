@@ -310,7 +310,7 @@ large_scale 结构生长:
   `n<8` percentile / `≤10` averaged / `<20` winsorized / `<25` LinearFit / 否则 ESD（见上条 Siril 1.4.6 逐字锚）。
 - **percentile 判据的适用域**：等效显著性随 `|median|/s` 线性漂移（§8a），真实天光电平下退化为惰性、近零天光下退化为过拒；判据带定义与冻结阈值以 §5/§8a 为准。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 
@@ -337,7 +337,7 @@ large_scale 结构生长:
   （保守读法）；高电平（≳3400 e⁻/pix）实测显示 `N=3` 反而占优，
   翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）。
   **§8a 的 percentile 适用域（阈值随 `|median|/s` 漂移）与上述档位取舍是两件事**，各自独立表述。
-- **档位表归属**：逐像素冻结映射表见 `docs/plugins/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /
+- **档位表归属**：逐像素冻结映射表见 `docs/detail/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /
   `N≥6` winsorized）；本节 §5 的 `astrocs_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
 
 ## 17 沿线排异的口径与分母定义（M42 真实帧面）

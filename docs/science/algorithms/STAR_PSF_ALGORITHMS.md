@@ -61,7 +61,7 @@
   C 保留 `fwhm_x`/`fwhm_y` 两列而 B 只给平均。
 - **布局 A 无生产写出面**：`residual_scale`/`q_psf` 在 `lib/algorithms/psf/src/dpsf_psf.cpp`
   全文件 **0 命中** ⇒ A 是 oracle/测试与 SCI 参数序面，**不是**任何接口产出的生产块。
-- **DATA 侧待订正（登记移交，不代改）**：`docs/contracts/DATA_SEMANTICS.md:754-762` 把布局 C
+- **DATA 侧待订正（登记移交，不代改）**：`docs/science/DATA_SEMANTICS.md:754-762` 把布局 C
   与布局 B 当「同名异物」处理；实测二者**既不同名也不同物**（B 首列 status、C 首列 B）
   ⇒ 该处待订正；该文件当前在飞，本节只作消歧引用。
 
@@ -256,5 +256,5 @@ saturated=§11.2 简并兜底 + §11.1 饱和列不消费登记（P1-PSF-TEST �
 - 拥挤场 PSF 测光：Stetson 1987, PASP 99, 191。
 - q_psf/residual_scale：Project-defined 质量代理，非 SNR/非 Fisher information。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

@@ -149,7 +149,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   :42/:44 注释）；`p2_coverage_free`（:233-237）仅 `memset(out,0)`
   （:235）清零 POD——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 §1 所有权
   图行 `Coverage: build/调用方持有/p2_coverage_free/只读借用` 一致，
-  docs/api/PHASE2_API_V1.md:15）。
+  docs/engineering/PHASE2_API_V1.md:15）。
 - 重复调用幂等: 同输入两次 build 结果 bitwise 一致（纯函数式扫描，无
   全局状态；错误路径通过 `aio_hips_reader_last_error()` 转述 AIO 层原因
   :63-65）。
@@ -246,15 +246,15 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 ## 10 关联 ARC/API/TST
 
-- API-COV-001（docs/contracts/PUBLIC_API.md）: p2_coverage_build/free
+- API-COV-001（docs/engineering/PUBLIC_API.md）: p2_coverage_build/free
   2 导出 + 两阶段协议 + P2CoverageResult 所有权。
-- DATA-COV-001（docs/contracts/DATA_SEMANTICS.md §19）: 输入 HiPS 树
+- DATA-COV-001（docs/science/DATA_SEMANTICS.md §19）: 输入 HiPS 树
   与输出 MOC/逐帧元信息的单位/dtype/shape/invalid 唯一权威。
-- API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN）: 逐函数
+- API-P2-001（docs/engineering/PHASE2_API_V1.md，FROZEN）: 逐函数
   并发五字段（p2_coverage_build/free: yes/no(独立对象)/none/无/TST-COV-*）
-  + 所有权图（docs/api/PHASE2_API_V1.md:28/:15）——编排级合同，与本节
+  + 所有权图（docs/engineering/PHASE2_API_V1.md:28/:15）——编排级合同，与本节
   并行不互斥。
-- ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/architecture/CPU_BACKEND_ARCH.md）: cpu_heavy 资源类、
+- ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/engineering/CPU_BACKEND_ARCH.md）: cpu_heavy 资源类、
   单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
 - TST: TEST-COV-DESIGN-001（§11.4，P2-COV-TEST 落 TEST-P2-COV-001）。
 
@@ -399,8 +399,8 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
 
 - 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
 - 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
-- coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 docs/plugins/algorithms_phase2/09_coverage.md §1；权威语义在本文件 §7 负向条款。
+- coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 docs/detail/algorithms_phase2/09_coverage.md §1；权威语义在本文件 §7 负向条款。
 - MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

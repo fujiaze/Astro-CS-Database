@@ -163,7 +163,7 @@
 - **support=max canonical reducer**：Project-defined（覆盖并集保守下界，§5/§10），无外部公式；可对照 coverage/几何并集语义。
 - **Fruchter & Hook 2002, PASP 114, 144**：重采样后相关噪声背景（与 §5 加权平均的适用域相关）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

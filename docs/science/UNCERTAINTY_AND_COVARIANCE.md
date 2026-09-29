@@ -11,7 +11,7 @@
 - 输入方差：噪声模型 A = `NoiseWeightModelV1`（空背景稳健方差，唯一生产模型，SCI-NOISE-001..015）；
 - Drizzle 传播：var_p = Σ v_j w_jp² / N_p²（SCI-DRZ-014 冻结口径；实现写法 = 分子 (sumVarNum·k²)、分母 D_p²，其中 k := D_p/N_p = pixfrac²，逐位等于 /N_p²，分子累加锚 `drizzle_engine.cpp`；以 D_p² 计会把方差高估 1/pixfrac⁴，pf=0.8 → ×2.44）。归一化口径与几何锚见 `docs/science/algorithms/DRIZZLE_GEOMETRY.md`。
   与 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002；实现锚 `noise_model.cpp` 与 `snr_estimator.h`，口径锚 `docs/science/algorithms/NOISE_ESTIMATION.md`）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
-  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp` 无量纲、归一分母 `N_p = Σ_j w_jp·A_pixel,j`（实现记法 `D_p/k`，`k := D_p/N_p`；`D_p = Σ_j a_jp` 与 `N_p` 同为 `sr` 计面积量）且**与 `v_j` 无关** ⇒ 缩放律在标度类别的任何一档上都成立（量纲论证主语取 N_p；D_p 与 N_p 同量纲，论证对两者同型）（`DATA_SEMANTICS` §4a；`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
+  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp` 无量纲、归一分母 `N_p = Σ_j w_jp·A_pixel,j`（实现记法 `D_p/k`，`k := D_p/N_p`；`D_p = Σ_j a_jp` 与 `N_p` 同为 `sr` 计面积量）且**与 `v_j` 无关** ⇒ 缩放律在标度类别的任何一档上都成立（量纲论证主语取 N_p；D_p 与 N_p 同量纲，论证对两者同型）（`DATA_SEMANTICS` §4a；`docs/engineering/NUMERIC_STANDARD.md`「量纲与标度」）。
 - 产品：HiPS variance + ivar（1/variance）。
 
 ## 协方差（重要边界）
@@ -159,5 +159,5 @@ DATA-UPM-CONTROL-UNC-001、DATA-P2-VAR-001、DATA-P3-UNC-001
   **未独立验证**：Kendall & Stuart Vol.1 与 Hoaglin et al. 1983 的章节号与逐字原文（付费墙）。
 - **像素 ivar 与孔径方差不等价**：aperture 方差须显式加 Cov 项；相关噪声处理见 Zackay & Ofek 2017 II。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

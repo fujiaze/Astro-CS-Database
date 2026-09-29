@@ -270,7 +270,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - **极区保守剪枝/球面 bbox**：Project-defined（§8/§11）；球面几何基元可对照 astropy/ERFA 的独立实现。
 - **Y-up↔Y-down 与 |det(CD)| 不变量**：Paper I §2.1.1 的像素/世界定义 + Project-defined 符号规则（§5）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ## 15 Acceptance
 

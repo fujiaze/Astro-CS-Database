@@ -409,7 +409,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   （p3_output_write_atomic/p3_output_verify 符号级冻结 + 会话编排
   p3_session 五段镜像 API-P3-001 不变）。
 - TEST-P3-WR-001 = 登记面 TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED
-  （§12 + docs/modules/registry/astrocs.phase3.writer.md）；可执行
+  （§12 + docs/detail/registry/astrocs.phase3.writer.md）；可执行
   MISSING 归 P3-FITS-TEST。
 - MOD-astrocs-phase3-writer / astrocs.p3.fits_writer /
   astrocs_p3_fits_writer.dll（合同值未建，P3-FITS-IMPL）；
@@ -421,7 +421,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - MATRIX 行：MOD-astrocs-phase3-writer（TRACEABILITY_MATRIX.json/
   csv :20 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
   + DATA_SEMANTICS §27 + PUBLIC_API API-P3-FITS-001 节 + registry
-  手写页 + docs/modules/phase3_fits.md。
+  手写页 + docs/detail/phase3_fits.md。
 - 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/science/algorithms/
   PHASE3_RESAMPLE.md（公式/容差零改动）、lib/ 生产源、third_party/
   cfitsio、eng/ci/、eng/tools/、eng/tests/ 本任务零触碰；发现的实现偏差全部
@@ -436,14 +436,14 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - 原子写：POSIX rename(2) 原子性（IEEE Std 1003.1）；本文件 §4 write_atomic 为 Project-defined。
 - BUNIT/VARIANCE/IVAR 扩展：DATA_SEMANTICS §30；FITS Standard 3.0 §4.3。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
 `:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +

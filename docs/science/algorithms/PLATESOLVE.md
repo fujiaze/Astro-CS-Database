@@ -144,7 +144,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 - `IpvWcsResult.error_msg` 与内部 `WcsFitResult.error` 是**对外可见**的失败信息载体，
   其内容**必须**是**合法 UTF-8**（承接 `ENGINEERING_SPEC`「文件编码 UTF-8」与
-  `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §8「超限按 UTF-8 边界截断」的口径）。
+  `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §8「超限按 UTF-8 边界截断」的口径）。
 - **写入定长缓冲的规则**：
   1. 截断**只**发生在 UTF-8 码点边界，多字节序列整体保留；
   2. 非法字节（孤立续字节 / 非法首字节 / 过长编码 / 代理区 / 越界码点 / 被 NUL 截断的序列）
@@ -238,7 +238,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | 错误串编码归一 | ipv_entry.cpp:320-370（`utf8_safe_copy`，§4b）、:186-193（`set_error_msg`）、:179-185（`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
 | 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |
 | iter_trans_solve | ipv_itertrans.cpp:974 | 迭代重投影多项式拟合（order 1→3） |
-| robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：`docs/references/SCIENTIFIC_REFERENCES.md` §E 20 Mosteller & Tukey 1977、§F 37 Beaton & Tukey 1974 biweight 原始出处），失败回退不破坏主解 |
+| robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight；佐证链：`docs/engineering/SCIENTIFIC_REFERENCES.md` §E 20 Mosteller & Tukey 1977、§F 37 Beaton & Tukey 1974 biweight 原始出处），失败回退不破坏主解 |
 | extract_wcs_sip | ipv_wcs.cpp:229 | WCS+SIP 提取（生产路径） |
 | CD = trans 线性项/3600 | ipv_wcs.cpp:256-266 | 度/像素（F2） |
 | CRVAL/CRPIX 冻结 | ipv_wcs.cpp:264-277 | CRPIX=w/2+0.5, h/2+0.5（1-based，F1） |
@@ -368,5 +368,5 @@ API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:517-529，由 P1-WCS-INT
 - Astrometry.net 语义对照（本文件 §8）：Astrometry.net（GPL-3.0-or-later，https://github.com/dstndstn/astrometry.net，tag 0.98 = commit `1398028b`；文件位置 `solver/solve-field.c`、`solver/solver.c`、`solver/verify.c`（quad 匹配 `verify_field_preprocess`）、`solver/quad-builder.c`、`util/quadfile.c`、`libkd/dualtree.c`；**核验状态**：三腿已按 tag 0.98 文件树逐条实测）。 **许可证判定（已闭环，一手来源）**：上游 LICENSE 原文 "Parts of the code written by the Astrometry.net Team are licensed under the 3-clause BSD-style license below. HOWEVER, since this code uses libraries licensed under the GNU GPL (including a vendored GSL), the whole work must be distributed under the GPL version 3 or later." ⇒ 上游**整体分发形态取 GPL-3.0-or-later**；团队自写文件为 BSD-3-Clause，而 Debian 因剥离 vendored GSL（`Files-Excluded: demo gsl-an`）才整体标 BSD-3-Clause。仓址一手依据 = astrometry.net/use.html 逐字 "development version on github: github astrometry.net" 指向该仓；版本腿 tag 0.98 = commit `1398028b`。
 - Huber IRLS（SIP 拟合）：Huber 1964, Ann. Math. Statist. 35, 73。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

@@ -191,14 +191,14 @@ function phase3_resample(hips_dir, params):
   FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
 - 方差传播（若涉及）：Fruchter & Hook 2002；UNCERTAINTY_AND_COVARIANCE.md。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ---
 
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接
-`docs/contracts/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
+`docs/science/DATA_SEMANTICS.md` §30 的 fail-closed 唯一出口**（规则
 `:2733-2740`；显式登记 `:2837-2839`）：输入面不含 variance/ivar 子产品
 （或权重非纯逆方差、发生 fallback、合成输入非有限被拒等规则项）⇒ **不写**
 variance/ivar 子产品 + manifest 写 `uncertainty_available=false` +

@@ -108,7 +108,7 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 - MAD→σ 常数：Rousseeuw & Croux 1993, JASA 88, 1273。
 - 本表阈值均为 Project-defined 冻结门（阈值来源只此一表）；外部文献只提供量测域语义，不提供门值。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 
 ---

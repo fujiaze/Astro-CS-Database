@@ -105,5 +105,5 @@ function integrate_pixel(in, out):
 - 最优叠加：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
 - support=max canonical reducer：Project-defined（覆盖并集保守下界，本文件 F6）。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

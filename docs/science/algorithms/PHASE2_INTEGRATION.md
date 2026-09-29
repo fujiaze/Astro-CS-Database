@@ -249,7 +249,7 @@ eligibility（逐候选 i，候选索引固定序）:
   `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
   `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
   即 support 与 signal 正交。
-- **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/contracts/DATA_SEMANTICS.md` §21.5
+- **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/science/DATA_SEMANTICS.md` §21.5
   与 `integrate.h:26-27` 的文本口径必须同为 `max_{accepted} support[i]`，
   **该口径即唯一口径**。
 
@@ -329,7 +329,7 @@ eligibility（逐候选 i，候选索引固定序）:
   lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
-- 交叉: docs/modules/phase2_int.md + lib/algorithms/integration/ 三件套；
+- 交叉: docs/detail/phase2_int.md + lib/algorithms/integration/ 三件套；
   registry astrocs.phase2.integrate.md；
   INTEGRATION_ALGORITHMS.md（L2 文档，ID 语义由本文件承接）。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
@@ -343,5 +343,5 @@ eligibility（逐候选 i，候选索引固定序）:
 - support=max：Project-defined（§5）；与 SCI-INT §5 同构。
 - 并行归约容差：IEEE 754-2019；Higham 2002。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 

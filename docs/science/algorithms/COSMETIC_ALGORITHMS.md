@@ -487,11 +487,11 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 
 - SCI: SCI-CAL-001（docs/science/CALIBRATION.md，FROZEN；§2 参数表、
   §6 坏点稀疏假设、§9a mask 极性 1=坏点、§11 oracle 容差标度）。
-- DATA: DATA-P1-COS（docs/contracts/DATA_SEMANTICS.md §10）；上游输入
+- DATA: DATA-P1-COS（docs/science/DATA_SEMANTICS.md §10）；上游输入
   DATA-P1-CAL（§9）。
-- API: API-COS-001（docs/contracts/PUBLIC_API.md，ac_correct_frame/
+- API: API-COS-001（docs/engineering/PUBLIC_API.md，ac_correct_frame/
   ac_correct_frame_f64/ac_set_num_threads）；API-P1-002
-  （docs/api/PHASE1_API_V1.md §2，编排合同，多模块共享）。
+  （docs/engineering/PHASE1_API_V1.md §2，编排合同，多模块共享）。
 - MOD/SRC: MOD-astrocs-phase1-cosmetic（lib/algorithms/cosmetic/module.yaml，
   CONTRACT_READY；lib/algorithms/cosmetic/README.md 实现事实）。
 - TEST: TEST-COS-DESIGN-001（本文档 §9）；可执行 TEST-P1-COS-001 由
@@ -513,7 +513,7 @@ var_out[y][x] = (Σw² · var_in[y][x]) · κ      # 只对被修复列（掩膜
 - 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
 - 插值修复（中值替换 / 4 方向 `1/dist` 距离反比加权 IDW——**现行实现口径**；方法常量名义 bilinear 实为 IDW，见 DISP-COS-003 与 `cosmetic_corrector.cpp:202-224`）：插值修复的教科书级背景（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
-**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/contracts/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
+**权威依据**：本文件 ALG-COS-001..006 的上游科学定义 = `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN；§2 参数表与 §12 坏点检测/修复登记，ALG-CAL-004 关系见本文件 §0）；C API 合同面 = `docs/engineering/PUBLIC_API.md`（cosmetic 条目：SCI: SCI-CAL-001 / ALG: ALG-COS-001..006 / DATA: DATA-P1-COS）；算法口径的唯一算法文档落位 = 本文件。
 

@@ -174,7 +174,7 @@ DSNU 与暗流散粒的区分是斜率：`∝D`（斜率 1/2）vs `∝D²`（斜
 ⇒ **核验前的断言面 = 空（"一手文献写…"的口吻以核验为前提）**。1/f 噪声只有定性描述，**无可引用的解析方差式**。
 
 **口径边界（以下写法不成立）**：把 `variance` 面（空背景口径）当作逐像素物理总方差场；用 `signal²` 反算或校验产品方差
-（`docs/contracts/DATA_SEMANTICS.md` §31.1 数值层）；把上表"不含/隐含"的项声称已显式建模；
+（`docs/science/DATA_SEMANTICS.md` §31.1 数值层）；把上表"不含/隐含"的项声称已显式建模；
 把"慢变"当作"可降为逐帧一个标量"的理由。
 
 **负例（判据判别力）**：真值**平坦**的输入下 `variance` 面的空间梯度判据 = 不可测（实测 0.91σ 不判红）；
@@ -248,7 +248,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 
 **口径边界（以下写法不成立）**：
 - 把背景方差面当作加权方差面——那会系统**低估**源受限像素的噪声、把权重抬高；
-- 用 `signal^2` 反算或校验本面（`docs/contracts/DATA_SEMANTICS.md` §31.1 数值层）；
+- 用 `signal^2` 反算或校验本面（`docs/science/DATA_SEMANTICS.md` §31.1 数值层）；
 - 在未登记 `g` 来源与降级状态的帧上，声称本面为"绝对"口径。
 
 ### 5d 平面场的自适应约束（无标定常数）
@@ -322,7 +322,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 
 - **signal/noise/blank sky**：`x`=校准后空背景像素值（ADU 同标度）；noise=空背景随机分量；blank sky 样本域=星点**逐星半径掩膜**（§5a，硬上界 `rmax`）+ 5σ≤2 轮裁剪后的合格 patch（§5）。
 - **sigma_cal_rel / 零点标准误（消费侧口径，SCI-PHOT 引用）**：`sigma_cal_rel = ln10·sigma_residual` 是**逐星定标散度**（dex → 相对），**不是**零点（median 位置）的不确定度；零点统计标准误为 `sigma_location_se_dex ≈ 1.253·sigma_residual/√N_eff`（`1.253=√(π/2)`，median 的位置标准误），`sigma_location_se_mag = 2.5·sigma_location_se_dex`（实现 `snr_phot_cal_quality`）。
-- **σ_sky 入参口径与 c_est 单位（防双计）**：① 逐像素噪声组合 `σ_i² = σ_sky,i² + (RN/g)² + F·P_i/g`，读噪只出现一次；`sigma_sky_adu` 的语义必须显式声明为 `shot_noise_only`（天光+暗流散粒）或 `empirical_total_rms`（经验总 rms，含读噪）——前者才叠加 `(RN/g)²`，后者的组合式不含 `(RN/g)²` 项；声明与实际来源不一致 ⇒ fail-closed。双计后果与两项的读数正本见 `实验/absolute-snr/`（噪声项面 results 与 `REPORT_experiment.md`），插件侧口径落点 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2a。② 本文件 §5a 的 `1.44/√N` 是**相对**标准误（无量纲），dex 口径为 `1.44/ln10/√N ≈ 0.625/√N`；把它当 dex 阈值用会高估噪声项 2.3026 倍。
+- **σ_sky 入参口径与 c_est 单位（防双计）**：① 逐像素噪声组合 `σ_i² = σ_sky,i² + (RN/g)² + F·P_i/g`，读噪只出现一次；`sigma_sky_adu` 的语义必须显式声明为 `shot_noise_only`（天光+暗流散粒）或 `empirical_total_rms`（经验总 rms，含读噪）——前者才叠加 `(RN/g)²`，后者的组合式不含 `(RN/g)²` 项；声明与实际来源不一致 ⇒ fail-closed。双计后果与两项的读数正本见 `实验/absolute-snr/`（噪声项面 results 与 `REPORT_experiment.md`），插件侧口径落点 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.2a。② 本文件 §5a 的 `1.44/√N` 是**相对**标准误（无量纲），dex 口径为 `1.44/ln10/√N ≈ 0.625/√N`；把它当 dex 阈值用会高估噪声项 2.3026 倍。
 - **SNR**：本合同不产出 SNR 图。消费侧可以构成**逐像素探测显著性** `signal/√variance`，但该量**不含源泊松项**（`variance` 仅空背景），不是源的通量信噪比；源通量 SNR 必须另行定义（逐源 `σ_F`，见 CONTROL_WEIGHT_SNR.md §1）。本层唯一产出为 `variance/ivar`（GLOSSARY `variance/ivar`）。
 - **variance/ivar**：`variance`=ADU²（平面场或全局兜底），**可用**像素 `ivar=1/max(variance,floor)` 精确倒数（§7 量纲不变量）。两态穷尽：**平面预测 ≤ 0 或产品 dtype 不可表示 ⇒ `variance=0 ∧ ivar=0`（不可用态）**；`variance_floor` 非有限或 ≤0 ⇒ build/fill 显式拒绝 `SNR_FLOOR_UNBOUND(-10)`（§4/§8）；非有限输入在参数域拒绝（§8）。
 - **Poisson+read noise**：`var_ADU=max(signal,0)/gain+(read_noise_e/gain)²` 是**加权方差面**（§5c）的源项与常数项来源；**背景方差面**（§5）的唯一基线为 empirical MAD（`source==0`），两者各自独立、取值互不代用。
@@ -379,7 +379,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 - **饱和过滤**：LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr，commit `28faec7dd2297d2ff9f108e543b2d55fdb046345`）`python/lsst/ip/isr/isrTask.py` 中 `class IsrTaskConfig` 的 `doSaturation` 字段与 SAT 面（**定位更正**：`IsrTaskConfig` 是 `isrTask.py` 内的**类**，该仓在 pin 住的 commit 上**不存在** `isrTaskConfig.py` 这个文件；本条原引的文件名经 `git ls-tree` 实测为不存在的路径）；FITS SATURATE/DATAMAX 关键字（FITS Standard）。
 - **掩膜半径的解析导出**：Gaussian/Moffat 轮廓尾翼积分属 Project-defined 推导（§5a）；Moffat 轮廓出处见 Moffat 1969, A&A 3, 455；PSF 尺度与 FWHM 换算见 docs/science/PSF.md §5。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
 ### 14a.1 PixInsight N* 常数与本项目口径
 

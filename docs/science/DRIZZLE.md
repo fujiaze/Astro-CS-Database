@@ -143,7 +143,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 | RING ordering | 拒绝（HISS 统一 NESTED） | `drizzle:拒绝RING` |
 | 多通道图像 | 拒绝 | `drizzle:拒绝多通道` |
 | WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp` |
-| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**掩膜作用域 = 样本级**（单个不合格样本不改变输出像素的取值），分母只累计合格样本的权重；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，0/±Inf 一律读作有效数值），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（剔除逐条登记计数）。 | `spherical_overlap.cpp`（几何 NaN 显式拒绝） |
+| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**掩膜作用域 = 样本级**（单个不合格样本不改变输出像素的取值），分母只累计合格样本的权重；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，0/±Inf 一律读作有效数值），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（剔除逐条登记计数）。 | `spherical_overlap.cpp`（几何 NaN 显式拒绝） |
 | 无覆盖/几何退化 | `NO_DATA`，不产伪信号 | `drizzleTiled` |
 | 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（核分母 `A_drop,j` 与面亮度归一分母用的 `A_pixel,j` 走**同一分支同一例程**：θ<1e-3 时同为切平面 2D 面积，见 `spherical::polygon_area_consistent`） | `spherical_overlap.cpp` `planar_polygon_area_n` / `polygon_area_consistent` |
 | RA 跨0/极区/face边界 | `boundary_fallback` 保守 queryDisc，`false_negative=0` | `spherical_overlap` |
@@ -232,7 +232,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 - **HiPS/MOC 层级**：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）；Fernique et al. 2015, A&A 578, A114。
 - **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
 - §7 不变量门全过；
 - `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
@@ -248,7 +248,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 | # | 位置 | 变更前 | 变更后 | 性质 |
 |---|---|---|---|---|
 | 1 | §5:64（等价参数化） | `N'_p = Σ_j w'_jp = D_p/pixfrac²` | `N'_p = Σ_j w'_jp·A_pixel,j = D_p`（并显式并列 canonical 侧 `N_p = D_p/pixfrac²`） | 订正（**等价参数化的分母错标**；原式与同句「给出同一个 `c_jp = w_jp/N_p`」自相矛盾，且量纲不齐——`Σ_j w'_jp` 无量纲、`D_p/pixfrac²` 为 `sr`） |
-| 2 | `docs/contracts/DATA_SEMANTICS.md` §4a:48-49 | 实现锚 `drizzle_engine.cpp` `weight = overlap_area / pixel_area` | 实现锚 = `weight = overlap_area / drop_area`（:1617）+ `acc.sumNorm += overlap_area*(pixel_area/drop_area)`（:1644）+ `drizzle_engine.h` `sumNorm = Σ_j w_jp·A_pixel,j` | 订正（**失实实现锚**；代码从无 `overlap_area / pixel_area` 之核） |
+| 2 | `docs/science/DATA_SEMANTICS.md` §4a:48-49 | 实现锚 `drizzle_engine.cpp` `weight = overlap_area / pixel_area` | 实现锚 = `weight = overlap_area / drop_area`（:1617）+ `acc.sumNorm += overlap_area*(pixel_area/drop_area)`（:1644）+ `drizzle_engine.h` `sumNorm = Σ_j w_jp·A_pixel,j` | 订正（**失实实现锚**；代码从无 `overlap_area / pixel_area` 之核） |
 
 **未变更（须逐字保留）**：§2:22、§5:49 的 `N_p = Σ_j w_jp·A_pixel,j`；§5:45 的核 `w_jp = a_jp/A_drop,j`；
 §5:87-90 的组合系数 `c_jp = a_jp/(A_pixel,j·D_p)`；§7:127-130 两条不变量的相容性论断；§10:159-161 的不可接受变化清单；
@@ -265,7 +265,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 
 - **产品/数值面 = 零**：本变更只改一个非冻结中间符号的**等价参数化写法**与一处失实锚，`N_p`/`w_jp`/`c_jp`/`S_p`/`variance_p` 的 canonical 取值与全部冻结容差不变；`pixfrac` 域 `(0,1]` 与默认 `0.8` 不变。
 - **发布面**：`sumNorm`、`sb_publish_scale`、AIO writer `finalize_tile` 的 `k` 幂次（signal +1 / variance +2）一律不动。
-- **文档面**：`docs/science/DRIZZLE.md`（本文件，FROZEN）、`docs/contracts/DATA_SEMANTICS.md` §4a；`docs/science/algorithms/DRIZZLE_GEOMETRY.md` 与 `DATA_SEMANTICS` §11.2/§12.3/§31.1 的 `sumFlux/sumNorm` 表述经逐条核对**本就正确**，不改。
+- **文档面**：`docs/science/DRIZZLE.md`（本文件，FROZEN）、`docs/science/DATA_SEMANTICS.md` §4a；`docs/science/algorithms/DRIZZLE_GEOMETRY.md` 与 `DATA_SEMANTICS` §11.2/§12.3/§31.1 的 `sumFlux/sumNorm` 表述经逐条核对**本就正确**，不改。
 
 ### 15.4 回归证据（本变更复跑判词）
 

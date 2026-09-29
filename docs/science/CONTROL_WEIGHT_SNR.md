@@ -17,7 +17,7 @@
 > **同名两义分离**：
 > **Phase1 HiPS 文件头的 `frame_snr` 是科学量**——帧级未加权原始信噪比（**点源（PSF）信号 SNR，纯信号/噪声**：
 > `SNR = F_signal/σ_F`，`F_signal` 已扣局部背景、天光**只作噪声项**进 `σ_F`；固定源通量下天光增大 ⇒ SNR 单调下降），
-> 定义与红线见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与 `docs/design/UNIFIED_MODEL.md` §2。
+> 定义与红线见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.1 与 `docs/detail/UNIFIED_MODEL.md` §2。
 > **本文件的 `local_snr`/`frame_snr` 是 stage2 内部相对质量场**，与上述科学量**各自具名、互不指代**；
 > stage2 侧字段改名 `quality_weight`（`snr_v` 为别名）登记为实现跟随项。
 
@@ -201,7 +201,7 @@ for 每个控制星 s（半径内）:
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
 5. **读噪口径必须由 `sigma_sky_source` 显式声明**：`SnrSourceParams.sigma_sky_source` 取 `SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS` 之一，生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = `StarDetector::estimate_background` 的**整帧 2 轮裁剪 RMS**，含读噪的经验总 rms；噪声模型 A 的 `1.482602218505602×MAD` 稳健尺度是另一生产者，承载逐像素 `variance`）；`sigma_sky_source_effective` 落 provenance。**禁用**把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu` 后又在 gain>0 时叠加 `(RN/g)²`（`snr_science.cpp`）——会高估 σ_F（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失；负例判据）。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
 6. **误差预算常数单位**：`NOISE_MODEL.md` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
-7. **稀疏层表示与载体**：`sparse_snr_layer` 的控制点直接存**绝对**通量型 SNR `SNR_c = F_ref/σ_F,c`（与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`，无量纲）；Phase2 由控制点**直接重建**为稠密 `SNR(x,y)`，逐像素权重同式 `w(x,y)=SNR(x,y)²/F_ref²`。帧级 SNR 与稀疏层是**相互独立**的两个对象——帧级 SNR **不作**稀疏层的尺度基准，也不参与其还原；帧级 SNR 自身的定义、红线与独立用途（帧级参考电平、`frame_reconstruct` 口径、缺逐像素 ivar 时的帧级逆方差权重链）见 §2a 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1。**方向性约束（若未来要求两者一致）**：只允许 `frame_snr := median_p(SNR_c)`（由**绝对控制点导出帧级摘要**，或按足迹加权的摘要），**方向面 = 上述单向**（`SNR_c := frame_snr × 相对场` 的反向把帧级估计量的偏差乘进每一个控制点，且在 `median_p(SNR_c) ≠ frame_snr` 时**不可逆**）。本节 §2a 的帧级科学基准与 §4 的 `quality_weight` 语义均不因此改变。
+7. **稀疏层表示与载体**：`sparse_snr_layer` 的控制点直接存**绝对**通量型 SNR `SNR_c = F_ref/σ_F,c`（与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`，无量纲）；Phase2 由控制点**直接重建**为稠密 `SNR(x,y)`，逐像素权重同式 `w(x,y)=SNR(x,y)²/F_ref²`。帧级 SNR 与稀疏层是**相互独立**的两个对象——帧级 SNR **不作**稀疏层的尺度基准，也不参与其还原；帧级 SNR 自身的定义、红线与独立用途（帧级参考电平、`frame_reconstruct` 口径、缺逐像素 ivar 时的帧级逆方差权重链）见 §2a 与 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.1。**方向性约束（若未来要求两者一致）**：只允许 `frame_snr := median_p(SNR_c)`（由**绝对控制点导出帧级摘要**，或按足迹加权的摘要），**方向面 = 上述单向**（`SNR_c := frame_snr × 相对场` 的反向把帧级估计量的偏差乘进每一个控制点，且在 `median_p(SNR_c) ≠ frame_snr` 时**不可逆**）。本节 §2a 的帧级科学基准与 §4 的 `quality_weight` 语义均不因此改变。
 
 ## 8b. 三口径适用域图谱（选型依据）
 
@@ -213,12 +213,12 @@ for 每个控制星 s（半径内）:
 | `frame_reconstruct` | **HST 类高对比结构域且重建算子为 `bilinear_regular_grid_v1` 或默认 `natural_bicubic_spline_clip_v1` 时**：帧级标量更优（Δ≥32 起） | 有明显帧内 σ 梯度时丢失空间信息 | 同上 + EXP-04 §4.4/§5.3 |
 | `dense` | 精度基准 | **存储门**：4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 **64 倍** ⇒ 稠密超门结论成立 | 同上 |
 
-> **HST 类域的结论与重建算子绑定（条件式；判定面 = 与算子绑定）**：换用 `natural_bicubic_spline_clip_mesh_median_v1`（3×3 mesh 中值前置滤波 + 自然边界双三次样条 + 值域钳制）后，同一 HST 域上稀疏臂 **E=0.0490 优于帧级臂 0.0530** ⇒ 「HST 类域帧级更优」只在双线性/默认算子下成立。Δ\*（该算子 E 首次劣于帧级臂的最小 Δ）实测：`bilinear_regular_grid_v1` **32 px**、默认 `natural_bicubic_spline_clip_v1` **32 px**、`..._mesh_median_v1` **128 px**；生产 Δ=64 落在前两者的失效区内（分别差 2.1 / 2.6 倍），落在后者的有效区内。算子定义与选择规则见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5，判据与数字正本见 `实验/absolute-snr` EXP-04 §3.2/§4.4/§5.3。
+> **HST 类域的结论与重建算子绑定（条件式；判定面 = 与算子绑定）**：换用 `natural_bicubic_spline_clip_mesh_median_v1`（3×3 mesh 中值前置滤波 + 自然边界双三次样条 + 值域钳制）后，同一 HST 域上稀疏臂 **E=0.0490 优于帧级臂 0.0530** ⇒ 「HST 类域帧级更优」只在双线性/默认算子下成立。Δ\*（该算子 E 首次劣于帧级臂的最小 Δ）实测：`bilinear_regular_grid_v1` **32 px**、默认 `natural_bicubic_spline_clip_v1` **32 px**、`..._mesh_median_v1` **128 px**；生产 Δ=64 落在前两者的失效区内（分别差 2.1 / 2.6 倍），落在后者的有效区内。算子定义与选择规则见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5，判据与数字正本见 `实验/absolute-snr` EXP-04 §3.2/§4.4/§5.3。
 
 - **失效边界不是单一 `Δ/ℓ≈1`，而是「`Δ/ℓ` × σ 场幅度 × 未分辨结构污染」三因子联合判据**：无源污染合成面上 sparse 在 Δ=512 px 仍胜（余量 ℓ=16 → 0.6%、ℓ=32 → 1.8%、ℓ=64 → 2.8%、ℓ=128 → 16%、ℓ=256 → 35%），而 HST M16 真实结构面上 Δ*=16 px（Δ/ℓ=0.50）；
 - **判据必须非退化**：空间权重/σ 场的精度判据用**权重效率损失** `E = Var_w/Var_opt − 1`（全局尺度相消；`E=0 ⇔ σ̂ ∝ σ_true`）。「帧级臂 RMSE ≤ K·s_field」类判据对**任意**真值场恒真（对抗打乱场下 E=7.17 仍绿），**证据资格 = 空**（`b6_gates_audit.json::tautology_demo`）；平坦 σ 场（真值无空间效应）时任何「空间口径优于帧级」的排序判据都退化，须走 `DEGENERATE_flat_field_ranking_never_true` 用例（该门不计证据）；
 - **E 对乘性偏差免疫，不能替代水平偏差判据**：E 由 `w = 1/σ̂²` 的比值定义，整体乘性缩放完全相消——实测两臂可以 E 完全相同（均 0.0530）而水平偏差相差 **8.7 倍**（0.094 vs 0.818 dex）。⇒ 选型必须同时报 E 与水平偏差，「E 相同」的推断面 = 空（两臂等价需另行判定）；
-- **控制点局部 σ 的估计器要求（数值准确的必要条件）**：稀疏层「表示正确」（控制点存绝对 SNR）**不等于**「数值准确」——后者完全由局部 σ 估计器决定。朴素地把估计作用域从整帧换成区域（同一 recipe + 更小窗口）**不够**：结构污染只是被挪到更小尺度，cell 内的未分辨结构仍被算进稳健尺度，偏差随 Δ 单调增大。控制点的局部 σ **必须**用**结构感知**估计器：mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；估计器标识、`sigma_rho` 与 `quality_flags` 随稀疏层入 manifest（正本见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5）。
+- **控制点局部 σ 的估计器要求（数值准确的必要条件）**：稀疏层「表示正确」（控制点存绝对 SNR）**不等于**「数值准确」——后者完全由局部 σ 估计器决定。朴素地把估计作用域从整帧换成区域（同一 recipe + 更小窗口）**不够**：结构污染只是被挪到更小尺度，cell 内的未分辨结构仍被算进稳健尺度，偏差随 Δ 单调增大。控制点的局部 σ **必须**用**结构感知**估计器：mesh 局部背景扣除后的逐区域残差稳健尺度，或跨帧差分（唯一零结构偏差口径）；估计器标识、`sigma_rho` 与 `quality_flags` 随稀疏层入 manifest（正本见 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.5）。
 - **兜底**：HST 类数据默认给**帧级标量兜底**，不静默用稀疏口径冒充空间精度；该兜底与「稀疏臂换用 `..._mesh_median_v1` 后可胜出」并不冲突——两者是同一域上的两条可选路径，取舍见 `07_noise_snr.md` §4.5 的选择规则。
 - **三条口径各有适用域，同时有效**：稀疏层改存**绝对** SNR 属**表示与载体**的变更，**不改变本图谱**——图谱比较的是「三条口径重建稠密 SNR 的精度与存储量」，与「控制点存相对值还是绝对值」正交（重建算子与误差仍在 manifest 显式声明）。`frame_reconstruct` 的适用域 = HST 类高对比结构域，且是「输入无稀疏层」时 `snr_path_effective` 的**唯一合法取值**；`dense` 是精度基准；`sparse_reconstruct` 是默认取值。
 
@@ -250,7 +250,7 @@ w(x,y) = SNR(x,y)^2 / F_ref^2   ≡   1 / sigma_F(x,y)^2
 - **逐源最优提取 SNR_F=F/σ_F**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
 - **PixInsight PSFSNR/PSFSW 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）。**核验状态**：方法学文档，未逐式核验常数。
 - **稳健噪声 MRS/N***：Starck & Murtagh 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）。
-- **同名两义分离**：`frame_snr` 有两义，**必须**分别命名——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，`docs/design/UNIFIED_MODEL.md` §2 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，**必须**命名 `quality_weight`，**禁用** `frame_snr` 指代它。
+- **同名两义分离**：`frame_snr` 有两义，**必须**分别命名——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，`docs/detail/UNIFIED_MODEL.md` §2 与 `docs/detail/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，**必须**命名 `quality_weight`，**禁用** `frame_snr` 指代它。
 
-参考代码库（含许可证）正本 = docs/references/SCIENTIFIC_REFERENCES.md §M。
+参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
 
