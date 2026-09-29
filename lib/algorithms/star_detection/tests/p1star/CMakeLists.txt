@@ -314,3 +314,33 @@ set_tests_properties(p1star_reject_gate PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
   ENVIRONMENT "OMP_NUM_THREADS=1"
   TIMEOUT 120)
+
+# ----------------------------------------------------------------------------
+# R-58-1: O13b 点源形状门（盲检测路径）回归锁 —— 见 p1star_psf_shape_gate_test.cpp
+# 抬头。依据 run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.1（R-58 裁决 1）:
+# 帧 M42_M5@035959 的 rms 0.106 -> 0.6554 px 越闸由重写后检测端漏出的非点源
+# （单像素尖峰族 + 星云核延展区, 生产帧实测 fwhm 0.52-0.87 px / 195-338 px）
+# 进入 WCS 解算的 U(60 最亮非饱和) 与池(180) 造成。
+# 判据 = 帧相对：① fwhm 比例窗（f0 = 本帧过既有 O13 门的候选 fwhm 中位数）
+# ② 峰占比上限 ③ 最小像素数（1/4 峰）。每个用例成对跑门开/门关:
+# 门关侧必须复现负例目标（排除空断言）, 门开侧必须拒掉且保留集逐位 ⊆ 门关集合;
+# 正例 = 真实暗源与窄星召回不下降（硬要求）。
+# 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 生产 TU 集（生产源即被测源, 无桩）。
+# ----------------------------------------------------------------------------
+add_executable(p1star_psf_shape_gate_test
+  ${P1STAR_DIR}/p1star_psf_shape_gate_test.cpp
+  ${SDET_SRC})
+target_include_directories(p1star_psf_shape_gate_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${SDET_SRC_DIR}
+  ${P1STAR_DIR})
+target_link_libraries(p1star_psf_shape_gate_test PRIVATE ${SDET_FIT_LINK})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(p1star_psf_shape_gate_test PRIVATE OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME p1star_psf_shape_gate COMMAND p1star_psf_shape_gate_test)
+set_tests_properties(p1star_psf_shape_gate PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  ENVIRONMENT "OMP_NUM_THREADS=1"
+  TIMEOUT 120
+  PASS_REGULAR_EXPRESSION "R58-1 PSF SHAPE GATE: PASS")

@@ -4837,6 +4837,24 @@
       "grade": "P0",
       "order_in_target": 2,
       "note": "配置期注册一致性判据（FINAL-07）：新增 1 顶层项 + 3 执行单元登记为 absorbed"
+    },
+    {
+      "old_id": "CTEST-P1WCS-CLIP-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 49,
+      "note": "R-58 修复闭环回归锁（FINAL-07）：残差统计口径与解自身裁剪规则一致性"
+    },
+    {
+      "old_id": "CTEST-P1STAR-PSF-SHAPE-GATE",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 50,
+      "note": "R-58 修复闭环回归锁（FINAL-07）：检测端点源形状门"
     }
   ],
   "coverage": {
@@ -5037,7 +5055,9 @@
       "NEG-P173-TSAN",
       "CHK-CTEST-REG-CONDITION",
       "CHK-CTEST-REG-CONDITION-SELFTEST",
-      "CHK-CTEST-REG-CONDITION-INJECT"
+      "CHK-CTEST-REG-CONDITION-INJECT",
+      "CTEST-P1WCS-CLIP-CONSISTENCY",
+      "CTEST-P1STAR-PSF-SHAPE-GATE"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

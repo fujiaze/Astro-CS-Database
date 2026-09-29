@@ -693,8 +693,14 @@ void IPVSolver::solve(
                 }
                 // 用精化后的结果替换 rep_result
                 rep_result.trans = hi_result.trans;
-                rep_result.matched = hi_matches;
-                rep_result.n_matched = (int)hi_matches.size();
+                // R-58-3-1: 与 at_recalc_trans 自己的 sigma-clip 规则一致 ——
+                // hi_result.inliers 是裁剪后的内点集（也是 hi_result.trans 的拟合集、
+                // hi_result.rms 的统计集）。此前这里塞的是 at_match_lists 的**未裁剪**
+                // 匹配表, 导致 extract_wcs_sip 报告的 rms/n_pairs 与解自己的裁剪规则
+                // 不一致（M42_M5@035959: 报告 34 对 0.634", 而解实际按 32 对 0.121"
+                // 收敛; 见 run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.2）。
+                rep_result.matched = hi_result.inliers;
+                rep_result.n_matched = (int)hi_result.inliers.size();
             }
         }
         auto t_himatch_end = std::chrono::steady_clock::now();
@@ -1086,8 +1092,14 @@ void IPVSolver::solve_from_memory(
                                   iter + 1, hi_matches.size(), hi_result.rms);
                 }
                 rep_result.trans = hi_result.trans;
-                rep_result.matched = hi_matches;
-                rep_result.n_matched = (int)hi_matches.size();
+                // R-58-3-1: 与 at_recalc_trans 自己的 sigma-clip 规则一致 ——
+                // hi_result.inliers 是裁剪后的内点集（也是 hi_result.trans 的拟合集、
+                // hi_result.rms 的统计集）。此前这里塞的是 at_match_lists 的**未裁剪**
+                // 匹配表, 导致 extract_wcs_sip 报告的 rms/n_pairs 与解自己的裁剪规则
+                // 不一致（M42_M5@035959: 报告 34 对 0.634", 而解实际按 32 对 0.121"
+                // 收敛; 见 run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.2）。
+                rep_result.matched = hi_result.inliers;
+                rep_result.n_matched = (int)hi_result.inliers.size();
             }
         }
         auto t_himatch_end = std::chrono::steady_clock::now();
@@ -1383,8 +1395,14 @@ void IPVSolver::solve_post_select(
                                   iter + 1, hi_matches.size(), hi_result.rms);
                 }
                 rep_result.trans = hi_result.trans;
-                rep_result.matched = hi_matches;
-                rep_result.n_matched = (int)hi_matches.size();
+                // R-58-3-1: 与 at_recalc_trans 自己的 sigma-clip 规则一致 ——
+                // hi_result.inliers 是裁剪后的内点集（也是 hi_result.trans 的拟合集、
+                // hi_result.rms 的统计集）。此前这里塞的是 at_match_lists 的**未裁剪**
+                // 匹配表, 导致 extract_wcs_sip 报告的 rms/n_pairs 与解自己的裁剪规则
+                // 不一致（M42_M5@035959: 报告 34 对 0.634", 而解实际按 32 对 0.121"
+                // 收敛; 见 run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.2）。
+                rep_result.matched = hi_result.inliers;
+                rep_result.n_matched = (int)hi_result.inliers.size();
             }
         }
         auto t_himatch_end = std::chrono::steady_clock::now();

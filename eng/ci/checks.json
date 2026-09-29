@@ -4637,7 +4637,9 @@
         "run/ci/ctest/p2hips_negative.json",
         "run/ci/ctest/p2hips_selfcheck.json",
         "run/ci/ctest/p2hips_units.json",
-        "run/ci/ctest/xpsd_spectrum_count_bounds.json"
+        "run/ci/ctest/xpsd_spectrum_count_bounds.json",
+        "run/ci/ctest/p1wcs_clip_consistency.json",
+        "run/ci/ctest/p1star_psf_shape_gate.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -4698,7 +4700,9 @@
         "p2hips_negative",
         "p2hips_selfcheck",
         "p2hips_units",
-        "xpsd_spectrum_count_bounds"
+        "xpsd_spectrum_count_bounds",
+        "p1wcs_clip_consistency",
+        "p1star_psf_shape_gate"
       ],
       "steps": [
         {
@@ -6414,6 +6418,76 @@
           "requires_monitor": false,
           "ctest_targets": [
             "p1psf_centroid_gate"
+          ]
+        },
+        {
+          "id": "CTEST-P1WCS-CLIP-CONSISTENCY",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1wcs_clip_consistency",
+            "--output",
+            "run/ci/ctest/p1wcs_clip_consistency.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1wcs_clip_consistency.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1wcs_clip_consistency"
+          ]
+        },
+        {
+          "id": "CTEST-P1STAR-PSF-SHAPE-GATE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1star_psf_shape_gate",
+            "--output",
+            "run/ci/ctest/p1star_psf_shape_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1star_psf_shape_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/algorithms/star_detection/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1star_psf_shape_gate"
           ]
         }
       ]

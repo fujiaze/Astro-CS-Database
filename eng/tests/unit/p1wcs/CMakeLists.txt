@@ -195,3 +195,27 @@ set_tests_properties(p1wcs_std_f1_bridge_cross PROPERTIES LABELS "p1wcs")
 add_test(NAME p1wcs_closure_metric_gate
   COMMAND python3 ${CMAKE_SOURCE_DIR}/eng/tools/astrometry/closure_metric.py selftest)
 set_tests_properties(p1wcs_closure_metric_gate PROPERTIES LABELS "p1wcs")
+
+# ---------------------------------------------------------------------------
+# R-58-3-1 回归锁: 报告残差统计与解自身 sigma-clip 规则一致 (缺陷 ①)
+# 缺陷锚: run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.2 —— ipv_solver 三处
+# 调用点把 at_match_lists 的**未裁剪**表发布成 rep_result.matched, extract_wcs_sip
+# 于是在未裁剪表上重算 rms/n_pairs (M42_M5@035959: 解按 32 对 0.121" 收敛, 报告
+# 34 对 0.634")。本测试: 绿 = 报告值 == inliers 上的统计且与未裁剪统计有量级差;
+# 红 = at_recalc_trans 不再返回裁剪集, 或 ipv_solver 又发布未裁剪表 (源面守卫经
+# 编译定义注入被测源路径)。
+add_executable(p1wcs_clip_consistency_test
+  ${P1WCS_DIR}/p1wcs_clip_consistency_test.cpp
+  ${P1WCS_PROD_TU})
+target_include_directories(p1wcs_clip_consistency_test PRIVATE
+  ${P1WCS_IPV}/include
+  ${P1WCS_TAN}
+  ${P1WCS_DIR})
+target_link_libraries(p1wcs_clip_consistency_test PRIVATE OpenMP::OpenMP_CXX)
+target_compile_definitions(p1wcs_clip_consistency_test PRIVATE
+  P1WCS_IPV_SOLVER_SRC="${P1WCS_IPV}/src/ipv_solver.cpp")
+add_test(NAME p1wcs_clip_consistency COMMAND p1wcs_clip_consistency_test)
+set_tests_properties(p1wcs_clip_consistency PROPERTIES
+  ENVIRONMENT "OMP_NUM_THREADS=1"
+  TIMEOUT 300
+  PASS_REGULAR_EXPRESSION "R58-3-1 CLIP CONSISTENCY: PASS")
