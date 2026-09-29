@@ -444,7 +444,7 @@
         "file": "lib/infrastructure/aio/src/aio_log.cpp",
         "symbol": "<literal>",
         "key": "literal#1",
-        "anchor": "lib\\\\astro_image_io\\\\logs\\\\astro_image_io.log",
+        "anchor": "lib\\\\infrastructure\\\\aio\\\\logs\\\\astro_image_io.log",
         "line_hint": 43,
         "kind": "known_gap",
         "reason": "aio 日志硬编码落源码树（Windows 分支 lib\\astro_image_io\\logs\\astro_image_io.log）；aio 链入生产 acsd ⇒ **生产可达**，每次运行都写源码树（实测该文件 63 MB）。",
