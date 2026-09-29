@@ -2,12 +2,12 @@
   "schema": "astrocs.runtime-resources/v1",
   "config_class": "program_global",
   "title": "运行时资源预算（调度准入；**不是**资源门）",
-  "authority": "内存预算 = 当前可用内存 × memory_budget_percent/100，交给调度器作为准入输入（在途节点估算峰值之和超预算时就绪节点排队等待）；内存不设资源门（docs/ASTROCS_DESIGN.md §3.5），故本预算不产生退出码、不阻断运行。",
+  "authority": "内存预算 = 当前可用内存 × memory_budget_percent/100，交给调度器作为准入输入（在途节点估算峰值之和超预算时就绪节点排队等待）；内存不设资源门（docs/ASTROCS_DESIGN.md §4.5 运行前预检），故本预算不产生退出码、不阻断运行。",
   "authority_refs": [
     "docs/ASTROCS_DESIGN.md §8.3（静态预算：估算是调度决策的输入；编排策略「内存占用永不越界」——越界时按「可中断排队 / 可丢弃重跑」处置，不是拒绝任务）",
     "docs/ASTROCS_DESIGN.md §9（一个进程一个资源调度器与线程预算源；内存与 CPU 同源）",
     "docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限（峰值工作集）由配置/资源门决定，禁止硬编码）",
-    "docs/ASTROCS_DESIGN.md §3.5 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json#disk_gate.no_gate（资源门只管磁盘；内存 / CPU / 线程**不设门** ⇒ 本预算是调度准入输入，不产生退出码、不阻断运行）"
+    "docs/ASTROCS_DESIGN.md §4.5 运行前预检 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json#disk_gate.no_gate（资源门只管磁盘；内存 / CPU / 线程**不设门** ⇒ 本预算是调度准入输入，不产生退出码、不阻断运行）"
   ],
   "readers": [
     "CMakeLists.txt（configure_file → runtime_resources_generated.h；实现侧零字面量）",
@@ -32,7 +32,7 @@
   "memory_pressure_evict_after_samples_constraint": "≥ 1。高压力态**已连续持续** N 次采样后才允许丢弃进度最低的在飞帧（docs/ASTROCS_DESIGN.md §8.3:615「可丢弃重跑」的触发门槛）：先停派发（§8.3:614「可中断排队」），仍不缓解才丢弃（§8.3:615）。取 3 ⇒ 在 1000 ms 采样间隔下 = 约 3 s 的持续高压，足以排除采样尖峰。",
   "memory_pressure_sample_interval_ms": 1000,
   "memory_pressure_sample_interval_ms_constraint": "≥ 0，毫秒。压力采样节流间隔（0 = 每次都采样；生产不可为 0，否则派发热点会以每次派发一次的频率读 /proc）。取值依据：单次采样 = 读 /proc/self/status + 一次 /proc 枚举，实测开销在毫秒量级，1 s 间隔下开销占比 < 0.1%，而 1 s 远小于单帧处理时长（秒级）⇒ 不会漏掉一次帧派发窗口。",
-  "memory_pressure_ledger": "run 级 JSONL 台账（每行一个事件对象），由 run 的 output_dir 派生路径；事件含 pressure_high / pressure_low / evict_lowest_progress / rss_unavailable / governance_disabled / governance_unavailable / dispatch_escape_no_inflight。落盘经 aio 唯一追加写原语。台账只增不改，不参与任何判据（docs/ASTROCS_DESIGN.md §3.5：内存不设门）。",
+  "memory_pressure_ledger": "run 级 JSONL 台账（每行一个事件对象），由 run 的 output_dir 派生路径；事件含 pressure_high / pressure_low / evict_lowest_progress / rss_unavailable / governance_disabled / governance_unavailable / dispatch_escape_no_inflight。落盘经 aio 唯一追加写原语。台账只增不改，不参与任何判据（docs/ASTROCS_DESIGN.md §4.5 运行前预检：内存不设门）。",
   "available_memory_probe": "lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes（aio 是文件级唯一 I/O 边界，docs/ASTROCS_DESIGN.md §10）。Linux 口径 = /proc/meminfo 的 MemAvailable（含可回收 page cache，**不是** MemFree）∩ cgroup 内存余量（v2 memory.max - memory.current；v1 memory.limit_in_bytes - memory.usage_in_bytes）；Windows 口径 = GlobalMemoryStatusEx.ullAvailPhys。返回 0 = 不可判定（fail-closed：不启用回压，如实登记，不冒充有预算）。",
   "enforcement": {
     "in_process": "调度准入（Scheduler 内存回压：在途节点估算峰值之和 > 预算 ⇒ 就绪节点排队等待，不拒绝、不改退出码）",

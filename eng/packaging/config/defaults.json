@@ -3,7 +3,7 @@
   "defaults_id": "config.defaults",
   "authority": {
     "design": "docs/ASTROCS_DESIGN.md §3.3（程序根 eng/packaging/config/：defaults.json 放暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层密度等）",
-    "preflight": "docs/ASTROCS_DESIGN.md §3.5（预检三级：容差等判定基准来自 eng/packaging/config/defaults.json）",
+    "preflight": "docs/ASTROCS_DESIGN.md §4.5（预检三级：容差等判定基准来自 eng/packaging/config/defaults.json）",
     "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/science/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造。"
   },
   "field_count": 59,
@@ -17,7 +17,7 @@
       "key": "calibration.dark_light_exposure_tolerance",
       "value": 5,
       "unit": "s",
-      "constraint": "暗场与亮场曝光时间的一致性容差；超容差 -> 预检橘色 optimize（提示走暗场优化），不阻断运行（docs/ASTROCS_DESIGN.md §3.5）",
+      "constraint": "暗场与亮场曝光时间的一致性容差；超容差 -> 预检橘色 optimize（提示走暗场优化），不阻断运行（docs/ASTROCS_DESIGN.md §4.5 运行前预检）",
       "authority_status": "owner_adjudicated",
       "source": "负责人裁决 2026-09-16（值为 5 s）；待落 docs/science/CALIBRATION.md（SCI-RES-01/R-004 落文档；定义归 SCI-RES-01/R-003）",
       "source_ref": null,
