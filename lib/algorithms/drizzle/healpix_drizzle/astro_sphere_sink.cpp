@@ -373,7 +373,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 
     // ── 帧级未加权通量型 SNR → HiPS properties ──────────
     // 值来源 = 上游 snr 节点产物 <output_dir>/p1_snr.json 的该帧
-    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; docs/ASTROCS_DESIGN §3.4 /
+    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; docs/ASTROCS_DESIGN §4.4 /
     // 07_noise_snr.md §4.1）。本帧产品目录 = hips_dir（= <output_dir>/<frame_key>）
     // ⇒ sidecar 在父目录，按 frame_key 匹配本帧。
     // 缺失/不匹配/非有限 → **不写键**（Phase2 权重链据此 fail-closed; 禁伪造,

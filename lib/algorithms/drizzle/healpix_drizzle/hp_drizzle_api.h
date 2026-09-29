@@ -1,9 +1,28 @@
 #ifndef HP_DRIZZLE_API_H
 #define HP_DRIZZLE_API_H
 
+// 三态 (FINAL-07/winfix B-4): 改前只有 dllexport/dllimport 两态。
+//   事实: 本仓同名生产源被编进**两个** target ——
+//     (1) 根 CMakeLists.txt:745 astrocs_drizzle  = **STATIC** (全仓生产消费者链它)
+//     (2) lib/algorithms/drizzle/CMakeLists.txt astrocs_p1_drizzle = SHARED 模块 DLL
+//         (ABI-006 导出面净化: 只导出 astrocs_module_query_v1, legacy 六符号经
+//          version-script / def 降 local)
+//   改前 HP_DRIZZLE_EXPORTS **只在两个 .cpp 文件自身**定义
+//   (hp_drizzle_api.cpp:5 / hp_drizzle_hips_api.cpp:13), 且
+//   lib/algorithms/drizzle/CMakeLists.txt:122-124 明文禁止在 CMake 侧补定义。
+//   ⇒ 只有**定义侧**拿到 dllexport; 任何**消费者** include 本头都落到 else 分支
+//   拿到 __declspec(dllimport) ⇒ 引用 __imp_hp_drizzle_run。
+//   而 STATIC 库里**不存在 __imp_ 间接层** (那是 import lib / DLL 才有的 thunk)
+//   ⇒ Windows 下 LNK2019 unresolved external symbol __imp_hp_drizzle_run (实测 ×3)。
+//   这与 gaia zlib 那条是同一形态: 「同处只修一半」—— 定义侧修了, 消费者侧没修。
+//   修法: 补第三态 HP_DRIZZLE_STATIC (静态链) ⇒ 不加任何 __declspec。
+//   顺序要紧: EXPORTS 必须**先**判, 否则 astrocs_p1_drizzle 的定义侧会掉进
+//   STATIC 支路, 把 DLL 的导出属性丢掉。
 #ifdef _WIN32
 #  ifdef HP_DRIZZLE_EXPORTS
 #    define HP_DRIZZLE_API __declspec(dllexport)
+#  elif defined(HP_DRIZZLE_STATIC)
+#    define HP_DRIZZLE_API          /* 静态链接: 无 __imp_ 间接层, 不加 declspec */
 #  else
 #    define HP_DRIZZLE_API __declspec(dllimport)
 #  endif

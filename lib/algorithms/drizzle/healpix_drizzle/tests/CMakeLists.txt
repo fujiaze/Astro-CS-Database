@@ -45,9 +45,18 @@ target_link_libraries(drizzle_acceptance_test PRIVATE
 # (被测路径与被测口径无关: 每帧 3.9e6 个 target leaf 的自适应边界构建),
 # 故独立成门 drizzle_acceptance_full, 用长超时跑完整矩阵 —— 避免把整门变成
 # 「没人跑得完的门」; 两个门跑的是**同一可执行、同一判据**, 只差分片范围。
+# B-HANG (FINAL-07/winfix): 改前本门传 `--sections ABCDET` —— **含 E**, 与上面两行
+#   自报的「A..D + T」**直接矛盾**, 也与「E 段独立成 full 门」的分片理由矛盾。
+#   后果 (winbuild 实测): drizzle_acceptance_core 22:40→23:11 零输出, 内存
+#   80.6→84.9MB 缓升 ⇒ 在 E 段的几何构建里**阻塞**(非死循环, 非死锁), 而
+#   TIMEOUT 3600 要烧满 1 小时才被 ctest 杀掉; `--timeout 120` 之类的命令行
+#   覆盖**压不过** per-test TIMEOUT 属性, 所以外层调小超时救不了它。
+#   修法: 分片回到自报口径 ABCDT (去掉 E)。E 段的覆盖**没有丢** ——
+#   drizzle_acceptance_full 跑的就是完整矩阵 (含 E), 判据同源。
+#   ⚠ 本改动未经真机复跑验证 (节点失联 + 禁子代理跑测试), 属待前台执行项。
 add_test(NAME drizzle_acceptance_core
   COMMAND drizzle_acceptance_test ${CMAKE_BINARY_DIR}/drizzle_acceptance_core
-          --sections ABCDET)
+          --sections ABCDT)
 set_tests_properties(drizzle_acceptance_core PROPERTIES
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 3600)
 

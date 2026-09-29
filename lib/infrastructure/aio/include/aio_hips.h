@@ -304,7 +304,7 @@ AIO_HIPS_EXPORT int aio_hips_set_drizzle_provenance(
 // 帧级 SNR 键通道（键名冻结: ASTROCS_FRAME_SNR /
 // ASTROCS_REFERENCE_FLUX）:
 //   ASTROCS_FRAME_SNR      = 帧级**未加权通量型**信噪比 SNR_k = F_ref/σ_F
-//                            （docs/ASTROCS_DESIGN §3.4 / 07_noise_snr.md §4.1;
+//                            （docs/ASTROCS_DESIGN §4.4 / 07_noise_snr.md §4.1;
 //                             信号经独立局部背景扣除、不被加性天光背景虚高,
 //                             天光散粒噪声计入 σ_n）—— 是**信噪比不是权重**。
 //   ASTROCS_REFERENCE_FLUX = 组内公共参考通量 F_ref（Phase2 逆方差换算

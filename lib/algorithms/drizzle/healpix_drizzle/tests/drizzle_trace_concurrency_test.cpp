@@ -30,6 +30,17 @@
 #include <thread>
 #include <vector>
 
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * Windows 侧的 setenv/unsetenv 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物。
+ * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。
+ *
+ * 并发安全性 (B-5 清单登记的未决风险, 本处已核): 垫片 setenv 落到 _putenv, 是
+ * **进程级、不是线程局部**。本 TU 的唯一写点在 main() 中 ::setenv (在 kRounds/kFrames
+ * 任何线程创建**之前**执行一次), 之后各帧线程只读该环境变量 => 写先于全部线程发生,
+ * 不存在跨线程写-写/读写串扰。若将来把 setenv 移进并发区或加入多线程写, 该结论即失效,
+ * 须重新评估。 */
+#include "../../../../../eng/tests/support/astrocs_test_posix_compat.h"
+
 using namespace drizzle;
 
 namespace {

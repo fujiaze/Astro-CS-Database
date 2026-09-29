@@ -24,7 +24,7 @@ constexpr size_t HEADER_FIXED_SIZE = 18;
 //   - "snr"   块: 帧级 SNR (信噪比)。
 // **不承载任何权重**: 权重是阶段二按天球像素对应的那组输入帧现场算出的派生量,
 // 阶段一/阶段三既不产生也不消费。稀疏相对 SNR 比值 (SNR_c / SNR_frame) 由 HiPS
-// 产品层承载 (docs/ASTROCS_DESIGN §3.4), 不在本容器内。
+// 产品层承载 (docs/ASTROCS_DESIGN §4.4), 不在本容器内。
 //
 // 旧版 .ahpx 头 JSON 的 "weight" 字段 (权重模式 SCALAR/GRID/PIXEL 的载体) 现行格式不携带:
 // 读侧见到该字段或同名数据块 ⇒ 显式拒绝 (fail-closed, 禁静默忽略);
