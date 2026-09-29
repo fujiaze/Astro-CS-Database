@@ -27,7 +27,7 @@ REG_REL = "eng/contracts/data/clause_registry.json"
 EX_REL = "eng/contracts/data/examples/units.example.json"
 DS_REL = "docs/contracts/DATA_SEMANTICS.md"
 # 数值层反例的关键片段（三者任一在文即可，容忍措辞微调）
-COUNTEREXAMPLE_MARKERS = ["信号趋零时方差不趋零", "与信号无关", "1/12 DN^2"]
+COUNTEREXAMPLE_MARKERS = ["信号趋零时方差不趋零", "与信号无关", "1/12 ADU^2"]
 
 
 DISAMB_HEAD = "- **冻结串读法消歧（"
@@ -124,7 +124,11 @@ def _self_test(root):
         assert j > i, "self-test 夹具失效：找不到消歧 bullet 终点"
         mutated = ds[:i] + ds[j + 1:]
         assert FROZEN in mutated, "self-test 夹具失效：误删了冻结串原文"
-        assert "1/12 DN^2" in mutated, "self-test 夹具失效：误删了数值层反例"
+        # 复用判据自己的反例标记集（不硬编码单位字面量：单位名已按正典由 DN 改为 ADU，
+        # 硬编码会让自测与判据/文档三方再次漂移——这正是本条 CRASH 的成因）。
+        assert any(m in mutated for m in COUNTEREXAMPLE_MARKERS), (
+            "self-test 夹具失效：误删了数值层反例（%s 全部不在文）"
+            % " / ".join(COUNTEREXAMPLE_MARKERS))
         p1 = os.path.join(tmp, "ds_no_disamb.md")
         open(p1, "w", encoding="utf-8").write(mutated)
         rc, fails, _ = run(root, {DS_REL: p1})

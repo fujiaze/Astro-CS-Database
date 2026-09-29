@@ -223,6 +223,9 @@ def self_test(args) -> int:
     def run(text, baseline=None):
         warns, targets, supp = parse_log(text)
         summ = summarize(warns, supp)
+        # conclusion-anchor: 这是 run() 记录骨架的声明式默认值；verdict 在 return 之前
+        # 由 doc["verdict"] = "FAIL" if doc["problems"] else "PASS" 无条件重算，
+        # 该字面量永不作为结论输出。
         doc = {"check_id": "WARNING-BUDGET", "verdict": "PASS", "summary": summ,
                "problems": check_isolation(summ, warns, args.isolation),
                "attempted_targets": len(set(targets))}
@@ -340,6 +343,9 @@ def main(argv=None) -> int:
         targets += tg
         supp += sp
     summ = summarize(warns, supp)
+    # conclusion-anchor: 这是主流程记录骨架的声明式默认值；verdict 在下文由
+    # doc["verdict"] = "FAIL" if doc["problems"] else "PASS" 无条件重算，
+    # 该字面量永不作为结论输出。
     doc = {"check_id": "WARNING-BUDGET", "verdict": "PASS", "summary": summ,
            "problems": check_isolation(summ, warns, args.isolation),
            "attempted_targets": len(set(targets)),
