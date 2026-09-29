@@ -103,7 +103,8 @@
       "operation": "fit_upm",
       "entry": "astrocs_phase2_upmfit_v1",
       "reads": [
-        "p2_samples"
+        "p2_samples",
+        "frame_hips"
       ],
       "writes": [
         "p2_upm_model",
@@ -163,6 +164,7 @@
         "p2_coverage",
         "p2_samples",
         "p2_upm_model",
+        "p2_sky_plane",
         "p2_rejection"
       ],
       "writes": [
@@ -486,6 +488,7 @@
       "produced_by": [],
       "consumed_by": [
         "astrocs.phase2.coverage",
+        "astrocs.phase2.upm-fit",
         "astrocs.phase2.upm-apply",
         "astrocs.phase2.reject",
         "astrocs.phase2.integrate"
@@ -573,12 +576,13 @@
     {
       "stage": "mosaic",
       "block": "p2_sky_plane",
-      "lifecycle": "SHORT",
+      "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase2.upm-fit"
       ],
       "consumed_by": [
-        "astrocs.phase2.upm-apply"
+        "astrocs.phase2.upm-apply",
+        "astrocs.phase2.write"
       ]
     },
     {

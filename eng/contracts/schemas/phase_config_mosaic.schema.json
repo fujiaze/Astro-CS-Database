@@ -16,7 +16,7 @@
     "lib/infrastructure/cli/session_commands.h config_fields()（键集唯一声明）+ parser.cpp block_keys()/session_blocks_errors()（块内键集派生与拒绝面）",
     "不存在「权重模式」（三套键名一并作废 —— weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode 在本 schema 的**任何**分支都不存在；旧合同的 algorithm_weight_mode 属性与 config_registry.json 登记、eng/packaging/config/defaults.json#weight.default_mode 组同批注销）",
     "排异逐像素按 N 自动选择；min/max 禁用 ⇒ 旧 enum 的 minmax 已删（判据细节见 docs/science/REJECTION.md）",
-    "docs/ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
+    "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"

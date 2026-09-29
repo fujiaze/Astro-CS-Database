@@ -15,7 +15,7 @@
     "docs/ASTROCS_DESIGN.md §3.3「三命令通用输入合同」（mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；键名与 CLI 统一；旧合同不退役）",
     "lib/infrastructure/cli/session_commands.h config_fields()（键集唯一声明）+ parser.cpp input_contract(SESSION_EXPORT)={source, hips_dir} / block_keys()（块内键集派生与拒绝面）",
     "docs/ASTROCS_DESIGN.md §6.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
-    "docs/ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
+    "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"
