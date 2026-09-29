@@ -514,18 +514,22 @@ struct Dispatcher::Impl {
                                 record_action("shrink_block");
                                 break;
                             case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                                // 记账语义：control_actions 是「已执行控制动作序列」，
+                                // 只能记真实发生过的动作。hook 未注册时释放缓存这一
+                                // 缓解动作根本没有执行，记下来就是「未发生记成已执行」。
+                                // 策略层的「本轮触发 ReleaseCache」由 mem_actions
+                                // （每次采样的动作序列）承载，不复用本字段。
                                 if (cache_release_hook) {
                                     try {
                                         const std::size_t freed =
                                             cache_release_hook();
-                                        if (freed > 0) {
-                                            record_action("release_cache:" +
-                                                           std::to_string(freed));
-                                        }
+                                        // 单一记录：hook 调用成功即记一次，携带实际
+                                        // 释放字节数（含 0）；不与无字节数的记录双写。
+                                        record_action("release_cache:" +
+                                                       std::to_string(freed));
                                     } catch (...) {}
                                 }
                                 batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
-                                record_action("release_cache");
                                 break;
                             case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
                                 new_max = eff_min;
@@ -622,21 +626,22 @@ struct Dispatcher::Impl {
                                     record_action("shrink_block");
                                     break;
                                 case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                                    // 记账语义同时间窗采样分支：只记真实发生的释放，
+                                    // hook 未注册时不记；策略层触发由
+                                    // mem_peak_actions 承载。
                                     if (cache_release_hook) {
                                         try {
                                             const std::size_t freed =
                                                 cache_release_hook();
-                                            if (freed > 0) {
-                                                record_action("release_cache:" +
-                                                               std::to_string(freed));
-                                            }
+                                            // 单一记录，携带实际释放字节数（含 0）
+                                            record_action("release_cache:" +
+                                                           std::to_string(freed));
                                         } catch (...) {}
                                     }
                                     pre_requested = std::max(
                                         (pre_requested * 4) / 5, eff_min);
                                     batch_shrink_count.fetch_add(
                                         1, std::memory_order_relaxed);
-                                    record_action("release_cache");
                                     break;
                                 case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
                                     pre_requested = eff_min;
@@ -1217,18 +1222,21 @@ struct Dispatcher::Impl {
                                     record_action("shrink_block");
                                     break;
                                 case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                                    // 记账语义：control_actions 是「已执行控制动作序列」，
+                                    // 只能记真实发生过的动作。hook 未注册时释放缓存
+                                    // 根本没有执行，不得记账；策略层的
+                                    // 「本轮触发 ReleaseCache」由 mem_actions 承载。
                                     if (cache_release_hook) {
                                         try {
                                             const std::size_t freed =
                                                 cache_release_hook();
-                                            if (freed > 0) {
-                                                record_action("release_cache:" +
-                                                               std::to_string(freed));
-                                            }
+                                            // 单一记录：hook 调用成功即记一次，
+                                            // 携带实际释放字节数（含 0）
+                                            record_action("release_cache:" +
+                                                           std::to_string(freed));
                                         } catch (...) {}
                                     }
                                     batch_shrink_count.fetch_add(1, std::memory_order_relaxed);
-                                    record_action("release_cache");
                                     break;
                                 case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:
                                     new_max = min_chunk;
@@ -1453,21 +1461,22 @@ struct Dispatcher::Impl {
                                         }
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::ReleaseCache:
+                                        // 记账语义同时间窗采样分支：只记真实发生的
+                                        // 释放，hook 未注册时不记；策略层触发由
+                                        // mem_peak_actions 承载。
                                         if (cache_release_hook) {
                                             try {
-                                            const std::size_t freed =
-                                                cache_release_hook();
-                                            if (freed > 0) {
+                                                const std::size_t freed =
+                                                    cache_release_hook();
+                                                // 单一记录，携带实际释放字节数（含 0）
                                                 record_action("release_cache:" +
                                                                std::to_string(freed));
-                                            }
-                                        } catch (...) {}
+                                            } catch (...) {}
                                         }
                                         requested = std::max(
                                             (requested * 4) / 5, min_chunk);
                                         batch_shrink_count.fetch_add(
                                             1, std::memory_order_relaxed);
-                                        record_action("release_cache");
                                         // 释放后重新采样和重算（循环）
                                         break;
                                     case utilization::MemoryBudgetController::ExceedAction::LowMemoryPath:

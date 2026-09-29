@@ -288,3 +288,12 @@ gtest_discover_tests(acr_test_cuda_bridge_chunk DISCOVERY_MODE PRE_TEST
 
 # 26 号计划 §2：CPU/GPU 50/80/95/100% 持续负载利用率测试已删除
 # （用户撤销精确利用率控制；acr_test_resource_sustained.cpp 已移除）。
+
+# M42-CONC-FIX-01 / 缺陷 A：归约路径 vs runtime_shutdown 排空闸门并发回归。
+# 覆盖 submit_reduce / submit_reduce_with_desc 与 shutdown 真实并发（此前零覆盖）。
+add_executable(acr_test_runtime_shutdown_reduce_concurrency
+    test_runtime_shutdown_reduce_concurrency.cpp)
+target_link_libraries(acr_test_runtime_shutdown_reduce_concurrency PRIVATE
+    acr_api GTest::gtest_main)
+gtest_discover_tests(acr_test_runtime_shutdown_reduce_concurrency
+    DISCOVERY_MODE PRE_TEST)
