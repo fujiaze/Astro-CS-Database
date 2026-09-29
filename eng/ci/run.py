@@ -95,7 +95,9 @@ V_DIRTY = "FAIL(dirty)"
 V_PREREQ = "FAIL(prerequisite)"
 V_KNOWN = "KNOWN_FAIL"
 V_SKIP_WAIVABLE = "SKIPPED(waivable)"
-V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时复用该标记
+# 注：此处原有 `V_SKIP_PLATFORM`，其取值与上一行**逐字相同**（复制残留），
+# 且**从不被读取**（本文件的跳过判定集合不含它，platform 不匹配走前置条件判定）。
+# 它与另一入口的同名常量取值不同，是「两入口判定可能分叉」的一个混淆来源，故删除。
 # GATE-SOLID-01（一页纸 S2-A「空扫描恒真通过」）：声明输入面判定。与
 # eng/ci/run_checks.py 共用 eng/ci/declared_inputs.py 的同一实现（W4-A3：两入口对
 # 同一情形的判定必须一致）：inputs 缺失/空面 ⇒ 硬失败；optional_inputs 全缺 ⇒ SKIP
