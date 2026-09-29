@@ -220,8 +220,8 @@ def build_repo(root, mutation=None, repo=None):
     # 权威模块总表原样带入 fixture（只读复制）：使「ID 集合 == 00_INDEX §2」交叉核验在
     # fixture 上同样是活的，而不是被合成索引自证。
     src_repo = pathlib.Path(repo) if repo else REPO
-    _write(root / "docs/plugins/00_INDEX.md",
-           (src_repo / "docs/plugins/00_INDEX.md").read_text(encoding="utf-8"))
+    _write(root / "docs/detail/00_INDEX.md",
+           (src_repo / "docs/detail/00_INDEX.md").read_text(encoding="utf-8"))
 
     contract_ids, schema_links, units = [], [], []
     for m in mods:
@@ -266,7 +266,7 @@ def build_repo(root, mutation=None, repo=None):
     index_lines = ["schema: astrocs.contract-index/v1", "version: 1.0.0", "contracts:"]
     for cid in base_contract_ids:
         index_lines += ["  - id: " + cid, "    type: DATA", "    status: ACTIVE",
-                        "    path: docs/contracts/DATA_ARTIFACTS.md"]
+                        "    path: docs/engineering/DATA_ARTIFACTS.md"]
     if mutation == "legacy_contract_ok":
         index_lines += ["legacy_contract_id_map:",
                         "  - legacy_id: DATA-LEGACY-FIXTURE-001",

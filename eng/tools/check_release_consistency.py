@@ -6,13 +6,13 @@
   1) 判据面已被在册门承接：VERSION 单源语义与生成链在 eng/ci/check_version.py
      （注册项 VERSION-CONSISTENCY）中；发布布局 / checksums / SBOM 在
      eng/ci/checks.json 的 CHK-PKG-CONSISTENCY（PKG-CONSISTENCY / PKG-SBOM 及 -NEG）
-     中。本脚本在 eng/ci/checks.json 与 docs/ci/01_CHECKS.md §2 中零引用。
+     中。本脚本在 eng/ci/checks.json 与 docs/engineering/01_CHECKS.md §2 中零引用。
   2) 判据对象不存在：dist/astrocs-alpha 与发布状态文档 RELEASE_STATUS.md 均已删除；
      原实现对后者**裸读**，无参实跑即 rc=1 裸 traceback FileNotFoundError，
-     违反 docs/ci/01_CHECKS.md §1:14「不得 traceback」。
+     违反 docs/engineering/01_CHECKS.md §1:14「不得 traceback」。
   3) 本次一并订正：RELEASE_STATUS 锚缺失 ⇒ 具名 ANCHOR_STALE + rc=2（不再 traceback）。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_main()，经 --legacy-check 复跑（判据未改）；
   * 本检查器不写任何产物文件 ⇒ 不存在「产物落仓库根」的问题。
@@ -31,7 +31,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# ── 判据锚（docs/ci/01_CHECKS.md §1:14 锚存活） ────────────────────────────
+# ── 判据锚（docs/engineering/01_CHECKS.md §1:14 锚存活） ────────────────────────────
 VERSION_REL = "VERSION"
 DIST_REL = os.path.join("dist", "astrocs-alpha")
 RELEASE_STATUS_REL = os.path.join("docs", "review", "RELEASE_STATUS.md")

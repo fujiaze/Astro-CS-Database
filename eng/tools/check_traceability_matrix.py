@@ -22,11 +22,11 @@
   TRACEABILITY MATRIX GATE PASS (n modules) 或 FAIL (n modules) 末行
 退出码: 0 = 全 PASS；1 = 存在 FAIL；3 = TOOLING_FAILURE（不允许伪 PASS）。
 
-退役（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   本脚本未注册进 eng/ci/checks.json；它与**在册**的 TRACEABILITY-MATRIX
   （eng/tools/traceability/check_traceability_matrix.py）读同一个
   docs/traceability/TRACEABILITY_MATRIX.json，却在现行合同下结论相反：
-  docs/traceability/TRACEABILITY_SPEC.md §4/§7 只要求
+  docs/engineering/TRACEABILITY_SPEC.md §4/§7 只要求
   (a) SRC VERIFIED ⇒ TEST 非 MISSING、(b) TEST VERIFIED ⇒ SRC VERIFIED、
   (c) EVIDENCE VERIFIED ⇒ 锚可解析；本脚本的 RULE-A（test_path 不得是文档锚）
   与 RULE-B（TEST VERIFIED ⇒ EVIDENCE 非 MISSING）**不在该合同判据内**，
@@ -186,7 +186,7 @@ def run_gate(root: str, matrix_path: str, only: list[str], quiet: bool) -> tuple
 def _row(mid: str, **kw) -> dict:
     base = {
         "module_id": mid, "module_kind": "phase1",
-        "module_anchor": "docs/modules/registry/astrocs.phase1.star-psf.md",
+        "module_anchor": "docs/detail/registry/astrocs.phase1.star-psf.md",
         "src_path": "lib/algorithms/psf/src/dpsf_psf.cpp::moffat4_fit_tmpl",
         "src_status": "VERIFIED",
         "test_id": "TEST-SELFTEST-001", "test_path": "eng/tests/backend/test_psf_moffat_oracle.py",
@@ -272,7 +272,7 @@ RETIREMENT_MARKER = (
     "RETIRED: check_traceability_matrix.py（SCI-FIX-PSF M3b-F-02）未注册进 "
     "eng/ci/checks.json；在册门 = TRACEABILITY-MATRIX "
     "(eng/tools/traceability/check_traceability_matrix.py)，本脚本的 RULE-A/RULE-B "
-    "不在 docs/traceability/TRACEABILITY_SPEC.md §4/§7 的合同判据内。"
+    "不在 docs/engineering/TRACEABILITY_SPEC.md §4/§7 的合同判据内。"
 )
 
 

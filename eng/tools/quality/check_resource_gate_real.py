@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """check_resource_gate_real.py — RESOURCE-GATE-REAL 的判定校验器 + 可执行负例面。
 
-背景（`docs/owner/RELEASE_STATUS.md §5`）：「重计算面必须显式请求 `--gate-required`
+背景（`docs/engineering/RELEASE_STATUS.md §5`）：「重计算面必须显式请求 `--gate-required`
 并附判定证据，缺失即 fail-closed」。原 CI 注册表的 11 个 CHK-RESOURCE 步全是静态面，
 **零真实运行利用率观测** ⇒ 该口径在 CI 上无机器实现。本校验器把真实观测接进 CI：
 

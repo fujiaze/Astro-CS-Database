@@ -15,4 +15,4 @@
 ## 上游
 
 - 本目录工具未注册于 `eng/ci/checks.json`（生成与复验按需执行）。
-- 本目录在 `docs/ci/` 无逐项对应篇；证据落位规范见 `docs/ci/04_ARTIFACTS.md`。
+- 本目录在 CI 门禁规范（工程正本内的检查项清单与门禁规范篇）无逐项对应篇；证据落位规范见 `docs/engineering/04_ARTIFACTS.md`。

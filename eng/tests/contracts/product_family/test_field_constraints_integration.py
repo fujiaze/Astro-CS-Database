@@ -134,7 +134,7 @@ class TestRegistryConsistency(unittest.TestCase):
         self.reg = _load(REG)
 
     def test_units_table_matches_document(self):
-        ds = (REPO / "docs/contracts/DATA_SEMANTICS.md").read_text(encoding="utf-8")
+        ds = (REPO / "docs/science/DATA_SEMANTICS.md").read_text(encoding="utf-8")
         for row in self.reg["units_table"]:
             self.assertIn(row["symbol"], ds)
             self.assertIn(row["unit"], ds)
@@ -260,8 +260,8 @@ class TestCanonicalObjectGates(unittest.TestCase):
 
 class TestDocsGuard(unittest.TestCase):
     def test_v6_sections_present(self):
-        ds = (REPO / "docs/contracts/DATA_SEMANTICS.md").read_text(encoding="utf-8")
-        pa = (REPO / "docs/contracts/PUBLIC_API.md").read_text(encoding="utf-8")
+        ds = (REPO / "docs/science/DATA_SEMANTICS.md").read_text(encoding="utf-8")
+        pa = (REPO / "docs/engineering/PUBLIC_API.md").read_text(encoding="utf-8")
         self.assertIn("## 31. V6 合同层数据合同", ds)
         self.assertIn("### 31.10 V6 条款注册表与待签登记", ds)
         self.assertIn("### 28.6 Phase3 逐像素立体角", ds)
@@ -272,7 +272,7 @@ class TestDocsGuard(unittest.TestCase):
 
     def test_reverted_sections_not_reintroduced(self):
         guard = oracle_mod.FORBIDDEN_DOC_TOKENS
-        for rel in ("docs/contracts/DATA_SEMANTICS.md", "docs/contracts/PUBLIC_API.md"):
+        for rel in ("docs/science/DATA_SEMANTICS.md", "docs/engineering/PUBLIC_API.md"):
             txt = (REPO / rel).read_text(encoding="utf-8")
             for tok in guard:
                 self.assertNotIn(tok, txt, "%s reintroduced %r" % (rel, tok))

@@ -21,4 +21,4 @@
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`CHK-SCHEMA` 的步骤 `LOG-CONTRACT-SELFCHECK`（`python3 eng/tools/monitoring/check_log_contract.py --selfcheck`）；`run_monitored.py` 与 `resource_probe.py` 的自测经 `eng/ci/tests/` 下对应用例承载，命令面不直接引用本目录路径。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

@@ -35,7 +35,7 @@
   python3 eng/ci/check_cfitsio_platform_surface.py --self-test # 正例必绿 + 4 组负例必红
 
 上游: docs/ASTROCS_DESIGN.md §8.4; ENGINEERING_SPEC.md §1/§8;
-      docs/ci/01_CHECKS.md §1; eng/cmake/cfitsio_platform.cmake 抬头。
+      docs/engineering/01_CHECKS.md §1; eng/cmake/cfitsio_platform.cmake 抬头。
 """
 from __future__ import annotations
 

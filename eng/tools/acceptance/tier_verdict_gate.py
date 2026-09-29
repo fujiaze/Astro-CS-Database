@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """tier_verdict_gate.py —— 档位判词裁决器（可执行判据，能红能绿）。
 
-配套正本 = docs/acceptance/TIER_VERDICT_CRITERIA.md（判据书 §3 的机器实现）。
+配套正本 = docs/engineering/TIER_VERDICT_CRITERIA.md（判据书 §3 的机器实现）。
 本文件不含任何科学公式、阈值或冻结定义：它只裁决"判词记录本身是否合规"，
 不裁决"帧是否过闸"（过闸由冻结门自己判）。
 

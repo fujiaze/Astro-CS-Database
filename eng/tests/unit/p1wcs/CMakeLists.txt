@@ -5,7 +5,7 @@
 # 合同锚: docs/science/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (F1-F6,
 # 冻结容差不放宽); docs/science/ASTROMETRY.md SCI-WCS-001; 矩阵行 P1-WCS
 # (MOD astrocs.phase1.wcs-platesolve, registry 页
-# docs/modules/registry/astrocs.phase1.wcs-platesolve.md)。
+# docs/detail/registry/astrocs.phase1.wcs-platesolve.md)。
 #
 # 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1wcs/p1wcs_fixtures.hpp      — FIX-WCS-A..E 固定 seed fixture
@@ -164,7 +164,7 @@ set_tests_properties(${P1WCS_LABELLED_TESTS} PROPERTIES LABELS "p1wcs")
 # ---------------------------------------------------------------------------
 # STD-F1 导出边界 +1 桥接第三方交叉 + 九宫格显式判定 (前台裁决 R-02 方案 b)
 # ---------------------------------------------------------------------------
-# 合同锚: docs/science/ASTROMETRY.md §5/§7; docs/standards/STANDARDS_REGISTRY.md
+# 合同锚: docs/science/ASTROMETRY.md §5/§7; docs/engineering/STANDARDS_REGISTRY.md
 # STD-F1 (FITS WCS Paper I §2.1.1)。自包含: 自行重跑 p3_wcs_test (九宫格导出)
 # 与 p1wcs_tests apbp (ipv 导出侧输入) → astropy 独立对拍; 正向锁 (声明桥接
 # 达机器精度) + 负向注入 (移除/错置桥接必 FAIL, ≥1px) 双向断言。

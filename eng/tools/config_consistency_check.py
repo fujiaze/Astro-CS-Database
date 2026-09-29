@@ -4,7 +4,7 @@
 template / docs 五面）。
 
 审计根因（配置一致性漂移）
-  本工具是 docs/development/CONFIG_SCHEMA.md:3-4 自述的默认值一致性唯一校验器，
+  本工具是 docs/engineering/CONFIG_SCHEMA.md:3-4 自述的默认值一致性唯一校验器，
   但四条事实源路径**全部失效**，只输出 env_missing×4 ⇒ C4（默认值不符）类缺陷
   在全仓无机器门。根因两条：
     1. 模块搬迁：lib/phase2/{lib/include/astro/phase2,src}/stage2_common.{h,cpp}
@@ -16,7 +16,7 @@ template / docs 五面）。
 
 事实源与判据（任一 finding ⇒ exit 1）
   L0 输入面（fail-closed）
-     L0a 活体事实源必须存在：header / parser / docs/development/CONFIG_SCHEMA.md；
+     L0a 活体事实源必须存在：header / parser / docs/engineering/CONFIG_SCHEMA.md；
      L0b 已退役事实源必须**确实已退役**：归档路径不得重新出现在工作树
          （出现 ⇒ fact_source_resurrected：必须重新启用直读腿，不得装作没看见）；
      L0c 退役声明必须可验证：`git log --diff-filter=D -1 -- <path>` 必须等于登记的
@@ -26,7 +26,7 @@ template / docs 五面）。
   L1 struct ↔ parser（stage2_common.h ↔ stage2_common.cpp）—— 原判据，保留
   L2 归档 template ↔ 归档 schema 默认值
   L3 归档 schema/template ↔ 当前 struct（冻结记录 vs 现行实现）
-  L4 docs/development/CONFIG_SCHEMA.md 自述默认 ↔ 现行实现（parser 优先，缺则 struct）
+  L4 docs/engineering/CONFIG_SCHEMA.md 自述默认 ↔ 现行实现（parser 优先，缺则 struct）
   L5 docs 的条件式默认 `key(auto→v)` ↔ parser 中该字段的实际赋值字面量
 
 已登记差异（registry）
@@ -58,7 +58,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 HDR_REL = "lib/algorithms/coverage/include/astro/phase2/stage2_common.h"
 SRC_REL = "lib/algorithms/coverage/src/stage2_common.cpp"
-DOC_REL = "docs/development/CONFIG_SCHEMA.md"
+DOC_REL = "docs/engineering/CONFIG_SCHEMA.md"
 # 历史归档 commit（stage2 schema/template 的最后存续版本 = 该 commit 的父提交）
 ARCHIVE_COMMIT = "b7b2dea70dbcdacdcf6eb762609a908abdeab697"
 ARCHIVED = {

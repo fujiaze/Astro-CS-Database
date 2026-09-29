@@ -27,7 +27,7 @@
   R4 路径域覆盖   PROBE_DOMAINS 声明的每个**现行**路径域：(a) 其锚路径在当前树中必须
                   真实存在（锚存活，失效即判红）；(b) 其 glob 探针必须被至少一条规则的
                   paths 命中（用 eng/ci/run.py 的 _match_prefix 语义，与生产选择器同源）；
-  R5 无退役引用   impact_map 不得引用已退役/RESERVED id（docs/ci/01_CHECKS.md §2.1/§2.3）；
+  R5 无退役引用   impact_map 不得引用已退役/RESERVED id（docs/engineering/01_CHECKS.md §2.1/§2.3）；
   R6 结构完整     rules 非空、每规则 paths/checks 非空、无重复 paths 集合。
 
 可执行负例面（--self-test，全部在内存 fixture 上跑，零副作用）
@@ -58,7 +58,7 @@ import tempfile
 REPO = pathlib.Path(__file__).resolve().parents[3]
 REGISTRY_REL = "eng/ci/checks.json"
 MAP_REL = "eng/ci/impact_map.json"
-DOC_REL = "docs/ci/01_CHECKS.md"
+DOC_REL = "docs/engineering/01_CHECKS.md"
 RUNNER_REL = "eng/ci/run.py"
 
 # R4 探针面：(路径域, 锚存活路径, glob 探针)。
@@ -71,8 +71,8 @@ PROBE_DOMAINS = [
     ("CMakePresets.json", "CMakePresets.json", "CMakePresets.json"),
     ("eng/cmake/**", "eng/cmake/install_layout.cmake", "eng/cmake/install_layout.cmake"),
     ("eng/ci/**", "eng/ci/run.py", "eng/ci/run.py"),
-    ("docs/**", "docs/DOCUMENT_INDEX.yaml", "docs/VERSIONING.md"),
-    ("docs/contracts/**", "docs/contracts", "docs/contracts/DATA_SEMANTICS.md"),
+    ("docs/**", "docs/DOCUMENT_INDEX.yaml", "docs/engineering/VERSIONING.md"),
+    ("docs/contracts/**", "docs/contracts", "docs/science/DATA_SEMANTICS.md"),
     ("docs/science/**", "docs/science", "docs/science/ASTROMETRY.md"),
     ("lib/**", "lib/algorithms/psf/src/dpsf_psf.cpp", "lib/algorithms/psf/src/dpsf_psf.cpp"),
     ("lib/infrastructure/**", "lib/infrastructure/cli/main.cpp",
@@ -149,7 +149,7 @@ _ID_TOKEN_RE = re.compile(r"`([A-Za-z0-9][A-Za-z0-9_.\-]*)`")
 
 
 def parse_retired(doc_text: str) -> set:
-    """从 docs/ci/01_CHECKS.md §2.1（退役）与 §2.3（RESERVED）抽取 id。
+    """从 docs/engineering/01_CHECKS.md §2.1（退役）与 §2.3（RESERVED）抽取 id。
 
     两表的语义都是「不得出现在注册表 / 映射面」。表格一格可能登记**多个** id
     （如 §2.1 的 `WORKSPACE-ADOPTION` / `RECONCILE-STATE`），故逐格取全部

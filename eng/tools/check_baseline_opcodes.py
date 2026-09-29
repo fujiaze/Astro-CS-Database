@@ -13,7 +13,7 @@
     BASELINE_OBJ_GLOB 解析；解析到多个候选则**逐个全查**（任一含 AVX 即判红），
     解析到零个 ⇒ fail-closed 判红。
 
-fail-closed（docs/ci/01_CHECKS.md §1:12–15）
+fail-closed（docs/engineering/01_CHECKS.md §1:12–15）
   * 锚存活：--build-dir 不存在 / 对象解析为空 / 显式对象不存在 ⇒
     ANCHOR_STALE: <常量名> <路径> 具名失败（rc=2），不 traceback、不静默判绿；
   * objdump 不可用 / 非零退出 / 反汇编输出零指令 ⇒ 判红（rc=2）
@@ -147,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
                       % (obj, n_ins))
     except AnchorStale as exc:
         print(str(exc), file=sys.stderr)
-        print("BASELINE_OPCODE_FAIL: 输入不可用（fail-closed，docs/ci/01_CHECKS.md §1）",
+        print("BASELINE_OPCODE_FAIL: 输入不可用（fail-closed，docs/engineering/01_CHECKS.md §1）",
               file=sys.stderr)
         return 2
     if total_bad:

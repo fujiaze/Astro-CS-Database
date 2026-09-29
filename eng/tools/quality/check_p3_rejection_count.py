@@ -3,7 +3,7 @@
 """P3-REJ-COUNT：Phase3 重采样产品的**强制剔除计数**承载面判据（DATA-P3-REJ-001）。
 
 规范依据（逐字）
-  - docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a「invalid_handling」块
+  - docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a「invalid_handling」块
     （**唯一正本**）：`rejection_counting="mandatory"`、`count_field="n_rejected_nonfinite"`；
     规则 3「**强制计数（禁止静默剔除）**：每个输出像素**必须**同时暴露被剔除样本的
     计数 n_rejected_nonfinite … 计数为 0 与「字段缺失」**必须可区分**；缺失该计数的
@@ -11,10 +11,10 @@
     规则 1/2 给出「样本级掩膜 + 重归一 + 覆盖级 NaN」；
     §2a「与两类输入的对应」表给出四行（无覆盖 / 无信息 / 部分坏 / 全合格）以及
     「下游可仅凭 (isnan(signal), support, n_rejected) 三元组把上表四行**完全分开**」。
-  - docs/contracts/DATA_SEMANTICS.md §30.7（Phase3 承载面冻结；形态沿用 §30.2 的
+  - docs/science/DATA_SEMANTICS.md §30.7（Phase3 承载面冻结；形态沿用 §30.2 的
     阶段二诊断平面先例）：诊断统计平面**不进** science planes 枚举，由 artifact
     manifest 声明描述；int32、0 即「无」、**禁 −1 哨兵**。
-  - docs/contracts/DATA_SEMANTICS.md §29（DATA-P3-RES）：p3_resampled.json 字段面。
+  - docs/science/DATA_SEMANTICS.md §29（DATA-P3-RES）：p3_resampled.json 字段面。
   - ENGINEERING_SPEC.md §8：每项检查必须有正例与负例、能红能绿、fail-closed。
 
 判据（六条，逐像素 + 总量）

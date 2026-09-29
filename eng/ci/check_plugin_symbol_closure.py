@@ -4,7 +4,7 @@
 
 上游依据：
 - ENGINEERING_SPEC.md §7（模块 DLL/SO 是交付单元，安装树落 modules/）；
-- docs/ci/01_CHECKS.md §1（每项检查必须能绿能红、fail-closed、锚存活）；
+- docs/engineering/01_CHECKS.md §1（每项检查必须能绿能红、fail-closed、锚存活）；
 - docs/ASTROCS_DESIGN.md §10（aio 是文件级唯一 I/O 边界）与模块 DLL 的自持闭包约定：
   模块 .so 从源文件独立重编译其依赖闭包（静态库对象非 PIC 不可链），因此
   **每个交付 .so 必须自持其符号闭包**，不得依赖宿主进程导出符号。

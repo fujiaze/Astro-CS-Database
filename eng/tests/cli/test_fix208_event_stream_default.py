@@ -44,8 +44,8 @@ KIND_EXT = {
     "stage_start": set(),
     "stage_end": set(),
     "graph": {"path"},
-    # SO-05 记录/裁决分离证据面（B4 登记；语义 = docs/plugins/infrastructure/
-    # 21_observability.md §8.4）
+    # SO-05 记录/裁决分离证据面（B4 登记；语义 = 细节实施面的基建分册
+    # docs/detail/infrastructure/21_observability.md §8.4）
     "resource_gate": {"diag", "enforcement", "strict", "enforced", "work_core_seconds",
                       "workload_floor_core_seconds", "workload_floor_reached",
                       "so05_signoff_id", "so05_signoff_status",

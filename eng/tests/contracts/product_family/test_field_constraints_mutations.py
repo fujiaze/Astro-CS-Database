@@ -27,8 +27,8 @@ U_VARIANCE = "eng/contracts/schemas/unified/variance.schema.json"
 U_PROV = "eng/contracts/schemas/unified/provenance.schema.json"
 EX_PSFSW = "eng/contracts/data/examples/psfsw.example.json"
 EX_PROV = "eng/contracts/data/examples/provenance.example.json"
-DOC_DS = "docs/contracts/DATA_SEMANTICS.md"
-DOC_PA = "docs/contracts/PUBLIC_API.md"
+DOC_DS = "docs/science/DATA_SEMANTICS.md"
+DOC_PA = "docs/engineering/PUBLIC_API.md"
 
 
 def _json_mut(path_fn):

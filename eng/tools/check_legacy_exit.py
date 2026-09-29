@@ -31,7 +31,7 @@ ANCHORS = {
     "AIO_ENGINE_HEADER": "lib/infrastructure/aio/include/aio_pipeline_engine.h",
     "ACR_KERNEL_SOURCE": "lib/algorithms/coverage/src/acr_kernels.cpp",
     "ROOT_CMAKE": "CMakeLists.txt",
-    "PUBLIC_API_DOC": "docs/contracts/PUBLIC_API.md",
+    "PUBLIC_API_DOC": "docs/engineering/PUBLIC_API.md",
 }
 BINARY_CANDIDATES = ("build/root-cmake/astrocs", "build/acsd", "build/cli/astrocs")
 PROD_SCAN_ROOTS = ("lib", "cli")

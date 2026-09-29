@@ -5,7 +5,7 @@
 > 状态：ACTIVE_NORMATIVE —— 本文件冻结 eng/tests/testkit 结构、测试元数据 schema、
 > `module:<module_id>` 选择规则、期望来源禁令与故障注入要求。
 > 权威输入：控制包 `11_MODULE_SOURCE_TEST_STANDARD.md`（§5 测试复用、§6 必备类型）、
-> 16 号文追溯链（TEST 层）、`docs/traceability/TRACEABILITY_SPEC.md`（DOC-001）。
+> 16 号文追溯链（TEST 层）、`docs/engineering/TRACEABILITY_SPEC.md`（DOC-001）。
 > 本文件不重复科学公式/容差数值（容差以 docs/science、docs/algorithms 与测试
 > oracle 为权威），只规定测试结构的机器合同。
 

@@ -199,7 +199,7 @@ def _tiny_inventory(gate_overrides=None):
         "schema": "acsd.frozen_gate_inventory.v1",
         "gates": [{
             "gate_id": "G-TEST", "title": "t", "family": "science_frozen_threshold",
-            "scope": "s", "threshold_source": "docs/x.md", "implementation": "lib/y.cpp",
+            "scope": "s", "threshold_source": "docs/engineering/NUMERIC_STANDARD.md", "implementation": "lib/y.cpp",
             "runs_in_product": True, "runs_in_ci": True,
             "ci_or_test_evidence": ["CHK-UNIT"],
             "live_adjudication": True, "notification_surface": "ci_step",

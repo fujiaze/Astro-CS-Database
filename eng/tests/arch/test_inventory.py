@@ -123,10 +123,10 @@ class TestInventory(unittest.TestCase):
                             "锚点缺失必须 fail-closed 判红：" + str(got))
 
     def test_07_doc_text_is_not_the_object(self):
-        """判据读的是被检对象：夹具里没有 docs/architecture/ARCHITECTURE.md，判据照样成立。"""
+        """判据读的是被检对象：夹具里没有 docs/engineering/ARCHITECTURE.md，判据照样成立。"""
         with tempfile.TemporaryDirectory() as td:
             clean = ai.build_fixture(pathlib.Path(td) / "clean")
-            self.assertFalse((clean / "docs/architecture/ARCHITECTURE.md").exists())
+            self.assertFalse((clean / "docs/engineering/ARCHITECTURE.md").exists())
             self.assertEqual(ai.registration_findings(clean), [])
             self.assertEqual(ai.single_entry_findings(clean), [])
 

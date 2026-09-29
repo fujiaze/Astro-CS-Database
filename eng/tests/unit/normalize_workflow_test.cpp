@@ -1,6 +1,6 @@
 // eng/tests/unit/normalize_workflow_test.cpp — ARCH-502 normalize 异步工作流调度器回归锁
 //
-// 依据：CONTRACT-501 docs/contracts/SCHEDULER_CONTRACT.md §2（确定性）/§3（资源声明）/
+// 依据：CONTRACT-501 docs/engineering/SCHEDULER_CONTRACT.md §2（确定性）/§3（资源声明）/
 //       §4（探针）/§5（取消）。
 // 判据（每条都可证伪）：
 //   A. 确定性：N=1/2/4/8 worker 的 outcome（含 checksum）**逐位一致**；

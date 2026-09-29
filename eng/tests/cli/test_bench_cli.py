@@ -3,7 +3,7 @@
 
 权威: docs/ASTROCS_DESIGN §6.2（命令树只有 benchmark，无 cpu/--quick/--full/--output/
 verify-profile 子面；benchmark 直接生成/更新安装目录 cpu_profile）、§8（cpu_profile
-绑定 CPU 特征/provider 哈希）、docs/api/CLI_PROTOCOL_V1.md §1。
+绑定 CPU 特征/provider 哈希）、docs/engineering/CLI_PROTOCOL_V1.md §1。
 
 退役登记（CLI-001 删除的旧命令面，依据 §6.2 唯一命令树 + CLI-001 rc 矩阵）:
   * test_01_benchmark_quick_profile_v2_valid、test_02_benchmark_full_twelve_kernels、

@@ -260,11 +260,11 @@ def self_test():
                "      status: ACTIVE_INFORMATIVE\n"
                "      duty: \"仓库入口说明\"\n"
                "      downstream: \"eng/ci/check_no_weight_mode.py、eng/ci/check_version.py 等 161 处\"\n"
-               "    - path: \"docs/contracts/DATA_SEMANTICS.md\"\n"
+               "    - path: \"docs/science/DATA_SEMANTICS.md\"\n"
                "      status: ACTIVE_NORMATIVE\n"
                "      duty: \"DATA-UNC-001 — 跨 Phase 数据合同（weight_mode / effective PSF / provenanc\"\n"
-               "      downstream: \"docs/DOCUMENT_INDEX.yaml、docs/contracts/PUBLIC_API.md\"\n"
-               "    - path: \"docs/contracts/PUBLIC_API.md\"\n"
+               "      downstream: \"docs/DOCUMENT_INDEX.yaml、docs/engineering/PUBLIC_API.md\"\n"
+               "    - path: \"docs/engineering/PUBLIC_API.md\"\n"
                "      status: ACTIVE_NORMATIVE\n"
                "      duty: \"公共 API 消费面（weight_mode 已按 §9.73 A44 作废：该概念不存在）\"\n")
         _write(os.path.join(green2, "README.md"), "# 仓库\n")

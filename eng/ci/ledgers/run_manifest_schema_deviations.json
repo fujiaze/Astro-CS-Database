@@ -3,7 +3,7 @@
   "generated_by": "RULING-DOC-01（负责人裁决 D：run manifest 以冻结 schema 为准 + 补门）",
   "measured_on": "HEAD 60f46388 工作树；语料 = run/**/astrocs_run_*.json + artifacts/**/astrocs_run_*.json + eng/ci/fixtures/run_manifest/real_manifest_sample.json（67 个文件，其中 64 个真实 manifest、3 个测试残留空占位）",
   "frozen_schema": "eng/contracts/schemas/run_manifest.schema.json",
-  "artifact_contract": "docs/api/MANIFEST_VERIFY_V1.md §2/§2.1（API-MANIFEST-001, FROZEN, CLI-003）",
+  "artifact_contract": "docs/engineering/MANIFEST_VERIFY_V1.md §2/§2.1（API-MANIFEST-001, FROZEN, CLI-003）",
   "conflict_note": "两份冻结合同对**同名**对象（run manifest）约定不同：CLI-003 §2 冻结的是真实产出物 astrocs_run_<run_id>.json 的字段集；CFG-001 的 run_manifest.schema.json 冻结的是「本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本」的字段名族。实测：CFG-001 schema 在**全仓零生产者**（无任何文件含 manifest_schema=astrocs.run-manifest/v1），而 CLI-003 的产物在 provenance 层已承载等价信息。因此本表登记的是**合同冲突**，处置需要改 CFG-001 冻结 schema（方案见 run/RULING-DOC-01/REPORT.md §裁决 D），不得自行改冻结合同。",
   "registered_missing_required": [
     "manifest_schema",

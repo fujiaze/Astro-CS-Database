@@ -18,15 +18,15 @@ import sys
 
 # 唯一登记表（双向对应的唯一事实源；新增合同必须同时加两处）
 PAIRS = (
-    ("docs/contracts/DUAL_LINE_CONTRACT.md",
+    ("docs/engineering/DUAL_LINE_CONTRACT.md",
      "eng/contracts/schemas/dual_line_file_domain.schema.json"),
-    ("docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+    ("docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
      "eng/contracts/schemas/pipeline_block.schema.json"),
-    ("docs/contracts/SCHEDULER_CONTRACT.md",
+    ("docs/engineering/SCHEDULER_CONTRACT.md",
      "eng/contracts/schemas/scheduler_probe_event.schema.json"),
-    ("docs/contracts/PERF_GATE_CONTRACT.md",
+    ("docs/engineering/PERF_GATE_CONTRACT.md",
      "eng/contracts/schemas/perf_gate_criteria.schema.json"),
-    ("docs/contracts/PERF_GATE_CONTRACT.md",
+    ("docs/engineering/PERF_GATE_CONTRACT.md",
      "eng/contracts/schemas/monitor_field_semantics.schema.json"),
 )
 

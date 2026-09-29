@@ -2,7 +2,7 @@
 """产品族字段级合同 + 条款注册表 —— 独立结构 Oracle（DOC-CONTRACT-MERGE-02 自解释合并后）。
 
 独立性声明：本 Oracle 以现行合同文档与登记表为语义真值，对照**生产 artifact** 逐条核对：
-  * 语义权威：docs/contracts/DATA_SEMANTICS.md §31（§31.1–§31.10）与 §28.6；
+  * 语义权威：docs/science/DATA_SEMANTICS.md §31（§31.1–§31.10）与 §28.6；
   * 机器登记表：eng/contracts/data/clause_registry.json；
   * 产品族记录级字段门：eng/contracts/schemas/product_family_field_constraints.schema.json（$defs 逐件）；
   * canonical 对象级字段门：eng/contracts/schemas/unified/*.schema.json 的 allOf。
@@ -23,8 +23,8 @@ _spec.loader.exec_module(jm)
 
 PF_REL = "eng/contracts/schemas/product_family_field_constraints.schema.json"
 REG_REL = "eng/contracts/data/clause_registry.json"
-DS_REL = "docs/contracts/DATA_SEMANTICS.md"
-PA_REL = "docs/contracts/PUBLIC_API.md"
+DS_REL = "docs/science/DATA_SEMANTICS.md"
+PA_REL = "docs/engineering/PUBLIC_API.md"
 U_DIR = "eng/contracts/schemas/unified"
 
 # 产品族记录级 $defs（键 -> 合并前原生产 schema 文件名，仅作溯源）

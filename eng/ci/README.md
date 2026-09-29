@@ -5,8 +5,8 @@
 ## 职责边界
 
 - 放：注册表（checks.json、checks.schema.json）、执行器（run_checks.py、run.py）、逐项检查器（check_*.py）、门禁登记与基线 JSON、步骤与台账子目录、执行器自测与说明清单。
-- 不放：CI 规范正文（docs/ci/）、合同 schema 正本（eng/contracts/）、测试套件（eng/tests/）、运行产物与日志（run/）、验收证据（artifacts/）。
-- 新增或修改检查项时，同步更新 checks.json 与 docs/ci/ 的登记说明。
+- 不放：CI 门禁规范正文（一级·工程正本内的检查项清单与门禁规范篇）、合同 schema 正本（eng/contracts/）、测试套件（eng/tests/）、运行产物与日志（run/）、验收证据（artifacts/）。
+- 新增或修改检查项时，同步更新 checks.json 与一级·工程正本内的检查项登记说明。
 
 ## 内容
 
@@ -22,4 +22,4 @@
 
 ## 上游
 
-上游：docs/ci/CI_SPEC.md（范围与 fail-closed、失败策略）、docs/ci/01_CHECKS.md（检查项总表）、docs/ci/03_GATES.md（门禁）；ENGINEERING_SPEC.md §10（机器一致性检查）。
+上游：docs/engineering/CI_SPEC.md（范围与 fail-closed、失败策略）、docs/engineering/01_CHECKS.md（检查项总表）、docs/engineering/03_GATES.md（门禁）；ENGINEERING_SPEC.md §10（机器一致性检查）。

@@ -7,7 +7,7 @@
     "publish_gate": "ACCEPTANCE_SPEC.md §6.3 / §8（发布预览版门；发布权 = docs/ASTROCS_DESIGN.md §13）",
     "control_pack_task": "run/FINAL-07/pkg/tasks/REL-790_目视验收收口.md",
     "seam_machine_gate": "ACCEPTANCE_SPEC.md §6.2 无接缝行（机器门 CHK-L4-SEAM-FOOTPRINT，阈值唯一数值源 = eng/tools/e2e/seam_footprint.py）",
-    "tier_record": "docs/acceptance/TIER_VERDICT_CRITERIA.md（档位判词记录；本清单的拒绝字段与它同源）"
+    "tier_record": "docs/engineering/TIER_VERDICT_CRITERIA.md（档位判词记录；本清单的拒绝字段与它同源）"
   },
   "scope": {
     "filters": "R 通道 only（本版）",

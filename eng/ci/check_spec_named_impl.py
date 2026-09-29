@@ -6,7 +6,7 @@
   - 工程控制/RELEASE-02/GAP_AUDIT.md §9.44「暴露的门禁盲区」（:1295-1298，负责人令
     「须新增门禁类 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH」）；
   - RELEASE-02 design-gap-synthesis.md DG-C-01（:708-713；该报告已退役，见仓库 git 历史）；
-  - docs/ci/01_CHECKS.md §1（唯一注册表 · 能绿能红 · fail-closed · 锚存活）。
+  - docs/engineering/01_CHECKS.md §1（唯一注册表 · 能绿能红 · fail-closed · 锚存活）。
 
 防的复发缺口（三条同类缺陷，均为 P0）：
   - S1-002：ALG-STARDET-001（docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md:8）点名

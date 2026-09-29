@@ -18,7 +18,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "Linux Release 构建",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "BUILD-GCC-RELEASE",
         "DEEP-CLANG-BUILD"
@@ -28,7 +28,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "Windows Release 构建",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "WIN-BUILD-RELEASE"
       ]
@@ -37,7 +37,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "编译警告",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "WARNING-SUPPRESSION"
       ]
@@ -46,7 +46,7 @@
       "kind": "doc",
       "grade": "P1",
       "name": "静态分析",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "DUPLICATION",
         "CON-FORBIDDEN-PATTERNS",
@@ -58,7 +58,7 @@
       "kind": "doc",
       "grade": "P1",
       "name": "变异门登记册的登记项必须仍有对象，且 ctest_name 绑定到独立枚举面（能判红、能查未运行）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CHK-MUTATION-GATES",
         "CHK-MUTATION-GATES-SELFTEST",
@@ -69,7 +69,7 @@
       "kind": "ci",
       "grade": "P0",
       "name": "ctest SKIP 登记册的消费者门：逐条登记 + 名字存在性独立面核对 + 未登记 SKIP 即红 + 行锚存活 + 计数自洽",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CHK-CTEST-SKIP-REGISTER",
         "CHK-CTEST-SKIP-REGISTER-SELFTEST",
@@ -80,7 +80,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "模块 manifest/注册表/构建 target/产品清单一致",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CHK-MODULE-MANIFEST",
         "MODULE-READMES",
@@ -96,7 +96,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CONTRACT-GRAPH",
         "DATA-ARTIFACTS"
@@ -106,7 +106,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "算法引用有效 SCI/ALG",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "TRACEABILITY",
         "CON-TRACEABILITY",
@@ -122,7 +122,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "核心合同有独立测试",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CON-TEST-CONTRACTS",
         "CON-FULL-INTEGRATION",
@@ -143,7 +143,7 @@
       "kind": "doc",
       "grade": "P1",
       "name": "删除/重命名无悬空引用",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CON-DOC-SYMBOLS"
       ]
@@ -152,7 +152,7 @@
       "kind": "doc",
       "grade": "P1",
       "name": "活动文档无陈旧版本号/历史状态冒充",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CON-COMMENTS"
       ]
@@ -161,7 +161,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "doc↔code 命令树/签名/退出码/schema 一致",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "API-DOCS",
         "CLI-COMMAND-LAYER",
@@ -173,13 +173,13 @@
       "kind": "doc",
       "grade": "P0",
       "name": "仓库根目录整洁",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-UNIT": {
       "kind": "doc",
       "grade": "P0",
       "name": "每模块单测",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "UT-API",
         "UT-ARCH",
@@ -216,7 +216,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "SCI/ALG Oracle 测试",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "UT-CPU-BASELINE",
         "V6-RUNTIME-CLOSURE",
@@ -241,7 +241,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "科学不变量/性质测试",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CTEST-DRIZZLE-PRECISION-DEFAULT",
         "CTEST-P1STAR-MAD",
@@ -280,7 +280,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "C ABI 兼容性",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "ABI-BOUNDARY",
         "AST-API",
@@ -303,7 +303,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "schema 校验",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CON-CONFIG-CONTRACTS",
         "LOG-CONTRACT-SELFCHECK",
@@ -315,7 +315,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "normalize 合成全链",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CTEST-P1001-REAL-NODES"
       ]
@@ -324,7 +324,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "mosaic 合成全链",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CTEST-P2001-REAL-NODES",
         "CTEST-P2002-UNC-REJ-PROV",
@@ -338,7 +338,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "export 合成全链",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CTEST-P3002-REAL-NODES",
         "CTEST-P3002-UNCERTAINTY",
@@ -351,7 +351,7 @@
       "kind": "doc",
       "grade": "P1",
       "name": "baseline/AVX2/AVX-512 等价",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "UT-CPU-AVX2",
         "UT-CPU-AVX512",
@@ -363,7 +363,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "1 vs N worker 数值一致",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "V6-DETERMINISM",
         "CTEST-P1DRZ-TASKSET-INVARIANCE",
@@ -374,7 +374,7 @@
       "kind": "doc",
       "grade": "P1",
       "name": "ASan/UBSan",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "DEEP-SAN-ASAN",
         "DEEP-SAN-TSAN"
@@ -384,7 +384,7 @@
       "kind": "doc",
       "grade": "P2",
       "name": "覆盖率报告",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "DEEP-COV-CPP",
         "DEEP-COV-PY"
@@ -394,7 +394,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "内存/线程/利用率门禁",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "THREAD-BUDGET",
         "NO-SERIAL-HEAVY",
@@ -414,7 +414,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "发布候选打包/白名单/哈希/版本/provenance",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "WIN-PACKAGE-CANDIDATE"
       ]
@@ -438,85 +438,85 @@
       "kind": "doc",
       "grade": "P0",
       "name": "登记面活引用必须仍有对象",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-REGISTRATION-ANCHORS-SELFTEST": {
       "kind": "doc",
       "grade": "P0",
       "name": "登记面活引用门自检",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CMAKE-USEBEFOREDEF": {
       "kind": "ci",
       "grade": "P1",
       "name": "CMake 使用前定义",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CMAKE-USEBEFOREDEF-SELFTEST": {
       "kind": "ci",
       "grade": "P1",
       "name": "CMake 使用前定义门自检",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-MODULE-ID-NORMALIZATION": {
       "kind": "doc",
       "grade": "P1",
       "name": "模块 id 归一化",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-MODULE-ID-NORMALIZATION-SELFTEST": {
       "kind": "doc",
       "grade": "P1",
       "name": "模块 id 归一化门自检",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-MASTER-UNIT-GUARD": {
       "kind": "doc",
       "grade": "P0",
       "name": "母版单位守卫",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-MASTER-UNIT-GUARD-SELFTEST": {
       "kind": "doc",
       "grade": "P0",
       "name": "母版单位守卫门自检",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-GATES-AND-TOLERANCES": {
       "kind": "doc",
       "grade": "P0",
       "name": "门与容差表 vs 实现",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-GATES-AND-TOLERANCES-SELFTEST": {
       "kind": "doc",
       "grade": "P0",
       "name": "门与容差表门自检",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-VERSION-CONSISTENCY-VER001": {
       "kind": "ci",
       "grade": "P0",
       "name": "版本一致性 VER-001",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-VERSION-CONSISTENCY-VER001-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "版本一致性 VER-001 门自检",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-BASELINE-OPCODES": {
       "kind": "ci",
       "grade": "P0",
       "name": "基线目标指令集",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-LINK-SCAN": {
       "kind": "ci",
       "grade": "P0",
       "name": "链接面扫描",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-KNOWN-FAILURES-BASELINE": {
       "kind": "extension",
@@ -533,43 +533,43 @@
       "kind": "extension",
       "grade": "P0",
       "name": "AGENTS.md 硬禁令 / §0 权威链唯一性 / 旧权威回归（GOV-001 门）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "ENG-CONSTRAINTS": {
       "kind": "extension",
       "grade": "P0",
       "name": "工程约束（ENGINEERING_SPEC §7 目录规范 / 根条目白名单 / 旧权威回归）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "VERSION-CONSISTENCY": {
       "kind": "extension",
       "grade": "P1",
       "name": "版本注入链单一真源 + 现行活动文档集完整性",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "VERSION-NAMESPACES": {
       "kind": "extension",
       "grade": "P1",
       "name": "版本命名空间一致性（陈旧版本号）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "DOC-L0": {
       "kind": "extension",
       "grade": "P1",
-      "name": "L0 现行文档集（docs/owner/**）与索引 active 登记完整性",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "name": "L0 现行文档集（一级·工程正本里的 4 份 L0 汇总层）与索引 active 登记完整性",
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "GLOSSARY-DOCS": {
       "kind": "extension",
       "grade": "P2",
       "name": "词典锚点/别名唯一性（报告项）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "STD-REG": {
       "kind": "extension",
       "grade": "P1",
       "name": "标准注册表 C1–C8 判据 + 9 场景 fault-inject 负例面",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）",
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）",
       "steps": [
         "STD-REG",
         "STD-REG-FI-DANGLING",
@@ -579,8 +579,8 @@
     "CHK-REGISTRY-DOC-SYNC": {
       "kind": "extension",
       "grade": "P0",
-      "name": "注册表 ↔ docs/ci/01_CHECKS.md §2 双向一致（ENGINEERING_SPEC §8）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）",
+      "name": "注册表 ↔ docs/engineering/01_CHECKS.md §2 双向一致（ENGINEERING_SPEC §8）",
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）",
       "steps": [
         "REGISTRY-DOC-SYNC",
         "REGISTRY-DOC-SYNC-SELFTEST",
@@ -592,19 +592,19 @@
       "kind": "extension",
       "grade": "P0",
       "name": "真实重计算面资源利用率门（显式 --gate-required + 判定证据）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "RESOURCE-GATE-REAL-NEG": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面（串行注入 ⇒ 门必须判红）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（CI-003 登记）"
     },
     "CHK-IMPACT-MAP": {
       "kind": "extension",
       "grade": "P0",
       "name": "eng/ci/impact_map.json 判据一致性门（changed-path→checks 映射；ENGINEERING_SPEC §8）",
-      "doc": "docs/ci/01_CHECKS.md §2（W4-A3 登记）",
+      "doc": "docs/engineering/01_CHECKS.md §2（W4-A3 登记）",
       "steps": [
         "IMPACT-MAP",
         "IMPACT-MAP-SELFTEST"
@@ -614,13 +614,13 @@
       "kind": "doc",
       "grade": "P0",
       "name": "changed_paths 路径域锚存活",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PKG-CONSISTENCY": {
       "kind": "extension",
       "grade": "P0",
       "name": "产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证",
-      "doc": "docs/ci/01_CHECKS.md §2（W5-PKG-001 交付，W4-A3 注册）",
+      "doc": "docs/engineering/01_CHECKS.md §2（W5-PKG-001 交付，W4-A3 注册）",
       "steps": [
         "PKG-CONSISTENCY",
         "PKG-CONSISTENCY-NEG",
@@ -647,55 +647,55 @@
       "kind": "doc",
       "grade": "P0",
       "name": "ALG 文档行数锚与逐符号行号范围",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-ALGO-WIRING": {
       "kind": "ci",
       "grade": "P0",
       "name": "算法/关键 API 生产调用图可达性门",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-REGISTRY-IR-PARITY": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产注册表 ↔ Pipeline IR 双向一致门",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CONFIG-CONSUMED": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产配置键消费门（死键 no-op）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CONFIG-DEFAULTS": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产默认值一致性门",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PROD-SCALE": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产尺度参数门",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PROVENANCE-CONSISTENCY": {
       "kind": "ci",
       "grade": "P0",
       "name": "产品 provenance 自洽门",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-REALDATA-E2E": {
       "kind": "ci",
       "grade": "P0",
       "name": "真实数据 E2E（slow）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH": {
       "kind": "extension",
       "grade": "P0",
       "name": "规范点名的权威实现必须在生产可达路径（CMake 根构建图闭包 + 生产节点调用点；登记表 eng/ci/spec_named_impls.json；缺口台账 eng/ci/ledgers/spec_named_impl_gaps.json）",
-      "doc": "docs/ci/01_CHECKS.md §2（DESIGN-GAP-LAND 登记，GAP_AUDIT §9.44 负责人令）",
+      "doc": "docs/engineering/01_CHECKS.md §2（DESIGN-GAP-LAND 登记，GAP_AUDIT §9.44 负责人令）",
       "steps": [
         "SPEC-NAMED-IMPL-ON-PROD-PATH",
         "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST"
@@ -705,31 +705,31 @@
       "kind": "extension",
       "grade": "P0",
       "name": "§9.73 A44「权重模式」整套作废门（docs/** + README.md 零未留痕残留）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-NO-WEIGHT-MODE-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "AHPX-WEIGHT-RETIRED": {
       "kind": "extension",
       "grade": "P0",
       "name": "HiPS 格式内部权重枚举作废（FIX-202 行为门）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-FIX203-PROMOTED-KEYS": {
       "kind": "extension",
       "grade": "P1",
       "name": "提升键落地三方一致（CLI 键表 ↔ 生产消费 ↔ 死键台账）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-P3-PROJ-DECL": {
       "kind": "extension",
       "grade": "P0",
       "name": "投影注册表声明集 == 实际可运行集（FIX-205）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
       "steps": [
         "P3-PROJ-DECL-REGISTRY",
         "P3-PROJ-DECL-UNSUPPORTED-CLI"
@@ -739,7 +739,7 @@
       "kind": "extension",
       "grade": "P0",
       "name": "上项的注册表自检面",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
       "steps": [
         "P3-PROJ-DECL-SELFTEST"
       ]
@@ -748,19 +748,19 @@
       "kind": "extension",
       "grade": "P0",
       "name": "aio 文件级唯一 I/O 边界（FIX-201）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "AIO-IO-BOUNDARY-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-PSFSW-RETIRED-STATIC": {
       "kind": "extension",
       "grade": "P1",
       "name": "PSFSW 退役对象 canonical 面静态清零",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
       "steps": [
         "PSFSW-RETIRED-STATIC",
         "PSFSW-RETIRED-STATIC-SELFTEST"
@@ -770,110 +770,110 @@
       "kind": "extension",
       "grade": "P1",
       "name": "退役对象行为门（旧声明显式拒绝 + 迁移提示）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-FIX208-EVENT-STREAM-DEFAULT": {
       "kind": "extension",
       "grade": "P0",
       "name": "事件流 = 默认输出（FIX-208）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-FIX208-DISK-GATE": {
       "kind": "extension",
       "grade": "P0",
       "name": "资源门只管磁盘（FIX-208）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "DOC-INDEX": {
       "kind": "ci",
       "grade": "P0",
       "name": "双向层级索引闭合门（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "DOC-INDEX-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "DOC-INDEX 可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-DOC-HYGIENE": {
       "kind": "ci",
       "grade": "P0",
       "name": "正式文档过程痕迹门 + 已知限制台账 ID 可解析门（D1 逐字裁决引述 / 订正+日期流水 / 工作项编号；D2 条目号与台账编号表双向一致、引用不悬空；fail-closed）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-DOC-HYGIENE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-DOC-HYGIENE 可执行正/负例面（1 正例 + 10 负例：逐字裁决 / 订正流水 / 工作项编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-RETIRED-CODE": {
       "kind": "ci",
       "grade": "P0",
       "name": "历史实现处置门（ENGINEERING_SPEC §2：R1 注释旧逻辑 / R2 保留件注释块 / R3 注释块字段完整性 / R4 生产可达性报表 / R5 锚存活；台账 eng/ci/retired_code_allowlist.json）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-RETIRED-CODE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-RETIRED-CODE 可执行负例面（9 例 fault-inject）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-FIX406-SIGTERM": {
       "kind": "ci",
       "grade": "P0",
       "name": "CLI 取消矩阵（SIGTERM/SIGINT + Windows 控制台事件；CTRL_CLOSE 平台限制显式登记）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-REGISTRY-VALIDATE": {
       "kind": "ci",
       "grade": "P0",
       "name": "注册表结构校验器（R1-R15）成为真正的门：eng/ci/checks.json 唯一注册表结构一致",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "L2-FROZEN-GATE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "L2 冻结判据裁决器红/绿双向自测（缺失证据/坏证据/空文件/门不适用/分母未声明/合同缺失）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "L2-FROZEN-GATE-REPLAY": {
       "kind": "ci",
       "grade": "P0",
       "name": "RELEASE-04 归档 L2 违规证据回放：历史 verdict=pass 必须现判红（恒真门改真判红）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "WORKER-BALANCE-METRIC-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "worker_balance 利用率指标判别力自测（正确算法 + 两组负载输出不同 + 退化判红）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "WORKER-BALANCE-METRIC-REPLAY": {
       "kind": "ci",
       "grade": "P0",
       "name": "归档 worker_balance 退化件判红 + 权威时间序列按正确算法复算非常数",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "PSFSW-RETIRED-STATIC-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "psfsw 退役面静态门的可执行正负例面（残留红 / 锚缺失 fail-closed）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": []
     },
     "CHK-GATE-FAILCLOSED-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "门禁 fail-closed 契约红绿自测（requires_monitor 证据强制 + L2 冻结判据 + mutates_workspace 可写面 + 登记输出存在性）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-FAILCLOSED-SURVEY": {
       "kind": "ci",
       "grade": "P0",
       "name": "全门禁 fail-closed 普查（缺失证据 / 坏证据 / 无输出三注入；适用面必须判红）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "FAILCLOSED-SURVEY",
         "FAILCLOSED-SURVEY-SELFTEST"
@@ -883,7 +883,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "ARCH-501 命名块与块生命周期",
-      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "doc": "docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
       "steps": [
         "CTEST-CORE-BLOCK-FRAME"
       ]
@@ -901,7 +901,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "空断言静态门（测试判别力）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CHK-TEST-DISCRIMINATIVE-STEP"
       ]
@@ -910,7 +910,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "ARCH-502 normalize 异步工作流调度器",
-      "doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+      "doc": "docs/engineering/SCHEDULER_CONTRACT.md",
       "steps": [
         "CTEST-NORMALIZE-WORKFLOW"
       ]
@@ -919,7 +919,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "探针事件 schema 机器校验",
-      "doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+      "doc": "docs/engineering/SCHEDULER_CONTRACT.md",
       "steps": [
         "CHK-SCHED-PROBE-SCHEMA-STEP"
       ]
@@ -928,7 +928,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "ARCH-503 mosaic 天球窗口并行调度器",
-      "doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+      "doc": "docs/engineering/SCHEDULER_CONTRACT.md",
       "steps": [
         "CTEST-MOSAIC-WINDOW"
       ]
@@ -937,7 +937,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "MEM-WIRE-01 内存静态预算与回压生产路径",
-      "doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+      "doc": "docs/engineering/SCHEDULER_CONTRACT.md",
       "steps": [
         "CTEST-MEM-WIRE"
       ]
@@ -946,7 +946,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "ARCH-504 export 子块流式调度器",
-      "doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+      "doc": "docs/engineering/SCHEDULER_CONTRACT.md",
       "steps": [
         "CTEST-EXPORT-STREAM"
       ]
@@ -955,7 +955,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "块流规格机器门",
-      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "doc": "docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
       "steps": [
         "CHK-BLOCKFLOW-SPEC-STEP"
       ]
@@ -964,7 +964,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "块流一致性登记册机器门",
-      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "doc": "docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
       "steps": [
         "CHK-BLOCKFLOW-CONFORMANCE-STEP"
       ]
@@ -973,7 +973,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "ARCH-505 阶段块流执行器",
-      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "doc": "docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
       "steps": [
         "CTEST-BLOCK-FLOW"
       ]
@@ -982,7 +982,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "预检语义矩阵",
-      "doc": "docs/api/CLI_PROTOCOL_V1.md",
+      "doc": "docs/engineering/CLI_PROTOCOL_V1.md",
       "steps": [
         "PREFLIGHT-MATRIX-STEP"
       ]
@@ -1009,13 +1009,13 @@
       "kind": "extension",
       "grade": "P0",
       "name": "DISP-DRZ-009 面亮度保持权重回归门（DRIZZLE-FIX-01）",
-      "doc": "docs/ci/01_CHECKS.md §2（DRIZZLE-FIX-01 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（DRIZZLE-FIX-01 登记）"
     },
     "CHK-LOG-SYS": {
       "kind": "doc",
       "grade": "P0",
       "name": "日志与错误系统判据（最高设计 §7.3：错误上行 + 日志落 output_dir）",
-      "doc": "docs/ci/01_CHECKS.md §2（LOG-SYS-01 登记）",
+      "doc": "docs/engineering/01_CHECKS.md §2（LOG-SYS-01 登记）",
       "steps": [
         "LOG-SYS-SCAN",
         "LOG-SYS-SELFTEST"
@@ -1025,31 +1025,31 @@
       "kind": "extension",
       "grade": "P0",
       "name": "并行确定性容差档判据自检（逐字节档 + 浮点容差档，能红能绿）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）；判据口径 docs/contracts/SCHEDULER_CONTRACT.md §2.1 + docs/contracts/TEST_MATRIX.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2（RULING-DOC-01 登记）；判据口径 docs/engineering/SCHEDULER_CONTRACT.md §2.1 + docs/engineering/TEST_MATRIX.md §2"
     },
     "CHK-RUN-MANIFEST-SCHEMA": {
       "kind": "extension",
       "grade": "P0",
       "name": "run manifest 双合同符合性门（CLI-003 严格 + CFG-001 偏差棘轮）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RULING-DOC-01 登记）"
     },
     "CHK-RUN-MANIFEST-SCHEMA-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面（正例/负例自检）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RULING-DOC-01 登记）"
     },
     "CHK-PHOTOMETRY-APPLY-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "测光归一化施加的像素级复算门自检（裁决 B 的判据非退化面）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）"
+      "doc": "docs/engineering/01_CHECKS.md §2（RULING-DOC-01 登记）"
     },
     "CHK-BLOCKFLOW-PORTS-VS-CODE": {
       "kind": "doc",
       "grade": "P0",
       "name": "块流端口↔代码双向一致门",
-      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "doc": "docs/engineering/PIPELINE_BLOCK_CONTRACT.md",
       "steps": [
         "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP"
       ]
@@ -1058,25 +1058,25 @@
       "kind": "extension",
       "grade": "P0",
       "name": "裸形态打洞判据：静态不变量 + 谓词判据判别力（零浮点/字节谓词/读回复算/降级先于接触）",
-      "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2"
+      "doc": "docs/engineering/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2"
     },
     "CHK-SPARSE-PUNCH-PROBE": {
       "kind": "extension",
       "grade": "P0",
       "name": "裸形态打洞判据的可执行面：由生产头编译探针跑真实系统调用（读回逐字节一致/释放量/NaN 红线/降级）",
-      "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2"
+      "doc": "docs/engineering/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2"
     },
     "CHK-HIPS-STORAGE-FORM": {
       "kind": "extension",
       "grade": "P0",
       "name": "落盘形态合同门（CONTRACT-STORAGE-001）：两形态命名与互斥、归档必须为整包 tar + 逐成员独立 zstd 帧、索引不变式、形态输入配置与完成清单口径一致",
-      "doc": "docs/ci/01_CHECKS.md §2（HIPS-PACK-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md + ACCEPTANCE_SPEC.md §3.2"
+      "doc": "docs/engineering/01_CHECKS.md §2（HIPS-PACK-01 登记）；口径 docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md + ACCEPTANCE_SPEC.md §3.2"
     },
     "CHK-P3-EXPORT-STREAM-PROD": {
       "kind": "extension",
       "grade": "P0",
       "name": "Phase3 导出子块流式的生产接线静态锁（生产 writer 节点 TU 必须引用 ExportStreamScheduler；整幅驻留路径不得回流）",
-      "doc": "docs/ci/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/contracts/SCHEDULER_CONTRACT.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/engineering/SCHEDULER_CONTRACT.md §2",
       "steps": [
         "STATIC-P3-EXPORT-STREAM-PROD",
         "SELFTEST-P3-EXPORT-STREAM-PROD"
@@ -1086,7 +1086,7 @@
       "kind": "extension",
       "grade": "P0",
       "name": "Phase3 导出子块流式的内核记账驻留门（clear_refs 归零后读 VmHWM，峰值与产品面积解耦）",
-      "doc": "docs/ci/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/contracts/SCHEDULER_CONTRACT.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/engineering/SCHEDULER_CONTRACT.md §2",
       "steps": [
         "CTEST-P3-EXPORT-STREAM-RSS"
       ]
@@ -1095,7 +1095,7 @@
       "kind": "extension",
       "grade": "P0",
       "name": "交付共享对象（plugin .so）符号闭包：产品清单登记的非 exe unit 逐个断言强未定义符号可在依赖闭包内解析（闭包 = DT_NEEDED 传递闭包 ∪ 宿主基线库）、DT_NEEDED 可解析、dlopen(RTLD_NOW|RTLD_LOCAL) 成功；含可执行正负例自检",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "STATIC-PLUGIN-SYMBOL-CLOSURE",
         "SELFTEST-PLUGIN-SYMBOL-CLOSURE"
@@ -1105,25 +1105,25 @@
       "kind": "extension",
       "grade": "P0",
       "name": "deep/main profile 注册与档位选择单测（33 例）：prerequisite_tools 探测三分支（工具齐备 PASS / 缺失 waivable SKIPPED / 缺失不可豁免 FAIL(prerequisite...",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-NO-WEIGHT-MODE-CODE": {
       "kind": "extension",
       "grade": "P0",
       "name": "代码面「单一权重口径」门（无模式选择机制 + 逆方差链路在位；lib/** + eng/tools/**）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-NO-WEIGHT-MODE-CODE-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面（注入模式选择 ⇒ 红；拆除链路 ⇒ 红；干净树 ⇒ 绿）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CI-INTEGRATION-SELFTESTS": {
       "kind": "extension",
       "grade": "P1",
       "name": "eng/ci/tests 下 3 个真起子进程/真跑 CLI/含真实测量窗的自测，按 CI_SPEC §2.6 归 integration 档",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CI-INTEGRATION-CI001-FAILCLOSED",
         "CI-INTEGRATION-CI-REPAIR-ROUND",
@@ -1134,7 +1134,7 @@
       "kind": "extension",
       "grade": "P1",
       "name": "eng/ci/tests 下 15 个 CI 契约/工作流/资源门自测，逐文件独立进程执行（整目录 discover 的「绿」是 sys.path 顺序副作用，会掩盖坏模块）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CI-CONTRACT-BOOTSTRAP-UTF8",
         "CI-CONTRACT-RUNNER-CONTRACT",
@@ -1157,26 +1157,26 @@
       "kind": "extension",
       "grade": "P0",
       "name": "构建期指纹一致性门（产物自报 build_source_digest 必须等于工作树重算值；缺锚记判不可锚定）",
-      "doc": "docs/ci/01_CHECKS.md §2；口径 docs/VERSIONING.md §2.1"
+      "doc": "docs/engineering/01_CHECKS.md §2；口径 docs/engineering/VERSIONING.md §2.1"
     },
     "CHK-BUILD-PROVENANCE-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行正/负例面（8 例：2 绿 + 4 红 + 缺指纹 rc=2）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CON-SYMBOL-DIM-UNIQUE": {
       "kind": "extension",
       "grade": "P0",
       "name": "CON-SYMBOL-DIM-UNIQUE",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": []
     },
     "CON-SYMBOL-DIM-UNIQUE-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": []
     },
     "CON-DOC-SYMBOLS-SELFTEST": {
@@ -1195,21 +1195,21 @@
       "kind": "extension",
       "grade": "P0",
       "name": "CHK-FROZEN-STRING-DISAMBIG",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": []
     },
     "CHK-FROZEN-STRING-DISAMBIG-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": []
     },
     "CHK-L4-SEAM-FOOTPRINT": {
       "kind": "check",
       "grade": "P0",
       "name": "L4 seam machine gate (level-step along real frame footprints, with positive/negative self-tests)",
-      "doc": "docs/ci/01_CHECKS.md section 2",
+      "doc": "docs/engineering/01_CHECKS.md section 2",
       "steps": [
         "CHK-L4-SEAM-FOOTPRINT"
       ]
@@ -1218,109 +1218,109 @@
       "kind": "ci",
       "grade": "P0",
       "name": "",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PROD-WIRING": {
       "kind": "ci",
       "grade": "P0",
       "name": "",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "SPEC-POLARITY-CONSIST-01": {
       "kind": "ci",
       "grade": "P0",
       "name": "口径一致性门：验收判据关键词 ↔ 最高设计冻结语句（P1 冻结语句在场 / P2 反义判红 / P3 规模数字可解析到配置键或推导式 / P4 配置真值逐键复算活载体；fail-closed）",
-      "doc": "docs/ci/01_CHECKS.md §2.1.1"
+      "doc": "docs/engineering/01_CHECKS.md §2.1.1"
     },
     "CHK-TRUTHFUL-CONCLUSION": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-TRUTHFUL-CONCLUSION",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-DOCS-MACHINE-CONSISTENCY": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-DOCS-MACHINE-CONSISTENCY",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-DOCS-MACHINE-CONSISTENCY-SELFTEST",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-ISA-SAME-SOURCE": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-ISA-SAME-SOURCE",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-BUDGET-SINGLE-SOURCE": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-BUDGET-SINGLE-SOURCE",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "LINUX-MAIN-FIXTURES": {
       "kind": "ci",
       "grade": "P0",
       "name": "LINUX-MAIN-FIXTURES",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "LINUX-MAIN-BUILD-TREE": {
       "kind": "ci",
       "grade": "P0",
       "name": "LINUX-MAIN-BUILD-TREE",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "WIN-CANDIDATE-VALIDATE": {
       "kind": "ci",
       "grade": "P0",
       "name": "WIN-CANDIDATE-VALIDATE",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-DRZ-PF-AREA-S1": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-DRZ-PF-AREA-S1",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-ACTIONS-LOCK": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-ACTIONS-LOCK",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-WORKFLOW-GOVERNANCE": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-WORKFLOW-GOVERNANCE",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PRODUCT-CONTRACT": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-PRODUCT-CONTRACT",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CITE-CLAIM-MARK-CONSISTENCY": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-CITE-CLAIM-MARK-CONSISTENCY",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-DOC-UNVERIFIED-CITE": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-DOC-UNVERIFIED-CITE",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PROVIDER-MANIFESTS": {
       "kind": "doc",
       "grade": "P0",
       "name": "ISA provider/backend 交付面清单双向校验",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "PROVIDER-MANIFESTS-NEG"
       ]
@@ -1329,7 +1329,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "manifest 面退出码一致（P-159 定一：登记/写入=7、verify/完整性=8）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "MANIFEST-EXIT-CODES",
         "MANIFEST-EXIT-CODES-SELFTEST"
@@ -1347,7 +1347,7 @@
       "kind": "ci",
       "grade": "P0",
       "name": "CTest 注册面/引用面条件上下文一致性（配置期注册一致性：引用处条件不得宽于注册处）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CHK-CTEST-REG-CONDITION",
         "CHK-CTEST-REG-CONDITION-SELFTEST",
@@ -1358,7 +1358,7 @@
       "kind": "ci",
       "grade": "P0",
       "name": "注册面三面交叉判据（配置期注册 / 既有门枚举 / 按名引用互为判据 + 发现期注册面归属）",
-      "doc": "docs/ci/01_CHECKS.md §2",
+      "doc": "docs/engineering/01_CHECKS.md §2",
       "steps": [
         "CHK-REG-SURFACE-CROSS",
         "CHK-REG-SURFACE-CROSS-SELFTEST",
@@ -1369,37 +1369,37 @@
       "kind": "code",
       "grade": "P1",
       "name": "第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST": {
       "kind": "code",
       "grade": "P1",
       "name": "第三方 vendored 源的平台垫片/依赖包含面/告警隔离/旗标平台门控的静态可判定核查",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PLATFORM-SYSLIB-LINKS": {
       "kind": "code",
       "grade": "P0",
       "name": "系统库链接面（libm/libpthread/libz）平台判断唯一性核查（共用件唯一声明 + 全仓链接面无裸系统库名，含跨行续行）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-PLATFORM-SYSLIB-LINKS-SELFTEST": {
       "kind": "code",
       "grade": "P0",
       "name": "系统库链接面（libm/libpthread/libz）平台判断唯一性核查（共用件唯一声明 + 全仓链接面无裸系统库名，含跨行续行）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CI-PROFILE-COVERAGE": {
       "kind": "ci",
       "grade": "P0",
       "name": "CI 档位覆盖闭包门：按继承闭包应被宿主持久档派发、却无任何持久档挂载的判据逐条点名判红",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     },
     "CHK-CI-PROFILE-COVERAGE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "上项的可执行负例面（9 例，含把真注册表某条判据改成只挂 fast 的注入负例）",
-      "doc": "docs/ci/01_CHECKS.md §2"
+      "doc": "docs/engineering/01_CHECKS.md §2"
     }
   },
   "reserved_targets": {
@@ -1426,7 +1426,7 @@
     {
       "old_id": "TRACEABILITY-CODE",
       "decision": "RETIRED",
-      "authority": "GAP-032 + 前台裁决 2026-09-16（docs/ci/01_CHECKS.md §2.1 退役记录）",
+      "authority": "GAP-032 + 前台裁决 2026-09-16（docs/engineering/01_CHECKS.md §2.1 退役记录）",
       "reason": "唯一默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 随 artifacts/ 按负责人裁决删除而断供；本 CI 规范/最高设计/工程规范对「追溯」零命中；内容未丢（git show b1290525^:…）",
       "note": "不得记为本波「丢失的注册项」；本波 146 项输入 = 147 - TRACEABILITY-CODE"
     }
@@ -1457,7 +1457,7 @@
       "checker": "eng/tools/check_agents_gov.py",
       "owner": "GOV-001 (W2)",
       "reason": "AGENTS.md 硬禁令门实现者；GOV-001 迁移入目标 CHK-AGENT-HARD-RULES",
-      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。"
     },
     {
       "old_id": "AHPX-WEIGHT-RETIRED",
@@ -3233,7 +3233,7 @@
       "kind": "doc",
       "grade": "P1",
       "order_in_target": 1,
-      "note": "DOC-403（2026-09-21）：原为 CHK-DANGLING 的 step，提升为顶层注册项（顶层化后 docs/ci/01_CHECKS.md §2 才能有自己的登记行，满足 CHK-REGISTRY-DOC-SYNC 双向一致）"
+      "note": "DOC-403（2026-09-21）：原为 CHK-DANGLING 的 step，提升为顶层注册项（顶层化后 docs/engineering/01_CHECKS.md §2 才能有自己的登记行，满足 CHK-REGISTRY-DOC-SYNC 双向一致）"
     },
     {
       "old_id": "DOC-INDEX-SELFTEST",
@@ -3250,7 +3250,7 @@
       "checker": "eng/tools/check_l0_docs.py",
       "owner": "GOV-001 (W2)",
       "reason": "L0 固定文档/链接完整性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）",
-      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。"
     },
     {
       "old_id": "DOC-LINE-ANCHORS",
@@ -3304,7 +3304,7 @@
       "checker": "eng/tools/doccheck/check_engineering_constraints.py",
       "owner": "GOV-001 (W2)",
       "reason": "旧权威绑定（AstroCS_ENGINEERING_CONSTRAINTS.md 文本快照）清理归 GOV-001；语义继任者 = AGENTS.md 硬禁令门",
-      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。"
     },
     {
       "old_id": "EXIT-CONSISTENCY-SCAN",
@@ -3365,7 +3365,7 @@
       "checker": "eng/tools/check_glossary.py",
       "owner": "GOV-001 (W2)",
       "reason": "词典锚点/别名唯一性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）",
-      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。"
     },
     {
       "old_id": "ID-MIGRATION-MAP-DOC-SYNC",
@@ -4157,7 +4157,7 @@
       "checker": "eng/ci/check_version.py",
       "owner": "GOV-001 (W2)",
       "reason": "硬绑定 --expected 0.11.0-alpha.2 旧版本号；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）",
-      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。"
     },
     {
       "old_id": "VERSION-NAMESPACES",
@@ -4166,7 +4166,7 @@
       "checker": "eng/tools/doccheck/check_version_namespaces.py",
       "owner": "GOV-001 (W2)",
       "reason": "五版本命名空间与最高设计 §12「版本信息下线」冲突；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）",
-      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。"
     },
     {
       "old_id": "WARNING-SUPPRESSION",
@@ -4256,7 +4256,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/ci/check_build_provenance.py",
-      "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
+      "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/engineering/VERSIONING.md §2.1 构建指纹合同与 docs/engineering/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
     },
     {
       "old_id": "CHK-BUILD-PROVENANCE-SELFTEST",
@@ -4265,7 +4265,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/ci/check_build_provenance.py",
-      "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
+      "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/engineering/VERSIONING.md §2.1 构建指纹合同与 docs/engineering/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
     },
     {
       "old_id": "CTEST-P1PHOT-DETERMINISM",
@@ -4284,7 +4284,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/tools/quality/deep_ci_driver.py",
-      "note": "新增执行单元（非本波基线，absorbed）：通带身份核对判据（声明名、点数、包络与逐元素指纹四项）。判据依据 docs/science/PHOTOMETRY.md 的通带身份核对条款与 docs/contracts/CONFIG_CONTRACT.md 的曲线身份核对条款。",
+      "note": "新增执行单元（非本波基线，absorbed）：通带身份核对判据（声明名、点数、包络与逐元素指纹四项）。判据依据 docs/science/PHOTOMETRY.md 的通带身份核对条款与 docs/engineering/CONFIG_CONTRACT.md 的曲线身份核对条款。",
       "order_in_target": 7
     },
     {
@@ -4324,7 +4324,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",
-      "note": "新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据——同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值、显式量纲断言、禁止共现短语（带否定式豁免）。判据依据 docs/contracts/DATA_SEMANTICS.md 的逐符号量纲表与符号唯一性强制条款。"
+      "note": "新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据——同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值、显式量纲断言、禁止共现短语（带否定式豁免）。判据依据 docs/science/DATA_SEMANTICS.md 的逐符号量纲表与符号唯一性强制条款。"
     },
     {
       "old_id": "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
@@ -4342,7 +4342,7 @@
       "kind": "extension",
       "grade": "P0",
       "checker": "eng/tools/doccheck/check_frozen_string_disambiguation.py",
-      "note": "新增执行单元（非本波基线，absorbed）：冻结串不得被改写，且其单位读法消歧必须在位。判据依据 docs/contracts/DATA_SEMANTICS.md 的二次律条款与 eng/contracts 的冻结串常量。"
+      "note": "新增执行单元（非本波基线，absorbed）：冻结串不得被改写，且其单位读法消歧必须在位。判据依据 docs/science/DATA_SEMANTICS.md 的二次律条款与 eng/contracts 的冻结串常量。"
     },
     {
       "old_id": "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",

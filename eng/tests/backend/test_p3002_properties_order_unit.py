@@ -41,7 +41,7 @@ class TestP3002PropertiesOrderUnit(unittest.TestCase):
         self.assertIn("bunit.c_str()", s, "session 未用输入合同 BUNIT")
         self.assertNotIn('"Jy/beam"', s, "session 不得硬编码 Jy/beam")
         r = open(RES, encoding="utf-8").read()
-        # 缺省 = 冻结单位表的 canonical 面亮度串（docs/contracts/DATA_SEMANTICS.md
+        # 缺省 = 冻结单位表的 canonical 面亮度串（docs/science/DATA_SEMANTICS.md
         # §31.1 signal_sb = ADU/sr；§31.1a「产品 FITS/HiPS 写盘 BUNIT 一律取该串」）。
         # 重采样值 = 输入 tile 值的凸组合 ⇒ 与输入同单位（§29.3）；裸 "ADU" 是每像素
         # 计数口径，与重采样平面的数值不符且量纲不可判（§31.2），不得作缺省。

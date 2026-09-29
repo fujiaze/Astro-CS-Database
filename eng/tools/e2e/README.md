@@ -19,4 +19,4 @@
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`CHK-E2E-CHAIN`（`E2E-CHAIN-VERIFY-STEP`）、`CHK-E2E-CHAIN-SELFTEST`（`E2E-CHAIN-SELFTEST-STEP`）、`CHK-L4-SEAM-FOOTPRINT`（`SEAM-FOOTPRINT-SELFTEST`、`SEAM-FOOTPRINT-PRODUCT`、`RENDER-VIS-V6-SELFTEST`）。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，真实数据档流水线见 `docs/ci/02_PIPELINE.md`，证据落位见 `docs/ci/04_ARTIFACTS.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，真实数据档流水线见 `docs/engineering/02_PIPELINE.md`，证据落位见 `docs/engineering/04_ARTIFACTS.md`。

@@ -9,7 +9,7 @@
   仅对 §2 表中一处**已被新世代裁决废止**的读数就地加注 —— 注册项 `TRACEABILITY-CODE` 已于 2026-09-16
   按负责人裁决（GAP-032）**退役**，其唯一默认输入 `artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv` 已随
   `artifacts/` 整体删除（commit `b1290525`）。现行注册表以 `eng/ci/checks.json` 与
-  `docs/ci/01_CHECKS.md §2.1 退役记录` 为准；本条为陈旧状态冒充活动状态的订正（ENGINEERING_SPEC §8）。
+  `docs/engineering/01_CHECKS.md §2.1 退役记录` 为准；本条为陈旧状态冒充活动状态的订正（ENGINEERING_SPEC §8）。
 - **订正记录（2026-09-23, DOC-DRIFT-FIX-01）**：§4 的 test_index.csv 行数**快照读数为 22**，
   现行实测 **24 数据行**（表头不计），§4 标题已按现行读数订正；历史读数不回改，以本条为准。
   判据由 `eng/tools/doccheck/check_test_index_live.py` 的 W4 逐字复测（口径 = 该门自己的
@@ -31,7 +31,7 @@
 | 文档/索引/治理类 | 9 | DOC-INDEX(FAIL:1 文档未入索引)、VERSION-NAMESPACES(PASS)、ENG-CONSTRAINTS(FAIL:冻结文件 SHA 滞后)、DOC-L0(FAIL)、GLOSSARY-DOCS(PASS)、MODULE-READMES(PASS)、AGENTS-GOV(FAIL:8 标记缺失)、VERSION-CONSISTENCY(PASS)、API-DOCS(PASS) |
 | 契约套件（eng/tools/quality/contracts） | 11 | 9 PASS；CON-DOC-SYMBOLS(FAIL:7 项 DOC-BAD-SYMBOL/FILE)、CON-FULL-INTEGRATION(FAIL:传导) |
 | 静态源码/架构/图类 | 20 | ACR-DORMANT(PASS)、NO-SERIAL-HEAVY(FAIL:resource gate 无生产调用方)、SERIAL-HARDCODE(FAIL:workers=1 硬编码)、THREAD-BUDGET(FAIL:注释行误报)、PRODUCTION-GRAPH(selftest PASS)、ISA-LEAK-SELFTEST/SERIAL-HEAVY-SELFTEST/PROD-REACH-SELFTEST(PASS)、ABI-BOUNDARY/AIO-OWNERSHIP/DUPLICATION/UNIT-CLOSURE/WARNING-SUPPRESSION/PIPELINE-TRACE/DATA-ARTIFACTS/CONTRACT-GRAPH(PASS)、CLI-COMMAND-LAYER/CLI-RUN-PRESET/P3-STATUS(FAIL)、AST-API(ENV_FAIL:缺 clang) |
-| 追溯类 | 4 | TRACEABILITY(quality 版，PASS，写已跟踪 evidence JSON→mutates)、TRACEABILITY-CODE(~~PASS~~ **已于 2026-09-16 退役**，见 `docs/ci/01_CHECKS.md §2.1`；PASS 为 b4f923c 快照读数)、TASK-RESULT-SCHEMA(FAIL:1 个 V6.1 status 非法)、TRACEABILITY-MATRIX(PASS) |
+| 追溯类 | 4 | TRACEABILITY(quality 版，PASS，写已跟踪 evidence JSON→mutates)、TRACEABILITY-CODE(~~PASS~~ **已于 2026-09-16 退役**，见 `docs/engineering/01_CHECKS.md §2.1`；PASS 为 b4f923c 快照读数)、TASK-RESULT-SCHEMA(FAIL:1 个 V6.1 status 非法)、TRACEABILITY-MATRIX(PASS) |
 | 单测类（UT-*） | 20 | 16 个 unittest 目录 + 4 个 CPU 编译驱动；实测 554 用例（详见 §4） |
 | 监控/资源/CI 元检查 | 6 | LOG-CONTRACT-SELFCHECK(PASS)、KNOWN-FAILURES-BASELINE(PASS,findings=40/reproduced=22)、TOOLCHAIN-VERIFY(PASS)、WORKSPACE-ADOPTION(FAIL:REMOTE_RELATION SHA 在途漂移,waivable)、RECONCILE-STATE(FAIL:state 195 vs 台账 191,waivable)、TESTKIT-LIST(PASS,waivable) |
 

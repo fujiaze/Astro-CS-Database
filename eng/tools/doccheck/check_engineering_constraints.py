@@ -25,8 +25,8 @@
       （同名 + 声明的目标真实存在 + 若声明 sha256 则内容哈希必须一致）；
       旧判据「docs/archive 或 run/archive 下有同名文件即豁免」过宽（R-6 §3.6）；
   [6] `README.md` 权威入口：必须指向现行文档集（docs/ASTROCS_DESIGN / AGENTS /
-      ENGINEERING_SPEC / CONTROL_PACK_SPEC / docs/ci / docs/plugins /
-      docs/design/UNIFIED_MODEL），且不得把已删除的旧治理对象写成上位权威；
+      ENGINEERING_SPEC / CONTROL_PACK_SPEC / docs/engineering / docs/detail /
+      docs/detail/UNIFIED_MODEL），且不得把已删除的旧治理对象写成上位权威；
   [7] 旧权威回归红灯：根权威面 + 工具面出现「旧文本 + 权威/必读/冻结」绑定即红；
   [8] 唯一权威入口：除 `docs/ASTROCS_DESIGN.md` 的 §0 之外，活动文档不得自称
       "唯一最高权威/约束"（`docs/archive/**` 与带 ARCHIVED_NON_NORMATIVE 者豁免；
@@ -85,7 +85,7 @@ REQUIRED_SECTIONS = {
 }
 README_AUTHORITY = [
     "docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
-    "docs/ci/", "docs/plugins/", "docs/design/UNIFIED_MODEL.md",
+    "docs/engineering/", "docs/detail/", "docs/detail/UNIFIED_MODEL.md",
 ]
 LEGACY_TOKENS = ["ASTROCS_PROJECT_CONSTITUTION.md", "AstroCS_ENGINEERING_CONSTRAINTS.md",
                  "设计大纲/"]
@@ -632,9 +632,9 @@ SELFTEST_README = """# README（mini-repo 夹具）
 - AGENTS.md（干活纪律）
 - ENGINEERING_SPEC.md（工程规范）
 - CONTROL_PACK_SPEC.md（控制包规范）
-- docs/ci/（CI 规范）
-- docs/plugins/（插件文档）
-- docs/design/UNIFIED_MODEL.md（统一数据模型）
+- docs/engineering/（工程正本：CI 规范 / 行为合同 / 标准 / 追溯 / 版本状态）
+- docs/detail/（细节实施面：模块工作细节 / 阶段详细设计 / 插件注册）
+- docs/detail/UNIFIED_MODEL.md（统一数据模型）
 """
 
 SELFTEST_FILES = ["README.md", "AGENTS.md", "docs/ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md",
@@ -723,8 +723,9 @@ def _mini_repo(base: str, manifest: dict = None, spec: str = None) -> None:
     """
     for d in SELFTEST_DIRS:
         os.makedirs(os.path.join(base, d), exist_ok=True)
-    os.makedirs(os.path.join(base, "docs", "ci"), exist_ok=True)
-    os.makedirs(os.path.join(base, "docs", "plugins"), exist_ok=True)
+    # README 权威入口指向的现行文档目录（docs 三目录制：science / engineering / detail）
+    os.makedirs(os.path.join(base, "docs", "engineering"), exist_ok=True)
+    os.makedirs(os.path.join(base, "docs", "detail"), exist_ok=True)
     _write(os.path.join(base, SPEC), SELFTEST_SPEC if spec is None else spec)
     _write(os.path.join(base, "README.md"), SELFTEST_README)
     _write(os.path.join(base, "AGENTS.md"), "# AGENTS（mini-repo 夹具）\n\n- 只 main 开发。\n")
@@ -734,7 +735,7 @@ def _mini_repo(base: str, manifest: dict = None, spec: str = None) -> None:
     _write(os.path.join(base, "CMakeLists.txt"), "# mini-repo 夹具\n")
     # .gitignore 是 §7 固定条目 ⇒ 夹具树也必须有（git 夹具按用例覆写其内容）
     _write(os.path.join(base, ".gitignore"), "build/\n")
-    _write(os.path.join(base, "docs", "design", "UNIFIED_MODEL.md"),
+    _write(os.path.join(base, "docs", "detail", "UNIFIED_MODEL.md"),
            "# UNIFIED_MODEL（mini-repo 夹具）\n")
     _write(os.path.join(base, MANIFEST),
            json.dumps(manifest if manifest is not None else selftest_manifest(),
@@ -819,7 +820,7 @@ def self_test() -> int:
         for rel in ("README.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
                     "memory.md"):
             os.remove(os.path.join(n5, rel))
-        os.remove(os.path.join(n5, "docs", "design", "UNIFIED_MODEL.md"))
+        os.remove(os.path.join(n5, "docs", "detail", "UNIFIED_MODEL.md"))
         # docs/** 走的是目录遍历，docs/ASTROCS_DESIGN.md 也在扫描面里——不删它就等于
         # scanned>=1，"扫描面为空" 这条 fail-closed 从未真正被触发过（夹具缺陷，本轮修）。
         os.remove(os.path.join(n5, "docs", "ASTROCS_DESIGN.md"))

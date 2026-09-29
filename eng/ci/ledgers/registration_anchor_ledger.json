@@ -4,7 +4,7 @@
   "purpose": "CHK-REGISTRATION-ANCHORS 的**显式登记面**（不是豁免）：承载「登记项已无对象」的已确证存量违规。条目按 (rule|file|class) 分组、只减不增；当前违规数 > count 判 REGISTRATION_ANCHOR_GROWN，条目不再匹配任何违规判 LEDGER_STALE（修好即须删条目）。不得用本台账把新违规改绿。",
   "authority": {
     "spec": "ENGINEERING_SPEC.md §8 规则 4（悬空即缺陷）/ §10（锚存活）",
-    "ci": "docs/ci/01_CHECKS.md §1（锚存活 / fail-closed）",
+    "ci": "docs/engineering/01_CHECKS.md §1（锚存活 / fail-closed）",
     "temp_face": "AGENTS.md §7（run/ 为临时产物面，不入库）",
     "ratchet_sample": "eng/ci/check_mutation_gates.py（gone_artifacts 棘轮样板）",
     "checker": "eng/ci/check_registration_anchors.py（CHK-REGISTRATION-ANCHORS）"

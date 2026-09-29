@@ -9,7 +9,7 @@ ENGINEERING_SPEC.md §8：「每项检查必须提供机器可执行的负例入
   PROVEN-EXECUTABLE     正例 rc=0 且负例 rc!=0 已实跑（本会话实测或 R-6 实测并留 log 锚）
   FACE-DEFINED-NOT-RUN  负例入口/配方机器可执行，但本机缺条件（逐条写明缺失条件）
   RE-JUDGED             门判据已整改（不再是原判据），登记新判据与依据
-  RETIRED               门已退役（见 docs/ci/01_CHECKS.md §2.1/§2.3）
+  RETIRED               门已退役（见 docs/engineering/01_CHECKS.md §2.1/§2.3）
 
 用法:
   python3 eng/ci/polarity_probe.py --plan          打印全表 + 覆盖统计（不执行）
@@ -232,7 +232,7 @@ def build_ledger():
             "PROVEN-EXECUTABLE": "正例 rc=0 且负例 rc!=0 已实跑（本会话或 R-6 实测，留 log 锚）",
             "FACE-DEFINED-NOT-RUN": "负例入口/配方机器可执行，本机缺条件（逐条写明缺失条件）",
             "RE-JUDGED": "门判据已整改（不再是原判据），登记新判据与依据",
-            "RETIRED": "门已退役，见 docs/ci/01_CHECKS.md §2.1/§2.3",
+            "RETIRED": "门已退役，见 docs/engineering/01_CHECKS.md §2.1/§2.3",
         },
         "registry_entry_count": len(ids),
         "gates": {k: GATES[k] for k in ids if k in GATES},

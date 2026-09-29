@@ -7,7 +7,7 @@
   contract→code→test：TRACEABILITY 行必须存在实现文件 + 测试文件。
 输出 run/ci/quality/traceability_check.json（产物落 run/，不写受跟踪路径；ENGINEERING_SPEC §7/§8）。
 
-枚举源与 fail-closed（规范依据 docs/ci/01_CHECKS.md §1、ENGINEERING_SPEC.md §10）：
+枚举源与 fail-closed（规范依据 docs/engineering/01_CHECKS.md §1、ENGINEERING_SPEC.md §10）：
   * 原实现用 `git ls-files` 取 "tracked 清单" 来判定 TRACEABILITY 行的实现文件是否
     属于仓库。该清单是**纯枚举源**：本文件声明的判据是 "行必须存在实现文件 + 测试文件"，
     并不要求 "被 git 跟踪"。实测后果（GITDECOUPLE-02，无 .git 镜像树）：

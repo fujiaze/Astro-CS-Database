@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DOCCHK-001 机器化文档检查: 核对 docs/api/*_V1.md 函数名/签名/schema/命令/退出码
+"""DOCCHK-001 机器化文档检查: 核对 docs/engineering/*_V1.md 函数名/签名/schema/命令/退出码
    与真实头文件/源码/schema; 删除/改名/签名 mutation 均使 checker fail。
 验收(03 L132 + PHASE1_API_V1 §4): 解析 headers/source/schema/help; 核对文档函数名/签名/
    字段/退出码; 删除/改名/签名 mutation 均使 checker fail。
@@ -35,12 +35,24 @@ class TestDocMachineCheck(unittest.TestCase):
         self.assertEqual(self.clean_rc, 0,
                          f"干净仓库应 PASS, rc={self.clean_rc}\n{self.clean_err}")
 
-    # ── 复制 docs/api → temp, 做 mutation, 每次须 FAIL ──
+    # ── 复制 API 正本（docs/engineering/*_V1.md）→ temp, 做 mutation, 每次须 FAIL ──
+    @staticmethod
+    def _copy_api_specs(dst):
+        """把 API 正本（迁移后在一级·工程正本里的 *_V1.md 若干篇）复制到 temp 目录。
+
+        API 正本在文档迁移后已并入一级·工程正本、**不再成独立目录**，故逐篇复制，
+        保持 checker 的 --docs-dir 契约不变（temp 目录名沿用旧名，以免动判据参数）。
+        """
+        shutil.rmtree(dst, ignore_errors=True)
+        os.makedirs(dst)
+        src_dir = os.path.join(REPO, "docs", "engineering")
+        for name in sorted(os.listdir(src_dir)):
+            if name.endswith("_V1.md"):
+                shutil.copy2(os.path.join(src_dir, name), os.path.join(dst, name))
+        return dst
+
     def _mut_repo(self, fn):
-        dst = os.path.join(self.tmp, "docs", "api")
-        if os.path.isdir(dst):
-            shutil.rmtree(dst)
-        shutil.copytree(os.path.join(REPO, "docs", "api"), dst)
+        dst = self._copy_api_specs(os.path.join(self.tmp, "docs", "api"))
         fn(os.path.join(dst, "PHASE1_API_V1.md"))
         return dst
 
@@ -91,9 +103,7 @@ class TestDocMachineCheck(unittest.TestCase):
         (加非法 --min-obs 选项) → 命令树 doc vs help 不一致 → FAIL。
         (原 mutation 针对的 `acsd run --phases <...>` 废弃行已从文档删除,
          replace 静默无效; 改用现行 phase1 行保证 mutation 真实生效。)"""
-        dst = os.path.join(self.tmp, "docs", "api")
-        shutil.rmtree(dst, ignore_errors=True)
-        shutil.copytree(os.path.join(REPO, "docs", "api"), dst)
+        dst = self._copy_api_specs(os.path.join(self.tmp, "docs", "api"))
         p = os.path.join(dst, "CLI_PROTOCOL_V1.md")
         t = open(p, encoding="utf-8").read()
         # CLI-001 已按 docs/ASTROCS_DESIGN §6.1/§6.2 唯一命令树重写本文档（phase1/2/3 用户命令删除，
@@ -112,9 +122,7 @@ class TestDocMachineCheck(unittest.TestCase):
         但 schema 来自真实 schemas/; 若 schema 字段未在文档出现即 FAIL。本测试删除文档对
         'output_dir' 的提及(若存在)不直接; 简化: 在临时 docs 的 PHASE3 文档中把
         'scale_deg_per_px' 改名 → schema 有 scale_deg_per_px 但文档不再提及 → FAIL。"""
-        dst = os.path.join(self.tmp, "docs", "api")
-        shutil.rmtree(dst, ignore_errors=True)
-        shutil.copytree(os.path.join(REPO, "docs", "api"), dst)
+        dst = self._copy_api_specs(os.path.join(self.tmp, "docs", "api"))
         p = os.path.join(dst, "PHASE3_API_V1.md")
         t = open(p, encoding="utf-8").read()
         # 把 schema 实际字段 scale_deg_per_px 在文档中改名(若 schema 含该字段)
@@ -151,7 +159,8 @@ class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
 
     def _doc_commands(self):
         """按 checker 口径复算 CLI_PROTOCOL_V1.md §1 的命令行集合。"""
-        text = open(os.path.join(REPO, "docs", "api", "CLI_PROTOCOL_V1.md"),
+        # CLI 协议正本：文档迁移后在一级·工程正本 docs/engineering/（原 API 正本目录已清空）
+        text = open(os.path.join(REPO, "docs", "engineering", "CLI_PROTOCOL_V1.md"),
                     encoding="utf-8", errors="ignore").read()
         cmds = re.findall(r"^\s*acsd .*$", text, re.M)
         cmds = [c.split("#")[0].strip() for c in cmds]

@@ -6,7 +6,7 @@
   python3 eng/ci/check_version.py [--root <repo_root>]   # 缺省: expected 取自根 VERSION
   python3 eng/ci/check_version.py --self-test            # 机器可执行负例面 (tempfile mini-repo)
 
-检查规则 (写死, 无豁免开关; 与 docs/owner/RELEASE_STATUS.md §2 GOV-003
+检查规则 (写死, 无豁免开关; 与 docs/engineering/RELEASE_STATUS.md §2 GOV-003
 "根 VERSION 唯一事实源/生成链禁止手抄" 合同一致):
 
   [0] 锚存活 (ENGINEERING_SPEC §8): 本文件硬编码引用的仓库路径常量在启动时逐条校验:
@@ -110,14 +110,15 @@ CLI_TEMPLATE_REL = "lib/infrastructure/cli/version_generated.h.in"
 DOC_SET_FILES = [
     "README.md",
     "docs/DOCUMENT_INDEX.yaml",
-    "docs/VERSIONING.md",
-    "docs/owner/ARCHITECTURE_OVERVIEW.md",
-    "docs/owner/PIPELINE_OVERVIEW.md",
-    "docs/owner/PROJECT_SPEC.md",
-    "docs/owner/RELEASE_STATUS.md",
-    "docs/owner/SCIENCE_OVERVIEW.md",
+    "docs/engineering/VERSIONING.md",
+    "docs/engineering/ARCHITECTURE_OVERVIEW.md",
+    "docs/engineering/PIPELINE_OVERVIEW.md",
+    "docs/engineering/PROJECT_SPEC.md",
+    "docs/engineering/RELEASE_STATUS.md",
+    "docs/engineering/SCIENCE_OVERVIEW.md",
 ]
-DOC_SET_DIRS = ["docs/owner"]
+# 现行活动文档集目录：一级·工程正本（迁移前是「owner」L0 汇总层目录，迁移后并入工程正本）
+DOC_SET_DIRS = ["docs/engineering"]
 DOC_SCAN_EXT = (".md", ".txt", ".json", ".yaml", ".yml", ".py", ".sh")
 CLI_SCAN_EXT = (".h", ".hpp", ".cpp", ".cc", ".in", ".cmake", ".txt")
 
@@ -731,10 +732,10 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
         root = os.path.join(td, "neg-doc-member")
         os.makedirs(root)
-        _mini_repo(root, expected=expected, omit=("docs/owner/PIPELINE_OVERVIEW.md",))
+        _mini_repo(root, expected=expected, omit=("docs/engineering/PIPELINE_OVERVIEW.md",))
         code, err = _run_mini(root, expected)
         cases.append(("neg_doc_member_missing", code, err, 2,
-                      "doc_scan_active_docs|docs/owner/PIPELINE_OVERVIEW.md"))
+                      "doc_scan_active_docs|docs/engineering/PIPELINE_OVERVIEW.md"))
 
     with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
         root = os.path.join(td, "neg-cli-drift")

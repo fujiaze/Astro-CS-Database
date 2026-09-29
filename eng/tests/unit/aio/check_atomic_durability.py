@@ -14,8 +14,8 @@
 判红（源码变异）：把实现里的 kNotDurable 赋值删掉/改回只置 kErrIo 后重跑本脚本，
 B 例必须 FAIL（durability 会退化为 NOT_PUBLISHED）。
 
-权威依据: docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（步序正本）/§6（错误语义）;
-          docs/plugins/infrastructure/17_aio.md §4（P-174 三终态）;
+权威依据: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（步序正本）/§6（错误语义）;
+          docs/detail/infrastructure/17_aio.md §4（P-174 三终态）;
           docs/ASTROCS_DESIGN.md §10（原子发布链）。
 用法: check_atomic_durability.py <probe_exe> <interposer.so> <workdir>
 """

@@ -565,7 +565,7 @@ def evaluate(root: Path, allow_missing_git: bool = False, notes: list = None) ->
 # 不另抄一份路径清单：常量指向哪里，沙箱就复制哪里（ENGINEERING_SPEC §10
 # 「注册表双向一致 / 锚存活」；手抄清单在 ARCH-001 根目录整合后写死了已退役的
 # 根目录 cmake/ 与 cli/ ⇒ 自测在 shutil.copy2 处以 traceback 崩掉，违反
-# docs/ci/01_CHECKS.md §1「锚失效必须以 ANCHOR_STALE 点名，不得 traceback」）。
+# docs/engineering/01_CHECKS.md §1「锚失效必须以 ANCHOR_STALE 点名，不得 traceback」）。
 def _selftest_dirs() -> list:
     return sorted({str(Path(CONTRACT).parent),
                    str(Path(INSTALL_RULES).parent),

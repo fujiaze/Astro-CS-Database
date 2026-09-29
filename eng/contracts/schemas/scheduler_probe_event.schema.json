@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "astrocs.scheduler-probe-event/v1",
   "title": "三阶段调度器探针事件（JSONL 单行）",
-  "x-doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+  "x-doc": "docs/engineering/SCHEDULER_CONTRACT.md",
   "type": "object",
   "required": [
     "ts",

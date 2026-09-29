@@ -10,7 +10,7 @@
     稀疏 SNR 控制点 → 阶段二重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加；
     `w(x,y) = SNR(x,y)^2 / F_ref^2 = 1 / sigma_F(x,y)^2`。
   - `docs/science/UNIFIED_SCIENCE_MODEL.md` §4.1。
-  - `docs/design/UNIFIED_MODEL.md:58`（退役对象 `psfsw_robust_weight` 的显式拒绝面）。
+  - `docs/detail/UNIFIED_MODEL.md:58`（退役对象 `psfsw_robust_weight` 的显式拒绝面）。
   - `ENGINEERING_SPEC.md` §8（每项检查有正例与负例、能红能绿；fail-closed；锚存活）。
 
 判据（确定性）

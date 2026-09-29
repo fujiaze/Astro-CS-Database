@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "astrocs.perf-gate-criteria/v1",
   "title": "L2 冻结性能判据（fail-closed）",
-  "x-doc": "docs/contracts/PERF_GATE_CONTRACT.md",
+  "x-doc": "docs/engineering/PERF_GATE_CONTRACT.md",
   "type": "object",
   "required": [
     "schema",

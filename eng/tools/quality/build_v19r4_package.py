@@ -250,7 +250,7 @@ HiPS × 不同 spatial ivar × invalid 带 × 置换 → 直接跑 astrocs-stage
 
 frame_id = truncated-64(canonical SHA-256 of science payload identity)。
 输入字段、路径无关性、payload 敏感性、截断顺序（前 16 hex 大端序）、
-碰撞策略、参考帧 tie-break 全部冻结于 docs/contracts/DATA_SEMANTICS.md；
+碰撞策略、参考帧 tie-break 全部冻结于 docs/science/DATA_SEMANTICS.md；
 sampler.h/PHASE2_UPM.md 同步；FNV-1a/路径派生描述清零；
 docs_machine_consistency.frame_id_contract_exact 全仓校验。
 """,

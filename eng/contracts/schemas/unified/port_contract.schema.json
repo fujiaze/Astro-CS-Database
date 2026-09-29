@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "port_contract",
     "canonical_file": "eng/contracts/schemas/unified/port_contract.schema.json",
-    "authority": "ENGINEERING_SPEC.md §4.7；docs/design/UNIFIED_MODEL.md §2",
+    "authority": "ENGINEERING_SPEC.md §4.7；docs/detail/UNIFIED_MODEL.md §2",
     "not_a_data_object": true,
     "reference_catalog": "docs/contracts/unified_object_registry.json#port_contracts",
     "note": "本文件是端口合同 canonical；docs/contracts/unified_object_registry.json#port_contracts 是一般合同登记表（登记示例端口，不重复定义本约束）。",

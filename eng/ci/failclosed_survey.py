@@ -5,7 +5,7 @@
 权威依据
   * ENGINEERING_SPEC.md §10：检查器在输入缺失、路径不存在、依赖不可用时判红；
     「文件不存在」按「无违规」通过视为假绿；
-  * docs/ci/CI_SPEC.md §4/§7：红灯必须阻塞，不得静默跳过；
+  * docs/engineering/CI_SPEC.md §4/§7：红灯必须阻塞，不得静默跳过；
   * GATE-501 任务书步骤 5：全部门禁逐项验证三种注入均判红，出普查表。
 
 做法（不是重新实现一遍判据，而是驱动真判定函数）
@@ -162,7 +162,7 @@ def render_md(result: dict) -> str:
         "",
         "生成命令：python3 eng/ci/failclosed_survey.py --md-out 实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md",
         "（判据函数 = eng/ci/run_checks.py::evidence_verdict，run.py / run_checks.py 共用；",
-        "权威 ENGINEERING_SPEC.md §10 + docs/ci/CI_SPEC.md §9。）",
+        "权威 ENGINEERING_SPEC.md §10 + docs/engineering/CI_SPEC.md §9。）",
         "",
         "- 执行单元总数：**%d**；有适用注入面的：**%d**；" % (
             result["units"], result["units_with_applicable_face"]),

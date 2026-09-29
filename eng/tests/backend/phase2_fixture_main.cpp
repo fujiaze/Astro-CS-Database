@@ -204,7 +204,7 @@ static bool write_analytic_frame(const std::string& path) {
 // FIX-402: 生成后统一补齐 HiPS 子产品单位/像素语义声明 —— 生产 Phase3 输入语义
 // 守卫（docs/ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）只放行**显式声明**的面亮度
 // 输入; AIO writer 不写 BUNIT, 故 fixture 侧按冻结单位表补齐
-// （docs/contracts/DATA_SEMANTICS.md §31.1 §1: signal_sb=ADU/sr,
+// （docs/science/DATA_SEMANTICS.md §31.1 §1: signal_sb=ADU/sr,
 //  sb_variance_out=ADU^2/sr^2, sb_ivar_out=sr^2/ADU^2）。幂等。
 static void declare_units_for_all(const std::string& root) {
     namespace fs = std::filesystem;

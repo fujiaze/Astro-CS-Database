@@ -9,9 +9,9 @@
 // WHY:   接线层曾把两个 rc 全部丢弃（恒真门，AGENTS.md §5「恒真门没有证据资格」）。
 //        判据 1 会在冻结词表被放宽时转红（门失效）；判据 2 会在调用点重新丢弃
 //        返回码时转红（回归）。二者合起来把「裁决必须存在且必须被消费」钉死。
-// AUTHORITY: docs/contracts/DATA_SEMANTICS.md §31.8（G-WEIGHT-SOURCES /
+// AUTHORITY: docs/science/DATA_SEMANTICS.md §31.8（G-WEIGHT-SOURCES /
 //        G-DIAGNOSTIC-NOT-WEIGHT）、§31.3/§31.7；FZ-WEIGHT-SINGLE-PATH；
-//        docs/plugins/algorithms_phase2/13_integration.md「权重来源受限表的锁定状态」；
+//        docs/detail/algorithms_phase2/13_integration.md「权重来源受限表的锁定状态」；
 //        既定消费口径 = eng/tests/unit/p2_samp/p2_samp_test.cpp:147-181、
 //        eng/tests/unit/p2_rej/p2_rej_test.cpp:438-469。
 // EXIT:   随两道冻结门退役（DOC-402）整体删除；判据 2 随接线块删除。

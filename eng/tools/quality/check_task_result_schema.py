@@ -3,7 +3,7 @@
 """check_task_result_schema.py — R0-003 TASK_RESULT 结构一致性检查器（**已退役，非门禁**）。
 
 退役判定依据（先判定再处置；不是"只改退出码了事"）
-  1) 注册面已登记退役：docs/ci/01_CHECKS.md §2.1「检查器退役与预留」:142 逐字列出
+  1) 注册面已登记退役：docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」:142 逐字列出
      「已退役检查器：TASK-RESULT-SCHEMA」，但本文件此前未按 :140–141 的退役契约改造。
   2) 判据对象已随控制包收口消失：唯一默认输入 evidence/v6_1_rework/tasks/*/TASK_RESULT.json
      属 ACTIVITY_STATE 登记的 ARCHIVED_SUPERSEDED 历史线（本文件自己的
@@ -14,7 +14,7 @@
   4) 复跑性仍在：判据（validate_one 的 15 类结构约束）未删，经 --legacy-check 可对显式
      --schema/--results-dir 复跑。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_main()，经 --legacy-check 复跑（保留可复跑性）；
   * 本检查器不写任何产物文件（原实现也不写）⇒ 不存在"产物落仓库根"的问题。
@@ -54,7 +54,7 @@ def _deduce_root() -> str:
 
 REPO = _deduce_root()
 
-# ── 判据锚（docs/ci/01_CHECKS.md §1:14 锚存活；失效即具名 ANCHOR_STALE） ──
+# ── 判据锚（docs/engineering/01_CHECKS.md §1:14 锚存活；失效即具名 ANCHOR_STALE） ──
 SCHEMA_REL = os.path.join("eng", "contracts", "schemas", "task_result.schema.json")
 RESULTS_DIR_REL = os.path.join("evidence", "v6_1_rework", "tasks")
 
@@ -79,7 +79,7 @@ ARCHIVED_EVIDENCE_PREFIXES = ("evidence/v6_1_rework/",)
 
 RETIREMENT_MARKER = (
     "RETIRED: check_task_result_schema.py 的 CI 检查项 TASK-RESULT-SCHEMA 已退役"
-    "（docs/ci/01_CHECKS.md §2.1「已退役检查器」清单）；判据对象 evidence/v6_1_rework/tasks 属"
+    "（docs/engineering/01_CHECKS.md §2.1「已退役检查器」清单）；判据对象 evidence/v6_1_rework/tasks 属"
     "ARCHIVED_SUPERSEDED 历史线且已随控制包收口消失。"
 )
 

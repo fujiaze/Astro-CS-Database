@@ -3,7 +3,7 @@
 """check_build_provenance.py — 构建期指纹一致性判据（RUN-PROVENANCE-01）。
 
 判据对象：产品 provenance 自报的**构建指纹**（build_source_digest）与**当前工作树
-重算出的指纹**是否一致。语义权威 = docs/VERSIONING.md「构建指纹合同」。
+重算出的指纹**是否一致。语义权威 = docs/engineering/VERSIONING.md「构建指纹合同」。
 
 为什么需要这条判据（一手证据 run/RUN-PROVENANCE-01/REPORT.md §A）：
   source_sha 由 CMake configure 期采样一次，改源码不会重跑 configure ⇒ 二进制里是

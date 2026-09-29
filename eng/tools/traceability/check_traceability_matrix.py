@@ -3,7 +3,7 @@
 """DOC-001 机器追溯合同检查器：docs/traceability/TRACEABILITY_MATRIX.json
 （八层：SCI→ALG→DATA/API/ARCH→MOD/SRC→TEST→EVIDENCE）全量机器校验。
 
-规则（详见 docs/traceability/TRACEABILITY_SPEC.md §7，exit 0 = PASS）：
+规则（详见 docs/engineering/TRACEABILITY_SPEC.md §7，exit 0 = PASS）：
   C1 MISSING_FILE     矩阵 JSON 存在且被 Git 跟踪；LAYERS.csv、schema 存在；
   C2 SCHEMA_VIOLATION 每行必需列齐全、层状态取值合法、无附加字段；
   C3 EMPTY_CELL_VIOLATION 任何单元格为 ""/纯空白/'-'/'?'/'TBD'/'TODO' → FAIL
@@ -21,8 +21,8 @@
                       test/evidence ID 若既不是占位也不是已建 authority（见
                       AUTHORITY_DIRS），登记缺 authority 文件；不崩溃。
 
-Git 面与 fail-closed（GITDECOUPLE-02；规范依据 docs/ci/01_CHECKS.md §1、
-ENGINEERING_SPEC.md §10、docs/traceability/TRACEABILITY_SPEC.md §7:123/:151）：
+Git 面与 fail-closed（GITDECOUPLE-02；规范依据 docs/engineering/01_CHECKS.md §1、
+ENGINEERING_SPEC.md §10、docs/engineering/TRACEABILITY_SPEC.md §7:123/:151）：
   * 规则 C1/C7 逐字要求「文件存在**且受 Git 跟踪**」——"被跟踪" 是判据的一部分，
     不是纯枚举源，因此**不**把 git 去掉（去掉等于放宽判据）；
   * 但 git 不可用（无 git 可执行文件 / 非 git 工作树）时，原实现把
@@ -91,7 +91,7 @@ MODULE_ANCHOR_DIRS = [
     "docs/modules/registry",  # registry production 模块（module_adapters.cpp 唯一源）
 ]
 AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其中一个文件文本中出现）
-    # 锚存活（docs/ci/01_CHECKS.md §1）：本表每条**必须**是当前树里存在的目录；
+    # 锚存活（docs/engineering/01_CHECKS.md §1）：本表每条**必须**是当前树里存在的目录；
     # 失效项由 check_authority_dirs() fail-closed 点名（ANCHOR_STALE + rc=2），
     # 不得像旧版那样在 _id_has_authority 里 os.path.isdir 为假就 continue
     # —— 那会让整层 authority 查找静默变成"永不命中"，把真因报成
@@ -102,16 +102,24 @@ AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其�
     #   lib/core/src                 → 无现行对应（ARCH-001 目录等价迁移后不存在）；
     #                                   DATA/API 的 authority 是 docs/ 面，直接删除死锚
     #   include/ tests/              → lib/include 已含在 lib/ 内；tests/ 现为 eng/tests/
+    # 迁移后重定位（docs 三目录制 science / engineering / detail）：
+    #   API/CLI/manifest 正本        → docs/engineering/*_V1.md
+    #   行为合同正本                 → docs/engineering/*；数据语义正本 → docs/science/DATA_SEMANTICS.md
+    #   原子发布接口 / 输入流接口    → docs/engineering/io/ 、 docs/science/IO_00*
+    #   阶段产品交换接口             → docs/engineering/data/
+    #   CPU 后端能力正本             → docs/engineering/cpu/
+    # 迁移前的旧工程线目录已随迁移清空，而**空目录不入库**：把已清空的目录留在表里会让
+    # os.path.isdir 判"存活"而 authority 查找恒不命中（空扫描面 = 恒真绿），
+    # 故本表只登记**有正本内容**的现行目录。
     "SCI": ["docs/science"],
     "ALG": ["docs/algorithms", "docs/science"],
-    "DATA": ["docs/contracts", "docs/interfaces/data", "docs/api"],
-    "API": ["docs/api", "docs/contracts", "docs/interfaces/io", "docs/architecture/cpu",
-            "docs/modules/registry", "eng/tests/conformance",
-            "lib/infrastructure/benchmark/cpu"],
-    "ARCH": ["docs/architecture", "docs/architecture/cpu", "docs/contracts", "docs/api"],
+    "DATA": ["docs/engineering", "docs/science", "docs/contracts"],
+    "API": ["docs/engineering", "docs/contracts", "docs/modules/registry",
+            "eng/tests/conformance", "lib/infrastructure/benchmark/cpu"],
+    "ARCH": ["docs/architecture", "docs/engineering", "docs/contracts"],
     "MOD": ["eng/tests/conformance", "lib/infrastructure", "docs/modules/registry"],
     "SRC": ["lib"],
-    "TEST": ["eng/tests", "lib", "docs/interfaces", "docs/contracts", "docs/modules/registry"],
+    "TEST": ["eng/tests", "lib", "docs/engineering", "docs/contracts", "docs/modules/registry"],
     "EVID": ["artifacts/evidence"],
 }
 
@@ -170,9 +178,9 @@ def warn(prefix: str, msg: str, subcode: str = None, sig: str = None) -> dict:
 class GitUnavailable(Exception):
     """git 不可用 / 非 git 工作树 —— C1/C7 的「被 Git 跟踪」子判据无法执行。
 
-    规范依据：docs/traceability/TRACEABILITY_SPEC.md §7:123/:151 把「受 Git 跟踪」
+    规范依据：docs/engineering/TRACEABILITY_SPEC.md §7:123/:151 把「受 Git 跟踪」
     列为判据的一部分，故 git 面不可用时**不得**把它静默当成「未跟踪」（那会把
-    真因报成 MISSING_FILE/DANGLING_REF），也不得 traceback（docs/ci/01_CHECKS.md §1）。
+    真因报成 MISSING_FILE/DANGLING_REF），也不得 traceback（docs/engineering/01_CHECKS.md §1）。
     """
 
 
@@ -355,7 +363,7 @@ def main() -> int:
     if stale_dirs:
         print(f"ANCHOR_STALE: AUTHORITY_DIRS 含 {len(stale_dirs)} 条失效路径"
               f"（authority 查找会静默不命中）—— fail-closed 判红"
-              f"（docs/ci/01_CHECKS.md §1「锚存活」）", file=sys.stderr)
+              f"（docs/engineering/01_CHECKS.md §1「锚存活」）", file=sys.stderr)
 
     # git 面探测（一次）—— 显式降级 + 留痕（§1：不得 traceback、不得静默降级）
     ok, why = probe_tracking(root)

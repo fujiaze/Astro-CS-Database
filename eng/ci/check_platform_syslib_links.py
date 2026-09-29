@@ -33,7 +33,7 @@
   python3 eng/ci/check_platform_syslib_links.py --root <dir> # 指定仓库根 (自检用)
 
 上游: ENGINEERING_SPEC.md §1 (正式平台); 根 CMakeLists.txt 共用件区块注释;
-      docs/ci/01_CHECKS.md。先例: eng/ci/check_cfitsio_platform_surface.py。
+      docs/engineering/01_CHECKS.md。先例: eng/ci/check_cfitsio_platform_surface.py。
 """
 from __future__ import annotations
 

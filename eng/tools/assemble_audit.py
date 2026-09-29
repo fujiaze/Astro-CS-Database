@@ -15,7 +15,7 @@
      (打包/白名单/哈希/版本/provenance); 证据留档按 §7 落位, 不再回写构建产物目录。
   复原命令 (内容未丢): git 历史
   退役后行为: 无参调用打印 ASSEMBLE_AUDIT_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2。
+  登记见 docs/engineering/01_CHECKS.md §2.2。
 """
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ RETIRED_NOTICE = (
     "  输入已不存在: 旧控制包目录 "
     "与 artifacts/evidence/prerelease-v5/tables/。\n"
     "  复原命令: git show 01754fab8618:eng/tools/assemble_audit.py\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
+    "  登记: docs/engineering/01_CHECKS.md §2.2 / artifacts/evidence/governance-01/retire/RETIREMENT_LEDGER.md"
 )
 
 

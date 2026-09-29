@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
 class TestFrameLevelAttributionUnit(unittest.TestCase):
     """磁盘满归因必须**帧级**：并发帧各自的判定互不覆盖、互不抢占（能红能绿）。
 
-    权威：docs/contracts/LOG_AND_ERROR_CONTRACT.md §5「IO | 7（IO）| I/O 失败；
+    权威：docs/engineering/LOG_AND_ERROR_CONTRACT.md §5「IO | 7（IO）| I/O 失败；
     **失败节点 manifest** 的 error_kind==disk_full 时改判 10」——判定属于**失败的
     那一帧/那个节点**，不是"进程里发生过一次磁盘满"的运行级事实。
 
@@ -504,7 +504,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         lib/infrastructure/cli/protocol.h::missing_required_extension_v1 ↔
         eng/contracts/schemas/jsonl_event_v1.schema.json 的 then.required 与
         x-astrocs-event-kind-registry.kinds.resource_gate。人类可读合同
-        docs/api/CLI_PROTOCOL_V1.md §4 只列了 5 类 kind 的扩展字段，未列本 kind）：
+        docs/engineering/CLI_PROTOCOL_V1.md §4 只列了 5 类 kind 的扩展字段，未列本 kind）：
           diag / enforcement / strict / enforced / work_core_seconds /
           workload_floor_core_seconds / workload_floor_reached
         该 kind **没有** `resource_gate_mode` 字段（全仓 docs/ 零处规定该名字；

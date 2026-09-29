@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """DATA-001 DataArtifact 注册表校验器。
-检查 docs/contracts/DATA_ARTIFACTS.md:
+检查 docs/engineering/DATA_ARTIFACTS.md:
   - schema_id 唯一且格式合法;
   - DATA_SEMANTICS.md 声明的 DATA-* ID 全部登记;
   - 每个 schema 含 scalar/shape/unit/coordinate/invalid/ownership/serialization 字段。
@@ -52,10 +52,10 @@ def extract_data_ids(text: str) -> set[str]:
 
 def validate(root: pathlib.Path) -> list[str]:
     errors: list[str] = []
-    artifacts = root / "docs/contracts/DATA_ARTIFACTS.md"
-    semantics = root / "docs/contracts/DATA_SEMANTICS.md"
+    artifacts = root / "docs/engineering/DATA_ARTIFACTS.md"
+    semantics = root / "docs/science/DATA_SEMANTICS.md"
     if not artifacts.is_file():
-        return ["docs/contracts/DATA_ARTIFACTS.md 不存在"]
+        return ["docs/engineering/DATA_ARTIFACTS.md 不存在"]
     rows = parse_table(artifacts)
     if not rows:
         return ["DATA_ARTIFACTS.md 无表格行"]
@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         for e in errors[:30]:
             print(" ", e)
         return 1
-    print(f"DATA_ARTIFACTS_PASS schemas={len(parse_table(args.root.resolve() / 'docs/contracts/DATA_ARTIFACTS.md'))}")
+    print(f"DATA_ARTIFACTS_PASS schemas={len(parse_table(args.root.resolve() / 'docs/engineering/DATA_ARTIFACTS.md'))}")
     return 0
 
 

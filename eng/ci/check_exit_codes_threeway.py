@@ -17,8 +17,8 @@
              ② lib/infrastructure/cli/protocol.h 的 is_frozen_exit_code_v1
                （**冻结域谓词**：实现侧自己认哪 11 个符号）
              ③ 各模块实际 return astrocs::SYM（实现真正**发出**的码）
-  C 文档   = ① docs/api/CLI_PROTOCOL_V1.md §2（全 11 码，散文、只有数值无符号名）
-             ② docs/contracts/LOG_AND_ERROR_CONTRACT.md §5（ErrorDomain→码 表，
+  C 文档   = ① docs/engineering/CLI_PROTOCOL_V1.md §2（全 11 码，散文、只有数值无符号名）
+             ② docs/engineering/LOG_AND_ERROR_CONTRACT.md §5（ErrorDomain→码 表，
                **带符号名**，8 行）
 
 判据（每条都给出**分母**，不做「全通过」式报告）:
@@ -59,8 +59,8 @@ REL = {
     "frozen": "lib/infrastructure/cli/protocol.h",
     "impl": "lib/infrastructure/cli/commands.cpp",
     "impl_dir": "lib/infrastructure/cli",
-    "doc1": "docs/api/CLI_PROTOCOL_V1.md",
-    "doc2": "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
+    "doc1": "docs/engineering/CLI_PROTOCOL_V1.md",
+    "doc2": "docs/engineering/LOG_AND_ERROR_CONTRACT.md",
 }
 # T4 的实现面 = CLI 收敛面（lib/infrastructure/cli/ 整个目录），不是单个文件：
 # 退出码在 parser.cpp / commands.cpp / main.cpp / runtime_client.cpp / subcommand.h /

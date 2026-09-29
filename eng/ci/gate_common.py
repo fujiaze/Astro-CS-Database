@@ -4,7 +4,7 @@
 
 本模块只被 eng/ci/check_*.py 消费；不引入任何第三方依赖。
 
-设计口径（对齐 docs/ci/01_CHECKS.md §1 与 ENGINEERING_SPEC.md §8）：
+设计口径（对齐 docs/engineering/01_CHECKS.md §1 与 ENGINEERING_SPEC.md §8）：
 - **fail-closed**：锚点缺失/不可解析/台账非法一律 rc=2（runner error），绝不静默降级；
 - **台账不是后门**：每条台账 entry 必须带 id/kind/reason/owner/exit_condition 五字段，
   缺一即判 runner error —— 禁止用空理由静默豁免；

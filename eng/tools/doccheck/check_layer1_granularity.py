@@ -17,7 +17,7 @@ r"""DOC-LAYER1-GRANULARITY | 第一层粗度门（判据 C）：反向下溢。
   * 1e-6/1e-5/1e-12 这类容差在第一层是**规范性复述**（同行常自带 容差/闭合/门）
     ⇒ 归 C-b2，只计数打印，不判红；
   * 正例对照：同一套判据在 docs/science/DRIZZLE.md 上 C-a 命中 3、C-b 命中 22，
-    在 docs/DOCUMENT_GOVERNANCE.md 上三判据全 0 ⇒ 判据是活的，不是恒绿。
+    在 docs/engineering/DOCUMENT_GOVERNANCE.md 上三判据全 0 ⇒ 判据是活的，不是恒绿。
 
 判据（任一 G 违规 => exit 1；输入不可用/分母为 0 => exit 2，fail-closed）
   G1 扫描面  第一层文件可读；可判行数 = 0 => rc=2（SCAN_FLOOR）。

@@ -16,4 +16,4 @@
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`CHK-CONTRACT-TEST` 的步骤 `TRACEABILITY-MATRIX`（`python3 eng/tools/traceability/check_traceability_matrix.py`）。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

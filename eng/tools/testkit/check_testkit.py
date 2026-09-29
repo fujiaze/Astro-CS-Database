@@ -18,7 +18,7 @@
   K6 故障注入（--fault-injection）：篡改期望/断链 fixture/把 oracle 换成生产
      符号，随后 harness 必须 FAIL（exit != 0），否则 FORBIDDEN_PASS。
 
-Git 面与 fail-closed（GITDECOUPLE-02；规范依据 docs/ci/01_CHECKS.md §1、
+Git 面与 fail-closed（GITDECOUPLE-02；规范依据 docs/engineering/01_CHECKS.md §1、
 ENGINEERING_SPEC.md §10、eng/tests/testkit/testkit.spec.md §7:28）：
   * K1 逐字要求元数据文件「存在且被 Git 跟踪」——"被跟踪" 是判据的一部分，不删
     （删掉等于放宽判据）；但 git 不可用（无 git 可执行文件 / 非 git 工作树）时，

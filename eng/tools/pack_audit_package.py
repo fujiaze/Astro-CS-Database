@@ -20,7 +20,7 @@
   复原命令 (内容未丢): git 历史
   退役后行为: 运行本文件打印 PACK_AUDIT_PACKAGE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿);
      作为模块 import 时不受影响(allowed/denied 语义不变)。
-  登记见 docs/ci/01_CHECKS.md §2.2。
+  登记见 docs/engineering/01_CHECKS.md §2.2。
 """
 from __future__ import annotations
 
@@ -123,7 +123,7 @@ RETIRED_NOTICE = (
     "  仍在使用（不退役）: 本模块的 allowed()/denied()/EXCLUDE_EXT 是 CHK-SECRET-HYGIENE 的白名单真源，"
     "import 语义不变。\n"
     "  复原命令: git 历史\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2"
+    "  登记: docs/engineering/01_CHECKS.md §2.2"
 )
 
 

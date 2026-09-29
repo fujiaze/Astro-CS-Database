@@ -2,7 +2,7 @@
   "schema": "astrocs.resource-gate/v1",
   "gate_id": "G-RES-01",
   "title": "重计算负载资源门（利用率 / 并行宽度 / 无界内存增长）",
-  "authority": "docs/plugins/infrastructure/21_observability.md#8-重计算负载资源门g-res-01",
+  "authority": "docs/detail/infrastructure/21_observability.md#8-重计算负载资源门g-res-01",
   "authority_note": "判据语义（判定域/分母取义/记录与裁决划分）以该文档 §8 为唯一权威；本文件是该权威下的**唯一数值源**，实现侧不得再出现字面量阈值。",
   "readers": [
     "cli/resource_gate.h（经 CMake configure_file 生成 resource_gate_thresholds_generated.h）",

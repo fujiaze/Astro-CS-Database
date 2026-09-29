@@ -5,7 +5,7 @@
 背景（TST-001 审查）：eng/ci/polarity_evidence.json 把 CHK-ENV-ADOPTION 记为
 FACE-DEFINED-NOT-RUN，负例入口只写成 sh -c "verify_toolchain.py 注入 lock 漂移
 ⇒ 必须非 0" 的人工说明，不是机器可执行负例（ENGINEERING_SPEC.md §8 /
-docs/ci/01_CHECKS.md §1）。本文件把该负例面机器化：真仓正例必绿，逐条注入
+docs/engineering/01_CHECKS.md §1）。本文件把该负例面机器化：真仓正例必绿，逐条注入
 必红，且缺件 fail-closed。
 
 正例（绿）：

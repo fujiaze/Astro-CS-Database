@@ -3,18 +3,18 @@
 """check_module_map.py — 23 插件模块一致性映射门（CHK-MODULE-MANIFEST，P0）。
 
 权威依据
-  - docs/plugins/00_INDEX.md §1（模块归属）/§2（23 篇模块总表）/§3（每篇 8 节模板）/§5（维护规则）
+  - docs/detail/00_INDEX.md §1（模块归属）/§2（23 篇模块总表）/§3（每篇 8 节模板）/§5（维护规则）
   - ENGINEERING_SPEC.md §4（每模块必备 7 项）/§8（manifest/注册表/target/产品清单一致）
   - docs/ASTROCS_DESIGN.md §7.1（顶层结构唯一）/§7.3（模块与 DLL/SO 边界，单一 entrypoint，
     不隐藏整阶段 Session；每个生产 DAG 节点映射唯一真实 module/导出入口）/§12.5（状态阶梯，唯一口径）
-  - docs/ci/01_CHECKS.md §2（CHK-MODULE-MANIFEST = manifest/注册表/构建 target/产品清单一致，P0）
+  - docs/engineering/01_CHECKS.md §2（CHK-MODULE-MANIFEST = manifest/注册表/构建 target/产品清单一致，P0）
   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
 
 输入
   docs/modules/MODULE_MAP.yaml（期望映射，23 行；本表不含 status 字段——状态一律现场算）
 
 判据（fail-closed；任一 FAIL 级 finding → exit 1；GAP = 已登记缺口的可见计数）
-  M1 映射表结构：23 行、ID 唯一、ID 集合 == docs/plugins/00_INDEX.md §2 机器解析结果；
+  M1 映射表结构：23 行、ID 唯一、ID 集合 == docs/detail/00_INDEX.md §2 机器解析结果；
      注册键 (module_id, entrypoint) 全局唯一（重复 = 两个 DLL 抢同一 entry）。
   M2 必备 7 项（ENGINEERING_SPEC §4）：目标目录 / README.md / module.yaml /
      公开头（含 abi_version 或 struct_size）/ 实现（单一 entrypoint）/
@@ -101,7 +101,7 @@ except ImportError:  # pragma: no cover - 环境缺 PyYAML
 REPO = pathlib.Path(__file__).resolve().parents[3]
 CHECK_ID = "CHK-MODULE-MANIFEST"
 MAP_REL = "docs/modules/MODULE_MAP.yaml"
-INDEX_REL = "docs/plugins/00_INDEX.md"
+INDEX_REL = "docs/detail/00_INDEX.md"
 STATUS_VOCABULARY = (
     "CONTRACT_READY", "IMPLEMENTED", "INSTALLED", "VERIFIED",
     "NOT_IMPLEMENTED", "NOT_VERIFIED", "DEFERRED", "DORMANT", "FAIL",
@@ -293,7 +293,7 @@ def resolve_entrypoint_vtable(text: str, body: str):
 
 
 def parse_index_module_ids(repo: pathlib.Path):
-    """从 docs/plugins/00_INDEX.md §2 的模块总表机器解析 23 个模块 ID（表第 2 列）。"""
+    """从 docs/detail/00_INDEX.md §2 的模块总表机器解析 23 个模块 ID（表第 2 列）。"""
     p = repo / INDEX_REL
     if not p.is_file():
         return []
@@ -1032,10 +1032,10 @@ def run_check(repo: pathlib.Path, map_path: pathlib.Path):
         "repo_root": str(repo),
         "map_path": str(map_path),
         "authority": [
-            "docs/plugins/00_INDEX.md §1/§2/§3/§5",
+            "docs/detail/00_INDEX.md §1/§2/§3/§5",
             "ENGINEERING_SPEC.md §4/§8",
             "docs/ASTROCS_DESIGN.md §7.1/§7.3/§12.5",
-            "docs/ci/01_CHECKS.md §2",
+            "docs/engineering/01_CHECKS.md §2",
         ],
         "status_vocabulary": list(STATUS_VOCABULARY),
         "status_vocabulary_authority": "docs/ASTROCS_DESIGN.md §12.5",

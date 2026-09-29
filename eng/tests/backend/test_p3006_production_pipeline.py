@@ -163,7 +163,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
 #       (test_01_real_matrix_passes: 真实矩阵必须 PASS);
 #   (b) 本文件 test_01_ir_chain_5_nodes:73 / test_02_production_route_ge10s:98 /
 #       test_03_science_valid:106 / test_04_resource_gate:120 —— 生产链**实测**证据;
-#   (c) 遗留缺口已登记在册: docs/contracts/TEST_MATRIX.md:45
+#   (c) 遗留缺口已登记在册: docs/engineering/TEST_MATRIX.md:45
 #       「eng/tools/validation/phase3 (待建, P3-006)」。
 # 注: 本次只删该 skip 用例, 不放宽任何现存断言。
 

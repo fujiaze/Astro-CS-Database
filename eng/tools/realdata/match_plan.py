@@ -343,7 +343,7 @@ def cmd_inventory(args) -> int:
         gaia[name] = {"path": f"{root}/", "db_type": db_type,
                       "record_bytes": rec_bytes, "file_count": len(xpsd),
                       "files": xpsd,
-                      "contract": "DATA-GAIA-001 (docs/contracts/DATA_SEMANTICS.md §8.1)",
+                      "contract": "DATA-GAIA-001 (docs/science/DATA_SEMANTICS.md §8.1)",
                       "readonly": True}
         print(f"[inventory] gaia registry: {name} db_type={db_type} "
               f"files={len(xpsd)}")

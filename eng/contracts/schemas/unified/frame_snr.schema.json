@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "frame_snr",
     "canonical_file": "eng/contracts/schemas/unified/frame_snr.schema.json",
-    "authority": "docs/design/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算",
     "weight_eligible": false
   },
@@ -47,7 +47,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/DATA_SEMANTICS.md §31.7/§31.8"
     }
   },
   "properties": {

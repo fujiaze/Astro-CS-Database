@@ -7,7 +7,7 @@
     文档引用的代码路径必须真实，CI 检查悬空引用」；
   - ENGINEERING_SPEC.md §10「锚存活：检查器硬编码引用的文件/目录必须存在，失效时
     报 ANCHOR_STALE」；
-  - docs/ci/01_CHECKS.md §1「锚存活」「fail-closed（scanned == 0 ⇒ rc != 0）」；
+  - docs/engineering/01_CHECKS.md §1「锚存活」「fail-closed（scanned == 0 ⇒ rc != 0）」；
   - AGENTS.md §7：run/ 是临时产物面（gitignore、不入库）⇒ 登记册把对象登记到 run/
     等于把登记项登记到一个**必然消失**的对象上。
 

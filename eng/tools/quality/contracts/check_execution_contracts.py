@@ -10,7 +10,7 @@ Checks (V6.1 架构, 替代旧 OpenMP 宏/ACR CUDA 检查):
   保留其 CMake -fopenmp 接线证据);
 - **AIO 读路径线程模型 (PERF-401 取代 EXEC-NO-AIO-SERIAL)**: 旧不变式
   「aio 读由 cfitsio_io_mutex / g_aio_mu 进程级锁串行化」已被取代 —— 规范出处
-  docs/architecture/EXECUTION_MODEL.md §2/§3 + §8 ARC-EXEC-002，依据
+  docs/engineering/EXECUTION_MODEL.md §2/§3 + §8 ARC-EXEC-002，依据
   docs/ASTROCS_DESIGN.md §9（串行 I/O 与控制面单线程 / 编排连续性）与
   ACCEPTANCE_SPEC.md §4（无单线程跑满全程、无连续 ≥10 s 低利用窗）。
   新不变式（更强、可机器判定）:
@@ -31,7 +31,7 @@ Checks (V6.1 架构, 替代旧 OpenMP 宏/ACR CUDA 检查):
         fits_open_file ≥ 4（防符号改名后判据静默退化）。
   负例面: `--self-test` 对 (a)..(f) 逐条注入回归并断言判红（含 (d) 的逐点位
   回归 neg5/neg7）。注入锚缺失时打印 `SELFTEST_ANCHOR_STALE: case=... file=... anchor=...`
-  并判红（docs/ci/01_CHECKS.md §1「锚存活」：不得静默降级——旧实现 _mutate 返回 False
+  并判红（docs/engineering/01_CHECKS.md §1「锚存活」：不得静默降级——旧实现 _mutate 返回 False
   被忽略，锚随生产代码演化失配后负例静默判绿）。
 - 无 ACR 生产接入 (ACR DORMANT_NOT_IN_PRODUCTION)。
 
@@ -132,7 +132,7 @@ def run_checks(repo: pathlib.Path):
         findings.append(f)
 
     # 1) V6.1 权威线程文档: THREAD_BUDGET_ARCH.md 必须存在且含契约 ID
-    tb = repo / "docs/architecture/THREAD_BUDGET_ARCH.md"
+    tb = repo / "docs/engineering/THREAD_BUDGET_ARCH.md"
     if not tb.exists():
         fail("EXEC-MISSING-THREADBUDGET", "P1", "THREAD_BUDGET_ARCH.md missing", "exists")
     else:
@@ -283,7 +283,7 @@ def run_checks(repo: pathlib.Path):
 
 
 SELFTEST_FILES = (
-    "docs/architecture/THREAD_BUDGET_ARCH.md",
+    "docs/engineering/THREAD_BUDGET_ARCH.md",
     "lib/algorithms/coverage/src/sampler.cpp",
     "lib/algorithms/coverage/src/upm.cpp",
     "lib/phase3_session/p3_session.cpp",
@@ -337,7 +337,7 @@ def self_test(repo: pathlib.Path) -> int:
         def inject(name, rel, old, new):
             """注入变异并跑判据；锚缺失 ⇒ 显式 ANCHOR_STALE（fail-closed）。
 
-            docs/ci/01_CHECKS.md §1「锚存活」：判据硬编码引用的仓库路径/文本必须
+            docs/engineering/01_CHECKS.md §1「锚存活」：判据硬编码引用的仓库路径/文本必须
             存在，失效时显式失败并点名，不得静默降级 —— 自检的注入锚同理：
             旧实现忽略 _mutate 的 False 返回值，锚随生产代码演化失配后该负例
             直接判绿（"检查器没报" 与 "注入没发生" 无法区分）。

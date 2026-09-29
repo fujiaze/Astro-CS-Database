@@ -3,13 +3,13 @@
 """CHK-MANIFEST-EXIT-CODES：manifest 面「合同行 → 实现行」退出码一致门（P-159 定一）。
 
 依据（唯一权威链）:
-  · docs/api/MANIFEST_VERIFY_V1.md §3 —— manifest verify 的**校验序 → 错误码**合同行
+  · docs/engineering/MANIFEST_VERIFY_V1.md §3 —— manifest verify 的**校验序 → 错误码**合同行
     （语法/schema=3 → status=="complete"(否则 8) → astrocs_version 一致(5) →
      重算 config/profile hash(3) → 逐 artifact 存在性(3)+sha256(8)+size(8) → 全过=0）；
-  · docs/contracts/LOG_AND_ERROR_CONTRACT.md §5 —— 域→码表（IO→7 / INTEGRITY→8）；
+  · docs/engineering/LOG_AND_ERROR_CONTRACT.md §5 —— 域→码表（IO→7 / INTEGRITY→8）；
   · lib/infrastructure/cli/exit_codes.h —— 码值语义唯一源（本门校验符号=数值绑定）。
-  · 观测面定一条款（P-159「8 vs 7 定一」）：docs/plugins/infrastructure/21_observability.md
-    与 docs/design/LOG_AND_ERROR_SYSTEM.md 必须写入**逐字相同**的
+  · 观测面定一条款（P-159「8 vs 7 定一」）：docs/detail/infrastructure/21_observability.md
+    与 docs/detail/LOG_AND_ERROR_SYSTEM.md 必须写入**逐字相同**的
     「登记/写入失败 = exit 7（IO）；verify/完整性失败 = exit 8（INTEGRITY）」条款。
 
 判据（fail-closed，锚点缺失即 FAIL，不静默通过）:
@@ -48,12 +48,12 @@ REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 REL = {
     "cmd": "lib/infrastructure/cli/commands.cpp",
     "exit": "lib/infrastructure/cli/exit_codes.h",
-    "docv": "docs/api/MANIFEST_VERIFY_V1.md",
-    "doca": "docs/plugins/infrastructure/21_observability.md",
-    "docb": "docs/design/LOG_AND_ERROR_SYSTEM.md",
+    "docv": "docs/engineering/MANIFEST_VERIFY_V1.md",
+    "doca": "docs/detail/infrastructure/21_observability.md",
+    "docb": "docs/detail/LOG_AND_ERROR_SYSTEM.md",
 }
 
-# 合同行（docs/api/MANIFEST_VERIFY_V1.md §3）逐字锚：顺序 + 码值一并锁定。
+# 合同行（docs/engineering/MANIFEST_VERIFY_V1.md §3）逐字锚：顺序 + 码值一并锁定。
 SEQ_ANCHOR = ("语法/schema(3)→status==\"complete\"(否则 8)→astrocs_version 与本机一致"
               "(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→"
               "逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0")

@@ -210,6 +210,15 @@ function(astrocs_cfitsio_apply_third_party_deps tgt)
     endif()
   endif()
   if(_acs_lib)
-    target_link_libraries(${tgt} PUBLIC "${_acs_lib}")
+    # B-2 (FINAL-07/winfix): 改前写死 PUBLIC。对 INTERFACE_LIBRARY 目标, CMake 只允许
+    #   INTERFACE 关键字 —— 写 PUBLIC 必报「INTERFACE library can only be used with the
+    #   INTERFACE keyword of target_link_libraries」, configure 期硬失败。
+    #   实际命中: lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:106 的
+    #   astrocs_gaia_zlib_include (INTERFACE) 把它传进本函数。
+    #   为何 Linux 看不见: 函数体被上方 `if(NOT MSVC) return()` 门控 ⇒ 非 MSVC 主机
+    #   根本走不到这一行 (已用 Linux 负对照实验确认: 设了 ACS_ZLIB_ROOT 仍 configure 成功)。
+    #   修法: 与包含面**同口径**复用上面已算好的 ${_acs_inc_scope} (它在函数内无条件赋值,
+    #   到达此处必然可见) —— 不另起第二份判定, 避免两处再次分叉。
+    target_link_libraries(${tgt} ${_acs_inc_scope} "${_acs_lib}")
   endif()
 endfunction()

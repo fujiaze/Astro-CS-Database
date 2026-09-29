@@ -542,10 +542,10 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
                 unknown_entries = sorted(entry_ids - allowed_targets - pending)
                 if unknown_entries:
                     errors.append(f"R13 未登记的注册项 ID（既非目标也非 RETIRE-PENDING）：{unknown_entries}")
-        # R14：豁免登记（docs/ci/01_CHECKS.md §1；只减不增）
+        # R14：豁免登记（docs/engineering/01_CHECKS.md §1；只减不增）
         exemptions = REPO / "eng" / "ci" / "exemptions.json"
         if not exemptions.is_file():
-            errors.append("R14 缺 eng/ci/exemptions.json（docs/ci/01_CHECKS.md §1 要求豁免显式登记）")
+            errors.append("R14 缺 eng/ci/exemptions.json（docs/engineering/01_CHECKS.md §1 要求豁免显式登记）")
         else:
             try:
                 ex = json.loads(exemptions.read_text(encoding="utf-8"))

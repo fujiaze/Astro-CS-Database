@@ -4,7 +4,7 @@
 依据（现行权威）:
 - docs/ASTROCS_DESIGN.md §9: "aio 是唯一 FITS/HiPS/manifest 读写边界; Phase1/2/3 复用同一
   套 AIO, 禁止各自复制 reader/writer"; §7.1 顶层结构把 aio 归 lib/infrastructure/。
-- docs/plugins/infrastructure/17_aio.md §1/§6: aio 是唯一允许触碰磁盘产品的模块。
+- docs/detail/infrastructure/17_aio.md §1/§6: aio 是唯一允许触碰磁盘产品的模块。
 - ENGINEERING_SPEC.md §8: 每项检查必须有正例与负例(能红能绿)。
 
 扫描规则:
@@ -51,7 +51,7 @@ ALG_SRC_EXT = (".c", ".cc", ".cpp", ".cxx")
 #   + aio_publish_* staging 面), 依据 ARCH-001 迁移清单第 10/11 行(lib/hips 归 drizzle legacy),
 #   其退出 = AIO-001 收敛完成后删除该目录。此处显式登记豁免域, 只减不增。
 #   lib/algorithms/fits_output/** = 判据订正(ENGINEERING_SPEC §3): 最高设计 docs/ASTROCS_DESIGN §7.1
-#   与 docs/plugins/algorithms_phase3/16_fits_output.md §1/§3 把「流式 FITS 输出(PRIMARY+扩展
+#   与 docs/detail/algorithms_phase3/16_fits_output.md §1/§3 把「流式 FITS 输出(PRIMARY+扩展
 #   HDU+WCS+provenance)」明定为该算法的**职责本体**; 本规则原文(AIO-OWN-002)曾
 #   把该模块的直写面误判为「算法侧复制 reader/writer」。订正为: 只有该模块自身为规则豁免域;
 #   其余 lib/algorithms/** 仍全面受管(负例注入自检保持必红)。残留工作(fits_output 复用 aio

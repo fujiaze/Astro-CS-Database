@@ -64,7 +64,7 @@ class TestIsaBitManip(unittest.TestCase):
           * 树内**有** ISA-005/MEASUREMENTS.csv → 逐行断言指令计数为 0 且登记
             NOT_APPLICABLE（原判据原样保留，不静默删除）；
           * 树内**无**该文件 → **不跳过**，改判「缺位已被显式登记」：
-            docs/architecture/ISA_BIT_MANIP_VARIANTS.md §4 完整性登记
+            docs/engineering/ISA_BIT_MANIP_VARIANTS.md §4 完整性登记
             「测量工件未入库」（ISA-005 结论 = NOT_APPLICABLE、不写空 DLL ⇒
             不留测量工件是登记态，不是遗漏）。该登记被删 ⇒ 本用例判红。
         依据：ISA_BIT_MANIP_VARIANTS.md §4；docs/KNOWN_LIMITATIONS.md 条目 21

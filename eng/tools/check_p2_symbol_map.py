@@ -22,11 +22,11 @@
 
 不覆盖（如实声明）
   归档表是 ARCHIVED_NON_NORMATIVE 历史记录，其内容正确性不再由本门保证；现行模块
-  映射由 eng/tools/quality/check_module_map.py + docs/architecture/MODULE_MAP.md 承担。
+  映射由 eng/tools/quality/check_module_map.py + docs/engineering/MODULE_MAP.md 承担。
   本门只保证：历史映射不悬空、ACR 禁止迁移声明不丢失、SCI 引用不悬空、归档后新增
   源必须显式登记。
 
-退役（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   本脚本从未注册进 eng/ci/checks.json；判据对象 docs/archive/refactor/P2_SYMBOL_MAP.md
   已随 GOV-002 归档清理删除（归档表本身带 ARCHIVED_NON_NORMATIVE 头注，是历史记录），
   现行模块映射由在册门 CHK-MODULE-MANIFEST（eng/tools/quality/check_module_map.py）承担。
@@ -71,7 +71,7 @@ POST_ARCHIVE_ADDITIONS = {
         "owner": "RELEASE-02 FIX-A（稀疏天光面链）",
         "evidence": ["lib/algorithms/coverage/src/sky_plane.cpp",
                      "lib/algorithms/coverage/include/astro/phase2/sky_plane.h",
-                     "docs/architecture/MODULE_MAP.md"],
+                     "docs/engineering/MODULE_MAP.md"],
         "note": "GOV-002 归档（2026-09-02）之后新增；归档映射表为历史记录，不回填，"
                 "改由本登记面承接分类责任。",
     },

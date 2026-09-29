@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """check_api_docs.py — DOCCHK-001 doc↔code signature/schema/命令/退出码 机器一致性检查器。
-权威=控制包 04/API-002..005; 仓库落地 docs/api/*_V1.md + 真实头文件/源码。
+权威=控制包 04/API-002..005; 仓库落地 docs/engineering/*_V1.md + 真实头文件/源码。
 
 检查项(任一 FAIL→exit 1):
-  [A] 命令树  : docs/api/CLI_PROTOCOL_V1.md §1 每命令与 CLI 产物 --help 一致。
+  [A] 命令树  : docs/engineering/CLI_PROTOCOL_V1.md §1 每命令与 CLI 产物 --help 一致。
         CLI 产物候选（产品图优先）见 Checker.CLI_EXE_CANDIDATES；候选全缺/跑不起来/
         --help 无可解析命令树 → FAIL（fail-closed，禁止静默跳过让门退化为 0 检查）。
   [B] 退出码  : 退出码面**双向 + 名字**对账（doc ↔ 唯一源 exit_codes.h ↔ 本门内嵌表）：
@@ -71,7 +71,8 @@ class Checker:
     def __init__(self, repo: str, docs_dir: str | None = None, exit_codes_h: str | None = None):
         self.repo = repo
         self.failures: list[str] = []
-        self.doc_api = docs_dir if docs_dir else os.path.join(repo, "docs", "api")
+        # API 正本：文档迁移后并入一级·工程正本 docs/engineering/，不再成独立目录
+        self.doc_api = docs_dir if docs_dir else os.path.join(repo, "docs", "engineering")
         self.exit_codes_h = exit_codes_h
 
     def fail(self, msg: str):

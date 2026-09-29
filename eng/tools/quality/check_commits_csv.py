@@ -7,12 +7,12 @@
      历史备份里留有旧副本，属 run/ 临时面）。
   2) 判据面已被在册门承接：提交纪律由 AGENTS.md §8 与 eng/ci 的在册检查项
      （CHK-KNOWN-FAILURES-BASELINE / CHK-IMPACT-MAP 等）承担；本脚本在
-     eng/ci/checks.json 与 docs/ci/01_CHECKS.md §2 中零引用。
+     eng/ci/checks.json 与 docs/engineering/01_CHECKS.md §2 中零引用。
   3) 负例入口自身已坏：原 --selftest 在生成器产不出行时直接 rows[0] ⇒
-     IndexError 裸 traceback（实跑 rc=1），违反 docs/ci/01_CHECKS.md §1:14。
+     IndexError 裸 traceback（实跑 rc=1），违反 docs/engineering/01_CHECKS.md §1:14。
      本次一并订正：夹具不可构造时**显式具名**失败/跳过，不 traceback、不静默。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_main()，经 --legacy-check --commits CSV 复跑（判据未改）；
   * 本检查器不写任何产物文件（--selftest 只在 tempfile 目录里造夹具）
@@ -55,7 +55,7 @@ def _deduce_root() -> str:
 
 REPO = _deduce_root()
 
-# ── 判据锚（docs/ci/01_CHECKS.md §1:14 锚存活） ────────────────────────────
+# ── 判据锚（docs/engineering/01_CHECKS.md §1:14 锚存活） ────────────────────────────
 RESULTS_DIR_REL = os.path.join("evidence", "v6_1_rework", "tasks")
 GEN_TOOL_REL = os.path.join("eng", "tools", "quality", "gen_commits_csv.py")
 

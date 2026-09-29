@@ -88,18 +88,32 @@ ENTRY_SPLIT = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+|\|\s*)")
 FENCE = "\u0060\u0060\u0060"
 
 
-# 默认分母面 = docs/science/** 与 docs/references/**（科学正本 + 文献正本）。
-# **不覆盖** docs/KNOWN_LIMITATIONS.md、docs/validation/**、docs/design/** 等工程/验证面的
+# 默认分母面 = 科学正本（docs/science/）＋ 文献正本两篇：
+#   · docs/engineering/SCIENTIFIC_REFERENCES.md —— 文献总表，随文档迁移进入一级·工程正本；
+#   · 实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md
+#     —— 测光文献存档，随测光科学实验单元出库。
+# **不覆盖**已知限制篇与工程/验证面（行为合同、阶段详细设计、门禁阈值、验收细则…）的
 # 数值：那里出现的是实测误差、内存阈值、确定性容差，属工程观测量，判据是
 # GATES_AND_TOLERANCES / ACR_EQUIVALENCE 的面，用「是否逐字引用文献」去判是范畴错误。
 # 需要扩面时用 --roots 显式指定，并把扩面登记进报告。
-DEFAULT_ROOTS = ("docs/science", "docs/references")
+DEFAULT_ROOTS = ("docs/science",
+                 "docs/engineering/SCIENTIFIC_REFERENCES.md",
+                 "实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md")
 
 
 def iter_doc_files(root, roots):
+    """roots 逐项既可给目录（递归 *.md）也可给单个 .md 文件。
+
+    文献正本迁移后是**单篇**文件（不再成目录），因此本门不能只认目录，
+    否则文献正本会被悄悄移出分母面（分母缩水 = 判据变弱）。
+    """
     out = []
     for rel in roots:
         base = os.path.join(root, rel)
+        if os.path.isfile(base):
+            if base.endswith(".md"):
+                out.append(base)
+            continue
         if not os.path.isdir(base):
             continue
         for dirpath, dirnames, filenames in os.walk(base):
@@ -215,7 +229,7 @@ def main():
     ap.add_argument("--json-out", default=None)
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--roots", nargs="*", default=list(DEFAULT_ROOTS),
-                    help="分母面（默认 docs/science docs/references）")
+                    help="分母面（默认：科学正本 docs/science ＋ 文献正本两篇）")
     a = ap.parse_args()
     if a.self_test:
         return self_test()

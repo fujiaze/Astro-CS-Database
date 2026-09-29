@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """make_rev2_capsule.py — REV-002: 完整 ARCH/API/headers/core-source/oracles/checkers/Linux-reports 审阅胶囊。
 覆盖(03 L144): 索引/hash/全文件完整; REVIEW_PENDING 后继续 Windows 探测。
-范围: docs/architecture + docs/api + 头文件 + 核心源码 + oracle 测试 + checkers + Linux reports
+范围: 架构正本 + API 正本（现居一级·工程正本 docs/engineering/）+ 头文件 + 核心源码 + oracle 测试 + checkers + Linux reports
       + TRACEABILITY + 审阅胶囊索引 + 本包控制快照(复制版)。
 禁止: 二进制/真实数据/FITS/HiPS/build/.git/大日志。
 输出: capsules/REV-002_<commit12>.zip（旧证据树）
@@ -17,7 +17,7 @@
   4. 活动替代: 无。科学/架构证据按 §7 落位承载; 版本与提交信息由 git 历史承担(设计 §12);
   复原命令 (内容未丢): git 历史
   退役后行为: 任意调用打印 MAKE_REV2_CAPSULE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2。
+  登记见 docs/engineering/01_CHECKS.md §2.2。
 """
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def collect_files() -> list[tuple[str, str]]:
                 out.append((os.path.join(dest_dir, rel), os.path.relpath(full, REPO)))
 
     add("*.md", os.path.join(REPO, "docs", "architecture"), "docs/architecture")
-    add("*.md", os.path.join(REPO, "docs", "api"), "docs/api")
+    add("*.md", os.path.join(REPO, "docs", "engineering"), "docs/engineering")
 
     # 头文件(lib/**/include + cli + include)
     for root in ["lib", "cli"]:
@@ -143,7 +143,7 @@ RETIRED_NOTICE = (
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: 旧证据树 tables/*.csv 与 capsules/。\n"
     "  复原命令: git 历史\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2"
+    "  登记: docs/engineering/01_CHECKS.md §2.2"
 )
 
 

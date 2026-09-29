@@ -212,7 +212,7 @@ def main() -> int:
             print(f"    cause: {h['likely_cause']}")
             print(f"    fix:   {h['command']}")
     print(f"\n总计: {n_err} 处错误信号, 扫描耗时 {report['scan_elapsed_sec']}s")
-    print("提示: 默认不读大 FITS/HiPS; 详细排查见 docs/TROUBLESHOOTING.md")
+    print("提示: 默认不读大 FITS/HiPS; 详细排查见 docs/detail/merged_TROUBLESHOOTING.md")
 
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:

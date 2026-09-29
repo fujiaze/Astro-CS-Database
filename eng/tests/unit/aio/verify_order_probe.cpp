@@ -8,8 +8,8 @@
  *   RESULT status=<int> renamed=<0|1> durability=<name> target_exists=<0|1> bytes=<n>
  *   TARGET <目标路径>
  *   MESSAGE <原样错误文本>
- * 语义锚: docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§4.1（两序关系正本）;
- *         docs/plugins/infrastructure/17_aio.md §4（三态）。
+ * 语义锚: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§4.1（两序关系正本）;
+ *         docs/detail/infrastructure/17_aio.md §4（三态）。
  * 返回码: 0 = 已报告（不代表发布成功）; 2 = 用法错误。
  * 平台: POSIX-only（负例靠 LD_PRELOAD 注入，见 corrupt_after_rename_interposer.cpp）。
  */

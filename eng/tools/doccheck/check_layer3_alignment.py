@@ -45,9 +45,10 @@ import sys
 CHECK_ID = "DOC-LAYER3-ALIGNMENT"
 SELF_REL = "eng/tools/doccheck/check_layer3_alignment.py"
 REGISTRY_REL = "lib/infrastructure/pipeline/module_ports.registry.json"
-L3_PREMIGRATION = ["docs/plugins", "docs/design", "docs/modules",
-                   "docs/algorithms", "docs/browser", "docs/diagnostics"]
-L3_POSTMIGRATION = ["docs/detail"]
+# 第 ③ 层细节面根（docs 三目录制）：模块工作细节、阶段详细设计、插件注册篇
+# 都归入 docs/detail/。迁移前的旧细节面目录集合已随迁移清空（**空目录不入库**），
+# 继续按旧集合回落会让本门在旧树上"看起来能跑"、在新树上恒空 —— 故只认现行根。
+L3_ROOT = ("docs/detail",)
 
 HEAD_RE = re.compile(r"^\s{0,3}(#{1,6})\s+(.*?)\s*$")
 NUMHEAD_RE = re.compile(r"^\s{0,3}#{1,6}\s*(\d+(?:\.\d+)*)")
@@ -275,10 +276,7 @@ def main(argv=None):
     dirs = args.layer3_dir
     topo = "explicit"
     if not dirs:
-        if os.path.isdir(os.path.join(root, "docs", "detail")):
-            dirs, topo = L3_POSTMIGRATION, "post-migration(docs/detail)"
-        else:
-            dirs, topo = L3_PREMIGRATION, "pre-migration(现细节面集合)"
+        dirs, topo = L3_ROOT, "docs/detail（现行第③层细节面根）"
     files, missing_dirs = iter_l3(root, dirs)
     out = {"check": CHECK_ID, "layer": "L3", "topology": topo, "layer3_dirs": dirs,
            "missing_dirs": missing_dirs, "files": len(files), "codes": []}
@@ -519,7 +517,7 @@ def self_test():
 
     def build(dead_sec=False, uncovered=False, ghost=False, no_l3=False):
         d = tempfile.mkdtemp(prefix="l3align_")
-        os.makedirs(os.path.join(d, "docs", "design"))
+        os.makedirs(os.path.join(d, "docs", "detail"))
         os.makedirs(os.path.join(d, "lib", "algorithms", "photometry", "src"))
         with open(os.path.join(d, "docs", "ASTROCS_DESIGN.md"), "w",
                   encoding="utf-8") as fh:
@@ -542,11 +540,11 @@ def self_test():
                  "lib/algorithms/photometry/src/fit.cpp。\n")
         if ghost:
             body += "- 另见 ghost_helper_xyz() 与 lib/algorithms/ghost/missing.cpp。\n"
-        with open(os.path.join(d, "docs", "design", "photometry.md"), "w",
+        with open(os.path.join(d, "docs", "detail", "photometry.md"), "w",
                   encoding="utf-8") as fh:
             fh.write(body)
         if no_l3:
-            shutil.rmtree(os.path.join(d, "docs", "design"))
+            shutil.rmtree(os.path.join(d, "docs", "detail"))
         if uncovered:
             with open(os.path.join(d, "lib", "infrastructure", "pipeline",
                                    "module_ports.registry.json"), "w",

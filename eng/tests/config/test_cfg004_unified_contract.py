@@ -121,14 +121,14 @@ def parser_session_keys():
 # test_03 钉死「schema 块内键集 == config_fields() ∪ block_keys()」）。
 # 两类成因（逐键判断归属，不得笼统处理）：
 #   ① 资源/编排/运行期策略键（max_tiles / frame / mode / sampler_used / output_fits_path /
-#      sub_block_px / queue_depth …）—— 按 docs/contracts/CONFIG_CONTRACT.md §3「内存/流式
+#      sub_block_px / queue_depth …）—— 按 docs/engineering/CONFIG_CONTRACT.md §3「内存/流式
 #      预算类字段**不进** phase_config：不可跨机器复现、属实现策略，CFG-002 登记为
 #      runtime_policy」**不得**补进 config_fields（补进去就必须同步改 phase_config schema，
 #      等于把它们升成科学配置属性面 —— 那是顶层合同变更，须负责人裁决）。
 #      sub_block_px / queue_depth（P3-STREAM-01 导出编排参数）属此类：生产消费点 =
 #      lib/infrastructure/scheduler/src/module_adapters.cpp 的 p3n_sub_block_px（值域
 #      [16,1024] 内存守卫）与 writer/verify 节点的 queue_depth 守卫（值域 [1,64]），
-#      缺省/值域权威 = docs/architecture/PHASE3_MODULE_ARCH.md:40 ⇒ 有生产消费者，不得删键。
+#      缺省/值域权威 = docs/engineering/PHASE3_MODULE_ARCH.md:40 ⇒ 有生产消费者，不得删键。
 #   ② Phase1 既有科学键（cosmetic / dark_* / master_* / photometry / sparse_snr_layer /
 #      algorithm_psf_model …）—— config_fields 只列模板骨架，未逐条列出。
 # 收口配方（二选一，均在 lib/**，不在本任务文件域）：

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "authority": "docs/ci/01_CHECKS.md §1「豁免显式登记 eng/ci/exemptions.json，只减不增，需负责人批准」；CI_SPEC.md §4；03_GATES.md §1；ENGINEERING_SPEC.md §8",
+  "authority": "docs/engineering/01_CHECKS.md §1「豁免显式登记 eng/ci/exemptions.json，只减不增，需负责人批准」；CI_SPEC.md §4；03_GATES.md §1；ENGINEERING_SPEC.md §8",
   "policy": {
     "only_decrease": "高水位 high_water.max_entries 只允许下调；新增豁免必须由负责人批准并把 approved_by 写为「负责人」+ 附批准的 evidence 路径",
     "never_waivable": [

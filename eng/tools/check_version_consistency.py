@@ -90,7 +90,7 @@ SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程�
              "lib", "AstroCS.wiki", "__pycache__"}
 
 # ── 标准条款号口径 (P2/CI-VER-CHK-001) ──────────────────────────
-# 事由: docs/standards/STANDARDS_REGISTRY.md 的 FITS WCS Paper I/II 与 IVOA HiPS
+# 事由: docs/engineering/STANDARDS_REGISTRY.md 的 FITS WCS Paper I/II 与 IVOA HiPS
 #       条款引用 (§2.1.1 / §4.2.1 / §4.4.1 / §6.3.1) 被旧口径误判为"未知版本
 #       字面量", 19 条 findings 全部落在该文件。
 # 依据: 宪章 §19 基础科学与格式参考 + §7.3「以标准为基础, 而不是根据现有代码反推」;
@@ -158,7 +158,7 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
 
 
 # ── 第三方工具版本口径 (BLD-401) ─────────────────────────────────────────
-# 事由: docs/research/*RESEARCH_PACK.md 的「开源对照」表把**第三方工具版本**
+# 事由: 科学正本的研究包（docs/science/*RESEARCH_PACK.md）与各科学实验单元的佐证来源区的「开源对照」表把**第三方工具版本**
 #       (SWarp 2.41.5 / DeepSkyStacker-DSS 6.2.2 / SExtractor 2.28.2) 写在表里,
 #       被 BASE_RE 当"未知产品版本字面量" ⇒ UT-VERSION 在真仓恒 FAIL(7 条),
 #       遮蔽 test_04/test_13。这些是**外部工具/文献的版本**，不是本项目版本声明。
@@ -230,7 +230,7 @@ def mask_lifecycle_boundaries(line):
 
 
 # ── 外部引用单元口径 (VER-001) ─────────────────────────────────────────
-# 事由: docs/contracts/DATA_SEMANTICS.md 的 WBPP/PixInsight 引用段把外部软件版本
+# 事由: docs/science/DATA_SEMANTICS.md 的 WBPP/PixInsight 引用段把外部软件版本
 #       (2.5.9 / 2.9.1) 写在**跨行的引用子项**里 —— 工具名在子项首行, 版本号落在
 #       续行 ⇒ 行级豁免词表按行匹配必然漏报 (与 R13 "…未修改 Siril\n1.4.3…"
 #       跨行断开 siril 同型)。旧口径下本仓恒红 2 条, 遮蔽真实漂移判定。
@@ -377,7 +377,7 @@ def check_file(path, base_num, alpha_n, errors):
                     errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
 
 def self_test():
-    """可执行正/负例面（ENGINEERING_SPEC §8 / docs/ci/01_CHECKS.md §1）。
+    """可执行正/负例面（ENGINEERING_SPEC §8 / docs/engineering/01_CHECKS.md §1）。
 
     正例（必须不报）: 研究包形态的**第三方工具版本**行（SWarp / DeepSkyStacker-DSS /
       SExtractor 的 4 种实测写法），并附"修复前必被抓"的先红证据。

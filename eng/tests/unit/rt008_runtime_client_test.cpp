@@ -74,7 +74,7 @@ static void test_run_pipeline_validation_error() {
 // 台账 P-158：load_pipeline 失败处**恒定 return 4**（旧 runtime_client.cpp），而上游
 // 解析/静态验证错误一律 ErrorDomain::DATA（scheduler/src/pipeline.cpp:55-189 与
 // runtime.cpp:133-149）⇒ DATA 域被误判成 SCIENCE_PRECONDITION(4)。
-// 权威：docs/contracts/LOG_AND_ERROR_CONTRACT.md §5（DATA→2、SCIENCE_PRECONDITION→4）
+// 权威：docs/engineering/LOG_AND_ERROR_CONTRACT.md §5（DATA→2、SCIENCE_PRECONDITION→4）
 //       + lib/infrastructure/cli/exit_codes.h（码值语义唯一源）。
 // 判据必须非退化：DATA 域必须给 2，且不得是 4。
 
@@ -136,7 +136,7 @@ static void test_p158_domain_matrix_matches_contract_section5() {
 
 // F-EXIT-MAP 可达矩阵：强制每个 ErrorDomain 走 run_pipeline 的**实际**退出码路径
 // （ASTROCS_TEST_FORCE_ERROR_DOMAIN 钩子），期望值逐条硬编码 =
-// docs/contracts/LOG_AND_ERROR_CONTRACT.md §5「域 → 码」表（独立 oracle；
+// docs/engineering/LOG_AND_ERROR_CONTRACT.md §5「域 → 码」表（独立 oracle；
 // 不复用 exit_code_for_error_domain ⇒ 实现漂移必被抓住）。
 static void test_f_exit_map_domain_matrix_is_reachable() {
   struct Row { const char* name; int want; };

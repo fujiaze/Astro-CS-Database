@@ -110,7 +110,7 @@ class TestSingleCLI(unittest.TestCase):
         """判据读对象、不读文档文字：夹具里根本没有 ARCHITECTURE.md 也照样判绿。"""
         with tempfile.TemporaryDirectory() as td:
             clean = ai.build_fixture(pathlib.Path(td) / "clean")
-            self.assertFalse((clean / "docs/architecture/ARCHITECTURE.md").exists())
+            self.assertFalse((clean / "docs/engineering/ARCHITECTURE.md").exists())
             self.assertEqual(ai.single_entry_findings(clean), [])
 
 

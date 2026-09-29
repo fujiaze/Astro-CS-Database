@@ -104,7 +104,7 @@ def _production_row_findings(rows, entry, exes):
 def single_entry_findings(repo=REPO):
     """命题（方向 = 恰一）：每平台**恰好一个**用户入口 = 生产入口。
 
-    依据 docs/architecture/ARCHITECTURE.md §1（发布物为每平台恰好一个用户入口）
+    依据 docs/engineering/ARCHITECTURE.md §1（发布物为每平台恰好一个用户入口）
     与 §7 不变量 1（唯一生产入口=acsd）。
     """
     repo = pathlib.Path(repo)

@@ -8,7 +8,7 @@ spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "eng", "
 ctb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ctb)
 
-D, S1, S2, S3 = "docs/VERSIONING.md", "1-唯一版本源", "2-生成接口", "3-同步矩阵"
+D, S1, S2, S3 = "docs/engineering/VERSIONING.md", "1-唯一版本源", "2-生成接口", "3-同步矩阵"
 API_SYM, SRC, TEST_ID, ORC = "eng/tools/gen_version.py::build_report", "eng/tools/gen_version.py", "eng/tests/version/test_version_consistency.py", "ORC-VER-001"
 
 def _row(cid, alg=False, arch=False, api=False, code=False, test=False):
@@ -42,7 +42,7 @@ class TestTraceability(unittest.TestCase):
     def test_01_registered_fixture_passes_and_bare_call_is_fail_closed(self):
         """A 类改绑（W4-A3）：`TRACEABILITY-CODE` 已于 2026-09-16 按负责人裁决退役。
 
-        退役登记（docs/ci/01_CHECKS.md §2.1）给出的**能力去向**是：
+        退役登记（docs/engineering/01_CHECKS.md §2.1）给出的**能力去向**是：
           `python3 eng/tools/check_traceability.py <claims.csv>` 仍按 R1–R7 全量校验，
           夹具 = eng/tests/quality/fixtures/docchk002_claims_fixture.csv；
           无参调用不得回退被删快照 ⇒ 打印 TRACEABILITY_RETIRED 并 exit 2（fail-closed）。
@@ -87,7 +87,7 @@ class TestTraceability(unittest.TestCase):
         self.assertTrue(any("R2" in e and "非法" in e for e in self.run_checker(bad)))
 
     def test_04_missing_reference_must_fail(self):
-        bad = _seed().replace("docs/VERSIONING.md,2-生成接口", "docs/NO_SUCH.md,2-生成接口")
+        bad = _seed().replace("docs/engineering/VERSIONING.md,2-生成接口", "docs/NO_SUCH.md,2-生成接口")
         self.assertTrue(any("R4" in e and "不存在" in e for e in self.run_checker(bad)))
         bad2 = _seed().replace("eng/tools/gen_version.py::build_report", "eng/tools/gen_version.py::no_such_fn")
         # 符号级: 文件存在但符号缺失 (source_symbol 列的 CODE/TEST 行)

@@ -11,7 +11,7 @@
 夹具重接线(2026-09-16, 负责人裁决 C):
   旧基线 = artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv —— 该表已随 artifacts/ 按负责人裁决
   删除(commit b1290525「不归档、不保留」), 且其对应的 CI 检查项 TRACEABILITY-CODE 同步退役
-  (依据与日期见 docs/ci/01_CHECKS.md §2 退役记录)。本文件的 mutation 基线改为**自带 tracked 小夹具**
+  (依据与日期见 docs/engineering/01_CHECKS.md §2 退役记录)。本文件的 mutation 基线改为**自带 tracked 小夹具**
   eng/tests/quality/fixtures/docchk002_claims_fixture.csv(13 列表头同模板 / 11 claim / R1-R7 全过);
   检测力不变: 绿基线 → 注入必红 → 还原回绿, 且不再依赖任何构建产物目录。
   活件判定: eng/tools/check_unit_closure.py 仍是 CI 注册项 UNIT-CLOSURE(三 profile, waivable=false),

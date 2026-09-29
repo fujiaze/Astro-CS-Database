@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "sparse_snr_layer",
     "canonical_file": "eng/contracts/schemas/unified/sparse_snr_layer.schema.json",
-    "authority": "docs/design/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "帧内精细参考",
     "weight_eligible": false
   },
@@ -47,7 +47,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/DATA_SEMANTICS.md §31.7/§31.8"
     }
   },
   "properties": {
@@ -302,7 +302,7 @@
       "description": "控制点值的数值语义判别式（冻结）：absolute_flux_type_snr = 绝对通量型未加权信噪比 SNR_c = F_ref/sigma_F,c（与 frame_snr 同口径、同逐帧参考通量 F_ref）。该层**不**存相对因子、**不**按中位归一、**不**以帧级 SNR 为尺度基准；消费时不得乘/除帧级 SNR 做还原。声明为任何相对语义 ⇒ schema 判红。"
     },
     "reconstruction_operator": {
-      "description": "本层要求的重建算子标识（冻结词表；缺省 = natural_bicubic_spline_clip_v1）。**该标识同时承载「是否开 3×3 mesh 中值前置滤波」**——滤波与值域钳制不是可自由组合的独立开关：钳制是正值与有界性的必要条件（去掉它，光滑插值类在病态控制网格上权重效率损失 E 由 1.007 升到 1.44e4，并会给出负 sigma），中值滤波在默认目标域（地面/seeing-limited）有害、只在 cell 内含未分辨亮源的高对比域（HST/空间高分辨率）必需。把它们绑成单一标识后，未实测的组合（如双线性+滤波、无钳制的样条）在合同层不可表达。词表：natural_bicubic_spline_clip_v1 = 可分离自然边界双三次样条 + 钳到有效控制值值域（默认）；natural_bicubic_spline_clip_mesh_median_v1 = 同上且在样条前插入 3×3 mesh 中值滤波（边界 replicate，无条件替换）；bilinear_regular_grid_v1 = 规则网格双线性（保留为对照/回退）；nearest_control_point_v1 = 最近控制点（仅散点层）。取值不在词表内 ⇒ 消费侧 fail-closed，不得回退默认。依据：实验单元 absolute-snr EXP-04 §2.7/§4.1/§4.5；docs/plugins/algorithms_phase1/07_noise_snr.md §4.5。",
+      "description": "本层要求的重建算子标识（冻结词表；缺省 = natural_bicubic_spline_clip_v1）。**该标识同时承载「是否开 3×3 mesh 中值前置滤波」**——滤波与值域钳制不是可自由组合的独立开关：钳制是正值与有界性的必要条件（去掉它，光滑插值类在病态控制网格上权重效率损失 E 由 1.007 升到 1.44e4，并会给出负 sigma），中值滤波在默认目标域（地面/seeing-limited）有害、只在 cell 内含未分辨亮源的高对比域（HST/空间高分辨率）必需。把它们绑成单一标识后，未实测的组合（如双线性+滤波、无钳制的样条）在合同层不可表达。词表：natural_bicubic_spline_clip_v1 = 可分离自然边界双三次样条 + 钳到有效控制值值域（默认）；natural_bicubic_spline_clip_mesh_median_v1 = 同上且在样条前插入 3×3 mesh 中值滤波（边界 replicate，无条件替换）；bilinear_regular_grid_v1 = 规则网格双线性（保留为对照/回退）；nearest_control_point_v1 = 最近控制点（仅散点层）。取值不在词表内 ⇒ 消费侧 fail-closed，不得回退默认。依据：实验单元 absolute-snr EXP-04 §2.7/§4.1/§4.5；docs/detail/algorithms_phase1/07_noise_snr.md §4.5。",
       "enum": [
         "natural_bicubic_spline_clip_v1",
         "natural_bicubic_spline_clip_mesh_median_v1",

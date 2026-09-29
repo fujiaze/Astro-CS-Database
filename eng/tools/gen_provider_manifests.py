@@ -9,7 +9,7 @@
 用法:
   python3 eng/tools/gen_provider_manifests.py --repo <repo> --build-dir <dir> \
       --out <manifest.json> [--compiler g++ --commit <sha>]
-  # 交付形态 (docs/architecture/ISA_VARIANTS.md §0 第 3 条 / §2; R-28):
+  # 交付形态 (docs/engineering/ISA_VARIANTS.md §0 第 3 条 / §2; R-28):
 # 变体为 SHARED DSO，与清单同目录:
   python3 eng/tools/gen_provider_manifests.py --repo <repo> --build-dir <dir> \
       --providers-dir <build>/providers --isa-only --out <build>/providers/backends.manifest.json

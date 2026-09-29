@@ -5,7 +5,7 @@
 // 权威: docs/science/NOISE_MODEL.md §7（floor 只作用于**可用**方差；不可用一律
 //       ivar=0，**不得由 clamp 产生**；每帧生效 floor 及其来源必须随帧产品登记）、
 //       §9（floor 是**纯数值保护**，保证 ivar 有限，不是最小可分辨方差/读出噪声下限）；
-//       docs/contracts/DATA_SEMANTICS.md §13.2（fill 输出为 float32 产品）。
+//       docs/science/DATA_SEMANTICS.md §13.2（fill 输出为 float32 产品）。
 //
 // 用例（每条都能红能绿，无恒 PASS 占位）:
 //   V1 adu_scale            ADU 标度（α=1）：floor 可表示、不吞掉真实方差、ivar 有限

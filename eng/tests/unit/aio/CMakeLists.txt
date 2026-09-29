@@ -70,8 +70,8 @@ set_tests_properties(aio_impl_mutations PROPERTIES TIMEOUT 2400 LABELS "aio_slow
 # 负例: LD_PRELOAD 注入器只让 rename **之后**落在目录 fd 上的 fsync 失败
 #       -> status=ERR_IO + renamed + durability=NOT_DURABLE +
 #          **已发布对象仍在**（第三态存在证据，不得回滚删除）。
-# 权威依据: docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§6;
-#           docs/plugins/infrastructure/17_aio.md §4（三态判据）。
+# 权威依据: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§6;
+#           docs/detail/infrastructure/17_aio.md §4（三态判据）。
 if(UNIX)
   # 第三态负例依赖 LD_PRELOAD 注入目录 fd 的 fsync 失败 => POSIX-only
   # （Windows 侧第三态恒成立但不可观测，见 17_aio.md §4）。
@@ -102,7 +102,7 @@ if(UNIX)
   # 判据: 干净基线必须绿（证明验证函数不恒真）; 注入基线必须"检出 + 撤销"
   #       （status!=0 / renamed=0 / target_exists=0），且注入事件必须真的出现
   #       （否则 runner exit 2：注入未发生 = 零证据）。
-  # 权威依据: docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1（两序正本）。
+  # 权威依据: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1（两序正本）。
   add_executable(aio_verify_order_probe verify_order_probe.cpp)
   target_link_libraries(aio_verify_order_probe PRIVATE astrocs_product_io)
 
@@ -117,7 +117,7 @@ if(UNIX)
   set_tests_properties(aio_verify_order PROPERTIES TIMEOUT 600)
 
   # ── P-173 并发取号唯一性（next_seq）: 正例面 ────────────────────────────
-  # 台账 P-173「next_seq 非原子 static++」; 权威 = docs/plugins/infrastructure/17_aio.md:26
+  # 台账 P-173「next_seq 非原子 static++」; 权威 = docs/detail/infrastructure/17_aio.md:26
   # （临时文件 + 校验 + fsync + 原子 rename）与 aio_atomic_file.h（<final>.tmp.<pid>.<seq>）。
   # 本单元只证**唯一性**（弱证据）; 竞态属性本身由 TSan 负例判红
   # （eng/tests/unit/aio/mutations/tmp_path_tsan_negative.py，普通构建无判别力）。

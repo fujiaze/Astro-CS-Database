@@ -4,8 +4,8 @@
 
 权威依据
   - docs/ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）；
-  - docs/design/LOG_AND_ERROR_SYSTEM.md（详细设计）；
-  - docs/contracts/LOG_AND_ERROR_CONTRACT.md（日志行/落点/降级/退出码映射合同）；
+  - docs/detail/LOG_AND_ERROR_SYSTEM.md（详细设计）；
+  - docs/engineering/LOG_AND_ERROR_CONTRACT.md（日志行/落点/降级/退出码映射合同）；
   - ENGINEERING_SPEC.md §11（日志、诊断与错误）、§10（每项检查有正例与负例、fail-closed）。
 
 五条判据（exit 0 = PASS；任一违例 => 非 0 + machine JSON verdict=FAIL）：
@@ -66,8 +66,8 @@ PRODUCTION_EXCLUDES = (
 )
 
 DOC_ANCHOR_FILES = (
-    "docs/design/LOG_AND_ERROR_SYSTEM.md",
-    "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
+    "docs/detail/LOG_AND_ERROR_SYSTEM.md",
+    "docs/engineering/LOG_AND_ERROR_CONTRACT.md",
 )
 
 CATCH_RE = re.compile(r"\bcatch\s*\([^)]*\)\s*\{")
@@ -531,7 +531,7 @@ def self_test(root: pathlib.Path):
         def sandbox(name):
             d = tmp / name
             for rel in ("lib/infrastructure/cli", "lib/infrastructure/scheduler/src",
-                        "lib/infrastructure/aio/src", "docs/design", "docs/contracts",
+                        "lib/infrastructure/aio/src", "docs/detail", "docs/engineering",
                         "eng/ci/ledgers"):
                 (d / rel).mkdir(parents=True, exist_ok=True)
             for rel in DOC_ANCHOR_FILES:

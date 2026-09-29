@@ -4,8 +4,8 @@
 依据（权威链）:
   * docs/ASTROCS_DESIGN.md §8.3 不变量 / §9（CPU 后端与资源）——「1 worker 与 N worker 的等价判据
     是事前冻结的浮点容差，不是逐位一致」；
-  * docs/contracts/SCHEDULER_CONTRACT.md §2.1（并行确定性口径，冻结）；
-  * docs/contracts/TEST_MATRIX.md §2（通用容差规则）：
+  * docs/engineering/SCHEDULER_CONTRACT.md §2.1（并行确定性口径，冻结）；
+  * docs/engineering/TEST_MATRIX.md §2（通用容差规则）：
       元数据/mask/计数/索引/端口/选择结果 = 精确一致；
       FP64 非归约 rtol=1e-12, atol=1e-13×scale；
       FP32 产品非归约 rtol=5e-6, atol=1e-6×scale；

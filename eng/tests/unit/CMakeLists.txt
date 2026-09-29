@@ -1869,7 +1869,7 @@ target_link_libraries(w34_p1_qf_oracle PRIVATE astrocs_phase1_photcal ${ASTROCS_
 # 修复: 解析失败走本模块既有损坏头失败路径 aio_log(AIO_LOG_ERROR)+return -1
 #       (对齐 :129 头读不完整 / :177 NAXIS 超限), 调用方据此 fclose+return -1。
 # 判据: 负例必须干净拒绝并有 ERROR; 正例（合法缩放/缺省/恒等）逐位不变, 校验不得误伤。
-# 权威: docs/contracts/DATA_ARTIFACTS.md DATA-IMG-RAW-001/CAL-001（读时已施加
+# 权威: docs/engineering/DATA_ARTIFACTS.md DATA-IMG-RAW-001/CAL-001（读时已施加
 #       BSCALE*样本+BZERO）+ docs/science/CALIBRATION.md（ADU 域冻结）。
 # fixture 进程内现写于系统临时目录并退出前清理（不读 testdata/; 根 .gitignore:66
 #       全局 *.fits => 仓内不跟踪 FITS 夹具）。

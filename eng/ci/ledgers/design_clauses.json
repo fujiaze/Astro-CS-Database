@@ -5,7 +5,7 @@
   "authority": [
     "docs/ASTROCS_DESIGN.md §8.3「编排策略」（:609-:616）",
     "docs/ASTROCS_DESIGN.md §5.3/§5.4/§5.5/§6.3/§12.1/§12.3/§12.4",
-    "docs/ci/01_CHECKS.md §1（注册表原则：能红能绿、fail-closed、可执行负例面）"
+    "docs/engineering/01_CHECKS.md §1（注册表原则：能红能绿、fail-closed、可执行负例面）"
   ],
   "policy": {
     "normalization": "剥行内 markdown（链接取文字、粗体/斜体/行内代码标记与单词边界上的孤立下划线）→ 空白折叠为单空格 → 去首尾空白 → UTF-8 sha256；实现唯一来源 = eng/ci/check_design_clause_wiring.py:clause_sha256",
@@ -206,7 +206,7 @@
       "id": "DESIGN-5.3-SPARSE-RECON-OPERATOR",
       "anchor": "docs/ASTROCS_DESIGN.md:441",
       "text_sha256": "df96ed2d7ca06ecff5a8a5884c7d31fa54b1ca4deca20bbe059799b131eec419",
-      "requirement": "稀疏重建算子按冻结词表显式声明（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 docs/plugins/algorithms_phase1/07_noise_snr.md §4.5。",
+      "requirement": "稀疏重建算子按冻结词表显式声明（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 docs/detail/algorithms_phase1/07_noise_snr.md §4.5。",
       "status": "wired",
       "production_anchor": [
         "lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp:301"
@@ -250,7 +250,7 @@
       "id": "DESIGN-5.3-FREF-ANCHOR",
       "anchor": "docs/ASTROCS_DESIGN.md:444",
       "text_sha256": "85bb3751386588cd2754af5d5d161faf653d1d8d235dcbe674dda2435faa14e4",
-      "requirement": "参考通量 F_ref 锚定固定参考星等（逐帧、只依赖本帧标定），保证帧级 SNR 跨帧可比且权重配对，口径与适用域见 docs/plugins/algorithms_phase1/07_noise_snr.md。",
+      "requirement": "参考通量 F_ref 锚定固定参考星等（逐帧、只依赖本帧标定），保证帧级 SNR 跨帧可比且权重配对，口径与适用域见 docs/detail/algorithms_phase1/07_noise_snr.md。",
       "status": "wired",
       "production_anchor": [
         "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp:167"
@@ -282,7 +282,7 @@
       "id": "DESIGN-5.4-CONTROL-IVAR-SAMPLING",
       "anchor": "docs/ASTROCS_DESIGN.md:449",
       "text_sha256": "c5943c9155433fc685528da625e37b3b30e63b7c5cfa1bce191b3920d5e79415",
-      "requirement": "星点掩膜之外，每帧取稀疏背景采样点，采样点权重取噪声逆方差 control_ivar（被估量是变化的背景电平，SNR² 在该处不是有效逆方差代理；权重式与推导见 docs/plugins/algorithms_phase2/10_sampling.md）；全部帧联合构建参考天光平面，平面稀疏表示、栅格值按需现场求值，不构建稠密背景栅格。",
+      "requirement": "星点掩膜之外，每帧取稀疏背景采样点，采样点权重取噪声逆方差 control_ivar（被估量是变化的背景电平，SNR² 在该处不是有效逆方差代理；权重式与推导见 docs/detail/algorithms_phase2/10_sampling.md）；全部帧联合构建参考天光平面，平面稀疏表示、栅格值按需现场求值，不构建稠密背景栅格。",
       "status": "wired",
       "production_anchor": [
         "lib/infrastructure/scheduler/src/module_adapters.cpp:9553"
@@ -316,7 +316,7 @@
       "id": "DESIGN-5.4-JOINT-PLANE-DAMPED",
       "anchor": "docs/ASTROCS_DESIGN.md:451",
       "text_sha256": "1b283d90014d9127537668f0e3f58a81190f8d112612ec9b3bd69a78bd0d3a79",
-      "requirement": "参考平面用其他帧的加权组合（排除自身）、迭代求解、拟合权重与叠加权重同源、末端用叠加权重计算并扣除残差场，使任意覆盖子集上的加权阶跃恒为零；迭代阻尼 `gs_damping` 取 1 时照样收敛，它只是收敛稳健项、**不是**无接缝的必要条件（生产取值 `gs_damping=0.5` 记入现行配置）；formulation 四要素与收敛判据见 `docs/plugins/algorithms_phase2/11_upm.md`。",
+      "requirement": "参考平面用其他帧的加权组合（排除自身）、迭代求解、拟合权重与叠加权重同源、末端用叠加权重计算并扣除残差场，使任意覆盖子集上的加权阶跃恒为零；迭代阻尼 `gs_damping` 取 1 时照样收敛，它只是收敛稳健项、**不是**无接缝的必要条件（生产取值 `gs_damping=0.5` 记入现行配置）；formulation 四要素与收敛判据见 `docs/detail/algorithms_phase2/11_upm.md`。",
       "status": "wired",
       "production_anchor": [
         "lib/algorithms/coverage/src/upm.cpp:956",
@@ -334,7 +334,7 @@
       "id": "DESIGN-5.4-SEAM-CRITERION",
       "anchor": "docs/ASTROCS_DESIGN.md:452",
       "text_sha256": "f6dc9a69ec906da4eefb214cbd3c6d01295ce863416785eacb412a0f6172445e",
-      "requirement": "接缝判据在保留背景的前提下比较帧间一致性与边界跳变，判据量取有符号电平台阶（沿真实帧足迹的法向差分比边界处局部背景电平），且只对两侧都在数据内部的边界计入；判据式与适用域见 docs/plugins/algorithms_phase2/11_upm.md、实现与默认参数见机器门 CHK-L4-SEAM-FOOTPRINT（本节不复制数值），门槛数值 1e-2 的推导与实测标定正本 = docs/science/PHASE2_UPM.md §17（观测量与噪声模型、虚警率、可检出下限）；把整张背景减掉再看帧间差是退化判据（背景都为零时差值天然为零）；方差比对电平阶跃原理性失明，只作诊断量（无接缝证据取有符号电平台阶）。",
+      "requirement": "接缝判据在保留背景的前提下比较帧间一致性与边界跳变，判据量取有符号电平台阶（沿真实帧足迹的法向差分比边界处局部背景电平），且只对两侧都在数据内部的边界计入；判据式与适用域见 docs/detail/algorithms_phase2/11_upm.md、实现与默认参数见机器门 CHK-L4-SEAM-FOOTPRINT（本节不复制数值），门槛数值 1e-2 的推导与实测标定正本 = docs/science/PHASE2_UPM.md §17（观测量与噪声模型、虚警率、可检出下限）；把整张背景减掉再看帧间差是退化判据（背景都为零时差值天然为零）；方差比对电平阶跃原理性失明，只作诊断量（无接缝证据取有符号电平台阶）。",
       "status": "wired",
       "production_anchor": [
         "eng/tools/e2e/seam_footprint.py:25"
@@ -350,7 +350,7 @@
       "id": "DESIGN-5.4-NODE-SPACING",
       "anchor": "docs/ASTROCS_DESIGN.md:453",
       "text_sha256": "e0d230ff6b4e71c29e6f0dd120220c3f5500cf6b0a43837c8b95113f17237dad",
-      "requirement": "参考面表示能力要求：无接缝以公共天光面可表示为前提。参考面的节点间距与基函数必须能表示帧间天光差的空间尺度；对参考面不可表示且沿图像方向相干的小尺度分量（尺度约在两个节点间距以内），残余接缝随该分量幅度线性增长。节点间距由输入几何导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的唯一旋钮；几何量缺失即显式失败（节点间距的来源只有输入几何）。实验定标见 实验/additive-sky-seamless/ 与 docs/plugins/algorithms_phase2/11_upm.md。",
+      "requirement": "参考面表示能力要求：无接缝以公共天光面可表示为前提。参考面的节点间距与基函数必须能表示帧间天光差的空间尺度；对参考面不可表示且沿图像方向相干的小尺度分量（尺度约在两个节点间距以内），残余接缝随该分量幅度线性增长。节点间距由输入几何导出（上界 = 重叠带宽度与指向间距的一半取小，下界 = 数据自身分辨率极限），并作为自适应回路的唯一旋钮；几何量缺失即显式失败（节点间距的来源只有输入几何）。实验定标见 实验/additive-sky-seamless/ 与 docs/detail/algorithms_phase2/11_upm.md。",
       "status": "wired",
       "production_anchor": [
         "lib/infrastructure/scheduler/src/module_adapters.cpp:9982"
@@ -410,7 +410,7 @@
       "id": "DESIGN-5.5-N-AUTO-ROUTE",
       "anchor": "docs/ASTROCS_DESIGN.md:462",
       "text_sha256": "759738b350946f02c67248a8f2e3528f8f54f030ef618750a0c502c0a216bbc6",
-      "requirement": "按 N 自动选择排异算法，逐像素档位表（档界与算法名）的唯一正本 = docs/plugins/algorithms_phase2/12_rejection.md §9（本节不复制档界与取值；实现路由表须与该正本逐项一致）。",
+      "requirement": "按 N 自动选择排异算法，逐像素档位表（档界与算法名）的唯一正本 = docs/detail/algorithms_phase2/12_rejection.md §9（本节不复制档界与取值；实现路由表须与该正本逐项一致）。",
       "status": "wired",
       "production_anchor": [
         "lib/algorithms/coverage/src/rejection.cpp:1154"
@@ -454,7 +454,7 @@
       "id": "DESIGN-5.5-THRESHOLD-AUTHORITY",
       "anchor": "docs/ASTROCS_DESIGN.md:465",
       "text_sha256": "e16bc0ddb69da00fd9a9dc5671e41bc2526aab382b7e39584f44905fb0d0a48d",
-      "requirement": "算法出处、合法性窗口、阈值与合成 Oracle 正负例见 docs/plugins/algorithms_phase2/12_rejection.md 与 docs/science/REJECTION.md。",
+      "requirement": "算法出处、合法性窗口、阈值与合成 Oracle 正负例见 docs/detail/algorithms_phase2/12_rejection.md 与 docs/science/REJECTION.md。",
       "status": "wired",
       "production_anchor": [
         "lib/algorithms/coverage/src/rejection.cpp:1251"
@@ -563,7 +563,7 @@
       "production_anchor": [],
       "anchor_tokens": {},
       "assertion": "",
-      "reason": "三类独立一手证据（论文 DOI/arXiv 可解析、开源库项目 + 版本 + 文件:行、仓内复现命令与实测输出）在仓库里只有人工载体（实验/ 单元报告、docs/references、工程控制/*/change-claims/），没有任何机器可读台账或门：eng/ 内无「三类独立一手证据 / 三重佐证」的字段登记面（grep 零命中），证据齐备与否无法由机器判定。",
+      "reason": "三类独立一手证据（论文 DOI/arXiv 可解析、开源库项目 + 版本 + 文件:行、仓内复现命令与实测输出）在仓库里只有人工载体（实验/ 各科学实验单元的报告与佐证来源区、工程控制/*/change-claims/），没有任何机器可读台账或门：eng/ 内无「三类独立一手证据 / 三重佐证」的字段登记面（grep 零命中），证据齐备与否无法由机器判定。",
       "exit_condition": "出现机器可读证据台账（每条科学结论含 DOI 或 arXiv、开源项目 + 版本 + 文件:行、复现命令三类字段），并由门断言字段齐全、DOI/arXiv 可解析、缺项即红（落点 = eng/ci/checks.json 与 eng/ci/ledgers/）；届时改 wired。"
     },
     {
@@ -690,7 +690,7 @@
       "id": "DESIGN-12.4-TOLERANCE-FROZEN",
       "anchor": "docs/ASTROCS_DESIGN.md:839",
       "text_sha256": "387bb5b45fa3b3fdaec552c268987787db6e119b1ffccc3c7f9c39ffbc785c5e",
-      "requirement": "容差在写测试前冻结（口径见 §9），NaN/Inf/缺失出现的位置与语义必须精确一致（docs/contracts/TEST_MATRIX.md §2）；受影响验证范围由机器从改动集算出，只扩大不缩小。",
+      "requirement": "容差在写测试前冻结（口径见 §9），NaN/Inf/缺失出现的位置与语义必须精确一致（docs/engineering/TEST_MATRIX.md §2）；受影响验证范围由机器从改动集算出，只扩大不缩小。",
       "status": "wired",
       "production_anchor": [
         "eng/tools/quality/numeric_equiv.py:36",

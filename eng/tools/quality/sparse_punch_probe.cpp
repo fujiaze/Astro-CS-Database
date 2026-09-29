@@ -1,7 +1,7 @@
 // ============================================================================
 // sparse_punch_probe.cpp - 打洞原语的可执行探针（判据 CHK-SPARSE-PUNCH-PROBE）
 //
-// 依据: docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1；
+// 依据: docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1；
 //       ACCEPTANCE_SPEC.md §3.2；ENGINEERING_SPEC.md §8（每项检查必须有可执行
 //       正/负例）。
 //

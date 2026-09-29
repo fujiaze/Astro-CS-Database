@@ -23,4 +23,4 @@
 
 - 注册于 `eng/ci/checks.json`：`CHK-CONTRACT-TEST`（`V6-NEGATIVE-MUTATION`、`V6-CTEST-INTEGRATION`）、`CHK-UNIT`（`V6-CTEST-UNIT`）、`CHK-ORACLE`（`V6-RUNTIME-CLOSURE`）、`CHK-SYNTH-P2`（`V6-CLI-MODE-ROUTING`、`V6-CLI-MODE-MATRIX`）、`CHK-NWORKER`（`V6-DETERMINISM`）、`CHK-NWORKER-TOLERANCE`、`CHK-RESOURCE`（`V6-RESOURCE-GATE-POLICY`）以本目录运行面验证工具族为命令入口。
 - 大量其他检查步骤以本目录脚本为命令入口，含 `CHK-BUILD-LINUX`、`CHK-BUILD-WIN`、`CHK-STATIC`、`CHK-MODULE-MANIFEST`、`CHK-UNIT`、`CHK-ORACLE`、`CHK-INVARIANT`、`CHK-ABI`、`CHK-CONTRACT-TEST`、`CHK-SCI-REF`、`CHK-TRUTHFUL-CONCLUSION`、`CHK-SECRET-HYGIENE`、`CHK-ROOT-CLEAN` 等，逐条以 `eng/tools/quality/` 路径登记。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，流水线 job 结构见 `docs/ci/02_PIPELINE.md`，门禁分级见 `docs/ci/03_GATES.md`，证据落位见 `docs/ci/04_ARTIFACTS.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，流水线 job 结构见 `docs/engineering/02_PIPELINE.md`，门禁分级见 `docs/engineering/03_GATES.md`，证据落位见 `docs/engineering/04_ARTIFACTS.md`。

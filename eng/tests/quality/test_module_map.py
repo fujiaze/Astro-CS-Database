@@ -3,7 +3,7 @@
 """MOD-001 / CHK-MODULE-MANIFEST 质量测试（映射门正例 + 五类负例 + 诚实性红线）。
 
 覆盖：
-  T1  映射表 23/23 唯一行，且 ID 集合 == docs/plugins/00_INDEX.md §2（机器解析）
+  T1  映射表 23/23 唯一行，且 ID 集合 == docs/detail/00_INDEX.md §2（机器解析）
   T2  每行八元组字段齐备（目标目录/README/module.yaml/公开头/target/产品清单/共址测试）
   T3  正例 fixture（完整合法映射）→ 检查器 rc=0
   T4  五类负例（缺 manifest / 重复 entrypoint / 无 target / 无测试 / 悬空合同引用）
@@ -69,7 +69,7 @@ LEGACY_PAIRS = (
 
 
 def parse_index_ids() -> set:
-    """docs/plugins/00_INDEX.md §2 模块总表第 2 列（与检查器同口径的最小解析）。"""
+    """docs/detail/00_INDEX.md §2 模块总表第 2 列（与检查器同口径的最小解析）。"""
     lines = INDEX.read_text(encoding="utf-8").splitlines()
     start = next(i for i, ln in enumerate(lines) if ln.startswith("## 2."))
     end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## 3.")), len(lines))
