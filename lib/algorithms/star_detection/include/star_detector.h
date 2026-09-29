@@ -14,16 +14,29 @@
 extern "C" {
 #endif
 
+// ── 字段默认成员初始化（NSDMI）= SDetParams 的「类型层默认值」───────────────
+// 取值依据（逐字段查证消费点得出, 非按「0 看着安全」推定）:
+//   ① 有行为读点的字段 → 取 sdet_create(NULL) 的同一组默认（sdet_api.cpp:1119-1133）,
+//      使 sdet_create(nullptr) 与「SDetParams x;」两条路径给出同一组参数;
+//   ② 语义为「<=0 ⇒ 用内置默认」的字段 → 取 0, 与生产三处 memset(0) 后的取值逐位一致;
+//   ③ 无任何行为读点的字段（只被赋值 / 只进日志）→ 取同一组默认以保持自文档, 不改判定。
+// 作用: 消除「SDetParams x;」未初始化即使用这一未定义行为（读到栈垃圾 ⇒ 形状门用
+// 随机阈值判星 ⇒ 误杀）。对既有「先 memset(0) 再逐字段赋」的调用方**零影响**:
+// memset 在其后覆盖全部字段, 本组初值不参与任何判定。
 typedef struct {
-    int structureLayers;
-    int hotPixelFilterRadius;
-    float iterativeClipSigma;
-    int iterativeMaxRounds;
-    int medianFilterDetail;
-    int maxStars;
-    int fitRadius;
-    float fwhmClipSigma;
-    float maxAxisRatio;
+    int   structureLayers      = 5;     // ③ 无行为读点; 取 sdet_create 默认
+    int   hotPixelFilterRadius = 1;     // ③ 同上
+    float iterativeClipSigma   = 9.0f;  // ③ 同上
+    int   iterativeMaxRounds   = 5;     // ③ 同上
+    int   medianFilterDetail   = 1;     // ③ 同上
+    int   maxStars             = 2000;  // ① 读点 sdet_emit_records: 仅 >0 时截断
+                                          //   ⇒ 0 会静默退化为「不截断」, 故取 2000
+    int   fitRadius            = 0;     // ② 读点 sdet_api.cpp:450 形状门:
+                                          //   fitRadius>0 ? fitRadius : 6 ⇒ 0 即「自动」,
+                                          //   与生产三处（fitRadius=0，注释「0 = 自动」）一致
+    float fwhmClipSigma        = 3.0f;  // ③ 仅日志读点; 取 sdet_create 默认
+    float maxAxisRatio         = 2.0f;  // ① 读点 sdet_api.cpp:2092/2337: 仅 >0 时启门
+                                          //   ⇒ 0 会静默关闭细长门, 故取 2.0
     // ── R-58-1 点源形状门（盲检测路径 O13b; 0 = 用内置默认, <0 = 显式关闭该子门）──
     // 依据: run/FINAL-07/审核包/端到端/五帧越闸定性报告.md §6.1（R-58 裁决 1）。
     // 语义（判据相对本帧点源参考, 不用全局常数）:
@@ -42,10 +55,12 @@ typedef struct {
     // 适用面: 只作用于全图盲检测 sdet_detect_ex[_f64]（WCS 解算的检测输入）;
     // 星表引导路径 sdet_detect_guided_ex_f64（权威测光路径）不经本门, 其
     // 检测定义域由星表位置给定, 语义不受影响。
-    float psfFwhmLoRatio;
-    float psfFwhmHiRatio;
-    float maxPeakFraction;
-    int   minQuarterMaxPixels;
+    // ④ 四个子门默认取 0（= 用内置默认）, 与生产 memset(0) 后逐位一致;
+    //    只有负值才关闭对应子门（0 与生产行为相同, 不改形状门默认开/关语义）。
+    float psfFwhmLoRatio      = 0.0f;   // ② 读点 sdet_api.cpp:437/442: <0 关 / 0 内置默认 0.5
+    float psfFwhmHiRatio      = 0.0f;   // ② 读点 sdet_api.cpp:438/444: <0 关 / 0 内置默认 2.5
+    float maxPeakFraction     = 0.0f;   // ② 读点 sdet_api.cpp:439/446: <0 关 / 0 内置默认 0.35
+    int   minQuarterMaxPixels = 0;      // ② 读点 sdet_api.cpp:440/448: <0 关 / 0 内置默认 4
 } SDetParams;
 
 typedef struct StarDetectorHandle_s *StarDetectorHandle;
