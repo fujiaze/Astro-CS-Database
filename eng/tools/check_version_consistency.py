@@ -178,7 +178,12 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
 #       收窄约束（间隔上限、无中间版本字面量、无本项目版本语境词）约束，不放宽。
 EXTERNAL_TOOL_NAMES = ("swarp", "deepskystacker", "sextractor", "scamp", "siril",
                        "astropy", "photutils", "gaiaxpy", "cfitsio", "wcsliber",
-                       "apache", "httpd")
+                       "apache", "httpd",
+                       # BLD-401 同款口径补登：这两处是外部工具的版本锚，
+                       # 且都带一手可核验形式（上游 file:行 + 包 sha1 / 更新包链接），
+                       # 按该口径「修口径不改数据」不得为过检查改写正文。
+                       "drizzlepac",   # docs/science/DRIZZLE.md:59 参考实现 drizzlepac 3.11.0
+                       "wbpp")         # docs/science/REJECTION.md:72 WBPP 2.5.9（product-info.txt 自述）
 EXTERNAL_TOOL_NAME_RE = re.compile(
     r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(set(EXTERNAL_TOOL_NAMES), key=len, reverse=True))
     + r")(?![A-Za-z0-9_])", re.IGNORECASE)
