@@ -23,9 +23,11 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 阶段间只通过磁盘产品 + manifest + 哈希交换。正式平台 Windows x64 与 Linux amd64，纯 CPU 生产。
 
 **权威链（逐层下钻，不是挑一篇读）**：
-`docs/ASTROCS_DESIGN.md`（最高，先通读相关章节）→ `docs/design/` → `docs/plugins/` →
-`docs/science/` 与 `docs/science/algorithms/`（公式与推导，只读权威）→ `docs/contracts/` →
-`ENGINEERING_SPEC.md` → `ACCEPTANCE_SPEC.md` → `docs/ci/` → `docs/research/`。
+`docs/ASTROCS_DESIGN.md`（最高，先通读相关章节）→ `docs/science/` 与 `docs/science/algorithms/`
+（科学正本：公式、常数与算法推导，只读权威）→ `docs/engineering/`（工程正本：行为合同/数据语义、
+架构、标准与锚合同、CI 门禁、追溯、版本与状态）→ `docs/detail/`（细节实施面：模块工作细节、
+数据对象与配置、接口落地、阶段详细设计、插件注册）→ `ENGINEERING_SPEC.md` → `ACCEPTANCE_SPEC.md`
+→ `CONTROL_PACK_SPEC.md`。
 
 **机器契约字面量冻结、改名时绝不可动**：`x-astrocs-*` schema 键前缀、模块 ID `astrocs.*`、
 `ASTROCS_*` 环境变量与 CMake 选项、`namespace astrocs`、`#include <astrocs/...>`、
@@ -89,7 +91,7 @@ ACSD = Astro Celestial Sphere Database，天文 CCD/CMOS 图像校准与标准�
 
 ### 4.2 解禁之后才适用的运行节奏（先别用，留作解禁后的口径）
 
-1. **默认按影响面增量运行**：`python3 eng/ci/run_checks.py`（**不带参数就是 `--changed`**，见 `docs/ci/CI_SPEC.md` §2.1）。
+1. **默认按影响面增量运行**：`python3 eng/ci/run_checks.py`（**不带参数就是 `--changed`**，见 `docs/engineering/CI_SPEC.md` §2.1）。
    全量必须显式 `--all`。
    ⚠️ **已知退化**：改动集命中 `eng/ci/**` 这类全局敏感面时，增量档会 `escalate→full`（实测本仓多次如此），
    此时它会跑 190 个 step。看到 `scope=full` 就别跑，按需 `--check <ID>` 点名。

@@ -88,7 +88,7 @@ def verify_products(work_dir: pathlib.Path, min_finite_fraction=0.5):
         elif isinstance(total, (int, float)) and covered > total:
             findings.append("E2E_COVERAGE:%s covered_px>total_px" % rel)
         # B1 口径订正（CONTRACT-GAPS-01）：产品 BUNIT 一律取 canonical 面亮度串，与
-        # photometry_applied 解耦（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810 /
+        # photometry_applied 解耦（docs/science/DATA_SEMANTICS.md §31.1a:2808-2810 /
         # :2827-2830）。键缺失不判（本门只判"写了但写错"）。
         bunit = str(doc.get("bunit", "")).strip()
         if bunit and bunit != CANONICAL_SB:

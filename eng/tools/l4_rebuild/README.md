@@ -21,4 +21,4 @@ L4 视觉验收层的重建运行与性能剖析工具集：带计时执行、�
 ## 上游
 
 - 本目录工具未注册于 `eng/ci/checks.json`（按需执行的重建与诊断工具）。
-- 本目录在 `docs/ci/` 无逐项对应篇；运行证据落位规范见 `docs/ci/04_ARTIFACTS.md`，门禁总则见 `docs/ci/CI_SPEC.md`。
+- 本目录在 CI 门禁规范（工程正本内的检查项清单与门禁规范篇）无逐项对应篇；运行证据落位规范见 `docs/engineering/04_ARTIFACTS.md`，门禁总则见 `docs/engineering/CI_SPEC.md`。

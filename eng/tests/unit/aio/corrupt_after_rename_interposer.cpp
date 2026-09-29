@@ -4,7 +4,7 @@
 // 之后向**目标文件**追加坏字节（模拟外部进程改写/截断、回写坏块）。于是：
 //   · 机制层（atomic_publish：rename -> 重开已发布对象验证 -> 失败撤销）必须检出并撤销；
 //   · IO_003 §4 的生产者序（校验先于 rename）在该窗口没有观测点，无法检出。
-// 这正是 docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1 所述的"机制层检测面更强"。
+// 这正是 docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1 所述的"机制层检测面更强"。
 //
 // 启用：仅当 ASTROCS_TEST_CORRUPT_AFTER_RENAME=1；其余情况纯透传（零影响）。
 // stderr 事件行（供 runner 判"注入确实发生"，避免判据退化）：

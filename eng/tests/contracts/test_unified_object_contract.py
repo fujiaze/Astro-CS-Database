@@ -430,12 +430,12 @@ class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
     # ── 文档漂移判据（注入相对表述 ⇒ 判红）──────────────────────────────
     AUTHORITY_DOCS = (
         "docs/ASTROCS_DESIGN.md",
-        "docs/design/UNIFIED_MODEL.md",
-        "docs/design/PHASE2_DETAILED_DESIGN.md",
-        "docs/plugins/algorithms_phase1/07_noise_snr.md",
-        "docs/plugins/algorithms_phase2/13_integration.md",
-        "docs/contracts/DATA_SEMANTICS.md",
-        "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
+        "docs/detail/UNIFIED_MODEL.md",
+        "docs/detail/PHASE2_DETAILED_DESIGN.md",
+        "docs/detail/algorithms_phase1/07_noise_snr.md",
+        "docs/detail/algorithms_phase2/13_integration.md",
+        "docs/science/DATA_SEMANTICS.md",
+        "docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
     )
     RELATIVE_DECLARATIONS = ("帧内相对场", "稀疏相对 SNR", "相对 SNR 层", "中位归一",
                              "rho_c", "SNR_frame × rho", "帧级 × 帧内")
@@ -454,7 +454,7 @@ class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
 
     def test_doc_drift_judge_is_live(self):
         """判据活体：注入一处相对表述 ⇒ 同一判据必须命中（能红）。"""
-        fake = "docs/plugins/algorithms_phase1/07_noise_snr.md"
+        fake = "docs/detail/algorithms_phase1/07_noise_snr.md"
         txt = (REPO / fake).read_text(encoding="utf-8")
         injected = txt + "\n- 稀疏层与帧级标量的关系是「帧级 × 帧内相对场」：帧内相对场中位归一。\n"
         hits = [t for t in self.RELATIVE_DECLARATIONS if t in injected]
@@ -614,8 +614,8 @@ class TestDeclarationDriftGuard(unittest.TestCase):
 
     def setUp(self):
         self.reg = load(REPO / REGISTRY_REL)
-        self.doc = (REPO / "docs/contracts/UNIFIED_OBJECTS.md").read_text(encoding="utf-8")
-        self.da = (REPO / "docs/contracts/DATA_ARTIFACTS.md").read_text(encoding="utf-8")
+        self.doc = (REPO / "docs/engineering/UNIFIED_OBJECTS.md").read_text(encoding="utf-8")
+        self.da = (REPO / "docs/engineering/DATA_ARTIFACTS.md").read_text(encoding="utf-8")
 
     def test_object_id_pattern_is_derived_from_object_name(self):
         for c in self.reg["canonical_object_classes"]:
@@ -814,8 +814,8 @@ class TestRegistryIndex(unittest.TestCase):
         reg = load(REPO / REGISTRY_REL)
         m = load(REPO / "eng/contracts/data/unified_object_compatibility_map_v1.json")
         rows = {r["legacy_id"]: r for r in m["legacy_contract_id_map"]}
-        allowed = ("docs/contracts/DATA_SEMANTICS.md", "docs/contracts/PUBLIC_API.md",
-                   "docs/contracts/DATA_ARTIFACTS.md", "docs/modules/MODULE_MAP.yaml",
+        allowed = ("docs/science/DATA_SEMANTICS.md", "docs/engineering/PUBLIC_API.md",
+                   "docs/engineering/DATA_ARTIFACTS.md", "docs/modules/MODULE_MAP.yaml",
                    "docs/modules/registry/", "docs/modules/", "docs/traceability/TRACEABILITY_MATRIX")
         for e in reg["legacy_contract_ids"]["entries"]:
             lid = e["legacy_id"]
@@ -850,7 +850,7 @@ class TestRegistryIndex(unittest.TestCase):
                          m["canonical_object_schema_ids"])
 
     def test_data_artifacts_registers_object_ids(self):
-        text = (REPO / "docs/contracts/DATA_ARTIFACTS.md").read_text(encoding="utf-8")
+        text = (REPO / "docs/engineering/DATA_ARTIFACTS.md").read_text(encoding="utf-8")
         reg = load(REPO / REGISTRY_REL)
         cols = ["schema_id", "内容", "scalar", "shape/axis", "unit", "coordinate", "invalid",
                 "ownership", "serialization"]

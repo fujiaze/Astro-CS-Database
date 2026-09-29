@@ -3,7 +3,7 @@
 
 权威：
   * docs/ASTROCS_DESIGN.md §4.5（运行前预检三档 + 确认与越权语义）；
-  * docs/api/CLI_PROTOCOL_V1.md §1（error 阻断且 -y 不可越；correct/warn 都需 yes 确认，
+  * docs/engineering/CLI_PROTOCOL_V1.md §1（error 阻断且 -y 不可越；correct/warn 都需 yes 确认，
     -y/-yes 跳过确认；-force 跳过整个检查步骤）；
   * lib/infrastructure/cli/subcommand.h Subcommand::run（唯一实现：预检页 → 阻断优先级
     → 确认 → 派发；-force 在任何检查之前直接派发）。

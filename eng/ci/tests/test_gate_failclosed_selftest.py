@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """eng/ci/tests/test_gate_failclosed_selftest.py — 门禁 fail-closed 契约的红绿双向自测。
 
-覆盖（GATE-501：D-10 / D-12 落地后的 runner 语义，权威 docs/ci/CI_SPEC.md §9）
+覆盖（GATE-501：D-10 / D-12 落地后的 runner 语义，权威 docs/engineering/CI_SPEC.md §9）
   A. requires_monitor=true ⇒ 必须产出监控证据；缺失 ⇒ FAIL(monitor_gate_missing)（红）
   B. 证据含 frozen_gate 且四条 L2 冻结判据违规 ⇒ 判红（D-10 恒真门堵口）（红）
   C. 证据合规 ⇒ PASS（绿）

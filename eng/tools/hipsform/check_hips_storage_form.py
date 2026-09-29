@@ -3,8 +3,8 @@
 """HIPS-PACK-01 落盘形态检查器（裸 HiPS / zstd 归档包）。
 
 权威依据：
-  - docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md（CONTRACT-STORAGE-001：命名/布局/索引/哈希）
-  - docs/design/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001：形态判据与完整形态）
+  - docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md（CONTRACT-STORAGE-001：命名/布局/索引/哈希）
+  - docs/detail/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001：形态判据与完整形态）
   - eng/contracts/schemas/hips_storage_form.schema.json（索引 schema 机器事实源）
   - docs/ASTROCS_DESIGN.md §10（I/O 与原子产品）
 
@@ -1298,8 +1298,8 @@ def main() -> int:
     errors = []
     # A. 锚存在（fail-closed）
     anchors = ["eng/contracts/schemas/hips_storage_form.schema.json",
-               "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
-               "docs/design/PRODUCT_STORAGE_FORM.md",
+               "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md",
+               "docs/detail/PRODUCT_STORAGE_FORM.md",
                "lib/infrastructure/aio/io/fits_verify.py",
                "eng/ci/run.py",
                "eng/tests/common/jsonschema_min.py",

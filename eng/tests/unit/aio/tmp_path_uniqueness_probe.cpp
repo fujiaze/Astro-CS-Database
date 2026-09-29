@@ -1,7 +1,7 @@
 // P-173 负例探针：并发取临时路径的唯一性（aio_atomic::make_tmp_path -> next_seq）。
 //
 // 台账依据: 代码域台账 P-173「next_seq 非原子 static++」。
-// 权威依据: docs/plugins/infrastructure/17_aio.md:26「所有产品 = 临时文件/目录 +
+// 权威依据: docs/detail/infrastructure/17_aio.md:26「所有产品 = 临时文件/目录 +
 //   校验 + fsync + 原子 rename 提交」+ aio_atomic_file.h:14-16「临时文件名
 //   <final>.tmp.<pid>.<seq>，与目标同目录」⇒ 并发取号必须唯一，否则两个发布者
 //   互踩同一 tmp（C++ 数据竞争 ⇒ UB）。

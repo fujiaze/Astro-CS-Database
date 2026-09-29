@@ -82,7 +82,7 @@ def _runner_mon_check(repo: Path, out_root: Path, check: dict) -> subprocess.Com
     # shim 真跑时经 runpy 透传 repo/tools/monitoring/run_monitored.py，故一并
     # 复制实体与其同目录依赖（resource_probe fallback import）。
     shutil.copyfile(_REPO / "eng" / "ci" / "resource_monitor.py", ci_dir / "resource_monitor.py")
-    # 资源门数值契约（唯一数值源，docs/ci/CI_SPEC.md §9.2）是监控包装器的**导入期**
+    # 资源门数值契约（唯一数值源，docs/engineering/CI_SPEC.md §9.2）是监控包装器的**导入期**
     # 前置输入（run_monitored.py 模块级 load_resource_gate_contract，缺失即
     # RuntimeError）：fixture 不带它时 shim 必以 rc=1 崩，检查在 rc!=0 分支被记为
     # FAIL，永远走不到监控证据判定面——本类 8 例会以「假红」形态全灭。
@@ -142,7 +142,7 @@ class TestWinChecksNotWaivable(unittest.TestCase):
 class TestMonitoredChecksRequestGate(unittest.TestCase):
     """目标 2a：注册表资源门口径（CI-003 按负责人既定原则反转，2026-09-16）。
 
-    **口径原文**（`docs/owner/RELEASE_STATUS.md §5`）：构建/打包/单测为
+    **口径原文**（`docs/engineering/RELEASE_STATUS.md §5`）：构建/打包/单测为
     **非重计算面**，冻结阈值语义针对重计算区间；**重计算面必须显式请求
     `--gate-required` 并附判定证据，缺失即 fail-closed**（§10.5/§18.2 阈值不被放宽）。
 
@@ -205,7 +205,7 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
         会触发 run.py monitor_gate_missing 硬失败（Windows 证据无 frozen_gate）；
         R7（heavy→monitor）conform 同步 heavy=false。waivable=false 收紧维持。
         **CI-003 更新**：原注「CI 注册表当前零 --gate-required」已不成立——按
-        `docs/owner/RELEASE_STATUS.md §5`「重计算面必须显式请求 --gate-required」，
+        `docs/engineering/RELEASE_STATUS.md §5`「重计算面必须显式请求 --gate-required」，
         现行注册表含 `RESOURCE-GATE-REAL`；WIN-* 仍属非重计算面，故本条断言维持。
         """
         reg = _units()
@@ -245,7 +245,7 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
 class TestRunnerGateEvidenceContract(unittest.TestCase):
     """目标 2b：eng/ci/run.py 监控证据合同（声明即必须监控；请求判定才校验 frozen_gate）。
 
-    现行口径 = docs/ci/CI_SPEC.md §9.1（GATE-501 / D-12 取「真强制」分支，
+    现行口径 = docs/engineering/CI_SPEC.md §9.1（GATE-501 / D-12 取「真强制」分支，
     test_gate_failclosed_selftest.py 为同口径注册门）：
       * requires_monitor=true ⇒ **必须**产出含 cpu_samples 的监控证据，
         缺失/不可解析 ⇒ FAIL(monitor_gate_missing)（**不因命令未带判定旗标而放行**）；
@@ -326,7 +326,7 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
     def test_forged_pass_with_degenerate_metrics_fails_closed(self):
         """D-10 堵口（恒真门）：verdict=pass 但 metrics 不可重算 → 必红。
 
-        权威依据 docs/ci/CI_SPEC.md §9.2「证据含 frozen_gate ⇒ 四条 L2 冻结判据按
+        权威依据 docs/engineering/CI_SPEC.md §9.2「证据含 frozen_gate ⇒ 四条 L2 冻结判据按
         §9.2 复核，违规即红」+ §9.2 裁决面 l2_frozen_gate.adjudicate。声明式
         verdict=pass 不构成证据：空 metrics 复算不出判据 ⇒ evidence_unevaluable。
         """
@@ -504,9 +504,9 @@ class TestRunMonitoredGateRequiredFlag(unittest.TestCase):
     def test_gate_required_with_declared_workers_is_prescribed_form(self):
         """--gate-required 与 --gate-workers 同给 = **规定形态**（不是用法错误）。
 
-        权威依据 docs/plugins/infrastructure/21_observability.md:102：唯一判定点以
+        权威依据 docs/detail/infrastructure/21_observability.md:102：唯一判定点以
         「run_monitored.py --gate-required --gate-workers <registry 声明>」形式执行，
-        且「--gate-workers 必须由 registry 显式声明」；docs/ci/CI_SPEC.md §9.1 亦把
+        且「--gate-workers 必须由 registry 显式声明」；docs/engineering/CI_SPEC.md §9.1 亦把
         两者并列为「请求判定」旗标。旧断言「两者互斥 ⇒ SystemExit(2)」与该规定形态
         直接矛盾（会把规定形态判成用法错误），故按现行口径订正：同给必须被接受，
         且已分配容量分母取自 --gate-workers。

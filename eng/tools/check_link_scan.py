@@ -8,7 +8,7 @@
   C2 binary_no_acr_symbols      生产二进制 nm -C 输出不得含 ACR 符号
                                 （astro::compute / kernel_registry / device_executor / acr_）
 
-fail-closed（docs/ci/01_CHECKS.md §1「注册表原则」:12–15）
+fail-closed（docs/engineering/01_CHECKS.md §1「注册表原则」:12–15）
   * 锚存活：判据里硬编码引用的仓库路径必须存在，失效时以
     ANCHOR_STALE: <常量名> <路径> 显式失败并点名（rc=2），不得 traceback、不得静默降级；
   * 默认二进制路径不存在 ⇒ **判红**（rc=2）—— 旧实现把「二进制不存在」当「无 ACR 违规」，
@@ -281,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
         rc, lines = scan(root, args.binary)
     except AnchorStale as exc:
         print(str(exc), file=sys.stderr)
-        print("LINK_SCAN_FAIL: 输入不可用（fail-closed，docs/ci/01_CHECKS.md §1）",
+        print("LINK_SCAN_FAIL: 输入不可用（fail-closed，docs/engineering/01_CHECKS.md §1）",
               file=sys.stderr)
         return 2
     for line in lines:

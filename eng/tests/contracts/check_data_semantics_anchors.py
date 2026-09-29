@@ -3,7 +3,7 @@
 """DATA_SEMANTICS.md 代码锚核证器（审计工具，非 unittest 套件）。
 
 目的
-    docs/contracts/DATA_SEMANTICS.md 以 `file.ext:line`（或区间 `line-line2`）
+    docs/science/DATA_SEMANTICS.md 以 `file.ext:line`（或区间 `line-line2`）
     锚定实现证据。源文件演化后锚会漂移；本工具对全量锚做三档分类：
 
     high_confidence   语义 token 证据强（唯一 best 行、分数达标、old 行已失配），

@@ -294,7 +294,7 @@ void test_bunit_quadratic() {
   using astrocs::p3rsmp::units::signal_sb;
   P3_CHECK(is_quadratic_variance(signal_sb, sb_variance_out));
   P3_CHECK(is_inverse_pair(sb_variance_out, sb_ivar_out));
-  // canonical **产品 BUNIT 串** = 冻结单位表逐字串（docs/contracts/DATA_SEMANTICS.md
+  // canonical **产品 BUNIT 串** = 冻结单位表逐字串（docs/science/DATA_SEMANTICS.md
   // §31.1 单位表 + §31.1a「单位串与内部幂次编码的对应」: pixel_area_power = -2 ⇔ 串含
   // "/sr"、-4 ⇔ "/sr^2"、+4 ⇔ "sr^2/…"；**canonical 产品串一律写 sr**，写侧只出 sr）。
   P3_CHECK(signal_sb.canonical() == "ADU/sr");

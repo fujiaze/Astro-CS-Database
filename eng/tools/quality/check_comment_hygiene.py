@@ -6,7 +6,7 @@
   1) 判据面已有**在册**门承接：eng/ci/checks.json 的 CHK-STALE-DOC 含步骤
      CON-COMMENTS → eng/tools/quality/contracts/check_comments.py
      （实测 800 文件扫描 + --self-test 5 例正负例全 OK + rc 0/1/2/3）。
-     本脚本在 eng/ci/checks.json 与 docs/ci/01_CHECKS.md 中**零引用**；同簇
+     本脚本在 eng/ci/checks.json 与 docs/engineering/01_CHECKS.md 中**零引用**；同簇
      build_v19r2_package.py / v19r3_* / v19r4_* / update_audit_status.py 互相
      引用且均无现行消费方 ⇒ 属 V19R2/R3/R4 时代的一次性审计工件。
   2) 判据退化（真仓库实测 171 条命中 / 71 文件 / 815 文件扫描）：
@@ -29,7 +29,7 @@
      供负责人决定是否并入 CON-COMMENTS 的判据（ENGINEERING_SPEC §9：有长期价值的
      结论并入正式文档，其余删除，拿不准的列清单上呈）。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_scan()，经 --legacy-scan 复跑（保留可复跑性）；
   * 产物默认落 run/comment-hygiene/（run/ 是 §7 登记的 gitignore 临时产物区），

@@ -22,7 +22,7 @@
   R8 缺口登记册棘轮 (只减不增): eng/packaging/config/config_registry.json 的
      index_ownership.test_index_known_unregistered 每条必须**仍有对象**
      —— 目录存在, 且仍未登记进 test_index.csv; 失效项 ⇒ 判红并要求删除登记。
-     依据 ENGINEERING_SPEC §10 / docs/ci/01_CHECKS.md §1「锚存活」「fail-closed」;
+     依据 ENGINEERING_SPEC §10 / docs/engineering/01_CHECKS.md §1「锚存活」「fail-closed」;
      与 run_manifest_schema_deviations.json、traceability_warn_baseline.json 同款。
      登记册缺失/不可解析/为空 ⇒ 判红 (fail-closed, 不得把"解析不到"当"无违规")。
 
@@ -162,7 +162,7 @@ def check_known_unregistered(repo: str, rows, registry_path: str = None) -> list
     """R8（棘轮，只减不增）：缺口登记册的每个登记项必须**仍有对象**。
 
     规范依据：ENGINEERING_SPEC §10「检查器在输入缺失、路径不存在…时判红」、
-    docs/ci/01_CHECKS.md §1「锚存活」「fail-closed」。
+    docs/engineering/01_CHECKS.md §1「锚存活」「fail-closed」。
 
     为什么需要：eng/packaging/config/config_registry.json 的
     index_ownership.test_index_known_unregistered 是"已知未登记缺口"的台账。

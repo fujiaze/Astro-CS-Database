@@ -3,13 +3,13 @@
 """EVT-FIELD-SETS：事件协议 per-kind 冻结扩展字段集的跨面一致门（fail-closed）。
 
 权威链（AGENTS.md §1.1「先到最高文档确定规范」）：
-  * docs/api/CLI_PROTOCOL_V1.md §4：运行事件流的**唯一 schema = 实现正本**
+  * docs/engineering/CLI_PROTOCOL_V1.md §4：运行事件流的**唯一 schema = 实现正本**
     lib/infrastructure/cli/protocol.h（ValidateEventV1 发送侧硬闸）+ jsonl.h；
     机器 schema eng/contracts/schemas/jsonl_event_v1.schema.json 是**派生件**，
     「不得自成第二份定义」；
-  * docs/contracts/LOG_AND_ERROR_CONTRACT.md §1：LOG-004 合同**不冻结**运行事件流
+  * docs/engineering/LOG_AND_ERROR_CONTRACT.md §1：LOG-004 合同**不冻结**运行事件流
     （protocol.h/jsonl.h 各有一份正本）⇒ 事件流字段集的规范依据在 CLI_PROTOCOL_V1 §4；
-  * docs/ci/01_CHECKS.md §1 + ENGINEERING_SPEC.md §8：fail-closed（输入缺失/路径不存在
+  * docs/engineering/01_CHECKS.md §1 + ENGINEERING_SPEC.md §8：fail-closed（输入缺失/路径不存在
     必须判红，不得把「解析不到」当「无违规」）、锚存活（ANCHOR_STALE: <面> <路径>
     显式失败并点名）、每项检查必须能绿能红（机器可执行负例入口 --self-test）。
 

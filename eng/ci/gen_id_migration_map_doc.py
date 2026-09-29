@@ -3,7 +3,7 @@
 """从 eng/ci/id_migration_map.json 生成 eng/ci/ID_MIGRATION_MAP.md（人读摘要）。
 
 规范依据：ENGINEERING_SPEC.md §8「注册表双向一致」——eng/ci/checks.json 与
-docs/ci/01_CHECKS.md §2 必须双向对齐；eng/ci/ID_MIGRATION_MAP.md 是
+docs/engineering/01_CHECKS.md §2 必须双向对齐；eng/ci/ID_MIGRATION_MAP.md 是
 eng/ci/id_migration_map.json（CI-001 ID 收敛迁移映射的机器可读事实源）的**人读摘要**，
 属同一治理面的第三份文档，此前无任何门禁覆盖，已发生严重漂移（§1 的注册表哈希/条目数、
 §2 的覆盖计数、§6 的处置叙述与 JSON 事实相反）。本生成器把它变成「由 JSON 生成」，
@@ -49,6 +49,17 @@ Q = "\x60"
 def q(text) -> str:
     """markdown 行内代码（反引号包裹）。"""
     return Q + str(text) + Q
+
+
+def _doc_root(doc) -> str:
+    """targets[].doc 的权威面根（docs/<一级目录> 或 docs/<根文件>），非 docs/ 路径返回空串。"""
+    d = str(doc or "").strip()
+    if not d.startswith("docs/"):
+        return ""
+    parts = [p for p in d.split("/") if p]
+    if len(parts) == 2:
+        return d
+    return "/".join(parts[:2])
 
 
 def _display(path: pathlib.Path) -> str:
@@ -139,7 +150,17 @@ def render(doc: dict, facts: dict, map_display: str, out_display: str) -> str:
         kind_counts[t.get("kind")] = kind_counts.get(t.get("kind"), 0) + 1
     steps_targets = [t for t in targets.values() if t.get("steps")]
     sec2_targets = sum(1 for t in targets.values()
-                       if str(t.get("doc") or "").startswith("docs/ci/01_CHECKS.md"))
+                       if str(t.get("doc") or "").startswith("docs/engineering/01_CHECKS.md"))
+    # 非 §2 表的目标各自指向哪个权威面：**由 targets[].doc 现场统计**得出，
+    # 不在本生成器里写死目录清单（写死即冻结，文档迁移后必与注册表脱节）。
+    other_doc_roots = sorted({_doc_root(t.get("doc")) for t in targets.values()
+                              if not str(t.get("doc") or "").startswith("docs/engineering/01_CHECKS.md")
+                              and _doc_root(t.get("doc"))})
+    # 非 §2 表的目标各自指向哪个权威面：**由 targets[].doc 现场统计**得出，
+    # 不在本生成器里写死目录清单（写死即冻结，文档迁移后必与注册表脱节）。
+    other_doc_roots = sorted({_doc_root(t.get("doc")) for t in targets.values()
+                              if not str(t.get("doc") or "").startswith("docs/engineering/01_CHECKS.md")
+                              and _doc_root(t.get("doc"))})
     pending = [m for m in mappings if str(m.get("decision", "")).startswith("RETIRE-PENDING")]
     rejudged = [m for m in mappings if m.get("decision") == "KEPT"
                 and "RETIRE-PENDING-GOV-001" in str(m.get("note") or "")]
@@ -207,15 +228,16 @@ def render(doc: dict, facts: dict, map_display: str, out_display: str) -> str:
         L.append("- 写后快照 ↔ 当前注册表交叉核对（生成器实测 " + q(facts.get("display"))
                  + "）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 "
                  "step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。"
-                 "注册表当前规模与哈希以 " + q("docs/ci/01_CHECKS.md §2")
+                 "注册表当前规模与哈希以 " + q("docs/engineering/01_CHECKS.md §2")
                  + "（由 " + q("CHK-REGISTRY-DOC-SYNC") + " 双向一致门维护）与注册表自身为准；"
                  "本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。"
                  "核对明细由生成器 stdout / " + q("--json-out") + " 打印。")
-    L.append("- 目标语义 = " + q("docs/ci/01_CHECKS.md §2") + " 表：" + q("targets")
+    L.append("- 目标语义 = " + q("docs/engineering/01_CHECKS.md §2") + " 表：" + q("targets")
              + " 合计 " + str(len(targets)) + " 个目标，其中 " + str(sec2_targets)
              + " 个的 " + q("doc") + " 字段指向该表（含带登记批注的变体），"
-             + str(len(targets) - sec2_targets) + " 个指向其它权威面（" + q("docs/contracts/**")
-             + "、" + q("docs/science/**") + "、" + q("docs/api/**") + "、" + q("docs/ASTROCS_DESIGN.md")
+             + str(len(targets) - sec2_targets) + " 个指向其它权威面（"
+             + "、".join(q(r) for r in other_doc_roots)
+             + ("" if other_doc_roots else "（无）")
              + " 或扩展登记说明）；按 " + q("kind") + " 计：doc " + str(kind_counts.get("doc", 0))
              + " / extension " + str(kind_counts.get("extension", 0)) + " / ci "
              + str(kind_counts.get("ci", 0)) + "。")
@@ -355,7 +377,7 @@ def render(doc: dict, facts: dict, map_display: str, out_display: str) -> str:
         L.append("- 结论：**本波没有「不删不改、待 W2 GOV-001 执行」的项**。"
                  "原先按 " + q("RETIRE-PENDING-GOV-001") + " 冻结的 " + str(len(rejudged))
                  + " 项已改判 " + q("KEPT") + " —— 保留为活动门、判据已迁移/修锚并补可执行负例，"
-                 "登记在 " + q("docs/ci/01_CHECKS.md §2") + "。以下「现判据」与「目标位」"
+                 "登记在 " + q("docs/engineering/01_CHECKS.md §2") + "。以下「现判据」与「目标位」"
                  "逐字取自 JSON 的 " + q("mappings") + "/" + q("targets") + "，不凭印象写。")
         L.append("")
         L.extend(_table(["旧 ID（= 现顶层 ID）", "级", "现判据实现者（checker）",
@@ -532,11 +554,11 @@ FIXTURE_MAP = {
                         "entry_count": 2, "step_count": 1},
     "targets": {
         "CHK-A": {"kind": "doc", "grade": "P0", "name": "夹具目标 A",
-                  "doc": "docs/ci/01_CHECKS.md §2", "steps": ["OLD-1"]},
+                  "doc": "docs/engineering/01_CHECKS.md §2", "steps": ["OLD-1"]},
         "CHK-B": {"kind": "doc", "grade": "P0", "name": "夹具目标 B（targets 未登记 steps）",
-                  "doc": "docs/ci/01_CHECKS.md §2"},
+                  "doc": "docs/engineering/01_CHECKS.md §2"},
         "KEPT-1": {"kind": "extension", "grade": "P1", "name": "夹具保留项",
-                   "doc": "docs/ci/01_CHECKS.md §2（夹具登记）"},
+                   "doc": "docs/engineering/01_CHECKS.md §2（夹具登记）"},
     },
     "reserved_targets": {"CHK-GHOST": {"grade": "P0", "name": "夹具预留位",
                                        "reason": "夹具原因", "owner": "夹具归属"}},

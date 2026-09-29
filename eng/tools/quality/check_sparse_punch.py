@@ -4,8 +4,8 @@
 
 权威依据
   - docs/ASTROCS_DESIGN.md §10（裸形态体积削减两种机制的分工、生效面、失败语义）；
-  - docs/design/PRODUCT_STORAGE_FORM.md §9.1（打洞：何时 / 对谁 / 失败怎么办 / 如何验证）；
-  - docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1（冻结规则 + 五条判据）
+  - docs/detail/PRODUCT_STORAGE_FORM.md §9.1（打洞：何时 / 对谁 / 失败怎么办 / 如何验证）；
+  - docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1（冻结规则 + 五条判据）
     与表 T2（包围盒 TRIM：显式 opt-in、默认不启用）；
   - ACCEPTANCE_SPEC.md §3.2（裸形态体积削减验收）；
   - ENGINEERING_SPEC.md §8（每项检查必须有可执行正例与负例、能红能绿、fail-closed）、
@@ -66,8 +66,8 @@ ANCHOR_PUNCH_HEADER = "lib/infrastructure/aio/src/aio_sparse_punch.h"
 ANCHOR_WRITER = "lib/infrastructure/aio/src/hips/aio_hips_writer.cpp"
 ANCHOR_PROBE_SRC = "eng/tools/quality/sparse_punch_probe.cpp"
 ANCHOR_CROSS_READER = "eng/tools/quality/fits_cross_reader.c"
-ANCHOR_CONTRACT = "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md"
-ANCHOR_DESIGN = "docs/design/PRODUCT_STORAGE_FORM.md"
+ANCHOR_CONTRACT = "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md"
+ANCHOR_DESIGN = "docs/detail/PRODUCT_STORAGE_FORM.md"
 ANCHOR_ACCEPT = "ACCEPTANCE_SPEC.md"
 ANCHOR_ENGINEERING = "ENGINEERING_SPEC.md"
 

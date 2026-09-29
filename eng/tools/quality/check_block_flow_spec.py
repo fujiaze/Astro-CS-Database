@@ -11,7 +11,7 @@
   R7  生命周期自洽（**双向**）：消费者数 >= 2 ⇒ STAGE；== 0 ⇒ STAGE 或 EXTERNAL_OUT；
       == 1 ⇒ SHORT（阶段终产物 EXTERNAL_OUT 优先，见 R12）；反向同样判红：
       STAGE 且恰有 1 个消费者 ⇒ 红（lifecycle 与消费者跨度不自洽，
-      见 docs/contracts/PIPELINE_BLOCK_CONTRACT.md §2 第 4 条）
+      见 docs/engineering/PIPELINE_BLOCK_CONTRACT.md §2 第 4 条）
   R8  阶段间隔离：某阶段的块不得依赖另一阶段节点的产出（阶段间只走磁盘产品）；
       覆盖**全部** lifecycle，含 EXTERNAL_OUT（旧版只查 STAGE/SHORT，产品块被漏掉）
   R9  每个块声明只出现一次（stage, block）唯一

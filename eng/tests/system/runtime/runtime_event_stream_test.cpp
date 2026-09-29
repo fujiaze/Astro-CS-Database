@@ -2,9 +2,9 @@
 //（旧实现两者都不查 ⇒ 管道对端关闭 / 重定向到满盘时**静默丢事件**，调用方以为发过）。
 //
 // 权威：
-//   * docs/plugins/infrastructure/21_observability.md:45-46「日志/事件写入失败 → 非 0
+//   * docs/detail/infrastructure/21_observability.md:45-46「日志/事件写入失败 → 非 0
 //     （IO=7，磁盘满=10）」；manifest 登记失败 → 7；哈希失败 → 8；
-//   * docs/design/LOG_AND_ERROR_SYSTEM.md:120-130（六步日志生命周期：写入 → 确认落盘）；
+//   * docs/detail/LOG_AND_ERROR_SYSTEM.md:120-130（六步日志生命周期：写入 → 确认落盘）；
 //   * docs/ASTROCS_DESIGN.md §6.3 stdout 纪律：stdout 恒为纯 JSONL，诊断只走 stderr；
 //   * lib/infrastructure/cli/exit_codes.h（IO=7 / RESOURCE=10 码值语义唯一源）。
 //

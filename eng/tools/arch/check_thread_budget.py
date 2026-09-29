@@ -45,7 +45,7 @@ ADD_SUBDIR_RE = re.compile(r"(?<![\w-])add_subdirectory\s*\(\s*([^\s)#]+)", re.I
 
 
 class AnchorStale(Exception):
-    """扫描面锚失效 / 扫描面为空 —— fail-closed，exit 2（docs/ci/01_CHECKS.md §1）。"""
+    """扫描面锚失效 / 扫描面为空 —— fail-closed，exit 2（docs/engineering/01_CHECKS.md §1）。"""
 
 
 def scan_roots():

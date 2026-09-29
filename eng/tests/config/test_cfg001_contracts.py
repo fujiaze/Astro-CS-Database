@@ -35,7 +35,7 @@ MIN_EXPECTED_FILTERS = 45   # 编制时实测条数；少于该数说明转录�
 # 负责人实测指认的权威锚点（仍须逐条核对原文）——R-54 形态：(字段, 文件, 值文本, 内容指纹)。
 # 位置不再由行号断言：引文 + 指纹在 defaults.json#fields[].source_ref 内，此处断言的是
 # 「负责人指认的那条权威锚仍是登记的那一条」——目标文件、锁住的值文本、内容指纹三者同时相符。
-# 指纹算法与归一化规则正本 = docs/algorithms/anchors/ANCHOR_CONTRACT.md §9。
+# 指纹算法与归一化规则正本 = docs/detail/anchors/ANCHOR_CONTRACT.md §9。
 KEY_ANCHORS = [
     ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", "5.0", "1ee8a504a9719e69"),
     ("psf.default_model", "docs/science/PSF.md", "Moffat4", "fff3055bb84190f8"),

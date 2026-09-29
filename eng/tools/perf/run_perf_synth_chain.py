@@ -8,7 +8,7 @@
   §5（分阶段计时 + 性能数字附测量条件）—— run/FINAL-07/pkg/standards/05_性能与数值等价标准.md；
 * L2 验收面 = ACCEPTANCE_SPEC.md §4（"规模化合成数据使每段重计算区间**严格大于 10 s**"、
   CPU 利用率/内存工作集/线程扩展/编排连续性/缓存复用/I/O 六类记录面）；
-* 冻结判据语义 = docs/plugins/infrastructure/21_observability.md §8（G-RES-01，唯一语义权威），
+* 冻结判据语义 = docs/detail/infrastructure/21_observability.md §8（G-RES-01，唯一语义权威），
   阈值数值唯一源 = eng/contracts/resource_gate_v1.json（本工具**不发明**任何阈值）；
 * 编排与资源条款 = docs/ASTROCS_DESIGN.md §8.3（探针校正：编排参数基于探针实测迭代，
   不靠静态猜测）/ §9（两轴并行：帧级并发 × 帧内并行，串行段由帧级并发重叠；模块不自决帧级并发）；
@@ -17,7 +17,7 @@
 为什么必须新建本工具（任务书第 1 条的判定）
 --------------------------------------------
 规范路径的三命令串行驱动是 eng/tools/e2e/run_e2e_chain.py（ENGINEERING_SPEC §13 +
-docs/ci/01_CHECKS.md 注册面 CHK-E2E-CHAIN / CHK-E2E-CHAIN-SELFTEST），但它**只吃真实帧**：
+docs/engineering/01_CHECKS.md 注册面 CHK-E2E-CHAIN / CHK-E2E-CHAIN-SELFTEST），但它**只吃真实帧**：
 配置由 eng/tools/e2e/make_e2e_configs.py 从 testdata/M42*、testdata/Galaxy_Center_T4 的
 真实 FITS 构造（含写死的 RA/Dec 中心）。合成数据侧现有两件都不能独立驱动全链：
 
@@ -757,7 +757,7 @@ def adjudicate(tag: str, run_dir, stages: list, *, workers: int, contract: dict,
     l2_red = [r for r in l2_rows if r["verdict"] == L2.V_RED]
     return {"tag": tag, "allocated_workers": workers, "gate_id": contract["gate_id"],
             "authority": contract["authority"],
-            "l2_authority": "docs/ci/CI_SPEC.md §9.2（判定面 eng/ci/l2_frozen_gate.py）",
+            "l2_authority": "docs/engineering/CI_SPEC.md §9.2（判定面 eng/ci/l2_frozen_gate.py）",
             "stages": rows, "hard_fail_stages": hard_stages,
             "l2_criteria": l2_rows, "l2_red_stages": [r["stage"] for r in l2_red],
             "l2_thresholds": thresholds,
@@ -1635,7 +1635,7 @@ def cmd_report(a) -> int:
                 verdict["l2_red_rows"] += 1
     # 验收判词：只要有 L2 红行即"未通过"；全绿才"通过"。
     verdict["verdict"] = ("未通过" if verdict["l2_red_rows"] else "通过")
-    verdict["rule"] = ("L2 冻结判据（docs/ci/CI_SPEC.md §9.2）逐阶段裁决；"
+    verdict["rule"] = ("L2 冻结判据（docs/engineering/CI_SPEC.md §9.2）逐阶段裁决；"
                        "任一阶段红行 ⇒ 未通过。生产侧 pass 不构成验收通过（记录面≠绿）")
     write_json(run_dir / "evidence" / "verdict.json", verdict)
     print("PERF760_VERDICT = %s（L2 红 %d / 绿 %d / 不适用 %d）-> %s"

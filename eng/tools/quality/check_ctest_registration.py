@@ -197,7 +197,7 @@ def git_tracked_set(repo: pathlib.Path) -> set:
     ctest_targets 被判 C4「陈旧注册」、全部基线目标被判 C5「已消失」（实测真仓库
     形态的镜像树：282 条错误，语义全部指向「target 消失」而真因是「git 不可用」）。
     依赖不可用 ⇒ 抛 GitUnavailable，由 main 显式点名 + fail-closed（rc=2；
-    docs/ci/01_CHECKS.md §1 fail-closed，CI_SPEC §2.2「仓库不可用 ⇒ runner error」）。
+    docs/engineering/01_CHECKS.md §1 fail-closed，CI_SPEC §2.2「仓库不可用 ⇒ runner error」）。
     """
     try:
         out = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"],
@@ -502,7 +502,7 @@ def evaluate(targets: dict, registry: dict, baseline: dict) -> dict:
     patterns = registry_patterns(registry)
     base = baseline_targets(baseline)
 
-    # C0 扫描面非空（fail-closed；docs/ci/01_CHECKS.md §1「scanned == 0 ⇒ rc != 0」）：
+    # C0 扫描面非空（fail-closed；docs/engineering/01_CHECKS.md §1「scanned == 0 ⇒ rc != 0」）：
     # 空目标集下 C3/C4/C5 都可能"恰好"不触发（注册表无 ctest_targets 且基线为空），
     # 于是"什么都没扫到"会静默判绿 —— 那是恒真门，必须点名判红。
     if not targets:

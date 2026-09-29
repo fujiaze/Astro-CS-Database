@@ -6,7 +6,7 @@
   "x-astrocs-object": {
     "name": "variance",
     "canonical_file": "eng/contracts/schemas/unified/variance.schema.json",
-    "authority": "docs/design/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "authority": "docs/detail/UNIFIED_MODEL.md §2；docs/ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
     "weight_verdict": "对该估计目标可以",
     "weight_eligible": true
   },
@@ -47,7 +47,7 @@
         "support",
         "coverage"
       ],
-      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/science/DATA_SEMANTICS.md §31.7/§31.8"
     }
   },
   "properties": {
@@ -364,7 +364,7 @@
       "x-astrocs-gate": {
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.6"
+        "source": "docs/science/DATA_SEMANTICS.md §31.6"
       }
     },
     "operator_descriptor": {
@@ -392,7 +392,7 @@
       "x-astrocs-gate": {
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.6"
+        "source": "docs/science/DATA_SEMANTICS.md §31.6"
       }
     }
   },
@@ -426,7 +426,7 @@
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
         "rule": "representation=diagonal ⇒ 必带 correlation_kernel 或 operator_descriptor",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.6"
+        "source": "docs/science/DATA_SEMANTICS.md §31.6"
       }
     },
     {
@@ -449,7 +449,7 @@
         "clause_id": "FZ-FORMULA-COV-PROP",
         "gate": "G-COV-DIAGONAL-KERNEL",
         "rule": "representation=diagonal_plus_correlation_kernel ⇒ 必带 correlation_kernel",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.6"
+        "source": "docs/science/DATA_SEMANTICS.md §31.6"
       }
     },
     {
@@ -491,7 +491,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含立体角幂次（量纲可判 (a)）",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/DATA_SEMANTICS.md §31.2"
       }
     },
     {
@@ -531,7 +531,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "bunit_semantics=declared_via_provenance ⇒ BUNIT 仅写 ADU，量纲由 pixel_semantics + pixel_area_power 声明（量纲可判 (b)）",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/DATA_SEMANTICS.md §31.2"
       }
     },
     {
@@ -571,7 +571,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + surface_brightness ⇒ pixel_area_power=-2",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/DATA_SEMANTICS.md §31.2"
       }
     },
     {
@@ -611,7 +611,7 @@
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
         "rule": "declared_via_provenance + integrated_flux ⇒ pixel_area_power=0",
-        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+        "source": "docs/science/DATA_SEMANTICS.md §31.2"
       }
     }
   ]

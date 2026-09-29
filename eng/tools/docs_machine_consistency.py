@@ -32,7 +32,7 @@
   * 锚存活：源码路径不再硬编码迁移前目录；由 basename + 期望内容在 tracked 面内解析
     （迁移改址后自动跟随；解析不到即红并打印候选）。
   * 注册表双向一致：本工具尚未登记进 eng/ci/checks.json（该文件归 CI 线独占写者），
-    注册行与 docs/ci 说明随 W4-A6 交付清单交前台；未登记不改变本门判据。
+    注册行与 CI 门禁规范（工程正本内的检查项清单与门禁规范篇）说明随 W4-A6 交付清单交前台；未登记不改变本门判据。
   * 裁决 named-ID：判据引用 V12-N-01 / V12-N-02 / V12-N-03 / M3-A-008 与负责人裁决 S-1
     （一处一数值；落位 docs/science/NOISE_MODEL.md §14.2、docs/science/PHOTOMETRY.md §14.2）。
 
@@ -97,7 +97,7 @@ APPROX_MARKERS = ("≈", "~", "约等于", "简写", "截断", "相对差", "绝
 # 显式登记的非判定面：命中的截断字面量只登记不判红（每条必须给理由，不许空豁免）
 BENIGN_SURFACES = [
     (re.compile(r"^docs/archive/"), "历史归档（GOV-002 归档面，非活动规范）"),
-    (re.compile(r"^docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE\.md$"),
+    (re.compile(r"^实验/photometric-magnitude/docs/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE\.md$"),
      "文献评审归档副本（历史冻结，非活动规范）"),
     (re.compile(r"^lib/infrastructure/aio/healpix_db/archive/legacy/"),
      "legacy 归档实现（不在根 CMake 交付图；W4-A6 不改归档码）"),
@@ -197,13 +197,13 @@ class Resolver:
 
 
 SOURCES = [
-    ("config_schema", "CONFIG_SCHEMA.md", ("weight_mode",), "docs/development/CONFIG_SCHEMA.md"),
+    ("config_schema", "CONFIG_SCHEMA.md", ("weight_mode",), "docs/engineering/CONFIG_SCHEMA.md"),
     ("stage2_common", "stage2_common.cpp", ('in.contains("weight_mode")',),
      "lib/phase2/src/stage2_common.cpp"),
     ("sampler_h", "sampler.h", ("truncated-64",), "lib/phase2/include/astro/phase2/sampler.h"),
-    ("data_semantics", "DATA_SEMANTICS.md", ("frame_id",), "docs/contracts/DATA_SEMANTICS.md"),
+    ("data_semantics", "DATA_SEMANTICS.md", ("frame_id",), "docs/science/DATA_SEMANTICS.md"),
     ("upm_doc", "PHASE2_UPM.md", ("control cell",), "docs/science/PHASE2_UPM.md"),
-    ("error_model", "ERROR_MODEL.md", ("astrocs::ExitCode",), "docs/architecture/ERROR_MODEL.md"),
+    ("error_model", "ERROR_MODEL.md", ("astrocs::ExitCode",), "docs/engineering/ERROR_MODEL.md"),
     ("exit_codes_h", "exit_codes.h", ("namespace astrocs",),
      "lib/infrastructure/cli/exit_codes.h"),
     ("orchestrator_cpp", "orchestrator.cpp", ("stage_name_v2",),
@@ -512,8 +512,8 @@ MINI_FILES = {
     "lib/algorithms/noise_snr/cpp/src/noise_model.cpp":
         "constexpr double kTrimMeanToSigma = 0.7316727929211932;\n"
         "constexpr double kMadToSigma = 1.482602218505602;\n",
-    "docs/development/CONFIG_SCHEMA.md": "# weight_mode(auto)\n",
-    "docs/contracts/DATA_SEMANTICS.md":
+    "docs/engineering/CONFIG_SCHEMA.md": "# weight_mode(auto)\n",
+    "docs/science/DATA_SEMANTICS.md":
         "frame_id SHA-256\n| signal | support | variance | ivar |\n"
         "- input_manifest_hash：P2 面 sha256(canonical(sorted(frame_id|filter=;order=;frame=;)))，"
         "P3 面 sha256(signal/properties ‖ signal/Moc.fits)；两面值不得跨面比较。\n",
@@ -532,7 +532,7 @@ MINI_FILES = {
         "  return std::string();\n"
         "}\n",
     "docs/science/PHASE2_UPM.md": "DATA-FRAME-ID-001 control cell\n",
-    "docs/architecture/ERROR_MODEL.md":
+    "docs/engineering/ERROR_MODEL.md":
         "## 进程退出码（唯一源）\n> OK=0  ARGS=2  INPUT=3  SCIENCE=4  BACKEND=5  COMPUTE=6\n"
         "> IO=7  INTEGRITY=8  CANCELLED=9  RESOURCE=10  INTERNAL=70\n"
         "机器判据 = 与 lib/infrastructure/cli/exit_codes.h 的 astrocs::ExitCode 枚举一致\n"
@@ -655,7 +655,7 @@ def self_test() -> int:
 
         # I 负例（P-170）：DATA_SEMANTICS 面区分条款缺失（跨面比较未禁）⇒ 单源门必红
         repo = _mini_repo(os.path.join(tmp, "noclause"))
-        with open(os.path.join(repo, "docs/contracts/DATA_SEMANTICS.md"), "w",
+        with open(os.path.join(repo, "docs/science/DATA_SEMANTICS.md"), "w",
                   encoding="utf-8") as fh:
             fh.write("frame_id SHA-256\n| signal | support | variance | ivar |\n")
         subprocess.run(["git", "add", "-A"], cwd=repo, capture_output=True, timeout=120)

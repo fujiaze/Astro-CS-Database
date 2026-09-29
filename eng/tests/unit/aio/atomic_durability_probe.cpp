@@ -7,12 +7,12 @@
  *          target_exists=<0|1> tmp_residue=<0|1> consistent=<0|1>
  *   TARGET <目标路径>      （独立一行: 路径可含空格，不参与 RESULT 的空格分词）
  *   MESSAGE <原样错误文本>  （可空）
- * 语义锚: docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（步序正本）/§6（错误语义）;
- *         docs/plugins/infrastructure/17_aio.md §4（P-174：发布终态三态）。
+ * 语义锚: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4（步序正本）/§6（错误语义）;
+ *         docs/detail/infrastructure/17_aio.md §4（P-174：发布终态三态）。
  * 返回码: 0 = 已报告（不代表发布成功）; 2 = 用法错误。
  * 平台: POSIX-only —— 第三态的负例注入靠 LD_PRELOAD（只让 rename 之后目录 fd 的
  *       fsync 失败），Windows 无此机制；且 Windows 无目录 fsync 等价物，第三态在
- *       Windows 上恒成立但不可观测（见 docs/plugins/infrastructure/17_aio.md §4）。
+ *       Windows 上恒成立但不可观测（见 docs/detail/infrastructure/17_aio.md §4）。
  */
 #include <cstdio>
 #include <string>

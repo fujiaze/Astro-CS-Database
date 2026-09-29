@@ -17,4 +17,4 @@
 ## 上游
 
 - 本目录工具未注册于 `eng/ci/checks.json`（交叉验证按需执行）。
-- 本目录在 `docs/ci/` 无逐项对应篇；独立 Oracle 原则见 `docs/ci/01_CHECKS.md` §1 注册表原则。
+- 本目录在 CI 门禁规范（工程正本内的检查项清单与门禁规范篇）无逐项对应篇；独立 Oracle 原则见 `docs/engineering/01_CHECKS.md` §1 注册表原则。

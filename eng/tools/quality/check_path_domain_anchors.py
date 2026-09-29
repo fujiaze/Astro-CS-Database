@@ -3,11 +3,11 @@
 """CHK-PATH-DOMAIN-ANCHORS | eng/ci/checks.json 的 changed_paths 路径域锚存活门。
 
 权威依据
-  - docs/ci/CI_SPEC.md §2.3（选择规则）："选中 = 候选 ∩ { step | ∃ p ∈
+  - docs/engineering/CI_SPEC.md §2.3（选择规则）："选中 = 候选 ∩ { step | ∃ p ∈
     step.changed_paths：p 与改动集中某路径匹配 }"，并规定 glob 语义（dir/** 命中
     dir 及其任意子孙；含 * ? [ 的模式按 shell glob，* 不跨 /；不含通配符的模式为
     精确路径匹配）；
-  - docs/ci/01_CHECKS.md §1「锚存活」：判据里硬编码引用的仓库路径必须存在；失效时
+  - docs/engineering/01_CHECKS.md §1「锚存活」：判据里硬编码引用的仓库路径必须存在；失效时
     以 ANCHOR_STALE: <常量名> <路径> 显式失败并点名，不得 traceback、不得静默降级；
     §1「fail-closed」：输入缺失 / 路径不存在 / 依赖不可用时必须判红，不得把
     「文件不存在」当「无违规」（scanned == 0 ⇒ rc != 0）；
@@ -121,7 +121,7 @@ def _utc_now() -> str:
 def domain_base(pattern: str) -> tuple:
     """把路径域折成 (基目录, 形态)。形态 ∈ {dir_prefix, glob, exact}。
 
-    与 docs/ci/CI_SPEC.md §2.3 的三种语义一一对应：
+    与 docs/engineering/CI_SPEC.md §2.3 的三种语义一一对应：
       dir/**           ⇒ 前缀域，基目录 = 去掉 /** 后的目录；
       含 * ? [         ⇒ shell glob，基目录 = **最长无通配前缀**所在目录；
       不含通配符       ⇒ 精确路径，基目录 = 路径自身。
@@ -499,8 +499,8 @@ def evaluate(registry: dict, *, root: pathlib.Path, glob_match, reservations,
     verdict = "PATH_DOMAIN_ANCHORS_PASS" if not findings else "PATH_DOMAIN_ANCHORS_FAIL"
     return {
         "tool": "eng/tools/quality/check_path_domain_anchors.py",
-        "rule": ("CHK-PATH-DOMAIN-ANCHORS / docs/ci/CI_SPEC.md §2.3 + "
-                 "docs/ci/01_CHECKS.md §1（锚存活 / fail-closed）"),
+        "rule": ("CHK-PATH-DOMAIN-ANCHORS / docs/engineering/CI_SPEC.md §2.3 + "
+                 "docs/engineering/01_CHECKS.md §1（锚存活 / fail-closed）"),
         "generated_utc": _utc_now(),
         "registry": registry_rel,
         "reservations": reservations_rel,

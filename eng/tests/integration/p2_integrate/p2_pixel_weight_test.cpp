@@ -9,7 +9,7 @@
  *   docs/science/UNIFIED_SCIENCE_MODEL.md:59/62
  *   docs/science/PSF_SIGNAL_WEIGHT.md:75/87
  *   eng/contracts/schemas/unified/sparse_snr_layer.schema.json
- *   docs/plugins/algorithms_phase2/13_integration.md 4.0
+ *   docs/detail/algorithms_phase2/13_integration.md 4.0
  *
  * 判据：
  *   (A) 量纲/口径一致（含「层值缺失 = 显式降级而非乘 1」）

@@ -178,7 +178,7 @@ class TestWorkspacePurity(unittest.TestCase):
         """§9.3：mutates_workspace=true 的可写面 = 登记 outputs ∪ dirty_ignore_*，
         **不再**自我豁免——越界写仍 FAIL(dirty)；写在登记 outputs 内才 PASS。
 
-        权威依据 docs/ci/CI_SPEC.md §9.3（「mutates_workspace（真强制，不改名）」）：
+        权威依据 docs/engineering/CI_SPEC.md §9.3（「mutates_workspace（真强制，不改名）」）：
         「mutates_workspace: true 的执行单元可写面 = 登记 outputs ∪ dirty_ignore_exact/
         dirty_ignore_prefixes；**不再**无条件跳过执行前后的工作区对比（旧行为是
         自我豁免）。写出可写面之外的任何路径 ⇒ FAIL(dirty)（与 mutates_workspace:

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """内容锚（content anchor）共用的规范化、指纹与区分力判定。
 
-规则正本 = docs/algorithms/anchors/ANCHOR_CONTRACT.md 第 9 节（唯一权威）；本模块是该规则的机器实现，
+规则正本 = docs/detail/anchors/ANCHOR_CONTRACT.md 第 9 节（唯一权威）；本模块是该规则的机器实现，
 由 CFG-001 门（test_cfg001_contracts.py）与 eng/tests/config/check_cfg002_registry.py
 （CFG002-01/04/09/11/12）共同引用——判据只有一份实现，禁止两处各写一套。
 

@@ -1,6 +1,6 @@
 // eng/tests/unit/core_block_frame_test.cpp — ARCH-501 命名块生命周期回归锁
 //
-// 覆盖（CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md）：
+// 覆盖（CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md）：
 //   A. 状态机全分支：CREATED → CONSUMED → DESTROYED；多消费者引用计数；
 //   B. 内存即时归还（raw→calibrated→photo 链，销毁点 bytes_alive 下降）；
 //   C. DAG 校验器四类非法图（消费不存在 / 重复生产 / 生命周期不一致 / 名字非法）

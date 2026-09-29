@@ -7,8 +7,8 @@
 —— 重新配置/编译探针，断言同一套断言（check_atomic_durability.py）必须 FAIL。
 正控制：未变异源码同一套断言 rc == 0。
 
-依据: docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§6;
-      docs/plugins/infrastructure/17_aio.md §4（P-174 三终态）。
+依据: docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4/§6;
+      docs/detail/infrastructure/17_aio.md §4（P-174 三终态）。
 用法: durability_mutation_and_check.py <repo_root> <workdir>
 """
 import os

@@ -3,8 +3,8 @@
 """eng/ci/check_frozen_gate.py — L2 冻结判据裁决器 + 可执行正负例面（GATE-501）。
 
 权威依据
-  * docs/ci/CI_SPEC.md §4/§9（L2 性能门 = fail-closed 裁决面）；
-  * docs/ci/03_GATES.md §L2（四条冻结判据与红/绿判据）；
+  * docs/engineering/CI_SPEC.md §4/§9（L2 性能门 = fail-closed 裁决面）；
+  * docs/engineering/03_GATES.md §L2（四条冻结判据与红/绿判据）；
   * ENGINEERING_SPEC.md §10（fail-closed：输入缺失/路径不存在/依赖不可用判红；
     每项检查提供机器可执行负例入口 --self-test）；
   * 阈值唯一数值源：eng/contracts/resource_gate_v1.json（本文件不含字面量阈值）。

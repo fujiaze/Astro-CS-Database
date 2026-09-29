@@ -3,10 +3,10 @@
 """CHK-NODE-BUDGET-WIRING — 节点并行预算必须来自**运行期预算**（X1）。
 
 依据（逐条）：
-  * docs/architecture/THREADING_MODEL.md「并行轴分配」：并行轴 = 帧轴 × 帧内轴，两轴之积 ≤ 预算；
+  * docs/engineering/THREADING_MODEL.md「并行轴分配」：并行轴 = 帧轴 × 帧内轴，两轴之积 ≤ 预算；
     预算唯一来源 = 运行期配额，禁硬编码线程数。
-  * docs/contracts/SCHEDULER_CONTRACT.md §3：线程预算由配置/资源门决定，禁硬编码常数。
-  * docs/standards/CONCURRENCY_STANDARD.md「默认」节：线程数外部可配置，
+  * docs/engineering/SCHEDULER_CONTRACT.md §3：线程预算由配置/资源门决定，禁硬编码常数。
+  * docs/engineering/CONCURRENCY_STANDARD.md「默认」节：线程数外部可配置，
     **默认 min(可用核, 配置上限)**；取值来源 = 配置（16 不作硬编码值）。
 
 缺陷（本门锁定的回归面）：旧实现在 config **没有** __workers 时（= 直接调用 op 的非调度路径）

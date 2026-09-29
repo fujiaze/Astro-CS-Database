@@ -4,8 +4,8 @@
   "version": 1,
   "status": "PRODUCTION_INTEGRATED",
   "task": "DOC-CONTRACT-MERGE-02",
-  "semantic_authority": "docs/contracts/DATA_SEMANTICS.md §31（§31.10 V6 条款注册表与待签登记）",
-  "machine_registration_note": "本文件是 §31 的机器可读登记表（docs/ASTROCS_DESIGN.md §0.2：登记表与映射表承载定义）；语义权威在 docs/contracts/DATA_SEMANTICS.md §31 正文，本文件不自声为权威。",
+  "semantic_authority": "docs/science/DATA_SEMANTICS.md §31（§31.10 V6 条款注册表与待签登记）",
+  "machine_registration_note": "本文件是 §31 的机器可读登记表（docs/ASTROCS_DESIGN.md §0.2：登记表与映射表承载定义）；语义权威在 docs/science/DATA_SEMANTICS.md §31 正文，本文件不自声为权威。",
   "migrated_from": {
     "frozen_contract": "astrocs.v6.contract-freeze.v1.json",
     "data_dictionary": "v6_data_dictionary_v1.json",
@@ -76,7 +76,7 @@
       "point_information",
       "surface_gls"
     ],
-    "_psfsw_retirement_note": "PSFSW-RETIRE-03（A44 式留痕）：psfsw_robust 已从本历史 production 列表**移出**——它是退役对象 psfsw_robust_weight 的声明 token，不是生产模式（生产接受集 = point_information | surface_gls；docs/ASTROCS_DESIGN.md §3.1 订正后 + docs/design/UNIFIED_MODEL.md:58 + 负责人 2026-09-20 裁决 B）。旧产品声明该 token ⇒ 显式拒绝 + 迁移提示（FZ-MODE-RETIRED），不得静默接受；本键只记录「移出」这一事实，不承载生效语义（weight_modes 整体已按 §9.73 A44 作废，见 a44_deprecation）。",
+    "_psfsw_retirement_note": "PSFSW-RETIRE-03（A44 式留痕）：psfsw_robust 已从本历史 production 列表**移出**——它是退役对象 psfsw_robust_weight 的声明 token，不是生产模式（生产接受集 = point_information | surface_gls；docs/ASTROCS_DESIGN.md §3.1 订正后 + docs/detail/UNIFIED_MODEL.md:58 + 负责人 2026-09-20 裁决 B）。旧产品声明该 token ⇒ 显式拒绝 + 迁移提示（FZ-MODE-RETIRED），不得静默接受；本键只记录「移出」这一事实，不承载生效语义（weight_modes 整体已按 §9.73 A44 作废，见 a44_deprecation）。",
     "retired": [
       "psfsw_robust"
     ],
@@ -1551,7 +1551,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "md_table_row",
         "locator": "FZ-AP2S-EPS-PIXIVAR",
         "contains": "0.05",
@@ -1576,7 +1576,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "md_table_row",
         "locator": "FZ-AP2S-EPS-PIXIVAR-SUP",
         "contains": "0.20",
@@ -1926,7 +1926,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-03",
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "FZ-GATE-CONST-SB",
         "contains": "1e-3",
@@ -1951,7 +1951,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "PROPOSED_PENDING_OWNER_SIGNOFF_SO07",
         "contains": "0.20",
@@ -1976,7 +1976,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "max(f_p, 0.1)",
         "contains": "0.1",
@@ -2001,7 +2001,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "default 1 ADU",
         "contains": "1 ADU",
@@ -2026,7 +2026,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "GLS/Q-W rel < 1e-9",
         "contains": "1e-9",
@@ -2051,7 +2051,7 @@
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-07",
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "未复跑标定前",
         "contains": "1.4",
@@ -2076,7 +2076,7 @@
       "status": "FROZEN",
       "owner_signoff": null,
       "source_binding": {
-        "file": "docs/contracts/DATA_SEMANTICS.md",
+        "file": "docs/science/DATA_SEMANTICS.md",
         "kind": "substring",
         "locator": "CAR",
         "contains": "2.0000",
@@ -2119,7 +2119,7 @@
       "status": "OPEN",
       "owner_signoff": "ALG-P2-POINT-001",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-INJ-01",
         "contains": "0.02"
@@ -2142,7 +2142,7 @@
       "status": "OPEN",
       "owner_signoff": "ALG-P2-SURF-001",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-INJ-02",
         "contains": "0.03"
@@ -2165,7 +2165,7 @@
       "status": "OPEN",
       "owner_signoff": "ALG-P2-PSFSW-001",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-INJ-03",
         "contains": "0.05"
@@ -2188,7 +2188,7 @@
       "status": "OPEN",
       "owner_signoff": "ALG-P3-001",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-INJ-07",
         "contains": "0.02"
@@ -2211,7 +2211,7 @@
       "status": "OPEN",
       "owner_signoff": "REAL-SCIENCE-001",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-RD-01",
         "contains": "0 count"
@@ -2234,7 +2234,7 @@
       "status": "OPEN",
       "owner_signoff": "REAL-SCIENCE-001",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-RD-02",
         "contains": "0 count"
@@ -2257,7 +2257,7 @@
       "status": "OPEN",
       "owner_signoff": "ALG-P2-PSFSW-001/预注册",
       "source_binding": {
-        "file": "docs/validation/v6/QA_MATRIX.md",
+        "file": "docs/engineering/v6/QA_MATRIX.md",
         "kind": "substring",
         "locator": "G-BASE-03",
         "contains": "> 0 rel"
@@ -2808,7 +2808,7 @@
     "banner": "本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念不存在（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；docs/ASTROCS_DESIGN.md §2.1）。内容保持历史原样、仅作留痕，不构成现行规范；权重 = 阶段二按天球像素对应帧集合现场算出的派生量。",
     "note": "weight_modes 已按 §9.73 A44 作废（该概念不存在；权重是阶段二按像素集合现场算的派生量）。全程只有 SNR：入库的是未加权原始 frame_snr，权重一律由 Phase2 在集成时按天球像素对应的输入帧集合现场派生（w_k=SNR_k^2/F_ref,k^2），不存在任何被冻结或被选择的权重模式键。本段与 forbidden.weight_source_tokens 为历史留痕，代码侧删除与注册表解除归 CLEAN-501（依赖 ARCH-505 的节点改写）；在代码侧删除落地前不得据本段声称存在权重模式选择。",
     "forbidden_retirement_note": "weight_source_tokens 是权重来源 token 黑名单的历史留痕（禁止把 median source SNR / support / coverage / fwhm / residual / psfsw 当作权重来源）。按全程只有 SNR 口径，其规范内容已由 weight_modes 的 _a44_deprecation_note 覆盖；代码侧（p3_rsmp_failclosed.cpp、coverage.cpp 词表）删除与注册表解除归 CLEAN-501，删净前本表保持与代码一致、不得单方面移除。本键已按 §9.73 A44 作废，仅作历史留痕，不承载任何生效语义。",
-    "psfsw_retire_03_correction": "PSFSW-RETIRE-03（A44 式留痕，2026-09-22）：本次把**退役对象** psfsw_robust_weight 的最后两处「现行身份」从本登记表移出——① weight_modes.production 移除 psfsw_robust（改记于 weight_modes.retired + _psfsw_retirement_note；mode_details 该行 status=RETIRED_NOT_PRODUCTION）；② units_table 移除该符号行（§31.1 已标 OBSOLETE/对象真删，此处只是对齐）。移出依据：docs/ASTROCS_DESIGN.md §3.1（订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）+ docs/design/UNIFIED_MODEL.md:58 + 负责人 2026-09-20 裁决 B（CHG-2026-09-20-PSFSW-RETIRE）+ 生产模式接受集收窄（FZ-MODE-PRODUCTION {point_information, surface_gls} / FZ-MODE-RETIRED）。历史取值与设计档案视图保留在 design_units_table 与 x-astrocs-canonical-object-retirement，**不删历史**；本键仅记录「移出」这一事实，不使 weight_modes 概念重新生效。"
+    "psfsw_retire_03_correction": "PSFSW-RETIRE-03（A44 式留痕，2026-09-22）：本次把**退役对象** psfsw_robust_weight 的最后两处「现行身份」从本登记表移出——① weight_modes.production 移除 psfsw_robust（改记于 weight_modes.retired + _psfsw_retirement_note；mode_details 该行 status=RETIRED_NOT_PRODUCTION）；② units_table 移除该符号行（§31.1 已标 OBSOLETE/对象真删，此处只是对齐）。移出依据：docs/ASTROCS_DESIGN.md §3.1（订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）+ docs/detail/UNIFIED_MODEL.md:58 + 负责人 2026-09-20 裁决 B（CHG-2026-09-20-PSFSW-RETIRE）+ 生产模式接受集收窄（FZ-MODE-PRODUCTION {point_information, surface_gls} / FZ-MODE-RETIRED）。历史取值与设计档案视图保留在 design_units_table 与 x-astrocs-canonical-object-retirement，**不删历史**；本键仅记录「移出」这一事实，不使 weight_modes 概念重新生效。"
   },
   "design_units_table": [
     {
@@ -3420,7 +3420,7 @@
       "section": "§4.2 四分量表",
       "line": 203,
       "as_written": "ADU/px",
-      "disposition": "被登记的错误原文已随 DOC-PURGE-01 出库；该错误不得被静默采纳的判据仍然成立（合法域不含 'ADU/px'），见 docs/contracts/DATA_SEMANTICS.md §31.7",
+      "disposition": "被登记的错误原文已随 DOC-PURGE-01 出库；该错误不得被静默采纳的判据仍然成立（合法域不含 'ADU/px'），见 docs/science/DATA_SEMANTICS.md §31.7",
       "not_silently_adopted": true
     }
   },
@@ -3615,10 +3615,9 @@
       "P27 生产路径不消费的 IpvParams 字段节"
     ],
     "frozen_not_modified": [
-      "docs/science/**",
-      "docs/owner/**",
-      "docs/design/**",
-      "docs/references/**"
+      "docs/science/**（科学正本：公式、常数与算法推导）",
+      "docs/engineering/**（工程正本：行为合同/数据语义、架构、标准与锚合同、门禁、追溯、版本与状态，含 L0 汇总层与文献正本）",
+      "docs/detail/**（细节实施面：模块工作细节、数据对象与配置、接口落地、阶段详细设计、插件注册）"
     ]
   },
   "weight_vocabulary": {
@@ -3628,7 +3627,7 @@
     "wave": 6,
     "status": "PRODUCTION_INTEGRATED",
     "authority": "CONTROLLER_LOG.md C-004.3; C-007 F1 局部裁定; DI-01; DI-07",
-    "semantic_authority": "docs/contracts/DATA_SEMANTICS.md §31.10",
+    "semantic_authority": "docs/science/DATA_SEMANTICS.md §31.10",
     "statement": "SCI-PSFW-001 与 SCI-P2-001 的两套既有权重词表归一为单一权威 schema；本文件是唯一词表事实源，不发明第三套。/ The two pre-existing weight vocabularies are collapsed into one canonical schema; no third vocabulary is permitted.",
     "object_path": "weight",
     "canonical_fields": [
@@ -3865,8 +3864,8 @@
     "task": "SCHEMA-INTEGRATE-001",
     "wave": 6,
     "status": "PRODUCTION_INTEGRATED",
-    "semantic_authority": "docs/contracts/DATA_SEMANTICS.md §31.10",
-    "source_of_truth": "eng/contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json#migrations + docs/contracts/DATA_SEMANTICS.md",
+    "semantic_authority": "docs/science/DATA_SEMANTICS.md §31.10",
+    "source_of_truth": "eng/contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json#migrations + docs/science/DATA_SEMANTICS.md",
     "compatibility_declaration": "向后兼容仅由 reader/迁移层提供；writer/schema 只产出 v6 canonical。legacy weight_mode=0 一律拒绝，不得静默解释为任何科学权重。既有合同语义（signal/support/variance/ivar/mask 平面语义、BUNIT 二次律、provenance 最小集）不被静默改变。",
     "file_migrations": [
       {
@@ -3939,8 +3938,8 @@
         "note": "catalog 保留为 W3 提案；生产数据字典由本任务独立出具"
       },
       {
-        "from": "docs/contracts/UNIFIED_OBJECTS.md",
-        "to": "docs/contracts/DATA_SEMANTICS.md §31 + docs/contracts/PUBLIC_API.md v6 段",
+        "from": "docs/engineering/UNIFIED_OBJECTS.md",
+        "to": "docs/science/DATA_SEMANTICS.md §31 + docs/engineering/PUBLIC_API.md v6 段",
         "kind": "doc",
         "note": "生产合同吸收 v6 字段/单位/BUNIT/weight_mode/provenance/fail-closed"
       }
@@ -4097,7 +4096,7 @@
     "entries": [
       {
         "retired": "ALG_P1_001_PHASE1_ALGORITHM_SPEC.md",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       },
       {
         "retired": "ALG-P2-POINT-001_SPEC.md",
@@ -4121,7 +4120,7 @@
       },
       {
         "retired": "ALG-P2-SURF-PIXIVAR-GATE.md",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       },
       {
         "retired": "ALG-P2-SURF-REJECTION.md",
@@ -4133,27 +4132,27 @@
       },
       {
         "retired": "ALG-P3-001_VERIFICATION.md",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       },
       {
         "retired": "*.md",
-        "current": "docs/contracts/UNIFIED_OBJECTS.md"
+        "current": "docs/engineering/UNIFIED_OBJECTS.md"
       },
       {
         "retired": "07_provenance.md",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       },
       {
         "retired": "10_migration_and_open_items.md",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       },
       {
         "retired": "astrocs.v6.contract-freeze.v1.json",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       },
       {
         "retired": "SCI-ADJ-001_FREEZE_LIST.md",
-        "current": "docs/contracts/DATA_SEMANTICS.md"
+        "current": "docs/science/DATA_SEMANTICS.md"
       }
     ]
   }

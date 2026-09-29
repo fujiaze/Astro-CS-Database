@@ -10,7 +10,7 @@
   D1 冻结串在 schema $defs/units 的 const、registry quadratic_law.statement、
      units.example.json quadratic_law.statement 三处**逐字相同**（不得漂移）；
   D2 schema const **仍以** "variance = signal^2" 开头（即未被改写成单位传播式——改写=重新冻结，须走变更流程）；
-  D3 docs/contracts/DATA_SEMANTICS.md §31.1 含**消歧说明**：
+  D3 docs/science/DATA_SEMANTICS.md §31.1 含**消歧说明**：
      (a) 冻结串逐字在文；(b) 单位读法 BUNIT(variance) = BUNIT(signal)^2 在文；
      (c) 数值层反例在文（探测器偏置项与信号无关 ⇒ 信号趋零时方差不趋零）；
   D4 文档仍含 "variance = signal^2"（field_constraints_oracle O04b 依赖它，删了会连带判红）。
@@ -25,7 +25,7 @@ UNIT_FORM = "BUNIT(variance) = BUNIT(signal)^2"
 SCHEMA_REL = "eng/contracts/schemas/product_family_field_constraints.schema.json"
 REG_REL = "eng/contracts/data/clause_registry.json"
 EX_REL = "eng/contracts/data/examples/units.example.json"
-DS_REL = "docs/contracts/DATA_SEMANTICS.md"
+DS_REL = "docs/science/DATA_SEMANTICS.md"
 # 数值层反例的关键片段（三者任一在文即可，容忍措辞微调）
 COUNTEREXAMPLE_MARKERS = ["信号趋零时方差不趋零", "与信号无关", "1/12 ADU^2"]
 

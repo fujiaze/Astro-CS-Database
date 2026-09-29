@@ -22,6 +22,15 @@ import re
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# API 正本（文档迁移后并入一级·工程正本、不再成独立目录）
+API_SPEC_DOCS = (
+    "docs/engineering/PHASE1_API_V1.md",
+    "docs/engineering/PHASE2_API_V1.md",
+    "docs/engineering/PHASE3_API_V1.md",
+    "docs/engineering/CLI_PROTOCOL_V1.md",
+    "docs/engineering/COMMON_ABI_V1.md",
+    "docs/engineering/MANIFEST_VERIFY_V1.md",
+)
 # 信号单位 token(二义判定对象); px²/deg 等派生维数不算"二选一单位"本身
 SIGNAL = {"ADU", "e-", "e⁻", "e−", "electron", "electron-", "Jy", "DN", "count"}
 UNIT_TKN = {"ADU", "e-", "e⁻", "e−", "electron", "Jy", "DN", "count", "px", "px²", "px^2",
@@ -72,9 +81,21 @@ class Chk:
         return err
 
     def check_docs(self):
-        roots = ["docs/science", "docs/api"]
+        # 扫描面 = 科学正本目录 + API 正本**文件清单**。
+        # API 正本在文档迁移后并入一级·工程正本、不再成目录（仍是那 6 篇 *_V1.md）：
+        # 因此这里逐篇点名（与 eng/ci/checks.json 已迁移的 changed_paths 同一范式），
+        # 而不是把整个工程正本目录扫进来 —— 后者会把行为合同/标准面也算进单位消歧分母，超出本门口径。
+        roots = ["docs/science"] + list(API_SPEC_DOCS)
         for root in roots:
             d = os.path.join(self.repo, root)
+            if os.path.isfile(d):
+                if not d.endswith(".md"):
+                    continue
+                full, rel = d, os.path.relpath(d, self.repo)
+                txt = open(full, encoding="utf-8", errors="ignore").read()
+                for e in self._scan(rel, txt):
+                    self.fail(e)
+                continue
             if not os.path.isdir(d):
                 continue
             for dirpath, _, files in os.walk(d):

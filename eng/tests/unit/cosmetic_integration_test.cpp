@@ -60,6 +60,13 @@
 #include <dlfcn.h>
 #endif
 
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * Windows 侧的 dlopen/dlsym/dlerror、RTLD_* 等经 eng/tests/support/astrocs_test_posix_compat.h
+ * 统一给等价物 (本 TU 的加载用例是平台中立的模块加载器契约, 加守卫跳过会丢覆盖面, 故不跳过)。
+ * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。
+ * 无等价语义的能力见该头「无等价物清单」(显式限定 + 明确状态)。 */
+#include "../support/astrocs_test_posix_compat.h"
+
 #include "astrocs/abi/lifecycle_v1.h"
 #include "astrocs/abi/module_api_v1.h"
 #include "astrocs/abi/host_api_v1.h"

@@ -4,7 +4,7 @@
 
 存在理由（独立审查一页纸 S1 第 25／26／29 条，三条同型）：
   * 第 25 条：CON-BUILD-GRAPH 只查「文档里是否出现某四个字符串」，故
-    docs/architecture/BUILD_GRAPH.md 的目标名与路径全错、门仍绿；
+    docs/engineering/BUILD_GRAPH.md 的目标名与路径全错、门仍绿；
   * 第 26 条：单一用户入口不变量的判据写成「登记清单里 production exe 数 == 0」，
     既与命题反向，又零查构建面；
   * 第 29 条：生产入口 acsd 本身在登记面零登记，因为生成器只扫 lib 与 eng/tools。

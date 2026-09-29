@@ -2,7 +2,7 @@
 """run manifest 双合同符合性门（RULING-DOC-01 / 裁决 D）。
 
 背景（两份**同名**冻结合同，必须分开判）:
-  * CLI-003 = docs/api/MANIFEST_VERIFY_V1.md（API-MANIFEST-001, FROZEN）§2/§2.1：
+  * CLI-003 = docs/engineering/MANIFEST_VERIFY_V1.md（API-MANIFEST-001, FROZEN）§2/§2.1：
     真实产出物 `<output_dir>/astrocs_run_<run_id>.json` 的字段合同（写入者 =
     lib/infrastructure/cli/commands.cpp::write_run_manifest）。
   * CFG-001 = eng/contracts/schemas/run_manifest.schema.json（配置分离锚点
@@ -121,9 +121,9 @@ REGISTERED_ADDITIVE = {
     "summary": "CLI-003 §4 final 事件同源摘要（write_run_manifest 写入）",
     "error": "SMOKE-001 D7：失败/取消 manifest 自带失败原因",
     "uncertainty_available": "FIX-E2E B1-A5/A10：节点级科学事实并入 manifest",
-    "log_artifacts": "docs/contracts/LOG_AND_ERROR_CONTRACT.md §4（每次运行必填）",
-    "budget_alloc": "docs/architecture/THREAD_BUDGET_ARCH.md（分配快照）",
-    "storage": "R-42/P-181：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.3（运行级形态事实；"
+    "log_artifacts": "docs/engineering/LOG_AND_ERROR_CONTRACT.md §4（每次运行必填）",
+    "budget_alloc": "docs/engineering/THREAD_BUDGET_ARCH.md（分配快照）",
+    "storage": "R-42/P-181：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.3（运行级形态事实；"
                "机器事实源 hips_storage_form.schema.json#/$defs.manifest_storage）",
 }
 

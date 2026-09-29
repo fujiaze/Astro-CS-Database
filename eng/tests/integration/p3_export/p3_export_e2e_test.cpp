@@ -34,6 +34,12 @@
 #include <unistd.h>
 #endif
 
+/* FINAL-07 WIN-PORT 批次二: 平台专属调用的唯一判定点 ——
+ * Windows 侧的 popen/pclose 经 eng/tests/support/astrocs_test_posix_compat.h 统一给等价物
+ * (::popen 经函数式宏展开为 ::_popen(...), 语义等价)。
+ * 类 UNIX 侧该头整头为空, 上面保留本 TU 原有系统头 => Linux 预处理零 delta。 */
+#include "../../support/astrocs_test_posix_compat.h"
+
 using namespace astrocs::phase3::v6;
 namespace p3rsmp = astrocs::p3rsmp;
 namespace phase3proj = astrocs::phase3proj;

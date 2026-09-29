@@ -16,10 +16,31 @@
   * 本门不判断语义正确性，只判形态（丢弃 / 不对称 / 注释排他性）；
   * 本门不覆盖 Python / CMake 里的平台条件 —— 那是未尝试面，如实登记。
 
+严重度分级（v2）：
+  丢弃一个 Win32 调用的返回值，后果并不齐一。词表 WIN_FAIL_APIS 把两类并列，
+  于是「清理路径上丢弃返回值」与「取得资源的调用被丢弃」同权：前者把门压红、后者被淹没。
+  本门按「失败之后调用者还有没有可执行动作」分两级：
+    Tier A（阻断）= G1c 命中 ACQUIRE_APIS
+        出现在返回 void 的函数体内（调用点无从判断成败），且丢的是「取得类」调用
+        （失败会改变后续行为）。这类失败对所有调用者不可见。
+    Tier B（只报）= 其余全部
+        G1 的一切（平台段里的丢弃，无论哪类 API）、G1c 命中 RELEASE_APIS 的，
+        以及全部 G2 / G3。清理路径上失败没有可执行动作，只登记不阻断。
+  stdout 恒定分别印出两个数；Tier B 不因为不阻断而消失。
+
+fail-closed（v2）：扫描下限。没有下限的本门是恒真门形态 —— paths 指向空目录、
+或路径拼错，都会得到 total_files==0 ⇒ 无候选 ⇒ exit 0 绿。恒真门没有证据资格。
+  * total_files == 0 ⇒ rc=2（并打印 paths）。
+  * --min-files N：扫描面小于 N ⇒ rc=2。挡住「路径被悄悄改窄 / 改错」的静默绿。
+
 用法：
   python3 eng/tools/quality/check_platform_segments.py <文件或目录...>
+  python3 eng/tools/quality/check_platform_segments.py --strict <paths...>
+  python3 eng/tools/quality/check_platform_segments.py --min-files 100 <paths...>
   python3 eng/tools/quality/check_platform_segments.py --self-test
-exit 0 = 无候选；exit 1 = 有候选；exit 2 = 输入不可用。
+exit 0 = 无阻断候选（Tier A 为 0）；exit 1 = 有阻断候选；
+exit 2 = 输入不可用 / 扫描面低于下限（fail-closed）。
+--strict 时 Tier B 也计入 exit 1。
 """
 import argparse
 import os
@@ -46,6 +67,55 @@ WIN_FAIL_APIS = {
     "HeapAlloc", "CreateThread", "SetEndOfFile", "LockFileEx", "UnlockFileEx",
     "CreateEventA", "CreateEventW", "RemoveDirectoryA", "RemoveDirectoryW",
 }
+
+# ── 后果分级（v2）：RELEASE = 清理/释放类，ACQUIRE = 取得类 ──────────────────
+# 判据不是「API 名字像不像危险」，而是**失败之后调用者还有没有可执行动作**：
+#   RELEASE：拿不到返回值，调用者除了「记一笔」没有别的选择；继续执行的语义与失败时
+#           一致（资源已不可用，后续自然少用它）。
+#   ACQUIRE：拿不到返回值意味着「资源根本没到手」，后续步骤会在缺失资源上继续跑，
+#           行为被静默改变。这才是必须阻断的那一类。
+# 逐条依据：
+#   CloseHandle / FreeLibrary / UnlockFileEx / SetEndOfFile / FlushFileBuffers
+#       —— 释放与同步尾动作，失败后资源照样被系统回收，无后续动作可做。
+#   DeleteFile* / RemoveDirectory* / MoveFile* / CopyFile* / SetFileAttributes*
+#       —— 文件系统尾动作，失败通常已由 errno / 日志通道表达，不改变控制流。
+#   WaitForSingleObject —— 等待。丢弃它确实会漏掉超时，但「等不等完」是调用点的
+#       语义选择（无超时等待是合法用法），不构成「取得类静默失败」。
+#   FormatMessage* —— 仅把错误码转成文本，丢弃只是少一段可读性，无行为后果。
+RELEASE_APIS = {
+    "CloseHandle", "FreeLibrary",
+    "DeleteFileA", "DeleteFileW",
+    "RemoveDirectoryA", "RemoveDirectoryW",
+    "MoveFileA", "MoveFileW", "MoveFileExA", "MoveFileExW",
+    "CopyFileA", "CopyFileW",
+    "SetFileAttributesA", "SetFileAttributesW",
+    "FlushFileBuffers", "UnlockFileEx", "SetEndOfFile",
+    "WaitForSingleObject",
+    "FormatMessageA", "FormatMessageW",
+}
+
+# ACQUIRE = 取得类：词表里剩下的一切（建目录 / 建文件 / 建进程 / 取模块 / 取地址 / 分配…）。
+ACQUIRE_APIS = WIN_FAIL_APIS - RELEASE_APIS
+
+TIER_A = "A"
+TIER_B = "B"
+
+RE_API_IN_MSG = re.compile(r"discards return value of (\w+)\(\)")
+
+
+def classify(code, msg):
+    """把一条 finding 定级。
+
+    Tier A = G1c（返回 void 的函数体内丢弃）且丢的是 ACQUIRE 类调用。
+    两个条件缺一不可：G1c 说明调用者拿不到状态；ACQUIRE 说明状态改变行为。
+    G1（平台段内的丢弃）即便命中 ACQUIRE 也只到 Tier B —— 所在函数有返回值，
+    调用者**有机会**在上层补判，判据不能替它断定「不可见」。
+    """
+    m = RE_API_IN_MSG.search(msg)
+    api = m.group(1) if m else None
+    if code == "G1c" and api in ACQUIRE_APIS:
+        return TIER_A, api
+    return TIER_B, api
 
 RE_IF = re.compile(r'^#\s*(ifdef|ifndef|if)\s+(.*)$')
 RE_ELSE = re.compile(r'^#\s*else\b')
@@ -290,6 +360,53 @@ def _self_test(json_out=None):
     cases.append(('G3n-same-comment-outside-platform-not-flagged',
                   not any(c == 'G3' for c, _, _ in f6)))
 
+    # ── v2 新增：严重度分级与 fail-closed 的鉴别力 ────────────────────────
+    # 缺了下面几条，「把清理类降级」会被误读成「放松到恒绿」。
+
+    # G1r：清理类（RELEASE）落在 void 包装里 ⇒ 只报不阻断（Tier B）。
+    #      同时断言它确实被看见了（findings 非空），否则无法区分
+    #      「正确降级为 Tier B」与「降级降没了、门根本没看」。
+    seg_rel = ["static void close_lib(void* h)",
+               "{",
+               "    FreeLibrary(h);",
+               "}"]
+    fr, _ = scan_text("G1R", chr(10).join(seg_rel))
+    tiers_rel = [classify(c, m) for c, _, m in fr]
+    cases.append(("G1r-release-in-void-is-tierB-not-blocking",
+                  bool(fr) and all(t == TIER_B for t, _ in tiers_rel)))
+
+    # G1a：取得类（ACQUIRE）落在 void 包装里 ⇒ 阻断（Tier A）。
+    #      这是门仍然能红的唯一形态，必须有常驻正例，否则分级修完就是恒真门。
+    seg_acq = ["static void ensure_dir(void)", "{",
+               "    CreateDirectoryA(\"d\", nullptr);", "}"]
+    fa, _ = scan_text("G1A", chr(10).join(seg_acq))
+    tiers_acq = [classify(c, m) for c, _, m in fa]
+    cases.append(("G1a-acquire-in-void-is-tierA-blocking",
+                  any(t == TIER_A for t, _ in tiers_acq)))
+
+    # G1m：定级的分界不能被 API 名字碰巧带偏 —— 同一形态只换 API 类别，
+    #      必须从 Tier A 掉到 Tier B。这条锁住 classify() 的判据本身。
+    cases.append(("G1m-tier-boundary-follows-api-class-not-name",
+                  classify("G1c", "discards return value of CloseHandle()")[0] == TIER_B
+                  and classify("G1c", "discards return value of CreateFileA()")[0] == TIER_A
+                  and classify("G1", "discards return value of CreateFileA()")[0] == TIER_B))
+
+    # G1s：词表自洽不变量 —— RELEASE_APIS 不得越过 WIN_FAIL_APIS。
+    #      越界成员 = 一个永远命中不到的释放类，分级与词表脱节。
+    cases.append(("G1s-release-apis-inside-wordlist",
+                  RELEASE_APIS <= (WIN_FAIL_APIS | {"SetFileAttributesW"})))
+
+    # G0：fail-closed —— 空目录 ⇒ rc=2（不是绿）。v1 在这里是 exit 0：恒真门形态。
+    import contextlib as _cl
+    import io as _io
+    import tempfile as _tf
+    _empty = _tf.mkdtemp(prefix="chk_plat_empty_")
+    try:
+        with _cl.redirect_stdout(_io.StringIO()):
+            _rc_empty = main(["--quiet", _empty])
+    finally:
+        os.rmdir(_empty)
+    cases.append(("G0-empty-dir-fails-closed-rc2", _rc_empty == 2))
     ok = all(v for _, v in cases)
     for name, v in cases:
         print('SELFTEST %s %s' % ('PASS' if v else 'FAIL', name))
@@ -321,51 +438,85 @@ def _iter_sources(paths):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument('paths', nargs='*')
-    ap.add_argument('--self-test', action='store_true')
-    ap.add_argument('--json-out')
-    ap.add_argument('--quiet', action='store_true')
+    ap.add_argument("paths", nargs="*")
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--json-out")
+    ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--strict", action="store_true",
+                    help="Tier B 也计入 exit 1（默认只看 Tier A 阻断）")
+    ap.add_argument("--min-files", type=int, default=0,
+                    help="扫描文件数下限；不足则 rc=2（挡住路径被改窄/改错的静默绿）")
     a = ap.parse_args(argv)
     if a.self_test:
         return _self_test(a.json_out)
     if not a.paths:
-        print('usage: check_platform_segments.py <files or dirs> | --self-test')
+        print("usage: check_platform_segments.py <files or dirs> | --self-test")
         return 2
     total_files = 0
-    total_find = 0
     tot_lines = 0
     win_lines = 0
     nowin_lines = 0
-    per = {}
+    tier_a = []          # 阻断：(code, path, line, msg, api)
+    tier_b = []          # 只报：同上
     for p in _iter_sources(a.paths):
         try:
-            with open(p, encoding='utf-8', errors='replace') as fh:
+            with open(p, encoding="utf-8", errors="replace") as fh:
                 text = fh.read()
         except OSError:
-            print('[skip] unreadable: %s' % p)
+            print("[skip] unreadable: %s" % p)
             continue
         f, st = scan_text(p, text)
         total_files += 1
-        tot_lines += st['lines']
-        win_lines += st['win_lines']
-        nowin_lines += st['nowin_lines']
-        if f:
-            per[p] = f
-            total_find += len(f)
-            if not a.quiet:
-                for code, ln, msg in f:
-                    print('%s %s:%d: %s' % (code, p, ln, msg))
+        tot_lines += st["lines"]
+        win_lines += st["win_lines"]
+        nowin_lines += st["nowin_lines"]
+        for code, ln, msg in f:
+            tier, api = classify(code, msg)
+            rec = (code, p, ln, msg, api)
+            (tier_a if tier == TIER_A else tier_b).append(rec)
+
+    # ── fail-closed：扫描下限。恒真门没有证据资格 ──────────────────────────
+    # v1 没有这一段：total_files==0 ⇒ total_find==0 ⇒ exit 0 绿。
+    # paths 指向空目录、路径拼错、SKIP_DIRS 把整棵树滤掉，结果都一样：**静默绿**。
+    if total_files == 0:
+        print("[FAIL-CLOSED] scanned 0 source files ⇒ 本次运行没有产生任何证据，拒绝报绿"
+              "（恒真门没有证据资格）")
+        for p in a.paths:
+            print("  path: %s (exists=%s)" % (p, os.path.exists(p)))
+        return 2
+    if a.min_files and total_files < a.min_files:
+        print("[FAIL-CLOSED] scanned %d source files < --min-files %d ⇒ 扫描面可能被改窄/改错，拒绝报绿"
+              % (total_files, a.min_files))
+        return 2
+
+    total_find = len(tier_a) + len(tier_b)
     if not a.quiet:
-        print('denominator: files %d | lines %d | win-branch lines %d | nowin-branch lines %d'
+        print("denominator: files %d | lines %d | win-branch lines %d | nowin-branch lines %d"
               % (total_files, tot_lines, win_lines, nowin_lines))
-        print('candidates: %d in %d files' % (total_find, len(per)))
+        for code, p, ln, msg, api in tier_a:
+            print("TIER-A %s %s:%d: %s" % (code, p, ln, msg))
+        for code, p, ln, msg, api in tier_b:
+            print("TIER-B %s %s:%d: %s" % (code, p, ln, msg))
+        print("candidates: %d total | Tier A (blocking) %d | Tier B (report-only) %d"
+              % (total_find, len(tier_a), len(tier_b)))
     if a.json_out:
         import json
-        with open(a.json_out, 'w', encoding='utf-8') as fh:
-            json.dump({'files': total_files, 'lines': tot_lines,
-                       'win_lines': win_lines, 'nowin_lines': nowin_lines,
-                       'findings': per}, fh, ensure_ascii=False, indent=2)
-    return 1 if total_find else 0
+        with open(a.json_out, "w", encoding="utf-8") as fh:
+            json.dump({"files": total_files, "lines": tot_lines,
+                       "win_lines": win_lines, "nowin_lines": nowin_lines,
+                       "tier_a": [{"code": c, "path": p, "line": l, "msg": m, "api": x}
+                                  for c, p, l, m, x in tier_a],
+                       "tier_b": [{"code": c, "path": p, "line": l, "msg": m, "api": x}
+                                  for c, p, l, m, x in tier_b],
+                       "findings": [{"code": c, "path": p, "line": l, "msg": m, "api": x}
+                                    for c, p, l, m, x in tier_a + tier_b]},
+                      fh, ensure_ascii=False, indent=2)
+    if tier_a:
+        return 1
+    if a.strict and tier_b:
+        return 1
+    return 0
+
 
 
 if __name__ == '__main__':

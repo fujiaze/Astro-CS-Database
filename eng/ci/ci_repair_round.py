@@ -67,10 +67,10 @@ ATTRIBUTION = {
     "DATA-ARTIFACTS": {
         "domain": "DATA",
         "owner_node": "DATA-001",
-        "root_cause": "docs/contracts/DATA_SEMANTICS.md 声明的 DATA-HIPS-001/DATA-TILE-001 未登记进 DATA_ARTIFACTS.md 的 schema 清单",
-        "root_cause_path": "docs/contracts/DATA_ARTIFACTS.md",
+        "root_cause": "docs/science/DATA_SEMANTICS.md 声明的 DATA-HIPS-001/DATA-TILE-001 未登记进 DATA_ARTIFACTS.md 的 schema 清单",
+        "root_cause_path": "docs/engineering/DATA_ARTIFACTS.md",
         "in_whitelist": False,
-        "minimal_patch": "在 docs/contracts/DATA_ARTIFACTS.md 首表补 DATA-HIPS-001/DATA-TILE-001 两行（scalar/shape/unit/coordinate/invalid/ownership/serialization 八列齐备）",
+        "minimal_patch": "在 docs/engineering/DATA_ARTIFACTS.md 首表补 DATA-HIPS-001/DATA-TILE-001 两行（scalar/shape/unit/coordinate/invalid/ownership/serialization 八列齐备）",
     },
     "THREAD-BUDGET": {
         "domain": "ARCH",

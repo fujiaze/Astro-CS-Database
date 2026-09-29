@@ -25,4 +25,4 @@
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`DOC-INDEX`、`DOC-INDEX-SELFTEST`、`ALG-LINE-ANCHORS`、`CHK-DOC-HYGIENE`、`CHK-DOC-HYGIENE-SELFTEST`、`CHK-FROZEN-STRING-DISAMBIG` 及其 `-SELFTEST`、`ENG-CONSTRAINTS`、`VERSION-NAMESPACES`、`SPEC-POLARITY-CONSIST-01` 及其 `-SELFTEST`、`CHK-UNIT` 步骤 `TEST-INDEX-LIVE`。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

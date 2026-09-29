@@ -6,7 +6,7 @@
     "PROVEN-EXECUTABLE": "正例 rc=0 且负例 rc!=0 已实跑（本会话或 R-6 实测，留 log 锚）",
     "FACE-DEFINED-NOT-RUN": "负例入口/配方机器可执行，本机缺条件（逐条写明缺失条件）",
     "RE-JUDGED": "门判据已整改（不再是原判据），登记新判据与依据",
-    "RETIRED": "门已退役，见 docs/ci/01_CHECKS.md §2.1/§2.3"
+    "RETIRED": "门已退役，见 docs/engineering/01_CHECKS.md §2.1/§2.3"
   },
   "registry_entry_count": 150,
   "gates": {

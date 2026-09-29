@@ -5,7 +5,7 @@
 权威：负责人裁决 2026-09-23（「默认导出的话是要求边框不得裁剪任何有效像素，然后可以导出
 一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪范围。这样我以后 gui 的 HiPS 浏览器
 里面我可以直接导出框选。需要保留接口。」）；
-设计正本 = docs/design/PHASE3_DETAILED_DESIGN.md §8；
+设计正本 = docs/detail/PHASE3_DETAILED_DESIGN.md §8；
 字段合同 = eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop。
 
 本模块只锁**合同面**（schema 三分支 + CLI 键表同源 + 判别键不撞跨类面）。几何判据
@@ -126,7 +126,7 @@ class TestExportCropContract(unittest.TestCase):
         self.assertNotIn("crop_form", taken)
         crop = C.load_json(SCHEMA)["$defs"]["export_crop"]
         self.assertEqual(["crop_form"], crop["required"],
-                         "判别键名变化必须同步本测试与 docs/design/PHASE3_DETAILED_DESIGN.md §8.2")
+                         "判别键名变化必须同步本测试与 docs/detail/PHASE3_DETAILED_DESIGN.md §8.2")
 
 
 if __name__ == "__main__":

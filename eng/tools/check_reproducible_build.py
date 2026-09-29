@@ -5,7 +5,7 @@
 退役判定依据
   1) 判据面已被在册门承接：SBOM 面 = CHK-PKG-CONSISTENCY 的 PKG-SBOM / PKG-SBOM-NEG；
      build id / 版本单源生成链 = eng/ci/check_version.py 的生成链判据（注册项
-     VERSION-CONSISTENCY）。本脚本在 eng/ci/checks.json 与 docs/ci/01_CHECKS.md §2 中零引用。
+     VERSION-CONSISTENCY）。本脚本在 eng/ci/checks.json 与 docs/engineering/01_CHECKS.md §2 中零引用。
   2) 判据对象不存在：两个回退锚 dist/astrocs-alpha 与
      evidence/v6_1_rework/tasks/QA-003/SBOM.json 均已删除 ⇒ 无参实跑 rc=1
      QA-005_VIOLATION: SBOM.json 缺失（恒红，且红的理由是对象不存在而非缺陷）。
@@ -15,7 +15,7 @@
      * VERSION 缺失原为 FileNotFoundError 裸 traceback（§1:14 禁止 traceback）
        ⇒ 改为具名 ANCHOR_STALE + rc=2。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_main()，经 --legacy-check 复跑（判据未改）；
   * 本检查器不写任何产物文件 ⇒ 不存在「产物落仓库根」的问题。
@@ -34,7 +34,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# ── 判据锚（docs/ci/01_CHECKS.md §1:14 锚存活） ────────────────────────────
+# ── 判据锚（docs/engineering/01_CHECKS.md §1:14 锚存活） ────────────────────────────
 VERSION_REL = "VERSION"
 DEPS_REL = "DEPENDENCIES.md"
 DIST_SBOM_REL = os.path.join("dist", "astrocs-alpha", "SBOM.json")

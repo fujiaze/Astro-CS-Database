@@ -8,14 +8,14 @@
   旧口径（已废止）：REVIEW.md + docs/review/{SCIENCE,PIPELINE,ARCHITECTURE,
   RELEASE_STATUS,CHANGE_REVIEW}_OVERVIEW.md。根 REVIEW.md 已删除且
   不再索引 ⇒ 继续要求它存在即 false-red；docs/review/** 是旧轮次副本，
-  文档活动版本唯一 = docs/owner/**（已登记）。
+  文档活动版本唯一 = 一级·工程正本（已登记）。
 
   现行口径（本文件判据面，全部实测存在且受 git 跟踪）：
-    A. 现行 L0 文档集 = docs/owner/**（4 份 L0 汇总层，ACTIVE_NORMATIVE）：
-       docs/owner/SCIENCE_OVERVIEW.md
-       docs/owner/PIPELINE_OVERVIEW.md
-       docs/owner/ARCHITECTURE_OVERVIEW.md
-       docs/owner/RELEASE_STATUS.md
+    A. 现行 L0 文档集 = 一级·工程正本里的 4 份 L0 汇总层（ACTIVE_NORMATIVE）：
+       docs/engineering/SCIENCE_OVERVIEW.md
+       docs/engineering/PIPELINE_OVERVIEW.md
+       docs/engineering/ARCHITECTURE_OVERVIEW.md
+       docs/engineering/RELEASE_STATUS.md
     B. 现行权威索引 = docs/DOCUMENT_INDEX.yaml（取代已退役的根 REVIEW.md 链接面）：
        4 份 L0 文档必须在该索引 active 区段以 ACTIVE_* 登记。
     C. 旧权威回归（必须能红），两级口径：
@@ -52,10 +52,10 @@ INDEX_REL = "docs/DOCUMENT_INDEX.yaml"
 
 # A. 现行 L0 文档集（实测存在 + 受 git 跟踪；见文件头「现行口径」）
 L0_DOCS = (
-    "docs/owner/SCIENCE_OVERVIEW.md",
-    "docs/owner/PIPELINE_OVERVIEW.md",
-    "docs/owner/ARCHITECTURE_OVERVIEW.md",
-    "docs/owner/RELEASE_STATUS.md",
+    "docs/engineering/SCIENCE_OVERVIEW.md",
+    "docs/engineering/PIPELINE_OVERVIEW.md",
+    "docs/engineering/ARCHITECTURE_OVERVIEW.md",
+    "docs/engineering/RELEASE_STATUS.md",
 )
 
 # B. 现行权威索引（取代已退役的根 REVIEW.md 链接面）
@@ -311,7 +311,7 @@ def self_test() -> int:
 
         # T2 负例：索引不登记 L0 文档 ⇒ 红（旧实现此面会被遮蔽）
         r2 = _mk_repo(tmp, "t2")
-        _write(r2, INDEX_REL, "doc_index:\n  active:\n    - path: \"docs/owner\"\n"
+        _write(r2, INDEX_REL, "doc_index:\n  active:\n    - path: \"docs/engineering\"\n"
                               "      status: ACTIVE_NORMATIVE\n  archived: []\n")
         cases.append(("T2-index-unlisted",) + _res(r2, True, 1, ["l0_docs_indexed_active"]))
 

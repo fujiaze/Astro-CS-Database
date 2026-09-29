@@ -14,7 +14,7 @@
      故**不删文件**(AGENTS.md §5 禁止删本体)。
   复原命令 (内容未丢): git 历史
   退役后行为: 任意调用打印 MAKE_CAPSULE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
-  登记见 docs/ci/01_CHECKS.md §2.2。
+  登记见 docs/engineering/01_CHECKS.md §2.2。
 """
 import json, os, subprocess, sys, hashlib, zipfile, datetime
 
@@ -31,7 +31,7 @@ RETIRED_NOTICE = (
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
     "  输入/输出已不存在: 输出目录（旧证据树 capsules/）已删除。\n"
     "  复原命令: git 历史\n"
-    "  登记: docs/ci/01_CHECKS.md §2.2"
+    "  登记: docs/engineering/01_CHECKS.md §2.2"
 )
 
 

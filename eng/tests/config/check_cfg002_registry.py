@@ -3,14 +3,14 @@
 """CFG-002（W5-CFG-002）配置登记类机器门 —— 五项遗留的可执行闭合面。
 
 单项职责（每项都能红能绿，负例入口 = --self-test）：
-  CFG002-01  docs/plugins/** 配置表 <-> eng/packaging/config/config_registry.json 一一对应（缺登记/多登记/默认值漂移）
+  CFG002-01  docs/detail/** 模块配置表 <-> eng/packaging/config/config_registry.json 一一对应（缺登记/多登记/默认值漂移）
   CFG002-02  登记目标可解析（defaults.json 键 / phase_config 指针 / cpu_profile 指针 / 文档行号）与分类闭包
   CFG002-03  defaults.json 的 enum_target/enum_token 必须落进目标 phase_config 字段的 enum（默认值 -> 字段值域）
   CFG002-04  滤镜名匹配语义（exact + 无别名）与正反例（登记负例 + 现行库派生近失配 + docs/ASTROCS_DESIGN §4.3 示例块）
   CFG002-05  cpu_profile.host.os_abi 值域 = 生产者字面量集合（fail-closed 枚举）
   CFG002-06  lib/**/module.yaml 键闭包（旋钮声明字段出现即判红）
   CFG002-07  索引归属唯一（eng/packaging/config/** vs eng/contracts/config/**；DOCUMENT_INDEX；eng/tests/test_index.csv）
-  CFG002-08  docs/contracts/CONFIG_CONTRACT.md 的 CFG002-ANCHOR 标记行存活（文档承诺与登记一致）
+  CFG002-08  docs/engineering/CONFIG_CONTRACT.md 的 CFG002-ANCHOR 标记行存活（文档承诺与登记一致）
   CFG002-09  defaults.json#source_ref 内容锚存活（引文唯一命中 / 指纹自洽 / 登记面零行号）
   CFG002-11  CONFIG_CONTRACT 引用的科学锚（内容锚 face：引文唯一 + 取值文本落引文内）
   CFG002-12  锚形态与区分力自检（R-54：内容锚 >> 行号；≥2 字符；同面唯一；退役行不得复活；非配置表须显式声明）
@@ -50,7 +50,7 @@ TEMPLATES = {
     "export": "eng/packaging/config/templates/export.phase_config.json",
 }
 CPU_NEG = "eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json"
-CONTRACT_DOC = "docs/contracts/CONFIG_CONTRACT.md"
+CONTRACT_DOC = "docs/engineering/CONFIG_CONTRACT.md"
 TEST_INDEX = "eng/tests/test_index.csv"
 DOC_INDEX = "docs/DOCUMENT_INDEX.yaml"
 HW_CPP = "lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp"
@@ -114,11 +114,11 @@ def declared_non_config_tables(repo):
 
 
 def parse_plugin_tables(repo):
-    """docs/plugins/*/*.md 的配置项表 -> 行清单（field/doc/line/default/unit/raw/anchor）。"""
+    """docs/detail/*/*.md 的配置项表 -> 行清单（field/doc/line/default/unit/raw/anchor）。"""
     import glob
     declared = declared_non_config_tables(repo)
     rows = []
-    for path in sorted(glob.glob(os.path.join(repo, "docs", "plugins", "*", "*.md"))):
+    for path in sorted(glob.glob(os.path.join(repo, "docs", "detail", "*", "*.md"))):
         rel = os.path.relpath(path, repo).replace(os.sep, "/")
         with open(path, encoding="utf-8") as fh:
             lines = fh.read().split("\n")
@@ -153,7 +153,7 @@ def parse_plugin_tables(repo):
             else:
                 i += 1
     if not rows:
-        raise Fail("no plugin config table rows found under docs/plugins/*/*.md")
+        raise Fail("no module config table rows found under docs/detail/*/*.md")
     return rows
 
 
@@ -604,7 +604,7 @@ def check_04_filter_name_policy(repo):
     # 「文件:行」锚点，文件真实存在且该行真的含该串（fail-closed，锚点失效即判红）。
     # GATE-502：RELEASE-04 换版后最高设计 §3.3 的 "bader r" 反例行已删（原
     # docs/ASTROCS_DESIGN.md:221 锚点失效）⇒ 登记已按现行合同重锚到
-    # docs/contracts/CONFIG_CONTRACT.md §10 负例表；值与判据未变。
+    # docs/engineering/CONFIG_CONTRACT.md §10 负例表；值与判据未变。
     reg_lits = {ex.get("literal") for ex in look.get("non_key_examples", [])}
     low_keys = {k.lower() for k in keys}
     fold_keys = {" ".join(k.split()).lower() for k in keys}
@@ -1043,10 +1043,10 @@ def check_08_contract_doc_anchors(repo):
 
 
 def _all_field_tables(repo):
-    """docs/plugins/** 内所有 字段 开头的表：(rel, header, line, rows)。"""
+    """docs/detail/** 内所有 字段 开头的表：(rel, header, line, rows)。"""
     import glob
     out = []
-    for path in sorted(glob.glob(os.path.join(repo, "docs", "plugins", "*", "*.md"))):
+    for path in sorted(glob.glob(os.path.join(repo, "docs", "detail", "*", "*.md"))):
         rel = os.path.relpath(path, repo).replace(os.sep, "/")
         with open(path, encoding="utf-8") as fh:
             lines = fh.read().split("\n")
@@ -1202,22 +1202,22 @@ def run_checks(repo):
 
 
 SANDBOX_FILES = [
-    "docs/DOCUMENT_INDEX.yaml", "docs/contracts/CONFIG_CONTRACT.md",
+    "docs/DOCUMENT_INDEX.yaml", "docs/engineering/CONFIG_CONTRACT.md",
     # R-54：cosmetic.bad_column_* 的 defaults 内容锚落在 DATA_SEMANTICS §10.4 表，沙箱必须含它
     # （否则沙箱基线红 ⇒ 负例面整体失效）。
-    "docs/contracts/DATA_SEMANTICS.md",
+    "docs/science/DATA_SEMANTICS.md",
     "docs/ASTROCS_DESIGN.md", "eng/tests/test_index.csv", HW_CPP, PROFILE_CPP, STAGE1_TPL,
-    "ENGINEERING_SPEC.md", "docs/development/CONFIG_SCHEMA.md",
+    "ENGINEERING_SPEC.md", "docs/engineering/CONFIG_SCHEMA.md",
     "eng/tests/backend/test_cpu_profile.py", "eng/tests/unit/cpu007_profile_store_test.cpp",
     "eng/tools/validate_cpu_profile.py",
 ]
 # 2026-09-23 CFG002-01 订正：根目录整合（ee99ca26）后 config/ → eng/packaging/config/、
 # tests/ → eng/tests/、contracts/ → eng/contracts/；本清单未同步 ⇒ 自检在 build_sandbox 直接
 # Fail（负例面整体失效，test_self_test_injections_all_red 恒红）。此处按现路径订正。
-SANDBOX_DIRS = ["eng/packaging/config", "eng/contracts/schemas", "eng/contracts/config", "docs/plugins",
+SANDBOX_DIRS = ["eng/packaging/config", "eng/contracts/schemas", "eng/contracts/config", "docs/detail",
                 "eng/tests/config/fixtures"]
 # 顶层科学/算法文档（defaults 的 source_ref 与 contracts_doc 登记点指向它们；v6 子树门不读，不入沙箱）
-SANDBOX_GLOBS = ["docs/science/*.md", "docs/science/algorithms/*.md", "docs/design/UNIFIED_MODEL.md",
+SANDBOX_GLOBS = ["docs/science/*.md", "docs/science/algorithms/*.md", "docs/detail/UNIFIED_MODEL.md",
                  "lib/infrastructure/benchmark/backend_host/*.cpp", "ENGINEERING_SPEC.md"]
 
 
@@ -1378,7 +1378,7 @@ def _ambig_quote(root, rel):
 
 INJECTIONS = [
     ("plugin_table_row_added", "CFG002-01",
-     lambda root: _edit_text(root, "docs/plugins/algorithms_phase1/03_star_detection.md",
+     lambda root: _edit_text(root, "docs/detail/algorithms_phase1/03_star_detection.md",
                              lambda t: t.replace(
                                  "| " + chr(96) + "selection_function" + chr(96) + " | true | —— | 是否输出 selection function |",
                                  "| " + chr(96) + "selection_function" + chr(96) + " | true | —— | 是否输出 selection function |\n"
@@ -1399,7 +1399,7 @@ INJECTIONS = [
     # R-54 形态迁移后位置不再断言（行漂移不再判红）⇒ 反向加固：文档表行**内容**一改，
     # 内容指纹必红。本注入只改该行的说明文字（默认值/单位都没动）⇒ 只有指纹判据能抓到。
     ("plugin_row_content_drift", "CFG002-01",
-     lambda root: _edit_text(root, "docs/plugins/algorithms_phase1/03_star_detection.md",
+     lambda root: _edit_text(root, "docs/detail/algorithms_phase1/03_star_detection.md",
                              lambda t: t.replace("是否输出 selection function",
                                                  "是否输出 selection function（注入：描述漂移）"))),
     ("registration_target_missing", "CFG002-02",
@@ -1489,7 +1489,7 @@ INJECTIONS = [
          "note", "见 docs/science/PSF.md:81 的 7 参数 Moffat4 路径"))),
     ("registry_line_embedded", "CFG002-12",
      lambda root: _edit_json(root, REGISTRY, lambda d: _row(d, "03_star_detection", "min_area").__setitem__(
-         "registered_at", "docs/plugins/algorithms_phase1/03_star_detection.md:34"))),
+         "registered_at", "docs/detail/algorithms_phase1/03_star_detection.md:34"))),
     # R-54：退役事实不得复活（旧行重新塞回 plugin_knobs）
     ("retired_knob_revived", "CFG002-12",
      lambda root: _edit_json(root, REGISTRY, lambda d: d["plugin_knobs"].append(
@@ -1502,7 +1502,7 @@ INJECTIONS = [
                       "sha256": "0" * 16})))),
     # R-54 §3：非配置表必须显式声明（新增 字段 表而未登记即判红，fail-closed）
     ("non_config_table_undeclared", "CFG002-12",
-     lambda root: _edit_text(root, "docs/plugins/algorithms_phase1/06_photometry.md",
+     lambda root: _edit_text(root, "docs/detail/algorithms_phase1/06_photometry.md",
                              lambda t: t + "\n| 字段 | 承载事实 |\n| --- | --- |\n| injected | 注入负例 |\n")),
     # R-54 §2：每个 declared_negative 必须恰好给出「文档锚」或「库事实理由」，二者皆无即判红
     ("declared_negative_unanchored", "CFG002-12",
@@ -1513,7 +1513,7 @@ INJECTIONS = [
     ("anchor_id_collision", "CFG002-12", _inject_id_collision),
     ("filter_negative_where_is_line", "CFG002-04",
      lambda root: _edit_json(root, FILTERS, lambda d: [
-         e.__setitem__("where", "docs/contracts/CONFIG_CONTRACT.md:198")
+         e.__setitem__("where", "docs/engineering/CONFIG_CONTRACT.md:198")
          for e in d["lookup"]["non_key_examples"] if e["literal"] == "bader r"])),
     # W5-CPU-001 接线后本注入改为「接线状态变化未登记」的退化方向：拆掉 kernel_v1 的
     # $ref 而不改登记册（原变异对已接线状态是无操作 → 负例面失效，故随接线同步更新）。

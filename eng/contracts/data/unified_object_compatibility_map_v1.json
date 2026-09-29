@@ -3,7 +3,7 @@
   "map_id": "IDX-UNIFIED-COMPAT-MAP",
   "task": "DATA-001",
   "baseline_head": "ecf6ad6f",
-  "authority": "docs/design/UNIFIED_MODEL.md §2；ENGINEERING_SPEC.md §4.7（eng/contracts/schemas/ 唯一事实源）",
+  "authority": "docs/detail/UNIFIED_MODEL.md §2；ENGINEERING_SPEC.md §4.7（eng/contracts/schemas/ 唯一事实源）",
   "policy": "eng/contracts/data/** 是**兼容期映射**：只登记旧路径/旧 ID→canonical 对象的归属与废弃时间点，不承载第二份对象定义。本文件不改写被登记文件的内容（v6 生成物与 runtime artifact_store 校验器仍在用它们），也不放宽任何既有检查。retired（不再是 canonical）对象落 retired_entries：必须带 retired_at_change + rejection + migration_hint，且其 canonical schema 文件必须确实不存在（fail-closed）。",
   "canonical_root": "eng/contracts/schemas/unified/",
   "canonical_object_schema_ids": {
@@ -160,13 +160,13 @@
       ],
       "superseded_by": null,
       "old_contract_face": [
-        "docs/contracts/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
-        "docs/contracts/PUBLIC_API.md:102",
-        "docs/modules/registry/astrocs.phase1.calibration.md:23（端口 calibrated）",
-        "docs/modules/registry/astrocs.phase1.cosmetic.md:34（端口 calibrated）",
-        "docs/modules/registry/astrocs.phase1.drizzle.md:35（端口 calibrated）",
-        "docs/modules/registry/astrocs.phase2.resample.md:22（端口 calibrated）",
-        "docs/modules/calibration.md:8/:53"
+        "docs/science/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
+        "docs/engineering/PUBLIC_API.md:102",
+        "docs/detail/registry/astrocs.phase1.calibration.md:23（端口 calibrated）",
+        "docs/detail/registry/astrocs.phase1.cosmetic.md:34（端口 calibrated）",
+        "docs/detail/registry/astrocs.phase1.drizzle.md:35（端口 calibrated）",
+        "docs/detail/registry/astrocs.phase2.resample.md:22（端口 calibrated）",
+        "docs/detail/calibration.md:8/:53"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'",
@@ -194,10 +194,10 @@
       ],
       "superseded_by": null,
       "old_contract_face": [
-        "docs/contracts/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
-        "docs/contracts/PUBLIC_API.md:152/:177",
-        "docs/modules/registry/astrocs.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
-        "docs/modules/calibration.md:12"
+        "docs/science/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
+        "docs/engineering/PUBLIC_API.md:152/:177",
+        "docs/detail/registry/astrocs.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
+        "docs/detail/calibration.md:12"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'",
@@ -225,15 +225,15 @@
       ],
       "superseded_by": "DATA-P1-COS",
       "old_contract_face": [
-        "docs/modules/registry/astrocs.phase1.cosmetic.md:39（descriptor 占位名说明）",
-        "docs/modules/registry/astrocs.phase1.star-psf.md:33（端口 cleaned）",
-        "docs/modules/registry/astrocs.phase1.star-detection.md:38（端口 image）"
+        "docs/detail/registry/astrocs.phase1.cosmetic.md:39（descriptor 占位名说明）",
+        "docs/detail/registry/astrocs.phase1.star-psf.md:33（端口 cleaned）",
+        "docs/detail/registry/astrocs.phase1.star-detection.md:38（端口 image）"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
         "docs/contracts/INDEX.yaml#legacy_contract_id_map"
       ],
-      "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry astrocs.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
+      "evidence": "该 ID 在旧契约面（行为合同正本的数据语义/公共 API/数据制品三篇）中**零命中**（旧契约面无定义）；唯一权威说明在 registry astrocs.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
       "note": "占位名不再单独存在；统一对象面归 signal（cleaned 帧 = ADU 科学估计量）。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
@@ -267,11 +267,11 @@
       ],
       "superseded_by": null,
       "old_contract_face": [
-        "docs/contracts/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
-        "docs/contracts/PUBLIC_API.md:214",
-        "docs/modules/registry/astrocs.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
-        "docs/modules/registry/astrocs.phase1.hips-writer.md:7/:34（端口 stacked）",
-        "docs/modules/healpix_drizzle.md:32/:62"
+        "docs/science/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
+        "docs/engineering/PUBLIC_API.md:214",
+        "docs/detail/registry/astrocs.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
+        "docs/detail/registry/astrocs.phase1.hips-writer.md:7/:34（端口 stacked）",
+        "docs/detail/healpix_drizzle.md:32/:62"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-DRZ'",
@@ -293,16 +293,16 @@
       "canonical_schema_ids": [],
       "superseded_by": null,
       "old_contract_face": [
-        "docs/contracts/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）",
-        "docs/contracts/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
-        "docs/contracts/DATA_SEMANTICS.md:531（§15 端口链）",
-        "docs/contracts/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
+        "docs/science/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）",
+        "docs/science/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
+        "docs/science/DATA_SEMANTICS.md:531（§15 端口链）",
+        "docs/engineering/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
         "docs/modules/MODULE_MAP.yaml:151（psf 模块）"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
       ],
-      "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/contracts/DATA_ARTIFACTS.md 与基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 均为零命中。",
+      "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/engineering/DATA_ARTIFACTS.md 与基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 均为零命中。",
       "note": "判定：旧契约面无 canonical 对应（属编排端口编目名，非 14 个科学数据对象之一）。其携带的 flux 物理量在 signal 面（§15.2 flux=ADU 解析积分），但 catalog 行集合本身不构成单一对象合同。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
@@ -318,12 +318,12 @@
       "canonical_schema_ids": [],
       "superseded_by": null,
       "old_contract_face": [
-        "docs/contracts/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）",
-        "docs/contracts/PUBLIC_API.md:1447/:1556/:1701",
-        "docs/modules/phase2_samp.md:74/:76/:189",
-        "docs/modules/phase2_upm.md:52/:73/:90/:101/:249",
-        "docs/modules/registry/astrocs.phase2.sample.md:62/:64/:164",
-        "docs/modules/registry/astrocs.phase2.upm-fit.md:46"
+        "docs/science/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）",
+        "docs/engineering/PUBLIC_API.md:1447/:1556/:1701",
+        "docs/detail/phase2_samp.md:74/:76/:189",
+        "docs/detail/phase2_upm.md:52/:73/:90/:101/:249",
+        "docs/detail/registry/astrocs.phase2.sample.md:62/:64/:164",
+        "docs/detail/registry/astrocs.phase2.upm-fit.md:46"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
@@ -345,17 +345,17 @@
       "canonical_schema_ids": [],
       "superseded_by": null,
       "old_contract_face": [
-        "docs/contracts/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
-        "docs/contracts/PUBLIC_API.md:71",
-        "docs/contracts/DATA_ARTIFACTS.md:29（登记行）",
+        "docs/science/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
+        "docs/engineering/PUBLIC_API.md:71",
+        "docs/engineering/DATA_ARTIFACTS.md:29（登记行）",
         "docs/traceability/TRACEABILITY_MATRIX.csv 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
-        "docs/modules/gaia_xpsd_client.md:23/:40"
+        "docs/detail/gaia_xpsd_client.md:23/:40"
       ],
       "new_index_added_by_DATA001": [
         "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
       ],
       "evidence": "DATA_SEMANTICS §8 = Gaia XPSD 星表输入与星表行（三个变体）；单位 deg/mag/W·m⁻²·nm⁻¹，坐标 ICRS J2000，dtype f64/i32/u8[]，in-memory 不落盘。它是外部星表服务的 C ABI 行契约，不含 14 个对象中任何一个的单位/像素语义（无 ADU 估计量、无方差/逆方差、无 coverage/validity 产品）。",
-      "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/modules/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。",
+      "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/detail/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
       "retire_note": "依 docs/ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"

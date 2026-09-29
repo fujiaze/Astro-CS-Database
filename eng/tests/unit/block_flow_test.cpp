@@ -1,6 +1,6 @@
 // eng/tests/unit/block_flow_test.cpp — ARCH-505 阶段块流执行器回归锁
 //
-// 依据：CONTRACT-501 docs/contracts/PIPELINE_BLOCK_CONTRACT.md
+// 依据：CONTRACT-501 docs/engineering/PIPELINE_BLOCK_CONTRACT.md
 //         §1.1（跨阶段唯一载体 = HiPS 产品树；同一产物身份不得在一个阶段产出、在另一阶段被消费）
 //         §2 第 4 条（声明的 lifecycle 与实际消费者跨度不一致 ⇒ 非法）
 //         §3（块被全部声明消费者用完即销毁；阶段结束不得残留任何块）

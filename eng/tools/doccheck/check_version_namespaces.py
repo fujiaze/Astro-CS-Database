@@ -19,14 +19,14 @@ doc-revision/history 五个版本命名空间; CMake/CLI/L0 从根 VERSION 生�
      (匹配位置落在标识符 token 跨度内), **不是行级关键词豁免** —— 同一行里落在
      标识符之外的版本字面量照旧判 FAIL (自测 N4 锁定该判别力);
   5. mutation 合同: 伪造产品版本字面量必须使本 checker FAIL;
-  6. 他人路径遗留 (docs/VERSIONING.md、CMake project 字面量、eng/tests/ 硬编码、
+  6. 他人路径遗留 (docs/engineering/VERSIONING.md、CMake project 字面量、eng/tests/ 硬编码、
      eng/tools/check_*.py 硬编码、DOCUMENT_INDEX base_product_version) 汇总为
      out_of_scope 列表输出, 不判 FAIL (集成协调项, 见 known_limits)。
   7. 扫描面约束 (GOV-003 判据面): 扫描目标一律按 repo 根解析, realpath 归一后用
      is_relative_to(repo) 校验; 逃出 repo 根的目标被**裁剪并点名** (rejected_paths)
      且判红 —— 既不静默计入, 也不静默丢弃。报告里的路径一律相对 repo 根
      (旧实现相对 eng/ 输出, 把仓库内文件显示成 '../memory.md', 看起来像扫描面逃出仓库)。
-     扫描面为空 ⇒ 判红 (docs/ci/01_CHECKS.md §1: scanned==0 ⇒ rc!=0)。
+     扫描面为空 ⇒ 判红 (docs/engineering/01_CHECKS.md §1: scanned==0 ⇒ rc!=0)。
 
 用法:
   python3 eng/tools/doccheck/check_version_namespaces.py [--root <repo>] [--json-out <f>]
@@ -558,7 +558,7 @@ def main() -> int:
     if errors:
         scan_detail = f"扫描 {scanned} 文件; 漂移={len(errors)}"
     elif scanned == 0:
-        scan_detail = ("扫描面为空 ⇒ fail-closed (docs/ci/01_CHECKS.md §1: "
+        scan_detail = ("扫描面为空 ⇒ fail-closed (docs/engineering/01_CHECKS.md §1: "
                        "scanned==0 ⇒ rc!=0)")
     else:
         scan_detail = (f"扫描 {scanned} 文件 (允许路径 active + 日志驻留点), "
@@ -613,7 +613,7 @@ def main() -> int:
     out_of_scope: list[str] = []
     # 他人路径遗留 (不判 FAIL; 前台集成/后续 GOV 任务协调)
     legacy = {
-        "docs/VERSIONING.md": "VER-001 遗留: '当前冻结基线 0.10.0-alpha.2' (非允许路径, 需 GOV-005/前台收敛)",
+        "docs/engineering/VERSIONING.md": "VER-001 遗留: '当前冻结基线 0.10.0-alpha.2' (非允许路径, 需 GOV-005/前台收敛)",
         "CMakeLists.txt": "project(acsd VERSION 0.10.0) 字面量 (BLD-002 配合从 VERSION 生成; 主串已 file(READ) 生成)",
         "eng/tests/version/test_version_consistency.py": "test_01/05 硬编码 0.10.0-alpha.2 断言 (QA 配合更新)",
         "eng/tests/quality/test_linux_release.py": "assertIn('acsd 0.10.0') (QA 配合更新)",
@@ -623,7 +623,7 @@ def main() -> int:
         "eng/tools/check_reproducible_build.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",
         "eng/tools/make_linux_release.py": "回退串硬编码 0.10.0-alpha.2 (打包 owner 配合; 主路径读 VERSION)",
         "eng/tools/make_windows_release.py": "回退串硬编码 0.10.0-alpha.2 (打包 owner 配合; 主路径读 VERSION)",
-        "docs/DOCUMENT_INDEX.yaml": "base_product_version 0.10.0-alpha.2 (GOV-002 基线修订字段; 需补登 docs/owner/RELEASE_STATUS.md §2)",
+        "docs/DOCUMENT_INDEX.yaml": "base_product_version 0.10.0-alpha.2 (GOV-002 基线修订字段; 需补登 docs/engineering/RELEASE_STATUS.md §2)",
     }
     for p, why in legacy.items():
         if os.path.exists(os.path.join(root, p)):

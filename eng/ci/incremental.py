@@ -3,7 +3,7 @@
 """eng/ci/incremental.py — 增量范围计算（CI-INCREMENTAL）。
 
 权威依据
-  - docs/ci/CI_SPEC.md §2.1（三种 scope：changed 默认 / full 显式 / explicit 点名）、
+  - docs/engineering/CI_SPEC.md §2.1（三种 scope：changed 默认 / full 显式 / explicit 点名）、
     §2.2（改动集 = git diff ∪ git status 未提交）、§2.3（选择规则 + 构建图反查）、
     §2.4（fail-closed 三条：未覆盖路径判红 / 敏感面强制升级全量 / 空选择判红）、
     §2.5（超时预算）、§2.6（prerelease 档 + 输入指纹缓存）；

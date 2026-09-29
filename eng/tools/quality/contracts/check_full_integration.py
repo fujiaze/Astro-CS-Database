@@ -65,7 +65,7 @@ def main():
     except Exception as e:
         findings.append({"id":"INTEG-BAD-REPORT","detail":str(e),"severity":"P1","observed":"report parse fail","expected":"valid JSON"})
         data={"status":"FAIL","results":[]}
-    # Check 豁免面：唯一正本 = eng/ci/exemptions.json（docs/ci/01_CHECKS.md §1）。
+    # Check 豁免面：唯一正本 = eng/ci/exemptions.json（docs/engineering/01_CHECKS.md §1）。
     # TRUTHFUL-CONCLUSION-01：原实现读一个全仓不存在的文件名 ⇒ 该断言从未执行过。
     # 悬空引用必须判红，且缺失/坏 JSON 一律 fail-closed（不静默放行）。
     exemptions_rel = "eng/ci/exemptions.json"

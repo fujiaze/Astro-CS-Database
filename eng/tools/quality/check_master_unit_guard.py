@@ -5,7 +5,7 @@
 权威：
   docs/science/CALIBRATION.md（SCI-CAL-001）§3/§6/§8/§11  ← 标度声明 + 判定带 + 四条负例/两条正例
   docs/science/algorithms/CALIBRATION_ALGORITHMS.md（ALG-CAL-001）§2 标度声明表 + §10 DISP-CAL-013
-  docs/contracts/DATA_SEMANTICS.md §9.1/§9.1a（DATA-P1-CAL）
+  docs/science/DATA_SEMANTICS.md §9.1/§9.1a（DATA-P1-CAL）
 外部依据：XISF 1.0 §Image（bounds=可表示域；浮点实型必须声明）、PCL XISFReader NormalizeSamples
           （Float32[0,1] ↔ UInt16[0,65535]，MaxSampleValue=65535）、FITS 3.0 BSCALE/BZERO。
 

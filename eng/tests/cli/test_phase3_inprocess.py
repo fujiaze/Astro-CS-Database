@@ -170,7 +170,7 @@ class TestPhase3InProcess(unittest.TestCase):
         self.assertIsInstance(prov, dict, "run manifest 必须含 provenance 节")
         self.assertRegex(prov.get("source_sha", ""), r"^[0-9a-f]{40}$",
                          "source SHA 必须是 40hex 提交号")
-        # 形态合同: docs/owner/RELEASE_STATUS.md §2 g<commit>[.dirty]
+        # 形态合同: docs/engineering/RELEASE_STATUS.md §2 g<commit>[.dirty]
         # 版本串由根 VERSION 单源派生（禁硬编码 alpha 版本字面量, §12）
         self.assertRegex(prov.get("source_version", ""),
                          r"^" + re.escape(repo_version()) + r"\+g[0-9a-f]+(\.dirty)?$")

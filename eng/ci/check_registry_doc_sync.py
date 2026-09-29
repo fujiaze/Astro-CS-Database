@@ -3,11 +3,11 @@
 """CHK-REGISTRY-DOC-SYNC：注册表 ↔ 文档 双向一致门。
 
 依据 `ENGINEERING_SPEC.md §8`（2026-09-16 增补）:「**注册表双向一致**：`eng/ci/checks.json`
-与 `docs/ci/01_CHECKS.md §2` 必须双向对齐（既不得「注册未登记」，也不得「文档承诺
+与 `docs/engineering/01_CHECKS.md §2` 必须双向对齐（既不得「注册未登记」，也不得「文档承诺
 P0 但无实现」）」。
 
 判据:
-  R1 注册未登记: checks.json 的注册项 ID 必须出现在 docs/ci/01_CHECKS.md §2 表；
+  R1 注册未登记: checks.json 的注册项 ID 必须出现在 docs/engineering/01_CHECKS.md §2 表；
   R2 登记未注册: §2 表的 ID 必须存在于 checks.json；
   R3 退役项回归: §2.1「已退役检查器」记录里的 ID **不得**重新出现在注册表（退役只减不增）；
   R4 RESERVED 误注册: §2.1 RESERVED 表（文档承诺但无实现）里的 ID **不得**被注册 ——
@@ -15,7 +15,7 @@ P0 但无实现」）」。
   R5 双向对差可打印: --json-out 输出 added/missing/retired/reserved 四组差集。
 
 用法:
-  python3 eng/ci/check_registry_doc_sync.py [--registry eng/ci/checks.json] [--doc docs/ci/01_CHECKS.md]
+  python3 eng/ci/check_registry_doc_sync.py [--registry eng/ci/checks.json] [--doc docs/engineering/01_CHECKS.md]
                                         [--json-out <file>] [--self-test]
 exit 0 = 双向一致；exit 1 = 不一致；exit 2 = 输入不可用（fail-closed）。
 """
@@ -31,7 +31,7 @@ import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 REGISTRY = "eng/ci/checks.json"
-DOC = "docs/ci/01_CHECKS.md"
+DOC = "docs/engineering/01_CHECKS.md"
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-]*$")
 BACKTICK_ID_RE = re.compile(r"`([A-Za-z0-9][A-Za-z0-9_.\-]*)`")
@@ -68,7 +68,7 @@ def _slice(text: str, start_marker: str, end_markers) -> str:
 
 
 def parse_doc(doc_text: str):
-    """解析面与 docs/ci/01_CHECKS.md 实际结构逐一对齐：
+    """解析面与 docs/engineering/01_CHECKS.md 实际结构逐一对齐：
     - §2 清单表 = 列表主体；
     - 退役记录 = §2.1 内「已退役检查器：」bullet 行（反引号 ID 序列）；
     - RESERVED = §2.1 内表头首格为 RESERVED 的表格（按表头锚定，
@@ -132,7 +132,7 @@ def evaluate(registry_ids, listed, retired, reserved):
 
 def _self_test() -> int:
     """正例 1 组 + 负例 5 组（纯 tempfile 夹具，不依赖真仓；夹具形态与
-    docs/ci/01_CHECKS.md 实际结构一致：退役记录为 §2.1 bullet 行、
+    docs/engineering/01_CHECKS.md 实际结构一致：退役记录为 §2.1 bullet 行、
     RESERVED 为 §2.1 表、§2.1.1 处置台账含易误摘的反引号 token）。"""
     failures = []
     doc_template = """# CI 检查项目录
@@ -210,7 +210,7 @@ def _self_test() -> int:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="注册表 ↔ docs/ci/01_CHECKS.md §2 双向一致门")
+    ap = argparse.ArgumentParser(description="注册表 ↔ docs/engineering/01_CHECKS.md §2 双向一致门")
     ap.add_argument("--registry", default=str(REPO / REGISTRY))
     ap.add_argument("--doc", default=str(REPO / DOC))
     ap.add_argument("--json-out", default=None)

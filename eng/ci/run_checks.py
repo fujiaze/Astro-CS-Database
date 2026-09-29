@@ -3,13 +3,13 @@
 """eng/ci/run_checks.py — 新规范机器检查入口（控制包任务 CI-001）。
 
 权威依据
-  - docs/ci/01_CHECKS.md §1（eng/ci/checks.json 唯一注册表；eng/ci/ 提供确定性执行器）、
+  - docs/engineering/01_CHECKS.md §1（eng/ci/checks.json 唯一注册表；eng/ci/ 提供确定性执行器）、
     §5 运行方式（--all / --check <ID...> / --all --json-out <path>）；
-  - docs/ci/CI_SPEC.md §4（P0/P1 必须 0）、§7（失败必须留可复现证据）；
+  - docs/engineering/CI_SPEC.md §4（P0/P1 必须 0）、§7（失败必须留可复现证据）；
   - ENGINEERING_SPEC.md §8（唯一注册表；确定性执行器；每项能绿能红）。
 
 本入口的合同（与 eng/ci/run.py 并存：工作流暂仍调用 eng/ci/run.py，QA-001 之后再改绑定）
-  0. 范围（CI-INCREMENTAL；正本 docs/ci/CI_SPEC.md §2）：
+  0. 范围（CI-INCREMENTAL；正本 docs/engineering/CI_SPEC.md §2）：
        --changed（**默认**）= 影响面增量：改动集 = git diff --name-only <--base>
          ∪ git status --porcelain（未提交，含未跟踪），只跑 changed_paths 与之
          相交的 step；受影响的构建/测试 target 由构建图反查（eng/ci/incremental.py）。
@@ -387,7 +387,7 @@ def evidence_verdict(step: dict, repo: Path, stdout_tail: str,
                     stderr_tail: str) -> tuple[str, str] | None:
     """exit 0 之后的内容级证据判定（fail-closed；None = 证据齐备）。
 
-    三重证据面（ENGINEERING_SPEC §10 / docs/ci/CI_SPEC.md §9）：
+    三重证据面（ENGINEERING_SPEC §10 / docs/engineering/CI_SPEC.md §9）：
       1. 登记 outputs 必须存在（缺失 ⇒ FAIL(missing_output)）——"文件不存在
          按无违规通过"是假绿；
       2. outputs 为空且 stdout/stderr 全空 ⇒ FAIL(empty_outputs)（静默失败
@@ -815,7 +815,7 @@ def write_per_step_result(run_root: Path, result: dict) -> None:
 # ---------------------------------------------------------------------------
 # 调度器（CI-INCREMENTAL：独占道 / 并行道 / 末位屏障）
 # ---------------------------------------------------------------------------
-# 设计依据（docs/ci/CI_SPEC.md §2.5 超时预算 + 本任务"少跑不需要跑的、不放松判据"）：
+# 设计依据（docs/engineering/CI_SPEC.md §2.5 超时预算 + 本任务"少跑不需要跑的、不放松判据"）：
 #   1. 独占道：**命令真的起了资源监控**的 step（CPU 利用率测量不能被并发污染）；
 #      以及 **mutates_workspace=true 且声明了 run/ 之外的产物**的 step（真写跟踪树）。
 #   2. 并行道：其余 step，并发度默认 min(8, cpu_count)，--jobs 覆盖；--serial 一键回串行。
@@ -1875,10 +1875,10 @@ def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) ->
     case("N2_sensitive_escalation", injected(["eng/ci/checks.json"], "N2"),
          expect_scope="full")
     # N3 选择器被改成恒空 ⇒ 判红
-    case("N3_selector_always_empty", injected(["docs/ci/CI_SPEC.md"], "N3"),
+    case("N3_selector_always_empty", injected(["docs/engineering/CI_SPEC.md"], "N3"),
          match=lambda _p, _pats: None, expect_fail=SCOPE_EMPTY)
     # P1 正例：正常改动 ⇒ 有选中且不判红
-    case("P1_covered_change_green", injected(["docs/ci/CI_SPEC.md"], "P1"), expect_ok=True)
+    case("P1_covered_change_green", injected(["docs/engineering/CI_SPEC.md"], "P1"), expect_ok=True)
     # P2 正例：确实无改动 ⇒ no_changes，不误判红
     case("P2_no_changes_green", injected([], "P2"), expect_scope="changed")
 
@@ -1914,7 +1914,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="注册表整档全量（受 --profile 限定；默认 fast）——必须显式给出")
     g.add_argument("--check", action="append", nargs="+", default=[], metavar="ID",
                    help="显式检查 ID（注册项 ID 或其 step 旧 ID）；支持多值"
-                        "（--check CHK-FMT CHK-UNIT，docs/ci/01_CHECKS.md §5）"
+                        "（--check CHK-FMT CHK-UNIT，docs/engineering/01_CHECKS.md §5）"
                         "与可重复（--check A --check B），两者可混用")
     p.add_argument("--base", default="HEAD", metavar="REF",
                    help="增量基线 ref（默认 HEAD）；改动集 = 该 ref..工作树")

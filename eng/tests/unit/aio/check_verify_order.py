@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """裁决 ④「两序区分用例」runner —— 机制层"检测面更强"的可执行证据。
 
-被验证的命题（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1）:
+被验证的命题（docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md §4.1）:
   机制层 atomic_publish 的序 = 写 tmp -> flush/close/fsync -> **rename** ->
   **重开已发布对象验证** -> 失败撤销。它对"rename 成功之后目标才被改坏"这一情形
   有观测点，故必须**检出并撤销**；而 §4 的生产者序（校验先于 rename）在该窗口没有

@@ -9,7 +9,7 @@
   "field_count": 59,
   "registry_ref": {
     "path": "eng/packaging/config/config_registry.json",
-    "scope": "登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
+    "scope": "登记面：细节实施面（docs/detail/**）的模块级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
     "relation": "本文件 fields[] 只登记科学参数默认值（source 限 docs/science|docs/algorithms，见 authority.transcription_rule）；plugin 级/运行时旋钮的默认值不在 fields[] 内登记，由该登记册承载并逐行给出归属与缺口，二者不得互相复制数值。"
   },
   "fields": [
@@ -801,7 +801,7 @@
       "unit": "1",
       "constraint": "0 < pixfrac <= 1（严格校验，非法值显式 NO_DATA，不静默夹逼；DRIZZLE.md,:92；DRIZZLE_GEOMETRY.md,:102）",
       "authority_status": "owner_adjudicated",
-      "source": "锚 drizzle.pixfrac；docs/science/DRIZZLE.md（| `pixfrac` | drop 收缩因子 (0,1](`dri）；docs/science/DRIZZLE.md §4/§7（0<pixfrac<=1，非法 NO_DATA，不静默夹逼；核按 drop 面积归一时 Σ_p F_p=Σ_j x_j 对全部 pixfrac∈(0,1] 严格成立，provenance.flux_conservation_factor 恒 1）；docs/contracts/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
+      "source": "锚 drizzle.pixfrac；docs/science/DRIZZLE.md（| `pixfrac` | drop 收缩因子 (0,1](`dri）；docs/science/DRIZZLE.md §4/§7（0<pixfrac<=1，非法 NO_DATA，不静默夹逼；核按 drop 面积归一时 Σ_p F_p=Σ_j x_j 对全部 pixfrac∈(0,1] 严格成立，provenance.flux_conservation_factor 恒 1）；docs/science/DATA_SEMANTICS.md §31.1（FZ-COND-FLUX-CONSERV）",
       "source_ref": {
         "id": "drizzle.pixfrac",
         "path": "docs/science/DRIZZLE.md",
@@ -816,7 +816,7 @@
       "key": "sparse_snr.density",
       "value": null,
       "unit": "点/度²",
-      "constraint": "启用稀疏层时的控制点密度；单位见 docs/plugins/algorithms_phase1/07_noise_snr.md（该表默认列为 ——，无权威数值）",
+      "constraint": "启用稀疏层时的控制点密度；单位见 docs/detail/algorithms_phase1/07_noise_snr.md（该表默认列为 ——，无权威数值）",
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
@@ -840,10 +840,10 @@
       "unit": "1",
       "constraint": "枚举 token ∈ {dense, sparse_reconstruct, frame_reconstruct}；默认 sparse_reconstruct = Phase2 默认消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR（马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）。三条路径全部保留供论文精度对比；SP-0（实测 Var_p 比值）为诊断量、不作默认开关。承载字段 = phase_config mosaic 的 snr_path（值域唯一事实源 = eng/contracts/schemas/phase_config_mosaic.schema.json）",
       "authority_status": "owner_adjudicated",
-      "source": "锚 snr.path；docs/plugins/algorithms_phase1/07_noise_snr.md（Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量；docs/plugins/algorithms_phase1/07_noise_snr.md（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出））",
+      "source": "锚 snr.path；docs/detail/algorithms_phase1/07_noise_snr.md（Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量；docs/detail/algorithms_phase1/07_noise_snr.md（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出））",
       "source_ref": {
         "id": "snr.path",
-        "path": "docs/plugins/algorithms_phase1/07_noise_snr.md",
+        "path": "docs/detail/algorithms_phase1/07_noise_snr.md",
         "quote": "| `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径的适用域由 `实验/absolute-snr` 给出 |",
         "sha256": "f756eb00f405e2f1",
         "value_text": "sparse_reconstruct"
@@ -854,13 +854,13 @@
         "schema": "eng/contracts/schemas/phase_config_mosaic.schema.json",
         "pointer": "#/$defs/mosaic_config/properties/snr_path"
       },
-      "note": "键名依据：docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/design/UNIFIED_MODEL.md、docs/plugins/algorithms_phase1/07_noise_snr.md 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
+      "note": "键名依据：docs/ASTROCS_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/detail/UNIFIED_MODEL.md、docs/detail/algorithms_phase1/07_noise_snr.md 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
     },
     {
       "key": "scalar_gate.rd",
       "value": null,
       "unit": "unspecified",
-      "constraint": "标量降级鲁棒离散门；权威面未给单位与数值（docs/plugins/algorithms_phase1/07_noise_snr.md 默认列与单位列均为 ——）",
+      "constraint": "标量降级鲁棒离散门；权威面未给单位与数值（docs/detail/algorithms_phase1/07_noise_snr.md 默认列与单位列均为 ——）",
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
@@ -871,12 +871,12 @@
       "key": "scalar_gate.trend",
       "value": null,
       "unit": "unspecified",
-      "constraint": "标量降级系统趋势门；权威面未给单位与数值（docs/plugins/algorithms_phase1/07_noise_snr.md 默认列与单位列均为 ——）",
+      "constraint": "标量降级系统趋势门；权威面未给单位与数值（docs/detail/algorithms_phase1/07_noise_snr.md 默认列与单位列均为 ——）",
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
       "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）",
-      "note": "同上；字段名取自 docs/plugins/algorithms_phase1/07_noise_snr.md（scalar_gate_trend）。"
+      "note": "同上；字段名取自 docs/detail/algorithms_phase1/07_noise_snr.md（scalar_gate_trend）。"
     },
     {
       "key": "paths.gaia_root",
@@ -895,10 +895,10 @@
       "unit": "1",
       "constraint": "bool；false 时列状缺陷路径逐位不生效",
       "authority_status": "owner_adjudicated",
-      "source": "锚 cosmetic.bad_column_enabled；docs/contracts/DATA_SEMANTICS.md（### 10.4 列状缺陷路径(bad column)）；docs/contracts/DATA_SEMANTICS.md §10.4（列状缺陷路径）",
+      "source": "锚 cosmetic.bad_column_enabled；docs/science/DATA_SEMANTICS.md（### 10.4 列状缺陷路径(bad column)）；docs/science/DATA_SEMANTICS.md §10.4（列状缺陷路径）",
       "source_ref": {
         "id": "cosmetic.bad_column_enabled",
-        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "path": "docs/science/DATA_SEMANTICS.md",
         "quote": "| 开关 | 列状缺陷路径默认启用；置 false 时本路径逐位不生效 |",
         "sha256": "435d81fd78bcb8a9",
         "value_text": "列状缺陷路径默认启用"
@@ -912,10 +912,10 @@
       "unit": "MAD 倍数",
       "constraint": "> 0；列统计量跨列跳变与帧内稳健尺度比对的阈值",
       "authority_status": "sourced",
-      "source": "锚 cosmetic.bad_column_sigma；docs/contracts/DATA_SEMANTICS.md（### 10.4 列状缺陷路径(bad column)）；docs/contracts/DATA_SEMANTICS.md §10.4（判据）；docs/science/CALIBRATION.md（缺陷形态可分性）",
+      "source": "锚 cosmetic.bad_column_sigma；docs/science/DATA_SEMANTICS.md（### 10.4 列状缺陷路径(bad column)）；docs/science/DATA_SEMANTICS.md §10.4（判据）；docs/science/CALIBRATION.md（缺陷形态可分性）",
       "source_ref": {
         "id": "cosmetic.bad_column_sigma",
-        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "path": "docs/science/DATA_SEMANTICS.md",
         "quote": "| 判据 | 列统计量的跨列一阶差分与帧内稳健尺度（MAD）比对；阈值取自列状缺陷的 sigma 配置键 |",
         "sha256": "e25d834213af6e25",
         "value_text": "阈值取自列状缺陷的 sigma 配置键"
@@ -929,10 +929,10 @@
       "unit": "列数",
       "constraint": ">= 1；每侧参与列统计量估计的列数",
       "authority_status": "sourced",
-      "source": "锚 cosmetic.bad_column_neighbor_k；docs/contracts/DATA_SEMANTICS.md（### 10.4 列状缺陷路径(bad column)）；docs/contracts/DATA_SEMANTICS.md §10.4（邻域宽度）",
+      "source": "锚 cosmetic.bad_column_neighbor_k；docs/science/DATA_SEMANTICS.md（### 10.4 列状缺陷路径(bad column)）；docs/science/DATA_SEMANTICS.md §10.4（邻域宽度）",
       "source_ref": {
         "id": "cosmetic.bad_column_neighbor_k",
-        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "path": "docs/science/DATA_SEMANTICS.md",
         "quote": "| 邻域宽度 | 每侧参与统计的列数由配置键给出 |",
         "sha256": "5feee3663e9479b4",
         "value_text": "每侧参与统计的列数"
@@ -963,10 +963,10 @@
       "unit": "1",
       "constraint": ">= 1/Σw²（单列两邻算术平均 ⇒ >= 2）；修复像素方差 = (Σw²·var)·κ",
       "authority_status": "derived",
-      "source": "锚 cosmetic.bad_column_variance_kappa；docs/contracts/DATA_SEMANTICS.md（被修复像素的方差按传播式 `var = (Σ w² · var) ·）；推导：修复值是两个邻居的确定性函数，不得声称比一次独立测量携带更多信息 ⇒ var >= σ² ⇒ κ >= 1/Σw² = 2；见 docs/contracts/DATA_SEMANTICS.md §10.5）",
+      "source": "锚 cosmetic.bad_column_variance_kappa；docs/science/DATA_SEMANTICS.md（被修复像素的方差按传播式 `var = (Σ w² · var) ·）；推导：修复值是两个邻居的确定性函数，不得声称比一次独立测量携带更多信息 ⇒ var >= σ² ⇒ κ >= 1/Σw² = 2；见 docs/science/DATA_SEMANTICS.md §10.5）",
       "source_ref": {
         "id": "cosmetic.bad_column_variance_kappa",
-        "path": "docs/contracts/DATA_SEMANTICS.md",
+        "path": "docs/science/DATA_SEMANTICS.md",
         "quote": "被修复像素的方差按传播式 `var = (Σ w² · var) · κ` 取值：单列两邻算术平均给出 `Σ w² = 1/2`；",
         "sha256": "92ee4b99faa1322a",
         "value_text": "2"

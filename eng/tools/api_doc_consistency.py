@@ -40,7 +40,7 @@ OUT = ROOT / "run" / "temp" / "p2_v17_evidence" / "api_doc_consistency.json"
 
 
 class AnchorStale(Exception):
-    """扫描面锚失效 —— fail-closed，exit 2（docs/ci/01_CHECKS.md §1）。"""
+    """扫描面锚失效 —— fail-closed，exit 2（docs/engineering/01_CHECKS.md §1）。"""
 
 
 def assert_scan_dirs() -> None:

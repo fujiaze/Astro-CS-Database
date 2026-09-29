@@ -5,7 +5,7 @@
 权威依据
   - ENGINEERING_SPEC.md §10「检查器在输入缺失、路径不存在、依赖不可用时判红；
     『文件不存在』按『无违规』通过视为假绿」；
-  - docs/ci/01_CHECKS.md §1「锚存活」（硬编码引用的仓库路径必须存在，失效时显式
+  - docs/engineering/01_CHECKS.md §1「锚存活」（硬编码引用的仓库路径必须存在，失效时显式
     失败并点名）与「fail-closed」（scanned == 0 ⇒ rc != 0）；
   - AGENTS.md §9「门禁/判据本身不合理时改进门禁本身」。
 

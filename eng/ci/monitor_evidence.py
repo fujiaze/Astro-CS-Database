@@ -3,7 +3,7 @@
 """eng/ci/monitor_evidence.py — 监控证据的 fail-closed 判定（run.py / run_checks.py 共用）。
 
 权威依据
-  * docs/ci/CI_SPEC.md §9（监控字段语义：requires_monitor 真强制）；
+  * docs/engineering/CI_SPEC.md §9（监控字段语义：requires_monitor 真强制）；
   * ENGINEERING_SPEC.md §10（fail-closed：证据缺失判红）；
   * 阈值唯一数值源 eng/contracts/resource_gate_v1.json（经 l2_frozen_gate 读取）。
 

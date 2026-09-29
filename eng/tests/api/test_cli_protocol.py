@@ -2,7 +2,7 @@
 """API-002 测试: CLI 协议合同机器门（按现行 tracked 权威重写）。
 
 权威（现行，逐条对应）:
-  * `docs/api/CLI_PROTOCOL_V1.md` —— 断言对象（§1 命令树 / §2 退出码 / §3 stdout 纪律 /
+  * `docs/engineering/CLI_PROTOCOL_V1.md` —— 断言对象（§1 命令树 / §2 退出码 / §3 stdout 纪律 /
     §4 JSONL 事件流 / §5 取消与崩溃 / §6 检查器合同 / §7 output_dir）；
   * `docs/ASTROCS_DESIGN.md` §7.1（唯一命令树）、§7.2（配置、事件与退出码）、
     §4.5（运行前预检三档）、§1.2（三命令平级独立）；

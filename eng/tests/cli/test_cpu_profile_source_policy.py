@@ -7,9 +7,9 @@
     `benchmark` 实测写下的那一份；**没跑过 `benchmark`（安装目录没有那份 profile）⇒ 最小
     可用运行**（全部 x64 平台都具备的基线指令集 + 保守并行，照常成功退出）；**画像存在但
     校验不过**（取值非法 / schema 不匹配 / 与本机失配）⇒ 运行以校验器给出的非零退出码失败。
-  * docs/ASTROCS_DESIGN.md §9「画像的来源与缺省行为」；docs/api/CLI_PROTOCOL_V1.md §1；
-    docs/contracts/CONFIG_CONTRACT.md「cpu_profile 的来源与缺省口径」；
-    docs/architecture/CPU_BACKEND_ARCH.md §6（失败与回退）。
+  * docs/ASTROCS_DESIGN.md §9「画像的来源与缺省行为」；docs/engineering/CLI_PROTOCOL_V1.md §1；
+    docs/engineering/CONFIG_CONTRACT.md「cpu_profile 的来源与缺省口径」；
+    docs/engineering/CPU_BACKEND_ARCH.md §6（失败与回退）。
   * 退出码唯一源 = lib/infrastructure/cli/exit_codes.h（表见 docs/ASTROCS_DESIGN.md §7.2）：
     ARGS=2 / INPUT=3 / BACKEND=5。
 

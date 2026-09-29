@@ -6,7 +6,7 @@
   * AGENTS.md §5 —— 不读取/打印密钥与凭据（本检查器只输出 路径/布尔/行号）；
   * ENGINEERING_SPEC.md §7 —— 禁止散落根目录、根条目须登记；
   * ENGINEERING_SPEC.md §8 —— 机器检查能绿能红、fail-closed；
-  * docs/ci/01_CHECKS.md §4 —— 新增检查项流程；
+  * docs/engineering/01_CHECKS.md §4 —— 新增检查项流程；
 
 设计要点
 --------

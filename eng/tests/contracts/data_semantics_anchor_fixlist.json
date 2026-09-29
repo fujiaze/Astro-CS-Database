@@ -1,6 +1,6 @@
 {
  "doc": "DATA_SEMANTICS.md 代码锚重锚登记（P-042 修复单）",
- "scope": "只登记 docs/contracts/DATA_SEMANTICS.md 实现锚 file.ext:line 的行号重定位；判据与语义零改动。",
+ "scope": "只登记 docs/science/DATA_SEMANTICS.md 实现锚 file.ext:line 的行号重定位；判据与语义零改动。",
  "method": "核证器 eng/tests/contracts/check_data_semantics_anchors.py 三档分类（old_still_valid / high_confidence / manual_review）；high_confidence 为候选行号，每条替换前按文档行语义与目标行内容逐条对照人工复核，复核驳回的候选不落笔。区间锚按首行定位、区间长度保持原 span；结构块整体扩张时端点按块界调整。",
  "reanchored": [
   {

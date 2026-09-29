@@ -106,7 +106,7 @@ file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h
 # 修法: 另出**构建期**采样的 build_stamp_generated.h（HEAD / dirty / 源集内容摘要），
 # 由 eng/tools/gen_build_stamp.py 在构建期生成；依赖面 = git 索引给出的**显式清单**
 # （非 GLOB，QA-002），脚本内容不变时不落盘（mtime 不变 ⇒ 不触发下游重编译）。
-# 语义权威: docs/VERSIONING.md「构建指纹合同」；消费者规则: 判"同一代码/同一二进制"
+# 语义权威: docs/engineering/VERSIONING.md「构建指纹合同」；消费者规则: 判"同一代码/同一二进制"
 # **只看** ASTROCS_BUILD_SOURCE_DIGEST —— source_sha 只表示 configure 时刻的 HEAD。
 find_package(Python3 COMPONENTS Interpreter QUIET)
 set(ASTROCS_STAMP_PYTHON "python3")
@@ -145,7 +145,7 @@ add_custom_command(
 # ── G-RES-01 数值唯一源 (GATE-FIX-RES / R-4 D-11) ────────────────────────────
 # 阈值不得在 C++ 里复制字面量: 由 eng/contracts/resource_gate_v1.json 生成
 # resource_gate_thresholds_generated.h (CMake >= 3.19 string(JSON), 无额外依赖)。
-# 判据语义权威: docs/plugins/infrastructure/21_observability.md §8。
+# 判据语义权威: docs/detail/infrastructure/21_observability.md §8。
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/contracts/resource_gate_v1.json ASTROCS_RESOURCE_GATE_JSON)
 string(JSON ASTROCS_RG_APPLICABILITY GET "${ASTROCS_RESOURCE_GATE_JSON}" applicability)
 string(JSON ASTROCS_RG_COMPUTE GET "${ASTROCS_RESOURCE_GATE_JSON}" compute)
@@ -183,7 +183,7 @@ string(JSON ASTROCS_RR_MEMORY_PRESSURE_HIGH_DWELL GET "${ASTROCS_RUNTIME_RESOURC
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_LOW_DWELL GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_low_dwell_samples)
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_EVICT_AFTER GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_evict_after_samples)
 string(JSON ASTROCS_RR_MEMORY_PRESSURE_SAMPLE_INTERVAL_MS GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_pressure_sample_interval_ms)
-# 编排参数受控化（docs/contracts/SCHEDULER_CONTRACT.md §3「由配置/资源门决定」/ R-27）：
+# 编排参数受控化（docs/engineering/SCHEDULER_CONTRACT.md §3「由配置/资源门决定」/ R-27）：
 # tile span / sub_block_px / queue_depth 的
 # 唯一数值源同样是本文件；原先只以 constexpr 字面量存在于 module_adapters.cpp。
 string(JSON ASTROCS_RR_P2_TILE_LEAF_SPAN GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" orchestration_params p2_tile_leaf_span)
@@ -449,7 +449,7 @@ add_library(astrocs_core STATIC
   lib/infrastructure/scheduler/src/block_flow.cpp
   lib/infrastructure/scheduler/src/context.cpp
   # X1: 节点并行预算的唯一解析面（运行期预算 = 进程有效 CPU 配额；见
-  # docs/architecture/THREADING_MODEL.md「并行轴分配」+ docs/standards/CONCURRENCY_STANDARD.md「默认」节）。
+  # docs/engineering/THREADING_MODEL.md「并行轴分配」+ docs/engineering/CONCURRENCY_STANDARD.md「默认」节）。
   lib/infrastructure/scheduler/src/cpu_budget.cpp
   lib/infrastructure/scheduler/src/runtime.cpp
   lib/infrastructure/scheduler/src/scheduler.cpp
@@ -765,6 +765,15 @@ target_include_directories(astrocs_drizzle PUBLIC
 target_include_directories(astrocs_drizzle SYSTEM PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle)
 target_compile_definitions(astrocs_drizzle PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+# B-4 (FINAL-07/winfix): 本 target 是 **STATIC** (见上方 add_library(... STATIC))。
+#   hp_drizzle_api.h 的 HP_DRIZZLE_API 只有 dllexport/dllimport 两态时, 消费者
+#   (不定义 HP_DRIZZLE_EXPORTS) 一律拿到 __declspec(dllimport) ⇒ 引用
+#   __imp_hp_drizzle_run, 而 STATIC 库**没有 __imp_ 间接层** ⇒ Windows LNK2019。
+#   这里以 **PUBLIC** 声明 HP_DRIZZLE_STATIC, 使本 target **自身**与其全部消费者
+#   一起落到头文件新增的第三态 (不加 declspec)。
+#   不与 astrocs_p1_drizzle (SHARED 模块 DLL) 冲突: 那个 target 的 .cpp 在文件头
+#   自带 #define HP_DRIZZLE_EXPORTS, 且头文件里 EXPORTS 分支**先判** ⇒ 仍走 dllexport。
+target_compile_definitions(astrocs_drizzle PUBLIC HP_DRIZZLE_STATIC)
 target_link_libraries(astrocs_drizzle PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
 # QA-001: drizzle_engine/snr_evaluator 含 omp pragma → 同上, 走共用件。
 # (omp 并行仅为遗留 drizzle 内部; 生产调度走 Runtime lease, 见 MON/CHK 系列)
@@ -800,7 +809,7 @@ target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 # 仅编译旗标与 ASTROCS_BACKEND_ID 不同 → 每条路径独立编译成不同目标并各自 self-test。
 # 注意: acsd(主 CLI) 的链接闭包只含基线段 — 两个变体 target 由 check_isa_leak 的 link map 验证把关。
 #
-# 交付形态 = SHARED（docs/architecture/ISA_VARIANTS.md §0 第 3 条「变体一律以 DSO
+# 交付形态 = SHARED（docs/engineering/ISA_VARIANTS.md §0 第 3 条「变体一律以 DSO
 # （Windows .dll / Linux .so）随安装树分发」）：
 # 变体必须是**可运行时装载**的动态库（Linux .so / Windows .dll），随安装树分发到
 # providers/ 并由 providers/backends.manifest.json 登记（实测 sha256 + required_features_bits），
@@ -887,7 +896,7 @@ target_include_directories(astrocs_cpu_avx512 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto)
 target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common)
 
-# ── provider DSO 共同交付面（docs/architecture/ISA_VARIANTS.md §0/§2；与 astrocs_cpu_baseline 同款命名/RPATH）──
+# ── provider DSO 共同交付面（docs/engineering/ISA_VARIANTS.md §0/§2；与 astrocs_cpu_baseline 同款命名/RPATH）──
 # 产物落 <build>/providers/，与同目录的 backends.manifest.json 构成"清单 + 裸文件名同目录"
 # 语义（backend_loader 的唯一基准）。原实现清单找在 install_dir 根、DSO 装在 providers/
 # ⇒ 目录口径两套；本处统一到 providers/（构建树与安装树同构）。
@@ -948,7 +957,7 @@ add_custom_target(astrocs_backends_manifest ALL DEPENDS "${ASTROCS_BACKENDS_MANI
 # ── provider 第二族入图（DYN-740 / C-03 裁决：**属** ISA provider 集合 ⇒ 必须入图，不得游离）──
 # 族 = lib/infrastructure/benchmark/cpu/<id>/src/<id>_provider.cpp（+ common/src/capability_detect.c），
 # 入口 = astrocs_provider_query_v1（lib/include/astrocs/abi/module_api_v1.h 冻结；
-# docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md:96-98 与 CPU_003_AVX2_PROVIDER.md:13 指定的
+# docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md:96-98 与 CPU_003_AVX2_PROVIDER.md:13 指定的
 # provider 实现面；被测于 UT-CPU-AVX2 / UT-CPU-AVX512 与 baseline 三门）。
 # 入图前：三个 TU 零 CMake 命中（CHK-RETIRED-CODE R4 逐条列为"未被任何 CMakeLists.txt 引用"），
 # 属游离；入图后：进构建目标 + 进清单（providers/providers.manifest.json，实测 sha256 +
@@ -1170,7 +1179,20 @@ target_include_directories(astrocs_p1_ipv PUBLIC
   # CLEAN-403: ipv_log.h 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
-target_link_libraries(astrocs_p1_ipv PUBLIC astrocs_platform_zlib Threads::Threads)
+# B-1 (FINAL-07/winfix): 本 target 编入 gaia_client.c, 它以 `<zlib.h>` 直接消费 zlib。
+#   改前只链 astrocs_platform_zlib —— 那是**纯链接面**的 INTERFACE 目标 (本文件上方
+#   「平台系统库唯一判定点」段), 只携带 z/libz.lib 这类**库名**, 不含任何 include 目录;
+#   于是 astrocs_p1_ipv 的包含面里没有 zlib 目录 ⇒ Windows/MSVC 下
+#   gaia_client.c(26,1): error C1083: 无法打开包括文件: "zlib.h"。
+#   Linux 看不见是因为 /usr/include/zlib.h 兜底 ⇒ 静默 (典型「两平台行为分叉」)。
+#   修法: 补链 astrocs_gaia_zlib_include —— 它是 lib/infrastructure/gaia_xpsd_client/
+#   CMakeLists.txt:106 声明的 INTERFACE target, include 目录由 eng/cmake/
+#   cfitsio_platform.cmake 的 astrocs_cfitsio_apply_third_party_deps() 统一注入, 是本仓
+#   zlib **包含面**的唯一同源实现 (与根 astrocs_cfitsio 段、WCS→ipv 求解器链同判)。
+#   时序前提: gaia 子目录在 :350 被 add_subdirectory, 早于此处 ⇒ 该 target 已存在。
+#   注: 与本仓 :100-103 注释已写明的历史修复同源 —— 当时只覆盖 5 个**测试**消费者,
+#   漏了生产目标 astrocs_p1_ipv (连带 astrocs_phase1_photcal :1098 与求解器链 :1384-1393)。
+target_link_libraries(astrocs_p1_ipv PUBLIC astrocs_platform_zlib astrocs_gaia_zlib_include Threads::Threads)
 # WIN-PORT C2491: ipv_api.h 用 IPV_EXPORTS 区分 dllexport/dllimport —— 本 target
 # 编入的是**定义侧** TU (ipv_entry.cpp 等), Windows 下不定义该宏就会把定义
 # 声明成 __declspec(dllimport) ⇒ MSVC C2491「不允许 dllimport 函数的定义」×12。

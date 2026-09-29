@@ -141,11 +141,11 @@ class TestStandardClauseExclusion(unittest.TestCase):
     """
 
     CLAUSE_LINES = [
-        # docs/standards/STANDARDS_REGISTRY.md:41 实测行 (Paper I/II + SIP)
+        # docs/engineering/STANDARDS_REGISTRY.md:41 实测行 (Paper I/II + SIP)
         "- CLAUSES: Paper I §2.1.1（CRPIX 1-based）/§3（CD/CTYPE）；Paper II §2.1（旋转/LONPOLE）/§5 Table 1（TAN/SIN/CAR/AIT）",
-        # docs/standards/STANDARDS_REGISTRY.md:86 实测行 (IVOA HiPS)
+        # docs/engineering/STANDARDS_REGISTRY.md:86 实测行 (IVOA HiPS)
         "- CLAUSES: HiPS 1.0 §3（层级索引与目录结构）/§4.1（tile）/§4.2.1（properties）/§4.4.1（all-sky map）/§6.3.1（客户端绘制）",
-        # docs/standards/STANDARDS_REGISTRY.md:95 / :239 实测行
+        # docs/engineering/STANDARDS_REGISTRY.md:95 / :239 实测行
         "| §4.2.1（properties 必需键集） | `hips_version/hips_order` 必需且自洽 | PARTIAL | docs/science/algorithms/HIPS_WRITER.md |",
         "| STD-F1 | spherical-projection | Paper I §2.1.1（CRPIX 1-based 参考像素） | 第 1 行 | OPEN | STD-F1-ADJ |",
         # N2 + N3: 枚举续项与标准名裸条款号
@@ -322,7 +322,8 @@ class TestLifecycleBoundary(unittest.TestCase):
 
 # ── BLD-401 R3: 第三方工具版本口径 ───────────────────────────────────────────
 class TestExternalToolVersionExemption(unittest.TestCase):
-    """docs/research/*RESEARCH_PACK.md 的**第三方工具版本**不得被判为产品版本;
+    """研究包（科学正本的研究包篇与各科学实验单元的佐证来源区）的**第三方工具版本**
+    不得被判为产品版本;
     同时真产品版本漂移仍须 FAIL —— 口径只准更精确、不准更宽松。
 
     事由: 研究包「开源对照」表把 SWarp 2.41.5 / DeepSkyStacker-DSS 6.2.2 /
@@ -340,15 +341,15 @@ class TestExternalToolVersionExemption(unittest.TestCase):
     """
 
     EXTERNAL_LINES = [
-        # docs/research/PHOTOMETRY_RESEARCH_PACK.md:134 实测行
+        # docs/science/PHOTOMETRY_RESEARCH_PACK.md:134 实测行
         "| O7 | **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields()`：逐像素组合主入口） |",
-        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:172 实测行
+        # 绝对 SNR 科学实验单元的 SNR 权重研究包 :172 实测行
         "| **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields`）；`src/back.c:413`（`backstat`） |",
-        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:198-199 实测行
+        # 绝对 SNR 科学实验单元的 SNR 权重研究包 :198-199 实测行
         "| SWarp `coadd.c:1279-1311` | SWarp 2.41.5 | **有效**：`COADD_WEIGHTED` 分支的逐像素逆方差组合循环 |",
-        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:200-201 实测行
+        # 绝对 SNR 科学实验单元的 SNR 权重研究包 :200-201 实测行
         "| DeepSkyStacker `RegisterEngine.cpp:86-118` | DeepSkyStacker/DSS 6.2.2 | **有效**：`:86` 为 `CRegisteredFrame::ComputeScore` |",
-        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:202 实测行
+        # 绝对 SNR 科学实验单元的 SNR 权重研究包 :202 实测行
         "| SExtractor `analyse.c:200-203,304-310` | SExtractor 2.28.2 | **有效**：`:200-203` 为 FLUXERR 方差累加 |",
     ]
 

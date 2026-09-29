@@ -3,7 +3,7 @@
 # SPEC-POLARITY-CONSIST-01: 判据口径 <-> 设计冻结语句 一致性门（能红能绿，fail-closed）。
 #
 # 任务依据: 规格极性一致性缺口。
-# 权威链: docs/ASTROCS_DESIGN.md（最高设计）> ACCEPTANCE_SPEC.md（验收）> docs/plugins/**、
+# 权威链: docs/ASTROCS_DESIGN.md（最高设计）> ACCEPTANCE_SPEC.md（验收）> docs/detail/**、
 # docs/science/**（下层细则）；口径只在权威层定义，下层写指针不复述。
 #
 # 判据（四组）:
@@ -45,9 +45,9 @@ ACCEPT = "ACCEPTANCE_SPEC.md"
 SCHEMA = "eng/contracts/schemas/phase_config_normalize.schema.json"
 REGISTRY = "eng/packaging/config/config_registry.json"
 CODE = "lib/infrastructure/scheduler/src/module_adapters.cpp"
-SD = "docs/plugins/algorithms_phase1/03_star_detection.md"
+SD = "docs/detail/algorithms_phase1/03_star_detection.md"
 
-SCAN_GLOBS = ("ACCEPTANCE_SPEC.md", "docs/plugins/**/*.md", "docs/science/**/*.md")
+SCAN_GLOBS = ("ACCEPTANCE_SPEC.md", "docs/detail/**/*.md", "docs/science/**/*.md")
 
 CONTEXT_GUARDS = ("不得", "不可", "禁止", "禁", "反义", "判红", "为准", "订正", "而非", "不是")
 

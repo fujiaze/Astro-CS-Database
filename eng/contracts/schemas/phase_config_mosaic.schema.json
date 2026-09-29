@@ -18,8 +18,8 @@
     "排异逐像素按 N 自动选择；min/max 禁用 ⇒ 旧 enum 的 minmax 已删（判据细节见 docs/science/REJECTION.md）",
     "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
-    "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
-    "docs/plugins/infrastructure/18_cli.md §3-§5"
+    "docs/detail/UNIFIED_MODEL.md §3（三类配置严格分离）",
+    "docs/detail/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
     "形态三分支（互斥，用 if/then/else 而非 oneOf：jsonschema_min.py 的 oneOf 只报「0 branches matched」，会吞掉分支级诊断，与 normalize 同口径）：① blocks[] —— {\"schema_version\",\"blocks\":[mosaic_block, ...]}；② 平铺单块简写 —— 顶层 hips_paths/output_dir/运行参数（= 一个块去掉 name 的等价写法）；③ 旧合同 —— {phase_name:\"mosaic\", config, inputs[]}（保留，见下条）。",
@@ -29,8 +29,8 @@
     "平铺简写分支按设计「与多块形态等价」取块内键集 ⇒ 比 CLI 的平铺门**严**：CLI 平铺门 = parser.cpp session_keys() 全局并集（含其他命令的键与 config_fields 未列的会话键，如 reject_profile / bitpix / max_tiles）。方向是 fail-closed（schema 通过 ⇒ CLI 通过）；CLI 平铺门收敛为按会话的 config_fields 属 lib/** 后续项。",
     "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = 一组 HiPS 目录（hips_paths），滤镜身份由 HiPS properties.obs_filter 承载（§3.4 / B2-A8），故新分支无滤镜键。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。块与 drizzle/wcs 两级用 additionalProperties:false 做机器拒绝。",
-    "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
-    "**索引引用键 coverage_index**：阶段二输入以**加性可选键** `coverage_index` 引用数据集级覆盖索引 coverage.index.json 的路径；`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json）。这样不同批次 Phase1 产出的 p1_products.json（逐帧携带 index_path）可以方便合并，而无需改动既有输入结构。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.4；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。",
+    "算法选择的逐项权威见 docs/engineering/CONFIG_CONTRACT.md §3。",
+    "**索引引用键 coverage_index**：阶段二输入以**加性可选键** `coverage_index` 引用数据集级覆盖索引 coverage.index.json 的路径；`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json）。这样不同批次 Phase1 产出的 p1_products.json（逐帧携带 index_path）可以方便合并，而无需改动既有输入结构。合同与判据：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.4；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。",
     "**落盘形态键禁令**：阶段二产物固定**裸** `<name>.hips/`（服务面，被随机读取），因此本 schema **任何分支都不设** `storage_form` 键——输入里出现该键（含值 archive）在 schema 面（additionalProperties:false / propertyNames）与 CLI 面（块内未知键门）**双双 REJECT**，不静默忽略。理由：运行期配置门是键白名单（validate_config_full），不是 JSON Schema；只把值域收窄成 bare 会让 archive 在运行期静默透传成 no-op。Phase3 同（裸 FITS 不套壳，且不使用 .hips 中缀）。"
   ],
   "type": "object",
@@ -159,7 +159,7 @@
             "reference_frame",
             "sum"
           ],
-          "description": "UPM 规范固定；默认 reference_frame（docs/plugins/algorithms_phase2/11_upm.md:36）"
+          "description": "UPM 规范固定；默认 reference_frame（docs/detail/algorithms_phase2/11_upm.md:36）"
         },
         "snr_path": {
           "enum": [
@@ -168,7 +168,7 @@
             "frame_reconstruct"
           ],
           "default": "sparse_reconstruct",
-          "description": "Phase2 SNR 重建/消费路径（Phase1 产出形态 → 稠密 SNR），三条路径全部保留、由配置文件 JSON 显式指定（键名与 docs/design/UNIFIED_MODEL.md:46、docs/plugins/algorithms_phase1/07_noise_snr.md:216 一致 = snr_path）：dense = 直接使用 Phase1 稠密逐像素 SNR 面（精度基准/论文对照）；sparse_reconstruct（默认）= 由 Phase1 稀疏控制点 SNR 层重建（每帧受光污染程度随区域不同，帧级精度不及稀疏 ⇒ 默认消费稀疏层，SNR(p) 由**绝对** SNR 控制点重建为稠密场，不乘帧级标量）；frame_reconstruct = 仅由帧级标量重建（单帧级对照）。SP-0（实测 Var_p 比值）为诊断量、不作默认开关（其否定结论只在帧间形状相同的共模场景成立）。消费侧行为：输入无稀疏层而路径为 sparse_reconstruct（含默认）⇒ 按帧级执行但必须显式记录实际路径（snr_path_effective）并计数，不得静默；稀疏层损坏/不可重建 ⇒ fail-closed（07_noise_snr.md:97,:250；docs/plugins/algorithms_phase2/13_integration.md:21）。数值默认同时登记于 eng/packaging/config/defaults.json#snr.path 与 eng/packaging/config/templates/mosaic.phase_config.json（同值 sparse_reconstruct）。"
+          "description": "Phase2 SNR 重建/消费路径（Phase1 产出形态 → 稠密 SNR），三条路径全部保留、由配置文件 JSON 显式指定（键名与 docs/detail/UNIFIED_MODEL.md:46、docs/detail/algorithms_phase1/07_noise_snr.md:216 一致 = snr_path）：dense = 直接使用 Phase1 稠密逐像素 SNR 面（精度基准/论文对照）；sparse_reconstruct（默认）= 由 Phase1 稀疏控制点 SNR 层重建（每帧受光污染程度随区域不同，帧级精度不及稀疏 ⇒ 默认消费稀疏层，SNR(p) 由**绝对** SNR 控制点重建为稠密场，不乘帧级标量）；frame_reconstruct = 仅由帧级标量重建（单帧级对照）。SP-0（实测 Var_p 比值）为诊断量、不作默认开关（其否定结论只在帧间形状相同的共模场景成立）。消费侧行为：输入无稀疏层而路径为 sparse_reconstruct（含默认）⇒ 按帧级执行但必须显式记录实际路径（snr_path_effective）并计数，不得静默；稀疏层损坏/不可重建 ⇒ fail-closed（07_noise_snr.md:97,:250；docs/detail/algorithms_phase2/13_integration.md:21）。数值默认同时登记于 eng/packaging/config/defaults.json#snr.path 与 eng/packaging/config/templates/mosaic.phase_config.json（同值 sparse_reconstruct）。"
         }
       }
     },

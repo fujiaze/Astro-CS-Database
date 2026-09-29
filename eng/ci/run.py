@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """ACSD 统一 CI 执行器。
 
-职责（CI 规范见 docs/ci/CI_SPEC.md；检查项唯一注册表 = eng/ci/checks.json）：
+职责（CI 规范见 docs/engineering/CI_SPEC.md；检查项唯一注册表 = eng/ci/checks.json）：
   - 唯一 CI 入口：CI YAML 只调用 ``python3 eng/ci/run.py --profile ...``，不复制业务命令。
   - 从唯一注册表 ``eng/ci/checks.json`` 按 profile / --check / --focus / --changed-from
     （经 eng/ci/impact_map.json）选择检查，逐项按登记 command 与 timeout 执行。
@@ -47,7 +47,7 @@ import run_checks as _rc  # noqa: E402  (eng/ci/run_checks.py：档位门控单�
 SCHEMA_VERSION = 1
 # 档位词汇**单一来源** = run_checks.py（eng/ci/run_checks.py:PROFILES）。
 # 缺陷型（FINAL-07 G2）：本文件曾自持一份子集（缺 integration/prerelease），
-# 而 checks.json 与 docs/ci/CI_SPEC.md §2.6 都要求这两档 ⇒ 文档—注册表—执行器三面漂移，
+# 而 checks.json 与 docs/engineering/CI_SPEC.md §2.6 都要求这两档 ⇒ 文档—注册表—执行器三面漂移，
 # 按文档跑 `run.py --profile integration` 会 argparse rc=2。
 PROFILES = _rc.PROFILES
 

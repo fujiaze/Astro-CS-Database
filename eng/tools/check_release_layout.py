@@ -5,14 +5,14 @@
 退役判定依据
   1) 判据面已被在册门承接：发布布局 / 白名单 / checksums / SBOM 的机器判据在
      eng/ci/checks.json 的 CHK-PKG-CONSISTENCY（PKG-CONSISTENCY / PKG-SBOM 及其
-     -NEG 负例面）中；本脚本在 eng/ci/checks.json 与 docs/ci/01_CHECKS.md §2 中零引用。
+     -NEG 负例面）中；本脚本在 eng/ci/checks.json 与 docs/engineering/01_CHECKS.md §2 中零引用。
   2) 判据对象不存在：唯一输入 dist/astrocs-alpha 是发布候选产物目录，现不存在
      （发布决定只属负责人，AGENTS.md §6）。
   3) 行为缺陷（本次一并订正）：原实现在 dist 缺失分支里先 errors.append 再 return 1，
-     位置在**任何打印之前** ⇒ 无参调用 rc=1 且零输出，违反 docs/ci/01_CHECKS.md §1:14
+     位置在**任何打印之前** ⇒ 无参调用 rc=1 且零输出，违反 docs/engineering/01_CHECKS.md §1:14
      「失效时显式失败并点名，不得静默降级」。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_main()，经 --legacy-check 复跑（判据未改，只补具名输出）；
   * 本检查器不写任何产物文件 ⇒ 不存在「产物落仓库根」的问题。
@@ -29,7 +29,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# ── 判据锚（docs/ci/01_CHECKS.md §1:14 锚存活） ────────────────────────────
+# ── 判据锚（docs/engineering/01_CHECKS.md §1:14 锚存活） ────────────────────────────
 DIST_REL = os.path.join("dist", "astrocs-alpha")
 REQUIRED_FILES = ("VERSION", "LICENSE", "README.txt", "checksums.sha256")
 BANNED_DIRS = ("build", "testdata", ".git", "history")

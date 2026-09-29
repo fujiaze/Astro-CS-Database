@@ -156,10 +156,25 @@ static __inline void* astrocs_test_real_allocator(const char* name) {
 struct astrocs_test_dirent {
     char d_name[260];                     /* MAX_PATH：与 Windows 文件名上限一致 */
 };
+/* B-3 (FINAL-07/winfix): _findfirst64/_findnext64 的**第二个实参类型**由 CRT 自己
+ *   按 _USE_32BIT_TIME_T 二选一, 不是单一类型:
+ *     未定义 _USE_32BIT_TIME_T (MSVC 默认, 64 位 time_t) ⇒ struct __finddata64_t
+ *     定义了 _USE_32BIT_TIME_T (MinGW 形状)                ⇒ struct _finddata64i32_t
+ *   改前把成员写死成 _finddata64i32_t, 那是 MinGW 形状 ⇒ MSVC 19.44 下
+ *   :175/:183 报 C2664「_finddata64i32_t* 不能转成 __finddata64_t*」。
+ *   加重: 本垫片的存在目的就是让 Windows 能用 opendir/readdir/closedir, 而它自己先编不过。
+ *   修法: 跟随 CRT 自己的选择, 不猜类型 —— 写死任一个都会在另一半工具链上再坏一次。
+ *   (DEPENDENCIES.md:82 明写 msys2_mingw: FORBIDDEN, 故合同工具链走未定义分支;
+ *    保留条件分支只为不再引入第二处「只对某个工具链成立」的硬编码假设。) */
+#if defined(_USE_32BIT_TIME_T)
+typedef struct _finddata64i32_t astrocs_test_finddata64_t;
+#else
+typedef struct __finddata64_t  astrocs_test_finddata64_t;
+#endif
 typedef struct astrocs_test_dir {
     intptr_t        handle;               /* _findfirst64 句柄；-1 = 空目录/已结束 */
     int             first;                /* 尚未返回首个匹配项 */
-    struct _finddata64i32_t fd;
+    astrocs_test_finddata64_t fd;
     struct astrocs_test_dirent ent;
 } astrocs_test_dir_t;
 

@@ -4,7 +4,7 @@
 
 权威依据（沿索引下钻所得，逐条可回指）
   * 交换对象结构 / 角色绑定 / 拒绝条件：
-    `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §1（role↔type↔schema_version
+    `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §1（role↔type↔schema_version
     强绑定、最小平面集）、§2/§2a（product_content 是 units 载体；planes 每项
     plane_id/units/dtype/invalid_policy）、§2b（最小平面集）、§4（R-NO-NAME-BINDING：
     输入资格、角色识别、单位/坐标/**平面语义**绝不根据文件名/目录名/路径猜测）、
@@ -18,7 +18,7 @@
     variance = signal^2、ivar = 1/variance，且
     `pixel_area_power_defaults` = {signal_sb: -2, sb_variance_out: -4, sb_ivar_out: 4, flux: 0}；
   * 产品侧现状语义（只作对被检对象的事实比对，不作判据来源）：
-    `docs/contracts/DATA_SEMANTICS.md` §12.2（DATA-P1-HIPS 根级 manifest 键）、
+    `docs/science/DATA_SEMANTICS.md` §12.2（DATA-P1-HIPS 根级 manifest 键）、
     §30.4（Phase3 VARIANCE/IVAR HDU 的 BUNIT = signal BUNIT 的平方 / 其倒数）。
 
 判据（三条判据线，任一判红即 rc=1；fail-closed：**缺件不豁免**）

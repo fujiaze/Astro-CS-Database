@@ -6,9 +6,9 @@
   1) 判据面已被在册门承接：六层追溯 = 注册项 TRACEABILITY / CON-TRACEABILITY /
      TRACEABILITY-MATRIX；旧入口退出面 = eng/tools/check_legacy_exit.py
      （注册项 CHK-SCI-REF 的 ACR-DORMANT，LEG-002..004）。本脚本在
-     eng/ci/checks.json 与 docs/ci/01_CHECKS.md §2 中零引用。
+     eng/ci/checks.json 与 docs/engineering/01_CHECKS.md §2 中零引用。
   2) 判据对象不存在：发布状态文档 RELEASE_STATUS.md 已删除 ⇒ 原实现无参实跑即 rc=1
-     **裸 traceback** FileNotFoundError，违反 docs/ci/01_CHECKS.md §1:14「不得 traceback」。
+     **裸 traceback** FileNotFoundError，违反 docs/engineering/01_CHECKS.md §1:14「不得 traceback」。
   3) 本次一并订正的三处陈旧/失效锚（只订正锚与单源口径，判据不放松）：
      * 硬编码版本断言 ver != "0.10.0-alpha.2" ⇒ 改为从根 VERSION 读（VER-001 单源，
        与同批 check_reproducible_build.py 的既有订正同款）；否则本文件在现行
@@ -18,7 +18,7 @@
        TRACEABILITY_RETIRED）⇒ 不再把「被委托门已退役」计为追溯失败；显式给
        --traceability-csv 时仍按原样委托复跑。
 
-退役契约（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+退役契约（docs/engineering/01_CHECKS.md §2.1「检查器退役与预留」）
   * 无参调用：打印退役标识并 exit 2；
   * 原实现保留为 legacy_main()，经 --legacy-check 复跑；
   * 本检查器不写任何产物文件 ⇒ 不存在「产物落仓库根」的问题。
@@ -36,7 +36,7 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# ── 判据锚（docs/ci/01_CHECKS.md §1:14 锚存活） ────────────────────────────
+# ── 判据锚（docs/engineering/01_CHECKS.md §1:14 锚存活） ────────────────────────────
 VERSION_REL = "VERSION"
 PUBLIC_API_REL = os.path.join("docs", "contracts", "PUBLIC_API.md")
 RELEASE_STATUS_REL = os.path.join("docs", "review", "RELEASE_STATUS.md")
@@ -48,7 +48,7 @@ P3_IMPL_RELS = (os.path.join("lib", "algorithms", "projection", "p3_wcs.cpp"),
 LEGACY_ENTRY_TOKENS = ("orchestrator.exe", "astrocs-stage2.exe")
 # 原实现的版本断言是**硬编码历史冻结值**（REL-002 成文时的 alpha 基线）。
 # 保留原判据不动：现行 VERSION 已推进 ⇒ 该常量成为**失效锚**，按
-# docs/ci/01_CHECKS.md §1:14 以 ANCHOR_STALE: EXPECTED_VERSION <值> 具名失败（rc=2），
+# docs/engineering/01_CHECKS.md §1:14 以 ANCHOR_STALE: EXPECTED_VERSION <值> 具名失败（rc=2），
 # 既不静默降级、也不为了让它变绿而把断言改成读 VERSION（那是放宽判据）。
 EXPECTED_VERSION = "0.10.0-alpha.2"
 
@@ -89,7 +89,7 @@ def legacy_main(root: str, traceability_csv: str | None) -> int:
             errors.append("traceability FAIL: %s" % proc.stdout[-300:])
     else:
         print("REL-002_TRACEABILITY_SKIP: eng/tools/check_traceability.py 已按 "
-              "docs/ci/01_CHECKS.md §2.1 退役（TRACEABILITY-CODE），未给 "
+              "docs/engineering/01_CHECKS.md §2.1 退役（TRACEABILITY-CODE），未给 "
               "--traceability-csv ⇒ 本项不复跑追溯链（显式跳过，非静默）")
 
     # 2) 旧入口扫描 (生产文档不得把遗留当唯一入口)
@@ -118,7 +118,7 @@ def legacy_main(root: str, traceability_csv: str | None) -> int:
             print("  " + e)
         return 1
     if stale:
-        print("REL-002_FAIL: 硬编码锚失效（fail-closed，docs/ci/01_CHECKS.md §1:14）")
+        print("REL-002_FAIL: 硬编码锚失效（fail-closed，docs/engineering/01_CHECKS.md §1:14）")
         return 2
     print("REL-002_PASS: 旧入口标退出, VERSION == 冻结基线 %s, phase3 真实实现齐, "
           "RELEASE_STATUS 诚实" % ver)

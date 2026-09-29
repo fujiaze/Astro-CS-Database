@@ -4,8 +4,8 @@
   "purpose": "CHK-LOG-SYS 的**显式登记面**（不是豁免）：承载生产收敛面吞错点、条件回退点与硬编码日志落点的已确证条目。条目只减不增；删条目即恢复判红（不得用本台账把门禁改绿）。",
   "authority": {
     "design": "docs/ASTROCS_DESIGN.md §7.3（错误传播与运行日志）",
-    "detail": "docs/design/LOG_AND_ERROR_SYSTEM.md",
-    "contract": "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
+    "detail": "docs/detail/LOG_AND_ERROR_SYSTEM.md",
+    "contract": "docs/engineering/LOG_AND_ERROR_CONTRACT.md",
     "checker": "eng/tools/quality/check_log_system.py（CHK-LOG-SYS）"
   },
   "landing_contract": {
@@ -14,8 +14,8 @@
     "summary_name": "run_<run_id>.log",
     "anchors": [
       "lib/infrastructure/observability/logging/log_event_v1.schema.json",
-      "docs/design/LOG_AND_ERROR_SYSTEM.md",
-      "docs/contracts/LOG_AND_ERROR_CONTRACT.md"
+      "docs/detail/LOG_AND_ERROR_SYSTEM.md",
+      "docs/engineering/LOG_AND_ERROR_CONTRACT.md"
     ]
   },
   "error_swallow": {
@@ -493,16 +493,16 @@
     {
       "id": "F-EXIT-MAP",
       "kind": "finding",
-      "summary": "运行时错误域→退出码映射曾与 exit_codes.h 语义不一致：CONFIG→70（合同 §5 为 2）、BACKEND→70（应为 5）、RESOURCE→5（RESOURCE=10）。**已订正**：域→码收敛到单一实现 exit_code_for_error_domain（依据 docs/contracts/LOG_AND_ERROR_CONTRACT.md §5 表），run_pipeline 的失败 switch 已删除并改为调用该实现。",
+      "summary": "运行时错误域→退出码映射曾与 exit_codes.h 语义不一致：CONFIG→70（合同 §5 为 2）、BACKEND→70（应为 5）、RESOURCE→5（RESOURCE=10）。**已订正**：域→码收敛到单一实现 exit_code_for_error_domain（依据 docs/engineering/LOG_AND_ERROR_CONTRACT.md §5 表），run_pipeline 的失败 switch 已删除并改为调用该实现。",
       "evidence": "lib/infrastructure/cli/runtime_client.cpp：exit_code_for_error_domain + run_pipeline 失败路径统一 return exit_code_for_error_domain(rt_ret.error().domain())；可达矩阵测试 = eng/tests/unit/rt008_runtime_client_test.cpp test_f_exit_map_domain_matrix_is_reachable（8 域逐条硬编码 §5 期望码 + 未知域名 fail-closed→70）。",
       "impact": "配置错误 = 2(ARGS)、后端加载失败 = 5(BACKEND)、资源类失败 = 10(RESOURCE)，与 §7.2 码值语义一致；DATA/SCIENCE_PRECONDITION/IO/CANCELLED/INTERNAL 语义不变。",
       "owner": "CLI 收敛面（P-158/F-EXIT-MAP 收口，前台提交）",
-      "action": "已按 docs/contracts/LOG_AND_ERROR_CONTRACT.md §5 订正映射并补退出码可达矩阵测试；残余 = 端到端真触发各域的 CLI 级用例（当前由测试钩子 ASTROCS_TEST_FORCE_ERROR_DOMAIN 驱动矩阵，真触发面待逐域补）。"
+      "action": "已按 docs/engineering/LOG_AND_ERROR_CONTRACT.md §5 订正映射并补退出码可达矩阵测试；残余 = 端到端真触发各域的 CLI 级用例（当前由测试钩子 ASTROCS_TEST_FORCE_ERROR_DOMAIN 驱动矩阵，真触发面待逐域补）。"
     },
     {
       "id": "F-PHASE-ENUM",
       "kind": "finding",
-      "summary": "LOG-001 schema 的 phase 枚举为 phase1/phase2/phase3/runtime/monitoring/cli/\"\"，而 docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md §2.2 写成 phase1/phase2/phase3/lib/infrastructure/observability/monitoring/cli/\"\"；且 phase1/2/3 是最高设计 §7.1 明令不出现在代码目录的内部指代。",
+      "summary": "LOG-001 schema 的 phase 枚举为 phase1/phase2/phase3/runtime/monitoring/cli/\"\"，而 docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md §2.2 写成 phase1/phase2/phase3/lib/infrastructure/observability/monitoring/cli/\"\"；且 phase1/2/3 是最高设计 §7.1 明令不出现在代码目录的内部指代。",
       "evidence": "lib/infrastructure/observability/logging/log_event_v1.schema.json#phase 与合同文档 §2.2 不一致",
       "impact": "日志行归属字段的两处口径不一致；按 schema 写入的 runtime 归属行无法在文档侧对号。",
       "owner": "LOG-001 合同 owner（SA-LOG-08）/ 负责人裁决",

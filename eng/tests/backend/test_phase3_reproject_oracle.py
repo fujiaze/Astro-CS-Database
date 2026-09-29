@@ -188,7 +188,7 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         self.assertAlmostEqual(float(hdr["CD2_2"]), 0.05, places=12)
         # P3-002 冻结合同: BUNIT 来源输入合同 — fixture 的 signal/properties 显式声明
         # BUNIT=ADU/sr（phase2_fixture_main.cpp declare_units_for_all），生产逐字继承;
-        # 即便未声明, 缺省串亦为 canonical "ADU/sr"（docs/contracts/DATA_SEMANTICS.md
+        # 即便未声明, 缺省串亦为 canonical "ADU/sr"（docs/science/DATA_SEMANTICS.md
         # §31.1 signal_sb / §31.1a「产品 FITS/HiPS 写盘 BUNIT 一律取该串」）。裸 ADU 是
         # 每像素计数口径, 与面亮度平面数值不符且量纲不可判（§31.2）, 绝不 Jy/beam 默认。
         # R12 终判: 原 oracle 期望 "Jy" 为 oracle fixture 自相矛盾。
@@ -296,7 +296,7 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         self.assertNotEqual(r_fov.returncode, 0, "FOV>20° 必须被拒（冻结适用域）")
         self.assertIn("WCS construction rejected", r_fov.stdout,
                       "FOV 越域必须报 WCS 构造拒绝: " + r_fov.stdout[-200:])
-        # 冻结合同(docs/api/PHASE3_API_V1.md + docs/science/PHASE3_HIPS_TO_FITS.md §36):
+        # 冻结合同(docs/engineering/PHASE3_API_V1.md + docs/science/PHASE3_HIPS_TO_FITS.md §36):
         # abs(dec)<=85°(距极点>=5°) 单一条件, abs(dec)>85° → ACS_ERR_PARAM。
         # R12 终判: 原测试以 dec=3.0(距极点 87°, 合法) 期望拒绝属误读合同 —
         # 生产 p3_session.cpp fabs(dec)>85 拒绝正确; 此处用真违例输入 dec=88°。

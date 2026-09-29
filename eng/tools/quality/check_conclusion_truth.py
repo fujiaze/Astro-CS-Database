@@ -4,7 +4,7 @@
 
 权威依据
   - docs/ASTROCS_DESIGN.md 12.5 状态阶梯（唯一口径）—— 状态词的**唯一**词汇来源；
-  - docs/ci/01_CHECKS.md 1（eng/ci/checks.json 唯一注册表）；
+  - docs/engineering/01_CHECKS.md 1（eng/ci/checks.json 唯一注册表）；
   - ENGINEERING_SPEC.md 8（fail-closed；每项能绿能红）；
   - AGENTS.md 6（不用 waiver 盖红灯）。
 
@@ -184,7 +184,7 @@ def check_vocab(root):
                         elif isinstance(n, list):
                             stack.extend(n)
     # (b) 造词黑名单：在役面出现即红（不依赖门结果形态）
-    for base in reg.get("denylist_roots", ["eng", "docs/ci"]):
+    for base in reg.get("denylist_roots", ["eng", "docs/engineering"]):
         base_abs = os.path.join(root, base)
         targets = []
         if os.path.isfile(base_abs):
@@ -217,7 +217,7 @@ def check_surfaces(root):
     fails += rf
     if reg is None:
         return fails
-    roots = reg.get("scan_roots", ["eng", "docs/ci"])
+    roots = reg.get("scan_roots", ["eng", "docs/engineering"])
     exclude = set(reg.get("scan_exclude", [])) | set(SELF_FILES)
     files = []
     for base in roots:
@@ -698,7 +698,7 @@ def self_test():
     return 0 if ok else 1
 
 
-MIRROR = ("eng", "docs/ci", "artifacts/evidence/truthful-conclusion-01",
+MIRROR = ("eng", "docs/engineering", "artifacts/evidence/truthful-conclusion-01",
           "实验/engineering-evidence/v19r7-quality",
           DESIGN, "ENGINEERING_SPEC.md", "ACCEPTANCE_SPEC.md")
 MIRROR_EMPTY = ("lib", "docs")

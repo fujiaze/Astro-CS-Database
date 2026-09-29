@@ -17,8 +17,8 @@
     "docs/ASTROCS_DESIGN.md §6.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
     "docs/ASTROCS_DESIGN.md §4.5（运行前预检绿/橙/红）",
     "docs/ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
-    "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
-    "docs/plugins/infrastructure/18_cli.md §3-§5"
+    "docs/detail/UNIFIED_MODEL.md §3（三类配置严格分离）",
+    "docs/detail/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
     "形态三分支（互斥，用 if/then/else 而非 oneOf：jsonschema_min.py 的 oneOf 只报「0 branches matched」，会吞掉分支级诊断，与 normalize 同口径）：① blocks[] —— {\"schema_version\",\"blocks\":[export_block, ...]}；② 平铺单块简写 —— 顶层 source/output_dir/运行参数（= 一个块去掉 name 的等价写法）；③ 旧合同 —— {phase_name:\"export\", config, inputs[]}（保留，见下条）。",
@@ -30,8 +30,8 @@
     "平铺简写分支按设计「与多块形态等价」取块内键集 ⇒ 比 CLI 的平铺门**严**：CLI 平铺门 = parser.cpp session_keys() 全局并集（含 bitpix / max_tiles / frame 等 config_fields 未列的会话键）。方向是 fail-closed（schema 通过 ⇒ CLI 通过）；CLI 平铺门收敛为按会话的 config_fields 属 lib/** 后续项。",
     "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = source.hips_dir。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。块与 wcs 两级用 additionalProperties:false 做机器拒绝。",
-    "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
-    "**落盘形态**：阶段三**输入**形态透明（裸 <name>.hips/ 与归档 <name>.hips.zst 同义，按天区取瓦片走输入产品的覆盖索引）；**输出**固定为**裸 FITS，不压缩、不套壳**，且不使用 .hips / .hips.zst 中缀。因此本 schema **任何分支都不设** storage_form 键：输入里出现该键一律 REJECT（schema 面 propertyNames / additionalProperties:false，CLI 面块内未知键门），不静默忽略。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.5；docs/design/PRODUCT_STORAGE_FORM.md §2。"
+    "算法选择的逐项权威见 docs/engineering/CONFIG_CONTRACT.md §3。",
+    "**落盘形态**：阶段三**输入**形态透明（裸 <name>.hips/ 与归档 <name>.hips.zst 同义，按天区取瓦片走输入产品的覆盖索引）；**输出**固定为**裸 FITS，不压缩、不套壳**，且不使用 .hips / .hips.zst 中缀。因此本 schema **任何分支都不设** storage_form 键：输入里出现该键一律 REJECT（schema 面 propertyNames / additionalProperties:false，CLI 面块内未知键门），不静默忽略。合同与判据：docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §10.5；docs/detail/PRODUCT_STORAGE_FORM.md §2。"
   ],
   "type": "object",
   "properties": {
@@ -174,7 +174,7 @@
             "point_source_flux",
             "visualization"
           ],
-          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/plugins/algorithms_phase3/16_fits_output.md:45"
+          "description": "输出模式必须显式（docs/ASTROCS_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/algorithms_phase3/16_fits_output.md:45"
         },
         "wcs": {
           "$ref": "#/$defs/export_wcs"
@@ -203,7 +203,7 @@
             "cea",
             "zea"
           ],
-          "description": "投影选择，缺省 TAN（docs/ASTROCS_DESIGN.md §6.3:493-495；docs/plugins/algorithms_phase3/14_projection.md:37）"
+          "description": "投影选择，缺省 TAN（docs/ASTROCS_DESIGN.md §6.3:493-495；docs/detail/algorithms_phase3/14_projection.md:37）"
         },
         "center_deg": {
           "type": "array",
@@ -242,7 +242,7 @@
         },
         "rotation_deg": {
           "type": "number",
-          "description": "旋转角（若用 CD）；默认 0（docs/plugins/algorithms_phase3/14_projection.md:41）"
+          "description": "旋转角（若用 CD）；默认 0（docs/detail/algorithms_phase3/14_projection.md:41）"
         },
         "crpix_px": {
           "type": "array",
@@ -256,7 +256,7 @@
               "type": "number"
             }
           ],
-          "description": "参考像素（FITS 1-based）；缺省=中心（docs/plugins/algorithms_phase3/14_projection.md:38）"
+          "description": "参考像素（FITS 1-based）；缺省=中心（docs/detail/algorithms_phase3/14_projection.md:38）"
         }
       }
     },
@@ -293,7 +293,7 @@
         "hips_dir": {
           "type": "string",
           "minLength": 1,
-          "description": "输入 HiPS 根目录（必填非空；对象字段 hips_dir，非字符串——CLI input_contract(SESSION_EXPORT) 的唯一声明）。**落盘形态透明**：值可以是裸 \"<name>.hips/\" 或归档 \"<name>.hips.zst\"，两者读语义相同（形态由落盘名判定，调用方不感知；docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §6 R1/R2）。本键**不**承载形态选择——Phase3 输入合同不设 storage_form。"
+          "description": "输入 HiPS 根目录（必填非空；对象字段 hips_dir，非字符串——CLI input_contract(SESSION_EXPORT) 的唯一声明）。**落盘形态透明**：值可以是裸 \"<name>.hips/\" 或归档 \"<name>.hips.zst\"，两者读语义相同（形态由落盘名判定，调用方不感知；docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §6 R1/R2）。本键**不**承载形态选择——Phase3 输入合同不设 storage_form。"
         }
       },
       "description": "第三件 = 一个输入产品（合同兼容 HiPS 根目录）：{hips_dir}。单值（U07 定案，依据 docs/ASTROCS_DESIGN.md §3.3「阶段三 source（一个输入产品）」）；多产品 = 多块"
@@ -344,7 +344,7 @@
         "nearest",
         "bilinear"
       ],
-      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见 docs/plugins/algorithms_phase3/ 与 docs/science/"
+      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见细节实施面的第三阶段分册（docs/detail/algorithms_phase3/）与科学正本（docs/science/）"
     },
     "longitude_parity": {
       "enum": [
@@ -365,7 +365,7 @@
         "crop_form"
       ],
       "additionalProperties": false,
-      "description": "导出裁剪范围（可选键；缺省 = **不裁剪**，整幅导出）。语义 = docs/design/PHASE3_DETAILED_DESIGN.md §8；字段合同 = docs/contracts/CONFIG_CONTRACT.md §3。裁剪 = 在**已定义好的输出画幅**（center/width_px/height_px/scale_deg_per_px/longitude_parity/projection）上取矩形子窗；不改画幅定义、不改投影、不改重采样。写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（CRVAL/CD 不变、CRPIX 减整数窗口原点）⇒ 窗口内像素与不裁剪时逐位相同（裁剪只能裁、不能改数值）。两种形式**互斥**（crop_form 选中其一，另一形式出现即拒，不比较、不取一）：pixels（平面像素矩形）/ sky（天球轴对齐矩形）。全部非法输入 fail-closed 具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空），禁静默夹取。**本 schema 只判结构**（键闭包/类型/基本值域）；跨字段的几何判据（x1<=width_px、x0<=x1、天球矩形转换后的窗口是否越界/为空）由 CLI 预检与 scheduler 节点 validate_config 用 lib/algorithms/projection/p3_wcs.h 的唯一实现判（JSON Schema 无法表达跨字段算术）。",
+      "description": "导出裁剪范围（可选键；缺省 = **不裁剪**，整幅导出）。语义 = docs/detail/PHASE3_DETAILED_DESIGN.md §8；字段合同 = docs/engineering/CONFIG_CONTRACT.md §3。裁剪 = 在**已定义好的输出画幅**（center/width_px/height_px/scale_deg_per_px/longitude_parity/projection）上取矩形子窗；不改画幅定义、不改投影、不改重采样。写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（CRVAL/CD 不变、CRPIX 减整数窗口原点）⇒ 窗口内像素与不裁剪时逐位相同（裁剪只能裁、不能改数值）。两种形式**互斥**（crop_form 选中其一，另一形式出现即拒，不比较、不取一）：pixels（平面像素矩形）/ sky（天球轴对齐矩形）。全部非法输入 fail-closed 具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空），禁静默夹取。**本 schema 只判结构**（键闭包/类型/基本值域）；跨字段的几何判据（x1<=width_px、x0<=x1、天球矩形转换后的窗口是否越界/为空）由 CLI 预检与 scheduler 节点 validate_config 用 lib/algorithms/projection/p3_wcs.h 的唯一实现判（JSON Schema 无法表达跨字段算术）。",
       "properties": {
         "crop_form": {
           "enum": [
@@ -494,7 +494,7 @@
         "output_mode"
       ],
       "additionalProperties": false,
-      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 输入的一组帧（source.hips_dir，单值）}。**output_mode 必填**：旧合同 $defs.export_config.required 即含 output_mode（docs/contracts/CONFIG_CONTRACT.md:81），且 p3 resample 节点缺键即 REJECT（FZ-P3-MODES）——合同不得比运行期松（docs/ASTROCS_DESIGN.md §3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_EXPORT) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
+      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 输入的一组帧（source.hips_dir，单值）}。**output_mode 必填**：旧合同 $defs.export_config.required 即含 output_mode（docs/engineering/CONFIG_CONTRACT.md:81），且 p3 resample 节点缺键即 REJECT（FZ-P3-MODES）——合同不得比运行期松（docs/ASTROCS_DESIGN.md §3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_EXPORT) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
       "properties": {
         "bitpix": {
           "$ref": "#/$defs/bitpix"

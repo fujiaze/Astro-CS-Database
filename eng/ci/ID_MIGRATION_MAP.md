@@ -11,8 +11,8 @@
 - 机器可读事实源：`eng/ci/id_migration_map.json`；本文件是它的人读摘要，**不含**任何未登记在该 JSON 里的映射事实。
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
-- 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
-- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 165 个目标，其中 143 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`docs/ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 52。
+- 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/engineering/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
+- 目标语义 = `docs/engineering/01_CHECKS.md §2` 表：`targets` 合计 165 个目标，其中 143 个的 `doc` 字段指向该表（含带登记批注的变体），22 个指向其它权威面（`docs/ASTROCS_DESIGN.md`、`docs/engineering`、`docs/science` 或扩展登记说明）；按 `kind` 计：doc 58 / extension 50 / ci 52。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
 ## 2. 覆盖计数（`coverage` 块逐字引用，本文件不重算该块）
@@ -39,7 +39,7 @@
 
 | 旧 ID | 决策 | 依据 | 原因 | 备注 |
 |---|---|---|---|---|
-| `TRACEABILITY-CODE` | RETIRED | GAP-032 + 前台裁决 2026-09-16（docs/ci/01_CHECKS.md §2.1 退役记录） | 唯一默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 随 artifacts/ 按负责人裁决删除而断供；本 CI 规范/最高设计/工程规范对「追溯」零命中；内容未丢（git show b1290525^:…） | 不得记为本波「丢失的注册项」；本波 146 项输入 = 147 - TRACEABILITY-CODE |
+| `TRACEABILITY-CODE` | RETIRED | GAP-032 + 前台裁决 2026-09-16（docs/engineering/01_CHECKS.md §2.1 退役记录） | 唯一默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 随 artifacts/ 按负责人裁决删除而断供；本 CI 规范/最高设计/工程规范对「追溯」零命中；内容未丢（git show b1290525^:…） | 不得记为本波「丢失的注册项」；本波 146 项输入 = 147 - TRACEABILITY-CODE |
 
 ## 3. 目标项 → 归并的旧 ID
 
@@ -77,7 +77,7 @@
 | `CHK-ENV-ADOPTION` | extension | P1 | CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账） | `TOOLCHAIN-VERIFY` |
 | `CHK-KNOWN-FAILURES-BASELINE` | extension | P1 | 版本化已知失败基线门（聚合型，linux-main 末位） | `KNOWN-FAILURES-BASELINE`、`KNOWN-FAILURES-BASELINE-VERIFY`、`KNOWN-FAILURES-BASELINE-CHECK` |
 | `STD-REG` | extension | P1 | 标准注册表 C1–C8 判据 + 9 场景 fault-inject 负例面 | `STD-REG`、`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT` |
-| `CHK-REGISTRY-DOC-SYNC` | extension | P0 | 注册表 ↔ docs/ci/01_CHECKS.md §2 双向一致（ENGINEERING_SPEC §8） | `REGISTRY-DOC-SYNC`、`REGISTRY-DOC-SYNC-SELFTEST`、`ID-MIGRATION-MAP-DOC-SYNC`、`ID-MIGRATION-MAP-DOC-SYNC-SELFTEST` |
+| `CHK-REGISTRY-DOC-SYNC` | extension | P0 | 注册表 ↔ docs/engineering/01_CHECKS.md §2 双向一致（ENGINEERING_SPEC §8） | `REGISTRY-DOC-SYNC`、`REGISTRY-DOC-SYNC-SELFTEST`、`ID-MIGRATION-MAP-DOC-SYNC`、`ID-MIGRATION-MAP-DOC-SYNC-SELFTEST` |
 | `CHK-IMPACT-MAP` | extension | P0 | eng/ci/impact_map.json 判据一致性门（changed-path→checks 映射；ENGINEERING_SPEC §8） | `IMPACT-MAP`、`IMPACT-MAP-SELFTEST` |
 | `CHK-PKG-CONSISTENCY` | extension | P0 | 产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证 | `PKG-CONSISTENCY`、`PKG-CONSISTENCY-NEG`、`PKG-SBOM`、`PKG-SBOM-NEG` |
 | `CHK-EXIT-CONSISTENCY` | ci | P1 |  | `EXIT-CONSISTENCY-SCAN`、`EXIT-CONSISTENCY-SELFTEST` |
@@ -179,7 +179,7 @@
 | `ACTIONS-LOCK-OFFLINE` | KEPT | `CHK-ACTIONS-LOCK` | ci | P0 | CHK-ACTIONS-LOCK |
 | `ACTIONS-LOCK-ONLINE` | KEPT | `CHK-ACTIONS-LOCK` | ci | P0 | CHK-ACTIONS-LOCK |
 | `ACTIONS-LOCK-SELFTEST` | KEPT | `CHK-ACTIONS-LOCK` | ci | P0 | CHK-ACTIONS-LOCK |
-| `AGENTS-GOV` | KEPT | `AGENTS-GOV` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
+| `AGENTS-GOV` | KEPT | `AGENTS-GOV` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
 | `AHPX-WEIGHT-RETIRED` | KEPT | `AHPX-WEIGHT-RETIRED` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `AIO-IO-BOUNDARY-SELFTEST` | KEPT | `AIO-IO-BOUNDARY-SELFTEST` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `AIO-OWNERSHIP` | MERGED-INTO | `CHK-RESOURCE` | doc | P0 | 内存/线程/利用率门禁 |
@@ -196,8 +196,8 @@
 | `CHK-BLOCKFLOW-CONFORMANCE-STEP` | KEPT | `CHK-BLOCKFLOW-CONFORMANCE` | doc | P0 | ARCH-505 新增执行单元 |
 | `CHK-BLOCKFLOW-PORTS-VS-CODE-STEP` | KEPT | `CHK-BLOCKFLOW-PORTS-VS-CODE` | doc | P0 | REGISTRY-ALIGN-01 新增执行单元（端口↔代码双向一致） |
 | `CHK-BLOCKFLOW-SPEC-STEP` | KEPT | `CHK-BLOCKFLOW-SPEC` | doc | P0 | ARCH-505 新增执行单元 |
-| `CHK-BUILD-PROVENANCE` | KEPT | `CHK-BUILD-PROVENANCE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
-| `CHK-BUILD-PROVENANCE-SELFTEST` | KEPT | `CHK-BUILD-PROVENANCE-SELFTEST` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
+| `CHK-BUILD-PROVENANCE` | KEPT | `CHK-BUILD-PROVENANCE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/engineering/VERSIONING.md §2.1 构建指纹合同与 docs/engineering/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
+| `CHK-BUILD-PROVENANCE-SELFTEST` | KEPT | `CHK-BUILD-PROVENANCE-SELFTEST` | extension | P0 | 新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/engineering/VERSIONING.md §2.1 构建指纹合同与 docs/engineering/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。 |
 | `CHK-CFITSIO-PLATFORM-SURFACE` | KEPT | `CHK-CFITSIO-PLATFORM-SURFACE` | code | P1 |  |
 | `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | KEPT | `CHK-CFITSIO-PLATFORM-SURFACE-SELFTEST` | code | P1 |  |
 | `CHK-CI-PROFILE-COVERAGE` | KEPT | `CHK-CI-PROFILE-COVERAGE` | ci | P0 |  |
@@ -228,7 +228,7 @@
 | `CHK-FIX208-DISK-GATE` | KEPT | `CHK-FIX208-DISK-GATE` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `CHK-FIX208-EVENT-STREAM-DEFAULT` | KEPT | `CHK-FIX208-EVENT-STREAM-DEFAULT` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `CHK-FIX406-SIGTERM` | KEPT | `CHK-FIX406-SIGTERM` | ci | P0 | FIX-406 新增测试矩阵；DOC-403 登记（2026-09-21，依据 run/FIX-406/WINDOWS_CANCEL_PLATFORM_LIMITS.md §3 W4） |
-| `CHK-FROZEN-STRING-DISAMBIG` | KEPT | `CHK-FROZEN-STRING-DISAMBIG` | extension | P0 | 新增执行单元（非本波基线，absorbed）：冻结串不得被改写，且其单位读法消歧必须在位。判据依据 docs/contracts/DATA_SEMANTICS.md 的二次律条款与 eng/contracts 的冻结串常量。 |
+| `CHK-FROZEN-STRING-DISAMBIG` | KEPT | `CHK-FROZEN-STRING-DISAMBIG` | extension | P0 | 新增执行单元（非本波基线，absorbed）：冻结串不得被改写，且其单位读法消歧必须在位。判据依据 docs/science/DATA_SEMANTICS.md 的二次律条款与 eng/contracts 的冻结串常量。 |
 | `CHK-FROZEN-STRING-DISAMBIG-SELFTEST` | KEPT | `CHK-FROZEN-STRING-DISAMBIG-SELFTEST` | extension | P0 | 新增执行单元（非本波基线，absorbed）：冻结串判据的可执行正负例面（含判别力自检）。 |
 | `CHK-GATE-FAILCLOSED-SELFTEST` | KEPT | `CHK-GATE-FAILCLOSED-SELFTEST` | extension | P0 | GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed） |
 | `CHK-GATES-AND-TOLERANCES` | KEPT | `CHK-GATES-AND-TOLERANCES` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
@@ -314,7 +314,7 @@
 | `CON-FORBIDDEN-PATTERNS` | MERGED-INTO | `CHK-STATIC` | doc | P1 | 静态分析 |
 | `CON-FULL-INTEGRATION` | MERGED-INTO | `CHK-CONTRACT-TEST` | doc | P0 | 核心合同有独立测试 |
 | `CON-SCIENCE-UNITS` | MERGED-INTO | `CHK-SCI-REF` | doc | P0 | 算法引用有效 SCI/ALG |
-| `CON-SYMBOL-DIM-UNIQUE` | KEPT | `CON-SYMBOL-DIM-UNIQUE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据——同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值、显式量纲断言、禁止共现短语（带否定式豁免）。判据依据 docs/contracts/DATA_SEMANTICS.md 的逐符号量纲表与符号唯一性强制条款。 |
+| `CON-SYMBOL-DIM-UNIQUE` | KEPT | `CON-SYMBOL-DIM-UNIQUE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据——同一符号不得在同仓指两个量纲不同的量。三条子判据为定义站点量纲代数求值、显式量纲断言、禁止共现短语（带否定式豁免）。判据依据 docs/science/DATA_SEMANTICS.md 的逐符号量纲表与符号唯一性强制条款。 |
 | `CON-SYMBOL-DIM-UNIQUE-SELFTEST` | KEPT | `CON-SYMBOL-DIM-UNIQUE-SELFTEST` | extension | P0 | 新增执行单元（非本波基线，absorbed）：符号量纲唯一性判据的可执行正负例面（含恒真守卫、判别力守卫与恒假守卫）。 |
 | `CON-TEST-CONTRACTS` | MERGED-INTO | `CHK-CONTRACT-TEST` | doc | P0 | 核心合同有独立测试 |
 | `CON-TRACEABILITY` | MERGED-INTO | `CHK-SCI-REF` | doc | P0 | 算法引用有效 SCI/ALG |
@@ -395,7 +395,7 @@
 | `CTEST-P1NOISE-VARIANCE-FLOOR` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：方差地板按产品数据类型导出的可表示性判据。判据依据 docs/science/algorithms/NOISE_ESTIMATION.md 与 docs/science/NOISE_MODEL.md 的地板口径。 |
 | `CTEST-P1PHOT-DETERMINISM` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：测光装配的到达顺序不变性判据（星表与点扩散表置换后逐位一致）。判据依据 docs/science/algorithms/PHOTOMETRIC_FIT.md 的到达顺序不变性条款。 |
 | `CTEST-P1PHOT-FIXGATES` | MERGED-INTO | `CHK-ORACLE` | doc | P0 | SCI/ALG Oracle 测试 |
-| `CTEST-P1PHOT-PASSBAND-IDENTITY` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：通带身份核对判据（声明名、点数、包络与逐元素指纹四项）。判据依据 docs/science/PHOTOMETRY.md 的通带身份核对条款与 docs/contracts/CONFIG_CONTRACT.md 的曲线身份核对条款。 |
+| `CTEST-P1PHOT-PASSBAND-IDENTITY` | KEPT | `CHK-ORACLE` | extension | P0 | 新增执行单元（非本波基线，absorbed）：通带身份核对判据（声明名、点数、包络与逐元素指纹四项）。判据依据 docs/science/PHOTOMETRY.md 的通带身份核对条款与 docs/engineering/CONFIG_CONTRACT.md 的曲线身份核对条款。 |
 | `CTEST-P1PHOT-SPATIAL` | KEPT | `CHK-INVARIANT` | ctest | P0 |  |
 | `CTEST-P1PSF-CENTER-CONTRACT` | KEPT | `CHK-INVARIANT` | extension | P1 | W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed） |
 | `CTEST-P1PSF-CENTER-CONTRACT-ASTROPY` | KEPT | `CHK-INVARIANT` | extension | P1 | W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed） |
@@ -445,9 +445,9 @@
 | `DEEP-COV-PY` | MERGED-INTO | `CHK-COVERAGE` | doc | P2 | 覆盖率报告 |
 | `DEEP-SAN-ASAN` | MERGED-INTO | `CHK-SANITIZER` | doc | P1 | ASan/UBSan |
 | `DEEP-SAN-TSAN` | MERGED-INTO | `CHK-SANITIZER` | doc | P1 | ASan/UBSan |
-| `DOC-INDEX` | KEPT | `DOC-INDEX` | doc | P1 | DOC-403（2026-09-21）：原为 CHK-DANGLING 的 step，提升为顶层注册项（顶层化后 docs/ci/01_CHECKS.md §2 才能有自己的登记行，满足 CHK-REGISTRY-DOC-SYNC 双向一致） |
+| `DOC-INDEX` | KEPT | `DOC-INDEX` | doc | P1 | DOC-403（2026-09-21）：原为 CHK-DANGLING 的 step，提升为顶层注册项（顶层化后 docs/engineering/01_CHECKS.md §2 才能有自己的登记行，满足 CHK-REGISTRY-DOC-SYNC 双向一致） |
 | `DOC-INDEX-SELFTEST` | KEPT | `DOC-INDEX-SELFTEST` | ci | P0 | DOC-403（2026-09-21）新增执行单元（ENGINEERING_SPEC §10 可执行负例面） |
-| `DOC-L0` | KEPT | `DOC-L0` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
+| `DOC-L0` | KEPT | `DOC-L0` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
 | `DOC-LINE-ANCHORS` | MERGED-INTO | `CHK-SCI-REF` | doc | P0 | 算法引用有效 SCI/ALG |
 | `DOC-UNVERIFIED-CITE` | KEPT | `CHK-DOC-UNVERIFIED-CITE` | ci | P0 | CHK-DOC-UNVERIFIED-CITE |
 | `DOC-UNVERIFIED-CITE-SELFTEST` | KEPT | `CHK-DOC-UNVERIFIED-CITE` | ci | P0 | CHK-DOC-UNVERIFIED-CITE |
@@ -455,14 +455,14 @@
 | `E2E-CHAIN-SELFTEST-STEP` | KEPT | `CHK-E2E-CHAIN-SELFTEST` | doc | P0 | E2E-501 新增执行单元 |
 | `E2E-CHAIN-VERIFY-STEP` | KEPT | `CHK-E2E-CHAIN` | doc | P0 | E2E-501 新增执行单元 |
 | `E2E-WCS-CLOSURE-REPRO-SELFTEST` | KEPT | `CHK-E2E-REPRO` | ci | P0 | G-P1-WCS-CLOSURE-REPRO 自检：7 类注入必红 + 缺输入 fail-closed 必红 |
-| `ENG-CONSTRAINTS` | KEPT | `ENG-CONSTRAINTS` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
+| `ENG-CONSTRAINTS` | KEPT | `ENG-CONSTRAINTS` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
 | `EVT-FIELD-SETS` | KEPT | `CHK-SCHEMA` | doc | P0 | EVTFIELD-01 新增执行单元（事件协议 per-kind 扩展字段集跨面一致门，正本 protocol.h::missing_required_extension_v1） |
 | `EVT-FIELD-SETS-SELFTEST` | KEPT | `CHK-SCHEMA` | doc | P0 | EVTFIELD-01 新增执行单元（15 组逐面负例 + 11 组 fail-closed 负例自检） |
 | `EXIT-CONSISTENCY-SCAN` | KEPT | `CHK-EXIT-CONSISTENCY` | ci | P1 | 扫描 eng/tools/**+eng/ci/**：打印 FAIL 必须 rc≠0 |
 | `EXIT-CONSISTENCY-SELFTEST` | KEPT | `CHK-EXIT-CONSISTENCY` | ci | P1 | 自测面：3 正例 + 3 负例 |
 | `FAILCLOSED-SURVEY` | MERGED-INTO | `CHK-FAILCLOSED-SURVEY` | extension | P0 | 新增执行单元（GATE-501）（非本波 146 项基线，absorbed） |
 | `FAILCLOSED-SURVEY-SELFTEST` | MERGED-INTO | `CHK-FAILCLOSED-SURVEY` | extension | P0 | 新增执行单元（GATE-501，普查自身能红能绿）（非本波 146 项基线，absorbed） |
-| `GLOSSARY-DOCS` | KEPT | `GLOSSARY-DOCS` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
+| `GLOSSARY-DOCS` | KEPT | `GLOSSARY-DOCS` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
 | `ID-MIGRATION-MAP-DOC-SYNC` | KEPT | `CHK-REGISTRY-DOC-SYNC` | extension | P0 | 并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项 |
 | `ID-MIGRATION-MAP-DOC-SYNC-SELFTEST` | KEPT | `CHK-REGISTRY-DOC-SYNC` | extension | P0 | 并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项 |
 | `IMPACT-MAP` | KEPT | `CHK-IMPACT-MAP` | extension | P0 | W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 eng/ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用） |
@@ -571,8 +571,8 @@
 | `V6-NEGATIVE-MUTATION` | MERGED-INTO | `CHK-CONTRACT-TEST` | doc | P0 | 核心合同有独立测试 |
 | `V6-RESOURCE-GATE-POLICY` | MERGED-INTO | `CHK-RESOURCE` | doc | P0 | 内存/线程/利用率门禁 |
 | `V6-RUNTIME-CLOSURE` | MERGED-INTO | `CHK-ORACLE` | doc | P0 | SCI/ALG Oracle 测试 |
-| `VERSION-CONSISTENCY` | KEPT | `VERSION-CONSISTENCY` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
-| `VERSION-NAMESPACES` | KEPT | `VERSION-NAMESPACES` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
+| `VERSION-CONSISTENCY` | KEPT | `VERSION-CONSISTENCY` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
+| `VERSION-NAMESPACES` | KEPT | `VERSION-NAMESPACES` |  |  | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
 | `VERSION-NAMESPACES-SELFTEST` | RETAINED | `VERSION-NAMESPACES-SELFTEST` | doc | P1 | 版本命名空间检查器自检单元（叶项自成单元） |
 | `WARNING-SUPPRESSION` | MERGED-INTO | `CHK-WARN` | doc | P0 | 编译警告 |
 | `WIN-BUILD-RELEASE` | MERGED-INTO | `CHK-BUILD-WIN` | doc | P0 | Windows Release 构建 |
@@ -648,16 +648,16 @@
 ## 6. 本波无 RETIRE-PENDING 项：原 GOV-001 冻结门已改判 KEPT（保留并修判据）
 
 - `coverage.retire_pending_gov_001` = 0；`mappings` 中 decision 以 `RETIRE-PENDING` 开头的条目 0 条。
-- 结论：**本波没有「不删不改、待 W2 GOV-001 执行」的项**。原先按 `RETIRE-PENDING-GOV-001` 冻结的 6 项已改判 `KEPT` —— 保留为活动门、判据已迁移/修锚并补可执行负例，登记在 `docs/ci/01_CHECKS.md §2`。以下「现判据」与「目标位」逐字取自 JSON 的 `mappings`/`targets`，不凭印象写。
+- 结论：**本波没有「不删不改、待 W2 GOV-001 执行」的项**。原先按 `RETIRE-PENDING-GOV-001` 冻结的 6 项已改判 `KEPT` —— 保留为活动门、判据已迁移/修锚并补可执行负例，登记在 `docs/engineering/01_CHECKS.md §2`。以下「现判据」与「目标位」逐字取自 JSON 的 `mappings`/`targets`，不凭印象写。
 
 | 旧 ID（= 现顶层 ID） | 级 | 现判据实现者（checker） | 目标位（target） | 登记文档（targets.doc） | 改判记录（JSON note 逐字） |
 |---|---|---|---|---|---|
-| `AGENTS-GOV` | P0 | `eng/tools/check_agents_gov.py` | `AGENTS-GOV` | docs/ci/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
-| `DOC-L0` | P1 | `eng/tools/check_l0_docs.py` | `DOC-L0` | docs/ci/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
-| `ENG-CONSTRAINTS` | P0 | `eng/tools/doccheck/check_engineering_constraints.py` | `ENG-CONSTRAINTS` | docs/ci/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
-| `GLOSSARY-DOCS` | P2 | `eng/tools/check_glossary.py` | `GLOSSARY-DOCS` | docs/ci/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
-| `VERSION-CONSISTENCY` | P1 | `eng/ci/check_version.py` | `VERSION-CONSISTENCY` | docs/ci/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
-| `VERSION-NAMESPACES` | P1 | `eng/tools/doccheck/check_version_namespaces.py` | `VERSION-NAMESPACES` | docs/ci/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。 |
+| `AGENTS-GOV` | P0 | `eng/tools/check_agents_gov.py` | `AGENTS-GOV` | docs/engineering/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
+| `DOC-L0` | P1 | `eng/tools/check_l0_docs.py` | `DOC-L0` | docs/engineering/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
+| `ENG-CONSTRAINTS` | P0 | `eng/tools/doccheck/check_engineering_constraints.py` | `ENG-CONSTRAINTS` | docs/engineering/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
+| `GLOSSARY-DOCS` | P2 | `eng/tools/check_glossary.py` | `GLOSSARY-DOCS` | docs/engineering/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
+| `VERSION-CONSISTENCY` | P1 | `eng/ci/check_version.py` | `VERSION-CONSISTENCY` | docs/engineering/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
+| `VERSION-NAMESPACES` | P1 | `eng/tools/doccheck/check_version_namespaces.py` | `VERSION-NAMESPACES` | docs/engineering/01_CHECKS.md §2（CI-003 登记） | CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/engineering/01_CHECKS.md §2。 |
 
 - 上述条目的 `reason` 字段保留改判**前**的迁移意图（逐字列出，仅供追溯，**不代表现行处置**）：
   - `AGENTS-GOV`：AGENTS.md 硬禁令门实现者；GOV-001 迁移入目标 CHK-AGENT-HARD-RULES

@@ -18,8 +18,8 @@ static int failures = 0;
 // 采样模型: value = 有覆盖? 插值 : NaN; coverage mask 独立于值
 //
 // 7)-10) 段（本次新增）冻结**样本级掩膜口径**（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN,
-// 权威 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a +
-// docs/standards/NUMERIC_STANDARD.md §MUST + ALG-P3-003 §2 G4/§4）:
+// 权威 = docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a +
+// docs/engineering/NUMERIC_STANDARD.md §MUST + ALG-P3-003 §2 G4/§4）:
 //   不合格样本 = ¬isfinite（NaN 与 ±Inf 同类）⇒ 从分子、分母、方差三项一并剔除,
 //   剩余合格邻域**重归一**; 仅零合格样本 ⇒ value=NaN（覆盖级 NaN）; coverage 只判
 //   足迹内有无 tile 像素（值非有限不改 coverage）; 被剔除样本计数必须暴露（强制计数）。

@@ -175,7 +175,7 @@ def _legacy_main() -> int:
          "rc=0 with fi=0 fallback for unknown frame_id",
          "explicit hard failure; no wrong-frame calibration",
          "missing frame existence check", "return 1 / NaN + test",
-         "UpmUnknownFrameRejected", "docs/modules/phase2.md; upm.h",
+         "UpmUnknownFrameRejected", "docs/detail/phase2.md; upm.h",
          "none (API error-path tightening)", "FIXED"],
         ["F-V19R2-IO-001", "aio_upm.cpp aio_upm_write_sparse",
          "sparse model write not atomic (trunc+flush)",
@@ -183,7 +183,7 @@ def _legacy_main() -> int:
          "partial file could masquerade as valid model on crash",
          "temp write -> validate -> atomic promote",
          "direct trunc write", "temp file + rename",
-         "phase2 gate 83/83 (roundtrip)", "docs/architecture/IO_AND_ATOMICITY.md",
+         "phase2 gate 83/83 (roundtrip)", "docs/engineering/IO_AND_ATOMICITY.md",
          "none", "FIXED"],
         ["F-V19R2-PCAL-001", "photometric_calib Makefile",
          "copy-dll-onto-itself noise (error ignored)",
@@ -198,7 +198,7 @@ def _legacy_main() -> int:
          "known: creates lib/infrastructure/pipeline/orchestrator/logs/ nested dir",
          "logs under run/logs/orchestrator/",
          "pre-existing", "fix in later round or backlog",
-         "-", "docs/modules/orchestrator.md", "none", "BACKLOG"],
+         "-", "docs/detail/orchestrator.md", "none", "BACKLOG"],
     ]
     with open(os.path.join(REV, "findings.csv"), "w", newline="",
               encoding="utf-8") as f:

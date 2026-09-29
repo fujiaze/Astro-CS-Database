@@ -135,7 +135,7 @@ RETIRED_CASES = [
                   "config.weight_mode 分支（读 p.values['--config']）已无 CLI 可达面。",
         "authority": "docs/ASTROCS_DESIGN §3.1/§4.5/§7.1；docs/science/PSF_SIGNAL_WEIGHT.md §4；"
                      "lib/infrastructure/cli/parser.cpp:31-33,39-43（CLI-001）；"
-                     "docs/ci/01_CHECKS.md §2.1（部分退役须改注册绑定）",
+                     "docs/engineering/01_CHECKS.md §2.1（部分退役须改注册绑定）",
     },
     {
         "id": "config-weight-mode-2-baseline",
@@ -150,7 +150,7 @@ RETIRED_CASES = [
                      "docs/science/PSF_SIGNAL_WEIGHT.md §4:72；"
                      "lib/infrastructure/cli/parser.cpp:31-33,39-43（CLI-001）；"
                      "lib/infrastructure/cli/runtime_contract.h（FZ-WEIGHT-SINGLE-PATH）；"
-                     "docs/ci/01_CHECKS.md §2.1（部分退役须改注册绑定）",
+                     "docs/engineering/01_CHECKS.md §2.1（部分退役须改注册绑定）",
     },
 ]
 

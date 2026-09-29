@@ -18,4 +18,4 @@
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`CHK-RESOURCE` 步骤 `THREAD-BUDGET`、`CHK-P3-EXPORT-STREAM-PROD` 步骤 `STATIC-P3-EXPORT-STREAM-PROD` 与 `SELFTEST-P3-EXPORT-STREAM-PROD`；两个生成器不以命令面注册。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

@@ -5,7 +5,7 @@
   "authority": {
     "spec": "ENGINEERING_SPEC.md §15（显示名与机器契约保留面，唯一定义源）",
     "ci_rules": "ENGINEERING_SPEC.md §10（唯一注册表 / 能红能绿 / --self-test / fail-closed / 锚存活）",
-    "registry": "docs/ci/01_CHECKS.md §1 / §2（CHK-NAMING-SURFACE）",
+    "registry": "docs/engineering/01_CHECKS.md §1 / §2（CHK-NAMING-SURFACE）",
     "checker": "eng/ci/check_naming_surface.py（CHK-NAMING-SURFACE）"
   },
   "scan": {
@@ -144,12 +144,13 @@
     },
     {
       "id": "U-FROZEN-EVIDENCE-CORPUS",
-      "title": "封存证据语料（只登记不改）",
-      "criterion": "命中位于 artifacts/evidence/** —— §7 登记的「证据锚」目录，内容为日期化的审计/裁决/限制快照，是对当时文件内容的逐字引用与历史名称快照。其中 FIX_LEDGER.csv 被 eng/tests 引用、known-limitations-ledger/LEDGER.md 被 docs/ci 与 docs/ 行锚引用（锚存活对象）。证据不得事后修饰：改写即伪造被引对象与历史事实。",
+      "title": "封存证据与审计记录语料（只登记不改）",
+      "criterion": "命中位于 §7 登记的「证据锚」目录族 —— 文档迁移后证据语料一分为三：artifacts/evidence/**（机器门台账面，known-limitations-ledger / doc-hygiene / truthful-conclusion-01，eng/tools/doccheck/check_doc_hygiene.py:71 与 eng/ci/checks.json:1786 按字面读取）、实验/engineering-evidence/**（审计/裁决存档面，audit-2026-01/FIX_LEDGER.csv 现居此处，被 eng/tests/backend/test_p3006_production_pipeline.py:153 按字面引用）、独立审计/**（审计台账与复算件面）。三者内容同为日期化的审计/裁决/限制快照，是对当时文件内容的逐字引用与历史名称快照；证据不得事后修饰：改写即伪造被引对象与历史事实。本类只约束**被引用的历史文本**（逐字引用、判据记录、复算件转录）；新写的审计正文仍按显示名 ACSD 书写。",
       "machine_evidence": [
-        "eng/tests/backend/test_p3006_production_pipeline.py（引用 audit-2026-01/FIX_LEDGER.csv）",
-        "docs/ci/01_CHECKS.md / docs/KNOWN_LIMITATIONS.md / docs/DOCUMENT_INDEX.yaml（引用 known-limitations-ledger/LEDGER.md）",
-        "audit-2026-01/FIX_LEDGER.csv 的证据列为历史文件原文逐字引用（含已被删除的根约束文件名与历史文档标题）"
+        "eng/tests/backend/test_p3006_production_pipeline.py:153（引用 实验/engineering-evidence/audit-2026-01/FIX_LEDGER.csv:709）",
+        "eng/tools/doccheck/check_doc_hygiene.py:71 与 eng/ci/checks.json:1786（引用 artifacts/evidence/known-limitations-ledger/LEDGER.md）",
+        "docs/engineering/01_CHECKS.md / docs/KNOWN_LIMITATIONS.md / docs/DOCUMENT_INDEX.yaml（引用 known-limitations-ledger/LEDGER.md）",
+        "独立审计/复算件/d1merge/derived.json、批次清单/findings_base.csv（审计台账与复算件，命中为历史文件原文逐字转录）"
       ],
       "families": [
         "U",
@@ -157,7 +158,9 @@
         "A"
       ],
       "path_globs": [
-        "artifacts/evidence/**"
+        "artifacts/evidence/**",
+        "实验/engineering-evidence/**",
+        "独立审计/**"
       ],
       "immutable": true
     },
@@ -219,9 +222,9 @@
     {
       "id": "L-CLI-BINARY-AND-TARGET-NAME",
       "title": "可执行 / 构建 target / CI artifact 前缀",
-      "criterion": "命中是产品唯一可见入口的名字（二进制与 CMake target）、CI 候选 artifact 名前缀或 astrocs-cli 标识。三者都被构建系统、CI 选择器与单测按字面使用。",
+      "criterion": "命中是产品唯一可见入口的名字（二进制与 CMake target）、CI 候选 artifact 名前缀或 astrocs-cli 标识。三者都被构建系统、CI 选择器与单测按字面使用。注：负责人 2026-09-29 裁定交付可执行名唯一为 ACSD，故本类同时登记 ACSD / ACSD.exe；astrocs-cli 与 astrocs-windows-candidate- 是与产品可执行无关的独立机器对象（CI review-open 命令名、Windows 候选 artifact 前缀），按字面保留。",
       "machine_evidence": [
-        "CMakeLists.txt（target astrocs）/ eng/packaging/astrocs.product.json",
+        "CMakeLists.txt（根 project()/add_executable 声明的产品可执行 target；负责人 2026-09-29 裁定后为 ACSD）/ eng/packaging/astrocs.product.json",
         "eng/ci/select_candidate.py:61（CANDIDATE_ARTIFACT_PREFIX）/ .github/workflows/ci-windows.yml（artifact name）",
         "eng/ci/tests/test_fatduck_workflow.py（astrocs-cli review open 断言）",
         "lib/infrastructure/cli/**（唯一薄入口）"
@@ -233,7 +236,9 @@
         "(?<![A-Za-z0-9_.-])astrocs(?![A-Za-z0-9_.-])",
         "(?<![A-Za-z0-9_])astrocs\\.exe(?![A-Za-z0-9_])",
         "(?<![A-Za-z0-9_])astrocs-cli(?![A-Za-z0-9_])",
-        "(?<![A-Za-z0-9_])astrocs-windows-candidate-"
+        "(?<![A-Za-z0-9_])astrocs-windows-candidate-",
+        "(?<![A-Za-z0-9_.-])ACSD(?![A-Za-z0-9_.-])",
+        "(?<![A-Za-z0-9_])ACSD\\.exe(?![A-Za-z0-9_])"
       ]
     },
     {

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CLI 进程协议验收: GUI 可调用 JSON stream protocol — 外部 harness 视角。
 
-权威: docs/api/CLI_PROTOCOL_V1.md §3/§4/§5 + lib/infrastructure/cli/protocol.h 生产侧硬闸。
+权威: docs/engineering/CLI_PROTOCOL_V1.md §3/§4/§5 + lib/infrastructure/cli/protocol.h 生产侧硬闸。
 方法(independent, 模拟外部 harness/GUI, 不调用库内部):
   - spawn 'acsd normalize --json <cfg> --events-jsonl -y' 子进程, 流式逐行读 stdout;
   - 每行恰一个 UTF-8 JSON 事件(stdout 纪律), 独立重实现协议合同校验(防生产侧同源盲区);
@@ -68,8 +68,8 @@ KIND_EXT = {
     "stage_start": set(),
     "stage_end": set(),
     "graph": {"path"},
-    # SO-05 记录/裁决分离证据面（B4 登记；语义 = docs/plugins/infrastructure/
-    # 21_observability.md §8.4）
+    # SO-05 记录/裁决分离证据面（B4 登记；语义 = 细节实施面的基建分册
+    # docs/detail/infrastructure/21_observability.md §8.4）
     "resource_gate": {"diag", "enforcement", "strict", "enforced", "work_core_seconds",
                       "workload_floor_core_seconds", "workload_floor_reached",
                       "so05_signoff_id", "so05_signoff_status",

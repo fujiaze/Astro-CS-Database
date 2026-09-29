@@ -4,7 +4,7 @@
  * 一致性与生产实现无关。
  *
  * 依据: ACCEPTANCE_SPEC.md §3.2「cfitsio 与 astropy 两路独立读器逐 HDU 的
- *       header 卡片与数据区原始字节全等」；docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 T1。
+ *       header 卡片与数据区原始字节全等」；docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md §7 T1。
  *
  * 输出（单行 JSON，stdout）: HDU 数 + 逐 HDU 的
  *   nkeys / BITPIX / NAXIS / 像素数 / 数据区字节偏移 / DATASUM 与 CHECKSUM 校验结果

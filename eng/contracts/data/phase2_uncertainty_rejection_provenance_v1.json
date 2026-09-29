@@ -5,7 +5,7 @@
   "title": "Phase2 §30.2 rejection 平面与 §30.3 provenance 键组实现合同（AIO 子产品位分配 + provenance 键通道登记）",
   "owner": "SA-P2",
   "frozen": true,
-  "doc_ref": "docs/contracts/DATA_SEMANTICS.md §30.2/§30.3 (DATA-P2-REJ-001 / DATA-P2-PROV-001, DATA-UNC-001 FROZEN_TARGET_CONTRACT)",
+  "doc_ref": "docs/science/DATA_SEMANTICS.md §30.2/§30.3 (DATA-P2-REJ-001 / DATA-P2-PROV-001, DATA-UNC-001 FROZEN_TARGET_CONTRACT)",
   "constitution_ref": [
     "ASTROCS-CONSTITUTION-001 §6.1 (Phase2 输出 variance/ivar/rejection 产品)",
     "ASTROCS-CONSTITUTION-001 §6.3 (integration 必须明确不确定度传播)",

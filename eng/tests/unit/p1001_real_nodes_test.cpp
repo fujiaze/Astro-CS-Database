@@ -575,7 +575,7 @@ static void test_nodes_real_operation() {
   CHECK(fs::exists(fs::path(man_wr.value("final_artifact", ""))));
 
   // ── B1 守卫（UNIT-DERIVE-01 收口）：同一份像素的两个 BUNIT 声明面必须同串 ──
-  // 规范: docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 FITS/HiPS 写盘 BUNIT
+  // 规范: docs/science/DATA_SEMANTICS.md §31.1a:2808-2810（产品 FITS/HiPS 写盘 BUNIT
   // 一律取 canonical 面亮度串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由
   // PHOTAPPL/PHOTSCAL 承载）。Phase1 末端由 AstroSphereSink 直写标准 HiPS 树，**不经**
   // HissWriter::open 的元数据校验 ⇒ 守卫落在 declare_hips_surface_brightness_units
@@ -1437,7 +1437,7 @@ bool write_sparse_hips(const std::string& root,
   if (!ok) std::fprintf(stderr, "B2-A15 write_hips_phase1 failed: %s\n", err.c_str());
   // 上游 provenance (writer 节点据此定位叶片 Norder)
   // p1_stack.json 的 bunit 键 = 产品的单位声明面之一（DATA-P1-STACK）；与
-  // signal/properties 的 BUNIT 必须同串（docs/contracts/DATA_SEMANTICS.md §31.1a:
+  // signal/properties 的 BUNIT 必须同串（docs/science/DATA_SEMANTICS.md §31.1a:
   // 2808-2810），故夹具如实写 canonical 面亮度串，不得省略（省略即声明面不完整，
   // declare_hips_surface_brightness_units 的 B1 守卫会判红）。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
@@ -2040,7 +2040,7 @@ static void test_cos_artifact_is_independent() {
   //    与 artifact:cal 字节相同（修复只改落盘路径与原子性, 不动任何科学数值）。
   //
   //    LINDEF-IMPL-01 起生产默认**开启**坏列修复（依据
-  //    docs/contracts/DATA_SEMANTICS.md §10.4「开关」行：列状缺陷路径默认启用、
+  //    docs/science/DATA_SEMANTICS.md §10.4「开关」行：列状缺陷路径默认启用、
   //    可配置关闭），故"直通"不再是默认路径
   //    的产物性质。此处**显式关闭**以继续锁定"关闭 ⇒ 无科学变化"这一可验证锚
   //    （它与 badcol 层负例③同口径）；默认开启路径的科学效果由 p1cos_badcol 的
@@ -2733,7 +2733,7 @@ bool write_p21_scatter_hips(const std::string& root) {
   }
   // 上游 provenance (writer 节点据此计算 parent span 复杂度不变量)。bunit 键 = 产品单位
   // 声明面之一（DATA-P1-STACK），必须与 signal/properties 的 BUNIT 同串
-  // （docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810）⇒ 不得省略。
+  // （docs/science/DATA_SEMANTICS.md §31.1a:2808-2810）⇒ 不得省略。
   std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
   if (sf)
     sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << kP21Nside
@@ -2961,7 +2961,7 @@ static bool write_sparse_hips_var(const std::string& root,
   const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", 1, err);
   if (!ok) std::fprintf(stderr, "IVAR-001 write_hips_phase1 failed: %s\n", err.c_str());
   // p1_stack.json 的 bunit 键 = 产品的单位声明面之一（DATA-P1-STACK）；与
-  // signal/properties 的 BUNIT 必须同串（docs/contracts/DATA_SEMANTICS.md §31.1a:
+  // signal/properties 的 BUNIT 必须同串（docs/science/DATA_SEMANTICS.md §31.1a:
   // 2808-2810），故夹具如实写 canonical 面亮度串，不得省略（省略即声明面不完整，
   // declare_hips_surface_brightness_units 的 B1 守卫会判红）。
   // 本夹具 has_variance=1 ⇒ 已发布 variance/ivar 子产品 ⇒ §5d 审计块必须齐全
@@ -3773,7 +3773,7 @@ static void test_chain_wire_w3_mask_radius_scale_invariance() {
   }
 }
 
-// ── P0-21: 一组进一组出（docs/ASTROCS_DESIGN §3.4「输出基数」）────────────────
+// ── P0-21: 一组进一组出（docs/ASTROCS_DESIGN §4.4「输出基数」）────────────────
 // 缺陷: drizzle/wcs 只取 input_lights[0] ⇒ N 帧只产 1 个 HiPS, 静默丢弃 N-1 帧
 // （L4 实测 49 帧只产 12 个产品）。本用例锁定:
 //   * N=3 帧 ⇒ 恰好 3 个逐帧 HiPS 产品, 内容互不相同（非同一帧写三次）;

@@ -5,7 +5,7 @@ HiPS 产品落盘形态检查器：核对裸 HiPS 目录与 zstd 归档包两形
 ## 职责边界
 
 - 放：形态解析、索引 schema 校验、归档容器布局、索引不变式、两形态哈希一致性与解压后 FITS 合法性检查。
-- 不放：合同与设计正文（在 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/design/PRODUCT_STORAGE_FORM.md`）、schema 机器事实源（在 `eng/contracts/schemas/`）、HiPS 产品本身。
+- 不放：合同与设计正文（在 `docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/detail/PRODUCT_STORAGE_FORM.md`）、schema 机器事实源（在 `eng/contracts/schemas/`）、HiPS 产品本身。
 
 ## 内容
 
@@ -15,4 +15,4 @@ HiPS 产品落盘形态检查器：核对裸 HiPS 目录与 zstd 归档包两形
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`CHK-HIPS-STORAGE-FORM`。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

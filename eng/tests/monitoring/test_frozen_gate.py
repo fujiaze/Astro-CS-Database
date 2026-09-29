@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """G-RES-01 重计算负载资源门验收测试（eng/tests/monitoring 域）。
 
-判据权威 = docs/plugins/infrastructure/21_observability.md §8；阈值唯一数值源 =
+判据权威 = docs/detail/infrastructure/21_observability.md §8；阈值唯一数值源 =
 eng/contracts/resource_gate_v1.json（GATE-FIX-RES / R-4 D-11..D-15 落地）。
 
 硬失败三条（契约 hard_fail_criteria；fail → 退出码 10）：

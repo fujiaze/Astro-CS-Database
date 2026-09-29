@@ -15,7 +15,7 @@
 
 **声明证据面（诚实边界，不作过度声明）**：本门只对「定义站点」与「显式量纲断言」有判定力。
 仅使用符号、既不定义也不断言量纲的站点（如「或 `D_p=0`」）**本门不作判定** —— 该形态由
-`docs/contracts/DATA_SEMANTICS.md` §4a 的符号唯一性条款 + 人工复核清单覆盖。
+`docs/science/DATA_SEMANTICS.md` §4a 的符号唯一性条款 + 人工复核清单覆盖。
 
 判据自检（AGENTS §5，`--self-test`）：
   - 正例：干净夹具必须 PASS 且零 finding；

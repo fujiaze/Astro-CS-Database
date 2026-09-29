@@ -182,7 +182,7 @@ class TestP3Output(unittest.TestCase):
         # P3-002 来源输入合同: 调用方传入的 BUNIT 逐字写出 —— 探针显式传 "ADU"
         # (p3_output_probe_main.cpp:57), 故头内 BUNIT 必须是 'ADU' 本身。
         # 裸 ADU 只在该 (b) 形态(声明了像素语义)下合法; 缺省(未传)串现为 canonical
-        # "ADU/sr"（docs/contracts/DATA_SEMANTICS.md §31.1/§31.1a）, 由
+        # "ADU/sr"（docs/science/DATA_SEMANTICS.md §31.1/§31.1a）, 由
         # test_p3005_fits_output.py / test_p3006_production_pipeline.py 锁定。
         # 判据不得退化为子串命中("ADU" 是 "ADU/sr" 的子串 ⇒ 恒真)。
         _bunit = re.search(r"BUNIT\s*=\s*'([^']*)'", head)

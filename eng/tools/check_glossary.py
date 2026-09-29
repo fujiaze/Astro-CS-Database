@@ -3,7 +3,7 @@
 G1 必备核心术语恰出现一次; G2 术语唯一(无重复行); G3 表内禁 TBD/待定/二选一/或然表述;
 G4 legacy alias 映射唯一(同一 alias 不得映射到两个 canonical);
 G5 锚形态 = `<仓库相对文件>` 或 `<文件>#<行号>` 或 `<文件> §<节号>`（章节引用一律 `§N`，
-   `#N` 为行号锚——两者互不代用，口径见 docs/algorithms/anchors/ANCHOR_CONTRACT.md §1）；
+   `#N` 为行号锚——两者互不代用，口径见 docs/detail/anchors/ANCHOR_CONTRACT.md §1）；
    且目标必须存在、行号/节号必须能解析到实际内容（非空行 / 真存在该编号标题）;
 G6 迁移执行: science/contracts 域文档出现被禁 alias(DN 裸用)即 FAIL。
 用法: python3 eng/tools/check_glossary.py  exit 0 = PASS。
@@ -20,10 +20,10 @@ FORBIDDEN_PHRASES = ["TBD", "待定", "二选一", "或者选择", "可能或"]
 BANNED_ALIAS_TOKENS = {"DN": re.compile(r"(?<![A-Za-z])DN(?![A-Za-z])")}
 SCAN_ALIAS_DOCS = ["docs/science", "docs/contracts"]
 
-# G5 锚文法（DOC-DRIFT-FIX-01 消歧留痕见 docs/algorithms/anchors/ANCHOR_CONTRACT.md §1）：
+# G5 锚文法（DOC-DRIFT-FIX-01 消歧留痕见 docs/detail/anchors/ANCHOR_CONTRACT.md §1）：
 #   裸文件锚              docs/science/DRIZZLE.md
 #   行号锚                lib/algorithms/calibration/src/cosmetic_corrector.cpp#158
-#   章节引用（全路径）    docs/contracts/DATA_SEMANTICS.md §4a
+#   章节引用（全路径）    docs/science/DATA_SEMANTICS.md §4a
 # 原实现只认 `#\d+`，把**仓库既有的 `§N` 章节引用**一律判『格式非法』
 # ⇒ 11 条合法章节引用被误判（判据退化：合法形态被排除）；且对 `#N` 只做存在性检查，
 # 行号越界/落在空行、节号不存在一律放过（假绿）。本版同时修「误判」与「漏判」。
@@ -186,8 +186,8 @@ def self_test():
         rows = ["| term | meaning | unit | alias | anchor |", "|---|---|---|---|---|"]
         for i, t in enumerate(REQUIRED):
             # 两种合法形态各半：偶数行走 `#N` 行号锚，奇数行走 `§N` 章节引用
-            anchor = "docs/contracts/DATA_SEMANTICS.md#1" if i % 2 == 0 \
-                else "docs/contracts/DATA_SEMANTICS.md §4a"
+            anchor = "docs/science/DATA_SEMANTICS.md#1" if i % 2 == 0 \
+                else "docs/science/DATA_SEMANTICS.md §4a"
             rows.append(f"| {t} | m | u | - | {anchor} |")
         clean = "\n".join(rows) + "\n"
         gp = os.path.join(root, "docs", "GLOSSARY.md")
@@ -213,24 +213,24 @@ def self_test():
             return e, hit and where_ok
 
         # 负例 2：§N 形态非法（尾随令牌 ⇒ 整串不再是「文件 + 节号」）
-        _e, hit = inject("docs/contracts/DATA_SEMANTICS.md §4a junk", "锚点格式非法")
+        _e, hit = inject("docs/science/DATA_SEMANTICS.md §4a junk", "锚点格式非法")
         print("[selftest] %-28s %s" % ("neg_bad_section_form_red", "OK" if hit else "MISMATCH"))
         ok = ok and hit
 
         # 负例 3：节号不存在（形态合法——判据必须落到目标文档的真实标题上）
-        _e, hit = inject("docs/contracts/DATA_SEMANTICS.md §9z", "锚点节号不存在")
+        _e, hit = inject("docs/science/DATA_SEMANTICS.md §9z", "锚点节号不存在")
         print("[selftest] %-28s %s" % ("neg_missing_section_red", "OK" if hit else "MISMATCH"))
         ok = ok and hit
 
         # 负例 4：行号越界（夹具目标文档只有 6 行）
-        _e, hit = inject("docs/contracts/DATA_SEMANTICS.md#9999", "锚点行号越界")
+        _e, hit = inject("docs/science/DATA_SEMANTICS.md#9999", "锚点行号越界")
         print("[selftest] %-28s %s" % ("neg_line_out_of_range_red", "OK" if hit else "MISMATCH"))
         ok = ok and hit
 
         # 负例 5：25 条违规 ⇒ 判词必须逐条列全（截断已移除）
         rows2 = ["| term | meaning | unit | alias | anchor |", "|---|---|---|---|---|"]
         for t in REQUIRED:
-            rows2.append(f"| {t} | m | u | - | docs/contracts/DATA_SEMANTICS.md §9z |")
+            rows2.append(f"| {t} | m | u | - | docs/science/DATA_SEMANTICS.md §9z |")
         with open(gp, "w", encoding="utf-8") as fh:
             fh.write("\n".join(rows2) + "\n")
         errs, _t, _a = run(root)

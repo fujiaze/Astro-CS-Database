@@ -138,7 +138,7 @@
         "sr": 1
       },
       "meaning": "Phase 1 drizzle 覆盖球面面积 covered_area（分母）",
-      "evidence": "docs/contracts/DATA_SEMANTICS.md:50",
+      "evidence": "docs/science/DATA_SEMANTICS.md:50",
       "forbidden_context_phrases": [
         "权重和",
         "weight sum",
@@ -155,7 +155,7 @@
         "parametric": "w"
       },
       "meaning": "聚合算子分母 = 权重和（量纲 = 被求和权重的量纲）",
-      "evidence": "docs/contracts/DATA_SEMANTICS.md:54",
+      "evidence": "docs/science/DATA_SEMANTICS.md:54",
       "forbidden_context_phrases": [
         "球面面积",
         "covered_area",

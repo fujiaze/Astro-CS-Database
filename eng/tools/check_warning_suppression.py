@@ -20,7 +20,7 @@ exit 0 = PASS。
   于是扫描面**静默**从 3 个文件缩到 1 个, 而 PASS 文案照旧宣称"CMake 层已查"。
   同类问题在源面同样存在: PROD_DIRS 里退役的 cli/ 由 `if not base.is_dir(): continue` 静默跳过。
 - 本版扫描面全部由权威来源派生, 且**任何锚失效都判红点名** (ENGINEERING_SPEC §10「锚存活」/
-  「路径不存在即判红」, docs/ci/01_CHECKS.md §1):
+  「路径不存在即判红」, docs/engineering/01_CHECKS.md §1):
   * 源面 = PROD_DIRS 单源常量, 每个目录必须存在, 缺一个 ⇒ ANCHOR_STALE + exit 2;
   * CMake 面 = 根 CMakeLists.txt (BLD-002 唯一产品事实源) 的 add_subdirectory 闭包
     ∪ 仓库工作树内确定性枚举的全部 CMakeLists.txt (目录枚举 = 图面超集,
@@ -204,7 +204,7 @@ def worktree_cmake_files(repo: pathlib.Path, excluded_dirs=None):
     显式传值只供 --self-test 做"排除面失效 ⇒ 判红"的负例注入, 不改变生产路径。
 
     fail-closed: 枚举为空 / 遍历出错 ⇒ AnchorStale (点名), 绝不返回空集
-    (空扫描 = 恒真假绿, docs/ci/01_CHECKS.md §1「scanned == 0 ⇒ rc != 0」)。
+    (空扫描 = 恒真假绿, docs/engineering/01_CHECKS.md §1「scanned == 0 ⇒ rc != 0」)。
     """
     excl = tuple(CMAKE_FACE_EXCLUDED_DIRS if excluded_dirs is None else excluded_dirs)
     found = []
@@ -373,7 +373,7 @@ def measure_build(build_dir, repo=None):
     repo = pathlib.Path(repo) if repo is not None else REPO
     rel_src = repo / MEASURE_BUILD_ANCHOR_REL
     if not rel_src.is_file():
-        # 锚存活 (ENGINEERING_SPEC.md §8 / docs/ci/01_CHECKS.md §1): 硬编码锚失效 ⇒
+        # 锚存活 (ENGINEERING_SPEC.md §8 / docs/engineering/01_CHECKS.md §1): 硬编码锚失效 ⇒
         # 显式判红 (调用方 rc=2 ANCHOR_STALE), 不静默跳过、不 touch 出幽灵文件。
         return None
     rel_src.touch()
@@ -518,7 +518,7 @@ def main(argv=None) -> int:
         return 1
     warn = measure_build(build_dir)
     if warn is None:
-        # 锚存活 fail-closed (ENGINEERING_SPEC.md §10 / docs/ci/01_CHECKS.md §1):
+        # 锚存活 fail-closed (ENGINEERING_SPEC.md §10 / docs/engineering/01_CHECKS.md §1):
         # 硬编码生产源不存在 ⇒ 判红, 不得把「锚失效」当「零警告」。
         # 退出码 2 = ANCHOR_STALE (本文件 docstring 的约定; 与 static_scan 分支一致) ——
         # GITDECOUPLE-02 前此处误为 1, 把"锚失效"混进"判据违规"。

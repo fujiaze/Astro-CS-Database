@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """IO-001 fits_core 契约测试 + astropy oracle 交叉验证 (eng/tests/io/)。
 
-验收映射 (tasks/03_RUNTIME_DATA_IO_TASKS.md IO-001 / docs/interfaces/io/IO_001_FITS_STREAM_INTERFACE.md §12):
+验收映射 (tasks/03_RUNTIME_DATA_IO_TASKS.md IO-001 / docs/science/IO_001_FITS_STREAM_INTERFACE.md §12):
   - 接口 schema/ABI 完整性: 头文件符号/结构/错误码与实现一致 (静态检查见 test_api_schema)
   - astropy 交叉 oracle: 本实现产出 FITS ↔ astropy 互读; DATASUM 交叉一致
   - CHECKSUM: 本实现写 CHECKSUM → fitsverify 语义自洽 (篡改后拒绝)

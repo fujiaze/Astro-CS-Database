@@ -12,7 +12,7 @@ fits_write_pix」，而 ARCH-504 的 ExportStreamScheduler **只被组件级单�
 --------
 - docs/ASTROCS_DESIGN.md §8.3 调度器表 export 行: 「子块流式: 读子块 → 投影重采样 →
   写 FITS，有界队列 + 背压，不整幅驻留；内存占用与子块大小成正比、与总图大小无关」;
-- docs/contracts/SCHEDULER_CONTRACT.md §2 export 行（同文，FROZEN）;
+- docs/engineering/SCHEDULER_CONTRACT.md §2 export 行（同文，FROZEN）;
 - AGENTS.md §9: 「门禁/判据本身不合理时改进门禁本身，配可执行正例/负例与 --self-test」。
 
 判据（每条可证伪）

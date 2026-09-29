@@ -487,8 +487,8 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
 
 
 # ------------------------------------------------------------ 阈值判定 ----
-# ── G-RES-01 重计算负载资源门（判据权威: docs/plugins/infrastructure/
-#    21_observability.md §8）──
+# ── G-RES-01 重计算负载资源门（判据权威: 细节实施面的基建分册
+#    docs/detail/infrastructure/21_observability.md §8）──
 # 阈值不在本文件发明：唯一数值源 = eng/contracts/resource_gate_v1.json。
 # 契约缺失/不可解析/schema 不符 → 立即 RuntimeError（fail-closed）：阈值没有
 # 第二处来源，「静默回落内置默认值」等于把数值权威倒置回实现。
@@ -584,7 +584,7 @@ def evaluate_frozen_gate(result: dict, *, effective_cpus, allocated_workers=None
                          selected_workers=None, granted_workers=None) -> dict:
     """对 run_monitored 结果做 G-RES-01 重计算负载资源门判定（实测 fail-closed）。
 
-    判据权威: docs/plugins/infrastructure/21_observability.md §8「重计算负载资源门
+    判据权威: docs/detail/infrastructure/21_observability.md §8「重计算负载资源门
     （G-RES-01）」；阈值唯一数值源: eng/contracts/resource_gate_v1.json（本函数不含
     任何字面量阈值）。
 

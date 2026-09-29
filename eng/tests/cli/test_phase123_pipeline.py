@@ -8,7 +8,7 @@
 rc=0 / status=complete / artifacts 非空且 sha256+size 可独立复算。
 
 CLI-002 重锚依据: CLI-001 唯一命令树 = normalize/mosaic/export（docs/ASTROCS_DESIGN §6.2;
-docs/api/CLI_PROTOCOL_V1.md §1 旧 phase1|2|3 run / verify / graph 均为已删除别名 → rc=2）。
+docs/engineering/CLI_PROTOCOL_V1.md §1 旧 phase1|2|3 run / verify / graph 均为已删除别名 → rc=2）。
 旧用例的 verify --json --run-manifest 闭环改为**测试内独立复算** sha256/size（判据不变、
 不依赖已删命令）; graph --preset 退役判据保留为负例（rc=2）。
 
@@ -292,7 +292,7 @@ class TestPhase123Pipeline(unittest.TestCase):
             "scale_deg_per_px": 0.5, "width_px": 20, "height_px": 20,
             "sampler": "bilinear", "projection": "TAN",
             "coverage_output": "mask",
-            # FZ-P3-MODES（FROZEN；docs/contracts/DATA_SEMANTICS.md §31）：
+            # FZ-P3-MODES（FROZEN；docs/science/DATA_SEMANTICS.md §31）：
             # phase3 resample 节点要求显式声明 output_mode（缺键即 REJECT）。
             "output_mode": "surface_brightness"})
 

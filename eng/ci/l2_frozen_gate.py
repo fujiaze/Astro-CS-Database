@@ -15,7 +15,7 @@
   把「违规必红」落到 **CI 裁决面**：给定一份监控证据（run_monitored 结果 JSON），
   逐条重算四条冻结判据并 fail-closed 裁决。阈值**不写字面量**——唯一数值源是
   eng/contracts/resource_gate_v1.json（该文件的 *_enforcement=record_and_justify
-  是**生产侧**记录语义，见 docs/ci/CI_SPEC.md §9：CI 裁决面按本模块判红）。
+  是**生产侧**记录语义，见 docs/engineering/CI_SPEC.md §9：CI 裁决面按本模块判红）。
 
 fail-closed 规则（ENGINEERING_SPEC §10）
   * 证据缺失 / 不可解析 / 非 dict            -> red（evidence_missing）

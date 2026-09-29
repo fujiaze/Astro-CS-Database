@@ -1,5 +1,5 @@
 /* p1psfw_tests_record.cpp - 记录门 PSFSW-G01..G25 正向控制 + 负向 mutation
- * 负向 mutation 编号对齐 docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md。 */
+ * 负向 mutation 编号对齐 docs/engineering/v6/NEGATIVE_MUTATION_CATALOG.md。 */
 #include "p1psfw_fixtures.hpp"
 #include "p1psfw_oracle.hpp"
 #include "p1psfw_test_main.hpp"

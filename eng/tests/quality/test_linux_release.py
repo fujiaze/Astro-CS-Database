@@ -106,7 +106,7 @@ class TestLinuxRelease(unittest.TestCase):
         m = re.search(r"ACSD-Linux-amd64-(.+)\.tar\.", base)
         self.assertTrue(m)
         self.assertEqual(m.group(1), ver, "包名版本必须来自 VERSION 源")
-        # 版本号单源 = 根 VERSION（VERSION-CONSISTENCY 门，见 docs/ci/01_CHECKS.md）
+        # 版本号单源 = 根 VERSION（VERSION-CONSISTENCY 门，见 docs/engineering/01_CHECKS.md）
         # ⇒ 这里只锁「alpha 形态」，不得写死任何基础号（写死即随唯一源推进而恒假，
         # 并被 @skipUnless 的恒 skip 掩盖 —— EMPTYASSERT-01 实测：门禁对象一就位即判红）。
         self.assertRegex(ver, r"^\d+\.\d+\.\d+-alpha\.\d+$", "包名必须 alpha")
@@ -115,7 +115,7 @@ class TestLinuxRelease(unittest.TestCase):
         # 稳定版标记（两段式：无补丁段、无预发布段）必须按**版本段**判定，不得按裸子串：
         # 子串判定会被基础号本身误伤（基础号含该子串 ⇒ 断言在现行 VERSION 下恒假，
         # 并被 @skipUnless 的恒 skip 掩盖 —— 与 EMPTYASSERT-01 同型）。
-        # 注：本注释刻意不写任何 X.Y.Z 字面量 —— VER-001（docs/VERSIONING.md §4）
+        # 注：本注释刻意不写任何 X.Y.Z 字面量 —— VER-001（docs/engineering/VERSIONING.md §4）
         # 的扫描面含 eng/tests/**，写死历史版本号会随唯一源推进而恒红。
         ver_field = m.group(1)
         self.assertNotRegex(ver_field, r"^\d+\.\d+$", "禁止两段式稳定版标记")

@@ -4,7 +4,7 @@
 
 整改依据（构建图一致性）
   原实现以「文档里是否出现某四个字符串」+「某个 CMakeLists 里是否有 add_library(phase2」
-  为判据，故 docs/architecture/BUILD_GRAPH.md 的「生产构建图」三行目标名与路径**全部落空**
+  为判据，故 docs/engineering/BUILD_GRAPH.md 的「生产构建图」三行目标名与路径**全部落空**
   （astro_image_io.dll / hepix_drizzle / orchestrator.exe，且未列 acsd、astrocs_phase2），
   门仍绿。现判据改为读**真实构建图**（eng/ci/cmake_graph.py，唯一实现）：
   文档只作说明，表由 eng/tools/arch/gen_build_graph_doc.py 从构建图导出。
@@ -34,7 +34,7 @@ import gate_common as gc  # noqa: E402
 import gate_trust as gt  # noqa: E402
 
 CHECK_ID = "CON-BUILD-GRAPH"
-DOC = "docs/architecture/BUILD_GRAPH.md"
+DOC = "docs/engineering/BUILD_GRAPH.md"
 BLOCK_PROD = "BUILD-GRAPH-TABLE"
 BLOCK_NONPROD = "BUILD-GRAPH-NONPROD"
 BLOCK_NONROOT = "BUILD-GRAPH-NONROOT"

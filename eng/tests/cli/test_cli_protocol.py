@@ -3,7 +3,7 @@
 配置错误映射/stdout 纪律/crash boundary 70/Unicode/退出码单源 + incomplete manifest。
 
 权威: docs/ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§4.5（预检阻断）、
-docs/api/CLI_PROTOCOL_V1.md §1-§3。
+docs/engineering/CLI_PROTOCOL_V1.md §1-§3。
 
 退役登记（旧命令面已被 CLI-001 删除，依据 §6.2 + CLI-001 rc 矩阵；原用例前提=命令存在）:
   * test_04_config_init_writes_valid_json  → 改写为 --template -o 写合法 JSON（同意图: 模板即完整可运行配置）;
@@ -356,7 +356,7 @@ class TestManifestIncomplete(unittest.TestCase):
 # FIX-405 G3-11: verify 能力纳入命令树（doctor 机器旗标 --run-manifest）
 #
 # 权威: docs/ASTROCS_DESIGN §7.1 唯一命令树（无独立 verify 命令；verify* 属已删别名
-# → rc=2）+ docs/api/CLI_PROTOCOL_V1.md §1/§3（--json 恰一个 JSON 文档；退出码
+# → rc=2）+ docs/engineering/CLI_PROTOCOL_V1.md §1/§3（--json 恰一个 JSON 文档；退出码
 # 2 参数 / 3 输入 / 5 版本 / 8 完整性）。
 # 落位: command_tree.h 把 --run-manifest 登记为 doctor 的**内部/机器旗标**
 # （不写进 help ⇒ help golden 行 "acsd doctor [--json]" 不变），dispatch 的

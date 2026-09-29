@@ -44,12 +44,12 @@ NINE_REQUIRED_CLASSES = {
     "版本": ["VERSION-CONSISTENCY", "VERSION-NAMESPACES"],
     # W4-A3 口径订正（不改规格类别，只把 id 改绑现行注册表的两层命名）：
     #   "schema" 原举 `TASK-RESULT-SCHEMA`（`CHK-SCHEMA` 的旧 step）已于 2026-09-16 退役
-    #   （唯一默认输入 evidence/v6_1_rework/** 随旧世代删除；见 docs/ci/01_CHECKS.md §2.1）。
+    #   （唯一默认输入 evidence/v6_1_rework/** 随旧世代删除；见 docs/engineering/01_CHECKS.md §2.1）。
     #   该类现由聚合项 `CHK-SCHEMA` + 其现行 steps 承载。
     "schema": ["CHK-SCHEMA", "CON-CONFIG-CONTRACTS", "LOG-CONTRACT-SELFCHECK"],
     "合同索引": ["CONTRACT-GRAPH"],
     # TRACEABILITY-CODE 于 2026-09-16 按负责人裁决退役（唯一默认输入 artifacts/evidence/prerelease-v5/
-    # tables/TRACEABILITY.csv 随 artifacts/ 删除，b1290525）：见 docs/ci/01_CHECKS.md §2 退役记录。
+    # tables/TRACEABILITY.csv 随 artifacts/ 删除，b1290525）：见 docs/engineering/01_CHECKS.md §2 退役记录。
     # 本类仍由后两项覆盖（两者均未受影响、仍可跑）。
     "SCI→TEST 追踪": ["TRACEABILITY-MATRIX", "CON-TRACEABILITY"],
     "ACR dormant": ["ACR-DORMANT"],
@@ -79,8 +79,8 @@ REQUIRED_DOMAINS = {
     "CMakePresets.json": "CMakePresets.json",
     "eng/cmake/**": "eng/cmake/install_layout.cmake",
     "eng/ci/**": "eng/ci/run.py",
-    "docs/**": "docs/VERSIONING.md",
-    "docs/contracts/**": "docs/contracts/DATA_SEMANTICS.md",
+    "docs/**": "docs/engineering/VERSIONING.md",
+    "docs/contracts/**": "docs/science/DATA_SEMANTICS.md",
     "docs/science/**": "docs/science/ASTROMETRY.md",
     "lib/**": "lib/algorithms/psf/src/dpsf_psf.cpp",
     "lib/infrastructure/**": "lib/infrastructure/cli/main.cpp",
@@ -226,7 +226,7 @@ class TestImpactMapConsistency(unittest.TestCase):
             self.assertTrue(hit, f"[gate] 路径域 {domain}（探针 {probe}）未被任何规则覆盖")
 
     def test_no_retired_ids_referenced(self):
-        """R5：映射不得引用 docs/ci/01_CHECKS.md §2.1/§2.3 已退役 / RESERVED 的 id。"""
+        """R5：映射不得引用 docs/engineering/01_CHECKS.md §2.1/§2.3 已退役 / RESERVED 的 id。"""
         doc = (REPO / "docs" / "ci" / "01_CHECKS.md").read_text(encoding="utf-8")
         retired = self.gate.parse_retired(doc)
         self.assertTrue(retired, "退役/RESERVED 表解析为空 ⇒ fail-closed（判据面失效）")

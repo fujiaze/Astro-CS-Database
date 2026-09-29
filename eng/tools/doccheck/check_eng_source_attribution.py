@@ -11,9 +11,10 @@ r"""DOC-ENG-SOURCE-ATTRIBUTION | 工程集来源可辨门（判据 E）。
   另单列 DERIVATION_AS_RULING：**把推导伪装成裁决**（同一块里既喊裁决又写推导，
   或喊裁决却无任何可回指凭据）。这一类在本项目里最难被发现，故独立成面。
 
-工程集根的取法（迁移前后都能用）
-  docs/engineering 存在 ⇒ 用它（迁移后拓扑）；
-  否则用迁移前工程线集合（映射来源 run/FINAL-07/doc-migration/ 逐目录映射表）。
+工程集根的取法
+  一律取 docs/engineering（现行一级·工程正本）；迁移前的旧工程线目录集合已随
+  文档迁移清空（空目录不入库），按旧集合回落只会让本门在新树上恒空。
+  需要在别处取面时用 --eng-dir 显式点名。
 
 判据（任一 E 违规 => exit 1；输入不可用/分母为 0 => exit 2，fail-closed）
   E1 扫描面   工程集 md 文件数 = 0 => rc=2。
@@ -41,11 +42,11 @@ import sys
 
 CHECK_ID = "DOC-ENG-SOURCE-ATTRIBUTION"
 SELF_REL = "eng/tools/doccheck/check_eng_source_attribution.py"
-ENG_PREMIGRATION = ["docs/contracts", "docs/architecture", "docs/interfaces",
-                    "docs/api", "docs/standards", "docs/ci", "docs/development",
-                    "docs/validation", "docs/acceptance", "docs/traceability",
-                    "docs/operations", "docs/performance", "docs/quality"]
-ENG_POSTMIGRATION = ["docs/engineering"]
+# 工程集根（docs 三目录制）：行为合同/数据语义、架构、标准与锚合同、CI 门禁、
+# 追溯、版本与状态都在 docs/engineering/ 这一级工程正本里。迁移前的旧工程线目录
+# 集合已随迁移清空（**空目录不入库**）：按旧集合回落会让本门在旧树上"看起来能跑"、
+# 在新树上恒空，故只认现行根；根目录缺失由 E1 扫描面断言 fail-closed（rc=2）。
+ENG_ROOT = ("docs/engineering",)
 
 HEAD_RE = re.compile(r"^\s{0,3}(#{1,6})\s+(.*?)\s*$")
 FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
@@ -160,10 +161,7 @@ def main(argv=None):
     dirs = args.eng_dir
     topo = "explicit"
     if not dirs:
-        if os.path.isdir(os.path.join(root, "docs", "engineering")):
-            dirs, topo = ENG_POSTMIGRATION, "post-migration(docs/engineering)"
-        else:
-            dirs, topo = ENG_PREMIGRATION, "pre-migration(现工程线集合)"
+        dirs, topo = ENG_ROOT, "docs/engineering（现行一级·工程正本）"
     files, missing = iter_eng(root, dirs)
     counts = {"RULING": 0, "ARCH_DECISION": 0, "DERIVATION": 0,
               "UNLABELED": 0}
@@ -244,8 +242,8 @@ def self_test():
 
     def mk(body):
         d = tempfile.mkdtemp(prefix="engsrc_")
-        os.makedirs(os.path.join(d, "docs", "contracts"))
-        with open(os.path.join(d, "docs", "contracts", "T.md"), "w",
+        os.makedirs(os.path.join(d, "docs", "engineering"))
+        with open(os.path.join(d, "docs", "engineering", "T.md"), "w",
                   encoding="utf-8") as fh:
             fh.write(body)
         return d

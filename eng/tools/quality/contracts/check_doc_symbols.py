@@ -306,7 +306,7 @@ def main():
         status = "FAIL"
     # Also include top-level docs that are authoritative: TRACEABILITY, PUBLIC_API etc handled via contracts
     # Only add if exists (fixtures may not have)
-    for extra in [repo / "docs/contracts/PUBLIC_API.md", repo / "docs/contracts/DATA_SEMANTICS.md"]:
+    for extra in [repo / "docs/engineering/PUBLIC_API.md", repo / "docs/science/DATA_SEMANTICS.md"]:
         if extra.exists():
             docs.append(extra)
     # Extract backtick symbols like `p2_integrate_pixel` or `docs/...` or `lib/...`

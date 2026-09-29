@@ -12,7 +12,7 @@
   P2 消费侧守卫：hiss_writer.cpp 必须存在
      ① 对 ASTROCS_RELATIVE_FLUX（非面亮度口径串）的**具名拒绝**；
      ② §31.1 冻结串合法集判定（canonical "ADU/sr" 等）与错误码 HISS_ERR_INVALID_STATE。
-     口径 = docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810 与 :2827-2830
+     口径 = docs/science/DATA_SEMANTICS.md §31.1a:2808-2810 与 :2827-2830
      （测光归一化只改零点、不改量纲类别；标度由 PHOTSCAL/PHOTAPPL 承载）
      —— B1 / CONTRACT-GAPS-01 订正；
   P3 数据侧：扫描产品 JSON（--products-root，默认 eng/ci/fixtures/provenance +
@@ -115,7 +115,7 @@ def check_source_invariants(repo: pathlib.Path):
                         "photscal=%s）" % (neutral, neutral))
     writer = gc.read_text(repo / HISS_WRITER, HISS_WRITER)
     # B1 口径订正（CONTRACT-GAPS-01）：产品 BUNIT 一律取 canonical 面亮度族串，与
-    # PHOTAPPL 解耦（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810 / :2827-2830）。
+    # PHOTAPPL 解耦（docs/science/DATA_SEMANTICS.md §31.1a:2808-2810 / :2827-2830）。
     # 判据三条，缺一即红（强度不降：旧口径只守「RELATIVE_FLUX 且 !PHOTAPPL」这一种组合）。
     if not re.search(r'bunit_str\s*==\s*"ASTROCS_RELATIVE_FLUX"', writer):
         findings.append("provenance_writer_guard_missing:%s（缺 ASTROCS_RELATIVE_FLUX "
@@ -143,7 +143,7 @@ def _iter_products(root: pathlib.Path):
 def _bunit_problems(bunit):
     """B1 单位口径判据：产品 BUNIT（键存在时）必须是 canonical 面亮度串。
 
-    规范 = docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 FITS/HiPS 写盘 BUNIT
+    规范 = docs/science/DATA_SEMANTICS.md §31.1a:2808-2810（产品 FITS/HiPS 写盘 BUNIT
     一律取该串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由 PHOTSCAL/
     PHOTAPPL 承载）⇒ 测光是否施加**不改变** BUNIT。
     键缺失不判（本门职责边界 = provenance 自洽；p1_stack.json 的 bunit 缺失由

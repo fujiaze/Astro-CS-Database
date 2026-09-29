@@ -37,7 +37,7 @@
   - 显式 `file:N-M` 的**界内**判定由兄弟门 `DOC-LINE-ANCHORS` 承担，本门不重复实现；
   - **锚边界落在空行**由 `DOC-LINE-ANCHORS` 的 C6 判（该门有完整 resolver 链与
     unresolved_registry，本门无）；本门不重复实现，避免第二套解析口径；
-  - `docs/contracts/DATA_SEMANTICS.md` 的逐符号表漂移（实测 35 条）本门**当前不判**
+  - `docs/science/DATA_SEMANTICS.md` 的逐符号表漂移（实测 35 条）本门**当前不判**
     （L3 作用域未扩），见模块常量注释与 DOC-DRIFT-FIX-01 回执的「发现但未改」；
   - 散文/表格里**非邻接**的裸行号**不判**：跨格引用、文档自定义文件别名（如 `ex :1706`、
     `compat :1896-1907`、`h:89-91`）、以及一行内出现多个文件名时的后续裸行号，都无法在无
@@ -73,7 +73,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 # docs/contracts/**、docs/modules/** 的「<file>（N 行」长期无门，实测 70 条与源文件不符。
 DOC_GLOB = "docs/**/*.md"
 # L3（逐符号表行号范围）作用域**有意保持** docs/science/algorithms/*.md：扩到 docs/contracts 会
-# 立刻暴露 docs/contracts/DATA_SEMANTICS.md 两张状态表 35 条符号漂移（rejection.cpp /
+# 立刻暴露 docs/science/DATA_SEMANTICS.md 两张状态表 35 条符号漂移（rejection.cpp /
 # p2_session.cpp 整体位移），订正需逐符号重新推导语义，不属本任务声明的判据面 ——
 # 该项已在回执中作为「发现但未改」逐条列出，不得当作已覆盖。
 SYMBOL_GLOB = "docs/science/algorithms/*.md"

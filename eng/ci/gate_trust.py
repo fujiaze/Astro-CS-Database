@@ -3,7 +3,7 @@
 """GATE-TRUST-01 共用设施：门的三态（PASS/FAIL/CRASH）与判别力自证面。
 
 权威依据
-  - docs/ci/CI_SPEC.md §4（红灯不豁免、只有负责人可批豁免）、§7（失败必须留可复现证据）；
+  - docs/engineering/CI_SPEC.md §4（红灯不豁免、只有负责人可批豁免）、§7（失败必须留可复现证据）；
   - ENGINEERING_SPEC.md §8（每项能绿能红）、§10（fail-closed）；
   - AGENTS.md §9（门禁判据本身不合理时改进门禁本身，配可执行正例/负例与 --self-test，
     而不是放松判据）；

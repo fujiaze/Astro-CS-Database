@@ -2,7 +2,7 @@
 """IO-002 hips_core 契约测试 + fixture 重建验证 (eng/tests/io/)。
 
 验收映射 (tasks/03_RUNTIME_DATA_IO_TASKS.md IO-002 /
-docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md §8):
+docs/science/IO_002_HIPS_INPUT_INTERFACE.md §8):
   - 非 2 次幂 tile width 拒绝
   - 布局不符 (Norder/ipix/NAXIS 冲突) 拒绝
   - 缺 properties 拒绝

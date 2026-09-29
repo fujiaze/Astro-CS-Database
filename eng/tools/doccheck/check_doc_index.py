@@ -839,7 +839,7 @@ def main(argv=None) -> int:
 OWNER_DOCS = ("SCIENCE_OVERVIEW.md", "PIPELINE_OVERVIEW.md", "ARCHITECTURE_OVERVIEW.md",
               "RELEASE_STATUS.md", "CHANGE_REVIEW.md")
 ROOT_DOC_FILES = {
-    "docs/ASTROCS_DESIGN.md": "# 最高设计\n\n科学公式见 docs/owner/SCIENCE_OVERVIEW.md；"
+    "docs/ASTROCS_DESIGN.md": "# 最高设计\n\n科学公式见 docs/engineering/SCIENCE_OVERVIEW.md；"
                          "索引见 docs/DOCUMENT_INDEX.yaml。\n" + ("顶层设计正文。 " * 30) + "\n",
     "AGENTS.md": "# AGENTS\n\n读法见 docs/DOCUMENT_INDEX.yaml。\n" + ("干活手册。 " * 30) + "\n",
     "ENGINEERING_SPEC.md": "# 工程规范\n\n文档集见 docs/ci/。\n" + ("工程规范正文。 " * 30) + "\n",
@@ -855,7 +855,7 @@ BASE_INDEX = (
     "      status: ACTIVE_NORMATIVE\n"
     "    - path: \"docs/owner\"\n"
     "      status: ACTIVE_NORMATIVE\n"
-    "    - path: \"docs/ci/01_CHECKS.md\"\n"
+    "    - path: \"docs/engineering/01_CHECKS.md\"\n"
     "      status: ACTIVE_NORMATIVE\n"
     "    - path: \"docs/DOC-L0.md\"\n"
     "      status: ACTIVE_NORMATIVE\n"
@@ -921,7 +921,7 @@ def _mk(root: str) -> None:
         _write(os.path.join(root, "docs/owner", d),
                "# " + d + "\n\n> 上游：docs/ASTROCS_DESIGN.md §2（核心科学方法）\n\n"
                + ("owner L0 overview content. " * 20) + "\n")
-    _write(os.path.join(root, "docs/ci/01_CHECKS.md"),
+    _write(os.path.join(root, "docs/engineering/01_CHECKS.md"),
            "# checks\n\n> 上游：docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）\n\nbody\n")
     _write(os.path.join(root, "docs/archive/OLD.md"), "# ARCHIVED old doc\n")
     _write(os.path.join(root, "docs/review/OLD_REVIEW.md"), "# ARCHIVED old review copy\n")
@@ -1029,7 +1029,7 @@ def self_test() -> int:
 
         # S6 fail-closed：索引未覆盖的新文档出现 ⇒ rc=1（docs_fully_covered 真实缺口）
         r6 = _mk_repo(tmp, "s6")
-        _write(os.path.join(r6, "docs/contracts/CONFIG_CONTRACT.md"), "# config contract\n")
+        _write(os.path.join(r6, "docs/engineering/CONFIG_CONTRACT.md"), "# config contract\n")
         _git_init(r6)
         cases.append(("S6-coverage-gap",) + _res(r6, "s6", True, 1, "docs_fully_covered"))
 
@@ -1060,7 +1060,7 @@ def self_test() -> int:
 
         # S11 负例：删一个抬头 ⇒ subordinate_docs_upstream_header 判红
         r11 = _mk_repo(tmp, "s11")
-        _write(os.path.join(r11, "docs/owner/SCIENCE_OVERVIEW.md"),
+        _write(os.path.join(r11, "docs/engineering/SCIENCE_OVERVIEW.md"),
                "# SCIENCE_OVERVIEW.md\n\n" + ("owner L0 overview content. " * 20) + "\n")
         _git_init(r11)
         cases.append(("S11-missing-upstream-header",) + _red(r11, "s11", True,

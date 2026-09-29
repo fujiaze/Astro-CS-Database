@@ -14,4 +14,4 @@
 ## 上游
 
 - 本目录数据文件未注册于 `eng/ci/checks.json`（由其消费检查器在运行时读取）。
-- 台账 fail-closed 语义见 `docs/ci/01_CHECKS.md` §1 注册表原则，门禁分级见 `docs/ci/03_GATES.md`。
+- 台账 fail-closed 语义见 `docs/engineering/01_CHECKS.md` §1 注册表原则，门禁分级见 `docs/engineering/03_GATES.md`。

@@ -15,4 +15,4 @@
 ## 上游
 
 - 注册于 `eng/ci/checks.json`：`CHK-UNIT` 的步骤 `TESTKIT-LIST`（`python3 eng/tools/testkit/check_testkit.py --list`）。
-- 检查项条目见 `docs/ci/01_CHECKS.md`，门禁分级见 `docs/ci/03_GATES.md`。
+- 检查项条目见 `docs/engineering/01_CHECKS.md`，门禁分级见 `docs/engineering/03_GATES.md`。

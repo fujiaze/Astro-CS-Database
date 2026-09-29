@@ -2,7 +2,7 @@
 //
 // 依据：docs/ASTROCS_DESIGN.md §8.3 调度器表 export 行（「子块流式：读子块 → 投影
 //   重采样 → 写 FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与
-//   子块大小成正比、**与总图大小无关**」）；docs/contracts/SCHEDULER_CONTRACT.md
+//   子块大小成正比、**与总图大小无关**」）；docs/engineering/SCHEDULER_CONTRACT.md
 //   §2 export 行（同文，FROZEN）；§3（分块/子块大小由配置决定）。
 // 背景：ARCH-AUDIT-03 P3-01 判定生产 export 非子块流式（全幅 vector + 全幅
 //   中间产物 + 单次 fits_write_pix），且 ARCH-504 调度器只被组件级单测引用；

@@ -585,7 +585,7 @@
             "eng/tools/quality/contracts/check_build_graph.py",
             "eng/ci/cmake_graph.py",
             "eng/ci/gate_trust.py",
-            "docs/architecture/BUILD_GRAPH.md",
+            "docs/engineering/BUILD_GRAPH.md",
             "CMakeLists.txt"
           ],
           "requires_monitor": false
@@ -2175,10 +2175,10 @@
       ],
       "waivable": false,
       "changed_paths": [
-        "docs/api/MANIFEST_VERIFY_V1.md",
-        "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
-        "docs/plugins/infrastructure/21_observability.md",
-        "docs/design/LOG_AND_ERROR_SYSTEM.md",
+        "docs/engineering/MANIFEST_VERIFY_V1.md",
+        "docs/engineering/LOG_AND_ERROR_CONTRACT.md",
+        "docs/detail/infrastructure/21_observability.md",
+        "docs/detail/LOG_AND_ERROR_SYSTEM.md",
         "lib/infrastructure/cli/commands.cpp",
         "lib/infrastructure/cli/exit_codes.h",
         "eng/ci/check_manifest_exit_codes.py"
@@ -2208,10 +2208,10 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "docs/api/MANIFEST_VERIFY_V1.md",
-            "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
-            "docs/plugins/infrastructure/21_observability.md",
-            "docs/design/LOG_AND_ERROR_SYSTEM.md",
+            "docs/engineering/MANIFEST_VERIFY_V1.md",
+            "docs/engineering/LOG_AND_ERROR_CONTRACT.md",
+            "docs/detail/infrastructure/21_observability.md",
+            "docs/detail/LOG_AND_ERROR_SYSTEM.md",
             "lib/infrastructure/cli/commands.cpp",
             "lib/infrastructure/cli/exit_codes.h",
             "eng/ci/check_manifest_exit_codes.py"
@@ -3848,7 +3848,10 @@
           "changed_paths": [
             "lib/infrastructure/aio/**",
             "eng/tests/unit/aio/**",
-            "docs/interfaces/io/**"
+            "docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+            "docs/engineering/io/README.md",
+            "docs/science/IO_001_FITS_STREAM_INTERFACE.md",
+            "docs/science/IO_002_HIPS_INPUT_INTERFACE.md"
           ],
           "requires_monitor": false,
           "ctest_targets": [
@@ -3882,7 +3885,10 @@
           "changed_paths": [
             "lib/infrastructure/aio/**",
             "eng/tests/unit/aio/**",
-            "docs/interfaces/io/**"
+            "docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+            "docs/engineering/io/README.md",
+            "docs/science/IO_001_FITS_STREAM_INTERFACE.md",
+            "docs/science/IO_002_HIPS_INPUT_INTERFACE.md"
           ],
           "requires_monitor": false,
           "ctest_targets": [
@@ -3916,7 +3922,10 @@
           "changed_paths": [
             "lib/infrastructure/aio/**",
             "eng/tests/unit/aio/**",
-            "docs/interfaces/io/**"
+            "docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+            "docs/engineering/io/README.md",
+            "docs/science/IO_001_FITS_STREAM_INTERFACE.md",
+            "docs/science/IO_002_HIPS_INPUT_INTERFACE.md"
           ],
           "requires_monitor": false,
           "ctest_targets": [
@@ -8079,8 +8088,8 @@
       "changed_paths": [
         "eng/tools/quality/**",
         "eng/ci/checks.json",
-        "docs/contracts/SCHEDULER_CONTRACT.md",
-        "docs/contracts/TEST_MATRIX.md"
+        "docs/engineering/SCHEDULER_CONTRACT.md",
+        "docs/engineering/TEST_MATRIX.md"
       ],
       "requires_monitor": false,
       "prerequisite_tools": [
@@ -8146,7 +8155,7 @@
       "changed_paths": [
         "eng/ci/**",
         "lib/infrastructure/cli/**",
-        "docs/api/MANIFEST_VERIFY_V1.md",
+        "docs/engineering/MANIFEST_VERIFY_V1.md",
         "eng/contracts/schemas/run_manifest.schema.json"
       ],
       "requires_monitor": false
@@ -8884,7 +8893,7 @@
           "waivable": false,
           "changed_paths": [
             "eng/tools/quality/contracts/check_execution_contracts.py",
-            "docs/architecture/EXECUTION_MODEL.md"
+            "docs/engineering/EXECUTION_MODEL.md"
           ],
           "requires_monitor": false
         }
@@ -9489,7 +9498,7 @@
       "waivable": false,
       "changed_paths": [
         "docs/standards/**",
-        "docs/ci/01_CHECKS.md",
+        "docs/engineering/01_CHECKS.md",
         "eng/contracts/**"
       ],
       "requires_monitor": false,
@@ -9592,7 +9601,7 @@
       "changed_paths": [
         "eng/ci/checks.json",
         "eng/ci/id_migration_map.json",
-        "docs/ci/01_CHECKS.md",
+        "docs/engineering/01_CHECKS.md",
         "eng/ci/check_registry_doc_sync.py"
       ],
       "requires_monitor": false,
@@ -9617,7 +9626,7 @@
           "changed_paths": [
             "eng/ci/checks.json",
             "eng/ci/id_migration_map.json",
-            "docs/ci/01_CHECKS.md"
+            "docs/engineering/01_CHECKS.md"
           ],
           "requires_monitor": false
         },
@@ -9717,7 +9726,7 @@
         "eng/ci/checks.json",
         "eng/ci/impact_map.json",
         "eng/ci/run.py",
-        "docs/ci/01_CHECKS.md",
+        "docs/engineering/01_CHECKS.md",
         "eng/tools/quality/check_impact_map.py",
         "eng/ci/tests/test_impact_map.py"
       ],
@@ -9748,7 +9757,7 @@
             "eng/ci/checks.json",
             "eng/ci/impact_map.json",
             "eng/ci/run.py",
-            "docs/ci/01_CHECKS.md",
+            "docs/engineering/01_CHECKS.md",
             "eng/tools/quality/check_impact_map.py"
           ],
           "requires_monitor": false
@@ -10183,7 +10192,7 @@
       "changed_paths": [
         "eng/ci/**",
         "lib/infrastructure/scheduler/**",
-        "docs/architecture/THREADING_MODEL.md",
+        "docs/engineering/THREADING_MODEL.md",
         "eng/packaging/config/**",
         "CMakeLists.txt"
       ],
@@ -11131,7 +11140,11 @@
         "eng/ci/checks.json",
         "eng/ci/validate_registry.py",
         "eng/ci/id_migration_map.json",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -11156,7 +11169,11 @@
       "changed_paths": [
         "eng/ci/**",
         "eng/contracts/resource_gate_v1.json",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -11185,7 +11202,11 @@
         "eng/ci/**",
         "eng/contracts/resource_gate_v1.json",
         "实验/engineering-evidence/l2_performance/**",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -11209,7 +11230,11 @@
       "waivable": false,
       "changed_paths": [
         "eng/ci/**",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -11237,7 +11262,11 @@
       "changed_paths": [
         "eng/ci/**",
         "实验/engineering-evidence/l2_performance/**",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -11269,7 +11298,11 @@
       "waivable": false,
       "changed_paths": [
         "eng/ci/**",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -11297,7 +11330,11 @@
       "waivable": false,
       "changed_paths": [
         "eng/ci/**",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false,
       "steps": [
@@ -11324,7 +11361,11 @@
           "waivable": false,
           "changed_paths": [
             "eng/ci/**",
-            "docs/ci/**"
+            "docs/engineering/CI_SPEC.md",
+            "docs/engineering/01_CHECKS.md",
+            "docs/engineering/02_PIPELINE.md",
+            "docs/engineering/03_GATES.md",
+            "docs/engineering/04_ARTIFACTS.md"
           ],
           "requires_monitor": false
         },
@@ -11348,7 +11389,11 @@
           "waivable": false,
           "changed_paths": [
             "eng/ci/**",
-            "docs/ci/**"
+            "docs/engineering/CI_SPEC.md",
+            "docs/engineering/01_CHECKS.md",
+            "docs/engineering/02_PIPELINE.md",
+            "docs/engineering/03_GATES.md",
+            "docs/engineering/04_ARTIFACTS.md"
           ],
           "requires_monitor": false
         }
@@ -11984,7 +12029,10 @@
             "lib/algorithms/fits_output/**",
             "lib/infrastructure/aio/src/**",
             "eng/tests/backend/**",
-            "docs/interfaces/io/**"
+            "docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+            "docs/engineering/io/README.md",
+            "docs/science/IO_001_FITS_STREAM_INTERFACE.md",
+            "docs/science/IO_002_HIPS_INPUT_INTERFACE.md"
           ],
           "requires_monitor": true,
           "prerequisite_tools": [
@@ -12590,8 +12638,8 @@
       "changed_paths": [
         "eng/tools/quality/check_sparse_punch.py",
         "lib/infrastructure/aio/**",
-        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
-        "docs/design/PRODUCT_STORAGE_FORM.md",
+        "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md",
+        "docs/detail/PRODUCT_STORAGE_FORM.md",
         "eng/ci/checks.json"
       ],
       "requires_monitor": false
@@ -12655,14 +12703,14 @@
       ],
       "waivable": false,
       "changed_paths": [
-        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
-        "docs/contracts/CONFIG_CONTRACT.md",
-        "docs/design/PRODUCT_STORAGE_FORM.md",
-        "docs/design/PHASE1_DETAILED_DESIGN.md",
-        "docs/design/PHASE2_DETAILED_DESIGN.md",
-        "docs/design/PHASE3_DETAILED_DESIGN.md",
-        "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md",
-        "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+        "docs/engineering/HIPS_STORAGE_FORM_CONTRACT.md",
+        "docs/engineering/CONFIG_CONTRACT.md",
+        "docs/detail/PRODUCT_STORAGE_FORM.md",
+        "docs/detail/PHASE1_DETAILED_DESIGN.md",
+        "docs/detail/PHASE2_DETAILED_DESIGN.md",
+        "docs/detail/PHASE3_DETAILED_DESIGN.md",
+        "docs/science/IO_002_HIPS_INPUT_INTERFACE.md",
+        "docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
         "eng/contracts/schemas/hips_storage_form.schema.json",
         "eng/contracts/schemas/phase_config_normalize.schema.json",
         "eng/contracts/schemas/phase_config_mosaic.schema.json",
@@ -12793,7 +12841,11 @@
       "waivable": false,
       "changed_paths": [
         "eng/ci/**",
-        "docs/ci/**"
+        "docs/engineering/CI_SPEC.md",
+        "docs/engineering/01_CHECKS.md",
+        "docs/engineering/02_PIPELINE.md",
+        "docs/engineering/03_GATES.md",
+        "docs/engineering/04_ARTIFACTS.md"
       ],
       "requires_monitor": false
     },
@@ -13928,8 +13980,8 @@
         "eng/ci/check_build_provenance.py",
         "lib/infrastructure/**",
         "lib/include/astrocs/core/**",
-        "docs/VERSIONING.md",
-        "docs/api/MANIFEST_VERIFY_V1.md"
+        "docs/engineering/VERSIONING.md",
+        "docs/engineering/MANIFEST_VERIFY_V1.md"
       ],
       "requires_monitor": false
     },
@@ -14379,7 +14431,7 @@
         "eng/ci/check_naming_surface.py",
         "eng/ci/ledgers/naming_surface.json",
         "eng/ci/checks.json",
-        "docs/ci/01_CHECKS.md"
+        "docs/engineering/01_CHECKS.md"
       ],
       "requires_monitor": false,
       "steps": [
@@ -14409,7 +14461,7 @@
             "eng/ci/check_naming_surface.py",
             "eng/ci/ledgers/naming_surface.json",
             "eng/ci/checks.json",
-            "docs/ci/01_CHECKS.md"
+            "docs/engineering/01_CHECKS.md"
           ],
           "requires_monitor": false
         },
@@ -14585,7 +14637,7 @@
         "eng/contracts/data/phase_product_exchange_matrix.json",
         "eng/contracts/data/artifact_manifest.schema.json",
         "eng/contracts/schemas/product_family_field_constraints.schema.json",
-        "docs/interfaces/data/**",
+        "docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md", "docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md", "docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md", "docs/engineering/data/README.md",
         "lib/infrastructure/aio/runtime/artifact_store/**"
       ],
       "requires_monitor": false,
@@ -14620,7 +14672,7 @@
             "eng/contracts/data/artifact_manifest.schema.json",
             "eng/contracts/schemas/product_family_field_constraints.schema.json",
             "eng/tests/common/jsonschema_min.py",
-            "docs/interfaces/data/**",
+            "docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md", "docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md", "docs/engineering/data/DATA-004_PRODUCT_PROVENANCE.md", "docs/engineering/data/README.md",
             "lib/infrastructure/aio/runtime/artifact_store/**"
           ],
           "requires_monitor": false

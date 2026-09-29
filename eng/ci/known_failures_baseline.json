@@ -294,7 +294,7 @@
       "finding_id": "F-029",
       "severity": "P1",
       "status": "REPRODUCED",
-      "minimal_command": "grep -n '完成\\|81 PASS' docs/owner/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/owner/SCIENCE_OVERVIEW.md",
+      "minimal_command": "grep -n '完成\\|81 PASS' docs/engineering/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/engineering/SCIENCE_OVERVIEW.md",
       "evidence": [
         "RELEASE_STATUS 自报 Linux 侧完成/81 PASS",
         "SCIENCE_OVERVIEW 声明 Phase3 prototype/未实现"

@@ -20,7 +20,8 @@
       AstroCS_ENGINEERING_CONSTRAINTS.md / 设计大纲/）即红；
   [5] 权威链唯一性：docs/ASTROCS_DESIGN.md §0 的 mermaid 链必须恰好覆盖
       docs/ASTROCS_DESIGN → AGENTS → ENGINEERING_SPEC → CONTROL_PACK_SPEC →
-      docs/ci → docs/plugins 六步且顺序正确（步骤全部为真实存在的路径）；
+      ACCEPTANCE_SPEC → docs/engineering → docs/detail 七步且顺序正确
+      （步骤全部为真实存在的路径）；
   [6] 反回归扫描：根权威面（README/AGENTS/ENGINEERING_SPEC/CONTROL_PACK_SPEC/
       HANDOVER）与 eng/tools/doccheck/、eng/tools/check_agents_gov.py 自身不得把
       已删除的旧权威文本写成上位/必读/冻结权威；
@@ -64,11 +65,12 @@ DESIGN = "docs/ASTROCS_DESIGN.md"
 
 # ---- 权威链（docs/ASTROCS_DESIGN.md §0）与"下级可引用"白名单 --------------------
 AUTHORITY_CHAIN = ["docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md",
-                   "CONTROL_PACK_SPEC.md", "docs/ci", "docs/plugins"]
+                   "CONTROL_PACK_SPEC.md", "ACCEPTANCE_SPEC.md",
+                   "docs/engineering", "docs/detail"]
 CITED_ALLOWED = {
     "docs/ASTROCS_DESIGN.md", "AGENTS.md", "ENGINEERING_SPEC.md", "CONTROL_PACK_SPEC.md",
-    "docs/ci", "docs/plugins", "docs/science", "docs/algorithms",
-    "docs/design/UNIFIED_MODEL.md", "docs/GLOSSARY.md", "memory.md", "REPO",
+    "ACCEPTANCE_SPEC.md", "docs/engineering", "docs/detail", "docs/science", "docs/algorithms",
+    "docs/detail/UNIFIED_MODEL.md", "docs/GLOSSARY.md", "memory.md", "REPO",
 }
 # 已由 ROOT-007 删除 / 整体出库的旧治理对象：任何"上位权威/必读/冻结"写法都算回归
 LEGACY_TOKENS = ["ASTROCS_PROJECT_CONSTITUTION.md", "AstroCS_ENGINEERING_CONSTRAINTS.md",
@@ -238,10 +240,16 @@ def label_to_authority(label: str) -> str:
         return "ENGINEERING_SPEC.md"
     if "控制包规范" in label or "CONTROL_PACK_SPEC" in label:
         return "CONTROL_PACK_SPEC.md"
-    if "CI 规范" in label or "docs/ci" in label:
-        return "docs/ci"
-    if "插件文档" in label or "docs/plugins" in label:
-        return "docs/plugins"
+    if "ACCEPTANCE_SPEC" in label or "验收规范" in label:
+        return "ACCEPTANCE_SPEC.md"
+    if "CI 门禁规范" in label or "docs/engineering" in label:
+        return "docs/engineering"
+    if "细节实施" in label or "docs/detail" in label:
+        return "docs/detail"
+    if "算法推导" in label or "docs/science/algorithms" in label:
+        return "docs/science/algorithms"
+    if "科学公式" in label or "docs/science" in label:
+        return "docs/science"
     return ""
 
 
@@ -280,7 +288,7 @@ def check_authority_chain(root: str, v: list, notes: dict) -> None:
         v.append({"check": "authority_chain_order",
                   "detail": "§0 权威链应为 %s，实测 %s"
                   % (" > ".join(AUTHORITY_CHAIN), " > ".join(got) or "(空)")})
-    # 链上"可直接定位"的文件必须真实存在（docs/ci、docs/plugins 为目录）
+    # 链上"可直接定位"的路径必须真实存在（docs/engineering、docs/detail 为目录）
     missing_paths = [n for n in AUTHORITY_CHAIN
                      if not os.path.exists(os.path.join(root, n))]
     if missing_paths:
@@ -499,9 +507,10 @@ flowchart TD
     A["② AGENTS.md 机器干活手册"]
     E["③ 工程规范 ENGINEERING_SPEC"]
     C["④ 控制包规范 CONTROL_PACK_SPEC"]
-    CI["⑤ CI 规范 docs/ci/"]
-    P["⑥ 插件文档 docs/plugins/"]
-    D --> A & E & C & CI & P
+    ACC["⑤ ACCEPTANCE_SPEC 验收规范"]
+    CI["⑥ docs/engineering CI 门禁规范"]
+    P["⑦ docs/detail 细节实施"]
+    D --> A & E & C & ACC & CI & P
 ```
 
 ---
@@ -541,14 +550,16 @@ def _edit(path: str, old: str, new: str) -> None:
 
 
 def _mini_repo(base: str) -> None:
-    """造一个 AGENTS-GOV 应 rc=0 的 mini-repo（含§1/§5/§8、权威链六步与 4 个根文档）。"""
-    os.makedirs(os.path.join(base, "docs", "ci"), exist_ok=True)
-    os.makedirs(os.path.join(base, "docs", "plugins"), exist_ok=True)
+    """造一个 AGENTS-GOV 应 rc=0 的 mini-repo（含§1/§5/§8、权威链七步与 5 个根文档）。"""
+    # 权威链上的现行文档目录（docs 三目录制：science / engineering / detail）
+    os.makedirs(os.path.join(base, "docs", "engineering"), exist_ok=True)
+    os.makedirs(os.path.join(base, "docs", "detail"), exist_ok=True)
     _write(os.path.join(base, AGENTS), SELFTEST_AGENTS_MD)
     _write(os.path.join(base, DESIGN), SELFTEST_DESIGN_MD)
     for rel, text in (("README.md", "# README（mini-repo 夹具）\n\n- docs/ASTROCS_DESIGN.md\n"),
                       ("ENGINEERING_SPEC.md", "# ENGINEERING_SPEC（mini-repo 夹具）\n"),
-                      ("CONTROL_PACK_SPEC.md", "# CONTROL_PACK_SPEC（mini-repo 夹具）\n")):
+                      ("CONTROL_PACK_SPEC.md", "# CONTROL_PACK_SPEC（mini-repo 夹具）\n"),
+                      ("ACCEPTANCE_SPEC.md", "# ACCEPTANCE_SPEC（mini-repo 夹具）\n")):
         _write(os.path.join(base, rel), text)
 
 

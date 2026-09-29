@@ -147,7 +147,7 @@ class TestAdopt006VersionUnification(unittest.TestCase):
 
         W4-A3 订正：原实现硬编码 ("README.md", "REVIEW.md", "HANDOVER.md")。
         REVIEW.md / HANDOVER.md 已随 ROOT-007 归档（根下已不存在）⇒ FileNotFoundError；
-        而 check_version.py 的权威活动文档集是 DOC_SET_FILES（10 项，含 docs/owner/**）。
+        而 check_version.py 的权威活动文档集是 DOC_SET_FILES（10 项）+ DOC_SET_DIRS（一级·工程正本目录）。
         按 §8「注册表双向一致 / 锚存活」口径改绑到该常量，消除两套不同步判据。
         """
         m = load_check()
@@ -239,7 +239,7 @@ class TestAdopt006CheckGate(unittest.TestCase):
         且必须点名缺失的 DOC_SET_FILES 成员（不许静默通过）。
         """
         cv = load_check()
-        victim = "docs/owner/RELEASE_STATUS.md"
+        victim = "docs/engineering/RELEASE_STATUS.md"
         self.assertIn(victim, cv.DOC_SET_FILES, "受害者必须是现行 DOC_SET_FILES 成员")
         with tempfile.TemporaryDirectory() as td:
             make_fake_tree(td)

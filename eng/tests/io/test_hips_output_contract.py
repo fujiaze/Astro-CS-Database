@@ -2,7 +2,7 @@
 """IO-003 原子 HiPS/manifest 输出发布 验收测试（eng/tests/io/test_hips_output_contract.py）。
 
 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md IO-003 +
-docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）:
+docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）:
   - 每个输出以唯一用户路径或 run ID 目录        → TestUniqueRunDirIsolation
   - 临时写 → 关闭 → fitsverify → SHA256 → 原子 rename → 完成 manifest
                                                 → TestAtomicPublishPipeline (spy)
