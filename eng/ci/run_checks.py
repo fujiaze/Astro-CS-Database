@@ -733,6 +733,10 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
     # 头部同样留证：判词常在流首（门先打判词、后打全量 JSON），只留尾巴会丢判词。
     result["stdout_head"] = stdout_s[:TAIL_LIMIT]
     result["stderr_head"] = stderr_s[:TAIL_LIMIT]
+    # 注意：此处条件是**进程退出码非零**，不是上面注释所说的「非绿步骤」——
+    # 「step 进程成功、但门级判红」的情形（实测 46 个）**不会**落全文，
+    # 而它们的判词恰恰全在 stdout 里。是否把条件改成「rc != 0 或该 step 判红」
+    # 属产出口径变更（会让 JSON 变大），**已登记待裁决**，本行不动。
     if proc.returncode != 0:
         result["stdout_full"] = stdout_s
         result["stderr_full"] = stderr_s
