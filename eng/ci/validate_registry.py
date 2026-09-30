@@ -43,8 +43,11 @@ import pathlib
 import re
 import sys
 import warnings
-
+# R16 恒真门候选（人工定论用；不进 errors，见 validate() 内注释）。R16_CANDIDATES: list = []
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
+
+# R16 恒真门候选（人工定论用；**不进 errors**，理由见 validate() 内注释）
+R16_CANDIDATES: list = []
 
 ALLOWED_PROFILES = {"fast", "integration", "linux-main", "windows-main",
                     "linux-deep", "prerelease", "fatduck"}
@@ -577,6 +580,44 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
                         if item.get("id") not in entry_ids and item.get("id") not in unit_ids:
                             errors.append(f"R14 exemptions[{i}].id 不在注册表：{item.get('id')!r}")
 
+    # R16：脚本不得**全注册表**只有自测执行单元（恒真门根因）。
+    #   FINAL-07 第3轮 r3-gate-impl 实测：5 个恒真门全部落在这个缺口上 ——
+    #   注册表允许把 `--self-test` 登记成一个门，而被审脚本的实质面在 `else`
+    #   分支（注册命令不传对应参数 ⇒ 该分支不可达），于是无论产物坏成什么样都绿。
+    #   实测样本：CHK-NWORKER-TOLERANCE / CHK-PHOTOMETRY-APPLY-SELFTEST /
+    #   CHK-HIPS-STORAGE-FORM、CHK-SCHED-PROBE-SCHEMA。
+    #
+    #   **跨门统计**（不是逐门）：`-SELFTEST` 配套门设计上就只跑自测，
+    #   其父门才是实质门；只有当**该脚本在全注册表里**都没有任何实质调用时才判红。
+    #   （首版误按逐门判，抓出 31 条含大量配套自测门 —— 那是假阳，已收窄。）
+    script_units: dict = {}
+    for c in checks:
+        steps = c.get("steps")
+        units = steps if (isinstance(steps, list) and steps) else [c]
+        for u in units:
+            cmd = u.get("command") if isinstance(u, dict) else None
+            if not (isinstance(cmd, list) and len(cmd) > 1):
+                continue
+            s = cmd[1]
+            if not (isinstance(s, str) and s.endswith(".py")):
+                continue
+            is_st = bool(set(cmd) & {"--self-test", "--selftest"})
+            rec = script_units.setdefault(s, [])
+            rec.append((c.get("id"), is_st))
+    # 记录为**警告**而非 errors：候选已确证存在（前台实测 11 个脚本），
+    # 但「自测分支是否真的不触实质面」不能只看注册命令判定 ——
+    # 反例：`check_block_flow_spec.py` 的 `_self_test()` 第一条用例是
+    # 「S1-current-repo-green」，**拿真实仓库跑 validate()** ⇒ 注册面是自测，实质面照跑。
+    #   **只看 main() 或注册命令必误报**（r2-truegate 已独立踩过这个坑）。
+    #   ⇒ 逐个脚本 read 判据分支才能定论，属人工判据；
+    #   先让候选可见、门保持绿，逐条定论后再升为 errors。
+    for s, recs in sorted(script_units.items()):
+        if all(flag for _, flag in recs) and recs:
+            ids = sorted({cid for cid, _ in recs})
+            R16_CANDIDATES.append(
+                f"脚本 {s!r} 在全注册表 {len(recs)} 个执行单元里全部带 --self-test，"
+                f"无注册层实质面（{', '.join(ids)}）")
+
     return errors, len(checks)
 
 
@@ -642,6 +683,8 @@ def main(argv: list[str] | None = None) -> int:
         "checks": n,
         "errors": errors,
         "error_count": len(errors),
+        "r16_truegate_candidates": list(R16_CANDIDATES),
+        "r16_candidate_count": len(R16_CANDIDATES),
         "verdict": "PASS" if not errors else "FAIL",
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
