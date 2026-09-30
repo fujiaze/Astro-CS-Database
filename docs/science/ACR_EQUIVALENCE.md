@@ -1,8 +1,6 @@
 # ACR Work-Domain Equivalence Science (SCI-ACR-EQUIV)
 
-> 上游：ASTROCS_DESIGN.md §1.4（非目标）、§4（normalize）
-
-> 本文件条款为冻结定义，变更走变更流程。
+> 上游：ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）
 
 ## 1 目的与非目标
 

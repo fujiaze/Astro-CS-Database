@@ -24,9 +24,11 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, REPO)
-sys.path.insert(0, os.path.join(REPO, "eng", "ci"))
+sys.path.insert(0, os.path.join(REPO, "eng", "contracts", "ledgers"))
+sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 
-import gate_common as gc  # noqa: E402
+import ledger_schema as gc  # noqa: E402
+from source_scan import iter_source_files, strip_comments  # noqa: E402
 
 LEDGER_REL = "eng/contracts/ledgers/dead_config_keys.json"
 # CLI 键表 = 「只声明键名」的文件；其中的 token 命中**不算**生产消费。
@@ -67,11 +69,11 @@ def _brace_block(text, marker):
 def cli_key_table():
     """CLI 键表（唯一声明）= session_keys() 白名单 ∪ 三会话 config_fields() 键。
 
-    去注释后解析（注释里的键名不是声明）；与 eng/ci/check_config_consumed.py 同用
-    gate_common.strip_comments，不另写一份剥离实现。
+    去注释后解析（注释里的键名不是声明）；复用 eng/tools/source_scan.py 的
+    strip_comments，不另写一份剥离实现。
     """
-    parser_src = gc.strip_comments(_read(CLI_TABLE_FILES[0]))
-    sess_src = gc.strip_comments(_read(CLI_TABLE_FILES[1]))
+    parser_src = strip_comments(_read(CLI_TABLE_FILES[0]))
+    sess_src = strip_comments(_read(CLI_TABLE_FILES[1]))
     keys = set(re.findall(r'"([^"]+)"', _brace_block(parser_src, "session_keys()")))
     fields = set()
     for sess in ("kNormalize", "kMosaic", "kExport"):
@@ -82,7 +84,7 @@ def cli_key_table():
 def production_blob_outside_cli_table():
     """lib/** 生产源码（去掉 CLI 键表文件）拼接 —— 语义 = 真正的消费面。"""
     chunks = []
-    for path, _rel in gc.iter_source_files(os.path.join(REPO, "lib")):
+    for path, _rel in iter_source_files(os.path.join(REPO, "lib")):
         rel = os.path.relpath(str(path), REPO).replace(os.sep, "/")
         if rel in CLI_TABLE_FILES:
             continue

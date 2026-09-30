@@ -22,7 +22,7 @@
 | `eng/contracts/data/examples/*.example.json` | 示例（phase1/phase2/phase3 产品 + 外部 fixture） |
 
 下游接线：`docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`（生产 ArtifactStore 接线）、
-`docs/engineering/PIPELINE.md`（阶段隔离运行时）、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` 与
+`docs/engineering/ARCH-001.md`（阶段隔离运行时）、`docs/science/IO_002_HIPS_INPUT_INTERFACE.md` 与
 `docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`（HiPS 输入 / 原子输出）。
 
 ## 1. 阶段产品角色与 type 绑定（role ↔ type）
@@ -242,7 +242,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 - **rule_id `R-DISK-ONLY`**：任一 Phase 进程只接受另一 Phase 通过原子发布 + 完整 manifest
   （hash/provenance）产生的**磁盘产品**；跨 Phase 传输面限于磁盘产品（进程内对象 / ArtifactHandle / run 上下文不承载交换）；
   单进程串联不在合同面内（最高设计 §8.1：一次 CLI 调用只驱动一个阶段、无 `--phases 1,2,3`；
-  阶段隔离运行时见 `docs/engineering/PIPELINE.md`）。
+  阶段隔离运行时见 `docs/engineering/ARCH-001.md`）。
 - 磁盘交换是唯一跨 Phase 通道：无共享内存、无进程内 registry 直连、无隐式文件路径猜测。
 - 交换对象文档中的 `artifact_manifest.run.run_id` **仅溯源**，绝不作为接收方进程内匹配依据。
 
@@ -304,7 +304,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 | D4c 缺 schema 拒绝 | `X-NO-SCHEMA`；测试 `test_missing_schema_rejected`（role↔type 解耦 / 未登记 type） |
 | D4d 缺 units 拒绝 | `X-NO-UNITS`；测试 `test_missing_units_rejected` |
 | D5 无隐式 artifact name binding | `R-NO-NAME-BINDING`；validator 无路径/名称派生代码；测试 `TestNoImplicitNameBinding.test_artifact_id_arbitrary_does_not_affect_qualification`（详见 §5） |
-| D6 跨 Phase 仅磁盘交换 | `R-DISK-ONLY`；§3；阶段隔离运行时由进程边界强制（见 `docs/engineering/PIPELINE.md` 与 `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`） |
+| D6 跨 Phase 仅磁盘交换 | `R-DISK-ONLY`；§3；阶段隔离运行时由进程边界强制（见 `docs/engineering/ARCH-001.md` 与 `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md`） |
 
 测试：`eng/tests/artifact/test_phase_product_exchange.py`（正/负测，无第三方依赖）。
 

@@ -406,7 +406,7 @@ main(stage2.json, CLI overrides):
   §5）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
   （SCIENCE_SCOPE.md）——全部共享只读引用，不改动。
 - ALG 上游: ALG-UPM-001（docs/science/algorithms/UPM_SOLVER.md）、
-  ALG-REJ-001..008（docs/science/algorithms/REJECTION_ALGORITHMS.md，DERIVED）、
+  ALG-REJ-001..008（docs/science/algorithms/PHASE2_REJECTION.md，DERIVED）、
   ALG-COV-001（docs/science/algorithms/PHASE2_COVERAGE.md，ACTIVE）、
   ALG-HIPS-001..005（docs/science/algorithms/HIPS_WRITER.md，writer 库
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp——P2 马赛克共用其

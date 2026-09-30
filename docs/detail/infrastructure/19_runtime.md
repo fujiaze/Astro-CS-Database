@@ -30,7 +30,7 @@
   `in_flight = min(n, frame_workers)`、`inner_omp = max(1, thread_budget / in_flight)`，
   两轴之积 ≤ 预算。帧级被 `p1_memory_cap`（内存闸门）压低时必须把剩余预算转给帧内轴，
   否则出现「预算未用满」的利用率塌陷。
-  语义与不变式见 `docs/engineering/THREADING_MODEL.md` §并行轴分配（冻结口径）；
+  语义与不变式见 `docs/engineering/execution_options_contract.md` §并行轴分配（冻结口径）；
   冻结标定值见 `docs/engineering/PERFORMANCE_MODEL.md` §1.2（冻结参数）；
   观测面 `ASTROCS_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
 

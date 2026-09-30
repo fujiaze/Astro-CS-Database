@@ -1,35 +1,34 @@
 # ACSD 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图
 #
-# 依据：docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）；ENGINEERING_SPEC.md §8（文档集）
-# 校验：python3 eng/tools/doccheck/check_doc_index.py --strict（exit 0 = PASS；含 --self-test）
+# 依据：docs/ASTROCS_DESIGN.md §0（文档权威与索引）、§0.1（文档写法）
 #
 # 字段：
-#   path        文档路径（相对仓库根；必须真实存在——悬空条目即缺陷，检查器判红）
+#   path        文档路径（相对仓库根；必须真实存在，悬空条目即缺陷）
 #   status      文档活动分类 ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED,
-#               ARCHIVED_NON_NORMATIVE}，由检查器现场校验；**不是** §12.5 交付状态阶梯
+#               ARCHIVED_NON_NORMATIVE}；不是 §12.5 的交付状态阶梯
 #   duty        职责一句话（本文档承担什么）
-#   upstream    上游条款（本文档落实的 docs/ASTROCS_DESIGN.md 条款；与文档抬头「上游」区同源）
-#   downstream  下游被引用处（机器扫描出的活动引用方；扫描面见下方「扫描口径」）
+#   upstream    上游条款（本文档落实的 docs/ASTROCS_DESIGN.md 条款，与文档抬头「上游」区同源）
+#   downstream  下游被引用处（机器扫描出的活动引用方）
 #   notes       （可选）当下生效的口径补充：唯一正本指认、字段取值域、生成与再生成纪律；
 #               不写日期、任务号、轮次、沿革与出处
 #
 # 规则：
-#   1. path 全索引唯一，不跨区段重复；active 区段不含任何 archive 路径；archived 区段全部 ARCHIVED_NON_NORMATIVE；
-#   2. 每份下级文档（docs/**/*.md）在 active 区段登记且抬头有「上游」条款区（覆盖率 100%，机器判红）；
-#      目录招牌件（各目录 README.md）按「每目录必有 README」治理、随目录本身登记；文档集入口与 CI 规范层入口
-#      （docs/README.md、docs/engineering/checks/README.md）以条目登记；最高设计与根文档的每个 docs/ 指针必须可达；
-#   3. 活动设计档案照实登记在 active 区段、不当作归档：docs/validation/v6/**（QA 矩阵）；
-#   4. 本文件是唯一索引地图：不用 README 合集代替；悬空指针（含代码注释里的 docs/ 路径）由 doc-index 门拦截，
-#      跨域未修项登记于 eng/tools/doccheck/dangling_ledger.json（只减不增）；
-#   5. 覆盖 = docs/** 全部 .md 与 .yaml（目录 README 按上条治理）+ 仓库根固定条目（清单 = ENGINEERING_SPEC.md §7）；
-#      索引自身以条目登记（status: ACTIVE_NORMATIVE），路径存在性与覆盖判据按检查器口径判定。
+#   1. path 全索引唯一，不跨区段重复；active 区段不含任何 archive 路径，archived 区段全部 ARCHIVED_NON_NORMATIVE；
+#   2. 每份下级文档（docs/**/*.md）在 active 区段登记且抬头有「上游」条款区；目录招牌件（各目录
+#      README.md）按「每目录必有 README」治理，不进规范索引面；本索引自身以条目登记；
+#   3. 本文件是唯一索引地图，不用 README 合集代替；悬空指针（含代码注释里的 docs/ 路径）按缺陷处置，
+#      跨域未修项随对应治理任务登记；
+#   4. 覆盖 = docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION、
+#      ASTROCS_DESIGN.md 本体与本索引）；
+#   5. docs 一层只保留最高设计、本索引、术语表、入口 README 与 science/、engineering/、detail/
+#      三个文件夹；机器源与台账不进 docs，落在 eng/contracts/ 与 artifacts/evidence/。
 #
-# 扫描口径（downstream）：git 跟踪文件，排除 问题扫描/、reports/、artifacts/、run/、build/、lib/third_party/、
-#   实验/、工程控制/、logs/ 等过程与证据目录。
+# 扫描口径（downstream）：git 跟踪文件，排除 artifacts/、run/、build/、lib/third_party/、
+#   实验/、logs/ 等过程与证据目录。
 #
 doc_index:
   schema_rev: "3"
-  coverage: "docs/** 全部 .md 与 .yaml（目录 README 按「每目录必有 README」治理并随目录登记，入口 README 以条目登记）+ 仓库根固定条目（清单 = ENGINEERING_SPEC.md §7）"
+  coverage: "docs/** 全部 .md 与 .yaml + 仓库根固定条目（AGENTS.md、README.md、VERSION）；目录招牌件按「每目录必有 README」治理，不进规范索引面"
   active:
     - path: "docs/science/CCD_LINEAR_DEFECT_LITERATURE.md"
       status: ACTIVE_INFORMATIVE
@@ -39,11 +38,11 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: 文档治理规范（分层模型与准入、上游抬头、正向书写纪律、科学佐证三支撑）
       upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、§0.3（文档写法）"
-      notes: 与 eng/tools/doccheck/check_doc_index.py、check_doc_hygiene.py 判据同源
+      notes: 索引一致性与文档写法由 CI 文档面门禁现场校验，判据对应本条规则
     - path: "docs/DOCUMENT_INDEX.yaml"
       status: ACTIVE_NORMATIVE
       duty: "全文档集唯一索引地图：条目登记、双向索引、扫描口径与状态分类"
-      upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）；ENGINEERING_SPEC.md §8（文档集与索引规则）"
+      upstream: "docs/ASTROCS_DESIGN.md §0（文档权威与索引）"
     - path: "docs/ASTROCS_DESIGN.md"
       status: ACTIVE_NORMATIVE
       duty: "最高设计（Design Authority）：是什么/做到什么/顶层架构/CLI/发行/验收"
@@ -109,11 +108,6 @@ doc_index:
       duty: "全项目术语与别名唯一性登记（词典锚点）"
       upstream: "docs/ASTROCS_DESIGN.md 附录 A（术语）"
       downstream: "docs/ASTROCS_DESIGN.md、docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/NOISE_ESTIMATION.md、docs/architecture/doc_symbol_namespaces.json 等 8 处"
-    - path: "docs/KNOWN_LIMITATIONS.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "已知限制与明确不做的事项清单（只写现行限制陈述：现象 / 规范依据 / 归属去向）"
-      upstream: "docs/ASTROCS_DESIGN.md §1.4（非目标）"
-      downstream: "README.md、docs/DOCUMENT_INDEX.yaml"
     - path: "docs/TRACEABILITY.csv"
       status: ACTIVE_NORMATIVE
       duty: "docs/TRACEABILITY.csv"
@@ -129,11 +123,6 @@ doc_index:
       duty: "版本号注入链、命名空间与版本命名规则"
       upstream: "docs/ASTROCS_DESIGN.md §13（版本与发布权）"
       downstream: "eng/ci/check_version.py、eng/ci/tests/test_impact_map.py、docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/science/algorithms/ACR_EQUIVALENCE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACR 等价性算法与退役实现边界"
-      upstream: "docs/ASTROCS_DESIGN.md §1.4（非目标）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/PHASE2_MOSAIC_WRITE.md、docs/contracts/INDEX.yaml、docs/engineering/SCIENCE_OVERVIEW.md"
     - path: "docs/science/algorithms/CALIBRATION_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
       duty: "定标算法推导与逐符号实现锚定"
@@ -171,11 +160,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/PHASE2_MOSAIC_WRITE.md、docs/algorithms/anchors/anchor_contract.json、docs/contracts/INDEX.yaml 等 18 处"
       notes: "冻结点：`ALG-HIPS-001..005`（HiPS 写出逐公式源码锚定 + TEST-HIPS-DESIGN-001 + DISP-HIPS-001..012）"
-    - path: "docs/science/algorithms/INTEGRATION_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "集成算法推导与归约顺序确定性"
-      upstream: "docs/ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv、docs/algorithms/anchors/anchor_contract.json、docs/audit/doc_classification.csv 等 8 处"
     - path: "docs/science/algorithms/NOISE_ESTIMATION.md"
       status: ACTIVE_NORMATIVE
       duty: "噪声估计算法推导与实现锚定"
@@ -258,11 +242,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/GATES_AND_TOLERANCES.md、docs/detail/anchors/ANCHOR_CONTRACT.md 等 27 处"
       notes: "§11 冻结增补：ALG-WCS-001 逐符号源码锚定(ipv_solve_from_detections_v1 生产链 12 导出+内核 ipv_select/ipv_triangle/ipv_itertrans/robust_refine/extract_wcs_sip)+像素中心双契约(+0.5 桥接)+DISP-WCS-001..006(CD 退化静默坍缩 R1=001)+TEST-WCS-DESIGN-001 冻结容差+SCI-WCS-001 状态声明(§11.5)"
-    - path: "docs/science/algorithms/REJECTION_ALGORITHMS.md"
-      status: ACTIVE_NORMATIVE
-      duty: "排异算法族推导与合成 Oracle"
-      upstream: "docs/ASTROCS_DESIGN.md §5.5（逐像素排异）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/science/algorithms/PHASE2_MOSAIC_WRITE.md、docs/science/algorithms/PHASE2_REJECTION.md 等 8 处"
     - path: "docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
       duty: "星点检测算法推导与冻结门"
@@ -285,16 +264,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/algorithms/anchors/check_doc_line_anchors.py、docs/contracts/INDEX.yaml"
       notes: "ALG/SCI 源码行号锚合同：解析规则/豁免纪律/符号绑定/同提交维护义务；机器检查器 docs/algorithms/anchors/check_doc_line_anchors.py（CI 检查项 DOC-LINE-ANCHORS），数据 anchor_contract.json；全量复测 36 文档 793 锚（784 绿 + 9 登记豁免）"
-    - path: "docs/algorithms/anchors/anchor_contract.json"
-      status: GENERATED
-      duty: "docs/algorithms/anchors/anchor_contract.json"
-      upstream: "docs/ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）"
-      downstream: "docs/science/algorithms/HIPS_WRITER.md、docs/detail/anchors/ANCHOR_CONTRACT.md、docs/algorithms/anchors/check_doc_line_anchors.py"
-    - path: "docs/algorithms/anchors/check_doc_line_anchors.py"
-      status: ACTIVE_INFORMATIVE
-      duty: "-*- coding: utf-8 -*-"
-      upstream: "docs/ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）"
-      downstream: "eng/ci/checks.json、eng/cmake/ARCH-001-migration-manifest.md、docs/DOCUMENT_INDEX.yaml、docs/detail/anchors/ANCHOR_CONTRACT.md 等 5 处"
     - path: "docs/engineering/CLI_PROTOCOL_V1.md"
       status: ACTIVE_NORMATIVE
       duty: "CLI 输入输出协议与事件流 schema"
@@ -325,11 +294,6 @@ doc_index:
       duty: "Phase3 模块 API 合同"
       upstream: "docs/ASTROCS_DESIGN.md §6（export）、§8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/engineering/SCIENCE_OVERVIEW.md、lib/infrastructure/cli/session_commands.h、eng/tests/backend/test_phase3_reproject_oracle.py"
-    - path: "docs/engineering/ARCHITECTURE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD Architecture (V5 单一 CLI 冻结版)"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md、docs/audit/doc_classification.csv、docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md 等 6 处"
     - path: "docs/engineering/ASYNC_IO_CONTRACT.md"
       status: ACTIVE_NORMATIVE
       duty: "Async I/O Contract（CON-008 有界异步 I/O 合同）"
@@ -365,21 +329,11 @@ doc_index:
       duty: "Dependency Rules"
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
-    - path: "docs/engineering/ERROR_MODEL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Error Model"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv 等 10 处"
     - path: "docs/engineering/EXECUTION_MODEL.md"
       status: ACTIVE_NORMATIVE
       duty: "Execution & Lifetime Model (ARC-EXEC)"
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/IO_AND_ATOMICITY.md"
-      status: ACTIVE_NORMATIVE
-      duty: "I/O & Atomicity"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv、docs/audit/doc_classification.csv 等 7 处"
     - path: "docs/engineering/ISA_BIT_MANIP_VARIANTS.md"
       status: ACTIVE_NORMATIVE
       duty: "整数/位操作 ISA 变体评估 (ISA-005) — NOT_APPLICABLE"
@@ -410,27 +364,12 @@ doc_index:
       duty: "Phase3 模块架构 (HiPS reader → WCS → resampler → FITS writer)"
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/PIPELINE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD Pipeline（Phase1 → Phase2）"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/audit/inventory.csv"
     - path: "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv"
       status: GENERATED
       duty: "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv"
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "eng/ci/INVENTORY_REPORT.md、eng/ci/check_spec_named_impl.py、eng/ci/ci_repair_round.py、eng/ci/spec_named_impls.json 等 11 处"
       notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/engineering/THREADING_MODEL.md"
-      status: ACTIVE_NORMATIVE
-      duty: "Threading Model"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv 等 8 处"
-    - path: "docs/engineering/THREAD_BUDGET_ARCH.md"
-      status: ACTIVE_NORMATIVE
-      duty: "全局 Thread Budget 与执行架构 (V5)"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、lib/algorithms/coverage/include/astro/phase2/sky_plane.h、eng/tools/quality/contracts/check_execution_contracts.py"
     - path: "docs/engineering/abi/ABI_003_SECURE_LOADER.md"
       status: ACTIVE_NORMATIVE
       duty: "Secure Module Loader (ABI-003)"
@@ -496,24 +435,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml"
       notes: "机器生成清单（api/execution/production inventory）"
-    - path: "docs/audit/doc_classification.csv"
-      status: ACTIVE_INFORMATIVE
-      duty: "docs/audit/doc_classification.csv"
-      upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
-      notes: "权威分类 = 本索引（`docs/DOCUMENT_INDEX.yaml`）"
-    - path: "docs/audit/inventory.csv"
-      status: ACTIVE_INFORMATIVE
-      duty: "docs/audit/inventory.csv"
-      upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
-      notes: "权威分类 = 本索引（`docs/DOCUMENT_INDEX.yaml`）"
-    - path: "docs/audit/risk_verification_T012.csv"
-      status: ACTIVE_INFORMATIVE
-      duty: "docs/audit/risk_verification_T012.csv"
-      upstream: "docs/ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
-      notes: "权威分类 = 本索引（`docs/DOCUMENT_INDEX.yaml`）"
     - path: "docs/detail/HIPS_BROWSER.md"
       status: ACTIVE_INFORMATIVE
       duty: "HiPS 浏览器的职责边界与用法"
@@ -700,11 +621,6 @@ doc_index:
       duty: "Config / Schema（单一事实来源）"
       upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv 等 12 处"
-    - path: "docs/engineering/TESTING.md"
-      status: ACTIVE_INFORMATIVE
-      duty: "Testing"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/science/DATA_SEMANTICS.md"
     - path: "docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md"
       status: ACTIVE_NORMATIVE
       duty: "阶段间产品交换合同"
@@ -1028,16 +944,6 @@ doc_index:
       duty: "工具链与 agent 宿主环境的接管说明"
       upstream: "docs/ASTROCS_DESIGN.md §11（双平台发行与安装）"
       downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/ARCHITECTURE_OVERVIEW.md"
-      status: ACTIVE_NORMATIVE
-      duty: "L0 架构汇总层"
-      upstream: "docs/ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "eng/ci/check_version.py、docs/DOCUMENT_INDEX.yaml、eng/tools/check_l0_docs.py"
-    - path: "docs/engineering/PIPELINE_OVERVIEW.md"
-      status: ACTIVE_NORMATIVE
-      duty: "L0 流程汇总层（三命令与阶段交换）"
-      upstream: "docs/ASTROCS_DESIGN.md §1.2（三个命令，三个独立产品）、§8.2（数据流形态）"
-      downstream: "eng/ci/check_version.py、docs/DOCUMENT_INDEX.yaml、eng/tools/check_l0_docs.py"
     - path: "docs/engineering/PROJECT_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "项目目标态设计细节总入口（最高设计之下）"
@@ -1049,11 +955,6 @@ doc_index:
       duty: "L0 发布状态汇总层"
       upstream: "docs/ASTROCS_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）"
       downstream: "README.md、eng/ci/check_version.py、eng/ci/tests/test_ci001_failclosed.py、docs/DOCUMENT_INDEX.yaml 等 17 处"
-    - path: "docs/engineering/SCIENCE_OVERVIEW.md"
-      status: ACTIVE_NORMATIVE
-      duty: "L0 科学汇总层（五创新点的顶层复述）"
-      upstream: "docs/ASTROCS_DESIGN.md §2（核心科学方法）"
-      downstream: "eng/ci/check_version.py、docs/DOCUMENT_INDEX.yaml、eng/tools/check_l0_docs.py"
     - path: "docs/engineering/BASELINE.md"
       status: ACTIVE_INFORMATIVE
       duty: "性能基线数字与测量口径"
@@ -1304,11 +1205,6 @@ doc_index:
       upstream: "docs/ASTROCS_DESIGN.md §2（核心科学方法）、§3.1（数据对象）"
       downstream: "README.md、docs/DOCUMENT_INDEX.yaml 等 15 处"
       notes: "ASTROCS-SCIENCE-MODEL-001：统一 SNR/PSF information/covariance 与跨阶段合同"
-    - path: "docs/engineering/API_STANDARD.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD Public API Standard"
-      upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
     - path: "docs/engineering/BENCHMARK_STANDARD.md"
       status: ACTIVE_NORMATIVE
       duty: "ACSD Benchmark Standard"
@@ -1329,11 +1225,6 @@ doc_index:
       duty: "ACSD Concurrency Standard"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、lib/algorithms/coverage/include/astro/phase2/sky_plane.h"
-    - path: "docs/engineering/C_ABI_STANDARD.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD C ABI Standard"
-      upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/engineering/abi/ABI_003_SECURE_LOADER.md、docs/audit/doc_classification.csv、docs/detail/orchestrator.md 等 6 处"
     - path: "docs/engineering/DOCUMENTATION_STANDARD.md"
       status: ACTIVE_NORMATIVE
       duty: "ACSD Documentation Standard"
@@ -1344,16 +1235,6 @@ doc_index:
       duty: "ACSD Error Handling Standard"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
-    - path: "docs/engineering/IO_STANDARD.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD I/O Standard"
-      upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
-    - path: "docs/engineering/LOGGING_DIAGNOSTICS_STANDARD.md"
-      status: ACTIVE_NORMATIVE
-      duty: "ACSD Logging & Diagnostics Standard"
-      upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/engineering/ERROR_HANDLING_STANDARD.md"
     - path: "docs/engineering/NUMERIC_STANDARD.md"
       status: ACTIVE_NORMATIVE
       duty: "ACSD Numeric Standard"
@@ -1375,11 +1256,6 @@ doc_index:
       duty: "ACSD Test Standard"
       upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
-    - path: "docs/standards/checks/check_standards_registry.py"
-      status: ACTIVE_INFORMATIVE
-      duty: "-*- coding: utf-8 -*-"
-      upstream: "docs/ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "eng/ci/checks.json、eng/ci/polarity_evidence.json、eng/ci/polarity_probe.py、docs/DOCUMENT_INDEX.yaml 等 6 处"
     - path: "docs/traceability/TRACEABILITY_LAYERS.csv"
       status: ACTIVE_NORMATIVE
       duty: "docs/traceability/TRACEABILITY_LAYERS.csv"
@@ -1410,16 +1286,6 @@ doc_index:
       duty: "冻结门台账（表内唯一来源与证据必需的正本登记）"
       upstream: "docs/ASTROCS_DESIGN.md §12.1（科学正确性）、docs/engineering/SCIENCE_FREEZE.md（冻结基线）、docs/science/algorithms/GATES_AND_TOLERANCES.md §1 R1/R2（表内唯一来源、证据必需）"
       downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/P1_SIGMA_GATE_PROVENANCE.md"
-      status: ACTIVE_NORMATIVE
-      duty: "P1 sigma 门的判据形态与逐项预算的溯源"
-      upstream: "docs/ASTROCS_DESIGN.md §2（核心科学方法）、docs/science/PHOTOMETRY.md（SCI-PHOT-001 §5，公式正本）"
-      downstream: "docs/detail/algorithms_phase1/06_photometry.md §4.1（判据形态与逐项预算，冻结）"
-    - path: "docs/engineering/REL790_VISUAL_EVIDENCE_CHECKLIST.md"
-      status: ACTIVE_NORMATIVE
-      duty: "目视验收清单六项与产品生成链的对照"
-      upstream: "docs/ASTROCS_DESIGN.md §12.4（验证层级与四层验收）、ACCEPTANCE_SPEC.md §6.1/§6.2/§6.3（产品生成链/视觉验收清单六项/验收与发布决策）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
     - path: "docs/engineering/TIER_VERDICT_CRITERIA.md"
       status: ACTIVE_NORMATIVE
       duty: "四层验收的档位判据（TV-01..TV-12）"
@@ -1430,34 +1296,24 @@ doc_index:
       duty: "科学冻结面与三重佐证登记"
       upstream: "docs/ASTROCS_DESIGN.md §12.1（科学正确性与三重佐证）、§12.5（状态阶梯）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv"
-    - path: "docs/engineering/v6/BASELINE_COMPARISON_MATRIX.md"
+    - path: "docs/engineering/VALIDATION_EVIDENCE_STANDARD.md"
       status: ACTIVE_NORMATIVE
-      duty: "基线比较矩阵（QA-MATRIX-001）"
+      duty: 验证证据标准：独立 Oracle、零用例即红、负向 mutation 目录、基线比较矩阵与声明边界
       upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/v6/NEGATIVE_MUTATION_CATALOG.md"
+    - path: "docs/science/algorithms/ACR_EQUIVALENCE_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
-      duty: "负向 mutation 目录（QA-MATRIX-001）"
+      duty: ACR 等价性判据的算法推导，对应 science/ACR_EQUIVALENCE.md 的顶层科学口径
+      upstream: "docs/ASTROCS_DESIGN.md §1.3（非目标）；docs/science/ACR_EQUIVALENCE.md"
+    - path: "artifacts/evidence/known-limitations-ledger/LIMITATIONS.md"
+      status: ACTIVE_INFORMATIVE
+      duty: 已知限制台账的人读面，逐条 48 项
       upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/v6/ORACLE_AND_ZERO_CASE_POLICY.md"
+    - path: "eng/contracts/anchors/anchor_contract.json"
       status: ACTIVE_NORMATIVE
-      duty: "独立 Oracle、零用例即红与负向 mutation 政策（QA-MATRIX-001）"
-      upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/unit/p3_rsmp/p3_rsmp_oracle.h"
-    - path: "docs/engineering/v6/P0_GATE_FAMILY.md"
+      duty: 文档源码锚合同与豁免台账（机器源）
+      upstream: "docs/engineering/ANCHOR_CONTRACT.md"
+    - path: "eng/contracts/ledgers/dead_config_keys.json"
       status: ACTIVE_NORMATIVE
-      duty: "P0 门族（R1/R2/R4/R5/R10）与合并层账本（QA-MATRIX-001）"
-      upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
-    - path: "docs/engineering/v6/QA_MATRIX.md"
-      status: ACTIVE_NORMATIVE
-      duty: "QA-MATRIX-001 科学 QA 矩阵（解析 / Monte Carlo / 注入源 / 真实数据 / 负向 mutation / 基线比较）"
-      upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、eng/contracts/data/clause_registry.json、docs/engineering/v6/NEGATIVE_MUTATION_CATALOG.md"
-    - path: "docs/engineering/v6/README.md"
-      status: ACTIVE_NORMATIVE
-      duty: "docs/validation/v6 索引（QA-MATRIX-001）"
-      upstream: "docs/ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml"
+      duty: 死配置键台账：合同声明但生产零读取的键，逐条写明理由/负责人/解除条件
+      upstream: "docs/engineering/CONFIG_SCHEMA.md"
   archived:

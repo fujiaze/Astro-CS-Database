@@ -1,16 +1,23 @@
-# Astro Celestial Sphere Database（ACSD） 公共 C ABI 基础层 v1 (Common Foundation — API-001 冻结)
+# 公共 C ABI 基础层
 
-> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+> 上游：`docs/ASTROCS_DESIGN.md` §8.5（模块与 ABI）、§9（CPU 后端与资源）
+> 规则面：`docs/engineering/API-001.md` §2.3（公共 API 规则）、§2.4（C ABI 规则）
+> 头文件：`lib/include/astrocs/common_abi_v1.h`，单一头，C / C++ 双可编译，
+> 跨边界不出现 STL、exception、RTTI 与编译器私有类型。
 
-> ID: API-COMMON-001  状态: FROZEN  上游: ARCH-002/ARCH-003(backend host services 同构)  下游: API-002..005, ABI-001, CLI-001..003
-> 头文件: `lib/include/astrocs/common_abi_v1.h`(单一头, C/C++ 双可编译, 无 STL/exception/RTTI 跨边界)。
+本文件定义公共 C ABI 的基础层：类型与逐字段单位 / 所有权、并发合同模板、
+头文件独立性验证合同。公共 ABI 的命名与版本握手规则同最高设计 §8.5 的模块与 ABI 条款；
+host 服务（allocator / logger / cancel / thread budget）与 `docs/engineering/ARCH-001.md`
+的顶层结构同构。
 
 ## 1 命名与版本
 
-- 前缀 `acs_`(函数)/`ACS_`(类型/常量);所有 struct 首两字段 `uint32_t struct_size; uint32_t abi_version;`(handshake, ARCH-003 §4 同规)。
-- `ACS_ABI_VERSION_V1 = 1u`;失配即拒绝(返回 `ACS_ERR_ABI_MISMATCH`),不猜布局。
+- 前缀 `acs_`（函数）/ `ACS_`（类型 / 常量）；所有 struct 首两字段
+  `uint32_t struct_size; uint32_t abi_version;`，作为握手字段，与 `docs/engineering/ARCH-001.md`
+  的结构握手同规；
+- `ACS_ABI_VERSION_V1 = 1u`；失配即拒绝（返回 `ACS_ERR_ABI_MISMATCH`），不猜布局。
 
-## 2 类型与逐字段单位/所有权
+## 2 类型与逐字段单位 / 所有权
 
 ```c
 /* 基础 POD(逐字段单位注释为合同一部分, 由 ABI layout 测试核对) */
@@ -56,7 +63,7 @@ typedef struct {
   void* user_data;
 } acs_cancel;
 
-/* thread budget: 只读快照+租借(ARCH-004 §1); backend 禁自建线程池 */
+/* thread budget: 只读快照+租借; backend 禁自建线程池, 取值源见 execution_options_contract.md */
 typedef struct {
   uint32_t struct_size, abi_version;
   uint32_t available_cpus;                     /* affinity∩cgroup∩Job Object */
@@ -67,20 +74,26 @@ typedef struct {
 } acs_thread_budget;
 ```
 
-## 3 并发合同模板(逐函数必填字段)
+`acs_status` 是 ABI 层的粗粒度返回码，只区分「成功 / 哪一类失败」；
+面向用户的分类、退出码与阶段 ID 分别由 `docs/engineering/ERROR_HANDLING_STANDARD.md` §3 / §4 / §5
+与 `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §5 定义，两层不得互相替代。
 
-每个跨边界函数头注释必含: `reentrant: yes|no; threadsafe: yes|no; internal_parallel: none|omp(budget); aliasing: in/out 不重叠|允许 in-place`;内存去向(谁分配谁释放);取消点粒度(帧/行带/迭代/整模型/整文件, 与 ALG 5c 对齐)。
+## 3 并发合同模板（逐函数必填字段）
+
+每个跨边界函数头注释必含：`reentrant: yes|no; threadsafe: yes|no; internal_parallel: none|omp(budget); aliasing: in/out 不重叠|允许 in-place`；
+内存去向（谁分配谁释放）；取消点粒度（帧 / 行带 / 迭代 / 整模型 / 整文件）。
 
 ## 4 头文件独立性验证合同
 
-- 单头 `common_abi_v1.h` 以 `gcc -x c -std=c11` 与 `g++ -x c++ -std=c++17` 独立编译通过(无 STL 依赖);
-- ABI layout 测试: 静态断言 `sizeof/offsetof` 全字段(双平台同布局, amd64 LP64/LLP64 差异仅指针宽度已避用 long);
-- 无 exception 跨边界: `-fno-exceptions` 可编译 backend TU。
+- 单头 `common_abi_v1.h` 以 `gcc -x c -std=c11` 与 `g++ -x c++ -std=c++17` 独立编译通过（无 STL 依赖）；
+- ABI layout 测试：静态断言 `sizeof` / `offsetof` 全字段（双平台同布局，amd64 LP64 / LLP64 差异仅指针宽度，已避用 `long`）；
+- 无 exception 跨边界：`-fno-exceptions` 可编译 backend 翻译单元。
 
 ## 5 落点映射
 
 | 本文件 | 落点 |
 |---|---|
-| §2 类型 | ABI-001(实现头+layout tests) |
-| §3 并发合同 | API-002..005 逐函数定义沿用 |
-| budget/cancel | ARCH-003 host services/ARCH-004 §1 |
+| §2 类型 | `lib/include/astrocs/common_abi_v1.h`（实现头 + ABI layout 测试） |
+| §3 并发合同 | `docs/engineering/API-001.md` §4 逐函数定义沿用；分阶段 API 面见 `docs/engineering/PHASE1_API_V1.md`、`PHASE2_API_V1.md`、`PHASE3_API_V1.md` |
+| §2 budget / cancel | `docs/engineering/execution_options_contract.md`（唯一执行预算对象）、`docs/engineering/ARCH-001.md`（顶层结构） |
+| §2 loader 侧契约 | `docs/engineering/abi/ABI_003_SECURE_LOADER.md` |

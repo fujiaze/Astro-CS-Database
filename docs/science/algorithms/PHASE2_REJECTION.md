@@ -9,8 +9,7 @@
 > （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
 > SCI-REJ-001 映射声明见 §11.5）。共享 L2: ALG-REJ-001
-> （docs/science/algorithms/REJECTION_ALGORITHMS.md，DERIVED，零改动，语义
-> 承接见 §12）。DATA: DATA-P2-REJ（DATA_SEMANTICS §22）。API:
+> （本文件 §12 承接，方法核与数据布局见 §5/§15/§16）。DATA: DATA-P2-REJ（DATA_SEMANTICS §22）。API:
 > API-P2-REJ-001（PUBLIC_API.md）。TEST: TEST-P2-REJ-001（设计冻结
 > 面=本文档 §11.4；可执行落地归 P2-REJ-TEST）。迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
@@ -500,10 +499,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   本层无 NO_CANDIDATES，空栈 → P2_STATUS_MIN_SAMPLES
   （ex :2018 / compat :2228）；NO_CANDIDATES 属积分域
   P2IntegrateStatus（integrate.h，非本模块域）。**语义权威=本文件 §4.1**。
-- **行号锚（DISP-P2REJ-003，非语义缺陷）**: 本文档 §3/§5 与
-  REJECTION_ALGORITHMS.md §12 的行号锚一律以**本次实测**（rejection.cpp
-  2950 行 / rejection.h 602 行）为准；外部文档引用行号与实测不符时，
-  以本文档 §3 为准（与 DISP-P2INT-002 同类）。
+- **行号锚（DISP-P2REJ-003，非语义缺陷）**: 本文档 §3/§5 的行号锚一律以
+   本次实测（rejection.cpp 2950 行 / rejection.h 602 行）为准；外部文档引用
+   行号与实测不符时，以本文档 §3 为准（与 DISP-P2INT-002 同类）。
 - **minmax tie-break 未显式冻结（DISP-P2REJ-004，合同级限制）**:
   :1897-1898 比较器仅按 value（std::sort 非稳定）——同输入同编译器
   确定；等值样本 permutation 不变性未承诺（G6 覆盖 method 0..6 不含
@@ -710,15 +708,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - `ALG-P2-REJ-001` = 本文档整体（逐符号锚 §3/§5；矩阵 P2-REJ 行
   algorithm_id）。
-- `ALG-REJ-001..008`（SCI §12；共享层 ALG 词汇，
-  docs/science/algorithms/REJECTION_ALGORITHMS.md 承载，DERIVED 零改动）
+- `ALG-REJ-001..008`（SCI §12；共享层 ALG 词汇）
   ⇒ 本文档 §5: ALG-REJ-001 None（F4 前置 none :1465-1467）；
   ALG-REJ-002 Sigma/robust_mad（F4）；ALG-REJ-003 Winsorized
   （F5）；ALG-REJ-004 AveragedSigma（F6）；ALG-REJ-005 LinearFit
   （F7）；ALG-REJ-006 ESD（F8）；ALG-REJ-007 RCR（F9）；
   ALG-REJ-008 Percentile/Minmax + large_scale + wbpp 路由/状态
-  分层（F1/F10/F12/F13/F14）。共享 ID 不抢注、不重复登记
-  （INDEX.yaml ALG-REJ-001 path 维持 REJECTION_ALGORITHMS.md，
+  分层（F1/F10/F12/F13/F14）。数据布局与误差预算分别见 §15/§16。
+  共享 ID 不抢注、不重复登记（INDEX.yaml 的 ALG-REJ-001 path 改指本文件，
   downstream 追加 ALG-P2-REJ-001 指向语义承接）。
 - `RJ-001..008` = SCI-REJ-001..008 别名（SCI 头注）；NONE 对非有限候选
   的读法 = 不接受、ESD 单 sqrt（:1737）由本文档 §5 冻结承接。
@@ -733,8 +730,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - 交叉: docs/detail/phase2_rej.md + lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）；registry
-  astrocs.phase2.reject.md；REJECTION_ALGORITHMS.md（旧 L2，ID
-  让位/承接关系见 §12）。
+  astrocs.phase2.reject.md。
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
   acr_kernels.cpp（ACR 域）/ eng/tests/unit/p2_rejection_test.cpp
   （P2-005 语义 id/解析面）/ eng/tests/backend/test_p2004_reject_
@@ -774,6 +770,40 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   （test_path=docs/detail/registry/astrocs.phase2.reject.md::
   TEST-P2-REJ-001，设计冻结 VERIFIED + 可执行 MISSING 双
   statement）——由主控写入，本节仅声明预期终态。
+
+## 15 数据布局与内存合同
+
+- **输入**：每像素候选栈 `values[]`、`weights[]`、`support[]`、`accepted[]`、`frame_id[]`，打包在 `P2EligibilityGatherInput`（`lib/algorithms/coverage/include/astro/phase2/rejection.h`）。布局为**帧主序**：`value_stride = support_stride = chunk_pixels`，元素寻址 `gidx = s·stride + pixel`，`s` 为帧槽序号、`pixel` 为该子域像素序号；kernel 与 ACR 共享同一布局。
+- **规划层**：`p2_reject_plan_resolve` 以 `n`（该输出像素的 nominal contributors，一次解析）路由到 method，request 与 plan 两处结构同源；同一 `n` 的 method 解析结果唯一（§5 F1）。
+- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/REJECTION.md` §3 与 `docs/science/DATA_SEMANTICS.md` §22。
+- **输出**：reject plan（method + 阈值）、per-sample reason（`P2_REASON_*`）、stack status（`P2_STATUS_*`）。large_scale 结构按两种形态给出——**trail 生长**（被拒掩膜的连通分量达标后作 Chebyshev 半径扩张）与 **compact 不生长**（cosmic 形态，分量不达标时原样保留）。
+- **内存**：候选栈占用 O(n)；逐像素拒绝就地完成；无整帧副本。
+
+## 16 误差预算
+
+- **误差量级排序**：数值误差（FP64 精度）≪ 统计阈值（冻结值）≪ 门禁容差。三者分属不同量级，任一层不得以放宽另一层的容差来吸收本层的偏差。
+- **阈值冻结表**（planning 层 typed 默认值与冻结头注释同表，与 §5 F1 逐项一致）：
+
+  | 方法 | 低侧 | 高侧 | 迭代上限 |
+  |---|---|---|---|
+  | `sigma` / `winsorized` / `averaged` / `median_sigma` | 4.0 | 3.0 | 8 |
+  | `linear_fit` | 5.0 | 3.5 | 8 |
+  | `percentile` | 0.2 | 0.1 | 1 |
+  | generalized ESD | α = 0.05 | max_outliers = 10 | — |
+  | `minmax` | 1 | 1（min_kept = 4） | 1 |
+
+  低侧阈高于高侧阈 ⇒ **高侧更敏感**，正离群先被剔。冻结值不随数据分布调整。
+- **数值精度**：kernel 工作域全链路 FP64；归一化取 `astrocs_median_center_v1`（默认）；ESD 与 RCR 的判定经 NIST 独立实现对照。
+- **ESD 标准差取单次 `sqrt`**；非有限 `values`/`weights` 一律判 `INVALID_INPUT`，该状态码即最终读法。
+- **归约确定性**：按固定顺序归约；`n ≤ underdetermined_n` 判全接受且 `recall = 0`（不做伪剔除）。
+- **阈值不变量**：同一 `n` 的 `plan.resolve` 输出 method 唯一；非有限 `weights`/`support` 判 `INVALID_INPUT` 硬失败。
+- **公式到实现的映射**：候选栈收集（gather）由 Stage2 与 ACR 共享；`linear_fit` 与 ESD 方法核同处一实现文件；ESD 判定经 `rejection_oracle_compare` 与 NIST 对照；计划路由由 `p2_reject_plan_resolve` 承担并由 synthetic gate 锁定。
+
+## 17 SIMD 安全、取消点与复杂度
+
+- **SIMD 安全**：排序、median、MAD 均为固定输入序选择（tie-break 口径见 §6）；ESD 与 RCR 的迭代使用逐像素局部数组、按固定序统计；各方法的阈值比较逐样本独立，栈数组连续且无别名。
+- **取消点**：kernel 自身无内部取消点（并发合同见 §11.2，纯函数、reentrant）。取消由调用方在**像素行带**粒度执行——取消时该行带的 accepted 掩膜不落盘，掩膜以帧为原子单元，整帧重做。
+- **复杂度**：候选栈的排序与 ESD/RCR 迭代为 O(n log n)（`n` 为该像素的候选数）；其余方法核为 O(n)。
 
 ## 参考文献与参考代码库（含许可证）
 

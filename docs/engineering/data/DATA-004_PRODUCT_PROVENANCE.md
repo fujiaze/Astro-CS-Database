@@ -11,7 +11,7 @@
 `lib/infrastructure/aio/runtime/artifact_store/production_store.py`（provenance sidecar / 版本门 / 消费门接线）；
 验收测试 = `eng/tests/artifact/test_provenance.py`；typed manifest 机器形态 =
 `eng/contracts/data/artifact_manifest.schema.json`。下游接线：`docs/engineering/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`
-（原子 HiPS/manifest 输出复用 provenance sidecar 语义）、`docs/engineering/PIPELINE.md`（phase-isolated runtime
+（原子 HiPS/manifest 输出复用 provenance sidecar 语义）、`docs/engineering/ARCH-001.md`（phase-isolated runtime
 消费门接线）、`docs/engineering/observability/STRUCTURED_LOGGING_CONTRACT.md`（脱敏语义对齐）。
 
 `docs/engineering/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md` 定义生产 ArtifactStore 的原子发布与校验读；本合同在其上

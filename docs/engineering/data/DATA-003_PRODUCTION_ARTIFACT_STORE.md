@@ -2,7 +2,7 @@
 
 > 上游：docs/ASTROCS_DESIGN.md §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品）、
 > `docs/engineering/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`（三阶段产品交换、跨 Phase 仅磁盘交换）、
-> `docs/engineering/PIPELINE.md`（phase-isolated Runtime 的调度与运行结构）
+> `docs/engineering/ARCH-001.md`（phase-isolated Runtime 的调度与运行结构）
 
 权威文档形态 = 本文；执行形态 = `lib/infrastructure/aio/runtime/artifact_store/production_store.py`。
 实现锚 = `ArtifactStore` / `Writer` / `StoreIO` 的公开方法名（`start` / `new_writer` /
@@ -19,7 +19,7 @@
 
 约束来源：`docs/ASTROCS_DESIGN.md` §8.2（阶段内命名块内存管线）、§10（I/O 与原子产品：三 Phase
 隔离产品命令；阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
-`docs/engineering/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
+`docs/engineering/ARCH-001.md`（Pipeline edge 传递 ArtifactHandle，不是路径字符串）；artifact manifest 机器合同
 （`eng/contracts/data/artifact_manifest.schema.json` 与 `eng/contracts/data/artifact_types.registry.json`；
 `storage_uri` 解析只发生在 Store 内部）。
 

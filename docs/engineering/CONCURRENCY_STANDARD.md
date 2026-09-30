@@ -22,5 +22,5 @@ float accumulation order（顺序/成对/多路，结果确定性要求）。
 
 ## 关联
 
-- docs/engineering/THREADING_MODEL.md；
+- docs/engineering/execution_options_contract.md；
 - ENG-THREAD-* 契约（S2 注册）。
