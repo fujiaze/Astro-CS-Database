@@ -9,7 +9,7 @@
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
 > MOD-astrocs-phase2-coverage（registry）
 > 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/coverage.h（171 行，同上）；取值与签名一律以本头文件为唯一来源。
+> lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。
