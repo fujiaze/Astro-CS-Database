@@ -757,12 +757,8 @@ modules:
 gap_owners:
   - id: BLD-401
     kind: task
-    authority: 工程控制/RELEASE-05/tasks/CLEAN-501.md
-    note: 全门转绿收口任务；承接本登记未单列文件域的缺口处置
   - id: DOC-403
     kind: task
-    authority: 工程控制/RELEASE-05/tasks/CLEAN-501.md
-    note: 双向层级索引闭合任务；doccheck 检查器域内的历史 docs/ 指针由该面收口
   - id: RELEASE-04/未覆盖
     kind: out_of_scope
     note: GUI/HiPS Browser 等显式不做；声明保留，待后续包落地
