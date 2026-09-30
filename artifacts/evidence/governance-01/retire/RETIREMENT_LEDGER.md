@@ -5,7 +5,7 @@
 - **权威依据**：
   1. `ASTROCS_DESIGN.md §0`（权威链：**旧世代控制包产物不构成判据**）、`§12`（Alpha 前不含任何版本信息）；
   2. `ENGINEERING_SPEC.md §8`（每项检查必须能红能绿；**坏掉即红的门要退役或修好，不允许静默坏掉**）、`§7`（根白名单/落位）；
-  3. `docs/ci/01_CHECKS.md` §1-§5（注册项语义与变更流程）；
+  3. `docs/engineering/01_CHECKS.md` §1-§5（注册项语义与变更流程）；
   4. 负责人裁决：历史版本控制包全部作废；`artifacts/` 不归档、不保留（commit `b1290525`）；
      GAP-032（`TRACEABILITY-CODE` 退役）；GAP-033 附注（`registered_local_retention` 的 7 条悬空登记由 RETIRE-001 清理）。
 - **复原锚点提交**（本任务退役前的最后提交）：`01754fab8618`（`01754fab8618313bc39a4da3014e78cd0ad4e2a3`）
@@ -13,7 +13,7 @@
 
 ---
 
-## 0. 计数摘要（与 `docs/ci/01_CHECKS.md §2.2` 一致）
+## 0. 计数摘要（与 `docs/engineering/01_CHECKS.md §2.2` 一致）
 
 | 分类 | 计数 | 明细 |
 |---|---|---|
@@ -22,7 +22,7 @@
 | 已退役（本任务仅复核，**未改**） | 1 | `eng/tools/check_traceability.py`（2026-09-16 按 GAP-032 退役，见 §2.1 退役记录） |
 | 经实证**不退役**（保留原样） | 1 | `eng/tools/quality/known_failures_baseline.py`（被 `CHK-KNOWN-FAILURES-BASELINE` 的 3 个 step 消费） |
 | **注册项退役** | **0** | 4 个退役工具**均不在 `eng/ci/checks.json` 注册**（无 command / changed_paths 引用）⇒ 无需注册项退役；CI-001 独占窗口内 `eng/ci/checks.json` **一行未动** |
-| 登记订正 | 2 处文件（3 项） | `eng/ci/INVENTORY_REPORT.md`（1 条读数）、`eng/ci/root_manifest.json`（7 条悬空登记）、`docs/ci/01_CHECKS.md`（新增 §2.2 工具层退役记录） |
+| 登记订正 | 2 处文件（3 项） | `eng/ci/INVENTORY_REPORT.md`（1 条读数）、`eng/ci/root_manifest.json`（7 条悬空登记）、`docs/engineering/01_CHECKS.md`（新增 §2.2 工具层退役记录） |
 | **删除文件** | **0** | 全部只加退役抬头，文件本体保留（任务卡硬约束 + AGENTS.md §5） |
 
 ---
@@ -53,7 +53,7 @@
 | 6 | `eng/tools/quality/known_failures_baseline.py` | 历史 finding `F-028` 的 repro/evidence **记录字符串** | 该字符串只是历史记录文本 | **是**：`CHK-KNOWN-FAILURES-BASELINE` 的 3 个 step（仍写 `artifacts/KNOWN_FAILURES_BASELINE.json`） | — | **保留（不退役）** |
 | 7 | `eng/ci/checks.json` | `dirty_ignore_prefixes` 2 处（`checks[12]`=UT-BACKEND 顶层与其 step） | 路径已被 ISA-* 旁路重建（**非原语义**） | 是（注册表自身） | — | **本任务不动**（CI-001 独占写窗口；登记为后续处置，见 §5） |
 | 8 | `eng/ci/tests/test_impact_map.py` | 注释（退役依据说明） | — | 是（`CI-BINDING-TESTS` step） | — | 保留（注释即登记） |
-| 9 | `tests/api/test_cli_protocol.py` | 注释（断链修复说明）；夹具已重接线到 tracked `docs/api/CLI_PROTOCOL_V1.md` | — | 是（UT-API） | 有 | 保留（TEST-CLI-SYNC 域） |
+| 9 | `tests/api/test_cli_protocol.py` | 注释（断链修复说明）；夹具已重接线到 tracked `docs/engineering/CLI_PROTOCOL_V1.md` | — | 是（UT-API） | 有 | 保留（TEST-CLI-SYNC 域） |
 | 10 | `tests/quality/test_docchk002_mutation.py` | 注释；基线改为 tracked `tests/quality/fixtures/docchk002_claims_fixture.csv` | — | 是（UT-QUALITY） | 有 | 保留（非本任务文件域） |
 
 ---
@@ -115,7 +115,7 @@
 
 ### 4.1 `eng/ci/INVENTORY_REPORT.md`（`TRACEABILITY-CODE(PASS)` 陈旧读数）
 - **问题**：§2「追溯类」表仍把 `TRACEABILITY-CODE` 记为 `PASS`，而该注册项已于 2026-09-16 按 GAP-032 **退役**
-  （`docs/ci/01_CHECKS.md §2.1`、`eng/ci/checks.json` 已移除该注册项），属「陈旧状态冒充活动状态」（ENGINEERING_SPEC §8）。
+  （`docs/engineering/01_CHECKS.md §2.1`、`eng/ci/checks.json` 已移除该注册项），属「陈旧状态冒充活动状态」（ENGINEERING_SPEC §8）。
 - **订正**：本报告是 base SHA `b4f923cc` 的**当时快照**，**不回改历史读数**；在报告头部加「订正记录（2026-09-16, RETIRE-001）」，
   并在原单元格就地加注 `~~PASS~~ **已于 2026-09-16 退役**`（含 `§2.1` 指针）。
 - **复原方法**：`git show 01754fab8618:eng/ci/INVENTORY_REPORT.md > eng/ci/INVENTORY_REPORT.md`。
@@ -134,13 +134,13 @@
   - `CS/`、`worktrees/`：**从未入库的 0 字节空目录**（`git log -- CS`/`-- worktrees` 无输出）⇒ **无 git 坐标可复原**，如需重建仅能 `mkdir`（无内容）；
   - 整个文件：`git show 01754fab8618:eng/ci/root_manifest.json > eng/ci/root_manifest.json`。
 
-### 4.3 `docs/ci/01_CHECKS.md`（新增 §2.2 工具层退役记录）
+### 4.3 `docs/engineering/01_CHECKS.md`（新增 §2.2 工具层退役记录）
 - **订正**：在 §2.1（注册项退役记录）之后新增 **§2.2 工具层退役记录**：4 条退役工具 ×（依据/处置/可复跑性）+ 实测复核 +
   「经实证不退役」清单 + 指向本台账。
-- **关于 §5「执行器」**：**本任务未修改 §5**。`docs/ci/01_CHECKS.md §5` 与 `AGENTS.md:36` 属**新权威文档集**，
+- **关于 §5「执行器」**：**本任务未修改 §5**。`docs/engineering/01_CHECKS.md §5` 与 `AGENTS.md:36` 属**新权威文档集**，
   其 `python3 eng/ci/run_checks.py …` 是**规范要求**；仓库当前 tracked 的执行器是 `eng/ci/run.py`，二者差异属 **GAP-016**
   登记的「规范要求、实现缺失」缺口，由 **CI-001** 交付 `eng/ci/run_checks.py` 并一并处置 → **不改规范，登记为实现缺口**。
-- **复原方法**：`git show 01754fab8618:docs/ci/01_CHECKS.md > docs/ci/01_CHECKS.md`。
+- **复原方法**：`git show 01754fab8618:docs/engineering/01_CHECKS.md > docs/engineering/01_CHECKS.md`。
 
 ---
 
@@ -174,7 +174,7 @@
 - [x] 每个退役项：退役抬头 + 依据 + 复原命令，且**文件仍在**（`git status` 无删除、无 `git rm`）
 - [x] `eng/ci/validate_registry.py --registry eng/ci/checks.json --strict` → `error_count=0`（**只读**，未改 `eng/ci/checks.json`）
 - [x] 退役项实跑输出为**明确退役文案 + rc=2**（无未捕获 traceback）
-- [x] 本台账覆盖全部退役项（4 = `docs/ci/01_CHECKS.md §2.2` 表行数）
+- [x] 本台账覆盖全部退役项（4 = `docs/engineering/01_CHECKS.md §2.2` 表行数）
 - [x] 未越界改动：仅 `eng/tools/{assemble_audit,make_capsule,make_rev2_capsule,pack_audit_package}.py`、`eng/ci/INVENTORY_REPORT.md`、
-      `eng/ci/root_manifest.json`、`docs/ci/01_CHECKS.md`、本报告（+ `run/` 日志）；未触 `eng/ci/checks.json`、`lib/**`、`cli/**`、
+      `eng/ci/root_manifest.json`、`docs/engineering/01_CHECKS.md`、本报告（+ `run/` 日志）；未触 `eng/ci/checks.json`、`lib/**`、`cli/**`、
       `docs/science/**`、`docs/algorithms/**`、`docs/plugins/**`、`tests/**`

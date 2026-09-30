@@ -1580,7 +1580,7 @@
    "batch": "star_detection",
    "sev": "YELLOW",
    "desc": "Y-10 导出计数四方漂移（header 6 含 guided vs module.yaml exports=5 缺 sdet_detect_guided_ex_f64 vs 「9 个导出」×2 vs api_inventory.csv=10 含 4 死符号 vs modules 页=10 vs TRACEABILITY=9/7；e891df28 注销后计数未同步）",
-   "evidence": "star_detector.h:31-84；module.yaml:13/:83-88；PUBLIC_API.md:825/:829；api_inventory.csv:419-428；docs/modules/star_detector.md:30；TRACEABILITY_MATRIX:786",
+   "evidence": "star_detector.h:31-84；module.yaml:13/:83-88；PUBLIC_API.md:825/:829；api_inventory.csv:419-428；docs/detail/star_detector.md:30；TRACEABILITY_MATRIX:786",
    "verdict": "确证（对抗复验·真问题）",
    "fix": "全量对齐现码 6 导出（含 guided）；DISP-STAR-005 登记删除事件但未盖计数漂移",
    "status": "confirmed"
@@ -1790,7 +1790,7 @@
    "batch": "infra对齐",
    "sev": "RED",
    "desc": "E3 21_observability.md:46「manifest 登记失败→8」vs LOG_AND_ERROR_SYSTEM.md:127「→7」同情形互斥；两侧均零实现（lib grep run_log|logs/run_=0）",
-   "evidence": "docs/plugins/infrastructure/21_observability.md:46；docs/design/LOG_AND_ERROR_SYSTEM.md:127",
+   "evidence": "docs/detail/infrastructure/21_observability.md:46；docs/detail/LOG_AND_ERROR_SYSTEM.md:127",
    "verdict": "确证（对抗复验·真问题）",
    "fix": "二择一统一码值（7），或删未实现条款",
    "status": "confirmed"

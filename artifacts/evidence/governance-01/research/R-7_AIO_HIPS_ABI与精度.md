@@ -15,7 +15,7 @@
 
 | # | 议题 | 唯一推荐 | 置信度 | AIO-001 原判是否需要改 | 是否需要变更 claim |
 |---|---|---|---|---|---|
-| 1 | **M2b-A-02** HiPS leaf NSIDE 三源分歧 | **判「文档勘误」**：`docs/algorithms/HIPS_WRITER.md:146` 的 `NSIDE=2^k` 改为 `NSIDE=2^(k+9)`。写侧/读侧**不动** | **0.97** | **要改归类**：从「需权威裁决」降为「纯勘误，可直接派整改」 | 否 |
+| 1 | **M2b-A-02** HiPS leaf NSIDE 三源分歧 | **判「文档勘误」**：`docs/science/algorithms/HIPS_WRITER.md:146` 的 `NSIDE=2^k` 改为 `NSIDE=2^(k+9)`。写侧/读侧**不动** | **0.97** | **要改归类**：从「需权威裁决」降为「纯勘误，可直接派整改」 | 否 |
 | 2 | **V11-N-01** `AioHipsSnrPoint` ABI | **方案 (c′) 原位版本化**：4 个跨边界结构首部加 `struct_size`+`abi_version` + C 边界 fail-closed 校验 + 单一权威 Python 镜像 + `aio_abi_layout_lock` 逐字段锁（照 `ipv_*` 样板）。**不选 (a)、(b)** | **0.90** | 判据成立，但「破坏 ABI 不可承受」的前提**经实测为假** | 否（新增 ABI 版本号 `=1` 属实现登记） |
 | 3 | **M2b-H-01** `moc_sky_fraction` 字面精度 | **改精度、不改容差**：properties 与 manifest **共用同一格式化函数**，取 **`%.17g`**（round-trip 精确）。`<1e-9` 容差**保留** | **0.85** | 判据成立；但「既有断言把 6 位钉成期望」**必须**一并改，且现门**恒绿无判别力** | 否（容差不动） |
 | 4 | **M2a-H-3** support 钳制后层级归约 | **改归约式**：层级累加用**未钳制的真实覆盖面积**（`flux_n += sig·a`、`area_n += a`），`sup` 只在**发布时钳一次**；并新增可观测的钳制计数。I2（support≤1）**保留** | **0.80** | 判据方向成立，但**归因需订正**：均匀覆盖下的低估**不是归约式的错**（生产在该域已达理论上限），错在**异质覆盖下的 sup 加权** | 是（`DATA_SEMANTICS §20.3` 的「F=signal×support×A_cell 闭合」需补「覆盖>1 时不可复原」的编码限声明） |
@@ -40,7 +40,7 @@
 - 本文与其他任何文档冲突时，以本文为准。（:29）
 ```
 
-- `ASTROCS_DESIGN.md:520-522`（附录 B）：**「IVOA HiPS 1.0、HEALPix（Górski 2005）、FITS WCS Paper I/II、FITS Standard、Drizzle（Fruchter & Hook 2002）—— 详见 docs/references/SCIENTIFIC_REFERENCES.md，具体 SCI claim 必须落实到论文节/式与项目推导差异。」** ⇒ 外部规范在权威链中作为**外部标准**被引用，非「参考」。
+- `ASTROCS_DESIGN.md:520-522`（附录 B）：**「IVOA HiPS 1.0、HEALPix（Górski 2005）、FITS WCS Paper I/II、FITS Standard、Drizzle（Fruchter & Hook 2002）—— 详见 docs/engineering/SCIENTIFIC_REFERENCES.md，具体 SCI claim 必须落实到论文节/式与项目推导差异。」** ⇒ 外部规范在权威链中作为**外部标准**被引用，非「参考」。
 - `ASTROCS_DESIGN.md:400-404`（§7.3 模块与 DLL/SO 边界）：**「版本化 C ABI：跨 DLL 不传 STL/异常/RTTI/编译器私有类型；结构体带 `struct_size`/`abi_version`；所有权与释放方明确。」**
 - `ENGINEERING_SPEC.md:8`：**「公共 C ABI 版本化；跨 DLL 不传 STL/异常/RTTI/编译器私有类型；」**
 - `ENGINEERING_SPEC.md:41`：**「3. 公开头文件 —— 版本化 C ABI，带 `struct_size`/`abi_version`；」**
@@ -49,19 +49,19 @@
 ### 1.1 M2b-A-02 —— HiPS leaf / hierarchy tile 的 NSIDE
 
 **（a）争议句（唯一异类）**
-- `docs/algorithms/HIPS_WRITER.md:142`：`- (4c) 落盘：finalize 时对每阶 k<T（:797-880）：nside_k=2^(k+9)、`
-- `docs/algorithms/HIPS_WRITER.md:146`：`  约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式`
+- `docs/science/algorithms/HIPS_WRITER.md:142`：`- (4c) 落盘：finalize 时对每阶 k<T（:797-880）：nside_k=2^(k+9)、`
+- `docs/science/algorithms/HIPS_WRITER.md:146`：`  约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式`
 
 **（b）同文件上一句（自相矛盾）**
-- `docs/algorithms/HIPS_WRITER.md:142-144`：`nside_k=2^(k+9)、A_cell_k=4π/(12·nside_k²)（:800-801）；cell 归一 signal=Σflux/Σarea、support=min(Σarea/A_cell_k,1)（:814-821）`
+- `docs/science/algorithms/HIPS_WRITER.md:142-144`：`nside_k=2^(k+9)、A_cell_k=4π/(12·nside_k²)（:800-801）；cell 归一 signal=Σflux/Σarea、support=min(Σarea/A_cell_k,1)（:814-821）`
 ⇒ 同一 bullet 内先定义 `nside_k=2^(k+9)`，末尾却写 `NSIDE=2^k`。
 
 **（c）同级/上级权威（全部指向 2^(k+9)）**
-- `docs/contracts/DATA_SEMANTICS.md:327`：`| hierarchy 低阶 tiles（signal/support/variance/ivar 同目录树，nside=2^(k+9), k<tile_order） | 同上 [512×512] | 同上（父 cell=子像素聚合；f32 产品 float 累加 DISP-HIPS-009） | 空 acc 父 cell 照写全 NaN（DISP-HIPS-011） |`
-- `docs/contracts/DATA_SEMANTICS.md:367`：`  :275）；头卡 NSIDE/FIRSTPIX="0"/LASTPIX="262143"（声明性，DISP-HIPS-012）。`
-- `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md:67`：`| hips_order | tile order K | 十进制整数，0 ≤ K ≤ 29；K 与 NSIDE=2^(K+9) 一致 |`
-- `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md:104`：`| NSIDE | 若存在必须等于 2^(K+9)（tile 像素分辨率） |`
-- `docs/algorithms/HIPS_WRITER.md:86`（叶级 FITS 卡同一口径）：`OBJECT/FILTER/EXPTIME/DATE-OBS :197-204 + NSIDE/FIRSTPIX="0"/LASTPIX="262143"`
+- `docs/science/DATA_SEMANTICS.md:327`：`| hierarchy 低阶 tiles（signal/support/variance/ivar 同目录树，nside=2^(k+9), k<tile_order） | 同上 [512×512] | 同上（父 cell=子像素聚合；f32 产品 float 累加 DISP-HIPS-009） | 空 acc 父 cell 照写全 NaN（DISP-HIPS-011） |`
+- `docs/science/DATA_SEMANTICS.md:367`：`  :275）；头卡 NSIDE/FIRSTPIX="0"/LASTPIX="262143"（声明性，DISP-HIPS-012）。`
+- `docs/science/IO_002_HIPS_INPUT_INTERFACE.md:67`：`| hips_order | tile order K | 十进制整数，0 ≤ K ≤ 29；K 与 NSIDE=2^(K+9) 一致 |`
+- `docs/science/IO_002_HIPS_INPUT_INTERFACE.md:104`：`| NSIDE | 若存在必须等于 2^(K+9)（tile 像素分辨率） |`
+- `docs/science/algorithms/HIPS_WRITER.md:86`（叶级 FITS 卡同一口径）：`OBJECT/FILTER/EXPTIME/DATE-OBS :197-204 + NSIDE/FIRSTPIX="0"/LASTPIX="262143"`
 - `lib/infrastructure/aio/include/aio_hips.h:101`：`// nside - 叶级 NSIDE (2 的幂, >= 512)`
 
 ### 1.2 V11-N-01 —— `AioHipsSnrPoint` ABI
@@ -86,7 +86,7 @@ typedef struct {
 
 ### 1.3 M2b-H-01 —— `moc_sky_fraction` 字面精度与容差
 
-- `docs/algorithms/HIPS_WRITER.md:297-300`（§9 冻结容差，逐字）：
+- `docs/science/algorithms/HIPS_WRITER.md:297-300`（§9 冻结容差，逐字）：
 ```
 - **冻结容差**：f64 通路逐像素 bitwise（同序确定性）；f32 存储 rtol=1e-7
   （单次乘除舍入界）；hierarchy f64 累加对 oracle bitwise、f32 累加路径
@@ -94,28 +94,28 @@ typedef struct {
   绝对误差 <1e-9；MOC/properties 键值精确相等；checksum 字段由 CFITSIO
   重算一致。
 ```
-- `docs/algorithms/HIPS_WRITER.md:288`（不变量 I6）：`I6 moc_sky_fraction·4π=moc_area_sr；I7`
-- `docs/algorithms/HIPS_WRITER.md:279-283`（(5a)，`moc_sky_fraction = moc_area_sr/4π` 在 `:282`）：`moc_sky_fraction = moc_area_sr/4π（finalize :1028-1029）`
-- `docs/contracts/DATA_SEMANTICS.md:349-350`：`moc_area_sr=Σ A_cell(K)…；hips/moc_sky_fraction=moc_area_sr/4π；`
+- `docs/science/algorithms/HIPS_WRITER.md:288`（不变量 I6）：`I6 moc_sky_fraction·4π=moc_area_sr；I7`
+- `docs/science/algorithms/HIPS_WRITER.md:279-283`（(5a)，`moc_sky_fraction = moc_area_sr/4π` 在 `:282`）：`moc_sky_fraction = moc_area_sr/4π（finalize :1028-1029）`
+- `docs/science/DATA_SEMANTICS.md:349-350`：`moc_area_sr=Σ A_cell(K)…；hips/moc_sky_fraction=moc_area_sr/4π；`
 
 ### 1.4 M2a-H-3 —— support 钳制与层级归约
 
-- `docs/contracts/DATA_SEMANTICS.md:324`：`| support/…fits | 同上 | 无量纲 [0,1]（covered_area/A_cell，>1 钳 1.0；A_cell=4π/(12·nside²)） | 无效像素 0.0 |`
-- `docs/contracts/DATA_SEMANTICS.md:346-347`：`support=min(covered_area/A_cell,1)、variance=var_num_sum/covered_area²、ivar=1/variance；F=signal×support×A_cell 闭合（gate7 复检同式）。`
-- `docs/contracts/DATA_SEMANTICS.md:1034-1037`（§20.3 唯一权威）：`- **signal/support 逆变换合同**（matrix 专项）: 加权积分输出 signal（SCI-INT §5）与 support，逆变换回 flux_sum = signal×area（area = support×A_cell；stage2.cpp:1227-1228 chunk 路径 / :1588-1589 CPU 二次积分路径）`
-- `docs/algorithms/HIPS_WRITER.md:135-136`（(4b)）：`逐父 cell 确定性累加（:549-550）：flux_n += signal·support·A_cell（面亮度→通量还原）、area_n += support·A_cell`
-- `docs/algorithms/HIPS_WRITER.md:286`（I2）：`I2 support=min(area/A_cell,1)≤1`
-- `docs/algorithms/HIPS_WRITER.md:288-289`（I7）：`I6 moc_sky_fraction·4π=moc_area_sr；I7` / `hierarchy 逐阶聚合闭合（f64 域 bitwise；f32 路径按 §9 容差）；I8`；`docs/algorithms/HIPS_WRITER.md:291`（I11）：`句柄不可复用；I11 F=signal×support×A_cell 有限非负（gate7 同式）；`
-- `docs/plugins/algorithms_phase1/08_drizzle.md §4`（原判据）：signal 单位/源-目标像素面积/pixfrac/归一必须统一。
+- `docs/science/DATA_SEMANTICS.md:324`：`| support/…fits | 同上 | 无量纲 [0,1]（covered_area/A_cell，>1 钳 1.0；A_cell=4π/(12·nside²)） | 无效像素 0.0 |`
+- `docs/science/DATA_SEMANTICS.md:346-347`：`support=min(covered_area/A_cell,1)、variance=var_num_sum/covered_area²、ivar=1/variance；F=signal×support×A_cell 闭合（gate7 复检同式）。`
+- `docs/science/DATA_SEMANTICS.md:1034-1037`（§20.3 唯一权威）：`- **signal/support 逆变换合同**（matrix 专项）: 加权积分输出 signal（SCI-INT §5）与 support，逆变换回 flux_sum = signal×area（area = support×A_cell；stage2.cpp:1227-1228 chunk 路径 / :1588-1589 CPU 二次积分路径）`
+- `docs/science/algorithms/HIPS_WRITER.md:135-136`（(4b)）：`逐父 cell 确定性累加（:549-550）：flux_n += signal·support·A_cell（面亮度→通量还原）、area_n += support·A_cell`
+- `docs/science/algorithms/HIPS_WRITER.md:286`（I2）：`I2 support=min(area/A_cell,1)≤1`
+- `docs/science/algorithms/HIPS_WRITER.md:288-289`（I7）：`I6 moc_sky_fraction·4π=moc_area_sr；I7` / `hierarchy 逐阶聚合闭合（f64 域 bitwise；f32 路径按 §9 容差）；I8`；`docs/science/algorithms/HIPS_WRITER.md:291`（I11）：`句柄不可复用；I11 F=signal×support×A_cell 有限非负（gate7 同式）；`
+- `docs/detail/algorithms_phase1/08_drizzle.md §4`（原判据）：signal 单位/源-目标像素面积/pixfrac/归一必须统一。
 
 ### 1.5 M9-F-3 —— `drizzle_scale_arcsec` 合法域
 
-- `docs/algorithms/HIPS_WRITER.md:184-185`（逐字）：`[prov_set 时] ASTROCS_DRIZZLE_PIXFRAC（%.6f）/ ASTROCS_DRIZZLE_SCALE_ARCSEC（%.4f，>0 才写）（:727-736；set_drizzle_provenance :1007-1016，pixfrac∈(0,1] rc=2、scale≥0 rc=2）`
-- `docs/algorithms/HIPS_WRITER.md:293-296`（负面矩阵，逐字）：`**负面矩阵**：nside<512、tile_width≠512、非法 dtype、越位 flags、parent_ipix≥12·4^K、width≠512、var_num NULL、全无效 variance tile（−5）、FITS 路径不可写（−4/−5/−6/−7）、prov pixfrac>1（rc=2）、重复 finalize（−2）、SNR metadata.xml 不可写。`
+- `docs/science/algorithms/HIPS_WRITER.md:184-185`（逐字）：`[prov_set 时] ASTROCS_DRIZZLE_PIXFRAC（%.6f）/ ASTROCS_DRIZZLE_SCALE_ARCSEC（%.4f，>0 才写）（:727-736；set_drizzle_provenance :1007-1016，pixfrac∈(0,1] rc=2、scale≥0 rc=2）`
+- `docs/science/algorithms/HIPS_WRITER.md:293-296`（负面矩阵，逐字）：`**负面矩阵**：nside<512、tile_width≠512、非法 dtype、越位 flags、parent_ipix≥12·4^K、width≠512、var_num NULL、全无效 variance tile（−5）、FITS 路径不可写（−4/−5/−6/−7）、prov pixfrac>1（rc=2）、重复 finalize（−2）、SNR metadata.xml 不可写。`
   ⇒ **负面矩阵只列 pixfrac，一个 scale 的边界都没有。**
 - `lib/infrastructure/aio/include/aio_hips.h:238-243`：`// （K_CORR_DOMAIN 选项 B）：设置 Drizzle provenance（pixfrac / 像素角尺度），finalize 时写入 properties（ASTROCS_DRIZZLE_PIXFRAC / ASTROCS_DRIZZLE_SCALE_ARCSEC）。Phase2 sampler 按帧读取以选择 control-ivar 的 k_corr 标定值。`
 - `ENGINEERING_SPEC.md:5.1`（边界/NaN/Inf/极端参数/错误输入须有测试）；`ENGINEERING_SPEC.md:3`（红线）。
-- **消费侧适用域**：`docs/algorithms/PHASE2_SAMPLER.md:191-193`：`{1.2112,1.3925,1.4980 | 2.3958,2.8971,3.2035}（300"/600" × …` / `[0.5,1.0]×[300,600]（:95-96）；provenance 缺失/无有效 pixfrac →`；`docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md:83`：`可复跑标定落地前，只允许在**已声明适用域内**取 k_corr=1.4，**禁止外推/内插**`。
+- **消费侧适用域**：`docs/science/algorithms/PHASE2_SAMPLER.md:191-193`：`{1.2112,1.3925,1.4980 | 2.3958,2.8971,3.2035}（300"/600" × …` / `[0.5,1.0]×[300,600]（:95-96）；provenance 缺失/无有效 pixfrac →`；`docs/algorithms/v6/phase2-surface/ALG-P2-SURF-UPM.md:83`：`可复跑标定落地前，只允许在**已声明适用域内**取 k_corr=1.4，**禁止外推/内插**`。
 
 ---
 
@@ -306,10 +306,10 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
 | 写侧·父 | `sed -n '1106,1109p' …` | `const uint32_t nside_k = 1u << (k + 9);` / `cards.push_back({"NSIDE", std::to_string(nside_k)});` |
 | 读侧 | `sed -n '245p' runtime/io/hips_core.c` | `h->nside = 1ULL << ((uint64_t)order + 9u);` |
 | 读侧校验 | `sed -n '632,640p' runtime/io/hips_core.c` | `if (strcmp(nm, "NSIDE") == 0) { … hips_set_err(err, cap, "tile NSIDE=%lld 与 order %d (nside=%llu) 不符", …)`  |
-| 合同 | `grep -n 'NSIDE. \| 若存在必须等于' docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md` | `104:| \`NSIDE\` | 若存在必须等于 \`2^(K+9)\`（tile 像素分辨率） |` |
-| 合同 | `grep -n 'nside=2\^(k+9)' docs/contracts/DATA_SEMANTICS.md` | `327:| hierarchy 低阶 tiles（… nside=2^(k+9), k<tile_order） …` |
+| 合同 | `grep -n 'NSIDE. \| 若存在必须等于' docs/science/IO_002_HIPS_INPUT_INTERFACE.md` | `104:| \`NSIDE\` | 若存在必须等于 \`2^(K+9)\`（tile 像素分辨率） |` |
+| 合同 | `grep -n 'nside=2\^(k+9)' docs/science/DATA_SEMANTICS.md` | `327:| hierarchy 低阶 tiles（… nside=2^(k+9), k<tile_order） …` |
 | 测试 | `sed -n '226,243p' tests/io/test_hips_input_contract.py` | `# ---------- 布局不符: tile NSIDE 与 order 不符 ----------` / `# order1 期望 NSIDE=1024; 写成 2048 (order2 的 nside)` / `"NSIDE 与 order 不符应判 INVALID"` |
-| 文档（唯一异类） | `grep -n 'NSIDE=2\^k' docs/algorithms/HIPS_WRITER.md` | `146:  约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式` |
+| 文档（唯一异类） | `grep -n 'NSIDE=2\^k' docs/science/algorithms/HIPS_WRITER.md` | `146:  约定。FITS cards ORDERING=NESTED + NSIDE=2^k；三处 scatter 同 (2a) 式` |
 
 **行号漂移实测**：AIO-001 的 `02_M2b-A-02.log` 记录 `sed -n '1069p'` → 输出的是注释行；当树同 token 在 `:1106`（`grep -n 'k + 9\|k+9\|NSIDE\|leaf_order'` 命中 `1106: const uint32_t nside_k = 1u << (k + 9);`）。⇒ **AIO-001 的写侧锚已失效**，结论（三源分歧）仍成立但锚点需重取。
 
@@ -376,7 +376,7 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
 | 维度 | 评判 |
 |---|---|
 | ① 有无权威依据 | **有**。外部：IVOA HiPS 1.0 REC §4.2.1 公式 + Hipsgen 手册 `nside = tileWidth × 2^order` + 12/12 真实 CDS tile 的 `ORDER/NPIX/HPX WCS` 形态。内部：`DATA_SEMANTICS:327`、`IO_002:67/:104`、`HIPS_WRITER.md:86/:145`、`tests/io/test_hips_input_contract.py:232`。 |
-| ② 可测量、可复现 | **可**：`grep -n 'NSIDE=2\^k' docs/algorithms/HIPS_WRITER.md` 一条命令即可判定；写/读两侧的取值同一命令可读。 |
+| ② 可测量、可复现 | **可**：`grep -n 'NSIDE=2\^k' docs/science/algorithms/HIPS_WRITER.md` 一条命令即可判定；写/读两侧的取值同一命令可读。 |
 | ③ 是否把实现缺陷误判成文档错误 / 反之 | **AIO-001 判「偏差在文档」——正确**（本报告独立复验一致）。但要**换归类**：这不是「口径分歧需裁决」，而是**同段自相矛盾的勘误**（`HIPS_WRITER.md:142` 已定义 `nside_k=2^(k+9)`，`:146` 却写 `2^k`）。把纯勘误上呈裁决，会让负责人承担一次本不需要的科学判断。 |
 | ④ 阈值/量测域是否定义清楚 | 清楚且**唯一**：`tileWidth=512`（`IO_002:36-40` 校验 `hips_tile_width` 必须为 2 的幂，512 为标准；writer `:558` 强制 `width==512`），`S=9`。 |
 | ⑤ 误报/漏报 | **漏报面**：全仓**没有任何机器门**覆盖「`docs/algorithms/**` 的公式/卡值是否正确」。`docs/algorithms` 是权威域却不设门，只能靠人工复检 ⇒ 这是本条的真正系统性缺口。**另**：`HIPS_WRITER.md` 内部所有 `:NNN` 源码锚均已相对当树漂移（`:797-880` → `:1097-1200`；`:800-801` → `:1107-1108`；`:814-821` → `:1119-1126`），属**同一文档的第二类勘误**，建议同批处理。 |
@@ -435,12 +435,12 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
 
 ### 5.1 M2b-A-02 —— 唯一推荐：判文档勘误，改 `2^k` → `2^(k+9)`
 
-- **唯一推荐（0.97）**：`docs/algorithms/HIPS_WRITER.md:146` 的 `NSIDE=2^k` 改为 `NSIDE=2^(k+9)`。**写侧 `aio_hips_writer.cpp:1109`、读侧 `runtime/io/hips_core.c:245/:632` 一律不动**。
+- **唯一推荐（0.97）**：`docs/science/algorithms/HIPS_WRITER.md:146` 的 `NSIDE=2^k` 改为 `NSIDE=2^(k+9)`。**写侧 `aio_hips_writer.cpp:1109`、读侧 `runtime/io/hips_core.c:245/:632` 一律不动**。
 - **依据**：外部 —— IVOA HiPS 1.0 REC §4.2.1（`packaging the 2^S x 2^S HEALPix cell values` + `Tile pixel angular size =~ sqrt(4*PI/(12 x (tileWidth x 2^order)^2))`，且表 5 的三个数值我全部复算一致）+ Hipsgen 手册 `nside = tileWidth x 2^order` + 12/12 真实 CDS tile 均无 `NSIDE=2^k` 写法；内部 —— `DATA_SEMANTICS:327`、`IO_002:67/:104`、`HIPS_WRITER.md:86/:145`（同文件自相矛盾）、`test_hips_input_contract.py:232`。
 - **反方（最可能被反驳的点）**：
   1. 「`NSIDE` 卡是仓自定声明，规范根本没规定它，所以 `2^k` 也能自圆其说」——**不成立**：真实 CDS tile 用 `ORDER=k`+`NPIX=n` 声明 tile 身份，而本仓把它命名为 `NSIDE`（HEALPix FITS 的"分辨率参数"，语义即**本文件像素网格的 nside**），若填 `2^k` 就与「文件里有 512×512 个 order-(k+9) 像素」直接冲突，且与读侧 `h->nside`（用于 tile 地址/面积推导）矛盾。
   2. 「也许写侧该改成 `2^k` 更好」——**不成立**：改成 `2^k` 会同时打破 `IO_002:104` 读端合同与其 3 条负例（`test_hips_input_contract.py:226-243`）、`DATA_SEMANTICS:327`、以及 `hips_core.c` 的一致性校验，且无任何外部依据支持。
-- **最小改动路径**：`docs/algorithms/HIPS_WRITER.md` **单 token** 勘误（`docs/algorithms/**` 是"只读权威"域，勘误须由负责人/前台按文档集变更流程执行；本研究线不改）。**不需**变更 claim、**不需**改 registry、**不需**改代码。
+- **最小改动路径**：`docs/science/algorithms/HIPS_WRITER.md` **单 token** 勘误（`docs/algorithms/**` 是"只读权威"域，勘误须由负责人/前台按文档集变更流程执行；本研究线不改）。**不需**变更 claim、**不需**改 registry、**不需**改代码。
 - **影响面**：零代码影响；`HIPS_WRITER.md` 内部 `:NNN` 源码锚（`:797-880`→`:1097-1200` 等）建议同批刷新（同一文档、同类勘误）。
 - **归类建议**：从 `AIO-001/P0_OPEN_CONCLUSIONS.md`「需权威裁决清单」第 1 条**移出**，转为可派整改任务。
 
@@ -465,7 +465,7 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
 
 ### 5.3 M2b-H-01 —— 唯一推荐：改精度（`%.17g`，两处共用同一函数），容差 `<1e-9` 保留
 
-- **唯一推荐（0.85）**：新增单一格式化函数（建议 `static std::string fmt_sky_fraction(double)`，实现 `%.17g`），`aio_hips_writer.cpp:1023`（properties image）、`:1262`（properties SNR）、`:1538`（manifest.json）**三处全部**改用它；`docs/algorithms/HIPS_WRITER.md §9:296-300` 的 `<1e-9` **原文保留**，并补写「字面量由**唯一**格式化函数产出，且 round-trip 精确（`%.17g` ⇒ 解析回程误差恒 0）」。
+- **唯一推荐（0.85）**：新增单一格式化函数（建议 `static std::string fmt_sky_fraction(double)`，实现 `%.17g`），`aio_hips_writer.cpp:1023`（properties image）、`:1262`（properties SNR）、`:1538`（manifest.json）**三处全部**改用它；`docs/science/algorithms/HIPS_WRITER.md §9:296-300` 的 `<1e-9` **原文保留**，并补写「字面量由**唯一**格式化函数产出，且 round-trip 精确（`%.17g` ⇒ 解析回程误差恒 0）」。
 - **为什么"改精度"而不是"改容差"**：
   1. 容差是**科学量**的验收界（MOC 覆盖面积的绝对精度）；为迁就一个**序列化**产物把它放宽 1000 倍（1e-9 → 1e-6），等于用工程债换科学指标，方向错误。
   2. 放宽到 1e-6 也**修不好**两处字面量不同（8 dp 与 6 dp 仍不同）、**修不好** K≥20 的数值湮灭（`0.000000`），且 **最大误差 5e-7 仍逼近 1e-6**（余量仅 2 倍）。
@@ -481,7 +481,7 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
   2. 「既有断言被改，等于放宽了自己的锁」——**不成立**：改动方向是**收紧**（6 dp→17 sig），且同时新增一个在 `1/12` 点上的红-绿可证门。
   3. 「`%.17g` 在不同 libc 上输出不同」——**不成立**：`%.17g` 是**精确十进制转换**（正确舍入），glibc 与 Python 的 `%.17g` 输出逐字节相同（我实测的 C 表与 Python 表一致）。
 - **最小改动路径**：`aio_hips_writer.cpp` 加一个静态函数 + 3 个调用点；`HIPS_WRITER.md §9` 加一句限定语（**不需要变更 claim**：容差本身不变，只是明确其量测域包含序列化）；`p1hips_tests_units.cpp:292`、`p1hips_tests_properties.cpp:230`、`p1hips_tests_oracle.cpp:124-130` 的期望值改由同一格式化函数生成；`tests/io/make_hips_fixture.py:171` 从 `:.9f` 改为同一语义（建议 Python 侧 `"%.17g" % v`）。
-- **影响面**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`、`lib/infrastructure/aio/tests/p1hips/p1hips_tests_{units,properties,oracle}.cpp`、`tests/io/make_hips_fixture.py`、`docs/algorithms/HIPS_WRITER.md §9`。下游 `manifest.json` 消费者（若有按字符串比对的产品）需知悉 —— `grep` 显示只有 `lib/algorithms/coverage/src/sampler.cpp:353` 读 `moc_sky_fraction` 键名做**存在性**判断（不比较数值）。
+- **影响面**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`、`lib/infrastructure/aio/tests/p1hips/p1hips_tests_{units,properties,oracle}.cpp`、`tests/io/make_hips_fixture.py`、`docs/science/algorithms/HIPS_WRITER.md §9`。下游 `manifest.json` 消费者（若有按字符串比对的产品）需知悉 —— `grep` 显示只有 `lib/algorithms/coverage/src/sampler.cpp:353` 读 `moc_sky_fraction` 键名做**存在性**判断（不比较数值）。
 
 ### 5.4 M2a-H-3 —— 唯一推荐：归约改用未钳制的真实面积；I2 保留；补可观测计数
 
@@ -507,7 +507,7 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
   2. 「改归约式会让 bitwise 断言变红，成本高」——**成立**，故建议与 oracle 独立化**同批**改，并明确 `I7` 的 f64 域断言应改为"与独立 oracle bitwise"（oracle 用新式），f32 域保持 `rtol=1e-6`。
   3. 「也许该把 support 放开到 >1」——**不推荐**：`support` 是 IVOA「覆盖比例」，`DATA_SEMANTICS:324` 与 `IO_002` 读端都按 `[0,1]` 合同；放开会波及 `DATA_SEMANTICS:1149/:1162/:1178` 的 Phase2 消费语义（那里 `support` 语义是 `[0,1]`）。**编码限应当声明而非拆除**。
 - **最小改动路径**：`aio_hips_writer.cpp`（叶级主循环 + `finalize_hierarchy` + properties/manifest 两个写点）→ `p1hips_tests_properties.cpp` 的 oracle 独立化 → `HIPS_WRITER.md §3/§4/§9`（(4b)(4c)/I7/I11/冻结容差）与 `DATA_SEMANTICS §12.2/§20.3`（**变更 claim**）。
-- **影响面**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`、`lib/infrastructure/aio/tests/p1hips/{properties,oracle,units}.cpp`、`docs/algorithms/HIPS_WRITER.md`、`docs/contracts/DATA_SEMANTICS.md`；`astro_sphere_sink.cpp` **不需要**改（它只是数据源）。**下游收益**：Phase2 `signal/support` 逆变换（`DATA_SEMANTICS:1034-1040`）在多帧重叠区的通量恢复率提升（实测该算例 +37%）。
+- **影响面**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`、`lib/infrastructure/aio/tests/p1hips/{properties,oracle,units}.cpp`、`docs/science/algorithms/HIPS_WRITER.md`、`docs/science/DATA_SEMANTICS.md`；`astro_sphere_sink.cpp` **不需要**改（它只是数据源）。**下游收益**：Phase2 `signal/support` 逆变换（`DATA_SEMANTICS:1034-1040`）在多帧重叠区的通量恢复率提升（实测该算例 +37%）。
 
 ### 5.5 M9-F-3 —— 唯一推荐：闭域 + fail-closed + 结构化诊断
 
@@ -536,7 +536,7 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
   2. 「0 可能被调用方当作'尺度未知'的哨兵」——**不成立**：若是"未知"，正确做法是**不调用**该 setter（provenance 全或无），而不是传 0 让 writer 猜；现有 `>0 才写` 分支正是这个歧义的来源。
   3. 「拒绝 0 会打破既有调用方」——**风险低**：全仓 `set_drizzle_provenance` 调用点只有 `astro_sphere_sink.cpp:85`、`tests/unit/p1_hips_writer_test.cpp:70`、`p1hips_tests_units.cpp:183`、`p1hips_tests_negative.cpp:269-274`，传入的 scale 分别是 `config` 值 / `1.0` / `0.35` / `{1.0,1.0,-1.0,0.1}` —— **没有一个传 0**。
 - **最小改动路径**：`aio_hips_writer.cpp:1318-1319` + 常量定义（建议置于 `aio_hips.h` 便于门读取）+ `aio_hips_writer.cpp:1012` 的无条件写 + `p1hips_tests_negative.cpp` 增 4 条负例与 1 条正例 + `HIPS_WRITER.md:293-296` 负面矩阵补 `drizzle_scale_arcsec` 行。
-- **影响面**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`、`lib/infrastructure/aio/include/aio_hips.h`、`lib/infrastructure/aio/tests/p1hips/p1hips_tests_negative.cpp`、`docs/algorithms/HIPS_WRITER.md`。**需要变更 claim：否**。
+- **影响面**：`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`、`lib/infrastructure/aio/include/aio_hips.h`、`lib/infrastructure/aio/tests/p1hips/p1hips_tests_negative.cpp`、`docs/science/algorithms/HIPS_WRITER.md`。**需要变更 claim：否**。
 
 ### 5.6 需负责人确认的那一句话
 
@@ -577,10 +577,10 @@ nside=536870912    pixel_scale = 0.000393 arcsec        (2^29 上界)
 | 22 | `grep -rn "struct_size\|abi_version" lib/infrastructure/aio/include/` | 0 | 仅 `aio_pipeline.h:84/:85/:113`；`aio_hips.h` **0 命中** |
 | 23 | `grep -n -e struct_size -e abi_version lib/infrastructure/aio/include/aio_hips.h` | **1** | **0 命中**（缺版本头） |
 | 24 | `grep -c "support_clamped" lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` | **1** | `0`（钳制不可观测） |
-| 25 | `grep -n 'NSIDE=2\^k' docs/algorithms/HIPS_WRITER.md` | 0 | `146:` |
-| 26 | `grep -n 'NSIDE. \| 若存在必须等于' docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md` | 0 | `104:` |
-| 27 | `grep -n 'nside=2\^(k+9)' docs/contracts/DATA_SEMANTICS.md` | 0 | `327:` |
-| 28 | `grep -rn "drizzle_scale_arcsec\|DRIZZLE_SCALE_ARCSEC" docs/ contracts/ eng/tools/ cli/` | 0 | **仅 `docs/algorithms/HIPS_WRITER.md:184` 一处** |
+| 25 | `grep -n 'NSIDE=2\^k' docs/science/algorithms/HIPS_WRITER.md` | 0 | `146:` |
+| 26 | `grep -n 'NSIDE. \| 若存在必须等于' docs/science/IO_002_HIPS_INPUT_INTERFACE.md` | 0 | `104:` |
+| 27 | `grep -n 'nside=2\^(k+9)' docs/science/DATA_SEMANTICS.md` | 0 | `327:` |
+| 28 | `grep -rn "drizzle_scale_arcsec\|DRIZZLE_SCALE_ARCSEC" docs/ contracts/ eng/tools/ cli/` | 0 | **仅 `docs/science/algorithms/HIPS_WRITER.md:184` 一处** |
 | 29 | `ls lib/infrastructure/aio/module.yaml lib/infrastructure/aio/CMakeLists.txt` | **2** | 两者均"没有那个文件或目录" |
 | 30 | `grep -rn "set_drizzle_provenance" tests/ lib/ …` | 0 | 调用点 5 处，**无一处传 `scale=0`** |
 | 31 | `sed -n '1312,1326p' lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` | 0 | 两处 `return 2;` 前**无 `set_error`** |

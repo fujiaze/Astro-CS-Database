@@ -18,8 +18,8 @@
 
 | 路径 | 现状 |
 |---|---|
-| `governance-01/` | 治理证据锚：`retire/RETIREMENT_LEDGER.md`（退役工具复原坐标，`docs/ci/01_CHECKS.md` §2.2 与 root_manifest notes 引用）、`research/`（R-1..R-6 等研究件）、`security/EXPOSURE_NOTE.md`（root_manifest 登记）。非实测、非门基线，未入迁移清单 |
-| `review-package/` | V3 后问题、推导和缺陷账本（`docs/references/SCIENTIFIC_REFERENCES.md` 引用）。未决裁决落点，非实测 |
+| `governance-01/` | 治理证据锚：`retire/RETIREMENT_LEDGER.md`（退役工具复原坐标，`docs/engineering/01_CHECKS.md` §2.2 与 root_manifest notes 引用）、`research/`（R-1..R-6 等研究件）、`security/EXPOSURE_NOTE.md`（root_manifest 登记）。非实测、非门基线，未入迁移清单 |
+| `review-package/` | V3 后问题、推导和缺陷账本（`docs/engineering/SCIENTIFIC_REFERENCES.md` 引用）。未决裁决落点，非实测 |
 | `v19r2/` | `evidence/quality/traceability_check.json`（CHK-SCI-REF 历史登记输出；该门 outputs 现已指 `run/ci/quality/traceability_check.json`）。处置待裁决 |
 
 ## 目录规则

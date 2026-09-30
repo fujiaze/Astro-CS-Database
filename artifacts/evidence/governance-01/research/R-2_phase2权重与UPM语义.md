@@ -136,7 +136,7 @@ for 每个候选 s:
 
 ### 1.3 docs/algorithms/（链：ALG 算法推导权威）
 
-**(A) docs/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）**
+**(A) docs/science/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）**
 
 - `:125-129`（**D-7 的 ALG 侧原文**）：
 
@@ -155,17 +155,17 @@ for 每个候选 s:
 - `:182-184` §7：「- SCI §5:63 声称与 'integrate.cpp:10-79' / 'integrate.h:1-75' 一致——实测文件为 **76 行/74 行**（锚漂移…）」
 - `:211-212` §10 冻结禁改：「2. support canonical reducer 语义（**integrate.h:17 文本口径**；实现现状偏差仅按 DISP-P2INT-001 整改，禁止改语义解释）。」
 
-**(B) docs/algorithms/UPM_SOLVER.md（ALG-UPM-001，DERIVED T206）**
+**(B) docs/science/algorithms/UPM_SOLVER.md（ALG-UPM-001，DERIVED T206）**
 
 - `:15-17`：「F1: w = quality·control_ivar (production) 或 qf·support^p·snr²/(1+snr²)/unc² (ablation)」「F2: per-control归一化: w_norm = w / Σw · geometric_reliability」
 - `:35`：「  w_norm = w/Σw · geom per-control」
 - `:99-101` §12：「control_variance=k_corr·(π/2)·σ_bg²/N_retained，control_ivar=1/var；…**误差排序：数值 FP64(≪1e-12) ≪ 科学/统计容差(k_corr 冻结, 控制噪声) ≪ 门禁**。」
 
-**(C) docs/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001）**
+**(C) docs/science/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001）**
 
 - `:309`（哨兵条款表，**逐字**）：「| p2_upm_evaluate_c | NaN | 未知 frame_id 返回 NaN（显式不可用；**null model 返回 0.0**） | :1273-1279 |」
 
-**(D) docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）**
+**(D) docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）**
 
 - `:186-195`：「- 常数权威：kPiHalf=1.57079632679489661923（:83）；k_corr 默认…」「- **K_CORR_DOMAIN 选项 B（逐帧标定）**：优先帧 Drizzle provenance → kcorr_lookup(pixfrac, scale)（:547-555；**scale 未知→300 档**…）」「…cfg.control_k_corr（:839 回退链 frames[i].kcorr>0 ? per-frame : cfg.control_k_corr）」
 - `:308`：「| k_corr MC 校准非猜测（sampler.h:49-50） | :82/:88-109/:547-555（选项 B 逐帧） | 一致（冻结保守值 1.4 ≥ 实证） |」
@@ -173,7 +173,7 @@ for 每个候选 s:
 
 ### 1.4 ENGINEERING_SPEC.md（链③）
 
-- `:25-28` §3 科学代码红线：「- 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差 **不可修改**；- 架构重构**不得**同时改动科学语义；迁移必须 bitwise 相等（顺序变化时先冻结容差并登记）；- 模块不得根据 CPU 型号改变公式；…- 数据对象按 docs/design/UNIFIED_MODEL.md 区分，**禁止一个字段承载多个含义**。」
+- `:25-28` §3 科学代码红线：「- 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差 **不可修改**；- 架构重构**不得**同时改动科学语义；迁移必须 bitwise 相等（顺序变化时先冻结容差并登记）；- 模块不得根据 CPU 型号改变公式；…- 数据对象按 docs/detail/UNIFIED_MODEL.md 区分，**禁止一个字段承载多个含义**。」
 
 ---
 
@@ -497,7 +497,7 @@ $ ctest --test-dir build -N | tail -1                                           
 
 **最小改动路径（文档，零代码）**：
 1. docs/science/CONTROL_WEIGHT_SNR.md:66：weight_mode=2 → weight_mode=0（legacy/诊断；生产禁用，见 SCI-UPM-WEIGHT-001 §5:54 与 DESIGN §4.3/§4.4）；:71 保留但加「非生产」标注。
-2. docs/algorithms/PHASE2_INTEGRATION.md:125-129：改写为「mode 2 = ivar（缺失即失败）；ivar_valid?ivar:support 仅在 legacy_allow_weight_fallback=true 的显式降级路径出现（默认 false）」。
+2. docs/science/algorithms/PHASE2_INTEGRATION.md:125-129：改写为「mode 2 = ivar（缺失即失败）；ivar_valid?ivar:support 仅在 legacy_allow_weight_fallback=true 的显式降级路径出现（默认 false）」。
 3. registry/claim：docs/TRACEABILITY.csv 中 SCI-UPM-WEIGHT-001 / SCI-CW-001 行的 1 处描述同步；CW 的 P5-SNR 注记已存在，无需新增 claim（未改科学定义，仅纠分支号与措辞）。
 
 **影响面**：stage2.cpp（无改动）、CONTROL_WEIGHT_SNR.md、PHASE2_INTEGRATION.md、docs/GLOSSARY.md:13（frame_quality_weight 条目已写「support×snr_v²(SCI-CW 域专用)」，需加「非生产」）、M7-A-125 可同批销。
