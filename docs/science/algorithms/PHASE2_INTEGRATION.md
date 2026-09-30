@@ -28,8 +28,8 @@
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
-| `values[i]` | 候选样本科学值 | **像素域校准后标度**：量纲 = ADU（`calibrated_adu`）或 α·ADU（`photo_scaled_adu`）——**不是面亮度 `ADU·sr⁻¹`**（立体角归一 `1/A_cell` 在 writer 层），f64 | `lib/algorithms/coverage/include/astro/phase2/integrate.h` |
-| `weights[i]` | 数值权重（可空=等权 1.0） | **数值域，量纲 = 1/(`values` 量纲)²**（像素域 ⇒ `1/ADU²`）；物理语义（逐样本 ivar）与策略在调用方，本层不承诺面亮度域，f64 | 同上 |
+| `values[i]` | 候选样本科学值 | **面亮度域**：量纲 = ADU·sr⁻¹（`ADU/sr`），即 Phase1 产物 signal 面的 canonical 串。写盘侧 fail-closed：`hiss_writer.cpp` 只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`，裸 `ADU` 判 `return -2`。f64 | `lib/algorithms/coverage/include/astro/phase2/integrate.h` |
+| `weights[i]` | 数值权重（可空=等权 1.0） | **数值域，量纲 = 1/(`values` 量纲)²**（面亮度 ⇒ `sr²/ADU²`）；物理语义（逐样本 ivar）与策略在调用方，f64 | 同上 |
 | `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | 同上 |
 | `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | 同上 |
 | `count` | 候选数 | 无量纲 u32 | 同上 |
@@ -40,11 +40,23 @@
 | `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | 同上 |
 | `sup_max` | max(accepted support) —— **canonical 语义**（``lib/algorithms/coverage/src/integrate.cpp``，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | 同上 |
 
-> **单位域订正登记（DISP-P2INT-003）**：本表旧版把 `values`/`signal` 登记为
-> **面亮度 ADU·sr⁻¹**、把权重登记为 (ADU·sr⁻¹)⁻²，与本文档 §5/§8 及权威
-> `DATA_SEMANTICS.md` §21.1/§21.2（`signal` 量纲 = `values` 量纲，**不是**面亮度，
-> 立体角归一在 writer 层）自相矛盾；现按权威统一为**像素域 ADU**（`photo_scaled_adu`
-> 时为 α·ADU），权重随之取 `1/ADU²`。本轮只改本表登记，不动任何公式。
+> **⚠ DISP-P2INT-003 已作废（2026-09-30 订正）——它把订正方向做反了。**
+>
+> 该登记曾据 `DATA_SEMANTICS.md` §21.1/§21.2 把本表的 `values`/`weights`
+> 从**面亮度**改判为**像素域 ADU**。经 FINAL-07 第 4 轮取证复核，**该依据不成立**：
+>
+> 1. **写盘侧 fail-closed 门**：`lib/infrastructure/aio/src/hiss_writer.cpp:337-339`
+>    的 `is_frozen_sb_unit` 只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`，
+>    裸 `"ADU"` 走 `:356` 判 `return -2` ⇒ **像素域 ADU 在生产上根本写不出去**；
+> 2. **生产硬写**：`drizzle_engine.cpp:1222`/`:2509` 与 `aio_healpix_io.cpp:375`
+>    均 `snprintf(hmeta.bunit, …, "ADU/sr")`；
+> 3. **真实产物**：`run/` 下 121 份 signal/properties 中 29 份 `ADU/sr`、
+>    2 份 `ADU/px^2`（手工语料，自承未跑可执行文件）、**零份裸 `ADU`**。
+>
+> **⇒ 本表已回滚为面亮度口径**（与 `PHASE2_REJECTION.md:41-42`、
+> `PHASE2_MOSAIC_WRITE.md:319-324` 一致）。
+> 引入该登记的提交 `99d6d385` 是纯文档批量收口，**无实现或上游依据**。
+> **本轮只改本表登记与量纲声明，不动任何公式。**
 
 权重语义（`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释冻结）: 权重是 Phase2 按该天球像素
 对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
