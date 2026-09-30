@@ -28,7 +28,15 @@
 
 ## 3 物理量和单位
 
-- `S,F,x`: ADU/e⁻；`D,a,A_drop,A_pixel`: px²（球面立体角等价）；`v,variance`: ADU²；`ivar`: ADU⁻²；`w`: 无量纲；`N_p`: px²（`Σ w·A_pixel`，与 `D_p` 同量纲）；`hp_res, max_angle`: rad；`pixfrac`: 无量纲；`nside, order`: 无量纲（`nside=2^order`）。
+- 输入标度面与输出标度面各自具名（两者不同面，不得混读）：
+  - 输入 `x_j`：**ADU/e⁻**（逐像素积分通量）；`F_p` = `Σ_j x_j·w_jp` 与 `x_j` **同标度**（ADU）；
+  - 输出 `S_p`：**面亮度 ADU/sr**（§5 语义固定；写盘 BUNIT 冻结集 {ADU/sr, ADU²/sr², sr²/ADU²}）；
+  - 面积 `a_jp, A_drop,j, A_pixel,j, D_p`：**sr**（球面立体角）；源像素平面面积 px² 只是同一量的平面等价表达（§3a），
+    因子表在两套面积制下同比例缩放，核与归一分母的**比值**不变；
+  - 面亮度归一分母 `N_p = Σ_j w_jp·A_pixel,j`：**sr**（无量纲核 × 球面面积，与 `D_p` 同量纲，`N_p = D_p/pixfrac²`）；
+  - `v_j`：**ADU²**（输入方差）；输出 `variance_p` 与 `v_j` **同标度平方**（像素域 ADU²；产品面为面亮度时 ADU²/sr²）；`ivar` 为其倒数（同标度）；
+  - `w_jp`：无量纲（§4 另用的 `w>0` 是图像宽高，与核权重无关）。
+- `hp_res, max_angle`: rad；`pixfrac`、`nside`、`order`: 无量纲（`nside=2^order`）。
 
 ## 4 输入有效域
 
@@ -128,6 +136,10 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
   `S_p=Σ_j B_j a_jp/Σ_j a_jp`（面亮度）**只有在归一分母取 `N_p=Σ_j w_jp·A_pixel,j` 时同时成立**；
   把核换成 `w=a_jp/A_pixel,j`（则 `Σ_p F_p=pixfrac²Σ_j x_j`），或把分母换成 `D_p=Σ_j a_jp`
   （则 `S_p=B0/pixfrac²`），另一条立刻偏 `pixfrac²`。二者不可同时满足任何单权重单分母组合。
+  **归一分母的唯一性（正向反解）**：`S_p = Σ_j x_j·w_jp / Σ_j w_jp·A_pixel,j` 代入 `x_j = B_j·A_pixel,j`
+  后对**任意 `B_j`** 等于面积交叠均值 `Σ_j B_j a_jp/Σ_j a_jp` 的充要条件是 `A_pixel,j·w_jp ∝ a_jp`；
+  取核 `w_jp = a_jp/A_drop,j`、`A_drop,j = pixfrac²·A_pixel,j` 即满足（`pixfrac²` 为常量、分子分母相消），
+  故 `N_p` 的**核一次**形式是唯一解。
 - **验收判据（主判据 = 逐 leaf 门）**：主判据是**逐 leaf 面积/权重相对误差门**
   （每个 leaf 的 `Σ_j a_jp` 与 `w_jp` 各自过相对误差门）；求和型判据
   `Σ_p sumFlux_p=Σ_j x_j`（FP64 相对闭合 `<1e-7`）**只证总量守恒**，对逐 leaf 错注入
@@ -160,6 +172,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 - 把核权重写回 `a_jp/A_pixel,j`（则 `Σ_p F_p = pixfrac²·Σ_j x_j`，总流量被 `pixfrac²` 系统性压低，FZ-COND-FLUX-CONSERV 判红）；
 - 将 `S_p` 的分母取覆盖面积 `D_p=Σ_j a_jp` 而非面亮度归一分母 `N_p=Σ_j w_jp·A_pixel,j`（`pixfrac<1` 偏 `1/pixfrac²`；该混合式属**禁用式**，其偏差判据见 ALG 层 `FZ-FORMULA-DRIZZLE-SB` / `DISP-DRZ-009` 登记面）；
 - 把 `provenance.flux_conservation_factor` 写成 `pixfrac²`（新口径下恒为 1）；
+- 把面亮度归一分母写成 `Σ_j w_jp²·A_pixel,j`（核的平方）——`N_p` 是**核一次**乘源像素面积 `Σ_j w_jp·A_pixel,j`；平方形式量纲不齐，会使 `S_p` 偏 `1/pixfrac²`（`p1drz_disp009` 常量面亮度门判红）；
 - 将方差传播写为 `var_p=Σ v_j·w_jp`（漏 `²` 与 `/N²`）；
 - 在微小区用 `float` 面积致 0.05% 偏差。
 
@@ -233,53 +246,10 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 核按 **drop 面积** 归一):
 - **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。
 
 参考代码库（含许可证）正本 = docs/engineering/SCIENTIFIC_REFERENCES.md §M。
+
+## 15 Acceptance
+
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
 - §7 不变量门全过；
 - `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
-- 解析不变量→SYN-004 转换：常数/点源/梯度/旋转/亚像素 shift/pixfrac 扫描/tile boundary 用例，flux 或 brightness/support/variance/coverage 不变量全过（§15 SYN-004 数据与不变量表）。
-
-## 15 变更登记 —— 面亮度归一分母 `N_p` 家族（R-43 / P-102）
-
-> 本节为**加性登记**（行锚安全：追加在文末，不改既有行号）。**冻结数值、容差、`pixfrac` 域一字未动**；
-> **canonical 定义 `N_p = Σ_j w_jp·A_pixel,j`（§2 / §5）未变**，运行时行为零变化。
-
-### 15.1 变更前 / 变更后
-
-| # | 位置 | 变更前 | 变更后 | 性质 |
-|---|---|---|---|---|
-| 1 | §5（等价参数化） | `N'_p = Σ_j w'_jp = D_p/pixfrac²` | `N'_p = Σ_j w'_jp·A_pixel,j = D_p`（并显式并列 canonical 侧 `N_p = D_p/pixfrac²`） | 订正（**等价参数化的分母错标**；原式与同句「给出同一个 `c_jp = w_jp/N_p`」自相矛盾，且量纲不齐——`Σ_j w'_jp` 无量纲、`D_p/pixfrac²` 为 `sr`） |
-| 2 | `docs/science/DATA_SEMANTICS.md` §4a | 实现锚 `drizzle_engine.cpp` `weight = overlap_area / pixel_area` | 实现锚 = `weight = overlap_area / drop_area`（drizzle_engine.cpp）+ `acc.sumNorm += overlap_area*(pixel_area/drop_area)`（同文件）+ `drizzle_engine.h` `sumNorm = Σ_j w_jp·A_pixel,j` | 订正（**失实实现锚**；代码从无 `overlap_area / pixel_area` 之核） |
-
-**未变更（须逐字保留）**：§2、§5 的 `N_p = Σ_j w_jp·A_pixel,j`；§5 的核 `w_jp = a_jp/A_drop,j`；
-§5 的组合系数 `c_jp = a_jp/(A_pixel,j·D_p)`；§7 两条不变量的相容性论断；§10 的不可接受变化清单；
-§14a 的 canonical 口径与实现锚；§11 的常量面亮度门。
-
-### 15.2 依据（一手）
-
-- **文献**：Fruchter & Hook 2002（PASP 114, 144；arXiv:astro-ph/9808087v2）§7.2 式(7) 正下方逐字：`a` 是 *"the fractional area overlap of **the drop** of input data pixel d_xy with the output pixel o"* ⇒ 每个输入像素 `Σ_o a_io = 1` ⇒ 核按 **drop** 面积归一（= 本文件 §5）。该文未给面亮度归一分母的符号定义，分母由**冻结的 `S_p` 不变量**反解。
-- **冻结不变量反解（决定性）**：`S_p = Σ_j x_j·w_jp / Σ_j w_jp·A_pixel,j`，代入 `x_j = B_j·A_pixel,j` 得 `S_p = Σ_j B_j·(A_pixel,j·w_jp) / Σ_j (A_pixel,j·w_jp)`。该式**对任意 `B_j`** 等于 `Σ_j B_j a_jp / Σ_j a_jp` 的充要条件是 `A_pixel,j·w_jp ∝ a_jp`。取 `w_jp = a_jp/A_drop,j`、`A_drop,j = pixfrac²·A_pixel,j` ⇒ `A_pixel,j·w_jp = a_jp/pixfrac² ∝ a_jp` ✓（`pixfrac²` 为常量，在分子分母相消）。
-- **实现（逐行）**：`drizzle_engine.cpp` 的 `weight = overlap_area / drop_area`（核）；`acc.sumArea += overlap_area`（`D_p`）；`acc.sumNorm += overlap_area*(pixel_area/drop_area)`（= `a_jp·A_pixel,j/A_drop,j = w_jp·A_pixel,j` ⇒ `sumNorm = N_p`）；`acc.sumVarNum += v_j·w_jp²`（均在 drizzle_engine.cpp）。单一事实源三处同义：`drizzle_engine.h`、`astro_sphere_sink.h`（`k := D_p/N_p = sumArea/sumNorm = pixfrac²`）、本文件 §14a。
-- **量纲核验**：`N_p` = `Σ_j w_jp·A_pixel,j` = `sr`（无量纲核 × 球面面积）与 `D_p` 同量纲；`D_p/pixfrac²` 才是 canonical 侧 `N_p` 的取值。`N'_p = Σ_j w'_jp·A_pixel,j` = `Σ_j a_jp` = `D_p` ✓。
-
-### 15.3 影响面
-
-- **产品/数值面 = 零**：本变更只改一个非冻结中间符号的**等价参数化写法**与一处失实锚，`N_p`/`w_jp`/`c_jp`/`S_p`/`variance_p` 的 canonical 取值与全部冻结容差不变；`pixfrac` 域 `(0,1]` 与默认 `0.8` 不变。
-- **发布面**：`sumNorm`、`sb_publish_scale`、AIO writer `finalize_tile` 的 `k` 幂次（signal +1 / variance +2）一律不动。
-- **文档面**：`docs/science/DRIZZLE.md`（本文件，FROZEN）、`docs/science/DATA_SEMANTICS.md` §4a；`docs/science/algorithms/DRIZZLE_GEOMETRY.md` 与 `DATA_SEMANTICS` §11.2/§12.3/§31.1 的 `sumFlux/sumNorm` 表述经逐条核对**本就正确**，不改。
-
-### 15.4 回归证据（本变更复跑判词）
-
-- `p1drz_disp009`（常量面亮度门 + 「分母取覆盖面积 `D_p` 必判红」负例控制）：
-  `pf=0.800 leaf=161 max|S/B0-1|=4.700240e-12 gate=GREEN defect_pred_dev=5.624997e-01 defect_gate=RED`；
-  `pf=0.600 max|S/B0-1|=4.770850e-12 GREEN defect=1.777777e+00 RED`；`pf=0.500 max|S/B0-1|=4.787060e-12 GREEN defect=2.999998e+00 RED`；`== PASS (0 失败) ==`。
-- `variance_propagation_test`：`pf=0.80 (a) sumNorm*pf^2 == sumArea worst_rel=2.87e-05 (<=1e-3)`、`(e) S_p 与 pixfrac 无关 worst_rel=1.61e-05`、`(d) 判据非退化 |S_legacy/S_doc-1|=0.5625`。该断言（`sumNorm = D_p/pixfrac²`）是 canonical `N_p` 的**直接机器判据**。
-- 命令（重算 ≤4 GB，单进程，非重计算）：
-  `python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 4 --timeout 300 -- ./build/eng/tests/unit/p1drz/p1drz_disp009_gate`
-  `python3 eng/tools/monitoring/mem_guard.py --max-rss-gb 4 --timeout 300 -- ./build/eng/tests/unit/drz_tests/variance_propagation_test`
-
-### 15.5 勘误记录（R-43 撤销案）
-
-- 查证报告《科学文档疑义查证报告》§1.3/§1.5/§9 曾判「实现式 `N_p = Σ_j w_jp²·A_pixel,j` 为正本、文档式错」，并据此提 R-38（改冻结文档）与 R-41/N-01（改实现）。
-- **该判定已撤回**（`RULINGS.md` R-43）：误判机制 = 把 `acc.sumNorm += overlap_area*(pixel_area/drop_area)` 中的 `overlap_area` 当成 `A_pixel`，从而把 `a_jp·A_pixel,j/A_drop,j` 误读为 `a_jp²/A_pixel,j`。代码中不存在 `Σ_j w_jp²·A_pixel,j` 这一分母。
-- **后果**：若照原判定落地，本文件 §2/§5/§7/§10 的对应条款会被改错，且 `R-41` 的两行「修复」会把 `sumNorm` 改成 `Σ a²/(pixfrac⁴·A_pixel)` 使 `S_p` 偏 `1/pixfrac²`（`p1drz_disp009` 判红）。**故不得执行**。
-- 复查命令（任何人可复现）：在 `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` 中按符号名（`weight = overlap_area / drop_area`、`acc.sumArea`、`acc.sumNorm`、`acc.sumVarNum`）定位四行，与上列两条门命令并读。
+- 解析不变量→SYN-004 转换：常数/点源/梯度/旋转/亚像素 shift/pixfrac 扫描/tile boundary 用例，flux 或 brightness/support/variance/coverage 不变量全过（SYN-004 数据与不变量表）。

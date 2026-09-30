@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | adu | 线性信号单位,同滤镜/增益标度下可比 | 信号单位 | DN → 禁用,一律写 ADU（EMVA 1288 等原文的 DN 即本仓 ADU,换算比 1:1,数值不变） | docs/science/CALIBRATION.md §3 |
 | electron | DRIZZLE 域允许的信号等价标注(增益标定后) | 信号单位(=ADU 等价标注) | e⁻ → electron | docs/science/DRIZZLE.md §3 |
-| variance | 逐像素随机方差,Drizzle 传播 variance_p=Σ v_j·w_jp²/D_p²;无覆盖像素=0 | 信号单位²(ADU²) | - | docs/science/DATA_SEMANTICS.md §4a |
+| variance | 逐像素随机方差,Drizzle 传播 variance_p=sumVarNum/N_p²（等价参数化写法 Σ v_j·w_jp²·k²/D_p²,k:=D_p/N_p=pixfrac²）;裸写 /D_p² 漏 k²,仅 pixfrac=1 时同值;无覆盖像素=0 | 信号单位²(ADU²) | - | docs/science/DATA_SEMANTICS.md §4a |
 | ivar | 逆方差=1/variance;variance=0/缺失 → ivar=0(显式不可用,状态显式标注);NaN/负 variance=产品损坏 | ADU⁻² | - | docs/science/DATA_SEMANTICS.md §4a |
 | pixel_weight | 像素级科学权重=ivar(UPM/integration);snr² 权重只用于 ablation 对照 | 无量纲 | snr²-weight → pixel_weight(ivar) | docs/science/DATA_SEMANTICS.md §4a |
 | frame_quality_weight | 帧质量权重=support×snr_v²（SCI-CW 域专用，非生产；权重是阶段二按天球像素对应帧集合现场算出的派生量）；生产=逐样本 ivar；snr=1.0 一律按 unknown 显式标注 | 无量纲 | - | docs/science/CONTROL_WEIGHT_SNR.md §2a |

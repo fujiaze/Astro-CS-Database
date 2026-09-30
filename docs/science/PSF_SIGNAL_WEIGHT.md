@@ -49,11 +49,10 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 >   定义式逐字为 `w_{PSF} = \frac{c_1\sum_{j=1}^n f_j\,\sum_{j=1}^n \bar{f_j}}{c_2\,\sigma_n\,M^\star}`、
 >   `\textup{SNR}_{PSF} = \frac{c_3\left(\sum_{j=1}^n f_j\right)^2}{c_4\,\sigma_n^2}`。
 >   **注意 `c2`/`c4` 的指数确为 `+6`（不是抄写错误）**：它们与 `c1`/`c3` 配对使用，
->   标定集为 1000 幅 4096² 合成图（背景高斯 σ=0.001、均值 0.015、平均 1500 颗可检测星、
->   Moffat β=4 FWHM=5 px），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.11.0 头文件**（版本漂移已更正：本文原写 2.10.4；上游仓 pixinsight/PCL 的 commit 5a3902196a7d7a701385a7113cbdce2976ae1a85 的 src/pcl/XISFReader.cpp 头横幅逐字自述 PCL 2.11.0）**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。**未独立核验**：PCL 头文件在 `gitlab.com/pixinsight/PCL` 的常见路径上 404，该行数值与下一条元数据断言均待补一手锚点。
+>   标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001、均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.11.0 头文件**（上游仓 pixinsight/PCL 的 commit 5a3902196a7d7a701385a7113cbdce2976ae1a85 的 src/pcl/XISFReader.cpp 头横幅逐字自述 PCL 2.11.0）**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。**未独立核验**：PCL 头文件在 `gitlab.com/pixinsight/PCL` 的常见路径上 404，该行数值与下一条元数据断言均待补一手锚点。
 >
 > **Astro Celestial Sphere Database（ACSD） 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp`；`lib/algorithms/photometry/include/astrocs/psfsw.h`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；其最优性以本项目 L1 合成数据标定记录为判据。
-> - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp`；`lib/algorithms/photometry/include/astrocs/psfsw.h`。
+> - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL **2.11.0** Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp`；`lib/algorithms/photometry/include/astrocs/psfsw.h`。
 
 对象身份 `psfsw_robust_weight` **已退役**（权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定，最高设计 §3.1）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），接受面 = 具名拒绝。上列特征描述的是**在役诊断量**必须保留的形态；为避免星表选择偏差，诊断量还必须满足以下约束：
 

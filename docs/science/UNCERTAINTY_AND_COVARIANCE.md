@@ -33,7 +33,7 @@ nside=512 合成帧相邻像素 mean|ρ|≈0.19、max|ρ|≈0.57。
 
 ## UPM control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
 
-(本节公式隶属 Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于 `lib/algorithms/noise_snr` 的 `NoiseWeightModelV1`；后者仅提供 σ_bg，经 sampler 阶段乘 k_corr 缩放，且 k_corr = N_retained/N_eff、定义域 1 < k_corr，见 SCI-UPM §5/§6)
+(本节公式隶属 Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于 `lib/algorithms/noise_snr` 的 `NoiseWeightModelV1`；后者仅提供 σ_bg，经 sampler 阶段乘 k_corr 缩放。**k_corr 的两种写法是同一个量的两种表述**：比率式 `k_corr = N_retained/N_eff`（`N_eff` = drizzle 相关下的有效样本量）与本节下行的因子分解式 `k_corr = k_gauss(N_retained) × k_geo(几何)` 数值同解（远散域 k_geo=1、k_gauss(≥121)≈1.00 时两侧同为 ≈1.00）；**规范式 = 因子分解式**（可查表、逐帧标定），比率式只作其定义域与拒收判据的表达。定义域 **1 < k_corr**，见 SCI-UPM §5/§6)
 
 UPM 的 control estimator 是 background-clean patch **median**，其方差
 不是单 leaf 像素方差：

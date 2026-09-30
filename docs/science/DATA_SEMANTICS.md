@@ -605,7 +605,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | reference_baseline.reference_flux_source | string | — | `fixed_magnitude`（现行）/ `group_median`（**仅作显式选项**）/ `config` / `unavailable`（该帧 fail-closed，不写帧级 SNR 键） |
 | reference_baseline.reference_flux_common | f64 | 见 `reference_flux_common_unit` | **物理公共锚 `F0`**：对同波段同星场恒为同一数 |
 | reference_baseline.reference_flux_common_unit | string | — | 公共锚单位（现行 = `F_syn (Gaia XPSD absolute spectral integral)`；显式 `snr.reference_flux_adu` 覆盖时为 ADU） |
-| reference_flux_k | f64 | 同上 | **逐帧** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`（逐帧、只依赖本帧标定） |
+| reference_flux_k | f64 | ADU（与该帧 `F`、`σ_F` 同标度；由 `m_ref/ZP` 合成的绝对档位可写为 F_syn 制，取值随 `reference_mag_system`） | **逐帧** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`（逐帧、只依赖本帧标定）；**配对条件** = 与同帧 `snr_f` 同帧同源（`w = SNR²/F_ref² = 1/σ_F²` 要求分子分母同标度，跨标度相乘会使 SNR 偏一个增益因子） |
 | reference_flux_adu | f64/null | ADU | 显式覆盖键 `snr.reference_flux_adu`（优先于合成谱）；缺省 null |
 
 **样本真实性约束（机器锁 eng/tests/unit/p1snr/

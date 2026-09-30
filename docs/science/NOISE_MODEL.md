@@ -96,7 +96,8 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
   r_min = max(1.5 px, 0.75·FWHM_i)   # noise.mask_r_min_px / noise.mask_fwhm_floor_scale（至少覆盖 PSF 核心）
   rmax  = max(1,r0)·max(1,scale) = 60 px   # **硬上界**（保大 PSF 重翼），不是操作默认半径
 天空预算收缩: 取最大 s∈(0,1] 使 n_qualified(s) ≥ 8 且 N_sky(s) ≥ 9216；无可行 s ⇒ rc=1（§7 空 support 不传播不变）
-  预算推导（a priori）: 单 patch 相对误差 c ≈ 1.152/√N，中位数效率 1.25 ⇒ SE(σ̂)/σ ≈ 1.44/√N_sky；取 SE ≤ 1.5% ⇒ N_sky ≥ 9216
+  预算推导（a priori）: 单 patch 相对误差 c ≈ 1.152/√N，中位数位置系数 √(π/2)=1.2533 ⇒ SE(σ̂)/σ ≈ 1.44/√N_sky
+                       （1.152×1.2533=1.4438，冻结取 1.44；同一系数在本文件 §8、§9a 以 √(π/2) 形式书写）；取 SE ≤ 1.5% ⇒ N_sky ≥ 9216
   ⚠ 单位（SCI-B D2 订正）：1.44/√N 是 σ̂ 的**相对**标准误 SE(σ̂)/σ（无量纲），**不是 dex**；
      若要以 dex 表述同一预算，须除以 ln10：SE_dex ≈ 1.44/ln10/√N ≈ 0.625/√N（两者差 ln10 = 2.3026 倍，禁止混用）。
 回调（信息缺失，按序生效）:
@@ -299,7 +300,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 | 条件 | 行为 | 证据 |
 |---|---|---|
 | 掩膜覆盖过大（收缩后仍 `n_qualified < 8` 或 `N_sky` 不足） | 先按 §5a 天空预算收缩逐星半径；收缩到 `r_min` 仍不可行 ⇒ `degenerate=1, ivar=0, r=1` 拒（不产生伪权重）；收缩生效但 `n_qualified < 8` ⇒ 置 `MASK_DEGRADED` | 证据见 `实验/absolute-snr/`（掩膜与天空预算 results） |
-| 无合格 patch（收缩后仍无） | `degenerate=1`；若**全部未掩膜** sky 样本 < `max(min_samples, 9216)` ⇒ `ivar=0,r=1` 拒（按 `SE(σ̂)/σ ≈ 1.44/√N_sky ≤ 1.5%` 要求 `N_sky ≥ 9216`，与 §5a 同一预算常数（`1.44 = 1.152×1.2533` 复合口径，`9216 = (1.44/0.015)²`））；否则 `degenerate=1` 全局常量场 `has_spatial_field=0, r=0` fallback 并置 `MASK_DEGRADED` 诊断标 | `noise_model.cpp`（预算判定与默认 9216 的取值面） |
+| 无合格 patch（收缩后仍无） | `degenerate=1`；若**全部未掩膜** sky 样本 < `max(min_samples, 9216)` ⇒ `ivar=0,r=1` 拒（按 `SE(σ̂)/σ ≈ 1.44/√N_sky ≤ 1.5%` 要求 `N_sky ≥ 9216`，与 §5a 同一预算常数：`1.44 ≈ 1.152×√(π/2) = 1.152×1.2533 = 1.4438`，冻结取 `1.44`；`9216 = (1.44/0.015)²`）；否则 `degenerate=1` 全局常量场 `has_spatial_field=0, r=0` fallback 并置 `MASK_DEGRADED` 诊断标 | `noise_model.cpp`（预算判定与默认 9216 的取值面） |
 | 全帧 NaN/饱和 | 饱和像素按 §4「饱和域」剔除；**全帧无任何合法 sky 样本**（NaN+饱和全剔，或样本 < §5a 预算）⇒ `degenerate=1, ivar_bg_global=0, r=1`；**电平未提供（unset）时本行的饱和支不可达**——这正是 §4 强制显式降级声明的理由 | `noise_model.cpp` 的 `valid_pixel` / `collect_patch_sky`；SAT-001 |
 | `variance_floor` 非有限或 ≤0 | build 与 fill **都**显式拒绝：`SNR_FLOOR_UNBOUND(-10)`，不产出模型、不静默回退常数 | `noise_model.cpp` |
 | `gain<=0` | `snr_noise_gain_variance` 返回 0 | `noise_model.cpp` |
@@ -331,7 +332,7 @@ DSNU、PRNU、列固定图案、高光通量方差亏损、重采样相关**在�
 ## 10 不可接受变化
 
 - 把 `snr_noise_gain_variance` 一类解析式融合进**背景方差面**（§5）：该面的唯一基线是 empirical MAD（`source==0`），即使帧头有 gain 也不融合；加权方差面（§5c）按该节口径**必须**含源项与常数项；
-- 半径按亮度自适应**仅在** §5a 的 ABI 提供逐星通量/FWHM 且该节常数重冻结后启用；前提不满足时半径**必须**与亮度解耦（自适应路径一律判红）；
+- 逐星半径按亮度自适应是**现行且唯一**的掩膜口径（§5a/§6/§7）：`r_i` 由 `r_local(F_i, FWHM_i, k·σ_bg)` 经 `r_min/rmax` 与天空预算收缩导出；把「半径与亮度解耦」当作物理前提、或在逐星 `F_i/FWHM_i` 可得时退回统一半径，属于不属本合同的路径（§5a 已给出解耦口径的偏差量化）；逐星 `F_i/FWHM_i` 不可得时按 §5a 回调规则降级并置 `MASK_LEGACY`，**不以解耦作为设计取值**；
 - 取消或绕过天空预算判据（`n_qualified ≥ 8`、`N_sky ≥ 9216`）而直接产出权重场；
 - 改变 `variance_floor` 默认值 `1e-12` 或 `g_model_floor` 的指针 key 隔离语义；
 - 将 `q_psf`/`photometric scatter` 混为逐像素 `variance`；
