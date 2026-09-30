@@ -222,8 +222,16 @@ def main():
         return selftest()
     pdir = args.providers_dir or os.path.join(args.repo, "build", "providers")
     if not os.path.isdir(pdir):
-        print("CHK-PROVIDER-MANIFESTS SKIP: providers 目录不存在: " + pdir)
-        return 0
+        # fail-closed：providers 目录缺席 = 清单无法核验 = 判红，不得 SKIP 判绿。
+        # 契约见 docs/engineering/01_CHECKS.md「清单缺失即 fail-closed」。
+        # 同仓既有正确范式：eng/tools/check_baseline_opcodes.py 对 build_dir 缺席抛 AnchorStale。
+        print("CHK-PROVIDER-MANIFESTS FAIL: providers 目录不存在（fail-closed，不得判绿）: " + pdir)
+        if args.json_out:
+            os.makedirs(os.path.dirname(args.json_out) or ".", exist_ok=True)
+            json.dump({"providers_dir": pdir, "entries": 0,
+                       "errors": ["providers_dir_missing: " + pdir]},
+                      open(args.json_out, "w"), indent=2)
+        return 2
     errs, n = check_tree(pdir)
     if args.json_out:
         os.makedirs(os.path.dirname(args.json_out) or ".", exist_ok=True)

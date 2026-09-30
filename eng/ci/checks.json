@@ -8964,6 +8964,25 @@
       "requires_monitor": false,
       "steps": [
         {
+          "id": "PROVIDER-MANIFESTS",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_provider_manifests.py",
+            "--json-out",
+            "run/ci/provider_manifests.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "waivable": false
+        },
+        {
           "id": "PROVIDER-MANIFESTS-NEG",
           "profiles": [
             "fast",
@@ -8979,7 +8998,6 @@
           "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
-          "outputs": [],
           "waivable": false,
           "changed_paths": [
             "eng/ci/check_provider_manifests.py"
