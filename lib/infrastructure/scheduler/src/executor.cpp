@@ -24,6 +24,14 @@
 
 namespace astrocs::core {
 
+namespace {
+// 任务体抛出的异常被 worker 吞掉（异常不得杀死 worker，见下方 catch），
+// 但**吞掉不等于没发生**：错误码一律上行（detail 19_runtime §7「空 catch、
+// 忽略返回码、只写日志不返回错误、"警告后继续"均不在处置面内」）。
+// 该计数是「被吞掉的异常」的唯一留痕面，随进程期存在、无锁（单字长原子）。
+std::atomic<uint64_t> g_task_exceptions{0};
+}  // namespace
+
 // ───────────────────────── CPU heavy executor ─────────────────────────
 
 struct CpuHeavyExecutor::Impl {
@@ -132,13 +140,19 @@ void CpuHeavyExecutor::worker_loop() {
       e.provider = std::move(obs_provider);
       obs_store->record(std::move(e));
     }
+    bool task_failed = false;
     try {
       task(ctx);                          // lease RAII：任务结束/异常自动归还
     } catch (...) {
-      // 异常不得杀死 worker；lease 经析构回收
+      // 异常不得杀死 worker；lease 经析构回收。
+      // 但失败必须留痕且**不得记成成功**：置 task_failed 使下方观测事件按
+      // FAILED 记、且不计入 tasks_executed_（否则 wait_all 与诊断面都看不出
+      // 这次执行崩了，违反 detail 19_runtime §7「错误码一律上行」）。
+      g_task_exceptions.fetch_add(1, std::memory_order_relaxed);
+      task_failed = true;
     }
     // RT-006: 任务观测结束（真实完成；计数+1；收集任务内 provider 置位观测）
-    tasks_executed_.fetch_add(1, std::memory_order_relaxed);
+    if (!task_failed) tasks_executed_.fetch_add(1, std::memory_order_relaxed);
     {
       std::lock_guard<std::mutex> lock(obs_mu_);
       if (!ctx.provider().empty() && ctx.provider() != observed_provider_) {
@@ -148,7 +162,7 @@ void CpuHeavyExecutor::worker_loop() {
       if (obs_store) {
         TraceEvent e;
         e.type = TraceEventType::WORKER_TASK;
-        e.status = "COMPLETED";
+        e.status = task_failed ? "FAILED" : "COMPLETED";
         e.workers = static_cast<uint32_t>(lease.size());
         e.provider = observed_provider_;
         e.wall_ms = std::chrono::duration<double, std::milli>(
@@ -252,7 +266,8 @@ void IoExecutor::io_worker_loop() {
     try {
       task(ctx);
     } catch (...) {
-      // I/O 任务异常不杀死 worker
+      // I/O 任务异常不杀死 worker；同 CPU 侧，失败必须留痕（不静默吞）。
+      g_task_exceptions.fetch_add(1, std::memory_order_relaxed);
     }
     {
       std::lock_guard<std::mutex> lock(impl_->mtx);

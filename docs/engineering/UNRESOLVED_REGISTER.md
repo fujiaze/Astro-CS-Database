@@ -1411,3 +1411,84 @@ G08-10 重建 CI 时**必须**为 `PIPELINE_BLOCK_CONTRACT.md` 的 C1–C8 逐�
 
 另：53 条悬空 `eng/` 引用要么补实现、要么改正本的声称，**不得留着声称一个不存在的脚本
 是现行门**。此项与 §31 的 R6（`eng/ci/` 退场后 4 处检查器指针悬空）是同一批。
+
+---
+
+## 38. G08-07 分片三（scheduler + pipeline）报回：94 文件 / 51,700 行
+
+### 38.1 端口事实源不唯一（**是 §37 的根因**）
+
+合同 §1 声明 `module_ports.registry.json` 为端口事实源，但仓内**四套词表互不相同**：
+registry（20 module / 78 端口）、`module_adapters.cpp:703-1210` 的 descriptor、IR fixture、detail。
+**20 个真实模块里 18 个有错。**
+
+**接错对象 3 处**（分片点名，前台采信）：
+
+| 位置 | 声明 | 实际 |
+|---|---|---|
+| `p2_coverage_descriptor()` `:1065` | 读 `DATA-P2-CAL` / PIXEL | 代码只读 `doc["hips_paths"]` 的逐帧 HiPS 树（`:9369`）；registry 真值 `frame_hips`/`DATA-HIPS-001`/**HEALPIX**；`DATA-P2-CAL` 在 registry 20 module **零出现** |
+| `p2_upm_apply_descriptor()` `:1123` | `DATA-P2-CAL` / **SURFACE_BRIGHTNESS** | 单位与 `DATA_SEMANTICS.md §26.1(2)` 明写的 **ADU** 矛盾 |
+| `p1_writer_descriptor()` `:1041-1042` | 输出 `fits` / `DATA-P1-FITS` | `p1_op_writer` **零 FITS 写点**，`DATA-P1-FITS` **全仓不存在**；真实输出是 `p1_final.json` + `p1_products.json` |
+
+另：同一 `data_id` `DATA-P2-RES` 两套单位（`:731` ADU vs `:1187` SB）、`DATA-TILE-001` 悬空、
+约 19 处「读了/写了没声明端口」。
+
+⇒ **分片一条端口声明都没改** —— 要先裁 `DATA-P2-RES`/`DATA-P2-CAL` 的唯一口径，
+否则会在错误一侧「修正」。
+
+### 38.2 失败不产生稳定错误码：已改 2 处、点名 6 处
+
+**已改**（前台核对 diff 通过）：`executor.cpp:137-139` 与 `:254-256` —— 原为空 `catch`，
+且 `tasks_executed_` 仍 `+1` ⇒ **失败被记成成功**。改后：异常计数上行、事件按 `FAILED` 记、
+失败**不计入** `tasks_executed_`。
+
+**未改点名 6 处**：
+
+- `secure_loader.c:649` 把 NOMEM / IO / 哈希 / 符号缺失**四类坍缩**成同一 `ACS_ERR_ABI_MISMATCH`
+- `block_flow.cpp` / `normalize_workflow.h` 的 `FrameOutcome` / `mosaic_window.h` 的 `WindowOutcome`
+  三个执行面 outcome **只有 `std::string`、无 `ErrorDomain`** ⇒ CLI 无法按 §5 映射退出码
+- **`export_stream.cpp:225-228` 两个回调都空时写全零子块、`:679` 仍判 `ok=true` ⇒ 会发布全零 FITS**
+- `module_registry.c:508-527` describe 失败返 `ACS_OK`
+- `normalize_workflow.cpp:156-168` 预取失败空串被写进 L1 当命中继续用（无 `degraded_reason`）
+- `runtime.cpp:80` 未登记 `unestimable_reason`
+- 另：`export_stream.cpp:671/676` 取消用 `exit 130`，正本要求 **exit 9**
+
+### 38.3 并发
+
+| 类别 | 要点 |
+|---|---|
+| **私建池** | `scheduler.cpp:373-376` 每次 `run()` 现建 `budget_` 条线程，与 `executor.cpp:19-20` 注释「已消灭 per-run 池」**直接矛盾** |
+| **嵌套并行** | `module_adapters.cpp:2077-2082` 帧轴 `std::thread` 池 × 帧内 OpenMP ⇒ 全进程 **6–7 套池** |
+| **非原子 static** | `logging.cpp:64,70` 的 `++seq_`/`++emitted_` 裸计数无锁（同文件 `MetricsAggregator:74` 有锁）；`orchestrator.cpp:102-103` 文件作用域可变 config 缓存无 owner、返回共享引用 |
+| **跨任务 thread_local 不复位** | `context.cpp:20` `tls_provider`（worker 线程跨任务复用） |
+| **无界队列** | `executor.cpp:172-176` CPU 队列无容量/背压/超时（同文件 `:269` 的 IoExecutor 正确有界） |
+| **已改 1 处** | `module_adapters.cpp:2017-2020` 串行分支裸 `omp_set_num_threads` 不恢复 ⇒ 改用同文件既有 `ScopedOmpWorkerInjection`（`:375` 定义，`:13868` 已在用） |
+
+### 38.4 取消/异常：分片纠正了自己的子审阅器
+
+子审阅器称「`fn_frame_destroy` 全仓从未被调用」—— 分片**逐行核实为错**：
+它在 `orchestrator.cpp:5352-5354` 与 `:5361-5363` **两处确实被调用**，正常/取消路径不泄漏。
+
+真实缺口是：`run_stage1` 全程**无 try/catch**，且 watchdog `join` 在 `:5238` 位于 stage 调用 `:5234`
+**之后** ⇒ 异常即 `std::terminate`。同类 terminate 家族共 9 处（`scheduler.cpp:375`、
+`executor.cpp:53,228`、`normalize_workflow.cpp:481,483`、`mosaic_window.cpp:273`、
+`export_stream.cpp:584`、`module_adapters.cpp:2079,9246`）线程创建无异常 guard。
+
+**块生命周期本体无泄漏**（`block_frame.cpp` 全 `unique_ptr`+RAII，取消路径干净，
+单块 4 GiB / 单帧 16 GiB 上限真实生效）。
+
+### 38.5 移交项 A 的结论：**代码有、detail 无**（不是「正本要求但未实现」）
+
+`queue_depth` 消费点：`export_stream.cpp:90,158-169,242-246`、`module_adapters.cpp:15425-15428,15534`、
+`executor.cpp:269`；`sub_block_px` 消费点：`module_adapters.cpp:14249-14257,14947,15422,15764`。
+唯一数值源已登记 `eng/packaging/config/runtime_resources.json#orchestration_params`。
+
+⇒ 建议给 `docs/detail/infrastructure/19_runtime.md §5` 补 4 行（不在车道写域，已登记）。
+**但第二层缺口更重**：这四类键只覆盖 P2/P3，**P1(phase1) 的「队列深度」在代码里既无键也无承载**。
+
+### 38.6 移交项 B 成立
+
+scheduler/pipeline 生产代码**零等价判据**（无后端选择/等价比较/rtol 阈值；`ErrorDomain::BACKEND`
+只是错误分类）。全仓唯一近似物 `acr/tests/integration/test_weighted_integration.cpp:173,196`
+是 ACR **自建 gtest**、比较基准是**串行参考**、两端是 ACR 的 `CpuOnly`/`GpuOnly` 两种 `RouteMode`
+—— **不是「ACR 后端 vs CPU 后端」**，且调度器侧无钩子会读它。`19_runtime.md` 零处登记该空判据面。

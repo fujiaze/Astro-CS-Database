@@ -719,6 +719,16 @@ ModuleDescriptor phase1_descriptor() {
   return d;
 }
 
+// 保留原因（AGENTS §6「退役代码删除，或保留统一注释块写明原因」）：
+// 聚合 descriptor，供不按 20 节点子模块装配的调用方走一次性 session 适配。
+// **已知不一致（未裁，登记于交付件待裁项）**：
+//   ① module_id `astrocs.phase2.resample` 不在端口事实源
+//      module_ports.registry.json 的 20 个 module 内；
+//   ② 输出 data_id DATA-P2-RES 在本 descriptor 标 ADU，而 p2_write_descriptor
+//      对同一 data_id 标 SURFACE_BRIGHTNESS；
+//   ③ 输入 data_id DATA-P1-CAL（ADU/PIXEL）是 Phase1 的面，与本阶段真实
+//      输入面（逐帧 HiPS 产品树 DATA-HIPS-001/HEALPIX，见 registry）不同源。
+// 处置需先定 DATA-P2-RES 的唯一单位与坐标口径，不在代码侧自行改口径。
 ModuleDescriptor phase2_descriptor() {
   ModuleDescriptor d;
   d.module_id = "astrocs.phase2.resample";
@@ -738,6 +748,15 @@ ModuleDescriptor phase2_descriptor() {
   return d;
 }
 
+// 保留原因（AGENTS §6「退役代码删除，或保留统一注释块写明原因」）：
+// 聚合 descriptor，供不按 20 节点子模块装配的调用方走一次性 session 适配。
+// **已知不一致（未裁，登记于交付件待裁项）**：
+//   ① 输出 data_id `DATA-TILE-001` 在端口事实源 module_ports.registry.json、
+//      DATA_SEMANTICS.md 与全仓均无定义（悬空 DATA id）；
+//   ② 输入 `hips` 标 CoordinateFrame::PIXEL，而同一 DATA-HIPS-001 在
+//      p3_properties_descriptor / p2_coverage 的真实面是 HEALPIX；
+//   ③ module_id `astrocs.phase3.resample` 不在 registry 的 20 个 module 内
+//      （同族真实节点是 astrocs.phase3.resample2 / DATA-P3-RES）。
 ModuleDescriptor phase3_descriptor() {
   ModuleDescriptor d;
   d.module_id = "astrocs.phase3.resample";
@@ -1178,11 +1197,13 @@ ModuleDescriptor p2_write_descriptor() {
   d.execution_class = "io";
   d.parallel_ok = false;
   d.ports = {
-      //docs/ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」:
-      // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/sr;
-      // docs/science/DATA_SEMANTICS.md §31.1）。integrated 输入面仍为
-      // integrate 节点产出的逐像素信号面（docs/detail/registry/astrocs.phase2.write.md
-      // 端口表同源: 输入 ADU / 输出 SURFACE_BRIGHTNESS）。
+      // 端口单位/坐标存在**未裁的合同冲突**，本行只如实记录代码现状，处置见
+      // 「待裁」条目：同文件 phase2_descriptor() 把同一 data_id DATA-P2-RES
+      // 标为 UnitId::ADU，而本 descriptor 标为 SURFACE_BRIGHTNESS；端口事实源
+      // module_ports.registry.json 把马赛克标为 DATA-HIPS-001 / HEALPIX /
+      // hips_product_tree（球面 NESTED tile），本 descriptor 标 PIXEL。
+      // 一级正本 docs/science/DATA_SEMANTICS.md 的「编排层词汇注记」已判
+      // 「与球面 NESTED 马赛克实际不符，以正本为准修订」——该修订尚未落到代码。
       {"integrated", "DATA-P2-INT", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
       {"mosaic", "DATA-P2-RES", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
@@ -1993,9 +2014,10 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
     // 「本帧独占整个预算」既不被保证、也随调用上下文漂移（不可复现），
     // 且可能超出 lease 造成超额订阅。
     // 依据: docs/engineering/THREADING_MODEL.md「并行轴分配」不变式。
-#ifdef _OPENMP
-    omp_set_num_threads(static_cast<int>(inner_u));
-#endif
+    // ICV 注入走 ScopedOmpWorkerInjection（RAII，退出即恢复进入前的 ICV）：
+    // 裸调 omp_set_num_threads 会把本帧的帧内宽度留在**被复用的调度 worker
+    // 线程**上，污染同线程后续节点 —— 即本文件上方 P7-UTIL-001 的原缺陷。
+    ScopedOmpWorkerInjection omp_icv(static_cast<int>(inner_u));
     for (uint64_t i = 0; i < n; ++i) body(i, 0u);
     return;
   }

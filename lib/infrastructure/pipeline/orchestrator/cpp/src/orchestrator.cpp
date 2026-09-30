@@ -7,7 +7,8 @@
 // - 各 run_stage_* 经 DllLoader 动态加载模块 DLL 执行真实流水线
 // - load_config 解析完整 JSON（见 json_config.cpp）
 // - 检查点/阶段 gate 由各 stage handler 返回真实状态
-// - 内存使用查询返回 0（已知限制，见 docs/KNOWN_LIMITATIONS.md）
+// - 内存使用查询返回 0（已知限制，登记面 = docs/detail/infrastructure/19_runtime.md
+//   §11 与 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md）
 // ============================================================================
 
 #include "orchestrator.h"
@@ -640,8 +641,8 @@ double Orchestrator::get_elapsed_time() const {
 }
 
 size_t Orchestrator::get_memory_usage() const {
-    // 已知限制: 尚未实现实际内存统计，返回 0
-    // （见 docs/KNOWN_LIMITATIONS.md）
+    // 已知限制: 尚未实现实际内存统计，返回 0（登记面见文件头；
+    // 资源监控的真实承载面 = 调度器 memory_pressure 采样，非本函数）
     return 0;
 }
 
