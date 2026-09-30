@@ -91,7 +91,7 @@ docs/traceability/TRACEABILITY_MATRIX.csv:25/:31 登记为 `VERIFIED`。
 **端口词汇面偏差（登记 finding）**：`DATA-HIPS-001` 的
 coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`
 （module_adapters.cpp:498）与 `CoordinateFrame::HEALPIX`
-（module_adapters.cpp:521/:560）。本表按冻结正文（§29.1/§3）登记
+（lib/infrastructure/scheduler/src/module_adapters.cpp:521/:560）。本表按冻结正文（§29.1/§3）登记
 HEALPix NESTED；PIXEL 一侧属端口词汇漂移（§29.5 已声明端口表只作对齐面、
 冻结依据取自冻结正文）。
 
