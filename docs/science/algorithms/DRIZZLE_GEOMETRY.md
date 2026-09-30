@@ -8,7 +8,7 @@
 > hp_drizzle_api.h`）；迁移目标目录 `lib/algorithms/drizzle/`。科学定义见
 > `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
 > 本文档只登记离散算法与实现事实；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*）。
-> **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
+> **权威订正原则** = `docs/ASTROCS_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
 > 记录证据与影响面）；文档已被证明正确而实现不符时改实现。状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；IMPLEMENTED 只由验收签发。
 

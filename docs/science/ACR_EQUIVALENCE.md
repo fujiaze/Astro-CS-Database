@@ -78,7 +78,7 @@
 
 失败回退（科学语义不变）:
   逐像素 ivar 权重路径 → 强制 CPU canonical (ACR-IVAR-001)
-  无画像/无画像信任 (model_available≠model_trusted) → OpenMP fallback (acr memory.md: BDR Reviewed)
+  无画像/无画像信任 (model_available≠model_trusted) → OpenMP fallback (acr `lib/infrastructure/acr/memory.md`: BDR Reviewed)
      适用域: mosaic_reject_legacy 的并行分支仅在 P2_ENABLE_OPENMP 编译宏定义时存在
      (acr_kernels.cpp)；默认构建 P2_ENABLE_OPENMP=OFF (lib/algorithms/coverage/CMakeLists.txt)，
      此时 workers 槽被读取但并行路径不参与编译，执行退化为串行。

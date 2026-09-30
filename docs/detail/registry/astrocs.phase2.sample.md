@@ -11,7 +11,7 @@
 > API 正本：docs/engineering/PUBLIC_API.md（API-P2-SMP-001）、
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 
-LIB 面 = `lib/algorithms/sampling/` 三件套（README / module.yaml / memory.md，
+LIB 面 = `lib/algorithms/sampling/` 三件套（README / module.yaml ，
 CONTRACT_READY）。MOD ID = MOD-astrocs-phase2-sample；module_id 合同值 =
 `astrocs.p2.sampling`（descriptor 占位 `astrocs.phase2.sample` 为编排层词汇，其
 对齐属迁移目标、未落地）；dll_target = `astrocs_p2_sampling.dll`（合同值，尚未

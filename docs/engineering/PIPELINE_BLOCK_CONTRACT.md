@@ -1,6 +1,6 @@
 # 命名块生命周期合同
 
-> 上游：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器；跨阶段只走磁盘产品 + manifest + 哈希）、§8.2（阶段内命名块内存管线与块生命周期）；ENGINEERING_SPEC.md §4.1（管线纪律）
+> 上游：docs/ASTROCS_DESIGN.md §8.1（三命令独立进程、独立调度器；跨阶段只走磁盘产品 + manifest + 哈希）、§8.2（阶段内命名块内存管线与块生命周期）；docs/ASTROCS_DESIGN.md §8.2（命名块内存管线与块生命周期））
 
 机器 schema：`eng/contracts/schemas/pipeline_block.schema.json`（本合同的机器取值源）。
 端口事实源：`lib/infrastructure/pipeline/module_ports.registry.json`（v2，冻结绑定表）。

@@ -143,7 +143,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ## 4b 对外可见错误串的编码（ALG-WCS-001 错误面）
 
 - `IpvWcsResult.error_msg` 与内部 `WcsFitResult.error` 是**对外可见**的失败信息载体，
-  其内容**必须**是**合法 UTF-8**（承接 `ENGINEERING_SPEC`「文件编码 UTF-8」与
+  其内容**必须**是**合法 UTF-8**（承接 ``docs/engineering/``「文件编码 UTF-8」与
   `docs/engineering/LOG_AND_ERROR_CONTRACT.md` §8「超限按 UTF-8 边界截断」的口径）。
 - **写入定长缓冲的规则**：
   1. 截断**只**发生在 UTF-8 码点边界，多字节序列整体保留；

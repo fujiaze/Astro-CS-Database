@@ -10,7 +10,7 @@ ACSD 是一个天文 CCD/CMOS 图像校准与标准化数据库：把单帧天�
 
 ## 构建
 
-需要 CMake、Ninja 与 C++ 工具链（依赖与工具链冻结值见 `DEPENDENCIES.md`）。
+需要 CMake、Ninja 与 C++ 工具链（依赖与工具链冻结值见 `docs/engineering/DEPENDENCY_RULES.md` 与 `docs/engineering/TOOLCHAIN_AGENT_HOST.md`）。
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   # 仓库唯一的根 CMake
@@ -46,9 +46,9 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 |---|---|
 | [`docs/ASTROCS_DESIGN.md`](docs/ASTROCS_DESIGN.md) | 是什么、做到什么、顶层架构、CLI、发行、验收（最高设计） |
 | [`AGENTS.md`](AGENTS.md) | 干活纪律与工作流（开工前逐层读文档、硬禁令、自查自修） |
-| [`ENGINEERING_SPEC.md`](ENGINEERING_SPEC.md) | 代码、测试、提交、目录与 CI 规则 |
-| [`CONTROL_PACK_SPEC.md`](CONTROL_PACK_SPEC.md) | 控制包的制作与执行规范 |
-| [`ACCEPTANCE_SPEC.md`](ACCEPTANCE_SPEC.md) | 四层验收标准与预览版发布门 |
+| [`docs/engineering/DOCUMENT_GOVERNANCE.md`](docs/engineering/DOCUMENT_GOVERNANCE.md) | 文档分层、准入、写法与登记判据 |
+| [`docs/engineering/EXECUTION_MODEL.md`](docs/engineering/EXECUTION_MODEL.md) | 工作包的制作与执行纪律、收口即清理 |
+| [`docs/engineering/VALIDATION_EVIDENCE_STANDARD.md`](docs/engineering/VALIDATION_EVIDENCE_STANDARD.md) | 独立 Oracle、零用例即红、四层验收判据 |
 | [`docs/engineering/CI_SPEC.md`](docs/engineering/CI_SPEC.md) | 机器门怎么跑、证据落哪 |
 | [`docs/detail/00_INDEX.md`](docs/detail/00_INDEX.md) | 逐模块工作细节 |
 
@@ -76,8 +76,8 @@ acsd benchmark                          # 生成/更新安装目录 cpu_profile�
 
 算法在 `lib/algorithms/`（并联放置），基建与 CLI 在 `lib/infrastructure/`，工程支撑面在 `eng/`
 （合同 schema、机器门、构建与质量工具、程序全局配置），自解释文档集在 `docs/`；科学实验单元在
-`实验/`，证据在 `artifacts/`，控制包工作区在 `工程控制/`，过程产物在 `run/`（不入库）。
-模块索引权威 = `docs/engineering/MODULE_MAP.md`；根目录固定条目见 `ENGINEERING_SPEC.md` §7。
+`实验/`，证据在 `artifacts/`，过程产物在 `run/`（不入库）。
+模块索引权威 = `docs/engineering/MODULE_MAP.md`；未决事项见 `docs/engineering/UNRESOLVED_REGISTER.md`。
 
 ## 状态与版本
 

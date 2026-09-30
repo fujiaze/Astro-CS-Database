@@ -7,7 +7,7 @@
 > （G1/G2 施工规格，docs/science/algorithms/PHASE3_RESAMPLE.md）。
 > **本域现行口径**：§15 依据 = `ASTROCS_DESIGN.md` §6.3 八投影 +
 > projection registry（现行集合：CRVAL2 进映射 / AIT A≤1 / CAR 极行 fail-closed）+ 对照口径偏差表（离线对照用）；
-> §14 = 以独立证据判定、不预设谁为准。订正原则见 `ENGINEERING_SPEC.md` §3。
+> §14 = 以独立证据判定、不预设谁为准。订正原则见 `docs/ASTROCS_DESIGN.md` §0（文档权威与索引）。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/projection/p3_wcs.h（373 行，唯一权威签名头）+
@@ -435,7 +435,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 - docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001）的 TAN 面（§5 G1/G2、
   §9a-3 TAN-only、§7 容差）仍为 alpha 会话冻结口径，本文件与其一致。
-- **订正原则（`ENGINEERING_SPEC.md` §3）**：`docs/science/**` 与
+- **订正原则（`docs/ASTROCS_DESIGN.md` §0（文档权威与索引））**：`docs/science/**` 与
   `docs/science/algorithms/**` 必须科学正确。当独立证据（外部标准/文献/可复跑实验）
   证明文档与标准或事实不符时，**订正文档是义务**；反之文档已被证明正确而
   实现不符时，改实现。**权威方向 = 从 SCI 到实现**：不接受「以代码为准」式权威
@@ -462,7 +462,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 > ② AIT 域界取 **`A≤1`**（A = xp²/4 + yp²；A=1 即 φ=±180° 边界合法）；
 > ③ CAR **native 极行 θ=±90° fail-closed**（整行塌缩：Ω=0、RA 无定义；
 > `|θ|>90` 会放行 `=90`，故判据取 `|θ| ≥ 90°`）。
-> SCI 侧口径见 §14；本层与 SCI 冲突时按 `ENGINEERING_SPEC.md §3` 以独立
+> SCI 侧口径见 §14；本层与 SCI 冲突时按 `docs/ASTROCS_DESIGN.md` §0（文档权威与索引） 以独立
 > 证据判定谁错、改错的一边。
 
 ### 15.1 registry 冻结集合、实现状态与版本

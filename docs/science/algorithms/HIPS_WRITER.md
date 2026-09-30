@@ -14,7 +14,7 @@
 > （Górski et al. 2005）——经 SCI-P3-001 收录的文献锚，本文件不另立外部断言。
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
 > 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目。
-> **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
+> **权威订正原则** = `docs/ASTROCS_DESIGN.md` §0（文档权威与索引）「科学正确性优先」：独立证据（外部标准 /
 > 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
 > 记录证据与影响面）；文档已被证明正确而实现不符时改实现。
 >
@@ -280,7 +280,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
   `docs/science/SCIENCE_SCOPE.md` 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
-  变更走 SCI 变更流程（ENGINEERING_SPEC §3：独立证据证明文档有误时订正文档是义务，
+  变更走 SCI 变更流程（`docs/ASTROCS_DESIGN.md` §0：独立证据证明文档有误时订正文档是义务，
   SCI 层订正须记录证据与影响面并做一致性回归）。
 - `docs/science/DRIZZLE.md` 指向的 DISP-DRZ-007（方差行漂移）涉 `lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`
   与本文件 (3a) 接口，本模块不改传播公式。

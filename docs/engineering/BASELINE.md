@@ -11,7 +11,7 @@ Phase2 t4 overlap / GC 3-panel
 Browser GC wide / pan / zoom / STF
 ```
 
-完整数值见 `实验/engineering-evidence/**`（实测类证据的唯一留档区，登记 = `ENGINEERING_SPEC.md` §7（:151））。原引 `evidence/performance/*.json`（V14 交付）**在本仓不存在**（死指针，本行原句已订正）⇒ 下文 V14 / V18R2 读数为**历史读数、原始 JSON 未入库**，只作历史参照，不作现行基线证据；补做现行基线须重跑并按 `ENGINEERING_SPEC.md` §7 落 `实验/engineering-evidence/`。
+完整数值见 `实验/engineering-evidence/**`（实测类证据的唯一留档区，登记 = `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品）（:151））。原引 `evidence/performance/*.json`（V14 交付）**在本仓不存在**（死指针，本行原句已订正）⇒ 下文 V14 / V18R2 读数为**历史读数、原始 JSON 未入库**，只作历史参照，不作现行基线证据；补做现行基线须重跑并按 `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品） 落 `实验/engineering-evidence/`。
 
 V14 首轮结果：
 

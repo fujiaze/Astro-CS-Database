@@ -608,7 +608,7 @@ oracle 同容差；actual_k 精确相等。
   `calibrated_*`；门脚本 `eng/tools/quality/check_master_unit_guard.py` 对三条负例显式断言
   「拒绝路径不留 calibrated_* 半成品」。**残留（通用语义，不在本文件域，待裁定）**：
   run 级 incomplete 时上游节点已原子发布的产品如何标记/清理（`.incomplete` 后缀、独立
-  staging、或 run 结束统一回滚）——ENGINEERING_SPEC §9「失败时不留可被误认成正式产品的
+  staging、或 run 结束统一回滚）——`docs/ASTROCS_DESIGN.md` §7.2「失败时不留可被误认成正式产品的
   半成品」的落地口径；该场景下 output_dir 会留下形状完整、可被误认成正式产品的
   `calibrated_*`/`cleaned_*`（下游节点如 plate_solve 失败时 rc≠0、run manifest
   `status=incomplete`）。

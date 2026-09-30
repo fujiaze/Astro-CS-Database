@@ -170,10 +170,9 @@ G5 ivar 真值、SNR-015 ablation；eng/tests/api/test_reject_integration_oracle
 HiPS properties provenance；阶段二直写 `out_hips` 无 staging（原子发布归 IO-003，
 不满足最高设计 §9 的原子发布条款，属已登记的例外面）；O(T·N) 覆盖帧 probe。
 
-**日志落点越界登记**：阶段二工具面曾以 `run/logs/phase2/<YYYYMMDD>/` 为日志
-落点，该面属不在处置面内的位置（开发 / CI 过程日志），机器判据见
-docs/engineering/LOG_AND_ERROR_CONTRACT.md（判据 R3：注入 `run/logs/...` 字面量
-即判红）；合法落点只有块级 `<output_dir>/logs`。
+**日志落点**：本模块的日志一律落块级 `<output_dir>/logs`。开发与 CI 的过程日志
+不是产品日志，不在产品落盘面内；机器判据见
+`docs/engineering/LOG_AND_ERROR_CONTRACT.md` 判据 R3（落点指向块级 output_dir 之外即判红）。
 
 目标交付形态 astrocs_p2_hips_writer.dll 未落地。全局限制登记 =
 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。

@@ -4,7 +4,7 @@
 
 - 版本记录：**版本唯一源 = 根 `VERSION`**（`docs/engineering/RELEASE_STATUS.md` §2），
   发布状态记录 = `docs/engineering/RELEASE_STATUS.md`；版本变更历史由 **`VERSION` + git 历史** 承载。
-  根目录条目须先登记并经负责人确认（`AGENTS.md` §6 / `ENGINEERING_SPEC.md` §7）。
+  根目录条目须先登记并经负责人确认（`AGENTS.md` §6 / `docs/ASTROCS_DESIGN.md` §10（I/O 与原子产品））。
 - 交付包：AstroCS_Review_<主题>_<YYYYMMDD>.zip，SHA256SUMS.txt。
 - 包内容：README、reports/、evidence/、self_review/、
   source/full_first_party_after.zip + manifest、docs_snapshot/。

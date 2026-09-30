@@ -3,7 +3,7 @@
 > **本合同的仓内行锚条款已于 2026-09-30 撤销，行锚只用于外部文献与外部代码。**
 > ID: ALG-ANCHOR-001　状态: ACTIVE_NORMATIVE（外部锚与内容锚合同；仓内行锚部分已撤销）
 > 上游：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）
-> 上游: `ENGINEERING_SPEC.md` §8（文档集与索引规则；顶层只收稳定内容）。
+> 上游: `docs/DOCUMENT_INDEX.yaml`（文档集与索引规则；顶层只收稳定内容）。
 > 数据: `docs/algorithms/anchors/anchor_contract.json`（解析规则 / 豁免 / 符号绑定）、
 > 　　　`docs/algorithms/anchors/unresolved_registry.json`（未解析锚登记台账，只减不增）。
 > **本文件不再有机器门执行者**：原仓内行锚机器检查已随文档域门禁整体撤销，下文各条改由对抗性审查逐条覆盖。

@@ -15,7 +15,7 @@
 MOD ID = `MOD-astrocs-phase2-upm-fit`；module_id 合同值 = `astrocs.p2.upm`
 （descriptor 词汇 `astrocs.phase2.upm-fit` 为编排层口径，其对齐属迁移目标、未
 落地）；dll_target = `astrocs_p2_upm.dll`（迁移目标，未落地）。合同三件套落位
-`lib/algorithms/upm/`（README / module.yaml / memory.md，CONTRACT_READY）。
+`lib/algorithms/upm/`（README / module.yaml ，CONTRACT_READY）。
 生产源 = lib/algorithms/coverage/src/upm.cpp + 权威签名头
 lib/algorithms/coverage/include/astro/phase2/upm.h；构建 = 根 CMakeLists 的
 `astrocs_phase2` 静态库成员。owner = SA-P2-U21；depends_on_int = P2-SAMP / CPU-005；

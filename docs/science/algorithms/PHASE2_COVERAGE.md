@@ -313,7 +313,7 @@ status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/s
   substr（`lib/algorithms/coverage/src/coverage.cpp`）以 `/` 或 `\` 基名为 frame_id，跨平台
   分隔符混用时截断点漂移；64 B 上限截断（strncpy + `lib/algorithms/coverage/include/astro/phase2/coverage.h` 的 `frame_id[64]`）后
   唯一性可能退化（两长同名基名碰撞）——UPM frame 绑定/持久化引用该
-  id（lib/algorithms/coverage/memory.md「W4 UPM 完整化：真实内容哈希」），碰撞风险
+  id（`lib/algorithms/coverage/memory.md`「W4 UPM 完整化：真实内容哈希」），碰撞风险
   如实登记；整改: 内容哈希派生 id（P2-COV-IMPL，与 UPM SHA-256 设施
   对齐）。
 - DISP-COV-003（现状）: `obs_filter` **键缺失** fail-closed（inspect_frame，见 `lib/algorithms/coverage/src/coverage.cpp`）；

@@ -12,7 +12,7 @@
 > docs/engineering/PHASE2_API_V1.md（API-P2-001，FROZEN）
 > 数据对象：docs/detail/UNIFIED_MODEL.md（frame_snr、sparse_snr_layer）
 
-LIB 面 = `lib/algorithms/integration/` 三件套（README / module.yaml / memory.md，
+LIB 面 = `lib/algorithms/integration/` 三件套（README / module.yaml ，
 CONTRACT_READY，entrypoint 未落地）。MOD ID = MOD-astrocs-phase2-integrate；
 module_id 合同值 = `astrocs.p2.integration`（descriptor 词汇
 `astrocs.phase2.integrate` 为编排层口径，其对齐属迁移目标、未落地）；dll_target =

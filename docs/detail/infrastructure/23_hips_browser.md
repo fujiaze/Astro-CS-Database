@@ -82,7 +82,7 @@ OpenGL，STF 显示，可选构建），落地目录 =
 - STF engine 单测（`lib/infrastructure/hips_browser/healpix_browser_qt/tests/test_stf_engine.cpp`）；
 - 渲染正确性（已知产品 → 期望像素值）；
 - 导航 / 坐标读出测试；
-- 视觉验收按 `ACCEPTANCE_SPEC.md` 的 L4 清单执行；
+- 视觉验收按 `docs/ASTROCS_DESIGN.md` §12（验证体系） 的 L4 清单执行；
 - 与科学产品隔离验证（不写产品、不影响测量路径）。
 
 ## 9. 已知限制

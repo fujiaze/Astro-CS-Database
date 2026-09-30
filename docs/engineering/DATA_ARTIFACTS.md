@@ -41,7 +41,7 @@
 ### 1.2 统一对象合同登记（DATA-001，UNIFIED_MODEL §2，canonical 在 eng/contracts/schemas/）
 
 本表第二节：UNIFIED_MODEL §2 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://astrocs.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = `docs/engineering/UNIFIED_OBJECTS.md` §2）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
-上位锚：`docs/detail/UNIFIED_MODEL.md` §2；`ASTROCS_DESIGN.md` §2；`ENGINEERING_SPEC.md` §3/§4.7。机器门：`eng/tests/contracts/test_unified_object_contract.py`。
+上位锚：`docs/detail/UNIFIED_MODEL.md` §2；`ASTROCS_DESIGN.md` §2；`docs/ASTROCS_DESIGN.md` §0（文档权威与索引）/§4.7。机器门：`eng/tests/contracts/test_unified_object_contract.py`。
 
 | schema_id | 内容 | scalar | shape/axis | unit | coordinate | invalid | ownership | serialization |
 |---|---|---|---|---|---|---|---|---|

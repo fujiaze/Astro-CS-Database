@@ -1,6 +1,6 @@
 # CPU AVX2/FMA provider（热点 kernel 后端）
 
-> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、ENGINEERING_SPEC.md §10（资源与性能）、
+> 上游：docs/ASTROCS_DESIGN.md §9（CPU 后端与资源）、docs/ASTROCS_DESIGN.md §9（CPU 后端与资源））、
 >       docs/engineering/CPU_BACKEND_ARCH.md、docs/engineering/ISA_VARIANTS.md（逐 kernel 选路）、
 >       docs/engineering/cpu/CPU_001_CAPABILITY_PROBE.md（os_safe 能力平面）
 

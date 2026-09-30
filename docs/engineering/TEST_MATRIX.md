@@ -63,3 +63,20 @@
 
 - 每个 ACTIVE SCI/ALG 在 `docs/TRACEABILITY.csv` 有 TEST 映射（断链由追溯门校验）；
 - 全部容差事前冻结于本合同；无跑后调阈值。
+
+## 7. 测试侧独立 Oracle 与工具依赖
+
+以下依赖只用于测试与取证，**不进产品运行依赖面**（生产依赖锁定见 `docs/engineering/DEPENDENCY_RULES.md`）。版本取值以锁文件与各包自身元数据为准，本表只登记用途与归属面。
+
+| 依赖 | 用途 | 归属面 |
+|---|---|---|
+| `astropy` | FITS 与天体测量的独立科学 oracle | 测试侧；不进入产品 |
+| `numpy` | 数值 oracle | 测试侧；不进入产品 |
+| `pytest` | Python 侧契约与工具测试的运行器 | 测试侧；不进入产品 |
+| `astropy-healpix` | HEALPix 几何的独立 oracle | 测试侧；不进入产品 |
+| `rcr` | 稳健尺度的独立对照 oracle | 测试侧；不进入产品 |
+| `astrometry.net` | 外部天体测量求解器，只作解算结果的独立 oracle | 测试侧；不进入产品 |
+| `PyYAML` | 工作包与任务清单解析、文档索引解析 | 工具侧（标记 NON_PRODUCTION_TOOL_ONLY） |
+
+- 独立 oracle 的来源白名单与独立性要求见 `VALIDATION_EVIDENCE_STANDARD.md` §1；每条判据须声明真值来源与被测对象集合，且被测对象集合至少含产品可执行程序本身；
+- 外部求解器不可用时，相关判据记为未执行并说明缺什么，不得以跳过冒充通过。
